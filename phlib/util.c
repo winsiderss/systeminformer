@@ -827,7 +827,7 @@ VOID PhGenerateRandomAlphaString(
         Buffer[i] = 'A' + (RtlRandomEx(&seed) % 26);
     }
 
-    Buffer[Count - 1] = 0;
+    Buffer[Count - 1] = UNICODE_NULL;
 }
 
 /**
@@ -1106,7 +1106,7 @@ LONG PhCompareUnicodeStringZIgnoreMenuPrefix(
 
             t = *A;
 
-            if (t == 0)
+            if (t == UNICODE_NULL)
             {
                 if (MatchIfPrefix)
                     return 0;
@@ -1134,7 +1134,7 @@ LONG PhCompareUnicodeStringZIgnoreMenuPrefix(
 
             t = *A;
 
-            if (t == 0)
+            if (t == UNICODE_NULL)
             {
                 if (MatchIfPrefix)
                     return 0;
@@ -1169,7 +1169,7 @@ PPH_STRING PhFormatDate(
     ULONG bufferSize;
 
     bufferSize = GetDateFormat(LOCALE_USER_DEFAULT, 0, Date, Format, NULL, 0);
-    string = PhCreateStringEx(NULL, bufferSize * 2);
+    string = PhCreateStringEx(NULL, bufferSize * sizeof(WCHAR));
 
     if (!GetDateFormat(LOCALE_USER_DEFAULT, 0, Date, Format, string->Buffer, bufferSize))
     {
@@ -1198,7 +1198,7 @@ PPH_STRING PhFormatTime(
     ULONG bufferSize;
 
     bufferSize = GetTimeFormat(LOCALE_USER_DEFAULT, 0, Time, Format, NULL, 0);
-    string = PhCreateStringEx(NULL, bufferSize * 2);
+    string = PhCreateStringEx(NULL, bufferSize * sizeof(WCHAR));
 
     if (!GetTimeFormat(LOCALE_USER_DEFAULT, 0, Time, Format, string->Buffer, bufferSize))
     {
@@ -1230,7 +1230,7 @@ PPH_STRING PhFormatDateTime(
     timeBufferSize = GetTimeFormat(LOCALE_USER_DEFAULT, 0, DateTime, NULL, NULL, 0);
     dateBufferSize = GetDateFormat(LOCALE_USER_DEFAULT, 0, DateTime, NULL, NULL, 0);
 
-    string = PhCreateStringEx(NULL, (timeBufferSize + 1 + dateBufferSize) * 2);
+    string = PhCreateStringEx(NULL, (timeBufferSize + 1 + dateBufferSize) * sizeof(WCHAR));
 
     if (!GetTimeFormat(LOCALE_USER_DEFAULT, 0, DateTime, NULL, &string->Buffer[0], timeBufferSize))
     {
@@ -1426,13 +1426,13 @@ PPH_STRING PhFormatDecimal(
         if (!GetLocaleInfo(LOCALE_USER_DEFAULT, LOCALE_SDECIMAL, decimalSeparator, 4))
         {
             decimalSeparator[0] = '.';
-            decimalSeparator[1] = 0;
+            decimalSeparator[1] = UNICODE_NULL;
         }
 
         if (!GetLocaleInfo(LOCALE_USER_DEFAULT, LOCALE_STHOUSAND, thousandSeparator, 4))
         {
             thousandSeparator[0] = ',';
-            thousandSeparator[1] = 0;
+            thousandSeparator[1] = UNICODE_NULL;
         }
 
         PhEndInitOnce(&initOnce);
@@ -1446,7 +1446,7 @@ PPH_STRING PhFormatDecimal(
     format.NegativeOrder = 1;
 
     bufferSize = GetNumberFormat(LOCALE_USER_DEFAULT, 0, Value, &format, NULL, 0);
-    string = PhCreateStringEx(NULL, bufferSize * 2);
+    string = PhCreateStringEx(NULL, bufferSize * sizeof(WCHAR));
 
     if (!GetNumberFormat(LOCALE_USER_DEFAULT, 0, Value, &format, string->Buffer, bufferSize))
     {
@@ -1944,7 +1944,7 @@ PPH_STRING PhExpandEnvironmentStrings(
     }
 
     string->Length = outputString.Length;
-    string->Buffer[string->Length / 2] = 0; // make sure there is a null terminator
+    string->Buffer[string->Length / 2] = UNICODE_NULL; // make sure there is a null terminator
 
     return string;
 }
@@ -2119,7 +2119,7 @@ PPH_STRING PhGetKnownLocation(
     SIZE_T appendPathLength;
 
     if (AppendPath)
-        appendPathLength = PhCountStringZ(AppendPath) * 2;
+        appendPathLength = PhCountStringZ(AppendPath) * sizeof(WCHAR);
     else
         appendPathLength = 0;
 
@@ -2137,7 +2137,7 @@ PPH_STRING PhGetKnownLocation(
 
         if (AppendPath)
         {
-            memcpy(&path->Buffer[path->Length / 2], AppendPath, appendPathLength + 2); // +2 for null terminator
+            memcpy(&path->Buffer[path->Length / sizeof(WCHAR)], AppendPath, appendPathLength + 2); // +2 for null terminator
             path->Length += appendPathLength;
         }
 
@@ -3611,7 +3611,7 @@ OPENFILENAME *PhpCreateOpenFileName(
     ofn->Flags = OFN_ENABLEHOOK | OFN_EXPLORER;
     ofn->lpfnHook = PhpOpenFileNameHookProc;
 
-    ofn->lpstrFile[0] = 0;
+    ofn->lpstrFile[0] = UNICODE_NULL;
 
     return ofn;
 }
@@ -4863,7 +4863,7 @@ BOOLEAN PhParseCommandLineFuzzy(
 
     temp.Buffer = PhAllocate(commandLine.Length + sizeof(WCHAR));
     memcpy(temp.Buffer, commandLine.Buffer, commandLine.Length);
-    temp.Buffer[commandLine.Length / sizeof(WCHAR)] = 0;
+    temp.Buffer[commandLine.Length / sizeof(WCHAR)] = UNICODE_NULL;
     temp.Length = commandLine.Length;
     remainingPart = temp;
 

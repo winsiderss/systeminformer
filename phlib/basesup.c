@@ -2146,7 +2146,7 @@ PPH_STRING PhCreateStringEx(
     assert(!(Length & 1));
     string->Length = Length;
     string->Buffer = string->Data;
-    *(PWCHAR)PTR_ADD_OFFSET(string->Buffer, Length) = 0;
+    *(PWCHAR)PTR_ADD_OFFSET(string->Buffer, Length) = UNICODE_NULL;
 
     if (Buffer)
     {
@@ -2433,7 +2433,7 @@ PPH_BYTES PhCreateBytesEx(
 
     bytes->Length = Length;
     bytes->Buffer = bytes->Data;
-    bytes->Buffer[Length] = 0;
+    bytes->Buffer[Length] = ANSI_NULL;
 
     if (Buffer)
     {
@@ -3474,7 +3474,7 @@ FORCEINLINE VOID PhpWriteNullTerminatorStringBuilder(
     )
 {
     assert(!(StringBuilder->String->Length & 1));
-    *(PWCHAR)PTR_ADD_OFFSET(StringBuilder->String->Buffer, StringBuilder->String->Length) = 0;
+    *(PWCHAR)PTR_ADD_OFFSET(StringBuilder->String->Buffer, StringBuilder->String->Length) = UNICODE_NULL;
 }
 
 /**
@@ -3781,7 +3781,7 @@ VOID PhInitializeBytesBuilder(
     BytesBuilder->AllocatedLength = InitialCapacity;
     BytesBuilder->Bytes = PhCreateBytesEx(NULL, BytesBuilder->AllocatedLength);
     BytesBuilder->Bytes->Length = 0;
-    BytesBuilder->Bytes->Buffer[0] = 0;
+    BytesBuilder->Bytes->Buffer[0] = ANSI_NULL;
 }
 
 /**

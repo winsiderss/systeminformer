@@ -170,7 +170,7 @@ INT_PTR CALLBACK PhpSessionPropertiesDlgProc(
                 PhDereferenceObject(time);
             }
 
-            if (haveClientInfo && clientInfo.ClientName[0] != 0)
+            if (haveClientInfo && clientInfo.ClientName[0] != UNICODE_NULL)
             {
                 WCHAR addressString[65];
 

@@ -564,13 +564,13 @@ static VOID PhpAddSessionsToComboBox(
                 &returnLength
                 ))
             {
-                winStationInfo.Domain[0] = 0;
-                winStationInfo.UserName[0] = 0;
+                winStationInfo.Domain[0] = UNICODE_NULL;
+                winStationInfo.UserName[0] = UNICODE_NULL;
             }
 
             if (
-                winStationInfo.UserName[0] != 0 &&
-                sessions[i].WinStationName[0] != 0
+                winStationInfo.UserName[0] != UNICODE_NULL &&
+                sessions[i].WinStationName[0] != UNICODE_NULL
                 )
             {
                 menuString = PhaFormatString(L"%u: %s (%s\\%s)",
@@ -580,7 +580,7 @@ static VOID PhpAddSessionsToComboBox(
                     winStationInfo.UserName
                     );
             }
-            else if (winStationInfo.UserName[0] != 0)
+            else if (winStationInfo.UserName[0] != UNICODE_NULL)
             {
                 menuString = PhaFormatString(L"%u: %s\\%s",
                     sessions[i].SessionId,
@@ -588,7 +588,7 @@ static VOID PhpAddSessionsToComboBox(
                     winStationInfo.UserName
                     );
             }
-            else if (sessions[i].WinStationName[0] != 0)
+            else if (sessions[i].WinStationName[0] != UNICODE_NULL)
             {
                 menuString = PhaFormatString(L"%u: %s",
                     sessions[i].SessionId,
@@ -600,18 +600,19 @@ static VOID PhpAddSessionsToComboBox(
                 menuString = PhaFormatString(L"%u", sessions[i].SessionId);
             }
 
-
-            PPH_RUNAS_SESSION_ITEM entry;
-
-            entry = PhAllocate(sizeof(PH_RUNAS_SESSION_ITEM));
-            entry->SessionId = sessions[i].SessionId;
-            entry->SessionName = menuString;
-
-            INT itemIndex = ComboBox_AddString(ComboBoxHandle, menuString->Buffer);
-
-            if (itemIndex != CB_ERR)
             {
-                ComboBox_SetItemData(ComboBoxHandle, itemIndex, entry);
+                PPH_RUNAS_SESSION_ITEM entry;
+
+                entry = PhAllocate(sizeof(PH_RUNAS_SESSION_ITEM));
+                entry->SessionId = sessions[i].SessionId;
+                entry->SessionName = menuString;
+
+                INT itemIndex = ComboBox_AddString(ComboBoxHandle, menuString->Buffer);
+
+                if (itemIndex != CB_ERR)
+                {
+                    ComboBox_SetItemData(ComboBoxHandle, itemIndex, entry);
+                }
             }
         }
 
@@ -631,7 +632,7 @@ static BOOL CALLBACK EnumDesktopsCallback(
         context->CurrentWinStaName->Buffer,
         L"\\",
         DesktopName
-    ));
+        ));
 
     return TRUE;
 }
@@ -1366,7 +1367,7 @@ NTSTATUS PhExecuteRunAsCommand3(
     parameters.CreateSuspendedProcess = CreateSuspendedProcess;
 
     // Try to use an existing instance of the service if possible.
-    if (RunAsOldServiceName[0] != 0)
+    if (RunAsOldServiceName[0] != UNICODE_NULL)
     {
         PhAcquireQueuedLockExclusive(&RunAsOldServiceLock);
 
