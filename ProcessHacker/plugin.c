@@ -338,6 +338,7 @@ BOOLEAN PhLoadPlugin(
     _In_ PPH_STRING FileName
     )
 {
+    NTSTATUS status;
     PPH_STRING fileName;
     PPH_STRING errorMessage;
     PPHP_PLUGIN_LOAD_ERROR loadError;
@@ -347,13 +348,15 @@ BOOLEAN PhLoadPlugin(
     if (!fileName)
         PhSetReference(&fileName, FileName);
 
-    if (LoadLibrary(fileName->Buffer))
+    status = PhLoadPluginImage(fileName, NULL);
+
+    if (NT_SUCCESS(status))
     {
         PhDereferenceObject(fileName);
         return TRUE;
     }
 
-    errorMessage = PhGetWin32Message(GetLastError());
+    errorMessage = PhGetNtMessage(status);
 
     loadError = PhAllocate(sizeof(PHP_PLUGIN_LOAD_ERROR));
     PhSetReference(&loadError->FileName, fileName);
