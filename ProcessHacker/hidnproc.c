@@ -318,12 +318,10 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
 
                             if (refresh)
                             {
-                                LARGE_INTEGER interval;
+                                // Sleep for a bit before continuing. It seems to help avoid BSODs.
 
-                                // Sleep for a bit before continuing. It seems to help avoid
-                                // BSODs.
-                                interval.QuadPart = -250 * PH_TIMEOUT_MS;
-                                NtDelayExecution(FALSE, &interval);
+                                PhDelayExecution(250);
+
                                 SendMessage(hwndDlg, WM_COMMAND, IDC_SCAN, 0);
                             }
                         }

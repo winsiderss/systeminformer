@@ -663,10 +663,8 @@ static BOOLEAN PhpWaitUntilThreadIsWaiting(
         PVOID processes;
         PSYSTEM_PROCESS_INFORMATION processInfo;
         ULONG i;
-        LARGE_INTEGER interval;
 
-        interval.QuadPart = -100 * PH_TIMEOUT_MS;
-        NtDelayExecution(FALSE, &interval);
+        PhDelayExecution(100);
 
         if (!NT_SUCCESS(PhEnumProcesses(&processes)))
             break;
@@ -695,8 +693,7 @@ static BOOLEAN PhpWaitUntilThreadIsWaiting(
         if (isWaiting)
             break;
 
-        interval.QuadPart = -500 * PH_TIMEOUT_MS;
-        NtDelayExecution(FALSE, &interval);
+        PhDelayExecution(500);
     }
 
     return isWaiting;

@@ -452,7 +452,6 @@ BOOLEAN PhUiConnectToPhSvcEx(
                 if (started)
                 {
                     ULONG attempts = 10;
-                    LARGE_INTEGER interval;
 
                     // Try to connect several times because the server may take
                     // a while to initialize.
@@ -463,8 +462,7 @@ BOOLEAN PhUiConnectToPhSvcEx(
                         if (NT_SUCCESS(status))
                             break;
 
-                        interval.QuadPart = -50 * PH_TIMEOUT_MS;
-                        NtDelayExecution(FALSE, &interval);
+                        PhDelayExecution(50);
                     } while (--attempts != 0);
 
                     // Increment the reference count even if we failed.
