@@ -598,19 +598,10 @@ PhGetSystemRoot(
     );
 
 PHLIBAPI
-PLDR_DATA_TABLE_ENTRY
-NTAPI
-PhFindLoaderEntry(
-    _In_opt_ PVOID DllBase,
-    _In_opt_ PPH_STRINGREF FullDllName,
-    _In_opt_ PPH_STRINGREF BaseDllName
-    );
-
-PHLIBAPI
 PPH_STRING
 NTAPI
 PhGetDllFileName(
-    _In_ PVOID DllHandle,
+    _In_ PVOID DllBase,
     _Out_opt_ PULONG IndexOfFileName
     );
 
@@ -1143,6 +1134,30 @@ PhExtractIcon(
     _In_ PWSTR FileName,
     _In_ HICON *IconLarge,
     _In_ HICON *IconSmall
+    );
+
+PHLIBAPI
+PLDR_DATA_TABLE_ENTRY
+NTAPI
+PhFindLoaderEntry(
+    _In_opt_ PVOID DllBase,
+    _In_opt_ PPH_STRINGREF FullDllName,
+    _In_opt_ PPH_STRINGREF BaseDllName
+    );
+
+PHLIBAPI
+PVOID
+NTAPI
+PhGetLoaderEntryDllBase(
+    _In_opt_ PWSTR DllName
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhLoadPluginImage(
+    _In_ PPH_STRING FileName,
+    _Out_opt_ PVOID *BaseAddress
     );
 
 #ifdef __cplusplus

@@ -2053,106 +2053,6 @@ VOID PhGetSystemRoot(
 }
 
 /**
- * Locates a loader entry in the current process.
- *
- * \param DllBase The base address of the DLL. Specify NULL if this is not a search criteria.
- * \param FullDllName The full name of the DLL. Specify NULL if this is not a search criteria.
- * \param BaseDllName The base name of the DLL. Specify NULL if this is not a search criteria.
- *
- * \remarks This function must be called with the loader lock acquired. The first entry matching all
- * of the specified values is returned.
- */
-PLDR_DATA_TABLE_ENTRY PhFindLoaderEntry(
-    _In_opt_ PVOID DllBase,
-    _In_opt_ PPH_STRINGREF FullDllName,
-    _In_opt_ PPH_STRINGREF BaseDllName
-    )
-{
-    PLDR_DATA_TABLE_ENTRY result = NULL;
-    PLDR_DATA_TABLE_ENTRY entry;
-    PH_STRINGREF fullDllName;
-    PH_STRINGREF baseDllName;
-    PLIST_ENTRY listHead;
-    PLIST_ENTRY listEntry;
-
-    listHead = &NtCurrentPeb()->Ldr->InLoadOrderModuleList;
-    listEntry = listHead->Flink;
-
-    while (listEntry != listHead)
-    {
-        entry = CONTAINING_RECORD(listEntry, LDR_DATA_TABLE_ENTRY, InLoadOrderLinks);
-        PhUnicodeStringToStringRef(&entry->FullDllName, &fullDllName);
-        PhUnicodeStringToStringRef(&entry->BaseDllName, &baseDllName);
-
-        if (
-            (!DllBase || entry->DllBase == DllBase) &&
-            (!FullDllName || PhEqualStringRef(&fullDllName, FullDllName, TRUE)) &&
-            (!BaseDllName || PhEqualStringRef(&baseDllName, BaseDllName, TRUE))
-            )
-        {
-            result = entry;
-            break;
-        }
-
-        listEntry = listEntry->Flink;
-    }
-
-    return result;
-}
-
-/**
- * Retrieves the file name of a DLL loaded by the current process.
- *
- * \param DllHandle The base address of the DLL.
- * \param IndexOfFileName A variable which receives the index of the base name of the DLL in the
- * returned string.
- *
- * \return The file name of the DLL, or NULL if the DLL could not be found.
- */
-PPH_STRING PhGetDllFileName(
-    _In_ PVOID DllHandle,
-    _Out_opt_ PULONG IndexOfFileName
-    )
-{
-    PLDR_DATA_TABLE_ENTRY entry;
-    PPH_STRING fileName;
-    PPH_STRING newFileName;
-    ULONG_PTR indexOfFileName;
-
-    RtlEnterCriticalSection(NtCurrentPeb()->LoaderLock);
-
-    entry = PhFindLoaderEntry(DllHandle, NULL, NULL);
-
-    if (entry)
-        fileName = PhCreateStringFromUnicodeString(&entry->FullDllName);
-    else
-        fileName = NULL;
-
-    RtlLeaveCriticalSection(NtCurrentPeb()->LoaderLock);
-
-    if (!fileName)
-        return NULL;
-
-    newFileName = PhGetFileName(fileName);
-    PhDereferenceObject(fileName);
-    fileName = newFileName;
-
-    if (IndexOfFileName)
-    {
-        indexOfFileName = PhFindLastCharInString(fileName, 0, '\\');
-
-        if (indexOfFileName != -1)
-            indexOfFileName++;
-        else
-            indexOfFileName = 0;
-
-        *IndexOfFileName = (ULONG)indexOfFileName;
-    }
-
-    return fileName;
-}
-
-/**
  * Retrieves the file name of the current process image.
  */
 PPH_STRING PhGetApplicationFileName(
@@ -5374,4 +5274,438 @@ BOOLEAN PhExtractIcon(
         return FALSE;
 
     return PrivateExtractIconExW(FileName, 0, IconLarge, IconSmall, 1) > 0;
+}
+
+/**
+ * Locates a loader entry in the current process.
+ *
+ * \param DllBase The base address of the DLL. Specify NULL if this is not a search criteria.
+ * \param FullDllName The full name of the DLL. Specify NULL if this is not a search criteria.
+ * \param BaseDllName The base name of the DLL. Specify NULL if this is not a search criteria.
+ *
+ * \remarks This function must be called with the loader lock acquired. The first entry matching all
+ * of the specified values is returned.
+ */
+PLDR_DATA_TABLE_ENTRY PhFindLoaderEntry(
+    _In_opt_ PVOID DllBase,
+    _In_opt_ PPH_STRINGREF FullDllName,
+    _In_opt_ PPH_STRINGREF BaseDllName
+    )
+{
+    PLDR_DATA_TABLE_ENTRY result = NULL;
+    PLDR_DATA_TABLE_ENTRY entry;
+    PH_STRINGREF fullDllName;
+    PH_STRINGREF baseDllName;
+    PLIST_ENTRY listHead;
+    PLIST_ENTRY listEntry;
+
+    listHead = &NtCurrentPeb()->Ldr->InLoadOrderModuleList;
+    listEntry = listHead->Flink;
+
+    while (listEntry != listHead)
+    {
+        entry = CONTAINING_RECORD(listEntry, LDR_DATA_TABLE_ENTRY, InLoadOrderLinks);
+        PhUnicodeStringToStringRef(&entry->FullDllName, &fullDllName);
+        PhUnicodeStringToStringRef(&entry->BaseDllName, &baseDllName);
+
+        if (
+            (!DllBase || entry->DllBase == DllBase) &&
+            (!FullDllName || PhEqualStringRef(&fullDllName, FullDllName, TRUE)) &&
+            (!BaseDllName || PhEqualStringRef(&baseDllName, BaseDllName, TRUE))
+            )
+        {
+            result = entry;
+            break;
+        }
+
+        listEntry = listEntry->Flink;
+    }
+
+    return result;
+}
+
+/**
+ * Retrieves the file name of a DLL loaded by the current process.
+ *
+ * \param DllBase The base address of the DLL.
+ * \param IndexOfFileName A variable which receives the index of the base name of the DLL in the
+ * returned string.
+ *
+ * \return The file name of the DLL, or NULL if the DLL could not be found.
+ */
+PPH_STRING PhGetDllFileName(
+    _In_ PVOID DllBase,
+    _Out_opt_ PULONG IndexOfFileName
+    )
+{
+    PLDR_DATA_TABLE_ENTRY entry;
+    PPH_STRING fileName;
+    PPH_STRING newFileName;
+    ULONG_PTR indexOfFileName;
+
+    RtlEnterCriticalSection(NtCurrentPeb()->LoaderLock);
+
+    entry = PhFindLoaderEntry(DllBase, NULL, NULL);
+
+    if (entry)
+        fileName = PhCreateStringFromUnicodeString(&entry->FullDllName);
+    else
+        fileName = NULL;
+
+    RtlLeaveCriticalSection(NtCurrentPeb()->LoaderLock);
+
+    if (!fileName)
+        return NULL;
+
+    newFileName = PhGetFileName(fileName);
+    PhDereferenceObject(fileName);
+    fileName = newFileName;
+
+    if (IndexOfFileName)
+    {
+        indexOfFileName = PhFindLastCharInString(fileName, 0, '\\');
+
+        if (indexOfFileName != -1)
+            indexOfFileName++;
+        else
+            indexOfFileName = 0;
+
+        *IndexOfFileName = (ULONG)indexOfFileName;
+    }
+
+    return fileName;
+}
+
+PVOID PhGetLoaderEntryDllBase(
+    _In_opt_ PWSTR BaseDllName
+    )
+{
+    PH_STRINGREF entryNameSr;
+    PLDR_DATA_TABLE_ENTRY ldrEntry;
+
+    PhInitializeStringRefLongHint(&entryNameSr, BaseDllName);
+
+    RtlEnterCriticalSection(NtCurrentPeb()->LoaderLock);
+    ldrEntry = PhFindLoaderEntry(NULL, NULL, &entryNameSr);
+    RtlLeaveCriticalSection(NtCurrentPeb()->LoaderLock);
+
+    if (ldrEntry)
+        return ldrEntry->DllBase;
+    else
+        return NULL;
+}
+
+NTSTATUS PhGetLoaderEntryImageNtHeaders(
+    _In_ PVOID BaseAddress,
+    _Out_ PIMAGE_NT_HEADERS *ImageNtHeaders
+    )
+{
+    PIMAGE_NT_HEADERS ntHeader;
+    PIMAGE_DOS_HEADER dosHeader;
+    ULONG ntHeadersOffset;
+
+    dosHeader = PTR_ADD_OFFSET(BaseAddress, 0);
+
+    if (dosHeader->e_magic != IMAGE_DOS_SIGNATURE)
+        return STATUS_IMAGE_SUBSYSTEM_NOT_PRESENT;
+
+    ntHeadersOffset = (ULONG)dosHeader->e_lfanew;
+
+    if (ntHeadersOffset == 0 || ntHeadersOffset >= 0x10000000)
+        return STATUS_IMAGE_SUBSYSTEM_NOT_PRESENT;
+
+    ntHeader = PTR_ADD_OFFSET(BaseAddress, ntHeadersOffset);
+
+    if (ntHeader->Signature != IMAGE_NT_SIGNATURE)
+        return STATUS_IMAGE_SUBSYSTEM_NOT_PRESENT;
+
+    *ImageNtHeaders = ntHeader;
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS PhGetLoaderEntryImageEntryPoint(
+    _In_ PVOID BaseAddress,
+    _In_ PIMAGE_NT_HEADERS ImageNtHeader,
+    _Out_ PLDR_INIT_ROUTINE *ImageEntryPoint
+    )
+{
+    if (ImageNtHeader->OptionalHeader.AddressOfEntryPoint == 0)
+        return STATUS_FAIL_CHECK; // STATUS_ENTRYPOINT_NOT_FOUND
+
+    *ImageEntryPoint = PTR_ADD_OFFSET(BaseAddress, ImageNtHeader->OptionalHeader.AddressOfEntryPoint);
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS PhGetLoaderEntryImageDirectory(
+    _In_ PVOID BaseAddress,
+    _In_ PIMAGE_NT_HEADERS ImageNtHeader,
+    _In_ ULONG ImageDirectoryIndex,
+    _Out_ PVOID *ImageDirectoryEntry,
+    _Out_opt_ SIZE_T *ImageDirectoryLength
+    )
+{
+    IMAGE_DATA_DIRECTORY directory;
+
+    directory = ImageNtHeader->OptionalHeader.DataDirectory[ImageDirectoryIndex];
+
+    if (directory.VirtualAddress == 0 || directory.Size == 0)
+        return STATUS_INVALID_FILE_FOR_SECTION;
+
+    *ImageDirectoryEntry = PTR_ADD_OFFSET(BaseAddress, directory.VirtualAddress);
+    if (ImageDirectoryLength) *ImageDirectoryLength = directory.Size;
+
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS PhGetLoaderEntryImageSection(
+    _In_ PVOID BaseAddress,
+    _In_ PIMAGE_NT_HEADERS ImageNtHeader,
+    _In_ PIMAGE_IMPORT_DESCRIPTOR ImageDirectory,
+    _Out_ PIMAGE_SECTION_HEADER *ImageSection,
+    _Out_ SIZE_T *ImageSectionLength
+    )
+{
+    SIZE_T directorySectionLength = 0;
+    PIMAGE_SECTION_HEADER sectionHeader;
+    PIMAGE_SECTION_HEADER directorySectionHeader = NULL;
+    ULONG i;
+
+    for (i = 0; i < ImageNtHeader->FileHeader.NumberOfSections; i++)
+    {
+        sectionHeader = PTR_ADD_OFFSET(IMAGE_FIRST_SECTION(ImageNtHeader), sizeof(IMAGE_SECTION_HEADER) * i);
+        
+        if (
+            ((ULONG_PTR)ImageDirectory >= (ULONG_PTR)PTR_ADD_OFFSET(BaseAddress, sectionHeader->VirtualAddress)) &&
+            ((ULONG_PTR)ImageDirectory < (ULONG_PTR)PTR_ADD_OFFSET(PTR_ADD_OFFSET(BaseAddress, sectionHeader->VirtualAddress), sectionHeader->SizeOfRawData))
+            )
+        {
+            directorySectionLength = sectionHeader->Misc.VirtualSize;
+            directorySectionHeader = PTR_ADD_OFFSET(BaseAddress, sectionHeader->VirtualAddress);
+            break;
+        }
+    }
+
+    if (directorySectionHeader && directorySectionLength)
+    {
+        *ImageSection = directorySectionHeader;
+        *ImageSectionLength = directorySectionLength;
+        return STATUS_SUCCESS;
+    }
+
+    return STATUS_SECTION_NOT_IMAGE;
+}
+
+static NTSTATUS PhpFixupLoaderEntryImageImports(
+    _In_ PVOID BaseAddress, 
+    _In_ PIMAGE_NT_HEADERS ImageNtHeader
+    )
+{
+    NTSTATUS status;
+    SIZE_T importDirectorySize;
+    ULONG importDirectoryLength;
+    PIMAGE_IMPORT_DESCRIPTOR importDirectory;
+    PIMAGE_SECTION_HEADER importDirectorySection;
+
+    status = PhGetLoaderEntryImageDirectory(
+        BaseAddress,
+        ImageNtHeader,
+        IMAGE_DIRECTORY_ENTRY_IMPORT,
+        &importDirectory,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhGetLoaderEntryImageSection(
+        BaseAddress,
+        ImageNtHeader,
+        importDirectory,
+        &importDirectorySection,
+        &importDirectorySize
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = NtProtectVirtualMemory(
+        NtCurrentProcess(),
+        &importDirectorySection,
+        &importDirectorySize,
+        PAGE_READWRITE,
+        &importDirectoryLength
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    for (importDirectory = importDirectory; importDirectory->Name; importDirectory++)
+    {
+        PSTR importName;
+        PIMAGE_THUNK_DATA importThunk;
+        PIMAGE_THUNK_DATA originalThunk;
+        PVOID importBaseAddress;
+
+        importName = PTR_ADD_OFFSET(BaseAddress, importDirectory->Name);
+        importThunk = PTR_ADD_OFFSET(BaseAddress, importDirectory->FirstThunk);
+        originalThunk = PTR_ADD_OFFSET(BaseAddress, importDirectory->OriginalFirstThunk ? importDirectory->OriginalFirstThunk : importDirectory->FirstThunk);
+
+        if (PhEqualBytesZ(importName, "ProcessHacker.exe", FALSE))
+        {
+            importBaseAddress = NtCurrentPeb()->ImageBaseAddress;
+        }
+        else
+        {
+            PPH_STRING importNameSr;
+            UNICODE_STRING dllNameUs;
+
+            importNameSr = PhZeroExtendToUtf16(importName);
+            PhStringRefToUnicodeString(&importNameSr->sr, &dllNameUs);
+
+            if (!NT_SUCCESS(status = LdrGetDllHandle(NULL, NULL, &dllNameUs, &importBaseAddress)))
+            {
+                if (importBaseAddress = LoadLibrary(importNameSr->Buffer))
+                    status = STATUS_SUCCESS;
+                else
+                    status = PhGetLastWin32ErrorAsNtStatus();
+            }
+
+            PhDereferenceObject(importNameSr);
+        }
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+
+        for (
+            originalThunk = originalThunk, importThunk = importThunk;
+            originalThunk->u1.AddressOfData;
+            originalThunk++, importThunk++
+            )
+        {
+            if (IMAGE_SNAP_BY_ORDINAL(originalThunk->u1.Ordinal))
+            {
+                USHORT procedureOrdinal;
+                PVOID procedureAddress;
+
+                procedureOrdinal = IMAGE_ORDINAL(originalThunk->u1.Ordinal);
+                procedureAddress = PhGetProcedureAddress(importBaseAddress, NULL, procedureOrdinal);
+
+                if (!procedureAddress)
+                {
+                    status = STATUS_ORDINAL_NOT_FOUND;
+                    PhShowError(NULL, L"Error locating ordinal: %u\r\nModule: %hs", procedureOrdinal, importName);
+                    goto CleanupExit;
+                }
+
+                importThunk->u1.Function = (ULONG_PTR)procedureAddress;
+            }
+            else
+            {
+                PIMAGE_IMPORT_BY_NAME importByName;
+                PVOID procedureAddress;
+
+                importByName = PTR_ADD_OFFSET(BaseAddress, originalThunk->u1.AddressOfData);
+                procedureAddress = PhGetProcedureAddress(importBaseAddress, importByName->Name, importByName->Hint);
+
+                if (!procedureAddress)
+                {
+                    status = STATUS_PROCEDURE_NOT_FOUND;
+                    PhShowError(NULL, L"Error locating procedure: %hs\r\nModule: %hs", importByName->Name, importName);
+                    goto CleanupExit;
+                }
+
+                importThunk->u1.Function = (ULONG_PTR)procedureAddress;
+            }
+        }
+    }
+
+    status = NtProtectVirtualMemory(
+        NtCurrentProcess(),
+        &importDirectorySection,
+        &importDirectorySize,
+        importDirectoryLength,
+        &importDirectoryLength
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+CleanupExit:
+    return status;
+}
+
+// dmex: This function and the other LoaderEntryImage functions don't belong in this file
+// and should be moved into mapimg.c at some stage.
+//
+// We use this function to load plugins since we can 'fixup' the import table at runtime which is required when 
+// users have renamed the main executable to avoid malware, spyware and other software that targets Process Hacker. 
+// This function can only fixup images that have static imports from processhacker.exe, 
+// plugins that use LoadLibrary/GetProcAddress will continue to fail when the main executable is renamed.
+// Note: This functionality is a WIP and not be used for anything other than plugins.
+NTSTATUS PhLoadPluginImage(
+    _In_ PPH_STRING FileName,
+    _Out_opt_ PVOID *BaseAddress
+    )
+{
+    NTSTATUS status;
+    ULONG imageType;
+    PVOID imageBaseAddress;
+    PIMAGE_NT_HEADERS imageHeaders;
+    PLDR_INIT_ROUTINE imageEntryRoutine;
+    UNICODE_STRING fileNameUs;
+
+    imageType = IMAGE_FILE_EXECUTABLE_IMAGE;
+    PhStringRefToUnicodeString(&FileName->sr, &fileNameUs);
+
+    status = LdrLoadDll(
+        NULL, 
+        &imageType, 
+        &fileNameUs, 
+        &imageBaseAddress
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhGetLoaderEntryImageNtHeaders(
+        imageBaseAddress, 
+        &imageHeaders
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhpFixupLoaderEntryImageImports(
+        imageBaseAddress, 
+        imageHeaders
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhGetLoaderEntryImageEntryPoint(
+        imageBaseAddress, 
+        imageHeaders, 
+        &imageEntryRoutine
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    if (!imageEntryRoutine(imageBaseAddress, DLL_PROCESS_ATTACH, NULL))
+        status = STATUS_DLL_INIT_FAILED;
+
+CleanupExit:
+
+    if (NT_SUCCESS(status))
+    {
+        if (BaseAddress)
+            *BaseAddress = imageBaseAddress;
+    }
+    else
+    {
+        LdrUnloadDll(imageBaseAddress);
+    }
+
+    return status;
 }
