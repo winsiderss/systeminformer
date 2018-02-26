@@ -77,7 +77,6 @@
 #define IDR_ICON                        173
 #define IDD_GDIHANDLES                  175
 #define IDD_LOG                         178
-#define IDD_OPTSYMBOLS                  179
 #define IDD_MEMEDIT                     180
 #define IDR_MEMORY                      181
 #define IDD_MEMPROTECT                  182
@@ -744,7 +743,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        247
+#define _APS_NEXT_RESOURCE_VALUE        249
 #define _APS_NEXT_COMMAND_VALUE         40297
 #define _APS_NEXT_CONTROL_VALUE         1406
 #define _APS_NEXT_SYMED_VALUE           170
