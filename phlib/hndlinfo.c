@@ -686,6 +686,10 @@ NTSTATUS PhpGetBestObjectName(
         HANDLE dupHandle;
         PJOBOBJECT_BASIC_PROCESS_ID_LIST processIdList;
 
+        // dmex: Don't do anything when we already have a valid job object name.
+        if (!PhIsNullOrEmptyString(ObjectName))
+            goto CleanupExit;
+
         status = NtDuplicateObject(
             ProcessHandle,
             Handle,
@@ -697,10 +701,6 @@ NTSTATUS PhpGetBestObjectName(
             );
 
         if (!NT_SUCCESS(status))
-            goto CleanupExit;
-
-        // dmex: Don't do anything when we already have a valid job object name.
-        if (!PhIsNullOrEmptyString(ObjectName))
             goto CleanupExit;
 
         if (handleGetClientIdName && NT_SUCCESS(PhGetJobProcessIdList(dupHandle, &processIdList)))
