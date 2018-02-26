@@ -1131,18 +1131,20 @@ BEGIN
     EDITTEXT        IDC_SEARCHENGINE,61,7,247,12,ES_AUTOHSCROLL
     LTEXT           "PE viewer:",IDC_STATIC,7,23,35,8
     EDITTEXT        IDC_PEVIEWER,61,22,247,12,ES_AUTOHSCROLL
-    LTEXT           "Max. size unit:",IDC_STATIC,7,38,49,8
-    COMBOBOX        IDC_MAXSIZEUNIT,61,37,39,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Icon processes:",IDC_STATIC,7,55,52,8
-    EDITTEXT        IDC_ICONPROCESSES,61,53,40,12,ES_AUTOHSCROLL | ES_NUMBER
-    PUSHBUTTON      "Font...",IDC_FONT,179,53,49,14
-    PUSHBUTTON      "Make default...",IDC_REPLACETASKMANAGER,179,69,72,14
-    LTEXT           "Graph history length:",IDC_STATIC,106,39,69,8
-    EDITTEXT        IDC_SAMPLECOUNT,180,38,48,12,ES_AUTOHSCROLL | ES_NUMBER
-    CONTROL         "Automatic",IDC_SAMPLECOUNTAUTOMATIC,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,233,39,48,10
-    CONTROL         "",IDC_SETTINGS,"SysListView32",LVS_LIST | LVS_SINGLESEL | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,88,301,125
-    LTEXT           "Application font:",IDC_STATIC,121,55,54,8
-    RTEXT           "Process Hacker is the default Task Manager:",IDC_DEFSTATE,7,71,166,8
+    LTEXT           "Max. size unit:",IDC_STATIC,7,55,49,8
+    COMBOBOX        IDC_MAXSIZEUNIT,61,54,39,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Icon processes:",IDC_STATIC,7,72,52,8
+    EDITTEXT        IDC_ICONPROCESSES,61,70,40,12,ES_AUTOHSCROLL | ES_NUMBER
+    PUSHBUTTON      "Font...",IDC_FONT,179,70,49,14
+    PUSHBUTTON      "Make default...",IDC_REPLACETASKMANAGER,179,86,72,14
+    LTEXT           "Graph history length:",IDC_STATIC,106,56,69,8
+    EDITTEXT        IDC_SAMPLECOUNT,180,55,48,12,ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "Automatic",IDC_SAMPLECOUNTAUTOMATIC,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,233,56,48,10
+    CONTROL         "",IDC_SETTINGS,"SysListView32",LVS_LIST | LVS_SINGLESEL | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,103,301,110
+    LTEXT           "Application font:",IDC_STATIC,121,72,54,8
+    RTEXT           "Process Hacker is the default Task Manager:",IDC_DEFSTATE,7,88,166,8
+    LTEXT           "Symbol path:",IDC_STATIC,7,39,43,8
+    EDITTEXT        IDC_DBGHELPSEARCHPATH,61,38,247,12,ES_AUTOHSCROLL
 END
 
 IDD_OPTHIGHLIGHTING DIALOGEX 0, 0, 250, 174
@@ -1262,16 +1264,6 @@ BEGIN
     PUSHBUTTON      "Save...",IDC_SAVE,148,282,50,14
     PUSHBUTTON      "Copy",IDC_COPY,202,282,50,14
     DEFPUSHBUTTON   "Close",IDOK,256,282,50,14
-END
-
-IDD_OPTSYMBOLS DIALOGEX 0, 0, 250, 75
-STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "Symbols"
-FONT 8, "MS Shell Dlg", 400, 0, 0x1
-BEGIN
-    LTEXT           "Search path:",IDC_STATIC,7,8,42,8
-    EDITTEXT        IDC_DBGHELPSEARCHPATH,66,7,177,12,ES_AUTOHSCROLL
-    CONTROL         "Undecorate symbols",IDC_UNDECORATESYMBOLS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,22,81,10
 END
 
 IDD_MEMEDIT DIALOGEX 0, 0, 441, 269
@@ -2157,14 +2149,6 @@ BEGIN
         BOTTOMMARGIN, 296
     END
 
-    IDD_OPTSYMBOLS, DIALOG
-    BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 243
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 68
-    END
-
     IDD_MEMEDIT, DIALOG
     BEGIN
         LEFTMARGIN, 7
@@ -2454,6 +2438,17 @@ IDR_RT_MANIFEST         RT_MANIFEST             "ProcessHacker.manifest"
 IDB_SEARCH_ACTIVE       PNG                     "resources\\active_search.png"
 
 IDB_SEARCH_INACTIVE     PNG                     "resources\\inactive_search.png"
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_OPTGENERAL AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
 
 #endif    // English (Australia) resources
 /////////////////////////////////////////////////////////////////////////////
