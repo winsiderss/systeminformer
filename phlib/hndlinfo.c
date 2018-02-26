@@ -699,6 +699,10 @@ NTSTATUS PhpGetBestObjectName(
         if (!NT_SUCCESS(status))
             goto CleanupExit;
 
+        // dmex: Don't do anything when we already have a valid job object name.
+        if (!PhIsNullOrEmptyString(ObjectName))
+            goto CleanupExit;
+
         if (handleGetClientIdName && NT_SUCCESS(PhGetJobProcessIdList(dupHandle, &processIdList)))
         {
             PH_STRING_BUILDER sb;
