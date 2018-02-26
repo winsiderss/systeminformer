@@ -168,7 +168,7 @@ VOID PhShowOptionsDialog(
         DialogBox(
             PhInstanceHandle,
             MAKEINTRESOURCE(IDD_OPTIONS),
-            !!PhGetIntegerSetting(L"ForceNoParent") ? NULL : ParentWindowHandle,
+            ParentWindowHandle,
             PhOptionsDialogProc
             );
 
