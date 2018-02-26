@@ -202,7 +202,7 @@ PPH_STRING PhFormat(
 
     string->Length = usedLength;
     // Null-terminate the string.
-    string->Buffer[usedLength / sizeof(WCHAR)] = 0;
+    string->Buffer[usedLength / sizeof(WCHAR)] = UNICODE_NULL;
 
     return string;
 }

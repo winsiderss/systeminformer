@@ -3310,11 +3310,11 @@ VOID PhMwpUpdateUsersMenu(
                 &returnLength
                 ))
             {
-                winStationInfo.Domain[0] = 0;
-                winStationInfo.UserName[0] = 0;
+                winStationInfo.Domain[0] = UNICODE_NULL;
+                winStationInfo.UserName[0] = UNICODE_NULL;
             }
 
-            if (winStationInfo.Domain[0] == 0 || winStationInfo.UserName[0] == 0)
+            if (winStationInfo.Domain[0] == UNICODE_NULL || winStationInfo.UserName[0] == UNICODE_NULL)
             {
                 // Probably the Services or RDP-Tcp session.
                 continue;
