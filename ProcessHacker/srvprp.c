@@ -279,14 +279,33 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
             SetDlgItemText(hwndDlg, IDC_PASSWORD, L"password");
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_PASSWORDCHECK), BST_UNCHECKED);
 
-            if (NT_SUCCESS(PhGetServiceDllParameter(&serviceItem->Name->sr, &serviceDll)))
+
+            if (serviceItem->Type & SERVICE_USERSERVICE_INSTANCE)
             {
-                SetDlgItemText(hwndDlg, IDC_SERVICEDLL, serviceDll->Buffer);
-                PhDereferenceObject(serviceDll);
+                PH_STRINGREF templateName;
+                PH_STRINGREF luid;
+                PhSplitStringRefAtLastChar(&serviceItem->Name->sr, L'_', &templateName, &luid);
+                if (NT_SUCCESS(PhGetServiceDllParameter(&templateName, &serviceDll)))
+                {
+                    SetDlgItemText(hwndDlg, IDC_SERVICEDLL, serviceDll->Buffer);
+                    PhDereferenceObject(serviceDll);
+                }
+                else
+                {
+                    SetDlgItemText(hwndDlg, IDC_SERVICEDLL, L"N/A");
+                }
             }
             else
             {
-                SetDlgItemText(hwndDlg, IDC_SERVICEDLL, L"N/A");
+                if (NT_SUCCESS(PhGetServiceDllParameter(&serviceItem->Name->sr, &serviceDll)))
+                {
+                    SetDlgItemText(hwndDlg, IDC_SERVICEDLL, serviceDll->Buffer);
+                    PhDereferenceObject(serviceDll);
+                }
+                else
+                {
+                    SetDlgItemText(hwndDlg, IDC_SERVICEDLL, L"N/A");
+                }
             }
 
             PhpRefreshControls(hwndDlg);
