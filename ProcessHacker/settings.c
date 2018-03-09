@@ -36,7 +36,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"AllowOnlyOneInstance", L"1");
     PhpAddIntegerSetting(L"CloseOnEscape", L"0");
     PhpAddIntegerSetting(L"CollapseServicesOnStart", L"0");
-    PhpAddStringSetting(L"DbgHelpSearchPath", L"");
+    PhpAddStringSetting(L"DbgHelpSearchPath", L"SRV*C:\\Symbols*http://msdl.microsoft.com/download/symbols");
     PhpAddIntegerSetting(L"DbgHelpUndecorate", L"1");
     PhpAddStringSetting(L"DisabledPlugins", L"");
     PhpAddIntegerSetting(L"ElevationLevel", L"1"); // PromptElevateAction
