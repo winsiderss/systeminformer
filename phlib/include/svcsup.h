@@ -143,6 +143,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhGetServiceDllParameter(
+    _In_ ULONG ServiceType,
     _In_ PPH_STRINGREF ServiceName,
     _Out_ PPH_STRING *ServiceDll
     );
