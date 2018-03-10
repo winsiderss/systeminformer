@@ -689,7 +689,7 @@ PPH_STRING PhGetServiceRelevantFileName(
 
     if (config = PhGetServiceConfig(ServiceHandle))
     {
-        PhGetServiceDllParameter(ServiceName, &fileName);
+        PhGetServiceDllParameter(config->dwServiceType, ServiceName, &fileName);
 
         if (!fileName)
         {

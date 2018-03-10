@@ -543,18 +543,36 @@ NTSTATUS PhGetThreadServiceTag(
 }
 
 NTSTATUS PhGetServiceDllParameter(
+    _In_ ULONG ServiceType,
     _In_ PPH_STRINGREF ServiceName,
     _Out_ PPH_STRING *ServiceDll
     )
 {
     static PH_STRINGREF servicesKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services\\");
     static PH_STRINGREF parameters = PH_STRINGREF_INIT(L"\\Parameters");
-
     NTSTATUS status;
     HANDLE keyHandle;
     PPH_STRING keyName;
 
-    keyName = PhConcatStringRef3(&servicesKeyName, ServiceName, &parameters);
+    if (ServiceType & SERVICE_USERSERVICE_INSTANCE)
+    {
+        PH_STRINGREF hostServiceName;
+        PH_STRINGREF userSessionLuid;
+
+        // The SCM creates multiple "user service instance" processes for each user session with the following template:
+        // [Host Service Instance Name]_[LUID for Session]
+        // The SCM internally uses the ServiceDll of the "host service instance" for all "user service instance" processes/services
+        // and we need to parse the user service template and query the "host service instance" configuration.
+
+        if (PhSplitStringRefAtLastChar(ServiceName, L'_', &hostServiceName, &userSessionLuid))
+            keyName = PhConcatStringRef3(&servicesKeyName, &hostServiceName, &parameters);
+        else
+            keyName = PhConcatStringRef3(&servicesKeyName, ServiceName, &parameters);
+    }
+    else
+    {
+        keyName = PhConcatStringRef3(&servicesKeyName, ServiceName, &parameters);
+    }
 
     if (NT_SUCCESS(status = PhOpenKey(
         &keyHandle,

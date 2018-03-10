@@ -279,7 +279,7 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
             SetDlgItemText(hwndDlg, IDC_PASSWORD, L"password");
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_PASSWORDCHECK), BST_UNCHECKED);
 
-            if (NT_SUCCESS(PhGetServiceDllParameter(&serviceItem->Name->sr, &serviceDll)))
+            if (NT_SUCCESS(PhGetServiceDllParameter(serviceItem->Type, &serviceItem->Name->sr, &serviceDll)))
             {
                 SetDlgItemText(hwndDlg, IDC_SERVICEDLL, serviceDll->Buffer);
                 PhDereferenceObject(serviceDll);

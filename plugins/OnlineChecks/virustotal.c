@@ -965,7 +965,7 @@ NTSTATUS QueryServiceFileName(
 
     if (NT_SUCCESS(status))
     {
-        PhGetServiceDllParameter(ServiceName, &fileName);
+        PhGetServiceDllParameter(serviceType, ServiceName, &fileName);
 
         if (!fileName)
         {
