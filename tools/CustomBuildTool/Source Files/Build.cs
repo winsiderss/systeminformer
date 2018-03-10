@@ -616,25 +616,39 @@ namespace CustomBuildTool
             {
                 if (Flags.HasFlag(BuildFlags.BuildDebug))
                 {
-                    Win32.CopyIfNewer(
-                        "KProcessHacker\\bin-signed\\i386\\kprocesshacker.sys",
-                        "bin\\Debug32\\kprocesshacker.sys"
-                        );
-                    Win32.CopyIfNewer(
-                        "KProcessHacker\\bin-signed\\amd64\\kprocesshacker.sys",
-                        "bin\\Debug64\\kprocesshacker.sys"
-                        );
+                    if (Directory.Exists("bin\\Debug32"))
+                    {
+                        Win32.CopyIfNewer(
+                            "KProcessHacker\\bin-signed\\i386\\kprocesshacker.sys",
+                            "bin\\Debug32\\kprocesshacker.sys"
+                            );
+                    }
+
+                    if (Directory.Exists("bin\\Debug64"))
+                    {
+                        Win32.CopyIfNewer(
+                            "KProcessHacker\\bin-signed\\amd64\\kprocesshacker.sys",
+                            "bin\\Debug64\\kprocesshacker.sys"
+                            );
+                    }
                 }
                 else
                 {
-                    Win32.CopyIfNewer(
-                        "KProcessHacker\\bin-signed\\i386\\kprocesshacker.sys",
-                        "bin\\Release32\\kprocesshacker.sys"
-                        );
-                    Win32.CopyIfNewer(
-                        "KProcessHacker\\bin-signed\\amd64\\kprocesshacker.sys",
-                        "bin\\Release64\\kprocesshacker.sys"
-                        );
+                    if (Directory.Exists("bin\\Release32"))
+                    {
+                        Win32.CopyIfNewer(
+                            "KProcessHacker\\bin-signed\\i386\\kprocesshacker.sys",
+                            "bin\\Release32\\kprocesshacker.sys"
+                            );
+                    }
+
+                    if (Directory.Exists("bin\\Release64"))
+                    {
+                        Win32.CopyIfNewer(
+                            "KProcessHacker\\bin-signed\\amd64\\kprocesshacker.sys",
+                            "bin\\Release64\\kprocesshacker.sys"
+                            );
+                    }
                 }
             }
             catch (Exception ex)
@@ -727,7 +741,7 @@ namespace CustomBuildTool
         {
             Program.PrintColorMessage("Building build-setup.exe...", ConsoleColor.Cyan);
 
-            if (!BuildSolution("tools\\CustomSetupTool\\CustomSetupTool.sln",  BuildFlags.Build32bit | BuildFlags.BuildApi))
+            if (!BuildSolution("tools\\CustomSetupTool\\CustomSetupTool.sln", BuildFlags.Build32bit | BuildFlags.BuildApi))
                 return false;
 
             try
@@ -1146,12 +1160,13 @@ namespace CustomBuildTool
                     "/p:Configuration=" + (Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug " : "Release ") +
                     "/p:Platform=Win32 " +
                     "/p:ExternalCompilerOptions=\"" + compilerOptions.ToString() + "\" " +
+                    "/p:ExternalDebugOptions=\"" + (Flags.HasFlag(BuildFlags.BuildDebug) ? "true" : "false") + "\" " +
                     Solution
                     );
                 
                 if (!string.IsNullOrEmpty(error32))
                 {
-                    Program.PrintColorMessage("[ERROR] " + error32, ConsoleColor.Red, true, Flags);
+                    Program.PrintColorMessage("[ERROR] " + error32, ConsoleColor.Red, true, Flags | BuildFlags.BuildVerbose);
                     return false;
                 }
             }
@@ -1174,12 +1189,13 @@ namespace CustomBuildTool
                     "/p:Configuration=" + (Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug " : "Release ") +
                     "/p:Platform=x64 " +
                     "/p:ExternalCompilerOptions=\"" + compilerOptions.ToString() + "\" " +
+                    "/p:ExternalDebugOptions=\"" + (Flags.HasFlag(BuildFlags.BuildDebug) ? "true" : "false") + "\" " +
                     Solution
                     );
 
                 if (!string.IsNullOrEmpty(error64))
                 {
-                    Program.PrintColorMessage("[ERROR] " + error64, ConsoleColor.Red, true, Flags);
+                    Program.PrintColorMessage("[ERROR] " + error64, ConsoleColor.Red, true, Flags | BuildFlags.BuildVerbose);
                     return false;
                 }
             }
