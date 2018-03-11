@@ -1394,7 +1394,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemSecureDumpEncryptionInformation,
     SystemWriteConstraintInformation, // SYSTEM_WRITE_CONSTRAINT_INFORMATION
     SystemKernelVaShadowInformation, // SYSTEM_KERNEL_VA_SHADOW_INFORMATION
-    SystemHypervisorSharedPageInformation, // REDSTONE4
+    SystemHypervisorSharedPageInformation, // SYSTEM_HYPERVISOR_SHARED_PAGE_INFORMATION // REDSTONE4
     SystemFirmwareBootPerformanceInformation,
     SystemCodeIntegrityVerificationInformation,
     SystemFirmwarePartitionInformation, // 200
@@ -3102,6 +3102,12 @@ typedef struct _SYSTEM_KERNEL_VA_SHADOW_INFORMATION
         };
     };
 } SYSTEM_KERNEL_VA_SHADOW_INFORMATION, *PSYSTEM_KERNEL_VA_SHADOW_INFORMATION;
+
+// private
+typedef struct _SYSTEM_HYPERVISOR_SHARED_PAGE_INFORMATION
+{
+    PVOID HypervisorSharedUserVa;
+} SYSTEM_HYPERVISOR_SHARED_PAGE_INFORMATION, *PSYSTEM_HYPERVISOR_SHARED_PAGE_INFORMATION;
 
 // private
 typedef struct _SYSTEM_SPECULATION_CONTROL_INFORMATION
