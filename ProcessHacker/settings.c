@@ -36,7 +36,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"AllowOnlyOneInstance", L"1");
     PhpAddIntegerSetting(L"CloseOnEscape", L"0");
     PhpAddIntegerSetting(L"CollapseServicesOnStart", L"0");
-    PhpAddStringSetting(L"DbgHelpSearchPath", L"SRV*C:\\Symbols*http://msdl.microsoft.com/download/symbols");
+    PhpAddStringSetting(L"DbgHelpSearchPath", L"SRV*C:\\Symbols*https://msdl.microsoft.com/download/symbols");
     PhpAddIntegerSetting(L"DbgHelpUndecorate", L"1");
     PhpAddStringSetting(L"DisabledPlugins", L"");
     PhpAddIntegerSetting(L"ElevationLevel", L"1"); // PromptElevateAction
@@ -138,7 +138,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"SampleCount", L"200"); // 512
     PhpAddIntegerSetting(L"SampleCountAutomatic", L"1");
     PhpAddIntegerSetting(L"ScrollToNewProcesses", L"0");
-    PhpAddStringSetting(L"SearchEngine", L"http://www.google.com/search?q=\"%s\"");
+    PhpAddStringSetting(L"SearchEngine", L"https://www.google.com/search?q=\"%s\"");
     PhpAddStringSetting(L"ServiceListViewColumns", L"");
     PhpAddStringSetting(L"ServiceTreeListColumns", L"");
     PhpAddStringSetting(L"ServiceTreeListSort", L"0,1"); // 0, AscendingSortOrder
