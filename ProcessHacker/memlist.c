@@ -3,6 +3,7 @@
  *   memory region list
  *
  * Copyright (C) 2015 wj32
+ * Copyright (C) 2017-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -439,6 +440,8 @@ PPH_STRING PhGetMemoryRegionUseText(
         return MemoryItem->u.MappedFile.FileName;
     case UserSharedDataRegion:
         return PhCreateString(L"USER_SHARED_DATA");
+    case HypervisorSharedDataRegion:
+        return PhCreateString(L"HYPERVISOR_SHARED_DATA");
     case PebRegion:
     case Peb32Region:
         return PhFormatString(L"PEB%s", type == Peb32Region ? L" 32-bit" : L"");
@@ -463,7 +466,7 @@ PPH_STRING PhGetMemoryRegionUseText(
         return PhFormatString(L"CFG Bitmap%s",
             type == CfgBitmap32Region ? L" 32-bit" : L"");
     case ApiSetMapRegion:
-		return PhFormatString(L"ApiSetMap");
+        return PhFormatString(L"ApiSetMap");
     default:
         return PhReferenceEmptyString();
     }

@@ -3,6 +3,7 @@
  *   memory provider
  *
  * Copyright (C) 2010-2015 wj32
+ * Copyright (C) 2017-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -268,6 +269,35 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
 
     // USER_SHARED_DATA
     PhpSetMemoryRegionType(List, USER_SHARED_DATA, TRUE, UserSharedDataRegion);
+
+    // HYPERVISOR_SHARED_DATA
+    if (WindowsVersion > WINDOWS_10_RS3) // TODO: Update version check after RS4 release. 
+    {
+        static PVOID HypervisorSharedDataVa = NULL;
+        static PH_INITONCE HypervisorSharedDataInitOnce = PH_INITONCE_INIT;
+
+        if (PhBeginInitOnce(&HypervisorSharedDataInitOnce))
+        {
+            SYSTEM_HYPERVISOR_SHARED_PAGE_INFORMATION hypervSharedPageInfo;
+
+            if (NT_SUCCESS(NtQuerySystemInformation(
+                SystemHypervisorSharedPageInformation,
+                &hypervSharedPageInfo,
+                sizeof(SYSTEM_HYPERVISOR_SHARED_PAGE_INFORMATION),
+                NULL
+                )))
+            {
+                HypervisorSharedDataVa = hypervSharedPageInfo.HypervisorSharedUserVa;
+            }
+
+            PhEndInitOnce(&HypervisorSharedDataInitOnce);
+        }
+
+        if (HypervisorSharedDataVa)
+        {
+            PhpSetMemoryRegionType(List, HypervisorSharedDataVa, TRUE, HypervisorSharedDataRegion);
+        }
+    }
 
     // PEB, heap
     {

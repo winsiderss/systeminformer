@@ -24,6 +24,7 @@ typedef enum _PH_MEMORY_REGION_TYPE
     CfgBitmapRegion,
     CfgBitmap32Region,
     ApiSetMapRegion,
+    HypervisorSharedDataRegion,
 } PH_MEMORY_REGION_TYPE;
 
 typedef struct _PH_MEMORY_ITEM
