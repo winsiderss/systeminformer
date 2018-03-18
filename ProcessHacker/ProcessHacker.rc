@@ -611,9 +611,9 @@ BEGIN
     ICON            IDI_PROCESSHACKER,IDC_STATIC,16,15,20,20
     LTEXT           "Process Hacker",IDC_ABOUT_NAME,45,14,192,8
     LTEXT           "Licensed under the GNU GPL, v3.",IDC_STATIC,45,27,193,8
-    LTEXT           "Copyright (c) 2008-2017",IDC_STATIC,45,40,80,8
+    LTEXT           "Copyright (c) 2008-2018",IDC_STATIC,45,40,80,8
     CONTROL         "Credits.",IDC_CREDITS,"SysLink",WS_TABSTOP,15,55,248,115
-    CONTROL         "<a href=""http://processhacker.sourceforge.net"">Process Hacker on SourceForge.net</a>",IDC_LINK_SF,
+    CONTROL         "<a href=""https://processhacker.sourceforge.io"">Process Hacker on SourceForge.net</a>",IDC_LINK_SF,
                     "SysLink",WS_TABSTOP,7,177,130,11
     PUSHBUTTON      "Diagnostics",IDC_DIAGNOSTICS,160,174,50,14
     DEFPUSHBUTTON   "OK",IDOK,213,174,50,14
