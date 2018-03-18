@@ -464,12 +464,9 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
         return TRUE;
     }
 
-    if (NT_SUCCESS(NtQueryMutant(
+    if (NT_SUCCESS(PhGetMutantOwnerInformation(
         objectHandle,
-        MutantOwnerInformation,
-        &objectInfo,
-        sizeof(MUTANT_OWNER_INFORMATION),
-        NULL
+        &objectInfo
         )))
     {
         HWND hwnd;
