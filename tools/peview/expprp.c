@@ -53,6 +53,7 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
             PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_RIGHT, 80, L"RVA");
             PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 250, L"Name");
             PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 50, L"Ordinal");
+            PhAddListViewColumn(lvHandle, 4, 4, 4, LVCFMT_LEFT, 50, L"Hint");
             PhSetExtendedListView(lvHandle);
             PhLoadListViewColumnsFromSetting(L"ImageExportsListViewColumns", lvHandle);
 
@@ -152,6 +153,12 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
 
                         PhPrintUInt32(number, exportEntry.Ordinal);
                         PhSetListViewSubItem(lvHandle, lvItemIndex, 3, number);
+
+                        if (exportEntry.Name) // Note: The 'Hint' is only valid for named exports.
+                        {
+                            PhPrintUInt32(number, exportEntry.Hint);
+                            PhSetListViewSubItem(lvHandle, lvItemIndex, 4, number);
+                        }
                     }
                 }
             }

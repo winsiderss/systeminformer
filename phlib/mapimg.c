@@ -746,10 +746,12 @@ NTSTATUS PhGetMappedImageExportEntry(
         // TODO: Probe the name.
 
         Entry->Name = name;
+        Entry->Hint = nameIndex;
     }
     else
     {
         Entry->Name = NULL;
+        Entry->Hint = 0;
     }
 
     return STATUS_SUCCESS;
