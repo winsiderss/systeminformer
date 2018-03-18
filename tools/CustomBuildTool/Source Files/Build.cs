@@ -290,19 +290,19 @@ namespace CustomBuildTool
 
                 Program.PrintColorMessage(Environment.NewLine, ConsoleColor.DarkGray, true);
 
-                if (!BuildNightly && ShowLogInfo && File.Exists(GitExePath))
-                {
-                    Win32.GetConsoleMode(Win32.GetStdHandle(Win32.STD_OUTPUT_HANDLE), out ConsoleMode mode);
-                    Win32.SetConsoleMode(Win32.GetStdHandle(Win32.STD_OUTPUT_HANDLE), mode | ConsoleMode.ENABLE_VIRTUAL_TERMINAL_PROCESSING);
-
-                    BuildMessage = Win32.ShellExecute(GitExePath, "log -n 5 --date=format:%Y-%m-%d --pretty=format:\"%C(green)[%cd]%Creset %C(bold blue)%an%Creset %<(65,trunc)%s%Creset %C(#696969)(%Creset%C(yellow)%h%Creset%C(#696969))%Creset\" --abbrev-commit");
-                    Console.WriteLine(BuildMessage + Environment.NewLine);
-
-                    //BuildMessage = Win32.ShellExecute(GitExePath, "log -n 5 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %an %s\" --abbrev-commit");
-                    //BuildMessage = Win32.ShellExecute(GitExePath, "log -n 1 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %an: %<(65,trunc)%s (%h)\" --abbrev-commit");
-                    //Console.WriteLine(BuildMessage + Environment.NewLine);
-                }
-
+                // TODO: The Win10 RS4 release has issues with the git pretty format.
+                //if (!BuildNightly && ShowLogInfo && File.Exists(GitExePath))
+                //{
+                //    Win32.GetConsoleMode(Win32.GetStdHandle(Win32.STD_OUTPUT_HANDLE), out ConsoleMode mode);
+                //    Win32.SetConsoleMode(Win32.GetStdHandle(Win32.STD_OUTPUT_HANDLE), mode | ConsoleMode.ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+                //
+                //    BuildMessage = Win32.ShellExecute(GitExePath, "log -n 5 --date=format:%Y-%m-%d --pretty=format:\"%C(green)[%cd]%Creset %C(bold blue)%an%Creset %<(65,trunc)%s%Creset %C(#696969)(%Creset%C(yellow)%h%Creset%C(#696969))%Creset\" --abbrev-commit");
+                //    Console.WriteLine(BuildMessage + Environment.NewLine);
+                //
+                //    //BuildMessage = Win32.ShellExecute(GitExePath, "log -n 5 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %an %s\" --abbrev-commit");
+                //    //BuildMessage = Win32.ShellExecute(GitExePath, "log -n 1 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %an: %<(65,trunc)%s (%h)\" --abbrev-commit");
+                //    //Console.WriteLine(BuildMessage + Environment.NewLine);
+                //}
             }
         }
 
@@ -1151,6 +1151,8 @@ namespace CustomBuildTool
 
                 if (Flags.HasFlag(BuildFlags.BuildApi))
                     compilerOptions.Append("PH_BUILD_API;");
+                if (!string.IsNullOrEmpty(BuildCommit))
+                    compilerOptions.Append("PHAPP_VERSION_COMMITHASH=\"" + BuildCommit.Substring(0, 8) + "\";");
                 compilerOptions.Append("PHAPP_VERSION_REVISION=\"" + BuildRevision + "\";");
                 compilerOptions.Append("PHAPP_VERSION_BUILD=\"" + BuildCount + "\"");
 
@@ -1180,6 +1182,8 @@ namespace CustomBuildTool
 
                 if (Flags.HasFlag(BuildFlags.BuildApi))
                     compilerOptions.Append("PH_BUILD_API;");
+                if (!string.IsNullOrEmpty(BuildCommit))
+                    compilerOptions.Append("PHAPP_VERSION_COMMITHASH=\"" + BuildCommit.Substring(0, 8) + "\";");
                 compilerOptions.Append("PHAPP_VERSION_REVISION=\"" + BuildRevision + "\";");
                 compilerOptions.Append("PHAPP_VERSION_BUILD=\"" + BuildCount + "\"");
 
