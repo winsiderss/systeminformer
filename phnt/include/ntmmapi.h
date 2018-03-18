@@ -136,6 +136,15 @@ typedef struct _MEMORY_REGION_INFORMATION
     SIZE_T CommitSize;
 } MEMORY_REGION_INFORMATION, *PMEMORY_REGION_INFORMATION;
 
+// private 
+typedef enum _MEMORY_WORKING_SET_EX_LOCATION
+{
+    MemoryLocationInvalid,
+    MemoryLocationResident,
+    MemoryLocationPagefile,
+    MemoryLocationReserved
+} MEMORY_WORKING_SET_EX_LOCATION;
+
 // private
 typedef struct _MEMORY_WORKING_SET_EX_BLOCK
 {
