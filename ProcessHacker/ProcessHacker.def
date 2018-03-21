@@ -278,6 +278,7 @@ EXPORTS
 	PhGetProcessWorkingSetInformation
 	PhGetProcessWsCounters
 	PhGetTokenGroups
+	PhGetTokenIntegrityLevelRID
 	PhGetTokenIntegrityLevel
 	PhGetTokenOwner
 	PhGetTokenPrimaryGroup

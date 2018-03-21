@@ -2002,23 +2002,22 @@ NTSTATUS PhSetTokenIsVirtualizationEnabled(
 }
 
 /**
- * Gets a token's integrity level.
- *
- * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
- * \param IntegrityLevel A variable which receives the integrity level of the token.
- * \param IntegrityString A variable which receives a pointer to a string containing a string
- * representation of the integrity level.
- */
-NTSTATUS PhGetTokenIntegrityLevel(
+* Gets a token's integrity level RID. Can handle custom integrity levels.
+*
+* \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
+* \param IntegrityLevelRID A variable which receives the integrity level of the token.
+* \param IntegrityString A variable which receives a pointer to a string containing a string
+* representation of the integrity level.
+*/
+NTSTATUS PhGetTokenIntegrityLevelRID(
     _In_ HANDLE TokenHandle,
-    _Out_opt_ PMANDATORY_LEVEL IntegrityLevel,
+    _Out_opt_ PMANDATORY_LEVEL_RID IntegrityLevelRID,
     _Out_opt_ PWSTR *IntegrityString
-    )
+)
 {
     NTSTATUS status;
     PTOKEN_MANDATORY_LABEL mandatoryLabel;
     ULONG subAuthority;
-    MANDATORY_LEVEL integrityLevel;
     PWSTR integrityString;
 
     status = PhpQueryTokenVariableSize(TokenHandle, TokenIntegrityLevel, &mandatoryLabel);
@@ -2029,41 +2028,98 @@ NTSTATUS PhGetTokenIntegrityLevel(
     subAuthority = *RtlSubAuthoritySid(mandatoryLabel->Label.Sid, 0);
     PhFree(mandatoryLabel);
 
-    switch (subAuthority)
+    if (IntegrityString)
     {
-    case SECURITY_MANDATORY_UNTRUSTED_RID:
-        integrityLevel = MandatoryLevelUntrusted;
-        integrityString = L"Untrusted";
-        break;
-    case SECURITY_MANDATORY_LOW_RID:
-        integrityLevel = MandatoryLevelLow;
-        integrityString = L"Low";
-        break;
-    case SECURITY_MANDATORY_MEDIUM_RID:
-        integrityLevel = MandatoryLevelMedium;
-        integrityString = L"Medium";
-        break;
-    case SECURITY_MANDATORY_HIGH_RID:
-        integrityLevel = MandatoryLevelHigh;
-        integrityString = L"High";
-        break;
-    case SECURITY_MANDATORY_SYSTEM_RID:
-        integrityLevel = MandatoryLevelSystem;
-        integrityString = L"System";
-        break;
-    case SECURITY_MANDATORY_PROTECTED_PROCESS_RID:
-        integrityLevel = MandatoryLevelSecureProcess;
-        integrityString = L"Protected";
-        break;
-    default:
-        return STATUS_UNSUCCESSFUL;
+        switch (subAuthority)
+        {
+        case SECURITY_MANDATORY_UNTRUSTED_RID:
+            integrityString = L"Untrusted";
+            break;
+        case SECURITY_MANDATORY_LOW_RID:
+            integrityString = L"Low";
+            break;
+        case SECURITY_MANDATORY_MEDIUM_RID:
+            integrityString = L"Medium";
+            break;
+        case SECURITY_MANDATORY_MEDIUM_PLUS_RID:
+            integrityString = L"Medium +";
+            break;
+        case SECURITY_MANDATORY_HIGH_RID:
+            integrityString = L"High";
+            break;
+        case SECURITY_MANDATORY_SYSTEM_RID:
+            integrityString = L"System";
+            break;
+        case SECURITY_MANDATORY_PROTECTED_PROCESS_RID:
+            integrityString = L"Protected";
+            break;
+        default:
+            integrityString = L"Other";
+            break;
+        }
+
+        *IntegrityString = integrityString;
     }
 
-    if (IntegrityLevel)
-        *IntegrityLevel = integrityLevel;
-    if (IntegrityString)
-        *IntegrityString = integrityString;
+    if (IntegrityLevelRID)
+        *IntegrityLevelRID = subAuthority;      
 
+    return status;
+}
+
+/**
+ * Gets a token's integrity level.
+ *
+ * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
+ * \param IntegrityLevel A variable which receives the integrity level of the token.
+ * If the integrity level is not a well-known one the function fails.
+ * \param IntegrityString A variable which receives a pointer to a string containing a string
+ * representation of the integrity level.
+ */
+NTSTATUS PhGetTokenIntegrityLevel(
+    _In_ HANDLE TokenHandle,
+    _Out_opt_ PMANDATORY_LEVEL IntegrityLevel,
+    _Out_opt_ PWSTR *IntegrityString
+    )
+{
+    NTSTATUS status;
+    MANDATORY_LEVEL_RID integrityLevelRID;
+    MANDATORY_LEVEL integrityLevel;
+
+    status = PhGetTokenIntegrityLevelRID(TokenHandle, &integrityLevelRID, IntegrityString);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (IntegrityLevel)
+    {
+        switch (integrityLevelRID)
+        {
+        case SECURITY_MANDATORY_UNTRUSTED_RID:
+            integrityLevel = MandatoryLevelUntrusted;
+            break;
+        case SECURITY_MANDATORY_LOW_RID:
+            integrityLevel = MandatoryLevelLow;
+            break;
+        case SECURITY_MANDATORY_MEDIUM_RID:
+            integrityLevel = MandatoryLevelMedium;
+            break;
+        case SECURITY_MANDATORY_HIGH_RID:
+            integrityLevel = MandatoryLevelHigh;
+            break;
+        case SECURITY_MANDATORY_SYSTEM_RID:
+            integrityLevel = MandatoryLevelSystem;
+            break;
+        case SECURITY_MANDATORY_PROTECTED_PROCESS_RID:
+            integrityLevel = MandatoryLevelSecureProcess;
+            break;
+        default:
+            return STATUS_UNSUCCESSFUL;
+        }
+
+        *IntegrityLevel = integrityLevel;
+    }
+    
     return status;
 }
 

@@ -44,6 +44,15 @@ typedef struct _PH_TOKEN_ATTRIBUTES
     ULONG Reserved;
 } PH_TOKEN_ATTRIBUTES, *PPH_TOKEN_ATTRIBUTES;
 
+typedef enum _MANDATORY_LEVEL_RID {
+    MandatoryUntrustedRID = SECURITY_MANDATORY_UNTRUSTED_RID,
+    MandatoryLowRID = SECURITY_MANDATORY_LOW_RID,
+    MandatoryMediumRID = SECURITY_MANDATORY_MEDIUM_RID,
+    MandatoryHighRID = SECURITY_MANDATORY_HIGH_RID,
+    MandatorySystemRID = SECURITY_MANDATORY_SYSTEM_RID,
+    MandatorySecureProcessRID = SECURITY_MANDATORY_PROTECTED_PROCESS_RID
+} MANDATORY_LEVEL_RID, *PMANDATORY_LEVEL_RID;
+
 PHLIBAPI
 PH_TOKEN_ATTRIBUTES
 NTAPI
@@ -397,6 +406,15 @@ NTAPI
 PhSetTokenIsVirtualizationEnabled(
     _In_ HANDLE TokenHandle,
     _In_ BOOLEAN IsVirtualizationEnabled
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetTokenIntegrityLevelRID(
+    _In_ HANDLE TokenHandle,
+    _Out_opt_ PMANDATORY_LEVEL_RID IntegrityLevelRID,
+    _Out_opt_ PWSTR *IntegrityString
     );
 
 PHLIBAPI
