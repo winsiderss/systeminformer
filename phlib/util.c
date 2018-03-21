@@ -5222,8 +5222,17 @@ PPH_STRING PhLoadIndirectString(
 
         if (!PhSplitStringRefAtChar(&sourceRef, L',', &dllNameRef, &dllIndexRef))
             return NULL;
+
         if (!PhStringToInteger64(&dllIndexRef, 10, &index64))
-            return NULL;
+        {
+            // HACK: Services.exe includes custom logic for indirect Service description strings by reading descriptions from inf files,
+            // these strings use the following format: "@FileName.inf,%SectionKeyName%;DefaultString".
+            // Return the last token of the service string instead of locating and parsing the inf file with GetPrivateProfileString.
+            if (dllIndexRef.Buffer[0] == L'%' && PhSplitStringRefAtChar(&sourceRef, L';', &dllNameRef, &dllIndexRef))
+                return PhCreateString2(&dllIndexRef);
+            else
+                return NULL;
+        }
 
         libraryString = PhCreateString2(&dllNameRef);
         index = (LONG)index64;
@@ -5243,10 +5252,6 @@ PPH_STRING PhLoadIndirectString(
         }
 
         PhDereferenceObject(libraryString);
-    }
-    else
-    {
-        //indirectString = PhCreateString(SourceString);
     }
 
     return indirectString;
@@ -5460,7 +5465,7 @@ NTSTATUS PhGetLoaderEntryImageDirectory(
 NTSTATUS PhGetLoaderEntryImageSection(
     _In_ PVOID BaseAddress,
     _In_ PIMAGE_NT_HEADERS ImageNtHeader,
-    _In_ PIMAGE_IMPORT_DESCRIPTOR ImageDirectory,
+    _In_ PVOID ImageDirectory,
     _Out_ PIMAGE_SECTION_HEADER *ImageSection,
     _Out_ SIZE_T *ImageSectionLength
     )
@@ -5495,6 +5500,53 @@ NTSTATUS PhGetLoaderEntryImageSection(
     return STATUS_SECTION_NOT_IMAGE;
 }
 
+PVOID PhGetLoaderEntryImageExportFunction(
+    _In_ PVOID BaseAddress, 
+    _In_ PIMAGE_EXPORT_DIRECTORY ExportDirectory, 
+    _In_opt_ PSTR ExportName,
+    _In_opt_ USHORT ExportOrdinal
+    )
+{
+    PVOID exportFunction = NULL;
+    PULONG exportAddressTable;
+    PULONG exportNameTable;
+    PUSHORT exportOrdinalTable;
+
+    exportAddressTable = PTR_ADD_OFFSET(BaseAddress, ExportDirectory->AddressOfFunctions);
+
+    if (ExportName)
+    {
+        PSTR exportName;
+        ULONG i;
+
+        exportNameTable = PTR_ADD_OFFSET(BaseAddress, ExportDirectory->AddressOfNames);
+
+        for (i = 0; i < ExportDirectory->NumberOfNames; i++)
+        {
+            exportName = PTR_ADD_OFFSET(BaseAddress, exportNameTable[i]);
+
+            if (PhEqualBytesZ(exportName, ExportName, FALSE))
+            {
+                exportFunction = PTR_ADD_OFFSET(BaseAddress, exportAddressTable[i + 1]);
+                break;
+            }
+        }
+    }
+    else
+    {
+        exportOrdinalTable = PTR_ADD_OFFSET(BaseAddress, ExportDirectory->AddressOfNameOrdinals);
+
+        // TODO: Validate exportFunction and exportAddressTable are located within the image range.
+        // HACK: I'm not sure which value we're supposed to -1 because the PE spec omits details about OrdinalBase... so just -1 the entire result. (dmex)
+        exportFunction = PTR_ADD_OFFSET(BaseAddress, exportAddressTable[exportOrdinalTable[ExportOrdinal] - ExportDirectory->Base - 1]);
+
+        //PULONG exportNameTable = PTR_ADD_OFFSET(BaseAddress, ExportDirectory->AddressOfNames);
+        //PSTR exportName = PTR_ADD_OFFSET(BaseAddress, exportNameTable[exportOrdinalTable[ExportOrdinal] - ExportDirectory->Base - 2]);
+    }
+
+    return exportFunction;
+}
+
 static NTSTATUS PhpFixupLoaderEntryImageImports(
     _In_ PVOID BaseAddress, 
     _In_ PIMAGE_NT_HEADERS ImageNtHeader
@@ -5502,7 +5554,7 @@ static NTSTATUS PhpFixupLoaderEntryImageImports(
 {
     NTSTATUS status;
     SIZE_T importDirectorySize;
-    ULONG importDirectoryLength;
+    ULONG importDirectoryProtect;
     PIMAGE_IMPORT_DESCRIPTOR importDirectory;
     PIMAGE_SECTION_HEADER importDirectorySection;
 
@@ -5533,7 +5585,7 @@ static NTSTATUS PhpFixupLoaderEntryImageImports(
         &importDirectorySection,
         &importDirectorySize,
         PAGE_READWRITE,
-        &importDirectoryLength
+        &importDirectoryProtect
         );
 
     if (!NT_SUCCESS(status))
@@ -5623,8 +5675,8 @@ static NTSTATUS PhpFixupLoaderEntryImageImports(
         NtCurrentProcess(),
         &importDirectorySection,
         &importDirectorySize,
-        importDirectoryLength,
-        &importDirectoryLength
+        importDirectoryProtect,
+        &importDirectoryProtect
         );
 
     if (!NT_SUCCESS(status))

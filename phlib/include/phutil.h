@@ -1155,6 +1155,46 @@ PhGetLoaderEntryDllBase(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhGetLoaderEntryImageNtHeaders(
+    _In_ PVOID BaseAddress,
+    _Out_ PIMAGE_NT_HEADERS *ImageNtHeaders
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetLoaderEntryImageDirectory(
+    _In_ PVOID BaseAddress,
+    _In_ PIMAGE_NT_HEADERS ImageNtHeader,
+    _In_ ULONG ImageDirectoryIndex,
+    _Out_ PVOID *ImageDirectoryEntry,
+    _Out_opt_ SIZE_T *ImageDirectoryLength
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetLoaderEntryImageSection(
+    _In_ PVOID BaseAddress,
+    _In_ PIMAGE_NT_HEADERS ImageNtHeader,
+    _In_ PVOID ImageDirectory,
+    _Out_ PIMAGE_SECTION_HEADER *ImageSection,
+    _Out_ SIZE_T *ImageSectionLength
+    );
+
+PHLIBAPI
+PVOID
+NTAPI
+PhGetLoaderEntryImageExportFunction(
+    _In_ PVOID BaseAddress,
+    _In_ PIMAGE_EXPORT_DIRECTORY ExportDirectory,
+    _In_opt_ PSTR ExportName,
+    _In_opt_ USHORT ExportOrdinal
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhLoadPluginImage(
     _In_ PPH_STRING FileName,
     _Out_opt_ PVOID *BaseAddress
