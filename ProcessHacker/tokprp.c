@@ -974,7 +974,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                             {
                                 PPH_EMENU_ITEM unknownIntegrityItem;
                                 
-                                unknownIntegrityItem = PhCreateEMenuItem(0, (ULONG)integrityLevelRID, L"Custom level", NULL, NULL);
+                                unknownIntegrityItem = PhCreateEMenuItem(0, (ULONG)integrityLevelRID, L"Intermediate level", NULL, NULL);
                                 unknownIntegrityItem->Flags |= PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK;
                                 PhInsertEMenuItem(menu, unknownIntegrityItem, customLevelPosition);
                             }
