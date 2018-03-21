@@ -922,20 +922,20 @@ INT_PTR CALLBACK PhpTokenPageProc(
                     RECT rect;
                     PPH_EMENU menu;
                     HANDLE tokenHandle;
-                    MANDATORY_LEVEL integrityLevel;
+                    MANDATORY_LEVEL_RID integrityLevelRID;
                     PPH_EMENU_ITEM selectedItem;
 
                     GetWindowRect(GetDlgItem(hwndDlg, IDC_INTEGRITY), &rect);
 
                     menu = PhCreateEMenu();
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatoryLevelSecureProcess, L"Protected", NULL, NULL), -1);
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatoryLevelSystem, L"System", NULL, NULL), -1);
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatoryLevelHigh, L"High", NULL, NULL), -1);
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatoryLevelMedium, L"Medium", NULL, NULL), -1);
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatoryLevelLow, L"Low", NULL, NULL), -1);
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatoryLevelUntrusted, L"Untrusted", NULL, NULL), -1);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatorySecureProcessRID, L"Protected", NULL, NULL), -1);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatorySystemRID, L"System", NULL, NULL), -1);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatoryHighRID, L"High", NULL, NULL), -1);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatoryMediumRID, L"Medium", NULL, NULL), -1);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatoryLowRID, L"Low", NULL, NULL), -1);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatoryUntrustedRID, L"Untrusted", NULL, NULL), -1);
 
-                    integrityLevel = -1;
+                    integrityLevelRID = -1;
 
                     // Put a radio check on the menu item that corresponds with the current integrity level.
                     // Also disable menu items which correspond to higher integrity levels since
@@ -946,24 +946,37 @@ INT_PTR CALLBACK PhpTokenPageProc(
                         tokenPageContext->Context
                         )))
                     {
-                        if (NT_SUCCESS(status = PhGetTokenIntegrityLevel(
+                        if (NT_SUCCESS(status = PhGetTokenIntegrityLevelRID(
                             tokenHandle,
-                            &integrityLevel,
+                            &integrityLevelRID,
                             NULL
                             )))
                         {
+                            ULONG customLevelPosition = 0; // Processing atypical integrity levels
+
                             for (ULONG i = 0; i < menu->Items->Count; i++)
                             {
                                 PPH_EMENU_ITEM menuItem = menu->Items->Items[i];
 
-                                if (menuItem->Id == (ULONG)integrityLevel)
+                                if (menuItem->Id == (ULONG)integrityLevelRID)
                                 {
                                     menuItem->Flags |= PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK;
+                                    customLevelPosition = 0; // The integrity level is a well-known one. No need to add a new menu item.
                                 }
-                                else if (menuItem->Id > (ULONG)integrityLevel)
+                                else if (menuItem->Id > (ULONG)integrityLevelRID)
                                 {
                                     menuItem->Flags |= PH_EMENU_DISABLED;
+                                    customLevelPosition = i + 1;
                                 }
+                            }
+
+                            if (customLevelPosition)
+                            {
+                                PPH_EMENU_ITEM unknownIntegrityItem;
+                                
+                                unknownIntegrityItem = PhCreateEMenuItem(0, (ULONG)integrityLevelRID, L"Intermediate level", NULL, NULL);
+                                unknownIntegrityItem->Flags |= PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK;
+                                PhInsertEMenuItem(menu, unknownIntegrityItem, customLevelPosition);
                             }
                         }
 
@@ -988,7 +1001,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                         rect.bottom
                         );
 
-                    if (selectedItem && selectedItem->Id != integrityLevel)
+                    if (selectedItem && selectedItem->Id != integrityLevelRID)
                     {
                         if (PhShowConfirmMessage(
                             hwndDlg,
@@ -1012,7 +1025,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
 
                                 newSid = (PSID)newSidBuffer;
                                 RtlInitializeSid(newSid, &mandatoryLabelAuthority, 1);
-                                *RtlSubAuthoritySid(newSid, 0) = MANDATORY_LEVEL_TO_MANDATORY_RID(selectedItem->Id);
+                                *RtlSubAuthoritySid(newSid, 0) = selectedItem->Id;
                                 mandatoryLabel.Label.Sid = newSid;
                                 mandatoryLabel.Label.Attributes = SE_GROUP_INTEGRITY;
 
