@@ -139,6 +139,16 @@ PPH_MODULE_PROVIDER PhCreateModuleProvider(
         }
     }
 
+    if (WindowsVersion >= WINDOWS_10 && moduleProvider->ProcessHandle)
+    {
+        PROCESS_EXTENDED_BASIC_INFORMATION basicInfo;
+
+        if (NT_SUCCESS(PhGetProcessExtendedBasicInformation(moduleProvider->ProcessHandle, &basicInfo)))
+        {
+            moduleProvider->IsSubsystemProcess = !!basicInfo.IsSubsystemProcess;
+        }
+    }
+
     RtlInitializeSListHead(&moduleProvider->QueryListHead);
 
     PhEmCallObjectOperation(EmModuleProviderType, moduleProvider, EmObjectCreate);
@@ -492,12 +502,20 @@ VOID PhModuleProviderUpdate(
 
             moduleItem->IsFirst = i == 0;
 
-            // Fix up the load count. If this is not an ordinary DLL or kernel module, set the load count to 0.
-            if (moduleItem->Type != PH_MODULE_TYPE_MODULE &&
-                moduleItem->Type != PH_MODULE_TYPE_WOW64_MODULE &&
-                moduleItem->Type != PH_MODULE_TYPE_KERNEL_MODULE)
+            if (moduleProvider->IsSubsystemProcess)
             {
-                moduleItem->LoadCount = 0;
+                // HACK: Update the module type. (TODO: Move into PhEnumGenericModules) (dmex)
+                moduleItem->Type = PH_MODULE_TYPE_ELF_MAPPED_IMAGE;
+            }
+            else
+            {
+                // Fix up the load count. If this is not an ordinary DLL or kernel module, set the load count to 0.
+                if (moduleItem->Type != PH_MODULE_TYPE_MODULE &&
+                    moduleItem->Type != PH_MODULE_TYPE_WOW64_MODULE &&
+                    moduleItem->Type != PH_MODULE_TYPE_KERNEL_MODULE)
+                {
+                    moduleItem->LoadCount = 0;
+                }
             }
 
             if (moduleItem->Type == PH_MODULE_TYPE_MODULE ||
@@ -558,7 +576,8 @@ VOID PhModuleProviderUpdate(
                 }
             }
 
-            PhPrintPointer(moduleItem->EntryPointAddressString, moduleItem->EntryPoint);
+            if (moduleItem->EntryPoint)
+                PhPrintPointer(moduleItem->EntryPointAddressString, moduleItem->EntryPoint);
 
             // remove CF Guard flag if CFG mitigation is not enabled for the process
             if (!moduleProvider->ControlFlowGuardEnabled)
@@ -574,6 +593,7 @@ VOID PhModuleProviderUpdate(
                 moduleItem->FileEndOfFile.QuadPart = -1;
             }
 
+            if (moduleItem->Type != PH_MODULE_TYPE_ELF_MAPPED_IMAGE)
             {
                 // See if the file has already been verified; if not, queue for verification.
 

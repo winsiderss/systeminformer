@@ -58,6 +58,7 @@ typedef struct _PH_MODULE_PROVIDER
         struct
         {
             BOOLEAN ControlFlowGuardEnabled : 1;
+            BOOLEAN IsSubsystemProcess : 1;
             BOOLEAN Spare : 7;
         };
     };
