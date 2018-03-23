@@ -558,10 +558,12 @@ INT_PTR CALLBACK WepWindowsDlgProc(
 
                         GetWindowPlacement(selectedNode->WindowHandle, &placement);
 
-                        if (placement.showCmd == SW_MINIMIZE)
+                        if (placement.showCmd == SW_SHOWMINIMIZED)
+                        {
                             ShowWindowAsync(selectedNode->WindowHandle, SW_RESTORE);
-                        else
-                            SetForegroundWindow(selectedNode->WindowHandle);
+                        }
+
+                        SetForegroundWindow(selectedNode->WindowHandle);
                     }
                 }
                 break;
