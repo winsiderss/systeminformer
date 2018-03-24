@@ -1308,12 +1308,12 @@ VOID PhpEnablePrivileges(
         &tokenHandle
         )))
     {
-        CHAR privilegesBuffer[FIELD_OFFSET(TOKEN_PRIVILEGES, Privileges) + sizeof(LUID_AND_ATTRIBUTES) * 8];
+        CHAR privilegesBuffer[FIELD_OFFSET(TOKEN_PRIVILEGES, Privileges) + sizeof(LUID_AND_ATTRIBUTES) * 9];
         PTOKEN_PRIVILEGES privileges;
         ULONG i;
 
         privileges = (PTOKEN_PRIVILEGES)privilegesBuffer;
-        privileges->PrivilegeCount = 8;
+        privileges->PrivilegeCount = 9;
 
         for (i = 0; i < privileges->PrivilegeCount; i++)
         {
@@ -1326,9 +1326,10 @@ VOID PhpEnablePrivileges(
         privileges->Privileges[2].Luid.LowPart = SE_INC_WORKING_SET_PRIVILEGE;
         privileges->Privileges[3].Luid.LowPart = SE_LOAD_DRIVER_PRIVILEGE;
         privileges->Privileges[4].Luid.LowPart = SE_PROF_SINGLE_PROCESS_PRIVILEGE;
-        privileges->Privileges[5].Luid.LowPart = SE_RESTORE_PRIVILEGE;
-        privileges->Privileges[6].Luid.LowPart = SE_SHUTDOWN_PRIVILEGE;
-        privileges->Privileges[7].Luid.LowPart = SE_TAKE_OWNERSHIP_PRIVILEGE;
+        privileges->Privileges[5].Luid.LowPart = SE_BACKUP_PRIVILEGE;
+        privileges->Privileges[6].Luid.LowPart = SE_RESTORE_PRIVILEGE;
+        privileges->Privileges[7].Luid.LowPart = SE_SHUTDOWN_PRIVILEGE;
+        privileges->Privileges[8].Luid.LowPart = SE_TAKE_OWNERSHIP_PRIVILEGE;
 
         NtAdjustPrivilegesToken(
             tokenHandle,
