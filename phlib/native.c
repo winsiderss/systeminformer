@@ -2013,7 +2013,7 @@ NTSTATUS PhGetTokenIntegrityLevelRID(
     _In_ HANDLE TokenHandle,
     _Out_opt_ PMANDATORY_LEVEL_RID IntegrityLevelRID,
     _Out_opt_ PWSTR *IntegrityString
-)
+    )
 {
     NTSTATUS status;
     PTOKEN_MANDATORY_LABEL mandatoryLabel;
@@ -2062,7 +2062,7 @@ NTSTATUS PhGetTokenIntegrityLevelRID(
     }
 
     if (IntegrityLevelRID)
-        *IntegrityLevelRID = subAuthority;      
+        *IntegrityLevelRID = subAuthority;
 
     return status;
 }
@@ -2119,7 +2119,7 @@ NTSTATUS PhGetTokenIntegrityLevel(
 
         *IntegrityLevel = integrityLevel;
     }
-    
+
     return status;
 }
 
