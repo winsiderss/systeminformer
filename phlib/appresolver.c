@@ -202,16 +202,29 @@ PPH_STRING PhGetAppContainerName(
     _In_ PSID AppContainerSid
     )
 {
+    HRESULT result;
     PPH_STRING appContainerName = NULL;
     PWSTR packageMonikerName;
 
     if (!PhpKernelAppCoreInitialized())
         return NULL;
 
-    if (SUCCEEDED(AppContainerLookupMoniker_I(AppContainerSid, &packageMonikerName)))
+    result = AppContainerLookupMoniker_I(
+        AppContainerSid, 
+        &packageMonikerName
+        );
+
+    if (SUCCEEDED(result))
     {
         appContainerName = PhCreateString(packageMonikerName);
         AppContainerFreeMemory_I(packageMonikerName);
+    }
+    else
+    {
+        // NOTE: The AppContainerLookupMoniker function is not able to lookup the appcontainer names created using the 
+        // CreateAppContainerProfile function from Win32 desktop applications (e.g. Google Chrome). 
+        // HACK: Return the error message until the above bug is fixed or have a better workaround -dmex
+        appContainerName = PhGetStatusMessage(0, HRESULT_CODE(result));
     }
 
     return appContainerName;
