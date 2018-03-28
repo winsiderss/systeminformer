@@ -321,7 +321,7 @@ VOID ToolbarLoadSettings(
                 {
                     if (PhGetOwnTokenAttributes().Elevated)
                     {
-                        buttonInfo.fsState |= TBSTATE_HIDDEN;
+                        buttonInfo.fsState &= ~TBSTATE_ENABLED;
                     }
                 }
                 break;
