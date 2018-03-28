@@ -2,7 +2,7 @@
  * Process Hacker -
  *   PE viewer
  *
- * Copyright (C) 2017 dmex
+ * Copyright (C) 2017-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -71,7 +71,8 @@ typedef enum _PVE_RESOURCES_COLUMN_INDEX
     PVE_RESOURCES_COLUMN_INDEX_TYPE,
     PVE_RESOURCES_COLUMN_INDEX_NAME,
     PVE_RESOURCES_COLUMN_INDEX_SIZE,
-    PVE_RESOURCES_COLUMN_INDEX_LCID
+    PVE_RESOURCES_COLUMN_INDEX_LCID,
+    PVE_RESOURCES_COLUMN_INDEX_HASH
 } PVE_RESOURCES_COLUMN_INDEX;
 
 INT_PTR CALLBACK PvpPeResourcesDlgProc(
@@ -106,6 +107,7 @@ INT_PTR CALLBACK PvpPeResourcesDlgProc(
             PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 80, L"Name");
             PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 100, L"Size");
             PhAddListViewColumn(lvHandle, 4, 4, 4, LVCFMT_LEFT, 100, L"Language");
+            PhAddListViewColumn(lvHandle, 5, 5, 5, LVCFMT_LEFT, 100, L"Hash");
             PhSetExtendedListView(lvHandle);
             PhLoadListViewColumnsFromSetting(L"ImageResourcesListViewColumns", lvHandle);
 
@@ -172,6 +174,21 @@ INT_PTR CALLBACK PvpPeResourcesDlgProc(
                     }
 
                     PhSetListViewSubItem(lvHandle, lvItemIndex, PVE_RESOURCES_COLUMN_INDEX_SIZE, PhaFormatSize(entry.Size, -1)->Buffer);
+
+                    if (entry.Data && entry.Size)
+                    {
+                        PH_HASH_CONTEXT hashContext;
+                        PPH_STRING hashString;
+                        UCHAR hash[32];
+
+                        PhInitializeHash(&hashContext, PhGetIntegerSetting(L"HashAlgorithm"));
+                        PhUpdateHash(&hashContext, entry.Data, entry.Size);
+                        PhFinalHash(&hashContext, hash, 16, NULL);
+
+                        hashString = PhBufferToHexString(hash, 16);
+                        PhSetListViewSubItem(lvHandle, lvItemIndex, PVE_RESOURCES_COLUMN_INDEX_HASH, hashString->Buffer);
+                        PhDereferenceObject(hashString);
+                    }
                 }
 
                 PhFree(resources.ResourceEntries);
