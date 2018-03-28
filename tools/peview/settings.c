@@ -31,6 +31,7 @@ VOID PhAddDefaultSettings(
 {
     PhpAddIntegerSetting(L"FirstRun", L"1");
     PhpAddStringSetting(L"Font", L""); // null
+    PhpAddIntegerSetting(L"HashAlgorithm", L"0");
     PhpAddIntegerSetting(L"MaxSizeUnit", L"6");
     PhpAddStringSetting(L"MainWindowPage", L"General");
     PhpAddIntegerPairSetting(L"MainWindowPosition", L"150,150");

@@ -623,7 +623,7 @@ VOID PvpSetPeImageSections(
             //    PPH_STRING hashString;
             //    UCHAR hash[32];
             //
-            //    PhInitializeHash(&hashContext, Md5HashAlgorithm);
+            //    PhInitializeHash(&hashContext, PhGetIntegerSetting(L"HashAlgorithm"));
             //    PhUpdateHash(&hashContext, PTR_ADD_OFFSET(PvMappedImage.ViewBase, PvMappedImage.Sections[i].PointerToRawData), PvMappedImage.Sections[i].SizeOfRawData);
             //    PhFinalHash(&hashContext, hash, 16, NULL);
             //
