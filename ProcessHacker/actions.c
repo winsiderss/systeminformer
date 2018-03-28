@@ -2627,7 +2627,7 @@ BOOLEAN PhUiUnloadModule(
             message = L"Unloading a module may cause the process to crash.";
 
             if (WindowsVersion >= WINDOWS_8)
-                message = L"Unloading a module may cause the process to crash. NOTE: This feature may not work correctly on your version of Windows.";
+                message = L"Unloading a module may cause the process to crash. NOTE: This feature may not work correctly on your version of Windows and some programs may restrict access or ban your account.";
 
             break;
         case PH_MODULE_TYPE_KERNEL_MODULE:

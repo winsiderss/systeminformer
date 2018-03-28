@@ -450,6 +450,17 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                 {
                     NTSTATUS status;
 
+                    if (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
+                        hwndDlg,
+                        L"write",
+                        L"process memory",
+                        L"Some programs may restrict access or ban your account when editing the memory of the process.",
+                        FALSE
+                        ))
+                    {
+                        break;
+                    }
+
                     if (!context->WriteAccess)
                     {
                         HANDLE processHandle;
