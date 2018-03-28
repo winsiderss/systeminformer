@@ -222,7 +222,12 @@ namespace CustomBuildTool
 
         public static string GetMsbuildFilePath()
         {
-            string vswhere = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Microsoft Visual Studio\\Installer\\vswhere.exe");
+            string vswhere = string.Empty;
+
+            if (Environment.Is64BitOperatingSystem)
+                vswhere = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Microsoft Visual Studio\\Installer\\vswhere.exe");
+            else
+                vswhere = Environment.ExpandEnvironmentVariables("%ProgramFiles%\\Microsoft Visual Studio\\Installer\\vswhere.exe");
 
             // Note: vswere.exe was only released with build 15.0.26418.1
             if (File.Exists(vswhere))
