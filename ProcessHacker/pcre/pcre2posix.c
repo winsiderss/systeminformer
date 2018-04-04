@@ -38,13 +38,13 @@ POSSIBILITY OF SUCH DAMAGE.
 -----------------------------------------------------------------------------
 */
 
+// dmex: Disable warnings.
+#pragma warning(push)
+#pragma warning(disable : 4267)
 
 /* This module is a wrapper that provides a POSIX API to the underlying PCRE2
 functions. */
 
-// dmex: Disable warnings.
-#pragma warning(push)
-#pragma warning(disable : 4267)
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -374,5 +374,4 @@ switch(rc)
 }
 
 /* End of pcre2posix.c */
-
 #pragma warning(pop)
