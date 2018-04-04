@@ -58,6 +58,7 @@
 #define IDC_EXAMPLE                     1050
 #define IDC_ENABLESYSINFOGRAPHS         1050
 #define IDC_GROUPGPU                    1051
+#define IDC_SELECTALL                   1051
 #define IDC_GROUPMEM                    1052
 #define IDC_GROUPSHARED                 1053
 #define IDC_GROUPDEDICATED              1054
