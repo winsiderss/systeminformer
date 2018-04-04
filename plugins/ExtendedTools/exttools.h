@@ -199,6 +199,7 @@ typedef struct _ET_PROCESS_BLOCK
     FLOAT GpuNodeUsage;
     ULONG64 GpuDedicatedUsage;
     ULONG64 GpuSharedUsage;
+    ULONG64 GpuCommitUsage;
 
     PH_UINT32_DELTA HardFaultsDelta;
 
