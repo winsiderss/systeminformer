@@ -179,10 +179,12 @@ static struct regression_test_case regression_test_cases[] = {
 	{ PCRE2_CASELESS, 0, 0, 0, "\xff#a", "\xff#\xff\xfe##\xff#A" },
 	{ PCRE2_CASELESS, 0, 0, 0, "\xfe", "\xff\xfc#\xfe\xfe" },
 	{ PCRE2_CASELESS, 0, 0, 0, "a1", "Aa1" },
+#ifndef NEVER_BACKSLASH_C
 	{ M, A, 0, 0, "\\Ca", "cda" },
 	{ CM, A, 0, 0, "\\Ca", "CDA" },
 	{ M, A, 0, 0 | F_NOMATCH, "\\Cx", "cda" },
 	{ CM, A, 0, 0 | F_NOMATCH, "\\Cx", "CDA" },
+#endif
 	{ CMUP, A, 0, 0, "\xf0\x90\x90\x80\xf0\x90\x90\xa8", "\xf0\x90\x90\xa8\xf0\x90\x90\x80" },
 	{ CMUP, A, 0, 0, "\xf0\x90\x90\x80{2}", "\xf0\x90\x90\x80#\xf0\x90\x90\xa8\xf0\x90\x90\x80" },
 	{ CMUP, A, 0, 0, "\xf0\x90\x90\xa8{2}", "\xf0\x90\x90\x80#\xf0\x90\x90\xa8\xf0\x90\x90\x80" },

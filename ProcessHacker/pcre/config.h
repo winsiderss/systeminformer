@@ -33,7 +33,10 @@ sure both macros are undefined; an emulation function will then be used. */
    value), this is changed so that backslash-R matches only CR, LF, or CRLF.
    The build-time default can be overridden by the user of PCRE2 at runtime.
    */
-#undef BSR_ANYCRLF
+#ifndef BSR_ANYCRLF
+#define BSR_ANYCRLF 1
+#endif
+
 
 /* If you are compiling for a system that uses EBCDIC instead of ASCII
    character codes, define this macro to any value. When EBCDIC is set, PCRE2
@@ -232,7 +235,7 @@ sure both macros are undefined; an emulation function will then be used. */
 #define PACKAGE_NAME "PCRE2"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "PCRE2 10.30"
+#define PACKAGE_STRING "PCRE2 10.31"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "pcre2"
@@ -241,7 +244,7 @@ sure both macros are undefined; an emulation function will then be used. */
 #define PACKAGE_URL ""
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "10.30"
+#define PACKAGE_VERSION "10.31"
 
 /* The value of PARENS_NEST_LIMIT specifies the maximum depth of nested
    parentheses (of any kind) in a pattern. This limits the amount of system
@@ -369,7 +372,7 @@ sure both macros are undefined; an emulation function will then be used. */
 #endif
 
 /* Version number of package */
-#define VERSION "10.30"
+#define VERSION "10.31"
 
 /* Define to 1 if on MINIX. */
 #undef _MINIX

@@ -48,9 +48,9 @@ POSSIBILITY OF SUCH DAMAGE.
 /* The current PCRE version information. */
 
 #define PCRE2_MAJOR          10
-#define PCRE2_MINOR          30
-#define PCRE2_PRERELEASE     
-#define PCRE2_DATE           2017-08-14
+#define PCRE2_MINOR          31
+#define PCRE2_PRERELEASE
+#define PCRE2_DATE           2018-02-12
 
 /* When an application links to a PCRE DLL in Windows, the symbols that are
 imported have to be identified as such. When building PCRE2, the appropriate
@@ -327,6 +327,7 @@ numbers must not be changed. */
 #define PCRE2_INFO_HASBACKSLASHC        23
 #define PCRE2_INFO_FRAMESIZE            24
 #define PCRE2_INFO_HEAPLIMIT            25
+#define PCRE2_INFO_EXTRAOPTIONS         26
 
 /* Request types for pcre2_config(). */
 
@@ -344,6 +345,8 @@ numbers must not be changed. */
 #define PCRE2_CONFIG_UNICODE_VERSION        10
 #define PCRE2_CONFIG_VERSION                11
 #define PCRE2_CONFIG_HEAPLIMIT              12
+#define PCRE2_CONFIG_NEVER_BACKSLASH_C      13
+#define PCRE2_CONFIG_COMPILED_WIDTHS        14
 
 /* Types for code units in patterns and subject strings. */
 
@@ -399,6 +402,11 @@ without changing the API of the function, thereby allowing old clients to work
 without modification. Define the generic version in a macro; the width-specific
 versions are generated from this macro below. */
 
+/* Flags for the callout_flags field. These are cleared after a callout. */
+
+#define PCRE2_CALLOUT_STARTMATCH    0x00000001u  /* Set for each bumpalong */
+#define PCRE2_CALLOUT_BACKTRACK     0x00000002u  /* Set after a backtrack */
+
 #define PCRE2_STRUCTURE_LIST \
 typedef struct pcre2_callout_block { \
   uint32_t      version;           /* Identifies version of block */ \
@@ -418,6 +426,8 @@ typedef struct pcre2_callout_block { \
   PCRE2_SIZE    callout_string_offset; /* Offset to string within pattern */ \
   PCRE2_SIZE    callout_string_length; /* Length of string compiled into pattern */ \
   PCRE2_SPTR    callout_string;    /* String compiled into pattern */ \
+  /* ------------------- Added for Version 2 -------------------------- */ \
+  uint32_t      callout_flags;     /* See above for list */ \
   /* ------------------------------------------------------------------ */ \
 } pcre2_callout_block; \
 \
