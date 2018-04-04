@@ -439,10 +439,12 @@ VOID EtpUpdateSegmentInformation(
                     if (WindowsVersion >= WINDOWS_8)
                     {
                         bytesCommitted = queryStatistics.QueryResult.SegmentInformation.BytesResident;
+                        // TODO: SegmentInformation.CommitLimit
                     }
                     else
                     {
                         bytesCommitted = queryStatistics.QueryResult.SegmentInformationV1.BytesResident;
+                        // TODO: SegmentInformationV1.CommitLimit
                     }
 
                     if (RtlCheckBit(&gpuAdapter->ApertureBitMap, j))

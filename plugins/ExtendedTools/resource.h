@@ -61,6 +61,7 @@
 #define IDC_GROUPMEM                    1052
 #define IDC_GROUPSHARED                 1053
 #define IDC_GROUPDEDICATED              1054
+#define IDC_GROUPCOMMIT                 1054
 #define IDC_ZDEDICATEDCURRENT_V         1055
 #define IDC_ZDEDICATEDLIMIT_V           1056
 #define IDC_ZSHAREDCURRENT_V            1057
@@ -106,7 +107,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        135
+#define _APS_NEXT_RESOURCE_VALUE        138
 #define _APS_NEXT_COMMAND_VALUE         40009
 #define _APS_NEXT_CONTROL_VALUE         1091
 #define _APS_NEXT_SYMED_VALUE           130
