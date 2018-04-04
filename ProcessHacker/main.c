@@ -136,7 +136,7 @@ INT WINAPI wWinMain(
     if (!(PhLocalSystemName = PhGetSidFullName(&PhSeLocalSystemSid, TRUE, NULL)))
         PhLocalSystemName = PhCreateString(L"NT AUTHORITY\\SYSTEM");
     if (!(PhCurrentUserName = PhGetTokenUserString(PhGetOwnTokenAttributes().TokenHandle, TRUE)))
-        PhLocalSystemName = PhReferenceEmptyString();
+        PhCurrentUserName = PhReferenceEmptyString();
 
     PhpProcessStartupParameters();
     PhSettingsInitialization();
