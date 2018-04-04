@@ -387,6 +387,9 @@
     <ClCompile Include="colsetmgr.c">
       <Filter>Process Hacker</Filter>
     </ClCompile>
+    <ClCompile Include="pcre\pcre2_extuni.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\hidnproc.h">
