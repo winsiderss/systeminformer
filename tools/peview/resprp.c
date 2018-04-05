@@ -62,7 +62,8 @@ static PWSTR PvpGetResourceTypeString(
         return L"RT_MANIFEST";
     }
 
-    return L"ERROR";
+    // TODO: Some binaries include undocumented resource types.
+    return PhaFormatString(L"%lu", Type)->Buffer;
 }
 
 typedef enum _PVE_RESOURCES_COLUMN_INDEX
