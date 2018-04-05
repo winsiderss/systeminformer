@@ -450,7 +450,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                 {
                     NTSTATUS status;
 
-                    if (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
+                    if (PhGetIntegerSetting(L"EnableWarnings") && !PhShowConfirmMessage(
                         hwndDlg,
                         L"write",
                         L"process memory",
