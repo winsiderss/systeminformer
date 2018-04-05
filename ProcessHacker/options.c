@@ -146,6 +146,7 @@ static BOOLEAN CurrentUserRunPresent = FALSE;
 static BOOLEAN CurrentUserRunStartHidden = FALSE;
 static HFONT CurrentFontInstance = NULL;
 static PPH_STRING NewFontSelection = NULL;
+static HIMAGELIST GeneralListviewImageList = NULL;
 
 // Advanced
 static PH_STRINGREF TaskMgrImageOptionsKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\taskmgr.exe");
@@ -1058,12 +1059,13 @@ static VOID PhpAdvancedPageSave(
     if (!PhEqualString(PhaGetDlgItemText(hwndDlg, IDC_DBGHELPSEARCHPATH), PhaGetStringSetting(L"DbgHelpSearchPath"), TRUE))
     {
         PhSetStringSetting2(L"DbgHelpSearchPath", &(PhaGetDlgItemText(hwndDlg, IDC_DBGHELPSEARCHPATH)->sr));
-        RestartRequired = TRUE;       
+        RestartRequired = TRUE;
     }
 
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_SINGLE_INSTANCE, L"AllowOnlyOneInstance");
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_HIDE_WHENCLOSED, L"HideOnClose");
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_HIDE_WHENMINIMIZED, L"HideOnMinimize");
+    //SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_START_HIDDEN, L"StartHidden");
     SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_MINIINFO_WINDOW, L"MiniInfoWindowEnabled");
     SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_DRIVER, L"EnableKph");
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_WARNINGS, L"EnableWarnings");
@@ -1127,6 +1129,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
 
             comboBoxHandle = GetDlgItem(hwndDlg, IDC_MAXSIZEUNIT);
             listviewHandle = GetDlgItem(hwndDlg, IDC_SETTINGS);
+            GeneralListviewImageList = ImageList_Create(2, 16, ILC_COLOR, 1, 1);
 
             PhInitializeLayoutManager(&LayoutManager, hwndDlg);
             PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_SEARCHENGINE), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
@@ -1136,7 +1139,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
 
             PhSetListViewStyle(listviewHandle, FALSE, TRUE);
             ListView_SetExtendedListViewStyleEx(listviewHandle, LVS_EX_CHECKBOXES, LVS_EX_CHECKBOXES);
-            //ListView_SetImageList(listviewHandle, GeneralListviewImageList, LVSIL_SMALL);
+            ListView_SetImageList(listviewHandle, GeneralListviewImageList, LVSIL_SMALL);
             PhSetControlTheme(listviewHandle, L"explorer");
             PhAddListViewColumn(listviewHandle, 0, 0, 0, LVCFMT_LEFT, 250, L"Name");
             PhSetExtendedListView(listviewHandle);
@@ -1181,6 +1184,9 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
 
             if (CurrentFontInstance)
                 DeleteObject(CurrentFontInstance);
+
+            if (GeneralListviewImageList)
+                ImageList_Destroy(GeneralListviewImageList);
 
             PhClearReference(&NewFontSelection);
             PhClearReference(&OldTaskMgrDebugger);
