@@ -247,6 +247,17 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
                 {
                     BOOLEAN refresh;
 
+                    if (PhGetIntegerSetting(L"EnableWarnings") && !PhShowConfirmMessage(
+                        hwndDlg,
+                        L"create",
+                        L"environment variable",
+                        L"Some programs may restrict access or ban your account when creating new environment variable(s).",
+                        FALSE
+                        ))
+                    {
+                        break;
+                    }
+
                     if (PhpShowEditEnvDialog(hwndDlg, processItem, L"", NULL, &refresh) == IDOK &&
                         refresh)
                     {
@@ -263,6 +274,17 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
                     {
                         PPH_ENVIRONMENT_ITEM item = PhItemArray(&environmentContext->Items, PtrToUlong(index) - 1);
                         BOOLEAN refresh;
+
+                        if (PhGetIntegerSetting(L"EnableWarnings") && !PhShowConfirmMessage(
+                            hwndDlg,
+                            L"edit",
+                            L"the selected environment variable",
+                            L"Some programs may restrict access or ban your account when editing the environment variable(s) of the process.",
+                            FALSE
+                            ))
+                        {
+                            break;
+                        }
 
                         if (PhpShowEditEnvDialog(hwndDlg, processItem, item->Name->Buffer,
                             item->Value->Buffer, &refresh) == IDOK && refresh)
@@ -285,13 +307,19 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
 
                     PhGetSelectedListViewItemParams(lvHandle, &indices, &numberOfIndices);
 
-                    if (numberOfIndices != 0 && PhShowConfirmMessage(
-                        hwndDlg,
-                        L"delete",
-                        numberOfIndices != 1 ? L"the selected environment variables" : L"the selected environment variable",
-                        NULL,
-                        FALSE))
+                    if (numberOfIndices != 0)
                     {
+                        if (PhGetIntegerSetting(L"EnableWarnings") && !PhShowConfirmMessage(
+                            hwndDlg,
+                            L"delete",
+                            numberOfIndices != 1 ? L"the selected environment variables" : L"the selected environment variable",
+                            L"Some programs may restrict access or ban your account when editing the environment variable(s) of the process.",
+                            FALSE
+                            ))
+                        {
+                            break;
+                        }
+
                         if (NT_SUCCESS(status = PhOpenProcess(
                             &processHandle,
                             ProcessQueryAccess | PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION |
