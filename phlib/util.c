@@ -5630,20 +5630,6 @@ PVOID PhGetLoaderEntryImageExportFunction(
     return baseAddress;
 }
 
-    {
-        exportOrdinalTable = PTR_ADD_OFFSET(BaseAddress, ExportDirectory->AddressOfNameOrdinals);
-
-        // TODO: Validate exportFunction and exportAddressTable are located within the image range.
-        // HACK: I'm not sure which value we're supposed to -1 because the PE spec omits details about OrdinalBase... so just -1 the entire result. (dmex)
-        exportFunction = PTR_ADD_OFFSET(BaseAddress, exportAddressTable[exportOrdinalTable[ExportOrdinal] - ExportDirectory->Base - 1]);
-
-        //PULONG exportNameTable = PTR_ADD_OFFSET(BaseAddress, ExportDirectory->AddressOfNames);
-        //PSTR exportName = PTR_ADD_OFFSET(BaseAddress, exportNameTable[exportOrdinalTable[ExportOrdinal] - ExportDirectory->Base - 2]);
-    }
-
-    return exportFunction;
-}
-
 static NTSTATUS PhpFixupLoaderEntryImageImports(
     _In_ PVOID BaseAddress, 
     _In_ PIMAGE_NT_HEADERS ImageNtHeader
