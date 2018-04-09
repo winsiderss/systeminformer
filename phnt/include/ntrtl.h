@@ -3236,6 +3236,15 @@ RtlDoesFileExists_U(
     _In_ PWSTR FileName
     );
 
+#if (PHNT_VERSION >= PHNT_REDSTONE2)
+NTSYSAPI
+PCWSTR
+NTAPI
+RtlGetNtSystemRoot(
+    VOID
+    );
+#endif
+
 // Heaps
 
 typedef struct _RTL_HEAP_ENTRY
