@@ -606,6 +606,24 @@ PhGetDllFileName(
     );
 
 PHLIBAPI
+PVOID
+NTAPI
+PhGetDllBaseProcedureAddress(
+    _In_ PVOID DllBase,
+    _In_opt_ PSTR ProcedureName,
+    _In_opt_ USHORT ProcedureNumber
+    );
+
+PHLIBAPI
+PVOID
+NTAPI
+PhGetDllProcedureAddress(
+    _In_ PWSTR DllEntryName,
+    _In_opt_ PSTR ProcedureName,
+    _In_opt_ USHORT ProcedureNumber
+    );
+
+PHLIBAPI
 PPH_STRING
 NTAPI
 PhGetApplicationFileName(
@@ -1167,6 +1185,7 @@ PhGetLoaderEntryImageDirectory(
     _In_ PVOID BaseAddress,
     _In_ PIMAGE_NT_HEADERS ImageNtHeader,
     _In_ ULONG ImageDirectoryIndex,
+    _Out_ PIMAGE_DATA_DIRECTORY *ImageDataDirectoryEntry,
     _Out_ PVOID *ImageDirectoryEntry,
     _Out_opt_ SIZE_T *ImageDirectoryLength
     );
@@ -1187,6 +1206,8 @@ PVOID
 NTAPI
 PhGetLoaderEntryImageExportFunction(
     _In_ PVOID BaseAddress,
+    _In_ PIMAGE_NT_HEADERS ImageNtHeader,
+    _In_ PIMAGE_DATA_DIRECTORY DataDirectory,
     _In_ PIMAGE_EXPORT_DIRECTORY ExportDirectory,
     _In_opt_ PSTR ExportName,
     _In_opt_ USHORT ExportOrdinal
