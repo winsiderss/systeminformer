@@ -1341,9 +1341,10 @@ BOOLEAN PhCreateProcessIgnoreIfeoDebugger(
 
     result = FALSE;
 
-    // This is NOT thread-safe.
+    RtlEnterCriticalSection(NtCurrentPeb()->FastPebLock);
     originalValue = NtCurrentPeb()->ReadImageFileExecOptions;
     NtCurrentPeb()->ReadImageFileExecOptions = FALSE;
+    RtlLeaveCriticalSection(NtCurrentPeb()->FastPebLock);
 
     memset(&startupInfo, 0, sizeof(STARTUPINFO));
     startupInfo.cb = sizeof(STARTUPINFO);
@@ -1364,7 +1365,9 @@ BOOLEAN PhCreateProcessIgnoreIfeoDebugger(
     if (processInfo.hThread)
         NtClose(processInfo.hThread);
 
+    RtlEnterCriticalSection(NtCurrentPeb()->FastPebLock);
     NtCurrentPeb()->ReadImageFileExecOptions = originalValue;
+    RtlLeaveCriticalSection(NtCurrentPeb()->FastPebLock);
 
     return result;
 }
