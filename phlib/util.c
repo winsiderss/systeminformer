@@ -2599,11 +2599,11 @@ NTSTATUS PhCreateProcessAsUser(
         HMODULE userEnv;
 
         winsta = LoadLibrary(L"winsta.dll");
-        WinStationQueryInformationW_I = PhGetProcedureAddress(winsta, "WinStationQueryInformationW", 0);
+        WinStationQueryInformationW_I = PhGetDllBaseProcedureAddress(winsta, "WinStationQueryInformationW", 0);
 
         userEnv = LoadLibrary(L"userenv.dll");
-        CreateEnvironmentBlock_I = PhGetProcedureAddress(userEnv, "CreateEnvironmentBlock", 0);
-        DestroyEnvironmentBlock_I = PhGetProcedureAddress(userEnv, "DestroyEnvironmentBlock", 0);
+        CreateEnvironmentBlock_I = PhGetDllBaseProcedureAddress(userEnv, "CreateEnvironmentBlock", 0);
+        DestroyEnvironmentBlock_I = PhGetDllBaseProcedureAddress(userEnv, "DestroyEnvironmentBlock", 0);
 
         PhEndInitOnce(&initOnce);
     }
@@ -5270,7 +5270,7 @@ BOOLEAN PhExtractIcon(
     if (PhBeginInitOnce(&initOnce))
     {
         if (!PrivateExtractIconExW)
-            PrivateExtractIconExW = PhGetModuleProcAddress(L"user32.dll", "PrivateExtractIconExW");
+            PrivateExtractIconExW = PhGetDllProcedureAddress(L"user32.dll", "PrivateExtractIconExW", 0);
 
         PhEndInitOnce(&initOnce);
     }
@@ -5381,6 +5381,57 @@ PPH_STRING PhGetDllFileName(
     return fileName;
 }
 
+PVOID PhGetDllBaseProcedureAddress(
+    _In_ PVOID DllBase,
+    _In_opt_ PSTR ProcedureName,
+    _In_opt_ USHORT ProcedureNumber
+    )
+{
+    PIMAGE_NT_HEADERS imageNtHeader;
+    PIMAGE_DATA_DIRECTORY dataDirectory;
+    PIMAGE_EXPORT_DIRECTORY exportDirectory;
+
+    if (!NT_SUCCESS(PhGetLoaderEntryImageNtHeaders(DllBase, &imageNtHeader)))
+        return NULL;
+
+    if (!NT_SUCCESS(PhGetLoaderEntryImageDirectory(
+        DllBase,
+        imageNtHeader,
+        IMAGE_DIRECTORY_ENTRY_EXPORT,
+        &dataDirectory,
+        &exportDirectory,
+        NULL
+        )))
+        return NULL;
+
+    return PhGetLoaderEntryImageExportFunction(
+        DllBase,
+        imageNtHeader,
+        dataDirectory,
+        exportDirectory, 
+        ProcedureName, 
+        ProcedureNumber
+        );
+}
+
+PVOID PhGetDllProcedureAddress(
+    _In_ PWSTR DllEntryName,
+    _In_opt_ PSTR ProcedureName,
+    _In_opt_ USHORT ProcedureNumber
+    )
+{
+    PVOID dllBaseAddress;
+
+    if (!(dllBaseAddress = PhGetLoaderEntryDllBase(DllEntryName)))
+        return NULL;
+
+    return PhGetDllBaseProcedureAddress(
+        dllBaseAddress,
+        ProcedureName,
+        ProcedureNumber
+        );
+}
+
 PVOID PhGetLoaderEntryDllBase(
     _In_opt_ PWSTR BaseDllName
     )
@@ -5445,19 +5496,21 @@ NTSTATUS PhGetLoaderEntryImageDirectory(
     _In_ PVOID BaseAddress,
     _In_ PIMAGE_NT_HEADERS ImageNtHeader,
     _In_ ULONG ImageDirectoryIndex,
+    _Out_ PIMAGE_DATA_DIRECTORY *ImageDataDirectoryEntry,
     _Out_ PVOID *ImageDirectoryEntry,
     _Out_opt_ SIZE_T *ImageDirectoryLength
     )
 {
-    IMAGE_DATA_DIRECTORY directory;
+    PIMAGE_DATA_DIRECTORY directory;
 
-    directory = ImageNtHeader->OptionalHeader.DataDirectory[ImageDirectoryIndex];
+    directory = &ImageNtHeader->OptionalHeader.DataDirectory[ImageDirectoryIndex];
 
-    if (directory.VirtualAddress == 0 || directory.Size == 0)
+    if (directory->VirtualAddress == 0 || directory->Size == 0)
         return STATUS_INVALID_FILE_FOR_SECTION;
 
-    *ImageDirectoryEntry = PTR_ADD_OFFSET(BaseAddress, directory.VirtualAddress);
-    if (ImageDirectoryLength) *ImageDirectoryLength = directory.Size;
+    *ImageDataDirectoryEntry = directory;
+    *ImageDirectoryEntry = PTR_ADD_OFFSET(BaseAddress, directory->VirtualAddress);
+    if (ImageDirectoryLength) *ImageDirectoryLength = directory->Size;
 
     return STATUS_SUCCESS;
 }
@@ -5501,38 +5554,82 @@ NTSTATUS PhGetLoaderEntryImageSection(
 }
 
 PVOID PhGetLoaderEntryImageExportFunction(
-    _In_ PVOID BaseAddress, 
+    _In_ PVOID BaseAddress,
+    _In_ PIMAGE_NT_HEADERS ImageNtHeader,
+    _In_ PIMAGE_DATA_DIRECTORY DataDirectory,
     _In_ PIMAGE_EXPORT_DIRECTORY ExportDirectory, 
     _In_opt_ PSTR ExportName,
     _In_opt_ USHORT ExportOrdinal
     )
 {
-    PVOID exportFunction = NULL;
+    PVOID baseAddress = NULL;
     PULONG exportAddressTable;
     PULONG exportNameTable;
     PUSHORT exportOrdinalTable;
 
     exportAddressTable = PTR_ADD_OFFSET(BaseAddress, ExportDirectory->AddressOfFunctions);
+    exportNameTable = PTR_ADD_OFFSET(BaseAddress, ExportDirectory->AddressOfNames);
+    exportOrdinalTable = PTR_ADD_OFFSET(BaseAddress, ExportDirectory->AddressOfNameOrdinals);
 
-    if (ExportName)
+    if (ExportOrdinal)
     {
-        PSTR exportName;
-        ULONG i;
+        if (ExportOrdinal > ExportDirectory->Base + ExportDirectory->NumberOfFunctions)
+            return NULL;
 
-        exportNameTable = PTR_ADD_OFFSET(BaseAddress, ExportDirectory->AddressOfNames);
-
-        for (i = 0; i < ExportDirectory->NumberOfNames; i++)
+        baseAddress = PTR_ADD_OFFSET(BaseAddress, exportAddressTable[ExportOrdinal - ExportDirectory->Base]);
+    }
+    else if (ExportName)
+    {
+        for (ULONG i = 0; i < ExportDirectory->NumberOfNames; i++)
         {
-            exportName = PTR_ADD_OFFSET(BaseAddress, exportNameTable[i]);
-
-            if (PhEqualBytesZ(exportName, ExportName, FALSE))
+            if (PhEqualBytesZ(ExportName, PTR_ADD_OFFSET(BaseAddress, exportNameTable[i]), FALSE))
             {
-                exportFunction = PTR_ADD_OFFSET(BaseAddress, exportAddressTable[i + 1]);
+                baseAddress = PTR_ADD_OFFSET(BaseAddress, exportAddressTable[exportOrdinalTable[i]]);
                 break;
             }
         }
     }
-    else
+
+    if (!baseAddress)
+        return NULL;
+
+    if (
+        ((ULONG_PTR)baseAddress >= (ULONG_PTR)ExportDirectory) &&
+        ((ULONG_PTR)baseAddress < (ULONG_PTR)PTR_ADD_OFFSET(ExportDirectory, DataDirectory->Size))
+        )
+    {
+        PPH_STRING dllForwarderString;
+        PH_STRINGREF dllNameRef;
+        PH_STRINGREF dllProcedureRef;
+
+        // This is a forwarder RVA.
+
+        dllForwarderString = PhZeroExtendToUtf16((PSTR)baseAddress);
+
+        if (PhSplitStringRefAtChar(&dllForwarderString->sr, L'.', &dllNameRef, &dllProcedureRef))
+        {
+            PPH_STRING libraryNameString;
+            PPH_BYTES libraryFunctionString;
+            PVOID libraryModule;
+
+            libraryNameString = PhCreateStringEx(dllNameRef.Buffer, dllNameRef.Length);
+            libraryFunctionString = PhConvertUtf16ToUtf8Ex(dllProcedureRef.Buffer, dllProcedureRef.Length);
+
+            if (libraryModule = LoadLibrary(libraryNameString->Buffer))
+            {
+                baseAddress = PhGetDllBaseProcedureAddress(libraryModule, libraryFunctionString->Buffer, 0);
+            }
+
+            PhDereferenceObject(libraryFunctionString);
+            PhDereferenceObject(libraryNameString);
+        }
+
+        PhDereferenceObject(dllForwarderString);
+    }
+
+    return baseAddress;
+}
+
     {
         exportOrdinalTable = PTR_ADD_OFFSET(BaseAddress, ExportDirectory->AddressOfNameOrdinals);
 
@@ -5555,6 +5652,7 @@ static NTSTATUS PhpFixupLoaderEntryImageImports(
     NTSTATUS status;
     SIZE_T importDirectorySize;
     ULONG importDirectoryProtect;
+    PIMAGE_DATA_DIRECTORY dataDirectory;
     PIMAGE_IMPORT_DESCRIPTOR importDirectory;
     PIMAGE_SECTION_HEADER importDirectorySection;
 
@@ -5562,6 +5660,7 @@ static NTSTATUS PhpFixupLoaderEntryImageImports(
         BaseAddress,
         ImageNtHeader,
         IMAGE_DIRECTORY_ENTRY_IMPORT,
+        &dataDirectory,
         &importDirectory,
         NULL
         );
@@ -5609,12 +5708,10 @@ static NTSTATUS PhpFixupLoaderEntryImageImports(
         else
         {
             PPH_STRING importNameSr;
-            UNICODE_STRING dllNameUs;
 
             importNameSr = PhZeroExtendToUtf16(importName);
-            PhStringRefToUnicodeString(&importNameSr->sr, &dllNameUs);
 
-            if (!NT_SUCCESS(status = LdrGetDllHandle(NULL, NULL, &dllNameUs, &importBaseAddress)))
+            if (!(importBaseAddress = PhGetLoaderEntryDllBase(importNameSr->Buffer)))
             {
                 if (importBaseAddress = LoadLibrary(importNameSr->Buffer))
                     status = STATUS_SUCCESS;
@@ -5640,7 +5737,7 @@ static NTSTATUS PhpFixupLoaderEntryImageImports(
                 PVOID procedureAddress;
 
                 procedureOrdinal = IMAGE_ORDINAL(originalThunk->u1.Ordinal);
-                procedureAddress = PhGetProcedureAddress(importBaseAddress, NULL, procedureOrdinal);
+                procedureAddress = PhGetDllBaseProcedureAddress(importBaseAddress, NULL, procedureOrdinal);
 
                 if (!procedureAddress)
                 {
@@ -5657,7 +5754,7 @@ static NTSTATUS PhpFixupLoaderEntryImageImports(
                 PVOID procedureAddress;
 
                 importByName = PTR_ADD_OFFSET(BaseAddress, originalThunk->u1.AddressOfData);
-                procedureAddress = PhGetProcedureAddress(importBaseAddress, importByName->Name, importByName->Hint);
+                procedureAddress = PhGetDllBaseProcedureAddress(importBaseAddress, importByName->Name, 0);
 
                 if (!procedureAddress)
                 {
