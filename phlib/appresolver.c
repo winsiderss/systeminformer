@@ -80,24 +80,25 @@ static BOOLEAN PhpKernelAppCoreInitialized(
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
     static BOOLEAN kernelAppCoreInitialized = FALSE;
-    
+
     if (PhBeginInitOnce(&initOnce))
     {
         if (WindowsVersion >= WINDOWS_8)
         {
-            PVOID kernelAppBaseAddress;
+            PVOID kernelBaseModuleHandle;
 
-            if (kernelAppBaseAddress = LoadLibrary(L"kernel.appcore.dll"))
+            if (kernelBaseModuleHandle = LoadLibrary(L"kernelbase.dll")) // kernel.appcore.dll
             {
-                AppContainerLookupMoniker_I = PhGetProcedureAddress(kernelAppBaseAddress, "AppContainerLookupMoniker", 0);
-                AppContainerFreeMemory_I = PhGetProcedureAddress(kernelAppBaseAddress, "AppContainerFreeMemory", 0);
-                AppContainerRegisterSid_I = PhGetProcedureAddress(kernelAppBaseAddress, "AppContainerRegisterSid", 0);
-                AppContainerUnregisterSid_I = PhGetProcedureAddress(kernelAppBaseAddress, "AppContainerUnregisterSid", 0);
-
-                AppPolicyGetWindowingModel_I = PhGetProcedureAddress(kernelAppBaseAddress, "AppPolicyGetWindowingModel", 0);
+                AppContainerDeriveSidFromMoniker_I = PhGetDllBaseProcedureAddress(kernelBaseModuleHandle, "AppContainerDeriveSidFromMoniker", 0);
+                AppContainerLookupMoniker_I = PhGetDllBaseProcedureAddress(kernelBaseModuleHandle, "AppContainerLookupMoniker", 0);
+                AppContainerFreeMemory_I = PhGetDllBaseProcedureAddress(kernelBaseModuleHandle, "AppContainerFreeMemory", 0);
+                AppContainerRegisterSid_I = PhGetDllBaseProcedureAddress(kernelBaseModuleHandle, "AppContainerRegisterSid", 0);
+                AppContainerUnregisterSid_I = PhGetDllBaseProcedureAddress(kernelBaseModuleHandle, "AppContainerUnregisterSid", 0);
+                AppPolicyGetWindowingModel_I = PhGetDllBaseProcedureAddress(kernelBaseModuleHandle, "AppPolicyGetWindowingModel", 0);
             }
 
             if (
+                AppContainerDeriveSidFromMoniker_I &&
                 AppContainerLookupMoniker_I && 
                 AppContainerFreeMemory_I && 
                 AppContainerRegisterSid_I && 
@@ -228,6 +229,29 @@ PPH_STRING PhGetAppContainerName(
     }
 
     return appContainerName;
+}
+
+PPH_STRING PhGetAppContainerSidFromName(
+    _In_ PWSTR AppContainerName
+    )
+{
+    PSID appContainerSid;
+    PPH_STRING packageSidString = NULL;
+
+    if (!PhpKernelAppCoreInitialized())
+        return NULL;
+
+    if (SUCCEEDED(AppContainerDeriveSidFromMoniker_I(
+        AppContainerName, 
+        &appContainerSid
+        )))
+    {
+        packageSidString = PhSidToStringSid(appContainerSid);
+
+        RtlFreeSid(appContainerSid);
+    }
+
+    return packageSidString;
 }
 
 PPH_STRING PhGetAppContainerPackageName(

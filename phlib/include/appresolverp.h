@@ -43,25 +43,30 @@ static IID IID_IResourceContext_I = { 0xE3C22B30, 0x8502, 0x4B2F,{ 0x91, 0x33, 0
 // "6E21E72B-B9B0-42AE-A686-983CF784EDCD"
 static IID IID_IResourceMap_I = { 0x6E21E72B, 0xB9B0, 0x42AE,{ 0xA6, 0x86, 0x98, 0x3C, 0xF7, 0x84, 0xED, 0xCD } };
 
-//static HRESULT (WINAPI* AppContainerDeriveSidFromMoniker_I)( // DeriveAppContainerSidFromAppContainerName
-//    _In_ PCWSTR AppContainerName,
-//    _Out_ PSID *AppContainerSid
-//    ) = NULL;
+static HRESULT (WINAPI* AppContainerDeriveSidFromMoniker_I)( // DeriveAppContainerSidFromAppContainerName
+    _In_ PCWSTR AppContainerName,
+    _Out_ PSID *AppContainerSid
+    ) = NULL;
+
 static HRESULT (WINAPI* AppContainerLookupMoniker_I)(
     _In_ PSID AppContainerSid, 
     _Out_ PWSTR *PackageFamilyName
     ) = NULL;
+
 static HRESULT (WINAPI* AppContainerRegisterSid_I)(
     _In_ PSID Sid,
     _In_ PCWSTR AppContainerName,
     _In_ PCWSTR DisplayName
     ) = NULL;
+
 static HRESULT (WINAPI* AppContainerUnregisterSid_I)(
     _In_ PSID Sid
     ) = NULL;
+
 static BOOL (WINAPI* AppContainerFreeMemory_I)(
     _Frees_ptr_opt_ PVOID Memory
     ) = NULL;
+
 static HRESULT (WINAPI* AppPolicyGetWindowingModel_I)(
     _In_ HANDLE ProcessTokenHandle,
     _Out_ AppPolicyWindowingModel *ProcessWindowingModelPolicy

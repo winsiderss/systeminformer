@@ -42,6 +42,10 @@ PPH_STRING PhGetAppContainerName(
     _In_ PSID AppContainerSid
     );
 
+PPH_STRING PhGetAppContainerSidFromName(
+    _In_ PWSTR AppContainerName
+    );
+
 PPH_STRING PhGetAppContainerPackageName(
     _In_ PSID Sid
     );
