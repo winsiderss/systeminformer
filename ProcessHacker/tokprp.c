@@ -660,7 +660,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                     {
                         if (appContainerInfo->TokenAppContainer)
                         {
-                            appContainerName = PhGetAppContainerName(appContainerInfo->TokenAppContainer);
+                            appContainerName = PhGetAppContainerName(appContainerInfo->TokenAppContainer, TRUE);
                             appContainerSid = PhSidToStringSid(appContainerInfo->TokenAppContainer);    
                         }
 
