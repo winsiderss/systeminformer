@@ -307,7 +307,7 @@ typedef ULONG (WINAPI* _GetInterfaceDescriptionFromGuid)(
 
 NTSTATUS NetworkAdapterCreateHandle(
     _Out_ PHANDLE DeviceHandle,
-    _In_ PPH_STRING InterfaceDevice
+    _In_ PPH_STRING DeviceInterface
     );
 
 BOOLEAN NetworkAdapterQuerySupported(

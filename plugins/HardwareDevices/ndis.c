@@ -28,12 +28,12 @@ _GetInterfaceDescriptionFromGuid GetInterfaceDescriptionFromGuid_I = NULL;
 
 NTSTATUS NetworkAdapterCreateHandle(
     _Out_ PHANDLE DeviceHandle,
-    _In_ PPH_STRING InterfaceDevice
+    _In_ PPH_STRING DeviceInterface
     )
 {
     return PhCreateFileWin32(
         DeviceHandle,
-        PhGetString(InterfaceDevice),
+        PhGetString(DeviceInterface),
         FILE_GENERIC_READ,
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ | FILE_SHARE_WRITE,
