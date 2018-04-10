@@ -1335,8 +1335,8 @@ BOOLEAN PhCreateProcessIgnoreIfeoDebugger(
     STARTUPINFO startupInfo;
     PROCESS_INFORMATION processInfo;
 
-    if (!(debugSetProcessKillOnExit = PhGetModuleProcAddress(L"kernel32.dll", "DebugSetProcessKillOnExit")) ||
-        !(debugActiveProcessStop = PhGetModuleProcAddress(L"kernel32.dll", "DebugActiveProcessStop")))
+    if (!(debugSetProcessKillOnExit = PhGetDllProcedureAddress(L"kernel32.dll", "DebugSetProcessKillOnExit", 0)) ||
+        !(debugActiveProcessStop = PhGetDllProcedureAddress(L"kernel32.dll", "DebugActiveProcessStop", 0)))
         return FALSE;
 
     result = FALSE;

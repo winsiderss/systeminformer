@@ -984,7 +984,7 @@ static PPH_STRING PhpaGetSendMessageReceiver(
     // is sending a message to.
 
     if (!GetSendMessageReceiver_I)
-        GetSendMessageReceiver_I = PhGetModuleProcAddress(L"user32.dll", "GetSendMessageReceiver");
+        GetSendMessageReceiver_I = PhGetDllProcedureAddress(L"user32.dll", "GetSendMessageReceiver", 0);
 
     if (!GetSendMessageReceiver_I)
         return NULL;
@@ -1021,7 +1021,7 @@ static PPH_STRING PhpaGetAlpcInformation(
     ULONG bufferLength;
 
     if (!NtAlpcQueryInformation_I)
-        NtAlpcQueryInformation_I = PhGetModuleProcAddress(L"ntdll.dll", "NtAlpcQueryInformation");
+        NtAlpcQueryInformation_I = PhGetDllProcedureAddress(L"ntdll.dll", "NtAlpcQueryInformation", 0);
 
     if (!NtAlpcQueryInformation_I)
         return NULL;

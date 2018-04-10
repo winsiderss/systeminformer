@@ -652,7 +652,7 @@ BOOLEAN PhInitializeMitigationPolicy(
     if (PhEndsWithStringRef(&commandlineSr, &commandlinePart, FALSE))
         return TRUE;
 
-    if (!(LdrSystemDllInitBlock_I = PhGetModuleProcAddress(L"ntdll.dll", "LdrSystemDllInitBlock")))
+    if (!(LdrSystemDllInitBlock_I = PhGetDllProcedureAddress(L"ntdll.dll", "LdrSystemDllInitBlock", 0)))
         goto CleanupExit;
 
     if (!RTL_CONTAINS_FIELD(LdrSystemDllInitBlock_I, LdrSystemDllInitBlock_I->Size, MitigationOptionsMap))

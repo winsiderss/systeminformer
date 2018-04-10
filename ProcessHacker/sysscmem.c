@@ -303,7 +303,7 @@ INT_PTR CALLBACK PhSipMemoryDialogProc(
             SendMessage(GetDlgItem(hwndDlg, IDC_TOTALPHYSICAL), WM_SETFONT, (WPARAM)MemorySection->Parameters->MediumFont, FALSE);
 
             if (!getPhysicallyInstalledSystemMemory)
-                getPhysicallyInstalledSystemMemory = PhGetModuleProcAddress(L"kernel32.dll", "GetPhysicallyInstalledSystemMemory");
+                getPhysicallyInstalledSystemMemory = PhGetDllProcedureAddress(L"kernel32.dll", "GetPhysicallyInstalledSystemMemory", 0);
 
             InstalledMemory = 0;
 

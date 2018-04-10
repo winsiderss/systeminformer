@@ -5415,18 +5415,18 @@ PVOID PhGetDllBaseProcedureAddress(
 }
 
 PVOID PhGetDllProcedureAddress(
-    _In_ PWSTR DllEntryName,
+    _In_ PWSTR DllName,
     _In_opt_ PSTR ProcedureName,
     _In_opt_ USHORT ProcedureNumber
     )
 {
-    PVOID dllBaseAddress;
+    PVOID baseAddress;
 
-    if (!(dllBaseAddress = PhGetLoaderEntryDllBase(DllEntryName)))
+    if (!(baseAddress = PhGetLoaderEntryDllBase(DllName)))
         return NULL;
 
     return PhGetDllBaseProcedureAddress(
-        dllBaseAddress,
+        baseAddress,
         ProcedureName,
         ProcedureNumber
         );

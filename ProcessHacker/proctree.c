@@ -1209,7 +1209,7 @@ static VOID PhpUpdateProcessNodeDpiAwareness(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        getProcessDpiAwarenessInternal = PhGetModuleProcAddress(L"user32.dll", "GetProcessDpiAwarenessInternal");
+        getProcessDpiAwarenessInternal = PhGetDllProcedureAddress(L"user32.dll", "GetProcessDpiAwarenessInternal", 0);
         PhEndInitOnce(&initOnce);
     }
 

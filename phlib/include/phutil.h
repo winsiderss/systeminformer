@@ -1166,6 +1166,24 @@ PhFindLoaderEntry(
 PHLIBAPI
 PVOID
 NTAPI
+PhGetDllBaseProcedureAddress(
+    _In_ PVOID DllBase,
+    _In_opt_ PSTR ProcedureName,
+    _In_opt_ USHORT ProcedureNumber
+    );
+
+PHLIBAPI
+PVOID
+NTAPI
+PhGetDllProcedureAddress(
+    _In_ PWSTR DllName,
+    _In_opt_ PSTR ProcedureName,
+    _In_opt_ USHORT ProcedureNumber
+    );
+
+PHLIBAPI
+PVOID
+NTAPI
 PhGetLoaderEntryDllBase(
     _In_opt_ PWSTR DllName
     );
