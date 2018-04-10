@@ -223,7 +223,7 @@ INT_PTR CALLBACK PhpProcessMitigationPolicyDlgProc(
 
             if (context->SystemDllInitBlock && RTL_CONTAINS_FIELD(context->SystemDllInitBlock, context->SystemDllInitBlock->Size, MitigationOptionsMap))
             {
-                if (context->SystemDllInitBlock->MitigationOptionsMap.Map[0] & PROCESS_CREATION_MITIGATION_POLICY2_LOADER_INTEGRITY_CONTINUITY_ALWAYS_ON)
+                if (context->SystemDllInitBlock->MitigationOptionsMap.Map[1] & PROCESS_CREATION_MITIGATION_POLICY2_LOADER_INTEGRITY_CONTINUITY_ALWAYS_ON)
                 {
                     PMITIGATION_POLICY_ENTRY entry;
 
@@ -235,7 +235,7 @@ INT_PTR CALLBACK PhpProcessMitigationPolicyDlgProc(
                     PhAddListViewItem(lvHandle, MAXINT, entry->ShortDescription->Buffer, entry);
                 }
 
-                if (context->SystemDllInitBlock->MitigationOptionsMap.Map[0] & PROCESS_CREATION_MITIGATION_POLICY2_MODULE_TAMPERING_PROTECTION_ALWAYS_ON)
+                if (context->SystemDllInitBlock->MitigationOptionsMap.Map[1] & PROCESS_CREATION_MITIGATION_POLICY2_MODULE_TAMPERING_PROTECTION_ALWAYS_ON)
                 {
                     PMITIGATION_POLICY_ENTRY entry;
 
