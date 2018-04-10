@@ -74,7 +74,7 @@ VOID NetAdaptersUpdate(
 
         if (PhGetIntegerSetting(SETTING_NAME_ENABLE_NDIS))
         {
-            if (NT_SUCCESS(NetworkAdapterCreateHandle(&deviceHandle, entry->Id.InterfaceGuid)))
+            if (NT_SUCCESS(NetworkAdapterCreateHandle(&deviceHandle, entry->Id.InterfaceDevice)))
             {
                 if (!entry->CheckedDeviceSupport)
                 {
@@ -204,6 +204,7 @@ VOID InitializeNetAdapterId(
     Id->InterfaceIndex = InterfaceIndex;
     Id->InterfaceLuid = InterfaceLuid;
     PhSetReference(&Id->InterfaceGuid, InterfaceGuid);
+    Id->InterfaceDevice = PhConcatStrings2(L"\\\\.\\", InterfaceGuid->Buffer);
 }
 
 VOID CopyNetAdapterId(
@@ -224,6 +225,7 @@ VOID DeleteNetAdapterId(
     )
 {
     PhClearReference(&Id->InterfaceGuid);
+    PhClearReference(&Id->InterfaceDevice);
 }
 
 BOOLEAN EquivalentNetAdapterId(
