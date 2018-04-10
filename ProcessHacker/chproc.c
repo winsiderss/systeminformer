@@ -77,11 +77,8 @@ static VOID PhpRefreshProcessList(
     )
 {
     NTSTATUS status;
-    HWND lvHandle;
     PVOID processes;
     PSYSTEM_PROCESS_INFORMATION process;
-
-    lvHandle = Context->ListViewHandle;
 
     if (!NT_SUCCESS(status = PhEnumProcesses(&processes)))
     {
@@ -89,9 +86,8 @@ static VOID PhpRefreshProcessList(
         return;
     }
 
-    ExtendedListView_SetRedraw(lvHandle, FALSE);
-
-    ListView_DeleteAllItems(lvHandle);
+    ExtendedListView_SetRedraw(Context->ListViewHandle, FALSE);
+    ListView_DeleteAllItems(Context->ListViewHandle);
     ImageList_RemoveAll(Context->ImageList);
 
     process = PH_FIRST_PROCESS(processes);
@@ -112,7 +108,7 @@ static VOID PhpRefreshProcessList(
         else
             name = PhCreateString(SYSTEM_IDLE_PROCESS_NAME);
 
-        lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, name->Buffer, process->UniqueProcessId);
+        lvItemIndex = PhAddListViewItem(Context->ListViewHandle, MAXINT, name->Buffer, process->UniqueProcessId);
         PhDereferenceObject(name);
 
         if (NT_SUCCESS(PhOpenProcess(&processHandle, ProcessQueryAccess, process->UniqueProcessId)))
@@ -168,8 +164,8 @@ static VOID PhpRefreshProcessList(
 
     PhFree(processes);
 
-    ExtendedListView_SortItems(lvHandle);
-    ExtendedListView_SetRedraw(lvHandle, TRUE);
+    ExtendedListView_SortItems(Context->ListViewHandle);
+    ExtendedListView_SetRedraw(Context->ListViewHandle, TRUE);
 }
 
 INT_PTR CALLBACK PhpChooseProcessDlgProc(
