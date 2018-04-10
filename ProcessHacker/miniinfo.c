@@ -1453,7 +1453,7 @@ PPH_MIP_GROUP_NODE PhMipAddGroupNode(
     if (node->RepresentativeIsHung)
     {
         if (!HungWindowFromGhostWindow_I)
-            HungWindowFromGhostWindow_I = PhGetModuleProcAddress(L"user32.dll", "HungWindowFromGhostWindow");
+            HungWindowFromGhostWindow_I = PhGetDllProcedureAddress(L"user32.dll", "HungWindowFromGhostWindow", 0);
 
         // Make sure this is a real hung window, not a ghost window.
         if (HungWindowFromGhostWindow_I && HungWindowFromGhostWindow_I(ProcessGroup->WindowHandle))

@@ -1393,7 +1393,7 @@ NTSTATUS PhUnloadDllProcess(
     if (!isModule32)
     {
 #endif
-        threadStart = PhGetModuleProcAddress(L"ntdll.dll", "LdrUnloadDll");
+        threadStart = PhGetDllProcedureAddress(L"ntdll.dll", "LdrUnloadDll", 0);
 #ifdef _WIN64
     }
     else

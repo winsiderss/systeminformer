@@ -1567,7 +1567,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
             VOID (NTAPI *rtlDetectHeapLeaks)(VOID);
             PWSTR options = wcstok_s(NULL, delims, &context);
 
-            rtlDetectHeapLeaks = PhGetModuleProcAddress(L"ntdll.dll", "RtlDetectHeapLeaks");
+            rtlDetectHeapLeaks = PhGetDllProcedureAddress(L"ntdll.dll", "RtlDetectHeapLeaks", 0);
 
             if (!(NtCurrentPeb()->NtGlobalFlag & FLG_USER_STACK_TRACE_DB))
             {

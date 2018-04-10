@@ -1131,7 +1131,7 @@ NTSTATUS PhSvcApiSetTcpEntry(
 
         if (iphlpapiModule)
         {
-            localSetTcpEntry = PhGetProcedureAddress(iphlpapiModule, "SetTcpEntry", 0);
+            localSetTcpEntry = PhGetDllBaseProcedureAddress(iphlpapiModule, "SetTcpEntry", 0);
 
             if (localSetTcpEntry)
             {

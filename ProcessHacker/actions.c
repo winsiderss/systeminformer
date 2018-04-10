@@ -2153,7 +2153,7 @@ BOOLEAN PhUiCloseConnections(
     _SetTcpEntry SetTcpEntry_I;
     MIB_TCPROW tcpRow;
 
-    SetTcpEntry_I = PhGetModuleProcAddress(L"iphlpapi.dll", "SetTcpEntry");
+    SetTcpEntry_I = PhGetDllProcedureAddress(L"iphlpapi.dll", "SetTcpEntry", 0);
 
     if (!SetTcpEntry_I)
     {
@@ -2801,18 +2801,18 @@ BOOLEAN PhUiFreeMemory(
             if (Free)
             {
                 verb = L"free";
-                message = L"Freeing memory regions may cause the process to crash.";
+                message = L"Freeing memory regions may cause the process to crash.\r\n\r\nSome programs may also restrict access or ban your account when freeing the memory of the process.";
             }
             else
             {
                 verb = L"decommit";
-                message = L"Decommitting memory regions may cause the process to crash.";
+                message = L"Decommitting memory regions may cause the process to crash.\r\n\r\nSome programs may also restrict access or ban your account when decommitting the memory of the process.";
             }
         }
         else
         {
             verb = L"unmap";
-            message = L"Unmapping a section view may cause the process to crash.";
+            message = L"Unmapping a section view may cause the process to crash.\r\n\r\nSome programs may also restrict access or ban your account when unmapping the memory of the process.";
         }
 
         cont = PhShowConfirmMessage(

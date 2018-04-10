@@ -83,9 +83,9 @@ VOID PhGuiSupportInitialization(
     shlwapiHandle = LoadLibrary(L"shlwapi.dll");
 
     if (WINDOWS_HAS_IMMERSIVE)
-        IsImmersiveProcess_I = PhGetModuleProcAddress(L"user32.dll", "IsImmersiveProcess");
-    RunFileDlg = PhGetProcedureAddress(shell32Handle, NULL, 61);
-    SHAutoComplete_I = PhGetProcedureAddress(shlwapiHandle, "SHAutoComplete", 0);
+        IsImmersiveProcess_I = PhGetDllProcedureAddress(L"user32.dll", "IsImmersiveProcess", 0);
+    RunFileDlg = PhGetDllBaseProcedureAddress(shell32Handle, NULL, 61);
+    SHAutoComplete_I = PhGetDllBaseProcedureAddress(shlwapiHandle, "SHAutoComplete", 0);
 }
 
 VOID PhSetControlTheme(

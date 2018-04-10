@@ -1767,7 +1767,7 @@ BOOLEAN PhMwpOnNotify(
 
         if (WdcLibraryHandle = LoadLibrary(L"wdc.dll"))
         {
-            if (WdcRunTaskAsInteractiveUser_I = PhGetProcedureAddress(WdcLibraryHandle, "WdcRunTaskAsInteractiveUser", 0))
+            if (WdcRunTaskAsInteractiveUser_I = PhGetDllBaseProcedureAddress(WdcLibraryHandle, "WdcRunTaskAsInteractiveUser", 0))
             {
                 PH_STRINGREF string;
                 PPH_STRING commandlineString;

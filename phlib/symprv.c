@@ -334,38 +334,38 @@ VOID PhpSymbolProviderCompleteInitialization(
     {
         // The Unicode versions aren't available in dbghelp.dll 5.1, so we fallback on the ANSI versions.
 
-        SymInitialize_I = PhGetProcedureAddress(dbghelpHandle, "SymInitialize", 0);
-        SymCleanup_I = PhGetProcedureAddress(dbghelpHandle, "SymCleanup", 0);
-        if (!(SymEnumSymbolsW_I = PhGetProcedureAddress(dbghelpHandle, "SymEnumSymbolsW", 0)))
-            SymEnumSymbols_I = PhGetProcedureAddress(dbghelpHandle, "SymEnumSymbols", 0);
-        if (!(SymFromAddrW_I = PhGetProcedureAddress(dbghelpHandle, "SymFromAddrW", 0)))
-            SymFromAddr_I = PhGetProcedureAddress(dbghelpHandle, "SymFromAddr", 0);
-        if (!(SymFromNameW_I = PhGetProcedureAddress(dbghelpHandle, "SymFromNameW", 0)))
-            SymFromName_I = PhGetProcedureAddress(dbghelpHandle, "SymFromName", 0);
-        if (!(SymGetLineFromAddrW64_I = PhGetProcedureAddress(dbghelpHandle, "SymGetLineFromAddrW64", 0)))
-            SymGetLineFromAddr64_I = PhGetProcedureAddress(dbghelpHandle, "SymGetLineFromAddr64", 0);
-        if (!(SymLoadModuleExW_I = PhGetProcedureAddress(dbghelpHandle, "SymLoadModuleExW", 0)))
-            SymLoadModule64_I = PhGetProcedureAddress(dbghelpHandle, "SymLoadModule64", 0);
-        SymGetOptions_I = PhGetProcedureAddress(dbghelpHandle, "SymGetOptions", 0);
-        SymSetOptions_I = PhGetProcedureAddress(dbghelpHandle, "SymSetOptions", 0);
-        if (!(SymGetSearchPathW_I = PhGetProcedureAddress(dbghelpHandle, "SymGetSearchPathW", 0)))
-            SymGetSearchPath_I = PhGetProcedureAddress(dbghelpHandle, "SymGetSearchPath", 0);
-        if (!(SymSetSearchPathW_I = PhGetProcedureAddress(dbghelpHandle, "SymSetSearchPathW", 0)))
-            SymSetSearchPath_I = PhGetProcedureAddress(dbghelpHandle, "SymSetSearchPath", 0);
-        SymUnloadModule64_I = PhGetProcedureAddress(dbghelpHandle, "SymUnloadModule64", 0);
-        SymFunctionTableAccess64_I = PhGetProcedureAddress(dbghelpHandle, "SymFunctionTableAccess64", 0);
-        SymGetModuleBase64_I = PhGetProcedureAddress(dbghelpHandle, "SymGetModuleBase64", 0);
-        SymRegisterCallbackW64_I = PhGetProcedureAddress(dbghelpHandle, "SymRegisterCallbackW64", 0);
-        StackWalk64_I = PhGetProcedureAddress(dbghelpHandle, "StackWalk64", 0);
-        MiniDumpWriteDump_I = PhGetProcedureAddress(dbghelpHandle, "MiniDumpWriteDump", 0);
-        UnDecorateSymbolName_I = PhGetProcedureAddress(dbghelpHandle, "UnDecorateSymbolName", 0);
-        UnDecorateSymbolNameW_I = PhGetProcedureAddress(dbghelpHandle, "UnDecorateSymbolNameW", 0);
+        SymInitialize_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymInitialize", 0);
+        SymCleanup_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymCleanup", 0);
+        if (!(SymEnumSymbolsW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymEnumSymbolsW", 0)))
+            SymEnumSymbols_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymEnumSymbols", 0);
+        if (!(SymFromAddrW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymFromAddrW", 0)))
+            SymFromAddr_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymFromAddr", 0);
+        if (!(SymFromNameW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymFromNameW", 0)))
+            SymFromName_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymFromName", 0);
+        if (!(SymGetLineFromAddrW64_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymGetLineFromAddrW64", 0)))
+            SymGetLineFromAddr64_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymGetLineFromAddr64", 0);
+        if (!(SymLoadModuleExW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymLoadModuleExW", 0)))
+            SymLoadModule64_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymLoadModule64", 0);
+        SymGetOptions_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymGetOptions", 0);
+        SymSetOptions_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymSetOptions", 0);
+        if (!(SymGetSearchPathW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymGetSearchPathW", 0)))
+            SymGetSearchPath_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymGetSearchPath", 0);
+        if (!(SymSetSearchPathW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymSetSearchPathW", 0)))
+            SymSetSearchPath_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymSetSearchPath", 0);
+        SymUnloadModule64_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymUnloadModule64", 0);
+        SymFunctionTableAccess64_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymFunctionTableAccess64", 0);
+        SymGetModuleBase64_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymGetModuleBase64", 0);
+        SymRegisterCallbackW64_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymRegisterCallbackW64", 0);
+        StackWalk64_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "StackWalk64", 0);
+        MiniDumpWriteDump_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "MiniDumpWriteDump", 0);
+        UnDecorateSymbolName_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "UnDecorateSymbolName", 0);
+        UnDecorateSymbolNameW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "UnDecorateSymbolNameW", 0);
     }
 
     if (symsrvHandle)
     {
-        SymbolServerGetOptions = PhGetProcedureAddress(symsrvHandle, "SymbolServerGetOptions", 0);
-        SymbolServerSetOptions = PhGetProcedureAddress(symsrvHandle, "SymbolServerSetOptions", 0);
+        SymbolServerGetOptions = PhGetDllBaseProcedureAddress(symsrvHandle, "SymbolServerGetOptions", 0);
+        SymbolServerSetOptions = PhGetDllBaseProcedureAddress(symsrvHandle, "SymbolServerSetOptions", 0);
     }
 }
 
@@ -1066,7 +1066,7 @@ NTSTATUS PhpLookupDynamicFunctionTable(
     ULONG i;
     BOOLEAN foundNull;
 
-    rtlGetFunctionTableListHead = PhGetModuleProcAddress(L"ntdll.dll", "RtlGetFunctionTableListHead");
+    rtlGetFunctionTableListHead = PhGetDllProcedureAddress(L"ntdll.dll", "RtlGetFunctionTableListHead", 0);
 
     if (!rtlGetFunctionTableListHead)
         return STATUS_PROCEDURE_NOT_FOUND;
