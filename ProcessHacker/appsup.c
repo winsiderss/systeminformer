@@ -1364,10 +1364,13 @@ BOOLEAN PhCreateProcessIgnoreIfeoDebugger(
         NtClose(processInfo.hProcess);
     if (processInfo.hThread)
         NtClose(processInfo.hThread);
-
-    RtlEnterCriticalSection(NtCurrentPeb()->FastPebLock);
-    NtCurrentPeb()->ReadImageFileExecOptions = originalValue;
-    RtlLeaveCriticalSection(NtCurrentPeb()->FastPebLock);
+    
+    if (originalValue)
+    {
+        RtlEnterCriticalSection(NtCurrentPeb()->FastPebLock);
+        NtCurrentPeb()->ReadImageFileExecOptions = originalValue;
+        RtlLeaveCriticalSection(NtCurrentPeb()->FastPebLock);
+    }    
 
     return result;
 }
