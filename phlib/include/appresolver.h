@@ -39,7 +39,8 @@ HRESULT PhAppResolverActivateAppId(
     );
 
 PPH_STRING PhGetAppContainerName(
-    _In_ PSID AppContainerSid
+    _In_ PSID AppContainerSid,
+    _In_ BOOLEAN TokenPageHack
     );
 
 PPH_STRING PhGetAppContainerSidFromName(

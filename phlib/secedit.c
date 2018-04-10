@@ -567,7 +567,7 @@ HRESULT STDMETHODCALLTYPE PhSecurityDataObject_GetData(
             sidInfo.pwzCommonName = PhGetString(sidString);
             PhAddItemList(this->NameCache, sidString);
         }
-        else if (sidString = PhGetAppContainerName(sidInfo.pSid))
+        else if (sidString = PhGetAppContainerName(sidInfo.pSid, FALSE))
         {
             PhMoveReference(&sidString, PhFormatString(L"%s (APP_CONTAINER)", PhGetString(sidString)));
             sidInfo.pwzCommonName = PhGetString(sidString);
