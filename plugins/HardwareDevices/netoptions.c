@@ -32,6 +32,7 @@ typedef struct _NET_ENUM_ENTRY
     IF_LUID DeviceLuid;
     PPH_STRING DeviceGuid;
     PPH_STRING DeviceName;
+    PPH_STRING DeviceInterface;
 } NET_ENUM_ENTRY, *PNET_ENUM_ENTRY;
 
 static int __cdecl AdapterEntryCompareFunction(
@@ -435,10 +436,11 @@ VOID FindNetworkAdapters(
                 memset(adapterEntry, 0, sizeof(NET_ENUM_ENTRY));
 
                 adapterEntry->DeviceGuid = PhQueryRegistryString(keyHandle, L"NetCfgInstanceId");
+                adapterEntry->DeviceInterface = PhConcatStrings2(L"\\\\.\\", adapterEntry->DeviceGuid->Buffer);
                 adapterEntry->DeviceLuid.Info.IfType = QueryRegistryUlong64(keyHandle, L"*IfType");
                 adapterEntry->DeviceLuid.Info.NetLuidIndex = QueryRegistryUlong64(keyHandle, L"NetLuidIndex");
 
-                if (NT_SUCCESS(NetworkAdapterCreateHandle(&deviceHandle, adapterEntry->DeviceGuid)))
+                if (NT_SUCCESS(NetworkAdapterCreateHandle(&deviceHandle, adapterEntry->DeviceInterface)))
                 {
                     PPH_STRING adapterName;
 
@@ -484,6 +486,8 @@ VOID FindNetworkAdapters(
 
             if (entry->DeviceName)
                 PhDereferenceObject(entry->DeviceName);
+            if (entry->DeviceInterface)
+                PhDereferenceObject(entry->DeviceInterface);
             // Note: DeviceGuid is disposed by WM_DESTROY.
 
             PhFree(entry);

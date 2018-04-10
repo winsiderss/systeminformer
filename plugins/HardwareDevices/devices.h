@@ -101,6 +101,7 @@ typedef struct _DV_NETADAPTER_ID
     NET_IFINDEX InterfaceIndex;
     IF_LUID InterfaceLuid;
     PPH_STRING InterfaceGuid;
+    PPH_STRING InterfaceDevice;
 } DV_NETADAPTER_ID, *PDV_NETADAPTER_ID;
 
 typedef struct _DV_NETADAPTER_ENTRY
@@ -306,7 +307,7 @@ typedef ULONG (WINAPI* _GetInterfaceDescriptionFromGuid)(
 
 NTSTATUS NetworkAdapterCreateHandle(
     _Out_ PHANDLE DeviceHandle,
-    _In_ PPH_STRING InterfaceGuid
+    _In_ PPH_STRING InterfaceDevice
     );
 
 BOOLEAN NetworkAdapterQuerySupported(
