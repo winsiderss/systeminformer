@@ -1963,6 +1963,13 @@ VOID PhpGetProcessThreadInformation(
         contextSwitches += Process->Threads[i].ContextSwitches;
     }
 
+    // HACK: Minimal/Reflected processes don't have threads (TODO: Use PhGetProcessIsSuspended instead).
+    if (Process->NumberOfThreads == 0)
+    {
+        isSuspended = FALSE;
+        isPartiallySuspended = FALSE;
+    }
+
     if (IsSuspended)
         *IsSuspended = isSuspended;
     if (IsPartiallySuspended)
