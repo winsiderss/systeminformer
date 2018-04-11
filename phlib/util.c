@@ -5381,6 +5381,25 @@ PPH_STRING PhGetDllFileName(
     return fileName;
 }
 
+PVOID PhGetLoaderEntryDllBase(
+    _In_opt_ PWSTR BaseDllName
+    )
+{
+    PH_STRINGREF entryNameSr;
+    PLDR_DATA_TABLE_ENTRY ldrEntry;
+
+    PhInitializeStringRefLongHint(&entryNameSr, BaseDllName);
+
+    RtlEnterCriticalSection(NtCurrentPeb()->LoaderLock);
+    ldrEntry = PhFindLoaderEntry(NULL, NULL, &entryNameSr);
+    RtlLeaveCriticalSection(NtCurrentPeb()->LoaderLock);
+
+    if (ldrEntry)
+        return ldrEntry->DllBase;
+    else
+        return NULL;
+}
+
 PVOID PhGetDllBaseProcedureAddress(
     _In_ PVOID DllBase,
     _In_opt_ PSTR ProcedureName,
@@ -5432,32 +5451,13 @@ PVOID PhGetDllProcedureAddress(
         );
 }
 
-PVOID PhGetLoaderEntryDllBase(
-    _In_opt_ PWSTR BaseDllName
-    )
-{
-    PH_STRINGREF entryNameSr;
-    PLDR_DATA_TABLE_ENTRY ldrEntry;
-
-    PhInitializeStringRefLongHint(&entryNameSr, BaseDllName);
-
-    RtlEnterCriticalSection(NtCurrentPeb()->LoaderLock);
-    ldrEntry = PhFindLoaderEntry(NULL, NULL, &entryNameSr);
-    RtlLeaveCriticalSection(NtCurrentPeb()->LoaderLock);
-
-    if (ldrEntry)
-        return ldrEntry->DllBase;
-    else
-        return NULL;
-}
-
 NTSTATUS PhGetLoaderEntryImageNtHeaders(
     _In_ PVOID BaseAddress,
     _Out_ PIMAGE_NT_HEADERS *ImageNtHeaders
     )
 {
-    PIMAGE_NT_HEADERS ntHeader;
     PIMAGE_DOS_HEADER dosHeader;
+    PIMAGE_NT_HEADERS ntHeader;
     ULONG ntHeadersOffset;
 
     dosHeader = PTR_ADD_OFFSET(BaseAddress, 0);
