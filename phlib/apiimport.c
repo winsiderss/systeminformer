@@ -41,7 +41,7 @@ PVOID PhpImportProcedure(
     if (!module)
         return NULL;
 
-    procedure = PhGetProcedureAddress(module, ProcedureName, 0);
+    procedure = PhGetDllBaseProcedureAddress(module, ProcedureName, 0);
     *Cache = procedure;
     MemoryBarrier();
     *CacheValid = TRUE;
