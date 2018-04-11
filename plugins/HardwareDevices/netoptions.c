@@ -185,7 +185,7 @@ VOID AddNetworkAdapterToListView(
     BOOLEAN found = FALSE;
     PDV_NETADAPTER_ID newId = NULL;
 
-    InitializeNetAdapterId(&adapterId, IfIndex, Luid, NULL);
+    InitializeNetAdapterId(&adapterId, IfIndex, Luid, Guid);
 
     for (ULONG i = 0; i < NetworkAdaptersList->Count; i++)
     {
