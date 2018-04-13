@@ -312,13 +312,13 @@ BEGIN
     LTEXT           "Receives",IDC_STATIC,132,11,30,8
     LTEXT           "Receive bytes",IDC_STATIC,132,23,46,8
     LTEXT           "Receive bytes delta",IDC_STATIC,132,34,65,8
-    LTEXT           "Sends",IDC_STATIC,132,46,20,8
+    LTEXT           "Sends",IDC_STATIC,132,45,20,8
     LTEXT           "Send bytes",IDC_STATIC,132,56,37,8
     LTEXT           "Send bytes delta",IDC_STATIC,132,67,56,8
     RTEXT           "Static",IDC_ZRECEIVES_V,184,11,54,8,SS_ENDELLIPSIS
     RTEXT           "Static",IDC_ZRECEIVEBYTES_V,200,23,38,8,SS_ENDELLIPSIS
     RTEXT           "Static",IDC_ZRECEIVEBYTESDELTA_V,200,34,38,8,SS_ENDELLIPSIS
-    RTEXT           "Static",IDC_ZSENDS_V,184,46,54,8,SS_ENDELLIPSIS
+    RTEXT           "Static",IDC_ZSENDS_V,184,45,54,8,SS_ENDELLIPSIS
     RTEXT           "Static",IDC_ZSENDBYTES_V,200,56,38,8,SS_ENDELLIPSIS
     RTEXT           "Static",IDC_ZSENDBYTESDELTA_V,200,67,38,8,SS_ENDELLIPSIS
 END
