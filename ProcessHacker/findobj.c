@@ -800,7 +800,7 @@ static BOOLEAN MatchTypeString(
     if (PhEqualString2(Context->SearchTypeString, L"Everything", FALSE))
         return TRUE;
 
-    return PhFindStringInStringRef(Input, &Context->SearchTypeString->sr, TRUE) != -1;
+    return PhEqualStringRef(Input, &Context->SearchTypeString->sr, TRUE);
 }
 
 typedef struct _SEARCH_HANDLE_CONTEXT
