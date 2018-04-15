@@ -396,12 +396,12 @@ static VOID PhpRefreshFilePageInfo(
         PageContext->Context
         )))
     {
+        NTSTATUS statusStandardInfo;
         IO_STATUS_BLOCK ioStatusBlock;
         FILE_MODE_INFORMATION fileModeInfo;
         FILE_STANDARD_INFORMATION fileStandardInfo;
         FILE_POSITION_INFORMATION filePositionInfo;
         FILE_FS_DEVICE_INFORMATION deviceInformation;
-        NTSTATUS statusStandardInfo;
         BOOLEAN disableFlushButton = FALSE;
         BOOLEAN isFileOrDirectory = FALSE;
 
