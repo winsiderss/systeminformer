@@ -35,9 +35,11 @@ typedef struct _COMMON_PAGE_CONTEXT
 } COMMON_PAGE_CONTEXT, *PCOMMON_PAGE_CONTEXT;
 
 #define PH_FILEMODE_ASYNC 0x01000000
-#define PhFileModeUpdAsyncFlag(mode) mode & (FILE_SYNCHRONOUS_IO_ALERT | FILE_SYNCHRONOUS_IO_NONALERT) ? mode &~ PH_FILEMODE_ASYNC: mode | PH_FILEMODE_ASYNC
+#define PhFileModeUpdAsyncFlag(mode) \
+    (mode & (FILE_SYNCHRONOUS_IO_ALERT | FILE_SYNCHRONOUS_IO_NONALERT) ? mode &~ PH_FILEMODE_ASYNC: mode | PH_FILEMODE_ASYNC)
 
-PH_ACCESS_ENTRY FileModeAccessEntries[6] = {
+PH_ACCESS_ENTRY FileModeAccessEntries[6] = 
+{
     { L"FILE_FLAG_OVERLAPPED", PH_FILEMODE_ASYNC, FALSE, FALSE, L"Asynchronous" },
     { L"FILE_FLAG_WRITE_THROUGH", FILE_WRITE_THROUGH, FALSE, FALSE, L"Write through" },
     { L"FILE_FLAG_SEQUENTIAL_SCAN", FILE_SEQUENTIAL_ONLY, FALSE, FALSE, L"Sequental" },
@@ -371,28 +373,28 @@ INT_PTR CALLBACK PhpEventPairPageProc(
 HPROPSHEETPAGE PhCreateFilePage(
     _In_ PPH_OPEN_OBJECT OpenObject,
     _In_opt_ PVOID Context
-)
+    )
 {
     return PhpCommonCreatePage(
         OpenObject,
         Context,
         MAKEINTRESOURCE(IDD_OBJFILE),
         PhpFilePageProc
-    );
+        );
 }
 
 static VOID PhpRefreshFilePageInfo(
     _In_ HWND hwndDlg,
     _In_ PCOMMON_PAGE_CONTEXT PageContext
-)
+    )
 {
-    HANDLE hFile;
+    HANDLE fileHandle;
 
     if (NT_SUCCESS(PageContext->OpenObject(
-        &hFile,
+        &fileHandle,
         MAXIMUM_ALLOWED,
         PageContext->Context
-    )))
+        )))
     {
         IO_STATUS_BLOCK ioStatusBlock;
         FILE_MODE_INFORMATION fileModeInfo;
@@ -400,17 +402,17 @@ static VOID PhpRefreshFilePageInfo(
         FILE_POSITION_INFORMATION filePositionInfo;
         FILE_FS_DEVICE_INFORMATION deviceInformation;
         NTSTATUS statusStandardInfo;
-        BOOL disableFlushButton = FALSE;
-        BOOL isFileOrDirectory = FALSE;
+        BOOLEAN disableFlushButton = FALSE;
+        BOOLEAN isFileOrDirectory = FALSE;
 
         // Obtain the file type
         if (NT_SUCCESS(NtQueryVolumeInformationFile(
-            hFile,
+            fileHandle,
             &ioStatusBlock,
             &deviceInformation,
             sizeof(deviceInformation),
             FileFsDeviceInformation
-        )))
+            )))
         {
             switch (deviceInformation.DeviceType)
             {
@@ -436,18 +438,19 @@ static VOID PhpRefreshFilePageInfo(
 
         // Obtain the file size and distinguish files from directories
         if (NT_SUCCESS(statusStandardInfo = NtQueryInformationFile(
-            hFile,
+            fileHandle,
             &ioStatusBlock,
             &fileStandardInfo,
             sizeof(fileStandardInfo),
             FileStandardInformation
-        )))
+            )))
         {
             PPH_STRING fileSizeStr;
 
+            disableFlushButton |= fileStandardInfo.Directory;
+
             fileSizeStr = PhFormatUInt64(fileStandardInfo.EndOfFile.QuadPart, TRUE);
             SetDlgItemText(hwndDlg, IDC_FILESIZE, fileSizeStr->Buffer);
-            disableFlushButton |= fileStandardInfo.Directory;
             PhDereferenceObject(fileSizeStr);
 
             if (isFileOrDirectory)
@@ -458,12 +461,12 @@ static VOID PhpRefreshFilePageInfo(
 
         // Obtain current position
         if (NT_SUCCESS(NtQueryInformationFile(
-            hFile,
+            fileHandle,
             &ioStatusBlock,
             &filePositionInfo,
             sizeof(filePositionInfo),
             FilePositionInformation
-        )))
+            )))
         {
             PPH_STRING filePosStr;
 
@@ -494,15 +497,18 @@ static VOID PhpRefreshFilePageInfo(
         
         // Obtain the file mode
         if (NT_SUCCESS(NtQueryInformationFile(
-            hFile,
+            fileHandle,
             &ioStatusBlock,
             &fileModeInfo,
             sizeof(fileModeInfo),
             FileModeInformation
-        )))
+            )))
         {
             PH_FORMAT format[5];
-            PPH_STRING fileModeStr, fileModeAccessStr;
+            PPH_STRING fileModeStr;
+            PPH_STRING fileModeAccessStr;
+
+            disableFlushButton |= fileModeInfo.Mode & (FILE_WRITE_THROUGH | FILE_NO_INTERMEDIATE_BUFFERING);
 
             // Since FILE_MODE_INFORMATION has no flag for asynchronous I/O we should use our own flag and set
             // it only if none of synchronous flags are present. That's why we need PhFileModeUpdAsyncFlag.
@@ -510,27 +516,28 @@ static VOID PhpRefreshFilePageInfo(
                 PhFileModeUpdAsyncFlag(fileModeInfo.Mode),
                 FileModeAccessEntries,
                 sizeof(FileModeAccessEntries) / sizeof(PH_ACCESS_ENTRY)
-            );
+                );
 
             PhInitFormatS(&format[0], L"0x");
             PhInitFormatX(&format[1], fileModeInfo.Mode);
             PhInitFormatS(&format[2], L" (");
             PhInitFormatSR(&format[3], fileModeAccessStr->sr);
             PhInitFormatS(&format[4], L")");
-            fileModeStr = PhFormat(format, 5, 64);
-            PhDereferenceObject(fileModeAccessStr);
 
+            fileModeStr = PhFormat(format, 5, 64);
             SetDlgItemText(hwndDlg, IDC_FILEMODE, fileModeStr->Buffer);
+
             PhDereferenceObject(fileModeStr);
-            disableFlushButton |= fileModeInfo.Mode & (FILE_WRITE_THROUGH | FILE_NO_INTERMEDIATE_BUFFERING);
+            PhDereferenceObject(fileModeAccessStr);
         }
         else
         {
             SetDlgItemText(hwndDlg, IDC_FILEMODE, L"Unknown");
         }
 
-        EnableWindow(GetDlgItem(hwndDlg, IDC_FLUSH), !disableFlushButton);        
-        NtClose(hFile);
+        EnableWindow(GetDlgItem(hwndDlg, IDC_FLUSH), !disableFlushButton);
+
+        NtClose(fileHandle);
     }
 }
 
@@ -539,50 +546,48 @@ INT_PTR CALLBACK PhpFilePageProc(
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
-)
+    )
 {
     PCOMMON_PAGE_CONTEXT pageContext;
 
-    pageContext = PhpCommonPageHeader(hwndDlg, uMsg, wParam, lParam);
-
-    if (!pageContext)
+    if (!(pageContext = PhpCommonPageHeader(hwndDlg, uMsg, wParam, lParam)))
         return FALSE;
 
     switch (uMsg)
     {
     case WM_INITDIALOG:
-    {
-        PhpRefreshFilePageInfo(hwndDlg, pageContext);
-    }
-    break;
-    case WM_COMMAND:
-    {
-        switch (GET_WM_COMMAND_ID(wParam, lParam))
         {
-        case IDC_FLUSH:
-        {
-            HANDLE fileHandle;
-            NTSTATUS status;
-
-            if (NT_SUCCESS(status = pageContext->OpenObject(
-                &fileHandle,
-                GENERIC_WRITE,
-                pageContext->Context
-            )))
-            {
-                IO_STATUS_BLOCK ioStatusBlock;
-
-                status = NtFlushBuffersFile(fileHandle, &ioStatusBlock);
-                NtClose(fileHandle);
-            }
-
-            if (!NT_SUCCESS(status))
-                PhShowStatus(hwndDlg, L"Unable to flush the file buffer", status, 0);
+            PhpRefreshFilePageInfo(hwndDlg, pageContext);
         }
         break;
+    case WM_COMMAND:
+        {
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
+            {
+            case IDC_FLUSH:
+                {
+                    NTSTATUS status;
+                    HANDLE fileHandle;
+
+                    if (NT_SUCCESS(status = pageContext->OpenObject(
+                        &fileHandle,
+                        GENERIC_WRITE,
+                        pageContext->Context
+                        )))
+                    {
+                        IO_STATUS_BLOCK ioStatusBlock;
+
+                        status = NtFlushBuffersFile(fileHandle, &ioStatusBlock);
+                        NtClose(fileHandle);
+                    }
+
+                    if (!NT_SUCCESS(status))
+                        PhShowStatus(hwndDlg, L"Unable to flush the file buffer", status, 0);
+                }
+                break;
+            }
         }
-    }
-    break;
+        break;
     }
 
     return FALSE;
