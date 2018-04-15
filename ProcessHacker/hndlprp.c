@@ -129,6 +129,13 @@ VOID PhShowHandleProperties(
             &context
             );
     }
+    else if (PhEqualString2(HandleItem->TypeName, L"File", TRUE))
+    {
+        pages[propSheetHeader.nPages++] = PhCreateFilePage(
+            PhpDuplicateHandleFromProcess,
+            &context
+        );
+    }
     else if (PhEqualString2(HandleItem->TypeName, L"Job", TRUE))
     {
         pages[propSheetHeader.nPages++] = PhCreateJobPage(

@@ -128,6 +128,7 @@
 #define IDD_PROCWMIPROVIDERS            242
 #define IDD_COLUMNSETS                  243
 #define ID_VIEW_TRAYICONS               244
+#define IDD_OBJFILE                     249
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -537,6 +538,11 @@
 #define IDC_LIST_DISABLED               1402
 #define IDC_COLUMNSETLIST               1403
 #define IDC_STATISTICS_LIST             1404
+#define IDC_FLUSH                       1406
+#define IDC_POSITION                    1407
+#define IDC_FILESIZE                    1408
+#define IDC_FILETYPE                    1409
+#define IDC_FILEMODE                    1410
 #define ID_HACKER_EXIT                  40001
 #define ID_PROCESS_PROPERTIES           40006
 #define ID_PROCESS_TERMINATE            40007
@@ -743,9 +749,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        249
+#define _APS_NEXT_RESOURCE_VALUE        252
 #define _APS_NEXT_COMMAND_VALUE         40297
-#define _APS_NEXT_CONTROL_VALUE         1406
+#define _APS_NEXT_CONTROL_VALUE         1410
 #define _APS_NEXT_SYMED_VALUE           170
 #endif
 #endif
