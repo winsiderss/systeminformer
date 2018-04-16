@@ -313,7 +313,7 @@ VOID SetupStartService(
                         }
                     }
 
-                    Sleep(1000);
+                    PhDelayExecution(1000);
 
                 } while (--attempts != 0);
             }
@@ -375,7 +375,7 @@ VOID SetupStopService(
                         }
                     }
 
-                    Sleep(1000);
+                    PhDelayExecution(1000);
 
                 } while (--attempts != 0);
             }
@@ -387,44 +387,78 @@ VOID SetupStopService(
     }
 }
 
-VOID SetupStartKph(
-    _In_ PPH_SETUP_CONTEXT Context
+BOOLEAN SetupKphCheckInstallState(
+    VOID
     )
 {
-    PPH_STRING clientPath = PhConcatStrings2(PhGetString(Context->SetupInstallPath), L"\\ProcessHacker.exe");
+    static PH_STRINGREF kph3ServiceKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services\\KProcessHacker3");
+    BOOLEAN kphInstallRequired = FALSE;
+    HANDLE runKeyHandle;
 
-    if (RtlDoesFileExists_U(PhGetString(clientPath)))
+    if (NT_SUCCESS(PhOpenKey(
+        &runKeyHandle,
+        KEY_READ,
+        PH_KEY_LOCAL_MACHINE,
+        &kph3ServiceKeyName,
+        0
+        )))
     {
-        HANDLE processHandle;
-        LARGE_INTEGER timeout;
-        ULONG retries = 0;
-
-        timeout.QuadPart = -10 * PH_TIMEOUT_SEC;
-
-        if (PhShellExecuteEx(
-            NULL,
-            PhGetString(clientPath),
-            L"-installkph",
-            SW_NORMAL,
-            0,
-            0,
-            &processHandle
-            ))
+        // Make sure we re-install the driver when KPH was installed as a service. 
+        if (PhQueryRegistryUlong(runKeyHandle, L"Start") == SERVICE_SYSTEM_START)
         {
-            NtWaitForSingleObject(processHandle, FALSE, &timeout);
-            NtClose(processHandle);
+            kphInstallRequired = TRUE;
         }
 
-        SetupStartService(L"KProcessHacker3");
+        NtClose(runKeyHandle);
     }
 
-    PhDereferenceObject(clientPath);
+    return kphInstallRequired;
+}
+
+VOID SetupStartKph(
+    _In_ PPH_SETUP_CONTEXT Context,
+    _In_ BOOLEAN ForceInstall
+    )
+{
+    if (ForceInstall || Context->SetupKphInstallRequired)
+    {
+        PPH_STRING clientPath;
+
+        clientPath = PhConcatStrings2(PhGetString(Context->SetupInstallPath), L"\\ProcessHacker.exe");
+
+        if (RtlDoesFileExists_U(PhGetString(clientPath)))
+        {
+            HANDLE processHandle;
+
+            if (PhShellExecuteEx(
+                NULL,
+                PhGetString(clientPath),
+                L"-installkph",
+                SW_NORMAL,
+                0,
+                0,
+                &processHandle
+                ))
+            {
+                NtWaitForSingleObject(processHandle, FALSE, NULL);
+                NtClose(processHandle);
+            }
+        }
+
+        PhDereferenceObject(clientPath);
+    }
+
+    SetupStartService(L"KProcessHacker3");
 }
 
 BOOLEAN SetupUninstallKph(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
+    // Query the current KPH installation state.
+    Context->SetupKphInstallRequired = SetupKphCheckInstallState();
+
+    // Stop and uninstall the current installation.
     SetupStopService(L"KProcessHacker2");
     SetupStopService(L"KProcessHacker3");
 
@@ -559,7 +593,7 @@ VOID SetupSetWindowsOptions(
     if (Context->SetupCreateSystemStartup)
     {
         NTSTATUS status;
-        HANDLE runKeyHandle = NULL;
+        HANDLE runKeyHandle;
 
         if (NT_SUCCESS(status = PhOpenKey(
             &runKeyHandle,

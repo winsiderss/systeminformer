@@ -109,7 +109,8 @@ typedef struct _PH_SETUP_CONTEXT
             ULONG SetupInstallKphService : 1;
             ULONG SetupResetSettings : 1;
             ULONG SetupStartAppAfterExit : 1;
-            ULONG Spare : 22;
+            ULONG SetupKphInstallRequired : 1;
+            ULONG Spare : 21;
         };
     };
 
@@ -204,7 +205,8 @@ extern ULONG64 ExtractTotalLength;
 // setup.c
 
 VOID SetupStartKph(
-    _In_ PPH_SETUP_CONTEXT Context
+    _In_ PPH_SETUP_CONTEXT Context,
+    _In_ BOOLEAN ForceInstall
     );
 
 BOOLEAN SetupUninstallKph(

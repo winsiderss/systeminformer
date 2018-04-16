@@ -49,7 +49,8 @@ NTSTATUS SetupUpdateBuild(
     // Set the default image execution options.
     SetupCreateImageFileExecutionOptions();
 
-    SetupStartKph(Context);
+    // Set the default KPH configuration.
+    SetupStartKph(Context, FALSE);
 
     if (!SetupExecuteProcessHacker(Context))
         goto CleanupExit;
