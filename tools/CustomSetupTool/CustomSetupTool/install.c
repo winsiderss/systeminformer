@@ -68,9 +68,9 @@ NTSTATUS SetupProgressThread(
     if (!SetupExtractBuild(Context))
         goto CleanupExit;
 
-    // Install updated kernel driver
+    // Setup kernel driver.
     if (Context->SetupInstallKphService)
-        SetupStartKph(Context);
+        SetupStartKph(Context, TRUE);
 
     PhClearCacheDirectory();
 
