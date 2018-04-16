@@ -449,7 +449,7 @@ static VOID PhpRefreshFilePageInfo(
 
             disableFlushButton |= fileStandardInfo.Directory;
 
-            fileSizeStr = PhFormatUInt64(fileStandardInfo.EndOfFile.QuadPart, TRUE);
+            fileSizeStr = PhFormatSize(fileStandardInfo.EndOfFile.QuadPart, -1);
             SetDlgItemText(hwndDlg, IDC_FILESIZE, fileSizeStr->Buffer);
             PhDereferenceObject(fileSizeStr);
 
