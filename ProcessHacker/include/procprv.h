@@ -2,7 +2,6 @@
 #define PH_PROCPRV_H
 
 #define PH_RECORD_MAX_USAGE
-#define PH_ENABLE_VERIFY_CACHE
 
 extern PPH_OBJECT_TYPE PhProcessItemType;
 

@@ -51,6 +51,14 @@ PPH_STRING PhGetAppContainerPackageName(
     _In_ PSID Sid
     );
 
+PPH_STRING PhGetProcessPackageFullName(
+    _In_ HANDLE ProcessHandle
+    );
+
+PPH_STRING PhGetPackagePath(
+    _In_ PPH_STRING PackageFullName
+    );
+
 PPH_LIST PhGetPackageAssetsFromResourceFile(
     _In_ PWSTR FilePath
     );

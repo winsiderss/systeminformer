@@ -20,7 +20,9 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define PH_ENABLE_VERIFY_CACHE
 #include <ph.h>
+#include <appresolver.h>
 #include <verify.h>
 #include <verifyp.h>
 
@@ -38,10 +40,15 @@ _WinVerifyTrust WinVerifyTrust_I;
 _CertNameToStr CertNameToStr_I;
 _CertDuplicateCertificateContext CertDuplicateCertificateContext_I;
 _CertFreeCertificateContext CertFreeCertificateContext_I;
-static PH_INITONCE PhpVerifyInitOnce = PH_INITONCE_INIT;
 
+static PH_INITONCE PhpVerifyInitOnce = PH_INITONCE_INIT;
 static GUID WinTrustActionGenericVerifyV2 = WINTRUST_ACTION_GENERIC_VERIFY_V2;
 static GUID DriverActionVerify = DRIVER_ACTION_VERIFY;
+
+#ifdef PH_ENABLE_VERIFY_CACHE
+static PH_AVL_TREE PhpVerifyCacheSet = PH_AVL_TREE_INIT(PhpVerifyCacheCompareFunction);
+static PH_QUEUED_LOCK PhpVerifyCacheLock = PH_QUEUED_LOCK_INIT;
+#endif
 
 static VOID PhpVerifyInitialization(
     VOID
@@ -665,4 +672,196 @@ VERIFY_RESULT PhVerifyFile(
 
         return VrNoSignature;
     }
+}
+
+INT NTAPI PhpVerifyCacheCompareFunction(
+    _In_ PPH_AVL_LINKS Links1,
+    _In_ PPH_AVL_LINKS Links2
+    )
+{
+    PPH_VERIFY_CACHE_ENTRY entry1 = CONTAINING_RECORD(Links1, PH_VERIFY_CACHE_ENTRY, Links);
+    PPH_VERIFY_CACHE_ENTRY entry2 = CONTAINING_RECORD(Links2, PH_VERIFY_CACHE_ENTRY, Links);
+
+    return PhCompareString(entry1->FileName, entry2->FileName, TRUE);
+}
+
+VERIFY_RESULT PhVerifyFileWithAdditionalCatalog(
+    _In_ PPH_VERIFY_FILE_INFO Information,
+    _In_opt_ PPH_STRING PackageFullName,
+    _Out_opt_ PPH_STRING *SignerName
+    )
+{
+    static PH_STRINGREF codeIntegrityFileName = PH_STRINGREF_INIT(L"\\AppxMetadata\\CodeIntegrity.cat");
+
+    VERIFY_RESULT result;
+    PPH_STRING additionalCatalogFileName = NULL;
+    PCERT_CONTEXT *signatures;
+    ULONG numberOfSignatures;
+
+    if (PackageFullName)
+    {
+        PPH_STRING packagePath;
+
+        if (packagePath = PhGetPackagePath(PackageFullName))
+        {
+            additionalCatalogFileName = PhConcatStringRef2(&packagePath->sr, &codeIntegrityFileName);
+            PhDereferenceObject(packagePath);
+        }
+    }
+
+    if (additionalCatalogFileName)
+    {
+        Information->NumberOfCatalogFileNames = 1;
+        Information->CatalogFileNames = &additionalCatalogFileName->Buffer;
+    }
+
+    if (!NT_SUCCESS(PhVerifyFileEx(Information, &result, &signatures, &numberOfSignatures)))
+    {
+        result = VrNoSignature;
+        signatures = NULL;
+        numberOfSignatures = 0;
+    }
+
+    if (additionalCatalogFileName)
+        PhDereferenceObject(additionalCatalogFileName);
+
+    if (SignerName)
+    {
+        if (numberOfSignatures != 0)
+            *SignerName = PhGetSignerNameFromCertificate(signatures[0]);
+        else
+            *SignerName = NULL;
+    }
+
+    PhFreeVerifySignatures(signatures, numberOfSignatures);
+
+    return result;
+}
+
+/**
+ * Verifies a file's digital signature, using a cached result if possible.
+ *
+ * \param FileName A file name.
+ * \param ProcessItem An associated process item.
+ * \param SignerName A variable which receives a pointer to a string containing the signer name. You
+ * must free the string using PhDereferenceObject() when you no longer need it. Note that the signer
+ * name may be NULL if it is not valid.
+ * \param CachedOnly Specify TRUE to fail the function when no cached result exists.
+ *
+ * \return A VERIFY_RESULT value.
+ */
+VERIFY_RESULT PhVerifyFileCached(
+    _In_ PPH_STRING FileName,
+    _In_opt_ PPH_STRING PackageFullName,
+    _Out_opt_ PPH_STRING *SignerName,
+    _In_ BOOLEAN CachedOnly
+    )
+{
+#ifdef PH_ENABLE_VERIFY_CACHE
+    PPH_AVL_LINKS links;
+    PPH_VERIFY_CACHE_ENTRY entry;
+    PH_VERIFY_CACHE_ENTRY lookupEntry;
+
+    lookupEntry.FileName = FileName;
+
+    PhAcquireQueuedLockShared(&PhpVerifyCacheLock);
+    links = PhFindElementAvlTree(&PhpVerifyCacheSet, &lookupEntry.Links);
+    PhReleaseQueuedLockShared(&PhpVerifyCacheLock);
+
+    if (links)
+    {
+        entry = CONTAINING_RECORD(links, PH_VERIFY_CACHE_ENTRY, Links);
+
+        if (SignerName)
+            PhSetReference(SignerName, entry->VerifySignerName);
+
+        return entry->VerifyResult;
+    }
+    else
+    {
+        VERIFY_RESULT result;
+        PPH_STRING signerName;
+
+        if (!CachedOnly)
+        {
+            PH_VERIFY_FILE_INFO info;
+
+            memset(&info, 0, sizeof(PH_VERIFY_FILE_INFO));
+            info.FileName = FileName->Buffer;
+            info.Flags = PH_VERIFY_PREVENT_NETWORK_ACCESS;
+            result = PhVerifyFileWithAdditionalCatalog(&info, PackageFullName, &signerName);
+
+            if (result != VrTrusted)
+                PhClearReference(&signerName);
+        }
+        else
+        {
+            result = VrUnknown;
+            signerName = NULL;
+        }
+
+        if (result != VrUnknown)
+        {
+            entry = PhAllocate(sizeof(PH_VERIFY_CACHE_ENTRY));
+            entry->FileName = FileName;
+            entry->VerifyResult = result;
+            entry->VerifySignerName = signerName;
+
+            PhAcquireQueuedLockExclusive(&PhpVerifyCacheLock);
+            links = PhAddElementAvlTree(&PhpVerifyCacheSet, &entry->Links);
+            PhReleaseQueuedLockExclusive(&PhpVerifyCacheLock);
+
+            if (!links)
+            {
+                // We successfully added the cache entry. Add references.
+
+                PhReferenceObject(entry->FileName);
+
+                if (entry->VerifySignerName)
+                    PhReferenceObject(entry->VerifySignerName);
+            }
+            else
+            {
+                // Entry already exists.
+                PhFree(entry);
+            }
+        }
+
+        if (SignerName)
+        {
+            *SignerName = signerName;
+        }
+        else
+        {
+            if (signerName)
+                PhDereferenceObject(signerName);
+        }
+
+        return result;
+    }
+#else
+    VERIFY_RESULT result;
+    PPH_STRING signerName;
+    PH_VERIFY_FILE_INFO info;
+
+    memset(&info, 0, sizeof(PH_VERIFY_FILE_INFO));
+    info.FileName = FileName->Buffer;
+    info.Flags = PH_VERIFY_PREVENT_NETWORK_ACCESS;
+    result = PhVerifyFileWithAdditionalCatalog(&info, PackageFullName, &signerName);
+
+    if (result != VrTrusted)
+        PhClearReference(&signerName);
+
+    if (SignerName)
+    {
+        *SignerName = signerName;
+    }
+    else
+    {
+        if (signerName)
+            PhDereferenceObject(signerName);
+    }
+
+    return result;
+#endif
 }

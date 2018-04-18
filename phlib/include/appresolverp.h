@@ -48,6 +48,7 @@ static HRESULT (WINAPI* AppContainerDeriveSidFromMoniker_I)( // DeriveAppContain
     _Out_ PSID *AppContainerSid
     ) = NULL;
 
+// Note: LookupAppContainerDisplayName (userenv.dll, ordinal 211) has the same prototype but returns 'PackageName/ContainerName'.
 static HRESULT (WINAPI* AppContainerLookupMoniker_I)(
     _In_ PSID AppContainerSid, 
     _Out_ PWSTR *PackageFamilyName

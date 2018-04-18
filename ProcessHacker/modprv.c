@@ -21,6 +21,7 @@
  */
 
 #include <phapp.h>
+#include <appresolver.h>
 #include <modprv.h>
 
 #include <mapimg.h>
