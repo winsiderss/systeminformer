@@ -3,6 +3,20 @@
 
 #include <commdlg.h>
 
+typedef struct _PH_VERIFY_CACHE_ENTRY
+{
+    PH_AVL_LINKS Links;
+
+    PPH_STRING FileName;
+    VERIFY_RESULT VerifyResult;
+    PPH_STRING VerifySignerName;
+} PH_VERIFY_CACHE_ENTRY, *PPH_VERIFY_CACHE_ENTRY;
+
+INT NTAPI PhpVerifyCacheCompareFunction(
+    _In_ PPH_AVL_LINKS Links1,
+    _In_ PPH_AVL_LINKS Links2
+    );
+
 typedef struct _CATALOG_INFO
 {
     ULONG cbStruct;

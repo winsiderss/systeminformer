@@ -22,14 +22,6 @@ NTSTATUS PhGetProcessSwitchContext(
     _Out_ PGUID Guid
     );
 
-PPH_STRING PhGetProcessPackageFullName(
-    _In_ HANDLE ProcessHandle
-    );
-
-PPH_STRING PhGetPackagePath(
-    _In_ PPH_STRING PackageFullName
-    );
-
 // begin_phapppub
 typedef enum _PH_KNOWN_PROCESS_TYPE
 {
