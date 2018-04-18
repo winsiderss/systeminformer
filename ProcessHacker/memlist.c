@@ -376,6 +376,33 @@ VOID PhReplaceMemoryList(
     TreeNew_NodesStructured(Context->TreeNewHandle);
 }
 
+VOID PhRemoveMemoryNode(
+    _Inout_ PPH_MEMORY_LIST_CONTEXT Context,
+    _In_ PPH_MEMORY_ITEM_LIST List,
+    _In_ PPH_MEMORY_NODE MemoryNode
+    )
+{
+    ULONG index;
+
+    // Remove from list and cleanup.
+
+    PhRemoveElementAvlTree(&List->Set, &MemoryNode->MemoryItem->Links);
+    RemoveEntryList(&MemoryNode->MemoryItem->ListEntry);
+
+    if ((index = PhFindItemList(Context->RegionNodeList, MemoryNode)) != -1)
+        PhRemoveItemList(Context->RegionNodeList, index);
+
+    if (MemoryNode->MemoryItem->AllocationBaseItem == MemoryNode->MemoryItem)
+    {
+        if ((index = PhFindItemList(Context->AllocationBaseNodeList, MemoryNode->Parent)) != -1)
+            PhRemoveItemList(Context->AllocationBaseNodeList, index);
+    }
+
+    PhpDestroyMemoryNode(MemoryNode);
+
+    TreeNew_NodesStructured(Context->TreeNewHandle);
+}
+
 VOID PhUpdateMemoryNode(
     _In_ PPH_MEMORY_LIST_CONTEXT Context,
     _In_ PPH_MEMORY_NODE MemoryNode
