@@ -117,6 +117,12 @@ VOID PhReplaceMemoryList(
     _In_opt_ PPH_MEMORY_ITEM_LIST List
     );
 
+VOID PhRemoveMemoryNode(
+    _Inout_ PPH_MEMORY_LIST_CONTEXT Context,
+    _In_ PPH_MEMORY_ITEM_LIST List,
+    _In_ PPH_MEMORY_NODE MemoryNode
+    );
+
 VOID PhUpdateMemoryNode(
     _In_ PPH_MEMORY_LIST_CONTEXT Context,
     _In_ PPH_MEMORY_NODE MemoryNode
