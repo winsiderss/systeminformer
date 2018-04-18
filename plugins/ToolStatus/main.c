@@ -814,21 +814,23 @@ LRESULT CALLBACK MainWndSubclassProc(
                             {
                                 PPH_EMENU_ITEM menuItem;
 
-                                if (PhGetOwnTokenAttributes().Elevated && buttonInfo.idCommand == PHAPP_ID_HACKER_SHOWDETAILSFORALLPROCESSES)
-                                {
-                                    // Don't show the 'Show Details for All Processes' button in the
-                                    //  dropdown menu when we're elevated.
-                                    continue;
-                                }
-
-                                // Add buttons to menu.
+                                // Add toolbar buttons to the context menu.
                                 menuItem = PhCreateEMenuItem(0, buttonInfo.idCommand, ToolbarGetText(buttonInfo.idCommand), NULL, NULL);
 
+                                // Add the button image to the context menu.
                                 menuItem->Flags |= PH_EMENU_BITMAP_OWNED;
                                 menuItem->Bitmap = ToolbarGetImage(buttonInfo.idCommand);
 
                                 switch (buttonInfo.idCommand)
                                 {
+                                case TIDC_FINDWINDOW:
+                                case TIDC_FINDWINDOWTHREAD:
+                                case TIDC_FINDWINDOWKILL:
+                                    {
+                                        // Note: These buttons are incompatible with the context menu window messages.
+                                        menuItem->Flags |= PH_EMENU_DISABLED;
+                                    }
+                                    break;
                                 case PHAPP_ID_VIEW_ALWAYSONTOP:
                                     {
                                         // Set the pressed state.
@@ -836,12 +838,13 @@ LRESULT CALLBACK MainWndSubclassProc(
                                             menuItem->Flags |= PH_EMENU_CHECKED;
                                     }
                                     break;
-                                case TIDC_FINDWINDOW:
-                                case TIDC_FINDWINDOWTHREAD:
-                                case TIDC_FINDWINDOWKILL:
+                                case PHAPP_ID_HACKER_SHOWDETAILSFORALLPROCESSES:
                                     {
-                                        // Note: These buttons are incompatible with menus.
-                                        menuItem->Flags |= PH_EMENU_DISABLED;
+                                        if (PhGetOwnTokenAttributes().Elevated)
+                                        {
+                                            // Disable the 'Show Details for All Processes' button when we're elevated.
+                                            menuItem->Flags |= PH_EMENU_DISABLED;
+                                        }
                                     }
                                     break;
                                 case TIDC_POWERMENUDROPDOWN:
