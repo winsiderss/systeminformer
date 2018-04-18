@@ -70,12 +70,10 @@ typedef enum _PH_PROCESS_STATISTICS_INDEX
     PH_PROCESS_STATISTICS_INDEX_USERHANDLES,
 
     PH_PROCESS_STATISTICS_INDEX_CONTEXTSWITCHES,
-    PH_PROCESS_STATISTICS_INDEX_DISKENERGY,
-    PH_PROCESS_STATISTICS_INDEX_NETWORKTAILENERGY,
-    PH_PROCESS_STATISTICS_INDEX_MBBTAILENERGY,
+    PH_PROCESS_STATISTICS_INDEX_DISKREAD,
+    PH_PROCESS_STATISTICS_INDEX_DISKWRITE,
     PH_PROCESS_STATISTICS_INDEX_NETWORKTXRXBYTES,
-    PH_PROCESS_STATISTICS_INDEX_MBBTXRXBYTES,
-    PH_PROCESS_STATISTICS_INDEX_FOREGROUNDDURATION
+    PH_PROCESS_STATISTICS_INDEX_MBBTXRXBYTES
 } PH_PROCESS_STATISTICS_INDEX;
 
 VOID PhpUpdateStatisticsAddListViewGroups(
@@ -121,12 +119,10 @@ VOID PhpUpdateStatisticsAddListViewGroups(
     if (WindowsVersion >= WINDOWS_10_RS3 && !PhIsExecutingInWow64())
     {
         PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_EXTENSION, PH_PROCESS_STATISTICS_INDEX_CONTEXTSWITCHES, L"ContextSwitches", NULL);
-        PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_EXTENSION, PH_PROCESS_STATISTICS_INDEX_DISKENERGY, L"DiskEnergy", NULL);
-        PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_EXTENSION, PH_PROCESS_STATISTICS_INDEX_NETWORKTAILENERGY, L"NetworkTailEnergy", NULL);
-        PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_EXTENSION, PH_PROCESS_STATISTICS_INDEX_MBBTAILENERGY, L"MBBTailEnergy", NULL);
+        PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_EXTENSION, PH_PROCESS_STATISTICS_INDEX_DISKREAD, L"BytesRead", NULL);
+        PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_EXTENSION, PH_PROCESS_STATISTICS_INDEX_DISKWRITE, L"BytesWritten", NULL);
         PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_EXTENSION, PH_PROCESS_STATISTICS_INDEX_NETWORKTXRXBYTES, L"NetworkTxRxBytes", NULL);
         PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_EXTENSION, PH_PROCESS_STATISTICS_INDEX_MBBTXRXBYTES, L"MBBTxRxBytes", NULL);
-        PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_EXTENSION, PH_PROCESS_STATISTICS_INDEX_FOREGROUNDDURATION, L"ForegroundDuration", NULL);
     }
 }
 
@@ -247,18 +243,16 @@ VOID PhpUpdateProcessStatistics(
         if (NT_SUCCESS(PhEnumProcesses(&processes)))
         {
             processInfo = PhFindProcessInformation(processes, ProcessItem->ProcessId);
-
+        
             if (processInfo && (processExtension = PH_PROCESS_EXTENSION(processInfo)))
             {
                 PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_CONTEXTSWITCHES, 1, PhaFormatUInt64(processExtension->ContextSwitches, TRUE)->Buffer);
-                PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_DISKENERGY, 1, PhaFormatUInt64(processExtension->EnergyValues.DiskEnergy, TRUE)->Buffer);
-                PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_NETWORKTAILENERGY, 1, PhaFormatSize(processExtension->EnergyValues.NetworkTailEnergy, -1)->Buffer);
-                PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_MBBTAILENERGY, 1, PhaFormatSize(processExtension->EnergyValues.MBBTailEnergy, -1)->Buffer);
+                PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_DISKREAD, 1, PhaFormatSize(processExtension->DiskCounters.BytesRead, -1)->Buffer);
+                PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_DISKWRITE, 1, PhaFormatSize(processExtension->DiskCounters.BytesWritten, -1)->Buffer);
                 PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_NETWORKTXRXBYTES, 1, PhaFormatSize(processExtension->EnergyValues.NetworkTxRxBytes, -1)->Buffer);
                 PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_MBBTXRXBYTES, 1, PhaFormatSize(processExtension->EnergyValues.MBBTxRxBytes, -1)->Buffer);
-                PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_FOREGROUNDDURATION, 1, PhaFormatUInt64(processExtension->EnergyValues.ForegroundDuration.Value, TRUE)->Buffer);
             }
-
+        
             PhFree(processes);
         }
     }
