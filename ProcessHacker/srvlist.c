@@ -803,13 +803,21 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
             else if (PhEnableProcessQueryStage2 && PhCsUseColorUnknown && serviceItem->VerifyResult != VrTrusted)
             {
                 getNodeColor->BackColor = PhCsColorUnknown;
+                getNodeColor->Flags |= TN_AUTO_FORECOLOR;
             }
-            else if (PhCsUseColorServiceStop && serviceItem->StartType == SERVICE_DISABLED)
+            else if (PhCsUseColorServiceStop && serviceItem->State == SERVICE_STOPPED && serviceItem->StartType == SERVICE_DISABLED)
+            {
+                getNodeColor->BackColor = PhCsColorServiceStop;
+                getNodeColor->Flags |= TN_AUTO_FORECOLOR;
+            }
+            else if (PhCsUseColorServiceStop && serviceItem->State == SERVICE_STOPPED)
             {
                 getNodeColor->ForeColor = PhCsColorServiceStop;
             }
-
-            getNodeColor->Flags = TN_AUTO_FORECOLOR;
+            else
+            {
+                getNodeColor->Flags |= TN_AUTO_FORECOLOR;
+            }                
         }
         return TRUE;
     case TreeNewGetCellTooltip:
