@@ -192,6 +192,13 @@ VOID DiskDriveQuerySmart(
                         3,
                         PhaFormatString(L"%lu", attribute->RawValue)->Buffer
                         );
+
+                    PhSetListViewSubItem(
+                        Context->ListViewHandle,
+                        lvItemIndex,
+                        4,
+                        PhaFormatString(L"%#014x", attribute->RawValue)->Buffer
+                        );
                 }
 
                 PhFree(attribute);
@@ -679,6 +686,7 @@ INT_PTR CALLBACK DiskDriveSmartDetailsDlgProc(
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 50, L"Value");
             PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 50, L"Best");
             PhAddListViewColumn(context->ListViewHandle, 3, 3, 3, LVCFMT_LEFT, 80, L"Raw");
+            PhAddListViewColumn(context->ListViewHandle, 4, 4, 4, LVCFMT_LEFT, 80, L"Raw (Hex)");
             PhSetExtendedListView(context->ListViewHandle);
             //ExtendedListView_SetItemColorFunction(context->ListViewHandle, PhpColorItemColorFunction);
             PhLoadListViewColumnsFromSetting(SETTING_NAME_SMART_COUNTERS_COLUMNS, context->ListViewHandle);
