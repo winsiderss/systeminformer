@@ -80,7 +80,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"IconSingleClick", L"0");
     PhpAddIntegerSetting(L"IconTogglesVisibility", L"1");
     PhpAddStringSetting(L"JobListViewColumns", L"");
-    PhpAddIntegerSetting(L"KphUnloadOnShutdown", L"0");
+    //PhpAddIntegerSetting(L"KphUnloadOnShutdown", L"0");
     PhpAddIntegerSetting(L"LogEntries", L"200"); // 512
     PhpAddStringSetting(L"LogListViewColumns", L"");
     PhpAddIntegerPairSetting(L"LogWindowPosition", L"300,300");
@@ -222,6 +222,9 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"ColorServiceStop", L"6d6d6d"); // Dark grey
     PhpAddIntegerSetting(L"UseColorUnknown", L"1");
     PhpAddIntegerSetting(L"ColorUnknown", L"507fff"); // Deep Pink
+
+    // Experimental features
+    PhpAddIntegerSetting(L"EnableExperimentalWindowStyle", L"1");
 }
 
 VOID PhUpdateCachedSettings(
