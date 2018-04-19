@@ -307,6 +307,10 @@ VOID PhSipOnInitDialog(
 
     PhSetControlTheme(PhSipWindow, L"explorer");
     PhSipUpdateThemeData();
+
+    // HACK HACK HACK
+    if (WindowsVersion >= WINDOWS_10_RS3 && !!PhGetIntegerSetting(L"EnableExperimentalWindowStyle"))
+        PhSetWindowStyle(PhSipWindow, WS_POPUP, 0);
 }
 
 VOID PhSipOnDestroy(

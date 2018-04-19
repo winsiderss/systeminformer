@@ -171,6 +171,10 @@ INT CALLBACK PhpPropSheetProc(
             PhSetWindowContext(hwndDlg, 0xF, propSheetContext);
             SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)PhpPropSheetWndProc);
 
+            // HACK HACK HACK
+            if (WindowsVersion >= WINDOWS_10_RS3 && !!PhGetIntegerSetting(L"EnableExperimentalWindowStyle"))
+                PhSetWindowStyle(hwndDlg, WS_POPUP, 0);
+
             if (MinimumSize.left == -1)
             {
                 RECT rect;
