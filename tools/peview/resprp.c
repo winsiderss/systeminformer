@@ -159,6 +159,7 @@ INT_PTR CALLBACK PvpPeResourcesDlgProc(
 
                         PhPrintUInt32(number, (ULONG)entry.Language);
 
+                        // TODO: RtlLcidToLocaleName
                         if (LCIDToLocaleName((ULONG)entry.Language, name, LOCALE_NAME_MAX_LENGTH, LOCALE_ALLOW_NEUTRAL_NAMES))
                             PhSetListViewSubItem(lvHandle, lvItemIndex, PVE_RESOURCES_COLUMN_INDEX_LCID, PhaFormatString(L"%s (%s)", number, name)->Buffer);
                         else
