@@ -1407,11 +1407,35 @@ PhCompareStringWithNull(
     }
     else if (!String1)
     {
-        return !String2 ? 0 : -1;
+        return !String2 ? 0 : 1;
     }
     else
     {
-        return 1;
+        return -1;
+    }
+}
+
+// dmex: Compares two strings, always sorting NULL strings after all other strings.
+FORCEINLINE
+LONG
+PhCompareStringWithNullSortOrder(
+    _In_opt_ PPH_STRING String1,
+    _In_opt_ PPH_STRING String2,
+    _In_ PH_SORT_ORDER Order,
+    _In_ BOOLEAN IgnoreCase
+    )
+{
+    if (String1 && String2)
+    {
+        return PhCompareString(String1, String2, IgnoreCase);
+    }
+    else if (!String1)
+    {
+        return !String2 ? 0 : (Order == AscendingSortOrder ? 1 : -1);
+    }
+    else
+    {
+        return (Order == AscendingSortOrder ? -1 : 1);
     }
 }
 
