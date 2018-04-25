@@ -139,9 +139,11 @@ PPH_HANDLE_ITEM PhCreateHandleItem(
         handleItem->GrantedAccess = (ACCESS_MASK)Handle->GrantedAccess;
         handleItem->TypeIndex = Handle->ObjectTypeIndex;
 
-        PhPrintPointer(handleItem->HandleString, (PVOID)handleItem->Handle);
-        PhPrintPointer(handleItem->ObjectString, handleItem->Object);
+        PhPrintPointer(handleItem->HandleString, (PVOID)handleItem->Handle);   
         PhPrintPointer(handleItem->GrantedAccessString, UlongToPtr(handleItem->GrantedAccess));
+
+        if (handleItem->Object)
+            PhPrintPointer(handleItem->ObjectString, handleItem->Object);
     }
 
     PhEmCallObjectOperation(EmHandleItemType, handleItem, EmObjectCreate);
@@ -588,14 +590,7 @@ VOID PhHandleProviderUpdate(
                 NULL
                 );
 
-            // We need at least a type name to continue.
-            if (!handleItem->TypeName)
-            {
-                PhDereferenceObject(handleItem);
-                continue;
-            }
-
-            if (PhEqualString2(handleItem->TypeName, L"File", TRUE) && KphIsConnected())
+            if (handleItem->TypeName && PhEqualString2(handleItem->TypeName, L"File", TRUE) && KphIsConnected())
             {
                 KPH_FILE_OBJECT_INFORMATION objectInfo;
 

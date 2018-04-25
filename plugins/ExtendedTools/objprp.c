@@ -62,6 +62,9 @@ VOID EtHandlePropertiesInitializing(
     PPH_PLUGIN_OBJECT_PROPERTIES objectProperties = Parameter;
     PPH_PLUGIN_HANDLE_PROPERTIES_CONTEXT context = objectProperties->Parameter;
 
+    if (PhIsNullOrEmptyString(context->HandleItem->TypeName))
+        return;
+
     if (objectProperties->NumberOfPages < objectProperties->MaximumNumberOfPages)
     {
         HPROPSHEETPAGE page = NULL;

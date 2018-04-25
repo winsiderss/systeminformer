@@ -1518,11 +1518,17 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
                     
                             handleItem = PhCreateHandleItem(&handleObjectNode->HandleInfo);
                     
-                            handleItem->BestObjectName = handleItem->ObjectName = handleObjectNode->BestObjectName;
-                            PhReferenceObjectEx(handleObjectNode->BestObjectName, 2);
-                    
-                            handleItem->TypeName = handleObjectNode->TypeNameString;
-                            PhReferenceObject(handleObjectNode->TypeNameString);
+                            if (!PhIsNullOrEmptyString(handleObjectNode->BestObjectName))
+                            {
+                                handleItem->BestObjectName = handleItem->ObjectName = handleObjectNode->BestObjectName;
+                                PhReferenceObjectEx(handleObjectNode->BestObjectName, 2);
+                            }
+
+                            if (!PhIsNullOrEmptyString(handleObjectNode->TypeNameString))
+                            {
+                                handleItem->TypeName = handleObjectNode->TypeNameString;
+                                PhReferenceObject(handleObjectNode->TypeNameString);
+                            }
                     
                             PhShowHandleProperties(
                                 hwndDlg,
