@@ -26,6 +26,7 @@
 
 #include <hndlinfo.h>
 #include <kphuser.h>
+#include <settings.h>
 #include <workqueue.h>
 
 #include <extmgri.h>
