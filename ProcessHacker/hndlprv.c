@@ -308,7 +308,7 @@ NTSTATUS PhEnumHandlesGeneric(
     // * On Windows XP and later, NtQuerySystemInformation with SystemExtendedHandleInformation.
     // * Otherwise, NtQuerySystemInformation with SystemHandleInformation can be used.
 
-    if (WindowsVersion >= WINDOWS_8)
+    if (WindowsVersion >= WINDOWS_8 && !!PhGetIntegerSetting(L"EnableHandleSnapshot"))
     {
         PPROCESS_HANDLE_SNAPSHOT_INFORMATION handles;
         PSYSTEM_HANDLE_INFORMATION_EX convertedHandles;
