@@ -221,7 +221,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"UseColorServiceStop", L"1");
     PhpAddIntegerSetting(L"ColorServiceStop", L"6d6d6d"); // Dark grey
     PhpAddIntegerSetting(L"UseColorUnknown", L"1");
-    PhpAddIntegerSetting(L"ColorUnknown", L"507fff"); // Deep Pink
+    PhpAddIntegerSetting(L"ColorUnknown", L"ff8080"); // Light Red
 
     // Experimental features
     PhpAddIntegerSetting(L"EnableExperimentalWindowStyle", L"1");
