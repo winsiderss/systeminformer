@@ -32,24 +32,22 @@ namespace CustomBuildTool
     [SuppressUnmanagedCodeSecurity]
     public static class Build
     {
+        private static readonly string SdkVersion = "10.0.16299.0";
         private static DateTime TimeStart;
         private static bool BuildNightly;
         private static bool GitExportBuild;
         private static string GitExePath;
         private static string MSBuildExePath;
-        private static string CertUtilExePath;
-        private static string MakeAppxExePath;
         private static string CustomSignToolPath;
 
         private static string BuildBranch;
         private static string BuildOutputFolder;
         private static string BuildCommit;
         private static string BuildVersion;
-        //private static string BuildWebSetupVersion;
         private static string BuildLongVersion;
         private static string BuildCount;
         private static string BuildRevision;
-        private static string BuildMessage;
+        //private static string BuildMessage;
 
         private static long BuildBinFileLength;
         private static string BuildBinHash;
@@ -59,11 +57,12 @@ namespace CustomBuildTool
         private static string BuildSetupHash;
         private static string BuildSetupSig;
 
+        //private static string BuildWebSetupVersion;
         //private static long BuildWebSetupFileLength;
         //private static string BuildWebSetupHash;
         //private static string BuildWebSetupSig;
 
-#region Build Config
+        #region Build Config
         private static readonly string[] sdk_directories =
         {
             "sdk",
@@ -159,10 +158,8 @@ namespace CustomBuildTool
             TimeStart = DateTime.Now;
             BuildOutputFolder = "build\\output";
             MSBuildExePath = VisualStudio.GetMsbuildFilePath();
-            CustomSignToolPath = "tools\\CustomSignTool\\bin\\Release32\\CustomSignTool.exe";
             GitExePath = VisualStudio.GetFilePathFromPath("git.exe");
-            CertUtilExePath = VisualStudio.GetFilePathFromPath("certutil.exe");
-            MakeAppxExePath = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Windows Kits\\10\\bin\\x64\\MakeAppx.exe");
+            CustomSignToolPath = "tools\\CustomSignTool\\bin\\Release32\\CustomSignTool.exe";
             BuildNightly = !string.Equals(Environment.ExpandEnvironmentVariables("%APPVEYOR_BUILD_API%"), "%APPVEYOR_BUILD_API%", StringComparison.OrdinalIgnoreCase);
 
             try
@@ -1224,7 +1221,8 @@ namespace CustomBuildTool
 
             Program.PrintColorMessage("Building processhacker-build-package.appxbundle...", ConsoleColor.Cyan);
 
-            string signToolExePath = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Windows Kits\\10\\bin\\x64\\SignTool.exe");
+            string makeAppxExePath = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Windows Kits\\10\\bin\\" + SdkVersion + "\\x64\\MakeAppx.exe");
+            string signToolExePath = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Windows Kits\\10\\bin\\" + SdkVersion + "\\x64\\SignTool.exe");
 
             try
             {
@@ -1267,7 +1265,7 @@ namespace CustomBuildTool
 
                     // create the package
                     Win32.ShellExecute(
-                        MakeAppxExePath,
+                        makeAppxExePath,
                         "pack /o /f " + BuildOutputFolder + "\\package32.map /p " +
                         BuildOutputFolder + "\\processhacker-build-package-x32.appx"
                         );
@@ -1316,7 +1314,7 @@ namespace CustomBuildTool
 
                     // create the package
                     Win32.ShellExecute(
-                        MakeAppxExePath,
+                        makeAppxExePath,
                         "pack /o /f " + BuildOutputFolder + "\\package64.map /p " +
                         BuildOutputFolder + "\\processhacker-build-package-x64.appx"
                         );
@@ -1344,7 +1342,7 @@ namespace CustomBuildTool
 
                     // create the appx bundle package
                     Win32.ShellExecute(
-                        MakeAppxExePath,
+                        makeAppxExePath,
                         "bundle /f " + BuildOutputFolder + "\\bundle.map /p " +
                         BuildOutputFolder + "\\processhacker-build-package.appxbundle"
                         );
@@ -1382,8 +1380,9 @@ namespace CustomBuildTool
 
             Program.PrintColorMessage("Building Appx Signature...", ConsoleColor.Cyan);
 
-            var makeCertExePath = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Windows Kits\\10\\bin\\x64\\MakeCert.exe");
-            var pvk2PfxExePath = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Windows Kits\\10\\bin\\x64\\Pvk2Pfx.exe");
+            string makeCertExePath = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Windows Kits\\10\\bin\\" + SdkVersion + "\\x64\\MakeCert.exe");
+            string pvk2PfxExePath = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Windows Kits\\10\\bin\\" + SdkVersion + "\\x64\\Pvk2Pfx.exe");
+            string certUtilExePath = VisualStudio.GetFilePathFromPath("certutil.exe");
 
             try
             {
@@ -1421,7 +1420,7 @@ namespace CustomBuildTool
                     return false;
                 }
 
-                output = Win32.ShellExecute(CertUtilExePath,
+                output = Win32.ShellExecute(certUtilExePath,
                     "-addStore TrustedPeople " + BuildOutputFolder + "\\processhacker-appx.cer"
                     );
 
