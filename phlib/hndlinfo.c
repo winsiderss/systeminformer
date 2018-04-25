@@ -3,6 +3,7 @@
  *   handle information
  *
  * Copyright (C) 2010-2015 wj32
+ * Copyright (C) 2017-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -177,9 +178,40 @@ NTSTATUS PhpGetObjectTypeName(
     NTSTATUS status = STATUS_SUCCESS;
     PPH_STRING typeName = NULL;
 
+    // dmex: Enumerate the available object types and pre-cache the object type name.
+    if (WindowsVersion >= WINDOWS_8_1)
+    {
+        static PH_INITONCE initOnce = PH_INITONCE_INIT;
+
+        if (PhBeginInitOnce(&initOnce))
+        {
+            POBJECT_TYPES_INFORMATION objectTypes;
+            POBJECT_TYPE_INFORMATION objectType;
+
+            if (NT_SUCCESS(PhEnumObjectTypes(&objectTypes)))
+            {
+                objectType = PH_FIRST_OBJECT_TYPE(objectTypes);
+
+                for (ULONG i = 0; i < objectTypes->NumberOfTypes; i++)
+                {
+                    PhMoveReference(
+                        &PhObjectTypeNames[objectType->TypeIndex], 
+                        PhCreateStringFromUnicodeString(&objectType->TypeName)
+                        );
+
+                    objectType = PH_NEXT_OBJECT_TYPE(objectType);
+                }
+
+                PhFree(objectTypes);
+            }
+
+            PhEndInitOnce(&initOnce);
+        }
+    }
+
     // If the cache contains the object type name, use it. Otherwise, query the type name.
 
-    if (ObjectTypeNumber != -1 && ObjectTypeNumber < MAX_OBJECT_TYPE_NUMBER)
+    if (ObjectTypeNumber != ULONG_MAX && ObjectTypeNumber < MAX_OBJECT_TYPE_NUMBER)
         typeName = PhObjectTypeNames[ObjectTypeNumber];
 
     if (typeName)
@@ -251,7 +283,7 @@ NTSTATUS PhpGetObjectTypeName(
         // Create a copy of the type name.
         typeName = PhCreateStringFromUnicodeString(&buffer->TypeName);
 
-        if (ObjectTypeNumber != -1 && ObjectTypeNumber < MAX_OBJECT_TYPE_NUMBER)
+        if (ObjectTypeNumber != ULONG_MAX && ObjectTypeNumber < MAX_OBJECT_TYPE_NUMBER)
         {
             // Try to store the type name in the cache.
             oldTypeName = _InterlockedCompareExchangePointer(
@@ -260,8 +292,7 @@ NTSTATUS PhpGetObjectTypeName(
                 NULL
                 );
 
-            // Add a reference if we stored the type name
-            // successfully.
+            // Add a reference if we stored the type name successfully.
             if (!oldTypeName)
                 PhReferenceObject(typeName);
         }
@@ -1230,7 +1261,7 @@ NTSTATUS PhGetHandleInformationEx(
 
     if (Handle == NULL || Handle == NtCurrentProcess() || Handle == NtCurrentThread())
         return STATUS_INVALID_HANDLE;
-    if (ObjectTypeNumber != -1 && ObjectTypeNumber >= MAX_OBJECT_TYPE_NUMBER)
+    if (ObjectTypeNumber != ULONG_MAX && ObjectTypeNumber >= MAX_OBJECT_TYPE_NUMBER)
         return STATUS_INVALID_PARAMETER_3;
 
     // Duplicate the handle if we're not using KPH.
@@ -1419,7 +1450,7 @@ ULONG PhGetObjectTypeNumber(
 {
     POBJECT_TYPES_INFORMATION objectTypes;
     POBJECT_TYPE_INFORMATION objectType;
-    ULONG objectIndex = -1;
+    ULONG objectIndex = ULONG_MAX;
     ULONG i;
 
     if (NT_SUCCESS(PhEnumObjectTypes(&objectTypes)))

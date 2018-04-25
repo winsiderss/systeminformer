@@ -3,6 +3,7 @@
  *   handle properties
  *
  * Copyright (C) 2010-2013 wj32
+ * Copyright (C) 2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -83,9 +84,6 @@ VOID PhShowHandleProperties(
     PROPSHEETPAGE propSheetPage;
     HPROPSHEETPAGE pages[16];
     HANDLE_PROPERTIES_CONTEXT context;
-    PH_STD_OBJECT_SECURITY stdObjectSecurity;
-    PPH_ACCESS_ENTRY accessEntries;
-    ULONG numberOfAccessEntries;
 
     context.ProcessId = ProcessId;
     context.HandleItem = HandleItem;
@@ -111,9 +109,9 @@ VOID PhShowHandleProperties(
     pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
 
     // Object-specific page
-    if (!HandleItem->TypeName)
+    if (PhIsNullOrEmptyString(HandleItem->TypeName))
     {
-        // Dummy
+        NOTHING;
     }
     else if (PhEqualString2(HandleItem->TypeName, L"Event", TRUE))
     {
@@ -181,22 +179,29 @@ VOID PhShowHandleProperties(
             );
     }
 
-    // Security page
-    stdObjectSecurity.OpenObject = PhpDuplicateHandleFromProcess;
-    stdObjectSecurity.ObjectType = HandleItem->TypeName->Buffer;
-    stdObjectSecurity.Context = &context;
-
-    if (PhGetAccessEntries(HandleItem->TypeName->Buffer, &accessEntries, &numberOfAccessEntries))
+    if (!PhIsNullOrEmptyString(HandleItem->TypeName))
     {
-        pages[propSheetHeader.nPages++] = PhCreateSecurityPage(
-            PhGetStringOrEmpty(HandleItem->BestObjectName),
-            PhStdGetObjectSecurity,
-            PhStdSetObjectSecurity,
-            &stdObjectSecurity,
-            accessEntries,
-            numberOfAccessEntries
-            );
-        PhFree(accessEntries);
+        PH_STD_OBJECT_SECURITY stdObjectSecurity;
+        PPH_ACCESS_ENTRY accessEntries;
+        ULONG numberOfAccessEntries;
+
+        // Security page
+        stdObjectSecurity.OpenObject = PhpDuplicateHandleFromProcess;
+        stdObjectSecurity.ObjectType = PhGetStringOrEmpty(HandleItem->TypeName);
+        stdObjectSecurity.Context = &context;
+
+        if (PhGetAccessEntries(PhGetStringOrEmpty(HandleItem->TypeName), &accessEntries, &numberOfAccessEntries))
+        {
+            pages[propSheetHeader.nPages++] = PhCreateSecurityPage(
+                PhGetStringOrEmpty(HandleItem->BestObjectName),
+                PhStdGetObjectSecurity,
+                PhStdSetObjectSecurity,
+                &stdObjectSecurity,
+                accessEntries,
+                numberOfAccessEntries
+                );
+            PhFree(accessEntries);
+        }
     }
 
     if (PhPluginsEnabled)
@@ -257,12 +262,12 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
             // HACK
             PhCenterWindow(GetParent(hwndDlg), GetParent(GetParent(hwndDlg)));
 
-            SetDlgItemText(hwndDlg, IDC_NAME, PhGetString(context->HandleItem->BestObjectName));
-            SetDlgItemText(hwndDlg, IDC_TYPE, context->HandleItem->TypeName->Buffer);
+            SetDlgItemText(hwndDlg, IDC_NAME, PhGetStringOrEmpty(context->HandleItem->BestObjectName));
+            SetDlgItemText(hwndDlg, IDC_TYPE, PhGetStringOrEmpty(context->HandleItem->TypeName));
             SetDlgItemText(hwndDlg, IDC_ADDRESS, context->HandleItem->ObjectString);
 
             if (PhGetAccessEntries(
-                context->HandleItem->TypeName->Buffer,
+                PhGetStringOrEmpty(context->HandleItem->TypeName),
                 &accessEntries,
                 &numberOfAccessEntries
                 ))

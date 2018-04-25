@@ -3,7 +3,7 @@
  *   handle list
  *
  * Copyright (C) 2011-2013 wj32
- * Copyright (C) 2017 dmex
+ * Copyright (C) 2017-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -389,13 +389,13 @@ LONG PhpHandleTreeNewPostSortFunction(
 
 BEGIN_SORT_FUNCTION(Type)
 {
-    sortResult = PhCompareString(handleItem1->TypeName, handleItem2->TypeName, TRUE);
+    sortResult = PhCompareStringWithNullSortOrder(handleItem1->TypeName, handleItem2->TypeName, context->TreeNewSortOrder, TRUE);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Name)
 {
-    sortResult = PhCompareStringWithNull(handleItem1->BestObjectName, handleItem2->BestObjectName, TRUE);
+    sortResult = PhCompareStringWithNullSortOrder(handleItem1->BestObjectName, handleItem2->BestObjectName, context->TreeNewSortOrder, TRUE);
 }
 END_SORT_FUNCTION
 
@@ -434,7 +434,7 @@ BEGIN_SORT_FUNCTION(FileShareAccess)
     sortResult = uintcmp(handleItem1->FileFlags & (PH_HANDLE_FILE_SHARED_MASK), handleItem2->FileFlags & (PH_HANDLE_FILE_SHARED_MASK));
 
     // Make sure all file handles get grouped together regardless of share access.
-    if (sortResult == 0)
+    if (sortResult == 0 && !PhIsNullOrEmptyString(handleItem1->TypeName))
         sortResult = intcmp(PhEqualString2(handleItem1->TypeName, L"File", TRUE), PhEqualString2(handleItem2->TypeName, L"File", TRUE));
 }
 END_SORT_FUNCTION
@@ -523,7 +523,7 @@ BOOLEAN NTAPI PhpHandleTreeNewCallback(
             switch (getCellText->Id)
             {
             case PHHNTLC_TYPE:
-                getCellText->Text = handleItem->TypeName->sr;
+                getCellText->Text = PhGetStringRef(handleItem->TypeName);
                 break;
             case PHHNTLC_NAME:
                 getCellText->Text = PhGetStringRef(handleItem->BestObjectName);
@@ -559,7 +559,7 @@ BOOLEAN NTAPI PhpHandleTreeNewCallback(
                         PPH_ACCESS_ENTRY accessEntries;
                         ULONG numberOfAccessEntries;
 
-                        if (PhGetAccessEntries(handleItem->TypeName->Buffer, &accessEntries, &numberOfAccessEntries))
+                        if (PhGetAccessEntries(PhGetStringOrEmpty(handleItem->TypeName), &accessEntries, &numberOfAccessEntries))
                         {
                             node->GrantedAccessSymbolicText = PhGetAccessString(handleItem->GrantedAccess, accessEntries, numberOfAccessEntries);
                             PhFree(accessEntries);

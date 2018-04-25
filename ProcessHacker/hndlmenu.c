@@ -44,6 +44,9 @@ VOID PhInsertHandleObjectPropertiesEMenuItems(
     if (!PhFindEMenuItemEx(Menu, 0, NULL, InsertBeforeId, &parentItem, &indexInParent))
         return;
 
+    if (PhIsNullOrEmptyString(Info->TypeName))
+        return;
+
     if (PhEqualString2(Info->TypeName, L"File", TRUE) || PhEqualString2(Info->TypeName, L"DLL", TRUE) ||
         PhEqualString2(Info->TypeName, L"Mapped file", TRUE) || PhEqualString2(Info->TypeName, L"Mapped image", TRUE))
     {
@@ -114,6 +117,9 @@ VOID PhShowHandleObjectProperties1(
     _In_ PPH_HANDLE_ITEM_INFO Info
     )
 {
+    if (PhIsNullOrEmptyString(Info->TypeName))
+        return;
+
     if (PhEqualString2(Info->TypeName, L"File", TRUE) || PhEqualString2(Info->TypeName, L"DLL", TRUE) ||
         PhEqualString2(Info->TypeName, L"Mapped file", TRUE) || PhEqualString2(Info->TypeName, L"Mapped image", TRUE))
     {
@@ -383,6 +389,9 @@ VOID PhShowHandleObjectProperties2(
     _In_ PPH_HANDLE_ITEM_INFO Info
     )
 {
+    if (PhIsNullOrEmptyString(Info->TypeName))
+        return;
+
     if (PhEqualString2(Info->TypeName, L"File", TRUE) || PhEqualString2(Info->TypeName, L"DLL", TRUE) ||
         PhEqualString2(Info->TypeName, L"Mapped file", TRUE) || PhEqualString2(Info->TypeName, L"Mapped image", TRUE))
     {
