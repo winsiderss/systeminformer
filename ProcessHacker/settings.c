@@ -225,7 +225,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"ColorUnknown", L"ff8080"); // Light Red
 
     // Experimental features
-    PhpAddIntegerSetting(L"EnableExperimentalWindowStyle", L"1");
+    PhpAddIntegerSetting(L"EnableExperimentalWindowStyle", L"0");
 }
 
 VOID PhUpdateCachedSettings(
