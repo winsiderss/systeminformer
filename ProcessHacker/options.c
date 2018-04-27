@@ -976,7 +976,7 @@ static VOID PhpAdvancedPageLoad(
 
     listViewHandle = GetDlgItem(hwndDlg, IDC_SETTINGS);
 
-    SetDlgItemInt(hwndDlg, IDC_SAMPLECOUNT, PhGetIntegerSetting(L"SampleCount"), FALSE);
+    PhSetDialogItemValue(hwndDlg, IDC_SAMPLECOUNT, PhGetIntegerSetting(L"SampleCount"), FALSE);
     SetDlgItemCheckForSetting(hwndDlg, IDC_SAMPLECOUNTAUTOMATIC, L"SampleCountAutomatic");
 
     if (PhGetIntegerSetting(L"SampleCountAutomatic"))
@@ -1040,7 +1040,7 @@ static VOID PhpAdvancedPageSave(
     ULONG sampleCount;
 
     listViewHandle = GetDlgItem(hwndDlg, IDC_SETTINGS);
-    sampleCount = GetDlgItemInt(hwndDlg, IDC_SAMPLECOUNT, NULL, FALSE);
+    sampleCount = PhGetDialogItemValue(hwndDlg, IDC_SAMPLECOUNT);
 
     SetSettingForDlgItemCheckRestartRequired(hwndDlg, IDC_SAMPLECOUNTAUTOMATIC, L"SampleCountAutomatic");
 
@@ -1054,7 +1054,7 @@ static VOID PhpAdvancedPageSave(
     PhSetStringSetting2(L"SearchEngine", &PhaGetDlgItemText(hwndDlg, IDC_SEARCHENGINE)->sr);
     PhSetStringSetting2(L"ProgramInspectExecutables", &PhaGetDlgItemText(hwndDlg, IDC_PEVIEWER)->sr);
     PhSetIntegerSetting(L"MaxSizeUnit", PhMaxSizeUnit = ComboBox_GetCurSel(GetDlgItem(hwndDlg, IDC_MAXSIZEUNIT)));
-    PhSetIntegerSetting(L"IconProcesses", GetDlgItemInt(hwndDlg, IDC_ICONPROCESSES, NULL, FALSE));
+    PhSetIntegerSetting(L"IconProcesses", PhGetDialogItemValue(hwndDlg, IDC_ICONPROCESSES));
 
     if (!PhEqualString(PhaGetDlgItemText(hwndDlg, IDC_DBGHELPSEARCHPATH), PhaGetStringSetting(L"DbgHelpSearchPath"), TRUE))
     {
@@ -1152,10 +1152,10 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
             else
                 ComboBox_SetCurSel(comboBoxHandle, ARRAYSIZE(PhSizeUnitNames) - 1);
 
-            SetDlgItemText(hwndDlg, IDC_SEARCHENGINE, PhaGetStringSetting(L"SearchEngine")->Buffer);
-            SetDlgItemText(hwndDlg, IDC_PEVIEWER, PhaGetStringSetting(L"ProgramInspectExecutables")->Buffer);
-            SetDlgItemInt(hwndDlg, IDC_ICONPROCESSES, PhGetIntegerSetting(L"IconProcesses"), FALSE);
-            SetDlgItemText(hwndDlg, IDC_DBGHELPSEARCHPATH, PhaGetStringSetting(L"DbgHelpSearchPath")->Buffer);
+            PhSetDialogItemText(hwndDlg, IDC_SEARCHENGINE, PhaGetStringSetting(L"SearchEngine")->Buffer);
+            PhSetDialogItemText(hwndDlg, IDC_PEVIEWER, PhaGetStringSetting(L"ProgramInspectExecutables")->Buffer);
+            PhSetDialogItemValue(hwndDlg, IDC_ICONPROCESSES, PhGetIntegerSetting(L"IconProcesses"), FALSE);
+            PhSetDialogItemText(hwndDlg, IDC_DBGHELPSEARCHPATH, PhaGetStringSetting(L"DbgHelpSearchPath")->Buffer);
 
             ReadCurrentUserRun();
 
@@ -1469,12 +1469,12 @@ static INT_PTR CALLBACK PhpOptionsAdvancedEditDlgProc(
             PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDCANCEL), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
-            SetDlgItemText(hwndDlg, IDC_NAME, setting->Name.Buffer);
-            SetDlgItemText(hwndDlg, IDC_VALUE, PH_AUTO_T(PH_STRING, PhSettingToString(setting->Type, setting))->Buffer);
+            PhSetDialogItemText(hwndDlg, IDC_NAME, setting->Name.Buffer);
+            PhSetDialogItemText(hwndDlg, IDC_VALUE, PH_AUTO_T(PH_STRING, PhSettingToString(setting->Type, setting))->Buffer);
 
             EnableWindow(GetDlgItem(hwndDlg, IDC_NAME), FALSE);
 
-            SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)GetDlgItem(hwndDlg, IDCANCEL), TRUE);
+            PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDCANCEL));
         }
         break;
     case WM_DESTROY:
@@ -1693,7 +1693,7 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
     case WM_INITDIALOG:
         {
             // Highlighting Duration
-            SetDlgItemInt(hwndDlg, IDC_HIGHLIGHTINGDURATION, PhCsHighlightingDuration, FALSE);
+            PhSetDialogItemValue(hwndDlg, IDC_HIGHLIGHTINGDURATION, PhCsHighlightingDuration, FALSE);
 
             // New Objects
             ColorBox_SetColor(GetDlgItem(hwndDlg, IDC_NEWOBJECTS), PhCsColorNew);
@@ -1728,7 +1728,7 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
         break;
     case WM_DESTROY:
         {
-            PH_SET_INTEGER_CACHED_SETTING(HighlightingDuration, GetDlgItemInt(hwndDlg, IDC_HIGHLIGHTINGDURATION, NULL, FALSE));
+            PH_SET_INTEGER_CACHED_SETTING(HighlightingDuration, PhGetDialogItemValue(hwndDlg, IDC_HIGHLIGHTINGDURATION));
             PH_SET_INTEGER_CACHED_SETTING(ColorNew, ColorBox_GetColor(GetDlgItem(hwndDlg, IDC_NEWOBJECTS)));
             PH_SET_INTEGER_CACHED_SETTING(ColorRemoved, ColorBox_GetColor(GetDlgItem(hwndDlg, IDC_REMOVEDOBJECTS)));
 

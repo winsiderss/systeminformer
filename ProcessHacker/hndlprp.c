@@ -262,9 +262,9 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
             // HACK
             PhCenterWindow(GetParent(hwndDlg), GetParent(GetParent(hwndDlg)));
 
-            SetDlgItemText(hwndDlg, IDC_NAME, PhGetStringOrEmpty(context->HandleItem->BestObjectName));
-            SetDlgItemText(hwndDlg, IDC_TYPE, PhGetStringOrEmpty(context->HandleItem->TypeName));
-            SetDlgItemText(hwndDlg, IDC_ADDRESS, context->HandleItem->ObjectString);
+            PhSetDialogItemText(hwndDlg, IDC_NAME, PhGetStringOrEmpty(context->HandleItem->BestObjectName));
+            PhSetDialogItemText(hwndDlg, IDC_TYPE, PhGetStringOrEmpty(context->HandleItem->TypeName));
+            PhSetDialogItemText(hwndDlg, IDC_ADDRESS, context->HandleItem->ObjectString);
 
             if (PhGetAccessEntries(
                 PhGetStringOrEmpty(context->HandleItem->TypeName),
@@ -288,18 +288,18 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
                         context->HandleItem->GrantedAccessString,
                         accessString->Buffer
                         );
-                    SetDlgItemText(hwndDlg, IDC_GRANTED_ACCESS, grantedAccessString->Buffer);
+                    PhSetDialogItemText(hwndDlg, IDC_GRANTED_ACCESS, grantedAccessString->Buffer);
                 }
                 else
                 {
-                    SetDlgItemText(hwndDlg, IDC_GRANTED_ACCESS, context->HandleItem->GrantedAccessString);
+                    PhSetDialogItemText(hwndDlg, IDC_GRANTED_ACCESS, context->HandleItem->GrantedAccessString);
                 }
 
                 PhFree(accessEntries);
             }
             else
             {
-                SetDlgItemText(hwndDlg, IDC_GRANTED_ACCESS, context->HandleItem->GrantedAccessString);
+                PhSetDialogItemText(hwndDlg, IDC_GRANTED_ACCESS, context->HandleItem->GrantedAccessString);
             }
 
             if (NT_SUCCESS(PhOpenProcess(
@@ -318,10 +318,10 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
                     NULL
                     )))
                 {
-                    SetDlgItemInt(hwndDlg, IDC_REFERENCES, basicInfo.PointerCount, FALSE);
-                    SetDlgItemInt(hwndDlg, IDC_HANDLES, basicInfo.HandleCount, FALSE);
-                    SetDlgItemInt(hwndDlg, IDC_PAGED, basicInfo.PagedPoolCharge, FALSE);
-                    SetDlgItemInt(hwndDlg, IDC_NONPAGED, basicInfo.NonPagedPoolCharge, FALSE);
+                    PhSetDialogItemValue(hwndDlg, IDC_REFERENCES, basicInfo.PointerCount, FALSE);
+                    PhSetDialogItemValue(hwndDlg, IDC_HANDLES, basicInfo.HandleCount, FALSE);
+                    PhSetDialogItemValue(hwndDlg, IDC_PAGED, basicInfo.PagedPoolCharge, FALSE);
+                    PhSetDialogItemValue(hwndDlg, IDC_NONPAGED, basicInfo.NonPagedPoolCharge, FALSE);
 
                     haveBasicInfo = TRUE;
                 }
@@ -331,10 +331,10 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
 
             if (!haveBasicInfo)
             {
-                SetDlgItemText(hwndDlg, IDC_REFERENCES, L"Unknown");
-                SetDlgItemText(hwndDlg, IDC_HANDLES, L"Unknown");
-                SetDlgItemText(hwndDlg, IDC_PAGED, L"Unknown");
-                SetDlgItemText(hwndDlg, IDC_NONPAGED, L"Unknown");
+                PhSetDialogItemText(hwndDlg, IDC_REFERENCES, L"Unknown");
+                PhSetDialogItemText(hwndDlg, IDC_HANDLES, L"Unknown");
+                PhSetDialogItemText(hwndDlg, IDC_PAGED, L"Unknown");
+                PhSetDialogItemText(hwndDlg, IDC_NONPAGED, L"Unknown");
             }
         }
         break;

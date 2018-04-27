@@ -410,22 +410,22 @@ INT_PTR CALLBACK NetworkPingWndProc(
                 pingAvgValue = maxGraphHeight / context->PingHistory.Count;
             }
 
-            SetDlgItemText(hwndDlg, IDC_ICMP_AVG, PhaFormatString(
+            PhSetDialogItemText(hwndDlg, IDC_ICMP_AVG, PhaFormatString(
                 L"Average: %lums", pingAvgValue)->Buffer);
-            SetDlgItemText(hwndDlg, IDC_ICMP_MIN, PhaFormatString(
+            PhSetDialogItemText(hwndDlg, IDC_ICMP_MIN, PhaFormatString(
                 L"Minimum: %lums", context->PingMinMs)->Buffer);
-            SetDlgItemText(hwndDlg, IDC_ICMP_MAX, PhaFormatString(
+            PhSetDialogItemText(hwndDlg, IDC_ICMP_MAX, PhaFormatString(
                 L"Maximum: %lums", context->PingMaxMs)->Buffer);
 
-            SetDlgItemText(hwndDlg, IDC_PINGS_SENT, PhaFormatString(
+            PhSetDialogItemText(hwndDlg, IDC_PINGS_SENT, PhaFormatString(
                 L"Pings sent: %lu", context->PingSentCount)->Buffer);
-            SetDlgItemText(hwndDlg, IDC_PINGS_LOST, PhaFormatString(
+            PhSetDialogItemText(hwndDlg, IDC_PINGS_LOST, PhaFormatString(
                 L"Pings lost: %lu (%.0f%%)", context->PingLossCount,
                 ((FLOAT)context->PingLossCount / context->PingSentCount * 100))->Buffer);
 
-            //SetDlgItemText(hwndDlg, IDC_BAD_HASH, PhaFormatString(
+            //PhSetDialogItemText(hwndDlg, IDC_BAD_HASH, PhaFormatString(
             //    L"Bad hashes: %lu", context->HashFailCount)->Buffer);
-            SetDlgItemText(hwndDlg, IDC_ANON_ADDR, PhaFormatString(
+            PhSetDialogItemText(hwndDlg, IDC_ANON_ADDR, PhaFormatString(
                 L"Anon replies: %lu", context->UnknownAddrCount)->Buffer);
         }
         break;

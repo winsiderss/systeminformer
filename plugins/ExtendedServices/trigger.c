@@ -1115,7 +1115,7 @@ VOID EspFixServiceTriggerControls(
     if (PhEqualString2(selectedSubTypeString, L"Custom", FALSE))
     {
         EnableWindow(GetDlgItem(hwndDlg, IDC_SUBTYPECUSTOM), TRUE);
-        SetDlgItemText(hwndDlg, IDC_SUBTYPECUSTOM, Context->LastCustomSubType->Buffer);
+        PhSetDialogItemText(hwndDlg, IDC_SUBTYPECUSTOM, Context->LastCustomSubType->Buffer);
     }
     else
     {
@@ -1123,7 +1123,7 @@ VOID EspFixServiceTriggerControls(
         {
             EnableWindow(GetDlgItem(hwndDlg, IDC_SUBTYPECUSTOM), FALSE);
             PhMoveReference(&Context->LastCustomSubType, PhGetWindowText(GetDlgItem(hwndDlg, IDC_SUBTYPECUSTOM)));
-            SetDlgItemText(hwndDlg, IDC_SUBTYPECUSTOM, L"");
+            PhSetDialogItemText(hwndDlg, IDC_SUBTYPECUSTOM, L"");
         }
     }
 
@@ -1695,8 +1695,8 @@ INT_PTR CALLBACK ValueDlgProc(
     {
     case WM_INITDIALOG:
         {
-            SetDlgItemText(hwndDlg, IDC_VALUES, context->EditingValue->Buffer);
-            SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)GetDlgItem(hwndDlg, IDC_VALUES), TRUE);
+            PhSetDialogItemText(hwndDlg, IDC_VALUES, context->EditingValue->Buffer);
+            PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDC_VALUES));
             Edit_SetSel(GetDlgItem(hwndDlg, IDC_VALUES), 0, -1);
         }
         break;

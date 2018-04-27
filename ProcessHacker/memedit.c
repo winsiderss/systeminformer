@@ -344,7 +344,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
         break;
     case WM_SHOWWINDOW:
         {
-            SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)context->HexEditHandle, TRUE);
+            PhSetDialogFocus(hwndDlg, context->HexEditHandle);
         }
         break;
     case WM_COMMAND:
@@ -439,7 +439,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                                 continue;
                             }
 
-                            SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)context->HexEditHandle, TRUE);
+                            PhSetDialogFocus(hwndDlg, context->HexEditHandle);
                             HexEdit_SetSel(context->HexEditHandle, (LONG)offset, (LONG)offset);
                             break;
                         }
@@ -524,7 +524,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                         {
                             PhSetIntegerSetting(L"MemEditBytesPerRow", (ULONG)bytesPerRow64);
                             HexEdit_SetBytesPerRow(context->HexEditHandle, (ULONG)bytesPerRow64);
-                            SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)context->HexEditHandle, TRUE);
+                            PhSetDialogFocus(hwndDlg, context->HexEditHandle);
                         }
                     }
                 }

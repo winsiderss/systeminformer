@@ -701,7 +701,7 @@ INT_PTR HandleCommonMessages(
                             PFILTER_ENTRY entry;
 
                             entry = FilterList->Items[i];
-                            SetDlgItemText(hwndDlg, IDC_TEXT, entry->Filter->Buffer);
+                            PhSetDialogItemText(hwndDlg, IDC_TEXT, entry->Filter->Buffer);
                             Button_SetCheck(GetDlgItem(hwndDlg, IDC_INCLUDE),
                                 entry->Type == FilterInclude ? BST_CHECKED : BST_UNCHECKED);
                             Button_SetCheck(GetDlgItem(hwndDlg, IDC_EXCLUDE),
@@ -768,7 +768,7 @@ INT_PTR HandleCommonMessages(
                         ListBox_SetCurSel(ListBox, i);
                     }
 
-                    SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)GetDlgItem(hwndDlg, IDC_TEXT), TRUE);
+                    PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDC_TEXT));
                     Edit_SetSel(GetDlgItem(hwndDlg, IDC_TEXT), 0, -1);
 
                     FixControlStates(hwndDlg, ListBox);
@@ -998,7 +998,7 @@ INT_PTR CALLBACK LoggingDlgProc(
     {
     case WM_INITDIALOG:
         {
-            SetDlgItemText(hwndDlg, IDC_LOGFILENAME, PhaGetStringSetting(SETTING_NAME_LOG_FILENAME)->Buffer);
+            PhSetDialogItemText(hwndDlg, IDC_LOGFILENAME, PhaGetStringSetting(SETTING_NAME_LOG_FILENAME)->Buffer);
 
             PhInitializeLayoutManager(&LayoutManager, hwndDlg);
             PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_INFO), NULL, PH_ANCHOR_TOP | PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT);
@@ -1041,7 +1041,7 @@ INT_PTR CALLBACK LoggingDlgProc(
                     if (PhShowFileDialog(hwndDlg, fileDialog))
                     {
                         fileName = PH_AUTO(PhGetFileDialogFileName(fileDialog));
-                        SetDlgItemText(hwndDlg, IDC_LOGFILENAME, fileName->Buffer);
+                        PhSetDialogItemText(hwndDlg, IDC_LOGFILENAME, fileName->Buffer);
                     }
 
                     PhFreeFileDialog(fileDialog);
@@ -1068,7 +1068,7 @@ INT_PTR CALLBACK GrowlDlgProc(
     {
     case WM_INITDIALOG:
         {
-            SetDlgItemText(hwndDlg, IDC_LICENSE, PH_AUTO_T(PH_STRING, PhConvertUtf8ToUtf16(gntp_send_license_text))->Buffer);
+            PhSetDialogItemText(hwndDlg, IDC_LICENSE, PH_AUTO_T(PH_STRING, PhConvertUtf8ToUtf16(gntp_send_license_text))->Buffer);
 
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLEGROWL), PhGetIntegerSetting(SETTING_NAME_ENABLE_GROWL) ? BST_CHECKED : BST_UNCHECKED);
 

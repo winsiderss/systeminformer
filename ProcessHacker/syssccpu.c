@@ -284,7 +284,7 @@ INT_PTR CALLBACK PhSipCpuDialogProc(
             SendMessage(GetDlgItem(hwndDlg, IDC_CPUNAME), WM_SETFONT, (WPARAM)CpuSection->Parameters->MediumFont, FALSE);
 
             PhSipGetCpuBrandString(brandString);
-            SetDlgItemText(hwndDlg, IDC_CPUNAME, brandString);
+            PhSetDialogItemText(hwndDlg, IDC_CPUNAME, brandString);
 
             CpuPanel = CreateDialog(PhInstanceHandle, MAKEINTRESOURCE(IDD_SYSINFO_CPUPANEL), hwndDlg, PhSipCpuPanelDialogProc);
             ShowWindow(CpuPanel, SW_SHOW);
@@ -684,7 +684,7 @@ VOID PhSipUpdateCpuPanel(
     SYSTEM_TIMEOFDAY_INFORMATION timeOfDayInfo;
     WCHAR uptimeString[PH_TIMESPAN_STR_LEN_1] = L"Unknown";
 
-    SetDlgItemText(hwnd, IDC_UTILIZATION, PhaFormatString(L"%.2f%%", (PhCpuUserUsage + PhCpuKernelUsage) * 100)->Buffer);
+    PhSetDialogItemText(hwnd, IDC_UTILIZATION, PhaFormatString(L"%.2f%%", (PhCpuUserUsage + PhCpuKernelUsage) * 100)->Buffer);
 
     cpuGhz = 0;
     distributionSucceeded = FALSE;
@@ -701,11 +701,11 @@ VOID PhSipUpdateCpuPanel(
     if (!distributionSucceeded)
         cpuGhz = (DOUBLE)PowerInformation[0].CurrentMhz / 1000;
 
-    SetDlgItemText(hwnd, IDC_SPEED, PhaFormatString(L"%.2f / %.2f GHz", cpuGhz, (DOUBLE)PowerInformation[0].MaxMhz / 1000)->Buffer);
+    PhSetDialogItemText(hwnd, IDC_SPEED, PhaFormatString(L"%.2f / %.2f GHz", cpuGhz, (DOUBLE)PowerInformation[0].MaxMhz / 1000)->Buffer);
 
-    SetDlgItemText(hwnd, IDC_ZPROCESSES_V, PhaFormatUInt64(PhTotalProcesses, TRUE)->Buffer);
-    SetDlgItemText(hwnd, IDC_ZTHREADS_V, PhaFormatUInt64(PhTotalThreads, TRUE)->Buffer);
-    SetDlgItemText(hwnd, IDC_ZHANDLES_V, PhaFormatUInt64(PhTotalHandles, TRUE)->Buffer);
+    PhSetDialogItemText(hwnd, IDC_ZPROCESSES_V, PhaFormatUInt64(PhTotalProcesses, TRUE)->Buffer);
+    PhSetDialogItemText(hwnd, IDC_ZTHREADS_V, PhaFormatUInt64(PhTotalThreads, TRUE)->Buffer);
+    PhSetDialogItemText(hwnd, IDC_ZHANDLES_V, PhaFormatUInt64(PhTotalHandles, TRUE)->Buffer);
 
     if (NT_SUCCESS(NtQuerySystemInformation(
         SystemTimeOfDayInformation,
@@ -717,27 +717,27 @@ VOID PhSipUpdateCpuPanel(
         PhPrintTimeSpan(uptimeString, timeOfDayInfo.CurrentTime.QuadPart - timeOfDayInfo.BootTime.QuadPart, PH_TIMESPAN_DHMS);
     }
 
-    SetDlgItemText(hwnd, IDC_ZUPTIME_V, uptimeString);
+    PhSetDialogItemText(hwnd, IDC_ZUPTIME_V, uptimeString);
 
     if (CpuTicked > 1)
-        SetDlgItemText(hwnd, IDC_ZCONTEXTSWITCHESDELTA_V, PhaFormatUInt64(ContextSwitchesDelta.Delta, TRUE)->Buffer);
+        PhSetDialogItemText(hwnd, IDC_ZCONTEXTSWITCHESDELTA_V, PhaFormatUInt64(ContextSwitchesDelta.Delta, TRUE)->Buffer);
     else
-        SetDlgItemText(hwnd, IDC_ZCONTEXTSWITCHESDELTA_V, L"-");
+        PhSetDialogItemText(hwnd, IDC_ZCONTEXTSWITCHESDELTA_V, L"-");
 
     if (CpuTicked > 1)
-        SetDlgItemText(hwnd, IDC_ZINTERRUPTSDELTA_V, PhaFormatUInt64(InterruptsDelta.Delta, TRUE)->Buffer);
+        PhSetDialogItemText(hwnd, IDC_ZINTERRUPTSDELTA_V, PhaFormatUInt64(InterruptsDelta.Delta, TRUE)->Buffer);
     else
-        SetDlgItemText(hwnd, IDC_ZINTERRUPTSDELTA_V, L"-");
+        PhSetDialogItemText(hwnd, IDC_ZINTERRUPTSDELTA_V, L"-");
 
     if (CpuTicked > 1)
-        SetDlgItemText(hwnd, IDC_ZDPCSDELTA_V, PhaFormatUInt64(DpcsDelta.Delta, TRUE)->Buffer);
+        PhSetDialogItemText(hwnd, IDC_ZDPCSDELTA_V, PhaFormatUInt64(DpcsDelta.Delta, TRUE)->Buffer);
     else
-        SetDlgItemText(hwnd, IDC_ZDPCSDELTA_V, L"-");
+        PhSetDialogItemText(hwnd, IDC_ZDPCSDELTA_V, L"-");
 
     if (CpuTicked > 1)
-        SetDlgItemText(hwnd, IDC_ZSYSTEMCALLSDELTA_V, PhaFormatUInt64(SystemCallsDelta.Delta, TRUE)->Buffer);
+        PhSetDialogItemText(hwnd, IDC_ZSYSTEMCALLSDELTA_V, PhaFormatUInt64(SystemCallsDelta.Delta, TRUE)->Buffer);
     else
-        SetDlgItemText(hwnd, IDC_ZSYSTEMCALLSDELTA_V, L"-");
+        PhSetDialogItemText(hwnd, IDC_ZSYSTEMCALLSDELTA_V, L"-");
 }
 
 PPH_PROCESS_RECORD PhSipReferenceMaxCpuRecord(

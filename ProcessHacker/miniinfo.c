@@ -936,12 +936,12 @@ VOID PhMipUpdateSectionText(
 {
     if (Section->Text)
     {
-        SetDlgItemText(PhMipWindow, IDC_SECTION,
+        PhSetDialogItemText(PhMipWindow, IDC_SECTION,
             PH_AUTO_T(PH_STRING, PhConcatStringRef2(&DownArrowPrefix, &Section->Text->sr))->Buffer);
     }
     else
     {
-        SetDlgItemText(PhMipWindow, IDC_SECTION,
+        PhSetDialogItemText(PhMipWindow, IDC_SECTION,
             PH_AUTO_T(PH_STRING, PhConcatStringRef2(&DownArrowPrefix, &Section->Name))->Buffer);
     }
 }

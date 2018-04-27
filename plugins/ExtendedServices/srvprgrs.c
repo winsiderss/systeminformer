@@ -65,7 +65,7 @@ INT_PTR CALLBACK EspRestartServiceDlgProc(
             PhSetWindowStyle(GetDlgItem(hwndDlg, IDC_PROGRESS), PBS_MARQUEE, PBS_MARQUEE);
             SendMessage(GetDlgItem(hwndDlg, IDC_PROGRESS), PBM_SETMARQUEE, TRUE, 75);
 
-            SetDlgItemText(hwndDlg, IDC_MESSAGE, PhaFormatString(L"Attempting to stop %s...", context->ServiceItem->Name->Buffer)->Buffer);
+            PhSetDialogItemText(hwndDlg, IDC_MESSAGE, PhaFormatString(L"Attempting to stop %s...", context->ServiceItem->Name->Buffer)->Buffer);
 
             if (PhUiStopService(hwndDlg, context->ServiceItem))
             {
@@ -101,7 +101,7 @@ INT_PTR CALLBACK EspRestartServiceDlgProc(
                     {
                         // The service is stopped, so start the service now.
 
-                        SetDlgItemText(hwndDlg, IDC_MESSAGE,
+                        PhSetDialogItemText(hwndDlg, IDC_MESSAGE,
                             PhaFormatString(L"Attempting to start %s...", context->ServiceItem->Name->Buffer)->Buffer);
                         context->DisableTimer = TRUE;
 

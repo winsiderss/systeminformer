@@ -109,7 +109,7 @@ VOID PhpUpdateProcessMitigationPolicies(
     HANDLE processHandle;
     PH_PROCESS_MITIGATION_POLICY_ALL_INFORMATION information;
 
-    SetDlgItemText(hwndDlg, IDC_MITIGATION, L"N/A");
+    PhSetDialogItemText(hwndDlg, IDC_MITIGATION, L"N/A");
 
     if (NT_SUCCESS(status = PhOpenProcess(
         &processHandle,
@@ -143,11 +143,11 @@ VOID PhpUpdateProcessMitigationPolicies(
             if (sb.String->Length != 0)
             {
                 PhRemoveEndStringBuilder(&sb, 2);
-                SetDlgItemText(hwndDlg, IDC_MITIGATION, sb.String->Buffer);
+                PhSetDialogItemText(hwndDlg, IDC_MITIGATION, sb.String->Buffer);
             }
             else
             {
-                SetDlgItemText(hwndDlg, IDC_MITIGATION, L"None");
+                PhSetDialogItemText(hwndDlg, IDC_MITIGATION, L"None");
             }
 
             PhDeleteStringBuilder(&sb);
@@ -205,15 +205,15 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             if (PH_IS_REAL_PROCESS_ID(processItem->ProcessId))
             {
-                SetDlgItemText(hwndDlg, IDC_NAME, PhpGetStringOrNa(processItem->VersionInfo.FileDescription));
+                PhSetDialogItemText(hwndDlg, IDC_NAME, PhpGetStringOrNa(processItem->VersionInfo.FileDescription));
             }
             else
             {
-                SetDlgItemText(hwndDlg, IDC_NAME, processItem->ProcessName->Buffer);
+                PhSetDialogItemText(hwndDlg, IDC_NAME, processItem->ProcessName->Buffer);
             }
 
-            SetDlgItemText(hwndDlg, IDC_VERSION, PhpGetStringOrNa(processItem->VersionInfo.FileVersion));
-            SetDlgItemText(hwndDlg, IDC_FILENAME, PhpGetStringOrNa(processItem->FileName));
+            PhSetDialogItemText(hwndDlg, IDC_VERSION, PhpGetStringOrNa(processItem->VersionInfo.FileVersion));
+            PhSetDialogItemText(hwndDlg, IDC_FILENAME, PhpGetStringOrNa(processItem->FileName));
 
             if (!processItem->FileName)
                 EnableWindow(GetDlgItem(hwndDlg, IDC_OPENFILENAME), FALSE);
@@ -233,14 +233,14 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             {
                 if (processItem->VerifySignerName)
                 {
-                    SetDlgItemText(hwndDlg, IDC_COMPANYNAME_LINK,
+                    PhSetDialogItemText(hwndDlg, IDC_COMPANYNAME_LINK,
                         PhaFormatString(L"<a>(Verified) %s</a>", processItem->VerifySignerName->Buffer)->Buffer);
                     ShowWindow(GetDlgItem(hwndDlg, IDC_COMPANYNAME), SW_HIDE);
                     ShowWindow(GetDlgItem(hwndDlg, IDC_COMPANYNAME_LINK), SW_SHOW);
                 }
                 else
                 {
-                    SetDlgItemText(hwndDlg, IDC_COMPANYNAME,
+                    PhSetDialogItemText(hwndDlg, IDC_COMPANYNAME,
                         PhaConcatStrings2(
                         L"(Verified) ",
                         PhGetStringOrEmpty(processItem->VersionInfo.CompanyName)
@@ -249,7 +249,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             }
             else if (processItem->VerifyResult != VrUnknown)
             {
-                SetDlgItemText(hwndDlg, IDC_COMPANYNAME,
+                PhSetDialogItemText(hwndDlg, IDC_COMPANYNAME,
                     PhaConcatStrings2(
                     L"(UNVERIFIED) ",
                     PhGetStringOrEmpty(processItem->VersionInfo.CompanyName)
@@ -257,13 +257,13 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             }
             else
             {
-                SetDlgItemText(hwndDlg, IDC_COMPANYNAME,
+                PhSetDialogItemText(hwndDlg, IDC_COMPANYNAME,
                     PhpGetStringOrNa(processItem->VersionInfo.CompanyName));
             }
 
             // Command Line
 
-            SetDlgItemText(hwndDlg, IDC_CMDLINE, PhpGetStringOrNa(processItem->CommandLine));
+            PhSetDialogItemText(hwndDlg, IDC_CMDLINE, PhpGetStringOrNa(processItem->CommandLine));
 
             if (!processItem->CommandLine)
                 EnableWindow(GetDlgItem(hwndDlg, IDC_VIEWCOMMANDLINE), FALSE);
@@ -298,7 +298,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 processHandle = NULL;
             }
 
-            SetDlgItemText(hwndDlg, IDC_CURDIR, PhpGetStringOrNa(curDir));
+            PhSetDialogItemText(hwndDlg, IDC_CURDIR, PhpGetStringOrNa(curDir));
 
             // Started
 
@@ -317,12 +317,12 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 PhLargeIntegerToLocalSystemTime(&startTimeFields, &startTime);
                 startTimeString = PhaFormatDateTime(&startTimeFields);
 
-                SetDlgItemText(hwndDlg, IDC_STARTED,
+                PhSetDialogItemText(hwndDlg, IDC_STARTED,
                     PhaFormatString(L"%s ago (%s)", startTimeRelativeString->Buffer, startTimeString->Buffer)->Buffer);
             }
             else
             {
-                SetDlgItemText(hwndDlg, IDC_STARTED, L"N/A");
+                PhSetDialogItemText(hwndDlg, IDC_STARTED, L"N/A");
             }
 
             // Parent
@@ -332,14 +332,14 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 clientId.UniqueProcess = parentProcess->ProcessId;
                 clientId.UniqueThread = NULL;
 
-                SetDlgItemText(hwndDlg, IDC_PARENTPROCESS,
+                PhSetDialogItemText(hwndDlg, IDC_PARENTPROCESS,
                     PH_AUTO_T(PH_STRING, PhGetClientIdNameEx(&clientId, parentProcess->ProcessName))->Buffer);
 
                 PhDereferenceObject(parentProcess);
             }
             else
             {
-                SetDlgItemText(hwndDlg, IDC_PARENTPROCESS,
+                PhSetDialogItemText(hwndDlg, IDC_PARENTPROCESS,
                     PhaFormatString(L"Non-existent process (%u)", HandleToUlong(processItem->ParentProcessId))->Buffer);
                 EnableWindow(GetDlgItem(hwndDlg, IDC_VIEWPARENTPROCESS), FALSE);
             }
@@ -350,7 +350,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             // PEB address
 
-            SetDlgItemText(hwndDlg, IDC_PEBADDRESS, L"N/A");
+            PhSetDialogItemText(hwndDlg, IDC_PEBADDRESS, L"N/A");
 
             if (NT_SUCCESS(PhOpenProcess(
                 &processHandle,
@@ -363,14 +363,14 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 if (processItem->IsWow64)
                 {
                     PhGetProcessPeb32(processHandle, &peb32);
-                    SetDlgItemText(hwndDlg, IDC_PEBADDRESS,
+                    PhSetDialogItemText(hwndDlg, IDC_PEBADDRESS,
                         PhaFormatString(L"0x%Ix (32-bit: 0x%x)", basicInfo.PebBaseAddress, PtrToUlong(peb32))->Buffer);
                 }
                 else
                 {
 #endif
 
-                SetDlgItemText(hwndDlg, IDC_PEBADDRESS,
+                PhSetDialogItemText(hwndDlg, IDC_PEBADDRESS,
                     PhaFormatString(L"0x%Ix", basicInfo.PebBaseAddress)->Buffer);
 #ifdef _WIN64
                 }
@@ -381,19 +381,19 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             // Protection
 
-            SetDlgItemText(hwndDlg, IDC_PROTECTION, PH_AUTO_T(PH_STRING, PhGetProcessItemProtectionText(processItem))->Buffer);
+            PhSetDialogItemText(hwndDlg, IDC_PROTECTION, PH_AUTO_T(PH_STRING, PhGetProcessItemProtectionText(processItem))->Buffer);
 
 #ifdef _WIN64
             if (processItem->IsWow64Valid)
             {
                 if (processItem->IsWow64)
-                    SetDlgItemText(hwndDlg, IDC_PROCESSTYPETEXT, L"32-bit");
+                    PhSetDialogItemText(hwndDlg, IDC_PROCESSTYPETEXT, L"32-bit");
                 else
-                    SetDlgItemText(hwndDlg, IDC_PROCESSTYPETEXT, L"64-bit");
+                    PhSetDialogItemText(hwndDlg, IDC_PROCESSTYPETEXT, L"64-bit");
             }
             else
             {
-                SetDlgItemText(hwndDlg, IDC_PROCESSTYPETEXT, L"N/A");
+                PhSetDialogItemText(hwndDlg, IDC_PROCESSTYPETEXT, L"N/A");
             }
 
             ShowWindow(GetDlgItem(hwndDlg, IDC_PROCESSTYPELABEL), SW_SHOW);

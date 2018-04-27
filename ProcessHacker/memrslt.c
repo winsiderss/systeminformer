@@ -333,7 +333,7 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
 
             ListView_SetItemCount(lvHandle, context->Results->Count);
 
-            SetDlgItemText(hwndDlg, IDC_INTRO, PhaFormatString(L"%s results.",
+            PhSetDialogItemText(hwndDlg, IDC_INTRO, PhaFormatString(L"%s results.",
                 PhaFormatUInt64(context->Results->Count, TRUE)->Buffer)->Buffer);
 
             {
@@ -400,7 +400,7 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                     PhSetClipboardString(hwndDlg, &string->sr);
                     PhDereferenceObject(string);
 
-                    SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)lvHandle, TRUE);
+                    PhSetDialogFocus(hwndDlg, lvHandle);
                 }
                 break;
             case IDC_SAVE:
@@ -722,7 +722,7 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                                     PhSetClipboardString(hwndDlg, &string->sr);
                                     PhDereferenceObject(string);
 
-                                    SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)lvHandle, TRUE);
+                                    PhSetDialogFocus(hwndDlg, lvHandle);
                                 }
                                 break;
                             }

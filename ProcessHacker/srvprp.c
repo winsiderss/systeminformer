@@ -224,9 +224,8 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
             PhAddComboBoxStrings(GetDlgItem(hwndDlg, IDC_ERRORCONTROL), PhServiceErrorControlStrings,
                 sizeof(PhServiceErrorControlStrings) / sizeof(WCHAR *));
 
-            SetDlgItemText(hwndDlg, IDC_DESCRIPTION, serviceItem->DisplayName->Buffer);
-            PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_TYPE),
-                PhGetServiceTypeString(serviceItem->Type), FALSE);
+            PhSetDialogItemText(hwndDlg, IDC_DESCRIPTION, PhGetStringOrEmpty(serviceItem->DisplayName));
+            PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_TYPE), PhGetServiceTypeString(serviceItem->Type), FALSE);
 
             startType = serviceItem->StartType;
             errorControl = serviceItem->ErrorControl;
@@ -240,9 +239,9 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
 
                 if (config = PhGetServiceConfig(serviceHandle))
                 {
-                    SetDlgItemText(hwndDlg, IDC_GROUP, config->lpLoadOrderGroup);
-                    SetDlgItemText(hwndDlg, IDC_BINARYPATH, config->lpBinaryPathName);
-                    SetDlgItemText(hwndDlg, IDC_USERACCOUNT, config->lpServiceStartName);
+                    PhSetDialogItemText(hwndDlg, IDC_GROUP, config->lpLoadOrderGroup);
+                    PhSetDialogItemText(hwndDlg, IDC_BINARYPATH, config->lpBinaryPathName);
+                    PhSetDialogItemText(hwndDlg, IDC_USERACCOUNT, config->lpServiceStartName);
 
                     if (startType != config->dwStartType || errorControl != config->dwErrorControl)
                     {
@@ -256,7 +255,7 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
 
                 if (description = PhGetServiceDescription(serviceHandle))
                 {
-                    SetDlgItemText(hwndDlg, IDC_DESCRIPTION, description->Buffer);
+                    PhSetDialogItemText(hwndDlg, IDC_DESCRIPTION, description->Buffer);
                     PhDereferenceObject(description);
                 }
 
@@ -271,22 +270,22 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                 CloseServiceHandle(serviceHandle);
             }
 
-            PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_STARTTYPE),
+            PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_STARTTYPE), 
                 PhGetServiceStartTypeString(startType), FALSE);
-            PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_ERRORCONTROL),
+            PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_ERRORCONTROL), 
                 PhGetServiceErrorControlString(errorControl), FALSE);
 
-            SetDlgItemText(hwndDlg, IDC_PASSWORD, L"password");
+            PhSetDialogItemText(hwndDlg, IDC_PASSWORD, L"password");
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_PASSWORDCHECK), BST_UNCHECKED);
 
             if (NT_SUCCESS(PhGetServiceDllParameter(serviceItem->Type, &serviceItem->Name->sr, &serviceDll)))
             {
-                SetDlgItemText(hwndDlg, IDC_SERVICEDLL, serviceDll->Buffer);
+                PhSetDialogItemText(hwndDlg, IDC_SERVICEDLL, serviceDll->Buffer);
                 PhDereferenceObject(serviceDll);
             }
             else
             {
-                SetDlgItemText(hwndDlg, IDC_SERVICEDLL, L"N/A");
+                PhSetDialogItemText(hwndDlg, IDC_SERVICEDLL, L"N/A");
             }
 
             PhpRefreshControls(hwndDlg);
@@ -360,7 +359,7 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                     if (PhShowFileDialog(hwndDlg, fileDialog))
                     {
                         fileName = PhGetFileDialogFileName(fileDialog);
-                        SetDlgItemText(hwndDlg, IDC_BINARYPATH, fileName->Buffer);
+                        PhSetDialogItemText(hwndDlg, IDC_BINARYPATH, fileName->Buffer);
                         PhDereferenceObject(fileName);
                     }
 
@@ -454,11 +453,11 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                     newServiceStartType = PhGetServiceStartTypeInteger(newServiceStartTypeString->Buffer);
                     newServiceErrorControl = PhGetServiceErrorControlInteger(newServiceErrorControlString->Buffer);
 
-                    if (GetWindowTextLength(GetDlgItem(hwndDlg, IDC_GROUP)))
+                    if (PhGetWindowTextLength(GetDlgItem(hwndDlg, IDC_GROUP)))
                         newServiceGroup = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_GROUP)));
-                    if (GetWindowTextLength(GetDlgItem(hwndDlg, IDC_BINARYPATH))) 
+                    if (PhGetWindowTextLength(GetDlgItem(hwndDlg, IDC_BINARYPATH)))
                         newServiceBinaryPath = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_BINARYPATH)));
-                    if (GetWindowTextLength(GetDlgItem(hwndDlg, IDC_USERACCOUNT))) 
+                    if (PhGetWindowTextLength(GetDlgItem(hwndDlg, IDC_USERACCOUNT)))
                         newServiceUserAccount = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_USERACCOUNT)));
                     
                     if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_PASSWORDCHECK)) == BST_CHECKED)

@@ -107,11 +107,11 @@ INT_PTR CALLBACK PhpSessionPropertiesDlgProc(
 
             if (haveWinStationInfo)
             {
-                SetDlgItemText(hwndDlg, IDC_USERNAME,
+                PhSetDialogItemText(hwndDlg, IDC_USERNAME,
                     PhaFormatString(L"%s\\%s", winStationInfo.Domain, winStationInfo.UserName)->Buffer);
             }
 
-            SetDlgItemInt(hwndDlg, IDC_SESSIONID, sessionId, FALSE);
+            PhSetDialogItemValue(hwndDlg, IDC_SESSIONID, sessionId, FALSE);
 
             if (haveWinStationInfo)
             {
@@ -122,7 +122,7 @@ INT_PTR CALLBACK PhpSessionPropertiesDlgProc(
                     &stateString
                     ))
                 {
-                    SetDlgItemText(hwndDlg, IDC_STATE, stateString);
+                    PhSetDialogItemText(hwndDlg, IDC_STATE, stateString);
                 }
             }
 
@@ -133,7 +133,7 @@ INT_PTR CALLBACK PhpSessionPropertiesDlgProc(
 
                 PhLargeIntegerToLocalSystemTime(&systemTime, &winStationInfo.LogonTime);
                 time = PhFormatDateTime(&systemTime);
-                SetDlgItemText(hwndDlg, IDC_LOGONTIME, time->Buffer);
+                PhSetDialogItemText(hwndDlg, IDC_LOGONTIME, time->Buffer);
                 PhDereferenceObject(time);
             }
 
@@ -144,7 +144,7 @@ INT_PTR CALLBACK PhpSessionPropertiesDlgProc(
 
                 PhLargeIntegerToLocalSystemTime(&systemTime, &winStationInfo.ConnectTime);
                 time = PhFormatDateTime(&systemTime);
-                SetDlgItemText(hwndDlg, IDC_CONNECTTIME, time->Buffer);
+                PhSetDialogItemText(hwndDlg, IDC_CONNECTTIME, time->Buffer);
                 PhDereferenceObject(time);
             }
 
@@ -155,7 +155,7 @@ INT_PTR CALLBACK PhpSessionPropertiesDlgProc(
 
                 PhLargeIntegerToLocalSystemTime(&systemTime, &winStationInfo.DisconnectTime);
                 time = PhFormatDateTime(&systemTime);
-                SetDlgItemText(hwndDlg, IDC_DISCONNECTTIME, time->Buffer);
+                PhSetDialogItemText(hwndDlg, IDC_DISCONNECTTIME, time->Buffer);
                 PhDereferenceObject(time);
             }
 
@@ -166,7 +166,7 @@ INT_PTR CALLBACK PhpSessionPropertiesDlgProc(
 
                 PhLargeIntegerToLocalSystemTime(&systemTime, &winStationInfo.LastInputTime);
                 time = PhFormatDateTime(&systemTime);
-                SetDlgItemText(hwndDlg, IDC_LASTINPUTTIME, time->Buffer);
+                PhSetDialogItemText(hwndDlg, IDC_LASTINPUTTIME, time->Buffer);
                 PhDereferenceObject(time);
             }
 
@@ -174,7 +174,7 @@ INT_PTR CALLBACK PhpSessionPropertiesDlgProc(
             {
                 WCHAR addressString[65];
 
-                SetDlgItemText(hwndDlg, IDC_CLIENTNAME, clientInfo.ClientName);
+                PhSetDialogItemText(hwndDlg, IDC_CLIENTNAME, clientInfo.ClientName);
 
                 if (clientInfo.ClientAddressFamily == AF_INET6)
                 {
@@ -203,15 +203,15 @@ INT_PTR CALLBACK PhpSessionPropertiesDlgProc(
                     wcscpy_s(addressString, 65, clientInfo.ClientAddress);
                 }
 
-                SetDlgItemText(hwndDlg, IDC_CLIENTADDRESS, addressString);
+                PhSetDialogItemText(hwndDlg, IDC_CLIENTADDRESS, addressString);
 
-                SetDlgItemText(hwndDlg, IDC_CLIENTDISPLAY,
+                PhSetDialogItemText(hwndDlg, IDC_CLIENTDISPLAY,
                     PhaFormatString(L"%ux%u@%u", clientInfo.HRes,
                     clientInfo.VRes, clientInfo.ColorDepth)->Buffer
                     );
             }
 
-            SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)GetDlgItem(hwndDlg, IDOK), TRUE);
+            PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDOK));
         }
         break;
     case WM_COMMAND:

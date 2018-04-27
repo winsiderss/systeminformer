@@ -377,7 +377,8 @@ INT_PTR CALLBACK WepWindowsDlgProc(
 
             WepRefreshWindows(context);
 
-            SendMessage(GetParent(hwndDlg), WM_NEXTDLGCTL, (WPARAM)GetDlgItem(GetParent(hwndDlg), IDCANCEL), TRUE);
+            // HACK
+            PhSetDialogFocus(GetParent(hwndDlg), GetDlgItem(GetParent(hwndDlg), IDCANCEL));
         }
         break;
     case WM_DESTROY:

@@ -129,7 +129,7 @@ VOID PvpSetWslImageType(
         break;
     }
 
-    SetDlgItemText(hwndDlg, IDC_IMAGETYPE, type);
+    PhSetDialogItemText(hwndDlg, IDC_IMAGETYPE, type);
 }
 
 VOID PvpSetWslImageMachineType(
@@ -151,7 +151,7 @@ VOID PvpSetWslImageMachineType(
         break;
     }
 
-    SetDlgItemText(hwndDlg, IDC_TARGETMACHINE, type);
+    PhSetDialogItemText(hwndDlg, IDC_TARGETMACHINE, type);
 }
 
 VOID PvpSetWslImageBase(
@@ -163,13 +163,13 @@ VOID PvpSetWslImageBase(
     if (PvMappedImage.Header->e_ident[EI_CLASS] == ELFCLASS32)
     {
         string = PhFormatString(L"0x%I32x", PhGetMappedWslImageBaseAddress(&PvMappedImage));
-        SetDlgItemText(hwndDlg, IDC_IMAGEBASE, string->Buffer);
+        PhSetDialogItemText(hwndDlg, IDC_IMAGEBASE, string->Buffer);
         PhDereferenceObject(string);
     }
     else if (PvMappedImage.Header->e_ident[EI_CLASS] == ELFCLASS64)
     {
         string = PhFormatString(L"0x%I64x", PhGetMappedWslImageBaseAddress(&PvMappedImage));
-        SetDlgItemText(hwndDlg, IDC_IMAGEBASE, string->Buffer);
+        PhSetDialogItemText(hwndDlg, IDC_IMAGEBASE, string->Buffer);
         PhDereferenceObject(string);
     }
 }
@@ -183,13 +183,13 @@ VOID PvpSetWslEntrypoint(
     if (PvMappedImage.Header->e_ident[EI_CLASS] == ELFCLASS32)
     {
         string = PhFormatString(L"0x%I32x", PvMappedImage.Headers32->e_entry);
-        SetDlgItemText(hwndDlg, IDC_ENTRYPOINT, string->Buffer);
+        PhSetDialogItemText(hwndDlg, IDC_ENTRYPOINT, string->Buffer);
         PhDereferenceObject(string);
     }
     else if (PvMappedImage.Header->e_ident[EI_CLASS] == ELFCLASS64)
     {
         string = PhFormatString(L"0x%I64x", PvMappedImage.Headers64->e_entry);
-        SetDlgItemText(hwndDlg, IDC_ENTRYPOINT, string->Buffer);
+        PhSetDialogItemText(hwndDlg, IDC_ENTRYPOINT, string->Buffer);
         PhDereferenceObject(string);
     }
 }

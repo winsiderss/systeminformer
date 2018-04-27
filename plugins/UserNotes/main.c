@@ -1527,14 +1527,13 @@ INT_PTR CALLBACK OptionsDlgProc(
     {
     case WM_INITDIALOG:
         {
-            SetDlgItemText(hwndDlg, IDC_DATABASE, PhaGetStringSetting(SETTING_NAME_DATABASE_PATH)->Buffer);
+            PhSetDialogItemText(hwndDlg, IDC_DATABASE, PhaGetStringSetting(SETTING_NAME_DATABASE_PATH)->Buffer);
 
             PhInitializeLayoutManager(&LayoutManager, hwndDlg);
             PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_DATABASE), NULL, PH_ANCHOR_TOP | PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_BROWSE), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
 
-            SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)GetDlgItem(hwndDlg, IDCANCEL), TRUE);
-
+            PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDCANCEL));
         }
         break;
     case WM_DESTROY:
@@ -1572,7 +1571,7 @@ INT_PTR CALLBACK OptionsDlgProc(
                     if (PhShowFileDialog(hwndDlg, fileDialog))
                     {
                         fileName = PH_AUTO(PhGetFileDialogFileName(fileDialog));
-                        SetDlgItemText(hwndDlg, IDC_DATABASE, fileName->Buffer);
+                        PhSetDialogItemText(hwndDlg, IDC_DATABASE, fileName->Buffer);
                     }
 
                     PhFreeFileDialog(fileDialog);
@@ -1763,7 +1762,7 @@ INT_PTR CALLBACK ProcessCommentPageDlgProc(
                 {
                     Edit_SetText(context->CommentHandle, context->OriginalComment->Buffer);
                     SendMessage(context->CommentHandle, EM_SETSEL, 0, -1);
-                    SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)context->CommentHandle, TRUE);
+                    PhSetDialogFocus(hwndDlg, context->CommentHandle);
                     EnableWindow(context->RevertHandle, FALSE);
                 }
                 break;
@@ -1843,7 +1842,7 @@ INT_PTR CALLBACK ServiceCommentPageDlgProc(
 
             UnlockDb();
 
-            SetDlgItemText(hwndDlg, IDC_COMMENT, comment->Buffer);
+            PhSetDialogItemText(hwndDlg, IDC_COMMENT, comment->Buffer);
 
             EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
         }

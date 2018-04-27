@@ -191,11 +191,11 @@ NTSTATUS EspLoadRecoveryInfo(
 
     // Reset fail count after
 
-    SetDlgItemInt(hwndDlg, IDC_RESETFAILCOUNT, failureActions->dwResetPeriod / (60 * 60 * 24), FALSE); // s to days
+    PhSetDialogItemValue(hwndDlg, IDC_RESETFAILCOUNT, failureActions->dwResetPeriod / (60 * 60 * 24), FALSE); // s to days
 
     // Restart service after
 
-    SetDlgItemText(hwndDlg, IDC_RESTARTSERVICEAFTER, L"1");
+    PhSetDialogItemText(hwndDlg, IDC_RESTARTSERVICEAFTER, L"1");
 
     for (i = 0; i < failureActions->cActions; i++)
     {
@@ -203,7 +203,7 @@ NTSTATUS EspLoadRecoveryInfo(
         {
             if (failureActions->lpsaActions[i].Delay != 0)
             {
-                SetDlgItemInt(hwndDlg, IDC_RESTARTSERVICEAFTER,
+                PhSetDialogItemValue(hwndDlg, IDC_RESTARTSERVICEAFTER,
                     failureActions->lpsaActions[i].Delay / (1000 * 60), FALSE); // ms to min
             }
 
@@ -252,7 +252,7 @@ NTSTATUS EspLoadRecoveryInfo(
 
     // Run program
 
-    SetDlgItemText(hwndDlg, IDC_RUNPROGRAM, failureActions->lpCommand);
+    PhSetDialogItemText(hwndDlg, IDC_RUNPROGRAM, failureActions->lpCommand);
 
     PhFree(failureActions);
     CloseServiceHandle(serviceHandle);
@@ -317,7 +317,7 @@ INT_PTR CALLBACK EspServiceRecoveryDlgProc(
             }
             else if (!NT_SUCCESS(status))
             {
-                SetDlgItemText(hwndDlg, IDC_RESETFAILCOUNT, L"0");
+                PhSetDialogItemText(hwndDlg, IDC_RESETFAILCOUNT, L"0");
  
                 context->EnableFlagCheckBox = TRUE;               
                 EnableWindow(GetDlgItem(hwndDlg, IDC_ENABLEFORERRORSTOPS), TRUE);
@@ -381,7 +381,7 @@ INT_PTR CALLBACK EspServiceRecoveryDlgProc(
                     if (PhShowFileDialog(hwndDlg, fileDialog))
                     {
                         fileName = PH_AUTO(PhGetFileDialogFileName(fileDialog));
-                        SetDlgItemText(hwndDlg, IDC_RUNPROGRAM, fileName->Buffer);
+                        PhSetDialogItemText(hwndDlg, IDC_RUNPROGRAM, fileName->Buffer);
                     }
 
                     PhFreeFileDialog(fileDialog);
@@ -437,7 +437,7 @@ INT_PTR CALLBACK EspServiceRecoveryDlgProc(
 
                     // Build the failure actions structure.
 
-                    failureActions.dwResetPeriod = GetDlgItemInt(hwndDlg, IDC_RESETFAILCOUNT, NULL, FALSE) * 60 * 60 * 24;
+                    failureActions.dwResetPeriod = PhGetDialogItemValue(hwndDlg, IDC_RESETFAILCOUNT) * 60 * 60 * 24;
                     failureActions.lpRebootMsg = PhGetStringOrEmpty(context->RebootMessage);
                     failureActions.lpCommand = PhaGetDlgItemText(hwndDlg, IDC_RUNPROGRAM)->Buffer;
                     failureActions.cActions = 3;
@@ -447,7 +447,7 @@ INT_PTR CALLBACK EspServiceRecoveryDlgProc(
                     actions[1].Type = ComboBoxToServiceAction(GetDlgItem(hwndDlg, IDC_SECONDFAILURE));
                     actions[2].Type = ComboBoxToServiceAction(GetDlgItem(hwndDlg, IDC_SUBSEQUENTFAILURES));
 
-                    restartServiceAfter = GetDlgItemInt(hwndDlg, IDC_RESTARTSERVICEAFTER, NULL, FALSE) * 1000 * 60;
+                    restartServiceAfter = PhGetDialogItemValue(hwndDlg, IDC_RESTARTSERVICEAFTER) * 1000 * 60;
 
                     for (i = 0; i < 3; i++)
                     {
@@ -613,11 +613,11 @@ INT_PTR CALLBACK RestartComputerDlgProc(
         {
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
-            SetDlgItemInt(hwndDlg, IDC_RESTARTCOMPAFTER, context->RebootAfter / (1000 * 60), FALSE); // ms to min
+            PhSetDialogItemValue(hwndDlg, IDC_RESTARTCOMPAFTER, context->RebootAfter / (1000 * 60), FALSE); // ms to min
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLERESTARTMESSAGE), context->RebootMessage ? BST_CHECKED : BST_UNCHECKED);
-            SetDlgItemText(hwndDlg, IDC_RESTARTMESSAGE, PhGetString(context->RebootMessage));
+            PhSetDialogItemText(hwndDlg, IDC_RESTARTMESSAGE, PhGetString(context->RebootMessage));
 
-            SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)GetDlgItem(hwndDlg, IDC_RESTARTCOMPAFTER), TRUE);
+            PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDC_RESTARTCOMPAFTER));
             Edit_SetSel(GetDlgItem(hwndDlg, IDC_RESTARTCOMPAFTER), 0, -1);
         }
         break;
@@ -630,7 +630,7 @@ INT_PTR CALLBACK RestartComputerDlgProc(
                 break;
             case IDOK:
                 {
-                    context->RebootAfter = GetDlgItemInt(hwndDlg, IDC_RESTARTCOMPAFTER, NULL, FALSE) * 1000 * 60;
+                    context->RebootAfter = PhGetDialogItemValue(hwndDlg, IDC_RESTARTCOMPAFTER) * 1000 * 60;
 
                     if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLERESTARTMESSAGE)) == BST_CHECKED)
                         PhMoveReference(&context->RebootMessage, PhGetWindowText(GetDlgItem(hwndDlg, IDC_RESTARTMESSAGE)));
@@ -678,7 +678,7 @@ INT_PTR CALLBACK RestartComputerDlgProc(
                         computerName,
                         computerName
                         );
-                    SetDlgItemText(hwndDlg, IDC_RESTARTMESSAGE, message->Buffer);
+                    PhSetDialogItemText(hwndDlg, IDC_RESTARTMESSAGE, message->Buffer);
 
                     if (allocated)
                         PhFree(computerName);
@@ -692,7 +692,7 @@ INT_PTR CALLBACK RestartComputerDlgProc(
                     {
                         // A zero length restart message disables it, so we might as well uncheck the box.
                         Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLERESTARTMESSAGE),
-                            GetWindowTextLength(GetDlgItem(hwndDlg, IDC_RESTARTMESSAGE)) != 0 ? BST_CHECKED : BST_UNCHECKED);
+                            PhGetWindowTextLength(GetDlgItem(hwndDlg, IDC_RESTARTMESSAGE)) != 0 ? BST_CHECKED : BST_UNCHECKED);
                     }
                 }
                 break;

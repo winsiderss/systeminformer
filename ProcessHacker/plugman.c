@@ -924,21 +924,21 @@ VOID PhpRefreshPluginDetails(
 
     fileName = SelectedPlugin->FileName;
 
-    SetDlgItemText(hwndDlg, IDC_NAME, SelectedPlugin->Information.DisplayName ? SelectedPlugin->Information.DisplayName : L"(unnamed)");
-    SetDlgItemText(hwndDlg, IDC_INTERNALNAME, SelectedPlugin->Name.Buffer);
-    SetDlgItemText(hwndDlg, IDC_AUTHOR, SelectedPlugin->Information.Author);
-    SetDlgItemText(hwndDlg, IDC_FILENAME, PH_AUTO_T(PH_STRING, PhGetBaseName(fileName))->Buffer);
-    SetDlgItemText(hwndDlg, IDC_DESCRIPTION, SelectedPlugin->Information.Description);
-    SetDlgItemText(hwndDlg, IDC_URL, SelectedPlugin->Information.Url);
+    PhSetDialogItemText(hwndDlg, IDC_NAME, SelectedPlugin->Information.DisplayName ? SelectedPlugin->Information.DisplayName : L"(unnamed)");
+    PhSetDialogItemText(hwndDlg, IDC_INTERNALNAME, SelectedPlugin->Name.Buffer);
+    PhSetDialogItemText(hwndDlg, IDC_AUTHOR, SelectedPlugin->Information.Author);
+    PhSetDialogItemText(hwndDlg, IDC_FILENAME, PH_AUTO_T(PH_STRING, PhGetBaseName(fileName))->Buffer);
+    PhSetDialogItemText(hwndDlg, IDC_DESCRIPTION, SelectedPlugin->Information.Description);
+    PhSetDialogItemText(hwndDlg, IDC_URL, SelectedPlugin->Information.Url);
 
     if (PhInitializeImageVersionInfo(&versionInfo, fileName->Buffer))
     {
-        SetDlgItemText(hwndDlg, IDC_VERSION, PhGetStringOrDefault(versionInfo.FileVersion, L"Unknown"));
+        PhSetDialogItemText(hwndDlg, IDC_VERSION, PhGetStringOrDefault(versionInfo.FileVersion, L"Unknown"));
         PhDeleteImageVersionInfo(&versionInfo);
     }
     else
     {
-        SetDlgItemText(hwndDlg, IDC_VERSION, L"Unknown");
+        PhSetDialogItemText(hwndDlg, IDC_VERSION, L"Unknown");
     }
 
     ShowWindow(GetDlgItem(hwndDlg, IDC_OPENURL), SelectedPlugin->Information.Url ? SW_SHOW : SW_HIDE);
@@ -980,7 +980,7 @@ INT_PTR CALLBACK PhpPluginPropertiesDlgProc(
 
             PhpRefreshPluginDetails(hwndDlg, selectedPlugin);
 
-            SendMessage(hwndDlg, WM_NEXTDLGCTL, (LPARAM)GetDlgItem(hwndDlg, IDOK), TRUE);
+            PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDOK));
         }
         break;
     case WM_COMMAND:
@@ -1135,7 +1135,7 @@ INT_PTR CALLBACK PhpPluginsDisabledDlgProc(
             PhpAddDisabledPlugins(context);
             ExtendedListView_SetColumnWidth(context->ListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
 
-            SendMessage(hwndDlg, WM_NEXTDLGCTL, (LPARAM)GetDlgItem(hwndDlg, IDOK), TRUE);
+            PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDOK));
         }
         break;
     case WM_COMMAND:

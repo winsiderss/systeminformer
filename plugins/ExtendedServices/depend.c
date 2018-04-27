@@ -143,7 +143,7 @@ INT_PTR CALLBACK EspServiceDependenciesDlgProc(
             BOOLEAN success = FALSE;
             PPH_SERVICE_ITEM *services;
 
-            SetDlgItemText(hwndDlg, IDC_MESSAGE, L"This service depends on the following services:");
+            PhSetDialogItemText(hwndDlg, IDC_MESSAGE, L"This service depends on the following services:");
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_SERVICES_LAYOUT), NULL, PH_ANCHOR_ALL);
@@ -206,7 +206,7 @@ ContinueLoop:
 
             if (!success)
             {
-                SetDlgItemText(hwndDlg, IDC_SERVICES_LAYOUT, PhaConcatStrings2(L"Unable to enumerate dependencies: ",
+                PhSetDialogItemText(hwndDlg, IDC_SERVICES_LAYOUT, PhaConcatStrings2(L"Unable to enumerate dependencies: ",
                     ((PPH_STRING)PH_AUTO(PhGetWin32Message(win32Result)))->Buffer)->Buffer);
                 ShowWindow(GetDlgItem(hwndDlg, IDC_SERVICES_LAYOUT), SW_SHOW);
             }
@@ -271,7 +271,7 @@ INT_PTR CALLBACK EspServiceDependentsDlgProc(
             BOOLEAN success = FALSE;
             PPH_SERVICE_ITEM *services;
 
-            SetDlgItemText(hwndDlg, IDC_MESSAGE, L"The following services depend on this service:");
+            PhSetDialogItemText(hwndDlg, IDC_MESSAGE, L"The following services depend on this service:");
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_SERVICES_LAYOUT), NULL, PH_ANCHOR_ALL);
@@ -318,7 +318,7 @@ INT_PTR CALLBACK EspServiceDependentsDlgProc(
 
             if (!success)
             {
-                SetDlgItemText(hwndDlg, IDC_SERVICES_LAYOUT, PhaConcatStrings2(L"Unable to enumerate dependents: ",
+                PhSetDialogItemText(hwndDlg, IDC_SERVICES_LAYOUT, PhaConcatStrings2(L"Unable to enumerate dependents: ",
                     ((PPH_STRING)PH_AUTO(PhGetWin32Message(win32Result)))->Buffer)->Buffer);
                 ShowWindow(GetDlgItem(hwndDlg, IDC_SERVICES_LAYOUT), SW_SHOW);
             }

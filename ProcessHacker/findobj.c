@@ -1356,7 +1356,7 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
                         if (!context->SearchThreadHandle)
                             break;
 
-                        SetDlgItemText(hwndDlg, IDOK, L"Cancel");
+                        PhSetDialogItemText(hwndDlg, IDOK, L"Cancel");
 
                         SetCursor(LoadCursor(NULL, IDC_APPSTARTING));
                     }
@@ -1577,7 +1577,7 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
             context->SearchThreadHandle = NULL;
             context->SearchStop = FALSE;
 
-            SetDlgItemText(hwndDlg, IDOK, L"Find");
+            PhSetDialogItemText(hwndDlg, IDOK, L"Find");
             EnableWindow(GetDlgItem(hwndDlg, IDOK), TRUE);
 
             SetCursor(LoadCursor(NULL, IDC_ARROW));

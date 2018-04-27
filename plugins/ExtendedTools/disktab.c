@@ -1135,7 +1135,7 @@ INT_PTR CALLBACK EtpDiskTabErrorDialogProc(
             }
             else
             {
-                SetDlgItemText(hwndDlg, IDC_ERROR, L"Unable to start the kernel event tracing session.");
+                PhSetDialogItemText(hwndDlg, IDC_ERROR, L"Unable to start the kernel event tracing session.");
                 ShowWindow(GetDlgItem(hwndDlg, IDC_RESTART), SW_HIDE);
             }
         }
