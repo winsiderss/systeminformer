@@ -516,6 +516,9 @@ EXPORTS
 	PhGetWindowContext
 	PhSetWindowContext
 	PhRemoveWindowContext
+	PhGetDialogItemValue
+	PhSetDialogItemValue
+	PhSetDialogItemText
 
 ; hndlinfo
 	PhEnumObjectTypes

@@ -532,7 +532,7 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
             CustomizeLoadToolbarItems(context);
             CustomizeLoadToolbarSettings(context);
 
-            SendMessage(context->DialogHandle, WM_NEXTDLGCTL, (WPARAM)context->CurrentListHandle, TRUE);
+            PhSetDialogFocus(context->DialogHandle, context->CurrentListHandle);
         }
         break;
     case WM_DESTROY:

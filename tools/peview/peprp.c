@@ -390,9 +390,9 @@ VOID PvpSetPeImageVersionInfo(
 
     string = PhConcatStrings2(L"(Verifying...) ", PvpGetStringOrNa(PvImageVersionInfo.CompanyName));
 
-    SetDlgItemText(WindowHandle, IDC_NAME, PvpGetStringOrNa(PvImageVersionInfo.FileDescription));
-    SetDlgItemText(WindowHandle, IDC_COMPANYNAME, string->Buffer);
-    SetDlgItemText(WindowHandle, IDC_VERSION, PvpGetStringOrNa(PvImageVersionInfo.FileVersion));
+    PhSetDialogItemText(WindowHandle, IDC_NAME, PvpGetStringOrNa(PvImageVersionInfo.FileDescription));
+    PhSetDialogItemText(WindowHandle, IDC_COMPANYNAME, string->Buffer);
+    PhSetDialogItemText(WindowHandle, IDC_VERSION, PvpGetStringOrNa(PvImageVersionInfo.FileVersion));
 
     PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), VerifyImageThreadStart, WindowHandle);
 
@@ -424,7 +424,7 @@ VOID PvpSetPeImageMachineType(
         break;
     }
 
-    SetDlgItemText(WindowHandle, IDC_TARGETMACHINE, type);
+    PhSetDialogItemText(WindowHandle, IDC_TARGETMACHINE, type);
 }
 
 VOID PvpSetPeImageTimeStamp(
@@ -439,7 +439,7 @@ VOID PvpSetPeImageTimeStamp(
     PhLargeIntegerToLocalSystemTime(&systemTime, &time);
 
     string = PhFormatDateTime(&systemTime);
-    SetDlgItemText(WindowHandle, IDC_TIMESTAMP, string->Buffer);
+    PhSetDialogItemText(WindowHandle, IDC_TIMESTAMP, string->Buffer);
     PhDereferenceObject(string);
 }
 
@@ -454,7 +454,7 @@ VOID PvpSetPeImageBaseAddress(
     else
         string = PhFormatString(L"0x%I64x", ((PIMAGE_OPTIONAL_HEADER64)&PvMappedImage.NtHeaders->OptionalHeader)->ImageBase);
 
-    SetDlgItemText(WindowHandle, IDC_IMAGEBASE, string->Buffer);
+    PhSetDialogItemText(WindowHandle, IDC_IMAGEBASE, string->Buffer);
     PhDereferenceObject(string);
 }
 
@@ -469,7 +469,7 @@ VOID PvpSetPeImageEntryPoint(
     else
         string = PhFormatString(L"0x%I64x", ((PIMAGE_OPTIONAL_HEADER64)&PvMappedImage.NtHeaders->OptionalHeader)->AddressOfEntryPoint);
 
-    SetDlgItemText(WindowHandle, IDC_ENTRYPOINT, string->Buffer);
+    PhSetDialogItemText(WindowHandle, IDC_ENTRYPOINT, string->Buffer);
     PhDereferenceObject(string);
 }
 
@@ -481,7 +481,7 @@ VOID PvpSetPeImageCheckSum(
 
     string = PhFormatString(L"0x%Ix (verifying...)", PvMappedImage.NtHeaders->OptionalHeader.CheckSum); // same for 32-bit and 64-bit images
 
-    SetDlgItemText(WindowHandle, IDC_CHECKSUM, string->Buffer);
+    PhSetDialogItemText(WindowHandle, IDC_CHECKSUM, string->Buffer);
 
     PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), CheckSumImageThreadStart, WindowHandle);
 
@@ -537,8 +537,8 @@ VOID PvpSetPeImageSubsystem(
         break;
     }
 
-    SetDlgItemText(WindowHandle, IDC_SUBSYSTEM, type);
-    SetDlgItemText(WindowHandle, IDC_SUBSYSTEMVERSION, PhaFormatString(
+    PhSetDialogItemText(WindowHandle, IDC_SUBSYSTEM, type);
+    PhSetDialogItemText(WindowHandle, IDC_SUBSYSTEMVERSION, PhaFormatString(
         L"%u.%u",
         PvMappedImage.NtHeaders->OptionalHeader.MajorSubsystemVersion, // same for 32-bit and 64-bit images
         PvMappedImage.NtHeaders->OptionalHeader.MinorSubsystemVersion
@@ -594,7 +594,7 @@ VOID PvpSetPeImageCharacteristics(
     if (PhEndsWithString2(stringBuilder.String, L", ", FALSE))
         PhRemoveEndStringBuilder(&stringBuilder, 2);
 
-    SetDlgItemText(WindowHandle, IDC_CHARACTERISTICS, stringBuilder.String->Buffer);
+    PhSetDialogItemText(WindowHandle, IDC_CHARACTERISTICS, stringBuilder.String->Buffer);
     PhDeleteStringBuilder(&stringBuilder);
 }
 
@@ -715,19 +715,19 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
             {
                 // Some executables, like .NET ones, don't have a check sum.
                 string = PhFormatString(L"0x0 (real 0x%Ix)", realCheckSum);
-                SetDlgItemText(hwndDlg, IDC_CHECKSUM, string->Buffer);
+                PhSetDialogItemText(hwndDlg, IDC_CHECKSUM, string->Buffer);
                 PhDereferenceObject(string);
             }
             else if (headerCheckSum == realCheckSum)
             {
                 string = PhFormatString(L"0x%Ix (correct)", headerCheckSum);
-                SetDlgItemText(hwndDlg, IDC_CHECKSUM, string->Buffer);
+                PhSetDialogItemText(hwndDlg, IDC_CHECKSUM, string->Buffer);
                 PhDereferenceObject(string);
             }
             else
             {
                 string = PhFormatString(L"0x%Ix (incorrect, real 0x%Ix)", headerCheckSum, realCheckSum);
-                SetDlgItemText(hwndDlg, IDC_CHECKSUM, string->Buffer);
+                PhSetDialogItemText(hwndDlg, IDC_CHECKSUM, string->Buffer);
                 PhDereferenceObject(string);
             }
         }
@@ -741,7 +741,7 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
                 if (PvImageSignerName)
                 {
                     string = PhFormatString(L"<a>(Verified) %s</a>", PvImageSignerName->Buffer);
-                    SetDlgItemText(hwndDlg, IDC_COMPANYNAME_LINK, string->Buffer);
+                    PhSetDialogItemText(hwndDlg, IDC_COMPANYNAME_LINK, string->Buffer);
                     PhDereferenceObject(string);
                     ShowWindow(GetDlgItem(hwndDlg, IDC_COMPANYNAME), SW_HIDE);
                     ShowWindow(GetDlgItem(hwndDlg, IDC_COMPANYNAME_LINK), SW_SHOW);
@@ -749,19 +749,19 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
                 else
                 {
                     string = PhConcatStrings2(L"(Verified) ", PhGetStringOrEmpty(PvImageVersionInfo.CompanyName));
-                    SetDlgItemText(hwndDlg, IDC_COMPANYNAME, string->Buffer);
+                    PhSetDialogItemText(hwndDlg, IDC_COMPANYNAME, string->Buffer);
                     PhDereferenceObject(string);
                 }
             }
             else if (PvImageVerifyResult != VrUnknown)
             {
                 string = PhConcatStrings2(L"(UNVERIFIED) ", PhGetStringOrEmpty(PvImageVersionInfo.CompanyName));
-                SetDlgItemText(hwndDlg, IDC_COMPANYNAME, string->Buffer);
+                PhSetDialogItemText(hwndDlg, IDC_COMPANYNAME, string->Buffer);
                 PhDereferenceObject(string);
             }
             else
             {
-                SetDlgItemText(hwndDlg, IDC_COMPANYNAME, PvpGetStringOrNa(PvImageVersionInfo.CompanyName));
+                PhSetDialogItemText(hwndDlg, IDC_COMPANYNAME, PvpGetStringOrNa(PvImageVersionInfo.CompanyName));
             }
         }
         break;

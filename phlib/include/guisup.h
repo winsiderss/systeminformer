@@ -523,6 +523,50 @@ HWND PhGetProcessMainWindowEx(
     _In_ BOOLEAN SkipInvisible
     );
 
+PHLIBAPI
+ULONG
+NTAPI
+PhGetDialogItemValue(
+    _In_ HWND WindowHandle,
+    _In_ INT ControlID
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhSetDialogItemValue(
+    _In_ HWND WindowHandle,
+    _In_ INT ControlID,
+    _In_ ULONG Value,
+    _In_ BOOLEAN Signed
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhSetDialogItemText(
+    _In_ HWND WindowHandle,
+    _In_ INT ControlID,
+    _In_ PCWSTR WindowText
+    );
+
+FORCEINLINE ULONG PhGetWindowTextLength(
+    _In_ HWND WindowHandle
+    )
+{
+    return (ULONG)SendMessage(WindowHandle, WM_GETTEXTLENGTH, 0, 0); // DefWindowProc
+}
+
+FORCEINLINE VOID PhSetDialogFocus(
+    _In_ HWND WindowHandle,
+    _In_ HWND FocusHandle
+    )
+{
+    // Do not use the SendMessage function to send a WM_NEXTDLGCTL message if your application will 
+    // concurrently process other messages that set the focus. Use the PostMessage function instead.
+    SendMessage(WindowHandle, WM_NEXTDLGCTL, (WPARAM)FocusHandle, MAKELPARAM(TRUE, 0));
+}
+
 FORCEINLINE VOID PhResizingMinimumSize(
     _Inout_ PRECT Rect,
     _In_ WPARAM Edge,

@@ -220,8 +220,8 @@ static VOID PhpRefreshEventPageInfo(
             eventState = basicInfo.EventState > 0 ? L"True" : L"False";
         }
 
-        SetDlgItemText(hwndDlg, IDC_TYPE, eventType);
-        SetDlgItemText(hwndDlg, IDC_SIGNALED, eventState);
+        PhSetDialogItemText(hwndDlg, IDC_TYPE, eventType);
+        PhSetDialogItemText(hwndDlg, IDC_SIGNALED, eventState);
 
         NtClose(eventHandle);
     }
@@ -417,7 +417,7 @@ static VOID PhpRefreshFilePageInfo(
             switch (deviceInformation.DeviceType)
             {
             case FILE_DEVICE_NAMED_PIPE:
-                SetDlgItemText(hwndDlg, IDC_FILETYPE, L"Pipe");
+                PhSetDialogItemText(hwndDlg, IDC_FILETYPE, L"Pipe");
                 break;
             case FILE_DEVICE_CD_ROM:
             case FILE_DEVICE_CD_ROM_FILE_SYSTEM:
@@ -428,10 +428,10 @@ static VOID PhpRefreshFilePageInfo(
             case FILE_DEVICE_DISK_FILE_SYSTEM:
             case FILE_DEVICE_VIRTUAL_DISK:
                 isFileOrDirectory = TRUE;
-                SetDlgItemText(hwndDlg, IDC_FILETYPE, L"File or directory");
+                PhSetDialogItemText(hwndDlg, IDC_FILETYPE, L"File or directory");
                 break;
             default:
-                SetDlgItemText(hwndDlg, IDC_FILETYPE, L"Other");
+                PhSetDialogItemText(hwndDlg, IDC_FILETYPE, L"Other");
                 break;
             }
         }
@@ -450,12 +450,12 @@ static VOID PhpRefreshFilePageInfo(
             disableFlushButton |= fileStandardInfo.Directory;
 
             fileSizeStr = PhFormatSize(fileStandardInfo.EndOfFile.QuadPart, -1);
-            SetDlgItemText(hwndDlg, IDC_FILESIZE, fileSizeStr->Buffer);
+            PhSetDialogItemText(hwndDlg, IDC_FILESIZE, fileSizeStr->Buffer);
             PhDereferenceObject(fileSizeStr);
 
             if (isFileOrDirectory)
             {
-                SetDlgItemText(hwndDlg, IDC_FILETYPE, fileStandardInfo.Directory ? L"Directory" : L"File");
+                PhSetDialogItemText(hwndDlg, IDC_FILETYPE, fileStandardInfo.Directory ? L"Directory" : L"File");
             }
         }
 
@@ -491,7 +491,7 @@ static VOID PhpRefreshFilePageInfo(
                 filePosStr = PhFormatUInt64(filePositionInfo.CurrentByteOffset.QuadPart, TRUE);
             }
             
-            SetDlgItemText(hwndDlg, IDC_POSITION, filePosStr->Buffer);
+            PhSetDialogItemText(hwndDlg, IDC_POSITION, filePosStr->Buffer);
             PhDereferenceObject(filePosStr);
         }
         
@@ -525,14 +525,14 @@ static VOID PhpRefreshFilePageInfo(
             PhInitFormatS(&format[4], L")");
 
             fileModeStr = PhFormat(format, 5, 64);
-            SetDlgItemText(hwndDlg, IDC_FILEMODE, fileModeStr->Buffer);
+            PhSetDialogItemText(hwndDlg, IDC_FILEMODE, fileModeStr->Buffer);
 
             PhDereferenceObject(fileModeStr);
             PhDereferenceObject(fileModeAccessStr);
         }
         else
         {
-            SetDlgItemText(hwndDlg, IDC_FILEMODE, L"Unknown");
+            PhSetDialogItemText(hwndDlg, IDC_FILEMODE, L"Unknown");
         }
 
         EnableWindow(GetDlgItem(hwndDlg, IDC_FLUSH), !disableFlushButton);
@@ -624,13 +624,13 @@ static VOID PhpRefreshMutantPageInfo(
 
         if (NT_SUCCESS(PhGetMutantBasicInformation(mutantHandle, &basicInfo)))
         {
-            SetDlgItemInt(hwndDlg, IDC_COUNT, basicInfo.CurrentCount, TRUE);
-            SetDlgItemText(hwndDlg, IDC_ABANDONED, basicInfo.AbandonedState ? L"True" : L"False");
+            PhSetDialogItemValue(hwndDlg, IDC_COUNT, basicInfo.CurrentCount, TRUE);
+            PhSetDialogItemText(hwndDlg, IDC_ABANDONED, basicInfo.AbandonedState ? L"True" : L"False");
         }
         else
         {
-            SetDlgItemText(hwndDlg, IDC_COUNT, L"Unknown");
-            SetDlgItemText(hwndDlg, IDC_ABANDONED, L"Unknown");
+            PhSetDialogItemText(hwndDlg, IDC_COUNT, L"Unknown");
+            PhSetDialogItemText(hwndDlg, IDC_ABANDONED, L"Unknown");
         }
 
         if (NT_SUCCESS(PhGetMutantOwnerInformation(mutantHandle, &ownerInfo)))
@@ -640,17 +640,17 @@ static VOID PhpRefreshMutantPageInfo(
             if (ownerInfo.ClientId.UniqueProcess)
             {
                 name = PhGetClientIdName(&ownerInfo.ClientId);
-                SetDlgItemText(hwndDlg, IDC_OWNER, name->Buffer);
+                PhSetDialogItemText(hwndDlg, IDC_OWNER, name->Buffer);
                 PhDereferenceObject(name);
             }
             else
             {
-                SetDlgItemText(hwndDlg, IDC_OWNER, L"N/A");
+                PhSetDialogItemText(hwndDlg, IDC_OWNER, L"N/A");
             }
         }
         else
         {
-            SetDlgItemText(hwndDlg, IDC_OWNER, L"Unknown");
+            PhSetDialogItemText(hwndDlg, IDC_OWNER, L"Unknown");
         }
 
         NtClose(mutantHandle);
@@ -747,9 +747,9 @@ static VOID PhpRefreshSectionPageInfo(
             fileName = PH_AUTO(newFileName);
     }
 
-    SetDlgItemText(hwndDlg, IDC_TYPE, sectionType);
-    SetDlgItemText(hwndDlg, IDC_SIZE_, PhGetStringOrDefault(sectionSize, L"Unknown"));
-    SetDlgItemText(hwndDlg, IDC_FILE, PhGetStringOrDefault(fileName, L"N/A"));
+    PhSetDialogItemText(hwndDlg, IDC_TYPE, sectionType);
+    PhSetDialogItemText(hwndDlg, IDC_SIZE_, PhGetStringOrDefault(sectionSize, L"Unknown"));
+    PhSetDialogItemText(hwndDlg, IDC_FILE, PhGetStringOrDefault(fileName, L"N/A"));
 
     NtClose(sectionHandle);
 }
@@ -810,13 +810,13 @@ static VOID PhpRefreshSemaphorePageInfo(
 
         if (NT_SUCCESS(PhGetSemaphoreBasicInformation(semaphoreHandle, &basicInfo)))
         {
-            SetDlgItemInt(hwndDlg, IDC_CURRENTCOUNT, basicInfo.CurrentCount, TRUE);
-            SetDlgItemInt(hwndDlg, IDC_MAXIMUMCOUNT, basicInfo.MaximumCount, TRUE);
+            PhSetDialogItemValue(hwndDlg, IDC_CURRENTCOUNT, basicInfo.CurrentCount, TRUE);
+            PhSetDialogItemValue(hwndDlg, IDC_MAXIMUMCOUNT, basicInfo.MaximumCount, TRUE);
         }
         else
         {
-            SetDlgItemText(hwndDlg, IDC_CURRENTCOUNT, L"Unknown");
-            SetDlgItemText(hwndDlg, IDC_MAXIMUMCOUNT, L"Unknown");
+            PhSetDialogItemText(hwndDlg, IDC_CURRENTCOUNT, L"Unknown");
+            PhSetDialogItemText(hwndDlg, IDC_MAXIMUMCOUNT, L"Unknown");
         }
 
         NtClose(semaphoreHandle);
@@ -922,11 +922,11 @@ static VOID PhpRefreshTimerPageInfo(
 
         if (NT_SUCCESS(PhGetTimerBasicInformation(timerHandle, &basicInfo)))
         {
-            SetDlgItemText(hwndDlg, IDC_SIGNALED, basicInfo.TimerState ? L"True" : L"False");
+            PhSetDialogItemText(hwndDlg, IDC_SIGNALED, basicInfo.TimerState ? L"True" : L"False");
         }
         else
         {
-            SetDlgItemText(hwndDlg, IDC_SIGNALED, L"Unknown");
+            PhSetDialogItemText(hwndDlg, IDC_SIGNALED, L"Unknown");
         }
 
         NtClose(timerHandle);

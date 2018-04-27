@@ -38,17 +38,17 @@ VOID DiskDriveUpdatePanel(
     _Inout_ PDV_DISK_SYSINFO_CONTEXT Context
     )
 {
-    SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_BREAD, PhaFormatSize(Context->DiskEntry->BytesReadDelta.Value, -1)->Buffer);
-    SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_BWRITE, PhaFormatSize(Context->DiskEntry->BytesWrittenDelta.Value, -1)->Buffer);
-    SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_BTOTAL, PhaFormatSize(Context->DiskEntry->BytesReadDelta.Value + Context->DiskEntry->BytesWrittenDelta.Value, -1)->Buffer);
+    PhSetDialogItemText(Context->PanelWindowHandle, IDC_STAT_BREAD, PhaFormatSize(Context->DiskEntry->BytesReadDelta.Value, -1)->Buffer);
+    PhSetDialogItemText(Context->PanelWindowHandle, IDC_STAT_BWRITE, PhaFormatSize(Context->DiskEntry->BytesWrittenDelta.Value, -1)->Buffer);
+    PhSetDialogItemText(Context->PanelWindowHandle, IDC_STAT_BTOTAL, PhaFormatSize(Context->DiskEntry->BytesReadDelta.Value + Context->DiskEntry->BytesWrittenDelta.Value, -1)->Buffer);
 
-    SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_ACTIVE,
+    PhSetDialogItemText(Context->PanelWindowHandle, IDC_STAT_ACTIVE,
         PhaFormatString(L"%.0f%%", Context->DiskEntry->ActiveTime)->Buffer
         );
-    SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_RESPONSETIME,
+    PhSetDialogItemText(Context->PanelWindowHandle, IDC_STAT_RESPONSETIME,
         PhaFormatString(L"%.1f ms", Context->DiskEntry->ResponseTime / PH_TICKS_PER_MS)->Buffer
         );
-    SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_QUEUELENGTH,
+    PhSetDialogItemText(Context->PanelWindowHandle, IDC_STAT_QUEUELENGTH,
         PhaFormatString(L"%lu", Context->DiskEntry->QueueDepth)->Buffer
         );
 }
@@ -58,14 +58,14 @@ VOID UpdateDiskDriveDialog(
     )
 {
     if (!PhIsNullOrEmptyString(Context->DiskEntry->DiskName))
-        SetDlgItemText(Context->WindowHandle, IDC_DISKNAME, PhGetString(Context->DiskEntry->DiskName));
+        PhSetDialogItemText(Context->WindowHandle, IDC_DISKNAME, PhGetString(Context->DiskEntry->DiskName));
     else
-        SetDlgItemText(Context->WindowHandle, IDC_DISKNAME, L"Unknown disk");
+        PhSetDialogItemText(Context->WindowHandle, IDC_DISKNAME, L"Unknown disk");
 
     if (!PhIsNullOrEmptyString(Context->DiskEntry->DiskIndexName))
-        SetDlgItemText(Context->WindowHandle, IDC_DISKMOUNTPATH, PhGetString(Context->DiskEntry->DiskIndexName));
+        PhSetDialogItemText(Context->WindowHandle, IDC_DISKMOUNTPATH, PhGetString(Context->DiskEntry->DiskIndexName));
     else
-        SetDlgItemText(Context->WindowHandle, IDC_DISKMOUNTPATH, L"Unknown disk");
+        PhSetDialogItemText(Context->WindowHandle, IDC_DISKMOUNTPATH, L"Unknown disk");
 
     DiskDriveUpdateGraphs(Context);
     DiskDriveUpdatePanel(Context);
@@ -205,14 +205,14 @@ INT_PTR CALLBACK DiskDriveDialogProc(
             SendMessage(GetDlgItem(hwndDlg, IDC_DISKNAME), WM_SETFONT, (WPARAM)context->SysinfoSection->Parameters->MediumFont, FALSE);
 
             if (context->DiskEntry->DiskIndexName)
-                SetDlgItemText(hwndDlg, IDC_DISKMOUNTPATH, context->DiskEntry->DiskIndexName->Buffer);
+                PhSetDialogItemText(hwndDlg, IDC_DISKMOUNTPATH, context->DiskEntry->DiskIndexName->Buffer);
             else
-                SetDlgItemText(hwndDlg, IDC_DISKMOUNTPATH, L"Unknown disk");
+                PhSetDialogItemText(hwndDlg, IDC_DISKMOUNTPATH, L"Unknown disk");
 
             if (context->DiskEntry->DiskName)
-                SetDlgItemText(hwndDlg, IDC_DISKNAME, context->DiskEntry->DiskName->Buffer);
+                PhSetDialogItemText(hwndDlg, IDC_DISKNAME, context->DiskEntry->DiskName->Buffer);
             else
-                SetDlgItemText(hwndDlg, IDC_DISKNAME, L"Unknown disk");
+                PhSetDialogItemText(hwndDlg, IDC_DISKNAME, L"Unknown disk");
 
             context->PanelWindowHandle = CreateDialogParam(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_DISKDRIVE_PANEL), hwndDlg, DiskDrivePanelDialogProc, (LPARAM)context);
             ShowWindow(context->PanelWindowHandle, SW_SHOW);

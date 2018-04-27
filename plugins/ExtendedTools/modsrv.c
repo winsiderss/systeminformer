@@ -152,7 +152,7 @@ INT_PTR CALLBACK EtpModuleServicesDlgProc(
                 message = PhFormatString(L"Services referencing %s:", context->ModuleName);
             }
 
-            SetDlgItemText(hwndDlg, IDC_MESSAGE, message->Buffer);
+            PhSetDialogItemText(hwndDlg, IDC_MESSAGE, message->Buffer);
             PhDereferenceObject(message);
         }
         break;

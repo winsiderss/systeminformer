@@ -347,7 +347,7 @@ ULONG PhGetWindowTextEx(
     }
     else
     {
-        length = GetWindowTextLength(hwnd);
+        length = PhGetWindowTextLength(hwnd);
 
         if (length == 0 || (Flags & PH_GET_WINDOW_TEXT_LENGTH_ONLY))
         {
@@ -1457,4 +1457,60 @@ HWND PhGetProcessMainWindowEx(
         NtClose(processHandle);
 
     return context.ImmersiveWindow ? context.ImmersiveWindow : context.Window;
+}
+
+ULONG PhGetDialogItemValue(
+    _In_ HWND WindowHandle,
+    _In_ INT ControlID
+    )
+{
+    ULONG64 controlValue = 0;
+    HWND controlHandle;
+    PPH_STRING controlText;
+
+    if (controlHandle = GetDlgItem(WindowHandle, ControlID))
+    {
+        if (controlText = PhGetWindowText(controlHandle))
+        {
+            PhStringToInteger64(&controlText->sr, 10, &controlValue);
+            PhDereferenceObject(controlText);
+        }
+    }
+
+    return (ULONG)controlValue;
+}
+
+VOID PhSetDialogItemValue(
+    _In_ HWND WindowHandle,
+    _In_ INT ControlID,
+    _In_ ULONG Value,
+    _In_ BOOLEAN Signed
+    )
+{
+    HWND controlHandle;
+    WCHAR valueString[PH_INT32_STR_LEN_1];
+
+    if (Signed)
+        PhPrintInt32(valueString, (LONG)Value);
+    else
+        PhPrintUInt32(valueString, Value);
+
+    if (controlHandle = GetDlgItem(WindowHandle, ControlID))
+    {
+        SendMessage(controlHandle, WM_SETTEXT, 0, (LPARAM)valueString); // DefWindowProc
+    }
+}
+
+VOID PhSetDialogItemText(
+    _In_ HWND WindowHandle,
+    _In_ INT ControlID,
+    _In_ PCWSTR WindowText
+    )
+{
+    HWND controlHandle;
+
+    if (controlHandle = GetDlgItem(WindowHandle, ControlID))
+    {
+        SendMessage(controlHandle, WM_SETTEXT, 0, (LPARAM)WindowText); // DefWindowProc
+    }
 }

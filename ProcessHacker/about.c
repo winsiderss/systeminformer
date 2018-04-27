@@ -66,10 +66,10 @@ static INT_PTR CALLBACK PhpAboutDlgProc(
                 );
 #endif
 
-            SetDlgItemText(hwndDlg, IDC_ABOUT_NAME, appName->Buffer);
+            PhSetDialogItemText(hwndDlg, IDC_ABOUT_NAME, appName->Buffer);
             PhDereferenceObject(appName);
 
-            SetDlgItemText(hwndDlg, IDC_CREDITS,
+            PhSetDialogItemText(hwndDlg, IDC_CREDITS,
                 L"Thanks to:\n"
                 L"    <a href=\"https://github.com/wj32\">wj32</a> - Wen Jia Liu\n"
                 L"    <a href=\"https://github.com/dmex\">dmex</a> - Steven G\n"
@@ -85,7 +85,7 @@ static INT_PTR CALLBACK PhpAboutDlgProc(
                 L"    <a href=\"https://www.fatcow.com/free-icons\">Farm-fresh web icons</a>\n"
                 );
 
-            SendMessage(hwndDlg, WM_NEXTDLGCTL, (LPARAM)GetDlgItem(hwndDlg, IDOK), TRUE);
+            PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDOK));
         }
         break;
     case WM_COMMAND:

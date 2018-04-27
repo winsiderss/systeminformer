@@ -401,24 +401,24 @@ VOID GpuPropUpdatePanel(
 
     PhPrintTimeSpan(runningTimeString, Context->GpuStatistics.RunningTime * 10, PH_TIMESPAN_HMSM);
 
-    SetDlgItemText(Context->PanelHandle, IDC_ZRUNNINGTIME_V, runningTimeString);
-    SetDlgItemText(Context->PanelHandle, IDC_ZCONTEXTSWITCHES_V, PhaFormatUInt64(Context->GpuStatistics.ContextSwitches, TRUE)->Buffer);
-    SetDlgItemText(Context->PanelHandle, IDC_ZTOTALNODES_V, PhaFormatUInt64(Context->GpuStatistics.NodeCount, TRUE)->Buffer);
-    SetDlgItemText(Context->PanelHandle, IDC_ZTOTALSEGMENTS_V, PhaFormatUInt64(Context->GpuStatistics.SegmentCount, TRUE)->Buffer);
+    PhSetDialogItemText(Context->PanelHandle, IDC_ZRUNNINGTIME_V, runningTimeString);
+    PhSetDialogItemText(Context->PanelHandle, IDC_ZCONTEXTSWITCHES_V, PhaFormatUInt64(Context->GpuStatistics.ContextSwitches, TRUE)->Buffer);
+    PhSetDialogItemText(Context->PanelHandle, IDC_ZTOTALNODES_V, PhaFormatUInt64(Context->GpuStatistics.NodeCount, TRUE)->Buffer);
+    PhSetDialogItemText(Context->PanelHandle, IDC_ZTOTALSEGMENTS_V, PhaFormatUInt64(Context->GpuStatistics.SegmentCount, TRUE)->Buffer);
 
     if (Context->DetailsHandle)
     {
         // Note: no lock is needed because we only ever update the 'details' dialog text on this same thread.
-        SetDlgItemText(Context->DetailsHandle, IDC_ZDEDICATEDCOMMITTED_V, PhaFormatSize(Context->GpuStatistics.DedicatedCommitted, -1)->Buffer);
-        SetDlgItemText(Context->DetailsHandle, IDC_ZSHAREDCOMMITTED_V, PhaFormatSize(Context->GpuStatistics.SharedCommitted, -1)->Buffer);
-        SetDlgItemText(Context->DetailsHandle, IDC_ZTOTALALLOCATED_V, PhaFormatSize(Context->GpuStatistics.BytesAllocated, -1)->Buffer);
-        SetDlgItemText(Context->DetailsHandle, IDC_ZTOTALRESERVED_V, PhaFormatSize(Context->GpuStatistics.BytesReserved, -1)->Buffer);
-        SetDlgItemText(Context->DetailsHandle, IDC_ZWRITECOMBINEDALLOCATED_V, PhaFormatSize(Context->GpuStatistics.WriteCombinedBytesAllocated, -1)->Buffer);
-        SetDlgItemText(Context->DetailsHandle, IDC_ZWRITECOMBINEDRESERVED_V, PhaFormatSize(Context->GpuStatistics.WriteCombinedBytesReserved, -1)->Buffer);
-        SetDlgItemText(Context->DetailsHandle, IDC_ZCACHEDALLOCATED_V, PhaFormatSize(Context->GpuStatistics.CachedBytesAllocated, -1)->Buffer);
-        SetDlgItemText(Context->DetailsHandle, IDC_ZCACHEDRESERVED_V, PhaFormatSize(Context->GpuStatistics.CachedBytesReserved, -1)->Buffer);
-        SetDlgItemText(Context->DetailsHandle, IDC_ZSECTIONALLOCATED_V, PhaFormatSize(Context->GpuStatistics.SectionBytesAllocated, -1)->Buffer);
-        SetDlgItemText(Context->DetailsHandle, IDC_ZSECTIONRESERVED_V, PhaFormatSize(Context->GpuStatistics.SectionBytesReserved, -1)->Buffer);
+        PhSetDialogItemText(Context->DetailsHandle, IDC_ZDEDICATEDCOMMITTED_V, PhaFormatSize(Context->GpuStatistics.DedicatedCommitted, -1)->Buffer);
+        PhSetDialogItemText(Context->DetailsHandle, IDC_ZSHAREDCOMMITTED_V, PhaFormatSize(Context->GpuStatistics.SharedCommitted, -1)->Buffer);
+        PhSetDialogItemText(Context->DetailsHandle, IDC_ZTOTALALLOCATED_V, PhaFormatSize(Context->GpuStatistics.BytesAllocated, -1)->Buffer);
+        PhSetDialogItemText(Context->DetailsHandle, IDC_ZTOTALRESERVED_V, PhaFormatSize(Context->GpuStatistics.BytesReserved, -1)->Buffer);
+        PhSetDialogItemText(Context->DetailsHandle, IDC_ZWRITECOMBINEDALLOCATED_V, PhaFormatSize(Context->GpuStatistics.WriteCombinedBytesAllocated, -1)->Buffer);
+        PhSetDialogItemText(Context->DetailsHandle, IDC_ZWRITECOMBINEDRESERVED_V, PhaFormatSize(Context->GpuStatistics.WriteCombinedBytesReserved, -1)->Buffer);
+        PhSetDialogItemText(Context->DetailsHandle, IDC_ZCACHEDALLOCATED_V, PhaFormatSize(Context->GpuStatistics.CachedBytesAllocated, -1)->Buffer);
+        PhSetDialogItemText(Context->DetailsHandle, IDC_ZCACHEDRESERVED_V, PhaFormatSize(Context->GpuStatistics.CachedBytesReserved, -1)->Buffer);
+        PhSetDialogItemText(Context->DetailsHandle, IDC_ZSECTIONALLOCATED_V, PhaFormatSize(Context->GpuStatistics.SectionBytesAllocated, -1)->Buffer);
+        PhSetDialogItemText(Context->DetailsHandle, IDC_ZSECTIONRESERVED_V, PhaFormatSize(Context->GpuStatistics.SectionBytesReserved, -1)->Buffer);
     }
 }
 

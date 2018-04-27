@@ -101,61 +101,61 @@ static VOID PhpUpdateMemoryListInfo(
             repurposedPageCount += memoryListInfo.RepurposedPagesByPriority[i];
         }
 
-        SetDlgItemText(hwndDlg, IDC_ZLISTZEROED_V, PhaFormatSize((ULONG64)memoryListInfo.ZeroPageCount * PAGE_SIZE, -1)->Buffer);
-        SetDlgItemText(hwndDlg, IDC_ZLISTFREE_V, PhaFormatSize((ULONG64)memoryListInfo.FreePageCount * PAGE_SIZE, -1)->Buffer);
-        SetDlgItemText(hwndDlg, IDC_ZLISTMODIFIED_V, PhaFormatSize((ULONG64)memoryListInfo.ModifiedPageCount * PAGE_SIZE, -1)->Buffer);
-        SetDlgItemText(hwndDlg, IDC_ZLISTMODIFIEDNOWRITE_V, PhaFormatSize((ULONG64)memoryListInfo.ModifiedNoWritePageCount * PAGE_SIZE, -1)->Buffer);
-        SetDlgItemText(hwndDlg, IDC_ZLISTBAD_V, PhaFormatSize((ULONG64)memoryListInfo.BadPageCount * PAGE_SIZE, -1)->Buffer);
-        SetDlgItemText(hwndDlg, IDC_ZLISTSTANDBY_V, PhaFormatSize((ULONG64)standbyPageCount * PAGE_SIZE, -1)->Buffer);
-        SetDlgItemText(hwndDlg, IDC_ZLISTSTANDBY0_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[0] * PAGE_SIZE, -1)->Buffer);
-        SetDlgItemText(hwndDlg, IDC_ZLISTSTANDBY1_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[1] * PAGE_SIZE, -1)->Buffer);
-        SetDlgItemText(hwndDlg, IDC_ZLISTSTANDBY2_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[2] * PAGE_SIZE, -1)->Buffer);
-        SetDlgItemText(hwndDlg, IDC_ZLISTSTANDBY3_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[3] * PAGE_SIZE, -1)->Buffer);
-        SetDlgItemText(hwndDlg, IDC_ZLISTSTANDBY4_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[4] * PAGE_SIZE, -1)->Buffer);
-        SetDlgItemText(hwndDlg, IDC_ZLISTSTANDBY5_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[5] * PAGE_SIZE, -1)->Buffer);
-        SetDlgItemText(hwndDlg, IDC_ZLISTSTANDBY6_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[6] * PAGE_SIZE, -1)->Buffer);
-        SetDlgItemText(hwndDlg, IDC_ZLISTSTANDBY7_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[7] * PAGE_SIZE, -1)->Buffer);
-        SetDlgItemText(hwndDlg, IDC_ZLISTREPURPOSED_V, PhaFormatSize((ULONG64)repurposedPageCount * PAGE_SIZE, -1)->Buffer);
-        SetDlgItemText(hwndDlg, IDC_ZLISTREPURPOSED0_V, PhaFormatSize((ULONG64)memoryListInfo.RepurposedPagesByPriority[0] * PAGE_SIZE, -1)->Buffer);
-        SetDlgItemText(hwndDlg, IDC_ZLISTREPURPOSED1_V, PhaFormatSize((ULONG64)memoryListInfo.RepurposedPagesByPriority[1] * PAGE_SIZE, -1)->Buffer);
-        SetDlgItemText(hwndDlg, IDC_ZLISTREPURPOSED2_V, PhaFormatSize((ULONG64)memoryListInfo.RepurposedPagesByPriority[2] * PAGE_SIZE, -1)->Buffer);
-        SetDlgItemText(hwndDlg, IDC_ZLISTREPURPOSED3_V, PhaFormatSize((ULONG64)memoryListInfo.RepurposedPagesByPriority[3] * PAGE_SIZE, -1)->Buffer);
-        SetDlgItemText(hwndDlg, IDC_ZLISTREPURPOSED4_V, PhaFormatSize((ULONG64)memoryListInfo.RepurposedPagesByPriority[4] * PAGE_SIZE, -1)->Buffer);
-        SetDlgItemText(hwndDlg, IDC_ZLISTREPURPOSED5_V, PhaFormatSize((ULONG64)memoryListInfo.RepurposedPagesByPriority[5] * PAGE_SIZE, -1)->Buffer);
-        SetDlgItemText(hwndDlg, IDC_ZLISTREPURPOSED6_V, PhaFormatSize((ULONG64)memoryListInfo.RepurposedPagesByPriority[6] * PAGE_SIZE, -1)->Buffer);
-        SetDlgItemText(hwndDlg, IDC_ZLISTREPURPOSED7_V, PhaFormatSize((ULONG64)memoryListInfo.RepurposedPagesByPriority[7] * PAGE_SIZE, -1)->Buffer);
+        PhSetDialogItemText(hwndDlg, IDC_ZLISTZEROED_V, PhaFormatSize((ULONG64)memoryListInfo.ZeroPageCount * PAGE_SIZE, -1)->Buffer);
+        PhSetDialogItemText(hwndDlg, IDC_ZLISTFREE_V, PhaFormatSize((ULONG64)memoryListInfo.FreePageCount * PAGE_SIZE, -1)->Buffer);
+        PhSetDialogItemText(hwndDlg, IDC_ZLISTMODIFIED_V, PhaFormatSize((ULONG64)memoryListInfo.ModifiedPageCount * PAGE_SIZE, -1)->Buffer);
+        PhSetDialogItemText(hwndDlg, IDC_ZLISTMODIFIEDNOWRITE_V, PhaFormatSize((ULONG64)memoryListInfo.ModifiedNoWritePageCount * PAGE_SIZE, -1)->Buffer);
+        PhSetDialogItemText(hwndDlg, IDC_ZLISTBAD_V, PhaFormatSize((ULONG64)memoryListInfo.BadPageCount * PAGE_SIZE, -1)->Buffer);
+        PhSetDialogItemText(hwndDlg, IDC_ZLISTSTANDBY_V, PhaFormatSize((ULONG64)standbyPageCount * PAGE_SIZE, -1)->Buffer);
+        PhSetDialogItemText(hwndDlg, IDC_ZLISTSTANDBY0_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[0] * PAGE_SIZE, -1)->Buffer);
+        PhSetDialogItemText(hwndDlg, IDC_ZLISTSTANDBY1_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[1] * PAGE_SIZE, -1)->Buffer);
+        PhSetDialogItemText(hwndDlg, IDC_ZLISTSTANDBY2_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[2] * PAGE_SIZE, -1)->Buffer);
+        PhSetDialogItemText(hwndDlg, IDC_ZLISTSTANDBY3_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[3] * PAGE_SIZE, -1)->Buffer);
+        PhSetDialogItemText(hwndDlg, IDC_ZLISTSTANDBY4_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[4] * PAGE_SIZE, -1)->Buffer);
+        PhSetDialogItemText(hwndDlg, IDC_ZLISTSTANDBY5_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[5] * PAGE_SIZE, -1)->Buffer);
+        PhSetDialogItemText(hwndDlg, IDC_ZLISTSTANDBY6_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[6] * PAGE_SIZE, -1)->Buffer);
+        PhSetDialogItemText(hwndDlg, IDC_ZLISTSTANDBY7_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[7] * PAGE_SIZE, -1)->Buffer);
+        PhSetDialogItemText(hwndDlg, IDC_ZLISTREPURPOSED_V, PhaFormatSize((ULONG64)repurposedPageCount * PAGE_SIZE, -1)->Buffer);
+        PhSetDialogItemText(hwndDlg, IDC_ZLISTREPURPOSED0_V, PhaFormatSize((ULONG64)memoryListInfo.RepurposedPagesByPriority[0] * PAGE_SIZE, -1)->Buffer);
+        PhSetDialogItemText(hwndDlg, IDC_ZLISTREPURPOSED1_V, PhaFormatSize((ULONG64)memoryListInfo.RepurposedPagesByPriority[1] * PAGE_SIZE, -1)->Buffer);
+        PhSetDialogItemText(hwndDlg, IDC_ZLISTREPURPOSED2_V, PhaFormatSize((ULONG64)memoryListInfo.RepurposedPagesByPriority[2] * PAGE_SIZE, -1)->Buffer);
+        PhSetDialogItemText(hwndDlg, IDC_ZLISTREPURPOSED3_V, PhaFormatSize((ULONG64)memoryListInfo.RepurposedPagesByPriority[3] * PAGE_SIZE, -1)->Buffer);
+        PhSetDialogItemText(hwndDlg, IDC_ZLISTREPURPOSED4_V, PhaFormatSize((ULONG64)memoryListInfo.RepurposedPagesByPriority[4] * PAGE_SIZE, -1)->Buffer);
+        PhSetDialogItemText(hwndDlg, IDC_ZLISTREPURPOSED5_V, PhaFormatSize((ULONG64)memoryListInfo.RepurposedPagesByPriority[5] * PAGE_SIZE, -1)->Buffer);
+        PhSetDialogItemText(hwndDlg, IDC_ZLISTREPURPOSED6_V, PhaFormatSize((ULONG64)memoryListInfo.RepurposedPagesByPriority[6] * PAGE_SIZE, -1)->Buffer);
+        PhSetDialogItemText(hwndDlg, IDC_ZLISTREPURPOSED7_V, PhaFormatSize((ULONG64)memoryListInfo.RepurposedPagesByPriority[7] * PAGE_SIZE, -1)->Buffer);
 
         if (WindowsVersion >= WINDOWS_8)
-            SetDlgItemText(hwndDlg, IDC_ZLISTMODIFIEDPAGEFILE_V, PhaFormatSize((ULONG64)memoryListInfo.ModifiedPageCountPageFile * PAGE_SIZE, -1)->Buffer);
+            PhSetDialogItemText(hwndDlg, IDC_ZLISTMODIFIEDPAGEFILE_V, PhaFormatSize((ULONG64)memoryListInfo.ModifiedPageCountPageFile * PAGE_SIZE, -1)->Buffer);
         else
-            SetDlgItemText(hwndDlg, IDC_ZLISTMODIFIEDPAGEFILE_V, L"N/A");
+            PhSetDialogItemText(hwndDlg, IDC_ZLISTMODIFIEDPAGEFILE_V, L"N/A");
     }
     else
     {
-        SetDlgItemText(hwndDlg, IDC_ZLISTZEROED_V, L"Unknown");
-        SetDlgItemText(hwndDlg, IDC_ZLISTFREE_V, L"Unknown");
-        SetDlgItemText(hwndDlg, IDC_ZLISTMODIFIED_V, L"Unknown");
-        SetDlgItemText(hwndDlg, IDC_ZLISTMODIFIEDNOWRITE_V, L"Unknown");
-        SetDlgItemText(hwndDlg, IDC_ZLISTMODIFIEDPAGEFILE_V, L"Unknown");
-        SetDlgItemText(hwndDlg, IDC_ZLISTBAD_V, L"Unknown");
-        SetDlgItemText(hwndDlg, IDC_ZLISTSTANDBY_V, L"Unknown");
-        SetDlgItemText(hwndDlg, IDC_ZLISTSTANDBY0_V, L"Unknown");
-        SetDlgItemText(hwndDlg, IDC_ZLISTSTANDBY1_V, L"Unknown");
-        SetDlgItemText(hwndDlg, IDC_ZLISTSTANDBY2_V, L"Unknown");
-        SetDlgItemText(hwndDlg, IDC_ZLISTSTANDBY3_V, L"Unknown");
-        SetDlgItemText(hwndDlg, IDC_ZLISTSTANDBY4_V, L"Unknown");
-        SetDlgItemText(hwndDlg, IDC_ZLISTSTANDBY5_V, L"Unknown");
-        SetDlgItemText(hwndDlg, IDC_ZLISTSTANDBY6_V, L"Unknown");
-        SetDlgItemText(hwndDlg, IDC_ZLISTSTANDBY7_V, L"Unknown");
-        SetDlgItemText(hwndDlg, IDC_ZLISTREPURPOSED_V, L"Unknown");
-        SetDlgItemText(hwndDlg, IDC_ZLISTREPURPOSED0_V, L"Unknown");
-        SetDlgItemText(hwndDlg, IDC_ZLISTREPURPOSED1_V, L"Unknown");
-        SetDlgItemText(hwndDlg, IDC_ZLISTREPURPOSED2_V, L"Unknown");
-        SetDlgItemText(hwndDlg, IDC_ZLISTREPURPOSED3_V, L"Unknown");
-        SetDlgItemText(hwndDlg, IDC_ZLISTREPURPOSED4_V, L"Unknown");
-        SetDlgItemText(hwndDlg, IDC_ZLISTREPURPOSED5_V, L"Unknown");
-        SetDlgItemText(hwndDlg, IDC_ZLISTREPURPOSED6_V, L"Unknown");
-        SetDlgItemText(hwndDlg, IDC_ZLISTREPURPOSED7_V, L"Unknown");
+        PhSetDialogItemText(hwndDlg, IDC_ZLISTZEROED_V, L"Unknown");
+        PhSetDialogItemText(hwndDlg, IDC_ZLISTFREE_V, L"Unknown");
+        PhSetDialogItemText(hwndDlg, IDC_ZLISTMODIFIED_V, L"Unknown");
+        PhSetDialogItemText(hwndDlg, IDC_ZLISTMODIFIEDNOWRITE_V, L"Unknown");
+        PhSetDialogItemText(hwndDlg, IDC_ZLISTMODIFIEDPAGEFILE_V, L"Unknown");
+        PhSetDialogItemText(hwndDlg, IDC_ZLISTBAD_V, L"Unknown");
+        PhSetDialogItemText(hwndDlg, IDC_ZLISTSTANDBY_V, L"Unknown");
+        PhSetDialogItemText(hwndDlg, IDC_ZLISTSTANDBY0_V, L"Unknown");
+        PhSetDialogItemText(hwndDlg, IDC_ZLISTSTANDBY1_V, L"Unknown");
+        PhSetDialogItemText(hwndDlg, IDC_ZLISTSTANDBY2_V, L"Unknown");
+        PhSetDialogItemText(hwndDlg, IDC_ZLISTSTANDBY3_V, L"Unknown");
+        PhSetDialogItemText(hwndDlg, IDC_ZLISTSTANDBY4_V, L"Unknown");
+        PhSetDialogItemText(hwndDlg, IDC_ZLISTSTANDBY5_V, L"Unknown");
+        PhSetDialogItemText(hwndDlg, IDC_ZLISTSTANDBY6_V, L"Unknown");
+        PhSetDialogItemText(hwndDlg, IDC_ZLISTSTANDBY7_V, L"Unknown");
+        PhSetDialogItemText(hwndDlg, IDC_ZLISTREPURPOSED_V, L"Unknown");
+        PhSetDialogItemText(hwndDlg, IDC_ZLISTREPURPOSED0_V, L"Unknown");
+        PhSetDialogItemText(hwndDlg, IDC_ZLISTREPURPOSED1_V, L"Unknown");
+        PhSetDialogItemText(hwndDlg, IDC_ZLISTREPURPOSED2_V, L"Unknown");
+        PhSetDialogItemText(hwndDlg, IDC_ZLISTREPURPOSED3_V, L"Unknown");
+        PhSetDialogItemText(hwndDlg, IDC_ZLISTREPURPOSED4_V, L"Unknown");
+        PhSetDialogItemText(hwndDlg, IDC_ZLISTREPURPOSED5_V, L"Unknown");
+        PhSetDialogItemText(hwndDlg, IDC_ZLISTREPURPOSED6_V, L"Unknown");
+        PhSetDialogItemText(hwndDlg, IDC_ZLISTREPURPOSED7_V, L"Unknown");
     }
 }
 

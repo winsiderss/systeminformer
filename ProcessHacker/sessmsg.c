@@ -85,14 +85,14 @@ INT_PTR CALLBACK PhpSessionSendMessageDlgProc(
 
             if (PhCurrentUserName)
             {
-                SetDlgItemText(
+                PhSetDialogItemText(
                     hwndDlg,
                     IDC_TITLE,
                     PhaFormatString(L"Message from %s", PhCurrentUserName->Buffer)->Buffer
                     );
             }
 
-            SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)GetDlgItem(hwndDlg, IDC_TEXT), TRUE);
+            PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDC_TEXT));
         }
         break;
     case WM_DESTROY:

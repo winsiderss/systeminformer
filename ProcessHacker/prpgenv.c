@@ -511,10 +511,10 @@ INT_PTR CALLBACK PhpEditEnvDlgProc(
             context->MinimumSize.bottom = 140;
             MapDialogRect(hwndDlg, &context->MinimumSize);
 
-            SetDlgItemText(hwndDlg, IDC_NAME, context->Name);
-            SetDlgItemText(hwndDlg, IDC_VALUE, context->Value ? context->Value : L"");
+            PhSetDialogItemText(hwndDlg, IDC_NAME, context->Name);
+            PhSetDialogItemText(hwndDlg, IDC_VALUE, context->Value ? context->Value : L"");
 
-            SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)GetDlgItem(hwndDlg, IDCANCEL), TRUE);
+            PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDCANCEL));
         }
         break;
     case WM_DESTROY:
@@ -600,7 +600,7 @@ INT_PTR CALLBACK PhpEditEnvDlgProc(
                 {
                     if (HIWORD(wParam) == EN_CHANGE)
                     {
-                        EnableWindow(GetDlgItem(hwndDlg, IDOK), GetWindowTextLength(GetDlgItem(hwndDlg, IDC_NAME)) > 0);
+                        EnableWindow(GetDlgItem(hwndDlg, IDOK), PhGetWindowTextLength(GetDlgItem(hwndDlg, IDC_NAME)) > 0);
                     }
                 }
                 break;

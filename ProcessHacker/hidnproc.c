@@ -73,8 +73,8 @@ PPH_PROCESS_ITEM PhpCreateProcessItemForHiddenProcess(
     _In_ PPH_HIDDEN_PROCESS_ENTRY Entry
     );
 
-HWND PhHiddenProcessesWindowHandle = NULL;
-HWND PhHiddenProcessesListViewHandle = NULL;
+static HWND PhHiddenProcessesWindowHandle = NULL;
+static HWND PhHiddenProcessesListViewHandle = NULL;
 static PH_LAYOUT_MANAGER WindowLayoutManager;
 static RECT MinimumSize;
 
@@ -132,22 +132,14 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
             PhHiddenProcessesListViewHandle = lvHandle = GetDlgItem(hwndDlg, IDC_PROCESSES);
 
             PhInitializeLayoutManager(&WindowLayoutManager, hwndDlg);
-            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_INTRO),
-                NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT | PH_LAYOUT_FORCE_INVALIDATE);
-            PhAddLayoutItem(&WindowLayoutManager, lvHandle,
-                NULL, PH_ANCHOR_ALL);
-            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_DESCRIPTION),
-                NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM | PH_LAYOUT_FORCE_INVALIDATE);
-            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_METHOD),
-                NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
-            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_TERMINATE),
-                NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
-            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_SAVE),
-                NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
-            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_SCAN),
-                NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
-            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDOK),
-                NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_INTRO), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT | PH_LAYOUT_FORCE_INVALIDATE);
+            PhAddLayoutItem(&WindowLayoutManager, lvHandle, NULL, PH_ANCHOR_ALL);
+            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_DESCRIPTION), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM | PH_LAYOUT_FORCE_INVALIDATE);
+            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_METHOD), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_TERMINATE), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_SAVE), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_SCAN), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
             MinimumSize.left = 0;
             MinimumSize.top = 0;
@@ -181,15 +173,10 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
         {
             PhSaveWindowPlacementToSetting(L"HiddenProcessesWindowPosition", L"HiddenProcessesWindowSize", hwndDlg);
             PhSaveListViewColumnsToSetting(L"HiddenProcessesListViewColumns", PhHiddenProcessesListViewHandle);
+
+            PhHiddenProcessesWindowHandle = NULL;
         }
         break;
-    case WM_CLOSE:
-        {
-            // Hide, don't close.
-            ShowWindow(hwndDlg, SW_HIDE);
-            SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, 0);
-        }
-        return TRUE;
     case WM_COMMAND:
         {
             switch (GET_WM_COMMAND_ID(wParam, lParam))
@@ -197,7 +184,7 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
             case IDCANCEL:
             case IDOK:
                 {
-                    SendMessage(hwndDlg, WM_CLOSE, 0, 0);
+                    EndDialog(hwndDlg, IDOK);
                 }
                 break;
             case IDC_SCAN:
@@ -245,7 +232,7 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
 
                     if (NT_SUCCESS(status))
                     {
-                        SetDlgItemText(hwndDlg, IDC_DESCRIPTION,
+                        PhSetDialogItemText(hwndDlg, IDC_DESCRIPTION,
                             PhaFormatString(L"%u hidden process(es), %u terminated process(es).",
                             NumberOfHiddenProcesses, NumberOfTerminatedProcesses)->Buffer
                             );

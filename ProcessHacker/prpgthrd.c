@@ -400,22 +400,22 @@ VOID PhpUpdateThreadDetails(
     {
         // These don't change...
 
-        SetDlgItemText(hwndDlg, IDC_STARTMODULE, PhGetStringOrEmpty(startModule));
+        PhSetDialogItemText(hwndDlg, IDC_STARTMODULE, PhGetStringOrEmpty(startModule));
         EnableWindow(GetDlgItem(hwndDlg, IDC_OPENSTARTMODULE), !!startModule);
 
-        SetDlgItemText(hwndDlg, IDC_STARTED, PhGetStringOrDefault(started, L"N/A"));
+        PhSetDialogItemText(hwndDlg, IDC_STARTED, PhGetStringOrDefault(started, L"N/A"));
     }
 
-    SetDlgItemText(hwndDlg, IDC_KERNELTIME, kernelTime);
-    SetDlgItemText(hwndDlg, IDC_USERTIME, userTime);
-    SetDlgItemText(hwndDlg, IDC_CONTEXTSWITCHES, PhGetStringOrDefault(contextSwitches, L"N/A"));
-    SetDlgItemText(hwndDlg, IDC_CYCLES, PhGetStringOrDefault(cycles, L"N/A"));
-    SetDlgItemText(hwndDlg, IDC_STATE, PhGetStringOrDefault(state, L"N/A"));
-    SetDlgItemText(hwndDlg, IDC_PRIORITY, priority);
-    SetDlgItemText(hwndDlg, IDC_BASEPRIORITY, basePriority);
-    SetDlgItemText(hwndDlg, IDC_IOPRIORITY, ioPriority);
-    SetDlgItemText(hwndDlg, IDC_PAGEPRIORITY, pagePriority);
-    SetDlgItemText(hwndDlg, IDC_IDEALPROCESSOR, idealProcessor);
+    PhSetDialogItemText(hwndDlg, IDC_KERNELTIME, kernelTime);
+    PhSetDialogItemText(hwndDlg, IDC_USERTIME, userTime);
+    PhSetDialogItemText(hwndDlg, IDC_CONTEXTSWITCHES, PhGetStringOrDefault(contextSwitches, L"N/A"));
+    PhSetDialogItemText(hwndDlg, IDC_CYCLES, PhGetStringOrDefault(cycles, L"N/A"));
+    PhSetDialogItemText(hwndDlg, IDC_STATE, PhGetStringOrDefault(state, L"N/A"));
+    PhSetDialogItemText(hwndDlg, IDC_PRIORITY, priority);
+    PhSetDialogItemText(hwndDlg, IDC_BASEPRIORITY, basePriority);
+    PhSetDialogItemText(hwndDlg, IDC_IOPRIORITY, ioPriority);
+    PhSetDialogItemText(hwndDlg, IDC_PAGEPRIORITY, pagePriority);
+    PhSetDialogItemText(hwndDlg, IDC_IDEALPROCESSOR, idealProcessor);
 }
 
 VOID PhShowThreadContextMenu(

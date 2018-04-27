@@ -851,7 +851,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                 EnableWindow(context->TypeComboBoxWindowHandle, FALSE);
             }
 
-            SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)context->ProgramComboBoxWindowHandle, TRUE);
+            PhSetDialogFocus(hwndDlg, context->ProgramComboBoxWindowHandle);
             Edit_SetSel(context->ProgramComboBoxWindowHandle, -1, -1);
 
             //if (!PhGetOwnTokenAttributes().Elevated)

@@ -315,7 +315,7 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
 
             CustomizeLoadStatusBarItems(context);
 
-            SendMessage(context->DialogHandle, WM_NEXTDLGCTL, (WPARAM)context->CurrentListHandle, TRUE);
+            PhSetDialogFocus(context->DialogHandle, context->CurrentListHandle);
         }
         break;
     case WM_DESTROY:

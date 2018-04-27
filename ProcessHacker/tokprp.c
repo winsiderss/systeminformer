@@ -589,8 +589,8 @@ INT_PTR CALLBACK PhpTokenPageProc(
             PhAddListViewGroup(tokenPageContext->ListViewHandle, PH_PROCESS_TOKEN_CATEGORY_GROUPS, L"Groups");
             ListView_SetImageList(tokenPageContext->ListViewHandle, tokenPageContext->ListViewImageList, LVSIL_SMALL);
 
-            SetDlgItemText(hwndDlg, IDC_USER, L"Unknown");
-            SetDlgItemText(hwndDlg, IDC_USERSID, L"Unknown");
+            PhSetDialogItemText(hwndDlg, IDC_USER, L"Unknown");
+            PhSetDialogItemText(hwndDlg, IDC_USERSID, L"Unknown");
 
             if (NT_SUCCESS(tokenPageContext->OpenObject(
                 &tokenHandle,
@@ -613,13 +613,13 @@ INT_PTR CALLBACK PhpTokenPageProc(
                 {
                     if (fullUserName = PhGetSidFullName(tokenUser->User.Sid, TRUE, NULL))
                     {
-                        SetDlgItemText(hwndDlg, IDC_USER, fullUserName->Buffer);
+                        PhSetDialogItemText(hwndDlg, IDC_USER, fullUserName->Buffer);
                         PhDereferenceObject(fullUserName);
                     }
 
                     if (stringUserSid = PhSidToStringSid(tokenUser->User.Sid))
                     {
-                        SetDlgItemText(hwndDlg, IDC_USERSID, stringUserSid->Buffer);
+                        PhSetDialogItemText(hwndDlg, IDC_USERSID, stringUserSid->Buffer);
                         PhDereferenceObject(stringUserSid);
                     }
 
@@ -627,10 +627,10 @@ INT_PTR CALLBACK PhpTokenPageProc(
                 }
 
                 if (NT_SUCCESS(PhGetTokenSessionId(tokenHandle, &sessionId)))
-                    SetDlgItemInt(hwndDlg, IDC_SESSIONID, sessionId, FALSE);
+                    PhSetDialogItemValue(hwndDlg, IDC_SESSIONID, sessionId, FALSE);
 
                 if (NT_SUCCESS(PhGetTokenElevationType(tokenHandle, &elevationType)))
-                    SetDlgItemText(hwndDlg, IDC_ELEVATED, PhGetElevationTypeString(elevationType));
+                    PhSetDialogItemText(hwndDlg, IDC_ELEVATED, PhGetElevationTypeString(elevationType));
 
                 if (NT_SUCCESS(PhGetTokenIsVirtualizationAllowed(tokenHandle, &isVirtualizationAllowed)))
                 {
@@ -638,7 +638,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                     {
                         if (NT_SUCCESS(PhGetTokenIsVirtualizationEnabled(tokenHandle, &isVirtualizationEnabled)))
                         {
-                            SetDlgItemText(
+                            PhSetDialogItemText(
                                 hwndDlg,
                                 IDC_VIRTUALIZED,
                                 isVirtualizationEnabled ? L"Yes" : L"No"
@@ -647,7 +647,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                     }
                     else
                     {
-                        SetDlgItemText(hwndDlg, IDC_VIRTUALIZED, L"Not allowed");
+                        PhSetDialogItemText(hwndDlg, IDC_VIRTUALIZED, L"Not allowed");
                     }
                 }
 
@@ -672,7 +672,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                         PPH_STRING packageFamilyName;
 
                         packageFamilyName = PhConcatStrings2(appContainerName->Buffer, L" (APP_CONTAINER)");
-                        SetDlgItemText(hwndDlg, IDC_USER, packageFamilyName->Buffer);
+                        PhSetDialogItemText(hwndDlg, IDC_USER, packageFamilyName->Buffer);
 
                         PhDereferenceObject(packageFamilyName);
                         PhDereferenceObject(appContainerName);
@@ -680,7 +680,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
 
                     if (appContainerSid)
                     {
-                        SetDlgItemText(hwndDlg, IDC_USERSID, appContainerSid->Buffer);
+                        PhSetDialogItemText(hwndDlg, IDC_USERSID, appContainerSid->Buffer);
                         PhDereferenceObject(appContainerSid);
                     }
                 }
@@ -1358,20 +1358,20 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
                 NtClose(tokenHandle);
             }
 
-            SetDlgItemText(hwndDlg, IDC_USER, PhGetStringOrDefault(tokenUserName, L"Unknown"));
-            SetDlgItemText(hwndDlg, IDC_USERSID, PhGetStringOrDefault(tokenUserSid, L"Unknown"));
-            SetDlgItemText(hwndDlg, IDC_OWNER, PhGetStringOrDefault(tokenOwnerName, L"Unknown"));
-            SetDlgItemText(hwndDlg, IDC_PRIMARYGROUP, PhGetStringOrDefault(tokenPrimaryGroupName, L"Unknown"));
+            PhSetDialogItemText(hwndDlg, IDC_USER, PhGetStringOrDefault(tokenUserName, L"Unknown"));
+            PhSetDialogItemText(hwndDlg, IDC_USERSID, PhGetStringOrDefault(tokenUserSid, L"Unknown"));
+            PhSetDialogItemText(hwndDlg, IDC_OWNER, PhGetStringOrDefault(tokenOwnerName, L"Unknown"));
+            PhSetDialogItemText(hwndDlg, IDC_PRIMARYGROUP, PhGetStringOrDefault(tokenPrimaryGroupName, L"Unknown"));
 
             if (tokenSessionId != -1)
-                SetDlgItemInt(hwndDlg, IDC_SESSIONID, tokenSessionId, FALSE);
+                PhSetDialogItemValue(hwndDlg, IDC_SESSIONID, tokenSessionId, FALSE);
             else
-                SetDlgItemText(hwndDlg, IDC_SESSIONID, L"Unknown");
+                PhSetDialogItemText(hwndDlg, IDC_SESSIONID, L"Unknown");
 
-            SetDlgItemText(hwndDlg, IDC_ELEVATED, tokenElevated);
-            SetDlgItemText(hwndDlg, IDC_VIRTUALIZATION, tokenVirtualization);
-            SetDlgItemText(hwndDlg, IDC_SOURCENAME, tokenSourceName);
-            SetDlgItemText(hwndDlg, IDC_SOURCELUID, tokenSourceLuid);
+            PhSetDialogItemText(hwndDlg, IDC_ELEVATED, tokenElevated);
+            PhSetDialogItemText(hwndDlg, IDC_VIRTUALIZATION, tokenVirtualization);
+            PhSetDialogItemText(hwndDlg, IDC_SOURCENAME, tokenSourceName);
+            PhSetDialogItemText(hwndDlg, IDC_SOURCELUID, tokenSourceLuid);
 
             if (!hasLinkedToken)
                 ShowWindow(GetDlgItem(hwndDlg, IDC_LINKEDTOKEN), SW_HIDE);
@@ -1505,12 +1505,12 @@ INT_PTR CALLBACK PhpTokenAdvancedPageProc(
                 NtClose(tokenHandle);
             }
 
-            SetDlgItemText(hwndDlg, IDC_TYPE, tokenType);
-            SetDlgItemText(hwndDlg, IDC_IMPERSONATIONLEVEL, tokenImpersonationLevel);
-            SetDlgItemText(hwndDlg, IDC_TOKENLUID, tokenLuid);
-            SetDlgItemText(hwndDlg, IDC_AUTHENTICATIONLUID, authenticationLuid);
-            SetDlgItemText(hwndDlg, IDC_MEMORYUSED, PhGetStringOrDefault(memoryUsed, L"Unknown"));
-            SetDlgItemText(hwndDlg, IDC_MEMORYAVAILABLE, PhGetStringOrDefault(memoryAvailable, L"Unknown"));
+            PhSetDialogItemText(hwndDlg, IDC_TYPE, tokenType);
+            PhSetDialogItemText(hwndDlg, IDC_IMPERSONATIONLEVEL, tokenImpersonationLevel);
+            PhSetDialogItemText(hwndDlg, IDC_TOKENLUID, tokenLuid);
+            PhSetDialogItemText(hwndDlg, IDC_AUTHENTICATIONLUID, authenticationLuid);
+            PhSetDialogItemText(hwndDlg, IDC_MEMORYUSED, PhGetStringOrDefault(memoryUsed, L"Unknown"));
+            PhSetDialogItemText(hwndDlg, IDC_MEMORYAVAILABLE, PhGetStringOrDefault(memoryAvailable, L"Unknown"));
         }
         break;
     }

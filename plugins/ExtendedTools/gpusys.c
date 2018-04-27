@@ -180,7 +180,7 @@ INT_PTR CALLBACK EtpGpuDialogProc(
             SendMessage(GetDlgItem(hwndDlg, IDC_TITLE), WM_SETFONT, (WPARAM)GpuSection->Parameters->LargeFont, FALSE);
             SendMessage(GetDlgItem(hwndDlg, IDC_GPUNAME), WM_SETFONT, (WPARAM)GpuSection->Parameters->MediumFont, FALSE);
 
-            SetDlgItemText(hwndDlg, IDC_GPUNAME, ((PPH_STRING)PH_AUTO(EtpGetGpuNameString()))->Buffer);
+            PhSetDialogItemText(hwndDlg, IDC_GPUNAME, ((PPH_STRING)PH_AUTO(EtpGetGpuNameString()))->Buffer);
 
             GpuPanel = CreateDialog(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_SYSINFO_GPUPANEL), hwndDlg, EtpGpuPanelDialogProc);
             ShowWindow(GpuPanel, SW_SHOW);
@@ -633,11 +633,11 @@ VOID EtpUpdateGpuPanel(
     VOID
     )
 {
-    SetDlgItemText(GpuPanel, IDC_ZDEDICATEDCURRENT_V, PhaFormatSize(EtGpuDedicatedUsage, -1)->Buffer);
-    SetDlgItemText(GpuPanel, IDC_ZDEDICATEDLIMIT_V, PhaFormatSize(EtGpuDedicatedLimit, -1)->Buffer);
+    PhSetDialogItemText(GpuPanel, IDC_ZDEDICATEDCURRENT_V, PhaFormatSize(EtGpuDedicatedUsage, -1)->Buffer);
+    PhSetDialogItemText(GpuPanel, IDC_ZDEDICATEDLIMIT_V, PhaFormatSize(EtGpuDedicatedLimit, -1)->Buffer);
 
-    SetDlgItemText(GpuPanel, IDC_ZSHAREDCURRENT_V, PhaFormatSize(EtGpuSharedUsage, -1)->Buffer);
-    SetDlgItemText(GpuPanel, IDC_ZSHAREDLIMIT_V, PhaFormatSize(EtGpuSharedLimit, -1)->Buffer);
+    PhSetDialogItemText(GpuPanel, IDC_ZSHAREDCURRENT_V, PhaFormatSize(EtGpuSharedUsage, -1)->Buffer);
+    PhSetDialogItemText(GpuPanel, IDC_ZSHAREDLIMIT_V, PhaFormatSize(EtGpuSharedLimit, -1)->Buffer);
 }
 
 PPH_PROCESS_RECORD EtpReferenceMaxNodeRecord(

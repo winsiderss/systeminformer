@@ -1215,7 +1215,7 @@ static INT_PTR CALLBACK PhpThreadStackProgressDlgProc(
             PhReferenceObject(message);
             PhReleaseQueuedLockExclusive(&context->StatusLock);
 
-            SetDlgItemText(hwndDlg, IDC_PROGRESSTEXT, message->Buffer);
+            PhSetDialogItemText(hwndDlg, IDC_PROGRESSTEXT, message->Buffer);
             PhDereferenceObject(message);
         }
         break;

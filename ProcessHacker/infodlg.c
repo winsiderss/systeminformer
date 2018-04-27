@@ -64,8 +64,6 @@ static INT_PTR CALLBACK PhpInformationDlgProc(
 
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
-            SetDlgItemText(hwndDlg, IDC_TEXT, context->String);
-
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_TEXT), NULL, PH_ANCHOR_ALL);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
@@ -85,7 +83,9 @@ static INT_PTR CALLBACK PhpInformationDlgProc(
                 MinimumSize.left = 0;
             }
 
-            SendMessage(hwndDlg, WM_NEXTDLGCTL, (LPARAM)GetDlgItem(hwndDlg, IDOK), TRUE);
+            PhSetDialogItemText(hwndDlg, IDC_TEXT, context->String);
+
+            PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDOK));
         }
         break;
     case WM_DESTROY:
@@ -126,7 +126,8 @@ static INT_PTR CALLBACK PhpInformationDlgProc(
                     }
 
                     PhSetClipboardString(hwndDlg, &string);
-                    SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)editControl, TRUE);
+
+                    PhSetDialogFocus(hwndDlg, editControl);
                 }
                 break;
             case IDC_SAVE:

@@ -233,7 +233,7 @@ INT_PTR CALLBACK PhpJobPageProc(
             PhAddListViewColumn(limitsLv, 1, 1, 1, LVCFMT_LEFT, 160, L"Value");
             PhLoadListViewColumnsFromSetting(L"JobListViewColumns", limitsLv);
 
-            SetDlgItemText(hwndDlg, IDC_NAME, L"Unknown");
+            PhSetDialogItemText(hwndDlg, IDC_NAME, L"Unknown");
 
             if (NT_SUCCESS(jobPageContext->OpenObject(
                 &jobHandle,
@@ -261,7 +261,7 @@ INT_PTR CALLBACK PhpJobPageProc(
                 if (jobObjectName && jobObjectName->Length == 0)
                     jobObjectName = NULL;
 
-                SetDlgItemText(hwndDlg, IDC_NAME, PhGetStringOrDefault(jobObjectName, L"(unnamed job)"));
+                PhSetDialogItemText(hwndDlg, IDC_NAME, PhGetStringOrDefault(jobObjectName, L"(unnamed job)"));
 
                 // Processes
                 PhpAddJobProcesses(hwndDlg, jobHandle);
@@ -562,47 +562,47 @@ static VOID PhpRefreshJobStatisticsInfo(
     {
         WCHAR timeSpan[PH_TIMESPAN_STR_LEN_1];
 
-        SetDlgItemInt(hwndDlg, IDC_ZACTIVEPROCESSES_V, basicAndIo.BasicInfo.ActiveProcesses, FALSE);
-        SetDlgItemInt(hwndDlg, IDC_ZTOTALPROCESSES_V, basicAndIo.BasicInfo.TotalProcesses, FALSE);
-        SetDlgItemInt(hwndDlg, IDC_ZTERMINATEDPROCESSES_V, basicAndIo.BasicInfo.TotalTerminatedProcesses, FALSE);
+        PhSetDialogItemValue(hwndDlg, IDC_ZACTIVEPROCESSES_V, basicAndIo.BasicInfo.ActiveProcesses, FALSE);
+        PhSetDialogItemValue(hwndDlg, IDC_ZTOTALPROCESSES_V, basicAndIo.BasicInfo.TotalProcesses, FALSE);
+        PhSetDialogItemValue(hwndDlg, IDC_ZTERMINATEDPROCESSES_V, basicAndIo.BasicInfo.TotalTerminatedProcesses, FALSE);
 
         PhPrintTimeSpan(timeSpan, basicAndIo.BasicInfo.TotalUserTime.QuadPart, PH_TIMESPAN_HMSM);
-        SetDlgItemText(hwndDlg, IDC_ZUSERTIME_V, timeSpan);
+        PhSetDialogItemText(hwndDlg, IDC_ZUSERTIME_V, timeSpan);
         PhPrintTimeSpan(timeSpan, basicAndIo.BasicInfo.TotalKernelTime.QuadPart, PH_TIMESPAN_HMSM);
-        SetDlgItemText(hwndDlg, IDC_ZKERNELTIME_V, timeSpan);
+        PhSetDialogItemText(hwndDlg, IDC_ZKERNELTIME_V, timeSpan);
         PhPrintTimeSpan(timeSpan, basicAndIo.BasicInfo.ThisPeriodTotalUserTime.QuadPart, PH_TIMESPAN_HMSM);
-        SetDlgItemText(hwndDlg, IDC_ZUSERTIMEPERIOD_V, timeSpan);
+        PhSetDialogItemText(hwndDlg, IDC_ZUSERTIMEPERIOD_V, timeSpan);
         PhPrintTimeSpan(timeSpan, basicAndIo.BasicInfo.ThisPeriodTotalKernelTime.QuadPart, PH_TIMESPAN_HMSM);
-        SetDlgItemText(hwndDlg, IDC_ZKERNELTIMEPERIOD_V, timeSpan);
+        PhSetDialogItemText(hwndDlg, IDC_ZKERNELTIMEPERIOD_V, timeSpan);
 
-        SetDlgItemText(hwndDlg, IDC_ZPAGEFAULTS_V, PhaFormatUInt64(basicAndIo.BasicInfo.TotalPageFaultCount, TRUE)->Buffer);
+        PhSetDialogItemText(hwndDlg, IDC_ZPAGEFAULTS_V, PhaFormatUInt64(basicAndIo.BasicInfo.TotalPageFaultCount, TRUE)->Buffer);
 
-        SetDlgItemText(hwndDlg, IDC_ZIOREADS_V, PhaFormatUInt64(basicAndIo.IoInfo.ReadOperationCount, TRUE)->Buffer);
-        SetDlgItemText(hwndDlg, IDC_ZIOREADBYTES_V, PhaFormatSize(basicAndIo.IoInfo.ReadTransferCount, -1)->Buffer);
-        SetDlgItemText(hwndDlg, IDC_ZIOWRITES_V, PhaFormatUInt64(basicAndIo.IoInfo.WriteOperationCount, TRUE)->Buffer);
-        SetDlgItemText(hwndDlg, IDC_ZIOWRITEBYTES_V, PhaFormatSize(basicAndIo.IoInfo.WriteTransferCount, -1)->Buffer);
-        SetDlgItemText(hwndDlg, IDC_ZIOOTHER_V, PhaFormatUInt64(basicAndIo.IoInfo.OtherOperationCount, TRUE)->Buffer);
-        SetDlgItemText(hwndDlg, IDC_ZIOOTHERBYTES_V, PhaFormatSize(basicAndIo.IoInfo.OtherTransferCount, -1)->Buffer);
+        PhSetDialogItemText(hwndDlg, IDC_ZIOREADS_V, PhaFormatUInt64(basicAndIo.IoInfo.ReadOperationCount, TRUE)->Buffer);
+        PhSetDialogItemText(hwndDlg, IDC_ZIOREADBYTES_V, PhaFormatSize(basicAndIo.IoInfo.ReadTransferCount, -1)->Buffer);
+        PhSetDialogItemText(hwndDlg, IDC_ZIOWRITES_V, PhaFormatUInt64(basicAndIo.IoInfo.WriteOperationCount, TRUE)->Buffer);
+        PhSetDialogItemText(hwndDlg, IDC_ZIOWRITEBYTES_V, PhaFormatSize(basicAndIo.IoInfo.WriteTransferCount, -1)->Buffer);
+        PhSetDialogItemText(hwndDlg, IDC_ZIOOTHER_V, PhaFormatUInt64(basicAndIo.IoInfo.OtherOperationCount, TRUE)->Buffer);
+        PhSetDialogItemText(hwndDlg, IDC_ZIOOTHERBYTES_V, PhaFormatSize(basicAndIo.IoInfo.OtherTransferCount, -1)->Buffer);
     }
     else
     {
-        SetDlgItemText(hwndDlg, IDC_ZACTIVEPROCESSES_V, L"Unknown");
-        SetDlgItemText(hwndDlg, IDC_ZTOTALPROCESSES_V, L"Unknown");
-        SetDlgItemText(hwndDlg, IDC_ZTERMINATEDPROCESSES_V, L"Unknown");
+        PhSetDialogItemText(hwndDlg, IDC_ZACTIVEPROCESSES_V, L"Unknown");
+        PhSetDialogItemText(hwndDlg, IDC_ZTOTALPROCESSES_V, L"Unknown");
+        PhSetDialogItemText(hwndDlg, IDC_ZTERMINATEDPROCESSES_V, L"Unknown");
 
-        SetDlgItemText(hwndDlg, IDC_ZUSERTIME_V, L"Unknown");
-        SetDlgItemText(hwndDlg, IDC_ZKERNELTIME_V, L"Unknown");
-        SetDlgItemText(hwndDlg, IDC_ZUSERTIMEPERIOD_V, L"Unknown");
-        SetDlgItemText(hwndDlg, IDC_ZKERNELTIMEPERIOD_V, L"Unknown");
+        PhSetDialogItemText(hwndDlg, IDC_ZUSERTIME_V, L"Unknown");
+        PhSetDialogItemText(hwndDlg, IDC_ZKERNELTIME_V, L"Unknown");
+        PhSetDialogItemText(hwndDlg, IDC_ZUSERTIMEPERIOD_V, L"Unknown");
+        PhSetDialogItemText(hwndDlg, IDC_ZKERNELTIMEPERIOD_V, L"Unknown");
 
-        SetDlgItemText(hwndDlg, IDC_ZPAGEFAULTS_V, L"Unknown");
+        PhSetDialogItemText(hwndDlg, IDC_ZPAGEFAULTS_V, L"Unknown");
 
-        SetDlgItemText(hwndDlg, IDC_ZIOREADS_V, L"Unknown");
-        SetDlgItemText(hwndDlg, IDC_ZIOREADBYTES_V, L"Unknown");
-        SetDlgItemText(hwndDlg, IDC_ZIOWRITES_V, L"Unknown");
-        SetDlgItemText(hwndDlg, IDC_ZIOWRITEBYTES_V, L"Unknown");
-        SetDlgItemText(hwndDlg, IDC_ZIOOTHER_V, L"Unknown");
-        SetDlgItemText(hwndDlg, IDC_ZIOOTHERBYTES_V, L"Unknown");
+        PhSetDialogItemText(hwndDlg, IDC_ZIOREADS_V, L"Unknown");
+        PhSetDialogItemText(hwndDlg, IDC_ZIOREADBYTES_V, L"Unknown");
+        PhSetDialogItemText(hwndDlg, IDC_ZIOWRITES_V, L"Unknown");
+        PhSetDialogItemText(hwndDlg, IDC_ZIOWRITEBYTES_V, L"Unknown");
+        PhSetDialogItemText(hwndDlg, IDC_ZIOOTHER_V, L"Unknown");
+        PhSetDialogItemText(hwndDlg, IDC_ZIOOTHERBYTES_V, L"Unknown");
     }
 
     if (jobHandle && NT_SUCCESS(PhGetJobExtendedLimits(
@@ -610,13 +610,13 @@ static VOID PhpRefreshJobStatisticsInfo(
         &extendedLimitInfo
         )))
     {
-        SetDlgItemText(hwndDlg, IDC_ZPEAKPROCESSUSAGE_V, PhaFormatSize(extendedLimitInfo.PeakProcessMemoryUsed, -1)->Buffer);
-        SetDlgItemText(hwndDlg, IDC_ZPEAKJOBUSAGE_V, PhaFormatSize(extendedLimitInfo.PeakJobMemoryUsed, -1)->Buffer);
+        PhSetDialogItemText(hwndDlg, IDC_ZPEAKPROCESSUSAGE_V, PhaFormatSize(extendedLimitInfo.PeakProcessMemoryUsed, -1)->Buffer);
+        PhSetDialogItemText(hwndDlg, IDC_ZPEAKJOBUSAGE_V, PhaFormatSize(extendedLimitInfo.PeakJobMemoryUsed, -1)->Buffer);
     }
     else
     {
-        SetDlgItemText(hwndDlg, IDC_ZPEAKPROCESSUSAGE_V, L"Unknown");
-        SetDlgItemText(hwndDlg, IDC_ZPEAKJOBUSAGE_V, L"Unknown");
+        PhSetDialogItemText(hwndDlg, IDC_ZPEAKPROCESSUSAGE_V, L"Unknown");
+        PhSetDialogItemText(hwndDlg, IDC_ZPEAKJOBUSAGE_V, L"Unknown");
     }
 
     if (jobHandle)

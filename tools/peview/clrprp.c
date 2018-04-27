@@ -89,7 +89,7 @@ INT_PTR CALLBACK PvpPeClrDlgProc(
                 L"%u.%u", 
                 PvImageCor20Header->MajorRuntimeVersion,
                 PvImageCor20Header->MinorRuntimeVersion);
-            SetDlgItemText(hwndDlg, IDC_RUNTIMEVERSION, string->Buffer);
+            PhSetDialogItemText(hwndDlg, IDC_RUNTIMEVERSION, string->Buffer);
 
             PhInitializeStringBuilder(&stringBuilder, 256);
 
@@ -118,7 +118,7 @@ INT_PTR CALLBACK PvpPeClrDlgProc(
             if (PhEndsWithString2(stringBuilder.String, L", ", FALSE))
                 PhRemoveEndStringBuilder(&stringBuilder, 2);
 
-            SetDlgItemText(hwndDlg, IDC_FLAGS, stringBuilder.String->Buffer);
+            PhSetDialogItemText(hwndDlg, IDC_FLAGS, stringBuilder.String->Buffer);
             PhDeleteStringBuilder(&stringBuilder);
 
             metaData = PhMappedImageRvaToVa(&PvMappedImage, PvImageCor20Header->MetaData.VirtualAddress, NULL);
@@ -138,7 +138,7 @@ INT_PTR CALLBACK PvpPeClrDlgProc(
             if (metaData && metaData->VersionLength != 0)
             {
                 string = PhZeroExtendToUtf16Ex((PCHAR)metaData->VersionString, metaData->VersionLength);
-                SetDlgItemText(hwndDlg, IDC_VERSIONSTRING, string->Buffer);
+                PhSetDialogItemText(hwndDlg, IDC_VERSIONSTRING, string->Buffer);
                 PhDereferenceObject(string);
 
                 {
@@ -175,7 +175,7 @@ INT_PTR CALLBACK PvpPeClrDlgProc(
             }
             else
             {
-                SetDlgItemText(hwndDlg, IDC_VERSIONSTRING, L"N/A");
+                PhSetDialogItemText(hwndDlg, IDC_VERSIONSTRING, L"N/A");
             }
         }
         break;

@@ -262,7 +262,7 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
                     SWP_NOACTIVATE | SWP_NOZORDER);
             }
 
-            SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)comboBoxHandle, TRUE);
+            PhSetDialogFocus(hwndDlg, comboBoxHandle);
         }
         break;
     case WM_DESTROY:

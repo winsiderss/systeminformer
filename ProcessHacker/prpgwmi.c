@@ -741,7 +741,7 @@ INT_PTR CALLBACK PhpProcessWmiProvidersDlgProc(
                                 PhSetClipboardString(hwndDlg, &string->sr);
                                 PhDereferenceObject(string);
 
-                                SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)context->ListViewHandle, TRUE);
+                                PhSetDialogFocus(hwndDlg, context->ListViewHandle);
                             }
                             break;
                         }

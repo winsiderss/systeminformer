@@ -86,7 +86,7 @@ INT_PTR CALLBACK TextDlgProc(
             else
                 PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
-            SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)GetDlgItem(hwndDlg, IDCANCEL), TRUE);
+            PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDCANCEL));
         }
         break;
     case WM_DESTROY:

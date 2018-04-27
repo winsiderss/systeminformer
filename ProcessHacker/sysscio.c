@@ -434,38 +434,38 @@ VOID PhSipUpdateIoPanel(
 
     if (IoTicked > 1)
     {
-        SetDlgItemText(IoPanel, IDC_ZREADSDELTA_V, PhaFormatUInt64(IoReadDelta.Delta, TRUE)->Buffer);
-        SetDlgItemText(IoPanel, IDC_ZWRITESDELTA_V, PhaFormatUInt64(IoWriteDelta.Delta, TRUE)->Buffer);
-        SetDlgItemText(IoPanel, IDC_ZOTHERDELTA_V, PhaFormatUInt64(IoOtherDelta.Delta, TRUE)->Buffer);
+        PhSetDialogItemText(IoPanel, IDC_ZREADSDELTA_V, PhaFormatUInt64(IoReadDelta.Delta, TRUE)->Buffer);
+        PhSetDialogItemText(IoPanel, IDC_ZWRITESDELTA_V, PhaFormatUInt64(IoWriteDelta.Delta, TRUE)->Buffer);
+        PhSetDialogItemText(IoPanel, IDC_ZOTHERDELTA_V, PhaFormatUInt64(IoOtherDelta.Delta, TRUE)->Buffer);
     }
     else
     {
-        SetDlgItemText(IoPanel, IDC_ZREADSDELTA_V, L"-");
-        SetDlgItemText(IoPanel, IDC_ZWRITESDELTA_V, L"-");
-        SetDlgItemText(IoPanel, IDC_ZOTHERDELTA_V, L"-");
+        PhSetDialogItemText(IoPanel, IDC_ZREADSDELTA_V, L"-");
+        PhSetDialogItemText(IoPanel, IDC_ZWRITESDELTA_V, L"-");
+        PhSetDialogItemText(IoPanel, IDC_ZOTHERDELTA_V, L"-");
     }
 
     if (PhIoReadHistory.Count != 0)
     {
-        SetDlgItemText(IoPanel, IDC_ZREADBYTESDELTA_V, PhaFormatSize(PhIoReadDelta.Delta, -1)->Buffer);
-        SetDlgItemText(IoPanel, IDC_ZWRITEBYTESDELTA_V, PhaFormatSize(PhIoWriteDelta.Delta, -1)->Buffer);
-        SetDlgItemText(IoPanel, IDC_ZOTHERBYTESDELTA_V, PhaFormatSize(PhIoOtherDelta.Delta, -1)->Buffer);
+        PhSetDialogItemText(IoPanel, IDC_ZREADBYTESDELTA_V, PhaFormatSize(PhIoReadDelta.Delta, -1)->Buffer);
+        PhSetDialogItemText(IoPanel, IDC_ZWRITEBYTESDELTA_V, PhaFormatSize(PhIoWriteDelta.Delta, -1)->Buffer);
+        PhSetDialogItemText(IoPanel, IDC_ZOTHERBYTESDELTA_V, PhaFormatSize(PhIoOtherDelta.Delta, -1)->Buffer);
     }
     else
     {
-        SetDlgItemText(IoPanel, IDC_ZREADBYTESDELTA_V, L"-");
-        SetDlgItemText(IoPanel, IDC_ZWRITEBYTESDELTA_V, L"-");
-        SetDlgItemText(IoPanel, IDC_ZOTHERBYTESDELTA_V, L"-");
+        PhSetDialogItemText(IoPanel, IDC_ZREADBYTESDELTA_V, L"-");
+        PhSetDialogItemText(IoPanel, IDC_ZWRITEBYTESDELTA_V, L"-");
+        PhSetDialogItemText(IoPanel, IDC_ZOTHERBYTESDELTA_V, L"-");
     }
 
     // I/O Totals
 
-    SetDlgItemText(IoPanel, IDC_ZREADS_V, PhaFormatUInt64(PhPerfInformation.IoReadOperationCount, TRUE)->Buffer);
-    SetDlgItemText(IoPanel, IDC_ZREADBYTES_V, PhaFormatSize(PhPerfInformation.IoReadTransferCount.QuadPart, -1)->Buffer);
-    SetDlgItemText(IoPanel, IDC_ZWRITES_V, PhaFormatUInt64(PhPerfInformation.IoWriteOperationCount, TRUE)->Buffer);
-    SetDlgItemText(IoPanel, IDC_ZWRITEBYTES_V, PhaFormatSize(PhPerfInformation.IoWriteTransferCount.QuadPart, -1)->Buffer);
-    SetDlgItemText(IoPanel, IDC_ZOTHER_V, PhaFormatUInt64(PhPerfInformation.IoOtherOperationCount, TRUE)->Buffer);
-    SetDlgItemText(IoPanel, IDC_ZOTHERBYTES_V, PhaFormatSize(PhPerfInformation.IoOtherTransferCount.QuadPart, -1)->Buffer);
+    PhSetDialogItemText(IoPanel, IDC_ZREADS_V, PhaFormatUInt64(PhPerfInformation.IoReadOperationCount, TRUE)->Buffer);
+    PhSetDialogItemText(IoPanel, IDC_ZREADBYTES_V, PhaFormatSize(PhPerfInformation.IoReadTransferCount.QuadPart, -1)->Buffer);
+    PhSetDialogItemText(IoPanel, IDC_ZWRITES_V, PhaFormatUInt64(PhPerfInformation.IoWriteOperationCount, TRUE)->Buffer);
+    PhSetDialogItemText(IoPanel, IDC_ZWRITEBYTES_V, PhaFormatSize(PhPerfInformation.IoWriteTransferCount.QuadPart, -1)->Buffer);
+    PhSetDialogItemText(IoPanel, IDC_ZOTHER_V, PhaFormatUInt64(PhPerfInformation.IoOtherOperationCount, TRUE)->Buffer);
+    PhSetDialogItemText(IoPanel, IDC_ZOTHERBYTES_V, PhaFormatSize(PhPerfInformation.IoOtherTransferCount.QuadPart, -1)->Buffer);
 }
 
 PPH_PROCESS_RECORD PhSipReferenceMaxIoRecord(
