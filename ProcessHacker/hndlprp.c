@@ -84,6 +84,9 @@ VOID PhShowHandleProperties(
     PROPSHEETPAGE propSheetPage;
     HPROPSHEETPAGE pages[16];
     HANDLE_PROPERTIES_CONTEXT context;
+    PH_STD_OBJECT_SECURITY stdObjectSecurity;
+    PPH_ACCESS_ENTRY accessEntries;
+    ULONG numberOfAccessEntries;
 
     context.ProcessId = ProcessId;
     context.HandleItem = HandleItem;
@@ -179,29 +182,22 @@ VOID PhShowHandleProperties(
             );
     }
 
-    if (!PhIsNullOrEmptyString(HandleItem->TypeName))
+    // Security page
+    stdObjectSecurity.OpenObject = PhpDuplicateHandleFromProcess;
+    stdObjectSecurity.ObjectType = PhGetStringOrEmpty(HandleItem->TypeName);
+    stdObjectSecurity.Context = &context;
+
+    if (PhGetAccessEntries(PhGetStringOrEmpty(HandleItem->TypeName), &accessEntries, &numberOfAccessEntries))
     {
-        PH_STD_OBJECT_SECURITY stdObjectSecurity;
-        PPH_ACCESS_ENTRY accessEntries;
-        ULONG numberOfAccessEntries;
-
-        // Security page
-        stdObjectSecurity.OpenObject = PhpDuplicateHandleFromProcess;
-        stdObjectSecurity.ObjectType = PhGetStringOrEmpty(HandleItem->TypeName);
-        stdObjectSecurity.Context = &context;
-
-        if (PhGetAccessEntries(PhGetStringOrEmpty(HandleItem->TypeName), &accessEntries, &numberOfAccessEntries))
-        {
-            pages[propSheetHeader.nPages++] = PhCreateSecurityPage(
-                PhGetStringOrEmpty(HandleItem->BestObjectName),
-                PhStdGetObjectSecurity,
-                PhStdSetObjectSecurity,
-                &stdObjectSecurity,
-                accessEntries,
-                numberOfAccessEntries
-                );
-            PhFree(accessEntries);
-        }
+        pages[propSheetHeader.nPages++] = PhCreateSecurityPage(
+            PhGetStringOrEmpty(HandleItem->BestObjectName),
+            PhStdGetObjectSecurity,
+            PhStdSetObjectSecurity,
+            &stdObjectSecurity,
+            accessEntries,
+            numberOfAccessEntries
+            );
+        PhFree(accessEntries);
     }
 
     if (PhPluginsEnabled)
