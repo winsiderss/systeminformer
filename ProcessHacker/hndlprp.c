@@ -193,7 +193,7 @@ VOID PhShowHandleProperties(
         if (PhGetAccessEntries(PhGetStringOrEmpty(HandleItem->TypeName), &accessEntries, &numberOfAccessEntries))
         {
             pages[propSheetHeader.nPages++] = PhCreateSecurityPage(
-                PhGetStringOrEmpty(HandleItem->BestObjectName),
+                PhGetString(HandleItem->BestObjectName),
                 PhStdGetObjectSecurity,
                 PhStdSetObjectSecurity,
                 &stdObjectSecurity,
