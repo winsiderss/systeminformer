@@ -171,8 +171,7 @@ ISecurityInformation *PhSecurityInformation_Create(
     info->VTable = &PhSecurityInformation_VTable;
     info->RefCount = 1;
 
-    if (ObjectName) // dmex: This fixes a crash caused by an 'antivirus' company.
-        info->ObjectName = PhCreateString(ObjectName);
+    info->ObjectName = PhCreateString(ObjectName);
     info->GetObjectSecurity = GetObjectSecurity;
     info->SetObjectSecurity = SetObjectSecurity;
     info->Context = Context;
@@ -277,7 +276,7 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_GetObjectInformation(
         //SI_NO_ACL_PROTECT |
         //SI_NO_TREE_APPLY;
     ObjectInfo->hInstance = NULL;
-    ObjectInfo->pszObjectName = PhGetStringOrEmpty(this->ObjectName);
+    ObjectInfo->pszObjectName = this->ObjectName->Buffer;
 
     return S_OK;
 }
