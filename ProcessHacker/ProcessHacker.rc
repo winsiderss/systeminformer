@@ -926,8 +926,8 @@ BEGIN
     RTEXT           "Static",IDC_ZACTIVEPROCESSES_V,99,18,37,8,SS_ENDELLIPSIS
     LTEXT           "Total processes",IDC_STATIC,15,28,51,8
     RTEXT           "Static",IDC_ZTOTALPROCESSES_V,95,29,41,8,SS_ENDELLIPSIS
-    LTEXT           "Terminated processes",IDC_STATIC,15,39,71,8
-    RTEXT           "Static",IDC_ZTERMINATEDPROCESSES_V,99,39,37,8,SS_ENDELLIPSIS
+    LTEXT           "Terminated due to job limits",IDC_STATIC,15,39,98,8
+    RTEXT           "Static",IDC_ZTERMINATEDPROCESSES_V,107,39,29,8,SS_ENDELLIPSIS
     GROUPBOX        "Time",IDC_STATIC,7,57,133,57
     LTEXT           "User time",IDC_STATIC,15,68,32,8
     LTEXT           "Kernel time",IDC_STATIC,15,79,38,8
