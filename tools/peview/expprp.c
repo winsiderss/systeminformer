@@ -75,15 +75,17 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
 
                         if (exportFunction.ForwardedName)
                         {
-                            PPH_STRING forwardName = NULL;
+                            PPH_STRING forwardName;
 
-                            if (exportFunction.ForwardedName[0] == '?')
-                                forwardName = PhUndecorateName(PvSymbolProvider, exportFunction.ForwardedName);
-                            else
-                                forwardName = PhZeroExtendToUtf16(exportFunction.ForwardedName);
+                            forwardName = PhZeroExtendToUtf16(exportFunction.ForwardedName);
 
-                            if (!forwardName)
-                                forwardName = PhZeroExtendToUtf16(exportFunction.ForwardedName);
+                            if (forwardName->Buffer[0] == '?')
+                            {
+                                PPH_STRING undecoratedName;
+
+                                if (undecoratedName = PhUndecorateSymbolName(PvSymbolProvider, forwardName->Buffer))
+                                    PhMoveReference(&forwardName, undecoratedName);
+                            }
 
                             PhSetListViewSubItem(lvHandle, lvItemIndex, 1, forwardName->Buffer);
                             PhDereferenceObject(forwardName);
@@ -96,15 +98,17 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
 
                         if (exportEntry.Name)
                         {
-                            PPH_STRING exportName = NULL;
+                            PPH_STRING exportName;
 
-                            if (exportEntry.Name[0] == '?')
-                                exportName = PhUndecorateName(PvSymbolProvider, exportEntry.Name);
-                            else
-                                exportName = PhZeroExtendToUtf16(exportEntry.Name);
+                            exportName = PhZeroExtendToUtf16(exportEntry.Name);
 
-                            if (!exportName)
-                                exportName = PhZeroExtendToUtf16(exportEntry.Name);
+                            if (exportName->Buffer[0] == '?')
+                            {
+                                PPH_STRING undecoratedName;
+
+                                if (undecoratedName = PhUndecorateSymbolName(PvSymbolProvider, exportName->Buffer))
+                                    PhMoveReference(&exportName, undecoratedName);
+                            }
 
                             PhSetListViewSubItem(lvHandle, lvItemIndex, 2, exportName->Buffer);
                             PhDereferenceObject(exportName);

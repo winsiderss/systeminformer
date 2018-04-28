@@ -291,15 +291,7 @@ PhWalkThreadStack(
 PHLIBAPI
 PPH_STRING
 NTAPI
-PhUndecorateName(
-    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
-    _In_ PSTR DecoratedName
-    );
-
-PHLIBAPI
-PPH_STRING
-NTAPI
-PhUndecorateNameW(
+PhUndecorateSymbolName(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
     _In_ PWSTR DecoratedName
     );

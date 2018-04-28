@@ -60,15 +60,17 @@ VOID PvpProcessImports(
 
                     if (importEntry.Name)
                     {
-                        PPH_STRING importName = NULL;
+                        PPH_STRING importName;
 
-                        if (importEntry.Name[0] == '?')
-                            importName = PhUndecorateName(PvSymbolProvider, importEntry.Name);
-                        else
-                            importName = PhZeroExtendToUtf16(importEntry.Name);
+                        importName = PhZeroExtendToUtf16(importEntry.Name);
 
-                        if (!importName)
-                            importName = PhZeroExtendToUtf16(importEntry.Name);
+                        if (importName->Buffer[0] == '?')
+                        {
+                            PPH_STRING undecoratedName;
+
+                            if (undecoratedName = PhUndecorateSymbolName(PvSymbolProvider, importName->Buffer))
+                                PhMoveReference(&importName, undecoratedName);
+                        }
 
                         PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, importName->Buffer);
                         PhDereferenceObject(importName);

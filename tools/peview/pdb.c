@@ -2344,19 +2344,19 @@ NTSTATUS PeDumpFileSymbols(
     if (!(symsrvHandle = LoadLibrary(symsrvPath->Buffer)))
         return 1;
 
-    SymInitialize_I = PhGetProcedureAddress(dbghelpHandle, "SymInitialize", 0);
-    SymCleanup_I = PhGetProcedureAddress(dbghelpHandle, "SymCleanup", 0);
-    SymEnumSymbolsW_I = PhGetProcedureAddress(dbghelpHandle, "SymEnumSymbolsW", 0);
-    SymEnumTypesW_I = PhGetProcedureAddress(dbghelpHandle, "SymEnumTypesW", 0);
-    SymSetSearchPathW_I = PhGetProcedureAddress(dbghelpHandle, "SymSetSearchPathW", 0);
-    SymGetOptions_I = PhGetProcedureAddress(dbghelpHandle, "SymGetOptions", 0);
-    SymSetOptions_I = PhGetProcedureAddress(dbghelpHandle, "SymSetOptions", 0);
-    SymLoadModuleExW_I = PhGetProcedureAddress(dbghelpHandle, "SymLoadModuleExW", 0);
-    SymGetModuleInfoW64_I = PhGetProcedureAddress(dbghelpHandle, "SymGetModuleInfoW64", 0);
-    SymGetTypeFromNameW_I = PhGetProcedureAddress(dbghelpHandle, "SymGetTypeFromNameW", 0);
-    SymGetTypeInfo_I = PhGetProcedureAddress(dbghelpHandle, "SymGetTypeInfo", 0);
-    SymSetContext_I = PhGetProcedureAddress(dbghelpHandle, "SymSetContext", 0);
-    SymSearchW_I = PhGetProcedureAddress(dbghelpHandle, "SymSearchW", 0);
+    SymInitialize_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymInitialize", 0);
+    SymCleanup_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymCleanup", 0);
+    SymEnumSymbolsW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymEnumSymbolsW", 0);
+    SymEnumTypesW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymEnumTypesW", 0);
+    SymSetSearchPathW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymSetSearchPathW", 0);
+    SymGetOptions_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymGetOptions", 0);
+    SymSetOptions_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymSetOptions", 0);
+    SymLoadModuleExW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymLoadModuleExW", 0);
+    SymGetModuleInfoW64_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymGetModuleInfoW64", 0);
+    SymGetTypeFromNameW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymGetTypeFromNameW", 0);
+    SymGetTypeInfo_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymGetTypeInfo", 0);
+    SymSetContext_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymSetContext", 0);
+    SymSearchW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymSearchW", 0);
 
     SymSetOptions_I(
         SymGetOptions_I() |
