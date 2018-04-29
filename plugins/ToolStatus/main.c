@@ -49,6 +49,7 @@ REBAR_DISPLAY_LOCATION RebarDisplayLocation = REBAR_DISPLAY_LOCATION_TOP;
 HWND RebarHandle = NULL;
 HWND ToolBarHandle = NULL;
 HWND SearchboxHandle = NULL;
+WNDPROC MainWindowHookProc = NULL;
 HMENU MainMenu = NULL;
 HACCEL AcceleratorTable = NULL;
 PPH_STRING SearchboxText = NULL;
@@ -211,7 +212,7 @@ VOID ShowCustomizeMenu(
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_ENABLE_IO_GRAPH, L"I/O history", NULL, NULL), -1);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_ENABLE_MEMORY_GRAPH, L"Physical memory history", NULL, NULL), -1);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_ENABLE_COMMIT_GRAPH, L"Commit charge history", NULL, NULL), -1);
-    PhInsertEMenuItem(menu, PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, NULL, NULL, NULL), -1);
+    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), -1);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_TOOLBAR_LOCKUNLOCK, L"Lock the toolbar", NULL, NULL), -1);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_TOOLBAR_CUSTOMIZE, L"Customize...", NULL, NULL), -1);
     
@@ -624,13 +625,14 @@ LRESULT CALLBACK MainWndSubclassProc(
     _In_ HWND hWnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
-    _In_ LPARAM lParam,
-    _In_ UINT_PTR uIdSubclass,
-    _In_ ULONG_PTR dwRefData
+    _In_ LPARAM lParam
     )
 {
     switch (uMsg)
     {
+    case WM_DESTROY:
+        SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)MainWindowHookProc);
+        break;
     case WM_COMMAND:
         {
             switch (GET_WM_COMMAND_CMD(wParam, lParam))
@@ -722,7 +724,7 @@ LRESULT CALLBACK MainWndSubclassProc(
             case PHAPP_ID_VIEW_ALWAYSONTOP:
                 {
                     // Let Process Hacker perform the default processing.
-                    DefSubclassProc(hWnd, uMsg, wParam, lParam);
+                    CallWindowProc(MainWindowHookProc, hWnd, uMsg, wParam, lParam);
 
                     // Query the settings.
                     BOOLEAN isAlwaysOnTopEnabled = (BOOLEAN)PhGetIntegerSetting(L"MainWindowAlwaysOnTop");
@@ -738,7 +740,7 @@ LRESULT CALLBACK MainWndSubclassProc(
             case PHAPP_ID_UPDATEINTERVAL_VERYSLOW:
                 {
                     // Let Process Hacker perform the default processing.
-                    DefSubclassProc(hWnd, uMsg, wParam, lParam);
+                    CallWindowProc(MainWindowHookProc, hWnd, uMsg, wParam, lParam);
 
                     StatusBarUpdate(TRUE);
                 }
@@ -806,27 +808,29 @@ LRESULT CALLBACK MainWndSubclassProc(
                             if (buttonInfo.fsStyle == BTNS_SEP)
                             {
                                 // Add separators to menu.
-                                PhInsertEMenuItem(menu, PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, NULL, NULL, NULL), -1);
+                                PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), -1);
                             }
                             else
                             {
                                 PPH_EMENU_ITEM menuItem;
 
-                                if (PhGetOwnTokenAttributes().Elevated && buttonInfo.idCommand == PHAPP_ID_HACKER_SHOWDETAILSFORALLPROCESSES)
-                                {
-                                    // Don't show the 'Show Details for All Processes' button in the
-                                    //  dropdown menu when we're elevated.
-                                    continue;
-                                }
-
-                                // Add buttons to menu.
+                                // Add toolbar buttons to the context menu.
                                 menuItem = PhCreateEMenuItem(0, buttonInfo.idCommand, ToolbarGetText(buttonInfo.idCommand), NULL, NULL);
 
+                                // Add the button image to the context menu.
                                 menuItem->Flags |= PH_EMENU_BITMAP_OWNED;
                                 menuItem->Bitmap = ToolbarGetImage(buttonInfo.idCommand);
 
                                 switch (buttonInfo.idCommand)
                                 {
+                                case TIDC_FINDWINDOW:
+                                case TIDC_FINDWINDOWTHREAD:
+                                case TIDC_FINDWINDOWKILL:
+                                    {
+                                        // Note: These buttons are incompatible with the context menu window messages.
+                                        menuItem->Flags |= PH_EMENU_DISABLED;
+                                    }
+                                    break;
                                 case PHAPP_ID_VIEW_ALWAYSONTOP:
                                     {
                                         // Set the pressed state.
@@ -834,12 +838,13 @@ LRESULT CALLBACK MainWndSubclassProc(
                                             menuItem->Flags |= PH_EMENU_CHECKED;
                                     }
                                     break;
-                                case TIDC_FINDWINDOW:
-                                case TIDC_FINDWINDOWTHREAD:
-                                case TIDC_FINDWINDOWKILL:
+                                case PHAPP_ID_HACKER_SHOWDETAILSFORALLPROCESSES:
                                     {
-                                        // Note: These buttons are incompatible with menus.
-                                        menuItem->Flags |= PH_EMENU_DISABLED;
+                                        if (PhGetOwnTokenAttributes().Elevated)
+                                        {
+                                            // Disable the 'Show Details for All Processes' button when we're elevated.
+                                            menuItem->Flags |= PH_EMENU_DISABLED;
+                                        }
                                     }
                                     break;
                                 case TIDC_POWERMENUDROPDOWN:
@@ -847,10 +852,10 @@ LRESULT CALLBACK MainWndSubclassProc(
                                         // Create the sub-menu...
                                         PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_LOCK, L"&Lock", NULL, NULL), -1);
                                         PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_LOGOFF, L"Log o&ff", NULL, NULL), -1);
-                                        PhInsertEMenuItem(menuItem, PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, NULL, NULL, NULL), -1);
+                                        PhInsertEMenuItem(menuItem, PhCreateEMenuSeparator(), -1);
                                         PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_SLEEP, L"&Sleep", NULL, NULL), -1);
                                         PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_HIBERNATE, L"&Hibernate", NULL, NULL), -1);
-                                        PhInsertEMenuItem(menuItem, PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, NULL, NULL, NULL), -1);
+                                        PhInsertEMenuItem(menuItem, PhCreateEMenuSeparator(), -1);
                                         PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_RESTART, L"R&estart", NULL, NULL), -1);
                                         PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_RESTARTBOOTOPTIONS, L"Restart to boot &options", NULL, NULL), -1);
                                         PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_SHUTDOWN, L"Shu&t down", NULL, NULL), -1);
@@ -975,10 +980,10 @@ LRESULT CALLBACK MainWndSubclassProc(
                         menu = PhCreateEMenu();
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_LOCK, L"&Lock", NULL, NULL), -1);
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_LOGOFF, L"Log o&ff", NULL, NULL), -1);
-                        PhInsertEMenuItem(menu, PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, NULL, NULL, NULL), -1);
+                        PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), -1);
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_SLEEP, L"&Sleep", NULL, NULL), -1);
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_HIBERNATE, L"&Hibernate", NULL, NULL), -1);
-                        PhInsertEMenuItem(menu, PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, NULL, NULL, NULL), -1);
+                        PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), -1);
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_RESTART, L"R&estart", NULL, NULL), -1);
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_RESTARTBOOTOPTIONS, L"Restart to boot &options", NULL, NULL), -1);
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_SHUTDOWN, L"Shu&t down", NULL, NULL), -1);
@@ -1306,7 +1311,7 @@ LRESULT CALLBACK MainWndSubclassProc(
         break;
     }
 
-    return DefSubclassProc(hWnd, uMsg, wParam, lParam);
+    return CallWindowProc(MainWindowHookProc, hWnd, uMsg, wParam, lParam);
 
 DefaultWndProc:
     return DefWindowProc(hWnd, uMsg, wParam, lParam);
@@ -1324,7 +1329,9 @@ VOID NTAPI MainWindowShowingCallback(
         NULL,
         &LayoutPaddingCallbackRegistration
         );
-    SetWindowSubclass(PhMainWndHandle, MainWndSubclassProc, 0, 0);
+
+    MainWindowHookProc = (WNDPROC)GetWindowLongPtr(PhMainWndHandle, GWLP_WNDPROC);
+    SetWindowLongPtr(PhMainWndHandle, GWLP_WNDPROC, (LONG_PTR)MainWndSubclassProc);
 
     ToolbarLoadSettings();
     ReBarLoadLayoutSettings();

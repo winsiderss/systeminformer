@@ -65,17 +65,24 @@ static VOID ProcessesUpdatedCallback(
 }
 
 VOID EtpLoadNodeBitMap(
-    VOID
+    _In_ HWND WindowHandle
     )
 {
     ULONG i;
+    BOOLEAN allSelected = TRUE;
 
     for (i = 0; i < EtGpuTotalNodeCount; i++)
     {
-        Button_SetCheck(
-            CheckBoxHandle[i],
-            RtlCheckBit(&EtGpuNodeBitMap, i) ? BST_CHECKED : BST_UNCHECKED
-            );
+        BOOLEAN nodeEnabled = RtlCheckBit(&EtGpuNodeBitMap, i);
+
+        Button_SetCheck(CheckBoxHandle[i], nodeEnabled ? BST_CHECKED : BST_UNCHECKED);
+
+        if (!nodeEnabled) allSelected = FALSE;
+    }
+
+    if (allSelected)
+    {
+        Button_SetCheck(GetDlgItem(WindowHandle, IDC_SELECTALL), BST_CHECKED);
     }
 }
 
@@ -125,10 +132,9 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
             SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
 
             PhInitializeLayoutManager(&LayoutManager, hwndDlg);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_SELECTALL), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             LayoutMargin = PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_LAYOUT), NULL, PH_ANCHOR_ALL)->Margin;
-
-            PhRegisterCallback(&PhProcessesUpdatedEvent, ProcessesUpdatedCallback, NULL, &ProcessesUpdatedCallbackRegistration);
 
             GraphHandle = PhAllocate(sizeof(HWND) * EtGpuTotalNodeCount);
             CheckBoxHandle = PhAllocate(sizeof(HWND) * EtGpuTotalNodeCount);
@@ -205,7 +211,9 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
             // Note: This dialog must be centered after all other graphs and controls have been added.
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
-            EtpLoadNodeBitMap();
+            EtpLoadNodeBitMap(hwndDlg);
+
+            PhRegisterCallback(&PhProcessesUpdatedEvent, ProcessesUpdatedCallback, NULL, &ProcessesUpdatedCallbackRegistration);
         }
         break;
     case WM_DESTROY:
@@ -316,6 +324,16 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
             case IDOK:
                 {
                     EndDialog(hwndDlg, IDOK);
+                }
+                break;
+            case IDC_SELECTALL:
+                {
+                    BOOLEAN selectAll = Button_GetCheck(GetDlgItem(hwndDlg, IDC_SELECTALL)) == BST_CHECKED;
+
+                    for (ULONG i = 0; i < EtGpuTotalNodeCount; i++)
+                    {
+                        Button_SetCheck(CheckBoxHandle[i], selectAll ? BST_CHECKED : BST_UNCHECKED);
+                    }
                 }
                 break;
             }

@@ -213,13 +213,7 @@ VOID PhpAnalyzeWaitPassive(
         return;
     }
 
-    if (!NT_SUCCESS(status = NtQueryInformationThread(
-        threadHandle,
-        ThreadLastSystemCall,
-        &lastSystemCall,
-        sizeof(THREAD_LAST_SYSCALL_INFORMATION),
-        NULL
-        )))
+    if (!NT_SUCCESS(status = PhGetThreadLastSystemCall(threadHandle, &lastSystemCall)))
     {
         NtClose(threadHandle);
         PhShowStatus(hWnd, L"Unable to determine whether the thread is waiting.", status, 0);
@@ -669,10 +663,8 @@ static BOOLEAN PhpWaitUntilThreadIsWaiting(
         PVOID processes;
         PSYSTEM_PROCESS_INFORMATION processInfo;
         ULONG i;
-        LARGE_INTEGER interval;
 
-        interval.QuadPart = -100 * PH_TIMEOUT_MS;
-        NtDelayExecution(FALSE, &interval);
+        PhDelayExecution(100);
 
         if (!NT_SUCCESS(PhEnumProcesses(&processes)))
             break;
@@ -701,8 +693,7 @@ static BOOLEAN PhpWaitUntilThreadIsWaiting(
         if (isWaiting)
             break;
 
-        interval.QuadPart = -500 * PH_TIMEOUT_MS;
-        NtDelayExecution(FALSE, &interval);
+        PhDelayExecution(500);
     }
 
     return isWaiting;
@@ -715,13 +706,7 @@ static VOID PhpGetThreadLastSystemCallNumber(
 {
     THREAD_LAST_SYSCALL_INFORMATION lastSystemCall;
 
-    if (NT_SUCCESS(NtQueryInformationThread(
-        ThreadHandle,
-        ThreadLastSystemCall,
-        &lastSystemCall,
-        sizeof(THREAD_LAST_SYSCALL_INFORMATION),
-        NULL
-        )))
+    if (NT_SUCCESS(PhGetThreadLastSystemCall(ThreadHandle, &lastSystemCall)))
     {
         *LastSystemCallNumber = lastSystemCall.SystemCallNumber;
     }
@@ -999,7 +984,7 @@ static PPH_STRING PhpaGetSendMessageReceiver(
     // is sending a message to.
 
     if (!GetSendMessageReceiver_I)
-        GetSendMessageReceiver_I = PhGetModuleProcAddress(L"user32.dll", "GetSendMessageReceiver");
+        GetSendMessageReceiver_I = PhGetDllProcedureAddress(L"user32.dll", "GetSendMessageReceiver", 0);
 
     if (!GetSendMessageReceiver_I)
         return NULL;
@@ -1036,7 +1021,7 @@ static PPH_STRING PhpaGetAlpcInformation(
     ULONG bufferLength;
 
     if (!NtAlpcQueryInformation_I)
-        NtAlpcQueryInformation_I = PhGetModuleProcAddress(L"ntdll.dll", "NtAlpcQueryInformation");
+        NtAlpcQueryInformation_I = PhGetDllProcedureAddress(L"ntdll.dll", "NtAlpcQueryInformation", 0);
 
     if (!NtAlpcQueryInformation_I)
         return NULL;

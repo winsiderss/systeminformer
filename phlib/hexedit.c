@@ -3,6 +3,7 @@
  *   hex editor control
  *
  * Copyright (C) 2010-2015 wj32
+ * Copyright (C) 2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -22,10 +23,11 @@
 
 #include <ph.h>
 #include <hexedit.h>
-
 #include <guisup.h>
 
 #include <hexeditp.h>
+
+#include <windowsx.h>
 
 // Code originally from http://www.codeguru.com/Cpp/controls/editctrl/article.php/c539
 
@@ -210,10 +212,15 @@ LRESULT CALLBACK PhpHexEditWndProc(
                 case SB_PAGEDOWN:
                     if (context->TopIndex < context->Length - mult)
                     {
+                        LONG pageEnd = 0;
+
+                        while (pageEnd < context->Length - mult)
+                            pageEnd += context->BytesPerRow;
+
                         context->TopIndex += mult;
 
-                        if (context->TopIndex > context->Length - mult)
-                            context->TopIndex = context->Length - mult;
+                        if (context->TopIndex > pageEnd)
+                            context->TopIndex = pageEnd;
 
                         REDRAW_WINDOW(hwnd);
                     }
@@ -231,6 +238,15 @@ LRESULT CALLBACK PhpHexEditWndProc(
                     break;
                 case SB_THUMBTRACK:
                     context->TopIndex = currentPosition * context->BytesPerRow;
+                    REDRAW_WINDOW(hwnd);
+                    break;
+                case SB_TOP:
+                    context->TopIndex = 0;
+                    REDRAW_WINDOW(hwnd);
+                    break;
+                case SB_BOTTOM:
+                    while (context->TopIndex < context->Length - mult)
+                        context->TopIndex += context->BytesPerRow;
                     REDRAW_WINDOW(hwnd);
                     break;
                 }
@@ -285,8 +301,8 @@ LRESULT CALLBACK PhpHexEditWndProc(
             ULONG flags = (ULONG)wParam;
             POINT cursorPos;
 
-            cursorPos.x = (LONG)(SHORT)LOWORD(lParam);
-            cursorPos.y = (LONG)(SHORT)HIWORD(lParam);
+            cursorPos.x = GET_X_LPARAM(lParam);
+            cursorPos.y = GET_Y_LPARAM(lParam);
 
             SetFocus(hwnd);
 
@@ -364,8 +380,8 @@ LRESULT CALLBACK PhpHexEditWndProc(
             ULONG flags = (ULONG)wParam;
             POINT cursorPos;
 
-            cursorPos.x = (LONG)(SHORT)LOWORD(lParam);
-            cursorPos.y = (LONG)(SHORT)HIWORD(lParam);
+            cursorPos.x = GET_X_LPARAM(lParam);
+            cursorPos.y = GET_Y_LPARAM(lParam);
 
             if (
                 context->Data &&
@@ -1289,12 +1305,12 @@ VOID PhpHexEditUpdateScrollbars(
 
     si.fMask = SIF_ALL;
     si.nMin = 0;
-    si.nMax = (Context->Length / Context->BytesPerRow) - 1;
+    si.nMax = Context->Length / Context->BytesPerRow;
     si.nPage = Context->LinesPerPage;
     si.nPos = Context->TopIndex / Context->BytesPerRow;
     SetScrollInfo(hwnd, SB_VERT, &si, TRUE);
 
-    if (si.nMax > (LONG)si.nPage)
+    if (si.nMax > (LONG)si.nPage - 1)
         EnableScrollBar(hwnd, SB_VERT, ESB_ENABLE_BOTH);
 
     // No horizontal scrollbar please.

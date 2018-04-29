@@ -19,7 +19,7 @@
  */
 
 #include <setup.h>
-#include <appsup.h>
+#include <setupsup.h>
 #include <workqueue.h>
 
 #define WM_TASKDIALOGINIT (WM_APP + 550)

@@ -357,17 +357,15 @@ static INT CALLBACK WepPropSheetProc(
     {
     case PSCB_INITIALIZED:
         {
-            WNDPROC oldWndProc;
             HWND refreshButtonHandle;
 
-            oldWndProc = (WNDPROC)GetWindowLongPtr(hwndDlg, GWLP_WNDPROC);
+            PhSetWindowContext(hwndDlg, 0xF, (WNDPROC)GetWindowLongPtr(hwndDlg, GWLP_WNDPROC));
             SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)WepPropSheetWndProc);
-            SetProp(hwndDlg, L"OldWndProc", (HANDLE)oldWndProc);
 
             // Hide the Cancel button.
             ShowWindow(GetDlgItem(hwndDlg, IDCANCEL), SW_HIDE);
             // Set the OK button's text to "Close".
-            SetDlgItemText(hwndDlg, IDOK, L"Close");
+            PhSetDialogItemText(hwndDlg, IDOK, L"Close");
             // Add the Refresh button.
             refreshButtonHandle = CreateWindow(L"BUTTON", L"Refresh", WS_CHILD | WS_TABSTOP | WS_VISIBLE, 0, 0, 3, 3, hwndDlg, (HMENU)IDC_REFRESH,
                 PluginInstance->DllBase, NULL);
@@ -386,20 +384,25 @@ LRESULT CALLBACK WepPropSheetWndProc(
     _In_ LPARAM lParam
     )
 {
-    WNDPROC oldWndProc = (WNDPROC)GetProp(hwnd, L"OldWndProc");
+    WNDPROC oldWndProc;
+
+    if (!(oldWndProc = PhGetWindowContext(hwnd, 0xF)))
+        return 0;
 
     switch (uMsg)
     {
     case WM_DESTROY:
         {
             SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
-            RemoveProp(hwnd, L"OldWndProc");
-            RemoveProp(hwnd, L"Moved");
+            PhRemoveWindowContext(hwnd, 0xF);
+
+            if (PhGetWindowContext(hwnd, 1))
+                PhRemoveWindowContext(hwnd, 1);
         }
         break;
     case WM_SHOWWINDOW:
         {
-            if (!GetProp(hwnd, L"Moved"))
+            if (!PhGetWindowContext(hwnd, 1))
             {
                 // Move the Refresh button to where the OK button is, and move the OK button to
                 // where the Cancel button is.
@@ -407,7 +410,8 @@ LRESULT CALLBACK WepPropSheetWndProc(
                 // in the right places.
                 PhCopyControlRectangle(hwnd, GetDlgItem(hwnd, IDOK), GetDlgItem(hwnd, IDC_REFRESH));
                 PhCopyControlRectangle(hwnd, GetDlgItem(hwnd, IDCANCEL), GetDlgItem(hwnd, IDOK));
-                SetProp(hwnd, L"Moved", (HANDLE)1);
+
+                PhSetWindowContext(hwnd, 1, UlongToPtr(1));
             }
         }
         break;
@@ -568,15 +572,15 @@ FORCEINLINE BOOLEAN WepPropPageDlgProcHeader(
     if (uMsg == WM_INITDIALOG)
     {
         propSheetPage = (LPPROPSHEETPAGE)lParam;
-        // Save the context.
-        SetProp(hwndDlg, L"PropSheetPage", (HANDLE)lParam);
+
+        PhSetWindowContext(hwndDlg, ULONG_MAX, (HANDLE)lParam);
     }
     else
     {
-        propSheetPage = (LPPROPSHEETPAGE)GetProp(hwndDlg, L"PropSheetPage");
+        propSheetPage = PhGetWindowContext(hwndDlg, ULONG_MAX);
 
         if (uMsg == WM_DESTROY)
-            RemoveProp(hwndDlg, L"PropSheetPage");
+            PhRemoveWindowContext(hwndDlg, ULONG_MAX);
     }
 
     if (!propSheetPage)
@@ -737,24 +741,24 @@ static VOID WepRefreshWindowGeneralInfoSymbols(
     )
 {
     if (Context->WndProcResolving != 0)
-        SetDlgItemText(hwndDlg, IDC_WINDOWPROC, PhaFormatString(L"0x%Ix (resolving...)", Context->WndProc)->Buffer);
+        PhSetDialogItemText(hwndDlg, IDC_WINDOWPROC, PhaFormatString(L"0x%Ix (resolving...)", Context->WndProc)->Buffer);
     else if (Context->WndProcSymbol)
-        SetDlgItemText(hwndDlg, IDC_WINDOWPROC, PhaFormatString(L"0x%Ix (%s)", Context->WndProc, Context->WndProcSymbol->Buffer)->Buffer);
+        PhSetDialogItemText(hwndDlg, IDC_WINDOWPROC, PhaFormatString(L"0x%Ix (%s)", Context->WndProc, Context->WndProcSymbol->Buffer)->Buffer);
     else if (Context->WndProc != 0)
-        SetDlgItemText(hwndDlg, IDC_WINDOWPROC, PhaFormatString(L"0x%Ix", Context->WndProc)->Buffer);
+        PhSetDialogItemText(hwndDlg, IDC_WINDOWPROC, PhaFormatString(L"0x%Ix", Context->WndProc)->Buffer);
     else
-        SetDlgItemText(hwndDlg, IDC_WINDOWPROC, L"Unknown");
+        PhSetDialogItemText(hwndDlg, IDC_WINDOWPROC, L"Unknown");
 
     if (Context->DlgProcResolving != 0)
-        SetDlgItemText(hwndDlg, IDC_DIALOGPROC, PhaFormatString(L"0x%Ix (resolving...)", Context->DlgProc)->Buffer);
+        PhSetDialogItemText(hwndDlg, IDC_DIALOGPROC, PhaFormatString(L"0x%Ix (resolving...)", Context->DlgProc)->Buffer);
     else if (Context->DlgProcSymbol)
-        SetDlgItemText(hwndDlg, IDC_DIALOGPROC, PhaFormatString(L"0x%Ix (%s)", Context->DlgProc, Context->DlgProcSymbol->Buffer)->Buffer);
+        PhSetDialogItemText(hwndDlg, IDC_DIALOGPROC, PhaFormatString(L"0x%Ix (%s)", Context->DlgProc, Context->DlgProcSymbol->Buffer)->Buffer);
     else if (Context->DlgProc != 0)
-        SetDlgItemText(hwndDlg, IDC_DIALOGPROC, PhaFormatString(L"0x%Ix", Context->DlgProc)->Buffer);
+        PhSetDialogItemText(hwndDlg, IDC_DIALOGPROC, PhaFormatString(L"0x%Ix", Context->DlgProc)->Buffer);
     else if (Context->WndProc != 0)
-        SetDlgItemText(hwndDlg, IDC_DIALOGPROC, L"N/A");
+        PhSetDialogItemText(hwndDlg, IDC_DIALOGPROC, L"N/A");
     else
-        SetDlgItemText(hwndDlg, IDC_DIALOGPROC, L"Unknown");
+        PhSetDialogItemText(hwndDlg, IDC_DIALOGPROC, L"Unknown");
 }
 
 static VOID WepRefreshWindowGeneralInfo(
@@ -766,18 +770,18 @@ static VOID WepRefreshWindowGeneralInfo(
     WINDOWPLACEMENT windowPlacement = { sizeof(WINDOWPLACEMENT) };
     MONITORINFO monitorInfo = { sizeof(MONITORINFO) };
 
-    SetDlgItemText(hwndDlg, IDC_THREAD, PH_AUTO_T(PH_STRING, PhGetClientIdName(&Context->ClientId))->Buffer);
-    SetDlgItemText(hwndDlg, IDC_TEXT, PhGetStringOrEmpty(PH_AUTO(PhGetWindowText(Context->WindowHandle))));
+    PhSetDialogItemText(hwndDlg, IDC_THREAD, PH_AUTO_T(PH_STRING, PhGetClientIdName(&Context->ClientId))->Buffer);
+    PhSetDialogItemText(hwndDlg, IDC_TEXT, PhGetStringOrEmpty(PH_AUTO(PhGetWindowText(Context->WindowHandle))));
 
     if (GetWindowInfo(Context->WindowHandle, &windowInfo))
     {
-        SetDlgItemText(hwndDlg, IDC_RECTANGLE, WepFormatRect(&windowInfo.rcWindow)->Buffer);
-        SetDlgItemText(hwndDlg, IDC_CLIENTRECTANGLE, WepFormatRect(&windowInfo.rcClient)->Buffer);
+        PhSetDialogItemText(hwndDlg, IDC_RECTANGLE, WepFormatRect(&windowInfo.rcWindow)->Buffer);
+        PhSetDialogItemText(hwndDlg, IDC_CLIENTRECTANGLE, WepFormatRect(&windowInfo.rcClient)->Buffer);
     }
     else
     {
-        SetDlgItemText(hwndDlg, IDC_RECTANGLE, L"N/A");
-        SetDlgItemText(hwndDlg, IDC_CLIENTRECTANGLE, L"N/A");
+        PhSetDialogItemText(hwndDlg, IDC_RECTANGLE, L"N/A");
+        PhSetDialogItemText(hwndDlg, IDC_CLIENTRECTANGLE, L"N/A");
     }
 
     if (GetWindowPlacement(Context->WindowHandle, &windowPlacement))
@@ -791,18 +795,18 @@ static VOID WepRefreshWindowGeneralInfo(
             windowPlacement.rcNormalPosition.bottom += monitorInfo.rcWork.top;
         }
 
-        SetDlgItemText(hwndDlg, IDC_NORMALRECTANGLE, WepFormatRect(&windowPlacement.rcNormalPosition)->Buffer);
+        PhSetDialogItemText(hwndDlg, IDC_NORMALRECTANGLE, WepFormatRect(&windowPlacement.rcNormalPosition)->Buffer);
     }
     else
     {
-        SetDlgItemText(hwndDlg, IDC_NORMALRECTANGLE, L"N/A");
+        PhSetDialogItemText(hwndDlg, IDC_NORMALRECTANGLE, L"N/A");
     }
 
-    SetDlgItemText(hwndDlg, IDC_INSTANCEHANDLE, PhaFormatString(L"0x%Ix", GetWindowLongPtr(Context->WindowHandle, GWLP_HINSTANCE))->Buffer);
-    SetDlgItemText(hwndDlg, IDC_MENUHANDLE, PhaFormatString(L"0x%Ix", GetMenu(Context->WindowHandle))->Buffer);
-    SetDlgItemText(hwndDlg, IDC_USERDATA, PhaFormatString(L"0x%Ix", GetWindowLongPtr(Context->WindowHandle, GWLP_USERDATA))->Buffer);
-    SetDlgItemText(hwndDlg, IDC_UNICODE, IsWindowUnicode(Context->WindowHandle) ? L"Yes" : L"No");
-    SetDlgItemText(hwndDlg, IDC_CTRLID, PhaFormatString(L"%lu", GetWindowLongPtr(Context->WindowHandle, GWLP_ID))->Buffer);
+    PhSetDialogItemText(hwndDlg, IDC_INSTANCEHANDLE, PhaFormatString(L"0x%Ix", GetWindowLongPtr(Context->WindowHandle, GWLP_HINSTANCE))->Buffer);
+    PhSetDialogItemText(hwndDlg, IDC_MENUHANDLE, PhaFormatString(L"0x%Ix", GetMenu(Context->WindowHandle))->Buffer);
+    PhSetDialogItemText(hwndDlg, IDC_USERDATA, PhaFormatString(L"0x%Ix", GetWindowLongPtr(Context->WindowHandle, GWLP_USERDATA))->Buffer);
+    PhSetDialogItemText(hwndDlg, IDC_UNICODE, IsWindowUnicode(Context->WindowHandle) ? L"Yes" : L"No");
+    PhSetDialogItemText(hwndDlg, IDC_CTRLID, PhaFormatString(L"%lu", GetWindowLongPtr(Context->WindowHandle, GWLP_ID))->Buffer);
 
     WepEnsureHookDataValid(Context);
 
@@ -914,8 +918,8 @@ static VOID WepRefreshWindowStyles(
 
     if (GetWindowInfo(Context->WindowHandle, &windowInfo))
     {
-        SetDlgItemText(hwndDlg, IDC_STYLES, PhaFormatString(L"0x%x", windowInfo.dwStyle)->Buffer);
-        SetDlgItemText(hwndDlg, IDC_EXTENDEDSTYLES, PhaFormatString(L"0x%x", windowInfo.dwExStyle)->Buffer);
+        PhSetDialogItemText(hwndDlg, IDC_STYLES, PhaFormatString(L"0x%x", windowInfo.dwStyle)->Buffer);
+        PhSetDialogItemText(hwndDlg, IDC_EXTENDEDSTYLES, PhaFormatString(L"0x%x", windowInfo.dwExStyle)->Buffer);
 
         for (i = 0; i < sizeof(WepStylePairs) / sizeof(STRING_INTEGER_PAIR); i++)
         {
@@ -951,8 +955,8 @@ static VOID WepRefreshWindowStyles(
     }
     else
     {
-        SetDlgItemText(hwndDlg, IDC_STYLES, L"N/A");
-        SetDlgItemText(hwndDlg, IDC_EXTENDEDSTYLES, L"N/A");
+        PhSetDialogItemText(hwndDlg, IDC_STYLES, L"N/A");
+        PhSetDialogItemText(hwndDlg, IDC_EXTENDEDSTYLES, L"N/A");
     }
 }
 
@@ -996,13 +1000,13 @@ static VOID WepRefreshWindowClassInfoSymbols(
     )
 {
     if (Context->ClassWndProcResolving != 0)
-        SetDlgItemText(hwndDlg, IDC_WINDOWPROC, PhaFormatString(L"0x%Ix (resolving...)", Context->ClassInfo.lpfnWndProc)->Buffer);
+        PhSetDialogItemText(hwndDlg, IDC_WINDOWPROC, PhaFormatString(L"0x%Ix (resolving...)", Context->ClassInfo.lpfnWndProc)->Buffer);
     else if (Context->ClassWndProcSymbol)
-        SetDlgItemText(hwndDlg, IDC_WINDOWPROC, PhaFormatString(L"0x%Ix (%s)", Context->ClassInfo.lpfnWndProc, Context->ClassWndProcSymbol->Buffer)->Buffer);
+        PhSetDialogItemText(hwndDlg, IDC_WINDOWPROC, PhaFormatString(L"0x%Ix (%s)", Context->ClassInfo.lpfnWndProc, Context->ClassWndProcSymbol->Buffer)->Buffer);
     else if (Context->ClassInfo.lpfnWndProc)
-        SetDlgItemText(hwndDlg, IDC_WINDOWPROC, PhaFormatString(L"0x%Ix", Context->ClassInfo.lpfnWndProc)->Buffer);
+        PhSetDialogItemText(hwndDlg, IDC_WINDOWPROC, PhaFormatString(L"0x%Ix", Context->ClassInfo.lpfnWndProc)->Buffer);
     else
-        SetDlgItemText(hwndDlg, IDC_WINDOWPROC, L"Unknown");
+        PhSetDialogItemText(hwndDlg, IDC_WINDOWPROC, L"Unknown");
 }
 
 static VOID WepRefreshWindowClassInfo(
@@ -1025,12 +1029,12 @@ static VOID WepRefreshWindowClassInfo(
         GetClassInfoEx(NULL, className, &Context->ClassInfo);
     }
 
-    SetDlgItemText(hwndDlg, IDC_NAME, className);
-    SetDlgItemText(hwndDlg, IDC_ATOM, PhaFormatString(L"0x%x", GetClassWord(Context->WindowHandle, GCW_ATOM))->Buffer);
-    SetDlgItemText(hwndDlg, IDC_INSTANCEHANDLE, PhaFormatString(L"0x%Ix", GetClassLongPtr(Context->WindowHandle, GCLP_HMODULE))->Buffer);
-    SetDlgItemText(hwndDlg, IDC_ICONHANDLE, PhaFormatString(L"0x%Ix", Context->ClassInfo.hIcon)->Buffer);
-    SetDlgItemText(hwndDlg, IDC_SMALLICONHANDLE, PhaFormatString(L"0x%Ix", Context->ClassInfo.hIconSm)->Buffer);
-    SetDlgItemText(hwndDlg, IDC_MENUNAME, PhaFormatString(L"0x%Ix", Context->ClassInfo.lpszMenuName)->Buffer);
+    PhSetDialogItemText(hwndDlg, IDC_NAME, className);
+    PhSetDialogItemText(hwndDlg, IDC_ATOM, PhaFormatString(L"0x%x", GetClassWord(Context->WindowHandle, GCW_ATOM))->Buffer);
+    PhSetDialogItemText(hwndDlg, IDC_INSTANCEHANDLE, PhaFormatString(L"0x%Ix", GetClassLongPtr(Context->WindowHandle, GCLP_HMODULE))->Buffer);
+    PhSetDialogItemText(hwndDlg, IDC_ICONHANDLE, PhaFormatString(L"0x%Ix", Context->ClassInfo.hIcon)->Buffer);
+    PhSetDialogItemText(hwndDlg, IDC_SMALLICONHANDLE, PhaFormatString(L"0x%Ix", Context->ClassInfo.hIconSm)->Buffer);
+    PhSetDialogItemText(hwndDlg, IDC_MENUNAME, PhaFormatString(L"0x%Ix", Context->ClassInfo.lpszMenuName)->Buffer);
 
     PhInitializeStringBuilder(&stringBuilder, 100);
     PhAppendFormatStringBuilder(&stringBuilder, L"0x%x (", Context->ClassInfo.style);
@@ -1055,12 +1059,12 @@ static VOID WepRefreshWindowClassInfo(
         PhRemoveEndStringBuilder(&stringBuilder, 1);
     }
 
-    SetDlgItemText(hwndDlg, IDC_STYLES, stringBuilder.String->Buffer);
+    PhSetDialogItemText(hwndDlg, IDC_STYLES, stringBuilder.String->Buffer);
     PhDeleteStringBuilder(&stringBuilder);
 
     // TODO: Add symbols for these values.
-    SetDlgItemText(hwndDlg, IDC_CURSORHANDLE, PhaFormatString(L"0x%Ix", Context->ClassInfo.hCursor)->Buffer);
-    SetDlgItemText(hwndDlg, IDC_BACKGROUNDBRUSH, PhaFormatString(L"0x%Ix", Context->ClassInfo.hbrBackground)->Buffer);
+    PhSetDialogItemText(hwndDlg, IDC_CURSORHANDLE, PhaFormatString(L"0x%Ix", Context->ClassInfo.hCursor)->Buffer);
+    PhSetDialogItemText(hwndDlg, IDC_BACKGROUNDBRUSH, PhaFormatString(L"0x%Ix", Context->ClassInfo.hbrBackground)->Buffer);
 
     if (Context->ClassInfo.lpfnWndProc)
     {

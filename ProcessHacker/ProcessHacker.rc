@@ -58,10 +58,6 @@ IDI_PHAPPLICATION       ICON                    "resources\\application.ico"
 
 IDI_COG                 ICON                    "resources\\cog.ico"
 
-IDI_PHAPPLICATIONGO     ICON                    "resources\\application_go.ico"
-
-IDI_COGGO               ICON                    "resources\\cog_go.ico"
-
 IDI_PIN                 ICON                    "resources\\pin.ico"
 
 IDI_FOLDER              ICON                    "resources\\folder.ico"
@@ -81,7 +77,7 @@ BEGIN
     POPUP "&Hacker"
     BEGIN
         MENUITEM "&Run...\aCtrl+R",             ID_HACKER_RUN
-        MENUITEM "Run as administrator...",     ID_HACKER_RUNASADMINISTRATOR
+        MENUITEM "Run as ad&ministrator...",    ID_HACKER_RUNASADMINISTRATOR
         MENUITEM "Run as &limited user...",     ID_HACKER_RUNASLIMITEDUSER
         MENUITEM "Run &as...\aCtrl+Shift+R",    ID_HACKER_RUNAS
         MENUITEM "Show &details for all processes", ID_HACKER_SHOWDETAILSFORALLPROCESSES
@@ -109,49 +105,42 @@ BEGIN
     POPUP "&View"
     BEGIN
         MENUITEM "System &information\aCtrl+I", ID_VIEW_SYSTEMINFORMATION
-        POPUP "&Tray icons"
-        BEGIN
-            MENUITEM "CPU &history",                ID_TRAYICONS_CPUHISTORY
-            MENUITEM "CPU &usage",                  ID_TRAYICONS_CPUUSAGE
-            MENUITEM "&I/O history",                ID_TRAYICONS_IOHISTORY
-            MENUITEM "&Commit charge history",      ID_TRAYICONS_COMMITHISTORY
-            MENUITEM "&Physical memory history",    ID_TRAYICONS_PHYSICALMEMORYHISTORY
-        END
+        MENUITEM "&Tray icons",                 ID_VIEW_TRAYICONS
         MENUITEM SEPARATOR
         MENUITEM "<section placeholder>",       ID_VIEW_SECTIONPLACEHOLDER
         MENUITEM SEPARATOR
         MENUITEM "&Always on top",              ID_VIEW_ALWAYSONTOP
         POPUP "&Opacity"
         BEGIN
-            MENUITEM "10%",                         ID_OPACITY_10
-            MENUITEM "20%",                         ID_OPACITY_20
-            MENUITEM "30%",                         ID_OPACITY_30
-            MENUITEM "40%",                         ID_OPACITY_40
-            MENUITEM "50%",                         ID_OPACITY_50
-            MENUITEM "60%",                         ID_OPACITY_60
-            MENUITEM "70%",                         ID_OPACITY_70
-            MENUITEM "80%",                         ID_OPACITY_80
-            MENUITEM "90%",                         ID_OPACITY_90
-            MENUITEM "Opaque",                      ID_OPACITY_OPAQUE
+            MENUITEM "&10%",                        ID_OPACITY_10
+            MENUITEM "&20%",                        ID_OPACITY_20
+            MENUITEM "&30%",                        ID_OPACITY_30
+            MENUITEM "&40%",                        ID_OPACITY_40
+            MENUITEM "&50%",                        ID_OPACITY_50
+            MENUITEM "&60%",                        ID_OPACITY_60
+            MENUITEM "&70%",                        ID_OPACITY_70
+            MENUITEM "&80%",                        ID_OPACITY_80
+            MENUITEM "&90%",                        ID_OPACITY_90
+            MENUITEM "&Opaque",                     ID_OPACITY_OPAQUE
         END
         MENUITEM SEPARATOR
         MENUITEM "&Refresh\aF5",                ID_VIEW_REFRESH
         POPUP "Refresh i&nterval"
         BEGIN
-            MENUITEM "Fast (0.5s)",                 ID_UPDATEINTERVAL_FAST
-            MENUITEM "Normal (1s)",                 ID_UPDATEINTERVAL_NORMAL
-            MENUITEM "Below normal (2s)",           ID_UPDATEINTERVAL_BELOWNORMAL
-            MENUITEM "Slow (5s)",                   ID_UPDATEINTERVAL_SLOW
-            MENUITEM "Very slow (10s)",             ID_UPDATEINTERVAL_VERYSLOW
+            MENUITEM "&Fast (0.5s)",                ID_UPDATEINTERVAL_FAST
+            MENUITEM "&Normal (1s)",                ID_UPDATEINTERVAL_NORMAL
+            MENUITEM "&Below normal (2s)",          ID_UPDATEINTERVAL_BELOWNORMAL
+            MENUITEM "&Slow (5s)",                  ID_UPDATEINTERVAL_SLOW
+            MENUITEM "&Very slow (10s)",            ID_UPDATEINTERVAL_VERYSLOW
         END
         MENUITEM "Refresh a&utomatically\aF6",  ID_VIEW_UPDATEAUTOMATICALLY
     END
     POPUP "&Tools"
     BEGIN
-        MENUITEM "Create service...",           ID_TOOLS_CREATESERVICE
-        MENUITEM "Hidden processes",            ID_TOOLS_HIDDENPROCESSES
-        MENUITEM "Inspect executable file...",  ID_TOOLS_INSPECTEXECUTABLEFILE
-        MENUITEM "Pagefiles",                   ID_TOOLS_PAGEFILES
+        MENUITEM "&Create service...",          ID_TOOLS_CREATESERVICE
+        MENUITEM "&Hidden processes",           ID_TOOLS_HIDDENPROCESSES
+        MENUITEM "Inspect e&xecutable file...", ID_TOOLS_INSPECTEXECUTABLEFILE
+        MENUITEM "&Pagefiles",                  ID_TOOLS_PAGEFILES
         MENUITEM "Start &Task Manager",         ID_TOOLS_STARTTASKMANAGER
     END
     POPUP "&Users"
@@ -176,37 +165,34 @@ BEGIN
         MENUITEM "&Suspend",                    ID_THREAD_SUSPEND
         MENUITEM "Res&ume",                     ID_THREAD_RESUME
         MENUITEM SEPARATOR
+        MENUITEM "Analy&ze",                    ID_ANALYZE_WAIT
         MENUITEM "&Affinity",                   ID_THREAD_AFFINITY
         MENUITEM "Per&missions",                ID_THREAD_PERMISSIONS
         MENUITEM "&Token",                      ID_THREAD_TOKEN
-        POPUP "Analy&ze"
-        BEGIN
-            MENUITEM "Wait",                        ID_ANALYZE_WAIT
-        END
         POPUP "&Priority"
         BEGIN
-            MENUITEM "Time critical",               ID_PRIORITY_TIMECRITICAL
-            MENUITEM "Highest",                     ID_PRIORITY_HIGHEST
-            MENUITEM "Above normal",                ID_PRIORITY_ABOVENORMAL
-            MENUITEM "Normal",                      ID_PRIORITY_NORMAL
-            MENUITEM "Below normal",                ID_PRIORITY_BELOWNORMAL
-            MENUITEM "Lowest",                      ID_PRIORITY_LOWEST
-            MENUITEM "Idle",                        ID_PRIORITY_IDLE
+            MENUITEM "Time &critical",              ID_PRIORITY_TIMECRITICAL
+            MENUITEM "&Highest",                    ID_PRIORITY_HIGHEST
+            MENUITEM "&Above normal",               ID_PRIORITY_ABOVENORMAL
+            MENUITEM "&Normal",                     ID_PRIORITY_NORMAL
+            MENUITEM "&Below normal",               ID_PRIORITY_BELOWNORMAL
+            MENUITEM "&Lowest",                     ID_PRIORITY_LOWEST
+            MENUITEM "&Idle",                       ID_PRIORITY_IDLE
         END
-        POPUP "I/O priority"
+        POPUP "&I/O priority"
         BEGIN
-            MENUITEM "High",                        ID_IOPRIORITY_HIGH
-            MENUITEM "Normal",                      ID_IOPRIORITY_NORMAL
-            MENUITEM "Low",                         ID_IOPRIORITY_LOW
-            MENUITEM "Very low",                    ID_IOPRIORITY_VERYLOW
+            MENUITEM "&High",                       ID_IOPRIORITY_HIGH
+            MENUITEM "&Normal",                     ID_IOPRIORITY_NORMAL
+            MENUITEM "&Low",                        ID_IOPRIORITY_LOW
+            MENUITEM "&Very low",                   ID_IOPRIORITY_VERYLOW
         END
-        POPUP "Page priority"
+        POPUP "Pa&ge priority"
         BEGIN
-            MENUITEM "Normal",                      ID_PAGEPRIORITY_NORMAL
-            MENUITEM "Below normal",                ID_PAGEPRIORITY_BELOWNORMAL
-            MENUITEM "Medium",                      ID_PAGEPRIORITY_MEDIUM
-            MENUITEM "Low",                         ID_PAGEPRIORITY_LOW
-            MENUITEM "Very low",                    ID_PAGEPRIORITY_VERYLOW
+            MENUITEM "&Normal",                     ID_PAGEPRIORITY_NORMAL
+            MENUITEM "&Below normal",               ID_PAGEPRIORITY_BELOWNORMAL
+            MENUITEM "&Medium",                     ID_PAGEPRIORITY_MEDIUM
+            MENUITEM "&Low",                        ID_PAGEPRIORITY_LOW
+            MENUITEM "&Very low",                   ID_PAGEPRIORITY_VERYLOW
         END
         MENUITEM SEPARATOR
         MENUITEM "&Copy\aCtrl+C",               ID_THREAD_COPY
@@ -267,39 +253,38 @@ BEGIN
         MENUITEM "Res&ume",                     ID_PROCESS_RESUME
         MENUITEM "Res&tart",                    ID_PROCESS_RESTART
         MENUITEM SEPARATOR
-        MENUITEM "Create dump file...",         ID_PROCESS_CREATEDUMPFILE
-        MENUITEM "Debug",                       ID_PROCESS_DEBUG
-        MENUITEM "Virtualization",              ID_PROCESS_VIRTUALIZATION
+        MENUITEM "Create dump fi&le...",        ID_PROCESS_CREATEDUMPFILE
+        MENUITEM "De&bug",                      ID_PROCESS_DEBUG
+        MENUITEM "Virtuali&zation",             ID_PROCESS_VIRTUALIZATION
         MENUITEM SEPARATOR
         MENUITEM "&Affinity",                   ID_PROCESS_AFFINITY
         POPUP "&Priority"
         BEGIN
-            MENUITEM "Real time",                   ID_PRIORITY_REALTIME
-            MENUITEM "High",                        ID_PRIORITY_HIGH
-            MENUITEM "Above normal",                ID_PRIORITY_ABOVENORMAL
-            MENUITEM "Normal",                      ID_PRIORITY_NORMAL
-            MENUITEM "Below normal",                ID_PRIORITY_BELOWNORMAL
-            MENUITEM "Idle",                        ID_PRIORITY_IDLE
+            MENUITEM "&Real time",                  ID_PRIORITY_REALTIME
+            MENUITEM "&High",                       ID_PRIORITY_HIGH
+            MENUITEM "&Above normal",               ID_PRIORITY_ABOVENORMAL
+            MENUITEM "&Normal",                     ID_PRIORITY_NORMAL
+            MENUITEM "&Below normal",               ID_PRIORITY_BELOWNORMAL
+            MENUITEM "&Idle",                       ID_PRIORITY_IDLE
         END
         POPUP "&I/O priority"
         BEGIN
-            MENUITEM "High",                        ID_IOPRIORITY_HIGH
-            MENUITEM "Normal",                      ID_IOPRIORITY_NORMAL
-            MENUITEM "Low",                         ID_IOPRIORITY_LOW
-            MENUITEM "Very low",                    ID_IOPRIORITY_VERYLOW
+            MENUITEM "&High",                       ID_IOPRIORITY_HIGH
+            MENUITEM "&Normal",                     ID_IOPRIORITY_NORMAL
+            MENUITEM "&Low",                        ID_IOPRIORITY_LOW
+            MENUITEM "&Very low",                   ID_IOPRIORITY_VERYLOW
         END
         POPUP "&Miscellaneous"
         BEGIN
-            MENUITEM "Detach from debugger",        ID_MISCELLANEOUS_DETACHFROMDEBUGGER
-            MENUITEM "GDI handles",                 ID_MISCELLANEOUS_GDIHANDLES
-            MENUITEM "Inject DLL...",               ID_MISCELLANEOUS_INJECTDLL
-            POPUP "Page priority"
+            MENUITEM "&Detach from debugger",       ID_MISCELLANEOUS_DETACHFROMDEBUGGER
+            MENUITEM "GDI &handles",                ID_MISCELLANEOUS_GDIHANDLES
+            POPUP "Pa&ge priority"
             BEGIN
-                MENUITEM "Normal",                      ID_PAGEPRIORITY_NORMAL
-                MENUITEM "Below normal",                ID_PAGEPRIORITY_BELOWNORMAL
-                MENUITEM "Medium",                      ID_PAGEPRIORITY_MEDIUM
-                MENUITEM "Low",                         ID_PAGEPRIORITY_LOW
-                MENUITEM "Very low",                    ID_PAGEPRIORITY_VERYLOW
+                MENUITEM "&Normal",                     ID_PAGEPRIORITY_NORMAL
+                MENUITEM "&Below normal",               ID_PAGEPRIORITY_BELOWNORMAL
+                MENUITEM "&Medium",                     ID_PAGEPRIORITY_MEDIUM
+                MENUITEM "&Low",                        ID_PAGEPRIORITY_LOW
+                MENUITEM "&Very low",                   ID_PAGEPRIORITY_VERYLOW
             END
             MENUITEM "Reduce working &set",         ID_MISCELLANEOUS_REDUCEWORKINGSET
             MENUITEM "&Run as...",                  ID_MISCELLANEOUS_RUNAS
@@ -307,15 +292,15 @@ BEGIN
         END
         POPUP "&Window"
         BEGIN
-            MENUITEM "Bring to front",              ID_WINDOW_BRINGTOFRONT
-            MENUITEM "Restore",                     ID_WINDOW_RESTORE
-            MENUITEM "Minimize",                    ID_WINDOW_MINIMIZE
-            MENUITEM "Maximize",                    ID_WINDOW_MAXIMIZE
+            MENUITEM "Bring to &front",             ID_WINDOW_BRINGTOFRONT
+            MENUITEM "&Restore",                    ID_WINDOW_RESTORE
+            MENUITEM "M&inimize",                   ID_WINDOW_MINIMIZE
+            MENUITEM "M&aximize",                   ID_WINDOW_MAXIMIZE
             MENUITEM SEPARATOR
-            MENUITEM "Close",                       ID_WINDOW_CLOSE
+            MENUITEM "&Close",                      ID_WINDOW_CLOSE
         END
         MENUITEM SEPARATOR
-        MENUITEM "Search online\aCtrl+M",       ID_PROCESS_SEARCHONLINE
+        MENUITEM "Search &online\aCtrl+M",      ID_PROCESS_SEARCHONLINE
         MENUITEM "Open &file location\aCtrl+Enter", ID_PROCESS_OPENFILELOCATION
         MENUITEM "P&roperties\aEnter",          ID_PROCESS_PROPERTIES
         MENUITEM "&Copy\aCtrl+C",               ID_PROCESS_COPY
@@ -337,18 +322,6 @@ BEGIN
         MENUITEM "Open &file location\aCtrl+Enter", ID_SERVICE_OPENFILELOCATION
         MENUITEM "P&roperties\aEnter",          ID_SERVICE_PROPERTIES
         MENUITEM "&Copy\aCtrl+C",               ID_SERVICE_COPY
-    END
-END
-
-IDR_PRIVILEGE MENU
-BEGIN
-    POPUP "Privilege"
-    BEGIN
-        MENUITEM "&Enable",                     ID_PRIVILEGE_ENABLE
-        MENUITEM "&Disable",                    ID_PRIVILEGE_DISABLE
-        MENUITEM "&Remove",                     ID_PRIVILEGE_REMOVE
-        MENUITEM SEPARATOR
-        MENUITEM "&Copy\aCtrl+C",               ID_PRIVILEGE_COPY
     END
 END
 
@@ -398,15 +371,15 @@ BEGIN
         MENUITEM "System &information",         ID_ICON_SYSTEMINFORMATION
         POPUP "N&otifications"
         BEGIN
-            MENUITEM "Enable all",                  ID_NOTIFICATIONS_ENABLEALL
-            MENUITEM "Disable all",                 ID_NOTIFICATIONS_DISABLEALL
+            MENUITEM "&Enable all",                 ID_NOTIFICATIONS_ENABLEALL
+            MENUITEM "&Disable all",                ID_NOTIFICATIONS_DISABLEALL
             MENUITEM SEPARATOR
-            MENUITEM "New processes",               ID_NOTIFICATIONS_NEWPROCESSES
-            MENUITEM "Terminated processes",        ID_NOTIFICATIONS_TERMINATEDPROCESSES
-            MENUITEM "New services",                ID_NOTIFICATIONS_NEWSERVICES
-            MENUITEM "Started services",            ID_NOTIFICATIONS_STARTEDSERVICES
-            MENUITEM "Stopped services",            ID_NOTIFICATIONS_STOPPEDSERVICES
-            MENUITEM "Deleted services",            ID_NOTIFICATIONS_DELETEDSERVICES
+            MENUITEM "New &processes",              ID_NOTIFICATIONS_NEWPROCESSES
+            MENUITEM "T&erminated processes",       ID_NOTIFICATIONS_TERMINATEDPROCESSES
+            MENUITEM "New &services",               ID_NOTIFICATIONS_NEWSERVICES
+            MENUITEM "St&arted services",           ID_NOTIFICATIONS_STARTEDSERVICES
+            MENUITEM "St&opped services",           ID_NOTIFICATIONS_STOPPEDSERVICES
+            MENUITEM "&Deleted services",           ID_NOTIFICATIONS_DELETEDSERVICES
         END
         POPUP "&Processes"
         BEGIN
@@ -422,7 +395,7 @@ BEGIN
             MENUITEM "&Hibernate",                  ID_COMPUTER_HIBERNATE
             MENUITEM SEPARATOR
             MENUITEM "R&estart",                    ID_COMPUTER_RESTART
-            MENUITEM "Restart to boot options",     ID_COMPUTER_RESTARTBOOTOPTIONS
+            MENUITEM "Restart to boot &options",    ID_COMPUTER_RESTARTBOOTOPTIONS
             MENUITEM "Shu&t down",                  ID_COMPUTER_SHUTDOWN
             MENUITEM "H&ybrid shut down",           ID_COMPUTER_SHUTDOWNHYBRID
         END
@@ -459,11 +432,11 @@ IDR_EMPTYMEMLISTS MENU
 BEGIN
     POPUP "Empty"
     BEGIN
-        MENUITEM "Combine memory lists",        ID_EMPTY_COMBINEMEMORYLISTS
-        MENUITEM "Empty working sets",          ID_EMPTY_EMPTYWORKINGSETS
-        MENUITEM "Empty modified page list",    ID_EMPTY_EMPTYMODIFIEDPAGELIST
-        MENUITEM "Empty standby list",          ID_EMPTY_EMPTYSTANDBYLIST
-        MENUITEM "Empty priority 0 standby list", ID_EMPTY_EMPTYPRIORITY0STANDBYLIST
+        MENUITEM "&Combine memory lists",       ID_EMPTY_COMBINEMEMORYLISTS
+        MENUITEM "Empty &working sets",         ID_EMPTY_EMPTYWORKINGSETS
+        MENUITEM "Empty &modified page list",   ID_EMPTY_EMPTYMODIFIEDPAGELIST
+        MENUITEM "Empty &standby list",         ID_EMPTY_EMPTYSTANDBYLIST
+        MENUITEM "Empty &priority 0 standby list", ID_EMPTY_EMPTYPRIORITY0STANDBYLIST
     END
 END
 
@@ -638,9 +611,9 @@ BEGIN
     ICON            IDI_PROCESSHACKER,IDC_STATIC,16,15,20,20
     LTEXT           "Process Hacker",IDC_ABOUT_NAME,45,14,192,8
     LTEXT           "Licensed under the GNU GPL, v3.",IDC_STATIC,45,27,193,8
-    LTEXT           "Copyright (c) 2008-2017",IDC_STATIC,45,40,80,8
+    LTEXT           "Copyright (c) 2008-2018",IDC_STATIC,45,40,80,8
     CONTROL         "Credits.",IDC_CREDITS,"SysLink",WS_TABSTOP,15,55,248,115
-    CONTROL         "<a href=""http://processhacker.sourceforge.net"">Process Hacker on SourceForge.net</a>",IDC_LINK_SF,
+    CONTROL         "<a href=""https://processhacker.sourceforge.io"">Process Hacker on SourceForge.net</a>",IDC_LINK_SF,
                     "SysLink",WS_TABSTOP,7,177,130,11
     PUSHBUTTON      "Diagnostics",IDC_DIAGNOSTICS,160,174,50,14
     DEFPUSHBUTTON   "OK",IDOK,213,174,50,14
@@ -681,6 +654,7 @@ BEGIN
     LTEXT           "Service DLL:",IDC_STATIC,7,144,48,8
     EDITTEXT        IDC_SERVICEDLL,58,142,217,12,ES_AUTOHSCROLL | ES_READONLY
     CONTROL         "Delayed start",IDC_DELAYEDSTART,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,158,59,10
+    PUSHBUTTON      "Permissions",IDC_PERMISSIONS,225,162,50,14
 END
 
 IDD_HNDLGENERAL DIALOGEX 0, 0, 260, 181
@@ -725,11 +699,10 @@ STYLE DS_SETFONT | DS_FIXEDSYS | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_POPUP | WS
 CAPTION "Find Handles or DLLs"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    LTEXT           "Filter:",IDC_STATIC,7,7,19,8
-    EDITTEXT        IDC_FILTER,29,4,134,13,ES_AUTOHSCROLL
-    PUSHBUTTON      "Find",IDOK,301,3,50,14
-    CONTROL         "&Regex",IDC_REGEX,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,263,6,34,10
-    COMBOBOX        IDC_FILTERTYPE,165,4,93,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_FILTER,97,4,171,13,ES_AUTOHSCROLL
+    PUSHBUTTON      "Find",IDOK,306,3,50,14
+    CONTROL         "&Regex",IDC_REGEX,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,271,6,34,10
+    COMBOBOX        IDC_FILTERTYPE,2,4,93,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     CONTROL         "",IDC_TREELIST,"PhTreeNew",WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_TABSTOP | 0x2,2,19,353,212,WS_EX_CLIENTEDGE
 END
 
@@ -738,9 +711,9 @@ STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSM
 CAPTION "Token"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    LTEXT           "User:",IDC_STATIC,7,7,18,8
+    LTEXT           "User:",IDC_TOKENUSER,7,7,18,8
     EDITTEXT        IDC_USER,48,7,205,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
-    LTEXT           "User SID:",IDC_STATIC,7,18,32,8
+    LTEXT           "User SID:",IDC_TOKENSID,7,18,32,8
     EDITTEXT        IDC_USERSID,48,18,205,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
     LTEXT           "Session:",IDC_STATIC,7,29,28,8
     LTEXT           "Unknown",IDC_SESSIONID,38,29,30,8
@@ -748,13 +721,10 @@ BEGIN
     LTEXT           "Unknown",IDC_ELEVATED,120,29,30,8
     LTEXT           "Virtualized:",IDC_STATIC,169,29,36,8
     LTEXT           "Unknown",IDC_VIRTUALIZED,209,29,44,8
-    LTEXT           "App container SID:",IDC_STATIC,7,40,62,8
-    EDITTEXT        IDC_APPCONTAINERSID,75,40,178,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
-    CONTROL         "",IDC_GROUPS,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,53,246,112
-    CONTROL         "",IDC_PRIVILEGES,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,168,246,57
-    LTEXT           "To view capabilities, claims and other attributes, click Advanced.",IDC_INSTRUCTION,7,228,206,8
+    CONTROL         "",IDC_GROUPS,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,42,246,194
     PUSHBUTTON      "Integrity",IDC_INTEGRITY,149,239,50,14
     PUSHBUTTON      "Advanced",IDC_ADVANCED,203,239,50,14
+    PUSHBUTTON      "Permissions",IDC_PERMISSIONS,95,239,50,14
 END
 
 IDD_HIDDENPROCESSES DIALOGEX 0, 0, 337, 221
@@ -772,30 +742,29 @@ BEGIN
     DEFPUSHBUTTON   "Close",IDOK,280,200,50,14
 END
 
-IDD_RUNAS DIALOGEX 0, 0, 278, 127
+IDD_RUNAS DIALOGEX 0, 0, 293, 127
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Run As"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    LTEXT           "Enter the command to start as the specified user.",IDC_STATIC,7,7,160,8
+    LTEXT           "Enter the command to start as the specified user.",IDC_TITLE,7,7,160,8
     LTEXT           "Program:",IDC_STATIC,7,23,30,8
-    EDITTEXT        IDC_PROGRAM,53,21,163,12,ES_AUTOHSCROLL
-    PUSHBUTTON      "Browse...",IDC_BROWSE,221,20,50,14
     LTEXT           "User name:",IDC_STATIC,7,40,38,8
-    COMBOBOX        IDC_USERNAME,53,38,123,12,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Type:",IDC_STATIC,183,40,20,8
-    COMBOBOX        IDC_TYPE,207,38,64,30,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_USERNAME,53,38,123,12,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Type:",IDC_STATIC,184,40,20,8
+    COMBOBOX        IDC_TYPE,208,38,78,12,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
     LTEXT           "Password:",IDC_STATIC,7,56,34,8
     EDITTEXT        IDC_PASSWORD,53,55,123,12,ES_PASSWORD | ES_AUTOHSCROLL
     CONTROL         "Toggle elevation",IDC_TOGGLEELEVATION,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,183,56,69,10
     LTEXT           "Session ID:",IDC_STATIC,7,73,37,8
-    EDITTEXT        IDC_SESSIONID,53,72,104,12,ES_AUTOHSCROLL | ES_NUMBER
-    PUSHBUTTON      "...",IDC_SESSIONS,161,71,16,14
     LTEXT           "Desktop:",IDC_STATIC,7,90,30,8
-    EDITTEXT        IDC_DESKTOP,53,88,104,12,ES_AUTOHSCROLL
-    PUSHBUTTON      "...",IDC_DESKTOPS,161,87,16,14
-    DEFPUSHBUTTON   "OK",IDOK,168,106,50,14
-    PUSHBUTTON      "Cancel",IDCANCEL,221,106,50,14
+    DEFPUSHBUTTON   "OK",IDOK,127,106,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,182,106,50,14
+    COMBOBOX        IDC_SESSIONCOMBO,53,72,123,12,CBS_DROPDOWNLIST | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_DESKTOPCOMBO,53,88,123,12,CBS_DROPDOWNLIST | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Browse",IDC_BROWSE,237,106,50,14
+    CONTROL         "Create suspended",IDC_TOGGLESUSPENDED,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,183,70,75,10
+    COMBOBOX        IDC_PROGRAMCOMBO,53,21,233,12,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
 END
 
 IDD_PROGRESS DIALOGEX 0, 0, 216, 62
@@ -895,6 +864,22 @@ BEGIN
     PUSHBUTTON      "Pulse",IDC_PULSE,115,34,50,14
 END
 
+IDD_OBJFILE DIALOGEX 0, 0, 257, 86
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "File"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "Type:",IDC_STATIC,7,7,28,8
+    LTEXT           "Unknown",IDC_FILETYPE,40,7,210,8
+    LTEXT           "Position:",IDC_STATIC,7,29,28,8
+    LTEXT           "Unknown",IDC_POSITION,40,29,210,8
+    LTEXT           "File size:",IDC_STATIC,7,40,28,8
+    LTEXT           "Unknown",IDC_FILESIZE,40,40,210,8
+    PUSHBUTTON      "Flush",IDC_FLUSH,7,56,50,14
+    LTEXT           "Mode:",IDC_STATIC,7,18,28,8
+    EDITTEXT        IDC_FILEMODE,40,18,207,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
+END
+
 IDD_OBJMUTANT DIALOGEX 0, 0, 186, 76
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Mutant"
@@ -941,8 +926,8 @@ BEGIN
     RTEXT           "Static",IDC_ZACTIVEPROCESSES_V,99,18,37,8,SS_ENDELLIPSIS
     LTEXT           "Total processes",IDC_STATIC,15,28,51,8
     RTEXT           "Static",IDC_ZTOTALPROCESSES_V,95,29,41,8,SS_ENDELLIPSIS
-    LTEXT           "Terminated processes",IDC_STATIC,15,39,71,8
-    RTEXT           "Static",IDC_ZTERMINATEDPROCESSES_V,99,39,37,8,SS_ENDELLIPSIS
+    LTEXT           "Terminated due to job limits",IDC_STATIC,15,39,98,8
+    RTEXT           "Static",IDC_ZTERMINATEDPROCESSES_V,107,39,29,8,SS_ENDELLIPSIS
     GROUPBOX        "Time",IDC_STATIC,7,57,133,57
     LTEXT           "User time",IDC_STATIC,15,68,32,8
     LTEXT           "Kernel time",IDC_STATIC,15,79,38,8
@@ -1153,31 +1138,29 @@ BEGIN
     EDITTEXT        IDC_CHOICESIMPLE,7,20,185,13,ES_PASSWORD | ES_AUTOHSCROLL | NOT WS_VISIBLE
 END
 
-IDD_OPTGENERAL DIALOGEX 0, 0, 250, 154
+IDD_OPTGENERAL DIALOGEX 0, 0, 315, 220
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "General"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     LTEXT           "Search engine:",IDC_STATIC,7,8,49,8
-    EDITTEXT        IDC_SEARCHENGINE,61,7,182,12,ES_AUTOHSCROLL
+    EDITTEXT        IDC_SEARCHENGINE,61,7,247,12,ES_AUTOHSCROLL
     LTEXT           "PE viewer:",IDC_STATIC,7,23,35,8
-    EDITTEXT        IDC_PEVIEWER,61,22,182,12,ES_AUTOHSCROLL
-    LTEXT           "Max. size unit:",IDC_STATIC,7,38,49,8
-    COMBOBOX        IDC_MAXSIZEUNIT,61,37,39,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Icon processes:",IDC_STATIC,7,55,52,8
-    EDITTEXT        IDC_ICONPROCESSES,61,53,40,12,ES_AUTOHSCROLL | ES_NUMBER
-    CONTROL         "Allow only one instance",IDC_ALLOWONLYONEINSTANCE,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,71,91,10
-    CONTROL         "Hide when closed",IDC_HIDEONCLOSE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,83,71,10
-    CONTROL         "Hide when minimized",IDC_HIDEONMINIMIZE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,95,81,10
-    CONTROL         "Start hidden",IDC_STARTHIDDEN,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,119,55,10
-    CONTROL         "Collapse services on start",IDC_COLLAPSESERVICES,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,122,71,98,10
-    CONTROL         "Single-click tray icons",IDC_ICONSINGLECLICK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,122,83,83,10
-    CONTROL         "Icon click toggles visibility",IDC_ICONTOGGLESVISIBILITY,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,122,95,97,10
-    CONTROL         "Enable plugins",IDC_ENABLEPLUGINS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,122,107,61,10
-    PUSHBUTTON      "Font...",IDC_FONT,7,133,50,14
-    CONTROL         "Start when I log on",IDC_STARTATLOGON,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,107,77,10
+    EDITTEXT        IDC_PEVIEWER,61,22,247,12,ES_AUTOHSCROLL
+    LTEXT           "Max. size unit:",IDC_STATIC,7,55,49,8
+    COMBOBOX        IDC_MAXSIZEUNIT,61,54,39,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Icon processes:",IDC_STATIC,7,72,52,8
+    EDITTEXT        IDC_ICONPROCESSES,61,70,40,12,ES_AUTOHSCROLL | ES_NUMBER
+    PUSHBUTTON      "Font...",IDC_FONT,179,70,49,14
+    PUSHBUTTON      "Make default...",IDC_REPLACETASKMANAGER,179,86,72,14
+    LTEXT           "Graph history length:",IDC_STATIC,106,56,69,8
+    EDITTEXT        IDC_SAMPLECOUNT,180,55,48,12,ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "Automatic",IDC_SAMPLECOUNTAUTOMATIC,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,233,56,48,10
+    CONTROL         "",IDC_SETTINGS,"SysListView32",LVS_LIST | LVS_SINGLESEL | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,103,301,110
+    LTEXT           "Application font:",IDC_STATIC,121,72,54,8
+    RTEXT           "Process Hacker is the default Task Manager:",IDC_DEFSTATE,7,88,166,8
+    LTEXT           "Symbol path:",IDC_STATIC,7,39,43,8
+    EDITTEXT        IDC_DBGHELPSEARCHPATH,61,38,247,12,ES_AUTOHSCROLL
 END
 
 IDD_OPTHIGHLIGHTING DIALOGEX 0, 0, 250, 174
@@ -1264,92 +1247,15 @@ STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSM
 CAPTION "Statistics"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    GROUPBOX        "CPU",IDC_STATIC,7,7,119,64
-    GROUPBOX        "I/O",IDC_STATIC,131,7,122,83
-    LTEXT           "Priority",IDC_STATIC,14,17,24,8
-    LTEXT           "Cycles",IDC_STATIC,14,27,22,8
-    LTEXT           "Kernel time",IDC_STATIC,14,37,38,8
-    LTEXT           "User time",IDC_STATIC,14,47,32,8
-    LTEXT           "Total time",IDC_STATIC,14,57,34,8
-    RTEXT           "Static",IDC_ZPRIORITY_V,59,17,61,8,SS_ENDELLIPSIS
-    RTEXT           "Static",IDC_ZCYCLES_V,43,27,77,8,SS_ENDELLIPSIS
-    RTEXT           "Static",IDC_ZKERNELTIME_V,59,37,61,8,SS_ENDELLIPSIS
-    RTEXT           "Static",IDC_ZUSERTIME_V,59,47,61,8,SS_ENDELLIPSIS
-    RTEXT           "Static",IDC_ZTOTALTIME_V,59,57,61,8,SS_ENDELLIPSIS
-    GROUPBOX        "Memory",IDC_STATIC,7,74,120,128
-    LTEXT           "Private bytes",IDC_STATIC,14,84,44,8
-    LTEXT           "Working set",IDC_STATIC,14,136,40,8
-    LTEXT           "Peak working set",IDC_STATIC,14,178,57,8
-    LTEXT           "Virtual size",IDC_STATIC,14,105,36,8
-    LTEXT           "Peak virtual size",IDC_STATIC,14,115,53,8
-    LTEXT           "Peak private bytes",IDC_STATIC,14,95,61,8
-    LTEXT           "Page faults",IDC_STATIC,14,125,38,8
-    LTEXT           "Page priority",IDC_STATIC,14,188,42,8
-    RTEXT           "Static",IDC_ZPRIVATEBYTES_V,72,84,48,8,SS_ENDELLIPSIS
-    RTEXT           "Static",IDC_ZWORKINGSET_V,72,136,48,8,SS_ENDELLIPSIS
-    RTEXT           "Static",IDC_ZPEAKWORKINGSET_V,78,178,42,8,SS_ENDELLIPSIS
-    RTEXT           "Static",IDC_ZVIRTUALSIZE_V,72,105,48,8,SS_ENDELLIPSIS
-    RTEXT           "Static",IDC_ZPEAKVIRTUALSIZE_V,72,115,48,8,SS_ENDELLIPSIS
-    RTEXT           "Static",IDC_ZPEAKPRIVATEBYTES_V,80,95,40,8,SS_ENDELLIPSIS
-    RTEXT           "Static",IDC_ZPAGEFAULTS_V,72,125,48,8,SS_ENDELLIPSIS
-    RTEXT           "Static",IDC_ZPAGEPRIORITY_V,72,188,48,8,SS_ENDELLIPSIS
-    LTEXT           "Reads",IDC_STATIC,138,17,21,8
-    LTEXT           "Read bytes",IDC_STATIC,138,27,38,8
-    LTEXT           "Writes",IDC_STATIC,138,37,22,8
-    LTEXT           "Write bytes",IDC_STATIC,138,47,38,8
-    LTEXT           "Other",IDC_STATIC,138,57,20,8
-    LTEXT           "Other bytes",IDC_STATIC,138,67,40,8
-    LTEXT           "I/O priority",IDC_STATIC,138,77,36,8
-    RTEXT           "Static",IDC_ZIOREADS_V,184,17,63,8,SS_ENDELLIPSIS
-    RTEXT           "Static",IDC_ZIOREADBYTES_V,184,27,63,8,SS_ENDELLIPSIS
-    RTEXT           "Static",IDC_ZIOWRITES_V,184,37,63,8,SS_ENDELLIPSIS
-    RTEXT           "Static",IDC_ZIOWRITEBYTES_V,184,47,63,8,SS_ENDELLIPSIS
-    RTEXT           "Static",IDC_ZIOOTHER_V,184,57,63,8,SS_ENDELLIPSIS
-    RTEXT           "Static",IDC_ZIOOTHERBYTES_V,184,67,63,8,SS_ENDELLIPSIS
-    RTEXT           "Static",IDC_ZIOPRIORITY_V,184,77,63,8,SS_ENDELLIPSIS
-    GROUPBOX        "Other",IDC_STATIC,131,92,122,70
-    LTEXT           "Handles",IDC_STATIC,138,102,26,8
-    LTEXT           "GDI handles",IDC_STATIC,138,122,40,8
-    LTEXT           "USER handles",IDC_STATIC,138,132,46,8
-    RTEXT           "Static",IDC_ZHANDLES_V,193,102,54,8,SS_ENDELLIPSIS
-    RTEXT           "Static",IDC_ZGDIHANDLES_V,193,122,54,8,SS_ENDELLIPSIS
-    RTEXT           "Static",IDC_ZUSERHANDLES_V,193,132,54,8,SS_ENDELLIPSIS
-    PUSHBUTTON      "Details",IDC_DETAILS,137,143,50,14
-    LTEXT           "Peak handles",IDC_STATIC,138,112,44,8
-    RTEXT           "Static",IDC_ZPEAKHANDLES_V,192,112,55,8,SS_ENDELLIPSIS
-    LTEXT           "Private WS",IDC_STATIC,22,147,36,8
-    LTEXT           "Shareable WS",IDC_STATIC,22,157,46,8
-    LTEXT           "Shared WS",IDC_STATIC,22,167,36,8
-    RTEXT           "Static",IDC_ZPRIVATEWS_V,78,147,42,8,SS_ENDELLIPSIS
-    RTEXT           "Static",IDC_ZSHAREABLEWS_V,78,157,42,8,SS_ENDELLIPSIS
-    RTEXT           "Static",IDC_ZSHAREDWS_V,78,167,42,8,SS_ENDELLIPSIS
+    CONTROL         "",IDC_STATISTICS_LIST,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_ALIGNLEFT | LVS_NOCOLUMNHEADER | WS_BORDER | WS_TABSTOP,2,3,255,255
 END
 
-IDD_OPTADVANCED DIALOGEX 0, 0, 250, 150
+IDD_OPTADVANCED DIALOGEX 0, 0, 317, 225
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Advanced"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    CONTROL         "Enable warnings",IDC_ENABLEWARNINGS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,7,68,10
-    CONTROL         "Enable kernel-mode driver",IDC_ENABLEKERNELMODEDRIVER,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,19,99,10
-    CONTROL         "Hide unnamed handles",IDC_HIDEUNNAMEDHANDLES,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,31,88,10
-    CONTROL         "Check images for digital signatures and packing",IDC_ENABLESTAGE2,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,43,167,10
-    CONTROL         "Resolve addresses for network connections",IDC_ENABLENETWORKRESOLVE,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,55,155,10
-    CONTROL         "Include CPU (and other) usage of children in collapsed processes",IDC_PROPAGATECPUUSAGE,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,67,223,10
-    CONTROL         "Show tooltips instantly",IDC_ENABLEINSTANTTOOLTIPS,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,79,88,10
-    CONTROL         "Enable cycle-based CPU usage",IDC_ENABLECYCLECPUUSAGE,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,91,114,10
-    CONTROL         "Replace Task Manager with Process Hacker",IDC_REPLACETASKMANAGER,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,105,154,10
-    PUSHBUTTON      "Change...",IDC_CHANGE,161,103,62,14
-    LTEXT           "History sample count:",IDC_SAMPLECOUNTLABEL,7,121,70,8
-    EDITTEXT        IDC_SAMPLECOUNT,82,120,39,12,ES_AUTOHSCROLL | ES_NUMBER
-    CONTROL         "Automatic",IDC_SAMPLECOUNTAUTOMATIC,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,126,121,48,10
+    CONTROL         "",IDC_SETTINGS,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,7,303,211
 END
 
 IDD_GDIHANDLES DIALOGEX 0, 0, 351, 307
@@ -1374,19 +1280,6 @@ BEGIN
     PUSHBUTTON      "Save...",IDC_SAVE,148,282,50,14
     PUSHBUTTON      "Copy",IDC_COPY,202,282,50,14
     DEFPUSHBUTTON   "Close",IDOK,256,282,50,14
-END
-
-IDD_OPTSYMBOLS DIALOGEX 0, 0, 250, 75
-STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "Symbols"
-FONT 8, "MS Shell Dlg", 400, 0, 0x1
-BEGIN
-    LTEXT           "Dbghelp.dll path:",IDC_STATIC,7,9,56,8
-    EDITTEXT        IDC_DBGHELPPATH,66,8,123,12,ES_AUTOHSCROLL
-    PUSHBUTTON      "Browse...",IDC_BROWSE,193,7,50,14
-    LTEXT           "Search path:",IDC_STATIC,7,24,42,8
-    EDITTEXT        IDC_DBGHELPSEARCHPATH,66,23,177,12,ES_AUTOHSCROLL
-    CONTROL         "Undecorate symbols",IDC_UNDECORATESYMBOLS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,38,81,10
 END
 
 IDD_MEMEDIT DIALOGEX 0, 0, 441, 269
@@ -1469,33 +1362,15 @@ BEGIN
     CONTROL         "Physical memory",IDC_PHYSICAL,"PhColorBox",WS_CLIPSIBLINGS | WS_TABSTOP,73,129,33,13
 END
 
-IDD_PLUGINS DIALOGEX 0, 0, 291, 272
-STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+IDD_PLUGINMANAGER DIALOGEX 0, 0, 501, 272
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
 CAPTION "Plugins"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    CONTROL         "",IDC_LIST,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,7,277,119
-    GROUPBOX        "Plugin",IDC_STATIC,7,129,277,118
-    LTEXT           "Name:",IDC_STATIC,15,141,22,8
-    EDITTEXT        IDC_NAME,71,141,104,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
-    LTEXT           "Internal name:",IDC_STATIC,15,152,49,8
-    EDITTEXT        IDC_INTERNALNAME,71,152,203,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
-    LTEXT           "Author:",IDC_STATIC,15,163,26,8
-    EDITTEXT        IDC_AUTHOR,71,163,203,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
-    LTEXT           "URL:",IDC_STATIC,15,174,16,8
-    EDITTEXT        IDC_URL,71,174,174,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
-    CONTROL         "<a>Open</a>",IDC_OPENURL,"SysLink",WS_TABSTOP,250,174,26,10
-    LTEXT           "File name:",IDC_STATIC,15,185,34,8
-    EDITTEXT        IDC_FILENAME,71,185,203,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
-    LTEXT           "Version:",IDC_STATIC,183,141,27,8
-    EDITTEXT        IDC_VERSION,215,141,59,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
-    LTEXT           "Description:",IDC_STATIC,15,196,39,8
-    EDITTEXT        IDC_DESCRIPTION,14,208,211,34,ES_MULTILINE | ES_READONLY
-    PUSHBUTTON      "Disable",IDC_DISABLE,230,211,50,14
-    PUSHBUTTON      "Options...",IDC_OPTIONS,230,228,50,14
-    PUSHBUTTON      "Clean up",IDC_CLEANUP,7,251,50,14
-    LTEXT           "Changes may require a restart to take effect.",IDC_INSTRUCTION,82,254,148,8,NOT WS_VISIBLE
-    DEFPUSHBUTTON   "Close",IDOK,234,251,50,14
+    LTEXT           "Changes may require a restart to take effect.",IDC_INSTRUCTION,187,262,148,8,NOT WS_VISIBLE
+    DEFPUSHBUTTON   "Close",IDOK,449,256,50,14
+    CONTROL         "",IDC_PLUGINTREE,"PhTreeNew",WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_TABSTOP | 0xa,2,2,497,253,WS_EX_CLIENTEDGE
+    PUSHBUTTON      "Disabled plugins (0)",IDC_DISABLED,2,256,72,14
 END
 
 IDD_HANDLESTATS DIALOGEX 0, 0, 219, 175
@@ -1835,7 +1710,7 @@ BEGIN
     LTEXT           "Content layout",IDC_LAYOUT,4,3,210,128,NOT WS_VISIBLE
     CONTROL         "Section",IDC_SECTION,"Static",SS_LEFTNOWORDWRAP | SS_NOTIFY | SS_ENDELLIPSIS | WS_GROUP,4,134,177,13
     PUSHBUTTON      "Options",IDC_OPTIONS,183,133,15,14,BS_ICON
-    CONTROL         "Pin",IDC_PIN,"Button",BS_AUTOCHECKBOX | BS_ICON | BS_PUSHLIKE | WS_TABSTOP,199,133,15,14
+    CONTROL         "Pin",IDC_PINWINDOW,"Button",BS_AUTOCHECKBOX | BS_ICON | BS_PUSHLIKE | WS_TABSTOP,199,133,15,14
 END
 
 IDD_MINIINFO_LIST DIALOGEX 0, 0, 217, 141
@@ -1851,7 +1726,7 @@ STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSM
 CAPTION "Mitigation Policies"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    CONTROL         "",IDC_LIST,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,7,263,108
+    CONTROL         "",IDC_LIST,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | LVS_NOCOLUMNHEADER | WS_BORDER | WS_TABSTOP,7,7,263,108
     LTEXT           "Description:",IDC_DESCRIPTIONLABEL,7,118,38,8
     EDITTEXT        IDC_DESCRIPTION,7,129,263,62,ES_MULTILINE | ES_READONLY | WS_VSCROLL
     DEFPUSHBUTTON   "OK",IDOK,220,196,50,14
@@ -1883,6 +1758,62 @@ BEGIN
     PUSHBUTTON      "Reset",IDC_RESET,113,231,50,14
     PUSHBUTTON      "Apply",IDC_APPLY,319,231,50,14,NOT WS_VISIBLE
     PUSHBUTTON      "Cleanup",IDC_CLEANUP,165,231,50,14
+END
+
+IDD_PLUGINPROPERTIES DIALOGEX 0, 0, 291, 152
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Plugin Properties"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "Plugin",IDC_STATIC,7,7,277,122
+    LTEXT           "Name:",IDC_STATIC,15,18,22,8
+    EDITTEXT        IDC_NAME,71,18,104,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
+    LTEXT           "Internal name:",IDC_STATIC,15,30,49,8
+    EDITTEXT        IDC_INTERNALNAME,71,30,203,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
+    LTEXT           "Author:",IDC_STATIC,15,41,26,8
+    EDITTEXT        IDC_AUTHOR,71,41,203,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
+    LTEXT           "URL:",IDC_STATIC,15,52,16,8
+    EDITTEXT        IDC_URL,71,52,174,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
+    CONTROL         "<a>Open</a>",IDC_OPENURL,"SysLink",WS_TABSTOP,250,52,26,10
+    LTEXT           "File name:",IDC_STATIC,15,63,34,8
+    EDITTEXT        IDC_FILENAME,71,63,203,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
+    LTEXT           "Version:",IDC_STATIC,183,18,27,8
+    EDITTEXT        IDC_VERSION,215,18,59,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
+    LTEXT           "Description:",IDC_STATIC,15,74,39,8
+    EDITTEXT        IDC_DESCRIPTION,14,86,263,37,ES_MULTILINE | ES_READONLY
+    PUSHBUTTON      "Options...",IDC_OPTIONS,7,131,50,14
+    DEFPUSHBUTTON   "Close",IDOK,234,131,50,14
+END
+
+IDD_PLUGINSDISABLED DIALOGEX 0, 0, 309, 176
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Disabled Plugins"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,257,160,50,14
+    CONTROL         "",IDC_LIST_DISABLED,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_ALIGNLEFT | LVS_NOCOLUMNHEADER | WS_BORDER | WS_TABSTOP,2,2,305,157
+    LTEXT           "Changes may require a restart to take effect.",IDC_INSTRUCTION,2,163,148,8,NOT WS_VISIBLE
+END
+
+IDD_PROCWMIPROVIDERS DIALOGEX 0, 0, 260, 260
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "WMI Providers"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL         "",IDC_LIST,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,2,2,256,256
+END
+
+IDD_COLUMNSETS DIALOGEX 0, 0, 231, 188
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Organize Column Sets"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    PUSHBUTTON      "Move up",IDC_MOVEUP,177,42,50,14
+    PUSHBUTTON      "Move down",IDC_MOVEDOWN,177,59,50,14
+    PUSHBUTTON      "OK",IDOK,177,171,50,14
+    PUSHBUTTON      "Rename",IDC_RENAME,177,4,50,14
+    PUSHBUTTON      "Delete",IDC_REMOVE,177,94,50,14
+    CONTROL         "",IDC_COLUMNSETLIST,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_EDITLABELS | LVS_ALIGNLEFT | LVS_NOCOLUMNHEADER | WS_BORDER | WS_TABSTOP,4,4,170,180
 END
 
 
@@ -2005,7 +1936,7 @@ BEGIN
     IDD_RUNAS, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 271
+        RIGHTMARGIN, 286
         TOPMARGIN, 7
         BOTTOMMARGIN, 120
     END
@@ -2056,6 +1987,14 @@ BEGIN
         RIGHTMARGIN, 179
         TOPMARGIN, 7
         BOTTOMMARGIN, 69
+    END
+
+    IDD_OBJFILE, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 250
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 79
     END
 
     IDD_OBJMUTANT, DIALOG
@@ -2157,9 +2096,9 @@ BEGIN
     IDD_OPTGENERAL, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 243
+        RIGHTMARGIN, 308
         TOPMARGIN, 7
-        BOTTOMMARGIN, 147
+        BOTTOMMARGIN, 213
     END
 
     IDD_OPTHIGHLIGHTING, DIALOG
@@ -2204,18 +2143,18 @@ BEGIN
 
     IDD_PROCSTATISTICS, DIALOG
     BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 253
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 253
+        LEFTMARGIN, 2
+        RIGHTMARGIN, 257
+        TOPMARGIN, 3
+        BOTTOMMARGIN, 258
     END
 
     IDD_OPTADVANCED, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 243
+        RIGHTMARGIN, 310
         TOPMARGIN, 7
-        BOTTOMMARGIN, 143
+        BOTTOMMARGIN, 218
     END
 
     IDD_GDIHANDLES, DIALOG
@@ -2232,14 +2171,6 @@ BEGIN
         RIGHTMARGIN, 306
         TOPMARGIN, 7
         BOTTOMMARGIN, 296
-    END
-
-    IDD_OPTSYMBOLS, DIALOG
-    BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 243
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 68
     END
 
     IDD_MEMEDIT, DIALOG
@@ -2282,12 +2213,12 @@ BEGIN
         BOTTOMMARGIN, 149
     END
 
-    IDD_PLUGINS, DIALOG
+    IDD_PLUGINMANAGER, DIALOG
     BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 284
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 265
+        LEFTMARGIN, 2
+        RIGHTMARGIN, 499
+        TOPMARGIN, 2
+        BOTTOMMARGIN, 270
     END
 
     IDD_HANDLESTATS, DIALOG
@@ -2423,6 +2354,38 @@ BEGIN
         LEFTMARGIN, 2
         BOTTOMMARGIN, 245
     END
+
+    IDD_PLUGINPROPERTIES, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 284
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 145
+    END
+
+    IDD_PLUGINSDISABLED, DIALOG
+    BEGIN
+        LEFTMARGIN, 2
+        RIGHTMARGIN, 307
+        TOPMARGIN, 2
+        BOTTOMMARGIN, 174
+    END
+
+    IDD_PROCWMIPROVIDERS, DIALOG
+    BEGIN
+        LEFTMARGIN, 2
+        RIGHTMARGIN, 258
+        TOPMARGIN, 2
+        BOTTOMMARGIN, 258
+    END
+
+    IDD_COLUMNSETS, DIALOG
+    BEGIN
+        LEFTMARGIN, 4
+        RIGHTMARGIN, 227
+        TOPMARGIN, 4
+        BOTTOMMARGIN, 184
+    END
 END
 #endif    // APSTUDIO_INVOKED
 
@@ -2499,6 +2462,17 @@ IDR_RT_MANIFEST         RT_MANIFEST             "ProcessHacker.manifest"
 IDB_SEARCH_ACTIVE       PNG                     "resources\\active_search.png"
 
 IDB_SEARCH_INACTIVE     PNG                     "resources\\inactive_search.png"
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_OPTGENERAL AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
 
 #endif    // English (Australia) resources
 /////////////////////////////////////////////////////////////////////////////

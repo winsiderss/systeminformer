@@ -3,6 +3,7 @@
  *   memory provider
  *
  * Copyright (C) 2010-2015 wj32
+ * Copyright (C) 2017-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -269,22 +270,54 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
     // USER_SHARED_DATA
     PhpSetMemoryRegionType(List, USER_SHARED_DATA, TRUE, UserSharedDataRegion);
 
+    // HYPERVISOR_SHARED_DATA
+    if (WindowsVersion > WINDOWS_10_RS3) // TODO: Update version check after RS4 release. 
+    {
+        static PVOID HypervisorSharedDataVa = NULL;
+        static PH_INITONCE HypervisorSharedDataInitOnce = PH_INITONCE_INIT;
+
+        if (PhBeginInitOnce(&HypervisorSharedDataInitOnce))
+        {
+            SYSTEM_HYPERVISOR_SHARED_PAGE_INFORMATION hypervSharedPageInfo;
+
+            if (NT_SUCCESS(NtQuerySystemInformation(
+                SystemHypervisorSharedPageInformation,
+                &hypervSharedPageInfo,
+                sizeof(SYSTEM_HYPERVISOR_SHARED_PAGE_INFORMATION),
+                NULL
+                )))
+            {
+                HypervisorSharedDataVa = hypervSharedPageInfo.HypervisorSharedUserVa;
+            }
+
+            PhEndInitOnce(&HypervisorSharedDataInitOnce);
+        }
+
+        if (HypervisorSharedDataVa)
+        {
+            PhpSetMemoryRegionType(List, HypervisorSharedDataVa, TRUE, HypervisorSharedDataRegion);
+        }
+    }
+
     // PEB, heap
     {
         PROCESS_BASIC_INFORMATION basicInfo;
         ULONG numberOfHeaps;
         PVOID processHeapsPtr;
         PVOID *processHeaps;
+        PVOID apiSetMap;
         ULONG i;
 #ifdef _WIN64
         PVOID peb32;
         ULONG processHeapsPtr32;
         ULONG *processHeaps32;
+        ULONG apiSetMap32;
 #endif
 
         if (NT_SUCCESS(PhGetProcessBasicInformation(ProcessHandle, &basicInfo)) && basicInfo.PebBaseAddress != 0)
         {
-            PhpSetMemoryRegionType(List, basicInfo.PebBaseAddress, TRUE, PebRegion);
+            // HACK: Windows 10 RS2 and above 'added TEB/PEB sub-VAD segments' and we need to tag individual sections.
+            PhpSetMemoryRegionType(List, basicInfo.PebBaseAddress, WindowsVersion < WINDOWS_10_RS2 ? TRUE : FALSE, PebRegion);
 
             if (NT_SUCCESS(NtReadVirtualMemory(ProcessHandle,
                 PTR_ADD_OFFSET(basicInfo.PebBaseAddress, FIELD_OFFSET(PEB, NumberOfHeaps)),
@@ -307,6 +340,18 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
                 }
 
                 PhFree(processHeaps);
+            }
+
+            // ApiSet schema map
+            if (NT_SUCCESS(NtReadVirtualMemory(
+                ProcessHandle,
+                PTR_ADD_OFFSET(basicInfo.PebBaseAddress, FIELD_OFFSET(PEB, ApiSetMap)),
+                &apiSetMap,
+                sizeof(PVOID),
+                NULL
+                )))
+            {
+                PhpSetMemoryRegionType(List, apiSetMap, TRUE, ApiSetMapRegion);
             }
         }
 #ifdef _WIN64
@@ -338,6 +383,18 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
 
                 PhFree(processHeaps32);
             }
+
+            // ApiSet schema map
+            if (NT_SUCCESS(NtReadVirtualMemory(
+                ProcessHandle,
+                PTR_ADD_OFFSET(peb32, FIELD_OFFSET(PEB32, ApiSetMap)),
+                &apiSetMap32,
+                sizeof(ULONG),
+                NULL
+                )))
+            {
+                PhpSetMemoryRegionType(List, UlongToPtr(apiSetMap32), TRUE, ApiSetMapRegion);
+            }
         }
 #endif
     }
@@ -352,7 +409,8 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
             NT_TIB ntTib;
             SIZE_T bytesRead;
 
-            if (memoryItem = PhpSetMemoryRegionType(List, thread->TebBase, TRUE, TebRegion))
+            // HACK: Windows 10 RS2 and above 'added TEB/PEB sub-VAD segments' and we need to tag individual sections.
+            if (memoryItem = PhpSetMemoryRegionType(List, thread->TebBase, WindowsVersion < WINDOWS_10_RS2 ? TRUE : FALSE, TebRegion))
                 memoryItem->u.Teb.ThreadId = thread->ThreadInfo.ClientId.UniqueThread;
 
             if (NT_SUCCESS(NtReadVirtualMemory(ProcessHandle, thread->TebBase, &ntTib, sizeof(NT_TIB), &bytesRead)) &&
@@ -494,7 +552,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
         PVOID cfgBitmapAddress = NULL;
         PVOID cfgBitmapWow64Address = NULL;
 
-        if (ldrInitBlock.Size >= (ULONG)FIELD_OFFSET(PS_SYSTEM_DLL_INIT_BLOCK, Wow64CfgBitMap))
+        if (RTL_CONTAINS_FIELD(&ldrInitBlock, ldrInitBlock.Size, Wow64CfgBitMap))
         {
             cfgBitmapAddress = (PVOID)ldrInitBlock.CfgBitMap;
             cfgBitmapWow64Address = (PVOID)ldrInitBlock.Wow64CfgBitMap;

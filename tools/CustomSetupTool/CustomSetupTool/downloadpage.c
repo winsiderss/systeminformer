@@ -97,7 +97,7 @@ INT_PTR CALLBACK SetupPropPage5_WndProc(
                     // Disable Next/Back buttons
                     PropSheet_SetWizButtons(context->DialogHandle, 0);
 
-                    PhCreateThread2(SetupDownloadProgressThread, context);
+                    PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), SetupDownloadProgressThread, context);
                 }
                 break;
             }

@@ -5,8 +5,8 @@
 
 #define PH_SYSINFO_FADE_ADD 50
 #define PH_SYSINFO_PANEL_PADDING 3
-#define PH_SYSINFO_WINDOW_PADDING 13
-#define PH_SYSINFO_GRAPH_PADDING 9
+#define PH_SYSINFO_WINDOW_PADDING 7
+#define PH_SYSINFO_GRAPH_PADDING 4
 #define PH_SYSINFO_SMALL_GRAPH_WIDTH 48
 #define PH_SYSINFO_SMALL_GRAPH_PADDING 5
 #define PH_SYSINFO_SEPARATOR_WIDTH 2
@@ -193,18 +193,14 @@ LRESULT CALLBACK PhSipGraphHookWndProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
-    _In_ LPARAM lParam,
-    _In_ UINT_PTR uIdSubclass,
-    _In_ ULONG_PTR dwRefData
+    _In_ LPARAM lParam
     );
 
 LRESULT CALLBACK PhSipPanelHookWndProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
-    _In_ LPARAM lParam,
-    _In_ UINT_PTR uIdSubclass,
-    _In_ ULONG_PTR dwRefData
+    _In_ LPARAM lParam
     );
 
 // Misc.
@@ -232,12 +228,6 @@ PPH_STRING PhSipFormatSizeWithPrecision(
     );
 
 // CPU section
-
-typedef struct _SYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT_WIN8
-{
-    ULONG Hits;
-    UCHAR PercentFrequency;
-} SYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT_WIN8, *PSYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT_WIN8;
 
 BOOLEAN PhSipCpuSectionCallback(
     _In_ PPH_SYSINFO_SECTION Section,

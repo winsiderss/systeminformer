@@ -329,14 +329,14 @@ INT_PTR CALLBACK WepWindowsDlgProc(
     if (uMsg == WM_INITDIALOG)
     {
         context = (PWINDOWS_CONTEXT)lParam;
-        SetProp(hwndDlg, L"Context", (HANDLE)context);
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = (PWINDOWS_CONTEXT)GetProp(hwndDlg, L"Context");
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
         if (uMsg == WM_DESTROY)
-            RemoveProp(hwndDlg, L"Context");
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
     }
 
     if (!context)
@@ -377,7 +377,8 @@ INT_PTR CALLBACK WepWindowsDlgProc(
 
             WepRefreshWindows(context);
 
-            SendMessage(GetParent(hwndDlg), WM_NEXTDLGCTL, (WPARAM)GetDlgItem(GetParent(hwndDlg), IDCANCEL), TRUE);
+            // HACK
+            PhSetDialogFocus(GetParent(hwndDlg), GetDlgItem(GetParent(hwndDlg), IDCANCEL));
         }
         break;
     case WM_DESTROY:
@@ -558,10 +559,12 @@ INT_PTR CALLBACK WepWindowsDlgProc(
 
                         GetWindowPlacement(selectedNode->WindowHandle, &placement);
 
-                        if (placement.showCmd == SW_MINIMIZE)
+                        if (placement.showCmd == SW_SHOWMINIMIZED)
+                        {
                             ShowWindowAsync(selectedNode->WindowHandle, SW_RESTORE);
-                        else
-                            SetForegroundWindow(selectedNode->WindowHandle);
+                        }
+
+                        SetForegroundWindow(selectedNode->WindowHandle);
                     }
                 }
                 break;

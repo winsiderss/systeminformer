@@ -48,6 +48,7 @@ typedef struct _EDIT_CONTEXT
     INT ImageWidth;
     INT ImageHeight;
     HWND WindowHandle;
+    WNDPROC DefaultWindowProc;
     HFONT WindowFont;
     HICON BitmapActive;
     HICON BitmapInactive;
@@ -249,26 +250,28 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
     _In_ HWND hWnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
-    _In_ LPARAM lParam,
-    _In_ UINT_PTR uIdSubclass,
-    _In_ ULONG_PTR dwRefData
+    _In_ LPARAM lParam
     )
 {
     PEDIT_CONTEXT context;
+    WNDPROC oldWndProc;
 
-    context = (PEDIT_CONTEXT)GetProp(hWnd, L"SearchBoxContext");
+    if (!(context = PhGetWindowContext(hWnd, 10)))
+        return 0;
+
+    oldWndProc = context->DefaultWindowProc;
 
     switch (uMsg)
     {
-    case WM_NCDESTROY:
+    case WM_DESTROY:
         {
             PhpSearchFreeTheme(context);
 
             if (context->WindowFont)
                 DeleteObject(context->WindowFont);
 
-            RemoveWindowSubclass(hWnd, PhpSearchWndSubclassProc, uIdSubclass);
-            RemoveProp(hWnd, L"SearchBoxContext");
+            SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+            PhRemoveWindowContext(hWnd, 10);
             PhFree(context);
         }
         break;
@@ -279,7 +282,7 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
             LPNCCALCSIZE_PARAMS ncCalcSize = (NCCALCSIZE_PARAMS*)lParam;
 
             // Let Windows handle the non-client defaults.
-            DefSubclassProc(hWnd, uMsg, wParam, lParam);
+            CallWindowProc(oldWndProc, hWnd, uMsg, wParam, lParam);
 
             // Deflate the client area to accommodate the custom button.
             ncCalcSize->rgrc[0].right -= context->CXWidth;
@@ -290,7 +293,7 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
             RECT windowRect;
 
             // Let Windows handle the non-client defaults.
-            DefSubclassProc(hWnd, uMsg, wParam, lParam);
+            CallWindowProc(oldWndProc, hWnd, uMsg, wParam, lParam);
 
             // Get the screen coordinates of the window.
             GetWindowRect(hWnd, &windowRect);
@@ -482,7 +485,7 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
         break;
     }
 
-    return DefSubclassProc(hWnd, uMsg, wParam, lParam);
+    return CallWindowProc(oldWndProc, hWnd, uMsg, wParam, lParam);
 }
 
 HICON PhpSearchBitmapToIcon(
@@ -496,7 +499,7 @@ HICON PhpSearchBitmapToIcon(
     HBITMAP screenBitmap;
     ICONINFO iconInfo = { 0 };
 
-    screenDc = CreateIC(L"DISPLAY", NULL, NULL, NULL);
+    screenDc = GetDC(NULL);
     screenBitmap = CreateCompatibleBitmap(screenDc, Width, Height);
 
     iconInfo.fIcon = TRUE;
@@ -506,7 +509,7 @@ HICON PhpSearchBitmapToIcon(
     icon = CreateIconIndirect(&iconInfo);
 
     DeleteObject(screenBitmap);
-    DeleteDC(screenDc);
+    ReleaseDC(NULL, screenDc);
 
     return icon;
 }
@@ -529,16 +532,15 @@ VOID PhCreateSearchControl(
 
     // Set initial text
     if (BannerText)
-        Edit_SetCueBannerText(context->WindowHandle, BannerText);
-
-    // Set our window context data.
-    SetProp(context->WindowHandle, L"SearchBoxContext", (HANDLE)context);
+        Edit_SetCueBannerText(WindowHandle, BannerText);
 
     // Subclass the Edit control window procedure.
-    SetWindowSubclass(context->WindowHandle, PhpSearchWndSubclassProc, 0, (ULONG_PTR)context);
+    context->DefaultWindowProc = (WNDPROC)GetWindowLongPtr(WindowHandle, GWLP_WNDPROC);
+    PhSetWindowContext(WindowHandle, 10, context);
+    SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)PhpSearchWndSubclassProc);
 
     // Initialize the theme parameters.
-    SendMessage(context->WindowHandle, WM_THEMECHANGED, 0, 0);
+    SendMessage(WindowHandle, WM_THEMECHANGED, 0, 0);
 }
 
 HBITMAP PhLoadPngImageFromResource(
@@ -552,8 +554,6 @@ HBITMAP PhLoadPngImageFromResource(
     BOOLEAN success = FALSE;
     UINT frameCount = 0;
     ULONG resourceLength = 0;
-    HGLOBAL resourceHandle = NULL;
-    HRSRC resourceHandleSource = NULL;
     WICInProcPointer resourceBuffer = NULL;
     HDC screenHdc = NULL;
     HDC bufferDc = NULL;
@@ -573,18 +573,8 @@ HBITMAP PhLoadPngImageFromResource(
     if (FAILED(CoCreateInstance(&CLSID_WICImagingFactory1, NULL, CLSCTX_INPROC_SERVER, &IID_IWICImagingFactory, &wicFactory)))
         goto CleanupExit;
 
-    // Find the resource
-    if ((resourceHandleSource = FindResource(DllBase, Name, L"PNG")) == NULL)
-        goto CleanupExit;
-
-    // Get the resource length
-    resourceLength = SizeofResource(DllBase, resourceHandleSource);
-
     // Load the resource
-    if ((resourceHandle = LoadResource(DllBase, resourceHandleSource)) == NULL)
-        goto CleanupExit;
-
-    if ((resourceBuffer = (WICInProcPointer)LockResource(resourceHandle)) == NULL)
+    if (!PhLoadResource(DllBase, Name, L"PNG", &resourceLength, &resourceBuffer))
         goto CleanupExit;
 
     // Create the Stream
@@ -656,7 +646,7 @@ HBITMAP PhLoadPngImageFromResource(
     bitmapInfo.bmiHeader.biBitCount = 32;
     bitmapInfo.bmiHeader.biCompression = BI_RGB;
 
-    screenHdc = CreateIC(L"DISPLAY", NULL, NULL, NULL);
+    screenHdc = GetDC(NULL);
     bufferDc = CreateCompatibleDC(screenHdc);
     bitmapHandle = CreateDIBSection(screenHdc, &bitmapInfo, DIB_RGB_COLORS, &bitmapBuffer, NULL, 0);
 
@@ -680,7 +670,7 @@ CleanupExit:
         DeleteDC(bufferDc);
 
     if (screenHdc)
-        DeleteDC(screenHdc);
+        ReleaseDC(NULL, screenHdc);
 
     if (wicBitmapSource)
         IWICBitmapSource_Release(wicBitmapSource);
@@ -694,13 +684,11 @@ CleanupExit:
     if (wicFactory)
         IWICImagingFactory_Release(wicFactory);
 
-    if (resourceHandle)
-        FreeResource(resourceHandle);
+    if (resourceBuffer)
+        PhFree(resourceBuffer);
 
     if (success)
-    {
         return bitmapHandle;
-    }
 
     DeleteObject(bitmapHandle);
     return NULL;

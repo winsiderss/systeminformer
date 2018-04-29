@@ -2,7 +2,7 @@
  * Process Hacker Toolchain - 
  *   Build script
  * 
- * Copyright (C) 2017 dmex
+ * Copyright (C) 2017-2018 dmex
  * 
  * This file is part of Process Hacker.
  * 
@@ -32,37 +32,37 @@ namespace CustomBuildTool
     [SuppressUnmanagedCodeSecurity]
     public static class Build
     {
+        private static readonly string SdkVersion = "10.0.16299.0";
         private static DateTime TimeStart;
         private static bool BuildNightly;
         private static bool GitExportBuild;
         private static string GitExePath;
         private static string MSBuildExePath;
-        private static string CertUtilExePath;
-        private static string MakeAppxExePath;
         private static string CustomSignToolPath;
 
         private static string BuildBranch;
         private static string BuildOutputFolder;
         private static string BuildCommit;
         private static string BuildVersion;
-        //private static string BuildWebSetupVersion;
         private static string BuildLongVersion;
         private static string BuildCount;
         private static string BuildRevision;
-        private static string BuildMessage;
+        //private static string BuildMessage;
 
         private static long BuildBinFileLength;
         private static string BuildBinHash;
+        private static string BuildBinSig;       
 
         private static long BuildSetupFileLength;
         private static string BuildSetupHash;
         private static string BuildSetupSig;
 
+        //private static string BuildWebSetupVersion;
         //private static long BuildWebSetupFileLength;
         //private static string BuildWebSetupHash;
         //private static string BuildWebSetupSig;
 
-#region Build Config
+        #region Build Config
         private static readonly string[] sdk_directories =
         {
             "sdk",
@@ -117,6 +117,7 @@ namespace CustomBuildTool
             "dltmgr.h",
             "dspick.h",
             "emenu.h",
+            "exlf.h",
             "fastlock.h",
             "filestream.h",
             "graph.h",
@@ -157,10 +158,8 @@ namespace CustomBuildTool
             TimeStart = DateTime.Now;
             BuildOutputFolder = "build\\output";
             MSBuildExePath = VisualStudio.GetMsbuildFilePath();
+            GitExePath = VisualStudio.GetFilePathFromPath("git.exe");
             CustomSignToolPath = "tools\\CustomSignTool\\bin\\Release32\\CustomSignTool.exe";
-            GitExePath = Environment.ExpandEnvironmentVariables("%ProgramFiles%\\Git\\cmd\\git.exe");
-            CertUtilExePath = Environment.ExpandEnvironmentVariables("%SystemRoot%\\system32\\Certutil.exe");
-            MakeAppxExePath = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Windows Kits\\10\\bin\\x64\\MakeAppx.exe");
             BuildNightly = !string.Equals(Environment.ExpandEnvironmentVariables("%APPVEYOR_BUILD_API%"), "%APPVEYOR_BUILD_API%", StringComparison.OrdinalIgnoreCase);
 
             try
@@ -205,8 +204,7 @@ namespace CustomBuildTool
             {
                 if (CheckDependencies)
                 {
-                    Program.PrintColorMessage("Git not installed... Exiting.", ConsoleColor.Red);
-                    return false;
+                    Program.PrintColorMessage("[Warning] Git not installed.", ConsoleColor.Yellow);
                 }
             }
 
@@ -251,15 +249,10 @@ namespace CustomBuildTool
 
         public static void ShowBuildEnvironment(string Platform, bool ShowBuildInfo, bool ShowLogInfo)
         {
-            if (!GitExportBuild)
+            if (!GitExportBuild && File.Exists(GitExePath))
             {
                 BuildBranch = Win32.ShellExecute(GitExePath, "rev-parse --abbrev-ref HEAD").Trim();
-                BuildCommit = Win32.ShellExecute(GitExePath, "rev-parse --short HEAD").Trim();
-
-                Program.PrintColorMessage("Branch: ", ConsoleColor.Cyan, false);
-                Program.PrintColorMessage(BuildBranch, ConsoleColor.White);
-                Program.PrintColorMessage("Commit: ", ConsoleColor.Cyan, false);
-                Program.PrintColorMessage(BuildCommit, ConsoleColor.White);
+                BuildCommit = Win32.ShellExecute(GitExePath, "rev-parse HEAD").Trim();
 
                 string currentGitTag = Win32.ShellExecute(GitExePath, "describe --abbrev=0 --tags --always").Trim();
                 BuildRevision = Win32.ShellExecute(GitExePath, "rev-list --count \"" + currentGitTag + ".." + BuildBranch + "\"").Trim();
@@ -272,25 +265,41 @@ namespace CustomBuildTool
                 BuildCount = "0";
 
             BuildVersion = "3.0." + BuildRevision;
-            BuildLongVersion = "3.0." + BuildRevision + "." + BuildCount;
+            BuildLongVersion = "3.0." + BuildCount + "." + BuildRevision;
 
             if (ShowBuildInfo && !GitExportBuild)
             {
-                Program.PrintColorMessage("Version: ", ConsoleColor.Cyan, false);
-                Program.PrintColorMessage(BuildVersion + Environment.NewLine, ConsoleColor.White);
-
-                if (!BuildNightly && ShowLogInfo)
+                if (!string.IsNullOrEmpty(BuildBranch))
                 {
-                    Win32.GetConsoleMode(Win32.GetStdHandle(Win32.STD_OUTPUT_HANDLE), out ConsoleMode mode);
-                    Win32.SetConsoleMode(Win32.GetStdHandle(Win32.STD_OUTPUT_HANDLE), mode | ConsoleMode.ENABLE_VIRTUAL_TERMINAL_PROCESSING);
-
-                    BuildMessage = Win32.ShellExecute(GitExePath, "log -n 5 --date=format:%Y-%m-%d --pretty=format:\"%C(green)[%cd]%Creset %C(bold blue)%an%Creset %<(65,trunc)%s%Creset (%C(yellow)%h%Creset)\" --abbrev-commit");
-                    Console.WriteLine(BuildMessage + Environment.NewLine);
-
-                    //BuildMessage = Win32.ShellExecute(GitExePath, "log -n 5 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %an %s\" --abbrev-commit");
-                    //BuildMessage = Win32.ShellExecute(GitExePath, "log -n 1 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %an: %<(65,trunc)%s (%h)\" --abbrev-commit");
-                    //Console.WriteLine(BuildMessage + Environment.NewLine);
+                    Program.PrintColorMessage("Branch: ", ConsoleColor.DarkGray, false);
+                    Program.PrintColorMessage(BuildBranch, ConsoleColor.Green, true);
                 }
+
+                Program.PrintColorMessage("Version: ", ConsoleColor.DarkGray, false);
+                Program.PrintColorMessage(BuildVersion, ConsoleColor.Green, false);
+
+                if (!string.IsNullOrEmpty(BuildCommit))
+                {
+                    Program.PrintColorMessage(" (", ConsoleColor.DarkGray, false);
+                    Program.PrintColorMessage(BuildCommit.Substring(0, 8), ConsoleColor.DarkYellow, false);
+                    Program.PrintColorMessage(")", ConsoleColor.DarkGray, false);
+                }
+
+                Program.PrintColorMessage(Environment.NewLine, ConsoleColor.DarkGray, true);
+
+                // TODO: The Win10 RS4 release has issues with the git pretty format.
+                //if (!BuildNightly && ShowLogInfo && File.Exists(GitExePath))
+                //{
+                //    Win32.GetConsoleMode(Win32.GetStdHandle(Win32.STD_OUTPUT_HANDLE), out ConsoleMode mode);
+                //    Win32.SetConsoleMode(Win32.GetStdHandle(Win32.STD_OUTPUT_HANDLE), mode | ConsoleMode.ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+                //
+                //    BuildMessage = Win32.ShellExecute(GitExePath, "log -n 5 --date=format:%Y-%m-%d --pretty=format:\"%C(green)[%cd]%Creset %C(bold blue)%an%Creset %<(65,trunc)%s%Creset %C(#696969)(%Creset%C(yellow)%h%Creset%C(#696969))%Creset\" --abbrev-commit");
+                //    Console.WriteLine(BuildMessage + Environment.NewLine);
+                //
+                //    //BuildMessage = Win32.ShellExecute(GitExePath, "log -n 5 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %an %s\" --abbrev-commit");
+                //    //BuildMessage = Win32.ShellExecute(GitExePath, "log -n 1 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %an: %<(65,trunc)%s (%h)\" --abbrev-commit");
+                //    //Console.WriteLine(BuildMessage + Environment.NewLine);
+                //}
             }
         }
 
@@ -298,10 +307,11 @@ namespace CustomBuildTool
         {
             TimeSpan buildTime = DateTime.Now - TimeStart;
 
-            Console.WriteLine(
-                Environment.NewLine + "Build Time: " + 
-                buildTime.Minutes + " minute(s), " + 
-                buildTime.Seconds + " second(s)");
+            Program.PrintColorMessage(Environment.NewLine + "Build Time: ", ConsoleColor.DarkGray, false);
+            Program.PrintColorMessage(buildTime.Minutes.ToString(), ConsoleColor.Green, false);
+            Program.PrintColorMessage(" minute(s), ", ConsoleColor.DarkGray, false);
+            Program.PrintColorMessage(buildTime.Seconds.ToString(), ConsoleColor.Green, false);
+            Program.PrintColorMessage(" second(s) " + Environment.NewLine, ConsoleColor.DarkGray, true);
         }
 
         public static bool CopyTextFiles()
@@ -374,7 +384,7 @@ namespace CustomBuildTool
 
         public static bool CopyWow64Files(BuildFlags Flags)
         {
-            Program.PrintColorMessage("Copying Wow64 support files...", ConsoleColor.Cyan);
+            //Program.PrintColorMessage("Copying Wow64 support files...", ConsoleColor.Cyan);
 
             try
             {
@@ -545,7 +555,7 @@ namespace CustomBuildTool
             if (!File.Exists("build\\kph.key"))
                 return true;
 
-            if (Flags.HasFlag(BuildFlags.BuildDebug))
+            if ((Flags & BuildFlags.Build32bit) == BuildFlags.Build32bit)
             {
                 if (File.Exists("bin\\Debug32\\ProcessHacker.exe"))
                 {
@@ -571,7 +581,8 @@ namespace CustomBuildTool
                     }
                 }
             }
-            else
+
+            if ((Flags & BuildFlags.Build64bit) == BuildFlags.Build64bit)
             {
                 if (File.Exists("bin\\Release32\\ProcessHacker.exe"))
                 {
@@ -602,25 +613,39 @@ namespace CustomBuildTool
             {
                 if (Flags.HasFlag(BuildFlags.BuildDebug))
                 {
-                    Win32.CopyIfNewer(
-                        "KProcessHacker\\bin-signed\\i386\\kprocesshacker.sys",
-                        "bin\\Debug32\\kprocesshacker.sys"
-                        );
-                    Win32.CopyIfNewer(
-                        "KProcessHacker\\bin-signed\\amd64\\kprocesshacker.sys",
-                        "bin\\Debug64\\kprocesshacker.sys"
-                        );
+                    if (Directory.Exists("bin\\Debug32"))
+                    {
+                        Win32.CopyIfNewer(
+                            "KProcessHacker\\bin-signed\\i386\\kprocesshacker.sys",
+                            "bin\\Debug32\\kprocesshacker.sys"
+                            );
+                    }
+
+                    if (Directory.Exists("bin\\Debug64"))
+                    {
+                        Win32.CopyIfNewer(
+                            "KProcessHacker\\bin-signed\\amd64\\kprocesshacker.sys",
+                            "bin\\Debug64\\kprocesshacker.sys"
+                            );
+                    }
                 }
                 else
                 {
-                    Win32.CopyIfNewer(
-                        "KProcessHacker\\bin-signed\\i386\\kprocesshacker.sys",
-                        "bin\\Release32\\kprocesshacker.sys"
-                        );
-                    Win32.CopyIfNewer(
-                        "KProcessHacker\\bin-signed\\amd64\\kprocesshacker.sys",
-                        "bin\\Release64\\kprocesshacker.sys"
-                        );
+                    if (Directory.Exists("bin\\Release32"))
+                    {
+                        Win32.CopyIfNewer(
+                            "KProcessHacker\\bin-signed\\i386\\kprocesshacker.sys",
+                            "bin\\Release32\\kprocesshacker.sys"
+                            );
+                    }
+
+                    if (Directory.Exists("bin\\Release64"))
+                    {
+                        Win32.CopyIfNewer(
+                            "KProcessHacker\\bin-signed\\amd64\\kprocesshacker.sys",
+                            "bin\\Release64\\kprocesshacker.sys"
+                            );
+                    }
                 }
             }
             catch (Exception ex)
@@ -713,7 +738,7 @@ namespace CustomBuildTool
         {
             Program.PrintColorMessage("Building build-setup.exe...", ConsoleColor.Cyan);
 
-            if (!BuildSolution("tools\\CustomSetupTool\\CustomSetupTool.sln",  BuildFlags.Build32bit | BuildFlags.BuildApi))
+            if (!BuildSolution("tools\\CustomSetupTool\\CustomSetupTool.sln", BuildFlags.Build32bit | BuildFlags.BuildApi))
                 return false;
 
             try
@@ -758,9 +783,30 @@ namespace CustomBuildTool
 
             try
             {
-                if (File.Exists(BuildOutputFolder + "\\processhacker-build-bin.zip"))
-                    File.Delete(BuildOutputFolder + "\\processhacker-build-bin.zip");
+                if (File.Exists("bin\\Release32\\ProcessHacker.exe.settings.xml"))
+                    File.Delete("bin\\Release32\\ProcessHacker.exe.settings.xml");
+                if (File.Exists("bin\\Release64\\ProcessHacker.exe.settings.xml"))
+                    File.Delete("bin\\Release64\\ProcessHacker.exe.settings.xml");
 
+                File.Create("bin\\Release32\\ProcessHacker.exe.settings.xml").Dispose();
+                File.Create("bin\\Release64\\ProcessHacker.exe.settings.xml").Dispose();
+            }
+            catch { }
+
+            try
+            {
+                if (File.Exists("bin\\Release32\\usernotesdb.xml"))
+                    File.Delete("bin\\Release32\\usernotesdb.xml");
+                if (File.Exists("bin\\Release64\\usernotesdb.xml"))
+                    File.Delete("bin\\Release64\\usernotesdb.xml");
+
+                File.Create("bin\\Release32\\usernotesdb.xml").Dispose();
+                File.Create("bin\\Release64\\usernotesdb.xml").Dispose();
+            }
+            catch { }
+
+            try
+            {
                 if (Directory.Exists("bin\\x32"))
                     Directory.Delete("bin\\x32", true);
                 if (Directory.Exists("bin\\x64"))
@@ -768,6 +814,9 @@ namespace CustomBuildTool
 
                 Directory.Move("bin\\Release32", "bin\\x32");
                 Directory.Move("bin\\Release64", "bin\\x64");
+
+                if (File.Exists(BuildOutputFolder + "\\processhacker-build-bin.zip"))
+                    File.Delete(BuildOutputFolder + "\\processhacker-build-bin.zip");
 
                 Zip.CreateCompressedFolder("bin", BuildOutputFolder + "\\processhacker-build-bin.zip");
 
@@ -896,12 +945,21 @@ namespace CustomBuildTool
                 return true;
             }
 
+            if (!File.Exists(BuildOutputFolder + "\\processhacker-build-bin.zip"))
+            {
+                Program.PrintColorMessage("[SKIPPED] build-bin.zip not found.", ConsoleColor.Yellow);
+                return false;
+            }
             if (!File.Exists(BuildOutputFolder + "\\processhacker-build-setup.exe"))
             {
                 Program.PrintColorMessage("[SKIPPED] build-setup.exe not found.", ConsoleColor.Yellow);
                 return false;
             }
 
+            BuildBinSig = Win32.ShellExecute(
+                CustomSignToolPath,
+                "sign -k build\\nightly.key " + BuildOutputFolder + "\\processhacker-build-bin.zip -h"
+                );
             BuildSetupSig = Win32.ShellExecute(
                 CustomSignToolPath,
                 "sign -k build\\nightly.key " + BuildOutputFolder + "\\processhacker-build-setup.exe -h"
@@ -925,23 +983,26 @@ namespace CustomBuildTool
                 return;
             if (string.IsNullOrEmpty(BuildBinHash))
                 return;
+            if (string.IsNullOrEmpty(BuildBinSig))
+                return;
 
             string buildChangelog = Win32.ShellExecute(GitExePath, "log -n 30 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %s (%an)\"");
             string buildSummary = Win32.ShellExecute(GitExePath, "log -n 5 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %s (%an)\" --abbrev-commit");
             string buildPostString = Json<BuildUpdateRequest>.Serialize(new BuildUpdateRequest
             {
+                Version = BuildVersion,
+                Commit = BuildCommit,
                 Updated = TimeStart.ToString("o"),
-                FileLength = BuildSetupFileLength.ToString(),
-                ForumUrl = "https://wj32.org/processhacker/nightly.php",
-
-                SetupUrl = "https://ci.appveyor.com/api/projects/processhacker/processhacker2/artifacts/processhacker-" + BuildVersion + "-setup.exe",
-                SetupVersion = BuildVersion,
-                SetupHash = BuildSetupHash,
-                SetupSig = BuildSetupSig,
 
                 BinUrl = "https://ci.appveyor.com/api/projects/processhacker/processhacker2/artifacts/processhacker-" + BuildVersion + "-bin.zip",
+                BinLength = BuildBinFileLength.ToString(),
                 BinHash = BuildBinHash,
-                //BinSig = BuildBinSig,
+                BinSig = BuildBinSig,
+
+                SetupUrl = "https://ci.appveyor.com/api/projects/processhacker/processhacker2/artifacts/processhacker-" + BuildVersion + "-setup.exe",
+                SetupLength = BuildSetupFileLength.ToString(),
+                SetupHash = BuildSetupHash,
+                SetupSig = BuildSetupSig,
 
                 //WebSetupUrl = "https://ci.appveyor.com/api/projects/processhacker/processhacker2/artifacts/processhacker-websetup.exe",
                 //WebSetupHash = BuildWebSetupHash,
@@ -950,6 +1011,12 @@ namespace CustomBuildTool
 
                 Message = buildSummary,
                 Changelog = buildChangelog,
+
+                FileLengthDeprecated = BuildSetupFileLength.ToString(),  // TODO: Remove after most users have updated.
+                ForumUrlDeprecated = "https://wj32.org/processhacker/",  // TODO: Remove after most users have updated.
+                SetupHashDeprecated = BuildSetupHash, // TODO: Remove after most users have updated.
+                SetupSigDeprecated = BuildSetupSig, // TODO: Remove after most users have updated.
+                BinHashDeprecated = BuildBinHash  // TODO: Remove after most users have updated.
             });
 
             if (string.IsNullOrEmpty(buildPostString))
@@ -996,14 +1063,16 @@ namespace CustomBuildTool
                 //BuildOutputFolder + "\\processhacker-build-websetup.exe",
                 BuildOutputFolder + "\\processhacker-build-setup.exe",
                 BuildOutputFolder + "\\processhacker-build-bin.zip",
-                BuildOutputFolder + "\\processhacker-build-checksums.txt"
+                BuildOutputFolder + "\\processhacker-build-checksums.txt",
+                BuildOutputFolder + "\\processhacker-build-pdb.zip"
             };
             string[] releaseFileArray =
             {
                 //BuildOutputFolder + "\\processhacker-websetup.exe",
                 BuildOutputFolder + "\\processhacker-" + BuildVersion + "-setup.exe",
                 BuildOutputFolder + "\\processhacker-" + BuildVersion + "-bin.zip",
-                BuildOutputFolder + "\\processhacker-" + BuildVersion + "-checksums.txt"
+                BuildOutputFolder + "\\processhacker-" + BuildVersion + "-checksums.txt",
+                BuildOutputFolder + "\\processhacker-" + BuildVersion + "-pdb.zip"
             };
 
             if (!BuildNightly)
@@ -1063,7 +1132,7 @@ namespace CustomBuildTool
             }
 
             // Update Appveyor build version string.
-            Win32.ShellExecute("appveyor", "UpdateBuild -Version \"" + BuildLongVersion + " (" + BuildCommit + ")\" ");
+            Win32.ShellExecute("appveyor", "UpdateBuild -Version \"" + BuildLongVersion + "\" ");
 
             return true;
         }
@@ -1079,6 +1148,8 @@ namespace CustomBuildTool
 
                 if (Flags.HasFlag(BuildFlags.BuildApi))
                     compilerOptions.Append("PH_BUILD_API;");
+                if (!string.IsNullOrEmpty(BuildCommit))
+                    compilerOptions.Append("PHAPP_VERSION_COMMITHASH=\"" + BuildCommit.Substring(0, 8) + "\";");
                 compilerOptions.Append("PHAPP_VERSION_REVISION=\"" + BuildRevision + "\";");
                 compilerOptions.Append("PHAPP_VERSION_BUILD=\"" + BuildCount + "\"");
 
@@ -1088,12 +1159,13 @@ namespace CustomBuildTool
                     "/p:Configuration=" + (Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug " : "Release ") +
                     "/p:Platform=Win32 " +
                     "/p:ExternalCompilerOptions=\"" + compilerOptions.ToString() + "\" " +
+                    "/p:ExternalDebugOptions=\"" + (Flags.HasFlag(BuildFlags.BuildDebug) ? "true" : "false") + "\" " +
                     Solution
                     );
                 
                 if (!string.IsNullOrEmpty(error32))
                 {
-                    Program.PrintColorMessage("[ERROR] " + error32, ConsoleColor.Red, true, Flags);
+                    Program.PrintColorMessage("[ERROR] " + error32, ConsoleColor.Red, true, Flags | BuildFlags.BuildVerbose);
                     return false;
                 }
             }
@@ -1107,6 +1179,8 @@ namespace CustomBuildTool
 
                 if (Flags.HasFlag(BuildFlags.BuildApi))
                     compilerOptions.Append("PH_BUILD_API;");
+                if (!string.IsNullOrEmpty(BuildCommit))
+                    compilerOptions.Append("PHAPP_VERSION_COMMITHASH=\"" + BuildCommit.Substring(0, 8) + "\";");
                 compilerOptions.Append("PHAPP_VERSION_REVISION=\"" + BuildRevision + "\";");
                 compilerOptions.Append("PHAPP_VERSION_BUILD=\"" + BuildCount + "\"");
 
@@ -1116,12 +1190,13 @@ namespace CustomBuildTool
                     "/p:Configuration=" + (Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug " : "Release ") +
                     "/p:Platform=x64 " +
                     "/p:ExternalCompilerOptions=\"" + compilerOptions.ToString() + "\" " +
+                    "/p:ExternalDebugOptions=\"" + (Flags.HasFlag(BuildFlags.BuildDebug) ? "true" : "false") + "\" " +
                     Solution
                     );
 
                 if (!string.IsNullOrEmpty(error64))
                 {
-                    Program.PrintColorMessage("[ERROR] " + error64, ConsoleColor.Red, true, Flags);
+                    Program.PrintColorMessage("[ERROR] " + error64, ConsoleColor.Red, true, Flags | BuildFlags.BuildVerbose);
                     return false;
                 }
             }
@@ -1146,7 +1221,8 @@ namespace CustomBuildTool
 
             Program.PrintColorMessage("Building processhacker-build-package.appxbundle...", ConsoleColor.Cyan);
 
-            string signToolExePath = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Windows Kits\\10\\bin\\x64\\SignTool.exe");
+            string makeAppxExePath = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Windows Kits\\10\\bin\\" + SdkVersion + "\\x64\\MakeAppx.exe");
+            string signToolExePath = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Windows Kits\\10\\bin\\" + SdkVersion + "\\x64\\SignTool.exe");
 
             try
             {
@@ -1189,7 +1265,7 @@ namespace CustomBuildTool
 
                     // create the package
                     Win32.ShellExecute(
-                        MakeAppxExePath,
+                        makeAppxExePath,
                         "pack /o /f " + BuildOutputFolder + "\\package32.map /p " +
                         BuildOutputFolder + "\\processhacker-build-package-x32.appx"
                         );
@@ -1238,7 +1314,7 @@ namespace CustomBuildTool
 
                     // create the package
                     Win32.ShellExecute(
-                        MakeAppxExePath,
+                        makeAppxExePath,
                         "pack /o /f " + BuildOutputFolder + "\\package64.map /p " +
                         BuildOutputFolder + "\\processhacker-build-package-x64.appx"
                         );
@@ -1266,7 +1342,7 @@ namespace CustomBuildTool
 
                     // create the appx bundle package
                     Win32.ShellExecute(
-                        MakeAppxExePath,
+                        makeAppxExePath,
                         "bundle /f " + BuildOutputFolder + "\\bundle.map /p " +
                         BuildOutputFolder + "\\processhacker-build-package.appxbundle"
                         );
@@ -1304,8 +1380,9 @@ namespace CustomBuildTool
 
             Program.PrintColorMessage("Building Appx Signature...", ConsoleColor.Cyan);
 
-            var makeCertExePath = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Windows Kits\\10\\bin\\x64\\MakeCert.exe");
-            var pvk2PfxExePath = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Windows Kits\\10\\bin\\x64\\Pvk2Pfx.exe");
+            string makeCertExePath = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Windows Kits\\10\\bin\\" + SdkVersion + "\\x64\\MakeCert.exe");
+            string pvk2PfxExePath = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Windows Kits\\10\\bin\\" + SdkVersion + "\\x64\\Pvk2Pfx.exe");
+            string certUtilExePath = VisualStudio.GetFilePathFromPath("certutil.exe");
 
             try
             {
@@ -1343,7 +1420,7 @@ namespace CustomBuildTool
                     return false;
                 }
 
-                output = Win32.ShellExecute(CertUtilExePath,
+                output = Win32.ShellExecute(certUtilExePath,
                     "-addStore TrustedPeople " + BuildOutputFolder + "\\processhacker-appx.cer"
                     );
 

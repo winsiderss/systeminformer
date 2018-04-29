@@ -6,9 +6,7 @@ extern GUID VISTA_CONTEXT_GUID;
 extern GUID WIN7_CONTEXT_GUID;
 extern GUID WIN8_CONTEXT_GUID;
 extern GUID WINBLUE_CONTEXT_GUID;
-extern GUID WINTHRESHOLD_CONTEXT_GUID;
-
-typedef struct PACKAGE_ID PACKAGE_ID;
+extern GUID WIN10_CONTEXT_GUID;
 
 // begin_phapppub
 PHAPPAPI
@@ -22,18 +20,6 @@ PhGetProcessIsSuspended(
 NTSTATUS PhGetProcessSwitchContext(
     _In_ HANDLE ProcessHandle,
     _Out_ PGUID Guid
-    );
-
-PPH_STRING PhGetProcessPackageFullName(
-    _In_ HANDLE ProcessHandle
-    );
-
-PACKAGE_ID *PhPackageIdFromFullName(
-    _In_ PWSTR PackageFullName
-    );
-
-PPH_STRING PhGetPackagePath(
-    _In_ PACKAGE_ID *PackageId
     );
 
 // begin_phapppub
@@ -54,6 +40,8 @@ typedef enum _PH_KNOWN_PROCESS_TYPE
     TaskHostProcessType, // taskeng, taskhost, taskhostex
     ExplorerProcessType, // explorer
     UmdfHostProcessType, // wudfhost
+    EdgeProcessType, // Microsoft Edge
+    WmiProviderHostType,
     MaximumProcessType,
     KnownProcessTypeMask = 0xffff,
 
@@ -66,6 +54,14 @@ NTAPI
 PhGetProcessKnownType(
     _In_ HANDLE ProcessHandle,
     _Out_ PH_KNOWN_PROCESS_TYPE *KnownProcessType
+    );
+
+PHAPPAPI
+PH_KNOWN_PROCESS_TYPE
+NTAPI
+PhGetProcessKnownTypeEx(
+    _In_ HANDLE ProcessId,
+    _In_ PPH_STRING FileName
     );
 
 typedef union _PH_KNOWN_PROCESS_COMMAND_LINE
@@ -96,29 +92,6 @@ PhaGetProcessKnownCommandLine(
     _Out_ PPH_KNOWN_PROCESS_COMMAND_LINE KnownCommandLine
     );
 // end_phapppub
-
-typedef BOOLEAN (CALLBACK *PH_CHILD_ENUM_CALLBACK)(
-    _In_ HWND WindowHandle, 
-    _In_opt_ PVOID Context
-    );
-
-VOID PhEnumChildWindows(
-    _In_opt_ HWND WindowHandle,
-    _In_ ULONG Limit,
-    _In_ PH_CHILD_ENUM_CALLBACK Callback,
-    _In_ PVOID Context
-    );
-
-HWND PhGetProcessMainWindow(
-    _In_ HANDLE ProcessId,
-    _In_opt_ HANDLE ProcessHandle
-    );
-
-HWND PhGetProcessMainWindowEx(
-    _In_ HANDLE ProcessId,
-    _In_opt_ HANDLE ProcessHandle,
-    _In_ BOOLEAN SkipInvisible
-    );
 
 PPH_STRING PhGetServiceRelevantFileName(
     _In_ PPH_STRINGREF ServiceName,
@@ -161,13 +134,7 @@ NTAPI
 PhLoadSymbolProviderOptions(
     _Inout_ PPH_SYMBOL_PROVIDER SymbolProvider
     );
-// end_phapppub
 
-PWSTR PhMakeContextAtom(
-    VOID
-    );
-
-// begin_phapppub
 PHAPPAPI
 VOID
 NTAPI
@@ -234,7 +201,7 @@ NTAPI
 PhGetPhVersionNumbers(
     _Out_opt_ PULONG MajorVersion,
     _Out_opt_ PULONG MinorVersion,
-    _Reserved_ PULONG Reserved,
+    _Out_opt_ PULONG BuildNumber,
     _Out_opt_ PULONG RevisionNumber
     );
 
@@ -428,6 +395,10 @@ PPH_STRING PhPcre2GetErrorMessage(
     _In_ INT ErrorCode
     );
 
+HBITMAP PhGetShieldBitmap(
+    VOID
+    );
+
 #define PH_LOAD_SHARED_ICON_SMALL(BaseAddress, Name) PhLoadIcon(BaseAddress, (Name), PH_LOAD_ICON_SHARED | PH_LOAD_ICON_SIZE_SMALL, 0, 0) // phapppub
 #define PH_LOAD_SHARED_ICON_LARGE(BaseAddress, Name) PhLoadIcon(BaseAddress, (Name), PH_LOAD_ICON_SHARED | PH_LOAD_ICON_SIZE_LARGE, 0, 0) // phapppub
 
@@ -436,7 +407,7 @@ FORCEINLINE PVOID PhpGenericPropertyPageHeader(
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam,
-    _In_ PWSTR ContextName
+    _In_ ULONG ContextHash
     )
 {
     PVOID context;
@@ -448,18 +419,18 @@ FORCEINLINE PVOID PhpGenericPropertyPageHeader(
             LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
 
             context = (PVOID)propSheetPage->lParam;
-            SetProp(hwndDlg, ContextName, (HANDLE)context);
+            PhSetWindowContext(hwndDlg, ContextHash, context);
         }
         break;
     case WM_DESTROY:
         {
-            context = (PVOID)GetProp(hwndDlg, ContextName);
-            RemoveProp(hwndDlg, ContextName);
+            context = PhGetWindowContext(hwndDlg, ContextHash);
+            PhRemoveWindowContext(hwndDlg, ContextHash);
         }
         break;
     default:
         {
-            context = (PVOID)GetProp(hwndDlg, ContextName);
+            context = PhGetWindowContext(hwndDlg, ContextHash);
         }
         break;
     }

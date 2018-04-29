@@ -176,6 +176,14 @@ PPH_EMENU_ITEM PhShowEMenu(
 
 // Convenience functions
 
+FORCEINLINE
+PPH_EMENU_ITEM PhCreateEMenuSeparator(
+    VOID
+    )
+{
+    return PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, NULL, NULL, NULL);
+}
+
 PHLIBAPI
 BOOLEAN PhSetFlagsEMenuItem(
     _Inout_ PPH_EMENU_ITEM Item,

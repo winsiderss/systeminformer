@@ -307,7 +307,7 @@ NTSTATUS LoadDb(
 
             PhStringToInteger64(&affinityMask->sr, 10, &affinityInteger);
 
-            object->AffinityMask = (ULONG)affinityInteger;
+            object->AffinityMask = (ULONG_PTR)affinityInteger;
         }
 
         PhClearReference(&tag);

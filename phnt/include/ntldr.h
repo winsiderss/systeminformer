@@ -5,6 +5,12 @@
 
 // DLLs
 
+typedef BOOLEAN (NTAPI *PLDR_INIT_ROUTINE)(
+    _In_ PVOID DllHandle,
+    _In_ ULONG Reason,
+    _In_opt_ PVOID Context
+    );
+
 // symbols
 typedef struct _LDR_SERVICE_TAG_RECORD
 {
@@ -76,6 +82,8 @@ typedef enum _LDR_DLL_LOAD_REASON
     LoadReasonDynamicLoad,
     LoadReasonAsImageLoad,
     LoadReasonAsDataLoad,
+    LoadReasonEnclavePrimary, // REDSTONE3
+    LoadReasonEnclaveDependency,
     LoadReasonUnknown = -1
 } LDR_DLL_LOAD_REASON, *PLDR_DLL_LOAD_REASON;
 
@@ -96,6 +104,7 @@ typedef enum _LDR_DLL_LOAD_REASON
 #define LDR_DATA_TABLE_ENTRY_SIZE_WINXP FIELD_OFFSET(LDR_DATA_TABLE_ENTRY, DdagNode)
 #define LDR_DATA_TABLE_ENTRY_SIZE_WIN7 FIELD_OFFSET(LDR_DATA_TABLE_ENTRY, BaseNameHashValue)
 #define LDR_DATA_TABLE_ENTRY_SIZE_WIN8 FIELD_OFFSET(LDR_DATA_TABLE_ENTRY, ImplicitPathOptions)
+#define LDR_DATA_TABLE_ENTRY_SIZE sizeof(LDR_DATA_TABLE_ENTRY)
 
 // symbols
 typedef struct _LDR_DATA_TABLE_ENTRY
@@ -108,7 +117,7 @@ typedef struct _LDR_DATA_TABLE_ENTRY
         LIST_ENTRY InProgressLinks;
     };
     PVOID DllBase;
-    PVOID EntryPoint;
+    PLDR_INIT_ROUTINE EntryPoint;
     ULONG SizeOfImage;
     UNICODE_STRING FullDllName;
     UNICODE_STRING BaseDllName;
@@ -170,11 +179,9 @@ typedef struct _LDR_DATA_TABLE_ENTRY
     UCHAR SigningLevel; // since REDSTONE2
 } LDR_DATA_TABLE_ENTRY, *PLDR_DATA_TABLE_ENTRY;
 
-typedef BOOLEAN (NTAPI *PDLL_INIT_ROUTINE)(
-    _In_ PVOID DllHandle,
-    _In_ ULONG Reason,
-    _In_opt_ PCONTEXT Context
-    );
+#define LDR_IS_DATAFILE(DllHandle)     (((ULONG_PTR)(DllHandle)) & (ULONG_PTR)1)
+#define LDR_IS_IMAGEMAPPING(DllHandle) (((ULONG_PTR)(DllHandle)) & (ULONG_PTR)2)
+#define LDR_IS_RESOURCE(DllHandle)     (LDR_IS_IMAGEMAPPING(DllHandle) || LDR_IS_DATAFILE(DllHandle))
 
 NTSYSAPI
 NTSTATUS
@@ -471,8 +478,24 @@ LdrUnregisterDllNotification(
 // private
 typedef struct _PS_MITIGATION_OPTIONS_MAP
 {
-    ULONG_PTR Map[2];
+    union
+    {
+        ULONG_PTR Map[2]; // REDSTONE2
+        //struct
+        //{
+        //    ULONG_PTR Depth : 16; // REDSTONE3
+        //    ULONG_PTR Sequence : 48;
+        //    ULONG_PTR Reserved : 4;
+        //    ULONG_PTR NextEntry : 60;
+        //};
+    };
 } PS_MITIGATION_OPTIONS_MAP, *PPS_MITIGATION_OPTIONS_MAP;
+
+// private
+typedef struct _PS_MITIGATION_AUDIT_OPTIONS_MAP
+{
+    ULONG_PTR Map[2];
+} PS_MITIGATION_AUDIT_OPTIONS_MAP, *PPS_MITIGATION_AUDIT_OPTIONS_MAP;
 
 // private
 typedef struct _PS_SYSTEM_DLL_INIT_BLOCK
@@ -496,6 +519,7 @@ typedef struct _PS_SYSTEM_DLL_INIT_BLOCK
     ULONG_PTR CfgBitMapSize;
     ULONG_PTR Wow64CfgBitMap;
     ULONG_PTR Wow64CfgBitMapSize;
+    PS_MITIGATION_AUDIT_OPTIONS_MAP MitigationAuditOptionsMap; // REDSTONE3
 } PS_SYSTEM_DLL_INIT_BLOCK, *PPS_SYSTEM_DLL_INIT_BLOCK;
 
 #if (PHNT_VERSION >= PHNT_THRESHOLD)
@@ -552,6 +576,90 @@ LdrDisableThreadCalloutsForDll(
     _In_ PVOID DllImageBase
     );
     
+// Resources
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+LdrAccessResource(
+    _In_ PVOID BaseAddress,
+    _In_ PIMAGE_RESOURCE_DATA_ENTRY ResourceDataEntry,
+    _Out_opt_ PVOID *ResourceBuffer,
+    _Out_opt_ ULONG *ResourceLength
+    );
+
+typedef struct _LDR_RESOURCE_INFO
+{
+    ULONG_PTR Type;
+    ULONG_PTR Name;
+    ULONG_PTR Language;
+} LDR_RESOURCE_INFO, *PLDR_RESOURCE_INFO;
+
+#define RESOURCE_TYPE_LEVEL 0
+#define RESOURCE_NAME_LEVEL 1
+#define RESOURCE_LANGUAGE_LEVEL 2
+#define RESOURCE_DATA_LEVEL 3
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+LdrFindResource_U(
+    _In_ PVOID BaseAddress,
+    _In_ PLDR_RESOURCE_INFO ResourceInfo,
+    _In_ ULONG Level,
+    _Out_ PIMAGE_RESOURCE_DATA_ENTRY *ResourceDataEntry
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+LdrFindResourceDirectory_U(
+    _In_ PVOID BaseAddress,
+    _In_ PLDR_RESOURCE_INFO ResourceInfo,
+    _In_ ULONG Level,
+    _Out_ PIMAGE_RESOURCE_DIRECTORY *ResourceDirectory
+    );
+
+// private 
+typedef struct _LDR_ENUM_RESOURCE_ENTRY
+{
+    union
+    {
+        ULONG_PTR NameOrId;
+        PIMAGE_RESOURCE_DIRECTORY_STRING Name;
+        struct
+        {
+            USHORT Id;
+            USHORT NameIsPresent;
+        };
+    } Path[3];
+    PVOID Data;
+    ULONG Size;
+    ULONG Reserved;
+} LDR_ENUM_RESOURCE_ENTRY, *PLDR_ENUM_RESOURCE_ENTRY;
+
+#define NAME_FROM_RESOURCE_ENTRY(RootDirectory, Entry) \
+    ((Entry)->NameIsString ? (ULONG_PTR)PTR_ADD_OFFSET((RootDirectory), (Entry)->NameOffset) : (Entry)->Id)
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+LdrEnumResources(
+    _In_ PVOID BaseAddress,
+    _In_ PLDR_RESOURCE_INFO ResourceInfo,
+    _In_ ULONG Level,
+    _Inout_ ULONG *ResourceCount,
+    _Out_writes_to_opt_(*ResourceCount, *ResourceCount) PLDR_ENUM_RESOURCE_ENTRY Resources
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+LdrFindEntryForAddress(
+    _In_ PVOID BaseAddress,
+    _Out_ PLDR_DATA_TABLE_ENTRY *Entry
+    );
+
 #endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 // Module information
@@ -585,5 +693,63 @@ typedef struct _RTL_PROCESS_MODULE_INFORMATION_EX
     ULONG TimeDateStamp;
     PVOID DefaultBase;
 } RTL_PROCESS_MODULE_INFORMATION_EX, *PRTL_PROCESS_MODULE_INFORMATION_EX;
+
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+LdrQueryProcessModuleInformation(
+    _In_opt_ PRTL_PROCESS_MODULES ModuleInformation,
+    _In_opt_ ULONG Size,
+    _Out_ PULONG ReturnedSize
+    );
+
+typedef VOID (NTAPI *PLDR_ENUM_CALLBACK)(
+    _In_ PLDR_DATA_TABLE_ENTRY ModuleInformation, 
+    _In_ PVOID Parameter, 
+    _Out_ BOOLEAN *Stop
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+LdrEnumerateLoadedModules(
+    _In_ BOOLEAN ReservedFlag,
+    _In_ PLDR_ENUM_CALLBACK EnumProc,
+    _In_ PVOID Context
+    );
+
+NTSTATUS
+NTAPI
+LdrOpenImageFileOptionsKey(
+    _In_ PUNICODE_STRING SubKey,
+    _In_ BOOLEAN Wow64,
+    _Out_ PHANDLE NewKeyHandle
+    );
+
+NTSTATUS
+NTAPI
+LdrQueryImageFileKeyOption(
+    _In_ HANDLE KeyHandle,
+    _In_ PCWSTR ValueName,
+    _In_ ULONG Type,
+    _Out_ PVOID Buffer,
+    _In_ ULONG BufferSize,
+    _Out_opt_ PULONG ReturnedLength
+    );
+
+NTSTATUS
+NTAPI
+LdrQueryImageFileExecutionOptions(
+    _In_ PUNICODE_STRING SubKey,
+    _In_ PCWSTR ValueName,
+    _In_ ULONG ValueSize,
+    _Out_ PVOID Buffer,
+    _In_ ULONG BufferSize,
+    _Out_opt_ PULONG RetunedLength
+    );
+
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 #endif

@@ -3,7 +3,7 @@
  *   tree new (tree list control)
  *
  * Copyright (C) 2011-2016 wj32
- * Copyright (C) 2017 dmex
+ * Copyright (C) 2017-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -183,7 +183,11 @@ LRESULT CALLBACK PhTnpWndProc(
         return 0;
     case WM_KILLFOCUS:
         {
+            //if (!context->ContextMenuActive && !(context->Style & TN_STYLE_ALWAYS_SHOW_SELECTION))
+            //    PhTnpSelectRange(context, -1, -1, TN_SELECT_RESET, NULL, NULL);
+
             context->HasFocus = FALSE;
+
             InvalidateRect(context->Handle, NULL, FALSE);
         }
         return 0;
@@ -208,6 +212,20 @@ LRESULT CALLBACK PhTnpWndProc(
         break;
     case WM_MOUSELEAVE:
         {
+            //if (!context->ContextMenuActive && !(context->Style & TN_STYLE_ALWAYS_SHOW_SELECTION))
+            //{
+            //    ULONG changedStart;
+            //    ULONG changedEnd;
+            //    RECT rect;
+            //
+            //    PhTnpSelectRange(context, -1, -1, TN_SELECT_RESET, &changedStart, &changedEnd);
+            //
+            //    if (PhTnpGetRowRects(context, changedStart, changedEnd, TRUE, &rect))
+            //    {
+            //        InvalidateRect(context->Handle, &rect, FALSE);
+            //    }
+            //}
+
             if (!context->SuspendUpdateStructure)
                 PhTnpOnMouseLeave(hwnd, context);
         }
@@ -396,11 +414,13 @@ BOOLEAN PhTnpOnCreate(
     )
 {
     ULONG headerStyle;
+    PPH_TREENEW_CREATEPARAMS createParamaters;
 
     Context->Handle = hwnd;
     Context->InstanceHandle = CreateStruct->hInstance;
     Context->Style = CreateStruct->style;
     Context->ExtendedStyle = CreateStruct->dwExStyle;
+    createParamaters = CreateStruct->lpCreateParams;
 
     if (Context->Style & TN_STYLE_DOUBLE_BUFFERED)
         Context->DoubleBuffered = TRUE;
@@ -413,6 +433,19 @@ BOOLEAN PhTnpOnCreate(
         headerStyle |= HDS_BUTTONS;
     if (!(Context->Style & TN_STYLE_NO_COLUMN_HEADER))
         headerStyle |= WS_VISIBLE;
+
+    if (Context->Style & TN_STYLE_CUSTOM_COLORS)
+    {
+        Context->CustomTextColor = createParamaters->TextColor ? createParamaters->TextColor : RGB(0xff, 0xff, 0xff);
+        Context->CustomFocusColor = createParamaters->FocusColor ? createParamaters->FocusColor : RGB(0x0, 0x0, 0xff);
+        Context->CustomSelectedColor = createParamaters->SelectionColor ? createParamaters->SelectionColor : RGB(0x0, 0x0, 0x80);
+        Context->CustomColors = TRUE;
+    }
+    else
+    {
+        Context->CustomFocusColor = GetSysColor(COLOR_HOTLIGHT);
+        Context->CustomSelectedColor = GetSysColor(COLOR_HIGHLIGHT);
+    }
 
     if (!(Context->FixedHeaderHandle = CreateWindow(
         WC_HEADER,
@@ -1295,7 +1328,9 @@ VOID PhTnpOnContextMenu(
     contextMenu.Node = hitTest.Node;
     contextMenu.Column = hitTest.Column;
     contextMenu.KeyboardInvoked = keyboardInvoked;
+    Context->ContextMenuActive = TRUE;
     Context->Callback(hwnd, TreeNewContextMenu, &contextMenu, NULL, Context->CallbackContext);
+    Context->ContextMenuActive = FALSE;
 }
 
 VOID PhTnpOnVScroll(
@@ -3085,6 +3120,31 @@ VOID PhTnpAutoSizeColumnHeader(
 
         if (Column->Fixed)
             newWidth++;
+
+        // Check the column header text width.
+        if (Column->Text)
+        {
+            PWSTR text;
+            SIZE_T textCount;
+            HDC hdc;
+            SIZE textSize;
+
+            text = Column->Text;
+            textCount = PhCountStringZ(text);
+
+            if (hdc = GetDC(Context->Handle))
+            {
+                SelectObject(hdc, Context->Font);
+
+                if (GetTextExtentPoint32(hdc, text, (ULONG)textCount, &textSize))
+                {
+                    if (newWidth < textSize.cx + 6 + 6) // HACK: Magic values (same as our cell margins?)
+                        newWidth = textSize.cx + 6 + 6;
+                }
+
+                ReleaseDC(Context->Handle, hdc);
+            }
+        }
     }
 
     item.mask = HDI_WIDTH;
@@ -4924,7 +4984,6 @@ VOID PhTnpPaint(
     LONG normalUpdateRightIndex;
     LONG normalTotalX;
     RECT cellRect;
-    HBRUSH backBrush;
     HRGN oldClipRegion;
 
     PhTnpInitializeThemeData(Context);
@@ -5006,57 +5065,68 @@ VOID PhTnpPaint(
 
     for (i = firstRowToUpdate; i <= lastRowToUpdate; i++)
     {
+        INT stateId;
+
         node = Context->FlatList->Items[i];
 
         // Prepare the row for drawing.
 
         PhTnpPrepareRowForDraw(Context, hdc, node);
 
-        if (node->Selected && !Context->ThemeHasItemBackground)
+        if (node->Selected)
         {
-            // Non-themed background
-            if (Context->HasFocus)
-            {
-                SetTextColor(hdc, GetSysColor(COLOR_HIGHLIGHTTEXT));
-                backBrush = GetSysColorBrush(COLOR_HIGHLIGHT);
-            }
+            if (i == Context->HotNodeIndex)
+                stateId = TREIS_HOTSELECTED;
+            else if (!Context->HasFocus)
+                stateId = TREIS_SELECTEDNOTFOCUS;
             else
-            {
-                SetTextColor(hdc, GetSysColor(COLOR_BTNTEXT));
-                backBrush = GetSysColorBrush(COLOR_BTNFACE);
-            }
+                stateId = TREIS_SELECTED;
         }
+        else
+        {
+            if (i == Context->HotNodeIndex)
+                stateId = TREIS_HOT;
+            else
+                stateId = -1;
+        }
+
+        if (Context->CustomColors || !Context->ThemeHasItemBackground)
+        {
+            switch (stateId)
+            {
+            case TREIS_SELECTED:
+            case TREIS_SELECTEDNOTFOCUS:
+                {
+                    SetTextColor(hdc, Context->CustomTextColor);
+                    SetDCBrushColor(hdc, Context->CustomSelectedColor);
+                }
+                break;
+            case TREIS_HOT:
+            case TREIS_HOTSELECTED:
+                {
+                    SetTextColor(hdc, Context->CustomTextColor);
+                    SetDCBrushColor(hdc, Context->CustomFocusColor);
+                }
+                break;
+            default:
+                {
+                    SetTextColor(hdc, node->s.DrawForeColor);
+                    SetDCBrushColor(hdc, node->s.DrawBackColor);
+                }
+                break;
+            }
+        }     
         else
         {
             SetTextColor(hdc, node->s.DrawForeColor);
             SetDCBrushColor(hdc, node->s.DrawBackColor);
-            backBrush = GetStockObject(DC_BRUSH);
         }
 
-        FillRect(hdc, &rowRect, backBrush);
+        FillRect(hdc, &rowRect, GetStockObject(DC_BRUSH));
 
-        if (Context->ThemeHasItemBackground)
+        if (!Context->CustomColors && Context->ThemeHasItemBackground)
         {
-            INT stateId;
-
             // Themed background
-
-            if (node->Selected)
-            {
-                if (i == Context->HotNodeIndex)
-                    stateId = TREIS_HOTSELECTED;
-                else if (!Context->HasFocus)
-                    stateId = TREIS_SELECTEDNOTFOCUS;
-                else
-                    stateId = TREIS_SELECTED;
-            }
-            else
-            {
-                if (i == Context->HotNodeIndex)
-                    stateId = TREIS_HOT;
-                else
-                    stateId = -1;
-            }
 
             if (stateId != -1)
             {
@@ -5735,7 +5805,7 @@ VOID PhTnpInitializeTooltips(
         WS_EX_TRANSPARENT, // solves double-click problem
         TOOLTIPS_CLASS,
         NULL,
-        WS_POPUP | TTS_NOPREFIX,
+        WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP,
         0,
         0,
         0,
@@ -5775,10 +5845,15 @@ VOID PhTnpInitializeTooltips(
     toolInfo.lParam = TNP_TOOLTIPS_HEADER;
     SendMessage(Context->TooltipsHandle, TTM_ADDTOOL, 0, (LPARAM)&toolInfo);
 
-    // Hook the header control window procedures so we can forward mouse messages to the tooltip
-    // control.
-    SetWindowSubclass(Context->FixedHeaderHandle, PhTnpHeaderHookWndProc, 0, (ULONG_PTR)Context);
-    SetWindowSubclass(Context->HeaderHandle, PhTnpHeaderHookWndProc, 0, (ULONG_PTR)Context);
+    // Hook the header control window procedures so we can forward mouse messages to the tooltip control.
+    Context->HeaderWindowProc = (WNDPROC)GetWindowLongPtr(Context->HeaderHandle, GWLP_WNDPROC);
+    Context->FixedHeaderWindowProc = (WNDPROC)GetWindowLongPtr(Context->FixedHeaderHandle, GWLP_WNDPROC);
+    
+    PhSetWindowContext(Context->HeaderHandle, 0xF, Context);
+    PhSetWindowContext(Context->FixedHeaderHandle, 0xF, Context);
+
+    SetWindowLongPtr(Context->FixedHeaderHandle, GWLP_WNDPROC, (LONG_PTR)PhTnpHeaderHookWndProc);
+    SetWindowLongPtr(Context->HeaderHandle, GWLP_WNDPROC, (LONG_PTR)PhTnpHeaderHookWndProc);
 
     SendMessage(Context->TooltipsHandle, TTM_SETMAXTIPWIDTH, 0, MAXSHORT); // no limit
     SendMessage(Context->TooltipsHandle, WM_SETFONT, (WPARAM)Context->Font, FALSE);
@@ -6069,17 +6144,26 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
-    _In_ LPARAM lParam,
-    _In_ UINT_PTR uIdSubclass,
-    _In_ ULONG_PTR dwRefData
+    _In_ LPARAM lParam
     )
 {
-    PPH_TREENEW_CONTEXT context = (PPH_TREENEW_CONTEXT)dwRefData;
+    PPH_TREENEW_CONTEXT context;
+    WNDPROC oldWndProc;
+
+    context = PhGetWindowContext(hwnd, 0xF);
+
+    if (hwnd == context->FixedHeaderHandle)
+        oldWndProc = context->FixedHeaderWindowProc;
+    else
+        oldWndProc = context->HeaderWindowProc;
 
     switch (uMsg)
     {
     case WM_DESTROY:
-        RemoveWindowSubclass(hwnd, PhTnpHeaderHookWndProc, uIdSubclass);
+        {
+            SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+            PhRemoveWindowContext(hwnd, 0xF);
+        }
         break;
     case WM_MOUSEMOVE:
         {
@@ -6165,7 +6249,7 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
         break;
     }
 
-    return DefSubclassProc(hwnd, uMsg, wParam, lParam);
+    return CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);;
 }
 
 BOOLEAN PhTnpDetectDrag(

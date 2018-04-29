@@ -11,11 +11,11 @@ extern "C" {
 // PH_STRINGREFs at compile time, for a small speed boost.
 
 #define ADD_SETTING_WRAPPER(Type, Name, DefaultValue) \
-    { \
-        static PH_STRINGREF name = PH_STRINGREF_INIT(Name); \
-        static PH_STRINGREF defaultValue = PH_STRINGREF_INIT(DefaultValue); \
-        PhAddSetting(Type, &name, &defaultValue); \
-    }
+{ \
+    static PH_STRINGREF name = PH_STRINGREF_INIT(Name); \
+    static PH_STRINGREF defaultValue = PH_STRINGREF_INIT(DefaultValue); \
+    PhAddSetting(Type, &name, &defaultValue); \
+}
 
 #define PhpAddStringSetting(A, B) ADD_SETTING_WRAPPER(StringSettingType, A, B)
 #define PhpAddIntegerSetting(A, B) ADD_SETTING_WRAPPER(IntegerSettingType, A, B)
@@ -59,6 +59,30 @@ VOID PhAddDefaultSettings(
 // Note: Program specific function.
 VOID PhUpdateCachedSettings(
     VOID
+    );
+
+// private
+
+PPH_STRING PhSettingToString(
+    _In_ PH_SETTING_TYPE Type,
+    _In_ PPH_SETTING Setting
+    );
+
+BOOLEAN PhSettingFromString(
+    _In_ PH_SETTING_TYPE Type,
+    _In_ PPH_STRINGREF StringRef,
+    _In_opt_ PPH_STRING String,
+    _Inout_ PPH_SETTING Setting
+    );
+
+typedef BOOLEAN (NTAPI *PPH_SETTINGS_ENUM_CALLBACK)(
+    _In_ PPH_SETTING Setting,
+    _In_ PVOID Context
+    );
+
+VOID PhEnumSettings(
+    _In_ PPH_SETTINGS_ENUM_CALLBACK Callback,
+    _In_ PVOID Context
     );
 
 // begin_phapppub

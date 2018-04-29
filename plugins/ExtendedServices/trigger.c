@@ -1115,7 +1115,7 @@ VOID EspFixServiceTriggerControls(
     if (PhEqualString2(selectedSubTypeString, L"Custom", FALSE))
     {
         EnableWindow(GetDlgItem(hwndDlg, IDC_SUBTYPECUSTOM), TRUE);
-        SetDlgItemText(hwndDlg, IDC_SUBTYPECUSTOM, Context->LastCustomSubType->Buffer);
+        PhSetDialogItemText(hwndDlg, IDC_SUBTYPECUSTOM, Context->LastCustomSubType->Buffer);
     }
     else
     {
@@ -1123,7 +1123,7 @@ VOID EspFixServiceTriggerControls(
         {
             EnableWindow(GetDlgItem(hwndDlg, IDC_SUBTYPECUSTOM), FALSE);
             PhMoveReference(&Context->LastCustomSubType, PhGetWindowText(GetDlgItem(hwndDlg, IDC_SUBTYPECUSTOM)));
-            SetDlgItemText(hwndDlg, IDC_SUBTYPECUSTOM, L"");
+            PhSetDialogItemText(hwndDlg, IDC_SUBTYPECUSTOM, L"");
         }
     }
 
@@ -1264,14 +1264,14 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
     if (uMsg == WM_INITDIALOG)
     {
         context = (PES_TRIGGER_CONTEXT)lParam;
-        SetProp(hwndDlg, L"Context", (HANDLE)context);
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = (PES_TRIGGER_CONTEXT)GetProp(hwndDlg, L"Context");
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
         if (uMsg == WM_DESTROY)
-            RemoveProp(hwndDlg, L"Context");
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
     }
 
     if (!context)
@@ -1678,14 +1678,14 @@ INT_PTR CALLBACK ValueDlgProc(
     if (uMsg == WM_INITDIALOG)
     {
         context = (PES_TRIGGER_CONTEXT)lParam;
-        SetProp(hwndDlg, L"Context", (HANDLE)context);
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = (PES_TRIGGER_CONTEXT)GetProp(hwndDlg, L"Context");
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
         if (uMsg == WM_DESTROY)
-            RemoveProp(hwndDlg, L"Context");
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
     }
 
     if (!context)
@@ -1695,8 +1695,8 @@ INT_PTR CALLBACK ValueDlgProc(
     {
     case WM_INITDIALOG:
         {
-            SetDlgItemText(hwndDlg, IDC_VALUES, context->EditingValue->Buffer);
-            SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)GetDlgItem(hwndDlg, IDC_VALUES), TRUE);
+            PhSetDialogItemText(hwndDlg, IDC_VALUES, context->EditingValue->Buffer);
+            PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDC_VALUES));
             Edit_SetSel(GetDlgItem(hwndDlg, IDC_VALUES), 0, -1);
         }
         break;

@@ -3,6 +3,7 @@
  *   main program
  *
  * Copyright (C) 2009-2016 wj32
+ * Copyright (C) 2017-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -75,6 +76,14 @@ VOID PhpEnablePrivileges(
     VOID
     );
 
+BOOLEAN PhInitializeExceptionPolicy(
+    VOID
+    );
+
+BOOLEAN PhInitializeMitigationPolicy(
+    VOID
+    );
+
 PPH_STRING PhApplicationDirectory = NULL;
 PPH_STRING PhApplicationFileName = NULL;
 PHAPPAPI HFONT PhApplicationFont = NULL;
@@ -104,47 +113,30 @@ INT WINAPI wWinMain(
 #ifdef DEBUG
     PHP_BASE_THREAD_DBG dbg;
 #endif
-    HANDLE currentTokenHandle;
 
     CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
-#ifndef DEBUG
-    SetErrorMode(SEM_NOOPENFILEERRORBOX | SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
-#endif
 
     if (!NT_SUCCESS(PhInitializePhLibEx(ULONG_MAX, Instance, 0, 0)))
+        return 1;
+    if (!PhInitializeExceptionPolicy())
+        return 1;
+    if (!PhInitializeMitigationPolicy())
+        return 1;
+    if (!PhInitializeRestartPolicy())
         return 1;
     if (!PhInitializeAppSystem())
         return 1;
 
     PhInitializeCommonControls();
 
-    currentTokenHandle = PhGetOwnTokenAttributes().TokenHandle;
-
-    if (currentTokenHandle)
-    {
-        PTOKEN_USER tokenUser;
-
-        if (NT_SUCCESS(PhGetTokenUser(currentTokenHandle, &tokenUser)))
-        {
-            PhCurrentUserName = PhGetSidFullName(tokenUser->User.Sid, TRUE, NULL);
-            PhFree(tokenUser);
-        }
-    }
-
-    PhLocalSystemName = PhGetSidFullName(&PhSeLocalSystemSid, TRUE, NULL);
-
-    // There has been a report of the above call failing.
-    if (!PhLocalSystemName)
-        PhLocalSystemName = PhCreateString(L"NT AUTHORITY\\SYSTEM");
-
-    PhApplicationFileName = PhGetApplicationFileName();
-    PhApplicationDirectory = PhGetApplicationDirectory();
-
-    // Just in case
-    if (!PhApplicationFileName)
+    if (!(PhApplicationFileName = PhGetApplicationFileName()))
         PhApplicationFileName = PhCreateString(L"ProcessHacker.exe");
-    if (!PhApplicationDirectory)
+    if (!(PhApplicationDirectory = PhGetApplicationDirectory()))
         PhApplicationDirectory = PhReferenceEmptyString();
+    if (!(PhLocalSystemName = PhGetSidFullName(&PhSeLocalSystemSid, TRUE, NULL)))
+        PhLocalSystemName = PhCreateString(L"NT AUTHORITY\\SYSTEM");
+    if (!(PhCurrentUserName = PhGetTokenUserString(PhGetOwnTokenAttributes().TokenHandle, TRUE)))
+        PhCurrentUserName = PhReferenceEmptyString();
 
     PhpProcessStartupParameters();
     PhSettingsInitialization();
@@ -222,6 +214,7 @@ INT WINAPI wWinMain(
             L"Most features will not work correctly.\n\n"
             L"Please run the 64-bit version of Process Hacker instead."
             );
+        RtlExitUserProcess(STATUS_IMAGE_SUBSYSTEM_NOT_PRESENT);
     }
 #endif
 
@@ -232,6 +225,21 @@ INT WINAPI wWinMain(
         PhPluginsInitialization();
         PhLoadPlugins();
     }
+
+#ifndef DEBUG
+    if (WindowsVersion >= WINDOWS_10)
+    {
+        PROCESS_MITIGATION_POLICY_INFORMATION policyInfo;
+
+        // Note: The PhInitializeMitigationPolicy function enables the other mitigation policies.
+        // However, we can only enable the ProcessSignaturePolicy after loading plugins.
+        policyInfo.Policy = ProcessSignaturePolicy;
+        policyInfo.SignaturePolicy.Flags = 0;
+        policyInfo.SignaturePolicy.MicrosoftSignedOnly = TRUE;
+
+        NtSetInformationProcess(NtCurrentProcess(), ProcessMitigationPolicy, &policyInfo, sizeof(PROCESS_MITIGATION_POLICY_INFORMATION));
+    }
+#endif
 
     if (PhStartupParameters.PhSvc)
     {
@@ -247,31 +255,36 @@ INT WINAPI wWinMain(
     // Create a mutant for the installer.
     {
         HANDLE mutantHandle;
-        OBJECT_ATTRIBUTES oa;
-        UNICODE_STRING mutantName;
         PPH_STRING objectName;
+        OBJECT_ATTRIBUTES objectAttributes;
+        UNICODE_STRING objectNameUs;
         PH_FORMAT format[2];
 
         PhInitFormatS(&format[0], L"PhMutant_");
         PhInitFormatU(&format[1], HandleToUlong(NtCurrentProcessId()));
 
         objectName = PhFormat(format, 2, 16);
-        PhStringRefToUnicodeString(&objectName->sr, &mutantName);
+        PhStringRefToUnicodeString(&objectName->sr, &objectNameUs);
 
         InitializeObjectAttributes(
-            &oa,
-            &mutantName,
+            &objectAttributes,
+            &objectNameUs,
             OBJ_CASE_INSENSITIVE,
             PhGetNamespaceHandle(),
             NULL
             );
 
-        NtCreateMutant(&mutantHandle, MUTANT_ALL_ACCESS, &oa, FALSE);
+        NtCreateMutant(
+            &mutantHandle, 
+            MUTANT_QUERY_STATE,
+            &objectAttributes, 
+            TRUE
+            );
 
         PhDereferenceObject(objectName);
     }
 
-    // Set priority.
+    // Set the default priority.
     {
         PROCESS_PRIORITY_CLASS priorityClass;
 
@@ -281,7 +294,7 @@ INT WINAPI wWinMain(
         if (PhStartupParameters.PriorityClass != 0)
             priorityClass.PriorityClass = (UCHAR)PhStartupParameters.PriorityClass;
 
-        NtSetInformationProcess(NtCurrentProcess(), ProcessPriorityClass, &priorityClass, sizeof(PROCESS_PRIORITY_CLASS));
+        PhSetProcessPriority(NtCurrentProcess(), priorityClass);
     }
 
     if (!PhMainWndInitialization(CmdShow))
@@ -430,19 +443,63 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
     _In_opt_ PVOID Context
     )
 {
-    ULONG64 processId64;
-    PH_STRINGREF firstPart;
-    PH_STRINGREF secondPart;
+    static PH_STRINGREF objectNameSr = PH_STRINGREF_INIT(L"PhMutant_");
+    HANDLE objectHandle;
+    UNICODE_STRING objectNameUs;
+    OBJECT_ATTRIBUTES objectAttributes;
+    MUTANT_OWNER_INFORMATION objectInfo;
 
-    if (
-        PhStartsWithStringRef2(Name, L"PhMutant_", TRUE) &&
-        PhSplitStringRefAtChar(Name, L'_', &firstPart, &secondPart) &&
-        PhStringToInteger64(&secondPart, 10, &processId64)
-        )
+    if (!PhStartsWithStringRef(Name, &objectNameSr, FALSE))
+        return TRUE;
+    if (!PhStringRefToUnicodeString(Name, &objectNameUs))
+        return TRUE;
+
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &objectNameUs,
+        OBJ_CASE_INSENSITIVE,
+        PhGetNamespaceHandle(),
+        NULL
+        );
+
+    if (!NT_SUCCESS(NtOpenMutant(
+        &objectHandle,
+        MUTANT_QUERY_STATE,
+        &objectAttributes
+        )))
+    {
+        return TRUE;
+    }
+
+    if (NT_SUCCESS(PhGetMutantOwnerInformation(
+        objectHandle,
+        &objectInfo
+        )))
     {
         HWND hwnd;
+        HANDLE processHandle = NULL;
+        HANDLE tokenHandle = NULL;
+        PTOKEN_USER tokenCurrent = NULL;
+        PTOKEN_USER tokenUser = NULL;
 
-        hwnd = PhGetProcessMainWindowEx((HANDLE)processId64, NULL, FALSE);
+        if (objectInfo.ClientId.UniqueProcess == NtCurrentProcessId())
+            goto CleanupExit;
+        if (!NT_SUCCESS(PhOpenProcess(&processHandle, ProcessQueryAccess, objectInfo.ClientId.UniqueProcess)))
+            goto CleanupExit;
+        if (!NT_SUCCESS(PhOpenProcessToken(processHandle, TOKEN_QUERY, &tokenHandle)))
+            goto CleanupExit;
+        if (!NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
+            goto CleanupExit;
+        if (!NT_SUCCESS(PhGetTokenUser(PhGetOwnTokenAttributes().TokenHandle, &tokenCurrent)))
+            goto CleanupExit;
+        if (!RtlEqualSid(tokenUser->User.Sid, tokenCurrent->User.Sid))
+            goto CleanupExit;
+
+        hwnd = PhGetProcessMainWindowEx(
+            objectInfo.ClientId.UniqueProcess,
+            processHandle,
+            FALSE
+            );
 
         if (hwnd)
         {
@@ -456,8 +513,15 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
                 RtlExitUserProcess(STATUS_SUCCESS);
             }
         }
+
+    CleanupExit:
+        if (tokenUser) PhFree(tokenUser);
+        if (tokenCurrent) PhFree(tokenCurrent);
+        if (tokenHandle) NtClose(tokenHandle);
+        if (processHandle) NtClose(processHandle);
     }
 
+    NtClose(objectHandle);
     return TRUE;
 }
 
@@ -476,60 +540,92 @@ VOID PhInitializeCommonControls(
 
     icex.dwSize = sizeof(INITCOMMONCONTROLSEX);
     icex.dwICC =
-        ICC_LINK_CLASS |
         ICC_LISTVIEW_CLASSES |
+        ICC_TREEVIEW_CLASSES |
+        ICC_BAR_CLASSES |
+        ICC_TAB_CLASSES |
         ICC_PROGRESS_CLASS |
-        ICC_TAB_CLASSES
+        ICC_COOL_CLASSES |
+        ICC_STANDARD_CLASSES |
+        ICC_LINK_CLASS
         ;
 
     InitCommonControlsEx(&icex);
 }
 
 VOID PhInitializeFont(
-    _In_ HWND hWnd
+    VOID
     )
 {
     NONCLIENTMETRICS metrics = { sizeof(metrics) };
-    BOOLEAN success;
-    HDC hdc;
-
-    if (hdc = GetDC(hWnd))
-    {
-        PhGlobalDpi = GetDeviceCaps(hdc, LOGPIXELSY);
-        ReleaseDC(hWnd, hdc);
-    }
-    else
-    {
-        PhGlobalDpi = 96;
-    }
-
-    success = !!SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &metrics, 0);
 
     if (
         !(PhApplicationFont = PhCreateFont(L"Microsoft Sans Serif", 8, FW_NORMAL)) &&
         !(PhApplicationFont = PhCreateFont(L"Tahoma", 8, FW_NORMAL))
         )
     {
-        if (success)
+        if (SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &metrics, 0))
             PhApplicationFont = CreateFontIndirect(&metrics.lfMessageFont);
         else
             PhApplicationFont = NULL;
     }
 }
 
-VOID PhInitializeMitigationPolicy(
+BOOLEAN PhInitializeRestartPolicy(
     VOID
     )
 {
-    static PH_STRINGREF policyKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\ProcessHacker.exe");
-    static UNICODE_STRING policyKeyValue = RTL_CONSTANT_STRING(L"MitigationOptions");
-    BOOLEAN policyKeyValid = FALSE;
-    HANDLE keyReadHandle;
-    HANDLE keyWriteHandle;
+#ifndef DEBUG
+    PH_STRINGREF commandLineSr;
+    PH_STRINGREF fileNameSr;
+    PH_STRINGREF argumentsSr;
+    PPH_STRING argumentsString = NULL;
 
-    if (WindowsVersion < WINDOWS_10 || !PhGetOwnTokenAttributes().Elevated)
-        return;
+    PhUnicodeStringToStringRef(&NtCurrentPeb()->ProcessParameters->CommandLine, &commandLineSr);
 
+    if (!PhParseCommandLineFuzzy(&commandLineSr, &fileNameSr, &argumentsSr, NULL))
+        return FALSE;
+
+    if (argumentsSr.Length)
+    {
+        static PH_STRINGREF commandlinePart = PH_STRINGREF_INIT(L"-nomp");
+
+        if (PhEndsWithStringRef(&argumentsSr, &commandlinePart, FALSE))
+            PhTrimStringRef(&argumentsSr, &commandlinePart, PH_TRIM_END_ONLY);
+
+        argumentsString = PhCreateString2(&argumentsSr);
+    }
+
+    // MSDN: Do not include the file name in the command line.
+    RegisterApplicationRestart(PhGetString(argumentsString), 0);
+
+    if (argumentsString)
+        PhDereferenceObject(argumentsString);
+#endif
+    return TRUE;
+}
+
+BOOLEAN PhInitializeExceptionPolicy(
+    VOID
+    )
+{
+#ifndef DEBUG
+    ULONG errorMode;
+
+    if (NT_SUCCESS(PhGetProcessErrorMode(NtCurrentProcess(), &errorMode)))
+    {
+        errorMode &= ~(SEM_NOOPENFILEERRORBOX | SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
+        PhSetProcessErrorMode(NtCurrentProcess(), errorMode);
+    }
+#endif
+    return TRUE;
+}   
+
+BOOLEAN PhInitializeMitigationPolicy(
+    VOID
+    )
+{
+#ifndef DEBUG
 #define DEFAULT_MITIGATION_POLICY_FLAGS \
     (PROCESS_CREATION_MITIGATION_POLICY_HEAP_TERMINATE_ALWAYS_ON | \
      PROCESS_CREATION_MITIGATION_POLICY_BOTTOM_UP_ASLR_ALWAYS_ON | \
@@ -540,43 +636,75 @@ VOID PhInitializeMitigationPolicy(
      PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_REMOTE_ALWAYS_ON | \
      PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_LOW_LABEL_ALWAYS_ON)
 
-    if (NT_SUCCESS(PhOpenKey(
-        &keyReadHandle,
-        KEY_READ,
-        PH_KEY_LOCAL_MACHINE,
-        &policyKeyName,
-        0
-        )))
-    {
-        if (PhQueryRegistryUlong64(keyReadHandle, L"MitigationOptions") == DEFAULT_MITIGATION_POLICY_FLAGS)
-            policyKeyValid = TRUE;
+    static PH_STRINGREF commandlinePart = PH_STRINGREF_INIT(L" -nomp");
+    BOOLEAN success = TRUE;
+    PH_STRINGREF commandlineSr;
+    PPH_STRING commandline = NULL;
+    PS_SYSTEM_DLL_INIT_BLOCK (*LdrSystemDllInitBlock_I) = NULL;
+    STARTUPINFOEX startupInfo = { sizeof(STARTUPINFOEX) };
+    SIZE_T attributeListLength;
 
-        NtClose(keyReadHandle);
-    }
+    if (WindowsVersion < WINDOWS_10_RS3)
+        return TRUE;
 
-    if (policyKeyValid)
-        return;
+    PhUnicodeStringToStringRef(&NtCurrentPeb()->ProcessParameters->CommandLine, &commandlineSr);
 
-    if (NT_SUCCESS(PhCreateKey(
-        &keyWriteHandle,
-        KEY_WRITE | DELETE,
-        PH_KEY_LOCAL_MACHINE,
-        &policyKeyName,
-        0,
-        0,
+    if (PhEndsWithStringRef(&commandlineSr, &commandlinePart, FALSE))
+        return TRUE;
+
+    if (!(LdrSystemDllInitBlock_I = PhGetDllProcedureAddress(L"ntdll.dll", "LdrSystemDllInitBlock", 0)))
+        goto CleanupExit;
+
+    if (!RTL_CONTAINS_FIELD(LdrSystemDllInitBlock_I, LdrSystemDllInitBlock_I->Size, MitigationOptionsMap))
+        goto CleanupExit;
+
+    if ((LdrSystemDllInitBlock_I->MitigationOptionsMap.Map[0] & DEFAULT_MITIGATION_POLICY_FLAGS) == DEFAULT_MITIGATION_POLICY_FLAGS)
+        goto CleanupExit;
+
+    if (!InitializeProcThreadAttributeList(NULL, 1, 0, &attributeListLength) && GetLastError() != ERROR_INSUFFICIENT_BUFFER)
+        goto CleanupExit;
+
+    startupInfo.lpAttributeList = PhAllocate(attributeListLength);
+
+    if (!InitializeProcThreadAttributeList(startupInfo.lpAttributeList, 1, 0, &attributeListLength))
+        goto CleanupExit;
+
+    if (!UpdateProcThreadAttribute(startupInfo.lpAttributeList, 0, PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY, &(ULONG64){ DEFAULT_MITIGATION_POLICY_FLAGS }, sizeof(ULONG64), NULL, NULL))
+        goto CleanupExit;
+
+    commandline = PhConcatStringRef2(&commandlineSr, &commandlinePart);
+
+    if (NT_SUCCESS(PhCreateProcessWin32Ex(
+        NULL,
+        PhGetString(commandline),
+        NULL,
+        NULL,
+        &startupInfo.StartupInfo,
+        PH_CREATE_PROCESS_EXTENDED_STARTUPINFO | PH_CREATE_PROCESS_BREAKAWAY_FROM_JOB,
+        NULL,
+        NULL,
+        NULL,
         NULL
         )))
     {
-        NtSetValueKey(
-            keyWriteHandle,
-            &policyKeyValue,
-            0,
-            REG_QWORD,
-            &(ULONG64) { DEFAULT_MITIGATION_POLICY_FLAGS },
-            sizeof(ULONG64)
-            );
-        NtClose(keyWriteHandle);
+        success = FALSE;
     }
+
+CleanupExit:
+
+    if (commandline)
+        PhDereferenceObject(commandline);
+
+    if (startupInfo.lpAttributeList)
+    {
+        DeleteProcThreadAttributeList(startupInfo.lpAttributeList);
+        PhFree(startupInfo.lpAttributeList);
+    }
+
+    return success;
+#else
+    return TRUE;
+#endif
 }
 
 NTSTATUS PhpReadSignature(
@@ -616,6 +744,47 @@ NTSTATUS PhpReadSignature(
     }
 }
 
+VOID PhpShowKphError(
+    _In_ PWSTR Message, 
+    _In_opt_ NTSTATUS Status
+    )
+{
+    if (Status == STATUS_NO_SUCH_FILE)
+    {
+        PhShowError2(
+            NULL,
+            Message,
+            L"You will be unable to use more advanced features, view details about system processes or terminate malicious software."
+            );
+    }
+    else
+    {
+        PPH_STRING errorMessage;
+        PPH_STRING statusMessage;
+
+        if (errorMessage = PhGetStatusMessage(Status, 0))
+        {
+            statusMessage = PhConcatStrings(
+                3,
+                errorMessage->Buffer,
+                L"\r\n\r\n",
+                L"You will be unable to use more advanced features, view details about system processes or terminate malicious software."
+                );
+            PhShowError2(NULL, Message, statusMessage->Buffer);
+            PhDereferenceObject(statusMessage);
+            PhDereferenceObject(errorMessage);
+        }
+        else
+        {
+            PhShowError2(
+                NULL, 
+                Message, 
+                L"You will be unable to use more advanced features, view details about system processes or terminate malicious software."
+                );
+        }
+    }
+}
+
 VOID PhInitializeKph(
     VOID
     )
@@ -627,11 +796,15 @@ VOID PhInitializeKph(
     PPH_STRING processhackerSigFileName;
     KPH_PARAMETERS parameters;
 
-    if (WindowsVersion == WINDOWS_NEW)
-        return;
-
     kprocesshackerFileName = PhConcatStringRef2(&PhApplicationDirectory->sr, &kprocesshacker);
     processhackerSigFileName = PhConcatStringRef2(&PhApplicationDirectory->sr, &processhackerSig);
+
+    if (!RtlDoesFileExists_U(kprocesshackerFileName->Buffer))
+    {
+        if (PhGetIntegerSetting(L"EnableKphWarnings"))
+            PhpShowKphError(L"The Process Hacker kernel driver 'kprocesshacker.sys' was not found in the application directory.", STATUS_NO_SUCH_FILE);
+        return;
+    }
 
     parameters.SecurityLevel = KphSecuritySignatureAndPrivilegeCheck;
     parameters.CreateDynamicConfiguration = TRUE;
@@ -658,7 +831,7 @@ VOID PhInitializeKph(
             if (!NT_SUCCESS(status))
             {
                 if (PhGetIntegerSetting(L"EnableKphWarnings"))
-                    PhShowStatus(NULL, L"Unable to verify the kernel driver signature.", status, 0);
+                    PhpShowKphError(L"Unable to verify the kernel driver signature.", status);
             }
 
             PhFree(signature);
@@ -666,13 +839,13 @@ VOID PhInitializeKph(
         else
         {
             if (PhGetIntegerSetting(L"EnableKphWarnings"))
-                PhShowStatus(NULL, L"Unable to load the kernel driver signature.", status, 0);
+                PhpShowKphError(L"Unable to load the kernel driver signature.", status);
         }
     }
     else
     {
         if (PhGetIntegerSetting(L"EnableKphWarnings") && PhGetOwnTokenAttributes().Elevated)
-            PhShowStatus(NULL, L"Unable to load the kernel driver.", status, 0);
+            PhpShowKphError(L"Unable to load the kernel driver.", status);
     }
 
     PhDereferenceObject(kprocesshackerFileName);
@@ -762,7 +935,7 @@ VOID PhpInitializeSettings(
             if (status == STATUS_FILE_CORRUPT_ERROR)
             {
                 if (PhShowMessage2(
-                    PhMainWndHandle,
+                    NULL,
                     TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
                     TD_WARNING_ICON,
                     L"Process Hacker's settings file is corrupt. Do you want to reset it?",
@@ -1129,18 +1302,18 @@ VOID PhpEnablePrivileges(
 {
     HANDLE tokenHandle;
 
-    if (NT_SUCCESS(NtOpenProcessToken(
+    if (NT_SUCCESS(PhOpenProcessToken(
         NtCurrentProcess(),
         TOKEN_ADJUST_PRIVILEGES,
         &tokenHandle
         )))
     {
-        CHAR privilegesBuffer[FIELD_OFFSET(TOKEN_PRIVILEGES, Privileges) + sizeof(LUID_AND_ATTRIBUTES) * 8];
+        CHAR privilegesBuffer[FIELD_OFFSET(TOKEN_PRIVILEGES, Privileges) + sizeof(LUID_AND_ATTRIBUTES) * 9];
         PTOKEN_PRIVILEGES privileges;
         ULONG i;
 
         privileges = (PTOKEN_PRIVILEGES)privilegesBuffer;
-        privileges->PrivilegeCount = 8;
+        privileges->PrivilegeCount = 9;
 
         for (i = 0; i < privileges->PrivilegeCount; i++)
         {
@@ -1153,9 +1326,10 @@ VOID PhpEnablePrivileges(
         privileges->Privileges[2].Luid.LowPart = SE_INC_WORKING_SET_PRIVILEGE;
         privileges->Privileges[3].Luid.LowPart = SE_LOAD_DRIVER_PRIVILEGE;
         privileges->Privileges[4].Luid.LowPart = SE_PROF_SINGLE_PROCESS_PRIVILEGE;
-        privileges->Privileges[5].Luid.LowPart = SE_RESTORE_PRIVILEGE;
-        privileges->Privileges[6].Luid.LowPart = SE_SHUTDOWN_PRIVILEGE;
-        privileges->Privileges[7].Luid.LowPart = SE_TAKE_OWNERSHIP_PRIVILEGE;
+        privileges->Privileges[5].Luid.LowPart = SE_BACKUP_PRIVILEGE;
+        privileges->Privileges[6].Luid.LowPart = SE_RESTORE_PRIVILEGE;
+        privileges->Privileges[7].Luid.LowPart = SE_SHUTDOWN_PRIVILEGE;
+        privileges->Privileges[8].Luid.LowPart = SE_TAKE_OWNERSHIP_PRIVILEGE;
 
         NtAdjustPrivilegesToken(
             tokenHandle,

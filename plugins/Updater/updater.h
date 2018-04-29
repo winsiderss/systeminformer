@@ -29,12 +29,15 @@
 #include <phdk.h>
 #include <phappresource.h>
 #include <json.h>
-#include <mxml.h>
 #include <verify.h>
 #include <settings.h>
 #include <workqueue.h>
+
 #include <windowsx.h>
-#include <winhttp.h>
+#include <shlobj.h>
+
+#include <http.h>
+#include <commonutil.h>
 
 #include "resource.h"
 
@@ -82,19 +85,19 @@ typedef struct _PH_UPDATER_CONTEXT
     HICON IconLargeHandle;
 
     HWND DialogHandle;
+    WNDPROC DefaultWindowProc;
 
     ULONG ErrorCode;
+    PPH_STRING SetupFilePath;
     PPH_STRING CurrentVersionString;
     PPH_STRING Version;
-    PPH_STRING RevVersion;
     PPH_STRING RelDate;
-    PPH_STRING Size;
-    PPH_STRING Hash;
-    PPH_STRING Signature;
-    PPH_STRING ReleaseNotesUrl;
-    PPH_STRING SetupFileDownloadUrl;
-    PPH_STRING SetupFilePath;
 
+    PPH_STRING SetupFileLength;
+    PPH_STRING SetupFileDownloadUrl;
+    PPH_STRING SetupFileHash;
+    PPH_STRING SetupFileSignature;
+    
     // Nightly builds only
     PPH_STRING BuildMessage;
 } PH_UPDATER_CONTEXT, *PPH_UPDATER_CONTEXT;

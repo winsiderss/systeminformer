@@ -52,14 +52,7 @@ VOID CustomizeInsertStatusBarItem(
     _In_ PBUTTON_CONTEXT Button
     )
 {
-    PSTATUSBAR_ITEM item;
-
-    item = PhAllocate(sizeof(STATUSBAR_ITEM));
-    memset(item, 0, sizeof(STATUSBAR_ITEM));
-
-    item->Id = Button->IdCommand;
-
-    PhInsertItemList(StatusBarItemList, Index, item);
+    PhInsertItemList(StatusBarItemList, Index, UlongToPtr(Button->IdCommand));
 
     StatusBarUpdate(TRUE);
 }
@@ -224,14 +217,10 @@ VOID CustomizeLoadStatusBarItems(
 
     for (index = 0; index < StatusBarItemList->Count; index++)
     {
-        PSTATUSBAR_ITEM item;
-
-        item = StatusBarItemList->Items[index];
-
         button = PhAllocate(sizeof(BUTTON_CONTEXT));
         memset(button, 0, sizeof(BUTTON_CONTEXT));
 
-        button->IdCommand = item->Id;
+        button->IdCommand = PtrToUlong(StatusBarItemList->Items[index]);
 
         ListBox_AddItemData(Context->CurrentListHandle, button);
     }
@@ -290,15 +279,15 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
         context = (PCUSTOMIZE_CONTEXT)PhAllocate(sizeof(CUSTOMIZE_CONTEXT));
         memset(context, 0, sizeof(CUSTOMIZE_CONTEXT));
 
-        SetProp(hwndDlg, L"Context", (HANDLE)context);
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = (PCUSTOMIZE_CONTEXT)GetProp(hwndDlg, L"Context");
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
         if (uMsg == WM_NCDESTROY)
         {
-            RemoveProp(hwndDlg, L"Context");
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
         }
     }
@@ -326,9 +315,9 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
 
             CustomizeLoadStatusBarItems(context);
 
-            SendMessage(context->DialogHandle, WM_NEXTDLGCTL, (WPARAM)context->CurrentListHandle, TRUE);
+            PhSetDialogFocus(context->DialogHandle, context->CurrentListHandle);
         }
-        return TRUE;
+        break;
     case WM_DESTROY:
         {
             StatusBarSaveSettings();
@@ -394,6 +383,11 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
                             CustomizeAddStatusBarItem(context, index, indexto);
                         }
                         break;
+                    //case LBN_KILLFOCUS:
+                    //    {
+                    //        Button_Enable(context->AddButtonHandle, FALSE);
+                    //    }
+                    //    break;
                     }
                 }
                 break;
@@ -470,6 +464,13 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
                             CustomizeRemoveStatusBarItem(context, index);
                         }
                         break;
+                    //case LBN_KILLFOCUS:
+                    //    {
+                    //        Button_Enable(context->MoveUpButtonHandle, FALSE);
+                    //        Button_Enable(context->MoveDownButtonHandle, FALSE);
+                    //        Button_Enable(context->RemoveButtonHandle, FALSE);
+                    //    }
+                    //    break;
                     }
                 }
                 break;

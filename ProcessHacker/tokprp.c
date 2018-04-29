@@ -3,7 +3,7 @@
  *   token properties
  *
  * Copyright (C) 2010-2012 wj32
- * Copyright (C) 2017 dmex
+ * Copyright (C) 2017-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -22,6 +22,7 @@
  */
 
 #include <phapp.h>
+#include <appresolver.h>
 #include <cpysave.h>
 #include <emenu.h>
 #include <lsasup.h>
@@ -29,7 +30,31 @@
 #include <settings.h>
 #include <splitter.h>
 
+#include <windowsx.h>
 #include <uxtheme.h>
+
+typedef enum _PH_PROCESS_TOKEN_CATEGORY
+{
+    PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES,
+    PH_PROCESS_TOKEN_CATEGORY_GROUPS
+} PH_PROCESS_TOKEN_CATEGORY;
+
+typedef enum _PH_PROCESS_TOKEN_INDEX
+{
+    PH_PROCESS_TOKEN_INDEX_NAME,
+    PH_PROCESS_TOKEN_INDEX_STATUS,
+    PH_PROCESS_TOKEN_INDEX_DESCRIPTION,
+} PH_PROCESS_TOKEN_INDEX;
+
+typedef struct _PHP_TOKEN_PAGE_LISTVIEW_ITEM
+{
+    BOOLEAN IsTokenGroupEntry;
+    union
+    {
+        PSID_AND_ATTRIBUTES TokenGroup;
+        PLUID_AND_ATTRIBUTES TokenPrivilege;
+    };
+} PHP_TOKEN_PAGE_LISTVIEW_ITEM, *PPHP_TOKEN_PAGE_LISTVIEW_ITEM;
 
 typedef struct _ATTRIBUTE_NODE
 {
@@ -50,8 +75,8 @@ typedef struct _TOKEN_PAGE_CONTEXT
     PVOID Context;
     DLGPROC HookProc;
 
-    HWND GroupsListViewHandle;
-    HWND PrivilegesListViewHandle;
+    HWND ListViewHandle;
+    HIMAGELIST ListViewImageList;
 
     PTOKEN_GROUPS Groups;
     PTOKEN_GROUPS RestrictedSids;
@@ -209,15 +234,47 @@ PPH_STRING PhGetGroupAttributesString(
     _In_ BOOLEAN Restricted
     )
 {
-    PWSTR baseString;
     PPH_STRING string;
 
     if (Attributes & SE_GROUP_INTEGRITY)
     {
         if (Attributes & SE_GROUP_INTEGRITY_ENABLED)
-            string = PhCreateString(L"Integrity");
+            string = PhReferenceEmptyString();
         else
-            string = PhCreateString(L"Integrity (disabled)");
+            string = PhCreateString(L"Disabled");
+    }
+    else
+    {
+        if (Attributes & SE_GROUP_ENABLED_BY_DEFAULT)
+            string = PhCreateString(L"Default Enabled");
+        else if (Attributes & SE_GROUP_ENABLED)
+            string = PhReferenceEmptyString();
+        else
+            string = PhCreateString(L"Disabled");
+    }
+
+    if (Restricted)
+    {
+        PPH_STRING prefixString = string;
+        string = PhConcatStrings2(prefixString->Buffer, L" (restricted)");
+        PhDereferenceObject(prefixString);
+    }
+
+    return string;
+}
+
+PWSTR PhGetGroupDescriptionString(
+    _In_ ULONG Attributes
+    )
+{
+    PWSTR baseString;
+
+    if (Attributes & SE_GROUP_INTEGRITY)
+    {
+        if (Attributes & SE_GROUP_INTEGRITY_ENABLED)
+            baseString = L"Integrity";
+        else
+            baseString = NULL;
     }
     else
     {
@@ -233,36 +290,11 @@ PPH_STRING PhGetGroupAttributesString(
             baseString = L"Use for deny only";
         else
             baseString = NULL;
-
-        if (!baseString)
-        {
-            if (Attributes & SE_GROUP_ENABLED_BY_DEFAULT)
-                string = PhCreateString(L"Default enabled");
-            else if (Attributes & SE_GROUP_ENABLED)
-                string = PhReferenceEmptyString();
-            else
-                string = PhCreateString(L"Disabled");
-        }
-        else
-        {
-            if (Attributes & SE_GROUP_ENABLED_BY_DEFAULT)
-                string = PhConcatStrings2(baseString, L" (default enabled)");
-            else if (Attributes & SE_GROUP_ENABLED)
-                string = PhCreateString(baseString);
-            else
-                string = PhConcatStrings2(baseString, L" (disabled)");
-        }
     }
 
-    if (Restricted)
-    {
-        PPH_STRING prefixString = string;
-        string = PhConcatStrings2(prefixString->Buffer, L" (restricted)");
-        PhDereferenceObject(prefixString);
-    }
-
-    return string;
+    return baseString;
 }
+
 
 COLORREF PhGetGroupAttributesColor(
     _In_ ULONG Attributes
@@ -277,34 +309,11 @@ COLORREF PhGetGroupAttributesColor(
     }
 
     if (Attributes & SE_GROUP_ENABLED_BY_DEFAULT)
-        return RGB(0xe0, 0xf0, 0xe0);
+        return RGB(0xc0, 0xf0, 0xc0);
     else if (Attributes & SE_GROUP_ENABLED)
         return GetSysColor(COLOR_WINDOW);
     else
         return RGB(0xf0, 0xe0, 0xe0);
-}
-
-static COLORREF NTAPI PhpTokenGroupColorFunction(
-    _In_ INT Index,
-    _In_ PVOID Param,
-    _In_opt_ PVOID Context
-    )
-{
-    PSID_AND_ATTRIBUTES sidAndAttributes = Param;
-
-    return PhGetGroupAttributesColor(sidAndAttributes->Attributes);
-}
-
-PWSTR PhGetPrivilegeAttributesString(
-    _In_ ULONG Attributes
-    )
-{
-    if (Attributes & SE_PRIVILEGE_ENABLED_BY_DEFAULT)
-        return L"Default Enabled";
-    else if (Attributes & SE_PRIVILEGE_ENABLED)
-        return L"Enabled";
-    else
-        return L"Disabled";
 }
 
 COLORREF PhGetPrivilegeAttributesColor(
@@ -319,15 +328,30 @@ COLORREF PhGetPrivilegeAttributesColor(
         return RGB(0xf0, 0xe0, 0xe0);
 }
 
-static COLORREF NTAPI PhpTokenPrivilegeColorFunction(
+static COLORREF NTAPI PhpTokenGroupColorFunction(
     _In_ INT Index,
     _In_ PVOID Param,
     _In_opt_ PVOID Context
     )
 {
-    PLUID_AND_ATTRIBUTES luidAndAttributes = Param;
+    PPHP_TOKEN_PAGE_LISTVIEW_ITEM entry = Param;
 
-    return PhGetPrivilegeAttributesColor(luidAndAttributes->Attributes);
+    if (entry->IsTokenGroupEntry)
+        return PhGetGroupAttributesColor(entry->TokenGroup->Attributes);
+    else 
+        return PhGetPrivilegeAttributesColor(entry->TokenPrivilege->Attributes);
+}
+
+PWSTR PhGetPrivilegeAttributesString(
+    _In_ ULONG Attributes
+    )
+{
+    if (Attributes & SE_PRIVILEGE_ENABLED_BY_DEFAULT)
+        return L"Default Enabled";
+    else if (Attributes & SE_PRIVILEGE_ENABLED)
+        return L"Enabled";
+    else
+        return L"Disabled";
 }
 
 PWSTR PhGetElevationTypeString(
@@ -345,8 +369,29 @@ PWSTR PhGetElevationTypeString(
     }
 }
 
+VOID PhpTokenPageFreeListViewEntries(
+    _In_ PTOKEN_PAGE_CONTEXT TokenPageContext
+    )
+{
+    ULONG index = -1;
+
+    while ((index = PhFindListViewItemByFlags(
+        TokenPageContext->ListViewHandle,
+        index,
+        LVNI_ALL
+        )) != -1)
+    {
+        PPHP_TOKEN_PAGE_LISTVIEW_ITEM entry;
+
+        if (PhGetListViewItemParam(TokenPageContext->ListViewHandle, index, &entry))
+        {
+            PhFree(entry);
+        }
+    }
+}
+
 VOID PhpUpdateSidsFromTokenGroups(
-    _In_ HWND GroupsLv,
+    _In_ HWND ListViewHandle,
     _In_ PTOKEN_GROUPS Groups,
     _In_ BOOLEAN Restricted
     )
@@ -358,17 +403,40 @@ VOID PhpUpdateSidsFromTokenGroups(
         INT lvItemIndex;
         PPH_STRING fullName;
         PPH_STRING attributesString;
+        PWSTR descriptionString;
 
         if (!(fullName = PhGetSidFullName(Groups->Groups[i].Sid, TRUE, NULL)))
             fullName = PhSidToStringSid(Groups->Groups[i].Sid);
 
         if (fullName)
         {
-            lvItemIndex = PhAddListViewItem(GroupsLv, MAXINT, fullName->Buffer, &Groups->Groups[i]);
-            attributesString = PhGetGroupAttributesString(Groups->Groups[i].Attributes, Restricted);
-            PhSetListViewSubItem(GroupsLv, lvItemIndex, 1, attributesString->Buffer);
+            PPHP_TOKEN_PAGE_LISTVIEW_ITEM lvitem;
 
-            PhDereferenceObject(attributesString);
+            lvitem = PhAllocate(sizeof(PHP_TOKEN_PAGE_LISTVIEW_ITEM));
+            memset(lvitem, 0, sizeof(PHP_TOKEN_PAGE_LISTVIEW_ITEM));
+
+            lvitem->IsTokenGroupEntry = TRUE;
+            lvitem->TokenGroup = &Groups->Groups[i];
+
+            lvItemIndex = PhAddListViewGroupItem(
+                ListViewHandle, 
+                PH_PROCESS_TOKEN_CATEGORY_GROUPS, 
+                PH_PROCESS_TOKEN_INDEX_NAME, 
+                fullName->Buffer, 
+                lvitem
+                );
+
+            if (attributesString = PhGetGroupAttributesString(Groups->Groups[i].Attributes, Restricted))
+            {
+                PhSetListViewSubItem(ListViewHandle, lvItemIndex, PH_PROCESS_TOKEN_INDEX_STATUS, PhGetString(attributesString));
+                PhDereferenceObject(attributesString);
+            }
+
+            if (descriptionString = PhGetGroupDescriptionString(Groups->Groups[i].Attributes))
+            {
+                PhSetListViewSubItem(ListViewHandle, lvItemIndex, PH_PROCESS_TOKEN_INDEX_DESCRIPTION, descriptionString);
+            }
+      
             PhDereferenceObject(fullName);
         }
     }
@@ -377,7 +445,7 @@ VOID PhpUpdateSidsFromTokenGroups(
 BOOLEAN PhpUpdateTokenGroups(
     _In_ HWND hwndDlg,
     _In_ PTOKEN_PAGE_CONTEXT TokenPageContext,
-    _In_ HWND GroupsLv,
+    _In_ HWND ListViewHandle,
     _In_ HANDLE TokenHandle
     )
 {
@@ -387,20 +455,12 @@ BOOLEAN PhpUpdateTokenGroups(
     if (!NT_SUCCESS(PhGetTokenGroups(TokenHandle, &groups)))
         return FALSE;
 
-    ExtendedListView_SetRedraw(GroupsLv, FALSE);
-
-    ListView_DeleteAllItems(GroupsLv);
-
-    PhpUpdateSidsFromTokenGroups(GroupsLv, groups, FALSE);
+    PhpUpdateSidsFromTokenGroups(ListViewHandle, groups, FALSE);
 
     if (NT_SUCCESS(PhGetTokenRestrictedSids(TokenHandle, &restrictedSIDs)))
     {
-        PhpUpdateSidsFromTokenGroups(GroupsLv, restrictedSIDs, TRUE);
+        PhpUpdateSidsFromTokenGroups(ListViewHandle, restrictedSIDs, TRUE);
     }
-
-    ExtendedListView_SortItems(GroupsLv);
-
-    ExtendedListView_SetRedraw(GroupsLv, TRUE);
 
     if (TokenPageContext->RestrictedSids)
         PhFree(TokenPageContext->RestrictedSids);
@@ -415,6 +475,66 @@ BOOLEAN PhpUpdateTokenGroups(
     return TRUE;
 }
 
+BOOLEAN PhpUpdateTokenPrivileges(
+    _In_ HWND hwndDlg,
+    _In_ PTOKEN_PAGE_CONTEXT TokenPageContext,
+    _In_ HWND ListViewHandle,
+    _In_ HANDLE TokenHandle
+    )
+{
+    PTOKEN_PRIVILEGES privileges;
+    ULONG i;
+
+    if (!NT_SUCCESS(PhGetTokenPrivileges(TokenHandle, &privileges)))
+        return FALSE;
+
+    for (i = 0; i < privileges->PrivilegeCount; i++)
+    {
+        INT lvItemIndex;
+        PPH_STRING privilegeName;
+        PPH_STRING privilegeDisplayName;
+
+        if (PhLookupPrivilegeName(
+            &privileges->Privileges[i].Luid,
+            &privilegeName
+            ))
+        {
+            PPHP_TOKEN_PAGE_LISTVIEW_ITEM lvitem;
+
+            lvitem = PhAllocate(sizeof(PHP_TOKEN_PAGE_LISTVIEW_ITEM));
+            memset(lvitem, 0, sizeof(PHP_TOKEN_PAGE_LISTVIEW_ITEM));
+
+            lvitem->TokenPrivilege = &privileges->Privileges[i];
+
+            privilegeDisplayName = NULL;
+            PhLookupPrivilegeDisplayName(&privilegeName->sr, &privilegeDisplayName);
+
+            // Name
+            lvItemIndex = PhAddListViewGroupItem(
+                ListViewHandle,
+                PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES,
+                PH_PROCESS_TOKEN_INDEX_NAME,
+                privilegeName->Buffer,
+                lvitem
+                );
+            // Status
+            PhSetListViewSubItem(ListViewHandle, lvItemIndex, PH_PROCESS_TOKEN_INDEX_STATUS, PhGetPrivilegeAttributesString(privileges->Privileges[i].Attributes));
+            // Description
+            PhSetListViewSubItem(ListViewHandle, lvItemIndex, PH_PROCESS_TOKEN_INDEX_DESCRIPTION, PhGetString(privilegeDisplayName));
+
+            if (privilegeDisplayName) PhDereferenceObject(privilegeDisplayName);
+            PhDereferenceObject(privilegeName);
+        }
+    }
+
+    if (TokenPageContext->Privileges)
+        PhFree(TokenPageContext->Privileges);
+
+    TokenPageContext->Privileges = privileges;
+
+    return TRUE;
+}
+
 FORCEINLINE PTOKEN_PAGE_CONTEXT PhpTokenPageHeader(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -422,8 +542,7 @@ FORCEINLINE PTOKEN_PAGE_CONTEXT PhpTokenPageHeader(
     _In_ LPARAM lParam
     )
 {
-    return (PTOKEN_PAGE_CONTEXT)PhpGenericPropertyPageHeader(
-        hwndDlg, uMsg, wParam, lParam, L"TokenPageContext");
+    return PhpGenericPropertyPageHeader(hwndDlg, uMsg, wParam, lParam, 3);
 }
 
 INT_PTR CALLBACK PhpTokenPageProc(
@@ -450,34 +569,28 @@ INT_PTR CALLBACK PhpTokenPageProc(
     {
     case WM_INITDIALOG:
         {
-            HWND groupsLv;
-            HWND privilegesLv;
             HANDLE tokenHandle;
 
-            tokenPageContext->GroupsListViewHandle = groupsLv = GetDlgItem(hwndDlg, IDC_GROUPS);
-            tokenPageContext->PrivilegesListViewHandle = privilegesLv = GetDlgItem(hwndDlg, IDC_PRIVILEGES);
-            PhSetListViewStyle(groupsLv, FALSE, TRUE);
-            PhSetListViewStyle(privilegesLv, FALSE, TRUE);
-            PhSetControlTheme(groupsLv, L"explorer");
-            PhSetControlTheme(privilegesLv, L"explorer");
+            tokenPageContext->ListViewHandle = GetDlgItem(hwndDlg, IDC_GROUPS);
+            tokenPageContext->ListViewImageList = ImageList_Create(2, 20, ILC_COLOR, 1, 1);
 
-            PhAddListViewColumn(groupsLv, 0, 0, 0, LVCFMT_LEFT, 160, L"Name");
-            PhAddListViewColumn(groupsLv, 1, 1, 1, LVCFMT_LEFT, 200, L"Flags");
+            PhSetListViewStyle(tokenPageContext->ListViewHandle, FALSE, TRUE);
+            PhSetControlTheme(tokenPageContext->ListViewHandle, L"explorer");
+            PhAddListViewColumn(tokenPageContext->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 100, L"Name");
+            PhAddListViewColumn(tokenPageContext->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 100, L"Status");
+            PhAddListViewColumn(tokenPageContext->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 170, L"Description");
 
-            PhAddListViewColumn(privilegesLv, 0, 0, 0, LVCFMT_LEFT, 100, L"Name");
-            PhAddListViewColumn(privilegesLv, 1, 1, 1, LVCFMT_LEFT, 100, L"Status");
-            PhAddListViewColumn(privilegesLv, 2, 2, 2, LVCFMT_LEFT, 170, L"Description");
+            PhSetExtendedListView(tokenPageContext->ListViewHandle);
+            ExtendedListView_SetItemColorFunction(tokenPageContext->ListViewHandle, PhpTokenGroupColorFunction);
+            PhLoadListViewColumnsFromSetting(L"TokenGroupsListViewColumns", tokenPageContext->ListViewHandle); 
 
-            PhSetExtendedListView(groupsLv);
-            ExtendedListView_SetItemColorFunction(groupsLv, PhpTokenGroupColorFunction);
-            PhSetExtendedListView(privilegesLv);
-            ExtendedListView_SetItemColorFunction(privilegesLv, PhpTokenPrivilegeColorFunction);
-            PhLoadListViewColumnsFromSetting(L"TokenGroupsListViewColumns", groupsLv);
-            PhLoadListViewColumnsFromSetting(L"TokenPrivilegesListViewColumns", privilegesLv);
+            ListView_EnableGroupView(tokenPageContext->ListViewHandle, TRUE);
+            PhAddListViewGroup(tokenPageContext->ListViewHandle, PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES, L"Privileges");
+            PhAddListViewGroup(tokenPageContext->ListViewHandle, PH_PROCESS_TOKEN_CATEGORY_GROUPS, L"Groups");
+            ListView_SetImageList(tokenPageContext->ListViewHandle, tokenPageContext->ListViewImageList, LVSIL_SMALL);
 
-            SetDlgItemText(hwndDlg, IDC_USER, L"Unknown");
-            SetDlgItemText(hwndDlg, IDC_USERSID, L"Unknown");
-            SetDlgItemText(hwndDlg, IDC_APPCONTAINERSID, L"Unknown");
+            PhSetDialogItemText(hwndDlg, IDC_USER, L"Unknown");
+            PhSetDialogItemText(hwndDlg, IDC_USERSID, L"Unknown");
 
             if (NT_SUCCESS(tokenPageContext->OpenObject(
                 &tokenHandle,
@@ -493,20 +606,20 @@ INT_PTR CALLBACK PhpTokenPageProc(
                 BOOLEAN isVirtualizationAllowed;
                 BOOLEAN isVirtualizationEnabled;
                 PTOKEN_APPCONTAINER_INFORMATION appContainerInfo;
+                PPH_STRING appContainerName;
                 PPH_STRING appContainerSid;
-                ULONG i;
 
                 if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
                 {
                     if (fullUserName = PhGetSidFullName(tokenUser->User.Sid, TRUE, NULL))
                     {
-                        SetDlgItemText(hwndDlg, IDC_USER, fullUserName->Buffer);
+                        PhSetDialogItemText(hwndDlg, IDC_USER, fullUserName->Buffer);
                         PhDereferenceObject(fullUserName);
                     }
 
                     if (stringUserSid = PhSidToStringSid(tokenUser->User.Sid))
                     {
-                        SetDlgItemText(hwndDlg, IDC_USERSID, stringUserSid->Buffer);
+                        PhSetDialogItemText(hwndDlg, IDC_USERSID, stringUserSid->Buffer);
                         PhDereferenceObject(stringUserSid);
                     }
 
@@ -514,10 +627,10 @@ INT_PTR CALLBACK PhpTokenPageProc(
                 }
 
                 if (NT_SUCCESS(PhGetTokenSessionId(tokenHandle, &sessionId)))
-                    SetDlgItemInt(hwndDlg, IDC_SESSIONID, sessionId, FALSE);
+                    PhSetDialogItemValue(hwndDlg, IDC_SESSIONID, sessionId, FALSE);
 
                 if (NT_SUCCESS(PhGetTokenElevationType(tokenHandle, &elevationType)))
-                    SetDlgItemText(hwndDlg, IDC_ELEVATED, PhGetElevationTypeString(elevationType));
+                    PhSetDialogItemText(hwndDlg, IDC_ELEVATED, PhGetElevationTypeString(elevationType));
 
                 if (NT_SUCCESS(PhGetTokenIsVirtualizationAllowed(tokenHandle, &isVirtualizationAllowed)))
                 {
@@ -525,7 +638,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                     {
                         if (NT_SUCCESS(PhGetTokenIsVirtualizationEnabled(tokenHandle, &isVirtualizationEnabled)))
                         {
-                            SetDlgItemText(
+                            PhSetDialogItemText(
                                 hwndDlg,
                                 IDC_VIRTUALIZED,
                                 isVirtualizationEnabled ? L"Yes" : L"No"
@@ -534,94 +647,64 @@ INT_PTR CALLBACK PhpTokenPageProc(
                     }
                     else
                     {
-                        SetDlgItemText(hwndDlg, IDC_VIRTUALIZED, L"Not allowed");
+                        PhSetDialogItemText(hwndDlg, IDC_VIRTUALIZED, L"Not allowed");
                     }
                 }
 
                 if (WINDOWS_HAS_IMMERSIVE)
                 {
+                    appContainerName = NULL;
                     appContainerSid = NULL;
 
                     if (NT_SUCCESS(PhQueryTokenVariableSize(tokenHandle, TokenAppContainerSid, &appContainerInfo)))
                     {
                         if (appContainerInfo->TokenAppContainer)
-                            appContainerSid = PhSidToStringSid(appContainerInfo->TokenAppContainer);
+                        {
+                            appContainerName = PhGetAppContainerName(appContainerInfo->TokenAppContainer, TRUE);
+                            appContainerSid = PhSidToStringSid(appContainerInfo->TokenAppContainer);    
+                        }
 
                         PhFree(appContainerInfo);
                     }
 
+                    if (appContainerName)
+                    {
+                        PPH_STRING packageFamilyName;
+
+                        packageFamilyName = PhConcatStrings2(appContainerName->Buffer, L" (APP_CONTAINER)");
+                        PhSetDialogItemText(hwndDlg, IDC_USER, packageFamilyName->Buffer);
+
+                        PhDereferenceObject(packageFamilyName);
+                        PhDereferenceObject(appContainerName);
+                    }
+
                     if (appContainerSid)
                     {
-                        SetDlgItemText(hwndDlg, IDC_APPCONTAINERSID, appContainerSid->Buffer);
+                        PhSetDialogItemText(hwndDlg, IDC_USERSID, appContainerSid->Buffer);
                         PhDereferenceObject(appContainerSid);
                     }
-                    else
-                    {
-                        SetDlgItemText(hwndDlg, IDC_APPCONTAINERSID, L"N/A");
-                    }
-                }
-                else
-                {
-                    SetDlgItemText(hwndDlg, IDC_APPCONTAINERSID, L"N/A");
                 }
 
-                // Groups
-                PhpUpdateTokenGroups(hwndDlg, tokenPageContext, groupsLv, tokenHandle);
-
-                // Privileges
-                if (NT_SUCCESS(PhGetTokenPrivileges(tokenHandle, &tokenPageContext->Privileges)))
-                {
-                    for (i = 0; i < tokenPageContext->Privileges->PrivilegeCount; i++)
-                    {
-                        INT lvItemIndex;
-                        PPH_STRING privilegeName;
-                        PPH_STRING privilegeDisplayName;
-
-                        if (PhLookupPrivilegeName(
-                            &tokenPageContext->Privileges->Privileges[i].Luid,
-                            &privilegeName
-                            ))
-                        {
-                            privilegeDisplayName = NULL;
-                            PhLookupPrivilegeDisplayName(&privilegeName->sr, &privilegeDisplayName);
-
-                            // Name
-                            lvItemIndex = PhAddListViewItem(privilegesLv, MAXINT, privilegeName->Buffer,
-                                &tokenPageContext->Privileges->Privileges[i]);
-                            // Status
-                            PhSetListViewSubItem(privilegesLv, lvItemIndex, 1,
-                                PhGetPrivilegeAttributesString(
-                                tokenPageContext->Privileges->Privileges[i].Attributes));
-                            // Description
-                            PhSetListViewSubItem(privilegesLv, lvItemIndex, 2,
-                                PhGetString(privilegeDisplayName));
-
-                            if (privilegeDisplayName) PhDereferenceObject(privilegeDisplayName);
-                            PhDereferenceObject(privilegeName);
-                        }
-                    }
-
-                    ExtendedListView_SortItems(privilegesLv);
-                }
+                ExtendedListView_SetRedraw(tokenPageContext->ListViewHandle, FALSE);
+                PhpTokenPageFreeListViewEntries(tokenPageContext);
+                ListView_DeleteAllItems(tokenPageContext->ListViewHandle);
+                PhpUpdateTokenGroups(hwndDlg, tokenPageContext, tokenPageContext->ListViewHandle, tokenHandle);
+                PhpUpdateTokenPrivileges(hwndDlg, tokenPageContext, tokenPageContext->ListViewHandle, tokenHandle);
+                ExtendedListView_SortItems(tokenPageContext->ListViewHandle);
+                ExtendedListView_SetRedraw(tokenPageContext->ListViewHandle, TRUE);
 
                 NtClose(tokenHandle);
-            }
-
-            if (PhGetIntegerSetting(L"TokenSplitterEnable"))
-            {
-                PhInitializeHSplitter(
-                    L"TokenSplitterPosition",
-                    hwndDlg,
-                    tokenPageContext->GroupsListViewHandle,
-                    tokenPageContext->PrivilegesListViewHandle
-                    );
             }
         }
         break;
     case WM_DESTROY:
         {
-            PhSaveListViewColumnsToSetting(L"TokenGroupsListViewColumns", tokenPageContext->GroupsListViewHandle);
-            PhSaveListViewColumnsToSetting(L"TokenPrivilegesListViewColumns", tokenPageContext->PrivilegesListViewHandle);
+            if (tokenPageContext->ListViewImageList)
+                ImageList_Destroy(tokenPageContext->ListViewImageList);
+
+            PhpTokenPageFreeListViewEntries(tokenPageContext);
+
+            PhSaveListViewColumnsToSetting(L"TokenGroupsListViewColumns", tokenPageContext->ListViewHandle);
 
             if (tokenPageContext->Groups) PhFree(tokenPageContext->Groups);
             if (tokenPageContext->RestrictedSids) PhFree(tokenPageContext->RestrictedSids);
@@ -637,10 +720,32 @@ INT_PTR CALLBACK PhpTokenPageProc(
             case ID_PRIVILEGE_REMOVE:
                 {
                     NTSTATUS status;
-                    PLUID_AND_ATTRIBUTES *privileges;
-                    ULONG numberOfPrivileges;
+                    BOOLEAN listViewGroupItemsValid = FALSE;
+                    PPHP_TOKEN_PAGE_LISTVIEW_ITEM *listViewItems;
+                    ULONG numberOfItems;
                     HANDLE tokenHandle;
                     ULONG i;
+
+                    PhGetSelectedListViewItemParams(
+                        tokenPageContext->ListViewHandle,
+                        &listViewItems,
+                        &numberOfItems
+                        );
+
+                    for (i = 0; i < numberOfItems; i++)
+                    {
+                        if (listViewItems[i]->IsTokenGroupEntry)
+                        {
+                            listViewGroupItemsValid = TRUE;
+                            break;
+                        }
+                    }
+
+                    if (listViewGroupItemsValid)
+                    {
+                        PhFree(listViewItems);
+                        break;
+                    }
 
                     if (LOWORD(wParam) == ID_PRIVILEGE_REMOVE)
                     {
@@ -655,12 +760,6 @@ INT_PTR CALLBACK PhpTokenPageProc(
                             break;
                     }
 
-                    PhGetSelectedListViewItemParams(
-                        tokenPageContext->PrivilegesListViewHandle,
-                        &privileges,
-                        &numberOfPrivileges
-                        );
-
                     status = tokenPageContext->OpenObject(
                         &tokenHandle,
                         TOKEN_ADJUST_PRIVILEGES,
@@ -669,14 +768,14 @@ INT_PTR CALLBACK PhpTokenPageProc(
 
                     if (NT_SUCCESS(status))
                     {
-                        ExtendedListView_SetRedraw(tokenPageContext->PrivilegesListViewHandle, FALSE);
+                        ExtendedListView_SetRedraw(tokenPageContext->ListViewHandle, FALSE);
 
-                        for (i = 0; i < numberOfPrivileges; i++)
+                        for (i = 0; i < numberOfItems; i++)
                         {
                             PPH_STRING privilegeName = NULL;
                             ULONG newAttributes;
 
-                            PhLookupPrivilegeName(&privileges[i]->Luid, &privilegeName);
+                            PhLookupPrivilegeName(&listViewItems[i]->TokenPrivilege->Luid, &privilegeName);
                             PH_AUTO(privilegeName);
 
                             switch (LOWORD(wParam))
@@ -696,7 +795,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                             // modified except to remove them.
 
                             if (
-                                privileges[i]->Attributes & SE_PRIVILEGE_ENABLED_BY_DEFAULT &&
+                                listViewItems[i]->TokenPrivilege->Attributes & SE_PRIVILEGE_ENABLED_BY_DEFAULT &&
                                 LOWORD(wParam) != ID_PRIVILEGE_REMOVE
                                 )
                             {
@@ -717,32 +816,31 @@ INT_PTR CALLBACK PhpTokenPageProc(
                             if (PhSetTokenPrivilege(
                                 tokenHandle,
                                 NULL,
-                                &privileges[i]->Luid,
+                                &listViewItems[i]->TokenPrivilege->Luid,
                                 newAttributes
                                 ))
                             {
                                 INT lvItemIndex = PhFindListViewItemByParam(
-                                    tokenPageContext->PrivilegesListViewHandle,
+                                    tokenPageContext->ListViewHandle,
                                     -1,
-                                    privileges[i]
+                                    listViewItems[i]
                                     );
 
                                 if (LOWORD(wParam) != ID_PRIVILEGE_REMOVE)
                                 {
-                                    // Refresh the status text (and background
-                                    // color).
-                                    privileges[i]->Attributes = newAttributes;
+                                    // Refresh the status text (and background color).
+                                    listViewItems[i]->TokenPrivilege->Attributes = newAttributes;
                                     PhSetListViewSubItem(
-                                        tokenPageContext->PrivilegesListViewHandle,
+                                        tokenPageContext->ListViewHandle,
                                         lvItemIndex,
-                                        1,
+                                        PH_PROCESS_TOKEN_INDEX_STATUS,
                                         PhGetPrivilegeAttributesString(newAttributes)
                                         );
                                 }
                                 else
                                 {
                                     ListView_DeleteItem(
-                                        tokenPageContext->PrivilegesListViewHandle,
+                                        tokenPageContext->ListViewHandle,
                                         lvItemIndex
                                         );
                                 }
@@ -774,7 +872,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                             }
                         }
 
-                        ExtendedListView_SetRedraw(tokenPageContext->PrivilegesListViewHandle, TRUE);
+                        ExtendedListView_SetRedraw(tokenPageContext->ListViewHandle, TRUE);
 
                         NtClose(tokenHandle);
                     }
@@ -783,14 +881,39 @@ INT_PTR CALLBACK PhpTokenPageProc(
                         PhShowStatus(hwndDlg, L"Unable to open the token", status, 0);
                     }
 
-                    PhFree(privileges);
+                    PhFree(listViewItems);
 
-                    ExtendedListView_SortItems(tokenPageContext->PrivilegesListViewHandle);
+                    ExtendedListView_SortItems(tokenPageContext->ListViewHandle);
                 }
                 break;
             case ID_PRIVILEGE_COPY:
                 {
-                    PhCopyListView(tokenPageContext->PrivilegesListViewHandle);
+                    PhCopyListView(tokenPageContext->ListViewHandle);
+                }
+                break;
+            case IDC_PERMISSIONS:
+                {
+                    PH_STD_OBJECT_SECURITY stdObjectSecurity;
+                    PPH_ACCESS_ENTRY accessEntries;
+                    ULONG numberOfAccessEntries;
+
+                    stdObjectSecurity.OpenObject = tokenPageContext->OpenObject;
+                    stdObjectSecurity.ObjectType = L"Token";
+                    stdObjectSecurity.Context = tokenPageContext->Context;
+
+                    if (PhGetAccessEntries(L"Token", &accessEntries, &numberOfAccessEntries))
+                    {
+                        PhEditSecurity(
+                            hwndDlg,
+                            L"Token",
+                            PhStdGetObjectSecurity,
+                            PhStdSetObjectSecurity,
+                            &stdObjectSecurity,
+                            accessEntries,
+                            numberOfAccessEntries
+                            );
+                        PhFree(accessEntries);
+                    }
                 }
                 break;
             case IDC_INTEGRITY:
@@ -799,55 +922,74 @@ INT_PTR CALLBACK PhpTokenPageProc(
                     RECT rect;
                     PPH_EMENU menu;
                     HANDLE tokenHandle;
-                    MANDATORY_LEVEL integrityLevel;
+                    MANDATORY_LEVEL_RID integrityLevelRID;
                     PPH_EMENU_ITEM selectedItem;
 
                     GetWindowRect(GetDlgItem(hwndDlg, IDC_INTEGRITY), &rect);
 
                     menu = PhCreateEMenu();
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatorySecureProcessRID, L"Protected", NULL, NULL), -1);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatorySystemRID, L"System", NULL, NULL), -1);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatoryHighRID, L"High", NULL, NULL), -1);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatoryMediumRID, L"Medium", NULL, NULL), -1);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatoryLowRID, L"Low", NULL, NULL), -1);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatoryUntrustedRID, L"Untrusted", NULL, NULL), -1);
 
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatoryLevelSecureProcess, L"Protected", NULL, NULL), -1);
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatoryLevelSystem, L"System", NULL, NULL), -1);
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatoryLevelHigh, L"High", NULL, NULL), -1);
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatoryLevelMedium, L"Medium", NULL, NULL), -1);
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatoryLevelLow, L"Low", NULL, NULL), -1);
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatoryLevelUntrusted, L"Untrusted", NULL, NULL), -1);
-
-                    integrityLevel = -1;
+                    integrityLevelRID = -1;
 
                     // Put a radio check on the menu item that corresponds with the current integrity level.
                     // Also disable menu items which correspond to higher integrity levels since
                     // NtSetInformationToken doesn't allow integrity levels to be raised.
-                    if (NT_SUCCESS(tokenPageContext->OpenObject(
+                    if (NT_SUCCESS(status = tokenPageContext->OpenObject(
                         &tokenHandle,
                         TOKEN_QUERY,
                         tokenPageContext->Context
                         )))
                     {
-                        if (NT_SUCCESS(PhGetTokenIntegrityLevel(
+                        if (NT_SUCCESS(status = PhGetTokenIntegrityLevelRID(
                             tokenHandle,
-                            &integrityLevel,
+                            &integrityLevelRID,
                             NULL
                             )))
                         {
-                            ULONG i;
+                            ULONG customLevelPosition = 0; // Processing atypical integrity levels
 
-                            for (i = 0; i < menu->Items->Count; i++)
+                            for (ULONG i = 0; i < menu->Items->Count; i++)
                             {
                                 PPH_EMENU_ITEM menuItem = menu->Items->Items[i];
 
-                                if (menuItem->Id == integrityLevel)
+                                if (menuItem->Id == (ULONG)integrityLevelRID)
                                 {
                                     menuItem->Flags |= PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK;
+                                    customLevelPosition = 0; // The integrity level is a well-known one. No need to add a new menu item.
                                 }
-                                else if (menuItem->Id > (ULONG)integrityLevel)
+                                else if (menuItem->Id > (ULONG)integrityLevelRID)
                                 {
                                     menuItem->Flags |= PH_EMENU_DISABLED;
+                                    customLevelPosition = i + 1;
                                 }
+                            }
+
+                            if (customLevelPosition)
+                            {
+                                PPH_EMENU_ITEM unknownIntegrityItem;
+                                
+                                unknownIntegrityItem = PhCreateEMenuItem(0, (ULONG)integrityLevelRID, L"Intermediate level", NULL, NULL);
+                                unknownIntegrityItem->Flags |= PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK;
+                                PhInsertEMenuItem(menu, unknownIntegrityItem, customLevelPosition);
                             }
                         }
 
                         NtClose(tokenHandle);
+                    }
+
+                    if (!NT_SUCCESS(status))
+                    {
+                        for (ULONG i = 0; i < menu->Items->Count; i++)
+                        {
+                            PPH_EMENU_ITEM menuItem = menu->Items->Items[i];
+                            menuItem->Flags |= PH_EMENU_DISABLED;
+                        }
                     }
 
                     selectedItem = PhShowEMenu(
@@ -859,7 +1001,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                         rect.bottom
                         );
 
-                    if (selectedItem && selectedItem->Id != integrityLevel)
+                    if (selectedItem && selectedItem->Id != integrityLevelRID)
                     {
                         if (PhShowConfirmMessage(
                             hwndDlg,
@@ -883,7 +1025,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
 
                                 newSid = (PSID)newSidBuffer;
                                 RtlInitializeSid(newSid, &mandatoryLabelAuthority, 1);
-                                *RtlSubAuthoritySid(newSid, 0) = MANDATORY_LEVEL_TO_MANDATORY_RID(selectedItem->Id);
+                                *RtlSubAuthoritySid(newSid, 0) = selectedItem->Id;
                                 mandatoryLabel.Label.Sid = newSid;
                                 mandatoryLabel.Label.Attributes = SE_GROUP_INTEGRITY;
 
@@ -895,7 +1037,15 @@ INT_PTR CALLBACK PhpTokenPageProc(
                                     );
 
                                 if (NT_SUCCESS(status))
-                                    PhpUpdateTokenGroups(hwndDlg, tokenPageContext, GetDlgItem(hwndDlg, IDC_GROUPS), tokenHandle);
+                                {
+                                    ExtendedListView_SetRedraw(tokenPageContext->ListViewHandle, FALSE);
+                                    PhpTokenPageFreeListViewEntries(tokenPageContext);
+                                    ListView_DeleteAllItems(tokenPageContext->ListViewHandle);
+                                    PhpUpdateTokenGroups(hwndDlg, tokenPageContext, tokenPageContext->ListViewHandle, tokenHandle);
+                                    PhpUpdateTokenPrivileges(hwndDlg, tokenPageContext, tokenPageContext->ListViewHandle, tokenHandle);
+                                    ExtendedListView_SortItems(tokenPageContext->ListViewHandle);
+                                    ExtendedListView_SetRedraw(tokenPageContext->ListViewHandle, TRUE);
+                                }
 
                                 NtClose(tokenHandle);
                             }
@@ -930,39 +1080,71 @@ INT_PTR CALLBACK PhpTokenPageProc(
                 break;
             }
 
-            PhHandleListViewNotifyBehaviors(lParam, tokenPageContext->GroupsListViewHandle, PH_LIST_VIEW_DEFAULT_1_BEHAVIORS);
-            PhHandleListViewNotifyBehaviors(lParam, tokenPageContext->PrivilegesListViewHandle, PH_LIST_VIEW_DEFAULT_1_BEHAVIORS);
+            PhHandleListViewNotifyBehaviors(lParam, tokenPageContext->ListViewHandle, PH_LIST_VIEW_DEFAULT_1_BEHAVIORS);
         }
         break;
     case WM_CONTEXTMENU:
         {
-            if ((HWND)wParam == tokenPageContext->PrivilegesListViewHandle)
+            if ((HWND)wParam == tokenPageContext->ListViewHandle)
             {
                 POINT point;
 
-                point.x = (SHORT)LOWORD(lParam);
-                point.y = (SHORT)HIWORD(lParam);
+                point.x = GET_X_LPARAM(lParam);
+                point.y = GET_Y_LPARAM(lParam);
 
                 if (point.x == -1 && point.y == -1)
                     PhGetListViewContextMenuPoint((HWND)wParam, &point);
 
-                if (ListView_GetSelectedCount(tokenPageContext->PrivilegesListViewHandle) != 0)
+                if (ListView_GetSelectedCount(tokenPageContext->ListViewHandle) != 0)
                 {
                     PPH_EMENU menu;
+                    BOOLEAN listViewGroupItemsValid = TRUE;
+                    PPHP_TOKEN_PAGE_LISTVIEW_ITEM *listviewItems;
+                    ULONG numberOfItems;
+                    ULONG i;
+
+                    PhGetSelectedListViewItemParams(
+                        tokenPageContext->ListViewHandle,
+                        &listviewItems,
+                        &numberOfItems
+                        );
+
+                    for (i = 0; i < numberOfItems; i++)
+                    {
+                        if (listviewItems[i]->IsTokenGroupEntry)
+                        {
+                            listViewGroupItemsValid = FALSE;
+                            break;
+                        }
+                    }
 
                     menu = PhCreateEMenu();
-                    PhLoadResourceEMenuItem(menu, PhInstanceHandle, MAKEINTRESOURCE(IDR_PRIVILEGE), 0);
-                    PhShowEMenu(menu, hwndDlg, PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT,
-                        PH_ALIGN_LEFT | PH_ALIGN_TOP, point.x, point.y);
+                    if (listViewGroupItemsValid)
+                    {
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PRIVILEGE_ENABLE, L"&Enable", NULL, NULL), -1);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PRIVILEGE_DISABLE, L"&Disable", NULL, NULL), -1);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PRIVILEGE_REMOVE, L"&Remove", NULL, NULL), -1);
+                        PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), -1);
+                    }
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PRIVILEGE_COPY, L"&Copy", NULL, NULL), -1);
+                    PhShowEMenu(
+                        menu, 
+                        hwndDlg, 
+                        PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT,
+                        PH_ALIGN_LEFT | PH_ALIGN_TOP, 
+                        point.x, 
+                        point.y
+                        );
                     PhDestroyEMenu(menu);
+
+                    PhFree(listviewItems);
                 }
             }
         }
         break;
     }
 
-    REFLECT_MESSAGE_DLG(hwndDlg, tokenPageContext->GroupsListViewHandle, uMsg, wParam, lParam);
-    REFLECT_MESSAGE_DLG(hwndDlg, tokenPageContext->PrivilegesListViewHandle, uMsg, wParam, lParam);
+    REFLECT_MESSAGE_DLG(hwndDlg, tokenPageContext->ListViewHandle, uMsg, wParam, lParam);
 
     return FALSE;
 }
@@ -973,12 +1155,9 @@ VOID PhpShowTokenAdvancedProperties(
     )
 {
     PROPSHEETHEADER propSheetHeader = { sizeof(propSheetHeader) };
-    HPROPSHEETPAGE pages[6];
+    HPROPSHEETPAGE pages[5];
     PROPSHEETPAGE page;
     ULONG numberOfPages;
-    PH_STD_OBJECT_SECURITY stdObjectSecurity;
-    PPH_ACCESS_ENTRY accessEntries;
-    ULONG numberOfAccessEntries;
 
     propSheetHeader.dwFlags =
         PSH_NOAPPLYNOW |
@@ -1047,25 +1226,6 @@ VOID PhpShowTokenAdvancedProperties(
         page.pfnDlgProc = PhpTokenAttributesPageProc;
         page.lParam = (LPARAM)Context;
         pages[numberOfPages++] = CreatePropertySheetPage(&page);
-    }
-
-    // Security
-
-    stdObjectSecurity.OpenObject = Context->OpenObject;
-    stdObjectSecurity.ObjectType = L"Token";
-    stdObjectSecurity.Context = Context->Context;
-
-    if (PhGetAccessEntries(L"Token", &accessEntries, &numberOfAccessEntries))
-    {
-        pages[numberOfPages++] = PhCreateSecurityPage(
-            L"Token",
-            PhStdGetObjectSecurity,
-            PhStdSetObjectSecurity,
-            &stdObjectSecurity,
-            accessEntries,
-            numberOfAccessEntries
-            );
-        PhFree(accessEntries);
     }
 
     propSheetHeader.nPages = numberOfPages;
@@ -1198,20 +1358,20 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
                 NtClose(tokenHandle);
             }
 
-            SetDlgItemText(hwndDlg, IDC_USER, PhGetStringOrDefault(tokenUserName, L"Unknown"));
-            SetDlgItemText(hwndDlg, IDC_USERSID, PhGetStringOrDefault(tokenUserSid, L"Unknown"));
-            SetDlgItemText(hwndDlg, IDC_OWNER, PhGetStringOrDefault(tokenOwnerName, L"Unknown"));
-            SetDlgItemText(hwndDlg, IDC_PRIMARYGROUP, PhGetStringOrDefault(tokenPrimaryGroupName, L"Unknown"));
+            PhSetDialogItemText(hwndDlg, IDC_USER, PhGetStringOrDefault(tokenUserName, L"Unknown"));
+            PhSetDialogItemText(hwndDlg, IDC_USERSID, PhGetStringOrDefault(tokenUserSid, L"Unknown"));
+            PhSetDialogItemText(hwndDlg, IDC_OWNER, PhGetStringOrDefault(tokenOwnerName, L"Unknown"));
+            PhSetDialogItemText(hwndDlg, IDC_PRIMARYGROUP, PhGetStringOrDefault(tokenPrimaryGroupName, L"Unknown"));
 
             if (tokenSessionId != -1)
-                SetDlgItemInt(hwndDlg, IDC_SESSIONID, tokenSessionId, FALSE);
+                PhSetDialogItemValue(hwndDlg, IDC_SESSIONID, tokenSessionId, FALSE);
             else
-                SetDlgItemText(hwndDlg, IDC_SESSIONID, L"Unknown");
+                PhSetDialogItemText(hwndDlg, IDC_SESSIONID, L"Unknown");
 
-            SetDlgItemText(hwndDlg, IDC_ELEVATED, tokenElevated);
-            SetDlgItemText(hwndDlg, IDC_VIRTUALIZATION, tokenVirtualization);
-            SetDlgItemText(hwndDlg, IDC_SOURCENAME, tokenSourceName);
-            SetDlgItemText(hwndDlg, IDC_SOURCELUID, tokenSourceLuid);
+            PhSetDialogItemText(hwndDlg, IDC_ELEVATED, tokenElevated);
+            PhSetDialogItemText(hwndDlg, IDC_VIRTUALIZATION, tokenVirtualization);
+            PhSetDialogItemText(hwndDlg, IDC_SOURCENAME, tokenSourceName);
+            PhSetDialogItemText(hwndDlg, IDC_SOURCELUID, tokenSourceLuid);
 
             if (!hasLinkedToken)
                 ShowWindow(GetDlgItem(hwndDlg, IDC_LINKEDTOKEN), SW_HIDE);
@@ -1345,12 +1505,12 @@ INT_PTR CALLBACK PhpTokenAdvancedPageProc(
                 NtClose(tokenHandle);
             }
 
-            SetDlgItemText(hwndDlg, IDC_TYPE, tokenType);
-            SetDlgItemText(hwndDlg, IDC_IMPERSONATIONLEVEL, tokenImpersonationLevel);
-            SetDlgItemText(hwndDlg, IDC_TOKENLUID, tokenLuid);
-            SetDlgItemText(hwndDlg, IDC_AUTHENTICATIONLUID, authenticationLuid);
-            SetDlgItemText(hwndDlg, IDC_MEMORYUSED, PhGetStringOrDefault(memoryUsed, L"Unknown"));
-            SetDlgItemText(hwndDlg, IDC_MEMORYAVAILABLE, PhGetStringOrDefault(memoryAvailable, L"Unknown"));
+            PhSetDialogItemText(hwndDlg, IDC_TYPE, tokenType);
+            PhSetDialogItemText(hwndDlg, IDC_IMPERSONATIONLEVEL, tokenImpersonationLevel);
+            PhSetDialogItemText(hwndDlg, IDC_TOKENLUID, tokenLuid);
+            PhSetDialogItemText(hwndDlg, IDC_AUTHENTICATIONLUID, authenticationLuid);
+            PhSetDialogItemText(hwndDlg, IDC_MEMORYUSED, PhGetStringOrDefault(memoryUsed, L"Unknown"));
+            PhSetDialogItemText(hwndDlg, IDC_MEMORYAVAILABLE, PhGetStringOrDefault(memoryAvailable, L"Unknown"));
         }
         break;
     }

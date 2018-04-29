@@ -3,8 +3,6 @@
 
 // Constants
 
-#define MIP_CONTAINER_CLASSNAME L"ProcessHackerMiniInfo"
-
 #define MIP_TIMER_PIN_FIRST 1
 #define MIP_TIMER_PIN_LAST (MIP_TIMER_PIN_FIRST + MaxMiniInfoPinType - 1)
 
@@ -217,9 +215,7 @@ LRESULT CALLBACK PhMipSectionControlHookWndProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
-    _In_ LPARAM lParam,
-    _In_ UINT_PTR uIdSubclass,
-    _In_ ULONG_PTR dwRefData
+    _In_ LPARAM lParam
     );
 
 // List-based section

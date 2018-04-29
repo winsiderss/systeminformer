@@ -70,10 +70,10 @@ PhGetHandleInformationEx(
     );
 
 #define PH_FIRST_OBJECT_TYPE(ObjectTypes) \
-    (POBJECT_TYPE_INFORMATION)((PCHAR)(ObjectTypes) + ALIGN_UP(sizeof(OBJECT_TYPES_INFORMATION), ULONG_PTR))
+    PTR_ADD_OFFSET(ObjectTypes, ALIGN_UP(sizeof(OBJECT_TYPES_INFORMATION), ULONG_PTR))
 
 #define PH_NEXT_OBJECT_TYPE(ObjectType) \
-    (POBJECT_TYPE_INFORMATION)((PCHAR)(ObjectType) + sizeof(OBJECT_TYPE_INFORMATION) + \
+    PTR_ADD_OFFSET(ObjectType, sizeof(OBJECT_TYPE_INFORMATION) + \
     ALIGN_UP(ObjectType->TypeName.MaximumLength, ULONG_PTR))
 
 PHLIBAPI

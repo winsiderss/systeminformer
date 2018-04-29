@@ -44,6 +44,15 @@ typedef struct _PH_TOKEN_ATTRIBUTES
     ULONG Reserved;
 } PH_TOKEN_ATTRIBUTES, *PPH_TOKEN_ATTRIBUTES;
 
+typedef enum _MANDATORY_LEVEL_RID {
+    MandatoryUntrustedRID = SECURITY_MANDATORY_UNTRUSTED_RID,
+    MandatoryLowRID = SECURITY_MANDATORY_LOW_RID,
+    MandatoryMediumRID = SECURITY_MANDATORY_MEDIUM_RID,
+    MandatoryHighRID = SECURITY_MANDATORY_HIGH_RID,
+    MandatorySystemRID = SECURITY_MANDATORY_SYSTEM_RID,
+    MandatorySecureProcessRID = SECURITY_MANDATORY_PROTECTED_PROCESS_RID
+} MANDATORY_LEVEL_RID, *PMANDATORY_LEVEL_RID;
+
 PHLIBAPI
 PH_TOKEN_ATTRIBUTES
 NTAPI
@@ -273,19 +282,20 @@ PhGetProcessWsCounters(
 PHLIBAPI
 NTSTATUS
 NTAPI
-PhInjectDllProcess(
+PhUnloadDllProcess(
     _In_ HANDLE ProcessHandle,
-    _In_ PWSTR FileName,
+    _In_ PVOID BaseAddress,
     _In_opt_ PLARGE_INTEGER Timeout
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
-PhUnloadDllProcess(
-    _In_ HANDLE ProcessHandle,
-    _In_ PVOID BaseAddress,
-    _In_opt_ PLARGE_INTEGER Timeout
+PhGetProcessUnloadedDlls(
+    _In_ HANDLE ProcessId,
+    _Out_ PVOID *EventTrace,
+    _Out_ ULONG *EventTraceSize,
+    _Out_ ULONG *EventTraceCount
     );
 
 PHLIBAPI
@@ -396,6 +406,15 @@ NTAPI
 PhSetTokenIsVirtualizationEnabled(
     _In_ HANDLE TokenHandle,
     _In_ BOOLEAN IsVirtualizationEnabled
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetTokenIntegrityLevelRID(
+    _In_ HANDLE TokenHandle,
+    _Out_opt_ PMANDATORY_LEVEL_RID IntegrityLevelRID,
+    _Out_opt_ PWSTR *IntegrityString
     );
 
 PHLIBAPI
@@ -633,10 +652,16 @@ PhGetKernelFileName(
  */
 #define PH_NEXT_PROCESS(Process) ( \
     ((PSYSTEM_PROCESS_INFORMATION)(Process))->NextEntryOffset ? \
-    (PSYSTEM_PROCESS_INFORMATION)((PCHAR)(Process) + \
+    (PSYSTEM_PROCESS_INFORMATION)PTR_ADD_OFFSET((Process), \
     ((PSYSTEM_PROCESS_INFORMATION)(Process))->NextEntryOffset) : \
     NULL \
     )
+
+#define PH_PROCESS_EXTENSION(Process) \
+    ((PSYSTEM_PROCESS_INFORMATION_EXTENSION)PTR_ADD_OFFSET((Process), \
+    FIELD_OFFSET(SYSTEM_PROCESS_INFORMATION, Threads) + \
+    sizeof(SYSTEM_THREAD_INFORMATION) * \
+    ((PSYSTEM_PROCESS_INFORMATION)(Process))->NumberOfThreads))
 
 PHLIBAPI
 NTSTATUS
@@ -691,6 +716,14 @@ PhEnumHandlesEx(
     _Out_ PSYSTEM_HANDLE_INFORMATION_EX *Handles
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhEnumHandlesEx2(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPROCESS_HANDLE_SNAPSHOT_INFORMATION *Handles
+    );
+
 #define PH_FIRST_PAGEFILE(Pagefiles) ( \
     /* The size of a pagefile can never be 0. A TotalSize of 0
      * is used to indicate that there are no pagefiles.
@@ -700,7 +733,7 @@ PhEnumHandlesEx(
     )
 #define PH_NEXT_PAGEFILE(Pagefile) ( \
     ((PSYSTEM_PAGEFILE_INFORMATION)(Pagefile))->NextEntryOffset ? \
-    (PSYSTEM_PAGEFILE_INFORMATION)((PCHAR)(Pagefile) + \
+    (PSYSTEM_PAGEFILE_INFORMATION)PTR_ADD_OFFSET((Pagefile), \
     ((PSYSTEM_PAGEFILE_INFORMATION)(Pagefile))->NextEntryOffset) : \
     NULL \
     )
@@ -840,6 +873,7 @@ PhGetFileName(
 #define PH_MODULE_TYPE_WOW64_MODULE 3
 #define PH_MODULE_TYPE_KERNEL_MODULE 4
 #define PH_MODULE_TYPE_MAPPED_IMAGE 5
+#define PH_MODULE_TYPE_ELF_MAPPED_IMAGE 6
 
 typedef struct _PH_MODULE_INFO
 {
@@ -919,6 +953,16 @@ PhOpenKey(
     _In_opt_ HANDLE RootDirectory,
     _In_ PPH_STRINGREF ObjectName,
     _In_ ULONG Attributes
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhLoadAppKey(
+    _Out_ PHANDLE KeyHandle,
+    _In_ PWSTR FileName,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ ULONG Flags
     );
 
 PHLIBAPI
@@ -1070,6 +1114,14 @@ NTSTATUS
 NTAPI
 PhImpersonateClientOfNamedPipe(
     _In_ HANDLE PipeHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetThreadName(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PPH_STRING *ThreadName
     );
 
 #ifdef __cplusplus

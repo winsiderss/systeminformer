@@ -487,11 +487,7 @@ VOID NotifyGrowl(
         notification = GrowlNotifications[0];
         title = processItem->ProcessName;
 
-        parentProcessItem = PhReferenceProcessItemForParent(
-            processItem->ParentProcessId,
-            processItem->ProcessId,
-            &processItem->CreateTime
-            );
+        parentProcessItem = PhReferenceProcessItemForParent(processItem);
 
         message = PhaFormatString(
             L"The process %s (%lu) was started by %s.",
@@ -610,15 +606,21 @@ LRESULT CALLBACK TextBoxSubclassProc(
     _In_ HWND hWnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
-    _In_ LPARAM lParam,
-    _In_ UINT_PTR uIdSubclass,
-    _In_ ULONG_PTR dwRefData
+    _In_ LPARAM lParam
     )
 {
+    WNDPROC oldWndProc = PhGetWindowContext(hWnd, UCHAR_MAX);
+
+    if (!oldWndProc)
+        return 0;
+
     switch (uMsg)
     {
-    case WM_NCDESTROY:
-        RemoveWindowSubclass(hWnd, TextBoxSubclassProc, uIdSubclass);
+    case WM_DESTROY:
+        {
+            SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+            PhRemoveWindowContext(hWnd, UCHAR_MAX);
+        }
         break;
     case WM_GETDLGCODE:
         {
@@ -637,7 +639,7 @@ LRESULT CALLBACK TextBoxSubclassProc(
         break;
     }
 
-    return DefSubclassProc(hWnd, uMsg, wParam, lParam);
+    return CallWindowProc(oldWndProc, hWnd, uMsg, wParam, lParam);
 }
 
 VOID FixControlStates(
@@ -669,8 +671,14 @@ INT_PTR HandleCommonMessages(
     {
     case WM_INITDIALOG:
         {
-            SetWindowSubclass(GetDlgItem(hwndDlg, IDC_TEXT), TextBoxSubclassProc, 0, 0);
+            HWND textBoxHandle;
+            WNDPROC oldWndProc;
 
+            textBoxHandle = GetDlgItem(hwndDlg, IDC_TEXT);
+            oldWndProc = (WNDPROC)GetWindowLongPtr(textBoxHandle, GWLP_WNDPROC);
+            PhSetWindowContext(textBoxHandle, UCHAR_MAX, oldWndProc);
+            SetWindowLongPtr(textBoxHandle, GWLP_WNDPROC, (LONG_PTR)TextBoxSubclassProc);
+            
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_INCLUDE), BST_CHECKED);
 
             FixControlStates(hwndDlg, ListBox);
@@ -693,7 +701,7 @@ INT_PTR HandleCommonMessages(
                             PFILTER_ENTRY entry;
 
                             entry = FilterList->Items[i];
-                            SetDlgItemText(hwndDlg, IDC_TEXT, entry->Filter->Buffer);
+                            PhSetDialogItemText(hwndDlg, IDC_TEXT, entry->Filter->Buffer);
                             Button_SetCheck(GetDlgItem(hwndDlg, IDC_INCLUDE),
                                 entry->Type == FilterInclude ? BST_CHECKED : BST_UNCHECKED);
                             Button_SetCheck(GetDlgItem(hwndDlg, IDC_EXCLUDE),
@@ -760,7 +768,7 @@ INT_PTR HandleCommonMessages(
                         ListBox_SetCurSel(ListBox, i);
                     }
 
-                    SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)GetDlgItem(hwndDlg, IDC_TEXT), TRUE);
+                    PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDC_TEXT));
                     Edit_SetSel(GetDlgItem(hwndDlg, IDC_TEXT), 0, -1);
 
                     FixControlStates(hwndDlg, ListBox);
@@ -990,7 +998,7 @@ INT_PTR CALLBACK LoggingDlgProc(
     {
     case WM_INITDIALOG:
         {
-            SetDlgItemText(hwndDlg, IDC_LOGFILENAME, PhaGetStringSetting(SETTING_NAME_LOG_FILENAME)->Buffer);
+            PhSetDialogItemText(hwndDlg, IDC_LOGFILENAME, PhaGetStringSetting(SETTING_NAME_LOG_FILENAME)->Buffer);
 
             PhInitializeLayoutManager(&LayoutManager, hwndDlg);
             PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_INFO), NULL, PH_ANCHOR_TOP | PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT);
@@ -1033,7 +1041,7 @@ INT_PTR CALLBACK LoggingDlgProc(
                     if (PhShowFileDialog(hwndDlg, fileDialog))
                     {
                         fileName = PH_AUTO(PhGetFileDialogFileName(fileDialog));
-                        SetDlgItemText(hwndDlg, IDC_LOGFILENAME, fileName->Buffer);
+                        PhSetDialogItemText(hwndDlg, IDC_LOGFILENAME, fileName->Buffer);
                     }
 
                     PhFreeFileDialog(fileDialog);
@@ -1060,7 +1068,7 @@ INT_PTR CALLBACK GrowlDlgProc(
     {
     case WM_INITDIALOG:
         {
-            SetDlgItemText(hwndDlg, IDC_LICENSE, PH_AUTO_T(PH_STRING, PhConvertUtf8ToUtf16(gntp_send_license_text))->Buffer);
+            PhSetDialogItemText(hwndDlg, IDC_LICENSE, PH_AUTO_T(PH_STRING, PhConvertUtf8ToUtf16(gntp_send_license_text))->Buffer);
 
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLEGROWL), PhGetIntegerSetting(SETTING_NAME_ENABLE_GROWL) ? BST_CHECKED : BST_UNCHECKED);
 

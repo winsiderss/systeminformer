@@ -223,7 +223,7 @@ NTSTATUS PhCreateFilePool(
         // Set up the first segment properly.
 
         pool->FirstBlockOfFirstSegment->Span = pool->FileHeaderBlockSpan;
-        segmentHeaderBlock = (PPH_FP_BLOCK_HEADER)((PCHAR)pool->FirstBlockOfFirstSegment + (pool->FileHeaderBlockSpan << pool->BlockShift));
+        segmentHeaderBlock = (PPH_FP_BLOCK_HEADER)PTR_ADD_OFFSET(pool->FirstBlockOfFirstSegment, (pool->FileHeaderBlockSpan << pool->BlockShift));
         PhFppInitializeSegment(pool, segmentHeaderBlock, pool->FileHeaderBlockSpan);
 
         pool->Header->FreeLists[1] = 0;
@@ -576,7 +576,7 @@ BOOLEAN PhFreeFilePoolByRva(
     if (!firstBlock)
         return FALSE;
 
-    PhpFreeFilePool(Pool, segmentIndex, firstBlock, (PCHAR)firstBlock + offset);
+    PhpFreeFilePool(Pool, segmentIndex, firstBlock, PTR_ADD_OFFSET(firstBlock, offset));
     PhFppDereferenceSegment(Pool, segmentIndex);
 
     return TRUE;
@@ -639,7 +639,7 @@ PVOID PhReferenceFilePoolByRva(
     if (!firstBlock)
         return NULL;
 
-    return (PCHAR)firstBlock + offset;
+    return PTR_ADD_OFFSET(firstBlock, offset);
 }
 
 /**
@@ -877,7 +877,7 @@ PPH_FP_SEGMENT_HEADER PhFppGetHeaderSegment(
     else
     {
         // In the first segment, the segment header is after the file header.
-        return (PPH_FP_SEGMENT_HEADER)&((PPH_FP_BLOCK_HEADER)((PCHAR)FirstBlock + (Pool->FileHeaderBlockSpan << Pool->BlockShift)))->Body;
+        return (PPH_FP_SEGMENT_HEADER)&((PPH_FP_BLOCK_HEADER)PTR_ADD_OFFSET(FirstBlock, (Pool->FileHeaderBlockSpan << Pool->BlockShift)))->Body;
     }
 }
 
@@ -1248,7 +1248,7 @@ PPH_FP_BLOCK_HEADER PhFppAllocateBlocks(
 
     SegmentHeader->FreeBlocks -= NumberOfBlocks;
 
-    blockHeader = (PPH_FP_BLOCK_HEADER)((PCHAR)FirstBlock + (foundIndex << Pool->BlockShift));
+    blockHeader = (PPH_FP_BLOCK_HEADER)PTR_ADD_OFFSET(FirstBlock, (foundIndex << Pool->BlockShift));
     blockHeader->Flags = 0;
     blockHeader->Span = NumberOfBlocks;
 

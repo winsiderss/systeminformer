@@ -45,6 +45,7 @@ typedef enum _PH_GENERAL_CALLBACK
     GeneralCallbackMiniInformationInitializing = 32, // PPH_PLUGIN_MINIINFO_POINTERS Data [main thread]
     GeneralCallbackMiListSectionMenuInitializing = 33, // PPH_PLUGIN_MENU_INFORMATION Data [main thread]
     GeneralCallbackOptionsWindowInitializing, // PPH_PLUGIN_OBJECT_PROPERTIES Data [main thread]
+    GeneralCallbackTrayIconsInitializing,
     GeneralCallbackMaximum
 } PH_GENERAL_CALLBACK, *PPH_GENERAL_CALLBACK;
 
@@ -67,6 +68,7 @@ typedef struct _PH_PLUGIN_GET_HIGHLIGHTING_COLOR
 
     PVOID Parameter;
     COLORREF BackColor;
+    COLORREF ForeColor;
     BOOLEAN Handled;
     BOOLEAN Cache;
 } PH_PLUGIN_GET_HIGHLIGHTING_COLOR, *PPH_PLUGIN_GET_HIGHLIGHTING_COLOR;
@@ -328,6 +330,35 @@ typedef struct _PH_PLUGIN_MINIINFO_POINTERS
 // end_phapppub
 
 // begin_phapppub
+/**
+ * Creates a notification icon.
+ *
+ * \param Plugin A plugin instance structure.
+ * \param SubId An identifier for the column. This should be unique within the
+ * plugin.
+ * \param Context A user-defined value.
+ * \param Text A string describing the notification icon.
+ * \param Flags A combination of flags.
+ * \li \c PH_NF_ICON_UNAVAILABLE The notification icon is currently unavailable.
+ * \param RegistrationData A \ref PH_NF_ICON_REGISTRATION_DATA structure that
+ * contains registration information.
+ */
+typedef struct _PH_NF_ICON * (NTAPI *PPH_REGISTER_TRAY_ICON)(
+    _In_ struct _PH_PLUGIN * Plugin,
+    _In_ ULONG SubId,
+    _In_opt_ PVOID Context,
+    _In_ PWSTR Text,
+    _In_ ULONG Flags,
+    _In_ struct _PH_NF_ICON_REGISTRATION_DATA *RegistrationData
+    );
+
+typedef struct _PH_TRAY_ICON_POINTERS
+{
+    PPH_REGISTER_TRAY_ICON RegisterTrayIcon;
+} PH_TRAY_ICON_POINTERS, *PPH_TRAY_ICON_POINTERS;
+// end_phapppub
+
+// begin_phapppub
 typedef struct _PH_OPTIONS_SECTION
 {
     PH_STRINGREF Name;
@@ -339,6 +370,7 @@ typedef struct _PH_OPTIONS_SECTION
     PVOID Parameter;
 
     HWND DialogHandle;
+    HTREEITEM TreeItemHandle;
     // begin_phapppub
 } PH_OPTIONS_SECTION, *PPH_OPTIONS_SECTION;
 // end_phapppub
@@ -543,6 +575,7 @@ typedef struct _PH_PLUGIN_MENU_ITEM
 } PH_PLUGIN_MENU_ITEM, *PPH_PLUGIN_MENU_ITEM;
 
 // Location
+#define PH_MENU_ITEM_LOCATION_HACKER 0
 #define PH_MENU_ITEM_LOCATION_VIEW 1
 #define PH_MENU_ITEM_LOCATION_TOOLS 2
 
@@ -658,18 +691,6 @@ PhPluginGetObjectExtension(
     _In_ PPH_PLUGIN Plugin,
     _In_ PVOID Object,
     _In_ PH_EM_OBJECT_TYPE ObjectType
-    );
-
-PHAPPAPI
-struct _PH_NF_ICON *
-NTAPI
-PhPluginRegisterIcon(
-    _In_ PPH_PLUGIN Plugin,
-    _In_ ULONG SubId,
-    _In_opt_ PVOID Context,
-    _In_ PWSTR Text,
-    _In_ ULONG Flags,
-    _In_ struct _PH_NF_ICON_REGISTRATION_DATA *RegistrationData
     );
 
 PHAPPAPI

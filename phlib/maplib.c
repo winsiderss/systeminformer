@@ -49,9 +49,9 @@ NTSTATUS PhInitializeMappedArchive(
     )
 {
     NTSTATUS status;
-    PCHAR start;
+    PVOID start;
 
-    start = (PCHAR)ViewBase;
+    start = ViewBase;
 
     memset(MappedArchive, 0, sizeof(PH_MAPPED_ARCHIVE));
     MappedArchive->ViewBase = ViewBase;
@@ -78,7 +78,7 @@ NTSTATUS PhInitializeMappedArchive(
 
     status = PhpGetMappedArchiveMemberFromHeader(
         MappedArchive,
-        (PIMAGE_ARCHIVE_MEMBER_HEADER)(start + IMAGE_ARCHIVE_START_SIZE),
+        PTR_ADD_OFFSET(start, IMAGE_ARCHIVE_START_SIZE),
         &MappedArchive->FirstLinkerMember
         );
 

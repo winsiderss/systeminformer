@@ -32,7 +32,8 @@
 #include <ph.h>
 #include <guisup.h>
 #include <prsht.h>
-#include <appsup.h>
+#include <workqueue.h>
+#include <setupsup.h>
 #include <json.h>
 
 #include <aclapi.h>
@@ -70,10 +71,13 @@ typedef enum _SETUP_COMMAND_TYPE
     SETUP_COMMAND_UNINSTALL,
     SETUP_COMMAND_UPDATE,
     SETUP_COMMAND_REPAIR,
+    SETUP_COMMAND_SILENTINSTALL,
 } SETUP_COMMAND_TYPE;
 
 typedef struct _PH_SETUP_CONTEXT
 {
+    SETUP_COMMAND_TYPE SetupMode;
+
     HWND DialogHandle;
     HWND PropSheetBackHandle;
     HWND PropSheetForwardHandle;
@@ -90,34 +94,50 @@ typedef struct _PH_SETUP_CONTEXT
     HICON IconSmallHandle;
     HICON IconLargeHandle;
 
-    PPH_STRING SetupInstallPath;
-    BOOLEAN SetupCreateDesktopShortcut;
-    BOOLEAN SetupCreateDesktopShortcutAllUsers;
-    BOOLEAN SetupCreateDefaultTaskManager;
-    BOOLEAN SetupCreateSystemStartup;
-    BOOLEAN SetupCreateMinimizedSystemStartup;
-    BOOLEAN SetupInstallDebuggingTools;
-    BOOLEAN SetupInstallPeViewAssociations;
-    BOOLEAN SetupInstallKphService;
-    BOOLEAN SetupResetSettings;
-    BOOLEAN SetupStartAppAfterExit;
+    union
+    {
+        ULONG Flags;
+        struct
+        {
+            ULONG SetupCreateDesktopShortcut : 1;
+            ULONG SetupCreateDesktopShortcutAllUsers : 1;
+            ULONG SetupCreateDefaultTaskManager : 1;
+            ULONG SetupCreateSystemStartup : 1;
+            ULONG SetupCreateMinimizedSystemStartup : 1;
+            ULONG SetupInstallDebuggingTools : 1;
+            ULONG SetupInstallPeViewAssociations : 1;
+            ULONG SetupInstallKphService : 1;
+            ULONG SetupResetSettings : 1;
+            ULONG SetupStartAppAfterExit : 1;
+            ULONG SetupKphInstallRequired : 1;
+            ULONG Spare : 21;
+        };
+    };
 
     ULONG ErrorCode;
+
+    PPH_STRING SetupInstallPath;
+
     PPH_STRING FilePath;
+
     PPH_STRING RelDate;
-    PPH_STRING Size;
-    PPH_STRING ReleaseNotesUrl;
+    PPH_STRING RelVersion;
 
     PPH_STRING BinFileDownloadUrl;
+    PPH_STRING BinFileLength;
     PPH_STRING BinFileHash;
+    PPH_STRING BinFileSignature;
 
     PPH_STRING SetupFileDownloadUrl;
+    PPH_STRING SetupFileLength;
+    PPH_STRING SetupFileHash;
     PPH_STRING SetupFileSignature;
-    PPH_STRING SetupFileVersion;
 
     PPH_STRING WebSetupFileDownloadUrl;
-    PPH_STRING WebSetupFileSignature;
     PPH_STRING WebSetupFileVersion;
+    PPH_STRING WebSetupFileLength;
+    PPH_STRING WebSetupFileHash;
+    PPH_STRING WebSetupFileSignature;
 
     HWND MainHeaderHandle;
     HWND StatusHandle;
@@ -185,7 +205,8 @@ extern ULONG64 ExtractTotalLength;
 // setup.c
 
 VOID SetupStartKph(
-    _In_ PPH_SETUP_CONTEXT Context
+    _In_ PPH_SETUP_CONTEXT Context,
+    _In_ BOOLEAN ForceInstall
     );
 
 BOOLEAN SetupUninstallKph(
@@ -257,7 +278,7 @@ BOOLEAN SetupExtractBuild(
  // update.c
 
 VOID SetupShowUpdateDialog(
-    VOID
+    _In_ SETUP_COMMAND_TYPE SetupMode
     );
 
 // updatesetup.c

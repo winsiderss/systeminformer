@@ -3,6 +3,7 @@
  *   handle information
  *
  * Copyright (C) 2010-2015 wj32
+ * Copyright (C) 2017-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -122,7 +123,10 @@ NTSTATUS PhpGetObjectBasicInformation(
 {
     NTSTATUS status;
 
-    if (KphIsConnected())
+    // TODO: KphIsVerified() fixes a bug on Windows 10 but this should be removed
+    // since KphQueryInformationObject doesn't require verification. (dmex)
+
+    if (KphIsConnected() && KphIsVerified())
     {
         status = KphQueryInformationObject(
             ProcessHandle,
@@ -174,9 +178,40 @@ NTSTATUS PhpGetObjectTypeName(
     NTSTATUS status = STATUS_SUCCESS;
     PPH_STRING typeName = NULL;
 
+    // dmex: Enumerate the available object types and pre-cache the object type name.
+    if (WindowsVersion >= WINDOWS_8_1)
+    {
+        static PH_INITONCE initOnce = PH_INITONCE_INIT;
+
+        if (PhBeginInitOnce(&initOnce))
+        {
+            POBJECT_TYPES_INFORMATION objectTypes;
+            POBJECT_TYPE_INFORMATION objectType;
+
+            if (NT_SUCCESS(PhEnumObjectTypes(&objectTypes)))
+            {
+                objectType = PH_FIRST_OBJECT_TYPE(objectTypes);
+
+                for (ULONG i = 0; i < objectTypes->NumberOfTypes; i++)
+                {
+                    PhMoveReference(
+                        &PhObjectTypeNames[objectType->TypeIndex], 
+                        PhCreateStringFromUnicodeString(&objectType->TypeName)
+                        );
+
+                    objectType = PH_NEXT_OBJECT_TYPE(objectType);
+                }
+
+                PhFree(objectTypes);
+            }
+
+            PhEndInitOnce(&initOnce);
+        }
+    }
+
     // If the cache contains the object type name, use it. Otherwise, query the type name.
 
-    if (ObjectTypeNumber != -1 && ObjectTypeNumber < MAX_OBJECT_TYPE_NUMBER)
+    if (ObjectTypeNumber != ULONG_MAX && ObjectTypeNumber < MAX_OBJECT_TYPE_NUMBER)
         typeName = PhObjectTypeNames[ObjectTypeNumber];
 
     if (typeName)
@@ -248,7 +283,7 @@ NTSTATUS PhpGetObjectTypeName(
         // Create a copy of the type name.
         typeName = PhCreateStringFromUnicodeString(&buffer->TypeName);
 
-        if (ObjectTypeNumber != -1 && ObjectTypeNumber < MAX_OBJECT_TYPE_NUMBER)
+        if (ObjectTypeNumber != ULONG_MAX && ObjectTypeNumber < MAX_OBJECT_TYPE_NUMBER)
         {
             // Try to store the type name in the cache.
             oldTypeName = _InterlockedCompareExchangePointer(
@@ -257,8 +292,7 @@ NTSTATUS PhpGetObjectTypeName(
                 NULL
                 );
 
-            // Add a reference if we stored the type name
-            // successfully.
+            // Add a reference if we stored the type name successfully.
             if (!oldTypeName)
                 PhReferenceObject(typeName);
         }
@@ -371,16 +405,10 @@ PPH_STRING PhFormatNativeKeyName(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        HANDLE currentTokenHandle;
         PTOKEN_USER tokenUser;
         PPH_STRING stringSid = NULL;
 
-        currentTokenHandle = PhGetOwnTokenAttributes().TokenHandle;
-
-        if (currentTokenHandle && NT_SUCCESS(PhGetTokenUser(
-            currentTokenHandle,
-            &tokenUser
-            )))
+        if (NT_SUCCESS(PhGetTokenUser(PhGetOwnTokenAttributes().TokenHandle, &tokenUser)))
         {
             stringSid = PhSidToStringSid(tokenUser->User.Sid);
             PhFree(tokenUser);
@@ -480,15 +508,15 @@ _Callback_ PPH_STRING PhStdGetClientIdName(
 {
     static PH_QUEUED_LOCK cachedProcessesLock = PH_QUEUED_LOCK_INIT;
     static PVOID processes = NULL;
-    static ULONG lastProcessesTickCount = 0;
+    static ULONG64 lastProcessesTickCount = 0;
 
     PPH_STRING name;
-    ULONG tickCount;
+    ULONG64 tickCount;
     PSYSTEM_PROCESS_INFORMATION processInfo;
 
     // Get a new process list only if 2 seconds have passed since the last update.
 
-    tickCount = GetTickCount();
+    tickCount = NtGetTickCount64();
 
     if (tickCount - lastProcessesTickCount >= 2000)
     {
@@ -688,6 +716,10 @@ NTSTATUS PhpGetBestObjectName(
     {
         HANDLE dupHandle;
         PJOBOBJECT_BASIC_PROCESS_ID_LIST processIdList;
+
+        // dmex: Don't do anything when we already have a valid job object name.
+        if (!PhIsNullOrEmptyString(ObjectName))
+            goto CleanupExit;
 
         status = NtDuplicateObject(
             ProcessHandle,
@@ -1229,7 +1261,7 @@ NTSTATUS PhGetHandleInformationEx(
 
     if (Handle == NULL || Handle == NtCurrentProcess() || Handle == NtCurrentThread())
         return STATUS_INVALID_HANDLE;
-    if (ObjectTypeNumber != -1 && ObjectTypeNumber >= MAX_OBJECT_TYPE_NUMBER)
+    if (ObjectTypeNumber != ULONG_MAX && ObjectTypeNumber >= MAX_OBJECT_TYPE_NUMBER)
         return STATUS_INVALID_PARAMETER_3;
 
     // Duplicate the handle if we're not using KPH.
@@ -1418,7 +1450,7 @@ ULONG PhGetObjectTypeNumber(
 {
     POBJECT_TYPES_INFORMATION objectTypes;
     POBJECT_TYPE_INFORMATION objectType;
-    ULONG objectIndex = -1;
+    ULONG objectIndex = ULONG_MAX;
     ULONG i;
 
     if (NT_SUCCESS(PhEnumObjectTypes(&objectTypes)))

@@ -101,7 +101,6 @@ PPH_PROCESS_PROPCONTEXT PhCreateProcessPropContext(
     memcpy(&propContext->PropSheetHeader, &propSheetHeader, sizeof(PROPSHEETHEADER));
 
     PhSetReference(&propContext->ProcessItem, ProcessItem);
-    PhInitializeEvent(&propContext->CreatedEvent);
 
     return propContext;
 }
@@ -166,9 +165,15 @@ INT CALLBACK PhpPropSheetProc(
             memset(propSheetContext, 0, sizeof(PH_PROCESS_PROPSHEETCONTEXT));
 
             PhInitializeLayoutManager(&propSheetContext->LayoutManager, hwndDlg);
+            PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, propSheetContext);
 
-            SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)propSheetContext);
-            SetWindowSubclass(hwndDlg, PhpPropSheetWndProc, 0, (ULONG_PTR)propSheetContext);
+            propSheetContext->PropSheetWindowHookProc = (WNDPROC)GetWindowLongPtr(hwndDlg, GWLP_WNDPROC);
+            PhSetWindowContext(hwndDlg, 0xF, propSheetContext);
+            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)PhpPropSheetWndProc);
+
+            // HACK HACK HACK
+            if (WindowsVersion >= WINDOWS_10_RS3 && !!PhGetIntegerSetting(L"EnableExperimentalWindowStyle"))
+                PhSetWindowStyle(hwndDlg, WS_POPUP, 0);
 
             if (MinimumSize.left == -1)
             {
@@ -193,19 +198,25 @@ PPH_PROCESS_PROPSHEETCONTEXT PhpGetPropSheetContext(
     _In_ HWND hwnd
     )
 {
-    return (PPH_PROCESS_PROPSHEETCONTEXT)GetProp(hwnd, PhMakeContextAtom());
+    return PhGetWindowContext(hwnd, PH_WINDOW_CONTEXT_DEFAULT);
 }
 
 LRESULT CALLBACK PhpPropSheetWndProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
-    _In_ LPARAM lParam, 
-    _In_ UINT_PTR uIdSubclass, 
-    _In_ ULONG_PTR dwRefData
+    _In_ LPARAM lParam
     )
 {
-    PPH_PROCESS_PROPSHEETCONTEXT propSheetContext = (PPH_PROCESS_PROPSHEETCONTEXT)dwRefData;
+    PPH_PROCESS_PROPSHEETCONTEXT propSheetContext;
+    WNDPROC oldWndProc;
+
+    propSheetContext = PhGetWindowContext(hwnd, 0xF);
+
+    if (!propSheetContext)
+        return 0;
+
+    oldWndProc = propSheetContext->PropSheetWindowHookProc;
 
     switch (uMsg)
     {
@@ -235,8 +246,8 @@ LRESULT CALLBACK PhpPropSheetWndProc(
         break;
     case WM_NCDESTROY:
         {
-            RemoveWindowSubclass(hwnd, PhpPropSheetWndProc, uIdSubclass);
-            RemoveProp(hwnd, PhMakeContextAtom());
+            SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+            PhRemoveWindowContext(hwnd, 0xF);
 
             PhDeleteLayoutManager(&propSheetContext->LayoutManager);
             PhFree(propSheetContext);
@@ -269,7 +280,7 @@ LRESULT CALLBACK PhpPropSheetWndProc(
         break;
     }
 
-    return DefSubclassProc(hwnd, uMsg, wParam, lParam);
+    return CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
 }
 
 BOOLEAN PhpInitializePropSheetLayoutStage1(
@@ -297,7 +308,7 @@ BOOLEAN PhpInitializePropSheetLayoutStage1(
         // Hide the OK button.
         ShowWindow(GetDlgItem(hwnd, IDOK), SW_HIDE);
         // Set the Cancel button's text to "Close".
-        SetDlgItemText(hwnd, IDCANCEL, L"Close");
+        PhSetDialogItemText(hwnd, IDCANCEL, L"Close");
 
         Context->LayoutInitialized = TRUE;
 
@@ -541,9 +552,6 @@ NTSTATUS PhpProcessPropertiesThreadStart(
     PPH_PROCESS_PROPCONTEXT PropContext = (PPH_PROCESS_PROPCONTEXT)Parameter;
     PPH_PROCESS_PROPPAGECONTEXT newPage;
     PPH_STRING startPage;
-    HWND hwnd;
-    BOOL result;
-    MSG message;
 
     PhInitializeAutoPool(&autoPool);
 
@@ -650,6 +658,17 @@ NTSTATUS PhpProcessPropertiesThreadStart(
         PhAddProcessPropPage(PropContext, newPage);
     }
 
+    // WMI Provider Host
+    if ((PropContext->ProcessItem->KnownProcessType & KnownProcessTypeMask) == WmiProviderHostType)
+    {
+        newPage = PhCreateProcessPropPageContext(
+            MAKEINTRESOURCE(IDD_PROCWMIPROVIDERS),
+            PhpProcessWmiProvidersDlgProc,
+            NULL
+            );
+        PhAddProcessPropPage(PropContext, newPage);
+    }
+
     // Plugin-supplied pages
     if (PhPluginsEnabled)
     {
@@ -670,33 +689,9 @@ NTSTATUS PhpProcessPropertiesThreadStart(
     PropContext->PropSheetHeader.dwFlags |= PSH_USEPSTARTPAGE;
     PropContext->PropSheetHeader.pStartPage = startPage->Buffer;
 
-    hwnd = (HWND)PropertySheet(&PropContext->PropSheetHeader);
+    PhModalPropertySheet(&PropContext->PropSheetHeader);;
 
     PhDereferenceObject(startPage);
-
-    PropContext->WindowHandle = hwnd;
-    PhSetEvent(&PropContext->CreatedEvent);
-
-    // Main event loop
-
-    while (result = GetMessage(&message, NULL, 0, 0))
-    {
-        if (result == -1)
-            break;
-
-        if (!PropSheet_IsDialogMessage(hwnd, &message))
-        {
-            TranslateMessage(&message);
-            DispatchMessage(&message);
-        }
-
-        PhDrainAutoPool(&autoPool);
-
-        if (!PropSheet_GetCurrentPageHwnd(hwnd))
-            break;
-    }
-
-    DestroyWindow(hwnd);
     PhDereferenceObject(PropContext);
 
     PhDeleteAutoPool(&autoPool);

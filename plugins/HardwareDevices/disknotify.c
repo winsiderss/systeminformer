@@ -23,21 +23,17 @@
 #include "devices.h"
 #include <Dbt.h>
 
-static BOOLEAN SubclassActive = FALSE;
+static WNDPROC SubclassMainWindowProc = NULL;
 
 LRESULT CALLBACK MainWndDevicesSubclassProc(
     _In_ HWND hWnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
-    _In_ LPARAM lParam,
-    _In_ UINT_PTR uIdSubclass,
-    _In_ ULONG_PTR dwRefData
+    _In_ LPARAM lParam
     )
 {
-    // Subclassing the main window just to process drive letter notifications
-    // is bad and I don't know of any other way to achieve this.
-    // The IOCTL_MOUNTMGR_CHANGE_NOTIFY callback would have been preferred but
-    // doesn't work from non-elevated processes.
+    if (!SubclassMainWindowProc)
+        return 0;
 
     switch (uMsg)
     {
@@ -77,16 +73,11 @@ LRESULT CALLBACK MainWndDevicesSubclassProc(
                     }
                 }
             }
-
-            goto DefaultWndProc;
         }
         break;
     }
 
-    return DefSubclassProc(hWnd, uMsg, wParam, lParam);
-
-DefaultWndProc:
-    return DefWindowProc(hWnd, uMsg, wParam, lParam);
+    return CallWindowProc(SubclassMainWindowProc, hWnd, uMsg, wParam, lParam);
 }
 
 VOID AddRemoveDeviceChangeCallback(
@@ -98,22 +89,22 @@ VOID AddRemoveDeviceChangeCallback(
         return;
 
     // Add the subclass only when disks are being monitored, remove when no longer needed.
-    if (DiskDrivesList->Count != 0)
+    if (DiskDrivesList->Count)
     {
-        if (!SubclassActive)
+        if (!SubclassMainWindowProc)
         {
             // We have a disk device, subclass the main window to detect drive letter changes.
-            SetWindowSubclass(PhMainWndHandle, MainWndDevicesSubclassProc, 0, 0);
-            SubclassActive = TRUE;
+            SubclassMainWindowProc = (WNDPROC)GetWindowLongPtr(PhMainWndHandle, GWLP_WNDPROC);
+            SetWindowLongPtr(PhMainWndHandle, GWLP_WNDPROC, (LONG_PTR)MainWndDevicesSubclassProc);
         }
     }
     else
     {
-        if (SubclassActive)
+        if (SubclassMainWindowProc)
         {
             // The user has removed the last disk device, remove the subclass.
-            RemoveWindowSubclass(PhMainWndHandle, MainWndDevicesSubclassProc, 0);
-            SubclassActive = FALSE;
+            SetWindowLongPtr(PhMainWndHandle, GWLP_WNDPROC, (LONG_PTR)SubclassMainWindowProc);
+            SubclassMainWindowProc = NULL;
         }
     }
 }

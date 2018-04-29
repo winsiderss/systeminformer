@@ -214,6 +214,9 @@ static VOID PhInitializeWindowsVersion(
         case 15063:
             WindowsVersion = WINDOWS_10_RS2;
             break;
+        case 16299:
+            WindowsVersion = WINDOWS_10_RS3;
+            break;
         default:
             WindowsVersion = WINDOWS_NEW;
             break;

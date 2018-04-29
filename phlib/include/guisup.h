@@ -20,8 +20,10 @@ typedef BOOL (WINAPI *_IsImmersiveProcess)(
 #define RFF_CALCDIRECTORY 0x0004
 #define RFF_NOLABEL 0x0008
 #define RFF_NOSEPARATEMEM 0x0020
+#define RFF_OPTRUNAS 0x0040
 
 #define RFN_VALIDATE (-510)
+#define RFN_LIMITEDRUNAS (-511)
 
 typedef struct _NMRUNFILEDLGW
 {
@@ -246,6 +248,25 @@ VOID PhSetListViewSubItem(
     );
 
 PHLIBAPI
+INT
+NTAPI
+PhAddListViewGroup(
+    _In_ HWND ListViewHandle,
+    _In_ INT GroupId,
+    _In_ PWSTR Text
+    );
+
+PHLIBAPI
+INT
+NTAPI PhAddListViewGroupItem(
+    _In_ HWND ListViewHandle,
+    _In_ INT GroupId,
+    _In_ INT Index,
+    _In_ PWSTR Text,
+    _In_opt_ PVOID Param
+    );
+
+PHLIBAPI
 INT PhAddTabControlTab(
     _In_ HWND TabControlHandle,
     _In_ INT Index,
@@ -454,6 +475,97 @@ PHLIBAPI
 VOID PhLayoutManagerLayout(
     _Inout_ PPH_LAYOUT_MANAGER Manager
     );
+
+#define PH_WINDOW_CONTEXT_DEFAULT 0xFFFF
+
+PHLIBAPI
+PVOID 
+PhGetWindowContext(
+    _In_ HWND WindowHandle, 
+    _In_ ULONG PropertyHash
+    );
+
+PHLIBAPI
+VOID 
+PhSetWindowContext(
+    _In_ HWND WindowHandle, 
+    _In_ ULONG PropertyHash,
+    _In_ PVOID Context
+    );
+
+PHLIBAPI
+VOID 
+PhRemoveWindowContext(
+    _In_ HWND WindowHandle, 
+    _In_ ULONG PropertyHash
+    );
+
+typedef BOOLEAN (CALLBACK *PH_CHILD_ENUM_CALLBACK)(
+    _In_ HWND WindowHandle, 
+    _In_opt_ PVOID Context
+    );
+
+VOID PhEnumChildWindows(
+    _In_opt_ HWND WindowHandle,
+    _In_ ULONG Limit,
+    _In_ PH_CHILD_ENUM_CALLBACK Callback,
+    _In_ PVOID Context
+    );
+
+HWND PhGetProcessMainWindow(
+    _In_ HANDLE ProcessId,
+    _In_opt_ HANDLE ProcessHandle
+    );
+
+HWND PhGetProcessMainWindowEx(
+    _In_ HANDLE ProcessId,
+    _In_opt_ HANDLE ProcessHandle,
+    _In_ BOOLEAN SkipInvisible
+    );
+
+PHLIBAPI
+ULONG
+NTAPI
+PhGetDialogItemValue(
+    _In_ HWND WindowHandle,
+    _In_ INT ControlID
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhSetDialogItemValue(
+    _In_ HWND WindowHandle,
+    _In_ INT ControlID,
+    _In_ ULONG Value,
+    _In_ BOOLEAN Signed
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhSetDialogItemText(
+    _In_ HWND WindowHandle,
+    _In_ INT ControlID,
+    _In_ PCWSTR WindowText
+    );
+
+FORCEINLINE ULONG PhGetWindowTextLength(
+    _In_ HWND WindowHandle
+    )
+{
+    return (ULONG)SendMessage(WindowHandle, WM_GETTEXTLENGTH, 0, 0); // DefWindowProc
+}
+
+FORCEINLINE VOID PhSetDialogFocus(
+    _In_ HWND WindowHandle,
+    _In_ HWND FocusHandle
+    )
+{
+    // Do not use the SendMessage function to send a WM_NEXTDLGCTL message if your application will 
+    // concurrently process other messages that set the focus. Use the PostMessage function instead.
+    SendMessage(WindowHandle, WM_NEXTDLGCTL, (WPARAM)FocusHandle, MAKELPARAM(TRUE, 0));
+}
 
 FORCEINLINE VOID PhResizingMinimumSize(
     _Inout_ PRECT Rect,

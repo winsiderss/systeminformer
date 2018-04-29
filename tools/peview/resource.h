@@ -10,7 +10,9 @@
 #define IDD_PELOADCONFIG                106
 #define IDD_PECFG                       107
 #define IDD_PESYMBOLS                   108
+#define IDD_PERESOURCES                 109
 #define IDB_SEARCH_ACTIVE               110
+#define IDD_ELFGENERAL                  110
 #define IDB_SEARCH_INACTIVE             111
 #define IDB_SEARCH_ACTIVE_BMP           112
 #define IDB_SEARCH_INACTIVE_BMP         113
@@ -22,7 +24,6 @@
 #define IDC_CHARACTERISTICS             1007
 #define IDC_LIST                        1008
 #define IDC_FILEICON                    1009
-#define IDC_SECTION                     1009
 #define IDC_TIMESTAMP                   1010
 #define IDC_RUNTIMEVERSION              1011
 #define IDC_FILE                        1011
@@ -33,11 +34,9 @@
 #define IDC_IMAGEBASE                   1015
 #define IDC_ENTRYPOINT                  1016
 #define IDC_SYMSEARCH                   1017
+#define IDC_IMAGETYPE                   1017
 #define IDC_NAME                        1019
 #define IDC_COMPANYNAME_LINK            1020
-#define IDC_BUTTON1                     1021
-#define IDC_STOP                        1021
-#define IDC_PROGRESS                    1022
 
 // Next default values for new objects
 // 

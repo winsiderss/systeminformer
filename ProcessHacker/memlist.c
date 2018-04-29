@@ -3,6 +3,7 @@
  *   memory region list
  *
  * Copyright (C) 2015 wj32
+ * Copyright (C) 2017-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -375,6 +376,33 @@ VOID PhReplaceMemoryList(
     TreeNew_NodesStructured(Context->TreeNewHandle);
 }
 
+VOID PhRemoveMemoryNode(
+    _Inout_ PPH_MEMORY_LIST_CONTEXT Context,
+    _In_ PPH_MEMORY_ITEM_LIST List,
+    _In_ PPH_MEMORY_NODE MemoryNode
+    )
+{
+    ULONG index;
+
+    // Remove from list and cleanup.
+
+    PhRemoveElementAvlTree(&List->Set, &MemoryNode->MemoryItem->Links);
+    RemoveEntryList(&MemoryNode->MemoryItem->ListEntry);
+
+    if ((index = PhFindItemList(Context->RegionNodeList, MemoryNode)) != -1)
+        PhRemoveItemList(Context->RegionNodeList, index);
+
+    if (MemoryNode->MemoryItem->AllocationBaseItem == MemoryNode->MemoryItem)
+    {
+        if ((index = PhFindItemList(Context->AllocationBaseNodeList, MemoryNode->Parent)) != -1)
+            PhRemoveItemList(Context->AllocationBaseNodeList, index);
+    }
+
+    PhpDestroyMemoryNode(MemoryNode);
+
+    TreeNew_NodesStructured(Context->TreeNewHandle);
+}
+
 VOID PhUpdateMemoryNode(
     _In_ PPH_MEMORY_LIST_CONTEXT Context,
     _In_ PPH_MEMORY_NODE MemoryNode
@@ -439,6 +467,8 @@ PPH_STRING PhGetMemoryRegionUseText(
         return MemoryItem->u.MappedFile.FileName;
     case UserSharedDataRegion:
         return PhCreateString(L"USER_SHARED_DATA");
+    case HypervisorSharedDataRegion:
+        return PhCreateString(L"HYPERVISOR_SHARED_DATA");
     case PebRegion:
     case Peb32Region:
         return PhFormatString(L"PEB%s", type == Peb32Region ? L" 32-bit" : L"");
@@ -462,6 +492,8 @@ PPH_STRING PhGetMemoryRegionUseText(
     case CfgBitmap32Region:
         return PhFormatString(L"CFG Bitmap%s",
             type == CfgBitmap32Region ? L" 32-bit" : L"");
+    case ApiSetMapRegion:
+        return PhFormatString(L"ApiSetMap");
     default:
         return PhReferenceEmptyString();
     }
@@ -974,7 +1006,7 @@ VOID PhGetSelectedMemoryNodes(
         PPH_MEMORY_NODE node = Context->RegionNodeList->Items[i];
 
         if (node->Node.Selected)
-                PhAddItemArray(&array, &node);
+            PhAddItemArray(&array, &node);
     }
 
     *NumberOfMemoryNodes = (ULONG)array.Count;

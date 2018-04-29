@@ -43,6 +43,19 @@ BOOLEAN NTAPI MainPropSheetCommandLineCallback(
 {
     if (Option)
         SetupMode = Option->Id;
+    else
+    {
+        // HACK: PhParseCommandLine requires the - symbol for commandline parameters 
+        // and we already support the -silent parameter however we need to maintain 
+        // compatibility with the legacy Inno Setup.
+        if (!PhIsNullOrEmptyString(Value))
+        {
+            if (PhEqualString2(Value, L"/silent", TRUE))
+            {
+                SetupMode = SETUP_COMMAND_SILENTINSTALL;
+            }
+        }
+    }
 
     return TRUE;
 }
@@ -70,7 +83,7 @@ INT CALLBACK MainPropSheet_Callback(
         {
             PPH_SETUP_CONTEXT context;
 
-            context = PhAllocate(sizeof(PH_SETUP_CONTEXT));
+            context = PhCreateAlloc(sizeof(PH_SETUP_CONTEXT));
             memset(context, 0, sizeof(PH_SETUP_CONTEXT));
        
             context->CurrentMajorVersion = PHAPP_VERSION_MAJOR;
@@ -171,11 +184,8 @@ VOID SetupShowInstallDialog(
     PhModalPropertySheet(&propSheetHeader);
 }
 
-INT WINAPI wWinMain(
-    _In_ HINSTANCE Instance,
-    _In_opt_ HINSTANCE PrevInstance,
-    _In_ PWSTR CmdLine,
-    _In_ INT CmdShow
+VOID SetupParseCommandLine(
+    VOID
     )
 {
     static PH_COMMAND_LINE_OPTION options[] =
@@ -184,12 +194,66 @@ INT WINAPI wWinMain(
         { SETUP_COMMAND_UNINSTALL, L"uninstall", NoArgumentType },
         { SETUP_COMMAND_UPDATE, L"update", NoArgumentType },
         { SETUP_COMMAND_REPAIR, L"repair", NoArgumentType },
+        { SETUP_COMMAND_SILENTINSTALL, L"silent", NoArgumentType },
     };
-    HANDLE mutantHandle;
     PPH_STRING commandLine;
-    OBJECT_ATTRIBUTES oa;
-    UNICODE_STRING mutantName;
 
+    if (NT_SUCCESS(PhGetProcessCommandLine(NtCurrentProcess(), &commandLine)))
+    {
+        PhParseCommandLine(
+            &commandLine->sr,
+            options,
+            ARRAYSIZE(options),
+            PH_COMMAND_LINE_IGNORE_UNKNOWN_OPTIONS | PH_COMMAND_LINE_IGNORE_FIRST_PART,
+            MainPropSheetCommandLineCallback,
+            NULL
+            );
+
+        PhDereferenceObject(commandLine);
+    }
+}
+
+VOID SetupInitializeMutant(
+    VOID
+    )
+{
+    HANDLE mutantHandle;
+    PPH_STRING objectName;
+    OBJECT_ATTRIBUTES objectAttributes;
+    UNICODE_STRING objectNameUs;
+    PH_FORMAT format[2];
+
+    PhInitFormatS(&format[0], L"PhSetupMutant_");
+    PhInitFormatU(&format[1], HandleToUlong(NtCurrentProcessId()));
+
+    objectName = PhFormat(format, 2, 16);
+    PhStringRefToUnicodeString(&objectName->sr, &objectNameUs);
+
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &objectNameUs,
+        OBJ_CASE_INSENSITIVE,
+        PhGetNamespaceHandle(),
+        NULL
+        );
+
+    NtCreateMutant(
+        &mutantHandle,
+        MUTANT_QUERY_STATE,
+        &objectAttributes,
+        TRUE
+        );
+
+    PhDereferenceObject(objectName);
+}
+
+INT WINAPI wWinMain(
+    _In_ HINSTANCE Instance,
+    _In_opt_ HINSTANCE PrevInstance,
+    _In_ PWSTR CmdLine,
+    _In_ INT CmdShow
+    )
+{
     CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
 
     if (!NT_SUCCESS(PhInitializePhLibEx(ULONG_MAX, Instance, 0, 0)))
@@ -199,52 +263,24 @@ INT WINAPI wWinMain(
     PhGuiSupportInitialization();
     SetupInitializeDpi();
 
-    if (!NT_SUCCESS(PhGetProcessCommandLine(NtCurrentProcess(), &commandLine)))
-        return 1;
+    SetupInitializeMutant();
+    SetupParseCommandLine();
 
-    if (!PhParseCommandLine(
-        &commandLine->sr,
-        options,
-        ARRAYSIZE(options),
-        PH_COMMAND_LINE_IGNORE_FIRST_PART,
-        MainPropSheetCommandLineCallback,
-        NULL
-        ))
+    switch (SetupMode)
     {
-        PhDereferenceObject(commandLine);
-        return 1;
-    }
-
-    PhDereferenceObject(commandLine);
-
-    RtlInitUnicodeString(&mutantName, L"PhSetupMutant");
-    InitializeObjectAttributes(
-        &oa,
-        &mutantName,
-        0,
-        PhGetNamespaceHandle(),
-        NULL
-        );
-
-    if (NT_SUCCESS(NtCreateMutant(&mutantHandle, MUTANT_ALL_ACCESS, &oa, FALSE)))
-    {
-        switch (SetupMode)
-        {
-        case SETUP_COMMAND_INSTALL:
-        default:
-            SetupShowInstallDialog();
-            break;
-        case SETUP_COMMAND_UNINSTALL:
-            SetupShowUninstallDialog();
-            break;
-        case SETUP_COMMAND_UPDATE:
-            SetupShowUpdateDialog();
-            break;
-        case SETUP_COMMAND_REPAIR:
-            break;
-        }
-
-        NtClose(mutantHandle);
+    case SETUP_COMMAND_INSTALL:
+    default:
+        SetupShowInstallDialog();
+        break;
+    case SETUP_COMMAND_UNINSTALL:
+        SetupShowUninstallDialog();
+        break;
+    case SETUP_COMMAND_UPDATE:
+    case SETUP_COMMAND_SILENTINSTALL:
+        SetupShowUpdateDialog(SetupMode);
+        break;
+    case SETUP_COMMAND_REPAIR:
+        break;
     }
 
     return ERROR_SUCCESS;

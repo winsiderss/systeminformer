@@ -21,7 +21,7 @@
  */
 
 #include <setup.h>
-#include <appsup.h>
+#include <setupsup.h>
 #include <svcsup.h>
 
 PH_STRINGREF UninstallKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\ProcessHacker");
@@ -197,12 +197,13 @@ BOOLEAN SetupCreateUninstallFile(
             PPH_STRING tempFileName;
             PPH_STRING tempFilePath;
 
-            tempFileName = PhCreateString(L"processhacker-setup.old");
+            tempFileName = PhCreateString(L"processhacker-setup.bak");
             tempFilePath = PhCreateCacheFile(tempFileName);
 
             if (!MoveFile(backupFilePath->Buffer, tempFilePath->Buffer))
             {
                 Context->ErrorCode = GetLastError();
+                return FALSE;
             }
 
             PhDereferenceObject(tempFilePath);
@@ -215,12 +216,14 @@ BOOLEAN SetupCreateUninstallFile(
         if (!MoveFile(uninstallFilePath->Buffer, backupFilePath->Buffer))
         {
             Context->ErrorCode = GetLastError();
+            return FALSE;
         }
     }
 
     if (!CopyFile(currentFilePath->Buffer, uninstallFilePath->Buffer, TRUE))
     {
         Context->ErrorCode = GetLastError();
+        return FALSE;
     }
 
     PhDereferenceObject(uninstallFilePath);
@@ -310,7 +313,7 @@ VOID SetupStartService(
                         }
                     }
 
-                    Sleep(1000);
+                    PhDelayExecution(1000);
 
                 } while (--attempts != 0);
             }
@@ -372,7 +375,7 @@ VOID SetupStopService(
                         }
                     }
 
-                    Sleep(1000);
+                    PhDelayExecution(1000);
 
                 } while (--attempts != 0);
             }
@@ -384,44 +387,78 @@ VOID SetupStopService(
     }
 }
 
-VOID SetupStartKph(
-    _In_ PPH_SETUP_CONTEXT Context
+BOOLEAN SetupKphCheckInstallState(
+    VOID
     )
 {
-    PPH_STRING clientPath = PhConcatStrings2(PhGetString(Context->SetupInstallPath), L"\\ProcessHacker.exe");
+    static PH_STRINGREF kph3ServiceKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services\\KProcessHacker3");
+    BOOLEAN kphInstallRequired = FALSE;
+    HANDLE runKeyHandle;
 
-    if (RtlDoesFileExists_U(PhGetString(clientPath)))
+    if (NT_SUCCESS(PhOpenKey(
+        &runKeyHandle,
+        KEY_READ,
+        PH_KEY_LOCAL_MACHINE,
+        &kph3ServiceKeyName,
+        0
+        )))
     {
-        HANDLE processHandle;
-        LARGE_INTEGER timeout;
-        ULONG retries = 0;
-
-        timeout.QuadPart = -10 * PH_TIMEOUT_SEC;
-
-        if (PhShellExecuteEx(
-            NULL,
-            PhGetString(clientPath),
-            L"-installkph",
-            SW_NORMAL,
-            0,
-            0,
-            &processHandle
-            ))
+        // Make sure we re-install the driver when KPH was installed as a service. 
+        if (PhQueryRegistryUlong(runKeyHandle, L"Start") == SERVICE_SYSTEM_START)
         {
-            NtWaitForSingleObject(processHandle, FALSE, &timeout);
-            NtClose(processHandle);
+            kphInstallRequired = TRUE;
         }
 
-        SetupStartService(L"KProcessHacker3");
+        NtClose(runKeyHandle);
     }
 
-    PhDereferenceObject(clientPath);
+    return kphInstallRequired;
+}
+
+VOID SetupStartKph(
+    _In_ PPH_SETUP_CONTEXT Context,
+    _In_ BOOLEAN ForceInstall
+    )
+{
+    if (ForceInstall || Context->SetupKphInstallRequired)
+    {
+        PPH_STRING clientPath;
+
+        clientPath = PhConcatStrings2(PhGetString(Context->SetupInstallPath), L"\\ProcessHacker.exe");
+
+        if (RtlDoesFileExists_U(PhGetString(clientPath)))
+        {
+            HANDLE processHandle;
+
+            if (PhShellExecuteEx(
+                NULL,
+                PhGetString(clientPath),
+                L"-installkph",
+                SW_NORMAL,
+                0,
+                0,
+                &processHandle
+                ))
+            {
+                NtWaitForSingleObject(processHandle, FALSE, NULL);
+                NtClose(processHandle);
+            }
+        }
+
+        PhDereferenceObject(clientPath);
+    }
+
+    SetupStartService(L"KProcessHacker3");
 }
 
 BOOLEAN SetupUninstallKph(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
+    // Query the current KPH installation state.
+    Context->SetupKphInstallRequired = SetupKphCheckInstallState();
+
+    // Stop and uninstall the current installation.
     SetupStopService(L"KProcessHacker2");
     SetupStopService(L"KProcessHacker3");
 
@@ -442,18 +479,13 @@ VOID SetupSetWindowsOptions(
     // Create the startmenu shortcut.
     if (startmenuFolderString = PhGetKnownLocation(CSIDL_COMMON_PROGRAMS, L"\\Process Hacker.lnk"))
     {
-        SetupCreateLink(PhGetString(startmenuFolderString), PhGetString(clientPathString), PhGetString(Context->SetupInstallPath));
+        SetupCreateLink(
+            L"ProcessHacker.Desktop.App", 
+            PhGetString(startmenuFolderString), 
+            PhGetString(clientPathString), 
+            PhGetString(Context->SetupInstallPath)
+            );
         PhDereferenceObject(startmenuFolderString);
-    }
-
-    // Create the desktop shortcut.
-    if (Context->SetupCreateDesktopShortcut)
-    {
-        if (startmenuFolderString = PhGetKnownLocation(CSIDL_DESKTOPDIRECTORY, L"\\Process Hacker.lnk"))
-        {
-            SetupCreateLink(PhGetString(startmenuFolderString), PhGetString(clientPathString), PhGetString(Context->SetupInstallPath));
-            PhDereferenceObject(startmenuFolderString);
-        }
     }
 
     // Create the all users shortcut.
@@ -461,8 +493,30 @@ VOID SetupSetWindowsOptions(
     {
         if (startmenuFolderString = PhGetKnownLocation(CSIDL_COMMON_DESKTOPDIRECTORY, L"\\Process Hacker.lnk"))
         {
-            SetupCreateLink(PhGetString(startmenuFolderString), PhGetString(clientPathString), PhGetString(Context->SetupInstallPath));
+            SetupCreateLink(
+                L"ProcessHacker.Desktop.App",
+                PhGetString(startmenuFolderString), 
+                PhGetString(clientPathString), 
+                PhGetString(Context->SetupInstallPath)
+                );
             PhDereferenceObject(startmenuFolderString);
+        }
+    }
+    else
+    {
+        // Create the desktop shortcut.
+        if (Context->SetupCreateDesktopShortcut)
+        {
+            if (startmenuFolderString = PhGetKnownLocation(CSIDL_DESKTOPDIRECTORY, L"\\Process Hacker.lnk"))
+            {
+                SetupCreateLink(
+                    L"ProcessHacker.Desktop.App",
+                    PhGetString(startmenuFolderString),
+                    PhGetString(clientPathString),
+                    PhGetString(Context->SetupInstallPath)
+                    );
+                PhDereferenceObject(startmenuFolderString);
+            }
         }
     }
 
@@ -472,6 +526,7 @@ VOID SetupSetWindowsOptions(
         PPH_STRING peviewPathString = PhConcatStrings2(PhGetString(Context->SetupInstallPath), L"\\peview.exe");
 
         SetupCreateLink(
+            L"PeViewer.Desktop.App",
             PhGetString(startmenuFolderString),
             PhGetString(peviewPathString),
             PhGetString(Context->SetupInstallPath)
@@ -495,30 +550,40 @@ VOID SetupSetWindowsOptions(
     if (Context->SetupCreateDefaultTaskManager)
     {
         NTSTATUS status;
-        HANDLE taskmgrKeyHandle = NULL;
+        HANDLE taskmgrKeyHandle;
 
-        if (NT_SUCCESS(status = PhCreateKey(
+        status = PhCreateKey(
             &taskmgrKeyHandle,
             KEY_READ | KEY_WRITE,
             PH_KEY_LOCAL_MACHINE,
             &TaskMgrImageOptionsKeyName,
-            0,
+            OBJ_OPENIF,
             0,
             NULL
-            )))
+            );
+
+        if (NT_SUCCESS(status))
         {
             PPH_STRING value;
             UNICODE_STRING valueName;
 
-            value = PhConcatStrings(3, L"\"", PhGetString(clientPathString), L"\"");
-
-            // Configure the default Task Manager.
             RtlInitUnicodeString(&valueName, L"Debugger");
-            NtSetValueKey(taskmgrKeyHandle, &valueName, 0, REG_SZ, value->Buffer, (ULONG)value->Length + 2);
 
+            value = PhConcatStrings(3, L"\"", PhGetString(clientPathString), L"\"");
+            status = NtSetValueKey(
+                taskmgrKeyHandle, 
+                &valueName,
+                0,
+                REG_SZ,
+                value->Buffer, 
+                (ULONG)value->Length + sizeof(UNICODE_NULL)
+                );
+
+            PhDereferenceObject(value);
             NtClose(taskmgrKeyHandle);
         }
-        else
+
+        if (!NT_SUCCESS(status))
         {
             PhShowStatus(NULL, L"Unable to set the Windows default Task Manager.", status, 0);
         }
@@ -528,7 +593,7 @@ VOID SetupSetWindowsOptions(
     if (Context->SetupCreateSystemStartup)
     {
         NTSTATUS status;
-        HANDLE runKeyHandle = NULL;
+        HANDLE runKeyHandle;
 
         if (NT_SUCCESS(status = PhOpenKey(
             &runKeyHandle,
@@ -686,10 +751,10 @@ VOID SetupCreateImageFileExecutionOptions(
 
     if (NT_SUCCESS(PhCreateKey(
         &keyHandle,
-        KEY_WRITE | DELETE,
+        KEY_WRITE,
         PH_KEY_LOCAL_MACHINE,
         &PhImageOptionsKeyName,
-        0,
+        OBJ_OPENIF,
         0,
         NULL
         )))

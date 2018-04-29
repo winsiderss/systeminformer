@@ -11,14 +11,6 @@ typedef BOOL (WINAPI *_SymCleanup)(
     _In_ HANDLE hProcess
     );
 
-typedef BOOL (WINAPI *_SymEnumSymbols)(
-    _In_ HANDLE hProcess,
-    _In_ ULONG64 BaseOfDll,
-    _In_opt_ PCSTR Mask,
-    _In_ PSYM_ENUMERATESYMBOLS_CALLBACK EnumSymbolsCallback,
-    _In_opt_ const PVOID UserContext
-    );
-
 typedef BOOL (WINAPI *_SymEnumSymbolsW)(
     _In_ HANDLE hProcess,
     _In_ ULONG64 BaseOfDll,
@@ -27,24 +19,11 @@ typedef BOOL (WINAPI *_SymEnumSymbolsW)(
     _In_opt_ const PVOID UserContext
     );
 
-typedef BOOL (WINAPI *_SymFromAddr)(
-    _In_ HANDLE hProcess,
-    _In_ ULONG64 Address,
-    _Out_opt_ PULONG64 Displacement,
-    _Inout_ PSYMBOL_INFO Symbol
-    );
-
 typedef BOOL (WINAPI *_SymFromAddrW)(
     _In_ HANDLE hProcess,
     _In_ ULONG64 Address,
     _Out_opt_ PULONG64 Displacement,
     _Inout_ PSYMBOL_INFOW Symbol
-    );
-
-typedef BOOL (WINAPI *_SymFromName)(
-    _In_ HANDLE hProcess,
-    _In_ PCSTR Name,
-    _Inout_ PSYMBOL_INFO Symbol
     );
 
 typedef BOOL (WINAPI *_SymFromNameW)(
@@ -60,24 +39,10 @@ typedef BOOL (WINAPI *_SymEnumTypesW)(
     _In_opt_ PVOID UserContext
     );
 
-typedef BOOL (WINAPI *_SymEnumTypes)(
-    _In_ HANDLE hProcess,
-    _In_ ULONG64 BaseOfDll,
-    _In_ PSYM_ENUMERATESYMBOLS_CALLBACK EnumSymbolsCallback,
-    _In_opt_ PVOID UserContext
-    );
-
 typedef BOOL (WINAPI *_SymGetModuleInfoW64)(
     _In_ HANDLE hProcess,
     _In_ ULONG64 qwAddr,
     _Out_ PIMAGEHLP_MODULEW64 ModuleInfo
-    );
-
-typedef BOOL (WINAPI *_SymGetTypeFromName)(
-    _In_ HANDLE hProcess,
-    _In_ ULONG64 BaseOfDll,
-    _In_ PCSTR Name,
-    _Inout_ PSYMBOL_INFO Symbol
     );
 
 typedef BOOL(WINAPI *_SymGetTypeFromNameW)(
@@ -87,27 +52,11 @@ typedef BOOL(WINAPI *_SymGetTypeFromNameW)(
     _Inout_ PSYMBOL_INFOW Symbol
     );
 
-typedef BOOL (WINAPI *_SymGetLineFromAddr64)(
-    _In_ HANDLE hProcess,
-    _In_ ULONG64 dwAddr,
-    _Out_ PULONG pdwDisplacement,
-    _Out_ PIMAGEHLP_LINE64 Line
-    );
-
 typedef BOOL (WINAPI *_SymGetLineFromAddrW64)(
     _In_ HANDLE hProcess,
     _In_ ULONG64 dwAddr,
     _Out_ PULONG pdwDisplacement,
     _Out_ PIMAGEHLP_LINEW64 Line
-    );
-
-typedef ULONG64 (WINAPI *_SymLoadModule64)(
-    _In_ HANDLE hProcess,
-    _In_opt_ HANDLE hFile,
-    _In_opt_ PCSTR ImageName,
-    _In_opt_ PCSTR ModuleName,
-    _In_ ULONG64 BaseOfDll,
-    _In_ ULONG SizeOfDll
     );
 
 typedef ULONG64 (WINAPI *_SymLoadModuleExW)(
@@ -127,21 +76,10 @@ typedef ULONG (WINAPI *_SymSetOptions)(
     _In_ ULONG SymOptions
     );
 
-typedef BOOL (WINAPI *_SymGetSearchPath)(
-    _In_ HANDLE hProcess,
-    _Out_ PSTR SearchPath,
-    _In_ ULONG SearchPathLength
-    );
-
 typedef BOOL (WINAPI *_SymGetSearchPathW)(
     _In_ HANDLE hProcess,
     _Out_ PWSTR SearchPath,
     _In_ ULONG SearchPathLength
-    );
-
-typedef BOOL (WINAPI *_SymSetSearchPath)(
-    _In_ HANDLE hProcess,
-    _In_opt_ PCSTR SearchPath
     );
 
 typedef BOOL (WINAPI *_SymSetSearchPathW)(
@@ -199,13 +137,6 @@ typedef UINT_PTR (CALLBACK *_SymbolServerGetOptions)(
 typedef BOOL (CALLBACK *_SymbolServerSetOptions)(
     _In_ UINT_PTR options,
     _In_ ULONG64 data
-    );
-
-typedef ULONG (WINAPI *_UnDecorateSymbolName)(
-    _In_ PCSTR DecoratedName,
-    _Out_ PSTR UnDecoratedName,
-    _In_ ULONG UndecoratedLength,
-    _In_ ULONG Flags
     );
 
 typedef ULONG (WINAPI *_UnDecorateSymbolNameW)(

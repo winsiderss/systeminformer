@@ -108,7 +108,7 @@ static PPH_STRING PhpGetStringForSelectedResults(
 
         result = Results->Items[i];
 
-        PhAppendFormatStringBuilder(&stringBuilder, L"0x%Ix (%u): %s\r\n", result->Address, result->Length,
+        PhAppendFormatStringBuilder(&stringBuilder, L"0x%Ix (%lu): %s\r\n", result->Address, result->Length,
             result->Display.Buffer ? result->Display.Buffer : L"");
     }
 
@@ -263,12 +263,12 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
 
     if (uMsg != WM_INITDIALOG)
     {
-        context = GetProp(hwndDlg, PhMakeContextAtom());
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
     }
     else
     {
         context = (PMEMORY_RESULTS_CONTEXT)lParam;
-        SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)context);
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
 
     if (!context)
@@ -333,7 +333,7 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
 
             ListView_SetItemCount(lvHandle, context->Results->Count);
 
-            SetDlgItemText(hwndDlg, IDC_INTRO, PhaFormatString(L"%s results.",
+            PhSetDialogItemText(hwndDlg, IDC_INTRO, PhaFormatString(L"%s results.",
                 PhaFormatUInt64(context->Results->Count, TRUE)->Buffer)->Buffer);
 
             {
@@ -362,7 +362,7 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
 
             PhDeleteLayoutManager(&context->LayoutManager);
             PhUnregisterDialog(hwndDlg);
-            RemoveProp(hwndDlg, PhMakeContextAtom());
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
             PhDereferenceMemoryResults((PPH_MEMORY_RESULT *)context->Results->Items, context->Results->Count);
             PhDereferenceObject(context->Results);
@@ -400,7 +400,7 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                     PhSetClipboardString(hwndDlg, &string->sr);
                     PhDereferenceObject(string);
 
-                    SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)lvHandle, TRUE);
+                    PhSetDialogFocus(hwndDlg, lvHandle);
                 }
                 break;
             case IDC_SAVE:
@@ -633,7 +633,7 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
 
                         menu = PhCreateEMenu();
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_MEMORY_READWRITEMEMORY, L"Read/Write memory", NULL, NULL), -1);
-                        PhInsertEMenuItem(menu, PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, L"", NULL, NULL), -1);
+                        PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), -1);
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"Copy", NULL, NULL), -1);
                         GetCursorPos(&point);
 
@@ -722,7 +722,7 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                                     PhSetClipboardString(hwndDlg, &string->sr);
                                     PhDereferenceObject(string);
 
-                                    SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)lvHandle, TRUE);
+                                    PhSetDialogFocus(hwndDlg, lvHandle);
                                 }
                                 break;
                             }

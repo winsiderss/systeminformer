@@ -178,13 +178,8 @@ VOID TracertQueueHostLookup(
             &remoteCountryName
             ))
         {
-            if (Node->RemoteCountryCode)
-                PhDereferenceObject(Node->RemoteCountryCode);
-            if (Node->RemoteCountryName)
-                PhDereferenceObject(Node->RemoteCountryName);
-
-            Node->RemoteCountryCode = remoteCountryCode;
-            Node->RemoteCountryName = remoteCountryName;
+            PhMoveReference(&Node->RemoteCountryCode, remoteCountryCode);
+            PhMoveReference(&Node->RemoteCountryName, remoteCountryName);
         }
     }
     else if (Context->RemoteEndpoint.Address.Type == PH_IPV6_NETWORK_TYPE)
@@ -234,13 +229,8 @@ VOID TracertQueueHostLookup(
             &remoteCountryName
             ))
         {
-            if (Node->RemoteCountryCode)
-                PhDereferenceObject(Node->RemoteCountryCode);
-            if (Node->RemoteCountryName)
-                PhDereferenceObject(Node->RemoteCountryName);
-
-            Node->RemoteCountryCode = remoteCountryCode;
-            Node->RemoteCountryName = remoteCountryName;
+            PhMoveReference(&Node->RemoteCountryCode, remoteCountryCode);
+            PhMoveReference(&Node->RemoteCountryName, remoteCountryName);
         }
     }
 }
@@ -264,6 +254,11 @@ NTSTATUS NetworkTracertThreadStart(
         IP_FLAG_DF,
         0
     };
+    WSADATA winsockStartup;
+
+    // WSAStartup required by GetNameInfo.
+    if (WSAStartup(WINSOCK_VERSION, &winsockStartup) != ERROR_SUCCESS)
+        goto CleanupExit;
 
     if (icmpRandString = PhCreateStringEx(NULL, PhGetIntegerSetting(SETTING_NAME_PING_SIZE) * 2 + 2))
     {
@@ -301,13 +296,15 @@ NTSTATUS NetworkTracertThreadStart(
 
     for (ULONG i = 0; i < DEFAULT_MAXIMUM_HOPS; i++)
     {
+        PTRACERT_ROOT_NODE node;
         IN_ADDR last4ReplyAddress = in4addr_any;
         IN6_ADDR last6ReplyAddress = in6addr_any;
 
         if (context->Cancel)
             break;
 
-        PTRACERT_ROOT_NODE node = AddTracertNode(context, pingOptions.Ttl);
+        node = AddTracertNode(context, pingOptions.Ttl);
+        PhReferenceObject(node);
 
         for (ULONG ii = 0; ii < DEFAULT_MAXIMUM_PINGS; ii++)
         {
@@ -427,6 +424,8 @@ NTSTATUS NetworkTracertThreadStart(
             }
         }
 
+        PhDereferenceObject(node);
+
         if (context->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
         {
             if (!memcmp(&last4ReplyAddress, &((PSOCKADDR_IN)&destinationAddress)->sin_addr, sizeof(IN_ADDR)))
@@ -444,13 +443,15 @@ NTSTATUS NetworkTracertThreadStart(
 CleanupExit:
 
     if (icmpHandle != INVALID_HANDLE_VALUE)
-    {
         IcmpCloseHandle(icmpHandle);
-    }
 
     PostMessage(context->WindowHandle, NTM_RECEIVEDFINISH, 0, 0);
-
     PhDereferenceObject(context);
+
+    if (icmpEchoBuffer)
+        PhDereferenceObject(icmpEchoBuffer);
+
+    WSACleanup();
     return STATUS_SUCCESS;
 }
 
@@ -584,11 +585,11 @@ INT_PTR CALLBACK TracertDlgProc(
     if (uMsg == WM_INITDIALOG)
     {
         context = (PNETWORK_TRACERT_CONTEXT)lParam;
-        SetProp(hwndDlg, L"Context", (HANDLE)context);
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = (PNETWORK_TRACERT_CONTEXT)GetProp(hwndDlg, L"Context");
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
         if (uMsg == WM_DESTROY)
         {
@@ -603,7 +604,7 @@ INT_PTR CALLBACK TracertDlgProc(
 
             PhDeleteWorkQueue(&context->WorkQueue);
             PhDeleteLayoutManager(&context->LayoutManager);
-            RemoveProp(hwndDlg, L"Context");
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhDereferenceObject(context);
 
             PostQuitMessage(0);
@@ -699,7 +700,7 @@ INT_PTR CALLBACK TracertDlgProc(
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MAINMENU_ACTION_PING, L"Ping", NULL, NULL), -1);
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, NETWORK_ACTION_TRACEROUTE, L"Traceroute", NULL, NULL), -1);
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, NETWORK_ACTION_WHOIS, L"Whois", NULL, NULL), -1);
-                        PhInsertEMenuItem(menu, PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, NULL, NULL, NULL), -1);
+                        PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), -1);
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MENU_ACTION_COPY, L"Copy", NULL, NULL), -1);
                         PhInsertCopyCellEMenuItem(menu, MENU_ACTION_COPY, context->TreeNewHandle, contextMenuEvent->Column);
 

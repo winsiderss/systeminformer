@@ -1,5 +1,5 @@
+/* src/config.h.  Generated from config.h.in by configure.  */
 /* src/config.h.in.  Generated from configure.ac by autoheader.  */
-
 
 /* PCRE2 is written in Standard C, but there are a few non-standard things it
 can cope with, allowing it to run on SunOS4 and other "close to standard"
@@ -33,7 +33,10 @@ sure both macros are undefined; an emulation function will then be used. */
    value), this is changed so that backslash-R matches only CR, LF, or CRLF.
    The build-time default can be overridden by the user of PCRE2 at runtime.
    */
-#undef BSR_ANYCRLF
+#ifndef BSR_ANYCRLF
+#define BSR_ANYCRLF 1
+#endif
+
 
 /* If you are compiling for a system that uses EBCDIC instead of ASCII
    character codes, define this macro to any value. When EBCDIC is set, PCRE2
@@ -154,13 +157,11 @@ sure both macros are undefined; an emulation function will then be used. */
 /* Define to 1 if you have the <zlib.h> header file. */
 #undef HAVE_ZLIB_H
 
-/* PCRE2 uses recursive function calls to handle backtracking while matching.
-   This can sometimes be a problem on systems that have stacks of limited
-   size. Define HEAP_MATCH_RECURSE to any value to get a version that doesn't
-   use recursion in the match() function; instead it creates its own stack by
-   steam using memory from the heap. For more detail, see the comments and
-   other stuff just above the match() function. */
-#undef HEAP_MATCH_RECURSE
+/* This limits the amount of memory that pcre2_match() may use while matching
+   a pattern. The value is in kilobytes. */
+#ifndef HEAP_LIMIT
+#define HEAP_LIMIT 20000000
+#endif
 
 /* The value of LINK_SIZE determines the number of bytes used to store links
    as offsets within the compiled regex. The default is 2, which allows for
@@ -172,28 +173,31 @@ sure both macros are undefined; an emulation function will then be used. */
 #endif
 
 /* Define to the sub-directory where libtool stores uninstalled libraries. */
-#undef LT_OBJDIR
+/* This is ignored unless you are using libtool. */
+#ifndef LT_OBJDIR
+#define LT_OBJDIR ".libs/"
+#endif
 
 /* The value of MATCH_LIMIT determines the default number of times the
-   internal match() function can be called during a single execution of
-   pcre2_match(). There is a runtime interface for setting a different limit.
-   The limit exists in order to catch runaway regular expressions that take
-   for ever to determine that they do not match. The default is set very large
-   so that it does not accidentally catch legitimate cases. */
+   pcre2_match() function can record a backtrack position during a single
+   matching attempt. There is a runtime interface for setting a different
+   limit. The limit exists in order to catch runaway regular expressions that
+   take for ever to determine that they do not match. The default is set very
+   large so that it does not accidentally catch legitimate cases. */
 #ifndef MATCH_LIMIT
 #define MATCH_LIMIT 10000000
 #endif
 
-/* The above limit applies to all calls of match(), whether or not they
-   increase the recursion depth. In some environments it is desirable to limit
-   the depth of recursive calls of match() more strictly, in order to restrict
-   the maximum amount of stack (or heap, if HEAP_MATCH_RECURSE is defined)
-   that is used. The value of MATCH_LIMIT_RECURSION applies only to recursive
-   calls of match(). To have any useful effect, it must be less than the value
-   of MATCH_LIMIT. The default is to use the same value as MATCH_LIMIT. There
-   is a runtime method for setting a different limit. */
-#ifndef MATCH_LIMIT_RECURSION
-#define MATCH_LIMIT_RECURSION MATCH_LIMIT
+/* The above limit applies to all backtracks, whether or not they are nested.
+   In some environments it is desirable to limit the nesting of backtracking
+   (that is, the depth of tree that is searched) more strictly, in order to
+   restrict the maximum amount of heap memory that is used. The value of
+   MATCH_LIMIT_DEPTH provides this facility. To have any useful effect, it
+   must be less than the value of MATCH_LIMIT. The default is to use the same
+   value as MATCH_LIMIT. There is a runtime method for setting a different
+   limit. */
+#ifndef MATCH_LIMIT_DEPTH
+#define MATCH_LIMIT_DEPTH MATCH_LIMIT
 #endif
 
 /* This limit is parameterized just in case anybody ever wants to change it.
@@ -215,32 +219,32 @@ sure both macros are undefined; an emulation function will then be used. */
 
 /* The value of NEWLINE_DEFAULT determines the default newline character
    sequence. PCRE2 client programs can override this by selecting other values
-   at run time. The valid values are 1 (CR), 2 (LF), 3 (CRLF), 4 (ANY), and 5
-   (ANYCRLF). */
+   at run time. The valid values are 1 (CR), 2 (LF), 3 (CRLF), 4 (ANY), 5
+   (ANYCRLF), and 6 (NUL). */
 #ifndef NEWLINE_DEFAULT
 #define NEWLINE_DEFAULT 4
 #endif
 
 /* Name of package */
-#undef PACKAGE
+#define PACKAGE "pcre2"
 
 /* Define to the address where bug reports for this package should be sent. */
-#undef PACKAGE_BUGREPORT
+#define PACKAGE_BUGREPORT ""
 
 /* Define to the full name of this package. */
-#undef PACKAGE_NAME
+#define PACKAGE_NAME "PCRE2"
 
 /* Define to the full name and version of this package. */
-#undef PACKAGE_STRING
+#define PACKAGE_STRING "PCRE2 10.31"
 
 /* Define to the one symbol short name of this package. */
-#undef PACKAGE_TARNAME
+#define PACKAGE_TARNAME "pcre2"
 
 /* Define to the home page for this package. */
-#undef PACKAGE_URL
+#define PACKAGE_URL ""
 
 /* Define to the version of this package. */
-#undef PACKAGE_VERSION
+#define PACKAGE_VERSION "10.31"
 
 /* The value of PARENS_NEST_LIMIT specifies the maximum depth of nested
    parentheses (of any kind) in a pattern. This limits the amount of system
@@ -267,18 +271,8 @@ sure both macros are undefined; an emulation function will then be used. */
 #define PCRE2GREP_MAX_BUFSIZE 1048576
 #endif
 
-/* to make a symbol visible */
-#undef PCRE2POSIX_EXP_DECL
-
-/* to make a symbol visible */
-#undef PCRE2POSIX_EXP_DEFN
-
 /* Define to any value to include debugging code. */
 #undef PCRE2_DEBUG
-
-/* to make a symbol visible */
-#undef PCRE2_EXP_DECL
-
 
 /* If you are compiling for a system other than a Unix-like system or
    Win32, and it needs some magic to be inserted before the definition
@@ -299,6 +293,11 @@ sure both macros are undefined; an emulation function will then be used. */
 /* Define to necessary symbol if this constant uses a non-standard name on
    your system. */
 #undef PTHREAD_CREATE_JOINABLE
+
+/* Define to any non-zero number to enable support for SELinux compatible
+   executable memory allocator in JIT. Note that this will have no effect
+   unless SUPPORT_JIT is also defined. */
+/* #undef SLJIT_PROT_EXECUTABLE_ALLOCATOR */
 
 /* Define to 1 if you have the ANSI C header files. */
 #ifndef STDC_HEADERS
@@ -335,10 +334,10 @@ sure both macros are undefined; an emulation function will then be used. */
 #endif
 
 /* Define to any value to enable the 32 bit PCRE2 library. */
-//#undef SUPPORT_PCRE2_32
+#undef SUPPORT_PCRE2_32
 
 /* Define to any value to enable the 8 bit PCRE2 library. */
-//#undef SUPPORT_PCRE2_8
+#undef SUPPORT_PCRE2_8
 
 /* Define to any value to enable support for Unicode and UTF encoding. This
    will work even in an EBCDIC environment, but it is incompatible with the
@@ -353,28 +352,27 @@ sure both macros are undefined; an emulation function will then be used. */
 
 /* Enable extensions on AIX 3, Interix.  */
 #ifndef _ALL_SOURCE
-# undef _ALL_SOURCE
+# define _ALL_SOURCE 1
 #endif
 /* Enable GNU extensions on systems that have them.  */
 #ifndef _GNU_SOURCE
-# undef _GNU_SOURCE
+# define _GNU_SOURCE 1
 #endif
 /* Enable threading extensions on Solaris.  */
 #ifndef _POSIX_PTHREAD_SEMANTICS
-# undef _POSIX_PTHREAD_SEMANTICS
+# define _POSIX_PTHREAD_SEMANTICS 1
 #endif
 /* Enable extensions on HP NonStop.  */
 #ifndef _TANDEM_SOURCE
-# undef _TANDEM_SOURCE
+# define _TANDEM_SOURCE 1
 #endif
 /* Enable general extensions on Solaris.  */
 #ifndef __EXTENSIONS__
-# undef __EXTENSIONS__
+# define __EXTENSIONS__ 1
 #endif
 
-
 /* Version number of package */
-#undef VERSION
+#define VERSION "10.31"
 
 /* Define to 1 if on MINIX. */
 #undef _MINIX
@@ -387,11 +385,11 @@ sure both macros are undefined; an emulation function will then be used. */
 #undef _POSIX_SOURCE
 
 /* Define to empty if `const' does not conform to ANSI C. */
-#undef const
+/* #undef const */
 
 /* Define to the type of a signed integer type of width exactly 64 bits if
    such a type exists and the standard includes do not define it. */
-#undef int64_t
+/* #undef int64_t */
 
 /* Define to `unsigned int' if <sys/types.h> does not define. */
-#undef size_t
+/* #undef size_t */

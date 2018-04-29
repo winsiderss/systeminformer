@@ -62,6 +62,9 @@ VOID EtHandlePropertiesInitializing(
     PPH_PLUGIN_OBJECT_PROPERTIES objectProperties = Parameter;
     PPH_PLUGIN_HANDLE_PROPERTIES_CONTEXT context = objectProperties->Parameter;
 
+    if (PhIsNullOrEmptyString(context->HandleItem->TypeName))
+        return;
+
     if (objectProperties->NumberOfPages < objectProperties->MaximumNumberOfPages)
     {
         HPROPSHEETPAGE page = NULL;
@@ -212,10 +215,10 @@ INT_PTR CALLBACK EtpAlpcPortPageDlgProc(
                     format[1].Type |= FormatGroupDigits;
 
                     string = PhFormat(format, 2, 128);
-                    SetDlgItemText(hwndDlg, IDC_SEQUENCENUMBER, string->Buffer);
+                    PhSetDialogItemText(hwndDlg, IDC_SEQUENCENUMBER, string->Buffer);
                     PhDereferenceObject(string);
 
-                    SetDlgItemText(hwndDlg, IDC_PORTCONTEXT,
+                    PhSetDialogItemText(hwndDlg, IDC_PORTCONTEXT,
                         PhaFormatString(L"Port Context: 0x%Ix", basicInfo.PortContext)->Buffer);
                 }
 
@@ -288,17 +291,17 @@ INT_PTR CALLBACK EtpTpWorkerFactoryPageDlgProc(
 
                     if (symbol)
                     {
-                        SetDlgItemText(hwndDlg, IDC_WORKERTHREADSTART,
+                        PhSetDialogItemText(hwndDlg, IDC_WORKERTHREADSTART,
                             PhaFormatString(L"Worker Thread Start: %s", symbol->Buffer)->Buffer);
                         PhDereferenceObject(symbol);
                     }
                     else
                     {
-                        SetDlgItemText(hwndDlg, IDC_WORKERTHREADSTART,
+                        PhSetDialogItemText(hwndDlg, IDC_WORKERTHREADSTART,
                             PhaFormatString(L"Worker Thread Start: 0x%Ix", basicInfo.StartRoutine)->Buffer);
                     }
 
-                    SetDlgItemText(hwndDlg, IDC_WORKERTHREADCONTEXT,
+                    PhSetDialogItemText(hwndDlg, IDC_WORKERTHREADCONTEXT,
                         PhaFormatString(L"Worker Thread Context: 0x%Ix", basicInfo.StartParameter)->Buffer);
                 }
 

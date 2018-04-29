@@ -19,8 +19,9 @@
 #define PHSVTLC_KEYMODIFIEDTIME 10
 #define PHSVTLC_VERIFICATIONSTATUS 11
 #define PHSVTLC_VERIFIEDSIGNER 12
+#define PHSVTLC_FILENAME 13
 
-#define PHSVTLC_MAXIMUM 13
+#define PHSVTLC_MAXIMUM 14
 
 #define PHSN_CONFIG 0x1
 #define PHSN_DESCRIPTION 0x2
@@ -48,10 +49,9 @@ typedef struct _PH_SERVICE_NODE
     PPH_STRING Description;
     // Key
     LARGE_INTEGER KeyLastWriteTime;
-
     PPH_STRING TooltipText;
-
     PPH_STRING KeyModifiedTimeText;
+    BOOLEAN ServiceQueryStage2;
 // begin_phapppub
 } PH_SERVICE_NODE, *PPH_SERVICE_NODE;
 // end_phapppub

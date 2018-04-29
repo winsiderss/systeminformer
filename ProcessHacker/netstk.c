@@ -28,6 +28,7 @@
 typedef struct NETWORK_STACK_CONTEXT
 {
     HWND ListViewHandle;
+    PH_LAYOUT_MANAGER LayoutManager;
     PPH_NETWORK_ITEM NetworkItem;
     PPH_SYMBOL_PROVIDER SymbolProvider;
     HANDLE LoadingProcessId;
@@ -126,36 +127,44 @@ static INT_PTR CALLBACK PhpNetworkStackDlgProc(
     _In_ LPARAM lParam
     )
 {
+    PNETWORK_STACK_CONTEXT context = NULL;
+
+    if (uMsg == WM_INITDIALOG)
+    {
+        context = (PNETWORK_STACK_CONTEXT)lParam;
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+    }
+    else
+    {
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+
+        if (uMsg == WM_DESTROY)
+        {
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+        }
+    }
+
+    if (!context)
+        return FALSE;
+
     switch (uMsg)
     {
     case WM_INITDIALOG:
         {
-            PNETWORK_STACK_CONTEXT networkStackContext;
             HWND lvHandle;
-            PPH_LAYOUT_MANAGER layoutManager;
             PVOID address;
             ULONG i;
 
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
-            networkStackContext = (PNETWORK_STACK_CONTEXT)lParam;
-            SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)networkStackContext);
-
-            lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
+            context->ListViewHandle = lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 350, L"Name");
             PhSetListViewStyle(lvHandle, FALSE, TRUE);
             PhSetControlTheme(lvHandle, L"explorer");
 
-            networkStackContext->ListViewHandle = lvHandle;
-
-            layoutManager = PhAllocate(sizeof(PH_LAYOUT_MANAGER));
-            PhInitializeLayoutManager(layoutManager, hwndDlg);
-            SetProp(hwndDlg, L"LayoutManager", (HANDLE)layoutManager);
-
-            PhAddLayoutItem(layoutManager, lvHandle, NULL,
-                PH_ANCHOR_ALL);
-            PhAddLayoutItem(layoutManager, GetDlgItem(hwndDlg, IDOK),
-                NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhAddLayoutItem(&context->LayoutManager, lvHandle, NULL, PH_ANCHOR_ALL);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
             if (MinimumSize.left == -1)
             {
@@ -174,13 +183,13 @@ static INT_PTR CALLBACK PhpNetworkStackDlgProc(
             {
                 PPH_STRING name;
 
-                address = *(PVOID *)&networkStackContext->NetworkItem->OwnerInfo[i];
+                address = *(PVOID *)&context->NetworkItem->OwnerInfo[i];
 
                 if ((ULONG_PTR)address < PAGE_SIZE) // stop at an invalid address
                     break;
 
                 name = PhGetSymbolFromAddress(
-                    networkStackContext->SymbolProvider,
+                    context->SymbolProvider,
                     (ULONG64)address,
                     NULL,
                     NULL,
@@ -194,17 +203,9 @@ static INT_PTR CALLBACK PhpNetworkStackDlgProc(
         break;
     case WM_DESTROY:
         {
-            PPH_LAYOUT_MANAGER layoutManager;
-            PNETWORK_STACK_CONTEXT networkStackContext;
+            PhDeleteLayoutManager(&context->LayoutManager);
 
-            layoutManager = (PPH_LAYOUT_MANAGER)GetProp(hwndDlg, L"LayoutManager");
-            PhDeleteLayoutManager(layoutManager);
-            PhFree(layoutManager);
-
-            networkStackContext = (PNETWORK_STACK_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
-
-            RemoveProp(hwndDlg, PhMakeContextAtom());
-            RemoveProp(hwndDlg, L"LayoutManager");
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
         }
         break;
     case WM_COMMAND:
@@ -220,10 +221,7 @@ static INT_PTR CALLBACK PhpNetworkStackDlgProc(
         break;
     case WM_SIZE:
         {
-            PPH_LAYOUT_MANAGER layoutManager;
-
-            layoutManager = (PPH_LAYOUT_MANAGER)GetProp(hwndDlg, L"LayoutManager");
-            PhLayoutManagerLayout(layoutManager);
+            PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
     case WM_SIZING:

@@ -64,7 +64,7 @@ NTSTATUS PhSvcApiPortInitialization(
         RtlLengthSid(&PhSeEveryoneSid);
 
     securityDescriptor = PhAllocate(sdAllocationLength);
-    dacl = (PACL)((PCHAR)securityDescriptor + SECURITY_DESCRIPTOR_MIN_LENGTH);
+    dacl = (PACL)PTR_ADD_OFFSET(securityDescriptor, SECURITY_DESCRIPTOR_MIN_LENGTH);
 
     RtlCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
     RtlCreateAcl(dacl, sdAllocationLength - SECURITY_DESCRIPTOR_MIN_LENGTH, ACL_REVISION);
@@ -296,12 +296,12 @@ VOID PhSvcHandleConnectionRequest(
     if (PhIsExecutingInWow64())
     {
         client->ClientViewBase = (PVOID)clientView64.ViewBase;
-        client->ClientViewLimit = (PCHAR)clientView64.ViewBase + (ULONG)clientView64.ViewSize;
+        client->ClientViewLimit = PTR_ADD_OFFSET(clientView64.ViewBase, clientView64.ViewSize);
     }
     else
     {
         client->ClientViewBase = clientView.ViewBase;
-        client->ClientViewLimit = (PCHAR)clientView.ViewBase + clientView.ViewSize;
+        client->ClientViewLimit = PTR_ADD_OFFSET(clientView.ViewBase, clientView.ViewSize);
     }
 
     NtCompleteConnectPort(portHandle);

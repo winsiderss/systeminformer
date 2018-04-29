@@ -3,6 +3,7 @@
  *   process mitigation policy details
  *
  * Copyright (C) 2016 wj32
+ * Copyright (C) 2016-2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -26,12 +27,15 @@
 
 typedef struct _MITIGATION_POLICY_ENTRY
 {
+    BOOLEAN NonStandard;
     PPH_STRING ShortDescription;
     PPH_STRING LongDescription;
 } MITIGATION_POLICY_ENTRY, *PMITIGATION_POLICY_ENTRY;
 
 typedef struct _MITIGATION_POLICY_CONTEXT
 {
+    HWND ListViewHandle;
+    PPS_SYSTEM_DLL_INIT_BLOCK SystemDllInitBlock;
     MITIGATION_POLICY_ENTRY Entries[MaxProcessMitigationPolicy];
 } MITIGATION_POLICY_CONTEXT, *PMITIGATION_POLICY_CONTEXT;
 
@@ -42,44 +46,127 @@ INT_PTR CALLBACK PhpProcessMitigationPolicyDlgProc(
     _In_ LPARAM lParam
     );
 
-VOID PhShowProcessMitigationPolicyDialog(
-    _In_ HWND ParentWindowHandle,
-    _In_ struct _PH_PROCESS_MITIGATION_POLICY_ALL_INFORMATION *Information
+NTSTATUS PhpGetProcessSystemDllInitBlock(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPS_SYSTEM_DLL_INIT_BLOCK *SystemDllInitBlock
     )
 {
+    NTSTATUS status;
+    PPS_SYSTEM_DLL_INIT_BLOCK ldrInitBlock = NULL;
+    PVOID ldrInitBlockBaseAddress = NULL;
+    PPH_STRING ntdllFileName;
+
+    ldrInitBlock = PhAllocate(sizeof(PS_SYSTEM_DLL_INIT_BLOCK));
+    memset(ldrInitBlock, 0, sizeof(PS_SYSTEM_DLL_INIT_BLOCK));
+
+    ntdllFileName = PhConcatStrings2(USER_SHARED_DATA->NtSystemRoot, L"\\System32\\ntdll.dll");
+    status = PhGetProcedureAddressRemote(
+        ProcessHandle,
+        ntdllFileName->Buffer,
+        "LdrSystemDllInitBlock",
+        0,
+        &ldrInitBlockBaseAddress,
+        NULL
+        );
+
+    PhDereferenceObject(ntdllFileName);
+
+    if (NT_SUCCESS(status) && ldrInitBlockBaseAddress)
+    {
+        status = NtReadVirtualMemory(
+            ProcessHandle,
+            ldrInitBlockBaseAddress,
+            ldrInitBlock,
+            sizeof(PS_SYSTEM_DLL_INIT_BLOCK),
+            NULL
+            );
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        *SystemDllInitBlock = ldrInitBlock;
+    }
+
+    return status;
+}
+
+VOID PhShowProcessMitigationPolicyDialog(
+    _In_ HWND ParentWindowHandle,
+    _In_ HANDLE ProcessId
+    )
+{
+    NTSTATUS status;
+    HANDLE processHandle;
+    PH_PROCESS_MITIGATION_POLICY_ALL_INFORMATION information;
     MITIGATION_POLICY_CONTEXT context;
     PROCESS_MITIGATION_POLICY policy;
     PPH_STRING shortDescription;
     PPH_STRING longDescription;
 
+    memset(&context, 0, sizeof(MITIGATION_POLICY_CONTEXT));
     memset(&context.Entries, 0, sizeof(context.Entries));
 
-    for (policy = 0; policy < MaxProcessMitigationPolicy; policy++)
+    if (NT_SUCCESS(status = PhOpenProcess(
+        &processHandle,
+        PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
+        ProcessId
+        )))
     {
-        if (Information->Pointers[policy] && PhDescribeProcessMitigationPolicy(
-            policy,
-            Information->Pointers[policy],
-            &shortDescription,
-            &longDescription
-            ))
+        PPS_SYSTEM_DLL_INIT_BLOCK dllInitBlock;
+
+        if (NT_SUCCESS(PhpGetProcessSystemDllInitBlock(processHandle, &dllInitBlock)))
         {
-            context.Entries[policy].ShortDescription = shortDescription;
-            context.Entries[policy].LongDescription = longDescription;
+            context.SystemDllInitBlock = dllInitBlock;
         }
+
+        NtClose(processHandle);
     }
 
-    DialogBoxParam(
-        PhInstanceHandle,
-        MAKEINTRESOURCE(IDD_MITIGATION),
-        ParentWindowHandle,
-        PhpProcessMitigationPolicyDlgProc,
-        (LPARAM)&context
-        );
-
-    for (policy = 0; policy < MaxProcessMitigationPolicy; policy++)
+    if (NT_SUCCESS(status = PhOpenProcess(
+        &processHandle,
+        PROCESS_QUERY_INFORMATION,
+        ProcessId
+        )))
     {
-        PhClearReference(&context.Entries[policy].ShortDescription);
-        PhClearReference(&context.Entries[policy].LongDescription);
+        if (NT_SUCCESS(PhGetProcessMitigationPolicy(processHandle, &information)))
+        {
+            for (policy = 0; policy < MaxProcessMitigationPolicy; policy++)
+            {
+                if (information.Pointers[policy] && PhDescribeProcessMitigationPolicy(
+                    policy,
+                    information.Pointers[policy],
+                    &shortDescription,
+                    &longDescription
+                    ))
+                {
+                    context.Entries[policy].ShortDescription = shortDescription;
+                    context.Entries[policy].LongDescription = longDescription;
+                }
+            }
+
+            DialogBoxParam(
+                PhInstanceHandle,
+                MAKEINTRESOURCE(IDD_MITIGATION),
+                ParentWindowHandle,
+                PhpProcessMitigationPolicyDlgProc,
+                (LPARAM)&context
+                );
+
+            for (policy = 0; policy < MaxProcessMitigationPolicy; policy++)
+            {
+                PhClearReference(&context.Entries[policy].ShortDescription);
+                PhClearReference(&context.Entries[policy].LongDescription);
+            }
+        }
+
+        if (context.SystemDllInitBlock)
+            PhFree(context.SystemDllInitBlock);
+
+        NtClose(processHandle);
+    }
+    else
+    {
+        PhShowStatus(ParentWindowHandle, L"Unable to open the process", status, 0);
     }
 }
 
@@ -90,16 +177,35 @@ INT_PTR CALLBACK PhpProcessMitigationPolicyDlgProc(
     _In_ LPARAM lParam
     )
 {
+    PMITIGATION_POLICY_CONTEXT context = NULL;
+
+    if (uMsg == WM_INITDIALOG)
+    {
+        context = (PMITIGATION_POLICY_CONTEXT)lParam;
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+    }
+    else
+    {
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+
+        if (uMsg == WM_DESTROY)
+        {
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+        }
+    }
+
+    if (context == NULL)
+        return FALSE;
+
     switch (uMsg)
     {
     case WM_INITDIALOG:
         {
-            PMITIGATION_POLICY_CONTEXT context = (PMITIGATION_POLICY_CONTEXT)lParam;
             HWND lvHandle;
             PROCESS_MITIGATION_POLICY policy;
 
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
-            lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
+            context->ListViewHandle = lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
             PhSetListViewStyle(lvHandle, FALSE, TRUE);
             PhSetControlTheme(lvHandle, L"explorer");
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 350, L"Policy");
@@ -115,14 +221,62 @@ INT_PTR CALLBACK PhpProcessMitigationPolicyDlgProc(
                 PhAddListViewItem(lvHandle, MAXINT, entry->ShortDescription->Buffer, entry);
             }
 
+            if (context->SystemDllInitBlock && RTL_CONTAINS_FIELD(context->SystemDllInitBlock, context->SystemDllInitBlock->Size, MitigationOptionsMap))
+            {
+                if (context->SystemDllInitBlock->MitigationOptionsMap.Map[1] & PROCESS_CREATION_MITIGATION_POLICY2_LOADER_INTEGRITY_CONTINUITY_ALWAYS_ON)
+                {
+                    PMITIGATION_POLICY_ENTRY entry;
+
+                    entry = PhAllocate(sizeof(MITIGATION_POLICY_ENTRY));
+                    entry->NonStandard = TRUE;
+                    entry->ShortDescription = PhCreateString(L"Loader Integrity");
+                    entry->LongDescription = PhCreateString(L"OS signing levels for depenedent module loads are enabled.");
+
+                    PhAddListViewItem(lvHandle, MAXINT, entry->ShortDescription->Buffer, entry);
+                }
+
+                if (context->SystemDllInitBlock->MitigationOptionsMap.Map[1] & PROCESS_CREATION_MITIGATION_POLICY2_MODULE_TAMPERING_PROTECTION_ALWAYS_ON)
+                {
+                    PMITIGATION_POLICY_ENTRY entry;
+
+                    entry = PhAllocate(sizeof(MITIGATION_POLICY_ENTRY));
+                    entry->NonStandard = TRUE;
+                    entry->ShortDescription = PhCreateString(L"Module Tampering");
+                    entry->LongDescription = PhCreateString(L"Module Tampering protection is enabled.");
+
+                    PhAddListViewItem(lvHandle, MAXINT, entry->ShortDescription->Buffer, entry);
+                }
+            }
+
             ExtendedListView_SortItems(lvHandle);
+            ExtendedListView_SetColumnWidth(lvHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
             ListView_SetItemState(lvHandle, 0, LVIS_FOCUSED | LVIS_SELECTED, LVIS_FOCUSED | LVIS_SELECTED);
-            SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)lvHandle, TRUE);
+
+            PhSetDialogFocus(hwndDlg, lvHandle);
         }
         break;
     case WM_DESTROY:
         {
-            // Nothing
+            ULONG index = -1;
+
+            while ((index = PhFindListViewItemByFlags(
+                context->ListViewHandle,
+                index,
+                LVNI_ALL
+                )) != -1)
+            {
+                PMITIGATION_POLICY_ENTRY entry;
+
+                if (PhGetListViewItemParam(context->ListViewHandle, index, &entry))
+                {
+                    if (entry->NonStandard)
+                    {
+                        PhClearReference(&entry->ShortDescription);
+                        PhClearReference(&entry->LongDescription);
+                        PhFree(entry);
+                    }
+                }
+            }
         }
         break;
     case WM_COMMAND:
@@ -154,7 +308,7 @@ INT_PTR CALLBACK PhpProcessMitigationPolicyDlgProc(
                         else
                             description = L"";
 
-                        SetDlgItemText(hwndDlg, IDC_DESCRIPTION, description);
+                        PhSetDialogItemText(hwndDlg, IDC_DESCRIPTION, description);
                     }
                 }
                 break;

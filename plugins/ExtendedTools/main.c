@@ -42,6 +42,7 @@ PH_CALLBACK_REGISTRATION ProcessTreeNewInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION NetworkTreeNewInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION SystemInformationInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION MiniInformationInitializingCallbackRegistration;
+PH_CALLBACK_REGISTRATION TrayIconsInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
 PH_CALLBACK_REGISTRATION NetworkItemsUpdatedCallbackRegistration;
 
@@ -54,8 +55,6 @@ VOID NTAPI LoadCallback(
 {
     EtEtwStatisticsInitialization();
     EtGpuMonitorInitialization();
-
-    EtRegisterNotifyIcons();
 }
 
 VOID NTAPI UnloadCallback(
@@ -181,8 +180,8 @@ VOID NTAPI ProcessMenuInitializingCallback(
 
     if (miscMenu)
     {
-        PhInsertEMenuItem(miscMenu, PhPluginCreateEMenuItem(PluginInstance, flags, ID_PROCESS_UNLOADEDMODULES, L"Unloaded modules", processItem), -1);
-        PhInsertEMenuItem(miscMenu, PhPluginCreateEMenuItem(PluginInstance, flags, ID_PROCESS_WSWATCH, L"WS watch", processItem), -1);
+        PhInsertEMenuItem(miscMenu, PhPluginCreateEMenuItem(PluginInstance, flags, ID_PROCESS_UNLOADEDMODULES, L"&Unloaded modules", processItem), -1);
+        PhInsertEMenuItem(miscMenu, PhPluginCreateEMenuItem(PluginInstance, flags, ID_PROCESS_WSWATCH, L"&WS watch", processItem), -1);
     }
 }
 
@@ -207,7 +206,7 @@ VOID NTAPI ThreadMenuInitializingCallback(
         insertIndex = 0;
 
     PhInsertEMenuItem(menuInfo->Menu, menuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_THREAD_CANCELIO,
-        L"Cancel I/O", threadItem), insertIndex);
+        L"Ca&ncel I/O", threadItem), insertIndex);
 
     if (!threadItem) menuItem->Flags |= PH_EMENU_DISABLED;
 }
@@ -250,7 +249,7 @@ VOID NTAPI ModuleMenuInitializingCallback(
     ModuleProcessId = menuInfo->u.Module.ProcessId;
 
     PhInsertEMenuItem(menuInfo->Menu, menuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_MODULE_SERVICES,
-        L"Services", moduleItem), insertIndex);
+        L"Ser&vices", moduleItem), insertIndex);
 
     if (!moduleItem) menuItem->Flags |= PH_EMENU_DISABLED;
 }
@@ -297,6 +296,14 @@ VOID NTAPI MiniInformationInitializingCallback(
         EtGpuMiniInformationInitializing(Parameter);
     if (EtEtwEnabled)
         EtEtwMiniInformationInitializing(Parameter);
+}
+
+VOID NTAPI TrayIconsInitializingCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    EtRegisterNotifyIcons(Parameter);
 }
 
 VOID NTAPI ProcessesUpdatedCallback(
@@ -569,6 +576,13 @@ LOGICAL DllMain(
                 MiniInformationInitializingCallback,
                 NULL,
                 &MiniInformationInitializingCallbackRegistration
+                );
+
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackTrayIconsInitializing),
+                TrayIconsInitializingCallback,
+                NULL,
+                &TrayIconsInitializingCallbackRegistration
                 );
 
             PhRegisterCallback(

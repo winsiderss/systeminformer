@@ -26,15 +26,13 @@
 #include <cfgmgr32.h>
 #include <ndisguid.h>
 
-#define ITEM_CHECKED (INDEXTOSTATEIMAGEMASK(2))
-#define ITEM_UNCHECKED (INDEXTOSTATEIMAGEMASK(1))
-
 typedef struct _NET_ENUM_ENTRY
 {
     BOOLEAN DevicePresent;
     IF_LUID DeviceLuid;
     PPH_STRING DeviceGuid;
     PPH_STRING DeviceName;
+    PPH_STRING DeviceInterface;
 } NET_ENUM_ENTRY, *PNET_ENUM_ENTRY;
 
 static int __cdecl AdapterEntryCompareFunction(
@@ -187,7 +185,7 @@ VOID AddNetworkAdapterToListView(
     BOOLEAN found = FALSE;
     PDV_NETADAPTER_ID newId = NULL;
 
-    InitializeNetAdapterId(&adapterId, IfIndex, Luid, NULL);
+    InitializeNetAdapterId(&adapterId, IfIndex, Luid, Guid);
 
     for (ULONG i = 0; i < NetworkAdaptersList->Count; i++)
     {
@@ -227,7 +225,7 @@ VOID AddNetworkAdapterToListView(
         );
 
     if (found)
-        ListView_SetItemState(Context->ListViewHandle, lvItemIndex, ITEM_CHECKED, LVIS_STATEIMAGEMASK);
+        ListView_SetCheckState(Context->ListViewHandle, lvItemIndex, TRUE);
 
     DeleteNetAdapterId(&adapterId);
 }
@@ -438,10 +436,11 @@ VOID FindNetworkAdapters(
                 memset(adapterEntry, 0, sizeof(NET_ENUM_ENTRY));
 
                 adapterEntry->DeviceGuid = PhQueryRegistryString(keyHandle, L"NetCfgInstanceId");
+                adapterEntry->DeviceInterface = PhConcatStrings2(L"\\\\.\\", adapterEntry->DeviceGuid->Buffer);
                 adapterEntry->DeviceLuid.Info.IfType = QueryRegistryUlong64(keyHandle, L"*IfType");
                 adapterEntry->DeviceLuid.Info.NetLuidIndex = QueryRegistryUlong64(keyHandle, L"NetLuidIndex");
 
-                if (NT_SUCCESS(NetworkAdapterCreateHandle(&deviceHandle, adapterEntry->DeviceGuid)))
+                if (NT_SUCCESS(NetworkAdapterCreateHandle(&deviceHandle, adapterEntry->DeviceInterface)))
                 {
                     PPH_STRING adapterName;
 
@@ -487,6 +486,8 @@ VOID FindNetworkAdapters(
 
             if (entry->DeviceName)
                 PhDereferenceObject(entry->DeviceName);
+            if (entry->DeviceInterface)
+                PhDereferenceObject(entry->DeviceInterface);
             // Note: DeviceGuid is disposed by WM_DESTROY.
 
             PhFree(entry);
@@ -697,11 +698,11 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
         context = (PDV_NETADAPTER_CONTEXT)PhAllocate(sizeof(DV_NETADAPTER_CONTEXT));
         memset(context, 0, sizeof(DV_NETADAPTER_CONTEXT));
 
-        SetProp(hwndDlg, L"Context", (HANDLE)context);
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = (PDV_NETADAPTER_CONTEXT)GetProp(hwndDlg, L"Context");
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
         if (uMsg == WM_DESTROY)
         {
@@ -712,7 +713,7 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
 
             FreeListViewAdapterEntries(context);
 
-            RemoveProp(hwndDlg, L"Context");
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
         }
     }
@@ -747,6 +748,8 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
     case WM_SIZE:
         {
             PhLayoutManagerLayout(&context->LayoutManager);
+
+            ExtendedListView_SetColumnWidth(context->ListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
         }
         break;
     case WM_COMMAND:
@@ -770,6 +773,8 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
                     ListView_DeleteAllItems(context->ListViewHandle);
 
                     FindNetworkAdapters(context);
+
+                    ExtendedListView_SetColumnWidth(context->ListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
                 }
                 break;
             }
@@ -790,7 +795,7 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
                 {
                     switch (listView->uNewState & LVIS_STATEIMAGEMASK)
                     {
-                    case 0x2000: // checked
+                    case INDEXTOSTATEIMAGEMASK(2): // checked
                         {
                             PDV_NETADAPTER_ID param = (PDV_NETADAPTER_ID)listView->lParam;
 
@@ -805,7 +810,7 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
                             context->OptionsChanged = TRUE;
                         }
                         break;
-                    case 0x1000: // unchecked
+                    case INDEXTOSTATEIMAGEMASK(1): // unchecked
                         {
                             PDV_NETADAPTER_ID param = (PDV_NETADAPTER_ID)listView->lParam;
 

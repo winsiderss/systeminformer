@@ -1,0 +1,392 @@
+/*
+ * Process Hacker -
+ *   PE viewer
+ *
+ * Copyright (C) 2017 dmex
+ *
+ * This file is part of Process Hacker.
+ *
+ * Process Hacker is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Process Hacker is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#include <peview.h>
+#include <mapimg.h>
+#include <uxtheme.h>
+
+PWSTR PvpGetSymbolTypeName(
+    _In_ UCHAR TypeInfo
+    )
+{
+    switch (ELF_ST_TYPE(TypeInfo))
+    {
+    case STT_NOTYPE:
+        return L"No type";
+    case STT_OBJECT:
+        return L"Object";
+    case STT_FUNC:
+        return L"Function";
+    case STT_SECTION:
+        return L"Section";
+    case STT_FILE:
+        return L"File";
+    case STT_COMMON:
+        return L"Common";
+    case STT_TLS:
+        return L"TLS";
+    case STT_GNU_IFUNC:
+        return L"IFUNC";
+    }
+
+    return L"***ERROR***";
+}
+
+PWSTR PvpGetSymbolBindingName(
+    _In_ UCHAR TypeInfo
+    )
+{
+    switch (ELF_ST_BIND(TypeInfo))
+    {
+    case STB_LOCAL:
+        return L"Local";
+    case STB_GLOBAL:
+        return L"Global";
+    case STB_WEAK:
+        return L"Weak";
+    case STB_GNU_UNIQUE:
+        return L"Unique";
+    }
+
+    return L"***ERROR***";
+}
+
+VOID PvExlfProperties(
+    VOID
+    )
+{
+    PPV_PROPCONTEXT propContext;
+
+    if (propContext = PvCreatePropContext(PvFileName))
+    {
+        PPV_PROPPAGECONTEXT newPage;
+
+        // General
+        newPage = PvCreatePropPageContext(
+            MAKEINTRESOURCE(IDD_ELFGENERAL),
+            PvpExlfGeneralDlgProc,
+            NULL
+            );
+        PvAddPropPage(propContext, newPage);
+
+        // Imports
+        newPage = PvCreatePropPageContext(
+            MAKEINTRESOURCE(IDD_PEIMPORTS),
+            PvpExlfImportsDlgProc,
+            NULL
+            );
+        PvAddPropPage(propContext, newPage);
+
+        // Exports
+        newPage = PvCreatePropPageContext(
+            MAKEINTRESOURCE(IDD_PEEXPORTS),
+            PvpExlfExportsDlgProc,
+            NULL
+            );
+        PvAddPropPage(propContext, newPage);
+
+        PhModalPropertySheet(&propContext->PropSheetHeader);
+
+        PhDereferenceObject(propContext);
+    }
+}
+
+VOID PvpSetWslImageType(
+    _In_ HWND hwndDlg
+    )
+{
+    PWSTR type = L"N/A";
+
+    switch (PvMappedImage.Header->e_type)
+    {
+    case ET_DYN:
+        type = L"Dynamic";
+        break;
+    case ET_EXEC:
+        type = L"Executable";
+        break;
+    default:
+        type = L"ERROR";
+        break;
+    }
+
+    PhSetDialogItemText(hwndDlg, IDC_IMAGETYPE, type);
+}
+
+VOID PvpSetWslImageMachineType(
+    _In_ HWND hwndDlg
+    )
+{
+    PWSTR type = L"N/A";
+
+    switch (PvMappedImage.Header->e_machine)
+    {
+    case EM_386:
+        type = L"i386";
+        break;
+    case EM_X86_64:
+        type = L"AMD64";
+        break;
+    default:
+        type = L"ERROR";
+        break;
+    }
+
+    PhSetDialogItemText(hwndDlg, IDC_TARGETMACHINE, type);
+}
+
+VOID PvpSetWslImageBase(
+    _In_ HWND hwndDlg
+    )
+{
+    PPH_STRING string;
+
+    if (PvMappedImage.Header->e_ident[EI_CLASS] == ELFCLASS32)
+    {
+        string = PhFormatString(L"0x%I32x", PhGetMappedWslImageBaseAddress(&PvMappedImage));
+        PhSetDialogItemText(hwndDlg, IDC_IMAGEBASE, string->Buffer);
+        PhDereferenceObject(string);
+    }
+    else if (PvMappedImage.Header->e_ident[EI_CLASS] == ELFCLASS64)
+    {
+        string = PhFormatString(L"0x%I64x", PhGetMappedWslImageBaseAddress(&PvMappedImage));
+        PhSetDialogItemText(hwndDlg, IDC_IMAGEBASE, string->Buffer);
+        PhDereferenceObject(string);
+    }
+}
+
+VOID PvpSetWslEntrypoint(
+    _In_ HWND hwndDlg
+    )
+{
+    PPH_STRING string;
+
+    if (PvMappedImage.Header->e_ident[EI_CLASS] == ELFCLASS32)
+    {
+        string = PhFormatString(L"0x%I32x", PvMappedImage.Headers32->e_entry);
+        PhSetDialogItemText(hwndDlg, IDC_ENTRYPOINT, string->Buffer);
+        PhDereferenceObject(string);
+    }
+    else if (PvMappedImage.Header->e_ident[EI_CLASS] == ELFCLASS64)
+    {
+        string = PhFormatString(L"0x%I64x", PvMappedImage.Headers64->e_entry);
+        PhSetDialogItemText(hwndDlg, IDC_ENTRYPOINT, string->Buffer);
+        PhDereferenceObject(string);
+    }
+}
+
+PWSTR PvpGetWslImageSectionTypeName(
+    _In_ UINT32 Type
+    )
+{
+    switch (Type)
+    {
+    case SHT_NULL:
+        return L"NULL";
+    case SHT_PROGBITS:
+        return L"PROGBITS";
+    case SHT_SYMTAB:
+        return L"SYMTAB";
+    case SHT_STRTAB:
+        return L"STRTAB";
+    case SHT_RELA:
+        return L"RELA";
+    case SHT_HASH:
+        return L"HASH";
+    case SHT_DYNAMIC:
+        return L"DYNAMIC";
+    case SHT_NOTE:
+        return L"NOTE";
+    case SHT_NOBITS:
+        return L"NOBITS";
+    case SHT_REL:
+        return L"REL";
+    case SHT_SHLIB:
+        return L"SHLIB";
+    case SHT_DYNSYM:
+        return L"DYNSYM";
+    case SHT_NUM:
+        return L"NUM";
+    case SHT_INIT_ARRAY:
+        return L"INIT_ARRAY";
+    case SHT_FINI_ARRAY:
+        return L"FINI_ARRAY";
+    case SHT_PREINIT_ARRAY:
+        return L"PREINIT_ARRAY";
+    case SHT_GROUP:
+        return L"GROUP";
+    case SHT_SYMTAB_SHNDX:
+        return L"SYMTAB_SHNDX";
+    case SHT_GNU_INCREMENTAL_INPUTS:
+        return L"GNU_INCREMENTAL_INPUTS";
+    case SHT_GNU_ATTRIBUTES:
+        return L"GNU_ATTRIBUTES";
+    case SHT_GNU_HASH:
+        return L"GNU_HASH";
+    case SHT_GNU_LIBLIST:
+        return L"GNU_LIBLIST";
+    case SHT_SUNW_verdef:
+        return L"VERDEF";
+    case SHT_SUNW_verneed:
+        return L"VERNEED";
+    case SHT_SUNW_versym:
+        return L"VERSYM";
+    }
+
+    return L"***ERROR***";
+}
+
+PPH_STRING PvpGetWslImageSectionFlagsString(
+    _In_ ULONGLONG Flags
+    )
+{
+    PH_STRING_BUILDER sb;
+
+    PhInitializeStringBuilder(&sb, 100);
+
+    if (Flags & SHF_ALLOC)
+        PhAppendStringBuilder2(&sb, L"Allocated, ");
+
+    if (!(Flags & SHF_WRITE))
+        PhAppendStringBuilder2(&sb, L"Read-only, ");
+
+    if (Flags & SHF_EXECINSTR)
+        PhAppendStringBuilder2(&sb, L"Code, ");
+    else
+        PhAppendStringBuilder2(&sb, L"Data, ");
+
+    if (sb.String->Length != 0)
+        PhRemoveEndStringBuilder(&sb, 2);
+    else
+        PhAppendStringBuilder2(&sb, L"(None)");
+
+    // TODO: The "objdump -h /bin/su --wide" command shows section flags 
+    // such as CONTENT which appears to be based on ElfSectionType != SHT_NOBITS 
+    // but I can't find the relevant source-code and check.
+
+    return PhFinalStringBuilderString(&sb);
+}
+
+VOID PvpLoadWslSections(
+    _In_ HWND LvHandle
+    )
+{
+    USHORT sectionCount;
+    PPH_ELF_IMAGE_SECTION imageSections;
+
+    if (PhGetMappedWslImageSections(&PvMappedImage, &sectionCount, &imageSections))
+    {
+        for (USHORT i = 0; i < sectionCount; i++)
+        {
+            INT lvItemIndex;
+            WCHAR pointer[PH_PTR_STR_LEN_1];
+
+            if (!imageSections[i].Address && !imageSections[i].Size)
+                continue;
+
+            lvItemIndex = PhAddListViewItem(LvHandle, MAXINT, imageSections[i].Name, NULL);
+            PhSetListViewSubItem(LvHandle, lvItemIndex, 1, PvpGetWslImageSectionTypeName(imageSections[i].Type));
+
+            PhPrintPointer(pointer, (PVOID)imageSections[i].Address);
+            PhSetListViewSubItem(LvHandle, lvItemIndex, 2, pointer);
+
+            PhPrintPointer(pointer, (PVOID)imageSections[i].Offset);
+            PhSetListViewSubItem(LvHandle, lvItemIndex, 3, pointer);
+
+            PhSetListViewSubItem(LvHandle, lvItemIndex, 4, PhaFormatSize(imageSections[i].Size, -1)->Buffer);
+            PhSetListViewSubItem(LvHandle, lvItemIndex, 5, PH_AUTO_T(PH_STRING, PvpGetWslImageSectionFlagsString(imageSections[i].Flags))->Buffer);
+        }
+
+        PhFree(imageSections);
+    }
+}
+
+INT_PTR CALLBACK PvpExlfGeneralDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+    LPPROPSHEETPAGE propSheetPage;
+    PPV_PROPPAGECONTEXT propPageContext;
+
+    if (!PvPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext))
+        return FALSE;
+
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            HWND lvHandle;
+
+            lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
+            PhSetListViewStyle(lvHandle, FALSE, TRUE);
+            PhSetControlTheme(lvHandle, L"explorer");
+            PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 80, L"Name");
+            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 80, L"Type");
+            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 80, L"VA");
+            PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 80, L"Offset");
+            PhAddListViewColumn(lvHandle, 4, 4, 4, LVCFMT_LEFT, 80, L"Size");
+            PhAddListViewColumn(lvHandle, 5, 5, 5, LVCFMT_LEFT, 80, L"Flags");
+            PhSetExtendedListView(lvHandle);
+            PhLoadListViewColumnsFromSetting(L"GeneralWslTreeListColumns", lvHandle);
+
+            PvpSetWslImageType(hwndDlg);
+            PvpSetWslImageMachineType(hwndDlg);
+            PvpSetWslImageBase(hwndDlg);
+            PvpSetWslEntrypoint(hwndDlg);
+
+            PvpLoadWslSections(lvHandle);
+
+            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhSaveListViewColumnsToSetting(L"GeneralWslTreeListColumns", GetDlgItem(hwndDlg, IDC_LIST));
+        }
+        break;
+    case WM_SHOWWINDOW:
+        {
+            if (!propPageContext->LayoutInitialized)
+            {
+                PPH_LAYOUT_ITEM dialogItem;
+
+                dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
+                PvAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST), dialogItem, PH_ANCHOR_ALL);
+
+                PvDoPropPageLayout(hwndDlg);
+
+                propPageContext->LayoutInitialized = TRUE;
+            }
+        }
+        break;
+    case WM_NOTIFY:
+        {
+            PvHandleListViewNotifyForCopy(lParam, GetDlgItem(hwndDlg, IDC_LIST));
+        }
+        break;
+    }
+
+    return FALSE;
+}

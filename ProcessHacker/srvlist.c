@@ -3,6 +3,7 @@
  *   service list
  *
  * Copyright (C) 2010-2015 wj32
+ * Copyright (C) 2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -76,9 +77,7 @@ static PH_TN_FILTER_SUPPORT FilterSupport;
 
 static BOOLEAN ServiceIconsLoaded = FALSE;
 static HICON ServiceApplicationIcon;
-static HICON ServiceApplicationGoIcon;
 static HICON ServiceCogIcon;
-static HICON ServiceCogGoIcon;
 
 BOOLEAN PhServiceTreeListStateHighlighting = TRUE;
 static PPH_POINTER_LIST ServiceNodeStateList = NULL; // list of nodes which need to be processed
@@ -141,6 +140,7 @@ VOID PhInitializeServiceTreeList(
     PhAddTreeNewColumnEx(hwnd, PHSVTLC_KEYMODIFIEDTIME, FALSE, L"Key modified time", 140, PH_ALIGN_LEFT, -1, 0, TRUE);
     PhAddTreeNewColumn(hwnd, PHSVTLC_VERIFICATIONSTATUS, FALSE, L"Verification status", 70, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumn(hwnd, PHSVTLC_VERIFIEDSIGNER, FALSE, L"Verified signer", 100, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeNewColumn(hwnd, PHSVTLC_FILENAME, FALSE, L"File name", 100, PH_ALIGN_LEFT, -1, DT_PATH_ELLIPSIS);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -299,9 +299,7 @@ VOID PhpRemoveServiceNode(
     PhClearReference(&ServiceNode->BinaryPath);
     PhClearReference(&ServiceNode->LoadOrderGroup);
     PhClearReference(&ServiceNode->Description);
-
     PhClearReference(&ServiceNode->TooltipText);
-
     PhClearReference(&ServiceNode->KeyModifiedTimeText);
 
     PhDereferenceObject(ServiceNode->ServiceItem);
@@ -371,17 +369,49 @@ static VOID PhpUpdateServiceNodeDescription(
 {
     if (!(ServiceNode->ValidMask & PHSN_DESCRIPTION))
     {
-        SC_HANDLE serviceHandle;
+        static PH_STRINGREF servicesKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services\\");
+        HANDLE keyHandle;
+        PPH_STRING keyName;
 
-        if (serviceHandle = PhOpenService(ServiceNode->ServiceItem->Name->Buffer, SERVICE_QUERY_CONFIG))
+        keyName = PhConcatStringRef2(&servicesKeyName, &ServiceNode->ServiceItem->Name->sr);
+
+        if (NT_SUCCESS(PhOpenKey(
+            &keyHandle,
+            KEY_QUERY_VALUE,
+            PH_KEY_LOCAL_MACHINE,
+            &keyName->sr,
+            0
+            )))
         {
-            PhMoveReference(&ServiceNode->Description, PhGetServiceDescription(serviceHandle));
+            PPH_STRING descriptionString;
+            PPH_STRING serviceDescriptionString;
 
-            CloseServiceHandle(serviceHandle);
+            if (descriptionString = PhQueryRegistryString(keyHandle, L"Description"))
+            {
+                if (serviceDescriptionString = PhLoadIndirectString(descriptionString->Buffer))
+                    PhMoveReference(&ServiceNode->Description, serviceDescriptionString);
+                else
+                    PhSwapReference(&ServiceNode->Description, descriptionString);
+
+                PhDereferenceObject(descriptionString);
+            }
+
+            NtClose(keyHandle);
         }
+
+        PhDereferenceObject(keyName);
 
         ServiceNode->ValidMask |= PHSN_DESCRIPTION;
     }
+
+    // NOTE: Querying the service description via RPC is extremely slow.
+    //SC_HANDLE serviceHandle;
+    //
+    //if (serviceHandle = PhOpenService(ServiceNode->ServiceItem->Name->Buffer, SERVICE_QUERY_CONFIG))
+    //{
+    //    PhMoveReference(&ServiceNode->Description, PhGetServiceDescription(serviceHandle));
+    //    CloseServiceHandle(serviceHandle);
+    //}
 }
 
 static VOID PhpUpdateServiceNodeKey(
@@ -436,8 +466,8 @@ static VOID PhpUpdateServiceNodeKey(
     int sortResult = 0;
 
 #define END_SORT_FUNCTION \
-    /* if (sortResult == 0) */ \
-        /* sortResult = PhCompareString(serviceItem1->Name, serviceItem2->Name, TRUE); */ \
+    if (sortResult == 0) \
+        sortResult = PhCompareString(serviceItem1->Name, serviceItem2->Name, TRUE); \
     \
     return PhModifySort(sortResult, ServiceTreeListSortOrder); \
 }
@@ -466,24 +496,24 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Type)
 {
-    sortResult = intcmp(serviceItem1->Type, serviceItem2->Type);
+    sortResult = uintcmp(serviceItem1->Type, serviceItem2->Type);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Status)
 {
-    sortResult = intcmp(serviceItem1->State, serviceItem2->State);
+    sortResult = uintcmp(serviceItem1->State, serviceItem2->State);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(StartType)
 {
-    sortResult = intcmp(serviceItem1->StartType, serviceItem2->StartType);
+    sortResult = uintcmp(serviceItem1->StartType, serviceItem2->StartType);
 
     if (sortResult == 0)
-        sortResult = intcmp(serviceItem1->DelayedStart, serviceItem2->DelayedStart);
+        sortResult = uintcmp(serviceItem1->DelayedStart, serviceItem2->DelayedStart);
     if (sortResult == 0)
-        sortResult = intcmp(serviceItem1->HasTriggers, serviceItem2->HasTriggers);
+        sortResult = uintcmp(serviceItem1->HasTriggers, serviceItem2->HasTriggers);
 }
 END_SORT_FUNCTION
 
@@ -503,7 +533,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(ErrorControl)
 {
-    sortResult = intcmp(serviceItem1->ErrorControl, serviceItem2->ErrorControl);
+    sortResult = uintcmp(serviceItem1->ErrorControl, serviceItem2->ErrorControl);
 }
 END_SORT_FUNCTION
 
@@ -533,7 +563,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(VerificationStatus)
 {
-    sortResult = intcmp(serviceItem1->VerifyResult, serviceItem2->VerifyResult);
+    sortResult = uintcmp(serviceItem1->VerifyResult, serviceItem2->VerifyResult);
 }
 END_SORT_FUNCTION
 
@@ -542,6 +572,16 @@ BEGIN_SORT_FUNCTION(VerifiedSigner)
     sortResult = PhCompareStringWithNull(
         serviceItem1->VerifySignerName,
         serviceItem2->VerifySignerName,
+        TRUE
+        );
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(FileName)
+{
+    sortResult = PhCompareStringWithNull(
+        serviceItem1->FileName,
+        serviceItem2->FileName,
         TRUE
         );
 }
@@ -582,7 +622,8 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
                     SORT_FUNCTION(Description),
                     SORT_FUNCTION(KeyModifiedTime),
                     SORT_FUNCTION(VerificationStatus),
-                    SORT_FUNCTION(VerifiedSigner)
+                    SORT_FUNCTION(VerifiedSigner),
+                    SORT_FUNCTION(FileName)
                 };
                 int (__cdecl *sortFunction)(const void *, const void *);
 
@@ -702,6 +743,9 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
             case PHSVTLC_VERIFIEDSIGNER:
                 getCellText->Text = PhGetStringRef(serviceItem->VerifySignerName);
                 break;
+            case PHSVTLC_FILENAME:
+                getCellText->Text = PhGetStringRef(serviceItem->FileName);
+                break;
             default:
                 return FALSE;
             }
@@ -717,25 +761,28 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
 
             if (!ServiceIconsLoaded)
             {
-                ServiceApplicationIcon = PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_PHAPPLICATION));
-                ServiceApplicationGoIcon = PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_PHAPPLICATIONGO));
+                HICON icon;
+
+                PhGetStockApplicationIcon(&icon, NULL);
+
+                ServiceApplicationIcon = icon;
                 ServiceCogIcon = PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_COG));
-                ServiceCogGoIcon = PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_COGGO));
 
                 ServiceIconsLoaded = TRUE;
             }
 
-            if (node->ServiceItem->Type == SERVICE_KERNEL_DRIVER || node->ServiceItem->Type == SERVICE_FILE_SYSTEM_DRIVER)
+            if (!node->ServiceQueryStage2)
             {
-                if (node->ServiceItem->State == SERVICE_RUNNING)
-                    getNodeIcon->Icon = ServiceCogGoIcon;
-                else
-                    getNodeIcon->Icon = ServiceCogIcon;
+                PhQueueServiceQueryStage2(node->ServiceItem);
+                node->ServiceQueryStage2 = TRUE;
             }
+
+            if (node->ServiceItem->SmallIcon)
+                getNodeIcon->Icon = node->ServiceItem->SmallIcon;
             else
             {
-                if (node->ServiceItem->State == SERVICE_RUNNING)
-                    getNodeIcon->Icon = ServiceApplicationGoIcon;
+                if (node->ServiceItem->Type == SERVICE_KERNEL_DRIVER || node->ServiceItem->Type == SERVICE_FILE_SYSTEM_DRIVER)
+                    getNodeIcon->Icon = ServiceCogIcon;
                 else
                     getNodeIcon->Icon = ServiceApplicationIcon;
             }
@@ -753,15 +800,24 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
 
             if (!serviceItem)
                 ; // Dummy
-            else if (PhEnableServiceQueryStage2 && PhCsUseColorUnknown && serviceItem->VerifyResult != VrTrusted)
+            else if (PhEnableProcessQueryStage2 && PhCsUseColorUnknown && serviceItem->VerifyResult != VrTrusted)
             {
-                getNodeColor->Flags = TN_AUTO_FORECOLOR;
                 getNodeColor->BackColor = PhCsColorUnknown;
+                getNodeColor->Flags |= TN_AUTO_FORECOLOR;
+            }
+            else if (PhCsUseColorServiceStop && serviceItem->State == SERVICE_STOPPED && serviceItem->StartType == SERVICE_DISABLED)
+            {
+                getNodeColor->BackColor = PhCsColorServiceStop;
+                getNodeColor->Flags |= TN_AUTO_FORECOLOR;
             }
             else if (PhCsUseColorServiceStop && serviceItem->State == SERVICE_STOPPED)
             {
                 getNodeColor->ForeColor = PhCsColorServiceStop;
             }
+            else
+            {
+                getNodeColor->Flags |= TN_AUTO_FORECOLOR;
+            }                
         }
         return TRUE;
     case TreeNewGetCellTooltip:

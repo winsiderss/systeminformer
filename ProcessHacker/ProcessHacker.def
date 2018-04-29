@@ -38,7 +38,6 @@ EXPORTS
 
 ; phconfig
 	PhGlobalDpi DATA
-	PhHeapHandle DATA
 	PhIsExecutingInWow64
 	PhInstanceHandle DATA
 	PhOsVersion DATA
@@ -182,6 +181,8 @@ EXPORTS
 	PhInsertStringBuilderEx
 	PhIntegerToString64
 	PhInvokeCallback
+	PhLoadIndirectString
+	PhLoadResource
 	PhLocalTimeToSystemTime
 	PhLowerBoundElementAvlTree
 	PhLowerDualBoundElementAvlTree
@@ -272,19 +273,21 @@ EXPORTS
 	PhGetProcessIsDotNetEx
 	PhGetProcessMappedFileName
 	PhGetProcessPebString
+	PhGetProcessUnloadedDlls
 	PhGetProcessWindowTitle
 	PhGetProcessWorkingSetInformation
 	PhGetProcessWsCounters
 	PhGetTokenGroups
+	PhGetTokenIntegrityLevelRID
 	PhGetTokenIntegrityLevel
 	PhGetTokenOwner
 	PhGetTokenPrimaryGroup
 	PhGetTokenPrivileges
 	PhGetTokenUser
 	PhImpersonateClientOfNamedPipe
-	PhInjectDllProcess
 	PhListenNamedPipe
 	PhOpenKey
+	PhLoadAppKey
 	PhOpenProcess = PhOpenProcessPublic
 	PhOpenThread = PhOpenThreadPublic
 	PhOpenThreadProcess
@@ -360,6 +363,7 @@ EXPORTS
 	PhGetKnownLocation
 	PhGetMessage
 	PhGetNtMessage
+	PhGetStatusMessage
 	PhGetSystemDirectory
 	PhGetSystemRoot
 	PhGetWin32Message
@@ -373,6 +377,8 @@ EXPORTS
 	PhParseCommandLineFuzzy
 	PhParseCommandLinePart
 	PhQueryRegistryString
+	PhQueryRegistryUlong
+	PhQueryRegistryUlong64
 	PhReferenceObjects
 	PhSetFileDialogFileName
 	PhSetFileDialogFilter
@@ -462,6 +468,7 @@ EXPORTS
 ; graph
 	PhDeleteGraphState
 	PhDrawGraphDirect
+	PhDrawTrayIconText
 	PhGetDrawInfoGraphBuffers
 	PhGraphStateGetDrawInfo
 	PhInitializeGraphState
@@ -503,7 +510,15 @@ EXPORTS
 	PhSetImageListBitmap
 	PhSetListViewItemImageIndex
 	PhSetListViewSubItem
+	PhAddListViewGroup
+	PhAddListViewGroupItem
 	PhSetStateAllListViewItems
+	PhGetWindowContext
+	PhSetWindowContext
+	PhRemoveWindowContext
+	PhGetDialogItemValue
+	PhSetDialogItemValue
+	PhSetDialogItemText
 
 ; hndlinfo
 	PhEnumObjectTypes
@@ -529,6 +544,7 @@ EXPORTS
 	PhGetMappedImageLoadConfig64
 	PhInitializeMappedImage
 	PhLoadMappedImage
+	PhUnloadMappedImage
 
 ; settings
 	PhAddSetting
@@ -630,13 +646,13 @@ EXPORTS
 	PhGetJsonObjectLength
 	PhGetJsonObjectBool
 	PhAddJsonObject
+	PhGetJsonObjectAsArrayList
 	PhCreateJsonArray
 	PhAddJsonArrayObject
 	PhGetJsonArrayString
 	PhGetJsonArrayLong64
 	PhGetJsonArrayLength
 	PhGetJsonArrayIndexObject
-	PhGetJsonObjectAsArrayList
 
 ; cache
 	PhClearCacheDirectory

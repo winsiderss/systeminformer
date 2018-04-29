@@ -108,9 +108,9 @@ INT_PTR CALLBACK SetupPropPage1_WndProc(
             {
             case PSN_SETACTIVE:
                 {
-#ifdef _DEBUG
-                    PostMessage(context->DialogHandle, PSM_SETCURSELID, 0, IDD_DIALOG3);
-#endif
+//#ifdef _DEBUG
+//                  PostMessage(context->DialogHandle, PSM_SETCURSELID, 0, IDD_DIALOG3);
+//#endif
                     // Reset the button state.
                     PropSheet_SetWizButtons(context->DialogHandle, PSWIZB_NEXT);
                 }

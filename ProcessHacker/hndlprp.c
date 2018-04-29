@@ -3,6 +3,7 @@
  *   handle properties
  *
  * Copyright (C) 2010-2013 wj32
+ * Copyright (C) 2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -111,9 +112,9 @@ VOID PhShowHandleProperties(
     pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
 
     // Object-specific page
-    if (!HandleItem->TypeName)
+    if (PhIsNullOrEmptyString(HandleItem->TypeName))
     {
-        // Dummy
+        NOTHING;
     }
     else if (PhEqualString2(HandleItem->TypeName, L"Event", TRUE))
     {
@@ -125,6 +126,13 @@ VOID PhShowHandleProperties(
     else if (PhEqualString2(HandleItem->TypeName, L"EventPair", TRUE))
     {
         pages[propSheetHeader.nPages++] = PhCreateEventPairPage(
+            PhpDuplicateHandleFromProcess,
+            &context
+            );
+    }
+    else if (PhEqualString2(HandleItem->TypeName, L"File", TRUE))
+    {
+        pages[propSheetHeader.nPages++] = PhCreateFilePage(
             PhpDuplicateHandleFromProcess,
             &context
             );
@@ -176,10 +184,10 @@ VOID PhShowHandleProperties(
 
     // Security page
     stdObjectSecurity.OpenObject = PhpDuplicateHandleFromProcess;
-    stdObjectSecurity.ObjectType = HandleItem->TypeName->Buffer;
+    stdObjectSecurity.ObjectType = PhGetStringOrEmpty(HandleItem->TypeName);
     stdObjectSecurity.Context = &context;
 
-    if (PhGetAccessEntries(HandleItem->TypeName->Buffer, &accessEntries, &numberOfAccessEntries))
+    if (PhGetAccessEntries(PhGetStringOrEmpty(HandleItem->TypeName), &accessEntries, &numberOfAccessEntries))
     {
         pages[propSheetHeader.nPages++] = PhCreateSecurityPage(
             PhGetStringOrEmpty(HandleItem->BestObjectName),
@@ -220,12 +228,27 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
     _In_ LPARAM lParam
     )
 {
+    PHANDLE_PROPERTIES_CONTEXT context;
+
+    if (uMsg == WM_INITDIALOG)
+    {
+        LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
+        context = (PHANDLE_PROPERTIES_CONTEXT)propSheetPage->lParam;
+
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+    }
+    else
+    {
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+    }
+
+    if (!context)
+        return FALSE;
+
     switch (uMsg)
     {
     case WM_INITDIALOG:
         {
-            LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
-            PHANDLE_PROPERTIES_CONTEXT context = (PHANDLE_PROPERTIES_CONTEXT)propSheetPage->lParam;
             PPH_ACCESS_ENTRY accessEntries;
             ULONG numberOfAccessEntries;
             HANDLE processHandle;
@@ -235,14 +258,12 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
             // HACK
             PhCenterWindow(GetParent(hwndDlg), GetParent(GetParent(hwndDlg)));
 
-            SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)context);
-
-            SetDlgItemText(hwndDlg, IDC_NAME, PhGetString(context->HandleItem->BestObjectName));
-            SetDlgItemText(hwndDlg, IDC_TYPE, context->HandleItem->TypeName->Buffer);
-            SetDlgItemText(hwndDlg, IDC_ADDRESS, context->HandleItem->ObjectString);
+            PhSetDialogItemText(hwndDlg, IDC_NAME, PhGetStringOrEmpty(context->HandleItem->BestObjectName));
+            PhSetDialogItemText(hwndDlg, IDC_TYPE, PhGetStringOrEmpty(context->HandleItem->TypeName));
+            PhSetDialogItemText(hwndDlg, IDC_ADDRESS, context->HandleItem->ObjectString);
 
             if (PhGetAccessEntries(
-                context->HandleItem->TypeName->Buffer,
+                PhGetStringOrEmpty(context->HandleItem->TypeName),
                 &accessEntries,
                 &numberOfAccessEntries
                 ))
@@ -263,18 +284,18 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
                         context->HandleItem->GrantedAccessString,
                         accessString->Buffer
                         );
-                    SetDlgItemText(hwndDlg, IDC_GRANTED_ACCESS, grantedAccessString->Buffer);
+                    PhSetDialogItemText(hwndDlg, IDC_GRANTED_ACCESS, grantedAccessString->Buffer);
                 }
                 else
                 {
-                    SetDlgItemText(hwndDlg, IDC_GRANTED_ACCESS, context->HandleItem->GrantedAccessString);
+                    PhSetDialogItemText(hwndDlg, IDC_GRANTED_ACCESS, context->HandleItem->GrantedAccessString);
                 }
 
                 PhFree(accessEntries);
             }
             else
             {
-                SetDlgItemText(hwndDlg, IDC_GRANTED_ACCESS, context->HandleItem->GrantedAccessString);
+                PhSetDialogItemText(hwndDlg, IDC_GRANTED_ACCESS, context->HandleItem->GrantedAccessString);
             }
 
             if (NT_SUCCESS(PhOpenProcess(
@@ -293,10 +314,10 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
                     NULL
                     )))
                 {
-                    SetDlgItemInt(hwndDlg, IDC_REFERENCES, basicInfo.PointerCount, FALSE);
-                    SetDlgItemInt(hwndDlg, IDC_HANDLES, basicInfo.HandleCount, FALSE);
-                    SetDlgItemInt(hwndDlg, IDC_PAGED, basicInfo.PagedPoolCharge, FALSE);
-                    SetDlgItemInt(hwndDlg, IDC_NONPAGED, basicInfo.NonPagedPoolCharge, FALSE);
+                    PhSetDialogItemValue(hwndDlg, IDC_REFERENCES, basicInfo.PointerCount, FALSE);
+                    PhSetDialogItemValue(hwndDlg, IDC_HANDLES, basicInfo.HandleCount, FALSE);
+                    PhSetDialogItemValue(hwndDlg, IDC_PAGED, basicInfo.PagedPoolCharge, FALSE);
+                    PhSetDialogItemValue(hwndDlg, IDC_NONPAGED, basicInfo.NonPagedPoolCharge, FALSE);
 
                     haveBasicInfo = TRUE;
                 }
@@ -306,16 +327,16 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
 
             if (!haveBasicInfo)
             {
-                SetDlgItemText(hwndDlg, IDC_REFERENCES, L"Unknown");
-                SetDlgItemText(hwndDlg, IDC_HANDLES, L"Unknown");
-                SetDlgItemText(hwndDlg, IDC_PAGED, L"Unknown");
-                SetDlgItemText(hwndDlg, IDC_NONPAGED, L"Unknown");
+                PhSetDialogItemText(hwndDlg, IDC_REFERENCES, L"Unknown");
+                PhSetDialogItemText(hwndDlg, IDC_HANDLES, L"Unknown");
+                PhSetDialogItemText(hwndDlg, IDC_PAGED, L"Unknown");
+                PhSetDialogItemText(hwndDlg, IDC_NONPAGED, L"Unknown");
             }
         }
         break;
     case WM_DESTROY:
         {
-            RemoveProp(hwndDlg, PhMakeContextAtom());
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
         }
         break;
     case WM_NOTIFY:

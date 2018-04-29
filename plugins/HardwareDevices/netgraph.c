@@ -48,7 +48,7 @@ VOID NetAdapterUpdatePanel(
     if (PhGetIntegerSetting(SETTING_NAME_ENABLE_NDIS))
     {
         // Create the handle to the network device
-        if (NT_SUCCESS(NetworkAdapterCreateHandle(&deviceHandle, Context->AdapterEntry->Id.InterfaceGuid)))
+        if (NT_SUCCESS(NetworkAdapterCreateHandle(&deviceHandle, Context->AdapterEntry->Id.InterfaceDevice)))
         {
             if (!Context->AdapterEntry->CheckedDeviceSupport)
             {
@@ -124,19 +124,19 @@ VOID NetAdapterUpdatePanel(
         }
     }
 
-    SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_BSENT, PhaFormatSize(outOctetsValue, -1)->Buffer);
-    SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_BRECEIVED, PhaFormatSize(inOctetsValue, -1)->Buffer);
-    SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_BTOTAL, PhaFormatSize(inOctetsValue + outOctetsValue, -1)->Buffer);
+    PhSetDialogItemText(Context->PanelWindowHandle, IDC_STAT_BSENT, PhaFormatSize(outOctetsValue, -1)->Buffer);
+    PhSetDialogItemText(Context->PanelWindowHandle, IDC_STAT_BRECEIVED, PhaFormatSize(inOctetsValue, -1)->Buffer);
+    PhSetDialogItemText(Context->PanelWindowHandle, IDC_STAT_BTOTAL, PhaFormatSize(inOctetsValue + outOctetsValue, -1)->Buffer);
 
     if (mediaState == MediaConnectStateConnected)
     {
-        SetDlgItemText(Context->PanelWindowHandle, IDC_LINK_STATE, L"Connected");
-        SetDlgItemText(Context->PanelWindowHandle, IDC_LINK_SPEED, PhaFormatString(L"%s/s", PhaFormatSize(linkSpeedValue / BITS_IN_ONE_BYTE, -1)->Buffer)->Buffer);
+        PhSetDialogItemText(Context->PanelWindowHandle, IDC_LINK_STATE, L"Connected");
+        PhSetDialogItemText(Context->PanelWindowHandle, IDC_LINK_SPEED, PhaFormatString(L"%s/s", PhaFormatSize(linkSpeedValue / BITS_IN_ONE_BYTE, -1)->Buffer)->Buffer);
     }
     else
     {
-        SetDlgItemText(Context->PanelWindowHandle, IDC_LINK_STATE, L"Disconnected");
-        SetDlgItemText(Context->PanelWindowHandle, IDC_LINK_SPEED, L"N/A");
+        PhSetDialogItemText(Context->PanelWindowHandle, IDC_LINK_STATE, L"Disconnected");
+        PhSetDialogItemText(Context->PanelWindowHandle, IDC_LINK_SPEED, L"N/A");
     }
 }
 
@@ -145,9 +145,9 @@ VOID UpdateNetAdapterDialog(
     )
 {
     if (Context->AdapterEntry->AdapterName)
-        SetDlgItemText(Context->WindowHandle, IDC_ADAPTERNAME, Context->AdapterEntry->AdapterName->Buffer);
+        PhSetDialogItemText(Context->WindowHandle, IDC_ADAPTERNAME, Context->AdapterEntry->AdapterName->Buffer);
     else
-        SetDlgItemText(Context->WindowHandle, IDC_ADAPTERNAME, L"Unknown network adapter");
+        PhSetDialogItemText(Context->WindowHandle, IDC_ADAPTERNAME, L"Unknown network adapter");
 
     NetAdapterUpdateGraphs(Context);
     NetAdapterUpdatePanel(Context);
@@ -166,15 +166,15 @@ INT_PTR CALLBACK NetAdapterPanelDialogProc(
     {
         context = (PDV_NETADAPTER_SYSINFO_CONTEXT)lParam;
 
-        SetProp(hwndDlg, L"Context", (HANDLE)context);
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = (PDV_NETADAPTER_SYSINFO_CONTEXT)GetProp(hwndDlg, L"Context");
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
         if (uMsg == WM_NCDESTROY)
         {
-            RemoveProp(hwndDlg, L"Context");
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
         }
     }
 
@@ -211,11 +211,11 @@ INT_PTR CALLBACK NetAdapterDialogProc(
     {
         context = (PDV_NETADAPTER_SYSINFO_CONTEXT)lParam;
 
-        SetProp(hwndDlg, L"Context", (HANDLE)context);
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = (PDV_NETADAPTER_SYSINFO_CONTEXT)GetProp(hwndDlg, L"Context");
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
         if (uMsg == WM_DESTROY)
         {
@@ -228,7 +228,7 @@ INT_PTR CALLBACK NetAdapterDialogProc(
             if (context->PanelWindowHandle)
                 DestroyWindow(context->PanelWindowHandle);
 
-            RemoveProp(hwndDlg, L"Context");
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
         }
     }
 
@@ -254,9 +254,9 @@ INT_PTR CALLBACK NetAdapterDialogProc(
             SendMessage(GetDlgItem(hwndDlg, IDC_ADAPTERNAME), WM_SETFONT, (WPARAM)context->SysinfoSection->Parameters->LargeFont, FALSE);
 
             if (context->AdapterEntry->AdapterName)
-                SetDlgItemText(hwndDlg, IDC_ADAPTERNAME, context->AdapterEntry->AdapterName->Buffer);
+                PhSetDialogItemText(hwndDlg, IDC_ADAPTERNAME, context->AdapterEntry->AdapterName->Buffer);
             else
-                SetDlgItemText(hwndDlg, IDC_ADAPTERNAME, L"Unknown network adapter");
+                PhSetDialogItemText(hwndDlg, IDC_ADAPTERNAME, L"Unknown network adapter");
 
             context->PanelWindowHandle = CreateDialogParam(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_NETADAPTER_PANEL), hwndDlg, NetAdapterPanelDialogProc, (LPARAM)context);
             ShowWindow(context->PanelWindowHandle, SW_SHOW);

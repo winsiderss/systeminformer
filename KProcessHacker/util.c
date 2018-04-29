@@ -30,7 +30,7 @@
 #endif
 
 VOID KphFreeCapturedUnicodeString(
-    __in PUNICODE_STRING CapturedUnicodeString
+    _In_ PUNICODE_STRING CapturedUnicodeString
     )
 {
     PAGED_CODE();
@@ -40,8 +40,8 @@ VOID KphFreeCapturedUnicodeString(
 }
 
 NTSTATUS KphCaptureUnicodeString(
-    __in PUNICODE_STRING UnicodeString,
-    __out PUNICODE_STRING CapturedUnicodeString
+    _In_ PUNICODE_STRING UnicodeString,
+    _Out_ PUNICODE_STRING CapturedUnicodeString
     )
 {
     UNICODE_STRING unicodeString;
@@ -107,7 +107,7 @@ NTSTATUS KphCaptureUnicodeString(
  * the kernel modules. The structure must be freed with the tag 'ThpK'.
  */
 NTSTATUS KphEnumerateSystemModules(
-    __out PRTL_PROCESS_MODULES *Modules
+    _Out_ PRTL_PROCESS_MODULES *Modules
     )
 {
     NTSTATUS status;
@@ -162,8 +162,8 @@ NTSTATUS KphEnumerateSystemModules(
  * \param Length The number of bytes in the address range.
  */
 NTSTATUS KphValidateAddressForSystemModules(
-    __in PVOID Address,
-    __in SIZE_T Length
+    _In_ PVOID Address,
+    _In_ SIZE_T Length
     )
 {
     NTSTATUS status;
@@ -214,9 +214,9 @@ NTSTATUS KphValidateAddressForSystemModules(
  * section. The structure must be freed with the tag 'ThpK'.
  */
 NTSTATUS KphGetProcessMappedFileName(
-    __in HANDLE ProcessHandle,
-    __in PVOID BaseAddress,
-    __out PUNICODE_STRING *FileName
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID BaseAddress,
+    _Out_ PUNICODE_STRING *FileName
     )
 {
     NTSTATUS status;

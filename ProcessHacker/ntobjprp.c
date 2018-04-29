@@ -24,6 +24,7 @@
 
 #include <hndlinfo.h>
 #include <procprv.h>
+#include <secedit.h>
 
 #include <windowsx.h>
 
@@ -32,6 +33,20 @@ typedef struct _COMMON_PAGE_CONTEXT
     PPH_OPEN_OBJECT OpenObject;
     PVOID Context;
 } COMMON_PAGE_CONTEXT, *PCOMMON_PAGE_CONTEXT;
+
+#define PH_FILEMODE_ASYNC 0x01000000
+#define PhFileModeUpdAsyncFlag(mode) \
+    (mode & (FILE_SYNCHRONOUS_IO_ALERT | FILE_SYNCHRONOUS_IO_NONALERT) ? mode &~ PH_FILEMODE_ASYNC: mode | PH_FILEMODE_ASYNC)
+
+PH_ACCESS_ENTRY FileModeAccessEntries[6] = 
+{
+    { L"FILE_FLAG_OVERLAPPED", PH_FILEMODE_ASYNC, FALSE, FALSE, L"Asynchronous" },
+    { L"FILE_FLAG_WRITE_THROUGH", FILE_WRITE_THROUGH, FALSE, FALSE, L"Write through" },
+    { L"FILE_FLAG_SEQUENTIAL_SCAN", FILE_SEQUENTIAL_ONLY, FALSE, FALSE, L"Sequental" },
+    { L"FILE_FLAG_NO_BUFFERING", FILE_NO_INTERMEDIATE_BUFFERING, FALSE, FALSE, L"No buffering" },
+    { L"FILE_SYNCHRONOUS_IO_ALERT", FILE_SYNCHRONOUS_IO_ALERT, FALSE, FALSE, L"Synchronous alert" },
+    { L"FILE_SYNCHRONOUS_IO_NONALERT", FILE_SYNCHRONOUS_IO_NONALERT, FALSE, FALSE, L"Synchronous non-alert" },
+};
 
 HPROPSHEETPAGE PhpCommonCreatePage(
     _In_ PPH_OPEN_OBJECT OpenObject,
@@ -54,6 +69,13 @@ INT_PTR CALLBACK PhpEventPageProc(
     );
 
 INT_PTR CALLBACK PhpEventPairPageProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
+INT_PTR CALLBACK PhpFilePageProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -150,8 +172,7 @@ FORCEINLINE PCOMMON_PAGE_CONTEXT PhpCommonPageHeader(
     _In_ LPARAM lParam
     )
 {
-    return (PCOMMON_PAGE_CONTEXT)PhpGenericPropertyPageHeader(
-        hwndDlg, uMsg, wParam, lParam, L"PageContext");
+    return PhpGenericPropertyPageHeader(hwndDlg, uMsg, wParam, lParam, 2);
 }
 
 HPROPSHEETPAGE PhCreateEventPage(
@@ -199,8 +220,8 @@ static VOID PhpRefreshEventPageInfo(
             eventState = basicInfo.EventState > 0 ? L"True" : L"False";
         }
 
-        SetDlgItemText(hwndDlg, IDC_TYPE, eventType);
-        SetDlgItemText(hwndDlg, IDC_SIGNALED, eventState);
+        PhSetDialogItemText(hwndDlg, IDC_TYPE, eventType);
+        PhSetDialogItemText(hwndDlg, IDC_SIGNALED, eventState);
 
         NtClose(eventHandle);
     }
@@ -349,6 +370,229 @@ INT_PTR CALLBACK PhpEventPairPageProc(
     return FALSE;
 }
 
+HPROPSHEETPAGE PhCreateFilePage(
+    _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_opt_ PVOID Context
+    )
+{
+    return PhpCommonCreatePage(
+        OpenObject,
+        Context,
+        MAKEINTRESOURCE(IDD_OBJFILE),
+        PhpFilePageProc
+        );
+}
+
+static VOID PhpRefreshFilePageInfo(
+    _In_ HWND hwndDlg,
+    _In_ PCOMMON_PAGE_CONTEXT PageContext
+    )
+{
+    HANDLE fileHandle;
+
+    if (NT_SUCCESS(PageContext->OpenObject(
+        &fileHandle,
+        MAXIMUM_ALLOWED,
+        PageContext->Context
+        )))
+    {
+        NTSTATUS statusStandardInfo;
+        IO_STATUS_BLOCK ioStatusBlock;
+        FILE_MODE_INFORMATION fileModeInfo;
+        FILE_STANDARD_INFORMATION fileStandardInfo;
+        FILE_POSITION_INFORMATION filePositionInfo;
+        FILE_FS_DEVICE_INFORMATION deviceInformation;
+        BOOLEAN disableFlushButton = FALSE;
+        BOOLEAN isFileOrDirectory = FALSE;
+
+        // Obtain the file type
+        if (NT_SUCCESS(NtQueryVolumeInformationFile(
+            fileHandle,
+            &ioStatusBlock,
+            &deviceInformation,
+            sizeof(deviceInformation),
+            FileFsDeviceInformation
+            )))
+        {
+            switch (deviceInformation.DeviceType)
+            {
+            case FILE_DEVICE_NAMED_PIPE:
+                PhSetDialogItemText(hwndDlg, IDC_FILETYPE, L"Pipe");
+                break;
+            case FILE_DEVICE_CD_ROM:
+            case FILE_DEVICE_CD_ROM_FILE_SYSTEM:
+            case FILE_DEVICE_CONTROLLER:
+            case FILE_DEVICE_DATALINK:
+            case FILE_DEVICE_DFS:
+            case FILE_DEVICE_DISK:
+            case FILE_DEVICE_DISK_FILE_SYSTEM:
+            case FILE_DEVICE_VIRTUAL_DISK:
+                isFileOrDirectory = TRUE;
+                PhSetDialogItemText(hwndDlg, IDC_FILETYPE, L"File or directory");
+                break;
+            default:
+                PhSetDialogItemText(hwndDlg, IDC_FILETYPE, L"Other");
+                break;
+            }
+        }
+
+        // Obtain the file size and distinguish files from directories
+        if (NT_SUCCESS(statusStandardInfo = NtQueryInformationFile(
+            fileHandle,
+            &ioStatusBlock,
+            &fileStandardInfo,
+            sizeof(fileStandardInfo),
+            FileStandardInformation
+            )))
+        {
+            PPH_STRING fileSizeStr;
+
+            disableFlushButton |= fileStandardInfo.Directory;
+
+            fileSizeStr = PhFormatSize(fileStandardInfo.EndOfFile.QuadPart, -1);
+            PhSetDialogItemText(hwndDlg, IDC_FILESIZE, fileSizeStr->Buffer);
+            PhDereferenceObject(fileSizeStr);
+
+            if (isFileOrDirectory)
+            {
+                PhSetDialogItemText(hwndDlg, IDC_FILETYPE, fileStandardInfo.Directory ? L"Directory" : L"File");
+            }
+        }
+
+        // Obtain current position
+        if (NT_SUCCESS(NtQueryInformationFile(
+            fileHandle,
+            &ioStatusBlock,
+            &filePositionInfo,
+            sizeof(filePositionInfo),
+            FilePositionInformation
+            )))
+        {
+            PPH_STRING filePosStr;
+
+            // If we also know the size of the file, we can calculate the percentage
+            if (NT_SUCCESS(statusStandardInfo) &&
+                filePositionInfo.CurrentByteOffset.QuadPart != 0 &&
+                fileStandardInfo.EndOfFile.QuadPart != 0
+                )
+            {
+                PH_FORMAT format[4];
+
+                PhInitFormatI64U(&format[0], filePositionInfo.CurrentByteOffset.QuadPart);
+                format[0].Type |= FormatGroupDigits;
+                PhInitFormatS(&format[1], L" (");
+                PhInitFormatF(&format[2], (double)filePositionInfo.CurrentByteOffset.QuadPart / fileStandardInfo.EndOfFile.QuadPart * 100, 1);
+                PhInitFormatS(&format[3], L"%)");
+
+                filePosStr = PhFormat(format, 4, 18);
+            }
+            else // or we can't
+            {
+                filePosStr = PhFormatUInt64(filePositionInfo.CurrentByteOffset.QuadPart, TRUE);
+            }
+            
+            PhSetDialogItemText(hwndDlg, IDC_POSITION, filePosStr->Buffer);
+            PhDereferenceObject(filePosStr);
+        }
+        
+        // Obtain the file mode
+        if (NT_SUCCESS(NtQueryInformationFile(
+            fileHandle,
+            &ioStatusBlock,
+            &fileModeInfo,
+            sizeof(fileModeInfo),
+            FileModeInformation
+            )))
+        {
+            PH_FORMAT format[5];
+            PPH_STRING fileModeStr;
+            PPH_STRING fileModeAccessStr;
+
+            disableFlushButton |= fileModeInfo.Mode & (FILE_WRITE_THROUGH | FILE_NO_INTERMEDIATE_BUFFERING);
+
+            // Since FILE_MODE_INFORMATION has no flag for asynchronous I/O we should use our own flag and set
+            // it only if none of synchronous flags are present. That's why we need PhFileModeUpdAsyncFlag.
+            fileModeAccessStr = PhGetAccessString(
+                PhFileModeUpdAsyncFlag(fileModeInfo.Mode),
+                FileModeAccessEntries,
+                sizeof(FileModeAccessEntries) / sizeof(PH_ACCESS_ENTRY)
+                );
+
+            PhInitFormatS(&format[0], L"0x");
+            PhInitFormatX(&format[1], fileModeInfo.Mode);
+            PhInitFormatS(&format[2], L" (");
+            PhInitFormatSR(&format[3], fileModeAccessStr->sr);
+            PhInitFormatS(&format[4], L")");
+
+            fileModeStr = PhFormat(format, 5, 64);
+            PhSetDialogItemText(hwndDlg, IDC_FILEMODE, fileModeStr->Buffer);
+
+            PhDereferenceObject(fileModeStr);
+            PhDereferenceObject(fileModeAccessStr);
+        }
+        else
+        {
+            PhSetDialogItemText(hwndDlg, IDC_FILEMODE, L"Unknown");
+        }
+
+        EnableWindow(GetDlgItem(hwndDlg, IDC_FLUSH), !disableFlushButton);
+
+        NtClose(fileHandle);
+    }
+}
+
+INT_PTR CALLBACK PhpFilePageProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+    PCOMMON_PAGE_CONTEXT pageContext;
+
+    if (!(pageContext = PhpCommonPageHeader(hwndDlg, uMsg, wParam, lParam)))
+        return FALSE;
+
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            PhpRefreshFilePageInfo(hwndDlg, pageContext);
+        }
+        break;
+    case WM_COMMAND:
+        {
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
+            {
+            case IDC_FLUSH:
+                {
+                    NTSTATUS status;
+                    HANDLE fileHandle;
+
+                    if (NT_SUCCESS(status = pageContext->OpenObject(
+                        &fileHandle,
+                        GENERIC_WRITE,
+                        pageContext->Context
+                        )))
+                    {
+                        IO_STATUS_BLOCK ioStatusBlock;
+
+                        status = NtFlushBuffersFile(fileHandle, &ioStatusBlock);
+                        NtClose(fileHandle);
+                    }
+
+                    if (!NT_SUCCESS(status))
+                        PhShowStatus(hwndDlg, L"Unable to flush the file buffer", status, 0);
+                }
+                break;
+            }
+        }
+        break;
+    }
+
+    return FALSE;
+}
+
 HPROPSHEETPAGE PhCreateMutantPage(
     _In_ PPH_OPEN_OBJECT OpenObject,
     _In_opt_ PVOID Context
@@ -380,33 +624,33 @@ static VOID PhpRefreshMutantPageInfo(
 
         if (NT_SUCCESS(PhGetMutantBasicInformation(mutantHandle, &basicInfo)))
         {
-            SetDlgItemInt(hwndDlg, IDC_COUNT, basicInfo.CurrentCount, TRUE);
-            SetDlgItemText(hwndDlg, IDC_ABANDONED, basicInfo.AbandonedState ? L"True" : L"False");
+            PhSetDialogItemValue(hwndDlg, IDC_COUNT, basicInfo.CurrentCount, TRUE);
+            PhSetDialogItemText(hwndDlg, IDC_ABANDONED, basicInfo.AbandonedState ? L"True" : L"False");
         }
         else
         {
-            SetDlgItemText(hwndDlg, IDC_COUNT, L"Unknown");
-            SetDlgItemText(hwndDlg, IDC_ABANDONED, L"Unknown");
+            PhSetDialogItemText(hwndDlg, IDC_COUNT, L"Unknown");
+            PhSetDialogItemText(hwndDlg, IDC_ABANDONED, L"Unknown");
         }
 
         if (NT_SUCCESS(PhGetMutantOwnerInformation(mutantHandle, &ownerInfo)))
         {
             PPH_STRING name;
 
-            if (ownerInfo.ClientId.UniqueProcess != NULL)
+            if (ownerInfo.ClientId.UniqueProcess)
             {
                 name = PhGetClientIdName(&ownerInfo.ClientId);
-                SetDlgItemText(hwndDlg, IDC_OWNER, name->Buffer);
+                PhSetDialogItemText(hwndDlg, IDC_OWNER, name->Buffer);
                 PhDereferenceObject(name);
             }
             else
             {
-                SetDlgItemText(hwndDlg, IDC_OWNER, L"N/A");
+                PhSetDialogItemText(hwndDlg, IDC_OWNER, L"N/A");
             }
         }
         else
         {
-            SetDlgItemText(hwndDlg, IDC_OWNER, L"Unknown");
+            PhSetDialogItemText(hwndDlg, IDC_OWNER, L"Unknown");
         }
 
         NtClose(mutantHandle);
@@ -503,9 +747,9 @@ static VOID PhpRefreshSectionPageInfo(
             fileName = PH_AUTO(newFileName);
     }
 
-    SetDlgItemText(hwndDlg, IDC_TYPE, sectionType);
-    SetDlgItemText(hwndDlg, IDC_SIZE_, PhGetStringOrDefault(sectionSize, L"Unknown"));
-    SetDlgItemText(hwndDlg, IDC_FILE, PhGetStringOrDefault(fileName, L"N/A"));
+    PhSetDialogItemText(hwndDlg, IDC_TYPE, sectionType);
+    PhSetDialogItemText(hwndDlg, IDC_SIZE_, PhGetStringOrDefault(sectionSize, L"Unknown"));
+    PhSetDialogItemText(hwndDlg, IDC_FILE, PhGetStringOrDefault(fileName, L"N/A"));
 
     NtClose(sectionHandle);
 }
@@ -566,13 +810,13 @@ static VOID PhpRefreshSemaphorePageInfo(
 
         if (NT_SUCCESS(PhGetSemaphoreBasicInformation(semaphoreHandle, &basicInfo)))
         {
-            SetDlgItemInt(hwndDlg, IDC_CURRENTCOUNT, basicInfo.CurrentCount, TRUE);
-            SetDlgItemInt(hwndDlg, IDC_MAXIMUMCOUNT, basicInfo.MaximumCount, TRUE);
+            PhSetDialogItemValue(hwndDlg, IDC_CURRENTCOUNT, basicInfo.CurrentCount, TRUE);
+            PhSetDialogItemValue(hwndDlg, IDC_MAXIMUMCOUNT, basicInfo.MaximumCount, TRUE);
         }
         else
         {
-            SetDlgItemText(hwndDlg, IDC_CURRENTCOUNT, L"Unknown");
-            SetDlgItemText(hwndDlg, IDC_MAXIMUMCOUNT, L"Unknown");
+            PhSetDialogItemText(hwndDlg, IDC_CURRENTCOUNT, L"Unknown");
+            PhSetDialogItemText(hwndDlg, IDC_MAXIMUMCOUNT, L"Unknown");
         }
 
         NtClose(semaphoreHandle);
@@ -678,11 +922,11 @@ static VOID PhpRefreshTimerPageInfo(
 
         if (NT_SUCCESS(PhGetTimerBasicInformation(timerHandle, &basicInfo)))
         {
-            SetDlgItemText(hwndDlg, IDC_SIGNALED, basicInfo.TimerState ? L"True" : L"False");
+            PhSetDialogItemText(hwndDlg, IDC_SIGNALED, basicInfo.TimerState ? L"True" : L"False");
         }
         else
         {
-            SetDlgItemText(hwndDlg, IDC_SIGNALED, L"Unknown");
+            PhSetDialogItemText(hwndDlg, IDC_SIGNALED, L"Unknown");
         }
 
         NtClose(timerHandle);

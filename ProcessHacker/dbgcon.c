@@ -677,8 +677,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
         UNICODE_STRING var;
         PPH_STRING newSearchPath;
 
-        var.Buffer = buffer;
-        var.MaximumLength = sizeof(buffer);
+        RtlInitEmptyUnicodeString(&var, buffer, sizeof(buffer));
 
         if (!NT_SUCCESS(RtlQueryEnvironmentVariable_U(NULL, &name, &var)))
             buffer[0] = 0;
@@ -1568,7 +1567,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
             VOID (NTAPI *rtlDetectHeapLeaks)(VOID);
             PWSTR options = wcstok_s(NULL, delims, &context);
 
-            rtlDetectHeapLeaks = PhGetModuleProcAddress(L"ntdll.dll", "RtlDetectHeapLeaks");
+            rtlDetectHeapLeaks = PhGetDllProcedureAddress(L"ntdll.dll", "RtlDetectHeapLeaks", 0);
 
             if (!(NtCurrentPeb()->NtGlobalFlag & FLG_USER_STACK_TRACE_DB))
             {

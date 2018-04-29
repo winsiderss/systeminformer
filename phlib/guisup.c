@@ -31,6 +31,22 @@
 
 #define SCALE_DPI(Value) PhMultiplyDivide(Value, PhGlobalDpi, 96)
 
+BOOLEAN NTAPI PhpWindowContextHashtableEqualFunction(
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
+    );
+
+ULONG NTAPI PhpWindowContextHashtableHashFunction(
+    _In_ PVOID Entry
+    );
+
+typedef struct _PH_WINDOW_PROPERTY_CONTEXT
+{
+    ULONG PropertyHash;
+    HWND WindowHandle;
+    PVOID Context;
+} PH_WINDOW_PROPERTY_CONTEXT, *PPH_WINDOW_PROPERTY_CONTEXT;
+
 _IsImmersiveProcess IsImmersiveProcess_I;
 _RunFileDlg RunFileDlg;
 _SHAutoComplete SHAutoComplete_I;
@@ -39,20 +55,37 @@ static PH_INITONCE SharedIconCacheInitOnce = PH_INITONCE_INIT;
 static PPH_HASHTABLE SharedIconCacheHashtable;
 static PH_QUEUED_LOCK SharedIconCacheLock = PH_QUEUED_LOCK_INIT;
 
+static PPH_HASHTABLE WindowContextHashTable = NULL;
+static PH_QUEUED_LOCK WindowContextListLock = PH_QUEUED_LOCK_INIT;
+
 VOID PhGuiSupportInitialization(
     VOID
     )
 {
-    HMODULE shell32Handle;
-    HMODULE shlwapiHandle;
+    HDC hdc;
+    PVOID shell32Handle;
+    PVOID shlwapiHandle;
+
+    WindowContextHashTable = PhCreateHashtable(
+        sizeof(PH_WINDOW_PROPERTY_CONTEXT),
+        PhpWindowContextHashtableEqualFunction,
+        PhpWindowContextHashtableHashFunction,
+        10
+        );
+
+    if (hdc = GetDC(NULL))
+    {
+        PhGlobalDpi = GetDeviceCaps(hdc, LOGPIXELSY);
+        ReleaseDC(NULL, hdc);
+    }
 
     shell32Handle = LoadLibrary(L"shell32.dll");
     shlwapiHandle = LoadLibrary(L"shlwapi.dll");
 
     if (WINDOWS_HAS_IMMERSIVE)
-        IsImmersiveProcess_I = PhGetModuleProcAddress(L"user32.dll", "IsImmersiveProcess");
-    RunFileDlg = PhGetProcedureAddress(shell32Handle, NULL, 61);
-    SHAutoComplete_I = PhGetProcedureAddress(shlwapiHandle, "SHAutoComplete", 0);
+        IsImmersiveProcess_I = PhGetDllProcedureAddress(L"user32.dll", "IsImmersiveProcess", 0);
+    RunFileDlg = PhGetDllBaseProcedureAddress(shell32Handle, NULL, 61);
+    SHAutoComplete_I = PhGetDllBaseProcedureAddress(shlwapiHandle, "SHAutoComplete", 0);
 }
 
 VOID PhSetControlTheme(
@@ -213,6 +246,50 @@ VOID PhSetListViewSubItem(
     ListView_SetItem(ListViewHandle, &item);
 }
 
+INT PhAddListViewGroup(
+    _In_ HWND ListViewHandle,
+    _In_ INT GroupId,
+    _In_ PWSTR Text
+    )
+{
+    LVGROUP group;
+
+    memset(&group, 0, sizeof(LVGROUP));
+    group.cbSize = sizeof(LVGROUP);
+    group.mask = LVGF_HEADER | LVGF_ALIGN | LVGF_STATE | LVGF_GROUPID;
+    group.uAlign = LVGA_HEADER_LEFT;
+    group.state = LVGS_COLLAPSIBLE;
+    group.iGroupId = GroupId;
+    group.pszHeader = Text;
+
+    return (INT)ListView_InsertGroup(ListViewHandle, MAXINT, &group);
+}
+
+INT PhAddListViewGroupItem(
+    _In_ HWND ListViewHandle,
+    _In_ INT GroupId,
+    _In_ INT Index,
+    _In_ PWSTR Text,
+    _In_opt_ PVOID Param
+    )
+{
+    LVITEM item;
+
+    item.mask = LVIF_TEXT | LVIF_GROUPID;
+    item.iItem = Index;
+    item.iSubItem = 0;
+    item.pszText = Text;
+    item.iGroupId = GroupId;
+
+    if (Param)
+    {
+        item.mask |= LVIF_PARAM;
+        item.lParam = (LPARAM)Param;
+    }
+
+    return ListView_InsertItem(ListViewHandle, &item);
+}
+
 INT PhAddTabControlTab(
     _In_ HWND TabControlHandle,
     _In_ INT Index,
@@ -270,7 +347,7 @@ ULONG PhGetWindowTextEx(
     }
     else
     {
-        length = GetWindowTextLength(hwnd);
+        length = PhGetWindowTextLength(hwnd);
 
         if (length == 0 || (Flags & PH_GET_WINDOW_TEXT_LENGTH_ONLY))
         {
@@ -671,41 +748,33 @@ VOID PhGetStockApplicationIcon(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        PPH_STRING systemDirectory;
-        PPH_STRING dllFileName;
-
-        // imageres,11 (Windows 10 and above), user32,0 (Vista and above) or shell32,2 (XP) contains
-        // the default application icon.
-
-        if (systemDirectory = PhGetSystemDirectory())
+        if (WindowsVersion < WINDOWS_10)
         {
-            PH_STRINGREF dllBaseName;
-            ULONG index;
+            PPH_STRING systemDirectory;
+            PPH_STRING dllFileName;
 
-            // TODO: Find a better solution.
-            if (WindowsVersion >= WINDOWS_10)
+            // imageres,11 (Windows 10 and above), user32,0 (Vista and above) or shell32,2 (XP) contains
+            // the default application icon.
+
+            if (systemDirectory = PhGetSystemDirectory())
             {
-                PhInitializeStringRef(&dllBaseName, L"\\imageres.dll");
-                index = 11;
-            }
-            else
-            {
+                PH_STRINGREF dllBaseName;
+
                 PhInitializeStringRef(&dllBaseName, L"\\user32.dll");
-                index = 0;
+                dllFileName = PhConcatStringRef2(&systemDirectory->sr, &dllBaseName);
+
+                PhExtractIcon(dllFileName->Buffer, &largeIcon, &smallIcon);
+
+                PhDereferenceObject(dllFileName);
+                PhDereferenceObject(systemDirectory);
             }
-
-            dllFileName = PhConcatStringRef2(&systemDirectory->sr, &dllBaseName);
-            PhDereferenceObject(systemDirectory);
-
-            ExtractIconEx(dllFileName->Buffer, index, &largeIcon, &smallIcon, 1);
-            PhDereferenceObject(dllFileName);
         }
 
         // Fallback icons
         if (!smallIcon)
-            smallIcon = PhLoadIcon(NULL, MAKEINTRESOURCE(IDI_APPLICATION), PH_LOAD_ICON_SIZE_SMALL, 0, 0);
+            smallIcon = PhLoadIcon(NULL, IDI_APPLICATION, PH_LOAD_ICON_SIZE_SMALL, 0, 0);
         if (!largeIcon)
-            largeIcon = PhLoadIcon(NULL, MAKEINTRESOURCE(IDI_APPLICATION), PH_LOAD_ICON_SIZE_LARGE, 0, 0);
+            largeIcon = PhLoadIcon(NULL, IDI_APPLICATION, PH_LOAD_ICON_SIZE_LARGE, 0, 0);
 
         PhEndInitOnce(&initOnce);
     }
@@ -734,12 +803,10 @@ HICON PhGetFileShellIcon(
 
         if (FileName)
         {
-            ExtractIconEx(
+            PhExtractIcon(
                 FileName,
-                0,
                 LargeIcon ? &icon : NULL,
-                !LargeIcon ? &icon : NULL,
-                1
+                !LargeIcon ? &icon : NULL
                 );
         }
 
@@ -751,7 +818,7 @@ HICON PhGetFileShellIcon(
                 );
 
             if (icon)
-                icon = DuplicateIcon(NULL, icon);
+                icon = CopyIcon(icon);
         }
 
         return icon;
@@ -821,7 +888,7 @@ VOID PhSetClipboardString(
     memory = GlobalLock(data);
 
     memcpy(memory, String->Buffer, String->Length);
-    *(PWCHAR)((PCHAR)memory + String->Length) = 0;
+    *(PWCHAR)PTR_ADD_OFFSET(memory, String->Length) = 0;
 
     GlobalUnlock(memory);
 
@@ -837,47 +904,30 @@ HWND PhCreateDialogFromTemplate(
     _In_ PVOID Parameter
     )
 {
-    HRSRC resourceInfo;
-    ULONG resourceSize;
-    HGLOBAL resourceHandle;
-    PDLGTEMPLATEEX dialog;
-    PDLGTEMPLATEEX dialogCopy;
+    PDLGTEMPLATEEX dialogTemplate;
     HWND dialogHandle;
 
-    resourceInfo = FindResource(Instance, Template, MAKEINTRESOURCE(RT_DIALOG));
-
-    if (!resourceInfo)
+    if (!PhLoadResource(Instance, Template, RT_DIALOG, NULL, &dialogTemplate))
         return NULL;
 
-    resourceSize = SizeofResource(Instance, resourceInfo);
-
-    if (resourceSize == 0)
-        return NULL;
-
-    resourceHandle = LoadResource(Instance, resourceInfo);
-
-    if (!resourceHandle)
-        return NULL;
-
-    dialog = LockResource(resourceHandle);
-
-    if (!dialog)
-        return NULL;
-
-    dialogCopy = PhAllocateCopy(dialog, resourceSize);
-
-    if (dialogCopy->signature == 0xffff)
+    if (dialogTemplate->signature == USHRT_MAX)
     {
-        dialogCopy->style = Style;
+        dialogTemplate->style = Style;
     }
     else
     {
-        ((DLGTEMPLATE *)dialogCopy)->style = Style;
+        ((DLGTEMPLATE *)dialogTemplate)->style = Style;
     }
 
-    dialogHandle = CreateDialogIndirectParam(Instance, (DLGTEMPLATE *)dialogCopy, Parent, DialogProc, (LPARAM)Parameter);
+    dialogHandle = CreateDialogIndirectParam(
+        Instance, 
+        (DLGTEMPLATE *)dialogTemplate, 
+        Parent, 
+        DialogProc, 
+        (LPARAM)Parameter
+        );
 
-    PhFree(dialogCopy);
+    PhFree(dialogTemplate);
 
     return dialogHandle;
 }
@@ -1226,5 +1276,241 @@ VOID PhLayoutManagerLayout(
     {
         EndDeferWindowPos(Manager->RootItem.DeferHandle);
         Manager->RootItem.DeferHandle = NULL;
+    }
+}
+
+static BOOLEAN NTAPI PhpWindowContextHashtableEqualFunction(
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
+    )
+{
+    PPH_WINDOW_PROPERTY_CONTEXT entry1 = Entry1;
+    PPH_WINDOW_PROPERTY_CONTEXT entry2 = Entry2;
+
+    return 
+        entry1->WindowHandle == entry2->WindowHandle &&
+        entry1->PropertyHash == entry2->PropertyHash;
+}
+
+static ULONG NTAPI PhpWindowContextHashtableHashFunction(
+    _In_ PVOID Entry
+    )
+{
+    PPH_WINDOW_PROPERTY_CONTEXT entry = Entry;
+
+    return PhHashIntPtr((ULONG_PTR)entry->WindowHandle) ^ PhHashInt32(entry->PropertyHash);
+}
+
+PVOID PhGetWindowContext(
+    _In_ HWND WindowHandle,
+    _In_ ULONG PropertyHash
+    )
+{
+    PH_WINDOW_PROPERTY_CONTEXT lookupEntry;
+    PPH_WINDOW_PROPERTY_CONTEXT entry;
+
+    lookupEntry.WindowHandle = WindowHandle;
+    lookupEntry.PropertyHash = PropertyHash;
+
+    PhAcquireQueuedLockShared(&WindowContextListLock);
+    entry = PhFindEntryHashtable(WindowContextHashTable, &lookupEntry);
+    PhReleaseQueuedLockShared(&WindowContextListLock);
+
+    if (entry)
+        return entry->Context;
+    else
+        return NULL;
+}
+
+VOID PhSetWindowContext(
+    _In_ HWND WindowHandle,
+    _In_ ULONG PropertyHash,
+    _In_ PVOID Context
+    )
+{
+    PH_WINDOW_PROPERTY_CONTEXT entry;
+
+    entry.WindowHandle = WindowHandle;
+    entry.PropertyHash = PropertyHash;
+    entry.Context = Context;
+
+    PhAcquireQueuedLockExclusive(&WindowContextListLock);
+    PhAddEntryHashtable(WindowContextHashTable, &entry);
+    PhReleaseQueuedLockExclusive(&WindowContextListLock);
+}
+
+VOID PhRemoveWindowContext(
+    _In_ HWND WindowHandle,
+    _In_ ULONG PropertyHash
+    )
+{
+    PH_WINDOW_PROPERTY_CONTEXT lookupEntry;
+
+    lookupEntry.WindowHandle = WindowHandle;
+    lookupEntry.PropertyHash = PropertyHash;
+
+    PhAcquireQueuedLockExclusive(&WindowContextListLock);
+    PhRemoveEntryHashtable(WindowContextHashTable, &lookupEntry);
+    PhReleaseQueuedLockExclusive(&WindowContextListLock);
+}
+
+VOID PhEnumChildWindows(
+    _In_opt_ HWND WindowHandle,
+    _In_ ULONG Limit,
+    _In_ PH_CHILD_ENUM_CALLBACK Callback,
+    _In_ PVOID Context
+    )
+{
+    HWND childWindow = NULL;
+    ULONG i = 0;
+
+    while (i < Limit && (childWindow = FindWindowEx(WindowHandle, childWindow, NULL, NULL)))
+    {
+        if (!Callback(childWindow, Context))
+            return;
+
+        i++;
+    }
+}
+
+typedef struct _GET_PROCESS_MAIN_WINDOW_CONTEXT
+{
+    HWND Window;
+    HWND ImmersiveWindow;
+    HANDLE ProcessId;
+    BOOLEAN IsImmersive;
+    BOOLEAN SkipInvisible;
+} GET_PROCESS_MAIN_WINDOW_CONTEXT, *PGET_PROCESS_MAIN_WINDOW_CONTEXT;
+
+BOOLEAN CALLBACK PhpGetProcessMainWindowEnumWindowsProc(
+    _In_ HWND WindowHandle,
+    _In_opt_ PVOID Context
+    )
+{
+    PGET_PROCESS_MAIN_WINDOW_CONTEXT context = (PGET_PROCESS_MAIN_WINDOW_CONTEXT)Context;
+    ULONG processId;
+    HWND parentWindow;
+    WINDOWINFO windowInfo;
+
+    if (context->SkipInvisible && !IsWindowVisible(WindowHandle))
+        return TRUE;
+
+    GetWindowThreadProcessId(WindowHandle, &processId);
+
+    if (UlongToHandle(processId) == context->ProcessId && (context->SkipInvisible ?
+        !((parentWindow = GetParent(WindowHandle)) && IsWindowVisible(parentWindow)) && // skip windows with a visible parent
+        PhGetWindowTextEx(WindowHandle, PH_GET_WINDOW_TEXT_INTERNAL | PH_GET_WINDOW_TEXT_LENGTH_ONLY, NULL) != 0 : TRUE)) // skip windows with no title
+    {
+        if (!context->ImmersiveWindow && context->IsImmersive &&
+            GetProp(WindowHandle, L"Windows.ImmersiveShell.IdentifyAsMainCoreWindow"))
+        {
+            context->ImmersiveWindow = WindowHandle;
+        }
+
+        windowInfo.cbSize = sizeof(WINDOWINFO);
+
+        if (!context->Window && GetWindowInfo(WindowHandle, &windowInfo) && (windowInfo.dwStyle & WS_DLGFRAME))
+        {
+            context->Window = WindowHandle;
+
+            // If we're not looking at an immersive process, there's no need to search any more windows.
+            if (!context->IsImmersive)
+                return FALSE;
+        }
+    }
+
+    return TRUE;
+}
+
+HWND PhGetProcessMainWindow(
+    _In_ HANDLE ProcessId,
+    _In_opt_ HANDLE ProcessHandle
+    )
+{
+    return PhGetProcessMainWindowEx(ProcessId, ProcessHandle, TRUE);
+}
+
+HWND PhGetProcessMainWindowEx(
+    _In_ HANDLE ProcessId,
+    _In_opt_ HANDLE ProcessHandle,
+    _In_ BOOLEAN SkipInvisible
+    )
+{
+    GET_PROCESS_MAIN_WINDOW_CONTEXT context;
+    HANDLE processHandle = NULL;
+
+    memset(&context, 0, sizeof(GET_PROCESS_MAIN_WINDOW_CONTEXT));
+    context.ProcessId = ProcessId;
+    context.SkipInvisible = SkipInvisible;
+
+    if (ProcessHandle)
+        processHandle = ProcessHandle;
+    else
+        PhOpenProcess(&processHandle, ProcessQueryAccess, ProcessId);
+
+    if (processHandle && IsImmersiveProcess_I)
+        context.IsImmersive = IsImmersiveProcess_I(processHandle);
+
+    PhEnumChildWindows(NULL, 0x800, PhpGetProcessMainWindowEnumWindowsProc, &context);
+
+    if (!ProcessHandle && processHandle)
+        NtClose(processHandle);
+
+    return context.ImmersiveWindow ? context.ImmersiveWindow : context.Window;
+}
+
+ULONG PhGetDialogItemValue(
+    _In_ HWND WindowHandle,
+    _In_ INT ControlID
+    )
+{
+    ULONG64 controlValue = 0;
+    HWND controlHandle;
+    PPH_STRING controlText;
+
+    if (controlHandle = GetDlgItem(WindowHandle, ControlID))
+    {
+        if (controlText = PhGetWindowText(controlHandle))
+        {
+            PhStringToInteger64(&controlText->sr, 10, &controlValue);
+            PhDereferenceObject(controlText);
+        }
+    }
+
+    return (ULONG)controlValue;
+}
+
+VOID PhSetDialogItemValue(
+    _In_ HWND WindowHandle,
+    _In_ INT ControlID,
+    _In_ ULONG Value,
+    _In_ BOOLEAN Signed
+    )
+{
+    HWND controlHandle;
+    WCHAR valueString[PH_INT32_STR_LEN_1];
+
+    if (Signed)
+        PhPrintInt32(valueString, (LONG)Value);
+    else
+        PhPrintUInt32(valueString, Value);
+
+    if (controlHandle = GetDlgItem(WindowHandle, ControlID))
+    {
+        SendMessage(controlHandle, WM_SETTEXT, 0, (LPARAM)valueString); // DefWindowProc
+    }
+}
+
+VOID PhSetDialogItemText(
+    _In_ HWND WindowHandle,
+    _In_ INT ControlID,
+    _In_ PCWSTR WindowText
+    )
+{
+    HWND controlHandle;
+
+    if (controlHandle = GetDlgItem(WindowHandle, ControlID))
+    {
+        SendMessage(controlHandle, WM_SETTEXT, 0, (LPARAM)WindowText); // DefWindowProc
     }
 }

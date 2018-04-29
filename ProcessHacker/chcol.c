@@ -110,11 +110,11 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
     if (uMsg == WM_INITDIALOG)
     {
         context = (PCOLUMNS_DIALOG_CONTEXT)lParam;
-        SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)context);
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = (PCOLUMNS_DIALOG_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
     }
 
     if (!context)
@@ -202,7 +202,7 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
             for (i = 0; i < context->Columns->Count; i++)
                 PhFree(context->Columns->Items[i]);
 
-            RemoveProp(hwndDlg, PhMakeContextAtom());
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
         }
         break;
     case WM_COMMAND:
@@ -214,7 +214,7 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                 break;
             case IDOK:
                 {
-#define ORDER_LIMIT 100
+#define ORDER_LIMIT 200
                     PPH_LIST activeList;
                     ULONG activeCount;
                     ULONG i;

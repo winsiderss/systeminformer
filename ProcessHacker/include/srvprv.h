@@ -18,6 +18,10 @@ typedef struct _PH_SERVICE_ITEM
     PH_STRINGREF Key; // points to Name
     PPH_STRING Name;
     PPH_STRING DisplayName;
+    PPH_STRING FileName; // only available after first update
+
+    HICON SmallIcon;
+    HICON LargeIcon;
 
     // State
     ULONG Type;
@@ -40,7 +44,7 @@ typedef struct _PH_SERVICE_ITEM
             BOOLEAN HasTriggers : 1;
             BOOLEAN PendingProcess : 1;
             BOOLEAN NeedsConfigUpdate : 1;
-            BOOLEAN NeedsVerifyUpdate : 1;
+            BOOLEAN JustProcessed : 1;
             BOOLEAN Spare : 3;
         };
     };
@@ -100,6 +104,10 @@ PhGetServiceChange(
 
 VOID PhUpdateProcessItemServices(
     _In_ PPH_PROCESS_ITEM ProcessItem
+    );
+
+VOID PhQueueServiceQueryStage2( // HACK
+    _In_ PPH_SERVICE_ITEM ServiceItem
     );
 
 VOID PhServiceProviderUpdate(

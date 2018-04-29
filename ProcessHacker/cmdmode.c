@@ -64,19 +64,21 @@ NTSTATUS PhCommandModeStart(
     {
         { PH_COMMAND_OPTION_HWND, L"hwnd", MandatoryArgumentType }
     };
-    NTSTATUS status = STATUS_SUCCESS;
-    PH_STRINGREF commandLine;
+    NTSTATUS status;
+    PPH_STRING commandLine;
 
-    PhUnicodeStringToStringRef(&NtCurrentPeb()->ProcessParameters->CommandLine, &commandLine);
+    if (!NT_SUCCESS(status = PhGetProcessCommandLine(NtCurrentProcess(), &commandLine)))
+        return status;
 
     PhParseCommandLine(
-        &commandLine,
+        &commandLine->sr,
         options,
         sizeof(options) / sizeof(PH_COMMAND_LINE_OPTION),
         PH_COMMAND_LINE_IGNORE_UNKNOWN_OPTIONS,
         PhpCommandModeOptionCallback,
         NULL
         );
+    PhDereferenceObject(commandLine);
 
     if (PhEqualString2(PhStartupParameters.CommandType, L"process", TRUE))
     {
@@ -172,9 +174,12 @@ NTSTATUS PhCommandModeStart(
             if (NT_SUCCESS(status = PhOpenProcessPublic(&processHandle, PROCESS_SET_INFORMATION, processId)))
             {
                 PROCESS_PRIORITY_CLASS priorityClass;
+
                 priorityClass.Foreground = FALSE;
                 priorityClass.PriorityClass = priority;
-                status = NtSetInformationProcess(processHandle, ProcessPriorityClass, &priorityClass, sizeof(PROCESS_PRIORITY_CLASS));
+
+                status = PhSetProcessPriority(processHandle, priorityClass);
+
                 NtClose(processHandle);
             }
         }
@@ -215,69 +220,43 @@ NTSTATUS PhCommandModeStart(
 
             if (NT_SUCCESS(status = PhOpenProcessPublic(&processHandle, PROCESS_SET_INFORMATION, processId)))
             {
-                status = NtSetInformationProcess(
-                    processHandle,
-                    ProcessPagePriority,
-                    &pagePriority,
-                    sizeof(ULONG)
-                    );
-                NtClose(processHandle);
-            }
-        }
-        else if (PhEqualString2(PhStartupParameters.CommandAction, L"injectdll", TRUE))
-        {
-            if (!PhStartupParameters.CommandValue)
-                return STATUS_INVALID_PARAMETER;
-
-            if (NT_SUCCESS(status = PhOpenProcessPublic(
-                &processHandle,
-                ProcessQueryAccess | PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION | PROCESS_VM_READ | PROCESS_VM_WRITE,
-                processId
-                )))
-            {
-                LARGE_INTEGER timeout;
-
-                timeout.QuadPart = -5 * PH_TIMEOUT_SEC;
-                status = PhInjectDllProcess(
-                    processHandle,
-                    PhStartupParameters.CommandValue->Buffer,
-                    &timeout
-                    );
-                NtClose(processHandle);
-            }
-        }
-        else if (PhEqualString2(PhStartupParameters.CommandAction, L"unloaddll", TRUE))
-        {
-            if (!PhStartupParameters.CommandValue)
-                return STATUS_INVALID_PARAMETER;
-
-            if (NT_SUCCESS(status = PhOpenProcessPublic(
-                &processHandle,
-                ProcessQueryAccess | PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION | PROCESS_VM_READ | PROCESS_VM_WRITE,
-                processId
-                )))
-            {
-                PVOID baseAddress;
-
-                if (NT_SUCCESS(status = PhpGetDllBaseRemote(
-                    processHandle,
-                    &PhStartupParameters.CommandValue->sr,
-                    &baseAddress
-                    )))
-                {
-                    LARGE_INTEGER timeout;
-
-                    timeout.QuadPart = -5 * PH_TIMEOUT_SEC;
-                    status = PhUnloadDllProcess(
-                        processHandle,
-                        baseAddress,
-                        &timeout
-                        );
-                }
+                status = PhSetProcessPagePriority(processHandle, pagePriority);
 
                 NtClose(processHandle);
             }
         }
+        //else if (PhEqualString2(PhStartupParameters.CommandAction, L"unloaddll", TRUE))
+        //{
+        //    if (!PhStartupParameters.CommandValue)
+        //        return STATUS_INVALID_PARAMETER;
+        //
+        //    if (NT_SUCCESS(status = PhOpenProcessPublic(
+        //        &processHandle,
+        //        ProcessQueryAccess | PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION | PROCESS_VM_READ | PROCESS_VM_WRITE,
+        //        processId
+        //        )))
+        //    {
+        //        PVOID baseAddress;
+        //
+        //        if (NT_SUCCESS(status = PhpGetDllBaseRemote(
+        //            processHandle,
+        //            &PhStartupParameters.CommandValue->sr,
+        //            &baseAddress
+        //            )))
+        //        {
+        //            LARGE_INTEGER timeout;
+        //
+        //            timeout.QuadPart = -5 * PH_TIMEOUT_SEC;
+        //            status = PhUnloadDllProcess(
+        //                processHandle,
+        //                baseAddress,
+        //                &timeout
+        //                );
+        //        }
+        //
+        //        NtClose(processHandle);
+        //    }
+        //}
     }
     else if (PhEqualString2(PhStartupParameters.CommandType, L"service", TRUE))
     {

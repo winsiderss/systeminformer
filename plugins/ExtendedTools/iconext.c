@@ -25,6 +25,9 @@
 #define GPU_ICON_ID 1
 #define DISK_ICON_ID 2
 #define NETWORK_ICON_ID 3
+#define GPU_ICON_TEXT_ID 4
+#define DISK_ICON_TEXT_ID 5
+#define NETWORK_ICON_TEXT_ID 6
 
 VOID EtpGpuIconUpdateCallback(
     _In_ struct _PH_NF_ICON *Icon,
@@ -71,8 +74,32 @@ BOOLEAN EtpNetworkIconMessageCallback(
     _In_opt_ PVOID Context
     );
 
+VOID EtpGpuTextIconUpdateCallback(
+    _In_ struct _PH_NF_ICON *Icon,
+    _Out_ PVOID *NewIconOrBitmap,
+    _Out_ PULONG Flags,
+    _Out_ PPH_STRING *NewText,
+    _In_opt_ PVOID Context
+    );
+
+VOID EtpDiskTextIconUpdateCallback(
+    _In_ struct _PH_NF_ICON *Icon,
+    _Out_ PVOID *NewIconOrBitmap,
+    _Out_ PULONG Flags,
+    _Out_ PPH_STRING *NewText,
+    _In_opt_ PVOID Context
+    );
+
+VOID EtpNetworkTextIconUpdateCallback(
+    _In_ struct _PH_NF_ICON *Icon,
+    _Out_ PVOID *NewIconOrBitmap,
+    _Out_ PULONG Flags,
+    _Out_ PPH_STRING *NewText,
+    _In_opt_ PVOID Context
+    );
+
 VOID EtRegisterNotifyIcons(
-    VOID
+    _In_ PPH_TRAY_ICON_POINTERS Pointers
     )
 {
     PH_NF_ICON_REGISTRATION_DATA data;
@@ -81,34 +108,67 @@ VOID EtRegisterNotifyIcons(
 
     data.UpdateCallback = EtpGpuIconUpdateCallback;
     data.MessageCallback = EtpGpuIconMessageCallback;
-    PhPluginRegisterIcon(
+    Pointers->RegisterTrayIcon(
         PluginInstance,
         GPU_ICON_ID,
         NULL,
-        L"GPU history",
-        PH_NF_ICON_SHOW_MINIINFO | (EtGpuEnabled ? 0 : PH_NF_ICON_UNAVAILABLE),
+        L"&GPU history",
+        EtGpuEnabled ? 0 : PH_NF_ICON_UNAVAILABLE,
         &data
         );
 
     data.UpdateCallback = EtpDiskIconUpdateCallback;
     data.MessageCallback = EtpDiskIconMessageCallback;
-    PhPluginRegisterIcon(
+    Pointers->RegisterTrayIcon(
         PluginInstance,
         DISK_ICON_ID,
         NULL,
-        L"Disk history",
-        PH_NF_ICON_SHOW_MINIINFO | (EtEtwEnabled ? 0 : PH_NF_ICON_UNAVAILABLE),
+        L"&Disk history",
+        EtEtwEnabled ? 0 : PH_NF_ICON_UNAVAILABLE,
         &data
         );
 
     data.UpdateCallback = EtpNetworkIconUpdateCallback;
     data.MessageCallback = EtpNetworkIconMessageCallback;
-    PhPluginRegisterIcon(
+    Pointers->RegisterTrayIcon(
         PluginInstance,
         NETWORK_ICON_ID,
         NULL,
-        L"Network history",
-        PH_NF_ICON_SHOW_MINIINFO | (EtEtwEnabled ? 0 : PH_NF_ICON_UNAVAILABLE),
+        L"&Network history",
+        EtEtwEnabled ? 0 : PH_NF_ICON_UNAVAILABLE,
+        &data
+        );
+
+    data.UpdateCallback = EtpGpuTextIconUpdateCallback;
+    data.MessageCallback = EtpGpuIconMessageCallback;
+    Pointers->RegisterTrayIcon(
+        PluginInstance,
+        GPU_ICON_TEXT_ID,
+        NULL,
+        L"&GPU usage (Text)",
+        EtGpuEnabled ? 0 : PH_NF_ICON_UNAVAILABLE,
+        &data
+        );
+
+    data.UpdateCallback = EtpDiskTextIconUpdateCallback;
+    data.MessageCallback = EtpDiskIconMessageCallback;
+    Pointers->RegisterTrayIcon(
+        PluginInstance,
+        DISK_ICON_TEXT_ID,
+        NULL,
+        L"&Disk usage (Text)",
+        EtEtwEnabled ? 0 : PH_NF_ICON_UNAVAILABLE,
+        &data
+        );
+
+    data.UpdateCallback = EtpNetworkTextIconUpdateCallback;
+    data.MessageCallback = EtpNetworkIconMessageCallback;
+    Pointers->RegisterTrayIcon(
+        PluginInstance,
+        NETWORK_ICON_TEXT_ID,
+        NULL,
+        L"&Network usage (Text)",
+        EtEtwEnabled ? 0 : PH_NF_ICON_UNAVAILABLE,
         &data
         );
 }
@@ -463,4 +523,238 @@ BOOLEAN EtpNetworkIconMessageCallback(
     }
 
     return FALSE;
+}
+
+// Text 
+
+VOID EtpGpuTextIconUpdateCallback(
+    _In_ struct _PH_NF_ICON *Icon,
+    _Out_ PVOID *NewIconOrBitmap,
+    _Out_ PULONG Flags,
+    _Out_ PPH_STRING *NewText,
+    _In_opt_ PVOID Context
+    )
+{
+    static PH_GRAPH_DRAW_INFO drawInfo =
+    {
+        16,
+        16,
+        0,
+        0,
+        RGB(0x00, 0x00, 0x00),
+        0,
+        NULL,
+        NULL,
+        0,
+        0,
+        0,
+        0
+    };
+    HBITMAP bitmap;
+    PVOID bits;
+    HDC hdc;
+    HBITMAP oldBitmap;
+    HANDLE maxGpuProcessId;
+    PPH_PROCESS_ITEM maxGpuProcessItem;
+    PH_FORMAT format[8];
+    PPH_STRING text;
+
+    // Icon
+
+    Icon->Pointers->BeginBitmap(&drawInfo.Width, &drawInfo.Height, &bitmap, &bits, &hdc, &oldBitmap);
+
+    PhInitFormatF(&format[0], (FLOAT)EtGpuNodeUsage * 100, 0);
+    text = PhFormat(format, 1, 10);
+
+    drawInfo.TextColor = PhGetIntegerSetting(L"ColorCpuKernel");
+    PhDrawTrayIconText(hdc, bits, &drawInfo, &text->sr);
+    PhDereferenceObject(text);
+
+    SelectObject(hdc, oldBitmap);
+    *NewIconOrBitmap = bitmap;
+    *Flags = PH_NF_UPDATE_IS_BITMAP;
+
+    // Text
+
+    if (EtMaxGpuNodeHistory.Count != 0)
+        maxGpuProcessId = UlongToHandle(PhGetItemCircularBuffer_ULONG(&EtMaxGpuNodeHistory, 0));
+    else
+        maxGpuProcessId = NULL;
+
+    if (maxGpuProcessId)
+        maxGpuProcessItem = PhReferenceProcessItem(maxGpuProcessId);
+    else
+        maxGpuProcessItem = NULL;
+
+    PhInitFormatS(&format[0], L"GPU Usage: ");
+    PhInitFormatF(&format[1], EtGpuNodeUsage * 100, 2);
+    PhInitFormatC(&format[2], '%');
+
+    if (maxGpuProcessItem)
+    {
+        PhInitFormatC(&format[3], '\n');
+        PhInitFormatSR(&format[4], maxGpuProcessItem->ProcessName->sr);
+        PhInitFormatS(&format[5], L": ");
+        PhInitFormatF(&format[6], EtGetProcessBlock(maxGpuProcessItem)->GpuNodeUsage * 100, 2);
+        PhInitFormatC(&format[7], '%');
+    }
+
+    *NewText = PhFormat(format, maxGpuProcessItem ? 8 : 3, 128);
+    if (maxGpuProcessItem) PhDereferenceObject(maxGpuProcessItem);
+}
+
+VOID EtpDiskTextIconUpdateCallback(
+    _In_ struct _PH_NF_ICON *Icon,
+    _Out_ PVOID *NewIconOrBitmap,
+    _Out_ PULONG Flags,
+    _Out_ PPH_STRING *NewText,
+    _In_opt_ PVOID Context
+    )
+{
+    static PH_GRAPH_DRAW_INFO drawInfo =
+    {
+        16,
+        16,
+        0,
+        0,
+        RGB(0x00, 0x00, 0x00),
+        0,
+        NULL,
+        NULL,
+        0,
+        0,
+        0,
+        0
+    };
+    HBITMAP bitmap;
+    PVOID bits;
+    HDC hdc;
+    HBITMAP oldBitmap;
+    HANDLE maxDiskProcessId;
+    PPH_PROCESS_ITEM maxDiskProcessItem;
+    PH_FORMAT format[6];
+    PPH_STRING text;
+    static ULONG64 maxValue = 100000 * 1024; // minimum scaling of 100 MB.
+
+    // Icon
+
+    Icon->Pointers->BeginBitmap(&drawInfo.Width, &drawInfo.Height, &bitmap, &bits, &hdc, &oldBitmap);
+
+    if (maxValue < (EtDiskReadDelta.Delta + EtDiskWriteDelta.Delta))
+        maxValue = (EtDiskReadDelta.Delta + EtDiskWriteDelta.Delta);
+
+    PhInitFormatF(&format[0], (FLOAT)(EtDiskReadDelta.Delta + EtDiskWriteDelta.Delta) / maxValue * 100, 0);
+    text = PhFormat(format, 1, 10);
+
+    drawInfo.TextColor = PhGetIntegerSetting(L"ColorIoReadOther"); // ColorIoWrite
+    PhDrawTrayIconText(hdc, bits, &drawInfo, &text->sr);
+    PhDereferenceObject(text);
+
+    SelectObject(hdc, oldBitmap);
+    *NewIconOrBitmap = bitmap;
+    *Flags = PH_NF_UPDATE_IS_BITMAP;
+
+    // Text
+
+    if (EtMaxDiskHistory.Count != 0)
+        maxDiskProcessId = UlongToHandle(PhGetItemCircularBuffer_ULONG(&EtMaxDiskHistory, 0));
+    else
+        maxDiskProcessId = NULL;
+
+    if (maxDiskProcessId)
+        maxDiskProcessItem = PhReferenceProcessItem(maxDiskProcessId);
+    else
+        maxDiskProcessItem = NULL;
+
+    PhInitFormatS(&format[0], L"Disk\nR: ");
+    PhInitFormatSize(&format[1], EtDiskReadDelta.Delta);
+    PhInitFormatS(&format[2], L"\nW: ");
+    PhInitFormatSize(&format[3], EtDiskWriteDelta.Delta);
+
+    if (maxDiskProcessItem)
+    {
+        PhInitFormatC(&format[4], '\n');
+        PhInitFormatSR(&format[5], maxDiskProcessItem->ProcessName->sr);
+    }
+
+    *NewText = PhFormat(format, maxDiskProcessItem ? 6 : 4, 128);
+    if (maxDiskProcessItem) PhDereferenceObject(maxDiskProcessItem);
+}
+
+VOID EtpNetworkTextIconUpdateCallback(
+    _In_ struct _PH_NF_ICON *Icon,
+    _Out_ PVOID *NewIconOrBitmap,
+    _Out_ PULONG Flags,
+    _Out_ PPH_STRING *NewText,
+    _In_opt_ PVOID Context
+    )
+{
+    static PH_GRAPH_DRAW_INFO drawInfo =
+    {
+        16,
+        16,
+        0,
+        0,
+        RGB(0x00, 0x00, 0x00),
+        0,
+        NULL,
+        NULL,
+        0,
+        0,
+        0,
+        0
+    };
+    HBITMAP bitmap;
+    PVOID bits;
+    HDC hdc;
+    HBITMAP oldBitmap;
+    HANDLE maxNetworkProcessId;
+    PPH_PROCESS_ITEM maxNetworkProcessItem;
+    PH_FORMAT format[6];
+    PPH_STRING text;
+    static ULONG64 maxValue = 1024 * 1024; // minimum scaling of 1 MB.
+
+    // Icon
+
+    Icon->Pointers->BeginBitmap(&drawInfo.Width, &drawInfo.Height, &bitmap, &bits, &hdc, &oldBitmap);
+
+    if (maxValue < (EtNetworkReceiveDelta.Delta + EtNetworkSendDelta.Delta))
+        maxValue = (EtNetworkReceiveDelta.Delta + EtNetworkSendDelta.Delta);
+
+    PhInitFormatF(&format[0], (FLOAT)(EtNetworkReceiveDelta.Delta + EtNetworkSendDelta.Delta) / maxValue * 100, 0);
+    text = PhFormat(format, 1, 10);
+
+    drawInfo.TextColor = PhGetIntegerSetting(L"ColorIoReadOther"); // ColorIoWrite
+    PhDrawTrayIconText(hdc, bits, &drawInfo, &text->sr);
+    PhDereferenceObject(text);
+
+    SelectObject(hdc, oldBitmap);
+    *NewIconOrBitmap = bitmap;
+    *Flags = PH_NF_UPDATE_IS_BITMAP;
+
+    // Text
+
+    if (EtMaxNetworkHistory.Count != 0)
+        maxNetworkProcessId = UlongToHandle(PhGetItemCircularBuffer_ULONG(&EtMaxNetworkHistory, 0));
+    else
+        maxNetworkProcessId = NULL;
+
+    if (maxNetworkProcessId)
+        maxNetworkProcessItem = PhReferenceProcessItem(maxNetworkProcessId);
+    else
+        maxNetworkProcessItem = NULL;
+
+    PhInitFormatS(&format[0], L"Network\nR: ");
+    PhInitFormatSize(&format[1], EtNetworkReceiveDelta.Delta);
+    PhInitFormatS(&format[2], L"\nS: ");
+    PhInitFormatSize(&format[3], EtNetworkSendDelta.Delta);
+
+    if (maxNetworkProcessItem)
+    {
+        PhInitFormatC(&format[4], '\n');
+        PhInitFormatSR(&format[5], maxNetworkProcessItem->ProcessName->sr);
+    }
+
+    *NewText = PhFormat(format, maxNetworkProcessItem ? 6 : 4, 128);
+    if (maxNetworkProcessItem) PhDereferenceObject(maxNetworkProcessItem);
 }

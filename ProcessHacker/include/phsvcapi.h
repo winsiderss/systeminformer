@@ -23,8 +23,7 @@ typedef enum _PHSVC_API_NUMBER
     PhSvcSendMessageApiNumber = 15,
     PhSvcCreateProcessIgnoreIfeoDebuggerApiNumber = 16,
     PhSvcSetServiceSecurityApiNumber = 17,
-    PhSvcLoadDbgHelpApiNumber = 18, // WOW64 compatible
-    PhSvcWriteMiniDumpProcessApiNumber = 19, // WOW64 compatible
+    PhSvcWriteMiniDumpProcessApiNumber = 18, // WOW64 compatible
     PhSvcMaximumApiNumber
 } PHSVC_API_NUMBER, *PPHSVC_API_NUMBER;
 
@@ -61,6 +60,7 @@ typedef union _PHSVC_API_EXECUTERUNASCOMMAND
         PH_RELATIVE_STRINGREF DesktopName;
         BOOLEAN UseLinkedToken;
         PH_RELATIVE_STRINGREF ServiceName;
+        BOOLEAN CreateSuspendedProcess;
     } i;
 } PHSVC_API_EXECUTERUNASCOMMAND, *PPHSVC_API_EXECUTERUNASCOMMAND;
 
@@ -241,14 +241,6 @@ typedef union _PHSVC_API_SETSERVICESECURITY
     } i;
 } PHSVC_API_SETSERVICESECURITY, *PPHSVC_API_SETSERVICESECURITY;
 
-typedef union _PHSVC_API_LOADDBGHELP
-{
-    struct
-    {
-        PH_RELATIVE_STRINGREF DbgHelpPath;
-    } i;
-} PHSVC_API_LOADDBGHELP, *PPHSVC_API_LOADDBGHELP;
-
 typedef union _PHSVC_API_WRITEMINIDUMPPROCESS
 {
     struct
@@ -285,7 +277,6 @@ typedef union _PHSVC_API_PAYLOAD
             PHSVC_API_POSTMESSAGE PostMessage;
             PHSVC_API_CREATEPROCESSIGNOREIFEODEBUGGER CreateProcessIgnoreIfeoDebugger;
             PHSVC_API_SETSERVICESECURITY SetServiceSecurity;
-            PHSVC_API_LOADDBGHELP LoadDbgHelp;
             PHSVC_API_WRITEMINIDUMPPROCESS WriteMiniDumpProcess;
         } u;
     };

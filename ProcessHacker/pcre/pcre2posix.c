@@ -38,14 +38,13 @@ POSSIBILITY OF SUCH DAMAGE.
 -----------------------------------------------------------------------------
 */
 
+// dmex: Disable warnings.
+#pragma warning(push)
+#pragma warning(disable : 4267)
 
 /* This module is a wrapper that provides a POSIX API to the underlying PCRE2
 functions. */
 
-// dmex: Disable warnings.
-#pragma warning(push)
-#pragma warning(disable : 4267) 
-#define HAVE_CONFIG_H
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -102,7 +101,7 @@ PCRE2_CALL_CONVENTION just before their names. It is rarely needed; if not
 set, we ensure here that it has no effect. */
 
 #ifndef PCRE2_CALL_CONVENTION
-#define PCRE2_CALL_CONVENTION  
+#define PCRE2_CALL_CONVENTION
 #endif
 
 /* Table to translate PCRE2 compile time error codes into POSIX error codes.
@@ -146,6 +145,7 @@ static const int eint2[] = {
   32, REG_INVARG,  /* this version of PCRE2 does not have Unicode support */
   37, REG_EESCAPE, /* PCRE2 does not support \L, \l, \N{name}, \U, or \u */
   56, REG_INVARG,  /* internal error: unknown newline setting */
+  92, REG_INVARG,  /* invalid option bits with PCRE2_LITERAL */
 };
 
 /* Table of texts corresponding to POSIX error codes */
@@ -235,20 +235,25 @@ PCRE2POSIX_EXP_DEFN int PCRE2_CALL_CONVENTION
 regcomp(regex_t *preg, const char *pattern, int cflags)
 {
 PCRE2_SIZE erroffset;
+PCRE2_SIZE patlen;
 int errorcode;
 int options = 0;
 int re_nsub = 0;
 
+patlen = ((cflags & REG_PEND) != 0)? (PCRE2_SIZE)(preg->re_endp - pattern) :
+  PCRE2_ZERO_TERMINATED;
+
 if ((cflags & REG_ICASE) != 0)    options |= PCRE2_CASELESS;
 if ((cflags & REG_NEWLINE) != 0)  options |= PCRE2_MULTILINE;
 if ((cflags & REG_DOTALL) != 0)   options |= PCRE2_DOTALL;
+if ((cflags & REG_NOSPEC) != 0)   options |= PCRE2_LITERAL;
 if ((cflags & REG_UTF) != 0)      options |= PCRE2_UTF;
 if ((cflags & REG_UCP) != 0)      options |= PCRE2_UCP;
 if ((cflags & REG_UNGREEDY) != 0) options |= PCRE2_UNGREEDY;
 
 preg->re_cflags = cflags;
-preg->re_pcre2_code = pcre2_compile((PCRE2_SPTR)pattern, PCRE2_ZERO_TERMINATED,
-   options, &errorcode, &erroffset, NULL);
+preg->re_pcre2_code = pcre2_compile((PCRE2_SPTR)pattern, patlen, options,
+  &errorcode, &erroffset, NULL);
 preg->re_erroffset = erroffset;
 
 if (preg->re_pcre2_code == NULL)
@@ -263,7 +268,7 @@ if (preg->re_pcre2_code == NULL)
 
   if (errorcode < (int)(sizeof(eint1)/sizeof(const int)))
     return eint1[errorcode];
-  for (i = 0; i < sizeof(eint2)/(2*sizeof(const int)); i += 2)
+  for (i = 0; i < sizeof(eint2)/sizeof(const int); i += 2)
     if (errorcode == eint2[i]) return eint2[i+1];
   return REG_BADPAT;
   }
@@ -342,8 +347,8 @@ if (rc >= 0)
   if ((size_t)rc > nmatch) rc = (int)nmatch;
   for (i = 0; i < (size_t)rc; i++)
     {
-    pmatch[i].rm_so = ovector[i*2];
-    pmatch[i].rm_eo = ovector[i*2+1];
+    pmatch[i].rm_so = ovector[i*2] + so;
+    pmatch[i].rm_eo = ovector[i*2+1] + so;
     }
   for (; i < nmatch; i++) pmatch[i].rm_so = pmatch[i].rm_eo = -1;
   return 0;
@@ -369,5 +374,4 @@ switch(rc)
 }
 
 /* End of pcre2posix.c */
-
 #pragma warning(pop)

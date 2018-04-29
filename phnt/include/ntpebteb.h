@@ -4,6 +4,56 @@
 typedef struct _RTL_USER_PROCESS_PARAMETERS *PRTL_USER_PROCESS_PARAMETERS;
 typedef struct _RTL_CRITICAL_SECTION *PRTL_CRITICAL_SECTION;
 
+// private
+typedef struct _ACTIVATION_CONTEXT_STACK
+{
+    struct _RTL_ACTIVATION_CONTEXT_STACK_FRAME* ActiveFrame;
+    LIST_ENTRY FrameListCache;
+    ULONG Flags;
+    ULONG NextCookieSequenceNumber;
+    ULONG StackId;
+} ACTIVATION_CONTEXT_STACK, *PACTIVATION_CONTEXT_STACK;
+
+// private
+typedef struct _API_SET_NAMESPACE
+{
+    ULONG Version;
+    ULONG Size;
+    ULONG Flags;
+    ULONG Count;
+    ULONG EntryOffset;
+    ULONG HashOffset;
+    ULONG HashFactor;
+} API_SET_NAMESPACE, *PAPI_SET_NAMESPACE;
+
+// private
+typedef struct _API_SET_HASH_ENTRY
+{
+    ULONG Hash;
+    ULONG Index;
+} API_SET_HASH_ENTRY, *PAPI_SET_HASH_ENTRY;
+
+// private
+typedef struct _API_SET_NAMESPACE_ENTRY
+{
+    ULONG Flags;
+    ULONG NameOffset;
+    ULONG NameLength;
+    ULONG HashedLength;
+    ULONG ValueOffset;
+    ULONG ValueCount;
+} API_SET_NAMESPACE_ENTRY, *PAPI_SET_NAMESPACE_ENTRY;
+
+// private
+typedef struct _API_SET_VALUE_ENTRY 
+{
+    ULONG Flags;
+    ULONG NameOffset;
+    ULONG NameLength;
+    ULONG ValueOffset;
+    ULONG ValueLength;
+} API_SET_VALUE_ENTRY, *PAPI_SET_VALUE_ENTRY;
+
 // symbols
 typedef struct _PEB
 {
@@ -58,13 +108,15 @@ typedef struct _PEB
     };
     ULONG SystemReserved[1];
     ULONG AtlThunkSListPtr32;
-    PVOID ApiSetMap;
+    PAPI_SET_NAMESPACE ApiSetMap;
     ULONG TlsExpansionCounter;
     PVOID TlsBitmap;
     ULONG TlsBitmapBits[2];
-    PVOID ReadOnlySharedMemoryBase;
-    PVOID HotpatchInformation;
+    
+    PVOID ReadOnlySharedMemoryBase; 
+    PVOID SharedData; // HotpatchInformation
     PVOID *ReadOnlyStaticServerData;
+    
     PVOID AnsiCodePageData; // PCPTABLEINFO
     PVOID OemCodePageData; // PCPTABLEINFO
     PVOID UnicodeCaseTableData; // PNLSTABLEINFO
@@ -72,7 +124,7 @@ typedef struct _PEB
     ULONG NumberOfProcessors;
     ULONG NtGlobalFlag;
 
-    LARGE_INTEGER CriticalSectionTimeout;
+    ULARGE_INTEGER CriticalSectionTimeout;
     SIZE_T HeapSegmentReserve;
     SIZE_T HeapSegmentCommit;
     SIZE_T HeapDeCommitTotalFreeThreshold;
@@ -127,7 +179,7 @@ typedef struct _PEB
 
     PVOID WerRegistrationData;
     PVOID WerShipAssertPtr;
-    PVOID pContextData;
+    PVOID pUnused; // pContextData
     PVOID pImageHeaderHash;
     union
     {
@@ -144,7 +196,17 @@ typedef struct _PEB
     PVOID TppWorkerpListLock;
     LIST_ENTRY TppWorkerpList;
     PVOID WaitOnAddressHashTable[128];
+    PVOID TelemetryCoverageHeader; // REDSTONE3
+    ULONG CloudFileFlags;
 } PEB, *PPEB;
+
+#ifdef _WIN64
+C_ASSERT(FIELD_OFFSET(PEB, SessionId) == 0x2C0);
+C_ASSERT(sizeof(PEB) == 0x7B0);
+#else
+C_ASSERT(FIELD_OFFSET(PEB, SessionId) == 0x1D4);
+C_ASSERT(sizeof(PEB) == 0x468);
+#endif
 
 #define GDI_BATCH_BUFFER_SIZE 310
 
@@ -188,17 +250,33 @@ typedef struct _TEB
     LCID CurrentLocale;
     ULONG FpSoftwareStatusRegister;
     PVOID ReservedForDebuggerInstrumentation[16];
-    PVOID SystemReserved1[37];
+#ifdef _WIN64
+    PVOID SystemReserved1[30];
+#else
+    PVOID SystemReserved1[26];
+#endif
+    
+    CHAR PlaceholderCompatibilityMode;
+    CHAR PlaceholderReserved[11];
+    ULONG ProxiedProcessId;
+    ACTIVATION_CONTEXT_STACK ActivationStack;
+    
     UCHAR WorkingOnBehalfTicket[8];
     NTSTATUS ExceptionCode;
 
-    PVOID ActivationContextStackPointer;
+    PACTIVATION_CONTEXT_STACK ActivationContextStackPointer;
     ULONG_PTR InstrumentationCallbackSp;
     ULONG_PTR InstrumentationCallbackPreviousPc;
     ULONG_PTR InstrumentationCallbackPreviousSp;
+#ifdef _WIN64
     ULONG TxFsContext;
+#endif
 
     BOOLEAN InstrumentationCallbackDisabled;
+#ifndef _WIN64
+    UCHAR SpareBytes[23];
+    ULONG TxFsContext;
+#endif
     GDI_TEB_BATCH GdiTebBatch;
     CLIENT_ID RealClientId;
     HANDLE GdiCachedProcessHandle;

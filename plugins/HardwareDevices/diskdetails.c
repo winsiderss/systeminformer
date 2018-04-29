@@ -169,20 +169,20 @@ VOID DiskDriveQuerySmart(
                     MAXINT,
                     SmartAttributeGetText(attribute->AttributeId),
                     IntToPtr(attribute->AttributeId)
-                );
+                    );
 
                 PhSetListViewSubItem(
                     Context->ListViewHandle,
                     lvItemIndex,
                     1,
                     PhaFormatString(L"%lu", attribute->CurrentValue)->Buffer
-                );
+                    );
                 PhSetListViewSubItem(
                     Context->ListViewHandle,
                     lvItemIndex,
                     2,
                     PhaFormatString(L"%lu", attribute->WorstValue)->Buffer
-                );
+                    );
 
                 if (attribute->RawValue)
                 {
@@ -191,7 +191,14 @@ VOID DiskDriveQuerySmart(
                         lvItemIndex,
                         3,
                         PhaFormatString(L"%lu", attribute->RawValue)->Buffer
-                    );
+                        );
+
+                    PhSetListViewSubItem(
+                        Context->ListViewHandle,
+                        lvItemIndex,
+                        4,
+                        PhaFormatString(L"%#014x", attribute->RawValue)->Buffer
+                        );
                 }
 
                 PhFree(attribute);
@@ -568,15 +575,15 @@ INT_PTR CALLBACK DiskDriveFileSystemDetailsDlgProc(
 
         context->PageContext = (PCOMMON_PAGE_CONTEXT)propPageContext->Context;
 
-        SetProp(hwndDlg, L"Context", (HANDLE)context);
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = (PDV_DISK_PAGE_CONTEXT)GetProp(hwndDlg, L"Context");
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
         if (uMsg == WM_DESTROY)
         {
-            RemoveProp(hwndDlg, L"Context");
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhSaveListViewColumnsToSetting(SETTING_NAME_DISK_COUNTERS_COLUMNS, context->ListViewHandle);
 
             PhFree(context);
@@ -648,15 +655,15 @@ INT_PTR CALLBACK DiskDriveSmartDetailsDlgProc(
 
         context->PageContext = (PCOMMON_PAGE_CONTEXT)propPageContext->Context;
 
-        SetProp(hwndDlg, L"Context", (HANDLE)context);
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = (PDV_DISK_PAGE_CONTEXT)GetProp(hwndDlg, L"Context");
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
         if (uMsg == WM_DESTROY)
         {
-            RemoveProp(hwndDlg, L"Context");
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhSaveListViewColumnsToSetting(SETTING_NAME_SMART_COUNTERS_COLUMNS, context->ListViewHandle);
 
             PhFree(context);
@@ -679,6 +686,7 @@ INT_PTR CALLBACK DiskDriveSmartDetailsDlgProc(
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 50, L"Value");
             PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 50, L"Best");
             PhAddListViewColumn(context->ListViewHandle, 3, 3, 3, LVCFMT_LEFT, 80, L"Raw");
+            PhAddListViewColumn(context->ListViewHandle, 4, 4, 4, LVCFMT_LEFT, 80, L"Raw (Hex)");
             PhSetExtendedListView(context->ListViewHandle);
             //ExtendedListView_SetItemColorFunction(context->ListViewHandle, PhpColorItemColorFunction);
             PhLoadListViewColumnsFromSetting(SETTING_NAME_SMART_COUNTERS_COLUMNS, context->ListViewHandle);

@@ -3,6 +3,7 @@
  *   process provider
  *
  * Copyright (C) 2009-2016 wj32
+ * Copyright (C) 2017-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -53,6 +54,7 @@
 #include <phapp.h>
 #include <phsettings.h>
 #include <procprv.h>
+#include <appresolver.h>
 
 #include <shellapi.h>
 #include <winsta.h>
@@ -104,13 +106,10 @@ typedef struct _PH_PROCESS_QUERY_S1_DATA
             ULONG IsElevated : 1;
             ULONG IsInJob : 1;
             ULONG IsInSignificantJob : 1;
-            ULONG IsWow64 : 1;
-            ULONG IsWow64Valid : 1;       
-            ULONG IsProtectedProcess : 1;
-            ULONG IsSecureProcess : 1;
-            ULONG IsSubsystemProcess : 1;
-
-            ULONG Spare : 23;
+            ULONG IsBeingDebugged : 1;
+            ULONG IsImmersive : 1;
+            ULONG IsFilteredHandle : 1;
+            ULONG Spare : 25;
         };
     };
 } PH_PROCESS_QUERY_S1_DATA, *PPH_PROCESS_QUERY_S1_DATA;
@@ -127,15 +126,6 @@ typedef struct _PH_PROCESS_QUERY_S2_DATA
     ULONG ImportModules;
 } PH_PROCESS_QUERY_S2_DATA, *PPH_PROCESS_QUERY_S2_DATA;
 
-typedef struct _PH_VERIFY_CACHE_ENTRY
-{
-    PH_AVL_LINKS Links;
-
-    PPH_STRING FileName;
-    VERIFY_RESULT VerifyResult;
-    PPH_STRING VerifySignerName;
-} PH_VERIFY_CACHE_ENTRY, *PPH_VERIFY_CACHE_ENTRY;
-
 typedef struct _PH_SID_FULL_NAME_CACHE_ENTRY
 {
     PSID Sid;
@@ -145,11 +135,6 @@ typedef struct _PH_SID_FULL_NAME_CACHE_ENTRY
 VOID NTAPI PhpProcessItemDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
-    );
-
-INT NTAPI PhpVerifyCacheCompareFunction(
-    _In_ PPH_AVL_LINKS Links1,
-    _In_ PPH_AVL_LINKS Links2
     );
 
 VOID PhpQueueProcessQueryStage1(
@@ -200,8 +185,8 @@ ULONG PhTotalProcesses;
 ULONG PhTotalThreads;
 ULONG PhTotalHandles;
 
-SYSTEM_PROCESS_INFORMATION PhDpcsProcessInformation;
-SYSTEM_PROCESS_INFORMATION PhInterruptsProcessInformation;
+PSYSTEM_PROCESS_INFORMATION PhDpcsProcessInformation;
+PSYSTEM_PROCESS_INFORMATION PhInterruptsProcessInformation;
 
 ULONG64 PhCpuTotalCycleDelta; // real cycle time delta for this period
 PLARGE_INTEGER PhCpuIdleCycleTime; // cycle time for Idle
@@ -256,12 +241,6 @@ PH_CIRCULAR_BUFFER_ULONG64 PhMaxIoWriteHistory;
 
 static PTS_ALL_PROCESSES_INFO PhpTsProcesses = NULL;
 static ULONG PhpTsNumberOfProcesses;
-
-#ifdef PH_ENABLE_VERIFY_CACHE
-static PH_AVL_TREE PhpVerifyCacheSet = PH_AVL_TREE_INIT(PhpVerifyCacheCompareFunction);
-static PH_QUEUED_LOCK PhpVerifyCacheLock = PH_QUEUED_LOCK_INIT;
-#endif
-
 static PPH_HASHTABLE PhpSidFullNameCacheHashtable;
 
 BOOLEAN PhProcessProviderInitialization(
@@ -278,19 +257,19 @@ BOOLEAN PhProcessProviderInitialization(
 
     PhProcessRecordList = PhCreateList(40);
 
-    RtlInitUnicodeString(
-        &PhDpcsProcessInformation.ImageName,
-        L"DPCs"
-        );
-    PhDpcsProcessInformation.UniqueProcessId = DPCS_PROCESS_ID;
-    PhDpcsProcessInformation.InheritedFromUniqueProcessId = SYSTEM_IDLE_PROCESS_ID;
+    PhDpcsProcessInformation = PhAllocate(sizeof(SYSTEM_PROCESS_INFORMATION) + sizeof(SYSTEM_PROCESS_INFORMATION_EXTENSION));
+    memset(PhDpcsProcessInformation, 0, sizeof(SYSTEM_PROCESS_INFORMATION) + sizeof(SYSTEM_PROCESS_INFORMATION_EXTENSION));
 
-    RtlInitUnicodeString(
-        &PhInterruptsProcessInformation.ImageName,
-        L"Interrupts"
-        );
-    PhInterruptsProcessInformation.UniqueProcessId = INTERRUPTS_PROCESS_ID;
-    PhInterruptsProcessInformation.InheritedFromUniqueProcessId = SYSTEM_IDLE_PROCESS_ID;
+    PhInterruptsProcessInformation = PhAllocate(sizeof(SYSTEM_PROCESS_INFORMATION) + sizeof(SYSTEM_PROCESS_INFORMATION_EXTENSION));
+    memset(PhInterruptsProcessInformation, 0, sizeof(SYSTEM_PROCESS_INFORMATION) + sizeof(SYSTEM_PROCESS_INFORMATION_EXTENSION));
+
+    RtlInitUnicodeString(&PhDpcsProcessInformation->ImageName, L"DPCs");
+    PhDpcsProcessInformation->UniqueProcessId = DPCS_PROCESS_ID;
+    PhDpcsProcessInformation->InheritedFromUniqueProcessId = SYSTEM_IDLE_PROCESS_ID;
+
+    RtlInitUnicodeString(&PhInterruptsProcessInformation->ImageName, L"Interrupts");
+    PhInterruptsProcessInformation->UniqueProcessId = INTERRUPTS_PROCESS_ID;
+    PhInterruptsProcessInformation->InheritedFromUniqueProcessId = SYSTEM_IDLE_PROCESS_ID;
 
     PhCpuInformation = PhAllocate(
         sizeof(SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION) *
@@ -667,204 +646,6 @@ VOID PhpRemoveProcessItem(
     PhDereferenceObject(ProcessItem);
 }
 
-INT NTAPI PhpVerifyCacheCompareFunction(
-    _In_ PPH_AVL_LINKS Links1,
-    _In_ PPH_AVL_LINKS Links2
-    )
-{
-    PPH_VERIFY_CACHE_ENTRY entry1 = CONTAINING_RECORD(Links1, PH_VERIFY_CACHE_ENTRY, Links);
-    PPH_VERIFY_CACHE_ENTRY entry2 = CONTAINING_RECORD(Links2, PH_VERIFY_CACHE_ENTRY, Links);
-
-    return PhCompareString(entry1->FileName, entry2->FileName, TRUE);
-}
-
-VERIFY_RESULT PhVerifyFileWithAdditionalCatalog(
-    _In_ PPH_VERIFY_FILE_INFO Information,
-    _In_opt_ PWSTR PackageFullName,
-    _Out_opt_ PPH_STRING *SignerName
-    )
-{
-    static PH_STRINGREF codeIntegrityFileName = PH_STRINGREF_INIT(L"\\AppxMetadata\\CodeIntegrity.cat");
-
-    VERIFY_RESULT result;
-    PPH_STRING additionalCatalogFileName = NULL;
-    PCERT_CONTEXT *signatures;
-    ULONG numberOfSignatures;
-
-    if (PackageFullName)
-    {
-        PACKAGE_ID *packageId;
-        PPH_STRING packagePath;
-
-        if (packageId = PhPackageIdFromFullName(PackageFullName))
-        {
-            if (packagePath = PhGetPackagePath(packageId))
-            {
-                additionalCatalogFileName = PhConcatStringRef2(&packagePath->sr, &codeIntegrityFileName);
-                PhDereferenceObject(packagePath);
-            }
-
-            PhFree(packageId);
-        }
-    }
-
-    if (additionalCatalogFileName)
-    {
-        Information->NumberOfCatalogFileNames = 1;
-        Information->CatalogFileNames = &additionalCatalogFileName->Buffer;
-    }
-
-    if (!NT_SUCCESS(PhVerifyFileEx(Information, &result, &signatures, &numberOfSignatures)))
-    {
-        result = VrNoSignature;
-        signatures = NULL;
-        numberOfSignatures = 0;
-    }
-
-    if (additionalCatalogFileName)
-        PhDereferenceObject(additionalCatalogFileName);
-
-    if (SignerName)
-    {
-        if (numberOfSignatures != 0)
-            *SignerName = PhGetSignerNameFromCertificate(signatures[0]);
-        else
-            *SignerName = NULL;
-    }
-
-    PhFreeVerifySignatures(signatures, numberOfSignatures);
-
-    return result;
-}
-
-/**
- * Verifies a file's digital signature, using a cached result if possible.
- *
- * \param FileName A file name.
- * \param ProcessItem An associated process item.
- * \param SignerName A variable which receives a pointer to a string containing the signer name. You
- * must free the string using PhDereferenceObject() when you no longer need it. Note that the signer
- * name may be NULL if it is not valid.
- * \param CachedOnly Specify TRUE to fail the function when no cached result exists.
- *
- * \return A VERIFY_RESULT value.
- */
-VERIFY_RESULT PhVerifyFileCached(
-    _In_ PPH_STRING FileName,
-    _In_opt_ PWSTR PackageFullName,
-    _Out_opt_ PPH_STRING *SignerName,
-    _In_ BOOLEAN CachedOnly
-    )
-{
-#ifdef PH_ENABLE_VERIFY_CACHE
-    PPH_AVL_LINKS links;
-    PPH_VERIFY_CACHE_ENTRY entry;
-    PH_VERIFY_CACHE_ENTRY lookupEntry;
-
-    lookupEntry.FileName = FileName;
-
-    PhAcquireQueuedLockShared(&PhpVerifyCacheLock);
-    links = PhFindElementAvlTree(&PhpVerifyCacheSet, &lookupEntry.Links);
-    PhReleaseQueuedLockShared(&PhpVerifyCacheLock);
-
-    if (links)
-    {
-        entry = CONTAINING_RECORD(links, PH_VERIFY_CACHE_ENTRY, Links);
-
-        if (SignerName)
-            PhSetReference(SignerName, entry->VerifySignerName);
-
-        return entry->VerifyResult;
-    }
-    else
-    {
-        VERIFY_RESULT result;
-        PPH_STRING signerName;
-
-        if (!CachedOnly)
-        {
-            PH_VERIFY_FILE_INFO info;
-
-            memset(&info, 0, sizeof(PH_VERIFY_FILE_INFO));
-            info.FileName = FileName->Buffer;
-            info.Flags = PH_VERIFY_PREVENT_NETWORK_ACCESS;
-            result = PhVerifyFileWithAdditionalCatalog(&info, PackageFullName, &signerName);
-
-            if (result != VrTrusted)
-                PhClearReference(&signerName);
-        }
-        else
-        {
-            result = VrUnknown;
-            signerName = NULL;
-        }
-
-        if (result != VrUnknown)
-        {
-            entry = PhAllocate(sizeof(PH_VERIFY_CACHE_ENTRY));
-            entry->FileName = FileName;
-            entry->VerifyResult = result;
-            entry->VerifySignerName = signerName;
-
-            PhAcquireQueuedLockExclusive(&PhpVerifyCacheLock);
-            links = PhAddElementAvlTree(&PhpVerifyCacheSet, &entry->Links);
-            PhReleaseQueuedLockExclusive(&PhpVerifyCacheLock);
-
-            if (!links)
-            {
-                // We successfully added the cache entry. Add references.
-
-                PhReferenceObject(entry->FileName);
-
-                if (entry->VerifySignerName)
-                    PhReferenceObject(entry->VerifySignerName);
-            }
-            else
-            {
-                // Entry already exists.
-                PhFree(entry);
-            }
-        }
-
-        if (SignerName)
-        {
-            *SignerName = signerName;
-        }
-        else
-        {
-            if (signerName)
-                PhDereferenceObject(signerName);
-        }
-
-        return result;
-    }
-#else
-    VERIFY_RESULT result;
-    PPH_STRING signerName;
-    PH_VERIFY_FILE_INFO info;
-
-    memset(&info, 0, sizeof(PH_VERIFY_FILE_INFO));
-    info.FileName = FileName->Buffer;
-    info.Flags = PH_VERIFY_PREVENT_NETWORK_ACCESS;
-    result = PhVerifyFileWithAdditionalCatalog(&info, PackageFullName, &signerName);
-
-    if (result != VrTrusted)
-        PhClearReference(&signerName);
-
-    if (SignerName)
-    {
-        *SignerName = signerName;
-    }
-    else
-    {
-        if (signerName)
-            PhDereferenceObject(signerName);
-    }
-
-    return result;
-#endif
-}
-
 BOOLEAN PhpSidFullNameCacheHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -958,14 +739,11 @@ VOID PhpProcessQueryStage1(
 
     if (processItem->FileName)
     {
-        // Small icon, large icon.
-        if (ExtractIconEx(
+        if (!PhExtractIcon(
             processItem->FileName->Buffer,
-            0,
             &Data->LargeIcon,
-            &Data->SmallIcon,
-            1
-            ) == 0)
+            &Data->SmallIcon
+            ))
         {
             Data->LargeIcon = NULL;
             Data->SmallIcon = NULL;
@@ -996,18 +774,14 @@ VOID PhpProcessQueryStage1(
         }
     }
 
-    // Process flags
+    // Debugged
     if (processHandleLimited)
     {
-        PROCESS_EXTENDED_BASIC_INFORMATION basicInfo;
+        BOOLEAN isBeingDebugged;
 
-        if (NT_SUCCESS(PhGetProcessExtendedBasicInformation(processHandleLimited, &basicInfo)))
+        if (NT_SUCCESS(PhGetProcessIsBeingDebugged(processHandleLimited, &isBeingDebugged)))
         {
-            Data->IsProtectedProcess = basicInfo.IsProtectedProcess;
-            Data->IsSecureProcess = basicInfo.IsSecureProcess;
-            Data->IsSubsystemProcess = basicInfo.IsSubsystemProcess;
-            Data->IsWow64 = basicInfo.IsWow64Process;
-            Data->IsWow64Valid = TRUE;
+            Data->IsBeingDebugged = isBeingDebugged;
         }
     }
 
@@ -1015,7 +789,6 @@ VOID PhpProcessQueryStage1(
     if (processHandleLimited)
     {
         BOOLEAN isDotNet = FALSE;
-        PPH_STRING commandLine;
         HANDLE processHandle = NULL;
         ULONG processQueryFlags = 0;
 
@@ -1036,11 +809,29 @@ VOID PhpProcessQueryStage1(
 
         if (NT_SUCCESS(status))
         {
+            PPH_STRING commandLine;
+
+            if (NT_SUCCESS(PhGetProcessCommandLine(processHandle, &commandLine)))
+            {
+                // Some command lines (e.g. from taskeng.exe) have nulls in them. Since Windows
+                // can't display them, we'll replace them with spaces.
+                for (ULONG i = 0; i < (ULONG)commandLine->Length / 2; i++)
+                {
+                    if (commandLine->Buffer[i] == 0)
+                        commandLine->Buffer[i] = ' ';
+                }
+
+                Data->CommandLine = commandLine;
+            }
+        }
+
+        if (NT_SUCCESS(status))
+        {
             PhGetProcessIsDotNetEx(
                 processId,
                 processHandle,
 #ifdef _WIN64
-                processQueryFlags | PH_CLR_NO_WOW64_CHECK | (Data->IsWow64 ? PH_CLR_KNOWN_IS_WOW64 : 0),
+                processQueryFlags | PH_CLR_NO_WOW64_CHECK | (processItem->IsWow64 ? PH_CLR_KNOWN_IS_WOW64 : 0),
 #else
                 processQueryFlags,
 #endif
@@ -1048,24 +839,6 @@ VOID PhpProcessQueryStage1(
                 NULL
                 );
             Data->IsDotNet = isDotNet;
-        }
-
-        if (NT_SUCCESS(status))
-        {
-            status = PhGetProcessCommandLine(processHandle, &commandLine);
-        }
-
-        if (NT_SUCCESS(status))
-        {
-            // Some command lines (e.g. from taskeng.exe) have nulls in them. Since Windows
-            // can't display them, we'll replace them with spaces.
-            for (ULONG i = 0; i < (ULONG)commandLine->Length / 2; i++)
-            {
-                if (commandLine->Buffer[i] == 0)
-                    commandLine->Buffer[i] = ' ';
-            }
-
-            Data->CommandLine = commandLine;
         }
 
         if (!(processQueryFlags & PH_CLR_USE_SECTION_CHECK) && processHandle)
@@ -1077,9 +850,7 @@ VOID PhpProcessQueryStage1(
     {
         HANDLE tokenHandle;
 
-        status = PhOpenProcessToken(processHandleLimited, TOKEN_QUERY, &tokenHandle);
-
-        if (NT_SUCCESS(status))
+        if (NT_SUCCESS(PhOpenProcessToken(processHandleLimited, TOKEN_QUERY, &tokenHandle)))
         {
             // Elevation
             if (NT_SUCCESS(PhGetTokenElevationType(
@@ -1159,38 +930,61 @@ VOID PhpProcessQueryStage1(
         PhGetProcessConsoleHostProcessId(processHandleLimited, &Data->ConsoleHostProcessId);
     }
 
+    // Immersive
+    if (processHandleLimited && IsImmersiveProcess_I)
+    {
+        Data->IsImmersive = !!IsImmersiveProcess_I(processHandleLimited);
+    }
+
     // Package full name
-    if (processHandleLimited && WINDOWS_HAS_IMMERSIVE)
+    if (processHandleLimited && WINDOWS_HAS_IMMERSIVE && Data->IsImmersive)
     {
         Data->PackageFullName = PhGetProcessPackageFullName(processHandleLimited);
     }
 
-    PhpQueueProcessQueryStage2(processItem);
+    if (processHandleLimited && processItem->IsHandleValid)
+    {
+        OBJECT_BASIC_INFORMATION basicInfo;
+
+        if (NT_SUCCESS(PhGetHandleInformationEx(
+            NtCurrentProcess(),
+            processHandleLimited,
+            ULONG_MAX,
+            0,
+            NULL,
+            &basicInfo,
+            NULL,
+            NULL,
+            NULL,
+            NULL
+            )))
+        {
+            if ((basicInfo.GrantedAccess & PROCESS_QUERY_INFORMATION) != PROCESS_QUERY_INFORMATION)
+                Data->IsFilteredHandle = TRUE;
+        }
+        else
+        {
+            Data->IsFilteredHandle = TRUE;
+        }
+    }
 }
 
 VOID PhpProcessQueryStage2(
     _Inout_ PPH_PROCESS_QUERY_S2_DATA Data
     )
 {
-    NTSTATUS status;
     PPH_PROCESS_ITEM processItem = Data->Header.ProcessItem;
 
     if (PhEnableProcessQueryStage2 && processItem->FileName)
     {
-        PPH_STRING packageFullName = NULL;
-
-        if (processItem->QueryHandle)
-            packageFullName = PhGetProcessPackageFullName(processItem->QueryHandle);
+        NTSTATUS status;
 
         Data->VerifyResult = PhVerifyFileCached(
             processItem->FileName,
-            PhGetString(packageFullName),
+            processItem->PackageFullName,
             &Data->VerifySignerName,
             FALSE
             );
-
-        if (packageFullName)
-            PhDereferenceObject(packageFullName);
 
         status = PhIsExecutablePacked(
             processItem->FileName->Buffer,
@@ -1307,13 +1101,14 @@ VOID PhpFillProcessItemStage1(
     processItem->IsElevated = Data->IsElevated;
     processItem->IsInJob = Data->IsInJob;
     processItem->IsInSignificantJob = Data->IsInSignificantJob;
-    processItem->IsWow64 = Data->IsWow64;
-    processItem->IsWow64Valid = Data->IsWow64Valid;
-    processItem->IsProtectedProcess = Data->IsProtectedProcess;
-    processItem->IsSecureProcess = Data->IsSecureProcess;
-    processItem->IsSubsystemProcess = Data->IsSubsystemProcess;
+    processItem->IsBeingDebugged = Data->IsBeingDebugged;
+    processItem->IsImmersive = Data->IsImmersive;
+    processItem->IsProtectedHandle = Data->IsFilteredHandle;
 
     PhSwapReference(&processItem->Record->CommandLine, processItem->CommandLine);
+
+    // Note: Queue stage 2 processing after filling stage1 process data. 
+    PhpQueueProcessQueryStage2(processItem);
 }
 
 VOID PhpFillProcessItemStage2(
@@ -1329,14 +1124,27 @@ VOID PhpFillProcessItemStage2(
     processItem->ImportModules = Data->ImportModules;
 }
 
+VOID PhpFillProcessItemExtension(
+    _Inout_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ PSYSTEM_PROCESS_INFORMATION Process
+    )
+{
+    PSYSTEM_PROCESS_INFORMATION_EXTENSION processExtension;
+
+    if (WindowsVersion < WINDOWS_10_RS3 || PhIsExecutingInWow64())
+        return;
+    
+    processExtension = PH_PROCESS_EXTENSION(Process);
+
+    ProcessItem->JobObjectId = processExtension->JobObjectId;
+    ProcessItem->ProcessSequenceNumber = processExtension->ProcessSequenceNumber;
+}
+
 VOID PhpFillProcessItem(
     _Inout_ PPH_PROCESS_ITEM ProcessItem,
     _In_ PSYSTEM_PROCESS_INFORMATION Process
     )
 {
-    NTSTATUS status;
-    HANDLE processHandle = NULL;
-
     ProcessItem->ParentProcessId = Process->InheritedFromUniqueProcessId;
     ProcessItem->SessionId = Process->SessionId;
     ProcessItem->CreateTime = Process->CreateTime;
@@ -1349,7 +1157,34 @@ VOID PhpFillProcessItem(
     PhPrintUInt32(ProcessItem->ParentProcessIdString, HandleToUlong(ProcessItem->ParentProcessId));
     PhPrintUInt32(ProcessItem->SessionIdString, ProcessItem->SessionId);
 
-    PhOpenProcess(&processHandle, ProcessQueryAccess, ProcessItem->ProcessId);
+    // Open a handle to the process for later usage.
+    if (PH_IS_REAL_PROCESS_ID(ProcessItem->ProcessId))
+    {
+        if (NT_SUCCESS(PhOpenProcess(&ProcessItem->QueryHandle, PROCESS_QUERY_INFORMATION, ProcessItem->ProcessId)))
+        {
+            ProcessItem->IsHandleValid = TRUE;
+        }
+
+        if (!ProcessItem->QueryHandle)
+        {
+            PhOpenProcess(&ProcessItem->QueryHandle, PROCESS_QUERY_LIMITED_INFORMATION, ProcessItem->ProcessId);
+        }
+    }
+
+    // Process flags
+    if (ProcessItem->QueryHandle)
+    {
+        PROCESS_EXTENDED_BASIC_INFORMATION basicInfo;
+
+        if (NT_SUCCESS(PhGetProcessExtendedBasicInformation(ProcessItem->QueryHandle, &basicInfo)))
+        {
+            ProcessItem->IsProtectedProcess = basicInfo.IsProtectedProcess;
+            ProcessItem->IsSecureProcess = basicInfo.IsSecureProcess;
+            ProcessItem->IsSubsystemProcess = basicInfo.IsSubsystemProcess;
+            ProcessItem->IsWow64 = basicInfo.IsWow64Process;
+            ProcessItem->IsWow64Valid = TRUE;
+        }
+    }
 
     // Process information
     {
@@ -1360,9 +1195,9 @@ VOID PhpFillProcessItem(
         {
             PPH_STRING fileName;
 
-            if (processHandle)
+            if (ProcessItem->QueryHandle)
             {
-                PhGetProcessImageFileNameWin32(processHandle, &ProcessItem->FileName);
+                PhGetProcessImageFileNameWin32(ProcessItem->QueryHandle, &ProcessItem->FileName);
             }
             else
             {
@@ -1389,27 +1224,20 @@ VOID PhpFillProcessItem(
 
     // Token-related information
     if (
-        processHandle &&
+        ProcessItem->QueryHandle &&
         ProcessItem->ProcessId != SYSTEM_PROCESS_ID // Token of System process can't be opened sometimes
         )
     {
         HANDLE tokenHandle;
 
-        status = PhOpenProcessToken(processHandle, TOKEN_QUERY, &tokenHandle);
-
-        if (NT_SUCCESS(status))
+        if (NT_SUCCESS(PhOpenProcessToken(ProcessItem->QueryHandle, TOKEN_QUERY, &tokenHandle)))
         {
-            // User name
+            PTOKEN_USER user;
+
+            if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &user)))
             {
-                PTOKEN_USER user;
-
-                status = PhGetTokenUser(tokenHandle, &user);
-
-                if (NT_SUCCESS(status))
-                {
-                    ProcessItem->UserName = PhpGetSidFullNameCached(user->User.Sid);
-                    PhFree(user);
-                }
+                ProcessItem->UserName = PhpGetSidFullNameCached(user->User.Sid);
+                PhFree(user);
             }
 
             NtClose(tokenHandle);
@@ -1426,7 +1254,58 @@ VOID PhpFillProcessItem(
         }
     }
 
-    NtClose(processHandle);
+    // Known Process Type
+    {
+        ProcessItem->KnownProcessType = PhGetProcessKnownTypeEx(
+            ProcessItem->ProcessId,
+            ProcessItem->FileName
+            );
+    }
+
+    // Protection
+    if (ProcessItem->QueryHandle)
+    {
+        if (WindowsVersion >= WINDOWS_8_1)
+        {
+            PS_PROTECTION protection;
+
+            if (NT_SUCCESS(PhGetProcessProtection(ProcessItem->QueryHandle, &protection)))
+            {
+                ProcessItem->Protection.Level = protection.Level;
+            }
+        }
+        else
+        {
+            // HACK: 'emulate' the PS_PROTECTION info for older OSes.
+            if (ProcessItem->IsProtectedProcess)
+                ProcessItem->Protection.Type = PsProtectedTypeProtected;
+        }
+    }
+    else
+    {
+        // Signalize that we weren't able to get protection info with a special value.
+        // Note: We use this value to determine if we should show protection information.
+        ProcessItem->Protection.Level = UCHAR_MAX;
+    }
+
+    // Control Flow Guard
+    if (WindowsVersion >= WINDOWS_8_1 && ProcessItem->QueryHandle)
+    {
+        BOOLEAN cfguardEnabled;
+
+        if (NT_SUCCESS(PhGetProcessIsCFGuardEnabled(ProcessItem->QueryHandle, &cfguardEnabled)))
+        {
+            ProcessItem->IsControlFlowGuardEnabled = cfguardEnabled;
+        }
+    }
+
+    // On Windows 8.1 and above, processes without threads are reflected processes 
+    // which will not terminate if we have a handle open.
+    if (Process->NumberOfThreads == 0 && ProcessItem->QueryHandle)
+    {
+        NtClose(ProcessItem->QueryHandle);
+        ProcessItem->QueryHandle = NULL;
+    }
 }
 
 FORCEINLINE VOID PhpUpdateDynamicInfoProcessItem(
@@ -1440,13 +1319,7 @@ FORCEINLINE VOID PhpUpdateDynamicInfoProcessItem(
     {
         PROCESS_PRIORITY_CLASS priorityClass;
 
-        if (NT_SUCCESS(NtQueryInformationProcess(
-            ProcessItem->QueryHandle,
-            ProcessPriorityClass,
-            &priorityClass,
-            sizeof(PROCESS_PRIORITY_CLASS),
-            NULL
-            )))
+        if (NT_SUCCESS(PhGetProcessPriority(ProcessItem->QueryHandle, &priorityClass)))
         {
             ProcessItem->PriorityClass = priorityClass.PriorityClass;
         }
@@ -1772,7 +1645,7 @@ BOOLEAN PhGetStatisticsTime(
     {
         // The sequence number is used to synchronize statistics when a process exits, since that
         // process' history is not updated anymore.
-        index = PhTimeSequenceNumber - ProcessItem->SequenceNumber + Index;
+        index = PhTimeSequenceNumber - ProcessItem->TimeSequenceNumber + Index;
 
         if (index >= PhTimeHistory.Count)
         {
@@ -1815,12 +1688,11 @@ PPH_STRING PhGetStatisticsTimeString(
 }
 
 VOID PhFlushProcessQueryData(
-    _In_ BOOLEAN SendModifiedEvent
+    VOID
     )
 {
     PSLIST_ENTRY entry;
     PPH_PROCESS_QUERY_DATA data;
-    BOOLEAN processed;
 
     if (!RtlFirstEntrySList(&PhProcessQueryDataListHead))
         return;
@@ -1831,39 +1703,18 @@ VOID PhFlushProcessQueryData(
     {
         data = CONTAINING_RECORD(entry, PH_PROCESS_QUERY_DATA, ListEntry);
         entry = entry->Next;
-        processed = FALSE;
 
         if (data->Stage == 1)
         {
             PhpFillProcessItemStage1((PPH_PROCESS_QUERY_S1_DATA)data);
             PhSetEvent(&data->ProcessItem->Stage1Event);
-            processed = TRUE;
         }
         else if (data->Stage == 2)
         {
             PhpFillProcessItemStage2((PPH_PROCESS_QUERY_S2_DATA)data);
-            processed = TRUE;
         }
 
-        if (processed)
-        {
-            // Invoke the modified event only if the main provider has sent the added event already.
-            if (SendModifiedEvent && data->ProcessItem->AddedEventSent)
-            {
-                // Since this may be executing on a thread other than the main provider thread, we
-                // need to check whether the process has been removed already. If we don't do this
-                // then users may get a modified event after a removed event for the same process,
-                // which will lead to very bad things happening.
-                PhAcquireQueuedLockExclusive(&data->ProcessItem->RemoveLock);
-                if (!(data->ProcessItem->State & PH_PROCESS_ITEM_REMOVED))
-                    PhInvokeCallback(&PhProcessModifiedEvent, data->ProcessItem);
-                PhReleaseQueuedLockExclusive(&data->ProcessItem->RemoveLock);
-            }
-            else
-            {
-                data->ProcessItem->JustProcessed = 1;
-            }
-        }
+        data->ProcessItem->JustProcessed = TRUE;
 
         PhDereferenceObject(data->ProcessItem);
         PhFree(data);
@@ -1899,6 +1750,13 @@ VOID PhpGetProcessThreadInformation(
         }
 
         contextSwitches += Process->Threads[i].ContextSwitches;
+    }
+
+    // HACK: Minimal/Reflected processes don't have threads (TODO: Use PhGetProcessIsSuspended instead).
+    if (Process->NumberOfThreads == 0)
+    {
+        isSuspended = FALSE;
+        isPartiallySuspended = FALSE;
     }
 
     if (IsSuspended)
@@ -2022,10 +1880,20 @@ VOID PhProcessProviderUpdate(
         {
             PPH_PROCESS_ITEM processItem;
 
-            if ((processItem = PhpLookupProcessItem(process->UniqueProcessId)) && processItem->CreateTime.QuadPart == process->CreateTime.QuadPart)
-                sysTotalCycleTime += process->CycleTime - processItem->CycleTimeDelta.Value; // existing process
+            if (WindowsVersion >= WINDOWS_10_RS3 && !PhIsExecutingInWow64())
+            {
+                if ((processItem = PhpLookupProcessItem(process->UniqueProcessId)) && processItem->ProcessSequenceNumber == PH_PROCESS_EXTENSION(process)->ProcessSequenceNumber)
+                    sysTotalCycleTime += process->CycleTime - processItem->CycleTimeDelta.Value; // existing process
+                else
+                    sysTotalCycleTime += process->CycleTime; // new process
+            }
             else
-                sysTotalCycleTime += process->CycleTime; // new process
+            {
+                if ((processItem = PhpLookupProcessItem(process->UniqueProcessId)) && processItem->CreateTime.QuadPart == process->CreateTime.QuadPart)
+                    sysTotalCycleTime += process->CycleTime - processItem->CycleTimeDelta.Value; // existing process
+                else
+                    sysTotalCycleTime += process->CycleTime; // new process
+            }
         }
     } while (process = PH_NEXT_PROCESS(process));
 
@@ -2036,14 +1904,14 @@ VOID PhProcessProviderUpdate(
 
     if (PhEnableCycleCpuUsage)
     {
-        PhInterruptsProcessInformation.KernelTime.QuadPart = PhCpuTotals.DpcTime.QuadPart + PhCpuTotals.InterruptTime.QuadPart;
-        PhInterruptsProcessInformation.CycleTime = PhCpuSystemCycleDelta.Value;
+        PhInterruptsProcessInformation->KernelTime.QuadPart = PhCpuTotals.DpcTime.QuadPart + PhCpuTotals.InterruptTime.QuadPart;
+        PhInterruptsProcessInformation->CycleTime = PhCpuSystemCycleDelta.Value;
         sysTotalCycleTime += PhCpuSystemCycleDelta.Delta;
     }
     else
     {
-        PhDpcsProcessInformation.KernelTime = PhCpuTotals.DpcTime;
-        PhInterruptsProcessInformation.KernelTime = PhCpuTotals.InterruptTime;
+        PhDpcsProcessInformation->KernelTime = PhCpuTotals.DpcTime;
+        PhInterruptsProcessInformation->KernelTime = PhCpuTotals.InterruptTime;
     }
 
     // Look for dead processes.
@@ -2058,6 +1926,8 @@ VOID PhProcessProviderUpdate(
         {
             for (entry = PhProcessHashSet[i]; entry; entry = entry->Next)
             {
+                BOOLEAN processRemoved = FALSE;
+
                 processItem = CONTAINING_RECORD(entry, PH_PROCESS_ITEM, HashEntry);
 
                 // Check if the process still exists. Note that we take into account PID re-use by
@@ -2065,11 +1935,11 @@ VOID PhProcessProviderUpdate(
 
                 if (processItem->ProcessId == DPCS_PROCESS_ID)
                 {
-                    processEntry = &PhDpcsProcessInformation;
+                    processEntry = PhDpcsProcessInformation;
                 }
                 else if (processItem->ProcessId == INTERRUPTS_PROCESS_ID)
                 {
-                    processEntry = &PhInterruptsProcessInformation;
+                    processEntry = PhInterruptsProcessInformation;
                 }
                 else
                 {
@@ -2079,7 +1949,18 @@ VOID PhProcessProviderUpdate(
                         processEntry = (PSYSTEM_PROCESS_INFORMATION)processEntry->UniqueProcessKey;
                 }
 
-                if (!processEntry || processEntry->CreateTime.QuadPart != processItem->CreateTime.QuadPart)
+                if (WindowsVersion >= WINDOWS_10_RS3 && !PhIsExecutingInWow64())
+                {
+                    if (!processEntry || PH_PROCESS_EXTENSION(processEntry)->ProcessSequenceNumber != processItem->ProcessSequenceNumber)
+                        processRemoved = TRUE;
+                }
+                else
+                {
+                    if (!processEntry || processEntry->CreateTime.QuadPart != processItem->CreateTime.QuadPart)
+                        processRemoved = TRUE;
+                }
+
+                if (processRemoved)
                 {
                     LARGE_INTEGER exitTime;
 
@@ -2120,10 +2001,7 @@ VOID PhProcessProviderUpdate(
                     processItem->Record->ExitTime = exitTime;
 
                     // Raise the process removed event.
-                    // See PhFlushProcessQueryData for why we need to lock here.
-                    PhAcquireQueuedLockExclusive(&processItem->RemoveLock);
                     PhInvokeCallback(&PhProcessRemovedEvent, processItem);
-                    PhReleaseQueuedLockExclusive(&processItem->RemoveLock);
 
                     if (!processesToRemove)
                         processesToRemove = PhCreateList(2);
@@ -2149,7 +2027,7 @@ VOID PhProcessProviderUpdate(
     }
 
     // Go through the queued process query data.
-    PhFlushProcessQueryData(FALSE);
+    PhFlushProcessQueryData();
 
     if (sysTotalTime == 0)
         sysTotalTime = -1; // max. value
@@ -2177,24 +2055,12 @@ VOID PhProcessProviderUpdate(
             // Create the process item and fill in basic information.
             processItem = PhCreateProcessItem(process->UniqueProcessId);
             PhpFillProcessItem(processItem, process);
-            processItem->SequenceNumber = PhTimeSequenceNumber;
+            PhpFillProcessItemExtension(processItem, process);
+            processItem->TimeSequenceNumber = PhTimeSequenceNumber;
 
             processRecord = PhpCreateProcessRecord(processItem);
             PhpAddProcessRecord(processRecord);
             processItem->Record = processRecord;
-
-            // Open a handle to the process for later usage.
-            //
-            // Don't try to do this if the process has no threads. On Windows 8.1, processes without
-            // threads are probably reflected processes which will not terminate if we have a handle
-            // open.
-            if (process->NumberOfThreads != 0)
-            {
-                PhOpenProcess(&processItem->QueryHandle, PROCESS_QUERY_INFORMATION, processItem->ProcessId);
-
-                if (!processItem->QueryHandle)
-                    PhOpenProcess(&processItem->QueryHandle, PROCESS_QUERY_LIMITED_INFORMATION, processItem->ProcessId);
-            }
 
             PhpGetProcessThreadInformation(process, &isSuspended, &isPartiallySuspended, &contextSwitches);
             PhpUpdateDynamicInfoProcessItem(processItem, process);
@@ -2245,7 +2111,6 @@ VOID PhProcessProviderUpdate(
 
             // Raise the process added event.
             PhInvokeCallback(&PhProcessAddedEvent, processItem);
-            processItem->AddedEventSent = TRUE;
 
             // (Ref: for the process item being in the hashtable.)
             // Instead of referencing then dereferencing we simply don't do anything.
@@ -2263,6 +2128,7 @@ VOID PhProcessProviderUpdate(
 
             PhpGetProcessThreadInformation(process, &isSuspended, &isPartiallySuspended, &contextSwitches);
             PhpUpdateDynamicInfoProcessItem(processItem, process);
+            PhpFillProcessItemExtension(processItem, process);
 
             // Update the deltas.
             PhUpdateDelta(&processItem->CpuKernelDelta, process->KernelTime.QuadPart);
@@ -2278,7 +2144,7 @@ VOID PhProcessProviderUpdate(
             PhUpdateDelta(&processItem->CycleTimeDelta, process->CycleTime);
             PhUpdateDelta(&processItem->PrivateBytesDelta, process->PagefileUsage);
 
-            processItem->SequenceNumber++;
+            processItem->TimeSequenceNumber++;
             PhAddItemCircularBuffer_ULONG64(&processItem->IoReadHistory, processItem->IoReadDelta.Delta);
             PhAddItemCircularBuffer_ULONG64(&processItem->IoWriteHistory, processItem->IoWriteDelta.Delta);
             PhAddItemCircularBuffer_ULONG64(&processItem->IoOtherHistory, processItem->IoOtherDelta.Delta);
@@ -2337,7 +2203,7 @@ VOID PhProcessProviderUpdate(
 
             // Max. values
 
-            if (processItem->ProcessId != NULL)
+            if (processItem->ProcessId)
             {
                 if (maxCpuValue < newCpuUsage)
                 {
@@ -2415,13 +2281,13 @@ VOID PhProcessProviderUpdate(
 
         // Trick ourselves into thinking that the fake processes
         // are on the list.
-        if (process == &PhInterruptsProcessInformation)
+        if (process == PhInterruptsProcessInformation)
         {
             process = NULL;
         }
-        else if (process == &PhDpcsProcessInformation)
+        else if (process == PhDpcsProcessInformation)
         {
-            process = &PhInterruptsProcessInformation;
+            process = PhInterruptsProcessInformation;
         }
         else
         {
@@ -2430,9 +2296,9 @@ VOID PhProcessProviderUpdate(
             if (process == NULL)
             {
                 if (PhEnableCycleCpuUsage)
-                    process = &PhInterruptsProcessInformation;
+                    process = PhInterruptsProcessInformation;
                 else
-                    process = &PhDpcsProcessInformation;
+                    process = PhDpcsProcessInformation;
             }
         }
     }
@@ -2527,6 +2393,7 @@ PPH_PROCESS_RECORD PhpCreateProcessRecord(
     processRecord->ProcessId = ProcessItem->ProcessId;
     processRecord->ParentProcessId = ProcessItem->ParentProcessId;
     processRecord->SessionId = ProcessItem->SessionId;
+    processRecord->ProcessSequenceNumber = ProcessItem->ProcessSequenceNumber;
     processRecord->CreateTime = ProcessItem->CreateTime;
 
     PhSetReference(&processRecord->ProcessName, ProcessItem->ProcessName);
@@ -2878,30 +2745,40 @@ VOID PhPurgeProcessRecords(
 }
 
 PPH_PROCESS_ITEM PhReferenceProcessItemForParent(
-    _In_ HANDLE ParentProcessId,
-    _In_ HANDLE ProcessId,
-    _In_ PLARGE_INTEGER CreateTime
+    _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
-    PPH_PROCESS_ITEM processItem;
+    PPH_PROCESS_ITEM parentProcessItem;
 
-    if (ParentProcessId == ProcessId) // for cases where the parent PID = PID (e.g. System Idle Process)
+    if (ProcessItem->ParentProcessId == ProcessItem->ProcessId) // for cases where the parent PID = PID (e.g. System Idle Process)
         return NULL;
 
     PhAcquireQueuedLockShared(&PhProcessHashSetLock);
 
-    processItem = PhpLookupProcessItem(ParentProcessId);
+    parentProcessItem = PhpLookupProcessItem(ProcessItem->ParentProcessId);
 
-    // We make sure that the process item we found is actually the parent process - its start time
-    // must not be larger than the supplied time.
-    if (processItem && processItem->CreateTime.QuadPart <= CreateTime->QuadPart)
-        PhReferenceObject(processItem);
+    if (WindowsVersion >= WINDOWS_10_RS3 && !PhIsExecutingInWow64())
+    {
+        // We make sure that the process item we found is actually the parent process - its sequence number
+        // must not be higher than the supplied sequence.
+        if (parentProcessItem && parentProcessItem->ProcessSequenceNumber <= ProcessItem->ProcessSequenceNumber)
+            PhReferenceObject(parentProcessItem);
+        else
+            parentProcessItem = NULL;
+    }
     else
-        processItem = NULL;
+    {
+        // We make sure that the process item we found is actually the parent process - its start time
+        // must not be larger than the supplied time.
+        if (parentProcessItem && parentProcessItem->CreateTime.QuadPart <= ProcessItem->CreateTime.QuadPart)
+            PhReferenceObject(parentProcessItem);
+        else
+            parentProcessItem = NULL;
+    }
 
     PhReleaseQueuedLockShared(&PhProcessHashSetLock);
 
-    return processItem;
+    return parentProcessItem;
 }
 
 PPH_PROCESS_ITEM PhReferenceProcessItemForRecord(
@@ -2914,12 +2791,23 @@ PPH_PROCESS_ITEM PhReferenceProcessItemForRecord(
 
     processItem = PhpLookupProcessItem(Record->ProcessId);
 
-    if (processItem && processItem->CreateTime.QuadPart == Record->CreateTime.QuadPart)
-        PhReferenceObject(processItem);
+    if (WindowsVersion >= WINDOWS_10_RS3 && !PhIsExecutingInWow64())
+    {
+        if (processItem && processItem->ProcessSequenceNumber == Record->ProcessSequenceNumber)
+            PhReferenceObject(processItem);
+        else
+            processItem = NULL;
+    }
     else
-        processItem = NULL;
+    {
+        if (processItem && processItem->CreateTime.QuadPart == Record->CreateTime.QuadPart)
+            PhReferenceObject(processItem);
+        else
+            processItem = NULL;
+    }
 
     PhReleaseQueuedLockShared(&PhProcessHashSetLock);
 
     return processItem;
 }
+

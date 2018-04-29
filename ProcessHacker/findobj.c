@@ -3,7 +3,7 @@
  *   object search
  *
  * Copyright (C) 2010-2016 wj32
- * Copyright (C) 2017 dmex
+ * Copyright (C) 2017-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -56,6 +56,9 @@ typedef struct _PH_HANDLE_SEARCH_CONTEXT
 
     HWND WindowHandle;
     HWND TreeNewHandle;
+    HWND TypeWindowHandle;
+    HWND SearchWindowHandle;
+
     ULONG TreeNewSortColumn;
     PH_SORT_ORDER TreeNewSortOrder;
     PPH_HASHTABLE NodeHashtable;
@@ -651,11 +654,36 @@ VOID PhpPopulateObjectTypes(
     // Sort the object types.
     qsort(objectTypeList->Items, objectTypeList->Count, sizeof(PVOID), PhpStringObjectTypeCompare);
 
-    // Add the types to the object filter combobox.
-    for (ULONG i = 0; i < objectTypeList->Count; i++)
     {
-        ComboBox_AddString(FilterTypeCombo, PhGetString(objectTypeList->Items[i]));
-        PhDereferenceObject(objectTypeList->Items[i]);
+        LONG maxLength;
+        HDC screenDc;
+
+        maxLength = 0;
+        screenDc = GetDC(FilterTypeCombo);
+
+        SendMessage(FilterTypeCombo, WM_SETFONT, (WPARAM)PhApplicationFont, TRUE);
+
+        for (ULONG i = 0; i < objectTypeList->Count; i++)
+        {
+            PPH_STRING entry = objectTypeList->Items[i];
+            SIZE textSize;
+
+            if (GetTextExtentPoint32(screenDc, entry->Buffer, (ULONG)entry->Length / sizeof(WCHAR), &textSize))
+            {
+                if (textSize.cx > maxLength)
+                    maxLength = textSize.cx;
+            }
+
+            ComboBox_AddString(FilterTypeCombo, PhGetString(objectTypeList->Items[i]));
+            PhDereferenceObject(objectTypeList->Items[i]);
+        }
+
+        ReleaseDC(FilterTypeCombo, screenDc);
+
+        if (maxLength)
+        {
+            SendMessage(FilterTypeCombo, CB_SETDROPPEDWIDTH, maxLength, 0);
+        }
     }
 
     PhDereferenceObject(objectTypeList);
@@ -769,15 +797,10 @@ static BOOLEAN MatchTypeString(
     _In_ PPH_STRINGREF Input
     )
 {
-    if (Context->SearchRegexCompiledExpression && Context->SearchRegexMatchData)
+    if (PhEqualString2(Context->SearchTypeString, L"Everything", FALSE))
         return TRUE;
-    else
-    {
-        if (PhEqualString2(Context->SearchTypeString, L"Everything", FALSE))
-            return TRUE;
 
-        return PhFindStringInStringRef(Input, &Context->SearchTypeString->sr, TRUE) != -1;
-    }
+    return PhEqualStringRef(Input, &Context->SearchTypeString->sr, TRUE);
 }
 
 typedef struct _SEARCH_HANDLE_CONTEXT
@@ -1105,11 +1128,11 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
         context = PhCreateAlloc(sizeof(PH_HANDLE_SEARCH_CONTEXT));
         memset(context, 0, sizeof(PH_HANDLE_SEARCH_CONTEXT));
 
-        SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)context);
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = (PPH_HANDLE_SEARCH_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
     }
 
     if (!context)
@@ -1124,16 +1147,21 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
 
             context->WindowHandle = hwndDlg;
             context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_TREELIST);
+            context->TypeWindowHandle = GetDlgItem(hwndDlg, IDC_FILTERTYPE);
+            context->SearchWindowHandle = GetDlgItem(hwndDlg, IDC_FILTER);
 
-            PhCreateSearchControl(hwndDlg, GetDlgItem(hwndDlg, IDC_FILTER), L"Search Handles or DLLs");
+            PhCenterWindow(hwndDlg, NULL);
+            PhRegisterDialog(hwndDlg);
 
-            PhpPopulateObjectTypes(GetDlgItem(hwndDlg, IDC_FILTERTYPE));
+            PhCreateSearchControl(hwndDlg, context->SearchWindowHandle, L"Find Handles or DLLs");
+
+            PhpPopulateObjectTypes(context->TypeWindowHandle);
 
             InitializeHandleObjectTree(context);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_FILTER), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_FILTERTYPE), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&context->LayoutManager, context->TypeWindowHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP);
+            PhAddLayoutItem(&context->LayoutManager, context->SearchWindowHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_REGEX), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&context->LayoutManager, context->TreeNewHandle, NULL, PH_ANCHOR_ALL);
@@ -1144,9 +1172,6 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
             context->MinimumSize.bottom = 100;
             MapDialogRect(hwndDlg, &context->MinimumSize);
 
-            PhRegisterDialog(hwndDlg);
-
-            PhCenterWindow(hwndDlg, NULL);
             PhLoadWindowPlacementFromSetting(L"FindObjWindowPosition", L"FindObjWindowSize", hwndDlg);
 
             context->SearchResults = PhCreateList(128);
@@ -1165,10 +1190,12 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
                     );
             }
 
+            Edit_SetSel(context->SearchWindowHandle, 0, -1);
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_REGEX), PhGetIntegerSetting(L"FindObjRegex") ? BST_CHECKED : BST_UNCHECKED);
 
-            SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)GetDlgItem(hwndDlg, IDC_FILTER), TRUE);
-            Edit_SetSel(GetDlgItem(hwndDlg, IDC_FILTER), 0, -1);
+            // HACK HACK HACK
+            if (WindowsVersion >= WINDOWS_10_RS3 && !!PhGetIntegerSetting(L"EnableExperimentalWindowStyle"))
+                PhSetWindowStyle(hwndDlg, WS_POPUP, 0);
         }
         break;
     case WM_DESTROY:
@@ -1224,6 +1251,8 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
                 PhClearList(context->SearchResults);
             }
 
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+
             PhDereferenceObject(context);
 
             PostQuitMessage(0);
@@ -1251,6 +1280,19 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
         break;
     case WM_COMMAND:
         {
+            if (GET_WM_COMMAND_HWND(wParam, lParam) == context->TypeWindowHandle)
+            {
+                switch (GET_WM_COMMAND_CMD(wParam, lParam))
+                {
+                case CBN_SELCHANGE:
+                    {
+                        // Change focus from the dropdown list to the searchbox.
+                        SetFocus(context->SearchWindowHandle);
+                    }
+                    break;
+                }
+            }
+
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDOK:
@@ -1261,8 +1303,8 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
 
                     if (!context->SearchThreadHandle)
                     {
-                        PhMoveReference(&context->SearchString, PhGetWindowText(GetDlgItem(hwndDlg, IDC_FILTER)));
-                        PhMoveReference(&context->SearchTypeString, PhGetWindowText(GetDlgItem(hwndDlg, IDC_FILTERTYPE)));
+                        PhMoveReference(&context->SearchString, PhGetWindowText(context->SearchWindowHandle));
+                        PhMoveReference(&context->SearchTypeString, PhGetWindowText(context->TypeWindowHandle));
 
                         if (context->SearchRegexCompiledExpression)
                         {
@@ -1314,7 +1356,7 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
                         if (!context->SearchThreadHandle)
                             break;
 
-                        SetDlgItemText(hwndDlg, IDOK, L"Cancel");
+                        PhSetDialogItemText(hwndDlg, IDOK, L"Cancel");
 
                         SetCursor(LoadCursor(NULL, IDC_APPSTARTING));
                     }
@@ -1476,11 +1518,17 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
                     
                             handleItem = PhCreateHandleItem(&handleObjectNode->HandleInfo);
                     
-                            handleItem->BestObjectName = handleItem->ObjectName = handleObjectNode->BestObjectName;
-                            PhReferenceObjectEx(handleObjectNode->BestObjectName, 2);
-                    
-                            handleItem->TypeName = handleObjectNode->TypeNameString;
-                            PhReferenceObject(handleObjectNode->TypeNameString);
+                            if (!PhIsNullOrEmptyString(handleObjectNode->BestObjectName))
+                            {
+                                handleItem->BestObjectName = handleItem->ObjectName = handleObjectNode->BestObjectName;
+                                PhReferenceObjectEx(handleObjectNode->BestObjectName, 2);
+                            }
+
+                            if (!PhIsNullOrEmptyString(handleObjectNode->TypeNameString))
+                            {
+                                handleItem->TypeName = handleObjectNode->TypeNameString;
+                                PhReferenceObject(handleObjectNode->TypeNameString);
+                            }
                     
                             PhShowHandleProperties(
                                 hwndDlg,
@@ -1529,7 +1577,7 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
             context->SearchThreadHandle = NULL;
             context->SearchStop = FALSE;
 
-            SetDlgItemText(hwndDlg, IDOK, L"Find");
+            PhSetDialogItemText(hwndDlg, IDOK, L"Find");
             EnableWindow(GetDlgItem(hwndDlg, IDOK), TRUE);
 
             SetCursor(LoadCursor(NULL, IDC_ARROW));

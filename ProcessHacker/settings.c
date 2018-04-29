@@ -3,7 +3,7 @@
  *   program settings cache
  *
  * Copyright (C) 2010-2016 wj32
- * Copyright (C) 2017 dmex
+ * Copyright (C) 2017-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -36,8 +36,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"AllowOnlyOneInstance", L"1");
     PhpAddIntegerSetting(L"CloseOnEscape", L"0");
     PhpAddIntegerSetting(L"CollapseServicesOnStart", L"0");
-    PhpAddStringSetting(L"DbgHelpPath", L"dbghelp.dll");
-    PhpAddStringSetting(L"DbgHelpSearchPath", L"");
+    PhpAddStringSetting(L"DbgHelpSearchPath", L"SRV*C:\\Symbols*https://msdl.microsoft.com/download/symbols");
     PhpAddIntegerSetting(L"DbgHelpUndecorate", L"1");
     PhpAddStringSetting(L"DisabledPlugins", L"");
     PhpAddIntegerSetting(L"ElevationLevel", L"1"); // PromptElevateAction
@@ -45,10 +44,10 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableInstantTooltips", L"0");
     PhpAddIntegerSetting(L"EnableKph", L"1");
     PhpAddIntegerSetting(L"EnableKphWarnings", L"1");
+    PhpAddIntegerSetting(L"EnableHandleSnapshot", L"1");
     PhpAddIntegerSetting(L"EnableNetworkResolve", L"1");
     PhpAddIntegerSetting(L"EnablePlugins", L"1");
     PhpAddIntegerSetting(L"EnableServiceNonPoll", L"1");
-    PhpAddIntegerSetting(L"EnableServiceStage2", L"0");
     PhpAddIntegerSetting(L"EnableStage2", L"1");
     PhpAddIntegerSetting(L"EnableWarnings", L"1");
     PhpAddIntegerSetting(L"EnableWindowText", L"1");
@@ -61,7 +60,7 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"FileBrowseExecutable", L"%SystemRoot%\\explorer.exe /select,\"%s\"");
     PhpAddIntegerSetting(L"FirstRun", L"1");
     PhpAddStringSetting(L"Font", L""); // null
-    PhpAddIntegerSetting(L"ForceNoParent", L"0");
+    PhpAddIntegerSetting(L"ForceNoParent", L"1");
     PhpAddStringSetting(L"HandleTreeListColumns", L"");
     PhpAddStringSetting(L"HandleTreeListSort", L"0,1"); // 0, AscendingSortOrder
     PhpAddIntegerSetting(L"HiddenProcessesMenuEnabled", L"0");
@@ -76,14 +75,13 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"HideSignedProcesses", L"0");
     PhpAddIntegerSetting(L"HideUnnamedHandles", L"1");
     PhpAddIntegerSetting(L"HighlightingDuration", L"3e8"); // 1000ms
-    PhpAddIntegerSetting(L"IconMask", L"1"); // PH_ICON_CPU_HISTORY
-    PhpAddStringSetting(L"IconMaskList", L"");
+    PhpAddStringSetting(L"IconSettings", L"1|1");
     PhpAddIntegerSetting(L"IconNotifyMask", L"c"); // PH_NOTIFY_SERVICE_CREATE | PH_NOTIFY_SERVICE_DELETE
     PhpAddIntegerSetting(L"IconProcesses", L"f"); // 15
     PhpAddIntegerSetting(L"IconSingleClick", L"0");
     PhpAddIntegerSetting(L"IconTogglesVisibility", L"1");
     PhpAddStringSetting(L"JobListViewColumns", L"");
-    PhpAddIntegerSetting(L"KphUnloadOnShutdown", L"0");
+    //PhpAddIntegerSetting(L"KphUnloadOnShutdown", L"0");
     PhpAddIntegerSetting(L"LogEntries", L"200"); // 512
     PhpAddStringSetting(L"LogListViewColumns", L"");
     PhpAddIntegerPairSetting(L"LogWindowPosition", L"300,300");
@@ -110,20 +108,25 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"MemoryTreeListSort", L"0,0"); // 0, NoSortOrder
     PhpAddIntegerPairSetting(L"MemoryListsWindowPosition", L"400,400");
     PhpAddStringSetting(L"MemoryReadWriteAddressChoices", L"");
+    PhpAddStringSetting(L"MiniInfoWindowClassName", L"MiniInfoWindowClassName");
     PhpAddIntegerSetting(L"MiniInfoWindowEnabled", L"1");
     PhpAddIntegerSetting(L"MiniInfoWindowOpacity", L"0"); // means 100%
     PhpAddIntegerSetting(L"MiniInfoWindowPinned", L"0");
     PhpAddIntegerPairSetting(L"MiniInfoWindowPosition", L"200,200");
     PhpAddIntegerSetting(L"MiniInfoWindowRefreshAutomatically", L"1");
     PhpAddScalableIntegerPairSetting(L"MiniInfoWindowSize", L"@96|10,200");
-    PhpAddIntegerSetting(L"ModuleListFlags", L"0");
+    PhpAddIntegerSetting(L"ModuleTreeListFlags", L"1");
     PhpAddStringSetting(L"ModuleTreeListColumns", L"");
     PhpAddStringSetting(L"ModuleTreeListSort", L"0,0"); // 0, NoSortOrder
     PhpAddStringSetting(L"NetworkTreeListColumns", L"");
     PhpAddStringSetting(L"NetworkTreeListSort", L"0,1"); // 0, AscendingSortOrder
     PhpAddIntegerSetting(L"NoPurgeProcessRecords", L"0");
+    PhpAddIntegerPairSetting(L"PluginManagerWindowPosition", L"0,0");
+    PhpAddScalableIntegerPairSetting(L"PluginManagerWindowSize", L"@96|900,590");
+    PhpAddStringSetting(L"PluginManagerTreeListColumns", L"");
     PhpAddStringSetting(L"PluginsDirectory", L"plugins");
     PhpAddStringSetting(L"ProcessServiceListViewColumns", L"");
+    PhpAddStringSetting(L"ProcessTreeColumnSetConfig", L"");
     PhpAddStringSetting(L"ProcessTreeListColumns", L"");
     PhpAddStringSetting(L"ProcessTreeListSort", L"0,0"); // 0, NoSortOrder
     PhpAddStringSetting(L"ProcPropPage", L"General");
@@ -136,7 +139,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"SampleCount", L"200"); // 512
     PhpAddIntegerSetting(L"SampleCountAutomatic", L"1");
     PhpAddIntegerSetting(L"ScrollToNewProcesses", L"0");
-    PhpAddStringSetting(L"SearchEngine", L"http://www.google.com/search?q=\"%s\"");
+    PhpAddStringSetting(L"SearchEngine", L"https://www.google.com/search?q=\"%s\"");
     PhpAddStringSetting(L"ServiceListViewColumns", L"");
     PhpAddStringSetting(L"ServiceTreeListColumns", L"");
     PhpAddStringSetting(L"ServiceTreeListSort", L"0,1"); // 0, AscendingSortOrder
@@ -160,7 +163,14 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"TokenSplitterEnable", L"0");
     PhpAddIntegerSetting(L"TokenSplitterPosition", L"150");
     PhpAddStringSetting(L"TokenPrivilegesListViewColumns", L"");
+    PhpAddIntegerSetting(L"TreeListBorderEnable", L"0");
+    PhpAddIntegerSetting(L"TreeListCustomColorsEnable", L"0");
+    PhpAddIntegerSetting(L"TreeListCustomColorText", L"0");
+    PhpAddIntegerSetting(L"TreeListCustomColorFocus", L"0");
+    PhpAddIntegerSetting(L"TreeListCustomColorSelection", L"0");
     PhpAddIntegerSetting(L"UpdateInterval", L"3e8"); // 1000ms
+    PhpAddIntegerSetting(L"WmiProviderEnableHiddenMenu", L"0");
+    PhpAddStringSetting(L"WmiProviderListViewColumns", L"");
 
     // Colors are specified with R in the lowest byte, then G, then B. So: bbggrr.
     PhpAddIntegerSetting(L"ColorNew", L"00ff7f"); // Chartreuse
@@ -179,10 +189,12 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"ColorDebuggedProcesses", L"ffbbcc");
     PhpAddIntegerSetting(L"UseColorElevatedProcesses", L"1");
     PhpAddIntegerSetting(L"ColorElevatedProcesses", L"00aaff");
-    PhpAddIntegerSetting(L"UseColorPicoProcesses", L"1");
-    PhpAddIntegerSetting(L"ColorPicoProcesses", L"ff8000"); // Blue
+    PhpAddIntegerSetting(L"UseColorHandleFiltered", L"1");
+    PhpAddIntegerSetting(L"ColorHandleFiltered", L"000000"); // Black
     PhpAddIntegerSetting(L"UseColorImmersiveProcesses", L"1");
     PhpAddIntegerSetting(L"ColorImmersiveProcesses", L"cbc0ff"); // Pink
+    PhpAddIntegerSetting(L"UseColorPicoProcesses", L"1");
+    PhpAddIntegerSetting(L"ColorPicoProcesses", L"ff8000"); // Blue
     PhpAddIntegerSetting(L"UseColorSuspended", L"1");
     PhpAddIntegerSetting(L"ColorSuspended", L"777777");
     PhpAddIntegerSetting(L"UseColorDotNet", L"1");
@@ -205,21 +217,21 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"ColorIoReadOther", L"00ffff");
     PhpAddIntegerSetting(L"ColorIoWrite", L"ff0077");
     PhpAddIntegerSetting(L"ColorPrivate", L"0077ff");
-    PhpAddIntegerSetting(L"ColorPhysical", L"ffff00");
+    PhpAddIntegerSetting(L"ColorPhysical", L"ff8000"); // Blue
 
     PhpAddIntegerSetting(L"UseColorServiceStop", L"1");
     PhpAddIntegerSetting(L"ColorServiceStop", L"6d6d6d"); // Dark grey
     PhpAddIntegerSetting(L"UseColorUnknown", L"1");
-    PhpAddIntegerSetting(L"ColorUnknown", L"507fff"); // Deep Pink
+    PhpAddIntegerSetting(L"ColorUnknown", L"ff8080"); // Light Red
+
+    // Experimental features
+    PhpAddIntegerSetting(L"EnableExperimentalWindowStyle", L"0");
 }
 
 VOID PhUpdateCachedSettings(
     VOID
     )
 {
-    PhEnableProcessQueryStage2 = !!PhGetIntegerSetting(L"EnableStage2");
-    PhEnableServiceQueryStage2 = !!PhGetIntegerSetting(L"EnableServiceStage2");
-
     PH_UPDATE_SETTING(CollapseServicesOnStart);
     PH_UPDATE_SETTING(ForceNoParent);
     PH_UPDATE_SETTING(HighlightingDuration);
@@ -242,6 +254,8 @@ VOID PhUpdateCachedSettings(
     PH_UPDATE_SETTING(ColorWow64Processes);
     PH_UPDATE_SETTING(UseColorDebuggedProcesses);
     PH_UPDATE_SETTING(ColorDebuggedProcesses);
+    PH_UPDATE_SETTING(UseColorHandleFiltered);
+    PH_UPDATE_SETTING(ColorHandleFiltered);
     PH_UPDATE_SETTING(UseColorElevatedProcesses);
     PH_UPDATE_SETTING(ColorElevatedProcesses);
     PH_UPDATE_SETTING(UseColorPicoProcesses);

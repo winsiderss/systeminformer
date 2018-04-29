@@ -45,17 +45,18 @@ INT_PTR CALLBACK SetupPropPage2_WndProc(
     switch (uMsg)
     {
     case WM_INITDIALOG:
-        {            
-            PSTR resourceBuffer;
+        {
+            ULONG resourceLength;
+            PVOID resourceBuffer;
             PPH_STRING eulaTextString;
 
             SetupInitializeFont(GetDlgItem(hwndDlg, IDC_MAINHEADER), -17, FW_SEMIBOLD);
             SetupInitializeFont(GetDlgItem(hwndDlg, IDC_SUBHEADER), -12, FW_NORMAL);
             SetupInitializeFont(GetDlgItem(hwndDlg, IDC_EDIT1), -12, FW_NORMAL);
 
-            if (resourceBuffer = ExtractResourceToBuffer(MAKEINTRESOURCE(IDR_LICENCE_DATA)))
+            if (PhLoadResource(PhInstanceHandle, MAKEINTRESOURCE(IDR_LICENCE_DATA), RT_RCDATA, &resourceLength, &resourceBuffer))
             {
-                if (eulaTextString = PhConvertUtf8ToUtf16(resourceBuffer))
+                if (eulaTextString = PhConvertUtf8ToUtf16Ex(resourceBuffer, resourceLength))
                 {
                     SetWindowText(GetDlgItem(hwndDlg, IDC_EDIT1), eulaTextString->Buffer);
                     PhDereferenceObject(eulaTextString);

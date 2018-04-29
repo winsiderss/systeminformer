@@ -44,7 +44,7 @@
 #define GDI_HANDLE_BUFFER_SIZE32 34
 #define GDI_HANDLE_BUFFER_SIZE64 60
 
-#ifndef WIN64
+#ifndef _WIN64
 #define GDI_HANDLE_BUFFER_SIZE GDI_HANDLE_BUFFER_SIZE32
 #else
 #define GDI_HANDLE_BUFFER_SIZE GDI_HANDLE_BUFFER_SIZE64
@@ -105,7 +105,7 @@ typedef enum _PROCESSINFOCLASS
     ProcessBasePriority, // s: KPRIORITY
     ProcessRaisePriority, // s: ULONG
     ProcessDebugPort, // q: HANDLE
-    ProcessExceptionPort, // s: HANDLE
+    ProcessExceptionPort, // s: PROCESS_EXCEPTION_PORT
     ProcessAccessToken, // s: PROCESS_ACCESS_TOKEN
     ProcessLdtInformation, // qs: PROCESS_LDT_INFORMATION // 10
     ProcessLdtSize, // s: PROCESS_LDT_SIZE
@@ -132,12 +132,12 @@ typedef enum _PROCESSINFOCLASS
     ProcessHandleTracing, // q: PROCESS_HANDLE_TRACING_QUERY; s: size 0 disables, otherwise enables
     ProcessIoPriority, // qs: IO_PRIORITY_HINT
     ProcessExecuteFlags, // qs: ULONG
-    ProcessResourceManagement,
+    ProcessResourceManagement, // ProcessTlsInformation // PROCESS_TLS_INFORMATION
     ProcessCookie, // q: ULONG
     ProcessImageInformation, // q: SECTION_IMAGE_INFORMATION
     ProcessCycleTime, // q: PROCESS_CYCLE_TIME_INFORMATION // since VISTA
-    ProcessPagePriority, // q: ULONG
-    ProcessInstrumentationCallback, // 40
+    ProcessPagePriority, // q: PAGE_PRIORITY_INFORMATION
+    ProcessInstrumentationCallback, // qs: PROCESS_INSTRUMENTATION_CALLBACK_INFORMATION // 40
     ProcessThreadStackAllocation, // s: PROCESS_STACK_ALLOCATION_INFORMATION, PROCESS_STACK_ALLOCATION_INFORMATION_EX
     ProcessWorkingSetWatchEx, // q: PROCESS_WS_WATCH_INFORMATION_EX[]
     ProcessImageFileNameWin32, // q: UNICODE_STRING
@@ -146,7 +146,7 @@ typedef enum _PROCESSINFOCLASS
     ProcessMemoryAllocationMode, // qs: PROCESS_MEMORY_ALLOCATION_MODE
     ProcessGroupInformation, // q: USHORT[]
     ProcessTokenVirtualizationEnabled, // s: ULONG
-    ProcessConsoleHostProcess, // q: ULONG_PTR
+    ProcessConsoleHostProcess, // q: ULONG_PTR // ProcessOwnerInformation
     ProcessWindowInformation, // q: PROCESS_WINDOW_INFORMATION // 50
     ProcessHandleInformation, // q: PROCESS_HANDLE_SNAPSHOT_INFORMATION // since WIN8
     ProcessMitigationPolicy, // s: PROCESS_MITIGATION_POLICY_INFORMATION
@@ -180,6 +180,13 @@ typedef enum _PROCESSINFOCLASS
     ProcessDisableSystemAllowedCpuSets,
     ProcessWakeInformation, // PROCESS_WAKE_INFORMATION
     ProcessEnergyTrackingState, // PROCESS_ENERGY_TRACKING_STATE
+    ProcessManageWritesToExecutableMemory, // MANAGE_WRITES_TO_EXECUTABLE_MEMORY // since REDSTONE3
+    ProcessCaptureTrustletLiveDump,
+    ProcessTelemetryCoverage,
+    ProcessEnclaveInformation,
+    ProcessEnableReadWriteVmLogging, // PROCESS_READWRITEVM_LOGGING_INFORMATION
+    ProcessUptimeInformation, // PROCESS_UPTIME_INFORMATION
+    ProcessImageSection,
     MaxProcessInfoClass
 } PROCESSINFOCLASS;
 #endif
@@ -235,6 +242,8 @@ typedef enum _THREADINFOCLASS
     ThreadSubsystemInformation, // q: SUBSYSTEM_INFORMATION_TYPE // since REDSTONE2
     ThreadDbgkWerReportActive,
     ThreadAttachContainer,
+    ThreadManageWritesToExecutableMemory, // MANAGE_WRITES_TO_EXECUTABLE_MEMORY // since REDSTONE3
+    ThreadPowerThrottlingState, // THREAD_POWER_THROTTLING_STATE
     MaxThreadInfoClass
 } THREADINFOCLASS;
 #endif
@@ -344,6 +353,15 @@ typedef struct _POOLED_USAGE_AND_LIMITS
     SIZE_T PagefileLimit;
 } POOLED_USAGE_AND_LIMITS, *PPOOLED_USAGE_AND_LIMITS;
 
+#define PROCESS_EXCEPTION_PORT_ALL_STATE_BITS 0x00000003
+#define PROCESS_EXCEPTION_PORT_ALL_STATE_FLAGS ((ULONG_PTR)((1UL << PROCESS_EXCEPTION_PORT_ALL_STATE_BITS) - 1))
+
+typedef struct _PROCESS_EXCEPTION_PORT 
+{
+    _In_ HANDLE ExceptionPortHandle; // Handle to the exception port. No particular access required.
+    _Inout_ ULONG StateFlags; // Miscellaneous state flags to be cached along with the exception port in the kernel.
+} PROCESS_EXCEPTION_PORT, *PPROCESS_EXCEPTION_PORT;
+
 typedef struct _PROCESS_ACCESS_TOKEN
 {
     HANDLE Token; // needs TOKEN_ASSIGN_PRIMARY access
@@ -439,6 +457,8 @@ typedef struct _PROCESS_SESSION_INFORMATION
     ULONG SessionId;
 } PROCESS_SESSION_INFORMATION, *PPROCESS_SESSION_INFORMATION;
 
+#define PROCESS_HANDLE_EXCEPTIONS_ENABLED 0x00000001
+
 #define PROCESS_HANDLE_RAISE_EXCEPTION_ON_INVALID_HANDLE_CLOSE_DISABLED 0x00000000
 #define PROCESS_HANDLE_RAISE_EXCEPTION_ON_INVALID_HANDLE_CLOSE_ENABLED 0x00000001
 
@@ -477,6 +497,42 @@ typedef struct _PROCESS_HANDLE_TRACING_QUERY
 } PROCESS_HANDLE_TRACING_QUERY, *PPROCESS_HANDLE_TRACING_QUERY;
 
 #endif
+
+// private
+typedef struct _THREAD_TLS_INFORMATION
+{
+    ULONG Flags;
+    PVOID NewTlsData;
+    PVOID OldTlsData;
+    HANDLE ThreadId;
+} THREAD_TLS_INFORMATION, *PTHREAD_TLS_INFORMATION;
+
+// private
+typedef enum _PROCESS_TLS_INFORMATION_TYPE
+{
+    ProcessTlsReplaceIndex,
+    ProcessTlsReplaceVector,
+    MaxProcessTlsOperation
+} PROCESS_TLS_INFORMATION_TYPE, *PPROCESS_TLS_INFORMATION_TYPE;
+
+// private
+typedef struct _PROCESS_TLS_INFORMATION
+{
+    ULONG Flags;
+    ULONG OperationType;
+    ULONG ThreadDataCount;
+    ULONG TlsIndex;
+    ULONG PreviousCount;
+    THREAD_TLS_INFORMATION ThreadData[1];
+} PROCESS_TLS_INFORMATION, *PPROCESS_TLS_INFORMATION;
+
+// private
+typedef struct _PROCESS_INSTRUMENTATION_CALLBACK_INFORMATION
+{
+    ULONG Version;
+    ULONG Reserved;
+    PVOID Callback;
+} PROCESS_INSTRUMENTATION_CALLBACK_INFORMATION, *PPROCESS_INSTRUMENTATION_CALLBACK_INFORMATION;
 
 // private
 typedef struct _PROCESS_STACK_ALLOCATION_INFORMATION
@@ -578,6 +634,9 @@ typedef struct _PROCESS_MITIGATION_POLICY_INFORMATION
         PROCESS_MITIGATION_BINARY_SIGNATURE_POLICY SignaturePolicy;
         PROCESS_MITIGATION_FONT_DISABLE_POLICY FontDisablePolicy;
         PROCESS_MITIGATION_IMAGE_LOAD_POLICY ImageLoadPolicy;
+        PROCESS_MITIGATION_SYSTEM_CALL_FILTER_POLICY SystemCallFilterPolicy;
+        PROCESS_MITIGATION_PAYLOAD_RESTRICTION_POLICY PayloadRestrictionPolicy;
+        PROCESS_MITIGATION_CHILD_PROCESS_POLICY ChildProcessPolicy;
     };
 } PROCESS_MITIGATION_POLICY_INFORMATION, *PPROCESS_MITIGATION_POLICY_INFORMATION;
 
@@ -716,7 +775,9 @@ typedef struct _PROCESS_JOB_MEMORY_INFO
 typedef struct _PROCESS_CHILD_PROCESS_INFORMATION
 {
     BOOLEAN ProhibitChildProcesses;
-    BOOLEAN EnableAutomaticOverride;
+    //BOOLEAN EnableAutomaticOverride; // REDSTONE2
+    BOOLEAN AlwaysAllowSecureChildProcess; // REDSTONE3
+    BOOLEAN AuditProhibitChildProcesses;
 } PROCESS_CHILD_PROCESS_INFORMATION, *PPROCESS_CHILD_PROCESS_INFORMATION;
 
 typedef struct _PROCESS_WAKE_INFORMATION
@@ -734,6 +795,47 @@ typedef struct _PROCESS_ENERGY_TRACKING_STATE
     ULONG UpdateTag : 1;
     WCHAR Tag[64];
 } PROCESS_ENERGY_TRACKING_STATE, *PPROCESS_ENERGY_TRACKING_STATE;
+
+typedef struct _MANAGE_WRITES_TO_EXECUTABLE_MEMORY
+{
+    ULONG Version : 8;
+    ULONG ProcessEnableWriteExceptions : 1;
+    ULONG ThreadAllowWrites : 1;
+    ULONG Spare : 22;
+} MANAGE_WRITES_TO_EXECUTABLE_MEMORY, *PMANAGE_WRITES_TO_EXECUTABLE_MEMORY;
+
+#define PROCESS_READWRITEVM_LOGGING_ENABLE_READVM 1
+#define PROCESS_READWRITEVM_LOGGING_ENABLE_WRITEVM 2
+#define PROCESS_READWRITEVM_LOGGING_ENABLE_READVM_V 1UL
+#define PROCESS_READWRITEVM_LOGGING_ENABLE_WRITEVM_V 2UL
+
+typedef union _PROCESS_READWRITEVM_LOGGING_INFORMATION
+{
+    UCHAR Flags;
+    struct
+    {
+        UCHAR EnableReadVmLogging : 1;
+        UCHAR EnableWriteVmLogging : 1;
+        UCHAR Unused : 6;
+    };
+} PROCESS_READWRITEVM_LOGGING_INFORMATION, *PPROCESS_READWRITEVM_LOGGING_INFORMATION;
+
+typedef struct _PROCESS_UPTIME_INFORMATION
+{
+    ULONGLONG QueryInterruptTime;
+    ULONGLONG QueryUnbiasedTime;
+    ULONGLONG EndInterruptTime;
+    ULONGLONG TimeSinceCreation;
+    ULONGLONG Uptime;
+    ULONGLONG SuspendedTime;
+    union
+    {
+        ULONG HangCount : 4;
+        ULONG GhostCount : 4;
+        ULONG Crashed : 1;
+        ULONG Terminated : 1;       
+    };
+} PROCESS_UPTIME_INFORMATION, *PPROCESS_UPTIME_INFORMATION;
 
 // end_private
 
@@ -756,8 +858,12 @@ typedef struct _THREAD_LAST_SYSCALL_INFORMATION
 {
     PVOID FirstArgument;
     USHORT SystemCallNumber;
-    //USHORT Reserved; // since REDSTONE2
-    //ULONG64 WaitTime;
+#ifdef WIN64
+    USHORT Pad[0x3]; // since REDSTONE2
+#else
+    USHORT Pad[0x1]; // since REDSTONE2
+#endif
+    ULONG64 WaitTime;
 } THREAD_LAST_SYSCALL_INFORMATION, *PTHREAD_LAST_SYSCALL_INFORMATION;
 
 // private
@@ -946,6 +1052,12 @@ NtResumeProcess(
 #define NtCurrentSession() ((HANDLE)(LONG_PTR)-3)
 #define ZwCurrentSession() NtCurrentSession()
 #define NtCurrentPeb() (NtCurrentTeb()->ProcessEnvironmentBlock)
+
+// Windows 8 and above
+#define NtCurrentProcessToken() ((HANDLE)(LONG_PTR)-4)
+#define NtCurrentThreadToken() ((HANDLE)(LONG_PTR)-5)
+#define NtCurrentEffectiveToken() ((HANDLE)(LONG_PTR)-6)
+#define NtCurrentSilo() ((HANDLE)(LONG_PTR)-1)
 
 // Not NT, but useful.
 #define NtCurrentProcessId() (NtCurrentTeb()->ClientId.UniqueProcess)
@@ -1249,6 +1361,7 @@ typedef enum _PS_ATTRIBUTE_NUM
     PsAttributeSafeOpenPromptOriginClaim,
     PsAttributeBnoIsolation, // PS_BNO_ISOLATION_PARAMETERS
     PsAttributeDesktopAppPolicy, // in ULONG
+    PsAttributeChpe, // since REDSTONE3
     PsAttributeMax
 } PS_ATTRIBUTE_NUM;
 
@@ -1400,7 +1513,15 @@ typedef enum _PS_MITIGATION_OPTION
     PS_MITIGATION_OPTION_RETURN_FLOW_GUARD,
     PS_MITIGATION_OPTION_LOADER_INTEGRITY_CONTINUITY,
     PS_MITIGATION_OPTION_STRICT_CONTROL_FLOW_GUARD,
-    PS_MITIGATION_OPTION_RESTRICT_SET_THREAD_CONTEXT
+    PS_MITIGATION_OPTION_RESTRICT_SET_THREAD_CONTEXT,
+    PS_MITIGATION_OPTION_ROP_STACKPIVOT, // since REDSTONE3
+    PS_MITIGATION_OPTION_ROP_CALLER_CHECK,
+    PS_MITIGATION_OPTION_ROP_SIMEXEC,
+    PS_MITIGATION_OPTION_EXPORT_ADDRESS_FILTER,
+    PS_MITIGATION_OPTION_EXPORT_ADDRESS_FILTER_PLUS,
+    PS_MITIGATION_OPTION_RESTRICT_CHILD_PROCESS_CREATION,
+    PS_MITIGATION_OPTION_IMPORT_ADDRESS_FILTER,
+    PS_MITIGATION_OPTION_MODULE_TAMPERING_PROTECTION
 } PS_MITIGATION_OPTION;
 
 // windows-internals-book:"Chapter 5"
@@ -1562,52 +1683,53 @@ NtCreateThreadEx(
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
 // JOBOBJECTINFOCLASS
-#define JobObjectBasicAccountingInformation 1
-#define JobObjectBasicLimitInformation 2
-#define JobObjectBasicProcessIdList 3
-#define JobObjectBasicUIRestrictions 4
-#define JobObjectSecurityLimitInformation 5
-#define JobObjectEndOfJobTimeInformation 6
-#define JobObjectAssociateCompletionPortInformation 7
-#define JobObjectBasicAndIoAccountingInformation 8
-#define JobObjectExtendedLimitInformation 9
-#define JobObjectJobSetInformation 10
-#define JobObjectGroupInformation 11
-#define JobObjectNotificationLimitInformation 12
-#define JobObjectLimitViolationInformation 13
-#define JobObjectGroupInformationEx 14
-#define JobObjectCpuRateControlInformation 15
+// Note: We don't use an enum since it conflicts with the Windows SDK.
+#define JobObjectBasicAccountingInformation 1 // JOBOBJECT_BASIC_ACCOUNTING_INFORMATION
+#define JobObjectBasicLimitInformation 2 // JOBOBJECT_BASIC_LIMIT_INFORMATION
+#define JobObjectBasicProcessIdList 3 // JOBOBJECT_BASIC_PROCESS_ID_LIST
+#define JobObjectBasicUIRestrictions 4 // JOBOBJECT_BASIC_UI_RESTRICTIONS
+#define JobObjectSecurityLimitInformation 5 // JOBOBJECT_SECURITY_LIMIT_INFORMATION
+#define JobObjectEndOfJobTimeInformation 6 // JOBOBJECT_END_OF_JOB_TIME_INFORMATION
+#define JobObjectAssociateCompletionPortInformation 7 // JOBOBJECT_ASSOCIATE_COMPLETION_PORT
+#define JobObjectBasicAndIoAccountingInformation 8 // JOBOBJECT_BASIC_AND_IO_ACCOUNTING_INFORMATION
+#define JobObjectExtendedLimitInformation 9 // JOBOBJECT_EXTENDED_LIMIT_INFORMATION
+#define JobObjectJobSetInformation 10 // JOBOBJECT_JOBSET_INFORMATION
+#define JobObjectGroupInformation 11 // USHORT
+#define JobObjectNotificationLimitInformation 12 // JOBOBJECT_NOTIFICATION_LIMIT_INFORMATION
+#define JobObjectLimitViolationInformation 13 // JOBOBJECT_LIMIT_VIOLATION_INFORMATION
+#define JobObjectGroupInformationEx 14 // GROUP_AFFINITY (ARRAY)
+#define JobObjectCpuRateControlInformation 15 // JOBOBJECT_CPU_RATE_CONTROL_INFORMATION
 #define JobObjectCompletionFilter 16
 #define JobObjectCompletionCounter 17
-#define JobObjectFreezeInformation 18
-#define JobObjectExtendedAccountingInformation 19
-#define JobObjectWakeInformation 20
+#define JobObjectFreezeInformation 18 // JOBOBJECT_FREEZE_INFORMATION
+#define JobObjectExtendedAccountingInformation 19 // JOBOBJECT_EXTENDED_ACCOUNTING_INFORMATION
+#define JobObjectWakeInformation 20 // JOBOBJECT_WAKE_INFORMATION
 #define JobObjectBackgroundInformation 21
 #define JobObjectSchedulingRankBiasInformation 22
 #define JobObjectTimerVirtualizationInformation 23
 #define JobObjectCycleTimeNotification 24
 #define JobObjectClearEvent 25
-#define JobObjectInterferenceInformation 26
+#define JobObjectInterferenceInformation 26 // JOBOBJECT_INTERFERENCE_INFORMATION
 #define JobObjectClearPeakJobMemoryUsed 27
-#define JobObjectMemoryUsageInformation 28
+#define JobObjectMemoryUsageInformation 28 // JOBOBJECT_MEMORY_USAGE_INFORMATION // JOBOBJECT_MEMORY_USAGE_INFORMATION_V2
 #define JobObjectSharedCommit 29
 #define JobObjectContainerId 30
 #define JobObjectIoRateControlInformation 31
-#define JobObjectNetRateControlInformation 32
-#define JobObjectNotificationLimitInformation2 33
-#define JobObjectLimitViolationInformation2 34
+#define JobObjectNetRateControlInformation 32 // JOBOBJECT_NET_RATE_CONTROL_INFORMATION
+#define JobObjectNotificationLimitInformation2 33 // JOBOBJECT_NOTIFICATION_LIMIT_INFORMATION_2
+#define JobObjectLimitViolationInformation2 34 // JOBOBJECT_LIMIT_VIOLATION_INFORMATION_2
 #define JobObjectCreateSilo 35
-#define JobObjectSiloBasicInformation 36
-#define JobObjectSiloRootDirectory 37
-#define JobObjectServerSiloBasicInformation 38
-#define JobObjectServerSiloUserSharedData 39
+#define JobObjectSiloBasicInformation 36 // SILOOBJECT_BASIC_INFORMATION
+#define JobObjectSiloRootDirectory 37 // SILOOBJECT_ROOT_DIRECTORY
+#define JobObjectServerSiloBasicInformation 38 // SERVERSILO_BASIC_INFORMATION
+#define JobObjectServerSiloUserSharedData 39 // SILO_USER_SHARED_DATA
 #define JobObjectServerSiloInitialize 40
 #define JobObjectServerSiloRunningState 41
 #define JobObjectIoAttribution 42
 #define JobObjectMemoryPartitionInformation 43
 #define JobObjectContainerTelemetryId 44
 #define JobObjectSiloSystemRoot 45
-#define JobObjectEnergyTrackingState 46
+#define JobObjectEnergyTrackingState 46 // JOBOBJECT_ENERGY_TRACKING_STATE
 #define JobObjectThreadImpersonationInformation 47
 #define MaxJobObjectInfoClass 48
 

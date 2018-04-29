@@ -21,9 +21,11 @@
  */
 
 #include <phapp.h>
+#include <appresolver.h>
 #include <modprv.h>
 
 #include <mapimg.h>
+#include <kphuser.h>
 #include <verify.h>
 #include <workqueue.h>
 
@@ -84,6 +86,7 @@ PPH_MODULE_PROVIDER PhCreateModuleProvider(
         PhEmGetObjectSize(EmModuleProviderType, sizeof(PH_MODULE_PROVIDER)),
         PhModuleProviderType
         );
+    memset(moduleProvider, 0, sizeof(PH_MODULE_PROVIDER));
 
     moduleProvider->ModuleHashtable = PhCreateHashtable(
         sizeof(PPH_MODULE_ITEM),
@@ -122,8 +125,30 @@ PPH_MODULE_PROVIDER PhCreateModuleProvider(
         moduleProvider->RunStatus = status;
     }
 
-    if (moduleProvider->ProcessHandle)
+    if (WindowsVersion >= WINDOWS_8 && moduleProvider->ProcessHandle)
+    {
         moduleProvider->PackageFullName = PhGetProcessPackageFullName(moduleProvider->ProcessHandle);
+
+        if (WindowsVersion >= WINDOWS_8_1)
+        {
+            BOOLEAN cfguardEnabled;
+
+            if (NT_SUCCESS(PhGetProcessIsCFGuardEnabled(moduleProvider->ProcessHandle, &cfguardEnabled)))
+            {
+                moduleProvider->ControlFlowGuardEnabled = cfguardEnabled;
+            }
+        }
+    }
+
+    if (WindowsVersion >= WINDOWS_10 && moduleProvider->ProcessHandle)
+    {
+        PROCESS_EXTENDED_BASIC_INFORMATION basicInfo;
+
+        if (NT_SUCCESS(PhGetProcessExtendedBasicInformation(moduleProvider->ProcessHandle, &basicInfo)))
+        {
+            moduleProvider->IsSubsystemProcess = !!basicInfo.IsSubsystemProcess;
+        }
+    }
 
     RtlInitializeSListHead(&moduleProvider->QueryListHead);
 
@@ -292,7 +317,7 @@ NTSTATUS PhpModuleQueryWorker(
 
     data->VerifyResult = PhVerifyFileCached(
         data->ModuleItem->FileName,
-        PhGetString(data->ModuleProvider->PackageFullName),
+        data->ModuleProvider->PackageFullName,
         &data->VerifySignerName,
         FALSE
         );
@@ -473,25 +498,39 @@ VOID PhModuleProviderUpdate(
             moduleItem->FileName = module->FileName;
 
             PhPrintPointer(moduleItem->BaseAddressString, moduleItem->BaseAddress);
-            PhPrintPointer(moduleItem->EntryPointAddressString, moduleItem->EntryPoint);
 
             PhInitializeImageVersionInfo(&moduleItem->VersionInfo, moduleItem->FileName->Buffer);
 
             moduleItem->IsFirst = i == 0;
 
-            // Fix up the load count. If this is not an ordinary DLL or kernel module, set the load count to 0.
-            if (moduleItem->Type != PH_MODULE_TYPE_MODULE &&
-                moduleItem->Type != PH_MODULE_TYPE_WOW64_MODULE &&
-                moduleItem->Type != PH_MODULE_TYPE_KERNEL_MODULE)
+            if (moduleProvider->IsSubsystemProcess)
             {
-                moduleItem->LoadCount = 0;
+                // HACK: Update the module type. (TODO: Move into PhEnumGenericModules) (dmex)
+                moduleItem->Type = PH_MODULE_TYPE_ELF_MAPPED_IMAGE;
+            }
+            else
+            {
+                // Fix up the load count. If this is not an ordinary DLL or kernel module, set the load count to 0.
+                if (moduleItem->Type != PH_MODULE_TYPE_MODULE &&
+                    moduleItem->Type != PH_MODULE_TYPE_WOW64_MODULE &&
+                    moduleItem->Type != PH_MODULE_TYPE_KERNEL_MODULE)
+                {
+                    moduleItem->LoadCount = 0;
+                }
             }
 
             if (moduleItem->Type == PH_MODULE_TYPE_MODULE ||
                 moduleItem->Type == PH_MODULE_TYPE_WOW64_MODULE ||
-                moduleItem->Type == PH_MODULE_TYPE_MAPPED_IMAGE)
+                moduleItem->Type == PH_MODULE_TYPE_MAPPED_IMAGE ||
+                moduleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE)
             {
                 PH_REMOTE_MAPPED_IMAGE remoteMappedImage;
+                PPH_READ_VIRTUAL_MEMORY_CALLBACK readVirtualMemoryCallback;
+
+                if (moduleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE)
+                    readVirtualMemoryCallback = KphReadVirtualMemoryUnsafe;
+                else
+                    readVirtualMemoryCallback = NtReadVirtualMemory;
 
                 // Note:
                 // On Windows 7 the LDRP_IMAGE_NOT_AT_BASE flag doesn't appear to be used
@@ -503,29 +542,47 @@ VOID PhModuleProviderUpdate(
 
                 moduleItem->Flags &= ~LDRP_IMAGE_NOT_AT_BASE;
 
-                if (NT_SUCCESS(PhLoadRemoteMappedImage(moduleProvider->ProcessHandle, moduleItem->BaseAddress, &remoteMappedImage)))
+                if (NT_SUCCESS(PhLoadRemoteMappedImageEx(moduleProvider->ProcessHandle, moduleItem->BaseAddress, readVirtualMemoryCallback, &remoteMappedImage)))
                 {
+                    ULONG_PTR imageBase = 0;
+                    DWORD entryPoint = 0;
+
                     moduleItem->ImageTimeDateStamp = remoteMappedImage.NtHeaders->FileHeader.TimeDateStamp;
                     moduleItem->ImageCharacteristics = remoteMappedImage.NtHeaders->FileHeader.Characteristics;
 
                     if (remoteMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
                     {
-                        if ((ULONG_PTR)((PIMAGE_OPTIONAL_HEADER32)&remoteMappedImage.NtHeaders->OptionalHeader)->ImageBase != (ULONG_PTR)moduleItem->BaseAddress)
-                            moduleItem->Flags |= LDRP_IMAGE_NOT_AT_BASE;
+                        PIMAGE_OPTIONAL_HEADER32 optionalHeader = (PIMAGE_OPTIONAL_HEADER32)&remoteMappedImage.NtHeaders->OptionalHeader;
 
-                        moduleItem->ImageDllCharacteristics = ((PIMAGE_OPTIONAL_HEADER32)&remoteMappedImage.NtHeaders->OptionalHeader)->DllCharacteristics;
+                        imageBase = (ULONG_PTR)optionalHeader->ImageBase;
+                        entryPoint = optionalHeader->AddressOfEntryPoint;
+                        moduleItem->ImageDllCharacteristics = optionalHeader->DllCharacteristics;
                     }
                     else if (remoteMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
                     {
-                        if ((ULONG_PTR)((PIMAGE_OPTIONAL_HEADER64)&remoteMappedImage.NtHeaders->OptionalHeader)->ImageBase != (ULONG_PTR)moduleItem->BaseAddress)
-                            moduleItem->Flags |= LDRP_IMAGE_NOT_AT_BASE;
+                        PIMAGE_OPTIONAL_HEADER64 optionalHeader = (PIMAGE_OPTIONAL_HEADER64)&remoteMappedImage.NtHeaders->OptionalHeader;
 
-                        moduleItem->ImageDllCharacteristics = ((PIMAGE_OPTIONAL_HEADER64)&remoteMappedImage.NtHeaders->OptionalHeader)->DllCharacteristics;
+                        imageBase = (ULONG_PTR)optionalHeader->ImageBase;
+                        entryPoint = optionalHeader->AddressOfEntryPoint;
+                        moduleItem->ImageDllCharacteristics = optionalHeader->DllCharacteristics;
                     }
+
+                    if (imageBase != (ULONG_PTR)moduleItem->BaseAddress)
+                        moduleItem->Flags |= LDRP_IMAGE_NOT_AT_BASE;
+
+                    if (entryPoint != 0)
+                        moduleItem->EntryPoint = PTR_ADD_OFFSET(moduleItem->BaseAddress, entryPoint);
 
                     PhUnloadRemoteMappedImage(&remoteMappedImage);
                 }
             }
+
+            if (moduleItem->EntryPoint)
+                PhPrintPointer(moduleItem->EntryPointAddressString, moduleItem->EntryPoint);
+
+            // remove CF Guard flag if CFG mitigation is not enabled for the process
+            if (!moduleProvider->ControlFlowGuardEnabled)
+                moduleItem->ImageDllCharacteristics &= ~IMAGE_DLLCHARACTERISTICS_GUARD_CF;
 
             if (NT_SUCCESS(PhQueryFullAttributesFileWin32(moduleItem->FileName->Buffer, &networkOpenInfo)))
             {
@@ -537,6 +594,7 @@ VOID PhModuleProviderUpdate(
                 moduleItem->FileEndOfFile.QuadPart = -1;
             }
 
+            if (moduleItem->Type != PH_MODULE_TYPE_ELF_MAPPED_IMAGE)
             {
                 // See if the file has already been verified; if not, queue for verification.
 

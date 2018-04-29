@@ -91,12 +91,14 @@ BOOLEAN EtpDiskPageCallback(
             if (EtEtwEnabled)
             {
                 ULONG thinRows;
+                ULONG treelistBorder;
 
                 thinRows = PhGetIntegerSetting(L"ThinRows") ? TN_STYLE_THIN_ROWS : 0;
+                treelistBorder = PhGetIntegerSetting(L"TreeListBorderEnable") ? WS_BORDER : 0;
                 hwnd = CreateWindow(
                     PH_TREENEW_CLASSNAME,
                     NULL,
-                    WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_BORDER | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | thinRows,
+                    WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | thinRows | treelistBorder,
                     0,
                     0,
                     3,
@@ -1133,7 +1135,7 @@ INT_PTR CALLBACK EtpDiskTabErrorDialogProc(
             }
             else
             {
-                SetDlgItemText(hwndDlg, IDC_ERROR, L"Unable to start the kernel event tracing session.");
+                PhSetDialogItemText(hwndDlg, IDC_ERROR, L"Unable to start the kernel event tracing session.");
                 ShowWindow(GetDlgItem(hwndDlg, IDC_RESTART), SW_HIDE);
             }
         }

@@ -75,6 +75,7 @@ static PPH_SYSINFO_SECTION CurrentSection;
 static HWND ContainerControl;
 static HWND SeparatorControl;
 static HWND RestoreSummaryControl;
+static WNDPROC RestoreSummaryControlOldWndProc;
 static BOOLEAN RestoreSummaryControlHot;
 static BOOLEAN RestoreSummaryControlHasFocus;
 
@@ -306,6 +307,10 @@ VOID PhSipOnInitDialog(
 
     PhSetControlTheme(PhSipWindow, L"explorer");
     PhSipUpdateThemeData();
+
+    // HACK HACK HACK
+    if (WindowsVersion >= WINDOWS_10_RS3 && !!PhGetIntegerSetting(L"EnableExperimentalWindowStyle"))
+        PhSetWindowStyle(PhSipWindow, WS_POPUP, 0);
 }
 
 VOID PhSipOnDestroy(
@@ -417,7 +422,8 @@ VOID PhSipOnShowWindow(
         NULL
         );
 
-    SetWindowSubclass(RestoreSummaryControl, PhSipPanelHookWndProc, 0, 0);
+    RestoreSummaryControlOldWndProc = (WNDPROC)GetWindowLongPtr(RestoreSummaryControl, GWLP_WNDPROC);
+    SetWindowLongPtr(RestoreSummaryControl, GWLP_WNDPROC, (LONG_PTR)PhSipPanelHookWndProc);
     RestoreSummaryControlHot = FALSE;
 
     EnableThemeDialogTexture(ContainerControl, ETDT_ENABLETAB);
@@ -580,15 +586,14 @@ VOID PhSipOnCommand(
                     GetMonitorInfo(MonitorFromWindow(PhSipWindow, MONITOR_DEFAULTTOPRIMARY), &info)
                     )
                 {
-                    ULONG padding = CurrentParameters.WindowPadding / 2;
                     PhSetWindowStyle(PhSipWindow, WS_OVERLAPPEDWINDOW, 0);
                     SetWindowPos(
                         PhSipWindow, 
                         HWND_TOPMOST, 
-                        info.rcMonitor.left - padding,
-                        info.rcMonitor.top - padding,
-                        (info.rcMonitor.right - info.rcMonitor.left) + padding * 2,
-                        (info.rcMonitor.bottom - info.rcMonitor.top) + padding * 2,
+                        info.rcMonitor.left,
+                        info.rcMonitor.top,
+                        (info.rcMonitor.right - info.rcMonitor.left),
+                        (info.rcMonitor.bottom - info.rcMonitor.top),
                         SWP_NOOWNERZORDER | SWP_FRAMECHANGED
                         );
                 }
@@ -597,7 +602,7 @@ VOID PhSipOnCommand(
             {
                 PhSetWindowStyle(PhSipWindow, WS_OVERLAPPEDWINDOW, WS_OVERLAPPEDWINDOW);
                 SetWindowPlacement(PhSipWindow, &windowLayout);
-                SetWindowPos(PhSipWindow, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+                SetWindowPos(PhSipWindow, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
             }
         }
         break;
@@ -1151,13 +1156,19 @@ PPH_SYSINFO_SECTION PhSipCreateSection(
         3,
         3,
         PhSipWindow,
-        (HMENU)(ULONG_PTR)section->PanelId,
+        UlongToHandle(section->PanelId),
         PhInstanceHandle,
         NULL
         );
 
-    SetWindowSubclass(section->GraphHandle, PhSipGraphHookWndProc, 0, (ULONG_PTR)section);
-    SetWindowSubclass(section->PanelHandle, PhSipPanelHookWndProc, 0, (ULONG_PTR)section);
+    section->GraphWindowProc = (WNDPROC)GetWindowLongPtr(section->GraphHandle, GWLP_WNDPROC);
+    section->PanelWindowProc = (WNDPROC)GetWindowLongPtr(section->PanelHandle, GWLP_WNDPROC);
+
+    PhSetWindowContext(section->GraphHandle, 0xF, section);
+    PhSetWindowContext(section->PanelHandle, 0xF, section);
+
+    SetWindowLongPtr(section->GraphHandle, GWLP_WNDPROC, (LONG_PTR)PhSipGraphHookWndProc);
+    SetWindowLongPtr(section->PanelHandle, GWLP_WNDPROC, (LONG_PTR)PhSipPanelHookWndProc);
 
     PhAddItemList(SectionList, section);
 
@@ -1720,17 +1731,24 @@ LRESULT CALLBACK PhSipGraphHookWndProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
-    _In_ LPARAM lParam,
-    _In_ UINT_PTR uIdSubclass,
-    _In_ ULONG_PTR dwRefData
+    _In_ LPARAM lParam
     )
 {
-    PPH_SYSINFO_SECTION section = (PPH_SYSINFO_SECTION)dwRefData;
+    PPH_SYSINFO_SECTION section;
+    WNDPROC oldWndProc;
+
+    if (!(section = PhGetWindowContext(hwnd, 0xF)))
+        return 0;
+
+    oldWndProc = section->GraphWindowProc;
 
     switch (uMsg)
     {
     case WM_DESTROY:
-        RemoveWindowSubclass(hwnd, PhSipGraphHookWndProc, uIdSubclass);
+        {
+            SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+            PhRemoveWindowContext(hwnd, 0xF);
+        }
         break;
     case WM_SETFOCUS:
         section->HasFocus = TRUE;
@@ -1866,24 +1884,33 @@ LRESULT CALLBACK PhSipGraphHookWndProc(
         break;
     }
 
-    return DefSubclassProc(hwnd, uMsg, wParam, lParam);
+    return CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
 }
 
 LRESULT CALLBACK PhSipPanelHookWndProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
-    _In_ LPARAM lParam,
-    _In_ UINT_PTR uIdSubclass,
-    _In_ ULONG_PTR dwRefData
+    _In_ LPARAM lParam
     )
 {
-    PPH_SYSINFO_SECTION section = (PPH_SYSINFO_SECTION)dwRefData;
+    PPH_SYSINFO_SECTION section;
+    WNDPROC oldWndProc;
+
+    section = PhGetWindowContext(hwnd, 0xF);
+
+    if (section)
+        oldWndProc = section->PanelWindowProc;
+    else
+        oldWndProc = RestoreSummaryControlOldWndProc;
 
     switch (uMsg)
     {
     case WM_DESTROY:
-        RemoveWindowSubclass(hwnd, PhSipPanelHookWndProc, uIdSubclass);
+        {
+            SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+            PhRemoveWindowContext(hwnd, 0xF);
+        }
         break;
     case WM_SETFOCUS:
         {
@@ -1987,7 +2014,7 @@ LRESULT CALLBACK PhSipPanelHookWndProc(
         break;
     }
 
-    return DefSubclassProc(hwnd, uMsg, wParam, lParam);
+    return CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
 }
 
 VOID PhSipUpdateThemeData(

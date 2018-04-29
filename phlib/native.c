@@ -74,25 +74,33 @@ PH_TOKEN_ATTRIBUTES PhGetOwnTokenAttributes(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static PH_TOKEN_ATTRIBUTES attributes;
+    static PH_TOKEN_ATTRIBUTES attributes = { 0 };
 
     if (PhBeginInitOnce(&initOnce))
     {
-        if (NT_SUCCESS(NtOpenProcessToken(
-            NtCurrentProcess(),
-            TOKEN_QUERY,
-            &attributes.TokenHandle
-            )))
-        {
-            BOOLEAN elevated = TRUE;
-            TOKEN_ELEVATION_TYPE elevationType = TokenElevationTypeFull;
+        BOOLEAN elevated = TRUE;
+        TOKEN_ELEVATION_TYPE elevationType = TokenElevationTypeFull;
 
+        if (WindowsVersion >= WINDOWS_8)
+        {
+            attributes.TokenHandle = NtCurrentProcessToken();
+        }
+        else
+        {
+            HANDLE tokenHandle;
+
+            if (NT_SUCCESS(PhOpenProcessToken(NtCurrentProcess(), TOKEN_QUERY, &tokenHandle)))
+                attributes.TokenHandle = tokenHandle;
+        }
+
+        if (attributes.TokenHandle)
+        {
             PhGetTokenIsElevated(attributes.TokenHandle, &elevated);
             PhGetTokenElevationType(attributes.TokenHandle, &elevationType);
-
-            attributes.Elevated = elevated;
-            attributes.ElevationType = elevationType;
         }
+
+        attributes.Elevated = elevated;
+        attributes.ElevationType = elevationType;
 
         PhEndInitOnce(&initOnce);
     }
@@ -119,6 +127,14 @@ NTSTATUS PhOpenProcess(
 
     clientId.UniqueProcess = ProcessId;
     clientId.UniqueThread = NULL;
+
+#ifdef _DEBUG
+    if (ProcessId == NtCurrentProcessId())
+    {
+        *ProcessHandle = NtCurrentProcess();
+        return STATUS_SUCCESS;
+    }
+#endif
 
     if (KphIsVerified() && (DesiredAccess & KPH_PROCESS_READ_ACCESS) == DesiredAccess)
     {
@@ -192,6 +208,14 @@ NTSTATUS PhOpenThread(
 
     clientId.UniqueProcess = NULL;
     clientId.UniqueThread = ThreadId;
+
+#ifdef _DEBUG
+    if (ThreadId == NtCurrentThreadId())
+    {
+        *ThreadHandle = NtCurrentThread();
+        return STATUS_SUCCESS;
+    }
+#endif
 
     if (KphIsVerified() && (DesiredAccess & KPH_THREAD_READ_ACCESS) == DesiredAccess)
     {
@@ -1208,134 +1232,98 @@ NTSTATUS PhGetProcessWsCounters(
     return status;
 }
 
-/**
- * Causes a process to load a DLL.
- *
- * \param ProcessHandle A handle to a process. The handle must have
- * PROCESS_QUERY_LIMITED_INFORMATION, PROCESS_CREATE_THREAD, PROCESS_VM_OPERATION, PROCESS_VM_READ
- * and PROCESS_VM_WRITE access.
- * \param FileName The file name of the DLL to inject.
- * \param Timeout The timeout, in milliseconds, for the process to load the DLL.
- *
- * \remarks If the process does not load the DLL before the timeout expires it may crash. Choose the
- * timeout value carefully.
- */
-NTSTATUS PhInjectDllProcess(
-    _In_ HANDLE ProcessHandle,
-    _In_ PWSTR FileName,
-    _In_opt_ PLARGE_INTEGER Timeout
+NTSTATUS PhGetProcessUnloadedDlls(
+    _In_ HANDLE ProcessId,
+    _Out_ PVOID *EventTrace,
+    _Out_ ULONG *EventTraceSize,
+    _Out_ ULONG *EventTraceCount
     )
 {
-#ifdef _WIN64
-    static PVOID loadLibraryW32 = NULL;
-#endif
-
     NTSTATUS status;
-#ifdef _WIN64
-    BOOLEAN isWow64 = FALSE;
-    BOOLEAN isModule32 = FALSE;
-    PH_MAPPED_IMAGE mappedImage;
-#endif
-    PVOID threadStart;
-    PH_STRINGREF fileName;
-    PVOID baseAddress = NULL;
-    SIZE_T allocSize;
-    HANDLE threadHandle;
+    PULONG elementSize;
+    PULONG elementCount;
+    PVOID eventTrace;
+    HANDLE processHandle = NULL;
+    ULONG eventTraceSize;
+    ULONG capturedElementSize;
+    ULONG capturedElementCount;
+    PVOID capturedEventTracePointer;
+    PVOID capturedEventTrace = NULL;
 
-#ifdef _WIN64
-    PhGetProcessIsWow64(ProcessHandle, &isWow64);
+    RtlGetUnloadEventTraceEx(&elementSize, &elementCount, &eventTrace);
 
-    if (isWow64)
-    {
-        if (!NT_SUCCESS(status = PhLoadMappedImage(FileName, NULL, TRUE, &mappedImage)))
-            return status;
+    if (!NT_SUCCESS(status = PhOpenProcess(&processHandle, PROCESS_VM_READ, ProcessId)))
+        goto CleanupExit;
 
-        isModule32 = mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC;
-        PhUnloadMappedImage(&mappedImage);
-    }
+    // We have the pointers for the unload event trace information.
+    // Since ntdll is loaded at the same base address across all processes,
+    // we can read the information in.
 
-    if (!isModule32)
-    {
-#endif
-        threadStart = PhGetModuleProcAddress(L"kernel32.dll", "LoadLibraryW");
-#ifdef _WIN64
-    }
-    else
-    {
-        threadStart = loadLibraryW32;
-
-        if (!threadStart)
-        {
-            PPH_STRING kernel32FileName;
-
-            kernel32FileName = PhConcatStrings2(USER_SHARED_DATA->NtSystemRoot, L"\\SysWow64\\kernel32.dll");
-            status = PhGetProcedureAddressRemote(
-                ProcessHandle,
-                kernel32FileName->Buffer,
-                "LoadLibraryW",
-                0,
-                &loadLibraryW32,
-                NULL
-                );
-            PhDereferenceObject(kernel32FileName);
-
-            if (!NT_SUCCESS(status))
-                return status;
-
-            threadStart = loadLibraryW32;
-        }
-    }
-#endif
-
-    PhInitializeStringRefLongHint(&fileName, FileName);
-    allocSize = fileName.Length + sizeof(WCHAR);
-
-    if (!NT_SUCCESS(status = NtAllocateVirtualMemory(
-        ProcessHandle,
-        &baseAddress,
-        0,
-        &allocSize,
-        MEM_COMMIT,
-        PAGE_READWRITE
-        )))
-        return status;
-
-    if (!NT_SUCCESS(status = NtWriteVirtualMemory(
-        ProcessHandle,
-        baseAddress,
-        fileName.Buffer,
-        fileName.Length + sizeof(WCHAR),
+    if (!NT_SUCCESS(status = NtReadVirtualMemory(
+        processHandle,
+        elementSize,
+        &capturedElementSize,
+        sizeof(ULONG),
         NULL
         )))
-        goto FreeExit;
+        goto CleanupExit;
 
-    if (!NT_SUCCESS(status = RtlCreateUserThread(
-        ProcessHandle,
-        NULL,
-        FALSE,
-        0,
-        0,
-        0,
-        threadStart,
-        baseAddress,
-        &threadHandle,
+    if (!NT_SUCCESS(status = NtReadVirtualMemory(
+        processHandle,
+        elementCount,
+        &capturedElementCount,
+        sizeof(ULONG),
         NULL
         )))
-        goto FreeExit;
+        goto CleanupExit;
 
-    // Wait for the thread to finish.
-    status = NtWaitForSingleObject(threadHandle, FALSE, Timeout);
-    NtClose(threadHandle);
+    if (!NT_SUCCESS(status = NtReadVirtualMemory(
+        processHandle,
+        eventTrace,
+        &capturedEventTracePointer,
+        sizeof(PVOID),
+        NULL
+        )))
+        goto CleanupExit;
 
-FreeExit:
-    // Size needs to be zero if we're freeing.
-    allocSize = 0;
-    NtFreeVirtualMemory(
-        ProcessHandle,
-        &baseAddress,
-        &allocSize,
-        MEM_RELEASE
-        );
+    if (!capturedEventTracePointer)
+    {
+        status = STATUS_NOT_FOUND; // no events
+        goto CleanupExit;
+    }
+
+    if (capturedElementCount > 0x4000)
+        capturedElementCount = 0x4000;
+
+    eventTraceSize = capturedElementSize * capturedElementCount;
+    capturedEventTrace = PhAllocateSafe(eventTraceSize);
+
+    if (!capturedEventTrace)
+    {
+        status = STATUS_NO_MEMORY;
+        goto CleanupExit;
+    }
+
+    if (!NT_SUCCESS(status = NtReadVirtualMemory(
+        processHandle,
+        capturedEventTracePointer,
+        capturedEventTrace,
+        eventTraceSize,
+        NULL
+        )))
+        goto CleanupExit;
+
+CleanupExit:
+
+    if (processHandle)
+        NtClose(processHandle);
+
+    if (NT_SUCCESS(status))
+    {
+        *EventTrace = capturedEventTrace;
+        *EventTraceSize = capturedElementSize;
+        *EventTraceCount = capturedElementCount;
+    }
 
     return status;
 }
@@ -1405,7 +1393,7 @@ NTSTATUS PhUnloadDllProcess(
     if (!isModule32)
     {
 #endif
-        threadStart = PhGetModuleProcAddress(L"ntdll.dll", "LdrUnloadDll");
+        threadStart = PhGetDllProcedureAddress(L"ntdll.dll", "LdrUnloadDll", 0);
 #ifdef _WIN64
     }
     else
@@ -2014,23 +2002,22 @@ NTSTATUS PhSetTokenIsVirtualizationEnabled(
 }
 
 /**
- * Gets a token's integrity level.
- *
- * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
- * \param IntegrityLevel A variable which receives the integrity level of the token.
- * \param IntegrityString A variable which receives a pointer to a string containing a string
- * representation of the integrity level.
- */
-NTSTATUS PhGetTokenIntegrityLevel(
+* Gets a token's integrity level RID. Can handle custom integrity levels.
+*
+* \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
+* \param IntegrityLevelRID A variable which receives the integrity level of the token.
+* \param IntegrityString A variable which receives a pointer to a string containing a string
+* representation of the integrity level.
+*/
+NTSTATUS PhGetTokenIntegrityLevelRID(
     _In_ HANDLE TokenHandle,
-    _Out_opt_ PMANDATORY_LEVEL IntegrityLevel,
+    _Out_opt_ PMANDATORY_LEVEL_RID IntegrityLevelRID,
     _Out_opt_ PWSTR *IntegrityString
     )
 {
     NTSTATUS status;
     PTOKEN_MANDATORY_LABEL mandatoryLabel;
     ULONG subAuthority;
-    MANDATORY_LEVEL integrityLevel;
     PWSTR integrityString;
 
     status = PhpQueryTokenVariableSize(TokenHandle, TokenIntegrityLevel, &mandatoryLabel);
@@ -2041,40 +2028,97 @@ NTSTATUS PhGetTokenIntegrityLevel(
     subAuthority = *RtlSubAuthoritySid(mandatoryLabel->Label.Sid, 0);
     PhFree(mandatoryLabel);
 
-    switch (subAuthority)
+    if (IntegrityString)
     {
-    case SECURITY_MANDATORY_UNTRUSTED_RID:
-        integrityLevel = MandatoryLevelUntrusted;
-        integrityString = L"Untrusted";
-        break;
-    case SECURITY_MANDATORY_LOW_RID:
-        integrityLevel = MandatoryLevelLow;
-        integrityString = L"Low";
-        break;
-    case SECURITY_MANDATORY_MEDIUM_RID:
-        integrityLevel = MandatoryLevelMedium;
-        integrityString = L"Medium";
-        break;
-    case SECURITY_MANDATORY_HIGH_RID:
-        integrityLevel = MandatoryLevelHigh;
-        integrityString = L"High";
-        break;
-    case SECURITY_MANDATORY_SYSTEM_RID:
-        integrityLevel = MandatoryLevelSystem;
-        integrityString = L"System";
-        break;
-    case SECURITY_MANDATORY_PROTECTED_PROCESS_RID:
-        integrityLevel = MandatoryLevelSecureProcess;
-        integrityString = L"Protected";
-        break;
-    default:
-        return STATUS_UNSUCCESSFUL;
+        switch (subAuthority)
+        {
+        case SECURITY_MANDATORY_UNTRUSTED_RID:
+            integrityString = L"Untrusted";
+            break;
+        case SECURITY_MANDATORY_LOW_RID:
+            integrityString = L"Low";
+            break;
+        case SECURITY_MANDATORY_MEDIUM_RID:
+            integrityString = L"Medium";
+            break;
+        case SECURITY_MANDATORY_MEDIUM_PLUS_RID:
+            integrityString = L"Medium +";
+            break;
+        case SECURITY_MANDATORY_HIGH_RID:
+            integrityString = L"High";
+            break;
+        case SECURITY_MANDATORY_SYSTEM_RID:
+            integrityString = L"System";
+            break;
+        case SECURITY_MANDATORY_PROTECTED_PROCESS_RID:
+            integrityString = L"Protected";
+            break;
+        default:
+            integrityString = L"Other";
+            break;
+        }
+
+        *IntegrityString = integrityString;
     }
 
+    if (IntegrityLevelRID)
+        *IntegrityLevelRID = subAuthority;
+
+    return status;
+}
+
+/**
+ * Gets a token's integrity level.
+ *
+ * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
+ * \param IntegrityLevel A variable which receives the integrity level of the token.
+ * If the integrity level is not a well-known one the function fails.
+ * \param IntegrityString A variable which receives a pointer to a string containing a string
+ * representation of the integrity level.
+ */
+NTSTATUS PhGetTokenIntegrityLevel(
+    _In_ HANDLE TokenHandle,
+    _Out_opt_ PMANDATORY_LEVEL IntegrityLevel,
+    _Out_opt_ PWSTR *IntegrityString
+    )
+{
+    NTSTATUS status;
+    MANDATORY_LEVEL_RID integrityLevelRID;
+    MANDATORY_LEVEL integrityLevel;
+
+    status = PhGetTokenIntegrityLevelRID(TokenHandle, &integrityLevelRID, IntegrityString);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
     if (IntegrityLevel)
+    {
+        switch (integrityLevelRID)
+        {
+        case SECURITY_MANDATORY_UNTRUSTED_RID:
+            integrityLevel = MandatoryLevelUntrusted;
+            break;
+        case SECURITY_MANDATORY_LOW_RID:
+            integrityLevel = MandatoryLevelLow;
+            break;
+        case SECURITY_MANDATORY_MEDIUM_RID:
+            integrityLevel = MandatoryLevelMedium;
+            break;
+        case SECURITY_MANDATORY_HIGH_RID:
+            integrityLevel = MandatoryLevelHigh;
+            break;
+        case SECURITY_MANDATORY_SYSTEM_RID:
+            integrityLevel = MandatoryLevelSystem;
+            break;
+        case SECURITY_MANDATORY_PROTECTED_PROCESS_RID:
+            integrityLevel = MandatoryLevelSecureProcess;
+            break;
+        default:
+            return STATUS_UNSUCCESSFUL;
+        }
+
         *IntegrityLevel = integrityLevel;
-    if (IntegrityString)
-        *IntegrityString = integrityString;
+    }
 
     return status;
 }
@@ -4142,6 +4186,65 @@ NTSTATUS PhEnumHandlesEx(
 }
 
 /**
+ * Enumerates all open handles.
+ *
+ * \param ProcessHandle A handle to the process. The handle must have PROCESS_QUERY_INFORMATION access.
+ * \param Handles A variable which receives a pointer to a structure containing information about
+ * handles opened by the process. You must free the structure using PhFree() when you no longer need it.
+ *
+ * \retval STATUS_INSUFFICIENT_RESOURCES The handle information returned by the kernel is too large.
+ *
+ * \remarks This function is only available starting with Windows 8.
+ */
+NTSTATUS PhEnumHandlesEx2(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPROCESS_HANDLE_SNAPSHOT_INFORMATION *Handles
+    )
+{
+    NTSTATUS status;
+    PVOID buffer;
+    ULONG bufferSize;
+    ULONG returnLength = 0;
+    ULONG attempts = 0;
+
+    bufferSize = 0x8000;
+    buffer = PhAllocate(bufferSize);
+    memset(buffer, 0, bufferSize);
+
+    status = NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessHandleInformation,
+        buffer,
+        bufferSize,
+        &returnLength
+        );
+
+    while (status == STATUS_INFO_LENGTH_MISMATCH && attempts < 8)
+    {
+        PhFree(buffer);
+        bufferSize = returnLength;
+        buffer = PhAllocate(bufferSize);
+        memset(buffer, 0, bufferSize);
+
+        status = NtQueryInformationProcess(
+            ProcessHandle,
+            ProcessHandleInformation,
+            buffer,
+            bufferSize,
+            &returnLength
+            );
+        attempts++;
+    }
+
+    if (NT_SUCCESS(status))
+        *Handles = buffer;
+    else
+        PhFree(buffer);
+
+    return status;
+}
+
+/**
  * Enumerates all pagefiles.
  *
  * \param Pagefiles A variable which receives a pointer to a buffer containing information about all
@@ -4307,12 +4410,12 @@ BOOLEAN NTAPI PhpIsDotNetEnumProcessModulesCallback(
 
         if (RtlPrefixUnicodeString(&systemRoot, &fileName, TRUE))
         {
-            fileName.Buffer = (PWCHAR)((PCHAR)fileName.Buffer + systemRoot.Length);
+            fileName.Buffer = (PWCHAR)PTR_ADD_OFFSET(fileName.Buffer, systemRoot.Length);
             fileName.Length -= systemRoot.Length;
 
             if (RtlPrefixUnicodeString(frameworkPart, &fileName, TRUE))
             {
-                fileName.Buffer = (PWCHAR)((PCHAR)fileName.Buffer + frameworkPart->Length);
+                fileName.Buffer = (PWCHAR)PTR_ADD_OFFSET(fileName.Buffer, frameworkPart->Length);
                 fileName.Length -= frameworkPart->Length;
 
                 if (fileName.Length >= 4 * sizeof(WCHAR)) // vx.x
@@ -5077,7 +5180,7 @@ PPH_STRING PhGetFileName(
         PhGetSystemRoot(&systemRoot);
         newFileName = PhCreateStringEx(NULL, systemRoot.Length + FileName->Length - 11 * 2);
         memcpy(newFileName->Buffer, systemRoot.Buffer, systemRoot.Length);
-        memcpy((PCHAR)newFileName->Buffer + systemRoot.Length, &FileName->Buffer[11], FileName->Length - 11 * 2);
+        memcpy(PTR_ADD_OFFSET(newFileName->Buffer, systemRoot.Length), &FileName->Buffer[11], FileName->Length - 11 * 2);
     }
     // "system32\" means "C:\Windows\system32\".
     else if (PhStartsWithString2(FileName, L"system32\\", TRUE))
@@ -5088,7 +5191,7 @@ PPH_STRING PhGetFileName(
         newFileName = PhCreateStringEx(NULL, systemRoot.Length + 2 + FileName->Length);
         memcpy(newFileName->Buffer, systemRoot.Buffer, systemRoot.Length);
         newFileName->Buffer[systemRoot.Length / 2] = '\\';
-        memcpy((PCHAR)newFileName->Buffer + systemRoot.Length + 2, FileName->Buffer, FileName->Length);
+        memcpy(PTR_ADD_OFFSET(newFileName->Buffer, systemRoot.Length + 2), FileName->Buffer, FileName->Length);
     }
     else if (FileName->Length != 0 && FileName->Buffer[0] == '\\')
     {
@@ -5143,7 +5246,6 @@ static BOOLEAN EnumGenericProcessModulesCallback(
 {
     PENUM_GENERIC_PROCESS_MODULES_CONTEXT context;
     PH_MODULE_INFO moduleInfo;
-    PPH_STRING fileName;
     BOOLEAN cont;
 
     context = (PENUM_GENERIC_PROCESS_MODULES_CONTEXT)Context;
@@ -5158,18 +5260,17 @@ static BOOLEAN EnumGenericProcessModulesCallback(
         PhAddEntryHashtable(context->BaseAddressHashtable, &Module->DllBase);
     }
 
-    fileName = PhCreateStringFromUnicodeString(&Module->FullDllName);
-
     moduleInfo.Type = context->Type;
     moduleInfo.BaseAddress = Module->DllBase;
     moduleInfo.Size = Module->SizeOfImage;
     moduleInfo.EntryPoint = Module->EntryPoint;
     moduleInfo.Flags = Module->Flags;
-    moduleInfo.Name = PhCreateStringFromUnicodeString(&Module->BaseDllName);
-    moduleInfo.FileName = PhGetFileName(fileName);
-    moduleInfo.OriginalFileName = fileName;
     moduleInfo.LoadOrderIndex = (USHORT)(context->LoadOrderIndex++);
     moduleInfo.LoadCount = Module->ObsoleteLoadCount;
+
+    moduleInfo.Name = PhCreateStringFromUnicodeString(&Module->BaseDllName);
+    moduleInfo.OriginalFileName = PhCreateStringFromUnicodeString(&Module->FullDllName);
+    moduleInfo.FileName = PhGetFileName(moduleInfo.OriginalFileName);
 
     if (WindowsVersion >= WINDOWS_8)
     {
@@ -5641,35 +5742,30 @@ VOID PhpInitializePredefineKeys(
     )
 {
     static UNICODE_STRING currentUserPrefix = RTL_CONSTANT_STRING(L"\\Registry\\User\\");
-
     NTSTATUS status;
-    HANDLE tokenHandle;
     PTOKEN_USER tokenUser;
     UNICODE_STRING stringSid;
-    WCHAR stringSidBuffer[MAX_UNICODE_STACK_BUFFER_LENGTH];
+    WCHAR stringSidBuffer[SECURITY_MAX_SID_STRING_CHARACTERS];
     PUNICODE_STRING currentUserKeyName;
 
     // Get the string SID of the current user.
-    if (NT_SUCCESS(status = NtOpenProcessToken(NtCurrentProcess(), TOKEN_QUERY, &tokenHandle)))
+
+    if (NT_SUCCESS(status = PhGetTokenUser(PhGetOwnTokenAttributes().TokenHandle, &tokenUser)))
     {
-        if (NT_SUCCESS(status = PhGetTokenUser(tokenHandle, &tokenUser)))
-        {
-            stringSid.Buffer = stringSidBuffer;
-            stringSid.MaximumLength = sizeof(stringSidBuffer);
+        stringSid.Buffer = stringSidBuffer;
+        stringSid.MaximumLength = sizeof(stringSidBuffer);
 
-            status = RtlConvertSidToUnicodeString(
-                &stringSid,
-                tokenUser->User.Sid,
-                FALSE
-                );
+        status = RtlConvertSidToUnicodeString(
+            &stringSid,
+            tokenUser->User.Sid,
+            FALSE
+            );
 
-            PhFree(tokenUser);
-        }
-
-        NtClose(tokenHandle);
+        PhFree(tokenUser);
     }
 
     // Construct the current user key name.
+
     if (NT_SUCCESS(status))
     {
         currentUserKeyName = &PhPredefineKeyNames[PH_KEY_CURRENT_USER_NUMBER];
@@ -5879,6 +5975,89 @@ NTSTATUS PhOpenKey(
 
     if (needsClose)
         NtClose(needsClose);
+
+    return status;
+}
+
+// rev from RegLoadAppKey
+/**
+ * Loads the specified registry hive file into a private application hive.
+ *
+ * \param KeyHandle A variable which receives a handle to the key.
+ * \param FileName The Win32 file name.
+ * \param DesiredAccess The desired access to the key.
+ * \param Flags Optional flags for loading the hive.
+ */
+NTSTATUS PhLoadAppKey(
+    _Out_ PHANDLE KeyHandle,
+    _In_ PWSTR FileName,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ ULONG Flags
+    )
+{
+    NTSTATUS status;
+    GUID guid;
+    UNICODE_STRING fileName;
+    UNICODE_STRING objectName; 
+    UNICODE_STRING guidStringUs;
+    OBJECT_ATTRIBUTES targetAttributes;
+    OBJECT_ATTRIBUTES sourceAttributes;
+    WCHAR objectNameBuffer[MAX_PATH];
+
+    RtlInitEmptyUnicodeString(&objectName, objectNameBuffer, sizeof(objectNameBuffer));
+
+    PhGenerateGuid(&guid);
+
+    if (!NT_SUCCESS(status = RtlStringFromGUID(&guid, &guidStringUs)))
+        return status;
+
+    if (!NT_SUCCESS(status = RtlAppendUnicodeToString(&objectName, L"\\REGISTRY\\A\\")))
+        goto CleanupExit;
+
+    if (!NT_SUCCESS(status = RtlAppendUnicodeStringToString(&objectName, &guidStringUs)))
+        goto CleanupExit;
+
+    if (!NT_SUCCESS(status = RtlDosPathNameToNtPathName_U_WithStatus(
+        FileName,
+        &fileName,
+        NULL,
+        NULL
+        )))
+    {
+        goto CleanupExit;
+    }
+
+    InitializeObjectAttributes(
+        &targetAttributes,
+        &objectName,
+        OBJ_CASE_INSENSITIVE,
+        NULL,
+        NULL
+        );
+
+    InitializeObjectAttributes(
+        &sourceAttributes,
+        &fileName,
+        OBJ_CASE_INSENSITIVE,
+        NULL,
+        NULL
+        );
+
+    status = NtLoadKeyEx(
+        &targetAttributes,
+        &sourceAttributes,
+        REG_APP_HIVE | Flags,
+        NULL,
+        NULL,
+        DesiredAccess,
+        KeyHandle,
+        NULL
+        );
+
+    RtlFreeUnicodeString(&fileName);
+
+CleanupExit:
+    RtlFreeUnicodeString(&guidStringUs);
 
     return status;
 }
@@ -6562,7 +6741,7 @@ NTSTATUS PhCreateNamedPipe(
     )
 {
     NTSTATUS status;
-    PACL pipeAcl;
+    PACL pipeAcl = NULL;
     HANDLE pipeHandle;
     PPH_STRING pipeName;
     LARGE_INTEGER pipeTimeout;
@@ -6588,7 +6767,6 @@ NTSTATUS PhCreateNamedPipe(
 
         RtlCreateSecurityDescriptor(&securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
         RtlSetDaclSecurityDescriptor(&securityDescriptor, TRUE, pipeAcl, FALSE);
-        RtlFreeHeap(RtlProcessHeap(), 0, pipeAcl);
 
         oa.SecurityDescriptor = &securityDescriptor;
     }
@@ -6614,6 +6792,9 @@ NTSTATUS PhCreateNamedPipe(
     {
         *PipeHandle = pipeHandle;
     }
+
+    if (pipeAcl)
+        RtlFreeHeap(RtlProcessHeap(), 0, pipeAcl);
 
     PhDereferenceObject(pipeName);
     return status;
@@ -6920,4 +7101,50 @@ NTSTATUS PhImpersonateClientOfNamedPipe(
         NULL,
         0
         );
+}
+
+NTSTATUS PhGetThreadName(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PPH_STRING *ThreadName
+    )
+{
+    NTSTATUS status;
+    PTHREAD_NAME_INFORMATION buffer;
+    ULONG bufferSize;
+    ULONG returnLength;
+
+    bufferSize = 0x100;
+    buffer = PhAllocate(bufferSize);
+
+    status = NtQueryInformationThread(
+        ThreadHandle,
+        ThreadNameInformation,
+        buffer,
+        bufferSize,
+        &returnLength
+        );
+
+    if (status == STATUS_BUFFER_OVERFLOW)
+    {
+        PhFree(buffer);
+        bufferSize = returnLength;
+        buffer = PhAllocate(bufferSize);
+
+        status = NtQueryInformationThread(
+            ThreadHandle,
+            ThreadNameInformation,
+            buffer,
+            bufferSize,
+            &returnLength
+            );
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        *ThreadName = PhCreateStringFromUnicodeString(&buffer->ThreadName);
+    }
+
+    PhFree(buffer);
+
+    return status;
 }

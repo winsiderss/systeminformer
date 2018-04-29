@@ -31,7 +31,6 @@
 #include <symprv.h>
 
 #include <extmgri.h>
-#include <mainwnd.h>
 #include <phplug.h>
 
 typedef struct _PHSVCP_CAPTURED_RUNAS_SERVICE_PARAMETERS
@@ -64,7 +63,6 @@ PPHSVC_API_PROCEDURE PhSvcApiCallTable[] =
     PhSvcApiSendMessage,
     PhSvcApiCreateProcessIgnoreIfeoDebugger,
     PhSvcApiSetServiceSecurity,
-    PhSvcApiLoadDbgHelp,
     PhSvcApiWriteMiniDumpProcess
 };
 C_ASSERT(sizeof(PhSvcApiCallTable) / sizeof(PPHSVC_API_PROCEDURE) == PhSvcMaximumApiNumber - 1);
@@ -109,7 +107,7 @@ PVOID PhSvcValidateString(
     PPHSVC_CLIENT client = PhSvcGetCurrentClient();
     PVOID address;
 
-    address = (PCHAR)client->ClientViewBase + String->Offset;
+    address = PTR_ADD_OFFSET(client->ClientViewBase, String->Offset);
 
     if ((ULONG_PTR)address + String->Length < (ULONG_PTR)address ||
         (ULONG_PTR)address < (ULONG_PTR)client->ClientViewBase ||
@@ -240,7 +238,7 @@ NTSTATUS PhSvcCaptureSid(
 
     if (sid)
     {
-        if (String->Length < (ULONG)FIELD_OFFSET(struct _SID, IdentifierAuthority) ||
+        if (String->Length < UFIELD_OFFSET(struct _SID, IdentifierAuthority) ||
             String->Length < RtlLengthRequiredSid(((struct _SID *)sid)->SubAuthorityCount) ||
             !RtlValidSid(sid))
         {
@@ -397,6 +395,7 @@ NTSTATUS PhSvcpCaptureRunAsServiceParameters(
     Parameters->DesktopName = PhGetString(CapturedParameters->DesktopName);
     Parameters->UseLinkedToken = Payload->u.ExecuteRunAsCommand.i.UseLinkedToken;
     Parameters->ServiceName = PhGetString(CapturedParameters->ServiceName);
+    Parameters->CreateSuspendedProcess = Payload->u.ExecuteRunAsCommand.i.CreateSuspendedProcess;
 
     return status;
 }
@@ -522,7 +521,8 @@ NTSTATUS PhSvcApiControlProcess(
 
                 priorityClass.Foreground = FALSE;
                 priorityClass.PriorityClass = (UCHAR)Payload->u.ControlProcess.i.Argument;
-                status = NtSetInformationProcess(processHandle, ProcessPriorityClass, &priorityClass, sizeof(PROCESS_PRIORITY_CLASS));
+
+                status = PhSetProcessPriority(processHandle, priorityClass);
 
                 NtClose(processHandle);
             }
@@ -1131,7 +1131,7 @@ NTSTATUS PhSvcApiSetTcpEntry(
 
         if (iphlpapiModule)
         {
-            localSetTcpEntry = PhGetProcedureAddress(iphlpapiModule, "SetTcpEntry", 0);
+            localSetTcpEntry = PhGetDllBaseProcedureAddress(iphlpapiModule, "SetTcpEntry", 0);
 
             if (localSetTcpEntry)
             {
@@ -1387,29 +1387,6 @@ NTSTATUS PhSvcApiSetServiceSecurity(
 
             PhFree(securityDescriptor);
         }
-    }
-
-    return status;
-}
-
-NTSTATUS PhSvcApiLoadDbgHelp(
-    _In_ PPHSVC_CLIENT Client,
-    _Inout_ PPHSVC_API_PAYLOAD Payload
-    )
-{
-    static BOOLEAN alreadyLoaded;
-
-    NTSTATUS status;
-    PPH_STRING dbgHelpPath;
-
-    if (alreadyLoaded)
-        return STATUS_SOME_NOT_MAPPED;
-
-    if (NT_SUCCESS(status = PhSvcCaptureString(&Payload->u.LoadDbgHelp.i.DbgHelpPath, FALSE, &dbgHelpPath)))
-    {
-        PH_AUTO(dbgHelpPath);
-        PhLoadDbgHelpFromPath(dbgHelpPath->Buffer);
-        alreadyLoaded = TRUE;
     }
 
     return status;

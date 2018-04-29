@@ -60,7 +60,7 @@ PVOID GetLegacyBlockTableEntry(
         // Directory has offset in bytes of block
         ULONG offsetEntry = IpcBlock->FullIPCHeader.EntryTable[EntryId].Offset;
 
-        return ((PBYTE)IpcBlock) + offsetBase + offsetEntry;
+        return PTR_ADD_OFFSET(IpcBlock, offsetBase + offsetEntry);
     }
     else
     {
@@ -71,7 +71,7 @@ PVOID GetLegacyBlockTableEntry(
         // Directory has offset in bytes of block
         ULONG offsetEntry = IpcBlock->FullIPCHeader.EntryTable[EntryId].Offset;
 
-        return ((PBYTE)IpcBlock) + offsetBase + offsetEntry;
+        return PTR_ADD_OFFSET(IpcBlock, offsetBase + offsetEntry);
     }
 }
 
@@ -557,7 +557,7 @@ BOOLEAN OpenDotNetPublicControlBlock_V4(
 
     if (WINDOWS_HAS_IMMERSIVE && IsImmersive)
     {
-        if (NT_SUCCESS(NtOpenProcessToken(&tokenHandle, TOKEN_QUERY, ProcessHandle)))
+        if (NT_SUCCESS(NtOpenProcessToken(ProcessHandle, TOKEN_QUERY, &tokenHandle)))
         {
             ULONG returnLength = 0;
 

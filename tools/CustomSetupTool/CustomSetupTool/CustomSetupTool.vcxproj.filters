@@ -86,11 +86,11 @@
     <ClInclude Include="resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\appsup.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="miniz\miniz.h">
       <Filter>Header Files\zip</Filter>
+    </ClInclude>
+    <ClInclude Include="include\setupsup.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -41,32 +41,12 @@
 
 #include "pcre/pcre2.h"
 
-typedef LONG (WINAPI *_GetPackageFullName)(
-    _In_ HANDLE hProcess,
-    _Inout_ UINT32 *packageFullNameLength,
-    _Out_opt_ PWSTR packageFullName
-    );
-
-typedef LONG (WINAPI *_GetPackagePath)(
-    _In_ PACKAGE_ID *packageId,
-    _Reserved_ UINT32 reserved,
-    _Inout_ UINT32 *pathLength,
-    _Out_opt_ PWSTR path
-    );
-
-typedef LONG (WINAPI *_PackageIdFromFullName)(
-    _In_ PCWSTR packageFullName,
-    _In_ UINT32 flags,
-    _Inout_ UINT32 *bufferLength,
-    _Out_opt_ BYTE *buffer
-    );
-
 GUID XP_CONTEXT_GUID = { 0xbeb1b341, 0x6837, 0x4c83, { 0x83, 0x66, 0x2b, 0x45, 0x1e, 0x7c, 0xe6, 0x9b } };
 GUID VISTA_CONTEXT_GUID = { 0xe2011457, 0x1546, 0x43c5, { 0xa5, 0xfe, 0x00, 0x8d, 0xee, 0xe3, 0xd3, 0xf0 } };
 GUID WIN7_CONTEXT_GUID = { 0x35138b9a, 0x5d96, 0x4fbd, { 0x8e, 0x2d, 0xa2, 0x44, 0x02, 0x25, 0xf9, 0x3a } };
 GUID WIN8_CONTEXT_GUID = { 0x4a2f28e3, 0x53b9, 0x4441, { 0xba, 0x9c, 0xd6, 0x9d, 0x4a, 0x4a, 0x6e, 0x38 } };
 GUID WINBLUE_CONTEXT_GUID = { 0x1f676c76, 0x80e1, 0x4239, { 0x95, 0xbb, 0x83, 0xd0, 0xf6, 0xd0, 0xda, 0x78 } };
-GUID WINTHRESHOLD_CONTEXT_GUID = { 0x8e0f7a12, 0xbfb3, 0x4fe8, { 0xb9, 0xa5, 0x48, 0xfd, 0x50, 0xa1, 0x5a, 0x9a } };
+GUID WIN10_CONTEXT_GUID = { 0x8e0f7a12, 0xbfb3, 0x4fe8, { 0xb9, 0xa5, 0x48, 0xfd, 0x50, 0xa1, 0x5a, 0x9a } };
 
 /**
  * Determines whether a process is suspended.
@@ -165,7 +145,7 @@ NTSTATUS PhGetProcessSwitchContext(
         {
             if (!NT_SUCCESS(status = NtReadVirtualMemory(
                 ProcessHandle,
-                PTR_ADD_OFFSET(basicInfo.PebBaseAddress, FIELD_OFFSET(PEB, pContextData)),
+                PTR_ADD_OFFSET(basicInfo.PebBaseAddress, FIELD_OFFSET(PEB, pUnused)),
                 &data,
                 sizeof(PVOID),
                 NULL
@@ -238,125 +218,6 @@ NTSTATUS PhGetProcessSwitchContext(
     return STATUS_SUCCESS;
 }
 
-PPH_STRING PhGetProcessPackageFullName(
-    _In_ HANDLE ProcessHandle
-    )
-{
-    static _GetPackageFullName getPackageFullName = NULL;
-
-    LONG result;
-    PPH_STRING name;
-    ULONG nameLength;
-
-    if (!getPackageFullName)
-        getPackageFullName = PhGetModuleProcAddress(L"kernel32.dll", "GetPackageFullName");
-    if (!getPackageFullName)
-        return NULL;
-
-    nameLength = 101;
-    name = PhCreateStringEx(NULL, (nameLength - 1) * 2);
-
-    result = getPackageFullName(ProcessHandle, &nameLength, name->Buffer);
-
-    if (result == ERROR_INSUFFICIENT_BUFFER)
-    {
-        PhDereferenceObject(name);
-        name = PhCreateStringEx(NULL, (nameLength - 1) * 2);
-
-        result = getPackageFullName(ProcessHandle, &nameLength, name->Buffer);
-    }
-
-    if (result == ERROR_SUCCESS)
-    {
-        PhTrimToNullTerminatorString(name);
-        return name;
-    }
-    else
-    {
-        PhDereferenceObject(name);
-        return NULL;
-    }
-}
-
-PACKAGE_ID *PhPackageIdFromFullName(
-    _In_ PWSTR PackageFullName
-    )
-{
-    static _PackageIdFromFullName packageIdFromFullName = NULL;
-
-    LONG result;
-    PVOID packageIdBuffer;
-    ULONG packageIdBufferSize;
-
-    if (!packageIdFromFullName)
-        packageIdFromFullName = PhGetModuleProcAddress(L"kernel32.dll", "PackageIdFromFullName");
-    if (!packageIdFromFullName)
-        return NULL;
-
-    packageIdBufferSize = 100;
-    packageIdBuffer = PhAllocate(packageIdBufferSize);
-
-    result = packageIdFromFullName(PackageFullName, PACKAGE_INFORMATION_BASIC, &packageIdBufferSize, (PBYTE)packageIdBuffer);
-
-    if (result == ERROR_INSUFFICIENT_BUFFER)
-    {
-        PhFree(packageIdBuffer);
-        packageIdBuffer = PhAllocate(packageIdBufferSize);
-
-        result = packageIdFromFullName(PackageFullName, PACKAGE_INFORMATION_BASIC, &packageIdBufferSize, (PBYTE)packageIdBuffer);
-    }
-
-    if (result == ERROR_SUCCESS)
-    {
-        return packageIdBuffer;
-    }
-    else
-    {
-        PhFree(packageIdBuffer);
-        return NULL;
-    }
-}
-
-PPH_STRING PhGetPackagePath(
-    _In_ PACKAGE_ID *PackageId
-    )
-{
-    static _GetPackagePath getPackagePath = NULL;
-
-    LONG result;
-    PPH_STRING path;
-    ULONG pathLength;
-
-    if (!getPackagePath)
-        getPackagePath = PhGetModuleProcAddress(L"kernel32.dll", "GetPackagePath");
-    if (!getPackagePath)
-        return NULL;
-
-    pathLength = 101;
-    path = PhCreateStringEx(NULL, (pathLength - 1) * 2);
-
-    result = getPackagePath(PackageId, 0, &pathLength, path->Buffer);
-
-    if (result == ERROR_INSUFFICIENT_BUFFER)
-    {
-        PhDereferenceObject(path);
-        path = PhCreateStringEx(NULL, (pathLength - 1) * 2);
-
-        result = getPackagePath(PackageId, 0, &pathLength, path->Buffer);
-    }
-
-    if (result == ERROR_SUCCESS)
-    {
-        PhTrimToNullTerminatorString(path);
-        return path;
-    }
-    else
-    {
-        PhDereferenceObject(path);
-        return NULL;
-    }
-}
-
 /**
  * Determines the type of a process based on its image file name.
  *
@@ -370,15 +231,9 @@ NTSTATUS PhGetProcessKnownType(
     )
 {
     NTSTATUS status;
-    PH_KNOWN_PROCESS_TYPE knownProcessType;
     PROCESS_BASIC_INFORMATION basicInfo;
-    PH_STRINGREF systemRootPrefix;
     PPH_STRING fileName;
     PPH_STRING newFileName;
-    PH_STRINGREF name;
-#ifdef _WIN64
-    BOOLEAN isWow64 = FALSE;
-#endif
 
     if (!NT_SUCCESS(status = PhGetProcessBasicInformation(
         ProcessHandle,
@@ -392,8 +247,6 @@ NTSTATUS PhGetProcessKnownType(
         return STATUS_SUCCESS;
     }
 
-    PhGetSystemRoot(&systemRootPrefix);
-
     if (!NT_SUCCESS(status = PhGetProcessImageFileName(
         ProcessHandle,
         &fileName
@@ -404,7 +257,40 @@ NTSTATUS PhGetProcessKnownType(
 
     newFileName = PhGetFileName(fileName);
     PhDereferenceObject(fileName);
-    name = newFileName->sr;
+
+    *KnownProcessType = PhGetProcessKnownTypeEx(
+        basicInfo.UniqueProcessId, 
+        newFileName
+        );
+
+    PhDereferenceObject(newFileName);
+
+    return status;
+}
+
+PH_KNOWN_PROCESS_TYPE PhGetProcessKnownTypeEx(
+    _In_ HANDLE ProcessId,
+    _In_ PPH_STRING FileName
+    )
+{
+    PH_KNOWN_PROCESS_TYPE knownProcessType;
+    PH_STRINGREF systemRootPrefix;
+    PPH_STRING fileName;
+    PH_STRINGREF name;
+#ifdef _WIN64
+    BOOLEAN isWow64 = FALSE;
+#endif
+
+    if (ProcessId == SYSTEM_PROCESS_ID)
+        return SystemProcessType;
+
+    if (PhIsNullOrEmptyString(FileName))
+        return UnknownProcessType;
+
+    PhGetSystemRoot(&systemRootPrefix);
+
+    fileName = PhDuplicateString(FileName);
+    name = fileName->sr;
 
     knownProcessType = UnknownProcessType;
 
@@ -462,19 +348,31 @@ NTSTATUS PhGetProcessKnownType(
                 knownProcessType = TaskHostProcessType;
             else if (PhEqualStringRef2(&name, L"\\wudfhost.exe", TRUE))
                 knownProcessType = UmdfHostProcessType;
+            else if (PhEqualStringRef2(&name, L"\\wbem\\WmiPrvSE.exe", TRUE))
+                knownProcessType = WmiProviderHostType;
+        }
+        else
+        {
+            // Microsoft Edge
+            if (PhEndsWithStringRef2(&name, L"\\MicrosoftEdgeCP.exe", TRUE))
+                knownProcessType = EdgeProcessType;
+            else if (PhEndsWithStringRef2(&name, L"\\MicrosoftEdge.exe", TRUE))
+                knownProcessType = EdgeProcessType;
+            else if (PhEndsWithStringRef2(&name, L"\\ServiceWorkerHost.exe", TRUE))
+                knownProcessType = EdgeProcessType;
+            else if (PhEndsWithStringRef2(&name, L"\\Windows.WARP.JITService.exe", TRUE))
+                knownProcessType = EdgeProcessType;
         }
     }
 
-    PhDereferenceObject(newFileName);
+    PhDereferenceObject(fileName);
 
 #ifdef _WIN64
     if (isWow64)
         knownProcessType |= KnownProcessWow64;
 #endif
 
-    *KnownProcessType = knownProcessType;
-
-    return status;
+    return knownProcessType;
 }
 
 static BOOLEAN NTAPI PhpSvchostCommandLineCallback(
@@ -711,111 +609,6 @@ BOOLEAN PhaGetProcessKnownCommandLine(
     return TRUE;
 }
 
-VOID PhEnumChildWindows(
-    _In_opt_ HWND WindowHandle,
-    _In_ ULONG Limit,
-    _In_ PH_CHILD_ENUM_CALLBACK Callback,
-    _In_ PVOID Context
-    )
-{
-    HWND childWindow = NULL;
-    ULONG i = 0;
-
-    while (i < Limit && (childWindow = FindWindowEx(WindowHandle, childWindow, NULL, NULL)))
-    {
-        if (!Callback(childWindow, Context))
-            return;
-
-        i++;
-    }
-}
-
-typedef struct _GET_PROCESS_MAIN_WINDOW_CONTEXT
-{
-    HWND Window;
-    HWND ImmersiveWindow;
-    HANDLE ProcessId;
-    BOOLEAN IsImmersive;
-    BOOLEAN SkipInvisible;
-} GET_PROCESS_MAIN_WINDOW_CONTEXT, *PGET_PROCESS_MAIN_WINDOW_CONTEXT;
-
-BOOLEAN CALLBACK PhpGetProcessMainWindowEnumWindowsProc(
-    _In_ HWND WindowHandle,
-    _In_opt_ PVOID Context
-    )
-{
-    PGET_PROCESS_MAIN_WINDOW_CONTEXT context = (PGET_PROCESS_MAIN_WINDOW_CONTEXT)Context;
-    ULONG processId;
-    HWND parentWindow;
-    WINDOWINFO windowInfo;
-
-    if (context->SkipInvisible && !IsWindowVisible(WindowHandle))
-        return TRUE;
-
-    GetWindowThreadProcessId(WindowHandle, &processId);
-
-    if (UlongToHandle(processId) == context->ProcessId && (context->SkipInvisible ?
-        !((parentWindow = GetParent(WindowHandle)) && IsWindowVisible(parentWindow)) && // skip windows with a visible parent
-        PhGetWindowTextEx(WindowHandle, PH_GET_WINDOW_TEXT_INTERNAL | PH_GET_WINDOW_TEXT_LENGTH_ONLY, NULL) != 0 : TRUE)) // skip windows with no title
-    {
-        if (!context->ImmersiveWindow && context->IsImmersive &&
-            GetProp(WindowHandle, L"Windows.ImmersiveShell.IdentifyAsMainCoreWindow"))
-        {
-            context->ImmersiveWindow = WindowHandle;
-        }
-
-        windowInfo.cbSize = sizeof(WINDOWINFO);
-
-        if (!context->Window && GetWindowInfo(WindowHandle, &windowInfo) && (windowInfo.dwStyle & WS_DLGFRAME))
-        {
-            context->Window = WindowHandle;
-
-            // If we're not looking at an immersive process, there's no need to search any more windows.
-            if (!context->IsImmersive)
-                return FALSE;
-        }
-    }
-
-    return TRUE;
-}
-
-HWND PhGetProcessMainWindow(
-    _In_ HANDLE ProcessId,
-    _In_opt_ HANDLE ProcessHandle
-    )
-{
-    return PhGetProcessMainWindowEx(ProcessId, ProcessHandle, TRUE);
-}
-
-HWND PhGetProcessMainWindowEx(
-    _In_ HANDLE ProcessId,
-    _In_opt_ HANDLE ProcessHandle,
-    _In_ BOOLEAN SkipInvisible
-    )
-{
-    GET_PROCESS_MAIN_WINDOW_CONTEXT context;
-    HANDLE processHandle = NULL;
-
-    memset(&context, 0, sizeof(GET_PROCESS_MAIN_WINDOW_CONTEXT));
-    context.ProcessId = ProcessId;
-    context.SkipInvisible = SkipInvisible;
-
-    if (ProcessHandle)
-        processHandle = ProcessHandle;
-    else
-        PhOpenProcess(&processHandle, ProcessQueryAccess, ProcessId);
-
-    if (processHandle && IsImmersiveProcess_I)
-        context.IsImmersive = IsImmersiveProcess_I(processHandle);
-
-    PhEnumChildWindows(NULL, 0x800, PhpGetProcessMainWindowEnumWindowsProc, &context);
-
-    if (!ProcessHandle && processHandle)
-        NtClose(processHandle);
-
-    return context.ImmersiveWindow ? context.ImmersiveWindow : context.Window;
-}
-
 PPH_STRING PhGetServiceRelevantFileName(
     _In_ PPH_STRINGREF ServiceName,
     _In_ SC_HANDLE ServiceHandle
@@ -826,7 +619,7 @@ PPH_STRING PhGetServiceRelevantFileName(
 
     if (config = PhGetServiceConfig(ServiceHandle))
     {
-        PhGetServiceDllParameter(ServiceName, &fileName);
+        PhGetServiceDllParameter(config->dwServiceType, ServiceName, &fileName);
 
         if (!fileName)
         {
@@ -1057,13 +850,6 @@ VOID PhLoadSymbolProviderOptions(
     PhDereferenceObject(searchPath);
 }
 
-PWSTR PhMakeContextAtom(
-    VOID
-    )
-{
-    PH_DEFINE_MAKE_ATOM(L"PH2_Context");
-}
-
 /**
  * Copies a string into a NMLVGETINFOTIP structure.
  *
@@ -1241,7 +1027,7 @@ PPH_STRING PhGetPhVersion(
 VOID PhGetPhVersionNumbers(
     _Out_opt_ PULONG MajorVersion,
     _Out_opt_ PULONG MinorVersion,
-    _Reserved_ PULONG Reserved,
+    _Out_opt_ PULONG BuildNumber,
     _Out_opt_ PULONG RevisionNumber
     )
 {
@@ -1249,6 +1035,8 @@ VOID PhGetPhVersionNumbers(
         *MajorVersion = PHAPP_VERSION_MAJOR;
     if (MinorVersion)
         *MinorVersion = PHAPP_VERSION_MINOR;
+    if (BuildNumber)
+        *BuildNumber = PHAPP_VERSION_BUILD;
     if (RevisionNumber)
         *RevisionNumber = PHAPP_VERSION_REVISION;
 }
@@ -1477,15 +1265,16 @@ BOOLEAN PhCreateProcessIgnoreIfeoDebugger(
     STARTUPINFO startupInfo;
     PROCESS_INFORMATION processInfo;
 
-    if (!(debugSetProcessKillOnExit = PhGetModuleProcAddress(L"kernel32.dll", "DebugSetProcessKillOnExit")) ||
-        !(debugActiveProcessStop = PhGetModuleProcAddress(L"kernel32.dll", "DebugActiveProcessStop")))
+    if (!(debugSetProcessKillOnExit = PhGetDllProcedureAddress(L"kernel32.dll", "DebugSetProcessKillOnExit", 0)) ||
+        !(debugActiveProcessStop = PhGetDllProcedureAddress(L"kernel32.dll", "DebugActiveProcessStop", 0)))
         return FALSE;
 
     result = FALSE;
 
-    // This is NOT thread-safe.
+    RtlEnterCriticalSection(NtCurrentPeb()->FastPebLock);
     originalValue = NtCurrentPeb()->ReadImageFileExecOptions;
     NtCurrentPeb()->ReadImageFileExecOptions = FALSE;
+    RtlLeaveCriticalSection(NtCurrentPeb()->FastPebLock);
 
     memset(&startupInfo, 0, sizeof(STARTUPINFO));
     startupInfo.cb = sizeof(STARTUPINFO);
@@ -1505,8 +1294,13 @@ BOOLEAN PhCreateProcessIgnoreIfeoDebugger(
         NtClose(processInfo.hProcess);
     if (processInfo.hThread)
         NtClose(processInfo.hThread);
-
-    NtCurrentPeb()->ReadImageFileExecOptions = originalValue;
+    
+    if (originalValue)
+    {
+        RtlEnterCriticalSection(NtCurrentPeb()->FastPebLock);
+        NtCurrentPeb()->ReadImageFileExecOptions = originalValue;
+        RtlLeaveCriticalSection(NtCurrentPeb()->FastPebLock);
+    }    
 
     return result;
 }
@@ -1564,7 +1358,7 @@ VOID PhInitializeTreeNewColumnMenuEx(
         if (resetSortMenuItem)
             PhInsertEMenuItem(Data->Menu, resetSortMenuItem, -1);
 
-        PhInsertEMenuItem(Data->Menu, PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, L"", NULL, NULL), -1);
+        PhInsertEMenuItem(Data->Menu, PhCreateEMenuSeparator(), -1);
         PhInsertEMenuItem(Data->Menu, chooseColumnsMenuItem, -1);
 
         if (TreeNew_GetFixedColumn(Data->TreeNewHandle))
@@ -2135,4 +1929,24 @@ PPH_STRING PhPcre2GetErrorMessage(
 
     buffer->Length = returnLength * sizeof(WCHAR);
     return buffer;
+}
+
+HBITMAP PhGetShieldBitmap(
+    VOID
+    )
+{
+    static HBITMAP shieldBitmap = NULL;
+
+    if (!shieldBitmap)
+    {
+        HICON shieldIcon;
+
+        if (shieldIcon = PhLoadIcon(NULL, IDI_SHIELD, PH_LOAD_ICON_SHARED | PH_LOAD_ICON_SIZE_SMALL | PH_LOAD_ICON_STRICT, 0, 0))
+        {
+            shieldBitmap = PhIconToBitmap(shieldIcon, PhSmallIconSize.X, PhSmallIconSize.Y);
+            DestroyIcon(shieldIcon);
+        }
+    }
+
+    return shieldBitmap;
 }

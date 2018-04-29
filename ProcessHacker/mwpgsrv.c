@@ -3,6 +3,7 @@
  *   Main window: Services tab
  *
  * Copyright (C) 2009-2016 wj32
+ * Copyright (C) 2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -37,16 +38,14 @@
 
 PPH_MAIN_TAB_PAGE PhMwpServicesPage;
 HWND PhMwpServiceTreeNewHandle;
+PH_PROVIDER_EVENT_QUEUE PhMwpServiceEventQueue;
 
 static PH_CALLBACK_REGISTRATION ServiceAddedRegistration;
 static PH_CALLBACK_REGISTRATION ServiceModifiedRegistration;
 static PH_CALLBACK_REGISTRATION ServiceRemovedRegistration;
 static PH_CALLBACK_REGISTRATION ServicesUpdatedRegistration;
 
-static PPH_POINTER_LIST ServicesPendingList;
 static BOOLEAN ServiceTreeListLoaded = FALSE;
-static BOOLEAN ServicesNeedsRedraw = FALSE;
-
 static PPH_TN_FILTER_ENTRY DriverFilterEntry = NULL;
 
 BOOLEAN PhMwpServicesPageCallback(
@@ -61,6 +60,8 @@ BOOLEAN PhMwpServicesPageCallback(
     case MainTabPageCreate:
         {
             PhMwpServicesPage = Page;
+
+            PhInitializeProviderEventQueue(&PhMwpServiceEventQueue, 100);
 
             PhRegisterCallback(
                 &PhServiceAddedEvent,
@@ -116,7 +117,8 @@ BOOLEAN PhMwpServicesPageCallback(
         return TRUE;
     case MainTabPageLoadSettings:
         {
-            // Nothing
+            if (PhGetIntegerSetting(L"HideDriverServices"))
+                DriverFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), PhMwpDriverServiceTreeFilter, NULL);
         }
         return TRUE;
     case MainTabPageSaveSettings:
@@ -158,27 +160,7 @@ VOID PhMwpNeedServiceTreeList(
     if (!ServiceTreeListLoaded)
     {
         ServiceTreeListLoaded = TRUE;
-
         PhLoadSettingsServiceTreeList();
-
-        if (PhGetIntegerSetting(L"HideDriverServices"))
-            DriverFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), PhMwpDriverServiceTreeFilter, NULL);
-
-        if (ServicesPendingList)
-        {
-            PPH_SERVICE_ITEM serviceItem;
-            ULONG enumerationKey = 0;
-
-            while (PhEnumPointerList(ServicesPendingList, &enumerationKey, (PVOID *)&serviceItem))
-            {
-                PhMwpOnServiceAdded(serviceItem, 1);
-            }
-
-            // Force a re-draw.
-            PhMwpOnServicesUpdated();
-
-            PhClearReference(&ServicesPendingList);
-        }
     }
 }
 
@@ -358,12 +340,7 @@ VOID NTAPI PhMwpServiceAddedHandler(
     PPH_SERVICE_ITEM serviceItem = (PPH_SERVICE_ITEM)Parameter;
 
     PhReferenceObject(serviceItem);
-    PostMessage(
-        PhMainWndHandle,
-        WM_PH_SERVICE_ADDED,
-        PhGetRunIdProvider(&PhMwpServiceProviderRegistration),
-        (LPARAM)serviceItem
-        );
+    PhPushProviderEventQueue(&PhMwpServiceEventQueue, ProviderAddedEvent, Parameter, PhGetRunIdProvider(&PhMwpServiceProviderRegistration));
 }
 
 VOID NTAPI PhMwpServiceModifiedHandler(
@@ -376,7 +353,7 @@ VOID NTAPI PhMwpServiceModifiedHandler(
 
     copy = PhAllocateCopy(serviceModifiedData, sizeof(PH_SERVICE_MODIFIED_DATA));
 
-    PostMessage(PhMainWndHandle, WM_PH_SERVICE_MODIFIED, 0, (LPARAM)copy);
+    PhPushProviderEventQueue(&PhMwpServiceEventQueue, ProviderModifiedEvent, copy, PhGetRunIdProvider(&PhMwpServiceProviderRegistration));
 }
 
 VOID NTAPI PhMwpServiceRemovedHandler(
@@ -386,7 +363,7 @@ VOID NTAPI PhMwpServiceRemovedHandler(
 {
     PPH_SERVICE_ITEM serviceItem = (PPH_SERVICE_ITEM)Parameter;
 
-    PostMessage(PhMainWndHandle, WM_PH_SERVICE_REMOVED, 0, (LPARAM)serviceItem);
+    PhPushProviderEventQueue(&PhMwpServiceEventQueue, ProviderRemovedEvent, Parameter, PhGetRunIdProvider(&PhMwpServiceProviderRegistration));
 }
 
 VOID NTAPI PhMwpServicesUpdatedHandler(
@@ -394,7 +371,7 @@ VOID NTAPI PhMwpServicesUpdatedHandler(
     _In_opt_ PVOID Context
     )
 {
-    PostMessage(PhMainWndHandle, WM_PH_SERVICES_UPDATED, 0, 0);
+    PostMessage(PhMainWndHandle, WM_PH_SERVICES_UPDATED, PhGetRunIdProvider(&PhMwpServiceProviderRegistration), 0);
 }
 
 VOID PhMwpOnServiceAdded(
@@ -404,24 +381,8 @@ VOID PhMwpOnServiceAdded(
 {
     PPH_SERVICE_NODE serviceNode;
 
-    if (ServiceTreeListLoaded)
-    {
-        if (!ServicesNeedsRedraw)
-        {
-            TreeNew_SetRedraw(PhMwpServiceTreeNewHandle, FALSE);
-            ServicesNeedsRedraw = TRUE;
-        }
-
-        serviceNode = PhAddServiceNode(ServiceItem, RunId);
-        // ServiceItem dereferenced below
-    }
-    else
-    {
-        if (!ServicesPendingList)
-            ServicesPendingList = PhCreatePointerList(100);
-
-        PhAddItemPointerList(ServicesPendingList, ServiceItem);
-    }
+    serviceNode = PhAddServiceNode(ServiceItem, RunId);
+    // ServiceItem dereferenced below
 
     if (RunId != 1)
     {
@@ -444,30 +405,20 @@ VOID PhMwpOnServiceAdded(
         }
     }
 
-    if (ServiceTreeListLoaded)
-        PhDereferenceObject(ServiceItem);
+    PhDereferenceObject(ServiceItem);
 }
 
 VOID PhMwpOnServiceModified(
-    _In_ struct _PH_SERVICE_MODIFIED_DATA *ServiceModifiedData
+    _In_ PPH_SERVICE_MODIFIED_DATA ServiceModifiedData
     )
 {
     PH_SERVICE_CHANGE serviceChange;
     UCHAR logEntryType;
 
-    if (ServiceTreeListLoaded)
-    {
-        //if (!ServicesNeedsRedraw)
-        //{
-        //    TreeNew_SetRedraw(PhMwpServiceTreeNewHandle, FALSE);
-        //    ServicesNeedsRedraw = TRUE;
-        //}
+    PhUpdateServiceNode(PhFindServiceNode(ServiceModifiedData->Service));
 
-        PhUpdateServiceNode(PhFindServiceNode(ServiceModifiedData->Service));
-
-        if (DriverFilterEntry)
-            PhApplyTreeNewFilters(PhGetFilterSupportServiceTreeList());
-    }
+    if (DriverFilterEntry)
+        PhApplyTreeNewFilters(PhGetFilterSupportServiceTreeList());
 
     serviceChange = PhGetServiceChange(ServiceModifiedData);
 
@@ -536,15 +487,6 @@ VOID PhMwpOnServiceRemoved(
     _In_ PPH_SERVICE_ITEM ServiceItem
     )
 {
-    if (ServiceTreeListLoaded)
-    {
-        if (!ServicesNeedsRedraw)
-        {
-            TreeNew_SetRedraw(PhMwpServiceTreeNewHandle, FALSE);
-            ServicesNeedsRedraw = TRUE;
-        }
-    }
-
     PhLogServiceEntry(PH_LOG_ENTRY_SERVICE_DELETE, ServiceItem->Name, ServiceItem->DisplayName);
 
     if (PhMwpNotifyIconNotifyMask & PH_NOTIFY_SERVICE_CREATE)
@@ -563,38 +505,47 @@ VOID PhMwpOnServiceRemoved(
         }
     }
 
-    if (ServiceTreeListLoaded)
-    {
-        PhRemoveServiceNode(PhFindServiceNode(ServiceItem));
-    }
-    else
-    {
-        if (ServicesPendingList)
-        {
-            HANDLE pointerHandle;
-
-            // Remove the service from the pending list so we don't try to add it later.
-
-            if (pointerHandle = PhFindItemPointerList(ServicesPendingList, ServiceItem))
-                PhRemoveItemPointerList(ServicesPendingList, pointerHandle);
-
-            PhDereferenceObject(ServiceItem);
-        }
-    }
+    PhRemoveServiceNode(PhFindServiceNode(ServiceItem));
 }
 
 VOID PhMwpOnServicesUpdated(
-    VOID
+    _In_ ULONG RunId
     )
 {
-    if (ServiceTreeListLoaded)
-    {
-        PhTickServiceNodes();
+    PPH_PROVIDER_EVENT events;
+    ULONG count;
+    ULONG i;
 
-        if (ServicesNeedsRedraw)
+    events = PhFlushProviderEventQueue(&PhMwpServiceEventQueue, RunId, &count);
+
+    if (events)
+    {
+        TreeNew_SetRedraw(PhMwpServiceTreeNewHandle, FALSE);
+
+        for (i = 0; i < count; i++)
         {
-            TreeNew_SetRedraw(PhMwpServiceTreeNewHandle, TRUE);
-            ServicesNeedsRedraw = FALSE;
+            PH_PROVIDER_EVENT_TYPE type = PH_PROVIDER_EVENT_TYPE(events[i]);
+            PPH_SERVICE_ITEM serviceItem = PH_PROVIDER_EVENT_OBJECT(events[i]);
+
+            switch (type)
+            {
+            case ProviderAddedEvent:
+                PhMwpOnServiceAdded(serviceItem, events[i].RunId);
+                break;
+            case ProviderModifiedEvent:
+                PhMwpOnServiceModified((PPH_SERVICE_MODIFIED_DATA)serviceItem);
+                break;
+            case ProviderRemovedEvent:
+                PhMwpOnServiceRemoved(serviceItem);
+                break;
+            }
         }
+
+        PhFree(events);
     }
+
+    PhTickServiceNodes();
+
+    if (count != 0)
+        TreeNew_SetRedraw(PhMwpServiceTreeNewHandle, TRUE);
 }

@@ -37,19 +37,6 @@ static BOOLEAN NTAPI PvCommandLineCallback(
     return TRUE;
 }
 
-static VOID PvpInitializeDpi(
-    VOID
-    )
-{
-    HDC hdc;
-
-    if (hdc = CreateIC(L"DISPLAY", NULL, NULL, NULL))
-    {
-        PhGlobalDpi = GetDeviceCaps(hdc, LOGPIXELSY);
-        DeleteDC(hdc);
-    }
-}
-
 INT WINAPI wWinMain(
     _In_ HINSTANCE hInstance,
     _In_opt_ HINSTANCE hPrevInstance,
@@ -68,8 +55,39 @@ INT WINAPI wWinMain(
     if (!NT_SUCCESS(PhInitializePhLib()))
         return 1;
 
+    // Create a mutant for the installer.
+    {
+        HANDLE mutantHandle;
+        PPH_STRING objectName;
+        OBJECT_ATTRIBUTES objectAttributes;
+        UNICODE_STRING objectNameUs;
+        PH_FORMAT format[2];
+
+        PhInitFormatS(&format[0], L"PeViewerMutant_");
+        PhInitFormatU(&format[1], HandleToUlong(NtCurrentProcessId()));
+
+        objectName = PhFormat(format, 2, 16);
+        PhStringRefToUnicodeString(&objectName->sr, &objectNameUs);
+
+        InitializeObjectAttributes(
+            &objectAttributes,
+            &objectNameUs,
+            OBJ_CASE_INSENSITIVE,
+            PhGetNamespaceHandle(),
+            NULL
+            );
+
+        NtCreateMutant(
+            &mutantHandle,
+            MUTANT_QUERY_STATE,
+            &objectAttributes,
+            TRUE
+            );
+
+        PhDereferenceObject(objectName);
+    }
+
     PhGuiSupportInitialization();
-    PvpInitializeDpi();
     PhSettingsInitialization();
     PeInitializeSettings();
     PvPropInitialization();
@@ -102,7 +120,7 @@ INT WINAPI wWinMain(
         CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
 
         fileDialog = PhCreateOpenFileDialog();
-        PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
+        PhSetFileDialogFilter(fileDialog, filters, ARRAYSIZE(filters));
 
         if (PhShowFileDialog(NULL, fileDialog))
         {
@@ -130,7 +148,37 @@ INT WINAPI wWinMain(
     else if (PhEndsWithString2(PvFileName, L".pdb", TRUE))
         PvPdbProperties();
     else
-        PvPeProperties();
+    {
+        NTSTATUS status;
+
+        status = PhLoadMappedImageEx(
+            PvFileName->Buffer, 
+            NULL, 
+            TRUE,
+            &PvMappedImage
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            switch (PvMappedImage.Signature)
+            {
+            case IMAGE_DOS_SIGNATURE:
+                PvPeProperties();
+                break;
+            case IMAGE_ELF_SIGNATURE:
+                PvExlfProperties();
+                break;
+            default:
+                status = STATUS_IMAGE_SUBSYSTEM_NOT_PRESENT;
+                break;
+            }
+        }
+
+        if (NT_SUCCESS(status))
+            PhUnloadMappedImage(&PvMappedImage);
+        else
+            PhShowStatus(NULL, L"Unable to load the file.", status, 0);
+    }
 
     PeSaveSettings();
 

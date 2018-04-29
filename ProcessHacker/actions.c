@@ -452,7 +452,6 @@ BOOLEAN PhUiConnectToPhSvcEx(
                 if (started)
                 {
                     ULONG attempts = 10;
-                    LARGE_INTEGER interval;
 
                     // Try to connect several times because the server may take
                     // a while to initialize.
@@ -463,8 +462,7 @@ BOOLEAN PhUiConnectToPhSvcEx(
                         if (NT_SUCCESS(status))
                             break;
 
-                        interval.QuadPart = -50 * PH_TIMEOUT_MS;
-                        NtDelayExecution(FALSE, &interval);
+                        PhDelayExecution(50);
                     } while (--attempts != 0);
 
                     // Increment the reference count even if we failed.
@@ -1082,13 +1080,28 @@ BOOLEAN PhpUiTerminateTreeProcess(
         {
             if (processItem = PhReferenceProcessItem(process->UniqueProcessId))
             {
-                // Check the creation time to make sure it is a descendant.
-                if (processItem->CreateTime.QuadPart >= Process->CreateTime.QuadPart)
+                if (WindowsVersion >= WINDOWS_10_RS3)
                 {
-                    if (!PhpUiTerminateTreeProcess(hWnd, processItem, Processes, Success))
+                    // Check the sequence number to make sure it is a descendant.
+                    if (processItem->ProcessSequenceNumber >= Process->ProcessSequenceNumber)
                     {
-                        PhDereferenceObject(processItem);
-                        return FALSE;
+                        if (!PhpUiTerminateTreeProcess(hWnd, processItem, Processes, Success))
+                        {
+                            PhDereferenceObject(processItem);
+                            return FALSE;
+                        }
+                    }
+                }
+                else
+                {
+                    // Check the creation time to make sure it is a descendant.
+                    if (processItem->CreateTime.QuadPart >= Process->CreateTime.QuadPart)
+                    {
+                        if (!PhpUiTerminateTreeProcess(hWnd, processItem, Processes, Success))
+                        {
+                            PhDereferenceObject(processItem);
+                            return FALSE;
+                        }
                     }
                 }
 
@@ -1513,12 +1526,7 @@ BOOLEAN PhUiReduceWorkingSetProcesses(
             quotaLimits.MinimumWorkingSetSize = -1;
             quotaLimits.MaximumWorkingSetSize = -1;
 
-            status = NtSetInformationProcess(
-                processHandle,
-                ProcessQuotaLimits,
-                &quotaLimits,
-                sizeof(QUOTA_LIMITS)
-                );
+            status = PhSetProcessQuotaLimits(processHandle, quotaLimits);
 
             NtClose(processHandle);
         }
@@ -1648,62 +1656,6 @@ BOOLEAN PhUiDetachFromDebuggerProcess(
     return TRUE;
 }
 
-BOOLEAN PhUiInjectDllProcess(
-    _In_ HWND hWnd,
-    _In_ PPH_PROCESS_ITEM Process
-    )
-{
-    static PH_FILETYPE_FILTER filters[] =
-    {
-        { L"DLL files (*.dll)", L"*.dll" },
-        { L"All files (*.*)", L"*.*" }
-    };
-
-    NTSTATUS status;
-    PVOID fileDialog;
-    PPH_STRING fileName;
-    HANDLE processHandle;
-
-    fileDialog = PhCreateOpenFileDialog();
-    PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
-
-    if (!PhShowFileDialog(hWnd, fileDialog))
-    {
-        PhFreeFileDialog(fileDialog);
-        return FALSE;
-    }
-
-    fileName = PH_AUTO(PhGetFileDialogFileName(fileDialog));
-    PhFreeFileDialog(fileDialog);
-
-    if (NT_SUCCESS(status = PhOpenProcess(
-        &processHandle,
-        ProcessQueryAccess | PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION |
-        PROCESS_VM_READ | PROCESS_VM_WRITE,
-        Process->ProcessId
-        )))
-    {
-        LARGE_INTEGER timeout;
-
-        timeout.QuadPart = -5 * PH_TIMEOUT_SEC;
-        status = PhInjectDllProcess(
-            processHandle,
-            fileName->Buffer,
-            &timeout
-            );
-
-        NtClose(processHandle);
-    }
-
-    if (!NT_SUCCESS(status))
-    {
-        PhpShowErrorProcess(hWnd, L"inject the DLL into", Process, status, 0);
-        return FALSE;
-    }
-
-    return TRUE;
-}
-
 BOOLEAN PhUiSetIoPriorityProcesses(
     _In_ HWND hWnd,
     _In_ PPH_PROCESS_ITEM *Processes,
@@ -1795,12 +1747,7 @@ BOOLEAN PhUiSetPagePriorityProcess(
     {
         if (Process->ProcessId != SYSTEM_PROCESS_ID)
         {
-            status = NtSetInformationProcess(
-                processHandle,
-                ProcessPagePriority,
-                &PagePriority,
-                sizeof(ULONG)
-                );
+            status = PhSetProcessPagePriority(processHandle, PagePriority);
         }
         else
         {
@@ -1835,7 +1782,6 @@ BOOLEAN PhUiSetPriorityProcesses(
     {
         NTSTATUS status;
         HANDLE processHandle;
-        PROCESS_PRIORITY_CLASS priorityClass;
 
         if (NT_SUCCESS(status = PhOpenProcess(
             &processHandle,
@@ -1845,9 +1791,12 @@ BOOLEAN PhUiSetPriorityProcesses(
         {
             if (Processes[i]->ProcessId != SYSTEM_PROCESS_ID)
             {
+                PROCESS_PRIORITY_CLASS priorityClass;
+
                 priorityClass.Foreground = FALSE;
                 priorityClass.PriorityClass = (UCHAR)PriorityClass;
-                status = NtSetInformationProcess(processHandle, ProcessPriorityClass, &priorityClass, sizeof(PROCESS_PRIORITY_CLASS));
+
+                status = PhSetProcessPriority(processHandle, priorityClass);
             }
             else
             {
@@ -1909,7 +1858,7 @@ static VOID PhpShowErrorService(
     PhShowStatus(
         hWnd,
         PhaFormatString(
-        L"Unable to %s %s",
+        L"Unable to %s %s.",
         Verb,
         Service->Name->Buffer
         )->Buffer,
@@ -2204,7 +2153,7 @@ BOOLEAN PhUiCloseConnections(
     _SetTcpEntry SetTcpEntry_I;
     MIB_TCPROW tcpRow;
 
-    SetTcpEntry_I = PhGetModuleProcAddress(L"iphlpapi.dll", "SetTcpEntry");
+    SetTcpEntry_I = PhGetDllProcedureAddress(L"iphlpapi.dll", "SetTcpEntry", 0);
 
     if (!SetTcpEntry_I)
     {
@@ -2560,7 +2509,7 @@ BOOLEAN PhUiSetPriorityThread(
         Thread->ThreadId
         )))
     {
-        status = NtSetInformationThread(threadHandle, ThreadBasePriority, &Increment, sizeof(LONG));
+        status = PhSetThreadBasePriority(threadHandle, Increment);
         NtClose(threadHandle);
     }
 
@@ -2641,12 +2590,8 @@ BOOLEAN PhUiSetPagePriorityThread(
         Thread->ThreadId
         )))
     {
-        status = NtSetInformationThread(
-            threadHandle,
-            ThreadPagePriority,
-            &PagePriority,
-            sizeof(ULONG)
-            );
+        status = PhSetThreadPagePriority(threadHandle, PagePriority);
+
         NtClose(threadHandle);
     }
 
@@ -2682,7 +2627,7 @@ BOOLEAN PhUiUnloadModule(
             message = L"Unloading a module may cause the process to crash.";
 
             if (WindowsVersion >= WINDOWS_8)
-                message = L"Unloading a module may cause the process to crash. NOTE: This feature may not work correctly on your version of Windows.";
+                message = L"Unloading a module may cause the process to crash. NOTE: This feature may not work correctly on your version of Windows and some programs may restrict access or ban your account.";
 
             break;
         case PH_MODULE_TYPE_KERNEL_MODULE:
@@ -2856,18 +2801,18 @@ BOOLEAN PhUiFreeMemory(
             if (Free)
             {
                 verb = L"free";
-                message = L"Freeing memory regions may cause the process to crash.";
+                message = L"Freeing memory regions may cause the process to crash.\r\n\r\nSome programs may also restrict access or ban your account when freeing the memory of the process.";
             }
             else
             {
                 verb = L"decommit";
-                message = L"Decommitting memory regions may cause the process to crash.";
+                message = L"Decommitting memory regions may cause the process to crash.\r\n\r\nSome programs may also restrict access or ban your account when decommitting the memory of the process.";
             }
         }
         else
         {
             verb = L"unmap";
-            message = L"Unmapping a section view may cause the process to crash.";
+            message = L"Unmapping a section view may cause the process to crash.\r\n\r\nSome programs may also restrict access or ban your account when unmapping the memory of the process.";
         }
 
         cont = PhShowConfirmMessage(

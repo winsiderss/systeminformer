@@ -41,6 +41,8 @@ typedef struct _PH_SERVICES_CONTEXT
     HWND WindowHandle;
 } PH_SERVICES_CONTEXT, *PPH_SERVICES_CONTEXT;
 
+#define WM_PH_SERVICE_PAGE_MODIFIED (WM_APP + 106)
+
 VOID NTAPI ServiceModifiedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -108,7 +110,7 @@ static VOID NTAPI ServiceModifiedHandler(
 
     copy = PhAllocateCopy(serviceModifiedData, sizeof(PH_SERVICE_MODIFIED_DATA));
 
-    PostMessage(servicesContext->WindowHandle, WM_PH_SERVICE_MODIFIED, 0, (LPARAM)copy);
+    PostMessage(servicesContext->WindowHandle, WM_PH_SERVICE_PAGE_MODIFIED, 0, (LPARAM)copy);
 }
 
 VOID PhpFixProcessServicesControls(
@@ -205,15 +207,15 @@ INT_PTR CALLBACK PhpServicesPageProc(
     if (uMsg == WM_INITDIALOG)
     {
         servicesContext = (PPH_SERVICES_CONTEXT)lParam;
-        SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)servicesContext);
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, servicesContext);
     }
     else
     {
-        servicesContext = (PPH_SERVICES_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
+        servicesContext = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
         if (uMsg == WM_DESTROY)
         {
-            RemoveProp(hwndDlg, PhMakeContextAtom());
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
         }
     }
 
@@ -398,7 +400,7 @@ INT_PTR CALLBACK PhpServicesPageProc(
             PhLayoutManagerLayout(&servicesContext->LayoutManager);
         }
         break;
-    case WM_PH_SERVICE_MODIFIED:
+    case WM_PH_SERVICE_PAGE_MODIFIED:
         {
             PPH_SERVICE_MODIFIED_DATA serviceModifiedData = (PPH_SERVICE_MODIFIED_DATA)lParam;
             PPH_SERVICE_ITEM serviceItem = NULL;

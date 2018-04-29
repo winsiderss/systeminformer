@@ -43,6 +43,8 @@ typedef struct _PH_NETWORK_CONNECTION
     HANDLE ProcessId;
     LARGE_INTEGER CreateTime;
     ULONGLONG OwnerInfo[PH_NETWORK_OWNER_INFO_SIZE];
+    ULONG LocalScopeId; // Ipv6
+    ULONG RemoteScopeId; // Ipv6
 } PH_NETWORK_CONNECTION, *PPH_NETWORK_CONNECTION;
 
 typedef struct _PH_NETWORK_ITEM_QUERY_DATA
@@ -456,6 +458,35 @@ VOID PhpUpdateNetworkItemOwner(
     }
 }
 
+VOID PhFlushNetworkQueryData(
+    VOID
+    )
+{
+    PSLIST_ENTRY entry;
+    PPH_NETWORK_ITEM_QUERY_DATA data;
+
+    if (!RtlFirstEntrySList(&PhNetworkItemQueryListHead))
+        return;
+
+    entry = RtlInterlockedFlushSList(&PhNetworkItemQueryListHead);
+
+    while (entry)
+    {
+        data = CONTAINING_RECORD(entry, PH_NETWORK_ITEM_QUERY_DATA, ListEntry);
+        entry = entry->Next;
+
+        if (data->Remote)
+            PhMoveReference(&data->NetworkItem->RemoteHostString, data->HostString);
+        else
+            PhMoveReference(&data->NetworkItem->LocalHostString, data->HostString);
+
+        data->NetworkItem->JustResolved = TRUE;
+
+        PhDereferenceObject(data->NetworkItem);
+        PhFree(data);
+    }
+}
+
 VOID PhNetworkProviderUpdate(
     _In_ PVOID Object
     )
@@ -476,6 +507,7 @@ VOID PhNetworkProviderUpdate(
     if (!PhGetNetworkConnections(&connections, &numberOfConnections))
         return;
 
+    // Look for closed connections.
     {
         PPH_LIST connectionsToRemove = NULL;
         PH_HASHTABLE_ENUM_CONTEXT enumContext;
@@ -527,29 +559,9 @@ VOID PhNetworkProviderUpdate(
     }
 
     // Go through the queued network item query data.
-    {
-        PSLIST_ENTRY entry;
-        PPH_NETWORK_ITEM_QUERY_DATA data;
+    PhFlushNetworkQueryData();
 
-        entry = RtlInterlockedFlushSList(&PhNetworkItemQueryListHead);
-
-        while (entry)
-        {
-            data = CONTAINING_RECORD(entry, PH_NETWORK_ITEM_QUERY_DATA, ListEntry);
-            entry = entry->Next;
-
-            if (data->Remote)
-                PhMoveReference(&data->NetworkItem->RemoteHostString, data->HostString);
-            else
-                PhMoveReference(&data->NetworkItem->LocalHostString, data->HostString);
-
-            data->NetworkItem->JustResolved = TRUE;
-
-            PhDereferenceObject(data->NetworkItem);
-            PhFree(data);
-        }
-    }
-
+    // Look for new network connections and update existing ones.
     for (i = 0; i < numberOfConnections; i++)
     {
         PPH_NETWORK_ITEM networkItem;
@@ -579,6 +591,8 @@ VOID PhNetworkProviderUpdate(
             networkItem->ProcessId = connections[i].ProcessId;
             networkItem->CreateTime = connections[i].CreateTime;
             memcpy(networkItem->OwnerInfo, connections[i].OwnerInfo, sizeof(ULONGLONG) * PH_NETWORK_OWNER_INFO_SIZE);
+            networkItem->LocalScopeId = connections[i].LocalScopeId;
+            networkItem->RemoteScopeId = connections[i].RemoteScopeId;
 
             // Format various strings.
 
@@ -673,7 +687,7 @@ VOID PhNetworkProviderUpdate(
             BOOLEAN modified = FALSE;
             PPH_PROCESS_ITEM processItem;
 
-            if (networkItem->JustResolved)
+            if (InterlockedExchange(&networkItem->JustResolved, 0) != 0)
                 modified = TRUE;
 
             if (networkItem->State != connections[i].State)
@@ -704,8 +718,6 @@ VOID PhNetworkProviderUpdate(
                     PhDereferenceObject(processItem);
                 }
             }
-
-            networkItem->JustResolved = FALSE;
 
             if (modified)
             {
@@ -915,6 +927,9 @@ BOOLEAN PhGetNetworkConnections(
                 tcp6Table->table[i].OwningModuleInfo,
                 sizeof(ULONGLONG) * min(PH_NETWORK_OWNER_INFO_SIZE, TCPIP_OWNING_MODULE_SIZE)
                 );
+
+            connections[index].LocalScopeId = tcp6Table->table[i].dwLocalScopeId;
+            connections[index].RemoteScopeId = tcp6Table->table[i].dwRemoteScopeId;
 
             index++;
         }

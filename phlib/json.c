@@ -56,12 +56,17 @@ VOID PhFreeJsonParser(
     json_object_put(Object);
 }
 
-PSTR PhGetJsonValueAsString(
+PPH_STRING PhGetJsonValueAsString(
     _In_ PVOID Object,
     _In_ PSTR Key
     )
 {
-    return json_object_get_string(json_get_object(Object, Key));
+    PSTR value;
+
+    if (value = json_object_get_string(json_get_object(Object, Key)))
+        return PhConvertUtf8ToUtf16(value);
+    else
+        return NULL;
 }
 
 INT64 PhGetJsonValueAsLong64(
@@ -126,11 +131,16 @@ VOID PhAddJsonArrayObject(
     json_object_array_add(Object, jsonEntry);
 }
 
-PSTR PhGetJsonArrayString(
+PPH_STRING PhGetJsonArrayString(
     _In_ PVOID Object
     )
 {
-    return _strdup( json_object_to_json_string(Object) ); // leak
+    PSTR value;
+
+    if (value = json_object_to_json_string(Object))
+        return PhConvertUtf8ToUtf16(value);
+    else
+        return NULL;
 }
 
 INT64 PhGetJsonArrayLong64(
@@ -156,7 +166,7 @@ PVOID PhGetJsonArrayIndexObject(
     return json_object_array_get_idx(Object, Index);
 }
 
-PVOID PhGetJsonObjectAsArrayList(
+PPH_LIST PhGetJsonObjectAsArrayList(
     _In_ PVOID Object
     )
 {
@@ -179,4 +189,19 @@ PVOID PhGetJsonObjectAsArrayList(
     }
 
     return listArray;
+}
+
+PVOID PhLoadJsonObjectFromFile(
+    _In_ PWSTR FileName
+    )
+{
+    return json_object_from_file(FileName);
+}
+
+VOID PhSaveJsonObjectToFile(
+    _In_ PWSTR FileName,
+    _In_ PVOID Object
+    )
+{
+    json_object_to_file(FileName, Object);
 }

@@ -28,6 +28,7 @@ typedef struct _INFORMATION_CONTEXT
 {
     PWSTR String;
     ULONG Flags;
+    PH_LAYOUT_MANAGER LayoutManager;
 } INFORMATION_CONTEXT, *PINFORMATION_CONTEXT;
 
 static RECT MinimumSize = { -1, -1, -1, -1 };
@@ -39,30 +40,35 @@ static INT_PTR CALLBACK PhpInformationDlgProc(
     _In_ LPARAM lParam
     )
 {
+    PINFORMATION_CONTEXT context;
+
+    if (uMsg == WM_INITDIALOG)
+    {
+        context = (PINFORMATION_CONTEXT)lParam;
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+    }
+    else
+    {
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+    }
+
+    if (!context)
+        return FALSE;
+
     switch (uMsg)
     {
     case WM_INITDIALOG:
         {
-            PINFORMATION_CONTEXT context = (PINFORMATION_CONTEXT)lParam;
-            PPH_LAYOUT_MANAGER layoutManager;
-
             SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
             SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
 
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
-            SetDlgItemText(hwndDlg, IDC_TEXT, context->String);
-
-            layoutManager = PhAllocate(sizeof(PH_LAYOUT_MANAGER));
-            PhInitializeLayoutManager(layoutManager, hwndDlg);
-            PhAddLayoutItem(layoutManager, GetDlgItem(hwndDlg, IDC_TEXT), NULL,
-                PH_ANCHOR_ALL);
-            PhAddLayoutItem(layoutManager, GetDlgItem(hwndDlg, IDOK), NULL,
-                PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
-            PhAddLayoutItem(layoutManager, GetDlgItem(hwndDlg, IDC_COPY), NULL,
-                PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
-            PhAddLayoutItem(layoutManager, GetDlgItem(hwndDlg, IDC_SAVE), NULL,
-                PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_TEXT), NULL, PH_ANCHOR_ALL);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_COPY), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_SAVE), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
             if (MinimumSize.left == -1)
             {
@@ -77,21 +83,16 @@ static INT_PTR CALLBACK PhpInformationDlgProc(
                 MinimumSize.left = 0;
             }
 
-            SetProp(hwndDlg, L"LayoutManager", (HANDLE)layoutManager);
-            SetProp(hwndDlg, L"String", (HANDLE)context->String);
+            PhSetDialogItemText(hwndDlg, IDC_TEXT, context->String);
 
-            SendMessage(hwndDlg, WM_NEXTDLGCTL, (LPARAM)GetDlgItem(hwndDlg, IDOK), TRUE);
+            PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDOK));
         }
         break;
     case WM_DESTROY:
         {
-            PPH_LAYOUT_MANAGER layoutManager;
+            PhDeleteLayoutManager(&context->LayoutManager);
 
-            layoutManager = (PPH_LAYOUT_MANAGER)GetProp(hwndDlg, L"LayoutManager");
-            PhDeleteLayoutManager(layoutManager);
-            PhFree(layoutManager);
-            RemoveProp(hwndDlg, L"String");
-            RemoveProp(hwndDlg, L"LayoutManager");
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
         }
         break;
     case WM_COMMAND:
@@ -107,27 +108,26 @@ static INT_PTR CALLBACK PhpInformationDlgProc(
                     HWND editControl;
                     LONG selStart;
                     LONG selEnd;
-                    PWSTR buffer;
                     PH_STRINGREF string;
 
                     editControl = GetDlgItem(hwndDlg, IDC_TEXT);
                     SendMessage(editControl, EM_GETSEL, (WPARAM)&selStart, (LPARAM)&selEnd);
-                    buffer = (PWSTR)GetProp(hwndDlg, L"String");
 
                     if (selStart == selEnd)
                     {
                         // Select and copy the entire string.
-                        PhInitializeStringRefLongHint(&string, buffer);
+                        PhInitializeStringRefLongHint(&string, context->String);
                         Edit_SetSel(editControl, 0, -1);
                     }
                     else
                     {
-                        string.Buffer = buffer + selStart;
+                        string.Buffer = context->String + selStart;
                         string.Length = (selEnd - selStart) * 2;
                     }
 
                     PhSetClipboardString(hwndDlg, &string);
-                    SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)editControl, TRUE);
+
+                    PhSetDialogFocus(hwndDlg, editControl);
                 }
                 break;
             case IDC_SAVE:
@@ -164,7 +164,7 @@ static INT_PTR CALLBACK PhpInformationDlgProc(
                             PH_STRINGREF string;
 
                             PhWriteStringAsUtf8FileStream(fileStream, &PhUnicodeByteOrderMark);
-                            PhInitializeStringRef(&string, (PWSTR)GetProp(hwndDlg, L"String"));
+                            PhInitializeStringRef(&string, context->String);
                             PhWriteStringAsUtf8FileStream(fileStream, &string);
                             PhDereferenceObject(fileStream);
                         }
@@ -181,10 +181,7 @@ static INT_PTR CALLBACK PhpInformationDlgProc(
         break;
     case WM_SIZE:
         {
-            PPH_LAYOUT_MANAGER layoutManager;
-
-            layoutManager = (PPH_LAYOUT_MANAGER)GetProp(hwndDlg, L"LayoutManager");
-            PhLayoutManagerLayout(layoutManager);
+            PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
     case WM_SIZING:

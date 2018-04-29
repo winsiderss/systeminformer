@@ -23,9 +23,6 @@
 #include "devices.h"
 #include <cfgmgr32.h>
 
-#define ITEM_CHECKED (INDEXTOSTATEIMAGEMASK(2))
-#define ITEM_UNCHECKED (INDEXTOSTATEIMAGEMASK(1))
-
 typedef struct _DISK_ENUM_ENTRY
 {
     ULONG DeviceIndex;
@@ -210,7 +207,7 @@ VOID AddDiskDriveToListView(
         );
 
     if (found)
-        ListView_SetItemState(Context->ListViewHandle, lvItemIndex, ITEM_CHECKED, LVIS_STATEIMAGEMASK);
+        ListView_SetCheckState(Context->ListViewHandle, lvItemIndex, TRUE);
 
     DeleteDiskId(&adapterId);
 }
@@ -598,11 +595,11 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
         context = (PDV_DISK_OPTIONS_CONTEXT)PhAllocate(sizeof(DV_DISK_OPTIONS_CONTEXT));
         memset(context, 0, sizeof(DV_DISK_OPTIONS_CONTEXT));
 
-        SetProp(hwndDlg, L"Context", (HANDLE)context);
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = (PDV_DISK_OPTIONS_CONTEXT)GetProp(hwndDlg, L"Context");
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
         if (uMsg == WM_DESTROY)
         {
@@ -613,7 +610,7 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
 
             FreeListViewDiskDriveEntries(context);
 
-            RemoveProp(hwndDlg, L"Context");
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
         }
     }
@@ -649,6 +646,8 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
     case WM_SIZE:
         {
             PhLayoutManagerLayout(&context->LayoutManager);
+
+            ExtendedListView_SetColumnWidth(context->ListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
         }
         break;
     case WM_NOTIFY:
@@ -666,7 +665,7 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
                 {
                     switch (listView->uNewState & LVIS_STATEIMAGEMASK)
                     {
-                    case 0x2000: // checked
+                    case INDEXTOSTATEIMAGEMASK(2): // checked
                         {
                             PDV_DISK_ID param = (PDV_DISK_ID)listView->lParam;
 
@@ -681,7 +680,7 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
                             context->OptionsChanged = TRUE;
                         }
                         break;
-                    case 0x1000: // unchecked
+                    case INDEXTOSTATEIMAGEMASK(1): // unchecked
                         {
                             PDV_DISK_ID param = (PDV_DISK_ID)listView->lParam;
 

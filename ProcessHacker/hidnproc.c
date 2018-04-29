@@ -73,8 +73,8 @@ PPH_PROCESS_ITEM PhpCreateProcessItemForHiddenProcess(
     _In_ PPH_HIDDEN_PROCESS_ENTRY Entry
     );
 
-HWND PhHiddenProcessesWindowHandle = NULL;
-HWND PhHiddenProcessesListViewHandle = NULL;
+static HWND PhHiddenProcessesWindowHandle = NULL;
+static HWND PhHiddenProcessesListViewHandle = NULL;
 static PH_LAYOUT_MANAGER WindowLayoutManager;
 static RECT MinimumSize;
 
@@ -132,22 +132,14 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
             PhHiddenProcessesListViewHandle = lvHandle = GetDlgItem(hwndDlg, IDC_PROCESSES);
 
             PhInitializeLayoutManager(&WindowLayoutManager, hwndDlg);
-            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_INTRO),
-                NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT | PH_LAYOUT_FORCE_INVALIDATE);
-            PhAddLayoutItem(&WindowLayoutManager, lvHandle,
-                NULL, PH_ANCHOR_ALL);
-            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_DESCRIPTION),
-                NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM | PH_LAYOUT_FORCE_INVALIDATE);
-            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_METHOD),
-                NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
-            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_TERMINATE),
-                NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
-            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_SAVE),
-                NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
-            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_SCAN),
-                NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
-            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDOK),
-                NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_INTRO), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT | PH_LAYOUT_FORCE_INVALIDATE);
+            PhAddLayoutItem(&WindowLayoutManager, lvHandle, NULL, PH_ANCHOR_ALL);
+            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_DESCRIPTION), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM | PH_LAYOUT_FORCE_INVALIDATE);
+            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_METHOD), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_TERMINATE), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_SAVE), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_SCAN), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
             MinimumSize.left = 0;
             MinimumSize.top = 0;
@@ -181,15 +173,10 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
         {
             PhSaveWindowPlacementToSetting(L"HiddenProcessesWindowPosition", L"HiddenProcessesWindowSize", hwndDlg);
             PhSaveListViewColumnsToSetting(L"HiddenProcessesListViewColumns", PhHiddenProcessesListViewHandle);
+
+            PhHiddenProcessesWindowHandle = NULL;
         }
         break;
-    case WM_CLOSE:
-        {
-            // Hide, don't close.
-            ShowWindow(hwndDlg, SW_HIDE);
-            SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, 0);
-        }
-        return TRUE;
     case WM_COMMAND:
         {
             switch (GET_WM_COMMAND_ID(wParam, lParam))
@@ -197,7 +184,7 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
             case IDCANCEL:
             case IDOK:
                 {
-                    SendMessage(hwndDlg, WM_CLOSE, 0, 0);
+                    EndDialog(hwndDlg, IDOK);
                 }
                 break;
             case IDC_SCAN:
@@ -245,7 +232,7 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
 
                     if (NT_SUCCESS(status))
                     {
-                        SetDlgItemText(hwndDlg, IDC_DESCRIPTION,
+                        PhSetDialogItemText(hwndDlg, IDC_DESCRIPTION,
                             PhaFormatString(L"%u hidden process(es), %u terminated process(es).",
                             NumberOfHiddenProcesses, NumberOfTerminatedProcesses)->Buffer
                             );
@@ -318,12 +305,10 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
 
                             if (refresh)
                             {
-                                LARGE_INTEGER interval;
+                                // Sleep for a bit before continuing. It seems to help avoid BSODs.
 
-                                // Sleep for a bit before continuing. It seems to help avoid
-                                // BSODs.
-                                interval.QuadPart = -250 * PH_TIMEOUT_MS;
-                                NtDelayExecution(FALSE, &interval);
+                                PhDelayExecution(250);
+
                                 SendMessage(hwndDlg, WM_COMMAND, IDC_SCAN, 0);
                             }
                         }
@@ -551,7 +536,7 @@ static PPH_PROCESS_ITEM PhpCreateProcessItemForHiddenProcess(
     PROCESS_BASIC_INFORMATION basicInfo;
     KERNEL_USER_TIMES times;
     PROCESS_PRIORITY_CLASS priorityClass;
-    ULONG handleCount;
+    PROCESS_HANDLE_INFORMATION handleInfo;
     HANDLE processHandle2;
 
     if (Entry->Type == NormalProcess)
@@ -636,26 +621,14 @@ static PPH_PROCESS_ITEM PhpCreateProcessItemForHiddenProcess(
 
         // TODO: Token information?
 
-        if (NT_SUCCESS(NtQueryInformationProcess(
-            processHandle,
-            ProcessPriorityClass,
-            &priorityClass,
-            sizeof(PROCESS_PRIORITY_CLASS),
-            NULL
-            )))
+        if (NT_SUCCESS(PhGetProcessPriority(processHandle, &priorityClass)))
         {
             processItem->PriorityClass = priorityClass.PriorityClass;
         }
 
-        if (NT_SUCCESS(NtQueryInformationProcess(
-            processHandle,
-            ProcessHandleCount,
-            &handleCount,
-            sizeof(ULONG),
-            NULL
-            )))
+        if (NT_SUCCESS(PhGetProcessHandleCount(processHandle, &handleInfo)))
         {
-            processItem->NumberOfHandles = handleCount;
+            processItem->NumberOfHandles = handleInfo.HandleCount;
         }
     }
 
@@ -665,12 +638,10 @@ static PPH_PROCESS_ITEM PhpCreateProcessItemForHiddenProcess(
     if (processItem->FileName)
     {
         // Small icon, large icon.
-        ExtractIconEx(
+        PhExtractIcon(
             processItem->FileName->Buffer,
-            0,
             &processItem->LargeIcon,
-            &processItem->SmallIcon,
-            1
+            &processItem->SmallIcon
             );
 
         // Version info.

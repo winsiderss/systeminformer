@@ -52,7 +52,7 @@ VOID PhShowLogDialog(
         PhLogWindowHandle = CreateDialog(
             PhInstanceHandle,
             MAKEINTRESOURCE(IDD_LOG),
-            PhMainWndHandle,
+            NULL,
             PhpLogDlgProc
             );
         PhRegisterDialog(PhLogWindowHandle);
@@ -242,7 +242,7 @@ INT_PTR CALLBACK PhpLogDlgProc(
                     PhSetClipboardString(hwndDlg, &string->sr);
                     PhDereferenceObject(string);
 
-                    SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)ListViewHandle, TRUE);
+                    PhSetDialogFocus(hwndDlg, ListViewHandle);
                 }
                 break;
             case IDC_SAVE:

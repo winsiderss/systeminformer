@@ -29,9 +29,10 @@
 
 typedef struct _PV_PROPSHEETCONTEXT
 {
+    BOOLEAN LayoutInitialized;
+    WNDPROC DefaultWindowProc;
     PH_LAYOUT_MANAGER LayoutManager;
     PPH_LAYOUT_ITEM TabPageItem;
-    BOOLEAN LayoutInitialized;
 } PV_PROPSHEETCONTEXT, *PPV_PROPSHEETCONTEXT;
 
 typedef struct _PV_PROPCONTEXT
@@ -114,10 +115,10 @@ FORCEINLINE BOOLEAN PvPropPageDlgProcHeader(
     if (uMsg == WM_INITDIALOG)
     {
         // Save the context.
-        SetProp(hwndDlg, L"HdContext", (HANDLE)lParam);
+        PhSetWindowContext(hwndDlg, ULONG_MAX, (HANDLE)lParam);
     }
 
-    propSheetPage = (LPPROPSHEETPAGE)GetProp(hwndDlg, L"HdContext");
+    propSheetPage = PhGetWindowContext(hwndDlg, ULONG_MAX);
 
     if (!propSheetPage)
         return FALSE;

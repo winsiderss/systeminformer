@@ -161,11 +161,24 @@ VOID RebarLoadSettings(
     if (ToolStatusConfig.SearchBoxEnabled && !SearchboxHandle)
     {
         SearchboxText = PhReferenceEmptyString();
-        ProcessTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), (PPH_TN_FILTER_FUNCTION)ProcessTreeFilterCallback, NULL);
-        ServiceTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), (PPH_TN_FILTER_FUNCTION)ServiceTreeFilterCallback, NULL);
-        NetworkTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportNetworkTreeList(), (PPH_TN_FILTER_FUNCTION)NetworkTreeFilterCallback, NULL);
+        ProcessTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), ProcessTreeFilterCallback, NULL);
+        ServiceTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), ServiceTreeFilterCallback, NULL);
+        NetworkTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportNetworkTreeList(), NetworkTreeFilterCallback, NULL);
 
-        CreateSearchboxControl();
+        if (SearchboxHandle = CreateWindowEx(
+            WS_EX_CLIENTEDGE,
+            WC_EDIT,
+            NULL,
+            WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | ES_LEFT | ES_AUTOHSCROLL | WS_VISIBLE,
+            CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+            RebarHandle,
+            NULL,
+            NULL,
+            NULL
+            ))
+        {
+            PhCreateSearchControl(RebarHandle, SearchboxHandle, L"Search Processes (Ctrl+K)");
+        }
     }
 
     if (ToolStatusConfig.StatusBarEnabled && !StatusBarHandle)
@@ -308,7 +321,7 @@ VOID ToolbarLoadSettings(
                 {
                     if (PhGetOwnTokenAttributes().Elevated)
                     {
-                        buttonInfo.fsState |= TBSTATE_HIDDEN;
+                        buttonInfo.fsState &= ~TBSTATE_ENABLED;
                     }
                 }
                 break;

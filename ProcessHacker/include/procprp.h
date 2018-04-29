@@ -6,8 +6,6 @@
 typedef struct _PH_PROCESS_PROPCONTEXT
 {
     PPH_PROCESS_ITEM ProcessItem;
-    HWND WindowHandle;
-    PH_EVENT CreatedEvent;
     PPH_STRING Title;
     PROPSHEETHEADER PropSheetHeader;
     HPROPSHEETPAGE *PropSheetPages;

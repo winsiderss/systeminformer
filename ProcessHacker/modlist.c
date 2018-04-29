@@ -172,7 +172,7 @@ VOID PhLoadSettingsModuleList(
     PPH_STRING settings;
     PPH_STRING sortSettings;
 
-    flags = PhGetIntegerSetting(L"ModuleListFlags");
+    flags = PhGetIntegerSetting(L"ModuleTreeListFlags");
     settings = PhGetStringSetting(L"ModuleTreeListColumns");
     sortSettings = PhGetStringSetting(L"ModuleTreeListSort");
 
@@ -192,7 +192,7 @@ VOID PhSaveSettingsModuleList(
 
     settings = PhCmSaveSettingsEx(Context->TreeNewHandle, &Context->Cm, 0, &sortSettings);
 
-    PhSetIntegerSetting(L"ModuleListFlags", Context->Flags);
+    PhSetIntegerSetting(L"ModuleTreeListFlags", Context->Flags);
     PhSetStringSetting2(L"ModuleTreeListColumns", &settings->sr);
     PhSetStringSetting2(L"ModuleTreeListSort", &sortSettings->sr);
 
@@ -709,6 +709,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                         typeString = L"Mapped file";
                         break;
                     case PH_MODULE_TYPE_MAPPED_IMAGE:
+                    case PH_MODULE_TYPE_ELF_MAPPED_IMAGE:
                         typeString = L"Mapped image";
                         break;
                     case PH_MODULE_TYPE_WOW64_MODULE:
@@ -729,7 +730,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 if (moduleItem->Type == PH_MODULE_TYPE_MODULE || moduleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE ||
                     moduleItem->Type == PH_MODULE_TYPE_WOW64_MODULE)
                 {
-                    if (moduleItem->LoadCount != (USHORT)-1)
+                    if (moduleItem->LoadCount != USHRT_MAX)
                     {
                         PhPrintInt32(node->LoadCountText, moduleItem->LoadCount);
                         PhInitializeStringRefLongHint(&getCellText->Text, node->LoadCountText);
@@ -745,8 +746,17 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 }
                 break;
             case PHMOTLC_VERIFICATIONSTATUS:
-                PhInitializeStringRef(&getCellText->Text,
-                    moduleItem->VerifyResult == VrTrusted ? L"Trusted" : L"Not trusted");
+                {
+                    if (moduleItem->Type != PH_MODULE_TYPE_ELF_MAPPED_IMAGE)
+                    {
+                        PhInitializeStringRef(&getCellText->Text, 
+                            moduleItem->VerifyResult == VrTrusted ? L"Trusted" : L"Not trusted");
+                    }
+                    else
+                    {
+                        PhInitializeEmptyStringRef(&getCellText->Text);
+                    }
+                }
                 break;
             case PHMOTLC_VERIFIEDSIGNER:
                 getCellText->Text = PhGetStringRef(moduleItem->VerifySignerName);
@@ -774,15 +784,8 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 }
                 break;
             case PHMOTLC_CFGUARD:
-                if (WindowsVersion >= WINDOWS_8_1)
-                {
-                    if (moduleItem->ImageDllCharacteristics & IMAGE_DLLCHARACTERISTICS_GUARD_CF)
-                        PhInitializeStringRef(&getCellText->Text, L"CF Guard");
-                }
-                else
-                {
-                    PhInitializeStringRef(&getCellText->Text, L"N/A");
-                }
+                if (moduleItem->ImageDllCharacteristics & IMAGE_DLLCHARACTERISTICS_GUARD_CF)
+                    PhInitializeStringRef(&getCellText->Text, L"CF Guard");
                 break;
             case PHMOTLC_LOADTIME:
                 {
@@ -882,7 +885,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
 
             if (!moduleItem)
                 ; // Dummy
-            else if (PhEnableProcessQueryStage2 && context->HighlightUntrustedModules && moduleItem->VerifyResult != VrTrusted)
+            else if (PhEnableProcessQueryStage2 && context->HighlightUntrustedModules && moduleItem->VerifyResult != VrTrusted && moduleItem->Type != PH_MODULE_TYPE_ELF_MAPPED_IMAGE)
                 getNodeColor->BackColor = PhCsColorUnknown;
             else if (context->HighlightDotNetModules && (moduleItem->Flags & LDRP_COR_IMAGE))
                 getNodeColor->BackColor = PhCsColorDotNet;

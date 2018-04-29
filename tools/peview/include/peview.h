@@ -58,6 +58,12 @@ VOID PvLibProperties(
     VOID
     );
 
+// exlfprp
+
+VOID PvExlfProperties(
+    VOID
+    );
+
 // misc
 
 PPH_STRING PvResolveShortcutTarget(
@@ -86,6 +92,7 @@ VOID PeSaveSettings(
 // symbols
 
 #define WM_PV_SEARCH_FINISHED (WM_APP + 701)
+#define WM_PV_SEARCH_SHOWMENU (WM_APP + 702)
 
 extern ULONG SearchResultsAddIndex;
 extern PPH_LIST SearchResults;
@@ -128,7 +135,6 @@ typedef struct _PV_SYMBOL_NODE
 {
     PH_TREENEW_NODE Node;
 
-    ULONG64 Index;
     PV_SYMBOL_TYPE Type;
     ULONG Size;
     ULONG64 Address;    
@@ -309,6 +315,44 @@ INT_PTR CALLBACK PvpPeClrDlgProc(
     );
 
 INT_PTR CALLBACK PvpPeCgfDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
+INT_PTR CALLBACK PvpPeResourcesDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
+// ELF
+
+PWSTR PvpGetSymbolTypeName(
+    _In_ UCHAR TypeInfo
+    );
+
+PWSTR PvpGetSymbolBindingName(
+    _In_ UCHAR TypeInfo
+    );
+
+INT_PTR CALLBACK PvpExlfGeneralDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
+INT_PTR CALLBACK PvpExlfImportsDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
+INT_PTR CALLBACK PvpExlfExportsDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,

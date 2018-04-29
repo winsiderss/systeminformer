@@ -131,7 +131,7 @@ PhUnregisterMessageLoopFilter(
 // end_phapppub
 
 VOID PhInitializeFont(
-    _In_ HWND hWnd
+    VOID
     );
 
 // plugin
@@ -262,7 +262,7 @@ VOID PhShowDebugConsole(
 
 PPH_STRING PhGetProcessTooltipText(
     _In_ PPH_PROCESS_ITEM Process,
-    _Out_opt_ PULONG ValidToTickCount
+    _Out_opt_ PULONG64 ValidToTickCount
     );
 
 PPH_STRING PhGetServiceTooltipText(
@@ -294,7 +294,7 @@ BOOLEAN PhUiCreateDumpFileProcess(
 // about
 
 VOID PhShowAboutDialog(
-    _In_ HWND ParentWindowHandle
+    VOID
     );
 
 PPH_STRING PhGetDiagnosticsString(
@@ -482,7 +482,7 @@ VOID PhShowMemoryStringDialog(
 
 VOID PhShowProcessMitigationPolicyDialog(
     _In_ HWND ParentWindowHandle,
-    _In_ struct _PH_PROCESS_MITIGATION_POLICY_ALL_INFORMATION *Information
+    _In_ HANDLE ProcessId
     );
 
 // netstk
@@ -500,6 +500,11 @@ HPROPSHEETPAGE PhCreateEventPage(
     );
 
 HPROPSHEETPAGE PhCreateEventPairPage(
+    _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_opt_ PVOID Context
+    );
+
+HPROPSHEETPAGE PhCreateFilePage(
     _In_ PPH_OPEN_OBJECT OpenObject,
     _In_opt_ PVOID Context
     );
@@ -569,6 +574,7 @@ typedef struct _PH_RUNAS_SERVICE_PARAMETERS
     PWSTR DesktopName;
     BOOLEAN UseLinkedToken;
     PWSTR ServiceName;
+    BOOLEAN CreateSuspendedProcess;
 } PH_RUNAS_SERVICE_PARAMETERS, *PPH_RUNAS_SERVICE_PARAMETERS;
 
 VOID PhShowRunAsDialog(
@@ -597,6 +603,22 @@ PhExecuteRunAsCommand2(
     );
 // end_phapppub
 
+PHAPPAPI
+NTSTATUS
+NTAPI
+PhExecuteRunAsCommand3(
+    _In_ HWND hWnd,
+    _In_ PWSTR Program,
+    _In_opt_ PWSTR UserName,
+    _In_opt_ PWSTR Password,
+    _In_opt_ ULONG LogonType,
+    _In_opt_ HANDLE ProcessIdWithToken,
+    _In_ ULONG SessionId,
+    _In_ PWSTR DesktopName,
+    _In_ BOOLEAN UseLinkedToken,
+    _In_ BOOLEAN CreateSuspendedProcess
+    );
+
 NTSTATUS PhRunAsServiceStart(
     _In_ PPH_STRING ServiceName
     );
@@ -614,7 +636,7 @@ NTAPI
 PhCreateSearchControl(
     _In_ HWND Parent,
     _In_ HWND WindowHandle,
-    _In_ PWSTR BannerText
+    _In_opt_ PWSTR BannerText
     );
 
 PHAPPAPI
@@ -808,6 +830,12 @@ HPROPSHEETPAGE PhCreateTokenPage(
     _In_ PPH_OPEN_OBJECT OpenObject,
     _In_opt_ PVOID Context,
     _In_opt_ DLGPROC HookProc
+    );
+
+// prpggen
+
+PPH_STRING PhGetProcessItemProtectionText(
+    _In_ PPH_PROCESS_ITEM ProcessItem
     );
 
 #endif

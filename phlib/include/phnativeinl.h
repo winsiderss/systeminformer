@@ -238,6 +238,37 @@ PhGetProcessDebugObject(
         );
 }
 
+FORCEINLINE
+NTSTATUS
+PhGetProcessErrorMode(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PULONG ErrorMode
+    )
+{
+    return NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessDefaultHardErrorMode,
+        ErrorMode,
+        sizeof(ULONG),
+        NULL
+        );
+}
+
+FORCEINLINE
+NTSTATUS
+PhSetProcessErrorMode(
+    _In_ HANDLE ProcessHandle,
+    _In_ ULONG ErrorMode
+    )
+{
+    return NtSetInformationProcess(
+        ProcessHandle,
+        ProcessDefaultHardErrorMode,
+        &ErrorMode,
+        sizeof(ULONG)
+        );
+}
+
 /**
  * Gets a process' no-execute status.
  *
@@ -261,6 +292,37 @@ PhGetProcessExecuteFlags(
         );
 }
 
+FORCEINLINE
+NTSTATUS
+PhGetProcessPriority(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPROCESS_PRIORITY_CLASS PriorityClass
+    )
+{
+    return NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessPriorityClass,
+        PriorityClass,
+        sizeof(PROCESS_PRIORITY_CLASS),
+        NULL
+        );
+}
+
+FORCEINLINE
+NTSTATUS
+PhSetProcessPriority(
+    _In_ HANDLE ProcessHandle,
+    _In_ PROCESS_PRIORITY_CLASS PriorityClass
+    )
+{
+    return NtSetInformationProcess(
+        ProcessHandle, 
+        ProcessPriorityClass, 
+        &PriorityClass,
+        sizeof(PROCESS_PRIORITY_CLASS)
+        );
+}
+
 /**
  * Gets a process' I/O priority.
  *
@@ -281,6 +343,27 @@ PhGetProcessIoPriority(
         IoPriority,
         sizeof(IO_PRIORITY_HINT),
         NULL
+        );
+}
+
+/**
+ * Sets a process' I/O priority.
+ *
+ * \param ProcessHandle A handle to a process. The handle must have PROCESS_SET_INFORMATION access.
+ * \param IoPriority The new I/O priority.
+ */
+FORCEINLINE
+NTSTATUS
+PhSetProcessIoPriority(
+    _In_ HANDLE ProcessHandle,
+    _In_ IO_PRIORITY_HINT IoPriority
+    )
+{
+    return NtSetInformationProcess(
+        ProcessHandle,
+        ProcessIoPriority,
+        &IoPriority,
+        sizeof(IO_PRIORITY_HINT)
         );
 }
 
@@ -315,6 +398,25 @@ PhGetProcessPagePriority(
     }
 
     return status;
+}
+
+FORCEINLINE
+NTSTATUS
+PhSetProcessPagePriority(
+    _In_ HANDLE ProcessHandle,
+    _In_ ULONG PagePriority
+    )
+{
+    PAGE_PRIORITY_INFORMATION pagePriorityInfo;
+
+    pagePriorityInfo.PagePriority = PagePriority;
+
+    return NtSetInformationProcess(
+        ProcessHandle,
+        ProcessPagePriority,
+        &pagePriorityInfo,
+        sizeof(PAGE_PRIORITY_INFORMATION)
+        );
 }
 
 /**
@@ -376,6 +478,53 @@ PhGetProcessConsoleHostProcessId(
     return status;
 }
 
+FORCEINLINE
+NTSTATUS
+PhGetProcessProtection(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPS_PROTECTION Protection
+    )
+{
+    return NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessProtectionInformation,
+        Protection,
+        sizeof(PS_PROTECTION),
+        NULL
+        );
+}
+
+FORCEINLINE
+NTSTATUS
+PhGetProcessQuotaLimits(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PQUOTA_LIMITS QuotaLimits
+    )
+{
+    return NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessQuotaLimits,
+        QuotaLimits,
+        sizeof(QUOTA_LIMITS),
+        NULL
+        );
+}
+
+FORCEINLINE
+NTSTATUS
+PhSetProcessQuotaLimits(
+    _In_ HANDLE ProcessHandle,
+    _In_ QUOTA_LIMITS QuotaLimits
+    )
+{
+    return NtSetInformationProcess(
+        ProcessHandle,
+        ProcessQuotaLimits,
+        &QuotaLimits,
+        sizeof(QUOTA_LIMITS)
+        );
+}
+
 /**
  * Sets a process' affinity mask.
  *
@@ -397,24 +546,47 @@ PhSetProcessAffinityMask(
         );
 }
 
-/**
- * Sets a process' I/O priority.
- *
- * \param ProcessHandle A handle to a process. The handle must have PROCESS_SET_INFORMATION access.
- * \param IoPriority The new I/O priority.
- */
 FORCEINLINE
 NTSTATUS
-PhSetProcessIoPriority(
+PhGetProcessIsCFGuardEnabled(
     _In_ HANDLE ProcessHandle,
-    _In_ IO_PRIORITY_HINT IoPriority
+    _Out_ PBOOLEAN IsControlFlowGuardEnabled
     )
 {
-    return NtSetInformationProcess(
+    NTSTATUS status;
+    PROCESS_MITIGATION_POLICY_INFORMATION policyInfo;
+
+    policyInfo.Policy = ProcessControlFlowGuardPolicy;
+
+    status = NtQueryInformationProcess(
         ProcessHandle,
-        ProcessIoPriority,
-        &IoPriority,
-        sizeof(IO_PRIORITY_HINT)
+        ProcessMitigationPolicy,
+        &policyInfo,
+        sizeof(PROCESS_MITIGATION_POLICY_INFORMATION),
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    *IsControlFlowGuardEnabled = !!policyInfo.ControlFlowGuardPolicy.EnableControlFlowGuard;
+
+    return status;
+}
+
+FORCEINLINE
+NTSTATUS
+PhGetProcessHandleCount(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPROCESS_HANDLE_INFORMATION HandleInfo
+    )
+{
+    return NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessHandleCount,
+        HandleInfo,
+        sizeof(PROCESS_HANDLE_INFORMATION),
+        NULL
         );
 }
 
@@ -441,6 +613,65 @@ PhGetThreadBasicInformation(
         );
 }
 
+FORCEINLINE
+NTSTATUS
+PhGetThreadBasePriority(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PLONG Increment
+    )
+{
+    NTSTATUS status;
+    THREAD_BASIC_INFORMATION basicInfo;
+
+    status = PhGetThreadBasicInformation(ThreadHandle, &basicInfo);
+
+    if (NT_SUCCESS(status))
+    {
+        *Increment = basicInfo.BasePriority;
+    }
+
+    return status;
+
+    //return NtQueryInformationThread(
+    //    ThreadHandle,
+    //    ThreadBasePriority,
+    //    Increment,
+    //    sizeof(LONG),
+    //    NULL
+    //    );
+}
+
+FORCEINLINE
+NTSTATUS
+PhGetThreadStartAddress(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PVOID *StartAddress
+    )
+{
+    return NtQueryInformationThread(
+        ThreadHandle,
+        ThreadQuerySetWin32StartAddress,
+        StartAddress,
+        sizeof(PVOID),
+        NULL
+        );
+}
+
+FORCEINLINE
+NTSTATUS
+PhSetThreadBasePriority(
+    _In_ HANDLE ThreadHandle,
+    _In_ LONG Increment
+    )
+{
+    return NtSetInformationThread(
+        ThreadHandle,
+        ThreadBasePriority,
+        &Increment,
+        sizeof(LONG)
+        );
+}
+
 /**
  * Gets a thread's I/O priority.
  *
@@ -461,6 +692,28 @@ PhGetThreadIoPriority(
         IoPriority,
         sizeof(IO_PRIORITY_HINT),
         NULL
+        );
+}
+
+/**
+ * Sets a thread's I/O priority.
+ *
+ * \param ThreadHandle A handle to a thread. The handle must have THREAD_SET_LIMITED_INFORMATION
+ * access.
+ * \param IoPriority The new I/O priority.
+ */
+FORCEINLINE
+NTSTATUS
+PhSetThreadIoPriority(
+    _In_ HANDLE ThreadHandle,
+    _In_ IO_PRIORITY_HINT IoPriority
+    )
+{
+    return NtSetInformationThread(
+        ThreadHandle,
+        ThreadIoPriority,
+        &IoPriority,
+        sizeof(IO_PRIORITY_HINT)
         );
 }
 
@@ -497,6 +750,25 @@ PhGetThreadPagePriority(
     return status;
 }
 
+FORCEINLINE
+NTSTATUS
+PhSetThreadPagePriority(
+    _In_ HANDLE ThreadHandle,
+    _In_ ULONG PagePriority
+    )
+{
+    PAGE_PRIORITY_INFORMATION pagePriorityInfo;
+
+    pagePriorityInfo.PagePriority = PagePriority;
+
+    return NtSetInformationThread(
+        ThreadHandle,
+        ThreadPagePriority,
+        &pagePriorityInfo,
+        sizeof(PAGE_PRIORITY_INFORMATION)
+        );
+}
+
 /**
  * Gets a thread's cycle count.
  *
@@ -530,6 +802,70 @@ PhGetThreadCycleTime(
     return status;
 }
 
+FORCEINLINE
+NTSTATUS
+PhGetThreadIdealProcessor(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PPROCESSOR_NUMBER ProcessorNumber
+    )
+{
+    return NtQueryInformationThread(
+        ThreadHandle,
+        ThreadIdealProcessorEx,
+        ProcessorNumber,
+        sizeof(PROCESSOR_NUMBER),
+        NULL
+        );
+}
+
+FORCEINLINE
+NTSTATUS
+PhGetThreadSuspendCount(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PULONG SuspendCount
+    )
+{
+    return NtQueryInformationThread(
+        ThreadHandle,
+        ThreadSuspendCount,
+        SuspendCount,
+        sizeof(ULONG),
+        NULL
+        );
+}
+
+FORCEINLINE
+NTSTATUS
+PhGetThreadLastSystemCall(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PTHREAD_LAST_SYSCALL_INFORMATION LastSystemCall
+    )
+{
+    return NtQueryInformationThread(
+        ThreadHandle,
+        ThreadLastSystemCall,
+        LastSystemCall,
+        RTL_SIZEOF_THROUGH_FIELD(THREAD_LAST_SYSCALL_INFORMATION, Pad), // HACK: Win7 requires exact size.
+        NULL
+        );
+}
+
+FORCEINLINE
+NTSTATUS
+PhGetThreadWow64Context(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PWOW64_CONTEXT Context
+    )
+{
+    return NtQueryInformationThread(
+        ThreadHandle,
+        ThreadWow64Context,
+        Context,
+        sizeof(WOW64_CONTEXT),
+        NULL
+        );
+}
+
 /**
  * Sets a thread's affinity mask.
  *
@@ -549,28 +885,6 @@ PhSetThreadAffinityMask(
         ThreadAffinityMask,
         &AffinityMask,
         sizeof(ULONG_PTR)
-        );
-}
-
-/**
- * Sets a thread's I/O priority.
- *
- * \param ThreadHandle A handle to a thread. The handle must have THREAD_SET_LIMITED_INFORMATION
- * access.
- * \param IoPriority The new I/O priority.
- */
-FORCEINLINE
-NTSTATUS
-PhSetThreadIoPriority(
-    _In_ HANDLE ThreadHandle,
-    _In_ IO_PRIORITY_HINT IoPriority
-    )
-{
-    return NtSetInformationThread(
-        ThreadHandle,
-        ThreadIoPriority,
-        &IoPriority,
-        sizeof(IO_PRIORITY_HINT)
         );
 }
 

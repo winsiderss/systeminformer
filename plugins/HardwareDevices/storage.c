@@ -1499,7 +1499,25 @@ PWSTR SmartAttributeGetText(
         return L"Read Error Retry Rate";
     case SMART_ATTRIBUTE_ID_FREE_FALL_PROTECTION:
         return L"Free Fall Protection";
+    case SMART_ATTRIBUTE_ID_SSD_PROGRAM_FAIL_COUNT:
+        return L"SSD Program Fail Count";
+    case SMART_ATTRIBUTE_ID_SSD_ERASE_FAIL_COUNT:
+        return L"SSD Erase Fail Count";
+    case SMART_ATTRIBUTE_ID_SSD_WEAR_LEVELING_COUNT:
+        return L"SSD Wear Leveling Count";
+    case SMART_ATTRIBUTE_ID_UNEXPECTED_POWER_LOSS:
+        return L"Unexpected power loss count";
+    case SMART_ATTRIBUTE_ID_WEAR_RANGE_DELTA:
+        return L"Wear Range Delta";
+    case SMART_ATTRIBUTE_ID_SSD_PROGRAM_FAIL_COUNT_TOTAL:
+        return L"Program Fail Count Total";
+    case SMART_ATTRIBUTE_ID_ERASE_FAIL_COUNT:
+        return L"Erase Fail Count";
+    case SMART_ATTRIBUTE_ID_SSD_MEDIA_WEAROUT_HOURS:
+        return L"Media Wearout Indicator";
+    case SMART_ATTRIBUTE_ID_SSD_ERASE_COUNT:
+        return L"Erase count";
     }
 
-    return L"Unknown";
+    return L"BUG BUG BUG";
 }

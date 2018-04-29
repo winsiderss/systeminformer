@@ -3,6 +3,7 @@
  *   plugin support
  *
  * Copyright (C) 2010-2015 wj32
+ * Copyright (C) 2017-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -198,38 +199,42 @@ static BOOLEAN EnumPluginsDirectoryCallback(
     _In_opt_ PVOID Context
     )
 {
+    static const PWSTR PhpPluginBlocklist[] =
+    {
+        L"CommonUtil.dll",
+        L"ExtraPlugins.dll"
+    };
+    BOOLEAN blacklistedPlugin = FALSE;
     PH_STRINGREF baseName;
     PPH_STRING fileName;
 
     baseName.Buffer = Information->FileName;
     baseName.Length = Information->FileNameLength;
 
-    if (PhEndsWithStringRef2(&baseName, L".dll", TRUE))
+    for (ULONG i = 0; i < ARRAYSIZE(PhpPluginBlocklist); i++)
     {
-        // Plugin blacklist
-        if (PhEndsWithStringRef2(&baseName, L"CommonUtil.dll", TRUE))
+        if (PhEndsWithStringRef2(&baseName, PhpPluginBlocklist[i], TRUE))
         {
-            fileName = PhCreateStringEx(NULL, PluginsDirectory->Length + Information->FileNameLength);
-            memcpy(fileName->Buffer, PluginsDirectory->Buffer, PluginsDirectory->Length);
-            memcpy(&fileName->Buffer[PluginsDirectory->Length / 2], Information->FileName, Information->FileNameLength);
-
-            PhDeleteFileWin32(fileName->Buffer);
-
-            PhDereferenceObject(fileName);
+            blacklistedPlugin = TRUE;
+            break;
         }
-        else
-        {
-            if (!PhIsPluginDisabled(&baseName))
-            {
-                fileName = PhCreateStringEx(NULL, PluginsDirectory->Length + Information->FileNameLength);
-                memcpy(fileName->Buffer, PluginsDirectory->Buffer, PluginsDirectory->Length);
-                memcpy(&fileName->Buffer[PluginsDirectory->Length / 2], Information->FileName, Information->FileNameLength);
+    }
 
-                PhLoadPlugin(fileName);
+    if (blacklistedPlugin)
+    {
+        fileName = PhConcatStringRef2(&PluginsDirectory->sr, &baseName);
 
-                PhDereferenceObject(fileName);
-            }
-        }
+        PhDeleteFileWin32(fileName->Buffer);
+
+        PhDereferenceObject(fileName);
+    }
+    else if (!PhIsPluginDisabled(&baseName))
+    {
+        fileName = PhConcatStringRef2(&PluginsDirectory->sr, &baseName);
+
+        PhLoadPlugin(fileName);
+
+        PhDereferenceObject(fileName);
     }
 
     return TRUE;
@@ -294,25 +299,12 @@ VOID PhLoadPlugins(
             PhDereferenceObject(baseName);
         }
 
-        PhAppendStringBuilder2(&sb, L"\nDo you want to disable the above plugin(s)?");
-
-        if (PhShowMessage2(
-            NULL,
-            TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
-            TD_ERROR_ICON,
+        PhShowError2(
+            NULL, 
             L"Unable to load the following plugin(s)",
             L"%s",
             sb.String->Buffer
-            ) == IDYES)
-        {
-            for (i = 0; i < LoadErrors->Count; i++)
-            {
-                loadError = LoadErrors->Items[i];
-                baseName = PhGetBaseName(loadError->FileName);
-                PhSetPluginDisabled(&baseName->sr, TRUE);
-                PhDereferenceObject(baseName);
-            }
-        }
+            );
 
         PhDeleteStringBuilder(&sb);
     }
@@ -346,6 +338,7 @@ BOOLEAN PhLoadPlugin(
     _In_ PPH_STRING FileName
     )
 {
+    NTSTATUS status;
     PPH_STRING fileName;
     PPH_STRING errorMessage;
     PPHP_PLUGIN_LOAD_ERROR loadError;
@@ -355,13 +348,15 @@ BOOLEAN PhLoadPlugin(
     if (!fileName)
         PhSetReference(&fileName, FileName);
 
-    if (LoadLibrary(fileName->Buffer))
+    status = PhLoadPluginImage(fileName, NULL);
+
+    if (NT_SUCCESS(status))
     {
         PhDereferenceObject(fileName);
         return TRUE;
     }
 
-    errorMessage = PhGetWin32Message(GetLastError());
+    errorMessage = PhGetNtMessage(status);
 
     loadError = PhAllocate(sizeof(PHP_PLUGIN_LOAD_ERROR));
     PhSetReference(&loadError->FileName, fileName);
@@ -906,39 +901,6 @@ PVOID PhPluginGetObjectExtension(
         &Plugin->AppContext,
         ObjectType,
         Object
-        );
-}
-
-/**
- * Creates a notification icon.
- *
- * \param Plugin A plugin instance structure.
- * \param SubId An identifier for the column. This should be unique within the
- * plugin.
- * \param Context A user-defined value.
- * \param Text A string describing the notification icon.
- * \param Flags A combination of flags.
- * \li \c PH_NF_ICON_UNAVAILABLE The notification icon is currently unavailable.
- * \param RegistrationData A \ref PH_NF_ICON_REGISTRATION_DATA structure that
- * contains registration information.
- */
-struct _PH_NF_ICON *PhPluginRegisterIcon(
-    _In_ PPH_PLUGIN Plugin,
-    _In_ ULONG SubId,
-    _In_opt_ PVOID Context,
-    _In_ PWSTR Text,
-    _In_ ULONG Flags,
-    _In_ struct _PH_NF_ICON_REGISTRATION_DATA *RegistrationData
-    )
-{
-    return PhNfRegisterIcon(
-        Plugin,
-        SubId,
-        Context,
-        Text,
-        Flags,
-        RegistrationData->UpdateCallback,
-        RegistrationData->MessageCallback
         );
 }
 

@@ -59,6 +59,18 @@ typedef BOOL (WINAPI *_SymEnumTypesW)(
     _In_opt_ PVOID UserContext
     );
 
+typedef BOOL (WINAPI *_SymSearchW)(
+    _In_ HANDLE hProcess,
+    _In_ ULONG64 BaseOfDll,
+    _In_opt_ DWORD Index,
+    _In_opt_ DWORD SymTag,
+    _In_opt_ PCWSTR Mask,
+    _In_opt_ DWORD64 Address,
+    _In_ PSYM_ENUMERATESYMBOLS_CALLBACKW EnumSymbolsCallback,
+    _In_opt_ PVOID UserContext,
+    _In_ DWORD Options
+    );
+
 typedef BOOL (WINAPI *_SymSetSearchPathW)(
     _In_ HANDLE hProcess,
     _In_opt_ PCWSTR SearchPath
@@ -112,6 +124,7 @@ _SymGetModuleInfoW64 SymGetModuleInfoW64_I = NULL;
 _SymGetTypeFromNameW SymGetTypeFromNameW_I = NULL;
 _SymGetTypeInfo SymGetTypeInfo_I = NULL;
 _SymSetContext SymSetContext_I = NULL;
+_SymSearchW SymSearchW_I = NULL;
 
 ULONG SearchResultsAddIndex = 0;
 PPH_LIST SearchResults = NULL;
@@ -1292,8 +1305,13 @@ BOOLEAN SymbolInfo_GetTypeNameHelper(
         switch (Info.Tag)
         {
         case SymTagBaseType:
-            PhAppendStringBuilder2(TypeName, SymbolInfo_BaseTypeStr(Info.BaseTypeInfo.BaseType, Info.BaseTypeInfo.Length));
-            PhAppendStringBuilder2(TypeName, L" ");
+            {
+                if (Info.BaseTypeInfo.Length == 0)
+                    break;
+
+                PhAppendStringBuilder2(TypeName, SymbolInfo_BaseTypeStr(Info.BaseTypeInfo.BaseType, Info.BaseTypeInfo.Length));
+                PhAppendStringBuilder2(TypeName, L" ");
+            }
             break;
         case SymTagTypedef:
             PhAppendStringBuilder2(TypeName, Info.TypedefInfo.Name);
@@ -1422,7 +1440,10 @@ PPH_STRING SymbolInfo_GetTypeName(
         typeVarName = VarName;
 
     if (!SymbolInfo_GetTypeNameHelper(Index, Context, &typeVarName, &typeNamesb))
+    {
+        PhDeleteStringBuilder(&typeNamesb);
         return NULL;
+    }
 
     return PhFinalStringBuilderString(&typeNamesb);
 }
@@ -1868,12 +1889,14 @@ BOOL CALLBACK EnumCallbackProc(
 
                 symDataKind = SymbolInfo_DataKindStr(dataKindType);
 
-                //if (dataKindType == DataIsLocal ||
-                //    dataKindType == DataIsParam ||
-                //    dataKindType == DataIsObjectPtr)
-                //{
-                //    break;
-                //}
+                if (
+                    dataKindType == DataIsLocal ||
+                    dataKindType == DataIsParam ||
+                    dataKindType == DataIsObjectPtr
+                    )
+                {
+                    break;
+                }
 
                 symbol = PhAllocate(sizeof(PV_SYMBOL_NODE));
                 memset(symbol, 0, sizeof(PV_SYMBOL_NODE));
@@ -1932,9 +1955,8 @@ BOOL CALLBACK EnumCallbackProc(
                 PPDB_SYMBOL_CONTEXT context = Context;
                 PPV_SYMBOL_NODE symbol;
 
-                // TODO: Remove filter 
-                //if (SymbolInfo->Tag != SymTagPublicSymbol)
-                //    break;
+                if (SymbolInfo->Address == 0)
+                    break;
 
                 symbol = PhAllocate(sizeof(PV_SYMBOL_NODE));
                 memset(symbol, 0, sizeof(PV_SYMBOL_NODE));
@@ -1942,9 +1964,16 @@ BOOL CALLBACK EnumCallbackProc(
                 symbol->Type = PV_SYMBOL_TYPE_SYMBOL;
                 symbol->Address = SymbolInfo->Address;
                 symbol->Size = SymbolInfo->Size;
-                symbol->Name = PhCreateStringEx(SymbolInfo->Name, SymbolInfo->NameLen * sizeof(WCHAR));
                 symbol->Data = SymbolInfo_GetTypeName(context, SymbolInfo->TypeIndex, SymbolInfo->Name);
                 SymbolInfo_SymbolLocationStr(SymbolInfo, symbol->Pointer);
+
+                if (SymbolInfo->Name[0]) // HACK
+                {
+                    if (SymbolInfo->NameLen)
+                        symbol->Name = PhCreateStringEx(SymbolInfo->Name, SymbolInfo->NameLen * sizeof(WCHAR));
+                    else
+                        symbol->Name = PhCreateString(SymbolInfo->Name);
+                }
 
                 PhAcquireQueuedLockExclusive(&SearchResultsLock);
                 PhAddItemList(SearchResults, symbol);
@@ -2315,20 +2344,26 @@ NTSTATUS PeDumpFileSymbols(
     if (!(symsrvHandle = LoadLibrary(symsrvPath->Buffer)))
         return 1;
 
-    SymInitialize_I = PhGetProcedureAddress(dbghelpHandle, "SymInitialize", 0);
-    SymCleanup_I = PhGetProcedureAddress(dbghelpHandle, "SymCleanup", 0);
-    SymEnumSymbolsW_I = PhGetProcedureAddress(dbghelpHandle, "SymEnumSymbolsW", 0);
-    SymEnumTypesW_I = PhGetProcedureAddress(dbghelpHandle, "SymEnumTypesW", 0);
-    SymSetSearchPathW_I = PhGetProcedureAddress(dbghelpHandle, "SymSetSearchPathW", 0);
-    SymGetOptions_I = PhGetProcedureAddress(dbghelpHandle, "SymGetOptions", 0);
-    SymSetOptions_I = PhGetProcedureAddress(dbghelpHandle, "SymSetOptions", 0);
-    SymLoadModuleExW_I = PhGetProcedureAddress(dbghelpHandle, "SymLoadModuleExW", 0);
-    SymGetModuleInfoW64_I = PhGetProcedureAddress(dbghelpHandle, "SymGetModuleInfoW64", 0);
-    SymGetTypeFromNameW_I = PhGetProcedureAddress(dbghelpHandle, "SymGetTypeFromNameW", 0);
-    SymGetTypeInfo_I = PhGetProcedureAddress(dbghelpHandle, "SymGetTypeInfo", 0);
-    SymSetContext_I = PhGetProcedureAddress(dbghelpHandle, "SymSetContext", 0);
+    SymInitialize_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymInitialize", 0);
+    SymCleanup_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymCleanup", 0);
+    SymEnumSymbolsW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymEnumSymbolsW", 0);
+    SymEnumTypesW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymEnumTypesW", 0);
+    SymSetSearchPathW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymSetSearchPathW", 0);
+    SymGetOptions_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymGetOptions", 0);
+    SymSetOptions_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymSetOptions", 0);
+    SymLoadModuleExW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymLoadModuleExW", 0);
+    SymGetModuleInfoW64_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymGetModuleInfoW64", 0);
+    SymGetTypeFromNameW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymGetTypeFromNameW", 0);
+    SymGetTypeInfo_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymGetTypeInfo", 0);
+    SymSetContext_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymSetContext", 0);
+    SymSearchW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymSearchW", 0);
 
-    SymSetOptions_I(SymGetOptions_I() | SYMOPT_DEBUG | SYMOPT_UNDNAME);
+    SymSetOptions_I(
+        SymGetOptions_I() |
+        SYMOPT_AUTO_PUBLICS | SYMOPT_CASE_INSENSITIVE |
+        SYMOPT_DEFERRED_LOADS | SYMOPT_FAIL_CRITICAL_ERRORS | SYMOPT_INCLUDE_32BIT_MODULES |
+        SYMOPT_LOAD_LINES | SYMOPT_OMAP_FIND_NEAREST | SYMOPT_UNDNAME // SYMOPT_DEBUG
+        );
 
     if (!SymInitialize_I(NtCurrentProcess(), NULL, FALSE))
         return 1;
@@ -2367,9 +2402,31 @@ NTSTATUS PeDumpFileSymbols(
         //ShowModuleSymbolInfo(symbolBaseAddress);
         SymEnumSymbolsW_I(NtCurrentProcess(), Context->BaseAddress, NULL, EnumCallbackProc, Context);
 
-        // Enumerate user defined types 
-        //PrintUserDefinedTypes(Context);
+        // Enumerate user defined types.
         SymEnumTypesW_I(NtCurrentProcess(), Context->BaseAddress, EnumCallbackProc, Context);
+        //PrintUserDefinedTypes(Context); // Commented out due to verbosity.
+
+        if (
+            PhFindStringInString(PvFileName, 0, L"ntkrnlmp.pdb") != -1 || 
+            PhFindStringInString(PvFileName, 0, L"ntoskrnl.exe") != -1 // HACK: SymSearchW crashes for ole32.dll
+            )
+        {
+            // NOTE: The SymEnumSymbolsW and SymEnumTypesW functions don't enumerate exported DATA symbols such as 
+            // as PsActiveProcessHead and PsLoadedModuleList from ntoskrnl.exe??
+            // TODO: SymSearchW does enumerate those symbols but we'll need to filter out duplicate symbol entries properly or
+            // find out why the SymEnumSymbolsW and SymEnumTypesW functions can't enumerate those symbols.
+            SymSearchW_I(
+                NtCurrentProcess(),
+                Context->BaseAddress,
+                0,
+                0,
+                NULL,
+                0,
+                EnumCallbackProc,
+                Context,
+                SYMSEARCH_RECURSE | SYMSEARCH_ALLITEMS
+                );
+        }
     }
 
 CleanupExit:

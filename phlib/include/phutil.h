@@ -238,9 +238,9 @@ PhShowMessage2(
     ...
     );
 
-#define PhShowError2(hWnd, Format, ...) PhShowMessage2(hWnd, TDCBF_CLOSE_BUTTON, TD_ERROR_ICON, Format, __VA_ARGS__)
-#define PhShowWarning2(hWnd, Format, ...) PhShowMessage2(hWnd, TDCBF_CLOSE_BUTTON, TD_WARNING_ICON, Format, __VA_ARGS__)
-#define PhShowInformation2(hWnd, Format, ...) PhShowMessage2(hWnd, TDCBF_CLOSE_BUTTON, TD_INFORMATION_ICON, Format, __VA_ARGS__)
+#define PhShowError2(hWnd, Title, Format, ...) PhShowMessage2(hWnd, TDCBF_CLOSE_BUTTON, TD_ERROR_ICON, Title, Format, __VA_ARGS__)
+#define PhShowWarning2(hWnd, Title, Format, ...) PhShowMessage2(hWnd, TDCBF_CLOSE_BUTTON, TD_WARNING_ICON, Title, Format, __VA_ARGS__)
+#define PhShowInformation2(hWnd, Title, Format, ...) PhShowMessage2(hWnd, TDCBF_CLOSE_BUTTON, TD_INFORMATION_ICON, Title, Format, __VA_ARGS__)
 
 PHLIBAPI
 PPH_STRING
@@ -598,20 +598,29 @@ PhGetSystemRoot(
     );
 
 PHLIBAPI
-PLDR_DATA_TABLE_ENTRY
-NTAPI
-PhFindLoaderEntry(
-    _In_opt_ PVOID DllBase,
-    _In_opt_ PPH_STRINGREF FullDllName,
-    _In_opt_ PPH_STRINGREF BaseDllName
-    );
-
-PHLIBAPI
 PPH_STRING
 NTAPI
 PhGetDllFileName(
-    _In_ PVOID DllHandle,
+    _In_ PVOID DllBase,
     _Out_opt_ PULONG IndexOfFileName
+    );
+
+PHLIBAPI
+PVOID
+NTAPI
+PhGetDllBaseProcedureAddress(
+    _In_ PVOID DllBase,
+    _In_opt_ PSTR ProcedureName,
+    _In_opt_ USHORT ProcedureNumber
+    );
+
+PHLIBAPI
+PVOID
+NTAPI
+PhGetDllProcedureAddress(
+    _In_ PWSTR DllEntryName,
+    _In_opt_ PSTR ProcedureName,
+    _In_opt_ USHORT ProcedureNumber
     );
 
 PHLIBAPI
@@ -660,6 +669,7 @@ typedef struct _PH_CREATE_PROCESS_INFO
 #define PH_CREATE_PROCESS_SUSPENDED 0x4
 #define PH_CREATE_PROCESS_BREAKAWAY_FROM_JOB 0x8
 #define PH_CREATE_PROCESS_NEW_CONSOLE 0x10
+#define PH_CREATE_PROCESS_EXTENDED_STARTUPINFO 0x20
 
 PHLIBAPI
 NTSTATUS
@@ -820,6 +830,14 @@ PhQueryRegistryString(
     );
 
 PHLIBAPI
+ULONG
+NTAPI
+PhQueryRegistryUlong(
+    _In_ HANDLE KeyHandle,
+    _In_opt_ PWSTR ValueName
+    );
+
+PHLIBAPI
 ULONG64
 NTAPI
 PhQueryRegistryUlong64(
@@ -891,6 +909,7 @@ PhShowFileDialog(
 #define PH_FILEDIALOG_DEFAULTEXPANDED 0x40
 #define PH_FILEDIALOG_STRICTFILETYPES 0x80
 #define PH_FILEDIALOG_PICKFOLDERS 0x100
+#define PH_FILEDIALOG_NOPATHVALIDATE 0x200
 
 PHLIBAPI
 ULONG
@@ -1065,6 +1084,15 @@ PhParseCommandLineFuzzy(
     );
 
 PHLIBAPI
+BOOLEAN
+NTAPI
+PhSearchFilePath(
+    _In_ PWSTR FileName,
+    _In_opt_ PWSTR Extension,
+    _Out_ PPH_STRING *FilePath
+    );
+
+PHLIBAPI
 PPH_STRING
 NTAPI
 PhGetCacheDirectory(
@@ -1092,74 +1120,124 @@ PhDeleteCacheFile(
     _In_ PPH_STRING FileName
     );
 
-FORCEINLINE
-HANDLE 
+PHLIBAPI
+HANDLE
 NTAPI
 PhGetNamespaceHandle(
     VOID
-    )
-{
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static UNICODE_STRING namespacePathUs = RTL_CONSTANT_STRING(L"\\BaseNamedObjects\\ProcessHacker");
-    static HANDLE directory = NULL;
+    );
 
-    if (PhBeginInitOnce(&initOnce))
-    {
-        static SID_IDENTIFIER_AUTHORITY ntAuthority = SECURITY_NT_AUTHORITY;
-        OBJECT_ATTRIBUTES objectAttributes;
-        PSECURITY_DESCRIPTOR securityDescriptor;
-        ULONG sdAllocationLength;
-        UCHAR administratorsSidBuffer[FIELD_OFFSET(SID, SubAuthority) + sizeof(ULONG) * 2];
-        PSID administratorsSid;
-        PACL dacl;
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhLoadResource(
+    _In_ PVOID DllBase,
+    _In_ PCWSTR Name,
+    _In_ PCWSTR Type,
+    _Out_opt_ ULONG *ResourceLength,
+    _Out_ PVOID *ResourceBuffer
+    );
 
-        // Create the default namespace DACL.
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhLoadIndirectString(
+    _In_ PWSTR SourceString
+    );
 
-        administratorsSid = (PSID)administratorsSidBuffer;
-        RtlInitializeSid(administratorsSid, &ntAuthority, 2);
-        *RtlSubAuthoritySid(administratorsSid, 0) = SECURITY_BUILTIN_DOMAIN_RID;
-        *RtlSubAuthoritySid(administratorsSid, 1) = DOMAIN_ALIAS_RID_ADMINS;
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhExtractIcon(
+    _In_ PWSTR FileName,
+    _In_ HICON *IconLarge,
+    _In_ HICON *IconSmall
+    );
 
-        sdAllocationLength = SECURITY_DESCRIPTOR_MIN_LENGTH +
-            (ULONG)sizeof(ACL) +
-            (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
-            RtlLengthSid(&PhSeLocalSid) +
-            (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
-            RtlLengthSid(administratorsSid) +
-            (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
-            RtlLengthSid(&PhSeInteractiveSid);
+PHLIBAPI
+PLDR_DATA_TABLE_ENTRY
+NTAPI
+PhFindLoaderEntry(
+    _In_opt_ PVOID DllBase,
+    _In_opt_ PPH_STRINGREF FullDllName,
+    _In_opt_ PPH_STRINGREF BaseDllName
+    );
 
-        securityDescriptor = PhAllocate(sdAllocationLength);
-        dacl = (PACL)((PCHAR)securityDescriptor + SECURITY_DESCRIPTOR_MIN_LENGTH);
+PHLIBAPI
+PVOID
+NTAPI
+PhGetDllBaseProcedureAddress(
+    _In_ PVOID DllBase,
+    _In_opt_ PSTR ProcedureName,
+    _In_opt_ USHORT ProcedureNumber
+    );
 
-        RtlCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
-        RtlCreateAcl(dacl, sdAllocationLength - SECURITY_DESCRIPTOR_MIN_LENGTH, ACL_REVISION);
-        RtlAddAccessAllowedAce(dacl, ACL_REVISION, DIRECTORY_ALL_ACCESS, &PhSeLocalSid);
-        RtlAddAccessAllowedAce(dacl, ACL_REVISION, DIRECTORY_ALL_ACCESS, administratorsSid);
-        RtlAddAccessAllowedAce(dacl, ACL_REVISION, DIRECTORY_QUERY | DIRECTORY_TRAVERSE | DIRECTORY_CREATE_OBJECT, &PhSeInteractiveSid);
-        RtlSetDaclSecurityDescriptor(securityDescriptor, TRUE, dacl, FALSE);
+PHLIBAPI
+PVOID
+NTAPI
+PhGetDllProcedureAddress(
+    _In_ PWSTR DllName,
+    _In_opt_ PSTR ProcedureName,
+    _In_opt_ USHORT ProcedureNumber
+    );
 
-        InitializeObjectAttributes(
-            &objectAttributes,
-            &namespacePathUs,
-            OBJ_OPENIF,
-            NULL,
-            securityDescriptor
-            );
+PHLIBAPI
+PVOID
+NTAPI
+PhGetLoaderEntryDllBase(
+    _In_opt_ PWSTR DllName
+    );
 
-        NtCreateDirectoryObject(
-            &directory,
-            MAXIMUM_ALLOWED,
-            &objectAttributes
-            );
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetLoaderEntryImageNtHeaders(
+    _In_ PVOID BaseAddress,
+    _Out_ PIMAGE_NT_HEADERS *ImageNtHeaders
+    );
 
-        PhFree(securityDescriptor);
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetLoaderEntryImageDirectory(
+    _In_ PVOID BaseAddress,
+    _In_ PIMAGE_NT_HEADERS ImageNtHeader,
+    _In_ ULONG ImageDirectoryIndex,
+    _Out_ PIMAGE_DATA_DIRECTORY *ImageDataDirectoryEntry,
+    _Out_ PVOID *ImageDirectoryEntry,
+    _Out_opt_ SIZE_T *ImageDirectoryLength
+    );
 
-        PhEndInitOnce(&initOnce);
-    }
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetLoaderEntryImageSection(
+    _In_ PVOID BaseAddress,
+    _In_ PIMAGE_NT_HEADERS ImageNtHeader,
+    _In_ PVOID ImageDirectory,
+    _Out_ PIMAGE_SECTION_HEADER *ImageSection,
+    _Out_ SIZE_T *ImageSectionLength
+    );
 
-    return directory;
-}
+PHLIBAPI
+PVOID
+NTAPI
+PhGetLoaderEntryImageExportFunction(
+    _In_ PVOID BaseAddress,
+    _In_ PIMAGE_NT_HEADERS ImageNtHeader,
+    _In_ PIMAGE_DATA_DIRECTORY DataDirectory,
+    _In_ PIMAGE_EXPORT_DIRECTORY ExportDirectory,
+    _In_opt_ PSTR ExportName,
+    _In_opt_ USHORT ExportOrdinal
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhLoadPluginImage(
+    _In_ PPH_STRING FileName,
+    _Out_opt_ PVOID *BaseAddress
+    );
 
 #ifdef __cplusplus
 }

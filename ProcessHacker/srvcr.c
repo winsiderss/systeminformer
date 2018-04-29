@@ -77,7 +77,7 @@ INT_PTR CALLBACK PhpCreateServiceDlgProc(
                 SendMessage(GetDlgItem(hwndDlg, IDOK), BCM_SETSHIELD, 0, TRUE);
             }
 
-            SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)GetDlgItem(hwndDlg, IDC_NAME), TRUE);
+            PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDC_NAME));
         }
         break;
     case WM_COMMAND:
@@ -210,7 +210,7 @@ INT_PTR CALLBACK PhpCreateServiceDlgProc(
                     if (PhShowFileDialog(hwndDlg, fileDialog))
                     {
                         fileName = PhGetFileDialogFileName(fileDialog);
-                        SetDlgItemText(hwndDlg, IDC_BINARYPATH, fileName->Buffer);
+                        PhSetDialogItemText(hwndDlg, IDC_BINARYPATH, fileName->Buffer);
                         PhDereferenceObject(fileName);
                     }
 

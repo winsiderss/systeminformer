@@ -205,15 +205,36 @@ namespace CustomBuildTool
 
     public static class VisualStudio
     {
+        public static string GetFilePathFromPath(string FileName)
+        {
+            string where = Environment.ExpandEnvironmentVariables("%windir%\\System32\\where.exe");
+
+            if (File.Exists(where))
+            {
+                string whereResult = Win32.ShellExecute(where, FileName);
+
+                if (!string.IsNullOrEmpty(whereResult))
+                    return whereResult;
+            }
+
+            return null;
+        }
+
         public static string GetMsbuildFilePath()
         {
-            string vswhere = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Microsoft Visual Studio\\Installer\\vswhere.exe");
+            string vswhere = string.Empty;
+
+            if (Environment.Is64BitOperatingSystem)
+                vswhere = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Microsoft Visual Studio\\Installer\\vswhere.exe");
+            else
+                vswhere = Environment.ExpandEnvironmentVariables("%ProgramFiles%\\Microsoft Visual Studio\\Installer\\vswhere.exe");
 
             // Note: vswere.exe was only released with build 15.0.26418.1
             if (File.Exists(vswhere))
             {
                 string vswhereResult = Win32.ShellExecute(vswhere,
                     "-latest " +
+                    "-products * " +
                     "-requires Microsoft.Component.MSBuild " +
                     "-property installationPath "
                     );
@@ -338,26 +359,34 @@ namespace CustomBuildTool
     [DataContract]
     public class BuildUpdateRequest
     {
+        [DataMember(Name = "version")] public string Version { get; set; }
+        [DataMember(Name = "commit")] public string Commit { get; set; }
         [DataMember(Name = "updated")] public string Updated { get; set; }
-        [DataMember(Name = "size")] public string FileLength { get; set; }
-        [DataMember(Name = "forum_url")] public string ForumUrl { get; set; }
 
         [DataMember(Name = "bin_url")] public string BinUrl { get; set; }
-        [DataMember(Name = "hash_bin")] public string BinHash { get; set; }
+        [DataMember(Name = "bin_length")] public string BinLength { get; set; }
+        [DataMember(Name = "bin_hash")] public string BinHash { get; set; }
         [DataMember(Name = "bin_sig")] public string BinSig { get; set; }
 
         [DataMember(Name = "setup_url")] public string SetupUrl { get; set; }
-        [DataMember(Name = "hash_setup")] public string SetupHash { get; set; }
-        [DataMember(Name = "sig")] public string SetupSig { get; set; }
-        [DataMember(Name = "version")] public string SetupVersion { get; set; }
+        [DataMember(Name = "setup_length")] public string SetupLength { get; set; }
+        [DataMember(Name = "setup_hash")] public string SetupHash { get; set; }
+        [DataMember(Name = "setup_sig")] public string SetupSig { get; set; }
 
         [DataMember(Name = "websetup_url")] public string WebSetupUrl { get; set; }
+        [DataMember(Name = "websetup_version")] public string WebSetupVersion { get; set; }
+        [DataMember(Name = "websetup_length")] public string WebSetupLength { get; set; }
         [DataMember(Name = "websetup_hash")] public string WebSetupHash { get; set; }
         [DataMember(Name = "websetup_sig")] public string WebSetupSig { get; set; }
-        [DataMember(Name = "websetup_version")] public string WebSetupVersion { get; set; }
 
         [DataMember(Name = "message")] public string Message { get; set; }
         [DataMember(Name = "changelog")] public string Changelog { get; set; }
+
+        [DataMember(Name = "size")] public string FileLengthDeprecated { get; set; } // TODO: Remove after most users have updated.
+        [DataMember(Name = "forum_url")] public string ForumUrlDeprecated { get; set; } // TODO: Remove after most users have updated.
+        [DataMember(Name = "hash_bin")] public string BinHashDeprecated { get; set; } // TODO: Remove after most users have updated.
+        [DataMember(Name = "hash_setup")] public string SetupHashDeprecated { get; set; } // TODO: Remove after most users have updated.
+        [DataMember(Name = "sig")] public string SetupSigDeprecated { get; set; } // TODO: Remove after most users have updated.
     }
 
     [Flags]

@@ -71,11 +71,11 @@ static INT_PTR CALLBACK PhpMemoryProtectDlgProc(
     {
     case WM_INITDIALOG:
         {
-            SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)lParam);
+            PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, (PVOID)lParam);
 
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
-            SetDlgItemText(hwndDlg, IDC_INTRO,
+            PhSetDialogItemText(hwndDlg, IDC_INTRO,
                 L"Possible values:\r\n"
                 L"\r\n"
                 L"0x01 - PAGE_NOACCESS\r\n"
@@ -92,12 +92,12 @@ static INT_PTR CALLBACK PhpMemoryProtectDlgProc(
                 L"0x400 - PAGE_WRITECOMBINE\r\n"
                 );
 
-            SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)GetDlgItem(hwndDlg, IDC_VALUE), TRUE);
+            PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDC_VALUE));
         }
         break;
     case WM_DESTROY:
         {
-            RemoveProp(hwndDlg, PhMakeContextAtom());
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
         }
         break;
     case WM_COMMAND:
@@ -110,7 +110,7 @@ static INT_PTR CALLBACK PhpMemoryProtectDlgProc(
             case IDOK:
                 {
                     NTSTATUS status;
-                    PMEMORY_PROTECT_CONTEXT context = (PMEMORY_PROTECT_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
+                    PMEMORY_PROTECT_CONTEXT context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
                     HANDLE processHandle;
                     ULONG64 protect;
 
@@ -148,7 +148,7 @@ static INT_PTR CALLBACK PhpMemoryProtectDlgProc(
                     else
                     {
                         PhShowStatus(hwndDlg, L"Unable to change memory protection", status, 0);
-                        SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)GetDlgItem(hwndDlg, IDC_VALUE), TRUE);
+                        PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDC_VALUE));
                         Edit_SetSel(GetDlgItem(hwndDlg, IDC_VALUE), 0, -1);
                     }
                 }

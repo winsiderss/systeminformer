@@ -12,7 +12,6 @@
 #endif
 
 EXT BOOLEAN PhEnableProcessQueryStage2;
-EXT BOOLEAN PhEnableServiceQueryStage2;
 
 EXT ULONG PhCsCollapseServicesOnStart;
 EXT ULONG PhCsForceNoParent;
@@ -39,10 +38,12 @@ EXT ULONG PhCsUseColorDebuggedProcesses;
 EXT ULONG PhCsColorDebuggedProcesses;
 EXT ULONG PhCsUseColorElevatedProcesses;
 EXT ULONG PhCsColorElevatedProcesses;
-EXT ULONG PhCsUseColorPicoProcesses;
-EXT ULONG PhCsColorPicoProcesses;
+EXT ULONG PhCsUseColorHandleFiltered;
+EXT ULONG PhCsColorHandleFiltered;
 EXT ULONG PhCsUseColorImmersiveProcesses;
 EXT ULONG PhCsColorImmersiveProcesses;
+EXT ULONG PhCsUseColorPicoProcesses;
+EXT ULONG PhCsColorPicoProcesses;
 EXT ULONG PhCsUseColorSuspended;
 EXT ULONG PhCsColorSuspended;
 EXT ULONG PhCsUseColorDotNet;

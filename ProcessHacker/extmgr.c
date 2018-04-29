@@ -126,7 +126,7 @@ PVOID PhEmGetObjectExtension(
     if (!objectExtension)
         return NULL;
 
-    return (PCHAR)Object + PhEmObjectTypeState[ObjectType].InitialSize + objectExtension->ExtensionOffset;
+    return PTR_ADD_OFFSET(Object, PhEmObjectTypeState[ObjectType].InitialSize + objectExtension->ExtensionOffset);
 }
 
 /**
@@ -178,7 +178,7 @@ VOID PhEmCallObjectOperation(
             objectExtension->Callbacks[Operation](
                 Object,
                 ObjectType,
-                (PCHAR)Object + objectTypeState->InitialSize + objectExtension->ExtensionOffset
+                PTR_ADD_OFFSET(Object, objectTypeState->InitialSize + objectExtension->ExtensionOffset)
                 );
         }
 

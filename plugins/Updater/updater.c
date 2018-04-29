@@ -2,7 +2,7 @@
  * Process Hacker Plugins -
  *   Update Checker Plugin
  *
- * Copyright (C) 2011-2016 dmex
+ * Copyright (C) 2011-2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -21,8 +21,6 @@
  */
 
 #include "updater.h"
-#include <commonutil.h>
-#include <shlobj.h>
 
 HWND UpdateDialogHandle = NULL;
 HANDLE UpdateDialogThreadHandle = NULL;
@@ -47,18 +45,16 @@ VOID FreeUpdateContext(
     _In_ _Post_invalid_ PPH_UPDATER_CONTEXT Context
     )
 {
-    PhClearReference(&Context->Version);
-    PhClearReference(&Context->RevVersion);
-    PhClearReference(&Context->RelDate);
-    PhClearReference(&Context->Size);
-    PhClearReference(&Context->Hash);
-    PhClearReference(&Context->Signature);
-    PhClearReference(&Context->ReleaseNotesUrl);
-    PhClearReference(&Context->SetupFilePath);
-    PhClearReference(&Context->SetupFileDownloadUrl);
-    PhClearReference(&Context->BuildMessage);
     PhClearReference(&Context->CurrentVersionString);
-    
+
+    PhClearReference(&Context->Version);
+    PhClearReference(&Context->RelDate);
+    PhClearReference(&Context->SetupFileDownloadUrl);
+    PhClearReference(&Context->SetupFileLength);
+    PhClearReference(&Context->SetupFileHash);
+    PhClearReference(&Context->SetupFileSignature);
+    PhClearReference(&Context->BuildMessage);
+
     PhDereferenceObject(Context);
 }
 
@@ -77,7 +73,7 @@ VOID TaskDialogLinkClicked(
     _In_ PPH_UPDATER_CONTEXT Context
     )
 {
-    if (!PhIsNullOrEmptyString(Context->ReleaseNotesUrl))
+    if (!PhIsNullOrEmptyString(Context->BuildMessage))
     {
         DialogBoxParam(
             PluginInstance->DllBase, 
@@ -87,18 +83,6 @@ VOID TaskDialogLinkClicked(
             (LPARAM)Context
             );
     }
-}
-
-PPH_STRING UpdaterGetOpaqueXmlNodeText(
-    _In_ mxml_node_t *xmlNode
-    )
-{
-    if (xmlNode && xmlNode->child && xmlNode->child->type == MXML_OPAQUE && xmlNode->child->value.opaque)
-    {
-        return PhConvertUtf8ToUtf16(xmlNode->child->value.opaque);
-    }
-
-    return PhReferenceEmptyString();
 }
 
 BOOLEAN UpdaterInstalledUsingSetup(
@@ -232,7 +216,7 @@ ULONG64 ParseVersionString(
     PH_STRINGREF remaining, majorPart, minorPart, revisionPart;
     ULONG64 majorInteger = 0, minorInteger = 0, revisionInteger = 0;
 
-    PhInitializeStringRef(&remaining, PhGetString(VersionString));
+    PhInitializeStringRef(&remaining, PhGetStringOrEmpty(VersionString));
 
     PhSplitStringRefAtChar(&remaining, '.', &majorPart, &remaining);
     PhSplitStringRefAtChar(&remaining, '.', &minorPart, &remaining);
@@ -250,212 +234,101 @@ ULONG64 ParseVersionString(
         );
 }
 
-BOOLEAN ReadRequestString(
-    _In_ HINTERNET Handle,
-    _Out_ _Deref_post_z_cap_(*DataLength) PSTR *Data,
-    _Out_ ULONG *DataLength
-    )
-{
-    PSTR data;
-    ULONG allocatedLength;
-    ULONG dataLength;
-    ULONG returnLength;
-    BYTE buffer[PAGE_SIZE];
-
-    allocatedLength = sizeof(buffer);
-    data = (PSTR)PhAllocate(allocatedLength);
-    dataLength = 0;
-
-    memset(buffer, 0, PAGE_SIZE);
-    memset(data, 0, allocatedLength);
-
-    while (WinHttpReadData(Handle, buffer, PAGE_SIZE, &returnLength))
-    {
-        if (returnLength == 0)
-            break;
-
-        if (allocatedLength < dataLength + returnLength)
-        {
-            allocatedLength *= 2;
-            data = (PSTR)PhReAllocate(data, allocatedLength);
-        }
-
-        memcpy(data + dataLength, buffer, returnLength);
-
-        dataLength += returnLength;
-    }
-
-    if (allocatedLength < dataLength + 1)
-    {
-        allocatedLength++;
-        data = (PSTR)PhReAllocate(data, allocatedLength);
-    }
-
-    data[dataLength] = 0;
-
-    *DataLength = dataLength;
-    *Data = data;
-
-    return TRUE;
-}
-
 BOOLEAN QueryUpdateData(
     _Inout_ PPH_UPDATER_CONTEXT Context
     )
 {
     BOOLEAN success = FALSE;
-    HINTERNET httpSessionHandle = NULL;
-    HINTERNET httpConnectionHandle = NULL;
-    HINTERNET httpRequestHandle = NULL;
-    ULONG stringBufferLength = 0;
-    PSTR stringBuffer = NULL;
+    PPH_HTTP_CONTEXT httpContext = NULL;
+    PPH_BYTES jsonString = NULL;
     PVOID jsonObject = NULL;
-    mxml_node_t* xmlNode = NULL;
-    PPH_STRING versionHeader = UpdateVersionString();
-    PPH_STRING windowsHeader = UpdateWindowsString();
-    PSTR tempValue = NULL;
 
-    if (!(httpSessionHandle = WinHttpOpen(
-        NULL,
-        WindowsVersion >= WINDOWS_8_1 ? WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
-        WINHTTP_NO_PROXY_NAME,
-        WINHTTP_NO_PROXY_BYPASS,
-        0
-        )))
+    if (!PhHttpSocketCreate(&httpContext, NULL))
     {
         Context->ErrorCode = GetLastError();
         goto CleanupExit;
     }
 
-    if (WindowsVersion >= WINDOWS_8_1)
-    {
-        ULONG httpFlags = WINHTTP_DECOMPRESSION_FLAG_GZIP | WINHTTP_DECOMPRESSION_FLAG_DEFLATE;
-
-        WinHttpSetOption(
-            httpSessionHandle,
-            WINHTTP_OPTION_DECOMPRESSION,
-            &httpFlags,
-            sizeof(ULONG)
-            );
-    }
-
-    if (!(httpConnectionHandle = WinHttpConnect(
-        httpSessionHandle,
-        L"wj32.org",
-        INTERNET_DEFAULT_HTTPS_PORT,
-        0
-        )))
-    {
-        Context->ErrorCode = GetLastError();
-        goto CleanupExit;
-    }
-
-    if (!(httpRequestHandle = WinHttpOpenRequest(
-        httpConnectionHandle,
-        NULL,
-        L"/processhacker/nightly.php?phupdater",
-        NULL,
-        WINHTTP_NO_REFERER,
-        WINHTTP_DEFAULT_ACCEPT_TYPES,
-        WINHTTP_FLAG_REFRESH | WINHTTP_FLAG_SECURE
-        )))
-    {
-        Context->ErrorCode = GetLastError();
-        goto CleanupExit;
-    }
-
-    WinHttpSetOption(
-        httpRequestHandle,
-        WINHTTP_OPTION_DISABLE_FEATURE, 
-        &(ULONG){ WINHTTP_DISABLE_KEEP_ALIVE }, 
-        sizeof(ULONG)
-        );
-    
-    if (versionHeader)
-    {
-        WinHttpAddRequestHeaders(
-            httpRequestHandle,
-            versionHeader->Buffer,
-            (ULONG)versionHeader->Length / sizeof(WCHAR),
-            WINHTTP_ADDREQ_FLAG_ADD
-            );
-    }
-
-    if (windowsHeader)
-    {
-        WinHttpAddRequestHeaders(
-            httpRequestHandle,
-            windowsHeader->Buffer,
-            (ULONG)windowsHeader->Length / sizeof(WCHAR),
-            WINHTTP_ADDREQ_FLAG_ADD
-            );
-    }
-
-    if (!WinHttpSendRequest(
-        httpRequestHandle,
-        WINHTTP_NO_ADDITIONAL_HEADERS,
-        0,
-        WINHTTP_NO_REQUEST_DATA,
-        0,
-        WINHTTP_IGNORE_REQUEST_TOTAL_LENGTH,
-        0
+    if (!PhHttpSocketConnect(
+        httpContext, 
+        L"wj32.org", 
+        PH_HTTP_DEFAULT_HTTPS_PORT
         ))
     {
         Context->ErrorCode = GetLastError();
         goto CleanupExit;
     }
 
-    if (!WinHttpReceiveResponse(httpRequestHandle, NULL))
+    if (!PhHttpSocketBeginRequest(
+        httpContext, 
+        NULL, 
+        L"/processhacker/nightly.php?phupdater", 
+        PH_HTTP_FLAG_REFRESH | PH_HTTP_FLAG_SECURE
+        ))
+    {
+        Context->ErrorCode = GetLastError();
+        goto CleanupExit;
+    }
+  
+    {
+        PPH_STRING versionHeader;
+        PPH_STRING windowsHeader;
+
+        if (versionHeader = UpdateVersionString())
+        {
+            PhHttpSocketAddRequestHeaders(httpContext, versionHeader->Buffer, (ULONG)versionHeader->Length / sizeof(WCHAR));
+            PhDereferenceObject(versionHeader);
+        }
+
+        if (windowsHeader = UpdateWindowsString())
+        {
+            PhHttpSocketAddRequestHeaders(httpContext, windowsHeader->Buffer, (ULONG)windowsHeader->Length / sizeof(WCHAR));
+            PhDereferenceObject(windowsHeader);
+        }
+    }
+
+    if (!PhHttpSocketSendRequest(httpContext, NULL, 0))
     {
         Context->ErrorCode = GetLastError();
         goto CleanupExit;
     }
 
-    if (!ReadRequestString(httpRequestHandle, &stringBuffer, &stringBufferLength))
-        goto CleanupExit;
-
-    if (stringBuffer == NULL || stringBuffer[0] == '\0')
-        goto CleanupExit;
-
-    if (!(jsonObject = PhCreateJsonParser(stringBuffer)))
-        goto CleanupExit;
-
-    Context->Size = PhFormatSize(PhGetJsonValueAsLong64(jsonObject, "size"), 2);
-    if (tempValue = PhGetJsonValueAsString(jsonObject, "version"))
+    if (!PhHttpSocketEndRequest(httpContext))
     {
-        Context->Version = PhConvertUtf8ToUtf16(tempValue);
-        Context->RevVersion = PhConvertUtf8ToUtf16(tempValue);
+        Context->ErrorCode = GetLastError();
+        goto CleanupExit;
     }
-    if (tempValue = PhGetJsonValueAsString(jsonObject, "updated"))
-        Context->RelDate = PhConvertUtf8ToUtf16(tempValue);
-    if (tempValue = PhGetJsonValueAsString(jsonObject, "hash_setup"))
-        Context->Hash = PhConvertUtf8ToUtf16(tempValue);
-    if (tempValue = PhGetJsonValueAsString(jsonObject, "sig"))
-        Context->Signature = PhConvertUtf8ToUtf16(tempValue);
-    if (tempValue = PhGetJsonValueAsString(jsonObject, "forum_url"))
-        Context->ReleaseNotesUrl = PhConvertUtf8ToUtf16(tempValue);
-    if (tempValue = PhGetJsonValueAsString(jsonObject, "setup_url"))
-        Context->SetupFileDownloadUrl = PhConvertUtf8ToUtf16(tempValue);
-    if (tempValue = PhGetJsonValueAsString(jsonObject, "changelog"))
-        Context->BuildMessage = PhConvertUtf8ToUtf16(tempValue);
+
+    if (!(jsonString = PhHttpSocketDownloadString(httpContext, FALSE)))
+    {
+        Context->ErrorCode = GetLastError();
+        goto CleanupExit;
+    }
+
+    if (!(jsonObject = PhCreateJsonParser(jsonString->Buffer)))
+        goto CleanupExit;
+
+    Context->Version = PhGetJsonValueAsString(jsonObject, "version");
+    Context->RelDate = PhGetJsonValueAsString(jsonObject, "updated");
+    Context->SetupFileDownloadUrl = PhGetJsonValueAsString(jsonObject, "setup_url");
+    Context->SetupFileLength = PhFormatSize(PhGetJsonValueAsLong64(jsonObject, "setup_length"), 2);
+    Context->SetupFileHash = PhGetJsonValueAsString(jsonObject, "setup_hash");
+    Context->SetupFileSignature = PhGetJsonValueAsString(jsonObject, "setup_sig");
+    Context->BuildMessage = PhGetJsonValueAsString(jsonObject, "changelog");
 
     PhFreeJsonParser(jsonObject);
 
     if (PhIsNullOrEmptyString(Context->Version))
         goto CleanupExit;
-    if (PhIsNullOrEmptyString(Context->RevVersion))
-        goto CleanupExit;
     if (PhIsNullOrEmptyString(Context->RelDate))
-        goto CleanupExit;
-    if (PhIsNullOrEmptyString(Context->Size))
-        goto CleanupExit;
-    if (PhIsNullOrEmptyString(Context->Hash))
-        goto CleanupExit;
-    if (PhIsNullOrEmptyString(Context->ReleaseNotesUrl))
         goto CleanupExit;
     if (PhIsNullOrEmptyString(Context->SetupFileDownloadUrl))
         goto CleanupExit;
-    if (PhIsNullOrEmptyString(Context->Signature))
+    if (PhIsNullOrEmptyString(Context->SetupFileLength))
+        goto CleanupExit;
+    if (PhIsNullOrEmptyString(Context->SetupFileHash))
+        goto CleanupExit;
+    if (PhIsNullOrEmptyString(Context->SetupFileSignature))
         goto CleanupExit;
     if (PhIsNullOrEmptyString(Context->BuildMessage))
         goto CleanupExit;
@@ -464,25 +337,13 @@ BOOLEAN QueryUpdateData(
 
 CleanupExit:
 
-    if (httpRequestHandle)
-        WinHttpCloseHandle(httpRequestHandle);
+    if (httpContext)
+        PhHttpSocketDestroy(httpContext);
 
-    if (httpConnectionHandle)
-        WinHttpCloseHandle(httpConnectionHandle);
+    if (jsonString)
+        PhDereferenceObject(jsonString);
 
-    if (httpSessionHandle)
-        WinHttpCloseHandle(httpSessionHandle);
-
-    if (xmlNode)
-        mxmlDelete(xmlNode);
-
-    if (stringBuffer)
-        PhFree(stringBuffer);
-
-    PhClearReference(&versionHeader);
-    PhClearReference(&windowsHeader);
-
-    if (!PhIsNullOrEmptyString(Context->BuildMessage))
+    if (success && !PhIsNullOrEmptyString(Context->BuildMessage))
     {
         PH_STRING_BUILDER sb;
 
@@ -565,12 +426,15 @@ NTSTATUS UpdateCheckThread(
     _In_ PVOID Parameter
     )
 {
-    PPH_UPDATER_CONTEXT context = NULL;
+    PPH_UPDATER_CONTEXT context;
     ULONGLONG currentVersion = 0;
     ULONGLONG latestVersion = 0;
+    PH_AUTO_POOL autoPool;
 
     context = (PPH_UPDATER_CONTEXT)Parameter;
     context->ErrorCode = STATUS_SUCCESS;
+
+    PhInitializeAutoPool(&autoPool);
 
     // Check if we have cached update data
     if (!context->HaveData)
@@ -583,6 +447,7 @@ NTSTATUS UpdateCheckThread(
         ShowUpdateFailedDialog(context, FALSE, FALSE);
 
         PhDereferenceObject(context);
+        PhDeleteAutoPool(&autoPool);
         return STATUS_SUCCESS;
     }
 
@@ -616,6 +481,7 @@ NTSTATUS UpdateCheckThread(
     }
 
     PhDereferenceObject(context);
+    PhDeleteAutoPool(&autoPool);
     return STATUS_SUCCESS;
 }
 
@@ -646,14 +512,11 @@ NTSTATUS UpdateDownloadThread(
     BOOLEAN hashSuccess = FALSE;
     BOOLEAN signatureSuccess = FALSE;
     HANDLE tempFileHandle = NULL;
-    HINTERNET httpSessionHandle = NULL;
-    HINTERNET httpConnectionHandle = NULL;
-    HINTERNET httpRequestHandle = NULL;
+    PPH_HTTP_CONTEXT httpContext = NULL;
     PPH_STRING downloadHostPath = NULL;
     PPH_STRING downloadUrlPath = NULL;
-    PPH_STRING userAgentString = NULL;
     PUPDATER_HASH_CONTEXT hashContext = NULL;
-    URL_COMPONENTS httpParts = { sizeof(URL_COMPONENTS) };
+    USHORT httpPort = 0;
     LARGE_INTEGER timeNow;
     LARGE_INTEGER timeStart;
     ULONG64 timeTicks = 0;
@@ -662,51 +525,19 @@ NTSTATUS UpdateDownloadThread(
 
     SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Initializing download request...");
 
-    // Create a user agent string.
-    userAgentString = PhFormatString(
-        L"PH_%s",
-        PhGetStringOrEmpty(context->CurrentVersionString)
-        );
-    if (PhIsNullOrEmptyString(userAgentString))
-        goto CleanupExit;
-
-    // Set lengths to non-zero enabling these params to be cracked.
-    httpParts.dwSchemeLength = ULONG_MAX;
-    httpParts.dwHostNameLength = ULONG_MAX;
-    httpParts.dwUrlPathLength = ULONG_MAX;
-
-    if (!WinHttpCrackUrl(
-        PhGetStringOrEmpty(context->SetupFileDownloadUrl),
-        0,
-        0,
-        &httpParts
+    if (!PhHttpSocketParseUrl(
+        context->SetupFileDownloadUrl,
+        &downloadHostPath, 
+        &downloadUrlPath,
+        &httpPort
         ))
     {
         context->ErrorCode = GetLastError();
         goto CleanupExit;
     }
 
-    // Create the Host string.
-    if (PhIsNullOrEmptyString(downloadHostPath = PhCreateStringEx(
-        httpParts.lpszHostName,
-        httpParts.dwHostNameLength * sizeof(WCHAR)
-        )))
-    {
-        goto CleanupExit;
-    }
-
-    // Create the remote path string.
-    if (PhIsNullOrEmptyString(downloadUrlPath = PhCreateStringEx(
-        httpParts.lpszUrlPath,
-        httpParts.dwUrlPathLength * sizeof(WCHAR)
-        )))
-    {
-        goto CleanupExit;
-    }
-
     // Create the local path string.
     context->SetupFilePath = UpdaterParseDownloadFileName(downloadUrlPath);
-
     if (PhIsNullOrEmptyString(context->SetupFilePath))
         goto CleanupExit;
 
@@ -726,72 +557,36 @@ NTSTATUS UpdateDownloadThread(
 
     SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Connecting...");
 
-    // Open the HTTP session with the system proxy configuration if available
-    if (!(httpSessionHandle = WinHttpOpen(
-        PhGetString(userAgentString),
-        WindowsVersion >= WINDOWS_8_1 ? WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
-        WINHTTP_NO_PROXY_NAME,
-        WINHTTP_NO_PROXY_BYPASS,
-        0
-        )))
+    if (!PhHttpSocketCreate(&httpContext, NULL))
     {
         context->ErrorCode = GetLastError();
         goto CleanupExit;
     }
 
-    if (WindowsVersion >= WINDOWS_8_1)
-    {
-        WinHttpSetOption(
-            httpSessionHandle, 
-            WINHTTP_OPTION_DECOMPRESSION, 
-            &(ULONG){ WINHTTP_DECOMPRESSION_FLAG_GZIP | WINHTTP_DECOMPRESSION_FLAG_DEFLATE }, 
-            sizeof(ULONG)
-            );
-    }
-
-    if (!(httpConnectionHandle = WinHttpConnect(
-        httpSessionHandle,
-        PhGetString(downloadHostPath),
-        httpParts.nScheme == INTERNET_SCHEME_HTTP ? INTERNET_DEFAULT_HTTP_PORT : INTERNET_DEFAULT_HTTPS_PORT,
-        0
-        )))
+    if (!PhHttpSocketConnect(
+        httpContext, 
+        PhGetString(downloadHostPath), 
+        httpPort
+        ))
     {
         context->ErrorCode = GetLastError();
         goto CleanupExit;
     }
 
-    if (!(httpRequestHandle = WinHttpOpenRequest(
-        httpConnectionHandle,
-        NULL,
-        PhGetString(downloadUrlPath),
-        NULL,
-        WINHTTP_NO_REFERER,
-        WINHTTP_DEFAULT_ACCEPT_TYPES,
-        WINHTTP_FLAG_REFRESH | (httpParts.nScheme == INTERNET_SCHEME_HTTPS ? WINHTTP_FLAG_SECURE : 0)
-        )))
+    if (!PhHttpSocketBeginRequest(
+        httpContext, 
+        NULL, 
+        PhGetString(downloadUrlPath), 
+        PH_HTTP_FLAG_REFRESH | (httpPort == PH_HTTP_DEFAULT_HTTPS_PORT ? PH_HTTP_FLAG_SECURE : 0)
+        ))
     {
         context->ErrorCode = GetLastError();
         goto CleanupExit;
     }
-
-    WinHttpSetOption(
-        httpRequestHandle, 
-        WINHTTP_OPTION_DISABLE_FEATURE, 
-        &(ULONG){ WINHTTP_DISABLE_KEEP_ALIVE },
-        sizeof(ULONG)
-        );
 
     SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Sending download request...");
 
-    if (!WinHttpSendRequest(
-        httpRequestHandle,
-        WINHTTP_NO_ADDITIONAL_HEADERS,
-        0,
-        WINHTTP_NO_REQUEST_DATA,
-        0,
-        WINHTTP_IGNORE_REQUEST_TOTAL_LENGTH,
-        0
-        ))
+    if (!PhHttpSocketSendRequest(httpContext, NULL, 0))
     {
         context->ErrorCode = GetLastError();
         goto CleanupExit;
@@ -799,7 +594,7 @@ NTSTATUS UpdateDownloadThread(
 
     SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Waiting for response...");
 
-    if (!WinHttpReceiveResponse(httpRequestHandle, NULL))
+    if (!PhHttpSocketEndRequest(httpContext))
     {
         context->ErrorCode = GetLastError();
         goto CleanupExit;
@@ -808,7 +603,6 @@ NTSTATUS UpdateDownloadThread(
     {
         ULONG bytesDownloaded = 0;
         ULONG downloadedBytes = 0;
-        ULONG contentLengthSize = sizeof(ULONG);
         ULONG contentLength = 0;
         PPH_STRING status;
         IO_STATUS_BLOCK isb;
@@ -820,16 +614,10 @@ NTSTATUS UpdateDownloadThread(
         SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)status->Buffer);
         PhDereferenceObject(status);
 
-        // Start the clock.
-        PhQuerySystemTime(&timeStart);
-
-        if (!WinHttpQueryHeaders(
-            httpRequestHandle,
-            WINHTTP_QUERY_CONTENT_LENGTH | WINHTTP_QUERY_FLAG_NUMBER,
-            WINHTTP_HEADER_NAME_BY_INDEX,
-            &contentLength,
-            &contentLengthSize,
-            0
+        if (!PhHttpSocketQueryHeaderUlong(
+            httpContext,
+            PH_HTTP_QUERY_CONTENT_LENGTH,
+            &contentLength
             ))
         {
             context->ErrorCode = GetLastError();
@@ -843,8 +631,11 @@ NTSTATUS UpdateDownloadThread(
         // Zero the buffer.
         memset(buffer, 0, PAGE_SIZE);
 
+        // Start the clock.
+        PhQuerySystemTime(&timeStart);
+
         // Download the data.
-        while (WinHttpReadData(httpRequestHandle, buffer, PAGE_SIZE, &bytesDownloaded))
+        while (PhHttpSocketReadData(httpContext, buffer, PAGE_SIZE, &bytesDownloaded))
         {
             // If we get zero bytes, the file was uploaded or there was an error
             if (bytesDownloaded == 0)
@@ -911,12 +702,12 @@ NTSTATUS UpdateDownloadThread(
             }
         }
 
-        if (UpdaterVerifyHash(hashContext, context->Hash))
+        if (UpdaterVerifyHash(hashContext, context->SetupFileHash))
         {
             hashSuccess = TRUE;
         }
 
-        if (UpdaterVerifySignature(hashContext, context->Signature))
+        if (UpdaterVerifySignature(hashContext, context->SetupFileSignature))
         {
             signatureSuccess = TRUE;
         }
@@ -929,29 +720,20 @@ NTSTATUS UpdateDownloadThread(
 
 CleanupExit:
 
+    if (httpContext)
+        PhHttpSocketDestroy(httpContext);
+
     if (hashContext)
         UpdaterDestroyHash(hashContext);
 
     if (tempFileHandle)
         NtClose(tempFileHandle);
 
-    if (httpRequestHandle)
-        WinHttpCloseHandle(httpRequestHandle);
-
-    if (httpConnectionHandle)
-        WinHttpCloseHandle(httpConnectionHandle);
-
-    if (httpSessionHandle)
-        WinHttpCloseHandle(httpSessionHandle);
-
     if (downloadHostPath)
         PhDereferenceObject(downloadHostPath);
 
     if (downloadUrlPath)
         PhDereferenceObject(downloadUrlPath);
-
-    if (userAgentString)
-        WinHttpCloseHandle(userAgentString);
 
     if (UpdateDialogThreadHandle)
     {
@@ -982,15 +764,25 @@ LRESULT CALLBACK TaskDialogSubclassProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
-    _In_ LPARAM lParam,
-    _In_ UINT_PTR uIdSubclass,
-    _In_ ULONG_PTR dwRefData
+    _In_ LPARAM lParam
     )
 {
-    PPH_UPDATER_CONTEXT context = (PPH_UPDATER_CONTEXT)dwRefData;
+    PPH_UPDATER_CONTEXT context;
+    WNDPROC oldWndProc;
+
+    if (!(context = PhGetWindowContext(hwndDlg, UCHAR_MAX)))
+        return 0;
+
+    oldWndProc = context->DefaultWindowProc;
 
     switch (uMsg)
     {
+    case WM_DESTROY:
+        {
+            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+            PhRemoveWindowContext(hwndDlg, UCHAR_MAX);
+        }
+        break;
     case PH_SHOWDIALOG:
         {
             if (IsMinimized(hwndDlg))
@@ -999,11 +791,6 @@ LRESULT CALLBACK TaskDialogSubclassProc(
                 ShowWindow(hwndDlg, SW_SHOW);
 
             SetForegroundWindow(hwndDlg);
-        }
-        break;
-    case WM_NCDESTROY:
-        {
-            RemoveWindowSubclass(hwndDlg, TaskDialogSubclassProc, uIdSubclass);
         }
         break;
     //case WM_PARENTNOTIFY:
@@ -1048,7 +835,7 @@ LRESULT CALLBACK TaskDialogSubclassProc(
     //    break;
     }
 
-    return DefSubclassProc(hwndDlg, uMsg, wParam, lParam);
+    return CallWindowProc(oldWndProc, hwndDlg, uMsg, wParam, lParam);
 }
 
 HRESULT CALLBACK TaskDialogBootstrapCallback(
@@ -1070,11 +857,13 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
             // Center the update window on PH if it's visible else we center on the desktop.
             PhCenterWindow(hwndDlg, (IsWindowVisible(PhMainWndHandle) && !IsMinimized(PhMainWndHandle)) ? PhMainWndHandle : NULL);
 
-            // Create the Taskdialog icons
+            // Create the Taskdialog icons.
             TaskDialogCreateIcons(context);
 
-            // Subclass the Taskdialog
-            SetWindowSubclass(hwndDlg, TaskDialogSubclassProc, 0, (ULONG_PTR)context);
+            // Subclass the Taskdialog.
+            context->DefaultWindowProc = (WNDPROC)GetWindowLongPtr(hwndDlg, GWLP_WNDPROC);
+            PhSetWindowContext(hwndDlg, UCHAR_MAX, context);
+            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)TaskDialogSubclassProc);
 
             if (context->StartupCheck)
                 ShowAvailableDialog(context);
@@ -1104,6 +893,7 @@ NTSTATUS ShowUpdateDialogThread(
 
     // Start TaskDialog bootstrap
     config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED;
+    config.hInstance = PluginInstance->DllBase;
     config.pszContent = L"Initializing...";
     config.lpCallbackData = (LONG_PTR)context;
     config.pfCallback = TaskDialogBootstrapCallback;

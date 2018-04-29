@@ -3,7 +3,7 @@
  *   Main Program
  *
  * Copyright (C) 2010-2013 wj32
- * Copyright (C) 2012-2017 dmex
+ * Copyright (C) 2012-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -214,16 +214,23 @@ VOID NTAPI MenuItemCallback(
     case MENUITEM_VIRUSTOTAL_UPLOAD:
         UploadToOnlineService(menuItem->Context, MENUITEM_VIRUSTOTAL_UPLOAD);
         break;
-    case MENUITEM_JOTTI_UPLOAD:
-        UploadToOnlineService(menuItem->Context, MENUITEM_JOTTI_UPLOAD);
-        break;
     case MENUITEM_VIRUSTOTAL_UPLOAD_SERVICE:
         UploadServiceToOnlineService(menuItem->Context, MENUITEM_VIRUSTOTAL_UPLOAD_SERVICE);
+        break;
+    case MENUITEM_JOTTI_UPLOAD:
+        UploadToOnlineService(menuItem->Context, MENUITEM_JOTTI_UPLOAD);
         break;
     case MENUITEM_JOTTI_UPLOAD_SERVICE:
         UploadServiceToOnlineService(menuItem->Context, MENUITEM_JOTTI_UPLOAD_SERVICE);
         break;
+    case MENUITEM_HYBRIDANALYSIS_UPLOAD:
+        UploadToOnlineService(menuItem->Context, MENUITEM_HYBRIDANALYSIS_UPLOAD);
+        break;
+    case MENUITEM_HYBRIDANALYSIS_UPLOAD_SERVICE:
+        UploadServiceToOnlineService(menuItem->Context, MENUITEM_HYBRIDANALYSIS_UPLOAD_SERVICE);
+        break;
     case MENUITEM_VIRUSTOTAL_UPLOAD_FILE:
+    case MENUITEM_HYBRIDANALYSIS_UPLOAD_FILE:
         {
             static PH_FILETYPE_FILTER filters[] =
             {
@@ -239,7 +246,15 @@ VOID NTAPI MenuItemCallback(
             {
                 fileName = PH_AUTO(PhGetFileDialogFileName(fileDialog));
 
-                UploadToOnlineService(fileName, MENUITEM_VIRUSTOTAL_UPLOAD);
+                switch (menuItem->Id)
+                {
+                case MENUITEM_VIRUSTOTAL_UPLOAD_FILE:
+                    UploadToOnlineService(fileName, MENUITEM_VIRUSTOTAL_UPLOAD);
+                    break;
+                case MENUITEM_HYBRIDANALYSIS_UPLOAD_FILE:
+                    UploadToOnlineService(fileName, MENUITEM_HYBRIDANALYSIS_UPLOAD);
+                    break;
+                }
             }
 
             PhFreeFileDialog(fileDialog);
@@ -260,11 +275,12 @@ VOID NTAPI MainMenuInitializingCallback(
     if (menuInfo->u.MainMenu.SubMenuIndex != PH_MENU_ITEM_LOCATION_TOOLS)
         return;
 
-    onlineMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"Online Checks", NULL);
-    PhInsertEMenuItem(onlineMenuItem, enableMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ENABLE_SERVICE_VIRUSTOTAL, L"Enable VirusTotal scanning", NULL), -1);
-    PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, PH_EMENU_SEPARATOR, 0, NULL, NULL), -1);
-    PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_UPLOAD_FILE, L"Upload file to VirusTotal...", NULL), -1);
-    PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_QUEUE, L"Upload unknown files to VirusTotal...", NULL), -1);
+    onlineMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"&Online Checks", NULL);
+    PhInsertEMenuItem(onlineMenuItem, enableMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ENABLE_SERVICE_VIRUSTOTAL, L"&Enable VirusTotal scanning", NULL), -1);
+    PhInsertEMenuItem(onlineMenuItem, PhCreateEMenuSeparator(), -1);
+    PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_HYBRIDANALYSIS_UPLOAD_FILE, L"Upload file to &Hybrid-Analysis...", NULL), -1);
+    PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_UPLOAD_FILE, L"&Upload file to VirusTotal...", NULL), -1);
+    //PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_QUEUE, L"Upload unknown files to VirusTotal...", NULL), -1);
     PhInsertEMenuItem(menuInfo->Menu, onlineMenuItem, -1);
 
     if (VirusTotalScanningEnabled)
@@ -281,19 +297,20 @@ PPH_EMENU_ITEM CreateSendToMenu(
     PPH_EMENU_ITEM menuItem;
     ULONG insertIndex;
 
-    sendToMenu = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"Send to", NULL);
-    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_UPLOAD, L"virustotal.com", FileName), -1);
-    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_JOTTI_UPLOAD, L"virusscan.jotti.org", FileName), -1);
+    sendToMenu = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"Sen&d to", NULL);
+    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_HYBRIDANALYSIS_UPLOAD, L"&hybrid-analysis.com", FileName), -1);
+    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_UPLOAD, L"&virustotal.com", FileName), -1);
+    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_JOTTI_UPLOAD, L"virusscan.&jotti.org", FileName), -1);
 
     if (ProcessesMenu && (menuItem = PhFindEMenuItem(Parent, PH_EMENU_FIND_STARTSWITH, L"Search online", 0)))
     {
         insertIndex = PhIndexOfEMenuItem(Parent, menuItem);
         PhInsertEMenuItem(Parent, sendToMenu, insertIndex + 1);
-        PhInsertEMenuItem(Parent, PhPluginCreateEMenuItem(PluginInstance, PH_EMENU_SEPARATOR, 0, NULL, NULL), insertIndex + 2);
+        PhInsertEMenuItem(Parent, PhCreateEMenuSeparator(), insertIndex + 2);
     }
     else
     {
-        PhInsertEMenuItem(Parent, PhPluginCreateEMenuItem(PluginInstance, PH_EMENU_SEPARATOR, 0, NULL, NULL), -1);
+        PhInsertEMenuItem(Parent, PhCreateEMenuSeparator(), -1);
         PhInsertEMenuItem(Parent, sendToMenu, -1);
     }
 
@@ -359,10 +376,11 @@ VOID NTAPI ServiceMenuInitializingCallback(
     else
         serviceItem = NULL;
 
-    sendToMenu = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"Send to", NULL);
-    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_UPLOAD_SERVICE, L"virustotal.com", serviceItem ? serviceItem : NULL), -1);
-    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_JOTTI_UPLOAD_SERVICE, L"virusscan.jotti.org", serviceItem ? serviceItem : NULL), -1);
-    PhInsertEMenuItem(menuInfo->Menu, PhPluginCreateEMenuItem(PluginInstance, PH_EMENU_SEPARATOR, 0, NULL, NULL), -1);
+    sendToMenu = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"Sen&d to", NULL);
+    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_HYBRIDANALYSIS_UPLOAD_SERVICE, L"&hybrid-analysis.com", serviceItem ? serviceItem : NULL), -1);
+    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_UPLOAD_SERVICE, L"&virustotal.com", serviceItem ? serviceItem : NULL), -1);
+    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_JOTTI_UPLOAD_SERVICE, L"virusscan.&jotti.org", serviceItem ? serviceItem : NULL), -1);
+    PhInsertEMenuItem(menuInfo->Menu, PhCreateEMenuSeparator(), -1);
     PhInsertEMenuItem(menuInfo->Menu, sendToMenu, -1);
 
     if (!serviceItem)
@@ -720,7 +738,8 @@ LOGICAL DllMain(
             PH_SETTING_CREATE settings[] =
             {
                 { IntegerSettingType, SETTING_NAME_VIRUSTOTAL_SCAN_ENABLED, L"0" },
-                { IntegerSettingType, SETTING_NAME_VIRUSTOTAL_HIGHLIGHT_DETECTIONS, L"0" }
+                { IntegerSettingType, SETTING_NAME_VIRUSTOTAL_HIGHLIGHT_DETECTIONS, L"0" },
+                { IntegerSettingType, SETTING_NAME_VIRUSTOTAL_DEFAULT_ACTION, L"0" }
             };
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);

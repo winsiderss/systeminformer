@@ -41,7 +41,7 @@ PhCreateThread(
     );
 
 PHLIBAPI
-VOID
+NTSTATUS
 NTAPI
 PhCreateThread2(
     _In_ PUSER_THREAD_START_ROUTINE StartAddress,
@@ -153,6 +153,20 @@ PhLocalTimeToSystemTime(
     _In_ PLARGE_INTEGER LocalTime,
     _Out_ PLARGE_INTEGER SystemTime
     );
+
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhDelayExecution(
+    _In_ LONGLONG Interval
+    )
+{
+    LARGE_INTEGER interval;
+
+    interval.QuadPart = -Interval * PH_TIMEOUT_MS;
+
+    return NtDelayExecution(FALSE, &interval);
+}
 
 // Heap
 
@@ -826,7 +840,7 @@ PhStringRefToUnicodeString(
     )
 {
     UnicodeString->Length = (USHORT)String->Length;
-    UnicodeString->MaximumLength = (USHORT)String->Length;
+    UnicodeString->MaximumLength = (USHORT)String->Length + sizeof(UNICODE_NULL);
     UnicodeString->Buffer = String->Buffer;
 
     return String->Length <= UNICODE_STRING_MAX_BYTES;
@@ -1028,7 +1042,7 @@ PhEndsWithStringRef(
     if (Suffix->Length > String->Length)
         return FALSE;
 
-    sr.Buffer = (PWCHAR)((PCHAR)String->Buffer + String->Length - Suffix->Length);
+    sr.Buffer = (PWCHAR)PTR_ADD_OFFSET(String->Buffer, String->Length - Suffix->Length);
     sr.Length = Suffix->Length;
 
     return PhEqualStringRef(&sr, Suffix, IgnoreCase);
@@ -1056,7 +1070,7 @@ PhSkipStringRef(
     _In_ LONG_PTR Length
     )
 {
-    String->Buffer = (PWCH)((PCHAR)String->Buffer + Length);
+    String->Buffer = (PWCH)PTR_ADD_OFFSET(String->Buffer, Length);
     String->Length -= Length;
 }
 
@@ -1131,12 +1145,22 @@ PhCreateStringEx(
     _In_ SIZE_T Length
     );
 
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhReferenceEmptyString(
+    VOID
+    );
+
 FORCEINLINE
 PPH_STRING
 PhCreateString2(
     _In_ PPH_STRINGREF String
     )
 {
+    if (String->Length == 0)
+        return PhReferenceEmptyString();
+
     return PhCreateStringEx(String->Buffer, String->Length);
 }
 
@@ -1146,15 +1170,11 @@ PhCreateStringFromUnicodeString(
     _In_ PUNICODE_STRING UnicodeString
     )
 {
+    if (UnicodeString->Length == 0)
+        return PhReferenceEmptyString();
+
     return PhCreateStringEx(UnicodeString->Buffer, UnicodeString->Length);
 }
-
-PHLIBAPI
-PPH_STRING
-NTAPI
-PhReferenceEmptyString(
-    VOID
-    );
 
 PHLIBAPI
 PPH_STRING
@@ -1387,11 +1407,35 @@ PhCompareStringWithNull(
     }
     else if (!String1)
     {
-        return !String2 ? 0 : -1;
+        return !String2 ? 0 : 1;
     }
     else
     {
-        return 1;
+        return -1;
+    }
+}
+
+// dmex: Compares two strings, always sorting NULL strings after all other strings.
+FORCEINLINE
+LONG
+PhCompareStringWithNullSortOrder(
+    _In_opt_ PPH_STRING String1,
+    _In_opt_ PPH_STRING String2,
+    _In_ PH_SORT_ORDER Order,
+    _In_ BOOLEAN IgnoreCase
+    )
+{
+    if (String1 && String2)
+    {
+        return PhCompareString(String1, String2, IgnoreCase);
+    }
+    else if (!String1)
+    {
+        return !String2 ? 0 : (Order == AscendingSortOrder ? 1 : -1);
+    }
+    else
+    {
+        return (Order == AscendingSortOrder ? -1 : 1);
     }
 }
 
@@ -2236,7 +2280,7 @@ PhItemArray(
     _In_ SIZE_T Index
     )
 {
-    return (PCHAR)Array->Items + Index * Array->ItemSize;
+    return PTR_ADD_OFFSET(Array->Items, Index * Array->ItemSize);
 }
 
 PHLIBAPI

@@ -3,6 +3,7 @@
  *   Main window: Processes tab
  *
  * Copyright (C) 2009-2016 wj32
+ * Copyright (C) 2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -31,6 +32,7 @@
 #include <phsettings.h>
 
 #include <actions.h>
+#include <colsetmgr.h>
 #include <phplug.h>
 #include <procprp.h>
 #include <procprv.h>
@@ -43,6 +45,7 @@ PPH_MAIN_TAB_PAGE PhMwpProcessesPage;
 HWND PhMwpProcessTreeNewHandle;
 HWND PhMwpSelectedProcessWindowHandle;
 BOOLEAN PhMwpSelectedProcessVirtualizationEnabled;
+PH_PROVIDER_EVENT_QUEUE PhMwpProcessEventQueue;
 
 static PH_CALLBACK_REGISTRATION ProcessAddedRegistration;
 static PH_CALLBACK_REGISTRATION ProcessModifiedRegistration;
@@ -50,9 +53,7 @@ static PH_CALLBACK_REGISTRATION ProcessRemovedRegistration;
 static PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
 
 static ULONG NeedsSelectPid = 0;
-static BOOLEAN ProcessesNeedsRedraw = FALSE;
 static PPH_PROCESS_NODE ProcessToScrollTo = NULL;
-
 static PPH_TN_FILTER_ENTRY CurrentUserFilterEntry = NULL;
 static PPH_TN_FILTER_ENTRY SignedFilterEntry = NULL;
 
@@ -68,6 +69,8 @@ BOOLEAN PhMwpProcessesPageCallback(
     case MainTabPageCreate:
         {
             PhMwpProcessesPage = Page;
+
+            PhInitializeProviderEventQueue(&PhMwpProcessEventQueue, 100);
 
             PhRegisterCallback(
                 &PhProcessAddedEvent,
@@ -108,11 +111,12 @@ BOOLEAN PhMwpProcessesPageCallback(
             PPH_EMENU menu = menuInfo->Menu;
             ULONG startIndex = menuInfo->StartIndex;
             PPH_EMENU_ITEM menuItem;
+            PPH_EMENU_ITEM columnSetMenuItem;
 
-            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_HIDEPROCESSESFROMOTHERUSERS, L"Hide processes from other users", NULL, NULL), startIndex);
-            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_HIDESIGNEDPROCESSES, L"Hide signed processes", NULL, NULL), startIndex + 1);
-            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_SCROLLTONEWPROCESSES, L"Scroll to new processes", NULL, NULL), startIndex + 2);
-            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_SHOWCPUBELOW001, L"Show CPU below 0.01", NULL, NULL), startIndex + 3);
+            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_HIDEPROCESSESFROMOTHERUSERS, L"&Hide processes from other users", NULL, NULL), startIndex);
+            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_HIDESIGNEDPROCESSES, L"Hide si&gned processes", NULL, NULL), startIndex + 1);
+            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_SCROLLTONEWPROCESSES, L"Scrol&l to new processes", NULL, NULL), startIndex + 2);
+            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_SHOWCPUBELOW001, L"Show CPU &below 0.01", NULL, NULL), startIndex + 3);
 
             if (CurrentUserFilterEntry && (menuItem = PhFindEMenuItem(menu, 0, NULL, ID_VIEW_HIDEPROCESSESFROMOTHERUSERS)))
                 menuItem->Flags |= PH_EMENU_CHECKED;
@@ -132,6 +136,38 @@ BOOLEAN PhMwpProcessesPageCallback(
                 {
                     menuItem->Flags |= PH_EMENU_DISABLED;
                 }
+            }
+
+            PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), startIndex + 4);
+            PhInsertEMenuItem(menu, menuItem = PhCreateEMenuItem(0, ID_VIEW_ORGANIZECOLUMNSETS, L"Organi&ze column sets...", NULL, NULL), startIndex + 5);
+            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_SAVECOLUMNSET, L"Sa&ve column set...", NULL, NULL), startIndex + 6);
+            PhInsertEMenuItem(menu, columnSetMenuItem = PhCreateEMenuItem(0, 0, L"Loa&d column set", NULL, NULL), startIndex + 7);
+
+            // Add column set sub menu entries.
+            {
+                ULONG index;
+                PPH_LIST columnSetList;
+
+                columnSetList = PhInitializeColumnSetList(L"ProcessTreeColumnSetConfig");
+
+                if (!columnSetList->Count)
+                {
+                    menuItem->Flags |= PH_EMENU_DISABLED;
+                    columnSetMenuItem->Flags |= PH_EMENU_DISABLED;
+                }
+                else
+                {
+                    for (index = 0; index < columnSetList->Count; index++)
+                    {
+                        PPH_COLUMN_SET_ENTRY entry = columnSetList->Items[index];
+
+                        menuItem = PhCreateEMenuItem(PH_EMENU_TEXT_OWNED, ID_VIEW_LOADCOLUMNSET, 
+                            PhAllocateCopy(entry->Name->Buffer, entry->Name->Length + sizeof(WCHAR)), NULL, NULL);
+                        PhInsertEMenuItem(columnSetMenuItem, menuItem, -1);
+                    }
+                }
+
+                PhDeleteColumnSetList(columnSetList);
             }
         }
         return TRUE;
@@ -243,7 +279,7 @@ VOID PhMwpToggleSignedProcessTreeFilter(
             PhShowInformation(
                 PhMainWndHandle,
                 L"This filter cannot function because digital signature checking is not enabled. "
-                L"Enable it in Options > Advanced and restart Process Hacker."
+                L"Enable it in Options > General and restart Process Hacker."
                 );
         }
 
@@ -363,13 +399,7 @@ VOID PhMwpSetProcessMenuPriorityChecks(
     {
         if (SetPriority)
         {
-            NtQueryInformationProcess(
-                processHandle, 
-                ProcessPriorityClass, 
-                &priorityClass, 
-                sizeof(PROCESS_PRIORITY_CLASS),
-                NULL
-                );
+            PhGetProcessPriority(processHandle, &priorityClass);
         }
 
         if (SetIoPriority)
@@ -507,7 +537,11 @@ VOID PhMwpInitializeProcessMenu(
 
         // If the user selected a fake process, disable all but
         // a few menu items.
-        if (PH_IS_FAKE_PROCESS_ID(Processes[0]->ProcessId))
+        if (
+            PH_IS_FAKE_PROCESS_ID(Processes[0]->ProcessId) || 
+            Processes[0]->ProcessId == SYSTEM_IDLE_PROCESS_ID ||
+            Processes[0]->ProcessId == SYSTEM_PROCESS_ID // TODO: Some menu entires could be enabled for the system process?
+            )
         {
             PhSetFlagsAllEMenuItems(Menu, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
             PhEnableEMenuItem(Menu, ID_PROCESS_PROPERTIES, TRUE);
@@ -709,12 +743,7 @@ VOID NTAPI PhMwpProcessAddedHandler(
     // Reference the process item so it doesn't get deleted before
     // we handle the event in the main thread.
     PhReferenceObject(processItem);
-    PostMessage(
-        PhMainWndHandle,
-        WM_PH_PROCESS_ADDED,
-        (WPARAM)PhGetRunIdProvider(&PhMwpProcessProviderRegistration),
-        (LPARAM)processItem
-        );
+    PhPushProviderEventQueue(&PhMwpProcessEventQueue, ProviderAddedEvent, Parameter, PhGetRunIdProvider(&PhMwpProcessProviderRegistration));
 }
 
 VOID NTAPI PhMwpProcessModifiedHandler(
@@ -724,7 +753,7 @@ VOID NTAPI PhMwpProcessModifiedHandler(
 {
     PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)Parameter;
 
-    PostMessage(PhMainWndHandle, WM_PH_PROCESS_MODIFIED, 0, (LPARAM)processItem);
+    PhPushProviderEventQueue(&PhMwpProcessEventQueue, ProviderModifiedEvent, Parameter, PhGetRunIdProvider(&PhMwpProcessProviderRegistration));
 }
 
 VOID NTAPI PhMwpProcessRemovedHandler(
@@ -736,7 +765,7 @@ VOID NTAPI PhMwpProcessRemovedHandler(
 
     // We already have a reference to the process item, so we don't need to
     // reference it here.
-    PostMessage(PhMainWndHandle, WM_PH_PROCESS_REMOVED, 0, (LPARAM)processItem);
+    PhPushProviderEventQueue(&PhMwpProcessEventQueue, ProviderRemovedEvent, Parameter, PhGetRunIdProvider(&PhMwpProcessProviderRegistration));
 }
 
 VOID NTAPI PhMwpProcessesUpdatedHandler(
@@ -744,7 +773,7 @@ VOID NTAPI PhMwpProcessesUpdatedHandler(
     _In_opt_ PVOID Context
     )
 {
-    PostMessage(PhMainWndHandle, WM_PH_PROCESSES_UPDATED, 0, 0);
+    PostMessage(PhMainWndHandle, WM_PH_PROCESSES_UPDATED, PhGetRunIdProvider(&PhMwpProcessProviderRegistration), 0);
 }
 
 VOID PhMwpOnProcessAdded(
@@ -754,12 +783,6 @@ VOID PhMwpOnProcessAdded(
 {
     PPH_PROCESS_NODE processNode;
 
-    if (!ProcessesNeedsRedraw)
-    {
-        TreeNew_SetRedraw(PhMwpProcessTreeNewHandle, FALSE);
-        ProcessesNeedsRedraw = TRUE;
-    }
-
     processNode = PhAddProcessNode(ProcessItem, RunId);
 
     if (RunId != 1)
@@ -768,11 +791,7 @@ VOID PhMwpOnProcessAdded(
         HANDLE parentProcessId = NULL;
         PPH_STRING parentName = NULL;
 
-        if (parentProcess = PhReferenceProcessItemForParent(
-            ProcessItem->ParentProcessId,
-            ProcessItem->ProcessId,
-            &ProcessItem->CreateTime
-            ))
+        if (parentProcess = PhReferenceProcessItemForParent(ProcessItem))
         {
             parentProcessId = parentProcess->ProcessId;
             parentName = parentProcess->ProcessName;
@@ -840,12 +859,6 @@ VOID PhMwpOnProcessRemoved(
 {
     PPH_PROCESS_NODE processNode;
 
-    if (!ProcessesNeedsRedraw)
-    {
-        TreeNew_SetRedraw(PhMwpProcessTreeNewHandle, FALSE);
-        ProcessesNeedsRedraw = TRUE;
-    }
-
     PhLogProcessEntry(PH_LOG_ENTRY_PROCESS_DELETE, ProcessItem->ProcessId, ProcessItem->QueryHandle, ProcessItem->ProcessName, NULL, NULL);
 
     if (PhMwpNotifyIconNotifyMask & PH_NOTIFY_PROCESS_DELETE)
@@ -872,9 +885,41 @@ VOID PhMwpOnProcessRemoved(
 }
 
 VOID PhMwpOnProcessesUpdated(
-    VOID
+    _In_ ULONG RunId
     )
 {
+    PPH_PROVIDER_EVENT events;
+    ULONG count;
+    ULONG i;
+
+    events = PhFlushProviderEventQueue(&PhMwpProcessEventQueue, RunId, &count);
+
+    if (events)
+    {
+        TreeNew_SetRedraw(PhMwpProcessTreeNewHandle, FALSE);
+
+        for (i = 0; i < count; i++)
+        {
+            PH_PROVIDER_EVENT_TYPE type = PH_PROVIDER_EVENT_TYPE(events[i]);
+            PPH_PROCESS_ITEM processItem = PH_PROVIDER_EVENT_OBJECT(events[i]);
+
+            switch (type)
+            {
+            case ProviderAddedEvent:
+                PhMwpOnProcessAdded(processItem, events[i].RunId);
+                break;
+            case ProviderModifiedEvent:
+                PhMwpOnProcessModified(processItem);
+                break;
+            case ProviderRemovedEvent:
+                PhMwpOnProcessRemoved(processItem);
+                break;
+            }
+        }
+
+        PhFree(events);
+    }
+
     // The modified notification is only sent for special cases.
     // We have to invalidate the text on each update.
     PhTickProcessNodes();
@@ -884,11 +929,8 @@ VOID PhMwpOnProcessesUpdated(
         PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackProcessesUpdated), NULL);
     }
 
-    if (ProcessesNeedsRedraw)
-    {
+    if (count != 0)
         TreeNew_SetRedraw(PhMwpProcessTreeNewHandle, TRUE);
-        ProcessesNeedsRedraw = FALSE;
-    }
 
     if (NeedsSelectPid != 0)
     {

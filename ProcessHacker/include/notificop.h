@@ -15,18 +15,18 @@ HICON PhNfpGetBlackIcon(
     );
 
 BOOLEAN PhNfpAddNotifyIcon(
-    _In_ ULONG Id
+    _In_ PPH_NF_ICON Icon
     );
 
 BOOLEAN PhNfpRemoveNotifyIcon(
-    _In_ ULONG Id
+    _In_ PPH_NF_ICON Icon
     );
 
 BOOLEAN PhNfpModifyNotifyIcon(
-    _In_ ULONG Id,
+    _In_ PPH_NF_ICON Icon,
     _In_ ULONG Flags,
     _In_opt_ PPH_STRING Text,
-    _In_opt_ HICON Icon
+    _In_opt_ HICON IconHandle
     );
 
 VOID PhNfpProcessesUpdatedHandler(
@@ -57,24 +57,71 @@ VOID PhNfpBeginBitmap2(
     _Out_ HBITMAP *OldBitmap
     );
 
-VOID PhNfpUpdateIconCpuHistory(
-    VOID
+VOID PhNfpCpuHistoryIconUpdateCallback(
+    _In_ struct _PH_NF_ICON *Icon,
+    _Out_ PVOID *NewIconOrBitmap,
+    _Out_ PULONG Flags,
+    _Out_ PPH_STRING *NewText,
+    _In_opt_ PVOID Context
+    );
+VOID PhNfpIoHistoryIconUpdateCallback(
+    _In_ struct _PH_NF_ICON *Icon,
+    _Out_ PVOID *NewIconOrBitmap,
+    _Out_ PULONG Flags,
+    _Out_ PPH_STRING *NewText,
+    _In_opt_ PVOID Context
+    );
+VOID PhNfpCommitHistoryIconUpdateCallback(
+    _In_ struct _PH_NF_ICON *Icon,
+    _Out_ PVOID *NewIconOrBitmap,
+    _Out_ PULONG Flags,
+    _Out_ PPH_STRING *NewText,
+    _In_opt_ PVOID Context
+    );
+VOID PhNfpPhysicalHistoryIconUpdateCallback(
+    _In_ struct _PH_NF_ICON *Icon,
+    _Out_ PVOID *NewIconOrBitmap,
+    _Out_ PULONG Flags,
+    _Out_ PPH_STRING *NewText,
+    _In_opt_ PVOID Context
+    );
+VOID PhNfpCpuUsageIconUpdateCallback(
+    _In_ struct _PH_NF_ICON *Icon,
+    _Out_ PVOID *NewIconOrBitmap,
+    _Out_ PULONG Flags,
+    _Out_ PPH_STRING *NewText,
+    _In_opt_ PVOID Context
     );
 
-VOID PhNfpUpdateIconIoHistory(
-    VOID
-    );
+// Text icons
 
-VOID PhNfpUpdateIconCommitHistory(
-    VOID
+VOID PhNfpCpuUsageTextIconUpdateCallback(
+    _In_ struct _PH_NF_ICON *Icon,
+    _Out_ PVOID *NewIconOrBitmap,
+    _Out_ PULONG Flags,
+    _Out_ PPH_STRING *NewText,
+    _In_opt_ PVOID Context
     );
-
-VOID PhNfpUpdateIconPhysicalHistory(
-    VOID
+VOID PhNfpIoUsageTextIconUpdateCallback(
+    _In_ struct _PH_NF_ICON *Icon,
+    _Out_ PVOID *NewIconOrBitmap,
+    _Out_ PULONG Flags,
+    _Out_ PPH_STRING *NewText,
+    _In_opt_ PVOID Context
     );
-
-VOID PhNfpUpdateIconCpuUsage(
-    VOID
+VOID PhNfpCommitTextIconUpdateCallback(
+    _In_ struct _PH_NF_ICON *Icon,
+    _Out_ PVOID *NewIconOrBitmap,
+    _Out_ PULONG Flags,
+    _Out_ PPH_STRING *NewText,
+    _In_opt_ PVOID Context
+    );
+VOID PhNfpPhysicalUsageTextIconUpdateCallback(
+    _In_ struct _PH_NF_ICON *Icon,
+    _Out_ PVOID *NewIconOrBitmap,
+    _Out_ PULONG Flags,
+    _Out_ PPH_STRING *NewText,
+    _In_opt_ PVOID Context
     );
 
 BOOLEAN PhNfpGetShowMiniInfoSectionData(

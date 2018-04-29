@@ -43,10 +43,11 @@ typedef struct _PH_HSPLITTER_CONTEXT
 
     LONG SplitterOffset;
 
-    HWND Window;
+    HWND WindowHandle;
     HWND ParentWindow;
     HWND TopWindow;
     HWND BottomWindow;
+    WNDPROC DefaultWindowProc;
 
     HBRUSH FocusBrush;
     HBRUSH HotBrush;
@@ -110,11 +111,16 @@ LRESULT CALLBACK HSplitterWindowProc(
     {
         LPCREATESTRUCT cs = (LPCREATESTRUCT)lParam;
         context = cs->lpCreateParams;
-        SetProp(hwnd, PhMakeContextAtom(), (HANDLE)context);
+        PhSetWindowContext(hwnd, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = (PPH_HSPLITTER_CONTEXT)GetProp(hwnd, PhMakeContextAtom());
+        context = PhGetWindowContext(hwnd, PH_WINDOW_CONTEXT_DEFAULT);
+
+        if (uMsg == WM_DESTROY)
+        {
+            PhRemoveWindowContext(hwnd, PH_WINDOW_CONTEXT_DEFAULT);
+        }
     }
 
     if (!context)
@@ -232,7 +238,7 @@ LRESULT CALLBACK HSplitterWindowProc(
                 );
             DeferWindowPos(
                 deferHandle,
-                context->Window,
+                context->WindowHandle,
                 NULL,
                 0,
                 cursorPos.y,
@@ -263,18 +269,23 @@ LRESULT CALLBACK HSplitterParentWindowProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
-    _In_ LPARAM lParam,
-    _In_ UINT_PTR uIdSubclass,
-    _In_ ULONG_PTR dwRefData
+    _In_ LPARAM lParam
     )
 {
-    PPH_HSPLITTER_CONTEXT context = (PPH_HSPLITTER_CONTEXT)dwRefData;
+    PPH_HSPLITTER_CONTEXT context;
+    WNDPROC oldWndProc;
+
+    if (!(context = PhGetWindowContext(hwnd, 0x200)))
+        return 0;
+
+    oldWndProc = context->DefaultWindowProc;
 
     switch (uMsg)
     {
     case WM_DESTROY:
         {
-            RemoveWindowSubclass(hwnd, HSplitterParentWindowProc, uIdSubclass);
+            SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+            PhRemoveWindowContext(hwnd, 0x200);
 
             PhDeleteHSplitter(context);
         }
@@ -286,7 +297,7 @@ LRESULT CALLBACK HSplitterParentWindowProc(
         break;
     }
 
-    return DefSubclassProc(hwnd, uMsg, wParam, lParam);
+    return CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
 }
 
 VOID PhInitializeHSplitter(
@@ -332,7 +343,7 @@ VOID PhInitializeHSplitter(
         PhEndInitOnce(&initOnce);
     }
 
-    context->Window = CreateWindowEx(
+    context->WindowHandle = CreateWindowEx(
         WS_EX_TRANSPARENT,
         L"PhHSplitter",
         NULL,
@@ -347,10 +358,12 @@ VOID PhInitializeHSplitter(
         context
         );
 
-    ShowWindow(context->Window, SW_SHOW);
-    UpdateWindow(context->Window);
+    ShowWindow(context->WindowHandle, SW_SHOW);
+    UpdateWindow(context->WindowHandle);
 
-    SetWindowSubclass(ParentWindow, HSplitterParentWindowProc, 0, (ULONG_PTR)context);
+    context->DefaultWindowProc = (WNDPROC)GetWindowLongPtr(ParentWindow, GWLP_WNDPROC);
+    PhSetWindowContext(ParentWindow, 0x200, context);
+    SetWindowLongPtr(ParentWindow, GWLP_WNDPROC, (LONG_PTR)HSplitterParentWindowProc);
 }
 
 VOID PhDeleteHSplitter(
@@ -388,7 +401,7 @@ VOID PhHSplitterHandleWmSize(
 
     DeferWindowPos(
         deferHandle,
-        Context->Window,
+        Context->WindowHandle,
         NULL,
         0,
         Context->SplitterOffset - 65,

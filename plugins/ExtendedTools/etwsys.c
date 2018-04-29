@@ -390,10 +390,10 @@ VOID EtpUpdateDiskPanel(
     VOID
     )
 {
-    SetDlgItemText(DiskPanel, IDC_ZREADSDELTA_V, PhaFormatUInt64(EtDiskReadCountDelta.Delta, TRUE)->Buffer);
-    SetDlgItemText(DiskPanel, IDC_ZREADBYTESDELTA_V, PhaFormatSize(EtDiskReadDelta.Delta, -1)->Buffer);
-    SetDlgItemText(DiskPanel, IDC_ZWRITESDELTA_V, PhaFormatUInt64(EtDiskWriteCountDelta.Delta, TRUE)->Buffer);
-    SetDlgItemText(DiskPanel, IDC_ZWRITEBYTESDELTA_V, PhaFormatSize(EtDiskWriteDelta.Delta, -1)->Buffer);
+    PhSetDialogItemText(DiskPanel, IDC_ZREADSDELTA_V, PhaFormatUInt64(EtDiskReadCountDelta.Delta, TRUE)->Buffer);
+    PhSetDialogItemText(DiskPanel, IDC_ZREADBYTESDELTA_V, PhaFormatSize(EtDiskReadDelta.Delta, -1)->Buffer);
+    PhSetDialogItemText(DiskPanel, IDC_ZWRITESDELTA_V, PhaFormatUInt64(EtDiskWriteCountDelta.Delta, TRUE)->Buffer);
+    PhSetDialogItemText(DiskPanel, IDC_ZWRITEBYTESDELTA_V, PhaFormatSize(EtDiskWriteDelta.Delta, -1)->Buffer);
 }
 
 PPH_PROCESS_RECORD EtpReferenceMaxDiskRecord(
@@ -766,10 +766,10 @@ VOID EtpUpdateNetworkPanel(
     VOID
     )
 {
-    SetDlgItemText(NetworkPanel, IDC_ZRECEIVESDELTA_V, PhaFormatUInt64(EtNetworkReceiveCountDelta.Delta, TRUE)->Buffer);
-    SetDlgItemText(NetworkPanel, IDC_ZRECEIVEBYTESDELTA_V, PhaFormatSize(EtNetworkReceiveDelta.Delta, -1)->Buffer);
-    SetDlgItemText(NetworkPanel, IDC_ZSENDSDELTA_V, PhaFormatUInt64(EtNetworkSendCountDelta.Delta, TRUE)->Buffer);
-    SetDlgItemText(NetworkPanel, IDC_ZSENDBYTESDELTA_V, PhaFormatSize(EtNetworkSendDelta.Delta, -1)->Buffer);
+    PhSetDialogItemText(NetworkPanel, IDC_ZRECEIVESDELTA_V, PhaFormatUInt64(EtNetworkReceiveCountDelta.Delta, TRUE)->Buffer);
+    PhSetDialogItemText(NetworkPanel, IDC_ZRECEIVEBYTESDELTA_V, PhaFormatSize(EtNetworkReceiveDelta.Delta, -1)->Buffer);
+    PhSetDialogItemText(NetworkPanel, IDC_ZSENDSDELTA_V, PhaFormatUInt64(EtNetworkSendCountDelta.Delta, TRUE)->Buffer);
+    PhSetDialogItemText(NetworkPanel, IDC_ZSENDBYTESDELTA_V, PhaFormatSize(EtNetworkSendDelta.Delta, -1)->Buffer);
 }
 
 PPH_PROCESS_RECORD EtpReferenceMaxNetworkRecord(

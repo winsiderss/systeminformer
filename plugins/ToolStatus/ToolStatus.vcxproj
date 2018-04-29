@@ -23,7 +23,7 @@
     <RootNamespace>ToolStatus</RootNamespace>
     <Keyword>Win32Proj</Keyword>
     <ProjectName>ToolStatus</ProjectName>
-    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
@@ -78,7 +78,6 @@
     <ClCompile Include="main.c" />
     <ClCompile Include="options.c" />
     <ClCompile Include="filter.c" />
-    <ClCompile Include="searchbox.c" />
     <ClCompile Include="statusbar.c" />
     <ClCompile Include="toolbar.c" />
   </ItemGroup>

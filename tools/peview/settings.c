@@ -31,16 +31,22 @@ VOID PhAddDefaultSettings(
 {
     PhpAddIntegerSetting(L"FirstRun", L"1");
     PhpAddStringSetting(L"Font", L""); // null
+    PhpAddIntegerSetting(L"HashAlgorithm", L"0");
     PhpAddIntegerSetting(L"MaxSizeUnit", L"6");
     PhpAddStringSetting(L"MainWindowPage", L"General");
     PhpAddIntegerPairSetting(L"MainWindowPosition", L"150,150");
     PhpAddScalableIntegerPairSetting(L"MainWindowSize", L"@96|550,580");
-    PhpAddStringSetting(L"ImageCfgListViewColumns", L"");
+    PhpAddStringSetting(L"ImageGeneralListViewColumns", L"");
+    PhpAddStringSetting(L"ImageLoadCfgListViewColumns", L"");
     PhpAddStringSetting(L"ImageExportsListViewColumns", L"");
     PhpAddStringSetting(L"ImageImportsListViewColumns", L"");
-    PhpAddStringSetting(L"ImageLoadCfgListViewColumns", L"");
+    PhpAddStringSetting(L"ImageCfgListViewColumns", L"");
+    PhpAddStringSetting(L"ImageResourcesListViewColumns", L"");
     PhpAddStringSetting(L"LibListViewColumns", L"");
     PhpAddStringSetting(L"PdbTreeListColumns", L"");
+
+    // Wsl properties
+    PhpAddStringSetting(L"GeneralWslTreeListColumns", L"");
 }
 
 VOID PhUpdateCachedSettings(

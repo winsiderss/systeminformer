@@ -51,7 +51,7 @@ typedef struct _PROCESS_MINIDUMP_CONTEXT
     BOOLEAN Stop;
     BOOLEAN Succeeded;
 
-    ULONG LastTickCount;
+    ULONG64 LastTickCount;
 } PROCESS_MINIDUMP_CONTEXT, *PPROCESS_MINIDUMP_CONTEXT;
 
 BOOLEAN PhpCreateProcessMiniDumpWithProgress(
@@ -234,11 +234,6 @@ NTSTATUS PhpProcessMiniDumpThreadStart(
         if (PhUiConnectToPhSvcEx(NULL, Wow64PhSvcMode, FALSE))
         {
             NTSTATUS status;
-            PPH_STRING dbgHelpPath;
-
-            dbgHelpPath = PhGetStringSetting(L"DbgHelpPath");
-            PhSvcCallLoadDbgHelp(dbgHelpPath->Buffer);
-            PhDereferenceObject(dbgHelpPath);
 
             if (NT_SUCCESS(status = PhSvcCallWriteMiniDumpProcess(
                 context->ProcessHandle,
@@ -362,16 +357,29 @@ INT_PTR CALLBACK PhpProcessMiniDumpDlgProc(
     _In_ LPARAM lParam
     )
 {
+    PPROCESS_MINIDUMP_CONTEXT context;
+
+    if (uMsg == WM_INITDIALOG)
+    {
+        context = (PPROCESS_MINIDUMP_CONTEXT)lParam;
+
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+    }
+    else
+    {
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+    }
+
+    if (!context)
+        return FALSE;
+
     switch (uMsg)
     {
     case WM_INITDIALOG:
         {
-            PPROCESS_MINIDUMP_CONTEXT context = (PPROCESS_MINIDUMP_CONTEXT)lParam;
-
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
-            SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)context);
 
-            SetDlgItemText(hwndDlg, IDC_PROGRESSTEXT, L"Creating the dump file...");
+            PhSetDialogItemText(hwndDlg, IDC_PROGRESSTEXT, L"Creating the dump file...");
 
             PhSetWindowStyle(GetDlgItem(hwndDlg, IDC_PROGRESS), PBS_MARQUEE, PBS_MARQUEE);
             SendMessage(GetDlgItem(hwndDlg, IDC_PROGRESS), PBM_SETMARQUEE, TRUE, 75);
@@ -385,7 +393,7 @@ INT_PTR CALLBACK PhpProcessMiniDumpDlgProc(
         break;
     case WM_DESTROY:
         {
-            RemoveProp(hwndDlg, PhMakeContextAtom());
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
         }
         break;
     case WM_COMMAND:
@@ -394,9 +402,6 @@ INT_PTR CALLBACK PhpProcessMiniDumpDlgProc(
             {
             case IDCANCEL:
                 {
-                    PPROCESS_MINIDUMP_CONTEXT context =
-                        (PPROCESS_MINIDUMP_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
-
                     EnableWindow(GetDlgItem(hwndDlg, IDCANCEL), FALSE);
                     context->Stop = TRUE;
                 }
@@ -408,18 +413,15 @@ INT_PTR CALLBACK PhpProcessMiniDumpDlgProc(
         {
             if (wParam == 1)
             {
-                PPROCESS_MINIDUMP_CONTEXT context =
-                    (PPROCESS_MINIDUMP_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
-                ULONG currentTickCount;
+                ULONG64 currentTickCount;
 
-                currentTickCount = GetTickCount();
+                currentTickCount = NtGetTickCount64();
 
                 if (currentTickCount - context->LastTickCount >= 2000)
                 {
                     // No status message update for 2 seconds.
 
-                    SetDlgItemText(hwndDlg, IDC_PROGRESSTEXT,
-                        (PWSTR)L"Creating the dump file...");
+                    PhSetDialogItemText(hwndDlg, IDC_PROGRESSTEXT, L"Creating the dump file...");
                     InvalidateRect(GetDlgItem(hwndDlg, IDC_PROGRESSTEXT), NULL, FALSE);
 
                     context->LastTickCount = currentTickCount;
@@ -429,16 +431,12 @@ INT_PTR CALLBACK PhpProcessMiniDumpDlgProc(
         break;
     case WM_PH_MINIDUMP_STATUS_UPDATE:
         {
-            PPROCESS_MINIDUMP_CONTEXT context;
-
-            context = (PPROCESS_MINIDUMP_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
-
             switch (wParam)
             {
             case PH_MINIDUMP_STATUS_UPDATE:
-                SetDlgItemText(hwndDlg, IDC_PROGRESSTEXT, (PWSTR)lParam);
+                PhSetDialogItemText(hwndDlg, IDC_PROGRESSTEXT, (PWSTR)lParam);
                 InvalidateRect(GetDlgItem(hwndDlg, IDC_PROGRESSTEXT), NULL, FALSE);
-                context->LastTickCount = GetTickCount();
+                context->LastTickCount = NtGetTickCount64();
                 break;
             case PH_MINIDUMP_ERROR:
                 PhShowStatus(hwndDlg, L"Unable to create the minidump", 0, (ULONG)lParam);

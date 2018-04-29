@@ -22,7 +22,7 @@
     <ProjectGuid>{477D0215-F252-41A1-874B-F27E3EA1ED17}</ProjectGuid>
     <RootNamespace>phlib</RootNamespace>
     <Keyword>Win32Proj</Keyword>
-    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
@@ -140,6 +140,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="apiimport.c" />
+    <ClCompile Include="appresolver.c" />
     <ClCompile Include="avltree.c" />
     <ClCompile Include="basesup.c" />
     <ClCompile Include="circbuf.c" />
@@ -176,6 +177,7 @@
     <ClCompile Include="kph.c" />
     <ClCompile Include="kphdata.c" />
     <ClCompile Include="lsasup.c" />
+    <ClCompile Include="mapexlf.c" />
     <ClCompile Include="mapimg.c" />
     <ClCompile Include="maplib.c" />
     <ClCompile Include="md5.c" />
@@ -207,7 +209,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\apiimport.h" />
+    <ClInclude Include="include\appresolver.h" />
+    <ClInclude Include="include\appresolverp.h" />
     <ClInclude Include="include\cpysave.h" />
+    <ClInclude Include="include\exlf.h" />
     <ClInclude Include="include\filepool.h" />
     <ClInclude Include="include\filepoolp.h" />
     <ClInclude Include="include\filestream.h" />

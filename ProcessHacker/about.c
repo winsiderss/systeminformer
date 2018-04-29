@@ -3,7 +3,7 @@
  *   about dialog
  *
  * Copyright (C) 2010-2016 wj32
- * Copyright (C) 2017 dmex
+ * Copyright (C) 2017-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -52,10 +52,11 @@ static INT_PTR CALLBACK PhpAboutDlgProc(
 
 #if (PHAPP_VERSION_REVISION != 0)
             appName = PhFormatString(
-                L"Process Hacker %u.%u.%u",
+                L"Process Hacker %u.%u.%u (%hs)",
                 PHAPP_VERSION_MAJOR,
                 PHAPP_VERSION_MINOR,
-                PHAPP_VERSION_REVISION
+                PHAPP_VERSION_REVISION,
+                PHAPP_VERSION_COMMIT
                 );
 #else
             appName = PhFormatString(
@@ -65,25 +66,26 @@ static INT_PTR CALLBACK PhpAboutDlgProc(
                 );
 #endif
 
-            SetDlgItemText(hwndDlg, IDC_ABOUT_NAME, appName->Buffer);
+            PhSetDialogItemText(hwndDlg, IDC_ABOUT_NAME, appName->Buffer);
             PhDereferenceObject(appName);
 
-            SetDlgItemText(hwndDlg, IDC_CREDITS,
+            PhSetDialogItemText(hwndDlg, IDC_CREDITS,
                 L"Thanks to:\n"
                 L"    <a href=\"https://github.com/wj32\">wj32</a> - Wen Jia Liu\n"
                 L"    <a href=\"https://github.com/dmex\">dmex</a> - Steven G\n"
                 L"    <a href=\"https://github.com/xhmikosr\">XhmikosR</a>\n"
                 L"    Donors - thank you for your support!\n\n"
                 L"Process Hacker uses the following components:\n"
-                L"    <a href=\"http://www.minixml.org\">Mini-XML</a> by Michael Sweet\n"
-                L"    <a href=\"http://www.pcre.org\">PCRE</a>\n"
+                L"    <a href=\"https://github.com/michaelrsweet/mxml\">Mini-XML</a> by Michael Sweet\n"
+                L"    <a href=\"https://www.pcre.org\">PCRE</a>\n"
+                L"    <a href=\"https://github.com/json-c/json-c\">json-c</a>\n"
                 L"    MD5 code by Jouni Malinen\n"
                 L"    SHA1 code by Filip Navara, based on code by Steve Reid\n"
                 L"    <a href=\"http://www.famfamfam.com/lab/icons/silk\">Silk icons</a>\n"
-                L"    <a href=\"http://www.fatcow.com/free-icons\">Farm-fresh web icons</a>\n"
+                L"    <a href=\"https://www.fatcow.com/free-icons\">Farm-fresh web icons</a>\n"
                 );
 
-            SendMessage(hwndDlg, WM_NEXTDLGCTL, (LPARAM)GetDlgItem(hwndDlg, IDOK), TRUE);
+            PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDOK));
         }
         break;
     case WM_COMMAND:
@@ -128,13 +130,13 @@ static INT_PTR CALLBACK PhpAboutDlgProc(
 }
 
 VOID PhShowAboutDialog(
-    _In_ HWND ParentWindowHandle
+    VOID
     )
 {
     DialogBox(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_ABOUT),
-        ParentWindowHandle,
+        NULL,
         PhpAboutDlgProc
         );
 }

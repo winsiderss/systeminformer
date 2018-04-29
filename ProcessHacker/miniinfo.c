@@ -25,7 +25,7 @@
 #include <miniinfo.h>
 #include <miniinfop.h>
 
-#include <emenu.h>
+#include <shellapi.h>
 #include <uxtheme.h>
 #include <windowsx.h>
 
@@ -35,6 +35,8 @@
 #include <phplug.h>
 #include <procprv.h>
 #include <proctree.h>
+
+#include <emenu.h>
 #include <settings.h>
 
 static HWND PhMipContainerWindow = NULL;
@@ -102,6 +104,8 @@ VOID PhPinMiniInformation(
         if (!PhMipContainerWindow)
         {
             WNDCLASSEX wcex;
+            RTL_ATOM windowAtom;
+            PPH_STRING className;
 
             memset(&wcex, 0, sizeof(WNDCLASSEX));
             wcex.cbSize = sizeof(WNDCLASSEX);
@@ -113,13 +117,14 @@ VOID PhPinMiniInformation(
             wcex.hIcon = PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER));
             wcex.hCursor = LoadCursor(NULL, IDC_ARROW);
             wcex.hbrBackground = (HBRUSH)(COLOR_BTNFACE + 1);
-            wcex.lpszClassName = MIP_CONTAINER_CLASSNAME;
+            className = PhaGetStringSetting(L"MiniInfoWindowClassName");
+            wcex.lpszClassName = PhGetStringOrDefault(className, L"MiniInfoWindowClassName");
             wcex.hIconSm = PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER));
-            RegisterClassEx(&wcex);
+            windowAtom = RegisterClassEx(&wcex);
 
             PhMipContainerWindow = CreateWindow(
-                MIP_CONTAINER_CLASSNAME,
-                L"Process Hacker",
+                MAKEINTATOM(windowAtom),
+                PhGetIntegerSetting(L"EnableWindowText") ? L"Process Hacker" : NULL,
                 WS_BORDER | WS_THICKFRAME | WS_POPUP,
                 0,
                 0,
@@ -352,7 +357,7 @@ VOID PhMipContainerOnShowWindow(
         for (i = 0; i < MaxMiniInfoPinType; i++)
             PhMipPinCounts[i] = 0;
 
-        Button_SetCheck(GetDlgItem(PhMipWindow, IDC_PIN), BST_UNCHECKED);
+        Button_SetCheck(GetDlgItem(PhMipWindow, IDC_PINWINDOW), BST_UNCHECKED);
         PhMipSetPinned(FALSE);
         PhSetIntegerSetting(L"MiniInfoWindowPinned", FALSE);
 
@@ -447,26 +452,26 @@ VOID PhMipOnInitDialog(
 {
     HICON cog;
     HICON pin;
+    WNDPROC oldWndProc;
 
     cog = PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_COG));
     SET_BUTTON_ICON(PhMipWindow, IDC_OPTIONS, cog);
 
     pin = PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_PIN));
-    SET_BUTTON_ICON(PhMipWindow, IDC_PIN, pin);
+    SET_BUTTON_ICON(PhMipWindow, IDC_PINWINDOW, pin);
 
     PhInitializeLayoutManager(&PhMipLayoutManager, PhMipWindow);
-    PhAddLayoutItem(&PhMipLayoutManager, GetDlgItem(PhMipWindow, IDC_LAYOUT), NULL,
-        PH_ANCHOR_ALL);
-    PhAddLayoutItem(&PhMipLayoutManager, GetDlgItem(PhMipWindow, IDC_SECTION), NULL,
-        PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM | PH_LAYOUT_FORCE_INVALIDATE);
-    PhAddLayoutItem(&PhMipLayoutManager, GetDlgItem(PhMipWindow, IDC_OPTIONS), NULL,
-        PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
-    PhAddLayoutItem(&PhMipLayoutManager, GetDlgItem(PhMipWindow, IDC_PIN), NULL,
-        PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+    PhAddLayoutItem(&PhMipLayoutManager, GetDlgItem(PhMipWindow, IDC_LAYOUT), NULL, PH_ANCHOR_ALL);
+    PhAddLayoutItem(&PhMipLayoutManager, GetDlgItem(PhMipWindow, IDC_SECTION), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM | PH_LAYOUT_FORCE_INVALIDATE);
+    PhAddLayoutItem(&PhMipLayoutManager, GetDlgItem(PhMipWindow, IDC_OPTIONS), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+    PhAddLayoutItem(&PhMipLayoutManager, GetDlgItem(PhMipWindow, IDC_PINWINDOW), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
-    SetWindowSubclass(GetDlgItem(PhMipWindow, IDC_SECTION), PhMipSectionControlHookWndProc, 0, 0);
+    Button_SetCheck(GetDlgItem(PhMipWindow, IDC_PINWINDOW), !!PhGetIntegerSetting(L"MiniInfoWindowPinned"));
 
-    Button_SetCheck(GetDlgItem(PhMipWindow, IDC_PIN), !!PhGetIntegerSetting(L"MiniInfoWindowPinned"));
+    // Subclass the window procedure.
+    oldWndProc = (WNDPROC)GetWindowLongPtr(GetDlgItem(PhMipWindow, IDC_SECTION), GWLP_WNDPROC);
+    PhSetWindowContext(GetDlgItem(PhMipWindow, IDC_SECTION), 0xF, oldWndProc);
+    SetWindowLongPtr(GetDlgItem(PhMipWindow, IDC_SECTION), GWLP_WNDPROC, (LONG_PTR)PhMipSectionControlHookWndProc);
 }
 
 VOID PhMipOnShowWindow(
@@ -519,11 +524,11 @@ VOID PhMipOnCommand(
     case IDC_OPTIONS:
         PhMipShowOptionsMenu();
         break;
-    case IDC_PIN:
+    case IDC_PINWINDOW:
         {
             BOOLEAN pinned;
 
-            pinned = Button_GetCheck(GetDlgItem(PhMipWindow, IDC_PIN)) == BST_CHECKED;
+            pinned = Button_GetCheck(GetDlgItem(PhMipWindow, IDC_PINWINDOW)) == BST_CHECKED;
             PhPinMiniInformation(MiniInfoManualPinType, pinned ? 1 : -1, 0, 0, NULL, NULL);
             PhMipSetPinned(pinned);
             PhSetIntegerSetting(L"MiniInfoWindowPinned", pinned);
@@ -699,38 +704,43 @@ VOID PhMipCalculateWindowRectangle(
     {
         PH_RECTANGLE bounds;
 
-        if (memcmp(&monitorInfo.rcWork, &monitorInfo.rcMonitor, sizeof(RECT)) == 0)
+        if (RtlEqualMemory(&monitorInfo.rcWork, &monitorInfo.rcMonitor, sizeof(RECT)))
         {
-            HWND trayWindow;
-            RECT taskbarRect;
+            APPBARDATA taskbarRect = { sizeof(APPBARDATA) };
+
+            // dmex: FindWindow + Shell_TrayWnd causes a lot of FPs by security software (malware uses this string to inject code into Explorer)... 
+            // TODO: This comment block should be removed if the SHAppBarMessage function is more reliable.
+            //HWND trayWindow;
+            //RECT taskbarRect;
+            //if ((trayWindow = FindWindow(L"Shell_TrayWnd", NULL)) &&
+            //    GetMonitorInfo(MonitorFromWindow(trayWindow, MONITOR_DEFAULTTOPRIMARY), &monitorInfo) && // Just in case
+            //    GetWindowRect(trayWindow, &taskbarRect))
 
             // The taskbar probably has auto-hide enabled. We need to adjust for that.
-            if ((trayWindow = FindWindow(L"Shell_TrayWnd", NULL)) &&
-                GetMonitorInfo(MonitorFromWindow(trayWindow, MONITOR_DEFAULTTOPRIMARY), &monitorInfo) && // Just in case
-                GetWindowRect(trayWindow, &taskbarRect))
+            if (SHAppBarMessage(ABM_GETTASKBARPOS, &taskbarRect))
             {
                 LONG monitorMidX = (monitorInfo.rcMonitor.left + monitorInfo.rcMonitor.right) / 2;
                 LONG monitorMidY = (monitorInfo.rcMonitor.top + monitorInfo.rcMonitor.bottom) / 2;
 
-                if (taskbarRect.right < monitorMidX)
+                if (taskbarRect.rc.right < monitorMidX)
                 {
                     // Left
-                    monitorInfo.rcWork.left += taskbarRect.right - taskbarRect.left;
+                    monitorInfo.rcWork.left += taskbarRect.rc.right - taskbarRect.rc.left;
                 }
-                else if (taskbarRect.bottom < monitorMidY)
+                else if (taskbarRect.rc.bottom < monitorMidY)
                 {
                     // Top
-                    monitorInfo.rcWork.top += taskbarRect.bottom - taskbarRect.top;
+                    monitorInfo.rcWork.top += taskbarRect.rc.bottom - taskbarRect.rc.top;
                 }
-                else if (taskbarRect.left > monitorMidX)
+                else if (taskbarRect.rc.left > monitorMidX)
                 {
                     // Right
-                    monitorInfo.rcWork.right -= taskbarRect.right - taskbarRect.left;
+                    monitorInfo.rcWork.right -= taskbarRect.rc.right - taskbarRect.rc.left;
                 }
-                else if (taskbarRect.top > monitorMidY)
+                else if (taskbarRect.rc.top > monitorMidY)
                 {
                     // Bottom
-                    monitorInfo.rcWork.bottom -= taskbarRect.bottom - taskbarRect.top;
+                    monitorInfo.rcWork.bottom -= taskbarRect.rc.bottom - taskbarRect.rc.top;
                 }
             }
         }
@@ -926,12 +936,12 @@ VOID PhMipUpdateSectionText(
 {
     if (Section->Text)
     {
-        SetDlgItemText(PhMipWindow, IDC_SECTION,
+        PhSetDialogItemText(PhMipWindow, IDC_SECTION,
             PH_AUTO_T(PH_STRING, PhConcatStringRef2(&DownArrowPrefix, &Section->Text->sr))->Buffer);
     }
     else
     {
-        SetDlgItemText(PhMipWindow, IDC_SECTION,
+        PhSetDialogItemText(PhMipWindow, IDC_SECTION,
             PH_AUTO_T(PH_STRING, PhConcatStringRef2(&DownArrowPrefix, &Section->Name))->Buffer);
     }
 }
@@ -987,7 +997,7 @@ VOID PhMipLayout(
             );
     }
 
-    GetWindowRect(GetDlgItem(PhMipWindow, IDC_PIN), &rect);
+    GetWindowRect(GetDlgItem(PhMipWindow, IDC_PINWINDOW), &rect);
     MapWindowPoints(NULL, PhMipWindow, (POINT *)&rect, 2);
 }
 
@@ -1144,15 +1154,21 @@ LRESULT CALLBACK PhMipSectionControlHookWndProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
-    _In_ LPARAM lParam,
-    _In_ UINT_PTR uIdSubclass,
-    _In_ ULONG_PTR dwRefData
+    _In_ LPARAM lParam
     )
 {
+    WNDPROC oldWndProc;
+
+    if (!(oldWndProc = PhGetWindowContext(hwnd, 0xF)))
+        return 0;
+
     switch (uMsg)
     {
     case WM_DESTROY:
-        RemoveWindowSubclass(hwnd, PhMipSectionControlHookWndProc, uIdSubclass);
+        {
+            SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+            PhRemoveWindowContext(hwnd, 0xF);
+        }
         break;
     case WM_SETCURSOR:
         {
@@ -1161,7 +1177,7 @@ LRESULT CALLBACK PhMipSectionControlHookWndProc(
         return TRUE;
     }
 
-    return DefSubclassProc(hwnd, uMsg, wParam, lParam);
+    return CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
 }
 
 PPH_MINIINFO_LIST_SECTION PhMipCreateListSection(
@@ -1268,16 +1284,26 @@ INT_PTR CALLBACK PhMipListSectionDialogProc(
     _In_ LPARAM lParam
     )
 {
-    PPH_MINIINFO_LIST_SECTION listSection = (PPH_MINIINFO_LIST_SECTION)GetProp(hwndDlg, PhMakeContextAtom());
+    PPH_MINIINFO_LIST_SECTION listSection;
+
+    if (uMsg == WM_INITDIALOG)
+    {
+        listSection = (PPH_MINIINFO_LIST_SECTION)lParam;
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, listSection);
+    }
+    else
+    {
+        listSection = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+    }
+
+    if (!listSection)
+        return FALSE;
 
     switch (uMsg)
     {
     case WM_INITDIALOG:
         {
             PPH_LAYOUT_ITEM layoutItem;
-
-            listSection = (PPH_MINIINFO_LIST_SECTION)lParam;
-            SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)listSection);
 
             listSection->DialogHandle = hwndDlg;
             listSection->TreeNewHandle = GetDlgItem(hwndDlg, IDC_LIST);
@@ -1303,7 +1329,7 @@ INT_PTR CALLBACK PhMipListSectionDialogProc(
     case WM_DESTROY:
         {
             PhDeleteLayoutManager(&listSection->LayoutManager);
-            RemoveProp(hwndDlg, PhMakeContextAtom());
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
         }
         break;
     case WM_SIZE:
@@ -1427,7 +1453,7 @@ PPH_MIP_GROUP_NODE PhMipAddGroupNode(
     if (node->RepresentativeIsHung)
     {
         if (!HungWindowFromGhostWindow_I)
-            HungWindowFromGhostWindow_I = PhGetModuleProcAddress(L"user32.dll", "HungWindowFromGhostWindow");
+            HungWindowFromGhostWindow_I = PhGetDllProcedureAddress(L"user32.dll", "HungWindowFromGhostWindow", 0);
 
         // Make sure this is a real hung window, not a ghost window.
         if (HungWindowFromGhostWindow_I && HungWindowFromGhostWindow_I(ProcessGroup->WindowHandle))
@@ -1634,9 +1660,6 @@ BOOLEAN PhMipListSectionTreeNewCallback(
         {
             PPH_TREENEW_GET_CELL_TOOLTIP getCellTooltip = Parameter1;
             PPH_MIP_GROUP_NODE node = (PPH_MIP_GROUP_NODE)getCellTooltip->Node;
-            ULONG tickCount;
-
-            tickCount = GetTickCount();
 
             // This is useless most of the time because the tooltip doesn't display unless the window is active.
             // TODO: Find a way to make the tooltip display all the time.

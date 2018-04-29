@@ -172,12 +172,12 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
 
     if (uMsg != WM_INITDIALOG)
     {
-        context = GetProp(hwndDlg, PhMakeContextAtom());
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
     }
     else
     {
         context = (PMEMORY_EDITOR_CONTEXT)lParam;
-        SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)context);
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
 
     if (!context)
@@ -328,7 +328,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                 PhUnregisterDialog(hwndDlg);
             }
 
-            RemoveProp(hwndDlg, PhMakeContextAtom());
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
             PhDeleteLayoutManager(&context->LayoutManager);
 
@@ -344,7 +344,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
         break;
     case WM_SHOWWINDOW:
         {
-            SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)context->HexEditHandle, TRUE);
+            PhSetDialogFocus(hwndDlg, context->HexEditHandle);
         }
         break;
     case WM_COMMAND:
@@ -439,7 +439,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                                 continue;
                             }
 
-                            SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)context->HexEditHandle, TRUE);
+                            PhSetDialogFocus(hwndDlg, context->HexEditHandle);
                             HexEdit_SetSel(context->HexEditHandle, (LONG)offset, (LONG)offset);
                             break;
                         }
@@ -449,6 +449,17 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
             case IDC_WRITE:
                 {
                     NTSTATUS status;
+
+                    if (PhGetIntegerSetting(L"EnableWarnings") && !PhShowConfirmMessage(
+                        hwndDlg,
+                        L"write",
+                        L"process memory",
+                        L"Some programs may restrict access or ban your account when editing the memory of the process.",
+                        FALSE
+                        ))
+                    {
+                        break;
+                    }
 
                     if (!context->WriteAccess)
                     {
@@ -513,7 +524,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                         {
                             PhSetIntegerSetting(L"MemEditBytesPerRow", (ULONG)bytesPerRow64);
                             HexEdit_SetBytesPerRow(context->HexEditHandle, (ULONG)bytesPerRow64);
-                            SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)context->HexEditHandle, TRUE);
+                            PhSetDialogFocus(hwndDlg, context->HexEditHandle);
                         }
                     }
                 }

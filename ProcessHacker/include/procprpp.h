@@ -9,6 +9,7 @@
 
 typedef struct _PH_PROCESS_PROPSHEETCONTEXT
 {
+    WNDPROC PropSheetWindowHookProc;
     PH_LAYOUT_MANAGER LayoutManager;
     PPH_LAYOUT_ITEM TabPageItem;
     BOOLEAN LayoutInitialized;
@@ -33,9 +34,7 @@ LRESULT CALLBACK PhpPropSheetWndProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
-    _In_ LPARAM lParam,
-    _In_ UINT_PTR uIdSubclass,
-    _In_ ULONG_PTR dwRefData
+    _In_ LPARAM lParam
     );
 
 VOID NTAPI PhpProcessPropPageContextDeleteProcedure(
@@ -63,11 +62,10 @@ FORCEINLINE BOOLEAN PhpPropPageDlgProcHeader(
 
     if (uMsg == WM_INITDIALOG)
     {
-        // Save the context.
-        SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)lParam);
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, (PVOID)lParam);
     }
 
-    propSheetPage = (LPPROPSHEETPAGE)GetProp(hwndDlg, PhMakeContextAtom());
+    propSheetPage = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
     if (!propSheetPage)
         return FALSE;
@@ -83,7 +81,7 @@ FORCEINLINE VOID PhpPropPageDlgProcDestroy(
     _In_ HWND hwndDlg
     )
 {
-    RemoveProp(hwndDlg, PhMakeContextAtom());
+    PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 }
 
 #define SET_BUTTON_ICON(Id, Icon) \
@@ -172,6 +170,13 @@ INT_PTR CALLBACK PhpProcessJobHookProc(
     );
 
 INT_PTR CALLBACK PhpProcessServicesDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
+INT_PTR CALLBACK PhpProcessWmiProvidersDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -305,6 +310,8 @@ typedef struct _PH_MEMORY_CONTEXT
     NTSTATUS LastRunStatus;
     PPH_STRING ErrorMessage;
 
+    BOOLEAN UseSearchPointer;
+    ULONG64 SearchPointer;
     PPH_STRING SearchboxText;
     PPH_TN_FILTER_ENTRY AllocationFilterEntry;
     PPH_TN_FILTER_ENTRY FilterEntry;
@@ -319,6 +326,7 @@ typedef struct _PH_STATISTICS_CONTEXT
     PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
 
     HWND WindowHandle;
+    HWND ListViewHandle;
     BOOLEAN Enabled;
     HANDLE ProcessHandle;
 } PH_STATISTICS_CONTEXT, *PPH_STATISTICS_CONTEXT;

@@ -27,6 +27,7 @@
 #include <emenu.h>
 #include <settings.h>
 #include <procprv.h>
+
 #include <windowsx.h>
 #include <uxtheme.h>
 
@@ -165,8 +166,7 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
     PPH_ENVIRONMENT_CONTEXT environmentContext;
     HWND lvHandle;
 
-    if (PhpPropPageDlgProcHeader(hwndDlg, uMsg, lParam,
-        &propSheetPage, &propPageContext, &processItem))
+    if (PhpPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext, &processItem))
     {
         environmentContext = propPageContext->Context;
 
@@ -184,8 +184,8 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
         {
             environmentContext = propPageContext->Context = PhAllocate(sizeof(PH_ENVIRONMENT_CONTEXT));
             memset(environmentContext, 0, sizeof(PH_ENVIRONMENT_CONTEXT));
-            lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
-            environmentContext->ListViewHandle = lvHandle;
+
+            environmentContext->ListViewHandle =  lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
             PhInitializeArray(&environmentContext->Items, sizeof(PH_ENVIRONMENT_ITEM), 100);
 
             PhSetListViewStyle(lvHandle, TRUE, TRUE);
@@ -206,7 +206,7 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
         break;
     case WM_DESTROY:
         {
-            PhSaveListViewColumnsToSetting(L"EnvironmentListViewColumns", GetDlgItem(hwndDlg, IDC_LIST));
+            PhSaveListViewColumnsToSetting(L"EnvironmentListViewColumns", lvHandle);
 
             PhpClearEnvironmentItems(environmentContext);
             PhDeleteArray(&environmentContext->Items);
@@ -247,6 +247,17 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
                 {
                     BOOLEAN refresh;
 
+                    if (PhGetIntegerSetting(L"EnableWarnings") && !PhShowConfirmMessage(
+                        hwndDlg,
+                        L"create",
+                        L"environment variable",
+                        L"Some programs may restrict access or ban your account when creating new environment variable(s).",
+                        FALSE
+                        ))
+                    {
+                        break;
+                    }
+
                     if (PhpShowEditEnvDialog(hwndDlg, processItem, L"", NULL, &refresh) == IDOK &&
                         refresh)
                     {
@@ -263,6 +274,17 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
                     {
                         PPH_ENVIRONMENT_ITEM item = PhItemArray(&environmentContext->Items, PtrToUlong(index) - 1);
                         BOOLEAN refresh;
+
+                        if (PhGetIntegerSetting(L"EnableWarnings") && !PhShowConfirmMessage(
+                            hwndDlg,
+                            L"edit",
+                            L"the selected environment variable",
+                            L"Some programs may restrict access or ban your account when editing the environment variable(s) of the process.",
+                            FALSE
+                            ))
+                        {
+                            break;
+                        }
 
                         if (PhpShowEditEnvDialog(hwndDlg, processItem, item->Name->Buffer,
                             item->Value->Buffer, &refresh) == IDOK && refresh)
@@ -285,13 +307,19 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
 
                     PhGetSelectedListViewItemParams(lvHandle, &indices, &numberOfIndices);
 
-                    if (numberOfIndices != 0 && PhShowConfirmMessage(
-                        hwndDlg,
-                        L"delete",
-                        numberOfIndices != 1 ? L"the selected environment variables" : L"the selected environment variable",
-                        NULL,
-                        FALSE))
+                    if (numberOfIndices != 0)
                     {
+                        if (PhGetIntegerSetting(L"EnableWarnings") && !PhShowConfirmMessage(
+                            hwndDlg,
+                            L"delete",
+                            numberOfIndices != 1 ? L"the selected environment variables" : L"the selected environment variable",
+                            L"Some programs may restrict access or ban your account when editing the environment variable(s) of the process.",
+                            FALSE
+                            ))
+                        {
+                            break;
+                        }
+
                         if (NT_SUCCESS(status = PhOpenProcess(
                             &processHandle,
                             ProcessQueryAccess | PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION |
@@ -304,16 +332,25 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
                             for (i = 0; i < numberOfIndices; i++)
                             {
                                 item = PhItemArray(&environmentContext->Items, PtrToUlong(indices[i]) - 1);
-                                PhSetEnvironmentVariableRemote(processHandle, &item->Name->sr, NULL, &timeout);
+                                status = PhSetEnvironmentVariableRemote(processHandle, &item->Name->sr, NULL, &timeout);
                             }
 
                             NtClose(processHandle);
 
                             PhpRefreshEnvironment(hwndDlg, environmentContext, processItem);
+
+                            if (!NT_SUCCESS(status))
+                            {
+                                PhShowStatus(hwndDlg, L"Unable to delete the environment variable.", status, 0);
+                            }
+                            else if (status == STATUS_TIMEOUT)
+                            {
+                                PhShowStatus(hwndDlg, L"Unable to delete the environment variable.", 0, WAIT_TIMEOUT);
+                            }
                         }
                         else
                         {
-                            PhShowStatus(hwndDlg, L"Unable to open the process", status, 0);
+                            PhShowStatus(hwndDlg, L"Unable to open the process.", status, 0);
                         }
                     }
 
@@ -382,8 +419,8 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
                 PVOID *indices;
                 ULONG numberOfIndices;
 
-                point.x = (SHORT)LOWORD(lParam);
-                point.y = (SHORT)HIWORD(lParam);
+                point.x = GET_X_LPARAM(lParam);
+                point.y = GET_Y_LPARAM(lParam);
 
                 if (point.x == -1 && point.y == -1)
                     PhGetListViewContextMenuPoint((HWND)wParam, &point);
@@ -433,15 +470,15 @@ INT_PTR CALLBACK PhpEditEnvDlgProc(
     if (uMsg == WM_INITDIALOG)
     {
         context = (PEDIT_ENV_DIALOG_CONTEXT)lParam;
-        SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)context);
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = (PEDIT_ENV_DIALOG_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
         if (uMsg == WM_DESTROY)
         {
-            RemoveProp(hwndDlg, PhMakeContextAtom());
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
         }
     }
 
@@ -474,10 +511,10 @@ INT_PTR CALLBACK PhpEditEnvDlgProc(
             context->MinimumSize.bottom = 140;
             MapDialogRect(hwndDlg, &context->MinimumSize);
 
-            SetDlgItemText(hwndDlg, IDC_NAME, context->Name);
-            SetDlgItemText(hwndDlg, IDC_VALUE, context->Value ? context->Value : L"");
+            PhSetDialogItemText(hwndDlg, IDC_NAME, context->Name);
+            PhSetDialogItemText(hwndDlg, IDC_VALUE, context->Value ? context->Value : L"");
 
-            SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)GetDlgItem(hwndDlg, IDCANCEL), TRUE);
+            PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDCANCEL));
         }
         break;
     case WM_DESTROY:
@@ -543,7 +580,12 @@ INT_PTR CALLBACK PhpEditEnvDlgProc(
 
                             if (!NT_SUCCESS(status))
                             {
-                                PhShowStatus(hwndDlg, L"Unable to set the environment variable", status, 0);
+                                PhShowStatus(hwndDlg, L"Unable to set the environment variable.", status, 0);
+                                break;
+                            }
+                            else if (status == STATUS_TIMEOUT)
+                            {
+                                PhShowStatus(hwndDlg, L"Unable to delete the environment variable.", 0, WAIT_TIMEOUT);
                                 break;
                             }
 
@@ -558,7 +600,7 @@ INT_PTR CALLBACK PhpEditEnvDlgProc(
                 {
                     if (HIWORD(wParam) == EN_CHANGE)
                     {
-                        EnableWindow(GetDlgItem(hwndDlg, IDOK), GetWindowTextLength(GetDlgItem(hwndDlg, IDC_NAME)) > 0);
+                        EnableWindow(GetDlgItem(hwndDlg, IDOK), PhGetWindowTextLength(GetDlgItem(hwndDlg, IDC_NAME)) > 0);
                     }
                 }
                 break;

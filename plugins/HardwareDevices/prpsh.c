@@ -47,9 +47,7 @@ LRESULT CALLBACK PvpPropSheetWndProc(
     _In_ HWND hWnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
-    _In_ LPARAM lParam,
-    _In_ UINT_PTR uIdSubclass,
-    _In_ ULONG_PTR dwRefData
+    _In_ LPARAM lParam
     );
 
 INT CALLBACK PvpStandardPropPageProc(
@@ -137,15 +135,16 @@ INT CALLBACK PvpPropSheetProc(
         break;
     case PSCB_INITIALIZED:
         {
-            PPV_PROPSHEETCONTEXT propSheetContext;
+            PPV_PROPSHEETCONTEXT context;
 
-            propSheetContext = PhAllocate(sizeof(PV_PROPSHEETCONTEXT));
-            memset(propSheetContext, 0, sizeof(PV_PROPSHEETCONTEXT));
+            context = PhAllocate(sizeof(PV_PROPSHEETCONTEXT));
+            memset(context, 0, sizeof(PV_PROPSHEETCONTEXT));
 
-            PhInitializeLayoutManager(&propSheetContext->LayoutManager, hwndDlg);
+            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
 
-            SetProp(hwndDlg, L"HdContext", (HANDLE)propSheetContext);
-            SetWindowSubclass(hwndDlg, PvpPropSheetWndProc, 0, (ULONG_PTR)propSheetContext);
+            context->DefaultWindowProc = (WNDPROC)GetWindowLongPtr(hwndDlg, GWLP_WNDPROC);
+            PhSetWindowContext(hwndDlg, ULONG_MAX, context);
+            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)PvpPropSheetWndProc);
 
             if (MinimumSize.left == -1)
             {
@@ -170,30 +169,35 @@ PPV_PROPSHEETCONTEXT PvpGetPropSheetContext(
     _In_ HWND hwnd
     )
 {
-    return (PPV_PROPSHEETCONTEXT)GetProp(hwnd, L"HdContext");
+    return PhGetWindowContext(hwnd, ULONG_MAX);
 }
 
 LRESULT CALLBACK PvpPropSheetWndProc(
     _In_ HWND hWnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
-    _In_ LPARAM lParam,
-    _In_ UINT_PTR uIdSubclass,
-    _In_ ULONG_PTR dwRefData
+    _In_ LPARAM lParam
     )
 {
-    PPV_PROPSHEETCONTEXT propSheetContext = (PPV_PROPSHEETCONTEXT)dwRefData;
+    PPV_PROPSHEETCONTEXT context;
+    WNDPROC oldWndProc;
+
+    if (!(context = PhGetWindowContext(hWnd, ULONG_MAX)))
+        return 0;
+
+    oldWndProc = context->DefaultWindowProc;
 
     switch (uMsg)
     {
-    case WM_NCDESTROY:
+    case WM_DESTROY:
         {
-            RemoveWindowSubclass(hWnd, PvpPropSheetWndProc, uIdSubclass);
+            SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+            PhRemoveWindowContext(hWnd, ULONG_MAX);
 
             PhSaveWindowPlacementToSetting(SETTING_NAME_DISK_POSITION, SETTING_NAME_DISK_SIZE, hWnd);
-            PhDeleteLayoutManager(&propSheetContext->LayoutManager);
+            PhDeleteLayoutManager(&context->LayoutManager);
 
-            PhFree(propSheetContext);
+            PhFree(context);
         }
         break;
     case WM_COMMAND:
@@ -212,7 +216,7 @@ LRESULT CALLBACK PvpPropSheetWndProc(
         {
             if (!IsIconic(hWnd))
             {
-                PhLayoutManagerLayout(&propSheetContext->LayoutManager);
+                PhLayoutManagerLayout(&context->LayoutManager);
             }
         }
         break;
@@ -223,7 +227,7 @@ LRESULT CALLBACK PvpPropSheetWndProc(
         break;
     }
 
-    return DefSubclassProc(hWnd, uMsg, wParam, lParam);
+    return CallWindowProc(oldWndProc, hWnd, uMsg, wParam, lParam);
 }
 
 BOOLEAN PhpInitializePropSheetLayoutStage1(
@@ -251,7 +255,7 @@ BOOLEAN PhpInitializePropSheetLayoutStage1(
         // Hide the OK button.
         ShowWindow(GetDlgItem(hwnd, IDOK), SW_HIDE);
         // Set the Cancel button's text to "Close".
-        SetDlgItemText(hwnd, IDCANCEL, L"Close");
+        PhSetDialogItemText(hwnd, IDCANCEL, L"Close");
 
         PhLoadWindowPlacementFromSetting(SETTING_NAME_DISK_POSITION, SETTING_NAME_DISK_SIZE, hwnd);
 

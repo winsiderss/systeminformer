@@ -365,6 +365,7 @@ VOID CustomizeLoadToolbarItems(
     // Disable buttons
     Button_Enable(Context->MoveUpButtonHandle, FALSE);
     Button_Enable(Context->MoveDownButtonHandle, FALSE);
+    Button_Enable(Context->AddButtonHandle, FALSE);
     Button_Enable(Context->RemoveButtonHandle, FALSE);
 }
 
@@ -489,15 +490,15 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
         context = (PCUSTOMIZE_CONTEXT)PhAllocate(sizeof(CUSTOMIZE_CONTEXT));
         memset(context, 0, sizeof(CUSTOMIZE_CONTEXT));
 
-        SetProp(hwndDlg, L"Context", (HANDLE)context);
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = (PCUSTOMIZE_CONTEXT)GetProp(hwndDlg, L"Context");
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
         if (uMsg == WM_NCDESTROY)
         {
-            RemoveProp(hwndDlg, L"Context");
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
         }
     }
@@ -531,9 +532,9 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
             CustomizeLoadToolbarItems(context);
             CustomizeLoadToolbarSettings(context);
 
-            SendMessage(context->DialogHandle, WM_NEXTDLGCTL, (WPARAM)context->CurrentListHandle, TRUE);
+            PhSetDialogFocus(context->DialogHandle, context->CurrentListHandle);
         }
-        return TRUE;
+        break;
     case WM_DESTROY:
         {
             ToolbarSaveButtonSettings();
@@ -558,6 +559,11 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
                 {
                     switch (GET_WM_COMMAND_CMD(wParam, lParam))
                     {
+                    case LBN_SELCHANGE:
+                        {
+                            Button_Enable(context->AddButtonHandle, TRUE);
+                        }
+                        break;
                     case LBN_DBLCLK:
                         {
                             INT index;
@@ -575,6 +581,11 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
                             CustomizeAddToolbarItem(context, index, indexto);
                         }
                         break;
+                    //case LBN_KILLFOCUS:
+                    //    {
+                    //        Button_Enable(context->AddButtonHandle, FALSE);
+                    //    }
+                    //    break;
                     }
                 }
                 break;
@@ -650,6 +661,13 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
                             CustomizeRemoveToolbarItem(context, index);
                         }
                         break;
+                    //case LBN_KILLFOCUS:
+                    //    {
+                    //        Button_Enable(context->MoveUpButtonHandle, FALSE);
+                    //        Button_Enable(context->MoveDownButtonHandle, FALSE);
+                    //        Button_Enable(context->RemoveButtonHandle, FALSE);
+                    //    }
+                    //    break;
                     }
                 }
                 break;
