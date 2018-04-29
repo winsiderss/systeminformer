@@ -749,10 +749,11 @@ VOID PhpShowKphError(
     _In_opt_ NTSTATUS Status
     )
 {
+	HWND hWnd = GetTopWindow(NULL);
     if (Status == STATUS_NO_SUCH_FILE)
     {
         PhShowError2(
-            NULL,
+			hWnd,
             Message,
             L"You will be unable to use more advanced features, view details about system processes or terminate malicious software."
             );
@@ -770,14 +771,14 @@ VOID PhpShowKphError(
                 L"\r\n\r\n",
                 L"You will be unable to use more advanced features, view details about system processes or terminate malicious software."
                 );
-            PhShowError2(NULL, Message, statusMessage->Buffer);
+            PhShowError2(hWnd, Message, statusMessage->Buffer);
             PhDereferenceObject(statusMessage);
             PhDereferenceObject(errorMessage);
         }
         else
         {
             PhShowError2(
-                NULL, 
+				hWnd,
                 Message, 
                 L"You will be unable to use more advanced features, view details about system processes or terminate malicious software."
                 );
