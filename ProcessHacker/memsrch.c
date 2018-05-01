@@ -50,7 +50,8 @@ typedef struct _MEMORY_STRING_CONTEXT
             BOOLEAN Image : 1;
             BOOLEAN Mapped : 1;
             BOOLEAN EnableCloseDialog : 1;
-            BOOLEAN Spare : 3;
+            BOOLEAN ExtendedUnicode : 1;
+            BOOLEAN Spare : 2;
         };
     };
 
@@ -191,6 +192,7 @@ VOID PhSearchMemoryString(
 {
     ULONG minimumLength;
     BOOLEAN detectUnicode;
+    BOOLEAN extendedUnicode;
     ULONG memoryTypeMask;
     PVOID baseAddress;
     MEMORY_BASIC_INFORMATION basicInfo;
@@ -200,8 +202,9 @@ VOID PhSearchMemoryString(
     SIZE_T displayBufferCount;
 
     minimumLength = Options->MinimumLength;
-    detectUnicode = Options->DetectUnicode;
     memoryTypeMask = Options->MemoryTypeMask;
+    detectUnicode = Options->DetectUnicode;
+    extendedUnicode = Options->ExtendedUnicode;
 
     if (minimumLength < 4)
         return;
@@ -295,7 +298,15 @@ VOID PhSearchMemoryString(
             for (i = 0; i < readSize; i++)
             {
                 byte = buffer[i];
-                printable = PhCharIsPrintable[byte];
+
+                // dmex: We don't want to enable extra bits in the PhCharIsPrintable array by default
+                // or we'll get higher amounts of false positive search results. If the user selects the 
+                // ExtendedUnicode option then we'll use iswprint (GetStringTypeW) which does check 
+                // every available character by default.
+                if (detectUnicode && extendedUnicode && !iswascii(byte))
+                    printable = iswprint(byte);
+                else
+                    printable = PhCharIsPrintable[byte];
 
                 // To find strings Process Hacker uses a state table.
                 // * byte2 - byte before previous byte
@@ -564,6 +575,7 @@ INT_PTR CALLBACK PhpMemoryStringDlgProc(
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             PhSetDialogItemText(hwndDlg, IDC_MINIMUMLENGTH, L"10");
+
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_DETECTUNICODE), BST_CHECKED);
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_PRIVATE), BST_CHECKED);
         }
@@ -594,11 +606,25 @@ INT_PTR CALLBACK PhpMemoryStringDlgProc(
 
                     context->MinimumLength = (ULONG)minimumLength;
                     context->DetectUnicode = Button_GetCheck(GetDlgItem(hwndDlg, IDC_DETECTUNICODE)) == BST_CHECKED;
+                    context->ExtendedUnicode = Button_GetCheck(GetDlgItem(hwndDlg, IDC_EXTENDEDUNICODE)) == BST_CHECKED;
                     context->Private = Button_GetCheck(GetDlgItem(hwndDlg, IDC_PRIVATE)) == BST_CHECKED;
                     context->Image = Button_GetCheck(GetDlgItem(hwndDlg, IDC_IMAGE)) == BST_CHECKED;
                     context->Mapped = Button_GetCheck(GetDlgItem(hwndDlg, IDC_MAPPED)) == BST_CHECKED;
 
                     EndDialog(hwndDlg, IDOK);
+                }
+                break;
+            case IDC_DETECTUNICODE:
+                {
+                    if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_DETECTUNICODE)) == BST_UNCHECKED)
+                    {
+                        Button_SetCheck(GetDlgItem(hwndDlg, IDC_EXTENDEDUNICODE), BST_UNCHECKED);
+                        Button_Enable(GetDlgItem(hwndDlg, IDC_EXTENDEDUNICODE), FALSE);
+                    }
+                    else
+                    {
+                        Button_Enable(GetDlgItem(hwndDlg, IDC_EXTENDEDUNICODE), TRUE);
+                    }
                 }
                 break;
             }
@@ -631,6 +657,7 @@ NTSTATUS PhpMemoryStringThreadStart(
     context->Options.Header.Context = context;
     context->Options.MinimumLength = context->MinimumLength;
     context->Options.DetectUnicode = context->DetectUnicode;
+    context->Options.ExtendedUnicode = context->ExtendedUnicode;
 
     if (context->Private)
         context->Options.MemoryTypeMask |= MEM_PRIVATE;

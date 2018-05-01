@@ -407,6 +407,7 @@
 #define IDC_PRIVATE                     1238
 #define IDC_IMAGE                       1239
 #define IDC_MAPPED                      1240
+#define IDC_EXTENDEDUNICODE             1241
 #define IDC_SHOWTEXT                    1245
 #define IDC_ICONPROCESSES               1248
 #define IDC_CLEANUP                     1251
@@ -749,7 +750,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        252
+#define _APS_NEXT_RESOURCE_VALUE        253
 #define _APS_NEXT_COMMAND_VALUE         40297
 #define _APS_NEXT_CONTROL_VALUE         1410
 #define _APS_NEXT_SYMED_VALUE           170

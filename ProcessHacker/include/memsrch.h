@@ -29,8 +29,17 @@ typedef struct _PH_MEMORY_STRING_OPTIONS
     PH_MEMORY_SEARCH_OPTIONS Header;
 
     ULONG MinimumLength;
-    BOOLEAN DetectUnicode;
     ULONG MemoryTypeMask;
+    union
+    {
+        BOOLEAN Flags;
+        struct
+        {
+            BOOLEAN DetectUnicode : 1;
+            BOOLEAN ExtendedUnicode : 1;
+            BOOLEAN Spare : 7;
+        };
+    };
 } PH_MEMORY_STRING_OPTIONS, *PPH_MEMORY_STRING_OPTIONS;
 
 PVOID PhAllocateForMemorySearch(
