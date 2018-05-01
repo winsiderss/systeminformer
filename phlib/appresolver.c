@@ -200,8 +200,7 @@ HRESULT PhAppResolverActivateAppId(
 }
 
 PPH_STRING PhGetAppContainerName(
-    _In_ PSID AppContainerSid,
-    _In_ BOOLEAN TokenPageHack
+    _In_ PSID AppContainerSid
     )
 {
     HRESULT result;
@@ -211,6 +210,8 @@ PPH_STRING PhGetAppContainerName(
     if (!PhpKernelAppCoreInitialized())
         return NULL;
 
+    // NOTE: The AppContainerLookupMoniker function is not able to lookup the appcontainer names created using the 
+    // CreateAppContainerProfile function from Win32 desktop applications (e.g. Google Chrome). 
     result = AppContainerLookupMoniker_I(
         AppContainerSid, 
         &packageMonikerName
@@ -220,14 +221,6 @@ PPH_STRING PhGetAppContainerName(
     {
         appContainerName = PhCreateString(packageMonikerName);
         AppContainerFreeMemory_I(packageMonikerName);
-    }
-    else
-    {
-        // NOTE: The AppContainerLookupMoniker function is not able to lookup the appcontainer names created using the 
-        // CreateAppContainerProfile function from Win32 desktop applications (e.g. Google Chrome). 
-        // HACK: Return the error message until the above bug is fixed or have a better workaround -dmex
-        if (!TokenPageHack)
-            appContainerName = PhGetStatusMessage(0, HRESULT_CODE(result));
     }
 
     return appContainerName;
