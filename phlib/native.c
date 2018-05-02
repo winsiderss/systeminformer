@@ -739,6 +739,14 @@ NTSTATUS PhGetProcessCommandLine(
     return PhGetProcessPebString(ProcessHandle, PhpoCommandLine, CommandLine);
 }
 
+NTSTATUS PhGetProcessDesktopInfo(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPH_STRING *DesktopInfo
+    )
+{
+    return PhGetProcessPebString(ProcessHandle, PhpoDesktopInfo, DesktopInfo);
+}
+
 /**
  * Gets the window flags and window title of a process.
  *
