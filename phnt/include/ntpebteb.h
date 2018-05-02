@@ -84,8 +84,8 @@ typedef struct _PEB
     PVOID SubSystemData;
     PVOID ProcessHeap;
     PRTL_CRITICAL_SECTION FastPebLock;
-    PVOID AtlThunkSListPtr;
     PVOID IFEOKey;
+    PSLIST_HEADER AtlThunkSListPtr;
     union
     {
         ULONG CrossProcessFlags;
@@ -193,19 +193,24 @@ typedef struct _PEB
         };
     };
     ULONGLONG CsrServerReadOnlySharedMemoryBase;
-    PVOID TppWorkerpListLock;
+    PRTL_CRITICAL_SECTION TppWorkerpListLock;
     LIST_ENTRY TppWorkerpList;
     PVOID WaitOnAddressHashTable[128];
     PVOID TelemetryCoverageHeader; // REDSTONE3
     ULONG CloudFileFlags;
+    ULONG CloudFileDiagFlags; // REDSTONE4
+    CHAR PlaceholderCompatibilityMode;
+    CHAR PlaceholderCompatibilityModeReserved[7];
 } PEB, *PPEB;
 
 #ifdef _WIN64
 C_ASSERT(FIELD_OFFSET(PEB, SessionId) == 0x2C0);
-C_ASSERT(sizeof(PEB) == 0x7B0);
+//C_ASSERT(sizeof(PEB) == 0x7B0); // REDSTONE3
+C_ASSERT(sizeof(PEB) == 0x7B8); // REDSTONE4
 #else
 C_ASSERT(FIELD_OFFSET(PEB, SessionId) == 0x1D4);
-C_ASSERT(sizeof(PEB) == 0x468);
+//C_ASSERT(sizeof(PEB) == 0x468); // REDSTONE3
+C_ASSERT(sizeof(PEB) == 0x470);
 #endif
 
 #define GDI_BATCH_BUFFER_SIZE 310

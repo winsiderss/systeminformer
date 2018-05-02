@@ -1394,13 +1394,13 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemSecureDumpEncryptionInformation,
     SystemWriteConstraintInformation, // SYSTEM_WRITE_CONSTRAINT_INFORMATION
     SystemKernelVaShadowInformation, // SYSTEM_KERNEL_VA_SHADOW_INFORMATION
-    SystemHypervisorSharedPageInformation, // SYSTEM_HYPERVISOR_SHARED_PAGE_INFORMATION // REDSTONE4
+    SystemHypervisorSharedPageInformation, // SYSTEM_HYPERVISOR_SHARED_PAGE_INFORMATION // since REDSTONE4
     SystemFirmwareBootPerformanceInformation,
-    SystemCodeIntegrityVerificationInformation,
+    SystemCodeIntegrityVerificationInformation, // SYSTEM_CODEINTEGRITYVERIFICATION_INFORMATION
     SystemFirmwarePartitionInformation, // 200
     SystemSpeculationControlInformation, // SYSTEM_SPECULATION_CONTROL_INFORMATION // (CVE-2017-5715) REDSTONE3 and above.
-    SystemDmaGuardPolicyInformation,
-    SystemEnclaveLaunchControlInformation,
+    SystemDmaGuardPolicyInformation, // SYSTEM_DMA_GUARD_POLICY_INFORMATION
+    SystemEnclaveLaunchControlInformation, // SYSTEM_ENCLAVE_LAUNCH_CONTROL_INFORMATION
     MaxSystemInfoClass
 } SYSTEM_INFORMATION_CLASS;
 
@@ -1424,7 +1424,7 @@ typedef struct _SYSTEM_PROCESSOR_INFORMATION
     USHORT ProcessorArchitecture;
     USHORT ProcessorLevel;
     USHORT ProcessorRevision;
-    USHORT ProcessorCount;
+    USHORT MaximumProcessors;
     ULONG ProcessorFeatureBits;
 } SYSTEM_PROCESSOR_INFORMATION, *PSYSTEM_PROCESSOR_INFORMATION;
 
@@ -1845,6 +1845,11 @@ typedef enum _EVENT_TRACE_INFORMATION_CLASS
     EventTraceSoftRestartInformation, // EVENT_TRACE_SOFT_RESTART_INFORMATION
     EventTraceLastBranchConfigurationInformation, // REDSTONE3
     EventTraceLastBranchEventListInformation,
+    EventTraceProfileSourceAddInformation, // EVENT_TRACE_PROFILE_ADD_INFORMATION // REDSTONE4
+    EventTraceProfileSourceRemoveInformation, // EVENT_TRACE_PROFILE_REMOVE_INFORMATION
+    EventTraceProcessorTraceConfigurationInformation,
+    EventTraceProcessorTraceEventListInformation,
+    EventTraceCoverageSamplerInformation, // EVENT_TRACE_COVERAGE_SAMPLER_INFORMATION
     MaxEventTraceInfoClass
 } EVENT_TRACE_INFORMATION_CLASS;
 
@@ -1954,6 +1959,36 @@ typedef struct _EVENT_TRACE_SOFT_RESTART_INFORMATION
     BOOLEAN PersistTraceBuffers;
     WCHAR FileName[1];
 } EVENT_TRACE_SOFT_RESTART_INFORMATION, *PEVENT_TRACE_SOFT_RESTART_INFORMATION;
+
+typedef struct _EVENT_TRACE_PROFILE_ADD_INFORMATION
+{
+    EVENT_TRACE_INFORMATION_CLASS EventTraceInformationClass;
+    BOOLEAN PerfEvtEventSelect;
+    BOOLEAN PerfEvtUnitSelect;
+    ULONG PerfEvtType;
+    ULONG CpuInfoHierarchy[0x3];
+    ULONG InitialInterval;
+    BOOLEAN AllowsHalt;
+    BOOLEAN Persist;
+    WCHAR ProfileSourceDescription[0x1];
+} EVENT_TRACE_PROFILE_ADD_INFORMATION, *PEVENT_TRACE_PROFILE_ADD_INFORMATION;
+
+typedef struct _EVENT_TRACE_PROFILE_REMOVE_INFORMATION
+{
+    EVENT_TRACE_INFORMATION_CLASS EventTraceInformationClass;
+    KPROFILE_SOURCE ProfileSource;
+    ULONG CpuInfoHierarchy[0x3];
+} EVENT_TRACE_PROFILE_REMOVE_INFORMATION, *PEVENT_TRACE_PROFILE_REMOVE_INFORMATION;
+
+typedef struct _EVENT_TRACE_COVERAGE_SAMPLER_INFORMATION
+{
+    EVENT_TRACE_INFORMATION_CLASS EventTraceInformationClass;
+    BOOLEAN CoverageSamplerInformationClass;
+    UCHAR MajorVersion;
+    UCHAR MinorVersion;
+    UCHAR Reserved;
+    HANDLE SamplerHandle;
+} EVENT_TRACE_COVERAGE_SAMPLER_INFORMATION, *PEVENT_TRACE_COVERAGE_SAMPLER_INFORMATION;
 
 typedef struct _SYSTEM_EXCEPTION_INFORMATION
 {
@@ -2256,7 +2291,17 @@ typedef struct _SYSTEM_BOOT_ENVIRONMENT_INFORMATION
 {
     GUID BootIdentifier;
     FIRMWARE_TYPE FirmwareType;
-    ULONGLONG BootFlags;
+    union
+    {
+        ULONGLONG BootFlags;
+        struct
+        {
+            ULONGLONG DbgMenuOsSelection : 1; // REDSTONE4
+            ULONGLONG DbgHiberBoot : 1;
+            ULONGLONG DbgSoftBoot : 1;
+            ULONGLONG DbgMeasuredLaunch : 1;
+        };
+    };
 } SYSTEM_BOOT_ENVIRONMENT_INFORMATION, *PSYSTEM_BOOT_ENVIRONMENT_INFORMATION;
 
 // private
@@ -2788,6 +2833,7 @@ typedef enum _SYSTEM_PROCESS_CLASSIFICATION
     SystemProcessClassificationSystem,
     SystemProcessClassificationSecureSystem,
     SystemProcessClassificationMemCompression,
+    SystemProcessClassificationRegistry, // REDSTONE4
     SystemProcessClassificationMaximum
 } SYSTEM_PROCESS_CLASSIFICATION;
 
@@ -3007,6 +3053,7 @@ typedef struct _SYSTEM_MEMORY_USAGE_INFORMATION
 typedef struct _SYSTEM_CODEINTEGRITY_CERTIFICATE_INFORMATION
 {
     HANDLE ImageFile;
+    ULONG Type; // REDSTONE4
 } SYSTEM_CODEINTEGRITY_CERTIFICATE_INFORMATION, *PSYSTEM_CODEINTEGRITY_CERTIFICATE_INFORMATION;
 
 // private
@@ -3021,8 +3068,8 @@ typedef struct _SYSTEM_PHYSICAL_MEMORY_INFORMATION
 typedef enum _SYSTEM_ACTIVITY_MODERATION_STATE
 {
     SystemActivityModerationStateSystemManaged,
-    SystemActivityModerationStateAlwaysThrottled,
-    SystemActivityModerationStateNeverThrottled,
+    SystemActivityModerationStateUserManagedAllowThrottling,
+    SystemActivityModerationStateUserManagedDisableThrottling,
     MaxSystemActivityModerationState
 } SYSTEM_ACTIVITY_MODERATION_STATE;
 
@@ -3065,9 +3112,11 @@ typedef struct _SYSTEM_CODEINTEGRITY_UNLOCK_INFORMATION
             ULONG Locked : 1;
             ULONG Unlockable : 1;
             ULONG UnlockApplied : 1;
-            ULONG Reserved : 29;
+            ULONG UnlockIdValid : 1; // REDSTONE4
+            ULONG Reserved : 28;
         };
     };
+    UCHAR UnlockId[32]; // REDSTONE4
 } SYSTEM_CODEINTEGRITY_UNLOCK_INFORMATION, *PSYSTEM_CODEINTEGRITY_UNLOCK_INFORMATION;
 
 // private
@@ -3098,10 +3147,20 @@ typedef struct _SYSTEM_KERNEL_VA_SHADOW_INFORMATION
             ULONG KvaShadowUserGlobal : 1;
             ULONG KvaShadowPcid : 1;
             ULONG KvaShadowInvpcid : 1;
-            ULONG Reserved : 28;
+            ULONG KvaShadowRequired : 1; // REDSTONE4
+            ULONG KvaShadowRequiredAvailable : 1;
+            ULONG Reserved : 26;
         };
     };
 } SYSTEM_KERNEL_VA_SHADOW_INFORMATION, *PSYSTEM_KERNEL_VA_SHADOW_INFORMATION;
+
+// private
+typedef struct _SYSTEM_CODEINTEGRITYVERIFICATION_INFORMATION
+{
+    HANDLE FileHandle;
+    ULONG ImageSize;
+    PVOID Image;
+} SYSTEM_CODEINTEGRITYVERIFICATION_INFORMATION, *PSYSTEM_CODEINTEGRITYVERIFICATION_INFORMATION;
 
 // private
 typedef struct _SYSTEM_HYPERVISOR_SHARED_PAGE_INFORMATION
@@ -3129,6 +3188,18 @@ typedef struct _SYSTEM_SPECULATION_CONTROL_INFORMATION
         };
     };
 } SYSTEM_SPECULATION_CONTROL_INFORMATION, *PSYSTEM_SPECULATION_CONTROL_INFORMATION;
+
+// private
+typedef struct _SYSTEM_DMA_GUARD_POLICY_INFORMATION
+{
+    BOOLEAN DmaGuardPolicyEnabled;
+} SYSTEM_DMA_GUARD_POLICY_INFORMATION, *PSYSTEM_DMA_GUARD_POLICY_INFORMATION;
+
+// private
+typedef struct _SYSTEM_ENCLAVE_LAUNCH_CONTROL_INFORMATION
+{
+    UCHAR EnclaveLaunchSigner[32];
+} SYSTEM_ENCLAVE_LAUNCH_CONTROL_INFORMATION, *PSYSTEM_ENCLAVE_LAUNCH_CONTROL_INFORMATION;
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
@@ -3284,7 +3355,8 @@ typedef union _SYSDBG_LIVEDUMP_CONTROL_FLAGS
         ULONG UseDumpStorageStack : 1;
         ULONG CompressMemoryPagesData : 1;
         ULONG IncludeUserSpaceMemoryPages : 1;
-        ULONG Reserved : 29;
+        ULONG AbortIfMemoryPressure : 1; // REDSTONE4
+        ULONG Reserved : 28;
     };
     ULONG AsUlong;
 } SYSDBG_LIVEDUMP_CONTROL_FLAGS, *PSYSDBG_LIVEDUMP_CONTROL_FLAGS;
