@@ -107,7 +107,8 @@ typedef struct _DBGUI_WAIT_STATE_CHANGE
 
 typedef enum _DEBUGOBJECTINFOCLASS
 {
-    DebugObjectFlags = 1,
+    DebugObjectUnusedInformation,
+    DebugObjectKillProcessOnExitInformation,
     MaxDebugObjectInfoClass
 } DEBUGOBJECTINFOCLASS, *PDEBUGOBJECTINFOCLASS;
 

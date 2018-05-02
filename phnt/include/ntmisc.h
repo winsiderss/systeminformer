@@ -1,18 +1,6 @@
 #ifndef _NTMISC_H
 #define _NTMISC_H
 
-// Boot graphics
-
-#if (PHNT_VERSION >= PHNT_WIN7)
-// rev
-NTSYSCALLAPI
-NTSTATUS
-NTAPI
-NtDrawText(
-    _In_ PUNICODE_STRING Text
-    );
-#endif
-
 // Filter manager
 
 #define FLT_PORT_CONNECT 0x0001

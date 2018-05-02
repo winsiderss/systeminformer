@@ -75,7 +75,7 @@ typedef enum _MEMORY_INFORMATION_CLASS
     MemoryImageInformation, // MEMORY_IMAGE_INFORMATION
     MemoryRegionInformationEx,
     MemoryPrivilegedBasicInformation,
-    MemoryEnclaveImageInformation, // since REDSTONE3
+    MemoryEnclaveImageInformation, // MEMORY_ENCLAVE_IMAGE_INFORMATION // since REDSTONE3
     MemoryBasicInformationCapped
 } MEMORY_INFORMATION_CLASS;
 #else
@@ -216,11 +216,19 @@ typedef struct _MEMORY_IMAGE_INFORMATION
         {
             ULONG ImagePartialMap : 1;
             ULONG ImageNotExecutable : 1;
-            ULONG ImageSigningLevel : 1; // REDSTONE3
-            ULONG Reserved : 30;
+            ULONG ImageSigningLevel : 4; // REDSTONE3
+            ULONG Reserved : 26;
         };
     };
 } MEMORY_IMAGE_INFORMATION, *PMEMORY_IMAGE_INFORMATION;
+
+// private
+typedef struct _MEMORY_ENCLAVE_IMAGE_INFORMATION
+{
+    MEMORY_IMAGE_INFORMATION ImageInfo;
+    UCHAR UniqueID[32];
+    UCHAR AuthorID[32];
+} MEMORY_ENCLAVE_IMAGE_INFORMATION, *PMEMORY_ENCLAVE_IMAGE_INFORMATION;
 
 #define MMPFNLIST_ZERO 0
 #define MMPFNLIST_FREE 1
@@ -663,7 +671,8 @@ typedef enum _MEMORY_PARTITION_INFORMATION_CLASS
     SystemMemoryPartitionAddPagefile, // s: MEMORY_PARTITION_PAGEFILE_INFORMATION
     SystemMemoryPartitionCombineMemory, // q; s: MEMORY_PARTITION_PAGE_COMBINE_INFORMATION
     SystemMemoryPartitionInitialAddMemory, // q; s: MEMORY_PARTITION_INITIAL_ADD_INFORMATION
-    SystemMemoryPartitionGetMemoryEvents // MEMORY_PARTITION_MEMORY_EVENTS_INFORMATION // since REDSTONE2
+    SystemMemoryPartitionGetMemoryEvents, // MEMORY_PARTITION_MEMORY_EVENTS_INFORMATION // since REDSTONE2
+    SystemMemoryPartitionMax
 } MEMORY_PARTITION_INFORMATION_CLASS;
 
 // private
