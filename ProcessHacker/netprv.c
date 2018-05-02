@@ -321,11 +321,11 @@ PPH_STRING PhGetHostNameFromAddress(
 
     hostName = PhCreateStringEx(NULL, 128);
 
-    if (GetNameInfoW(
+    if (GetNameInfo(
         address,
         length,
         hostName->Buffer,
-        (ULONG)hostName->Length / 2 + 1,
+        (ULONG)hostName->Length / sizeof(WCHAR) + 1,
         NULL,
         0,
         NI_NAMEREQD
@@ -333,13 +333,13 @@ PPH_STRING PhGetHostNameFromAddress(
     {
         // Try with the maximum host name size.
         PhDereferenceObject(hostName);
-        hostName = PhCreateStringEx(NULL, NI_MAXHOST * 2);
+        hostName = PhCreateStringEx(NULL, NI_MAXHOST * sizeof(WCHAR));
 
-        if (GetNameInfoW(
+        if (GetNameInfo(
             address,
             length,
             hostName->Buffer,
-            (ULONG)hostName->Length / 2 + 1,
+            (ULONG)hostName->Length / sizeof(WCHAR) + 1,
             NULL,
             0,
             NI_NAMEREQD
@@ -661,8 +661,8 @@ VOID PhNetworkProviderUpdate(
             // Get process information.
             if (processItem = PhReferenceProcessItem(networkItem->ProcessId))
             {
-                networkItem->ProcessName = processItem->ProcessName;
                 PhReferenceObject(processItem->ProcessName);
+                networkItem->ProcessName = processItem->ProcessName;
                 PhpUpdateNetworkItemOwner(networkItem, processItem);
 
                 if (PhTestEvent(&processItem->Stage1Event))
@@ -702,8 +702,8 @@ VOID PhNetworkProviderUpdate(
                 {
                     if (!networkItem->ProcessName)
                     {
-                        networkItem->ProcessName = processItem->ProcessName;
                         PhReferenceObject(processItem->ProcessName);
+                        networkItem->ProcessName = processItem->ProcessName;
                         PhpUpdateNetworkItemOwner(networkItem, processItem);
                         modified = TRUE;
                     }

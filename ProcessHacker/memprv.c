@@ -85,19 +85,19 @@ VOID PhGetMemoryProtectionString(
 
     if (Protection & PAGE_GUARD)
     {
-        memcpy(string, L"+G", 2 * 2);
+        memcpy(string, L"+G", 2 * sizeof(WCHAR));
         string += 2;
     }
 
     if (Protection & PAGE_NOCACHE)
     {
-        memcpy(string, L"+NC", 3 * 2);
+        memcpy(string, L"+NC", 3 * sizeof(WCHAR));
         string += 3;
     }
 
     if (Protection & PAGE_WRITECOMBINE)
     {
-        memcpy(string, L"+WCM", 4 * 2);
+        memcpy(string, L"+WCM", 4 * sizeof(WCHAR));
         string += 4;
     }
 

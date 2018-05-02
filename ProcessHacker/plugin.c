@@ -152,8 +152,8 @@ VOID PhSetPluginDisabled(
             // We have other disabled plugins. Append a pipe character followed by the plugin name.
             newDisabled = PhCreateStringEx(NULL, disabled->Length + sizeof(WCHAR) + BaseName->Length);
             memcpy(newDisabled->Buffer, disabled->Buffer, disabled->Length);
-            newDisabled->Buffer[disabled->Length / 2] = '|';
-            memcpy(&newDisabled->Buffer[disabled->Length / 2 + 1], BaseName->Buffer, BaseName->Length);
+            newDisabled->Buffer[disabled->Length / sizeof(WCHAR)] = '|';
+            memcpy(&newDisabled->Buffer[disabled->Length / sizeof(WCHAR) + 1], BaseName->Buffer, BaseName->Length);
             PhSetStringSetting2(L"DisabledPlugins", &newDisabled->sr);
             PhDereferenceObject(newDisabled);
         }
@@ -169,9 +169,9 @@ VOID PhSetPluginDisabled(
 
         // We need to remove the plugin from the disabled list.
 
-        removeCount = (ULONG)BaseName->Length / 2;
+        removeCount = (ULONG)BaseName->Length / sizeof(WCHAR);
 
-        if (foundIndex + (ULONG)BaseName->Length / 2 < (ULONG)disabled->Length / 2)
+        if (foundIndex + (ULONG)BaseName->Length / sizeof(WCHAR) < (ULONG)disabled->Length / sizeof(WCHAR))
         {
             // Remove the following pipe character as well.
             removeCount++;
@@ -199,7 +199,7 @@ static BOOLEAN EnumPluginsDirectoryCallback(
     _In_opt_ PVOID Context
     )
 {
-    static const PWSTR PhpPluginBlocklist[] =
+    static PWSTR PhpPluginBlocklist[] =
     {
         L"CommonUtil.dll",
         L"ExtraPlugins.dll"
@@ -211,7 +211,7 @@ static BOOLEAN EnumPluginsDirectoryCallback(
     baseName.Buffer = Information->FileName;
     baseName.Length = Information->FileNameLength;
 
-    for (ULONG i = 0; i < ARRAYSIZE(PhpPluginBlocklist); i++)
+    for (ULONG i = 0; i < RTL_NUMBER_OF(PhpPluginBlocklist); i++)
     {
         if (PhEndsWithStringRef2(&baseName, PhpPluginBlocklist[i], TRUE))
         {
@@ -220,22 +220,18 @@ static BOOLEAN EnumPluginsDirectoryCallback(
         }
     }
 
+    fileName = PhConcatStringRef2(&PluginsDirectory->sr, &baseName);
+
     if (blacklistedPlugin)
     {
-        fileName = PhConcatStringRef2(&PluginsDirectory->sr, &baseName);
-
         PhDeleteFileWin32(fileName->Buffer);
-
-        PhDereferenceObject(fileName);
     }
     else if (!PhIsPluginDisabled(&baseName))
     {
-        fileName = PhConcatStringRef2(&PluginsDirectory->sr, &baseName);
-
         PhLoadPlugin(fileName);
-
-        PhDereferenceObject(fileName);
     }
+
+    PhDereferenceObject(fileName);
 
     return TRUE;
 }

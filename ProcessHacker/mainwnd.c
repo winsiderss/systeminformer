@@ -2021,7 +2021,7 @@ ULONG_PTR PhMwpOnUserMessage(
             fontHexString = PhaGetStringSetting(L"Font");
 
             if (
-                fontHexString->Length / 2 / 2 == sizeof(LOGFONT) &&
+                fontHexString->Length / sizeof(WCHAR) / 2 == sizeof(LOGFONT) &&
                 PhHexStringToBuffer(&fontHexString->sr, (PUCHAR)&font)
                 )
             {
@@ -2113,6 +2113,7 @@ VOID PhMwpLoadSettings(
     PhEnableServiceNonPoll = !!PhGetIntegerSetting(L"EnableServiceNonPoll");
     PhEnableNetworkProviderResolve = !!PhGetIntegerSetting(L"EnableNetworkResolve");
     PhEnableProcessQueryStage2 = !!PhGetIntegerSetting(L"EnableStage2");
+    PhEnableServiceQueryStage2 = !!PhGetIntegerSetting(L"EnableServiceStage2");
     PhMwpNotifyIconNotifyMask = PhGetIntegerSetting(L"IconNotifyMask");
     
     if (PhGetIntegerSetting(L"MainWindowAlwaysOnTop"))
@@ -2127,7 +2128,7 @@ VOID PhMwpLoadSettings(
 
     PhNfLoadStage1();
 
-    if (customFont->Length / 2 / 2 == sizeof(LOGFONT))
+    if (customFont->Length / sizeof(WCHAR) / 2 == sizeof(LOGFONT))
         SendMessage(PhMainWndHandle, WM_PH_UPDATE_FONT, 0, 0);
 
     PhMwpNotifyAllPages(MainTabPageLoadSettings, NULL, NULL);

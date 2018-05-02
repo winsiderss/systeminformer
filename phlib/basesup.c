@@ -5485,8 +5485,8 @@ BOOLEAN PhHexStringToBuffer(
     for (i = 0; i < length; i++)
     {
         Buffer[i] =
-            (UCHAR)(PhCharToInteger[(UCHAR)String->Buffer[i * 2]] << 4) +
-            (UCHAR)PhCharToInteger[(UCHAR)String->Buffer[i * 2 + 1]];
+            (UCHAR)(PhCharToInteger[(UCHAR)String->Buffer[i * sizeof(WCHAR)]] << 4) +
+            (UCHAR)PhCharToInteger[(UCHAR)String->Buffer[i * sizeof(WCHAR) + 1]];
     }
 
     return TRUE;
@@ -5536,8 +5536,8 @@ PPH_STRING PhBufferToHexStringEx(
 
     for (i = 0; i < Length; i++)
     {
-        string->Buffer[i * 2] = table[Buffer[i] >> 4];
-        string->Buffer[i * 2 + 1] = table[Buffer[i] & 0xf];
+        string->Buffer[i * sizeof(WCHAR)] = table[Buffer[i] >> 4];
+        string->Buffer[i * sizeof(WCHAR) + 1] = table[Buffer[i] & 0xf];
     }
 
     return string;

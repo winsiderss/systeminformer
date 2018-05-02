@@ -453,7 +453,7 @@ BOOLEAN PhaGetProcessKnownCommandLine(
 
             // Get the DLL name part.
 
-            while (i < CommandLine->Length / 2 && CommandLine->Buffer[i] == ' ')
+            while (i < CommandLine->Length / sizeof(WCHAR) && CommandLine->Buffer[i] == ' ')
                 i++;
 
             dllName = PhParseCommandLinePart(&CommandLine->sr, &i);
@@ -517,7 +517,7 @@ BOOLEAN PhaGetProcessKnownCommandLine(
 
             // Get the argument part.
 
-            while (i < (ULONG)CommandLine->Length / 2 && CommandLine->Buffer[i] == ' ')
+            while (i < (ULONG)CommandLine->Length / sizeof(WCHAR) && CommandLine->Buffer[i] == ' ')
                 i++;
 
             argPart = PhParseCommandLinePart(&CommandLine->sr, &i);
@@ -538,7 +538,7 @@ BOOLEAN PhaGetProcessKnownCommandLine(
             guidString = PhaSubstring(
                 argPart,
                 indexOfProcessId + 11,
-                (ULONG)argPart->Length / 2 - indexOfProcessId - 11
+                (ULONG)argPart->Length / sizeof(WCHAR) - indexOfProcessId - 11
                 );
             PhStringRefToUnicodeString(&guidString->sr, &guidStringUs);
 
@@ -661,8 +661,8 @@ PPH_STRING PhEscapeStringForDelimiter(
     SIZE_T i;
     WCHAR temp[2];
 
-    length = String->Length / 2;
-    PhInitializeStringBuilder(&stringBuilder, String->Length / 2 * 3);
+    length = String->Length / sizeof(WCHAR);
+    PhInitializeStringBuilder(&stringBuilder, String->Length / sizeof(WCHAR) * 3);
 
     temp[0] = '\\';
 
@@ -691,8 +691,8 @@ PPH_STRING PhUnescapeStringForDelimiter(
     SIZE_T length;
     SIZE_T i;
 
-    length = String->Length / 2;
-    PhInitializeStringBuilder(&stringBuilder, String->Length / 2 * 3);
+    length = String->Length / sizeof(WCHAR);
+    PhInitializeStringBuilder(&stringBuilder, String->Length / sizeof(WCHAR) * 3);
 
     for (i = 0; i < length; i++)
     {
@@ -883,7 +883,7 @@ VOID PhCopyListViewInfoTip(
         bufferRemaining = GetInfoTip->cchTextMax;
     }
 
-    copyLength = min((ULONG)Tip->Length / 2, bufferRemaining - 1);
+    copyLength = min((ULONG)Tip->Length / sizeof(WCHAR), bufferRemaining - 1);
     memcpy(
         &GetInfoTip->pszText[copyIndex],
         Tip->Buffer,
@@ -1784,12 +1784,12 @@ BOOLEAN PhpSelectFavoriteInRegedit(
         info.cch = sizeof(buffer) / sizeof(WCHAR);
         GetMenuItemInfo(favoritesMenu, i, TRUE, &info);
 
-        if (info.cch == FavoriteName->Length / 2)
+        if (info.cch == FavoriteName->Length / sizeof(WCHAR))
         {
             PH_STRINGREF text;
 
             text.Buffer = buffer;
-            text.Length = info.cch * 2;
+            text.Length = info.cch * sizeof(WCHAR);
 
             if (PhEqualStringRef(&text, FavoriteName, TRUE))
             {

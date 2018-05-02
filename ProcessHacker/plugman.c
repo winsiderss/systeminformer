@@ -443,18 +443,18 @@ BOOLEAN NTAPI PluginsTreeNewCallback(
                     SetTextColor(customDraw->Dc, RGB(0x0, 0x0, 0x0));
                     SelectObject(customDraw->Dc, context->TitleFontHandle);
                     text = PhIsNullOrEmptyString(node->Name) ? PhGetStringRef(node->InternalName) : PhGetStringRef(node->Name);
-                    GetTextExtentPoint32(customDraw->Dc, text.Buffer, (ULONG)text.Length / 2, &nameSize);
-                    DrawText(customDraw->Dc, text.Buffer, (ULONG)text.Length / 2, &rect, DT_TOP | DT_LEFT | DT_END_ELLIPSIS | DT_SINGLELINE);
+                    GetTextExtentPoint32(customDraw->Dc, text.Buffer, (ULONG)text.Length / sizeof(WCHAR), &nameSize);
+                    DrawText(customDraw->Dc, text.Buffer, (ULONG)text.Length / sizeof(WCHAR), &rect, DT_TOP | DT_LEFT | DT_END_ELLIPSIS | DT_SINGLELINE);
 
                     // bottom
                     SetTextColor(customDraw->Dc, RGB(0x64, 0x64, 0x64));
                     SelectObject(customDraw->Dc, context->NormalFontHandle);
                     text = PhGetStringRef(node->Description);
-                    GetTextExtentPoint32(customDraw->Dc, text.Buffer, (ULONG)text.Length / 2, &textSize);
+                    GetTextExtentPoint32(customDraw->Dc, text.Buffer, (ULONG)text.Length / sizeof(WCHAR), &textSize);
                     DrawText(
                         customDraw->Dc,
                         text.Buffer,
-                        (ULONG)text.Length / 2,
+                        (ULONG)text.Length / sizeof(WCHAR),
                         &rect,
                         DT_BOTTOM | DT_LEFT | DT_END_ELLIPSIS | DT_SINGLELINE
                         );
@@ -582,7 +582,7 @@ PWSTR PhpGetPluginBaseName(
         PH_STRINGREF pathNamePart;
         PH_STRINGREF baseNamePart;
 
-        if (PhSplitStringRefAtLastChar(&Plugin->FileName->sr, '\\', &pathNamePart, &baseNamePart))
+        if (PhSplitStringRefAtLastChar(&Plugin->FileName->sr, OBJ_NAME_PATH_SEPARATOR, &pathNamePart, &baseNamePart))
             return baseNamePart.Buffer;
         else
             return Plugin->FileName->Buffer;

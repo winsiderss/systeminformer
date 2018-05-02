@@ -561,7 +561,7 @@ _Callback_ PPH_STRING PhStdGetClientIdName(
         {
             name = PhFormatString(
                 L"%.*s (%u): %u",
-                processInfo->ImageName.Length / 2,
+                processInfo->ImageName.Length / sizeof(WCHAR),
                 processInfo->ImageName.Buffer,
                 HandleToUlong(ClientId->UniqueProcess),
                 HandleToUlong(ClientId->UniqueThread)
@@ -582,7 +582,7 @@ _Callback_ PPH_STRING PhStdGetClientIdName(
         {
             name = PhFormatString(
                 L"%.*s (%u)",
-                processInfo->ImageName.Length / 2,
+                processInfo->ImageName.Length / sizeof(WCHAR),
                 processInfo->ImageName.Buffer,
                 HandleToUlong(ClientId->UniqueProcess)
                 );

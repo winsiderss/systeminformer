@@ -73,7 +73,7 @@ NTSTATUS PhCommandModeStart(
     PhParseCommandLine(
         &commandLine->sr,
         options,
-        sizeof(options) / sizeof(PH_COMMAND_LINE_OPTION),
+        RTL_NUMBER_OF(options),
         PH_COMMAND_LINE_IGNORE_UNKNOWN_OPTIONS,
         PhpCommandModeOptionCallback,
         NULL
@@ -90,7 +90,7 @@ NTSTATUS PhCommandModeStart(
         if (!PhStartupParameters.CommandObject)
             return STATUS_INVALID_PARAMETER;
 
-        processIdLength = PhStartupParameters.CommandObject->Length / 2;
+        processIdLength = PhStartupParameters.CommandObject->Length / sizeof(WCHAR);
 
         for (i = 0; i < processIdLength; i++)
         {
