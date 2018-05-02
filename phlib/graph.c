@@ -525,7 +525,7 @@ VOID PhDrawGraphDirect(
             SetTextColor(hdc, DrawInfo->LabelYColor);
             SetBkMode(hdc, TRANSPARENT);
 
-            GetTextExtentPoint32(hdc, label->Buffer, (ULONG)label->Length / 2, &textSize);
+            GetTextExtentPoint32(hdc, label->Buffer, (ULONG)label->Length / sizeof(WCHAR), &textSize);
 
             rect.bottom = height - yLabelMax - PhNormalGraphTextPadding.top;
             rect.top = rect.bottom - textSize.cy;
@@ -538,7 +538,7 @@ VOID PhDrawGraphDirect(
 
             rect.left = 0;
             rect.right = width - min((LONG)yLabelDataIndex * 2, width) - PhNormalGraphTextPadding.right;
-            DrawText(hdc, label->Buffer, (ULONG)label->Length / 2, &rect, DT_NOCLIP | DT_RIGHT);
+            DrawText(hdc, label->Buffer, (ULONG)label->Length / sizeof(WCHAR), &rect, DT_NOCLIP | DT_RIGHT);
 
             if (oldFont)
                 SelectObject(hdc, oldFont);
@@ -561,7 +561,7 @@ VOID PhDrawGraphDirect(
         // Draw the text.
         SetTextColor(hdc, DrawInfo->TextColor);
         SetBkMode(hdc, TRANSPARENT);
-        DrawText(hdc, DrawInfo->Text.Buffer, (ULONG)DrawInfo->Text.Length / 2, &DrawInfo->TextRect, DT_NOCLIP);
+        DrawText(hdc, DrawInfo->Text.Buffer, (ULONG)DrawInfo->Text.Length / sizeof(WCHAR), &DrawInfo->TextRect, DT_NOCLIP);
 
         if (oldFont)
             SelectObject(hdc, oldFont);
@@ -597,7 +597,7 @@ VOID PhSetGraphText(
         oldFont = SelectObject(hdc, DrawInfo->TextFont);
 
     DrawInfo->Text = *Text;
-    GetTextExtentPoint32(hdc, Text->Buffer, (ULONG)Text->Length / 2, &textSize);
+    GetTextExtentPoint32(hdc, Text->Buffer, (ULONG)Text->Length / sizeof(WCHAR), &textSize);
 
     if (oldFont)
         SelectObject(hdc, oldFont);
@@ -612,14 +612,14 @@ VOID PhSetGraphText(
     else if (Align & PH_ALIGN_RIGHT)
         boxRectangle.Left = DrawInfo->Width - boxRectangle.Width - Margin->right;
     else
-        boxRectangle.Left = (DrawInfo->Width - boxRectangle.Width) / 2;
+        boxRectangle.Left = (DrawInfo->Width - boxRectangle.Width) / sizeof(WCHAR);
 
     if (Align & PH_ALIGN_TOP)
         boxRectangle.Top = Margin->top;
     else if (Align & PH_ALIGN_BOTTOM)
         boxRectangle.Top = DrawInfo->Height - boxRectangle.Height - Margin->bottom;
     else
-        boxRectangle.Top = (DrawInfo->Height - boxRectangle.Height) / 2;
+        boxRectangle.Top = (DrawInfo->Height - boxRectangle.Height) / sizeof(WCHAR);
 
     // Calculate the text rectangle.
 
@@ -696,14 +696,14 @@ VOID PhDrawTrayIconText(
         oldFont = SelectObject(hdc, DrawInfo->TextFont);
 
     DrawInfo->Text = *Text;
-    GetTextExtentPoint32(hdc, Text->Buffer, (ULONG)Text->Length / 2, &textSize);
+    GetTextExtentPoint32(hdc, Text->Buffer, (ULONG)Text->Length / sizeof(WCHAR), &textSize);
 
     // Calculate the box rectangle.
 
     boxRectangle.Width = textSize.cx;
     boxRectangle.Height = textSize.cy;
-    boxRectangle.Left = (DrawInfo->Width - boxRectangle.Width) / 2;
-    boxRectangle.Top = (DrawInfo->Height - boxRectangle.Height) / 2;
+    boxRectangle.Left = (DrawInfo->Width - boxRectangle.Width) / sizeof(WCHAR);
+    boxRectangle.Top = (DrawInfo->Height - boxRectangle.Height) / sizeof(WCHAR);
 
     // Calculate the text rectangle.
 
@@ -724,7 +724,7 @@ VOID PhDrawTrayIconText(
     SetTextColor(hdc, DrawInfo->TextColor);
     SetBkMode(hdc, TRANSPARENT);
 
-    DrawText(hdc, DrawInfo->Text.Buffer, (ULONG)DrawInfo->Text.Length / 2, &DrawInfo->TextRect, DT_NOCLIP | DT_SINGLELINE);
+    DrawText(hdc, DrawInfo->Text.Buffer, (ULONG)DrawInfo->Text.Length / sizeof(WCHAR), &DrawInfo->TextRect, DT_NOCLIP | DT_SINGLELINE);
 
     if (oldFont)
         SelectObject(hdc, oldFont);

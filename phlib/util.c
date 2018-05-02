@@ -845,7 +845,7 @@ PPH_STRING PhEllipsisString(
     )
 {
     if (
-        (ULONG)String->Length / 2 <= DesiredCount ||
+        (ULONG)String->Length / sizeof(WCHAR) <= DesiredCount ||
         DesiredCount < 3
         )
     {
@@ -855,8 +855,8 @@ PPH_STRING PhEllipsisString(
     {
         PPH_STRING string;
 
-        string = PhCreateStringEx(NULL, DesiredCount * 2);
-        memcpy(string->Buffer, String->Buffer, (DesiredCount - 3) * 2);
+        string = PhCreateStringEx(NULL, DesiredCount * sizeof(WCHAR));
+        memcpy(string->Buffer, String->Buffer, (DesiredCount - 3) * sizeof(WCHAR));
         memcpy(&string->Buffer[DesiredCount - 3], L"...", 6);
 
         return string;
@@ -887,7 +887,7 @@ PPH_STRING PhEllipsisStringPath(
         return PhEllipsisString(String, DesiredCount);
 
     if (
-        String->Length / 2 <= DesiredCount ||
+        String->Length / sizeof(WCHAR) <= DesiredCount ||
         DesiredCount < 3
         )
     {
@@ -899,8 +899,8 @@ PPH_STRING PhEllipsisStringPath(
         ULONG_PTR firstPartCopyLength;
         ULONG_PTR secondPartCopyLength;
 
-        string = PhCreateStringEx(NULL, DesiredCount * 2);
-        secondPartCopyLength = String->Length / 2 - secondPartIndex;
+        string = PhCreateStringEx(NULL, DesiredCount * sizeof(WCHAR));
+        secondPartCopyLength = String->Length / sizeof(WCHAR) - secondPartIndex;
 
         // Check if we have enough space for the entire second part of the string.
         if (secondPartCopyLength + 3 <= DesiredCount)
@@ -912,15 +912,15 @@ PPH_STRING PhEllipsisStringPath(
         {
             // No, copy part of both, from the beginning of the first part and the end of the second
             // part.
-            firstPartCopyLength = (DesiredCount - 3) / 2;
+            firstPartCopyLength = (DesiredCount - 3) / sizeof(WCHAR);
             secondPartCopyLength = DesiredCount - 3 - firstPartCopyLength;
-            secondPartIndex = String->Length / 2 - secondPartCopyLength;
+            secondPartIndex = String->Length / sizeof(WCHAR) - secondPartCopyLength;
         }
 
         memcpy(
             string->Buffer,
             String->Buffer,
-            firstPartCopyLength * 2
+            firstPartCopyLength * sizeof(WCHAR)
             );
         memcpy(
             &string->Buffer[firstPartCopyLength],
@@ -930,7 +930,7 @@ PPH_STRING PhEllipsisStringPath(
         memcpy(
             &string->Buffer[firstPartCopyLength + 3],
             &String->Buffer[secondPartIndex],
-            secondPartCopyLength * 2
+            secondPartCopyLength * sizeof(WCHAR)
             );
 
         return string;
@@ -1852,7 +1852,7 @@ PPH_STRING PhGetFullPath(
     PWSTR filePart;
 
     bufferSize = 0x80;
-    fullPath = PhCreateStringEx(NULL, bufferSize * 2);
+    fullPath = PhCreateStringEx(NULL, bufferSize * sizeof(WCHAR));
 
     returnLength = RtlGetFullPathName_U(FileName, bufferSize, fullPath->Buffer, &filePart);
 
@@ -1860,7 +1860,7 @@ PPH_STRING PhGetFullPath(
     {
         PhDereferenceObject(fullPath);
         bufferSize = returnLength;
-        fullPath = PhCreateStringEx(NULL, bufferSize * 2);
+        fullPath = PhCreateStringEx(NULL, bufferSize * sizeof(WCHAR));
 
         returnLength = RtlGetFullPathName_U(FileName, bufferSize, fullPath->Buffer, &filePart);
     }
@@ -1944,7 +1944,7 @@ PPH_STRING PhExpandEnvironmentStrings(
     }
 
     string->Length = outputString.Length;
-    string->Buffer[string->Length / 2] = UNICODE_NULL; // make sure there is a null terminator
+    string->Buffer[string->Length / sizeof(WCHAR)] = UNICODE_NULL; // make sure there is a null terminator
 
     return string;
 }
@@ -1961,7 +1961,7 @@ PPH_STRING PhGetBaseName(
     PH_STRINGREF pathPart;
     PH_STRINGREF baseNamePart;
 
-    if (!PhSplitStringRefAtLastChar(&FileName->sr, '\\', &pathPart, &baseNamePart))
+    if (!PhSplitStringRefAtLastChar(&FileName->sr, OBJ_NAME_PATH_SEPARATOR, &pathPart, &baseNamePart))
         return PhReferenceObject(FileName);
 
     return PhCreateString2(&baseNamePart);
@@ -1979,7 +1979,7 @@ PPH_STRING PhGetBaseDirectory(
     PH_STRINGREF pathPart;
     PH_STRINGREF baseNamePart;
 
-    if (!PhSplitStringRefAtLastChar(&FileName->sr, '\\', &pathPart, &baseNamePart))
+    if (!PhSplitStringRefAtLastChar(&FileName->sr, OBJ_NAME_PATH_SEPARATOR, &pathPart, &baseNamePart))
         return NULL;
 
     return PhCreateString2(&pathPart);
@@ -2042,7 +2042,7 @@ VOID PhGetSystemRoot(
     localSystemRoot.Length = count * sizeof(WCHAR);
 
     // Make sure the system root string doesn't have a trailing backslash.
-    if (localSystemRoot.Buffer[count - 1] == '\\')
+    if (localSystemRoot.Buffer[count - 1] == OBJ_NAME_PATH_SEPARATOR)
         localSystemRoot.Length -= sizeof(WCHAR);
 
     *SystemRoot = localSystemRoot;
@@ -2059,15 +2059,15 @@ PPH_STRING PhGetApplicationFileName(
     VOID
     )
 {
-    PPH_STRING fileName;
+    //PPH_STRING fileName;
+    //
+    //if (NT_SUCCESS(PhGetProcessImageFileNameWin32(NtCurrentProcess(), &fileName)))
+    //{
+    //    PhMoveReference(&fileName, PhGetFileName(fileName));
+    //    return fileName;
+    //}
 
-    if (NT_SUCCESS(PhGetProcessImageFileNameWin32(NtCurrentProcess(), &fileName)))
-    {
-        PhMoveReference(&fileName, PhGetFileName(fileName));
-        return fileName;
-    }
-
-    return PhGetDllFileName(NtCurrentPeb()->ImageBaseAddress, NULL);
+    return PhGetDllFileName(PhInstanceHandle, NULL);
 }
 
 /**
@@ -2085,7 +2085,7 @@ PPH_STRING PhGetApplicationDirectory(
 
     if (fileName)
     {
-        indexOfFileName = PhFindLastCharInString(fileName, 0, '\\');
+        indexOfFileName = PhFindLastCharInString(fileName, 0, OBJ_NAME_PATH_SEPARATOR);
 
         if (indexOfFileName != -1)
             indexOfFileName++;
@@ -3577,7 +3577,7 @@ UINT_PTR CALLBACK PhpOpenFileNameHookProc(
                     {
                         PhFree(header->lpOFN->lpstrFile);
                         header->lpOFN->nMaxFile = returnLength + 0x200; // pre-allocate some more
-                        header->lpOFN->lpstrFile = PhAllocate(header->lpOFN->nMaxFile * 2);
+                        header->lpOFN->lpstrFile = PhAllocate(header->lpOFN->nMaxFile * sizeof(WCHAR));
 
                         returnLength = CommDlg_OpenSave_GetFilePath(
                             header->hdr.hwndFrom,
@@ -3606,7 +3606,7 @@ OPENFILENAME *PhpCreateOpenFileName(
 
     ofn->lStructSize = sizeof(OPENFILENAME);
     ofn->nMaxFile = 0x400;
-    ofn->lpstrFile = PhAllocate(ofn->nMaxFile * 2);
+    ofn->lpstrFile = PhAllocate(ofn->nMaxFile * sizeof(WCHAR));
     ofn->lpstrFileTitle = NULL;
     ofn->Flags = OFN_ENABLEHOOK | OFN_EXPLORER;
     ofn->lpfnHook = PhpOpenFileNameHookProc;
@@ -4079,7 +4079,7 @@ VOID PhSetFileDialogFileName(
         PH_STRINGREF pathNamePart;
         PH_STRINGREF baseNamePart;
 
-        if (PhSplitStringRefAtLastChar(&fileName, '\\', &pathNamePart, &baseNamePart) &&
+        if (PhSplitStringRefAtLastChar(&fileName, OBJ_NAME_PATH_SEPARATOR, &pathNamePart, &baseNamePart) &&
             SHParseDisplayName_Import() && SHCreateShellItem_Import())
         {
             LPITEMIDLIST item;
@@ -4121,7 +4121,7 @@ VOID PhSetFileDialogFileName(
         PhFree(ofn->lpstrFile);
 
         ofn->nMaxFile = (ULONG)max(fileName.Length / sizeof(WCHAR) + 1, 0x400);
-        ofn->lpstrFile = PhAllocate(ofn->nMaxFile * 2);
+        ofn->lpstrFile = PhAllocate(ofn->nMaxFile * sizeof(WCHAR));
         memcpy(ofn->lpstrFile, fileName.Buffer, fileName.Length + sizeof(WCHAR));
     }
 }
@@ -4465,7 +4465,7 @@ PPH_STRING PhParseCommandLinePart(
     BOOLEAN inQuote;
     BOOLEAN endOfValue;
 
-    length = CommandLine->Length / 2;
+    length = CommandLine->Length / sizeof(WCHAR);
     i = *Index;
 
     // This function follows the rules used by CommandLineToArgvW:
@@ -4496,7 +4496,7 @@ PPH_STRING PhParseCommandLinePart(
 
                     if (numberOfBackslashes != 0)
                     {
-                        PhAppendCharStringBuilder2(&stringBuilder, '\\', numberOfBackslashes);
+                        PhAppendCharStringBuilder2(&stringBuilder, OBJ_NAME_PATH_SEPARATOR, numberOfBackslashes);
                         numberOfBackslashes = 0;
                     }
 
@@ -4507,7 +4507,7 @@ PPH_STRING PhParseCommandLinePart(
                 else
                 {
                     numberOfBackslashes /= 2;
-                    PhAppendCharStringBuilder2(&stringBuilder, '\\', numberOfBackslashes);
+                    PhAppendCharStringBuilder2(&stringBuilder, OBJ_NAME_PATH_SEPARATOR, numberOfBackslashes);
                     numberOfBackslashes = 0;
                 }
             }
@@ -4521,7 +4521,7 @@ PPH_STRING PhParseCommandLinePart(
         default:
             if (numberOfBackslashes != 0)
             {
-                PhAppendCharStringBuilder2(&stringBuilder, '\\', numberOfBackslashes);
+                PhAppendCharStringBuilder2(&stringBuilder, OBJ_NAME_PATH_SEPARATOR, numberOfBackslashes);
                 numberOfBackslashes = 0;
             }
 
@@ -4583,7 +4583,7 @@ BOOLEAN PhParseCommandLine(
         return TRUE;
 
     i = 0;
-    length = CommandLine->Length / 2;
+    length = CommandLine->Length / sizeof(WCHAR);
 
     while (TRUE)
     {
@@ -4630,7 +4630,7 @@ BOOLEAN PhParseCommandLine(
             optionNameLength = i - originalIndex;
 
             optionName.Buffer = &CommandLine->Buffer[originalIndex];
-            optionName.Length = optionNameLength * 2;
+            optionName.Length = optionNameLength * sizeof(WCHAR);
 
             // Take care of any pending optional argument.
 
@@ -4724,8 +4724,8 @@ PPH_STRING PhEscapeCommandLinePart(
 
     ULONG numberOfBackslashes;
 
-    length = (ULONG)String->Length / 2;
-    PhInitializeStringBuilder(&stringBuilder, String->Length / 2 * 3);
+    length = (ULONG)String->Length / sizeof(WCHAR);
+    PhInitializeStringBuilder(&stringBuilder, String->Length / sizeof(WCHAR) * 3);
     numberOfBackslashes = 0;
 
     // Simply replacing " with \" won't work here. See PhParseCommandLinePart for the quoting rules.
@@ -4740,7 +4740,7 @@ PPH_STRING PhEscapeCommandLinePart(
         case '\"':
             if (numberOfBackslashes != 0)
             {
-                PhAppendCharStringBuilder2(&stringBuilder, '\\', numberOfBackslashes * 2);
+                PhAppendCharStringBuilder2(&stringBuilder, OBJ_NAME_PATH_SEPARATOR, numberOfBackslashes * 2);
                 numberOfBackslashes = 0;
             }
 
@@ -4750,7 +4750,7 @@ PPH_STRING PhEscapeCommandLinePart(
         default:
             if (numberOfBackslashes != 0)
             {
-                PhAppendCharStringBuilder2(&stringBuilder, '\\', numberOfBackslashes);
+                PhAppendCharStringBuilder2(&stringBuilder, OBJ_NAME_PATH_SEPARATOR, numberOfBackslashes);
                 numberOfBackslashes = 0;
             }
 
@@ -5368,7 +5368,7 @@ PPH_STRING PhGetDllFileName(
 
     if (IndexOfFileName)
     {
-        indexOfFileName = PhFindLastCharInString(fileName, 0, '\\');
+        indexOfFileName = PhFindLastCharInString(fileName, 0, OBJ_NAME_PATH_SEPARATOR);
 
         if (indexOfFileName != -1)
             indexOfFileName++;
@@ -5689,7 +5689,7 @@ static NTSTATUS PhpFixupLoaderEntryImageImports(
 
         if (PhEqualBytesZ(importName, "ProcessHacker.exe", FALSE))
         {
-            importBaseAddress = NtCurrentPeb()->ImageBaseAddress;
+            importBaseAddress = PhInstanceHandle;
         }
         else
         {

@@ -380,7 +380,7 @@ BOOLEAN MatchFilterList(
     ULONG i;
     BOOLEAN isFileName;
 
-    isFileName = PhFindCharInString(String, 0, '\\') != -1;
+    isFileName = PhFindCharInString(String, 0, OBJ_NAME_PATH_SEPARATOR) != -1;
 
     for (i = 0; i < FilterList->Count; i++)
     {

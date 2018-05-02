@@ -1564,22 +1564,22 @@ BOOLEAN PhMipListSectionTreeNewCallback(
 
                 // Top
                 text = PhGetStringRef(getUsageText.Line1);
-                GetTextExtentPoint32(hdc, text.Buffer, (ULONG)text.Length / 2, &textSize);
+                GetTextExtentPoint32(hdc, text.Buffer, (ULONG)text.Length / sizeof(WCHAR), &textSize);
                 usageTextTopWidth = textSize.cx;
                 textRect = topRect;
                 textRect.left = textRect.right - textSize.cx;
                 SetTextColor(hdc, getUsageText.Line1Color);
-                DrawText(hdc, text.Buffer, (ULONG)text.Length / 2, &textRect, baseTextFlags | DT_RIGHT);
+                DrawText(hdc, text.Buffer, (ULONG)text.Length / sizeof(WCHAR), &textRect, baseTextFlags | DT_RIGHT);
                 PhClearReference(&getUsageText.Line1);
 
                 // Bottom
                 text = PhGetStringRef(getUsageText.Line2);
-                GetTextExtentPoint32(hdc, text.Buffer, (ULONG)text.Length / 2, &textSize);
+                GetTextExtentPoint32(hdc, text.Buffer, (ULONG)text.Length / sizeof(WCHAR), &textSize);
                 usageTextBottomWidth = textSize.cx;
                 textRect = bottomRect;
                 textRect.left = textRect.right - textSize.cx;
                 SetTextColor(hdc, getUsageText.Line2Color);
-                DrawText(hdc, text.Buffer, (ULONG)text.Length / 2, &textRect, baseTextFlags | DT_RIGHT);
+                DrawText(hdc, text.Buffer, (ULONG)text.Length / sizeof(WCHAR), &textRect, baseTextFlags | DT_RIGHT);
                 PhClearReference(&getUsageText.Line2);
             }
 
@@ -1630,7 +1630,7 @@ BOOLEAN PhMipListSectionTreeNewCallback(
                 DrawText(
                     hdc,
                     getTitleText.Title->Buffer,
-                    (ULONG)getTitleText.Title->Length / 2,
+                    (ULONG)getTitleText.Title->Length / sizeof(WCHAR),
                     &textRect,
                     baseTextFlags | DT_END_ELLIPSIS
                     );
@@ -1646,7 +1646,7 @@ BOOLEAN PhMipListSectionTreeNewCallback(
                 DrawText(
                     hdc,
                     getTitleText.Subtitle->Buffer,
-                    (ULONG)getTitleText.Subtitle->Length / 2,
+                    (ULONG)getTitleText.Subtitle->Length / sizeof(WCHAR),
                     &textRect,
                     baseTextFlags | DT_END_ELLIPSIS
                     );

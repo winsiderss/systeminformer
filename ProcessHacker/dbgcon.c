@@ -709,7 +709,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
 
         wprintf(L"dbg>");
 
-        if (!fgetws(line, sizeof(line) / 2 - 1, stdin))
+        if (!fgetws(line, sizeof(line) / sizeof(WCHAR) - 1, stdin))
             break;
 
         // Remove the terminating new line character.
@@ -954,7 +954,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
 
                 if (typeFilter)
                 {
-                    wcscpy_s(typeName, sizeof(typeName) / 2, PhGetObjectType(PhObjectHeaderToObject(objectHeader))->Name);
+                    wcscpy_s(typeName, sizeof(typeName) / sizeof(WCHAR), PhGetObjectType(PhObjectHeaderToObject(objectHeader))->Name);
                     _wcslwr(typeName);
                 }
 

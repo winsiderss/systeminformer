@@ -414,7 +414,7 @@ PPH_STRING PhGetSidFullName(
             {
                 fullName = PhCreateStringEx(NULL, domainNameLength + sizeof(WCHAR) + names[0].Name.Length);
                 memcpy(&fullName->Buffer[0], domainNameBuffer, domainNameLength);
-                fullName->Buffer[domainNameLength / sizeof(WCHAR)] = '\\';
+                fullName->Buffer[domainNameLength / sizeof(WCHAR)] = OBJ_NAME_PATH_SEPARATOR;
                 memcpy(&fullName->Buffer[domainNameLength / sizeof(WCHAR) + 1], names[0].Name.Buffer, names[0].Name.Length);
             }
             else

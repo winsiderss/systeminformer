@@ -848,7 +848,7 @@ VOID NTAPI DotNetEventCallback(
                         // Use the name between the last backslash and the last dot for the structure column text.
                         // (E.g. C:\...\AcmeSoft.BigLib.dll -> AcmeSoft.BigLib)
 
-                        indexOfBackslash = PhFindLastCharInString(node->PathText, 0, '\\');
+                        indexOfBackslash = PhFindLastCharInString(node->PathText, 0, OBJ_NAME_PATH_SEPARATOR);
                         indexOfLastDot = PhFindLastCharInString(node->PathText, 0, '.');
 
                         if (indexOfBackslash != -1)

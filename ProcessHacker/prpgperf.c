@@ -412,7 +412,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
 
             GetClientRect(hwndDlg, &clientRect);
             width = clientRect.right - margin.left - margin.right;
-            height = (clientRect.bottom - margin.top - margin.bottom - between * 2) / 3;
+            height = (clientRect.bottom - margin.top - margin.bottom - between * sizeof(WCHAR)) / 3;
 
             deferHandle = BeginDeferWindowPos(6);
 

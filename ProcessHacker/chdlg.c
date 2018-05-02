@@ -156,13 +156,13 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
                 i = 0;
 
                 // Split the saved choices using the delimiter.
-                while (i < savedChoices->Length / 2)
+                while (i < savedChoices->Length / sizeof(WCHAR))
                 {
                     // BUG BUG BUG - what if the user saves "\s"?
                     indexOfDelim = PhFindStringInString(savedChoices, i, L"\\s");
 
                     if (indexOfDelim == -1)
-                        indexOfDelim = savedChoices->Length / 2;
+                        indexOfDelim = savedChoices->Length / sizeof(WCHAR);
 
                     savedChoice = PhSubstring(savedChoices, i, indexOfDelim - i);
 

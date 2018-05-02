@@ -415,7 +415,7 @@ PPH_STRING PhGetComboBoxString(
     if (length == 0)
         return PhReferenceEmptyString();
 
-    string = PhCreateStringEx(NULL, length * 2);
+    string = PhCreateStringEx(NULL, length * sizeof(WCHAR));
 
     if (ComboBox_GetLBText(hwnd, Index, string->Buffer) != CB_ERR)
     {
@@ -476,7 +476,7 @@ PPH_STRING PhGetListBoxString(
     if (length == 0)
         return PhReferenceEmptyString();
 
-    string = PhCreateStringEx(NULL, length * 2);
+    string = PhCreateStringEx(NULL, length * sizeof(WCHAR));
 
     if (ListBox_GetText(hwnd, Index, string->Buffer) != LB_ERR)
     {

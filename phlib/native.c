@@ -1614,8 +1614,9 @@ NTSTATUS PhSetEnvironmentVariableRemote(
     else
     {
 #endif
-        if (!NT_SUCCESS(status = NtQueueApcThread(
+        if (!NT_SUCCESS(status = NtQueueApcThreadEx(
             threadHandle,
+            NULL,
             setEnvironmentVariableW,
             nameBaseAddress,
             valueBaseAddress,
@@ -2898,7 +2899,7 @@ NTSTATUS PhUnloadDriver(
         // Remove the extension if it is present.
         if (PhEndsWithString2(name, L".sys", TRUE))
         {
-            serviceKeyName = PhSubstring(name, 0, name->Length / 2 - 4);
+            serviceKeyName = PhSubstring(name, 0, name->Length / sizeof(WCHAR) - 4);
             PhDereferenceObject(name);
         }
         else
@@ -3047,7 +3048,7 @@ BOOLEAN NTAPI PhpEnumProcessModulesCallback(
         ULONG_PTR indexOfLastBackslash;
 
         PhStringRefToUnicodeString(&mappedFileName->sr, &Entry->FullDllName);
-        indexOfLastBackslash = PhFindLastCharInString(mappedFileName, 0, '\\');
+        indexOfLastBackslash = PhFindLastCharInString(mappedFileName, 0, OBJ_NAME_PATH_SEPARATOR);
 
         if (indexOfLastBackslash != -1)
         {
@@ -3076,7 +3077,7 @@ BOOLEAN NTAPI PhpEnumProcessModulesCallback(
             NULL
             )))
         {
-            fullDllNameBuffer[Entry->FullDllName.Length / 2] = 0;
+            fullDllNameBuffer[Entry->FullDllName.Length / sizeof(WCHAR)] = 0;
         }
         else
         {
@@ -3114,7 +3115,7 @@ BOOLEAN NTAPI PhpEnumProcessModulesCallback(
                 NULL
                 )))
             {
-                baseDllNameBuffer[Entry->BaseDllName.Length / 2] = 0;
+                baseDllNameBuffer[Entry->BaseDllName.Length / sizeof(WCHAR)] = 0;
             }
             else
             {
@@ -3428,7 +3429,7 @@ BOOLEAN NTAPI PhpEnumProcessModules32Callback(
         ULONG_PTR indexOfLastBackslash;
 
         PhStringRefToUnicodeString(&mappedFileName->sr, &nativeEntry.FullDllName);
-        indexOfLastBackslash = PhFindLastCharInString(mappedFileName, 0, '\\');
+        indexOfLastBackslash = PhFindLastCharInString(mappedFileName, 0, OBJ_NAME_PATH_SEPARATOR);
 
         if (indexOfLastBackslash != -1)
         {
@@ -3455,7 +3456,7 @@ BOOLEAN NTAPI PhpEnumProcessModules32Callback(
             NULL
             )))
         {
-            baseDllNameBuffer[nativeEntry.BaseDllName.Length / 2] = 0;
+            baseDllNameBuffer[nativeEntry.BaseDllName.Length / sizeof(WCHAR)] = 0;
         }
         else
         {
@@ -3477,7 +3478,7 @@ BOOLEAN NTAPI PhpEnumProcessModules32Callback(
             NULL
             )))
         {
-            fullDllNameBuffer[nativeEntry.FullDllName.Length / 2] = 0;
+            fullDllNameBuffer[nativeEntry.FullDllName.Length / sizeof(WCHAR)] = 0;
 
             if (!(parameters->Flags & PH_ENUM_PROCESS_MODULES_DONT_RESOLVE_WOW64_FS))
             {
@@ -5071,7 +5072,7 @@ PPH_STRING PhResolveDevicePrefix(
             {
                 // To ensure we match the longest prefix, make sure the next character is a
                 // backslash or the path is equal to the prefix.
-                if (Name->Length == prefix.Length || Name->Buffer[prefix.Length / sizeof(WCHAR)] == '\\')
+                if (Name->Length == prefix.Length || Name->Buffer[prefix.Length / sizeof(WCHAR)] == OBJ_NAME_PATH_SEPARATOR)
                 {
                     isPrefix = TRUE;
                 }
@@ -5116,7 +5117,7 @@ PPH_STRING PhResolveDevicePrefix(
                     // To ensure we match the longest prefix, make sure the next character is a
                     // backslash. Don't resolve if the name *is* the prefix. Otherwise, we will end
                     // up with a useless string like "\".
-                    if (Name->Length != prefixLength && Name->Buffer[prefixLength / sizeof(WCHAR)] == '\\')
+                    if (Name->Length != prefixLength && Name->Buffer[prefixLength / sizeof(WCHAR)] == OBJ_NAME_PATH_SEPARATOR)
                     {
                         isPrefix = TRUE;
                     }
@@ -5127,7 +5128,7 @@ PPH_STRING PhResolveDevicePrefix(
             {
                 // \path
                 newName = PhCreateStringEx(NULL, 1 * sizeof(WCHAR) + Name->Length - prefixLength);
-                newName->Buffer[0] = '\\';
+                newName->Buffer[0] = OBJ_NAME_PATH_SEPARATOR;
                 memcpy(
                     &newName->Buffer[1],
                     &Name->Buffer[prefixLength / sizeof(WCHAR)],
@@ -5169,8 +5170,8 @@ PPH_STRING PhGetFileName(
     // "\??\" refers to \GLOBAL??\. Just remove it.
     if (PhStartsWithString2(FileName, L"\\??\\", FALSE))
     {
-        newFileName = PhCreateStringEx(NULL, FileName->Length - 4 * 2);
-        memcpy(newFileName->Buffer, &FileName->Buffer[4], FileName->Length - 4 * 2);
+        newFileName = PhCreateStringEx(NULL, FileName->Length - 4 * sizeof(WCHAR));
+        memcpy(newFileName->Buffer, &FileName->Buffer[4], FileName->Length - 4 * sizeof(WCHAR));
     }
     // "\SystemRoot" means "C:\Windows".
     else if (PhStartsWithString2(FileName, L"\\SystemRoot", TRUE))
@@ -5178,9 +5179,9 @@ PPH_STRING PhGetFileName(
         PH_STRINGREF systemRoot;
 
         PhGetSystemRoot(&systemRoot);
-        newFileName = PhCreateStringEx(NULL, systemRoot.Length + FileName->Length - 11 * 2);
+        newFileName = PhCreateStringEx(NULL, systemRoot.Length + FileName->Length - 11 * sizeof(WCHAR));
         memcpy(newFileName->Buffer, systemRoot.Buffer, systemRoot.Length);
-        memcpy(PTR_ADD_OFFSET(newFileName->Buffer, systemRoot.Length), &FileName->Buffer[11], FileName->Length - 11 * 2);
+        memcpy(PTR_ADD_OFFSET(newFileName->Buffer, systemRoot.Length), &FileName->Buffer[11], FileName->Length - 11 * sizeof(WCHAR));
     }
     // "system32\" means "C:\Windows\system32\".
     else if (PhStartsWithString2(FileName, L"system32\\", TRUE))
@@ -5190,10 +5191,10 @@ PPH_STRING PhGetFileName(
         PhGetSystemRoot(&systemRoot);
         newFileName = PhCreateStringEx(NULL, systemRoot.Length + 2 + FileName->Length);
         memcpy(newFileName->Buffer, systemRoot.Buffer, systemRoot.Length);
-        newFileName->Buffer[systemRoot.Length / 2] = '\\';
+        newFileName->Buffer[systemRoot.Length / sizeof(WCHAR)] = OBJ_NAME_PATH_SEPARATOR;
         memcpy(PTR_ADD_OFFSET(newFileName->Buffer, systemRoot.Length + 2), FileName->Buffer, FileName->Length);
     }
-    else if (FileName->Length != 0 && FileName->Buffer[0] == '\\')
+    else if (FileName->Length != 0 && FileName->Buffer[0] == OBJ_NAME_PATH_SEPARATOR)
     {
         PPH_STRING resolvedName;
 
@@ -5209,7 +5210,7 @@ PPH_STRING PhGetFileName(
             // If the file name starts with "\Windows", prepend the system drive.
             if (PhStartsWithString2(newFileName, L"\\Windows", TRUE))
             {
-                newFileName = PhCreateStringEx(NULL, FileName->Length + 2 * 2);
+                newFileName = PhCreateStringEx(NULL, FileName->Length + 2 * sizeof(WCHAR));
                 newFileName->Buffer[0] = USER_SHARED_DATA->NtSystemRoot[0];
                 newFileName->Buffer[1] = ':';
                 memcpy(&newFileName->Buffer[2], FileName->Buffer, FileName->Length);
@@ -6350,6 +6351,7 @@ NTSTATUS PhQueryFullAttributesFileWin32(
         );
 
     status = NtQueryFullAttributesFile(&oa, FileInformation);
+
     RtlFreeUnicodeString(&fileName);
 
     return status;
@@ -6371,7 +6373,7 @@ NTSTATUS PhDeleteFileWin32(
         &fileHandle,
         FileName,
         DELETE,
-        0,
+        FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
         FILE_OPEN,
         FILE_DELETE_ON_CLOSE
@@ -6409,7 +6411,7 @@ NTSTATUS PhCreateDirectory(
 
     while (remainingPart.Length != 0)
     {
-        PhSplitStringRefAtChar(&remainingPart, '\\', &part, &remainingPart);
+        PhSplitStringRefAtChar(&remainingPart, OBJ_NAME_PATH_SEPARATOR, &part, &remainingPart);
 
         if (part.Length != 0)
         {

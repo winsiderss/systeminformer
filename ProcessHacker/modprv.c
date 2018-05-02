@@ -545,7 +545,7 @@ VOID PhModuleProviderUpdate(
                 if (NT_SUCCESS(PhLoadRemoteMappedImageEx(moduleProvider->ProcessHandle, moduleItem->BaseAddress, readVirtualMemoryCallback, &remoteMappedImage)))
                 {
                     ULONG_PTR imageBase = 0;
-                    DWORD entryPoint = 0;
+                    ULONG entryPoint = 0;
 
                     moduleItem->ImageTimeDateStamp = remoteMappedImage.NtHeaders->FileHeader.TimeDateStamp;
                     moduleItem->ImageCharacteristics = remoteMappedImage.NtHeaders->FileHeader.Characteristics;

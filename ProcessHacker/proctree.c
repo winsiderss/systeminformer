@@ -3404,10 +3404,10 @@ VOID PhpPopulateTableWithProcessNodes(
             // If this is the first column in the row, add some indentation.
             text = PhaCreateStringEx(
                 NULL,
-                getCellText.Text.Length + Level * 2 * sizeof(WCHAR)
+                getCellText.Text.Length + Level * sizeof(WCHAR) * sizeof(WCHAR)
                 );
-            wmemset(text->Buffer, ' ', Level * 2);
-            memcpy(&text->Buffer[Level * 2], getCellText.Text.Buffer, getCellText.Text.Length);
+            wmemset(text->Buffer, ' ', Level * sizeof(WCHAR));
+            memcpy(&text->Buffer[Level * sizeof(WCHAR)], getCellText.Text.Buffer, getCellText.Text.Length);
         }
 
         Table[*Index][i] = text;

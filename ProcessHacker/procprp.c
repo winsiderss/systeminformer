@@ -236,7 +236,7 @@ LRESULT CALLBACK PhpPropSheetWndProc(
 
             tabItem.mask = TCIF_TEXT;
             tabItem.pszText = text;
-            tabItem.cchTextMax = sizeof(text) / 2 - 1;
+            tabItem.cchTextMax = RTL_NUMBER_OF(text) - 1;
 
             if (TabCtrl_GetItem(tabControl, TabCtrl_GetCurSel(tabControl), &tabItem))
             {

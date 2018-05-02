@@ -389,7 +389,7 @@ static VOID PhpAddProgramsToComboBox(
             listHandle,
             i,
             entry,
-            ARRAYSIZE(entry)
+            RTL_NUMBER_OF(entry)
             ))
         {
             break;

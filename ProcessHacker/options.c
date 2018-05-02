@@ -706,7 +706,7 @@ static BOOLEAN GetCurrentFont(
     else
         fontHexString = PhaGetStringSetting(L"Font");
 
-    if (fontHexString->Length / 2 / 2 == sizeof(LOGFONT))
+    if (fontHexString->Length / sizeof(WCHAR) / 2 == sizeof(LOGFONT))
         result = PhHexStringToBuffer(&fontHexString->sr, (PUCHAR)Font);
     else
         result = FALSE;
@@ -810,7 +810,7 @@ static BOOLEAN PathMatchesPh(
     }
     // Allow for a quoted value.
     else if (
-        OldTaskMgrDebugger->Length == PhApplicationFileName->Length + sizeof(WCHAR) * 2 &&
+        OldTaskMgrDebugger->Length == PhApplicationFileName->Length + sizeof(WCHAR) * sizeof(WCHAR) &&
         OldTaskMgrDebugger->Buffer[0] == '"' &&
         OldTaskMgrDebugger->Buffer[OldTaskMgrDebugger->Length / sizeof(WCHAR) - 1] == '"'
         )
@@ -818,7 +818,7 @@ static BOOLEAN PathMatchesPh(
         PH_STRINGREF partInside;
 
         partInside.Buffer = &OldTaskMgrDebugger->Buffer[1];
-        partInside.Length = OldTaskMgrDebugger->Length - sizeof(WCHAR) * 2;
+        partInside.Length = OldTaskMgrDebugger->Length - sizeof(WCHAR) * sizeof(WCHAR);
 
         if (PhEqualStringRef(&partInside, &PhApplicationFileName->sr, TRUE))
             match = TRUE;
