@@ -616,7 +616,7 @@ VOID PhQueueServiceQueryStage2(
 {
     PH_WORK_QUEUE_ENVIRONMENT environment;
 
-    if (!PhEnableProcessQueryStage2)
+    if (!PhEnableServiceQueryStage2)
         return;
 
     PhReferenceObject(ServiceItem);
@@ -641,8 +641,7 @@ VOID PhpFillServiceItemStage1(
     //memcpy(&processItem->VersionInfo, &Data->VersionInfo, sizeof(PH_IMAGE_VERSION_INFO));
 
     // Note: Queue stage 2 processing after filling stage1 process data.
-    // HACK: We delay-load stage processing for services from the TreeNewGetNodeIcon callback in srvlist.c.
-    //PhQueueServiceQueryStage2(serviceItem);
+    PhQueueServiceQueryStage2(serviceItem);
 }
 
 VOID PhpFillServiceItemStage2(

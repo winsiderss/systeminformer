@@ -771,12 +771,6 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
                 ServiceIconsLoaded = TRUE;
             }
 
-            if (!node->ServiceQueryStage2)
-            {
-                PhQueueServiceQueryStage2(node->ServiceItem);
-                node->ServiceQueryStage2 = TRUE;
-            }
-
             if (node->ServiceItem->SmallIcon)
                 getNodeIcon->Icon = node->ServiceItem->SmallIcon;
             else
@@ -800,7 +794,7 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
 
             if (!serviceItem)
                 ; // Dummy
-            else if (PhEnableProcessQueryStage2 && PhCsUseColorUnknown && serviceItem->VerifyResult != VrTrusted)
+            else if (PhEnableServiceQueryStage2 && PhCsUseColorUnknown && serviceItem->VerifyResult != VrTrusted)
             {
                 getNodeColor->BackColor = PhCsColorUnknown;
                 getNodeColor->Flags |= TN_AUTO_FORECOLOR;
