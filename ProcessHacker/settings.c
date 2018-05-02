@@ -49,6 +49,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"EnablePlugins", L"1");
     PhpAddIntegerSetting(L"EnableServiceNonPoll", L"1");
     PhpAddIntegerSetting(L"EnableStage2", L"1");
+    PhpAddIntegerSetting(L"EnableServiceStage2", L"0");
     PhpAddIntegerSetting(L"EnableWarnings", L"1");
     PhpAddIntegerSetting(L"EnableWindowText", L"1");
     PhpAddIntegerSetting(L"EnableSecurityAdvancedDialog", L"1");
@@ -209,6 +210,10 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"ColorProtectedHandles", L"777777");
     PhpAddIntegerSetting(L"UseColorInheritHandles", L"1");
     PhpAddIntegerSetting(L"ColorInheritHandles", L"ffff77");
+    PhpAddIntegerSetting(L"UseColorServiceStop", L"1");
+    PhpAddIntegerSetting(L"ColorServiceStop", L"6d6d6d"); // Dark grey
+    PhpAddIntegerSetting(L"UseColorUnknown", L"1");
+    PhpAddIntegerSetting(L"ColorUnknown", L"8080ff"); // Light Red
 
     PhpAddIntegerSetting(L"GraphShowText", L"1");
     PhpAddIntegerSetting(L"GraphColorMode", L"0");
@@ -218,11 +223,6 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"ColorIoWrite", L"ff0077");
     PhpAddIntegerSetting(L"ColorPrivate", L"0077ff");
     PhpAddIntegerSetting(L"ColorPhysical", L"ff8000"); // Blue
-
-    PhpAddIntegerSetting(L"UseColorServiceStop", L"1");
-    PhpAddIntegerSetting(L"ColorServiceStop", L"6d6d6d"); // Dark grey
-    PhpAddIntegerSetting(L"UseColorUnknown", L"1");
-    PhpAddIntegerSetting(L"ColorUnknown", L"ff8080"); // Light Red
 
     // Experimental features
     PhpAddIntegerSetting(L"EnableExperimentalWindowStyle", L"0");
@@ -240,6 +240,7 @@ VOID PhUpdateCachedSettings(
     PH_UPDATE_SETTING(ShowCpuBelow001);
     PH_UPDATE_SETTING(ShowHexId);
     PH_UPDATE_SETTING(UpdateInterval);
+
     PH_UPDATE_SETTING(ColorNew);
     PH_UPDATE_SETTING(ColorRemoved);
     PH_UPDATE_SETTING(UseColorOwnProcesses);
@@ -276,6 +277,11 @@ VOID PhUpdateCachedSettings(
     PH_UPDATE_SETTING(ColorProtectedHandles);
     PH_UPDATE_SETTING(UseColorInheritHandles);
     PH_UPDATE_SETTING(ColorInheritHandles);
+    PH_UPDATE_SETTING(UseColorServiceStop);
+    PH_UPDATE_SETTING(ColorServiceStop);
+    PH_UPDATE_SETTING(UseColorUnknown);
+    PH_UPDATE_SETTING(ColorUnknown);
+
     PH_UPDATE_SETTING(GraphShowText);
     PH_UPDATE_SETTING(GraphColorMode);
     PH_UPDATE_SETTING(ColorCpuKernel);
@@ -284,9 +290,4 @@ VOID PhUpdateCachedSettings(
     PH_UPDATE_SETTING(ColorIoWrite);
     PH_UPDATE_SETTING(ColorPrivate);
     PH_UPDATE_SETTING(ColorPhysical);
-
-    PH_UPDATE_SETTING(UseColorServiceStop);
-    PH_UPDATE_SETTING(ColorServiceStop);
-    PH_UPDATE_SETTING(UseColorUnknown);
-    PH_UPDATE_SETTING(ColorUnknown);
 }

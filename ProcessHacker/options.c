@@ -3,7 +3,7 @@
  *   options window
  *
  * Copyright (C) 2010-2016 wj32
- * Copyright (C) 2017 dmex
+ * Copyright (C) 2017-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -952,6 +952,7 @@ typedef enum _PHP_OPTIONS_INDEX
     PHP_OPTIONS_INDEX_ENABLE_INSTANT_TOOLTIPS,
     PHP_OPTIONS_INDEX_ENABLE_CYCLE_CPU_USAGE,
     PHP_OPTIONS_INDEX_ENABLE_STAGE2,
+    PHP_OPTIONS_INDEX_ENABLE_SERVICE_STAGE2,
     PHP_OPTIONS_INDEX_COLLAPSE_SERVICES_ON_START,
     PHP_OPTIONS_INDEX_ICON_SINGLE_CLICK,
     PHP_OPTIONS_INDEX_ICON_TOGGLE_VISIBILITY,
@@ -996,6 +997,7 @@ static VOID PhpAdvancedPageLoad(
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_INSTANT_TOOLTIPS, L"Show tooltips instantly", NULL);
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_CYCLE_CPU_USAGE, L"Enable cycle-based CPU usage", NULL);
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_STAGE2, L"Check images for digital signatures", NULL);
+    PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_SERVICE_STAGE2, L"Check services for digital signatures", NULL);
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_COLLAPSE_SERVICES_ON_START, L"Collapse services on start", NULL);
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ICON_SINGLE_CLICK, L"Single-click tray icons", NULL);
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ICON_TOGGLE_VISIBILITY, L"Icon click toggles visibility", NULL);
@@ -1014,6 +1016,7 @@ static VOID PhpAdvancedPageLoad(
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_INSTANT_TOOLTIPS, L"EnableInstantTooltips");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_CYCLE_CPU_USAGE, L"EnableCycleCpuUsage");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_STAGE2, L"EnableStage2");
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_SERVICE_STAGE2, L"EnableServiceStage2");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_COLLAPSE_SERVICES_ON_START, L"CollapseServicesOnStart");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ICON_SINGLE_CLICK, L"IconSingleClick");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ICON_TOGGLE_VISIBILITY, L"IconTogglesVisibility");
@@ -1075,6 +1078,7 @@ static VOID PhpAdvancedPageSave(
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_INSTANT_TOOLTIPS, L"EnableInstantTooltips");
     SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_CYCLE_CPU_USAGE, L"EnableCycleCpuUsage");
     SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_STAGE2, L"EnableStage2");
+    SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_SERVICE_STAGE2, L"EnableServiceStage2");
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_COLLAPSE_SERVICES_ON_START, L"CollapseServicesOnStart");
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ICON_SINGLE_CLICK, L"IconSingleClick");
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ICON_TOGGLE_VISIBILITY, L"IconTogglesVisibility");
@@ -1144,13 +1148,13 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
             PhAddListViewColumn(listviewHandle, 0, 0, 0, LVCFMT_LEFT, 250, L"Name");
             PhSetExtendedListView(listviewHandle);
 
-            for (i = 0; i < ARRAYSIZE(PhSizeUnitNames); i++)
+            for (i = 0; i < RTL_NUMBER_OF(PhSizeUnitNames); i++)
                 ComboBox_AddString(comboBoxHandle, PhSizeUnitNames[i]);
 
             if (PhMaxSizeUnit != -1)
                 ComboBox_SetCurSel(comboBoxHandle, PhMaxSizeUnit);
             else
-                ComboBox_SetCurSel(comboBoxHandle, ARRAYSIZE(PhSizeUnitNames) - 1);
+                ComboBox_SetCurSel(comboBoxHandle, RTL_NUMBER_OF(PhSizeUnitNames) - 1);
 
             PhSetDialogItemText(hwndDlg, IDC_SEARCHENGINE, PhaGetStringSetting(L"SearchEngine")->Buffer);
             PhSetDialogItemText(hwndDlg, IDC_PEVIEWER, PhaGetStringSetting(L"ProgramInspectExecutables")->Buffer);
@@ -1709,7 +1713,7 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
             PhSetExtendedListView(HighlightingListViewHandle);
             ExtendedListView_SetItemColorFunction(HighlightingListViewHandle, PhpColorItemColorFunction);
 
-            for (ULONG i = 0; i < ARRAYSIZE(ColorItems); i++)
+            for (ULONG i = 0; i < RTL_NUMBER_OF(ColorItems); i++)
             {
                 INT lvItemIndex;
 
@@ -1732,7 +1736,7 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
             PH_SET_INTEGER_CACHED_SETTING(ColorNew, ColorBox_GetColor(GetDlgItem(hwndDlg, IDC_NEWOBJECTS)));
             PH_SET_INTEGER_CACHED_SETTING(ColorRemoved, ColorBox_GetColor(GetDlgItem(hwndDlg, IDC_REMOVEDOBJECTS)));
 
-            for (ULONG i = 0; i < ARRAYSIZE(ColorItems); i++)
+            for (ULONG i = 0; i < RTL_NUMBER_OF(ColorItems); i++)
             {
                 ColorItems[i].CurrentUse = !!ListView_GetCheckState(HighlightingListViewHandle, i);
                 PhSetIntegerSetting(ColorItems[i].SettingName, ColorItems[i].CurrentColor);
@@ -1755,13 +1759,13 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
             {
             case IDC_ENABLEALL:
                 {
-                    for (ULONG i = 0; i < ARRAYSIZE(ColorItems); i++)
+                    for (ULONG i = 0; i < RTL_NUMBER_OF(ColorItems); i++)
                         ListView_SetCheckState(HighlightingListViewHandle, i, TRUE);
                 }
                 break;
             case IDC_DISABLEALL:
                 {
-                    for (ULONG i = 0; i < ARRAYSIZE(ColorItems); i++)
+                    for (ULONG i = 0; i < RTL_NUMBER_OF(ColorItems); i++)
                         ListView_SetCheckState(HighlightingListViewHandle, i, FALSE);
                 }
                 break;
