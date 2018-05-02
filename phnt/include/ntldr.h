@@ -720,6 +720,7 @@ LdrEnumerateLoadedModules(
     _In_ PVOID Context
     );
 
+NTSYSAPI
 NTSTATUS
 NTAPI
 LdrOpenImageFileOptionsKey(
@@ -728,6 +729,7 @@ LdrOpenImageFileOptionsKey(
     _Out_ PHANDLE NewKeyHandle
     );
 
+NTSYSAPI
 NTSTATUS
 NTAPI
 LdrQueryImageFileKeyOption(
@@ -739,6 +741,7 @@ LdrQueryImageFileKeyOption(
     _Out_opt_ PULONG ReturnedLength
     );
 
+NTSYSAPI
 NTSTATUS
 NTAPI
 LdrQueryImageFileExecutionOptions(

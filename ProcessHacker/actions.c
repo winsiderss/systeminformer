@@ -1621,14 +1621,14 @@ BOOLEAN PhUiDetachFromDebuggerProcess(
             &debugObjectHandle
             )))
         {
-            ULONG flags;
+            ULONG killProcessOnExit;
 
             // Disable kill-on-close.
-            flags = 0;
+            killProcessOnExit = 0;
             NtSetInformationDebugObject(
                 debugObjectHandle,
-                DebugObjectFlags,
-                &flags,
+                DebugObjectKillProcessOnExitInformation,
+                &killProcessOnExit,
                 sizeof(ULONG),
                 NULL
                 );

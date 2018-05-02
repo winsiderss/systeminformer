@@ -4052,12 +4052,15 @@ NtDisplayString(
     _In_ PUNICODE_STRING String
     );
 
+// Boot graphics
+
 #if (PHNT_VERSION >= PHNT_WIN7)
+// rev
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtDrawText(
-    _In_ PUNICODE_STRING String
+    _In_ PUNICODE_STRING Text
     );
 #endif
 
