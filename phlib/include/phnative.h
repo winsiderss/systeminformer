@@ -200,6 +200,14 @@ PhGetProcessCommandLine(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhGetProcessDesktopInfo(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPH_STRING *DesktopInfo
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhGetProcessWindowTitle(
     _In_ HANDLE ProcessHandle,
     _Out_ PULONG WindowFlags,

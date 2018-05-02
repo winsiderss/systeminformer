@@ -212,6 +212,7 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_SUBPROCESSCOUNT, FALSE, L"Subprocesses", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_JOBOBJECTID, FALSE, L"Job Object ID", 50, PH_ALIGN_LEFT, -1, 0, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_PROTECTION, FALSE, L"Protection", 105, PH_ALIGN_LEFT, -1, 0, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHPRTLC_DESKTOP, FALSE, L"Desktop", 80, PH_ALIGN_LEFT, -1, 0, TRUE);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -647,7 +648,7 @@ VOID PhTickProcessNodes(
 
         // The name and PID never change, so we don't invalidate that.
         memset(&node->TextCache[2], 0, sizeof(PH_STRINGREF) * (PHPRTLC_MAXIMUM - 2));
-        node->ValidMask &= PHPN_OSCONTEXT | PHPN_IMAGE | PHPN_DPIAWARENESS | PHPN_APPID; // Items that always remain valid
+        node->ValidMask &= PHPN_OSCONTEXT | PHPN_IMAGE | PHPN_DPIAWARENESS | PHPN_APPID | PHPN_DESKTOPINFO; // Items that always remain valid
 
         // Invalidate graph buffers.
         node->CpuGraphBuffers.Valid = FALSE;
@@ -1255,6 +1256,34 @@ static VOID PhpUpdateProcessNodeFileAttributes(
     }
 }
 
+static VOID PhpUpdateProcessNodeDesktopInfo(
+    _Inout_ PPH_PROCESS_NODE ProcessNode
+    )
+{
+    if (!(ProcessNode->ValidMask & PHPN_DESKTOPINFO))
+    {
+        HANDLE processHandle;
+
+        PhClearReference(&ProcessNode->DesktopInfoText);
+
+        if (NT_SUCCESS(PhOpenProcess(
+            &processHandle,
+            ProcessQueryAccess | PROCESS_VM_READ,
+            ProcessNode->ProcessId
+            )))
+        {
+            PPH_STRING desktopinfo;
+
+            if (NT_SUCCESS(PhGetProcessDesktopInfo(processHandle, &desktopinfo)))
+            {
+                ProcessNode->DesktopInfoText = desktopinfo;
+            }
+        }
+
+        ProcessNode->ValidMask |= PHPN_DESKTOPINFO;
+    }
+}
+
 #define SORT_FUNCTION(Column) PhpProcessTreeNewCompare##Column
 
 #define BEGIN_SORT_FUNCTION(Column) static int __cdecl PhpProcessTreeNewCompare##Column( \
@@ -1804,7 +1833,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(PackageName)
 {
-    sortResult = PhCompareStringWithNull(processItem1->PackageFullName, processItem2->PackageFullName, TRUE);
+    sortResult = PhCompareStringWithNullSortOrder(processItem1->PackageFullName, processItem2->PackageFullName, ProcessTreeListSortOrder, TRUE);
 }
 END_SORT_FUNCTION
 
@@ -1812,7 +1841,7 @@ BEGIN_SORT_FUNCTION(AppId)
 {
     PhpUpdateProcessNodeAppId(node1);
     PhpUpdateProcessNodeAppId(node2);
-    sortResult = PhCompareStringWithNull(node1->AppIdText, node2->AppIdText, TRUE);
+    sortResult = PhCompareStringWithNullSortOrder(node1->AppIdText, node2->AppIdText, ProcessTreeListSortOrder, TRUE);
 }
 END_SORT_FUNCTION
 
@@ -1871,6 +1900,14 @@ BEGIN_SORT_FUNCTION(Protection)
     // Use signed char so processes that we were unable to query (e.g. indicated by UCHAR_MAX) 
     // are placed below processes we are able to query (e.g. 0 and above).
     sortResult = charcmp((CHAR)processItem1->Protection.Level, (CHAR)processItem2->Protection.Level);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(DesktopInfo)
+{
+    PhpUpdateProcessNodeDesktopInfo(node1);
+    PhpUpdateProcessNodeDesktopInfo(node2);
+    sortResult = PhCompareStringWithNullSortOrder(node1->DesktopInfoText, node2->DesktopInfoText, ProcessTreeListSortOrder, TRUE);
 }
 END_SORT_FUNCTION
 
@@ -1996,6 +2033,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         SORT_FUNCTION(Subprocesses),
                         SORT_FUNCTION(JobObjectId),
                         SORT_FUNCTION(Protection),
+                        SORT_FUNCTION(DesktopInfo)
                     };
                     int (__cdecl *sortFunction)(const void *, const void *);
 
@@ -2794,6 +2832,12 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         PhMoveReference(&node->ProtectionText, PhGetProcessItemProtectionText(processItem));
                         getCellText->Text = node->ProtectionText->sr;
                     }
+                }
+                break;
+            case PHPRTLC_DESKTOP:
+                {
+                    PhpUpdateProcessNodeDesktopInfo(node);
+                    getCellText->Text = PhGetStringRef(node->DesktopInfoText);
                 }
                 break;
             default:

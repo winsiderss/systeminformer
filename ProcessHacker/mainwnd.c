@@ -1575,7 +1575,7 @@ VOID PhMwpOnInitMenuPopup(
 
     found = FALSE;
 
-    for (i = 0; i < sizeof(SubMenuHandles) / sizeof(HWND); i++)
+    for (i = 0; i < sizeof(SubMenuHandles) / sizeof(HMENU); i++)
     {
         if (Menu == SubMenuHandles[i])
         {
@@ -1588,7 +1588,8 @@ VOID PhMwpOnInitMenuPopup(
         return;
 
     // Delete all items in this submenu.
-    while (DeleteMenu(Menu, 0, MF_BYPOSITION)) ;
+    while (DeleteMenu(Menu, 0, MF_BYPOSITION)) 
+        NOTHING;
 
     // Delete the previous EMENU for this submenu.
     if (SubMenuObjects[Index])

@@ -92,8 +92,9 @@
 #define PHPRTLC_SUBPROCESSCOUNT 79
 #define PHPRTLC_JOBOBJECTID 80
 #define PHPRTLC_PROTECTION 81
+#define PHPRTLC_DESKTOP 82
 
-#define PHPRTLC_MAXIMUM 82
+#define PHPRTLC_MAXIMUM 83
 #define PHPRTLC_IOGROUP_COUNT 9
 
 #define PHPN_WSCOUNTERS 0x1
@@ -108,6 +109,7 @@
 #define PHPN_APPID 0x200
 #define PHPN_DPIAWARENESS 0x400
 #define PHPN_FILEATTRIBUTES 0x800
+#define PHPN_DESKTOPINFO 0x1000
 
 // begin_phapppub
 typedef struct _PH_PROCESS_NODE
@@ -219,6 +221,7 @@ typedef struct _PH_PROCESS_NODE
     PPH_STRING SubprocessCountText;
     WCHAR JobObjectIdText[PH_INT32_STR_LEN_1];
     PPH_STRING ProtectionText;
+    PPH_STRING DesktopInfoText;
 
     // Graph buffers
     PH_GRAPH_BUFFERS CpuGraphBuffers;
