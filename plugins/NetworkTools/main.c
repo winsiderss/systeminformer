@@ -329,6 +329,7 @@ LONG NTAPI NetworkServiceSortFunction(
     _In_ PVOID Node1,
     _In_ PVOID Node2,
     _In_ ULONG SubId,
+    _In_ PH_SORT_ORDER SortOrder,
     _In_ PVOID Context
     )
 {
@@ -340,11 +341,11 @@ LONG NTAPI NetworkServiceSortFunction(
     switch (SubId)
     {
     case NETWORK_COLUMN_ID_REMOTE_COUNTRY:
-        return PhCompareStringWithNull(extension1->RemoteCountryCode, extension2->RemoteCountryCode, TRUE);
+        return PhCompareStringWithNullSortOrder(extension1->RemoteCountryCode, extension2->RemoteCountryCode, SortOrder, TRUE);
     case NETWORK_COLUMN_ID_LOCAL_SERVICE:
-        return PhCompareStringWithNull(extension1->LocalServiceName, extension2->LocalServiceName, TRUE);
+        return PhCompareStringWithNullSortOrder(extension1->LocalServiceName, extension2->LocalServiceName, SortOrder, TRUE);
     case NETWORK_COLUMN_ID_REMOTE_SERVICE:
-        return PhCompareStringWithNull(extension1->RemoteServiceName, extension2->RemoteServiceName, TRUE);
+        return PhCompareStringWithNullSortOrder(extension1->RemoteServiceName, extension2->RemoteServiceName, SortOrder, TRUE);
     case NETWORK_COLUMN_ID_BYTES_IN:
         return uint64cmp(extension1->NumberOfBytesIn, extension2->NumberOfBytesIn);
     case NETWORK_COLUMN_ID_BYTES_OUT:

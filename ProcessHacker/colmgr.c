@@ -258,7 +258,7 @@ static int __cdecl PhCmpSortFunction(
     PVOID node2 = *(PVOID *)elem2;
     LONG result;
 
-    result = sortContext->SortFunction(node1, node2, sortContext->SubId, sortContext->Context);
+    result = sortContext->SortFunction(node1, node2, sortContext->SubId, sortContext->SortOrder, sortContext->Context);
 
     return sortContext->PostSortFunction(result, node1, node2, sortContext->SortOrder);
 }

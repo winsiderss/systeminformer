@@ -55,10 +55,11 @@ VOID ProcessesUpdatedCallback(
     if (!VirusTotalScanningEnabled)
         return;
 
-    ProcessesUpdatedCount++;
-
     if (ProcessesUpdatedCount < 2)
+    {
+        ProcessesUpdatedCount++;
         return;
+    }
 
     listEntry = ProcessListHead.Flink;
 
@@ -423,6 +424,7 @@ LONG NTAPI VirusTotalProcessNodeSortFunction(
     _In_ PVOID Node1,
     _In_ PVOID Node2,
     _In_ ULONG SubId,
+    _In_ PH_SORT_ORDER SortOrder,
     _In_ PVOID Context
     )
 {
@@ -438,6 +440,7 @@ LONG NTAPI VirusTotalModuleNodeSortFunction(
     _In_ PVOID Node1,
     _In_ PVOID Node2,
     _In_ ULONG SubId,
+    _In_ PH_SORT_ORDER SortOrder,
     _In_ PVOID Context
     )
 {
@@ -453,6 +456,7 @@ LONG NTAPI VirusTotalServiceNodeSortFunction(
     _In_ PVOID Node1,
     _In_ PVOID Node2,
     _In_ ULONG SubId,
+    _In_ PH_SORT_ORDER SortOrder,
     _In_ PVOID Context
     )
 {

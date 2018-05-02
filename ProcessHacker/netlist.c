@@ -377,7 +377,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(LocalHostname)
 {
-    sortResult = PhCompareStringWithNull(networkItem1->LocalHostString, networkItem2->LocalHostString, TRUE);
+    sortResult = PhCompareStringWithNullSortOrder(networkItem1->LocalHostString, networkItem2->LocalHostString, NetworkTreeListSortOrder, TRUE);
 }
 END_SORT_FUNCTION
 
@@ -395,7 +395,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(RemoteHostname)
 {
-    sortResult = PhCompareStringWithNull(networkItem1->RemoteHostString, networkItem2->RemoteHostString, TRUE);
+    sortResult = PhCompareStringWithNullSortOrder(networkItem1->RemoteHostString, networkItem2->RemoteHostString, NetworkTreeListSortOrder, TRUE);
 }
 END_SORT_FUNCTION
 
@@ -419,7 +419,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Owner)
 {
-    sortResult = PhCompareStringWithNull(networkItem1->OwnerName, networkItem2->OwnerName, TRUE);
+    sortResult = PhCompareStringWithNullSortOrder(networkItem1->OwnerName, networkItem2->OwnerName, NetworkTreeListSortOrder, TRUE);
 }
 END_SORT_FUNCTION
 
