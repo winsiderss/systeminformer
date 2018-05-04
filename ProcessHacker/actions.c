@@ -3,7 +3,7 @@
  *   UI actions
  *
  * Copyright (C) 2010-2016 wj32
- * Copyright (C) 2017 dmex
+ * Copyright (C) 2017-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -2966,13 +2966,67 @@ BOOLEAN PhUiCloseHandles(
 
     if (NT_SUCCESS(status = PhOpenProcess(
         &processHandle,
-        PROCESS_DUP_HANDLE,
+        PROCESS_QUERY_INFORMATION | PROCESS_DUP_HANDLE,
         ProcessId
         )))
     {
-        ULONG i;
+        BOOLEAN critical = FALSE;
+        BOOLEAN strict = FALSE;
 
-        for (i = 0; i < NumberOfHandles; i++)
+        if (WindowsVersion >= WINDOWS_10)
+        {
+            ULONG breakOnTermination;
+            PROCESS_MITIGATION_POLICY_INFORMATION policyInfo;
+
+            breakOnTermination = 0;
+
+            if (NT_SUCCESS(NtQueryInformationProcess(
+                processHandle,
+                ProcessBreakOnTermination,
+                &breakOnTermination,
+                sizeof(ULONG),
+                NULL
+                )))
+            {
+                if (breakOnTermination != 0)
+                {
+                    critical = TRUE;
+                }
+            }
+
+            policyInfo.Policy = ProcessStrictHandleCheckPolicy;
+            policyInfo.StrictHandleCheckPolicy.Flags = 0;
+
+            if (NT_SUCCESS(NtQueryInformationProcess(
+                processHandle,
+                ProcessMitigationPolicy,
+                &policyInfo,
+                sizeof(PROCESS_MITIGATION_POLICY_INFORMATION),
+                NULL
+                )))
+            {
+                if (policyInfo.StrictHandleCheckPolicy.Flags != 0)
+                {
+                    strict = TRUE;
+                }
+            }
+        }
+
+        if (critical && strict)
+        {
+            cont = PhShowConfirmMessage(
+                hWnd,
+                L"close",
+                L"critical process handle(s)",
+                L"You are about to close one or more handles for a critical process with strict handle checks enabled. This will shut down the operating system immediately.\r\n\r\n",
+                TRUE
+                );
+        }
+
+        if (!cont)
+            return FALSE;
+
+        for (ULONG i = 0; i < NumberOfHandles; i++)
         {
             status = NtDuplicateObject(
                 processHandle,
