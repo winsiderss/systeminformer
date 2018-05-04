@@ -3,6 +3,7 @@
  *   phsvc extensions
  *
  * Copyright (C) 2015 wj32
+ * Copyright (C) 2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -28,7 +29,8 @@
 typedef enum _DN_API_NUMBER
 {
     DnGetRuntimeNameByAddressApiNumber = 1,
-    DnPredictAddressesFromClrDataApiNumber = 2
+    DnPredictAddressesFromClrDataApiNumber = 2,
+    DnGetGetClrWow64ThreadAppDomainApiNumber = 3
 } DN_API_NUMBER;
 
 typedef union _DN_API_GETRUNTIMENAMEBYADDRESS
@@ -65,6 +67,20 @@ typedef union _DN_API_PREDICTADDRESSESFROMCLRDATA
     } o;
 } DN_API_PREDICTADDRESSESFROMCLRDATA, *PDN_API_PREDICTADDRESSESFROMCLRDATA;
 
+typedef union _DN_API_GETWOW64THREADAPPDOMAIN
+{
+    struct
+    {
+        ULONG ProcessId;
+        ULONG ThreadId;
+        PH_RELATIVE_STRINGREF Name; // out
+    } i;
+    struct
+    {
+        ULONG NameLength;
+    } o;
+} DN_API_GETWOW64THREADAPPDOMAIN, *PDN_API_GETWOW64THREADAPPDOMAIN;
+
 // Calls
 
 PPH_STRING CallGetRuntimeNameByAddress(
@@ -82,6 +98,11 @@ VOID CallPredictAddressesFromClrData(
     _Out_ PVOID *PredictedEip,
     _Out_ PVOID *PredictedEbp,
     _Out_ PVOID *PredictedEsp
+    );
+
+PPH_STRING CallGetClrThreadAppDomain(
+    _In_ HANDLE ProcessId,
+    _In_ HANDLE ThreadId
     );
 
 #endif

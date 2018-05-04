@@ -3,6 +3,7 @@
  *   phsvc extensions
  *
  * Copyright (C) 2015 wj32
+ * Copyright (C) 2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -185,6 +186,110 @@ NTSTATUS DispatchPredictAddressesFromClrData(
     return STATUS_SUCCESS;
 }
 
+PPH_STRING CallGetClrThreadAppDomain(
+    _In_ HANDLE ProcessId,
+    _In_ HANDLE ThreadId
+    )
+{
+    NTSTATUS status;
+    PH_PLUGIN_PHSVC_CLIENT client;
+    DN_API_GETWOW64THREADAPPDOMAIN in;
+    DN_API_GETWOW64THREADAPPDOMAIN out;
+    ULONG bufferSize;
+    PVOID buffer;
+    PPH_STRING name = NULL;
+
+    if (!PhPluginQueryPhSvc(&client))
+        return NULL;
+
+    in.i.ProcessId = HandleToUlong(ProcessId);
+    in.i.ThreadId = HandleToUlong(ThreadId);
+
+    bufferSize = 0x1000;
+
+    if (!(buffer = client.CreateString(NULL, bufferSize, &in.i.Name)))
+        return NULL;
+
+    status = PhPluginCallPhSvc(PluginInstance, DnGetGetClrWow64ThreadAppDomainApiNumber, &in, sizeof(in), &out, sizeof(out));
+
+    if (status == STATUS_BUFFER_OVERFLOW)
+    {
+        client.FreeHeap(buffer);
+        bufferSize = out.o.NameLength;
+
+        if (!(buffer = client.CreateString(NULL, bufferSize, &in.i.Name)))
+            return NULL;
+
+        status = PhPluginCallPhSvc(PluginInstance, DnGetGetClrWow64ThreadAppDomainApiNumber, &in, sizeof(in), &out, sizeof(out));
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        name = PhCreateStringEx(buffer, out.o.NameLength);
+    }
+
+    client.FreeHeap(buffer);
+
+    return name;
+}
+
+NTSTATUS DispatchGetClrThreadAppDomain(
+    _In_ PPH_PLUGIN_PHSVC_REQUEST Request,
+    _In_ PDN_API_GETWOW64THREADAPPDOMAIN In,
+    _Out_ PDN_API_GETWOW64THREADAPPDOMAIN Out
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PVOID nameBuffer;
+    PCLR_PROCESS_SUPPORT support;
+    IXCLRDataProcess *process;
+    IXCLRDataTask *task;
+    IXCLRDataAppDomain *appDomain;
+    PPH_STRING AppDomainText = NULL;
+
+    if (!NT_SUCCESS(status = Request->ProbeBuffer(&In->i.Name, sizeof(WCHAR), FALSE, &nameBuffer)))
+        return status;
+
+    if (!(support = CreateClrProcessSupport(UlongToHandle(In->i.ProcessId))))
+        return STATUS_UNSUCCESSFUL;
+
+    if (!(process = support->DataProcess))
+    {
+        status = STATUS_UNSUCCESSFUL;
+        goto CleanupExit;
+    }
+
+    if (SUCCEEDED(IXCLRDataProcess_GetTaskByOSThreadID(process, In->i.ThreadId, &task)))
+    {
+        if (SUCCEEDED(IXCLRDataTask_GetCurrentAppDomain(task, &appDomain)))
+        {
+            AppDomainText = GetNameXClrDataAppDomain(appDomain);
+            IXCLRDataAppDomain_Release(appDomain);
+        }
+
+        IXCLRDataTask_Release(task);
+    }
+
+    if (!AppDomainText)
+    {
+        status = STATUS_UNSUCCESSFUL;
+        goto CleanupExit;
+    }
+
+    memcpy(nameBuffer, AppDomainText->Buffer, min(AppDomainText->Length, In->i.Name.Length));
+    Out->o.NameLength = (ULONG)AppDomainText->Length;
+
+    if (In->i.Name.Length < AppDomainText->Length)
+        status = STATUS_BUFFER_OVERFLOW;
+
+CleanupExit:
+
+    if (support)
+        FreeClrProcessSupport(support);
+
+    return status;
+}
+
 VOID DispatchPhSvcRequest(
     _In_ PVOID Parameter
     )
@@ -202,6 +307,9 @@ VOID DispatchPhSvcRequest(
         break;
     case DnPredictAddressesFromClrDataApiNumber:
         request->ReturnStatus = DispatchPredictAddressesFromClrData(request, inBuffer, request->OutBuffer);
+        break;
+    case DnGetGetClrWow64ThreadAppDomainApiNumber:
+        request->ReturnStatus = DispatchGetClrThreadAppDomain(request, inBuffer, request->OutBuffer);
         break;
     }
 
