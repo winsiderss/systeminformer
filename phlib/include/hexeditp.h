@@ -15,14 +15,22 @@ typedef struct _PHP_HEXEDIT_CONTEXT
 
     LONG BytesPerRow;
     LONG LinesPerPage;
-    BOOLEAN ShowAddress;
-    BOOLEAN ShowAscii;
-    BOOLEAN ShowHex;
-    BOOLEAN AddressIsWide;
-    BOOLEAN AllowLengthChange;
 
-    BOOLEAN NoAddressChange;
-    BOOLEAN HalfPage;
+    union
+    {
+        BOOLEAN Flags;
+        struct
+        {
+            BOOLEAN ShowAddress : 1;
+            BOOLEAN ShowAscii : 1;
+            BOOLEAN ShowHex : 1;
+            BOOLEAN AddressIsWide : 1;
+            BOOLEAN AllowLengthChange : 1;
+            BOOLEAN NoAddressChange : 1;
+            BOOLEAN HalfPage : 1;
+            BOOLEAN ExtendedUnicode : 1;
+        };
+    };
 
     HFONT Font;
     LONG LineHeight;
@@ -38,8 +46,6 @@ typedef struct _PHP_HEXEDIT_CONTEXT
     BOOLEAN HasCapture;
     POINT EditPosition;
 } PHP_HEXEDIT_CONTEXT, *PPHP_HEXEDIT_CONTEXT;
-
-#define IS_PRINTABLE(Byte) ((ULONG)((Byte) - ' ') <= (ULONG)('~' - ' '))
 
 #define TO_HEX(Buffer, Byte) \
 { \

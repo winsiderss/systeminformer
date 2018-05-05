@@ -23,6 +23,7 @@ BOOLEAN PhHexEditInitialization(
 #define HEM_SETSEL (WM_USER + 4)
 #define HEM_SETEDITMODE (WM_USER + 5)
 #define HEM_SETBYTESPERROW (WM_USER + 6)
+#define HEM_SETEXTENDEDUNICODE (WM_USER + 7)
 
 #define HexEdit_SetBuffer(hWnd, Buffer, Length) \
     SendMessage((hWnd), HEM_SETBUFFER, (WPARAM)(Length), (LPARAM)(Buffer))
@@ -41,6 +42,9 @@ BOOLEAN PhHexEditInitialization(
 
 #define HexEdit_SetBytesPerRow(hWnd, BytesPerRow) \
     SendMessage((hWnd), HEM_SETBYTESPERROW, (WPARAM)(BytesPerRow), 0)
+
+#define HexEdit_SetExtendedUnicode(hWnd, ExtendedUnicode) \
+    SendMessage((hWnd), HEM_SETEXTENDEDUNICODE, (WPARAM)(ExtendedUnicode), 0)
 
 #ifdef __cplusplus
 }
