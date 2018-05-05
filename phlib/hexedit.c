@@ -888,10 +888,26 @@ LRESULT CALLBACK PhpHexEditWndProc(
             }
         }
         return TRUE;
+    case HEM_SETEXTENDEDUNICODE:
+        {
+            context->ExtendedUnicode = !!(LONG)wParam;
+        }
+        return TRUE;
     }
 
 DefaultHandler:
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
+}
+
+FORCEINLINE INT PhpIsPrintable(
+    _In_ PPHP_HEXEDIT_CONTEXT Context,
+    _In_ UCHAR Byte
+    )
+{
+    if (Context->ExtendedUnicode)
+        return iswctype(Byte, _PUNCT | _ALPHA | _DIGIT); // iswprint
+    else
+        return ((ULONG)((Byte)-' ') <= (ULONG)('~' - ' '));
 }
 
 FORCEINLINE VOID PhpPrintHex(
@@ -931,7 +947,7 @@ FORCEINLINE VOID PhpPrintAscii(
 {
     WCHAR c;
 
-    c = IS_PRINTABLE(Byte) ? Byte : '.';
+    c = PhpIsPrintable(Context, Byte) ? Byte : '.';
     TextOut(hdc, *X, *Y, &c, 1);
     *X += Context->NullWidth;
     (*N)++;
@@ -1279,7 +1295,7 @@ VOID PhpHexEditOnPaint(
 
                     for (n = 0; n < Context->BytesPerRow && i < Context->Length; n++)
                     {
-                        *p++ = IS_PRINTABLE(Context->Data[i]) ? Context->Data[i] : '.'; // 1
+                        *p++ = PhpIsPrintable(Context, Context->Data[i]) ? Context->Data[i] : '.'; // 1
                         i++;
                     }
 
@@ -1657,7 +1673,7 @@ VOID PhpHexEditCopyEdit(
 
                     for (i = 0; i < length; i++)
                     {
-                        if (!IS_PRINTABLE(*p))
+                        if (!PhpIsPrintable(Context, *p))
                             *p = '.';
                         p++;
                     }
