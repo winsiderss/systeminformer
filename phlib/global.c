@@ -178,26 +178,22 @@ static VOID PhInitializeWindowsVersion(
     minorVersion = versionInfo.dwMinorVersion;
     buildVersion = versionInfo.dwBuildNumber;
 
-    if (majorVersion == 6 && minorVersion < 1 || majorVersion < 6)
-    {
-        WindowsVersion = WINDOWS_ANCIENT;
-    }
-    /* Windows 7, Windows Server 2008 R2 */
-    else if (majorVersion == 6 && minorVersion == 1)
+    // Windows 7, Windows Server 2008 R2
+    if (majorVersion == 6 && minorVersion == 1)
     {
         WindowsVersion = WINDOWS_7;
     }
-    /* Windows 8 */
+    // Windows 8, Windows Server 2012
     else if (majorVersion == 6 && minorVersion == 2)
     {
         WindowsVersion = WINDOWS_8;
     }
-    /* Windows 8.1 */
+    // Windows 8.1, Windows Server 2012 R2
     else if (majorVersion == 6 && minorVersion == 3)
     {
         WindowsVersion = WINDOWS_8_1;
     }
-    /* Windows 10 */
+    // Windows 10, Windows Server 2016
     else if (majorVersion == 10 && minorVersion == 0)
     {
         switch (buildVersion)
@@ -217,12 +213,15 @@ static VOID PhInitializeWindowsVersion(
         case 16299:
             WindowsVersion = WINDOWS_10_RS3;
             break;
+        case 17134:
+            WindowsVersion = WINDOWS_10_RS4;
+            break;
         default:
-            WindowsVersion = WINDOWS_NEW;
+            WindowsVersion = WINDOWS_10;
             break;
         }
     }
-    else if (majorVersion == 10 && minorVersion > 0 || majorVersion > 10)
+    else
     {
         WindowsVersion = WINDOWS_NEW;
     }

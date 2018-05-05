@@ -271,7 +271,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
     PhpSetMemoryRegionType(List, USER_SHARED_DATA, TRUE, UserSharedDataRegion);
 
     // HYPERVISOR_SHARED_DATA
-    if (WindowsVersion > WINDOWS_10_RS3) // TODO: Update version check after RS4 release. 
+    if (WindowsVersion >= WINDOWS_10_RS4)
     {
         static PVOID HypervisorSharedDataVa = NULL;
         static PH_INITONCE HypervisorSharedDataInitOnce = PH_INITONCE_INIT;
