@@ -124,7 +124,7 @@ NTSTATUS KphInitializeDynamicPackage(
         Package->StructData.ObDecodeShift = 16;
         Package->StructData.ObAttributesShift = 17;
     }
-    // Windows 10
+    // Windows 10, Windows Server 2016
     else if (majorVersion == 10 && minorVersion == 0)
     {
         switch (buildNumber)
@@ -148,6 +148,10 @@ NTSTATUS KphInitializeDynamicPackage(
         case 16299:
             Package->BuildNumber = 16299;
             Package->ResultingNtVersion = PHNT_REDSTONE3;
+            break;
+        case 17134:
+            Package->BuildNumber = 17134;
+            Package->ResultingNtVersion = PHNT_REDSTONE4;
             break;
         default:
             Package->BuildNumber = USHRT_MAX;
