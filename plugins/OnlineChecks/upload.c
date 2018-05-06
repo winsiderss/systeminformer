@@ -448,7 +448,10 @@ NTSTATUS UploadFileThreadStart(
         postBoundary->Buffer
         );
 
-    if (context->Service == MENUITEM_HYBRIDANALYSIS_UPLOAD || context->Service == MENUITEM_HYBRIDANALYSIS_UPLOAD_SERVICE)
+    if (
+        context->Service == MENUITEM_HYBRIDANALYSIS_UPLOAD || 
+        context->Service == MENUITEM_HYBRIDANALYSIS_UPLOAD_SERVICE
+        )
     {
         USHORT machineType;
         USHORT environmentId;
@@ -803,6 +806,7 @@ NTSTATUS UploadFileThreadStart(
             {
                 PPH_BYTES jsonString;
                 PVOID jsonRootObject;
+                PVOID jsonDataObject;
 
                 if (!(jsonString = PhHttpSocketDownloadString(httpContext, FALSE)))
                 {
@@ -812,26 +816,25 @@ NTSTATUS UploadFileThreadStart(
 
                 if (jsonRootObject = PhCreateJsonParser(jsonString->Buffer))
                 {
-                    INT64 errorCode = PhGetJsonValueAsLong64(jsonRootObject, "response_code");
-                    //PhGetJsonValueAsString(jsonRootObject, "scan_id");
-                    //PhGetJsonValueAsString(jsonRootObject, "verbose_msg");
+                    if (jsonDataObject = PhGetJsonObject(jsonRootObject, "data"))
+                    {
+                        PPH_STRING analysisId = PhGetJsonValueAsString(jsonDataObject, "id");
 
-                    if (errorCode != 1)
-                    {
-                        RaiseUploadError(context, L"VirusTotal API error", (ULONG)errorCode);
-                        PhDereferenceObject(jsonString);
-                        goto CleanupExit;
-                    }
-                    else
-                    {
-                        PhMoveReference(&context->LaunchCommand, PhGetJsonValueAsString(jsonRootObject, "permalink"));
+                        PhMoveReference(&context->LaunchCommand, PhFormatString(
+                            L"https://www.virustotal.com/#/file-analysis/%s",
+                            analysisId->Buffer
+                            ));
+
+                        PhDereferenceObject(analysisId);
                     }
 
                     PhFreeJsonParser(jsonRootObject);
                 }
-                else
+                
+                if (PhIsNullOrEmptyString(context->LaunchCommand))
                 {
                     RaiseUploadError(context, L"Unable to complete the request", RtlNtStatusToDosError(STATUS_FAIL_CHECK));
+                    PhDereferenceObject(jsonString);
                     goto CleanupExit;
                 }
 
@@ -1013,11 +1016,6 @@ NTSTATUS UploadCheckThreadStart(
             context->FileHash = tempHashString;
             subObjectName = PhConcatStrings2(L"/file/upload/?sha256=", PhGetString(context->FileHash));
 
-            PhMoveReference(&context->LaunchCommand, PhFormatString(
-                L"https://www.virustotal.com/file/%s/analysis/",
-                PhGetString(context->FileHash)
-                ));
-
             if (!(subRequestBuffer = PerformSubRequest(
                 context,
                 serviceInfo->HostName,
@@ -1077,6 +1075,11 @@ NTSTATUS UploadCheckThreadStart(
                         PhClearReference(&resource);
                     }
 
+                    PhMoveReference(&context->LaunchCommand, PhFormatString(
+                        L"https://www.virustotal.com/file/%s/analysis/",
+                        PhGetString(context->FileHash)
+                        ));
+
                     if (!PhIsNullOrEmptyString(context->UploadUrl))
                     {
                         PostMessage(context->DialogHandle, UM_EXISTS, 0, 0);
@@ -1088,7 +1091,27 @@ NTSTATUS UploadCheckThreadStart(
                 }
                 else
                 {
-                    context->UploadUrl = PhGetJsonValueAsString(rootJsonObject, "upload_url");
+                    PPH_STRING vt3UploadUrl;
+                    PPH_BYTES vt3UploadRequestBuffer;
+                    PVOID vt3RootJsonObject;
+
+                    vt3UploadUrl = PhCreateString(L"/ui/files/upload_url");
+
+                    if (!(vt3UploadRequestBuffer = PerformSubRequest(
+                        context,
+                        serviceInfo->HostName,
+                        vt3UploadUrl->Buffer
+                        )))
+                    {
+                        PhDereferenceObject(vt3UploadUrl);
+                        goto CleanupExit;
+                    }
+
+                    if (vt3RootJsonObject = PhCreateJsonParser(vt3UploadRequestBuffer->Buffer))
+                    {
+                        context->UploadUrl = PhGetJsonValueAsString(vt3RootJsonObject, "data");
+                        PhFreeJsonParser(vt3RootJsonObject);
+                    }
 
                     // No file found... Start the upload.
                     if (!PhIsNullOrEmptyString(context->UploadUrl))
@@ -1097,8 +1120,10 @@ NTSTATUS UploadCheckThreadStart(
                     }
                     else
                     {
-                        RaiseUploadError(context, L"Received invalid response.", RtlNtStatusToDosError(STATUS_FAIL_CHECK));
+                        RaiseUploadError(context, L"Received invalid VT3 response.", RtlNtStatusToDosError(STATUS_FAIL_CHECK));
                     }
+
+                    PhClearReference(&vt3UploadRequestBuffer);
                 }
  
                 PhFreeJsonParser(rootJsonObject);
