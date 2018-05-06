@@ -2,7 +2,7 @@
  * Process Hacker Toolchain -
  *   project setup
  *
- * Copyright (C) 2017 dmex
+ * Copyright (C) 2017-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -25,6 +25,10 @@
 #include <svcsup.h>
 
 PH_STRINGREF UninstallKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\ProcessHacker");
+PH_STRINGREF CurrentUserRunKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Run");
+PH_STRINGREF PhImageOptionsKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\ProcessHacker.exe");
+PH_STRINGREF PhImageOptionsWow64KeyName = PH_STRINGREF_INIT(L"Software\\WOW6432Node\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\ProcessHacker.exe");
+PH_STRINGREF TmImageOptionsKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\taskmgr.exe");
 
 NTSTATUS SetupCreateUninstallKey(
     _In_ PPH_SETUP_CONTEXT Context
@@ -469,8 +473,6 @@ VOID SetupSetWindowsOptions(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
-    static PH_STRINGREF TaskMgrImageOptionsKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\taskmgr.exe");
-    static PH_STRINGREF CurrentUserRunKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Run");
     PPH_STRING clientPathString;
     PPH_STRING startmenuFolderString;
 
@@ -556,7 +558,7 @@ VOID SetupSetWindowsOptions(
             &taskmgrKeyHandle,
             KEY_READ | KEY_WRITE,
             PH_KEY_LOCAL_MACHINE,
-            &TaskMgrImageOptionsKeyName,
+            &TmImageOptionsKeyName,
             OBJ_OPENIF,
             0,
             NULL
@@ -627,9 +629,6 @@ VOID SetupDeleteWindowsOptions(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
-    static PH_STRINGREF PhImageOptionsKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\ProcessHacker.exe");
-    static PH_STRINGREF TaskMgrImageOptionsKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\taskmgr.exe");
-    static PH_STRINGREF CurrentUserRunKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Run");
     PPH_STRING startmenuFolderString;
     HANDLE keyHandle;
 
@@ -673,7 +672,19 @@ VOID SetupDeleteWindowsOptions(
         &keyHandle,
         KEY_WRITE | DELETE,
         PH_KEY_LOCAL_MACHINE,
-        &TaskMgrImageOptionsKeyName,
+        &PhImageOptionsWow64KeyName,
+        0
+        )))
+    {
+        NtDeleteKey(keyHandle);
+        NtClose(keyHandle);
+    }
+
+    if (NT_SUCCESS(PhOpenKey(
+        &keyHandle,
+        KEY_WRITE | DELETE,
+        PH_KEY_LOCAL_MACHINE,
+        &TmImageOptionsKeyName,
         0
         )))
     {
@@ -743,11 +754,13 @@ VOID SetupCreateImageFileExecutionOptions(
     VOID
     )
 {
-    static PH_STRINGREF PhImageOptionsKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\ProcessHacker.exe");
     HANDLE keyHandle;
+    SYSTEM_INFO info;
 
     if (WindowsVersion < WINDOWS_10)
         return;
+
+    GetNativeSystemInfo(&info);
 
     if (NT_SUCCESS(PhCreateKey(
         &keyHandle,
@@ -774,5 +787,35 @@ VOID SetupCreateImageFileExecutionOptions(
         }, sizeof(ULONG64));
 
         NtClose(keyHandle);
+    }
+
+    if (info.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
+    {
+        if (NT_SUCCESS(PhCreateKey(
+            &keyHandle,
+            KEY_WRITE,
+            PH_KEY_LOCAL_MACHINE,
+            &PhImageOptionsWow64KeyName,
+            OBJ_OPENIF,
+            0,
+            NULL
+            )))
+        {
+            static UNICODE_STRING valueName = RTL_CONSTANT_STRING(L"MitigationOptions");
+
+            NtSetValueKey(keyHandle, &valueName, 0, REG_QWORD, &(ULONG64)
+            {
+                PROCESS_CREATION_MITIGATION_POLICY_HEAP_TERMINATE_ALWAYS_ON |
+                PROCESS_CREATION_MITIGATION_POLICY_BOTTOM_UP_ASLR_ALWAYS_ON |
+                PROCESS_CREATION_MITIGATION_POLICY_HIGH_ENTROPY_ASLR_ALWAYS_ON |
+                PROCESS_CREATION_MITIGATION_POLICY_EXTENSION_POINT_DISABLE_ALWAYS_ON |
+                PROCESS_CREATION_MITIGATION_POLICY_PROHIBIT_DYNAMIC_CODE_ALWAYS_ON |
+                PROCESS_CREATION_MITIGATION_POLICY_CONTROL_FLOW_GUARD_ALWAYS_ON |
+                PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_REMOTE_ALWAYS_ON |
+                PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_LOW_LABEL_ALWAYS_ON
+            }, sizeof(ULONG64));
+
+            NtClose(keyHandle);
+        }
     }
 }
