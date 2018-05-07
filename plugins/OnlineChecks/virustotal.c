@@ -496,6 +496,37 @@ CleanupExit:
     return result;
 }
 
+VOID VirusTotalFreeFileReport(
+    _In_ PVIRUSTOTAL_FILE_REPORT FileReport
+    )
+{
+    PhClearReference(&FileReport->StatusMessage);
+    PhClearReference(&FileReport->PermaLink);
+    PhClearReference(&FileReport->ScanId);
+    PhClearReference(&FileReport->ScanDate);
+    PhClearReference(&FileReport->Positives);
+    PhClearReference(&FileReport->Total);
+
+    if (FileReport->ScanResults)
+    {
+        for (ULONG i = 0; i < FileReport->ScanResults->Count; i++)
+        {
+            PVIRUSTOTAL_FILE_REPORT_RESULT object = FileReport->ScanResults->Items[i];
+
+            PhClearReference(&object->Vendor);
+            PhClearReference(&object->EngineVersion);
+            PhClearReference(&object->DetectionName);
+            PhClearReference(&object->DatabaseDate);
+
+            PhFree(object);
+        }
+
+        PhClearReference(&FileReport->ScanResults);
+    }
+
+    PhFree(FileReport);
+}
+
 PVIRUSTOTAL_API_RESPONSE VirusTotalRequestFileReScan(
     _In_ PPH_STRING FileHash
     )
@@ -592,6 +623,17 @@ CleanupExit:
     PhClearReference(&userAgentString);
 
     return result;
+}
+
+VOID VirusTotalFreeFileReScan(
+    _In_ PVIRUSTOTAL_API_RESPONSE FileReScan
+    )
+{
+    PhClearReference(&FileReScan->StatusMessage);
+    PhClearReference(&FileReScan->PermaLink);
+    PhClearReference(&FileReScan->ScanId);
+
+    PhFree(FileReScan);
 }
 
 PVIRUSTOTAL_API_RESPONSE VirusTotalRequestIpAddressReport(
@@ -696,17 +738,11 @@ NTSTATUS NTAPI VirusTotalProcessApiThread(
     _In_ PVOID Parameter
     )
 {
-    LONG priority;
-    IO_PRIORITY_HINT ioPriority;
-
     // TODO: Workqueue support.
-    priority = THREAD_PRIORITY_LOWEST;
-    ioPriority = IoPriorityVeryLow;
+    PhSetThreadBasePriority(NtCurrentThread(), THREAD_PRIORITY_LOWEST);
+    PhSetThreadIoPriority(NtCurrentThread(), IoPriorityVeryLow);
 
-    NtSetInformationThread(NtCurrentThread(), ThreadBasePriority, &priority, sizeof(LONG));
-    NtSetInformationThread(NtCurrentThread(), ThreadIoPriority, &ioPriority, sizeof(IO_PRIORITY_HINT));
-
-    Sleep(10 * 1000);
+    PhDelayExecution(10 * 1000);
 
     do
     {
@@ -744,7 +780,7 @@ NTSTATUS NTAPI VirusTotalProcessApiThread(
 
         if (resultTempList->Count == 0)
         {
-            Sleep(30 * 1000); // Wait 30 seconds
+            PhDelayExecution(30 * 1000); // Wait 30 seconds
             goto CleanupExit;
         }
 
@@ -857,7 +893,7 @@ CleanupExit:
             PhDereferenceObject(resultTempList);
         }
 
-        Sleep(5 * 1000); // Wait 5 seconds
+        PhDelayExecution(5 * 1000); // Wait 5 seconds
 
     } while (VirusTotalHandle);
 

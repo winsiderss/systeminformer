@@ -814,8 +814,19 @@ NTSTATUS UploadFileThreadStart(
                     goto CleanupExit;
                 }
 
+                if (!PhIsNullOrEmptyString(context->FileHash))
+                {
+                    PVIRUSTOTAL_FILE_REPORT fileReport;
+
+                    if (fileReport = VirusTotalRequestFileReport(context->FileHash))
+                    {
+                        VirusTotalFreeFileReport(fileReport);
+                    }
+                }
+
                 if (jsonRootObject = PhCreateJsonParser(jsonString->Buffer))
                 {
+                    // New interface
                     if (jsonDataObject = PhGetJsonObject(jsonRootObject, "data"))
                     {
                         PPH_STRING analysisId = PhGetJsonValueAsString(jsonDataObject, "id");
@@ -827,13 +838,21 @@ NTSTATUS UploadFileThreadStart(
 
                         PhDereferenceObject(analysisId);
                     }
+                    else
+                    {
+                        // Old interface
+                        if (PhGetJsonValueAsLong64(jsonRootObject, "response_code") == 1)
+                        {
+                            PhMoveReference(&context->LaunchCommand, PhGetJsonValueAsString(jsonRootObject, "permalink"));
+                        }
+                    }
 
                     PhFreeJsonParser(jsonRootObject);
                 }
                 
                 if (PhIsNullOrEmptyString(context->LaunchCommand))
                 {
-                    RaiseUploadError(context, L"Unable to complete the request", RtlNtStatusToDosError(STATUS_FAIL_CHECK));
+                    RaiseUploadError(context, L"Unable to complete the request.", RtlNtStatusToDosError(STATUS_FAIL_CHECK));
                     PhDereferenceObject(jsonString);
                     goto CleanupExit;
                 }
@@ -1172,24 +1191,65 @@ NTSTATUS UploadRecheckThreadStart(
     )
 {
     PUPLOAD_CONTEXT context = (PUPLOAD_CONTEXT)Parameter;
-    PVIRUSTOTAL_API_RESPONSE response;
+    PVIRUSTOTAL_API_RESPONSE fileRescan;
     
-    response = VirusTotalRequestFileReScan(context->FileHash);
-
-    if (response->ResponseCode == 1)
-        PhMoveReference(&context->ReAnalyseUrl, response->PermaLink); 
-    else
-        RaiseUploadError(context, L"VirusTotal API error", (ULONG)response->ResponseCode);
-
-    if (!PhIsNullOrEmptyString(context->ReAnalyseUrl))
+    if (fileRescan = VirusTotalRequestFileReScan(context->FileHash))
     {
-        PhShellExecute(NULL, PhGetString(context->ReAnalyseUrl), NULL);
-        //PostMessage(context->DialogHandle, UM_LAUNCH, 0, 0);
+        if (fileRescan->ResponseCode == 1)
+        {
+            PhMoveReference(&context->ReAnalyseUrl, fileRescan->PermaLink);
+
+            PhShellExecute(NULL, PhGetString(context->ReAnalyseUrl), NULL);
+
+            PostMessage(context->DialogHandle, UM_EXITDIALOG, 0, 0);
+        }
+        else
+        {
+            RaiseUploadError(context, L"VirusTotal ReScan API error.", (ULONG)fileRescan->ResponseCode);
+        }
+
+        VirusTotalFreeFileReScan(fileRescan);
     }
     else
     {
-        RaiseUploadError(context, L"Unable to complete the ReAnalyse request (please try again after a few minutes)", ERROR_INVALID_DATA);
+        RaiseUploadError(context, L"VirusTotal ReScan API error.", RtlNtStatusToDosError(STATUS_FAIL_CHECK));
     }
+
+    PhDereferenceObject(context);
+
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS ViewReportThreadStart(
+    _In_ PVOID Parameter
+    )
+{
+    PUPLOAD_CONTEXT context = (PUPLOAD_CONTEXT)Parameter;
+    PVIRUSTOTAL_FILE_REPORT fileReport;
+    
+    if (fileReport = VirusTotalRequestFileReport(context->FileHash))
+    {
+        if (fileReport->ResponseCode == 1)
+        {
+            PhMoveReference(&context->LaunchCommand, fileReport->PermaLink);
+
+            PhShellExecute(NULL, PhGetString(context->LaunchCommand), NULL);
+
+            PostMessage(context->DialogHandle, UM_EXITDIALOG, 0, 0);
+        }
+        else
+        {
+            RaiseUploadError(context, L"VirusTotal ViewReport API error.", (ULONG)fileReport->ResponseCode);
+        }
+
+        VirusTotalFreeFileReport(fileReport);
+    }
+    else
+    {
+        RaiseUploadError(context, L"VirusTotal ViewReport API error.", RtlNtStatusToDosError(STATUS_FAIL_CHECK));
+    }
+
+    PhDereferenceObject(context);
 
     return STATUS_SUCCESS;
 }
@@ -1236,16 +1296,26 @@ LRESULT CALLBACK TaskDialogSubclassProc(
                 break;
             case 2:
                 {
-                    if (!PhIsNullOrEmptyString(context->ReAnalyseUrl))
-                        PhShellExecute(hwndDlg, PhGetString(context->ReAnalyseUrl), NULL);
+//#ifdef PH_BUILD_API
+                    ShowVirusTotalReScanProgressDialog(context);
+//#else
+//                    if (!PhIsNullOrEmptyString(context->ReAnalyseUrl))
+//                    {
+//                        PhShellExecute(hwndDlg, PhGetString(context->ReAnalyseUrl), NULL);
+//                    }
+//#endif
                 }
                 break;
             case 3:
                 {
-                    if (!PhIsNullOrEmptyString(context->LaunchCommand))
-                    {
-                        PhShellExecute(hwndDlg, PhGetString(context->LaunchCommand), NULL);
-                    }
+//#ifdef PH_BUILD_API
+                    ShowVirusTotalViewReportProgressDialog(context);
+//#else
+//                    if (!PhIsNullOrEmptyString(context->LaunchCommand))
+//                    {
+//                        PhShellExecute(hwndDlg, PhGetString(context->LaunchCommand), NULL);
+//                    }
+//#endif
                 }
                 break;
             default:
@@ -1268,6 +1338,11 @@ LRESULT CALLBACK TaskDialogSubclassProc(
     case UM_ERROR:
         {
             VirusTotalShowErrorDialog(context);
+        }
+        break;
+    case UM_EXITDIALOG:
+        {
+            PostQuitMessage(0);
         }
         break;
     }
