@@ -51,7 +51,6 @@
 #define UM_LAUNCH (WM_APP + 3)
 #define UM_ERROR (WM_APP + 4)
 #define UM_SHOWDIALOG (WM_APP + 5)
-#define UM_EXITDIALOG (WM_APP + 6)
 
 extern PPH_PLUGIN PluginInstance;
 
@@ -134,7 +133,6 @@ typedef struct _UPLOAD_CONTEXT
     PPH_STRING ErrorString;
     PPH_STRING FileName;
     PPH_STRING BaseFileName;
-    PPH_STRING WindowFileName;
     PPH_STRING LaunchCommand;
     PPH_STRING Detected;
     PPH_STRING MaxDetected;
