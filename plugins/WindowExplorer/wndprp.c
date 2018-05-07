@@ -367,7 +367,7 @@ static INT CALLBACK WepPropSheetProc(
             // Set the OK button's text to "Close".
             PhSetDialogItemText(hwndDlg, IDOK, L"Close");
             // Add the Refresh button.
-            refreshButtonHandle = CreateWindow(L"BUTTON", L"Refresh", WS_CHILD | WS_TABSTOP | WS_VISIBLE, 0, 0, 3, 3, hwndDlg, (HMENU)IDC_REFRESH,
+            refreshButtonHandle = CreateWindow(WC_BUTTON, L"Refresh", WS_CHILD | WS_TABSTOP | WS_VISIBLE, 0, 0, 3, 3, hwndDlg, (HMENU)IDC_REFRESH,
                 PluginInstance->DllBase, NULL);
             SendMessage(refreshButtonHandle, WM_SETFONT, (WPARAM)SendMessage(GetDlgItem(hwndDlg, IDOK), WM_GETFONT, 0, 0), FALSE);
         }

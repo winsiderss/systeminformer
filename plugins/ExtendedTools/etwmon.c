@@ -431,7 +431,7 @@ NTSTATUS EtpEtwMonitorThreadStart(
         // Some error occurred, so sleep for a while before trying again.
         // Don't sleep if we just successfully started a session, though.
         if (!EtpEtwActive)
-            Sleep(250);
+            PhDelayExecution(250);
     }
 
     return STATUS_SUCCESS;

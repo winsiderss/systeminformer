@@ -398,7 +398,9 @@ static PPH_STRING PhSipGetMaxIoString(
 // END copied from ProcessHacker/sysinfo.c
 //
 
-VOID ToolbarUpdateGraphsInfo(LPNMHDR Header)
+VOID ToolbarUpdateGraphsInfo(
+    _In_ LPNMHDR Header
+    )
 {
     switch (Header->code)
     {
@@ -419,10 +421,8 @@ VOID ToolbarUpdateGraphsInfo(LPNMHDR Header)
 
                 if (!CpuGraphState.Valid)
                 {
-                    PhCopyCircularBuffer_FLOAT(SystemStatistics.CpuKernelHistory,
-                        CpuGraphState.Data1, drawInfo->LineDataCount);
-                    PhCopyCircularBuffer_FLOAT(SystemStatistics.CpuUserHistory,
-                        CpuGraphState.Data2, drawInfo->LineDataCount);
+                    PhCopyCircularBuffer_FLOAT(SystemStatistics.CpuKernelHistory, CpuGraphState.Data1, drawInfo->LineDataCount);
+                    PhCopyCircularBuffer_FLOAT(SystemStatistics.CpuUserHistory, CpuGraphState.Data2, drawInfo->LineDataCount);
 
                     CpuGraphState.Valid = TRUE;
                 }

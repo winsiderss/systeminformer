@@ -92,7 +92,7 @@ ULONG EspGetServiceSidTypeInteger(
         ))
         return integer;
     else
-        return -1;
+        return ULONG_MAX;
 }
 
 PWSTR EspGetServiceLaunchProtectedString(
@@ -126,7 +126,7 @@ ULONG EspGetServiceLaunchProtectedInteger(
         ))
         return integer;
     else
-        return -1;
+        return ULONG_MAX;
 }
 
 NTSTATUS EspLoadOtherInfo(
@@ -521,7 +521,7 @@ INT_PTR CALLBACK EspServiceOtherDlgProc(
                     {
                         index = PhFindItemList(context->PrivilegeList, privilegeString);
 
-                        if (index != -1)
+                        if (index != ULONG_MAX)
                         {
                             PhDereferenceObject(privilegeString);
                             PhRemoveItemList(context->PrivilegeList, index);

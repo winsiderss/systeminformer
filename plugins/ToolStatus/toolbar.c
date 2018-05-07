@@ -69,7 +69,7 @@ VOID RebarBandInsert(
         rebarBandInfo.fStyle |= RBBS_NOGRIPPER;
     }
 
-    if ((index = (UINT)SendMessage(RebarHandle, RB_IDTOINDEX, REBAR_BAND_ID_SEARCHBOX, 0)) != -1)
+    if ((index = (UINT)SendMessage(RebarHandle, RB_IDTOINDEX, REBAR_BAND_ID_SEARCHBOX, 0)) != UINT_MAX)
     {
         SendMessage(RebarHandle, RB_INSERTBAND, (WPARAM)index, (LPARAM)&rebarBandInfo);
     }
@@ -85,7 +85,7 @@ VOID RebarBandRemove(
 {
     UINT index = (UINT)SendMessage(RebarHandle, RB_IDTOINDEX, (WPARAM)BandID, 0);
 
-    if (index == -1)
+    if (index == UINT_MAX)
         return;
 
     SendMessage(RebarHandle, RB_DELETEBAND, (WPARAM)index, 0);
@@ -97,7 +97,7 @@ BOOLEAN RebarBandExists(
 {
     UINT index = (UINT)SendMessage(RebarHandle, RB_IDTOINDEX, (WPARAM)BandID, 0);
 
-    if (index != -1)
+    if (index != UINT_MAX)
         return TRUE;
 
     return FALSE;
@@ -784,7 +784,7 @@ VOID ReBarLoadLayoutSettings(
         PhStringToInteger64(&cxPart, 10, &cxInteger);
         PhStringToInteger64(&stylePart, 10, &styleInteger);
 
-        if ((oldBandIndex = (UINT)SendMessage(RebarHandle, RB_IDTOINDEX, (UINT)idInteger, 0)) == -1)
+        if ((oldBandIndex = (UINT)SendMessage(RebarHandle, RB_IDTOINDEX, (UINT)idInteger, 0)) == UINT_MAX)
             break;
 
         if (oldBandIndex != index)
