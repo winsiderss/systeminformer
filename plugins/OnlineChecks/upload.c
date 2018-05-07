@@ -104,7 +104,6 @@ VOID UploadContextDeleteProcedure(
     PhClearReference(&context->ErrorString);
     PhClearReference(&context->FileName);
     PhClearReference(&context->BaseFileName);
-    PhClearReference(&context->WindowFileName);
     PhClearReference(&context->LaunchCommand);
     PhClearReference(&context->Detected);
     PhClearReference(&context->MaxDetected);
@@ -960,7 +959,7 @@ NTSTATUS UploadCheckThreadStart(
 
     if (!NT_SUCCESS(status = PhCreateFileWin32(
         &fileHandle,
-        context->FileName->Buffer,
+        PhGetString(context->FileName),
         FILE_GENERIC_READ,
         0,
         FILE_SHARE_READ | FILE_SHARE_DELETE,
@@ -1054,8 +1053,8 @@ NTSTATUS UploadCheckThreadStart(
                         detectedMax = PhGetJsonArrayLong64(detectionRatio, 1);
                     }
 
-                    context->Detected = PhFormatString(L"%I64d", detected);
-                    context->MaxDetected = PhFormatString(L"%I64d", detectedMax);
+                    context->Detected = PhFormatUInt64(detected, FALSE);
+                    context->MaxDetected = PhFormatUInt64(detectedMax, FALSE);
                     context->UploadUrl = PhGetJsonValueAsString(rootJsonObject, "upload_url");
                     context->ReAnalyseUrl = PhGetJsonValueAsString(rootJsonObject, "reanalyse_url");
                     context->LastAnalysisUrl = PhGetJsonValueAsString(rootJsonObject, "last_analysis_url");
@@ -1193,11 +1192,11 @@ NTSTATUS UploadRecheckThreadStart(
     {
         if (fileRescan->ResponseCode == 1)
         {
-            PhMoveReference(&context->ReAnalyseUrl, fileRescan->PermaLink);
+            PhSwapReference(&context->ReAnalyseUrl, fileRescan->PermaLink);
 
             PhShellExecute(NULL, PhGetString(context->ReAnalyseUrl), NULL);
 
-            PostMessage(context->DialogHandle, UM_EXITDIALOG, 0, 0);
+            SendMessage(context->DialogHandle, TDM_CLICK_BUTTON, IDOK, 0);
         }
         else
         {
@@ -1227,11 +1226,11 @@ NTSTATUS ViewReportThreadStart(
     {
         if (fileReport->ResponseCode == 1)
         {
-            PhMoveReference(&context->LaunchCommand, fileReport->PermaLink);
+            PhSwapReference(&context->LaunchCommand, fileReport->PermaLink);
 
             PhShellExecute(NULL, PhGetString(context->LaunchCommand), NULL);
 
-            PostMessage(context->DialogHandle, UM_EXITDIALOG, 0, 0);
+            SendMessage(context->DialogHandle, TDM_CLICK_BUTTON, IDOK, 0);
         }
         else
         {
@@ -1328,17 +1327,12 @@ LRESULT CALLBACK TaskDialogSubclassProc(
                 PhShellExecute(hwndDlg, context->LaunchCommand->Buffer, NULL);
             }
 
-            PostQuitMessage(0);
+            SendMessage(hwndDlg, TDM_CLICK_BUTTON, IDOK, 0);
         }
         break;
     case UM_ERROR:
         {
             VirusTotalShowErrorDialog(context);
-        }
-        break;
-    case UM_EXITDIALOG:
-        {
-            PostQuitMessage(0);
         }
         break;
     }

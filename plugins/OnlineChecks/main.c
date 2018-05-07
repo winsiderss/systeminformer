@@ -433,7 +433,7 @@ LONG NTAPI VirusTotalProcessNodeSortFunction(
     PPROCESS_EXTENSION extension1 = PhPluginGetObjectExtension(PluginInstance, node1->ProcessItem, EmProcessItemType);
     PPROCESS_EXTENSION extension2 = PhPluginGetObjectExtension(PluginInstance, node2->ProcessItem, EmProcessItemType);
 
-    return PhCompareStringWithNull(extension1->VirusTotalResult, extension2->VirusTotalResult, TRUE);
+    return PhCompareStringWithNullSortOrder(extension1->VirusTotalResult, extension2->VirusTotalResult, SortOrder, TRUE);
 }
 
 LONG NTAPI VirusTotalModuleNodeSortFunction(
@@ -449,7 +449,7 @@ LONG NTAPI VirusTotalModuleNodeSortFunction(
     PPROCESS_EXTENSION extension1 = PhPluginGetObjectExtension(PluginInstance, node1->ModuleItem, EmModuleItemType);
     PPROCESS_EXTENSION extension2 = PhPluginGetObjectExtension(PluginInstance, node2->ModuleItem, EmModuleItemType);
 
-    return PhCompareStringWithNull(extension1->VirusTotalResult, extension2->VirusTotalResult, TRUE);
+    return PhCompareStringWithNullSortOrder(extension1->VirusTotalResult, extension2->VirusTotalResult, SortOrder, TRUE);
 }
 
 LONG NTAPI VirusTotalServiceNodeSortFunction(
@@ -465,7 +465,7 @@ LONG NTAPI VirusTotalServiceNodeSortFunction(
     PPROCESS_EXTENSION extension1 = PhPluginGetObjectExtension(PluginInstance, node1->ServiceItem, EmServiceItemType);
     PPROCESS_EXTENSION extension2 = PhPluginGetObjectExtension(PluginInstance, node2->ServiceItem, EmServiceItemType);
 
-    return PhCompareStringWithNull(extension1->VirusTotalResult, extension2->VirusTotalResult, TRUE);
+    return PhCompareStringWithNullSortOrder(extension1->VirusTotalResult, extension2->VirusTotalResult, SortOrder, TRUE);
 }
 
 VOID NTAPI ProcessTreeNewInitializingCallback(
@@ -613,11 +613,14 @@ VOID NTAPI TreeNewMessageCallback(
             if (!extension)
                 break;
 
+            //if (extension->Positives > 0)
+            //    SetTextColor(customDraw->Dc, RGB(0xff, 0x0, 0x0));
+
             text = PhGetStringRef(extension->VirusTotalResult);
             DrawText(
                 customDraw->Dc,
                 text.Buffer,
-                (ULONG)text.Length / 2,
+                (ULONG)text.Length / sizeof(WCHAR),
                 &customDraw->CellRect,
                 DT_CENTER | DT_VCENTER | DT_END_ELLIPSIS | DT_SINGLELINE
                 );
