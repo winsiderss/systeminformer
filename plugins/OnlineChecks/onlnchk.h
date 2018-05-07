@@ -51,6 +51,7 @@
 #define UM_LAUNCH (WM_APP + 3)
 #define UM_ERROR (WM_APP + 4)
 #define UM_SHOWDIALOG (WM_APP + 5)
+#define UM_EXITDIALOG (WM_APP + 6)
 
 extern PPH_PLUGIN PluginInstance;
 
@@ -169,6 +170,10 @@ NTSTATUS UploadRecheckThreadStart(
     _In_ PVOID Parameter
     );
 
+NTSTATUS ViewReportThreadStart(
+    _In_ PVOID Parameter
+    );
+
 VOID ShowVirusTotalUploadDialog(
     _In_ PUPLOAD_CONTEXT Context
     );
@@ -178,6 +183,14 @@ VOID ShowFileFoundDialog(
     );
 
 VOID ShowVirusTotalProgressDialog(
+    _In_ PUPLOAD_CONTEXT Context
+    );
+
+VOID ShowVirusTotalReScanProgressDialog(
+    _In_ PUPLOAD_CONTEXT Context
+    );
+
+VOID ShowVirusTotalViewReportProgressDialog(
     _In_ PUPLOAD_CONTEXT Context
     );
 
@@ -306,8 +319,16 @@ PVIRUSTOTAL_FILE_REPORT VirusTotalRequestFileReport(
     _In_ PPH_STRING FileHash
     );
 
+VOID VirusTotalFreeFileReport(
+    _In_ PVIRUSTOTAL_FILE_REPORT FileReport
+    );
+
 PVIRUSTOTAL_API_RESPONSE VirusTotalRequestFileReScan(
     _In_ PPH_STRING FileHash
+    );
+
+VOID VirusTotalFreeFileReScan(
+    _In_ PVIRUSTOTAL_API_RESPONSE FileReScan
     );
 
 VOID InitializeVirusTotalProcessMonitor(

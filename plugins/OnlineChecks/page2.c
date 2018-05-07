@@ -60,15 +60,27 @@ HRESULT CALLBACK TaskDialogResultFoundProc(
             }
             else if (buttonID == IDRETRY)
             {
-                if (!PhIsNullOrEmptyString(context->ReAnalyseUrl))
-                    PhShellExecute(hwndDlg, PhGetString(context->ReAnalyseUrl), NULL);
+//#ifdef PH_BUILD_API
+                ShowVirusTotalReScanProgressDialog(context);
+                return S_FALSE;
+//#else
+//                if (!PhIsNullOrEmptyString(context->ReAnalyseUrl))
+//                {
+//                    PhShellExecute(hwndDlg, PhGetString(context->ReAnalyseUrl), NULL);
+//                }
+//#endif
             }
             else if (buttonID == IDYES)
             {
-                if (!PhIsNullOrEmptyString(context->LaunchCommand))
-                {
-                    PhShellExecute(hwndDlg, PhGetString(context->LaunchCommand), NULL);
-                }
+//#ifdef PH_BUILD_API
+                ShowVirusTotalViewReportProgressDialog(context);
+                return S_FALSE;
+//#else
+//                if (!PhIsNullOrEmptyString(context->LaunchCommand))
+//                {
+//                    PhShellExecute(hwndDlg, PhGetString(context->LaunchCommand), NULL);
+//                }
+//#endif
             }
         }
         break;
