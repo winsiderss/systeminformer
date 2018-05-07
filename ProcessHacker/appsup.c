@@ -625,24 +625,27 @@ PPH_STRING PhGetServiceRelevantFileName(
         {
             PPH_STRING commandLine;
 
-            commandLine = PhCreateString(config->lpBinaryPathName);
-
-            if (config->dwServiceType & SERVICE_WIN32)
+            if (config->lpBinaryPathName[0])
             {
-                PH_STRINGREF dummyFileName;
-                PH_STRINGREF dummyArguments;
+                commandLine = PhCreateString(config->lpBinaryPathName);
 
-                PhParseCommandLineFuzzy(&commandLine->sr, &dummyFileName, &dummyArguments, &fileName);
+                if (config->dwServiceType & SERVICE_WIN32)
+                {
+                    PH_STRINGREF dummyFileName;
+                    PH_STRINGREF dummyArguments;
 
-                if (!fileName)
-                    PhSwapReference(&fileName, commandLine);
+                    PhParseCommandLineFuzzy(&commandLine->sr, &dummyFileName, &dummyArguments, &fileName);
+
+                    if (!fileName)
+                        PhSwapReference(&fileName, commandLine);
+                }
+                else
+                {
+                    fileName = PhGetFileName(commandLine);
+                }
+
+                PhDereferenceObject(commandLine);
             }
-            else
-            {
-                fileName = PhGetFileName(commandLine);
-            }
-
-            PhDereferenceObject(commandLine);
         }
 
         PhFree(config);
