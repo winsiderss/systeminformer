@@ -479,6 +479,14 @@ LONG PhpServiceTreeNewPostSortFunction(
     _In_ PH_SORT_ORDER SortOrder
     )
 {
+    PPH_SERVICE_NODE node1 = (PPH_SERVICE_NODE)Node1;
+    PPH_SERVICE_NODE node2 = (PPH_SERVICE_NODE)Node2;
+    PPH_SERVICE_ITEM serviceItem1 = node1->ServiceItem;
+    PPH_SERVICE_ITEM serviceItem2 = node2->ServiceItem;
+
+    if (Result == 0)
+        Result = PhCompareString(serviceItem1->Name, serviceItem2->Name, TRUE);
+
     return PhModifySort(Result, SortOrder);
 }
 
@@ -527,7 +535,7 @@ BEGIN_SORT_FUNCTION(BinaryPath)
 {
     PhpUpdateServiceNodeConfig(node1);
     PhpUpdateServiceNodeConfig(node2);
-    sortResult = PhCompareStringWithNull(node1->BinaryPath, node2->BinaryPath, TRUE);
+    sortResult = PhCompareStringWithNullSortOrder(node1->BinaryPath, node2->BinaryPath, ServiceTreeListSortOrder, TRUE);
 }
 END_SORT_FUNCTION
 
@@ -541,7 +549,7 @@ BEGIN_SORT_FUNCTION(Group)
 {
     PhpUpdateServiceNodeConfig(node1);
     PhpUpdateServiceNodeConfig(node2);
-    sortResult = PhCompareStringWithNull(node1->LoadOrderGroup, node2->LoadOrderGroup, TRUE);
+    sortResult = PhCompareStringWithNullSortOrder(node1->LoadOrderGroup, node2->LoadOrderGroup, ServiceTreeListSortOrder, TRUE);
 }
 END_SORT_FUNCTION
 
@@ -549,7 +557,7 @@ BEGIN_SORT_FUNCTION(Description)
 {
     PhpUpdateServiceNodeDescription(node1);
     PhpUpdateServiceNodeDescription(node2);
-    sortResult = PhCompareStringWithNull(node1->Description, node2->Description, TRUE);
+    sortResult = PhCompareStringWithNullSortOrder(node1->Description, node2->Description, ServiceTreeListSortOrder, TRUE);
 }
 END_SORT_FUNCTION
 
@@ -569,9 +577,10 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(VerifiedSigner)
 {
-    sortResult = PhCompareStringWithNull(
+    sortResult = PhCompareStringWithNullSortOrder(
         serviceItem1->VerifySignerName,
         serviceItem2->VerifySignerName,
+        ServiceTreeListSortOrder,
         TRUE
         );
 }
@@ -579,9 +588,10 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(FileName)
 {
-    sortResult = PhCompareStringWithNull(
+    sortResult = PhCompareStringWithNullSortOrder(
         serviceItem1->FileName,
         serviceItem2->FileName,
+        ServiceTreeListSortOrder,
         TRUE
         );
 }
