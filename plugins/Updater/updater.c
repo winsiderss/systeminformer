@@ -378,7 +378,7 @@ NTSTATUS UpdateCheckSilentThread(
         goto CleanupExit;
 #endif
 
-    Sleep(5 * 1000);
+    PhDelayExecution(5 * 1000);
 
     // Clear the application cache directory.
     PhClearCacheDirectory();

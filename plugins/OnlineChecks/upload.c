@@ -176,19 +176,15 @@ NTSTATUS HashFileAndResetPosition(
     ULONG64 bytesRemaining;
     FILE_POSITION_INFORMATION positionInfo;
     LONG priority;
-    LONG newpriority;
     IO_PRIORITY_HINT ioPriority;
-    IO_PRIORITY_HINT newioPriority;
     UCHAR buffer[PAGE_SIZE];
     
     bytesRemaining = FileSize->QuadPart;
 
-    newpriority = THREAD_PRIORITY_LOWEST;
-    newioPriority = IoPriorityVeryLow;
-    NtQueryInformationThread(NtCurrentThread(), ThreadBasePriority, &priority, sizeof(LONG), NULL);
-    NtQueryInformationThread(NtCurrentThread(), ThreadIoPriority, &ioPriority, sizeof(IO_PRIORITY_HINT), NULL);
-    NtSetInformationThread(NtCurrentThread(), ThreadBasePriority, &newpriority, sizeof(LONG));
-    NtSetInformationThread(NtCurrentThread(), ThreadIoPriority, &newioPriority, sizeof(IO_PRIORITY_HINT));
+    PhGetThreadBasePriority(NtCurrentThread(), &priority);
+    PhGetThreadIoPriority(NtCurrentThread(), &ioPriority);
+    PhSetThreadBasePriority(NtCurrentThread(), THREAD_PRIORITY_LOWEST);
+    PhSetThreadIoPriority(NtCurrentThread(), IoPriorityVeryLow);
 
     PhInitializeHash(&hashContext, Algorithm);
 

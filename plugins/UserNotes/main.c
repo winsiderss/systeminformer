@@ -1199,8 +1199,8 @@ VOID ProcessesUpdatedCallback(
                 {
                     priorityClass.Foreground = FALSE;
                     priorityClass.PriorityClass = (UCHAR)object->PriorityClass;
-                    NtSetInformationProcess(processHandle, ProcessPriorityClass, &priorityClass, sizeof(PROCESS_PRIORITY_CLASS));
 
+                    PhSetProcessPriority(processHandle, priorityClass);
                     NtClose(processHandle);
                 }
             }
