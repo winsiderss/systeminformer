@@ -205,8 +205,8 @@ VOID NTAPI ThreadMenuInitializingCallback(
     else
         insertIndex = 0;
 
-    PhInsertEMenuItem(menuInfo->Menu, menuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_THREAD_CANCELIO,
-        L"Ca&ncel I/O", threadItem), insertIndex);
+    menuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_THREAD_CANCELIO, L"Ca&ncel I/O", threadItem);
+    PhInsertEMenuItem(menuInfo->Menu, menuItem, insertIndex);
 
     if (!threadItem) menuItem->Flags |= PH_EMENU_DISABLED;
 }
@@ -248,8 +248,10 @@ VOID NTAPI ModuleMenuInitializingCallback(
 
     ModuleProcessId = menuInfo->u.Module.ProcessId;
 
-    PhInsertEMenuItem(menuInfo->Menu, menuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_MODULE_SERVICES,
-        L"Ser&vices", moduleItem), insertIndex);
+    menuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_MODULE_SERVICES, L"Ser&vices", moduleItem);
+    PhInsertEMenuItem(menuInfo->Menu, PhCreateEMenuSeparator(), insertIndex);
+    PhInsertEMenuItem(menuInfo->Menu, menuItem, insertIndex + 1);
+    PhInsertEMenuItem(menuInfo->Menu, PhCreateEMenuSeparator(), insertIndex + 2);
 
     if (!moduleItem) menuItem->Flags |= PH_EMENU_DISABLED;
 }
@@ -629,6 +631,8 @@ LOGICAL DllMain(
                     { IntegerPairSettingType, SETTING_NAME_UNLOADED_WINDOW_POSITION, L"0,0" },
                     { ScalableIntegerPairSettingType, SETTING_NAME_UNLOADED_WINDOW_SIZE, L"@96|350,270" },
                     { StringSettingType, SETTING_NAME_UNLOADED_COLUMNS, L"" },
+                    { IntegerPairSettingType, SETTING_NAME_MODULE_SERVICES_WINDOW_POSITION, L"0,0" },
+                    { ScalableIntegerPairSettingType, SETTING_NAME_MODULE_SERVICES_WINDOW_SIZE, L"@96|850,490" },
                 };
 
                 PhAddSettings(settings, sizeof(settings) / sizeof(PH_SETTING_CREATE));
