@@ -1268,6 +1268,7 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
             PWSTR tokenElevated = L"N/A";
             BOOLEAN hasLinkedToken = FALSE;
             PWSTR tokenVirtualization = L"N/A";
+            PWSTR tokenUIAccess = L"Unknown";
             WCHAR tokenSourceName[TOKEN_SOURCE_LENGTH + 1] = L"Unknown";
             WCHAR tokenSourceLuid[PH_PTR_STR_LEN_1] = L"Unknown";
 
@@ -1286,6 +1287,7 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
                 TOKEN_ELEVATION_TYPE elevationType;
                 BOOLEAN isVirtualizationAllowed;
                 BOOLEAN isVirtualizationEnabled;
+                BOOLEAN isUIAccessEnabled;
 
                 if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
                 {
@@ -1331,6 +1333,11 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
                     }
                 }
 
+                if (NT_SUCCESS(PhGetTokenIsUIAccessEnabled(tokenHandle, &isUIAccessEnabled)))
+                {
+                    tokenUIAccess = isUIAccessEnabled ? L"Enabled": L"Disabled";
+                }
+
                 NtClose(tokenHandle);
             }
 
@@ -1370,6 +1377,7 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
 
             PhSetDialogItemText(hwndDlg, IDC_ELEVATED, tokenElevated);
             PhSetDialogItemText(hwndDlg, IDC_VIRTUALIZATION, tokenVirtualization);
+            PhSetDialogItemText(hwndDlg, IDC_UIACCESS, tokenUIAccess);
             PhSetDialogItemText(hwndDlg, IDC_SOURCENAME, tokenSourceName);
             PhSetDialogItemText(hwndDlg, IDC_SOURCELUID, tokenSourceLuid);
 

@@ -197,6 +197,7 @@
 #define IDC_APPCONTAINERSID             1060
 #define IDC_LIST                        1061
 #define IDC_TOKENUSER                   1061
+#define IDC_UIACCESS                    1061
 #define IDC_TOKENSID                    1062
 #define IDC_PROCESSES                   1063
 #define IDC_SCAN                        1064
@@ -750,7 +751,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        253
+#define _APS_NEXT_RESOURCE_VALUE        254
 #define _APS_NEXT_COMMAND_VALUE         40297
 #define _APS_NEXT_CONTROL_VALUE         1410
 #define _APS_NEXT_SYMED_VALUE           170
