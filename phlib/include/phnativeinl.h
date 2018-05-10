@@ -1199,13 +1199,13 @@ PhGetTokenIsUIAccessEnabled(
 {
     NTSTATUS status;
     ULONG returnLength;
-    DWORD uiAccess;
+    ULONG uiAccess;
 
     status = NtQueryInformationToken(
         TokenHandle,
         TokenUIAccess,
         &uiAccess,
-        sizeof(DWORD),
+        sizeof(ULONG),
         &returnLength
         );
 
