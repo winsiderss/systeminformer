@@ -1183,6 +1183,40 @@ PhGetTokenIsVirtualizationEnabled(
     return status;
 }
 
+/**
+* Gets UIAccess flag for a token.
+*
+* \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
+* \param IsUIAccessEnabled A variable which receives a boolean indicating whether
+* UIAccess is enabled for the token.
+*/
+FORCEINLINE
+NTSTATUS
+PhGetTokenIsUIAccessEnabled(
+    _In_ HANDLE TokenHandle,
+    _Out_ PBOOLEAN IsUIAccessEnabled
+    )
+{
+    NTSTATUS status;
+    ULONG returnLength;
+    ULONG uiAccess;
+
+    status = NtQueryInformationToken(
+        TokenHandle,
+        TokenUIAccess,
+        &uiAccess,
+        sizeof(ULONG),
+        &returnLength
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    *IsUIAccessEnabled = !!uiAccess;
+
+    return status;
+}
+
 FORCEINLINE
 NTSTATUS
 PhGetEventBasicInformation(
