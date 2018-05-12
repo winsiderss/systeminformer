@@ -10,12 +10,14 @@
 typedef struct _ETP_GPU_ADAPTER
 {
     LUID AdapterLuid;
-    PPH_STRING Description;
     ULONG SegmentCount;
     ULONG NodeCount;
     ULONG FirstNodeIndex;
 
     BOOLEAN HasActivity;
+
+    PPH_STRING Description;
+    PPH_LIST NodeNameList;
 
     RTL_BITMAP ApertureBitMap;
     ULONG ApertureBitMapBuffer[1];

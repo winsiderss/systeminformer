@@ -239,7 +239,7 @@ INT_PTR CALLBACK EtpGpuPanelDialogProc(
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDC_NODES:
-                EtShowGpuNodesDialog(GpuDialog, GpuSection->Parameters);
+                EtShowGpuNodesDialog(GpuDialog);
                 break;
             }
         }

@@ -3,6 +3,7 @@
  *   GPU nodes window
  *
  * Copyright (C) 2011-2015 wj32
+ * Copyright (C) 2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -21,9 +22,11 @@
  */
 
 #include "exttools.h"
+#include <uxtheme.h>
 
 #define GRAPH_PADDING 5
-#define CHECKBOX_PADDING 3
+static RECT NormalGraphTextMargin = { 5, 5, 5, 5 };
+static RECT NormalGraphTextPadding = { 3, 3, 3, 3 };
 
 INT_PTR CALLBACK EtpGpuNodesDlgProc(
     _In_ HWND hwndDlg,
@@ -37,17 +40,13 @@ static RECT MinimumSize;
 static PH_LAYOUT_MANAGER LayoutManager;
 static RECT LayoutMargin;
 static HWND *GraphHandle;
-static HWND *CheckBoxHandle;
 static PPH_GRAPH_STATE GraphState;
-static PPH_SYSINFO_PARAMETERS SysInfoParameters;
 static PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
 
 VOID EtShowGpuNodesDialog(
-    _In_ HWND ParentWindowHandle,
-    _In_ PPH_SYSINFO_PARAMETERS Parameters
+    _In_ HWND ParentWindowHandle
     )
 {
-    SysInfoParameters = Parameters;
     DialogBox(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_GPUNODES),
@@ -61,50 +60,7 @@ static VOID ProcessesUpdatedCallback(
     _In_opt_ PVOID Context
     )
 {
-    PostMessage(WindowHandle, UPDATE_MSG, 0, 0);
-}
-
-VOID EtpLoadNodeBitMap(
-    _In_ HWND WindowHandle
-    )
-{
-    ULONG i;
-    BOOLEAN allSelected = TRUE;
-
-    for (i = 0; i < EtGpuTotalNodeCount; i++)
-    {
-        BOOLEAN nodeEnabled = RtlCheckBit(&EtGpuNodeBitMap, i);
-
-        Button_SetCheck(CheckBoxHandle[i], nodeEnabled ? BST_CHECKED : BST_UNCHECKED);
-
-        if (!nodeEnabled) allSelected = FALSE;
-    }
-
-    if (allSelected)
-    {
-        Button_SetCheck(GetDlgItem(WindowHandle, IDC_SELECTALL), BST_CHECKED);
-    }
-}
-
-VOID EtpSaveNodeBitMap(
-    VOID
-    )
-{
-    RTL_BITMAP newBitMap;
-    ULONG i;
-
-    EtAllocateGpuNodeBitMap(&newBitMap);
-
-    for (i = 0; i < EtGpuTotalNodeCount; i++)
-    {
-        if (Button_GetCheck(CheckBoxHandle[i]) == BST_CHECKED)
-            RtlSetBits(&newBitMap, i, 1);
-    }
-
-    if (RtlNumberOfSetBits(&newBitMap) == 0)
-        RtlSetBits(&newBitMap, 0, 1);
-
-    EtUpdateGpuNodeBitMap(&newBitMap);
+    PostMessage(WindowHandle, ET_WM_UPDATE, 0, 0);
 }
 
 INT_PTR CALLBACK EtpGpuNodesDlgProc(
@@ -120,7 +76,6 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
         {
             ULONG i;
             HFONT font;
-            PPH_STRING nodeString;
             RECT labelRect;
             RECT tempRect;
             ULONG numberOfRows;
@@ -137,15 +92,12 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
             LayoutMargin = PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_LAYOUT), NULL, PH_ANCHOR_ALL)->Margin;
 
             GraphHandle = PhAllocate(sizeof(HWND) * EtGpuTotalNodeCount);
-            CheckBoxHandle = PhAllocate(sizeof(HWND) * EtGpuTotalNodeCount);
             GraphState = PhAllocate(sizeof(PH_GRAPH_STATE) * EtGpuTotalNodeCount);
 
             font = (HFONT)SendMessage(hwndDlg, WM_GETFONT, 0, 0);
 
             for (i = 0; i < EtGpuTotalNodeCount; i++)
             {
-                nodeString = PhFormatString(L"Node %lu", i);
-
                 GraphHandle[i] = CreateWindow(
                     PH_GRAPH_CLASSNAME,
                     NULL,
@@ -160,23 +112,7 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
                     NULL
                     );
                 Graph_SetTooltip(GraphHandle[i], TRUE);
-                CheckBoxHandle[i] = CreateWindow(
-                    WC_BUTTON,
-                    nodeString->Buffer,
-                    WS_VISIBLE | WS_CHILD | BS_AUTOCHECKBOX,
-                    0,
-                    0,
-                    3,
-                    3,
-                    hwndDlg,
-                    NULL,
-                    NULL,
-                    NULL
-                    );
-                SendMessage(CheckBoxHandle[i], WM_SETFONT, (WPARAM)font, FALSE);
                 PhInitializeGraphState(&GraphState[i]);
-
-                PhDereferenceObject(nodeString);
             }
 
             // Calculate the minimum size.
@@ -209,28 +145,33 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
             SetWindowPos(hwndDlg, NULL, 0, 0, MinimumSize.right, MinimumSize.bottom, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOZORDER);
 
             // Note: This dialog must be centered after all other graphs and controls have been added.
-            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+            if (PhGetIntegerPairSetting(SETTING_NAME_GPU_NODES_WINDOW_POSITION).X != 0)
+                PhLoadWindowPlacementFromSetting(SETTING_NAME_GPU_NODES_WINDOW_POSITION, SETTING_NAME_GPU_NODES_WINDOW_SIZE, hwndDlg);
+            else
+                PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
-            EtpLoadNodeBitMap(hwndDlg);
+            PhRegisterCallback(
+                &PhProcessesUpdatedEvent,
+                ProcessesUpdatedCallback,
+                NULL,
+                &ProcessesUpdatedCallbackRegistration
+                );
 
-            PhRegisterCallback(&PhProcessesUpdatedEvent, ProcessesUpdatedCallback, NULL, &ProcessesUpdatedCallbackRegistration);
+            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
         }
         break;
     case WM_DESTROY:
         {
-            ULONG i;
-
-            EtpSaveNodeBitMap();
+            PhSaveWindowPlacementToSetting(SETTING_NAME_GPU_NODES_WINDOW_POSITION, SETTING_NAME_GPU_NODES_WINDOW_SIZE, hwndDlg);
 
             PhUnregisterCallback(&PhProcessesUpdatedEvent, &ProcessesUpdatedCallbackRegistration);
 
-            for (i = 0; i < EtGpuTotalNodeCount; i++)
+            for (ULONG i = 0; i < EtGpuTotalNodeCount; i++)
             {
                 PhDeleteGraphState(&GraphState[i]);
             }
 
             PhFree(GraphHandle);
-            PhFree(CheckBoxHandle);
             PhFree(GraphState);
 
             PhDeleteLayoutManager(&LayoutManager);
@@ -240,7 +181,6 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
         {
             HDWP deferHandle;
             RECT clientRect;
-            RECT checkBoxRect;
             ULONG numberOfRows = (ULONG)sqrt(EtGpuTotalNodeCount);
             ULONG numberOfColumns = (EtGpuTotalNodeCount + numberOfRows - 1) / numberOfRows;
             ULONG numberOfYPaddings = numberOfRows - 1;
@@ -253,10 +193,9 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
 
             PhLayoutManagerLayout(&LayoutManager);
 
-            deferHandle = BeginDeferWindowPos(EtGpuTotalNodeCount * 2);
+            deferHandle = BeginDeferWindowPos(EtGpuTotalNodeCount);
 
             GetClientRect(hwndDlg, &clientRect);
-            GetClientRect(GetDlgItem(hwndDlg, IDC_EXAMPLE), &checkBoxRect);
             cellHeight = (clientRect.bottom - LayoutMargin.top - LayoutMargin.bottom - GRAPH_PADDING * numberOfYPaddings) / numberOfRows;
             y = LayoutMargin.top;
             i = 0;
@@ -287,17 +226,7 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
                             x,
                             y,
                             cellWidth,
-                            cellHeight - checkBoxRect.bottom - CHECKBOX_PADDING,
-                            SWP_NOACTIVATE | SWP_NOZORDER
-                            );
-                        deferHandle = DeferWindowPos(
-                            deferHandle,
-                            CheckBoxHandle[i],
-                            NULL,
-                            x,
-                            y + cellHeight - checkBoxRect.bottom,
-                            cellWidth,
-                            checkBoxRect.bottom,
+                            cellHeight,
                             SWP_NOACTIVATE | SWP_NOZORDER
                             );
                         i++;
@@ -326,16 +255,6 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
                     EndDialog(hwndDlg, IDOK);
                 }
                 break;
-            case IDC_SELECTALL:
-                {
-                    BOOLEAN selectAll = Button_GetCheck(GetDlgItem(hwndDlg, IDC_SELECTALL)) == BST_CHECKED;
-
-                    for (ULONG i = 0; i < EtGpuTotalNodeCount; i++)
-                    {
-                        Button_SetCheck(CheckBoxHandle[i], selectAll ? BST_CHECKED : BST_UNCHECKED);
-                    }
-                }
-                break;
             }
         }
         break;
@@ -352,12 +271,51 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
                     PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
 
                     drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y;
-                    SysInfoParameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), 0);
+                    PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), 0);
 
                     for (i = 0; i < EtGpuTotalNodeCount; i++)
                     {
                         if (header->hwndFrom == GraphHandle[i])
                         {
+                            if (PhGetIntegerSetting(L"GraphShowText"))
+                            {
+                                HDC hdc;
+                                FLOAT gpu;
+                                ULONG adapterIndex;
+                                PPH_STRING engineName = NULL;
+
+                                gpu = PhGetItemCircularBuffer_FLOAT(&EtGpuNodesHistory[i], 0);
+
+                                if ((adapterIndex = EtGetGpuAdapterIndexFromNodeIndex(i)) != ULONG_MAX)
+                                    engineName = EtGetGpuAdapterNodeEngine(adapterIndex, i);
+
+                                if (!PhIsNullOrEmptyString(engineName))
+                                {
+                                    PhMoveReference(&GraphState[i].Text, PhFormatString(
+                                        L"%.2f%% (%s)",
+                                        gpu * 100,
+                                        engineName->Buffer
+                                        ));
+                                }
+                                else
+                                {
+                                    PhMoveReference(&GraphState[i].Text, PhFormatString(
+                                        L"%.2f%% (Node %lu)",
+                                        gpu * 100,
+                                        i
+                                        ));
+                                }
+
+                                hdc = Graph_GetBufferedContext(GraphHandle[i]);
+                                SelectObject(hdc, PhApplicationFont);
+                                PhSetGraphText(hdc, drawInfo, &GraphState[i].Text->sr,
+                                    &NormalGraphTextMargin, &NormalGraphTextPadding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
+                            }
+                            else
+                            {
+                                drawInfo->Text.Buffer = NULL;
+                            }
+
                             PhGraphStateGetDrawInfo(
                                 &GraphState[i],
                                 getDrawInfo,
@@ -394,7 +352,7 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
                                     gpu = PhGetItemCircularBuffer_FLOAT(&EtGpuNodesHistory[i], getTooltipText->Index);
                                     adapterIndex = EtGetGpuAdapterIndexFromNodeIndex(i);
 
-                                    if (adapterIndex != -1)
+                                    if (adapterIndex != ULONG_MAX)
                                     {
                                         adapterDescription = EtGetGpuAdapterDescription(adapterIndex);
 
@@ -430,11 +388,9 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
             }
         }
         break;
-    case UPDATE_MSG:
+    case ET_WM_UPDATE:
         {
-            ULONG i;
-
-            for (i = 0; i < EtGpuTotalNodeCount; i++)
+            for (ULONG i = 0; i < EtGpuTotalNodeCount; i++)
             {
                 GraphState[i].Valid = FALSE;
                 GraphState[i].TooltipIndex = -1;

@@ -109,10 +109,10 @@ int __cdecl EtpGpuListSectionProcessCompareFunction(
 
     result = singlecmp(block2->GpuNodeUsage, block1->GpuNodeUsage);
 
-    if (result == 0)
-        result = uint64cmp(block2->GpuRunningTimeDelta.Value, block1->GpuRunningTimeDelta.Value);
-    if (result == 0)
-        result = singlecmp(node2->ProcessItem->CpuUsage, node1->ProcessItem->CpuUsage);
+    //if (result == 0)
+    //    result = uint64cmp(block2->GpuRunningTimeDelta.Value, block1->GpuRunningTimeDelta.Value);
+    //if (result == 0)
+    //    result = singlecmp(node2->ProcessItem->CpuUsage, node1->ProcessItem->CpuUsage);
 
     return result;
 }

@@ -3,6 +3,7 @@
  *   main program
  *
  * Copyright (C) 2010-2015 wj32
+ * Copyright (C) 2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -46,7 +47,7 @@ PH_CALLBACK_REGISTRATION TrayIconsInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
 PH_CALLBACK_REGISTRATION NetworkItemsUpdatedCallbackRegistration;
 
-static HANDLE ModuleProcessId;
+static HANDLE ModuleProcessId = NULL;
 
 VOID NTAPI LoadCallback(
     _In_opt_ PVOID Parameter,
@@ -386,6 +387,11 @@ VOID EtInitializeProcessBlock(
     memset(Block, 0, sizeof(ET_PROCESS_BLOCK));
     Block->ProcessItem = ProcessItem;
     PhInitializeQueuedLock(&Block->TextCacheLock);
+
+    Block->GpuTotalRunningTimeDelta = PhAllocate(sizeof(PH_UINT64_DELTA) * EtGpuTotalNodeCount);
+    memset(Block->GpuTotalRunningTimeDelta, 0, sizeof(PH_UINT64_DELTA) * EtGpuTotalNodeCount);
+    Block->GpuTotalNodesHistory = PhAllocate(sizeof(PH_CIRCULAR_BUFFER_FLOAT) * EtGpuTotalNodeCount);
+
     InsertTailList(&EtProcessBlockListHead, &Block->ListEntry);
 }
 
@@ -477,6 +483,23 @@ LOGICAL DllMain(
     case DLL_PROCESS_ATTACH:
         {
             PPH_PLUGIN_INFORMATION info;
+            PH_SETTING_CREATE settings[] =
+            {
+                { StringSettingType, SETTING_NAME_DISK_TREE_LIST_COLUMNS, L"" },
+                { IntegerPairSettingType, SETTING_NAME_DISK_TREE_LIST_SORT, L"4,2" }, // 4, DescendingSortOrder
+                { IntegerSettingType, SETTING_NAME_ENABLE_ETW_MONITOR, L"1" },
+                { IntegerSettingType, SETTING_NAME_ENABLE_GPU_MONITOR, L"1" },
+                { IntegerSettingType, SETTING_NAME_ENABLE_SYSINFO_GRAPHS, L"1" },
+                { StringSettingType, SETTING_NAME_GPU_NODE_BITMAP, L"01000000" },
+                { IntegerSettingType, SETTING_NAME_GPU_LAST_NODE_COUNT, L"0" },
+                { IntegerPairSettingType, SETTING_NAME_UNLOADED_WINDOW_POSITION, L"0,0" },
+                { ScalableIntegerPairSettingType, SETTING_NAME_UNLOADED_WINDOW_SIZE, L"@96|350,270" },
+                { StringSettingType, SETTING_NAME_UNLOADED_COLUMNS, L"" },
+                { IntegerPairSettingType, SETTING_NAME_MODULE_SERVICES_WINDOW_POSITION, L"0,0" },
+                { ScalableIntegerPairSettingType, SETTING_NAME_MODULE_SERVICES_WINDOW_SIZE, L"@96|850,490" },
+                { IntegerPairSettingType, SETTING_NAME_GPU_NODES_WINDOW_POSITION, L"0,0" },
+                { ScalableIntegerPairSettingType, SETTING_NAME_GPU_NODES_WINDOW_SIZE, L"@96|850,490" },
+            };
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
 
@@ -484,7 +507,7 @@ LOGICAL DllMain(
                 return FALSE;
 
             info->DisplayName = L"Extended Tools";
-            info->Author = L"wj32";
+            info->Author = L"dmex, wj32";
             info->Description = L"Extended functionality for Windows 7 and above, including ETW monitoring, GPU monitoring and a Disk tab.";
             info->Url = L"https://wj32.org/processhacker/forums/viewtopic.php?t=1114";
 
@@ -618,25 +641,7 @@ LOGICAL DllMain(
                 NetworkItemDeleteCallback
                 );
 
-            {
-                static PH_SETTING_CREATE settings[] =
-                {
-                    { StringSettingType, SETTING_NAME_DISK_TREE_LIST_COLUMNS, L"" },
-                    { IntegerPairSettingType, SETTING_NAME_DISK_TREE_LIST_SORT, L"4,2" }, // 4, DescendingSortOrder
-                    { IntegerSettingType, SETTING_NAME_ENABLE_ETW_MONITOR, L"1" },
-                    { IntegerSettingType, SETTING_NAME_ENABLE_GPU_MONITOR, L"1" },
-                    { IntegerSettingType, SETTING_NAME_ENABLE_SYSINFO_GRAPHS, L"1" },
-                    { StringSettingType, SETTING_NAME_GPU_NODE_BITMAP, L"01000000" },
-                    { IntegerSettingType, SETTING_NAME_GPU_LAST_NODE_COUNT, L"0" },
-                    { IntegerPairSettingType, SETTING_NAME_UNLOADED_WINDOW_POSITION, L"0,0" },
-                    { ScalableIntegerPairSettingType, SETTING_NAME_UNLOADED_WINDOW_SIZE, L"@96|350,270" },
-                    { StringSettingType, SETTING_NAME_UNLOADED_COLUMNS, L"" },
-                    { IntegerPairSettingType, SETTING_NAME_MODULE_SERVICES_WINDOW_POSITION, L"0,0" },
-                    { ScalableIntegerPairSettingType, SETTING_NAME_MODULE_SERVICES_WINDOW_SIZE, L"@96|850,490" },
-                };
-
-                PhAddSettings(settings, sizeof(settings) / sizeof(PH_SETTING_CREATE));
-            }
+            PhAddSettings(settings, RTL_NUMBER_OF(settings));
         }
         break;
     }
