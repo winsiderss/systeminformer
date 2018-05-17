@@ -246,12 +246,7 @@ VOID PhStartProviderThread(
     PhSetIntervalProviderThread(ProviderThread, ProviderThread->Interval);
 
     // Create and start the thread.
-    ProviderThread->ThreadHandle = PhCreateThread(
-        0,
-        PhpProviderThreadStart,
-        ProviderThread
-        );
-
+    PhCreateThreadEx(&ProviderThread->ThreadHandle, PhpProviderThreadStart, ProviderThread);
     ProviderThread->State = ProviderThreadRunning;
 }
 
