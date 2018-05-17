@@ -29,6 +29,8 @@
 #include <mainwnd.h>
 #include <srvprv.h>
 
+#include <windowsx.h>
+
 typedef struct _PH_SERVICES_CONTEXT
 {
     PPH_SERVICE_ITEM *Services;
@@ -39,6 +41,7 @@ typedef struct _PH_SERVICES_CONTEXT
 
     PH_LAYOUT_MANAGER LayoutManager;
     HWND WindowHandle;
+    HWND ListViewHandle;
 } PH_SERVICES_CONTEXT, *PPH_SERVICES_CONTEXT;
 
 #define WM_PH_SERVICE_PAGE_MODIFIED (WM_APP + 106)
@@ -201,17 +204,16 @@ INT_PTR CALLBACK PhpServicesPageProc(
     _In_ LPARAM lParam
     )
 {
-    PPH_SERVICES_CONTEXT servicesContext;
-    HWND lvHandle;
+    PPH_SERVICES_CONTEXT context;
 
     if (uMsg == WM_INITDIALOG)
     {
-        servicesContext = (PPH_SERVICES_CONTEXT)lParam;
-        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, servicesContext);
+        context = (PPH_SERVICES_CONTEXT)lParam;
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        servicesContext = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
         if (uMsg == WM_DESTROY)
         {
@@ -219,10 +221,8 @@ INT_PTR CALLBACK PhpServicesPageProc(
         }
     }
 
-    if (!servicesContext)
+    if (!context)
         return FALSE;
-
-    lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
     switch (uMsg)
     {
@@ -233,30 +233,31 @@ INT_PTR CALLBACK PhpServicesPageProc(
             PhRegisterCallback(
                 &PhServiceModifiedEvent,
                 ServiceModifiedHandler,
-                servicesContext,
-                &servicesContext->ModifiedEventRegistration
+                context,
+                &context->ModifiedEventRegistration
                 );
 
-            servicesContext->WindowHandle = hwndDlg;
+            context->WindowHandle = hwndDlg;
+            context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
             // Initialize the list.
-            PhSetListViewStyle(lvHandle, TRUE, TRUE);
-            PhSetControlTheme(lvHandle, L"explorer");
-            PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 120, L"Name");
-            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 220, L"Display name");
-            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 220, L"File name");
+            PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
+            PhSetControlTheme(context->ListViewHandle, L"explorer");
+            PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 120, L"Name");
+            PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 220, L"Display name");
+            PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 220, L"File name");
 
-            PhSetExtendedListView(lvHandle);
+            PhSetExtendedListView(context->ListViewHandle);
 
-            for (i = 0; i < servicesContext->NumberOfServices; i++)
+            for (i = 0; i < context->NumberOfServices; i++)
             {
                 SC_HANDLE serviceHandle;
                 PPH_SERVICE_ITEM serviceItem;
                 INT lvItemIndex;
 
-                serviceItem = servicesContext->Services[i];
-                lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, serviceItem->Name->Buffer, serviceItem);
-                PhSetListViewSubItem(lvHandle, lvItemIndex, 1, serviceItem->DisplayName->Buffer);
+                serviceItem = context->Services[i];
+                lvItemIndex = PhAddListViewItem(context->ListViewHandle, MAXINT, serviceItem->Name->Buffer, serviceItem);
+                PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 1, serviceItem->DisplayName->Buffer);
 
                 if (serviceHandle = PhOpenService(serviceItem->Name->Buffer, SERVICE_QUERY_CONFIG))
                 {
@@ -264,7 +265,7 @@ INT_PTR CALLBACK PhpServicesPageProc(
 
                     if (fileName = PhGetServiceRelevantFileName(&serviceItem->Name->sr, serviceHandle))
                     {
-                        PhSetListViewSubItem(lvHandle, lvItemIndex, 2, PhGetStringOrEmpty(fileName));
+                        PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 2, PhGetStringOrEmpty(fileName));
                         PhDereferenceObject(fileName);
                     }
 
@@ -272,52 +273,46 @@ INT_PTR CALLBACK PhpServicesPageProc(
                 }
             }
 
-            ExtendedListView_SortItems(lvHandle);
+            ExtendedListView_SortItems(context->ListViewHandle);
 
             PhpFixProcessServicesControls(hwndDlg, NULL);
 
-            PhInitializeLayoutManager(&servicesContext->LayoutManager, hwndDlg);
-            PhAddLayoutItem(&servicesContext->LayoutManager, GetDlgItem(hwndDlg, IDC_LIST),
-                NULL, PH_ANCHOR_ALL);
-            PhAddLayoutItem(&servicesContext->LayoutManager, GetDlgItem(hwndDlg, IDC_DESCRIPTION),
-                NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
-            PhAddLayoutItem(&servicesContext->LayoutManager, GetDlgItem(hwndDlg, IDC_START),
-                NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
-            PhAddLayoutItem(&servicesContext->LayoutManager, GetDlgItem(hwndDlg, IDC_PAUSE),
-                NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_DESCRIPTION), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_START), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_PAUSE), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
         }
         break;
     case WM_DESTROY:
         {
             ULONG i;
 
-            for (i = 0; i < servicesContext->NumberOfServices; i++)
-                PhDereferenceObject(servicesContext->Services[i]);
+            for (i = 0; i < context->NumberOfServices; i++)
+                PhDereferenceObject(context->Services[i]);
 
-            PhFree(servicesContext->Services);
+            PhFree(context->Services);
 
             PhUnregisterCallback(
                 &PhServiceModifiedEvent,
-                &servicesContext->ModifiedEventRegistration
+                &context->ModifiedEventRegistration
                 );
 
-            if (servicesContext->ListViewSettingName)
-                PhSaveListViewColumnsToSetting(servicesContext->ListViewSettingName, lvHandle);
+            if (context->ListViewSettingName)
+                PhSaveListViewColumnsToSetting(context->ListViewSettingName, context->ListViewHandle);
 
-            PhDeleteLayoutManager(&servicesContext->LayoutManager);
+            PhDeleteLayoutManager(&context->LayoutManager);
 
-            PhFree(servicesContext);
+            PhFree(context);
         }
         break;
     case WM_COMMAND:
         {
-            INT id = LOWORD(wParam);
-
-            switch (id)
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDC_START:
                 {
-                    PPH_SERVICE_ITEM serviceItem = PhGetSelectedListViewItemParam(lvHandle);
+                    PPH_SERVICE_ITEM serviceItem = PhGetSelectedListViewItemParam(context->ListViewHandle);
 
                     if (serviceItem)
                     {
@@ -338,7 +333,7 @@ INT_PTR CALLBACK PhpServicesPageProc(
                 break;
             case IDC_PAUSE:
                 {
-                    PPH_SERVICE_ITEM serviceItem = PhGetSelectedListViewItemParam(lvHandle);
+                    PPH_SERVICE_ITEM serviceItem = PhGetSelectedListViewItemParam(context->ListViewHandle);
 
                     if (serviceItem)
                     {
@@ -361,15 +356,15 @@ INT_PTR CALLBACK PhpServicesPageProc(
         {
             LPNMHDR header = (LPNMHDR)lParam;
 
-            PhHandleListViewNotifyBehaviors(lParam, lvHandle, PH_LIST_VIEW_DEFAULT_1_BEHAVIORS);
+            PhHandleListViewNotifyBehaviors(lParam, context->ListViewHandle, PH_LIST_VIEW_DEFAULT_1_BEHAVIORS);
 
             switch (header->code)
             {
             case NM_DBLCLK:
                 {
-                    if (header->hwndFrom == lvHandle)
+                    if (header->hwndFrom == context->ListViewHandle)
                     {
-                        PPH_SERVICE_ITEM serviceItem = PhGetSelectedListViewItemParam(lvHandle);
+                        PPH_SERVICE_ITEM serviceItem = PhGetSelectedListViewItemParam(context->ListViewHandle);
 
                         if (serviceItem)
                         {
@@ -380,13 +375,13 @@ INT_PTR CALLBACK PhpServicesPageProc(
                 break;
             case LVN_ITEMCHANGED:
                 {
-                    if (header->hwndFrom == lvHandle)
+                    if (header->hwndFrom == context->ListViewHandle)
                     {
                         //LPNMITEMACTIVATE itemActivate = (LPNMITEMACTIVATE)header;
                         PPH_SERVICE_ITEM serviceItem = NULL;
 
-                        if (ListView_GetSelectedCount(lvHandle) == 1)
-                            serviceItem = PhGetSelectedListViewItemParam(lvHandle);
+                        if (ListView_GetSelectedCount(context->ListViewHandle) == 1)
+                            serviceItem = PhGetSelectedListViewItemParam(context->ListViewHandle);
 
                         PhpFixProcessServicesControls(hwndDlg, serviceItem);
                     }
@@ -397,7 +392,7 @@ INT_PTR CALLBACK PhpServicesPageProc(
         break;
     case WM_SIZE:
         {
-            PhLayoutManagerLayout(&servicesContext->LayoutManager);
+            PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
     case WM_PH_SERVICE_PAGE_MODIFIED:
@@ -405,8 +400,8 @@ INT_PTR CALLBACK PhpServicesPageProc(
             PPH_SERVICE_MODIFIED_DATA serviceModifiedData = (PPH_SERVICE_MODIFIED_DATA)lParam;
             PPH_SERVICE_ITEM serviceItem = NULL;
 
-            if (ListView_GetSelectedCount(lvHandle) == 1)
-                serviceItem = PhGetSelectedListViewItemParam(lvHandle);
+            if (ListView_GetSelectedCount(context->ListViewHandle) == 1)
+                serviceItem = PhGetSelectedListViewItemParam(context->ListViewHandle);
 
             if (serviceModifiedData->Service == serviceItem)
             {
@@ -420,8 +415,8 @@ INT_PTR CALLBACK PhpServicesPageProc(
         {
             PWSTR settingName = (PWSTR)lParam;
 
-            servicesContext->ListViewSettingName = settingName;
-            PhLoadListViewColumnsFromSetting(settingName, lvHandle);
+            context->ListViewSettingName = settingName;
+            PhLoadListViewColumnsFromSetting(settingName, context->ListViewHandle);
         }
         break;
     }
