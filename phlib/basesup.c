@@ -231,6 +231,7 @@ HANDLE PhCreateThread(
     _In_opt_ PVOID Parameter
     )
 {
+    NTSTATUS status;
     HANDLE threadHandle;
     PPHP_BASE_THREAD_CONTEXT context;
 
@@ -238,7 +239,7 @@ HANDLE PhCreateThread(
     context->StartAddress = StartAddress;
     context->Parameter = Parameter;
 
-    if (NT_SUCCESS(RtlCreateUserThread(
+    status = RtlCreateUserThread(
         NtCurrentProcess(),
         NULL,
         FALSE,
@@ -249,7 +250,14 @@ HANDLE PhCreateThread(
         context,
         &threadHandle,
         NULL
-        )))
+        );
+    
+    // NOTE: PhCreateThread previously used CreateThread with callers using GetLastError()
+    // for checking errors. We need to preserve this behavior for compatibility -dmex
+    // TODO: Migrate code over to PhCreateThreadEx and remove this function.
+    RtlSetLastWin32ErrorAndNtStatusFromNtStatus(status);
+
+    if (NT_SUCCESS(status))
     {
         PHLIB_INC_STATISTIC(BaseThreadsCreated);
         return threadHandle;
@@ -260,6 +268,47 @@ HANDLE PhCreateThread(
         PhFreeToFreeList(&PhpBaseThreadContextFreeList, context);
         return NULL;
     }
+}
+
+NTSTATUS PhCreateThreadEx(
+    _Out_ PHANDLE ThreadHandle,
+    _In_ PUSER_THREAD_START_ROUTINE StartAddress,
+    _In_opt_ PVOID Parameter
+    )
+{
+    NTSTATUS status;
+    HANDLE threadHandle;
+    PPHP_BASE_THREAD_CONTEXT context;
+
+    context = PhAllocateFromFreeList(&PhpBaseThreadContextFreeList);
+    context->StartAddress = StartAddress;
+    context->Parameter = Parameter;
+
+    status = RtlCreateUserThread(
+        NtCurrentProcess(),
+        NULL,
+        FALSE,
+        0,
+        0,
+        0,
+        PhpBaseThreadStart,
+        context,
+        &threadHandle,
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        PHLIB_INC_STATISTIC(BaseThreadsCreated);
+        *ThreadHandle = threadHandle;
+    }
+    else
+    {
+        PHLIB_INC_STATISTIC(BaseThreadsCreateFailed);
+        PhFreeToFreeList(&PhpBaseThreadContextFreeList, context);
+    }
+
+    return status;
 }
 
 NTSTATUS PhCreateThread2(
