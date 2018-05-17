@@ -68,7 +68,7 @@ static PH_FAST_LOCK PhSymMutex = PH_FAST_LOCK_INIT;
 #define PH_LOCK_SYMBOLS() PhAcquireFastLockExclusive(&PhSymMutex)
 #define PH_UNLOCK_SYMBOLS() PhReleaseFastLockExclusive(&PhSymMutex)
 
-_SymInitialize SymInitialize_I;
+_SymInitializeW SymInitializeW_I;
 _SymCleanup SymCleanup_I;
 _SymEnumSymbolsW SymEnumSymbolsW_I;
 _SymFromAddrW SymFromAddrW_I;
@@ -213,11 +213,11 @@ BOOL CALLBACK PhpSymbolCallbackFunction(
     {
         switch (ActionCode)
         {
-        case SymbolDeferredSymbolLoadStart:
-        case SymbolDeferredSymbolLoadComplete:
-        case SymbolDeferredSymbolLoadFailure:
-        case SymbolSymbolsUnloaded:
-        case SymbolDeferredSymbolLoadCancel:
+        case SymbolDeferredSymbolLoadStart: // CBA_DEFERRED_SYMBOL_LOAD_START
+        case SymbolDeferredSymbolLoadComplete: // CBA_DEFERRED_SYMBOL_LOAD_COMPLETE
+        case SymbolDeferredSymbolLoadFailure: // CBA_DEFERRED_SYMBOL_LOAD_FAILURE
+        case SymbolSymbolsUnloaded: // CBA_SYMBOLS_UNLOADED
+        case SymbolDeferredSymbolLoadCancel: // CBA_DEFERRED_SYMBOL_LOAD_CANCEL
             data = PhCreateAlloc(sizeof(PH_SYMBOL_EVENT_DATA));
             memset(data, 0, sizeof(PH_SYMBOL_EVENT_DATA));
             data->SymbolProvider = symbolProvider;
@@ -324,7 +324,7 @@ VOID PhpSymbolProviderCompleteInitialization(
 
     if (dbghelpHandle)
     {
-        SymInitialize_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymInitialize", 0);
+        SymInitializeW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymInitializeW", 0);
         SymCleanup_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymCleanup", 0);
         SymEnumSymbolsW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymEnumSymbolsW", 0);
         SymFromAddrW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymFromAddrW", 0);
@@ -367,7 +367,8 @@ VOID PhpRegisterSymbolProvider(
                 SymGetOptions_I() |
                 SYMOPT_AUTO_PUBLICS | SYMOPT_CASE_INSENSITIVE | SYMOPT_DEFERRED_LOADS |
                 SYMOPT_FAIL_CRITICAL_ERRORS | SYMOPT_INCLUDE_32BIT_MODULES |
-                SYMOPT_LOAD_LINES | SYMOPT_OMAP_FIND_NEAREST | SYMOPT_UNDNAME
+                SYMOPT_LOAD_LINES | SYMOPT_OMAP_FIND_NEAREST | SYMOPT_UNDNAME |
+                SYMOPT_SECURE // | SYMOPT_DEBUG
                 );
 
             PH_UNLOCK_SYMBOLS();
@@ -381,11 +382,11 @@ VOID PhpRegisterSymbolProvider(
 
     if (PhBeginInitOnce(&SymbolProvider->InitOnce))
     {
-        if (SymInitialize_I)
+        if (SymInitializeW_I)
         {
             PH_LOCK_SYMBOLS();
 
-            SymInitialize_I(SymbolProvider->ProcessHandle, NULL, FALSE);
+            SymInitializeW_I(SymbolProvider->ProcessHandle, NULL, FALSE);
 
             if (SymRegisterCallbackW64_I)
                 SymRegisterCallbackW64_I(SymbolProvider->ProcessHandle, PhpSymbolCallbackFunction, (ULONG64)SymbolProvider);
