@@ -121,7 +121,18 @@ VOID PhRefreshProcessPropContext(
     _Inout_ PPH_PROCESS_PROPCONTEXT PropContext
     )
 {
-    PropContext->PropSheetHeader.hIcon = PropContext->ProcessItem->SmallIcon;
+    if (PropContext->ProcessItem->SmallIcon)
+    {
+        PropContext->PropSheetHeader.hIcon = PropContext->ProcessItem->SmallIcon;
+    }
+    else
+    {
+        HICON iconSmall;
+
+        PhGetStockApplicationIcon(&iconSmall, NULL);
+
+        PropContext->PropSheetHeader.hIcon = iconSmall;
+    }
 }
 
 VOID PhSetSelectThreadIdProcessPropContext(

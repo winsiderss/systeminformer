@@ -200,8 +200,17 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             // File
 
-            SendMessage(GetDlgItem(hwndDlg, IDC_FILEICON), STM_SETICON,
-                (WPARAM)processItem->LargeIcon, 0);
+            if (processItem->LargeIcon)
+            {
+                SendMessage(GetDlgItem(hwndDlg, IDC_FILEICON), STM_SETICON, (WPARAM)processItem->LargeIcon, 0);
+            }
+            else
+            {
+                HICON iconLarge;
+
+                PhGetStockApplicationIcon(NULL, &iconLarge);
+                SendMessage(GetDlgItem(hwndDlg, IDC_FILEICON), STM_SETICON, (WPARAM)iconLarge, 0);
+            }
 
             if (PH_IS_REAL_PROCESS_ID(processItem->ProcessId))
             {

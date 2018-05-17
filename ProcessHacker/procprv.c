@@ -753,27 +753,6 @@ VOID PhpProcessQueryStage1(
         PhInitializeImageVersionInfo(&Data->VersionInfo, processItem->FileName->Buffer);
     }
 
-    // Use the default EXE icon if we didn't get the file's icon.
-    {
-        if (!Data->SmallIcon || !Data->LargeIcon)
-        {
-            if (Data->SmallIcon)
-            {
-                DestroyIcon(Data->SmallIcon);
-                Data->SmallIcon = NULL;
-            }
-            else if (Data->LargeIcon)
-            {
-                DestroyIcon(Data->LargeIcon);
-                Data->LargeIcon = NULL;
-            }
-
-            PhGetStockApplicationIcon(&Data->SmallIcon, &Data->LargeIcon);
-            Data->SmallIcon = CopyIcon(Data->SmallIcon);
-            Data->LargeIcon = CopyIcon(Data->LargeIcon);
-        }
-    }
-
     // Debugged
     if (processHandleLimited)
     {
