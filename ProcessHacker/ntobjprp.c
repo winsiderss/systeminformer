@@ -410,7 +410,7 @@ static VOID PhpRefreshFilePageInfo(
             fileHandle,
             &ioStatusBlock,
             &deviceInformation,
-            sizeof(deviceInformation),
+            sizeof(FILE_FS_DEVICE_INFORMATION),
             FileFsDeviceInformation
             )))
         {
@@ -441,7 +441,7 @@ static VOID PhpRefreshFilePageInfo(
             fileHandle,
             &ioStatusBlock,
             &fileStandardInfo,
-            sizeof(fileStandardInfo),
+            sizeof(FILE_STANDARD_INFORMATION),
             FileStandardInformation
             )))
         {
@@ -464,7 +464,7 @@ static VOID PhpRefreshFilePageInfo(
             fileHandle,
             &ioStatusBlock,
             &filePositionInfo,
-            sizeof(filePositionInfo),
+            sizeof(FILE_POSITION_INFORMATION),
             FilePositionInformation
             )))
         {
@@ -500,7 +500,7 @@ static VOID PhpRefreshFilePageInfo(
             fileHandle,
             &ioStatusBlock,
             &fileModeInfo,
-            sizeof(fileModeInfo),
+            sizeof(FILE_MODE_INFORMATION),
             FileModeInformation
             )))
         {
@@ -575,16 +575,31 @@ INT_PTR CALLBACK PhpFilePageProc(
                         pageContext->Context
                         )))
                     {
-                        IO_STATUS_BLOCK ioStatusBlock;
+                        IO_STATUS_BLOCK isb;
 
-                        status = NtFlushBuffersFile(fileHandle, &ioStatusBlock);
+                        status = NtFlushBuffersFile(fileHandle, &isb);
+
                         NtClose(fileHandle);
                     }
 
                     if (!NT_SUCCESS(status))
-                        PhShowStatus(hwndDlg, L"Unable to flush the file buffer", status, 0);
+                        PhShowStatus(hwndDlg, L"Unable to flush the file.", status, 0);
                 }
                 break;
+            }
+        }
+        break;
+    case WM_NOTIFY:
+        {
+            LPNMHDR header = (LPNMHDR)lParam;
+
+            switch (header->code)
+            {
+            case PSN_QUERYINITIALFOCUS:
+                {
+                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LONG_PTR)GetDlgItem(hwndDlg, IDC_FLUSH));
+                }
+                return TRUE;
             }
         }
         break;
