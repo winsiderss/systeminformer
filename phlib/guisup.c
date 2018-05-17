@@ -347,7 +347,7 @@ ULONG PhGetWindowTextEx(
     }
     else
     {
-        length = PhGetWindowTextLength(hwnd);
+        length = GetWindowTextLength(hwnd);
 
         if (length == 0 || (Flags & PH_GET_WINDOW_TEXT_LENGTH_ONLY))
         {
