@@ -519,9 +519,9 @@ BEGIN_SORT_FUNCTION(StartType)
     sortResult = uintcmp(serviceItem1->StartType, serviceItem2->StartType);
 
     if (sortResult == 0)
-        sortResult = uintcmp(serviceItem1->DelayedStart, serviceItem2->DelayedStart);
+        sortResult = ucharcmp(serviceItem1->DelayedStart, serviceItem2->DelayedStart);
     if (sortResult == 0)
-        sortResult = uintcmp(serviceItem1->HasTriggers, serviceItem2->HasTriggers);
+        sortResult = ucharcmp(serviceItem1->HasTriggers, serviceItem2->HasTriggers);
 }
 END_SORT_FUNCTION
 
@@ -682,7 +682,7 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
                 getCellText->Text = serviceItem->Name->sr;
                 break;
             case PHSVTLC_DISPLAYNAME:
-                getCellText->Text = serviceItem->DisplayName->sr;
+                getCellText->Text = PhGetStringRef(serviceItem->DisplayName);
                 break;
             case PHSVTLC_TYPE:
                 PhInitializeStringRefLongHint(&getCellText->Text, PhGetServiceTypeString(serviceItem->Type));
@@ -809,9 +809,9 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
                 getNodeColor->BackColor = PhCsColorUnknown;
                 getNodeColor->Flags |= TN_AUTO_FORECOLOR;
             }
-            else if (PhCsUseColorServiceStop && serviceItem->State == SERVICE_STOPPED && serviceItem->StartType == SERVICE_DISABLED)
+            else if (PhCsUseColorServiceDisabled && serviceItem->State == SERVICE_STOPPED && serviceItem->StartType == SERVICE_DISABLED)
             {
-                getNodeColor->BackColor = PhCsColorServiceStop;
+                getNodeColor->BackColor = PhCsColorServiceDisabled;
                 getNodeColor->Flags |= TN_AUTO_FORECOLOR;
             }
             else if (PhCsUseColorServiceStop && serviceItem->State == SERVICE_STOPPED)
