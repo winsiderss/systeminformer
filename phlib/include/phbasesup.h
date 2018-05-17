@@ -43,6 +43,15 @@ PhCreateThread(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhCreateThreadEx(
+    _Out_ PHANDLE ThreadHandle,
+    _In_ PUSER_THREAD_START_ROUTINE StartAddress,
+    _In_opt_ PVOID Parameter
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhCreateThread2(
     _In_ PUSER_THREAD_START_ROUTINE StartAddress,
     _In_opt_ PVOID Parameter
