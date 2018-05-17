@@ -85,7 +85,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>..\..\phnt\include;..\..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_PHLIB_;_WINDOWS;WIN32;DEBUG;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_PHLIB_;_WINDOWS;WIN32;_DEBUG;DEBUG;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
@@ -115,7 +115,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>..\..\phnt\include;..\..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_PHLIB_;_WINDOWS;WIN64;DEBUG;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_PHLIB_;_WINDOWS;WIN64;_DEBUG;DEBUG;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
@@ -181,7 +181,7 @@
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <AdditionalIncludeDirectories>..\..\phnt\include;..\..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_PHLIB_;_WINDOWS;WIN64;DEBUG;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_PHLIB_;_WINDOWS;WIN64;NDEBUG;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <WarningLevel>Level3</WarningLevel>
