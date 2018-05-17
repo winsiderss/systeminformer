@@ -254,7 +254,7 @@ NTSTATUS PhMapViewOfEntireFile(
             FileName,
             ((FILE_READ_ATTRIBUTES | FILE_READ_DATA) |
             (!ReadOnly ? (FILE_APPEND_DATA | FILE_WRITE_ATTRIBUTES | FILE_WRITE_DATA) : 0)) | SYNCHRONIZE,
-            0,
+            FILE_ATTRIBUTE_NORMAL,
             FILE_SHARE_READ,
             FILE_OPEN,
             FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
