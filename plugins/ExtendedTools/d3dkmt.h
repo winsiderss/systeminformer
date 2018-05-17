@@ -584,7 +584,15 @@ typedef enum _DXGK_ENGINE_TYPE
 #include <pshpack1.h>
 typedef struct _D3DKMT_NODEMETADATA
 {
-    _In_ UINT32 NodeOrdinalAndAdapterIndex; // High word is physical adapter index, low word is node ordinal
+    union
+    {
+        _In_ UINT32 NodeOrdinalAndAdapterIndex; // High word is physical adapter index, low word is node ordinal
+        struct
+        {
+            UINT32 NodeOrdinal : 16;
+            UINT32 AdapterIndex : 16;
+        };
+    };
     _Out_ DXGK_ENGINE_TYPE EngineType;
     _Out_ WCHAR FriendlyName[DXGK_MAX_METADATA_NAME_LENGTH];
     _Out_ UINT32 Reserved;
@@ -836,7 +844,7 @@ typedef struct _D3DKMT_NODE_PERFDATA
     _In_ UINT32 PhysicalAdapterIndex; // The physical adapter index in a LDA chain.
     _Out_ ULONGLONG Frequency; // Clock frequency of the requested engine, represented in hertz.
     _Out_ ULONGLONG MaxFrequency; // The max frequency the engine can normally reach in hertz while not overclocked.
-    _Out_ ULONGLONG MaxFrequencyOC; // The max frequency the engine can reach with it’s current overclock in hertz.
+    _Out_ ULONGLONG MaxFrequencyOC; // The max frequency the engine can reach with itï¿½s current overclock in hertz.
     _Out_ ULONG Voltage; // Voltage of the engine in milli volts mV
     _Out_ ULONG VoltageMax; // The max voltage of the engine in milli volts while not overclocked.
     _Out_ ULONG VoltageMaxOC; // The max voltage of the engine while overclocked in milli volts.
@@ -931,7 +939,6 @@ typedef struct _D3DKMT_QUERYADAPTERINFO
     _Out_ PVOID PrivateDriverData;
     _Out_ UINT32 PrivateDriverDataSize;
 } D3DKMT_QUERYADAPTERINFO;
-
 
 typedef enum _D3DKMT_QUERYRESULT_PREEMPTION_ATTEMPT_RESULT
 {
@@ -1032,7 +1039,8 @@ typedef struct _D3DKMT_QUERYSTATISTICS_NODE_INFORMATION
 {
     D3DKMT_QUERYSTATISTICS_PROCESS_NODE_INFORMATION GlobalInformation; // global
     D3DKMT_QUERYSTATISTICS_PROCESS_NODE_INFORMATION SystemInformation; // system thread
-    ULONG64 Reserved[8];
+    ULONG NodeId;
+    ULONG64 Reserved[7];
 } D3DKMT_QUERYSTATISTICS_NODE_INFORMATION;
 
 typedef struct _D3DKMT_QUERYSTATISTICS_PROCESS_VIDPNSOURCE_INFORMATION
@@ -1375,7 +1383,7 @@ typedef struct _D3DKMT_QUERYSTATISTICS
 {
     _In_ D3DKMT_QUERYSTATISTICS_TYPE Type;
     _In_ LUID AdapterLuid;
-    _In_opt_ HANDLE hProcess;
+    _In_opt_ HANDLE ProcessHandle;
     _Out_ D3DKMT_QUERYSTATISTICS_RESULT QueryResult;
 
     union
@@ -1397,19 +1405,511 @@ typedef enum _D3DKMT_MEMORY_SEGMENT_GROUP
 
 typedef struct _D3DKMT_QUERYVIDEOMEMORYINFO
 {
-    _In_opt_ HANDLE hProcess; // A handle to a process. If NULL, the current process is used. The process handle must be opened with PROCESS_QUERY_INFORMATION privileges.
-    _In_ D3DKMT_HANDLE hAdapter; // The adapter to query for this process
+    _In_opt_ HANDLE ProcessHandle; // A handle to a process. If NULL, the current process is used. The process handle must be opened with PROCESS_QUERY_INFORMATION privileges.
+    _In_ D3DKMT_HANDLE AdapterHandle; // The adapter to query for this process
     _In_ D3DKMT_MEMORY_SEGMENT_GROUP MemorySegmentGroup; // The memory segment group to query.
     _Out_ UINT64 Budget; // Total memory the application may use
     _Out_ UINT64 CurrentUsage; // Current memory usage of the device
     _Out_ UINT64 CurrentReservation; // Current reservation of the device
     _Out_ UINT64 AvailableForReservation; // Total that the device may reserve
-    _In_ UINT PhysicalAdapterIndex; // Zero based physical adapter index in the LDA configuration.
+    _In_ UINT32 PhysicalAdapterIndex; // Zero based physical adapter index in the LDA configuration.
 } D3DKMT_QUERYVIDEOMEMORYINFO;
+
+typedef enum _D3DKMT_ESCAPETYPE
+{
+    D3DKMT_ESCAPE_DRIVERPRIVATE = 0,
+    D3DKMT_ESCAPE_VIDMM = 1, // D3DKMT_VIDMM_ESCAPE
+    D3DKMT_ESCAPE_TDRDBGCTRL = 2, // D3DKMT_TDRDBGCTRLTYPE
+    D3DKMT_ESCAPE_VIDSCH = 3, // D3DKMT_VIDSCH_ESCAPE
+    D3DKMT_ESCAPE_DEVICE = 4, // D3DKMT_DEVICE_ESCAPE
+    D3DKMT_ESCAPE_DMM = 5, // D3DKMT_DMM_ESCAPE
+    D3DKMT_ESCAPE_DEBUG_SNAPSHOT = 6, // D3DKMT_DEBUG_SNAPSHOT_ESCAPE
+    // unused (7 was previously used to set driver update in-progress status, D3DKMT_ESCAPE_SETDRIVERUPDATESTATUS)
+    D3DKMT_ESCAPE_DRT_TEST = 8,
+    D3DKMT_ESCAPE_DIAGNOSTICS = 9, // since WIN8
+    D3DKMT_ESCAPE_OUTPUTDUPL_SNAPSHOT = 10,
+    D3DKMT_ESCAPE_OUTPUTDUPL_DIAGNOSTICS = 11,
+    D3DKMT_ESCAPE_BDD_PNP = 12,
+    D3DKMT_ESCAPE_BDD_FALLBACK = 13,
+    D3DKMT_ESCAPE_ACTIVATE_SPECIFIC_DIAG = 14, // D3DKMT_ACTIVATE_SPECIFIC_DIAG_ESCAPE
+    D3DKMT_ESCAPE_MODES_PRUNED_OUT = 15,
+    D3DKMT_ESCAPE_WHQL_INFO = 16, // UINT32 ??
+    D3DKMT_ESCAPE_BRIGHTNESS = 17,
+    D3DKMT_ESCAPE_EDID_CACHE = 18,  // UINT32 ??
+    D3DKMT_ESCAPE_GENERIC_ADAPTER_DIAG_INFO = 19,
+    D3DKMT_ESCAPE_MIRACAST_DISPLAY_REQUEST = 20, // since WDDM1_3
+    D3DKMT_ESCAPE_HISTORY_BUFFER_STATUS = 21,
+    // 22 can be reused for future needs as it was never exposed for external purposes
+    D3DKMT_ESCAPE_MIRACAST_ADAPTER_DIAG_INFO = 23,
+    D3DKMT_ESCAPE_FORCE_BDDFALLBACK_HEADLESS = 24, // since WDDM2_0
+    D3DKMT_ESCAPE_REQUEST_MACHINE_CRASH = 25, // D3DKMT_REQUEST_MACHINE_CRASH_ESCAPE
+    D3DKMT_ESCAPE_HMD_GET_EDID_BASE_BLOCK = 26,
+    D3DKMT_ESCAPE_SOFTGPU_ENABLE_DISABLE_HMD = 27,
+    D3DKMT_ESCAPE_PROCESS_VERIFIER_OPTION = 28,
+    D3DKMT_ESCAPE_ADAPTER_VERIFIER_OPTION = 29,
+    D3DKMT_ESCAPE_IDD_REQUEST = 30, // since WDDM2_1
+    D3DKMT_ESCAPE_DOD_SET_DIRTYRECT_MODE = 31,
+    D3DKMT_ESCAPE_LOG_CODEPOINT_PACKET = 32,
+    D3DKMT_ESCAPE_LOG_USERMODE_DAIG_PACKET = 33, // since WDDM2_2
+    D3DKMT_ESCAPE_GET_EXTERNAL_DIAGNOSTICS = 34,
+    // unused (35 previously was D3DKMT_ESCAPE_GET_PREFERRED_MODE)
+    D3DKMT_ESCAPE_GET_DISPLAY_CONFIGURATIONS = 36, // since WDDM2_3
+    D3DKMT_ESCAPE_QUERY_IOMMU_STATUS = 37, // since WDDM2_4
+
+    D3DKMT_ESCAPE_WIN32K_START = 1024,
+    D3DKMT_ESCAPE_WIN32K_HIP_DEVICE_INFO = 1024,
+    D3DKMT_ESCAPE_WIN32K_QUERY_CD_ROTATION_BLOCK = 1025,
+    D3DKMT_ESCAPE_WIN32K_DPI_INFO = 1026, // Use hContext for the desired hdev // since WDDM1_3
+    D3DKMT_ESCAPE_WIN32K_PRESENTER_VIEW_INFO = 1027,
+    D3DKMT_ESCAPE_WIN32K_SYSTEM_DPI = 1028,
+    D3DKMT_ESCAPE_WIN32K_BDD_FALLBACK = 1029, // since WDDM2_0
+    D3DKMT_ESCAPE_WIN32K_DDA_TEST_CTL = 1030,
+    D3DKMT_ESCAPE_WIN32K_USER_DETECTED_BLACK_SCREEN = 1031,
+    D3DKMT_ESCAPE_WIN32K_HMD_ENUM = 1032,
+    D3DKMT_ESCAPE_WIN32K_HMD_CONTROL = 1033,
+    D3DKMT_ESCAPE_WIN32K_LPMDISPLAY_CONTROL = 1034,
+} D3DKMT_ESCAPETYPE;
+
+typedef enum _D3DKMT_VIDMMESCAPETYPE
+{
+    D3DKMT_VIDMMESCAPETYPE_SETFAULT = 0,
+    D3DKMT_VIDMMESCAPETYPE_RUN_COHERENCY_TEST = 1,
+    D3DKMT_VIDMMESCAPETYPE_RUN_UNMAP_TO_DUMMY_PAGE_TEST = 2,
+    D3DKMT_VIDMMESCAPETYPE_APERTURE_CORRUPTION_CHECK = 3,
+    D3DKMT_VIDMMESCAPETYPE_SUSPEND_CPU_ACCESS_TEST = 4,
+    D3DKMT_VIDMMESCAPETYPE_EVICT = 5,
+    D3DKMT_VIDMMESCAPETYPE_EVICT_BY_NT_HANDLE = 6,
+    D3DKMT_VIDMMESCAPETYPE_GET_VAD_INFO = 7,
+    D3DKMT_VIDMMESCAPETYPE_SET_BUDGET = 8,
+    D3DKMT_VIDMMESCAPETYPE_SUSPEND_PROCESS = 9,
+    D3DKMT_VIDMMESCAPETYPE_RESUME_PROCESS = 10,
+    D3DKMT_VIDMMESCAPETYPE_GET_BUDGET = 11,
+    D3DKMT_VIDMMESCAPETYPE_SET_TRIM_INTERVALS = 12,
+    D3DKMT_VIDMMESCAPETYPE_EVICT_BY_CRITERIA = 13,
+    D3DKMT_VIDMMESCAPETYPE_WAKE = 14,
+    D3DKMT_VIDMMESCAPETYPE_DEFRAG = 15,
+} D3DKMT_VIDMMESCAPETYPE;
+
+typedef struct _D3DKMT_VAD_DESC
+{
+    _In_ UINT32 VadIndex; // 0xFFFFFFFF to use the VAD address
+    _In_ UINT64 VadAddress;
+    _Out_ UINT32 NumMappedRanges;
+    _Out_ UINT32 VadType; // 0 - reserved, 1 - Mapped
+    _Out_ UINT64 StartAddress;
+    _Out_ UINT64 EndAddress;
+} D3DKMT_VAD_DESC;
+
+typedef struct _D3DKMT_VA_RANGE_DESC
+{
+    _In_ UINT64 VadAddress;
+    _In_ UINT32 VaRangeIndex;
+    _In_ UINT32 PhysicalAdapterIndex;
+    _Out_ UINT64 StartAddress;
+    _Out_ UINT64 EndAddress;
+    _Out_ UINT64 DriverProtection;
+    _Out_ UINT32 OwnerType; // VIDMM_VAD_OWNER_TYPE
+    _Out_ UINT64 pOwner;
+    _Out_ UINT64 OwnerOffset;
+    _Out_ UINT32 Protection; // D3DDDIGPUVIRTUALADDRESS_PROTECTION_TYPE
+} D3DKMT_VA_RANGE_DESC;
+
+typedef struct _D3DKMT_PAGE_TABLE_LEVEL_DESC
+{
+    UINT32 IndexBitCount;
+    UINT64 IndexMask;
+    UINT64 IndexShift;
+    UINT64 LowerLevelsMask;
+    UINT64 EntryCoverageInPages;
+} D3DKMT_PAGE_TABLE_LEVEL_DESC;
+
+#define DXGK_MAX_PAGE_TABLE_LEVEL_COUNT 6
+#define DXGK_MIN_PAGE_TABLE_LEVEL_COUNT 2
+
+typedef struct _DXGK_ESCAPE_GPUMMUCAPS
+{
+    BOOLEAN ReadOnlyMemorySupported;
+    BOOLEAN NoExecuteMemorySupported;
+    BOOLEAN ZeroInPteSupported;
+    BOOLEAN CacheCoherentMemorySupported;
+    BOOLEAN LargePageSupported;
+    BOOLEAN DualPteSupported;
+    BOOLEAN AllowNonAlignedLargePageAddress;
+    UINT32 VirtualAddressBitCount;
+    UINT32 PageTableLevelCount;
+    D3DKMT_PAGE_TABLE_LEVEL_DESC PageTableLevelDesk[DXGK_MAX_PAGE_TABLE_LEVEL_COUNT];
+} DXGK_ESCAPE_GPUMMUCAPS;
+
+typedef struct _D3DKMT_GET_GPUMMU_CAPS
+{
+    UINT32 PhysicalAdapterIndex; // In
+    DXGK_ESCAPE_GPUMMUCAPS GpuMmuCaps; // Out
+} D3DKMT_GET_GPUMMU_CAPS;
+
+typedef enum _DXGK_PTE_PAGE_SIZE
+{
+    DXGK_PTE_PAGE_TABLE_PAGE_4KB = 0,
+    DXGK_PTE_PAGE_TABLE_PAGE_64KB = 1,
+} DXGK_PTE_PAGE_SIZE;
+
+//  Page Table Entry structure. Contains segment/physical address pointing to a page
+typedef struct _DXGK_PTE
+{
+    union
+    {
+        struct
+        {
+            ULONGLONG Valid : 1;
+            ULONGLONG Zero : 1;
+            ULONGLONG CacheCoherent : 1;
+            ULONGLONG ReadOnly : 1;
+            ULONGLONG NoExecute : 1;
+            ULONGLONG Segment : 5;
+            ULONGLONG LargePage : 1;
+            ULONGLONG PhysicalAdapterIndex : 6;
+            ULONGLONG PageTablePageSize : 2; // DXGK_PTE_PAGE_SIZE
+            ULONGLONG SystemReserved0 : 1;
+            ULONGLONG Reserved : 44;
+        };
+        ULONGLONG Flags;
+    };
+    union
+    {
+        ULONGLONG PageAddress;      // High 52 bits of 64 bit physical address. Low 12 bits are zero.
+        ULONGLONG PageTableAddress; // High 52 bits of 64 bit physical address. Low 12 bits are zero.
+    };
+} DXGK_PTE;
+
+#define D3DKMT_GET_PTE_MAX 64
+
+typedef struct _D3DKMT_GET_PTE
+{
+    _In_ UINT32 PhysicalAdapterIndex;
+    _In_ UINT32 PageTableLevel;
+    _In_ UINT32 PageTableIndex[DXGK_MAX_PAGE_TABLE_LEVEL_COUNT];
+    _In_ BOOLEAN b64KBPte; // Valid only when dual PTEs are supported. Out - PT is 64KB.
+    _In_ UINT32 NumPtes; // Number of PTEs to fill. Out - number of filled PTEs
+    _Out_ DXGK_PTE Pte[D3DKMT_GET_PTE_MAX];
+    _Out_ UINT32 NumValidEntries;
+} D3DKMT_GET_PTE;
+
+#define D3DKMT_MAX_SEGMENT_COUNT 32
+
+typedef struct _D3DKMT_SEGMENT_CAPS
+{
+    UINT64 Size;
+    UINT32 PageSize;
+    ULONG SegmentId;
+    BOOLEAN bAperture;
+    BOOLEAN bReservedSysMem;
+    D3DKMT_MEMORY_SEGMENT_GROUP BudgetGroup;
+} D3DKMT_SEGMENT_CAPS;
+
+typedef struct _D3DKMT_GET_SEGMENT_CAPS
+{
+    _In_ UINT32 PhysicalAdapterIndex;
+    _Out_ UINT32 NumSegments;
+    _Out_ D3DKMT_SEGMENT_CAPS SegmentCaps[D3DKMT_MAX_SEGMENT_COUNT];
+} D3DKMT_GET_SEGMENT_CAPS;
+
+typedef struct _D3DKMT_EVICTION_CRITERIA
+{
+    UINT64 MinimumSize;
+    UINT64 MaximumSize;
+    struct
+    {
+        union
+        {
+            struct
+            {
+                UINT32 Primary : 1;
+                UINT32 Reserved : 31;
+            } Flags;
+            UINT32 Value;
+        };
+    };
+} D3DKMT_EVICTION_CRITERIA;
+
+typedef enum _D3DKMT_VAD_ESCAPE_COMMAND
+{
+    D3DKMT_VAD_ESCAPE_GETNUMVADS,
+    D3DKMT_VAD_ESCAPE_GETVAD,
+    D3DKMT_VAD_ESCAPE_GETVADRANGE,
+    D3DKMT_VAD_ESCAPE_GET_PTE,
+    D3DKMT_VAD_ESCAPE_GET_GPUMMU_CAPS,
+    D3DKMT_VAD_ESCAPE_GET_SEGMENT_CAPS,
+} D3DKMT_VAD_ESCAPE_COMMAND;
+
+typedef enum _D3DKMT_DEFRAG_ESCAPE_OPERATION
+{
+    D3DKMT_DEFRAG_ESCAPE_GET_FRAGMENTATION_STATS = 0,
+    D3DKMT_DEFRAG_ESCAPE_DEFRAG_UPWARD = 1,
+    D3DKMT_DEFRAG_ESCAPE_DEFRAG_DOWNWARD = 2,
+    D3DKMT_DEFRAG_ESCAPE_DEFRAG_PASS = 3,
+    D3DKMT_DEFRAG_ESCAPE_VERIFY_TRANSFER = 4,
+} D3DKMT_DEFRAG_ESCAPE_OPERATION;
+
+typedef struct _D3DKMT_VIDMM_ESCAPE
+{
+    D3DKMT_VIDMMESCAPETYPE Type;
+    union
+    {
+        struct
+        {
+            union
+            {
+                struct
+                {
+                    ULONG ProbeAndLock : 1;
+                    ULONG SplitPoint : 1;
+                    ULONG NoDemotion : 1;
+                    ULONG SwizzlingAperture : 1;
+                    ULONG PagingPathLockSubRange : 1;
+                    ULONG PagingPathLockMinRange : 1;
+                    ULONG ComplexLock : 1;
+                    ULONG FailVARotation : 1;
+                    ULONG NoWriteCombined : 1;
+                    ULONG NoPrePatching : 1;
+                    ULONG AlwaysRepatch : 1;
+                    ULONG ExpectPreparationFailure : 1;
+                    ULONG FailUserModeVAMapping : 1;
+                    ULONG NeverDiscardOfferedAllocation : 1; // since WIN8
+                    ULONG AlwaysDiscardOfferedAllocation : 1;
+                    ULONG Reserved : 17;
+                };
+                ULONG Value;
+            };
+        } SetFault;
+        struct
+        {
+            D3DKMT_HANDLE ResourceHandle;
+            D3DKMT_HANDLE AllocationHandle;
+            HANDLE hProcess;        // 0 to evict memory for the current process, otherwise it is a process handle from OpenProcess(PROCESS_ALL_ACCESS, FALSE, ProcessId).
+        } Evict;
+        struct
+        {
+            UINT64 NtHandle; // Used by D3DKMT_VIDMMESCAPETYPE_EVICT_BY_NT_HANDLE
+        } EvictByNtHandle;
+        struct
+        {
+            union
+            {
+                struct 
+                {
+                    UINT32 NumVads;
+                } GetNumVads;
+                D3DKMT_VAD_DESC GetVad;
+                D3DKMT_VA_RANGE_DESC GetVadRange;
+                D3DKMT_GET_GPUMMU_CAPS GetGpuMmuCaps;
+                D3DKMT_GET_PTE GetPte;
+                D3DKMT_GET_SEGMENT_CAPS GetSegmentCaps;
+            };
+            _In_ D3DKMT_VAD_ESCAPE_COMMAND Command;
+            _Out_ NTSTATUS Status;
+        } GetVads;
+        struct
+        {
+            ULONGLONG LocalMemoryBudget;
+            ULONGLONG SystemMemoryBudget;
+        } SetBudget;
+        struct
+        {
+            HANDLE hProcess;
+            BOOL bAllowWakeOnSubmission;
+        } SuspendProcess;
+        struct
+        {
+            HANDLE hProcess;
+        } ResumeProcess;
+        struct
+        {
+            UINT64 NumBytesToTrim;
+        } GetBudget;
+        struct
+        {
+            ULONG MinTrimInterval; // In 100ns units
+            ULONG MaxTrimInterval; // In 100ns units
+            ULONG IdleTrimInterval; // In 100ns units
+        } SetTrimIntervals;
+        D3DKMT_EVICTION_CRITERIA EvictByCriteria;
+        struct
+        {
+            BOOL bFlush;
+        } Wake;
+        struct
+        {
+            D3DKMT_DEFRAG_ESCAPE_OPERATION Operation;          
+            UINT32 SegmentId;
+            ULONGLONG TotalCommitted;
+            ULONGLONG TotalFree;
+            ULONGLONG LargestGapBefore;
+            ULONGLONG LargestGapAfter;
+        } Defrag;
+    };
+} D3DKMT_VIDMM_ESCAPE;
+
+typedef enum _D3DKMT_TDRDBGCTRLTYPE
+{
+    D3DKMT_TDRDBGCTRLTYPE_FORCETDR = 0, // Simulate a TDR
+    D3DKMT_TDRDBGCTRLTYPE_DISABLEBREAK = 1, // Disable DebugBreak on timeout
+    D3DKMT_TDRDBGCTRLTYPE_ENABLEBREAK = 2, // Enable DebugBreak on timeout
+    D3DKMT_TDRDBGCTRLTYPE_UNCONDITIONAL = 3, // Disables all safety conditions (e.g. check for consecutive recoveries)
+    D3DKMT_TDRDBGCTRLTYPE_VSYNCTDR = 4, // Simulate a Vsync TDR
+    D3DKMT_TDRDBGCTRLTYPE_GPUTDR = 5, // Simulate a GPU TDR
+    D3DKMT_TDRDBGCTRLTYPE_FORCEDODTDR = 6, // Simulate a Display Only Present TDR // since WIN8
+    D3DKMT_TDRDBGCTRLTYPE_FORCEDODVSYNCTDR = 7, // Simulate a Display Only Vsync TDR
+    D3DKMT_TDRDBGCTRLTYPE_ENGINETDR = 8, // Simulate an engine TDR
+} D3DKMT_TDRDBGCTRLTYPE;
+
+typedef enum _D3DKMT_VIDSCHESCAPETYPE
+{
+    D3DKMT_VIDSCHESCAPETYPE_PREEMPTIONCONTROL = 0, // Enable/Disable preemption
+    D3DKMT_VIDSCHESCAPETYPE_SUSPENDSCHEDULER = 1, // Suspend/Resume scheduler (obsolate)
+    D3DKMT_VIDSCHESCAPETYPE_TDRCONTROL = 2, // Tdr control
+    D3DKMT_VIDSCHESCAPETYPE_SUSPENDRESUME = 3, // Suspend/Resume scheduler
+    D3DKMT_VIDSCHESCAPETYPE_ENABLECONTEXTDELAY = 4, // Enable/Disable context delay // since WIN8
+    D3DKMT_VIDSCHESCAPETYPE_CONFIGURE_TDR_LIMIT = 5, // Configure TdrLimitCount and TdrLimitTime
+    D3DKMT_VIDSCHESCAPETYPE_VGPU_RESET = 6, // Trigger VGPU reset 
+    D3DKMT_VIDSCHESCAPETYPE_PFN_CONTROL = 7, // Periodic frame notification control
+} D3DKMT_VIDSCHESCAPETYPE;
+
+typedef enum _D3DKMT_ESCAPE_PFN_CONTROL_COMMAND
+{
+    D3DKMT_ESCAPE_PFN_CONTROL_DEFAULT,
+    D3DKMT_ESCAPE_PFN_CONTROL_FORCE_CPU,
+    D3DKMT_ESCAPE_PFN_CONTROL_FORCE_GPU
+} D3DKMT_ESCAPE_PFN_CONTROL_COMMAND;
+
+typedef struct _D3DKMT_VIDSCH_ESCAPE
+{
+    D3DKMT_VIDSCHESCAPETYPE Type;
+    union
+    {
+        BOOL PreemptionControl; // enable/disable preemption
+        BOOL EnableContextDelay; // enable/disable context delay // since WIN8
+        struct
+        {
+            ULONG TdrControl; // control tdr
+            union
+            {
+                ULONG NodeOrdinal; // valid if TdrControl is set to D3DKMT_TDRDBGCTRLTYPE_ENGINETDR
+            };
+        } TdrControl2;
+        BOOL SuspendScheduler; // suspend/resume scheduler (obsolate) // since Vista
+        ULONG TdrControl; // control tdr
+        ULONG SuspendTime; // time period to suspend.
+        struct
+        {
+            UINT Count;
+            UINT Time; // In seconds
+        } TdrLimit;
+        D3DKMT_ESCAPE_PFN_CONTROL_COMMAND PfnControl; // periodic frame notification control
+    };
+} D3DKMT_VIDSCH_ESCAPE;
+
+typedef enum _D3DKMT_DEVICEESCAPE_TYPE
+{
+    D3DKMT_DEVICEESCAPE_VIDPNFROMALLOCATION = 0,
+    D3DKMT_DEVICEESCAPE_RESTOREGAMMA = 1,
+} D3DKMT_DEVICEESCAPE_TYPE;
+
+typedef struct _D3DKMT_DEVICE_ESCAPE
+{
+    D3DKMT_DEVICEESCAPE_TYPE Type;
+    union
+    {
+        struct
+        {
+            _In_ D3DKMT_HANDLE hPrimaryAllocation; // Primary allocation handle
+            _Out_ UINT32 VidPnSourceId; // VidPnSoureId of primary allocation
+        } VidPnFromAllocation;
+    };
+} D3DKMT_DEVICE_ESCAPE;
+
+typedef enum _D3DKMT_DMMESCAPETYPE
+{
+    D3DKMT_DMMESCAPETYPE_UNINITIALIZED = 0,
+    D3DKMT_DMMESCAPETYPE_GET_SUMMARY_INFO = 1,
+    D3DKMT_DMMESCAPETYPE_GET_VIDEO_PRESENT_SOURCES_INFO = 2,
+    D3DKMT_DMMESCAPETYPE_GET_VIDEO_PRESENT_TARGETS_INFO = 3,
+    D3DKMT_DMMESCAPETYPE_GET_ACTIVEVIDPN_INFO = 4,
+    D3DKMT_DMMESCAPETYPE_GET_MONITORS_INFO = 5,
+    D3DKMT_DMMESCAPETYPE_RECENTLY_COMMITTED_VIDPNS_INFO = 6,
+    D3DKMT_DMMESCAPETYPE_RECENT_MODECHANGE_REQUESTS_INFO = 7,
+    D3DKMT_DMMESCAPETYPE_RECENTLY_RECOMMENDED_VIDPNS_INFO = 8,
+    D3DKMT_DMMESCAPETYPE_RECENT_MONITOR_PRESENCE_EVENTS_INFO = 9,
+    D3DKMT_DMMESCAPETYPE_ACTIVEVIDPN_SOURCEMODESET_INFO = 10,
+    D3DKMT_DMMESCAPETYPE_ACTIVEVIDPN_COFUNCPATHMODALITY_INFO = 11,
+    D3DKMT_DMMESCAPETYPE_GET_LASTCLIENTCOMMITTEDVIDPN_INFO = 12,
+    D3DKMT_DMMESCAPETYPE_GET_VERSION_INFO = 13,
+    D3DKMT_DMMESCAPETYPE_VIDPN_MGR_DIAGNOSTICS = 14
+} D3DKMT_DMMESCAPETYPE;
+
+typedef struct _D3DKMT_DMM_ESCAPE
+{
+    _In_ D3DKMT_DMMESCAPETYPE Type;
+    _In_ SIZE_T ProvidedBufferSize; // actual size of Data[] array, in bytes.
+    _Out_ SIZE_T MinRequiredBufferSize; // minimum required size of Data[] array to contain requested data.
+    _Out_writes_bytes_(ProvidedBufferSize) UCHAR Data[1];
+} D3DKMT_DMM_ESCAPE;
+
+typedef struct _D3DKMT_DEBUG_SNAPSHOT_ESCAPE
+{
+    ULONG Length; // out: Actual length of the snapshot written in Buffer
+    BYTE Buffer[1]; // out: Buffer to place snapshot
+} D3DKMT_DEBUG_SNAPSHOT_ESCAPE;
+
+typedef enum _D3DKMT_ACTIVATE_SPECIFIC_DIAG_TYPE
+{
+    D3DKMT_ACTIVATE_SPECIFIC_DIAG_TYPE_EXTRA_CCD_DATABASE_INFO = 0,
+    D3DKMT_ACTIVATE_SPECIFIC_DIAG_TYPE_MODES_PRUNED = 15,
+}D3DKMT_ACTIVATE_SPECIFIC_DIAG_TYPE;
+
+typedef struct _D3DKMT_ACTIVATE_SPECIFIC_DIAG_ESCAPE
+{
+    D3DKMT_ACTIVATE_SPECIFIC_DIAG_TYPE Type; // The escape type that needs to be (de)activated
+    BOOL Activate; // FALSE means deactivate
+} D3DKMT_ACTIVATE_SPECIFIC_DIAG_ESCAPE;
+
+typedef struct _D3DKMT_REQUEST_MACHINE_CRASH_ESCAPE
+{
+    ULONG_PTR Param1;
+    ULONG_PTR Param2;
+    ULONG_PTR Param3;
+} D3DKMT_REQUEST_MACHINE_CRASH_ESCAPE;
+
+typedef struct _D3DDDI_ESCAPEFLAGS
+{
+    union
+    {
+        struct
+        {
+            UINT32 HardwareAccess : 1;
+            UINT32 DeviceStatusQuery : 1; // since WDDM1_3
+            UINT32 ChangeFrameLatency : 1;
+            UINT32 NoAdapterSynchronization : 1; // since WDDM2_0
+            UINT32 Reserved : 1; // Used internally by DisplayOnly present // since WDDM2_2
+            UINT32 VirtualMachineData : 1; // Cannot be set from user mode
+            UINT32 Reserved2 :26;
+        };
+        UINT32 Value;
+    };
+} D3DDDI_ESCAPEFLAGS;
+
+// The D3DKMT_ESCAPE structure describes information that is exchanged with the display miniport driver.
+typedef struct _D3DKMT_ESCAPE 
+{
+    _In_ D3DKMT_HANDLE AdapterHandle;
+    _In_opt_ D3DKMT_HANDLE DeviceHandle;
+    _In_ D3DKMT_ESCAPETYPE Type;
+    _In_ D3DDDI_ESCAPEFLAGS Flags;
+    _Inout_ PVOID PrivateDriverData;
+    _In_ UINT32 PrivateDriverDataSize;
+    _In_opt_ D3DKMT_HANDLE ContextHandle;
+} D3DKMT_ESCAPE;
 
 // Function pointers
 
-// https://msdn.microsoft.com/en-us/library/ff547033.aspx
 _Check_return_
 NTSTATUS
 NTAPI
@@ -1417,7 +1917,6 @@ D3DKMTOpenAdapterFromDeviceName(
     _Inout_ CONST D3DKMT_OPENADAPTERFROMDEVICENAME *pData
     );
 
-// https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/content/d3dkmthk/nf-d3dkmthk-d3dkmtopenadapterfromluid
 _Check_return_
 NTSTATUS
 NTAPI
@@ -1425,7 +1924,6 @@ D3DKMTOpenAdapterFromLuid(
     _Inout_ CONST D3DKMT_OPENADAPTERFROMLUID *pAdapter
     );
 
-// https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/content/d3dkmthk/nf-d3dkmthk-d3dkmtenumadapters
 _Check_return_
 NTSTATUS
 NTAPI
@@ -1440,7 +1938,6 @@ D3DKMTEnumAdapters2(
     _Inout_ CONST D3DKMT_ENUMADAPTERS2 *pData
     );
 
-// https://msdn.microsoft.com/en-us/library/ff546787.aspx
 _Check_return_
 NTSTATUS
 NTAPI
@@ -1448,7 +1945,6 @@ D3DKMTCloseAdapter(
     _In_ CONST D3DKMT_CLOSEADAPTER *pData
     );
 
-// https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/content/d3dkmthk/nf-d3dkmthk-d3dkmtqueryadapterinfo
 _Check_return_
 NTSTATUS
 NTAPI 
@@ -1471,8 +1967,14 @@ D3DKMTQueryVideoMemoryInfo(
     _Inout_ CONST D3DKMT_QUERYVIDEOMEMORYINFO *pData
     );
 
+_Check_return_
+NTSTATUS
+NTAPI
+D3DKMTEscape(
+    _Inout_ CONST D3DKMT_ESCAPE *pData
+    );
+
 //EXTERN_C _Check_return_ NTSTATUS APIENTRY D3DKMTSetProcessSchedulingPriorityClass(_In_ HANDLE, _In_ D3DKMT_SCHEDULINGPRIORITYCLASS);
 //EXTERN_C _Check_return_ NTSTATUS APIENTRY D3DKMTGetProcessSchedulingPriorityClass(_In_ HANDLE, _Out_ D3DKMT_SCHEDULINGPRIORITYCLASS*);
-
 
 #endif
