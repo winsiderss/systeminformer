@@ -244,7 +244,7 @@ VOID PhpGetDefaultWorkQueueEnvironment(
     )
 {
     memset(Environment, 0, sizeof(PH_WORK_QUEUE_ENVIRONMENT));
-    Environment->BasePriority = 0;
+    Environment->BasePriority = THREAD_PRIORITY_NORMAL;
     Environment->IoPriority = IoPriorityNormal;
     Environment->PagePriority = MEMORY_PRIORITY_NORMAL;
     Environment->ForceUpdate = FALSE;
@@ -369,14 +369,16 @@ BOOLEAN PhpCreateWorkQueueThread(
     if (!PhAcquireRundownProtection(&WorkQueue->RundownProtect))
         return FALSE;
 
-    threadHandle = PhCreateThread(0, PhpWorkQueueThreadStart, WorkQueue);
-
-    if (threadHandle)
+    if (NT_SUCCESS(PhCreateThreadEx(
+        &threadHandle,
+        PhpWorkQueueThreadStart,
+        WorkQueue
+        )))
     {
         PHLIB_INC_STATISTIC(WqWorkQueueThreadsCreated);
         WorkQueue->CurrentThreads++;
-        NtClose(threadHandle);
 
+        NtClose(threadHandle);
         return TRUE;
     }
     else

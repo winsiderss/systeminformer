@@ -569,7 +569,7 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
 
             node = (PPH_NETWORK_NODE)getNodeIcon->Node;
 
-            if (node->NetworkItem->ProcessIconValid)
+            if (node->NetworkItem->ProcessIconValid && node->NetworkItem->ProcessIcon)
             {
                 // TODO: Check if the icon handle is actually valid, since the process item
                 // might get destroyed while the network node is still valid.

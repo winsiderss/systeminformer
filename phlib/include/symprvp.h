@@ -1,9 +1,9 @@
 #ifndef _PH_SYMPRVP_H
 #define _PH_SYMPRVP_H
 
-typedef BOOL (WINAPI *_SymInitialize)(
+typedef BOOL (WINAPI *_SymInitializeW)(
     _In_ HANDLE hProcess,
-    _In_opt_ PCSTR UserSearchPath,
+    _In_opt_ PCWSTR UserSearchPath,
     _In_ BOOL fInvadeProcess
     );
 

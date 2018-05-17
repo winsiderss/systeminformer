@@ -263,7 +263,7 @@ VOID PhLoadPlugins(
         &pluginsDirectoryHandle,
         PluginsDirectory->Buffer,
         FILE_GENERIC_READ,
-        0,
+        FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ,
         FILE_OPEN,
         FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT

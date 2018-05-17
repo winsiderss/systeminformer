@@ -217,7 +217,7 @@ static VOID PhInitializeWindowsVersion(
             WindowsVersion = WINDOWS_10_RS4;
             break;
         default:
-            WindowsVersion = WINDOWS_10;
+            WindowsVersion = WindowsVersion > 17134 ? WINDOWS_10_RS4 : WINDOWS_10;
             break;
         }
     }

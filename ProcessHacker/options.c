@@ -1648,7 +1648,8 @@ static COLOR_ITEM ColorItems[] =
 
     COLOR_ITEM(L"ColorHandleFiltered", L"Filtered processes", L"Processes that are protected by handle object callbacks."),
     COLOR_ITEM(L"ColorUnknown", L"Untrusted DLLs and Services", L"Services and DLLs which are not digitally signed."),
-    COLOR_ITEM(L"ColorServiceStop", L"Disabled Services", L"Services which have been disabled.")   
+    COLOR_ITEM(L"ColorServiceDisabled", L"Disabled Services", L"Services which have been disabled."),
+    //COLOR_ITEM(L"ColorServiceStop", L"Stopped Services", L"Services that are not running.")
 };
 
 COLORREF NTAPI PhpColorItemColorFunction(

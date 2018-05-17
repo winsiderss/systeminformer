@@ -756,7 +756,7 @@ NTSTATUS PhLoadSettings(
         &fileHandle,
         FileName,
         FILE_GENERIC_READ,
-        0,
+        FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ | FILE_SHARE_DELETE,
         FILE_OPEN,
         FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
@@ -974,7 +974,7 @@ NTSTATUS PhSaveSettings(
         &fileHandle,
         FileName,
         FILE_GENERIC_WRITE,
-        0,
+        FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ,
         FILE_OVERWRITE_IF,
         FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT

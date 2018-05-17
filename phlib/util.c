@@ -3420,7 +3420,7 @@ ULONG PhQueryRegistryUlong(
     _In_opt_ PWSTR ValueName
     )
 {
-    ULONG ulong = 0;
+    ULONG ulong = ULONG_MAX;
     PH_STRINGREF valueName;
     PKEY_VALUE_PARTIAL_INFORMATION buffer;
 
@@ -3448,7 +3448,7 @@ ULONG64 PhQueryRegistryUlong64(
     _In_opt_ PWSTR ValueName
     )
 {
-    ULONG64 ulong64 = 0;
+    ULONG64 ulong64 = ULLONG_MAX;
     PH_STRINGREF valueName;
     PKEY_VALUE_PARTIAL_INFORMATION buffer;
 
@@ -3459,9 +3459,9 @@ ULONG64 PhQueryRegistryUlong64(
 
     if (NT_SUCCESS(PhQueryValueKey(KeyHandle, &valueName, KeyValuePartialInformation, &buffer)))
     {
-        if (buffer->Type == REG_QWORD)
+        if (buffer->Type == REG_DWORD || buffer->Type == REG_QWORD)
         {
-            if (buffer->DataLength == sizeof(ULONG64))
+            if (buffer->DataLength == sizeof(ULONG) || buffer->DataLength == sizeof(ULONG64))
                 ulong64 = *(PULONG64)buffer->Data;
         }
 

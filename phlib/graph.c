@@ -633,8 +633,7 @@ VOID PhSetGraphText(
     DrawInfo->TextBoxRect = PhRectangleToRect(boxRectangle);
 }
 
-
-static HFONT PhpTrayIconFont(
+static HFONT PhpTrayIconFont( // dmex
     VOID
     )
 {
@@ -663,7 +662,7 @@ static HFONT PhpTrayIconFont(
     return iconTextFont;
 }
 
-VOID PhDrawTrayIconText(
+VOID PhDrawTrayIconText( // dmex
     _In_ HDC hdc,
     _In_ PVOID Bits,
     _Inout_ PPH_GRAPH_DRAW_INFO DrawInfo,
@@ -773,13 +772,6 @@ VOID PhpFreeGraphContext(
     )
 {
     PhFree(Context);
-}
-
-static PWSTR PhpMakeGraphTooltipContextAtom(
-    VOID
-    )
-{
-    PH_DEFINE_MAKE_ATOM(L"PhLib_GraphTooltipContext");
 }
 
 static VOID PhpDeleteBufferedContext(
