@@ -26,9 +26,9 @@
 #include <pdb.h>
 #include <uxtheme.h>
 
-typedef BOOL (WINAPI *_SymInitialize)(
+typedef BOOL (WINAPI *_SymInitializeW)(
     _In_ HANDLE hProcess,
-    _In_opt_ PCSTR UserSearchPath,
+    _In_opt_ PCWSTR UserSearchPath,
     _In_ BOOL fInvadeProcess
     );
 
@@ -112,7 +112,7 @@ typedef BOOL (WINAPI *_SymSetContext)(
     _In_opt_ PIMAGEHLP_CONTEXT Context
     );
 
-_SymInitialize SymInitialize_I = NULL;
+_SymInitializeW SymInitializeW_I = NULL;
 _SymCleanup SymCleanup_I = NULL;
 _SymEnumSymbolsW SymEnumSymbolsW_I = NULL;
 _SymEnumTypesW SymEnumTypesW_I = NULL;
@@ -2344,7 +2344,7 @@ NTSTATUS PeDumpFileSymbols(
     if (!(symsrvHandle = LoadLibrary(symsrvPath->Buffer)))
         return 1;
 
-    SymInitialize_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymInitialize", 0);
+    SymInitializeW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymInitializeW", 0);
     SymCleanup_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymCleanup", 0);
     SymEnumSymbolsW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymEnumSymbolsW", 0);
     SymEnumTypesW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymEnumTypesW", 0);
@@ -2365,7 +2365,7 @@ NTSTATUS PeDumpFileSymbols(
         SYMOPT_LOAD_LINES | SYMOPT_OMAP_FIND_NEAREST | SYMOPT_UNDNAME // SYMOPT_DEBUG
         );
 
-    if (!SymInitialize_I(NtCurrentProcess(), NULL, FALSE))
+    if (!SymInitializeW_I(NtCurrentProcess(), NULL, FALSE))
         return 1;
 
     if (!SymSetSearchPathW_I(NtCurrentProcess(), L"SRV*C:\\symbols*http://msdl.microsoft.com/download/symbols"))
