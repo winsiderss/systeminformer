@@ -284,6 +284,21 @@ LdrGetProcedureAddressEx(
     );
 #endif
 
+#if (PHNT_VERSION >= PHNT_THRESHOLD)
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+LdrGetProcedureAddressForCaller(
+    _In_ PVOID DllHandle,
+    _In_opt_ PANSI_STRING ProcedureName,
+    _In_opt_ ULONG ProcedureNumber,
+    _Out_ PVOID *ProcedureAddress,
+    _In_ ULONG Flags,
+    _In_ PVOID *Callback
+    );
+#endif
+
 #define LDR_LOCK_LOADER_LOCK_FLAG_RAISE_ON_ERRORS 0x00000001
 #define LDR_LOCK_LOADER_LOCK_FLAG_TRY_ONLY 0x00000002
 
@@ -750,7 +765,20 @@ LdrQueryImageFileExecutionOptions(
     _In_ ULONG ValueSize,
     _Out_ PVOID Buffer,
     _In_ ULONG BufferSize,
-    _Out_opt_ PULONG RetunedLength
+    _Out_opt_ PULONG ReturnedLength
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+LdrQueryImageFileExecutionOptionsEx(
+    _In_ PUNICODE_STRING SubKey,
+    _In_ PCWSTR ValueName,
+    _In_ ULONG Type,
+    _Out_ PVOID Buffer,
+    _In_ ULONG BufferSize,
+    _Out_opt_ PULONG ReturnedLength,
+    _In_ BOOLEAN Wow64
     );
 
 #endif // (PHNT_MODE != PHNT_MODE_KERNEL)
