@@ -253,6 +253,8 @@
 #define ZM_PNG                          346
 #define ZW_PNG                          347
 #define HU_PNG                          348
+#define IDC_DATABASE                    1001
+#define IDC_BROWSE                      1002
 #define IDC_PINGPACKETLENGTH            1008
 #define IDC_NETOUTPUTEDIT               1009
 #define IDC_MAXHOPS                     1009
