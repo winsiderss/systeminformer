@@ -70,6 +70,8 @@ EXT ULONG PhCsColorPhysical;
 
 EXT ULONG PhCsUseColorUnknown;
 EXT ULONG PhCsColorUnknown;
+EXT ULONG PhCsUseColorServiceDisabled;
+EXT ULONG PhCsColorServiceDisabled;
 EXT ULONG PhCsUseColorServiceStop;
 EXT ULONG PhCsColorServiceStop;
 
