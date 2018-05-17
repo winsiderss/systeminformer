@@ -35,7 +35,6 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
     _In_ LPARAM lParam
     );
 
-static HWND WindowHandle;
 static RECT MinimumSize;
 static PH_LAYOUT_MANAGER LayoutManager;
 static RECT LayoutMargin;
@@ -43,16 +42,71 @@ static HWND *GraphHandle;
 static PPH_GRAPH_STATE GraphState;
 static PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
 
+static HANDLE EtGpuNodesThreadHandle = NULL;
+static HWND EtGpuNodesWindowHandle = NULL;
+static PH_EVENT EtGpuNodesInitializedEvent = PH_EVENT_INIT;
+
+NTSTATUS EtpGpuNodesDialogThreadStart(
+    _In_ PVOID Parameter
+    )
+{
+    BOOL result;
+    MSG message;
+    PH_AUTO_POOL autoPool;
+
+    PhInitializeAutoPool(&autoPool);
+
+    EtGpuNodesWindowHandle = CreateDialog(
+        PluginInstance->DllBase,
+        MAKEINTRESOURCE(IDD_GPUNODES),
+        NULL,
+        EtpGpuNodesDlgProc
+        );
+
+    PhSetEvent(&EtGpuNodesInitializedEvent);
+
+    while (result = GetMessage(&message, NULL, 0, 0))
+    {
+        if (result == -1)
+            break;
+
+        if (!IsDialogMessage(EtGpuNodesWindowHandle, &message))
+        {
+            TranslateMessage(&message);
+            DispatchMessage(&message);
+        }
+
+        PhDrainAutoPool(&autoPool);
+    }
+
+    PhDeleteAutoPool(&autoPool);
+    PhResetEvent(&EtGpuNodesInitializedEvent);
+
+    if (EtGpuNodesThreadHandle)
+        NtClose(EtGpuNodesThreadHandle);
+
+    EtGpuNodesThreadHandle = NULL;
+    EtGpuNodesWindowHandle = NULL;
+
+    return STATUS_SUCCESS;
+}
+
 VOID EtShowGpuNodesDialog(
     _In_ HWND ParentWindowHandle
     )
 {
-    DialogBox(
-        PluginInstance->DllBase,
-        MAKEINTRESOURCE(IDD_GPUNODES),
-        ParentWindowHandle,
-        EtpGpuNodesDlgProc
-        );
+    if (!EtGpuNodesThreadHandle)
+    {
+        if (!(EtGpuNodesThreadHandle = PhCreateThread(0, EtpGpuNodesDialogThreadStart, ParentWindowHandle)))
+        {
+            PhShowStatus(PhMainWndHandle, L"Unable to create the window.", 0, GetLastError());
+            return;
+        }
+
+        PhWaitForEvent(&EtGpuNodesInitializedEvent, NULL);
+    }
+
+    PostMessage(EtGpuNodesWindowHandle, ET_WM_SHOWDIALOG, 0, 0);
 }
 
 static VOID ProcessesUpdatedCallback(
@@ -60,7 +114,7 @@ static VOID ProcessesUpdatedCallback(
     _In_opt_ PVOID Context
     )
 {
-    PostMessage(WindowHandle, ET_WM_UPDATE, 0, 0);
+    PostMessage((HWND)Context, ET_WM_UPDATE, 0, 0);
 }
 
 INT_PTR CALLBACK EtpGpuNodesDlgProc(
@@ -75,26 +129,18 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
     case WM_INITDIALOG:
         {
             ULONG i;
-            HFONT font;
-            RECT labelRect;
-            RECT tempRect;
             ULONG numberOfRows;
             ULONG numberOfColumns;
-
-            WindowHandle = hwndDlg;
 
             SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
             SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
 
             PhInitializeLayoutManager(&LayoutManager, hwndDlg);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_SELECTALL), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             LayoutMargin = PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_LAYOUT), NULL, PH_ANCHOR_ALL)->Margin;
 
             GraphHandle = PhAllocate(sizeof(HWND) * EtGpuTotalNodeCount);
             GraphState = PhAllocate(sizeof(PH_GRAPH_STATE) * EtGpuTotalNodeCount);
-
-            font = (HFONT)SendMessage(hwndDlg, WM_GETFONT, 0, 0);
 
             for (i = 0; i < EtGpuTotalNodeCount; i++)
             {
@@ -128,20 +174,6 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
             MinimumSize.right += (MinimumSize.right + GRAPH_PADDING) * numberOfColumns;
             MinimumSize.bottom += (MinimumSize.bottom + GRAPH_PADDING) * numberOfRows;
 
-            GetWindowRect(GetDlgItem(hwndDlg, IDC_INSTRUCTION), &labelRect);
-            MapWindowPoints(NULL, hwndDlg, (POINT *)&labelRect, 2);
-            labelRect.right += GetSystemMetrics(SM_CXFRAME) * 2;
-
-            tempRect.left = 0;
-            tempRect.top = 0;
-            tempRect.right = 7;
-            tempRect.bottom = 0;
-            MapDialogRect(hwndDlg, &tempRect);
-            labelRect.right += tempRect.right;
-
-            if (MinimumSize.right < labelRect.right)
-                MinimumSize.right = labelRect.right;
-
             SetWindowPos(hwndDlg, NULL, 0, 0, MinimumSize.right, MinimumSize.bottom, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOZORDER);
 
             // Note: This dialog must be centered after all other graphs and controls have been added.
@@ -153,7 +185,7 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
             PhRegisterCallback(
                 &PhProcessesUpdatedEvent,
                 ProcessesUpdatedCallback,
-                NULL,
+                hwndDlg,
                 &ProcessesUpdatedCallbackRegistration
                 );
 
@@ -175,6 +207,8 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
             PhFree(GraphState);
 
             PhDeleteLayoutManager(&LayoutManager);
+
+            PostQuitMessage(0);
         }
         break;
     case WM_SIZE:
@@ -252,7 +286,7 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
             case IDCANCEL:
             case IDOK:
                 {
-                    EndDialog(hwndDlg, IDOK);
+                    DestroyWindow(hwndDlg);
                 }
                 break;
             }
@@ -287,7 +321,7 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
                                 gpu = PhGetItemCircularBuffer_FLOAT(&EtGpuNodesHistory[i], 0);
 
                                 if ((adapterIndex = EtGetGpuAdapterIndexFromNodeIndex(i)) != ULONG_MAX)
-                                    engineName = EtGetGpuAdapterNodeEngine(adapterIndex, i);
+                                    engineName = EtGetGpuAdapterNodeDescription(adapterIndex, i);
 
                                 if (!PhIsNullOrEmptyString(engineName))
                                 {
@@ -347,6 +381,7 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
                                 {
                                     FLOAT gpu;
                                     ULONG adapterIndex;
+                                    PPH_STRING adapterEngineName = NULL;
                                     PPH_STRING adapterDescription;
 
                                     gpu = PhGetItemCircularBuffer_FLOAT(&EtGpuNodesHistory[i], getTooltipText->Index);
@@ -354,6 +389,7 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
 
                                     if (adapterIndex != ULONG_MAX)
                                     {
+                                        adapterEngineName = EtGetGpuAdapterNodeDescription(adapterIndex, i);
                                         adapterDescription = EtGetGpuAdapterDescription(adapterIndex);
 
                                         if (adapterDescription && adapterDescription->Length == 0)
@@ -367,13 +403,29 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
                                         adapterDescription = PhCreateString(L"Unknown Adapter");
                                     }
 
-                                    PhMoveReference(&GraphState[i].TooltipText, PhFormatString(
-                                        L"Node %lu on %s\n%.2f%%\n%s",
-                                        i,
-                                        adapterDescription->Buffer,
-                                        gpu * 100,
-                                        ((PPH_STRING)PH_AUTO(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
-                                        ));
+                                    if (adapterEngineName)
+                                    {
+                                        PhMoveReference(&GraphState[i].TooltipText, PhFormatString(
+                                            L"Node %lu (%s) on %s\n%.2f%%\n%s",
+                                            i,
+                                            adapterEngineName->Buffer,
+                                            adapterDescription->Buffer,
+                                            gpu * 100,
+                                            ((PPH_STRING)PH_AUTO(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
+                                            ));
+                                    }
+                                    else
+                                    {
+                                        PhMoveReference(&GraphState[i].TooltipText, PhFormatString(
+                                            L"Node %lu on %s\n%.2f%%\n%s",
+                                            i,
+                                            adapterDescription->Buffer,
+                                            gpu * 100,
+                                            ((PPH_STRING)PH_AUTO(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
+                                            ));
+                                    }
+
+               
                                     PhDereferenceObject(adapterDescription);
                                 }
 
@@ -386,6 +438,16 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
                 }
                 break;
             }
+        }
+        break;
+    case ET_WM_SHOWDIALOG:    
+        {
+            if (IsMinimized(hwndDlg))
+                ShowWindow(hwndDlg, SW_RESTORE);
+            else
+                ShowWindow(hwndDlg, SW_SHOW);
+
+            SetForegroundWindow(hwndDlg);
         }
         break;
     case ET_WM_UPDATE:

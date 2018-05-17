@@ -32,8 +32,8 @@ extern HWND NetworkTreeNewHandle;
 #define SETTING_NAME_GPU_NODES_WINDOW_SIZE (PLUGIN_NAME L".GpuNodesWindowSize")
 
 // Window messages
-
-#define ET_WM_UPDATE (WM_APP + 1)
+#define ET_WM_SHOWDIALOG (WM_APP + 1)
+#define ET_WM_UPDATE (WM_APP + 2)
 
 // Process icon
 
@@ -199,9 +199,9 @@ typedef struct _ET_PROCESS_BLOCK
     PH_UINT64_DELTA NetworkSendDelta;
     PH_UINT64_DELTA NetworkSendRawDelta;
 
-    //PH_UINT64_DELTA GpuRunningTimeDelta;
-    PPH_UINT64_DELTA GpuTotalRunningTimeDelta;
-    PPH_CIRCULAR_BUFFER_FLOAT GpuTotalNodesHistory;
+    PH_UINT64_DELTA GpuRunningTimeDelta;
+    //PPH_UINT64_DELTA GpuTotalRunningTimeDelta;
+    //PPH_CIRCULAR_BUFFER_FLOAT GpuTotalNodesHistory;
 
     FLOAT GpuNodeUsage;
     ULONG64 GpuDedicatedUsage;
@@ -431,7 +431,7 @@ ULONG EtGetGpuAdapterIndexFromNodeIndex(
     _In_ ULONG NodeIndex
     );
 
-PPH_STRING EtGetGpuAdapterNodeEngine(
+PPH_STRING EtGetGpuAdapterNodeDescription(
     _In_ ULONG Index,
     _In_ ULONG NodeIndex
     );
@@ -443,6 +443,12 @@ PPH_STRING EtGetGpuAdapterDescription(
 VOID EtQueryProcessGpuStatistics(
     _In_ HANDLE ProcessHandle,
     _Out_ PET_PROCESS_GPU_STATISTICS Statistics
+    );
+
+// gpudetails
+
+VOID EtShowGpuDetailsDialog(
+    _In_ HWND ParentWindowHandle
     );
 
 // gpuprprp

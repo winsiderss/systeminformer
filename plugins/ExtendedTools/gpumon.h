@@ -33,8 +33,13 @@ PETP_GPU_ADAPTER EtpAllocateGpuAdapter(
     _In_ ULONG NumberOfSegments
     );
 
-PPH_STRING EtpQueryDeviceDescription(
-    _In_ PWSTR DeviceInterface
+BOOLEAN EtpQueryDeviceProperties(
+    _In_ PWSTR DeviceInterface,
+    _Out_ PPH_STRING *Description,
+    _Out_ PPH_STRING *DriverDate,
+    _Out_ PPH_STRING *DriverVersion,
+    _Out_ PPH_STRING *LocationInfo,
+    _Out_ PPH_STRING *InstalledMemory
     );
 
 VOID NTAPI EtGpuProcessesUpdatedCallback(

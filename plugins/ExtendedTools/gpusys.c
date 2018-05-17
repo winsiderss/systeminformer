@@ -120,7 +120,17 @@ BOOLEAN EtpGpuSysInfoSectionCallback(
             PPH_SYSINFO_DRAW_PANEL drawPanel = Parameter1;
 
             drawPanel->Title = PhCreateString(L"GPU");
-            drawPanel->SubTitle = PhFormatString(L"%.2f%%", EtGpuNodeUsage * 100);
+            drawPanel->SubTitle = PhFormatString(
+                L"%.2f%%\n%s / %s",
+                EtGpuNodeUsage * 100,
+                PhaFormatSize(EtGpuDedicatedUsage, ULONG_MAX)->Buffer,
+                PhaFormatSize(EtGpuDedicatedLimit, ULONG_MAX)->Buffer
+                );
+            drawPanel->SubTitleOverflow = PhFormatString(
+                L"%.2f%%\n%s",
+                EtGpuNodeUsage * 100,
+                PhaFormatSize(EtGpuDedicatedUsage, ULONG_MAX)->Buffer
+                );
         }
         return TRUE;
     }
@@ -240,6 +250,9 @@ INT_PTR CALLBACK EtpGpuPanelDialogProc(
             {
             case IDC_NODES:
                 EtShowGpuNodesDialog(GpuDialog);
+                break;
+            case IDC_DETAILS:
+                EtShowGpuDetailsDialog(GpuDialog);
                 break;
             }
         }
@@ -608,21 +621,21 @@ VOID EtpUpdateGpuGraphs(
     )
 {
     GpuGraphState.Valid = FALSE;
-    GpuGraphState.TooltipIndex = -1;
+    GpuGraphState.TooltipIndex = ULONG_MAX;
     Graph_MoveGrid(GpuGraphHandle, 1);
     Graph_Draw(GpuGraphHandle);
     Graph_UpdateTooltip(GpuGraphHandle);
     InvalidateRect(GpuGraphHandle, NULL, FALSE);
 
     DedicatedGraphState.Valid = FALSE;
-    DedicatedGraphState.TooltipIndex = -1;
+    DedicatedGraphState.TooltipIndex = ULONG_MAX;
     Graph_MoveGrid(DedicatedGraphHandle, 1);
     Graph_Draw(DedicatedGraphHandle);
     Graph_UpdateTooltip(DedicatedGraphHandle);
     InvalidateRect(DedicatedGraphHandle, NULL, FALSE);
 
     SharedGraphState.Valid = FALSE;
-    SharedGraphState.TooltipIndex = -1;
+    SharedGraphState.TooltipIndex = ULONG_MAX;
     Graph_MoveGrid(SharedGraphHandle, 1);
     Graph_Draw(SharedGraphHandle);
     Graph_UpdateTooltip(SharedGraphHandle);
@@ -633,11 +646,10 @@ VOID EtpUpdateGpuPanel(
     VOID
     )
 {
-    PhSetDialogItemText(GpuPanel, IDC_ZDEDICATEDCURRENT_V, PhaFormatSize(EtGpuDedicatedUsage, -1)->Buffer);
-    PhSetDialogItemText(GpuPanel, IDC_ZDEDICATEDLIMIT_V, PhaFormatSize(EtGpuDedicatedLimit, -1)->Buffer);
-
-    PhSetDialogItemText(GpuPanel, IDC_ZSHAREDCURRENT_V, PhaFormatSize(EtGpuSharedUsage, -1)->Buffer);
-    PhSetDialogItemText(GpuPanel, IDC_ZSHAREDLIMIT_V, PhaFormatSize(EtGpuSharedLimit, -1)->Buffer);
+    PhSetDialogItemText(GpuPanel, IDC_ZDEDICATEDCURRENT_V, PhaFormatSize(EtGpuDedicatedUsage, ULONG_MAX)->Buffer);
+    PhSetDialogItemText(GpuPanel, IDC_ZDEDICATEDLIMIT_V, PhaFormatSize(EtGpuDedicatedLimit, ULONG_MAX)->Buffer);
+    PhSetDialogItemText(GpuPanel, IDC_ZSHAREDCURRENT_V, PhaFormatSize(EtGpuSharedUsage, ULONG_MAX)->Buffer);
+    PhSetDialogItemText(GpuPanel, IDC_ZSHAREDLIMIT_V, PhaFormatSize(EtGpuSharedLimit, ULONG_MAX)->Buffer);
 }
 
 PPH_PROCESS_RECORD EtpReferenceMaxNodeRecord(
