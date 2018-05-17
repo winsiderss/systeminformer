@@ -621,8 +621,6 @@ INT_PTR CALLBACK TracertDlgProc(
             SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
             SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
 
-            PhCenterWindow(hwndDlg, PhMainWndHandle);            
-
             Static_SetText(hwndDlg,
                 PhaFormatString(L"Tracing %s...", context->IpAddressString)->Buffer
                 );
