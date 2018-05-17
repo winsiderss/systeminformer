@@ -93,7 +93,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>$(SolutionDir)phnt\include;$(SolutionDir)phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_PHLIB_;_PHAPP_;_WINDOWS;HAVE_CONFIG_H;WIN32;DEBUG;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_PHLIB_;_PHAPP_;_WINDOWS;HAVE_CONFIG_H;WIN32;_DEBUG;DEBUG;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
@@ -125,7 +125,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>$(SolutionDir)phnt\include;$(SolutionDir)phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_PHLIB_;_PHAPP_;_WINDOWS;HAVE_CONFIG_H;WIN64;DEBUG;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_PHLIB_;_PHAPP_;_WINDOWS;HAVE_CONFIG_H;WIN64;_DEBUG;DEBUG;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>

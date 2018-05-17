@@ -92,14 +92,14 @@
     <!-- Debug|Win32 Builds -->
     <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
         <ClCompile>
-            <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
+            <PreprocessorDefinitions>WIN32;DEBUG;_DEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
         </ClCompile>
     </ItemDefinitionGroup>
 
     <!-- Debug|x64 Builds -->
     <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
         <ClCompile>
-            <PreprocessorDefinitions>WIN64;_DEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
+            <PreprocessorDefinitions>WIN64;DEBUG;_DEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
         </ClCompile>
     </ItemDefinitionGroup>
 
