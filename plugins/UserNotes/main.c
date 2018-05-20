@@ -209,7 +209,7 @@ IO_PRIORITY_HINT GetProcessIoPriority(
     )
 {
     HANDLE processHandle;
-    IO_PRIORITY_HINT ioPriority = -1;
+    IO_PRIORITY_HINT ioPriority = ULONG_MAX;
 
     if (NT_SUCCESS(PhOpenProcess(
         &processHandle,
@@ -222,7 +222,7 @@ IO_PRIORITY_HINT GetProcessIoPriority(
             &ioPriority
             )))
         {
-            ioPriority = -1;
+            ioPriority = ULONG_MAX;
         }
 
         NtClose(processHandle);
@@ -406,8 +406,14 @@ VOID NTAPI MenuItemCallback(
             }
             else
             {
+                IO_PRIORITY_HINT ioPriority;
+
                 object = CreateDbObject(FILE_TAG, &processItem->ProcessName->sr, NULL);
-                object->IoPriorityPlusOne = GetProcessIoPriority(processItem->ProcessId) + 1;
+
+                if ((ioPriority = GetProcessIoPriority(processItem->ProcessId)) != ULONG_MAX)
+                {
+                    object->IoPriorityPlusOne = ioPriority + 1;
+                }
             }
 
             UnlockDb();
@@ -427,8 +433,14 @@ VOID NTAPI MenuItemCallback(
                 }
                 else
                 {
+                    IO_PRIORITY_HINT ioPriority;
+
                     object = CreateDbObject(COMMAND_LINE_TAG, &processItem->CommandLine->sr, NULL);
-                    object->IoPriorityPlusOne = GetProcessIoPriority(processItem->ProcessId) + 1;
+
+                    if ((ioPriority = GetProcessIoPriority(processItem->ProcessId)) != ULONG_MAX)
+                    {
+                        object->IoPriorityPlusOne = ioPriority + 1;
+                    }
                 }
 
                 UnlockDb();
@@ -1210,16 +1222,23 @@ VOID ProcessesUpdatedCallback(
         {
             if (object->IoPriorityPlusOne != 0)
             {
-                HANDLE processHandle;
+                IO_PRIORITY_HINT ioPriority;
 
-                if (NT_SUCCESS(PhOpenProcess(
-                    &processHandle,
-                    PROCESS_SET_INFORMATION,
-                    processItem->ProcessId
-                    )))
+                ioPriority = GetProcessIoPriority(processItem->ProcessId);
+
+                if (ioPriority != ULONG_MAX && ioPriority != object->IoPriorityPlusOne - 1)
                 {
-                    PhSetProcessIoPriority(processHandle, object->IoPriorityPlusOne - 1);
-                    NtClose(processHandle);
+                    HANDLE processHandle;
+
+                    if (NT_SUCCESS(PhOpenProcess(
+                        &processHandle,
+                        PROCESS_SET_INFORMATION,
+                        processItem->ProcessId
+                        )))
+                    {
+                        PhSetProcessIoPriority(processHandle, object->IoPriorityPlusOne - 1);
+                        NtClose(processHandle);
+                    }
                 }
             }
         }
@@ -1228,16 +1247,23 @@ VOID ProcessesUpdatedCallback(
         {
             if (object->AffinityMask != 0)
             {
+                ULONG_PTR affinityMask;
                 HANDLE processHandle;
 
-                if (NT_SUCCESS(PhOpenProcess(
-                    &processHandle,
-                    PROCESS_SET_INFORMATION,
-                    processItem->ProcessId
-                    )))
+                if (NT_SUCCESS(GetProcessAffinity(processItem->ProcessId, &affinityMask)))
                 {
-                    PhSetProcessAffinityMask(processHandle, object->AffinityMask);
-                    NtClose(processHandle);
+                    if (affinityMask != object->AffinityMask)
+                    {
+                        if (NT_SUCCESS(PhOpenProcess(
+                            &processHandle,
+                            PROCESS_SET_INFORMATION,
+                            processItem->ProcessId
+                            )))
+                        {
+                            PhSetProcessAffinityMask(processHandle, object->AffinityMask);
+                            NtClose(processHandle);
+                        }
+                    }
                 }
             }
         }
