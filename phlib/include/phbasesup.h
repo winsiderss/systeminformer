@@ -218,7 +218,7 @@ PHLIBAPI
 PVOID
 NTAPI
 PhReAllocate(
-    _Frees_ptr_ PVOID Memory,
+    _Frees_ptr_opt_ PVOID Memory,
     _In_ SIZE_T Size
     );
 
@@ -260,6 +260,20 @@ PhAllocateCopy(
     memcpy(copy, Data, Size);
 
     return copy;
+}
+
+FORCEINLINE
+PVOID
+PhAllocateZero(
+    _In_ SIZE_T Size
+    )
+{
+    PVOID buffer;
+
+    buffer = PhAllocate(Size);
+    memset(buffer, 0, Size);
+
+    return buffer;
 }
 
 // Event
