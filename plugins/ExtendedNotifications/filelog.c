@@ -41,7 +41,7 @@ VOID FileLogInitialization(
 
     fileName = PhaGetStringSetting(SETTING_NAME_LOG_FILENAME);
 
-    if (fileName->Length != 0)
+    if (!PhIsNullOrEmptyString(fileName))
     {
         status = PhCreateFileStream(
             &LogFileStream,
