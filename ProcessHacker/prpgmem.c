@@ -3,6 +3,7 @@
  *   Process properties: Memory page
  *
  * Copyright (C) 2009-2016 wj32
+ * Copyright (C) 2017-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -242,6 +243,8 @@ BOOLEAN PhpMemoryTreeFilterCallback(
     PWSTR tempString;
 
     if (memoryContext->ListContext.HideFreeRegions && memoryItem->State & MEM_FREE)
+        return FALSE;
+    if (memoryContext->ListContext.HideGuardRegions && memoryItem->Protect & PAGE_GUARD)
         return FALSE;
 
     if (memoryContext->ListContext.HideReservedRegions &&
@@ -615,6 +618,7 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                     PPH_EMENU menu;
                     PPH_EMENU_ITEM freeItem;
                     PPH_EMENU_ITEM reservedItem;
+                    PPH_EMENU_ITEM guardItem;
                     PPH_EMENU_ITEM privateItem;
                     PPH_EMENU_ITEM systemItem;
                     PPH_EMENU_ITEM cfgItem;
@@ -622,8 +626,6 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                     PPH_EMENU_ITEM selectedItem;
 
                     GetWindowRect(GetDlgItem(hwndDlg, IDC_FILTEROPTIONS), &rect);
-
-                    menu = PhCreateEMenu();
 
                     typedef enum _PH_MEMORY_FILTER_MENU_ITEM
                     {
@@ -633,26 +635,32 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                         PH_MEMORY_FILTER_MENU_HIGHLIGHT_SYSTEM,
                         PH_MEMORY_FILTER_MENU_HIGHLIGHT_CFG,
                         PH_MEMORY_FILTER_MENU_HIGHLIGHT_EXECUTE,
+                        PH_MEMORY_FILTER_MENU_HIDE_GUARD,
+                        // Non-standard PH_MEMORY_FLAG options.
                         PH_MEMORY_FILTER_MENU_READ_ADDRESS,
                         PH_MEMORY_FILTER_MENU_STRINGS,
                     } PH_MEMORY_FILTER_MENU_ITEM;
 
-                    PhInsertEMenuItem(menu, freeItem = PhCreateEMenuItem(0, PH_MEMORY_FILTER_MENU_HIDE_FREE, L"Hide free pages", NULL, NULL), -1);
-                    PhInsertEMenuItem(menu, reservedItem = PhCreateEMenuItem(0, PH_MEMORY_FILTER_MENU_HIDE_RESERVED, L"Hide reserved pages", NULL, NULL), -1);
-                    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), -1);
-                    PhInsertEMenuItem(menu, privateItem = PhCreateEMenuItem(0, PH_MEMORY_FILTER_MENU_HIGHLIGHT_PRIVATE, L"Highlight private pages", NULL, NULL), -1);
-                    PhInsertEMenuItem(menu, systemItem = PhCreateEMenuItem(0, PH_MEMORY_FILTER_MENU_HIGHLIGHT_SYSTEM, L"Highlight system pages", NULL, NULL), -1);
-                    PhInsertEMenuItem(menu, cfgItem = PhCreateEMenuItem(0, PH_MEMORY_FILTER_MENU_HIGHLIGHT_CFG, L"Highlight CFG pages", NULL, NULL), -1);
-                    PhInsertEMenuItem(menu, typeItem = PhCreateEMenuItem(0, PH_MEMORY_FILTER_MENU_HIGHLIGHT_EXECUTE, L"Highlight executable pages", NULL, NULL), -1);
-                    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), -1);
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PH_MEMORY_FILTER_MENU_READ_ADDRESS, L"Read/Write &address...", NULL, NULL), -1);
-                    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), -1);
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PH_MEMORY_FILTER_MENU_STRINGS, L"Strings...", NULL, NULL), -1);
+                    menu = PhCreateEMenu();
+                    PhInsertEMenuItem(menu, freeItem = PhCreateEMenuItem(0, PH_MEMORY_FILTER_MENU_HIDE_FREE, L"Hide free pages", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, reservedItem = PhCreateEMenuItem(0, PH_MEMORY_FILTER_MENU_HIDE_RESERVED, L"Hide reserved pages", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, guardItem = PhCreateEMenuItem(0, PH_MEMORY_FILTER_MENU_HIDE_GUARD, L"Hide guard pages", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+                    PhInsertEMenuItem(menu, privateItem = PhCreateEMenuItem(0, PH_MEMORY_FILTER_MENU_HIGHLIGHT_PRIVATE, L"Highlight private pages", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, systemItem = PhCreateEMenuItem(0, PH_MEMORY_FILTER_MENU_HIGHLIGHT_SYSTEM, L"Highlight system pages", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, cfgItem = PhCreateEMenuItem(0, PH_MEMORY_FILTER_MENU_HIGHLIGHT_CFG, L"Highlight CFG pages", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, typeItem = PhCreateEMenuItem(0, PH_MEMORY_FILTER_MENU_HIGHLIGHT_EXECUTE, L"Highlight executable pages", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PH_MEMORY_FILTER_MENU_READ_ADDRESS, L"Read/Write &address...", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PH_MEMORY_FILTER_MENU_STRINGS, L"Strings...", NULL, NULL), ULONG_MAX);
 
                     if (memoryContext->ListContext.HideFreeRegions)
                         freeItem->Flags |= PH_EMENU_CHECKED;
                     if (memoryContext->ListContext.HideReservedRegions)
                         reservedItem->Flags |= PH_EMENU_CHECKED;
+                    if (memoryContext->ListContext.HideGuardRegions)
+                        guardItem->Flags |= PH_EMENU_CHECKED;
                     if (memoryContext->ListContext.HighlightPrivatePages)
                         privateItem->Flags |= PH_EMENU_CHECKED;
                     if (memoryContext->ListContext.HighlightSystemPages)
@@ -675,6 +683,7 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                     {
                         if (selectedItem->Id == PH_MEMORY_FILTER_MENU_HIDE_FREE || 
                             selectedItem->Id == PH_MEMORY_FILTER_MENU_HIDE_RESERVED ||
+                            selectedItem->Id == PH_MEMORY_FILTER_MENU_HIDE_GUARD ||
                             selectedItem->Id == PH_MEMORY_FILTER_MENU_HIGHLIGHT_PRIVATE ||
                             selectedItem->Id == PH_MEMORY_FILTER_MENU_HIGHLIGHT_SYSTEM ||
                             selectedItem->Id == PH_MEMORY_FILTER_MENU_HIGHLIGHT_CFG ||
