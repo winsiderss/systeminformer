@@ -1375,6 +1375,15 @@ RtlUpperString(
     );
 
 FORCEINLINE
+BOOLEAN
+RtlIsNullOrEmptyUnicodeString(
+    _In_opt_ PUNICODE_STRING String
+    )
+{
+    return !String || String->Length == 0;
+}
+
+FORCEINLINE
 VOID
 NTAPI
 RtlInitEmptyUnicodeString(
@@ -2628,6 +2637,24 @@ RtlSetThreadIsCritical(
     _Out_opt_ PBOOLEAN OldValue,
     _In_ BOOLEAN CheckFlag
     );
+
+#if (PHNT_VERSION >= PHNT_REDSTONE3)
+// rev
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlIsCurrentProcess( // NtCompareObjects(NtCurrentProcess(), ProcessHandle)
+    _In_ HANDLE ProcessHandle
+    );
+
+// rev
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlIsCurrentThread( // NtCompareObjects(NtCurrentThread(), ThreadHandle)
+    _In_ HANDLE ThreadHandle
+    );
+#endif
 
 // Threads
 
@@ -6538,6 +6565,17 @@ typedef struct _RTL_UNLOAD_EVENT_TRACE
     WCHAR ImageName[32];
     ULONG Version[2];
 } RTL_UNLOAD_EVENT_TRACE, *PRTL_UNLOAD_EVENT_TRACE;
+
+typedef struct _RTL_UNLOAD_EVENT_TRACE32 
+{
+    ULONG BaseAddress;
+    ULONG SizeOfImage;
+    ULONG Sequence;
+    ULONG TimeDateStamp;
+    ULONG CheckSum;
+    WCHAR ImageName[32];
+    ULONG Version[2];
+} RTL_UNLOAD_EVENT_TRACE32, *PRTL_UNLOAD_EVENT_TRACE32;
 
 NTSYSAPI
 PRTL_UNLOAD_EVENT_TRACE
