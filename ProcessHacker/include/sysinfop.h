@@ -209,10 +209,6 @@ VOID PhSipUpdateThemeData(
     VOID
     );
 
-VOID PhSipSetAlwaysOnTop(
-    VOID
-    );
-
 VOID PhSipSaveWindowState(
     VOID
     );
