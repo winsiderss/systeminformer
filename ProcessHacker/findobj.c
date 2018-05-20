@@ -656,10 +656,10 @@ VOID PhpPopulateObjectTypes(
 
     {
         LONG maxLength;
-        HDC screenDc;
+        HDC comboDc;
 
         maxLength = 0;
-        screenDc = GetDC(FilterTypeCombo);
+        comboDc = GetDC(FilterTypeCombo);
 
         SendMessage(FilterTypeCombo, WM_SETFONT, (WPARAM)PhApplicationFont, TRUE);
 
@@ -668,7 +668,7 @@ VOID PhpPopulateObjectTypes(
             PPH_STRING entry = objectTypeList->Items[i];
             SIZE textSize;
 
-            if (GetTextExtentPoint32(screenDc, entry->Buffer, (ULONG)entry->Length / sizeof(WCHAR), &textSize))
+            if (GetTextExtentPoint32(comboDc, entry->Buffer, (ULONG)entry->Length / sizeof(WCHAR), &textSize))
             {
                 if (textSize.cx > maxLength)
                     maxLength = textSize.cx;
@@ -678,7 +678,7 @@ VOID PhpPopulateObjectTypes(
             PhDereferenceObject(objectTypeList->Items[i]);
         }
 
-        ReleaseDC(FilterTypeCombo, screenDc);
+        ReleaseDC(FilterTypeCombo, comboDc);
 
         if (maxLength)
         {
