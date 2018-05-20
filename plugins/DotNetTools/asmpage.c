@@ -3,7 +3,7 @@
  *   .NET Assemblies property page
  *
  * Copyright (C) 2011-2015 wj32
- * Copyright (C) 2016 dmex
+ * Copyright (C) 2016-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -221,8 +221,8 @@ PDNA_NODE AddNode(
 {
     PDNA_NODE node;
 
-    node = PhAllocate(sizeof(DNA_NODE));
-    memset(node, 0, sizeof(DNA_NODE));
+    node = PhAllocateZero(sizeof(DNA_NODE));
+
     PhInitializeTreeNewNode(&node->Node);
 
     memset(node->TextCache, 0, sizeof(PH_STRINGREF) * DNATNC_MAXIMUM);
@@ -404,11 +404,16 @@ VOID DotNetAsmShowContextMenu(
         return;
 
     menu = PhCreateEMenu();
-    PhLoadResourceEMenuItem(menu, PluginInstance->DllBase, MAKEINTRESOURCE(IDR_ASSEMBLY_MENU), 0);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_CLR_INSPECT, L"&Inspect", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_CLR_OPENFILELOCATION, L"Open &file location", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_CLR_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
     PhInsertCopyCellEMenuItem(menu, ID_CLR_COPY, Context->TnHandle, ContextMenuEvent->Column);
 
     if (PhIsNullOrEmptyString(node->PathText) || !RtlDoesFileExists_U(node->PathText->Buffer))
     {
+        PhSetFlagsEMenuItem(menu, ID_CLR_INSPECT, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
         PhSetFlagsEMenuItem(menu, ID_CLR_OPENFILELOCATION, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
     }
 
@@ -431,6 +436,20 @@ VOID DotNetAsmShowContextMenu(
         {
             switch (selectedItem->Id)
             {
+            case ID_CLR_INSPECT:
+                {
+                    if (!PhIsNullOrEmptyString(node->PathText) && RtlDoesFileExists_U(node->PathText->Buffer))
+                    {
+                        PhShellExecuteUserString(
+                            Context->WindowHandle,
+                            L"ProgramInspectExecutables",
+                            node->PathText->Buffer,
+                            FALSE,
+                            L"Make sure the PE Viewer executable file is present."
+                            );
+                    }
+                }
+                break;
             case ID_CLR_OPENFILELOCATION:
                 {
                     if (!PhIsNullOrEmptyString(node->PathText) && RtlDoesFileExists_U(node->PathText->Buffer))
@@ -566,6 +585,22 @@ BOOLEAN NTAPI DotNetAsmTreeNewCallback(
             }
         }
         return TRUE;
+    case TreeNewHeaderRightClick:
+        {
+            PH_TN_COLUMN_MENU_DATA data;
+
+            data.TreeNewHandle = hwnd;
+            data.MouseEvent = Parameter1;
+            data.DefaultSortColumn = 0;
+            data.DefaultSortOrder = AscendingSortOrder;
+            PhInitializeTreeNewColumnMenu(&data);
+
+            data.Selection = PhShowEMenu(data.Menu, hwnd, PH_EMENU_SHOW_LEFTRIGHT,
+                PH_ALIGN_LEFT | PH_ALIGN_TOP, data.MouseEvent->ScreenLocation.x, data.MouseEvent->ScreenLocation.y);
+            PhHandleTreeNewColumnMenu(&data);
+            PhDeleteTreeNewColumnMenu(&data);
+        }
+        return TRUE;
     case TreeNewContextMenu:
         {
             PPH_TREENEW_CONTEXT_MENU contextMenuEvent = Parameter1;
@@ -589,8 +624,7 @@ ULONG StartDotNetTrace(
     TRACEHANDLE sessionHandle;
 
     bufferSize = sizeof(EVENT_TRACE_PROPERTIES) + DotNetLoggerName.Length + sizeof(WCHAR);
-    properties = PhAllocate(bufferSize);
-    memset(properties, 0, sizeof(EVENT_TRACE_PROPERTIES));
+    properties = PhAllocateZero(bufferSize);
 
     properties->Wnode.BufferSize = bufferSize;
     properties->Wnode.ClientContext = 2; // System time clock resolution
@@ -670,7 +704,7 @@ VOID NTAPI DotNetEventCallback(
                 node->u.Clr.ClrInstanceID = data->ClrInstanceID;
                 node->u.Clr.DisplayName = PhFormatString(L"CLR v%u.%u.%u.%u", data->VMMajorVersion, data->VMMinorVersion, data->VMBuildNumber, data->VMQfeNumber);
                 node->StructureText = node->u.Clr.DisplayName->sr;
-                node->IdText = PhFormatString(L"%u", data->ClrInstanceID);
+                node->IdText = PhFormatUInt64(data->ClrInstanceID, FALSE);
 
                 startupFlagsString = FlagsToString(data->StartupFlags, StartupFlagsMap, sizeof(StartupFlagsMap));
                 startupModeString = FlagsToString(data->StartupMode, StartupModeMap, sizeof(StartupModeMap));
@@ -707,7 +741,7 @@ VOID NTAPI DotNetEventCallback(
                 PDNA_NODE node;
 
                 appDomainNameLength = PhCountStringZ(data->AppDomainName) * sizeof(WCHAR);
-                clrInstanceID = *(PUSHORT)((PCHAR)data + FIELD_OFFSET(AppDomainLoadUnloadRundown_V1, AppDomainName) + appDomainNameLength + sizeof(WCHAR) + sizeof(ULONG));
+                clrInstanceID = *(PUSHORT)PTR_ADD_OFFSET(data, FIELD_OFFSET(AppDomainLoadUnloadRundown_V1, AppDomainName) + appDomainNameLength + sizeof(WCHAR) + sizeof(ULONG));
 
                 // Find the CLR node to add the AppDomain node to.
                 parentNode = FindClrNode(context, clrInstanceID);
@@ -723,7 +757,7 @@ VOID NTAPI DotNetEventCallback(
                     node->u.AppDomain.AppDomainID = data->AppDomainID;
                     node->u.AppDomain.DisplayName = PhConcatStrings2(L"AppDomain: ", data->AppDomainName);
                     node->StructureText = node->u.AppDomain.DisplayName->sr;
-                    node->IdText = PhFormatString(L"%I64u", data->AppDomainID);
+                    node->IdText = PhFormatUInt64(data->AppDomainID, FALSE);
                     node->FlagsText = FlagsToString(data->AppDomainFlags, AppDomainFlagsMap, sizeof(AppDomainFlagsMap));
 
                     PhAddItemList(parentNode->Children, node);
@@ -740,7 +774,7 @@ VOID NTAPI DotNetEventCallback(
                 PH_STRINGREF remainingPart;
 
                 fullyQualifiedAssemblyNameLength = PhCountStringZ(data->FullyQualifiedAssemblyName) * sizeof(WCHAR);
-                clrInstanceID = *(PUSHORT)((PCHAR)data + FIELD_OFFSET(AssemblyLoadUnloadRundown_V1, FullyQualifiedAssemblyName) + fullyQualifiedAssemblyNameLength + sizeof(WCHAR));
+                clrInstanceID = *(PUSHORT)PTR_ADD_OFFSET(data, FIELD_OFFSET(AssemblyLoadUnloadRundown_V1, FullyQualifiedAssemblyName) + fullyQualifiedAssemblyNameLength + sizeof(WCHAR));
 
                 // Find the AppDomain node to add the Assembly node to.
 
@@ -764,7 +798,7 @@ VOID NTAPI DotNetEventCallback(
                     if (!PhSplitStringRefAtChar(&node->u.Assembly.FullyQualifiedAssemblyName->sr, ',', &node->StructureText, &remainingPart))
                         node->StructureText = node->u.Assembly.FullyQualifiedAssemblyName->sr;
 
-                    node->IdText = PhFormatString(L"%I64u", data->AssemblyID);
+                    node->IdText = PhFormatUInt64(data->AssemblyID, FALSE);
                     node->FlagsText = FlagsToString(data->AssemblyFlags, AssemblyFlagsMap, sizeof(AssemblyFlagsMap));
 
                     PhAddItemList(parentNode->Children, node);
@@ -783,9 +817,9 @@ VOID NTAPI DotNetEventCallback(
 
                 moduleILPath = data->ModuleILPath;
                 moduleILPathLength = PhCountStringZ(moduleILPath) * sizeof(WCHAR);
-                moduleNativePath = (PWSTR)((PCHAR)moduleILPath + moduleILPathLength + sizeof(WCHAR));
+                moduleNativePath = (PWSTR)PTR_ADD_OFFSET(moduleILPath, moduleILPathLength + sizeof(WCHAR));
                 moduleNativePathLength = PhCountStringZ(moduleNativePath) * sizeof(WCHAR);
-                clrInstanceID = *(PUSHORT)((PCHAR)moduleNativePath + moduleNativePathLength + sizeof(WCHAR));
+                clrInstanceID = *(PUSHORT)PTR_ADD_OFFSET(moduleNativePath, moduleNativePathLength + sizeof(WCHAR));
 
                 // Find the Assembly node to set the path on.
 
@@ -832,7 +866,7 @@ VOID NTAPI DotNetEventCallback(
 
                     moduleILPath = data->ModuleILPath;
                     moduleILPathLength = PhCountStringZ(moduleILPath) * sizeof(WCHAR);
-                    moduleNativePath = (PWSTR)((PCHAR)moduleILPath + moduleILPathLength + sizeof(WCHAR));
+                    moduleNativePath = (PWSTR)PTR_ADD_OFFSET(moduleILPath, moduleILPathLength + sizeof(WCHAR));
                     moduleNativePathLength = PhCountStringZ(moduleNativePath) * sizeof(WCHAR);
 
                     if (context->ClrV2Node && (moduleILPathLength != 0 || moduleNativePathLength != 0))
@@ -1087,9 +1121,7 @@ VOID CreateDotNetTraceQueryThread(
     HANDLE threadHandle;
     PASMPAGE_QUERY_CONTEXT context;
 
-    context = PhAllocate(sizeof(ASMPAGE_QUERY_CONTEXT));
-    memset(context, 0, sizeof(ASMPAGE_QUERY_CONTEXT));
-
+    context = PhAllocateZero(sizeof(ASMPAGE_QUERY_CONTEXT));
     context->WindowHandle = WindowHandle;
     context->ClrVersions = ClrVersions;
     context->ProcessId = ProcessId;
@@ -1169,8 +1201,7 @@ INT_PTR CALLBACK DotNetAsmPageDlgProc(
             PPH_STRING settings;
             HWND tnHandle;
 
-            context = PhAllocate(sizeof(ASMPAGE_CONTEXT));
-            memset(context, 0, sizeof(ASMPAGE_CONTEXT));
+            context = PhAllocateZero(sizeof(ASMPAGE_CONTEXT));
             propPageContext->Context = context;
             context->WindowHandle = hwndDlg;
             context->ProcessItem = processItem;

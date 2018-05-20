@@ -217,7 +217,7 @@ PPH_LIST EnumerateAppDomainIpcBlock(
         goto CleanupExit;
     }
 
-    appDomainInfoBlock = (AppDomainInfo*)PhAllocate(appDomainInfoBlockLength);
+    appDomainInfoBlock = PhAllocate(appDomainInfoBlockLength);
     memset(appDomainInfoBlock, 0, appDomainInfoBlockLength);
 
     if (!NT_SUCCESS(NtReadVirtualMemory(
@@ -378,7 +378,7 @@ PPH_LIST EnumerateAppDomainIpcBlockWow64(
         goto CleanupExit;
     }
 
-    appDomainInfoBlock = (AppDomainInfo_Wow64*)PhAllocate(appDomainInfoBlockLength);
+    appDomainInfoBlock = PhAllocate(appDomainInfoBlockLength);
     memset(appDomainInfoBlock, 0, appDomainInfoBlockLength);
 
     if (!NT_SUCCESS(NtReadVirtualMemory(
