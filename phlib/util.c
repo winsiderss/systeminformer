@@ -3459,9 +3459,14 @@ ULONG64 PhQueryRegistryUlong64(
 
     if (NT_SUCCESS(PhQueryValueKey(KeyHandle, &valueName, KeyValuePartialInformation, &buffer)))
     {
-        if (buffer->Type == REG_DWORD || buffer->Type == REG_QWORD)
+        if (buffer->Type == REG_DWORD)
         {
-            if (buffer->DataLength == sizeof(ULONG) || buffer->DataLength == sizeof(ULONG64))
+            if (buffer->DataLength == sizeof(ULONG))
+                ulong64 = *(PULONG)buffer->Data;
+        }
+        else if (buffer->Type == REG_QWORD)
+        {
+            if (buffer->DataLength == sizeof(ULONG64))
                 ulong64 = *(PULONG64)buffer->Data;
         }
 
