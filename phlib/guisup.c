@@ -3,6 +3,7 @@
  *   GUI support functions
  *
  * Copyright (C) 2009-2016 wj32
+ * Copyright (C) 2017-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -1513,4 +1514,18 @@ VOID PhSetDialogItemText(
     {
         SendMessage(controlHandle, WM_SETTEXT, 0, (LPARAM)WindowText); // DefWindowProc
     }
+}
+
+VOID PhSetWindowAlwaysOnTop(
+    _In_ HWND WindowHandle,
+    _In_ BOOLEAN AlwaysOnTop
+    )
+{
+    SetFocus(WindowHandle); // HACK - SetWindowPos doesn't work properly without this
+    SetWindowPos(
+        WindowHandle,
+        AlwaysOnTop ? HWND_TOPMOST : HWND_NOTOPMOST, 
+        0, 0, 0, 0,
+        SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE
+        );
 }
