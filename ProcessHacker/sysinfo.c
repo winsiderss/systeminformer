@@ -475,9 +475,9 @@ VOID PhSipOnShowWindow(
         PhSipEnterSectionView(section);
     }
 
-    AlwaysOnTop = (BOOLEAN)PhGetIntegerSetting(L"SysInfoWindowAlwaysOnTop");
+    AlwaysOnTop = !!PhGetIntegerSetting(L"SysInfoWindowAlwaysOnTop");
     Button_SetCheck(GetDlgItem(PhSipWindow, IDC_ALWAYSONTOP), AlwaysOnTop ? BST_CHECKED : BST_UNCHECKED);
-    PhSipSetAlwaysOnTop();
+    PhSetWindowAlwaysOnTop(PhSipWindow, AlwaysOnTop);
 
     PhSipOnSize();
     PhSipOnUserMessage(SI_MSG_SYSINFO_UPDATE, 0, 0);
@@ -546,7 +546,8 @@ VOID PhSipOnCommand(
     case IDC_ALWAYSONTOP:
         {
             AlwaysOnTop = Button_GetCheck(GetDlgItem(PhSipWindow, IDC_ALWAYSONTOP)) == BST_CHECKED;
-            PhSipSetAlwaysOnTop();
+            PhSetIntegerSetting(L"SysInfoWindowAlwaysOnTop", AlwaysOnTop);
+            PhSetWindowAlwaysOnTop(PhSipWindow, AlwaysOnTop);
         }
         break;
     case IDC_RESET:
@@ -1406,28 +1407,76 @@ VOID PhSipDefaultDrawPanel(
     if (DrawPanel->Title)
     {
         SelectObject(hdc, CurrentParameters.MediumFont);
-        DrawText(hdc, DrawPanel->Title->Buffer, (ULONG)DrawPanel->Title->Length / 2, &rect, flags | DT_SINGLELINE);
+        DrawText(hdc, DrawPanel->Title->Buffer, (ULONG)DrawPanel->Title->Length / sizeof(WCHAR), &rect, flags | DT_SINGLELINE);
     }
 
     if (DrawPanel->SubTitle)
     {
         RECT measureRect;
+        SIZE textSize;
+        LONG lineHeight;
+        LONG lineWidth;
+        LONG rectHeight;
+        LONG rectWidth;
+        LONG textHeight;
+        LONG textWidth;
 
         rect.top += CurrentParameters.MediumFontHeight + CurrentParameters.PanelPadding;
-        SelectObject(hdc, CurrentParameters.Font);
-
         measureRect = rect;
-        DrawText(hdc, DrawPanel->SubTitle->Buffer, (ULONG)DrawPanel->SubTitle->Length / 2, &measureRect, (flags & ~DT_END_ELLIPSIS) | DT_CALCRECT);
 
-        if (measureRect.right <= rect.right || !DrawPanel->SubTitleOverflow)
+        SelectObject(hdc, CurrentParameters.Font);
+        GetTextExtentPoint32(hdc, DrawPanel->SubTitle->Buffer, (ULONG)DrawPanel->SubTitle->Length / sizeof(WCHAR), &textSize);
+        DrawText(hdc, DrawPanel->SubTitle->Buffer, (ULONG)DrawPanel->SubTitle->Length / sizeof(WCHAR), &measureRect, flags | DT_CALCRECT);
+
+        lineHeight = textSize.cy;
+        lineWidth = textSize.cx;
+        rectHeight = rect.bottom - rect.top;
+        rectWidth = rect.right - rect.left;
+        textHeight = measureRect.bottom - measureRect.top;
+        textWidth = measureRect.right - measureRect.left;
+        //dprintf(
+        //    "[rectHeight: %u, rectwidth: %u] [lineHeight: %u, lineWidth: %u] [textHeight: %u, textWidth: %u]\n", 
+        //    rectHeight, rectWidth,
+        //    lineHeight, lineWidth,
+        //    textHeight, textWidth
+        //    );
+
+        if (rectHeight > lineHeight)
         {
-            // Text fits; draw normally.
-            DrawText(hdc, DrawPanel->SubTitle->Buffer, (ULONG)DrawPanel->SubTitle->Length / 2, &rect, flags);
-        }
-        else
-        {
-            // Text doesn't fit; draw the alternative text.
-            DrawText(hdc, DrawPanel->SubTitleOverflow->Buffer, (ULONG)DrawPanel->SubTitleOverflow->Length / 2, &rect, flags);
+            if (rectHeight > textHeight)
+            {
+                if (lineWidth < rectWidth || !DrawPanel->SubTitleOverflow)
+                {
+                    // Text fits; draw normally.
+                    DrawText(hdc, DrawPanel->SubTitle->Buffer, (ULONG)DrawPanel->SubTitle->Length / sizeof(WCHAR), &rect, flags);
+                }
+                else
+                {
+                    // Text doesn't fit; draw the alternative text.
+                    DrawText(hdc, DrawPanel->SubTitleOverflow->Buffer, (ULONG)DrawPanel->SubTitleOverflow->Length / sizeof(WCHAR), &rect, flags);
+                }
+            }
+            else
+            {
+                PH_STRINGREF titlePart;
+                PH_STRINGREF remainingPart;
+
+                // dmex: Multiline text doesn't fit; split the string and draw the first line.
+                if (DrawPanel->SubTitleOverflow)
+                {
+                    if (PhSplitStringRefAtChar(&DrawPanel->SubTitleOverflow->sr, '\n', &titlePart, &remainingPart))
+                        DrawText(hdc, titlePart.Buffer, (ULONG)titlePart.Length / sizeof(WCHAR), &rect, flags);
+                    else
+                        DrawText(hdc, DrawPanel->SubTitleOverflow->Buffer, (ULONG)DrawPanel->SubTitleOverflow->Length / sizeof(WCHAR), &rect, flags);
+                }
+                else
+                {
+                    if (PhSplitStringRefAtChar(&DrawPanel->SubTitle->sr, '\n', &titlePart, &remainingPart))
+                        DrawText(hdc, titlePart.Buffer, (ULONG)titlePart.Length / sizeof(WCHAR), &rect, flags);
+                    else
+                        DrawText(hdc, DrawPanel->SubTitle->Buffer, (ULONG)DrawPanel->SubTitle->Length / sizeof(WCHAR), &rect, flags);
+                }
+            }
         }
     }
 }
@@ -2037,15 +2086,6 @@ VOID PhSipUpdateThemeData(
     {
         ThemeHasItemBackground = FALSE;
     }
-}
-
-VOID PhSipSetAlwaysOnTop(
-    VOID
-    )
-{
-    SetFocus(PhSipWindow); // HACK - SetWindowPos doesn't work properly without this
-    SetWindowPos(PhSipWindow, AlwaysOnTop ? HWND_TOPMOST : HWND_NOTOPMOST, 0, 0, 0, 0,
-        SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
 }
 
 VOID PhSipSaveWindowState(

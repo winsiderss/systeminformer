@@ -193,6 +193,9 @@ VOID PhSetOptionsMemoryList(
     case PH_MEMORY_FLAGS_EXECUTE_OPTION:
         Context->HighlightExecutePages = !Context->HighlightExecutePages;
         break;
+    case PH_MEMORY_FLAGS_GUARD_OPTION:
+        Context->HideGuardRegions = !Context->HideGuardRegions;
+        break;
     }
 }
 
@@ -330,6 +333,8 @@ VOID PhReplaceMemoryList(
 
         if (Context->HideFreeRegions && (memoryItem->State & MEM_FREE))
             memoryNode->Node.Visible = FALSE;
+        if (Context->HideGuardRegions && (memoryItem->Protect & PAGE_GUARD))
+            memoryNode->Node.Visible = FALSE;
 
         if (allocationBaseNode && memoryItem->AllocationBase == allocationBaseNode->MemoryItem->BaseAddress)
         {
@@ -362,6 +367,8 @@ VOID PhReplaceMemoryList(
 
                 if (Context->HideFreeRegions && (allocationBaseNode->MemoryItem->State & MEM_FREE))
                     allocationBaseNode->Node.Visible = FALSE;
+                if (Context->HideGuardRegions && (allocationBaseNode->MemoryItem->State & PAGE_GUARD))
+                    memoryNode->Node.Visible = FALSE;
             }
             else
             {

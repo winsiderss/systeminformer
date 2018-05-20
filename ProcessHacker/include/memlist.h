@@ -59,6 +59,7 @@ typedef struct _PH_MEMORY_NODE
 #define PH_MEMORY_FLAGS_SYSTEM_OPTION 4
 #define PH_MEMORY_FLAGS_CFG_OPTION 5
 #define PH_MEMORY_FLAGS_EXECUTE_OPTION 6
+#define PH_MEMORY_FLAGS_GUARD_OPTION 7
 
 typedef struct _PH_MEMORY_LIST_CONTEXT
 {
@@ -81,7 +82,8 @@ typedef struct _PH_MEMORY_LIST_CONTEXT
             ULONG HighlightSystemPages : 1;
             ULONG HighlightCfgPages : 1;
             ULONG HighlightExecutePages : 1;
-            ULONG Spare : 26;
+            ULONG HideGuardRegions : 1;
+            ULONG Spare : 25;
         };
     };
 
