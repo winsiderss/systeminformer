@@ -24,15 +24,6 @@
 #include "gpumon.h"
 #include <uxtheme.h>
 
-typedef enum _NETADAPTER_DETAILS_CATEGORY
-{
-    NETADAPTER_DETAILS_CATEGORY_ADAPTER,
-    NETADAPTER_DETAILS_CATEGORY_UNICAST,
-    NETADAPTER_DETAILS_CATEGORY_BROADCAST,
-    NETADAPTER_DETAILS_CATEGORY_MULTICAST,
-    NETADAPTER_DETAILS_CATEGORY_ERRORS
-} NETADAPTER_DETAILS_CATEGORY;
-
 typedef enum _NETADAPTER_DETAILS_INDEX
 {
     NETADAPTER_DETAILS_INDEX_STATE,
@@ -55,6 +46,25 @@ VOID EtpGpuDetailsAddListViewItemGroups(
     PhAddListViewGroupItem(ListViewHandle, DiskGroupId, NETADAPTER_DETAILS_INDEX_DOMAIN, L"Driver Version", NULL);
 }
 
+VOID EtpQueryAdapterDeviceProperties(
+    _In_ PWSTR DeviceName,
+    _In_ HWND ListViewHandle)
+{
+    PPH_STRING driverDate;
+    PPH_STRING driverVersion;
+    PPH_STRING locationInfo;
+
+    if (EtQueryDeviceProperties(DeviceName, NULL, &driverDate, &driverVersion, &locationInfo, NULL))
+    {
+        PhSetListViewSubItem(ListViewHandle, NETADAPTER_DETAILS_INDEX_STATE, 1, PhGetStringOrEmpty(driverDate));
+        PhSetListViewSubItem(ListViewHandle, NETADAPTER_DETAILS_INDEX_IPADDRESS, 1, PhGetStringOrEmpty(driverVersion));
+        PhSetListViewSubItem(ListViewHandle, NETADAPTER_DETAILS_INDEX_SUBNET, 1, PhGetStringOrEmpty(locationInfo));
+
+        PhClearReference(&driverVersion);
+        PhClearReference(&driverDate);
+    }
+}
+
 VOID EtpQueryAdapterRegistryInfo(
     _In_ D3DKMT_HANDLE AdapterHandle, 
     _In_ HWND ListViewHandle)
@@ -70,9 +80,9 @@ VOID EtpQueryAdapterRegistryInfo(
         sizeof(D3DKMT_ADAPTERREGISTRYINFO)
         )))
     {
-        PhSetListViewSubItem(ListViewHandle, NETADAPTER_DETAILS_INDEX_STATE, 1, adapterInfo.AdapterString);
-        PhSetListViewSubItem(ListViewHandle, NETADAPTER_DETAILS_INDEX_IPADDRESS, 1, adapterInfo.BiosString);
-        PhSetListViewSubItem(ListViewHandle, NETADAPTER_DETAILS_INDEX_SUBNET, 1, adapterInfo.ChipType);
+        //PhSetListViewSubItem(ListViewHandle, NETADAPTER_DETAILS_INDEX_STATE, 1, adapterInfo.AdapterString);
+        //PhSetListViewSubItem(ListViewHandle, NETADAPTER_DETAILS_INDEX_IPADDRESS, 1, adapterInfo.BiosString);
+        //PhSetListViewSubItem(ListViewHandle, NETADAPTER_DETAILS_INDEX_SUBNET, 1, adapterInfo.ChipType);
         PhSetListViewSubItem(ListViewHandle, NETADAPTER_DETAILS_INDEX_GATEWAY, 1, adapterInfo.DacType);
     }
 }
@@ -81,18 +91,18 @@ VOID EtpQueryAdapterDriverModel(
     _In_ D3DKMT_HANDLE AdapterHandle, 
     _In_ HWND ListViewHandle)
 {
-    D3DKMT_DRIVERVERSION driverVersion;
+    D3DKMT_DRIVERVERSION wddmversion;
 
-    memset(&driverVersion, 0, sizeof(D3DKMT_DRIVERVERSION));
+    memset(&wddmversion, 0, sizeof(D3DKMT_DRIVERVERSION));
 
     if (NT_SUCCESS(EtQueryAdapterInformation(
         AdapterHandle,
         KMTQAITYPE_DRIVERVERSION,
-        &driverVersion,
+        &wddmversion,
         sizeof(D3DKMT_DRIVERVERSION)
         )))
     {
-        switch (driverVersion)
+        switch (wddmversion)
         {
         case KMT_DRIVERVERSION_WDDM_1_0:
             PhSetListViewSubItem(ListViewHandle, NETADAPTER_DETAILS_INDEX_DNS, 1, L"WDDM 1.0");
@@ -242,34 +252,36 @@ VOID EtpGpuDetailsEnumAdapters(
     _In_ HWND ListViewHandle
     )
 {
-    INT gpuAdapterGroupIndex = MAXINT;
+    INT gpuAdapterGroupIndex;
     PETP_GPU_ADAPTER gpuAdapter;
-    D3DKMT_OPENADAPTERFROMLUID openAdapterFromLuid;
+    D3DKMT_OPENADAPTERFROMDEVICENAME openAdapterFromDeviceName;
 
     for (ULONG i = 0; i < EtpGpuAdapterList->Count; i++)
     {
         gpuAdapter = EtpGpuAdapterList->Items[i];
 
-        memset(&openAdapterFromLuid, 0, sizeof(D3DKMT_OPENADAPTERFROMLUID));
-        openAdapterFromLuid.AdapterLuid = gpuAdapter->AdapterLuid;
+        memset(&openAdapterFromDeviceName, 0, sizeof(D3DKMT_OPENADAPTERFROMLUID));
+        openAdapterFromDeviceName.DeviceName = PhGetString(gpuAdapter->DeviceInterface);
 
-        if (!NT_SUCCESS(D3DKMTOpenAdapterFromLuid(&openAdapterFromLuid)))
+        if (!NT_SUCCESS(D3DKMTOpenAdapterFromDeviceName(&openAdapterFromDeviceName)))
             continue;
 
         if ((gpuAdapterGroupIndex = PhAddListViewGroup(ListViewHandle, i, PhGetString(gpuAdapter->Description))) == MAXINT)
         {
-            EtCloseAdapterHandle(openAdapterFromLuid.AdapterHandle);
+            EtCloseAdapterHandle(openAdapterFromDeviceName.AdapterHandle);
             continue;
         }
 
         EtpGpuDetailsAddListViewItemGroups(ListViewHandle, gpuAdapterGroupIndex);
-        EtpQueryAdapterRegistryInfo(openAdapterFromLuid.AdapterHandle, ListViewHandle);
-        EtpQueryAdapterDriverModel(openAdapterFromLuid.AdapterHandle, ListViewHandle);
-        EtpQueryAdapterDriverVersion(openAdapterFromLuid.AdapterHandle, ListViewHandle);
-        EtpQueryAdapterDeviceIds(openAdapterFromLuid.AdapterHandle, ListViewHandle);
-        EtpQueryAdapterPerfInfo(openAdapterFromLuid.AdapterHandle, ListViewHandle);
 
-        EtCloseAdapterHandle(openAdapterFromLuid.AdapterHandle);
+        EtpQueryAdapterDeviceProperties(openAdapterFromDeviceName.DeviceName, ListViewHandle);
+        EtpQueryAdapterRegistryInfo(openAdapterFromDeviceName.AdapterHandle, ListViewHandle);
+        EtpQueryAdapterDriverModel(openAdapterFromDeviceName.AdapterHandle, ListViewHandle);
+        //EtpQueryAdapterDriverVersion(openAdapterFromDeviceName.AdapterHandle, ListViewHandle);
+        EtpQueryAdapterDeviceIds(openAdapterFromDeviceName.AdapterHandle, ListViewHandle);
+        EtpQueryAdapterPerfInfo(openAdapterFromDeviceName.AdapterHandle, ListViewHandle);
+
+        EtCloseAdapterHandle(openAdapterFromDeviceName.AdapterHandle);
     }
 }
 
