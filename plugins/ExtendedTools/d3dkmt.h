@@ -37,7 +37,7 @@ typedef enum _KMTQUERYADAPTERINFOTYPE
     KMTQAITYPE_INDEPENDENTFLIP_SUPPORT = 28, // D3DKMT_INDEPENDENTFLIP_SUPPORT
     KMTQAITYPE_MIRACASTCOMPANIONDRIVERNAME = 29, // D3DKMT_MIRACASTCOMPANIONDRIVERNAME
     KMTQAITYPE_PHYSICALADAPTERCOUNT = 30, // D3DKMT_PHYSICAL_ADAPTER_COUNT
-    KMTQAITYPE_PHYSICALADAPTERDEVICEIDS = 31, // D3DKMT_QUERY_DEVICE_IDS ??
+    KMTQAITYPE_PHYSICALADAPTERDEVICEIDS = 31, // D3DKMT_QUERY_DEVICE_IDS
     KMTQAITYPE_DRIVERCAPS_EXT = 32, // D3DKMT_DRIVERCAPS_EXT
     KMTQAITYPE_QUERY_MIRACAST_DRIVER_TYPE = 33, // D3DKMT_QUERY_MIRACAST_DRIVER_TYPE
     KMTQAITYPE_QUERY_GPUMMU_CAPS = 34, // D3DKMT_QUERY_GPUMMU_CAPS
@@ -586,7 +586,7 @@ typedef struct _D3DKMT_NODEMETADATA
 {
     union
     {
-        _In_ UINT32 NodeOrdinalAndAdapterIndex; // High word is physical adapter index, low word is node ordinal
+        _In_ UINT32 NodeOrdinalAndAdapterIndex;
         struct
         {
             UINT32 NodeOrdinal : 16;
@@ -812,7 +812,7 @@ typedef struct _D3DDDI_QUERYREGISTRY_INFO
     _Out_ D3DDDI_QUERYREGISTRY_STATUS Status;
     union 
     {
-        _Out_ DWORD OutputDword;
+        _Out_ ULONG OutputDword;
         _Out_ UINT64 OutputQword;
         _Out_ WCHAR OutputString[1];
         _Out_ BYTE OutputBinary[1];
@@ -898,7 +898,7 @@ typedef struct _D3DKMT_OPENADAPTERFROMDEVICENAME
 typedef struct _D3DKMT_OPENADAPTERFROMLUID
 {
     _In_ LUID AdapterLuid;
-    _Out_ D3DKMT_HANDLE hAdapter;
+    _Out_ D3DKMT_HANDLE AdapterHandle;
 } D3DKMT_OPENADAPTERFROMLUID;
 
 // Supplies configuration information about a graphics adapter.
@@ -1684,7 +1684,7 @@ typedef struct _D3DKMT_VIDMM_ESCAPE
         {
             D3DKMT_HANDLE ResourceHandle;
             D3DKMT_HANDLE AllocationHandle;
-            HANDLE hProcess;        // 0 to evict memory for the current process, otherwise it is a process handle from OpenProcess(PROCESS_ALL_ACCESS, FALSE, ProcessId).
+            HANDLE hProcess; // 0 to evict memory for the current process, otherwise it is a process handle from OpenProcess(PROCESS_ALL_ACCESS, FALSE, ProcessId).
         } Evict;
         struct
         {

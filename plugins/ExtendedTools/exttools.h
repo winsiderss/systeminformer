@@ -8,6 +8,7 @@
 #include <math.h>
 
 #include "resource.h"
+#include "d3dkmt.h"
 
 extern PPH_PLUGIN PluginInstance;
 extern LIST_ENTRY EtProcessBlockListHead;
@@ -373,6 +374,7 @@ VOID EtSaveSettingsDiskTreeList(
 // gpumon
 
 extern BOOLEAN EtGpuEnabled;
+extern PPH_LIST EtpGpuAdapterList;
 
 extern ULONG EtGpuTotalNodeCount;
 extern ULONG EtGpuTotalSegmentCount;
@@ -396,6 +398,17 @@ extern PH_CIRCULAR_BUFFER_ULONG EtGpuSharedHistory;
 
 VOID EtGpuMonitorInitialization(
     VOID
+    );
+
+NTSTATUS EtQueryAdapterInformation(
+    _In_ D3DKMT_HANDLE AdapterHandle,
+    _In_ KMTQUERYADAPTERINFOTYPE InformationClass,
+    _Out_writes_bytes_opt_(InformationLength) PVOID Information,
+    _In_ UINT32 InformationLength
+    );
+
+BOOLEAN EtCloseAdapterHandle(
+    _In_ D3DKMT_HANDLE AdapterHandle
     );
 
 typedef struct _ET_PROCESS_GPU_STATISTICS

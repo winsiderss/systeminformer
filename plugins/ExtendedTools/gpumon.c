@@ -26,11 +26,10 @@
 #include <cfgmgr32.h>
 #include <devpkey.h>
 #include <ntddvdeo.h>
-#include "d3dkmt.h"
 #include "gpumon.h"
 
 BOOLEAN EtGpuEnabled;
-static PPH_LIST EtpGpuAdapterList;
+PPH_LIST EtpGpuAdapterList;
 static PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
 
 ULONG EtGpuTotalNodeCount = 0;
@@ -99,7 +98,7 @@ VOID EtGpuMonitorInitialization(
     }
 }
 
-NTSTATUS EtpQueryAdapterInformation(
+NTSTATUS EtQueryAdapterInformation(
     _In_ D3DKMT_HANDLE AdapterHandle,
     _In_ KMTQUERYADAPTERINFOTYPE InformationClass, 
     _Out_writes_bytes_opt_(InformationLength) PVOID Information, 
@@ -118,7 +117,7 @@ NTSTATUS EtpQueryAdapterInformation(
     return D3DKMTQueryAdapterInfo(&queryAdapterInfo);
 }
 
-BOOLEAN EtpCloseAdapterHandle(
+BOOLEAN EtCloseAdapterHandle(
     _In_ D3DKMT_HANDLE AdapterHandle
     )
 {
@@ -138,7 +137,7 @@ BOOLEAN EtpIsGpuSoftwareDevice(
 
     memset(&adapterType, 0, sizeof(D3DKMT_ADAPTERTYPE));
 
-    if (NT_SUCCESS(EtpQueryAdapterInformation(
+    if (NT_SUCCESS(EtQueryAdapterInformation(
         AdapterHandle,
         KMTQAITYPE_ADAPTERTYPE,
         &adapterType,
@@ -232,8 +231,9 @@ PPH_STRING EtpQueryDeviceProperty(
             PPH_STRING string;
 
             string = PhCreateStringEx((PWCHAR)buffer, bufferSize);
-            PhFree(buffer);
+            PhTrimToNullTerminatorString(string);
 
+            PhFree(buffer);
             return string;
         }
         break;
@@ -247,8 +247,28 @@ PPH_STRING EtpQueryDeviceProperty(
             FileTimeToSystemTime(&newFileTime, &systemTime);
 
             string = PhFormatDateTime(&systemTime);
-            PhFree(buffer);
 
+            PhFree(buffer);
+            return string;
+        }
+        break;
+    case DEVPROP_TYPE_UINT32:
+        {
+            PPH_STRING string;
+
+            string = PhFormatUInt64(*(PULONG)buffer, FALSE);
+
+            PhFree(buffer);
+            return string;
+        }
+        break;
+    case DEVPROP_TYPE_UINT64:
+        {
+            PPH_STRING string;
+
+            string = PhFormatUInt64(*(PULONG64)buffer, FALSE);
+
+            PhFree(buffer);
             return string;
         }
         break;
@@ -330,7 +350,7 @@ ULONG64 EtpQueryGpuInstalledMemory( // EtpQueryGpuHardwareReservedMemory // HACK
     return installedMemory;
 }
 
-BOOLEAN EtpQueryDeviceProperties(
+BOOLEAN EtQueryDeviceProperties(
     _In_ PWSTR DeviceInterface,
     _Out_ PPH_STRING *Description,
     _Out_ PPH_STRING *DriverDate,
@@ -375,17 +395,17 @@ BOOLEAN EtpQueryDeviceProperties(
         *LocationInfo = EtpQueryDeviceProperty(deviceInstanceHandle, &DEVPKEY_Device_LocationInfo);
 
     //EtpQueryDeviceProperty(deviceInstanceHandle, &DEVPKEY_Device_Manufacturer);
-    EtpQueryGpuInstalledMemory(deviceInstanceHandle);
+    //EtpQueryGpuInstalledMemory(deviceInstanceHandle);
 
     return TRUE;
 }
 
 PETP_GPU_ADAPTER EtpAddDisplayAdapter(
+    _In_ PWSTR DeviceInterface,
     _In_ D3DKMT_HANDLE AdapterHandle,
     _In_ LUID AdapterLuid, 
     _In_ ULONG NumberOfSegments, 
-    _In_ ULONG NumberOfNodes, 
-    _In_ PWSTR DeviceInterface
+    _In_ ULONG NumberOfNodes
     )
 {
     PETP_GPU_ADAPTER adapter;
@@ -394,9 +414,8 @@ PETP_GPU_ADAPTER EtpAddDisplayAdapter(
     sizeNeeded = FIELD_OFFSET(ETP_GPU_ADAPTER, ApertureBitMapBuffer);
     sizeNeeded += BYTES_NEEDED_FOR_BITS(NumberOfSegments);
 
-    adapter = PhAllocate(sizeNeeded);
-    memset(adapter, 0, sizeNeeded);
-
+    adapter = PhAllocateZero(sizeNeeded);
+    adapter->DeviceInterface = PhCreateString(DeviceInterface);
     adapter->AdapterLuid = AdapterLuid;
     adapter->NodeCount = NumberOfNodes;
     adapter->SegmentCount = NumberOfSegments;
@@ -404,12 +423,8 @@ PETP_GPU_ADAPTER EtpAddDisplayAdapter(
 
     {
         PPH_STRING description;
-        PPH_STRING driverDate;
-        PPH_STRING driverVersion;
-        PPH_STRING locationInfo;
-        PPH_STRING installedMemory;
 
-        if (EtpQueryDeviceProperties(DeviceInterface, &description, &driverDate, &driverVersion, &locationInfo, &installedMemory))
+        if (EtQueryDeviceProperties(DeviceInterface, &description, NULL, NULL, NULL, NULL))
         {
             adapter->Description = description;
         }
@@ -421,19 +436,19 @@ PETP_GPU_ADAPTER EtpAddDisplayAdapter(
 
         for (ULONG i = 0; i < adapter->NodeCount; i++)
         {
-            D3DKMT_NODEMETADATA nodeMetaData;
+            D3DKMT_NODEMETADATA metaDataInfo;
 
-            memset(&nodeMetaData, 0, sizeof(D3DKMT_NODEMETADATA));
-            nodeMetaData.NodeOrdinal = i;
+            memset(&metaDataInfo, 0, sizeof(D3DKMT_NODEMETADATA));
+            metaDataInfo.NodeOrdinal = i;
 
-            if (NT_SUCCESS(EtpQueryAdapterInformation(
+            if (NT_SUCCESS(EtQueryAdapterInformation(
                 AdapterHandle,
                 KMTQAITYPE_NODEMETADATA,
-                &nodeMetaData,
+                &metaDataInfo,
                 sizeof(D3DKMT_NODEMETADATA)
                 )))
             {
-                PhAddItemList(adapter->NodeNameList, EtpGetNodeEngineTypeString(nodeMetaData));
+                PhAddItemList(adapter->NodeNameList, EtpGetNodeEngineTypeString(metaDataInfo));
             }
             else
             {
@@ -498,11 +513,11 @@ BOOLEAN EtpInitializeD3DStatistics(
         if (!NT_SUCCESS(D3DKMTOpenAdapterFromDeviceName(&openAdapterFromDeviceName)))
             continue;
 
-        if (WindowsVersion >= WINDOWS_8)
+        if (WindowsVersion >= WINDOWS_8 && deviceAdapterList->Count > 1)
         {
             if (EtpIsGpuSoftwareDevice(openAdapterFromDeviceName.AdapterHandle))
             {
-                EtpCloseAdapterHandle(openAdapterFromDeviceName.AdapterHandle);
+                EtCloseAdapterHandle(openAdapterFromDeviceName.AdapterHandle);
                 continue;
             }
         }
@@ -513,7 +528,7 @@ BOOLEAN EtpInitializeD3DStatistics(
 
             memset(&segmentInfo, 0, sizeof(D3DKMT_SEGMENTSIZEINFO));
 
-            if (NT_SUCCESS(EtpQueryAdapterInformation(
+            if (NT_SUCCESS(EtQueryAdapterInformation(
                 openAdapterFromDeviceName.AdapterHandle,
                 KMTQAITYPE_GETSEGMENTSIZE,
                 &segmentInfo,
@@ -525,41 +540,6 @@ BOOLEAN EtpInitializeD3DStatistics(
             }
         }
 
-        //{
-        //    D3DKMT_ADAPTER_PERFDATA segmentInfo;
-        //
-        //    memset(&segmentInfo, 0, sizeof(D3DKMT_ADAPTER_PERFDATA));
-        //
-        //    if (NT_SUCCESS(EtpQueryAdapterInformation(
-        //        openAdapterFromDeviceName.AdapterHandle,
-        //        KMTQAITYPE_ADAPTERPERFDATA,
-        //        &segmentInfo,
-        //        sizeof(D3DKMT_ADAPTER_PERFDATA)
-        //        )))
-        //    {
-        //        //_Out_ ULONGLONG MemoryFrequency; // Clock frequency of the memory in hertz
-        //        //_Out_ ULONGLONG MaxMemoryFrequency; // Max clock frequency of the memory while not overclocked, represented in hertz.
-        //        //_Out_ ULONGLONG MaxMemoryFrequencyOC; // Clock frequency of the memory while overclocked in hertz.
-        //        //_Out_ ULONGLONG MemoryBandwidth; // Amount of memory transferred in bytes
-        //        //_Out_ ULONGLONG PCIEBandwidth; // Amount of memory transferred over PCI-E in bytes
-        //        //_Out_ ULONG FanRPM; // Fan rpm
-        //        //_Out_ ULONG Power; // Power draw of the adapter in tenths of a percentage
-        //        //_Out_ ULONG Temperature; // Temperature in deci-Celsius 1 = 0.1C
-        //        //_Out_ UCHAR PowerStateOverride; // Overrides dxgkrnls power view of linked adapters.
-        //
-        //        dprintf("Memory: %lu, MemoryBandwidth: %lu, PCIEBandwidth: %lu, FanRPM: %lu, Power: %lu, Temperature: %lu\n", 
-        //            segmentInfo.MemoryFrequency, 
-        //            segmentInfo.MemoryBandwidth,
-        //            segmentInfo.PCIEBandwidth,
-        //            segmentInfo.FanRPM,
-        //            segmentInfo.Power * 100 / 1000,
-        //            segmentInfo.Temperature * 100 / 1000
-        //            );
-        //    }
-        //}
-
-
-
         memset(&queryStatistics, 0, sizeof(D3DKMT_QUERYSTATISTICS));
         queryStatistics.Type = D3DKMT_QUERYSTATISTICS_ADAPTER;
         queryStatistics.AdapterLuid = openAdapterFromDeviceName.AdapterLuid;
@@ -567,14 +547,13 @@ BOOLEAN EtpInitializeD3DStatistics(
         if (NT_SUCCESS(D3DKMTQueryStatistics(&queryStatistics)))
         {
             PETP_GPU_ADAPTER gpuAdapter;
-            ULONG ii;
 
             gpuAdapter = EtpAddDisplayAdapter(
+                openAdapterFromDeviceName.DeviceName,
                 openAdapterFromDeviceName.AdapterHandle,
                 openAdapterFromDeviceName.AdapterLuid, 
                 queryStatistics.QueryResult.AdapterInformation.NbSegments,
-                queryStatistics.QueryResult.AdapterInformation.NodeCount,
-                openAdapterFromDeviceName.DeviceName
+                queryStatistics.QueryResult.AdapterInformation.NodeCount
                 );
 
             gpuAdapter->FirstNodeIndex = EtGpuNextNodeIndex;
@@ -582,7 +561,7 @@ BOOLEAN EtpInitializeD3DStatistics(
             EtGpuTotalSegmentCount += gpuAdapter->SegmentCount;
             EtGpuNextNodeIndex += gpuAdapter->NodeCount;
 
-            for (ii = 0; ii < gpuAdapter->SegmentCount; ii++)
+            for (ULONG ii = 0; ii < gpuAdapter->SegmentCount; ii++)
             {
                 memset(&queryStatistics, 0, sizeof(D3DKMT_QUERYSTATISTICS));
                 queryStatistics.Type = D3DKMT_QUERYSTATISTICS_SEGMENT;
@@ -619,7 +598,7 @@ BOOLEAN EtpInitializeD3DStatistics(
             }
         }
 
-        EtpCloseAdapterHandle(openAdapterFromDeviceName.AdapterHandle);
+        EtCloseAdapterHandle(openAdapterFromDeviceName.AdapterHandle);
     }
 
     PhDereferenceObject(deviceAdapterList);
@@ -651,8 +630,6 @@ VOID EtpUpdateProcessSegmentInformation(
     _In_ PET_PROCESS_BLOCK Block
     )
 {
-    ULONG i;
-    ULONG j;
     PETP_GPU_ADAPTER gpuAdapter;
     D3DKMT_QUERYSTATISTICS queryStatistics;
     ULONG64 dedicatedUsage;
@@ -664,11 +641,11 @@ VOID EtpUpdateProcessSegmentInformation(
     dedicatedUsage = 0;
     sharedUsage = 0;
 
-    for (i = 0; i < EtpGpuAdapterList->Count; i++)
+    for (ULONG i = 0; i < EtpGpuAdapterList->Count; i++)
     {
         gpuAdapter = EtpGpuAdapterList->Items[i];
 
-        for (j = 0; j < gpuAdapter->SegmentCount; j++)
+        for (ULONG j = 0; j < gpuAdapter->SegmentCount; j++)
         {
             memset(&queryStatistics, 0, sizeof(D3DKMT_QUERYSTATISTICS));
             queryStatistics.Type = D3DKMT_QUERYSTATISTICS_PROCESS_SEGMENT;
