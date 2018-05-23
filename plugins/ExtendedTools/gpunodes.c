@@ -403,7 +403,7 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
                                         adapterDescription = PhCreateString(L"Unknown Adapter");
                                     }
 
-                                    if (adapterEngineName)
+                                    if (!PhIsNullOrEmptyString(adapterEngineName))
                                     {
                                         PhMoveReference(&GraphState[i].TooltipText, PhFormatString(
                                             L"Node %lu (%s) on %s\n%.2f%%\n%s",

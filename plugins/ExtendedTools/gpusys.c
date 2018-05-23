@@ -120,17 +120,28 @@ BOOLEAN EtpGpuSysInfoSectionCallback(
             PPH_SYSINFO_DRAW_PANEL drawPanel = Parameter1;
 
             drawPanel->Title = PhCreateString(L"GPU");
-            drawPanel->SubTitle = PhFormatString(
-                L"%.2f%%\n%s / %s",
-                EtGpuNodeUsage * 100,
-                PhaFormatSize(EtGpuDedicatedUsage, ULONG_MAX)->Buffer,
-                PhaFormatSize(EtGpuDedicatedLimit, ULONG_MAX)->Buffer
-                );
-            drawPanel->SubTitleOverflow = PhFormatString(
-                L"%.2f%%\n%s",
-                EtGpuNodeUsage * 100,
-                PhaFormatSize(EtGpuDedicatedUsage, ULONG_MAX)->Buffer
-                );
+
+            if (EtGpuDedicatedUsage && EtGpuDedicatedLimit) // Required for Intel IGP devices -dmex
+            {
+                drawPanel->SubTitle = PhFormatString(
+                    L"%.2f%%\n%s / %s",
+                    EtGpuNodeUsage * 100,
+                    PhaFormatSize(EtGpuDedicatedUsage, ULONG_MAX)->Buffer,
+                    PhaFormatSize(EtGpuDedicatedLimit, ULONG_MAX)->Buffer
+                    );
+                drawPanel->SubTitleOverflow = PhFormatString(
+                    L"%.2f%%\n%s",
+                    EtGpuNodeUsage * 100,
+                    PhaFormatSize(EtGpuDedicatedUsage, ULONG_MAX)->Buffer
+                    );
+            }
+            else
+            {
+                drawPanel->SubTitle = PhFormatString(
+                    L"%.2f%%\n",
+                    EtGpuNodeUsage * 100
+                    );
+            }
         }
         return TRUE;
     }
