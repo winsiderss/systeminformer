@@ -1174,7 +1174,7 @@ VOID PhpFillProcessItem(
         {
             PPH_STRING fileName;
 
-            if (ProcessItem->QueryHandle)
+            if (ProcessItem->QueryHandle && !ProcessItem->IsSubsystemProcess)
             {
                 PhGetProcessImageFileNameWin32(ProcessItem->QueryHandle, &ProcessItem->FileName);
             }

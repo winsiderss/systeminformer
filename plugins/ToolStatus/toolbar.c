@@ -358,19 +358,21 @@ VOID ToolbarLoadSettings(
             RBBIM_IDEALSIZE
         };
 
-        index = (UINT)SendMessage(RebarHandle, RB_IDTOINDEX, REBAR_BAND_ID_TOOLBAR, 0);
-
-        // Get settings for Rebar band.
-        if (SendMessage(RebarHandle, RB_GETBANDINFO, index, (LPARAM)&rebarBandInfo) != -1)
+        if ((index = (UINT)SendMessage(RebarHandle, RB_IDTOINDEX, REBAR_BAND_ID_TOOLBAR, 0)) != UINT_MAX)
         {
-            SIZE idealWidth;
+            // Get settings for Rebar band.
+            if (SendMessage(RebarHandle, RB_GETBANDINFO, index, (LPARAM)&rebarBandInfo))
+            {
+                SIZE idealWidth = { 0, 0 };
 
-            // Reset the cxIdeal for the Chevron
-            SendMessage(ToolBarHandle, TB_GETIDEALSIZE, FALSE, (LPARAM)&idealWidth);
+                // Reset the cxIdeal for the Chevron
+                if (SendMessage(ToolBarHandle, TB_GETIDEALSIZE, FALSE, (LPARAM)&idealWidth))
+                {
+                    rebarBandInfo.cxIdeal = (UINT)idealWidth.cx;
 
-            rebarBandInfo.cxIdeal = idealWidth.cx;
-
-            SendMessage(RebarHandle, RB_SETBANDINFO, index, (LPARAM)&rebarBandInfo);
+                    SendMessage(RebarHandle, RB_SETBANDINFO, index, (LPARAM)&rebarBandInfo);
+                }
+            }
         }
     }
 

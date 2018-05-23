@@ -104,7 +104,7 @@ STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSM
 CAPTION ".NET assemblies"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    CONTROL         ".NET assemblies",IDC_LIST,"PhTreeNew",WS_CLIPSIBLINGS | WS_CLIPCHILDREN | 0x1a,7,7,246,246,WS_EX_CLIENTEDGE
+    CONTROL         ".NET assemblies",IDC_LIST,"PhTreeNew",WS_CLIPSIBLINGS | WS_CLIPCHILDREN | 0x1a,2,3,256,255,WS_EX_CLIENTEDGE
 END
 
 
@@ -126,10 +126,10 @@ BEGIN
 
     IDD_PROCDOTNETASM, DIALOG
     BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 253
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 253
+        LEFTMARGIN, 2
+        RIGHTMARGIN, 258
+        TOPMARGIN, 3
+        BOTTOMMARGIN, 258
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -148,21 +148,6 @@ END
 IDD_PROCDOTNETPERF AFX_DIALOG_LAYOUT
 BEGIN
     0
-END
-
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// Menu
-//
-
-IDR_ASSEMBLY_MENU MENU
-BEGIN
-    POPUP "CLR"
-    BEGIN
-        MENUITEM "Open &file location",         ID_CLR_OPENFILELOCATION
-        MENUITEM "&Copy\aCtrl+C",               ID_CLR_COPY
-    END
 END
 
 #endif    // English (Australia) resources
