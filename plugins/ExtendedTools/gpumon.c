@@ -415,7 +415,7 @@ D3D_FEATURE_LEVEL EtQueryAdapterFeatureLevel(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static PFN_D3D11_CREATE_DEVICE D3D11CreateDevice_I;
+    static PFN_D3D11_CREATE_DEVICE D3D11CreateDevice_I = NULL;
     static HRESULT (WINAPI *CreateDXGIFactory1_I)(_In_ REFIID riid, _Out_ PVOID *ppFactory) = NULL;
     D3D_FEATURE_LEVEL d3dFeatureLevelResult = 0;
     IDXGIFactory1 *dxgiFactory;
