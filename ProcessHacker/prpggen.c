@@ -224,15 +224,26 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             PhSetDialogItemText(hwndDlg, IDC_VERSION, PhpGetStringOrNa(processItem->VersionInfo.FileVersion));
             PhSetDialogItemText(hwndDlg, IDC_FILENAME, PhpGetStringOrNa(processItem->FileName));
 
-            if (!processItem->FileName)
-                EnableWindow(GetDlgItem(hwndDlg, IDC_OPENFILENAME), FALSE);
-
             {
                 PPH_STRING inspectExecutables;
 
+                if (PhIsNullOrEmptyString(processItem->FileName))
+                {
+                    EnableWindow(GetDlgItem(hwndDlg, IDC_OPENFILENAME), FALSE);
+                    EnableWindow(GetDlgItem(hwndDlg, IDC_INSPECT), FALSE);
+                }
+                else
+                {
+                    if (!RtlDoesFileExists_U(PhGetString(processItem->FileName)))
+                    {
+                        EnableWindow(GetDlgItem(hwndDlg, IDC_OPENFILENAME), FALSE);
+                        EnableWindow(GetDlgItem(hwndDlg, IDC_INSPECT), FALSE);
+                    }
+                }
+
                 inspectExecutables = PhaGetStringSetting(L"ProgramInspectExecutables");
 
-                if (!processItem->FileName || inspectExecutables->Length == 0)
+                if (PhIsNullOrEmptyString(inspectExecutables))
                 {
                     EnableWindow(GetDlgItem(hwndDlg, IDC_INSPECT), FALSE);
                 }

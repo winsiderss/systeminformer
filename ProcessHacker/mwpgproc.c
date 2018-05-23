@@ -547,6 +547,11 @@ VOID PhMwpInitializeProcessMenu(
             PhEnableEMenuItem(Menu, ID_PROCESS_PROPERTIES, TRUE);
             PhEnableEMenuItem(Menu, ID_PROCESS_SEARCHONLINE, TRUE);
         }
+
+        if (PhIsNullOrEmptyString(Processes[0]->FileName) || !RtlDoesFileExists_U(PhGetString(Processes[0]->FileName)))
+        {
+            PhEnableEMenuItem(Menu, ID_PROCESS_OPENFILELOCATION, FALSE);  
+        }
     }
     else
     {
