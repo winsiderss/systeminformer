@@ -61,7 +61,7 @@ PET_PROCESS_ICON EtProcIconReferenceSmallProcessIcon(
 
     smallProcessIcon = Block->SmallProcessIcon;
 
-    if (!smallProcessIcon && PhTestEvent(&Block->ProcessItem->Stage1Event))
+    if (!smallProcessIcon && PhTestEvent(&Block->ProcessItem->Stage1Event) && Block->ProcessItem->SmallIcon)
     {
         smallProcessIcon = EtProcIconCreateProcessIcon(Block->ProcessItem->SmallIcon);
 
