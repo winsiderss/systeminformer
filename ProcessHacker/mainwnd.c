@@ -1227,7 +1227,10 @@ VOID PhMwpOnCommand(
         {
             PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
 
-            if (processItem && processItem->FileName)
+            if (processItem && 
+                !PhIsNullOrEmptyString(processItem->FileName) && 
+                RtlDoesFileExists_U(PhGetString(processItem->FileName)
+                ))
             {
                 PhReferenceObject(processItem);
                 PhShellExecuteUserString(
