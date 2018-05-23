@@ -456,7 +456,7 @@ VOID NTAPI ProcessesUpdatedHandler(
 
     if (context->WindowHandle)
     {
-        PostMessage(context->WindowHandle, UPDATE_MSG, 0, 0);
+        PostMessage(context->WindowHandle, ET_WM_UPDATE, 0, 0);
     }
 }
 
@@ -863,7 +863,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
             }
         }
         break;
-    case UPDATE_MSG:
+    case ET_WM_UPDATE:
         {
             if (context->Enabled)
             {

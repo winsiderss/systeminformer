@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
     </Filter>
+    <Filter Include="Source Files\Video">
+      <UniqueIdentifier>{d3096a42-7c1f-4edf-a5d2-d086f5e5b174}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.c">
@@ -60,29 +63,32 @@
     <ClCompile Include="procicon.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="gpumon.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="gpusys.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="gpuprprp.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="utils.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="iconext.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="gpunodes.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="etwmini.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="gpumini.c">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Video</Filter>
+    </ClCompile>
+    <ClCompile Include="gpumon.c">
+      <Filter>Source Files\Video</Filter>
+    </ClCompile>
+    <ClCompile Include="gpunodes.c">
+      <Filter>Source Files\Video</Filter>
+    </ClCompile>
+    <ClCompile Include="gpuprprp.c">
+      <Filter>Source Files\Video</Filter>
+    </ClCompile>
+    <ClCompile Include="gpusys.c">
+      <Filter>Source Files\Video</Filter>
+    </ClCompile>
+    <ClCompile Include="gpudetails.c">
+      <Filter>Source Files\Video</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -9,6 +9,11 @@
 
 #include "resource.h"
 
+#define CINTERFACE
+#define COBJMACROS
+#include <D3D11.h>
+#include "d3dkmt.h"
+
 extern PPH_PLUGIN PluginInstance;
 extern LIST_ENTRY EtProcessBlockListHead;
 extern LIST_ENTRY EtNetworkBlockListHead;
@@ -28,10 +33,12 @@ extern HWND NetworkTreeNewHandle;
 #define SETTING_NAME_UNLOADED_COLUMNS (PLUGIN_NAME L".UnloadedListColumns")
 #define SETTING_NAME_MODULE_SERVICES_WINDOW_POSITION (PLUGIN_NAME L".ModuleServiceWindowPosition")
 #define SETTING_NAME_MODULE_SERVICES_WINDOW_SIZE (PLUGIN_NAME L".ModuleServiceWindowSize")
+#define SETTING_NAME_GPU_NODES_WINDOW_POSITION (PLUGIN_NAME L".GpuNodesWindowPosition")
+#define SETTING_NAME_GPU_NODES_WINDOW_SIZE (PLUGIN_NAME L".GpuNodesWindowSize")
 
-// Graph update message
-
-#define UPDATE_MSG (WM_APP + 1)
+// Window messages
+#define ET_WM_SHOWDIALOG (WM_APP + 1)
+#define ET_WM_UPDATE (WM_APP + 2)
 
 // Process icon
 
@@ -198,6 +205,9 @@ typedef struct _ET_PROCESS_BLOCK
     PH_UINT64_DELTA NetworkSendRawDelta;
 
     PH_UINT64_DELTA GpuRunningTimeDelta;
+    //PPH_UINT64_DELTA GpuTotalRunningTimeDelta;
+    //PPH_CIRCULAR_BUFFER_FLOAT GpuTotalNodesHistory;
+
     FLOAT GpuNodeUsage;
     ULONG64 GpuDedicatedUsage;
     ULONG64 GpuSharedUsage;
@@ -368,17 +378,15 @@ VOID EtSaveSettingsDiskTreeList(
 // gpumon
 
 extern BOOLEAN EtGpuEnabled;
+extern PPH_LIST EtpGpuAdapterList;
 
 extern ULONG EtGpuTotalNodeCount;
 extern ULONG EtGpuTotalSegmentCount;
 extern ULONG64 EtGpuDedicatedLimit;
 extern ULONG64 EtGpuSharedLimit;
-extern RTL_BITMAP EtGpuNodeBitMap;
 
 extern PH_UINT64_DELTA EtClockTotalRunningTimeDelta;
 extern LARGE_INTEGER EtClockTotalRunningTimeFrequency;
-extern PH_UINT64_DELTA EtGpuTotalRunningTimeDelta;
-extern PH_UINT64_DELTA EtGpuSystemRunningTimeDelta;
 extern FLOAT EtGpuNodeUsage;
 extern PH_CIRCULAR_BUFFER_FLOAT EtGpuNodeHistory;
 extern PH_CIRCULAR_BUFFER_ULONG EtMaxGpuNodeHistory; // ID of max. GPU usage process
@@ -394,6 +402,17 @@ extern PH_CIRCULAR_BUFFER_ULONG EtGpuSharedHistory;
 
 VOID EtGpuMonitorInitialization(
     VOID
+    );
+
+NTSTATUS EtQueryAdapterInformation(
+    _In_ D3DKMT_HANDLE AdapterHandle,
+    _In_ KMTQUERYADAPTERINFOTYPE InformationClass,
+    _Out_writes_bytes_opt_(InformationLength) PVOID Information,
+    _In_ UINT32 InformationLength
+    );
+
+BOOLEAN EtCloseAdapterHandle(
+    _In_ D3DKMT_HANDLE AdapterHandle
     );
 
 typedef struct _ET_PROCESS_GPU_STATISTICS
@@ -429,21 +448,24 @@ ULONG EtGetGpuAdapterIndexFromNodeIndex(
     _In_ ULONG NodeIndex
     );
 
+PPH_STRING EtGetGpuAdapterNodeDescription(
+    _In_ ULONG Index,
+    _In_ ULONG NodeIndex
+    );
+
 PPH_STRING EtGetGpuAdapterDescription(
     _In_ ULONG Index
-    );
-
-VOID EtAllocateGpuNodeBitMap(
-    _Out_ PRTL_BITMAP BitMap
-    );
-
-VOID EtUpdateGpuNodeBitMap(
-    _In_ PRTL_BITMAP NewBitMap
     );
 
 VOID EtQueryProcessGpuStatistics(
     _In_ HANDLE ProcessHandle,
     _Out_ PET_PROCESS_GPU_STATISTICS Statistics
+    );
+
+// gpudetails
+
+VOID EtShowGpuDetailsDialog(
+    _In_ HWND ParentWindowHandle
     );
 
 // gpuprprp
@@ -489,8 +511,7 @@ VOID EtEtwMiniInformationInitializing(
 // gpunodes
 
 VOID EtShowGpuNodesDialog(
-    _In_ HWND ParentWindowHandle,
-    _In_ PPH_SYSINFO_PARAMETERS Parameters
+    _In_ HWND ParentWindowHandle
     );
 
 // gpusys

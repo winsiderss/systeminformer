@@ -499,10 +499,10 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
             switch (getCellText->Id)
             {
             case ETDSTNC_NAME:
-                getCellText->Text = node->ProcessNameText->sr;
+                getCellText->Text = PhGetStringRef(node->ProcessNameText);
                 break;
             case ETDSTNC_FILE:
-                getCellText->Text = diskItem->FileNameWin32->sr;
+                getCellText->Text = PhGetStringRef(diskItem->FileNameWin32);
                 break;
             case ETDSTNC_READRATEAVERAGE:
                 EtFormatRate(diskItem->ReadAverage, &node->ReadRateAverageText, &getCellText->Text);

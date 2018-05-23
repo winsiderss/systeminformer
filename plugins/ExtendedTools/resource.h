@@ -26,10 +26,12 @@
 #define IDD_SYSINFO_NETPANEL            124
 #define IDD_SYSINFO_NET                 125
 #define IDD_PROCGPU_PANEL               126
-#define IDD_DISKTABRESTART              127
 #define IDD_DISKTABERROR                128
 #define IDD_PROCDISKNET_PANEL           129
 #define IDD_PROCGPU_DETAILS             131
+#define IDC_UTILIZATION                 132
+#define IDC_SPEED                       133
+#define IDD_SYSINFO_GPUDETAILS          141
 #define IDC_LIST                        1001
 #define IDC_REFRESH                     1002
 #define IDC_SEQUENCENUMBER              1003
@@ -55,10 +57,8 @@
 #define IDC_WSWATCHENABLED              1037
 #define IDC_NODES                       1048
 #define IDC_ENABLEGPUMONITOR            1049
-#define IDC_EXAMPLE                     1050
 #define IDC_ENABLESYSINFOGRAPHS         1050
 #define IDC_GROUPGPU                    1051
-#define IDC_SELECTALL                   1051
 #define IDC_GROUPMEM                    1052
 #define IDC_GROUPSHARED                 1053
 #define IDC_GROUPDEDICATED              1054
@@ -92,13 +92,16 @@
 #define IDC_ZSENDSDELTA_V               1081
 #define IDC_ZWRITESDELTA_V              1082
 #define IDC_ZREADSDELTA_V               1083
-#define IDC_INSTRUCTION                 1084
 #define IDC_PANEL_LAYOUT                1085
 #define IDC_RESTART                     1086
 #define IDC_ERROR                       1087
 #define IDC_GROUPDISK                   1088
 #define IDC_GROUPNETWORK                1089
 #define IDC_GPUDETAILS                  1090
+#define IDC_BUTTON1                     1092
+#define IDC_DETAILS                     1092
+#define IDC_LIST1                       1093
+#define IDC_GPULIST                     1093
 #define ID_DISK_GOTOPROCESS             40005
 #define ID_DISK_COPY                    40006
 #define ID_DISK_PROPERTIES              40007
@@ -108,9 +111,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        138
+#define _APS_NEXT_RESOURCE_VALUE        144
 #define _APS_NEXT_COMMAND_VALUE         40009
-#define _APS_NEXT_CONTROL_VALUE         1091
-#define _APS_NEXT_SYMED_VALUE           130
+#define _APS_NEXT_CONTROL_VALUE         1094
+#define _APS_NEXT_SYMED_VALUE           134
 #endif
 #endif
