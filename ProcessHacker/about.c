@@ -27,6 +27,7 @@
 #include <symprv.h>
 
 #include <hndlprv.h>
+#include <mainwnd.h>
 #include <memprv.h>
 #include <modprv.h>
 #include <netprv.h>
@@ -48,7 +49,10 @@ static INT_PTR CALLBACK PhpAboutDlgProc(
         {
             PPH_STRING appName;
 
-            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+            SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
+            SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
+
+            PhCenterWindow(hwndDlg, (IsWindowVisible(PhMainWndHandle) && !IsMinimized(PhMainWndHandle)) ? PhMainWndHandle : NULL);
 
 #if (PHAPP_VERSION_REVISION != 0)
             appName = PhFormatString(
