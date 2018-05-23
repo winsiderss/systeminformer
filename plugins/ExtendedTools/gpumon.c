@@ -323,7 +323,10 @@ PPH_STRING EtpQueryDeviceRegistryProperty(
     return string;
 }
 
-ULONG64 EtpQueryGpuInstalledMemory( // EtpQueryGpuHardwareReservedMemory // HACK
+// Note: MSDN states this value must be created by video devices BUT Task Manager 
+// doesn't query this value and I currently don't know where it's querying this information.
+// https://docs.microsoft.com/en-us/windows-hardware/drivers/display/registering-hardware-information
+ULONG64 EtpQueryGpuInstalledMemory(
     _In_ DEVINST DeviceHandle
     )
 {
@@ -344,6 +347,9 @@ ULONG64 EtpQueryGpuInstalledMemory( // EtpQueryGpuHardwareReservedMemory // HACK
         if (installedMemory == ULLONG_MAX)
             installedMemory = PhQueryRegistryUlong(keyHandle, L"HardwareInformation.MemorySize");
 
+        if (installedMemory == ULONG_MAX) // HACK
+            installedMemory = ULLONG_MAX;
+
         NtClose(keyHandle);
     }
 
@@ -356,7 +362,7 @@ BOOLEAN EtQueryDeviceProperties(
     _Out_ PPH_STRING *DriverDate,
     _Out_ PPH_STRING *DriverVersion,
     _Out_ PPH_STRING *LocationInfo,
-    _Out_ PPH_STRING *InstalledMemory
+    _Out_ ULONG64 *InstalledMemory
     )
 {
     DEVPROPTYPE devicePropertyType;
@@ -393,11 +399,93 @@ BOOLEAN EtQueryDeviceProperties(
         *DriverVersion = EtpQueryDeviceProperty(deviceInstanceHandle, &DEVPKEY_Device_DriverVersion);
     if (LocationInfo)
         *LocationInfo = EtpQueryDeviceProperty(deviceInstanceHandle, &DEVPKEY_Device_LocationInfo);
+    if (InstalledMemory)
+        *InstalledMemory = EtpQueryGpuInstalledMemory(deviceInstanceHandle);
+    // EtpQueryDeviceProperty(deviceInstanceHandle, &DEVPKEY_Device_Manufacturer);
 
-    //EtpQueryDeviceProperty(deviceInstanceHandle, &DEVPKEY_Device_Manufacturer);
-    //EtpQueryGpuInstalledMemory(deviceInstanceHandle);
+    // Undocumented device properties (Win10 only)
+    //DEFINE_DEVPROPKEY(DEVPKEY_Gpu_Luid, 0x60b193cb, 0x5276, 0x4d0f, 0x96, 0xfc, 0xf1, 0x73, 0xab, 0xad, 0x3e, 0xc6, 2); // DEVPROP_TYPE_UINT64
+    //DEFINE_DEVPROPKEY(DEVPKEY_Gpu_PhysicalAdapterIndex, 0x60b193cb, 0x5276, 0x4d0f, 0x96, 0xfc, 0xf1, 0x73, 0xab, 0xad, 0x3e, 0xc6, 3); // DEVPROP_TYPE_UINT32
 
     return TRUE;
+}
+
+D3D_FEATURE_LEVEL EtQueryAdapterFeatureLevel(
+    _In_ LUID AdapterLuid
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static PFN_D3D11_CREATE_DEVICE D3D11CreateDevice_I;
+    static HRESULT (WINAPI *CreateDXGIFactory1_I)(_In_ REFIID riid, _Out_ PVOID *ppFactory) = NULL;
+    D3D_FEATURE_LEVEL d3dFeatureLevelResult = 0;
+    IDXGIFactory1 *dxgiFactory;
+    IDXGIAdapter* dxgiAdapter;
+    UINT i = 0;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        LoadLibrary(L"dxgi.dll");
+        LoadLibrary(L"d3d11.dll");
+        CreateDXGIFactory1_I = PhGetModuleProcAddress(L"dxgi.dll", "CreateDXGIFactory1");
+        D3D11CreateDevice_I = PhGetModuleProcAddress(L"d3d11.dll", "D3D11CreateDevice");
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!CreateDXGIFactory1_I || !SUCCEEDED(CreateDXGIFactory1_I(&IID_IDXGIFactory1, &dxgiFactory)))
+        return 0;
+
+    for (UINT i = 0; i < 25; i++)
+    {
+        DXGI_ADAPTER_DESC dxgiAdapterDescription;
+
+        if (!SUCCEEDED(IDXGIFactory1_EnumAdapters(dxgiFactory, i, &dxgiAdapter)))
+            break;
+
+        if (SUCCEEDED(IDXGIAdapter_GetDesc(dxgiAdapter, &dxgiAdapterDescription)))
+        {
+            if (RtlEqualMemory(&dxgiAdapterDescription.AdapterLuid, &AdapterLuid, sizeof(LUID)))
+            {
+                D3D_FEATURE_LEVEL d3dFeatureLevel[] =
+                {
+                    D3D_FEATURE_LEVEL_12_1,
+                    D3D_FEATURE_LEVEL_12_0,
+                    D3D_FEATURE_LEVEL_11_1,
+                    D3D_FEATURE_LEVEL_11_0,
+                    D3D_FEATURE_LEVEL_10_1,
+                    D3D_FEATURE_LEVEL_10_0,
+                    D3D_FEATURE_LEVEL_9_3,
+                    D3D_FEATURE_LEVEL_9_2,
+                    D3D_FEATURE_LEVEL_9_1
+                };
+                D3D_FEATURE_LEVEL d3ddeviceFeatureLevel;
+                ID3D11Device* d3d11device;
+
+                if (D3D11CreateDevice_I && SUCCEEDED(D3D11CreateDevice_I(
+                    dxgiAdapter,
+                    D3D_DRIVER_TYPE_UNKNOWN,
+                    NULL,
+                    0,
+                    d3dFeatureLevel,
+                    RTL_NUMBER_OF(d3dFeatureLevel),
+                    D3D11_SDK_VERSION,
+                    &d3d11device,
+                    &d3ddeviceFeatureLevel,
+                    NULL
+                    )))
+                {
+                    d3dFeatureLevelResult = d3ddeviceFeatureLevel;
+                    ID3D11Device_Release(d3d11device);
+                    break;
+                }
+            }
+        }
+
+        IDXGIAdapter_Release(dxgiAdapter);
+    }
+
+    IDXGIFactory1_Release(dxgiFactory);
+    return d3dFeatureLevelResult;
 }
 
 PETP_GPU_ADAPTER EtpAddDisplayAdapter(

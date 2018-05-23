@@ -8,6 +8,10 @@
 #include <math.h>
 
 #include "resource.h"
+
+#define CINTERFACE
+#define COBJMACROS
+#include <D3D11.h>
 #include "d3dkmt.h"
 
 extern PPH_PLUGIN PluginInstance;
