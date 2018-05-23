@@ -267,7 +267,7 @@ VOID NTAPI EtwDiskNetworkUpdateHandler(
 
     if (context->WindowHandle)
     {
-        PostMessage(context->WindowHandle, UPDATE_MSG, 0, 0);
+        PostMessage(context->WindowHandle, ET_WM_UPDATE, 0, 0);
     }
 }
 
@@ -585,7 +585,7 @@ INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
             }
         }
         break;
-    case UPDATE_MSG:
+    case ET_WM_UPDATE:
         {
             if (context->Enabled)
             {

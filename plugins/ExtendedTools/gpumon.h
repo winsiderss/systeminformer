@@ -10,12 +10,13 @@
 typedef struct _ETP_GPU_ADAPTER
 {
     LUID AdapterLuid;
-    PPH_STRING Description;
     ULONG SegmentCount;
     ULONG NodeCount;
     ULONG FirstNodeIndex;
 
-    BOOLEAN HasActivity;
+    PPH_STRING DeviceInterface;
+    PPH_STRING Description;
+    PPH_LIST NodeNameList;
 
     RTL_BITMAP ApertureBitMap;
     ULONG ApertureBitMapBuffer[1];
@@ -31,8 +32,13 @@ PETP_GPU_ADAPTER EtpAllocateGpuAdapter(
     _In_ ULONG NumberOfSegments
     );
 
-PPH_STRING EtpQueryDeviceDescription(
-    _In_ PWSTR DeviceInterface
+BOOLEAN EtQueryDeviceProperties(
+    _In_ PWSTR DeviceInterface,
+    _Out_ PPH_STRING *Description,
+    _Out_ PPH_STRING *DriverDate,
+    _Out_ PPH_STRING *DriverVersion,
+    _Out_ PPH_STRING *LocationInfo,
+    _Out_ ULONG64 *InstalledMemory
     );
 
 VOID NTAPI EtGpuProcessesUpdatedCallback(
