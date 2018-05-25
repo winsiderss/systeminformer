@@ -106,14 +106,14 @@ static int get_rdrand_seed()
 
 static int get_rdrand_seed()
 {
-	DEBUG_SEED("get_rdrand_seed");
-	int _eax;
+    DEBUG_SEED("get_rdrand_seed");
+    int _eax;
 retry:
-	// rdrand eax
-	__asm _emit 0x0F __asm _emit 0xC7 __asm _emit 0xF0
-	__asm jnc retry
-	__asm mov _eax, eax
-	return _eax;
+    // rdrand eax
+    __asm _emit 0x0F __asm _emit 0xC7 __asm _emit 0xF0
+    __asm jnc retry
+    __asm mov _eax, eax
+    return _eax;
 }
 
 #endif
