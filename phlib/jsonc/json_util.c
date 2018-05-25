@@ -9,8 +9,8 @@
  *
  */
 
-#include "..\include\phbase.h"
-#include "..\include\phnative.h"
+#include <phbase.h>
+#include <phnative.h>
 
 #include "config.h"
 #undef realloc
