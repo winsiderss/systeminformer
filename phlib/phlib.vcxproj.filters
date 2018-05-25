@@ -224,6 +224,18 @@
     <ClCompile Include="appresolver.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="jsonc\json_pointer.c">
+      <Filter>Json-C</Filter>
+    </ClCompile>
+    <ClCompile Include="jsonc\json_visit.c">
+      <Filter>Json-C</Filter>
+    </ClCompile>
+    <ClCompile Include="mxml\mxml-get.c">
+      <Filter>Mini-XML</Filter>
+    </ClCompile>
+    <ClCompile Include="jsonc\strerror_override.c">
+      <Filter>Json-C</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\circbuf.h">
@@ -474,6 +486,27 @@
     </ClInclude>
     <ClInclude Include="include\appresolverp.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="jsonc\json_pointer.h">
+      <Filter>Json-C\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="jsonc\json_visit.h">
+      <Filter>Json-C\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="jsonc\vasprintf_compat.h">
+      <Filter>Json-C\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="jsonc\snprintf_compat.h">
+      <Filter>Json-C\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="jsonc\strdup_compat.h">
+      <Filter>Json-C\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="jsonc\strerror_override.h">
+      <Filter>Json-C\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="jsonc\strerror_override_private.h">
+      <Filter>Json-C\Headers</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
