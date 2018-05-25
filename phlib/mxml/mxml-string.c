@@ -1,9 +1,7 @@
 /*
- * "$Id: mxml-string.c 454 2014-01-05 03:25:07Z msweet $"
+ * String functions for Mini-XML, a small XML file parsing library.
  *
- * String functions for Mini-XML, a small XML-like file parsing library.
- *
- * Copyright 2003-2014 by Michael R Sweet.
+ * Copyright 2003-2017 by Michael R Sweet.
  *
  * These coded instructions, statements, and computer programs are the
  * property of Michael R Sweet and are protected by Federal copyright
@@ -11,7 +9,7 @@
  * which should have been included with this file.  If this file is
  * missing or damaged, see the license at:
  *
- *     http://www.msweet.org/projects.php/Mini-XML
+ *     https://michaelrsweet.github.io/mxml
  */
 
 /*
@@ -100,11 +98,98 @@ _mxml_strdupf(const char *format,	/* I - Printf-style format string */
   */
 
   va_start(ap, format);
+#ifdef HAVE_VASPRINTF
+  if (vasprintf(&s, format, ap) < 0)
+    s = NULL;
+#else
   s = _mxml_vstrdupf(format, ap);
+#endif /* HAVE_VASPRINTF */
   va_end(ap);
 
   return (s);
 }
+
+
+#ifndef HAVE_STRLCAT
+/*
+ * '_mxml_strlcat()' - Safely concatenate a string.
+ */
+
+size_t					/* O - Number of bytes copied */
+_mxml_strlcat(char       *dst,		/* I - Destination buffer */
+              const char *src,		/* I - Source string */
+              size_t     dstsize)	/* I - Size of destinatipon buffer */
+{
+  size_t	srclen;			/* Length of source string */
+  size_t	dstlen;			/* Length of destination string */
+
+
+ /*
+  * Figure out how much room is left...
+  */
+
+  dstlen = strlen(dst);
+
+  if (dstsize <= (dstlen + 1))
+    return (dstlen);		        /* No room, return immediately... */
+
+  dstsize -= dstlen + 1;
+
+ /*
+  * Figure out how much room is needed...
+  */
+
+  srclen = strlen(src);
+
+ /*
+  * Copy the appropriate amount...
+  */
+
+  if (srclen > dstsize)
+    srclen = dstsize;
+
+  memmove(dst + dstlen, src, srclen);
+  dst[dstlen + srclen] = '\0';
+
+  return (dstlen + srclen);
+}
+#endif /* !HAVE_STRLCAT */
+
+
+#ifndef HAVE_STRLCPY
+/*
+ * '_mxml_strlcpy()' - Safely copy a string.
+ */
+
+size_t					/* O - Number of bytes copied */
+_mxml_strlcpy(char       *dst,		/* I - Destination buffer */
+              const char *src,		/* I - Source string */
+              size_t     dstsize)	/* I - Size of destinatipon buffer */
+{
+  size_t        srclen;                 /* Length of source string */
+
+
+ /*
+  * Figure out how much room is needed...
+  */
+
+  dstsize --;
+
+  srclen = strlen(src);
+
+ /*
+  * Copy the appropriate amount...
+  */
+
+  if (srclen > dstsize)
+    srclen = dstsize;
+
+  memmove(dst, src, srclen);
+  dst[srclen] = '\0';
+
+  return (srclen);
+}
+#endif /* !HAVE_STRLCPY */
 
 
 #ifndef HAVE_VSNPRINTF
@@ -426,10 +511,18 @@ char *					/* O - New string pointer */
 _mxml_vstrdupf(const char *format,	/* I - Printf-style format string */
                va_list    ap)		/* I - Pointer to additional arguments */
 {
+#ifdef HAVE_VASPRINTF
+  char		*s;			/* String */
+
+  if (vasprintf(&s, format, ap) < 0)
+    s = NULL;
+
+  return (s);
+
+#else
   int		bytes;			/* Number of bytes required */
   char		*buffer,		/* String buffer */
         temp[256];		/* Small buffer for first vsnprintf */
-  va_list	apcopy;			/* Copy of argument list */
 
 
  /*
@@ -437,8 +530,15 @@ _mxml_vstrdupf(const char *format,	/* I - Printf-style format string */
   * needed...
   */
 
+#  ifdef WIN32
+  bytes = _vscprintf(format, ap);
+
+#  else
+  va_list	apcopy;			/* Copy of argument list */
+
   va_copy(apcopy, ap);
   bytes = vsnprintf(temp, sizeof(temp), format, apcopy);
+#  endif /* WIN32 */
 
   if (bytes < sizeof(temp))
   {
@@ -462,9 +562,5 @@ _mxml_vstrdupf(const char *format,	/* I - Printf-style format string */
   */
 
   return (buffer);
+#endif /* HAVE_VASPRINTF */
 }
-
-
-/*
- * End of "$Id: mxml-string.c 454 2014-01-05 03:25:07Z msweet $".
- */

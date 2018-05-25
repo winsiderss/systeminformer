@@ -1,9 +1,7 @@
 /*
- * "$Id: mxml-file.c 467 2016-06-13 00:51:16Z msweet $"
+ * File loading code for Mini-XML, a small XML file parsing library.
  *
- * File loading code for Mini-XML, a small XML-like file parsing library.
- *
- * Copyright 2003-2016 by Michael R Sweet.
+ * Copyright 2003-2017 by Michael R Sweet.
  *
  * These coded instructions, statements, and computer programs are the
  * property of Michael R Sweet and are protected by Federal copyright
@@ -11,7 +9,7 @@
  * which should have been included with this file.  If this file is
  * missing or damaged, see the license at:
  *
- *     http://www.msweet.org/projects.php/Mini-XML
+ *     https://michaelrsweet.github.io/mxml
  */
 
 /*
@@ -106,18 +104,15 @@ static int		mxml_write_ws(mxml_node_t *node, void *p,
  * If no top node is provided, the XML file MUST be well-formed with a
  * single parent node like <?xml> for the entire file. The callback
  * function returns the value type that should be used for child nodes.
- * If MXML_NO_CALLBACK is specified then all child nodes will be either
- * MXML_ELEMENT or MXML_TEXT nodes.
- *
- * The constants MXML_INTEGER_CALLBACK, MXML_OPAQUE_CALLBACK,
- * MXML_REAL_CALLBACK, and MXML_TEXT_CALLBACK are defined for loading
- * child nodes of the specified type.
+ * The constants @code MXML_INTEGER_CALLBACK@, @code MXML_OPAQUE_CALLBACK@,
+ * @code MXML_REAL_CALLBACK@, and @code MXML_TEXT_CALLBACK@ are defined for
+ * loading child (data) nodes of the specified type.
  */
 
-mxml_node_t *				/* O - First node or NULL if the file could not be read. */
+mxml_node_t *				/* O - First node or @code NULL@ if the file could not be read. */
 mxmlLoadFd(mxml_node_t    *top,		/* I - Top node */
            HANDLE         fd,		/* I - File descriptor to read from */
-           mxml_load_cb_t cb)		/* I - Callback function or MXML_NO_CALLBACK */
+           mxml_load_cb_t cb)		/* I - Callback function or constant */
 {
   _mxml_fdbuf_t	buf;			/* File descriptor buffer */
 
@@ -145,18 +140,15 @@ mxmlLoadFd(mxml_node_t    *top,		/* I - Top node */
  * If no top node is provided, the XML file MUST be well-formed with a
  * single parent node like <?xml> for the entire file. The callback
  * function returns the value type that should be used for child nodes.
- * If MXML_NO_CALLBACK is specified then all child nodes will be either
- * MXML_ELEMENT or MXML_TEXT nodes.
- *
- * The constants MXML_INTEGER_CALLBACK, MXML_OPAQUE_CALLBACK,
- * MXML_REAL_CALLBACK, and MXML_TEXT_CALLBACK are defined for loading
- * child nodes of the specified type.
+ * The constants @code MXML_INTEGER_CALLBACK@, @code MXML_OPAQUE_CALLBACK@,
+ * @code MXML_REAL_CALLBACK@, and @code MXML_TEXT_CALLBACK@ are defined for
+ * loading child (data) nodes of the specified type.
  */
 
-mxml_node_t *				/* O - First node or NULL if the file could not be read. */
+mxml_node_t *				/* O - First node or @code NULL@ if the file could not be read. */
 mxmlLoadFile(mxml_node_t    *top,	/* I - Top node */
              FILE           *fp,	/* I - File to read from */
-             mxml_load_cb_t cb)		/* I - Callback function or MXML_NO_CALLBACK */
+             mxml_load_cb_t cb)		/* I - Callback function or constant */
 {
  /*
   * Read the XML data...
@@ -173,18 +165,15 @@ mxmlLoadFile(mxml_node_t    *top,	/* I - Top node */
  * If no top node is provided, the XML string MUST be well-formed with a
  * single parent node like <?xml> for the entire string. The callback
  * function returns the value type that should be used for child nodes.
- * If MXML_NO_CALLBACK is specified then all child nodes will be either
- * MXML_ELEMENT or MXML_TEXT nodes.
- *
- * The constants MXML_INTEGER_CALLBACK, MXML_OPAQUE_CALLBACK,
- * MXML_REAL_CALLBACK, and MXML_TEXT_CALLBACK are defined for loading
- * child nodes of the specified type.
+ * The constants @code MXML_INTEGER_CALLBACK@, @code MXML_OPAQUE_CALLBACK@,
+ * @code MXML_REAL_CALLBACK@, and @code MXML_TEXT_CALLBACK@ are defined for
+ * loading child (data) nodes of the specified type.
  */
 
-mxml_node_t *				/* O - First node or NULL if the string has errors. */
+mxml_node_t *				/* O - First node or @code NULL@ if the string has errors. */
 mxmlLoadString(mxml_node_t    *top,	/* I - Top node */
                const char     *s,	/* I - String to load */
-               mxml_load_cb_t cb)	/* I - Callback function or MXML_NO_CALLBACK */
+               mxml_load_cb_t cb)	/* I - Callback function or constant */
 {
  /*
   * Read the XML data...
@@ -200,21 +189,21 @@ mxmlLoadString(mxml_node_t    *top,	/* I - Top node */
  *
  * This function returns a pointer to a string containing the textual
  * representation of the XML node tree.  The string should be freed
- * using the free() function when you are done with it.  NULL is returned
+ * using the free() function when you are done with it.  @code NULL@ is returned
  * if the node would produce an empty string or if the string cannot be
  * allocated.
  *
  * The callback argument specifies a function that returns a whitespace
- * string or NULL before and after each element. If MXML_NO_CALLBACK
- * is specified, whitespace will only be added before MXML_TEXT nodes
+ * string or NULL before and after each element.  If @code MXML_NO_CALLBACK@
+ * is specified, whitespace will only be added before @code MXML_TEXT@ nodes
  * with leading whitespace and before attribute names inside opening
  * element tags.
  */
 
-char *					/* O - Allocated string or NULL */
+char *					/* O - Allocated string or @code NULL@ */
 mxmlSaveAllocString(
     mxml_node_t    *node,		/* I - Node to write */
-    mxml_save_cb_t cb)			/* I - Whitespace callback or MXML_NO_CALLBACK */
+    mxml_save_cb_t cb)			/* I - Whitespace callback or @code MXML_NO_CALLBACK@ */
 {
   int	bytes;				/* Required bytes */
   char	buffer[8192];			/* Temporary buffer */
@@ -262,16 +251,16 @@ mxmlSaveAllocString(
  * 'mxmlSaveFd()' - Save an XML tree to a file descriptor.
  *
  * The callback argument specifies a function that returns a whitespace
- * string or NULL before and after each element. If MXML_NO_CALLBACK
- * is specified, whitespace will only be added before MXML_TEXT nodes
+ * string or NULL before and after each element. If @code MXML_NO_CALLBACK@
+ * is specified, whitespace will only be added before @code MXML_TEXT@ nodes
  * with leading whitespace and before attribute names inside opening
  * element tags.
  */
 
 int					/* O - 0 on success, -1 on error. */
 mxmlSaveFd(mxml_node_t    *node,	/* I - Node to write */
-           HANDLE         fd,		/* I - File descriptor to write to */
-       mxml_save_cb_t cb)		/* I - Whitespace callback or MXML_NO_CALLBACK */
+       HANDLE         fd,		/* I - File descriptor to write to */
+       mxml_save_cb_t cb)		/* I - Whitespace callback or @code MXML_NO_CALLBACK@ */
 {
   int		col;			/* Final column */
   _mxml_fdbuf_t	buf;			/* File descriptor buffer */
@@ -310,8 +299,8 @@ mxmlSaveFd(mxml_node_t    *node,	/* I - Node to write */
  * 'mxmlSaveFile()' - Save an XML tree to a file.
  *
  * The callback argument specifies a function that returns a whitespace
- * string or NULL before and after each element. If MXML_NO_CALLBACK
- * is specified, whitespace will only be added before MXML_TEXT nodes
+ * string or NULL before and after each element. If @code MXML_NO_CALLBACK@
+ * is specified, whitespace will only be added before @code MXML_TEXT@ nodes
  * with leading whitespace and before attribute names inside opening
  * element tags.
  */
@@ -319,7 +308,7 @@ mxmlSaveFd(mxml_node_t    *node,	/* I - Node to write */
 int					/* O - 0 on success, -1 on error. */
 mxmlSaveFile(mxml_node_t    *node,	/* I - Node to write */
              FILE           *fp,	/* I - File to write to */
-         mxml_save_cb_t cb)		/* I - Whitespace callback or MXML_NO_CALLBACK */
+         mxml_save_cb_t cb)		/* I - Whitespace callback or @code MXML_NO_CALLBACK@ */
 {
   int	col;				/* Final column */
   _mxml_global_t *global = _mxml_global();
@@ -353,8 +342,8 @@ mxmlSaveFile(mxml_node_t    *node,	/* I - Node to write */
  * into the specified buffer.
  *
  * The callback argument specifies a function that returns a whitespace
- * string or NULL before and after each element. If MXML_NO_CALLBACK
- * is specified, whitespace will only be added before MXML_TEXT nodes
+ * string or NULL before and after each element. If @code MXML_NO_CALLBACK@
+ * is specified, whitespace will only be added before @code MXML_TEXT@ nodes
  * with leading whitespace and before attribute names inside opening
  * element tags.
  */
@@ -363,7 +352,7 @@ int					/* O - Size of string */
 mxmlSaveString(mxml_node_t    *node,	/* I - Node to write */
                char           *buffer,	/* I - String buffer */
                int            bufsize,	/* I - Size of string buffer */
-               mxml_save_cb_t cb)	/* I - Whitespace callback or MXML_NO_CALLBACK */
+               mxml_save_cb_t cb)	/* I - Whitespace callback or @code MXML_NO_CALLBACK@ */
 {
   int	col;				/* Final column */
   char	*ptr[2];			/* Pointers for putc_cb */
@@ -397,7 +386,7 @@ mxmlSaveString(mxml_node_t    *node,	/* I - Node to write */
   * Return the number of characters...
   */
 
-  return (int)(ptr[0] - buffer);
+  return ((int)(ptr[0] - buffer));
 }
 
 
@@ -409,25 +398,22 @@ mxmlSaveString(mxml_node_t    *node,	/* I - Node to write */
  * If no top node is provided, the XML file MUST be well-formed with a
  * single parent node like <?xml> for the entire file. The callback
  * function returns the value type that should be used for child nodes.
- * If MXML_NO_CALLBACK is specified then all child nodes will be either
- * MXML_ELEMENT or MXML_TEXT nodes.
+ * The constants @code MXML_INTEGER_CALLBACK@, @code MXML_OPAQUE_CALLBACK@,
+ * @code MXML_REAL_CALLBACK@, and @code MXML_TEXT_CALLBACK@ are defined for
+ * loading child nodes of the specified type.
  *
- * The constants MXML_INTEGER_CALLBACK, MXML_OPAQUE_CALLBACK,
- * MXML_REAL_CALLBACK, and MXML_TEXT_CALLBACK are defined for loading
- * child nodes of the specified type.
- *
- * The SAX callback must call mxmlRetain() for any nodes that need to
+ * The SAX callback must call @link mxmlRetain@ for any nodes that need to
  * be kept for later use. Otherwise, nodes are deleted when the parent
  * node is closed or after each data, comment, CDATA, or directive node.
  *
  * @since Mini-XML 2.3@
  */
 
-mxml_node_t *				/* O - First node or NULL if the file could not be read. */
+mxml_node_t *				/* O - First node or @code NULL@ if the file could not be read. */
 mxmlSAXLoadFd(mxml_node_t    *top,	/* I - Top node */
               HANDLE         fd,	/* I - File descriptor to read from */
-              mxml_load_cb_t cb,	/* I - Callback function or MXML_NO_CALLBACK */
-              mxml_sax_cb_t  sax_cb,	/* I - SAX callback or MXML_NO_CALLBACK */
+              mxml_load_cb_t cb,	/* I - Callback function or constant */
+              mxml_sax_cb_t  sax_cb,	/* I - SAX callback or @code MXML_NO_CALLBACK@ */
               void           *sax_data)	/* I - SAX user data */
 {
   _mxml_fdbuf_t	buf;			/* File descriptor buffer */
@@ -457,26 +443,23 @@ mxmlSAXLoadFd(mxml_node_t    *top,	/* I - Top node */
  * If no top node is provided, the XML file MUST be well-formed with a
  * single parent node like <?xml> for the entire file. The callback
  * function returns the value type that should be used for child nodes.
- * If MXML_NO_CALLBACK is specified then all child nodes will be either
- * MXML_ELEMENT or MXML_TEXT nodes.
+ * The constants @code MXML_INTEGER_CALLBACK@, @code MXML_OPAQUE_CALLBACK@,
+ * @code MXML_REAL_CALLBACK@, and @code MXML_TEXT_CALLBACK@ are defined for
+ * loading child nodes of the specified type.
  *
- * The constants MXML_INTEGER_CALLBACK, MXML_OPAQUE_CALLBACK,
- * MXML_REAL_CALLBACK, and MXML_TEXT_CALLBACK are defined for loading
- * child nodes of the specified type.
- *
- * The SAX callback must call mxmlRetain() for any nodes that need to
+ * The SAX callback must call @link mxmlRetain@ for any nodes that need to
  * be kept for later use. Otherwise, nodes are deleted when the parent
  * node is closed or after each data, comment, CDATA, or directive node.
  *
  * @since Mini-XML 2.3@
  */
 
-mxml_node_t *				/* O - First node or NULL if the file could not be read. */
+mxml_node_t *				/* O - First node or @code NULL@ if the file could not be read. */
 mxmlSAXLoadFile(
     mxml_node_t    *top,		/* I - Top node */
     FILE           *fp,			/* I - File to read from */
-    mxml_load_cb_t cb,			/* I - Callback function or MXML_NO_CALLBACK */
-    mxml_sax_cb_t  sax_cb,		/* I - SAX callback or MXML_NO_CALLBACK */
+    mxml_load_cb_t cb,			/* I - Callback function or constant */
+    mxml_sax_cb_t  sax_cb,		/* I - SAX callback or @code MXML_NO_CALLBACK@ */
     void           *sax_data)		/* I - SAX user data */
 {
  /*
@@ -495,26 +478,23 @@ mxmlSAXLoadFile(
  * If no top node is provided, the XML string MUST be well-formed with a
  * single parent node like <?xml> for the entire string. The callback
  * function returns the value type that should be used for child nodes.
- * If MXML_NO_CALLBACK is specified then all child nodes will be either
- * MXML_ELEMENT or MXML_TEXT nodes.
+ * The constants @code MXML_INTEGER_CALLBACK@, @code MXML_OPAQUE_CALLBACK@,
+ * @code MXML_REAL_CALLBACK@, and @code MXML_TEXT_CALLBACK@ are defined for
+ * loading child nodes of the specified type.
  *
- * The constants MXML_INTEGER_CALLBACK, MXML_OPAQUE_CALLBACK,
- * MXML_REAL_CALLBACK, and MXML_TEXT_CALLBACK are defined for loading
- * child nodes of the specified type.
- *
- * The SAX callback must call mxmlRetain() for any nodes that need to
+ * The SAX callback must call @link mxmlRetain@ for any nodes that need to
  * be kept for later use. Otherwise, nodes are deleted when the parent
  * node is closed or after each data, comment, CDATA, or directive node.
  *
  * @since Mini-XML 2.3@
  */
 
-mxml_node_t *				/* O - First node or NULL if the string has errors. */
+mxml_node_t *				/* O - First node or @code NULL@ if the string has errors. */
 mxmlSAXLoadString(
     mxml_node_t    *top,		/* I - Top node */
     const char     *s,			/* I - String to load */
-    mxml_load_cb_t cb,			/* I - Callback function or MXML_NO_CALLBACK */
-    mxml_sax_cb_t  sax_cb,		/* I - SAX callback or MXML_NO_CALLBACK */
+    mxml_load_cb_t cb,			/* I - Callback function or constant */
+    mxml_sax_cb_t  sax_cb,		/* I - SAX callback or @code MXML_NO_CALLBACK@ */
     void           *sax_data)		/* I - SAX user data */
 {
  /*
@@ -532,7 +512,7 @@ mxmlSAXLoadString(
  * return 0 on success and non-zero on error.
  *
  * The save function accepts a node pointer and must return a malloc'd
- * string on success and NULL on error.
+ * string on success and @code NULL@ on error.
  *
  */
 
@@ -1035,7 +1015,7 @@ mxml_fd_write(_mxml_fdbuf_t *buf)	/* I - File descriptor buffer */
     IO_STATUS_BLOCK isb;
 
     if (!buf)
-        return 1;
+        return -1;
 
     if (buf->current == buf->buffer)
         return 0;
@@ -1320,9 +1300,9 @@ mxml_get_entity(mxml_node_t *parent,	/* I  - Parent node */
   if (entity[0] == '#')
   {
     if (entity[1] == 'x')
-      ch = strtol(entity + 2, NULL, 16);
+      ch = (int)strtol(entity + 2, NULL, 16);
     else
-      ch = strtol(entity + 1, NULL, 10);
+      ch = (int)strtol(entity + 1, NULL, 10);
   }
   else if ((ch = mxmlEntityGetValue(entity)) < 0)
     mxml_error("Entity name \"%s;\" not supported under parent <%s>!",
@@ -1414,7 +1394,7 @@ mxml_load_data(
       switch (type)
       {
     case MXML_INTEGER :
-            node = mxmlNewInteger(parent, strtol(buffer, &bufptr, 0));
+            node = mxmlNewInteger(parent, (int)strtol(buffer, &bufptr, 0));
         break;
 
     case MXML_OPAQUE :
@@ -1632,7 +1612,14 @@ mxml_load_data(
     while ((ch = (*getc_cb)(p, &encoding)) != EOF)
     {
       if (ch == '>' && !strncmp(bufptr - 2, "]]", 2))
+      {
+       /*
+        * Drop terminator from CDATA string...
+        */
+
+        bufptr[-2] = '\0';
         break;
+      }
       else if (mxml_add_char(ch, &bufptr, &buffer, &bufsize))
         goto error;
     }
@@ -2085,7 +2072,7 @@ mxml_parse_element(
 
   if ((value = PhAllocateSafe(64)) == NULL)
   {
-    PhFree(name);
+      PhFree(name);
     mxml_error("Unable to allocate memory for value!");
     return (EOF);
   }
@@ -2706,12 +2693,11 @@ mxml_write_node(mxml_node_t     *node,	/* I - Node to write */
       if ((*putc_cb)('<', p) < 0)
         return (-1);
       if (current->value.element.name[0] == '?' ||
-          !strncmp(current->value.element.name, "!--", 3) ||
-          !strncmp(current->value.element.name, "![CDATA[", 8))
+          !strncmp(current->value.element.name, "!--", 3))
       {
        /*
-        * Comments, CDATA, and processing instructions do not
-        * use character entities.
+        * Comments and processing instructions do not use character
+        * entities.
         */
 
         const char	*ptr;		/* Pointer into name */
@@ -2719,6 +2705,24 @@ mxml_write_node(mxml_node_t     *node,	/* I - Node to write */
         for (ptr = current->value.element.name; *ptr; ptr ++)
           if ((*putc_cb)(*ptr, p) < 0)
         return (-1);
+      }
+      else if (!strncmp(current->value.element.name, "![CDATA[", 8))
+      {
+       /*
+        * CDATA elements do not use character entities, but also need the
+        * "]]" terminator added at the end.
+        */
+
+        const char	*ptr;		/* Pointer into name */
+
+        for (ptr = current->value.element.name; *ptr; ptr ++)
+          if ((*putc_cb)(*ptr, p) < 0)
+        return (-1);
+
+            if ((*putc_cb)(']', p) < 0)
+              return (-1);
+            if ((*putc_cb)(']', p) < 0)
+              return (-1);
       }
       else if (mxml_write_name(current->value.element.name, p, putc_cb) < 0)
         return (-1);
@@ -2891,7 +2895,7 @@ mxml_write_node(mxml_node_t     *node,	/* I - Node to write */
         const char	*newline;	/* Last newline in string */
 
 
-        if ((data = (*global->custom_save_cb)(node)) == NULL)
+        if ((data = (*global->custom_save_cb)(current)) == NULL)
           return (-1);
 
         if (mxml_write_string(data, p, putc_cb) < 0)
@@ -3030,8 +3034,3 @@ mxml_write_ws(mxml_node_t     *node,	/* I - Current node */
 
   return (col);
 }
-
-
-/*
- * End of "$Id: mxml-file.c 467 2016-06-13 00:51:16Z msweet $".
- */

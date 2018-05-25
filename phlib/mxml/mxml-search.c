@@ -1,10 +1,7 @@
 /*
- * "$Id: mxml-search.c 451 2014-01-04 21:50:06Z msweet $"
+ * Search/navigation functions for Mini-XML, a small XML file parsing library.
  *
- * Search/navigation functions for Mini-XML, a small XML-like file
- * parsing library.
- *
- * Copyright 2003-2014 by Michael R Sweet.
+ * Copyright 2003-2017 by Michael R Sweet.
  *
  * These coded instructions, statements, and computer programs are the
  * property of Michael R Sweet and are protected by Federal copyright
@@ -12,7 +9,7 @@
  * which should have been included with this file.  If this file is
  * missing or damaged, see the license at:
  *
- *     http://www.msweet.org/projects.php/Mini-XML
+ *     https://michaelrsweet.github.io/mxml
  */
 
 /*
@@ -27,22 +24,22 @@
  * 'mxmlFindElement()' - Find the named element.
  *
  * The search is constrained by the name, attribute name, and value; any
- * NULL names or values are treated as wildcards, so different kinds of
+ * @code NULL@ names or values are treated as wildcards, so different kinds of
  * searches can be implemented by looking for all elements of a given name
  * or all elements with a specific attribute. The descend argument determines
  * whether the search descends into child nodes; normally you will use
- * MXML_DESCEND_FIRST for the initial search and MXML_NO_DESCEND to find
- * additional direct descendents of the node. The top node argument
+ * @code MXML_DESCEND_FIRST@ for the initial search and @code MXML_NO_DESCEND@
+ * to find additional direct descendents of the node. The top node argument
  * constrains the search to a particular node's children.
  */
 
-mxml_node_t *				/* O - Element node or NULL */
+mxml_node_t *				/* O - Element node or @code NULL@ */
 mxmlFindElement(mxml_node_t *node,	/* I - Current node */
                 mxml_node_t *top,	/* I - Top node */
-                const char  *name,	/* I - Element name or NULL for any */
-        const char  *attr,	/* I - Attribute name, or NULL for none */
-        const char  *value,	/* I - Attribute value, or NULL for any */
-        int         descend)	/* I - Descend into tree - MXML_DESCEND, MXML_NO_DESCEND, or MXML_DESCEND_FIRST */
+                const char  *element,	/* I - Element name or @code NULL@ for any */
+        const char  *attr,	/* I - Attribute name, or @code NULL@ for none */
+        const char  *value,	/* I - Attribute value, or @code NULL@ for any */
+        int         descend)	/* I - Descend into tree - @code MXML_DESCEND@, @code MXML_NO_DESCEND@, or @code MXML_DESCEND_FIRST@ */
 {
   const char	*temp;			/* Current attribute value */
 
@@ -72,7 +69,7 @@ mxmlFindElement(mxml_node_t *node,	/* I - Current node */
 
     if (node->type == MXML_ELEMENT &&
         node->value.element.name &&
-    (!name || !strcmp(node->value.element.name, name)))
+    (!element || !strcmp(node->value.element.name, element)))
     {
      /*
       * See if we need to check for an attribute...
@@ -123,7 +120,7 @@ mxmlFindElement(mxml_node_t *node,	/* I - Current node */
  * @since Mini-XML 2.7@
  */
 
-mxml_node_t *				/* O - Found node or NULL */
+mxml_node_t *				/* O - Found node or @code NULL@ */
 mxmlFindPath(mxml_node_t *top,		/* I - Top node */
          const char  *path)		/* I - Path to element */
 {
@@ -201,14 +198,14 @@ mxmlFindPath(mxml_node_t *top,		/* I - Top node */
  * 'mxmlWalkNext()' - Walk to the next logical node in the tree.
  *
  * The descend argument controls whether the first child is considered
- * to be the next node. The top node argument constrains the walk to
+ * to be the next node.  The top node argument constrains the walk to
  * the node's children.
  */
 
-mxml_node_t *				/* O - Next node or NULL */
+mxml_node_t *				/* O - Next node or @code NULL@ */
 mxmlWalkNext(mxml_node_t *node,		/* I - Current node */
              mxml_node_t *top,		/* I - Top node */
-             int         descend)	/* I - Descend into tree - MXML_DESCEND, MXML_NO_DESCEND, or MXML_DESCEND_FIRST */
+             int         descend)	/* I - Descend into tree - @code MXML_DESCEND@, @code MXML_NO_DESCEND@, or @code MXML_DESCEND_FIRST@ */
 {
   if (!node)
     return (NULL);
@@ -239,14 +236,14 @@ mxmlWalkNext(mxml_node_t *node,		/* I - Current node */
  * 'mxmlWalkPrev()' - Walk to the previous logical node in the tree.
  *
  * The descend argument controls whether the previous node's last child
- * is considered to be the previous node. The top node argument constrains
+ * is considered to be the previous node.  The top node argument constrains
  * the walk to the node's children.
  */
 
-mxml_node_t *				/* O - Previous node or NULL */
+mxml_node_t *				/* O - Previous node or @code NULL@ */
 mxmlWalkPrev(mxml_node_t *node,		/* I - Current node */
              mxml_node_t *top,		/* I - Top node */
-             int         descend)	/* I - Descend into tree - MXML_DESCEND, MXML_NO_DESCEND, or MXML_DESCEND_FIRST */
+             int         descend)	/* I - Descend into tree - @code MXML_DESCEND@, @code MXML_NO_DESCEND@, or @code MXML_DESCEND_FIRST@ */
 {
   if (!node || node == top)
     return (NULL);
@@ -273,8 +270,3 @@ mxmlWalkPrev(mxml_node_t *node,		/* I - Current node */
   else
     return (NULL);
 }
-
-
-/*
- * End of "$Id: mxml-search.c 451 2014-01-04 21:50:06Z msweet $".
- */
