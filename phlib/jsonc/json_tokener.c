@@ -16,6 +16,7 @@
 #include "config.h"
 
 #include <math.h>
+#include "math_compat.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
@@ -23,25 +24,24 @@
 #include <string.h>
 #include <limits.h>
 
-#include "bits.h"
 #include "debug.h"
 #include "printbuf.h"
 #include "arraylist.h"
 #include "json_inttypes.h"
 #include "json_object.h"
+#include "json_object_private.h"
 #include "json_tokener.h"
 #include "json_util.h"
+#include "strdup_compat.h"
 
 #ifdef HAVE_LOCALE_H
 #include <locale.h>
 #endif /* HAVE_LOCALE_H */
+#ifdef HAVE_XLOCALE_H
+#include <xlocale.h>
+#endif
 
-#if !HAVE_STRDUP && defined(_MSC_VER)
-  /* MSC has the version as _strdup */
-# define strdup _strdup
-#elif !HAVE_STRDUP
-# error You do not have strdup on your system.
-#endif /* HAVE_STRDUP */
+#define jt_hexdigit(x) (((x) <= '9') ? (x) - '0' : ((x) & 7) + 9)
 
 #if !HAVE_STRNCASECMP && defined(_MSC_VER)
   /* MSC has the version as _strnicmp */
@@ -58,7 +58,8 @@
 static const char json_null_str[] = "null";
 static const int json_null_str_len = sizeof(json_null_str) - 1;
 static const char json_inf_str[] = "Infinity";
-static const int json_inf_str_len = sizeof(json_inf_str) - 1;
+static const char json_inf_str_lower[] = "infinity";
+static const unsigned int json_inf_str_len = sizeof(json_inf_str) - 1;
 static const char json_nan_str[] = "NaN";
 static const int json_nan_str_len = sizeof(json_nan_str) - 1;
 static const char json_true_str[] = "true";
@@ -86,13 +87,15 @@ static const char* json_tokener_errors[] = {
 
 const char *json_tokener_error_desc(enum json_tokener_error jerr)
 {
-    int jerr_int = (int)jerr;
-    if (jerr_int < 0 || jerr_int >= (int)(sizeof(json_tokener_errors) / sizeof(json_tokener_errors[0])))
-        return "Unknown error, invalid json_tokener_error value passed to json_tokener_error_desc()";
+    int jerr_int = (int) jerr;
+    if (jerr_int < 0 ||
+        jerr_int >= (int)(sizeof(json_tokener_errors) / sizeof(json_tokener_errors[0])))
+        return "Unknown error, "
+               "invalid json_tokener_error value passed to json_tokener_error_desc()";
     return json_tokener_errors[jerr];
 }
 
-enum json_tokener_error json_tokener_get_error(json_tokener *tok)
+enum json_tokener_error json_tokener_get_error(struct json_tokener *tok)
 {
     return tok->err;
 }
@@ -109,7 +112,8 @@ struct json_tokener* json_tokener_new_ex(int depth)
 
   tok = (struct json_tokener*)calloc(1, sizeof(struct json_tokener));
   if (!tok) return NULL;
-  tok->stack = (struct json_tokener_srec *)calloc(depth, sizeof(struct json_tokener_srec));
+  tok->stack = (struct json_tokener_srec *) calloc(depth,
+                           sizeof(struct json_tokener_srec));
   if (!tok->stack) {
     free(tok);
     return NULL;
@@ -129,7 +133,7 @@ void json_tokener_free(struct json_tokener *tok)
 {
   json_tokener_reset(tok);
   if (tok->pb) printbuf_free(tok->pb);
-  if (tok->stack) free(tok->stack);
+  free(tok->stack);
   free(tok);
 }
 
@@ -163,7 +167,8 @@ struct json_object* json_tokener_parse(const char *str)
     return obj;
 }
 
-struct json_object* json_tokener_parse_verbose(const char *str, enum json_tokener_error *error)
+struct json_object* json_tokener_parse_verbose(const char *str,
+                           enum json_tokener_error *error)
 {
     struct json_tokener* tok;
     struct json_object* obj;
@@ -206,14 +211,17 @@ struct json_object* json_tokener_parse_verbose(const char *str, enum json_tokene
  *   Returns 1 on success, sets tok->err and returns 0 if no more chars.
  *   Implicit inputs:  str, len vars
  */
-#define PEEK_CHAR(dest, tok)                                                  \
-  (((tok)->char_offset == len) ?                                          \
-   (((tok)->depth == 0 && state == json_tokener_state_eatws && saved_state == json_tokener_state_finish) ? \
-    (((tok)->err = json_tokener_success), 0)                              \
-    :                                                                   \
-    (((tok)->err = json_tokener_continue), 0)                             \
-    ) :                                                                 \
-   (((dest) = *str), 1)                                                 \
+#define PEEK_CHAR(dest, tok)			\
+  (((tok)->char_offset == len) ?		\
+   (((tok)->depth == 0 &&			\
+     state == json_tokener_state_eatws &&	\
+     saved_state == json_tokener_state_finish	\
+     ) ?					\
+    (((tok)->err = json_tokener_success), 0)	\
+    :						\
+    (((tok)->err = json_tokener_continue), 0)	\
+    ) :						\
+   (((dest) = *str), 1)				\
    )
 
 /* ADVANCE_CHAR() macro:
@@ -233,12 +241,11 @@ struct json_object* json_tokener_parse_ex(struct json_tokener *tok,
 {
   struct json_object *obj = NULL;
   char c = '\1';
-#ifdef HAVE_SETLOCALE
-  char *oldlocale=NULL, *tmplocale;
-
-  tmplocale = setlocale(LC_NUMERIC, NULL);
-  if (tmplocale) oldlocale = strdup(tmplocale);
-  setlocale(LC_NUMERIC, "C");
+#ifdef HAVE_USELOCALE
+  locale_t oldlocale = uselocale(NULL);
+  locale_t newloc;
+#elif defined(HAVE_SETLOCALE)
+  char *oldlocale = NULL;
 #endif
 
   tok->char_offset = 0;
@@ -253,6 +260,33 @@ struct json_object* json_tokener_parse_ex(struct json_tokener *tok,
     tok->err = json_tokener_error_size;
     return NULL;
   }
+
+#ifdef HAVE_USELOCALE
+  {
+    locale_t duploc = duplocale(oldlocale);
+    newloc = newlocale(LC_NUMERIC, "C", duploc);
+    // XXX at least Debian 8.4 has a bug in newlocale where it doesn't
+    //  change the decimal separator unless you set LC_TIME!
+    if (newloc)
+    {
+      duploc = newloc; // original duploc has been freed by newlocale()
+      newloc = newlocale(LC_TIME, "C", duploc);
+    }
+    if (newloc == NULL)
+    {
+      freelocale(duploc);
+      return NULL;
+    }
+    uselocale(newloc);
+  }
+#elif defined(HAVE_SETLOCALE)
+  {
+    char *tmplocale;
+    tmplocale = setlocale(LC_NUMERIC, NULL);
+    if (tmplocale) oldlocale = strdup(tmplocale);
+    setlocale(LC_NUMERIC, "C");
+  }
+#endif
 
   while (PEEK_CHAR(c, tok)) {
 
@@ -281,11 +315,15 @@ struct json_object* json_tokener_parse_ex(struct json_tokener *tok,
     state = json_tokener_state_eatws;
     saved_state = json_tokener_state_object_field_start;
     current = json_object_new_object();
+    if(current == NULL)
+        goto out;
     break;
       case '[':
     state = json_tokener_state_eatws;
     saved_state = json_tokener_state_array;
     current = json_object_new_array();
+    if(current == NULL)
+        goto out;
     break;
       case 'I':
       case 'i':
@@ -305,6 +343,7 @@ struct json_object* json_tokener_parse_ex(struct json_tokener *tok,
             tok->err = json_tokener_error_parse_unexpected;
             goto out;
         }
+    /* FALLTHRU */
       case '"':
     state = json_tokener_state_string;
     printbuf_reset(tok->pb);
@@ -318,9 +357,6 @@ struct json_object* json_tokener_parse_ex(struct json_tokener *tok,
     printbuf_reset(tok->pb);
     tok->st_pos = 0;
     goto redo_char;
-#if defined(__GNUC__)
-      case '0' ... '9':
-#else
       case '0':
       case '1':
       case '2':
@@ -331,7 +367,6 @@ struct json_object* json_tokener_parse_ex(struct json_tokener *tok,
       case '7':
       case '8':
       case '9':
-#endif
       case '-':
     state = json_tokener_state_number;
     printbuf_reset(tok->pb);
@@ -350,38 +385,55 @@ struct json_object* json_tokener_parse_ex(struct json_tokener *tok,
       tok->depth--;
       goto redo_char;
 
-    case json_tokener_state_inf: /* aka starts with 'i' */
+    case json_tokener_state_inf: /* aka starts with 'i' (or 'I', or "-i", or "-I") */
       {
-    int size;
-    int size_inf;
+    /* If we were guaranteed to have len set, then we could (usually) handle
+     * the entire "Infinity" check in a single strncmp (strncasecmp), but
+     * since len might be -1 (i.e. "read until \0"), we need to check it
+     * a character at a time.
+     * Trying to handle it both ways would make this code considerably more
+     * complicated with likely little performance benefit.
+     */
     int is_negative = 0;
+    const char *_json_inf_str = json_inf_str;
+    if (!(tok->flags & JSON_TOKENER_STRICT))
+        _json_inf_str = json_inf_str_lower;
 
-    printbuf_memappend_fast(tok->pb, &c, 1);
-    size = json_min(tok->st_pos+1, json_null_str_len);
-    size_inf = json_min(tok->st_pos+1, json_inf_str_len);
-    char *infbuf = tok->pb->buf;
-    if (*infbuf == '-')
+    /* Note: tok->st_pos must be 0 when state is set to json_tokener_state_inf */
+    while (tok->st_pos < (int)json_inf_str_len)
     {
-        infbuf++;
+        char inf_char = *str;
+        if (!(tok->flags & JSON_TOKENER_STRICT))
+            inf_char = tolower((int)*str);
+        if (inf_char != _json_inf_str[tok->st_pos])
+        {
+            tok->err = json_tokener_error_parse_unexpected;
+            goto out;
+        }
+        tok->st_pos++;
+        (void)ADVANCE_CHAR(str, tok);
+        if (!PEEK_CHAR(c, tok))
+        {
+            /* out of input chars, for now at least */
+            goto out;
+        }
+    }
+    /* We checked the full length of "Infinity", so create the object.
+     * When handling -Infinity, the number parsing code will have dropped
+     * the "-" into tok->pb for us, so check it now.
+     */
+    if (printbuf_length(tok->pb) > 0 && *(tok->pb->buf) == '-')
+    {
         is_negative = 1;
     }
-    if ((!(tok->flags & JSON_TOKENER_STRICT) &&
-              strncasecmp(json_inf_str, infbuf, size_inf) == 0) ||
-             (strncmp(json_inf_str, infbuf, size_inf) == 0)
-            )
-    {
-        if (tok->st_pos == json_inf_str_len)
-        {
-            current = json_object_new_double(is_negative ? -INFINITY : INFINITY); 
-            saved_state = json_tokener_state_finish;
-            state = json_tokener_state_eatws;
-            goto redo_char;
-        }
-    } else {
-        tok->err = json_tokener_error_parse_unexpected;
+    current = json_object_new_double(is_negative
+                     ? -INFINITY : INFINITY);
+    if (current == NULL)
         goto out;
-    }
-    tok->st_pos++;
+    saved_state = json_tokener_state_finish;
+    state = json_tokener_state_eatws;
+    goto redo_char;
+     
       }
       break;
     case json_tokener_state_null: /* aka starts with 'n' */
@@ -410,6 +462,8 @@ struct json_object* json_tokener_parse_ex(struct json_tokener *tok,
         if (tok->st_pos == json_nan_str_len)
         {
             current = json_object_new_double(NAN);
+            if (current == NULL)
+                goto out;
             saved_state = json_tokener_state_finish;
             state = json_tokener_state_eatws;
             goto redo_char;
@@ -482,7 +536,9 @@ struct json_object* json_tokener_parse_ex(struct json_tokener *tok,
     while(1) {
       if(c == tok->quote_char) {
         printbuf_memappend_fast(tok->pb, case_start, str-case_start);
-        current = json_object_new_string_len(tok->pb->buf, tok->pb->bpos);
+        current = json_object_new_string_len(tok->pb->buf, (int)tok->pb->bpos);
+        if(current == NULL)
+        goto out;
         saved_state = json_tokener_state_finish;
         state = json_tokener_state_eatws;
         break;
@@ -537,8 +593,8 @@ struct json_object* json_tokener_parse_ex(struct json_tokener *tok,
 
       /* Handle a 4-byte sequence, or two sequences if a surrogate pair */
       while(1) {
-        if(strchr(json_hex_chars, c)) {
-          tok->ucs_char += ((unsigned int)hexdigit(c) << ((3-tok->st_pos++)*4));
+        if (c && strchr(json_hex_chars, c)) {
+          tok->ucs_char += ((unsigned int)jt_hexdigit(c) << ((3-tok->st_pos++)*4));
           if(tok->st_pos == 4) {
         unsigned char unescaped_utf[4];
 
@@ -568,8 +624,8 @@ struct json_object* json_tokener_parse_ex(struct json_tokener *tok,
                    */
                   got_hi_surrogate = tok->ucs_char;
                   /* Not at end, and the next two chars should be "\u" */
-                  if ((tok->char_offset+1 != len) &&
-                      (tok->char_offset+2 != len) &&
+                  if ((len == -1 || len > (tok->char_offset + 2)) &&
+                      // str[0] != '0' &&  // implied by json_hex_chars, above.
                       (str[1] == '\\') &&
                       (str[2] == 'u'))
                   {
@@ -578,13 +634,15 @@ struct json_object* json_tokener_parse_ex(struct json_tokener *tok,
                  * characters.
                  */
                 if( !ADVANCE_CHAR(str, tok) || !ADVANCE_CHAR(str, tok) ) {
-                    printbuf_memappend_fast(tok->pb, (char*)utf8_replacement_char, 3);
-                }
+                    printbuf_memappend_fast(tok->pb,
+                        (char*) utf8_replacement_char, 3);
+            }
                     /* Advance to the first char of the next sequence and
                      * continue processing with the next sequence.
                      */
                 if (!ADVANCE_CHAR(str, tok) || !PEEK_CHAR(c, tok)) {
-                  printbuf_memappend_fast(tok->pb, (char*)utf8_replacement_char, 3);
+                  printbuf_memappend_fast(tok->pb,
+                          (char*) utf8_replacement_char, 3);
                   goto out;
                     }
                 tok->ucs_char = 0;
@@ -595,7 +653,8 @@ struct json_object* json_tokener_parse_ex(struct json_tokener *tok,
                      * it.  Put a replacement char in for the hi surrogate
                      * and pretend we finished.
                      */
-            printbuf_memappend_fast(tok->pb, (char*)utf8_replacement_char, 3);
+            printbuf_memappend_fast(tok->pb,
+                        (char*) utf8_replacement_char, 3);
                   }
         } else if (IS_LOW_SURROGATE(tok->ucs_char)) {
                   /* Got a low surrogate not preceded by a high */
@@ -643,6 +702,8 @@ struct json_object* json_tokener_parse_ex(struct json_tokener *tok,
       ) {
       if(tok->st_pos == json_true_str_len) {
         current = json_object_new_boolean(1);
+        if(current == NULL)
+        goto out;
         saved_state = json_tokener_state_finish;
         state = json_tokener_state_eatws;
         goto redo_char;
@@ -652,6 +713,8 @@ struct json_object* json_tokener_parse_ex(struct json_tokener *tok,
       || (strncmp(json_false_str, tok->pb->buf, size2) == 0)) {
       if(tok->st_pos == json_false_str_len) {
         current = json_object_new_boolean(0);
+        if(current == NULL)
+        goto out;
         saved_state = json_tokener_state_finish;
         state = json_tokener_state_eatws;
         goto redo_char;
@@ -669,10 +732,45 @@ struct json_object* json_tokener_parse_ex(struct json_tokener *tok,
     /* Advance until we change state */
     const char *case_start = str;
     int case_len=0;
+    int is_exponent=0;
+    int negativesign_next_possible_location=1;
     while(c && strchr(json_number_chars, c)) {
       ++case_len;
-      if(c == '.' || c == 'e' || c == 'E')
+
+      /* non-digit characters checks */
+      /* note: since the main loop condition to get here was
+               an input starting with 0-9 or '-', we are
+               protected from input starting with '.' or
+               e/E. */
+      if (c == '.') {
+        if (tok->is_double != 0) {
+          /* '.' can only be found once, and out of the exponent part.
+             Thus, if the input is already flagged as double, it
+             is invalid. */
+          tok->err = json_tokener_error_parse_number;
+          goto out;
+        }
         tok->is_double = 1;
+      }
+      if (c == 'e' || c == 'E') {
+        if (is_exponent != 0) {
+          /* only one exponent possible */
+          tok->err = json_tokener_error_parse_number;
+          goto out;
+        }
+        is_exponent = 1;
+        tok->is_double = 1;
+        /* the exponent part can begin with a negative sign */
+        negativesign_next_possible_location = case_len + 1;
+      }
+      if (c == '-' && case_len != negativesign_next_possible_location) {
+        /* If the negative sign is not where expected (ie
+           start of input or start of exponent part), the
+           input is invalid. */
+        tok->err = json_tokener_error_parse_number;
+        goto out;
+      }
+
       if (!ADVANCE_CHAR(str, tok) || !PEEK_CHAR(c, tok)) {
         printbuf_memappend_fast(tok->pb, case_start, case_len);
         goto out;
@@ -682,10 +780,11 @@ struct json_object* json_tokener_parse_ex(struct json_tokener *tok,
           printbuf_memappend_fast(tok->pb, case_start, case_len);
 
     // Check for -Infinity
-    if (tok->pb->buf[0] == '-' && case_len == 1 &&
+    if (tok->pb->buf[0] == '-' && case_len <= 1 &&
         (c == 'i' || c == 'I'))
     {
         state = json_tokener_state_inf;
+        tok->st_pos = 0;
         goto redo_char;
     }
       }
@@ -693,16 +792,21 @@ struct json_object* json_tokener_parse_ex(struct json_tokener *tok,
     int64_t num64;
     double  numd;
     if (!tok->is_double && json_parse_int64(tok->pb->buf, &num64) == 0) {
-        if (num64 && tok->pb->buf[0]=='0' && (tok->flags & JSON_TOKENER_STRICT)) {
+        if (num64 && tok->pb->buf[0]=='0' &&
+            (tok->flags & JSON_TOKENER_STRICT)) {
             /* in strict mode, number must not start with 0 */
             tok->err = json_tokener_error_parse_number;
             goto out;
         }
         current = json_object_new_int64(num64);
+        if(current == NULL)
+            goto out;
     }
     else if(tok->is_double && json_parse_double(tok->pb->buf, &numd) == 0)
     {
           current = json_object_new_double_s(numd, tok->pb->buf);
+      if(current == NULL)
+        goto out;
         } else {
           tok->err = json_tokener_error_parse_number;
           goto out;
@@ -716,12 +820,12 @@ struct json_object* json_tokener_parse_ex(struct json_tokener *tok,
     case json_tokener_state_array_after_sep:
     case json_tokener_state_array:
       if(c == ']') {
-        if (state == json_tokener_state_array_after_sep &&
-            (tok->flags & JSON_TOKENER_STRICT))
-        {
-            tok->err = json_tokener_error_parse_unexpected;
-            goto out;
-        }
+    if (state == json_tokener_state_array_after_sep &&
+        (tok->flags & JSON_TOKENER_STRICT))
+      {
+        tok->err = json_tokener_error_parse_unexpected;
+        goto out;
+      }
     saved_state = json_tokener_state_finish;
     state = json_tokener_state_eatws;
       } else {
@@ -737,7 +841,8 @@ struct json_object* json_tokener_parse_ex(struct json_tokener *tok,
       break;
 
     case json_tokener_state_array_add:
-      json_object_array_add(current, obj);
+      if( json_object_array_add(current, obj) != 0 )
+        goto out;
       saved_state = json_tokener_state_array_sep;
       state = json_tokener_state_eatws;
       goto redo_char;
@@ -830,6 +935,7 @@ struct json_object* json_tokener_parse_ex(struct json_tokener *tok,
       goto redo_char;
 
     case json_tokener_state_object_sep:
+      /* { */
       if(c == '}') {
     saved_state = json_tokener_state_finish;
     state = json_tokener_state_eatws;
@@ -845,7 +951,7 @@ struct json_object* json_tokener_parse_ex(struct json_tokener *tok,
     }
     if (!ADVANCE_CHAR(str, tok))
       goto out;
-  } /* while(POP_CHAR) */
+  } /* while(PEEK_CHAR) */
 
  out:
   if (c &&
@@ -861,9 +967,12 @@ struct json_object* json_tokener_parse_ex(struct json_tokener *tok,
       tok->err = json_tokener_error_parse_eof;
   }
 
-#ifdef HAVE_SETLOCALE
+#ifdef HAVE_USELOCALE
+  uselocale(oldlocale);
+  freelocale(newloc); 
+#elif defined(HAVE_SETLOCALE)
   setlocale(LC_NUMERIC, oldlocale);
-  if (oldlocale) free(oldlocale);
+  free(oldlocale);
 #endif
 
   if (tok->err == json_tokener_success)

@@ -7,11 +7,6 @@
 * This library is free software; you can redistribute it and/or modify
 * it under the terms of the MIT license. See COPYING for details.
 *
-* @brief  json-c forces clients to use its private data
-*         structures for JSON Object iteration.  This API
-*         implementation corrects that by abstracting the
-*         private json-c details.
-*
 *******************************************************************************
 */
 
@@ -105,7 +100,7 @@ json_object_iter_next(struct json_object_iterator* iter)
     JASSERT(NULL != iter);
     JASSERT(kObjectEndIterValue != iter->opaque_);
 
-    iter->opaque_ = ((struct lh_entry *)iter->opaque_)->next;
+    iter->opaque_ = ((const struct lh_entry *)iter->opaque_)->next;
 }
 
 
@@ -118,7 +113,7 @@ json_object_iter_peek_name(const struct json_object_iterator* iter)
     JASSERT(NULL != iter);
     JASSERT(kObjectEndIterValue != iter->opaque_);
 
-    return (const char*)(((struct lh_entry *)iter->opaque_)->k);
+    return (const char*)(((const struct lh_entry *)iter->opaque_)->k);
 }
 
 
@@ -131,7 +126,7 @@ json_object_iter_peek_value(const struct json_object_iterator* iter)
     JASSERT(NULL != iter);
     JASSERT(kObjectEndIterValue != iter->opaque_);
 
-    return (struct json_object*)(((struct lh_entry *)iter->opaque_)->v);
+    return (struct json_object*)lh_entry_v((const struct lh_entry *)iter->opaque_);
 }
 
 

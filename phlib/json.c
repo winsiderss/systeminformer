@@ -61,10 +61,10 @@ PPH_STRING PhGetJsonValueAsString(
     _In_ PSTR Key
     )
 {
-    PSTR value;
+    PCSTR value;
 
     if (value = json_object_get_string(json_get_object(Object, Key)))
-        return PhConvertUtf8ToUtf16(value);
+        return PhConvertUtf8ToUtf16((PSTR)value);
     else
         return NULL;
 }
@@ -135,10 +135,10 @@ PPH_STRING PhGetJsonArrayString(
     _In_ PVOID Object
     )
 {
-    PSTR value;
+    PCSTR value;
 
     if (value = json_object_to_json_string(Object))
-        return PhConvertUtf8ToUtf16(value);
+        return PhConvertUtf8ToUtf16((PSTR)value);
     else
         return NULL;
 }

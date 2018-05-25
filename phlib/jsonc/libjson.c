@@ -16,7 +16,7 @@
 #define __warn_references(sym,msg)    /* nothing */
 #endif
 
-#endif 
+#endif
 
 #include "json_object.h"
 

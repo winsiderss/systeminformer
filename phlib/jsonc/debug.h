@@ -10,6 +10,10 @@
  *
  */
 
+/**
+ * @file
+ * @brief Do not use, json-c internal, may be changed or removed at any time.
+ */
 #ifndef _DEBUG_H_
 #define _DEBUG_H_
 
