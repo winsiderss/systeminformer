@@ -9,6 +9,10 @@
  *
  */
 
+/**
+ * @file
+ * @brief Do not use, json-c internal, may be changed or removed at any time.
+ */
 #ifndef seed_h
 #define seed_h
 

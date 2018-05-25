@@ -9,8 +9,10 @@
  *
  */
 
+#include "strerror_override.h"
 #include <stdio.h>
 #include "config.h"
+#include "random_seed.h"
 
 #define DEBUG_SEED(s)
 
@@ -104,14 +106,14 @@ static int get_rdrand_seed()
 
 static int get_rdrand_seed()
 {
-    DEBUG_SEED("get_rdrand_seed");
-    int _eax;
+	DEBUG_SEED("get_rdrand_seed");
+	int _eax;
 retry:
-    // rdrand eax
-    __asm _emit 0x0F __asm _emit 0xC7 __asm _emit 0xF0
-    __asm jnc retry
-    __asm mov _eax, eax
-    return _eax;
+	// rdrand eax
+	__asm _emit 0x0F __asm _emit 0xC7 __asm _emit 0xF0
+	__asm jnc retry
+	__asm mov _eax, eax
+	return _eax;
 }
 
 #endif
@@ -127,7 +129,6 @@ retry:
 #include <string.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <errno.h>
 #include <stdlib.h>
 #include <sys/stat.h>
 
@@ -150,23 +151,20 @@ static int has_dev_urandom()
 static int get_dev_random_seed()
 {
     DEBUG_SEED("get_dev_random_seed");
-    
+
     int fd = open(dev_random_file, O_RDONLY);
     if (fd < 0) {
         fprintf(stderr, "error opening %s: %s", dev_random_file, strerror(errno));
         exit(1);
     }
-    
+
     int r;
     ssize_t nread = read(fd, &r, sizeof(r));
     if (nread != sizeof(r)) {
-        fprintf(stderr, "error read %s: %s", dev_random_file, strerror(errno));
+        fprintf(stderr, "error short read %s: %s", dev_random_file, strerror(errno));
         exit(1);
     }
-    else if (nread != sizeof(r)) {
-        fprintf(stderr, "error short read %s", dev_random_file);
-        exit(1);
-    }
+
     close(fd);
     return r;
 }
@@ -181,28 +179,30 @@ static int get_dev_random_seed()
 #define HAVE_CRYPTGENRANDOM 1
 
 #include <windows.h>
+#include <wincrypt.h>
+#ifndef __GNUC__
+#pragma comment(lib, "advapi32.lib")
+#endif
 
 static int get_cryptgenrandom_seed()
 {
-    DEBUG_SEED("get_cryptgenrandom_seed");
-    
     HCRYPTPROV hProvider = 0;
     int r;
-    
-    if (!CryptAcquireContextW(&hProvider, 0, 0, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT | CRYPT_SILENT)) 
-    {
+
+    DEBUG_SEED("get_cryptgenrandom_seed");
+
+    if (!CryptAcquireContextW(&hProvider, 0, 0, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT | CRYPT_SILENT)) {
         fprintf(stderr, "error CryptAcquireContextW");
         exit(1);
     }
-    
-    if (!CryptGenRandom(hProvider, sizeof(r), (BYTE*)&r)) 
-    {
+
+    if (!CryptGenRandom(hProvider, sizeof(r), (BYTE*)&r)) {
         fprintf(stderr, "error CryptGenRandom");
         exit(1);
     }
-    
+
     CryptReleaseContext(hProvider, 0);
-    
+
     return r;
 }
 
@@ -216,7 +216,7 @@ static int get_cryptgenrandom_seed()
 static int get_time_seed()
 {
     DEBUG_SEED("get_time_seed");
-    
+
     return (int)time(NULL) * 433494437;
 }
 

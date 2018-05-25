@@ -7,10 +7,11 @@
 * This library is free software; you can redistribute it and/or modify
 * it under the terms of the MIT license. See COPYING for details.
 *
-* @brief  json-c forces clients to use its private data
-*         structures for JSON Object iteration.  This API
-*         corrects that by abstracting the private json-c
-*         details.
+* @brief  An API for iterating over json_type_object objects,
+*         styled to be familiar to C++ programmers.
+*         Unlike json_object_object_foreach() and
+*         json_object_object_foreachC(), this avoids the need to expose
+*         json-c internals like lh_entry.
 *
 * API attributes: <br>
 *   * Thread-safe: NO<br>

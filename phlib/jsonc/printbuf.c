@@ -25,9 +25,10 @@
 # error Not enough var arg support!
 #endif /* HAVE_STDARG_H */
 
-#include "bits.h"
 #include "debug.h"
 #include "printbuf.h"
+#include "snprintf_compat.h"
+#include "vasprintf_compat.h"
 
 static int printbuf_extend(struct printbuf *p, size_t min_size);
 
@@ -43,6 +44,7 @@ struct printbuf* printbuf_new(void)
     free(p);
     return NULL;
   }
+  p->buf[0]= '\0';
   return p;
 }
 
@@ -63,7 +65,9 @@ static int printbuf_extend(struct printbuf *p, size_t min_size)
     if (p->size >= min_size)
         return 0;
 
-    new_size = json_max(p->size * 2, min_size + 8);
+    new_size = p->size * 2;
+    if (new_size < min_size + 8)
+        new_size =  min_size + 8;
 #ifdef PRINTBUF_DEBUG
     MC_DEBUG("printbuf_memappend: realloc "
       "bpos=%d min_size=%d old_size=%d new_size=%d\n",
@@ -76,7 +80,7 @@ static int printbuf_extend(struct printbuf *p, size_t min_size)
     return 0;
 }
 
-size_t printbuf_memappend(struct printbuf *p, const char *buf, size_t size)
+int printbuf_memappend(struct printbuf *p, const char *buf, size_t size)
 {
   if (p->size <= p->bpos + size + 1) {
     if (printbuf_extend(p, p->bpos + size + 1) < 0)
@@ -85,7 +89,22 @@ size_t printbuf_memappend(struct printbuf *p, const char *buf, size_t size)
   memcpy(p->buf + p->bpos, buf, size);
   p->bpos += size;
   p->buf[p->bpos]= '\0';
-  return size;
+  return (int)size;
+}
+
+// modified by dmex
+void printbuf_memappend_fast(struct printbuf *p, const char *bufptr, size_t bufsize)
+{
+    if ((p->size - p->bpos) > bufsize)
+    {
+        memcpy(p->buf + p->bpos, (bufptr), bufsize);
+        p->bpos += (int)bufsize;
+        p->buf[p->bpos] = '\0';
+    }
+    else
+    {
+        printbuf_memappend(p, (bufptr), bufsize);
+    }
 }
 
 int printbuf_memset(struct printbuf *pb, size_t offset, int charvalue, size_t len)
@@ -108,49 +127,6 @@ int printbuf_memset(struct printbuf *pb, size_t offset, int charvalue, size_t le
     return 0;
 }
 
-#if !defined(HAVE_VSNPRINTF) && defined(_MSC_VER)
-# define vsnprintf _vsnprintf
-#elif !defined(HAVE_VSNPRINTF) /* !HAVE_VSNPRINTF */
-# error Need vsnprintf!
-#endif /* !HAVE_VSNPRINTF && defined(_WIN32) */
-
-#if !defined(HAVE_VASPRINTF)
-/* CAW: compliant version of vasprintf */
-static int vasprintf(char **buf, const char *fmt, va_list ap)
-{
-#ifndef _WIN32
-    static char _T_emptybuffer = '\0';
-#endif /* !defined(_WIN32) */
-    int chars;
-    char *b;
-
-    if(!buf) { return -1; }
-
-#ifdef _WIN32
-    chars = _vscprintf(fmt, ap)+1;
-#else /* !defined(_WIN32) */
-    /* CAW: RAWR! We have to hope to god here that vsnprintf doesn't overwrite
-       our buffer like on some 64bit sun systems.... but hey, its time to move on */
-    chars = vsnprintf(&_T_emptybuffer, 0, fmt, ap)+1;
-    if(chars < 0) { chars *= -1; } /* CAW: old glibc versions have this problem */
-#endif /* defined(_WIN32) */
-
-    b = (char*)malloc(sizeof(char) * chars);
-    if(!b) { return -1; }
-
-    if ((chars = vsprintf_s(b, sizeof(char), fmt, ap)) < 0)
-    {
-        free(b);
-    } 
-    else 
-    {
-        *buf = b;
-    }
-
-    return chars;
-}
-#endif /* !HAVE_VASPRINTF */
-
 int sprintbuf(struct printbuf *p, const char *msg, ...)
 {
   va_list ap;
@@ -160,7 +136,7 @@ int sprintbuf(struct printbuf *p, const char *msg, ...)
 
   /* user stack buffer first */
   va_start(ap, msg);
-  size = _vsnprintf_s(buf, sizeof(buf), _TRUNCATE, msg, ap);
+  size = vsnprintf(buf, 128, msg, ap);
   va_end(ap);
   /* if string is greater than stack buffer, then use dynamic string
      with vasprintf.  Note: some implementation of vsnprintf return -1
