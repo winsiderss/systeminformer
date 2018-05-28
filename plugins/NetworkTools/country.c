@@ -2,7 +2,7 @@
  * Process Hacker Network Tools  -
  *   IP Country support
  *
- * Copyright (C) 2016-2017 dmex
+ * Copyright (C) 2016-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -21,6 +21,7 @@
  */
 
 #include "nettools.h"
+#include <commonutil.h>
 #include "maxminddb\maxminddb.h"
 
 BOOLEAN GeoDbLoaded = FALSE;
@@ -375,6 +376,7 @@ struct
 {
     PWSTR CountryCode;
     INT ResourceID;
+    HICON IconHandle;
 }
 CountryResourceTable[] =
 {
@@ -450,7 +452,7 @@ CountryResourceTable[] =
     { L"ZA", ZA_PNG }, { L"ZM", ZM_PNG }, { L"ZW", ZW_PNG }
 };
 
-INT LookupResourceCode(
+HICON LookupCountryIcon(
     _In_ PPH_STRING Name
     )
 {
@@ -458,7 +460,26 @@ INT LookupResourceCode(
     {
         if (PhEqualString2(Name, CountryResourceTable[i].CountryCode, TRUE))
         {
-            return CountryResourceTable[i].ResourceID;
+            if (!CountryResourceTable[i].IconHandle)
+            {
+                HBITMAP countryBitmap;
+
+                countryBitmap = PhLoadPngImageFromResource(
+                    PluginInstance->DllBase, 
+                    16,
+                    11, 
+                    MAKEINTRESOURCE(CountryResourceTable[i].ResourceID), 
+                    TRUE
+                    );
+
+                if (countryBitmap)
+                {
+                    CountryResourceTable[i].IconHandle = CommonBitmapToIcon(countryBitmap, 16, 11);
+                    DeleteObject(countryBitmap);
+                }
+            }
+
+            return CountryResourceTable[i].IconHandle;
         }
     }
 

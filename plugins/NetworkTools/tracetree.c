@@ -52,8 +52,8 @@ VOID NTAPI TracertTreeNodeItemDeleteProcedure(
             PhDereferenceObject(tracertNode->PingString[i]);
     }
 
-    if (tracertNode->CountryIcon)
-        DestroyIcon(tracertNode->CountryIcon);
+    //if (tracertNode->CountryIcon)
+    //    DestroyIcon(tracertNode->CountryIcon);
 }
 
 PTRACERT_ROOT_NODE TracertTreeCreateNode(
@@ -467,23 +467,10 @@ BOOLEAN NTAPI TracertTreeNewCallback(
             rect.left += 5;
 
             // Draw the column data
-            if (GeoDbLoaded && node->RemoteCountryCode && node->RemoteCountryName)
+            if (GeoDbLoaded && !GeoDbExpired && node->RemoteCountryCode && node->RemoteCountryName)
             {
                 if (!node->CountryIcon)
-                {
-                    INT resourceCode;
-
-                    if ((resourceCode = LookupResourceCode(node->RemoteCountryCode)) != 0)
-                    {
-                        HBITMAP countryBitmap;
-
-                        if (countryBitmap = PhLoadPngImageFromResource(PluginInstance->DllBase, 16, 11, MAKEINTRESOURCE(resourceCode), TRUE))
-                        {
-                            node->CountryIcon = CommonBitmapToIcon(countryBitmap, 16, 11);
-                            DeleteObject(countryBitmap);
-                        }
-                    }
-                }
+                    node->CountryIcon = LookupCountryIcon(node->RemoteCountryCode);
 
                 if (node->CountryIcon)
                 {
@@ -511,7 +498,7 @@ BOOLEAN NTAPI TracertTreeNewCallback(
                     );
             }
 
-            if (GeoDbExpired && !node->CountryIcon)
+            if (GeoDbExpired)
             {
                 DrawText(hdc, L"Geoip database expired.", -1, &rect, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
             }
