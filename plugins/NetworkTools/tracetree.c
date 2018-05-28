@@ -35,8 +35,6 @@ VOID NTAPI TracertTreeNodeItemDeleteProcedure(
 
     if (tracertNode->TtlString)
         PhDereferenceObject(tracertNode->TtlString);
-    if (tracertNode->CountryString)
-        PhDereferenceObject(tracertNode->CountryString);
     if (tracertNode->HostnameString)
         PhDereferenceObject(tracertNode->HostnameString);
     if (tracertNode->IpAddressString)
@@ -120,12 +118,6 @@ BEGIN_SORT_FUNCTION(Ping4)
 }
 END_SORT_FUNCTION
 
-BEGIN_SORT_FUNCTION(Country)
-{
-    sortResult = PhCompareStringWithNull(node1->CountryString, node2->CountryString, TRUE);
-}
-END_SORT_FUNCTION
-
 BEGIN_SORT_FUNCTION(IpAddress)
 {
     sortResult = PhCompareStringWithNull(node1->IpAddressString, node2->IpAddressString, TRUE);
@@ -135,6 +127,12 @@ END_SORT_FUNCTION
 BEGIN_SORT_FUNCTION(Hostname)
 {
     sortResult = PhCompareStringWithNull(node1->HostnameString, node2->HostnameString, TRUE);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(Country)
+{
+    sortResult = PhCompareStringWithNull(node1->RemoteCountryName, node2->RemoteCountryName, TRUE);
 }
 END_SORT_FUNCTION
 
@@ -387,14 +385,14 @@ BOOLEAN NTAPI TracertTreeNewCallback(
             case TREE_COLUMN_ITEM_PING4:
                 UpdateTracertNodePingText(node, getCellText, 3);
                 break;
-            case TREE_COLUMN_ITEM_COUNTRY:
-                getCellText->Text = PhGetStringRef(node->CountryString);
-                break;
             case TREE_COLUMN_ITEM_IPADDR:
                 getCellText->Text = PhGetStringRef(node->IpAddressString);
                 break;
             case TREE_COLUMN_ITEM_HOSTNAME:
                 getCellText->Text = PhGetStringRef(node->HostnameString);
+                break;
+            case TREE_COLUMN_ITEM_COUNTRY:
+                getCellText->Text = PhGetStringRef(node->RemoteCountryName);
                 break;
             default:
                 return FALSE;
@@ -500,7 +498,7 @@ BOOLEAN NTAPI TracertTreeNewCallback(
                 DrawText(hdc, L"Geoip database error.", -1, &rect, DT_LEFT | DT_VCENTER | DT_END_ELLIPSIS | DT_SINGLELINE);
             }
         }
-        break;
+        return TRUE;
     }
 
     return FALSE;

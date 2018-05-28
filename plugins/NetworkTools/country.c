@@ -85,15 +85,128 @@ VOID FreeGeoLiteDb(
     }
 }
 
+BOOLEAN GeoDbGetCityData(
+    _In_ MMDB_entry_s* GeoDbEntry,
+    _Out_ DOUBLE *CityLatitude,
+    _Out_ DOUBLE *CityLongitude
+    )
+{
+    MMDB_entry_data_s mmdb_entry;
+    DOUBLE cityLatitude = 0.0;
+    DOUBLE cityLongitude = 0.0;
+
+    if (MMDB_get_value(GeoDbEntry, &mmdb_entry, "location", "latitude", NULL) == MMDB_SUCCESS)
+    {
+        if (mmdb_entry.has_data && mmdb_entry.type == MMDB_DATA_TYPE_DOUBLE)
+        {
+            cityLatitude = mmdb_entry.double_value;
+        }
+    }
+
+    if (MMDB_get_value(GeoDbEntry, &mmdb_entry, "location", "longitude", NULL) == MMDB_SUCCESS)
+    {
+        if (mmdb_entry.has_data && mmdb_entry.type == MMDB_DATA_TYPE_DOUBLE)
+        {
+            cityLongitude = mmdb_entry.double_value;
+        }
+    }
+
+    if (cityLatitude && cityLongitude)
+    {
+        *CityLatitude = cityLatitude;
+        *CityLongitude = cityLongitude;
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+BOOLEAN GeoDbGetCountryData(
+    _In_ MMDB_entry_s* GeoDbEntry,
+    _Out_ PPH_STRING *CountryCode,
+    _Out_ PPH_STRING *CountryName
+    )
+{
+    MMDB_entry_data_s mmdb_entry;
+    PPH_STRING countryCode = NULL;
+    PPH_STRING countryName = NULL;
+
+    if (MMDB_get_value(GeoDbEntry, &mmdb_entry, "country", "iso_code", NULL) == MMDB_SUCCESS)
+    {
+        if (mmdb_entry.has_data && mmdb_entry.type == MMDB_DATA_TYPE_UTF8_STRING)
+        {
+            countryCode = PhConvertUtf8ToUtf16Ex((PCHAR)mmdb_entry.utf8_string, mmdb_entry.data_size);
+        }
+    }
+
+    if (MMDB_get_value(GeoDbEntry, &mmdb_entry, "country", "names", "en", NULL) == MMDB_SUCCESS)
+    {
+        if (mmdb_entry.has_data && mmdb_entry.type == MMDB_DATA_TYPE_UTF8_STRING)
+        {
+            countryName = PhConvertUtf8ToUtf16Ex((PCHAR)mmdb_entry.utf8_string, mmdb_entry.data_size);
+        }
+    }
+
+    if (countryCode && countryName)
+    {
+        *CountryCode = countryCode;
+        *CountryName = countryName;
+        return TRUE;
+    }
+
+    if (countryCode)
+        PhDereferenceObject(countryCode);
+    if (countryName)
+        PhDereferenceObject(countryName);
+    return FALSE;
+}
+
+BOOLEAN GeoDbGetContinentData(
+    _In_ MMDB_entry_s* GeoDbEntry,
+    _Out_ PPH_STRING *ContinentCode,
+    _Out_ PPH_STRING *ContinentName
+    )
+{
+    MMDB_entry_data_s mmdb_entry;
+    PPH_STRING continentCode = NULL;
+    PPH_STRING continentName = NULL;
+
+    if (MMDB_get_value(GeoDbEntry, &mmdb_entry, "continent", "code", NULL) == MMDB_SUCCESS)
+    {
+        if (mmdb_entry.has_data && mmdb_entry.type == MMDB_DATA_TYPE_UTF8_STRING)
+        {
+            continentCode = PhConvertUtf8ToUtf16Ex((PCHAR)mmdb_entry.utf8_string, mmdb_entry.data_size);
+        }
+    }
+
+    if (MMDB_get_value(GeoDbEntry, &mmdb_entry, "country", "names", "en", NULL) == MMDB_SUCCESS)
+    {
+        if (mmdb_entry.has_data && mmdb_entry.type == MMDB_DATA_TYPE_UTF8_STRING)
+        {
+            continentName = PhConvertUtf8ToUtf16Ex((PCHAR)mmdb_entry.utf8_string, mmdb_entry.data_size);
+        }
+    }
+
+    if (continentCode && continentName)
+    {
+        *ContinentCode = continentCode;
+        *ContinentName = continentName;
+        return TRUE;
+    }
+
+    if (continentCode)
+        PhDereferenceObject(continentCode);
+    if (continentName)
+        PhDereferenceObject(continentName);
+    return FALSE;
+}
+
 BOOLEAN LookupCountryCode(
     _In_ PH_IP_ADDRESS RemoteAddress,
     _Out_ PPH_STRING *CountryCode,
     _Out_ PPH_STRING *CountryName
     )
 {
-    PPH_STRING countryCode = NULL;
-    PPH_STRING countryName = NULL;
-    MMDB_entry_data_s mmdb_entry;
     MMDB_lookup_result_s mmdb_result;
     INT mmdb_error = 0;
 
@@ -147,56 +260,13 @@ BOOLEAN LookupCountryCode(
 
     if (mmdb_error == 0 && mmdb_result.found_entry)
     {
-        memset(&mmdb_entry, 0, sizeof(MMDB_entry_data_s));
+        if (GeoDbGetCountryData(&mmdb_result.entry, CountryCode, CountryName))
+            return TRUE;
 
-        if (MMDB_get_value(&mmdb_result.entry, &mmdb_entry, "country", "iso_code", NULL) == MMDB_SUCCESS)
-        {
-            if (mmdb_entry.has_data && mmdb_entry.type == MMDB_DATA_TYPE_UTF8_STRING)
-            {
-                countryCode = PhConvertUtf8ToUtf16Ex((PCHAR)mmdb_entry.utf8_string, mmdb_entry.data_size);
-            }
-        }
-
-        if (MMDB_get_value(&mmdb_result.entry, &mmdb_entry, "country", "names", "en", NULL) == MMDB_SUCCESS)
-        {
-            if (mmdb_entry.has_data && mmdb_entry.type == MMDB_DATA_TYPE_UTF8_STRING)
-            {
-                countryName = PhConvertUtf8ToUtf16Ex((PCHAR)mmdb_entry.utf8_string, mmdb_entry.data_size);
-            }
-        }
-
-        //if (MMDB_get_value(&mmdb_result.entry, &mmdb_entry, "location", "latitude", NULL) == MMDB_SUCCESS)
-        //{
-        //    if (mmdb_entry.has_data && mmdb_entry.type == MMDB_DATA_TYPE_DOUBLE)
-        //    {
-        //        *CityLatitude = mmdb_entry.double_value;
-        //    }
-        //}
-
-        //if (MMDB_get_value(&mmdb_result.entry, &mmdb_entry, "location", "longitude", NULL) == MMDB_SUCCESS)
-        //{
-        //    if (mmdb_entry.has_data && mmdb_entry.type == MMDB_DATA_TYPE_DOUBLE)
-        //    {
-        //        *CityLongitude = mmdb_entry.double_value;
-        //    }
-        //}
-    }
-
-    if (countryCode && countryName)
-    {
-        *CountryCode = countryCode;
-        *CountryName = countryName;
-        return TRUE;
-    }
-
-    if (countryCode)
-    {
-        PhDereferenceObject(countryCode);
-    }
-
-    if (countryName)
-    {
-        PhDereferenceObject(countryName);
+        // HACK
+        // We can sometimes get the continent even when the address doesn't have a country.
+        if (GeoDbGetContinentData(&mmdb_result.entry, CountryCode, CountryName))
+            return TRUE;
     }
 
     return FALSE;
@@ -208,9 +278,6 @@ BOOLEAN LookupSockInAddr4CountryCode(
     _Out_ PPH_STRING *CountryName
     )
 {
-    PPH_STRING countryCode = NULL;
-    PPH_STRING countryName = NULL;
-    MMDB_entry_data_s mmdb_entry;
     MMDB_lookup_result_s mmdb_result;
     SOCKADDR_IN ipv4SockAddr;
     INT mmdb_error = 0;
@@ -238,56 +305,13 @@ BOOLEAN LookupSockInAddr4CountryCode(
 
     if (mmdb_error == 0 && mmdb_result.found_entry)
     {
-        memset(&mmdb_entry, 0, sizeof(MMDB_entry_data_s));
+        if (GeoDbGetCountryData(&mmdb_result.entry, CountryCode, CountryName))
+            return TRUE;
 
-        if (MMDB_get_value(&mmdb_result.entry, &mmdb_entry, "country", "iso_code", NULL) == MMDB_SUCCESS)
-        {
-            if (mmdb_entry.has_data && mmdb_entry.type == MMDB_DATA_TYPE_UTF8_STRING)
-            {
-                countryCode = PhConvertUtf8ToUtf16Ex((PCHAR)mmdb_entry.utf8_string, mmdb_entry.data_size);
-            }
-        }
-
-        if (MMDB_get_value(&mmdb_result.entry, &mmdb_entry, "country", "names", "en", NULL) == MMDB_SUCCESS)
-        {
-            if (mmdb_entry.has_data && mmdb_entry.type == MMDB_DATA_TYPE_UTF8_STRING)
-            {
-                countryName = PhConvertUtf8ToUtf16Ex((PCHAR)mmdb_entry.utf8_string, mmdb_entry.data_size);
-            }
-        }
-
-        //if (MMDB_get_value(&mmdb_result.entry, &mmdb_entry, "location", "latitude", NULL) == MMDB_SUCCESS)
-        //{
-        //    if (mmdb_entry.has_data && mmdb_entry.type == MMDB_DATA_TYPE_DOUBLE)
-        //    {
-        //        *CityLatitude = mmdb_entry.double_value;
-        //    }
-        //}
-
-        //if (MMDB_get_value(&mmdb_result.entry, &mmdb_entry, "location", "longitude", NULL) == MMDB_SUCCESS)
-        //{
-        //    if (mmdb_entry.has_data && mmdb_entry.type == MMDB_DATA_TYPE_DOUBLE)
-        //    {
-        //        *CityLongitude = mmdb_entry.double_value;
-        //    }
-        //}
-    }
-
-    if (countryCode && countryName)
-    {
-        *CountryCode = countryCode;
-        *CountryName = countryName;
-        return TRUE;
-    }
-
-    if (countryCode)
-    {
-        PhDereferenceObject(countryCode);
-    }
-
-    if (countryName)
-    {
-        PhDereferenceObject(countryName);
+        // HACK
+        // We can sometimes get the continent even when the address doesn't have a country.
+        if (GeoDbGetContinentData(&mmdb_result.entry, CountryCode, CountryName))
+            return TRUE;
     }
 
     return FALSE;
@@ -299,9 +323,6 @@ BOOLEAN LookupSockInAddr6CountryCode(
     _Out_ PPH_STRING *CountryName
     )
 {
-    PPH_STRING countryCode = NULL;
-    PPH_STRING countryName = NULL;
-    MMDB_entry_data_s mmdb_entry;
     MMDB_lookup_result_s mmdb_result;
     SOCKADDR_IN6 ipv6SockAddr;
     INT mmdb_error = 0;
@@ -329,56 +350,13 @@ BOOLEAN LookupSockInAddr6CountryCode(
 
     if (mmdb_error == 0 && mmdb_result.found_entry)
     {
-        memset(&mmdb_entry, 0, sizeof(MMDB_entry_data_s));
+        if (GeoDbGetCountryData(&mmdb_result.entry, CountryCode, CountryName))
+            return TRUE;
 
-        if (MMDB_get_value(&mmdb_result.entry, &mmdb_entry, "country", "iso_code", NULL) == MMDB_SUCCESS)
-        {
-            if (mmdb_entry.has_data && mmdb_entry.type == MMDB_DATA_TYPE_UTF8_STRING)
-            {
-                countryCode = PhConvertUtf8ToUtf16Ex((PCHAR)mmdb_entry.utf8_string, mmdb_entry.data_size);
-            }
-        }
-
-        if (MMDB_get_value(&mmdb_result.entry, &mmdb_entry, "country", "names", "en", NULL) == MMDB_SUCCESS)
-        {
-            if (mmdb_entry.has_data && mmdb_entry.type == MMDB_DATA_TYPE_UTF8_STRING)
-            {
-                countryName = PhConvertUtf8ToUtf16Ex((PCHAR)mmdb_entry.utf8_string, mmdb_entry.data_size);
-            }
-        }
-
-        //if (MMDB_get_value(&mmdb_result.entry, &mmdb_entry, "location", "latitude", NULL) == MMDB_SUCCESS)
-        //{
-        //    if (mmdb_entry.has_data && mmdb_entry.type == MMDB_DATA_TYPE_DOUBLE)
-        //    {
-        //        *CityLatitude = mmdb_entry.double_value;
-        //    }
-        //}
-
-        //if (MMDB_get_value(&mmdb_result.entry, &mmdb_entry, "location", "longitude", NULL) == MMDB_SUCCESS)
-        //{
-        //    if (mmdb_entry.has_data && mmdb_entry.type == MMDB_DATA_TYPE_DOUBLE)
-        //    {
-        //        *CityLongitude = mmdb_entry.double_value;
-        //    }
-        //}
-    }
-
-    if (countryCode && countryName)
-    {
-        *CountryCode = countryCode;
-        *CountryName = countryName;
-        return TRUE;
-    }
-
-    if (countryCode)
-    {
-        PhDereferenceObject(countryCode);
-    }
-
-    if (countryName)
-    {
-        PhDereferenceObject(countryName);
+        // HACK
+        // We can sometimes get the continent even when the address doesn't have a country.
+        if (GeoDbGetContinentData(&mmdb_result.entry, CountryCode, CountryName))
+            return TRUE;
     }
 
     return FALSE;

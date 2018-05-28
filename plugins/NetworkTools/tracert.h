@@ -54,14 +54,11 @@ typedef struct _TRACERT_ROOT_NODE
     PPH_STRING PingString[DEFAULT_MAXIMUM_PINGS];
 
     INT CountryIconIndex;
-
     PPH_STRING TtlString;
-    PPH_STRING CountryString; 
     PPH_STRING HostnameString;
     PPH_STRING IpAddressString;
     PPH_STRING RemoteCountryCode;
     PPH_STRING RemoteCountryName;
-    PPH_STRING RemoteCityName;
     PH_STRINGREF TextCache[TREE_COLUMN_ITEM_MAXIMUM];
 } TRACERT_ROOT_NODE, *PTRACERT_ROOT_NODE;
 
