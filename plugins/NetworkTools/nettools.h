@@ -229,7 +229,7 @@ typedef struct _NETWORK_EXTENSION
         };
     };
 
-    HICON CountryIcon;
+    INT CountryIconIndex;
     PPH_STRING LocalServiceName;
     PPH_STRING RemoteServiceName;
     PPH_STRING RemoteCountryCode;
@@ -280,8 +280,14 @@ BOOLEAN LookupSockInAddr6CountryCode(
     _Out_ PPH_STRING *CountryName
     );
 
-HICON LookupCountryIcon(
+INT LookupCountryIcon(
     _In_ PPH_STRING Name
+    );
+
+VOID DrawCountryIcon(
+    _In_ HDC hdc,
+    _In_ RECT rect,
+    _In_ INT Index
     );
 
 typedef struct _PH_UPDATER_CONTEXT

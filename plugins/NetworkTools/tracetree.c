@@ -67,6 +67,8 @@ PTRACERT_ROOT_NODE TracertTreeCreateNode(
 
     PhInitializeTreeNewNode(&tracertNode->Node);
 
+    tracertNode->CountryIconIndex = INT_MAX;
+
     return tracertNode;
 }
 
@@ -469,43 +471,33 @@ BOOLEAN NTAPI TracertTreeNewCallback(
             // Draw the column data
             if (GeoDbLoaded && !GeoDbExpired && node->RemoteCountryCode && node->RemoteCountryName)
             {
-                if (!node->CountryIcon)
-                    node->CountryIcon = LookupCountryIcon(node->RemoteCountryCode);
+                if (node->CountryIconIndex == INT_MAX)
+                    node->CountryIconIndex = LookupCountryIcon(node->RemoteCountryCode);
 
-                if (node->CountryIcon)
+                if (node->CountryIconIndex != INT_MAX)
                 {
-                    DrawIconEx(
-                        hdc,
-                        rect.left,
-                        rect.top + ((rect.bottom - rect.top) - 11) / 2,
-                        node->CountryIcon,
-                        16,
-                        11,
-                        0,
-                        NULL,
-                        DI_NORMAL
-                        );
+                    DrawCountryIcon(hdc, rect, node->CountryIconIndex);
 
                     rect.left += 16 + 2;
                 }
 
                 DrawText(
                     hdc,
-                    PhGetStringOrEmpty(node->RemoteCountryName),
-                    -1,
+                    node->RemoteCountryName->Buffer,
+                    (INT)node->RemoteCountryName->Length / sizeof(WCHAR),
                     &rect,
-                    DT_LEFT | DT_VCENTER | DT_SINGLELINE
+                    DT_LEFT | DT_VCENTER | DT_END_ELLIPSIS | DT_SINGLELINE
                     );
             }
 
             if (GeoDbExpired)
             {
-                DrawText(hdc, L"Geoip database expired.", -1, &rect, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+                DrawText(hdc, L"Geoip database expired.", -1, &rect, DT_LEFT | DT_VCENTER | DT_END_ELLIPSIS | DT_SINGLELINE);
             }
 
             if (!GeoDbLoaded)
             {
-                DrawText(hdc, L"Geoip database error.", -1, &rect, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+                DrawText(hdc, L"Geoip database error.", -1, &rect, DT_LEFT | DT_VCENTER | DT_END_ELLIPSIS | DT_SINGLELINE);
             }
         }
         break;

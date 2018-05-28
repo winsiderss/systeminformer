@@ -424,6 +424,7 @@ VOID NTAPI NetworkItemCreateCallback(
     memset(extension, 0, sizeof(NETWORK_EXTENSION));
 
     extension->NetworkItem = networkItem;
+    extension->CountryIconIndex = INT_MAX;
 
     if (NetworkExtensionEnabled)
     {
@@ -715,22 +716,12 @@ VOID NTAPI TreeNewMessageCallback(
             // Draw the column data
             if (GeoDbLoaded && !GeoDbExpired && extension->RemoteCountryCode && extension->RemoteCountryName)
             {
-                if (!extension->CountryIcon)
-                    extension->CountryIcon = LookupCountryIcon(extension->RemoteCountryCode);
+                if (extension->CountryIconIndex == INT_MAX)
+                    extension->CountryIconIndex = LookupCountryIcon(extension->RemoteCountryCode);
 
-                if (extension->CountryIcon)
+                if (extension->CountryIconIndex != INT_MAX)
                 {
-                    DrawIconEx(
-                        hdc,
-                        rect.left,
-                        rect.top + ((rect.bottom - rect.top) - 11) / 2,
-                        extension->CountryIcon,
-                        16,
-                        11,
-                        0,
-                        NULL,
-                        DI_NORMAL
-                        );
+                    DrawCountryIcon(hdc, rect, extension->CountryIconIndex);
 
                     rect.left += 16 + 2;
                 }
@@ -738,7 +729,7 @@ VOID NTAPI TreeNewMessageCallback(
                 DrawText(
                     hdc, 
                     extension->RemoteCountryName->Buffer,
-                    (INT)extension->RemoteCountryName->Length / 2,
+                    (INT)extension->RemoteCountryName->Length / sizeof(WCHAR),
                     &rect,
                     DT_LEFT | DT_VCENTER | DT_END_ELLIPSIS | DT_SINGLELINE
                     );

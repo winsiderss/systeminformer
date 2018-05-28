@@ -82,6 +82,7 @@
   <ItemGroup>
     <ClCompile Include="country.c" />
     <ClCompile Include="main.c" />
+    <ClCompile Include="maxminddb\data-pool.c" />
     <ClCompile Include="maxminddb\maxminddb.c" />
     <ClCompile Include="options.c" />
     <ClCompile Include="ping.c" />
@@ -115,6 +116,7 @@
     <ClCompile Include="zlib\zutil.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="maxminddb\data-pool.h" />
     <ClInclude Include="maxminddb\maxminddb-compat-util.h" />
     <ClInclude Include="maxminddb\maxminddb.h" />
     <ClInclude Include="maxminddb\maxminddb_config.h" />
