@@ -127,9 +127,10 @@ typedef struct _MEMORY_REGION_INFORMATION
             ULONG MappedPageFile : 1;
             ULONG MappedPhysical : 1;
             ULONG DirectMapped : 1;
-            ULONG SoftwareEnclave : 1; //REDSTONE3
+            ULONG SoftwareEnclave : 1; // REDSTONE3
             ULONG PageSize64K : 1;
-            ULONG Reserved : 24;
+            ULONG PlaceholderReservation : 1; // REDSTONE4
+            ULONG Reserved : 23;
         };
     };
     SIZE_T RegionSize;
