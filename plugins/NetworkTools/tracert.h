@@ -53,7 +53,7 @@ typedef struct _TRACERT_ROOT_NODE
     ULONG PingList[DEFAULT_MAXIMUM_PINGS];
     PPH_STRING PingString[DEFAULT_MAXIMUM_PINGS];
 
-    HICON CountryIcon;
+    INT CountryIconIndex;
 
     PPH_STRING TtlString;
     PPH_STRING CountryString; 

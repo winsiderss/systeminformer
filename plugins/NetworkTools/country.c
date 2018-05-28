@@ -26,6 +26,7 @@
 
 BOOLEAN GeoDbLoaded = FALSE;
 BOOLEAN GeoDbExpired = FALSE;
+HIMAGELIST GeoImageList = NULL;
 static MMDB_s GeoDb = { 0 };
 
 VOID LoadGeoLiteDb(
@@ -60,6 +61,11 @@ VOID LoadGeoLiteDb(
         GeoDbLoaded = TRUE;
     }
 
+    if (GeoDbLoaded)
+    {
+        GeoImageList = ImageList_Create(16, 11, ILC_COLOR32, 20, 20);
+    }
+
     PhDereferenceObject(dbpath);
 }
 
@@ -67,6 +73,12 @@ VOID FreeGeoLiteDb(
     VOID
     )
 {
+    if (GeoImageList)
+    {
+        ImageList_RemoveAll(GeoImageList);
+        ImageList_Destroy(GeoImageList);
+    }
+
     if (GeoDbLoaded)
     {
         MMDB_close(&GeoDb);
@@ -376,91 +388,94 @@ struct
 {
     PWSTR CountryCode;
     INT ResourceID;
-    HICON IconHandle;
+    INT IconIndex;
 }
 CountryResourceTable[] =
 {
-    { L"AD", AD_PNG }, { L"AE", AE_PNG }, { L"AF", AF_PNG }, { L"AG", AG_PNG },
-    { L"AI", AI_PNG }, { L"AL", AL_PNG }, { L"AM", AM_PNG }, { L"AN", AN_PNG },
-    { L"AO", AO_PNG }, { L"AR", AR_PNG }, { L"AS", AS_PNG }, { L"AT", AT_PNG },
-    { L"AU", AU_PNG }, { L"AW", AW_PNG }, { L"AX", AX_PNG }, { L"AZ", AZ_PNG },
-    { L"BA", BA_PNG }, { L"BB", BB_PNG }, { L"BD", BD_PNG }, { L"BE", BE_PNG },
-    { L"BF", BF_PNG }, { L"BG", BG_PNG }, { L"BH", BH_PNG }, { L"BI", BI__PNG },
-    { L"BJ", BJ_PNG }, { L"BM", BM_PNG }, { L"BN", BN_PNG }, { L"BO", BO_PNG },
-    { L"BR", BR_PNG }, { L"BS", BS_PNG }, { L"BT", BT_PNG }, { L"BV", BV_PNG },
-    { L"BW", BW_PNG }, { L"BY", BY_PNG }, { L"BZ", BZ_PNG },
-    { L"CA", CA_PNG }, { L"CC", CC_PNG }, { L"CD", CD_PNG }, { L"CF", CF_PNG },
-    { L"CG", CG_PNG }, { L"CH", CH_PNG }, { L"CI", CI_PNG }, { L"CK", CK_PNG },
-    { L"CL", CL_PNG }, { L"CM", CM_PNG }, { L"CN", CN_PNG }, { L"CO", CO_PNG },
-    { L"CR", CR_PNG }, { L"CS", CS_PNG }, { L"CU", CU_PNG }, { L"CV", CV_PNG },
-    { L"CX", CX_PNG }, { L"CY", CY_PNG }, { L"CZ", CZ_PNG }, { L"DE", DE_PNG },
-    { L"DJ", DJ_PNG }, { L"DK", DK_PNG }, { L"DM", DM_PNG }, { L"DO", DO_PNG },
-    { L"DZ", DZ_PNG },
-    { L"EC", EC_PNG }, { L"EE", EE_PNG }, { L"EG", EG_PNG }, { L"EH", EH_PNG },
-    { L"ER", ER_PNG }, { L"ES", ES_PNG }, { L"ET", ET_PNG },
-    { L"FI", FI_PNG }, { L"FJ", FJ_PNG }, { L"FK", FK_PNG }, { L"FO", FO_PNG },
-    { L"FR", FR_PNG },
-    { L"GA", GA_PNG }, { L"GB", GB_PNG }, { L"GD", GD_PNG }, { L"GE", GE_PNG },
-    { L"GF", GF_PNG }, { L"GH", GH_PNG }, { L"GI", GI_PNG }, { L"GL", GL_PNG },
-    { L"GM", GM_PNG }, { L"GN", GN_PNG }, { L"GP", GP_PNG }, { L"GQ", GQ_PNG },
-    { L"GR", GR_PNG }, { L"GS", GS_PNG }, { L"GT", GT_PNG }, { L"GU", GU_PNG },
-    { L"GW", GW_PNG }, { L"GY", GY_PNG },
-    { L"HK", HK_PNG }, { L"HM", HM_PNG }, { L"HN", HN_PNG }, { L"HR", HR_PNG },
-    { L"HT", HT_PNG }, { L"HU", HU_PNG },
-    { L"ID", ID_PNG }, { L"IE", IE_PNG }, { L"IL", IL_PNG }, { L"IN", IN_PNG },
-    { L"IO", IO_PNG }, { L"IQ", IQ_PNG }, { L"IR", IR_PNG }, { L"IS", IS_PNG },
-    { L"IT", IT_PNG },
-    { L"JM", JM_PNG }, { L"JO", JO_PNG }, { L"JP", JP_PNG },
-    { L"KE", KE_PNG }, { L"KG", KG_PNG }, { L"KH", KH_PNG }, { L"KI", KI_PNG },
-    { L"KM", KM_PNG }, { L"KN", KN_PNG }, { L"KP", KP_PNG }, { L"KR", KR_PNG },
-    { L"KW", KW_PNG }, { L"KY", KY_PNG }, { L"KZ", KZ_PNG },
-    { L"LA", LA_PNG }, { L"LB", LB_PNG }, { L"LC", LC_PNG }, { L"LI", LI_PNG },
-    { L"LK", LK_PNG }, { L"LR", LR_PNG }, { L"LS", LS_PNG }, { L"LT", LT_PNG },
-    { L"LU", LU_PNG }, { L"LV", LV_PNG }, { L"LY", LY_PNG },
-    { L"MA", MA_PNG }, { L"MC", MC_PNG }, { L"MD", MD_PNG }, { L"ME", ME_PNG },
-    { L"MG", MG_PNG }, { L"MH", MH_PNG }, { L"MK", MK_PNG }, { L"ML", ML_PNG },
-    { L"MM", MM_PNG }, { L"MN", MN_PNG }, { L"MO", MO_PNG }, { L"MP", MP_PNG },
-    { L"MQ", MQ_PNG }, { L"MR", MR_PNG }, { L"MS", MS_PNG }, { L"MT", MT_PNG },
-    { L"MU", MU_PNG }, { L"MV", MV_PNG }, { L"MW", MW_PNG }, { L"MX", MX_PNG },
-    { L"MY", MY_PNG }, { L"MZ", MZ_PNG },
-    { L"NA", NA_PNG }, { L"NC", NC_PNG }, { L"NE", NE_PNG }, { L"NF", NF_PNG },
-    { L"NG", NG_PNG }, { L"NI", NI_PNG }, { L"NL", NL_PNG }, { L"NO", NO_PNG },
-    { L"NP", NP_PNG }, { L"NR", NR_PNG }, { L"NU", NU_PNG }, { L"NZ", NZ_PNG },
-    { L"OM", OM_PNG },
-    { L"PA", PA_PNG }, { L"PE", PE_PNG }, { L"PF", PF_PNG }, { L"PG", PG_PNG },
-    { L"PH", PH_PNG }, { L"PK", PK_PNG }, { L"PL", PL_PNG }, { L"PM", PM_PNG },
-    { L"PN", PN_PNG }, { L"PR", PR_PNG }, { L"PS", PS_PNG }, { L"PT", PT_PNG },
-    { L"PW", PW_PNG }, { L"PY", PY_PNG },
-    { L"QA", QA_PNG },
-    { L"RE", RE_PNG }, { L"RO", RO_PNG }, { L"RS", RS_PNG }, { L"RU", RU_PNG },
-    { L"RW", RW_PNG },
-    { L"SA", SA_PNG }, { L"SB", SB_PNG }, { L"SC", SC_PNG }, { L"SD", SD_PNG },
-    { L"SE", SE_PNG }, { L"SG", SG_PNG }, { L"SH", SH_PNG }, { L"SI", SI_PNG },
-    { L"SJ", SJ_PNG }, { L"SK", SK_PNG }, { L"SL", SL_PNG }, { L"SM", SM_PNG },
-    { L"SN", SN_PNG }, { L"SO", SO_PNG }, { L"SR", SR_PNG }, { L"ST", ST_PNG },
-    { L"SV", SV_PNG }, { L"SY", SY_PNG }, { L"SZ", SZ_PNG },
-    { L"TC", TC_PNG }, { L"TD", TD_PNG }, { L"TF", TF_PNG }, { L"TG", TG_PNG },
-    { L"TH", TH_PNG }, { L"TJ", TJ_PNG }, { L"TK", TK_PNG }, { L"TL", TL_PNG },
-    { L"TM", TM_PNG }, { L"TN", TN_PNG }, { L"TO", TO_PNG }, { L"TR", TR_PNG },
-    { L"TT", TT_PNG }, { L"TV", TV_PNG }, { L"TW", TW_PNG }, { L"TZ", TZ_PNG },
-    { L"UA", UA_PNG }, { L"UG", UG_PNG }, { L"UM", UM_PNG }, { L"US", US_PNG },
-    { L"UY", UY_PNG }, { L"UZ", UZ_PNG },
-    { L"VA", VA_PNG }, { L"VC", VC_PNG }, { L"VE", VE_PNG }, { L"VG", VG_PNG },
-    { L"VI", VI_PNG }, { L"VN", VN_PNG }, { L"VU", VU_PNG },
-    { L"WF", WF_PNG }, { L"WS", WS_PNG },
-    { L"YE", YE_PNG }, { L"YT", YT_PNG },
-    { L"ZA", ZA_PNG }, { L"ZM", ZM_PNG }, { L"ZW", ZW_PNG }
+    { L"AD", AD_PNG, INT_MAX }, { L"AE", AE_PNG, INT_MAX }, { L"AF", AF_PNG, INT_MAX }, { L"AG", AG_PNG, INT_MAX },
+    { L"AI", AI_PNG, INT_MAX }, { L"AL", AL_PNG, INT_MAX }, { L"AM", AM_PNG, INT_MAX }, { L"AN", AN_PNG, INT_MAX },
+    { L"AO", AO_PNG, INT_MAX }, { L"AR", AR_PNG, INT_MAX }, { L"AS", AS_PNG, INT_MAX }, { L"AT", AT_PNG, INT_MAX },
+    { L"AU", AU_PNG, INT_MAX }, { L"AW", AW_PNG, INT_MAX }, { L"AX", AX_PNG, INT_MAX }, { L"AZ", AZ_PNG, INT_MAX },
+    { L"BA", BA_PNG, INT_MAX }, { L"BB", BB_PNG, INT_MAX }, { L"BD", BD_PNG, INT_MAX }, { L"BE", BE_PNG, INT_MAX },
+    { L"BF", BF_PNG, INT_MAX }, { L"BG", BG_PNG, INT_MAX }, { L"BH", BH_PNG, INT_MAX }, { L"BI", BI__PNG, INT_MAX },
+    { L"BJ", BJ_PNG, INT_MAX }, { L"BM", BM_PNG, INT_MAX }, { L"BN", BN_PNG, INT_MAX }, { L"BO", BO_PNG, INT_MAX },
+    { L"BR", BR_PNG, INT_MAX }, { L"BS", BS_PNG, INT_MAX }, { L"BT", BT_PNG, INT_MAX }, { L"BV", BV_PNG, INT_MAX },
+    { L"BW", BW_PNG, INT_MAX }, { L"BY", BY_PNG, INT_MAX }, { L"BZ", BZ_PNG, INT_MAX },
+    { L"CA", CA_PNG, INT_MAX }, { L"CC", CC_PNG, INT_MAX }, { L"CD", CD_PNG, INT_MAX }, { L"CF", CF_PNG, INT_MAX },
+    { L"CG", CG_PNG, INT_MAX }, { L"CH", CH_PNG, INT_MAX }, { L"CI", CI_PNG, INT_MAX }, { L"CK", CK_PNG, INT_MAX },
+    { L"CL", CL_PNG, INT_MAX }, { L"CM", CM_PNG, INT_MAX }, { L"CN", CN_PNG, INT_MAX }, { L"CO", CO_PNG, INT_MAX },
+    { L"CR", CR_PNG, INT_MAX }, { L"CS", CS_PNG, INT_MAX }, { L"CU", CU_PNG, INT_MAX }, { L"CV", CV_PNG, INT_MAX },
+    { L"CX", CX_PNG, INT_MAX }, { L"CY", CY_PNG, INT_MAX }, { L"CZ", CZ_PNG, INT_MAX }, { L"DE", DE_PNG, INT_MAX },
+    { L"DJ", DJ_PNG, INT_MAX }, { L"DK", DK_PNG, INT_MAX }, { L"DM", DM_PNG, INT_MAX }, { L"DO", DO_PNG, INT_MAX },
+    { L"DZ", DZ_PNG, INT_MAX },
+    { L"EC", EC_PNG, INT_MAX }, { L"EE", EE_PNG, INT_MAX }, { L"EG", EG_PNG, INT_MAX }, { L"EH", EH_PNG, INT_MAX },
+    { L"ER", ER_PNG, INT_MAX }, { L"ES", ES_PNG, INT_MAX }, { L"ET", ET_PNG, INT_MAX },
+    { L"FI", FI_PNG, INT_MAX }, { L"FJ", FJ_PNG, INT_MAX }, { L"FK", FK_PNG, INT_MAX }, { L"FO", FO_PNG, INT_MAX },
+    { L"FR", FR_PNG, INT_MAX },
+    { L"GA", GA_PNG, INT_MAX }, { L"GB", GB_PNG, INT_MAX }, { L"GD", GD_PNG, INT_MAX }, { L"GE", GE_PNG, INT_MAX },
+    { L"GF", GF_PNG, INT_MAX }, { L"GH", GH_PNG, INT_MAX }, { L"GI", GI_PNG, INT_MAX }, { L"GL", GL_PNG, INT_MAX },
+    { L"GM", GM_PNG, INT_MAX }, { L"GN", GN_PNG, INT_MAX }, { L"GP", GP_PNG, INT_MAX }, { L"GQ", GQ_PNG, INT_MAX },
+    { L"GR", GR_PNG, INT_MAX }, { L"GS", GS_PNG, INT_MAX }, { L"GT", GT_PNG, INT_MAX }, { L"GU", GU_PNG, INT_MAX },
+    { L"GW", GW_PNG, INT_MAX }, { L"GY", GY_PNG, INT_MAX },
+    { L"HK", HK_PNG, INT_MAX }, { L"HM", HM_PNG, INT_MAX }, { L"HN", HN_PNG, INT_MAX }, { L"HR", HR_PNG, INT_MAX },
+    { L"HT", HT_PNG, INT_MAX }, { L"HU", HU_PNG, INT_MAX },
+    { L"ID", ID_PNG, INT_MAX }, { L"IE", IE_PNG, INT_MAX }, { L"IL", IL_PNG, INT_MAX }, { L"IN", IN_PNG, INT_MAX },
+    { L"IO", IO_PNG, INT_MAX }, { L"IQ", IQ_PNG, INT_MAX }, { L"IR", IR_PNG, INT_MAX }, { L"IS", IS_PNG, INT_MAX },
+    { L"IT", IT_PNG, INT_MAX },
+    { L"JM", JM_PNG, INT_MAX }, { L"JO", JO_PNG, INT_MAX }, { L"JP", JP_PNG, INT_MAX },
+    { L"KE", KE_PNG, INT_MAX }, { L"KG", KG_PNG, INT_MAX }, { L"KH", KH_PNG, INT_MAX }, { L"KI", KI_PNG, INT_MAX },
+    { L"KM", KM_PNG, INT_MAX }, { L"KN", KN_PNG, INT_MAX }, { L"KP", KP_PNG, INT_MAX }, { L"KR", KR_PNG, INT_MAX },
+    { L"KW", KW_PNG, INT_MAX }, { L"KY", KY_PNG, INT_MAX }, { L"KZ", KZ_PNG, INT_MAX },
+    { L"LA", LA_PNG, INT_MAX }, { L"LB", LB_PNG, INT_MAX }, { L"LC", LC_PNG, INT_MAX }, { L"LI", LI_PNG, INT_MAX },
+    { L"LK", LK_PNG, INT_MAX }, { L"LR", LR_PNG, INT_MAX }, { L"LS", LS_PNG, INT_MAX }, { L"LT", LT_PNG, INT_MAX },
+    { L"LU", LU_PNG, INT_MAX }, { L"LV", LV_PNG, INT_MAX }, { L"LY", LY_PNG, INT_MAX },
+    { L"MA", MA_PNG, INT_MAX }, { L"MC", MC_PNG, INT_MAX }, { L"MD", MD_PNG, INT_MAX }, { L"ME", ME_PNG, INT_MAX },
+    { L"MG", MG_PNG, INT_MAX }, { L"MH", MH_PNG, INT_MAX }, { L"MK", MK_PNG, INT_MAX }, { L"ML", ML_PNG, INT_MAX },
+    { L"MM", MM_PNG, INT_MAX }, { L"MN", MN_PNG, INT_MAX }, { L"MO", MO_PNG, INT_MAX }, { L"MP", MP_PNG, INT_MAX },
+    { L"MQ", MQ_PNG, INT_MAX }, { L"MR", MR_PNG, INT_MAX }, { L"MS", MS_PNG, INT_MAX }, { L"MT", MT_PNG, INT_MAX },
+    { L"MU", MU_PNG, INT_MAX }, { L"MV", MV_PNG, INT_MAX }, { L"MW", MW_PNG, INT_MAX }, { L"MX", MX_PNG, INT_MAX },
+    { L"MY", MY_PNG, INT_MAX }, { L"MZ", MZ_PNG, INT_MAX },
+    { L"NA", NA_PNG, INT_MAX }, { L"NC", NC_PNG, INT_MAX }, { L"NE", NE_PNG, INT_MAX }, { L"NF", NF_PNG, INT_MAX },
+    { L"NG", NG_PNG, INT_MAX }, { L"NI", NI_PNG, INT_MAX }, { L"NL", NL_PNG, INT_MAX }, { L"NO", NO_PNG, INT_MAX },
+    { L"NP", NP_PNG, INT_MAX }, { L"NR", NR_PNG, INT_MAX }, { L"NU", NU_PNG, INT_MAX }, { L"NZ", NZ_PNG, INT_MAX },
+    { L"OM", OM_PNG, INT_MAX },
+    { L"PA", PA_PNG, INT_MAX }, { L"PE", PE_PNG, INT_MAX }, { L"PF", PF_PNG, INT_MAX }, { L"PG", PG_PNG, INT_MAX },
+    { L"PH", PH_PNG, INT_MAX }, { L"PK", PK_PNG, INT_MAX }, { L"PL", PL_PNG, INT_MAX }, { L"PM", PM_PNG, INT_MAX },
+    { L"PN", PN_PNG, INT_MAX }, { L"PR", PR_PNG, INT_MAX }, { L"PS", PS_PNG, INT_MAX }, { L"PT", PT_PNG, INT_MAX },
+    { L"PW", PW_PNG, INT_MAX }, { L"PY", PY_PNG, INT_MAX },
+    { L"QA", QA_PNG, INT_MAX },
+    { L"RE", RE_PNG, INT_MAX }, { L"RO", RO_PNG, INT_MAX }, { L"RS", RS_PNG, INT_MAX }, { L"RU", RU_PNG, INT_MAX },
+    { L"RW", RW_PNG, INT_MAX },
+    { L"SA", SA_PNG, INT_MAX }, { L"SB", SB_PNG, INT_MAX }, { L"SC", SC_PNG, INT_MAX }, { L"SD", SD_PNG, INT_MAX },
+    { L"SE", SE_PNG, INT_MAX }, { L"SG", SG_PNG, INT_MAX }, { L"SH", SH_PNG, INT_MAX }, { L"SI", SI_PNG, INT_MAX },
+    { L"SJ", SJ_PNG, INT_MAX }, { L"SK", SK_PNG, INT_MAX }, { L"SL", SL_PNG, INT_MAX }, { L"SM", SM_PNG, INT_MAX },
+    { L"SN", SN_PNG, INT_MAX }, { L"SO", SO_PNG, INT_MAX }, { L"SR", SR_PNG, INT_MAX }, { L"ST", ST_PNG, INT_MAX },
+    { L"SV", SV_PNG, INT_MAX }, { L"SY", SY_PNG, INT_MAX }, { L"SZ", SZ_PNG, INT_MAX },
+    { L"TC", TC_PNG, INT_MAX }, { L"TD", TD_PNG, INT_MAX }, { L"TF", TF_PNG, INT_MAX }, { L"TG", TG_PNG, INT_MAX },
+    { L"TH", TH_PNG, INT_MAX }, { L"TJ", TJ_PNG, INT_MAX }, { L"TK", TK_PNG, INT_MAX }, { L"TL", TL_PNG, INT_MAX },
+    { L"TM", TM_PNG, INT_MAX }, { L"TN", TN_PNG, INT_MAX }, { L"TO", TO_PNG, INT_MAX }, { L"TR", TR_PNG, INT_MAX },
+    { L"TT", TT_PNG, INT_MAX }, { L"TV", TV_PNG, INT_MAX }, { L"TW", TW_PNG, INT_MAX }, { L"TZ", TZ_PNG, INT_MAX },
+    { L"UA", UA_PNG, INT_MAX }, { L"UG", UG_PNG, INT_MAX }, { L"UM", UM_PNG, INT_MAX }, { L"US", US_PNG, INT_MAX },
+    { L"UY", UY_PNG, INT_MAX }, { L"UZ", UZ_PNG, INT_MAX },
+    { L"VA", VA_PNG, INT_MAX }, { L"VC", VC_PNG, INT_MAX }, { L"VE", VE_PNG, INT_MAX }, { L"VG", VG_PNG, INT_MAX },
+    { L"VI", VI_PNG, INT_MAX }, { L"VN", VN_PNG, INT_MAX }, { L"VU", VU_PNG, INT_MAX },
+    { L"WF", WF_PNG, INT_MAX }, { L"WS", WS_PNG, INT_MAX },
+    { L"YE", YE_PNG, INT_MAX }, { L"YT", YT_PNG, INT_MAX },
+    { L"ZA", ZA_PNG, INT_MAX }, { L"ZM", ZM_PNG, INT_MAX }, { L"ZW", ZW_PNG, INT_MAX }
 };
 
-HICON LookupCountryIcon(
+INT LookupCountryIcon(
     _In_ PPH_STRING Name
     )
 {
+    if (!GeoImageList)
+        return INT_MAX;
+
     for (INT i = 0; i < ARRAYSIZE(CountryResourceTable); i++)
     {
         if (PhEqualString2(Name, CountryResourceTable[i].CountryCode, TRUE))
         {
-            if (!CountryResourceTable[i].IconHandle)
+            if (CountryResourceTable[i].IconIndex == INT_MAX)
             {
                 HBITMAP countryBitmap;
 
@@ -474,14 +489,37 @@ HICON LookupCountryIcon(
 
                 if (countryBitmap)
                 {
-                    CountryResourceTable[i].IconHandle = CommonBitmapToIcon(countryBitmap, 16, 11);
+                    CountryResourceTable[i].IconIndex = ImageList_Add(
+                        GeoImageList, 
+                        countryBitmap, 
+                        NULL
+                        );
                     DeleteObject(countryBitmap);
                 }
             }
 
-            return CountryResourceTable[i].IconHandle;
+            return CountryResourceTable[i].IconIndex;
         }
     }
 
-    return 0;
+    return INT_MAX;
+}
+
+VOID DrawCountryIcon(
+    _In_ HDC hdc, 
+    _In_ RECT rect, 
+    _In_ INT Index
+    )
+{
+    if (!GeoImageList)
+        return;
+
+    ImageList_Draw(
+        GeoImageList, 
+        Index, 
+        hdc,
+        rect.left, 
+        rect.top + ((rect.bottom - rect.top) - 11) / 2, 
+        ILD_NORMAL
+        );
 }

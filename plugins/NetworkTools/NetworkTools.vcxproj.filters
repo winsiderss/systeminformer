@@ -129,6 +129,9 @@
     <ClCompile Include="tracetree.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="maxminddb\data-pool.c">
+      <Filter>Source Files\maxmind</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="nettools.h">
@@ -199,6 +202,9 @@
     </ClInclude>
     <ClInclude Include="tracert.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="maxminddb\data-pool.h">
+      <Filter>Header Files\maxminddb</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
