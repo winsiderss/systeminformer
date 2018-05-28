@@ -320,8 +320,12 @@ PPH_STRING PhGetTreeNewText(
             PhInitializeEmptyStringRef(&getCellText.Text);
             TreeNew_GetCellText(TreeNewHandle, &getCellText);
 
-            PhAppendStringBuilder(&stringBuilder, &getCellText.Text);
-            PhAppendStringBuilder2(&stringBuilder, L", ");
+            // Ignore empty columns. -dmex
+            if (getCellText.Text.Length != 0)
+            {
+                PhAppendStringBuilder(&stringBuilder, &getCellText.Text);
+                PhAppendStringBuilder2(&stringBuilder, L", ");
+            }
         }
 
         // Remove the trailing comma and space.
