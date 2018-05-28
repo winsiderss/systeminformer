@@ -348,8 +348,7 @@ NTSTATUS NetworkTracertThreadStart(
 
                     if (reply4->Status == IP_HOP_LIMIT_EXCEEDED && reply4->RoundTripTime < MIN_INTERVAL)
                     {
-                        //LARGE_INTEGER interval;
-                        //NtDelayExecution(FALSE, PhTimeoutFromMilliseconds(&interval, MIN_INTERVAL - reply4->RoundTripTime));
+                        //PhDelayExecution(MIN_INTERVAL - reply4->RoundTripTime);
                     }
 
                     //if (reply4->Status != IP_REQ_TIMED_OUT)
@@ -409,8 +408,7 @@ NTSTATUS NetworkTracertThreadStart(
                     {
                         if (reply6->RoundTripTime < MIN_INTERVAL)
                         {
-                            //LARGE_INTEGER interval;
-                            //NtDelayExecution(FALSE, PhTimeoutFromMilliseconds(&interval, MIN_INTERVAL - reply6->RoundTripTime));
+                            //PhDelayExecution(MIN_INTERVAL - reply6->RoundTripTime);
                         }
                     }
                 }
