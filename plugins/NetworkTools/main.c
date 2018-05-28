@@ -3,7 +3,7 @@
  *   Main program
  *
  * Copyright (C) 2010-2011 wj32
- * Copyright (C) 2013-2017 dmex
+ * Copyright (C) 2013-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -22,7 +22,6 @@
  */
 
 #include "nettools.h"
-#include <commonutil.h>
 
 PPH_PLUGIN PluginInstance;
 PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
@@ -467,8 +466,8 @@ VOID NTAPI NetworkItemDeleteCallback(
     if (extension->LatencyText)
         PhDereferenceObject(extension->LatencyText);
 
-    if (extension->CountryIcon)
-        DestroyIcon(extension->CountryIcon);
+    //if (extension->CountryIcon)
+    //    DestroyIcon(extension->CountryIcon);
 }
 
 FORCEINLINE VOID PhpNetworkItemToRow(
@@ -714,22 +713,10 @@ VOID NTAPI TreeNewMessageCallback(
             rect.left += 5;
 
             // Draw the column data
-            if (GeoDbLoaded && extension->RemoteCountryCode && extension->RemoteCountryName)
+            if (GeoDbLoaded && !GeoDbExpired && extension->RemoteCountryCode && extension->RemoteCountryName)
             {
                 if (!extension->CountryIcon)
-                {
-                    INT resourceCode;
-                    HBITMAP countryBitmap;
-
-                    if ((resourceCode = LookupResourceCode(extension->RemoteCountryCode)) != 0)
-                    {
-                        if (countryBitmap = PhLoadPngImageFromResource(PluginInstance->DllBase, 16, 11, MAKEINTRESOURCE(resourceCode), TRUE))
-                        {
-                            extension->CountryIcon = CommonBitmapToIcon(countryBitmap, 16, 11);
-                            DeleteObject(countryBitmap);
-                        }
-                    }
-                }
+                    extension->CountryIcon = LookupCountryIcon(extension->RemoteCountryCode);
 
                 if (extension->CountryIcon)
                 {
@@ -757,7 +744,7 @@ VOID NTAPI TreeNewMessageCallback(
                     );
             }
 
-            if (GeoDbExpired && !extension->CountryIcon)
+            if (GeoDbExpired)
             {
                 DrawText(hdc, L"Geoip database expired.", -1, &rect, DT_LEFT | DT_VCENTER | DT_END_ELLIPSIS | DT_SINGLELINE);
             }
@@ -888,6 +875,9 @@ VOID ProcessesUpdatedCallback(
             {
                 extension->NumberOfLostPackets = pathRod.FastRetran + pathRod.PktsRetrans;
                 extension->SampleRtt = pathRod.SampleRtt;
+
+                if (extension->SampleRtt == ULONG_MAX) // HACK
+                    extension->SampleRtt = 0;
             }
         }
     }

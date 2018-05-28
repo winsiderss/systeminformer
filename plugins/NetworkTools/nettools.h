@@ -280,7 +280,7 @@ BOOLEAN LookupSockInAddr6CountryCode(
     _Out_ PPH_STRING *CountryName
     );
 
-INT LookupResourceCode(
+HICON LookupCountryIcon(
     _In_ PPH_STRING Name
     );
 
