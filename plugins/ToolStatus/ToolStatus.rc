@@ -185,7 +185,7 @@ END
 
 IDR_MAINWND_ACCEL ACCELERATORS
 BEGIN
-    "K",            ID_SEARCH,              VIRTKEY, CONTROL, NOINVERT
+    "F",            ID_SEARCH,              VIRTKEY, CONTROL, NOINVERT
 END
 
 

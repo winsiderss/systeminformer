@@ -412,13 +412,13 @@ VOID NTAPI TabPageUpdatedCallback(
     switch (tabIndex)
     {
     case 0:
-        Edit_SetCueBannerText(SearchboxHandle, L"Search Processes (Ctrl+K)");
+        Edit_SetCueBannerText(SearchboxHandle, L"Search Processes (Ctrl+F)");
         break;
     case 1:
-        Edit_SetCueBannerText(SearchboxHandle, L"Search Services (Ctrl+K)");
+        Edit_SetCueBannerText(SearchboxHandle, L"Search Services (Ctrl+F)");
         break;
     case 2:
-        Edit_SetCueBannerText(SearchboxHandle, L"Search Network (Ctrl+K)");
+        Edit_SetCueBannerText(SearchboxHandle, L"Search Network (Ctrl+F)");
         break;
     default:
         {
@@ -426,7 +426,7 @@ VOID NTAPI TabPageUpdatedCallback(
 
             if ((tabInfo = FindTabInfo(tabIndex)) && tabInfo->BannerText)
             {
-                Edit_SetCueBannerText(SearchboxHandle, PhaConcatStrings2(tabInfo->BannerText, L" (Ctrl+K)")->Buffer);
+                Edit_SetCueBannerText(SearchboxHandle, PhaConcatStrings2(tabInfo->BannerText, L" (Ctrl+F)")->Buffer);
             }
             else
             {
@@ -700,24 +700,36 @@ LRESULT CALLBACK MainWndSubclassProc(
 
                         goto DefaultWndProc;
                     }
+
+                    // Focus list instead of search box.
+                    else if (GetFocus() == SearchboxHandle)
+                        SetFocus(GetCurrentTreeNewHandle());
                 }
                 break;
             case ID_SEARCH:
                 {
-                    // handle keybind Ctrl + K
+                    // Handle keybind Ctrl+F.
                     if (SearchboxHandle && ToolStatusConfig.SearchBoxEnabled)
                     {
-                        if (SearchBoxDisplayMode == SEARCHBOX_DISPLAY_MODE_HIDEINACTIVE)
+                        if (GetFocus() == SearchboxHandle)
                         {
-                            if (!RebarBandExists(REBAR_BAND_ID_SEARCHBOX))
-                                RebarBandInsert(REBAR_BAND_ID_SEARCHBOX, SearchboxHandle, PH_SCALE_DPI(180), 22);
-
-                            if (!IsWindowVisible(SearchboxHandle))
-                                ShowWindow(SearchboxHandle, SW_SHOW);
+                            // If search box is already focused, focus list instead.
+                            SetFocus(GetCurrentTreeNewHandle());
                         }
+                        else
+                        {
+                            if (SearchBoxDisplayMode == SEARCHBOX_DISPLAY_MODE_HIDEINACTIVE)
+                            {
+                                if (!RebarBandExists(REBAR_BAND_ID_SEARCHBOX))
+                                    RebarBandInsert(REBAR_BAND_ID_SEARCHBOX, SearchboxHandle, PH_SCALE_DPI(180), 22);
 
-                        SetFocus(SearchboxHandle);
-                        Edit_SetSel(SearchboxHandle, 0, -1);
+                                if (!IsWindowVisible(SearchboxHandle))
+                                    ShowWindow(SearchboxHandle, SW_SHOW);
+                            }
+
+                            SetFocus(SearchboxHandle);
+                            Edit_SetSel(SearchboxHandle, 0, -1);
+                        }
                     }   
                 }
                 goto DefaultWndProc;

@@ -177,7 +177,7 @@ VOID RebarLoadSettings(
             NULL
             ))
         {
-            PhCreateSearchControl(RebarHandle, SearchboxHandle, L"Search Processes (Ctrl+K)");
+            PhCreateSearchControl(RebarHandle, SearchboxHandle, L"Search Processes (Ctrl+F)");
         }
     }
 
