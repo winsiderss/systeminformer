@@ -35,7 +35,7 @@ ULONG PhNtStatusToDosError(
     if (NT_NTWIN32(Status)) // RtlNtStatusToDosError doesn't seem to handle these cases correctly
         return WIN32_FROM_NTSTATUS(Status);
     else
-        return RtlNtStatusToDosError(Status);
+        return RtlNtStatusToDosErrorNoTeb(Status);
 }
 
 /**
