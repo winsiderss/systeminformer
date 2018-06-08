@@ -1713,7 +1713,7 @@ NTSTATUS PhpCommonQueryObjectWithTimeout(
     NTSTATUS status;
     LARGE_INTEGER timeout;
 
-    timeout.QuadPart = -1 * PH_TIMEOUT_SEC;
+    timeout.QuadPart = -(LONGLONG)UInt32x32To64(1, PH_TIMEOUT_SEC);
     status = PhCallWithTimeout(PhpCommonQueryObjectRoutine, Context, NULL, &timeout);
 
     if (NT_SUCCESS(status))
