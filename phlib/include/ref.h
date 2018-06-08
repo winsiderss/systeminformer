@@ -243,6 +243,23 @@ PhClearReference(
     PhMoveReference(ObjectReference, NULL);
 }
 
+// Convenience functions
+
+FORCEINLINE
+PVOID
+PhCreateObjectZero(
+    _In_ SIZE_T ObjectSize,
+    _In_ PPH_OBJECT_TYPE ObjectType
+    )
+{
+    PVOID object;
+
+    object = PhCreateObject(ObjectSize, ObjectType);
+    memset(object, 0, ObjectSize);
+
+    return object;
+}
+
 // Auto-dereference pool
 
 /** The size of the static array in an auto-release pool. */
