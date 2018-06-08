@@ -1337,6 +1337,137 @@ CleanupExit:
 }
 
 /**
+ * Causes a process to load a DLL.
+ *
+ * \param ProcessHandle A handle to a process. The handle must have
+ * PROCESS_QUERY_LIMITED_INFORMATION, PROCESS_CREATE_THREAD, PROCESS_VM_OPERATION, PROCESS_VM_READ
+ * and PROCESS_VM_WRITE access.
+ * \param FileName The file name of the DLL to inject.
+ * \param Timeout The timeout, in milliseconds, for the process to load the DLL.
+ *
+ * \remarks If the process does not load the DLL before the timeout expires it may crash. Choose the
+ * timeout value carefully.
+ */
+NTSTATUS PhLoadDllProcess(
+    _In_ HANDLE ProcessHandle,
+    _In_ PWSTR FileName,
+    _In_opt_ PLARGE_INTEGER Timeout
+    ) 
+{
+#ifdef _WIN64
+    static PVOID loadLibraryW32 = NULL;
+#endif
+    NTSTATUS status;
+#ifdef _WIN64
+    BOOLEAN isWow64 = FALSE;
+    BOOLEAN isModule32 = FALSE;
+    PH_MAPPED_IMAGE mappedImage;
+#endif
+    PVOID threadStart;
+    PH_STRINGREF fileName;
+    PVOID baseAddress = NULL;
+    SIZE_T allocSize;
+    HANDLE threadHandle;
+
+#ifdef _WIN64
+    PhGetProcessIsWow64(ProcessHandle, &isWow64);
+
+    if (isWow64)
+    {
+        if (!NT_SUCCESS(status = PhLoadMappedImage(FileName, NULL, TRUE, &mappedImage)))
+            return status;
+
+        isModule32 = mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC;
+        PhUnloadMappedImage(&mappedImage);
+    }
+
+    if (!isModule32)
+    {
+#endif
+        threadStart = PhGetModuleProcAddress(L"kernel32.dll", "LoadLibraryW");
+#ifdef _WIN64
+    }
+    else
+    {
+        threadStart = loadLibraryW32;
+
+        if (!threadStart)
+        {
+            PPH_STRING kernel32FileName;
+
+            kernel32FileName = PhConcatStrings2(USER_SHARED_DATA->NtSystemRoot, L"\\SysWow64\\kernel32.dll");
+            status = PhGetProcedureAddressRemote(
+                ProcessHandle,
+                kernel32FileName->Buffer,
+                "LoadLibraryW",
+                0,
+                &loadLibraryW32,
+                NULL
+                );
+            PhDereferenceObject(kernel32FileName);
+
+            if (!NT_SUCCESS(status))
+                return status;
+
+            threadStart = loadLibraryW32;
+        }
+    }
+#endif
+
+    PhInitializeStringRefLongHint(&fileName, FileName);
+    allocSize = fileName.Length + sizeof(WCHAR);
+
+    if (!NT_SUCCESS(status = NtAllocateVirtualMemory(
+        ProcessHandle,
+        &baseAddress,
+        0,
+        &allocSize,
+        MEM_COMMIT,
+        PAGE_READWRITE
+        )))
+        return status;
+
+    if (!NT_SUCCESS(status = NtWriteVirtualMemory(
+        ProcessHandle,
+        baseAddress,
+        fileName.Buffer,
+        fileName.Length + sizeof(WCHAR),
+        NULL
+        )))
+        goto FreeExit;
+
+    if (!NT_SUCCESS(status = RtlCreateUserThread(
+        ProcessHandle,
+        NULL,
+        FALSE,
+        0,
+        0,
+        0,
+        threadStart,
+        baseAddress,
+        &threadHandle,
+        NULL
+        )))
+        goto FreeExit;
+    
+    // Wait for the thread to finish.	
+    status = NtWaitForSingleObject(threadHandle, FALSE, Timeout);
+    NtClose(threadHandle);
+
+FreeExit:
+    // Size needs to be zero if we're freeing.	
+    allocSize = 0;
+    NtFreeVirtualMemory(
+        ProcessHandle,
+        &baseAddress,
+        &allocSize,
+        MEM_RELEASE
+        );
+
+    return status;
+}
+
+/**
  * Causes a process to unload a DLL.
  *
  * \param ProcessHandle A handle to a process. The handle must have
