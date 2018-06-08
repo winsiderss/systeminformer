@@ -3,6 +3,7 @@
  *   global variables and initialization functions
  *
  * Copyright (C) 2010-2013 wj32
+ * Copyright (C) 2017-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -217,7 +218,7 @@ static VOID PhInitializeWindowsVersion(
             WindowsVersion = WINDOWS_10_RS4;
             break;
         default:
-            WindowsVersion = WindowsVersion > 17134 ? WINDOWS_10_RS4 : WINDOWS_10;
+            WindowsVersion = buildVersion > 17134 ? WINDOWS_10_RS4 : WINDOWS_10;
             break;
         }
     }
