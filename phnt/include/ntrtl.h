@@ -4389,15 +4389,15 @@ NTSYSAPI
 PWSTR
 NTAPI
 RtlIpv4AddressToStringW(
-    _In_ struct in_addr *Addr,
-    _Out_writes_(16) PWSTR S
+    _In_ const struct in_addr *Address,
+    _Out_writes_(16) PWSTR AddressString
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlIpv4AddressToStringExW(
-    _In_ struct in_addr *Address,
+    _In_ const struct in_addr *Address,
     _In_ USHORT Port,
     _Out_writes_to_(*AddressStringLength, *AddressStringLength) PWSTR AddressString,
     _Inout_ PULONG AddressStringLength
@@ -4407,15 +4407,15 @@ NTSYSAPI
 PWSTR
 NTAPI
 RtlIpv6AddressToStringW(
-    _In_ struct in6_addr *Addr,
-    _Out_writes_(65) PWSTR S
+    _In_ const struct in6_addr *Address,
+    _Out_writes_(46) PWSTR AddressString
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlIpv6AddressToStringExW(
-    _In_ struct in6_addr *Address,
+    _In_ const struct in6_addr *Address,
     _In_ ULONG ScopeId,
     _In_ USHORT Port,
     _Out_writes_to_(*AddressStringLength, *AddressStringLength) PWSTR AddressString,
@@ -4426,17 +4426,17 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlIpv4StringToAddressW(
-    _In_ PWSTR S,
+    _In_ PCWSTR AddressString,
     _In_ BOOLEAN Strict,
-    _Out_ PWSTR *Terminator,
-    _Out_ struct in_addr *Addr
+    _Out_ LPCWSTR *Terminator,
+    _Out_ struct in_addr *Address
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlIpv4StringToAddressExW(
-    _In_ PWSTR AddressString,
+    _In_ PCWSTR AddressString,
     _In_ BOOLEAN Strict,
     _Out_ struct in_addr *Address,
     _Out_ PUSHORT Port
@@ -4446,16 +4446,16 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlIpv6StringToAddressW(
-    _In_ PWSTR S,
-    _Out_ PWSTR *Terminator,
-    _Out_ struct in6_addr *Addr
+    _In_ PCWSTR AddressString,
+    _Out_ PCWSTR *Terminator,
+    _Out_ struct in6_addr *Address
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlIpv6StringToAddressExW(
-    _In_ PWSTR AddressString,
+    _In_ PCWSTR AddressString,
     _Out_ struct in6_addr *Address,
     _Out_ PULONG ScopeId,
     _Out_ PUSHORT Port

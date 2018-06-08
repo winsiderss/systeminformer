@@ -1,8 +1,12 @@
 #ifndef _PH_PHNET_H
 #define _PH_PHNET_H
 
-#include <inaddr.h>
-#include <in6addr.h>
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <ws2ipdef.h>
+#include <windns.h>
+#include <iphlpapi.h>
+#include <mstcpip.h>
 
 #define PH_IPV4_NETWORK_TYPE 0x1
 #define PH_IPV6_NETWORK_TYPE 0x2
@@ -24,9 +28,9 @@ typedef struct _PH_IP_ADDRESS
     union
     {
         ULONG Ipv4;
-        struct in_addr InAddr;
+        IN_ADDR InAddr;
         UCHAR Ipv6[16];
-        struct in6_addr In6Addr;
+        IN6_ADDR In6Addr;
     };
 } PH_IP_ADDRESS, *PPH_IP_ADDRESS;
 
@@ -40,23 +44,26 @@ FORCEINLINE BOOLEAN PhEqualIpAddress(
     if (Address1->Type != Address2->Type)
         return FALSE;
 
+    // TODO: Remove the below commented code if the ADDR_EQUAL macros work -dmex
     if (Address1->Type == PH_IPV4_NETWORK_TYPE)
     {
-        return Address1->Ipv4 == Address2->Ipv4;
+        return IN4_ADDR_EQUAL(&Address1->InAddr, &Address2->InAddr);
+        // return Address1->Ipv4 == Address2->Ipv4;
     }
     else
     {
-#ifdef _WIN64
-        return
-            *(PULONG64)(Address1->Ipv6) == *(PULONG64)(Address2->Ipv6) &&
-            *(PULONG64)(Address1->Ipv6 + 8) == *(PULONG64)(Address2->Ipv6 + 8);
-#else
-        return
-            *(PULONG)(Address1->Ipv6) == *(PULONG)(Address2->Ipv6) &&
-            *(PULONG)(Address1->Ipv6 + 4) == *(PULONG)(Address2->Ipv6 + 4) &&
-            *(PULONG)(Address1->Ipv6 + 8) == *(PULONG)(Address2->Ipv6 + 8) &&
-            *(PULONG)(Address1->Ipv6 + 12) == *(PULONG)(Address2->Ipv6 + 12);
-#endif
+        return IN6_ADDR_EQUAL(&Address1->In6Addr, &Address2->In6Addr);
+//#ifdef _WIN64
+//        return
+//            *(PULONG64)(Address1->Ipv6) == *(PULONG64)(Address2->Ipv6) &&
+//            *(PULONG64)(Address1->Ipv6 + 8) == *(PULONG64)(Address2->Ipv6 + 8);
+//#else
+//        return
+//            *(PULONG)(Address1->Ipv6) == *(PULONG)(Address2->Ipv6) &&
+//            *(PULONG)(Address1->Ipv6 + 4) == *(PULONG)(Address2->Ipv6 + 4) &&
+//            *(PULONG)(Address1->Ipv6 + 8) == *(PULONG)(Address2->Ipv6 + 8) &&
+//            *(PULONG)(Address1->Ipv6 + 12) == *(PULONG)(Address2->Ipv6 + 12);
+//#endif
     }
 }
 
