@@ -90,7 +90,7 @@ PPH_HANDLE_PROVIDER PhCreateHandleProvider(
         ProcessId
         );
 
-    handleProvider->TempListHashtable = PhCreateSimpleHashtable(20);
+    handleProvider->TempListHashtable = PhCreateSimpleHashtable(512);
 
     PhEmCallObjectOperation(EmHandleProviderType, handleProvider, EmObjectCreate);
 
