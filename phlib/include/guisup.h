@@ -377,19 +377,29 @@ VOID PhSetClipboardString(
     _In_ PPH_STRINGREF String
     );
 
+#include <pshpack1.h>
 typedef struct _DLGTEMPLATEEX
 {
-    WORD dlgVer;
-    WORD signature;
-    DWORD helpID;
-    DWORD exStyle;
-    DWORD style;
-    WORD cDlgItems;
-    short x;
-    short y;
-    short cx;
-    short cy;
+    USHORT dlgVer;
+    USHORT signature;
+    ULONG helpID;
+    ULONG exStyle;
+    ULONG style;
+    USHORT cDlgItems;
+    SHORT x;
+    SHORT y;
+    SHORT cx;
+    SHORT cy;
+    //sz_Or_Ord menu;
+    //sz_Or_Ord windowClass;
+    //WCHAR title[titleLen];
+    //USHORT pointsize;
+    //USHORT weight;
+    //BYTE italic;
+    //BYTE charset;
+    //WCHAR typeface[stringLen];
 } DLGTEMPLATEEX, *PDLGTEMPLATEEX;
+#include <poppack.h>
 
 PHLIBAPI
 HWND PhCreateDialogFromTemplate(
