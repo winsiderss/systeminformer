@@ -174,16 +174,6 @@ PPH_EMENU_ITEM PhShowEMenu(
     _In_ ULONG Y
     );
 
-// Convenience functions
-
-FORCEINLINE
-PPH_EMENU_ITEM PhCreateEMenuSeparator(
-    VOID
-    )
-{
-    return PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, NULL, NULL, NULL);
-}
-
 PHLIBAPI
 BOOLEAN PhSetFlagsEMenuItem(
     _Inout_ PPH_EMENU_ITEM Item,
@@ -191,15 +181,6 @@ BOOLEAN PhSetFlagsEMenuItem(
     _In_ ULONG Mask,
     _In_ ULONG Value
     );
-
-FORCEINLINE BOOLEAN PhEnableEMenuItem(
-    _Inout_ PPH_EMENU_ITEM Item,
-    _In_ ULONG Id,
-    _In_ BOOLEAN Enable
-    )
-{
-    return PhSetFlagsEMenuItem(Item, Id, PH_EMENU_DISABLED, Enable ? 0 : PH_EMENU_DISABLED);
-}
 
 PHLIBAPI
 VOID PhSetFlagsAllEMenuItems(
@@ -219,6 +200,34 @@ VOID PhModifyEMenuItem(
     _In_opt_ PWSTR Text,
     _In_opt_ HBITMAP Bitmap
     );
+
+// Convenience functions
+
+FORCEINLINE
+PPH_EMENU_ITEM PhCreateEMenuSeparator(
+    VOID
+    )
+{
+    return PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, NULL, NULL, NULL);
+}
+
+FORCEINLINE 
+BOOLEAN PhEnableEMenuItem(
+    _Inout_ PPH_EMENU_ITEM Item,
+    _In_ ULONG Id,
+    _In_ BOOLEAN Enable
+    )
+{
+    return PhSetFlagsEMenuItem(Item, Id, PH_EMENU_DISABLED, Enable ? 0 : PH_EMENU_DISABLED);
+}
+
+FORCEINLINE 
+VOID PhSetDisabledEMenuItem(
+    _In_ PPH_EMENU_ITEM Item
+    )
+{
+    Item->Flags |= PH_EMENU_DISABLED;
+}
 
 #ifdef __cplusplus
 }
