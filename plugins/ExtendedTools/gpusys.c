@@ -514,8 +514,7 @@ VOID EtpNotifyDedicatedGraph(
             {
                 for (i = 0; i < drawInfo->LineDataCount; i++)
                 {
-                    DedicatedGraphState.Data1[i] =
-                        (FLOAT)PhGetItemCircularBuffer_ULONG(&EtGpuDedicatedHistory, i);
+                    DedicatedGraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(&EtGpuDedicatedHistory, i);
                 }
 
                 if (EtGpuDedicatedLimit != 0)
@@ -546,7 +545,7 @@ VOID EtpNotifyDedicatedGraph(
 
                     PhMoveReference(&DedicatedGraphState.TooltipText, PhFormatString(
                         L"Dedicated Memory: %s\n%s",
-                        PhaFormatSize(UInt32x32To64(usedPages, PAGE_SIZE), -1)->Buffer,
+                        PhaFormatSize(UInt32x32To64(usedPages, PAGE_SIZE), ULONG_MAX)->Buffer,
                         ((PPH_STRING)PH_AUTO(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
                         ));
                 }
@@ -583,8 +582,7 @@ VOID EtpNotifySharedGraph(
             {
                 for (i = 0; i < drawInfo->LineDataCount; i++)
                 {
-                    SharedGraphState.Data1[i] =
-                        (FLOAT)PhGetItemCircularBuffer_ULONG(&EtGpuSharedHistory, i);
+                    SharedGraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(&EtGpuSharedHistory, i);
                 }
 
                 if (EtGpuSharedLimit != 0)
@@ -615,7 +613,7 @@ VOID EtpNotifySharedGraph(
 
                     PhMoveReference(&SharedGraphState.TooltipText, PhFormatString(
                         L"Shared Memory: %s\n%s",
-                        PhaFormatSize(UInt32x32To64(usedPages, PAGE_SIZE), -1)->Buffer,
+                        PhaFormatSize(UInt32x32To64(usedPages, PAGE_SIZE), ULONG_MAX)->Buffer,
                         ((PPH_STRING)PH_AUTO(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
                         ));
                 }

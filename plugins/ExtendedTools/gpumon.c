@@ -24,7 +24,6 @@
 #define INITGUID
 #include "exttools.h"
 #include <cfgmgr32.h>
-#include <devpkey.h>
 #include <ntddvdeo.h>
 #include "gpumon.h"
 
@@ -78,10 +77,7 @@ VOID EtGpuMonitorInitialization(
         PhInitializeCircularBuffer_ULONG(&EtGpuDedicatedHistory, sampleCount);
         PhInitializeCircularBuffer_ULONG(&EtGpuSharedHistory, sampleCount);
 
-        PhInitializeDelta(&EtClockTotalRunningTimeDelta);
-
-        EtGpuNodesTotalRunningTimeDelta = PhAllocate(sizeof(PH_UINT64_DELTA) * EtGpuTotalNodeCount);
-        memset(EtGpuNodesTotalRunningTimeDelta, 0, sizeof(PH_UINT64_DELTA) * EtGpuTotalNodeCount);
+        EtGpuNodesTotalRunningTimeDelta = PhAllocateZero(sizeof(PH_UINT64_DELTA) * EtGpuTotalNodeCount);
         EtGpuNodesHistory = PhAllocate(sizeof(PH_CIRCULAR_BUFFER_FLOAT) * EtGpuTotalNodeCount);
 
         for (i = 0; i < EtGpuTotalNodeCount; i++)
@@ -129,6 +125,27 @@ BOOLEAN EtCloseAdapterHandle(
     return NT_SUCCESS(D3DKMTCloseAdapter(&closeAdapter));
 }
 
+D3DKMT_DRIVERVERSION EtpGetGpuWddmVersion(
+    _In_ D3DKMT_HANDLE AdapterHandle
+    )
+{
+    D3DKMT_DRIVERVERSION driverVersion;
+
+    memset(&driverVersion, 0, sizeof(D3DKMT_DRIVERVERSION));
+
+    if (NT_SUCCESS(EtQueryAdapterInformation(
+        AdapterHandle,
+        KMTQAITYPE_DRIVERVERSION,
+        &driverVersion,
+        sizeof(D3DKMT_ADAPTERTYPE)
+        )))
+    {
+        return driverVersion;
+    }
+
+    return KMT_DRIVERVERSION_WDDM_1_0;
+}
+
 BOOLEAN EtpIsGpuSoftwareDevice(
     _In_ D3DKMT_HANDLE AdapterHandle
     )
@@ -144,7 +161,7 @@ BOOLEAN EtpIsGpuSoftwareDevice(
         sizeof(D3DKMT_ADAPTERTYPE)
         )))
     {
-        if (adapterType.SoftwareDevice)
+        if (adapterType.SoftwareDevice) // adapterType.HybridIntegrated
         {
             return TRUE;
         }
@@ -324,7 +341,7 @@ PPH_STRING EtpQueryDeviceRegistryProperty(
 }
 
 // Note: MSDN states this value must be created by video devices BUT Task Manager 
-// doesn't query this value and I currently don't know where it's querying this information.
+// doesn't query this value and I currently don't know where it's getting the gpu memory information.
 // https://docs.microsoft.com/en-us/windows-hardware/drivers/display/registering-hardware-information
 ULONG64 EtpQueryGpuInstalledMemory(
     _In_ DEVINST DeviceHandle
@@ -420,7 +437,6 @@ D3D_FEATURE_LEVEL EtQueryAdapterFeatureLevel(
     D3D_FEATURE_LEVEL d3dFeatureLevelResult = 0;
     IDXGIFactory1 *dxgiFactory;
     IDXGIAdapter* dxgiAdapter;
-    UINT i = 0;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -444,7 +460,7 @@ D3D_FEATURE_LEVEL EtQueryAdapterFeatureLevel(
 
         if (SUCCEEDED(IDXGIAdapter_GetDesc(dxgiAdapter, &dxgiAdapterDescription)))
         {
-            if (RtlEqualMemory(&dxgiAdapterDescription.AdapterLuid, &AdapterLuid, sizeof(LUID)))
+            if (RtlIsEqualLuid(&dxgiAdapterDescription.AdapterLuid, &AdapterLuid))
             {
                 D3D_FEATURE_LEVEL d3dFeatureLevel[] =
                 {
@@ -476,6 +492,7 @@ D3D_FEATURE_LEVEL EtQueryAdapterFeatureLevel(
                 {
                     d3dFeatureLevelResult = d3ddeviceFeatureLevel;
                     ID3D11Device_Release(d3d11device);
+                    IDXGIAdapter_Release(dxgiAdapter);
                     break;
                 }
             }
@@ -887,7 +904,6 @@ VOID NTAPI EtGpuProcessesUpdatedCallback(
     )
 {
     static ULONG runCount = 0; // MUST keep in sync with runCount in process provider
-
     DOUBLE elapsedTime; // total GPU node elapsed time in micro-seconds
     FLOAT tempGpuUsage;
     ULONG i;
@@ -901,24 +917,20 @@ VOID NTAPI EtGpuProcessesUpdatedCallback(
 
     // Update global gpu usage. 
     tempGpuUsage = 0;
-    elapsedTime = (DOUBLE)EtClockTotalRunningTimeDelta.Delta * 10000000 / EtClockTotalRunningTimeFrequency.QuadPart;
+    elapsedTime = (DOUBLE)(EtClockTotalRunningTimeDelta.Delta * 10000000ULL / EtClockTotalRunningTimeFrequency.QuadPart);
 
     if (elapsedTime != 0)
     {
         for (i = 0; i < EtGpuTotalNodeCount; i++)
         {
-            FLOAT usage;
+            FLOAT usage = (FLOAT)(EtGpuNodesTotalRunningTimeDelta[i].Delta / elapsedTime);
 
-            usage = (FLOAT)(EtGpuNodesTotalRunningTimeDelta[i].Delta / elapsedTime);
+            if (usage > 1)
+                usage = 1;
 
             if (usage > tempGpuUsage)
-            {
                 tempGpuUsage = usage;
-            }
         }
-
-        if (tempGpuUsage > 1)
-            tempGpuUsage = 1;
     }
 
     EtGpuNodeUsage = tempGpuUsage;
