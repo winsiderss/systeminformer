@@ -216,7 +216,7 @@ VOID AddNetworkAdapterToListView(
         PhMoveReference(&newId->InterfaceGuid, Guid);
     }
 
-    lvItemIndex = AddListViewItemGroupId(
+    lvItemIndex = PhAddListViewGroupItem(
         Context->ListViewHandle,
         AdapterPresent ? 0 : 1,
         MAXINT,
@@ -297,7 +297,7 @@ BOOLEAN QueryNetworkDeviceInterfaceDescription(
     // We use our NetworkAdapterQueryName function to query the full adapter name
     // from the NDIS driver directly, if that fails then we use one of the above properties.
 
-    if ((result = CM_Get_DevNode_Property( // CM_Get_DevNode_Registry_Property with CM_DRP_DEVICEDESC??
+    if ((result = CM_Get_DevNode_Property(
         deviceInstanceHandle,
         WindowsVersion >= WINDOWS_8 ? &DEVPKEY_Device_FriendlyName : &DEVPKEY_Device_DeviceDesc,
         &devicePropertyType,
@@ -437,8 +437,8 @@ VOID FindNetworkAdapters(
 
                 adapterEntry->DeviceGuid = PhQueryRegistryString(keyHandle, L"NetCfgInstanceId");
                 adapterEntry->DeviceInterface = PhConcatStrings2(L"\\\\.\\", adapterEntry->DeviceGuid->Buffer);
-                adapterEntry->DeviceLuid.Info.IfType = QueryRegistryUlong64(keyHandle, L"*IfType");
-                adapterEntry->DeviceLuid.Info.NetLuidIndex = QueryRegistryUlong64(keyHandle, L"NetLuidIndex");
+                adapterEntry->DeviceLuid.Info.IfType = PhQueryRegistryUlong64(keyHandle, L"*IfType");
+                adapterEntry->DeviceLuid.Info.NetLuidIndex = PhQueryRegistryUlong64(keyHandle, L"NetLuidIndex");
 
                 if (NT_SUCCESS(NetworkAdapterCreateHandle(&deviceHandle, adapterEntry->DeviceInterface)))
                 {
@@ -733,8 +733,8 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
             PhSetExtendedListView(context->ListViewHandle);
 
             ListView_EnableGroupView(context->ListViewHandle, TRUE);
-            AddListViewGroup(context->ListViewHandle, 0, L"Connected");
-            AddListViewGroup(context->ListViewHandle, 1, L"Disconnected");
+            PhAddListViewGroup(context->ListViewHandle, 0, L"Connected");
+            PhAddListViewGroup(context->ListViewHandle, 1, L"Disconnected");
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
