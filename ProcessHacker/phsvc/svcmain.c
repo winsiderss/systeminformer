@@ -48,7 +48,7 @@ NTSTATUS PhSvcMain(
 
     if (!Timeout)
     {
-        timeout.QuadPart = -15 * PH_TIMEOUT_SEC;
+        timeout.QuadPart = -(LONGLONG)UInt32x32To64(15, PH_TIMEOUT_SEC);
         Timeout = &timeout;
     }
 
