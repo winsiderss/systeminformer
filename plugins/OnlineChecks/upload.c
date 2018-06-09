@@ -26,8 +26,8 @@ PPH_OBJECT_TYPE UploadContextType = NULL;
 PH_INITONCE UploadContextTypeInitOnce = PH_INITONCE_INIT;
 SERVICE_INFO UploadServiceInfo[] =
 { 
-    { MENUITEM_HYBRIDANALYSIS_UPLOAD, L"www.hybrid-analysis.com", L"/api/submit", L"file" },
-    { MENUITEM_HYBRIDANALYSIS_UPLOAD_SERVICE, L"www.hybrid-analysis.com", L"/api/submit", L"file" },
+    { MENUITEM_HYBRIDANALYSIS_UPLOAD, L"www.hybrid-analysis.com", L"/api/v2/submit/file", L"file" },
+    { MENUITEM_HYBRIDANALYSIS_UPLOAD_SERVICE, L"www.hybrid-analysis.com", L"/api/v2/submit/file", L"file" },
     { MENUITEM_VIRUSTOTAL_UPLOAD, L"www.virustotal.com", L"???", L"file" },
     { MENUITEM_VIRUSTOTAL_UPLOAD_SERVICE, L"www.virustotal.com", L"???", L"file" },
     { MENUITEM_JOTTI_UPLOAD, L"virusscan.jotti.org", L"/en-US/submit-file?isAjax=true", L"sample-file[]" },
@@ -284,6 +284,30 @@ PPH_BYTES PerformSubRequest(
         goto CleanupExit;
     }
 
+    if (
+        Context->Service == MENUITEM_HYBRIDANALYSIS_UPLOAD ||
+        Context->Service == MENUITEM_HYBRIDANALYSIS_UPLOAD_SERVICE
+        )
+    {
+        PPH_BYTES serviceHash;
+        PPH_STRING httpHeader;
+
+        serviceHash = VirusTotalGetCachedDbHash(&ServiceObjectDbHash);
+        httpHeader = PhFormatString(
+            L"\x0061\x0070\x0069\x002D\x006B\x0065\x0079:%hs",
+            serviceHash->Buffer
+            );
+
+        PhHttpSocketAddRequestHeaders(
+            httpContext,
+            httpHeader->Buffer,
+            (ULONG)httpHeader->Length / sizeof(WCHAR)
+            );
+
+        PhClearReference(&httpHeader);
+        PhClearReference(&serviceHash);
+    }
+
     if (!PhHttpSocketSendRequest(httpContext, NULL, 0))
     {
         RaiseUploadError(Context, L"Unable to send the request.", GetLastError());
@@ -311,24 +335,6 @@ CleanupExit:
     PhClearReference(&userAgent);
 
     return result;
-}
-
-BOOLEAN UploadGetFileArchitecture(
-    _In_ HANDLE FileHandle, 
-    _Out_ PUSHORT FileArchitecture
-    )
-{
-    NTSTATUS status;
-    PH_MAPPED_IMAGE mappedImage;
-
-    if (!NT_SUCCESS(status = PhLoadMappedImage(NULL, FileHandle, TRUE, &mappedImage)))
-        return FALSE;
-
-    *FileArchitecture = mappedImage.NtHeaders->FileHeader.Machine;
-
-    PhUnloadMappedImage(&mappedImage);
-
-    return TRUE;
 }
 
 NTSTATUS UploadFileThreadStart(
@@ -436,13 +442,6 @@ NTSTATUS UploadFileThreadStart(
         (ULONG64)RtlRandomEx(&httpPostSeed) | ((ULONG64)RtlRandomEx(&httpPostSeed) << 31)
         );
 
-    // HTTP request header string.
-    PhAppendFormatStringBuilder(
-        &httpRequestHeaders,
-        L"Content-Type: multipart/form-data; boundary=%s\r\n",
-        postBoundary->Buffer
-        );
-
     if (
         context->Service == MENUITEM_HYBRIDANALYSIS_UPLOAD || 
         context->Service == MENUITEM_HYBRIDANALYSIS_UPLOAD_SERVICE
@@ -450,12 +449,26 @@ NTSTATUS UploadFileThreadStart(
     {
         USHORT machineType;
         USHORT environmentId;
+        PH_MAPPED_IMAGE mappedImage;
+        PPH_BYTES serviceHash;
 
-        if (!UploadGetFileArchitecture(fileHandle, &machineType))
+        if (!NT_SUCCESS(status = PhLoadMappedImageEx(NULL, fileHandle, TRUE, &mappedImage)))
         {
-            RaiseUploadError(context, L"Unable to create the request.", GetLastError());
+            RaiseUploadError(context, L"Unable to load the image.", RtlNtStatusToDosError(status));
             goto CleanupExit;
         }
+
+        switch (mappedImage.Signature)
+        {
+        case IMAGE_DOS_SIGNATURE:
+            machineType = mappedImage.NtHeaders->FileHeader.Machine;
+            break;
+        case IMAGE_ELF_SIGNATURE:
+            machineType = USHRT_MAX; // Windows only supports 64bit ELF. (mappedImage.Header->e_machine)
+            break;
+        }
+
+        PhUnloadMappedImage(&mappedImage);
 
         switch (machineType)
         {
@@ -465,42 +478,42 @@ NTSTATUS UploadFileThreadStart(
         case IMAGE_FILE_MACHINE_AMD64:
             environmentId = 120;
             break;
+        case USHRT_MAX: // 64bit Linux 
+            environmentId = 300;
+            break;
         default:
             {
-                RaiseUploadError(context, L"File architecture not supported.", GetLastError());
+                RaiseUploadError(context, L"File architecture not supported.", STATUS_IMAGE_SUBSYSTEM_NOT_PRESENT);
                 goto CleanupExit;
             }
         }
 
-        {
-            PPH_BYTES serviceHash;
-            PPH_BYTES networkHash;
-            PPH_STRING resourceNameString;
-            PPH_STRING resourceHashString;
+        // HTTP request headers
+        PhAppendFormatStringBuilder(
+            &httpRequestHeaders,
+            L"accept: application/json\r\n"
+            );
 
-            serviceHash = VirusTotalGetCachedDbHash(&ServiceObjectDbHash);
-            networkHash = VirusTotalGetCachedDbHash(&NetworkObjectDbHash);
+        serviceHash = VirusTotalGetCachedDbHash(&ServiceObjectDbHash);
+        PhAppendFormatStringBuilder(
+            &httpRequestHeaders,
+            L"\x0061\x0070\x0069\x002D\x006B\x0065\x0079:%hs\r\n",
+            serviceHash->Buffer
+            );
+        PhClearReference(&serviceHash);
 
-            resourceNameString = PhZeroExtendToUtf16(serviceHash->Buffer);
-            resourceHashString = PhZeroExtendToUtf16(networkHash->Buffer);
-            PhHttpSocketSetCredentials(httpContext, PhGetString(resourceHashString), PhGetString(resourceNameString));
-            PhClearReference(&resourceHashString);
-            PhClearReference(&resourceNameString);
-            PhClearReference(&networkHash);
-            PhClearReference(&serviceHash);
-        }
+        PhAppendFormatStringBuilder(
+            &httpRequestHeaders,
+            L"Content-Type: multipart/form-data; boundary=%s\r\n",
+            postBoundary->Buffer
+            );
 
         // POST boundary header.
         PhAppendFormatStringBuilder(
             &httpPostHeader,
-            L"--%s\r\nContent-Disposition: form-data; name=\"environmentId\"\r\n\r\n%hu\r\n",
+            L"--%s\r\nContent-Disposition: form-data; name=\"environment_id\"\r\n\r\n%hu\r\n",
             postBoundary->Buffer,
             environmentId
-            );
-        PhAppendFormatStringBuilder(
-            &httpPostHeader,
-            L"--%s\r\nContent-Disposition: form-data; name=\"nosharevt\"\r\n\r\n1\r\n",
-            postBoundary->Buffer
             );
         PhAppendFormatStringBuilder(
             &httpPostHeader,
@@ -518,6 +531,12 @@ NTSTATUS UploadFileThreadStart(
     }
     else if (context->Service == MENUITEM_JOTTI_UPLOAD)
     {
+        PhAppendFormatStringBuilder(
+            &httpRequestHeaders,
+            L"Content-Type: multipart/form-data; boundary=%s\r\n",
+            postBoundary->Buffer
+            );
+
         // POST boundary header.
         PhAppendFormatStringBuilder(
             &httpPostHeader,
@@ -553,6 +572,12 @@ NTSTATUS UploadFileThreadStart(
     }
     else
     {
+        PhAppendFormatStringBuilder(
+            &httpRequestHeaders,
+            L"Content-Type: multipart/form-data; boundary=%s\r\n",
+            postBoundary->Buffer
+            );
+
         // POST boundary header
         PhAppendFormatStringBuilder(
             &httpPostHeader,
@@ -681,9 +706,9 @@ NTSTATUS UploadFileThreadStart(
 
         {
             FLOAT percent = ((FLOAT)totalUploadedLength / context->TotalFileLength * 100);
-            PPH_STRING totalLength = PhFormatSize(context->TotalFileLength, -1);
-            PPH_STRING totalUploaded = PhFormatSize(totalUploadedLength, -1);
-            PPH_STRING totalSpeed = PhFormatSize(timeBitsPerSecond, -1);
+            PPH_STRING totalLength = PhFormatSize(context->TotalFileLength, ULONG_MAX);
+            PPH_STRING totalUploaded = PhFormatSize(totalUploadedLength, ULONG_MAX);
+            PPH_STRING totalSpeed = PhFormatSize(timeBitsPerSecond, ULONG_MAX);
             PPH_STRING statusMessage = PhFormatString(
                 L"Uploaded: %s of %s (%.0f%%)\r\nSpeed: %s/s",
                 PhGetStringOrEmpty(totalUploaded),
@@ -740,7 +765,12 @@ NTSTATUS UploadFileThreadStart(
         goto CleanupExit;
     }
 
-    if (httpStatus == PH_HTTP_STATUS_OK || httpStatus == PH_HTTP_STATUS_REDIRECT_METHOD || httpStatus == PH_HTTP_STATUS_REDIRECT)
+    if (
+        httpStatus == PH_HTTP_STATUS_OK || 
+        httpStatus == PH_HTTP_STATUS_CREATED || 
+        httpStatus == PH_HTTP_STATUS_REDIRECT_METHOD || 
+        httpStatus == PH_HTTP_STATUS_REDIRECT
+        )
     {
         switch (context->Service)
         {
@@ -749,6 +779,7 @@ NTSTATUS UploadFileThreadStart(
             {
                 PPH_BYTES jsonString;
                 PVOID jsonRootObject;
+                INT64 errorCode;
 
                 if (!(jsonString = PhHttpSocketDownloadString(httpContext, FALSE)))
                 {
@@ -758,25 +789,29 @@ NTSTATUS UploadFileThreadStart(
 
                 if (jsonRootObject = PhCreateJsonParser(jsonString->Buffer))
                 {
-                    INT64 errorCode = PhGetJsonValueAsLong64(jsonRootObject, "response_code");
+                    errorCode = PhGetJsonValueAsLong64(jsonRootObject, "code");
 
                     if (errorCode == 0)
                     {
-                        PVOID jsonResponse;
-                        PPH_STRING jsonHashString = NULL;
- 
-                        if (jsonResponse = PhGetJsonObject(jsonRootObject, "response"))
-                            jsonHashString = PhGetJsonValueAsString(jsonResponse, "sha256");
+                        PPH_STRING jsonHashString;
+                        //PPH_STRING jsonJobIdString;
 
-                        if (jsonHashString)
+                        jsonHashString = PhGetJsonValueAsString(jsonRootObject, "sha256");
+                        //jsonJobIdString = PhGetJsonValueAsString(jsonRootObject, "job_id");
+
+                        if (jsonHashString) // && jsonJobIdString)
                         {
                             PhMoveReference(&context->LaunchCommand, PhFormatString(
-                                L"https://www.hybrid-analysis.com/sample/%s",
-                                context->FileHash ? PhGetString(context->FileHash) : PhGetString(jsonHashString)
+                                L"https://www.hybrid-analysis.com/sample/%s", // /%s
+                                jsonHashString->Buffer//,
+                                //jsonJobIdString->Buffer
                                 ));
-
-                            PhDereferenceObject(jsonHashString);
                         }
+
+                        if (jsonHashString)
+                            PhDereferenceObject(jsonHashString);
+                        //if (jsonJobIdString)
+                        //    PhDereferenceObject(jsonJobIdString);
                     }
                     else
                     {
@@ -805,7 +840,7 @@ NTSTATUS UploadFileThreadStart(
 
                 if (!(jsonString = PhHttpSocketDownloadString(httpContext, FALSE)))
                 {
-                    RaiseUploadError(context, L"Unable to complete the request", GetLastError());
+                    RaiseUploadError(context, L"Unable to complete the request.", GetLastError());
                     goto CleanupExit;
                 }
 
@@ -887,7 +922,7 @@ NTSTATUS UploadFileThreadStart(
     }
     else
     {
-        RaiseUploadError(context, L"Unable to complete the request", STATUS_FVE_PARTIAL_METADATA);
+        RaiseUploadError(context, L"Unable to complete the request.", httpStatus);
         goto CleanupExit;
     }
 
@@ -1007,12 +1042,72 @@ NTSTATUS UploadCheckThreadStart(
             }
         }
 
-        context->FileSize = PhFormatSize(fileSize64.QuadPart, -1);
+        context->FileSize = PhFormatSize(fileSize64.QuadPart, ULONG_MAX);
         context->TotalFileLength = fileSize64.LowPart;
     }
 
     switch (context->Service)
     {
+    case MENUITEM_HYBRIDANALYSIS_UPLOAD:
+    case MENUITEM_HYBRIDANALYSIS_UPLOAD_SERVICE:
+        {
+            PPH_STRING tempHashString = NULL;
+            PSTR uploadUrl = NULL;
+            PSTR quote = NULL;
+            PVOID rootJsonObject;
+
+            // Create the default upload URL.
+            context->UploadUrl = PhFormatString(
+                L"https://%s%s", 
+                serviceInfo->HostName, 
+                serviceInfo->UploadObjectName
+                );
+
+            if (!NT_SUCCESS(status = HashFileAndResetPosition(fileHandle, &fileSize64, Sha256HashAlgorithm, &tempHashString)))
+            {
+                RaiseUploadError(context, L"Unable to hash the file", RtlNtStatusToDosError(status));
+                goto CleanupExit;
+            }
+
+            context->FileHash = tempHashString;
+            subObjectName = PhConcatStrings2(L"/api/v2/overview/", PhGetString(context->FileHash));
+
+            if (!(subRequestBuffer = PerformSubRequest(
+                context,
+                serviceInfo->HostName,
+                subObjectName->Buffer
+                )))
+            {
+                goto CleanupExit;
+            }
+
+            if (rootJsonObject = PhCreateJsonParser(subRequestBuffer->Buffer))
+            {
+                PPH_STRING errorMessage = PhGetJsonValueAsString(rootJsonObject, "message");
+
+                if (context->FileExists = PhIsNullOrEmptyString(errorMessage))
+                {
+                    PhMoveReference(&context->LaunchCommand, PhFormatString(
+                        L"https://www.hybrid-analysis.com/sample/%s",
+                        PhGetString(context->FileHash)
+                        ));
+
+                    PostMessage(context->DialogHandle, UM_LAUNCH, 0, 0);
+                }
+                else
+                {
+                    PostMessage(context->DialogHandle, UM_UPLOAD, 0, 0);
+                }
+
+                PhClearReference(&errorMessage);
+                PhFreeJsonParser(rootJsonObject);
+            }
+            else
+            {
+                RaiseUploadError(context, L"Unable to parse the response.", RtlNtStatusToDosError(STATUS_FAIL_CHECK));
+            }
+        }
+        break;
     case MENUITEM_VIRUSTOTAL_UPLOAD:
     case MENUITEM_VIRUSTOTAL_UPLOAD_SERVICE:
         {
@@ -1158,14 +1253,6 @@ NTSTATUS UploadCheckThreadStart(
             PostMessage(context->DialogHandle, UM_UPLOAD, 0, 0);
         }
         break;
-    case MENUITEM_HYBRIDANALYSIS_UPLOAD:
-    case MENUITEM_HYBRIDANALYSIS_UPLOAD_SERVICE:
-        {
-            // Create the default upload URL.
-            context->UploadUrl = PhFormatString(L"https://%s%s", serviceInfo->HostName, serviceInfo->UploadObjectName);
-
-            PostMessage(context->DialogHandle, UM_UPLOAD, 0, 0);
-        }
     }
 
 CleanupExit:
@@ -1383,7 +1470,7 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
     return S_OK;
 }
 
-NTSTATUS ShowUpdateDialogThread(
+NTSTATUS ShowUploadDialogThread(
     _In_ PVOID Parameter
     )
 {
@@ -1421,15 +1508,14 @@ VOID UploadToOnlineService(
         PhEndInitOnce(&UploadContextTypeInitOnce);
     }
 
-    context = (PUPLOAD_CONTEXT)PhCreateObject(sizeof(UPLOAD_CONTEXT), UploadContextType);
-    memset(context, 0, sizeof(UPLOAD_CONTEXT));
-
     PhReferenceObject(FileName);
+
+    context = PhCreateObjectZero(sizeof(UPLOAD_CONTEXT), UploadContextType);
     context->Service = Service;
     context->FileName = FileName;
     context->BaseFileName = PhGetBaseName(context->FileName);
 
-    PhCreateThread2(ShowUpdateDialogThread, (PVOID)context);
+    PhCreateThread2(ShowUploadDialogThread, (PVOID)context);
 }
 
 VOID UploadServiceToOnlineService(
@@ -1455,18 +1541,16 @@ VOID UploadServiceToOnlineService(
     {
         PUPLOAD_CONTEXT context;
 
-        context = (PUPLOAD_CONTEXT)PhCreateObject(sizeof(UPLOAD_CONTEXT), UploadContextType);
-        memset(context, 0, sizeof(UPLOAD_CONTEXT));
-
+        context = PhCreateObjectZero(sizeof(UPLOAD_CONTEXT), UploadContextType);
         context->Service = Service;
         context->FileName = serviceFileName;
         context->BaseFileName = PhGetBaseName(context->FileName);
 
-        PhCreateThread2(ShowUpdateDialogThread, (PVOID)context);
+        PhCreateThread2(ShowUploadDialogThread, (PVOID)context);
     }
     else
     {
-        PhShowStatus(PhMainWndHandle, L"Unable to query the service", status, 0);
+        PhShowStatus(PhMainWndHandle, L"Unable to query the service.", status, 0);
     }
 
     if (serviceBinaryPath)
