@@ -268,14 +268,7 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_GetObjectInformation(
     PhSecurityInformation *this = (PhSecurityInformation *)This;
 
     memset(ObjectInfo, 0, sizeof(SI_OBJECT_INFO));
-    ObjectInfo->dwFlags =
-        SI_EDIT_AUDITS |
-        SI_EDIT_OWNER |
-        SI_EDIT_PERMS |
-        SI_ADVANCED;
-        //SI_NO_ACL_PROTECT |
-        //SI_NO_TREE_APPLY;
-    ObjectInfo->hInstance = NULL;
+    ObjectInfo->dwFlags = SI_EDIT_ALL | SI_ADVANCED;
     ObjectInfo->pszObjectName = this->ObjectName->Buffer;
 
     return S_OK;
