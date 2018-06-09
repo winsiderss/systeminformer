@@ -198,7 +198,7 @@ VOID AddDiskDriveToListView(
         PhMoveReference(&newId->DevicePath, DiskPath);
     }
 
-    lvItemIndex = AddListViewItemGroupId(
+    lvItemIndex = PhAddListViewGroupItem(
         Context->ListViewHandle,
         DiskPresent ? 0 : 1,
         MAXINT,
@@ -630,8 +630,8 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
             PhSetExtendedListView(context->ListViewHandle);
 
             ListView_EnableGroupView(context->ListViewHandle, TRUE);
-            AddListViewGroup(context->ListViewHandle, 0, L"Connected");
-            AddListViewGroup(context->ListViewHandle, 1, L"Disconnected");
+            PhAddListViewGroup(context->ListViewHandle, 0, L"Connected");
+            PhAddListViewGroup(context->ListViewHandle, 1, L"Disconnected");
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
