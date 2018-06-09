@@ -74,7 +74,7 @@ static PH_CM_MANAGER NetworkTreeListCm;
 
 static PPH_HASHTABLE NetworkNodeHashtable; // hashtable of all nodes
 static PPH_LIST NetworkNodeList; // list of all nodes
-static LONG NextUniqueId = 1;
+static ULONG NextUniqueId = 1;
 
 BOOLEAN PhNetworkTreeListStateHighlighting = TRUE;
 static PPH_POINTER_LIST NetworkNodeStateList = NULL; // list of nodes which need to be processed
@@ -345,7 +345,7 @@ VOID PhTickNetworkNodes(
 
 #define END_SORT_FUNCTION \
     if (sortResult == 0) \
-        sortResult = intcmp(node1->UniqueId, node2->UniqueId); \
+        sortResult = uintcmp(node1->UniqueId, node2->UniqueId); \
     \
     return PhModifySort(sortResult, NetworkTreeListSortOrder); \
 }
@@ -358,7 +358,7 @@ LONG PhpNetworkTreeNewPostSortFunction(
     )
 {
     if (Result == 0)
-        Result = intcmp(((PPH_NETWORK_NODE)Node1)->UniqueId, ((PPH_NETWORK_NODE)Node2)->UniqueId);
+        Result = uintcmp(((PPH_NETWORK_NODE)Node1)->UniqueId, ((PPH_NETWORK_NODE)Node2)->UniqueId);
 
     return PhModifySort(Result, SortOrder);
 }
