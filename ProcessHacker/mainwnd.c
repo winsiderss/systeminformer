@@ -480,7 +480,7 @@ NTSTATUS PhMwpLoadStage1Worker(
 {
     // If the update interval is too large, the user might have to wait a while before seeing some types of
     // process-related data. We force an update by boosting the provider shortly after the program 
-    // starts up to either make things appear more quickly.
+    // starts up to make things appear more quickly.
 
     if (PhCsUpdateInterval > PH_FLUSH_PROCESS_QUERY_DATA_INTERVAL_LONG_TERM)
     {
