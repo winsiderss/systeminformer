@@ -475,9 +475,7 @@ PPH_PLUGIN PhRegisterPlugin(
     if (!fileName)
         return NULL;
 
-    plugin = PhAllocate(sizeof(PH_PLUGIN));
-    memset(plugin, 0, sizeof(PH_PLUGIN));
-
+    plugin = PhAllocateZero(sizeof(PH_PLUGIN));
     plugin->Name = pluginName;
     plugin->DllBase = DllBase;
 
@@ -705,17 +703,15 @@ PPH_EMENU_ITEM PhPluginCreateEMenuItem(
     _In_opt_ PVOID Context
     )
 {
-    PPH_EMENU_ITEM item;
     PPH_PLUGIN_MENU_ITEM pluginMenuItem;
+    PPH_EMENU_ITEM item;
 
-    item = PhCreateEMenuItem(Flags, ID_PLUGIN_MENU_ITEM, Text, NULL, NULL);
-
-    pluginMenuItem = PhAllocate(sizeof(PH_PLUGIN_MENU_ITEM));
-    memset(pluginMenuItem, 0, sizeof(PH_PLUGIN_MENU_ITEM));
+    pluginMenuItem = PhAllocateZero(sizeof(PH_PLUGIN_MENU_ITEM));
     pluginMenuItem->Plugin = Plugin;
     pluginMenuItem->Id = Id;
     pluginMenuItem->Context = Context;
 
+    item = PhCreateEMenuItem(Flags, ID_PLUGIN_MENU_ITEM, Text, NULL, NULL);
     item->Context = pluginMenuItem;
     item->DeleteFunction = PhpPluginEMenuItemDeleteFunction;
 
