@@ -654,9 +654,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
 
                         if (!context->MemoryGraphState.Valid)
                         {
-                            ULONG i = 0;
-
-                            for (i = 0; i < drawInfo->LineDataCount; i++)
+                            for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
                             {
                                 context->MemoryGraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(&context->MemoryHistory, i);
                             }
@@ -704,9 +702,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
 
                         if (!context->MemorySharedGraphState.Valid)
                         {
-                            ULONG i = 0;
-
-                            for (i = 0; i < drawInfo->LineDataCount; i++)
+                            for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
                             {
                                 context->MemorySharedGraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(&context->MemorySharedHistory, i);
                             }

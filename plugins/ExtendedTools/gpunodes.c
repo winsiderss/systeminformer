@@ -56,11 +56,12 @@ NTSTATUS EtpGpuNodesDialogThreadStart(
 
     PhInitializeAutoPool(&autoPool);
 
-    EtGpuNodesWindowHandle = CreateDialog(
+    EtGpuNodesWindowHandle = CreateDialogParam(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_GPUNODES),
         NULL,
-        EtpGpuNodesDlgProc
+        EtpGpuNodesDlgProc,
+        (LPARAM)Parameter
         );
 
     PhSetEvent(&EtGpuNodesInitializedEvent);
@@ -180,7 +181,7 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
             if (PhGetIntegerPairSetting(SETTING_NAME_GPU_NODES_WINDOW_POSITION).X != 0)
                 PhLoadWindowPlacementFromSetting(SETTING_NAME_GPU_NODES_WINDOW_POSITION, SETTING_NAME_GPU_NODES_WINDOW_SIZE, hwndDlg);
             else
-                PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+                PhCenterWindow(hwndDlg, (HWND)lParam);
 
             PhRegisterCallback(
                 &PhProcessesUpdatedEvent,

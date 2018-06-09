@@ -265,7 +265,7 @@ VOID EtpGpuDetailsEnumAdapters(
     {
         gpuAdapter = EtpGpuAdapterList->Items[i];
 
-        memset(&openAdapterFromDeviceName, 0, sizeof(D3DKMT_OPENADAPTERFROMLUID));
+        memset(&openAdapterFromDeviceName, 0, sizeof(D3DKMT_OPENADAPTERFROMDEVICENAME));
         openAdapterFromDeviceName.DeviceName = PhGetString(gpuAdapter->DeviceInterface);
 
         if (!NT_SUCCESS(D3DKMTOpenAdapterFromDeviceName(&openAdapterFromDeviceName)))
@@ -329,10 +329,6 @@ INT_PTR CALLBACK EtpGpuDetailsDlgProc(
             PhAddLayoutItem(&LayoutManager, listViewHandle, NULL, PH_ANCHOR_ALL);
             PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
-            // Note: This dialog must be centered after all other graphs and controls have been added.
-            //if (PhGetIntegerPairSetting(SETTING_NAME_GPU_NODES_WINDOW_POSITION).X != 0)
-            //    PhLoadWindowPlacementFromSetting(SETTING_NAME_GPU_NODES_WINDOW_POSITION, SETTING_NAME_GPU_NODES_WINDOW_SIZE, hwndDlg);
-            //else
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             EtpGpuDetailsEnumAdapters(listViewHandle);
