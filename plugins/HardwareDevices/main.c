@@ -159,74 +159,6 @@ PPH_STRING TrimString(
     return PhCreateString2(&sr);
 }
 
-INT AddListViewGroup(
-    _In_ HWND ListViewHandle,
-    _In_ INT GroupId,
-    _In_ PWSTR Text
-    )
-{
-    LVGROUP group;
-
-    memset(&group, 0, sizeof(LVGROUP));
-    group.cbSize = sizeof(LVGROUP);
-    group.mask = LVGF_HEADER | LVGF_ALIGN | LVGF_STATE | LVGF_GROUPID;
-    group.uAlign = LVGA_HEADER_LEFT;
-    group.state = LVGS_COLLAPSIBLE;
-    group.iGroupId = GroupId;
-    group.pszHeader = Text;
-
-    return (INT)ListView_InsertGroup(ListViewHandle, MAXINT, &group);
-}
-
-INT AddListViewItemGroupId(
-    _In_ HWND ListViewHandle,
-    _In_ INT GroupId,
-    _In_ INT Index,
-    _In_ PWSTR Text,
-    _In_opt_ PVOID Param
-    )
-{
-    LVITEM item;
-
-    item.mask = LVIF_TEXT | LVIF_GROUPID;
-    item.iItem = Index;
-    item.iSubItem = 0;
-    item.pszText = Text;
-    item.iGroupId = GroupId;
-
-    if (Param)
-    {
-        item.mask |= LVIF_PARAM;
-        item.lParam = (LPARAM)Param;
-    }
-
-    return ListView_InsertItem(ListViewHandle, &item);
-}
-
-ULONG64 QueryRegistryUlong64(
-    _In_ HANDLE KeyHandle,
-    _In_ PWSTR ValueName
-    )
-{
-    ULONG64 value = 0;
-    PH_STRINGREF valueName;
-    PKEY_VALUE_PARTIAL_INFORMATION buffer;
-
-    PhInitializeStringRef(&valueName, ValueName);
-
-    if (NT_SUCCESS(PhQueryValueKey(KeyHandle, &valueName, KeyValuePartialInformation, &buffer)))
-    {
-        if (buffer->Type == REG_DWORD || buffer->Type == REG_QWORD)
-        {
-            value = *(ULONG64*)buffer->Data;
-        }
-
-        PhFree(buffer);
-    }
-
-    return value;
-}
-
 VOID ShowDeviceMenu(
     _In_ HWND ParentWindow,
     _In_ PPH_STRING DeviceInstance
@@ -273,7 +205,7 @@ VOID ShowDeviceMenu(
                 {
                     if (DeviceProperties_RunDLL_I = PhGetProcedureAddress(devMgrHandle, "DeviceProperties_RunDLLW", 0))
                     {
-                        // This will sometimes re-throw an RPC error during debugging and can be safely ignored.
+                        // This will sometimes re-throw an RPC error while debugging and can safely be ignored.
                         DeviceProperties_RunDLL_I(
                             GetParent(ParentWindow),
                             NULL,

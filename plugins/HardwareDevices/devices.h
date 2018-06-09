@@ -70,25 +70,6 @@ PPH_STRING TrimString(
     _In_ PPH_STRING String
     );
 
-INT AddListViewGroup(
-    _In_ HWND ListViewHandle,
-    _In_ INT Index,
-    _In_ PWSTR Text
-    );
-
-INT AddListViewItemGroupId(
-    _In_ HWND ListViewHandle,
-    _In_ INT GroupId,
-    _In_ INT Index,
-    _In_ PWSTR Text,
-    _In_opt_ PVOID Param
-    );
-
-ULONG64 QueryRegistryUlong64(
-    _In_ HANDLE KeyHandle,
-    _In_ PWSTR ValueName
-    );
-
 VOID ShowDeviceMenu(
     _In_ HWND ParentWindow,
     _In_ PPH_STRING DeviceInstance

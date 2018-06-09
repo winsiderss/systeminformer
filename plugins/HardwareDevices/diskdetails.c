@@ -27,126 +27,126 @@ VOID DiskDriveAddListViewItemGroups(
     _In_ INT DiskGroupId
     )
 {
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_FS_CREATION_TIME, L"Volume creation time", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_SERIAL_NUMBER, L"Volume serial number", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_FILE_SYSTEM, L"Volume file system", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_FS_VERSION, L"Volume version", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_LFS_VERSION, L"LFS version", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_FS_CREATION_TIME, L"Volume creation time", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_SERIAL_NUMBER, L"Volume serial number", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_FILE_SYSTEM, L"Volume file system", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_FS_VERSION, L"Volume version", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_LFS_VERSION, L"LFS version", NULL);
 
-    //AddListViewItemGroupId(Context->ListViewHandle, diskGroupId, MAXINT, L"BytesPerPhysicalSector", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_TOTAL_SIZE, L"Total size", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_TOTAL_FREE, L"Total free", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_TOTAL_SECTORS, L"Total sectors", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_TOTAL_CLUSTERS, L"Total clusters", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_FREE_CLUSTERS, L"Free clusters", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_TOTAL_RESERVED, L"Reserved clusters", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_TOTAL_BYTES_PER_SECTOR, L"Bytes per sector", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_TOTAL_BYTES_PER_CLUSTER, L"Bytes per cluster", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_TOTAL_BYTES_PER_RECORD, L"Bytes per file record segment", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_TOTAL_CLUSTERS_PER_RECORD, L"Clusters per File record segment", NULL);
+    //PhAddListViewGroupItem(Context->ListViewHandle, diskGroupId, MAXINT, L"BytesPerPhysicalSector", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_TOTAL_SIZE, L"Total size", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_TOTAL_FREE, L"Total free", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_TOTAL_SECTORS, L"Total sectors", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_TOTAL_CLUSTERS, L"Total clusters", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_FREE_CLUSTERS, L"Free clusters", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_TOTAL_RESERVED, L"Reserved clusters", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_TOTAL_BYTES_PER_SECTOR, L"Bytes per sector", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_TOTAL_BYTES_PER_CLUSTER, L"Bytes per cluster", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_TOTAL_BYTES_PER_RECORD, L"Bytes per file record segment", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_TOTAL_CLUSTERS_PER_RECORD, L"Clusters per File record segment", NULL);
 
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_RECORDS, L"MFT records", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_SIZE, L"MFT size", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_START, L"MFT start", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_ZONE, L"MFT Zone clusters", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_ZONE_SIZE, L"MFT zone size", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_MIRROR_START, L"MFT mirror start", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_RECORDS, L"MFT records", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_SIZE, L"MFT size", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_START, L"MFT start", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_ZONE, L"MFT Zone clusters", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_ZONE_SIZE, L"MFT zone size", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_MIRROR_START, L"MFT mirror start", NULL);
 
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_FILE_READS, L"File reads", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_FILE_WRITES, L"File writes", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_DISK_READS, L"Disk reads", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_DISK_WRITES, L"Disk writes", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_FILE_READ_BYTES, L"File read bytes", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_FILE_WRITE_BYTES, L"File write bytes", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_FILE_READS, L"File reads", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_FILE_WRITES, L"File writes", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_DISK_READS, L"Disk reads", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_DISK_WRITES, L"Disk writes", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_FILE_READ_BYTES, L"File read bytes", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_FILE_WRITE_BYTES, L"File write bytes", NULL);
 
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_METADATA_READS, L"Metadata reads", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_METADATA_WRITES, L"Metadata writes", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_METADATA_DISK_READS, L"Metadata disk reads", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_METADATA_DISK_WRITES, L"Metadata disk writes", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_METADATA_READ_BYTES, L"Metadata read bytes", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_METADATA_WRITE_BYTES, L"Metadata write bytes", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_METADATA_READS, L"Metadata reads", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_METADATA_WRITES, L"Metadata writes", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_METADATA_DISK_READS, L"Metadata disk reads", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_METADATA_DISK_WRITES, L"Metadata disk writes", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_METADATA_READ_BYTES, L"Metadata read bytes", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_METADATA_WRITE_BYTES, L"Metadata write bytes", NULL);
 
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_READS, L"Mft reads", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_WRITES, L"Mft writes", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_READ_BYTES, L"Mft read bytes", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_WRITE_BYTES, L"Mft write bytes", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_READS, L"Mft reads", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_WRITES, L"Mft writes", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_READ_BYTES, L"Mft read bytes", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_WRITE_BYTES, L"Mft write bytes", NULL);
 
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_ROOT_INDEX_READS, L"RootIndex reads", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_ROOT_INDEX_WRITES, L"RootIndex writes", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_ROOT_INDEX_READ_BYTES, L"RootIndex read bytes", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_ROOT_INDEX_WRITE_BYTES, L"RootIndex write bytes", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_ROOT_INDEX_READS, L"RootIndex reads", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_ROOT_INDEX_WRITES, L"RootIndex writes", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_ROOT_INDEX_READ_BYTES, L"RootIndex read bytes", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_ROOT_INDEX_WRITE_BYTES, L"RootIndex write bytes", NULL);
 
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_BITMAP_READS, L"Bitmap reads", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_BITMAP_WRITES, L"Bitmap writes", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_BITMAP_READ_BYTES, L"Bitmap read bytes", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_BITMAP_WRITE_BYTES, L"Bitmap write bytes", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_BITMAP_READS, L"Bitmap reads", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_BITMAP_WRITES, L"Bitmap writes", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_BITMAP_READ_BYTES, L"Bitmap read bytes", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_BITMAP_WRITE_BYTES, L"Bitmap write bytes", NULL);
 
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_BITMAP_READS, L"Mft bitmap reads", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_BITMAP_WRITES, L"Mft bitmap writes", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_BITMAP_READ_BYTES, L"Mft bitmap read bytes", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_BITMAP_WRITE_BYTES, L"Mft bitmap write bytes", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_BITMAP_READS, L"Mft bitmap reads", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_BITMAP_WRITES, L"Mft bitmap writes", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_BITMAP_READ_BYTES, L"Mft bitmap read bytes", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_BITMAP_WRITE_BYTES, L"Mft bitmap write bytes", NULL);
 
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_USER_INDEX_READS, L"User Index reads", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_USER_INDEX_WRITES, L"User Index writes", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_USER_INDEX_READ_BYTES, L"User Index read bytes", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_USER_INDEX_WRITE_BYTES, L"User Index write bytes", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_USER_INDEX_READS, L"User Index reads", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_USER_INDEX_WRITES, L"User Index writes", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_USER_INDEX_READ_BYTES, L"User Index read bytes", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_USER_INDEX_WRITE_BYTES, L"User Index write bytes", NULL);
 
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_LOGFILE_READS, L"LogFile reads", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_LOGFILE_WRITES, L"LogFile writes", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_LOGFILE_READ_BYTES, L"LogFile read bytes", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_LOGFILE_WRITE_BYTES, L"LogFile write bytes", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_LOGFILE_READS, L"LogFile reads", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_LOGFILE_WRITES, L"LogFile writes", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_LOGFILE_READ_BYTES, L"LogFile read bytes", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_LOGFILE_WRITE_BYTES, L"LogFile write bytes", NULL);
 
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_USER_LEVEL_WRITE, L"MftWritesUserLevel-Write", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_USER_LEVEL_CREATE, L"MftWritesUserLevel-Create", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_USER_LEVEL_SETINFO, L"MftWritesUserLevel-SetInfo", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_USER_LEVEL_FLUSH, L"MftWritesUserLevel-Flush", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_USER_LEVEL_WRITE, L"MftWritesUserLevel-Write", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_USER_LEVEL_CREATE, L"MftWritesUserLevel-Create", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_USER_LEVEL_SETINFO, L"MftWritesUserLevel-SetInfo", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_USER_LEVEL_FLUSH, L"MftWritesUserLevel-Flush", NULL);
 
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_WRITES_FLUSH_LOGFILE, L"MftWritesFlushForLogFileFull", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_WRITES_LAZY_WRITER, L"MftWritesLazyWriter", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_WRITES_USER_REQUEST, L"MftWritesUserRequest", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_WRITES_FLUSH_LOGFILE, L"MftWritesFlushForLogFileFull", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_WRITES_LAZY_WRITER, L"MftWritesLazyWriter", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_WRITES_USER_REQUEST, L"MftWritesUserRequest", NULL);
 
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT2_WRITES, L"Mft2Writes", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT2_WRITE_BYTES, L"Mft2WriteBytes", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT2_WRITES, L"Mft2Writes", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT2_WRITE_BYTES, L"Mft2WriteBytes", NULL);
 
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT2_USER_LEVEL_WRITE, L"Mft2WritesUserLevel-Write", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT2_USER_LEVEL_CREATE, L"Mft2WritesUserLevel-Create", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT2_USER_LEVEL_SETINFO, L"Mft2WritesUserLevel-SetInfo", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT2_USER_LEVEL_FLUSH, L"Mft2WritesUserLevel-Flush", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT2_USER_LEVEL_WRITE, L"Mft2WritesUserLevel-Write", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT2_USER_LEVEL_CREATE, L"Mft2WritesUserLevel-Create", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT2_USER_LEVEL_SETINFO, L"Mft2WritesUserLevel-SetInfo", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT2_USER_LEVEL_FLUSH, L"Mft2WritesUserLevel-Flush", NULL);
 
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT2_WRITES_FLUSH_LOGFILE, L"Mft2WritesFlushForLogFileFull", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT2_WRITES_LAZY_WRITER, L"Mft2WritesLazyWriter", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT2_WRITES_USER_REQUEST, L"Mft2WritesUserRequest", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT2_WRITES_FLUSH_LOGFILE, L"Mft2WritesFlushForLogFileFull", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT2_WRITES_LAZY_WRITER, L"Mft2WritesLazyWriter", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT2_WRITES_USER_REQUEST, L"Mft2WritesUserRequest", NULL);
 
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_BITMAP_WRITES_FLUSH_LOGFILE, L"BitmapWritesFlushForLogFileFull", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_BITMAP_WRITES_LAZY_WRITER, L"BitmapWritesLazyWriter", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_BITMAP_WRITES_USER_REQUEST, L"BitmapWritesUserRequest", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_BITMAP_WRITES_FLUSH_LOGFILE, L"BitmapWritesFlushForLogFileFull", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_BITMAP_WRITES_LAZY_WRITER, L"BitmapWritesLazyWriter", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_BITMAP_WRITES_USER_REQUEST, L"BitmapWritesUserRequest", NULL);
 
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_BITMAP_WRITES_WRITE, L"BitmapWritesUserLevel-Write", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_BITMAP_WRITES_CREATE, L"BitmapWritesUserLevel-Create", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_BITMAP_WRITES_SETINFO, L"BitmapWritesUserLevel-SetInfo", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_BITMAP_WRITES_WRITE, L"BitmapWritesUserLevel-Write", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_BITMAP_WRITES_CREATE, L"BitmapWritesUserLevel-Create", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_BITMAP_WRITES_SETINFO, L"BitmapWritesUserLevel-SetInfo", NULL);
 
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_BITMAP_FLUSH_LOGFILE, L"MftBitmapWritesFlushForLogFileFull", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_BITMAP_LAZY_WRITER, L"MftBitmapWritesLazyWriter", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_BITMAP_USER_REQUEST, L"MftBitmapWritesUserRequest", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_BITMAP_FLUSH_LOGFILE, L"MftBitmapWritesFlushForLogFileFull", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_BITMAP_LAZY_WRITER, L"MftBitmapWritesLazyWriter", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_BITMAP_USER_REQUEST, L"MftBitmapWritesUserRequest", NULL);
 
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_BITMAP_USER_LEVEL_WRITE, L"MftBitmapWritesUserLevel-Write", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_BITMAP_USER_LEVEL_CREATE, L"MftBitmapWritesUserLevel-Create", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_BITMAP_USER_LEVEL_SETINFO, L"MftBitmapWritesUserLevel-SetInfo", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_BITMAP_USER_LEVEL_FLUSH, L"MftBitmapWritesUserLevel-Flush", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_BITMAP_USER_LEVEL_WRITE, L"MftBitmapWritesUserLevel-Write", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_BITMAP_USER_LEVEL_CREATE, L"MftBitmapWritesUserLevel-Create", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_BITMAP_USER_LEVEL_SETINFO, L"MftBitmapWritesUserLevel-SetInfo", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_MFT_BITMAP_USER_LEVEL_FLUSH, L"MftBitmapWritesUserLevel-Flush", NULL);
 
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_ALLOCATE_CALLS, L"Allocate-Calls", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_ALLOCATE_CLUSTERS, L"Allocate-Clusters", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_ALLOCATE_HINTS, L"Allocate-Hints", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_ALLOCATE_RUNS_RETURNED, L"Allocate-RunsReturned", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_ALLOCATE_HITS_HONORED, L"Allocate-HintsHonored", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_ALLOCATE_HITS_CLUSTERS, L"Allocate-HintsClusters", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_ALLOCATE_CACHE, L"Allocate-Cache", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_ALLOCATE_CACHE_CLUSTERS, L"Allocate-CacheClusters", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_ALLOCATE_CACHE_MISS, L"Allocate-CacheMiss", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_ALLOCATE_CACHE_MISS_CLUSTERS, L"Allocate-CacheMissClusters", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_ALLOCATE_CALLS, L"Allocate-Calls", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_ALLOCATE_CLUSTERS, L"Allocate-Clusters", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_ALLOCATE_HINTS, L"Allocate-Hints", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_ALLOCATE_RUNS_RETURNED, L"Allocate-RunsReturned", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_ALLOCATE_HITS_HONORED, L"Allocate-HintsHonored", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_ALLOCATE_HITS_CLUSTERS, L"Allocate-HintsClusters", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_ALLOCATE_CACHE, L"Allocate-Cache", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_ALLOCATE_CACHE_CLUSTERS, L"Allocate-CacheClusters", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_ALLOCATE_CACHE_MISS, L"Allocate-CacheMiss", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_ALLOCATE_CACHE_MISS_CLUSTERS, L"Allocate-CacheMissClusters", NULL);
 
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_LOGFILE_EXCEPTIONS, L"LogFileFullExceptions", NULL);
-    AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_OTHER_EXCEPTIONS, L"OtherExceptions", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_LOGFILE_EXCEPTIONS, L"LogFileFullExceptions", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_OTHER_EXCEPTIONS, L"OtherExceptions", NULL);
 }
 
 VOID DiskDriveQuerySmart(
@@ -252,12 +252,12 @@ VOID DiskDriveQueryFileSystem(
 
             if (volumeInfo->VolumeLabelLength > 0)
             {
-                diskGroupId = AddListViewGroup(Context->ListViewHandle, i,
+                diskGroupId = PhAddListViewGroup(Context->ListViewHandle, i,
                     PhaFormatString(L"Volume %wc: [%s]", diskEntry->DeviceLetter, PhaCreateStringEx(volumeInfo->VolumeLabel, volumeInfo->VolumeLabelLength)->Buffer)->Buffer);
             }
             else
             {
-                diskGroupId = AddListViewGroup(Context->ListViewHandle, i,
+                diskGroupId = PhAddListViewGroup(Context->ListViewHandle, i,
                     PhaFormatString(L"Volume %wc:", diskEntry->DeviceLetter)->Buffer);
             }
 
@@ -268,7 +268,7 @@ VOID DiskDriveQueryFileSystem(
         }
         else
         {
-            diskGroupId = AddListViewGroup(
+            diskGroupId = PhAddListViewGroup(
                 Context->ListViewHandle,
                 i,
                 PhaFormatString(L"Volume %wc:", diskEntry->DeviceLetter)->Buffer
@@ -583,9 +583,9 @@ INT_PTR CALLBACK DiskDriveFileSystemDetailsDlgProc(
 
         if (uMsg == WM_DESTROY)
         {
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhSaveListViewColumnsToSetting(SETTING_NAME_DISK_COUNTERS_COLUMNS, context->ListViewHandle);
 
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
         }
     }
