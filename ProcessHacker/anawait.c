@@ -44,14 +44,6 @@ typedef HWND (WINAPI *_GetSendMessageReceiver)(
     _In_ HANDLE ThreadId
     );
 
-typedef NTSTATUS (NTAPI *_NtAlpcQueryInformation)(
-    _In_ HANDLE PortHandle,
-    _In_ ALPC_PORT_INFORMATION_CLASS PortInformationClass,
-    _Out_writes_bytes_(Length) PVOID PortInformation,
-    _In_ ULONG Length,
-    _Out_opt_ PULONG ReturnLength
-    );
-
 typedef struct _ANALYZE_WAIT_CONTEXT
 {
     BOOLEAN Found;
@@ -1012,19 +1004,11 @@ static PPH_STRING PhpaGetAlpcInformation(
     _In_ HANDLE ThreadId
     )
 {
-    static _NtAlpcQueryInformation NtAlpcQueryInformation_I;
-
     NTSTATUS status;
     PPH_STRING string = NULL;
     HANDLE threadHandle;
     PALPC_SERVER_INFORMATION serverInfo;
     ULONG bufferLength;
-
-    if (!NtAlpcQueryInformation_I)
-        NtAlpcQueryInformation_I = PhGetDllProcedureAddress(L"ntdll.dll", "NtAlpcQueryInformation", 0);
-
-    if (!NtAlpcQueryInformation_I)
-        return NULL;
 
     if (!NT_SUCCESS(PhOpenThread(&threadHandle, THREAD_QUERY_INFORMATION, ThreadId)))
         return NULL;
@@ -1033,7 +1017,7 @@ static PPH_STRING PhpaGetAlpcInformation(
     serverInfo = PhAllocate(bufferLength);
     serverInfo->In.ThreadHandle = threadHandle;
 
-    status = NtAlpcQueryInformation_I(NULL, AlpcServerInformation, serverInfo, bufferLength, &bufferLength);
+    status = NtAlpcQueryInformation(NULL, AlpcServerInformation, serverInfo, bufferLength, &bufferLength);
 
     if (status == STATUS_INFO_LENGTH_MISMATCH)
     {
@@ -1041,7 +1025,7 @@ static PPH_STRING PhpaGetAlpcInformation(
         serverInfo = PhAllocate(bufferLength);
         serverInfo->In.ThreadHandle = threadHandle;
 
-        status = NtAlpcQueryInformation_I(NULL, AlpcServerInformation, serverInfo, bufferLength, &bufferLength);
+        status = NtAlpcQueryInformation(NULL, AlpcServerInformation, serverInfo, bufferLength, &bufferLength);
     }
 
     if (NT_SUCCESS(status) && serverInfo->Out.ThreadBlocked)
