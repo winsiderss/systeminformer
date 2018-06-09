@@ -48,10 +48,6 @@
 #include <srvprv.h>
 #include <thrdprv.h>
 
-typedef ULONG (WINAPI *_SetTcpEntry)(
-    _In_ PMIB_TCPROW pTcpRow
-    );
-
 static PWSTR DangerousProcesses[] =
 {
     L"csrss.exe", L"dwm.exe", L"logonui.exe", L"lsass.exe", L"lsm.exe",
@@ -616,7 +612,7 @@ BOOLEAN PhUiShutdownComputer(
         }
         else
         {
-            PhShowStatus(hWnd, L"Unable to shut down the computer", 0, GetLastError());
+            PhShowStatus(hWnd, L"Unable to shut down the computer.", 0, GetLastError());
         }
     }
 
@@ -2206,19 +2202,7 @@ BOOLEAN PhUiCloseConnections(
     BOOLEAN cancelled = FALSE;
     ULONG result;
     ULONG i;
-    _SetTcpEntry SetTcpEntry_I;
     MIB_TCPROW tcpRow;
-
-    SetTcpEntry_I = PhGetDllProcedureAddress(L"iphlpapi.dll", "SetTcpEntry", 0);
-
-    if (!SetTcpEntry_I)
-    {
-        PhShowError(
-            hWnd,
-            L"This feature is not supported by your operating system."
-            );
-        return FALSE;
-    }
 
     for (i = 0; i < NumberOfConnections; i++)
     {
@@ -2234,7 +2218,7 @@ BOOLEAN PhUiCloseConnections(
         tcpRow.dwRemoteAddr = Connections[i]->RemoteEndpoint.Address.Ipv4;
         tcpRow.dwRemotePort = _byteswap_ushort((USHORT)Connections[i]->RemoteEndpoint.Port);
 
-        if ((result = SetTcpEntry_I(&tcpRow)) != 0)
+        if ((result = SetTcpEntry(&tcpRow)) != NO_ERROR)
         {
             NTSTATUS status;
             BOOLEAN connected;
