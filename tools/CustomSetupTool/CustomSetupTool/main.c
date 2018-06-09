@@ -99,7 +99,7 @@ INT CALLBACK MainPropSheet_Callback(
             SetupInitializeFont(context->PropSheetForwardHandle, -12, FW_NORMAL);
             SetupInitializeFont(context->PropSheetCancelHandle, -12, FW_NORMAL);
 
-            SetProp(hwndDlg, L"SetupContext", (HANDLE)context);
+            PhSetWindowContext(hwndDlg, ULONG_MAX, context);
         }
         break;
     }

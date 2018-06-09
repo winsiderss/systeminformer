@@ -37,7 +37,8 @@ VOID ExtractResourceToFile(
 
     if (!PhLoadResource(
         PhInstanceHandle, 
-        Resource, RT_RCDATA, 
+        Resource,
+        RT_RCDATA, 
         &resourceLength, 
         &resourceBuffer
         ))
