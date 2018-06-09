@@ -801,7 +801,7 @@ VOID PhInitializeKph(
 
     if (!RtlDoesFileExists_U(kprocesshackerFileName->Buffer))
     {
-        if (PhGetIntegerSetting(L"EnableKphWarnings"))
+        if (PhGetIntegerSetting(L"EnableKphWarnings") && !PhStartupParameters.PhSvc)
             PhpShowKphError(L"The Process Hacker kernel driver 'kprocesshacker.sys' was not found in the application directory.", STATUS_NO_SUCH_FILE);
         return;
     }
@@ -830,7 +830,7 @@ VOID PhInitializeKph(
 
             if (!NT_SUCCESS(status))
             {
-                if (PhGetIntegerSetting(L"EnableKphWarnings"))
+                if (PhGetIntegerSetting(L"EnableKphWarnings") && !PhStartupParameters.PhSvc)
                     PhpShowKphError(L"Unable to verify the kernel driver signature.", status);
             }
 
@@ -838,13 +838,13 @@ VOID PhInitializeKph(
         }
         else
         {
-            if (PhGetIntegerSetting(L"EnableKphWarnings"))
+            if (PhGetIntegerSetting(L"EnableKphWarnings") && !PhStartupParameters.PhSvc)
                 PhpShowKphError(L"Unable to load the kernel driver signature.", status);
         }
     }
     else
     {
-        if (PhGetIntegerSetting(L"EnableKphWarnings") && PhGetOwnTokenAttributes().Elevated)
+        if (PhGetIntegerSetting(L"EnableKphWarnings") && PhGetOwnTokenAttributes().Elevated && !PhStartupParameters.PhSvc)
             PhpShowKphError(L"Unable to load the kernel driver.", status);
     }
 
