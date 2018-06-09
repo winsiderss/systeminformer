@@ -239,8 +239,6 @@ PH_CIRCULAR_BUFFER_ULONG64 PhMaxIoReadOtherHistory;
 PH_CIRCULAR_BUFFER_ULONG64 PhMaxIoWriteHistory;
 #endif
 
-static PTS_ALL_PROCESSES_INFO PhpTsProcesses = NULL;
-static ULONG PhpTsNumberOfProcesses;
 static PPH_HASHTABLE PhpSidFullNameCacheHashtable;
 
 BOOLEAN PhProcessProviderInitialization(
@@ -2285,12 +2283,6 @@ VOID PhProcessProviderUpdate(
         PhFree(PhProcessInformation);
 
     PhProcessInformation = processes;
-
-    if (PhpTsProcesses)
-    {
-        WinStationFreeGAPMemory(0, PhpTsProcesses, PhpTsNumberOfProcesses);
-        PhpTsProcesses = NULL;
-    }
 
     PhpFlushSidFullNameCache();
 
