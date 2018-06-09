@@ -481,7 +481,7 @@ static VOID PhpRefreshFilePageInfo(
                 PhInitFormatI64U(&format[0], filePositionInfo.CurrentByteOffset.QuadPart);
                 format[0].Type |= FormatGroupDigits;
                 PhInitFormatS(&format[1], L" (");
-                PhInitFormatF(&format[2], (double)filePositionInfo.CurrentByteOffset.QuadPart / fileStandardInfo.EndOfFile.QuadPart * 100, 1);
+                PhInitFormatF(&format[2], (DOUBLE)(filePositionInfo.CurrentByteOffset.QuadPart / fileStandardInfo.EndOfFile.QuadPart * 100), 1);
                 PhInitFormatS(&format[3], L"%)");
 
                 filePosStr = PhFormat(format, 4, 18);
