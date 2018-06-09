@@ -244,6 +244,7 @@ EXPORTS
 	PhEnumGenericModules
 	PhEnumHandles
 	PhEnumHandlesEx
+	PhEnumHandlesEx2
 	PhEnumKernelModules
 	PhEnumPagefiles
 	PhEnumProcessEnvironmentVariables
@@ -544,6 +545,7 @@ EXPORTS
 	PhGetMappedImageLoadConfig64
 	PhInitializeMappedImage
 	PhLoadMappedImage
+	PhLoadMappedImageEx
 	PhUnloadMappedImage
 
 ; settings
