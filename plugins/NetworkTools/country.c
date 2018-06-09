@@ -223,6 +223,9 @@ BOOLEAN LookupCountryCode(
         if (IN4_IS_ADDR_LOOPBACK(&RemoteAddress.InAddr))
             return FALSE;
 
+        if (IN4_IS_ADDR_RFC1918(&RemoteAddress.InAddr))
+            return FALSE;
+
         memset(&ipv4SockAddr, 0, sizeof(SOCKADDR_IN));
         memset(&mmdb_result, 0, sizeof(MMDB_lookup_result_s));
 
