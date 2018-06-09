@@ -108,12 +108,15 @@ VOID PhShowServiceProperties(
     SERVICE_PROPERTIES_CONTEXT context;
 
     propSheetHeader.dwFlags =
+        PSH_MODELESS |
         PSH_NOAPPLYNOW |
         PSH_NOCONTEXTHELP |
-        PSH_PROPTITLE;
+        PSH_PROPTITLE |
+        //PSH_USECALLBACK |
+        PSH_USEHICON;
     propSheetHeader.hInstance = PhInstanceHandle;
     propSheetHeader.hwndParent = ParentWindowHandle;
-    propSheetHeader.pszCaption = ServiceItem->Name->Buffer;
+    propSheetHeader.pszCaption = PhGetString(ServiceItem->Name);
     propSheetHeader.nPages = 0;
     propSheetHeader.nStartPage = 0;
     propSheetHeader.phpage = pages;
