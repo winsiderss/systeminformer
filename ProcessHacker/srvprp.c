@@ -117,6 +117,22 @@ VOID PhShowServiceProperties(
     propSheetHeader.nPages = 0;
     propSheetHeader.nStartPage = 0;
     propSheetHeader.phpage = pages;
+ 
+    {
+        if (ServiceItem->SmallIcon)
+            propSheetHeader.hIcon = ServiceItem->SmallIcon;
+        else
+        {
+            if (ServiceItem->Type == SERVICE_KERNEL_DRIVER || ServiceItem->Type == SERVICE_FILE_SYSTEM_DRIVER)
+                propSheetHeader.hIcon = PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_COG));
+            else
+            {
+                HICON iconSmall;
+                PhGetStockApplicationIcon(&iconSmall, NULL);
+                propSheetHeader.hIcon = iconSmall;
+            }
+        }
+    }
 
     // General
 
