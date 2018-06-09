@@ -95,19 +95,19 @@ SOCKET growl_tcp_open(const char* server) {
     }
 
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET) {
-        perror("create socket");
+        //perror("create socket");
         return INVALID_SOCKET;
     }
 
     if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) == SOCKET_ERROR) {
-        perror("connect");
+        //perror("connect");
         closesocket(sock); // dmex: fixed handle leaking on error
         return INVALID_SOCKET;
     }
 
     on = 1;
     if (setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, &on, sizeof(on)) == SOCKET_ERROR) {
-        perror("setsockopt");
+        //perror("setsockopt");
         closesocket(sock); // dmex: fixed handle leaking on error
         return INVALID_SOCKET;
     }
@@ -124,31 +124,43 @@ void growl_tcp_close(SOCKET sock) {
 #endif
 }
 
+/* dmex: modified to use getaddrinfo */
 int growl_tcp_parse_hostname( const char *const server , int default_port , struct sockaddr_in *const sockaddr )
 {
+    struct addrinfo *result = NULL;
+    struct addrinfo hints = { 0 };
     char *hostname = PhDuplicateBytesZSafe((PSTR)server);
     char *port = strchr( hostname, ':' );
-    struct hostent* host_ent;
-    if( port != NULL )
+
+    if (port)
     {
         *port = '\0';
         port++;
         default_port = atoi(port);
     }
 
-    host_ent = gethostbyname(hostname);
-    if( host_ent == NULL )
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_protocol = IPPROTO_TCP;
+
+    if (getaddrinfo(hostname, NULL, &hints, &result) != 0)
     {
-        perror("gethostbyname");
         PhFree(hostname);
         return -1;
     }
 
-    // dmex: fixed wrong sizeof argument
-    memset( sockaddr , 0 , sizeof(struct sockaddr_in) );
-    sockaddr->sin_family = AF_INET;
-    memcpy( &sockaddr->sin_addr , host_ent->h_addr , host_ent->h_length );
-    sockaddr->sin_port = htons(default_port);
+    // dmex: Copy the first result.
+    memset(sockaddr, 0, sizeof(struct sockaddr_in));
+    sockaddr->sin_family = result->ai_family;
+    sockaddr->sin_port = _byteswap_ushort(default_port);
+    memcpy_s(
+        &sockaddr->sin_addr,
+        sizeof(sockaddr->sin_addr),
+        &((struct sockaddr_in*)result->ai_addr)->sin_addr,
+        sizeof(((struct sockaddr_in*)result->ai_addr)->sin_addr)
+        );
+
+    freeaddrinfo(result);
 
     PhFree(hostname);
     return 0;
