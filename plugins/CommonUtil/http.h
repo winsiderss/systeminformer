@@ -100,6 +100,7 @@ PhHttpSocketQueryHeaderString(
 
 // status codes
 #define PH_HTTP_STATUS_OK 200 // request completed
+#define PH_HTTP_STATUS_CREATED 201
 #define PH_HTTP_STATUS_REDIRECT_METHOD 303 // redirection w/ new access method
 #define PH_HTTP_STATUS_REDIRECT 302 // object temporarily moved
 
