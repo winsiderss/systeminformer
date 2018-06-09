@@ -70,12 +70,12 @@ INT_PTR CALLBACK SetupPropPage1_WndProc(
 
     if (uMsg == WM_INITDIALOG)
     {
-        context = GetProp(GetParent(hwndDlg), L"SetupContext");
-        SetProp(hwndDlg, L"Context", (HANDLE)context);
+        context = PhGetWindowContext(GetParent(hwndDlg), ULONG_MAX);
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = (PPH_SETUP_CONTEXT)GetProp(hwndDlg, L"Context");
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
     }
 
     if (context == NULL)
