@@ -327,7 +327,7 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
                             processItem->ProcessId
                             )))
                         {
-                            timeout.QuadPart = -10 * PH_TIMEOUT_SEC;
+                            timeout.QuadPart = -(LONGLONG)UInt32x32To64(10, PH_TIMEOUT_SEC);
 
                             for (i = 0; i < numberOfIndices; i++)
                             {
@@ -551,7 +551,7 @@ INT_PTR CALLBACK PhpEditEnvDlgProc(
                                 context->ProcessItem->ProcessId
                                 )))
                             {
-                                timeout.QuadPart = -10 * PH_TIMEOUT_SEC;
+                                timeout.QuadPart = -(LONGLONG)UInt32x32To64(10, PH_TIMEOUT_SEC);
 
                                 // Delete the old environment variable if necessary.
                                 if (!PhEqualStringZ(context->Name, L"", FALSE) &&

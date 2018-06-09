@@ -721,7 +721,7 @@ static NTSTATUS PhpWfsoThreadStart(
 
     eventHandle = Parameter;
 
-    timeout.QuadPart = -5 * PH_TIMEOUT_SEC;
+    timeout.QuadPart = -(LONGLONG)UInt32x32To64(5, PH_TIMEOUT_SEC);
     NtWaitForSingleObject(eventHandle, FALSE, &timeout);
 
     return STATUS_SUCCESS;
@@ -736,7 +736,7 @@ static NTSTATUS PhpWfmoThreadStart(
 
     eventHandle = Parameter;
 
-    timeout.QuadPart = -5 * PH_TIMEOUT_SEC;
+    timeout.QuadPart = -(LONGLONG)UInt32x32To64(5, PH_TIMEOUT_SEC);
     NtWaitForMultipleObjects(1, &eventHandle, WaitAll, FALSE, &timeout);
 
     return STATUS_SUCCESS;

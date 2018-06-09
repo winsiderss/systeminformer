@@ -2076,7 +2076,7 @@ VOID PhSipUpdateThemeData(
         ThemeData = NULL;
     }
 
-    ThemeData = OpenThemeData(PhSipWindow, L"TREEVIEW");
+    ThemeData = OpenThemeData(PhSipWindow, VSCLASS_TREEVIEW);
 
     if (ThemeData)
     {

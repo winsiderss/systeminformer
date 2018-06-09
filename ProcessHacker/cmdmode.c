@@ -246,7 +246,7 @@ NTSTATUS PhCommandModeStart(
         //        {
         //            LARGE_INTEGER timeout;
         //
-        //            timeout.QuadPart = -5 * PH_TIMEOUT_SEC;
+        //            timeout.QuadPart = -(LONGLONG)UInt32x32To64(5, PH_TIMEOUT_SEC);
         //            status = PhUnloadDllProcess(
         //                processHandle,
         //                baseAddress,

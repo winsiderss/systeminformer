@@ -1491,13 +1491,15 @@ static VOID WINAPI RunAsServiceMain(
     LARGE_INTEGER timeout;
 
     memset(&RunAsServiceStop, 0, sizeof(PHSVC_STOP));
+
     RunAsServiceStatusHandle = RegisterServiceCtrlHandlerEx(RunAsServiceName->Buffer, RunAsServiceHandlerEx, NULL);
     SetRunAsServiceStatus(SERVICE_RUNNING);
 
     portName = PhConcatStrings2(L"\\BaseNamedObjects\\", RunAsServiceName->Buffer);
     PhStringRefToUnicodeString(&portName->sr, &portNameUs);
+
     // Use a shorter timeout value to reduce the time spent running as SYSTEM.
-    timeout.QuadPart = -5 * PH_TIMEOUT_SEC;
+    timeout.QuadPart = -(LONGLONG)UInt32x32To64(5, PH_TIMEOUT_SEC);
 
     PhSvcMain(&portNameUs, &timeout, &RunAsServiceStop);
 
