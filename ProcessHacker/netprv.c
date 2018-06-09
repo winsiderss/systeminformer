@@ -23,11 +23,6 @@
 
 #include <phapp.h>
 #include <netprv.h>
-
-#include <ws2tcpip.h>
-#include <ws2ipdef.h>
-#include <iphlpapi.h>
-
 #include <svcsup.h>
 #include <workqueue.h>
 
@@ -810,7 +805,7 @@ BOOLEAN PhGetNetworkConnections(
     GetExtendedTcpTable(NULL, &tableSize, FALSE, AF_INET, TCP_TABLE_OWNER_MODULE_ALL, 0);
     table = PhAllocate(tableSize);
 
-    if (GetExtendedTcpTable(table, &tableSize, FALSE, AF_INET, TCP_TABLE_OWNER_MODULE_ALL, 0) == 0)
+    if (GetExtendedTcpTable(table, &tableSize, FALSE, AF_INET, TCP_TABLE_OWNER_MODULE_ALL, 0) == NO_ERROR)
     {
         tcp4Table = table;
         count += tcp4Table->dwNumEntries;
@@ -828,7 +823,7 @@ BOOLEAN PhGetNetworkConnections(
 
     table = PhAllocate(tableSize);
 
-    if (GetExtendedTcpTable(table, &tableSize, FALSE, AF_INET6, TCP_TABLE_OWNER_MODULE_ALL, 0) == 0)
+    if (GetExtendedTcpTable(table, &tableSize, FALSE, AF_INET6, TCP_TABLE_OWNER_MODULE_ALL, 0) == NO_ERROR)
     {
         tcp6Table = table;
         count += tcp6Table->dwNumEntries;
@@ -845,7 +840,7 @@ BOOLEAN PhGetNetworkConnections(
     GetExtendedUdpTable(NULL, &tableSize, FALSE, AF_INET, UDP_TABLE_OWNER_MODULE, 0);
     table = PhAllocate(tableSize);
 
-    if (GetExtendedUdpTable(table, &tableSize, FALSE, AF_INET, UDP_TABLE_OWNER_MODULE, 0) == 0)
+    if (GetExtendedUdpTable(table, &tableSize, FALSE, AF_INET, UDP_TABLE_OWNER_MODULE, 0) == NO_ERROR)
     {
         udp4Table = table;
         count += udp4Table->dwNumEntries;
@@ -862,7 +857,7 @@ BOOLEAN PhGetNetworkConnections(
     GetExtendedUdpTable(NULL, &tableSize, FALSE, AF_INET6, UDP_TABLE_OWNER_MODULE, 0);
     table = PhAllocate(tableSize);
 
-    if (GetExtendedUdpTable(table, &tableSize, FALSE, AF_INET6, UDP_TABLE_OWNER_MODULE, 0) == 0)
+    if (GetExtendedUdpTable(table, &tableSize, FALSE, AF_INET6, UDP_TABLE_OWNER_MODULE, 0) == NO_ERROR)
     {
         udp6Table = table;
         count += udp6Table->dwNumEntries;
