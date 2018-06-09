@@ -320,6 +320,7 @@ PPH_STRING PhGetProcessPackageFullName(
     _In_ HANDLE ProcessHandle
     )
 {
+    static UNICODE_STRING attributeNameUs = RTL_CONSTANT_STRING(L"WIN://SYSAPPID");
     HANDLE tokenHandle;
     PTOKEN_SECURITY_ATTRIBUTES_INFORMATION info;
     PPH_STRING packageName = NULL;
@@ -335,7 +336,6 @@ PPH_STRING PhGetProcessPackageFullName(
         {
             for (ULONG i = 0; i < info->AttributeCount; i++)
             {
-                static UNICODE_STRING attributeNameUs = RTL_CONSTANT_STRING(L"WIN://SYSAPPID");
                 PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = &info->Attribute.pAttributeV1[i];
 
                 if (RtlEqualUnicodeString(&attribute->Name, &attributeNameUs, FALSE))
