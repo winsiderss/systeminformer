@@ -5065,70 +5065,78 @@ VOID PhTnpPaint(
 
     for (i = firstRowToUpdate; i <= lastRowToUpdate; i++)
     {
-        INT stateId;
-
         node = Context->FlatList->Items[i];
 
         // Prepare the row for drawing.
 
         PhTnpPrepareRowForDraw(Context, hdc, node);
 
-        if (node->Selected)
+        if (node->Selected && (Context->CustomColors || !Context->ThemeHasItemBackground))
         {
-            if (i == Context->HotNodeIndex)
-                stateId = TREIS_HOTSELECTED;
-            else if (!Context->HasFocus)
-                stateId = TREIS_SELECTEDNOTFOCUS;
-            else
-                stateId = TREIS_SELECTED;
-        }
-        else
-        {
-            if (i == Context->HotNodeIndex)
-                stateId = TREIS_HOT;
-            else
-                stateId = -1;
-        }
+            // Non-themed background
 
-        if (Context->CustomColors || !Context->ThemeHasItemBackground)
-        {
-            switch (stateId)
+            if (Context->HasFocus)
             {
-            case TREIS_SELECTED:
-            case TREIS_SELECTEDNOTFOCUS:
-                {
-                    SetTextColor(hdc, Context->CustomTextColor);
-                    SetDCBrushColor(hdc, Context->CustomSelectedColor);
-                }
-                break;
-            case TREIS_HOT:
-            case TREIS_HOTSELECTED:
+                if (Context->CustomColors)
                 {
                     SetTextColor(hdc, Context->CustomTextColor);
                     SetDCBrushColor(hdc, Context->CustomFocusColor);
+                    FillRect(hdc, &rowRect, GetStockObject(DC_BRUSH));
                 }
-                break;
-            default:
+                else
                 {
-                    SetTextColor(hdc, node->s.DrawForeColor);
-                    SetDCBrushColor(hdc, node->s.DrawBackColor);
+                    SetTextColor(hdc, GetSysColor(COLOR_HIGHLIGHTTEXT));
+                    FillRect(hdc, &rowRect, GetSysColorBrush(COLOR_HIGHLIGHT));
                 }
-                break;
             }
-        }     
+            else
+            {
+                if (Context->CustomColors)
+                {
+                    SetTextColor(hdc, Context->CustomTextColor);
+                    SetDCBrushColor(hdc, Context->CustomSelectedColor);
+                    FillRect(hdc, &rowRect, GetStockObject(DC_BRUSH));
+                }
+                else
+                {
+                    SetTextColor(hdc, GetSysColor(COLOR_BTNTEXT));
+                    FillRect(hdc, &rowRect, GetSysColorBrush(COLOR_BTNFACE));
+                }
+            }
+        }
         else
         {
             SetTextColor(hdc, node->s.DrawForeColor);
             SetDCBrushColor(hdc, node->s.DrawBackColor);
+            FillRect(hdc, &rowRect, GetStockObject(DC_BRUSH));
         }
-
-        FillRect(hdc, &rowRect, GetStockObject(DC_BRUSH));
 
         if (!Context->CustomColors && Context->ThemeHasItemBackground)
         {
+            INT stateId;
+
             // Themed background
 
-            if (stateId != -1)
+            if (node->Selected)
+            {
+                if (i == Context->HotNodeIndex)
+                    stateId = TREIS_HOTSELECTED;
+                else if (!Context->HasFocus)
+                    stateId = TREIS_SELECTEDNOTFOCUS;
+                else
+                    stateId = TREIS_SELECTED;
+            }
+            else
+            {
+                if (i == Context->HotNodeIndex)
+                    stateId = TREIS_HOT;
+                else
+                    stateId = INT_MAX;
+            }
+
+            // Themed background
+
+            if (stateId != INT_MAX)
             {
                 if (!Context->FixedColumnVisible)
                 {
