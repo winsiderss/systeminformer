@@ -293,7 +293,7 @@ VOID PhSetIntervalProviderThread(
     {
         LARGE_INTEGER interval;
 
-        interval.QuadPart = -(LONGLONG)Interval * PH_TIMEOUT_MS;
+        interval.QuadPart = -(LONGLONG)UInt32x32To64(Interval, PH_TIMEOUT_MS);
         NtSetTimer(ProviderThread->TimerHandle, &interval, NULL, NULL, FALSE, Interval, NULL);
     }
 }

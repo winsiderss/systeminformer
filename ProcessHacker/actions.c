@@ -194,7 +194,7 @@ BOOLEAN PhpShowErrorAndElevateAction(
             &processHandle
             ))
         {
-            timeout.QuadPart = -10 * PH_TIMEOUT_SEC;
+            timeout.QuadPart = -(LONGLONG)UInt32x32To64(10, PH_TIMEOUT_SEC);
             status = NtWaitForSingleObject(processHandle, FALSE, &timeout);
 
             if (
@@ -2728,7 +2728,7 @@ BOOLEAN PhUiUnloadModule(
         {
             LARGE_INTEGER timeout;
 
-            timeout.QuadPart = -5 * PH_TIMEOUT_SEC;
+            timeout.QuadPart = -(LONGLONG)UInt32x32To64(5, PH_TIMEOUT_SEC);
             status = PhUnloadDllProcess(
                 processHandle,
                 Module->BaseAddress,

@@ -2112,7 +2112,7 @@ VOID PhTnpUpdateThemeData(
         Context->ThemeData = NULL;
     }
 
-    Context->ThemeData = OpenThemeData(Context->Handle, L"TREEVIEW");
+    Context->ThemeData = OpenThemeData(Context->Handle, VSCLASS_TREEVIEW);
 
     if (Context->ThemeData)
     {
