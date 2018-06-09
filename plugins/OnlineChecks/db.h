@@ -25,7 +25,6 @@
 
 extern PH_STRINGREF ProcessObjectDbHash;
 extern PH_STRINGREF ServiceObjectDbHash;
-extern PH_STRINGREF NetworkObjectDbHash;
 
 typedef struct _PROCESS_DB_OBJECT
 {
