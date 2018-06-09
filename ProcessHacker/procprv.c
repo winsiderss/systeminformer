@@ -333,7 +333,9 @@ PPH_STRING PhGetClientIdName(
     }
     else
     {
-        name = PhGetClientIdNameEx(ClientId, NULL);
+        // HACK
+        // Workaround race condition with newly created process handles showing as 'Non-existent process' -dmex
+        name = PhStdGetClientIdName(ClientId);
     }
 
     return name;
