@@ -257,16 +257,12 @@ BOOLEAN PhProcessProviderInitialization(
 
     PhProcessRecordList = PhCreateList(40);
 
-    PhDpcsProcessInformation = PhAllocate(sizeof(SYSTEM_PROCESS_INFORMATION) + sizeof(SYSTEM_PROCESS_INFORMATION_EXTENSION));
-    memset(PhDpcsProcessInformation, 0, sizeof(SYSTEM_PROCESS_INFORMATION) + sizeof(SYSTEM_PROCESS_INFORMATION_EXTENSION));
-
-    PhInterruptsProcessInformation = PhAllocate(sizeof(SYSTEM_PROCESS_INFORMATION) + sizeof(SYSTEM_PROCESS_INFORMATION_EXTENSION));
-    memset(PhInterruptsProcessInformation, 0, sizeof(SYSTEM_PROCESS_INFORMATION) + sizeof(SYSTEM_PROCESS_INFORMATION_EXTENSION));
-
+    PhDpcsProcessInformation = PhAllocateZero(sizeof(SYSTEM_PROCESS_INFORMATION) + sizeof(SYSTEM_PROCESS_INFORMATION_EXTENSION));
     RtlInitUnicodeString(&PhDpcsProcessInformation->ImageName, L"DPCs");
     PhDpcsProcessInformation->UniqueProcessId = DPCS_PROCESS_ID;
     PhDpcsProcessInformation->InheritedFromUniqueProcessId = SYSTEM_IDLE_PROCESS_ID;
 
+    PhInterruptsProcessInformation = PhAllocateZero(sizeof(SYSTEM_PROCESS_INFORMATION) + sizeof(SYSTEM_PROCESS_INFORMATION_EXTENSION));
     RtlInitUnicodeString(&PhInterruptsProcessInformation->ImageName, L"Interrupts");
     PhInterruptsProcessInformation->UniqueProcessId = INTERRUPTS_PROCESS_ID;
     PhInterruptsProcessInformation->InheritedFromUniqueProcessId = SYSTEM_IDLE_PROCESS_ID;
@@ -739,7 +735,7 @@ VOID PhpProcessQueryStage1(
     HANDLE processId = processItem->ProcessId;
     HANDLE processHandleLimited = processItem->QueryHandle;
 
-    if (processItem->FileName)
+    if (processItem->FileName && !processItem->IsSubsystemProcess)
     {
         if (!PhExtractIcon(
             processItem->FileName->Buffer,
@@ -756,7 +752,7 @@ VOID PhpProcessQueryStage1(
     }
 
     // Debugged
-    if (processHandleLimited)
+    if (processHandleLimited && !processItem->IsSubsystemProcess)
     {
         BOOLEAN isBeingDebugged;
 
@@ -767,7 +763,7 @@ VOID PhpProcessQueryStage1(
     }
 
     // Command line, .NET
-    if (processHandleLimited)
+    if (processHandleLimited && !processItem->IsSubsystemProcess)
     {
         BOOLEAN isDotNet = FALSE;
         HANDLE processHandle = NULL;
@@ -866,7 +862,7 @@ VOID PhpProcessQueryStage1(
                 &jobHandle
                 );
 
-            if (NT_SUCCESS(status) && status != STATUS_PROCESS_NOT_IN_JOB && jobHandle)
+            if (NT_SUCCESS(status) && status != STATUS_PROCESS_NOT_IN_JOB)
             {
                 JOBOBJECT_BASIC_LIMIT_INFORMATION basicLimits;
 
@@ -875,7 +871,7 @@ VOID PhpProcessQueryStage1(
                 PhGetHandleInformation(
                     NtCurrentProcess(),
                     jobHandle,
-                    -1,
+                    ULONG_MAX,
                     NULL,
                     NULL,
                     NULL,
@@ -889,9 +885,10 @@ VOID PhpProcessQueryStage1(
                     Data->IsInSignificantJob =
                         basicLimits.LimitFlags != JOB_OBJECT_LIMIT_SILENT_BREAKAWAY_OK;
                 }
-
-                NtClose(jobHandle);
             }
+
+            if (jobHandle)
+                NtClose(jobHandle);
         }
         else
         {
@@ -912,7 +909,7 @@ VOID PhpProcessQueryStage1(
     }
 
     // Immersive
-    if (processHandleLimited && IsImmersiveProcess_I)
+    if (processHandleLimited && IsImmersiveProcess_I && !processItem->IsSubsystemProcess)
     {
         Data->IsImmersive = !!IsImmersiveProcess_I(processHandleLimited);
     }
@@ -956,7 +953,7 @@ VOID PhpProcessQueryStage2(
 {
     PPH_PROCESS_ITEM processItem = Data->Header.ProcessItem;
 
-    if (PhEnableProcessQueryStage2 && processItem->FileName)
+    if (PhEnableProcessQueryStage2 && processItem->FileName && !processItem->IsSubsystemProcess)
     {
         NTSTATUS status;
 
