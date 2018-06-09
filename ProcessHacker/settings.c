@@ -217,6 +217,11 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"UseColorUnknown", L"1");
     PhpAddIntegerSetting(L"ColorUnknown", L"8080ff"); // Light Red
 
+    PhpAddIntegerSetting(L"UseColorSystemThreadStack", L"0");
+    PhpAddIntegerSetting(L"ColorSystemThreadStack", L"ffccaa");
+    PhpAddIntegerSetting(L"UseColorUserThreadStack", L"0");
+    PhpAddIntegerSetting(L"ColorUserThreadStack", L"aaffff");
+
     PhpAddIntegerSetting(L"GraphShowText", L"1");
     PhpAddIntegerSetting(L"GraphColorMode", L"0");
     PhpAddIntegerSetting(L"ColorCpuKernel", L"00ff00");
@@ -285,6 +290,11 @@ VOID PhUpdateCachedSettings(
     PH_UPDATE_SETTING(ColorServiceStop);
     PH_UPDATE_SETTING(UseColorUnknown);
     PH_UPDATE_SETTING(ColorUnknown);
+
+    PH_UPDATE_SETTING(UseColorSystemThreadStack);
+    PH_UPDATE_SETTING(ColorSystemThreadStack);
+    PH_UPDATE_SETTING(UseColorUserThreadStack);
+    PH_UPDATE_SETTING(ColorUserThreadStack);
 
     PH_UPDATE_SETTING(GraphShowText);
     PH_UPDATE_SETTING(GraphColorMode);

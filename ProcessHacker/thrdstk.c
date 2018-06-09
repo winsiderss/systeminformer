@@ -22,6 +22,7 @@
  */
 
 #include <phapp.h>
+#include <phsettings.h>
 
 #include <cpysave.h>
 #include <emenu.h>
@@ -451,6 +452,15 @@ BOOLEAN NTAPI ThreadStackTreeNewCallback(
             PPH_TREENEW_GET_NODE_COLOR getNodeColor = Parameter1;
             node = (PPH_STACK_TREE_ROOT_NODE)getNodeColor->Node;
 
+            if (PhCsUseColorSystemThreadStack && (ULONG_PTR)node->StackFrame.PcAddress > PhSystemBasicInformation.MaximumUserModeAddress)
+            {
+                getNodeColor->BackColor = PhCsColorSystemThreadStack;
+            }
+            else if (PhCsUseColorUserThreadStack && (ULONG_PTR)node->StackFrame.PcAddress <= PhSystemBasicInformation.MaximumUserModeAddress)
+            {
+                getNodeColor->BackColor = PhCsColorUserThreadStack;
+            }
+
             getNodeColor->Flags = TN_CACHE | TN_AUTO_FORECOLOR;
         }
         return TRUE;
@@ -638,7 +648,8 @@ VOID InitializeThreadStackTree(
     PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_CONTROLADDRESS, FALSE, L"Control address", 100, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_RETURNADDRESS, FALSE, L"Return address", 100, PH_ALIGN_LEFT, -1, 0);
 
-    TreeNew_SetTriState(Context->TreeNewHandle, TRUE);
+    TreeNew_SetTriState(Context->TreeNewHandle, FALSE);
+    TreeNew_SetSort(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_INDEX, AscendingSortOrder);
 
     ThreadStackLoadSettingsTreeList(Context);
 }
@@ -966,8 +977,10 @@ static NTSTATUS PhpRefreshThreadStack(
             if (!PhIsNullOrEmptyString(item->Symbol))
                 stackNode->SymbolString = PhReferenceObject(item->Symbol);
 
-            PhPrintPointer(stackNode->StackAddressString, item->StackFrame.StackAddress);
-            PhPrintPointer(stackNode->FrameAddressString, item->StackFrame.FrameAddress);
+            if (item->StackFrame.StackAddress)
+                PhPrintPointer(stackNode->StackAddressString, item->StackFrame.StackAddress);
+            if (item->StackFrame.FrameAddress)
+                PhPrintPointer(stackNode->FrameAddressString, item->StackFrame.FrameAddress);
 
             // There are no params for kernel-mode stack traces.
             if ((ULONG_PTR)item->StackFrame.PcAddress <= PhSystemBasicInformation.MaximumUserModeAddress)
@@ -978,8 +991,10 @@ static NTSTATUS PhpRefreshThreadStack(
                 PhPrintPointer(stackNode->Parameter4String, item->StackFrame.Params[3]);
             }
 
-            PhPrintPointer(stackNode->PcAddressString, item->StackFrame.PcAddress);
-            PhPrintPointer(stackNode->ReturnAddressString, item->StackFrame.ReturnAddress);
+            if (item->StackFrame.PcAddress)
+                PhPrintPointer(stackNode->PcAddressString, item->StackFrame.PcAddress);
+            if (item->StackFrame.ReturnAddress)
+                PhPrintPointer(stackNode->ReturnAddressString, item->StackFrame.ReturnAddress);
 
             UpdateThreadStackNode(Context, stackNode);
         }

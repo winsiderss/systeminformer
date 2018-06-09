@@ -75,6 +75,11 @@ EXT ULONG PhCsColorServiceDisabled;
 EXT ULONG PhCsUseColorServiceStop;
 EXT ULONG PhCsColorServiceStop;
 
+EXT ULONG PhCsUseColorSystemThreadStack;
+EXT ULONG PhCsColorSystemThreadStack;
+EXT ULONG PhCsUseColorUserThreadStack;
+EXT ULONG PhCsColorUserThreadStack;
+
 #define PH_SET_INTEGER_CACHED_SETTING(Name, Value) (PhSetIntegerSetting(L#Name, PhCs##Name = (Value)))
 
 #endif
