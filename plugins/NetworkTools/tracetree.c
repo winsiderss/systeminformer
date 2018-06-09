@@ -49,15 +49,13 @@ VOID NTAPI TracertTreeNodeItemDeleteProcedure(
         if (tracertNode->PingString[i])
             PhDereferenceObject(tracertNode->PingString[i]);
     }
-
-    //if (tracertNode->CountryIcon)
-    //    DestroyIcon(tracertNode->CountryIcon);
 }
 
 PTRACERT_ROOT_NODE TracertTreeCreateNode(
     VOID
     )
 {
+    static ULONG NextUniqueId = 1;
     PTRACERT_ROOT_NODE tracertNode;
 
     tracertNode = PhCreateObject(sizeof(TRACERT_ROOT_NODE), TracertTreeNodeItemType);
@@ -65,6 +63,7 @@ PTRACERT_ROOT_NODE TracertTreeCreateNode(
 
     PhInitializeTreeNewNode(&tracertNode->Node);
 
+    tracertNode->UniqueId = NextUniqueId++; // used to stabilize sorting
     tracertNode->CountryIconIndex = INT_MAX;
 
     return tracertNode;
@@ -83,7 +82,7 @@ PTRACERT_ROOT_NODE TracertTreeCreateNode(
 
 #define END_SORT_FUNCTION \
     if (sortResult == 0) \
-        sortResult = uintptrcmp((ULONG_PTR)node1->Node.Index, (ULONG_PTR)node2->Node.Index); \
+        sortResult = uintcmp(node1->UniqueId, node2->UniqueId); \
     \
     return PhModifySort(sortResult, ((PNETWORK_TRACERT_CONTEXT)_context)->TreeNewSortOrder); \
 }
@@ -185,7 +184,7 @@ ULONG TracertNodeHashtableHashFunction(
     _In_ PVOID Entry
     )
 {
-    return (*(PTRACERT_ROOT_NODE*)Entry)->TTL;
+    return PhHashInt32((*(PTRACERT_ROOT_NODE*)Entry)->TTL);
 }
 
 VOID DestroyTracertNode(
@@ -475,7 +474,6 @@ BOOLEAN NTAPI TracertTreeNewCallback(
                 if (node->CountryIconIndex != INT_MAX)
                 {
                     DrawCountryIcon(hdc, rect, node->CountryIconIndex);
-
                     rect.left += 16 + 2;
                 }
 
@@ -495,7 +493,7 @@ BOOLEAN NTAPI TracertTreeNewCallback(
 
             if (!GeoDbLoaded)
             {
-                DrawText(hdc, L"Geoip database error.", -1, &rect, DT_LEFT | DT_VCENTER | DT_END_ELLIPSIS | DT_SINGLELINE);
+                DrawText(hdc, L"Geoip database not found.", -1, &rect, DT_LEFT | DT_VCENTER | DT_END_ELLIPSIS | DT_SINGLELINE);
             }
         }
         return TRUE;

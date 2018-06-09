@@ -33,10 +33,6 @@
 #include <workqueue.h>
 
 #include <windowsx.h>
-#include <windns.h>
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#include <iphlpapi.h>
 #include <icmpapi.h>
 #include <shlobj.h>
 #include <uxtheme.h>
@@ -101,12 +97,12 @@ typedef enum _PH_NETWORK_ACTION
     MENU_ACTION_COPY,
 } PH_NETWORK_ACTION;
 
-#define NTM_RECEIVEDTRACE (WM_APP + NETWORK_ACTION_TRACEROUTE)
-#define NTM_RECEIVEDWHOIS (WM_APP + NETWORK_ACTION_WHOIS)
-#define NTM_RECEIVEDFINISH (WM_APP + NETWORK_ACTION_FINISH)
-#define WM_TRACERT_UPDATE (WM_APP + NETWORK_ACTION_TRACEROUTE + 1002)
-#define WM_TRACERT_HOSTNAME (WM_APP + NETWORK_ACTION_TRACEROUTE + 1003)
-#define WM_TRACERT_COUNTRY (WM_APP + NETWORK_ACTION_TRACEROUTE + 1004)
+#define NTM_RECEIVEDTRACE (WM_APP + 1)
+#define NTM_RECEIVEDWHOIS (WM_APP + 2)
+#define NTM_RECEIVEDFINISH (WM_APP + 3)
+#define WM_TRACERT_UPDATE (WM_APP + 4)
+#define WM_TRACERT_HOSTNAME (WM_APP + 5)
+#define WM_TRACERT_COUNTRY (WM_APP + 6)
 
 #define UPDATE_MENUITEM    1005
 
@@ -179,12 +175,14 @@ typedef struct _NETWORK_TRACERT_CONTEXT
     HWND SearchboxHandle;
     HWND TreeNewHandle;
     HFONT FontHandle;
+    PH_LAYOUT_MANAGER LayoutManager;
 
+    ULONG MaximumHops;
     BOOLEAN Cancel;
+    PH_WORK_QUEUE WorkQueue;
+
     ULONG TreeNewSortColumn;
     PH_SORT_ORDER TreeNewSortOrder;
-    PH_LAYOUT_MANAGER LayoutManager;
-    PH_WORK_QUEUE WorkQueue;
     PPH_HASHTABLE NodeHashtable;
     PPH_LIST NodeList;
     PPH_LIST NodeRootList;
@@ -330,24 +328,6 @@ VOID ShowDbInstallRestartDialog(
 VOID ShowDbUpdateFailedDialog(
     _In_ PPH_UPDATER_CONTEXT Context
     );
-
-// Copied from mstcpip.h due to PH sdk conflicts
-#define INADDR_ANY (ULONG)0x00000000
-#define INADDR_LOOPBACK 0x7f000001
-
-FORCEINLINE 
-BOOLEAN 
-IN4_IS_ADDR_UNSPECIFIED(_In_ CONST IN_ADDR *a)
-{
-    return (BOOLEAN)(a->s_addr == INADDR_ANY);
-}
-
-FORCEINLINE 
-BOOLEAN 
-IN4_IS_ADDR_LOOPBACK(_In_ CONST IN_ADDR *a)
-{
-    return (BOOLEAN)(*((PUCHAR)a) == 0x7f); // 127/8
-}
 
 // ports.c
 typedef struct _RESOLVED_PORT

@@ -72,17 +72,24 @@ NTSTATUS TracertHostnameLookupCallback(
             NI_NAMEREQD
             ))
         {
-            SendMessage(resolve->WindowHandle, WM_TRACERT_HOSTNAME, resolve->Index, (LPARAM)PhCreateString(resolve->SocketAddressHostname));
+            SendMessage(
+                resolve->WindowHandle, 
+                WM_TRACERT_HOSTNAME, 
+                resolve->Index, 
+                (LPARAM)PhCreateString(resolve->SocketAddressHostname)
+                );
         }
         else
         {
             ULONG errorCode = WSAGetLastError();
-
             if (errorCode != WSAHOST_NOT_FOUND && errorCode != WSATRY_AGAIN)
             {
-                //PPH_STRING errorMessage = PhGetWin32Message(errorCode);
-                //PhSetListViewSubItem(work->LvHandle, work->LvItemIndex, HOSTNAME_COLUMN, errorMessage->Buffer);
-                //PhDereferenceObject(errorMessage);
+                SendMessage(
+                    resolve->WindowHandle,
+                    WM_TRACERT_HOSTNAME,
+                    resolve->Index,
+                    (LPARAM)PhGetWin32Message(errorCode)
+                    );
             }
 
             PhDereferenceObject(resolve);
@@ -100,17 +107,24 @@ NTSTATUS TracertHostnameLookupCallback(
             NI_NAMEREQD
             ))
         {
-            SendMessage(resolve->WindowHandle, WM_TRACERT_HOSTNAME, resolve->Index, (LPARAM)PhCreateString(resolve->SocketAddressHostname));
+            SendMessage(
+                resolve->WindowHandle, 
+                WM_TRACERT_HOSTNAME, 
+                resolve->Index, 
+                (LPARAM)PhCreateString(resolve->SocketAddressHostname)
+                );
         }
         else
         {
             ULONG errorCode = WSAGetLastError();
-
             if (errorCode != WSAHOST_NOT_FOUND && errorCode != WSATRY_AGAIN)
             {
-                //PPH_STRING errorMessage = PhGetWin32Message(errorCode);
-                //PhSetListViewSubItem(work->LvHandle, work->LvItemIndex, HOSTNAME_COLUMN, errorMessage->Buffer);
-                //PhDereferenceObject(errorMessage);
+                SendMessage(
+                    resolve->WindowHandle,
+                    WM_TRACERT_HOSTNAME,
+                    resolve->Index,
+                    (LPARAM)PhGetWin32Message(errorCode)
+                    );
             }
 
             PhDereferenceObject(resolve);
@@ -128,8 +142,8 @@ VOID TracertQueueHostLookup(
 {
     PPH_STRING remoteCountryCode;
     PPH_STRING remoteCountryName;
-    ULONG addressStringLength = INET_ADDRSTRLEN;
-    WCHAR addressString[INET_ADDRSTRLEN] = L"";
+    ULONG addressStringLength = INET6_ADDRSTRLEN;
+    WCHAR addressString[INET6_ADDRSTRLEN] = L"";
 
     if (Context->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
     {
@@ -197,7 +211,7 @@ VOID TracertQueueHostLookup(
                 // Make sure we don't append the same address.
                 if (PhFindStringInString(Node->IpAddressString, 0, addressString) == -1)
                 {
-                    // Some routes can return multiple addresses for the same ping or 'hop', 
+                    // Some routes can return multiple addresses for the same TTL, 
                     // so make sure we don't lose this information (as every other tracert tool does)
                     // and instead append the additional IP address to the node.
                     PhMoveReference(&Node->IpAddressString, 
@@ -294,7 +308,7 @@ NTSTATUS NetworkTracertThreadStart(
         //((PSOCKADDR_IN6)&destinationAddress)->sin6_port = (USHORT)context->RemoteEndpoint.Port;
     }
 
-    for (ULONG i = 0; i < DEFAULT_MAXIMUM_HOPS; i++)
+    for (ULONG i = 0; i < context->MaximumHops; i++)
     {
         PTRACERT_ROOT_NODE node;
         IN_ADDR last4ReplyAddress = in4addr_any;
@@ -334,7 +348,7 @@ NTSTATUS NetworkTracertThreadStart(
                 {
                     PICMP_ECHO_REPLY reply4 = (PICMP_ECHO_REPLY)icmpReplyBuffer;
 
-                    memcpy(&last4ReplyAddress, &reply4->Address, sizeof(IN_ADDR));
+                    memcpy_s(&last4ReplyAddress, sizeof(IN_ADDR), &reply4->Address, sizeof(IN_ADDR));
 
                     TracertQueueHostLookup(
                         context,
@@ -426,12 +440,12 @@ NTSTATUS NetworkTracertThreadStart(
 
         if (context->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
         {
-            if (!memcmp(&last4ReplyAddress, &((PSOCKADDR_IN)&destinationAddress)->sin_addr, sizeof(IN_ADDR)))
+            if (RtlEqualMemory(&last4ReplyAddress, &((PSOCKADDR_IN)&destinationAddress)->sin_addr, sizeof(IN_ADDR)))
                 break;
         }
         else if (context->RemoteEndpoint.Address.Type == PH_IPV6_NETWORK_TYPE)
         {
-            if (!memcmp(&last6ReplyAddress, &((PSOCKADDR_IN6)&destinationAddress)->sin6_addr, sizeof(IN6_ADDR)))
+            if (RtlEqualMemory(&last6ReplyAddress, &((PSOCKADDR_IN6)&destinationAddress)->sin6_addr, sizeof(IN6_ADDR)))
                 break;
         }
 
@@ -453,7 +467,7 @@ CleanupExit:
     return STATUS_SUCCESS;
 }
 
-VOID ShowMenu(
+VOID TracertMenuActionCallback(
     _In_ PNETWORK_TRACERT_CONTEXT Context, 
     _In_ ULONG Id
     )
@@ -693,11 +707,11 @@ INT_PTR CALLBACK TracertDlgProc(
                     if (selectedNode = GetSelectedTracertNode(context))
                     {
                         menu = PhCreateEMenu();
-                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MAINMENU_ACTION_PING, L"Ping", NULL, NULL), -1);
-                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, NETWORK_ACTION_TRACEROUTE, L"Traceroute", NULL, NULL), -1);
-                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, NETWORK_ACTION_WHOIS, L"Whois", NULL, NULL), -1);
-                        PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), -1);
-                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MENU_ACTION_COPY, L"Copy", NULL, NULL), -1);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MAINMENU_ACTION_PING, L"Ping", NULL, NULL), ULONG_MAX);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, NETWORK_ACTION_TRACEROUTE, L"Traceroute", NULL, NULL), ULONG_MAX);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, NETWORK_ACTION_WHOIS, L"Whois", NULL, NULL), ULONG_MAX);
+                        PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MENU_ACTION_COPY, L"Copy", NULL, NULL), ULONG_MAX);
                         PhInsertCopyCellEMenuItem(menu, MENU_ACTION_COPY, context->TreeNewHandle, contextMenuEvent->Column);
 
                         selectedItem = PhShowEMenu(
@@ -709,15 +723,11 @@ INT_PTR CALLBACK TracertDlgProc(
                             contextMenuEvent->Location.y
                             );
 
-                        if (selectedItem && selectedItem->Id != -1)
+                        if (selectedItem && selectedItem->Id != ULONG_MAX)
                         {
-                            BOOLEAN handled = FALSE;
-
-                            handled = PhHandleCopyCellEMenuItem(selectedItem);
-
-                            if (!handled)
+                            if (!PhHandleCopyCellEMenuItem(selectedItem))
                             {
-                                ShowMenu(context, selectedItem->Id);
+                                TracertMenuActionCallback(context, selectedItem->Id);
                             }
                         }
 
@@ -764,28 +774,24 @@ INT_PTR CALLBACK TracertDlgProc(
                         // Some routes can return multiple addresses for the same ping or 'hop', 
                         // so make sure we don't lose this information (as every other tracert tool does) 
                         // and instead append the additional hostname to the node.
-                        PhMoveReference(&traceNode->HostnameString,
-                            PhFormatString(L"%s, %s", PhGetString(traceNode->HostnameString), PhGetString(hostName))
-                            );
+                        PhMoveReference(&traceNode->HostnameString, PhFormatString(
+                            L"%s, %s", 
+                            PhGetString(traceNode->HostnameString), 
+                            PhGetString(hostName)
+                            ));
 
                         UpdateTracertNode(context, traceNode);
-                    }
-                    else
-                    {
-                        PhDereferenceObject(hostName);
                     }
                 }
                 else
                 {
-                    PhMoveReference(&traceNode->HostnameString, hostName);
+                    PhSwapReference(&traceNode->HostnameString, hostName);
 
                     UpdateTracertNode(context, traceNode);
                 }
             }
-            else
-            {
-                PhDereferenceObject(hostName);
-            }
+
+            PhDereferenceObject(hostName);
         }
         break;
     }
@@ -844,6 +850,7 @@ VOID ShowTracertWindow(
     context = (PNETWORK_TRACERT_CONTEXT)PhCreateAlloc(sizeof(NETWORK_TRACERT_CONTEXT));
     memset(context, 0, sizeof(NETWORK_TRACERT_CONTEXT));
 
+    context->MaximumHops = PhGetIntegerSetting(SETTING_NAME_TRACERT_MAX_HOPS);
     context->RemoteEndpoint = NetworkItem->RemoteEndpoint;
 
     if (NetworkItem->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
@@ -867,6 +874,7 @@ VOID ShowTracertWindowFromAddress(
     context = (PNETWORK_TRACERT_CONTEXT)PhCreateAlloc(sizeof(NETWORK_TRACERT_CONTEXT));
     memset(context, 0, sizeof(NETWORK_TRACERT_CONTEXT));
 
+    context->MaximumHops = PhGetIntegerSetting(SETTING_NAME_TRACERT_MAX_HOPS);
     context->RemoteEndpoint = RemoteEndpoint;
 
     if (RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)

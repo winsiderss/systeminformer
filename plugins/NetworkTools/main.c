@@ -69,14 +69,27 @@ VOID NTAPI ShowOptionsCallback(
         );
 }
 
-static BOOLEAN ValidAddressInfo(
-    _In_ PPH_IP_ENDPOINT RemoteEndpoint,
-    _In_ PPH_STRING Name
+static BOOLEAN ParseNetworkAddress(
+    _In_ PWSTR AddressString,
+    _Out_ PPH_IP_ENDPOINT RemoteEndpoint  
     )
 {
-    PWSTR terminator = NULL;
+    NET_ADDRESS_INFO addressInfo;
 
-    if (DnsValidateName(Name->Buffer, DnsNameValidateTld) == ERROR_SUCCESS)
+    memset(&addressInfo, 0, sizeof(NET_ADDRESS_INFO));
+
+    if (ParseNetworkString(
+        AddressString,
+        NET_STRING_ANY_ADDRESS | NET_STRING_ANY_SERVICE,
+        &addressInfo,
+        NULL,
+        NULL
+        ) != ERROR_SUCCESS)
+    {
+        return FALSE;
+    }
+
+    if (addressInfo.Format == NET_ADDRESS_DNS_NAME)
     {
         BOOLEAN success = FALSE;
         PADDRINFOT result;
@@ -84,26 +97,27 @@ static BOOLEAN ValidAddressInfo(
 
         WSAStartup(WINSOCK_VERSION, &wsaData);
 
-        if (GetAddrInfo(Name->Buffer, NULL, NULL, &result) == ERROR_SUCCESS)
+        if (GetAddrInfo(addressInfo.NamedAddress.Address, addressInfo.NamedAddress.Port, NULL, &result) == ERROR_SUCCESS)
         {
             for (PADDRINFOT i = result; i; i = i->ai_next)
             {
                 if (i->ai_family == AF_INET)
                 {
                     RemoteEndpoint->Address.InAddr.s_addr = ((PSOCKADDR_IN)i->ai_addr)->sin_addr.s_addr;
-                    RemoteEndpoint->Port = ((PSOCKADDR_IN)i->ai_addr)->sin_port;
+                    RemoteEndpoint->Port = _byteswap_ushort(((PSOCKADDR_IN)i->ai_addr)->sin_port);
                     RemoteEndpoint->Address.Type = PH_IPV4_NETWORK_TYPE;
                     success = TRUE;
                     break;
                 }
                 else if (i->ai_family == AF_INET6)
                 {
-                    memcpy(
+                    memcpy_s(
                         RemoteEndpoint->Address.In6Addr.s6_addr,
+                        sizeof(RemoteEndpoint->Address.In6Addr.s6_addr),
                         ((PSOCKADDR_IN6)i->ai_addr)->sin6_addr.s6_addr,
-                        sizeof(RemoteEndpoint->Address.In6Addr.s6_addr)
+                        sizeof(((PSOCKADDR_IN6)i->ai_addr)->sin6_addr.s6_addr)
                         );
-                    RemoteEndpoint->Port = ((PSOCKADDR_IN6)i->ai_addr)->sin6_port;
+                    RemoteEndpoint->Port = _byteswap_ushort(((PSOCKADDR_IN6)i->ai_addr)->sin6_port);
                     RemoteEndpoint->Address.Type = PH_IPV6_NETWORK_TYPE;
                     success = TRUE;
                     break;
@@ -118,28 +132,26 @@ static BOOLEAN ValidAddressInfo(
         if (success)
             return TRUE;
     }
-    else
-    {
-        if (NT_SUCCESS(RtlIpv4StringToAddress(
-            Name->Buffer,
-            TRUE,
-            &terminator,
-            &RemoteEndpoint->Address.InAddr
-            )))
-        {
-            RemoteEndpoint->Address.Type = PH_IPV4_NETWORK_TYPE;
-            return TRUE;
-        }
 
-        if (NT_SUCCESS(RtlIpv6StringToAddress(
-            Name->Buffer,
-            &terminator,
-            &RemoteEndpoint->Address.In6Addr
-            )))
-        {
-            RemoteEndpoint->Address.Type = PH_IPV6_NETWORK_TYPE;
-            return TRUE;
-        }
+    if (addressInfo.Format == NET_ADDRESS_IPV4)
+    {
+        RemoteEndpoint->Address.InAddr.s_addr = addressInfo.Ipv4Address.sin_addr.s_addr;
+        RemoteEndpoint->Port = _byteswap_ushort(addressInfo.Ipv4Address.sin_port);
+        RemoteEndpoint->Address.Type = PH_IPV4_NETWORK_TYPE;
+        return TRUE;
+    }
+
+    if (addressInfo.Format == NET_ADDRESS_IPV6)
+    {
+        memcpy_s(
+            RemoteEndpoint->Address.In6Addr.s6_addr,
+            sizeof(RemoteEndpoint->Address.In6Addr.s6_addr),
+            addressInfo.Ipv6Address.sin6_addr.s6_addr,
+            sizeof(addressInfo.Ipv6Address.sin6_addr.s6_addr)
+            );
+        RemoteEndpoint->Port = _byteswap_ushort(addressInfo.Ipv6Address.sin6_port);
+        RemoteEndpoint->Address.Type = PH_IPV6_NETWORK_TYPE;
+        return TRUE;      
     }
 
     return FALSE;
@@ -182,7 +194,7 @@ VOID NTAPI MenuItemCallback(
                 SETTING_NAME_ADDRESS_HISTORY
                 ))
             {
-                if (ValidAddressInfo(&remoteEndpoint, selectedChoice))
+                if (ParseNetworkAddress(selectedChoice->Buffer, &remoteEndpoint))
                 {
                     ShowPingWindowFromAddress(remoteEndpoint);
                     break;
@@ -208,7 +220,7 @@ VOID NTAPI MenuItemCallback(
                 SETTING_NAME_ADDRESS_HISTORY
                 ))
             {
-                if (ValidAddressInfo(&remoteEndpoint, selectedChoice))
+                if (ParseNetworkAddress(selectedChoice->Buffer, &remoteEndpoint))
                 {
                     ShowTracertWindowFromAddress(remoteEndpoint);
                     break;
@@ -234,7 +246,7 @@ VOID NTAPI MenuItemCallback(
                 SETTING_NAME_ADDRESS_HISTORY
                 ))
             {
-                if (ValidAddressInfo(&remoteEndpoint, selectedChoice))
+                if (ParseNetworkAddress(selectedChoice->Buffer, &remoteEndpoint))
                 {
                     ShowWhoisWindowFromAddress(remoteEndpoint);
                     break;
@@ -260,12 +272,12 @@ VOID NTAPI MainMenuInitializingCallback(
         return;
   
     networkToolsMenu = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"&Network Tools", NULL);    
-    PhInsertEMenuItem(networkToolsMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MAINMENU_ACTION_GEOIP_UPDATE, L"&GeoIP database update...", NULL), -1);
-    PhInsertEMenuItem(networkToolsMenu, PhCreateEMenuSeparator(), -1);
-    PhInsertEMenuItem(networkToolsMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MAINMENU_ACTION_PING, L"&Ping address...", NULL), -1);
-    PhInsertEMenuItem(networkToolsMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MAINMENU_ACTION_TRACERT, L"&Traceroute address...", NULL), -1);
-    PhInsertEMenuItem(networkToolsMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MAINMENU_ACTION_WHOIS, L"&Whois address...", NULL), -1);
-    PhInsertEMenuItem(menuInfo->Menu, networkToolsMenu, -1);
+    PhInsertEMenuItem(networkToolsMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MAINMENU_ACTION_GEOIP_UPDATE, L"&GeoIP database update...", NULL), ULONG_MAX);
+    PhInsertEMenuItem(networkToolsMenu, PhCreateEMenuSeparator(), ULONG_MAX);
+    PhInsertEMenuItem(networkToolsMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MAINMENU_ACTION_PING, L"&Ping address...", NULL), ULONG_MAX);
+    PhInsertEMenuItem(networkToolsMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MAINMENU_ACTION_TRACERT, L"&Traceroute address...", NULL), ULONG_MAX);
+    PhInsertEMenuItem(networkToolsMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MAINMENU_ACTION_WHOIS, L"&Whois address...", NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuInfo->Menu, networkToolsMenu, ULONG_MAX);
 }
 
 VOID NTAPI NetworkMenuInitializingCallback(
@@ -284,43 +296,50 @@ VOID NTAPI NetworkMenuInitializingCallback(
     else
         networkItem = NULL;
 
-    PhInsertEMenuItem(menuInfo->Menu, PhCreateEMenuSeparator(), 0);
-    PhInsertEMenuItem(menuInfo->Menu, whoisMenu = PhPluginCreateEMenuItem(PluginInstance, 0, NETWORK_ACTION_WHOIS, L"&Whois", networkItem), 0);
-    PhInsertEMenuItem(menuInfo->Menu, traceMenu = PhPluginCreateEMenuItem(PluginInstance, 0, NETWORK_ACTION_TRACEROUTE, L"&Traceroute", networkItem), 0);
     PhInsertEMenuItem(menuInfo->Menu, pingMenu = PhPluginCreateEMenuItem(PluginInstance, 0, NETWORK_ACTION_PING, L"&Ping", networkItem), 0);
+    PhInsertEMenuItem(menuInfo->Menu, traceMenu = PhPluginCreateEMenuItem(PluginInstance, 0, NETWORK_ACTION_TRACEROUTE, L"&Traceroute", networkItem), 1);
+    PhInsertEMenuItem(menuInfo->Menu, whoisMenu = PhPluginCreateEMenuItem(PluginInstance, 0, NETWORK_ACTION_WHOIS, L"&Whois", networkItem), 2);
+    PhInsertEMenuItem(menuInfo->Menu, PhCreateEMenuSeparator(), 3);
 
     if (networkItem)
     {
         if (PhIsNullIpAddress(&networkItem->RemoteEndpoint.Address))
         {
-            whoisMenu->Flags |= PH_EMENU_DISABLED;
-            traceMenu->Flags |= PH_EMENU_DISABLED;
-            pingMenu->Flags |= PH_EMENU_DISABLED;
+            PhSetDisabledEMenuItem(whoisMenu);
+            PhSetDisabledEMenuItem(traceMenu);
+            PhSetDisabledEMenuItem(pingMenu);
         }
         else if (networkItem->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
         {
-            if (IN4_IS_ADDR_LOOPBACK(&networkItem->RemoteEndpoint.Address.InAddr))
+            if (
+                IN4_IS_ADDR_UNSPECIFIED(&networkItem->RemoteEndpoint.Address.InAddr) ||
+                IN4_IS_ADDR_LOOPBACK(&networkItem->RemoteEndpoint.Address.InAddr) || 
+                IN4_IS_ADDR_RFC1918(&networkItem->RemoteEndpoint.Address.InAddr)
+                )
             {
-                whoisMenu->Flags |= PH_EMENU_DISABLED;
-                traceMenu->Flags |= PH_EMENU_DISABLED;
-                pingMenu->Flags |= PH_EMENU_DISABLED;
+                PhSetDisabledEMenuItem(whoisMenu);
+                PhSetDisabledEMenuItem(traceMenu);
+                PhSetDisabledEMenuItem(pingMenu);
             }
         }
-        else
+        else  if (networkItem->RemoteEndpoint.Address.Type == PH_IPV6_NETWORK_TYPE)
         {
-            if (IN6_IS_ADDR_LOOPBACK(&networkItem->RemoteEndpoint.Address.In6Addr))
+            if (
+                IN6_IS_ADDR_UNSPECIFIED(&networkItem->RemoteEndpoint.Address.In6Addr) ||
+                IN6_IS_ADDR_LOOPBACK(&networkItem->RemoteEndpoint.Address.In6Addr)
+                )
             {
-                whoisMenu->Flags |= PH_EMENU_DISABLED;
-                traceMenu->Flags |= PH_EMENU_DISABLED;
-                pingMenu->Flags |= PH_EMENU_DISABLED;
+                PhSetDisabledEMenuItem(whoisMenu);
+                PhSetDisabledEMenuItem(traceMenu);
+                PhSetDisabledEMenuItem(pingMenu);
             }
         }
     }
     else
     {
-        whoisMenu->Flags |= PH_EMENU_DISABLED;
-        traceMenu->Flags |= PH_EMENU_DISABLED;
-        pingMenu->Flags |= PH_EMENU_DISABLED;
+        PhSetDisabledEMenuItem(whoisMenu);
+        PhSetDisabledEMenuItem(traceMenu);
+        PhSetDisabledEMenuItem(pingMenu);
     }
 }
 
@@ -466,9 +485,6 @@ VOID NTAPI NetworkItemDeleteCallback(
         PhDereferenceObject(extension->PacketLossText);
     if (extension->LatencyText)
         PhDereferenceObject(extension->LatencyText);
-
-    //if (extension->CountryIcon)
-    //    DestroyIcon(extension->CountryIcon);
 }
 
 FORCEINLINE VOID PhpNetworkItemToRow(
@@ -609,7 +625,7 @@ VOID UpdateNetworkNode(
     case NETWORK_COLUMN_ID_BYTES_IN:
         {
             if (Extension->NumberOfBytesIn)
-                PhMoveReference(&Extension->BytesIn, PhFormatSize(Extension->NumberOfBytesIn, -1));
+                PhMoveReference(&Extension->BytesIn, PhFormatSize(Extension->NumberOfBytesIn, ULONG_MAX));
 
             if (!NetworkExtensionEnabled && !Extension->BytesIn && PhGetOwnTokenAttributes().Elevated)
                 PhMoveReference(&Extension->BytesIn, PhCreateString(L"Extended TCP statisitics are disabled"));
@@ -618,7 +634,7 @@ VOID UpdateNetworkNode(
     case NETWORK_COLUMN_ID_BYTES_OUT:
         {
             if (Extension->NumberOfBytesOut)
-                PhMoveReference(&Extension->BytesOut, PhFormatSize(Extension->NumberOfBytesOut, -1));
+                PhMoveReference(&Extension->BytesOut, PhFormatSize(Extension->NumberOfBytesOut, ULONG_MAX));
 
             if (!NetworkExtensionEnabled && !Extension->BytesOut && PhGetOwnTokenAttributes().Elevated)
                 PhMoveReference(&Extension->BytesOut, PhCreateString(L"Extended TCP statisitics are disabled"));
@@ -722,7 +738,6 @@ VOID NTAPI TreeNewMessageCallback(
                 if (extension->CountryIconIndex != INT_MAX)
                 {
                     DrawCountryIcon(hdc, rect, extension->CountryIconIndex);
-
                     rect.left += 16 + 2;
                 }
 
@@ -944,7 +959,7 @@ LOGICAL DllMain(
                 &NetworkMenuInitializingCallbackRegistration
                 );
 
-           PhRegisterCallback(
+            PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackNetworkTreeNewInitializing),
                 NetworkTreeNewInitializingCallback,
                 &NetworkTreeNewHandle,
