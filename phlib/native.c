@@ -6320,6 +6320,66 @@ NTSTATUS PhQueryValueKey(
     return status;
 }
 
+NTSTATUS PhEnumerateKey(
+    _In_ HANDLE KeyHandle,
+    _In_ PPH_ENUM_KEY_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    NTSTATUS status;
+    PVOID buffer;
+    ULONG bufferSize;
+    ULONG index = 0;
+
+    bufferSize = 0x100;
+    buffer = PhAllocate(bufferSize);
+
+    while (TRUE)
+    {
+        status = NtEnumerateKey(
+            KeyHandle,
+            index,
+            KeyBasicInformation,
+            buffer,
+            bufferSize,
+            &bufferSize
+            );
+
+        if (status == STATUS_NO_MORE_ENTRIES)
+        {
+            status = STATUS_SUCCESS;
+            break;
+        }
+
+        if (status == STATUS_BUFFER_OVERFLOW || status == STATUS_BUFFER_TOO_SMALL)
+        {
+            PhFree(buffer);
+            buffer = PhAllocate(bufferSize);
+
+            status = NtEnumerateKey(
+                KeyHandle,
+                index,
+                KeyBasicInformation,
+                buffer,
+                bufferSize,
+                &bufferSize
+                );
+        }
+
+        if (!NT_SUCCESS(status))
+            break;
+
+        if (!Callback(buffer, Context))
+            break;
+
+        index++;
+    }
+
+    PhFree(buffer);
+
+    return status;
+}
+
 /**
  * Creates or opens a file.
  *

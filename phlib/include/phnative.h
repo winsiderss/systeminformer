@@ -1001,6 +1001,20 @@ PhQueryValueKey(
     _Out_ PVOID *Buffer
     );
 
+typedef BOOLEAN (NTAPI *PPH_ENUM_KEY_CALLBACK)(
+    _In_ PKEY_BASIC_INFORMATION Information,
+    _In_opt_ PVOID Context
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhEnumerateKey(
+    _In_ HANDLE KeyHandle,
+    _In_ PPH_ENUM_KEY_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    );
+
 PHLIBAPI
 NTSTATUS
 NTAPI
