@@ -2104,6 +2104,8 @@ VOID PhTnpUpdateThemeData(
     _In_ PPH_TREENEW_CONTEXT Context
     )
 {
+    Context->DefaultBackColor = GetSysColor(COLOR_WINDOW);
+    Context->DefaultForeColor = GetSysColor(COLOR_WINDOWTEXT);
     Context->ThemeActive = !!IsThemeActive();
 
     if (Context->ThemeData)
