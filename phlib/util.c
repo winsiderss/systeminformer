@@ -2027,7 +2027,6 @@ VOID PhGetSystemRoot(
     )
 {
     static PH_STRINGREF systemRoot;
-
     PH_STRINGREF localSystemRoot;
     SIZE_T count;
 
@@ -3201,7 +3200,7 @@ BOOLEAN PhShellExecuteEx(
 
         if (ProcessHandle)
             *ProcessHandle = info.hProcess;
-        else
+        else if (info.hProcess)
             NtClose(info.hProcess);
 
         return TRUE;
@@ -5387,7 +5386,7 @@ PPH_STRING PhGetDllFileName(
 }
 
 PVOID PhGetLoaderEntryDllBase(
-    _In_opt_ PWSTR BaseDllName
+    _In_ PWSTR BaseDllName
     )
 {
     PH_STRINGREF entryNameSr;

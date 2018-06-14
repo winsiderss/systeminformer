@@ -305,7 +305,7 @@ BOOLEAN PhpInitializeMRUList(VOID)
             FreeMRUList_I = PhGetDllBaseProcedureAddress(comctl32ModuleHandle, "FreeMRUList", 0);
         }
 
-        if (!CreateMRUList_I && !AddMRUString_I && !EnumMRUList_I && !FreeMRUList_I)
+        if (!CreateMRUList_I && !AddMRUString_I && !EnumMRUList_I && !FreeMRUList_I && comctl32ModuleHandle)
         {
             FreeLibrary(comctl32ModuleHandle);
             comctl32ModuleHandle = NULL;
