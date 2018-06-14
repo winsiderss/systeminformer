@@ -112,7 +112,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtQueryObject(
-    _In_ HANDLE Handle,
+    _In_opt_ HANDLE Handle,
     _In_ OBJECT_INFORMATION_CLASS ObjectInformationClass,
     _Out_writes_bytes_opt_(ObjectInformationLength) PVOID ObjectInformation,
     _In_ ULONG ObjectInformationLength,

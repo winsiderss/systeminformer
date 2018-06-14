@@ -6370,9 +6370,9 @@ NTAPI
 RtlQueueApcWow64Thread(
     _In_ HANDLE ThreadHandle,
     _In_ PPS_APC_ROUTINE ApcRoutine,
-    _In_ PVOID ApcArgument1,
-    _In_ PVOID ApcArgument2,
-    _In_ PVOID ApcArgument3
+    _In_opt_ PVOID ApcArgument1,
+    _In_opt_ PVOID ApcArgument2,
+    _In_opt_ PVOID ApcArgument3
     );
 
 NTSYSAPI
