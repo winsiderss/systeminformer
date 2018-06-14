@@ -27,9 +27,9 @@ typedef struct _PH_NETWORK_ITEM
 
     ULONG JustResolved;
 
-    WCHAR LocalAddressString[65];
+    WCHAR LocalAddressString[INET6_ADDRSTRLEN];
     WCHAR LocalPortString[PH_INT32_STR_LEN_1];
-    WCHAR RemoteAddressString[65];
+    WCHAR RemoteAddressString[INET6_ADDRSTRLEN];
     WCHAR RemotePortString[PH_INT32_STR_LEN_1];
     PPH_STRING LocalHostString;
     PPH_STRING RemoteHostString;
