@@ -35,6 +35,8 @@ typedef struct _PH_MODULE_ITEM
 
     LARGE_INTEGER FileLastWriteTime;
     LARGE_INTEGER FileEndOfFile;
+
+    PVOID ParentBaseAddress;
 } PH_MODULE_ITEM, *PPH_MODULE_ITEM;
 
 typedef struct _PH_MODULE_PROVIDER

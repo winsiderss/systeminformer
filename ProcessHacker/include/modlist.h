@@ -27,8 +27,9 @@
 #define PHMOTLC_FILEMODIFIEDTIME 16
 #define PHMOTLC_FILESIZE 17
 #define PHMOTLC_ENTRYPOINT 18
+#define PHMOTLC_PARENTBASEADDRESS 19
 
-#define PHMOTLC_MAXIMUM 19
+#define PHMOTLC_MAXIMUM 20
 
 // begin_phapppub
 typedef struct _PH_MODULE_NODE
@@ -52,6 +53,7 @@ typedef struct _PH_MODULE_NODE
     PPH_STRING LoadTimeText;
     PPH_STRING FileModifiedTimeText;
     PPH_STRING FileSizeText;
+    WCHAR ParentBaseAddressString[PH_PTR_STR_LEN_1];
 // begin_phapppub
 } PH_MODULE_NODE, *PPH_MODULE_NODE;
 // end_phapppub
