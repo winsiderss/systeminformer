@@ -53,7 +53,6 @@ typedef struct _PH_MODULE_NODE
     PPH_STRING LoadTimeText;
     PPH_STRING FileModifiedTimeText;
     PPH_STRING FileSizeText;
-    WCHAR ParentBaseAddressString[PH_PTR_STR_LEN_1];
 // begin_phapppub
 } PH_MODULE_NODE, *PPH_MODULE_NODE;
 // end_phapppub
