@@ -2368,8 +2368,16 @@ PPH_STRING PhConcatStringRef2(
     assert(!(String2->Length & 1));
 
     string = PhCreateStringEx(NULL, String1->Length + String2->Length);
-    memcpy(string->Buffer, String1->Buffer, String1->Length);
-    memcpy(PTR_ADD_OFFSET(string->Buffer, String1->Length), String2->Buffer, String2->Length);
+    memcpy(
+        string->Buffer,
+        String1->Buffer,
+        String1->Length
+        );
+    memcpy(
+        PTR_ADD_OFFSET(string->Buffer, String1->Length),
+        String2->Buffer,
+        String2->Length
+        );
 
     return string;
 }

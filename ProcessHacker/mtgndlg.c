@@ -3,7 +3,7 @@
  *   process mitigation policy details
  *
  * Copyright (C) 2016 wj32
- * Copyright (C) 2016-2017 dmex
+ * Copyright (C) 2016-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -52,14 +52,13 @@ NTSTATUS PhpGetProcessSystemDllInitBlock(
     )
 {
     NTSTATUS status;
-    PPS_SYSTEM_DLL_INIT_BLOCK ldrInitBlock = NULL;
+    PH_STRINGREF systemRoot;
     PVOID ldrInitBlockBaseAddress = NULL;
     PPH_STRING ntdllFileName;
 
-    ldrInitBlock = PhAllocate(sizeof(PS_SYSTEM_DLL_INIT_BLOCK));
-    memset(ldrInitBlock, 0, sizeof(PS_SYSTEM_DLL_INIT_BLOCK));
+    PhGetSystemRoot(&systemRoot);
+    ntdllFileName = PhConcatStringRefZ(&systemRoot, L"\\System32\\ntdll.dll");
 
-    ntdllFileName = PhConcatStrings2(USER_SHARED_DATA->NtSystemRoot, L"\\System32\\ntdll.dll");
     status = PhGetProcedureAddressRemote(
         ProcessHandle,
         ntdllFileName->Buffer,

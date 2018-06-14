@@ -1241,6 +1241,20 @@ PhConcatStringRef3(
     _In_ PPH_STRINGREF String3
     );
 
+FORCEINLINE
+PPH_STRING
+PhConcatStringRefZ(
+    _In_ PPH_STRINGREF String1,
+    _In_ PWSTR String2
+    )
+{
+    PH_STRINGREF string;
+
+    PhInitializeStringRef(&string, String2);
+
+    return PhConcatStringRef2(String1, &string);
+}
+
 PHLIBAPI
 PPH_STRING
 NTAPI
