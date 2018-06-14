@@ -1393,9 +1393,12 @@ NTSTATUS PhLoadDllProcess(
 
         if (!threadStart)
         {
+            PH_STRINGREF systemRoot;
             PPH_STRING kernel32FileName;
 
-            kernel32FileName = PhConcatStrings2(USER_SHARED_DATA->NtSystemRoot, L"\\SysWow64\\kernel32.dll");
+            PhGetSystemRoot(&systemRoot);
+            kernel32FileName = PhConcatStringRefZ(&systemRoot, L"\\SysWow64\\kernel32.dll");
+
             status = PhGetProcedureAddressRemote(
                 ProcessHandle,
                 kernel32FileName->Buffer,
@@ -1541,9 +1544,12 @@ NTSTATUS PhUnloadDllProcess(
 
         if (!threadStart)
         {
+            PH_STRINGREF systemRoot;
             PPH_STRING ntdll32FileName;
 
-            ntdll32FileName = PhConcatStrings2(USER_SHARED_DATA->NtSystemRoot, L"\\SysWow64\\ntdll.dll");
+            PhGetSystemRoot(&systemRoot);
+            ntdll32FileName = PhConcatStringRefZ(&systemRoot, L"\\SysWow64\\ntdll.dll");
+
             status = PhGetProcedureAddressRemote(
                 ProcessHandle,
                 ntdll32FileName->Buffer,
@@ -1637,14 +1643,20 @@ NTSTATUS PhSetEnvironmentVariableRemote(
 
     if (isWow64)
     {
-        ntdllFileName = PhConcatStrings2(USER_SHARED_DATA->NtSystemRoot, L"\\SysWow64\\ntdll.dll");
-        kernel32FileName = PhConcatStrings2(USER_SHARED_DATA->NtSystemRoot, L"\\SysWow64\\kernel32.dll");
+        PH_STRINGREF systemRoot;
+
+        PhGetSystemRoot(&systemRoot);
+        ntdllFileName = PhConcatStringRefZ(&systemRoot, L"\\SysWow64\\ntdll.dll");
+        kernel32FileName = PhConcatStringRefZ(&systemRoot, L"\\SysWow64\\kernel32.dll");
     }
     else
     {
 #endif
-        ntdllFileName = PhConcatStrings2(USER_SHARED_DATA->NtSystemRoot, L"\\System32\\ntdll.dll");
-        kernel32FileName = PhConcatStrings2(USER_SHARED_DATA->NtSystemRoot, L"\\System32\\kernel32.dll");
+        PH_STRINGREF systemRoot;
+
+        PhGetSystemRoot(&systemRoot);
+        ntdllFileName = PhConcatStringRefZ(&systemRoot, L"\\System32\\ntdll.dll");
+        kernel32FileName = PhConcatStringRefZ(&systemRoot, L"\\System32\\kernel32.dll");
 #ifdef _WIN64
     }
 #endif
