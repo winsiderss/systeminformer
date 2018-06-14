@@ -886,8 +886,8 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
             case PHMOTLC_PARENTBASEADDRESS:
                 if (moduleItem->ParentBaseAddress != 0)
                 {
-                    PhPrintPointer(node->ParentBaseAddressString, moduleItem->ParentBaseAddress);
-                    PhInitializeStringRefLongHint(&getCellText->Text, node->ParentBaseAddressString);
+                    PhPrintPointer(moduleItem->ParentBaseAddressString, moduleItem->ParentBaseAddress);
+                    PhInitializeStringRefLongHint(&getCellText->Text, moduleItem->ParentBaseAddressString);
                 }
                 break;
             default:

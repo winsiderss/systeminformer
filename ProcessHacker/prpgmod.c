@@ -260,16 +260,11 @@ BOOLEAN PhpModulesTreeFilterCallback(
     if (PhIsNullOrEmptyString(Context->SearchboxText))
         return TRUE;
 
-    //PVOID BaseAddress;
-    //ULONG Size;
+    // (dmex) TODO: Add search support for the following fields:
     //ULONG Flags;
     //ULONG Type;
-    //ULONG ImageTimeDateStamp;
     //USHORT ImageCharacteristics;
     //USHORT ImageDllCharacteristics;
-    //LARGE_INTEGER LoadTime;
-    //LARGE_INTEGER FileLastWriteTime;
-    //LARGE_INTEGER FileEndOfFile;
 
     // module properties
 
@@ -318,6 +313,18 @@ BOOLEAN PhpModulesTreeFilterCallback(
     if (!PhIsNullOrEmptyString(moduleItem->VersionInfo.ProductName))
     {
         if (PhpWordMatchHandleStringRef(Context->SearchboxText, &moduleItem->VersionInfo.ProductName->sr))
+            return TRUE;
+    }
+
+    if (moduleItem->EntryPointAddressString[0])
+    {
+        if (PhpWordMatchHandleStringZ(Context->SearchboxText, moduleItem->EntryPointAddressString))
+            return TRUE;
+    }
+
+    if (moduleItem->ParentBaseAddressString[0])
+    {
+        if (PhpWordMatchHandleStringZ(Context->SearchboxText, moduleItem->ParentBaseAddressString))
             return TRUE;
     }
 

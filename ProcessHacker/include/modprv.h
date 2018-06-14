@@ -37,6 +37,7 @@ typedef struct _PH_MODULE_ITEM
     LARGE_INTEGER FileEndOfFile;
 
     PVOID ParentBaseAddress;
+    WCHAR ParentBaseAddressString[PH_PTR_STR_LEN_1];
 } PH_MODULE_ITEM, *PPH_MODULE_ITEM;
 
 typedef struct _PH_MODULE_PROVIDER
