@@ -851,6 +851,12 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                         case LoadReasonAsDataLoad:
                             string = L"As data";
                             break;
+                        case LoadReasonEnclavePrimary:
+                            string = L"Enclave";
+                            break;
+                        case LoadReasonEnclaveDependency:
+                            string = L"Enclave dependency";
+                            break;
                         default:
                             if (WindowsVersion >= WINDOWS_8)
                                 string = L"Unknown";
@@ -881,7 +887,11 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 }
                 break;
             case PHMOTLC_ENTRYPOINT:
-                PhInitializeStringRef(&getCellText->Text, moduleItem->EntryPointAddressString);
+                if (moduleItem->EntryPoint != 0)
+                {
+                    PhPrintPointer(moduleItem->EntryPointAddressString, moduleItem->EntryPoint);
+                    PhInitializeStringRef(&getCellText->Text, moduleItem->EntryPointAddressString);
+                }
                 break;
             case PHMOTLC_PARENTBASEADDRESS:
                 if (moduleItem->ParentBaseAddress != 0)

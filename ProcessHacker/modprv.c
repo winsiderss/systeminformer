@@ -578,9 +578,6 @@ VOID PhModuleProviderUpdate(
                 }
             }
 
-            if (moduleItem->EntryPoint)
-                PhPrintPointer(moduleItem->EntryPointAddressString, moduleItem->EntryPoint);
-
             // remove CF Guard flag if CFG mitigation is not enabled for the process
             if (!moduleProvider->ControlFlowGuardEnabled)
                 moduleItem->ImageDllCharacteristics &= ~IMAGE_DLLCHARACTERISTICS_GUARD_CF;
