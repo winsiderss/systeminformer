@@ -466,7 +466,7 @@ PPH_STRING PhGetListBoxString(
     {
         Index = ListBox_GetCurSel(hwnd);
 
-        if (Index == -1)
+        if (Index == LB_ERR)
             return NULL;
     }
 

@@ -1185,7 +1185,7 @@ PHLIBAPI
 PVOID
 NTAPI
 PhGetLoaderEntryDllBase(
-    _In_opt_ PWSTR DllName
+    _In_ PWSTR DllName
     );
 
 PHLIBAPI
