@@ -72,6 +72,11 @@ NTSTATUS PhpGetProcessSystemDllInitBlock(
 
     if (NT_SUCCESS(status) && ldrInitBlockBaseAddress)
     {
+        PPS_SYSTEM_DLL_INIT_BLOCK ldrInitBlock;
+
+        ldrInitBlock = PhAllocate(sizeof(PS_SYSTEM_DLL_INIT_BLOCK));
+        memset(ldrInitBlock, 0, sizeof(PS_SYSTEM_DLL_INIT_BLOCK));
+
         status = NtReadVirtualMemory(
             ProcessHandle,
             ldrInitBlockBaseAddress,
@@ -79,11 +84,11 @@ NTSTATUS PhpGetProcessSystemDllInitBlock(
             sizeof(PS_SYSTEM_DLL_INIT_BLOCK),
             NULL
             );
-    }
 
-    if (NT_SUCCESS(status))
-    {
-        *SystemDllInitBlock = ldrInitBlock;
+        if (NT_SUCCESS(status))
+            *SystemDllInitBlock = ldrInitBlock;
+        else
+            PhFree(ldrInitBlock);
     }
 
     return status;
@@ -242,6 +247,18 @@ INT_PTR CALLBACK PhpProcessMitigationPolicyDlgProc(
                     entry->NonStandard = TRUE;
                     entry->ShortDescription = PhCreateString(L"Module Tampering");
                     entry->LongDescription = PhCreateString(L"Module Tampering protection is enabled.");
+
+                    PhAddListViewItem(lvHandle, MAXINT, entry->ShortDescription->Buffer, entry);
+                }
+
+                if (context->SystemDllInitBlock->MitigationOptionsMap.Map[1] & PROCESS_CREATION_MITIGATION_POLICY2_RESTRICT_INDIRECT_BRANCH_PREDICTION_ALWAYS_ON)
+                {
+                    PMITIGATION_POLICY_ENTRY entry;
+
+                    entry = PhAllocate(sizeof(MITIGATION_POLICY_ENTRY));
+                    entry->NonStandard = TRUE;
+                    entry->ShortDescription = PhCreateString(L"Indirect branch prediction");
+                    entry->LongDescription = PhCreateString(L"Protects against sibling hardware threads (hyperthreads) from interfering with indirect branch predictions.");
 
                     PhAddListViewItem(lvHandle, MAXINT, entry->ShortDescription->Buffer, entry);
                 }
