@@ -496,6 +496,7 @@ VOID PhModuleProviderUpdate(
             moduleItem->LoadTime = module->LoadTime;
             moduleItem->Name = module->Name;
             moduleItem->FileName = module->FileName;
+            moduleItem->ParentBaseAddress = module->ParentBaseAddress;
 
             PhPrintPointer(moduleItem->BaseAddressString, moduleItem->BaseAddress);
 

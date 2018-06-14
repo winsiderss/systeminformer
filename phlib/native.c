@@ -3555,6 +3555,7 @@ BOOLEAN NTAPI PhpEnumProcessModules32Callback(
     nativeEntry.LoadTime = Entry->LoadTime;
     nativeEntry.BaseNameHashValue = Entry->BaseNameHashValue;
     nativeEntry.LoadReason = Entry->LoadReason;
+    nativeEntry.ParentDllBase = UlongToPtr(Entry->ParentDllBase);
 
     mappedFileName = NULL;
 
@@ -5407,6 +5408,7 @@ static BOOLEAN EnumGenericProcessModulesCallback(
     moduleInfo.Flags = Module->Flags;
     moduleInfo.LoadOrderIndex = (USHORT)(context->LoadOrderIndex++);
     moduleInfo.LoadCount = Module->ObsoleteLoadCount;
+    moduleInfo.ParentBaseAddress = Module->ParentDllBase;
 
     moduleInfo.Name = PhCreateStringFromUnicodeString(&Module->BaseDllName);
     moduleInfo.OriginalFileName = PhCreateStringFromUnicodeString(&Module->FullDllName);
@@ -5419,7 +5421,7 @@ static BOOLEAN EnumGenericProcessModulesCallback(
     }
     else
     {
-        moduleInfo.LoadReason = -1;
+        moduleInfo.LoadReason = USHRT_MAX;
         moduleInfo.LoadTime.QuadPart = 0;
     }
 
@@ -5476,8 +5478,9 @@ VOID PhpRtlModulesToGenericModules(
         moduleInfo.OriginalFileName = fileName;
         moduleInfo.LoadOrderIndex = module->LoadOrderIndex;
         moduleInfo.LoadCount = module->LoadCount;
-        moduleInfo.LoadReason = -1;
+        moduleInfo.LoadReason = USHRT_MAX;
         moduleInfo.LoadTime.QuadPart = 0;
+        moduleInfo.ParentBaseAddress = NULL;
 
         if (module->OffsetToFileName == 0)
         {
@@ -5546,8 +5549,9 @@ VOID PhpRtlModulesExToGenericModules(
         moduleInfo.FileName = PhGetFileName(fileName); // convert to DOS file name
         moduleInfo.LoadOrderIndex = module->BaseInfo.LoadOrderIndex;
         moduleInfo.LoadCount = module->BaseInfo.LoadCount;
-        moduleInfo.LoadReason = -1;
+        moduleInfo.LoadReason = USHRT_MAX;
         moduleInfo.LoadTime.QuadPart = 0;
+        moduleInfo.ParentBaseAddress = NULL;
 
         PhDereferenceObject(fileName);
 
@@ -5584,10 +5588,11 @@ BOOLEAN PhpCallbackMappedFileOrImage(
     moduleInfo.FileName = PhGetFileName(FileName);
     moduleInfo.OriginalFileName = FileName;
     moduleInfo.Name = PhGetBaseName(moduleInfo.FileName);
-    moduleInfo.LoadOrderIndex = -1;
-    moduleInfo.LoadCount = -1;
-    moduleInfo.LoadReason = -1;
+    moduleInfo.LoadOrderIndex = USHRT_MAX;
+    moduleInfo.LoadCount = USHRT_MAX;
+    moduleInfo.LoadReason = USHRT_MAX;
     moduleInfo.LoadTime.QuadPart = 0;
+    moduleInfo.ParentBaseAddress = NULL;
 
     cont = Callback(&moduleInfo, Context);
 

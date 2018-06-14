@@ -115,6 +115,7 @@ VOID PhInitializeModuleList(
     PhAddTreeNewColumnEx(hwnd, PHMOTLC_FILEMODIFIEDTIME, FALSE, L"File modified time", 140, PH_ALIGN_LEFT, -1, 0, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHMOTLC_FILESIZE, FALSE, L"File size", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHMOTLC_ENTRYPOINT, FALSE, L"Entry point", 70, PH_ALIGN_LEFT, -1, 0, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHMOTLC_PARENTBASEADDRESS, FALSE, L"Parent base address", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -574,6 +575,18 @@ BEGIN_SORT_FUNCTION(FileSize)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(EntryPoint)
+{
+    sortResult = uintptrcmp((ULONG_PTR)moduleItem1->EntryPoint, (ULONG_PTR)moduleItem2->EntryPoint);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(ParentBaseAddress)
+{
+    sortResult = uintptrcmp((ULONG_PTR)moduleItem1->ParentBaseAddress, (ULONG_PTR)moduleItem2->ParentBaseAddress);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpModuleTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -617,7 +630,9 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                     SORT_FUNCTION(LoadTime),
                     SORT_FUNCTION(LoadReason),
                     SORT_FUNCTION(FileModifiedTime),
-                    SORT_FUNCTION(FileSize)
+                    SORT_FUNCTION(FileSize),
+                    SORT_FUNCTION(EntryPoint),
+                    SORT_FUNCTION(ParentBaseAddress)
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
@@ -867,6 +882,13 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 break;
             case PHMOTLC_ENTRYPOINT:
                 PhInitializeStringRef(&getCellText->Text, moduleItem->EntryPointAddressString);
+                break;
+            case PHMOTLC_PARENTBASEADDRESS:
+                if (moduleItem->ParentBaseAddress != 0)
+                {
+                    PhPrintPointer(node->ParentBaseAddressString, moduleItem->ParentBaseAddress);
+                    PhInitializeStringRefLongHint(&getCellText->Text, node->ParentBaseAddressString);
+                }
                 break;
             default:
                 return FALSE;
