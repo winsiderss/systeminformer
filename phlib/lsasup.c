@@ -30,8 +30,6 @@
 #include <ph.h>
 #include <lsasup.h>
 
-static LSA_HANDLE PhLookupPolicyHandle = NULL;
-
 NTSTATUS PhOpenLsaPolicy(
     _Out_ PLSA_HANDLE PolicyHandle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -59,10 +57,13 @@ LSA_HANDLE PhGetLookupPolicyHandle(
     VOID
     )
 {
+    static LSA_HANDLE cachedLookupPolicyHandle = NULL;
     LSA_HANDLE lookupPolicyHandle;
     LSA_HANDLE newLookupPolicyHandle;
 
-    lookupPolicyHandle = PhLookupPolicyHandle;
+    // Use the cached value if possible.
+
+    lookupPolicyHandle = cachedLookupPolicyHandle;
 
     // If there is no cached handle, open one.
 
@@ -78,7 +79,7 @@ LSA_HANDLE PhGetLookupPolicyHandle(
             // before, we will now store it.
 
             lookupPolicyHandle = _InterlockedCompareExchangePointer(
-                &PhLookupPolicyHandle,
+                &cachedLookupPolicyHandle,
                 newLookupPolicyHandle,
                 NULL
                 );
