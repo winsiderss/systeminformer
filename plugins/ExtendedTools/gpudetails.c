@@ -33,6 +33,8 @@ typedef enum _GPUADAPTER_DETAILS_INDEX
     GPUADAPTER_DETAILS_INDEX_DRIVERDATE,
     GPUADAPTER_DETAILS_INDEX_DRIVERVERSION,
     GPUADAPTER_DETAILS_INDEX_WDDMVERSION,
+    GPUADAPTER_DETAILS_INDEX_VENDORID,
+    GPUADAPTER_DETAILS_INDEX_DEVICEID,
     GPUADAPTER_DETAILS_INDEX_TOTALMEMORY,
     GPUADAPTER_DETAILS_INDEX_RESERVEDMEMORY,
     GPUADAPTER_DETAILS_INDEX_MEMORYFREQUENCY,
@@ -51,6 +53,8 @@ VOID EtpGpuDetailsAddListViewItemGroups(
     PhAddListViewGroupItem(ListViewHandle, DiskGroupId, GPUADAPTER_DETAILS_INDEX_DRIVERDATE, L"Driver Date", NULL);
     PhAddListViewGroupItem(ListViewHandle, DiskGroupId, GPUADAPTER_DETAILS_INDEX_DRIVERVERSION, L"Driver Version", NULL);
     PhAddListViewGroupItem(ListViewHandle, DiskGroupId, GPUADAPTER_DETAILS_INDEX_WDDMVERSION, L"WDDM Version", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, GPUADAPTER_DETAILS_INDEX_VENDORID, L"Vendor ID", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, GPUADAPTER_DETAILS_INDEX_DEVICEID, L"Device ID", NULL);
     PhAddListViewGroupItem(ListViewHandle, DiskGroupId, GPUADAPTER_DETAILS_INDEX_TOTALMEMORY, L"Total Memory", NULL);
     PhAddListViewGroupItem(ListViewHandle, DiskGroupId, GPUADAPTER_DETAILS_INDEX_RESERVEDMEMORY, L"Reserved Memory", NULL);
     PhAddListViewGroupItem(ListViewHandle, DiskGroupId, GPUADAPTER_DETAILS_INDEX_MEMORYFREQUENCY, L"Memory Frequency", NULL);
@@ -221,12 +225,18 @@ VOID EtpQueryAdapterDeviceIds(
         sizeof(D3DKMT_QUERY_DEVICE_IDS)
         )))
     {
-        //UINT32 VendorID;
-        //UINT32 DeviceID;
-        //UINT32 SubVendorID;
-        //UINT32 SubSystemID;
-        //UINT32 RevisionID;
-        //UINT32 BusType;
+        WCHAR value[PH_PTR_STR_LEN_1];
+
+        PhPrintPointer(value, UlongToPtr(adapterDeviceId.DeviceIds.VendorID));
+        PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_VENDORID, 1, value);
+
+        PhPrintPointer(value, UlongToPtr(adapterDeviceId.DeviceIds.DeviceID));
+        PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_DEVICEID, 1, value);
+
+        //PhPrintPointer(value, UlongToPtr(adapterDeviceId.DeviceIds.SubVendorID));
+        //PhPrintPointer(value, UlongToPtr(adapterDeviceId.DeviceIds.SubSystemID));
+        //PhPrintPointer(value, UlongToPtr(adapterDeviceId.DeviceIds.RevisionID));
+        //PhPrintPointer(value, UlongToPtr(adapterDeviceId.DeviceIds.BusType));
     }
 }
 
@@ -286,7 +296,7 @@ VOID EtpGpuDetailsEnumAdapters(
         //EtpQueryAdapterRegistryInfo(openAdapterFromDeviceName.AdapterHandle, ListViewHandle);
         EtpQueryAdapterDriverModel(openAdapterFromDeviceName.AdapterHandle, ListViewHandle);
         //EtpQueryAdapterDriverVersion(openAdapterFromDeviceName.AdapterHandle, ListViewHandle);
-        //EtpQueryAdapterDeviceIds(openAdapterFromDeviceName.AdapterHandle, ListViewHandle);
+        EtpQueryAdapterDeviceIds(openAdapterFromDeviceName.AdapterHandle, ListViewHandle);
         //EtQueryAdapterFeatureLevel(openAdapterFromDeviceName.AdapterLuid);
         EtpQueryAdapterPerfInfo(openAdapterFromDeviceName.AdapterHandle, ListViewHandle);
 

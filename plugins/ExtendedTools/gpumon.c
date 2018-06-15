@@ -35,8 +35,8 @@ ULONG EtGpuTotalNodeCount = 0;
 ULONG EtGpuTotalSegmentCount = 0;
 ULONG EtGpuNextNodeIndex = 0;
 
-PH_UINT64_DELTA EtClockTotalRunningTimeDelta;
-LARGE_INTEGER EtClockTotalRunningTimeFrequency;
+PH_UINT64_DELTA EtClockTotalRunningTimeDelta = { 0, 0 };
+LARGE_INTEGER EtClockTotalRunningTimeFrequency = { 0 };
 
 FLOAT EtGpuNodeUsage = 0;
 PH_CIRCULAR_BUFFER_FLOAT EtGpuNodeHistory;
@@ -1046,7 +1046,7 @@ ULONG EtGetGpuAdapterIndexFromNodeIndex(
             return i;
     }
 
-    return -1;
+    return ULONG_MAX;
 }
 
 PPH_STRING EtGetGpuAdapterNodeDescription(
