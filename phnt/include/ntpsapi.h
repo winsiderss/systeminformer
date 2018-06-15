@@ -987,6 +987,14 @@ typedef struct _THREAD_NAME_INFORMATION
     UNICODE_STRING ThreadName;
 } THREAD_NAME_INFORMATION, *PTHREAD_NAME_INFORMATION;
 
+// private
+typedef enum _SUBSYSTEM_INFORMATION_TYPE 
+{
+    SubsystemInformationTypeWin32,
+    SubsystemInformationTypeWSL,
+    MaxSubsystemInformationType
+} SUBSYSTEM_INFORMATION_TYPE;
+
 // Processes
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
@@ -1297,6 +1305,9 @@ NtQueueApcThread(
     );
 
 #if (PHNT_VERSION >= PHNT_WIN7)
+
+#define APC_FORCE_THREAD_SIGNAL ((HANDLE)1) // UserApcReserveHandle
+
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
