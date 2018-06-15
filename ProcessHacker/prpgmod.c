@@ -736,7 +736,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                             if (PhGetIntegerSetting(L"EnableWarnings") && !PhShowConfirmMessage(
                                 hwndDlg,
                                 L"load",
-                                L"the module",
+                                L"a module",
                                 L"Some programs may restrict access or ban your account when loading modules into the process.",
                                 FALSE
                                 ))
