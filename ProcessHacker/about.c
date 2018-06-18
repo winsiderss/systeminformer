@@ -22,8 +22,6 @@
  */
 
 #include <phapp.h>
-
-#include <windowsx.h>
 #include <symprv.h>
 
 #include <hndlprv.h>
@@ -35,6 +33,11 @@
 #include <procprv.h>
 #include <srvprv.h>
 #include <thrdprv.h>
+
+#include <windowsx.h>
+#include <uxtheme.h>
+
+static HWND PhAboutWindowHandle = NULL;
 
 static INT_PTR CALLBACK PhpAboutDlgProc(
     _In_ HWND hwndDlg,
@@ -78,6 +81,7 @@ static INT_PTR CALLBACK PhpAboutDlgProc(
                 L"    <a href=\"https://github.com/wj32\">wj32</a> - Wen Jia Liu\n"
                 L"    <a href=\"https://github.com/dmex\">dmex</a> - Steven G\n"
                 L"    <a href=\"https://github.com/xhmikosr\">XhmikosR</a>\n"
+                L"    <a href=\"https://github.com/processhacker/processhacker/graphs/contributors\">Contributors</a> - thank you for your additions!\n"
                 L"    Donors - thank you for your support!\n\n"
                 L"Process Hacker uses the following components:\n"
                 L"    <a href=\"https://github.com/michaelrsweet/mxml\">Mini-XML</a> by Michael Sweet\n"
@@ -90,6 +94,14 @@ static INT_PTR CALLBACK PhpAboutDlgProc(
                 );
 
             PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDOK));
+
+            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhUnregisterDialog(PhAboutWindowHandle);
+            PhAboutWindowHandle = NULL;
         }
         break;
     case WM_COMMAND:
@@ -98,7 +110,7 @@ static INT_PTR CALLBACK PhpAboutDlgProc(
             {
             case IDCANCEL:
             case IDOK:
-                EndDialog(hwndDlg, IDOK);
+                DestroyWindow(hwndDlg);
                 break;
             case IDC_DIAGNOSTICS:
                 {
@@ -137,12 +149,22 @@ VOID PhShowAboutDialog(
     VOID
     )
 {
-    DialogBox(
-        PhInstanceHandle,
-        MAKEINTRESOURCE(IDD_ABOUT),
-        NULL,
-        PhpAboutDlgProc
-        );
+    if (!PhAboutWindowHandle)
+    {
+        PhAboutWindowHandle = CreateDialog(
+            PhInstanceHandle,
+            MAKEINTRESOURCE(IDD_ABOUT),
+            NULL,
+            PhpAboutDlgProc
+            );
+        PhRegisterDialog(PhAboutWindowHandle);
+        ShowWindow(PhAboutWindowHandle, SW_SHOW);
+    }
+
+    if (IsIconic(PhAboutWindowHandle))
+        ShowWindow(PhAboutWindowHandle, SW_RESTORE);
+    else
+        SetForegroundWindow(PhAboutWindowHandle);
 }
 
 FORCEINLINE ULONG PhpGetObjectTypeObjectCount(
