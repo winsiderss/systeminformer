@@ -61,7 +61,7 @@ typedef BOOL (WINAPI *_SymGetLineFromAddrW64)(
 
 typedef ULONG64 (WINAPI *_SymLoadModuleExW)(
     _In_ HANDLE hProcess,
-    _In_ HANDLE hFile,
+    _In_opt_ HANDLE hFile,
     _In_ PCWSTR ImageName,
     _In_ PCWSTR ModuleName,
     _In_ ULONG64 BaseOfDll,
