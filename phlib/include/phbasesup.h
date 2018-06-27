@@ -172,7 +172,7 @@ PhDelayExecution(
 {
     if (Interval == INFINITE)
     {
-        return NtDelayExecution(FALSE, NULL)
+        return NtDelayExecution(FALSE, NULL);
     }
     else
     {
