@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 -----------------------------------------------------------------------------
 */
 
+#include <phbase.h>
 
 /* This module contains the external function pcre2_maketables(), which builds
 character tables for PCRE2 in the current locale. The file is compiled on its
@@ -81,7 +82,7 @@ pcre2_maketables(pcre2_general_context *gcontext)
 {
 uint8_t *yield = (uint8_t *)((gcontext != NULL)?
   gcontext->memctl.malloc(tables_length, gcontext->memctl.memory_data) :
-  malloc(tables_length));
+  PhAllocateSafe(tables_length));
 #endif  /* DFTABLES */
 
 int i;
