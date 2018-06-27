@@ -447,7 +447,7 @@ BOOLEAN PhUiConnectToPhSvcEx(
 
                 if (started)
                 {
-                    ULONG attempts = 10;
+                    ULONG attempts = 50;
 
                     // Try to connect several times because the server may take
                     // a while to initialize.
@@ -458,7 +458,7 @@ BOOLEAN PhUiConnectToPhSvcEx(
                         if (NT_SUCCESS(status))
                             break;
 
-                        PhDelayExecution(5 * 1000);
+                        PhDelayExecution(100);
 
                     } while (--attempts != 0);
 
