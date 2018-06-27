@@ -170,11 +170,18 @@ PhDelayExecution(
     _In_ LONGLONG Interval
     )
 {
-    LARGE_INTEGER interval;
+    if (Interval == INFINITE)
+    {
+        return NtDelayExecution(FALSE, NULL)
+    }
+    else
+    {
+        LARGE_INTEGER interval;
 
-    interval.QuadPart = -Interval;
+        interval.QuadPart = Interval * -10000LL;
 
-    return NtDelayExecution(FALSE, &interval);
+        return NtDelayExecution(FALSE, &interval);
+    }
 }
 
 // Heap

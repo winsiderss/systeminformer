@@ -1276,7 +1276,8 @@ NTSTATUS PhExecuteRunAsCommand(
         if (NT_SUCCESS(status))
             break;
 
-        PhDelayExecution(50);
+        PhDelayExecution(5 * 1000);
+
     } while (--attempts != 0);
 
     PhDereferenceObject(portName);
