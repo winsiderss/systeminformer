@@ -397,8 +397,8 @@ extern PPH_CIRCULAR_BUFFER_FLOAT EtGpuNodesHistory;
 
 extern ULONG64 EtGpuDedicatedUsage;
 extern ULONG64 EtGpuSharedUsage;
-extern PH_CIRCULAR_BUFFER_ULONG EtGpuDedicatedHistory;
-extern PH_CIRCULAR_BUFFER_ULONG EtGpuSharedHistory;
+extern PH_CIRCULAR_BUFFER_ULONG64 EtGpuDedicatedHistory;
+extern PH_CIRCULAR_BUFFER_ULONG64 EtGpuSharedHistory;
 
 VOID EtGpuMonitorInitialization(
     VOID

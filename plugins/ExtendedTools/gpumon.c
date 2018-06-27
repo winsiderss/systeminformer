@@ -50,8 +50,8 @@ ULONG64 EtGpuDedicatedLimit = 0;
 ULONG64 EtGpuDedicatedUsage = 0;
 ULONG64 EtGpuSharedLimit = 0;
 ULONG64 EtGpuSharedUsage = 0;
-PH_CIRCULAR_BUFFER_ULONG EtGpuDedicatedHistory;
-PH_CIRCULAR_BUFFER_ULONG EtGpuSharedHistory;
+PH_CIRCULAR_BUFFER_ULONG64 EtGpuDedicatedHistory;
+PH_CIRCULAR_BUFFER_ULONG64 EtGpuSharedHistory;
 
 VOID EtGpuMonitorInitialization(
     VOID
@@ -74,8 +74,8 @@ VOID EtGpuMonitorInitialization(
         PhInitializeCircularBuffer_FLOAT(&EtGpuNodeHistory, sampleCount);
         PhInitializeCircularBuffer_ULONG(&EtMaxGpuNodeHistory, sampleCount);
         PhInitializeCircularBuffer_FLOAT(&EtMaxGpuNodeUsageHistory, sampleCount);
-        PhInitializeCircularBuffer_ULONG(&EtGpuDedicatedHistory, sampleCount);
-        PhInitializeCircularBuffer_ULONG(&EtGpuSharedHistory, sampleCount);
+        PhInitializeCircularBuffer_ULONG64(&EtGpuDedicatedHistory, sampleCount);
+        PhInitializeCircularBuffer_ULONG64(&EtGpuSharedHistory, sampleCount);
 
         EtGpuNodesTotalRunningTimeDelta = PhAllocateZero(sizeof(PH_UINT64_DELTA) * EtGpuTotalNodeCount);
         EtGpuNodesHistory = PhAllocate(sizeof(PH_CIRCULAR_BUFFER_FLOAT) * EtGpuTotalNodeCount);
@@ -409,7 +409,7 @@ BOOLEAN EtQueryDeviceProperties(
     }
 
     if (Description)
-        *Description = EtpQueryDeviceProperty(deviceInstanceHandle, &DEVPKEY_Device_DeviceDesc); // DEVPKEY_NAME
+        *Description = EtpQueryDeviceProperty(deviceInstanceHandle, &DEVPKEY_Device_DeviceDesc);
     if (DriverDate)
         *DriverDate = EtpQueryDeviceProperty(deviceInstanceHandle, &DEVPKEY_Device_DriverDate);
     if (DriverVersion)
@@ -985,8 +985,8 @@ VOID NTAPI EtGpuProcessesUpdatedCallback(
     if (runCount != 0)
     {
         PhAddItemCircularBuffer_FLOAT(&EtGpuNodeHistory, EtGpuNodeUsage);
-        PhAddItemCircularBuffer_ULONG(&EtGpuDedicatedHistory, (ULONG)(EtGpuDedicatedUsage / PAGE_SIZE));
-        PhAddItemCircularBuffer_ULONG(&EtGpuSharedHistory, (ULONG)(EtGpuSharedUsage / PAGE_SIZE));
+        PhAddItemCircularBuffer_ULONG64(&EtGpuDedicatedHistory, EtGpuDedicatedUsage);
+        PhAddItemCircularBuffer_ULONG64(&EtGpuSharedHistory, EtGpuSharedUsage);
 
         if (elapsedTime != 0)
         {
