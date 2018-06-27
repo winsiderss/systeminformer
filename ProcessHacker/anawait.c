@@ -650,7 +650,7 @@ static BOOLEAN PhpWaitUntilThreadIsWaiting(
     if (!NT_SUCCESS(PhGetThreadBasicInformation(ThreadHandle, &basicInfo)))
         return FALSE;
 
-    for (attempts = 0; attempts < 5; attempts++)
+    for (attempts = 0; attempts < 20; attempts++)
     {
         PVOID processes;
         PSYSTEM_PROCESS_INFORMATION processInfo;

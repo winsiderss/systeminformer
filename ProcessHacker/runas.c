@@ -1265,7 +1265,7 @@ NTSTATUS PhExecuteRunAsCommand(
 
     portName = PhConcatStrings2(L"\\BaseNamedObjects\\", Parameters->ServiceName);
     PhStringRefToUnicodeString(&portName->sr, &portNameUs);
-    attempts = 10;
+    attempts = 50;
 
     // Try to connect several times because the server may take
     // a while to initialize.
@@ -1276,7 +1276,7 @@ NTSTATUS PhExecuteRunAsCommand(
         if (NT_SUCCESS(status))
             break;
 
-        PhDelayExecution(5 * 1000);
+        PhDelayExecution(100);
 
     } while (--attempts != 0);
 
