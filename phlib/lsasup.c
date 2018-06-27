@@ -472,7 +472,7 @@ PPH_STRING PhSidToStringSid(
         )))
     {
         string->Length = us.Length;
-        string->Buffer[us.Length / sizeof(WCHAR)] = 0;
+        string->Buffer[us.Length / sizeof(WCHAR)] = UNICODE_NULL;
 
         return string;
     }

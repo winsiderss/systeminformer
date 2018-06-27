@@ -459,7 +459,7 @@ CreateResult:
                         if (result->Display.Buffer = PhAllocateForMemorySearch(displayLength + sizeof(WCHAR)))
                         {
                             memcpy(result->Display.Buffer, displayBuffer, displayLength);
-                            result->Display.Buffer[displayLength / sizeof(WCHAR)] = 0;
+                            result->Display.Buffer[displayLength / sizeof(WCHAR)] = UNICODE_NULL;
                             result->Display.Length = displayLength;
                         }
 

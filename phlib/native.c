@@ -1100,10 +1100,9 @@ NTSTATUS PhGetProcessMappedFileName(
     )
 {
     NTSTATUS status;
-    PVOID buffer;
     SIZE_T bufferSize;
     SIZE_T returnLength;
-    PUNICODE_STRING unicodeString;
+    PUNICODE_STRING buffer;
 
     bufferSize = 0x100;
     buffer = PhAllocate(bufferSize);
@@ -1139,8 +1138,7 @@ NTSTATUS PhGetProcessMappedFileName(
         return status;
     }
 
-    unicodeString = (PUNICODE_STRING)buffer;
-    *FileName = PhCreateStringFromUnicodeString(unicodeString);
+    *FileName = PhCreateStringFromUnicodeString(buffer);
     PhFree(buffer);
 
     return status;
@@ -2980,7 +2978,7 @@ NTSTATUS PhpUnloadDriver(
 
             // Use a bogus name.
             RtlInitUnicodeString(&valueName, L"ImagePath");
-            NtSetValueKey(serviceKeyHandle, &valueName, 0, REG_SZ, imagePath.Buffer, imagePath.Length + 2);
+            NtSetValueKey(serviceKeyHandle, &valueName, 0, REG_SZ, imagePath.Buffer, imagePath.Length + sizeof(WCHAR));
         }
 
         status = NtUnloadDriver(&fullServiceKeyNameUs);
@@ -3203,8 +3201,8 @@ BOOLEAN NTAPI PhpEnumProcessModulesCallback(
 
         if (indexOfLastBackslash != -1)
         {
-            Entry->BaseDllName.Buffer = Entry->FullDllName.Buffer + indexOfLastBackslash + 1;
-            Entry->BaseDllName.Length = Entry->FullDllName.Length - (USHORT)indexOfLastBackslash * 2 - 2;
+            Entry->BaseDllName.Buffer = PTR_ADD_OFFSET(Entry->FullDllName.Buffer, PTR_ADD_OFFSET(indexOfLastBackslash * sizeof(WCHAR), sizeof(WCHAR)));
+            Entry->BaseDllName.Length = Entry->FullDllName.Length - (USHORT)indexOfLastBackslash * sizeof(WCHAR) - sizeof(WCHAR);
             Entry->BaseDllName.MaximumLength = Entry->BaseDllName.Length;
         }
         else
@@ -3217,7 +3215,7 @@ BOOLEAN NTAPI PhpEnumProcessModulesCallback(
         // Read the full DLL name string and add a null terminator.
 
         fullDllNameOriginal = Entry->FullDllName.Buffer;
-        fullDllNameBuffer = PhAllocate(Entry->FullDllName.Length + 2);
+        fullDllNameBuffer = PhAllocate(Entry->FullDllName.Length + sizeof(WCHAR));
         Entry->FullDllName.Buffer = fullDllNameBuffer;
 
         if (NT_SUCCESS(status = NtReadVirtualMemory(
@@ -3228,11 +3226,11 @@ BOOLEAN NTAPI PhpEnumProcessModulesCallback(
             NULL
             )))
         {
-            fullDllNameBuffer[Entry->FullDllName.Length / sizeof(WCHAR)] = 0;
+            fullDllNameBuffer[Entry->FullDllName.Length / sizeof(WCHAR)] = UNICODE_NULL;
         }
         else
         {
-            fullDllNameBuffer[0] = 0;
+            fullDllNameBuffer[0] = UNICODE_NULL;
             Entry->FullDllName.Length = 0;
         }
 
@@ -3242,20 +3240,19 @@ BOOLEAN NTAPI PhpEnumProcessModulesCallback(
         if (
             NT_SUCCESS(status) &&
             (ULONG_PTR)baseDllNameOriginal >= (ULONG_PTR)fullDllNameOriginal &&
-            (ULONG_PTR)baseDllNameOriginal + Entry->BaseDllName.Length >= (ULONG_PTR)baseDllNameOriginal &&
-            (ULONG_PTR)baseDllNameOriginal + Entry->BaseDllName.Length <= (ULONG_PTR)fullDllNameOriginal + Entry->FullDllName.Length
+            (ULONG_PTR)PTR_ADD_OFFSET(baseDllNameOriginal, Entry->BaseDllName.Length) >= (ULONG_PTR)baseDllNameOriginal &&
+            (ULONG_PTR)PTR_ADD_OFFSET(baseDllNameOriginal, Entry->BaseDllName.Length) <= (ULONG_PTR)PTR_ADD_OFFSET(fullDllNameOriginal, Entry->FullDllName.Length)
             )
         {
             baseDllNameBuffer = NULL;
 
-            Entry->BaseDllName.Buffer = (PWCHAR)((ULONG_PTR)Entry->FullDllName.Buffer +
-                ((ULONG_PTR)baseDllNameOriginal - (ULONG_PTR)fullDllNameOriginal));
+            Entry->BaseDllName.Buffer = PTR_ADD_OFFSET(Entry->FullDllName.Buffer, PTR_SUB_OFFSET(baseDllNameOriginal, fullDllNameOriginal));
         }
         else
         {
             // Read the base DLL name string and add a null terminator.
 
-            baseDllNameBuffer = PhAllocate(Entry->BaseDllName.Length + 2);
+            baseDllNameBuffer = PhAllocate(Entry->BaseDllName.Length + sizeof(WCHAR));
             Entry->BaseDllName.Buffer = baseDllNameBuffer;
 
             if (NT_SUCCESS(NtReadVirtualMemory(
@@ -3266,11 +3263,11 @@ BOOLEAN NTAPI PhpEnumProcessModulesCallback(
                 NULL
                 )))
             {
-                baseDllNameBuffer[Entry->BaseDllName.Length / sizeof(WCHAR)] = 0;
+                baseDllNameBuffer[Entry->BaseDllName.Length / sizeof(WCHAR)] = UNICODE_NULL;
             }
             else
             {
-                baseDllNameBuffer[0] = 0;
+                baseDllNameBuffer[0] = UNICODE_NULL;
                 Entry->BaseDllName.Length = 0;
             }
         }
@@ -3278,7 +3275,9 @@ BOOLEAN NTAPI PhpEnumProcessModulesCallback(
 
     if (WindowsVersion >= WINDOWS_8)
     {
-        LDR_DDAG_NODE ldrDagNode = { 0 };
+        LDR_DDAG_NODE ldrDagNode;
+
+        memset(&ldrDagNode, 0, sizeof(LDR_DDAG_NODE));
 
         if (NT_SUCCESS(NtReadVirtualMemory(
             ProcessHandle,
@@ -3585,8 +3584,8 @@ BOOLEAN NTAPI PhpEnumProcessModules32Callback(
 
         if (indexOfLastBackslash != -1)
         {
-            nativeEntry.BaseDllName.Buffer = nativeEntry.FullDllName.Buffer + indexOfLastBackslash + 1;
-            nativeEntry.BaseDllName.Length = nativeEntry.FullDllName.Length - (USHORT)indexOfLastBackslash * 2 - 2;
+            nativeEntry.BaseDllName.Buffer = PTR_ADD_OFFSET(nativeEntry.FullDllName.Buffer, PTR_ADD_OFFSET(indexOfLastBackslash * sizeof(WCHAR), sizeof(WCHAR)));
+            nativeEntry.BaseDllName.Length = nativeEntry.FullDllName.Length - (USHORT)indexOfLastBackslash * sizeof(WCHAR) - sizeof(WCHAR);
             nativeEntry.BaseDllName.MaximumLength = nativeEntry.BaseDllName.Length;
         }
         else
@@ -3598,7 +3597,7 @@ BOOLEAN NTAPI PhpEnumProcessModules32Callback(
     {
         // Read the base DLL name string and add a null terminator.
 
-        baseDllNameBuffer = PhAllocate(nativeEntry.BaseDllName.Length + 2);
+        baseDllNameBuffer = PhAllocate(nativeEntry.BaseDllName.Length + sizeof(WCHAR));
 
         if (NT_SUCCESS(NtReadVirtualMemory(
             ProcessHandle,
@@ -3608,11 +3607,11 @@ BOOLEAN NTAPI PhpEnumProcessModules32Callback(
             NULL
             )))
         {
-            baseDllNameBuffer[nativeEntry.BaseDllName.Length / sizeof(WCHAR)] = 0;
+            baseDllNameBuffer[nativeEntry.BaseDllName.Length / sizeof(WCHAR)] = UNICODE_NULL;
         }
         else
         {
-            baseDllNameBuffer[0] = 0;
+            baseDllNameBuffer[0] = UNICODE_NULL;
             nativeEntry.BaseDllName.Length = 0;
         }
 
@@ -3620,7 +3619,7 @@ BOOLEAN NTAPI PhpEnumProcessModules32Callback(
 
         // Read the full DLL name string and add a null terminator.
 
-        fullDllNameBuffer = PhAllocate(nativeEntry.FullDllName.Length + 2);
+        fullDllNameBuffer = PhAllocate(nativeEntry.FullDllName.Length + sizeof(WCHAR));
 
         if (NT_SUCCESS(NtReadVirtualMemory(
             ProcessHandle,
@@ -3630,7 +3629,7 @@ BOOLEAN NTAPI PhpEnumProcessModules32Callback(
             NULL
             )))
         {
-            fullDllNameBuffer[nativeEntry.FullDllName.Length / sizeof(WCHAR)] = 0;
+            fullDllNameBuffer[nativeEntry.FullDllName.Length / sizeof(WCHAR)] = UNICODE_NULL;
 
             if (!(parameters->Flags & PH_ENUM_PROCESS_MODULES_DONT_RESOLVE_WOW64_FS))
             {
@@ -5341,10 +5340,10 @@ PPH_STRING PhGetFileName(
         PH_STRINGREF systemRoot;
 
         PhGetSystemRoot(&systemRoot);
-        newFileName = PhCreateStringEx(NULL, systemRoot.Length + 2 + FileName->Length);
+        newFileName = PhCreateStringEx(NULL, systemRoot.Length + sizeof(WCHAR) + FileName->Length);
         memcpy(newFileName->Buffer, systemRoot.Buffer, systemRoot.Length);
         newFileName->Buffer[systemRoot.Length / sizeof(WCHAR)] = OBJ_NAME_PATH_SEPARATOR;
-        memcpy(PTR_ADD_OFFSET(newFileName->Buffer, systemRoot.Length + 2), FileName->Buffer, FileName->Length);
+        memcpy(PTR_ADD_OFFSET(newFileName->Buffer, systemRoot.Length + sizeof(WCHAR)), FileName->Buffer, FileName->Length);
     }
     else if (FileName->Length != 0 && FileName->Buffer[0] == OBJ_NAME_PATH_SEPARATOR)
     {
@@ -5362,7 +5361,7 @@ PPH_STRING PhGetFileName(
             // If the file name starts with "\Windows", prepend the system drive.
             if (PhStartsWithString2(newFileName, L"\\Windows", TRUE))
             {
-                newFileName = PhCreateStringEx(NULL, FileName->Length + 2 * sizeof(WCHAR));
+                newFileName = PhCreateStringEx(NULL, FileName->Length + sizeof(WCHAR) * sizeof(WCHAR));
                 newFileName->Buffer[0] = USER_SHARED_DATA->NtSystemRoot[0];
                 newFileName->Buffer[1] = ':';
                 memcpy(&newFileName->Buffer[2], FileName->Buffer, FileName->Length);
