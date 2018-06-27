@@ -51,6 +51,20 @@ typedef struct _COLUMN_INFO
     BOOLEAN SortDescending;
 } COLUMN_INFO, *PCOLUMN_INFO;
 
+typedef enum _PHP_AGGREGATE_TYPE
+{
+    AggregateTypeFloat,
+    AggregateTypeInt32,
+    AggregateTypeInt64,
+    AggregateTypeIntPtr
+} PHP_AGGREGATE_TYPE;
+
+typedef enum _PHP_AGGREGATE_LOCATION
+{
+    AggregateLocationProcessNode,
+    AggregateLocationProcessItem
+} PHP_AGGREGATE_LOCATION;
+
 static ULONG ProcessTreeListSortColumn;
 static PH_SORT_ORDER ProcessTreeListSortOrder;
 
@@ -139,21 +153,90 @@ VOID EtProcessTreeNewInitializing(
     PhPluginEnableTreeNewNotify(PluginInstance, treeNewInfo->CmData);
 }
 
-FLOAT EtpCalculateInclusiveGpuUsage(
-    _In_ PPH_PROCESS_NODE ProcessNode
+// Copied from ProcessHacker\proctree.c
+FORCEINLINE PVOID PhpFieldForAggregate(
+    _In_ PPH_PROCESS_NODE ProcessNode,
+    _In_ PHP_AGGREGATE_LOCATION Location,
+    _In_ SIZE_T FieldOffset
     )
 {
-    FLOAT gpuUsage;
+    PVOID object;
+
+    switch (Location)
+    {
+    case AggregateLocationProcessNode:
+        object = PhPluginGetObjectExtension(PluginInstance, ProcessNode->ProcessItem, EmProcessNodeType);
+        break;
+    case AggregateLocationProcessItem:
+        object = PhPluginGetObjectExtension(PluginInstance, ProcessNode->ProcessItem, EmProcessItemType);
+        break;
+    default:
+        PhRaiseStatus(STATUS_INVALID_PARAMETER);
+    }
+
+    return PTR_ADD_OFFSET(object, FieldOffset);
+}
+
+// Copied from ProcessHacker\proctree.c
+FORCEINLINE VOID PhpAccumulateField(
+    _Inout_ PVOID Accumulator,
+    _In_ PVOID Value,
+    _In_ PHP_AGGREGATE_TYPE Type
+    )
+{
+    switch (Type)
+    {
+    case AggregateTypeFloat:
+        *(PFLOAT)Accumulator += *(PFLOAT)Value;
+        break;
+    case AggregateTypeInt32:
+        *(PULONG)Accumulator += *(PULONG)Value;
+        break;
+    case AggregateTypeInt64:
+        *(PULONG64)Accumulator += *(PULONG64)Value;
+        break;
+    case AggregateTypeIntPtr:
+        *(PULONG_PTR)Accumulator += *(PULONG_PTR)Value;
+        break;
+    }
+}
+
+// Copied from ProcessHacker\proctree.c
+static VOID PhpAggregateField(
+    _In_ PPH_PROCESS_NODE ProcessNode,
+    _In_ PHP_AGGREGATE_TYPE Type,
+    _In_ PHP_AGGREGATE_LOCATION Location,
+    _In_ SIZE_T FieldOffset,
+    _Inout_ PVOID AggregatedValue
+    )
+{
     ULONG i;
 
-    gpuUsage = EtGetProcessBlock(ProcessNode->ProcessItem)->GpuNodeUsage;
+    PhpAccumulateField(AggregatedValue, PhpFieldForAggregate(ProcessNode, Location, FieldOffset), Type);
 
     for (i = 0; i < ProcessNode->Children->Count; i++)
     {
-        gpuUsage += EtpCalculateInclusiveGpuUsage(ProcessNode->Children->Items[i]);
+        PhpAggregateField(ProcessNode->Children->Items[i], Type, Location, FieldOffset, AggregatedValue);
     }
+}
 
-    return gpuUsage;
+// Copied from ProcessHacker\proctree.c
+static VOID PhpAggregateFieldIfNeeded(
+    _In_ PPH_PROCESS_NODE ProcessNode,
+    _In_ PHP_AGGREGATE_TYPE Type,
+    _In_ PHP_AGGREGATE_LOCATION Location,
+    _In_ SIZE_T FieldOffset,
+    _Inout_ PVOID AggregatedValue
+    )
+{
+    if (!PhGetIntegerSetting(L"PropagateCpuUsage") || ProcessNode->Node.Expanded || ProcessTreeListSortOrder != NoSortOrder)
+    {
+        PhpAccumulateField(AggregatedValue, PhpFieldForAggregate(ProcessNode, Location, FieldOffset), Type);
+    }
+    else
+    {
+        PhpAggregateField(ProcessNode, Type, Location, FieldOffset, AggregatedValue);
+    }
 }
 
 VOID EtProcessTreeNewMessage(
@@ -202,8 +285,15 @@ VOID EtProcessTreeNewMessage(
                     text = PhFormatSize(block->DiskWriteRaw, -1);
                 break;
             case ETPRTNC_DISKTOTALBYTES:
-                if (block->DiskReadRaw + block->DiskWriteRaw != 0)
-                    text = PhFormatSize(block->DiskReadRaw + block->DiskWriteRaw, -1);
+                {
+                    ULONG64 number = 0;
+
+                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, DiskReadRaw), &number);
+                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, DiskWriteRaw), &number);
+
+                    if (number != 0)
+                        text = PhFormatSize(number, ULONG_MAX);
+                }
                 break;
             case ETPRTNC_DISKREADSDELTA:
                 if (block->DiskReadDelta.Delta != 0)
@@ -222,8 +312,15 @@ VOID EtProcessTreeNewMessage(
                     text = PhFormatSize(block->DiskWriteRawDelta.Delta, -1);
                 break;
             case ETPRTNC_DISKTOTALBYTESDELTA:
-                if (block->DiskReadRawDelta.Delta + block->DiskWriteRawDelta.Delta != 0)
-                    text = PhFormatSize(block->DiskReadRawDelta.Delta + block->DiskWriteRawDelta.Delta, -1);
+                {
+                    ULONG64 number = 0;
+
+                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, DiskReadRawDelta), &number);
+                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, DiskWriteRawDelta), &number);
+
+                    if (number != 0)
+                        text = PhFormatSize(number, ULONG_MAX);
+                }
                 break;
             case ETPRTNC_NETWORKRECEIVES:
                 if (block->NetworkReceiveCount != 0)
@@ -242,8 +339,15 @@ VOID EtProcessTreeNewMessage(
                     text = PhFormatSize(block->NetworkSendRaw, -1);
                 break;
             case ETPRTNC_NETWORKTOTALBYTES:
-                if (block->NetworkReceiveRaw + block->NetworkSendRaw != 0)
-                    text = PhFormatSize(block->NetworkReceiveRaw + block->NetworkSendRaw, -1);
+                {
+                    ULONG64 number = 0;
+
+                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, NetworkReceiveRaw), &number);
+                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, NetworkSendRaw), &number);
+
+                    if (number != 0)
+                        text = PhFormatSize(number, ULONG_MAX);
+                }
                 break;
             case ETPRTNC_NETWORKRECEIVESDELTA:
                 if (block->NetworkReceiveDelta.Delta != 0)
@@ -262,8 +366,15 @@ VOID EtProcessTreeNewMessage(
                     text = PhFormatSize(block->NetworkSendRawDelta.Delta, -1);
                 break;
             case ETPRTNC_NETWORKTOTALBYTESDELTA:
-                if (block->NetworkReceiveRawDelta.Delta + block->NetworkSendRawDelta.Delta != 0)
-                    text = PhFormatSize(block->NetworkReceiveRawDelta.Delta + block->NetworkSendRawDelta.Delta, -1);
+                {
+                    ULONG64 number = 0;
+
+                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, NetworkReceiveRawDelta.Delta), &number);
+                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, NetworkSendRawDelta.Delta), &number);
+
+                    if (number != 0)
+                        text = PhFormatSize(number, ULONG_MAX);
+                }
                 break;
             case ETPRTNC_HARDFAULTS:
                 text = PhFormatUInt64(block->HardFaultsDelta.Value, TRUE);
@@ -277,16 +388,16 @@ VOID EtProcessTreeNewMessage(
                 break;
             case ETPRTNC_GPU:
                 {
-                    FLOAT gpuUsage;
+                    FLOAT gpuUsage = 0;
 
-                    if (!PhGetIntegerSetting(L"PropagateCpuUsage") || processNode->Node.Expanded || ProcessTreeListSortOrder != NoSortOrder)
-                    {
-                        gpuUsage = block->GpuNodeUsage * 100;
-                    }
-                    else
-                    {
-                        gpuUsage = EtpCalculateInclusiveGpuUsage(processNode) * 100;
-                    }
+                    PhpAggregateFieldIfNeeded(
+                        processNode,
+                        AggregateTypeFloat,
+                        AggregateLocationProcessItem,
+                        FIELD_OFFSET(ET_PROCESS_BLOCK, GpuNodeUsage),
+                        &gpuUsage
+                        );
+                    gpuUsage *= 100;
 
                     if (gpuUsage >= 0.01)
                     {
@@ -298,12 +409,36 @@ VOID EtProcessTreeNewMessage(
                 }
                 break;
             case ETPRTNC_GPUDEDICATEDBYTES:
-                if (block->GpuDedicatedUsage != 0)
-                    text = PhFormatSize(block->GpuDedicatedUsage, -1);
+                {
+                    ULONG64 gpuDedicatedUsage = 0;
+
+                    PhpAggregateFieldIfNeeded(
+                        processNode, 
+                        AggregateTypeInt64, 
+                        AggregateLocationProcessItem, 
+                        FIELD_OFFSET(ET_PROCESS_BLOCK, GpuDedicatedUsage), 
+                        &gpuDedicatedUsage
+                        );
+
+                    if (gpuDedicatedUsage != 0)
+                        text = PhFormatSize(gpuDedicatedUsage, ULONG_MAX);
+                }
                 break;
             case ETPRTNC_GPUSHAREDBYTES:
-                if (block->GpuSharedUsage != 0)
-                    text = PhFormatSize(block->GpuSharedUsage, -1);
+                {
+                    ULONG64 gpuSharedUsage = 0;
+
+                    PhpAggregateFieldIfNeeded(
+                        processNode,
+                        AggregateTypeInt64,
+                        AggregateLocationProcessItem,
+                        FIELD_OFFSET(ET_PROCESS_BLOCK, GpuSharedUsage),
+                        &gpuSharedUsage
+                        );
+
+                    if (gpuSharedUsage != 0)
+                        text = PhFormatSize(gpuSharedUsage, ULONG_MAX);
+                }
                 break;
             case ETPRTNC_DISKREADRATE:
                 if (block->DiskReadRawDelta.Delta != 0)
@@ -314,8 +449,15 @@ VOID EtProcessTreeNewMessage(
                     EtFormatRate(block->DiskWriteRawDelta.Delta, &text, NULL);
                 break;
             case ETPRTNC_DISKTOTALRATE:
-                if (block->DiskReadRawDelta.Delta + block->DiskWriteRawDelta.Delta != 0)
-                    EtFormatRate(block->DiskReadRawDelta.Delta + block->DiskWriteRawDelta.Delta, &text, NULL);
+                {
+                    ULONG64 number = 0;
+
+                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, DiskReadRawDelta.Delta), &number);
+                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, DiskWriteRawDelta.Delta), &number);
+
+                    if (number != 0)
+                        EtFormatRate(number, &text, NULL);
+                }
                 break;
             case ETPRTNC_NETWORKRECEIVERATE:
                 if (block->NetworkReceiveRawDelta.Delta != 0)
@@ -326,8 +468,15 @@ VOID EtProcessTreeNewMessage(
                     EtFormatRate(block->NetworkSendRawDelta.Delta, &text, NULL);
                 break;
             case ETPRTNC_NETWORKTOTALRATE:
-                if (block->NetworkReceiveRawDelta.Delta + block->NetworkSendRawDelta.Delta != 0)
-                    EtFormatRate(block->NetworkReceiveRawDelta.Delta + block->NetworkSendRawDelta.Delta, &text, NULL);
+                {
+                    ULONG64 number = 0;
+
+                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, NetworkReceiveRawDelta.Delta), &number);
+                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, NetworkSendRawDelta.Delta), &number);
+
+                    if (number != 0)
+                        EtFormatRate(number, &text, NULL);
+                }
                 break;
             }
 
@@ -352,7 +501,20 @@ VOID EtProcessTreeNewMessage(
         block = EtGetProcessBlock(processNode->ProcessItem);
 
         if (PhGetIntegerSetting(L"PropagateCpuUsage"))
+        {
+            block->TextCacheValid[ETPRTNC_DISKTOTALBYTES] = FALSE;
+            block->TextCacheValid[ETPRTNC_NETWORKTOTALBYTES] = FALSE;
+
+            block->TextCacheValid[ETPRTNC_DISKTOTALBYTESDELTA] = FALSE;
+            block->TextCacheValid[ETPRTNC_NETWORKTOTALBYTESDELTA] = FALSE;
+
             block->TextCacheValid[ETPRTNC_GPU] = FALSE;
+            block->TextCacheValid[ETPRTNC_GPUDEDICATEDBYTES] = FALSE;
+            block->TextCacheValid[ETPRTNC_GPUSHAREDBYTES] = FALSE;
+
+            block->TextCacheValid[ETPRTNC_DISKTOTALRATE] = FALSE;
+            block->TextCacheValid[ETPRTNC_NETWORKTOTALRATE] = FALSE;
+        }
     }
 }
 
@@ -747,6 +909,9 @@ ET_FIREWALL_STATUS EtQueryFirewallStatus(
 
         if (!PhIsNullIpAddress(&NetworkItem->LocalEndpoint.Address))
             localAddressBStr = SysAllocString(NetworkItem->LocalAddressString);
+
+        memset(&allowed, 0, sizeof(VARIANT)); // VariantInit
+        memset(&restricted, 0, sizeof(VARIANT)); // VariantInit
 
         if (SUCCEEDED(INetFwMgr_IsPortAllowed(
             manager,
