@@ -26,26 +26,11 @@
 PVOID IphlpHandle = NULL;
 _GetInterfaceDescriptionFromGuid GetInterfaceDescriptionFromGuid_I = NULL;
 
-NTSTATUS NetworkAdapterCreateHandle(
-    _Out_ PHANDLE DeviceHandle,
-    _In_ PPH_STRING DeviceInterface
-    )
-{
-    return PhCreateFileWin32(
-        DeviceHandle,
-        PhGetString(DeviceInterface),
-        FILE_GENERIC_READ,
-        FILE_ATTRIBUTE_NORMAL,
-        FILE_SHARE_READ | FILE_SHARE_WRITE,
-        FILE_OPEN,
-        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-        );
-}
-
 BOOLEAN NetworkAdapterQuerySupported(
     _In_ HANDLE DeviceHandle
     )
 {
+    NTSTATUS status;
     NDIS_OID opcode;
     IO_STATUS_BLOCK isb;
     BOOLEAN ndisQuerySupported = FALSE;
@@ -53,15 +38,16 @@ BOOLEAN NetworkAdapterQuerySupported(
     BOOLEAN adapterStatsSupported = FALSE;
     BOOLEAN adapterLinkStateSupported = FALSE;
     BOOLEAN adapterLinkSpeedSupported = FALSE;
-    PNDIS_OID ndisObjectIdentifiers;
+    PNDIS_OID objectIdBuffer;
+    ULONG objectIdBufferLength;
+    ULONG attempts = 0;
 
     opcode = OID_GEN_SUPPORTED_LIST;
 
-    // TODO: 4096 objects might be too small...
-    ndisObjectIdentifiers = PhAllocate(PAGE_SIZE * sizeof(NDIS_OID));
-    memset(ndisObjectIdentifiers, 0, PAGE_SIZE * sizeof(NDIS_OID));
+    objectIdBufferLength = 2048 * sizeof(NDIS_OID);
+    objectIdBuffer = PhAllocateZero(objectIdBufferLength);
 
-    if (NT_SUCCESS(NtDeviceIoControlFile(
+    status = NtDeviceIoControlFile(
         DeviceHandle,
         NULL,
         NULL,
@@ -70,15 +56,38 @@ BOOLEAN NetworkAdapterQuerySupported(
         IOCTL_NDIS_QUERY_GLOBAL_STATS,
         &opcode,
         sizeof(NDIS_OID),
-        ndisObjectIdentifiers,
-        PAGE_SIZE * sizeof(NDIS_OID)
-        )))
+        objectIdBuffer,
+        objectIdBufferLength
+        );
+
+    while (status == STATUS_BUFFER_OVERFLOW && attempts < 8)
+    {
+        PhFree(objectIdBuffer);
+        objectIdBufferLength *= 2;
+        objectIdBuffer = PhAllocateZero(objectIdBufferLength);
+
+        status = NtDeviceIoControlFile(
+            DeviceHandle,
+            NULL,
+            NULL,
+            NULL,
+            &isb,
+            IOCTL_NDIS_QUERY_GLOBAL_STATS,
+            &opcode,
+            sizeof(NDIS_OID),
+            objectIdBuffer,
+            objectIdBufferLength
+            );
+        attempts++;
+    }
+
+    if (NT_SUCCESS(status))
     {
         ndisQuerySupported = TRUE;
 
         for (ULONG i = 0; i < (ULONG)isb.Information / sizeof(NDIS_OID); i++)
         {
-            NDIS_OID objectId = ndisObjectIdentifiers[i];
+            NDIS_OID objectId = objectIdBuffer[i];
 
             switch (objectId)
             {
@@ -98,7 +107,7 @@ BOOLEAN NetworkAdapterQuerySupported(
         }
     }
 
-    PhFree(ndisObjectIdentifiers);
+    PhFree(objectIdBuffer);
 
     if (!adapterNameSupported)
         ndisQuerySupported = FALSE;
@@ -464,7 +473,6 @@ BOOLEAN QueryInterfaceRow(
 
     return result;
 }
-
 
 PWSTR MediumTypeToString(
     _In_ NDIS_PHYSICAL_MEDIUM MediumType

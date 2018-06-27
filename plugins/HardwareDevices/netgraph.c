@@ -47,8 +47,15 @@ VOID NetAdapterUpdatePanel(
 
     if (PhGetIntegerSetting(SETTING_NAME_ENABLE_NDIS))
     {
-        // Create the handle to the network device
-        if (NT_SUCCESS(NetworkAdapterCreateHandle(&deviceHandle, Context->AdapterEntry->Id.InterfaceDevice)))
+        if (NT_SUCCESS(PhCreateFileWin32(
+            &deviceHandle,
+            PhGetString(Context->AdapterEntry->AdapterId.InterfaceDevice),
+            FILE_GENERIC_READ,
+            FILE_ATTRIBUTE_NORMAL,
+            FILE_SHARE_READ | FILE_SHARE_WRITE,
+            FILE_OPEN,
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+            )))
         {
             if (!Context->AdapterEntry->CheckedDeviceSupport)
             {
@@ -63,7 +70,7 @@ VOID NetAdapterUpdatePanel(
 
             if (!Context->AdapterEntry->DeviceSupported)
             {
-                // Device is faulty. Close the handle so we can fallback to GetIfEntry.
+                // Close the handle and fallback to GetIfEntry.
                 NtClose(deviceHandle);
                 deviceHandle = NULL;
             }
@@ -115,7 +122,7 @@ VOID NetAdapterUpdatePanel(
     {
         MIB_IF_ROW2 interfaceRow;
 
-        if (QueryInterfaceRow(&Context->AdapterEntry->Id, &interfaceRow))
+        if (QueryInterfaceRow(&Context->AdapterEntry->AdapterId, &interfaceRow))
         {
             inOctetsValue = interfaceRow.InOctets;
             outOctetsValue = interfaceRow.OutOctets;
@@ -210,7 +217,6 @@ INT_PTR CALLBACK NetAdapterDialogProc(
     if (uMsg == WM_INITDIALOG)
     {
         context = (PDV_NETADAPTER_SYSINFO_CONTEXT)lParam;
-
         PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
@@ -219,15 +225,6 @@ INT_PTR CALLBACK NetAdapterDialogProc(
 
         if (uMsg == WM_DESTROY)
         {
-            PhDeleteLayoutManager(&context->LayoutManager);
-            PhDeleteGraphState(&context->GraphState);
-
-            if (context->GraphHandle)
-                DestroyWindow(context->GraphHandle);
-
-            if (context->PanelWindowHandle)
-                DestroyWindow(context->PanelWindowHandle);
-
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
         }
     }
@@ -252,11 +249,7 @@ INT_PTR CALLBACK NetAdapterDialogProc(
             panelItem = PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_LAYOUT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
             SendMessage(GetDlgItem(hwndDlg, IDC_ADAPTERNAME), WM_SETFONT, (WPARAM)context->SysinfoSection->Parameters->LargeFont, FALSE);
-
-            if (context->AdapterEntry->AdapterName)
-                PhSetDialogItemText(hwndDlg, IDC_ADAPTERNAME, context->AdapterEntry->AdapterName->Buffer);
-            else
-                PhSetDialogItemText(hwndDlg, IDC_ADAPTERNAME, L"Unknown network adapter");
+            PhSetDialogItemText(hwndDlg, IDC_ADAPTERNAME, PhGetStringOrDefault(context->AdapterEntry->AdapterName, L"Unknown network adapter"));
 
             context->PanelWindowHandle = CreateDialogParam(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_NETADAPTER_PANEL), hwndDlg, NetAdapterPanelDialogProc, (LPARAM)context);
             ShowWindow(context->PanelWindowHandle, SW_SHOW);
@@ -280,6 +273,18 @@ INT_PTR CALLBACK NetAdapterDialogProc(
             PhAddLayoutItemEx(&context->LayoutManager, context->GraphHandle, NULL, PH_ANCHOR_ALL, graphItem->Margin);
 
             UpdateNetAdapterDialog(context);
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhDeleteLayoutManager(&context->LayoutManager);
+            PhDeleteGraphState(&context->GraphState);
+
+            if (context->GraphHandle)
+                DestroyWindow(context->GraphHandle);
+
+            if (context->PanelWindowHandle)
+                DestroyWindow(context->PanelWindowHandle);
         }
         break;
     case WM_SIZE:
@@ -526,16 +531,14 @@ VOID NetAdapterSysInfoInitializing(
     PH_SYSINFO_SECTION section;
     PDV_NETADAPTER_SYSINFO_CONTEXT context;
 
-    context = (PDV_NETADAPTER_SYSINFO_CONTEXT)PhAllocate(sizeof(DV_NETADAPTER_SYSINFO_CONTEXT));
-    memset(context, 0, sizeof(DV_NETADAPTER_SYSINFO_CONTEXT));
-    memset(&section, 0, sizeof(PH_SYSINFO_SECTION));
-
+    context = PhAllocateZero(sizeof(DV_NETADAPTER_SYSINFO_CONTEXT));
     context->AdapterEntry = AdapterEntry;
-    context->SectionName = PhConcatStrings2(L"NetAdapter ", AdapterEntry->Id.InterfaceGuid->Buffer);
-
+    context->SectionName = PhConcatStrings2(L"NetAdapter ", PhGetStringOrEmpty(AdapterEntry->AdapterId.InterfaceGuid));
+    
+    memset(&section, 0, sizeof(PH_SYSINFO_SECTION));
     section.Context = context;
     section.Callback = NetAdapterSectionCallback;
-    section.Name = context->SectionName->sr;
+    section.Name = PhGetStringRef(context->SectionName);
 
     context->SysinfoSection = Pointers->CreateSection(&section);
 }

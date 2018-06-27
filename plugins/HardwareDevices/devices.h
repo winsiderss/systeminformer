@@ -41,10 +41,8 @@
 
 #include <windowsx.h>
 #include <uxtheme.h>
-#include <ws2def.h>
-#include <ws2ipdef.h>
-#include <ws2tcpip.h>
-#include <iphlpapi.h>
+
+#include <cfgmgr32.h>
 #include <nldef.h>
 #include <netioapi.h>
 
@@ -87,7 +85,7 @@ typedef struct _DV_NETADAPTER_ID
 
 typedef struct _DV_NETADAPTER_ENTRY
 {
-    DV_NETADAPTER_ID Id;
+    DV_NETADAPTER_ID AdapterId;
     PPH_STRING AdapterName;
 
     union
@@ -284,11 +282,6 @@ typedef ULONG (WINAPI* _GetInterfaceDescriptionFromGuid)(
     _Inout_ PSIZE_T LengthAddress,
     PVOID Unknown1,
     PVOID Unknown2
-    );
-
-NTSTATUS NetworkAdapterCreateHandle(
-    _Out_ PHANDLE DeviceHandle,
-    _In_ PPH_STRING DeviceInterface
     );
 
 BOOLEAN NetworkAdapterQuerySupported(

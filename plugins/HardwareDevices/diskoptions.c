@@ -21,7 +21,6 @@
  */
 
 #include "devices.h"
-#include <cfgmgr32.h>
 
 typedef struct _DISK_ENUM_ENTRY
 {
@@ -272,7 +271,7 @@ BOOLEAN QueryDiskDeviceInterfaceDescription(
     bufferSize = 0x40;
     deviceDescription = PhCreateStringEx(NULL, bufferSize);
 
-    if ((result = CM_Get_DevNode_Property( // CM_Get_DevNode_Registry_Property with CM_DRP_DEVICEDESC??
+    if ((result = CM_Get_DevNode_Property(
         deviceInstanceHandle,
         &DEVPKEY_Device_FriendlyName,
         &devicePropertyType,
