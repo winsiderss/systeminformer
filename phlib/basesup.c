@@ -4738,7 +4738,7 @@ VOID PhpResizeHashtable(
             Hashtable->Buckets[index] = i;
         }
 
-        entry = (PPH_HASHTABLE_ENTRY)((ULONG_PTR)entry + PH_HASHTABLE_ENTRY_SIZE(Hashtable->EntrySize));
+        entry = PTR_ADD_OFFSET(entry, PH_HASHTABLE_ENTRY_SIZE(Hashtable->EntrySize));
     }
 }
 

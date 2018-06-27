@@ -121,7 +121,7 @@ C_ASSERT(FIELD_OFFSET(PH_OBJECT_HEADER, Body) == 0x8);
  *
  * \return The new size, including space for the object header.
  */
-#define PhAddObjectHeaderSize(Size) ((Size) + FIELD_OFFSET(PH_OBJECT_HEADER, Body))
+#define PhAddObjectHeaderSize(Size) ((Size) + UFIELD_OFFSET(PH_OBJECT_HEADER, Body))
 
 /** An object type specifies a kind of object and its delete procedure. */
 typedef struct _PH_OBJECT_TYPE

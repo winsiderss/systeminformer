@@ -1689,13 +1689,13 @@ BOOLEAN PhInitializeImageVersionInfo(
     // The version information is language-independent and must be read from the root block.
     if (VerQueryValue(versionInfo, L"\\", &rootBlock, &rootBlockLength) && rootBlockLength != 0)
     {
-        PhInitFormatU(&fileVersionFormat[0], rootBlock->dwFileVersionMS >> 16);
+        PhInitFormatU(&fileVersionFormat[0], HIWORD(rootBlock->dwFileVersionMS));
         PhInitFormatC(&fileVersionFormat[1], '.');
-        PhInitFormatU(&fileVersionFormat[2], rootBlock->dwFileVersionMS & 0xffff);
+        PhInitFormatU(&fileVersionFormat[2], LOWORD(rootBlock->dwFileVersionMS));
         PhInitFormatC(&fileVersionFormat[3], '.');
-        PhInitFormatU(&fileVersionFormat[4], rootBlock->dwFileVersionLS >> 16);
+        PhInitFormatU(&fileVersionFormat[4], HIWORD(rootBlock->dwFileVersionLS));
         PhInitFormatC(&fileVersionFormat[5], '.');
-        PhInitFormatU(&fileVersionFormat[6], rootBlock->dwFileVersionLS & 0xffff);
+        PhInitFormatU(&fileVersionFormat[6], LOWORD(rootBlock->dwFileVersionLS));
 
         ImageVersionInfo->FileVersion = PhFormat(fileVersionFormat, 7, 30);
     }
