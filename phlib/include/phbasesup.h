@@ -172,7 +172,7 @@ PhDelayExecution(
 {
     LARGE_INTEGER interval;
 
-    interval.QuadPart = -Interval * PH_TIMEOUT_MS;
+    interval.QuadPart = -Interval;
 
     return NtDelayExecution(FALSE, &interval);
 }

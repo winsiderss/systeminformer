@@ -34,7 +34,7 @@ VOID AdapterEntryDeleteProcedure(
     PhRemoveItemList(NetworkAdaptersList, PhFindItemList(NetworkAdaptersList, entry));
     PhReleaseQueuedLockExclusive(&NetworkAdaptersListLock);
 
-    DeleteNetAdapterId(&entry->Id);
+    DeleteNetAdapterId(&entry->AdapterId);
     PhClearReference(&entry->AdapterName);
 
     PhDeleteCircularBuffer_ULONG64(&entry->InboundBuffer);
@@ -74,7 +74,15 @@ VOID NetAdaptersUpdate(
 
         if (PhGetIntegerSetting(SETTING_NAME_ENABLE_NDIS))
         {
-            if (NT_SUCCESS(NetworkAdapterCreateHandle(&deviceHandle, entry->Id.InterfaceDevice)))
+            if (NT_SUCCESS(PhCreateFileWin32(
+                &deviceHandle,
+                PhGetString(entry->AdapterId.InterfaceDevice),
+                FILE_GENERIC_READ,
+                FILE_ATTRIBUTE_NORMAL,
+                FILE_SHARE_READ | FILE_SHARE_WRITE,
+                FILE_OPEN,
+                FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+                )))
             {
                 if (!entry->CheckedDeviceSupport)
                 {
@@ -103,31 +111,35 @@ VOID NetAdaptersUpdate(
 
             memset(&interfaceStats, 0, sizeof(NDIS_STATISTICS_INFO));
 
-            NetworkAdapterQueryStatistics(deviceHandle, &interfaceStats);
-
             if (NT_SUCCESS(NetworkAdapterQueryLinkState(deviceHandle, &interfaceState)))
             {
                 mediaState = interfaceState.MediaConnectState;
             }
 
-            if (!(interfaceStats.SupportedStatistics & NDIS_STATISTICS_FLAGS_VALID_BYTES_RCV))
-                networkInOctets = NetworkAdapterQueryValue(deviceHandle, OID_GEN_BYTES_RCV);
-            else
-                networkInOctets = interfaceStats.ifHCInOctets;
+            if (NT_SUCCESS(NetworkAdapterQueryStatistics(deviceHandle, &interfaceStats)))
+            {
+                if (!(interfaceStats.SupportedStatistics & NDIS_STATISTICS_FLAGS_VALID_BYTES_RCV))
+                    networkInOctets = NetworkAdapterQueryValue(deviceHandle, OID_GEN_BYTES_RCV);
+                else
+                    networkInOctets = interfaceStats.ifHCInOctets;
 
-            if (!(interfaceStats.SupportedStatistics & NDIS_STATISTICS_FLAGS_VALID_BYTES_XMIT))
-                networkOutOctets = NetworkAdapterQueryValue(deviceHandle, OID_GEN_BYTES_XMIT);
+                if (!(interfaceStats.SupportedStatistics & NDIS_STATISTICS_FLAGS_VALID_BYTES_XMIT))
+                    networkOutOctets = NetworkAdapterQueryValue(deviceHandle, OID_GEN_BYTES_XMIT);
+                else
+                    networkOutOctets = interfaceStats.ifHCOutOctets;
+            }
             else
-                networkOutOctets = interfaceStats.ifHCOutOctets;
+            {
+                networkInOctets = NetworkAdapterQueryValue(deviceHandle, OID_GEN_BYTES_RCV);
+                networkOutOctets = NetworkAdapterQueryValue(deviceHandle, OID_GEN_BYTES_XMIT);
+            }
 
             networkRcvSpeed = networkInOctets - entry->LastInboundValue;
             networkXmitSpeed = networkOutOctets - entry->LastOutboundValue;
 
             // HACK: Pull the Adapter name from the current query.
             if (!entry->AdapterName)
-            {
-                entry->AdapterName = NetworkAdapterQueryName(deviceHandle, entry->Id.InterfaceGuid);
-            }
+                entry->AdapterName = NetworkAdapterQueryName(deviceHandle, entry->AdapterId.InterfaceGuid);
 
             entry->DevicePresent = TRUE;
 
@@ -137,7 +149,7 @@ VOID NetAdaptersUpdate(
         {
             MIB_IF_ROW2 interfaceRow;
 
-            if (QueryInterfaceRow(&entry->Id, &interfaceRow))
+            if (QueryInterfaceRow(&entry->AdapterId, &interfaceRow))
             {
                 networkInOctets = interfaceRow.InOctets;
                 networkOutOctets = interfaceRow.OutOctets;
@@ -248,7 +260,7 @@ PDV_NETADAPTER_ENTRY CreateNetAdapterEntry(
     entry = PhCreateObject(sizeof(DV_NETADAPTER_ENTRY), NetAdapterEntryType);
     memset(entry, 0, sizeof(DV_NETADAPTER_ENTRY));
 
-    CopyNetAdapterId(&entry->Id, Id);
+    CopyNetAdapterId(&entry->AdapterId, Id);
 
     PhInitializeCircularBuffer_ULONG64(&entry->InboundBuffer, PhGetIntegerSetting(L"SampleCount"));
     PhInitializeCircularBuffer_ULONG64(&entry->OutboundBuffer, PhGetIntegerSetting(L"SampleCount"));

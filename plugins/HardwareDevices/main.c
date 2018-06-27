@@ -159,6 +159,89 @@ PPH_STRING TrimString(
     return PhCreateString2(&sr);
 }
 
+BOOLEAN HardwareDeviceEnableDisable(
+    _In_ HWND ParentWindow,
+    _In_ PPH_STRING DeviceInstance, 
+    _In_ BOOLEAN Enable
+    )
+{
+    CONFIGRET result;
+    DEVINST deviceInstanceHandle;
+
+    result = CM_Locate_DevNode(
+        &deviceInstanceHandle,
+        DeviceInstance->Buffer,
+        CM_LOCATE_DEVNODE_PHANTOM
+        );
+
+    if (result != CR_SUCCESS) 
+    {
+        PhShowStatus(ParentWindow, L"Failed to change the device state.", 0, CM_MapCrToWin32Err(result, ERROR_INVALID_HANDLE_STATE));
+        return FALSE;
+    }
+
+    if (Enable)
+        result = CM_Enable_DevInst(deviceInstanceHandle, 0); // CM_DISABLE_PERSIST 
+    else
+        result = CM_Disable_DevInst(deviceInstanceHandle, 0); // CM_DISABLE_PERSIST 
+
+    if (result != CR_SUCCESS)
+    {
+        PhShowStatus(ParentWindow, L"Failed to change the device state.", 0, CM_MapCrToWin32Err(result, ERROR_INVALID_HANDLE_STATE));
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+BOOLEAN HardwareDeviceRestart(
+    _In_ HWND ParentWindow,
+    _In_ PPH_STRING DeviceInstance
+    )
+{
+    CONFIGRET result;
+    DEVINST deviceInstanceHandle;
+
+    result = CM_Locate_DevNode(
+        &deviceInstanceHandle,
+        DeviceInstance->Buffer,
+        CM_LOCATE_DEVNODE_PHANTOM
+        );
+
+    if (result != CR_SUCCESS)
+    {
+        PhShowStatus(ParentWindow, L"Failed to restart the device.", 0, CM_MapCrToWin32Err(result, ERROR_UNKNOWN_PROPERTY));
+        return FALSE;
+    }
+
+    result = CM_Query_And_Remove_SubTree(
+        deviceInstanceHandle,
+        NULL,
+        NULL,
+        0,
+        CM_REMOVE_NO_RESTART
+        );
+
+    if (result != CR_SUCCESS)
+    {
+        PhShowStatus(ParentWindow, L"Failed to restart the device.", 0, CM_MapCrToWin32Err(result, ERROR_UNKNOWN_PROPERTY));
+        return FALSE;
+    }
+
+    result = CM_Setup_DevInst(
+        deviceInstanceHandle,
+        CM_SETUP_DEVNODE_READY
+        );
+
+    if (result != CR_SUCCESS)
+    {
+        PhShowStatus(ParentWindow, L"Failed to restart the device.", 0, CM_MapCrToWin32Err(result, ERROR_UNKNOWN_PROPERTY));
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
 VOID ShowDeviceMenu(
     _In_ HWND ParentWindow,
     _In_ PPH_STRING DeviceInstance
@@ -171,25 +254,33 @@ VOID ShowDeviceMenu(
     GetCursorPos(&cursorPos);
 
     menu = PhCreateEMenu();
-    //PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 0, L"Enable", NULL, NULL), -1);
-    //PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 1, L"Disable", NULL, NULL), -1);
-    //PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), -1);
-    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 1, L"Properties", NULL, NULL), -1);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 0, L"Enable", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 1, L"Disable", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 2, L"Restart", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 3, L"Properties", NULL, NULL), ULONG_MAX);
 
     selectedItem = PhShowEMenu(
         menu,
-        PhMainWndHandle,
+        ParentWindow,
         PH_EMENU_SHOW_LEFTRIGHT,
         PH_ALIGN_LEFT | PH_ALIGN_TOP,
         cursorPos.x,
         cursorPos.y
         );
 
-    if (selectedItem && selectedItem->Id != -1)
+    if (selectedItem && selectedItem->Id != ULONG_MAX)
     {
         switch (selectedItem->Id)
         {
+        case 0:
         case 1:
+            HardwareDeviceEnableDisable(ParentWindow, DeviceInstance, selectedItem->Id == 0);
+            break;
+        case 2:
+            HardwareDeviceRestart(ParentWindow, DeviceInstance);
+            break;
+        case 3:
             {
                 HMODULE devMgrHandle;
 

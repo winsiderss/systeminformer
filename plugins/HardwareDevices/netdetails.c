@@ -353,7 +353,15 @@ VOID NetAdapterUpdateDetails(
 
     if (PhGetIntegerSetting(SETTING_NAME_ENABLE_NDIS))
     {
-        if (NT_SUCCESS(NetworkAdapterCreateHandle(&deviceHandle, Context->AdapterId.InterfaceDevice)))
+        if (NT_SUCCESS(PhCreateFileWin32(
+            &deviceHandle,
+            PhGetString(Context->AdapterId.InterfaceDevice),
+            FILE_GENERIC_READ,
+            FILE_ATTRIBUTE_NORMAL,
+            FILE_SHARE_READ | FILE_SHARE_WRITE,
+            FILE_OPEN,
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+            )))
         {
             if (!Context->CheckedDeviceSupport)
             {
@@ -655,12 +663,11 @@ VOID ShowNetAdapterDetailsDialog(
 {
     PDV_NETADAPTER_DETAILS_CONTEXT context;
 
-    context = PhAllocate(sizeof(DV_NETADAPTER_DETAILS_CONTEXT));
-    memset(context, 0, sizeof(DV_NETADAPTER_DETAILS_CONTEXT));
-
+    context = PhAllocateZero(sizeof(DV_NETADAPTER_DETAILS_CONTEXT));
     context->ParentHandle = Context->WindowHandle;
+
     PhSetReference(&context->AdapterName, Context->AdapterEntry->AdapterName);
-    CopyNetAdapterId(&context->AdapterId, &Context->AdapterEntry->Id);
+    CopyNetAdapterId(&context->AdapterId, &Context->AdapterEntry->AdapterId);
 
     PhCreateThread2(ShowNetAdapterDetailsDialogThread, context);
 }
