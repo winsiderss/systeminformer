@@ -2922,7 +2922,7 @@ typedef struct _PH_HASHTABLE
     ULONG NextEntry;
 } PH_HASHTABLE, *PPH_HASHTABLE;
 
-#define PH_HASHTABLE_ENTRY_SIZE(InnerSize) (FIELD_OFFSET(PH_HASHTABLE_ENTRY, Body) + (InnerSize))
+#define PH_HASHTABLE_ENTRY_SIZE(InnerSize) (UFIELD_OFFSET(PH_HASHTABLE_ENTRY, Body) + (InnerSize))
 #define PH_HASHTABLE_GET_ENTRY(Hashtable, Index) \
     ((PPH_HASHTABLE_ENTRY)PTR_ADD_OFFSET((Hashtable)->Entries, \
     PH_HASHTABLE_ENTRY_SIZE((Hashtable)->EntrySize) * (Index)))
@@ -3006,7 +3006,7 @@ PhBeginEnumHashtable(
     )
 {
     Context->Current = (ULONG_PTR)Hashtable->Entries;
-    Context->Step = PH_HASHTABLE_ENTRY_SIZE(Hashtable->EntrySize);
+    Context->Step = PH_HASHTABLE_ENTRY_SIZE((ULONG_PTR)Hashtable->EntrySize);
     Context->End = Context->Current + (ULONG_PTR)Hashtable->NextEntry * Context->Step;
 }
 
