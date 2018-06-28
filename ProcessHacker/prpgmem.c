@@ -416,7 +416,7 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                     if (GET_WM_COMMAND_HWND(wParam, lParam) != memoryContext->SearchboxHandle)
                         break;
 
-                    newSearchboxText = PhGetWindowText(memoryContext->SearchboxHandle);
+                    newSearchboxText = PH_AUTO(PhGetWindowText(memoryContext->SearchboxHandle));
 
                     if (!PhEqualString(memoryContext->SearchboxText, newSearchboxText, FALSE))
                     {
@@ -424,7 +424,7 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                         memoryContext->UseSearchPointer = PhStringToInteger64(&newSearchboxText->sr, 0, &memoryContext->SearchPointer);
 
                         // Cache the current search text for our callback.
-                        PhMoveReference(&memoryContext->SearchboxText, newSearchboxText);
+                        PhSwapReference(&memoryContext->SearchboxText, newSearchboxText);
 
                         // Expand any hidden nodes to make search results visible.
                         PhExpandAllMemoryNodes(&memoryContext->ListContext, TRUE);

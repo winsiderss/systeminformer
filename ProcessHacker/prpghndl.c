@@ -489,12 +489,12 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                     if (GET_WM_COMMAND_HWND(wParam, lParam) != handlesContext->SearchboxHandle)
                         break;
 
-                    newSearchboxText = PhGetWindowText(handlesContext->SearchboxHandle);
+                    newSearchboxText = PH_AUTO(PhGetWindowText(handlesContext->SearchboxHandle));
 
                     if (!PhEqualString(handlesContext->SearchboxText, newSearchboxText, FALSE))
                     {
                         // Cache the current search text for our callback.
-                        PhMoveReference(&handlesContext->SearchboxText, newSearchboxText);
+                        PhSwapReference(&handlesContext->SearchboxText, newSearchboxText);
 
                         if (!PhIsNullOrEmptyString(handlesContext->SearchboxText))
                         {

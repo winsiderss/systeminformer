@@ -570,12 +570,12 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                     if (GET_WM_COMMAND_HWND(wParam, lParam) != modulesContext->SearchboxHandle)
                         break;
 
-                    newSearchboxText = PhGetWindowText(modulesContext->SearchboxHandle);
+                    newSearchboxText = PH_AUTO(PhGetWindowText(modulesContext->SearchboxHandle));
 
                     if (!PhEqualString(modulesContext->SearchboxText, newSearchboxText, FALSE))
                     {
                         // Cache the current search text for our callback.
-                        PhMoveReference(&modulesContext->SearchboxText, newSearchboxText);
+                        PhSwapReference(&modulesContext->SearchboxText, newSearchboxText);
 
                         // Expand any hidden nodes to make search results visible.
                         PhExpandAllModuleNodes(&modulesContext->ListContext, TRUE);
