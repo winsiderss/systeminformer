@@ -31,6 +31,7 @@
 #include <shlobj.h>
 #undef CINTERFACE
 #undef COBJMACROS
+#include <userenv.h>
 #include <winsta.h>
 
 #include <apiimport.h>
@@ -49,16 +50,6 @@ typedef BOOLEAN (NTAPI *_WinStationQueryInformationW)(
     _Out_writes_bytes_(WinStationInformationLength) PVOID WinStationInformation,
     _In_ ULONG WinStationInformationLength,
     _Out_ PULONG ReturnLength
-    );
-
-typedef BOOL (WINAPI *_CreateEnvironmentBlock)(
-    _Out_ LPVOID *lpEnvironment,
-    _In_opt_ HANDLE hToken,
-    _In_ BOOL bInherit
-    );
-
-typedef BOOL (WINAPI *_DestroyEnvironmentBlock)(
-    _In_ LPVOID lpEnvironment
     );
 
 DECLSPEC_SELECTANY WCHAR *PhSizeUnitNames[7] = { L"B", L"kB", L"MB", L"GB", L"TB", L"PB", L"EB" };
@@ -2583,9 +2574,6 @@ NTSTATUS PhCreateProcessAsUser(
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
     static _WinStationQueryInformationW WinStationQueryInformationW_I = NULL;
-    static _CreateEnvironmentBlock CreateEnvironmentBlock_I = NULL;
-    static _DestroyEnvironmentBlock DestroyEnvironmentBlock_I = NULL;
-
     NTSTATUS status;
     HANDLE tokenHandle;
     PVOID defaultEnvironment = NULL;
@@ -2595,14 +2583,9 @@ NTSTATUS PhCreateProcessAsUser(
     if (PhBeginInitOnce(&initOnce))
     {
         HMODULE winsta;
-        HMODULE userEnv;
 
         winsta = LoadLibrary(L"winsta.dll");
         WinStationQueryInformationW_I = PhGetDllBaseProcedureAddress(winsta, "WinStationQueryInformationW", 0);
-
-        userEnv = LoadLibrary(L"userenv.dll");
-        CreateEnvironmentBlock_I = PhGetDllBaseProcedureAddress(userEnv, "CreateEnvironmentBlock", 0);
-        DestroyEnvironmentBlock_I = PhGetDllBaseProcedureAddress(userEnv, "DestroyEnvironmentBlock", 0);
 
         PhEndInitOnce(&initOnce);
     }
@@ -2846,9 +2829,9 @@ NTSTATUS PhCreateProcessAsUser(
 
     if (!Information->Environment)
     {
-        if (CreateEnvironmentBlock_I)
+        if (CreateEnvironmentBlock)
         {
-            CreateEnvironmentBlock_I(&defaultEnvironment, tokenHandle, FALSE);
+            CreateEnvironmentBlock(&defaultEnvironment, tokenHandle, FALSE);
 
             if (defaultEnvironment)
                 Flags |= PH_CREATE_PROCESS_UNICODE_ENVIRONMENT;
@@ -2870,8 +2853,8 @@ NTSTATUS PhCreateProcessAsUser(
 
     if (defaultEnvironment)
     {
-        if (DestroyEnvironmentBlock_I)
-            DestroyEnvironmentBlock_I(defaultEnvironment);
+        if (DestroyEnvironmentBlock)
+            DestroyEnvironmentBlock(defaultEnvironment);
     }
 
     NtClose(tokenHandle);

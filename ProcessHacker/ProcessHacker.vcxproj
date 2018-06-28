@@ -22,7 +22,7 @@
     <ProjectGuid>{0271DD27-6707-4290-8DFE-285702B7115D}</ProjectGuid>
     <RootNamespace>ProcessHacker</RootNamespace>
     <Keyword>Win32Proj</Keyword>
-    <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
@@ -106,14 +106,14 @@
       <StringPooling>true</StringPooling>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>aclui.lib;comctl32.lib;iphlpapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;uxtheme.lib;version.lib;wbemuuid.lib;windowscodecs.lib;winsta.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>aclui.lib;comctl32.lib;iphlpapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;userenv.lib;uxtheme.lib;version.lib;wbemuuid.lib;windowscodecs.lib;winsta.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <TargetMachine>MachineX86</TargetMachine>
       <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
       <AdditionalLibraryDirectories>$(SolutionDir)phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ModuleDefinitionFile>ProcessHacker.def</ModuleDefinitionFile>
-      <DelayLoadDLLs>aclui.dll;comdlg32.dll;iphlpapi.dll;winsta.dll;ws2_32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>aclui.dll;comdlg32.dll;iphlpapi.dll;userenv.dll;winsta.dll;ws2_32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
     <ResourceCompile>
       <PreprocessorDefinitions>_UNICODE;UNICODE;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
@@ -138,14 +138,14 @@
       <StringPooling>true</StringPooling>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>aclui.lib;comctl32.lib;iphlpapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;uxtheme.lib;version.lib;wbemuuid.lib;windowscodecs.lib;winsta.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>aclui.lib;comctl32.lib;iphlpapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;userenv.lib;uxtheme.lib;version.lib;wbemuuid.lib;windowscodecs.lib;winsta.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <TargetMachine>MachineX64</TargetMachine>
       <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
       <AdditionalLibraryDirectories>$(SolutionDir)phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ModuleDefinitionFile>ProcessHacker.def</ModuleDefinitionFile>
-      <DelayLoadDLLs>aclui.dll;comdlg32.dll;iphlpapi.dll;winsta.dll;ws2_32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>aclui.dll;comdlg32.dll;iphlpapi.dll;userenv.dll;winsta.dll;ws2_32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
     <ResourceCompile>
       <PreprocessorDefinitions>_UNICODE;UNICODE;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
@@ -175,7 +175,7 @@
       <ControlFlowGuard>Guard</ControlFlowGuard>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>aclui.lib;comctl32.lib;iphlpapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;uxtheme.lib;version.lib;wbemuuid.lib;windowscodecs.lib;winsta.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>aclui.lib;comctl32.lib;iphlpapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;userenv.lib;uxtheme.lib;version.lib;wbemuuid.lib;windowscodecs.lib;winsta.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -184,7 +184,7 @@
       <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
       <AdditionalLibraryDirectories>$(SolutionDir)phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ModuleDefinitionFile>ProcessHacker.def</ModuleDefinitionFile>
-      <DelayLoadDLLs>aclui.dll;comdlg32.dll;iphlpapi.dll;winsta.dll;ws2_32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>aclui.dll;comdlg32.dll;iphlpapi.dll;userenv.dll;winsta.dll;ws2_32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <GenerateDebugInformation>$(ExternalDebugOptions)</GenerateDebugInformation>
     </Link>
     <ResourceCompile>
@@ -213,7 +213,7 @@
       <ControlFlowGuard>Guard</ControlFlowGuard>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>aclui.lib;comctl32.lib;iphlpapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;uxtheme.lib;version.lib;wbemuuid.lib;windowscodecs.lib;winsta.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>aclui.lib;comctl32.lib;iphlpapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;userenv.lib;uxtheme.lib;version.lib;wbemuuid.lib;windowscodecs.lib;winsta.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -222,7 +222,7 @@
       <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
       <AdditionalLibraryDirectories>$(SolutionDir)phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ModuleDefinitionFile>ProcessHacker.def</ModuleDefinitionFile>
-      <DelayLoadDLLs>aclui.dll;comdlg32.dll;iphlpapi.dll;winsta.dll;ws2_32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>aclui.dll;comdlg32.dll;iphlpapi.dll;userenv.dll;winsta.dll;ws2_32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <GenerateDebugInformation>$(ExternalDebugOptions)</GenerateDebugInformation>
     </Link>
     <ResourceCompile>
