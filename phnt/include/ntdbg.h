@@ -21,6 +21,102 @@
 #ifndef _NTDBG_H
 #define _NTDBG_H
 
+// Debugging
+
+NTSYSAPI
+VOID
+NTAPI
+DbgUserBreakPoint(
+    VOID
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+DbgBreakPoint(
+    VOID
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+DbgBreakPointWithStatus(
+    _In_ ULONG Status
+    );
+
+#define DBG_STATUS_CONTROL_C 1
+#define DBG_STATUS_SYSRQ 2
+#define DBG_STATUS_BUGCHECK_FIRST 3
+#define DBG_STATUS_BUGCHECK_SECOND 4
+#define DBG_STATUS_FATAL 5
+#define DBG_STATUS_DEBUG_CONTROL 6
+#define DBG_STATUS_WORKER 7
+
+NTSYSAPI
+ULONG
+STDAPIVCALLTYPE
+DbgPrint(
+    _In_z_ _Printf_format_string_ PSTR Format,
+    ...
+    );
+
+NTSYSAPI
+ULONG
+STDAPIVCALLTYPE
+DbgPrintEx(
+    _In_ ULONG ComponentId,
+    _In_ ULONG Level,
+    _In_z_ _Printf_format_string_ PSTR Format,
+    ...
+    );
+
+NTSYSAPI
+ULONG
+NTAPI
+vDbgPrintEx(
+    _In_ ULONG ComponentId,
+    _In_ ULONG Level,
+    _In_z_ PCH Format,
+    _In_ va_list arglist
+    );
+
+NTSYSAPI
+ULONG
+NTAPI
+vDbgPrintExWithPrefix(
+    _In_z_ PCH Prefix,
+    _In_ ULONG ComponentId,
+    _In_ ULONG Level,
+    _In_z_ PCH Format,
+    _In_ va_list arglist
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+DbgQueryDebugFilterState(
+    _In_ ULONG ComponentId,
+    _In_ ULONG Level
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+DbgSetDebugFilterState(
+    _In_ ULONG ComponentId,
+    _In_ ULONG Level,
+    _In_ BOOLEAN State
+    );
+
+NTSYSAPI
+ULONG
+NTAPI
+DbgPrompt(
+    _In_ PCH Prompt,
+    _Out_writes_bytes_(Length) PCH Response,
+    _In_ ULONG Length
+    );
+
 // Definitions
 
 typedef struct _DBGKM_EXCEPTION
@@ -113,8 +209,6 @@ typedef struct _DBGUI_WAIT_STATE_CHANGE
     } StateInfo;
 } DBGUI_WAIT_STATE_CHANGE, *PDBGUI_WAIT_STATE_CHANGE;
 
-// System calls
-
 #define DEBUG_READ_EVENT 0x0001
 #define DEBUG_PROCESS_ASSIGN 0x0002
 #define DEBUG_SET_INFORMATION 0x0004
@@ -131,6 +225,8 @@ typedef enum _DEBUGOBJECTINFOCLASS
     DebugObjectKillProcessOnExitInformation,
     MaxDebugObjectInfoClass
 } DEBUGOBJECTINFOCLASS, *PDEBUGOBJECTINFOCLASS;
+
+// System calls
 
 NTSYSCALLAPI
 NTSTATUS
@@ -255,14 +351,12 @@ DbgUiIssueRemoteBreakin(
     _In_ HANDLE Process
     );
 
-struct _DEBUG_EVENT;
-
 NTSYSAPI
 NTSTATUS
 NTAPI
 DbgUiConvertStateChangeStructure(
     _In_ PDBGUI_WAIT_STATE_CHANGE StateChange,
-    _Out_ struct _DEBUG_EVENT *DebugEvent
+    _Out_ LPDEBUG_EVENT DebugEvent
     );
 
 struct _EVENT_FILTER_DESCRIPTOR;

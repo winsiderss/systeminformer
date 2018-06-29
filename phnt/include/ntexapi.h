@@ -265,6 +265,27 @@ NtSetDriverEntryOrder(
     _In_ ULONG Count
     );
 
+typedef enum _FILTER_BOOT_OPTION_OPERATION
+{
+    FilterBootOptionOperationOpenSystemStore,
+    FilterBootOptionOperationSetElement,
+    FilterBootOptionOperationDeleteElement,
+    FilterBootOptionOperationMax
+} FILTER_BOOT_OPTION_OPERATION;
+
+#if (PHNT_VERSION >= PHNT_THRESHOLD)
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtFilterBootOption(
+    _In_ FILTER_BOOT_OPTION_OPERATION FilterOperation,
+    _In_ ULONG ObjectType,
+    _In_ ULONG ElementType,
+    _In_reads_bytes_opt_(DataSize) PVOID Data,
+    _In_ ULONG DataSize
+    );
+#endif
+
 #endif
 
 // Event
@@ -1386,7 +1407,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemHardwareSecurityTestInterfaceResultsInformation,
     SystemSingleModuleInformation, // q: SYSTEM_SINGLE_MODULE_INFORMATION
     SystemAllowedCpuSetsInformation,
-    SystemDmaProtectionInformation, // q: SYSTEM_DMA_PROTECTION_INFORMATION
+    SystemVsmProtectionInformation, // q: SYSTEM_VSM_PROTECTION_INFORMATION (previously SystemDmaProtectionInformation)
     SystemInterruptCpuSetsInformation, // q: SYSTEM_INTERRUPT_CPU_SET_INFORMATION // 170
     SystemSecureBootPolicyFullInformation, // q: SYSTEM_SECUREBOOT_POLICY_FULL_INFORMATION
     SystemCodeIntegrityPolicyFullInformation,
@@ -2954,11 +2975,12 @@ typedef struct _SYSTEM_TPM_INFORMATION
 } SYSTEM_TPM_INFORMATION, *PSYSTEM_TPM_INFORMATION;
 
 // private
-typedef struct _SYSTEM_DMA_PROTECTION_INFORMATION
+typedef struct _SYSTEM_VSM_PROTECTION_INFORMATION
 {
     BOOLEAN DmaProtectionsAvailable;
     BOOLEAN DmaProtectionsInUse;
-} SYSTEM_DMA_PROTECTION_INFORMATION, *PSYSTEM_DMA_PROTECTION_INFORMATION;
+    BOOLEAN HardwareMbecAvailable; // REDSTONE4 (CVE-2018-3639)
+} SYSTEM_VSM_PROTECTION_INFORMATION, *PSYSTEM_VSM_PROTECTION_INFORMATION;
 
 // private
 typedef struct _SYSTEM_CODEINTEGRITYPOLICY_INFORMATION
@@ -2977,6 +2999,7 @@ typedef struct _SYSTEM_ISOLATED_USER_MODE_INFORMATION
     BOOLEAN HvciStrictMode : 1;
     BOOLEAN DebugEnabled : 1;
     BOOLEAN FirmwarePageProtection : 1;
+    BOOLEAN EncryptionKeyAvailable : 1;
     BOOLEAN SpareFlags : 1;
     BOOLEAN TrustletRunning : 1;
     BOOLEAN SpareFlags2 : 1;
@@ -3204,7 +3227,12 @@ typedef struct _SYSTEM_SPECULATION_CONTROL_INFORMATION
             ULONG IbrsPresent : 1;
             ULONG StibpPresent : 1;
             ULONG SmepPresent : 1;
-            ULONG Reserved : 24;
+            ULONG MemoryDisambiguationDisableAvailable : 1; // REDSTONE4 (CVE-2018-3639)
+            ULONG MemoryDisambiguationDisableSupported : 1;
+            ULONG MemoryDisambiguationDisabledSystemWide : 1;
+            ULONG MemoryDisambiguationDisabledKernel : 1;
+            ULONG MemoryDisambiguationDisableRequired : 1;
+            ULONG Reserved : 19;
         };
     };
 } SYSTEM_SPECULATION_CONTROL_INFORMATION, *PSYSTEM_SPECULATION_CONTROL_INFORMATION;

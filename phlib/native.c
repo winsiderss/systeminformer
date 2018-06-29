@@ -2041,6 +2041,18 @@ NTSTATUS PhGetTokenPrivileges(
         );
 }
 
+NTSTATUS PhGetTokenTrustLevel(
+    _In_ HANDLE TokenHandle,
+    _Out_ PTOKEN_PROCESS_TRUST_LEVEL *TrustLevel
+    )
+{
+    return PhpQueryTokenVariableSize(
+        TokenHandle,
+        TokenProcessTrustLevel,
+        TrustLevel
+        );
+}
+
 NTSTATUS PhSetTokenSessionId(
     _In_ HANDLE TokenHandle,
     _In_ ULONG SessionId

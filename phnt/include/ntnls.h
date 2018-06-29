@@ -47,4 +47,8 @@ typedef struct _NLSTABLEINFO
     PUSHORT LowerCaseTable;
 } NLSTABLEINFO, *PNLSTABLEINFO;
 
+NTSYSAPI USHORT NlsAnsiCodePage;
+NTSYSAPI BOOLEAN NlsMbCodePageTag;
+NTSYSAPI BOOLEAN NlsMbOemCodePageTag;
+
 #endif
