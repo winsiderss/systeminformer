@@ -43,7 +43,7 @@ mxmlElementDeleteAttr(mxml_node_t *node,/* I - Element */
   mxml_attr_t	*attr;			/* Cirrent attribute */
 
 
-#ifdef DEBUG
+#ifdef MXMLDEBUG
   fprintf(stderr, "mxmlElementDeleteAttr(node=%p, name=\"%s\")\n",
           node, name ? name : "(null)");
 #endif /* DEBUG */
@@ -63,7 +63,7 @@ mxmlElementDeleteAttr(mxml_node_t *node,/* I - Element */
        i > 0;
        i --, attr ++)
   {
-#ifdef DEBUG
+#ifdef MXMLDEBUG
     printf("    %s=\"%s\"\n", attr->name, attr->value);
 #endif /* DEBUG */
 
@@ -105,7 +105,7 @@ mxmlElementGetAttr(mxml_node_t *node,	/* I - Element node */
   mxml_attr_t	*attr;			/* Cirrent attribute */
 
 
-#ifdef DEBUG
+#ifdef MXMLDEBUG
   fprintf(stderr, "mxmlElementGetAttr(node=%p, name=\"%s\")\n",
           node, name ? name : "(null)");
 #endif /* DEBUG */
@@ -125,13 +125,13 @@ mxmlElementGetAttr(mxml_node_t *node,	/* I - Element node */
        i > 0;
        i --, attr ++)
   {
-#ifdef DEBUG
+#ifdef MXMLDEBUG
     printf("    %s=\"%s\"\n", attr->name, attr->value);
 #endif /* DEBUG */
 
     if (!strcmp(attr->name, name))
     {
-#ifdef DEBUG
+#ifdef MXMLDEBUG
       printf("    Returning \"%s\"!\n", attr->value);
 #endif /* DEBUG */
       return (attr->value);
@@ -142,7 +142,7 @@ mxmlElementGetAttr(mxml_node_t *node,	/* I - Element node */
   * Didn't find attribute, so return NULL...
   */
 
-#ifdef DEBUG
+#ifdef MXMLDEBUG
   puts("    Returning NULL!\n");
 #endif /* DEBUG */
 
@@ -209,7 +209,7 @@ mxmlElementSetAttr(mxml_node_t *node,	/* I - Element node */
   char	*valuec;			/* Copy of value */
 
 
-#ifdef DEBUG
+#ifdef MXMLDEBUG
   fprintf(stderr, "mxmlElementSetAttr(node=%p, name=\"%s\", value=\"%s\")\n",
           node, name ? name : "(null)", value ? value : "(null)");
 #endif /* DEBUG */
@@ -252,7 +252,7 @@ mxmlElementSetAttrf(mxml_node_t *node,	/* I - Element node */
   char		*value;			/* Value */
 
 
-#ifdef DEBUG
+#ifdef MXMLDEBUG
   fprintf(stderr,
           "mxmlElementSetAttrf(node=%p, name=\"%s\", format=\"%s\", ...)\n",
           node, name ? name : "(null)", format ? format : "(null)");
