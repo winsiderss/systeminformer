@@ -128,7 +128,6 @@ VOID PhpSetDefaultTaskManager(
 
 static HWND PhOptionsWindowHandle = NULL;
 static PH_EVENT PhOptionsWindowInitializedEvent = PH_EVENT_INIT;
-static PPH_LIST PhOptionsDialogList = NULL;
 static PH_LAYOUT_MANAGER WindowLayoutManager;
 
 static PPH_LIST SectionList = NULL;
@@ -166,42 +165,23 @@ VOID PhShowOptionsDialog(
     }
     else
     {
-        DialogBox(
-            PhInstanceHandle,
-            MAKEINTRESOURCE(IDD_OPTIONS),
-            ParentWindowHandle,
-            PhOptionsDialogProc
-            );
-
-        PhUpdateCachedSettings();
-        ProcessHacker_SaveAllSettings(PhMainWndHandle);
-        PhInvalidateAllProcessNodes();
-        PhReloadSettingsProcessTreeList();
-        PhSiNotifyChangeSettings();
-
-        if (RestartRequired)
+        if (!PhOptionsWindowHandle)
         {
-            if (PhShowMessage2(
-                PhMainWndHandle,
-                TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
-                TD_INFORMATION_ICON,
-                L"One or more options you have changed requires a restart of Process Hacker.",
-                L"Do you want to restart Process Hacker now?"
-                ) == IDYES)
-            {
-                ProcessHacker_PrepareForEarlyShutdown(PhMainWndHandle);
-                PhShellProcessHacker(
-                    PhMainWndHandle,
-                    L"-v",
-                    SW_SHOW,
-                    0,
-                    PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
-                    0,
-                    NULL
-                    );
-                ProcessHacker_Destroy(PhMainWndHandle);
-            }
+            PhOptionsWindowHandle = CreateDialog(
+                PhInstanceHandle,
+                MAKEINTRESOURCE(IDD_OPTIONS),
+                NULL,
+                PhOptionsDialogProc
+                );
+
+            PhRegisterDialog(PhOptionsWindowHandle);
+            ShowWindow(PhOptionsWindowHandle, SW_SHOW);
         }
+
+        if (IsIconic(PhOptionsWindowHandle))
+            ShowWindow(PhOptionsWindowHandle, SW_RESTORE);
+        else
+            SetForegroundWindow(PhOptionsWindowHandle);
     }
 }
 
@@ -267,18 +247,18 @@ static PPH_OPTIONS_SECTION PhpTreeViewGetSelectedSection(
     _In_ HTREEITEM SelectedTreeItem
     )
 {
-    TVITEM tvItem;
+    TVITEM item;
 
     if (!SelectedTreeItem)
         return NULL;
 
-    tvItem.mask = TVIF_PARAM | TVIF_HANDLE;
-    tvItem.hItem = SelectedTreeItem;
+    item.mask = TVIF_PARAM | TVIF_HANDLE;
+    item.hItem = SelectedTreeItem;
 
-    if (!TreeView_GetItem(OptionsTreeControl, &tvItem))
+    if (!TreeView_GetItem(OptionsTreeControl, &item))
         return NULL;
 
-    return (PPH_OPTIONS_SECTION)tvItem.lParam;
+    return (PPH_OPTIONS_SECTION)item.lParam;
 }
 
 INT_PTR CALLBACK PhOptionsDialogProc(
@@ -292,16 +272,12 @@ INT_PTR CALLBACK PhOptionsDialogProc(
     {
     case WM_INITDIALOG:
         {
-            PhOptionsWindowHandle = hwndDlg;
-
-            SendMessage(PhOptionsWindowHandle, WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
-            SendMessage(PhOptionsWindowHandle, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
-
-            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+            SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
+            SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
 
             OptionsTreeImageList = ImageList_Create(2, 22, ILC_COLOR, 1, 1);
-            OptionsTreeControl = GetDlgItem(PhOptionsWindowHandle, IDC_SECTIONTREE);
-            ContainerControl = GetDlgItem(PhOptionsWindowHandle, IDD_CONTAINER);
+            OptionsTreeControl = GetDlgItem(hwndDlg, IDC_SECTIONTREE);
+            ContainerControl = GetDlgItem(hwndDlg, IDD_CONTAINER);
 
             PhSetWindowStyle(GetDlgItem(hwndDlg, IDC_SEPARATOR), SS_OWNERDRAW, SS_OWNERDRAW);
 
@@ -310,14 +286,14 @@ INT_PTR CALLBACK PhOptionsDialogProc(
             TreeView_SetImageList(OptionsTreeControl, OptionsTreeImageList, TVSIL_NORMAL);
             TreeView_SetBkColor(OptionsTreeControl, GetSysColor(COLOR_3DFACE));
 
-            PhInitializeLayoutManager(&WindowLayoutManager, PhOptionsWindowHandle);
+            PhInitializeLayoutManager(&WindowLayoutManager, hwndDlg);
             PhAddLayoutItem(&WindowLayoutManager, OptionsTreeControl, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_SEPARATOR), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&WindowLayoutManager, ContainerControl, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
-            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(PhOptionsWindowHandle, IDC_RESET), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
-            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(PhOptionsWindowHandle, IDC_CLEANUP), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
-            //PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(PhOptionsWindowHandle, IDC_APPLY), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
-            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(PhOptionsWindowHandle, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_RESET), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_CLEANUP), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
+            //PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_APPLY), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
             {
                 PPH_OPTIONS_SECTION section;
@@ -334,7 +310,7 @@ INT_PTR CALLBACK PhOptionsDialogProc(
                 {
                     PH_PLUGIN_OPTIONS_POINTERS pointers;
 
-                    pointers.WindowHandle = PhOptionsWindowHandle;
+                    pointers.WindowHandle = hwndDlg;
                     pointers.CreateSection = PhOptionsCreateSection;
                     pointers.FindSection = PhOptionsFindSection;
                     pointers.EnterSectionView = PhOptionsEnterSectionView;
@@ -344,15 +320,22 @@ INT_PTR CALLBACK PhOptionsDialogProc(
 
                 PhOptionsEnterSectionView(section);
                 PhOptionsOnSize();
-
-                EnableThemeDialogTexture(ContainerControl, ETDT_ENABLETAB);
             }
+
+            PhCenterWindow(hwndDlg, PhMainWndHandle);
+            PhLoadWindowPlacementFromSetting(L"OptionsWindowPosition", L"OptionsWindowSize", hwndDlg);
+
+            EnableThemeDialogTexture(ContainerControl, ETDT_ENABLETAB);
         }
         break;
-    case WM_NCDESTROY:
+    case WM_DESTROY:
         {
             ULONG i;
             PPH_OPTIONS_SECTION section;
+
+            PhSaveWindowPlacementToSetting(L"OptionsWindowPosition", L"OptionsWindowSize", hwndDlg);
+
+            PhDeleteLayoutManager(&WindowLayoutManager);
 
             for (i = 0; i < SectionList->Count; i++)
             {
@@ -363,9 +346,10 @@ INT_PTR CALLBACK PhOptionsDialogProc(
             PhDereferenceObject(SectionList);
             SectionList = NULL;
 
-            ImageList_Destroy(OptionsTreeImageList);
+            if (OptionsTreeImageList) ImageList_Destroy(OptionsTreeImageList);
 
-            PhDeleteLayoutManager(&WindowLayoutManager);
+            PhUnregisterDialog(PhOptionsWindowHandle);
+            PhOptionsWindowHandle = NULL;
         }
         break;
     case WM_SIZE:
@@ -379,7 +363,9 @@ INT_PTR CALLBACK PhOptionsDialogProc(
             {
             case IDCANCEL:
             case IDOK:
-                EndDialog(hwndDlg, IDOK);
+                {
+                    DestroyWindow(hwndDlg);
+                }
                 break;
             case IDC_RESET:
                 {
@@ -431,7 +417,7 @@ INT_PTR CALLBACK PhOptionsDialogProc(
     case WM_DRAWITEM:
         {
             PDRAWITEMSTRUCT drawInfo = (PDRAWITEMSTRUCT)lParam;
-            
+
             if (drawInfo->CtlID == IDC_SEPARATOR)
             {
                 RECT rect;
@@ -455,7 +441,7 @@ INT_PTR CALLBACK PhOptionsDialogProc(
                 {
                     LPNMTREEVIEW treeview = (LPNMTREEVIEW)lParam;
                     PPH_OPTIONS_SECTION section;
- 
+
                     if (section = PhpTreeViewGetSelectedSection(treeview->itemNew.hItem))
                     {
                         PhOptionsEnterSectionView(section);
@@ -515,11 +501,8 @@ PPH_OPTIONS_SECTION PhOptionsCreateSection(
 {
     PPH_OPTIONS_SECTION section;
 
-    section = PhAllocate(sizeof(PH_OPTIONS_SECTION));
-    memset(section, 0, sizeof(PH_OPTIONS_SECTION));
-
+    section = PhAllocateZero(sizeof(PH_OPTIONS_SECTION));
     PhInitializeStringRefLongHint(&section->Name, Name);
-
     section->Instance = Instance;
     section->Template = Template;
     section->DialogProc = DialogProc;
@@ -541,11 +524,8 @@ PPH_OPTIONS_SECTION PhOptionsCreateSectionAdvanced(
 {
     PPH_OPTIONS_SECTION section;
 
-    section = PhAllocate(sizeof(PH_OPTIONS_SECTION));
-    memset(section, 0, sizeof(PH_OPTIONS_SECTION));
-
+    section = PhAllocateZero(sizeof(PH_OPTIONS_SECTION));
     PhInitializeStringRefLongHint(&section->Name, Name);
-
     section->Instance = Instance;
     section->Template = Template;
     section->DialogProc = DialogProc;
@@ -961,8 +941,8 @@ typedef enum _PHP_OPTIONS_INDEX
 } PHP_OPTIONS_GENERAL_INDEX;
 
 VOID PhpSetListViewItemState(
-    _In_ HWND ListViewHandle, 
-    _In_ INT Index, 
+    _In_ HWND ListViewHandle,
+    _In_ INT Index,
     _In_ BOOLEAN Hide
     )
 {
@@ -1035,6 +1015,41 @@ static VOID PhpAdvancedPageLoad(
     }
 }
 
+static VOID PhpOptionsNotifyChangeCallback(
+    _In_ PVOID Context
+    )
+{
+    PhUpdateCachedSettings();
+    ProcessHacker_SaveAllSettings(PhMainWndHandle);
+    PhInvalidateAllProcessNodes();
+    PhReloadSettingsProcessTreeList();
+    PhSiNotifyChangeSettings();
+
+    if (RestartRequired)
+    {
+        if (PhShowMessage2(
+            PhMainWndHandle,
+            TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
+            TD_INFORMATION_ICON,
+            L"One or more options you have changed requires a restart of Process Hacker.",
+            L"Do you want to restart Process Hacker now?"
+            ) == IDYES)
+        {
+            ProcessHacker_PrepareForEarlyShutdown(PhMainWndHandle);
+            PhShellProcessHacker(
+                PhMainWndHandle,
+                L"-v",
+                SW_SHOW,
+                0,
+                PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
+                0,
+                NULL
+                );
+            ProcessHacker_Destroy(PhMainWndHandle);
+        }
+    }
+}
+
 static VOID PhpAdvancedPageSave(
     _In_ HWND hwndDlg
     )
@@ -1088,6 +1103,8 @@ static VOID PhpAdvancedPageSave(
         ListView_GetCheckState(listViewHandle, PHP_OPTIONS_INDEX_START_ATLOGON) == BST_CHECKED,
         ListView_GetCheckState(listViewHandle, PHP_OPTIONS_INDEX_START_HIDDEN) == BST_CHECKED
         );
+
+    ProcessHacker_Invoke(PhMainWndHandle, PhpOptionsNotifyChangeCallback, NULL);
 }
 
 static NTSTATUS PhpElevateAdvancedThreadStart(
@@ -1267,45 +1284,6 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
         {
             LPNMHDR header = (LPNMHDR)lParam;
 
-            //if (header->code == LVN_ITEMCHANGING)
-            //{
-            //    LPNM_LISTVIEW listView = (LPNM_LISTVIEW)lParam;
-            //
-            //    if (listView->uChanged & LVIF_STATE)
-            //    {
-            //        switch (listView->uNewState & LVIS_STATEIMAGEMASK)
-            //        {
-            //        case INDEXTOSTATEIMAGEMASK(2): // checked
-            //            {
-            //                switch (listView->iItem)
-            //                {
-            //                case PHP_OPTIONS_INDEX_SHOW_ADVANCED_OPTIONS:
-            //                    {
-            //                        if (PhShowMessage2(
-            //                            PhOptionsWindowHandle,
-            //                            TDCBF_OK_BUTTON | TDCBF_CANCEL_BUTTON,
-            //                            TD_WARNING_ICON,
-            //                            L"WARNING",
-            //                            L"DO NOT change advanced settings unless you know what you're doing..."
-            //                            ) == IDOK)
-            //                        {
-            //                            SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, FALSE);
-            //                            return FALSE;
-            //                        }
-            //                        else
-            //                        {
-            //                            SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, TRUE);
-            //                            return TRUE;
-            //                        }   
-            //                    }
-            //                    break;
-            //                }
-            //            }
-            //            break;
-            //        }
-            //    }
-            //}
-
             switch (header->code)
             {
             case NM_CLICK:
@@ -1461,7 +1439,7 @@ static INT_PTR CALLBACK PhpOptionsAdvancedEditDlgProc(
 
             SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
             SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
-            
+
             SetWindowText(hwndDlg, L"Setting Editor");
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
