@@ -785,9 +785,14 @@ static BOOLEAN PhpShowContinueMessageProcesses(
     for (i = 0; i < NumberOfProcesses; i++)
     {
         HANDLE processHandle;
-        ULONG breakOnTermination;
+        ULONG breakOnTermination = 0;
 
-        breakOnTermination = 0;
+        if (PhpIsDangerousProcess(Processes[i]->ProcessId))
+        {
+            critical = TRUE;
+            dangerous = TRUE;
+            break;
+        }
 
         if (NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_INFORMATION, Processes[i]->ProcessId)))
         {
@@ -798,12 +803,6 @@ static BOOLEAN PhpShowContinueMessageProcesses(
         if (breakOnTermination != 0)
         {
             critical = TRUE;
-            dangerous = TRUE;
-            break;
-        }
-
-        if (PhpIsDangerousProcess(Processes[i]->ProcessId))
-        {
             dangerous = TRUE;
             break;
         }
