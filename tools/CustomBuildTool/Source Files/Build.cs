@@ -982,7 +982,6 @@ namespace CustomBuildTool
                 return;
             if (string.IsNullOrEmpty(projectName))
                 return;
-
             if (string.IsNullOrEmpty(BuildVersion))
                 return;
             if (string.IsNullOrEmpty(BuildSetupHash))
@@ -1002,17 +1001,17 @@ namespace CustomBuildTool
                 Commit = BuildCommit,
                 Updated = TimeStart.ToString("o"),
 
-                BinUrl = $"//ci.appveyor.com/api/projects/{accountName}/{projectName}/artifacts/processhacker-{BuildVersion}-bin.zip",
+                BinUrl = $"https://ci.appveyor.com/api/projects/{accountName}/{projectName}/artifacts/processhacker-{BuildVersion}-bin.zip",
                 BinLength = BuildBinFileLength.ToString(),
                 BinHash = BuildBinHash,
                 BinSig = BuildBinSig,
 
-                SetupUrl = $"//ci.appveyor.com/api/projects/{accountName}/{projectName}/artifacts/processhacker-{BuildVersion}-setup.exe",
+                SetupUrl = $"https://ci.appveyor.com/api/projects/{accountName}/{projectName}/artifacts/processhacker-{BuildVersion}-setup.exe",
                 SetupLength = BuildSetupFileLength.ToString(),
                 SetupHash = BuildSetupHash,
                 SetupSig = BuildSetupSig,
 
-                //WebSetupUrl = "//ci.appveyor.com/api/projects/{accountName}/{projectName}/artifacts/processhacker-websetup.exe",
+                //WebSetupUrl = "https://ci.appveyor.com/api/projects/{accountName}/{projectName}/artifacts/processhacker-websetup.exe",
                 //WebSetupHash = BuildWebSetupHash,
                 //WebSetupVersion = BuildWebSetupVersion,
                 //WebSetupSig = BuildWebSetupSig,
