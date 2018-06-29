@@ -53,6 +53,9 @@ typedef struct _PH_MODULE_NODE
     PPH_STRING LoadTimeText;
     PPH_STRING FileModifiedTimeText;
     PPH_STRING FileSizeText;
+
+    struct _PH_MODULE_NODE *Parent;
+    PPH_LIST Children;
 // begin_phapppub
 } PH_MODULE_NODE, *PPH_MODULE_NODE;
 // end_phapppub
@@ -97,6 +100,7 @@ typedef struct _PH_MODULE_LIST_CONTEXT
 
     PPH_HASHTABLE NodeHashtable;
     PPH_LIST NodeList;
+    PPH_LIST NodeRootList;
     PPH_POINTER_LIST NodeStateList;
 
     HFONT BoldFont;

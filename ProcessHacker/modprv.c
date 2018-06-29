@@ -148,6 +148,16 @@ PPH_MODULE_PROVIDER PhCreateModuleProvider(
         {
             moduleProvider->IsSubsystemProcess = !!basicInfo.IsSubsystemProcess;
         }
+
+        if (moduleProvider->IsSubsystemProcess)
+        {
+            PPH_STRING fileName;
+
+            if (NT_SUCCESS(PhGetProcessImageFileNameByProcessId(ProcessId, &fileName)))
+            {
+                PhMoveReference(&moduleProvider->FileName, PhGetFileName(fileName));
+            }
+        }
     }
 
     RtlInitializeSListHead(&moduleProvider->QueryListHead);
@@ -386,7 +396,7 @@ VOID PhModuleProviderUpdate(
     if (!moduleProvider->ProcessHandle && moduleProvider->ProcessId != SYSTEM_PROCESS_ID)
         goto UpdateExit;
 
-    modules = PhCreateList(20);
+    modules = PhCreateList(100);
 
     moduleProvider->RunStatus = PhEnumGenericModules(
         moduleProvider->ProcessId,
@@ -502,15 +512,26 @@ VOID PhModuleProviderUpdate(
 
             PhInitializeImageVersionInfo(&moduleItem->VersionInfo, moduleItem->FileName->Buffer);
 
-            moduleItem->IsFirst = i == 0;
-
             if (moduleProvider->IsSubsystemProcess)
             {
                 // HACK: Update the module type. (TODO: Move into PhEnumGenericModules) (dmex)
                 moduleItem->Type = PH_MODULE_TYPE_ELF_MAPPED_IMAGE;
+
+                if (!moduleProvider->HaveFirst)
+                {
+                    if (PhEqualString(moduleItem->FileName, moduleProvider->FileName, TRUE))
+                    {
+                        moduleItem->IsFirst = TRUE;
+                        moduleProvider->HaveFirst = TRUE;
+                    }
+                }
             }
             else
             {
+                // TODO: Linux process modules are loaded in order of the ELF symbol table dependancy graph
+                // with the primary executable/shared object as the last entry (dmex)
+                moduleItem->IsFirst = i == 0;
+
                 // Fix up the load count. If this is not an ordinary DLL or kernel module, set the load count to 0.
                 if (moduleItem->Type != PH_MODULE_TYPE_MODULE &&
                     moduleItem->Type != PH_MODULE_TYPE_WOW64_MODULE &&

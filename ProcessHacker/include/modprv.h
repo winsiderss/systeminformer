@@ -8,6 +8,7 @@ extern PPH_OBJECT_TYPE PhModuleItemType;
 typedef struct _PH_MODULE_ITEM
 {
     PVOID BaseAddress;
+    PVOID ParentBaseAddress;
     PVOID EntryPoint;
     ULONG Size;
     ULONG Flags;
@@ -18,11 +19,16 @@ typedef struct _PH_MODULE_ITEM
     PPH_STRING FileName;
     PH_IMAGE_VERSION_INFO VersionInfo;
 
-    WCHAR BaseAddressString[PH_PTR_STR_LEN_1];
-    WCHAR EntryPointAddressString[PH_PTR_STR_LEN_1];
-
-    BOOLEAN IsFirst;
-    BOOLEAN JustProcessed;
+    union
+    {
+        BOOLEAN StateFlags;
+        struct
+        {
+            BOOLEAN JustProcessed : 1;
+            BOOLEAN IsFirst : 1;
+            BOOLEAN Spare : 6;
+        };
+    };
 
     enum _VERIFY_RESULT VerifyResult;
     PPH_STRING VerifySignerName;
@@ -32,12 +38,12 @@ typedef struct _PH_MODULE_ITEM
     USHORT ImageDllCharacteristics;
 
     LARGE_INTEGER LoadTime;
-
     LARGE_INTEGER FileLastWriteTime;
     LARGE_INTEGER FileEndOfFile;
 
-    PVOID ParentBaseAddress;
+    WCHAR BaseAddressString[PH_PTR_STR_LEN_1];
     WCHAR ParentBaseAddressString[PH_PTR_STR_LEN_1];
+    WCHAR EntryPointAddressString[PH_PTR_STR_LEN_1];
 } PH_MODULE_ITEM, *PPH_MODULE_ITEM;
 
 typedef struct _PH_MODULE_PROVIDER
@@ -51,6 +57,7 @@ typedef struct _PH_MODULE_PROVIDER
 
     HANDLE ProcessId;
     HANDLE ProcessHandle;
+    PPH_STRING FileName;
     PPH_STRING PackageFullName;
     SLIST_HEADER QueryListHead;
     NTSTATUS RunStatus;
@@ -60,9 +67,10 @@ typedef struct _PH_MODULE_PROVIDER
         BOOLEAN Flags;
         struct
         {
+            BOOLEAN HaveFirst : 1;
             BOOLEAN ControlFlowGuardEnabled : 1;
             BOOLEAN IsSubsystemProcess : 1;
-            BOOLEAN Spare : 7;
+            BOOLEAN Spare : 5;
         };
     };
 } PH_MODULE_PROVIDER, *PPH_MODULE_PROVIDER;
