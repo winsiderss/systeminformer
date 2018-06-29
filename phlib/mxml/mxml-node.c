@@ -46,7 +46,7 @@ mxmlAdd(mxml_node_t *parent,		/* I - Parent node */
         mxml_node_t *child,		/* I - Child node for where or @code MXML_ADD_TO_PARENT@ */
     mxml_node_t *node)		/* I - Node to add */
 {
-#ifdef DEBUG
+#ifdef MXMLDEBUG
   fprintf(stderr, "mxmlAdd(parent=%p, where=%d, child=%p, node=%p)\n", parent,
           where, child, node);
 #endif /* DEBUG */
@@ -181,7 +181,7 @@ mxmlDelete(mxml_node_t *node)		/* I - Node to delete */
         *next;			/* Next node */
 
 
-#ifdef DEBUG
+#ifdef MXMLDEBUG
   fprintf(stderr, "mxmlDelete(node=%p)\n", node);
 #endif /* DEBUG */
 
@@ -290,7 +290,7 @@ mxmlNewCDATA(mxml_node_t *parent,	/* I - Parent node or @code MXML_NO_PARENT@ */
   mxml_node_t	*node;			/* New node */
 
 
-#ifdef DEBUG
+#ifdef MXMLDEBUG
   fprintf(stderr, "mxmlNewCDATA(parent=%p, data=\"%s\")\n",
           parent, data ? data : "(null)");
 #endif /* DEBUG */
@@ -333,7 +333,7 @@ mxmlNewCustom(
   mxml_node_t	*node;			/* New node */
 
 
-#ifdef DEBUG
+#ifdef MXMLDEBUG
   fprintf(stderr, "mxmlNewCustom(parent=%p, data=%p, destroy=%p)\n", parent,
           data, destroy);
 #endif /* DEBUG */
@@ -367,7 +367,7 @@ mxmlNewElement(mxml_node_t *parent,	/* I - Parent node or @code MXML_NO_PARENT@ 
   mxml_node_t	*node;			/* New node */
 
 
-#ifdef DEBUG
+#ifdef MXMLDEBUG
   fprintf(stderr, "mxmlNewElement(parent=%p, name=\"%s\")\n", parent,
           name ? name : "(null)");
 #endif /* DEBUG */
@@ -405,7 +405,7 @@ mxmlNewInteger(mxml_node_t *parent,	/* I - Parent node or @code MXML_NO_PARENT@ 
   mxml_node_t	*node;			/* New node */
 
 
-#ifdef DEBUG
+#ifdef MXMLDEBUG
   fprintf(stderr, "mxmlNewInteger(parent=%p, integer=%d)\n", parent, integer);
 #endif /* DEBUG */
 
@@ -436,7 +436,7 @@ mxmlNewOpaque(mxml_node_t *parent,	/* I - Parent node or @code MXML_NO_PARENT@ *
   mxml_node_t	*node;			/* New node */
 
 
-#ifdef DEBUG
+#ifdef MXMLDEBUG
   fprintf(stderr, "mxmlNewOpaque(parent=%p, opaque=\"%s\")\n", parent,
           opaque ? opaque : "(null)");
 #endif /* DEBUG */
@@ -477,7 +477,7 @@ mxmlNewOpaquef(mxml_node_t *parent,	/* I - Parent node or @code MXML_NO_PARENT@ 
   va_list	ap;			/* Pointer to arguments */
 
 
-#ifdef DEBUG
+#ifdef MXMLDEBUG
   fprintf(stderr, "mxmlNewOpaquef(parent=%p, format=\"%s\", ...)\n", parent, format ? format : "(null)");
 #endif /* DEBUG */
 
@@ -520,7 +520,7 @@ mxmlNewReal(mxml_node_t *parent,	/* I - Parent node or @code MXML_NO_PARENT@ */
   mxml_node_t	*node;			/* New node */
 
 
-#ifdef DEBUG
+#ifdef MXMLDEBUG
   fprintf(stderr, "mxmlNewReal(parent=%p, real=%g)\n", parent, real);
 #endif /* DEBUG */
 
@@ -553,7 +553,7 @@ mxmlNewText(mxml_node_t *parent,	/* I - Parent node or @code MXML_NO_PARENT@ */
   mxml_node_t	*node;			/* New node */
 
 
-#ifdef DEBUG
+#ifdef MXMLDEBUG
   fprintf(stderr, "mxmlNewText(parent=%p, whitespace=%d, string=\"%s\")\n",
           parent, whitespace, string ? string : "(null)");
 #endif /* DEBUG */
@@ -599,7 +599,7 @@ mxmlNewTextf(mxml_node_t *parent,	/* I - Parent node or @code MXML_NO_PARENT@ */
   va_list	ap;			/* Pointer to arguments */
 
 
-#ifdef DEBUG
+#ifdef MXMLDEBUG
   fprintf(stderr, "mxmlNewTextf(parent=%p, whitespace=%d, format=\"%s\", ...)\n",
           parent, whitespace, format ? format : "(null)");
 #endif /* DEBUG */
@@ -639,7 +639,7 @@ mxmlNewTextf(mxml_node_t *parent,	/* I - Parent node or @code MXML_NO_PARENT@ */
 void
 mxmlRemove(mxml_node_t *node)		/* I - Node to remove */
 {
-#ifdef DEBUG
+#ifdef MXMLDEBUG
   fprintf(stderr, "mxmlRemove(node=%p)\n", node);
 #endif /* DEBUG */
 
