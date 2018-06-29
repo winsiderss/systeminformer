@@ -46,54 +46,6 @@ INT_PTR CALLBACK PhpProcessMitigationPolicyDlgProc(
     _In_ LPARAM lParam
     );
 
-NTSTATUS PhpGetProcessSystemDllInitBlock(
-    _In_ HANDLE ProcessHandle,
-    _Out_ PPS_SYSTEM_DLL_INIT_BLOCK *SystemDllInitBlock
-    )
-{
-    NTSTATUS status;
-    PH_STRINGREF systemRoot;
-    PVOID ldrInitBlockBaseAddress = NULL;
-    PPH_STRING ntdllFileName;
-
-    PhGetSystemRoot(&systemRoot);
-    ntdllFileName = PhConcatStringRefZ(&systemRoot, L"\\System32\\ntdll.dll");
-
-    status = PhGetProcedureAddressRemote(
-        ProcessHandle,
-        ntdllFileName->Buffer,
-        "LdrSystemDllInitBlock",
-        0,
-        &ldrInitBlockBaseAddress,
-        NULL
-        );
-
-    PhDereferenceObject(ntdllFileName);
-
-    if (NT_SUCCESS(status) && ldrInitBlockBaseAddress)
-    {
-        PPS_SYSTEM_DLL_INIT_BLOCK ldrInitBlock;
-
-        ldrInitBlock = PhAllocate(sizeof(PS_SYSTEM_DLL_INIT_BLOCK));
-        memset(ldrInitBlock, 0, sizeof(PS_SYSTEM_DLL_INIT_BLOCK));
-
-        status = NtReadVirtualMemory(
-            ProcessHandle,
-            ldrInitBlockBaseAddress,
-            ldrInitBlock,
-            sizeof(PS_SYSTEM_DLL_INIT_BLOCK),
-            NULL
-            );
-
-        if (NT_SUCCESS(status))
-            *SystemDllInitBlock = ldrInitBlock;
-        else
-            PhFree(ldrInitBlock);
-    }
-
-    return status;
-}
-
 VOID PhShowProcessMitigationPolicyDialog(
     _In_ HWND ParentWindowHandle,
     _In_ HANDLE ProcessId
@@ -110,28 +62,30 @@ VOID PhShowProcessMitigationPolicyDialog(
     memset(&context, 0, sizeof(MITIGATION_POLICY_CONTEXT));
     memset(&context.Entries, 0, sizeof(context.Entries));
 
-    if (NT_SUCCESS(status = PhOpenProcess(
+    // Try to get a handle with query information + vm read access.
+    if (!NT_SUCCESS(status = PhOpenProcess(
         &processHandle,
         PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
         ProcessId
         )))
     {
+        // Try to get a handle with query information.
+        status = PhOpenProcess(
+            &processHandle,
+            PROCESS_QUERY_INFORMATION,
+            ProcessId
+            );
+    }
+
+    if (NT_SUCCESS(status))
+    {
         PPS_SYSTEM_DLL_INIT_BLOCK dllInitBlock;
 
-        if (NT_SUCCESS(PhpGetProcessSystemDllInitBlock(processHandle, &dllInitBlock)))
+        if (NT_SUCCESS(PhGetProcessSystemDllInitBlock(processHandle, &dllInitBlock)))
         {
             context.SystemDllInitBlock = dllInitBlock;
         }
 
-        NtClose(processHandle);
-    }
-
-    if (NT_SUCCESS(status = PhOpenProcess(
-        &processHandle,
-        PROCESS_QUERY_INFORMATION,
-        ProcessId
-        )))
-    {
         if (NT_SUCCESS(PhGetProcessMitigationPolicy(processHandle, &information)))
         {
             for (policy = 0; policy < MaxProcessMitigationPolicy; policy++)
@@ -170,7 +124,7 @@ VOID PhShowProcessMitigationPolicyDialog(
     }
     else
     {
-        PhShowStatus(ParentWindowHandle, L"Unable to open the process", status, 0);
+        PhShowStatus(ParentWindowHandle, L"Unable to open the process.", status, 0);
     }
 }
 
@@ -227,7 +181,7 @@ INT_PTR CALLBACK PhpProcessMitigationPolicyDlgProc(
 
             if (context->SystemDllInitBlock && RTL_CONTAINS_FIELD(context->SystemDllInitBlock, context->SystemDllInitBlock->Size, MitigationOptionsMap))
             {
-                if (context->SystemDllInitBlock->MitigationOptionsMap.Map[1] & PROCESS_CREATION_MITIGATION_POLICY2_LOADER_INTEGRITY_CONTINUITY_ALWAYS_ON)
+                if (context->SystemDllInitBlock->MitigationOptionsMap.Map[0] & PROCESS_CREATION_MITIGATION_POLICY2_LOADER_INTEGRITY_CONTINUITY_ALWAYS_ON)
                 {
                     PMITIGATION_POLICY_ENTRY entry;
 
@@ -239,7 +193,7 @@ INT_PTR CALLBACK PhpProcessMitigationPolicyDlgProc(
                     PhAddListViewItem(lvHandle, MAXINT, entry->ShortDescription->Buffer, entry);
                 }
 
-                if (context->SystemDllInitBlock->MitigationOptionsMap.Map[1] & PROCESS_CREATION_MITIGATION_POLICY2_MODULE_TAMPERING_PROTECTION_ALWAYS_ON)
+                if (context->SystemDllInitBlock->MitigationOptionsMap.Map[0] & PROCESS_CREATION_MITIGATION_POLICY2_MODULE_TAMPERING_PROTECTION_ALWAYS_ON)
                 {
                     PMITIGATION_POLICY_ENTRY entry;
 
@@ -251,18 +205,17 @@ INT_PTR CALLBACK PhpProcessMitigationPolicyDlgProc(
                     PhAddListViewItem(lvHandle, MAXINT, entry->ShortDescription->Buffer, entry);
                 }
 
-                // Note: This value doesn't appear to be available via the MitigationOptionsMap.
-                //if (context->SystemDllInitBlock->MitigationOptionsMap.Map[1] & PROCESS_CREATION_MITIGATION_POLICY2_RESTRICT_INDIRECT_BRANCH_PREDICTION_ALWAYS_ON)
-                //{
-                //    PMITIGATION_POLICY_ENTRY entry;
-                //
-                //    entry = PhAllocate(sizeof(MITIGATION_POLICY_ENTRY));
-                //    entry->NonStandard = TRUE;
-                //    entry->ShortDescription = PhCreateString(L"Indirect branch prediction");
-                //    entry->LongDescription = PhCreateString(L"Protects against sibling hardware threads (hyperthreads) from interfering with indirect branch predictions.");
-                //
-                //    PhAddListViewItem(lvHandle, MAXINT, entry->ShortDescription->Buffer, entry);
-                //}
+                if (context->SystemDllInitBlock->MitigationOptionsMap.Map[0] & PROCESS_CREATION_MITIGATION_POLICY2_RESTRICT_INDIRECT_BRANCH_PREDICTION_ALWAYS_ON)
+                {
+                    PMITIGATION_POLICY_ENTRY entry;
+                
+                    entry = PhAllocate(sizeof(MITIGATION_POLICY_ENTRY));
+                    entry->NonStandard = TRUE;
+                    entry->ShortDescription = PhCreateString(L"Indirect branch prediction");
+                    entry->LongDescription = PhCreateString(L"Protects against sibling hardware threads (hyperthreads) from interfering with indirect branch predictions.");
+                
+                    PhAddListViewItem(lvHandle, MAXINT, entry->ShortDescription->Buffer, entry);
+                }
             }
 
             ExtendedListView_SortItems(lvHandle);

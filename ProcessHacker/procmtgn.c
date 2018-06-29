@@ -100,7 +100,7 @@ NTSTATUS PhGetProcessMitigationPolicy(
 
 #define COPY_PROCESS_MITIGATION_POLICY(PolicyName, StructName) \
     if (NT_SUCCESS(PhpCopyProcessMitigationPolicy(&status, ProcessHandle, Process##PolicyName##Policy, \
-        FIELD_OFFSET(PROCESS_MITIGATION_POLICY_INFORMATION, PolicyName##Policy), \
+        UFIELD_OFFSET(PROCESS_MITIGATION_POLICY_INFORMATION, PolicyName##Policy), \
         sizeof(StructName), \
         &Information->PolicyName##Policy))) \
     { \
@@ -434,7 +434,6 @@ BOOLEAN PhDescribeProcessMitigationPolicy(
             }
         }
         break;
-
     case ProcessPayloadRestrictionPolicy:
         {
             PPROCESS_MITIGATION_PAYLOAD_RESTRICTION_POLICY data = Data;
@@ -484,4 +483,52 @@ BOOLEAN PhDescribeProcessMitigationPolicy(
     }
 
     return result;
+}
+
+NTSTATUS PhGetProcessSystemDllInitBlock(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPS_SYSTEM_DLL_INIT_BLOCK *SystemDllInitBlock
+    )
+{
+    NTSTATUS status;
+    PH_STRINGREF systemRoot;
+    PVOID ldrInitBlockBaseAddress = NULL;
+    PPH_STRING ntdllFileName;
+
+    PhGetSystemRoot(&systemRoot);
+    ntdllFileName = PhConcatStringRefZ(&systemRoot, L"\\System32\\ntdll.dll");
+
+    status = PhGetProcedureAddressRemote(
+        ProcessHandle,
+        ntdllFileName->Buffer,
+        "LdrSystemDllInitBlock",
+        0,
+        &ldrInitBlockBaseAddress,
+        NULL
+        );
+
+    PhDereferenceObject(ntdllFileName);
+
+    if (NT_SUCCESS(status) && ldrInitBlockBaseAddress)
+    {
+        PPS_SYSTEM_DLL_INIT_BLOCK ldrInitBlock;
+
+        ldrInitBlock = PhAllocate(sizeof(PS_SYSTEM_DLL_INIT_BLOCK));
+        memset(ldrInitBlock, 0, sizeof(PS_SYSTEM_DLL_INIT_BLOCK));
+
+        status = NtReadVirtualMemory(
+            ProcessHandle,
+            ldrInitBlockBaseAddress,
+            ldrInitBlock,
+            sizeof(PS_SYSTEM_DLL_INIT_BLOCK),
+            NULL
+            );
+
+        if (NT_SUCCESS(status))
+            *SystemDllInitBlock = ldrInitBlock;
+        else
+            PhFree(ldrInitBlock);
+    }
+
+    return status;
 }
