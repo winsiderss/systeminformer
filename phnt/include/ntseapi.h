@@ -61,7 +61,6 @@
 #define SE_CREATE_SYMBOLIC_LINK_PRIVILEGE (35L)
 #define SE_MAX_WELL_KNOWN_PRIVILEGE SE_CREATE_SYMBOLIC_LINK_PRIVILEGE
 
-
 // Authz
 
 // begin_rev
@@ -146,6 +145,12 @@ typedef struct _TOKEN_SECURITY_ATTRIBUTES_INFORMATION
         PTOKEN_SECURITY_ATTRIBUTE_V1 pAttributeV1;
     } Attribute;
 } TOKEN_SECURITY_ATTRIBUTES_INFORMATION, *PTOKEN_SECURITY_ATTRIBUTES_INFORMATION;
+
+// rev
+typedef struct _TOKEN_PROCESS_TRUST_LEVEL
+{
+    PSID TrustLevelSid;
+} TOKEN_PROCESS_TRUST_LEVEL, *PTOKEN_PROCESS_TRUST_LEVEL;
 
 // Tokens
 
@@ -628,28 +633,5 @@ NtPrivilegedServiceAuditAlarm(
     _In_ PPRIVILEGE_SET Privileges,
     _In_ BOOLEAN AccessGranted
     );
-
-// Misc.
-
-typedef enum _FILTER_BOOT_OPTION_OPERATION
-{
-    FilterBootOptionOperationOpenSystemStore,
-    FilterBootOptionOperationSetElement,
-    FilterBootOptionOperationDeleteElement,
-    FilterBootOptionOperationMax
-} FILTER_BOOT_OPTION_OPERATION;
-
-#if (PHNT_VERSION >= PHNT_THRESHOLD)
-NTSYSCALLAPI
-NTSTATUS
-NTAPI
-NtFilterBootOption(
-    _In_ FILTER_BOOT_OPTION_OPERATION FilterOperation,
-    _In_ ULONG ObjectType,
-    _In_ ULONG ElementType,
-    _In_reads_bytes_opt_(DataSize) PVOID Data,
-    _In_ ULONG DataSize
-    );
-#endif
 
 #endif

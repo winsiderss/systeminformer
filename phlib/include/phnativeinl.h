@@ -1219,6 +1219,77 @@ PhGetTokenIsUIAccessEnabled(
 
 FORCEINLINE
 NTSTATUS
+PhSetTokenUIAccessEnabled(
+    _In_ HANDLE TokenHandle,
+    _In_ BOOLEAN IsUIAccessEnabled
+    )
+{
+    ULONG uiAccess;
+
+    uiAccess = IsUIAccessEnabled ? 1 : 0;
+
+    return NtSetInformationToken(
+        TokenHandle,
+        TokenUIAccess,
+        &uiAccess,
+        sizeof(ULONG)
+        );
+}
+
+/**
+* Gets SandBoxInert flag for a token.
+*
+* \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
+* \param IsSandBoxInert A variable which receives a boolean indicating whether
+* AppLocker rules or Software Restriction Policies are enabled for the token.
+*/
+FORCEINLINE
+NTSTATUS
+PhGetTokenIsSandBoxInert(
+    _In_ HANDLE TokenHandle,
+    _Out_ PBOOLEAN IsSandBoxInert
+    )
+{
+    NTSTATUS status;
+    ULONG returnLength;
+    ULONG sandBoxInert;
+
+    status = NtQueryInformationToken(
+        TokenHandle,
+        TokenSandBoxInert,
+        &sandBoxInert,
+        sizeof(ULONG),
+        &returnLength
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    *IsSandBoxInert = !!sandBoxInert;
+
+    return status;
+}
+
+FORCEINLINE
+NTSTATUS
+PhGetTokenOrigin(
+    _In_ HANDLE TokenHandle,
+    _Out_ PTOKEN_ORIGIN Origin
+    )
+{
+    ULONG returnLength;
+
+    return NtQueryInformationToken(
+        TokenHandle,
+        TokenOrigin,
+        Origin,
+        sizeof(TOKEN_ORIGIN),
+        &returnLength
+        );
+}
+
+FORCEINLINE
+NTSTATUS
 PhGetEventBasicInformation(
     _In_ HANDLE EventHandle,
     _Out_ PEVENT_BASIC_INFORMATION BasicInformation
