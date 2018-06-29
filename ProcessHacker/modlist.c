@@ -42,6 +42,7 @@ ULONG PhpModuleNodeHashtableHashFunction(
     );
 
 VOID PhpDestroyModuleNode(
+    _In_ PPH_MODULE_LIST_CONTEXT Context,
     _In_ PPH_MODULE_NODE ModuleNode
     );
 
@@ -71,8 +72,6 @@ VOID PhInitializeModuleList(
     _Out_ PPH_MODULE_LIST_CONTEXT Context
     )
 {
-    HWND hwnd;
-
     memset(Context, 0, sizeof(PH_MODULE_LIST_CONTEXT));
     Context->EnableStateHighlighting = TRUE;
 
@@ -83,48 +82,49 @@ VOID PhInitializeModuleList(
         100
         );
     Context->NodeList = PhCreateList(100);
+    Context->NodeRootList = PhCreateList(2);
 
     Context->ParentWindowHandle = ParentWindowHandle;
     Context->TreeNewHandle = TreeNewHandle;
-    hwnd = TreeNewHandle;
-    PhSetControlTheme(hwnd, L"explorer");
 
-    TreeNew_SetCallback(hwnd, PhpModuleTreeNewCallback, Context);
+    PhSetControlTheme(Context->TreeNewHandle, L"explorer");
 
-    TreeNew_SetRedraw(hwnd, FALSE);
+    TreeNew_SetCallback(Context->TreeNewHandle, PhpModuleTreeNewCallback, Context);
+
+    TreeNew_SetRedraw(Context->TreeNewHandle, FALSE);
 
     // Default columns
-    PhAddTreeNewColumn(hwnd, PHMOTLC_NAME, TRUE, L"Name", 100, PH_ALIGN_LEFT, -2, 0);
-    PhAddTreeNewColumn(hwnd, PHMOTLC_BASEADDRESS, TRUE, L"Base address", 80, PH_ALIGN_RIGHT, 0, DT_RIGHT);
-    PhAddTreeNewColumnEx(hwnd, PHMOTLC_SIZE, TRUE, L"Size", 60, PH_ALIGN_RIGHT, 1, DT_RIGHT, TRUE);
-    PhAddTreeNewColumn(hwnd, PHMOTLC_DESCRIPTION, TRUE, L"Description", 160, PH_ALIGN_LEFT, 2, 0);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PHMOTLC_NAME, TRUE, L"Name", 100, PH_ALIGN_LEFT, -2, 0);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PHMOTLC_BASEADDRESS, TRUE, L"Base address", 80, PH_ALIGN_RIGHT, 0, DT_RIGHT);
+    PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_SIZE, TRUE, L"Size", 60, PH_ALIGN_RIGHT, 1, DT_RIGHT, TRUE);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PHMOTLC_DESCRIPTION, TRUE, L"Description", 160, PH_ALIGN_LEFT, 2, 0);
 
-    PhAddTreeNewColumn(hwnd, PHMOTLC_COMPANYNAME, FALSE, L"Company name", 180, PH_ALIGN_LEFT, -1, 0);
-    PhAddTreeNewColumn(hwnd, PHMOTLC_VERSION, FALSE, L"Version", 100, PH_ALIGN_LEFT, -1, 0);
-    PhAddTreeNewColumn(hwnd, PHMOTLC_FILENAME, FALSE, L"File name", 180, PH_ALIGN_LEFT, -1, DT_PATH_ELLIPSIS);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PHMOTLC_COMPANYNAME, FALSE, L"Company name", 180, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PHMOTLC_VERSION, FALSE, L"Version", 100, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PHMOTLC_FILENAME, FALSE, L"File name", 180, PH_ALIGN_LEFT, -1, DT_PATH_ELLIPSIS);
 
-    PhAddTreeNewColumn(hwnd, PHMOTLC_TYPE, FALSE, L"Type", 80, PH_ALIGN_LEFT, -1, 0);
-    PhAddTreeNewColumnEx(hwnd, PHMOTLC_LOADCOUNT, FALSE, L"Load count", 40, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
-    PhAddTreeNewColumn(hwnd, PHMOTLC_VERIFICATIONSTATUS, FALSE, L"Verification status", 70, PH_ALIGN_LEFT, -1, 0);
-    PhAddTreeNewColumn(hwnd, PHMOTLC_VERIFIEDSIGNER, FALSE, L"Verified signer", 100, PH_ALIGN_LEFT, -1, 0);
-    PhAddTreeNewColumnEx(hwnd, PHMOTLC_ASLR, FALSE, L"ASLR", 50, PH_ALIGN_LEFT, -1, 0, TRUE);
-    PhAddTreeNewColumnEx(hwnd, PHMOTLC_TIMESTAMP, FALSE, L"Time stamp", 100, PH_ALIGN_LEFT, -1, 0, TRUE);
-    PhAddTreeNewColumnEx(hwnd, PHMOTLC_CFGUARD, FALSE, L"CF Guard", 70, PH_ALIGN_LEFT, -1, 0, TRUE);
-    PhAddTreeNewColumnEx(hwnd, PHMOTLC_LOADTIME, FALSE, L"Load time", 100, PH_ALIGN_LEFT, -1, 0, TRUE);
-    PhAddTreeNewColumn(hwnd, PHMOTLC_LOADREASON, FALSE, L"Load reason", 80, PH_ALIGN_LEFT, -1, 0);
-    PhAddTreeNewColumnEx(hwnd, PHMOTLC_FILEMODIFIEDTIME, FALSE, L"File modified time", 140, PH_ALIGN_LEFT, -1, 0, TRUE);
-    PhAddTreeNewColumnEx(hwnd, PHMOTLC_FILESIZE, FALSE, L"File size", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
-    PhAddTreeNewColumnEx(hwnd, PHMOTLC_ENTRYPOINT, FALSE, L"Entry point", 70, PH_ALIGN_LEFT, -1, 0, TRUE);
-    PhAddTreeNewColumnEx(hwnd, PHMOTLC_PARENTBASEADDRESS, FALSE, L"Parent base address", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PHMOTLC_TYPE, FALSE, L"Type", 80, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_LOADCOUNT, FALSE, L"Load count", 40, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PHMOTLC_VERIFICATIONSTATUS, FALSE, L"Verification status", 70, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PHMOTLC_VERIFIEDSIGNER, FALSE, L"Verified signer", 100, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_ASLR, FALSE, L"ASLR", 50, PH_ALIGN_LEFT, -1, 0, TRUE);
+    PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_TIMESTAMP, FALSE, L"Time stamp", 100, PH_ALIGN_LEFT, -1, 0, TRUE);
+    PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_CFGUARD, FALSE, L"CF Guard", 70, PH_ALIGN_LEFT, -1, 0, TRUE);
+    PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_LOADTIME, FALSE, L"Load time", 100, PH_ALIGN_LEFT, -1, 0, TRUE);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PHMOTLC_LOADREASON, FALSE, L"Load reason", 80, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_FILEMODIFIEDTIME, FALSE, L"File modified time", 140, PH_ALIGN_LEFT, -1, 0, TRUE);
+    PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_FILESIZE, FALSE, L"File size", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
+    PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_ENTRYPOINT, FALSE, L"Entry point", 70, PH_ALIGN_LEFT, -1, 0, TRUE);
+    PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_PARENTBASEADDRESS, FALSE, L"Parent base address", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
 
-    TreeNew_SetRedraw(hwnd, TRUE);
+    TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
 
-    TreeNew_SetTriState(hwnd, TRUE);
-    TreeNew_SetSort(hwnd, 0, NoSortOrder);
+    TreeNew_SetTriState(Context->TreeNewHandle, TRUE);
+    TreeNew_SetSort(Context->TreeNewHandle, 0, NoSortOrder);
 
-    PhCmInitializeManager(&Context->Cm, hwnd, PHMOTLC_MAXIMUM, PhpModuleTreeNewPostSortFunction);
+    PhCmInitializeManager(&Context->Cm, Context->TreeNewHandle, PHMOTLC_MAXIMUM, PhpModuleTreeNewPostSortFunction);
 
-    PhInitializeTreeNewFilterSupport(&Context->TreeFilterSupport, hwnd, Context->NodeList);
+    PhInitializeTreeNewFilterSupport(&Context->TreeFilterSupport, Context->TreeNewHandle, Context->NodeList);
 }
 
 VOID PhDeleteModuleList(
@@ -141,10 +141,11 @@ VOID PhDeleteModuleList(
     PhCmDeleteManager(&Context->Cm);
 
     for (i = 0; i < Context->NodeList->Count; i++)
-        PhpDestroyModuleNode(Context->NodeList->Items[i]);
+        PhpDestroyModuleNode(Context, Context->NodeList->Items[i]);
 
     PhDereferenceObject(Context->NodeHashtable);
     PhDereferenceObject(Context->NodeList);
+    PhDereferenceObject(Context->NodeRootList);
 }
 
 BOOLEAN PhpModuleNodeHashtableEqualFunction(
@@ -235,7 +236,7 @@ VOID PhSetOptionsModuleList(
     }
 }
 
-PPH_MODULE_NODE PhAddModuleNode(
+PPH_MODULE_NODE PhCreateModuleNode(
     _Inout_ PPH_MODULE_LIST_CONTEXT Context,
     _In_ PPH_MODULE_ITEM ModuleItem,
     _In_ ULONG RunId
@@ -246,6 +247,8 @@ PPH_MODULE_NODE PhAddModuleNode(
     moduleNode = PhAllocate(PhEmGetObjectSize(EmModuleNodeType, sizeof(PH_MODULE_NODE)));
     memset(moduleNode, 0, sizeof(PH_MODULE_NODE));
     PhInitializeTreeNewNode(&moduleNode->Node);
+
+    moduleNode->Children = PhCreateList(1);
 
     if (Context->EnableStateHighlighting && RunId != 1)
     {
@@ -259,8 +262,7 @@ PPH_MODULE_NODE PhAddModuleNode(
             );
     }
 
-    moduleNode->ModuleItem = ModuleItem;
-    PhReferenceObject(ModuleItem);
+    moduleNode->ModuleItem = PhReferenceObject(ModuleItem);
 
     memset(moduleNode->TextCache, 0, sizeof(PH_STRINGREF) * PHMOTLC_MAXIMUM);
     moduleNode->Node.TextCache = moduleNode->TextCache;
@@ -275,6 +277,39 @@ PPH_MODULE_NODE PhAddModuleNode(
     PhEmCallObjectOperation(EmModuleNodeType, moduleNode, EmObjectCreate);
 
     TreeNew_NodesStructured(Context->TreeNewHandle);
+
+    return moduleNode;
+}
+
+PPH_MODULE_NODE PhAddModuleNode(
+    _Inout_ PPH_MODULE_LIST_CONTEXT Context,
+    _In_ PPH_MODULE_ITEM ModuleItem,
+    _In_ ULONG RunId
+    )
+{
+    PPH_MODULE_NODE moduleNode;
+    PPH_MODULE_NODE parentNode;
+    ULONG i;
+
+    moduleNode = PhCreateModuleNode(Context, ModuleItem, RunId);
+
+    for (i = 0; i < Context->NodeList->Count; i++)
+    {
+        parentNode = Context->NodeList->Items[i];
+    
+        if (parentNode != moduleNode && parentNode->ModuleItem->BaseAddress == ModuleItem->ParentBaseAddress)
+        {
+            moduleNode->Parent = parentNode;
+            PhAddItemList(parentNode->Children, moduleNode);
+            break;
+        }
+    }
+
+    if (!moduleNode->Parent)
+    {
+        moduleNode->Node.Expanded = TRUE;
+        PhAddItemList(Context->NodeRootList, moduleNode);
+    }
 
     return moduleNode;
 }
@@ -327,10 +362,37 @@ VOID PhRemoveModuleNode(
 }
 
 VOID PhpDestroyModuleNode(
+    _In_ PPH_MODULE_LIST_CONTEXT Context,
     _In_ PPH_MODULE_NODE ModuleNode
     )
 {
+    ULONG index;
+
     PhEmCallObjectOperation(EmModuleNodeType, ModuleNode, EmObjectDelete);
+
+    if (ModuleNode->Parent)
+    {
+        // Remove the node from its parent.
+
+        if ((index = PhFindItemList(ModuleNode->Parent->Children, ModuleNode)) != -1)
+            PhRemoveItemList(ModuleNode->Parent->Children, index);
+    }
+    else
+    {
+        // Remove the node from the root list.
+
+        if ((index = PhFindItemList(Context->NodeRootList, ModuleNode)) != -1)
+            PhRemoveItemList(Context->NodeRootList, index);
+    }
+
+    // Move the node's children to the root list.
+    for (index = 0; index < ModuleNode->Children->Count; index++)
+    {
+        PPH_MODULE_NODE node = ModuleNode->Children->Items[index];
+
+        node->Parent = NULL;
+        PhAddItemList(Context->NodeRootList, node);
+    }
 
     PhClearReference(&ModuleNode->TooltipText);
 
@@ -357,7 +419,7 @@ VOID PhpRemoveModuleNode(
     if ((index = PhFindItemList(Context->NodeList, ModuleNode)) != -1)
         PhRemoveItemList(Context->NodeList, index);
 
-    PhpDestroyModuleNode(ModuleNode);
+    PhpDestroyModuleNode(Context, ModuleNode);
 
     TreeNew_NodesStructured(Context->TreeNewHandle);
 }
@@ -608,8 +670,24 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
     case TreeNewGetChildren:
         {
             PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
+            node = (PPH_MODULE_NODE)getChildren->Node;
 
-            if (!getChildren->Node)
+            if (context->TreeNewSortOrder == NoSortOrder)
+            {
+                if (!node)
+                {
+                    getChildren->Children = (PPH_TREENEW_NODE *)context->NodeRootList->Items;
+                    getChildren->NumberOfChildren = context->NodeRootList->Count;
+                }
+                else
+                {
+                    getChildren->Children = (PPH_TREENEW_NODE *)node->Children->Items;
+                    getChildren->NumberOfChildren = node->Children->Count;
+                }
+
+                qsort_s(getChildren->Children, getChildren->NumberOfChildren, sizeof(PVOID), SORT_FUNCTION(TriState), context);
+            }
+            else
             {
                 static PVOID sortFunctions[] =
                 {
@@ -674,8 +752,12 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
     case TreeNewIsLeaf:
         {
             PPH_TREENEW_IS_LEAF isLeaf = Parameter1;
+            node = (PPH_MODULE_NODE)isLeaf->Node;
 
-            isLeaf->IsLeaf = TRUE;
+            if (context->TreeNewSortOrder == NoSortOrder)
+                isLeaf->IsLeaf = node->Children->Count == 0;
+            else
+                isLeaf->IsLeaf = TRUE;
         }
         return TRUE;
     case TreeNewGetCellText:
