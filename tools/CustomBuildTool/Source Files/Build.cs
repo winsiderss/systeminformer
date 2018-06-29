@@ -975,6 +975,14 @@ namespace CustomBuildTool
 
         public static void WebServiceUpdateConfig()
         {
+            string accountName = Environment.ExpandEnvironmentVariables("%APPVEYOR_ACCOUNT_NAME%").Replace("%APPVEYOR_ACCOUNT_NAME%", string.Empty);
+            string projectName = Environment.ExpandEnvironmentVariables("%APPVEYOR_PROJECT_NAME%").Replace("%APPVEYOR_PROJECT_NAME%", string.Empty);
+
+            if (string.IsNullOrEmpty(accountName))
+                return;
+            if (string.IsNullOrEmpty(projectName))
+                return;
+
             if (string.IsNullOrEmpty(BuildVersion))
                 return;
             if (string.IsNullOrEmpty(BuildSetupHash))
@@ -994,17 +1002,17 @@ namespace CustomBuildTool
                 Commit = BuildCommit,
                 Updated = TimeStart.ToString("o"),
 
-                BinUrl = "https://ci.appveyor.com/api/projects/processhacker/processhacker2/artifacts/processhacker-" + BuildVersion + "-bin.zip",
+                BinUrl = $"//ci.appveyor.com/api/projects/{accountName}/{projectName}/artifacts/processhacker-{BuildVersion}-bin.zip",
                 BinLength = BuildBinFileLength.ToString(),
                 BinHash = BuildBinHash,
                 BinSig = BuildBinSig,
 
-                SetupUrl = "https://ci.appveyor.com/api/projects/processhacker/processhacker2/artifacts/processhacker-" + BuildVersion + "-setup.exe",
+                SetupUrl = $"//ci.appveyor.com/api/projects/{accountName}/{projectName}/artifacts/processhacker-{BuildVersion}-setup.exe",
                 SetupLength = BuildSetupFileLength.ToString(),
                 SetupHash = BuildSetupHash,
                 SetupSig = BuildSetupSig,
 
-                //WebSetupUrl = "https://ci.appveyor.com/api/projects/processhacker/processhacker2/artifacts/processhacker-websetup.exe",
+                //WebSetupUrl = "//ci.appveyor.com/api/projects/{accountName}/{projectName}/artifacts/processhacker-websetup.exe",
                 //WebSetupHash = BuildWebSetupHash,
                 //WebSetupVersion = BuildWebSetupVersion,
                 //WebSetupSig = BuildWebSetupSig,
@@ -1013,7 +1021,7 @@ namespace CustomBuildTool
                 Changelog = buildChangelog,
 
                 FileLengthDeprecated = BuildSetupFileLength.ToString(),  // TODO: Remove after most users have updated.
-                ForumUrlDeprecated = "https://wj32.org/processhacker/",  // TODO: Remove after most users have updated.
+                ForumUrlDeprecated = "https://wj32.org/processhacker/forums",  // TODO: Remove after most users have updated.
                 SetupHashDeprecated = BuildSetupHash, // TODO: Remove after most users have updated.
                 SetupSigDeprecated = BuildSetupSig, // TODO: Remove after most users have updated.
                 BinHashDeprecated = BuildBinHash  // TODO: Remove after most users have updated.
