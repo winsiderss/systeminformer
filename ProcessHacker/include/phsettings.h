@@ -13,6 +13,7 @@
 
 EXT BOOLEAN PhEnableProcessQueryStage2;
 EXT BOOLEAN PhEnableServiceQueryStage2;
+EXT BOOLEAN PhEnableHexId;
 
 EXT ULONG PhCsCollapseServicesOnStart;
 EXT ULONG PhCsForceNoParent;
@@ -20,7 +21,6 @@ EXT ULONG PhCsHighlightingDuration;
 EXT ULONG PhCsPropagateCpuUsage;
 EXT ULONG PhCsScrollToNewProcesses;
 EXT ULONG PhCsShowCpuBelow001;
-EXT ULONG PhCsShowHexId;
 EXT ULONG PhCsUpdateInterval;
 
 EXT ULONG PhCsColorNew;

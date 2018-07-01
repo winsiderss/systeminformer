@@ -460,7 +460,6 @@ VOID PhExpandAllModuleNodes(
         TreeNew_NodesStructured(Context->TreeNewHandle);
 }
 
-
 VOID PhTickModuleNodes(
     _In_ PPH_MODULE_LIST_CONTEXT Context
     )
@@ -774,6 +773,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 getCellText->Text = PhGetStringRef(moduleItem->Name);
                 break;
             case PHMOTLC_BASEADDRESS:
+                PhPrintPointer(moduleItem->BaseAddressString, moduleItem->BaseAddress);
                 PhInitializeStringRefLongHint(&getCellText->Text, moduleItem->BaseAddressString);
                 break;
             case PHMOTLC_SIZE:

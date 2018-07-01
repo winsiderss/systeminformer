@@ -513,7 +513,21 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
             switch (getCellText->Id)
             {
             case PHTHTLC_TID:
-                PhInitializeStringRefLongHint(&getCellText->Text, threadItem->ThreadIdString);
+                {
+                    PH_FORMAT format;
+                    SIZE_T returnLength;
+
+                    if (PhEnableHexId)
+                        PhInitFormatIX(&format, HandleToUlong(threadItem->ThreadId));
+                    else
+                        PhInitFormatIU(&format, HandleToUlong(threadItem->ThreadId));
+
+                    if (PhFormatToBuffer(&format, 1, node->ThreadIdText, sizeof(node->ThreadIdText), &returnLength))
+                    {
+                        getCellText->Text.Buffer = node->ThreadIdText;
+                        getCellText->Text.Length = returnLength - sizeof(WCHAR); // minus null terminator
+                    }
+                }
                 break;
             case PHTHTLC_CPU:
                 {

@@ -1192,10 +1192,6 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
 
             Edit_SetSel(context->SearchWindowHandle, 0, -1);
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_REGEX), PhGetIntegerSetting(L"FindObjRegex") ? BST_CHECKED : BST_UNCHECKED);
-
-            // HACK HACK HACK
-            if (WindowsVersion >= WINDOWS_10_RS3 && !!PhGetIntegerSetting(L"EnableExperimentalWindowStyle"))
-                PhSetWindowStyle(hwndDlg, WS_POPUP, 0);
         }
         break;
     case WM_DESTROY:

@@ -81,6 +81,7 @@ PPH_MODULE_PROVIDER PhCreateModuleProvider(
 {
     NTSTATUS status;
     PPH_MODULE_PROVIDER moduleProvider;
+    PPH_STRING fileName;
 
     moduleProvider = PhCreateObject(
         PhEmGetObjectSize(EmModuleProviderType, sizeof(PH_MODULE_PROVIDER)),
@@ -125,6 +126,11 @@ PPH_MODULE_PROVIDER PhCreateModuleProvider(
         moduleProvider->RunStatus = status;
     }
 
+    if (NT_SUCCESS(PhGetProcessImageFileNameByProcessId(ProcessId, &fileName)))
+    {
+        PhMoveReference(&moduleProvider->ProcessFileName, PhGetFileName(fileName));
+    }
+
     if (WindowsVersion >= WINDOWS_8 && moduleProvider->ProcessHandle)
     {
         moduleProvider->PackageFullName = PhGetProcessPackageFullName(moduleProvider->ProcessHandle);
@@ -147,16 +153,6 @@ PPH_MODULE_PROVIDER PhCreateModuleProvider(
         if (NT_SUCCESS(PhGetProcessExtendedBasicInformation(moduleProvider->ProcessHandle, &basicInfo)))
         {
             moduleProvider->IsSubsystemProcess = !!basicInfo.IsSubsystemProcess;
-        }
-
-        if (moduleProvider->IsSubsystemProcess)
-        {
-            PPH_STRING fileName;
-
-            if (NT_SUCCESS(PhGetProcessImageFileNameByProcessId(ProcessId, &fileName)))
-            {
-                PhMoveReference(&moduleProvider->FileName, PhGetFileName(fileName));
-            }
         }
     }
 
@@ -491,11 +487,10 @@ VOID PhModuleProviderUpdate(
         {
             FILE_NETWORK_OPEN_INFORMATION networkOpenInfo;
 
-            moduleItem = PhCreateModuleItem();
-
             PhReferenceObject(module->Name);
             PhReferenceObject(module->FileName);
 
+            moduleItem = PhCreateModuleItem();
             moduleItem->BaseAddress = module->BaseAddress;
             moduleItem->EntryPoint = module->EntryPoint;
             moduleItem->Size = module->Size;
@@ -508,36 +503,31 @@ VOID PhModuleProviderUpdate(
             moduleItem->FileName = module->FileName;
             moduleItem->ParentBaseAddress = module->ParentBaseAddress;
 
-            PhPrintPointer(moduleItem->BaseAddressString, moduleItem->BaseAddress);
-
             PhInitializeImageVersionInfo(&moduleItem->VersionInfo, moduleItem->FileName->Buffer);
 
             if (moduleProvider->IsSubsystemProcess)
             {
                 // HACK: Update the module type. (TODO: Move into PhEnumGenericModules) (dmex)
                 moduleItem->Type = PH_MODULE_TYPE_ELF_MAPPED_IMAGE;
-
-                if (!moduleProvider->HaveFirst)
-                {
-                    if (PhEqualString(moduleItem->FileName, moduleProvider->FileName, TRUE))
-                    {
-                        moduleItem->IsFirst = TRUE;
-                        moduleProvider->HaveFirst = TRUE;
-                    }
-                }
             }
             else
             {
-                // TODO: Linux process modules are loaded in order of the ELF symbol table dependancy graph
-                // with the primary executable/shared object as the last entry (dmex)
-                moduleItem->IsFirst = i == 0;
-
                 // Fix up the load count. If this is not an ordinary DLL or kernel module, set the load count to 0.
                 if (moduleItem->Type != PH_MODULE_TYPE_MODULE &&
                     moduleItem->Type != PH_MODULE_TYPE_WOW64_MODULE &&
                     moduleItem->Type != PH_MODULE_TYPE_KERNEL_MODULE)
                 {
                     moduleItem->LoadCount = 0;
+                }
+            }
+
+            if (!moduleProvider->HaveFirst)
+            {
+                // moduleItem->IsFirst = i == 0;
+                if (PhEqualString(moduleProvider->ProcessFileName, moduleItem->FileName, FALSE))
+                {
+                    moduleItem->IsFirst = TRUE;
+                    moduleProvider->HaveFirst = TRUE;
                 }
             }
 
@@ -639,6 +629,12 @@ VOID PhModuleProviderUpdate(
                 modified = TRUE;
 
             moduleItem->JustProcessed = FALSE;
+
+            if (moduleItem->LoadCount != module->LoadCount)
+            {
+                moduleItem->LoadCount = module->LoadCount;
+                modified = TRUE;
+            }
 
             if (modified)
                 PhInvokeCallback(&moduleProvider->ModuleModifiedEvent, moduleItem);
