@@ -232,9 +232,6 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"ColorIoWrite", L"ff0077");
     PhpAddIntegerSetting(L"ColorPrivate", L"0077ff");
     PhpAddIntegerSetting(L"ColorPhysical", L"ff8000"); // Blue
-
-    // Experimental features
-    PhpAddIntegerSetting(L"EnableExperimentalWindowStyle", L"0");
 }
 
 VOID PhUpdateCachedSettings(
@@ -247,7 +244,6 @@ VOID PhUpdateCachedSettings(
     PH_UPDATE_SETTING(PropagateCpuUsage);
     PH_UPDATE_SETTING(ScrollToNewProcesses);
     PH_UPDATE_SETTING(ShowCpuBelow001);
-    PH_UPDATE_SETTING(ShowHexId);
     PH_UPDATE_SETTING(UpdateInterval);
 
     PH_UPDATE_SETTING(ColorNew);

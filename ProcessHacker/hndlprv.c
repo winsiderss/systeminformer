@@ -139,12 +139,6 @@ PPH_HANDLE_ITEM PhCreateHandleItem(
         handleItem->Attributes = Handle->HandleAttributes;
         handleItem->GrantedAccess = (ACCESS_MASK)Handle->GrantedAccess;
         handleItem->TypeIndex = Handle->ObjectTypeIndex;
-
-        PhPrintPointer(handleItem->HandleString, (PVOID)handleItem->Handle);   
-        PhPrintPointer(handleItem->GrantedAccessString, UlongToPtr(handleItem->GrantedAccess));
-
-        if (handleItem->Object)
-            PhPrintPointer(handleItem->ObjectString, handleItem->Object);
     }
 
     PhEmCallObjectOperation(EmHandleItemType, handleItem, EmObjectCreate);

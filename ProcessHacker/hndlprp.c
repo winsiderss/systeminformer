@@ -279,23 +279,27 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
 
                 if (accessString->Length != 0)
                 {
-                    grantedAccessString = PhaFormatString(
-                        L"%s (%s)",
-                        context->HandleItem->GrantedAccessString,
+                    grantedAccessString = PH_AUTO(PhFormatString(
+                        L"0x%x (%s)",
+                        context->HandleItem->GrantedAccess,
                         accessString->Buffer
-                        );
+                        ));
                     PhSetDialogItemText(hwndDlg, IDC_GRANTED_ACCESS, grantedAccessString->Buffer);
                 }
                 else
                 {
-                    PhSetDialogItemText(hwndDlg, IDC_GRANTED_ACCESS, context->HandleItem->GrantedAccessString);
+                    WCHAR grantedAccessString[PH_PTR_STR_LEN];
+                    PhPrintPointer(grantedAccessString, UlongToPtr(context->HandleItem->GrantedAccess));
+                    PhSetDialogItemText(hwndDlg, IDC_GRANTED_ACCESS, grantedAccessString);
                 }
 
                 PhFree(accessEntries);
             }
             else
             {
-                PhSetDialogItemText(hwndDlg, IDC_GRANTED_ACCESS, context->HandleItem->GrantedAccessString);
+                WCHAR grantedAccessString[PH_PTR_STR_LEN];
+                PhPrintPointer(grantedAccessString, UlongToPtr(context->HandleItem->GrantedAccess));
+                PhSetDialogItemText(hwndDlg, IDC_GRANTED_ACCESS, grantedAccessString);
             }
 
             if (NT_SUCCESS(PhOpenProcess(
@@ -307,7 +311,7 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
                 if (NT_SUCCESS(PhGetHandleInformation(
                     processHandle,
                     context->HandleItem->Handle,
-                    -1,
+                    ULONG_MAX,
                     &basicInfo,
                     NULL,
                     NULL,

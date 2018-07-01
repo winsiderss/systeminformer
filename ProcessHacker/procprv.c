@@ -431,14 +431,6 @@ PPH_PROCESS_ITEM PhCreateProcessItem(
 
     processItem->ProcessId = ProcessId;
 
-    if (!PH_IS_FAKE_PROCESS_ID(ProcessId))
-    {
-        if (PhCsShowHexId)
-            _ultow(HandleToUlong(ProcessId), processItem->ProcessIdString, 16);
-        else
-            PhPrintUInt32(processItem->ProcessIdString, HandleToUlong(ProcessId));
-    }
-
     // Create the statistics buffers.
     PhInitializeCircularBuffer_FLOAT(&processItem->CpuKernelHistory, PhStatisticsSampleCount);
     PhInitializeCircularBuffer_FLOAT(&processItem->CpuUserHistory, PhStatisticsSampleCount);
@@ -1129,6 +1121,14 @@ VOID PhpFillProcessItem(
         ProcessItem->ProcessName = PhCreateStringFromUnicodeString(&Process->ImageName);
     else
         ProcessItem->ProcessName = PhCreateString(SYSTEM_IDLE_PROCESS_NAME);
+
+    if (PH_IS_REAL_PROCESS_ID(ProcessItem->ProcessId))
+    {
+        if (PhEnableHexId)
+            PhPrintUInt32Hex(ProcessItem->ProcessIdString, HandleToUlong(ProcessItem->ProcessId));
+        else
+            PhPrintUInt32(ProcessItem->ProcessIdString, HandleToUlong(ProcessItem->ProcessId));
+    }
 
     PhPrintUInt32(ProcessItem->ParentProcessIdString, HandleToUlong(ProcessItem->ParentProcessId));
     PhPrintUInt32(ProcessItem->SessionIdString, ProcessItem->SessionId);

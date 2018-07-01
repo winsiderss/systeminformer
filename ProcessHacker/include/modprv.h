@@ -57,7 +57,7 @@ typedef struct _PH_MODULE_PROVIDER
 
     HANDLE ProcessId;
     HANDLE ProcessHandle;
-    PPH_STRING FileName;
+    PPH_STRING ProcessFileName;
     PPH_STRING PackageFullName;
     SLIST_HEADER QueryListHead;
     NTSTATUS RunStatus;
