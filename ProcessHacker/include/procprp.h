@@ -24,10 +24,6 @@ typedef struct _PH_PROCESS_PROPPAGECONTEXT
 } PH_PROCESS_PROPPAGECONTEXT, *PPH_PROCESS_PROPPAGECONTEXT;
 // end_phapppub
 
-BOOLEAN PhProcessPropInitialization(
-    VOID
-    );
-
 // begin_phapppub
 PHAPPAPI
 PPH_PROCESS_PROPCONTEXT
