@@ -341,6 +341,41 @@ NTSTATUS PhEnumHandlesGeneric(
         *Handles = convertedHandles;
         *FilterNeeded = FALSE;
     }
+    else if (KphIsConnected())
+    {
+        PKPH_PROCESS_HANDLE_INFORMATION handles;
+        PSYSTEM_HANDLE_INFORMATION_EX convertedHandles;
+        ULONG i;
+
+        // Enumerate handles using KProcessHacker. Unlike with NtQuerySystemInformation,
+        // this only enumerates handles for a single process and saves a lot of processing.
+
+        if (!NT_SUCCESS(status = KphEnumerateProcessHandles2(ProcessHandle, &handles)))
+            goto FAILED;
+
+        convertedHandles = PhAllocate(
+            FIELD_OFFSET(SYSTEM_HANDLE_INFORMATION_EX, Handles) +
+            sizeof(SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX) * handles->HandleCount
+            );
+
+        convertedHandles->NumberOfHandles = handles->HandleCount;
+
+        for (i = 0; i < handles->HandleCount; i++)
+        {
+            convertedHandles->Handles[i].Object = handles->Handles[i].Object;
+            convertedHandles->Handles[i].UniqueProcessId = (ULONG_PTR)ProcessId;
+            convertedHandles->Handles[i].HandleValue = (ULONG_PTR)handles->Handles[i].Handle;
+            convertedHandles->Handles[i].GrantedAccess = (ULONG)handles->Handles[i].GrantedAccess;
+            convertedHandles->Handles[i].CreatorBackTraceIndex = 0;
+            convertedHandles->Handles[i].ObjectTypeIndex = handles->Handles[i].ObjectTypeIndex;
+            convertedHandles->Handles[i].HandleAttributes = handles->Handles[i].HandleAttributes;
+        }
+
+        PhFree(handles);
+
+        *Handles = convertedHandles;
+        *FilterNeeded = FALSE;
+    }
     else
     {
         PSYSTEM_HANDLE_INFORMATION_EX handles;
