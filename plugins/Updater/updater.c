@@ -380,9 +380,6 @@ NTSTATUS UpdateCheckSilentThread(
 
     PhDelayExecution(5 * 1000);
 
-    // Clear the application cache directory.
-    PhClearCacheDirectory();
-
     // Query latest update information from the server.
     if (!QueryUpdateData(context))
         goto CleanupExit;

@@ -1095,20 +1095,6 @@ PhSearchFilePath(
 PHLIBAPI
 PPH_STRING
 NTAPI
-PhGetCacheDirectory(
-    VOID
-    );
-
-PHLIBAPI
-VOID
-NTAPI
-PhClearCacheDirectory(
-    VOID
-    );
-
-PHLIBAPI
-PPH_STRING
-NTAPI
 PhCreateCacheFile(
     _In_ PPH_STRING FileName
     );
