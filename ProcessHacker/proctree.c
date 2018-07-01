@@ -563,12 +563,9 @@ VOID PhpRemoveProcessNode(
 
     PhClearReference(&ProcessNode->TooltipText);
 
-    PhClearReference(&ProcessNode->IoTotalRateText);
-    PhClearReference(&ProcessNode->PrivateBytesText);
     PhClearReference(&ProcessNode->PeakPrivateBytesText);
     PhClearReference(&ProcessNode->WorkingSetText);
     PhClearReference(&ProcessNode->PeakWorkingSetText);
-    PhClearReference(&ProcessNode->PrivateWsText);
     PhClearReference(&ProcessNode->SharedWsText);
     PhClearReference(&ProcessNode->ShareableWsText);
     PhClearReference(&ProcessNode->VirtualSizeText);
@@ -2141,21 +2138,34 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 
                     if (number != 0)
                     {
+                        SIZE_T returnLength;
                         PH_FORMAT format[2];
 
                         PhInitFormatSize(&format[0], number);
                         PhInitFormatS(&format[1], L"/s");
-                        PhMoveReference(&node->IoTotalRateText, PhFormat(format, 2, 0));
-                        getCellText->Text = node->IoTotalRateText->sr;
+
+                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), node->IoTotalRateText, sizeof(node->IoTotalRateText), &returnLength))
+                        {
+                            getCellText->Text.Buffer = node->IoTotalRateText;
+                            getCellText->Text.Length = returnLength - sizeof(WCHAR);
+                        }
                     }
                 }
                 break;
             case PHPRTLC_PRIVATEBYTES:
                 {
                     SIZE_T value = 0;
+                    SIZE_T returnLength;
+                    PH_FORMAT format[1];
+
                     PhpAggregateFieldIfNeeded(node, AggregateTypeIntPtr, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, VmCounters.PagefileUsage), &value);
-                    PhMoveReference(&node->PrivateBytesText, PhFormatSize(value, -1));
-                    getCellText->Text = node->PrivateBytesText->sr;
+                    PhInitFormatSize(&format[0], value);
+
+                    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), node->PrivateBytesText, sizeof(node->PrivateBytesText), &returnLength))
+                    {
+                        getCellText->Text.Buffer = node->PrivateBytesText;
+                        getCellText->Text.Length = returnLength - sizeof(WCHAR);
+                    }
                 }
                 break;
             case PHPRTLC_USERNAME:
@@ -2198,9 +2208,17 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
             case PHPRTLC_PRIVATEWS:
                 {
                     SIZE_T value = 0;
+                    SIZE_T returnLength;
+                    PH_FORMAT format[1];
+
                     PhpAggregateFieldIfNeeded(node, AggregateTypeIntPtr, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, WorkingSetPrivateSize), &value);
-                    PhMoveReference(&node->PrivateWsText, PhFormatSize(value, -1));
-                    getCellText->Text = node->PrivateWsText->sr;
+                    PhInitFormatSize(&format[0], value);
+
+                    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), node->PrivateWsText, sizeof(node->PrivateWsText), &returnLength))
+                    {
+                        getCellText->Text.Buffer = node->PrivateWsText;
+                        getCellText->Text.Length = returnLength - sizeof(WCHAR);
+                    }
                 }
                 break;
             case PHPRTLC_SHAREDWS:
