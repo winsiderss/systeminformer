@@ -130,8 +130,8 @@ static VOID PhpRefreshProcessList(
             NtClose(processHandle);
         }
 
-        if (process->UniqueProcessId == SYSTEM_IDLE_PROCESS_ID && !userName && PhLocalSystemName)
-            PhSetReference(&userName, PhLocalSystemName);
+        if (process->UniqueProcessId == SYSTEM_IDLE_PROCESS_ID && !userName)
+            PhSetReference(&userName, PhCreateString(L"NT AUTHORITY\\SYSTEM"));
 
         if (process->UniqueProcessId == SYSTEM_PROCESS_ID)
             fileName = PhGetKernelFileName();

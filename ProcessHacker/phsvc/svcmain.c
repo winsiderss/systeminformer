@@ -3,6 +3,7 @@
  *   server
  *
  * Copyright (C) 2011 wj32
+ * Copyright (C) 2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -27,8 +28,7 @@ HANDLE PhSvcTimeoutStandbyEventHandle;
 HANDLE PhSvcTimeoutCancelEventHandle;
 
 NTSTATUS PhSvcMain(
-    _In_opt_ PUNICODE_STRING PortName,
-    _In_opt_ PLARGE_INTEGER Timeout,
+    _In_opt_ PPH_STRING PortName,
     _Inout_opt_ PPHSVC_STOP Stop
     )
 {
@@ -36,27 +36,23 @@ NTSTATUS PhSvcMain(
     UNICODE_STRING portName;
     LARGE_INTEGER timeout;
 
-    if (!PortName)
+    if (PortName)
+    {
+        PhStringRefToUnicodeString(&PortName->sr, &portName);
+    }
+    else
     {
         if (PhIsExecutingInWow64())
             RtlInitUnicodeString(&portName, PHSVC_WOW64_PORT_NAME);
         else
             RtlInitUnicodeString(&portName, PHSVC_PORT_NAME);
-
-        PortName = &portName;
-    }
-
-    if (!Timeout)
-    {
-        timeout.QuadPart = -(LONGLONG)UInt32x32To64(15, PH_TIMEOUT_SEC);
-        Timeout = &timeout;
     }
 
     if (!NT_SUCCESS(status = PhSvcClientInitialization()))
         return status;
     if (!NT_SUCCESS(status = PhSvcApiInitialization()))
         return status;
-    if (!NT_SUCCESS(status = PhSvcApiPortInitialization(PortName)))
+    if (!NT_SUCCESS(status = PhSvcApiPortInitialization(&portName)))
         return status;
 
     if (!NT_SUCCESS(status = NtCreateEvent(&PhSvcTimeoutStandbyEventHandle, EVENT_ALL_ACCESS, NULL, SynchronizationEvent, TRUE)))
@@ -85,7 +81,7 @@ NTSTATUS PhSvcMain(
         if (Stop && Stop->Stop)
             break;
 
-        status = NtWaitForSingleObject(PhSvcTimeoutCancelEventHandle, FALSE, Timeout);
+        status = NtWaitForSingleObject(PhSvcTimeoutCancelEventHandle, FALSE, PhTimeoutFromMilliseconds(&timeout, 10 * 1000));
 
         if (Stop && Stop->Stop)
             break;

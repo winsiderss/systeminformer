@@ -84,11 +84,8 @@ BOOLEAN PhInitializeMitigationPolicy(
     VOID
     );
 
-PPH_STRING PhApplicationDirectory = NULL;
-PPH_STRING PhApplicationFileName = NULL;
 PHAPPAPI HFONT PhApplicationFont = NULL;
 PPH_STRING PhCurrentUserName = NULL;
-PPH_STRING PhLocalSystemName = NULL;
 BOOLEAN PhPluginsEnabled = FALSE;
 PPH_STRING PhSettingsFileName = NULL;
 PH_INTEGER_PAIR PhSmallIconSize = { 16, 16 };
@@ -116,7 +113,7 @@ INT WINAPI wWinMain(
 
     CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
 
-    if (!NT_SUCCESS(PhInitializePhLibEx(ULONG_MAX, Instance, 0, 0)))
+    if (!NT_SUCCESS(PhInitializePhLibEx(L"Process Hacker", ULONG_MAX, Instance, 0, 0)))
         return 1;
     if (!PhInitializeExceptionPolicy())
         return 1;
@@ -124,22 +121,8 @@ INT WINAPI wWinMain(
         return 1;
     if (!PhInitializeRestartPolicy())
         return 1;
-    if (!PhInitializeAppSystem())
-        return 1;
-
-    PhInitializeCommonControls();
-
-    if (!(PhApplicationFileName = PhGetApplicationFileName()))
-        PhApplicationFileName = PhCreateString(L"ProcessHacker.exe");
-    if (!(PhApplicationDirectory = PhGetApplicationDirectory()))
-        PhApplicationDirectory = PhReferenceEmptyString();
-    if (!(PhLocalSystemName = PhGetSidFullName(&PhSeLocalSystemSid, TRUE, NULL)))
-        PhLocalSystemName = PhCreateString(L"NT AUTHORITY\\SYSTEM");
-    if (!(PhCurrentUserName = PhGetTokenUserString(PhGetOwnTokenAttributes().TokenHandle, TRUE)))
-        PhCurrentUserName = PhReferenceEmptyString();
 
     PhpProcessStartupParameters();
-    PhSettingsInitialization();
     PhpEnablePrivileges();
 
     if (PhStartupParameters.RunAsServiceMode)
@@ -147,9 +130,16 @@ INT WINAPI wWinMain(
         RtlExitUserProcess(PhRunAsServiceStart(PhStartupParameters.RunAsServiceMode));
     }
 
+    if (PhStartupParameters.CommandMode &&
+        PhStartupParameters.CommandType &&
+        PhStartupParameters.CommandAction)
+    {
+        RtlExitUserProcess(PhCommandModeStart());
+    }
+
+    PhSettingsInitialization();
     PhpInitializeSettings();
 
-    // Activate a previous instance if required.
     if (PhGetIntegerSetting(L"AllowOnlyOneInstance") &&
         !PhStartupParameters.NewInstance &&
         !PhStartupParameters.ShowOptions &&
@@ -159,21 +149,13 @@ INT WINAPI wWinMain(
         PhActivatePreviousInstance();
     }
 
-    if (PhGetIntegerSetting(L"EnableKph") && !PhStartupParameters.NoKph && !PhStartupParameters.CommandMode && !PhIsExecutingInWow64())
-        PhInitializeKph();
-
-    if (PhStartupParameters.CommandMode && PhStartupParameters.CommandType && PhStartupParameters.CommandAction)
+    if (PhGetIntegerSetting(L"EnableKph") &&
+        !PhStartupParameters.NoKph &&
+        !PhStartupParameters.CommandMode &&
+        !PhIsExecutingInWow64()
+        )
     {
-        NTSTATUS status;
-
-        status = PhCommandModeStart();
-
-        if (!NT_SUCCESS(status) && !PhStartupParameters.Silent)
-        {
-            PhShowStatus(NULL, L"Unable to execute the command.", status, 0);
-        }
-
-        RtlExitUserProcess(status);
+        PhInitializeKph();
     }
 
 #ifdef DEBUG
@@ -185,6 +167,9 @@ INT WINAPI wWinMain(
 #endif
 
     PhInitializeAutoPool(&BaseAutoPool);
+
+    PhInitializeAppSystem();
+    PhInitializeCommonControls();
 
     PhEmInitialization();
     PhGuiSupportInitialization();
@@ -205,22 +190,7 @@ INT WINAPI wWinMain(
         RtlExitUserProcess(STATUS_SUCCESS);
     }
 
-#ifndef DEBUG
-    if (PhIsExecutingInWow64() && !PhStartupParameters.PhSvc)
-    {
-        PhShowWarning(
-            NULL,
-            L"You are attempting to run the 32-bit version of Process Hacker on 64-bit Windows. "
-            L"Most features will not work correctly.\n\n"
-            L"Please run the 64-bit version of Process Hacker instead."
-            );
-        RtlExitUserProcess(STATUS_IMAGE_SUBSYSTEM_NOT_PRESENT);
-    }
-#endif
-
-    PhPluginsEnabled = PhGetIntegerSetting(L"EnablePlugins") && !PhStartupParameters.NoPlugins;
-
-    if (PhPluginsEnabled)
+    if (PhPluginsEnabled = PhGetIntegerSetting(L"EnablePlugins") && !PhStartupParameters.NoPlugins)
     {
         PhPluginsInitialization();
         PhLoadPlugins();
@@ -249,8 +219,21 @@ INT WINAPI wWinMain(
         PostMessage(NULL, WM_NULL, 0, 0);
         GetMessage(&message, NULL, 0, 0);
 
-        RtlExitUserProcess(PhSvcMain(NULL, NULL, NULL));
+        RtlExitUserProcess(PhSvcMain(NULL, NULL));
     }
+
+#ifndef DEBUG
+    if (PhIsExecutingInWow64())
+    {
+        PhShowWarning(
+            NULL,
+            L"You are attempting to run the 32-bit version of Process Hacker on 64-bit Windows. "
+            L"Most features will not work correctly.\n\n"
+            L"Please run the 64-bit version of Process Hacker instead."
+            );
+        RtlExitUserProcess(STATUS_IMAGE_SUBSYSTEM_NOT_PRESENT);
+    }
+#endif
 
     // Create a mutant for the installer.
     {
@@ -789,15 +772,18 @@ VOID PhInitializeKph(
     VOID
     )
 {
-    static PH_STRINGREF kprocesshacker = PH_STRINGREF_INIT(L"kprocesshacker.sys");
-    static PH_STRINGREF processhackerSig = PH_STRINGREF_INIT(L"ProcessHacker.sig");
     NTSTATUS status;
+    PPH_STRING applicationDirectory;
     PPH_STRING kprocesshackerFileName;
     PPH_STRING processhackerSigFileName;
     KPH_PARAMETERS parameters;
 
-    kprocesshackerFileName = PhConcatStringRef2(&PhApplicationDirectory->sr, &kprocesshacker);
-    processhackerSigFileName = PhConcatStringRef2(&PhApplicationDirectory->sr, &processhackerSig);
+    if (!(applicationDirectory = PhGetApplicationDirectory()))
+        return;
+
+    kprocesshackerFileName = PhConcatStringRefZ(&applicationDirectory->sr, L"kprocesshacker.sys");
+    processhackerSigFileName = PhConcatStringRefZ(&applicationDirectory->sr, L"ProcessHacker.sig");
+    PhDereferenceObject(applicationDirectory);
 
     if (!RtlDoesFileExists_U(kprocesshackerFileName->Buffer))
     {
@@ -856,8 +842,6 @@ BOOLEAN PhInitializeAppSystem(
     VOID
     )
 {
-    PhApplicationName = L"Process Hacker";
-
     if (!PhProcessProviderInitialization())
         return FALSE;
     if (!PhServiceProviderInitialization())
@@ -886,6 +870,7 @@ VOID PhpInitializeSettings(
 
     if (!PhStartupParameters.NoSettings)
     {
+        static PH_STRINGREF settingsPath = PH_STRINGREF_INIT(L"%APPDATA%\\Process Hacker\\settings.xml");
         static PH_STRINGREF settingsSuffix = PH_STRINGREF_INIT(L".settings.xml");
         PPH_STRING settingsFileName;
 
@@ -905,22 +890,29 @@ VOID PhpInitializeSettings(
         // 2. File in program directory
         if (!PhSettingsFileName)
         {
-            settingsFileName = PhConcatStringRef2(&PhApplicationFileName->sr, &settingsSuffix);
+            PPH_STRING applicationFileName;
 
-            if (RtlDoesFileExists_U(settingsFileName->Buffer))
+            if (applicationFileName = PhGetApplicationFileName())
             {
-                PhSettingsFileName = settingsFileName;
-            }
-            else
-            {
-                PhDereferenceObject(settingsFileName);
+                settingsFileName = PhConcatStringRef2(&applicationFileName->sr, &settingsSuffix);
+
+                if (RtlDoesFileExists_U(settingsFileName->Buffer))
+                {
+                    PhSettingsFileName = settingsFileName;
+                }
+                else
+                {
+                    PhDereferenceObject(settingsFileName);
+                }
+
+                PhDereferenceObject(applicationFileName);
             }
         }
 
         // 3. Default location
         if (!PhSettingsFileName)
         {
-            PhSettingsFileName = PhGetKnownLocation(CSIDL_APPDATA, L"\\Process Hacker\\settings.xml");
+            PhSettingsFileName = PhExpandEnvironmentStrings(&settingsPath);
         }
 
         if (PhSettingsFileName)
@@ -1245,10 +1237,15 @@ VOID PhpProcessStartupParameters(
     if (PhStartupParameters.InstallKph)
     {
         NTSTATUS status;
+        PPH_STRING applicationDirectory;
         PPH_STRING kprocesshackerFileName;
         KPH_PARAMETERS parameters;
 
-        kprocesshackerFileName = PhConcatStrings2(PhApplicationDirectory->Buffer, L"\\kprocesshacker.sys");
+        if (!(applicationDirectory = PhGetApplicationDirectory()))
+            return;
+
+        kprocesshackerFileName = PhConcatStringRefZ(&applicationDirectory->sr, L"\\kprocesshacker.sys");
+        PhDereferenceObject(applicationDirectory);
 
         parameters.SecurityLevel = KphSecuritySignatureCheck;
         parameters.CreateDynamicConfiguration = TRUE;

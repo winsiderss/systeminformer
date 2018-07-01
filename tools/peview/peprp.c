@@ -218,7 +218,7 @@ VERIFY_RESULT PvpVerifyFileWithAdditionalCatalog(
     )
 {
     static PH_STRINGREF codeIntegrityFileName = PH_STRINGREF_INIT(L"\\AppxMetadata\\CodeIntegrity.cat");
-
+    static PH_STRINGREF windowsAppsPathSr = PH_STRINGREF_INIT(L"%ProgramFiles%\\WindowsApps\\");
     VERIFY_RESULT result;
     PH_VERIFY_FILE_INFO info;
     PPH_STRING windowsAppsPath;
@@ -231,9 +231,7 @@ VERIFY_RESULT PvpVerifyFileWithAdditionalCatalog(
     info.Flags = Flags;
     info.hWnd = hWnd;
 
-    windowsAppsPath = PhGetKnownLocation(CSIDL_PROGRAM_FILES, L"\\WindowsApps\\");
-
-    if (windowsAppsPath)
+    if (windowsAppsPath = PhExpandEnvironmentStrings(&windowsAppsPathSr))
     {
         if (PhStartsWithStringRef(&FileName->sr, &windowsAppsPath->sr, TRUE))
         {

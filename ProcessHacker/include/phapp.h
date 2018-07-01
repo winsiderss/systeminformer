@@ -72,11 +72,7 @@ typedef struct _PH_STARTUP_PARAMETERS
     PPH_STRING SysInfo;
 } PH_STARTUP_PARAMETERS, *PPH_STARTUP_PARAMETERS;
 
-extern PPH_STRING PhApplicationDirectory;
-extern PPH_STRING PhApplicationFileName;
 PHAPPAPI extern HFONT PhApplicationFont; // phapppub
-extern PPH_STRING PhCurrentUserName;
-extern PPH_STRING PhLocalSystemName;
 extern BOOLEAN PhPluginsEnabled;
 extern PPH_STRING PhSettingsFileName;
 extern PH_INTEGER_PAIR PhSmallIconSize;

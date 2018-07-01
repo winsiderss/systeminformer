@@ -40,7 +40,7 @@ VOID PhInitializeWindowsVersion(
     );
 
 PHLIBAPI PVOID PhInstanceHandle;
-PHLIBAPI PWSTR PhApplicationName = L"Application";
+PHLIBAPI PWSTR PhApplicationName;
 PHLIBAPI ULONG PhGlobalDpi = 96;
 PHLIBAPI PVOID PhHeapHandle;
 PHLIBAPI RTL_OSVERSIONINFOEXW PhOsVersion;
@@ -63,7 +63,8 @@ NTSTATUS PhInitializePhLib(
     )
 {
     return PhInitializePhLibEx(
-        0xffffffff, // all possible features
+        L"Application",
+        ULONG_MAX, // all possible features
         NtCurrentPeb()->ImageBaseAddress,
         0,
         0
@@ -71,12 +72,14 @@ NTSTATUS PhInitializePhLib(
 }
 
 NTSTATUS PhInitializePhLibEx(
+    _In_ PWSTR ApplicationName,
     _In_ ULONG Flags,
     _In_ PVOID ImageBaseAddress,
     _In_opt_ SIZE_T HeapReserveSize,
     _In_opt_ SIZE_T HeapCommitSize
     )
 {
+    PhApplicationName = ApplicationName;
     PhInstanceHandle = ImageBaseAddress;
     PhHeapHandle = RtlCreateHeap(
         HEAP_GROWABLE | HEAP_CLASS_1,

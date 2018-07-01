@@ -1221,6 +1221,7 @@ NTSTATUS PhExecuteRunAsCommand(
 {
     NTSTATUS status;
     ULONG win32Result;
+    PPH_STRING applicationFileName;
     PPH_STRING commandLine;
     SC_HANDLE scManagerHandle;
     SC_HANDLE serviceHandle;
@@ -1231,7 +1232,10 @@ NTSTATUS PhExecuteRunAsCommand(
     if (!(scManagerHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CREATE_SERVICE)))
         return PhGetLastWin32ErrorAsNtStatus();
 
-    commandLine = PhFormatString(L"\"%s\" -ras \"%s\"", PhApplicationFileName->Buffer, Parameters->ServiceName);
+    if (!(applicationFileName = PhGetApplicationFileName()))
+        return STATUS_FAIL_CHECK;
+
+    commandLine = PhFormatString(L"\"%s\" -ras \"%s\"", applicationFileName->Buffer, Parameters->ServiceName);
 
     serviceHandle = CreateService(
         scManagerHandle,
@@ -1251,6 +1255,7 @@ NTSTATUS PhExecuteRunAsCommand(
     win32Result = GetLastError();
 
     PhDereferenceObject(commandLine);
+    PhDereferenceObject(applicationFileName);
 
     CloseServiceHandle(scManagerHandle);
 
@@ -1489,21 +1494,18 @@ static VOID WINAPI RunAsServiceMain(
     )
 {
     PPH_STRING portName;
-    UNICODE_STRING portNameUs;
-    LARGE_INTEGER timeout;
 
     memset(&RunAsServiceStop, 0, sizeof(PHSVC_STOP));
 
     RunAsServiceStatusHandle = RegisterServiceCtrlHandlerEx(RunAsServiceName->Buffer, RunAsServiceHandlerEx, NULL);
     SetRunAsServiceStatus(SERVICE_RUNNING);
 
-    portName = PhConcatStrings2(L"\\BaseNamedObjects\\", RunAsServiceName->Buffer);
-    PhStringRefToUnicodeString(&portName->sr, &portNameUs);
+    portName = PhConcatStrings2(
+        L"\\BaseNamedObjects\\", 
+        RunAsServiceName->Buffer
+        );
 
-    // Use a shorter timeout value to reduce the time spent running as SYSTEM.
-    timeout.QuadPart = -(LONGLONG)UInt32x32To64(5, PH_TIMEOUT_SEC);
-
-    PhSvcMain(&portNameUs, &timeout, &RunAsServiceStop);
+    PhSvcMain(portName, &RunAsServiceStop);
 
     SetRunAsServiceStatus(SERVICE_STOPPED);
 }

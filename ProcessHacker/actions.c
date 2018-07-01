@@ -354,12 +354,16 @@ BOOLEAN PhpStartPhSvcProcess(
             };
 
             ULONG i;
+            PPH_STRING applicationDirectory;
 
-            for (i = 0; i < sizeof(relativeFileNames) / sizeof(PWSTR); i++)
+            if (!(applicationDirectory = PhGetApplicationDirectory()))
+                return FALSE;
+
+            for (i = 0; i < RTL_NUMBER_OF(relativeFileNames); i++)
             {
                 PPH_STRING fileName;
 
-                fileName = PhConcatStrings2(PhApplicationDirectory->Buffer, relativeFileNames[i]);
+                fileName = PhConcatStrings2(applicationDirectory->Buffer, relativeFileNames[i]);
                 PhMoveReference(&fileName, PhGetFullPath(fileName->Buffer, NULL));
 
                 if (fileName && RtlDoesFileExists_U(fileName->Buffer))
@@ -376,11 +380,13 @@ BOOLEAN PhpStartPhSvcProcess(
                         ))
                     {
                         PhDereferenceObject(fileName);
+                        PhDereferenceObject(applicationDirectory);
                         return TRUE;
                     }
                 }
 
                 PhClearReference(&fileName);
+                PhClearReference(&applicationDirectory);
             }
         }
         break;
