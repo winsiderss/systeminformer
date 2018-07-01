@@ -872,8 +872,6 @@ BOOLEAN PhInitializeAppSystem(
         return FALSE;
     if (!PhMemoryProviderInitialization())
         return FALSE;
-    if (!PhProcessPropInitialization())
-        return FALSE;
 
     PhSetHandleClientIdFunction(PhGetClientIdName);
 

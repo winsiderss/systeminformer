@@ -34,34 +34,29 @@
 #include <phsettings.h>
 #include <procprv.h>
 
-PPH_OBJECT_TYPE PhpProcessPropContextType;
-PPH_OBJECT_TYPE PhpProcessPropPageContextType;
+PPH_OBJECT_TYPE PhpProcessPropContextType = NULL;
+PPH_OBJECT_TYPE PhpProcessPropPageContextType = NULL;
 PH_STRINGREF PhpLoadingText = PH_STRINGREF_INIT(L"Loading...");
-
 static RECT MinimumSize = { -1, -1, -1, -1 };
-
-BOOLEAN PhProcessPropInitialization(
-    VOID
-    )
-{
-    PhpProcessPropContextType = PhCreateObjectType(L"ProcessPropContext", 0, PhpProcessPropContextDeleteProcedure);
-    PhpProcessPropPageContextType = PhCreateObjectType(L"ProcessPropPageContext", 0, PhpProcessPropPageContextDeleteProcedure);
-
-    return TRUE;
-}
 
 PPH_PROCESS_PROPCONTEXT PhCreateProcessPropContext(
     _In_ HWND ParentWindowHandle,
     _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
     PPH_PROCESS_PROPCONTEXT propContext;
     PROPSHEETHEADER propSheetHeader;
 
-    propContext = PhCreateObject(sizeof(PH_PROCESS_PROPCONTEXT), PhpProcessPropContextType);
-    memset(propContext, 0, sizeof(PH_PROCESS_PROPCONTEXT));
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PhpProcessPropContextType = PhCreateObjectType(L"ProcessPropContext", 0, PhpProcessPropContextDeleteProcedure);
+        PhpProcessPropPageContextType = PhCreateObjectType(L"ProcessPropPageContext", 0, PhpProcessPropPageContextDeleteProcedure);
+        PhEndInitOnce(&initOnce);
+    }
 
-    propContext->PropSheetPages = PhAllocate(sizeof(HPROPSHEETPAGE) * PH_PROCESS_PROPCONTEXT_MAXPAGES);
+    propContext = PhCreateObjectZero(sizeof(PH_PROCESS_PROPCONTEXT), PhpProcessPropContextType);
+    propContext->PropSheetPages = PhAllocateZero(sizeof(HPROPSHEETPAGE) * PH_PROCESS_PROPCONTEXT_MAXPAGES);
 
     if (!PH_IS_FAKE_PROCESS_ID(ProcessItem->ProcessId))
     {
