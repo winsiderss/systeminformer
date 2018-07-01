@@ -657,6 +657,5 @@ EXPORTS
 	PhGetJsonArrayIndexObject
 
 ; cache
-	PhClearCacheDirectory
 	PhCreateCacheFile
 	PhDeleteCacheFile

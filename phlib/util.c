@@ -2113,7 +2113,7 @@ PPH_STRING PhGetKnownLocation(
     else
         appendPathLength = 0;
 
-    path = PhCreateStringEx(NULL, MAX_PATH * 2 + appendPathLength);
+    path = PhCreateStringEx(NULL, MAX_PATH * sizeof(WCHAR) + appendPathLength);
 
     if (SUCCEEDED(SHGetFolderPath(
         NULL,
@@ -2127,7 +2127,7 @@ PPH_STRING PhGetKnownLocation(
 
         if (AppendPath)
         {
-            memcpy(&path->Buffer[path->Length / sizeof(WCHAR)], AppendPath, appendPathLength + 2); // +2 for null terminator
+            memcpy(&path->Buffer[path->Length / sizeof(WCHAR)], AppendPath, appendPathLength + sizeof(WCHAR)); // +2 for null terminator
             path->Length += appendPathLength;
         }
 
@@ -3311,8 +3311,8 @@ VOID PhShellOpenKey(
     _In_ PPH_STRING KeyName
     )
 {
-    static PH_STRINGREF regeditKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Applets\\Regedit");
-
+    static PH_STRINGREF regeditKeyNameSr = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Applets\\Regedit");
+    static PH_STRINGREF regeditFileNameSr = PH_STRINGREF_INIT(L"%SystemRoot%\\regedit.exe");
     PPH_STRING lastKey;
     HANDLE regeditKeyHandle;
     UNICODE_STRING valueName;
@@ -3322,7 +3322,7 @@ VOID PhShellOpenKey(
         &regeditKeyHandle,
         KEY_WRITE,
         PH_KEY_CURRENT_USER,
-        &regeditKeyName,
+        &regeditKeyNameSr,
         0,
         0,
         NULL
@@ -3334,23 +3334,23 @@ VOID PhShellOpenKey(
     NtSetValueKey(regeditKeyHandle, &valueName, 0, REG_SZ, lastKey->Buffer, (ULONG)lastKey->Length + 2);
     PhDereferenceObject(lastKey);
 
-    NtClose(regeditKeyHandle);
+    NtClose(regeditKeyHandle); 
 
     // Start regedit. If we aren't elevated, request that regedit be elevated. This is so we can get
     // the consent dialog in the center of the specified window.
 
-    regeditFileName = PhGetKnownLocation(CSIDL_WINDOWS, L"\\regedit.exe");
+    regeditFileName = PhExpandEnvironmentStrings(&regeditFileNameSr);
 
-    if (!regeditFileName)
-        regeditFileName = PhCreateString(L"regedit.exe");
+    if (PhIsNullOrEmptyString(regeditFileName))
+        PhMoveReference(&regeditFileName, PhCreateString(L"regedit.exe"));
 
-    if (!PhGetOwnTokenAttributes().Elevated)
+    if (PhGetOwnTokenAttributes().Elevated)
     {
-        PhShellExecuteEx(hWnd, regeditFileName->Buffer, L"", SW_NORMAL, PH_SHELL_EXECUTE_ADMIN, 0, NULL);
+        PhShellExecute(hWnd, regeditFileName->Buffer, L"");
     }
     else
     {
-        PhShellExecute(hWnd, regeditFileName->Buffer, L"");
+        PhShellExecuteEx(hWnd, regeditFileName->Buffer, L"", SW_NORMAL, PH_SHELL_EXECUTE_ADMIN, 0, NULL);
     }
 
     PhDereferenceObject(regeditFileName);
@@ -4961,36 +4961,18 @@ BOOLEAN PhSearchFilePath(
     return TRUE;
 }
 
-PPH_STRING PhGetCacheDirectory(
-    VOID
-    )
-{
-    return PhGetKnownLocation(CSIDL_LOCAL_APPDATA, L"\\Process Hacker\\Cache");
-}
-
-VOID PhClearCacheDirectory(
-    VOID
-    )
-{
-    PPH_STRING cacheDirectory;
-
-    cacheDirectory = PhGetCacheDirectory();
-    PhDeleteDirectory(cacheDirectory);
-
-    PhDereferenceObject(cacheDirectory);
-}
-
 PPH_STRING PhCreateCacheFile(
     _In_ PPH_STRING FileName
     )
 {
+    static PH_STRINGREF cacheDirectorySr = PH_STRINGREF_INIT(L"%TEMP%");
     PPH_STRING cacheDirectory;
     PPH_STRING cacheFilePath;
     PPH_STRING cacheFullFilePath = NULL;
     ULONG indexOfFileName = -1;
     WCHAR alphastring[16] = L"";
 
-    cacheDirectory = PhGetCacheDirectory();
+    cacheDirectory = PhExpandEnvironmentStrings(&cacheDirectorySr);
     PhGenerateRandomAlphaString(alphastring, ARRAYSIZE(alphastring));
 
     cacheFilePath = PhConcatStrings(
