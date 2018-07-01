@@ -1226,7 +1226,7 @@ VOID PhpFillProcessItem(
             ProcessItem->ProcessId == SYSTEM_PROCESS_ID // System token can't be opened on XP
             )
         {
-            PhSetReference(&ProcessItem->UserName, PhLocalSystemName);
+            PhSetReference(&ProcessItem->UserName, PhCreateString(L"NT AUTHORITY\\SYSTEM"));
         }
     }
 

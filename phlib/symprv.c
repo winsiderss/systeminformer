@@ -247,21 +247,37 @@ VOID PhpSymbolProviderCompleteInitialization(
 {
     static struct
     {
-        ULONG Folder;
-        PWSTR AppendPath;
+        PH_STRINGREF AppendPath;
     } locations[] =
     {
 #ifdef _WIN64
-        { CSIDL_PROGRAM_FILESX86, L"\\Windows Kits\\10\\Debuggers\\x64\\dbghelp.dll" },
-        { CSIDL_PROGRAM_FILES, L"\\Windows Kits\\10\\Debuggers\\x64\\dbghelp.dll" },
-        { CSIDL_PROGRAM_FILESX86, L"\\Windows Kits\\8.1\\Debuggers\\x64\\dbghelp.dll" },
-        { CSIDL_PROGRAM_FILESX86, L"\\Windows Kits\\8.0\\Debuggers\\x64\\dbghelp.dll" },
-        { CSIDL_PROGRAM_FILES, L"\\Debugging Tools for Windows (x64)\\dbghelp.dll" }
+        PH_STRINGREF_INIT(L"%ProgramFiles(x86)%\\Windows Kits\\10\\Debuggers\\x64\\dbghelp.dll"),
+        PH_STRINGREF_INIT(L"%ProgramFiles%\\Windows Kits\\10\\Debuggers\\x64\\dbghelp.dll"),
+        PH_STRINGREF_INIT(L"%ProgramFiles(x86)%\\Windows Kits\\8.1\\Debuggers\\x64\\dbghelp.dll"),
+        PH_STRINGREF_INIT(L"%ProgramFiles(x86)%\\Windows Kits\\8.0\\Debuggers\\x64\\dbghelp.dll"),
+        PH_STRINGREF_INIT(L"%ProgramFiles%\\Debugging Tools for Windows (x64)\\dbghelp.dll")
 #else
-        { CSIDL_PROGRAM_FILES, L"\\Windows Kits\\10\\Debuggers\\x86\\dbghelp.dll" },
-        { CSIDL_PROGRAM_FILES, L"\\Windows Kits\\8.1\\Debuggers\\x86\\dbghelp.dll" },
-        { CSIDL_PROGRAM_FILES, L"\\Windows Kits\\8.0\\Debuggers\\x86\\dbghelp.dll" },
-        { CSIDL_PROGRAM_FILES, L"\\Debugging Tools for Windows (x86)\\dbghelp.dll" }
+        PH_STRINGREF_INIT(L"%ProgramFiles%\\Windows Kits\\10\\Debuggers\\x86\\dbghelp.dll"),
+        PH_STRINGREF_INIT(L"%ProgramFiles%\\Windows Kits\\8.1\\Debuggers\\x86\\dbghelp.dll"),
+        PH_STRINGREF_INIT(L"%ProgramFiles%\\Windows Kits\\8.0\\Debuggers\\x86\\dbghelp.dll"),
+        PH_STRINGREF_INIT(L"%ProgramFiles%\\Debugging Tools for Windows (x86)\\dbghelp.dll")
+#endif
+    };
+    static struct
+    {
+        PH_STRINGREF AppendPath;
+    } symsrvlocation[] =
+    {
+#ifdef _WIN64
+        { PH_STRINGREF_INIT(L"%ProgramFiles(x86)%\\Windows Kits\\10\\Debuggers\\x64\\symsrv.dll") },
+        { PH_STRINGREF_INIT(L"%ProgramFiles(x86)%\\Windows Kits\\8.1\\Debuggers\\x64\\symsrv.dll") },
+        { PH_STRINGREF_INIT(L"%ProgramFiles(x86)%\\Windows Kits\\8.0\\Debuggers\\x64\\symsrv.dll") },
+        { PH_STRINGREF_INIT(L"%ProgramFiles%\\Debugging Tools for Windows (x64)\\symsrv.dll") }
+#else
+        { CSIDL_PROGRAM_FILES, L"%ProgramFiles%\\Windows Kits\\10\\Debuggers\\x86\\symsrv.dll" },
+        { CSIDL_PROGRAM_FILES, L"%ProgramFiles%\\Windows Kits\\8.1\\Debuggers\\x86\\symsrv.dll" },
+        { CSIDL_PROGRAM_FILES, L"%ProgramFiles%\\Windows Kits\\8.0\\Debuggers\\x86\\symsrv.dll" },
+        { CSIDL_PROGRAM_FILES, L"%ProgramFiles%\\Debugging Tools for Windows (x86)\\symsrv.dll" }
 #endif
     };
 
@@ -275,9 +291,9 @@ VOID PhpSymbolProviderCompleteInitialization(
     if (dbghelpHandle && symsrvHandle)
         return;
 
-    for (ULONG i = 0; i < ARRAYSIZE(locations); i++)
+    for (ULONG i = 0; i < RTL_NUMBER_OF(locations); i++)
     {
-        if (dbghelpPath = PhGetKnownLocation(locations[i].Folder, locations[i].AppendPath))
+        if (dbghelpPath = PhExpandEnvironmentStrings(&locations[i].AppendPath))
         {
             if (RtlDoesFileExists_U(dbghelpPath->Buffer))
                 break;
@@ -299,12 +315,10 @@ VOID PhpSymbolProviderCompleteInitialization(
             {
                 if (indexOfFileName != 0)
                 {
-                    static PH_STRINGREF symsrvString = PH_STRINGREF_INIT(L"\\symsrv.dll");
-
                     dbghelpFolder.Buffer = fullDbghelpPath->Buffer;
                     dbghelpFolder.Length = indexOfFileName * sizeof(WCHAR);
 
-                    symsrvPath = PhConcatStringRef2(&dbghelpFolder, &symsrvString);
+                    symsrvPath = PhConcatStringRefZ(&dbghelpFolder, L"\\symsrv.dll");
                     symsrvHandle = LoadLibrary(symsrvPath->Buffer);
                     PhDereferenceObject(symsrvPath);
                 }

@@ -738,12 +738,19 @@ VOID PhShellExecuteUserString(
     )
 {
     static PH_STRINGREF replacementToken = PH_STRINGREF_INIT(L"%s");
-
+    PPH_STRING applicationDirectory;
     PPH_STRING executeString;
     PH_STRINGREF stringBefore;
     PH_STRINGREF stringAfter;
     PPH_STRING ntMessage;
 
+    if (!(applicationDirectory = PhGetApplicationDirectory()))
+    {
+        PhShowStatus(hWnd, L"Unable to locate the application directory.", STATUS_NOT_FOUND, 0);
+        return;
+    }
+
+    // Get the execute command.
     executeString = PhGetStringSetting(Setting);
 
     // Expand environment strings.
@@ -764,7 +771,7 @@ VOID PhShellExecuteUserString(
 
             // Make sure the string is absolute and escape the filename.
             if (RtlDetermineDosPathNameType_U(fileName->Buffer) == RtlPathTypeRelative)
-                PhMoveReference(&fileName, PhConcatStrings(4, L"\"", PhApplicationDirectory->Buffer, fileName->Buffer, L"\""));
+                PhMoveReference(&fileName, PhConcatStrings(4, L"\"", applicationDirectory->Buffer, fileName->Buffer, L"\""));
             else
                 PhMoveReference(&fileName, PhConcatStrings(3, L"\"", fileName->Buffer, L"\""));
 
@@ -781,7 +788,7 @@ VOID PhShellExecuteUserString(
         else
         {
             if (RtlDetermineDosPathNameType_U(executeString->Buffer) == RtlPathTypeRelative)
-                PhMoveReference(&executeString, PhConcatStrings(4, L"\"", PhApplicationDirectory->Buffer, executeString->Buffer, L"\""));
+                PhMoveReference(&executeString, PhConcatStrings(4, L"\"", applicationDirectory->Buffer, executeString->Buffer, L"\""));
             else
                 PhMoveReference(&executeString, PhConcatStrings(3, L"\"", executeString->Buffer, L"\""));
         }
@@ -832,6 +839,7 @@ VOID PhShellExecuteUserString(
     }
 
     PhDereferenceObject(executeString);
+    PhDereferenceObject(applicationDirectory);
 }
 
 VOID PhLoadSymbolProviderOptions(
@@ -1134,8 +1142,12 @@ BOOLEAN PhShellProcessHackerEx(
     )
 {
     BOOLEAN result;
+    PPH_STRING applicationFileName;
     PH_STRING_BUILDER sb;
     PWSTR parameters;
+
+    if (!(applicationFileName = PhGetApplicationFileName()))
+        return FALSE;
 
     if (AppFlags & PH_SHELL_APP_PROPAGATE_PARAMETERS)
     {
@@ -1243,7 +1255,7 @@ BOOLEAN PhShellProcessHackerEx(
 
     result = PhShellExecuteEx(
         hWnd,
-        FileName ? FileName : PhApplicationFileName->Buffer,
+        FileName ? FileName : PhGetString(applicationFileName),
         parameters,
         ShowWindowType,
         Flags,
@@ -1253,6 +1265,8 @@ BOOLEAN PhShellProcessHackerEx(
 
     if (AppFlags & PH_SHELL_APP_PROPAGATE_PARAMETERS)
         PhDeleteStringBuilder(&sb);
+
+    PhDereferenceObject(applicationFileName);
 
     return result;
 }

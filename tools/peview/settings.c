@@ -60,6 +60,7 @@ VOID PeInitializeSettings(
     VOID
     )
 {
+    static PH_STRINGREF settingsPath = PH_STRINGREF_INIT(L"%APPDATA%\\Process Hacker\\peview.xml");
     static PH_STRINGREF settingsSuffix = PH_STRINGREF_INIT(L".peview.xml");
     NTSTATUS status;
     PPH_STRING appFileName;
@@ -88,7 +89,7 @@ VOID PeInitializeSettings(
     // 2. Default location
     if (!PeSettingsFileName)
     {
-        PeSettingsFileName = PhGetKnownLocation(CSIDL_APPDATA, L"\\Process Hacker\\peview.xml");
+        PeSettingsFileName = PhExpandEnvironmentStrings(&settingsPath);
     }
 
     if (PeSettingsFileName)

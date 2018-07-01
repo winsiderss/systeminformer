@@ -250,18 +250,30 @@ VOID PhLoadPlugins(
 
     if (RtlDetermineDosPathNameType_U(pluginsDirectory->Buffer) == RtlPathTypeRelative)
     {
-        // Not absolute. Make sure it is.
-        PluginsDirectory = PhConcatStrings(4, PhApplicationDirectory->Buffer, L"\\", pluginsDirectory->Buffer, L"\\");
-        PhDereferenceObject(pluginsDirectory);
+        PPH_STRING applicationDirectory;
+
+        if (applicationDirectory = PhGetApplicationDirectory())
+        {
+           PhMoveReference(&PluginsDirectory, PhConcatStrings( // Not absolute. Make sure it is.
+                4,
+                applicationDirectory->Buffer,
+                L"\\",
+                pluginsDirectory->Buffer,
+                L"\\"
+                ));
+
+            PhDereferenceObject(pluginsDirectory);
+        }
     }
-    else
+
+    if (PhIsNullOrEmptyString(PluginsDirectory))
     {
-        PluginsDirectory = pluginsDirectory;
+        PhMoveReference(&PluginsDirectory, pluginsDirectory);
     }
 
     if (NT_SUCCESS(PhCreateFileWin32(
         &pluginsDirectoryHandle,
-        PluginsDirectory->Buffer,
+        PhGetString(PluginsDirectory),
         FILE_GENERIC_READ,
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ,

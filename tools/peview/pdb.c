@@ -2274,28 +2274,27 @@ PPH_STRING PvFindDbghelpPath(
     static struct
     {
         BOOLEAN Type;
-        ULONG Folder;
-        PWSTR AppendPath;
+        PH_STRINGREF AppendPath;
     } locations[] =
     {
 #ifdef _WIN64
-        { FALSE, CSIDL_PROGRAM_FILESX86, L"\\Windows Kits\\10\\Debuggers\\x64\\dbghelp.dll" },
-        { FALSE, CSIDL_PROGRAM_FILESX86, L"\\Windows Kits\\8.1\\Debuggers\\x64\\dbghelp.dll" },
-        { FALSE, CSIDL_PROGRAM_FILESX86, L"\\Windows Kits\\8.0\\Debuggers\\x64\\dbghelp.dll" },
-        { FALSE, CSIDL_PROGRAM_FILES, L"\\Debugging Tools for Windows (x64)\\dbghelp.dll" },
-        { TRUE, CSIDL_PROGRAM_FILESX86, L"\\Windows Kits\\10\\Debuggers\\x64\\symsrv.dll" },
-        { TRUE, CSIDL_PROGRAM_FILESX86, L"\\Windows Kits\\8.1\\Debuggers\\x64\\symsrv.dll" },
-        { TRUE, CSIDL_PROGRAM_FILESX86, L"\\Windows Kits\\8.0\\Debuggers\\x64\\symsrv.dll" },
-        { TRUE, CSIDL_PROGRAM_FILES, L"\\Debugging Tools for Windows (x64)\\symsrv.dll" }
+        { FALSE, PH_STRINGREF_INIT(L"%ProgramFiles(x86)%\\Windows Kits\\10\\Debuggers\\x64\\dbghelp.dll") },
+        { FALSE, PH_STRINGREF_INIT(L"%ProgramFiles(x86)%\\Windows Kits\\8.1\\Debuggers\\x64\\dbghelp.dll") },
+        { FALSE, PH_STRINGREF_INIT(L"%ProgramFiles(x86)%\\Windows Kits\\8.0\\Debuggers\\x64\\dbghelp.dll") },
+        { FALSE, PH_STRINGREF_INIT(L"%ProgramFiles%\\Debugging Tools for Windows (x64)\\dbghelp.dll") },
+        { TRUE, PH_STRINGREF_INIT(L"%ProgramFiles(x86)%\\Windows Kits\\10\\Debuggers\\x64\\symsrv.dll") },
+        { TRUE, PH_STRINGREF_INIT(L"%ProgramFiles(x86)%\\Windows Kits\\8.1\\Debuggers\\x64\\symsrv.dll") },
+        { TRUE, PH_STRINGREF_INIT(L"%ProgramFiles(x86)%\\Windows Kits\\8.0\\Debuggers\\x64\\symsrv.dll") },
+        { TRUE, PH_STRINGREF_INIT(L"%ProgramFiles%\\Debugging Tools for Windows (x64)\\symsrv.dll") }
 #else
-        { FALSE, CSIDL_PROGRAM_FILES, L"\\Windows Kits\\10\\Debuggers\\x86\\dbghelp.dll" },
-        { FALSE, CSIDL_PROGRAM_FILES, L"\\Windows Kits\\8.1\\Debuggers\\x86\\dbghelp.dll" },
-        { FALSE, CSIDL_PROGRAM_FILES, L"\\Windows Kits\\8.0\\Debuggers\\x86\\dbghelp.dll" },
-        { FALSE, CSIDL_PROGRAM_FILES, L"\\Debugging Tools for Windows (x86)\\dbghelp.dll" },
-        { TRUE, CSIDL_PROGRAM_FILES, L"\\Windows Kits\\10\\Debuggers\\x86\\symsrv.dll" },
-        { TRUE, CSIDL_PROGRAM_FILES, L"\\Windows Kits\\8.1\\Debuggers\\x86\\symsrv.dll" },
-        { TRUE, CSIDL_PROGRAM_FILES, L"\\Windows Kits\\8.0\\Debuggers\\x86\\symsrv.dll" },
-        { TRUE, CSIDL_PROGRAM_FILES, L"\\Debugging Tools for Windows (x86)\\symsrv.dll" }
+        { FALSE, PH_STRINGREF_INIT(L"%ProgramFiles%\\Windows Kits\\10\\Debuggers\\x86\\dbghelp.dll") },
+        { FALSE, PH_STRINGREF_INIT(L"%ProgramFiles%\\Windows Kits\\8.1\\Debuggers\\x86\\dbghelp.dll") },
+        { FALSE, PH_STRINGREF_INIT(L"%ProgramFiles%\\Windows Kits\\8.0\\Debuggers\\x86\\dbghelp.dll") },
+        { FALSE, PH_STRINGREF_INIT(L"%ProgramFiles%\\Debugging Tools for Windows (x86)\\dbghelp.dll") },
+        { TRUE, PH_STRINGREF_INIT(L"%ProgramFiles%\\Windows Kits\\10\\Debuggers\\x86\\symsrv.dll") },
+        { TRUE, PH_STRINGREF_INIT(L"%ProgramFiles%\\Windows Kits\\8.1\\Debuggers\\x86\\symsrv.dll") },
+        { TRUE, PH_STRINGREF_INIT(L"%ProgramFiles%\\Windows Kits\\8.0\\Debuggers\\x86\\symsrv.dll") },
+        { TRUE, PH_STRINGREF_INIT(L"%ProgramFiles%\\Debugging Tools for Windows (x86)\\symsrv.dll") }
 #endif
     };
 
@@ -2307,9 +2306,7 @@ PPH_STRING PvFindDbghelpPath(
         if (locations[i].Type != Type)
             continue;
 
-        path = PhGetKnownLocation(locations[i].Folder, locations[i].AppendPath);
-
-        if (path)
+        if (path = PhExpandEnvironmentStrings(&locations[i].AppendPath))
         {
             if (RtlDoesFileExists_U(path->Buffer))
                 return path;

@@ -716,6 +716,7 @@ static VOID ReadCurrentUserRun(
             PH_STRINGREF fileName;
             PH_STRINGREF arguments;
             PPH_STRING fullFileName;
+            PPH_STRING applicationFileName;
 
             PH_AUTO(value);
 
@@ -723,10 +724,15 @@ static VOID ReadCurrentUserRun(
             {
                 PH_AUTO(fullFileName);
 
-                if (fullFileName && PhEqualString(fullFileName, PhApplicationFileName, TRUE))
+                if (applicationFileName = PhGetApplicationFileName())
                 {
-                    CurrentUserRunPresent = TRUE;
-                    CurrentUserRunStartHidden = PhEqualStringRef2(&arguments, L"-hide", FALSE);
+                    if (fullFileName && PhEqualString(fullFileName, applicationFileName, TRUE))
+                    {
+                        CurrentUserRunPresent = TRUE;
+                        CurrentUserRunStartHidden = PhEqualStringRef2(&arguments, L"-hide", FALSE);
+                    }
+
+                    PhDereferenceObject(applicationFileName);
                 }
             }
         }
@@ -760,13 +766,26 @@ static VOID WriteCurrentUserRun(
         if (Present)
         {
             PPH_STRING value;
+            PPH_STRING fileName;
 
-            value = PH_AUTO(PhConcatStrings(3, L"\"", PhApplicationFileName->Buffer, L"\""));
+            if (fileName = PhGetApplicationFileName())
+            {
+                value = PH_AUTO(PhConcatStrings(3, L"\"", PhGetStringOrEmpty(fileName), L"\""));
 
-            if (StartHidden)
-                value = PhaConcatStrings2(value->Buffer, L" -hide");
+                if (StartHidden)
+                    value = PhaConcatStrings2(value->Buffer, L" -hide");
 
-            NtSetValueKey(keyHandle, &valueName, 0, REG_SZ, value->Buffer, (ULONG)value->Length + 2);
+                NtSetValueKey(
+                    keyHandle,
+                    &valueName,
+                    0,
+                    REG_SZ,
+                    value->Buffer,
+                    (ULONG)value->Length + sizeof(WCHAR)
+                    );
+
+                PhDereferenceObject(fileName);
+            }
         }
         else
         {
@@ -782,25 +801,31 @@ static BOOLEAN PathMatchesPh(
     )
 {
     BOOLEAN match = FALSE;
+    PPH_STRING fileName;
 
-    if (PhEqualString(OldTaskMgrDebugger, PhApplicationFileName, TRUE))
+    if (fileName = PhGetApplicationFileName())
     {
-        match = TRUE;
-    }
-    // Allow for a quoted value.
-    else if (
-        OldTaskMgrDebugger->Length == PhApplicationFileName->Length + sizeof(WCHAR) * sizeof(WCHAR) &&
-        OldTaskMgrDebugger->Buffer[0] == '"' &&
-        OldTaskMgrDebugger->Buffer[OldTaskMgrDebugger->Length / sizeof(WCHAR) - 1] == '"'
-        )
-    {
-        PH_STRINGREF partInside;
-
-        partInside.Buffer = &OldTaskMgrDebugger->Buffer[1];
-        partInside.Length = OldTaskMgrDebugger->Length - sizeof(WCHAR) * sizeof(WCHAR);
-
-        if (PhEqualStringRef(&partInside, &PhApplicationFileName->sr, TRUE))
+        if (PhEqualString(OldTaskMgrDebugger, fileName, TRUE))
+        {
             match = TRUE;
+        }
+        // Allow for a quoted value.
+        else if (
+            OldTaskMgrDebugger->Length == fileName->Length + sizeof(WCHAR) * sizeof(WCHAR) &&
+            OldTaskMgrDebugger->Buffer[0] == '"' &&
+            OldTaskMgrDebugger->Buffer[OldTaskMgrDebugger->Length / sizeof(WCHAR) - 1] == '"'
+            )
+        {
+            PH_STRINGREF partInside;
+
+            partInside.Buffer = &OldTaskMgrDebugger->Buffer[1];
+            partInside.Length = OldTaskMgrDebugger->Length - sizeof(WCHAR) * sizeof(WCHAR);
+
+            if (PhEqualStringRef(&partInside, &fileName->sr, TRUE))
+                match = TRUE;
+        }
+
+        PhDereferenceObject(fileName);
     }
 
     return match;
@@ -878,9 +903,23 @@ VOID PhpSetDefaultTaskManager(
             else
             {
                 PPH_STRING quotedFileName;
+                PPH_STRING applicationFileName;
 
-                quotedFileName = PH_AUTO(PhConcatStrings(3, L"\"", PhApplicationFileName->Buffer, L"\""));
-                status = NtSetValueKey(taskmgrKeyHandle, &valueName, 0, REG_SZ, quotedFileName->Buffer, (ULONG)quotedFileName->Length + 2);
+                if (applicationFileName = PhGetApplicationFileName())
+                {
+                    quotedFileName = PH_AUTO(PhConcatStrings(3, L"\"", PhGetStringOrEmpty(applicationFileName), L"\""));
+
+                    status = NtSetValueKey(
+                        taskmgrKeyHandle, 
+                        &valueName, 
+                        0, 
+                        REG_SZ, 
+                        quotedFileName->Buffer, 
+                        (ULONG)quotedFileName->Length + sizeof(WCHAR)
+                        );
+
+                    PhDereferenceObject(applicationFileName);
+                }
             }
 
             NtClose(taskmgrKeyHandle);

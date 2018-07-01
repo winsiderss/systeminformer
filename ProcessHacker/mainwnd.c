@@ -31,6 +31,7 @@
 #include <cpysave.h>
 #include <emenu.h>
 #include <kphuser.h>
+#include <lsasup.h>
 #include <svcsup.h>
 #include <verify.h>
 #include <workqueue.h>
@@ -122,14 +123,17 @@ BOOLEAN PhMainWndInitialization(
 
     if (PhGetIntegerSetting(L"EnableWindowText"))
     {
+        PPH_STRING currentUserName;
+
         PhAppendStringBuilder2(&stringBuilder, L"Process Hacker");
 
-        if (PhCurrentUserName)
+        if (currentUserName = PhGetTokenUserString(PhGetOwnTokenAttributes().TokenHandle, TRUE))
         {
             PhAppendStringBuilder2(&stringBuilder, L" [");
-            PhAppendStringBuilder(&stringBuilder, &PhCurrentUserName->sr);
+            PhAppendStringBuilder(&stringBuilder, &currentUserName->sr);
             PhAppendCharStringBuilder(&stringBuilder, ']');
             if (KphIsConnected()) PhAppendCharStringBuilder(&stringBuilder, '+');
+            PhDereferenceObject(currentUserName);
         }
 
         if (PhGetOwnTokenAttributes().ElevationType == TokenElevationTypeFull)
@@ -2984,8 +2988,7 @@ VOID PhMwpAddIconProcesses(
 
         if (
             processItem->CpuUsage == 0 ||
-            !processItem->UserName ||
-            (PhCurrentUserName && !PhEqualString(processItem->UserName, PhCurrentUserName, TRUE))
+            processItem->SessionId != NtCurrentPeb()->SessionId
             )
         {
             PhRemoveItemList(processList, i);

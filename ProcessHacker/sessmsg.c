@@ -21,7 +21,7 @@
  */
 
 #include <phapp.h>
-
+#include <lsasup.h>
 #include <windowsx.h>
 #include <winsta.h>
 
@@ -69,6 +69,7 @@ INT_PTR CALLBACK PhpSessionSendMessageDlgProc(
     case WM_INITDIALOG:
         {
             HWND iconComboBox;
+            PPH_STRING currentUserName;
 
             PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, UlongToPtr((ULONG)lParam));
 
@@ -83,13 +84,14 @@ INT_PTR CALLBACK PhpSessionSendMessageDlgProc(
             ComboBox_AddString(iconComboBox, L"Question");
             PhSelectComboBoxString(iconComboBox, L"None", FALSE);
 
-            if (PhCurrentUserName)
+            if (currentUserName = PhGetTokenUserString(PhGetOwnTokenAttributes().TokenHandle, TRUE))
             {
                 PhSetDialogItemText(
                     hwndDlg,
                     IDC_TITLE,
-                    PhaFormatString(L"Message from %s", PhCurrentUserName->Buffer)->Buffer
+                    PhaFormatString(L"Message from %s", currentUserName->Buffer)->Buffer
                     );
+                PhDereferenceObject(currentUserName);
             }
 
             PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDC_TEXT));

@@ -15,8 +15,7 @@ typedef struct _PHSVC_STOP
 } PHSVC_STOP, *PPHSVC_STOP;
 
 NTSTATUS PhSvcMain(
-    _In_opt_ PUNICODE_STRING PortName,
-    _In_opt_ PLARGE_INTEGER Timeout,
+    _In_opt_ PPH_STRING PortName,
     _Inout_opt_ PPHSVC_STOP Stop
     );
 

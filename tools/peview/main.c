@@ -52,7 +52,7 @@ INT WINAPI wWinMain(
 
     CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
 
-    if (!NT_SUCCESS(PhInitializePhLib()))
+    if (!NT_SUCCESS(PhInitializePhLibEx(L"PE Viewer", ULONG_MAX, hInstance, 0, 0)))
         return 1;
 
     // Create a mutant for the installer.
@@ -92,8 +92,6 @@ INT WINAPI wWinMain(
     PeInitializeSettings();
     PvPropInitialization();
     PhTreeNewInitialization();
-
-    PhApplicationName = L"PE Viewer";
 
     if (!NT_SUCCESS(PhGetProcessCommandLine(NtCurrentProcess(), &commandLine)))
         return 1;
