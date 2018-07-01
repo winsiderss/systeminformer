@@ -73,6 +73,7 @@
 #include <actions.h>
 #include <phsvc.h>
 #include <phsvccl.h>
+#include <phsettings.h>
 #include <settings.h>
 #include <mainwnd.h>
 
@@ -192,7 +193,7 @@ VOID PhShowRunAsDialog(
     DialogBoxParam(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_RUNAS),
-        !!PhGetIntegerSetting(L"ForceNoParent") ? NULL : ParentWindowHandle,
+        PhCsForceNoParent ? NULL : ParentWindowHandle,
         PhpRunAsDlgProc,
         (LPARAM)ProcessId
         );

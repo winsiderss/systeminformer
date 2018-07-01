@@ -5792,7 +5792,7 @@ NTSTATUS PhEnumGenericModules(
         sizeof(PVOID),
         PhpBaseAddressHashtableEqualFunction,
         PhpBaseAddressHashtableHashFunction,
-        32
+        100
         );
 
     if (ProcessId == SYSTEM_PROCESS_ID)
