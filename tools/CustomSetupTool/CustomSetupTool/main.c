@@ -256,10 +256,9 @@ INT WINAPI wWinMain(
 {
     CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
 
-    if (!NT_SUCCESS(PhInitializePhLibEx(ULONG_MAX, Instance, 0, 0)))
+    if (!NT_SUCCESS(PhInitializePhLibEx(L"Process Hacker - Setup", ULONG_MAX, Instance, 0, 0)))
         return 1;
 
-    PhApplicationName = L"Process Hacker - Setup";
     PhGuiSupportInitialization();
     SetupInitializeDpi();
 

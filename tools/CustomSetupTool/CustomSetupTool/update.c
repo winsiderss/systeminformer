@@ -55,8 +55,6 @@ NTSTATUS SetupUpdateBuild(
     if (!SetupExecuteProcessHacker(Context))
         goto CleanupExit;
 
-    PhClearCacheDirectory();
-
     PostMessage(Context->DialogHandle, WM_QUIT, 0, 0);
     PhDereferenceObject(Context);  
     return STATUS_SUCCESS;
