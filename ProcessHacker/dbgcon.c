@@ -670,25 +670,14 @@ NTSTATUS PhpDebugConsoleThreadStart(
     PhInitializeAutoPool(&autoPool);
 
     DebugConsoleSymbolProvider = PhCreateSymbolProvider(NtCurrentProcessId());
-
-    {
-        WCHAR buffer[512];
-        UNICODE_STRING name = RTL_CONSTANT_STRING(L"_NT_SYMBOL_PATH");
-        UNICODE_STRING var;
-        PPH_STRING newSearchPath;
-
-        RtlInitEmptyUnicodeString(&var, buffer, sizeof(buffer));
-
-        if (!NT_SUCCESS(RtlQueryEnvironmentVariable_U(NULL, &name, &var)))
-            buffer[0] = 0;
-
-        newSearchPath = PhFormatString(L"%s;%s", buffer, PhApplicationDirectory->Buffer);
-        PhSetSearchPathSymbolProvider(DebugConsoleSymbolProvider, newSearchPath->Buffer);
-        PhDereferenceObject(newSearchPath);
-    }
-
-    PhEnumGenericModules(NtCurrentProcessId(), NtCurrentProcess(),
-        0, PhpLoadCurrentProcessSymbolsCallback, DebugConsoleSymbolProvider);
+    PhLoadSymbolProviderOptions(DebugConsoleSymbolProvider);
+    PhEnumGenericModules(
+        NtCurrentProcessId(),
+        NtCurrentProcess(),
+        0,
+        PhpLoadCurrentProcessSymbolsCallback,
+        DebugConsoleSymbolProvider
+        );
 
 #ifdef DEBUG
     PhInitializeQueuedLock(&NewObjectListLock);
