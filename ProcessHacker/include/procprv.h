@@ -126,7 +126,7 @@ typedef struct _PH_PROCESS_ITEM
 
     // Security
 
-    PPH_STRING UserName;
+    PSID Sid;
     TOKEN_ELEVATION_TYPE ElevationType;
     MANDATORY_LEVEL IntegrityLevel;
     PWSTR IntegrityString;

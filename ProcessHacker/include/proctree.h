@@ -110,6 +110,7 @@
 #define PHPN_DPIAWARENESS 0x400
 #define PHPN_FILEATTRIBUTES 0x800
 #define PHPN_DESKTOPINFO 0x1000
+#define PHPN_USERNAME 0x2000
 
 // begin_phapppub
 typedef struct _PH_PROCESS_NODE
@@ -222,6 +223,7 @@ typedef struct _PH_PROCESS_NODE
     WCHAR JobObjectIdText[PH_INT32_STR_LEN_1];
     PPH_STRING ProtectionText;
     PPH_STRING DesktopInfoText;
+    PPH_STRING UserName;
 
     // Graph buffers
     PH_GRAPH_BUFFERS CpuGraphBuffers;

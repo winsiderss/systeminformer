@@ -42,6 +42,7 @@ typedef struct _PH_TOKEN_ATTRIBUTES
         ULONG ReservedBits : 29;
     };
     ULONG Reserved;
+    PSID TokenSid;
 } PH_TOKEN_ATTRIBUTES, *PPH_TOKEN_ATTRIBUTES;
 
 typedef enum _MANDATORY_LEVEL_RID {

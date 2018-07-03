@@ -424,9 +424,9 @@ static VOID PhpAddAccountsToComboBox(
     ULONG userinfoResumeHandle = 0;
 
     ComboBox_ResetContent(ComboBoxHandle);
-    ComboBox_AddString(ComboBoxHandle, L"NT AUTHORITY\\SYSTEM");
-    ComboBox_AddString(ComboBoxHandle, L"NT AUTHORITY\\LOCAL SERVICE");
-    ComboBox_AddString(ComboBoxHandle, L"NT AUTHORITY\\NETWORK SERVICE");
+    ComboBox_AddString(ComboBoxHandle, PH_AUTO_T(PH_STRING, PhGetSidFullName(&PhSeLocalSystemSid, TRUE, NULL))->Buffer);
+    ComboBox_AddString(ComboBoxHandle, PH_AUTO_T(PH_STRING, PhGetSidFullName(&PhSeLocalServiceSid, TRUE, NULL))->Buffer);
+    ComboBox_AddString(ComboBoxHandle, PH_AUTO_T(PH_STRING, PhGetSidFullName(&PhSeNetworkServiceSid, TRUE, NULL))->Buffer);
 
     if (!PhpInitializeNetApi())
         return;
