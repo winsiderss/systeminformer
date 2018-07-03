@@ -30,6 +30,7 @@
 
 #include <phapp.h>
 #include <proctree.h>
+#include <lsasup.h>
 
 #include <appresolver.h>
 #include <cpysave.h>
@@ -645,7 +646,7 @@ VOID PhTickProcessNodes(
 
         // The name and PID never change, so we don't invalidate that.
         memset(&node->TextCache[2], 0, sizeof(PH_STRINGREF) * (PHPRTLC_MAXIMUM - 2));
-        node->ValidMask &= PHPN_OSCONTEXT | PHPN_IMAGE | PHPN_DPIAWARENESS | PHPN_APPID | PHPN_DESKTOPINFO; // Items that always remain valid
+        node->ValidMask &= PHPN_OSCONTEXT | PHPN_IMAGE | PHPN_DPIAWARENESS | PHPN_APPID | PHPN_DESKTOPINFO | PHPN_USERNAME; // Items that always remain valid
 
         // Invalidate graph buffers.
         node->CpuGraphBuffers.Valid = FALSE;
@@ -824,6 +825,21 @@ static VOID PhpAggregateFieldIfNeeded(
     else
     {
         PhpAggregateField(ProcessNode, Type, Location, FieldOffset, AggregatedValue);
+    }
+}
+
+static VOID PhpUpdateProcessNodeUserName(
+    _Inout_ PPH_PROCESS_NODE ProcessNode
+    )
+{
+    if (!(ProcessNode->ValidMask & PHPN_USERNAME))
+    {
+        if (ProcessNode->ProcessItem->Sid)
+        {
+            ProcessNode->UserName = PhGetSidFullName(ProcessNode->ProcessItem->Sid, TRUE, NULL);
+        }
+
+        ProcessNode->ValidMask |= PHPN_USERNAME;
     }
 }
 
@@ -1350,7 +1366,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(UserName)
 {
-    sortResult = PhCompareStringWithNull(processItem1->UserName, processItem2->UserName, TRUE);
+    sortResult = PhCompareStringWithNull(node1->UserName, node2->UserName, TRUE);
 }
 END_SORT_FUNCTION
 
@@ -2169,7 +2185,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 }
                 break;
             case PHPRTLC_USERNAME:
-                getCellText->Text = PhGetStringRef(processItem->UserName);
+                PhpUpdateProcessNodeUserName(node);
+                getCellText->Text = PhGetStringRef(node->UserName);
                 break;
             case PHPRTLC_DESCRIPTION:
                 if (processItem->VersionInfo.FileDescription)
@@ -2928,15 +2945,15 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 getNodeColor->BackColor = PhCsColorServiceProcesses;
             else if (
                 PhCsUseColorSystemProcesses &&
-                processItem->UserName &&
-                PhEqualString(processItem->UserName, PhLocalSystemName, TRUE)
+                processItem->Sid && 
+                RtlEqualSid(processItem->Sid, &PhSeLocalSystemSid)
                 )
                 getNodeColor->BackColor = PhCsColorSystemProcesses;
             else if (
                 PhCsUseColorOwnProcesses &&
-                processItem->UserName &&
-                PhCurrentUserName &&
-                PhEqualString(processItem->UserName, PhCurrentUserName, TRUE)
+                processItem->SessionId == NtCurrentPeb()->SessionId && 
+                processItem->Sid && 
+                RtlEqualSid(processItem->Sid, PhGetOwnTokenAttributes().TokenSid)
                 )
                 getNodeColor->BackColor = PhCsColorOwnProcesses;
         }

@@ -311,14 +311,7 @@ NTSTATUS PhLookupName(
         {
             if (Sid)
             {
-                PSID sid;
-                ULONG sidLength;
-
-                sidLength = RtlLengthSid(sids[0].Sid);
-                sid = PhAllocate(sidLength);
-                memcpy(sid, sids[0].Sid, sidLength);
-
-                *Sid = sid;
+                *Sid = PhAllocateCopy(sids[0].Sid, RtlLengthSid(sids[0].Sid));
             }
 
             if (DomainName)

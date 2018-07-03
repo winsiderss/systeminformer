@@ -95,8 +95,16 @@ PH_TOKEN_ATTRIBUTES PhGetOwnTokenAttributes(
 
         if (attributes.TokenHandle)
         {
+            PTOKEN_USER tokenUser;
+
             PhGetTokenIsElevated(attributes.TokenHandle, &elevated);
             PhGetTokenElevationType(attributes.TokenHandle, &elevationType);
+
+            if (NT_SUCCESS(PhGetTokenUser(attributes.TokenHandle, &tokenUser)))
+            {
+                attributes.TokenSid = PhAllocateCopy(tokenUser->User.Sid, RtlLengthSid(tokenUser->User.Sid));
+                PhFree(tokenUser);
+            }
         }
 
         attributes.Elevated = elevated;

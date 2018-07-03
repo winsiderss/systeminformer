@@ -256,13 +256,13 @@ BOOLEAN PhMwpCurrentUserProcessTreeFilter(
 {
     PPH_PROCESS_NODE processNode = (PPH_PROCESS_NODE)Node;
 
-    if (!processNode->ProcessItem->UserName)
+    if (processNode->ProcessItem->SessionId != NtCurrentPeb()->SessionId)
         return FALSE;
 
-    if (!PhCurrentUserName)
+    if (!processNode->ProcessItem->Sid)
         return FALSE;
 
-    if (!PhEqualString(processNode->ProcessItem->UserName, PhCurrentUserName, TRUE))
+    if (!RtlEqualSid(processNode->ProcessItem->Sid, PhGetOwnTokenAttributes().TokenSid))
         return FALSE;
 
     return TRUE;

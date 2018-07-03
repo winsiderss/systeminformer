@@ -481,7 +481,7 @@ VOID PhpProcessItemDeleteProcedure(
     if (processItem->SmallIcon) DestroyIcon(processItem->SmallIcon);
     if (processItem->LargeIcon) DestroyIcon(processItem->LargeIcon);
     PhDeleteImageVersionInfo(&processItem->VersionInfo);
-    if (processItem->UserName) PhDereferenceObject(processItem->UserName);
+    if (processItem->Sid) PhFree(processItem->Sid);
     if (processItem->JobName) PhDereferenceObject(processItem->JobName);
     if (processItem->VerifySignerName) PhDereferenceObject(processItem->VerifySignerName);
     if (processItem->PackageFullName) PhDereferenceObject(processItem->PackageFullName);
@@ -810,33 +810,6 @@ VOID PhpProcessQueryStage1(
 
         if (!(processQueryFlags & PH_CLR_USE_SECTION_CHECK) && processHandle)
             NtClose(processHandle);
-    }
-
-    // Token information
-    if (processHandleLimited)
-    {
-        HANDLE tokenHandle;
-
-        if (NT_SUCCESS(PhOpenProcessToken(processHandleLimited, TOKEN_QUERY, &tokenHandle)))
-        {
-            // Elevation
-            if (NT_SUCCESS(PhGetTokenElevationType(
-                tokenHandle,
-                &Data->ElevationType
-                )))
-            {
-                Data->IsElevated = Data->ElevationType == TokenElevationTypeFull;
-            }
-
-            // Integrity
-            PhGetTokenIntegrityLevel(
-                tokenHandle,
-                &Data->IntegrityLevel,
-                &Data->IntegrityString
-                );
-
-            NtClose(tokenHandle);
-        }
     }
 
     // Job
@@ -1198,22 +1171,41 @@ VOID PhpFillProcessItem(
         }
     }
 
-    // Token-related information
-    if (
-        ProcessItem->QueryHandle &&
-        ProcessItem->ProcessId != SYSTEM_PROCESS_ID // Token of System process can't be opened sometimes
-        )
+    // Token information
+    if (ProcessItem->QueryHandle)
     {
         HANDLE tokenHandle;
 
-        if (NT_SUCCESS(PhOpenProcessToken(ProcessItem->QueryHandle, TOKEN_QUERY, &tokenHandle)))
+        if (NT_SUCCESS(PhOpenProcessToken(
+            ProcessItem->QueryHandle, 
+            TOKEN_QUERY, 
+            &tokenHandle
+            )))
         {
-            PTOKEN_USER user;
+            PTOKEN_USER tokenUser;
+            TOKEN_ELEVATION_TYPE elevationType;
+            MANDATORY_LEVEL integrityLevel;
+            PWSTR integrityString;
 
-            if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &user)))
+            // User
+            if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
             {
-                ProcessItem->UserName = PhpGetSidFullNameCached(user->User.Sid);
-                PhFree(user);
+                ProcessItem->Sid = PhAllocateCopy(tokenUser->User.Sid, RtlLengthSid(tokenUser->User.Sid));
+                PhFree(tokenUser);
+            }
+
+            // Elevation
+            if (NT_SUCCESS(PhGetTokenElevationType(tokenHandle, &elevationType)))
+            {
+                ProcessItem->ElevationType = elevationType;
+                ProcessItem->IsElevated = elevationType == TokenElevationTypeFull;
+            }
+
+            // Integrity
+            if (NT_SUCCESS(PhGetTokenIntegrityLevel(tokenHandle, &integrityLevel, &integrityString)))
+            {
+                ProcessItem->IntegrityLevel = integrityLevel;
+                ProcessItem->IntegrityString = integrityString;
             }
 
             NtClose(tokenHandle);
@@ -1221,12 +1213,10 @@ VOID PhpFillProcessItem(
     }
     else
     {
-        if (
-            ProcessItem->ProcessId == SYSTEM_IDLE_PROCESS_ID ||
-            ProcessItem->ProcessId == SYSTEM_PROCESS_ID // System token can't be opened on XP
-            )
+        if (ProcessItem->ProcessId == SYSTEM_IDLE_PROCESS_ID ||
+            ProcessItem->ProcessId == SYSTEM_PROCESS_ID) // System token can't be opened on XP
         {
-            PhSetReference(&ProcessItem->UserName, PhCreateString(L"NT AUTHORITY\\SYSTEM"));
+            ProcessItem->Sid = PhAllocateCopy(&PhSeLocalSystemSid, RtlLengthSid(&PhSeLocalSystemSid));
         }
     }
 

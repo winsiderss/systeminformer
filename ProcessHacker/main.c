@@ -80,12 +80,15 @@ BOOLEAN PhInitializeExceptionPolicy(
     VOID
     );
 
+BOOLEAN PhInitializeNamespacePolicy(
+    VOID
+    );
+
 BOOLEAN PhInitializeMitigationPolicy(
     VOID
     );
 
 PHAPPAPI HFONT PhApplicationFont = NULL;
-PPH_STRING PhCurrentUserName = NULL;
 BOOLEAN PhPluginsEnabled = FALSE;
 PPH_STRING PhSettingsFileName = NULL;
 PH_INTEGER_PAIR PhSmallIconSize = { 16, 16 };
@@ -116,6 +119,8 @@ INT WINAPI wWinMain(
     if (!NT_SUCCESS(PhInitializePhLibEx(L"Process Hacker", ULONG_MAX, Instance, 0, 0)))
         return 1;
     if (!PhInitializeExceptionPolicy())
+        return 1;
+    if (!PhInitializeNamespacePolicy())
         return 1;
     if (!PhInitializeMitigationPolicy())
         return 1;
@@ -234,38 +239,6 @@ INT WINAPI wWinMain(
         RtlExitUserProcess(STATUS_IMAGE_SUBSYSTEM_NOT_PRESENT);
     }
 #endif
-
-    // Create a mutant for the installer.
-    {
-        HANDLE mutantHandle;
-        PPH_STRING objectName;
-        OBJECT_ATTRIBUTES objectAttributes;
-        UNICODE_STRING objectNameUs;
-        PH_FORMAT format[2];
-
-        PhInitFormatS(&format[0], L"PhMutant_");
-        PhInitFormatU(&format[1], HandleToUlong(NtCurrentProcessId()));
-
-        objectName = PhFormat(format, 2, 16);
-        PhStringRefToUnicodeString(&objectName->sr, &objectNameUs);
-
-        InitializeObjectAttributes(
-            &objectAttributes,
-            &objectNameUs,
-            OBJ_CASE_INSENSITIVE,
-            PhGetNamespaceHandle(),
-            NULL
-            );
-
-        NtCreateMutant(
-            &mutantHandle, 
-            MUTANT_QUERY_STATE,
-            &objectAttributes, 
-            TRUE
-            );
-
-        PhDereferenceObject(objectName);
-    }
 
     // Set the default priority.
     {
@@ -603,6 +576,45 @@ BOOLEAN PhInitializeExceptionPolicy(
 #endif
     return TRUE;
 }   
+
+BOOLEAN PhInitializeNamespacePolicy(
+    VOID
+    )
+{
+    HANDLE mutantHandle;
+    PPH_STRING objectName;
+    OBJECT_ATTRIBUTES objectAttributes;
+    UNICODE_STRING objectNameUs;
+    PH_FORMAT format[2];
+
+    PhInitFormatS(&format[0], L"PhMutant_");
+    PhInitFormatU(&format[1], HandleToUlong(NtCurrentProcessId()));
+
+    objectName = PhFormat(format, RTL_NUMBER_OF(format), 16);
+    PhStringRefToUnicodeString(&objectName->sr, &objectNameUs);
+
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &objectNameUs,
+        OBJ_CASE_INSENSITIVE,
+        PhGetNamespaceHandle(),
+        NULL
+        );
+
+    if (NT_SUCCESS(NtCreateMutant(
+        &mutantHandle,
+        MUTANT_QUERY_STATE,
+        &objectAttributes,
+        TRUE
+        )))
+    {
+        PhDereferenceObject(objectName);
+        return TRUE;
+    }
+
+    PhDereferenceObject(objectName);
+    return FALSE;
+}
 
 BOOLEAN PhInitializeMitigationPolicy(
     VOID
