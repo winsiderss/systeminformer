@@ -376,12 +376,6 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
     {
     case WM_INITDIALOG:
         {
-            PPH_ACCESS_ENTRY accessEntries;
-            ULONG numberOfAccessEntries;
-            HANDLE processHandle;
-            OBJECT_BASIC_INFORMATION basicInfo;
-            BOOLEAN haveBasicInfo = FALSE;
-
             // HACK
             PhCenterWindow(GetParent(hwndDlg), GetParent(GetParent(hwndDlg)));
 
