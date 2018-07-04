@@ -53,7 +53,9 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableWarnings", L"1");
     PhpAddIntegerSetting(L"EnableWindowText", L"1");
     PhpAddIntegerSetting(L"EnableSecurityAdvancedDialog", L"1");
-    PhpAddStringSetting(L"EnvironmentListViewColumns", L"");
+    PhpAddStringSetting(L"EnvironmentTreeListColumns", L"");
+    PhpAddStringSetting(L"EnvironmentTreeListSort", L"0,0"); // 0, NoSortOrder
+    PhpAddIntegerSetting(L"EnvironmentTreeListFlags", L"0");
     PhpAddIntegerSetting(L"FindObjRegex", L"0");
     PhpAddStringSetting(L"FindObjTreeListColumns", L"");
     PhpAddIntegerPairSetting(L"FindObjWindowPosition", L"350,350");

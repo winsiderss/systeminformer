@@ -356,7 +356,41 @@ typedef struct _PH_ENVIRONMENT_ITEM
 
 typedef struct _PH_ENVIRONMENT_CONTEXT
 {
-    HWND ListViewHandle;
+    HWND WindowHandle;
+    HWND TreeNewHandle;
+    HWND SearchWindowHandle;
+
+    PPH_PROCESS_ITEM ProcessItem;   
+    PPH_STRING SearchboxText;
+    PPH_STRING StatusMessage;
+
+    PPH_LIST NodeList;
+    PPH_LIST NodeRootList;
+    PPH_HASHTABLE NodeHashtable;
+    PPH_TN_FILTER_ENTRY TreeFilterEntry;
+    ULONG TreeNewSortColumn;
+    PH_TN_FILTER_SUPPORT TreeFilterSupport;
+    PH_SORT_ORDER TreeNewSortOrder;
+    PH_CM_MANAGER Cm;
+
+    union
+    {
+        ULONG Flags;
+        struct
+        {
+            ULONG EnableStateHighlighting : 1;
+            ULONG HideProcessEnvironment : 1;
+            ULONG HideUserEnvironment : 1;
+            ULONG HideSystemEnvironment : 1;
+            ULONG HighlightProcessEnvironment : 1;
+            ULONG HighlightUserEnvironment : 1;
+            ULONG HighlightSystemEnvironment : 1;
+            ULONG Spare : 25;
+        };
+    };
+
+    PVOID SystemDefaultEnvironment;
+    PVOID UserDefaultEnvironment;
     PH_ARRAY Items;
 } PH_ENVIRONMENT_CONTEXT, *PPH_ENVIRONMENT_CONTEXT;
 

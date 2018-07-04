@@ -111,7 +111,6 @@
 #define IDD_MINIINFO_LIST               210
 #define IDR_MINIINFO                    211
 #define IDR_MINIINFO_PROCESS            212
-#define IDR_ENVIRONMENT                 214
 #define IDD_MITIGATION                  215
 #define IDI_PIN                         216
 #define IDI_FOLDER                      217
@@ -739,9 +738,6 @@
 #define ID_PROCESS_GOTOPROCESS          40287
 #define ID_MINIINFO_REFRESH             40288
 #define ID_MINIINFO_REFRESHAUTOMATICALLY 40289
-#define ID_ENVIRONMENT_EDIT             40290
-#define ID_ENVIRONMENT_COPY             40291
-#define ID_ENVIRONMENT_DELETE           40292
 #define IDC_MAXSCREEN                   40293
 #define ID_EMPTY_COMBINEMEMORYLISTS     40295
 #define IDDYNAMIC                       50000
