@@ -30,10 +30,14 @@
 #include <hndlprv.h>
 #include <phplug.h>
 
+#include <uxtheme.h>
+
 typedef struct _HANDLE_PROPERTIES_CONTEXT
 {
+    HWND ListViewHandle;
     HANDLE ProcessId;
     PPH_HANDLE_ITEM HandleItem;
+    PH_LAYOUT_MANAGER LayoutManager;
 } HANDLE_PROPERTIES_CONTEXT, *PHANDLE_PROPERTIES_CONTEXT;
 
 INT_PTR CALLBACK PhpHandleGeneralDlgProc(
@@ -221,6 +225,129 @@ VOID PhShowHandleProperties(
     PhModalPropertySheet(&propSheetHeader);
 }
 
+typedef enum _PHP_HANDLE_GENERAL_CATEGORY
+{
+    PH_HANDLE_GENERAL_CATEGORY_BASICINFO,
+    PH_HANDLE_GENERAL_CATEGORY_REFERENCES,
+    PH_HANDLE_GENERAL_CATEGORY_QUOTA
+} PHP_HANDLE_GENERAL_CATEGORY;
+
+typedef enum _PHP_HANDLE_GENERAL_INDEX
+{
+    PH_HANDLE_GENERAL_INDEX_NAME,
+    PH_HANDLE_GENERAL_INDEX_TYPE,
+    PH_HANDLE_GENERAL_INDEX_OBJECT,
+    PH_HANDLE_GENERAL_INDEX_ACCESSMASK,
+    PH_HANDLE_GENERAL_INDEX_REFERENCES,
+    PH_HANDLE_GENERAL_INDEX_HANDLES,
+    PH_HANDLE_GENERAL_INDEX_PAGED,
+    PH_HANDLE_GENERAL_INDEX_NONPAGED
+} PHP_PROCESS_STATISTICS_INDEX;
+
+VOID PhpUpdateHandleGeneralListViewGroups(
+    _In_ HWND ListViewHandle
+    )
+{
+    ListView_EnableGroupView(ListViewHandle, TRUE);
+    PhAddListViewGroup(ListViewHandle, PH_HANDLE_GENERAL_CATEGORY_BASICINFO, L"Basic information");
+    PhAddListViewGroup(ListViewHandle, PH_HANDLE_GENERAL_CATEGORY_REFERENCES, L"References");
+    PhAddListViewGroup(ListViewHandle, PH_HANDLE_GENERAL_CATEGORY_QUOTA, L"Quota charges");
+    PhAddListViewGroupItem(ListViewHandle, PH_HANDLE_GENERAL_CATEGORY_BASICINFO, PH_HANDLE_GENERAL_INDEX_NAME, L"Name", NULL);
+    PhAddListViewGroupItem(ListViewHandle, PH_HANDLE_GENERAL_CATEGORY_BASICINFO, PH_HANDLE_GENERAL_INDEX_TYPE, L"Type", NULL);
+    PhAddListViewGroupItem(ListViewHandle, PH_HANDLE_GENERAL_CATEGORY_BASICINFO, PH_HANDLE_GENERAL_INDEX_OBJECT, L"Object address", NULL);
+    PhAddListViewGroupItem(ListViewHandle, PH_HANDLE_GENERAL_CATEGORY_BASICINFO, PH_HANDLE_GENERAL_INDEX_ACCESSMASK, L"Granted access", NULL);
+    PhAddListViewGroupItem(ListViewHandle, PH_HANDLE_GENERAL_CATEGORY_REFERENCES, PH_HANDLE_GENERAL_INDEX_REFERENCES, L"References", NULL);
+    PhAddListViewGroupItem(ListViewHandle, PH_HANDLE_GENERAL_CATEGORY_REFERENCES, PH_HANDLE_GENERAL_INDEX_HANDLES, L"Handles", NULL);
+    PhAddListViewGroupItem(ListViewHandle, PH_HANDLE_GENERAL_CATEGORY_QUOTA, PH_HANDLE_GENERAL_INDEX_PAGED, L"Paged", NULL);
+    PhAddListViewGroupItem(ListViewHandle, PH_HANDLE_GENERAL_CATEGORY_QUOTA, PH_HANDLE_GENERAL_INDEX_NONPAGED, L"Virtual size", NULL);
+}
+
+VOID PhpUpdateHandleGeneral(
+    _In_ PHANDLE_PROPERTIES_CONTEXT Context
+    )
+{
+    HANDLE processHandle;
+    PPH_ACCESS_ENTRY accessEntries;
+    ULONG numberOfAccessEntries;
+    OBJECT_BASIC_INFORMATION basicInfo;
+    WCHAR string[PH_PTR_STR_LEN];
+
+    PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_NAME, 1, PhGetStringOrEmpty(Context->HandleItem->BestObjectName));
+    PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_TYPE, 1, PhGetStringOrEmpty(Context->HandleItem->TypeName));
+    PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_OBJECT, 1, Context->HandleItem->ObjectString);
+
+    if (PhGetAccessEntries(
+        PhGetStringOrEmpty(Context->HandleItem->TypeName),
+        &accessEntries,
+        &numberOfAccessEntries
+        ))
+    {
+        PPH_STRING accessString;
+        PPH_STRING grantedAccessString;
+
+        accessString = PH_AUTO(PhGetAccessString(
+            Context->HandleItem->GrantedAccess,
+            accessEntries,
+            numberOfAccessEntries
+            ));
+
+        if (accessString->Length != 0)
+        {
+            grantedAccessString = PH_AUTO(PhFormatString(
+                L"0x%x (%s)",
+                Context->HandleItem->GrantedAccess,
+                accessString->Buffer
+                ));
+
+            PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_ACCESSMASK, 1, grantedAccessString->Buffer);
+        }
+        else
+        {
+            PhPrintPointer(string, UlongToPtr(Context->HandleItem->GrantedAccess));
+            PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_ACCESSMASK, 1, string);
+        }
+
+        PhFree(accessEntries);
+    }
+    else
+    {
+        PhPrintPointer(string, UlongToPtr(Context->HandleItem->GrantedAccess));
+        PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_ACCESSMASK, 1, string);
+    }
+
+    if (NT_SUCCESS(PhOpenProcess(
+        &processHandle,
+        PROCESS_DUP_HANDLE,
+        Context->ProcessId
+        )))
+    {
+        if (NT_SUCCESS(PhGetHandleInformation(
+            processHandle,
+            Context->HandleItem->Handle,
+            ULONG_MAX,
+            &basicInfo,
+            NULL,
+            NULL,
+            NULL
+            )))
+        {
+            PhPrintUInt32(string, basicInfo.PointerCount);
+            PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_REFERENCES, 1, string);
+
+            PhPrintUInt32(string, basicInfo.HandleCount);
+            PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_HANDLES, 1, string);
+
+            PhPrintUInt32(string, basicInfo.PagedPoolCharge);
+            PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_PAGED, 1, string);
+
+            PhPrintUInt32(string, basicInfo.NonPagedPoolCharge);
+            PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_NONPAGED, 1, string);
+        }
+
+        NtClose(processHandle);
+    }
+}
+
 INT_PTR CALLBACK PhpHandleGeneralDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -258,89 +385,31 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
             // HACK
             PhCenterWindow(GetParent(hwndDlg), GetParent(GetParent(hwndDlg)));
 
-            PhSetDialogItemText(hwndDlg, IDC_NAME, PhGetStringOrEmpty(context->HandleItem->BestObjectName));
-            PhSetDialogItemText(hwndDlg, IDC_TYPE, PhGetStringOrEmpty(context->HandleItem->TypeName));
-            PhSetDialogItemText(hwndDlg, IDC_ADDRESS, context->HandleItem->ObjectString);
+            context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
+            PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
+            PhSetControlTheme(context->ListViewHandle, L"explorer");
+            PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 120, L"Name");
+            PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 250, L"Value");
+            PhSetExtendedListView(context->ListViewHandle);
 
-            if (PhGetAccessEntries(
-                PhGetStringOrEmpty(context->HandleItem->TypeName),
-                &accessEntries,
-                &numberOfAccessEntries
-                ))
-            {
-                PPH_STRING accessString;
-                PPH_STRING grantedAccessString;
+            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
 
-                accessString = PH_AUTO(PhGetAccessString(
-                    context->HandleItem->GrantedAccess,
-                    accessEntries,
-                    numberOfAccessEntries
-                    ));
+            PhpUpdateHandleGeneralListViewGroups(context->ListViewHandle);
+            PhpUpdateHandleGeneral(context);
 
-                if (accessString->Length != 0)
-                {
-                    grantedAccessString = PH_AUTO(PhFormatString(
-                        L"0x%x (%s)",
-                        context->HandleItem->GrantedAccess,
-                        accessString->Buffer
-                        ));
-                    PhSetDialogItemText(hwndDlg, IDC_GRANTED_ACCESS, grantedAccessString->Buffer);
-                }
-                else
-                {
-                    WCHAR grantedAccessString[PH_PTR_STR_LEN];
-                    PhPrintPointer(grantedAccessString, UlongToPtr(context->HandleItem->GrantedAccess));
-                    PhSetDialogItemText(hwndDlg, IDC_GRANTED_ACCESS, grantedAccessString);
-                }
-
-                PhFree(accessEntries);
-            }
-            else
-            {
-                WCHAR grantedAccessString[PH_PTR_STR_LEN];
-                PhPrintPointer(grantedAccessString, UlongToPtr(context->HandleItem->GrantedAccess));
-                PhSetDialogItemText(hwndDlg, IDC_GRANTED_ACCESS, grantedAccessString);
-            }
-
-            if (NT_SUCCESS(PhOpenProcess(
-                &processHandle,
-                PROCESS_DUP_HANDLE,
-                context->ProcessId
-                )))
-            {
-                if (NT_SUCCESS(PhGetHandleInformation(
-                    processHandle,
-                    context->HandleItem->Handle,
-                    ULONG_MAX,
-                    &basicInfo,
-                    NULL,
-                    NULL,
-                    NULL
-                    )))
-                {
-                    PhSetDialogItemValue(hwndDlg, IDC_REFERENCES, basicInfo.PointerCount, FALSE);
-                    PhSetDialogItemValue(hwndDlg, IDC_HANDLES, basicInfo.HandleCount, FALSE);
-                    PhSetDialogItemValue(hwndDlg, IDC_PAGED, basicInfo.PagedPoolCharge, FALSE);
-                    PhSetDialogItemValue(hwndDlg, IDC_NONPAGED, basicInfo.NonPagedPoolCharge, FALSE);
-
-                    haveBasicInfo = TRUE;
-                }
-
-                NtClose(processHandle);
-            }
-
-            if (!haveBasicInfo)
-            {
-                PhSetDialogItemText(hwndDlg, IDC_REFERENCES, L"Unknown");
-                PhSetDialogItemText(hwndDlg, IDC_HANDLES, L"Unknown");
-                PhSetDialogItemText(hwndDlg, IDC_PAGED, L"Unknown");
-                PhSetDialogItemText(hwndDlg, IDC_NONPAGED, L"Unknown");
-            }
+            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
         }
         break;
     case WM_DESTROY:
         {
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+        }
+        break;
+    case WM_SIZE:
+        {
+            PhLayoutManagerLayout(&context->LayoutManager);
+            ExtendedListView_SetColumnWidth(context->ListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
         }
         break;
     case WM_NOTIFY:
@@ -358,6 +427,8 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
         }
         break;
     }
+
+    REFLECT_MESSAGE_DLG(hwndDlg, context->ListViewHandle, uMsg, wParam, lParam);
 
     return FALSE;
 }
