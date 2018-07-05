@@ -89,10 +89,6 @@ typedef struct _PH_PROCESS_QUERY_S1_DATA
     HICON LargeIcon;
     PH_IMAGE_VERSION_INFO VersionInfo;
 
-    TOKEN_ELEVATION_TYPE ElevationType;
-    MANDATORY_LEVEL IntegrityLevel;
-    PWSTR IntegrityString;
-
     PPH_STRING JobName;
     HANDLE ConsoleHostProcessId;
     PPH_STRING PackageFullName;
@@ -103,7 +99,7 @@ typedef struct _PH_PROCESS_QUERY_S1_DATA
         struct
         {
             ULONG IsDotNet : 1;
-            ULONG IsElevated : 1;
+            ULONG Spare1 : 1;
             ULONG IsInJob : 1;
             ULONG IsInSignificantJob : 1;
             ULONG IsBeingDebugged : 1;
@@ -1032,14 +1028,10 @@ VOID PhpFillProcessItemStage1(
     processItem->SmallIcon = Data->SmallIcon;
     processItem->LargeIcon = Data->LargeIcon;
     memcpy(&processItem->VersionInfo, &Data->VersionInfo, sizeof(PH_IMAGE_VERSION_INFO));
-    processItem->ElevationType = Data->ElevationType;
-    processItem->IntegrityLevel = Data->IntegrityLevel;
-    processItem->IntegrityString = Data->IntegrityString;
     processItem->JobName = Data->JobName;
     processItem->ConsoleHostProcessId = Data->ConsoleHostProcessId;
     processItem->PackageFullName = Data->PackageFullName;
     processItem->IsDotNet = Data->IsDotNet;
-    processItem->IsElevated = Data->IsElevated;
     processItem->IsInJob = Data->IsInJob;
     processItem->IsInSignificantJob = Data->IsInSignificantJob;
     processItem->IsBeingDebugged = Data->IsBeingDebugged;
