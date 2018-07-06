@@ -245,89 +245,64 @@ VOID PhpSymbolProviderCompleteInitialization(
     VOID
     )
 {
+    static PH_STRINGREF dbghelpFileName = PH_STRINGREF_INIT(L"dbghelp.dll");
+    static PH_STRINGREF symsrvFileName = PH_STRINGREF_INIT(L"symsrv.dll");
     static struct
     {
         PH_STRINGREF AppendPath;
     } locations[] =
     {
 #ifdef _WIN64
-        PH_STRINGREF_INIT(L"%ProgramFiles(x86)%\\Windows Kits\\10\\Debuggers\\x64\\dbghelp.dll"),
-        PH_STRINGREF_INIT(L"%ProgramFiles%\\Windows Kits\\10\\Debuggers\\x64\\dbghelp.dll"),
-        PH_STRINGREF_INIT(L"%ProgramFiles(x86)%\\Windows Kits\\8.1\\Debuggers\\x64\\dbghelp.dll"),
-        PH_STRINGREF_INIT(L"%ProgramFiles(x86)%\\Windows Kits\\8.0\\Debuggers\\x64\\dbghelp.dll"),
-        PH_STRINGREF_INIT(L"%ProgramFiles%\\Debugging Tools for Windows (x64)\\dbghelp.dll")
+        PH_STRINGREF_INIT(L"%ProgramFiles(x86)%\\Windows Kits\\10\\Debuggers\\x64\\"),
+        PH_STRINGREF_INIT(L"%ProgramFiles%\\Windows Kits\\10\\Debuggers\\x64\\"),
+        PH_STRINGREF_INIT(L"%ProgramFiles(x86)%\\Windows Kits\\8.1\\Debuggers\\x64\\"),
+        PH_STRINGREF_INIT(L"%ProgramFiles(x86)%\\Windows Kits\\8.0\\Debuggers\\x64\\"),
+        PH_STRINGREF_INIT(L"%ProgramFiles%\\Debugging Tools for Windows (x64)\\")
 #else
-        PH_STRINGREF_INIT(L"%ProgramFiles%\\Windows Kits\\10\\Debuggers\\x86\\dbghelp.dll"),
-        PH_STRINGREF_INIT(L"%ProgramFiles%\\Windows Kits\\8.1\\Debuggers\\x86\\dbghelp.dll"),
-        PH_STRINGREF_INIT(L"%ProgramFiles%\\Windows Kits\\8.0\\Debuggers\\x86\\dbghelp.dll"),
-        PH_STRINGREF_INIT(L"%ProgramFiles%\\Debugging Tools for Windows (x86)\\dbghelp.dll")
+        PH_STRINGREF_INIT(L"%ProgramFiles%\\Windows Kits\\10\\Debuggers\\x86\\"),
+        PH_STRINGREF_INIT(L"%ProgramFiles%\\Windows Kits\\8.1\\Debuggers\\x86\\"),
+        PH_STRINGREF_INIT(L"%ProgramFiles%\\Windows Kits\\8.0\\Debuggers\\x86\\"),
+        PH_STRINGREF_INIT(L"%ProgramFiles%\\Debugging Tools for Windows (x86)\\")
 #endif
     };
-    static struct
+    PVOID dbghelpHandle = NULL;
+    PVOID symsrvHandle = NULL;
+    ULONG i;
+
+    if (PhFindLoaderEntry(NULL, NULL, &dbghelpFileName) &&
+        PhFindLoaderEntry(NULL, NULL, &symsrvFileName))
     {
-        PH_STRINGREF AppendPath;
-    } symsrvlocation[] =
-    {
-#ifdef _WIN64
-        { PH_STRINGREF_INIT(L"%ProgramFiles(x86)%\\Windows Kits\\10\\Debuggers\\x64\\symsrv.dll") },
-        { PH_STRINGREF_INIT(L"%ProgramFiles(x86)%\\Windows Kits\\8.1\\Debuggers\\x64\\symsrv.dll") },
-        { PH_STRINGREF_INIT(L"%ProgramFiles(x86)%\\Windows Kits\\8.0\\Debuggers\\x64\\symsrv.dll") },
-        { PH_STRINGREF_INIT(L"%ProgramFiles%\\Debugging Tools for Windows (x64)\\symsrv.dll") }
-#else
-        { CSIDL_PROGRAM_FILES, L"%ProgramFiles%\\Windows Kits\\10\\Debuggers\\x86\\symsrv.dll" },
-        { CSIDL_PROGRAM_FILES, L"%ProgramFiles%\\Windows Kits\\8.1\\Debuggers\\x86\\symsrv.dll" },
-        { CSIDL_PROGRAM_FILES, L"%ProgramFiles%\\Windows Kits\\8.0\\Debuggers\\x86\\symsrv.dll" },
-        { CSIDL_PROGRAM_FILES, L"%ProgramFiles%\\Debugging Tools for Windows (x86)\\symsrv.dll" }
-#endif
-    };
-
-    PVOID dbghelpHandle;
-    PVOID symsrvHandle;
-    PPH_STRING dbghelpPath = NULL;
-
-    dbghelpHandle = PhGetDllHandle(L"dbghelp.dll");
-    symsrvHandle = PhGetDllHandle(L"symsrv.dll");
-
-    if (dbghelpHandle && symsrvHandle)
         return;
-
-    for (ULONG i = 0; i < RTL_NUMBER_OF(locations); i++)
-    {
-        if (dbghelpPath = PhExpandEnvironmentStrings(&locations[i].AppendPath))
-        {
-            if (RtlDoesFileExists_U(dbghelpPath->Buffer))
-                break;
-
-            PhClearReference(&dbghelpPath);
-        }
     }
 
-    if (dbghelpPath)
+    for (i = 0; i < RTL_NUMBER_OF(locations); i++)
     {
-        if (dbghelpHandle = LoadLibrary(dbghelpPath->Buffer))
+        PPH_STRING dbghelpPath;
+        PPH_STRING dbghelpName;
+        PPH_STRING symsrvName;
+
+        if (!(dbghelpPath = PhExpandEnvironmentStrings(&locations[i].AppendPath)))
+            continue;
+
+        dbghelpName = PhConcatStringRef2(&dbghelpPath->sr, &dbghelpFileName);
+        symsrvName = PhConcatStringRef2(&dbghelpPath->sr, &symsrvFileName);
+
+        if (RtlDoesFileExists_U(dbghelpName->Buffer))
         {
-            PPH_STRING fullDbghelpPath;
-            ULONG indexOfFileName;
-            PH_STRINGREF dbghelpFolder;
-            PPH_STRING symsrvPath;
-
-            if (fullDbghelpPath = PhGetDllFileName(dbghelpHandle, &indexOfFileName))
-            {
-                if (indexOfFileName != 0)
-                {
-                    dbghelpFolder.Buffer = fullDbghelpPath->Buffer;
-                    dbghelpFolder.Length = indexOfFileName * sizeof(WCHAR);
-
-                    symsrvPath = PhConcatStringRefZ(&dbghelpFolder, L"\\symsrv.dll");
-                    symsrvHandle = LoadLibrary(symsrvPath->Buffer);
-                    PhDereferenceObject(symsrvPath);
-                }
-
-                PhDereferenceObject(fullDbghelpPath);
-            }
+            dbghelpHandle = LoadLibrary(dbghelpName->Buffer);
         }
 
+        if (RtlDoesFileExists_U(symsrvName->Buffer))
+        {
+            symsrvHandle = LoadLibrary(symsrvName->Buffer);
+        }
+
+        PhDereferenceObject(symsrvName);
+        PhDereferenceObject(dbghelpName);
         PhDereferenceObject(dbghelpPath);
+
+        if (dbghelpHandle)
+            break;
     }
 
     if (!dbghelpHandle)
