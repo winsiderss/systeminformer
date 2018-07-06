@@ -97,15 +97,17 @@ static _Callback_ NTSTATUS PhpSetServiceSecurity(
     return status;
 }
 
-VOID PhShowServiceProperties(
-    _In_ HWND ParentWindowHandle,
-    _In_ PPH_SERVICE_ITEM ServiceItem
+NTSTATUS PhpShowServicePropertiesThread(
+    _In_opt_ PVOID Context
     )
 {
     PROPSHEETHEADER propSheetHeader = { sizeof(propSheetHeader) };
     PROPSHEETPAGE propSheetPage;
     HPROPSHEETPAGE pages[32];
     SERVICE_PROPERTIES_CONTEXT context;
+    PPH_SERVICE_ITEM serviceItem;
+
+    serviceItem = ((PPH_SERVICE_ITEM)Context);
 
     propSheetHeader.dwFlags =
         PSH_MODELESS |
@@ -115,18 +117,18 @@ VOID PhShowServiceProperties(
         //PSH_USECALLBACK |
         PSH_USEHICON;
     propSheetHeader.hInstance = PhInstanceHandle;
-    propSheetHeader.hwndParent = ParentWindowHandle;
-    propSheetHeader.pszCaption = PhGetString(ServiceItem->Name);
+    //propSheetHeader.hwndParent = ParentWindowHandle;
+    propSheetHeader.pszCaption = PhGetString(serviceItem->Name);
     propSheetHeader.nPages = 0;
     propSheetHeader.nStartPage = 0;
     propSheetHeader.phpage = pages;
  
     {
-        if (ServiceItem->SmallIcon)
-            propSheetHeader.hIcon = ServiceItem->SmallIcon;
+        if (serviceItem->SmallIcon)
+            propSheetHeader.hIcon = serviceItem->SmallIcon;
         else
         {
-            if (ServiceItem->Type == SERVICE_KERNEL_DRIVER || ServiceItem->Type == SERVICE_FILE_SYSTEM_DRIVER)
+            if (serviceItem->Type == SERVICE_KERNEL_DRIVER || serviceItem->Type == SERVICE_FILE_SYSTEM_DRIVER)
                 propSheetHeader.hIcon = PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_COG));
             else
             {
@@ -140,7 +142,7 @@ VOID PhShowServiceProperties(
     // General
 
     memset(&context, 0, sizeof(SERVICE_PROPERTIES_CONTEXT));
-    context.ServiceItem = ServiceItem;
+    context.ServiceItem = serviceItem;
     context.Ready = FALSE;
     context.Dirty = FALSE;
 
@@ -156,7 +158,7 @@ VOID PhShowServiceProperties(
     {
         PH_PLUGIN_OBJECT_PROPERTIES objectProperties;
 
-        objectProperties.Parameter = ServiceItem;
+        objectProperties.Parameter = serviceItem;
         objectProperties.NumberOfPages = propSheetHeader.nPages;
         objectProperties.MaximumNumberOfPages = sizeof(pages) / sizeof(HPROPSHEETPAGE);
         objectProperties.Pages = pages;
@@ -167,6 +169,16 @@ VOID PhShowServiceProperties(
     }
 
     PhModalPropertySheet(&propSheetHeader);
+
+    return STATUS_SUCCESS;
+}
+
+VOID PhShowServiceProperties(
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_SERVICE_ITEM ServiceItem
+    )
+{
+    PhCreateThread2(PhpShowServicePropertiesThread, ServiceItem);
 }
 
 static VOID PhpRefreshControls(
@@ -437,11 +449,11 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                     SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LONG_PTR)GetDlgItem(hwndDlg, IDC_STARTTYPE));
                 }
                 return TRUE;
-            case PSN_KILLACTIVE:
-                {
-                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, FALSE);
-                }
-                return TRUE;
+            //case PSN_KILLACTIVE:
+            //    {
+            //        SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, FALSE);
+            //    }
+            //    return TRUE;
             case PSN_APPLY:
                 {
                     NTSTATUS status;
