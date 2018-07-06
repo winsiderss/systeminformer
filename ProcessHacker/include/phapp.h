@@ -500,21 +500,6 @@ HPROPSHEETPAGE PhCreateEventPairPage(
     _In_opt_ PVOID Context
     );
 
-HPROPSHEETPAGE PhCreateFilePage(
-    _In_ PPH_OPEN_OBJECT OpenObject,
-    _In_opt_ PVOID Context
-    );
-
-HPROPSHEETPAGE PhCreateMutantPage(
-    _In_ PPH_OPEN_OBJECT OpenObject,
-    _In_opt_ PVOID Context
-    );
-
-HPROPSHEETPAGE PhCreateSectionPage(
-    _In_ PPH_OPEN_OBJECT OpenObject,
-    _In_opt_ PVOID Context
-    );
-
 HPROPSHEETPAGE PhCreateSemaphorePage(
     _In_ PPH_OPEN_OBJECT OpenObject,
     _In_opt_ PVOID Context
