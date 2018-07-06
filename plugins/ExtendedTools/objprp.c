@@ -41,13 +41,6 @@ INT CALLBACK EtpCommonPropPageProc(
     _In_ LPPROPSHEETPAGE ppsp
     );
 
-INT_PTR CALLBACK EtpAlpcPortPageDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    );
-
 INT_PTR CALLBACK EtpTpWorkerFactoryPageDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -69,15 +62,7 @@ VOID EtHandlePropertiesInitializing(
     {
         HPROPSHEETPAGE page = NULL;
 
-        if (PhEqualString2(context->HandleItem->TypeName, L"ALPC Port", TRUE))
-        {
-            page = EtpCommonCreatePage(
-                context,
-                MAKEINTRESOURCE(IDD_OBJALPCPORT),
-                EtpAlpcPortPageDlgProc
-                );
-        }
-        else if (PhEqualString2(context->HandleItem->TypeName, L"TpWorkerFactory", TRUE))
+        if (PhEqualString2(context->HandleItem->TypeName, L"TpWorkerFactory", TRUE))
         {
             page = EtpCommonCreatePage(
                 context,
@@ -178,57 +163,6 @@ static NTSTATUS EtpDuplicateHandleFromProcess(
     NtClose(processHandle);
 
     return status;
-}
-
-INT_PTR CALLBACK EtpAlpcPortPageDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    )
-{
-    switch (uMsg)
-    {
-    case WM_INITDIALOG:
-        {
-            LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
-            PCOMMON_PAGE_CONTEXT context = (PCOMMON_PAGE_CONTEXT)propSheetPage->lParam;
-            HANDLE portHandle;
-
-            if (NT_SUCCESS(EtpDuplicateHandleFromProcess(&portHandle, READ_CONTROL, context)))
-            {
-                ALPC_BASIC_INFORMATION basicInfo;
-
-                if (NT_SUCCESS(NtAlpcQueryInformation(
-                    portHandle,
-                    AlpcBasicInformation,
-                    &basicInfo,
-                    sizeof(ALPC_BASIC_INFORMATION),
-                    NULL
-                    )))
-                {
-                    PH_FORMAT format[2];
-                    PPH_STRING string;
-
-                    PhInitFormatS(&format[0], L"Sequence Number: ");
-                    PhInitFormatD(&format[1], basicInfo.SequenceNo);
-                    format[1].Type |= FormatGroupDigits;
-
-                    string = PhFormat(format, 2, 128);
-                    PhSetDialogItemText(hwndDlg, IDC_SEQUENCENUMBER, string->Buffer);
-                    PhDereferenceObject(string);
-
-                    PhSetDialogItemText(hwndDlg, IDC_PORTCONTEXT,
-                        PhaFormatString(L"Port Context: 0x%Ix", basicInfo.PortContext)->Buffer);
-                }
-
-                NtClose(portHandle);
-            }
-        }
-        break;
-    }
-
-    return FALSE;
 }
 
 static BOOLEAN NTAPI EnumGenericModulesCallback(

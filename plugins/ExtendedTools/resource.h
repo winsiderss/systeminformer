@@ -4,7 +4,6 @@
 //
 #define ID_PROCESS_UNLOADEDMODULES      101
 #define IDD_UNLOADEDDLLS                102
-#define IDD_OBJALPCPORT                 103
 #define ID_THREAD_CANCELIO              104
 #define IDD_OBJTPWORKERFACTORY          105
 #define ID_MODULE_SERVICES              106
@@ -34,8 +33,6 @@
 #define IDD_SYSINFO_GPUDETAILS          141
 #define IDC_LIST                        1001
 #define IDC_REFRESH                     1002
-#define IDC_SEQUENCENUMBER              1003
-#define IDC_PORTCONTEXT                 1004
 #define IDC_WORKERTHREADSTART           1005
 #define IDC_WORKERTHREADCONTEXT         1006
 #define IDC_SERVICES_LAYOUT             1007
@@ -100,7 +97,6 @@
 #define IDC_GPUDETAILS                  1090
 #define IDC_BUTTON1                     1092
 #define IDC_DETAILS                     1092
-#define IDC_LIST1                       1093
 #define IDC_GPULIST                     1093
 #define ID_DISK_GOTOPROCESS             40005
 #define ID_DISK_COPY                    40006
