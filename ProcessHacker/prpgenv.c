@@ -485,6 +485,9 @@ VOID PhpShowEnvironmentNodeContextMenu(
     if (!(node = PhpGetSelectedEnvironmentNode(Context)))
         return;
 
+    if (node->Type == PROCESS_ENVIRONMENT_TREENODE_TYPE_GROUP)
+        return;
+
     menu = PhCreateEMenu();
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ENVIRONMENT_TREE_COLUMN_MENU_ITEM_EDIT, L"Edit", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
@@ -1069,6 +1072,11 @@ BOOLEAN NTAPI PhpEnvironmentTreeNewCallback(
             PhDeleteTreeNewColumnMenu(&data);
         }
         return TRUE;
+    case TreeNewLeftDoubleClick:
+        {
+            SendMessage(context->WindowHandle, WM_COMMAND, WM_PH_SET_LIST_VIEW_SETTINGS, 0); // HACK
+        }
+        return TRUE;
     }
 
     return FALSE;
@@ -1416,6 +1424,37 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
             case IDC_REFRESH:
                 {
                     PhpRefreshEnvironmentList(hwndDlg, context, processItem);
+                }
+                break;
+            case WM_PH_SET_LIST_VIEW_SETTINGS: // HACK
+                {
+                    PPHP_PROCESS_ENVIRONMENT_TREENODE item = PhpGetSelectedEnvironmentNode(context);
+                    BOOLEAN refresh;
+
+                    if (!item || item->Type == PROCESS_ENVIRONMENT_TREENODE_TYPE_GROUP)
+                        break;
+
+                    if (PhGetIntegerSetting(L"EnableWarnings") && !PhShowConfirmMessage(
+                        hwndDlg,
+                        L"edit",
+                        L"the selected environment variable",
+                        L"Some programs may restrict access or ban your account when editing the environment variable(s) of the process.",
+                        FALSE
+                        ))
+                    {
+                        break;
+                    }
+
+                    if (PhpShowEditEnvDialog(
+                        hwndDlg,
+                        context->ProcessItem,
+                        item->NameText->Buffer,
+                        item->ValueText->Buffer,
+                        &refresh
+                        ) == IDOK && refresh)
+                    {
+                        PhpRefreshEnvironmentList(hwndDlg, context, context->ProcessItem);
+                    }
                 }
                 break;
             }
