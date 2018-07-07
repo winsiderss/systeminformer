@@ -1011,14 +1011,14 @@ namespace CustomBuildTool
 
             buildChangelog = Win32.ShellExecute(GitExePath, "log -n 30 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %s (%an)\"");
             buildSummary = Win32.ShellExecute(GitExePath, "log -n 5 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %s (%an)\" --abbrev-commit");
-            buildMessage = Win32.ShellExecute(GitExePath, "git log -1 --pretty=%B");
+            buildMessage = Win32.ShellExecute(GitExePath, "log -1 --pretty=%B");
  
             buildPostString = Json<BuildUpdateRequest>.Serialize(new BuildUpdateRequest
             {
-                Updated = TimeStart.ToString("o"),
-                Version = BuildVersion,
-                Commit = BuildCommit,
-                CommitMessage = buildMessage,
+                BuildUpdated = TimeStart.ToString("o"),
+                BuildVersion = BuildVersion,
+                BuildCommit = BuildCommit,
+                BuildMessage = buildMessage,
 
                 BinUrl = $"https://ci.appveyor.com/api/projects/{accountName}/{projectName}/artifacts/processhacker-{BuildVersion}-bin.zip",
                 BinLength = BuildBinFileLength.ToString(),
