@@ -975,13 +975,15 @@ namespace CustomBuildTool
 
         public static void WebServiceUpdateConfig()
         {
-            string accountName = Environment.ExpandEnvironmentVariables("%APPVEYOR_ACCOUNT_NAME%").Replace("%APPVEYOR_ACCOUNT_NAME%", string.Empty);
-            string projectName = Environment.ExpandEnvironmentVariables("%APPVEYOR_PROJECT_NAME%").Replace("%APPVEYOR_PROJECT_NAME%", string.Empty);
+            string accountName; 
+            string projectName;
+            string buildPostUrl;
+            string buildPostApiKey;
+            string buildChangelog;
+            string buildSummary;
+            string buildMessage;
+            string buildPostString;
 
-            if (string.IsNullOrEmpty(accountName))
-                return;
-            if (string.IsNullOrEmpty(projectName))
-                return;
             if (string.IsNullOrEmpty(BuildVersion))
                 return;
             if (string.IsNullOrEmpty(BuildSetupHash))
@@ -993,13 +995,30 @@ namespace CustomBuildTool
             if (string.IsNullOrEmpty(BuildBinSig))
                 return;
 
-            string buildChangelog = Win32.ShellExecute(GitExePath, "log -n 30 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %s (%an)\"");
-            string buildSummary = Win32.ShellExecute(GitExePath, "log -n 5 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %s (%an)\" --abbrev-commit");
-            string buildPostString = Json<BuildUpdateRequest>.Serialize(new BuildUpdateRequest
+            accountName = Environment.ExpandEnvironmentVariables("%APPVEYOR_ACCOUNT_NAME%").Replace("%APPVEYOR_ACCOUNT_NAME%", string.Empty);
+            projectName = Environment.ExpandEnvironmentVariables("%APPVEYOR_PROJECT_NAME%").Replace("%APPVEYOR_PROJECT_NAME%", string.Empty);
+            buildPostUrl = Environment.ExpandEnvironmentVariables("%APPVEYOR_BUILD_API%").Replace("%APPVEYOR_BUILD_API%", string.Empty);
+            buildPostApiKey = Environment.ExpandEnvironmentVariables("%APPVEYOR_BUILD_KEY%").Replace("%APPVEYOR_BUILD_KEY%", string.Empty);
+
+            if (string.IsNullOrEmpty(accountName))
+                return;
+            if (string.IsNullOrEmpty(projectName))
+                return;
+            if (string.IsNullOrEmpty(buildPostUrl))
+                return;
+            if (string.IsNullOrEmpty(buildPostApiKey))
+                return;
+
+            buildChangelog = Win32.ShellExecute(GitExePath, "log -n 30 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %s (%an)\"");
+            buildSummary = Win32.ShellExecute(GitExePath, "log -n 5 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %s (%an)\" --abbrev-commit");
+            buildMessage = Win32.ShellExecute(GitExePath, "git log -1 --pretty=%B");
+ 
+            buildPostString = Json<BuildUpdateRequest>.Serialize(new BuildUpdateRequest
             {
+                Updated = TimeStart.ToString("o"),
                 Version = BuildVersion,
                 Commit = BuildCommit,
-                Updated = TimeStart.ToString("o"),
+                CommitMessage = buildMessage,
 
                 BinUrl = $"https://ci.appveyor.com/api/projects/{accountName}/{projectName}/artifacts/processhacker-{BuildVersion}-bin.zip",
                 BinLength = BuildBinFileLength.ToString(),
@@ -1011,30 +1030,11 @@ namespace CustomBuildTool
                 SetupHash = BuildSetupHash,
                 SetupSig = BuildSetupSig,
 
-                //WebSetupUrl = "https://ci.appveyor.com/api/projects/{accountName}/{projectName}/artifacts/processhacker-websetup.exe",
-                //WebSetupHash = BuildWebSetupHash,
-                //WebSetupVersion = BuildWebSetupVersion,
-                //WebSetupSig = BuildWebSetupSig,
-
                 Message = buildSummary,
-                Changelog = buildChangelog,
-
-                FileLengthDeprecated = BuildSetupFileLength.ToString(),  // TODO: Remove after most users have updated.
-                ForumUrlDeprecated = "https://wj32.org/processhacker/forums",  // TODO: Remove after most users have updated.
-                SetupHashDeprecated = BuildSetupHash, // TODO: Remove after most users have updated.
-                SetupSigDeprecated = BuildSetupSig, // TODO: Remove after most users have updated.
-                BinHashDeprecated = BuildBinHash  // TODO: Remove after most users have updated.
+                Changelog = buildChangelog
             });
 
             if (string.IsNullOrEmpty(buildPostString))
-                return;
-
-            string buildPosturl = Environment.ExpandEnvironmentVariables("%APPVEYOR_BUILD_API%").Replace("%APPVEYOR_BUILD_API%", string.Empty);
-            string buildPostApiKey = Environment.ExpandEnvironmentVariables("%APPVEYOR_BUILD_KEY%").Replace("%APPVEYOR_BUILD_KEY%", string.Empty);
-
-            if (string.IsNullOrEmpty(buildPosturl))
-                return;
-            if (string.IsNullOrEmpty(buildPostApiKey))
                 return;
 
             Program.PrintColorMessage("Updating Build WebService... " + BuildVersion, ConsoleColor.Cyan);
@@ -1047,7 +1047,7 @@ namespace CustomBuildTool
                 {
                     client.DefaultRequestHeaders.Add("X-ApiKey", buildPostApiKey);
 
-                    var httpTask = client.PostAsync(buildPosturl, new StringContent(buildPostString, Encoding.UTF8, "application/json"));
+                    var httpTask = client.PostAsync(buildPostUrl, new StringContent(buildPostString, Encoding.UTF8, "application/json"));
 
                     httpTask.Wait();
 
