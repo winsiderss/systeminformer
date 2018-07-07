@@ -359,10 +359,10 @@ namespace CustomBuildTool
     [DataContract]
     public class BuildUpdateRequest
     {
-        [DataMember(Name = "build_version")] public string Version { get; set; }
-        [DataMember(Name = "build_commit")] public string Commit { get; set; }
-        [DataMember(Name = "build_updated")] public string Updated { get; set; }
-        [DataMember(Name = "build_message")] public string CommitMessage { get; set; }
+        [DataMember(Name = "build_version")] public string BuildVersion { get; set; }
+        [DataMember(Name = "build_commit")] public string BuildCommit { get; set; }
+        [DataMember(Name = "build_updated")] public string BuildUpdated { get; set; }
+        [DataMember(Name = "build_message")] public string BuildMessage { get; set; }
 
         [DataMember(Name = "bin_url")] public string BinUrl { get; set; }
         [DataMember(Name = "bin_length")] public string BinLength { get; set; }
