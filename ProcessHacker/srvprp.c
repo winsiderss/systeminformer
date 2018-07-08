@@ -26,6 +26,7 @@
 
 #include <secedit.h>
 #include <svcsup.h>
+#include <mainwnd.h>
 #include <settings.h>
 
 #include <actions.h>
