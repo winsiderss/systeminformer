@@ -26,10 +26,12 @@
 
 #include <secedit.h>
 #include <svcsup.h>
+#include <settings.h>
 
 #include <actions.h>
 #include <phplug.h>
 #include <phsvccl.h>
+#include <phsettings.h>
 #include <srvprv.h>
 
 typedef struct _SERVICE_PROPERTIES_CONTEXT
@@ -246,7 +248,10 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
             PPH_STRING serviceDll;
 
             // HACK
-            PhCenterWindow(GetParent(hwndDlg), GetParent(GetParent(hwndDlg)));
+            if (PhGetIntegerPairSetting(L"ServiceWindowPosition").X == 0)
+                PhCenterWindow(GetParent(hwndDlg), PhMainWndHandle);
+            else
+                PhLoadWindowPlacementFromSetting(L"ServiceWindowPosition", NULL, GetParent(hwndDlg));
 
             PhAddComboBoxStrings(GetDlgItem(hwndDlg, IDC_TYPE), PhServiceTypeStrings,
                 sizeof(PhServiceTypeStrings) / sizeof(WCHAR *));
@@ -326,6 +331,7 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
         break;
     case WM_DESTROY:
         {
+            PhSaveWindowPlacementToSetting(L"ServiceWindowPosition", NULL, GetParent(hwndDlg));
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
         }
         break;
