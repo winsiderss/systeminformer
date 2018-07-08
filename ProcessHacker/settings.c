@@ -145,6 +145,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"SampleCountAutomatic", L"1");
     PhpAddIntegerSetting(L"ScrollToNewProcesses", L"0");
     PhpAddStringSetting(L"SearchEngine", L"https://www.google.com/search?q=\"%s\"");
+    PhpAddIntegerPairSetting(L"ServiceWindowPosition", L"0,0");
     PhpAddStringSetting(L"ServiceListViewColumns", L"");
     PhpAddStringSetting(L"ServiceTreeListColumns", L"");
     PhpAddStringSetting(L"ServiceTreeListSort", L"0,1"); // 0, AscendingSortOrder
