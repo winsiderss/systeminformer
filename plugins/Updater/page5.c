@@ -61,12 +61,16 @@ HRESULT CALLBACK FinalTaskDialogCallbackProc(
             else if (buttonId == IDYES)
             {
                 SHELLEXECUTEINFO info = { sizeof(SHELLEXECUTEINFO) };
+                PPH_STRING parameters;
 
                 if (PhIsNullOrEmptyString(context->SetupFilePath))
                     break;
 
+                parameters = PH_AUTO(PhGetApplicationDirectory());
+                parameters = PH_AUTO(PhConcatStrings(3, L"-update \"", PhGetStringOrEmpty(parameters), L"\""));
+
                 info.lpFile = PhGetStringOrEmpty(context->SetupFilePath);
-                info.lpParameters = L"-update";
+                info.lpParameters = PhGetString(parameters);
                 info.lpVerb = PhGetOwnTokenAttributes().Elevated ? NULL : L"runas";
                 info.nShow = SW_SHOW;
                 info.hwnd = hwndDlg;
