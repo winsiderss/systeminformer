@@ -46,15 +46,8 @@ HRESULT CALLBACK ShowAvailableCallbackProc(
         {
             if ((INT)wParam == IDOK)
             {
-                if (UpdaterInstalledUsingSetup())
-                {
-                    ShowProgressDialog(context);
-                    return S_FALSE;
-                }
-                else
-                {  
-                    PhShellExecute(hwndDlg, L"https://wj32.org/processhacker/nightly.php", NULL); 
-                }
+                ShowProgressDialog(context);
+                return S_FALSE;
             }
         }
         break;
