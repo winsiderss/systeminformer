@@ -141,7 +141,6 @@ static BOOLEAN RestartRequired = FALSE;
 // General
 static PH_STRINGREF CurrentUserRunKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Run");
 static BOOLEAN CurrentUserRunPresent = FALSE;
-static BOOLEAN CurrentUserRunStartHidden = FALSE;
 static HFONT CurrentFontInstance = NULL;
 static PPH_STRING NewFontSelection = NULL;
 static HIMAGELIST GeneralListviewImageList = NULL;
@@ -701,7 +700,6 @@ static VOID ReadCurrentUserRun(
     PPH_STRING value;
 
     CurrentUserRunPresent = FALSE;
-    CurrentUserRunStartHidden = FALSE;
 
     if (NT_SUCCESS(PhOpenKey(
         &keyHandle,
@@ -729,7 +727,6 @@ static VOID ReadCurrentUserRun(
                     if (fullFileName && PhEqualString(fullFileName, applicationFileName, TRUE))
                     {
                         CurrentUserRunPresent = TRUE;
-                        CurrentUserRunStartHidden = PhEqualStringRef2(&arguments, L"-hide", FALSE);
                     }
 
                     PhDereferenceObject(applicationFileName);
@@ -748,7 +745,7 @@ static VOID WriteCurrentUserRun(
 {
     HANDLE keyHandle;
 
-    if (CurrentUserRunPresent == Present && (!Present || CurrentUserRunStartHidden == StartHidden))
+    if (CurrentUserRunPresent == Present)
         return;
 
     if (NT_SUCCESS(PhOpenKey(
@@ -979,15 +976,6 @@ typedef enum _PHP_OPTIONS_INDEX
     PHP_OPTIONS_INDEX_SHOW_ADVANCED_OPTIONS
 } PHP_OPTIONS_GENERAL_INDEX;
 
-VOID PhpSetListViewItemState(
-    _In_ HWND ListViewHandle,
-    _In_ INT Index,
-    _In_ BOOLEAN Hide
-    )
-{
-    ListView_SetItemState(ListViewHandle, Index, INDEXTOSTATEIMAGEMASK(Hide ? 0 : 1), LVIS_STATEIMAGEMASK);
-}
-
 static VOID PhpAdvancedPageLoad(
     _In_ HWND hwndDlg
     )
@@ -1027,6 +1015,7 @@ static VOID PhpAdvancedPageLoad(
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_SINGLE_INSTANCE, L"AllowOnlyOneInstance");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_HIDE_WHENCLOSED, L"HideOnClose");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_HIDE_WHENMINIMIZED, L"HideOnMinimize");
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_START_HIDDEN, L"StartHidden");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_MINIINFO_WINDOW, L"MiniInfoWindowEnabled");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_DRIVER, L"EnableKph");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_WARNINGS, L"EnableWarnings");
@@ -1044,16 +1033,7 @@ static VOID PhpAdvancedPageLoad(
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_SHOW_HEX_ID, L"ShowHexId");
 
     if (CurrentUserRunPresent)
-    {
         ListView_SetCheckState(listViewHandle, PHP_OPTIONS_INDEX_START_ATLOGON, TRUE);
-
-        if (CurrentUserRunStartHidden)
-            ListView_SetCheckState(listViewHandle, PHP_OPTIONS_INDEX_START_HIDDEN, TRUE);
-    }
-    else
-    {
-        PhpSetListViewItemState(listViewHandle, PHP_OPTIONS_INDEX_START_HIDDEN, TRUE);
-    }
 }
 
 static VOID PhpOptionsNotifyChangeCallback(
@@ -1124,7 +1104,7 @@ static VOID PhpAdvancedPageSave(
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_SINGLE_INSTANCE, L"AllowOnlyOneInstance");
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_HIDE_WHENCLOSED, L"HideOnClose");
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_HIDE_WHENMINIMIZED, L"HideOnMinimize");
-    //SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_START_HIDDEN, L"StartHidden");
+    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_START_HIDDEN, L"StartHidden");
     SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_MINIINFO_WINDOW, L"MiniInfoWindowEnabled");
     SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_DRIVER, L"EnableKph");
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_WARNINGS, L"EnableWarnings");
@@ -1210,7 +1190,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
             for (i = 0; i < RTL_NUMBER_OF(PhSizeUnitNames); i++)
                 ComboBox_AddString(comboBoxHandle, PhSizeUnitNames[i]);
 
-            if (PhMaxSizeUnit != -1)
+            if (PhMaxSizeUnit != ULONG_MAX)
                 ComboBox_SetCurSel(comboBoxHandle, PhMaxSizeUnit);
             else
                 ComboBox_SetCurSel(comboBoxHandle, RTL_NUMBER_OF(PhSizeUnitNames) - 1);
@@ -1334,15 +1314,6 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                     LPNMITEMACTIVATE itemActivate = (LPNMITEMACTIVATE)header;
                     LVHITTESTINFO lvHitInfo;
 
-                    // HACK: Don't change the checkbox state for the 'Start hidden' item when the 'Start at logon' item hasn't been enabled.
-                    if (
-                        itemActivate->iItem == PHP_OPTIONS_INDEX_START_HIDDEN &&
-                        ListView_GetCheckState(GetDlgItem(hwndDlg, IDC_SETTINGS), PHP_OPTIONS_INDEX_START_ATLOGON) != BST_CHECKED
-                        )
-                    {
-                        break;
-                    }
-
                     lvHitInfo.pt = itemActivate->ptAction;
 
                     if (ListView_HitTest(GetDlgItem(hwndDlg, IDC_SETTINGS), &lvHitInfo) != -1)
@@ -1371,11 +1342,6 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                             {
                                 switch (listView->iItem)
                                 {
-                                case PHP_OPTIONS_INDEX_START_ATLOGON:
-                                    {
-                                        PhpSetListViewItemState(listView->hdr.hwndFrom, PHP_OPTIONS_INDEX_START_HIDDEN, FALSE);
-                                    }
-                                    break;
                                 case PHP_OPTIONS_INDEX_SHOW_ADVANCED_OPTIONS:
                                     {
                                         PhpOptionsShowHideTreeViewItem(FALSE);
@@ -1388,11 +1354,6 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                             {
                                 switch (listView->iItem)
                                 {
-                                case PHP_OPTIONS_INDEX_START_ATLOGON:
-                                    {
-                                        PhpSetListViewItemState(listView->hdr.hwndFrom, PHP_OPTIONS_INDEX_START_HIDDEN, TRUE);
-                                    }
-                                    break;
                                 case PHP_OPTIONS_INDEX_SHOW_ADVANCED_OPTIONS:
                                     {
                                         PhpOptionsShowHideTreeViewItem(TRUE);
