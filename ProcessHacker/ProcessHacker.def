@@ -132,6 +132,8 @@ EXPORTS
 	PhEqualStringRef
 	PhExponentiate
 	PhExponentiate64
+	PhExtractIcon
+	PhExtractIconEx
 	PhfAcquireRundownProtection
 	PhfBeginInitOnce
 	PhfEndInitOnce

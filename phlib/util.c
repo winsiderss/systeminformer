@@ -5233,6 +5233,16 @@ BOOLEAN PhExtractIcon(
     _In_ HICON *IconSmall
     )
 {
+    return PhExtractIconEx(FileName, 0, IconLarge, IconSmall);
+}
+
+BOOLEAN PhExtractIconEx(
+    _In_ PWSTR FileName,
+    _In_ INT IconIndex,
+    _In_ HICON *IconLarge,
+    _In_ HICON *IconSmall
+    )
+{
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
     static HRESULT (WINAPI *PrivateExtractIconExW)(
         _In_ PCWSTR FileName,
