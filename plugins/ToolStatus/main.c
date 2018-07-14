@@ -547,7 +547,7 @@ VOID NTAPI LayoutPaddingCallback(
         // Adjust the PH client area and exclude the StatusBar width.
         layoutPadding->Padding.bottom += statusBarRect.bottom;
 
-        //InvalidateRect(StatusBarHandle, NULL, TRUE);
+        InvalidateRect(StatusBarHandle, NULL, TRUE);
     }
 }
 
