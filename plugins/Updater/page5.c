@@ -67,6 +67,7 @@ HRESULT CALLBACK FinalTaskDialogCallbackProc(
                     break;
 
                 parameters = PH_AUTO(PhGetApplicationDirectory());
+                parameters = PH_AUTO(PhBufferToHexString((PUCHAR)parameters->Buffer, (ULONG)parameters->Length));
                 parameters = PH_AUTO(PhConcatStrings(3, L"-update \"", PhGetStringOrEmpty(parameters), L"\""));
 
                 info.lpFile = PhGetStringOrEmpty(context->SetupFilePath);
