@@ -3350,6 +3350,13 @@ PhHexStringToBuffer(
 PHLIBAPI
 PPH_STRING
 NTAPI
+PhHexStringToBufferEx(
+    _In_ PPH_STRINGREF String
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
 PhBufferToHexString(
     _In_reads_bytes_(Length) PUCHAR Buffer,
     _In_ ULONG Length
