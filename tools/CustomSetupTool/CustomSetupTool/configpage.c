@@ -65,9 +65,10 @@ INT_PTR CALLBACK SetupPropPage3_WndProc(
             SetupInitializeFont(GetDlgItem(hwndDlg, IDC_DBGTOOLS_CHECK), -12, FW_NORMAL);
             SetupInitializeFont(GetDlgItem(hwndDlg, IDC_RESET_CHECK), -12, FW_NORMAL);
 
-            context->SetupInstallPath = SetupFindInstallDirectory();
+            if (PhIsNullOrEmptyString(SetupInstallPath))
+                SetupInstallPath = SetupFindInstallDirectory();
 
-            SetDlgItemText(hwndDlg, IDC_INSTALL_DIRECTORY, PhGetString(context->SetupInstallPath));
+            SetDlgItemText(hwndDlg, IDC_INSTALL_DIRECTORY, PhGetString(SetupInstallPath));
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_SHORTCUT_CHECK), TRUE);
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_SHORTCUT_ALL_CHECK), TRUE);
             //Button_SetCheck(GetDlgItem(hwndDlg, IDC_KPH_CHECK), TRUE);
@@ -94,12 +95,15 @@ INT_PTR CALLBACK SetupPropPage3_WndProc(
 
                         fileDialogFolderPath = PH_AUTO(PhGetFileDialogFileName(fileDialog));
                         PhTrimToNullTerminatorString(fileDialogFolderPath);
+                        PhSwapReference(&SetupInstallPath, fileDialogFolderPath);
 
                         PhFreeFileDialog(fileDialog);
-
-                        PhSwapReference(&context->SetupInstallPath, fileDialogFolderPath);
-                        SetDlgItemText(hwndDlg, IDC_INSTALL_DIRECTORY, PhGetStringOrEmpty(context->SetupInstallPath));
                     }
+
+                    if (PhIsNullOrEmptyString(SetupInstallPath))
+                        SetupInstallPath = SetupFindInstallDirectory();
+
+                    SetDlgItemText(hwndDlg, IDC_INSTALL_DIRECTORY, PhGetStringOrEmpty(SetupInstallPath));
                 }
                 break;
             case IDC_STARTUP_CHECK:
@@ -128,7 +132,6 @@ INT_PTR CALLBACK SetupPropPage3_WndProc(
             {
             case PSN_WIZNEXT:
                 {
-                    context->SetupInstallPath = PhGetWindowText(GetDlgItem(hwndDlg, IDC_INSTALL_DIRECTORY));
                     context->SetupCreateDesktopShortcut = Button_GetCheck(GetDlgItem(hwndDlg, IDC_SHORTCUT_CHECK)) == BST_CHECKED;
                     context->SetupCreateDesktopShortcutAllUsers = Button_GetCheck(GetDlgItem(hwndDlg, IDC_SHORTCUT_ALL_CHECK)) == BST_CHECKED;
                     context->SetupCreateDefaultTaskManager = Button_GetCheck(GetDlgItem(hwndDlg, IDC_TASKMANAGER_CHECK)) == BST_CHECKED;
@@ -140,6 +143,10 @@ INT_PTR CALLBACK SetupPropPage3_WndProc(
                     context->SetupResetSettings = Button_GetCheck(GetDlgItem(hwndDlg, IDC_RESET_CHECK)) == BST_CHECKED;
                     context->SetupStartAppAfterExit = Button_GetCheck(GetDlgItem(hwndDlg, IDC_PHSTART_CHECK)) == BST_CHECKED;
 
+                    SetupInstallPath = PhGetWindowText(GetDlgItem(hwndDlg, IDC_INSTALL_DIRECTORY));
+
+                    if (PhIsNullOrEmptyString(SetupInstallPath))
+                        SetupInstallPath = SetupFindInstallDirectory();
 #ifdef PH_BUILD_API
                     SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LPARAM)IDD_DIALOG4);
                     return TRUE;

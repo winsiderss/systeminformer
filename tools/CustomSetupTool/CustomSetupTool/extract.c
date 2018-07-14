@@ -152,7 +152,7 @@ BOOLEAN SetupExtractBuild(
 
         extractPath = PhConcatStrings(
             3, 
-            PhGetString(Context->SetupInstallPath), 
+            PhGetString(SetupInstallPath), 
             L"\\", 
             PhGetString(fileName)
             );

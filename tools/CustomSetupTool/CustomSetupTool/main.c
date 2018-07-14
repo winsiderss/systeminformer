@@ -21,6 +21,7 @@
 #include <setup.h>
 
 SETUP_COMMAND_TYPE SetupMode = SETUP_COMMAND_INSTALL;
+PPH_STRING SetupInstallPath = NULL;
 
 VOID SetupInitializeDpi(
     VOID
@@ -33,31 +34,6 @@ VOID SetupInitializeDpi(
         PhGlobalDpi = GetDeviceCaps(hdc, LOGPIXELSY);
         ReleaseDC(NULL, hdc);
     }
-}
-
-BOOLEAN NTAPI MainPropSheetCommandLineCallback(
-    _In_opt_ PPH_COMMAND_LINE_OPTION Option,
-    _In_opt_ PPH_STRING Value,
-    _In_opt_ PVOID Context
-    )
-{
-    if (Option)
-        SetupMode = Option->Id;
-    else
-    {
-        // HACK: PhParseCommandLine requires the - symbol for commandline parameters 
-        // and we already support the -silent parameter however we need to maintain 
-        // compatibility with the legacy Inno Setup.
-        if (!PhIsNullOrEmptyString(Value))
-        {
-            if (PhEqualString2(Value, L"/silent", TRUE))
-            {
-                SetupMode = SETUP_COMMAND_SILENTINSTALL;
-            }
-        }
-    }
-
-    return TRUE;
 }
 
 INT CALLBACK MainPropSheet_Callback(
@@ -184,6 +160,68 @@ VOID SetupShowInstallDialog(
     PhModalPropertySheet(&propSheetHeader);
 }
 
+BOOLEAN NTAPI MainPropSheetCommandLineCallback(
+    _In_opt_ PPH_COMMAND_LINE_OPTION Option,
+    _In_opt_ PPH_STRING Value,
+    _In_opt_ PVOID Context
+    )
+{
+    if (Option)
+    {
+        SetupMode = Option->Id;
+
+        if (SetupMode == SETUP_COMMAND_UPDATE)
+        {
+            PPH_STRING directory;
+            PPH_STRING string;
+
+            if (PhIsNullOrEmptyString(Value))
+            {
+                SetupInstallPath = SetupFindInstallDirectory();
+                return TRUE;
+            }
+
+            if (string = PhHexStringToBufferEx(&Value->sr))
+            {
+                if (directory = PhGetFullPath(string->Buffer, NULL))
+                {
+                    PhSwapReference(&SetupInstallPath, directory);
+
+                    if (!PhEndsWithString2(directory, L"\\", FALSE)) // HACK
+                    {
+                        PhMoveReference(&SetupInstallPath, PhConcatStringRefZ(&directory->sr, L"\\"));
+                    }
+
+                    PhDereferenceObject(directory);
+                }
+
+                PhDereferenceObject(string);
+            }
+        }
+
+        if (PhIsNullOrEmptyString(SetupInstallPath))
+        {
+            SetupInstallPath = SetupFindInstallDirectory();
+            return TRUE;
+        }
+    }
+    else
+    {
+        // HACK: PhParseCommandLine requires the - symbol for commandline parameters 
+        // and we already support the -silent parameter however we need to maintain 
+        // compatibility with the legacy Inno Setup.
+        if (!PhIsNullOrEmptyString(Value))
+        {
+            if (PhEqualString2(Value, L"/silent", TRUE))
+            {
+                SetupMode = SETUP_COMMAND_SILENTINSTALL;
+            }
+        }
+    }
+
+    return TRUE;
+}
+
 VOID SetupParseCommandLine(
     VOID
     )
@@ -192,7 +230,7 @@ VOID SetupParseCommandLine(
     {
         { SETUP_COMMAND_INSTALL, L"install", NoArgumentType },
         { SETUP_COMMAND_UNINSTALL, L"uninstall", NoArgumentType },
-        { SETUP_COMMAND_UPDATE, L"update", NoArgumentType },
+        { SETUP_COMMAND_UPDATE, L"update", OptionalArgumentType },
         { SETUP_COMMAND_REPAIR, L"repair", NoArgumentType },
         { SETUP_COMMAND_SILENTINSTALL, L"silent", NoArgumentType },
     };
@@ -257,12 +295,11 @@ INT WINAPI wWinMain(
     CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
 
     if (!NT_SUCCESS(PhInitializePhLibEx(L"Process Hacker - Setup", ULONG_MAX, Instance, 0, 0)))
-        return 1;
-
-    PhGuiSupportInitialization();
-    SetupInitializeDpi();
+        return EXIT_FAILURE;
 
     SetupInitializeMutant();
+    PhGuiSupportInitialization();
+    SetupInitializeDpi();
     SetupParseCommandLine();
 
     switch (SetupMode)
@@ -282,5 +319,5 @@ INT WINAPI wWinMain(
         break;
     }
 
-    return ERROR_SUCCESS;
+    return EXIT_SUCCESS;
 }

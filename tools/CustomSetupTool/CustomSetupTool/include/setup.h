@@ -115,9 +115,6 @@ typedef struct _PH_SETUP_CONTEXT
     };
 
     ULONG ErrorCode;
-
-    PPH_STRING SetupInstallPath;
-
     PPH_STRING FilePath;
 
     PPH_STRING RelDate;
@@ -127,7 +124,6 @@ typedef struct _PH_SETUP_CONTEXT
     PPH_STRING BinFileLength;
     PPH_STRING BinFileHash;
     PPH_STRING BinFileSignature;
-
     PPH_STRING SetupFileDownloadUrl;
     PPH_STRING SetupFileLength;
     PPH_STRING SetupFileHash;
@@ -148,7 +144,10 @@ typedef struct _PH_SETUP_CONTEXT
     ULONG CurrentMajorVersion;
     ULONG CurrentMinorVersion;
     ULONG CurrentRevisionVersion;
+    WNDPROC TaskDialogWndProc;
 } PH_SETUP_CONTEXT, *PPH_SETUP_CONTEXT;
+
+extern PPH_STRING SetupInstallPath;
 
 VOID SetupLoadImage(
     _In_ HWND WindowHandle,

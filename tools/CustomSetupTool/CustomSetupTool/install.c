@@ -39,7 +39,7 @@ NTSTATUS SetupProgressThread(
         goto CleanupExit;
 
     // Create the install folder path.
-    if (!NT_SUCCESS(PhCreateDirectory(Context->SetupInstallPath)))
+    if (!NT_SUCCESS(PhCreateDirectory(SetupInstallPath)))
         goto CleanupExit;
 
     // Upgrade the 2.x settings file.
@@ -48,7 +48,7 @@ NTSTATUS SetupProgressThread(
     // Remove the previous installation.
     if (Context->SetupResetSettings)
     {
-        PhDeleteDirectory(Context->SetupInstallPath);
+        PhDeleteDirectory(SetupInstallPath);
     }
 
     // Create the uninstaller.

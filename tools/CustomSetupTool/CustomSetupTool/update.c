@@ -30,8 +30,6 @@ NTSTATUS SetupUpdateBuild(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
-    Context->SetupInstallPath = SetupFindInstallDirectory();
-
     if (!ShutdownProcessHacker())
         goto CleanupExit;
 
@@ -122,9 +120,6 @@ HRESULT CALLBACK SetupErrorTaskDialogCallbackProc(
     switch (uMsg)
     {
     case TDN_NAVIGATED:
-        {
-
-        }
         break;
     }
 
@@ -132,6 +127,7 @@ HRESULT CALLBACK SetupErrorTaskDialogCallbackProc(
 }
 
 VOID SetupShowUpdatingErrorDialog(
+    _In_ HWND hwndDlg,
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
@@ -139,7 +135,7 @@ VOID SetupShowUpdatingErrorDialog(
 
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
     config.cbSize = sizeof(TASKDIALOGCONFIG);
-    config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_SHOW_MARQUEE_PROGRESS_BAR | TDF_CAN_BE_MINIMIZED | TDF_ENABLE_HYPERLINKS;
+    config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED;
     config.cxWidth = 200;
     config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
     config.hMainIcon = Context->IconLargeHandle;
@@ -156,19 +152,23 @@ VOID SetupShowUpdatingErrorDialog(
             config.pszContent = PhGetString(errorString);
     }
 
-    SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
+    SendMessage(hwndDlg, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
 }
 
 LRESULT CALLBACK TaskDialogSubclassProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
-    _In_ LPARAM lParam,
-    _In_ UINT_PTR uIdSubclass,
-    _In_ ULONG_PTR dwRefData
+    _In_ LPARAM lParam
     )
 {
-    PPH_SETUP_CONTEXT context = (PPH_SETUP_CONTEXT)dwRefData;
+    PPH_SETUP_CONTEXT context;
+    WNDPROC oldWndProc;
+
+    if (!(context = PhGetWindowContext(hwndDlg, UCHAR_MAX)))
+        return 0;
+
+    oldWndProc = context->TaskDialogWndProc;
 
     switch (uMsg)
     {
@@ -182,19 +182,20 @@ LRESULT CALLBACK TaskDialogSubclassProc(
             SetForegroundWindow(hwndDlg);
         }
         break;
-    case WM_NCDESTROY:
+    case WM_DESTROY:
         {
-            RemoveWindowSubclass(hwndDlg, TaskDialogSubclassProc, uIdSubclass);
+            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+            PhRemoveWindowContext(hwndDlg, UCHAR_MAX);
         }
         break;
     case WM_APP + IDD_ERROR:
         {
-            SetupShowUpdatingErrorDialog(context);
+            SetupShowUpdatingErrorDialog(hwndDlg, context);
         }
         break;
     }
 
-    return DefSubclassProc(hwndDlg, uMsg, wParam, lParam);
+    return CallWindowProc(oldWndProc, hwndDlg, uMsg, wParam, lParam);
 }
 
 HRESULT CALLBACK SetupUpdatingTaskDialogCallbackProc(
@@ -278,13 +279,17 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
 
             // Center the window on the desktop.
             PhCenterWindow(hwndDlg, NULL);
+
             // Create the Taskdialog icons.
             TaskDialogCreateIcons(context);
+
             // Subclass the Taskdialog.
-            SetWindowSubclass(hwndDlg, TaskDialogSubclassProc, 0, (ULONG_PTR)context);
+            context->TaskDialogWndProc = (WNDPROC)GetWindowLongPtr(hwndDlg, GWLP_WNDPROC);
+            PhSetWindowContext(hwndDlg, UCHAR_MAX, context);
+            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)TaskDialogSubclassProc);
+
             // Navigate to the first page.
             SetupShowUpdatingDialog(context);
-
             SendMessage(hwndDlg, WM_TASKDIALOGINIT, 0, 0);
         }
         break;
@@ -305,7 +310,7 @@ VOID SetupShowUpdateDialog(
     PhInitializeAutoPool(&autoPool);
 
     config.cbSize = sizeof(TASKDIALOGCONFIG);
-    config.dwFlags = TDF_POSITION_RELATIVE_TO_WINDOW;
+    config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_SHOW_MARQUEE_PROGRESS_BAR | TDF_CAN_BE_MINIMIZED | TDF_ENABLE_HYPERLINKS | TDF_POSITION_RELATIVE_TO_WINDOW;
     config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
     config.pszWindowTitle = PhApplicationName;
     config.pfCallback = TaskDialogBootstrapCallback;
