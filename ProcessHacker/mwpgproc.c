@@ -276,11 +276,13 @@ VOID PhMwpToggleSignedProcessTreeFilter(
     {
         if (!PhEnableProcessQueryStage2)
         {
-            PhShowInformation(
+            PhShowInformation2(
                 PhMainWndHandle,
+                NULL,
                 L"This filter cannot function because digital signature checking is not enabled. "
                 L"Enable it in Options > General and restart Process Hacker."
                 );
+            return;
         }
 
         SignedFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), PhMwpSignedProcessTreeFilter, NULL);
