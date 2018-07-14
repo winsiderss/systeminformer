@@ -5549,6 +5549,30 @@ BOOLEAN PhHexStringToBuffer(
     return TRUE;
 }
 
+PPH_STRING PhHexStringToBufferEx(
+    _In_ PPH_STRINGREF String
+    )
+{
+    PPH_STRING string;
+    SIZE_T length;
+    SIZE_T i;
+
+    if ((String->Length / sizeof(WCHAR)) & 1)
+        return FALSE;
+
+    length = String->Length / sizeof(WCHAR) / 2;
+    string = PhCreateStringEx(NULL, length);
+
+    for (i = 0; i < length; i++)
+    {
+        ((PUCHAR)string->Buffer)[i] =
+            (UCHAR)(PhCharToInteger[(UCHAR)String->Buffer[i * sizeof(WCHAR)]] << 4) +
+            (UCHAR)PhCharToInteger[(UCHAR)String->Buffer[i * sizeof(WCHAR) + 1]];
+    }
+
+    return string;
+}
+
 /**
  * Converts a byte array into a sequence of hexadecimal digits.
  *
@@ -5580,8 +5604,8 @@ PPH_STRING PhBufferToHexStringEx(
     _In_ BOOLEAN UpperCase
     )
 {
-    PCHAR table;
     PPH_STRING string;
+    PCHAR table;
     ULONG i;
 
     if (UpperCase)

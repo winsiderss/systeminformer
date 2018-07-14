@@ -170,6 +170,7 @@ EXPORTS
 	PhHashBytes
 	PhHashStringRef
 	PhHexStringToBuffer
+	PhHexStringToBufferEx
 	PhInitializeArray
 	PhInitializeAvlTree
 	PhInitializeBytesBuilder
