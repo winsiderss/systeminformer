@@ -5341,6 +5341,12 @@ PPH_STRING PhGetDllFileName(
     PhDereferenceObject(fileName);
     fileName = newFileName;
 
+    if (newFileName = PhGetFullPath(fileName->Buffer, NULL)) // HACK PhGetApplicationDirectory (dmex)
+    {
+        PhDereferenceObject(fileName);
+        fileName = newFileName;
+    }
+
     if (IndexOfFileName)
     {
         indexOfFileName = PhFindLastCharInString(fileName, 0, OBJ_NAME_PATH_SEPARATOR);
