@@ -894,6 +894,24 @@ typedef struct _D3DKMT_OPENADAPTERFROMDEVICENAME
     _Out_ LUID AdapterLuid; // The locally unique identifier (LUID) of the graphics adapter for the device that DeviceName specifies.
 } D3DKMT_OPENADAPTERFROMDEVICENAME;
 
+// Describes the mapping of the given name of a GDI device to a graphics adapter handle and monitor output.
+typedef struct _D3DKMT_OPENADAPTERFROMGDIDISPLAYNAME
+{
+    _In_ WCHAR DeviceName[32]; // A Unicode string that contains the name of the GDI device from which to open an adapter instance.
+    _Out_ D3DKMT_HANDLE AdapterHandle; // A handle to the graphics adapter for the GDI device that DeviceName specifies.
+    _Out_ LUID AdapterLuid; // The locally unique identifier (LUID) of the graphics adapter for the GDI device that DeviceName specifies. 
+    _Out_ ULONG VidPnSourceId; // The zero-based identification number of the video present source.
+} D3DKMT_OPENADAPTERFROMGDIDISPLAYNAME;
+
+// Describes the mapping of a device context handle (HDC) to a graphics adapter handle and monitor output.
+typedef struct _D3DKMT_OPENADAPTERFROMHDC
+{
+    _In_ HDC hDc; // The HDC for the graphics adapter and monitor output that are retrieved.
+    _Out_ D3DKMT_HANDLE AdapterHandle; // A handle to the graphics adapter for the HDC that hDc specifies.
+    _Out_ LUID AdapterLuid; // The locally unique identifier (LUID) of the graphics adapter for the HDC that hDc specifies.
+    _Out_ ULONG VidPnSourceId; // The zero-based identification number of the video present source.
+} D3DKMT_OPENADAPTERFROMHDC;
+
 // Describes the mapping of the given locally unique identifier (LUID) of a device to a graphics adapter handle.
 typedef struct _D3DKMT_OPENADAPTERFROMLUID
 {
@@ -1339,15 +1357,17 @@ typedef struct _D3DKMT_QUERYSTATISTICS_PROCESS_SEGMENT_INFORMATION
 
 typedef enum _D3DKMT_QUERYSTATISTICS_TYPE
 {
-    D3DKMT_QUERYSTATISTICS_ADAPTER = 0,
-    D3DKMT_QUERYSTATISTICS_PROCESS = 1,
-    D3DKMT_QUERYSTATISTICS_PROCESS_ADAPTER = 2,
-    D3DKMT_QUERYSTATISTICS_SEGMENT = 3,
-    D3DKMT_QUERYSTATISTICS_PROCESS_SEGMENT = 4,
-    D3DKMT_QUERYSTATISTICS_NODE = 5,
-    D3DKMT_QUERYSTATISTICS_PROCESS_NODE = 6,
-    D3DKMT_QUERYSTATISTICS_VIDPNSOURCE = 7,
-    D3DKMT_QUERYSTATISTICS_PROCESS_VIDPNSOURCE = 8
+    D3DKMT_QUERYSTATISTICS_ADAPTER,
+    D3DKMT_QUERYSTATISTICS_PROCESS,
+    D3DKMT_QUERYSTATISTICS_PROCESS_ADAPTER,
+    D3DKMT_QUERYSTATISTICS_SEGMENT,
+    D3DKMT_QUERYSTATISTICS_PROCESS_SEGMENT,
+    D3DKMT_QUERYSTATISTICS_NODE,
+    D3DKMT_QUERYSTATISTICS_PROCESS_NODE,
+    D3DKMT_QUERYSTATISTICS_VIDPNSOURCE,
+    D3DKMT_QUERYSTATISTICS_PROCESS_VIDPNSOURCE,
+    D3DKMT_QUERYSTATISTICS_PROCESS_SEGMENT_GROUP,
+    D3DKMT_QUERYSTATISTICS_PHYSICAL_ADAPTER
 } D3DKMT_QUERYSTATISTICS_TYPE;
 
 typedef struct _D3DKMT_QUERYSTATISTICS_QUERY_SEGMENT
@@ -1368,6 +1388,7 @@ typedef struct _D3DKMT_QUERYSTATISTICS_QUERY_VIDPNSOURCE
 typedef union _D3DKMT_QUERYSTATISTICS_RESULT
 {
     D3DKMT_QUERYSTATISTICS_ADAPTER_INFORMATION AdapterInformation;
+    // D3DKMT_QUERYSTATISTICS_PHYSICAL_ADAPTER_INFORMATION PhysAdapterInformation;
     D3DKMT_QUERYSTATISTICS_SEGMENT_INFORMATION_V1 SegmentInformationV1; // WIN7
     D3DKMT_QUERYSTATISTICS_SEGMENT_INFORMATION SegmentInformation; // WIN8
     D3DKMT_QUERYSTATISTICS_NODE_INFORMATION NodeInformation;
@@ -1377,6 +1398,7 @@ typedef union _D3DKMT_QUERYSTATISTICS_RESULT
     D3DKMT_QUERYSTATISTICS_PROCESS_SEGMENT_INFORMATION ProcessSegmentInformation;
     D3DKMT_QUERYSTATISTICS_PROCESS_NODE_INFORMATION ProcessNodeInformation;
     D3DKMT_QUERYSTATISTICS_PROCESS_VIDPNSOURCE_INFORMATION ProcessVidPnSourceInformation;
+    // D3DKMT_QUERYSTATISTICS_PROCESS_SEGMENT_GROUP_INFORMATION ProcessSegmentGroupInformation;
 } D3DKMT_QUERYSTATISTICS_RESULT;
 
 typedef struct _D3DKMT_QUERYSTATISTICS
@@ -1910,42 +1932,56 @@ typedef struct _D3DKMT_ESCAPE
 
 // Function pointers
 
-_Check_return_
+NTSYSAPI
 NTSTATUS
 NTAPI
 D3DKMTOpenAdapterFromDeviceName(
     _Inout_ CONST D3DKMT_OPENADAPTERFROMDEVICENAME *pData
     );
 
-_Check_return_
+NTSYSAPI
+NTSTATUS
+NTAPI
+D3DKMTOpenAdapterFromGdiDisplayName(
+    _Inout_ CONST D3DKMT_OPENADAPTERFROMGDIDISPLAYNAME *pData
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+D3DKMTOpenAdapterFromHdc(
+    _Inout_ CONST D3DKMT_OPENADAPTERFROMHDC *pData
+    );
+
+NTSYSAPI
 NTSTATUS
 NTAPI
 D3DKMTOpenAdapterFromLuid(
     _Inout_ CONST D3DKMT_OPENADAPTERFROMLUID *pAdapter
     );
 
-_Check_return_
+NTSYSAPI
 NTSTATUS
 NTAPI
 D3DKMTEnumAdapters(
     _Inout_ CONST D3DKMT_ENUMADAPTERS *pData
     );
 
-_Check_return_
+NTSYSAPI
 NTSTATUS
 NTAPI
 D3DKMTEnumAdapters2(
     _Inout_ CONST D3DKMT_ENUMADAPTERS2 *pData
     );
 
-_Check_return_
+NTSYSAPI
 NTSTATUS
 NTAPI
 D3DKMTCloseAdapter(
     _In_ CONST D3DKMT_CLOSEADAPTER *pData
     );
 
-_Check_return_
+NTSYSAPI
 NTSTATUS
 NTAPI 
 D3DKMTQueryAdapterInfo(
@@ -1953,28 +1989,41 @@ D3DKMTQueryAdapterInfo(
     );
 
 // rev
-_Check_return_
+NTSYSAPI
 NTSTATUS
 NTAPI
 D3DKMTQueryStatistics(
     _Inout_ CONST D3DKMT_QUERYSTATISTICS *pData
     );
 
-_Check_return_
+NTSYSAPI
 NTSTATUS
 NTAPI
 D3DKMTQueryVideoMemoryInfo(
     _Inout_ CONST D3DKMT_QUERYVIDEOMEMORYINFO *pData
     );
 
-_Check_return_
+NTSYSAPI
 NTSTATUS
 NTAPI
 D3DKMTEscape(
     _Inout_ CONST D3DKMT_ESCAPE *pData
     );
 
-//EXTERN_C _Check_return_ NTSTATUS APIENTRY D3DKMTSetProcessSchedulingPriorityClass(_In_ HANDLE, _In_ D3DKMT_SCHEDULINGPRIORITYCLASS);
-//EXTERN_C _Check_return_ NTSTATUS APIENTRY D3DKMTGetProcessSchedulingPriorityClass(_In_ HANDLE, _Out_ D3DKMT_SCHEDULINGPRIORITYCLASS*);
+NTSYSAPI
+NTSTATUS
+NTAPI
+D3DKMTSetProcessSchedulingPriorityClass(
+    _In_ HANDLE, 
+    _In_ enum D3DKMT_SCHEDULINGPRIORITYCLASS
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+D3DKMTGetProcessSchedulingPriorityClass(
+    _In_ HANDLE, 
+    _Out_ enum D3DKMT_SCHEDULINGPRIORITYCLASS*
+    );
 
 #endif
