@@ -86,7 +86,6 @@ typedef struct _RUNAS_DIALOG_CONTEXT
     HWND SessionEditWindowHandle;
     HWND DesktopEditWindowHandle;
     HANDLE ProcessId;
-    PPH_LIST DesktopList;
     PPH_STRING CurrentWinStaName;
 } RUNAS_DIALOG_CONTEXT, *PRUNAS_DIALOG_CONTEXT;
 
@@ -351,10 +350,9 @@ static VOID PhpAddRunMRUListEntry(
         return;
 
     commandString = PhConcatStringRef2(&CommandLine->sr, &prefixSr);
-
     AddMRUString_I(listHandle, commandString->Buffer);
-
     PhDereferenceObject(commandString);
+
     FreeMRUList_I(listHandle);
 }
 
@@ -412,6 +410,36 @@ static VOID PhpAddProgramsToComboBox(
     FreeMRUList_I(listHandle);
 }
 
+VOID PhpFreeProgramsComboBox(
+    _In_ HWND ComboBoxHandle
+    )
+{
+    ULONG total;
+
+    total = ComboBox_GetCount(ComboBoxHandle);
+
+    for (ULONG i = 0; i < total; i++)
+    {
+        ComboBox_DeleteString(ComboBoxHandle, i);
+    }
+}
+
+static VOID PhpFreeAccountsComboBox(
+    _In_ HWND ComboBoxHandle
+    )
+{
+    ULONG total;
+
+    total = ComboBox_GetCount(ComboBoxHandle);
+
+    for (ULONG i = 0; i < total; i++)
+    {
+        ComboBox_DeleteString(ComboBoxHandle, i);
+    }
+
+    ComboBox_ResetContent(ComboBoxHandle);
+}
+
 static VOID PhpAddAccountsToComboBox(
     _In_ HWND ComboBoxHandle
     )
@@ -423,7 +451,8 @@ static VOID PhpAddAccountsToComboBox(
     ULONG userinfoTotalEntries = 0;
     ULONG userinfoResumeHandle = 0;
 
-    ComboBox_ResetContent(ComboBoxHandle);
+    PhpFreeAccountsComboBox(ComboBoxHandle);
+
     ComboBox_AddString(ComboBoxHandle, PH_AUTO_T(PH_STRING, PhGetSidFullName(&PhSeLocalSystemSid, TRUE, NULL))->Buffer);
     ComboBox_AddString(ComboBoxHandle, PH_AUTO_T(PH_STRING, PhGetSidFullName(&PhSeLocalServiceSid, TRUE, NULL))->Buffer);
     ComboBox_AddString(ComboBoxHandle, PH_AUTO_T(PH_STRING, PhGetSidFullName(&PhSeNetworkServiceSid, TRUE, NULL))->Buffer);
@@ -464,7 +493,7 @@ static VOID PhpAddAccountsToComboBox(
         PPH_STRING username;
         PPH_STRING userDomainName = NULL;
 
-        if (username = PhGetTokenUserString(PhGetOwnTokenAttributes().TokenHandle, TRUE))
+        if (username = PhGetSidFullName(PhGetOwnTokenAttributes().TokenSid, TRUE, NULL))
         {
             PhpSplitUserName(username->Buffer, &userDomainName, NULL);
             PhDereferenceObject(username);
@@ -538,6 +567,29 @@ static VOID PhpAddAccountsToComboBox(
     //}
 }
 
+static VOID PhpFreeSessionsComboBox(
+    _In_ HWND ComboBoxHandle
+    )
+{
+    PPH_RUNAS_SESSION_ITEM entry;
+    ULONG total;
+    ULONG i;
+
+    total = ComboBox_GetCount(ComboBoxHandle);
+
+    for (i = 0; i < total; i++)
+    {
+        entry = (PPH_RUNAS_SESSION_ITEM)ComboBox_GetItemData(ComboBoxHandle, i);
+
+        if (entry->SessionName)
+            PhDereferenceObject(entry->SessionName);
+
+        PhFree(entry);
+    }
+
+    ComboBox_ResetContent(ComboBoxHandle);
+}
+
 static VOID PhpAddSessionsToComboBox(
     _In_ HWND ComboBoxHandle
     )
@@ -546,7 +598,7 @@ static VOID PhpAddSessionsToComboBox(
     ULONG numberOfSessions;
     ULONG i;
 
-    ComboBox_ResetContent(ComboBoxHandle);
+    PhpFreeSessionsComboBox(ComboBoxHandle);
 
     if (WinStationEnumerateW(NULL, &sessions, &numberOfSessions))
     {
@@ -574,7 +626,7 @@ static VOID PhpAddSessionsToComboBox(
                 sessions[i].WinStationName[0] != UNICODE_NULL
                 )
             {
-                menuString = PhaFormatString(L"%u: %s (%s\\%s)",
+                menuString = PhFormatString(L"%u: %s (%s\\%s)",
                     sessions[i].SessionId,
                     sessions[i].WinStationName,
                     winStationInfo.Domain,
@@ -583,7 +635,7 @@ static VOID PhpAddSessionsToComboBox(
             }
             else if (winStationInfo.UserName[0] != UNICODE_NULL)
             {
-                menuString = PhaFormatString(L"%u: %s\\%s",
+                menuString = PhFormatString(L"%u: %s\\%s",
                     sessions[i].SessionId,
                     winStationInfo.Domain,
                     winStationInfo.UserName
@@ -591,26 +643,25 @@ static VOID PhpAddSessionsToComboBox(
             }
             else if (sessions[i].WinStationName[0] != UNICODE_NULL)
             {
-                menuString = PhaFormatString(L"%u: %s",
+                menuString = PhFormatString(L"%u: %s",
                     sessions[i].SessionId,
                     sessions[i].WinStationName
                     );
             }
             else
             {
-                menuString = PhaFormatString(L"%u", sessions[i].SessionId);
+                menuString = PhFormatString(L"%u", sessions[i].SessionId);
             }
 
             {
                 PPH_RUNAS_SESSION_ITEM entry;
+                INT itemIndex;
 
                 entry = PhAllocate(sizeof(PH_RUNAS_SESSION_ITEM));
                 entry->SessionId = sessions[i].SessionId;
                 entry->SessionName = menuString;
 
-                INT itemIndex = ComboBox_AddString(ComboBoxHandle, menuString->Buffer);
-
-                if (itemIndex != CB_ERR)
+                if ((itemIndex = ComboBox_AddString(ComboBoxHandle, menuString->Buffer)) != CB_ERR)
                 {
                     ComboBox_SetItemData(ComboBoxHandle, itemIndex, entry);
                 }
@@ -621,16 +672,22 @@ static VOID PhpAddSessionsToComboBox(
     }
 }
 
+typedef struct _RUNAS_DIALOG_DESKTOP_CALLBACK
+{
+    PPH_LIST DesktopList;
+    PPH_STRING WinStaName;
+} RUNAS_DIALOG_DESKTOP_CALLBACK, *PRUNAS_DIALOG_DESKTOP_CALLBACK;
+
 static BOOL CALLBACK EnumDesktopsCallback(
     _In_ PWSTR DesktopName,
     _In_ LPARAM Context
     )
 {
-    PRUNAS_DIALOG_CONTEXT context = (PRUNAS_DIALOG_CONTEXT)Context;
+    PRUNAS_DIALOG_DESKTOP_CALLBACK context = (PRUNAS_DIALOG_DESKTOP_CALLBACK)Context;
 
     PhAddItemList(context->DesktopList, PhConcatStrings(
         3,
-        context->CurrentWinStaName->Buffer,
+        PhGetString(context->WinStaName),
         L"\\",
         DesktopName
         ));
@@ -638,36 +695,63 @@ static BOOL CALLBACK EnumDesktopsCallback(
     return TRUE;
 }
 
+static VOID PhpFreeDesktopsComboBox(
+    _In_ HWND ComboBoxHandle
+    )
+{
+    PPH_RUNAS_DESKTOP_ITEM entry;
+    ULONG total;
+    ULONG i;
+
+    total = ComboBox_GetCount(ComboBoxHandle);
+
+    for (i = 0; i < total; i++)
+    {
+        entry = (PPH_RUNAS_DESKTOP_ITEM)ComboBox_GetItemData(ComboBoxHandle, i);
+
+        if (entry->DesktopName)
+            PhDereferenceObject(entry->DesktopName);
+
+        PhFree(entry);
+    }
+
+    ComboBox_ResetContent(ComboBoxHandle);
+}
+
 static VOID PhpAddDesktopsToComboBox(
-    _In_ PRUNAS_DIALOG_CONTEXT Context,
     _In_ HWND ComboBoxHandle
     )
 {
     ULONG i;
+    RUNAS_DIALOG_DESKTOP_CALLBACK callback;
 
-    Context->DesktopList = PhCreateList(10);
-    Context->CurrentWinStaName = GetCurrentWinStaName();
-    ComboBox_ResetContent(ComboBoxHandle);
+    PhpFreeDesktopsComboBox(ComboBoxHandle);
 
-    EnumDesktops(GetProcessWindowStation(), EnumDesktopsCallback, (LPARAM)Context);
+    callback.DesktopList = PhCreateList(10);
+    callback.WinStaName = GetCurrentWinStaName();
 
-    for (i = 0; i < Context->DesktopList->Count; i++)
+    EnumDesktops(GetProcessWindowStation(), EnumDesktopsCallback, (LPARAM)&callback);
+
+    for (i = 0; i < callback.DesktopList->Count; i++)
     {
-        PPH_RUNAS_DESKTOP_ITEM entry;
-
-        entry = PhAllocate(sizeof(PH_RUNAS_DESKTOP_ITEM));
-        entry->DesktopName = ((PPH_STRING)Context->DesktopList->Items[i]);
-
-        INT itemIndex = ComboBox_AddString(ComboBoxHandle, entry->DesktopName->Buffer);
+        INT itemIndex = ComboBox_AddString(
+            ComboBoxHandle, 
+            PhGetString(callback.DesktopList->Items[i])
+            );
 
         if (itemIndex != CB_ERR)
         {
+            PPH_RUNAS_DESKTOP_ITEM entry;
+
+            entry = PhAllocateZero(sizeof(PH_RUNAS_DESKTOP_ITEM));
+            entry->DesktopName = callback.DesktopList->Items[i];
+
             ComboBox_SetItemData(ComboBoxHandle, itemIndex, entry);
         }
     }
 
-    PhClearList(Context->DesktopList); // leak
-    PhDereferenceObject(Context->CurrentWinStaName);
+    PhDereferenceObject(callback.DesktopList);
+    PhDereferenceObject(callback.WinStaName);
 }
 
 VOID SetDefaultProgramEntry(
@@ -739,8 +823,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
 
     if (uMsg == WM_INITDIALOG)
     {
-        context = PhAllocate(sizeof(RUNAS_DIALOG_CONTEXT));
-        memset(context, 0, sizeof(RUNAS_DIALOG_CONTEXT));
+        context = PhAllocateZero(sizeof(RUNAS_DIALOG_CONTEXT));
 
         PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
@@ -789,7 +872,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
             PhpAddProgramsToComboBox(context->ProgramComboBoxWindowHandle);
             PhpAddAccountsToComboBox(context->UserComboBoxWindowHandle);
             PhpAddSessionsToComboBox(context->SessionEditWindowHandle);
-            PhpAddDesktopsToComboBox(context, context->DesktopEditWindowHandle);
+            PhpAddDesktopsToComboBox(context->DesktopEditWindowHandle);
 
             SetDefaultProgramEntry(context->ProgramComboBoxWindowHandle);
             SetDefaultSessionEntry(context->SessionEditWindowHandle);
@@ -863,8 +946,10 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
         break;
     case WM_DESTROY:
         {
-            if (context->DesktopList)
-                PhDereferenceObject(context->DesktopList);
+            PhpFreeDesktopsComboBox(context->DesktopEditWindowHandle);
+            PhpFreeSessionsComboBox(context->SessionEditWindowHandle);
+            PhpFreeAccountsComboBox(context->UserComboBoxWindowHandle);
+            PhpFreeProgramsComboBox(context->ProgramComboBoxWindowHandle);
 
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
@@ -889,7 +974,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
 
                     if (GET_WM_COMMAND_HWND(wParam, lParam) == context->DesktopEditWindowHandle)
                     {
-                        PhpAddDesktopsToComboBox(context, context->DesktopEditWindowHandle);
+                        PhpAddDesktopsToComboBox(context->DesktopEditWindowHandle);
                         SetDefaultDesktopEntry(context, context->DesktopEditWindowHandle);
                     }
                 }
@@ -958,7 +1043,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                         if (NT_SUCCESS(PhLookupName(&username->sr, &sid, NULL, NULL)))
                         {
                             if (newUserName = PH_AUTO(PhGetSidFullName(sid, TRUE, NULL)))
-                                username = newUserName;
+                                PhSwapReference(&username, newUserName);
 
                             PhFree(sid);
                         }
@@ -1439,7 +1524,7 @@ static VOID PhpSplitUserName(
 
     PhInitializeStringRefLongHint(&userName, UserName);
 
-    if (PhSplitStringRefAtChar(&userName, '\\', &domainPart, &userPart))
+    if (PhSplitStringRefAtChar(&userName, OBJ_NAME_PATH_SEPARATOR, &domainPart, &userPart))
     {
         if (DomainPart)
             *DomainPart = PhCreateString2(&domainPart);
