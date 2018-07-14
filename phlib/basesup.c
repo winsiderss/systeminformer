@@ -3008,7 +3008,7 @@ PPH_BYTES PhConvertUtf16ToAsciiEx(
     }
 
     bytes->Length = outLength;
-    bytes->Buffer[outLength] = 0;
+    bytes->Buffer[outLength] = ANSI_NULL;
 
     return bytes;
 }
@@ -3460,7 +3460,7 @@ VOID PhInitializeStringBuilder(
     StringBuilder->String->Length = 0;
 
     // Write the null terminator.
-    StringBuilder->String->Buffer[0] = 0;
+    StringBuilder->String->Buffer[0] = UNICODE_NULL;
 
     PHLIB_INC_STATISTIC(BaseStringBuildersCreated);
 }
@@ -3904,7 +3904,7 @@ FORCEINLINE VOID PhpWriteNullTerminatorBytesBuilder(
     _In_ PPH_BYTES_BUILDER BytesBuilder
     )
 {
-    BytesBuilder->Bytes->Buffer[BytesBuilder->Bytes->Length] = 0;
+    BytesBuilder->Bytes->Buffer[BytesBuilder->Bytes->Length] = ANSI_NULL;
 }
 
 /**
