@@ -969,7 +969,7 @@ NTSTATUS PhpFindObjectsThreadStart(
     if (NT_SUCCESS(status = PhEnumHandlesEx(&handles)))
     {
         static PH_INITONCE initOnce = PH_INITONCE_INIT;
-        static ULONG fileObjectTypeIndex = -1;
+        static ULONG fileObjectTypeIndex = ULONG_MAX;
 
         BOOLEAN useWorkQueue = FALSE;
         PH_WORK_QUEUE workQueue;
@@ -1150,13 +1150,9 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
             context->TypeWindowHandle = GetDlgItem(hwndDlg, IDC_FILTERTYPE);
             context->SearchWindowHandle = GetDlgItem(hwndDlg, IDC_FILTER);
 
-            PhCenterWindow(hwndDlg, NULL);
             PhRegisterDialog(hwndDlg);
-
             PhCreateSearchControl(hwndDlg, context->SearchWindowHandle, L"Find Handles or DLLs");
-
             PhpPopulateObjectTypes(context->TypeWindowHandle);
-
             InitializeHandleObjectTree(context);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
@@ -1172,6 +1168,7 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
             context->MinimumSize.bottom = 100;
             MapDialogRect(hwndDlg, &context->MinimumSize);
 
+            PhCenterWindow(hwndDlg, PhMainWndHandle);
             PhLoadWindowPlacementFromSetting(L"FindObjWindowPosition", L"FindObjWindowSize", hwndDlg);
 
             context->SearchResults = PhCreateList(128);
