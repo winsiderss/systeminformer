@@ -44,7 +44,7 @@ NTSTATUS SetupUninstallBuild(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
-    Context->SetupInstallPath = SetupFindInstallDirectory();
+    SetupInstallPath = SetupFindInstallDirectory();
 
     // Stop Process Hacker.
     if (!ShutdownProcessHacker())
@@ -64,7 +64,7 @@ NTSTATUS SetupUninstallBuild(
     SetupDeleteUninstallKey();
 
     // Remove the previous installation.
-    PhDeleteDirectory(Context->SetupInstallPath);
+    PhDeleteDirectory(SetupInstallPath);
 
     ShowUninstallCompleteDialog(Context);
     return STATUS_SUCCESS;
