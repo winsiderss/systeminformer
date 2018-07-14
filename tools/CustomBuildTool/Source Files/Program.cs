@@ -198,47 +198,49 @@ namespace CustomBuildTool
             else if (ProgramArgs.ContainsKey("-appveyor"))
             {
                 if (!Build.InitializeBuildEnvironment(true))
-                    return;
+                    Environment.Exit(1);
 
                 Build.ShowBuildEnvironment("nightly", true, true);
                 Build.CopyKeyFiles();
 
                 if (!Build.BuildSolution("ProcessHacker.sln",
-                    BuildFlags.Build32bit | BuildFlags.Build64bit | 
+                    BuildFlags.Build32bit | BuildFlags.Build64bit |
                     BuildFlags.BuildVerbose | BuildFlags.BuildApi
                     ))
-                    return;
+                    Environment.Exit(1);
 
                 if (!Build.CopyKProcessHacker(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
-                    return;
+                    Environment.Exit(1);
 
                 if (!BuildSdk(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
-                    return;
+                    Environment.Exit(1);
 
-                if (!Build.BuildSolution("plugins\\Plugins.sln", 
-                    BuildFlags.Build32bit | BuildFlags.Build64bit | 
+                if (!Build.BuildSolution("plugins\\Plugins.sln",
+                    BuildFlags.Build32bit | BuildFlags.Build64bit |
                     BuildFlags.BuildVerbose | BuildFlags.BuildApi
                     ))
-                    return;
+                    Environment.Exit(1);
 
                 if (!Build.CopyWow64Files(BuildFlags.None))
-                    return;
+                    Environment.Exit(1);
 
-                if (!Build.BuildBinZip())
-                    return;
                 //if (!Build.BuildWebSetupExe())
-                //    return;
-                //if (!Build.BuildPdbZip())
-                //    return;
+                //    Environment.Exit(1);
                 if (!Build.BuildSetupExe())
-                    return;
+                    Environment.Exit(1);
+                if (!Build.BuildBinZip())
+                    Environment.Exit(1);
+                if (!Build.BuildPdbZip())
+                    Environment.Exit(1);
                 if (!Build.BuildChecksumsFile())
-                    return;
+                    Environment.Exit(1);
                 if (!Build.BuildUpdateSignature())
-                    return;
+                    Environment.Exit(1);
 
-                if (Build.AppveyorUploadBuildFiles())
-                    Build.WebServiceUpdateConfig();
+                if (!Build.AppveyorUploadBuildFiles())
+                    Environment.Exit(1);
+
+                Build.WebServiceUpdateConfig();
             }
             else if (ProgramArgs.ContainsKey("-appxbuild"))
             {
@@ -249,7 +251,7 @@ namespace CustomBuildTool
                 Build.CopyKeyFiles();
 
                 if (!Build.BuildSolution("ProcessHacker.sln",
-                    BuildFlags.Build32bit | BuildFlags.Build64bit | 
+                    BuildFlags.Build32bit | BuildFlags.Build64bit |
                     BuildFlags.BuildVerbose | BuildFlags.BuildApi
                     ))
                     return;
@@ -257,8 +259,8 @@ namespace CustomBuildTool
                 if (!BuildSdk(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
                     return;
 
-                if (!Build.BuildSolution("plugins\\Plugins.sln", 
-                    BuildFlags.Build32bit | BuildFlags.Build64bit | 
+                if (!Build.BuildSolution("plugins\\Plugins.sln",
+                    BuildFlags.Build32bit | BuildFlags.Build64bit |
                     BuildFlags.BuildVerbose | BuildFlags.BuildApi
                     ))
                     return;
@@ -291,9 +293,9 @@ namespace CustomBuildTool
 
                 Build.ShowBuildEnvironment("release", true, true);
                 Build.CopyKeyFiles();
-     
+
                 if (!Build.BuildSolution("ProcessHacker.sln",
-                    BuildFlags.Build32bit | BuildFlags.Build64bit | 
+                    BuildFlags.Build32bit | BuildFlags.Build64bit |
                     BuildFlags.BuildVerbose | BuildFlags.BuildApi
                     ))
                     return;
@@ -305,7 +307,7 @@ namespace CustomBuildTool
                     return;
 
                 if (!Build.BuildSolution("plugins\\Plugins.sln",
-                    BuildFlags.Build32bit | BuildFlags.Build64bit | 
+                    BuildFlags.Build32bit | BuildFlags.Build64bit |
                     BuildFlags.BuildVerbose | BuildFlags.BuildApi
                     ))
                     return;

@@ -58,6 +58,21 @@ namespace CustomBuildTool
             return output;
         }
 
+        public static string SearchFile(string FileName)
+        {
+            string where = Environment.ExpandEnvironmentVariables("%SystemRoot%\\System32\\where.exe");
+
+            if (File.Exists(where))
+            {
+                string whereResult = ShellExecute(where, FileName);
+
+                if (!string.IsNullOrEmpty(whereResult))
+                    return whereResult;
+            }
+
+            return null;
+        }
+
         public static void ImageResizeFile(int size, string FileName, string OutName)
         {
             using (var src = System.Drawing.Image.FromFile(FileName))
@@ -205,21 +220,6 @@ namespace CustomBuildTool
 
     public static class VisualStudio
     {
-        public static string GetFilePathFromPath(string FileName)
-        {
-            string where = Environment.ExpandEnvironmentVariables("%windir%\\System32\\where.exe");
-
-            if (File.Exists(where))
-            {
-                string whereResult = Win32.ShellExecute(where, FileName);
-
-                if (!string.IsNullOrEmpty(whereResult))
-                    return whereResult;
-            }
-
-            return null;
-        }
-
         public static string GetMsbuildFilePath()
         {
             string vswhere = string.Empty;
