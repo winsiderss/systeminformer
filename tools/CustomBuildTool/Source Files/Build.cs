@@ -1120,12 +1120,14 @@ namespace CustomBuildTool
             {
                 foreach (string file in buildFileArray)
                 {
-                    if (File.Exists(BuildOutputFolder + file))
+                    var sourceFile = file.Replace("-build-", $"-{BuildVersion}-");
+
+                    if (File.Exists(BuildOutputFolder + sourceFile))
                     {
-                        string filename = Path.GetFileName(BuildOutputFolder + file);
+                        string filename = Path.GetFileName(BuildOutputFolder + sourceFile);
 
                         using (HttpClient httpClient = new HttpClient())
-                        using (FileStream fileStream = File.OpenRead(BuildOutputFolder + file))
+                        using (FileStream fileStream = File.OpenRead(BuildOutputFolder + sourceFile))
                         using (HttpContent httpContent = new StreamContent(fileStream))
                         using (MultipartFormDataContent httpFormData = new MultipartFormDataContent())
                         {
