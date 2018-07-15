@@ -224,14 +224,15 @@ namespace CustomBuildTool
                 if (!Build.CopyWow64Files(BuildFlags.None))
                     Environment.Exit(1);
 
-                //if (!Build.BuildWebSetupExe())
-                //    Environment.Exit(1);
-                if (!Build.BuildSetupExe())
-                    Environment.Exit(1);
                 if (!Build.BuildBinZip())
                     Environment.Exit(1);
                 if (!Build.BuildPdbZip())
                     Environment.Exit(1);
+                //if (!Build.BuildWebSetupExe())
+                //    Environment.Exit(1);
+                if (!Build.BuildSetupExe())
+                    Environment.Exit(1);
+
                 if (!Build.BuildChecksumsFile())
                     Environment.Exit(1);
                 if (!Build.BuildUpdateSignature())
