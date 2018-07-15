@@ -1147,7 +1147,7 @@ namespace CustomBuildTool
 
                             if (!response.Result.IsSuccessStatusCode)
                             {
-                                Program.PrintColorMessage("[UploadBuildWebServiceStatusCode]", ConsoleColor.Red);
+                                Program.PrintColorMessage("[UploadBuildWebServiceStatusCode] " + response.Result, ConsoleColor.Red);
                             }
                         }
                     }
