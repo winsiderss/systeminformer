@@ -155,8 +155,9 @@ namespace CustomBuildTool
 
         public static bool InitializeBuildEnvironment(bool CheckDependencies)
         {
+            System.Net.ServicePointManager.Expect100Continue = false;
             TimeStart = DateTime.Now;
-            BuildOutputFolder = "build\\output\\";
+            BuildOutputFolder = "build\\output";
             MSBuildExePath = VisualStudio.GetMsbuildFilePath();
             GitExePath = Win32.SearchFile("git.exe");
             CustomSignToolPath = "tools\\CustomSignTool\\bin\\Release32\\CustomSignTool.exe";
@@ -1052,7 +1053,7 @@ namespace CustomBuildTool
                     if (httpTask.Result.IsSuccessStatusCode)
                     {
                         // Update Appveyor build version string.
-                        Win32.ShellExecute("appveyor", "UpdateBuild -Version \"" + BuildVersion + "\" ");
+                        Win32.ShellExecute("appveyor", $"UpdateBuild -Version \"{BuildVersion}\" ");
                     }
                     else
                     {
@@ -1101,13 +1102,14 @@ namespace CustomBuildTool
             {
                 foreach (string file in buildFileArray)
                 {
-                    var destinationFile = file.Replace("-build-", $"-{BuildVersion}-");   
+                    string sourceFile = BuildOutputFolder + file;
+                    string destinationFile = BuildOutputFolder + file.Replace("-build-", $"-{BuildVersion}-");
 
-                    if (File.Exists(BuildOutputFolder + destinationFile))
-                        File.Delete(BuildOutputFolder + destinationFile);
+                    if (File.Exists(destinationFile))
+                        File.Delete(destinationFile);
 
-                    if (File.Exists(BuildOutputFolder + file))
-                        File.Move(BuildOutputFolder + file, BuildOutputFolder + destinationFile);
+                    if (File.Exists(sourceFile))
+                        File.Move(sourceFile, destinationFile);
                 }
             }
             catch (Exception ex)
@@ -1120,17 +1122,16 @@ namespace CustomBuildTool
             {
                 foreach (string file in buildFileArray)
                 {
-                    var sourceFile = file.Replace("-build-", $"-{BuildVersion}-");
+                    string sourceFile = BuildOutputFolder + file.Replace("-build-", $"-{BuildVersion}-");
+                    string filename = Path.GetFileName(BuildOutputFolder + sourceFile);
 
-                    if (File.Exists(BuildOutputFolder + sourceFile))
+                    if (File.Exists(sourceFile))
                     {
-                        string filename = Path.GetFileName(BuildOutputFolder + sourceFile);
-
                         using (HttpClient httpClient = new HttpClient())
-                        using (FileStream fileStream = File.OpenRead(BuildOutputFolder + sourceFile))
+                        using (FileStream fileStream = File.OpenRead(sourceFile))
                         using (HttpContent httpContent = new StreamContent(fileStream))
-                        using (MultipartFormDataContent httpFormData = new MultipartFormDataContent())
                         {
+                            httpClient.DefaultRequestHeaders.TransferEncodingChunked = true;
                             httpClient.DefaultRequestHeaders.Add("X-ApiKey", buildPostKey);
                             httpContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
                             httpContent.Headers.ContentDisposition = new System.Net.Http.Headers.ContentDispositionHeaderValue("form-data")
@@ -1138,24 +1139,26 @@ namespace CustomBuildTool
                                 Name = "\"file\"",
                                 FileName = $"\"{filename}\"",
                             };
-                            httpFormData.Add(httpContent, "file", filename);
 
                             Console.WriteLine($"Uploading {filename}...");
 
-                            var response = httpClient.PostAsync(buildPostUrl, httpFormData);
-                            response.Wait();
-
-                            if (!response.Result.IsSuccessStatusCode)
+                            using (HttpRequestMessage requestMessage = new HttpRequestMessage(new HttpMethod("POST"), buildPostUrl))
                             {
-                                Program.PrintColorMessage("[UploadBuildWebServiceStatusCode] " + response.Result, ConsoleColor.Red);
+                                requestMessage.Headers.TransferEncodingChunked = true;
+                                requestMessage.Content = httpContent;
+
+                                var response = httpClient.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead);
+                                response.Wait();
+
+                                response.Result.EnsureSuccessStatusCode();
                             }
                         }
                     }
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                Program.PrintColorMessage("[UploadBuildWebServiceAsync-Exception]", ConsoleColor.Red);
+                Program.PrintColorMessage("[UploadBuildWebServiceAsync-Exception]" + ex, ConsoleColor.Red);
                 return false;
             }
 
@@ -1163,11 +1166,11 @@ namespace CustomBuildTool
             {
                 foreach (string file in releaseFileArray)
                 {
-                    var sourceFile = file.Replace("-build-", $"-{BuildVersion}-");
+                    var sourceFile = BuildOutputFolder + file.Replace("-build-", $"-{BuildVersion}-");
 
-                    if (File.Exists(BuildOutputFolder + sourceFile))
+                    if (File.Exists(sourceFile))
                     {
-                        Win32.ShellExecute("appveyor", "PushArtifact " + BuildOutputFolder + sourceFile);
+                        Win32.ShellExecute("appveyor", "PushArtifact " + sourceFile);
                     }
                     else
                     {
@@ -1206,9 +1209,9 @@ namespace CustomBuildTool
                 if (Flags.HasFlag(BuildFlags.BuildApi))
                     compilerOptions.Append("PH_BUILD_API;");
                 if (!string.IsNullOrEmpty(BuildCommit))
-                    compilerOptions.Append("PHAPP_VERSION_COMMITHASH=\"" + BuildCommit.Substring(0, 8) + "\";");
-                compilerOptions.Append("PHAPP_VERSION_REVISION=\"" + BuildRevision + "\";");
-                compilerOptions.Append("PHAPP_VERSION_BUILD=\"" + BuildCount + "\"");
+                    compilerOptions.Append($"PHAPP_VERSION_COMMITHASH=\"{BuildCommit.Substring(0, 8)}\";");
+                compilerOptions.Append($"PHAPP_VERSION_REVISION=\"{BuildRevision}\";");
+                compilerOptions.Append($"PHAPP_VERSION_BUILD=\"{BuildCount}\"");
 
                 string error32 = Win32.ShellExecute(
                     MSBuildExePath,
@@ -1237,9 +1240,9 @@ namespace CustomBuildTool
                 if (Flags.HasFlag(BuildFlags.BuildApi))
                     compilerOptions.Append("PH_BUILD_API;");
                 if (!string.IsNullOrEmpty(BuildCommit))
-                    compilerOptions.Append("PHAPP_VERSION_COMMITHASH=\"" + BuildCommit.Substring(0, 8) + "\";");
-                compilerOptions.Append("PHAPP_VERSION_REVISION=\"" + BuildRevision + "\";");
-                compilerOptions.Append("PHAPP_VERSION_BUILD=\"" + BuildCount + "\"");
+                    compilerOptions.Append($"PHAPP_VERSION_COMMITHASH=\"{BuildCommit.Substring(0, 8)}\";");
+                compilerOptions.Append($"PHAPP_VERSION_REVISION=\"{BuildRevision}\";");
+                compilerOptions.Append($"PHAPP_VERSION_BUILD=\"{BuildCount}\"");
 
                 string error64 = Win32.ShellExecute(
                     MSBuildExePath,
