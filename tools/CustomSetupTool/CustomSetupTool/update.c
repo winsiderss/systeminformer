@@ -39,7 +39,7 @@ NTSTATUS SetupUpdateBuild(
     if (!SetupCreateUninstallFile(Context))
         goto CleanupExit;
 
-    SetupCreateUninstallKey(Context);
+    //SetupCreateUninstallKey(Context);
 
     if (!SetupExtractBuild(Context))
         goto CleanupExit;
