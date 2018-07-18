@@ -230,8 +230,10 @@ namespace CustomBuildTool
                     Environment.Exit(1);
                 if (!Build.BuildPdbZip())
                     Environment.Exit(1);
-                //Build.BuildSdkZip();
-                //Build.BuildSrcZip();
+                if (!Build.BuildSdkZip())
+                    Environment.Exit(1);
+                if (!Build.BuildSrcZip())
+                    Environment.Exit(1);
 
                 if (!Build.BuildChecksumsFile())
                     Environment.Exit(1);
