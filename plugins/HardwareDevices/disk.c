@@ -69,7 +69,15 @@ VOID DiskDrivesUpdate(
         if (!entry)
             continue;
 
-        if (NT_SUCCESS(DiskDriveCreateHandle(&deviceHandle, entry->Id.DevicePath)))
+        if (NT_SUCCESS(PhCreateFileWin32(
+            &deviceHandle,
+            PhGetString(entry->Id.DevicePath),
+            FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+            FILE_ATTRIBUTE_NORMAL,
+            FILE_SHARE_READ | FILE_SHARE_WRITE,
+            FILE_OPEN,
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+            )))
         {
             DISK_PERFORMANCE diskPerformance;
 
@@ -205,13 +213,21 @@ VOID DiskDriveUpdateDeviceInfo(
     {
         HANDLE deviceHandle = NULL;
 
-        if (!DeviceHandle)
+        if (DeviceHandle)
         {
-            DiskDriveCreateHandle(&deviceHandle, DiskEntry->Id.DevicePath);
+            deviceHandle = DeviceHandle;
         }
         else
         {
-            deviceHandle = DeviceHandle;
+            PhCreateFileWin32(
+                &deviceHandle,
+                PhGetString(DiskEntry->Id.DevicePath),
+                FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+                FILE_ATTRIBUTE_NORMAL,
+                FILE_SHARE_READ | FILE_SHARE_WRITE,
+                FILE_OPEN,
+                FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+                );
         }
 
         if (deviceHandle)
@@ -236,7 +252,7 @@ VOID DiskDriveUpdateDeviceInfo(
                 }
             }
 
-            if (!DeviceHandle)
+            if (!DeviceHandle && deviceHandle)
             {
                 NtClose(deviceHandle);
             }

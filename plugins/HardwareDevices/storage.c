@@ -23,22 +23,6 @@
 #include "devices.h"
 #include <ntdddisk.h>
 
-NTSTATUS DiskDriveCreateHandle(
-    _Out_ PHANDLE DeviceHandle,
-    _In_ PPH_STRING DevicePath
-    )
-{
-    return PhCreateFileWin32(
-        DeviceHandle,
-        DevicePath->Buffer,
-        FILE_READ_ATTRIBUTES | SYNCHRONIZE,
-        FILE_ATTRIBUTE_NORMAL,
-        FILE_SHARE_READ | FILE_SHARE_WRITE,
-        FILE_OPEN,
-        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT // FILE_RANDOM_ACCESS
-        );
-}
-
 ULONG DiskDriveQueryDeviceMap(
     VOID
     )

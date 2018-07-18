@@ -24,6 +24,7 @@
 #define INITGUID
 #include "devices.h"
 #include <ndisguid.h>
+#include <devguid.h>
 
 typedef struct _NET_ENUM_ENTRY
 {
@@ -378,6 +379,7 @@ VOID FindNetworkAdapters(
     }
     else
     {
+        static PH_STRINGREF devicePathSr = PH_STRINGREF_INIT(L"\\\\.\\");
         PPH_LIST deviceList;
         PWSTR deviceInterfaceList;
         ULONG deviceInterfaceListLength = 0;
@@ -435,7 +437,7 @@ VOID FindNetworkAdapters(
                 memset(adapterEntry, 0, sizeof(NET_ENUM_ENTRY));
 
                 adapterEntry->DeviceGuid = PhQueryRegistryString(keyHandle, L"NetCfgInstanceId");
-                adapterEntry->DeviceInterface = PhConcatStrings2(L"\\\\.\\", adapterEntry->DeviceGuid->Buffer);
+                adapterEntry->DeviceInterface = PhConcatStringRef2(&devicePathSr, &adapterEntry->DeviceGuid->sr);
                 adapterEntry->DeviceLuid.Info.IfType = PhQueryRegistryUlong64(keyHandle, L"*IfType");
                 adapterEntry->DeviceLuid.Info.NetLuidIndex = PhQueryRegistryUlong64(keyHandle, L"NetLuidIndex");
 
@@ -663,44 +665,84 @@ PPH_STRING FindNetworkDeviceInstance(
     return deviceInstanceString;
 }
 
-//VOID LoadNetworkAdapterImages(
-//    _In_ PDV_NETADAPTER_CONTEXT Context
-//    )
-//{
-//    HICON smallIcon = NULL;
-//
-//    Context->ImageList = ImageList_Create(
-//        GetSystemMetrics(SM_CXSMICON),
-//        GetSystemMetrics(SM_CYSMICON),
-//        ILC_COLOR32,
-//        1,
-//        1
-//        );
-//
-//    // We could use SetupDiLoadClassIcon but this works.
-//    // Copied from HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001\Control\Class\{4d36e972-e325-11ce-bfc1-08002be10318}\\IconPath
-//    // The path and index hasn't changed since Win2k.
-//    ExtractIconEx(
-//        L"%SystemRoot%\\system32\\setupapi.dll",
-//        -5,
-//        NULL,
-//        &smallIcon,
-//        1
-//        );
-//
-//    if (smallIcon)
-//    {
-//        ImageList_AddIcon(Context->ImageList, smallIcon);
-//        DestroyIcon(smallIcon);
-//
-//        // Set the imagelist only if the image was loaded.
-//        ListView_SetImageList(
-//            Context->ListViewHandle,
-//            Context->ImageList,
-//            LVSIL_SMALL
-//            );
-//    }
-//}
+VOID LoadNetworkAdapterImages(
+    _In_ PDV_NETADAPTER_CONTEXT Context
+    )
+{
+    HICON smallIcon;
+    CONFIGRET result;
+    ULONG deviceIconPathLength;
+    DEVPROPTYPE deviceIconPathPropertyType;
+    PPH_STRING deviceIconPath;
+
+    deviceIconPathLength = 0x40;
+    deviceIconPath = PhCreateStringEx(NULL, deviceIconPathLength);
+
+    if ((result = CM_Get_Class_Property(
+        &GUID_DEVCLASS_NET,
+        &DEVPKEY_DeviceClass_IconPath,
+        &deviceIconPathPropertyType,
+        (PBYTE)deviceIconPath->Buffer,
+        &deviceIconPathLength,
+        0
+        )) != CR_SUCCESS)
+    {
+        PhDereferenceObject(deviceIconPath);
+        deviceIconPath = PhCreateStringEx(NULL, deviceIconPathLength);
+
+        result = CM_Get_Class_Property(
+            &GUID_DEVCLASS_NET,
+            &DEVPKEY_DeviceClass_IconPath,
+            &deviceIconPathPropertyType,
+            (PBYTE)deviceIconPath->Buffer,
+            &deviceIconPathLength,
+            0
+            );
+    }
+
+    if (result != CR_SUCCESS)
+    {
+        PhDereferenceObject(deviceIconPath);
+        return;
+    }
+
+    PhTrimToNullTerminatorString(deviceIconPath);
+
+    {
+        PPH_STRING dllIconPath;
+        PH_STRINGREF dllPartSr;
+        PH_STRINGREF indexPartSr;
+        ULONG64 index = 0;
+
+        if (
+            PhSplitStringRefAtChar(&deviceIconPath->sr, ',', &dllPartSr, &indexPartSr) && 
+            PhStringToInteger64(&indexPartSr, 10, &index)
+            )
+        {
+            if (dllIconPath = PhExpandEnvironmentStrings(&dllPartSr))
+            {
+                if (PhExtractIconEx(dllIconPath->Buffer, (INT)index, &smallIcon, NULL))
+                {
+                    Context->ImageList = ImageList_Create(
+                        GetSystemMetrics(SM_CXICON),
+                        GetSystemMetrics(SM_CYICON),
+                        ILC_COLOR32,
+                        1,
+                        1
+                        );
+
+                    ImageList_AddIcon(Context->ImageList, smallIcon);                 
+                    ListView_SetImageList(Context->ListViewHandle, Context->ImageList, LVSIL_SMALL);
+                    DestroyIcon(smallIcon);
+                }
+
+                PhDereferenceObject(dllIconPath);
+            }
+        }
+    }
+
+    PhDereferenceObject(deviceIconPath);
+}
 
 INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
     _In_ HWND hwndDlg,
@@ -748,6 +790,7 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
             PhSetControlTheme(context->ListViewHandle, L"explorer");
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 350, L"Network Adapters");
             PhSetExtendedListView(context->ListViewHandle);
+            LoadNetworkAdapterImages(context);
 
             ListView_EnableGroupView(context->ListViewHandle, TRUE);
             PhAddListViewGroup(context->ListViewHandle, 0, L"Connected");
