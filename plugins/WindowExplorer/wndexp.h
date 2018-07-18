@@ -3,7 +3,14 @@
 
 #include <phdk.h>
 #include <phapppub.h>
+#include <phappresource.h>
 #include <settings.h>
+
+#include <commonutil.h>
+
+#include <windowsx.h>
+
+#include "resource.h"
 #include "wndtree.h"
 
 extern BOOLEAN IsHookClient;
