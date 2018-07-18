@@ -316,6 +316,9 @@ BOOLEAN QueryUpdateData(
     Context->SetupFileSignature = PhGetJsonValueAsString(jsonObject, "setup_sig");
     Context->BuildMessage = PhGetJsonValueAsString(jsonObject, "changelog");
 
+    Context->CurrentVersion = ParseVersionString(Context->CurrentVersionString);
+    Context->LatestVersion = ParseVersionString(Context->Version);
+
     PhFreeJsonParser(jsonObject);
 
     if (PhIsNullOrEmptyString(Context->Version))
@@ -367,9 +370,7 @@ NTSTATUS UpdateCheckSilentThread(
     _In_ PVOID Parameter
     )
 {
-    PPH_UPDATER_CONTEXT context = NULL;
-    ULONGLONG currentVersion = 0;
-    ULONGLONG latestVersion = 0;
+    PPH_UPDATER_CONTEXT context;
 
     context = CreateUpdateContext(TRUE);
 
@@ -384,21 +385,8 @@ NTSTATUS UpdateCheckSilentThread(
     if (!QueryUpdateData(context))
         goto CleanupExit;
 
-    currentVersion = ParseVersionString(context->CurrentVersionString);
-
-#ifdef FORCE_UPDATE_CHECK
-    latestVersion = MAKE_VERSION_ULONGLONG(
-        9999,
-        9999,
-        9999,
-        0
-        );
-#else
-    latestVersion = ParseVersionString(context->Version);
-#endif
-
     // Compare the current version against the latest available version
-    if (currentVersion < latestVersion)
+    if (context->CurrentVersion < context->LatestVersion)
     {
         // Check if the user hasn't already opened the dialog.
         if (!UpdateDialogHandle)
@@ -424,8 +412,6 @@ NTSTATUS UpdateCheckThread(
     )
 {
     PPH_UPDATER_CONTEXT context;
-    ULONGLONG currentVersion = 0;
-    ULONGLONG latestVersion = 0;
     PH_AUTO_POOL autoPool;
 
     context = (PPH_UPDATER_CONTEXT)Parameter;
@@ -448,25 +434,12 @@ NTSTATUS UpdateCheckThread(
         return STATUS_SUCCESS;
     }
 
-    currentVersion = ParseVersionString(context->CurrentVersionString);
-
-#ifdef FORCE_UPDATE_CHECK
-    latestVersion = MAKE_VERSION_ULONGLONG(
-        9999,
-        9999,
-        9999,
-        0
-        );
-#else
-    latestVersion = ParseVersionString(context->Version);
-#endif
-
-    if (currentVersion == latestVersion)
+    if (context->CurrentVersion == context->LatestVersion)
     {
         // User is running the latest version
         ShowLatestVersionDialog(context);
     }
-    else if (currentVersion > latestVersion)
+    else if (context->CurrentVersion > context->LatestVersion)
     {
         // User is running a newer version
         ShowNewerVersionDialog(context);

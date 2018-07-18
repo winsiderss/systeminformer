@@ -88,6 +88,8 @@ typedef struct _PH_UPDATER_CONTEXT
     WNDPROC DefaultWindowProc;
 
     ULONG ErrorCode;
+    ULONG64 CurrentVersion;
+    ULONG64 LatestVersion;
     PPH_STRING SetupFilePath;
     PPH_STRING CurrentVersionString;
     PPH_STRING Version;
