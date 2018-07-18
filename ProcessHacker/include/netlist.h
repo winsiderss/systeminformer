@@ -30,7 +30,7 @@ typedef struct _PH_NETWORK_NODE
 
     PH_STRINGREF TextCache[PHNETLC_MAXIMUM];
 
-    ULONG UniqueId;
+    ULONG64 UniqueId;
     PPH_STRING ProcessNameText;
     PPH_STRING TimeStampText;
 
