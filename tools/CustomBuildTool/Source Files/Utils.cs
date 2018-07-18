@@ -305,6 +305,97 @@ namespace CustomBuildTool
         }
     }
 
+    public static class AppVeyor
+    {
+        public static readonly string AppVeyorPath = string.Empty;
+
+        static AppVeyor()
+        {
+            try
+            {
+                AppVeyorPath = Win32.SearchFile("appveyor");
+            }
+            catch (Exception) { }
+        }
+
+        public static bool AppVeyorNightlyBuild()
+        {
+            return !string.IsNullOrWhiteSpace(AppVeyorPath);
+        }
+
+        public static bool UpdateBuildVersion(string BuildVersion)
+        {
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(AppVeyorPath))
+                {
+                    Win32.ShellExecute("appveyor", $"UpdateBuild -Version \"{BuildVersion}\" ");
+                }
+            }
+            catch (Exception ex)
+            {
+                Program.PrintColorMessage("[VisualStudioInstance] " + ex, ConsoleColor.Red, true);
+                return false;
+            }
+
+            return true;
+        }
+
+        public static bool UploadFile(string FileName)
+        {
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(AppVeyorPath))
+                {
+                    Win32.ShellExecute("appveyor", $"PushArtifact \"{FileName}\" ");
+                }
+            }
+            catch (Exception ex)
+            {
+                Program.PrintColorMessage("[UploadFile] " + ex, ConsoleColor.Red, true);
+                return false;
+            }
+
+            return true;
+        }
+
+        private static VisualStudioInstance FindVisualStudioInstance()
+        {
+            var setupConfiguration = new SetupConfiguration() as ISetupConfiguration2;
+            var instanceEnumerator = setupConfiguration.EnumAllInstances();
+            var instances = new ISetupInstance2[3];
+
+            instanceEnumerator.Next(instances.Length, instances, out var instancesFetched);
+
+            if (instancesFetched == 0)
+                return null;
+
+            do
+            {
+                for (int i = 0; i < instancesFetched; i++)
+                {
+                    var instance = new VisualStudioInstance(instances[i]);
+                    var state = instances[i].GetState();
+                    var packages = instances[i].GetPackages().Where(package => package.GetId().Contains("Microsoft.Component.MSBuild"));
+
+                    if (
+                        state.HasFlag(InstanceState.Local | InstanceState.Registered | InstanceState.Complete) &&
+                        packages.Count() > 0 &&
+                        instance.Version.StartsWith("15.0", StringComparison.OrdinalIgnoreCase)
+                        )
+                    {
+                        return instance;
+                    }
+                }
+
+                instanceEnumerator.Next(instances.Length, instances, out instancesFetched);
+            }
+            while (instancesFetched != 0);
+
+            return null;
+        }
+    }
+
     public class VisualStudioInstance
     {
         public bool IsLaunchable { get; }

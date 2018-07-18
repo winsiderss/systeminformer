@@ -60,9 +60,7 @@ namespace CustomBuildTool
                 if (!Build.InitializeBuildEnvironment(true))
                     return;
 
-                Build.CleanupAppxSignature();
                 Build.CleanupBuildEnvironment();
-
                 Build.ShowBuildStats();
             }
             else if (ProgramArgs.ContainsKey("-phapppub_gen"))
@@ -226,22 +224,24 @@ namespace CustomBuildTool
 
                 if (!Build.BuildBinZip())
                     Environment.Exit(1);
-                if (!Build.BuildPdbZip())
-                    Environment.Exit(1);
                 //if (!Build.BuildWebSetupExe())
                 //    Environment.Exit(1);
                 if (!Build.BuildSetupExe())
                     Environment.Exit(1);
+                if (!Build.BuildPdbZip())
+                    Environment.Exit(1);
+                //Build.BuildSdkZip();
+                //Build.BuildSrcZip();
 
                 if (!Build.BuildChecksumsFile())
                     Environment.Exit(1);
                 if (!Build.BuildUpdateSignature())
                     Environment.Exit(1);
 
-                if (!Build.AppveyorUploadBuildFiles())
+                if (!Build.BuildDeployUploadArtifacts())
                     Environment.Exit(1);
-
-                Build.WebServiceUpdateConfig();
+                if (!Build.BuildDeployUpdateConfig())
+                    Environment.Exit(1);
             }
             else if (ProgramArgs.ContainsKey("-appxbuild"))
             {

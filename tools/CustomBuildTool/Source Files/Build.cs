@@ -22,9 +22,9 @@
 
 using System;
 using System.IO;
+using System.Net;
 using System.Net.Http;
 using System.Security;
-using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
 namespace CustomBuildTool
@@ -32,7 +32,6 @@ namespace CustomBuildTool
     [SuppressUnmanagedCodeSecurity]
     public static class Build
     {
-        private static readonly string SdkVersion = "10.0.16299.0";
         private static DateTime TimeStart;
         private static bool BuildNightly;
         private static bool GitExportBuild;
@@ -57,12 +56,25 @@ namespace CustomBuildTool
         private static string BuildSetupHash;
         private static string BuildSetupSig;
 
-        //private static string BuildWebSetupVersion;
-        //private static long BuildWebSetupFileLength;
-        //private static string BuildWebSetupHash;
-        //private static string BuildWebSetupSig;
+#region Build Config
+        private static readonly string[] Build_Release_Files =
+        {
+            "\\processhacker-build-checksums.txt",
+            "\\processhacker-build-setup.exe",
+            "\\processhacker-build-bin.zip",
+            "\\processhacker-build-src.zip",
+            "\\processhacker-build-sdk.zip",
+            "\\processhacker-build-pdb.zip"
+        };
+        private static readonly string[] Build_Nightly_Files =  
+        {
+            "\\processhacker-build-checksums.txt",
+            "\\processhacker-build-setup.exe",
+            "\\processhacker-build-bin.zip",
+            //"\\processhacker-build-src.zip",
+            //"\\processhacker-build-sdk.zip"
+        };
 
-        #region Build Config
         private static readonly string[] sdk_directories =
         {
             "sdk",
@@ -155,7 +167,6 @@ namespace CustomBuildTool
 
         public static bool InitializeBuildEnvironment(bool CheckDependencies)
         {
-            System.Net.ServicePointManager.Expect100Continue = false;
             TimeStart = DateTime.Now;
             BuildOutputFolder = "build\\output";
             MSBuildExePath = VisualStudio.GetMsbuildFilePath();
@@ -227,20 +238,20 @@ namespace CustomBuildTool
 
         public static void CleanupBuildEnvironment()
         {
-            string[] cleanupFileArray =
-            {
-                BuildOutputFolder,
-                "bin",
-                "sdk", 
-            };
-
             try
             {
-                foreach (string file in cleanupFileArray)
+                foreach (string file in Build_Release_Files)
                 {
-                    if (Directory.Exists(file))
-                        Directory.Delete(file, true);
+                    string sourceFile = BuildOutputFolder + file;
+
+                    if (File.Exists(file))
+                        File.Delete(file);
                 }
+
+                if (Directory.Exists("sdk"))
+                {
+                    Directory.Delete("sdk", true);
+                } 
             }
             catch (Exception ex)
             {
@@ -970,231 +981,34 @@ namespace CustomBuildTool
             return true;
         }
 
+        //public static bool BuildRenameReleaseFiles()
+        //{
+        //    try
+        //    {
+        //        foreach (string file in Build_Release_Files)
+        //        {
+        //            string sourceFile = BuildOutputFolder + file;
+        //            string destinationFile = BuildOutputFolder + file.Replace("-build-", $"-{BuildVersion}-");
+        //
+        //            if (File.Exists(destinationFile))
+        //                File.Delete(destinationFile);
+        //
+        //            if (File.Exists(sourceFile))
+        //                File.Move(sourceFile, destinationFile);
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Program.PrintColorMessage("[WebServiceUploadBuild] " + ex, ConsoleColor.Red);
+        //        return false;
+        //    }
+        //
+        //    return true;
+        //}
+
         public static string GetBuildLogString()
         {
             return Win32.ShellExecute(GitExePath, "log -n 1800 --graph --pretty=format:\"%C(yellow)%h%Creset %C(bold blue)%an%Creset %s %C(dim green)(%cr)\" --abbrev-commit ").Trim();
-        }
-
-        public static void WebServiceUpdateConfig()
-        {
-            string accountName; 
-            string projectName;
-            string buildPostUrl;
-            string buildPostApiKey;
-            string buildChangelog;
-            string buildSummary;
-            string buildMessage;
-            string buildPostString;
-
-            if (string.IsNullOrEmpty(BuildVersion))
-                return;
-            if (string.IsNullOrEmpty(BuildSetupHash))
-                return;
-            if (string.IsNullOrEmpty(BuildSetupSig))
-                return;
-            if (string.IsNullOrEmpty(BuildBinHash))
-                return;
-            if (string.IsNullOrEmpty(BuildBinSig))
-                return;
-
-            accountName = Environment.ExpandEnvironmentVariables("%APPVEYOR_ACCOUNT_NAME%").Replace("%APPVEYOR_ACCOUNT_NAME%", string.Empty);
-            projectName = Environment.ExpandEnvironmentVariables("%APPVEYOR_PROJECT_NAME%").Replace("%APPVEYOR_PROJECT_NAME%", string.Empty);
-            buildPostUrl = Environment.ExpandEnvironmentVariables("%APPVEYOR_BUILD_API%").Replace("%APPVEYOR_BUILD_API%", string.Empty);
-            buildPostApiKey = Environment.ExpandEnvironmentVariables("%APPVEYOR_BUILD_KEY%").Replace("%APPVEYOR_BUILD_KEY%", string.Empty);
-
-            if (string.IsNullOrEmpty(accountName))
-                return;
-            if (string.IsNullOrEmpty(projectName))
-                return;
-            if (string.IsNullOrEmpty(buildPostUrl))
-                return;
-            if (string.IsNullOrEmpty(buildPostApiKey))
-                return;
-
-            buildChangelog = Win32.ShellExecute(GitExePath, "log -n 30 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %s (%an)\"");
-            buildSummary = Win32.ShellExecute(GitExePath, "log -n 5 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %s (%an)\" --abbrev-commit");
-            buildMessage = Win32.ShellExecute(GitExePath, "log -1 --pretty=%B");
- 
-            buildPostString = Json<BuildUpdateRequest>.Serialize(new BuildUpdateRequest
-            {
-                BuildUpdated = TimeStart.ToString("o"),
-                BuildVersion = BuildVersion,
-                BuildCommit = BuildCommit,
-                BuildMessage = buildMessage,
-
-                BinUrl = $"https://ci.appveyor.com/api/projects/{accountName}/{projectName}/artifacts/processhacker-{BuildVersion}-bin.zip",
-                BinLength = BuildBinFileLength.ToString(),
-                BinHash = BuildBinHash,
-                BinSig = BuildBinSig,
-
-                SetupUrl = $"https://ci.appveyor.com/api/projects/{accountName}/{projectName}/artifacts/processhacker-{BuildVersion}-setup.exe",
-                SetupLength = BuildSetupFileLength.ToString(),
-                SetupHash = BuildSetupHash,
-                SetupSig = BuildSetupSig,
-
-                Message = buildSummary,
-                Changelog = buildChangelog
-            });
-
-            if (string.IsNullOrEmpty(buildPostString))
-                return;
-
-            Program.PrintColorMessage("Updating Build WebService... " + BuildVersion, ConsoleColor.Cyan);
-
-            try
-            {
-                using (HttpClient client = new HttpClient())
-                {
-                    client.DefaultRequestHeaders.Add("X-ApiKey", buildPostApiKey);
-
-                    var httpTask = client.PostAsync(buildPostUrl, new StringContent(buildPostString, Encoding.UTF8, "application/json"));
-                    httpTask.Wait();
-
-                    if (httpTask.Result.IsSuccessStatusCode)
-                    {
-                        // Update Appveyor build version string.
-                        Win32.ShellExecute("appveyor", $"UpdateBuild -Version \"{BuildVersion}\" ");
-                    }
-                    else
-                    {
-                        Program.PrintColorMessage("[UpdateBuildWebService] " + httpTask.Result, ConsoleColor.Red);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Program.PrintColorMessage("[UpdateBuildWebService] " + ex, ConsoleColor.Red);
-            }
-        }
-
-        public static bool AppveyorUploadBuildFiles()
-        {
-            string buildPostKey;
-            string buildPostUrl;
-            string[] buildFileArray =
-            {
-                //"\\processhacker-build-websetup.exe",
-                "\\processhacker-build-setup.exe",
-                "\\processhacker-build-bin.zip",
-                "\\processhacker-build-checksums.txt",
-                "\\processhacker-build-pdb.zip"
-            };
-            string[] releaseFileArray =
-            {
-                //"\\processhacker-build-websetup.exe",
-                "\\processhacker-build-setup.exe",
-                "\\processhacker-build-bin.zip",
-                "\\processhacker-build-checksums.txt"
-            };
-
-            if (!BuildNightly)
-                return false;
-
-            buildPostKey = Environment.ExpandEnvironmentVariables("%APPVEYOR_BUILD_KEY%").Replace("%APPVEYOR_BUILD_KEY%", string.Empty);
-            buildPostUrl = Environment.ExpandEnvironmentVariables("%APPVEYOR_BUILD_URL%").Replace("%APPVEYOR_BUILD_URL%", string.Empty);
-
-            if (string.IsNullOrEmpty(buildPostKey))
-                return false;
-            if (string.IsNullOrEmpty(buildPostUrl))
-                return false;
-
-            try
-            {
-                foreach (string file in buildFileArray)
-                {
-                    string sourceFile = BuildOutputFolder + file;
-                    string destinationFile = BuildOutputFolder + file.Replace("-build-", $"-{BuildVersion}-");
-
-                    if (File.Exists(destinationFile))
-                        File.Delete(destinationFile);
-
-                    if (File.Exists(sourceFile))
-                        File.Move(sourceFile, destinationFile);
-                }
-            }
-            catch (Exception ex)
-            {
-                Program.PrintColorMessage("[WebServiceUploadBuild] " + ex, ConsoleColor.Red);
-                return false;
-            }
-
-            try
-            {
-                foreach (string file in buildFileArray)
-                {
-                    string sourceFile = BuildOutputFolder + file.Replace("-build-", $"-{BuildVersion}-");
-                    string filename = Path.GetFileName(BuildOutputFolder + sourceFile);
-
-                    if (File.Exists(sourceFile))
-                    {
-                        using (HttpClient httpClient = new HttpClient())
-                        using (FileStream fileStream = File.OpenRead(sourceFile))
-                        using (HttpContent httpContent = new StreamContent(fileStream))
-                        {
-                            httpClient.DefaultRequestHeaders.TransferEncodingChunked = true;
-                            httpClient.DefaultRequestHeaders.Add("X-ApiKey", buildPostKey);
-                            httpContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
-                            httpContent.Headers.ContentDisposition = new System.Net.Http.Headers.ContentDispositionHeaderValue("form-data")
-                            {
-                                Name = "\"file\"",
-                                FileName = $"\"{filename}\"",
-                            };
-
-                            Console.WriteLine($"Uploading {filename}...");
-
-                            using (HttpRequestMessage requestMessage = new HttpRequestMessage(new HttpMethod("POST"), buildPostUrl))
-                            {
-                                requestMessage.Headers.TransferEncodingChunked = true;
-                                requestMessage.Content = httpContent;
-
-                                var response = httpClient.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead);
-                                response.Wait();
-
-                                response.Result.EnsureSuccessStatusCode();
-                            }
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Program.PrintColorMessage("[UploadBuildWebServiceAsync-Exception]" + ex, ConsoleColor.Red);
-                return false;
-            }
-
-            try
-            {
-                foreach (string file in releaseFileArray)
-                {
-                    var sourceFile = BuildOutputFolder + file.Replace("-build-", $"-{BuildVersion}-");
-
-                    if (File.Exists(sourceFile))
-                    {
-                        Win32.ShellExecute("appveyor", "PushArtifact " + sourceFile);
-                    }
-                    else
-                    {
-                        Program.PrintColorMessage("[Build] missing file: " + sourceFile, ConsoleColor.Yellow);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Program.PrintColorMessage("[WebServiceAppveyorPushArtifact] " + ex, ConsoleColor.Red);
-                return false;
-            }
-
-            try
-            {
-                Win32.ShellExecute("appveyor", $"UpdateBuild -Version \"{BuildVersion}\" ");
-            }
-            catch (Exception ex)
-            {
-                Program.PrintColorMessage("[WebServiceAppveyorUpdateBuild] " + ex, ConsoleColor.Red);
-                return false;
-            }
-
-            return true;
         }
 
         public static bool BuildSolution(string Solution, BuildFlags Flags)
@@ -1219,7 +1033,6 @@ namespace CustomBuildTool
                     "/p:Configuration=" + (Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug " : "Release ") +
                     "/p:Platform=Win32 " +
                     "/p:ExternalCompilerOptions=\"" + compilerOptions.ToString() + "\" " +
-                    "/p:ExternalDebugOptions=\"" + (Flags.HasFlag(BuildFlags.BuildDebug) ? "true" : "false") + "\" " +
                     Solution
                     );
                 
@@ -1250,7 +1063,6 @@ namespace CustomBuildTool
                     "/p:Configuration=" + (Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug " : "Release ") +
                     "/p:Platform=x64 " +
                     "/p:ExternalCompilerOptions=\"" + compilerOptions.ToString() + "\" " +
-                    "/p:ExternalDebugOptions=\"" + (Flags.HasFlag(BuildFlags.BuildDebug) ? "true" : "false") + "\" " +
                     Solution
                     );
 
@@ -1264,266 +1076,224 @@ namespace CustomBuildTool
             return true;
         }
 
-#region Appx Package
-        public static void BuildAppxPackage(BuildFlags Flags)
+
+        public static bool BuildDeployUpdateConfig()
         {
-            string[] cleanupAppxArray =
+            string accountName; 
+            string projectName;
+            string buildPostUrl;
+            string buildPostApiKey;
+            string buildChangelog;
+            string buildSummary;
+            string buildMessage;
+            string buildPostString;
+
+            accountName = Environment.ExpandEnvironmentVariables("%APPVEYOR_ACCOUNT_NAME%").Replace("%APPVEYOR_ACCOUNT_NAME%", string.Empty);
+            projectName = Environment.ExpandEnvironmentVariables("%APPVEYOR_PROJECT_NAME%").Replace("%APPVEYOR_PROJECT_NAME%", string.Empty);
+            buildPostUrl = Environment.ExpandEnvironmentVariables("%APPVEYOR_BUILD_API%").Replace("%APPVEYOR_BUILD_API%", string.Empty);
+            buildPostApiKey = Environment.ExpandEnvironmentVariables("%APPVEYOR_BUILD_KEY%").Replace("%APPVEYOR_BUILD_KEY%", string.Empty);
+
+            if (string.IsNullOrEmpty(accountName))
+                return true;
+            if (string.IsNullOrEmpty(projectName))
+                return true;
+            if (string.IsNullOrEmpty(buildPostUrl))
+                return true;
+            if (string.IsNullOrEmpty(buildPostApiKey))
+                return true;
+
+            if (string.IsNullOrEmpty(BuildVersion))
+                return true;
+            if (string.IsNullOrEmpty(BuildSetupHash))
+                return true;
+            if (string.IsNullOrEmpty(BuildSetupSig))
+                return true;
+            if (string.IsNullOrEmpty(BuildBinHash))
+                return true;
+            if (string.IsNullOrEmpty(BuildBinSig))
+                return true;
+
+            buildChangelog = Win32.ShellExecute(GitExePath, "log -n 30 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %s (%an)\"");
+            buildSummary = Win32.ShellExecute(GitExePath, "log -n 5 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %s (%an)\" --abbrev-commit");
+            buildMessage = Win32.ShellExecute(GitExePath, "log -1 --pretty=%B");
+ 
+            buildPostString = Json<BuildUpdateRequest>.Serialize(new BuildUpdateRequest
             {
-                BuildOutputFolder + "\\AppxManifest32.xml",
-                BuildOutputFolder + "\\AppxManifest64.xml",
-                BuildOutputFolder + "\\package32.map",
-                BuildOutputFolder + "\\package64.map",
-                BuildOutputFolder + "\\bundle.map",
-                BuildOutputFolder + "\\ProcessHacker-44.png",
-                BuildOutputFolder + "\\ProcessHacker-50.png",
-                BuildOutputFolder + "\\ProcessHacker-150.png"
-            };
+                BuildUpdated = TimeStart.ToString("o"),
+                BuildVersion = BuildVersion,
+                BuildCommit = BuildCommit,
+                BuildMessage = buildMessage,
 
-            Program.PrintColorMessage("Building processhacker-build-package.appxbundle...", ConsoleColor.Cyan);
+                BinUrl = $"https://ci.appveyor.com/api/projects/{accountName}/{projectName}/artifacts/processhacker-build-bin.zip",
+                BinLength = BuildBinFileLength.ToString(),
+                BinHash = BuildBinHash,
+                BinSig = BuildBinSig,
 
-            string makeAppxExePath = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Windows Kits\\10\\bin\\" + SdkVersion + "\\x64\\MakeAppx.exe");
-            string signToolExePath = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Windows Kits\\10\\bin\\" + SdkVersion + "\\x64\\SignTool.exe");
+                SetupUrl = $"https://ci.appveyor.com/api/projects/{accountName}/{projectName}/artifacts/processhacker-build-setup.exe",
+                SetupLength = BuildSetupFileLength.ToString(),
+                SetupHash = BuildSetupHash,
+                SetupSig = BuildSetupSig,
+
+                Message = buildSummary,
+                Changelog = buildChangelog
+            });
+
+            if (string.IsNullOrEmpty(buildPostString))
+                return false;
+
+            Program.PrintColorMessage("Updating Build WebService... " + BuildVersion, ConsoleColor.Cyan);
 
             try
             {
-                Win32.ImageResizeFile(44, "ProcessHacker\\resources\\ProcessHacker.png", BuildOutputFolder + "\\ProcessHacker-44.png");
-                Win32.ImageResizeFile(50, "ProcessHacker\\resources\\ProcessHacker.png", BuildOutputFolder + "\\ProcessHacker-50.png");
-                Win32.ImageResizeFile(150, "ProcessHacker\\resources\\ProcessHacker.png", BuildOutputFolder + "\\ProcessHacker-150.png");
-
-                if ((Flags & BuildFlags.Build32bit) == BuildFlags.Build32bit)
+                using (HttpClient client = new HttpClient())
                 {
-                    // create the package manifest
-                    string appxManifestString = Properties.Resources.AppxManifest;
-                    appxManifestString = appxManifestString.Replace("PH_APPX_ARCH", "x86");
-                    appxManifestString = appxManifestString.Replace("PH_APPX_VERSION", BuildLongVersion);
-                    File.WriteAllText(BuildOutputFolder + "\\AppxManifest32.xml", appxManifestString);
+                    client.DefaultRequestHeaders.Add("X-ApiKey", buildPostApiKey);
 
-                    // create the package mapping file
-                    StringBuilder packageMap32 = new StringBuilder(0x100);
-                    packageMap32.AppendLine("[Files]");
-                    packageMap32.AppendLine("\"" + BuildOutputFolder + "\\AppxManifest32.xml\" \"AppxManifest.xml\"");
-                    packageMap32.AppendLine("\"" + BuildOutputFolder + "\\ProcessHacker-44.png\" \"Assets\\ProcessHacker-44.png\"");
-                    packageMap32.AppendLine("\"" + BuildOutputFolder + "\\ProcessHacker-50.png\" \"Assets\\ProcessHacker-50.png\"");
-                    packageMap32.AppendLine("\"" + BuildOutputFolder + "\\ProcessHacker-150.png\" \"Assets\\ProcessHacker-150.png\"");
+                    var httpTask = client.PostAsync(buildPostUrl, new StringContent(buildPostString, Encoding.UTF8, "application/json"));
+                    httpTask.Wait();
 
-                    var filesToAdd = Directory.GetFiles("bin\\Release32", "*", SearchOption.AllDirectories);
-                    foreach (string filePath in filesToAdd)
+                    if (!httpTask.Result.IsSuccessStatusCode)
                     {
-                        // Ignore junk files
-                        if (filePath.EndsWith(".pdb", StringComparison.OrdinalIgnoreCase) ||
-                            filePath.EndsWith(".iobj", StringComparison.OrdinalIgnoreCase) ||
-                            filePath.EndsWith(".ipdb", StringComparison.OrdinalIgnoreCase) ||
-                            filePath.EndsWith(".exp", StringComparison.OrdinalIgnoreCase) ||
-                            filePath.EndsWith(".lib", StringComparison.OrdinalIgnoreCase))
-                        {
-                            continue;
-                        }
-
-                        packageMap32.AppendLine("\"" + filePath + "\" \"" + filePath.Substring("bin\\Release32\\".Length) + "\"");
+                        Program.PrintColorMessage("[UpdateBuildWebService] " + httpTask.Result, ConsoleColor.Red);
+                        return false;
                     }
-                    File.WriteAllText(BuildOutputFolder + "\\package32.map", packageMap32.ToString());
-
-                    // create the package
-                    Win32.ShellExecute(
-                        makeAppxExePath,
-                        "pack /o /f " + BuildOutputFolder + "\\package32.map /p " +
-                        BuildOutputFolder + "\\processhacker-build-package-x32.appx"
-                        );
-                    //Program.PrintColorMessage(Environment.NewLine + error, ConsoleColor.Gray);
-
-                    // sign the package
-                    Win32.ShellExecute(
-                        signToolExePath,
-                        "sign /v /fd SHA256 /a /f " + BuildOutputFolder + "\\processhacker-appx.pfx /td SHA256 " +
-                        BuildOutputFolder + "\\processhacker-build-package-x32.appx"
-                        );
-                    //Program.PrintColorMessage(Environment.NewLine + error, ConsoleColor.Gray);
-                }
-
-                if ((Flags & BuildFlags.Build64bit) == BuildFlags.Build64bit)
-                {
-                    // create the package manifest
-                    string appxManifestString = Properties.Resources.AppxManifest;
-                    appxManifestString = appxManifestString.Replace("PH_APPX_ARCH", "x64");
-                    appxManifestString = appxManifestString.Replace("PH_APPX_VERSION", BuildLongVersion);
-                    File.WriteAllText(BuildOutputFolder + "\\AppxManifest64.xml", appxManifestString);
-
-                    StringBuilder packageMap64 = new StringBuilder(0x100);
-                    packageMap64.AppendLine("[Files]");
-                    packageMap64.AppendLine("\"" + BuildOutputFolder + "\\AppxManifest64.xml\" \"AppxManifest.xml\"");
-                    packageMap64.AppendLine("\"" + BuildOutputFolder + "\\ProcessHacker-44.png\" \"Assets\\ProcessHacker-44.png\"");
-                    packageMap64.AppendLine("\"" + BuildOutputFolder + "\\ProcessHacker-50.png\" \"Assets\\ProcessHacker-50.png\"");
-                    packageMap64.AppendLine("\"" + BuildOutputFolder + "\\ProcessHacker-150.png\" \"Assets\\ProcessHacker-150.png\"");
-
-                    var filesToAdd = Directory.GetFiles("bin\\Release64", "*", SearchOption.AllDirectories);
-                    foreach (string filePath in filesToAdd)
-                    {
-                        // Ignore junk files
-                        if (filePath.EndsWith(".pdb", StringComparison.OrdinalIgnoreCase) ||
-                            filePath.EndsWith(".iobj", StringComparison.OrdinalIgnoreCase) ||
-                            filePath.EndsWith(".ipdb", StringComparison.OrdinalIgnoreCase) ||
-                            filePath.EndsWith(".exp", StringComparison.OrdinalIgnoreCase) ||
-                            filePath.EndsWith(".lib", StringComparison.OrdinalIgnoreCase))
-                        {
-                            continue;
-                        }
-
-                        packageMap64.AppendLine("\"" + filePath + "\" \"" + filePath.Substring("bin\\Release64\\".Length) + "\"");
-                    }
-                    File.WriteAllText(BuildOutputFolder + "\\package64.map", packageMap64.ToString());
-
-                    // create the package
-                    Win32.ShellExecute(
-                        makeAppxExePath,
-                        "pack /o /f " + BuildOutputFolder + "\\package64.map /p " +
-                        BuildOutputFolder + "\\processhacker-build-package-x64.appx"
-                        );
-                    //Program.PrintColorMessage(Environment.NewLine + error, ConsoleColor.Gray);
-
-                    // sign the package
-                    Win32.ShellExecute(
-                        signToolExePath,
-                        "sign /v /fd SHA256 /a /f " + BuildOutputFolder + "\\processhacker-appx.pfx /td SHA256 " +
-                        BuildOutputFolder + "\\processhacker-build-package-x64.appx"
-                        );
-                    //Program.PrintColorMessage(Environment.NewLine + error, ConsoleColor.Gray);
-                }
-
-                {
-                    // create the appx bundle map
-                    StringBuilder bundleMap = new StringBuilder(0x100);
-                    bundleMap.AppendLine("[Files]");
-                    bundleMap.AppendLine("\"" + BuildOutputFolder + "\\processhacker-build-package-x32.appx\" \"processhacker-build-package-x32.appx\"");
-                    bundleMap.AppendLine("\"" + BuildOutputFolder + "\\processhacker-build-package-x64.appx\" \"processhacker-build-package-x64.appx\"");
-                    File.WriteAllText(BuildOutputFolder + "\\bundle.map", bundleMap.ToString());
-
-                    if (File.Exists(BuildOutputFolder + "\\processhacker-build-package.appxbundle"))
-                        File.Delete(BuildOutputFolder + "\\processhacker-build-package.appxbundle");
-
-                    // create the appx bundle package
-                    Win32.ShellExecute(
-                        makeAppxExePath,
-                        "bundle /f " + BuildOutputFolder + "\\bundle.map /p " +
-                        BuildOutputFolder + "\\processhacker-build-package.appxbundle"
-                        );
-                    //Program.PrintColorMessage(Environment.NewLine + error, ConsoleColor.Gray);
-
-                    // sign the appx bundle package
-                    Win32.ShellExecute(
-                        signToolExePath,
-                        "sign /v /fd SHA256 /a /f " + BuildOutputFolder + "\\processhacker-appx.pfx /td SHA256 " +
-                        BuildOutputFolder + "\\processhacker-build-package.appxbundle"
-                        );
-                    //Program.PrintColorMessage(Environment.NewLine + error, ConsoleColor.Gray);
-                }
-
-                foreach (string file in cleanupAppxArray)
-                {
-                    if (File.Exists(file))
-                        File.Delete(file);
                 }
             }
             catch (Exception ex)
             {
-                Program.PrintColorMessage("[ERROR] " + ex, ConsoleColor.Red);
+                Program.PrintColorMessage("[UpdateBuildWebService] " + ex, ConsoleColor.Red);
+                return false;
             }
+
+            if (!AppVeyor.UpdateBuildVersion(BuildVersion)) // HACK: Update Appveyor build version string.
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        public static bool BuildDeployUploadArtifacts()
+        {
+            string buildPostUrl = Environment.ExpandEnvironmentVariables("%APPVEYOR_NIGHTLY_URL%").Replace("%APPVEYOR_NIGHTLY_URL%", string.Empty);
+            string buildPostKey = Environment.ExpandEnvironmentVariables("%APPVEYOR_BUILD_KEY%").Replace("%APPVEYOR_BUILD_KEY%", string.Empty);
+
+            if (string.IsNullOrEmpty(buildPostKey))
+                return false;
+            if (string.IsNullOrEmpty(buildPostUrl))
+                return false;
+
+            Console.Write(Environment.NewLine);
+
+            try
+            {
+                foreach (string file in Build_Release_Files)
+                {
+                    string sourceFile = BuildOutputFolder + file;
+                    string filename = Path.GetFileName(sourceFile);
+
+                    if (File.Exists(sourceFile))
+                    {
+                        string boundary = "---------------------------" + Guid.NewGuid().ToString();
+                        byte[] boundarybytes = Encoding.ASCII.GetBytes("\r\n--" + boundary + "\r\n");
+                        byte[] headerbytes = Encoding.UTF8.GetBytes($"Content-Disposition: form-data; name=\"file\"; filename=\"{filename}\"\r\n\r\n");
+
+                        HttpWebRequest request = (HttpWebRequest)WebRequest.Create(new Uri(buildPostUrl));
+                        request.KeepAlive = true;
+                        request.SendChunked = true;
+                        request.AllowWriteStreamBuffering = true;
+                        request.ServicePoint.Expect100Continue = false;
+                        request.ServicePoint.ReceiveBufferSize = 4096;
+                        request.ServicePoint.ConnectionLeaseTimeout = System.Threading.Timeout.Infinite;
+                        request.ReadWriteTimeout = System.Threading.Timeout.Infinite;
+                        request.Timeout = System.Threading.Timeout.Infinite;
+                        request.Method = WebRequestMethods.Http.Post;
+                        request.ContentType = "multipart/form-data; boundary=" + boundary;
+                        request.Headers.Add("X-ApiKey", buildPostKey);
+
+                        Program.PrintColorMessage($"Uploading {filename}...", ConsoleColor.Cyan, true);
+
+                        using (FileStream fileStream = File.OpenRead(sourceFile))
+                        using (BufferedStream localStream = new BufferedStream(fileStream))
+                        using (BufferedStream remoteStream = new BufferedStream(request.GetRequestStream()))
+                        {
+                            int bytesRead = 0;
+                            var totalRead = 0;
+                            byte[] buffer = new byte[4096];
+
+                            remoteStream.Write(boundarybytes, 0, boundarybytes.Length);
+                            remoteStream.Write(headerbytes, 0, headerbytes.Length);
+
+                            while ((bytesRead = localStream.Read(buffer, 0, buffer.Length)) != 0)
+                            {
+                                totalRead += bytesRead;
+                                remoteStream.Write(buffer, 0, bytesRead);
+                            }
+
+                            remoteStream.Write(boundarybytes, 0, boundarybytes.Length);
+                        }
+
+                        using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
+                        {
+                            if (response.StatusCode != HttpStatusCode.OK)
+                            {
+                                Program.PrintColorMessage("[HttpWebResponse]" + response.StatusDescription, ConsoleColor.Red);
+                                return false;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Program.PrintColorMessage("[UploadBuildWebServiceAsync-Exception]" + ex, ConsoleColor.Red);
+                return false;
+            }
+
+            if (!AppVeyor.AppVeyorNightlyBuild())
+            {
+                Program.PrintColorMessage("[SKIPPED] (Appveyor missing)", ConsoleColor.Yellow);
+                return true;
+            }
+
+            try
+            {
+                foreach (string file in Build_Nightly_Files)
+                {
+                    var sourceFile = BuildOutputFolder + file;
+
+                    if (File.Exists(sourceFile))
+                    {
+                        if (!AppVeyor.UploadFile(sourceFile))
+                        {
+                            Program.PrintColorMessage("[WebServiceAppveyorUploadFile]", ConsoleColor.Red);
+                            return false;
+                        }
+                    }
+                    else
+                    {
+                        Program.PrintColorMessage("[SKIPPED] missing file: " + sourceFile, ConsoleColor.Yellow);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Program.PrintColorMessage("[WebServiceAppveyorPushArtifact] " + ex, ConsoleColor.Red);
+                return false;
+            }
+
+            return true;
+        }
+
+
+        public static void BuildAppxPackage(BuildFlags Flags)
+        {
+            AppxBuild.BuildAppxPackage(BuildOutputFolder, BuildLongVersion, BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose);
         }
 
         public static bool BuildAppxSignature()
         {
-            string[] cleanupAppxArray =
-            {
-                BuildOutputFolder + "\\processhacker-appx.pvk",
-                BuildOutputFolder + "\\processhacker-appx.cer",
-                BuildOutputFolder + "\\processhacker-appx.pfx"
-            };
-
-            Program.PrintColorMessage("Building Appx Signature...", ConsoleColor.Cyan);
-
-            string makeCertExePath = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Windows Kits\\10\\bin\\" + SdkVersion + "\\x64\\MakeCert.exe");
-            string pvk2PfxExePath = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Windows Kits\\10\\bin\\" + SdkVersion + "\\x64\\Pvk2Pfx.exe");
-            string certUtilExePath = Win32.SearchFile("certutil.exe");
-
-            try
-            {
-                foreach (string file in cleanupAppxArray)
-                {
-                    if (File.Exists(file))
-                        File.Delete(file);
-                }
-
-                string output = Win32.ShellExecute(makeCertExePath,
-                    "/n " +
-                    "\"CN=ProcessHacker, O=ProcessHacker, C=AU\" " +
-                    "/r /h 0 " +
-                    "/eku \"1.3.6.1.5.5.7.3.3,1.3.6.1.4.1.311.10.3.13\" " +
-                    "/sv " +
-                    BuildOutputFolder + "\\processhacker-appx.pvk " +
-                    BuildOutputFolder + "\\processhacker-appx.cer "
-                    );
-
-                if (!string.IsNullOrEmpty(output) && !output.Equals("Succeeded", StringComparison.OrdinalIgnoreCase))
-                {
-                    Program.PrintColorMessage("[MakeCert] " + output, ConsoleColor.Red);
-                    return false;
-                }
-
-                output = Win32.ShellExecute(pvk2PfxExePath,
-                    "/pvk " + BuildOutputFolder + "\\processhacker-appx.pvk " +
-                    "/spc " + BuildOutputFolder + "\\processhacker-appx.cer " +
-                    "/pfx " + BuildOutputFolder + "\\processhacker-appx.pfx "
-                    );
-
-                if (!string.IsNullOrEmpty(output))
-                {
-                    Program.PrintColorMessage("[Pvk2Pfx] " + output, ConsoleColor.Red);
-                    return false;
-                }
-
-                output = Win32.ShellExecute(certUtilExePath,
-                    "-addStore TrustedPeople " + BuildOutputFolder + "\\processhacker-appx.cer"
-                    );
-
-                if (!string.IsNullOrEmpty(output) && !output.Contains("command completed successfully"))
-                {
-                    Program.PrintColorMessage("[Certutil] " + output, ConsoleColor.Red);
-                    return false;
-                }
-            }
-            catch (Exception ex)
-            {
-                Program.PrintColorMessage("[ERROR] " + ex, ConsoleColor.Red);
-                return false;
-            }
-
-            return true;
+            return AppxBuild.BuildAppxSignature(BuildOutputFolder);
         }
-
-        public static bool CleanupAppxSignature()
-        {
-            try
-            {
-                X509Store store = new X509Store(StoreName.TrustedPeople, StoreLocation.LocalMachine);
-
-                store.Open(OpenFlags.ReadWrite);
-
-                foreach (X509Certificate2 c in store.Certificates)
-                {
-                    if (c.Subject.Equals("CN=ProcessHacker, O=ProcessHacker, C=AU", StringComparison.OrdinalIgnoreCase))
-                    {
-                        Console.WriteLine("Removing: {0}", c.Subject);
-                        store.Remove(c);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Program.PrintColorMessage("[ERROR] " + ex, ConsoleColor.Red);
-                return false;
-            }
-
-            return true;
-        }
-#endregion
     }
 }
