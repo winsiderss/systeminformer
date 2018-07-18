@@ -455,18 +455,23 @@ VOID SetupSetWindowsOptions(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
+    static PH_STRINGREF desktopStartmenuPathSr = PH_STRINGREF_INIT(L"%ALLUSERSPROFILE%\\Microsoft\\Windows\\Start Menu\\Programs\\Process Hacker.lnk");
+    static PH_STRINGREF peviewerShortcutPathSr = PH_STRINGREF_INIT(L"%ALLUSERSPROFILE%\\Microsoft\\Windows\\Start Menu\\Programs\\PE Viewer.lnk");
+    static PH_STRINGREF userShortcutPathSr = PH_STRINGREF_INIT(L"%USERPROFILE%\\Desktop\\Process Hacker.lnk");
+    static PH_STRINGREF desktopAllusersPathSr = PH_STRINGREF_INIT(L"%PUBLIC%\\Desktop\\Process Hacker.lnk");
     PPH_STRING clientPathString;
     PPH_STRING startmenuFolderString;
 
     clientPathString = PhConcatStrings2(PhGetString(SetupInstallPath), L"\\ProcessHacker.exe");
 
     // Create the startmenu shortcut.
-    if (startmenuFolderString = PhGetKnownLocation(CSIDL_COMMON_PROGRAMS, L"\\Process Hacker.lnk"))
+    // PhGetKnownLocation(CSIDL_COMMON_PROGRAMS, L"\\Process Hacker.lnk"))
+    if (startmenuFolderString = PhExpandEnvironmentStrings(&desktopStartmenuPathSr))
     {
         SetupCreateLink(
-            L"ProcessHacker.Desktop.App", 
-            PhGetString(startmenuFolderString), 
-            PhGetString(clientPathString), 
+            L"ProcessHacker.Desktop.App",
+            PhGetString(startmenuFolderString),
+            PhGetString(clientPathString),
             PhGetString(SetupInstallPath)
             );
         PhDereferenceObject(startmenuFolderString);
@@ -475,7 +480,8 @@ VOID SetupSetWindowsOptions(
     // Create the all users shortcut.
     if (Context->SetupCreateDesktopShortcutAllUsers)
     {
-        if (startmenuFolderString = PhGetKnownLocation(CSIDL_COMMON_DESKTOPDIRECTORY, L"\\Process Hacker.lnk"))
+        // PhGetKnownLocation(CSIDL_COMMON_DESKTOPDIRECTORY, L"\\Process Hacker.lnk")
+        if (startmenuFolderString = PhExpandEnvironmentStrings(&desktopAllusersPathSr))
         {
             SetupCreateLink(
                 L"ProcessHacker.Desktop.App",
@@ -491,7 +497,8 @@ VOID SetupSetWindowsOptions(
         // Create the desktop shortcut.
         if (Context->SetupCreateDesktopShortcut)
         {
-            if (startmenuFolderString = PhGetKnownLocation(CSIDL_DESKTOPDIRECTORY, L"\\Process Hacker.lnk"))
+            // PhGetKnownLocation(CSIDL_DESKTOPDIRECTORY, L"\\Process Hacker.lnk")
+            if (startmenuFolderString = PhExpandEnvironmentStrings(&userShortcutPathSr))
             {
                 SetupCreateLink(
                     L"ProcessHacker.Desktop.App",
@@ -505,7 +512,8 @@ VOID SetupSetWindowsOptions(
     }
 
     // Create the PE Viewer startmenu shortcut.
-    if (startmenuFolderString = PhGetKnownLocation(CSIDL_COMMON_PROGRAMS, L"\\PE Viewer.lnk"))
+    // PhGetKnownLocation(CSIDL_COMMON_PROGRAMS, L"\\PE Viewer.lnk")
+    if (startmenuFolderString = PhExpandEnvironmentStrings(&peviewerShortcutPathSr))
     {
         PPH_STRING peviewPathString = PhConcatStrings2(PhGetString(SetupInstallPath), L"\\peview.exe");
 
@@ -523,11 +531,18 @@ VOID SetupSetWindowsOptions(
     // Reset the settings file.
     if (Context->SetupResetSettings)
     {
-        PPH_STRING settingsFileName = PhGetKnownLocation(CSIDL_APPDATA, L"\\Process Hacker\\settings.xml");
+        static PH_STRINGREF settingsPath = PH_STRINGREF_INIT(L"%APPDATA%\\Process Hacker\\settings.xml");
+        PPH_STRING settingsFilePath;
 
-        PhDeleteFileWin32(settingsFileName->Buffer);
+        if (settingsFilePath = PhExpandEnvironmentStrings(&settingsPath))
+        {
+            if (RtlDoesFileExists_U(settingsFilePath->Buffer))
+            {
+                PhDeleteFileWin32(settingsFilePath->Buffer);
+            }
 
-        PhDereferenceObject(settingsFileName);
+            PhDereferenceObject(settingsFilePath);
+        }
     }
 
     // Set the Windows default Task Manager.
@@ -611,30 +626,38 @@ VOID SetupDeleteWindowsOptions(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
+    static PH_STRINGREF desktopShortcutPathSr = PH_STRINGREF_INIT(L"%ALLUSERSPROFILE%\\Microsoft\\Windows\\Start Menu\\Programs\\Process Hacker.lnk");
+    static PH_STRINGREF peviewerShortcutPathSr = PH_STRINGREF_INIT(L"%ALLUSERSPROFILE%\\Microsoft\\Windows\\Start Menu\\Programs\\PE Viewer.lnk");
+    static PH_STRINGREF userShortcutPathSr = PH_STRINGREF_INIT(L"%USERPROFILE%\\Desktop\\Process Hacker.lnk");
+    static PH_STRINGREF desktopAllusersPathSr = PH_STRINGREF_INIT(L"%PUBLIC%\\Desktop\\Process Hacker.lnk");
     PPH_STRING startmenuFolderString;
     HANDLE keyHandle;
 
-    if (startmenuFolderString = PhGetKnownLocation(CSIDL_COMMON_PROGRAMS, L"\\Process Hacker.lnk"))
+    // PhGetKnownLocation(CSIDL_COMMON_PROGRAMS, L"\\Process Hacker.lnk")
+    if (startmenuFolderString = PhExpandEnvironmentStrings(&desktopShortcutPathSr))
     {
         PhDeleteFileWin32(PhGetString(startmenuFolderString));
         PhDereferenceObject(startmenuFolderString);
     }
 
-    if (startmenuFolderString = PhGetKnownLocation(CSIDL_COMMON_PROGRAMS, L"\\PE Viewer.lnk"))
+    // PhGetKnownLocation(CSIDL_COMMON_PROGRAMS, L"\\PE Viewer.lnk")
+    if (startmenuFolderString = PhExpandEnvironmentStrings(&peviewerShortcutPathSr))
     {
         PhDeleteFileWin32(PhGetString(startmenuFolderString));
         PhDereferenceObject(startmenuFolderString);
     }
 
-    if (startmenuFolderString = PhGetKnownLocation(CSIDL_DESKTOPDIRECTORY, L"\\Process Hacker.lnk"))
+    // PhGetKnownLocation(CSIDL_DESKTOPDIRECTORY, L"\\Process Hacker.lnk")
+    if (startmenuFolderString = PhExpandEnvironmentStrings(&userShortcutPathSr))
     {
-        PhDeleteFileWin32(PhGetString(startmenuFolderString));
+        PhDeleteFileWin32(startmenuFolderString->Buffer);
         PhDereferenceObject(startmenuFolderString);
     }
 
-    if (startmenuFolderString = PhGetKnownLocation(CSIDL_COMMON_DESKTOPDIRECTORY, L"\\Process Hacker.lnk"))
+    // PhGetKnownLocation(CSIDL_COMMON_DESKTOPDIRECTORY, L"\\Process Hacker.lnk")
+    if (startmenuFolderString = PhExpandEnvironmentStrings(&desktopAllusersPathSr))
     {
-        PhDeleteFileWin32(PhGetString(startmenuFolderString));
+        PhDeleteFileWin32(startmenuFolderString->Buffer);
         PhDereferenceObject(startmenuFolderString);
     }
 
@@ -717,19 +740,24 @@ VOID SetupUpgradeSettingsFile(
     VOID
     )
 {
+    static PH_STRINGREF settingsPath = PH_STRINGREF_INIT(L"%APPDATA%\\Process Hacker\\settings.xml");
+    static PH_STRINGREF settingsLegacyPath = PH_STRINGREF_INIT(L"%APPDATA%\\Process Hacker 2\\settings.xml");
     PPH_STRING settingsFilePath;
     PPH_STRING oldSettingsFileName;
-    
-    settingsFilePath = PhGetKnownLocation(CSIDL_APPDATA, L"\\Process Hacker\\settings.xml");
-    oldSettingsFileName = PhGetKnownLocation(CSIDL_APPDATA, L"\\Process Hacker 2\\settings.xml");
 
-    if (!RtlDoesFileExists_U(settingsFilePath->Buffer))
+    settingsFilePath = PhExpandEnvironmentStrings(&settingsPath);
+    oldSettingsFileName = PhExpandEnvironmentStrings(&settingsLegacyPath);
+
+    if (settingsFilePath && oldSettingsFileName)
     {
-        CopyFile(oldSettingsFileName->Buffer, settingsFilePath->Buffer, FALSE);
+        if (!RtlDoesFileExists_U(settingsFilePath->Buffer))
+        {
+            CopyFile(oldSettingsFileName->Buffer, settingsFilePath->Buffer, FALSE);
+        }
     }
- 
-    PhDereferenceObject(oldSettingsFileName);
-    PhDereferenceObject(settingsFilePath);
+
+    if (oldSettingsFileName) PhDereferenceObject(oldSettingsFileName);
+    if (settingsFilePath) PhDereferenceObject(settingsFilePath);
 }
 
 VOID SetupCreateImageFileExecutionOptions(
