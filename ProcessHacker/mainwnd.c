@@ -2986,7 +2986,6 @@ VOID PhMwpAddIconProcesses(
 
         if (
             processItem->CpuUsage == 0 ||
-            processItem->SessionId != NtCurrentPeb()->SessionId ||
             (processItem->Sid && !RtlEqualSid(processItem->Sid, PhGetOwnTokenAttributes().TokenSid))
             )
         {

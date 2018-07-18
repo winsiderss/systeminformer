@@ -2951,7 +2951,6 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 getNodeColor->BackColor = PhCsColorSystemProcesses;
             else if (
                 PhCsUseColorOwnProcesses &&
-                processItem->SessionId == NtCurrentPeb()->SessionId && 
                 processItem->Sid && 
                 RtlEqualSid(processItem->Sid, PhGetOwnTokenAttributes().TokenSid)
                 )
