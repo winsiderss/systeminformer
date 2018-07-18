@@ -125,7 +125,7 @@ BOOLEAN PhMainWndInitialization(
 
         PhAppendStringBuilder2(&stringBuilder, L"Process Hacker");
 
-        if (currentUserName = PhGetTokenUserString(PhGetOwnTokenAttributes().TokenHandle, TRUE))
+        if (currentUserName = PhGetSidFullName(PhGetOwnTokenAttributes().TokenSid, TRUE, NULL))
         {
             PhAppendStringBuilder2(&stringBuilder, L" [");
             PhAppendStringBuilder(&stringBuilder, &currentUserName->sr);
