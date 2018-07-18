@@ -245,29 +245,16 @@ VOID PhpSymbolProviderCompleteInitialization(
     VOID
     )
 {
+#ifdef _WIN64
+    static PH_STRINGREF windowsKitsRootKeyName = PH_STRINGREF_INIT(L"Software\\Wow6432Node\\Microsoft\\Windows Kits\\Installed Roots");
+#else
+    static PH_STRINGREF windowsKitsRootKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows Kits\\Installed Roots");
+#endif
     static PH_STRINGREF dbghelpFileName = PH_STRINGREF_INIT(L"dbghelp.dll");
     static PH_STRINGREF symsrvFileName = PH_STRINGREF_INIT(L"symsrv.dll");
-    static struct
-    {
-        PH_STRINGREF AppendPath;
-    } locations[] =
-    {
-#ifdef _WIN64
-        PH_STRINGREF_INIT(L"%ProgramFiles(x86)%\\Windows Kits\\10\\Debuggers\\x64\\"),
-        PH_STRINGREF_INIT(L"%ProgramFiles%\\Windows Kits\\10\\Debuggers\\x64\\"),
-        PH_STRINGREF_INIT(L"%ProgramFiles(x86)%\\Windows Kits\\8.1\\Debuggers\\x64\\"),
-        PH_STRINGREF_INIT(L"%ProgramFiles(x86)%\\Windows Kits\\8.0\\Debuggers\\x64\\"),
-        PH_STRINGREF_INIT(L"%ProgramFiles%\\Debugging Tools for Windows (x64)\\")
-#else
-        PH_STRINGREF_INIT(L"%ProgramFiles%\\Windows Kits\\10\\Debuggers\\x86\\"),
-        PH_STRINGREF_INIT(L"%ProgramFiles%\\Windows Kits\\8.1\\Debuggers\\x86\\"),
-        PH_STRINGREF_INIT(L"%ProgramFiles%\\Windows Kits\\8.0\\Debuggers\\x86\\"),
-        PH_STRINGREF_INIT(L"%ProgramFiles%\\Debugging Tools for Windows (x86)\\")
-#endif
-    };
-    PVOID dbghelpHandle = NULL;
-    PVOID symsrvHandle = NULL;
-    ULONG i;
+    PVOID dbghelpHandle;
+    PVOID symsrvHandle;
+    HANDLE keyHandle;
 
     if (PhFindLoaderEntry(NULL, NULL, &dbghelpFileName) &&
         PhFindLoaderEntry(NULL, NULL, &symsrvFileName))
@@ -275,34 +262,56 @@ VOID PhpSymbolProviderCompleteInitialization(
         return;
     }
 
-    for (i = 0; i < RTL_NUMBER_OF(locations); i++)
+    dbghelpHandle = NULL;
+    symsrvHandle = NULL;
+
+    if (NT_SUCCESS(PhOpenKey(
+        &keyHandle,
+        KEY_READ,
+        PH_KEY_LOCAL_MACHINE,
+        &windowsKitsRootKeyName,
+        0
+        )))
     {
-        PPH_STRING dbghelpPath;
+        PPH_STRING winsdkPath;
         PPH_STRING dbghelpName;
         PPH_STRING symsrvName;
 
-        if (!(dbghelpPath = PhExpandEnvironmentStrings(&locations[i].AppendPath)))
-            continue;
+        winsdkPath = PhQueryRegistryString(keyHandle, L"KitsRoot10"); // Windows 10 SDK
 
-        dbghelpName = PhConcatStringRef2(&dbghelpPath->sr, &dbghelpFileName);
-        symsrvName = PhConcatStringRef2(&dbghelpPath->sr, &symsrvFileName);
+        if (PhIsNullOrEmptyString(winsdkPath))
+            PhMoveReference(&winsdkPath, PhQueryRegistryString(keyHandle, L"KitsRoot81")); // Windows 8.1 SDK
 
-        if (RtlDoesFileExists_U(dbghelpName->Buffer))
+        if (PhIsNullOrEmptyString(winsdkPath))
+            PhMoveReference(&winsdkPath, PhQueryRegistryString(keyHandle, L"KitsRoot")); // Windows 8 SDK
+
+        if (!PhIsNullOrEmptyString(winsdkPath))
         {
-            dbghelpHandle = LoadLibrary(dbghelpName->Buffer);
+#ifdef _WIN64
+            PhMoveReference(&winsdkPath, PhConcatStringRefZ(&winsdkPath->sr, L"\\Debuggers\\x64\\"));
+#else
+            PhMoveReference(&winsdkPath, PhConcatStringRefZ(&winsdkPath->sr, L"\\Debuggers\\x64\\"));
+#endif
         }
 
-        if (RtlDoesFileExists_U(symsrvName->Buffer))
+        if (winsdkPath)
         {
-            symsrvHandle = LoadLibrary(symsrvName->Buffer);
+            if (dbghelpName = PhConcatStringRef2(&winsdkPath->sr, &dbghelpFileName))
+            {
+                dbghelpHandle = LoadLibrary(dbghelpName->Buffer);
+                PhDereferenceObject(dbghelpName);
+            }
+
+            if (symsrvName = PhConcatStringRef2(&winsdkPath->sr, &symsrvFileName))
+            {
+                symsrvHandle = LoadLibrary(symsrvName->Buffer);
+                PhDereferenceObject(symsrvName);
+            }
+
+            PhDereferenceObject(winsdkPath);
         }
 
-        PhDereferenceObject(symsrvName);
-        PhDereferenceObject(dbghelpName);
-        PhDereferenceObject(dbghelpPath);
-
-        if (dbghelpHandle)
-            break;
+        NtClose(keyHandle);
     }
 
     if (!dbghelpHandle)
