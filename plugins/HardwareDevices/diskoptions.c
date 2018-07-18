@@ -21,6 +21,7 @@
  */
 
 #include "devices.h"
+#include <devguid.h>
 
 typedef struct _DISK_ENUM_ENTRY
 {
@@ -360,7 +361,15 @@ VOID FindDiskDrives(
         diskEntry->DeviceName = PhCreateString2(&deviceDescription->sr);
         diskEntry->DevicePath = PhCreateString(deviceInterface);
 
-        if (NT_SUCCESS(DiskDriveCreateHandle(&deviceHandle, diskEntry->DevicePath)))
+        if (NT_SUCCESS(PhCreateFileWin32(
+            &deviceHandle,
+            PhGetString(diskEntry->DevicePath),
+            FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+            FILE_ATTRIBUTE_NORMAL,
+            FILE_SHARE_READ | FILE_SHARE_WRITE,
+            FILE_OPEN,
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+            )))
         {
             ULONG diskIndex = ULONG_MAX; // Note: Do not initialize to zero
 
@@ -541,44 +550,77 @@ PPH_STRING FindDiskDeviceInstance(
     return deviceInstanceString;
 }
 
-//VOID LoadDiskDriveImages(
-//    _In_ PDV_DISK_OPTIONS_CONTEXT Context
-//    )
-//{
-//    HICON smallIcon = NULL;
-//
-//    Context->ImageList = ImageList_Create(
-//        GetSystemMetrics(SM_CXSMICON),
-//        GetSystemMetrics(SM_CYSMICON),
-//        ILC_COLOR32,
-//        1,
-//        1
-//        );
-//
-//    // We could use SetupDiLoadClassIcon but this works.
-//    // Copied from HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001\Control\Class\{4d36e967-e325-11ce-bfc1-08002be10318}\\IconPath
-//    // The index is only valid on Vista and above.
-//    ExtractIconEx(
-//        L"%SystemRoot%\\system32\\imageres.dll",
-//        -32,
-//        NULL,
-//        &smallIcon,
-//        1
-//        );
-//
-//    if (smallIcon)
-//    {
-//        ImageList_AddIcon(Context->ImageList, smallIcon);
-//        DestroyIcon(smallIcon);
-//
-//        // Set the imagelist only if the image was loaded.
-//        ListView_SetImageList(
-//            Context->ListViewHandle,
-//            Context->ImageList,
-//            LVSIL_SMALL
-//            );
-//    }
-//}
+VOID LoadDiskDriveImages(
+    _In_ PDV_DISK_OPTIONS_CONTEXT Context
+    )
+{
+    HICON smallIcon;
+
+    Context->ImageList = ImageList_Create(
+        GetSystemMetrics(SM_CXICON),
+        GetSystemMetrics(SM_CYICON),
+        ILC_COLOR32,
+        1,
+        1
+        );
+
+    CONFIGRET result;
+    DEVPROPTYPE devicePropertyType;
+    ULONG deviceInstanceIdLength = MAX_DEVICE_ID_LEN;
+    WCHAR deviceInstanceId[MAX_DEVICE_ID_LEN + 1] = L"";
+
+    ULONG bufferSize = 0x40;
+    PPH_STRING deviceDescription = PhCreateStringEx(NULL, bufferSize);
+
+    if ((result = CM_Get_Class_Property(
+        &GUID_DEVCLASS_DISKDRIVE,
+        &DEVPKEY_DeviceClass_IconPath,
+        &devicePropertyType,
+        (PBYTE)deviceDescription->Buffer,
+        &bufferSize,
+        0
+        )) != CR_SUCCESS)
+    {
+        PhDereferenceObject(deviceDescription);
+        deviceDescription = PhCreateStringEx(NULL, bufferSize);
+
+        result = CM_Get_Class_Property(
+            &GUID_DEVCLASS_DISKDRIVE,
+            &DEVPKEY_DeviceClass_IconPath,
+            &devicePropertyType,
+            (PBYTE)deviceDescription->Buffer,
+            &bufferSize,
+            0
+            );
+    }
+
+    // %SystemRoot%\System32\setupapi.dll,-53
+
+    PH_STRINGREF dllPartSr;
+    PH_STRINGREF indexPartSr;
+    ULONG64 index;
+
+    PhSplitStringRefAtChar(&deviceDescription->sr, ',', &dllPartSr, &indexPartSr);
+    PhStringToInteger64(&indexPartSr, 10, &index);
+    PhMoveReference(&deviceDescription, PhExpandEnvironmentStrings(&dllPartSr));
+
+    // We could use SetupDiLoadClassIcon but this works.
+    // Copied from HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001\Control\Class\{4d36e967-e325-11ce-bfc1-08002be10318}\\IconPath
+    // The index is only valid on Vista and above.
+
+    if (PhExtractIconEx(deviceDescription->Buffer, (INT)index, &smallIcon, NULL))
+    {
+        ImageList_AddIcon(Context->ImageList, smallIcon);
+        DestroyIcon(smallIcon);
+
+        // Set the imagelist only if the image was loaded.
+        ListView_SetImageList(
+            Context->ListViewHandle,
+            Context->ImageList,
+            LVSIL_SMALL
+            );
+    }
+}
 
 INT_PTR CALLBACK DiskDriveOptionsDlgProc(
     _In_ HWND hwndDlg,
@@ -627,6 +669,7 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
             PhSetControlTheme(context->ListViewHandle, L"explorer");
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 350, L"Disk Drives");
             PhSetExtendedListView(context->ListViewHandle);
+            LoadDiskDriveImages(context);
 
             ListView_EnableGroupView(context->ListViewHandle, TRUE);
             PhAddListViewGroup(context->ListViewHandle, 0, L"Connected");

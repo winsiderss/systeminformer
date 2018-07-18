@@ -159,7 +159,7 @@ typedef struct _DV_NETADAPTER_DETAILS_CONTEXT
 typedef struct _DV_NETADAPTER_CONTEXT
 {
     HWND ListViewHandle;
-    //HIMAGELIST ImageList;
+    HIMAGELIST ImageList;
     BOOLEAN OptionsChanged;
     BOOLEAN UseAlternateMethod;
     PH_LAYOUT_MANAGER LayoutManager;
@@ -413,7 +413,7 @@ typedef struct _DV_DISK_SYSINFO_CONTEXT
 typedef struct _DV_DISK_OPTIONS_CONTEXT
 {
     HWND ListViewHandle;
-    //HIMAGELIST ImageList;
+    HIMAGELIST ImageList;
     BOOLEAN OptionsChanged;
     PH_LAYOUT_MANAGER LayoutManager;
 } DV_DISK_OPTIONS_CONTEXT, *PDV_DISK_OPTIONS_CONTEXT;
@@ -601,11 +601,6 @@ VOID AddRemoveDeviceChangeCallback(
     );
 
 // storage.c
-
-NTSTATUS DiskDriveCreateHandle(
-    _Out_ PHANDLE DeviceHandle,
-    _In_ PPH_STRING DevicePath
-    );
 
 PPH_STRING DiskDriveQueryDosMountPoints(
     _In_ ULONG DeviceNumber

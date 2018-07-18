@@ -156,7 +156,15 @@ VOID DiskDriveQuerySmart(
     PPH_LIST attributes;
     HANDLE deviceHandle;
 
-    if (NT_SUCCESS(DiskDriveCreateHandle(&deviceHandle, Context->PageContext->DiskId.DevicePath)))
+    if (NT_SUCCESS(PhCreateFileWin32(
+        &deviceHandle,
+        PhGetString(Context->PageContext->DiskId.DevicePath),
+        FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        )))
     {
         if (NT_SUCCESS(DiskDriveQueryImminentFailure(deviceHandle, &attributes)))
         {
