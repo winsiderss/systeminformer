@@ -987,6 +987,7 @@ typedef struct _THREAD_NAME_INFORMATION
     UNICODE_STRING ThreadName;
 } THREAD_NAME_INFORMATION, *PTHREAD_NAME_INFORMATION;
 
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
 // private
 typedef enum _SUBSYSTEM_INFORMATION_TYPE 
 {
@@ -994,6 +995,7 @@ typedef enum _SUBSYSTEM_INFORMATION_TYPE
     SubsystemInformationTypeWSL,
     MaxSubsystemInformationType
 } SUBSYSTEM_INFORMATION_TYPE;
+#endif
 
 // Processes
 
