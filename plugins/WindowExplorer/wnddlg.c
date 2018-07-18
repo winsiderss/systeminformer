@@ -348,6 +348,9 @@ INT_PTR CALLBACK WepWindowsDlgProc(
         {
             PH_RECTANGLE windowRectangle;
 
+            SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_SMALL((*(PVOID *)WeGetProcedureAddress("PhInstanceHandle")), MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
+            SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE((*(PVOID *)WeGetProcedureAddress("PhInstanceHandle")), MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
+
             context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_LIST);
             context->SearchBoxHandle = GetDlgItem(hwndDlg, IDC_SEARCHEDIT);
 
