@@ -91,8 +91,6 @@ static HFONT CurrentCustomFont;
 static HMENU SubMenuHandles[5];
 static PPH_EMENU SubMenuObjects[5];
 
-static PH_CALLBACK_REGISTRATION SymInitRegistration;
-
 static ULONG SelectedRunAsMode;
 static ULONG SelectedUserSessionId;
 
