@@ -22,9 +22,6 @@
  */
 
 #include "wndexp.h"
-#include "resource.h"
-#include <commonutil.h>
-#include <windowsx.h>
 
 typedef struct _WINDOWS_CONTEXT
 {
