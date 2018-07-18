@@ -256,9 +256,6 @@ BOOLEAN PhMwpCurrentUserProcessTreeFilter(
 {
     PPH_PROCESS_NODE processNode = (PPH_PROCESS_NODE)Node;
 
-    if (processNode->ProcessItem->SessionId != NtCurrentPeb()->SessionId)
-        return FALSE;
-
     if (!processNode->ProcessItem->Sid)
         return FALSE;
 
