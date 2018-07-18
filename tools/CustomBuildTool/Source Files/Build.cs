@@ -1176,11 +1176,14 @@ namespace CustomBuildTool
         public static bool BuildDeployUploadArtifacts()
         {
             string buildPostUrl = Environment.ExpandEnvironmentVariables("%APPVEYOR_NIGHTLY_URL%").Replace("%APPVEYOR_NIGHTLY_URL%", string.Empty);
-            string buildPostKey = Environment.ExpandEnvironmentVariables("%APPVEYOR_BUILD_KEY%").Replace("%APPVEYOR_BUILD_KEY%", string.Empty);
+            string buildPostKey = Environment.ExpandEnvironmentVariables("%APPVEYOR_NIGHTLY_KEY%").Replace("%APPVEYOR_NIGHTLY_KEY%", string.Empty);
+            string buildPostName = Environment.ExpandEnvironmentVariables("%APPVEYOR_NIGHTLY_NAME%").Replace("%APPVEYOR_NIGHTLY_NAME%", string.Empty);
 
+            if (string.IsNullOrEmpty(buildPostUrl))
+                return false;
             if (string.IsNullOrEmpty(buildPostKey))
                 return false;
-            if (string.IsNullOrEmpty(buildPostUrl))
+            if (string.IsNullOrEmpty(buildPostName))
                 return false;
 
             Console.Write(Environment.NewLine);
@@ -1194,53 +1197,78 @@ namespace CustomBuildTool
 
                     if (File.Exists(sourceFile))
                     {
-                        string boundary = "---------------------------" + Guid.NewGuid().ToString();
-                        byte[] boundarybytes = Encoding.ASCII.GetBytes("\r\n--" + boundary + "\r\n");
-                        byte[] headerbytes = Encoding.UTF8.GetBytes($"Content-Disposition: form-data; name=\"file\"; filename=\"{filename}\"\r\n\r\n");
-
-                        HttpWebRequest request = (HttpWebRequest)WebRequest.Create(new Uri(buildPostUrl));
-                        request.KeepAlive = true;
-                        request.SendChunked = true;
-                        request.AllowWriteStreamBuffering = true;
-                        request.ServicePoint.Expect100Continue = false;
-                        request.ServicePoint.ReceiveBufferSize = 4096;
-                        request.ServicePoint.ConnectionLeaseTimeout = System.Threading.Timeout.Infinite;
-                        request.ReadWriteTimeout = System.Threading.Timeout.Infinite;
+                        FtpWebRequest request = (FtpWebRequest)WebRequest.Create(buildPostUrl + filename);
+                        request.Credentials = new NetworkCredential(buildPostKey, buildPostName);
+                        request.Method = WebRequestMethods.Ftp.UploadFile;
                         request.Timeout = System.Threading.Timeout.Infinite;
-                        request.Method = WebRequestMethods.Http.Post;
-                        request.ContentType = "multipart/form-data; boundary=" + boundary;
-                        request.Headers.Add("X-ApiKey", buildPostKey);
+                        request.EnableSsl = true;
+                        request.UsePassive = true;
+                        request.UseBinary = true;
 
                         Program.PrintColorMessage($"Uploading {filename}...", ConsoleColor.Cyan, true);
 
-                        using (FileStream fileStream = File.OpenRead(sourceFile))
-                        using (BufferedStream localStream = new BufferedStream(fileStream))
+                        using (BufferedStream localStream = new BufferedStream(File.OpenRead(sourceFile)))
                         using (BufferedStream remoteStream = new BufferedStream(request.GetRequestStream()))
                         {
-                            int bytesRead = 0;
-                            var totalRead = 0;
-                            byte[] buffer = new byte[4096];
-
-                            remoteStream.Write(boundarybytes, 0, boundarybytes.Length);
-                            remoteStream.Write(headerbytes, 0, headerbytes.Length);
-
-                            while ((bytesRead = localStream.Read(buffer, 0, buffer.Length)) != 0)
-                            {
-                                totalRead += bytesRead;
-                                remoteStream.Write(buffer, 0, bytesRead);
-                            }
-
-                            remoteStream.Write(boundarybytes, 0, boundarybytes.Length);
+                            localStream.CopyTo(remoteStream, 4096);
                         }
 
-                        using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
+                        using (FtpWebResponse response = (FtpWebResponse)request.GetResponse())
                         {
-                            if (response.StatusCode != HttpStatusCode.OK)
+                            if (response.StatusCode != FtpStatusCode.CommandOK && response.StatusCode != FtpStatusCode.ClosingData)
                             {
-                                Program.PrintColorMessage("[HttpWebResponse]" + response.StatusDescription, ConsoleColor.Red);
+                                Program.PrintColorMessage($"[HttpWebResponse] {response.StatusDescription}", ConsoleColor.Red);
                                 return false;
                             }
                         }
+
+                        //string boundary = "---------------------------" + Guid.NewGuid().ToString();
+                        //byte[] boundarybytes = Encoding.ASCII.GetBytes("\r\n--" + boundary + "\r\n");
+                        //byte[] headerbytes = Encoding.UTF8.GetBytes($"Content-Disposition: form-data; name=\"file\"; filename=\"{filename}\"\r\n\r\n");
+                        //
+                        //HttpWebRequest request = (HttpWebRequest)WebRequest.Create(new Uri(buildPostUrl));
+                        //request.KeepAlive = true;
+                        //request.SendChunked = true;
+                        //request.AllowWriteStreamBuffering = true;
+                        //request.ServicePoint.Expect100Continue = false;
+                        //request.ServicePoint.ReceiveBufferSize = 4096;
+                        //request.ServicePoint.ConnectionLeaseTimeout = System.Threading.Timeout.Infinite;
+                        //request.ReadWriteTimeout = System.Threading.Timeout.Infinite;
+                        //request.Timeout = System.Threading.Timeout.Infinite;
+                        //request.Method = WebRequestMethods.Http.Post;
+                        //request.ContentType = "multipart/form-data; boundary=" + boundary;
+                        //request.Headers.Add("X-ApiKey", buildPostKey);
+                        //
+                        //Program.PrintColorMessage($"Uploading {filename}...", ConsoleColor.Cyan, true);
+                        //
+                        //using (FileStream fileStream = File.OpenRead(sourceFile))
+                        //using (BufferedStream localStream = new BufferedStream(fileStream))
+                        //using (BufferedStream remoteStream = new BufferedStream(request.GetRequestStream()))
+                        //{
+                        //    int bytesRead = 0;
+                        //    var totalRead = 0;
+                        //    byte[] buffer = new byte[4096];
+                        //
+                        //    remoteStream.Write(boundarybytes, 0, boundarybytes.Length);
+                        //    remoteStream.Write(headerbytes, 0, headerbytes.Length);
+                        //
+                        //    while ((bytesRead = localStream.Read(buffer, 0, buffer.Length)) != 0)
+                        //    {
+                        //        totalRead += bytesRead;
+                        //        remoteStream.Write(buffer, 0, bytesRead);
+                        //    }
+                        //
+                        //    remoteStream.Write(boundarybytes, 0, boundarybytes.Length);
+                        //}
+                        //
+                        //using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
+                        //{
+                        //    if (response.StatusCode != HttpStatusCode.OK)
+                        //    {
+                        //        Program.PrintColorMessage("[HttpWebResponse]" + response.StatusDescription, ConsoleColor.Red);
+                        //        return false;
+                        //    }
+                        //}
                     }
                 }
             }
