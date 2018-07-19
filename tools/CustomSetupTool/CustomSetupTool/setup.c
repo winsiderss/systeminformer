@@ -287,7 +287,7 @@ VOID SetupStartService(
         {
             if (status.dwCurrentState != SERVICE_RUNNING)
             {
-                ULONG attempts = 5;
+                ULONG attempts = 10;
 
                 do
                 {
@@ -346,7 +346,7 @@ VOID SetupStopService(
         {
             if (status.dwCurrentState != SERVICE_STOPPED)
             {
-                ULONG attempts = 5;
+                ULONG attempts = 10;
 
                 do
                 {
@@ -459,12 +459,10 @@ BOOLEAN SetupUninstallKph(
     // Stop and uninstall the current installation.
     if (SetupMode == SETUP_COMMAND_UPDATE)
     {        
-        SetupStopService(L"KProcessHacker2", TRUE);
         SetupStopService(L"KProcessHacker3", FALSE);
     }
     else
     {
-        SetupStopService(L"KProcessHacker2", TRUE);
         SetupStopService(L"KProcessHacker3", TRUE);
     }
 
