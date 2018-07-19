@@ -954,7 +954,7 @@ VOID PhpInitializeSettings(
                         &fileHandle,
                         PhSettingsFileName->Buffer,
                         FILE_GENERIC_WRITE,
-                        0,
+                        FILE_ATTRIBUTE_NORMAL,
                         FILE_SHARE_READ | FILE_SHARE_DELETE,
                         FILE_OVERWRITE,
                         FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
