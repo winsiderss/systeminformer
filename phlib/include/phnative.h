@@ -20,6 +20,10 @@ typedef NTSTATUS (NTAPI *PPH_OPEN_OBJECT)(
     _In_opt_ PVOID Context
     );
 
+typedef NTSTATUS (NTAPI *PPH_CLOSE_OBJECT)(
+    _In_opt_ PVOID Context
+    );
+
 typedef NTSTATUS (NTAPI *PPH_GET_OBJECT_SECURITY)(
     _Out_ PSECURITY_DESCRIPTOR *SecurityDescriptor,
     _In_ SECURITY_INFORMATION SecurityInformation,
