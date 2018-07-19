@@ -332,7 +332,7 @@ namespace CustomBuildTool
             try
             {
                 Win32.CopyIfNewer("README.txt", "bin\\README.txt");
-                Win32.CopyIfNewer("CHANGELOG.txt", "bin\\CHANGELOG.txt");
+                //Win32.CopyIfNewer("CHANGELOG.txt", "bin\\CHANGELOG.txt"); // TODO: Git log
                 Win32.CopyIfNewer("COPYRIGHT.txt", "bin\\COPYRIGHT.txt");
                 Win32.CopyIfNewer("LICENSE.txt", "bin\\LICENSE.txt");
             }
