@@ -297,7 +297,7 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
 }
 
 VOID SetupShowUpdateDialog(
-    _In_ SETUP_COMMAND_TYPE SetupMode
+    VOID
     )
 {
     TASKDIALOGCONFIG config;
@@ -312,7 +312,7 @@ VOID SetupShowUpdateDialog(
     config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
     config.pszWindowTitle = PhApplicationName;
     config.pfCallback = TaskDialogBootstrapCallback;
-    config.lpCallbackData = (LONG_PTR)CreateUpdateContext(SetupMode);
+    config.lpCallbackData = (LONG_PTR)CreateUpdateContext();
 
     TaskDialogIndirect(&config, NULL, NULL, NULL);
 

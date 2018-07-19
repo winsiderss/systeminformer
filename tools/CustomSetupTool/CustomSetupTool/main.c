@@ -313,7 +313,7 @@ INT WINAPI wWinMain(
         break;
     case SETUP_COMMAND_UPDATE:
     case SETUP_COMMAND_SILENTINSTALL:
-        SetupShowUpdateDialog(SetupMode);
+        SetupShowUpdateDialog();
         break;
     case SETUP_COMMAND_REPAIR:
         break;
