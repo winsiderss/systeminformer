@@ -29,6 +29,34 @@ static TASKDIALOG_BUTTON TaskDialogButtonArray[] =
     { IDYES, L"Install" }
 };
 
+BOOLEAN UpdaterCheckApplicationDirectory(
+    VOID
+    )
+{
+    HANDLE fileHandle;
+    PPH_STRING directory;
+    PPH_STRING file;
+
+    directory = PH_AUTO(PhGetApplicationDirectory());
+    file = PH_AUTO(PhConcatStrings(2, PhGetStringOrEmpty(directory), L"\\processhacker.update"));
+
+    if (NT_SUCCESS(PhCreateFileWin32(
+        &fileHandle,
+        PhGetString(file),
+        FILE_GENERIC_WRITE | DELETE,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ | FILE_SHARE_DELETE,
+        FILE_OPEN_IF,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_DELETE_ON_CLOSE
+        )))
+    {
+        NtClose(fileHandle);
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
 HRESULT CALLBACK FinalTaskDialogCallbackProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -43,7 +71,7 @@ HRESULT CALLBACK FinalTaskDialogCallbackProc(
     {
     case TDN_NAVIGATED:
         {
-            if (!PhGetOwnTokenAttributes().Elevated)
+            if (!UpdaterCheckApplicationDirectory())
             {
                 SendMessage(hwndDlg, TDM_SET_BUTTON_ELEVATION_REQUIRED_STATE, IDYES, TRUE);
             }
@@ -72,7 +100,7 @@ HRESULT CALLBACK FinalTaskDialogCallbackProc(
 
                 info.lpFile = PhGetStringOrEmpty(context->SetupFilePath);
                 info.lpParameters = PhGetString(parameters);
-                info.lpVerb = PhGetOwnTokenAttributes().Elevated ? NULL : L"runas";
+                info.lpVerb = UpdaterCheckApplicationDirectory() ? NULL : L"runas";
                 info.nShow = SW_SHOW;
                 info.hwnd = hwndDlg;
                 info.fMask = SEE_MASK_NOASYNC | SEE_MASK_FLAG_NO_UI;
