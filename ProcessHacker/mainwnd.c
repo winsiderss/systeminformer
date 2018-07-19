@@ -99,7 +99,7 @@ BOOLEAN PhMainWndInitialization(
     )
 {
     RTL_ATOM windowAtom;
-    PH_STRING_BUILDER stringBuilder;
+    PPH_STRING windowName;
     PH_RECTANGLE windowRectangle;
 
     // Set FirstRun default settings.
@@ -116,13 +116,14 @@ BOOLEAN PhMainWndInitialization(
     windowRectangle.Size = PhGetScalableIntegerPairSetting(L"MainWindowSize", TRUE).Pair;
 
     // Create the window title.
-
-    PhInitializeStringBuilder(&stringBuilder, 100);
+    windowName = NULL;
 
     if (PhGetIntegerSetting(L"EnableWindowText"))
     {
+        PH_STRING_BUILDER stringBuilder;
         PPH_STRING currentUserName;
 
+        PhInitializeStringBuilder(&stringBuilder, 100);
         PhAppendStringBuilder2(&stringBuilder, L"Process Hacker");
 
         if (currentUserName = PhGetSidFullName(PhGetOwnTokenAttributes().TokenSid, TRUE, NULL))
@@ -136,13 +137,15 @@ BOOLEAN PhMainWndInitialization(
 
         if (PhGetOwnTokenAttributes().ElevationType == TokenElevationTypeFull)
             PhAppendStringBuilder2(&stringBuilder, L" (Administrator)");
+
+        windowName = PhFinalStringBuilderString(&stringBuilder);
     }
 
     // Create the window.
 
     PhMainWndHandle = CreateWindow(
         MAKEINTATOM(windowAtom),
-        stringBuilder.String->Buffer,
+        PhGetString(windowName),
         WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
         windowRectangle.Left,
         windowRectangle.Top,
@@ -153,29 +156,34 @@ BOOLEAN PhMainWndInitialization(
         PhInstanceHandle,
         NULL
         );
-    PhDeleteStringBuilder(&stringBuilder);
+    PhClearReference(&windowName);
 
     if (!PhMainWndHandle)
         return FALSE;
 
+    if (PhGetIntegerSetting(L"EnableWindowText")) // HACK
     {
-        PhMainWndMenuHandle = LoadMenu(PhInstanceHandle, MAKEINTRESOURCE(IDR_MAINWND));
-        SetMenu(PhMainWndHandle, PhMainWndMenuHandle);
-        PhMwpInitializeMainMenu(PhMainWndMenuHandle);
-
-        // TODO: plugin suppport -dmex
-        //PPH_EMENU menu;
-        //
-        //menu = PhCreateEMenu();
-        //PhLoadResourceEMenuItem(menu, PhInstanceHandle, MAKEINTRESOURCE(IDR_MAINWND), ULONG_MAX);
-        //
-        //PhMainWndMenuHandle = CreateMenu();
-        //PhEMenuToHMenu2(PhMainWndMenuHandle, menu, 0, NULL);
-        //SetMenu(PhMainWndHandle, PhMainWndMenuHandle);
-        //PhMwpInitializeMainMenu(PhMainWndMenuHandle);
+        SendMessage(PhMainWndHandle, WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
+        SendMessage(PhMainWndHandle, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
     }
 
+    // TODO: plugin suppport -dmex
+    //PPH_EMENU menu;
+    //menu = PhCreateEMenu();
+    //PhLoadResourceEMenuItem(menu, PhInstanceHandle, MAKEINTRESOURCE(IDR_MAINWND), ULONG_MAX);
+    //PhMainWndMenuHandle = CreateMenu();
+    //PhEMenuToHMenu2(PhMainWndMenuHandle, menu, 0, NULL);
+    //SetMenu(PhMainWndHandle, PhMainWndMenuHandle);
+    //PhMwpInitializeMainMenu(PhMainWndMenuHandle);
+
+    // Load the main menu
+
+    PhMainWndMenuHandle = LoadMenu(PhInstanceHandle, MAKEINTRESOURCE(IDR_MAINWND));
+    SetMenu(PhMainWndHandle, PhMainWndMenuHandle);
+    PhMwpInitializeMainMenu(PhMainWndMenuHandle);
+
     // Choose a more appropriate rectangle for the window.
+
     PhAdjustRectangleToWorkingArea(PhMainWndHandle, &windowRectangle);
     MoveWindow(
         PhMainWndHandle, 
@@ -349,8 +357,6 @@ RTL_ATOM PhMwpInitializeWindowClass(
     className = PhaGetStringSetting(L"MainWindowClassName");
     wcex.lpszClassName = PhGetStringOrDefault(className, L"MainWindowClassName");
     wcex.hCursor = LoadCursor(NULL, IDC_ARROW);
-    wcex.hIcon = PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER));
-    wcex.hIconSm = PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER));
 
     return RegisterClassEx(&wcex);
 }
@@ -2310,12 +2316,14 @@ VOID PhMwpInitializeMainMenu(
     MENUINFO menuInfo;
     ULONG i;
 
+    memset(&menuInfo, 0, sizeof(MENUINFO));
     menuInfo.cbSize = sizeof(MENUINFO);
     menuInfo.fMask = MIM_STYLE;
-    menuInfo.dwStyle = MNS_NOTIFYBYPOS;
+    menuInfo.dwStyle = MNS_NOTIFYBYPOS | MNS_AUTODISMISS;
+
     SetMenuInfo(Menu, &menuInfo);
 
-    for (i = 0; i < sizeof(SubMenuHandles) / sizeof(HMENU); i++)
+    for (i = 0; i < RTL_NUMBER_OF(SubMenuHandles); i++)
     {
         SubMenuHandles[i] = GetSubMenu(PhMainWndMenuHandle, i);
     }
