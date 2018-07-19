@@ -29,6 +29,7 @@
 #include <secedit.h>
 #include <settings.h>
 #include <splitter.h>
+#include <phsettings.h>
 
 #include <windowsx.h>
 #include <uxtheme.h>
