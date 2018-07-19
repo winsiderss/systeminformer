@@ -158,8 +158,22 @@ BOOLEAN PhMainWndInitialization(
     if (!PhMainWndHandle)
         return FALSE;
 
-    PhMainWndMenuHandle = GetMenu(PhMainWndHandle);
-    PhMwpInitializeMainMenu(PhMainWndMenuHandle);
+    {
+        PhMainWndMenuHandle = LoadMenu(PhInstanceHandle, MAKEINTRESOURCE(IDR_MAINWND));
+        SetMenu(PhMainWndHandle, PhMainWndMenuHandle);
+        PhMwpInitializeMainMenu(PhMainWndMenuHandle);
+
+        // TODO: plugin suppport -dmex
+        //PPH_EMENU menu;
+        //
+        //menu = PhCreateEMenu();
+        //PhLoadResourceEMenuItem(menu, PhInstanceHandle, MAKEINTRESOURCE(IDR_MAINWND), ULONG_MAX);
+        //
+        //PhMainWndMenuHandle = CreateMenu();
+        //PhEMenuToHMenu2(PhMainWndMenuHandle, menu, 0, NULL);
+        //SetMenu(PhMainWndHandle, PhMainWndMenuHandle);
+        //PhMwpInitializeMainMenu(PhMainWndMenuHandle);
+    }
 
     // Choose a more appropriate rectangle for the window.
     PhAdjustRectangleToWorkingArea(PhMainWndHandle, &windowRectangle);
@@ -330,14 +344,10 @@ RTL_ATOM PhMwpInitializeWindowClass(
     
     memset(&wcex, 0, sizeof(WNDCLASSEX));
     wcex.cbSize = sizeof(WNDCLASSEX);
-    wcex.style = 0;
     wcex.lpfnWndProc = PhMwpWndProc;
-    wcex.cbClsExtra = 0;
-    wcex.cbWndExtra = 0;
     wcex.hInstance = PhInstanceHandle;
     className = PhaGetStringSetting(L"MainWindowClassName");
     wcex.lpszClassName = PhGetStringOrDefault(className, L"MainWindowClassName");
-    wcex.lpszMenuName = MAKEINTRESOURCE(IDR_MAINWND);
     wcex.hCursor = LoadCursor(NULL, IDC_ARROW);
     wcex.hIcon = PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER));
     wcex.hIconSm = PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER));
