@@ -10,13 +10,17 @@ typedef struct
 
     ULONG RefCount;
 
-    PPH_STRING ObjectName;
-    PPH_GET_OBJECT_SECURITY GetObjectSecurity;
-    PPH_SET_OBJECT_SECURITY SetObjectSecurity;
-    PVOID Context;
+    HWND WindowHandle;
+    BOOLEAN IsPage;
+    PPH_ACCESS_ENTRY AccessEntriesArray;
     PSI_ACCESS AccessEntries;
     ULONG NumberOfAccessEntries;
-    BOOLEAN IsPage;
+
+    PPH_STRING ObjectName;
+    PPH_STRING ObjectType;
+    PPH_OPEN_OBJECT OpenObject;
+    PPH_CLOSE_OBJECT CloseObject;
+    PVOID Context;
 } PhSecurityInformation;
 
 typedef struct
@@ -39,12 +43,12 @@ typedef struct
 } PhSecurityIDataObject;
 
 ISecurityInformation *PhSecurityInformation_Create(
+    _In_ HWND WindowHandle,
     _In_ PWSTR ObjectName,
-    _In_ PPH_GET_OBJECT_SECURITY GetObjectSecurity,
-    _In_ PPH_SET_OBJECT_SECURITY SetObjectSecurity,
+    _In_ PWSTR ObjectType,
+    _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_ PPH_CLOSE_OBJECT CloseObject,
     _In_opt_ PVOID Context,
-    _In_ PPH_ACCESS_ENTRY AccessEntries,
-    _In_ ULONG NumberOfAccessEntries,
     _In_ BOOLEAN IsPage
     );
 

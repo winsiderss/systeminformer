@@ -58,14 +58,30 @@ static NTSTATUS PhpOpenService(
     )
 {
     SC_HANDLE serviceHandle;
+    PPH_SERVICE_ITEM serviceItem;
 
-    if (!(serviceHandle = PhOpenService(
-        ((PPH_SERVICE_ITEM)Context)->Name->Buffer,
+    serviceItem = ((PPH_SERVICE_ITEM)Context);
+
+    if (serviceHandle = PhOpenService(
+        serviceItem->Name->Buffer,
         DesiredAccess
-        )))
-        return PhGetLastWin32ErrorAsNtStatus();
+        ))
+    {
+        *Handle = serviceHandle;
+        return STATUS_SUCCESS;
+    }
 
-    *Handle = serviceHandle;
+    return PhGetLastWin32ErrorAsNtStatus();
+}
+
+NTSTATUS PhpCloseServiceCallback(
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_SERVICE_ITEM serviceItem;
+
+    serviceItem = ((PPH_SERVICE_ITEM)Context);
+    PhDereferenceObject(serviceItem);
 
     return STATUS_SUCCESS;
 }
@@ -254,12 +270,9 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
             else
                 PhLoadWindowPlacementFromSetting(L"ServiceWindowPosition", NULL, GetParent(hwndDlg));
 
-            PhAddComboBoxStrings(GetDlgItem(hwndDlg, IDC_TYPE), PhServiceTypeStrings,
-                sizeof(PhServiceTypeStrings) / sizeof(WCHAR *));
-            PhAddComboBoxStrings(GetDlgItem(hwndDlg, IDC_STARTTYPE), PhServiceStartTypeStrings,
-                sizeof(PhServiceStartTypeStrings) / sizeof(WCHAR *));
-            PhAddComboBoxStrings(GetDlgItem(hwndDlg, IDC_ERRORCONTROL), PhServiceErrorControlStrings,
-                sizeof(PhServiceErrorControlStrings) / sizeof(WCHAR *));
+            PhAddComboBoxStrings(GetDlgItem(hwndDlg, IDC_TYPE), PhServiceTypeStrings, RTL_NUMBER_OF(PhServiceTypeStrings));
+            PhAddComboBoxStrings(GetDlgItem(hwndDlg, IDC_STARTTYPE), PhServiceStartTypeStrings, RTL_NUMBER_OF(PhServiceStartTypeStrings));
+            PhAddComboBoxStrings(GetDlgItem(hwndDlg, IDC_ERRORCONTROL), PhServiceErrorControlStrings, RTL_NUMBER_OF(PhServiceErrorControlStrings));
 
             PhSetDialogItemText(hwndDlg, IDC_DESCRIPTION, PhGetStringOrEmpty(serviceItem->DisplayName));
             PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_TYPE), PhGetServiceTypeString(serviceItem->Type), FALSE);
@@ -307,10 +320,8 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                 CloseServiceHandle(serviceHandle);
             }
 
-            PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_STARTTYPE), 
-                PhGetServiceStartTypeString(startType), FALSE);
-            PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_ERRORCONTROL), 
-                PhGetServiceErrorControlString(errorControl), FALSE);
+            PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_STARTTYPE), PhGetServiceStartTypeString(startType), FALSE);
+            PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_ERRORCONTROL), PhGetServiceErrorControlString(errorControl), FALSE);
 
             PhSetDialogItemText(hwndDlg, IDC_PASSWORD, L"password");
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_PASSWORDCHECK), BST_UNCHECKED);
@@ -406,27 +417,16 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                 break;
             case IDC_PERMISSIONS:
                 {
-                    PH_STD_OBJECT_SECURITY stdObjectSecurity;
-                    PPH_ACCESS_ENTRY accessEntries;
-                    ULONG numberOfAccessEntries;
+                    PhReferenceObject(context->ServiceItem);
 
-                    stdObjectSecurity.OpenObject = PhpOpenService;
-                    stdObjectSecurity.ObjectType = L"Service";
-                    stdObjectSecurity.Context = context->ServiceItem;
-
-                    if (PhGetAccessEntries(L"Service", &accessEntries, &numberOfAccessEntries))
-                    {
-                        PhEditSecurity(
-                            hwndDlg,
-                            context->ServiceItem->DisplayName->Buffer,
-                            PhStdGetObjectSecurity,
-                            PhStdSetObjectSecurity,
-                            &stdObjectSecurity,
-                            accessEntries,
-                            numberOfAccessEntries
-                            );
-                        PhFree(accessEntries);
-                    }
+                    PhEditSecurity(
+                        PhCsForceNoParent ? NULL : hwndDlg,
+                        PhGetStringOrEmpty(context->ServiceItem->DisplayName),
+                        L"Service",
+                        PhpOpenService,
+                        PhpCloseServiceCallback,
+                        context->ServiceItem
+                        );
                 }
                 break;
             }

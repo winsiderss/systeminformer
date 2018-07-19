@@ -31,6 +31,7 @@
 
 #include <actions.h>
 #include <mainwnd.h>
+#include <phsettings.h>
 #include <procmtgn.h>
 #include <procprv.h>
 #include <settings.h>
@@ -554,27 +555,14 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 break;
             case IDC_PERMISSIONS:
                 {
-                    PH_STD_OBJECT_SECURITY stdObjectSecurity;
-                    PPH_ACCESS_ENTRY accessEntries;
-                    ULONG numberOfAccessEntries;
-
-                    stdObjectSecurity.OpenObject = PhpProcessGeneralOpenProcess;
-                    stdObjectSecurity.ObjectType = L"Process";
-                    stdObjectSecurity.Context = processItem->ProcessId;
-
-                    if (PhGetAccessEntries(L"Process", &accessEntries, &numberOfAccessEntries))
-                    {
-                        PhEditSecurity(
-                            hwndDlg,
-                            processItem->ProcessName->Buffer,
-                            PhStdGetObjectSecurity,
-                            PhStdSetObjectSecurity,
-                            &stdObjectSecurity,
-                            accessEntries,
-                            numberOfAccessEntries
-                            );
-                        PhFree(accessEntries);
-                    }
+                    PhEditSecurity(
+                        PhCsForceNoParent ? NULL : hwndDlg,
+                        PhGetStringOrEmpty(processItem->ProcessName),
+                        L"Process",
+                        PhpProcessGeneralOpenProcess,
+                        NULL,
+                        processItem->ProcessId
+                        );
                 }
                 break;
             }

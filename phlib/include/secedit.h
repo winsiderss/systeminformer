@@ -23,29 +23,26 @@ HPROPSHEETPAGE
 NTAPI
 PhCreateSecurityPage(
     _In_ PWSTR ObjectName,
-    _In_ PPH_GET_OBJECT_SECURITY GetObjectSecurity,
-    _In_ PPH_SET_OBJECT_SECURITY SetObjectSecurity,
-    _In_opt_ PVOID Context,
-    _In_ PPH_ACCESS_ENTRY AccessEntries,
-    _In_ ULONG NumberOfAccessEntries
+    _In_ PWSTR ObjectType,
+    _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_ PPH_CLOSE_OBJECT CloseObject,
+    _In_opt_ PVOID Context
     );
 
 PHLIBAPI
 VOID
 NTAPI
 PhEditSecurity(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PWSTR ObjectName,
-    _In_ PPH_GET_OBJECT_SECURITY GetObjectSecurity,
-    _In_ PPH_SET_OBJECT_SECURITY SetObjectSecurity,
-    _In_opt_ PVOID Context,
-    _In_ PPH_ACCESS_ENTRY AccessEntries,
-    _In_ ULONG NumberOfAccessEntries
+    _In_ PWSTR ObjectType,
+    _In_ PPH_OPEN_OBJECT OpenCallback,
+    _In_ PPH_CLOSE_OBJECT CloseCallback,
+    _In_opt_ PVOID Context
     );
 
 typedef struct _PH_STD_OBJECT_SECURITY
 {
-    PPH_OPEN_OBJECT OpenObject;
     PWSTR ObjectType;
     PVOID Context;
 } PH_STD_OBJECT_SECURITY, *PPH_STD_OBJECT_SECURITY;
