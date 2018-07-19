@@ -30,6 +30,7 @@
 
 #include <phintrnl.h>
 #include <refp.h>
+#include <settings.h>
 #include <symprv.h>
 #include <workqueue.h>
 #include <workqueuep.h>
@@ -671,6 +672,45 @@ NTSTATUS PhpDebugConsoleThreadStart(
 
     DebugConsoleSymbolProvider = PhCreateSymbolProvider(NtCurrentProcessId());
     PhLoadSymbolProviderOptions(DebugConsoleSymbolProvider);
+
+    {
+        static UNICODE_STRING variableNameUs = RTL_CONSTANT_STRING(L"_NT_SYMBOL_PATH");
+        UNICODE_STRING variableValueUs;
+        PPH_STRING newSearchPath;
+        WCHAR buffer[MAX_PATH];
+
+        RtlInitEmptyUnicodeString(&variableValueUs, buffer, sizeof(buffer));
+
+        if (NT_SUCCESS(RtlQueryEnvironmentVariable_U(NULL, &variableNameUs, &variableValueUs)))
+        {
+            PPH_STRING currentDirectory = PhGetApplicationDirectory();
+            PPH_STRING currentSearchPath = PhGetStringSetting(L"DbgHelpSearchPath");
+
+            if (currentSearchPath->Length != 0)
+            {
+                newSearchPath = PhFormatString(
+                    L"%s;%s;%s",
+                    buffer,
+                    PhGetStringOrEmpty(currentSearchPath),
+                    PhGetStringOrEmpty(currentDirectory)
+                    );
+            }
+            else
+            {
+                newSearchPath = PhFormatString(
+                    L"%s;%s",
+                    buffer,
+                    PhGetStringOrEmpty(currentDirectory)
+                    );
+            }
+
+            PhSetSearchPathSymbolProvider(DebugConsoleSymbolProvider, PhGetString(newSearchPath));
+
+            PhDereferenceObject(newSearchPath);
+            PhDereferenceObject(currentDirectory);
+        }
+    }
+
     PhEnumGenericModules(
         NtCurrentProcessId(),
         NtCurrentProcess(),
