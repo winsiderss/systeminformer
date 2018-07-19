@@ -276,7 +276,7 @@ BOOLEAN SetupExtractBuild(
  // update.c
 
 VOID SetupShowUpdateDialog(
-    _In_ SETUP_COMMAND_TYPE SetupMode
+    VOID
     );
 
 // updatesetup.c
