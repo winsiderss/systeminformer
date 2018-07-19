@@ -65,15 +65,13 @@ CleanupExit:
 }
 
 PPH_SETUP_CONTEXT CreateUpdateContext(
-    _In_ SETUP_COMMAND_TYPE SetupMode
+    VOID
     )
 {
     PPH_SETUP_CONTEXT context;
 
     context = (PPH_SETUP_CONTEXT)PhCreateAlloc(sizeof(PH_SETUP_CONTEXT));
     memset(context, 0, sizeof(PH_SETUP_CONTEXT));
-
-    context->SetupMode = SetupMode;
 
     return context;
 }
@@ -239,7 +237,7 @@ VOID SetupShowUpdatingDialog(
     config.lpCallbackData = (LONG_PTR)Context;
     config.pszWindowTitle = PhApplicationName;
 
-    if (Context->SetupMode = SETUP_COMMAND_SILENTINSTALL)
+    if (SetupMode = SETUP_COMMAND_SILENTINSTALL)
     {
         config.pszMainInstruction = PhaFormatString(
             L"Installing Process Hacker %lu.%lu.%lu...",

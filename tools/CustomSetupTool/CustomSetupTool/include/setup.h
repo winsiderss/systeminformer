@@ -76,8 +76,6 @@ typedef enum _SETUP_COMMAND_TYPE
 
 typedef struct _PH_SETUP_CONTEXT
 {
-    SETUP_COMMAND_TYPE SetupMode;
-
     HWND DialogHandle;
     HWND PropSheetBackHandle;
     HWND PropSheetForwardHandle;
@@ -147,6 +145,7 @@ typedef struct _PH_SETUP_CONTEXT
     WNDPROC TaskDialogWndProc;
 } PH_SETUP_CONTEXT, *PPH_SETUP_CONTEXT;
 
+extern SETUP_COMMAND_TYPE SetupMode;
 extern PPH_STRING SetupInstallPath;
 
 VOID SetupLoadImage(
