@@ -177,33 +177,41 @@ BOOLEAN SetupCreateUninstallFile(
     uninstallFilePath = PhConcatStrings2(PhGetString(SetupInstallPath), L"\\processhacker-setup.exe");
 
     if (RtlDoesFileExists_U(backupFilePath->Buffer))
-    {
-        if (!NT_SUCCESS(PhDeleteFileWin32(backupFilePath->Buffer)))
-        {
-            PPH_STRING tempFileName;
-            PPH_STRING tempFilePath;
+    {    
+        PPH_STRING tempFileName;
+        PPH_STRING tempFilePath;
 
-            tempFileName = PhCreateString(L"processhacker-setup.bak");
-            tempFilePath = PhCreateCacheFile(tempFileName);
+        tempFileName = PhCreateString(L"processhacker-setup.bak");
+        tempFilePath = PhCreateCacheFile(tempFileName);
 
-            if (!MoveFile(backupFilePath->Buffer, tempFilePath->Buffer))
-            {
-                Context->ErrorCode = GetLastError();
-                return FALSE;
-            }
-
-            PhDereferenceObject(tempFilePath);
-            PhDereferenceObject(tempFileName);
-        }
-    }
-
-    if (RtlDoesFileExists_U(uninstallFilePath->Buffer))
-    {
-        if (!MoveFile(uninstallFilePath->Buffer, backupFilePath->Buffer))
+        //if (!NT_SUCCESS(PhDeleteFileWin32(backupFilePath->Buffer)))
+        if (!MoveFile(backupFilePath->Buffer, tempFilePath->Buffer))
         {
             Context->ErrorCode = GetLastError();
             return FALSE;
         }
+
+        PhDereferenceObject(tempFilePath);
+        PhDereferenceObject(tempFileName);
+    }
+
+    if (RtlDoesFileExists_U(uninstallFilePath->Buffer))
+    {
+        PPH_STRING tempFileName;
+        PPH_STRING tempFilePath;
+
+        //if (!NT_SUCCESS(PhDeleteFileWin32(uninstallFilePath->Buffer)))
+        tempFileName = PhCreateString(L"processhacker-setup.exe");
+        tempFilePath = PhCreateCacheFile(tempFileName);
+
+        if (!MoveFile(uninstallFilePath->Buffer, tempFilePath->Buffer))
+        {
+            Context->ErrorCode = GetLastError();
+            return FALSE;
+        }
+
+        PhDereferenceObject(tempFilePath);
+        PhDereferenceObject(tempFileName);
     }
 
     if (!CopyFile(currentFilePath->Buffer, uninstallFilePath->Buffer, TRUE))
