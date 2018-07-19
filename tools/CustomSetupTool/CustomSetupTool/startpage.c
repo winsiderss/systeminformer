@@ -2,8 +2,6 @@
  * Process Hacker Toolchain -
  *   project setup
  *
- * Copyright (C) 2017 dmex
- *
  * This file is part of Process Hacker.
  *
  * Process Hacker is free software; you can redistribute it and/or modify
@@ -21,6 +19,8 @@
  */
 
 #include <setup.h>
+#include <shellapi.h>
+#include <shlobj.h>
 
 VOID SetupPropSheetCenterWindow(
     _In_ PPH_SETUP_CONTEXT Context
@@ -106,6 +106,30 @@ INT_PTR CALLBACK SetupPropPage1_WndProc(
 
             switch (pageNotify->hdr.code)
             {
+            case PSN_WIZNEXT:
+                {
+                    if (!PhGetOwnTokenAttributes().Elevated)
+                    {
+                        SHELLEXECUTEINFO info = { sizeof(SHELLEXECUTEINFO) };
+                        info.lpFile = NtCurrentPeb()->ProcessParameters->ImagePathName.Buffer;
+                        info.lpParameters = NtCurrentPeb()->ProcessParameters->CommandLine.Buffer;
+                        info.lpVerb = L"runas";
+                        info.nShow = SW_SHOW;
+                        info.hwnd = hwndDlg;
+                        info.fMask = SEE_MASK_NOASYNC | SEE_MASK_FLAG_NO_UI;
+
+                        if (ShellExecuteEx(&info))
+                        {
+                            NtTerminateProcess(NtCurrentProcess(), STATUS_SUCCESS);
+                        }
+                        else
+                        {
+                            SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LPARAM)TRUE);
+                            return TRUE;
+                        }
+                    }
+                }
+                break;
             case PSN_SETACTIVE:
                 {
 //#ifdef _DEBUG
@@ -113,6 +137,11 @@ INT_PTR CALLBACK SetupPropPage1_WndProc(
 //#endif
                     // Reset the button state.
                     PropSheet_SetWizButtons(context->DialogHandle, PSWIZB_NEXT);
+
+                    if (!PhGetOwnTokenAttributes().Elevated)
+                    {
+                        Button_SetElevationRequiredState(GetDlgItem(context->DialogHandle, IDC_PROPSHEET_NEXT), TRUE);
+                    }
                 }
                 break;
             case PSN_KILLACTIVE:
