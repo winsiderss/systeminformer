@@ -893,27 +893,14 @@ INT_PTR CALLBACK PhpTokenPageProc(
                 break;
             case IDC_PERMISSIONS:
                 {
-                    PH_STD_OBJECT_SECURITY stdObjectSecurity;
-                    PPH_ACCESS_ENTRY accessEntries;
-                    ULONG numberOfAccessEntries;
-
-                    stdObjectSecurity.OpenObject = tokenPageContext->OpenObject;
-                    stdObjectSecurity.ObjectType = L"Token";
-                    stdObjectSecurity.Context = tokenPageContext->Context;
-
-                    if (PhGetAccessEntries(L"Token", &accessEntries, &numberOfAccessEntries))
-                    {
-                        PhEditSecurity(
-                            hwndDlg,
-                            L"Token",
-                            PhStdGetObjectSecurity,
-                            PhStdSetObjectSecurity,
-                            &stdObjectSecurity,
-                            accessEntries,
-                            numberOfAccessEntries
-                            );
-                        PhFree(accessEntries);
-                    }
+                    PhEditSecurity(
+                        PhCsForceNoParent ? NULL : hwndDlg,
+                        L"Token",
+                        L"Token",
+                        tokenPageContext->OpenObject,
+                        NULL,
+                        tokenPageContext->Context
+                        );
                 }
                 break;
             case IDC_INTEGRITY:

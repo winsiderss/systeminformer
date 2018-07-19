@@ -31,6 +31,7 @@
 #include <actions.h>
 #include <extmgri.h>
 #include <phplug.h>
+#include <phsettings.h>
 #include <procprv.h>
 #include <thrdlist.h>
 #include <thrdprv.h>
@@ -788,29 +789,17 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             case ID_THREAD_PERMISSIONS:
                 {
                     PPH_THREAD_ITEM threadItem = PhGetSelectedThreadItem(&threadsContext->ListContext);
-                    PH_STD_OBJECT_SECURITY stdObjectSecurity;
-                    PPH_ACCESS_ENTRY accessEntries;
-                    ULONG numberOfAccessEntries;
 
                     if (threadItem)
                     {
-                        stdObjectSecurity.OpenObject = PhpThreadPermissionsOpenThread;
-                        stdObjectSecurity.ObjectType = L"Thread";
-                        stdObjectSecurity.Context = threadItem->ThreadId;
-
-                        if (PhGetAccessEntries(L"Thread", &accessEntries, &numberOfAccessEntries))
-                        {
-                            PhEditSecurity(
-                                hwndDlg,
-                                PhaFormatString(L"Thread %u", HandleToUlong(threadItem->ThreadId))->Buffer,
-                                PhStdGetObjectSecurity,
-                                PhStdSetObjectSecurity,
-                                &stdObjectSecurity,
-                                accessEntries,
-                                numberOfAccessEntries
-                                );
-                            PhFree(accessEntries);
-                        }
+                        PhEditSecurity(
+                            PhCsForceNoParent ? NULL : hwndDlg,
+                            PhaFormatString(L"Thread %u", HandleToUlong(threadItem->ThreadId))->Buffer,
+                            L"Thread",
+                            PhpThreadPermissionsOpenThread,
+                            NULL,
+                            threadItem->ThreadId
+                            );
                     }
                 }
                 break;

@@ -74,33 +74,27 @@ static IDataObjectVtbl PhDataObject_VTable =
  * Creates a security editor page.
  *
  * \param ObjectName The name of the object.
- * \param GetObjectSecurity A callback function executed to retrieve the security descriptor of the
- * object.
- * \param SetObjectSecurity A callback function executed to modify the security descriptor of the
- * object.
+ * \param ObjectType The type name of the object.
  * \param Context A user-defined value to pass to the callback functions.
- * \param AccessEntries An array of access mask descriptors.
- * \param NumberOfAccessEntries The number of elements in \a AccessEntries.
  */
 HPROPSHEETPAGE PhCreateSecurityPage(
     _In_ PWSTR ObjectName,
-    _In_ PPH_GET_OBJECT_SECURITY GetObjectSecurity,
-    _In_ PPH_SET_OBJECT_SECURITY SetObjectSecurity,
-    _In_opt_ PVOID Context,
-    _In_ PPH_ACCESS_ENTRY AccessEntries,
-    _In_ ULONG NumberOfAccessEntries
+    _In_ PWSTR ObjectType,
+    _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_ PPH_CLOSE_OBJECT CloseObject,
+    _In_opt_ PVOID Context
     )
 {
     ISecurityInformation *info;
     HPROPSHEETPAGE page;
 
     info = PhSecurityInformation_Create(
+        NULL,
         ObjectName,
-        GetObjectSecurity,
-        SetObjectSecurity,
+        ObjectType,
+        OpenObject,
+        CloseObject,
         Context,
-        AccessEntries,
-        NumberOfAccessEntries,
         TRUE
         );
 
@@ -111,84 +105,98 @@ HPROPSHEETPAGE PhCreateSecurityPage(
     return page;
 }
 
+static NTSTATUS PhpEditSecurityInformationThread(
+    _In_opt_ PVOID Context
+    )
+{
+    PhSecurityInformation *this = (PhSecurityInformation *)Context;
+
+    if (WindowsVersion >= WINDOWS_8 && PhGetIntegerSetting(L"EnableSecurityAdvancedDialog"))
+        EditSecurityAdvanced(this->WindowHandle, Context, COMBINE_PAGE_ACTIVATION(SI_PAGE_PERM, SI_SHOW_PERM_ACTIVATED));
+    else
+        EditSecurity(this->WindowHandle, Context);
+
+    PhSecurityInformation_Release(Context);
+
+    return STATUS_SUCCESS;
+}
+
 /**
  * Displays a security editor dialog.
  *
  * \param hWnd The parent window of the dialog.
  * \param ObjectName The name of the object.
- * \param GetObjectSecurity A callback function executed to retrieve the security descriptor of the
- * object.
- * \param SetObjectSecurity A callback function executed to modify the security descriptor of the
- * object.
  * \param Context A user-defined value to pass to the callback functions.
- * \param AccessEntries An array of access mask descriptors.
- * \param NumberOfAccessEntries The number of elements in \a AccessEntries.
  */
 VOID PhEditSecurity(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PWSTR ObjectName,
-    _In_ PPH_GET_OBJECT_SECURITY GetObjectSecurity,
-    _In_ PPH_SET_OBJECT_SECURITY SetObjectSecurity,
-    _In_opt_ PVOID Context,
-    _In_ PPH_ACCESS_ENTRY AccessEntries,
-    _In_ ULONG NumberOfAccessEntries
+    _In_ PWSTR ObjectType,
+    _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_ PPH_CLOSE_OBJECT CloseObject,
+    _In_opt_ PVOID Context
     )
 {
     ISecurityInformation *info;
 
     info = PhSecurityInformation_Create(
+        WindowHandle,
         ObjectName,
-        GetObjectSecurity,
-        SetObjectSecurity,
+        ObjectType,
+        OpenObject,
+        CloseObject,
         Context,
-        AccessEntries,
-        NumberOfAccessEntries,
         FALSE
         );
 
-    if (WindowsVersion >= WINDOWS_8 && PhGetIntegerSetting(L"EnableSecurityAdvancedDialog"))
-        EditSecurityAdvanced(hWnd, info, COMBINE_PAGE_ACTIVATION(SI_PAGE_PERM, SI_SHOW_PERM_ACTIVATED));
-    else
-        EditSecurity(hWnd, info);
-
-    PhSecurityInformation_Release(info);
+    PhCreateThread2(PhpEditSecurityInformationThread, info);
 }
 
 ISecurityInformation *PhSecurityInformation_Create(
+    _In_ HWND WindowHandle,
     _In_ PWSTR ObjectName,
-    _In_ PPH_GET_OBJECT_SECURITY GetObjectSecurity,
-    _In_ PPH_SET_OBJECT_SECURITY SetObjectSecurity,
+    _In_ PWSTR ObjectType,
+    _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_ PPH_CLOSE_OBJECT CloseObject,
     _In_opt_ PVOID Context,
-    _In_ PPH_ACCESS_ENTRY AccessEntries,
-    _In_ ULONG NumberOfAccessEntries,
     _In_ BOOLEAN IsPage
     )
 {
     PhSecurityInformation *info;
+    PPH_ACCESS_ENTRY accessEntries;
+    ULONG numberOfAccessEntries;
     ULONG i;
 
     info = PhAllocate(sizeof(PhSecurityInformation));
     info->VTable = &PhSecurityInformation_VTable;
     info->RefCount = 1;
 
+    info->WindowHandle = WindowHandle;
     info->ObjectName = PhCreateString(ObjectName);
-    info->GetObjectSecurity = GetObjectSecurity;
-    info->SetObjectSecurity = SetObjectSecurity;
-    info->Context = Context;
-    info->AccessEntries = PhAllocate(sizeof(SI_ACCESS) * NumberOfAccessEntries);
-    info->NumberOfAccessEntries = NumberOfAccessEntries;
+    info->ObjectType = PhCreateString(ObjectType);
+    info->OpenObject = OpenObject;
+    info->CloseObject = CloseObject;
+    info->Context = Context;  
     info->IsPage = IsPage;
 
-    for (i = 0; i < NumberOfAccessEntries; i++)
+    if (PhGetAccessEntries(ObjectType, &accessEntries, &numberOfAccessEntries))
     {
-        memset(&info->AccessEntries[i], 0, sizeof(SI_ACCESS));
-        info->AccessEntries[i].pszName = AccessEntries[i].Name;
-        info->AccessEntries[i].mask = AccessEntries[i].Access;
+        info->AccessEntries = PhAllocate(sizeof(SI_ACCESS) * numberOfAccessEntries);
+        info->NumberOfAccessEntries = numberOfAccessEntries;
 
-        if (AccessEntries[i].General)
-            info->AccessEntries[i].dwFlags |= SI_ACCESS_GENERAL;
-        if (AccessEntries[i].Specific)
-            info->AccessEntries[i].dwFlags |= SI_ACCESS_SPECIFIC;
+        for (i = 0; i < numberOfAccessEntries; i++)
+        {
+            memset(&info->AccessEntries[i], 0, sizeof(SI_ACCESS));
+            info->AccessEntries[i].pszName = accessEntries[i].Name;
+            info->AccessEntries[i].mask = accessEntries[i].Access;
+
+            if (accessEntries[i].General)
+                info->AccessEntries[i].dwFlags |= SI_ACCESS_GENERAL;
+            if (accessEntries[i].Specific)
+                info->AccessEntries[i].dwFlags |= SI_ACCESS_SPECIFIC;
+        }
+
+        info->AccessEntriesArray = accessEntries;
     }
 
     return (ISecurityInformation *)info;
@@ -249,8 +257,17 @@ ULONG STDMETHODCALLTYPE PhSecurityInformation_Release(
 
     if (this->RefCount == 0)
     {
-        if (this->ObjectName) PhDereferenceObject(this->ObjectName);
-        PhFree(this->AccessEntries);
+        if (this->CloseObject)
+            this->CloseObject(this->Context);
+
+        if (this->ObjectName) 
+            PhDereferenceObject(this->ObjectName);
+        if (this->ObjectType)
+            PhDereferenceObject(this->ObjectType);
+        if (this->AccessEntries) 
+            PhFree(this->AccessEntries);
+        if (this->AccessEntriesArray)
+            PhFree(this->AccessEntriesArray);
 
         PhFree(this);
 
@@ -268,8 +285,8 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_GetObjectInformation(
     PhSecurityInformation *this = (PhSecurityInformation *)This;
 
     memset(ObjectInfo, 0, sizeof(SI_OBJECT_INFO));
-    ObjectInfo->dwFlags = SI_EDIT_ALL | SI_ADVANCED;
-    ObjectInfo->pszObjectName = this->ObjectName->Buffer;
+    ObjectInfo->dwFlags = SI_EDIT_ALL | SI_ADVANCED | SI_MAY_WRITE;
+    ObjectInfo->pszObjectName = PhGetString(this->ObjectName);
 
     return S_OK;
 }
@@ -287,10 +304,10 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_GetSecurity(
     ULONG sdLength;
     PSECURITY_DESCRIPTOR newSd;
 
-    status = this->GetObjectSecurity(
+    status = PhStdGetObjectSecurity(
         &securityDescriptor,
         RequestedInformation,
-        this->Context
+        this
         );
 
     if (!NT_SUCCESS(status))
@@ -315,10 +332,10 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_SetSecurity(
     PhSecurityInformation *this = (PhSecurityInformation *)This;
     NTSTATUS status;
 
-    status = this->SetObjectSecurity(
+    status = PhStdSetObjectSecurity(
         SecurityDescriptor,
         SecurityInformation,
-        this->Context
+        this
         );
 
     if (!NT_SUCCESS(status))
@@ -520,23 +537,24 @@ HRESULT STDMETHODCALLTYPE PhSecurityDataObject_GetData(
 {
     PhSecurityIDataObject *this = (PhSecurityIDataObject *)This;
     PSID_INFO_LIST sidInfoList;
+    ULONG i;
 
     sidInfoList = (PSID_INFO_LIST)GlobalAlloc(GMEM_ZEROINIT, sizeof(SID_INFO_LIST) + (sizeof(SID_INFO) * this->SidCount));
     sidInfoList->cItems = this->SidCount;
 
-    for (ULONG i = 0; i < this->SidCount; i++)
+    for (i = 0; i < this->SidCount; i++)
     {
         SID_INFO sidInfo;
         PPH_STRING sidString;
-        SID_NAME_USE sidUse;
+        SID_NAME_USE sidNameUse;
 
         memset(&sidInfo, 0, sizeof(SID_INFO));
 
         sidInfo.pSid = this->Sids[i];
 
-        if (sidString = PhGetSidFullName(sidInfo.pSid, FALSE, &sidUse))
+        if (sidString = PhGetSidFullName(sidInfo.pSid, FALSE, &sidNameUse))
         {
-            switch (sidUse)
+            switch (sidNameUse)
             {
             case SidTypeUser:
             case SidTypeLogonSession:
@@ -715,27 +733,25 @@ _Callback_ NTSTATUS PhStdGetObjectSecurity(
     _In_opt_ PVOID Context
     )
 {
+    PhSecurityInformation *this = (PhSecurityInformation *)Context;
     NTSTATUS status;
-    PPH_STD_OBJECT_SECURITY stdObjectSecurity;
     HANDLE handle;
 
-    stdObjectSecurity = (PPH_STD_OBJECT_SECURITY)Context;
-
-    status = stdObjectSecurity->OpenObject(
+    status = this->OpenObject(
         &handle,
         PhGetAccessForGetSecurity(SecurityInformation),
-        stdObjectSecurity->Context
+        this->Context
         );
 
     if (!NT_SUCCESS(status))
         return status;
 
-    if (PhEqualStringZ(stdObjectSecurity->ObjectType, L"Service", TRUE))
+    if (PhEqualString2(this->ObjectType, L"Service", TRUE))
     {
         status = PhGetSeObjectSecurity(handle, SE_SERVICE, SecurityInformation, SecurityDescriptor);
         CloseServiceHandle(handle);
     }
-    else if (PhEqualStringZ(stdObjectSecurity->ObjectType, L"File", TRUE))
+    else if (PhEqualString2(this->ObjectType, L"File", TRUE))
     {
         status = PhpGetObjectSecurityWithTimeout(handle, SecurityInformation, SecurityDescriptor);
         NtClose(handle);
@@ -765,22 +781,20 @@ _Callback_ NTSTATUS PhStdSetObjectSecurity(
     _In_opt_ PVOID Context
     )
 {
+    PhSecurityInformation *this = (PhSecurityInformation *)Context;
     NTSTATUS status;
-    PPH_STD_OBJECT_SECURITY stdObjectSecurity;
     HANDLE handle;
 
-    stdObjectSecurity = (PPH_STD_OBJECT_SECURITY)Context;
-
-    status = stdObjectSecurity->OpenObject(
+    status = this->OpenObject(
         &handle,
         PhGetAccessForSetSecurity(SecurityInformation),
-        stdObjectSecurity->Context
+        this->Context
         );
 
     if (!NT_SUCCESS(status))
         return status;
 
-    if (PhEqualStringZ(stdObjectSecurity->ObjectType, L"Service", TRUE))
+    if (PhEqualString2(this->ObjectType, L"Service", TRUE))
     {
         status = PhSetSeObjectSecurity(handle, SE_SERVICE, SecurityInformation, SecurityDescriptor);
         CloseServiceHandle(handle);
@@ -831,10 +845,10 @@ NTSTATUS PhSetSeObjectSecurity(
     _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
     )
 {
-    ULONG win32Result;
+    ULONG win32Result = NO_ERROR;
     SECURITY_INFORMATION securityInformation = 0;
-    BOOLEAN present;
-    BOOLEAN defaulted;
+    BOOLEAN present = FALSE;
+    BOOLEAN defaulted = FALSE;
     PSID owner = NULL;
     PSID group = NULL;
     PACL dacl = NULL;

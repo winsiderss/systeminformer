@@ -493,9 +493,6 @@ VOID PhpShowJobAdvancedProperties(
     PROPSHEETHEADER propSheetHeader = { sizeof(propSheetHeader) };
     HPROPSHEETPAGE pages[2];
     PROPSHEETPAGE statisticsPage;
-    PH_STD_OBJECT_SECURITY stdObjectSecurity;
-    PPH_ACCESS_ENTRY accessEntries;
-    ULONG numberOfAccessEntries;
 
     propSheetHeader.dwFlags =
         PSH_NOAPPLYNOW |
@@ -520,22 +517,13 @@ VOID PhpShowJobAdvancedProperties(
 
     // Security
 
-    stdObjectSecurity.OpenObject = Context->OpenObject;
-    stdObjectSecurity.ObjectType = L"Job";
-    stdObjectSecurity.Context = Context->Context;
-
-    if (PhGetAccessEntries(L"Job", &accessEntries, &numberOfAccessEntries))
-    {
-        pages[1] = PhCreateSecurityPage(
-            L"Job",
-            PhStdGetObjectSecurity,
-            PhStdSetObjectSecurity,
-            &stdObjectSecurity,
-            accessEntries,
-            numberOfAccessEntries
-            );
-        PhFree(accessEntries);
-    }
+    pages[1] = PhCreateSecurityPage(
+        L"Job",
+        L"Job",
+        Context->OpenObject,
+        NULL,
+        Context->Context
+        );
 
     PhModalPropertySheet(&propSheetHeader);
 }
