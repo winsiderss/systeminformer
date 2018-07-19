@@ -318,7 +318,8 @@ VOID SetupStartService(
 }
 
 VOID SetupStopService(
-    _In_ PWSTR ServiceName
+    _In_ PWSTR ServiceName,
+    _In_ BOOLEAN RemoveService
     )
 {
     SC_HANDLE serviceHandle;
@@ -374,8 +375,11 @@ VOID SetupStopService(
                 } while (--attempts != 0);
             }
         }
-
-        DeleteService(serviceHandle);
+        
+        if (RemoveService)
+        {
+            DeleteService(serviceHandle);
+        }
        
         CloseServiceHandle(serviceHandle);
     }
@@ -427,7 +431,7 @@ VOID SetupStartKph(
             if (PhShellExecuteEx(
                 NULL,
                 PhGetString(clientPath),
-                L"-installkph",
+                L"-installkph -s",
                 SW_NORMAL,
                 0,
                 0,
@@ -453,8 +457,16 @@ BOOLEAN SetupUninstallKph(
     Context->SetupKphInstallRequired = SetupKphCheckInstallState();
 
     // Stop and uninstall the current installation.
-    SetupStopService(L"KProcessHacker2");
-    SetupStopService(L"KProcessHacker3");
+    if (SetupMode == SETUP_COMMAND_UPDATE)
+    {        
+        SetupStopService(L"KProcessHacker2", TRUE);
+        SetupStopService(L"KProcessHacker3", FALSE);
+    }
+    else
+    {
+        SetupStopService(L"KProcessHacker2", TRUE);
+        SetupStopService(L"KProcessHacker3", TRUE);
+    }
 
     return TRUE;
 }
