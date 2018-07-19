@@ -1141,6 +1141,7 @@ namespace CustomBuildTool
             if (string.IsNullOrEmpty(buildPostString))
                 return false;
 
+            Console.Write(Environment.NewLine);
             Program.PrintColorMessage("Updating Build WebService... " + BuildVersion, ConsoleColor.Cyan);
 
             try
@@ -1288,7 +1289,7 @@ namespace CustomBuildTool
             {
                 foreach (string file in Build_Nightly_Files)
                 {
-                    var sourceFile = BuildOutputFolder + file;
+                    string sourceFile = BuildOutputFolder + file;
 
                     if (File.Exists(sourceFile))
                     {
