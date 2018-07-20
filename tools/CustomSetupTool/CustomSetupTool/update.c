@@ -33,13 +33,11 @@ NTSTATUS SetupUpdateBuild(
     if (!ShutdownProcessHacker())
         goto CleanupExit;
 
-    if (!SetupUninstallKph(Context))
-        goto CleanupExit;
-
     if (!SetupCreateUninstallFile(Context))
         goto CleanupExit;
 
-    //SetupCreateUninstallKey(Context);
+    if (!SetupUninstallKph(Context))
+        goto CleanupExit;
 
     if (!SetupExtractBuild(Context))
         goto CleanupExit;
@@ -237,7 +235,7 @@ VOID SetupShowUpdatingDialog(
     config.lpCallbackData = (LONG_PTR)Context;
     config.pszWindowTitle = PhApplicationName;
 
-    if (SetupMode = SETUP_COMMAND_SILENTINSTALL)
+    if (SetupMode == SETUP_COMMAND_SILENTINSTALL)
     {
         config.pszMainInstruction = PhaFormatString(
             L"Installing Process Hacker %lu.%lu.%lu...",
