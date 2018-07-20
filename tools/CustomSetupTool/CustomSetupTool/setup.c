@@ -324,12 +324,10 @@ VOID SetupStopService(
 {
     SC_HANDLE serviceHandle;
 
-    serviceHandle = PhOpenService(
+    if (serviceHandle = PhOpenService(
         ServiceName,
-        SERVICE_QUERY_STATUS | SERVICE_STOP | DELETE
-        );
-
-    if (serviceHandle)
+        SERVICE_QUERY_STATUS | SERVICE_STOP
+        ))
     {
         ULONG statusLength = 0;
         SERVICE_STATUS_PROCESS status;
@@ -375,13 +373,20 @@ VOID SetupStopService(
                 } while (--attempts != 0);
             }
         }
-        
-        if (RemoveService)
+
+        CloseServiceHandle(serviceHandle);
+    }
+
+    if (RemoveService)
+    {
+        if (serviceHandle = PhOpenService(
+            ServiceName,
+            DELETE
+            ))
         {
             DeleteService(serviceHandle);
+            CloseServiceHandle(serviceHandle);
         }
-       
-        CloseServiceHandle(serviceHandle);
     }
 }
 
