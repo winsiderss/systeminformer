@@ -225,38 +225,6 @@ NTSTATUS PhCommandModeStart(
                 NtClose(processHandle);
             }
         }
-        //else if (PhEqualString2(PhStartupParameters.CommandAction, L"unloaddll", TRUE))
-        //{
-        //    if (!PhStartupParameters.CommandValue)
-        //        return STATUS_INVALID_PARAMETER;
-        //
-        //    if (NT_SUCCESS(status = PhOpenProcessPublic(
-        //        &processHandle,
-        //        ProcessQueryAccess | PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION | PROCESS_VM_READ | PROCESS_VM_WRITE,
-        //        processId
-        //        )))
-        //    {
-        //        PVOID baseAddress;
-        //
-        //        if (NT_SUCCESS(status = PhpGetDllBaseRemote(
-        //            processHandle,
-        //            &PhStartupParameters.CommandValue->sr,
-        //            &baseAddress
-        //            )))
-        //        {
-        //            LARGE_INTEGER timeout;
-        //
-        //            timeout.QuadPart = -(LONGLONG)UInt32x32To64(5, PH_TIMEOUT_SEC);
-        //            status = PhUnloadDllProcess(
-        //                processHandle,
-        //                baseAddress,
-        //                &timeout
-        //                );
-        //        }
-        //
-        //        NtClose(processHandle);
-        //    }
-        //}
     }
     else if (PhEqualString2(PhStartupParameters.CommandType, L"service", TRUE))
     {
