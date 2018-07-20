@@ -75,7 +75,6 @@ PH_MWP_NOTIFICATION_DETAILS PhMwpLastNotificationDetails;
 
 static BOOLEAN NeedsMaximize = FALSE;
 static BOOLEAN AlwaysOnTop = FALSE;
-
 static BOOLEAN DelayedLoadCompleted = FALSE;
 
 static PH_CALLBACK_DECLARE(LayoutPaddingCallback);
@@ -2325,7 +2324,7 @@ VOID PhMwpInitializeMainMenu(
 
     for (i = 0; i < RTL_NUMBER_OF(SubMenuHandles); i++)
     {
-        SubMenuHandles[i] = GetSubMenu(PhMainWndMenuHandle, i);
+        SubMenuHandles[i] = GetSubMenu(Menu, i);
     }
 }
 
