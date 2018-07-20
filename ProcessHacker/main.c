@@ -358,7 +358,7 @@ VOID PhUnregisterDialog(
         PhRemoveItemList(DialogList, indexOfDialog);
 }
 
-struct _PH_MESSAGE_LOOP_FILTER_ENTRY *PhRegisterMessageLoopFilter(
+PPH_MESSAGE_LOOP_FILTER_ENTRY PhRegisterMessageLoopFilter(
     _In_ PPH_MESSAGE_LOOP_FILTER Filter,
     _In_opt_ PVOID Context
     )
@@ -377,7 +377,7 @@ struct _PH_MESSAGE_LOOP_FILTER_ENTRY *PhRegisterMessageLoopFilter(
 }
 
 VOID PhUnregisterMessageLoopFilter(
-    _In_ struct _PH_MESSAGE_LOOP_FILTER_ENTRY *FilterEntry
+    _In_ PPH_MESSAGE_LOOP_FILTER_ENTRY FilterEntry
     )
 {
     ULONG indexOfFilter;

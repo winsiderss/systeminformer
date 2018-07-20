@@ -2393,16 +2393,6 @@ IDB_SEARCH_ACTIVE       PNG                     "resources\\active_search.png"
 IDB_SEARCH_INACTIVE     PNG                     "resources\\inactive_search.png"
 
 
-/////////////////////////////////////////////////////////////////////////////
-//
-// AFX_DIALOG_LAYOUT
-//
-
-IDD_OPTGENERAL AFX_DIALOG_LAYOUT
-BEGIN
-    0
-END
-
 #endif    // English (Australia) resources
 /////////////////////////////////////////////////////////////////////////////
 
