@@ -254,7 +254,7 @@ VOID PhLoadPlugins(
 
         if (applicationDirectory = PhGetApplicationDirectory())
         {
-           PhMoveReference(&PluginsDirectory, PhConcatStrings( // Not absolute. Make sure it is.
+           PhMoveReference(&pluginsDirectory, PhConcatStrings( // Not absolute. Make sure it is.
                 4,
                 applicationDirectory->Buffer,
                 L"\\",
@@ -262,7 +262,7 @@ VOID PhLoadPlugins(
                 L"\\"
                 ));
 
-            PhDereferenceObject(pluginsDirectory);
+            PhDereferenceObject(applicationDirectory);
         }
     }
 
