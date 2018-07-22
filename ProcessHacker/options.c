@@ -1208,7 +1208,11 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                 CurrentFontInstance = CreateFontIndirect(&font);
 
                 if (CurrentFontInstance)
+                {
+                    SendMessage(OptionsTreeControl, WM_SETFONT, (WPARAM)CurrentFontInstance, TRUE); // HACK
+                    SendMessage(listviewHandle, WM_SETFONT, (WPARAM)CurrentFontInstance, TRUE);
                     SendMessage(GetDlgItem(hwndDlg, IDC_FONT), WM_SETFONT, (WPARAM)CurrentFontInstance, TRUE);
+                }
             }
 
             PhpAdvancedPageLoad(hwndDlg);
@@ -1270,7 +1274,11 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                             DeleteObject(CurrentFontInstance);
 
                         CurrentFontInstance = CreateFontIndirect(&font);
+
+                        SendMessage(OptionsTreeControl, WM_SETFONT, (WPARAM)CurrentFontInstance, TRUE); // HACK
+                        SendMessage(GetDlgItem(hwndDlg, IDC_SETTINGS), WM_SETFONT, (WPARAM)CurrentFontInstance, TRUE);
                         SendMessage(GetDlgItem(hwndDlg, IDC_FONT), WM_SETFONT, (WPARAM)CurrentFontInstance, TRUE);
+                        RestartRequired = TRUE; // HACK: Fix ToolStatus plugin toolbar resize on font change
                     }
                 }
                 break;
