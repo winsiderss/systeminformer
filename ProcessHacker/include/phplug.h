@@ -50,18 +50,17 @@ typedef enum _PH_GENERAL_CALLBACK
     GeneralCallbackProcessProviderModifiedEvent, // [process provider thread]
     GeneralCallbackProcessProviderRemovedEvent, // [process provider thread]
     GeneralCallbackProcessProviderUpdatedEvent, // [process provider thread]
-
     GeneralCallbackServiceProviderAddedEvent, // [service provider thread]
     GeneralCallbackServiceProviderModifiedEvent, // [service provider thread]
     GeneralCallbackServiceProviderRemovedEvent, // [service provider thread]
     GeneralCallbackServiceProviderUpdatedEvent, // [service provider thread]
-
     GeneralCallbackNetworkProviderAddedEvent, // [network provider thread]
     GeneralCallbackNetworkProviderModifiedEvent, // [network provider thread]
     GeneralCallbackNetworkProviderRemovedEvent, // [network provider thread]
     GeneralCallbackNetworkProviderUpdatedEvent, // [network provider thread]
 
     GeneralCallbackTrayIconsInitializing,
+    GeneralCallbackWindowNotifyEvent,
     GeneralCallbackMaximum
 } PH_GENERAL_CALLBACK, *PPH_GENERAL_CALLBACK;
 
@@ -738,6 +737,68 @@ PhPluginCallPhSvc(
     _Out_writes_bytes_opt_(OutLength) PVOID OutBuffer,
     _In_ ULONG OutLength
     );
+
+typedef enum _PH_PLUGIN_WINDOW_EVENT_TYPE
+{
+    PH_PLUGIN_WINDOW_EVENT_TYPE_NONE,
+    PH_PLUGIN_WINDOW_EVENT_TYPE_TOPMOST,
+    PH_PLUGIN_WINDOW_EVENT_TYPE_FONT,
+    PH_PLUGIN_WINDOW_EVENT_TYPE_MAX
+} PH_PLUGIN_WINDOW_EVENT_TYPE;
+
+typedef struct _PH_PLUGIN_WINDOW_CALLBACK_REGISTRATION
+{
+    HWND WindowHandle;
+    PH_PLUGIN_WINDOW_EVENT_TYPE Type;
+    PH_CALLBACK_REGISTRATION Registration;
+} PH_PLUGIN_WINDOW_CALLBACK_REGISTRATION, *PPH_PLUGIN_WINDOW_CALLBACK_REGISTRATION;
+
+typedef struct _PH_PLUGIN_WINDOW_NOTIFY_EVENT
+{
+    PH_PLUGIN_WINDOW_EVENT_TYPE Type;
+    union
+    {
+        BOOLEAN TopMost;
+        HFONT FontHandle;
+    };
+} PH_PLUGIN_WINDOW_NOTIFY_EVENT, *PPH_PLUGIN_WINDOW_NOTIFY_EVENT;
+
+typedef struct _PH_PLUGIN_MAINWINDOW_NOTIFY_EVENT
+{
+    PPH_PLUGIN_WINDOW_NOTIFY_EVENT Event;
+    PPH_PLUGIN_WINDOW_CALLBACK_REGISTRATION Callback;
+} PH_PLUGIN_MAINWINDOW_NOTIFY_EVENT, *PPH_PLUGIN_MAINWINDOW_NOTIFY_EVENT;
+
+PHAPPAPI
+PPH_PLUGIN_WINDOW_CALLBACK_REGISTRATION
+NTAPI
+PhRegisterWindowNotifyEvents(
+    _In_ HWND WindowHandle,
+    _In_ PH_PLUGIN_WINDOW_EVENT_TYPE Type
+    );
+
+PHAPPAPI
+VOID
+NTAPI
+PhUnregisterWindowNotifyEvents(
+    _In_ HWND WindowHandle,
+    _In_ PPH_PLUGIN_WINDOW_CALLBACK_REGISTRATION Callback
+    );
+
+PHAPPAPI
+VOID
+NTAPI
+PhWindowNotifyTopMostEvent(
+    _In_ BOOLEAN TopMost
+    );
+
+PHAPPAPI
+VOID
+NTAPI
+PhWindowNotifyFontUpdateEvent(
+    _In_ HFONT FontHandle
+    );
+
 // end_phapppub
 
 #endif
