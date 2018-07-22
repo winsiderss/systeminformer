@@ -51,7 +51,7 @@ INT NTAPI PhpPluginsCompareFunction(
     _In_ PPH_AVL_LINKS Links2
     );
 
-BOOLEAN PhLoadPlugin(
+NTSTATUS PhLoadPlugin(
     _In_ PPH_STRING FileName
     );
 
@@ -61,10 +61,8 @@ VOID PhpExecuteCallbackForAllPlugins(
     );
 
 PH_AVL_TREE PhPluginsByName = PH_AVL_TREE_INIT(PhpPluginsCompareFunction);
-
 static PH_CALLBACK GeneralCallbacks[GeneralCallbackMaximum];
 static PPH_STRING PluginsDirectory;
-static PPH_LIST LoadErrors;
 static ULONG NextPluginId = IDPLUGINS + 1;
 
 VOID PhPluginsInitialization(
@@ -211,6 +209,10 @@ static BOOLEAN EnumPluginsDirectoryCallback(
     baseName.Buffer = Information->FileName;
     baseName.Length = Information->FileNameLength;
 
+    // dmex: make sure we have a valid file extension and not something like ".dll_"
+    //if (!PhEndsWithStringRef2(&baseName, L".dll", FALSE))
+    //    return TRUE;
+
     for (ULONG i = 0; i < RTL_NUMBER_OF(PhpPluginBlocklist); i++)
     {
         if (PhEndsWithStringRef2(&baseName, PhpPluginBlocklist[i], TRUE))
@@ -228,7 +230,27 @@ static BOOLEAN EnumPluginsDirectoryCallback(
     }
     else if (!PhIsPluginDisabled(&baseName))
     {
-        PhLoadPlugin(fileName);
+        NTSTATUS status;
+
+        status = PhLoadPlugin(fileName);
+
+        if (!NT_SUCCESS(status))
+        {
+            PPH_LIST pluginLoadErrors = Context;
+            PPHP_PLUGIN_LOAD_ERROR loadError;
+            PPH_STRING errorMessage;
+
+            loadError = PhAllocate(sizeof(PHP_PLUGIN_LOAD_ERROR));
+            PhSetReference(&loadError->FileName, fileName);
+
+            if (errorMessage = PhGetNtMessage(status))
+            {
+                PhSetReference(&loadError->ErrorMessage, errorMessage);
+                PhDereferenceObject(errorMessage);
+            }
+
+            PhAddItemList(pluginLoadErrors, loadError);
+        }
     }
 
     PhDereferenceObject(fileName);
@@ -243,9 +265,12 @@ VOID PhLoadPlugins(
     VOID
     )
 {
+    ULONG i;
     HANDLE pluginsDirectoryHandle;
     PPH_STRING pluginsDirectory;
+    PPH_LIST pluginLoadErrors;
 
+    pluginLoadErrors = PhCreateList(1);
     pluginsDirectory = PhGetStringSetting(L"PluginsDirectory");
 
     if (RtlDetermineDosPathNameType_U(pluginsDirectory->Buffer) == RtlPathTypeRelative)
@@ -283,38 +308,86 @@ VOID PhLoadPlugins(
     {
         UNICODE_STRING pattern = RTL_CONSTANT_STRING(L"*.dll");
 
-        PhEnumDirectoryFile(pluginsDirectoryHandle, &pattern, EnumPluginsDirectoryCallback, NULL);
+        PhEnumDirectoryFile(pluginsDirectoryHandle, &pattern, EnumPluginsDirectoryCallback, pluginLoadErrors);
         NtClose(pluginsDirectoryHandle);
     }
 
     // Handle load errors.
     // In certain startup modes we want to ignore all plugin load errors.
-    if (LoadErrors && LoadErrors->Count != 0 && !PhStartupParameters.PhSvc)
+    if (pluginLoadErrors->Count != 0 && !PhStartupParameters.PhSvc)
     {
-        PH_STRING_BUILDER sb;
-        ULONG i;
+        PH_STRING_BUILDER stringBuilder;
         PPHP_PLUGIN_LOAD_ERROR loadError;
         PPH_STRING baseName;
+        TASKDIALOGCONFIG config = { sizeof(TASKDIALOGCONFIG) };
+        TASKDIALOG_BUTTON buttons[2];
+        INT result;
 
-        PhInitializeStringBuilder(&sb, 100);
+        PhInitializeStringBuilder(&stringBuilder, 100);
 
-        for (i = 0; i < LoadErrors->Count; i++)
+        for (i = 0; i < pluginLoadErrors->Count; i++)
         {
-            loadError = LoadErrors->Items[i];
+            loadError = pluginLoadErrors->Items[i];
             baseName = PhGetBaseName(loadError->FileName);
-            PhAppendFormatStringBuilder(&sb, L"%s: %s\n",
-                baseName->Buffer, PhGetStringOrDefault(loadError->ErrorMessage, L"An unknown error occurred."));
+
+            PhAppendFormatStringBuilder(
+                &stringBuilder,
+                L"%s: %s\n",
+                baseName->Buffer, 
+                PhGetStringOrDefault(loadError->ErrorMessage, L"An unknown error occurred.")
+                );
+
             PhDereferenceObject(baseName);
         }
 
-        PhShowError2(
-            NULL, 
-            L"Unable to load the following plugin(s)",
-            L"%s",
-            sb.String->Buffer
-            );
+        config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION;
+        config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
+        config.pszWindowTitle = PhApplicationName;
+        config.pszMainIcon = TD_ERROR_ICON;
+        config.pszMainInstruction = L"Unable to load the following plugin(s)";
+        config.pszContent = PhGetString(PhFinalStringBuilderString(&stringBuilder));
 
-        PhDeleteStringBuilder(&sb);
+        buttons[0].nButtonID = IDYES;
+        buttons[0].pszButtonText = L"Delete plugins";
+        buttons[1].nButtonID = IDNO;
+        buttons[1].pszButtonText = L"Disable plugins";
+
+        config.cButtons = 2;
+        config.pButtons = buttons;
+        config.nDefaultButton = IDCANCEL;
+
+        if (TaskDialogIndirect(
+            &config,
+            &result,
+            NULL,
+            NULL
+            ) == S_OK)
+        {
+            switch (result)
+            {
+            case IDNO:
+                for (i = 0; i < pluginLoadErrors->Count; i++)
+                {
+                    loadError = pluginLoadErrors->Items[i];
+                    baseName = PhGetBaseName(loadError->FileName);
+
+                    PhSetPluginDisabled(&baseName->sr, TRUE);
+
+                    PhDereferenceObject(baseName);
+                }
+                break;
+            case IDYES:
+                for (i = 0; i < pluginLoadErrors->Count; i++)
+                {
+                    loadError = pluginLoadErrors->Items[i];
+
+                    PhDeleteFileWin32(loadError->FileName->Buffer);
+                }
+                break;
+            }
+        }
+
+        PhDeleteStringBuilder(&stringBuilder);
     }
 
     // When we loaded settings before, we didn't know about plugin settings, so they
@@ -325,6 +398,22 @@ VOID PhLoadPlugins(
         PhConvertIgnoredSettings();
 
     PhpExecuteCallbackForAllPlugins(PluginCallbackLoad, TRUE);
+
+    for (i = 0; i < pluginLoadErrors->Count; i++)
+    {
+        PPHP_PLUGIN_LOAD_ERROR loadError;
+
+        loadError = pluginLoadErrors->Items[i];
+
+        if (loadError->FileName)
+            PhDereferenceObject(loadError->FileName);
+        if (loadError->ErrorMessage)
+            PhDereferenceObject(loadError->ErrorMessage);
+
+        PhFree(loadError);
+    }
+
+    PhDereferenceObject(pluginLoadErrors);
 }
 
 /**
@@ -342,44 +431,27 @@ VOID PhUnloadPlugins(
  *
  * \param FileName The full file name of the plugin.
  */
-BOOLEAN PhLoadPlugin(
+NTSTATUS PhLoadPlugin(
     _In_ PPH_STRING FileName
     )
 {
     NTSTATUS status;
     PPH_STRING fileName;
-    PPH_STRING errorMessage;
-    PPHP_PLUGIN_LOAD_ERROR loadError;
 
-    fileName = PhGetFullPath(FileName->Buffer, NULL);
-
-    if (!fileName)
-        PhSetReference(&fileName, FileName);
-
-    status = PhLoadPluginImage(fileName, NULL);
+    status = PhGetFullPathEx(
+        FileName->Buffer, 
+        NULL,
+        &fileName
+        );
 
     if (NT_SUCCESS(status))
     {
+        status = PhLoadPluginImage(fileName, NULL);
+
         PhDereferenceObject(fileName);
-        return TRUE;
     }
 
-    errorMessage = PhGetNtMessage(status);
-
-    loadError = PhAllocate(sizeof(PHP_PLUGIN_LOAD_ERROR));
-    PhSetReference(&loadError->FileName, fileName);
-    PhSetReference(&loadError->ErrorMessage, errorMessage);
-
-    if (!LoadErrors)
-        LoadErrors = PhCreateList(2);
-
-    PhAddItemList(LoadErrors, loadError);
-
-    if (errorMessage)
-        PhDereferenceObject(errorMessage);
-
-    PhDereferenceObject(fileName);
-    return FALSE;
+    return status;
 }
 
 VOID PhpExecuteCallbackForAllPlugins(
