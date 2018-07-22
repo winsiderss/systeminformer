@@ -1881,6 +1881,59 @@ PPH_STRING PhGetFullPath(
     return fullPath;
 }
 
+NTSTATUS PhGetFullPathEx(
+    _In_ PWSTR FileName,
+    _Out_opt_ PULONG IndexOfFileName,
+    _Out_ PPH_STRING *FullPath
+    )
+{
+    NTSTATUS status;
+    PPH_STRING fullPath;
+    ULONG bufferSize;
+    ULONG returnLength;
+    PWSTR filePart;
+
+    bufferSize = 0x80;
+    fullPath = PhCreateStringEx(NULL, bufferSize * sizeof(WCHAR));
+
+    status = RtlGetFullPathName_UEx(FileName, bufferSize, fullPath->Buffer, &filePart, &returnLength);
+
+    if (returnLength > bufferSize)
+    {
+        PhDereferenceObject(fullPath);
+        bufferSize = returnLength;
+        fullPath = PhCreateStringEx(NULL, bufferSize * sizeof(WCHAR));
+
+        status = RtlGetFullPathName_UEx(FileName, bufferSize, fullPath->Buffer, &filePart, &returnLength);
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhDereferenceObject(fullPath);
+        return status;
+    }
+
+    PhTrimToNullTerminatorString(fullPath);
+
+    if (IndexOfFileName)
+    {
+        if (filePart)
+        {
+            // The path points to a file.
+            *IndexOfFileName = (ULONG)(filePart - fullPath->Buffer);
+        }
+        else
+        {
+            // The path points to a directory.
+            *IndexOfFileName = -1;
+        }
+    }
+
+    *FullPath = fullPath;
+
+    return status;
+}
+
 /**
  * Expands environment variables in a string.
  *

@@ -563,6 +563,15 @@ PhGetFullPath(
     );
 
 PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetFullPathEx(
+    _In_ PWSTR FileName,
+    _Out_opt_ PULONG IndexOfFileName,
+    _Out_ PPH_STRING *FullPath
+    );
+
+PHLIBAPI
 PPH_STRING
 NTAPI
 PhExpandEnvironmentStrings(
