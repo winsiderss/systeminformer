@@ -244,9 +244,9 @@ typedef struct _PH_MODULES_CONTEXT
     PH_PROVIDER_EVENT_QUEUE EventQueue;
     NTSTATUS LastRunStatus;
     PPH_STRING ErrorMessage;
-
     PPH_STRING SearchboxText;
     PPH_TN_FILTER_ENTRY FilterEntry;
+    struct _PH_PLUGIN_WINDOW_CALLBACK_REGISTRATION *WindowCallback;
 // begin_phapppub
 } PH_MODULES_CONTEXT, *PPH_MODULES_CONTEXT;
 // end_phapppub

@@ -771,6 +771,8 @@ VOID PhMwpOnCommand(
             SetWindowPos(PhMainWndHandle, AlwaysOnTop ? HWND_TOPMOST : HWND_NOTOPMOST,
                 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
             PhSetIntegerSetting(L"MainWindowAlwaysOnTop", AlwaysOnTop);
+
+            PhWindowNotifyTopMostEvent(AlwaysOnTop);
         }
         break;
     case ID_OPACITY_10:
@@ -2057,6 +2059,7 @@ ULONG_PTR PhMwpOnUserMessage(
                     CurrentCustomFont = newFont;
 
                     PhMwpNotifyAllPages(MainTabPageFontChanged, newFont, NULL);
+                    PhWindowNotifyFontUpdateEvent(newFont);
                 }
             }
         }
