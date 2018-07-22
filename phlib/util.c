@@ -1838,45 +1838,9 @@ PPH_STRING PhGetFullPath(
     )
 {
     PPH_STRING fullPath;
-    ULONG bufferSize;
-    ULONG returnLength;
-    PWSTR filePart;
 
-    bufferSize = 0x80;
-    fullPath = PhCreateStringEx(NULL, bufferSize * sizeof(WCHAR));
-
-    returnLength = RtlGetFullPathName_U(FileName, bufferSize, fullPath->Buffer, &filePart);
-
-    if (returnLength > bufferSize)
-    {
-        PhDereferenceObject(fullPath);
-        bufferSize = returnLength;
-        fullPath = PhCreateStringEx(NULL, bufferSize * sizeof(WCHAR));
-
-        returnLength = RtlGetFullPathName_U(FileName, bufferSize, fullPath->Buffer, &filePart);
-    }
-
-    if (returnLength == 0)
-    {
-        PhDereferenceObject(fullPath);
+    if (!NT_SUCCESS(PhGetFullPathEx(FileName, IndexOfFileName, &fullPath)))
         return NULL;
-    }
-
-    PhTrimToNullTerminatorString(fullPath);
-
-    if (IndexOfFileName)
-    {
-        if (filePart)
-        {
-            // The path points to a file.
-            *IndexOfFileName = (ULONG)(filePart - fullPath->Buffer);
-        }
-        else
-        {
-            // The path points to a directory.
-            *IndexOfFileName = -1;
-        }
-    }
 
     return fullPath;
 }
