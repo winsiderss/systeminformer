@@ -25,7 +25,7 @@
 
 SIZE ToolBarImageSize = { 16, 16 };
 HIMAGELIST ToolBarImageList = NULL;
-
+HFONT ToolStatusWindowFont = NULL;
 TBBUTTON ToolbarButtons[MAX_TOOLBAR_ITEMS] =
 {
     // Default toolbar buttons (displayed)
@@ -56,7 +56,7 @@ VOID RebarBandInsert(
     {
         sizeof(REBARBANDINFO),
         RBBIM_STYLE | RBBIM_ID | RBBIM_CHILD | RBBIM_CHILDSIZE,
-        RBBS_USECHEVRON // RBBS_NOGRIPPER | RBBS_HIDETITLE | RBBS_TOPALIGN
+        RBBS_USECHEVRON | RBBS_VARIABLEHEIGHT // RBBS_NOGRIPPER | RBBS_HIDETITLE | RBBS_TOPALIGN
     };
 
     rebarBandInfo.wID = BandID;
@@ -132,7 +132,7 @@ VOID RebarLoadSettings(
             0,
             TOOLBARCLASSNAME,
             NULL,
-            WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NORESIZE | CCS_NOPARENTALIGN | CCS_NODIVIDER | TBSTYLE_FLAT | TBSTYLE_LIST | TBSTYLE_TRANSPARENT | TBSTYLE_TOOLTIPS | TBSTYLE_AUTOSIZE,
+            WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NOPARENTALIGN | CCS_NODIVIDER | TBSTYLE_FLAT | TBSTYLE_LIST | TBSTYLE_TRANSPARENT | TBSTYLE_TOOLTIPS | TBSTYLE_AUTOSIZE,
             CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
             RebarHandle,
             NULL,
@@ -194,6 +194,30 @@ VOID RebarLoadSettings(
             NULL,
             NULL
             );
+    }
+
+    {
+        HFONT newFont;
+
+        if (newFont = ToolStatusGetTreeWindowFont())
+        {
+            if (ToolStatusWindowFont)
+                DeleteObject(ToolStatusWindowFont);
+            ToolStatusWindowFont = newFont;
+
+            if (ToolBarHandle)
+            {
+                SendMessage(ToolBarHandle, WM_SETFONT, (WPARAM)ToolStatusWindowFont, FALSE);
+                SendMessage(ToolBarHandle, TB_AUTOSIZE, 0, 0);
+                //InvalidateRect(ToolBarHandle, NULL, TRUE);
+            }
+
+            if (StatusBarHandle)
+            {
+                SendMessage(StatusBarHandle, WM_SETFONT, (WPARAM)ToolStatusWindowFont, FALSE);
+                InvalidateRect(StatusBarHandle, NULL, TRUE);
+            }
+        }
     }
 
     // Hide or show controls (Note: don't unload or remove at runtime).
