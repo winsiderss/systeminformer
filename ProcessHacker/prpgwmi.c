@@ -21,6 +21,7 @@
  */
 
 #include <phapp.h>
+#include <phplug.h>
 #include <procprp.h>
 #include <procprpp.h>
 #include <procprv.h>
@@ -603,7 +604,7 @@ INT_PTR CALLBACK PhpProcessWmiProvidersDlgProc(
             PhpRefreshWmiProviders(hwndDlg, context, processItem);
 
             PhRegisterCallback(
-                &PhProcessesUpdatedEvent,
+                PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
                 PhpWmiProviderUpdateHandler,
                 context,
                 &context->ProcessesUpdatedRegistration
@@ -612,7 +613,7 @@ INT_PTR CALLBACK PhpProcessWmiProvidersDlgProc(
         break;
     case WM_DESTROY:
         {
-            PhUnregisterCallback(&PhProcessesUpdatedEvent, &context->ProcessesUpdatedRegistration);
+            PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), &context->ProcessesUpdatedRegistration);
 
             PhSaveListViewColumnsToSetting(L"WmiProviderListViewColumns", context->ListViewHandle);
 

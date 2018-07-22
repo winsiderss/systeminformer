@@ -292,7 +292,7 @@ VOID PhSipOnInitDialog(
     PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(PhSipWindow, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
     PhRegisterCallback(
-        &PhProcessesUpdatedEvent,
+        PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
         PhSipSysInfoUpdateHandler,
         NULL,
         &ProcessesUpdatedRegistration
@@ -315,7 +315,7 @@ VOID PhSipOnDestroy(
     )
 {
     PhUnregisterCallback(
-        &PhProcessesUpdatedEvent,
+        PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
         &ProcessesUpdatedRegistration
         );
 

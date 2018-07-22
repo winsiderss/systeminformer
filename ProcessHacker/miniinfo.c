@@ -342,7 +342,7 @@ VOID PhMipContainerOnShowWindow(
         PhMipMessageLoopFilterEntry = PhRegisterMessageLoopFilter(PhMipMessageLoopFilter, NULL);
 
         PhRegisterCallback(
-            &PhProcessesUpdatedEvent,
+            PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
             PhMipUpdateHandler,
             NULL,
             &ProcessesUpdatedRegistration
@@ -362,7 +362,7 @@ VOID PhMipContainerOnShowWindow(
         PhSetIntegerSetting(L"MiniInfoWindowPinned", FALSE);
 
         PhUnregisterCallback(
-            &PhProcessesUpdatedEvent,
+            PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
             &ProcessesUpdatedRegistration
             );
 

@@ -161,11 +161,6 @@ PH_QUEUED_LOCK PhProcessHashSetLock = PH_QUEUED_LOCK_INIT;
 
 SLIST_HEADER PhProcessQueryDataListHead;
 
-PHAPPAPI PH_CALLBACK_DECLARE(PhProcessAddedEvent);
-PHAPPAPI PH_CALLBACK_DECLARE(PhProcessModifiedEvent);
-PHAPPAPI PH_CALLBACK_DECLARE(PhProcessRemovedEvent);
-PHAPPAPI PH_CALLBACK_DECLARE(PhProcessesUpdatedEvent);
-
 PPH_LIST PhProcessRecordList;
 PH_QUEUED_LOCK PhProcessRecordListLock = PH_QUEUED_LOCK_INIT;
 
@@ -1959,7 +1954,7 @@ VOID PhProcessProviderUpdate(
                     processItem->Record->ExitTime = exitTime;
 
                     // Raise the process removed event.
-                    PhInvokeCallback(&PhProcessRemovedEvent, processItem);
+                    PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderRemovedEvent), processItem);
 
                     if (!processesToRemove)
                         processesToRemove = PhCreateList(2);
@@ -2068,7 +2063,7 @@ VOID PhProcessProviderUpdate(
             PhReleaseQueuedLockExclusive(&PhProcessHashSetLock);
 
             // Raise the process added event.
-            PhInvokeCallback(&PhProcessAddedEvent, processItem);
+            PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderAddedEvent), processItem);
 
             // (Ref: for the process item being in the hashtable.)
             // Instead of referencing then dereferencing we simply don't do anything.
@@ -2231,7 +2226,7 @@ VOID PhProcessProviderUpdate(
 
             if (modified)
             {
-                PhInvokeCallback(&PhProcessModifiedEvent, processItem);
+                PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderModifiedEvent), processItem);
             }
 
             // No reference added by PhpLookupProcessItem.
@@ -2326,7 +2321,7 @@ VOID PhProcessProviderUpdate(
         }
     }
 
-    PhInvokeCallback(&PhProcessesUpdatedEvent, NULL);
+    PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), NULL);
     runCount++;
 }
 

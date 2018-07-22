@@ -22,6 +22,7 @@
  */
 
 #include <phapp.h>
+#include <phplug.h>
 #include <mainwnd.h>
 
 #include <iphlpapi.h>
@@ -65,25 +66,25 @@ BOOLEAN PhMwpNetworkPageCallback(
             PhInitializeProviderEventQueue(&PhMwpNetworkEventQueue, 100);
 
             PhRegisterCallback(
-                &PhNetworkItemAddedEvent,
+                PhGetGeneralCallback(GeneralCallbackNetworkProviderAddedEvent),
                 PhMwpNetworkItemAddedHandler,
                 NULL,
                 &NetworkItemAddedRegistration
                 );
             PhRegisterCallback(
-                &PhNetworkItemModifiedEvent,
+                PhGetGeneralCallback(GeneralCallbackNetworkProviderModifiedEvent),
                 PhMwpNetworkItemModifiedHandler,
                 NULL,
                 &NetworkItemModifiedRegistration
                 );
             PhRegisterCallback(
-                &PhNetworkItemRemovedEvent,
+                PhGetGeneralCallback(GeneralCallbackNetworkProviderRemovedEvent),
                 PhMwpNetworkItemRemovedHandler,
                 NULL,
                 &NetworkItemRemovedRegistration
                 );
             PhRegisterCallback(
-                &PhNetworkItemsUpdatedEvent,
+                PhGetGeneralCallback(GeneralCallbackNetworkProviderUpdatedEvent),
                 PhMwpNetworkItemsUpdatedHandler,
                 NULL,
                 &NetworkItemsUpdatedRegistration
