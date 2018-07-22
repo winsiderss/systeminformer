@@ -3429,7 +3429,7 @@ RtlGetFullPathName_UEx(
     _In_ ULONG BufferLength,
     _Out_writes_bytes_(BufferLength) PWSTR Buffer,
     _Out_opt_ PWSTR *FilePart,
-    _Out_opt_ RTL_PATH_TYPE *InputPathType
+    _Out_opt_ ULONG *BytesRequired
     );
 #endif
 
