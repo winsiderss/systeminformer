@@ -64,25 +64,25 @@ BOOLEAN PhMwpServicesPageCallback(
             PhInitializeProviderEventQueue(&PhMwpServiceEventQueue, 100);
 
             PhRegisterCallback(
-                &PhServiceAddedEvent,
+                PhGetGeneralCallback(GeneralCallbackServiceProviderAddedEvent),
                 PhMwpServiceAddedHandler,
                 NULL,
                 &ServiceAddedRegistration
                 );
             PhRegisterCallback(
-                &PhServiceModifiedEvent,
+                PhGetGeneralCallback(GeneralCallbackServiceProviderModifiedEvent),
                 PhMwpServiceModifiedHandler,
                 NULL,
                 &ServiceModifiedRegistration
                 );
             PhRegisterCallback(
-                &PhServiceRemovedEvent,
+                PhGetGeneralCallback(GeneralCallbackServiceProviderRemovedEvent),
                 PhMwpServiceRemovedHandler,
                 NULL,
                 &ServiceRemovedRegistration
                 );
             PhRegisterCallback(
-                &PhServicesUpdatedEvent,
+                PhGetGeneralCallback(GeneralCallbackServiceProviderUpdatedEvent),
                 PhMwpServicesUpdatedHandler,
                 NULL,
                 &ServicesUpdatedRegistration

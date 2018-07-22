@@ -22,6 +22,7 @@
  */
 
 #include <phapp.h>
+#include <phplug.h>
 #include <procprp.h>
 #include <procprpp.h>
 #include <procprv.h>
@@ -320,7 +321,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
             PhpUpdateStatisticsAddListViewGroups(statisticsContext->ListViewHandle);
 
             PhRegisterCallback(
-                &PhProcessesUpdatedEvent,
+                PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
                 StatisticsUpdateHandler,
                 statisticsContext,
                 &statisticsContext->ProcessesUpdatedRegistration
@@ -334,7 +335,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
     case WM_DESTROY:
         {
             PhUnregisterCallback(
-                &PhProcessesUpdatedEvent,
+                PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
                 &statisticsContext->ProcessesUpdatedRegistration
                 );
 

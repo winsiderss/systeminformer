@@ -22,6 +22,7 @@
  */
 
 #include <phapp.h>
+#include <phplug.h>
 #include <srvprv.h>
 #include <workqueue.h>
 
@@ -138,11 +139,6 @@ VOID PhpWorkaroundWindows10ServiceTypeBug(
 PPH_OBJECT_TYPE PhServiceItemType;
 PPH_HASHTABLE PhServiceHashtable;
 PH_QUEUED_LOCK PhServiceHashtableLock = PH_QUEUED_LOCK_INIT;
-
-PHAPPAPI PH_CALLBACK_DECLARE(PhServiceAddedEvent);
-PHAPPAPI PH_CALLBACK_DECLARE(PhServiceModifiedEvent);
-PHAPPAPI PH_CALLBACK_DECLARE(PhServiceRemovedEvent);
-PHAPPAPI PH_CALLBACK_DECLARE(PhServicesUpdatedEvent);
 
 BOOLEAN PhEnableServiceNonPoll = FALSE;
 static BOOLEAN PhpNonPollInitialized = FALSE;
@@ -826,7 +822,7 @@ VOID PhServiceProviderUpdate(
                 }
 
                 // Raise the service removed event.
-                PhInvokeCallback(&PhServiceRemovedEvent, *serviceItem);
+                PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackServiceProviderRemovedEvent), *serviceItem);
 
                 if (!servicesToRemove)
                     servicesToRemove = PhCreateList(2);
@@ -919,7 +915,7 @@ VOID PhServiceProviderUpdate(
                 PhReleaseQueuedLockExclusive(&PhServiceHashtableLock);
 
                 // Raise the service added event.
-                PhInvokeCallback(&PhServiceAddedEvent, serviceItem);
+                PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackServiceProviderAddedEvent), serviceItem);
             }
             else
             {
@@ -1027,7 +1023,7 @@ VOID PhServiceProviderUpdate(
                         serviceItem->JustProcessed = FALSE;
 
                     // Raise the service modified event.
-                    PhInvokeCallback(&PhServiceModifiedEvent, &serviceModifiedData);
+                    PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackServiceProviderModifiedEvent), &serviceModifiedData);
                 }
             }
         }
@@ -1036,7 +1032,7 @@ VOID PhServiceProviderUpdate(
     PhFree(services);
 
 UpdateEnd:
-    PhInvokeCallback(&PhServicesUpdatedEvent, NULL);
+    PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackServiceProviderUpdatedEvent), NULL);
     runCount++;
 }
 

@@ -4,12 +4,6 @@
 #define PH_RECORD_MAX_USAGE
 
 extern PPH_OBJECT_TYPE PhProcessItemType;
-
-PHAPPAPI extern PH_CALLBACK PhProcessAddedEvent; // phapppub
-PHAPPAPI extern PH_CALLBACK PhProcessModifiedEvent; // phapppub
-PHAPPAPI extern PH_CALLBACK PhProcessRemovedEvent; // phapppub
-PHAPPAPI extern PH_CALLBACK PhProcessesUpdatedEvent; // phapppub
-
 extern PPH_LIST PhProcessRecordList;
 extern PH_QUEUED_LOCK PhProcessRecordListLock;
 

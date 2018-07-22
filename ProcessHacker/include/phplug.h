@@ -44,7 +44,23 @@ typedef enum _PH_GENERAL_CALLBACK
     GeneralCallbackMemoryItemListControl = 31, // PPH_PLUGIN_MEMORY_ITEM_LIST_CONTROL Data [properties thread]
     GeneralCallbackMiniInformationInitializing = 32, // PPH_PLUGIN_MINIINFO_POINTERS Data [main thread]
     GeneralCallbackMiListSectionMenuInitializing = 33, // PPH_PLUGIN_MENU_INFORMATION Data [main thread]
-    GeneralCallbackOptionsWindowInitializing, // PPH_PLUGIN_OBJECT_PROPERTIES Data [main thread]
+    GeneralCallbackOptionsWindowInitializing = 34, // PPH_PLUGIN_OBJECT_PROPERTIES Data [main thread]
+
+    GeneralCallbackProcessProviderAddedEvent, // [process provider thread]
+    GeneralCallbackProcessProviderModifiedEvent, // [process provider thread]
+    GeneralCallbackProcessProviderRemovedEvent, // [process provider thread]
+    GeneralCallbackProcessProviderUpdatedEvent, // [process provider thread]
+
+    GeneralCallbackServiceProviderAddedEvent, // [service provider thread]
+    GeneralCallbackServiceProviderModifiedEvent, // [service provider thread]
+    GeneralCallbackServiceProviderRemovedEvent, // [service provider thread]
+    GeneralCallbackServiceProviderUpdatedEvent, // [service provider thread]
+
+    GeneralCallbackNetworkProviderAddedEvent, // [network provider thread]
+    GeneralCallbackNetworkProviderModifiedEvent, // [network provider thread]
+    GeneralCallbackNetworkProviderRemovedEvent, // [network provider thread]
+    GeneralCallbackNetworkProviderUpdatedEvent, // [network provider thread]
+
     GeneralCallbackTrayIconsInitializing,
     GeneralCallbackMaximum
 } PH_GENERAL_CALLBACK, *PPH_GENERAL_CALLBACK;
@@ -579,6 +595,8 @@ typedef struct _PH_PLUGIN_MENU_ITEM
 #define PH_MENU_ITEM_LOCATION_HACKER 0
 #define PH_MENU_ITEM_LOCATION_VIEW 1
 #define PH_MENU_ITEM_LOCATION_TOOLS 2
+#define PH_MENU_ITEM_LOCATION_USERS 3
+#define PH_MENU_ITEM_LOCATION_HELP 4
 
 typedef struct _PH_PLUGIN_SYSTEM_STATISTICS
 {
