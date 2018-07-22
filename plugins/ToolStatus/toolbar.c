@@ -159,7 +159,6 @@ VOID RebarLoadSettings(
         SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList);
         // Add the buttons to the toolbar.
         ToolbarLoadButtonSettings();
-
         SendMessage(ToolBarHandle, WM_SETFONT, (WPARAM)ToolStatusWindowFont, FALSE);
         // Resize the toolbar.
         SendMessage(ToolBarHandle, TB_AUTOSIZE, 0, 0);
@@ -209,7 +208,7 @@ VOID RebarLoadSettings(
 
         if (StatusBarHandle)
         {
-            SendMessage(StatusBarHandle, WM_SETFONT, (WPARAM)ToolStatusWindowFont, TRUE);
+            SendMessage(StatusBarHandle, WM_SETFONT, (WPARAM)ToolStatusWindowFont, FALSE);
         }
     }
 
