@@ -1502,13 +1502,14 @@ LOGICAL DllMain(
             NULL,
             &MiListSectionMenuInitializingCallbackRegistration
             );
-        PhRegisterCallback(&PhProcessModifiedEvent,
+        PhRegisterCallback(
+            PhGetGeneralCallback(GeneralCallbackProcessProviderModifiedEvent),
             ProcessModifiedCallback,
             NULL,
             &ProcessModifiedCallbackRegistration
             );
         PhRegisterCallback(
-            &PhProcessesUpdatedEvent,
+            PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
             ProcessesUpdatedCallback,
             NULL,
             &ProcessesUpdatedCallbackRegistration

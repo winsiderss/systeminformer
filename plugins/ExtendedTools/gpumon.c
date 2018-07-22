@@ -86,7 +86,7 @@ VOID EtGpuMonitorInitialization(
         }
 
         PhRegisterCallback(
-            &PhProcessesUpdatedEvent,
+            PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
             EtGpuProcessesUpdatedCallback,
             NULL,
             &ProcessesUpdatedCallbackRegistration

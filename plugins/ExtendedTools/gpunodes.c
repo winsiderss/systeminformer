@@ -184,7 +184,7 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
                 PhCenterWindow(hwndDlg, (HWND)lParam);
 
             PhRegisterCallback(
-                &PhProcessesUpdatedEvent,
+                PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
                 ProcessesUpdatedCallback,
                 hwndDlg,
                 &ProcessesUpdatedCallbackRegistration
@@ -197,7 +197,7 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
         {
             PhSaveWindowPlacementToSetting(SETTING_NAME_GPU_NODES_WINDOW_POSITION, SETTING_NAME_GPU_NODES_WINDOW_SIZE, hwndDlg);
 
-            PhUnregisterCallback(&PhProcessesUpdatedEvent, &ProcessesUpdatedCallbackRegistration);
+            PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), &ProcessesUpdatedCallbackRegistration);
 
             for (ULONG i = 0; i < EtGpuTotalNodeCount; i++)
             {

@@ -544,7 +544,7 @@ INT_PTR CALLBACK NetAdapterDetailsDlgProc(
             NetAdapterAddListViewItemGroups(context->ListViewHandle);
 
             PhRegisterCallback(
-                &PhProcessesUpdatedEvent,
+                PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
                 NetAdapterProcessesUpdatedHandler,
                 context,
                 &context->ProcessesUpdatedRegistration
@@ -564,7 +564,7 @@ INT_PTR CALLBACK NetAdapterDetailsDlgProc(
         break;
     case WM_DESTROY:
         {
-            PhUnregisterCallback(&PhProcessesUpdatedEvent, &context->ProcessesUpdatedRegistration);
+            PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), &context->ProcessesUpdatedRegistration);
 
             if (context->NotifyHandle)
                 CancelMibChangeNotify2(context->NotifyHandle);
