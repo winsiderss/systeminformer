@@ -621,6 +621,33 @@ VOID DrawWindowBorderForTargeting(
     }
 }
 
+HFONT ToolStatusGetTreeWindowFont(
+    VOID
+    )
+{
+    PPH_STRING fontHexString;
+    LOGFONT font;
+
+    fontHexString = PhaGetStringSetting(L"Font");
+
+    if (
+        fontHexString->Length / sizeof(WCHAR) / 2 == sizeof(LOGFONT) &&
+        PhHexStringToBuffer(&fontHexString->sr, (PUCHAR)&font)
+        )
+    {
+        HFONT newFont;
+
+        newFont = CreateFontIndirect(&font);
+
+        if (newFont)
+        {
+            return newFont;
+        }
+    }
+
+    return NULL;
+}
+
 LRESULT CALLBACK MainWndSubclassProc(
     _In_ HWND hWnd,
     _In_ UINT uMsg,
@@ -1306,6 +1333,26 @@ LRESULT CALLBACK MainWndSubclassProc(
             if (GetMenu(PhMainWndHandle))
             {
                 SetMenu(PhMainWndHandle, NULL);
+            }
+        }
+        break;
+    case PHAPP_WM_PLUGIN_UPDATE_FONT:
+        {
+            HFONT newFont;
+
+            // Let Process Hacker perform the default processing.
+            CallWindowProc(MainWindowHookProc, hWnd, uMsg, wParam, lParam);
+
+            if (newFont = ToolStatusGetTreeWindowFont())
+            {
+                if (ToolStatusWindowFont)
+                    DeleteObject(ToolStatusWindowFont);
+                ToolStatusWindowFont = newFont;
+
+                SendMessage(ToolBarHandle, WM_SETFONT, (WPARAM)ToolStatusWindowFont, TRUE);
+                SendMessage(StatusBarHandle, WM_SETFONT, (WPARAM)ToolStatusWindowFont, TRUE);
+
+                ToolbarLoadSettings();
             }
         }
         break;

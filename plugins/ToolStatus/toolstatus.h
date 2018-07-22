@@ -217,6 +217,10 @@ HWND GetCurrentTreeNewHandle(
     VOID
     );
 
+HFONT ToolStatusGetTreeWindowFont(
+    VOID
+    );
+
 VOID ShowCustomizeMenu(
     VOID
     );
@@ -377,5 +381,9 @@ HICON CustomizeGetToolbarIcon(
 BOOLEAN CreateSearchboxControl(
     VOID
     );
+
+// 
+extern HFONT ToolStatusWindowFont;
+#define PHAPP_WM_PLUGIN_UPDATE_FONT (WM_APP + 136)
 
 #endif
