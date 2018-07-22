@@ -2,7 +2,7 @@
 image: Visual Studio 2017
 
 # Version format.
-version: "3.0.{build}"
+version: "#{build}"
 
 # Only build the master branch.
 branches:
@@ -15,10 +15,10 @@ pull_requests:
 
 # Do not start a new build when a new Git tag is created.
 skip_tags: true
- 
+
 # Set the clone directory on the buildbot.
 clone_folder: C:\projects\processhacker
-  
+
 # Immediately finish build if something fails.
 matrix:
   fast_finish: true
