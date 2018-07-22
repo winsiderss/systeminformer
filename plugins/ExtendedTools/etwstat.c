@@ -85,13 +85,13 @@ VOID EtEtwStatisticsInitialization(
         PhInitializeCircularBuffer_ULONG(&EtMaxNetworkHistory, sampleCount);
 
         PhRegisterCallback(
-            &PhProcessesUpdatedEvent,
+            PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
             EtEtwProcessesUpdatedCallback,
             NULL,
             &EtpProcessesUpdatedCallbackRegistration
             );
         PhRegisterCallback(
-            &PhNetworkItemsUpdatedEvent,
+            PhGetGeneralCallback(GeneralCallbackNetworkProviderUpdatedEvent),
             EtEtwNetworkItemsUpdatedCallback,
             NULL,
             &EtpNetworkItemsUpdatedCallbackRegistration

@@ -611,13 +611,13 @@ LOGICAL DllMain(
                 );
 
             PhRegisterCallback(
-                &PhProcessesUpdatedEvent,
+                PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
                 ProcessesUpdatedCallback,
                 NULL,
                 &ProcessesUpdatedCallbackRegistration
                 );
             PhRegisterCallback(
-                &PhNetworkItemsUpdatedEvent,
+                PhGetGeneralCallback(GeneralCallbackNetworkProviderUpdatedEvent),
                 NetworkItemsUpdatedCallback,
                 NULL,
                 &NetworkItemsUpdatedCallbackRegistration

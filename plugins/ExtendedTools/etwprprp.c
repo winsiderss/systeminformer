@@ -332,7 +332,7 @@ INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
             EtwDiskNetworkUpdatePanel(context);
 
             PhRegisterCallback(
-                &PhProcessesUpdatedEvent,
+                PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
                 EtwDiskNetworkUpdateHandler,
                 context,
                 &context->ProcessesUpdatedRegistration
@@ -358,7 +358,7 @@ INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
             if (context->PanelHandle)
                 DestroyWindow(context->PanelHandle);
 
-            PhUnregisterCallback(&PhProcessesUpdatedEvent, &context->ProcessesUpdatedRegistration);
+            PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), &context->ProcessesUpdatedRegistration);
             PhFree(context);
 
             PhPropPageDlgProcDestroy(hwndDlg);

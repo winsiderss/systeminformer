@@ -342,7 +342,7 @@ INT_PTR CALLBACK NetworkPingWndProc(
                 );
 
             PhRegisterCallback(
-                &PhProcessesUpdatedEvent,
+                PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
                 NetworkPingUpdateHandler,
                 context,
                 &context->ProcessesUpdatedRegistration
@@ -365,7 +365,7 @@ INT_PTR CALLBACK NetworkPingWndProc(
     case WM_DESTROY:
         {
             PhUnregisterCallback(
-                &PhProcessesUpdatedEvent,
+                PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
                 &context->ProcessesUpdatedRegistration
                 );
 

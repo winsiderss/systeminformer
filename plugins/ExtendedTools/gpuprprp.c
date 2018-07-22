@@ -525,7 +525,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
             GpuPropUpdatePanel(context);
 
             PhRegisterCallback(
-                &PhProcessesUpdatedEvent,
+                PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
                 ProcessesUpdatedHandler,
                 context,
                 &context->ProcessesUpdatedRegistration
@@ -557,7 +557,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
             if (context->PanelHandle)
                 DestroyWindow(context->PanelHandle);
 
-            PhUnregisterCallback(&PhProcessesUpdatedEvent, &context->ProcessesUpdatedRegistration);
+            PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), &context->ProcessesUpdatedRegistration);
             PhFree(context);
 
             PhPropPageDlgProcDestroy(hwndDlg);

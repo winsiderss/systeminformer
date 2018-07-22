@@ -344,7 +344,7 @@ INT_PTR CALLBACK EtpGpuDetailsDlgProc(
             EtpGpuDetailsEnumAdapters(listViewHandle);
 
             PhRegisterCallback(
-                &PhProcessesUpdatedEvent,
+                PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
                 ProcessesUpdatedCallback,
                 hwndDlg,
                 &ProcessesUpdatedCallbackRegistration
@@ -355,7 +355,7 @@ INT_PTR CALLBACK EtpGpuDetailsDlgProc(
         break;
     case WM_DESTROY:
         {
-            PhUnregisterCallback(&PhProcessesUpdatedEvent, &ProcessesUpdatedCallbackRegistration);
+            PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), &ProcessesUpdatedCallbackRegistration);
 
             PhDeleteLayoutManager(&LayoutManager);
         }
