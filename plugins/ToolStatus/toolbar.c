@@ -112,6 +112,15 @@ VOID RebarLoadSettings(
         ToolBarImageSize.cx = GetSystemMetrics(SM_CXSMICON);
         ToolBarImageSize.cy = GetSystemMetrics(SM_CYSMICON);
         ToolBarImageList = ImageList_Create(ToolBarImageSize.cx, ToolBarImageSize.cy, ILC_COLOR32, 0, 0);
+
+        HFONT newFont;
+
+        if (newFont = ToolStatusGetTreeWindowFont())
+        {
+            if (ToolStatusWindowFont)
+                DeleteObject(ToolStatusWindowFont);
+            ToolStatusWindowFont = newFont;
+        }
     }
 
     if (ToolStatusConfig.ToolBarEnabled && !RebarHandle)
@@ -150,6 +159,8 @@ VOID RebarLoadSettings(
         SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList);
         // Add the buttons to the toolbar.
         ToolbarLoadButtonSettings();
+
+        SendMessage(ToolBarHandle, WM_SETFONT, (WPARAM)ToolStatusWindowFont, FALSE);
         // Resize the toolbar.
         SendMessage(ToolBarHandle, TB_AUTOSIZE, 0, 0);
 
@@ -178,6 +189,7 @@ VOID RebarLoadSettings(
             ))
         {
             PhCreateSearchControl(RebarHandle, SearchboxHandle, L"Search Processes (Ctrl+K)");
+            //SendMessage(SearchboxHandle, WM_SETFONT, (WPARAM)ToolStatusWindowFont, TRUE);
         }
     }
 
@@ -194,29 +206,10 @@ VOID RebarLoadSettings(
             NULL,
             NULL
             );
-    }
 
-    {
-        HFONT newFont;
-
-        if (newFont = ToolStatusGetTreeWindowFont())
+        if (StatusBarHandle)
         {
-            if (ToolStatusWindowFont)
-                DeleteObject(ToolStatusWindowFont);
-            ToolStatusWindowFont = newFont;
-
-            if (ToolBarHandle)
-            {
-                SendMessage(ToolBarHandle, WM_SETFONT, (WPARAM)ToolStatusWindowFont, FALSE);
-                SendMessage(ToolBarHandle, TB_AUTOSIZE, 0, 0);
-                //InvalidateRect(ToolBarHandle, NULL, TRUE);
-            }
-
-            if (StatusBarHandle)
-            {
-                SendMessage(StatusBarHandle, WM_SETFONT, (WPARAM)ToolStatusWindowFont, FALSE);
-                InvalidateRect(StatusBarHandle, NULL, TRUE);
-            }
+            SendMessage(StatusBarHandle, WM_SETFONT, (WPARAM)ToolStatusWindowFont, TRUE);
         }
     }
 
