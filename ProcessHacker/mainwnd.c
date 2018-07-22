@@ -85,7 +85,6 @@ static HWND TabControlHandle;
 static PPH_LIST PageList;
 static PPH_MAIN_TAB_PAGE CurrentPage;
 static INT OldTabIndex;
-static HFONT CurrentCustomFont;
 
 static HMENU SubMenuHandles[5];
 static PPH_EMENU SubMenuObjects[5];
@@ -2054,9 +2053,9 @@ ULONG_PTR PhMwpOnUserMessage(
 
                 if (newFont)
                 {
-                    if (CurrentCustomFont)
-                        DeleteObject(CurrentCustomFont);
-                    CurrentCustomFont = newFont;
+                    if (PhTreeWindowFont)
+                        DeleteObject(PhTreeWindowFont);
+                    PhTreeWindowFont = newFont;
 
                     PhMwpNotifyAllPages(MainTabPageFontChanged, newFont, NULL);
                     PhWindowNotifyFontUpdateEvent(newFont);
@@ -2685,8 +2684,8 @@ VOID PhMwpSelectionChangedTabControl(
 
                 if (page->WindowHandle)
                     BringWindowToTop(page->WindowHandle);
-                if (CurrentCustomFont)
-                    page->Callback(page, MainTabPageFontChanged, CurrentCustomFont, NULL);
+                if (PhTreeWindowFont)
+                    page->Callback(page, MainTabPageFontChanged, PhTreeWindowFont, NULL);
             }
 
             page->Callback(page, MainTabPageSelected, (PVOID)TRUE, NULL);

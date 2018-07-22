@@ -73,6 +73,7 @@ typedef struct _PH_STARTUP_PARAMETERS
 } PH_STARTUP_PARAMETERS, *PPH_STARTUP_PARAMETERS;
 
 PHAPPAPI extern HFONT PhApplicationFont; // phapppub
+PHAPPAPI extern HFONT PhTreeWindowFont; // phapppub
 extern BOOLEAN PhPluginsEnabled;
 extern PPH_STRING PhSettingsFileName;
 extern PH_INTEGER_PAIR PhSmallIconSize;

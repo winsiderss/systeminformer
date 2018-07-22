@@ -89,6 +89,7 @@ BOOLEAN PhInitializeMitigationPolicy(
     );
 
 PHAPPAPI HFONT PhApplicationFont = NULL;
+PHAPPAPI HFONT PhTreeWindowFont = NULL;
 BOOLEAN PhPluginsEnabled = FALSE;
 PPH_STRING PhSettingsFileName = NULL;
 PH_INTEGER_PAIR PhSmallIconSize = { 16, 16 };
