@@ -1896,7 +1896,13 @@ NTSTATUS PhGetFullPathEx(
     bufferSize = 0x80;
     fullPath = PhCreateStringEx(NULL, bufferSize * sizeof(WCHAR));
 
-    status = RtlGetFullPathName_UEx(FileName, bufferSize, fullPath->Buffer, &filePart, &returnLength);
+    status = RtlGetFullPathName_UEx(
+        FileName, 
+        bufferSize, 
+        fullPath->Buffer, 
+        &filePart, 
+        &returnLength
+        );
 
     if (returnLength > bufferSize)
     {
@@ -1904,7 +1910,13 @@ NTSTATUS PhGetFullPathEx(
         bufferSize = returnLength;
         fullPath = PhCreateStringEx(NULL, bufferSize * sizeof(WCHAR));
 
-        status = RtlGetFullPathName_UEx(FileName, bufferSize, fullPath->Buffer, &filePart, &returnLength);
+        status = RtlGetFullPathName_UEx(
+            FileName, 
+            bufferSize, 
+            fullPath->Buffer, 
+            &filePart, 
+            &returnLength
+            );
     }
 
     if (!NT_SUCCESS(status))
