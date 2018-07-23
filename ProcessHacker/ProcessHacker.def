@@ -523,6 +523,8 @@ EXPORTS
 	PhGetDialogItemValue
 	PhSetDialogItemValue
 	PhSetDialogItemText
+	PhApplicationFont
+	PhTreeWindowFont
 
 ; hndlinfo
 	PhEnumObjectTypes
