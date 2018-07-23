@@ -244,8 +244,8 @@ namespace CustomBuildTool
                 {
                     string sourceFile = BuildOutputFolder + file;
 
-                    if (File.Exists(file))
-                        File.Delete(file);
+                    if (File.Exists(sourceFile))
+                        File.Delete(sourceFile);
                 }
 
                 if (Directory.Exists("sdk"))
