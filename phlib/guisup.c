@@ -52,6 +52,8 @@ _IsImmersiveProcess IsImmersiveProcess_I = NULL;
 _RunFileDlg RunFileDlg = NULL;
 _SHAutoComplete SHAutoComplete_I = NULL;
 
+HFONT PhApplicationFont = NULL;
+HFONT PhTreeWindowFont = NULL;
 PH_INTEGER_PAIR PhSmallIconSize = { 16, 16 };
 PH_INTEGER_PAIR PhLargeIconSize = { 32, 32 };
 
