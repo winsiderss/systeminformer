@@ -61,6 +61,9 @@ extern _IsImmersiveProcess IsImmersiveProcess_I;
 extern _RunFileDlg RunFileDlg;
 extern _SHAutoComplete SHAutoComplete_I;
 
+extern PH_INTEGER_PAIR PhSmallIconSize;
+extern PH_INTEGER_PAIR PhLargeIconSize;
+
 PHLIBAPI
 VOID PhGuiSupportInitialization(
     VOID
@@ -829,6 +832,8 @@ PhMakeColorBrighter(
     return RGB(r, g, b);
 }
 
+PHLIBAPI extern HFONT PhApplicationFont; // phapppub
+PHLIBAPI extern HFONT PhTreeWindowFont; // phapppub
 #ifdef __cplusplus
 }
 #endif
