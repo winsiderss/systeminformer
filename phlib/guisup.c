@@ -48,9 +48,12 @@ typedef struct _PH_WINDOW_PROPERTY_CONTEXT
     PVOID Context;
 } PH_WINDOW_PROPERTY_CONTEXT, *PPH_WINDOW_PROPERTY_CONTEXT;
 
-_IsImmersiveProcess IsImmersiveProcess_I;
-_RunFileDlg RunFileDlg;
-_SHAutoComplete SHAutoComplete_I;
+_IsImmersiveProcess IsImmersiveProcess_I = NULL;
+_RunFileDlg RunFileDlg = NULL;
+_SHAutoComplete SHAutoComplete_I = NULL;
+
+PH_INTEGER_PAIR PhSmallIconSize = { 16, 16 };
+PH_INTEGER_PAIR PhLargeIconSize = { 32, 32 };
 
 static PH_INITONCE SharedIconCacheInitOnce = PH_INITONCE_INIT;
 static PPH_HASHTABLE SharedIconCacheHashtable;
@@ -73,6 +76,11 @@ VOID PhGuiSupportInitialization(
         PhpWindowContextHashtableHashFunction,
         10
         );
+
+    PhSmallIconSize.X = GetSystemMetrics(SM_CXSMICON);
+    PhSmallIconSize.Y = GetSystemMetrics(SM_CYSMICON);
+    PhLargeIconSize.X = GetSystemMetrics(SM_CXICON);
+    PhLargeIconSize.Y = GetSystemMetrics(SM_CYICON);
 
     if (hdc = GetDC(NULL))
     {
