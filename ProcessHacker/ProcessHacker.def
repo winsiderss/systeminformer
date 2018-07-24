@@ -525,6 +525,7 @@ EXPORTS
 	PhSetDialogItemText
 	PhApplicationFont
 	PhTreeWindowFont
+	PhInitializeWindowTheme
 
 ; hndlinfo
 	PhEnumObjectTypes

@@ -217,6 +217,7 @@
     <ClCompile Include="settings.c" />
     <ClCompile Include="sha.c" />
     <ClCompile Include="sha256.c" />
+    <ClCompile Include="theme.c" />
     <ClCompile Include="util.c" />
     <ClCompile Include="svcsup.c" />
     <ClCompile Include="symprv.c" />

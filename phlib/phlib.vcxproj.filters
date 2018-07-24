@@ -236,6 +236,9 @@
     <ClCompile Include="jsonc\strerror_override.c">
       <Filter>Json-C</Filter>
     </ClCompile>
+    <ClCompile Include="theme.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\circbuf.h">
