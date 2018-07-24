@@ -249,6 +249,30 @@ INT_PTR CALLBACK PhSipSysInfoDialogProc(
                 return TRUE;
         }
         break;
+    case WM_CTLCOLORBTN: // TODO: theme subclass sysinfo window.
+    case WM_CTLCOLORDLG:
+    case WM_CTLCOLORSTATIC:
+        {
+            if (!PhEnableThemeSupport)
+                break;
+
+            SetBkMode((HDC)wParam, TRANSPARENT);
+
+            switch (PhCsGraphColorMode)
+            {
+            case 0: // New colors
+                SetTextColor((HDC)wParam, RGB(0x0, 0x0, 0x0));
+                SetDCBrushColor((HDC)wParam, RGB(0xef, 0xef, 0xef)); // GetSysColor(COLOR_WINDOW)
+                break;
+            case 1: // Old colors
+                SetTextColor((HDC)wParam, RGB(0xff, 0xff, 0xff));
+                SetDCBrushColor((HDC)wParam, RGB(30, 30, 30));
+                break;
+            }
+
+            return (INT_PTR)GetStockObject(DC_BRUSH);
+        }
+        break;
     }
 
     if (uMsg >= SI_MSG_SYSINFO_FIRST && uMsg <= SI_MSG_SYSINFO_LAST)
@@ -266,6 +290,34 @@ INT_PTR CALLBACK PhSipContainerDialogProc(
     _In_ LPARAM lParam
     )
 {
+    switch (uMsg)
+    {
+    case WM_CTLCOLORBTN: // TODO: theme subclass sysinfo window.
+    case WM_CTLCOLORDLG:
+    case WM_CTLCOLORSTATIC:
+        {
+            if (!PhEnableThemeSupport)
+                break;
+
+            SetBkMode((HDC)wParam, TRANSPARENT);
+
+            switch (PhCsGraphColorMode)
+            {
+            case 0: // New colors
+                SetTextColor((HDC)wParam, RGB(0x0, 0x0, 0x0));
+                SetDCBrushColor((HDC)wParam, GetSysColor(COLOR_WINDOW));
+                break;
+            case 1: // Old colors
+                SetTextColor((HDC)wParam, RGB(0xff, 0xff, 0xff));
+                SetDCBrushColor((HDC)wParam, RGB(30, 30, 30));
+                break;
+            }
+
+            return (INT_PTR)GetStockObject(DC_BRUSH);
+        }
+        break;
+    }
+
     return FALSE;
 }
 
@@ -277,6 +329,7 @@ VOID PhSipOnInitDialog(
     PH_STRINGREF sectionName;
     PPH_SYSINFO_SECTION section;
 
+    PhSetControlTheme(PhSipWindow, L"explorer");
     SendMessage(PhSipWindow, WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
     SendMessage(PhSipWindow, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
 
@@ -294,8 +347,8 @@ VOID PhSipOnInitDialog(
         PhSipContainerDialogProc
         );
 
-    PhSetControlTheme(PhSipWindow, L"explorer");
     PhSipUpdateThemeData();
+    PhInitializeWindowTheme(ContainerControl, PhEnableThemeSupport);
 
     if (SectionList) // TODO: Remove (dmex)
     {
@@ -362,8 +415,6 @@ VOID PhSipOnInitDialog(
     RestoreSummaryControlOldWndProc = (WNDPROC)GetWindowLongPtr(RestoreSummaryControl, GWLP_WNDPROC);
     SetWindowLongPtr(RestoreSummaryControl, GWLP_WNDPROC, (LONG_PTR)PhSipPanelHookWndProc);
     RestoreSummaryControlHot = FALSE;
-
-    EnableThemeDialogTexture(ContainerControl, ETDT_ENABLETAB);
 
     GetClientRect(PhSipWindow, &clientRect);
     MinimumSize.left = 0;
@@ -725,7 +776,7 @@ BOOLEAN PhSipOnNotify(
 
 BOOLEAN PhSipOnDrawItem(
     _In_ ULONG_PTR Id,
-    _In_ DRAWITEMSTRUCT *DrawItemStruct
+    _In_ PDRAWITEMSTRUCT DrawItemStruct
     )
 {
     ULONG i;
@@ -733,12 +784,12 @@ BOOLEAN PhSipOnDrawItem(
 
     if (Id == IDC_RESET)
     {
-        PhSipDrawRestoreSummaryPanel(DrawItemStruct->hDC, &DrawItemStruct->rcItem);
+        PhSipDrawRestoreSummaryPanel(DrawItemStruct);
         return TRUE;
     }
     else if (Id == IDC_SEPARATOR)
     {
-        PhSipDrawSeparator(DrawItemStruct->hDC, &DrawItemStruct->rcItem);
+        PhSipDrawSeparator(DrawItemStruct);
         return TRUE;
     }
 
@@ -1127,6 +1178,8 @@ PPH_SYSINFO_SECTION PhSipCreateSection(
         PhInstanceHandle,
         NULL
         );
+ 
+    PhInitializeWindowTheme(section->PanelHandle, PhEnableThemeSupport);
 
     section->GraphWindowProc = (WNDPROC)GetWindowLongPtr(section->GraphHandle, GWLP_WNDPROC);
     section->PanelWindowProc = (WNDPROC)GetWindowLongPtr(section->PanelHandle, GWLP_WNDPROC);
@@ -1189,11 +1242,49 @@ PPH_SYSINFO_SECTION PhSipCreateInternalSection(
 }
 
 VOID PhSipDrawRestoreSummaryPanel(
-    _In_ HDC hdc,
-    _In_ PRECT Rect
+    _In_ PDRAWITEMSTRUCT DrawItemStruct
     )
 {
-    FillRect(hdc, Rect, GetSysColorBrush(COLOR_3DFACE));
+    HDC hdc;
+    HDC bufferDc;
+    HBITMAP bufferBitmap;
+    HBITMAP oldBufferBitmap;
+    RECT bufferRect =
+    {
+        0, 0,
+        DrawItemStruct->rcItem.right - DrawItemStruct->rcItem.left,
+        DrawItemStruct->rcItem.bottom - DrawItemStruct->rcItem.top
+    };
+
+    if (!(hdc = GetWindowDC(DrawItemStruct->hwndItem)))
+        return;
+
+    bufferDc = CreateCompatibleDC(hdc);
+    bufferBitmap = CreateCompatibleBitmap(hdc, bufferRect.right, bufferRect.bottom);
+    oldBufferBitmap = SelectObject(bufferDc, bufferBitmap);
+    
+    SetBkMode(bufferDc, TRANSPARENT);
+
+    if (PhEnableThemeSupport)
+    {
+        switch (PhCsGraphColorMode)
+        {
+        case 0: // New colors
+            SetTextColor(bufferDc, GetSysColor(COLOR_WINDOWTEXT));
+            FillRect(bufferDc, &bufferRect, GetSysColorBrush(COLOR_3DFACE));
+            break;
+        case 1: // Old colors
+            SetTextColor(bufferDc, CurrentParameters.PanelForeColor);
+            SetDCBrushColor(bufferDc, RGB(30, 30, 30));
+            FillRect(bufferDc, &bufferRect, GetStockObject(DC_BRUSH));
+            break;
+        }
+    }
+    else
+    {
+        SetTextColor(bufferDc, GetSysColor(COLOR_WINDOWTEXT));
+        FillRect(bufferDc, &bufferRect, GetSysColorBrush(COLOR_3DFACE));
+    }
 
     if (RestoreSummaryControlHot || RestoreSummaryControlHasFocus)
     {
@@ -1201,37 +1292,110 @@ VOID PhSipDrawRestoreSummaryPanel(
         {
             DrawThemeBackground(
                 ThemeData,
-                hdc,
+                bufferDc,
                 TVP_TREEITEM,
                 TREIS_HOT,
-                Rect,
-                Rect
+                &bufferRect,
+                &bufferRect
                 );
         }
         else
         {
-            FillRect(hdc, Rect, GetSysColorBrush(COLOR_WINDOW));
+            FillRect(bufferDc, &bufferRect, GetSysColorBrush(COLOR_WINDOW));
         }
     }
 
-    SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
-    SetBkMode(hdc, TRANSPARENT);
+    SelectObject(bufferDc, CurrentParameters.MediumFont);
+    DrawText(bufferDc, L"Back", 4, &bufferRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 
-    SelectObject(hdc, CurrentParameters.MediumFont);
-    DrawText(hdc, L"Back", 4, Rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+    BitBlt(
+        hdc,
+        DrawItemStruct->rcItem.left,
+        DrawItemStruct->rcItem.top,
+        DrawItemStruct->rcItem.right,
+        DrawItemStruct->rcItem.bottom,
+        bufferDc,
+        0,
+        0,
+        SRCCOPY
+        );
+
+    SelectObject(bufferDc, oldBufferBitmap);
+    DeleteObject(bufferBitmap);
+    DeleteDC(bufferDc);
+
+    ReleaseDC(DrawItemStruct->hwndItem, hdc);
 }
 
 VOID PhSipDrawSeparator(
-    _In_ HDC hdc,
-    _In_ PRECT Rect
+    _In_ PDRAWITEMSTRUCT DrawItemStruct
     )
 {
-    RECT rect;
+    HDC hdc;
+    HDC bufferDc;
+    HBITMAP bufferBitmap;
+    HBITMAP oldBufferBitmap;
+    RECT bufferRect =
+    {
+        0, 0,
+        DrawItemStruct->rcItem.right - DrawItemStruct->rcItem.left,
+        DrawItemStruct->rcItem.bottom - DrawItemStruct->rcItem.top
+    };
 
-    rect = *Rect;
-    FillRect(hdc, &rect, GetSysColorBrush(COLOR_3DHIGHLIGHT));
-    rect.left += 1;
-    FillRect(hdc, &rect, GetSysColorBrush(COLOR_3DSHADOW));
+    if (!(hdc = GetWindowDC(DrawItemStruct->hwndItem)))
+        return;
+
+    bufferDc = CreateCompatibleDC(hdc);
+    bufferBitmap = CreateCompatibleBitmap(hdc, bufferRect.right, bufferRect.bottom);
+    oldBufferBitmap = SelectObject(bufferDc, bufferBitmap);
+
+    SetBkMode(bufferDc, TRANSPARENT);
+
+    if (PhEnableThemeSupport)
+    {
+        switch (PhCsGraphColorMode)
+        {
+        case 0: // New colors
+            {
+                FillRect(bufferDc, &bufferRect, GetSysColorBrush(COLOR_3DFACE));
+                bufferRect.left += 1;
+                FillRect(bufferDc, &bufferRect, GetSysColorBrush(COLOR_3DSHADOW));
+                bufferRect.left -= 1;
+            }
+            break;
+        case 1: // Old colors
+            {
+                SetDCBrushColor(bufferDc, RGB(0, 0, 0));
+                FillRect(bufferDc, &bufferRect, GetStockObject(DC_BRUSH));
+            }
+            break;
+        }
+    }
+    else
+    {
+        FillRect(bufferDc, &bufferRect, GetSysColorBrush(COLOR_3DHIGHLIGHT));
+        bufferRect.left += 1;
+        FillRect(bufferDc, &bufferRect, GetSysColorBrush(COLOR_3DSHADOW));
+        bufferRect.left -= 1;
+    }
+
+    BitBlt(
+        hdc,
+        DrawItemStruct->rcItem.left,
+        DrawItemStruct->rcItem.top,
+        DrawItemStruct->rcItem.right,
+        DrawItemStruct->rcItem.bottom,
+        bufferDc,
+        0,
+        0,
+        SRCCOPY
+        );
+
+    SelectObject(bufferDc, oldBufferBitmap);
+    DeleteObject(bufferBitmap);
+    DeleteDC(bufferDc);
+
+    ReleaseDC(DrawItemStruct->hwndItem, hdc);
 }
 
 VOID PhSipDrawPanel(
@@ -1243,7 +1407,25 @@ VOID PhSipDrawPanel(
     PH_SYSINFO_DRAW_PANEL sysInfoDrawPanel;
 
     if (CurrentView == SysInfoSectionView)
-        FillRect(hdc, Rect, GetSysColorBrush(COLOR_3DFACE));
+    {
+        if (PhEnableThemeSupport)
+        {
+            switch (PhCsGraphColorMode)
+            {
+            case 0: // New colors
+                FillRect(hdc, Rect, GetSysColorBrush(COLOR_3DFACE));
+                break;
+            case 1: // Old colors
+                SetDCBrushColor(hdc, RGB(30, 30, 30));
+                FillRect(hdc, Rect, GetStockObject(DC_BRUSH));
+                break;
+            }
+        }
+        else
+        {
+            FillRect(hdc, Rect, GetSysColorBrush(COLOR_3DFACE));
+        }
+    }
 
     sysInfoDrawPanel.hdc = hdc;
     sysInfoDrawPanel.Rect = *Rect;
@@ -1365,12 +1547,19 @@ VOID PhSipDefaultDrawPanel(
         }
     }
 
-    if (CurrentView == SysInfoSummaryView)
-        SetTextColor(hdc, CurrentParameters.PanelForeColor);
-    else
-        SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
-
     SetBkMode(hdc, TRANSPARENT);
+
+    if (PhEnableThemeSupport)
+    {
+        SetTextColor(hdc, CurrentParameters.PanelForeColor);
+    }
+    else
+    {
+        if (CurrentView == SysInfoSummaryView)
+            SetTextColor(hdc, CurrentParameters.PanelForeColor);
+        else
+            SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
+    }
 
     rect.left = CurrentParameters.SmallGraphPadding + CurrentParameters.PanelPadding;
     rect.top = CurrentParameters.PanelPadding;
@@ -1744,6 +1933,8 @@ VOID PhSipCreateSectionDialog(
                 createDialog.DialogProc,
                 createDialog.Parameter
                 );
+
+            PhInitializeWindowTheme(Section->DialogHandle, PhEnableThemeSupport);
         }
     }
 }
