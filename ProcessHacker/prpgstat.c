@@ -27,7 +27,6 @@
 #include <procprp.h>
 #include <procprpp.h>
 #include <procprv.h>
-#include <uxtheme.h>
 
 typedef enum _PH_PROCESS_STATISTICS_CATEGORY
 {

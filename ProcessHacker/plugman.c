@@ -27,6 +27,7 @@
 #include <mainwnd.h>
 #include <colmgr.h>
 #include <phplug.h>
+#include <phsettings.h>
 
 #define WM_PH_PLUGINS_SHOWDIALOG (WM_APP + 401)
 #define WM_PH_PLUGINS_SHOWPROPERTIES (WM_APP + 402)
@@ -668,6 +669,8 @@ INT_PTR CALLBACK PhpPluginsDlgProc(
             PhpEnumerateLoadedPlugins(context);
             TreeNew_AutoSizeColumn(context->TreeNewHandle, PH_PLUGIN_TREE_COLUMN_ITEM_NAME, TN_AUTOSIZE_REMAINING_SPACE);
             SetWindowText(GetDlgItem(hwndDlg, IDC_DISABLED), PhaFormatString(L"Disabled Plugins (%lu)", PhpDisabledPluginsCount())->Buffer);
+
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
@@ -980,6 +983,8 @@ INT_PTR CALLBACK PhpPluginPropertiesDlgProc(
             PhpRefreshPluginDetails(hwndDlg, selectedPlugin);
 
             PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDOK));
+
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_COMMAND:
@@ -1135,6 +1140,8 @@ INT_PTR CALLBACK PhpPluginsDisabledDlgProc(
             ExtendedListView_SetColumnWidth(context->ListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
 
             PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDOK));
+
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_COMMAND:
