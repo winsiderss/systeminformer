@@ -608,7 +608,8 @@ INT_PTR CALLBACK DiskDriveFileSystemDetailsDlgProc(
             context->WindowHandle = hwndDlg;
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_DETAILS_LIST);
 
-            PhCenterWindow(GetParent(hwndDlg), NULL);
+            PhCenterWindow(GetParent(hwndDlg), NULL); // HACK
+            PhInitializeWindowTheme(GetParent(hwndDlg), !!PhGetIntegerSetting(L"EnableThemeSupport")); // HACK
 
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
@@ -618,8 +619,6 @@ INT_PTR CALLBACK DiskDriveFileSystemDetailsDlgProc(
             ListView_EnableGroupView(context->ListViewHandle, TRUE);
             PhLoadListViewColumnsFromSetting(SETTING_NAME_DISK_COUNTERS_COLUMNS, context->ListViewHandle);
 
-            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
-     
             DiskDriveQueryFileSystem(context);
         }
         break;
@@ -698,8 +697,6 @@ INT_PTR CALLBACK DiskDriveSmartDetailsDlgProc(
             PhSetExtendedListView(context->ListViewHandle);
             //ExtendedListView_SetItemColorFunction(context->ListViewHandle, PhpColorItemColorFunction);
             PhLoadListViewColumnsFromSetting(SETTING_NAME_SMART_COUNTERS_COLUMNS, context->ListViewHandle);
-
-            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
 
             DiskDriveQuerySmart(context);
         }

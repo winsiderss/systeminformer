@@ -22,7 +22,6 @@
  */
 
 #include "exttools.h"
-#include <uxtheme.h>
 
 #define GRAPH_PADDING 5
 static RECT NormalGraphTextMargin = { 5, 5, 5, 5 };
@@ -190,7 +189,7 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
                 &ProcessesUpdatedCallbackRegistration
                 );
 
-            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
         }
         break;
     case WM_DESTROY:

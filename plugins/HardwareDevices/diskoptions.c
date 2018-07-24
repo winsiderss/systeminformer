@@ -678,8 +678,6 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
 
-            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
-
             FindDiskDrives(context);
 
             context->OptionsChanged = FALSE;

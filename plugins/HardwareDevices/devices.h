@@ -40,7 +40,6 @@
 #include <settings.h>
 
 #include <windowsx.h>
-#include <uxtheme.h>
 
 #include <cfgmgr32.h>
 #include <nldef.h>
