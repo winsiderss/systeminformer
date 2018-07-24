@@ -23,7 +23,6 @@
 #include <phapp.h>
 #include <symprv.h>
 #include <netprv.h>
-#include <windowsx.h>
 
 typedef struct NETWORK_STACK_CONTEXT
 {

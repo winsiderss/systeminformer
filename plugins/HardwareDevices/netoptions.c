@@ -21,7 +21,6 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define INITGUID
 #include "devices.h"
 #include <ndisguid.h>
 #include <devguid.h>

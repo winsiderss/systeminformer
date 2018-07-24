@@ -24,8 +24,6 @@
 #include <procprp.h>
 #include <procprpp.h>
 
-#include <windowsx.h>
-
 #include <secedit.h>
 #include <verify.h>
 

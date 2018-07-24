@@ -24,14 +24,11 @@
 #ifndef _TOOLSTATUS_H
 #define _TOOLSTATUS_H
 
-#define CINTERFACE
-#define COBJMACROS
-#define INITGUID
 #include <phdk.h>
 #include <phapppub.h>
 #include <phappresource.h>
 #include <settings.h>
-#include <windowsx.h>
+
 #include <uxtheme.h>
 #include <vssym32.h>
 

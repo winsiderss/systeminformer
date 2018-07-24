@@ -22,8 +22,6 @@
 
 #include <phapp.h>
 
-#define CINTERFACE
-#define COBJMACROS
 #include <taskschd.h>
 
 #include <svcsup.h>

@@ -29,7 +29,6 @@
 #include <uxtheme.h>
 #include <vsstyle.h>
 #include <vssym32.h>
-#include <windowsx.h>
 
 BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
     _In_ HWND WindowHandle,

@@ -24,16 +24,14 @@
 #include <dspick.h>
 
 #include <ole2.h>
-#define CINTERFACE
-#define COBJMACROS
 #include <objsel.h>
 
 #include <guisup.h>
 #include <lsasup.h>
 
-#define IDataObject_AddRef(This) ((This)->lpVtbl->AddRef(This))
-#define IDataObject_Release(This) ((This)->lpVtbl->Release(This))
-#define IDataObject_GetData(This, pformatetcIn, pmedium) ((This)->lpVtbl->GetData(This, pformatetcIn, pmedium))
+//#define IDataObject_AddRef(This) ((This)->lpVtbl->AddRef(This))
+//#define IDataObject_Release(This) ((This)->lpVtbl->Release(This))
+//#define IDataObject_GetData(This, pformatetcIn, pmedium) ((This)->lpVtbl->GetData(This, pformatetcIn, pmedium))
 
 #define IDsObjectPicker_QueryInterface(This, riid, ppvObject) ((This)->lpVtbl->QueryInterface(This, riid, ppvObject))
 #define IDsObjectPicker_AddRef(This) ((This)->lpVtbl->AddRef(This))

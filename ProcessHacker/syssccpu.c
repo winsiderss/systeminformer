@@ -26,7 +26,6 @@
 #include <sysinfop.h>
 
 #include <math.h>
-#include <windowsx.h>
 
 #include <procprv.h>
 #include <phsettings.h>

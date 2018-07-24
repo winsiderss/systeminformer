@@ -28,9 +28,6 @@
 #include <settings.h>
 #include <emenu.h>
 
-#define CINTERFACE
-#define COBJMACROS
-#include <windowsx.h>
 #include <uxtheme.h>
 #include <wbemidl.h>
 

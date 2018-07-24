@@ -23,11 +23,7 @@
 #ifndef CLRSUP_H
 #define CLRSUP_H
 
-#define CINTERFACE
-#define COBJMACROS
 #include "clr/clrdata.h"
-#undef CINTERFACE
-#undef COBJMACROS
 
 // General interfaces
 

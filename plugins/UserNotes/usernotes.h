@@ -29,7 +29,6 @@
 #include <settings.h>
 #include <mxml.h>
 
-#include <windowsx.h>
 #include <shlobj.h>
 #include <uxtheme.h>
 

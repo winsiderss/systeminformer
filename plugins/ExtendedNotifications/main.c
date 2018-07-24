@@ -24,7 +24,7 @@
 #include <phdk.h>
 #include <workqueue.h>
 #include <settings.h>
-#include <windowsx.h>
+
 #include "extnoti.h"
 #include "resource.h"
 #include "gntp-send/growl.h"

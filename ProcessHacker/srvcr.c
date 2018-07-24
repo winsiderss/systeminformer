@@ -21,9 +21,6 @@
  */
 
 #include <phapp.h>
-
-#include <windowsx.h>
-
 #include <svcsup.h>
 
 #include <actions.h>

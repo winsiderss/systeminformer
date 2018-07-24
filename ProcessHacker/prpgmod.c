@@ -26,7 +26,6 @@
 #include <procprpp.h>
 
 #include <uxtheme.h>
-#include <windowsx.h>
 
 #include <cpysave.h>
 #include <emenu.h>

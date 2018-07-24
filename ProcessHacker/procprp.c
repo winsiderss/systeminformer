@@ -24,9 +24,6 @@
 #include <procprp.h>
 #include <procprpp.h>
 
-#include <windowsx.h>
-#include <uxtheme.h>
-
 #include <kphuser.h>
 #include <settings.h>
 

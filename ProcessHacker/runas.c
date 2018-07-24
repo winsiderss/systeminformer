@@ -62,10 +62,8 @@
 #include <phapp.h>
 
 #include <shlwapi.h>
-#include <windowsx.h>
 #include <winsta.h>
 #include <lm.h>
-#include <uxtheme.h>
 
 #include <emenu.h>
 #include <lsasup.h>
@@ -941,7 +939,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
             //if (!PhGetOwnTokenAttributes().Elevated)
             //    SendMessage(GetDlgItem(hwndDlg, IDOK), BCM_SETSHIELD, 0, TRUE);
 
-            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:

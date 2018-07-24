@@ -23,7 +23,6 @@
 #include <phapp.h>
 #include <settings.h>
 
-#include <windowsx.h>
 #include <winsta.h>
 
 #define SIP(String, Integer) { (String), (PVOID)(Integer) }

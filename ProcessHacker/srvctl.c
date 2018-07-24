@@ -29,8 +29,6 @@
 #include <mainwnd.h>
 #include <srvprv.h>
 
-#include <windowsx.h>
-
 typedef struct _PH_SERVICES_CONTEXT
 {
     PPH_SERVICE_ITEM *Services;

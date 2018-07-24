@@ -33,7 +33,6 @@
 #include <lsasup.h>
 #include <userenv.h>
 
-#include <windowsx.h>
 #include <uxtheme.h>
 
 typedef enum _ENVIRONMENT_TREE_MENU_ITEM
