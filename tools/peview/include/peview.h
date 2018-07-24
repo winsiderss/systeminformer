@@ -37,7 +37,6 @@
 
 #include <shlobj.h>
 #include <uxtheme.h>
-#include <windowsx.h>
 
 #include "resource.h"
 

@@ -24,10 +24,7 @@
 #include <ph.h>
 #include <hexedit.h>
 #include <guisup.h>
-
 #include <hexeditp.h>
-
-#include <windowsx.h>
 
 // Code originally from http://www.codeguru.com/Cpp/controls/editctrl/article.php/c539
 
@@ -35,19 +32,16 @@ BOOLEAN PhHexEditInitialization(
     VOID
     )
 {
-    WNDCLASSEX c = { sizeof(c) };
+    WNDCLASSEX c;
 
+    memset(&c, 0, sizeof(WNDCLASSEX));
+    c.cbSize = sizeof(WNDCLASSEX);
+    c.lpszClassName = PH_HEXEDIT_CLASSNAME;
     c.style = CS_GLOBALCLASS;
-    c.lpfnWndProc = PhpHexEditWndProc;
-    c.cbClsExtra = 0;
     c.cbWndExtra = sizeof(PVOID);
     c.hInstance = PhInstanceHandle;
-    c.hIcon = NULL;
+    c.lpfnWndProc = PhpHexEditWndProc;
     c.hCursor = LoadCursor(NULL, IDC_ARROW);
-    c.hbrBackground = NULL;
-    c.lpszMenuName = NULL;
-    c.lpszClassName = PH_HEXEDIT_CLASSNAME;
-    c.hIconSm = NULL;
 
     if (!RegisterClassEx(&c))
         return FALSE;

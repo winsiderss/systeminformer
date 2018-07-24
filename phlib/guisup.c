@@ -26,7 +26,6 @@
 #include <settings.h>
 #include <shellapi.h>
 #include <uxtheme.h>
-#include <windowsx.h>
 
 #include <guisupp.h>
 

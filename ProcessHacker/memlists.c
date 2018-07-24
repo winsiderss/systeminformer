@@ -28,7 +28,6 @@
 #include <actions.h>
 #include <phsvccl.h>
 #include <procprv.h>
-#include <windowsx.h>
 
 #define MSG_UPDATE (WM_APP + 1)
 

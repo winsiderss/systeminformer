@@ -21,9 +21,6 @@
  */
 
 #include <phapp.h>
-
-#include <windowsx.h>
-
 #include <settings.h>
 
 typedef struct _COLUMNS_DIALOG_CONTEXT

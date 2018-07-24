@@ -23,7 +23,6 @@
 #include <phapp.h>
 #include <ntgdi.h>
 #include <procprv.h>
-#include <windowsx.h>
 
 typedef struct _GDI_HANDLES_CONTEXT
 {

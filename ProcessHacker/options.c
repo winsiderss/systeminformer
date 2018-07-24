@@ -24,7 +24,6 @@
 #include <phapp.h>
 
 #include <commdlg.h>
-#include <windowsx.h>
 #include <uxtheme.h>
 #include <vssym32.h>
 

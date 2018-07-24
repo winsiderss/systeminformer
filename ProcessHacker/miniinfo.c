@@ -27,7 +27,6 @@
 
 #include <shellapi.h>
 #include <uxtheme.h>
-#include <windowsx.h>
 
 #include <actions.h>
 #include <mainwnd.h>

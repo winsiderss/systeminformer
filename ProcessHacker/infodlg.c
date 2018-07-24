@@ -22,7 +22,6 @@
 
 #include <phapp.h>
 #include <phsettings.h>
-#include <windowsx.h>
 
 typedef struct _INFORMATION_CONTEXT
 {
