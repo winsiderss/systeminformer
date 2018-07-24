@@ -136,7 +136,6 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
             SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
 
             PhInitializeLayoutManager(&LayoutManager, hwndDlg);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             LayoutMargin = PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_LAYOUT), NULL, PH_ANCHOR_ALL)->Margin;
 
             GraphHandle = PhAllocate(sizeof(HWND) * EtGpuTotalNodeCount);
@@ -284,10 +283,7 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDCANCEL:
-            case IDOK:
-                {
-                    DestroyWindow(hwndDlg);
-                }
+                DestroyWindow(hwndDlg);
                 break;
             }
         }
