@@ -894,8 +894,16 @@ PhWindowNotifyFontUpdateEvent(
     _In_ HFONT FontHandle
     );
 
+// theme support (theme.c)
+
 PHLIBAPI extern HFONT PhApplicationFont; // phapppub
 PHLIBAPI extern HFONT PhTreeWindowFont; // phapppub
+
+VOID PhInitializeWindowTheme(
+    _In_ HWND WindowHandle,
+    _In_ BOOLEAN EnableThemeSupport
+    );
+
 #ifdef __cplusplus
 }
 #endif
