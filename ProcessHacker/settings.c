@@ -150,6 +150,7 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"ServiceTreeListColumns", L"");
     PhpAddStringSetting(L"ServiceTreeListSort", L"0,1"); // 0, AscendingSortOrder
     PhpAddIntegerPairSetting(L"SessionShadowHotkey", L"106,2"); // VK_MULTIPLY,KBDCTRL
+    PhpAddIntegerSetting(L"ShowPluginLoadErrors", L"0");
     PhpAddIntegerSetting(L"ShowCommitInSummary", L"1");
     PhpAddIntegerSetting(L"ShowCpuBelow001", L"0");
     PhpAddIntegerSetting(L"ShowHexId", L"0");

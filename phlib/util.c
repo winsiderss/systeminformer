@@ -5377,13 +5377,11 @@ PPH_STRING PhGetDllFileName(
         return NULL;
 
     newFileName = PhGetFileName(fileName);
-    PhDereferenceObject(fileName);
-    fileName = newFileName;
+    PhMoveReference(&fileName, newFileName);
 
     if (newFileName = PhGetFullPath(fileName->Buffer, NULL)) // HACK PhGetApplicationDirectory (dmex)
     {
-        PhDereferenceObject(fileName);
-        fileName = newFileName;
+        PhMoveReference(&fileName, newFileName);
     }
 
     if (IndexOfFileName)
@@ -5747,8 +5745,27 @@ static NTSTATUS PhpFixupLoaderEntryImageImports(
 
                 if (!procedureAddress)
                 {
-                    status = STATUS_ORDINAL_NOT_FOUND;
-                    PhShowError(NULL, L"Error locating ordinal: %u\r\nModule: %hs", procedureOrdinal, importName);
+                    if (PhGetIntegerSetting(L"ShowPluginLoadErrors")) // HACK abstraction violation (dmex)
+                    {
+                        PPH_STRING fileName;
+                        
+                        if (NT_SUCCESS(PhGetProcessMappedFileName(NtCurrentProcess(), BaseAddress, &fileName)))
+                        {
+                            PhMoveReference(&fileName, PhResolveDevicePrefix(fileName));
+                            PhMoveReference(&fileName, PhGetBaseName(fileName));
+                        
+                            PhShowError(
+                                NULL, 
+                                L"Unable to load plugin.\r\nName: %s\r\nOrdinal: %u\r\nModule: %hs", 
+                                PhGetStringOrEmpty(fileName), 
+                                procedureOrdinal,
+                                importName
+                                );
+                        
+                            PhDereferenceObject(fileName);
+                        }
+
+                    status = STATUS_INVALID_PARAMETER;STATUS_ORDINAL_NOT_FOUND;
                     goto CleanupExit;
                 }
 
@@ -5764,8 +5781,28 @@ static NTSTATUS PhpFixupLoaderEntryImageImports(
 
                 if (!procedureAddress)
                 {
+                    if (PhGetIntegerSetting(L"ShowPluginLoadErrors")) // HACK abstraction violation (dmex)
+                    {
+                        PPH_STRING fileName;
+                        
+                        if (NT_SUCCESS(PhGetProcessMappedFileName(NtCurrentProcess(), BaseAddress, &fileName)))
+                        {
+                            PhMoveReference(&fileName, PhResolveDevicePrefix(fileName));
+                            PhMoveReference(&fileName, PhGetBaseName(fileName));
+                        
+                            PhShowError(
+                                NULL,
+                                L"Unable to load plugin.\r\nName: %s\r\nFunction: %hs\r\nModule: %hs",
+                                PhGetStringOrEmpty(fileName),
+                                importByName->Name,
+                                importName
+                                );
+                        
+                            PhDereferenceObject(fileName);
+                        }
+                    }
+
                     status = STATUS_PROCEDURE_NOT_FOUND;
-                    PhShowError(NULL, L"Error locating procedure: %hs\r\nModule: %hs", importByName->Name, importName);
                     goto CleanupExit;
                 }
 
