@@ -390,10 +390,13 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_PropertySheetPageCallback(
 {
     PhSecurityInformation *this = (PhSecurityInformation *)This;
 
-    if (uMsg == PSPCB_SI_INITDIALOG && !this->IsPage)
+    if (uMsg == PSPCB_SI_INITDIALOG)
     {
         // Center the security editor window.
-        PhCenterWindow(GetParent(hwnd), GetParent(GetParent(hwnd)));
+        if (!this->IsPage)
+            PhCenterWindow(GetParent(hwnd), GetParent(GetParent(hwnd)));
+
+        PhInitializeWindowTheme(hwnd, !!PhGetIntegerSetting(L"EnableThemeSupport"));
     }
 
     return E_NOTIMPL;
