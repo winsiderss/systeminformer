@@ -29,8 +29,7 @@
 
 #include <hndlprv.h>
 #include <phplug.h>
-
-#include <uxtheme.h>
+#include <phsettings.h>
 
 typedef enum _PHP_HANDLE_GENERAL_CATEGORY
 {
@@ -916,7 +915,7 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
             PhpUpdateHandleGeneralListViewGroups(context);
             PhpUpdateHandleGeneral(context);
 
-            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
+            PhInitializeWindowTheme(GetParent(hwndDlg), PhEnableThemeSupport); // HACK
         }
         break;
     case WM_DESTROY:
