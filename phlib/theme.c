@@ -886,6 +886,9 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
     }
     else if (PhEqualStringZ(className, L"SysListView32", FALSE))
     {
+        PhSetWindowStyle(WindowHandle, WS_BORDER, 0);
+        PhSetWindowExStyle(WindowHandle, WS_EX_CLIENTEDGE, 0);
+
         ListView_SetBkColor(WindowHandle, RGB(30, 30, 30));
         ListView_SetTextBkColor(WindowHandle, RGB(30, 30, 30));
         ListView_SetTextColor(WindowHandle, RGB(0xff, 0xff, 0xff));
@@ -893,6 +896,11 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
     else if (PhEqualStringZ(className, L"ScrollBar", FALSE))
     {
         NOTHING;
+    }
+    else if (PhEqualStringZ(className, L"PhTreeNew", FALSE))
+    {
+        PhSetWindowStyle(WindowHandle, WS_BORDER, 0);
+        PhSetWindowExStyle(WindowHandle, WS_EX_CLIENTEDGE, 0);
     }
 
     return TRUE;
