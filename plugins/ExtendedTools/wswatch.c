@@ -490,6 +490,8 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
             {
                 // WS Watch has not yet been enabled for the process.
             }
+
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
         }
         break;
     case WM_DESTROY:

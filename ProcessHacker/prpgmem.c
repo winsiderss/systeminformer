@@ -34,6 +34,7 @@
 #include <memlist.h>
 #include <memprv.h>
 #include <phplug.h>
+#include <phsettings.h>
 #include <procprv.h>
 #include <settings.h>
 
@@ -361,6 +362,8 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
             PhLoadSettingsMemoryList(&memoryContext->ListContext);
 
             PhpRefreshProcessMemoryList(hwndDlg, propPageContext);
+
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:

@@ -1674,6 +1674,8 @@ INT_PTR CALLBACK ProcessCommentPageDlgProc(
 
             if (!processItem->CommandLine)
                 EnableWindow(context->MatchCommandlineHandle, FALSE);
+
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
         }
         break;
     case WM_DESTROY:
@@ -1873,7 +1875,7 @@ INT_PTR CALLBACK ServiceCommentPageDlgProc(
 
             PhSetDialogItemText(hwndDlg, IDC_COMMENT, comment->Buffer);
 
-            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
         }
         break;
     case WM_DESTROY:
@@ -1959,7 +1961,7 @@ UINT_PTR CALLBACK ColorDlgHookProc(
         {
             PhCenterWindow(hwndDlg, PhMainWndHandle);
 
-            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
         }
         break;
     }

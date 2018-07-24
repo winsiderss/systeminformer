@@ -33,8 +33,6 @@
 #include <lsasup.h>
 #include <userenv.h>
 
-#include <uxtheme.h>
-
 typedef enum _ENVIRONMENT_TREE_MENU_ITEM
 {
     ENVIRONMENT_TREE_MENU_ITEM_HIDE_PROCESS_TYPE = 1,
@@ -335,6 +333,8 @@ INT_PTR CALLBACK PhpEditEnvDlgProc(
             PhSetDialogItemText(hwndDlg, IDC_VALUE, context->Value ? context->Value : L"");
 
             PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDCANCEL));
+
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
@@ -1265,7 +1265,7 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
 
             PhpRefreshEnvironmentList(hwndDlg, context, processItem);
 
-            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:

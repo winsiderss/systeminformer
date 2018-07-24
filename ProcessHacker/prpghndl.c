@@ -35,6 +35,7 @@
 #include <hndlmenu.h>
 #include <hndlprv.h>
 #include <phplug.h>
+#include <phsettings.h>
 #include <procprv.h>
 #include <settings.h>
 
@@ -418,6 +419,8 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
 
             PhSetEnabledProvider(&handlesContext->ProviderRegistration, TRUE);
             PhBoostProvider(&handlesContext->ProviderRegistration, NULL);
+
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:

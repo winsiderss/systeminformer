@@ -612,6 +612,8 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             PhRegisterThreadProvider(threadsContext->Provider, &threadsContext->ProviderRegistration);
 
             SET_BUTTON_ICON(IDC_OPENSTARTMODULE, PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_FOLDER)));
+
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:

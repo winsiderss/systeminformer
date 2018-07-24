@@ -104,6 +104,8 @@ INT_PTR CALLBACK GpuDetailsDialogProc(
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             GpuPropUpdatePanel(context);
+
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
         }
         break;
     case WM_COMMAND:
@@ -530,6 +532,8 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
                 context,
                 &context->ProcessesUpdatedRegistration
                 );
+
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
         }
         break;
     case WM_DESTROY:

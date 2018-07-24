@@ -28,9 +28,7 @@
 #include <phappresource.h>
 #include <settings.h>
 #include <mxml.h>
-
 #include <shlobj.h>
-#include <uxtheme.h>
 
 #include "db.h"
 #include "resource.h"

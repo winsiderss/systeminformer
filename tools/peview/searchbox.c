@@ -23,8 +23,6 @@
 
 #include <peview.h>
 #include <settings.h>
-#define CINTERFACE
-#define COBJMACROS
 #include <uxtheme.h>
 #include <vssym32.h>
 #include <wincodec.h>
