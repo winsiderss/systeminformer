@@ -75,6 +75,8 @@ INT_PTR CALLBACK EspRestartServiceDlgProc(
             {
                 EndDialog(hwndDlg, IDCANCEL);
             }
+
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
         }
         break;
     case WM_COMMAND:

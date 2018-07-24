@@ -21,6 +21,7 @@
  */
 
 #include <phapp.h>
+#include <phsettings.h>
 #include <svcsup.h>
 
 #include <actions.h>
@@ -75,6 +76,7 @@ INT_PTR CALLBACK PhpCreateServiceDlgProc(
             }
 
             PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDC_NAME));
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_COMMAND:

@@ -380,6 +380,8 @@ INT_PTR CALLBACK EspServiceOtherDlgProc(
             }
 
             context->Ready = TRUE;
+
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
         }
         break;
     case WM_DESTROY:

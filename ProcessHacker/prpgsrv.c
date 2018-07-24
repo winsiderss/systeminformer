@@ -21,9 +21,9 @@
  */
 
 #include <phapp.h>
+#include <phsettings.h>
 #include <procprp.h>
 #include <procprpp.h>
-
 #include <procprv.h>
 
 static VOID PhpLayoutServiceListControl(
@@ -103,6 +103,8 @@ INT_PTR CALLBACK PhpProcessServicesDlgProc(
             ShowWindow(serviceListHandle, SW_SHOW);
 
             propPageContext->Context = serviceListHandle;
+
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:

@@ -337,6 +337,9 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
             PhpRefreshControls(hwndDlg);
 
             context->Ready = TRUE;
+
+            PhInitializeWindowTheme(GetParent(hwndDlg), PhEnableThemeSupport); // HACK
+            //PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
