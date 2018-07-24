@@ -23,12 +23,6 @@
 #ifndef _SETUP_H
 #define _SETUP_H
 
-#pragma comment(lib, "Comctl32.lib")
-#pragma comment(lib, "Shlwapi.lib")
-#pragma comment(lib, "WindowsCodecs.lib")
-
-#define CINTERFACE
-#define COBJMACROS
 #include <ph.h>
 #include <guisup.h>
 #include <prsht.h>
@@ -37,10 +31,9 @@
 #include <json.h>
 
 #include <aclapi.h>
-#include <WindowsX.h>
-#include <Wincodec.h>
+#include <wincodec.h>
 #include <uxtheme.h>
-#include <Shlwapi.h>
+#include <shlwapi.h>
 #include <shlobj.h>
 #include <sddl.h>
 
