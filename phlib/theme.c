@@ -164,8 +164,10 @@ LRESULT CALLBACK PhpThemeWindowGroupBoxSubclassProc(
     switch (uMsg)
     {
     case WM_DESTROY:
-        PhRemoveWindowContext(hWnd, SHRT_MAX);
-        SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+        {
+            PhRemoveWindowContext(hWnd, SHRT_MAX);
+            SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+        }
         break;
     case WM_ERASEBKGND:
         return 1;
@@ -292,25 +294,25 @@ VOID PhReInitializeWindowTheme(
         0
         );
 
-    //HWND currentWindow = NULL;
-    //
-    //do
-    //{
-    //    if (currentWindow = FindWindowEx(NULL, currentWindow, NULL, NULL))
-    //    {
-    //        ULONG processID = 0;
-    //
-    //        GetWindowThreadProcessId(currentWindow, &processID);
-    //
-    //        if (UlongToHandle(processID) == NtCurrentProcessId())
-    //        {
-    //            if (currentWindow != WindowHandle)
-    //            {
-    //                InvalidateRect(currentWindow, NULL, TRUE);
-    //            }
-    //        }
-    //    }
-    //} while (currentWindow);
+    HWND currentWindow = NULL;
+    
+    do
+    {
+        if (currentWindow = FindWindowEx(NULL, currentWindow, NULL, NULL))
+        {
+            ULONG processID = 0;
+    
+            GetWindowThreadProcessId(currentWindow, &processID);
+    
+            if (UlongToHandle(processID) == NtCurrentProcessId())
+            {
+                if (currentWindow != WindowHandle)
+                {
+                    InvalidateRect(currentWindow, NULL, TRUE);
+                }
+            }
+        }
+    } while (currentWindow);
 
     InvalidateRect(WindowHandle, NULL, FALSE);
 }
