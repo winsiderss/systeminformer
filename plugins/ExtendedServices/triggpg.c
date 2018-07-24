@@ -97,6 +97,8 @@ INT_PTR CALLBACK EspServiceTriggersDlgProc(
                 PhShowWarning(hwndDlg, L"Unable to query service trigger information: %s",
                     ((PPH_STRING)PH_AUTO(PhGetNtMessage(status)))->Buffer);
             }
+
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
         }
         break;
     case WM_DESTROY:

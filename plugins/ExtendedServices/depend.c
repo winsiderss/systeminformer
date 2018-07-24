@@ -210,6 +210,8 @@ ContinueLoop:
                     ((PPH_STRING)PH_AUTO(PhGetWin32Message(win32Result)))->Buffer)->Buffer);
                 ShowWindow(GetDlgItem(hwndDlg, IDC_SERVICES_LAYOUT), SW_SHOW);
             }
+
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
         }
         break;
     case WM_DESTROY:
@@ -322,6 +324,8 @@ INT_PTR CALLBACK EspServiceDependentsDlgProc(
                     ((PPH_STRING)PH_AUTO(PhGetWin32Message(win32Result)))->Buffer)->Buffer);
                 ShowWindow(GetDlgItem(hwndDlg, IDC_SERVICES_LAYOUT), SW_SHOW);
             }
+
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
         }
         break;
     case WM_DESTROY:

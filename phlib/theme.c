@@ -58,6 +58,7 @@ COLORREF PhpThemeWindowForegroundColor = RGB(28, 28, 28);
 COLORREF PhpThemeWindowBackgroundColor = RGB(64, 64, 64);
 COLORREF PhpThemeWindowTextColor = RGB(0xff, 0xff, 0xff);
 HFONT PhpTabControlFontHandle = NULL;
+HFONT PhpListViewFontHandle = NULL;
 HFONT PhpGroupboxFontHandle = NULL;
 
 LRESULT CALLBACK PhpThemeWindowSubclassProc(
@@ -1127,36 +1128,34 @@ LRESULT PhpWindowThemeDrawListViewGroup(
                 break;
             }
 
-            static HFONT fontHandle = NULL;
-            if (!fontHandle)
+            if (!PhpListViewFontHandle)
             {
-                NONCLIENTMETRICS metrics = { sizeof(metrics) };
+                NONCLIENTMETRICS metrics = { sizeof(NONCLIENTMETRICS) };
+
                 if (SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &metrics, 0))
                 {
                     metrics.lfMessageFont.lfHeight = -11;
                     metrics.lfMessageFont.lfWeight = FW_BOLD;
-                    fontHandle = CreateFontIndirect(&metrics.lfMessageFont);
+
+                    PhpListViewFontHandle = CreateFontIndirect(&metrics.lfMessageFont);
                 }
             }
-            SelectObject(DrawInfo->nmcd.hdc, fontHandle);
+            SelectObject(DrawInfo->nmcd.hdc, PhpListViewFontHandle);
 
             LVGROUP groupInfo = { sizeof(LVGROUP) };
             groupInfo.mask = LVGF_HEADER;
-            if (ListView_GetGroupInfo(DrawInfo->nmcd.hdr.hwndFrom, (ULONG)DrawInfo->nmcd.dwItemSpec, &groupInfo) == -1)
+            if (ListView_GetGroupInfo(
+                DrawInfo->nmcd.hdr.hwndFrom, 
+                (ULONG)DrawInfo->nmcd.dwItemSpec, 
+                &groupInfo
+                ) == -1)
             {
                 break;
             }
 
-
             SetTextColor(DrawInfo->nmcd.hdc, RGB(255, 69, 0));
             SetDCBrushColor(DrawInfo->nmcd.hdc, RGB(65, 65, 65));
 
-            //GetClientRect(hWnd, &clientRect);
-            //clientRect.top += 6;
-            //FrameRect(DrawInfo->nmcd.hdc, &clientRect, GetStockObject(DC_BRUSH));
-            //clientRect.top -= 6;
-            //PPH_STRING windowText = PhGetWindowText(hWnd);
-            //clientRect.left += 10;
             DrawInfo->rcText.top += 2;
             DrawInfo->rcText.bottom -= 2;
             FillRect(DrawInfo->nmcd.hdc, &DrawInfo->rcText, GetStockObject(DC_BRUSH));
@@ -1175,8 +1174,6 @@ LRESULT PhpWindowThemeDrawListViewGroup(
                 DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_HIDEPREFIX
                 );
             DrawInfo->rcText.left -= 10;
-            //DrawInfo->clrText = RGB(0x0, 0xff, 0);
-            //return TBCDRF_USECDCOLORS | CDRF_NEWFONT;
         }
         return CDRF_SKIPDEFAULT;
     }

@@ -329,6 +329,8 @@ INT_PTR CALLBACK EspServiceRecoveryDlgProc(
             EspFixControls(hwndDlg, context);
 
             context->Ready = TRUE;
+
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
         }
         break;
     case WM_DESTROY:
@@ -619,6 +621,8 @@ INT_PTR CALLBACK RestartComputerDlgProc(
 
             PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDC_RESTARTCOMPAFTER));
             Edit_SetSel(GetDlgItem(hwndDlg, IDC_RESTARTCOMPAFTER), 0, -1);
+
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
         }
         break;
     case WM_COMMAND:
