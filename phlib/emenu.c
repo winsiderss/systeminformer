@@ -40,18 +40,6 @@ static const PH_FLAG_MAPPING EMenuStateMappings[] =
     { PH_EMENU_HIGHLIGHT, MFS_HILITE }
 };
 
-PPH_EMENU_ITEM PhAllocateEMenuItem(
-    VOID
-    )
-{
-    PPH_EMENU_ITEM item;
-
-    item = PhAllocate(sizeof(PH_EMENU_ITEM));
-    memset(item, 0, sizeof(PH_EMENU_ITEM));
-
-    return item;
-}
-
 /**
  * Creates a menu item.
  *
@@ -79,13 +67,13 @@ PPH_EMENU_ITEM PhCreateEMenuItem(
 {
     PPH_EMENU_ITEM item;
 
-    item = PhAllocateEMenuItem();
+    item = PhAllocate(sizeof(PH_EMENU_ITEM));
+    memset(item, 0, sizeof(PH_EMENU_ITEM));
 
     item->Flags = Flags;
     item->Id = Id;
     item->Text = Text;
     item->Bitmap = Bitmap;
-
     item->Context = Context;
 
     return item;
@@ -113,12 +101,8 @@ VOID PhpDestroyEMenuItem(
 
     if (Item->Items)
     {
-        ULONG i;
-
-        for (i = 0; i < Item->Items->Count; i++)
-        {
+        for (ULONG i = 0; i < Item->Items->Count; i++)
             PhpDestroyEMenuItem(Item->Items->Items[i]);
-        }
 
         PhDereferenceObject(Item->Items);
     }
@@ -139,7 +123,7 @@ VOID PhDestroyEMenuItem(
 {
     // Remove the item from its parent, if it has one.
     if (Item->Parent)
-        PhRemoveEMenuItem(NULL, Item, -1);
+        PhRemoveEMenuItem(NULL, Item, ULONG_MAX);
 
     PhpDestroyEMenuItem(Item);
 }
@@ -282,7 +266,7 @@ ULONG PhIndexOfEMenuItem(
     )
 {
     if (!Parent->Items)
-        return -1;
+        return ULONG_MAX;
 
     return PhFindItemList(Parent->Items, Item);
 }
@@ -311,7 +295,7 @@ VOID PhInsertEMenuItem(
     if (Index > Parent->Items->Count)
         Index = Parent->Items->Count;
 
-    if (Index == -1)
+    if (Index == ULONG_MAX)
         PhAddItemList(Parent->Items, Item);
     else
         PhInsertItemList(Parent->Items, Index, Item);
@@ -342,7 +326,7 @@ BOOLEAN PhRemoveEMenuItem(
 
         Index = PhFindItemList(Parent->Items, Item);
 
-        if (Index == -1)
+        if (Index == ULONG_MAX)
             return FALSE;
     }
     else
@@ -606,51 +590,51 @@ VOID PhHMenuToEMenuItem(
 
     count = GetMenuItemCount(MenuHandle);
 
-    if (count != -1)
+    if (count == -1)
+        return;
+
+    for (i = 0; i < count; i++)
     {
-        for (i = 0; i < count; i++)
-        {
-            MENUITEMINFO menuItemInfo;
-            WCHAR buffer[256];
-            PPH_EMENU_ITEM menuItem;
+        MENUITEMINFO menuItemInfo;
+        PPH_EMENU_ITEM menuItem;
+        WCHAR buffer[MAX_PATH];
 
-            menuItemInfo.cbSize = sizeof(menuItemInfo);
-            menuItemInfo.fMask = MIIM_FTYPE | MIIM_ID | MIIM_STATE | MIIM_STRING | MIIM_SUBMENU;
-            menuItemInfo.cch = sizeof(buffer) / sizeof(WCHAR);
-            menuItemInfo.dwTypeData = buffer;
+        menuItemInfo.cbSize = sizeof(menuItemInfo);
+        menuItemInfo.fMask = MIIM_FTYPE | MIIM_ID | MIIM_STATE | MIIM_STRING | MIIM_SUBMENU;
+        menuItemInfo.cch = RTL_NUMBER_OF(buffer);
+        menuItemInfo.dwTypeData = buffer;
 
-            if (!GetMenuItemInfo(MenuHandle, i, TRUE, &menuItemInfo))
-                continue;
+        if (!GetMenuItemInfo(MenuHandle, i, TRUE, &menuItemInfo))
+            continue;
 
-            menuItem = PhCreateEMenuItem(
-                PH_EMENU_TEXT_OWNED,
-                menuItemInfo.wID,
-                PhDuplicateStringZ(buffer),
-                NULL,
-                NULL
-                );
+        menuItem = PhCreateEMenuItem(
+            PH_EMENU_TEXT_OWNED,
+            menuItemInfo.wID,
+            PhDuplicateStringZ(buffer),
+            NULL,
+            NULL
+            );
 
-            if (menuItemInfo.fType & MFT_SEPARATOR)
-                menuItem->Flags |= PH_EMENU_SEPARATOR;
+        if (menuItemInfo.fType & MFT_SEPARATOR)
+            menuItem->Flags |= PH_EMENU_SEPARATOR;
 
-            PhMapFlags2(
-                &menuItem->Flags,
-                menuItemInfo.fType,
-                EMenuTypeMappings,
-                sizeof(EMenuTypeMappings) / sizeof(PH_FLAG_MAPPING)
-                );
-            PhMapFlags2(
-                &menuItem->Flags,
-                menuItemInfo.fState,
-                EMenuStateMappings,
-                sizeof(EMenuStateMappings) / sizeof(PH_FLAG_MAPPING)
-                );
+        PhMapFlags2(
+            &menuItem->Flags,
+            menuItemInfo.fType,
+            EMenuTypeMappings,
+            RTL_NUMBER_OF(EMenuTypeMappings)
+            );
+        PhMapFlags2(
+            &menuItem->Flags,
+            menuItemInfo.fState,
+            EMenuStateMappings,
+            RTL_NUMBER_OF(EMenuStateMappings)
+            );
 
-            if (menuItemInfo.hSubMenu)
-                PhHMenuToEMenuItem(menuItem, menuItemInfo.hSubMenu);
+        if (menuItemInfo.hSubMenu)
+            PhHMenuToEMenuItem(menuItem, menuItemInfo.hSubMenu);
 
-            PhInsertEMenuItem(MenuItem, menuItem, -1);
-        }
+        PhInsertEMenuItem(MenuItem, menuItem, ULONG_MAX);
     }
 }
 
@@ -674,7 +658,7 @@ VOID PhLoadResourceEMenuItem(
 
     menu = LoadMenu(InstanceHandle, Resource);
 
-    if (SubMenuIndex != -1)
+    if (SubMenuIndex != ULONG_MAX)
         realMenu = GetSubMenu(menu, SubMenuIndex);
     else
         realMenu = menu;
