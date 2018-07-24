@@ -341,6 +341,7 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
             BringWindowToTop(tnHandle);
             PhInitializeMemoryList(hwndDlg, tnHandle, &memoryContext->ListContext);
             TreeNew_SetEmptyText(tnHandle, &PhpLoadingText, 0);
+            PhRegisterWindowCallback(tnHandle, PH_PLUGIN_WINDOW_EVENT_TYPE_FONT, NULL);
             memoryContext->LastRunStatus = -1;
             memoryContext->ErrorMessage = NULL;
             memoryContext->SearchboxText = PhReferenceEmptyString();
@@ -366,6 +367,8 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
         break;
     case WM_DESTROY:
         {
+            PhUnregisterWindowCallback(tnHandle);
+
             PhEmCallObjectOperation(EmMemoryContextType, memoryContext, EmObjectDelete);
 
             if (PhPluginsEnabled)

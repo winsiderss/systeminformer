@@ -246,7 +246,6 @@ typedef struct _PH_MODULES_CONTEXT
     PPH_STRING ErrorMessage;
     PPH_STRING SearchboxText;
     PPH_TN_FILTER_ENTRY FilterEntry;
-    struct _PH_PLUGIN_WINDOW_CALLBACK_REGISTRATION *WindowCallback;
 // begin_phapppub
 } PH_MODULES_CONTEXT, *PPH_MODULES_CONTEXT;
 // end_phapppub
@@ -324,7 +323,6 @@ typedef struct _PH_MEMORY_CONTEXT
 typedef struct _PH_STATISTICS_CONTEXT
 {
     PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
-
     HWND WindowHandle;
     HWND ListViewHandle;
     BOOLEAN Enabled;

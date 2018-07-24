@@ -5764,6 +5764,7 @@ static NTSTATUS PhpFixupLoaderEntryImageImports(
                         
                             PhDereferenceObject(fileName);
                         }
+                    }
 
                     status = STATUS_INVALID_PARAMETER;STATUS_ORDINAL_NOT_FOUND;
                     goto CleanupExit;

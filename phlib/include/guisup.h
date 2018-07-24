@@ -832,6 +832,68 @@ PhMakeColorBrighter(
     return RGB(r, g, b);
 }
 
+// Window plugin support
+
+typedef enum _PH_PLUGIN_WINDOW_EVENT_TYPE
+{
+    PH_PLUGIN_WINDOW_EVENT_TYPE_NONE = 0,
+    PH_PLUGIN_WINDOW_EVENT_TYPE_TOPMOST = 1,
+    PH_PLUGIN_WINDOW_EVENT_TYPE_FONT = 2,
+    PH_PLUGIN_WINDOW_EVENT_TYPE_MAX = 4
+} PH_PLUGIN_WINDOW_EVENT_TYPE;
+
+typedef struct _PH_PLUGIN_WINDOW_CALLBACK_REGISTRATION
+{
+    HWND WindowHandle;
+    PH_PLUGIN_WINDOW_EVENT_TYPE Type;
+} PH_PLUGIN_WINDOW_CALLBACK_REGISTRATION, *PPH_PLUGIN_WINDOW_CALLBACK_REGISTRATION;
+
+typedef struct _PH_PLUGIN_WINDOW_NOTIFY_EVENT
+{
+    PH_PLUGIN_WINDOW_EVENT_TYPE Type;
+    union
+    {
+        BOOLEAN TopMost;
+        HFONT FontHandle;
+    };
+} PH_PLUGIN_WINDOW_NOTIFY_EVENT, *PPH_PLUGIN_WINDOW_NOTIFY_EVENT;
+
+typedef struct _PH_PLUGIN_MAINWINDOW_NOTIFY_EVENT
+{
+    PPH_PLUGIN_WINDOW_NOTIFY_EVENT Event;
+    PPH_PLUGIN_WINDOW_CALLBACK_REGISTRATION Callback;
+} PH_PLUGIN_MAINWINDOW_NOTIFY_EVENT, *PPH_PLUGIN_MAINWINDOW_NOTIFY_EVENT;
+
+PHLIBAPI
+VOID
+NTAPI
+PhRegisterWindowCallback(
+    _In_ HWND WindowHandle,
+    _In_ PH_PLUGIN_WINDOW_EVENT_TYPE Type,
+    _In_ PVOID Context
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhUnregisterWindowCallback(
+    _In_ HWND WindowHandle
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhWindowNotifyTopMostEvent(
+    _In_ BOOLEAN TopMost
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhWindowNotifyFontUpdateEvent(
+    _In_ HFONT FontHandle
+    );
+
 PHLIBAPI extern HFONT PhApplicationFont; // phapppub
 PHLIBAPI extern HFONT PhTreeWindowFont; // phapppub
 #ifdef __cplusplus

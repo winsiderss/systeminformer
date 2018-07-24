@@ -317,6 +317,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
             PhAddListViewColumn(statisticsContext->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 135, L"Property");
             PhAddListViewColumn(statisticsContext->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 150, L"Value");
             PhSetExtendedListView(statisticsContext->ListViewHandle);
+            PhRegisterWindowCallback(statisticsContext->ListViewHandle, PH_PLUGIN_WINDOW_EVENT_TYPE_FONT, NULL);
 
             PhpUpdateStatisticsAddListViewGroups(statisticsContext->ListViewHandle);
 
@@ -334,6 +335,8 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
         break;
     case WM_DESTROY:
         {
+            PhUnregisterWindowCallback(statisticsContext->ListViewHandle);
+
             PhUnregisterCallback(
                 PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
                 &statisticsContext->ProcessesUpdatedRegistration
