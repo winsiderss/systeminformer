@@ -2989,7 +2989,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 
             if ((LONG64)(node->TooltipTextValidToTickCount - tickCount) < 0)
                 PhClearReference(&node->TooltipText);
-            if (!node->TooltipText)
+
+            if (PhEnableTooltipSupport && !node->TooltipText)
                 node->TooltipText = PhGetProcessTooltipText(node->ProcessItem, &node->TooltipTextValidToTickCount);
 
             if (!PhIsNullOrEmptyString(node->TooltipText))
