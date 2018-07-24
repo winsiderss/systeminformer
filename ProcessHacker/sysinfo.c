@@ -66,7 +66,6 @@ static PH_EVENT InitializedEvent = PH_EVENT_INIT;
 static PWSTR InitialSectionName;
 static RECT MinimumSize;
 static PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
-static PPH_PLUGIN_WINDOW_CALLBACK_REGISTRATION WindowEventsRegistration =  NULL;
 
 static PPH_LIST SectionList;
 static PH_SYSINFO_PARAMETERS CurrentParameters;
@@ -207,11 +206,6 @@ INT_PTR CALLBACK PhSipSysInfoDialogProc(
             PhSipOnNcDestroy();
         }
         break;
-    case WM_SHOWWINDOW:
-        {
-            PhSipOnShowWindow(!!wParam, (ULONG)lParam);
-        }
-        break;
     case WM_SYSCOMMAND:
         {
             if (PhSipOnSysCommand((ULONG)wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)))
@@ -279,6 +273,10 @@ VOID PhSipOnInitDialog(
     VOID
     )
 {
+    RECT clientRect;
+    PH_STRINGREF sectionName;
+    PPH_SYSINFO_SECTION section;
+
     SendMessage(PhSipWindow, WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
     SendMessage(PhSipWindow, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
 
@@ -299,62 +297,19 @@ VOID PhSipOnInitDialog(
     PhSetControlTheme(PhSipWindow, L"explorer");
     PhSipUpdateThemeData();
 
-}
-
-VOID PhSipOnDestroy(
-    VOID
-    )
-{
-    PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), &ProcessesUpdatedRegistration);
-    PhUnregisterWindowNotifyEvents(PhSipWindow, WindowEventsRegistration);
-
-    if (CurrentSection)
-        PhSetStringSetting2(L"SysInfoWindowSection", &CurrentSection->Name);
-    else
-        PhSetStringSetting(L"SysInfoWindowSection", L"");
-
-    PhSaveWindowPlacementToSetting(L"SysInfoWindowPosition", L"SysInfoWindowSize", PhSipWindow);
-    PhSipSaveWindowState();
-}
-
-VOID PhSipOnNcDestroy(
-    VOID
-    )
-{
-    ULONG i;
-    PPH_SYSINFO_SECTION section;
-
-    for (i = 0; i < SectionList->Count; i++)
+    if (SectionList) // TODO: Remove (dmex)
     {
-        section = SectionList->Items[i];
-        PhSipDestroySection(section);
+        ULONG i;
+        PPH_SYSINFO_SECTION section;
+
+        for (i = 0; i < SectionList->Count; i++)
+        {
+            section = SectionList->Items[i];
+            PhSipDestroySection(section);
+        }
+
+        PhDereferenceObject(SectionList);
     }
-
-    PhDereferenceObject(SectionList);
-    SectionList = NULL;
-    PhSipDeleteParameters();
-
-    if (ThemeData)
-    {
-        CloseThemeData(ThemeData);
-        ThemeData = NULL;
-    }
-
-    PostQuitMessage(0);
-}
-
-VOID PhSipOnShowWindow(
-    _In_ BOOLEAN Showing,
-    _In_ ULONG State
-    )
-{
-    //RECT buttonRect;
-    RECT clientRect;
-    PH_STRINGREF sectionName;
-    PPH_SYSINFO_SECTION section;
-
-    if (SectionList)
-        return;
 
     SectionList = PhCreateList(8);
     PhSipInitializeParameters();
@@ -390,7 +345,6 @@ VOID PhSipOnShowWindow(
         PhInstanceHandle,
         NULL
         );
-
     RestoreSummaryControl = CreateWindow(
         WC_STATIC,
         NULL,
@@ -457,10 +411,52 @@ VOID PhSipOnShowWindow(
 
     if (PhGetIntegerSetting(L"MainWindowAlwaysOnTop"))
         PhSetWindowAlwaysOnTop(PhSipWindow, TRUE);
-    WindowEventsRegistration = PhRegisterWindowNotifyEvents(PhSipWindow, PH_PLUGIN_WINDOW_EVENT_TYPE_TOPMOST);
+    PhRegisterWindowCallback(PhSipWindow, PH_PLUGIN_WINDOW_EVENT_TYPE_TOPMOST, NULL);
 
     PhSipOnSize();
     PhSipOnUserMessage(SI_MSG_SYSINFO_UPDATE, 0, 0);
+}
+
+VOID PhSipOnDestroy(
+    VOID
+    )
+{
+    PhUnregisterWindowCallback(PhSipWindow);
+    PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), &ProcessesUpdatedRegistration);
+
+    if (CurrentSection)
+        PhSetStringSetting2(L"SysInfoWindowSection", &CurrentSection->Name);
+    else
+        PhSetStringSetting(L"SysInfoWindowSection", L"");
+
+    PhSaveWindowPlacementToSetting(L"SysInfoWindowPosition", L"SysInfoWindowSize", PhSipWindow);
+    PhSipSaveWindowState();
+}
+
+VOID PhSipOnNcDestroy(
+    VOID
+    )
+{
+    ULONG i;
+    PPH_SYSINFO_SECTION section;
+
+    for (i = 0; i < SectionList->Count; i++)
+    {
+        section = SectionList->Items[i];
+        PhSipDestroySection(section);
+    }
+
+    PhDereferenceObject(SectionList);
+    SectionList = NULL;
+    PhSipDeleteParameters();
+
+    if (ThemeData)
+    {
+        CloseThemeData(ThemeData);
+        ThemeData = NULL;
+    }
+
+    PostQuitMessage(0);
 }
 
 BOOLEAN PhSipOnSysCommand(

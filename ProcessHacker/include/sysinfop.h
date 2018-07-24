@@ -56,11 +56,6 @@ VOID PhSipOnNcDestroy(
     VOID
     );
 
-VOID PhSipOnShowWindow(
-    _In_ BOOLEAN Showing,
-    _In_ ULONG State
-    );
-
 BOOLEAN PhSipOnSysCommand(
     _In_ ULONG Type,
     _In_ LONG CursorScreenX,
