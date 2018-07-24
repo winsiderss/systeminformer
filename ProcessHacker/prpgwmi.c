@@ -22,13 +22,13 @@
 
 #include <phapp.h>
 #include <phplug.h>
+#include <phsettings.h>
 #include <procprp.h>
 #include <procprpp.h>
 #include <procprv.h>
 #include <settings.h>
 #include <emenu.h>
 
-#include <uxtheme.h>
 #include <wbemidl.h>
 
 #define WM_PH_WMI_UPDATE (WM_APP + 251)
@@ -596,8 +596,6 @@ INT_PTR CALLBACK PhpProcessWmiProvidersDlgProc(
             PhSetExtendedListView(context->ListViewHandle);
             PhLoadListViewColumnsFromSetting(L"WmiProviderListViewColumns", context->ListViewHandle);
 
-            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
-
             PhpRefreshWmiProviders(hwndDlg, context, processItem);
 
             PhRegisterCallback(
@@ -606,6 +604,8 @@ INT_PTR CALLBACK PhpProcessWmiProvidersDlgProc(
                 context,
                 &context->ProcessesUpdatedRegistration
                 );
+
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:

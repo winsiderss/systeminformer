@@ -57,6 +57,7 @@ LRESULT PhpWindowThemeDrawListViewGroup(
 COLORREF PhpThemeWindowForegroundColor = RGB(28, 28, 28);
 COLORREF PhpThemeWindowBackgroundColor = RGB(64, 64, 64);
 COLORREF PhpThemeWindowTextColor = RGB(0xff, 0xff, 0xff);
+HFONT PhpTabControlFontHandle = NULL;
 HFONT PhpGroupboxFontHandle = NULL;
 
 LRESULT CALLBACK PhpThemeWindowSubclassProc(
@@ -848,26 +849,27 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
 
         PhSetWindowStyle(WindowHandle, TCS_OWNERDRAWFIXED, TCS_OWNERDRAWFIXED);
 
-        //SendMessage(
-        //    WindowHandle,
-        //    WM_SETFONT,
-        //    (WPARAM)CreateFont(
-        //        -(LONG)PhMultiplyDivide(15, PhGlobalDpi, 96),
-        //        0,
-        //        0,
-        //        0,
-        //        FW_SEMIBOLD,
-        //        FALSE,
-        //        FALSE,
-        //        FALSE,
-        //        ANSI_CHARSET,
-        //        OUT_DEFAULT_PRECIS,
-        //        CLIP_DEFAULT_PRECIS,
-        //        DEFAULT_QUALITY,
-        //        DEFAULT_PITCH,
-        //        L"Tahoma"
-        //    ), FALSE);
+        if (!PhpTabControlFontHandle)
+        {
+            PhpTabControlFontHandle = CreateFont(
+                -(LONG)PhMultiplyDivide(15, PhGlobalDpi, 96),
+                0,
+                0,
+                0,
+                FW_SEMIBOLD,
+                FALSE,
+                FALSE,
+                FALSE,
+                ANSI_CHARSET,
+                OUT_DEFAULT_PRECIS,
+                CLIP_DEFAULT_PRECIS,
+                DEFAULT_QUALITY,
+                DEFAULT_PITCH,
+                L"Tahoma"
+                );
+        }
 
+        SendMessage(WindowHandle, WM_SETFONT, (WPARAM)PhpTabControlFontHandle, FALSE);
         InvalidateRect(WindowHandle, NULL, FALSE);
     }
     else if (PhEqualStringZ(className, L"msctls_statusbar32", FALSE))

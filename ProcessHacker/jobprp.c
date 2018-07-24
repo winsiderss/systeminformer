@@ -21,6 +21,7 @@
  */
 
 #include <phapp.h>
+#include <phsettings.h>
 #include <hndlinfo.h>
 #include <secedit.h>
 #include <procprv.h>
@@ -382,6 +383,8 @@ INT_PTR CALLBACK PhpJobPageProc(
 
                 NtClose(jobHandle);
             }
+
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
@@ -633,6 +636,8 @@ INT_PTR CALLBACK PhpJobStatisticsPageProc(
 
             PhpRefreshJobStatisticsInfo(hwndDlg, jobPageContext);
             SetTimer(hwndDlg, 1, PhGetIntegerSetting(L"UpdateInterval"), NULL);
+
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_TIMER:
