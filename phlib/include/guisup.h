@@ -899,7 +899,10 @@ PhWindowNotifyFontUpdateEvent(
 PHLIBAPI extern HFONT PhApplicationFont; // phapppub
 PHLIBAPI extern HFONT PhTreeWindowFont; // phapppub
 
-VOID PhInitializeWindowTheme(
+PHLIBAPI
+VOID
+NTAPI
+PhInitializeWindowTheme(
     _In_ HWND WindowHandle,
     _In_ BOOLEAN EnableThemeSupport
     );
