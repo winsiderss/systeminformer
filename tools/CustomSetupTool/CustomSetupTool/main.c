@@ -23,6 +23,20 @@
 SETUP_COMMAND_TYPE SetupMode = SETUP_COMMAND_INSTALL;
 PPH_STRING SetupInstallPath = NULL;
 
+VOID PhAddDefaultSettings(
+    VOID
+    )
+{
+    NOTHING;
+}
+
+VOID PhUpdateCachedSettings(
+    VOID
+    )
+{
+    NOTHING;
+}
+
 VOID SetupInitializeDpi(
     VOID
     )
