@@ -553,6 +553,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
     PTOKEN_PAGE_CONTEXT tokenPageContext;
 
     tokenPageContext = PhpTokenPageHeader(hwndDlg, uMsg, wParam, lParam);
+    tokenPageContext = PhpGenericPropertyPageHeader(hwndDlg, uMsg, wParam, lParam, 3);
 
     if (!tokenPageContext)
         return FALSE;
@@ -1601,7 +1602,7 @@ INT_PTR CALLBACK PhpTokenCapabilitiesPageProc(
                 NtClose(tokenHandle);
             }
 
-            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
