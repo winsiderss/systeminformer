@@ -1162,7 +1162,7 @@ PPH_SYSINFO_SECTION PhSipCreateSection(
     options.FadeOutWidth = CurrentParameters.PanelWidth + PH_SYSINFO_FADE_ADD;
     options.DefaultCursor = LoadCursor(NULL, IDC_HAND);
     Graph_SetOptions(section->GraphHandle, &options);
-    Graph_SetTooltip(section->GraphHandle, TRUE);
+    if (PhEnableTooltipSupport) Graph_SetTooltip(section->GraphHandle, TRUE);
 
     section->PanelId = IDDYNAMIC + SectionList->Count * 2 + 2;
     section->PanelHandle = CreateWindow(
