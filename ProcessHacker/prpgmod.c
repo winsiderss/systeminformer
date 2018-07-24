@@ -25,8 +25,6 @@
 #include <procprp.h>
 #include <procprpp.h>
 
-#include <uxtheme.h>
-
 #include <cpysave.h>
 #include <emenu.h>
 
@@ -35,6 +33,7 @@
 #include <modlist.h>
 #include <modprv.h>
 #include <phplug.h>
+#include <phsettings.h>
 #include <procprv.h>
 #include <settings.h>
 #include <verify.h>
@@ -498,7 +497,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             PhSetEnabledProvider(&modulesContext->ProviderRegistration, TRUE);
             PhBoostProvider(&modulesContext->ProviderRegistration, NULL);
 
-            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:

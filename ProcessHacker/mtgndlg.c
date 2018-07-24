@@ -22,6 +22,7 @@
  */
 
 #include <phapp.h>
+#include <phsettings.h>
 #include <procmtgn.h>
 
 typedef struct _MITIGATION_POLICY_ENTRY
@@ -222,6 +223,8 @@ INT_PTR CALLBACK PhpProcessMitigationPolicyDlgProc(
             ListView_SetItemState(lvHandle, 0, LVIS_FOCUSED | LVIS_SELECTED, LVIS_FOCUSED | LVIS_SELECTED);
 
             PhSetDialogFocus(hwndDlg, lvHandle);
+
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:

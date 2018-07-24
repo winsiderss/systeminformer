@@ -22,6 +22,7 @@
  */
 
 #include <phapp.h>
+#include <phsettings.h>
 #include <cpysave.h>
 #include <emenu.h>
 #include <hndlinfo.h>
@@ -1186,6 +1187,8 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
 
             Edit_SetSel(context->SearchWindowHandle, 0, -1);
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_REGEX), PhGetIntegerSetting(L"FindObjRegex") ? BST_CHECKED : BST_UNCHECKED);
+
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:

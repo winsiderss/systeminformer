@@ -174,6 +174,8 @@ INT CALLBACK PhpPropSheetProc(
             PhSetWindowContext(hwndDlg, 0xF, propSheetContext);
             SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)PhpPropSheetWndProc);
 
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+
             PhRegisterWindowCallback(hwndDlg, PH_PLUGIN_WINDOW_EVENT_TYPE_TOPMOST, NULL);
 
             if (MinimumSize.left == -1)

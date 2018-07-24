@@ -22,6 +22,7 @@
  */
 
 #include <phapp.h>
+#include <phsettings.h>
 #include <phplug.h>
 #include <procprp.h>
 #include <procprpp.h>
@@ -330,7 +331,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
 
             PhpUpdateProcessStatistics(processItem, statisticsContext);
 
-            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
