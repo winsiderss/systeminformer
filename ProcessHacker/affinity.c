@@ -28,8 +28,6 @@
 
 #include <phapp.h>
 
-#include <windowsx.h>
-
 #include <procprv.h>
 #include <thrdprv.h>
 

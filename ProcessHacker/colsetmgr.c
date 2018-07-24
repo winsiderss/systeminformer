@@ -24,7 +24,6 @@
 #include <colsetmgr.h>
 #include <settings.h>
 #include <extmgri.h>
-#include <windowsx.h>
 
 PPH_LIST PhInitializeColumnSetList(
     _In_ PWSTR SettingName

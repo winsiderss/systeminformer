@@ -43,7 +43,6 @@
 #include <hidnproc.h>
 
 #include <shellapi.h>
-#include <windowsx.h>
 
 #include <kphuser.h>
 

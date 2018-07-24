@@ -22,8 +22,6 @@
  */
 
 #include <ph.h>
-
-#include <windowsx.h>
 #include <math.h>
 
 #include <graph.h>

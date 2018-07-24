@@ -22,7 +22,6 @@
 
 #include <phapp.h>
 
-#include <windowsx.h>
 #include <dbghelp.h>
 #include <symprv.h>
 

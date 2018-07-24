@@ -25,7 +25,6 @@
 #include <secedit.h>
 #include <procprv.h>
 #include <settings.h>
-#include <windowsx.h>
 
 typedef struct _JOB_PAGE_CONTEXT
 {

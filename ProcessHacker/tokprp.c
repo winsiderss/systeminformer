@@ -31,7 +31,6 @@
 #include <splitter.h>
 #include <phsettings.h>
 
-#include <windowsx.h>
 #include <uxtheme.h>
 
 typedef enum _PH_PROCESS_TOKEN_CATEGORY

@@ -23,7 +23,6 @@
 #include <phapp.h>
 #include <hndlinfo.h>
 #include <hndlprv.h>
-#include <windowsx.h>
 
 typedef struct _HANDLE_STATISTICS_ENTRY
 {

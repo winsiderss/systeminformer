@@ -35,7 +35,6 @@
 #include <srvprv.h>
 #include <thrdprv.h>
 
-#include <windowsx.h>
 #include <uxtheme.h>
 
 static HWND PhAboutWindowHandle = NULL;

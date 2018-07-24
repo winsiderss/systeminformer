@@ -25,7 +25,6 @@
 #include <mainwnd.h>
 
 #include <shellapi.h>
-#include <windowsx.h>
 #include <winsta.h>
 
 #include <cpysave.h>

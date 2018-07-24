@@ -22,9 +22,6 @@
  */
 
 #include <phapp.h>
-
-#include <windowsx.h>
-
 #include <cpysave.h>
 #include <emenu.h>
 #include <hndlinfo.h>
