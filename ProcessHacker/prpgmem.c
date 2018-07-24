@@ -25,8 +25,6 @@
 #include <procprp.h>
 #include <procprpp.h>
 
-#include <windowsx.h>
-
 #include <cpysave.h>
 #include <emenu.h>
 

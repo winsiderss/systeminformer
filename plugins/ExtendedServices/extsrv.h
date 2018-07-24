@@ -3,7 +3,6 @@
 
 #include <phdk.h>
 #include <settings.h>
-#include <windowsx.h>
 
 #include "resource.h"
 

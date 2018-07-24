@@ -21,7 +21,6 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define INITGUID
 #include "exttools.h"
 #include <cfgmgr32.h>
 #include <ntddvdeo.h>

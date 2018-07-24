@@ -23,11 +23,8 @@
 #ifndef DN_H
 #define DN_H
 
-#define CINTERFACE
-#define COBJMACROS
 #include <phdk.h>
 #include <settings.h>
-#include <windowsx.h>
 
 #include "resource.h"
 

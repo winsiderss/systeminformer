@@ -21,6 +21,7 @@
  */
 
 #include "devices.h"
+#include <cguid.h>
 #include <objbase.h>
 
 PVOID IphlpHandle = NULL;

@@ -33,13 +33,9 @@
 #define SETTING_NAME_DISK_COUNTERS_COLUMNS (PLUGIN_NAME L".DiskListColumns")
 #define SETTING_NAME_SMART_COUNTERS_COLUMNS (PLUGIN_NAME L".SmartListColumns")
 
-#define CINTERFACE
-#define COBJMACROS
 #include <phdk.h>
 #include <phappresource.h>
 #include <settings.h>
-
-#include <windowsx.h>
 
 #include <cfgmgr32.h>
 #include <nldef.h>

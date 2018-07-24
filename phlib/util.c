@@ -26,11 +26,7 @@
 #include <commctrl.h>
 #include <commdlg.h>
 #include <shellapi.h>
-#define CINTERFACE
-#define COBJMACROS
 #include <shlobj.h>
-#undef CINTERFACE
-#undef COBJMACROS
 #include <userenv.h>
 #include <winsta.h>
 

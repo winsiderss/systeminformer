@@ -23,9 +23,6 @@
 #ifndef __UPDATER_H__
 #define __UPDATER_H__
 
-#define CINTERFACE
-#define COBJMACROS
-#define INITGUID
 #include <phdk.h>
 #include <phappresource.h>
 #include <json.h>
@@ -33,7 +30,6 @@
 #include <settings.h>
 #include <workqueue.h>
 
-#include <windowsx.h>
 #include <shlobj.h>
 
 #include <http.h>

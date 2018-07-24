@@ -24,8 +24,6 @@
 #ifndef ONLNCHK_H
 #define ONLNCHK_H
 
-#define CINTERFACE
-#define COBJMACROS
 #include <phdk.h>
 #include <phappresource.h>
 #include <settings.h>
@@ -36,7 +34,6 @@
 #include <mapimg.h>
 
 #include <shlobj.h>
-#include <windowsx.h>
 
 #include "resource.h"
 #include "db.h"

@@ -27,7 +27,6 @@
 #include <mainwnd.h>
 #include <colmgr.h>
 #include <phplug.h>
-#include <windowsx.h>
 
 #define WM_PH_PLUGINS_SHOWDIALOG (WM_APP + 401)
 #define WM_PH_PLUGINS_SHOWPROPERTIES (WM_APP + 402)

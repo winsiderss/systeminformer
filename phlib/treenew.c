@@ -46,10 +46,8 @@
 
 #include <uxtheme.h>
 #include <vssym32.h>
-#include <windowsx.h>
 
 #include <guisup.h>
-
 #include <treenewp.h>
 
 static PVOID ComCtl32Handle;

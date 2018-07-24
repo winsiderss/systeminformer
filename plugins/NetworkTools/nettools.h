@@ -24,15 +24,12 @@
 #ifndef _NET_TOOLS_H_
 #define _NET_TOOLS_H_
 
-#define CINTERFACE
-#define COBJMACROS
 #include <phdk.h>
 #include <phapppub.h>
 #include <phappresource.h>
 #include <settings.h>
 #include <workqueue.h>
 
-#include <windowsx.h>
 #include <icmpapi.h>
 #include <shlobj.h>
 

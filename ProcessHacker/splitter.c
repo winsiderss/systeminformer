@@ -24,7 +24,6 @@
 #include <phapp.h>
 #include <splitter.h>
 #include <settings.h>
-#include <windowsx.h>
 
 #define SPLITTER_PADDING 6
 

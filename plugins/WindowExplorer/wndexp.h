@@ -8,8 +8,6 @@
 
 #include <commonutil.h>
 
-#include <windowsx.h>
-
 #include "resource.h"
 #include "wndtree.h"
 

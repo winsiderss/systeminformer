@@ -26,8 +26,6 @@
 #include <procprv.h>
 #include <secedit.h>
 
-#include <windowsx.h>
-
 typedef struct _COMMON_PAGE_CONTEXT
 {
     PPH_OPEN_OBJECT OpenObject;

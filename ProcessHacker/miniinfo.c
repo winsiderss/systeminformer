@@ -26,7 +26,6 @@
 #include <miniinfop.h>
 
 #include <shellapi.h>
-#include <uxtheme.h>
 
 #include <actions.h>
 #include <mainwnd.h>

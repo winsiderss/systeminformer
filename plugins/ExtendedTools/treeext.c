@@ -21,8 +21,6 @@
  */
 
 #include "exttools.h"
-#define CINTERFACE
-#define COBJMACROS
 #include <netfw.h>
 
 LONG EtpProcessTreeNewSortFunction(

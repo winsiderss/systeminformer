@@ -20,12 +20,10 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define CINTERFACE
-#define COBJMACROS
 #include <peview.h>
+
 #include <shobjidl.h>
-#undef CINTERFACE
-#undef COBJMACROS
+
 #include <cpysave.h>
 
 static GUID CLSID_ShellLink_I = { 0x00021401, 0x0000, 0x0000, { 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x46 } };

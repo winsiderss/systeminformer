@@ -22,8 +22,6 @@
 
 #include <phapp.h>
 
-#include <windowsx.h>
-
 #include <secedit.h>
 #include <svcsup.h>
 #include <mainwnd.h>

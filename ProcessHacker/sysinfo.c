@@ -52,7 +52,6 @@
 
 #include <uxtheme.h>
 #include <vssym32.h>
-#include <windowsx.h>
 
 #include <mainwnd.h>
 #include <phplug.h>
