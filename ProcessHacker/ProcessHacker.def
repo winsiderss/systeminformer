@@ -526,6 +526,7 @@ EXPORTS
 	PhApplicationFont
 	PhTreeWindowFont
 	PhInitializeWindowTheme
+	PhReInitializeWindowTheme
 
 ; hndlinfo
 	PhEnumObjectTypes

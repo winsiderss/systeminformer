@@ -907,6 +907,13 @@ PhInitializeWindowTheme(
     _In_ BOOLEAN EnableThemeSupport
     );
 
+PHLIBAPI
+VOID
+NTAPI
+PhReInitializeWindowTheme(
+    _In_ HWND WindowHandle
+    );
+
 FORCEINLINE
 HFONT
 PhDuplicateFontWithNewHeight(
