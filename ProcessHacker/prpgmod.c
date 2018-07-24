@@ -480,6 +480,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             modulesContext->ErrorMessage = NULL;
             modulesContext->SearchboxText = PhReferenceEmptyString();
             modulesContext->FilterEntry = PhAddTreeNewFilter(&modulesContext->ListContext.TreeFilterSupport, PhpModulesTreeFilterCallback, modulesContext);
+            PhRegisterWindowCallback(tnHandle, PH_PLUGIN_WINDOW_EVENT_TYPE_FONT, NULL);
 
             PhEmCallObjectOperation(EmModulesContextType, modulesContext, EmObjectCreate);
 
@@ -503,6 +504,8 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
         break;
     case WM_DESTROY:
         {
+            PhUnregisterWindowCallback(tnHandle);
+
             PhEmCallObjectOperation(EmModulesContextType, modulesContext, EmObjectDelete);
 
             PhUnregisterCallback(

@@ -23,7 +23,7 @@
 
 #include <ph.h>
 #include <guisup.h>
-
+#include <settings.h>
 #include <shellapi.h>
 #include <uxtheme.h>
 #include <windowsx.h>
@@ -36,8 +36,14 @@ BOOLEAN NTAPI PhpWindowContextHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     );
-
 ULONG NTAPI PhpWindowContextHashtableHashFunction(
+    _In_ PVOID Entry
+    );
+BOOLEAN NTAPI PhpWindowCallbackHashtableEqualFunction(
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
+    );
+ULONG NTAPI PhpWindowCallbackHashtableHashFunction(
     _In_ PVOID Entry
     );
 
@@ -61,6 +67,8 @@ static PH_INITONCE SharedIconCacheInitOnce = PH_INITONCE_INIT;
 static PPH_HASHTABLE SharedIconCacheHashtable;
 static PH_QUEUED_LOCK SharedIconCacheLock = PH_QUEUED_LOCK_INIT;
 
+static PPH_HASHTABLE WindowCallbackHashTable = NULL;
+static PH_QUEUED_LOCK WindowCallbackListLock = PH_QUEUED_LOCK_INIT;
 static PPH_HASHTABLE WindowContextHashTable = NULL;
 static PH_QUEUED_LOCK WindowContextListLock = PH_QUEUED_LOCK_INIT;
 
@@ -72,6 +80,12 @@ VOID PhGuiSupportInitialization(
     PVOID shell32Handle;
     PVOID shlwapiHandle;
 
+    WindowCallbackHashTable = PhCreateHashtable(
+        sizeof(PH_PLUGIN_WINDOW_CALLBACK_REGISTRATION),
+        PhpWindowCallbackHashtableEqualFunction,
+        PhpWindowCallbackHashtableHashFunction,
+        10
+        );
     WindowContextHashTable = PhCreateHashtable(
         sizeof(PH_WINDOW_PROPERTY_CONTEXT),
         PhpWindowContextHashtableEqualFunction,
@@ -1538,4 +1552,119 @@ VOID PhSetWindowAlwaysOnTop(
         0, 0, 0, 0,
         SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE
         );
+}
+
+static BOOLEAN NTAPI PhpWindowCallbackHashtableEqualFunction(
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
+    )
+{
+    return
+        (*(PPH_PLUGIN_WINDOW_CALLBACK_REGISTRATION *)Entry1)->WindowHandle ==
+        (*(PPH_PLUGIN_WINDOW_CALLBACK_REGISTRATION *)Entry2)->WindowHandle;
+}
+
+static ULONG NTAPI PhpWindowCallbackHashtableHashFunction(
+    _In_ PVOID Entry
+    )
+{
+    return PhHashIntPtr((ULONG_PTR)(*(PPH_PLUGIN_WINDOW_CALLBACK_REGISTRATION *)Entry)->WindowHandle);
+}
+
+VOID PhRegisterWindowCallback(
+    _In_ HWND WindowHandle,
+    _In_ PH_PLUGIN_WINDOW_EVENT_TYPE Type,
+    _In_ PVOID Context
+    )
+{
+    PPH_PLUGIN_WINDOW_CALLBACK_REGISTRATION entry;
+
+    entry = PhAllocate(sizeof(PH_PLUGIN_WINDOW_CALLBACK_REGISTRATION));
+    entry->WindowHandle = WindowHandle;
+    entry->Type = Type;
+
+    switch (Type) // HACK
+    {
+    case PH_PLUGIN_WINDOW_EVENT_TYPE_TOPMOST:
+        if (PhGetIntegerSetting(L"MainWindowAlwaysOnTop"))
+            PhSetWindowAlwaysOnTop(WindowHandle, TRUE);
+        break;
+    case PH_PLUGIN_WINDOW_EVENT_TYPE_FONT:
+        SendMessage(WindowHandle, WM_SETFONT, (WPARAM)PhTreeWindowFont, TRUE);
+        break;
+    }
+
+    PhAcquireQueuedLockExclusive(&WindowCallbackListLock);
+    PhAddEntryHashtable(WindowCallbackHashTable, &entry);
+    PhReleaseQueuedLockExclusive(&WindowCallbackListLock);
+}
+
+VOID PhUnregisterWindowCallback(
+    _In_ HWND WindowHandle
+    )
+{
+    PH_PLUGIN_WINDOW_CALLBACK_REGISTRATION lookupEntry;
+    PPH_PLUGIN_WINDOW_CALLBACK_REGISTRATION lookupEntryPtr = &lookupEntry;
+    PPH_PLUGIN_WINDOW_CALLBACK_REGISTRATION *entryPtr;
+    PPH_PLUGIN_WINDOW_CALLBACK_REGISTRATION entry;
+
+    lookupEntry.WindowHandle = WindowHandle;
+
+    PhAcquireQueuedLockExclusive(&WindowCallbackListLock);
+
+    entryPtr = (PPH_PLUGIN_WINDOW_CALLBACK_REGISTRATION*)PhFindEntryHashtable(
+        WindowCallbackHashTable,
+        &lookupEntryPtr
+        );
+
+    assert(entryPtr);
+
+    if (entryPtr && PhRemoveEntryHashtable(WindowCallbackHashTable, entryPtr))
+    {
+        entry = *entryPtr;
+        PhFree(entry);
+    }
+
+    PhReleaseQueuedLockExclusive(&WindowCallbackListLock);
+}
+
+VOID PhWindowNotifyTopMostEvent(
+    _In_ BOOLEAN TopMost
+    )
+{
+    PPH_PLUGIN_WINDOW_CALLBACK_REGISTRATION *entry;
+    ULONG i = 0;
+
+    PhAcquireQueuedLockExclusive(&WindowCallbackListLock);
+
+    while (PhEnumHashtable(WindowCallbackHashTable, (PVOID*)&entry, &i))
+    {
+        if ((*entry)->Type & PH_PLUGIN_WINDOW_EVENT_TYPE_TOPMOST)
+        {
+            PhSetWindowAlwaysOnTop((*entry)->WindowHandle, TopMost);
+        }
+    }
+
+    PhReleaseQueuedLockExclusive(&WindowCallbackListLock);
+}
+
+VOID PhWindowNotifyFontUpdateEvent(
+    _In_ HFONT FontHandle
+    )
+{
+    PPH_PLUGIN_WINDOW_CALLBACK_REGISTRATION *entry;
+    ULONG i = 0;
+
+    PhAcquireQueuedLockExclusive(&WindowCallbackListLock);
+
+    while (PhEnumHashtable(WindowCallbackHashTable, (PVOID*)&entry, &i))
+    {
+        if ((*entry)->Type & PH_PLUGIN_WINDOW_EVENT_TYPE_FONT)
+        {
+            SendMessage((*entry)->WindowHandle, WM_SETFONT, (WPARAM)FontHandle, TRUE);
+            InvalidateRect((*entry)->WindowHandle, NULL, TRUE); // HACK
+        }
+    }
+
+    PhReleaseQueuedLockExclusive(&WindowCallbackListLock);
 }
