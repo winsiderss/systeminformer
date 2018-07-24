@@ -163,8 +163,6 @@ ISecurityInformation *PhSecurityInformation_Create(
     )
 {
     PhSecurityInformation *info;
-    PPH_ACCESS_ENTRY accessEntries;
-    ULONG numberOfAccessEntries;
     ULONG i;
 
     info = PhAllocate(sizeof(PhSecurityInformation));
@@ -179,24 +177,21 @@ ISecurityInformation *PhSecurityInformation_Create(
     info->Context = Context;  
     info->IsPage = IsPage;
 
-    if (PhGetAccessEntries(ObjectType, &accessEntries, &numberOfAccessEntries))
+    if (PhGetAccessEntries(ObjectType, &info->AccessEntriesArray, &info->NumberOfAccessEntries))
     {
-        info->AccessEntries = PhAllocate(sizeof(SI_ACCESS) * numberOfAccessEntries);
-        info->NumberOfAccessEntries = numberOfAccessEntries;
+        info->AccessEntries = PhAllocate(sizeof(SI_ACCESS) * info->NumberOfAccessEntries);
 
-        for (i = 0; i < numberOfAccessEntries; i++)
+        for (i = 0; i < info->NumberOfAccessEntries; i++)
         {
             memset(&info->AccessEntries[i], 0, sizeof(SI_ACCESS));
-            info->AccessEntries[i].pszName = accessEntries[i].Name;
-            info->AccessEntries[i].mask = accessEntries[i].Access;
+            info->AccessEntries[i].pszName = info->AccessEntriesArray[i].Name;
+            info->AccessEntries[i].mask = info->AccessEntriesArray[i].Access;
 
-            if (accessEntries[i].General)
+            if (info->AccessEntriesArray[i].General)
                 info->AccessEntries[i].dwFlags |= SI_ACCESS_GENERAL;
-            if (accessEntries[i].Specific)
+            if (info->AccessEntriesArray[i].Specific)
                 info->AccessEntries[i].dwFlags |= SI_ACCESS_SPECIFIC;
         }
-
-        info->AccessEntriesArray = accessEntries;
     }
 
     return (ISecurityInformation *)info;
