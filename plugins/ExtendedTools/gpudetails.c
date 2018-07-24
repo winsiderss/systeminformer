@@ -22,7 +22,6 @@
 
 #include "exttools.h"
 #include "gpumon.h"
-#include <uxtheme.h>
 
 static PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
 static PH_LAYOUT_MANAGER LayoutManager;
@@ -350,7 +349,7 @@ INT_PTR CALLBACK EtpGpuDetailsDlgProc(
                 &ProcessesUpdatedCallbackRegistration
                 );
 
-            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
         }
         break;
     case WM_DESTROY:
