@@ -815,7 +815,11 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
     if (!GetClassName(WindowHandle, className, RTL_NUMBER_OF(className)))
         className[0] = 0;
 
-    if (PhEqualStringZ(className, L"Button", FALSE))
+    if (PhEqualStringZ(className, L"#32770", FALSE))
+    {
+        PhInitializeWindowTheme(WindowHandle, TRUE);
+    }
+    else if (PhEqualStringZ(className, L"Button", FALSE))
     {
         ULONG buttonWindowStyle = (ULONG)GetWindowLongPtr(WindowHandle, GWL_STYLE);
 
@@ -828,16 +832,20 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
             SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)PhpThemeWindowGroupBoxSubclassProc);
         }
     }
-
-    if (PhEqualStringZ(className, L"Edit", FALSE))
+    else if (PhEqualStringZ(className, L"Edit", FALSE))
     {
-        PhSetWindowStyle(WindowHandle, WS_BORDER, 0);
-        PhSetWindowExStyle(WindowHandle, WS_EX_CLIENTEDGE, 0);
-    }
-    else if (PhEqualStringZ(className, L"#32770", FALSE))
-    {
-        PhInitializeWindowTheme(WindowHandle, TRUE);
-    }
+        switch (PhGetIntegerSetting(L"GraphColorMode"))
+        {
+        case 0: // New colors
+            //PhSetWindowStyle(WindowHandle, WS_BORDER, WS_BORDER);
+            //PhSetWindowExStyle(WindowHandle, WS_EX_CLIENTEDGE, WS_EX_CLIENTEDGE);
+            break;
+        case 1: // Old colors
+            PhSetWindowStyle(WindowHandle, WS_BORDER, 0);
+            PhSetWindowExStyle(WindowHandle, WS_EX_CLIENTEDGE, 0);
+            break;
+        }
+    }     
     else if (PhEqualStringZ(className, L"SysTabControl32", FALSE))
     {
         PPHP_THEME_WINDOW_TAB_CONTEXT tabControlContext;
@@ -889,9 +897,16 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
         PhSetWindowStyle(WindowHandle, WS_BORDER, 0);
         PhSetWindowExStyle(WindowHandle, WS_EX_CLIENTEDGE, 0);
 
-        ListView_SetBkColor(WindowHandle, RGB(30, 30, 30));
-        ListView_SetTextBkColor(WindowHandle, RGB(30, 30, 30));
-        ListView_SetTextColor(WindowHandle, RGB(0xff, 0xff, 0xff));
+        switch (PhGetIntegerSetting(L"GraphColorMode"))
+        {
+        case 0: // New colors
+            break;
+        case 1: // Old colors
+            ListView_SetBkColor(WindowHandle, RGB(30, 30, 30));
+            ListView_SetTextBkColor(WindowHandle, RGB(30, 30, 30));
+            ListView_SetTextColor(WindowHandle, RGB(0xff, 0xff, 0xff));
+            break;
+        }
     }
     else if (PhEqualStringZ(className, L"ScrollBar", FALSE))
     {
@@ -947,7 +962,6 @@ LRESULT PhpWindowThemeDrawButton(
         {
             PPH_STRING buttonText;
             HFONT oldFont;
-            COLORREF oldColor;
 
             buttonText = PhGetWindowText(DrawInfo->hdr.hwndFrom);
 
@@ -956,28 +970,27 @@ LRESULT PhpWindowThemeDrawButton(
                 switch (PhGetIntegerSetting(L"GraphColorMode"))
                 {
                 case 0: // New colors
-                    oldColor = SetTextColor(DrawInfo->hdc, RGB(0, 0, 0xff));
-                    SetDCBrushColor(DrawInfo->hdc, PhpThemeWindowTextColor);
+                    //SetTextColor(DrawInfo->hdc, RGB(0, 0, 0xff));
+                    SetDCBrushColor(DrawInfo->hdc, GetSysColor(COLOR_HIGHLIGHT));
                     break;
                 case 1: // Old colors
-                    //SetBkColor(drawInfo->hdc, GetSysColor(COLOR_HIGHLIGHT));
-                    oldColor = SetTextColor(DrawInfo->hdc, GetSysColor(COLOR_HIGHLIGHTTEXT));
+                    SetTextColor(DrawInfo->hdc, GetSysColor(COLOR_HIGHLIGHTTEXT));
                     SetDCBrushColor(DrawInfo->hdc, RGB(78, 78, 78));
-                    FillRect(DrawInfo->hdc, &DrawInfo->rc, GetStockObject(DC_BRUSH));
                     break;
                 }
+
+                FillRect(DrawInfo->hdc, &DrawInfo->rc, GetStockObject(DC_BRUSH));
             }
             else if (isHighlighted)
             {
                 switch (PhGetIntegerSetting(L"GraphColorMode"))
                 {
                 case 0: // New colors
-                    oldColor = SetTextColor(DrawInfo->hdc, RGB(0, 0, 0xff));
-                    SetDCBrushColor(DrawInfo->hdc, PhpThemeWindowTextColor);
+                    //SetTextColor(DrawInfo->hdc, RGB(0, 0, 0xff));
+                    SetDCBrushColor(DrawInfo->hdc, GetSysColor(COLOR_HIGHLIGHT));
                     break;
                 case 1: // Old colors
-                    //SetBkColor(drawInfo->hdc, GetSysColor(COLOR_HIGHLIGHT));
-                    oldColor = SetTextColor(DrawInfo->hdc, GetSysColor(COLOR_HIGHLIGHTTEXT));
+                    SetTextColor(DrawInfo->hdc, GetSysColor(COLOR_HIGHLIGHTTEXT));
                     SetDCBrushColor(DrawInfo->hdc, RGB(65, 65, 65));
                     break;
                 }
@@ -989,17 +1002,16 @@ LRESULT PhpWindowThemeDrawButton(
                 switch (PhGetIntegerSetting(L"GraphColorMode"))
                 {
                 case 0: // New colors
-                    oldColor = SetTextColor(DrawInfo->hdc, RGB(0x0, 0x0, 0x0));
-                    SetDCBrushColor(DrawInfo->hdc, PhpThemeWindowTextColor);
+                    //SetTextColor(DrawInfo->hdc, RGB(0x0, 0x0, 0x0));
+                    //SetDCBrushColor(DrawInfo->hdc, GetSysColor(COLOR_3DFACE));
+                    //FillRect(DrawInfo->hdc, &DrawInfo->rc, GetStockObject(DC_BRUSH));
                     break;
                 case 1: // Old colors
-                    //SetBkColor(DrawInfo->hdc, RGB(0xff, 0xff, 0xff));
-                    oldColor = SetTextColor(DrawInfo->hdc, PhpThemeWindowTextColor);
+                    SetTextColor(DrawInfo->hdc, PhpThemeWindowTextColor);
                     SetDCBrushColor(DrawInfo->hdc, RGB(42, 42, 42)); // WindowForegroundColor
+                    FillRect(DrawInfo->hdc, &DrawInfo->rc, GetStockObject(DC_BRUSH));
                     break;
                 }
-
-                FillRect(DrawInfo->hdc, &DrawInfo->rc, GetStockObject(DC_BRUSH));
             }
 
             if ((GetWindowLongPtr(DrawInfo->hdr.hwndFrom, GWL_STYLE) & BS_CHECKBOX) != 0)
@@ -1028,7 +1040,6 @@ LRESULT PhpWindowThemeDrawButton(
                         );
                 }
 
-                SetTextColor(DrawInfo->hdc, oldColor);
                 SelectFont(DrawInfo->hdc, oldFont);
                 DeleteFont(newFont);
 
@@ -1085,6 +1096,7 @@ LRESULT PhpWindowThemeDrawButton(
 
             PhDereferenceObject(buttonText);
         }
+
         return CDRF_SKIPDEFAULT;
     }
 

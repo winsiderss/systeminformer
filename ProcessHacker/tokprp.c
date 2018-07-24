@@ -31,8 +31,6 @@
 #include <splitter.h>
 #include <phsettings.h>
 
-#include <uxtheme.h>
-
 typedef enum _PH_PROCESS_TOKEN_CATEGORY
 {
     PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES,
@@ -696,6 +694,8 @@ INT_PTR CALLBACK PhpTokenPageProc(
 
                 NtClose(tokenHandle);
             }
+
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
@@ -2020,7 +2020,7 @@ INT_PTR CALLBACK PhpTokenClaimsPageProc(
             TreeNew_NodesStructured(tnHandle);
             TreeNew_SetRedraw(tnHandle, TRUE);
 
-            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
@@ -2123,7 +2123,7 @@ INT_PTR CALLBACK PhpTokenAttributesPageProc(
             TreeNew_NodesStructured(tnHandle);
             TreeNew_SetRedraw(tnHandle, TRUE);
 
-            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
