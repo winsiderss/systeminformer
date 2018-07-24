@@ -209,9 +209,9 @@ static BOOLEAN EnumPluginsDirectoryCallback(
     baseName.Buffer = Information->FileName;
     baseName.Length = Information->FileNameLength;
 
-    // dmex: make sure we have a valid file extension and not something like ".dll_"
-    //if (!PhEndsWithStringRef2(&baseName, L".dll", FALSE))
-    //    return TRUE;
+    // Note: The *.dll pattern passed to NtQueryDirectoryFile includes extensions other than dll (For example: *.dll* or .dllmanifest). (dmex)
+    if (!PhEndsWithStringRef2(&baseName, L".dll", FALSE))
+        return TRUE;
 
     for (ULONG i = 0; i < RTL_NUMBER_OF(PhpPluginBlocklist); i++)
     {
@@ -314,7 +314,7 @@ VOID PhLoadPlugins(
 
     // Handle load errors.
     // In certain startup modes we want to ignore all plugin load errors.
-    if (pluginLoadErrors->Count != 0 && !PhStartupParameters.PhSvc)
+    if (PhGetIntegerSetting(L"ShowPluginLoadErrors") && pluginLoadErrors->Count != 0 && !PhStartupParameters.PhSvc)
     {
         PH_STRING_BUILDER stringBuilder;
         PPHP_PLUGIN_LOAD_ERROR loadError;
