@@ -370,7 +370,9 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
     }
     else if (PhEqualStringZ(className, L"SysListView32", FALSE))
     {
-        NOTHING;
+        ListView_SetBkColor(WindowHandle, RGB(30, 30, 30));
+        ListView_SetTextBkColor(WindowHandle, RGB(30, 30, 30));
+        ListView_SetTextColor(WindowHandle, RGB(0xff, 0xff, 0xff));
     }
     else if (PhEqualStringZ(className, L"ScrollBar", FALSE))
     {
