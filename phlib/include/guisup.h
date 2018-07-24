@@ -907,6 +907,24 @@ PhInitializeWindowTheme(
     _In_ BOOLEAN EnableThemeSupport
     );
 
+FORCEINLINE
+HFONT
+PhDuplicateFontWithNewHeight(
+    _In_ HFONT Font,
+    _In_ LONG NewHeight
+    )
+{
+    LOGFONT logFont;
+
+    if (GetObject(Font, sizeof(LOGFONT), &logFont))
+    {
+        logFont.lfHeight = NewHeight;
+        return CreateFontIndirect(&logFont);
+    }
+
+    return NULL;
+}
+
 #ifdef __cplusplus
 }
 #endif
