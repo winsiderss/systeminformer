@@ -555,22 +555,18 @@ VOID LoadDiskDriveImages(
     )
 {
     HICON smallIcon;
-
-    Context->ImageList = ImageList_Create(
-        GetSystemMetrics(SM_CXICON),
-        GetSystemMetrics(SM_CYICON),
-        ILC_COLOR32,
-        1,
-        1
-        );
-
     CONFIGRET result;
+    ULONG bufferSize;
+    PPH_STRING deviceDescription;
+    PH_STRINGREF dllPartSr;
+    PH_STRINGREF indexPartSr;
+    ULONG64 index;
     DEVPROPTYPE devicePropertyType;
     ULONG deviceInstanceIdLength = MAX_DEVICE_ID_LEN;
     WCHAR deviceInstanceId[MAX_DEVICE_ID_LEN + 1] = L"";
 
-    ULONG bufferSize = 0x40;
-    PPH_STRING deviceDescription = PhCreateStringEx(NULL, bufferSize);
+    bufferSize = 0x40;
+    deviceDescription = PhCreateStringEx(NULL, bufferSize);
 
     if ((result = CM_Get_Class_Property(
         &GUID_DEVCLASS_DISKDRIVE,
@@ -595,30 +591,24 @@ VOID LoadDiskDriveImages(
     }
 
     // %SystemRoot%\System32\setupapi.dll,-53
-
-    PH_STRINGREF dllPartSr;
-    PH_STRINGREF indexPartSr;
-    ULONG64 index;
-
     PhSplitStringRefAtChar(&deviceDescription->sr, ',', &dllPartSr, &indexPartSr);
     PhStringToInteger64(&indexPartSr, 10, &index);
     PhMoveReference(&deviceDescription, PhExpandEnvironmentStrings(&dllPartSr));
 
-    // We could use SetupDiLoadClassIcon but this works.
-    // Copied from HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001\Control\Class\{4d36e967-e325-11ce-bfc1-08002be10318}\\IconPath
-    // The index is only valid on Vista and above.
-
     if (PhExtractIconEx(deviceDescription->Buffer, (INT)index, &smallIcon, NULL))
     {
+        Context->ImageList = ImageList_Create(
+            GetSystemMetrics(SM_CXICON),
+            GetSystemMetrics(SM_CYICON),
+            ILC_COLOR32,
+            1,
+            1
+            );
+
         ImageList_AddIcon(Context->ImageList, smallIcon);
         DestroyIcon(smallIcon);
 
-        // Set the imagelist only if the image was loaded.
-        ListView_SetImageList(
-            Context->ListViewHandle,
-            Context->ImageList,
-            LVSIL_SMALL
-            );
+        ListView_SetImageList(Context->ListViewHandle, Context->ImageList, LVSIL_SMALL);
     }
 }
 

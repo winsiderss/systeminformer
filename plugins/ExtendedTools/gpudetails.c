@@ -327,6 +327,8 @@ INT_PTR CALLBACK EtpGpuDetailsDlgProc(
             SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
             SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
 
+            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+
             PhSetListViewStyle(listViewHandle, FALSE, TRUE);
             PhSetControlTheme(listViewHandle, L"explorer");
             PhAddListViewColumn(listViewHandle, 0, 0, 0, LVCFMT_LEFT, 230, L"Property");
@@ -336,9 +338,6 @@ INT_PTR CALLBACK EtpGpuDetailsDlgProc(
 
             PhInitializeLayoutManager(&LayoutManager, hwndDlg);
             PhAddLayoutItem(&LayoutManager, listViewHandle, NULL, PH_ANCHOR_ALL);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
-
-            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             EtpGpuDetailsEnumAdapters(listViewHandle);
 
@@ -364,10 +363,7 @@ INT_PTR CALLBACK EtpGpuDetailsDlgProc(
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDCANCEL:
-            case IDOK:
-                {
-                    EndDialog(hwndDlg, IDOK);
-                }
+                EndDialog(hwndDlg, IDOK);
                 break;
             }
         }
