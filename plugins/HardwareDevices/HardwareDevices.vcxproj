@@ -93,6 +93,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="devices.h" />
+    <ClInclude Include="fmifs.h" />
     <ClInclude Include="prpsh.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>
