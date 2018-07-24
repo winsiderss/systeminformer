@@ -87,7 +87,7 @@ BOOLEAN PhSipOnNotify(
 
 BOOLEAN PhSipOnDrawItem(
     _In_ ULONG_PTR Id,
-    _In_ DRAWITEMSTRUCT *DrawItemStruct
+    _In_ PDRAWITEMSTRUCT DrawItemStruct
     );
 
 VOID PhSipOnUserMessage(
@@ -137,13 +137,11 @@ PPH_SYSINFO_SECTION PhSipCreateInternalSection(
     );
 
 VOID PhSipDrawRestoreSummaryPanel(
-    _In_ HDC hdc,
-    _In_ PRECT Rect
+    _In_ PDRAWITEMSTRUCT DrawItemStruct
     );
 
 VOID PhSipDrawSeparator(
-    _In_ HDC hdc,
-    _In_ PRECT Rect
+    _In_ PDRAWITEMSTRUCT DrawItemStruct
     );
 
 VOID PhSipDrawPanel(
