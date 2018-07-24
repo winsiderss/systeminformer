@@ -663,7 +663,7 @@ INT_PTR CALLBACK TracertDlgProc(
             PhReferenceObject(context);
             PhCreateThread2(NetworkTracertThreadStart, (PVOID)context);
 
-            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
         }
         break;
     case WM_COMMAND:

@@ -35,7 +35,6 @@
 #include <windowsx.h>
 #include <icmpapi.h>
 #include <shlobj.h>
-#include <uxtheme.h>
 
 #include <http.h>
 

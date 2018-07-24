@@ -21,7 +21,7 @@
  */
 
 #include <phapp.h>
-
+#include <phsettings.h>
 #include <windowsx.h>
 
 typedef struct _INFORMATION_CONTEXT
@@ -86,6 +86,8 @@ static INT_PTR CALLBACK PhpInformationDlgProc(
             PhSetDialogItemText(hwndDlg, IDC_TEXT, context->String);
 
             PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDOK));
+
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:

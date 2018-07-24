@@ -348,7 +348,7 @@ INT_PTR CALLBACK NetworkPingWndProc(
                 &context->ProcessesUpdatedRegistration
                 );
 
-            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
         }
         break;
     case WM_COMMAND:

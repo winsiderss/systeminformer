@@ -418,7 +418,7 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
 
             PhCreateThread2(NetworkWhoisThreadStart, (PVOID)context);
 
-            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
         }
         break;
     case WM_COMMAND:
