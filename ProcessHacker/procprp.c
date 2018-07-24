@@ -177,6 +177,8 @@ INT CALLBACK PhpPropSheetProc(
             PhSetWindowContext(hwndDlg, 0xF, propSheetContext);
             SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)PhpPropSheetWndProc);
 
+            PhRegisterWindowCallback(hwndDlg, PH_PLUGIN_WINDOW_EVENT_TYPE_TOPMOST, NULL);
+
             if (MinimumSize.left == -1)
             {
                 RECT rect;
@@ -248,6 +250,8 @@ LRESULT CALLBACK PhpPropSheetWndProc(
         break;
     case WM_NCDESTROY:
         {
+            PhUnregisterWindowCallback(hwnd);
+
             SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
             PhRemoveWindowContext(hwnd, 0xF);
 

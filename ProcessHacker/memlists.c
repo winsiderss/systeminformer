@@ -22,6 +22,7 @@
 
 #include <phapp.h>
 #include <phplug.h>
+#include <phsettings.h>
 #include <emenu.h>
 #include <settings.h>
 #include <actions.h>
@@ -184,6 +185,8 @@ INT_PTR CALLBACK PhpMemoryListsDlgProc(
 
             PhLoadWindowPlacementFromSetting(L"MemoryListsWindowPosition", NULL, hwndDlg);
             PhRegisterDialog(hwndDlg);
+
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:

@@ -30,6 +30,7 @@
 #include <modprv.h>
 #include <netprv.h>
 #include <phappres.h>
+#include <phsettings.h>
 #include <procprv.h>
 #include <srvprv.h>
 #include <thrdprv.h>
@@ -95,7 +96,7 @@ static INT_PTR CALLBACK PhpAboutDlgProc(
 
             PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDOK));
 
-            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:

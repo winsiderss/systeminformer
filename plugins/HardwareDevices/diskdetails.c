@@ -699,6 +699,8 @@ INT_PTR CALLBACK DiskDriveSmartDetailsDlgProc(
             PhLoadListViewColumnsFromSetting(SETTING_NAME_SMART_COUNTERS_COLUMNS, context->ListViewHandle);
 
             DiskDriveQuerySmart(context);
+
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
         }
         break;
     case WM_SHOWWINDOW:
