@@ -22,7 +22,7 @@
  */
 
 #include <phapp.h>
-
+#include <settings.h>
 #include <kphuser.h>
 #include <hndlinfo.h>
 #include <secedit.h>
@@ -139,26 +139,32 @@ static NTSTATUS PhpDuplicateHandleFromProcess(
     return status;
 }
 
-VOID PhShowHandleProperties(
-    _In_ HWND ParentWindowHandle,
-    _In_ HANDLE ProcessId,
-    _In_ PPH_HANDLE_ITEM HandleItem
+typedef struct _HANDLE_PROPERTIES_THREAD_CONTEXT
+{
+    HWND ParentWindowHandle;
+    HANDLE ProcessId;
+    PPH_HANDLE_ITEM HandleItem;
+} HANDLE_PROPERTIES_THREAD_CONTEXT, *PHANDLE_PROPERTIES_THREAD_CONTEXT;
+
+NTSTATUS PhpShowHandlePropertiesThread(
+    _In_ PVOID Parameter
     )
 {
-    PROPSHEETHEADER propSheetHeader = { sizeof(propSheetHeader) };
+    PHANDLE_PROPERTIES_THREAD_CONTEXT handleContext = Parameter;
+    PROPSHEETHEADER propSheetHeader = { sizeof(PROPSHEETHEADER) };
     PROPSHEETPAGE propSheetPage;
     HPROPSHEETPAGE pages[16];
     HANDLE_PROPERTIES_CONTEXT context;
 
-    context.ProcessId = ProcessId;
-    context.HandleItem = HandleItem;
+    context.ProcessId = handleContext->ProcessId;
+    context.HandleItem = handleContext->HandleItem;
 
     propSheetHeader.dwFlags =
         PSH_NOAPPLYNOW |
         PSH_NOCONTEXTHELP |
         PSH_PROPTITLE;
     propSheetHeader.hInstance = PhInstanceHandle;
-    propSheetHeader.hwndParent = ParentWindowHandle;
+    propSheetHeader.hwndParent = handleContext->ParentWindowHandle;
     propSheetHeader.pszCaption = L"Handle";
     propSheetHeader.nPages = 0;
     propSheetHeader.nStartPage = 0;
@@ -174,25 +180,25 @@ VOID PhShowHandleProperties(
     pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
 
     // Object-specific page
-    if (PhIsNullOrEmptyString(HandleItem->TypeName))
+    if (PhIsNullOrEmptyString(handleContext->HandleItem->TypeName))
     {
         NOTHING;
     }
-    else if (PhEqualString2(HandleItem->TypeName, L"Event", TRUE))
+    else if (PhEqualString2(handleContext->HandleItem->TypeName, L"Event", TRUE))
     {
         pages[propSheetHeader.nPages++] = PhCreateEventPage(
             PhpDuplicateHandleFromProcess,
             &context
             );
     }
-    else if (PhEqualString2(HandleItem->TypeName, L"EventPair", TRUE))
+    else if (PhEqualString2(handleContext->HandleItem->TypeName, L"EventPair", TRUE))
     {
         pages[propSheetHeader.nPages++] = PhCreateEventPairPage(
             PhpDuplicateHandleFromProcess,
             &context
             );
     }
-    else if (PhEqualString2(HandleItem->TypeName, L"Job", TRUE))
+    else if (PhEqualString2(handleContext->HandleItem->TypeName, L"Job", TRUE))
     {
         pages[propSheetHeader.nPages++] = PhCreateJobPage(
             PhpDuplicateHandleFromProcess,
@@ -200,35 +206,21 @@ VOID PhShowHandleProperties(
             NULL
             );
     }
-    //else if (PhEqualString2(HandleItem->TypeName, L"Mutant", TRUE))
-    //{
-    //    pages[propSheetHeader.nPages++] = PhCreateMutantPage(
-    //        PhpDuplicateHandleFromProcess,
-    //        &context
-    //        );
-    //}
-    //else if (PhEqualString2(HandleItem->TypeName, L"Section", TRUE))
-    //{
-    //    pages[propSheetHeader.nPages++] = PhCreateSectionPage(
-    //        PhpDuplicateHandleFromProcess,
-    //        &context
-    //        );
-    //}
-    else if (PhEqualString2(HandleItem->TypeName, L"Semaphore", TRUE))
+    else if (PhEqualString2(handleContext->HandleItem->TypeName, L"Semaphore", TRUE))
     {
         pages[propSheetHeader.nPages++] = PhCreateSemaphorePage(
             PhpDuplicateHandleFromProcess,
             &context
             );
     }
-    else if (PhEqualString2(HandleItem->TypeName, L"Timer", TRUE))
+    else if (PhEqualString2(handleContext->HandleItem->TypeName, L"Timer", TRUE))
     {
         pages[propSheetHeader.nPages++] = PhCreateTimerPage(
             PhpDuplicateHandleFromProcess,
             &context
             );
     }
-    else if (PhEqualString2(HandleItem->TypeName, L"Token", TRUE))
+    else if (PhEqualString2(handleContext->HandleItem->TypeName, L"Token", TRUE))
     {
         pages[propSheetHeader.nPages++] = PhCreateTokenPage(
             PhpDuplicateHandleFromProcess,
@@ -239,8 +231,8 @@ VOID PhShowHandleProperties(
 
     // Security page
     pages[propSheetHeader.nPages++] = PhCreateSecurityPage(
-        PhGetStringOrEmpty(HandleItem->BestObjectName),
-        PhGetStringOrEmpty(HandleItem->TypeName),
+        PhGetStringOrEmpty(handleContext->HandleItem->BestObjectName),
+        PhGetStringOrEmpty(handleContext->HandleItem->TypeName),
         PhpDuplicateHandleFromProcess,
         NULL,
         &context
@@ -251,12 +243,12 @@ VOID PhShowHandleProperties(
         PH_PLUGIN_OBJECT_PROPERTIES objectProperties;
         PH_PLUGIN_HANDLE_PROPERTIES_CONTEXT propertiesContext;
 
-        propertiesContext.ProcessId = ProcessId;
-        propertiesContext.HandleItem = HandleItem;
+        propertiesContext.ProcessId = handleContext->ProcessId;
+        propertiesContext.HandleItem = handleContext->HandleItem;
 
         objectProperties.Parameter = &propertiesContext;
         objectProperties.NumberOfPages = propSheetHeader.nPages;
-        objectProperties.MaximumNumberOfPages = sizeof(pages) / sizeof(HPROPSHEETPAGE);
+        objectProperties.MaximumNumberOfPages = RTL_NUMBER_OF(pages);
         objectProperties.Pages = pages;
 
         PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackHandlePropertiesInitializing), &objectProperties);
@@ -265,6 +257,28 @@ VOID PhShowHandleProperties(
     }
 
     PhModalPropertySheet(&propSheetHeader);
+
+    PhDereferenceObject(handleContext->HandleItem);
+    PhFree(handleContext);
+
+    return STATUS_SUCCESS;
+}
+
+VOID PhShowHandleProperties(
+    _In_ HWND ParentWindowHandle,
+    _In_ HANDLE ProcessId,
+    _In_ PPH_HANDLE_ITEM HandleItem
+    )
+{
+    PHANDLE_PROPERTIES_THREAD_CONTEXT context;
+
+    context = PhAllocate(sizeof(HANDLE_PROPERTIES_THREAD_CONTEXT));
+    context->ParentWindowHandle = PhCsForceNoParent ? NULL : ParentWindowHandle;
+    context->ProcessId = ProcessId;
+    context->HandleItem = HandleItem;
+    PhReferenceObject(HandleItem);
+
+    PhCreateThread2(PhpShowHandlePropertiesThread, context);
 }
 
 VOID PhpUpdateHandleGeneralListViewGroups(
@@ -900,7 +914,8 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
     case WM_INITDIALOG:
         {
             // HACK
-            PhCenterWindow(GetParent(hwndDlg), GetParent(GetParent(hwndDlg)));
+            SendMessage(GetParent(hwndDlg), WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
+            SendMessage(GetParent(hwndDlg), WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
 
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
@@ -908,6 +923,12 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 120, L"Name");
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 250, L"Value");
             PhSetExtendedListView(context->ListViewHandle);
+
+            // HACK
+            if (PhGetIntegerPairSetting(L"HandlePropertiesWindowPosition").X != 0)
+                PhLoadWindowPlacementFromSetting(L"HandlePropertiesWindowPosition", L"HandlePropertiesWindowSize", GetParent(hwndDlg));
+            else
+                PhCenterWindow(GetParent(hwndDlg), GetParent(GetParent(hwndDlg))); // HACK
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
@@ -920,6 +941,8 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
         break;
     case WM_DESTROY:
         {
+            PhSaveWindowPlacementToSetting(L"HandlePropertiesWindowPosition", L"HandlePropertiesWindowSize", GetParent(hwndDlg)); // HACK
+
             PhDeleteLayoutManager(&context->LayoutManager);
 
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
