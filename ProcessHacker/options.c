@@ -1046,6 +1046,8 @@ static VOID PhpOptionsNotifyChangeCallback(
     PhReloadSettingsProcessTreeList();
     PhSiNotifyChangeSettings();
 
+    PhReInitializeWindowTheme(PhMainWndHandle);
+
     if (RestartRequired)
     {
         if (PhShowMessage2(
