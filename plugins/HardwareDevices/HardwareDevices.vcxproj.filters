@@ -27,6 +27,7 @@
     <ClInclude Include="prpsh.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="fmifs.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.c">
