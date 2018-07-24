@@ -13,6 +13,7 @@
 
 EXT BOOLEAN PhEnableProcessQueryStage2;
 EXT BOOLEAN PhEnableServiceQueryStage2;
+EXT BOOLEAN PhEnableThemeSupport;
 EXT BOOLEAN PhEnableHexId;
 
 EXT ULONG PhCsCollapseServicesOnStart;
