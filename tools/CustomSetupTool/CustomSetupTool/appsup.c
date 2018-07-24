@@ -311,7 +311,7 @@ VOID SetupCreateLink(
     IPersistFile* persistFilePtr = NULL;
     IPropertyStore* propertyStorePtr;
 
-    if (FAILED(CoCreateInstance(&CLSID_ShellLink, NULL, CLSCTX_INPROC_SERVER, &IID_IShellLink, &shellLinkPtr)))
+    if (FAILED(CoCreateInstance(&CLSID_ShellLink, NULL, CLSCTX_INPROC_SERVER, &IID_IShellLinkW, &shellLinkPtr)))
         goto CleanupExit;
 
     if (FAILED(IShellLinkW_QueryInterface(shellLinkPtr, &IID_IPersistFile, &persistFilePtr)))

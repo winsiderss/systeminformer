@@ -37,19 +37,6 @@ VOID PhUpdateCachedSettings(
     NOTHING;
 }
 
-VOID SetupInitializeDpi(
-    VOID
-    )
-{
-    HDC hdc;
-
-    if (hdc = CreateIC(L"DISPLAY", NULL, NULL, NULL))
-    {
-        PhGlobalDpi = GetDeviceCaps(hdc, LOGPIXELSY);
-        ReleaseDC(NULL, hdc);
-    }
-}
-
 INT CALLBACK MainPropSheet_Callback(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -313,7 +300,6 @@ INT WINAPI wWinMain(
 
     SetupInitializeMutant();
     PhGuiSupportInitialization();
-    SetupInitializeDpi();
     SetupParseCommandLine();
 
     switch (SetupMode)
