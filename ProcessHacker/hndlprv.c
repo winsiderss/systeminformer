@@ -303,39 +303,7 @@ NTSTATUS PhEnumHandlesGeneric(
     // * On Windows XP and later, NtQuerySystemInformation with SystemExtendedHandleInformation.
     // * Otherwise, NtQuerySystemInformation with SystemHandleInformation can be used.
 
-    if (WindowsVersion >= WINDOWS_8 && !!PhGetIntegerSetting(L"EnableHandleSnapshot"))
-    {
-        PPROCESS_HANDLE_SNAPSHOT_INFORMATION handles;
-        PSYSTEM_HANDLE_INFORMATION_EX convertedHandles;
-        ULONG i;
-
-        if (!NT_SUCCESS(status = PhEnumHandlesEx2(ProcessHandle, &handles)))
-            goto FAILED;
-
-        convertedHandles = PhAllocate(
-            FIELD_OFFSET(SYSTEM_HANDLE_INFORMATION_EX, Handles) +
-            sizeof(SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX) * handles->NumberOfHandles
-            );
-
-        convertedHandles->NumberOfHandles = handles->NumberOfHandles;
-
-        for (i = 0; i < handles->NumberOfHandles; i++)
-        {
-            convertedHandles->Handles[i].Object = 0;
-            convertedHandles->Handles[i].UniqueProcessId = (ULONG_PTR)ProcessId;
-            convertedHandles->Handles[i].HandleValue = (ULONG_PTR)handles->Handles[i].HandleValue;
-            convertedHandles->Handles[i].GrantedAccess = handles->Handles[i].GrantedAccess;
-            convertedHandles->Handles[i].CreatorBackTraceIndex = 0;
-            convertedHandles->Handles[i].ObjectTypeIndex = (USHORT)handles->Handles[i].ObjectTypeIndex;
-            convertedHandles->Handles[i].HandleAttributes = handles->Handles[i].HandleAttributes;
-        }
-
-        PhFree(handles);
-
-        *Handles = convertedHandles;
-        *FilterNeeded = FALSE;
-    }
-    else if (KphIsConnected())
+    if (KphIsConnected())
     {
         PKPH_PROCESS_HANDLE_INFORMATION handles;
         PSYSTEM_HANDLE_INFORMATION_EX convertedHandles;
@@ -362,6 +330,38 @@ NTSTATUS PhEnumHandlesGeneric(
             convertedHandles->Handles[i].GrantedAccess = (ULONG)handles->Handles[i].GrantedAccess;
             convertedHandles->Handles[i].CreatorBackTraceIndex = 0;
             convertedHandles->Handles[i].ObjectTypeIndex = handles->Handles[i].ObjectTypeIndex;
+            convertedHandles->Handles[i].HandleAttributes = handles->Handles[i].HandleAttributes;
+        }
+
+        PhFree(handles);
+
+        *Handles = convertedHandles;
+        *FilterNeeded = FALSE;
+    }
+    else if (WindowsVersion >= WINDOWS_8 && PhGetIntegerSetting(L"EnableHandleSnapshot"))
+    {
+        PPROCESS_HANDLE_SNAPSHOT_INFORMATION handles;
+        PSYSTEM_HANDLE_INFORMATION_EX convertedHandles;
+        ULONG i;
+
+        if (!NT_SUCCESS(status = PhEnumHandlesEx2(ProcessHandle, &handles)))
+            goto FAILED;
+
+        convertedHandles = PhAllocate(
+            FIELD_OFFSET(SYSTEM_HANDLE_INFORMATION_EX, Handles) +
+            sizeof(SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX) * handles->NumberOfHandles
+            );
+
+        convertedHandles->NumberOfHandles = handles->NumberOfHandles;
+
+        for (i = 0; i < handles->NumberOfHandles; i++)
+        {
+            convertedHandles->Handles[i].Object = 0;
+            convertedHandles->Handles[i].UniqueProcessId = (ULONG_PTR)ProcessId;
+            convertedHandles->Handles[i].HandleValue = (ULONG_PTR)handles->Handles[i].HandleValue;
+            convertedHandles->Handles[i].GrantedAccess = handles->Handles[i].GrantedAccess;
+            convertedHandles->Handles[i].CreatorBackTraceIndex = 0;
+            convertedHandles->Handles[i].ObjectTypeIndex = (USHORT)handles->Handles[i].ObjectTypeIndex;
             convertedHandles->Handles[i].HandleAttributes = handles->Handles[i].HandleAttributes;
         }
 
