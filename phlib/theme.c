@@ -24,6 +24,7 @@
 #include <guisup.h>
 #include <emenu.h>
 #include <settings.h>
+#include <treenew.h>
 
 #include <dwmapi.h>
 #include <uxtheme.h>
@@ -42,22 +43,51 @@ typedef struct _PHP_THEME_WINDOW_HEADER_CONTEXT
     BOOLEAN MouseActive;
 } PHP_THEME_WINDOW_HEADER_CONTEXT, *PPHP_THEME_WINDOW_HEADER_CONTEXT;
 
+typedef struct _PHP_THEME_WINDOW_STATUSBAR_CONTEXT
+{
+    WNDPROC DefaultWindowProc;
+    BOOLEAN MouseActive;
+    HTHEME StatusThemeData;
+} PHP_THEME_WINDOW_STATUSBAR_CONTEXT, *PPHP_THEME_WINDOW_STATUSBAR_CONTEXT;
+
 BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
     _In_ HWND WindowHandle,
     _In_opt_ PVOID Context
     );
-
 BOOLEAN CALLBACK PhpReInitializeThemeWindowEnumChildWindows(
     _In_ HWND WindowHandle,
     _In_opt_ PVOID Context
     );
 
-LRESULT PhpThemeWindowDrawButton(
-    _In_ LPNMCUSTOMDRAW DrawInfo
+LRESULT CALLBACK PhpThemeWindowSubclassProc(
+    _In_ HWND hWnd,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
-
-LRESULT PhpThemeWindowDrawListViewGroup(
-    _In_ LPNMLVCUSTOMDRAW DrawInfo
+LRESULT CALLBACK PhpThemeWindowGroupBoxSubclassProc(
+    _In_ HWND hWnd,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+LRESULT CALLBACK PhpThemeWindowTabControlWndSubclassProc(
+    _In_ HWND WindowHandle,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+LRESULT CALLBACK PhpThemeWindowHeaderSubclassProc(
+    _In_ HWND WindowHandle,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+LRESULT CALLBACK PhpThemeWindowStatusbarWndSubclassProc(
+    _In_ HWND WindowHandle,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 COLORREF PhpThemeWindowForegroundColor = RGB(28, 28, 28);
@@ -65,8 +95,734 @@ COLORREF PhpThemeWindowBackgroundColor = RGB(64, 64, 64);
 COLORREF PhpThemeWindowTextColor = RGB(0xff, 0xff, 0xff);
 HFONT PhpTabControlFontHandle = NULL;
 HFONT PhpToolBarFontHandle = NULL;
+HFONT PhpHeaderFontHandle = NULL;
 HFONT PhpListViewFontHandle = NULL;
 HFONT PhpGroupboxFontHandle = NULL;
+HFONT PhpStatusBarFontHandle = NULL;
+
+VOID PhInitializeWindowTheme(
+    _In_ HWND WindowHandle,
+    _In_ BOOLEAN EnableThemeSupport
+    )
+{
+    if (EnableThemeSupport)
+    {
+        WNDPROC defaultWindowProc;
+
+        defaultWindowProc = (WNDPROC)GetWindowLongPtr(WindowHandle, GWLP_WNDPROC);
+        PhSetWindowContext(WindowHandle, SHRT_MAX, defaultWindowProc);
+        SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)PhpThemeWindowSubclassProc);
+
+        PhEnumChildWindows(
+            WindowHandle,
+            0x1000,
+            PhpThemeWindowEnumChildWindows,
+            0
+            );
+
+        InvalidateRect(WindowHandle, NULL, FALSE); // HACK
+    }
+    else
+    {
+        EnableThemeDialogTexture(WindowHandle, ETDT_ENABLETAB);
+    }
+}
+
+VOID PhReInitializeWindowTheme(
+    _In_ HWND WindowHandle
+    )
+{
+    HWND currentWindow = NULL;
+
+    PhEnumChildWindows(
+        WindowHandle,
+        0x1000,
+        PhpReInitializeThemeWindowEnumChildWindows,
+        0
+        );
+
+    do
+    {
+        if (currentWindow = FindWindowEx(NULL, currentWindow, NULL, NULL))
+        {
+            ULONG processID = 0;
+    
+            GetWindowThreadProcessId(currentWindow, &processID);
+    
+            if (UlongToHandle(processID) == NtCurrentProcessId())
+            {
+                if (currentWindow != WindowHandle)
+                {
+                    InvalidateRect(currentWindow, NULL, TRUE);
+                }
+            }
+        }
+    } while (currentWindow);
+
+    InvalidateRect(WindowHandle, NULL, FALSE);
+}
+
+VOID PhInitializeThemeWindowHeader(
+    _In_ HWND HeaderWindow
+    )
+{
+    PPHP_THEME_WINDOW_HEADER_CONTEXT headerControlContext;
+
+    headerControlContext = PhAllocateZero(sizeof(PHP_THEME_WINDOW_HEADER_CONTEXT));
+    headerControlContext->DefaultWindowProc = (WNDPROC)GetWindowLongPtr(HeaderWindow, GWLP_WNDPROC);
+
+    PhSetWindowContext(HeaderWindow, SHRT_MAX, headerControlContext);
+    SetWindowLongPtr(HeaderWindow, GWLP_WNDPROC, (LONG_PTR)PhpThemeWindowHeaderSubclassProc);
+
+    InvalidateRect(HeaderWindow, NULL, FALSE);
+}
+
+VOID PhInitializeThemeWindowTabControl(
+    _In_ HWND TabControlWindow
+    )
+{
+    PPHP_THEME_WINDOW_TAB_CONTEXT tabControlContext;
+
+    tabControlContext = PhAllocateZero(sizeof(PHP_THEME_WINDOW_TAB_CONTEXT));
+    tabControlContext->DefaultWindowProc = (WNDPROC)GetWindowLongPtr(TabControlWindow, GWLP_WNDPROC);
+
+    PhSetWindowContext(TabControlWindow, SHRT_MAX, tabControlContext);
+    SetWindowLongPtr(TabControlWindow, GWLP_WNDPROC, (LONG_PTR)PhpThemeWindowTabControlWndSubclassProc);
+
+    PhSetWindowStyle(TabControlWindow, TCS_OWNERDRAWFIXED, TCS_OWNERDRAWFIXED);
+
+    if (!PhpTabControlFontHandle)
+    {
+        PhpTabControlFontHandle = CreateFont(
+            -(LONG)PhMultiplyDivide(15, PhGlobalDpi, 96),
+            0,
+            0,
+            0,
+            FW_SEMIBOLD,
+            FALSE,
+            FALSE,
+            FALSE,
+            ANSI_CHARSET,
+            OUT_DEFAULT_PRECIS,
+            CLIP_DEFAULT_PRECIS,
+            DEFAULT_QUALITY,
+            DEFAULT_PITCH,
+            L"Tahoma"
+            );
+    }
+
+    SendMessage(TabControlWindow, WM_SETFONT, (WPARAM)PhpTabControlFontHandle, FALSE);
+
+    InvalidateRect(TabControlWindow, NULL, FALSE);
+}
+
+VOID PhInitializeWindowThemeStatusBar(
+    _In_ HWND StatusBarHandle
+    )
+{
+    PPHP_THEME_WINDOW_STATUSBAR_CONTEXT statusbarContext;
+
+    statusbarContext = PhAllocateZero(sizeof(PHP_THEME_WINDOW_STATUSBAR_CONTEXT));
+    statusbarContext->DefaultWindowProc = (WNDPROC)GetWindowLongPtr(StatusBarHandle, GWLP_WNDPROC);
+    statusbarContext->StatusThemeData = OpenThemeData(StatusBarHandle, VSCLASS_STATUS);
+
+    PhSetWindowContext(StatusBarHandle, SHRT_MAX, statusbarContext);
+    SetWindowLongPtr(StatusBarHandle, GWLP_WNDPROC, (LONG_PTR)PhpThemeWindowStatusbarWndSubclassProc);
+
+    InvalidateRect(StatusBarHandle, NULL, FALSE);
+}
+
+VOID PhInitializeThemeWindowGroupBox(
+    _In_ HWND GroupBoxHandle
+    )
+{
+    WNDPROC groupboxWindowProc;
+
+    groupboxWindowProc = (WNDPROC)GetWindowLongPtr(GroupBoxHandle, GWLP_WNDPROC);
+    PhSetWindowContext(GroupBoxHandle, SHRT_MAX, groupboxWindowProc);
+    SetWindowLongPtr(GroupBoxHandle, GWLP_WNDPROC, (LONG_PTR)PhpThemeWindowGroupBoxSubclassProc);
+
+    InvalidateRect(GroupBoxHandle, NULL, FALSE);
+}
+
+BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
+    _In_ HWND WindowHandle,
+    _In_opt_ PVOID Context
+    )
+{
+    WCHAR windowClassName[MAX_PATH];
+
+    PhEnumChildWindows(
+        WindowHandle,
+        0x1000,
+        PhpThemeWindowEnumChildWindows,
+        0
+        );
+
+    if (PhGetWindowContext(WindowHandle, SHRT_MAX)) // HACK
+        return TRUE;
+
+    if (!GetClassName(WindowHandle, windowClassName, RTL_NUMBER_OF(windowClassName)))
+        windowClassName[0] = 0;
+
+    if (PhEqualStringZ(windowClassName, L"#32770", FALSE))
+    {
+        PhInitializeWindowTheme(WindowHandle, TRUE);
+    }
+    else if (PhEqualStringZ(windowClassName, L"Button", FALSE))
+    {
+        ULONG buttonWindowStyle = (ULONG)GetWindowLongPtr(WindowHandle, GWL_STYLE);
+
+        if ((buttonWindowStyle & BS_GROUPBOX) == BS_GROUPBOX)
+        {
+            PhInitializeThemeWindowGroupBox(WindowHandle);
+        }
+    }
+    else if (PhEqualStringZ(windowClassName, L"Edit", FALSE))
+    {
+        switch (PhGetIntegerSetting(L"GraphColorMode"))
+        {
+        case 0: // New colors
+            //PhSetWindowStyle(WindowHandle, WS_BORDER, WS_BORDER);
+            //PhSetWindowExStyle(WindowHandle, WS_EX_CLIENTEDGE, WS_EX_CLIENTEDGE);
+            break;
+        case 1: // Old colors
+            //PhSetWindowStyle(WindowHandle, WS_BORDER, 0);
+            //PhSetWindowExStyle(WindowHandle, WS_EX_CLIENTEDGE, 0);
+            break;
+        }
+
+        //InvalidateRect(WindowHandle, NULL, FALSE);
+    }     
+    else if (PhEqualStringZ(windowClassName, L"SysTabControl32", FALSE))
+    {
+        PhInitializeThemeWindowTabControl(WindowHandle);
+    }
+    else if (PhEqualStringZ(windowClassName, L"msctls_statusbar32", FALSE))
+    {
+        PhInitializeWindowThemeStatusBar(WindowHandle);
+    }
+    else if (PhEqualStringZ(windowClassName, L"SysHeader32", FALSE))
+    {
+        PhInitializeThemeWindowHeader(WindowHandle);
+    }
+    else if (PhEqualStringZ(windowClassName, L"SysListView32", FALSE))
+    {
+        PhSetWindowStyle(WindowHandle, WS_BORDER, 0);
+        PhSetWindowExStyle(WindowHandle, WS_EX_CLIENTEDGE, 0);
+
+        switch (PhGetIntegerSetting(L"GraphColorMode"))
+        {
+        case 0: // New colors
+            break;
+        case 1: // Old colors
+            ListView_SetBkColor(WindowHandle, RGB(30, 30, 30));
+            ListView_SetTextBkColor(WindowHandle, RGB(30, 30, 30));
+            ListView_SetTextColor(WindowHandle, RGB(0xff, 0xff, 0xff));
+            break;
+        }
+
+        InvalidateRect(WindowHandle, NULL, FALSE);
+    }
+    else if (PhEqualStringZ(windowClassName, L"SysTreeView32", FALSE))
+    {
+        //PhSetWindowStyle(WindowHandle, WS_BORDER, 0);
+        //PhSetWindowExStyle(WindowHandle, WS_EX_CLIENTEDGE, 0);
+
+        switch (PhGetIntegerSetting(L"GraphColorMode"))
+        {
+        case 0: // New colors
+            break;
+        case 1: // Old colors
+            TreeView_SetBkColor(WindowHandle, RGB(30, 30, 30));
+            //TreeView_SetTextBkColor(WindowHandle, RGB(30, 30, 30));
+            TreeView_SetTextColor(WindowHandle, RGB(0xff, 0xff, 0xff));
+            break;
+        }
+
+        InvalidateRect(WindowHandle, NULL, FALSE);
+    }
+    else if (PhEqualStringZ(windowClassName, L"PhTreeNew", FALSE))
+    {
+        switch (PhGetIntegerSetting(L"GraphColorMode"))
+        {
+        case 0: // New colors
+            PhSetWindowStyle(WindowHandle, WS_BORDER, WS_BORDER);
+            PhSetWindowExStyle(WindowHandle, WS_EX_CLIENTEDGE, WS_EX_CLIENTEDGE);
+            break;
+        case 1: // Old colors
+            PhSetWindowStyle(WindowHandle, WS_BORDER, 0);
+            PhSetWindowExStyle(WindowHandle, WS_EX_CLIENTEDGE, 0);
+            break;
+        }
+
+        TreeNew_ThemeSupport(WindowHandle, TRUE);
+    }
+    else if (PhEqualStringZ(windowClassName, L"ScrollBar", FALSE))
+    {
+        NOTHING;
+    }
+
+    return TRUE;
+}
+
+BOOLEAN CALLBACK PhpReInitializeThemeWindowEnumChildWindows(
+    _In_ HWND WindowHandle,
+    _In_opt_ PVOID Context
+    )
+{
+    ULONG processID = 0;
+
+    PhEnumChildWindows(
+        WindowHandle,
+        0x1000,
+        PhpReInitializeThemeWindowEnumChildWindows,
+        0
+        );
+
+    GetWindowThreadProcessId(WindowHandle, &processID);
+
+    if (UlongToHandle(processID) == NtCurrentProcessId())
+    {
+        InvalidateRect(WindowHandle, NULL, FALSE);
+    }
+
+    return TRUE;
+}
+
+LRESULT CALLBACK PhpThemeWindowDrawButton(
+    _In_ LPNMCUSTOMDRAW DrawInfo
+    )
+{
+    BOOLEAN isGrayed = (DrawInfo->uItemState & CDIS_GRAYED) == CDIS_GRAYED;
+    BOOLEAN isChecked = (DrawInfo->uItemState & CDIS_CHECKED) == CDIS_CHECKED;
+    BOOLEAN isDisabled = (DrawInfo->uItemState & CDIS_DISABLED) == CDIS_DISABLED;
+    BOOLEAN isSelected = (DrawInfo->uItemState & CDIS_SELECTED) == CDIS_SELECTED;
+    BOOLEAN isHighlighted = (DrawInfo->uItemState & CDIS_HOT) == CDIS_HOT;
+    BOOLEAN isFocused = (DrawInfo->uItemState & CDIS_FOCUS) == CDIS_FOCUS;
+
+    switch (DrawInfo->dwDrawStage)
+    {
+    case CDDS_PREPAINT:
+        {
+            PPH_STRING buttonText;
+            HFONT oldFont;
+
+            buttonText = PhGetWindowText(DrawInfo->hdr.hwndFrom);
+
+            if (isSelected)
+            {
+                switch (PhGetIntegerSetting(L"GraphColorMode"))
+                {
+                case 0: // New colors
+                    //SetTextColor(DrawInfo->hdc, RGB(0, 0, 0xff));
+                    SetDCBrushColor(DrawInfo->hdc, GetSysColor(COLOR_HIGHLIGHT));
+                    break;
+                case 1: // Old colors
+                    SetTextColor(DrawInfo->hdc, GetSysColor(COLOR_HIGHLIGHTTEXT));
+                    SetDCBrushColor(DrawInfo->hdc, RGB(78, 78, 78));
+                    break;
+                }
+
+                FillRect(DrawInfo->hdc, &DrawInfo->rc, GetStockObject(DC_BRUSH));
+            }
+            else if (isHighlighted)
+            {
+                switch (PhGetIntegerSetting(L"GraphColorMode"))
+                {
+                case 0: // New colors
+                    //SetTextColor(DrawInfo->hdc, RGB(0, 0, 0xff));
+                    SetDCBrushColor(DrawInfo->hdc, GetSysColor(COLOR_HIGHLIGHT));
+                    break;
+                case 1: // Old colors
+                    SetTextColor(DrawInfo->hdc, GetSysColor(COLOR_HIGHLIGHTTEXT));
+                    SetDCBrushColor(DrawInfo->hdc, RGB(65, 65, 65));
+                    break;
+                }
+
+                FillRect(DrawInfo->hdc, &DrawInfo->rc, GetStockObject(DC_BRUSH));
+            }
+            else
+            {
+                switch (PhGetIntegerSetting(L"GraphColorMode"))
+                {
+                case 0: // New colors
+                    //SetTextColor(DrawInfo->hdc, PhpThemeWindowTextColor);
+                    SetDCBrushColor(DrawInfo->hdc, PhpThemeWindowTextColor);
+                    break;
+                case 1: // Old colors
+                    SetTextColor(DrawInfo->hdc, PhpThemeWindowTextColor);
+                    SetDCBrushColor(DrawInfo->hdc, RGB(42, 42, 42)); // WindowForegroundColor
+                    break;
+                }
+
+                FillRect(DrawInfo->hdc, &DrawInfo->rc, GetStockObject(DC_BRUSH));
+            }
+
+            if ((GetWindowLongPtr(DrawInfo->hdr.hwndFrom, GWL_STYLE) & BS_CHECKBOX) != 0)
+            {
+                HFONT newFont = PhDuplicateFontWithNewHeight(PhApplicationFont, 22);
+                oldFont = SelectFont(DrawInfo->hdc, newFont);
+
+                if (Button_GetCheck(DrawInfo->hdr.hwndFrom) == BST_CHECKED)
+                {
+                    DrawText(
+                        DrawInfo->hdc,
+                        L"\u2611",
+                        -1,
+                        &DrawInfo->rc,
+                        DT_LEFT | DT_SINGLELINE | DT_VCENTER
+                        );
+                }
+                else
+                {
+                    DrawText(
+                        DrawInfo->hdc,
+                        L"\u2610",
+                        -1,
+                        &DrawInfo->rc,
+                        DT_LEFT | DT_SINGLELINE | DT_VCENTER
+                        );
+                }
+
+                SelectFont(DrawInfo->hdc, oldFont);
+                DeleteFont(newFont);
+
+                DrawInfo->rc.left += 10;
+                DrawText(
+                    DrawInfo->hdc,
+                    buttonText->Buffer,
+                    (UINT)buttonText->Length / sizeof(WCHAR),
+                    &DrawInfo->rc,
+                    DT_CENTER | DT_SINGLELINE | DT_VCENTER | DT_HIDEPREFIX
+                    );
+                DrawInfo->rc.left -= 10;
+            }
+            else
+            {
+                RECT bufferRect =
+                {
+                    0, 0,
+                    DrawInfo->rc.right - DrawInfo->rc.left,
+                    DrawInfo->rc.bottom - DrawInfo->rc.top
+                };
+                HICON buttonIcon;
+
+                if (!(buttonIcon = Static_GetIcon(DrawInfo->hdr.hwndFrom, 0)))
+                {
+                    buttonIcon = (HICON)SendMessage(DrawInfo->hdr.hwndFrom, BM_GETIMAGE, IMAGE_ICON, 0);
+                }
+
+                if (buttonIcon)
+                {
+                    DrawIconEx(
+                        DrawInfo->hdc,
+                        bufferRect.left + ((bufferRect.right - bufferRect.left) - 16) / 2,
+                        bufferRect.top + ((bufferRect.bottom - bufferRect.top) - 16 ) / 2,
+                        buttonIcon, 
+                        16,
+                        16,
+                        0, 
+                        NULL,
+                        DI_NORMAL
+                        );
+                }
+                else
+                {
+                    DrawText(
+                        DrawInfo->hdc,
+                        buttonText->Buffer,
+                        (UINT)buttonText->Length / sizeof(WCHAR),
+                        &DrawInfo->rc,
+                        DT_CENTER | DT_SINGLELINE | DT_VCENTER | DT_HIDEPREFIX
+                        );
+                }
+            }
+
+            PhDereferenceObject(buttonText);
+        }
+
+        return CDRF_SKIPDEFAULT;
+    }
+
+    return CDRF_DODEFAULT;
+}
+
+LRESULT CALLBACK PhThemeWindowDrawRebar(
+    _In_ LPNMCUSTOMDRAW DrawInfo
+    )
+{
+    switch (DrawInfo->dwDrawStage)
+    {
+    case CDDS_PREPAINT:
+        {
+            switch (PhGetIntegerSetting(L"GraphColorMode"))
+            {
+            case 0: // New colors
+                SetTextColor(DrawInfo->hdc, RGB(0x0, 0x0, 0x0));
+                SetDCBrushColor(DrawInfo->hdc, RGB(0xff, 0xff, 0xff));
+                break;
+            case 1: // Old colors
+                SetTextColor(DrawInfo->hdc, RGB(0xff, 0xff, 0xff));
+                SetDCBrushColor(DrawInfo->hdc, RGB(65, 65, 65));
+                break;
+            }
+
+            FillRect(DrawInfo->hdc, &DrawInfo->rc, GetStockObject(DC_BRUSH));
+        }
+        return CDRF_NOTIFYITEMDRAW;
+    case CDDS_ITEMPREPAINT:
+        {
+            switch (PhGetIntegerSetting(L"GraphColorMode"))
+            {
+            case 0: // New colors
+                SetTextColor(DrawInfo->hdc, RGB(0x0, 0x0, 0x0));
+                SetDCBrushColor(DrawInfo->hdc, RGB(0x0, 0x0, 0x0));
+            case 1: // Old colors
+                SetTextColor(DrawInfo->hdc, RGB(0xff, 0xff, 0xff));
+                SetDCBrushColor(DrawInfo->hdc, RGB(65, 65, 65));
+                break;
+            }
+
+            FillRect(DrawInfo->hdc, &DrawInfo->rc, GetStockObject(DC_BRUSH));
+        }
+        return CDRF_SKIPDEFAULT;
+    }
+
+    return CDRF_DODEFAULT;
+}
+
+LRESULT CALLBACK PhThemeWindowDrawToolbar(
+    _In_ LPNMTBCUSTOMDRAW DrawInfo
+    )
+{
+    switch (DrawInfo->nmcd.dwDrawStage)
+    {
+    case CDDS_PREPAINT:
+        return CDRF_NOTIFYITEMDRAW | CDRF_NOTIFYPOSTPAINT;
+    case CDDS_ITEMPREPAINT:
+        {
+            TBBUTTONINFO buttonInfo =
+            {
+                sizeof(TBBUTTONINFO),
+                TBIF_STYLE | TBIF_COMMAND | TBIF_STATE | TBIF_IMAGE
+            };
+
+            SetBkMode(DrawInfo->nmcd.hdc, TRANSPARENT);
+
+            ULONG currentIndex = (ULONG)SendMessage(
+                DrawInfo->nmcd.hdr.hwndFrom,
+                TB_COMMANDTOINDEX,
+                DrawInfo->nmcd.dwItemSpec,
+                0
+                );
+            BOOLEAN isHighlighted = SendMessage(
+                DrawInfo->nmcd.hdr.hwndFrom,
+                TB_GETHOTITEM,
+                0,
+                0
+                ) == currentIndex;
+            BOOLEAN isMouseDown = SendMessage(
+                DrawInfo->nmcd.hdr.hwndFrom,
+                TB_ISBUTTONPRESSED,
+                DrawInfo->nmcd.dwItemSpec,
+                0
+                ) == 0;
+
+            //if (isMouseDown)
+            //{
+            //    SetTextColor(DrawInfo->nmcd.hdc, RGB(0xff, 0xff, 0xff));
+            //    SetDCBrushColor(DrawInfo->nmcd.hdc, RGB(0xff, 0xff, 0xff));
+            //    FillRect(DrawInfo->nmcd.hdc, &DrawInfo->nmcd.rc, GetStockObject(DC_BRUSH));
+            //}
+
+            if (isHighlighted)
+            {
+                switch (PhGetIntegerSetting(L"GraphColorMode"))
+                {
+                case 0: // New colors
+                    SetTextColor(DrawInfo->nmcd.hdc, RGB(0x0, 0x0, 0x0));
+                    SetDCBrushColor(DrawInfo->nmcd.hdc, RGB(0xff, 0xff, 0xff));
+                    FillRect(DrawInfo->nmcd.hdc, &DrawInfo->nmcd.rc, GetStockObject(DC_BRUSH));
+                    break;
+                case 1: // Old colors
+                    SetTextColor(DrawInfo->nmcd.hdc, RGB(0xff, 0xff, 0xff));
+                    SetDCBrushColor(DrawInfo->nmcd.hdc, RGB(128, 128, 128));
+                    FillRect(DrawInfo->nmcd.hdc, &DrawInfo->nmcd.rc, GetStockObject(DC_BRUSH));
+                    break;
+                }
+            }
+            else
+            {
+                switch (PhGetIntegerSetting(L"GraphColorMode"))
+                {
+                case 0: // New colors
+                    SetTextColor(DrawInfo->nmcd.hdc, RGB(0x0, 0x0, 0x0));
+                    SetDCBrushColor(DrawInfo->nmcd.hdc, RGB(0xff, 0xff, 0xff));
+                    FillRect(DrawInfo->nmcd.hdc, &DrawInfo->nmcd.rc, GetStockObject(DC_BRUSH));
+                    break;
+                case 1: // Old colors
+                    SetTextColor(DrawInfo->nmcd.hdc, RGB(0xff, 0xff, 0xff));
+                    SetDCBrushColor(DrawInfo->nmcd.hdc, RGB(65, 65, 65)); //RGB(28, 28, 28)); // RGB(65, 65, 65));
+                    FillRect(DrawInfo->nmcd.hdc, &DrawInfo->nmcd.rc, GetStockObject(DC_BRUSH));
+                    break;
+                }
+            }
+
+            if (!PhpToolBarFontHandle)
+            {
+                NONCLIENTMETRICS metrics = { sizeof(NONCLIENTMETRICS) };
+
+                if (SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &metrics, 0))
+                {
+                    PhpToolBarFontHandle = CreateFontIndirect(&metrics.lfMessageFont);
+                }
+            }
+
+            SelectFont(DrawInfo->nmcd.hdc, PhpToolBarFontHandle);
+
+
+            if (SendMessage(
+                DrawInfo->nmcd.hdr.hwndFrom,
+                TB_GETBUTTONINFO,
+                (ULONG)DrawInfo->nmcd.dwItemSpec,
+                (LPARAM)&buttonInfo
+                ) == -1)
+            {
+                break;
+            }
+
+            if (buttonInfo.iImage != -1)
+            {
+                HIMAGELIST toolbarImageList;
+
+                if (toolbarImageList = (HIMAGELIST)SendMessage(
+                    DrawInfo->nmcd.hdr.hwndFrom, 
+                    TB_GETIMAGELIST, 
+                    0, 
+                    0
+                    ))
+                {
+                    DrawInfo->nmcd.rc.left += 5;
+
+                    ImageList_Draw(
+                        toolbarImageList,
+                        buttonInfo.iImage,
+                        DrawInfo->nmcd.hdc,
+                        DrawInfo->nmcd.rc.left,
+                        DrawInfo->nmcd.rc.top + 3,
+                        ILD_NORMAL
+                        );
+                }
+            }
+
+            if (buttonInfo.fsStyle & BTNS_SHOWTEXT)
+            {
+                WCHAR buttonText[0x100] = L"";
+
+                SendMessage(
+                    DrawInfo->nmcd.hdr.hwndFrom,
+                    TB_GETBUTTONTEXT,
+                    (ULONG)DrawInfo->nmcd.dwItemSpec,
+                    (LPARAM)buttonText
+                    );
+
+                DrawInfo->nmcd.rc.left += 10;
+                DrawText(
+                    DrawInfo->nmcd.hdc,
+                    buttonText,
+                    -1,
+                    &DrawInfo->nmcd.rc,
+                    DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_HIDEPREFIX
+                    );
+            }
+
+            //DrawInfo->clrText = RGB(0x0, 0xff, 0);
+            //return TBCDRF_USECDCOLORS | CDRF_NEWFONT;
+        }
+        return CDRF_SKIPDEFAULT;
+    }
+
+    return CDRF_DODEFAULT;
+}
+
+LRESULT CALLBACK PhpThemeWindowDrawListViewGroup(
+    _In_ LPNMLVCUSTOMDRAW DrawInfo
+    )
+{
+    switch (DrawInfo->nmcd.dwDrawStage)
+    {
+    case CDDS_PREPAINT:
+        {
+            SetBkMode(DrawInfo->nmcd.hdc, TRANSPARENT);
+
+            switch (PhGetIntegerSetting(L"GraphColorMode"))
+            {
+            case 0: // New colors
+                SetTextColor(DrawInfo->nmcd.hdc, RGB(0x0, 0x0, 0x0));
+                SetDCBrushColor(DrawInfo->nmcd.hdc, PhpThemeWindowTextColor);
+                //FillRect(DrawInfo->nmcd.hdc, &DrawInfo->nmcd.rc, GetStockObject(DC_BRUSH));
+                break;
+            case 1: // Old colors
+                SetTextColor(DrawInfo->nmcd.hdc, RGB(0x0, 0x0, 0x0));
+                SetDCBrushColor(DrawInfo->nmcd.hdc, RGB(128, 128, 128));
+                //FillRect(DrawInfo->nmcd.hdc, &DrawInfo->nmcd.rc, GetStockObject(DC_BRUSH));
+                break;
+            }
+
+            if (!PhpListViewFontHandle)
+            {
+                NONCLIENTMETRICS metrics = { sizeof(NONCLIENTMETRICS) };
+
+                if (SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &metrics, 0))
+                {
+                    metrics.lfMessageFont.lfHeight = -11;
+                    metrics.lfMessageFont.lfWeight = FW_BOLD;
+
+                    PhpListViewFontHandle = CreateFontIndirect(&metrics.lfMessageFont);
+                }
+            }
+
+            SelectFont(DrawInfo->nmcd.hdc, PhpListViewFontHandle);
+
+            LVGROUP groupInfo = { sizeof(LVGROUP) };
+            groupInfo.mask = LVGF_HEADER;
+            if (ListView_GetGroupInfo(
+                DrawInfo->nmcd.hdr.hwndFrom, 
+                (ULONG)DrawInfo->nmcd.dwItemSpec, 
+                &groupInfo
+                ) == -1)
+            {
+                break;
+            }
+
+            SetTextColor(DrawInfo->nmcd.hdc, RGB(255, 69, 0));
+            SetDCBrushColor(DrawInfo->nmcd.hdc, RGB(65, 65, 65));
+
+            DrawInfo->rcText.top += 2;
+            DrawInfo->rcText.bottom -= 2;
+            FillRect(DrawInfo->nmcd.hdc, &DrawInfo->rcText, GetStockObject(DC_BRUSH));
+            DrawInfo->rcText.top -= 2;
+            DrawInfo->rcText.bottom += 2;
+
+            SetTextColor(DrawInfo->nmcd.hdc, RGB(255, 69, 0));
+            SetDCBrushColor(DrawInfo->nmcd.hdc, RGB(65, 65, 65));
+
+            DrawInfo->rcText.left += 10;
+            DrawText(
+                DrawInfo->nmcd.hdc,
+                groupInfo.pszHeader,
+                -1,
+                &DrawInfo->rcText,
+                DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_HIDEPREFIX
+                );
+            DrawInfo->rcText.left -= 10;
+        }
+        return CDRF_SKIPDEFAULT;
+    }
+
+    return CDRF_DODEFAULT;
+}
 
 LRESULT CALLBACK PhpThemeWindowSubclassProc(
     _In_ HWND hWnd,
@@ -101,6 +857,8 @@ LRESULT CALLBACK PhpThemeWindowSubclassProc(
 
                     if (!GetClassName(customDraw->hdr.hwndFrom, className, RTL_NUMBER_OF(className)))
                         className[0] = 0;
+
+                    dprintf("ClassName: %S\r\n", className);
 
                     if (PhEqualStringZ(className, L"Button", FALSE))
                     {
@@ -182,7 +940,7 @@ LRESULT CALLBACK PhpThemeWindowGroupBoxSubclassProc(
     WNDPROC oldWndProc;
 
     if (!(oldWndProc = PhGetWindowContext(hWnd, SHRT_MAX)))
-        return 0;
+        return FALSE;
 
     switch (uMsg)
     {
@@ -193,7 +951,7 @@ LRESULT CALLBACK PhpThemeWindowGroupBoxSubclassProc(
         }
         break;
     case WM_ERASEBKGND:
-        return 1;
+        return TRUE;
     case WM_PAINT:
         {
             RECT clientRect;
@@ -237,7 +995,7 @@ LRESULT CALLBACK PhpThemeWindowGroupBoxSubclassProc(
                 }
             }
 
-            SelectObject(hdc, PhpGroupboxFontHandle);
+            SelectFont(hdc, PhpGroupboxFontHandle);
             SetTextColor(hdc, RGB(255, 69, 0));
             SetDCBrushColor(hdc, RGB(65, 65, 65));
             //clientRect.top += 6;
@@ -289,7 +1047,7 @@ LRESULT CALLBACK PhpThemeWindowTabControlWndSubclassProc(
     WNDPROC oldWndProc;
 
     if (!(context = PhGetWindowContext(WindowHandle, SHRT_MAX)))
-        return 0;
+        return FALSE;
 
     oldWndProc = context->DefaultWindowProc;
 
@@ -304,7 +1062,7 @@ LRESULT CALLBACK PhpThemeWindowTabControlWndSubclassProc(
         }
         break;
     case WM_ERASEBKGND:
-        return 1;
+        return TRUE;
     case WM_MOUSEMOVE:
         {
             POINT pt;
@@ -400,22 +1158,23 @@ LRESULT CALLBACK PhpThemeWindowTabControlWndSubclassProc(
             }
 
             HDC hdc = CreateCompatibleDC(ps.hdc);
+            HDC hdcTab = CreateCompatibleDC(hdc);
             HBITMAP hbm = CreateCompatibleBitmap(ps.hdc, clientRect.right, clientRect.bottom);
             SelectObject(hdc, hbm);
 
             SetBkMode(hdc, TRANSPARENT);
 
-            static HFONT fontHandle = NULL;
-            if (!fontHandle)
+            if (!PhpTabControlFontHandle)
             {
                 NONCLIENTMETRICS metrics = { sizeof(NONCLIENTMETRICS) };
+
                 if (SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &metrics, 0))
                 {
-                    fontHandle = CreateFontIndirect(&metrics.lfMessageFont);
+                    PhpTabControlFontHandle = CreateFontIndirect(&metrics.lfMessageFont);
                 }
             }
 
-            SelectObject(hdc, fontHandle);
+            SelectFont(hdc, PhpTabControlFontHandle);
 
             switch (PhGetIntegerSetting(L"GraphColorMode"))
             {
@@ -431,8 +1190,6 @@ LRESULT CALLBACK PhpThemeWindowTabControlWndSubclassProc(
                 break;
             }
     
-
-            HDC hdcTab = CreateCompatibleDC(hdc);
 
             INT count = TabCtrl_GetItemCount(WindowHandle);
             for (INT i = 0; i < count; i++)
@@ -560,6 +1317,7 @@ LRESULT CALLBACK PhpThemeWindowHeaderSubclassProc(
         {
             PhRemoveWindowContext(WindowHandle, SHRT_MAX);
             SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+
             PhFree(context);
         }
         break;
@@ -644,16 +1402,15 @@ LRESULT CALLBACK PhpThemeWindowHeaderSubclassProc(
 
             SelectObject(hdc, hbm);
 
-            static HFONT fontHandle = NULL;
-            if (!fontHandle)
+            if (!PhpHeaderFontHandle)
             {
                 NONCLIENTMETRICS metrics = { sizeof(metrics) };
                 if (SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &metrics, 0))
                 {
-                    fontHandle = CreateFontIndirect(&metrics.lfMessageFont);
+                    PhpHeaderFontHandle = CreateFontIndirect(&metrics.lfMessageFont);
                 }
             }
-            SelectObject(hdc, fontHandle);
+            SelectFont(hdc, PhpHeaderFontHandle);
 
             SetBkMode(hdc, TRANSPARENT);
 
@@ -747,52 +1504,55 @@ LRESULT CALLBACK PhpThemeWindowHeaderSubclassProc(
 }
 
 LRESULT CALLBACK PhpThemeWindowStatusbarWndSubclassProc(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
 {
+    PPHP_THEME_WINDOW_STATUSBAR_CONTEXT context;
     WNDPROC oldWndProc;
 
-    if (!(oldWndProc = PhGetWindowContext(hWnd, SHRT_MAX)))
+    if (!(context = PhGetWindowContext(WindowHandle, SHRT_MAX)))
         return FALSE;
 
-    static BOOLEAN MouseActive = FALSE;
+    oldWndProc = context->DefaultWindowProc;
 
     switch (uMsg)
     {
     case WM_NCDESTROY:
         {
-            PhRemoveWindowContext(hWnd, SHRT_MAX);
-            SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+            PhRemoveWindowContext(WindowHandle, SHRT_MAX);
+            SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+
+            PhFree(context);
         }
         break;
     case WM_ERASEBKGND:
-        return 1;
+        return FALSE;
     case WM_MOUSEMOVE:
         {
-            if (!MouseActive)
+            if (!context->MouseActive)
             {
                 TRACKMOUSEEVENT trackEvent = 
                 { 
                     sizeof(TRACKMOUSEEVENT), 
                     TME_LEAVE, 
-                    hWnd, 
+                    WindowHandle,
                     0 
                 };
 
                 TrackMouseEvent(&trackEvent);
-                MouseActive = TRUE;
+                context->MouseActive = TRUE;
             }
 
-            InvalidateRect(hWnd, NULL, FALSE);
+            InvalidateRect(WindowHandle, NULL, FALSE);
         }
         break;
     case WM_MOUSELEAVE:
         {
-            InvalidateRect(hWnd, NULL, FALSE);
-            MouseActive = FALSE;
+            InvalidateRect(WindowHandle, NULL, FALSE);
+            context->MouseActive = FALSE;
         }
         break;
     case WM_PAINT:
@@ -800,32 +1560,29 @@ LRESULT CALLBACK PhpThemeWindowStatusbarWndSubclassProc(
             RECT rcClient;
             PAINTSTRUCT ps;
             INT blockCoord[128];
-            INT blockCount = (INT)SendMessage(hWnd, (UINT)SB_GETPARTS, (WPARAM)ARRAYSIZE(blockCoord), (WPARAM)blockCoord);
+            INT blockCount = (INT)SendMessage(WindowHandle, (UINT)SB_GETPARTS, (WPARAM)ARRAYSIZE(blockCoord), (WPARAM)blockCoord);
 
-            InvalidateRect(hWnd, NULL, FALSE);
-
-            BeginPaint(hWnd, &ps);
-
-            GetClientRect(hWnd, &rcClient);
+            // InvalidateRect(WindowHandle, NULL, FALSE);
+            BeginPaint(WindowHandle, &ps);
+            GetClientRect(WindowHandle, &rcClient);
 
             HDC hdc = CreateCompatibleDC(ps.hdc);
             HBITMAP hbm = CreateCompatibleBitmap(ps.hdc, rcClient.right, rcClient.bottom);
-           
-            SetBkMode(hdc, TRANSPARENT);
-
             SelectObject(hdc, hbm);
 
-            static HFONT fontHandle = NULL;
-            if (!fontHandle)
+            SetBkMode(hdc, TRANSPARENT);
+
+            if (!PhpStatusBarFontHandle)
             {
-                NONCLIENTMETRICS metrics = { sizeof(metrics) };
+                NONCLIENTMETRICS metrics = { sizeof(NONCLIENTMETRICS) };
+
                 if (SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &metrics, 0))
                 {
-                    fontHandle = CreateFontIndirect(&metrics.lfMessageFont);
+                    PhpStatusBarFontHandle = CreateFontIndirect(&metrics.lfMessageFont);
                 }
             }
-            SelectObject(hdc, fontHandle);
 
+            SelectFont(hdc, PhpStatusBarFontHandle);
 
             switch (PhGetIntegerSetting(L"GraphColorMode"))
             {
@@ -841,18 +1598,19 @@ LRESULT CALLBACK PhpThemeWindowStatusbarWndSubclassProc(
                 break;
             }
 
-            HDC hdcTab = CreateCompatibleDC(hdc);
-
             for (INT i = 0; i < blockCount; i++)
             {
-                RECT blockRect;
-                WCHAR buffer[260] = L"";
-                SendMessage(hWnd, SB_GETRECT, (WPARAM)i, (WPARAM)&blockRect);
-                SendMessage(hWnd, SB_GETTEXT, (WPARAM)i, (LPARAM)buffer);
+                RECT blockRect = { 0, 0, 0, 0 };
+                WCHAR buffer[MAX_PATH] = L"";
+
+                if (!SendMessage(WindowHandle, SB_GETRECT, (WPARAM)i, (WPARAM)&blockRect))
+                    continue;
+
+                SendMessage(WindowHandle, SB_GETTEXT, (WPARAM)i, (LPARAM)buffer);
 
                 POINT pt;
                 GetCursorPos(&pt);
-                MapWindowPoints(NULL, hWnd, &pt, 1);
+                MapWindowPoints(NULL, WindowHandle, &pt, 1);
 
                 if (PtInRect(&blockRect, pt))
                 {
@@ -896,718 +1654,33 @@ LRESULT CALLBACK PhpThemeWindowStatusbarWndSubclassProc(
                     buffer,
                     -1,
                     &blockRect,
-                    DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_HIDEPREFIX //| DT_WORD_ELLIPSIS
+                    DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_HIDEPREFIX
                     );
             }
 
-            DeleteDC(hdcTab);
+            {
+                RECT sizeGripRect;
+
+                GetClientRect(WindowHandle, &sizeGripRect);
+
+                sizeGripRect.left = sizeGripRect.right - GetSystemMetrics(SM_CXHSCROLL);
+                sizeGripRect.top = sizeGripRect.bottom - GetSystemMetrics(SM_CYVSCROLL);
+
+                if (context->StatusThemeData)
+                    DrawThemeBackground(context->StatusThemeData, hdc, SP_GRIPPER, 0, &sizeGripRect, &sizeGripRect);
+                else
+                    DrawFrameControl(hdc, &sizeGripRect, DFC_SCROLL, DFCS_SCROLLSIZEGRIP);
+            }
 
             BitBlt(ps.hdc, 0, 0, rcClient.right, rcClient.bottom, hdc, 0, 0, SRCCOPY);
 
             DeleteDC(hdc);
             DeleteObject(hbm);
-            EndPaint(hWnd, &ps);
-        }
-        return DefWindowProc(hWnd, uMsg, wParam, lParam);
-    }
-
-    return CallWindowProc(oldWndProc, hWnd, uMsg, wParam, lParam);
-}
-
-VOID PhInitializeWindowTheme(
-    _In_ HWND WindowHandle,
-    _In_ BOOLEAN EnableThemeSupport
-    )
-{
-    if (EnableThemeSupport)
-    {
-        WNDPROC defaultWindowProc;
-
-        defaultWindowProc = (WNDPROC)GetWindowLongPtr(WindowHandle, GWLP_WNDPROC);
-        PhSetWindowContext(WindowHandle, SHRT_MAX, defaultWindowProc);
-        SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)PhpThemeWindowSubclassProc);
-
-        PhEnumChildWindows(
-            WindowHandle,
-            0x1000,
-            PhpThemeWindowEnumChildWindows,
-            0
-            );
-
-        InvalidateRect(WindowHandle, NULL, FALSE); // HACK
-    }
-    else
-    {
-        EnableThemeDialogTexture(WindowHandle, ETDT_ENABLETAB);
-    }
-}
-
-VOID PhReInitializeWindowTheme(
-    _In_ HWND WindowHandle
-    )
-{
-    HWND currentWindow = NULL;
-
-    PhEnumChildWindows(
-        WindowHandle,
-        0x1000,
-        PhpReInitializeThemeWindowEnumChildWindows,
-        0
-        );
-
-    do
-    {
-        if (currentWindow = FindWindowEx(NULL, currentWindow, NULL, NULL))
-        {
-            ULONG processID = 0;
-    
-            GetWindowThreadProcessId(currentWindow, &processID);
-    
-            if (UlongToHandle(processID) == NtCurrentProcessId())
-            {
-                if (currentWindow != WindowHandle)
-                {
-                    InvalidateRect(currentWindow, NULL, TRUE);
-                }
-            }
-        }
-    } while (currentWindow);
-
-    InvalidateRect(WindowHandle, NULL, FALSE);
-}
-
-VOID PhInitializeThemeWindowHeader(
-    _In_ HWND HeaderWindow
-    )
-{
-    PPHP_THEME_WINDOW_HEADER_CONTEXT headerControlContext;
-
-    headerControlContext = PhAllocateZero(sizeof(PHP_THEME_WINDOW_HEADER_CONTEXT));
-    headerControlContext->DefaultWindowProc = (WNDPROC)GetWindowLongPtr(HeaderWindow, GWLP_WNDPROC);
-    PhSetWindowContext(HeaderWindow, SHRT_MAX, headerControlContext);
-    SetWindowLongPtr(HeaderWindow, GWLP_WNDPROC, (LONG_PTR)PhpThemeWindowHeaderSubclassProc);
-
-    InvalidateRect(HeaderWindow, NULL, FALSE);
-}
-
-VOID PhInitializeThemeWindowTabControl(
-    _In_ HWND TabControlWindow
-    )
-{
-    PPHP_THEME_WINDOW_TAB_CONTEXT tabControlContext;
-
-    tabControlContext = PhAllocateZero(sizeof(PHP_THEME_WINDOW_TAB_CONTEXT));
-    tabControlContext->DefaultWindowProc = (WNDPROC)GetWindowLongPtr(TabControlWindow, GWLP_WNDPROC);
-    PhSetWindowContext(TabControlWindow, SHRT_MAX, tabControlContext);
-    SetWindowLongPtr(TabControlWindow, GWLP_WNDPROC, (LONG_PTR)PhpThemeWindowTabControlWndSubclassProc);
-
-    PhSetWindowStyle(TabControlWindow, TCS_OWNERDRAWFIXED, TCS_OWNERDRAWFIXED);
-
-    if (!PhpTabControlFontHandle)
-    {
-        PhpTabControlFontHandle = CreateFont(
-            -(LONG)PhMultiplyDivide(15, PhGlobalDpi, 96),
-            0,
-            0,
-            0,
-            FW_SEMIBOLD,
-            FALSE,
-            FALSE,
-            FALSE,
-            ANSI_CHARSET,
-            OUT_DEFAULT_PRECIS,
-            CLIP_DEFAULT_PRECIS,
-            DEFAULT_QUALITY,
-            DEFAULT_PITCH,
-            L"Tahoma"
-            );
-    }
-
-    SendMessage(TabControlWindow, WM_SETFONT, (WPARAM)PhpTabControlFontHandle, FALSE);
-
-    InvalidateRect(TabControlWindow, NULL, FALSE);
-}
-
-VOID PhInitializeThemeWindowStatusBar(
-    _In_ HWND StatusBarHandle
-    )
-{
-    WNDPROC defaultWindowProc;
-
-    defaultWindowProc = (WNDPROC)GetWindowLongPtr(StatusBarHandle, GWLP_WNDPROC);
-    PhSetWindowContext(StatusBarHandle, SHRT_MAX, defaultWindowProc);
-    SetWindowLongPtr(StatusBarHandle, GWLP_WNDPROC, (LONG_PTR)PhpThemeWindowStatusbarWndSubclassProc);
-
-    InvalidateRect(StatusBarHandle, NULL, FALSE);
-}
-
-VOID PhInitializeThemeWindowGroupBox(
-    _In_ HWND GroupBoxHandle
-    )
-{
-    WNDPROC groupboxWindowProc;
-
-    groupboxWindowProc = (WNDPROC)GetWindowLongPtr(GroupBoxHandle, GWLP_WNDPROC);
-    PhSetWindowContext(GroupBoxHandle, SHRT_MAX, groupboxWindowProc);
-    SetWindowLongPtr(GroupBoxHandle, GWLP_WNDPROC, (LONG_PTR)PhpThemeWindowGroupBoxSubclassProc);
-
-    InvalidateRect(GroupBoxHandle, NULL, FALSE);
-}
-
-BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
-    _In_ HWND WindowHandle,
-    _In_opt_ PVOID Context
-    )
-{
-    WCHAR className[MAX_PATH];
-
-    PhEnumChildWindows(
-        WindowHandle,
-        0x1000,
-        PhpThemeWindowEnumChildWindows,
-        0
-        );
-
-    if (!GetClassName(WindowHandle, className, RTL_NUMBER_OF(className)))
-        className[0] = 0;
-
-    if (PhEqualStringZ(className, L"#32770", FALSE))
-    {
-        PhInitializeWindowTheme(WindowHandle, TRUE);
-    }
-    else if (PhEqualStringZ(className, L"Button", FALSE))
-    {
-        ULONG buttonWindowStyle = (ULONG)GetWindowLongPtr(WindowHandle, GWL_STYLE);
-
-        if ((buttonWindowStyle & BS_GROUPBOX) == BS_GROUPBOX)
-        {
-            PhInitializeThemeWindowGroupBox(WindowHandle);
-        }
-    }
-    else if (PhEqualStringZ(className, L"Edit", FALSE))
-    {
-        switch (PhGetIntegerSetting(L"GraphColorMode"))
-        {
-        case 0: // New colors
-            //PhSetWindowStyle(WindowHandle, WS_BORDER, WS_BORDER);
-            //PhSetWindowExStyle(WindowHandle, WS_EX_CLIENTEDGE, WS_EX_CLIENTEDGE);
-            break;
-        case 1: // Old colors
-            PhSetWindowStyle(WindowHandle, WS_BORDER, 0);
-            PhSetWindowExStyle(WindowHandle, WS_EX_CLIENTEDGE, 0);
-            break;
-        }
-    }     
-    else if (PhEqualStringZ(className, L"SysTabControl32", FALSE))
-    {
-        PhInitializeThemeWindowTabControl(WindowHandle);
-    }
-    else if (PhEqualStringZ(className, L"msctls_statusbar32", FALSE))
-    {
-        PhInitializeThemeWindowStatusBar(WindowHandle);
-    }
-    else if (PhEqualStringZ(className, L"SysHeader32", FALSE))
-    {
-        PhInitializeThemeWindowHeader(WindowHandle);
-    }
-    else if (PhEqualStringZ(className, L"SysListView32", FALSE))
-    {
-        PhSetWindowStyle(WindowHandle, WS_BORDER, 0);
-        PhSetWindowExStyle(WindowHandle, WS_EX_CLIENTEDGE, 0);
-
-        switch (PhGetIntegerSetting(L"GraphColorMode"))
-        {
-        case 0: // New colors
-            break;
-        case 1: // Old colors
-            ListView_SetBkColor(WindowHandle, RGB(30, 30, 30));
-            ListView_SetTextBkColor(WindowHandle, RGB(30, 30, 30));
-            ListView_SetTextColor(WindowHandle, RGB(0xff, 0xff, 0xff));
-            break;
-        }
-    }
-    else if (PhEqualStringZ(className, L"SysTreeView32", FALSE))
-    {
-        //PhSetWindowStyle(WindowHandle, WS_BORDER, 0);
-        //PhSetWindowExStyle(WindowHandle, WS_EX_CLIENTEDGE, 0);
-
-        switch (PhGetIntegerSetting(L"GraphColorMode"))
-        {
-        case 0: // New colors
-            break;
-        case 1: // Old colors
-            TreeView_SetBkColor(WindowHandle, RGB(30, 30, 30));
-            //TreeView_SetTextBkColor(WindowHandle, RGB(30, 30, 30));
-            TreeView_SetTextColor(WindowHandle, RGB(0xff, 0xff, 0xff));
-            break;
-        }
-    }
-    else if (PhEqualStringZ(className, L"ScrollBar", FALSE))
-    {
-        NOTHING;
-    }
-    else if (PhEqualStringZ(className, L"PhTreeNew", FALSE))
-    {
-        PhSetWindowStyle(WindowHandle, WS_BORDER, 0);
-        PhSetWindowExStyle(WindowHandle, WS_EX_CLIENTEDGE, 0);
-    }
-
-    return TRUE;
-}
-
-BOOLEAN CALLBACK PhpReInitializeThemeWindowEnumChildWindows(
-    _In_ HWND WindowHandle,
-    _In_opt_ PVOID Context
-    )
-{
-    ULONG processID = 0;
-
-    PhEnumChildWindows(
-        WindowHandle,
-        0x1000,
-        PhpReInitializeThemeWindowEnumChildWindows,
-        0
-        );
-
-    GetWindowThreadProcessId(WindowHandle, &processID);
-
-    if (UlongToHandle(processID) == NtCurrentProcessId())
-    {
-        InvalidateRect(WindowHandle, NULL, FALSE);
-    }
-
-    return TRUE;
-}
-
-LRESULT PhpThemeWindowDrawButton(
-    _In_ LPNMCUSTOMDRAW DrawInfo
-    )
-{
-    BOOLEAN isGrayed = (DrawInfo->uItemState & CDIS_GRAYED) == CDIS_GRAYED;
-    BOOLEAN isChecked = (DrawInfo->uItemState & CDIS_CHECKED) == CDIS_CHECKED;
-    BOOLEAN isDisabled = (DrawInfo->uItemState & CDIS_DISABLED) == CDIS_DISABLED;
-    BOOLEAN isSelected = (DrawInfo->uItemState & CDIS_SELECTED) == CDIS_SELECTED;
-    BOOLEAN isHighlighted = (DrawInfo->uItemState & CDIS_HOT) == CDIS_HOT;
-    BOOLEAN isFocused = (DrawInfo->uItemState & CDIS_FOCUS) == CDIS_FOCUS;
-
-    switch (DrawInfo->dwDrawStage)
-    {
-    case CDDS_PREPAINT:
-        {
-            PPH_STRING buttonText;
-            HFONT oldFont;
-
-            buttonText = PhGetWindowText(DrawInfo->hdr.hwndFrom);
-
-            if (isSelected)
-            {
-                switch (PhGetIntegerSetting(L"GraphColorMode"))
-                {
-                case 0: // New colors
-                    //SetTextColor(DrawInfo->hdc, RGB(0, 0, 0xff));
-                    SetDCBrushColor(DrawInfo->hdc, GetSysColor(COLOR_HIGHLIGHT));
-                    break;
-                case 1: // Old colors
-                    SetTextColor(DrawInfo->hdc, GetSysColor(COLOR_HIGHLIGHTTEXT));
-                    SetDCBrushColor(DrawInfo->hdc, RGB(78, 78, 78));
-                    break;
-                }
-
-                FillRect(DrawInfo->hdc, &DrawInfo->rc, GetStockObject(DC_BRUSH));
-            }
-            else if (isHighlighted)
-            {
-                switch (PhGetIntegerSetting(L"GraphColorMode"))
-                {
-                case 0: // New colors
-                    //SetTextColor(DrawInfo->hdc, RGB(0, 0, 0xff));
-                    SetDCBrushColor(DrawInfo->hdc, GetSysColor(COLOR_HIGHLIGHT));
-                    break;
-                case 1: // Old colors
-                    SetTextColor(DrawInfo->hdc, GetSysColor(COLOR_HIGHLIGHTTEXT));
-                    SetDCBrushColor(DrawInfo->hdc, RGB(65, 65, 65));
-                    break;
-                }
-
-                FillRect(DrawInfo->hdc, &DrawInfo->rc, GetStockObject(DC_BRUSH));
-            }
-            else
-            {
-                switch (PhGetIntegerSetting(L"GraphColorMode"))
-                {
-                case 0: // New colors
-                    //SetTextColor(DrawInfo->hdc, RGB(0x0, 0x0, 0x0));
-                    //SetDCBrushColor(DrawInfo->hdc, GetSysColor(COLOR_3DFACE));
-                    //FillRect(DrawInfo->hdc, &DrawInfo->rc, GetStockObject(DC_BRUSH));
-                    break;
-                case 1: // Old colors
-                    SetTextColor(DrawInfo->hdc, PhpThemeWindowTextColor);
-                    SetDCBrushColor(DrawInfo->hdc, RGB(42, 42, 42)); // WindowForegroundColor
-                    FillRect(DrawInfo->hdc, &DrawInfo->rc, GetStockObject(DC_BRUSH));
-                    break;
-                }
-            }
-
-            if ((GetWindowLongPtr(DrawInfo->hdr.hwndFrom, GWL_STYLE) & BS_CHECKBOX) != 0)
-            {
-                HFONT newFont = PhDuplicateFontWithNewHeight(PhApplicationFont, 22);
-                oldFont = SelectFont(DrawInfo->hdc, newFont);
-
-                if (Button_GetCheck(DrawInfo->hdr.hwndFrom) == BST_CHECKED)
-                {
-                    DrawText(
-                        DrawInfo->hdc,
-                        L"\u2611",
-                        -1,
-                        &DrawInfo->rc,
-                        DT_LEFT | DT_SINGLELINE | DT_VCENTER
-                        );
-                }
-                else
-                {
-                    DrawText(
-                        DrawInfo->hdc,
-                        L"\u2610",
-                        -1,
-                        &DrawInfo->rc,
-                        DT_LEFT | DT_SINGLELINE | DT_VCENTER
-                        );
-                }
-
-                SelectFont(DrawInfo->hdc, oldFont);
-                DeleteFont(newFont);
-
-                DrawInfo->rc.left += 10;
-                DrawText(
-                    DrawInfo->hdc,
-                    buttonText->Buffer,
-                    (UINT)buttonText->Length / sizeof(WCHAR),
-                    &DrawInfo->rc,
-                    DT_CENTER | DT_SINGLELINE | DT_VCENTER | DT_HIDEPREFIX
-                    );
-                DrawInfo->rc.left -= 10;
-            }
-            else
-            {
-                RECT bufferRect =
-                {
-                    0, 0,
-                    DrawInfo->rc.right - DrawInfo->rc.left,
-                    DrawInfo->rc.bottom - DrawInfo->rc.top
-                };
-                HICON buttonIcon;
-
-                if (!(buttonIcon = Static_GetIcon(DrawInfo->hdr.hwndFrom, 0)))
-                {
-                    buttonIcon = (HICON)SendMessage(DrawInfo->hdr.hwndFrom, BM_GETIMAGE, IMAGE_ICON, 0);
-                }
-
-                if (buttonIcon)
-                {
-                    DrawIconEx(
-                        DrawInfo->hdc,
-                        bufferRect.left + ((bufferRect.right - bufferRect.left) - 16) / 2,
-                        bufferRect.top + ((bufferRect.bottom - bufferRect.top) - 16 ) / 2,
-                        buttonIcon, 
-                        16,
-                        16,
-                        0, 
-                        NULL,
-                        DI_NORMAL
-                        );
-                }
-                else
-                {
-                    DrawText(
-                        DrawInfo->hdc,
-                        buttonText->Buffer,
-                        (UINT)buttonText->Length / sizeof(WCHAR),
-                        &DrawInfo->rc,
-                        DT_CENTER | DT_SINGLELINE | DT_VCENTER | DT_HIDEPREFIX
-                        );
-                }
-            }
-
-            PhDereferenceObject(buttonText);
+            EndPaint(WindowHandle, &ps);
         }
 
-        return CDRF_SKIPDEFAULT;
+        return DefWindowProc(WindowHandle, uMsg, wParam, lParam);
     }
 
-    return CDRF_DODEFAULT;
-}
-
-LRESULT PhThemeWindowDrawRebar(
-    _In_ LPNMCUSTOMDRAW DrawInfo
-    )
-{
-    switch (DrawInfo->dwDrawStage)
-    {
-    case CDDS_PREPAINT:
-        {
-            switch (PhGetIntegerSetting(L"GraphColorMode"))
-            {
-            case 0: // New colors
-                SetTextColor(DrawInfo->hdc, RGB(0x0, 0x0, 0x0));
-                SetDCBrushColor(DrawInfo->hdc, RGB(0xff, 0xff, 0xff));
-                break;
-            case 1: // Old colors
-                SetTextColor(DrawInfo->hdc, RGB(0xff, 0xff, 0xff));
-                SetDCBrushColor(DrawInfo->hdc, RGB(65, 65, 65));
-                break;
-            }
-
-            FillRect(DrawInfo->hdc, &DrawInfo->rc, GetStockObject(DC_BRUSH));
-        }
-        return CDRF_NOTIFYITEMDRAW;
-    case CDDS_ITEMPREPAINT:
-        {
-            switch (PhGetIntegerSetting(L"GraphColorMode"))
-            {
-            case 0: // New colors
-                SetTextColor(DrawInfo->hdc, RGB(0x0, 0x0, 0x0));
-                SetDCBrushColor(DrawInfo->hdc, RGB(0x0, 0x0, 0x0));
-            case 1: // Old colors
-                SetTextColor(DrawInfo->hdc, RGB(0xff, 0xff, 0xff));
-                SetDCBrushColor(DrawInfo->hdc, RGB(65, 65, 65));
-                break;
-            }
-
-            FillRect(DrawInfo->hdc, &DrawInfo->rc, GetStockObject(DC_BRUSH));
-        }
-        return CDRF_SKIPDEFAULT;
-    }
-
-    return CDRF_DODEFAULT;
-}
-
-LRESULT PhThemeWindowDrawToolbar(
-    _In_ LPNMTBCUSTOMDRAW DrawInfo
-    )
-{
-    switch (DrawInfo->nmcd.dwDrawStage)
-    {
-    case CDDS_PREPAINT:
-        return CDRF_NOTIFYITEMDRAW | CDRF_NOTIFYPOSTPAINT;
-    case CDDS_ITEMPREPAINT:
-        {
-            TBBUTTONINFO buttonInfo =
-            {
-                sizeof(TBBUTTONINFO),
-                TBIF_STYLE | TBIF_COMMAND | TBIF_STATE | TBIF_IMAGE
-            };
-
-            SetBkMode(DrawInfo->nmcd.hdc, TRANSPARENT);
-
-            ULONG currentIndex = (ULONG)SendMessage(
-                DrawInfo->nmcd.hdr.hwndFrom,
-                TB_COMMANDTOINDEX,
-                DrawInfo->nmcd.dwItemSpec,
-                0
-                );
-            BOOLEAN isHighlighted = SendMessage(
-                DrawInfo->nmcd.hdr.hwndFrom,
-                TB_GETHOTITEM,
-                0,
-                0
-                ) == currentIndex;
-            BOOLEAN isMouseDown = SendMessage(
-                DrawInfo->nmcd.hdr.hwndFrom,
-                TB_ISBUTTONPRESSED,
-                DrawInfo->nmcd.dwItemSpec,
-                0
-                ) == 0;
-
-            //if (isMouseDown)
-            //{
-            //    SetTextColor(DrawInfo->nmcd.hdc, RGB(0xff, 0xff, 0xff));
-            //    SetDCBrushColor(DrawInfo->nmcd.hdc, RGB(0xff, 0xff, 0xff));
-            //    FillRect(DrawInfo->nmcd.hdc, &DrawInfo->nmcd.rc, GetStockObject(DC_BRUSH));
-            //}
-
-            if (isHighlighted)
-            {
-                switch (PhGetIntegerSetting(L"GraphColorMode"))
-                {
-                case 0: // New colors
-                    SetTextColor(DrawInfo->nmcd.hdc, RGB(0x0, 0x0, 0x0));
-                    SetDCBrushColor(DrawInfo->nmcd.hdc, RGB(0xff, 0xff, 0xff));
-                    FillRect(DrawInfo->nmcd.hdc, &DrawInfo->nmcd.rc, GetStockObject(DC_BRUSH));
-                    break;
-                case 1: // Old colors
-                    SetTextColor(DrawInfo->nmcd.hdc, RGB(0xff, 0xff, 0xff));
-                    SetDCBrushColor(DrawInfo->nmcd.hdc, RGB(128, 128, 128));
-                    FillRect(DrawInfo->nmcd.hdc, &DrawInfo->nmcd.rc, GetStockObject(DC_BRUSH));
-                    break;
-                }
-            }
-            else
-            {
-                switch (PhGetIntegerSetting(L"GraphColorMode"))
-                {
-                case 0: // New colors
-                    SetTextColor(DrawInfo->nmcd.hdc, RGB(0x0, 0x0, 0x0));
-                    SetDCBrushColor(DrawInfo->nmcd.hdc, RGB(0xff, 0xff, 0xff));
-                    FillRect(DrawInfo->nmcd.hdc, &DrawInfo->nmcd.rc, GetStockObject(DC_BRUSH));
-                    break;
-                case 1: // Old colors
-                    SetTextColor(DrawInfo->nmcd.hdc, RGB(0xff, 0xff, 0xff));
-                    SetDCBrushColor(DrawInfo->nmcd.hdc, RGB(65, 65, 65)); //RGB(28, 28, 28)); // RGB(65, 65, 65));
-                    FillRect(DrawInfo->nmcd.hdc, &DrawInfo->nmcd.rc, GetStockObject(DC_BRUSH));
-                    break;
-                }
-            }
-
-            if (!PhpToolBarFontHandle)
-            {
-                NONCLIENTMETRICS metrics = { sizeof(NONCLIENTMETRICS) };
-
-                if (SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &metrics, 0))
-                {
-                    PhpToolBarFontHandle = CreateFontIndirect(&metrics.lfMessageFont);
-                }
-            }
-
-            SelectObject(DrawInfo->nmcd.hdc, PhpToolBarFontHandle);
-
-
-            if (SendMessage(
-                DrawInfo->nmcd.hdr.hwndFrom,
-                TB_GETBUTTONINFO,
-                (ULONG)DrawInfo->nmcd.dwItemSpec,
-                (LPARAM)&buttonInfo
-                ) == -1)
-            {
-                break;
-            }
-
-            if (buttonInfo.iImage != -1)
-            {
-                HIMAGELIST toolbarImageList;
-
-                if (toolbarImageList = (HIMAGELIST)SendMessage(
-                    DrawInfo->nmcd.hdr.hwndFrom, 
-                    TB_GETIMAGELIST, 
-                    0, 
-                    0
-                    ))
-                {
-                    DrawInfo->nmcd.rc.left += 5;
-
-                    ImageList_Draw(
-                        toolbarImageList,
-                        buttonInfo.iImage,
-                        DrawInfo->nmcd.hdc,
-                        DrawInfo->nmcd.rc.left,
-                        DrawInfo->nmcd.rc.top + 3,
-                        ILD_NORMAL
-                        );
-                }
-            }
-
-            if (buttonInfo.fsStyle & BTNS_SHOWTEXT)
-            {
-                WCHAR buttonText[0x100] = L"";
-
-                SendMessage(
-                    DrawInfo->nmcd.hdr.hwndFrom,
-                    TB_GETBUTTONTEXT,
-                    (ULONG)DrawInfo->nmcd.dwItemSpec,
-                    (LPARAM)buttonText
-                    );
-
-                DrawInfo->nmcd.rc.left += 10;
-                DrawText(
-                    DrawInfo->nmcd.hdc,
-                    buttonText,
-                    -1,
-                    &DrawInfo->nmcd.rc,
-                    DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_HIDEPREFIX
-                    );
-            }
-
-            //DrawInfo->clrText = RGB(0x0, 0xff, 0);
-            //return TBCDRF_USECDCOLORS | CDRF_NEWFONT;
-        }
-        return CDRF_SKIPDEFAULT;
-    }
-
-    return CDRF_DODEFAULT;
-}
-
-LRESULT PhpThemeWindowDrawListViewGroup(
-    _In_ LPNMLVCUSTOMDRAW DrawInfo
-    )
-{
-    switch (DrawInfo->nmcd.dwDrawStage)
-    {
-    case CDDS_PREPAINT:
-        {
-            SetBkMode(DrawInfo->nmcd.hdc, TRANSPARENT);
-
-            switch (PhGetIntegerSetting(L"GraphColorMode"))
-            {
-            case 0: // New colors
-                SetTextColor(DrawInfo->nmcd.hdc, RGB(0x0, 0x0, 0x0));
-                SetDCBrushColor(DrawInfo->nmcd.hdc, PhpThemeWindowTextColor);
-                //FillRect(DrawInfo->nmcd.hdc, &DrawInfo->nmcd.rc, GetStockObject(DC_BRUSH));
-                break;
-            case 1: // Old colors
-                SetTextColor(DrawInfo->nmcd.hdc, RGB(0x0, 0x0, 0x0));
-                SetDCBrushColor(DrawInfo->nmcd.hdc, RGB(128, 128, 128));
-                //FillRect(DrawInfo->nmcd.hdc, &DrawInfo->nmcd.rc, GetStockObject(DC_BRUSH));
-                break;
-            }
-
-            if (!PhpListViewFontHandle)
-            {
-                NONCLIENTMETRICS metrics = { sizeof(NONCLIENTMETRICS) };
-
-                if (SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &metrics, 0))
-                {
-                    metrics.lfMessageFont.lfHeight = -11;
-                    metrics.lfMessageFont.lfWeight = FW_BOLD;
-
-                    PhpListViewFontHandle = CreateFontIndirect(&metrics.lfMessageFont);
-                }
-            }
-            SelectObject(DrawInfo->nmcd.hdc, PhpListViewFontHandle);
-
-            LVGROUP groupInfo = { sizeof(LVGROUP) };
-            groupInfo.mask = LVGF_HEADER;
-            if (ListView_GetGroupInfo(
-                DrawInfo->nmcd.hdr.hwndFrom, 
-                (ULONG)DrawInfo->nmcd.dwItemSpec, 
-                &groupInfo
-                ) == -1)
-            {
-                break;
-            }
-
-            SetTextColor(DrawInfo->nmcd.hdc, RGB(255, 69, 0));
-            SetDCBrushColor(DrawInfo->nmcd.hdc, RGB(65, 65, 65));
-
-            DrawInfo->rcText.top += 2;
-            DrawInfo->rcText.bottom -= 2;
-            FillRect(DrawInfo->nmcd.hdc, &DrawInfo->rcText, GetStockObject(DC_BRUSH));
-            DrawInfo->rcText.top -= 2;
-            DrawInfo->rcText.bottom += 2;
-
-            SetTextColor(DrawInfo->nmcd.hdc, RGB(255, 69, 0));
-            SetDCBrushColor(DrawInfo->nmcd.hdc, RGB(65, 65, 65));
-
-            DrawInfo->rcText.left += 10;
-            DrawText(
-                DrawInfo->nmcd.hdc,
-                groupInfo.pszHeader,
-                -1,
-                &DrawInfo->rcText,
-                DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_HIDEPREFIX
-                );
-            DrawInfo->rcText.left -= 10;
-        }
-        return CDRF_SKIPDEFAULT;
-    }
-
-    return CDRF_DODEFAULT;
+    return CallWindowProc(oldWndProc, WindowHandle, uMsg, wParam, lParam);
 }
