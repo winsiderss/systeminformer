@@ -59,7 +59,8 @@ typedef struct _PH_TREENEW_CONTEXT
             ULONG CustomRowHeight : 1;
             ULONG CustomColors : 1;
             ULONG ContextMenuActive : 1;
-            ULONG Spare : 2;
+            ULONG ThemeSupport : 1;
+            ULONG Spare : 1;
         };
         ULONG Flags;
     };
