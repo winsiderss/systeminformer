@@ -24,7 +24,6 @@
 #include <phapp.h>
 
 #include <commdlg.h>
-#include <uxtheme.h>
 #include <vssym32.h>
 
 #include <colorbox.h>
@@ -292,6 +291,8 @@ INT_PTR CALLBACK PhOptionsDialogProc(
             //PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_APPLY), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+
             {
                 PPH_OPTIONS_SECTION section;
 
@@ -321,8 +322,6 @@ INT_PTR CALLBACK PhOptionsDialogProc(
 
             PhCenterWindow(hwndDlg, PhMainWndHandle);
             PhLoadWindowPlacementFromSetting(L"OptionsWindowPosition", L"OptionsWindowSize", hwndDlg);
-
-            EnableThemeDialogTexture(ContainerControl, ETDT_ENABLETAB);
         }
         break;
     case WM_DESTROY:
@@ -421,9 +420,33 @@ INT_PTR CALLBACK PhOptionsDialogProc(
 
                 rect = drawInfo->rcItem;
                 rect.right = 2;
-                FillRect(drawInfo->hDC, &rect, GetSysColorBrush(COLOR_3DHIGHLIGHT));
-                rect.left += 1;
-                FillRect(drawInfo->hDC, &rect, GetSysColorBrush(COLOR_3DSHADOW));
+
+                if (PhEnableThemeSupport)
+                {
+                    switch (PhCsGraphColorMode)
+                    {
+                    case 0: // New colors
+                        {
+                            FillRect(drawInfo->hDC, &rect, GetSysColorBrush(COLOR_3DHIGHLIGHT));
+                            rect.left += 1;
+                            FillRect(drawInfo->hDC, &rect, GetSysColorBrush(COLOR_3DSHADOW));
+                        }
+                        break;
+                    case 1: // Old colors
+                        {
+                            SetDCBrushColor(drawInfo->hDC, RGB(0, 0, 0));
+                            FillRect(drawInfo->hDC, &rect, GetStockObject(DC_BRUSH));
+                        }
+                        break;
+                    }
+                }
+                else
+                {
+                    FillRect(drawInfo->hDC, &rect, GetSysColorBrush(COLOR_3DHIGHLIGHT));
+                    rect.left += 1;
+                    FillRect(drawInfo->hDC, &rect, GetSysColorBrush(COLOR_3DSHADOW));
+                }
+
                 return TRUE;
             }
         }
@@ -643,6 +666,8 @@ VOID PhOptionsCreateSectionDialog(
         Section->DialogProc,
         Section->Parameter
         );
+
+    PhInitializeWindowTheme(Section->DialogHandle, PhEnableThemeSupport);
 }
 
 #define SetDlgItemCheckForSetting(hwndDlg, Id, Name) \
@@ -1670,7 +1695,7 @@ UINT_PTR CALLBACK PhpColorDlgHookProc(
         {
             PhCenterWindow(hwndDlg, PhOptionsWindowHandle);
 
-            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     }
