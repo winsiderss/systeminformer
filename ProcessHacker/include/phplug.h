@@ -59,6 +59,7 @@ typedef enum _PH_GENERAL_CALLBACK
     GeneralCallbackNetworkProviderRemovedEvent, // [network provider thread]
     GeneralCallbackNetworkProviderUpdatedEvent, // [network provider thread]
 
+    GeneralCallbackLoggedEvent,
     GeneralCallbackTrayIconsInitializing,
     GeneralCallbackWindowNotifyEvent,
     GeneralCallbackMaximum
