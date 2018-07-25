@@ -406,7 +406,8 @@ typedef struct _PH_TREENEW_SEARCH_EVENT
 #define TNM_SETEMPTYTEXT (WM_USER + 43)
 #define TNM_SETROWHEIGHT (WM_USER + 44)
 #define TNM_ISFLATNODEVALID (WM_USER + 45)
-#define TNM_LAST (WM_USER + 45)
+#define TNM_THEMESUPPORT (WM_USER + 46)
+#define TNM_LAST (WM_USER + 47)
 
 #define TreeNew_SetCallback(hWnd, Callback, Context) \
     SendMessage((hWnd), TNM_SETCALLBACK, (WPARAM)(Context), (LPARAM)(Callback))
@@ -536,6 +537,9 @@ typedef struct _PH_TREENEW_SEARCH_EVENT
 
 #define TreeNew_IsFlatNodeValid(hWnd) \
     ((BOOLEAN)SendMessage((hWnd), TNM_ISFLATNODEVALID, 0, 0))
+
+#define TreeNew_ThemeSupport(hWnd, Enable) \
+    SendMessage((hWnd), TNM_THEMESUPPORT, (WPARAM)(Enable), 0);
 
 typedef struct _PH_TREENEW_VIEW_PARTS
 {

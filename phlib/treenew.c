@@ -1998,6 +1998,9 @@ ULONG_PTR PhTnpOnUserMessage(
         return TRUE;
     case TNM_ISFLATNODEVALID:
         return !Context->SuspendUpdateStructure;
+    case TNM_THEMESUPPORT:
+        Context->ThemeSupport = !!WParam;
+        return TRUE;
     }
 
     return 0;
@@ -5071,44 +5074,124 @@ VOID PhTnpPaint(
 
         PhTnpPrepareRowForDraw(Context, hdc, node);
 
-        if (node->Selected && (Context->CustomColors || !Context->ThemeHasItemBackground))
+        if (Context->ThemeSupport)
         {
-            // Non-themed background
+            HDC tempDc;
+            BITMAPINFOHEADER header;
+            HBITMAP bitmap;
+            HBITMAP oldBitmap;
+            PVOID bits;
+            RECT tempRect;
+            BLENDFUNCTION blendFunction;
 
-            if (Context->HasFocus)
+            SetTextColor(hdc, RGB(0xff, 0xff, 0xff));
+            SetDCBrushColor(hdc, RGB(30, 30, 30));
+            FillRect(hdc, &rowRect, GetStockObject(DC_BRUSH));
+
+            if (tempDc = CreateCompatibleDC(hdc))
             {
-                if (Context->CustomColors)
+                memset(&header, 0, sizeof(BITMAPINFOHEADER));
+                header.biSize = sizeof(BITMAPINFOHEADER);
+                header.biWidth = 1;
+                header.biHeight = 1;
+                header.biPlanes = 1;
+                header.biBitCount = 24;
+                bitmap = CreateDIBSection(tempDc, (BITMAPINFO *)&header, DIB_RGB_COLORS, &bits, NULL, 0);
+
+                if (bitmap)
                 {
-                    SetTextColor(hdc, Context->CustomTextColor);
-                    SetDCBrushColor(hdc, Context->CustomFocusColor);
-                    FillRect(hdc, &rowRect, GetStockObject(DC_BRUSH));
+                    // Draw the outline of the selection rectangle.
+                    //FrameRect(hdc, &rowRect, GetSysColorBrush(COLOR_HIGHLIGHT));
+
+                    // Fill in the selection rectangle.
+                    oldBitmap = SelectObject(tempDc, bitmap);
+                    tempRect.left = 0;
+                    tempRect.top = 0;
+                    tempRect.right = 1;
+                    tempRect.bottom = 1;
+
+                    SetTextColor(tempDc, node->s.DrawForeColor);
+
+                    if (node->s.DrawBackColor != 16777215)
+                    {
+                        SetDCBrushColor(tempDc, node->s.DrawBackColor);
+                        FillRect(tempDc, &tempRect, GetStockObject(DC_BRUSH));
+                    }
+                    else
+                    {
+                        SetDCBrushColor(tempDc, RGB(30, 30, 30));
+                        FillRect(tempDc, &tempRect, GetStockObject(DC_BRUSH));
+                    }
+
+                    blendFunction.BlendOp = AC_SRC_OVER;
+                    blendFunction.BlendFlags = 0;
+                    blendFunction.SourceConstantAlpha = 96;
+                    blendFunction.AlphaFormat = 0;
+
+                    GdiAlphaBlend(
+                        hdc,
+                        rowRect.left,
+                        rowRect.top,
+                        rowRect.right - rowRect.left,
+                        rowRect.bottom - rowRect.top,
+                        tempDc,
+                        0,
+                        0,
+                        1,
+                        1,
+                        blendFunction
+                    );
+
+                    //drewWithAlpha = TRUE;
+
+                    SelectObject(tempDc, oldBitmap);
+                    DeleteObject(bitmap);
                 }
-                else
-                {
-                    SetTextColor(hdc, GetSysColor(COLOR_HIGHLIGHTTEXT));
-                    FillRect(hdc, &rowRect, GetSysColorBrush(COLOR_HIGHLIGHT));
-                }
-            }
-            else
-            {
-                if (Context->CustomColors)
-                {
-                    SetTextColor(hdc, Context->CustomTextColor);
-                    SetDCBrushColor(hdc, Context->CustomSelectedColor);
-                    FillRect(hdc, &rowRect, GetStockObject(DC_BRUSH));
-                }
-                else
-                {
-                    SetTextColor(hdc, GetSysColor(COLOR_BTNTEXT));
-                    FillRect(hdc, &rowRect, GetSysColorBrush(COLOR_BTNFACE));
-                }
+
+                DeleteDC(tempDc);
             }
         }
         else
         {
-            SetTextColor(hdc, node->s.DrawForeColor);
-            SetDCBrushColor(hdc, node->s.DrawBackColor);
-            FillRect(hdc, &rowRect, GetStockObject(DC_BRUSH));
+            if (node->Selected && (Context->CustomColors || !Context->ThemeHasItemBackground))
+            {
+                // Non-themed background
+
+                if (Context->HasFocus)
+                {
+                    if (Context->CustomColors)
+                    {
+                        SetTextColor(hdc, Context->CustomTextColor);
+                        SetDCBrushColor(hdc, Context->CustomFocusColor);
+                        FillRect(hdc, &rowRect, GetStockObject(DC_BRUSH));
+                    }
+                    else
+                    {
+                        SetTextColor(hdc, GetSysColor(COLOR_HIGHLIGHTTEXT));
+                        FillRect(hdc, &rowRect, GetSysColorBrush(COLOR_HIGHLIGHT));
+                    }
+                }
+                else
+                {
+                    if (Context->CustomColors)
+                    {
+                        SetTextColor(hdc, Context->CustomTextColor);
+                        SetDCBrushColor(hdc, Context->CustomSelectedColor);
+                        FillRect(hdc, &rowRect, GetStockObject(DC_BRUSH));
+                    }
+                    else
+                    {
+                        SetTextColor(hdc, GetSysColor(COLOR_BTNTEXT));
+                        FillRect(hdc, &rowRect, GetSysColorBrush(COLOR_BTNFACE));
+                    }
+                }
+            }
+            else
+            {
+                SetTextColor(hdc, node->s.DrawForeColor);
+                SetDCBrushColor(hdc, node->s.DrawBackColor);
+                FillRect(hdc, &rowRect, GetStockObject(DC_BRUSH));
+            }
         }
 
         if (!Context->CustomColors && Context->ThemeHasItemBackground)
@@ -5208,7 +5291,17 @@ VOID PhTnpPaint(
     {
         // Fill the rest of the space on the bottom with the window color.
         rowRect.bottom = viewRect.bottom;
-        FillRect(hdc, &rowRect, GetSysColorBrush(COLOR_WINDOW));
+
+        if (Context->ThemeSupport)
+        {
+            SetTextColor(hdc, RGB(0xff, 0xff, 0xff));
+            SetDCBrushColor(hdc, RGB(30, 30, 30));
+            FillRect(hdc, &rowRect, GetStockObject(DC_BRUSH));
+        }
+        else
+        {
+            FillRect(hdc, &rowRect, GetSysColorBrush(COLOR_WINDOW));
+        }
     }
 
     if (normalTotalX < viewRect.right && viewRect.right > PaintRect->left && normalTotalX < PaintRect->right)
@@ -5218,7 +5311,17 @@ VOID PhTnpPaint(
         rowRect.top = Context->HeaderHeight;
         rowRect.right = viewRect.right;
         rowRect.bottom = viewRect.bottom;
-        FillRect(hdc, &rowRect, GetSysColorBrush(COLOR_WINDOW));
+
+        if (Context->ThemeSupport)
+        {
+            SetTextColor(hdc, RGB(0xff, 0xff, 0xff));
+            SetDCBrushColor(hdc, RGB(30, 30, 30));
+            FillRect(hdc, &rowRect, GetStockObject(DC_BRUSH));
+        }
+        else
+        {
+            FillRect(hdc, &rowRect, GetSysColorBrush(COLOR_WINDOW));
+        }
     }
 
     if (Context->FlatList->Count == 0 && Context->EmptyText.Length != 0)
