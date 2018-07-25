@@ -201,6 +201,8 @@ BOOLEAN PhMainWndInitialization(
     PhMwpLoadSettings();
     PhLogInitialization();
 
+    PhInitializeWindowTheme(PhMainWndHandle, PhEnableThemeSupport); // HACK
+
     // Initialize the main providers.
     PhMwpInitializeProviders();
 
