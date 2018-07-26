@@ -347,7 +347,6 @@ VOID PhSipOnInitDialog(
         );
 
     PhSipUpdateThemeData();
-    PhInitializeWindowTheme(ContainerControl, PhEnableThemeSupport);
 
     if (SectionList) // TODO: Remove (dmex)
     {
@@ -1177,8 +1176,6 @@ PPH_SYSINFO_SECTION PhSipCreateSection(
         PhInstanceHandle,
         NULL
         );
- 
-    PhInitializeWindowTheme(section->PanelHandle, PhEnableThemeSupport);
 
     section->GraphWindowProc = (WNDPROC)GetWindowLongPtr(section->GraphHandle, GWLP_WNDPROC);
     section->PanelWindowProc = (WNDPROC)GetWindowLongPtr(section->PanelHandle, GWLP_WNDPROC);

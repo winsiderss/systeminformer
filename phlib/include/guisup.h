@@ -914,6 +914,13 @@ PhReInitializeWindowTheme(
     _In_ HWND WindowHandle
     );
 
+PHLIBAPI
+VOID
+NTAPI
+PhInitializeWindowThemeStatusBar(
+    _In_ HWND StatusBarHandle
+    );
+
 FORCEINLINE
 HFONT
 PhDuplicateFontWithNewHeight(

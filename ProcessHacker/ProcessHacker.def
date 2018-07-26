@@ -525,8 +525,11 @@ EXPORTS
 	PhSetDialogItemText
 	PhApplicationFont
 	PhTreeWindowFont
+	PhRegisterWindowCallback
+	PhUnregisterWindowCallback
 	PhInitializeWindowTheme
 	PhReInitializeWindowTheme
+	PhInitializeWindowThemeStatusBar
 
 ; hndlinfo
 	PhEnumObjectTypes
