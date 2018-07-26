@@ -349,14 +349,14 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
         case 0: // New colors
             //PhSetWindowStyle(WindowHandle, WS_BORDER, WS_BORDER);
             //PhSetWindowExStyle(WindowHandle, WS_EX_CLIENTEDGE, WS_EX_CLIENTEDGE);
+            TreeNew_ThemeSupport(WindowHandle, FALSE);
             break;
         case 1: // Old colors
             //PhSetWindowStyle(WindowHandle, WS_BORDER, 0);
             //PhSetWindowExStyle(WindowHandle, WS_EX_CLIENTEDGE, 0);
+            TreeNew_ThemeSupport(WindowHandle, TRUE);
             break;
         }
-
-        TreeNew_ThemeSupport(WindowHandle, TRUE);
     }
     else if (PhEqualStringZ(windowClassName, L"ScrollBar", FALSE))
     {
@@ -372,6 +372,7 @@ BOOLEAN CALLBACK PhpReInitializeThemeWindowEnumChildWindows(
     )
 {
     ULONG processID = 0;
+    WCHAR windowClassName[MAX_PATH];
 
     PhEnumChildWindows(
         WindowHandle,
@@ -379,6 +380,26 @@ BOOLEAN CALLBACK PhpReInitializeThemeWindowEnumChildWindows(
         PhpReInitializeThemeWindowEnumChildWindows,
         0
         );
+
+    if (!GetClassName(WindowHandle, windowClassName, RTL_NUMBER_OF(windowClassName)))
+        windowClassName[0] = 0;
+
+    if (PhEqualStringZ(windowClassName, L"PhTreeNew", FALSE))
+    {
+        switch (PhGetIntegerSetting(L"GraphColorMode"))
+        {
+        case 0: // New colors
+                //PhSetWindowStyle(WindowHandle, WS_BORDER, WS_BORDER);
+                //PhSetWindowExStyle(WindowHandle, WS_EX_CLIENTEDGE, WS_EX_CLIENTEDGE);
+            TreeNew_ThemeSupport(WindowHandle, FALSE);
+            break;
+        case 1: // Old colors
+                //PhSetWindowStyle(WindowHandle, WS_BORDER, 0);
+                //PhSetWindowExStyle(WindowHandle, WS_EX_CLIENTEDGE, 0);
+            TreeNew_ThemeSupport(WindowHandle, TRUE);
+            break;
+        }
+    }
 
     GetWindowThreadProcessId(WindowHandle, &processID);
 
