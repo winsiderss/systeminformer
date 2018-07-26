@@ -308,8 +308,8 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
     }
     else if (PhEqualStringZ(windowClassName, L"SysListView32", FALSE))
     {
-        PhSetWindowStyle(WindowHandle, WS_BORDER, 0);
-        PhSetWindowExStyle(WindowHandle, WS_EX_CLIENTEDGE, 0);
+        //PhSetWindowStyle(WindowHandle, WS_BORDER, 0);
+        //PhSetWindowExStyle(WindowHandle, WS_EX_CLIENTEDGE, 0);
 
         switch (PhGetIntegerSetting(L"GraphColorMode"))
         {
@@ -347,12 +347,12 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
         switch (PhGetIntegerSetting(L"GraphColorMode"))
         {
         case 0: // New colors
-            PhSetWindowStyle(WindowHandle, WS_BORDER, WS_BORDER);
-            PhSetWindowExStyle(WindowHandle, WS_EX_CLIENTEDGE, WS_EX_CLIENTEDGE);
+            //PhSetWindowStyle(WindowHandle, WS_BORDER, WS_BORDER);
+            //PhSetWindowExStyle(WindowHandle, WS_EX_CLIENTEDGE, WS_EX_CLIENTEDGE);
             break;
         case 1: // Old colors
-            PhSetWindowStyle(WindowHandle, WS_BORDER, 0);
-            PhSetWindowExStyle(WindowHandle, WS_EX_CLIENTEDGE, 0);
+            //PhSetWindowStyle(WindowHandle, WS_BORDER, 0);
+            //PhSetWindowExStyle(WindowHandle, WS_EX_CLIENTEDGE, 0);
             break;
         }
 
