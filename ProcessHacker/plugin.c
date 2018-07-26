@@ -340,6 +340,9 @@ VOID PhLoadPlugins(
             PhDereferenceObject(baseName);
         }
 
+        if (PhEndsWithStringRef2(&stringBuilder.String->sr, L"\n", FALSE)) 
+            PhRemoveEndStringBuilder(&stringBuilder, 2);
+
         config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION;
         config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
         config.pszWindowTitle = PhApplicationName;
