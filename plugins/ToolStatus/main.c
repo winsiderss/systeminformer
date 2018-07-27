@@ -754,7 +754,7 @@ LRESULT CALLBACK MainWndSubclassProc(
                     CallWindowProc(MainWindowHookProc, hWnd, uMsg, wParam, lParam);
 
                     // Query the settings.
-                    BOOLEAN isAlwaysOnTopEnabled = (BOOLEAN)PhGetIntegerSetting(L"MainWindowAlwaysOnTop");
+                    BOOLEAN isAlwaysOnTopEnabled = !!PhGetIntegerSetting(L"MainWindowAlwaysOnTop");
 
                     // Set the pressed button state.
                     SendMessage(ToolBarHandle, TB_PRESSBUTTON, (WPARAM)PHAPP_ID_VIEW_ALWAYSONTOP, (LPARAM)(MAKELONG(isAlwaysOnTopEnabled, 0))); 
@@ -929,6 +929,8 @@ LRESULT CALLBACK MainWndSubclassProc(
                         ReBarSaveLayoutSettings();
                     }
                     break;
+                case NM_CUSTOMDRAW:
+                    return CallWindowProc(MainWindowHookProc, hWnd, uMsg, wParam, lParam); // HACK
                 }
 
                 goto DefaultWndProc;
@@ -1079,6 +1081,8 @@ LRESULT CALLBACK MainWndSubclassProc(
                         ShowCustomizeMenu();
                     }
                     break;
+                case NM_CUSTOMDRAW:
+                    return CallWindowProc(MainWindowHookProc, hWnd, uMsg, wParam, lParam); // HACK
                 }
 
                 goto DefaultWndProc;
