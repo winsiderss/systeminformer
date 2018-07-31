@@ -557,7 +557,6 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             PhInitializeThreadList(hwndDlg, tnHandle, &threadsContext->ListContext);
             TreeNew_SetEmptyText(tnHandle, &EmptyThreadsText, 0);
             PhInitializeProviderEventQueue(&threadsContext->EventQueue, 100);
-            PhRegisterWindowCallback(tnHandle, PH_PLUGIN_WINDOW_EVENT_TYPE_FONT, NULL);
             // Use Cycles instead of Context Switches on Vista and above, but only when we can
             // open the process, since cycle time information requires sufficient access to the
             // threads.
@@ -618,8 +617,6 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
         break;
     case WM_DESTROY:
         {
-            PhUnregisterWindowCallback(tnHandle);
-
             PhEmCallObjectOperation(EmThreadsContextType, threadsContext, EmObjectDelete);
 
             PhUnregisterCallback(

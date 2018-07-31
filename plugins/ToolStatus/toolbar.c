@@ -188,7 +188,6 @@ VOID RebarLoadSettings(
             ))
         {
             PhCreateSearchControl(RebarHandle, SearchboxHandle, L"Search Processes (Ctrl+K)");
-            PhRegisterWindowCallback(SearchboxHandle, PH_PLUGIN_WINDOW_EVENT_TYPE_FONT, NULL);
         }
     }
 
@@ -206,12 +205,9 @@ VOID RebarLoadSettings(
             NULL
             );
 
-        if (StatusBarHandle)
+        if (StatusBarHandle && PhGetIntegerSetting(L"EnableThemeSupport"))
         {
-            PhRegisterWindowCallback(StatusBarHandle, PH_PLUGIN_WINDOW_EVENT_TYPE_FONT, NULL);
-
-            if (PhGetIntegerSetting(L"EnableThemeSupport"))
-                PhInitializeWindowThemeStatusBar(StatusBarHandle);
+            PhInitializeWindowThemeStatusBar(StatusBarHandle);
         }
     }
 

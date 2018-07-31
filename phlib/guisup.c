@@ -1588,9 +1588,6 @@ VOID PhRegisterWindowCallback(
         if (PhGetIntegerSetting(L"MainWindowAlwaysOnTop"))
             PhSetWindowAlwaysOnTop(WindowHandle, TRUE);
         break;
-    case PH_PLUGIN_WINDOW_EVENT_TYPE_FONT:
-        SendMessage(WindowHandle, WM_SETFONT, (WPARAM)PhTreeWindowFont, TRUE);
-        break;
     }
 
     PhAcquireQueuedLockExclusive(&WindowCallbackListLock);
@@ -1641,27 +1638,6 @@ VOID PhWindowNotifyTopMostEvent(
         if ((*entry)->Type & PH_PLUGIN_WINDOW_EVENT_TYPE_TOPMOST)
         {
             PhSetWindowAlwaysOnTop((*entry)->WindowHandle, TopMost);
-        }
-    }
-
-    PhReleaseQueuedLockExclusive(&WindowCallbackListLock);
-}
-
-VOID PhWindowNotifyFontUpdateEvent(
-    _In_ HFONT FontHandle
-    )
-{
-    PPH_PLUGIN_WINDOW_CALLBACK_REGISTRATION *entry;
-    ULONG i = 0;
-
-    PhAcquireQueuedLockExclusive(&WindowCallbackListLock);
-
-    while (PhEnumHashtable(WindowCallbackHashTable, (PVOID*)&entry, &i))
-    {
-        if ((*entry)->Type & PH_PLUGIN_WINDOW_EVENT_TYPE_FONT)
-        {
-            SendMessage((*entry)->WindowHandle, WM_SETFONT, (WPARAM)FontHandle, TRUE);
-            InvalidateRect((*entry)->WindowHandle, NULL, TRUE); // HACK
         }
     }
 
