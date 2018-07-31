@@ -581,13 +581,11 @@ INT_PTR CALLBACK PhpTokenPageProc(
 
             PhSetExtendedListView(tokenPageContext->ListViewHandle);
             ExtendedListView_SetItemColorFunction(tokenPageContext->ListViewHandle, PhpTokenGroupColorFunction);
-            PhLoadListViewColumnsFromSetting(L"TokenGroupsListViewColumns", tokenPageContext->ListViewHandle); 
-
             ListView_EnableGroupView(tokenPageContext->ListViewHandle, TRUE);
             PhAddListViewGroup(tokenPageContext->ListViewHandle, PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES, L"Privileges");
             PhAddListViewGroup(tokenPageContext->ListViewHandle, PH_PROCESS_TOKEN_CATEGORY_GROUPS, L"Groups");
             ListView_SetImageList(tokenPageContext->ListViewHandle, tokenPageContext->ListViewImageList, LVSIL_SMALL);
-            PhRegisterWindowCallback(tokenPageContext->ListViewHandle, PH_PLUGIN_WINDOW_EVENT_TYPE_FONT, NULL);
+            PhLoadListViewColumnsFromSetting(L"TokenGroupsListViewColumns", tokenPageContext->ListViewHandle);
 
             PhSetDialogItemText(hwndDlg, IDC_USER, L"Unknown");
             PhSetDialogItemText(hwndDlg, IDC_USERSID, L"Unknown");
@@ -706,7 +704,6 @@ INT_PTR CALLBACK PhpTokenPageProc(
 
             PhpTokenPageFreeListViewEntries(tokenPageContext);
 
-            PhUnregisterWindowCallback(tokenPageContext->ListViewHandle);
             PhSaveListViewColumnsToSetting(L"TokenGroupsListViewColumns", tokenPageContext->ListViewHandle);
 
             if (tokenPageContext->Groups) PhFree(tokenPageContext->Groups);
