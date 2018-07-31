@@ -768,6 +768,17 @@ static VOID WepRefreshWindowGeneralInfo(
     WINDOWINFO windowInfo = { sizeof(WINDOWINFO) };
     WINDOWPLACEMENT windowPlacement = { sizeof(WINDOWPLACEMENT) };
     MONITORINFO monitorInfo = { sizeof(MONITORINFO) };
+    HANDLE processHandle;
+    PPH_STRING fileName = NULL;
+    HMENU menuHandle;
+    PVOID instanceHandle;
+    PVOID userdataHandle;
+    ULONG windowId;
+
+    menuHandle = GetMenu(Context->WindowHandle);
+    instanceHandle = (PVOID)GetWindowLongPtr(Context->WindowHandle, GWLP_HINSTANCE);
+    userdataHandle = (PVOID)GetWindowLongPtr(Context->WindowHandle, GWLP_USERDATA);
+    windowId = (ULONG)GetWindowLongPtr(Context->WindowHandle, GWLP_ID);
 
     PhSetDialogItemText(hwndDlg, IDC_THREAD, PH_AUTO_T(PH_STRING, PhGetClientIdName(&Context->ClientId))->Buffer);
     PhSetDialogItemText(hwndDlg, IDC_TEXT, PhGetStringOrEmpty(PH_AUTO(PhGetWindowText(Context->WindowHandle))));
@@ -801,11 +812,38 @@ static VOID WepRefreshWindowGeneralInfo(
         PhSetDialogItemText(hwndDlg, IDC_NORMALRECTANGLE, L"N/A");
     }
 
-    PhSetDialogItemText(hwndDlg, IDC_INSTANCEHANDLE, PhaFormatString(L"0x%Ix", GetWindowLongPtr(Context->WindowHandle, GWLP_HINSTANCE))->Buffer);
-    PhSetDialogItemText(hwndDlg, IDC_MENUHANDLE, PhaFormatString(L"0x%Ix", GetMenu(Context->WindowHandle))->Buffer);
-    PhSetDialogItemText(hwndDlg, IDC_USERDATA, PhaFormatString(L"0x%Ix", GetWindowLongPtr(Context->WindowHandle, GWLP_USERDATA))->Buffer);
+    if (NT_SUCCESS(PhOpenProcess(&processHandle, *(PULONG)WeGetProcedureAddress("ProcessQueryAccess"), Context->ClientId.UniqueProcess)))
+    {
+        if (NT_SUCCESS(PhGetProcessMappedFileName(processHandle, instanceHandle, &fileName)))
+        {
+            PhMoveReference(&fileName, PhResolveDevicePrefix(fileName));
+            PhMoveReference(&fileName, PhGetBaseName(fileName));
+        }
+
+        NtClose(processHandle);
+    }
+
+    if (fileName)
+    {
+        PhSetDialogItemText(hwndDlg, IDC_INSTANCEHANDLE, PhaFormatString(
+            L"0x%Ix (%s)", 
+            instanceHandle,
+            PhGetStringOrEmpty(fileName)
+            )->Buffer);
+        PhDereferenceObject(fileName);
+    }
+    else
+    {
+        PhSetDialogItemText(hwndDlg, IDC_INSTANCEHANDLE, PhaFormatString(
+            L"0x%Ix", 
+            instanceHandle
+            )->Buffer);
+    }
+
+    PhSetDialogItemText(hwndDlg, IDC_MENUHANDLE, PhaFormatString(L"0x%Ix", menuHandle)->Buffer);
+    PhSetDialogItemText(hwndDlg, IDC_USERDATA, PhaFormatString(L"0x%Ix", userdataHandle)->Buffer);
     PhSetDialogItemText(hwndDlg, IDC_UNICODE, IsWindowUnicode(Context->WindowHandle) ? L"Yes" : L"No");
-    PhSetDialogItemText(hwndDlg, IDC_CTRLID, PhaFormatString(L"%lu", GetWindowLongPtr(Context->WindowHandle, GWLP_ID))->Buffer);
+    PhSetDialogItemText(hwndDlg, IDC_CTRLID, PhaFormatString(L"%lu", windowId)->Buffer);
 
     WepEnsureHookDataValid(Context);
 
