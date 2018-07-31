@@ -149,6 +149,7 @@ VOID PhUiAnalyzeWaitThread(
         return;
     }
 
+    memset(&context, 0, sizeof(ANALYZE_WAIT_CONTEXT));
     context.ProcessId = ProcessId;
     context.ThreadId = ThreadId;
 

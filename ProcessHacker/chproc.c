@@ -49,6 +49,7 @@ BOOLEAN PhShowChooseProcessDialog(
 {
     CHOOSE_PROCESS_DIALOG_CONTEXT context;
 
+    memset(&context, 0, sizeof(CHOOSE_PROCESS_DIALOG_CONTEXT));
     context.Message = Message;
     context.ProcessId = NULL;
 
