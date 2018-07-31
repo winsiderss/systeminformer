@@ -323,7 +323,7 @@ NTSTATUS KpiReadVirtualMemoryUnsafe(
 {
     NTSTATUS status;
     PEPROCESS process;
-    SIZE_T numberOfBytesRead;
+    SIZE_T numberOfBytesRead = 0;
 
     PAGED_CODE();
 
