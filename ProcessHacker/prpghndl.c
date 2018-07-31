@@ -397,7 +397,6 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
             handlesContext->ErrorMessage = NULL;
             handlesContext->SearchboxText = PhReferenceEmptyString();
             handlesContext->FilterEntry = PhAddTreeNewFilter(&handlesContext->ListContext.TreeFilterSupport, PhpHandleTreeFilterCallback, handlesContext);
-            PhRegisterWindowCallback(tnHandle, PH_PLUGIN_WINDOW_EVENT_TYPE_FONT, NULL);
 
             PhEmCallObjectOperation(EmHandlesContextType, handlesContext, EmObjectCreate);
 
@@ -425,8 +424,6 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
         break;
     case WM_DESTROY:
         {
-            PhUnregisterWindowCallback(tnHandle);
-
             PhEmCallObjectOperation(EmHandlesContextType, handlesContext, EmObjectDelete);
 
             PhUnregisterCallback(
