@@ -274,7 +274,17 @@ INT_PTR CALLBACK PhpServicesPageProc(
 
             ExtendedListView_SortItems(context->ListViewHandle);
 
-            PhpFixProcessServicesControls(hwndDlg, NULL);
+            if (context->NumberOfServices > 0)
+            {
+                SetFocus(context->ListViewHandle);
+                ListView_SetItemState(context->ListViewHandle, 0, LVNI_SELECTED, LVNI_SELECTED);
+                ListView_EnsureVisible(context->ListViewHandle, 0, FALSE);
+                PhpFixProcessServicesControls(hwndDlg, context->Services[0]);
+            }
+            else
+            {
+                PhpFixProcessServicesControls(hwndDlg, NULL);
+            }
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
