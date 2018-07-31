@@ -295,21 +295,26 @@ INT_PTR CALLBACK PhSipContainerDialogProc(
     case WM_CTLCOLORDLG:
     case WM_CTLCOLORSTATIC:
         {
-            if (!PhEnableThemeSupport)
-                break;
-
             SetBkMode((HDC)wParam, TRANSPARENT);
 
-            switch (PhCsGraphColorMode)
+            if (PhEnableThemeSupport)
             {
-            case 0: // New colors
+                switch (PhCsGraphColorMode)
+                {
+                case 0: // New colors
+                    SetTextColor((HDC)wParam, RGB(0x0, 0x0, 0x0));
+                    SetDCBrushColor((HDC)wParam, GetSysColor(COLOR_WINDOW));
+                    break;
+                case 1: // Old colors
+                    SetTextColor((HDC)wParam, RGB(0xff, 0xff, 0xff));
+                    SetDCBrushColor((HDC)wParam, RGB(30, 30, 30));
+                    break;
+                }
+            }
+            else
+            {
                 SetTextColor((HDC)wParam, RGB(0x0, 0x0, 0x0));
                 SetDCBrushColor((HDC)wParam, GetSysColor(COLOR_WINDOW));
-                break;
-            case 1: // Old colors
-                SetTextColor((HDC)wParam, RGB(0xff, 0xff, 0xff));
-                SetDCBrushColor((HDC)wParam, RGB(30, 30, 30));
-                break;
             }
 
             return (INT_PTR)GetStockObject(DC_BRUSH);

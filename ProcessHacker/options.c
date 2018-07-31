@@ -320,8 +320,10 @@ INT_PTR CALLBACK PhOptionsDialogProc(
                 PhOptionsOnSize();
             }
 
-            PhCenterWindow(hwndDlg, PhMainWndHandle);
-            PhLoadWindowPlacementFromSetting(L"OptionsWindowPosition", L"OptionsWindowSize", hwndDlg);
+            if (PhGetIntegerPairSetting(L"OptionsWindowPosition").X)
+                PhLoadWindowPlacementFromSetting(L"OptionsWindowPosition", L"OptionsWindowSize", hwndDlg);
+            else
+                PhCenterWindow(hwndDlg, PhMainWndHandle);  
         }
         break;
     case WM_DESTROY:
@@ -1182,6 +1184,27 @@ static NTSTATUS PhpElevateAdvancedThreadStart(
     return STATUS_SUCCESS;
 }
 
+UINT_PTR CALLBACK PhpChooseFontDlgHookProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            PhCenterWindow(hwndDlg, PhOptionsWindowHandle);
+
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+        }
+        break;
+    }
+
+    return FALSE;
+}
+
 INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -1291,8 +1314,9 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                     memset(&chooseFont, 0, sizeof(CHOOSEFONT));
                     chooseFont.lStructSize = sizeof(CHOOSEFONT);
                     chooseFont.hwndOwner = hwndDlg;
+                    chooseFont.lpfnHook = PhpChooseFontDlgHookProc;
                     chooseFont.lpLogFont = &font;
-                    chooseFont.Flags = CF_FORCEFONTEXIST | CF_INITTOLOGFONTSTRUCT | CF_SCREENFONTS;
+                    chooseFont.Flags = CF_FORCEFONTEXIST | CF_INITTOLOGFONTSTRUCT | CF_ENABLEHOOK | CF_SCREENFONTS;
 
                     if (ChooseFont(&chooseFont))
                     {

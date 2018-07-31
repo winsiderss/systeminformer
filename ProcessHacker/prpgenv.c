@@ -1257,7 +1257,6 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
 
             PhInitializeArray(&context->Items, sizeof(PH_ENVIRONMENT_ITEM), 100);
             context->TreeFilterEntry = PhAddTreeNewFilter(&context->TreeFilterSupport, PhpProcessEnvironmentTreeFilterCallback, context);
-            PhRegisterWindowCallback(context->TreeNewHandle, PH_PLUGIN_WINDOW_EVENT_TYPE_FONT, NULL);
 
             PhMoveReference(&context->StatusMessage, PhCreateString(L"There are no environment variables to display."));
             TreeNew_SetEmptyText(context->TreeNewHandle, &context->StatusMessage->sr, 0);
@@ -1270,7 +1269,6 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
         break;
     case WM_DESTROY:
         {
-            PhUnregisterWindowCallback(context->TreeNewHandle);
             PhSaveSettingsEnvironmentList(context);
             PhpDeleteEnvironmentTree(context);
 

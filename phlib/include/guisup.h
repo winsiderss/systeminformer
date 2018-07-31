@@ -832,14 +832,13 @@ PhMakeColorBrighter(
     return RGB(r, g, b);
 }
 
-// Window plugin support
+// Window support
 
 typedef enum _PH_PLUGIN_WINDOW_EVENT_TYPE
 {
-    PH_PLUGIN_WINDOW_EVENT_TYPE_NONE = 0,
-    PH_PLUGIN_WINDOW_EVENT_TYPE_TOPMOST = 1,
-    PH_PLUGIN_WINDOW_EVENT_TYPE_FONT = 2,
-    PH_PLUGIN_WINDOW_EVENT_TYPE_MAX = 4
+    PH_PLUGIN_WINDOW_EVENT_TYPE_NONE,
+    PH_PLUGIN_WINDOW_EVENT_TYPE_TOPMOST,
+    PH_PLUGIN_WINDOW_EVENT_TYPE_MAX
 } PH_PLUGIN_WINDOW_EVENT_TYPE;
 
 typedef struct _PH_PLUGIN_WINDOW_CALLBACK_REGISTRATION
@@ -854,7 +853,7 @@ typedef struct _PH_PLUGIN_WINDOW_NOTIFY_EVENT
     union
     {
         BOOLEAN TopMost;
-        HFONT FontHandle;
+        //HFONT FontHandle;
     };
 } PH_PLUGIN_WINDOW_NOTIFY_EVENT, *PPH_PLUGIN_WINDOW_NOTIFY_EVENT;
 
@@ -885,13 +884,6 @@ VOID
 NTAPI
 PhWindowNotifyTopMostEvent(
     _In_ BOOLEAN TopMost
-    );
-
-PHLIBAPI
-VOID
-NTAPI
-PhWindowNotifyFontUpdateEvent(
-    _In_ HFONT FontHandle
     );
 
 // theme support (theme.c)
