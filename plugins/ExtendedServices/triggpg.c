@@ -26,6 +26,7 @@ typedef struct _SERVICE_TRIGGERS_CONTEXT
 {
     PPH_SERVICE_ITEM ServiceItem;
     HWND TriggersLv;
+    PH_LAYOUT_MANAGER LayoutManager;
     struct _ES_TRIGGER_CONTEXT *TriggerContext;
 } SERVICE_TRIGGERS_CONTEXT, *PSERVICE_TRIGGERS_CONTEXT;
 
@@ -98,11 +99,19 @@ INT_PTR CALLBACK EspServiceTriggersDlgProc(
                     ((PPH_STRING)PH_AUTO(PhGetNtMessage(status)))->Buffer);
             }
 
+            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_TRIGGERS), NULL, PH_ANCHOR_ALL);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_NEW), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_EDIT), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_DELETE), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
+
             PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
         }
         break;
     case WM_DESTROY:
         {
+            PhDeleteLayoutManager(&context->LayoutManager);
+
             EsDestroyServiceTriggerContext(context->TriggerContext);
             PhFree(context);
         }
@@ -176,6 +185,11 @@ INT_PTR CALLBACK EspServiceTriggersDlgProc(
                 }
                 break;
             }
+        }
+        break;
+    case WM_SIZE:
+        {
+            PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
     }
