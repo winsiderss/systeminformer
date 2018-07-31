@@ -155,11 +155,15 @@ NTSTATUS PhpShowHandlePropertiesThread(
     PROPSHEETPAGE propSheetPage;
     HPROPSHEETPAGE pages[16];
     HANDLE_PROPERTIES_CONTEXT context;
+    PH_AUTO_POOL autoPool;
 
     context.ProcessId = handleContext->ProcessId;
     context.HandleItem = handleContext->HandleItem;
 
+    PhInitializeAutoPool(&autoPool);
+
     propSheetHeader.dwFlags =
+        PSH_MODELESS |
         PSH_NOAPPLYNOW |
         PSH_NOCONTEXTHELP |
         PSH_PROPTITLE;
@@ -257,6 +261,8 @@ NTSTATUS PhpShowHandlePropertiesThread(
     }
 
     PhModalPropertySheet(&propSheetHeader);
+
+    PhDeleteAutoPool(&autoPool);
 
     PhDereferenceObject(handleContext->HandleItem);
     PhFree(handleContext);
@@ -926,7 +932,7 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
 
             // HACK
             if (PhGetIntegerPairSetting(L"HandlePropertiesWindowPosition").X != 0)
-                PhLoadWindowPlacementFromSetting(L"HandlePropertiesWindowPosition", L"HandlePropertiesWindowSize", GetParent(hwndDlg));
+                PhLoadWindowPlacementFromSetting(L"HandlePropertiesWindowPosition", NULL, GetParent(hwndDlg));
             else
                 PhCenterWindow(GetParent(hwndDlg), GetParent(GetParent(hwndDlg))); // HACK
 
@@ -941,7 +947,7 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
         break;
     case WM_DESTROY:
         {
-            PhSaveWindowPlacementToSetting(L"HandlePropertiesWindowPosition", L"HandlePropertiesWindowSize", GetParent(hwndDlg)); // HACK
+            PhSaveWindowPlacementToSetting(L"HandlePropertiesWindowPosition", NULL, GetParent(hwndDlg)); // HACK
 
             PhDeleteLayoutManager(&context->LayoutManager);
 

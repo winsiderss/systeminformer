@@ -58,18 +58,18 @@
 #define RUNAS_MODE_ADMIN 1
 #define RUNAS_MODE_LIMITED 2
 
-PHAPPAPI HWND PhMainWndHandle;
+PHAPPAPI HWND PhMainWndHandle = NULL;
 BOOLEAN PhMainWndExiting = FALSE;
 BOOLEAN PhMainWndEarlyExit = FALSE;
-HMENU PhMainWndMenuHandle;
+HMENU PhMainWndMenuHandle = NULL;
 
 PH_PROVIDER_REGISTRATION PhMwpProcessProviderRegistration;
 PH_PROVIDER_REGISTRATION PhMwpServiceProviderRegistration;
 PH_PROVIDER_REGISTRATION PhMwpNetworkProviderRegistration;
 BOOLEAN PhMwpUpdateAutomatically = TRUE;
 
-ULONG PhMwpNotifyIconNotifyMask;
-ULONG PhMwpLastNotificationType;
+ULONG PhMwpNotifyIconNotifyMask = 0;
+ULONG PhMwpLastNotificationType = 0;
 PH_MWP_NOTIFICATION_DETAILS PhMwpLastNotificationDetails;
 
 static BOOLEAN NeedsMaximize = FALSE;
@@ -80,16 +80,16 @@ static PH_CALLBACK_DECLARE(LayoutPaddingCallback);
 static RECT LayoutPadding = { 0, 0, 0, 0 };
 static BOOLEAN LayoutPaddingValid = TRUE;
 
-static HWND TabControlHandle;
-static PPH_LIST PageList;
-static PPH_MAIN_TAB_PAGE CurrentPage;
-static INT OldTabIndex;
+static HWND TabControlHandle = NULL;
+static PPH_LIST PageList = NULL;
+static PPH_MAIN_TAB_PAGE CurrentPage = NULL;
+static INT OldTabIndex = 0;
 
 static HMENU SubMenuHandles[5];
 static PPH_EMENU SubMenuObjects[5];
 
-static ULONG SelectedRunAsMode;
-static ULONG SelectedUserSessionId;
+static ULONG SelectedRunAsMode = ULONG_MAX;
+static ULONG SelectedUserSessionId = ULONG_MAX;
 
 BOOLEAN PhMainWndInitialization(
     _In_ INT ShowCommand
@@ -2059,7 +2059,6 @@ ULONG_PTR PhMwpOnUserMessage(
                     PhTreeWindowFont = newFont;
 
                     PhMwpNotifyAllPages(MainTabPageFontChanged, newFont, NULL);
-                    PhWindowNotifyFontUpdateEvent(newFont);
                 }
             }
         }

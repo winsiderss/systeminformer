@@ -56,6 +56,7 @@ VOID PhShowHandleStatisticsDialog(
     BOOLEAN filterNeeded;
     ULONG i;
 
+    memset(&context, 0, sizeof(HANDLE_STATISTICS_CONTEXT));
     context.ProcessId = ProcessId;
 
     if (!NT_SUCCESS(status = PhOpenProcess(
