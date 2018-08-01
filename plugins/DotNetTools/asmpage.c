@@ -24,7 +24,6 @@
 #include "dn.h"
 #include "clretw.h"
 #include <evntcons.h>
-#include <uxtheme.h>
 
 #define DNATNC_STRUCTURE 0
 #define DNATNC_ID 1
@@ -1249,7 +1248,7 @@ INT_PTR CALLBACK DotNetAsmPageDlgProc(
                 InvalidateRect(tnHandle, NULL, FALSE);
             }
 
-            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
         }
         break;
     case WM_DESTROY:
