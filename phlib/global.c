@@ -22,14 +22,9 @@
  */
 
 #include <ph.h>
-
 #include <filestream.h>
 #include <phintrnl.h>
 #include <symprv.h>
-
-BOOLEAN PhInitializeSystem(
-    _In_ ULONG Flags
-    );
 
 VOID PhInitializeSystemInformation(
     VOID
@@ -39,19 +34,19 @@ VOID PhInitializeWindowsVersion(
     VOID
     );
 
-PHLIBAPI PVOID PhInstanceHandle;
-PHLIBAPI PWSTR PhApplicationName;
+PHLIBAPI PVOID PhInstanceHandle = NULL;
+PHLIBAPI PWSTR PhApplicationName = NULL;
 PHLIBAPI ULONG PhGlobalDpi = 96;
-PHLIBAPI PVOID PhHeapHandle;
-PHLIBAPI RTL_OSVERSIONINFOEXW PhOsVersion;
-PHLIBAPI SYSTEM_BASIC_INFORMATION PhSystemBasicInformation;
-PHLIBAPI ULONG WindowsVersion;
+PHLIBAPI PVOID PhHeapHandle = NULL;
+PHLIBAPI RTL_OSVERSIONINFOEXW PhOsVersion = { 0 };
+PHLIBAPI SYSTEM_BASIC_INFORMATION PhSystemBasicInformation = { 0 };
+PHLIBAPI ULONG WindowsVersion = WINDOWS_NEW;
 
-PHLIBAPI ACCESS_MASK ProcessQueryAccess;
-PHLIBAPI ACCESS_MASK ProcessAllAccess;
-PHLIBAPI ACCESS_MASK ThreadQueryAccess;
-PHLIBAPI ACCESS_MASK ThreadSetAccess;
-PHLIBAPI ACCESS_MASK ThreadAllAccess;
+PHLIBAPI ACCESS_MASK ProcessQueryAccess = PROCESS_QUERY_LIMITED_INFORMATION;
+PHLIBAPI ACCESS_MASK ProcessAllAccess = STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0x1fff;
+PHLIBAPI ACCESS_MASK ThreadQueryAccess = THREAD_QUERY_LIMITED_INFORMATION;
+PHLIBAPI ACCESS_MASK ThreadSetAccess = THREAD_SET_LIMITED_INFORMATION;
+PHLIBAPI ACCESS_MASK ThreadAllAccess = STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0xfff;
 
 // Internal data
 #ifdef DEBUG
@@ -101,20 +96,18 @@ NTSTATUS PhInitializePhLibEx(
 
     if (!NT_SUCCESS(PhRefInitialization()))
         return STATUS_UNSUCCESSFUL;
-    if (!PhBaseInitialization())
-        return STATUS_UNSUCCESSFUL;
 
-    if (!PhInitializeSystem(Flags))
+    if (!PhBaseInitialization())
         return STATUS_UNSUCCESSFUL;
 
     return STATUS_SUCCESS;
 }
 
-#ifndef _WIN64
 BOOLEAN PhIsExecutingInWow64(
     VOID
     )
 {
+#ifndef _WIN64
     static BOOLEAN valid = FALSE;
     static BOOLEAN isWow64;
 
@@ -126,29 +119,12 @@ BOOLEAN PhIsExecutingInWow64(
     }
 
     return isWow64;
-}
-#endif
-
-static BOOLEAN PhInitializeSystem(
-    _In_ ULONG Flags
-    )
-{
-    if (Flags & PHLIB_INIT_MODULE_FILE_STREAM)
-    {
-        if (!PhFileStreamInitialization())
-            return FALSE;
-    }
-
-    if (Flags & PHLIB_INIT_MODULE_SYMBOL_PROVIDER)
-    {
-        if (!PhSymbolProviderInitialization())
-            return FALSE;
-    }
-
+#else
     return TRUE;
+#endif
 }
 
-static VOID PhInitializeSystemInformation(
+VOID PhInitializeSystemInformation(
     VOID
     )
 {
@@ -160,7 +136,7 @@ static VOID PhInitializeSystemInformation(
         );
 }
 
-static VOID PhInitializeWindowsVersion(
+VOID PhInitializeWindowsVersion(
     VOID
     )
 {
@@ -229,10 +205,4 @@ static VOID PhInitializeWindowsVersion(
     {
         WindowsVersion = WINDOWS_NEW;
     }
-
-    ProcessQueryAccess = PROCESS_QUERY_LIMITED_INFORMATION;
-    ProcessAllAccess = STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0x1fff;
-    ThreadQueryAccess = THREAD_QUERY_LIMITED_INFORMATION;
-    ThreadSetAccess = THREAD_SET_LIMITED_INFORMATION;
-    ThreadAllAccess = STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0xfff;
 }

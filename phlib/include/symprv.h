@@ -65,13 +65,6 @@ typedef struct _PH_SYMBOL_EVENT_DATA
 } PH_SYMBOL_EVENT_DATA, *PPH_SYMBOL_EVENT_DATA;
 
 PHLIBAPI
-BOOLEAN
-NTAPI
-PhSymbolProviderInitialization(
-    VOID
-    );
-
-PHLIBAPI
 PPH_SYMBOL_PROVIDER
 NTAPI
 PhCreateSymbolProvider(
