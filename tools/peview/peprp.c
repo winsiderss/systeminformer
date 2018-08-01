@@ -797,14 +797,9 @@ BOOLEAN PvpLoadDbgHelp(
     UNICODE_STRING symbolPathUs;
     WCHAR buffer[512];
 
+    // Load symbol path from _NT_SYMBOL_PATH if configured by the user.
     RtlInitEmptyUnicodeString(&symbolPathUs, buffer, sizeof(buffer));
-    
-    if (!PhSymbolProviderInitialization())
-        return FALSE;
 
-    symbolProvider = PhCreateSymbolProvider(NULL);
-
-    // Load symbol path from _NT_SYMBOL_PATH if configured by the user.    
     if (NT_SUCCESS(RtlQueryEnvironmentVariable_U(NULL, &symbolPathVarName, &symbolPathUs)))
     {
         symbolSearchPath = PhCreateStringFromUnicodeString(&symbolPathUs);
@@ -815,6 +810,7 @@ BOOLEAN PvpLoadDbgHelp(
         symbolSearchPath = PhCreateString(L"SRV*C:\\Symbols*http://msdl.microsoft.com/download/symbols");
     }
 
+    symbolProvider = PhCreateSymbolProvider(NULL);
     PhSetSearchPathSymbolProvider(symbolProvider, symbolSearchPath->Buffer);
     PhDereferenceObject(symbolSearchPath);
 
