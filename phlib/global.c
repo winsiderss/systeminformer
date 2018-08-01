@@ -120,7 +120,7 @@ BOOLEAN PhIsExecutingInWow64(
 
     return isWow64;
 #else
-    return TRUE;
+    return FALSE;
 #endif
 }
 
