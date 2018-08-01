@@ -404,6 +404,31 @@ ULONG PhGetWindowTextEx(
     }
 }
 
+ULONG PhGetWindowTextToBuffer(
+    _In_ HWND hwnd,
+    _In_ ULONG Flags,
+    _Out_writes_bytes_opt_(BufferLength) PWSTR Buffer,
+    _In_opt_ ULONG BufferLength,
+    _Out_opt_ PULONG ReturnLength
+    )
+{
+    ULONG status = ERROR_SUCCESS;
+    ULONG length;
+
+    if (Flags & PH_GET_WINDOW_TEXT_INTERNAL)
+        length = InternalGetWindowText(hwnd, Buffer, BufferLength);
+    else
+        length = GetWindowText(hwnd, Buffer, BufferLength);
+
+    if (length == 0)
+        status = GetLastError();
+
+    if (ReturnLength)
+        *ReturnLength = length;
+
+    return status;
+}
+
 VOID PhAddComboBoxStrings(
     _In_ HWND hWnd,
     _In_ PWSTR *Strings,
