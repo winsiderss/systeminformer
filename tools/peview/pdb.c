@@ -112,19 +112,19 @@ typedef BOOL (WINAPI *_SymSetContext)(
     _In_opt_ PIMAGEHLP_CONTEXT Context
     );
 
-_SymInitializeW SymInitializeW_I = NULL;
-_SymCleanup SymCleanup_I = NULL;
-_SymEnumSymbolsW SymEnumSymbolsW_I = NULL;
-_SymEnumTypesW SymEnumTypesW_I = NULL;
-_SymSetSearchPathW SymSetSearchPathW_I = NULL;
-_SymGetOptions SymGetOptions_I = NULL;
-_SymSetOptions SymSetOptions_I = NULL;
-_SymLoadModuleExW SymLoadModuleExW_I = NULL;
-_SymGetModuleInfoW64 SymGetModuleInfoW64_I = NULL;
-_SymGetTypeFromNameW SymGetTypeFromNameW_I = NULL;
-_SymGetTypeInfo SymGetTypeInfo_I = NULL;
-_SymSetContext SymSetContext_I = NULL;
-_SymSearchW SymSearchW_I = NULL;
+static _SymInitializeW SymInitializeW_I = NULL;
+static _SymCleanup SymCleanup_I = NULL;
+static _SymEnumSymbolsW SymEnumSymbolsW_I = NULL;
+static _SymEnumTypesW SymEnumTypesW_I = NULL;
+static _SymSetSearchPathW SymSetSearchPathW_I = NULL;
+static _SymGetOptions SymGetOptions_I = NULL;
+static _SymSetOptions SymSetOptions_I = NULL;
+static _SymLoadModuleExW SymLoadModuleExW_I = NULL;
+static _SymGetModuleInfoW64 SymGetModuleInfoW64_I = NULL;
+static _SymGetTypeFromNameW SymGetTypeFromNameW_I = NULL;
+static _SymGetTypeInfo SymGetTypeInfo_I = NULL;
+static _SymSetContext SymSetContext_I = NULL;
+static _SymSearchW SymSearchW_I = NULL;
 
 ULONG SearchResultsAddIndex = 0;
 PPH_LIST SearchResults = NULL;
