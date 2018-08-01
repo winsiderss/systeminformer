@@ -55,14 +55,11 @@ PHLIBAPI extern ACCESS_MASK ThreadAllAccess;
 
 #define PHLIB_INIT_MODULE_RESERVED1 0x1
 #define PHLIB_INIT_MODULE_RESERVED2 0x2
-/** Needed to use work queues. */
 #define PHLIB_INIT_MODULE_RESERVED3 0x4
 #define PHLIB_INIT_MODULE_RESERVED4 0x8
-/** Needed to use file streams. */
-#define PHLIB_INIT_MODULE_FILE_STREAM 0x10
-/** Needed to use symbol providers. */
-#define PHLIB_INIT_MODULE_SYMBOL_PROVIDER 0x20
-#define PHLIB_INIT_MODULE_RESERVED5 0x40
+#define PHLIB_INIT_MODULE_RESERVED5 0x10
+#define PHLIB_INIT_MODULE_RESERVED6 0x20
+#define PHLIB_INIT_MODULE_RESERVED7 0x40
 
 PHLIBAPI
 NTSTATUS
@@ -82,23 +79,12 @@ PhInitializePhLibEx(
     _In_opt_ SIZE_T HeapCommitSize
     );
 
-#ifdef _WIN64
-FORCEINLINE
-BOOLEAN
-PhIsExecutingInWow64(
-    VOID
-    )
-{
-    return FALSE;
-}
-#else
 PHLIBAPI
 BOOLEAN
 NTAPI
 PhIsExecutingInWow64(
     VOID
     );
-#endif
 
 #ifdef __cplusplus
 }

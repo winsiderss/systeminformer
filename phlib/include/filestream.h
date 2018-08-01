@@ -55,12 +55,6 @@ typedef struct _PH_FILE_STREAM
 
 extern PPH_OBJECT_TYPE PhFileStreamType;
 
-BOOLEAN
-NTAPI
-PhFileStreamInitialization(
-    VOID
-    );
-
 PHLIBAPI
 NTSTATUS
 NTAPI

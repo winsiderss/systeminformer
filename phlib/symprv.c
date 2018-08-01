@@ -61,48 +61,46 @@ LONG NTAPI PhpSymbolModuleCompareFunction(
     _In_ PPH_AVL_LINKS Links2
     );
 
-PPH_OBJECT_TYPE PhSymbolProviderType;
+PPH_OBJECT_TYPE PhSymbolProviderType = NULL;
 static PH_INITONCE PhSymInitOnce = PH_INITONCE_INIT;
 static HANDLE PhNextFakeHandle = (HANDLE)0;
 static PH_FAST_LOCK PhSymMutex = PH_FAST_LOCK_INIT;
 #define PH_LOCK_SYMBOLS() PhAcquireFastLockExclusive(&PhSymMutex)
 #define PH_UNLOCK_SYMBOLS() PhReleaseFastLockExclusive(&PhSymMutex)
 
-_SymInitializeW SymInitializeW_I;
-_SymCleanup SymCleanup_I;
-_SymEnumSymbolsW SymEnumSymbolsW_I;
-_SymFromAddrW SymFromAddrW_I;
-_SymFromNameW SymFromNameW_I;
-_SymGetLineFromAddrW64 SymGetLineFromAddrW64_I;
-_SymLoadModuleExW SymLoadModuleExW_I;
-_SymGetOptions SymGetOptions_I;
-_SymSetOptions SymSetOptions_I;
-_SymGetSearchPathW SymGetSearchPathW_I;
-_SymSetSearchPathW SymSetSearchPathW_I;
-_SymUnloadModule64 SymUnloadModule64_I;
-_SymFunctionTableAccess64 SymFunctionTableAccess64_I;
-_SymGetModuleBase64 SymGetModuleBase64_I;
-_SymRegisterCallbackW64 SymRegisterCallbackW64_I;
-_StackWalk64 StackWalk64_I;
-_MiniDumpWriteDump MiniDumpWriteDump_I;
-_SymbolServerGetOptions SymbolServerGetOptions;
-_SymbolServerSetOptions SymbolServerSetOptions;
-_UnDecorateSymbolNameW UnDecorateSymbolNameW_I;
-
-BOOLEAN PhSymbolProviderInitialization(
-    VOID
-    )
-{
-    PhSymbolProviderType = PhCreateObjectType(L"SymbolProvider", 0, PhpSymbolProviderDeleteProcedure);
-
-    return TRUE;
-}
+_SymInitializeW SymInitializeW_I = NULL;
+_SymCleanup SymCleanup_I = NULL;
+_SymEnumSymbolsW SymEnumSymbolsW_I = NULL;
+_SymFromAddrW SymFromAddrW_I = NULL;
+_SymFromNameW SymFromNameW_I = NULL;
+_SymGetLineFromAddrW64 SymGetLineFromAddrW64_I = NULL;
+_SymLoadModuleExW SymLoadModuleExW_I = NULL;
+_SymGetOptions SymGetOptions_I = NULL;
+_SymSetOptions SymSetOptions_I = NULL;
+_SymGetSearchPathW SymGetSearchPathW_I = NULL;
+_SymSetSearchPathW SymSetSearchPathW_I = NULL;
+_SymUnloadModule64 SymUnloadModule64_I = NULL;
+_SymFunctionTableAccess64 SymFunctionTableAccess64_I = NULL;
+_SymGetModuleBase64 SymGetModuleBase64_I = NULL;
+_SymRegisterCallbackW64 SymRegisterCallbackW64_I = NULL;
+_StackWalk64 StackWalk64_I = NULL;
+_MiniDumpWriteDump MiniDumpWriteDump_I = NULL;
+_SymbolServerGetOptions SymbolServerGetOptions = NULL;
+_SymbolServerSetOptions SymbolServerSetOptions = NULL;
+_UnDecorateSymbolNameW UnDecorateSymbolNameW_I = NULL;
 
 PPH_SYMBOL_PROVIDER PhCreateSymbolProvider(
     _In_opt_ HANDLE ProcessId
     )
 {
+    static PH_INITONCE symbolProviderInitOnce = PH_INITONCE_INIT;
     PPH_SYMBOL_PROVIDER symbolProvider;
+
+    if (PhBeginInitOnce(&symbolProviderInitOnce))
+    {
+        PhSymbolProviderType = PhCreateObjectType(L"SymbolProvider", 0, PhpSymbolProviderDeleteProcedure);
+        PhEndInitOnce(&symbolProviderInitOnce);
+    }
 
     symbolProvider = PhCreateObject(sizeof(PH_SYMBOL_PROVIDER), PhSymbolProviderType);
     memset(symbolProvider, 0, sizeof(PH_SYMBOL_PROVIDER));

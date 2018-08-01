@@ -24,21 +24,7 @@
 #include <filestream.h>
 #include <filestreamp.h>
 
-PPH_OBJECT_TYPE PhFileStreamType;
-
-BOOLEAN PhFileStreamInitialization(
-    VOID
-    )
-{
-    PH_OBJECT_TYPE_PARAMETERS parameters;
-
-    parameters.FreeListSize = sizeof(PH_FILE_STREAM);
-    parameters.FreeListCount = 16;
-
-    PhFileStreamType = PhCreateObjectTypeEx(L"FileStream", PH_OBJECT_TYPE_USE_FREE_LIST, PhpFileStreamDeleteProcedure, &parameters);
-
-    return TRUE;
-}
+PPH_OBJECT_TYPE PhFileStreamType = NULL;
 
 NTSTATUS PhCreateFileStream(
     _Out_ PPH_FILE_STREAM *FileStream,
@@ -110,7 +96,25 @@ NTSTATUS PhCreateFileStream2(
     _In_ ULONG BufferLength
     )
 {
+    static PH_INITONCE fileStreamInitOnce = PH_INITONCE_INIT;
     PPH_FILE_STREAM fileStream;
+
+    if (PhBeginInitOnce(&fileStreamInitOnce))
+    {
+        PH_OBJECT_TYPE_PARAMETERS parameters;
+
+        parameters.FreeListSize = sizeof(PH_FILE_STREAM);
+        parameters.FreeListCount = 16;
+
+        PhFileStreamType = PhCreateObjectTypeEx(
+            L"FileStream",
+            PH_OBJECT_TYPE_USE_FREE_LIST,
+            PhpFileStreamDeleteProcedure,
+            &parameters
+            );
+
+        PhEndInitOnce(&fileStreamInitOnce);
+    }
 
     fileStream = PhCreateObject(sizeof(PH_FILE_STREAM), PhFileStreamType);
     fileStream->FileHandle = FileHandle;
