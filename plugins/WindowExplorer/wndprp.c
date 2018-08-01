@@ -1053,6 +1053,9 @@ static VOID WepRefreshWindowClassInfo(
 {
     WCHAR className[256];
     PH_STRING_BUILDER stringBuilder;
+    HANDLE processHandle;
+    PPH_STRING fileName = NULL;
+    PVOID instanceHandle;
     ULONG i;
 
     if (!GetClassName(Context->WindowHandle, className, sizeof(className) / sizeof(WCHAR)))
@@ -1066,9 +1069,39 @@ static VOID WepRefreshWindowClassInfo(
         GetClassInfoEx(NULL, className, &Context->ClassInfo);
     }
 
+    instanceHandle = (PVOID)GetClassLongPtr(Context->WindowHandle, GCLP_HMODULE);
+    // TODO: GetWindowLongPtr(Context->WindowHandle, GCLP_WNDPROC);
+
+    if (NT_SUCCESS(PhOpenProcess(&processHandle, *(PULONG)WeGetProcedureAddress("ProcessQueryAccess"), Context->ClientId.UniqueProcess)))
+    {
+        if (NT_SUCCESS(PhGetProcessMappedFileName(processHandle, instanceHandle, &fileName)))
+        {
+            PhMoveReference(&fileName, PhResolveDevicePrefix(fileName));
+            PhMoveReference(&fileName, PhGetBaseName(fileName));
+        }
+
+        NtClose(processHandle);
+    }
+
+    if (fileName)
+    {
+        PhSetDialogItemText(hwndDlg, IDC_INSTANCEHANDLE, PhaFormatString(
+            L"0x%Ix (%s)",
+            instanceHandle,
+            PhGetStringOrEmpty(fileName)
+            )->Buffer);
+        PhDereferenceObject(fileName);
+    }
+    else
+    {
+        PhSetDialogItemText(hwndDlg, IDC_INSTANCEHANDLE, PhaFormatString(
+            L"0x%Ix",
+            instanceHandle
+            )->Buffer);
+    }
+
     PhSetDialogItemText(hwndDlg, IDC_NAME, className);
     PhSetDialogItemText(hwndDlg, IDC_ATOM, PhaFormatString(L"0x%x", GetClassWord(Context->WindowHandle, GCW_ATOM))->Buffer);
-    PhSetDialogItemText(hwndDlg, IDC_INSTANCEHANDLE, PhaFormatString(L"0x%Ix", GetClassLongPtr(Context->WindowHandle, GCLP_HMODULE))->Buffer);
     PhSetDialogItemText(hwndDlg, IDC_ICONHANDLE, PhaFormatString(L"0x%Ix", Context->ClassInfo.hIcon)->Buffer);
     PhSetDialogItemText(hwndDlg, IDC_SMALLICONHANDLE, PhaFormatString(L"0x%Ix", Context->ClassInfo.hIconSm)->Buffer);
     PhSetDialogItemText(hwndDlg, IDC_MENUNAME, PhaFormatString(L"0x%Ix", Context->ClassInfo.lpszMenuName)->Buffer);
