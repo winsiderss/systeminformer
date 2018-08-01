@@ -95,11 +95,11 @@ VOID NTAPI PhpHashtableDeleteProcedure(
 
 // Types
 
-PPH_OBJECT_TYPE PhStringType;
-PPH_OBJECT_TYPE PhBytesType;
-PPH_OBJECT_TYPE PhListType;
-PPH_OBJECT_TYPE PhPointerListType;
-PPH_OBJECT_TYPE PhHashtableType;
+PPH_OBJECT_TYPE PhStringType = NULL;
+PPH_OBJECT_TYPE PhBytesType = NULL;
+PPH_OBJECT_TYPE PhListType = NULL;
+PPH_OBJECT_TYPE PhPointerListType = NULL;
+PPH_OBJECT_TYPE PhHashtableType = NULL;
 
 // Misc.
 
