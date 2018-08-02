@@ -35,6 +35,24 @@ namespace CustomBuildTool
     [System.Security.SuppressUnmanagedCodeSecurity]
     public static class Win32
     {
+        public static int CreateProcess(string FileName, string args)
+        {
+            using (Process process = Process.Start(new ProcessStartInfo
+            {
+                UseShellExecute = false,
+                FileName = FileName,
+                CreateNoWindow = true
+            }))
+            {
+                process.StartInfo.Arguments = args;
+                process.Start();
+
+                process.WaitForExit();
+
+                return process.ExitCode;
+            }
+        }
+
         public static string ShellExecute(string FileName, string args)
         {
             string output = string.Empty;
@@ -49,10 +67,10 @@ namespace CustomBuildTool
                 process.StartInfo.Arguments = args;
                 process.Start();
 
+                process.WaitForExit();
+
                 output = process.StandardOutput.ReadToEnd();
                 output = output.Replace("\n\n", "\r\n").Trim();
-
-                process.WaitForExit();
             }
 
             return output;
@@ -473,6 +491,33 @@ namespace CustomBuildTool
 
         [DataMember(Name = "message")] public string Message { get; set; }
         [DataMember(Name = "changelog")] public string Changelog { get; set; }
+    }
+
+    public static class Extextensions
+    {
+        private const long OneKb = 1024;
+        private const long OneMb = OneKb * 1024;
+        private const long OneGb = OneMb * 1024;
+        private const long OneTb = OneGb * 1024;
+
+        public static string ToPrettySize(this int value, int decimalPlaces = 0)
+        {
+            return ((long)value).ToPrettySize(decimalPlaces);
+        }
+
+        public static string ToPrettySize(this long value, int decimalPlaces = 0)
+        {
+            double asTb = Math.Round((double)value / OneTb, decimalPlaces);
+            double asGb = Math.Round((double)value / OneGb, decimalPlaces);
+            double asMb = Math.Round((double)value / OneMb, decimalPlaces);
+            double asKb = Math.Round((double)value / OneKb, decimalPlaces);
+            string chosenValue = asTb > 1 ? string.Format("{0}Tb", asTb)
+                : asGb > 1 ? string.Format("{0}Gb", asGb)
+                : asMb > 1 ? string.Format("{0}Mb", asMb)
+                : asKb > 1 ? string.Format("{0}Kb", asKb)
+                : string.Format("{0}B", Math.Round((double)value, decimalPlaces));
+            return chosenValue;
+        }
     }
 
     [Flags]

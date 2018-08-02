@@ -316,6 +316,11 @@ namespace CustomBuildTool
             }
         }
 
+        public static string BuildTimeStamp()
+        {
+            return "[" + (DateTime.Now - TimeStart).ToString("mm\\:ss") + "] ";
+        }
+
         public static void ShowBuildStats()
         {
             TimeSpan buildTime = DateTime.Now - TimeStart;
@@ -545,6 +550,7 @@ namespace CustomBuildTool
 
         public static bool BuildPublicHeaderFiles()
         {
+            Program.PrintColorMessage(BuildTimeStamp(), ConsoleColor.DarkGray, false);
             Program.PrintColorMessage("Building public SDK headers...", ConsoleColor.Cyan);
 
             try
@@ -712,6 +718,7 @@ namespace CustomBuildTool
 
         public static bool BuildWebSetupExe()
         {
+            Program.PrintColorMessage(BuildTimeStamp(), ConsoleColor.DarkGray, false);
             Program.PrintColorMessage("Building build-websetup.exe...", ConsoleColor.Cyan);
 
             if (!BuildSolution("tools\\CustomSetupTool\\CustomSetupTool.sln", BuildFlags.Build32bit))
@@ -749,7 +756,8 @@ namespace CustomBuildTool
 
         public static bool BuildSetupExe()
         {
-            Program.PrintColorMessage("Building build-setup.exe...", ConsoleColor.Cyan);
+            Program.PrintColorMessage(BuildTimeStamp(), ConsoleColor.DarkGray, false);
+            Program.PrintColorMessage("Building build-setup.exe... ", ConsoleColor.Cyan, false);
 
             if (!BuildSolution("tools\\CustomSetupTool\\CustomSetupTool.sln", BuildFlags.Build32bit | BuildFlags.BuildApi))
                 return false;
@@ -763,6 +771,8 @@ namespace CustomBuildTool
                     "tools\\CustomSetupTool\\CustomSetupTool\\bin\\Release32\\CustomSetupTool.exe", 
                     BuildOutputFolder + "\\processhacker-build-setup.exe"
                     );
+
+                Program.PrintColorMessage(new FileInfo(BuildOutputFolder + "\\processhacker-build-setup.exe").Length.ToPrettySize(), ConsoleColor.Green);
             }
             catch (Exception ex)
             {
@@ -775,11 +785,14 @@ namespace CustomBuildTool
 
         public static bool BuildSdkZip()
         {
-            Program.PrintColorMessage("Building build-sdk.zip...", ConsoleColor.Cyan);
+            Program.PrintColorMessage(BuildTimeStamp(), ConsoleColor.DarkGray, false);
+            Program.PrintColorMessage("Building build-sdk.zip... ", ConsoleColor.Cyan, false);
 
             try
             {
                 Zip.CreateCompressedSdkFromFolder("sdk", BuildOutputFolder + "\\processhacker-build-sdk.zip");
+
+                Program.PrintColorMessage(new FileInfo(BuildOutputFolder + "\\processhacker-build-sdk.zip").Length.ToPrettySize(), ConsoleColor.Green);
             }
             catch (Exception ex)
             {
@@ -792,7 +805,8 @@ namespace CustomBuildTool
 
         public static bool BuildBinZip()
         {
-            Program.PrintColorMessage("Building build-bin.zip...", ConsoleColor.Cyan);
+            Program.PrintColorMessage(BuildTimeStamp(), ConsoleColor.DarkGray, false);
+            Program.PrintColorMessage("Building build-bin.zip... ", ConsoleColor.Cyan, false);
 
             try
             {
@@ -835,6 +849,8 @@ namespace CustomBuildTool
 
                 Directory.Move("bin\\x32", "bin\\Release32");
                 Directory.Move("bin\\x64", "bin\\Release64");
+
+                Program.PrintColorMessage(new FileInfo(BuildOutputFolder + "\\processhacker-build-bin.zip").Length.ToPrettySize(), ConsoleColor.Green);
             }
             catch (Exception ex)
             {
@@ -847,7 +863,8 @@ namespace CustomBuildTool
 
         public static bool BuildSrcZip()
         {
-            Program.PrintColorMessage("Building build-src.zip...", ConsoleColor.Cyan);
+            Program.PrintColorMessage(BuildTimeStamp(), ConsoleColor.DarkGray, false);
+            Program.PrintColorMessage("Building build-src.zip... ", ConsoleColor.Cyan, false);
 
             if (!File.Exists(GitExePath))
             {
@@ -874,23 +891,28 @@ namespace CustomBuildTool
                     Program.PrintColorMessage("[ERROR] " + output, ConsoleColor.Red);
                     return false;
                 }
+
+                Program.PrintColorMessage(new FileInfo(BuildOutputFolder + "\\processhacker-build-src.zip").Length.ToPrettySize(), ConsoleColor.Green);
             }
             catch (Exception ex)
             {
                 Program.PrintColorMessage("[ERROR] " + ex, ConsoleColor.Red);
                 return false;
             }
-            
+
             return true;
         }
 
         public static bool BuildPdbZip()
         {
-            Program.PrintColorMessage("Building build-pdb.zip...", ConsoleColor.Cyan);
+            Program.PrintColorMessage(BuildTimeStamp(), ConsoleColor.DarkGray, false);
+            Program.PrintColorMessage("Building build-pdb.zip... ", ConsoleColor.Cyan, false);
 
             try
             {
                 Zip.CreateCompressedPdbFromFolder(".\\", BuildOutputFolder + "\\processhacker-build-pdb.zip");
+
+                Program.PrintColorMessage(new FileInfo(BuildOutputFolder + "\\processhacker-build-pdb.zip").Length.ToPrettySize(), ConsoleColor.Green);
             }
             catch (Exception ex)
             {
@@ -903,6 +925,7 @@ namespace CustomBuildTool
 
         public static bool BuildChecksumsFile()
         {
+            Program.PrintColorMessage(BuildTimeStamp(), ConsoleColor.DarkGray, false);
             Program.PrintColorMessage("Building build-checksums.txt...", ConsoleColor.Cyan);
 
             try
@@ -944,6 +967,7 @@ namespace CustomBuildTool
 
         public static bool BuildUpdateSignature()
         {
+            Program.PrintColorMessage(BuildTimeStamp(), ConsoleColor.DarkGray, false);
             Program.PrintColorMessage("Building release signatures...", ConsoleColor.Cyan);
 
             if (!File.Exists(CustomSignToolPath))
@@ -1016,6 +1040,7 @@ namespace CustomBuildTool
             if ((Flags & BuildFlags.Build32bit) == BuildFlags.Build32bit)
             {
                 StringBuilder compilerOptions = new StringBuilder();
+                Program.PrintColorMessage(BuildTimeStamp(), ConsoleColor.DarkGray, false, Flags);
                 Program.PrintColorMessage("Building " + Path.GetFileNameWithoutExtension(Solution) + " (", ConsoleColor.Cyan, false, Flags);
                 Program.PrintColorMessage("x32", ConsoleColor.Green, false, Flags);
                 Program.PrintColorMessage(")...", ConsoleColor.Cyan, true, Flags);
@@ -1046,6 +1071,7 @@ namespace CustomBuildTool
             if ((Flags & BuildFlags.Build64bit) == BuildFlags.Build64bit)
             {
                 StringBuilder compilerOptions = new StringBuilder();
+                Program.PrintColorMessage(BuildTimeStamp(), ConsoleColor.DarkGray, false, Flags);
                 Program.PrintColorMessage("Building " + Path.GetFileNameWithoutExtension(Solution) + " (", ConsoleColor.Cyan, false, Flags);
                 Program.PrintColorMessage("x64", ConsoleColor.Green, false, Flags);
                 Program.PrintColorMessage(")...", ConsoleColor.Cyan, true, Flags);
