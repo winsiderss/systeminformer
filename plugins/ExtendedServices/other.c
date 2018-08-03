@@ -37,7 +37,7 @@ typedef struct _SERVICE_OTHER_CONTEXT
     };
     HWND PrivilegesLv;
     PPH_LIST PrivilegeList;
-
+    PH_LAYOUT_MANAGER LayoutManager;
     ULONG OriginalLaunchProtected;
 } SERVICE_OTHER_CONTEXT, *PSERVICE_OTHER_CONTEXT;
 
@@ -381,11 +381,18 @@ INT_PTR CALLBACK EspServiceOtherDlgProc(
 
             context->Ready = TRUE;
 
+            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_PRIVILEGES), NULL, PH_ANCHOR_ALL);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ADD), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_REMOVE), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
+
             PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
         }
         break;
     case WM_DESTROY:
         {
+            PhDeleteLayoutManager(&context->LayoutManager);
+
             if (context->PrivilegeList)
             {
                 PhDereferenceObjects(context->PrivilegeList->Items, context->PrivilegeList->Count);
@@ -726,6 +733,11 @@ Done:
                 }
                 break;
             }
+        }
+        break;
+    case WM_SIZE:
+        {
+            PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
     }
