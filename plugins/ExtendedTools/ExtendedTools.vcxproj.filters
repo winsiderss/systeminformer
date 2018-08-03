@@ -90,6 +90,9 @@
     <ClCompile Include="gpudetails.c">
       <Filter>Source Files\Video</Filter>
     </ClCompile>
+    <ClCompile Include="svcext.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">

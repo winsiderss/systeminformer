@@ -33,6 +33,7 @@ PH_CALLBACK_REGISTRATION PluginUnloadCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginTreeNewMessageCallbackRegistration;
+PH_CALLBACK_REGISTRATION PluginPhSvcRequestCallbackRegistration;
 PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessPropertiesInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION HandlePropertiesInitializingCallbackRegistration;
@@ -130,6 +131,14 @@ VOID NTAPI TreeNewMessageCallback(
         EtProcessTreeNewMessage(Parameter);
     else if (message->TreeNewHandle == NetworkTreeNewHandle)
         EtNetworkTreeNewMessage(Parameter);
+}
+
+VOID NTAPI PhSvcRequestCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    DispatchPhSvcRequest(Parameter);
 }
 
 VOID NTAPI MainWindowShowingCallback(
@@ -540,6 +549,12 @@ LOGICAL DllMain(
                 TreeNewMessageCallback,
                 NULL,
                 &PluginTreeNewMessageCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetPluginCallback(PluginInstance, PluginCallbackPhSvcRequest),
+                PhSvcRequestCallback,
+                NULL,
+                &PluginPhSvcRequestCallbackRegistration
                 );
 
             PhRegisterCallback(

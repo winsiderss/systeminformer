@@ -37,6 +37,35 @@ extern HWND NetworkTreeNewHandle;
 #define ET_WM_SHOWDIALOG (WM_APP + 1)
 #define ET_WM_UPDATE (WM_APP + 2)
 
+// phsvc extensions
+
+typedef enum _ET_PHSVC_API_NUMBER
+{
+    EtPhSvcGetProcessUnloadedDllsApiNumber = 1
+} ET_PHSVC_API_NUMBER;
+
+typedef union _ET_PHSVC_API_GETWOW64THREADAPPDOMAIN
+{
+    struct
+    {
+        ULONG ProcessId;
+        PH_RELATIVE_STRINGREF Data; // out
+    } i;
+    struct
+    {
+        ULONG DataLength;
+    } o;
+} ET_PHSVC_API_GETWOW64THREADAPPDOMAIN, *PET_PHSVC_API_GETWOW64THREADAPPDOMAIN;
+
+VOID DispatchPhSvcRequest(
+    _In_ PVOID Parameter
+    );
+
+NTSTATUS CallGetProcessUnloadedDlls(
+    _In_ HANDLE ProcessId,
+    _Out_ PPH_STRING *UnloadedDlls
+    );
+
 // Process icon
 
 typedef struct _ET_PROCESS_ICON
