@@ -22,7 +22,7 @@
 
 #include <ph.h>
 #include <emenu.h>
-
+#include <settings.h>
 #include <guisup.h>
 
 static const PH_FLAG_MAPPING EMenuTypeMappings[] =
@@ -459,6 +459,13 @@ HMENU PhEMenuToHMenu(
         menuInfo.cbSize = sizeof(MENUINFO);
         menuInfo.fMask = MIM_STYLE;
         menuInfo.dwStyle = MNS_CHECKORBMP;
+
+        if (PhGetIntegerSetting(L"EnableThemeSupport"))
+        {
+            menuInfo.fMask |= MIM_BACKGROUND;
+            menuInfo.hbrBack = PhMenuBackgroundBrush;
+        }
+
         SetMenuInfo(menuHandle, &menuInfo);
     }
 
@@ -520,7 +527,9 @@ VOID PhEMenuToHMenu2(
 
         if (item->Bitmap)
         {
-            menuItemInfo.fMask |= MIIM_BITMAP;
+            if (!PhGetIntegerSetting(L"EnableThemeSupport"))
+                menuItemInfo.fMask |= MIIM_BITMAP; // HACK
+
             menuItemInfo.hbmpItem = item->Bitmap;
         }
 
@@ -568,6 +577,21 @@ VOID PhEMenuToHMenu2(
         {
             menuItemInfo.fMask |= MIIM_SUBMENU;
             menuItemInfo.hSubMenu = PhEMenuToHMenu(item, Flags, Data);
+        }
+
+        // Theme
+
+        if (PhGetIntegerSetting(L"EnableThemeSupport")) // HACK
+        {
+            switch (PhGetIntegerSetting(L"GraphColorMode"))
+            {
+            case 0: // New colors
+                menuItemInfo.fType |= MFT_OWNERDRAW;
+                break;
+            case 1: // Old colors
+                menuItemInfo.fType |= MFT_OWNERDRAW;
+                break;
+            }
         }
 
         InsertMenuItem(MenuHandle, MAXINT, TRUE, &menuItemInfo);
