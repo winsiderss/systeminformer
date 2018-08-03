@@ -293,6 +293,14 @@ LRESULT CALLBACK PhTnpWndProc(
                 return result;
         }
         break;
+    case WM_MEASUREITEM:
+        if (PhThemeWindowMeasureItem((LPMEASUREITEMSTRUCT)lParam))
+            return TRUE;
+        break;
+    case WM_DRAWITEM:
+        if (PhThemeWindowDrawItem((LPDRAWITEMSTRUCT)lParam))
+            return TRUE;
+        break;
     }
 
     if (uMsg >= TNM_FIRST && uMsg <= TNM_LAST)
@@ -5063,7 +5071,7 @@ VOID PhTnpPaint(
 
     // Paint the rows.
 
-    SelectObject(hdc, Context->Font);
+    SelectFont(hdc, Context->Font);
     SetBkMode(hdc, TRANSPARENT);
 
     for (i = firstRowToUpdate; i <= lastRowToUpdate; i++)
@@ -5140,12 +5148,10 @@ VOID PhTnpPaint(
                         1,
                         1,
                         blendFunction
-                    );
+                        );
 
-                    //drewWithAlpha = TRUE;
-
-                    SelectObject(tempDc, oldBitmap);
-                    DeleteObject(bitmap);
+                    SelectBitmap(tempDc, oldBitmap);
+                    DeleteBitmap(bitmap);
                 }
 
                 DeleteDC(tempDc);

@@ -901,6 +901,7 @@ PhWindowNotifyTopMostEvent(
 
 PHLIBAPI extern HFONT PhApplicationFont; // phapppub
 PHLIBAPI extern HFONT PhTreeWindowFont; // phapppub
+PHLIBAPI extern HBRUSH PhMenuBackgroundBrush;
 
 PHLIBAPI
 VOID
@@ -915,6 +916,20 @@ VOID
 NTAPI
 PhReInitializeWindowTheme(
     _In_ HWND WindowHandle
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhThemeWindowDrawItem(
+    _In_ PDRAWITEMSTRUCT DrawInfo
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhThemeWindowMeasureItem(
+    _In_ PMEASUREITEMSTRUCT DrawInfo
     );
 
 PHLIBAPI
