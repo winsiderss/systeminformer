@@ -333,7 +333,7 @@ NTSTATUS GeoIPUpdateThread(
                 goto CleanupExit;
             }
 
-            downloadedBytes += (DWORD)isb.Information;
+            downloadedBytes += (ULONG)isb.Information;
 
             // Check the number of bytes written are the same we downloaded.
             if (bytesDownloaded != isb.Information)
@@ -375,11 +375,7 @@ NTSTATUS GeoIPUpdateThread(
             dbpath = PhGetExpandStringSetting(SETTING_NAME_DB_LOCATION);
 
             if (PhIsNullOrEmptyString(dbpath))
-            {
-                PH_STRINGREF defaultDbPathSr = PH_STRINGREF_INIT(L"%APPDATA%\\Process Hacker\\GeoLite2-Country.mmdb");
-
-                PhMoveReference(&dbpath, PhExpandEnvironmentStrings(&defaultDbPathSr));
-            }
+                goto CleanupExit;
 
             if (RtlDoesFileExists_U(PhGetString(dbpath)))
             {
@@ -388,11 +384,10 @@ NTSTATUS GeoIPUpdateThread(
             }
             else
             {
-                // Create the directory if it does not exist.
-
                 PPH_STRING fullPath;
                 ULONG indexOfFileName;
 
+                // Create the directory if it does not exist.
                 if (fullPath = PhGetFullPath(dbpath->Buffer, &indexOfFileName))
                 {
                     if (indexOfFileName != -1)

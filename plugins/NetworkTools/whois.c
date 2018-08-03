@@ -29,16 +29,34 @@ VOID RichEditSetText(
     _In_ PWSTR Text
     )
 {
+    if (!!PhGetIntegerSetting(L"EnableThemeSupport"))
+    {
+        CHARFORMAT cf;
+
+        memset(&cf, 0, sizeof(CHARFORMAT));
+        cf.cbSize = sizeof(CHARFORMAT);
+        cf.dwMask = CFM_COLOR;
+
+        switch (PhGetIntegerSetting(L"GraphColorMode"))
+        {
+        case 0: // New colors
+            cf.crTextColor = RGB(0x0, 0x0, 0x0);
+            break;
+        case 1: // Old colors
+            cf.crTextColor = RGB(0xff, 0xff, 0xff);
+            break;
+        }
+
+        SendMessage(RichEditHandle, EM_SETCHARFORMAT, SCF_DEFAULT, (LPARAM)&cf);
+    }
+
+    SetFocus(RichEditHandle);
     SendMessage(RichEditHandle, WM_SETREDRAW, FALSE, 0);
-
-    // Update the Richedit text.
+    SendMessage(RichEditHandle, EM_SETSEL, -2, -1);
     SendMessage(RichEditHandle, EM_REPLACESEL, FALSE, (LPARAM)Text);
-    // NOTE: EM_LINESCROLL and WM_VSCROLL won't update the scroll position 
-    //  if the Richedit control doesn't have keyboard focus (e.g. SetFocus).
-    SendMessage(RichEditHandle, WM_VSCROLL, SB_TOP, 0);
-
-    // Redraw the Richedit with the new text.
+    SendMessage(RichEditHandle, WM_VSCROLL, SB_TOP, 0); // requires SetFocus()
     SendMessage(RichEditHandle, WM_SETREDRAW, TRUE, 0);
+
     InvalidateRect(RichEditHandle, NULL, FALSE);
 }
 
