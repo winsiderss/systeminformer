@@ -417,6 +417,8 @@ namespace CustomBuildTool
                     Win32.CopyIfNewer("bin\\Debug32\\ProcessHacker.pdb", "bin\\Debug64\\x86\\ProcessHacker.pdb");
                     Win32.CopyIfNewer("bin\\Debug32\\plugins\\DotNetTools.dll", "bin\\Debug64\\x86\\plugins\\DotNetTools.dll");
                     Win32.CopyIfNewer("bin\\Debug32\\plugins\\DotNetTools.pdb", "bin\\Debug64\\x86\\plugins\\DotNetTools.pdb");
+                    Win32.CopyIfNewer("bin\\Debug32\\plugins\\ExtendedTools.dll", "bin\\Debug64\\x86\\plugins\\ExtendedTools.dll");
+                    Win32.CopyIfNewer("bin\\Debug32\\plugins\\ExtendedTools.pdb", "bin\\Debug64\\x86\\plugins\\ExtendedTools.pdb");      
                 }
                 else
                 {
@@ -440,6 +442,14 @@ namespace CustomBuildTool
                     Win32.CopyIfNewer(
                         "bin\\Release32\\plugins\\DotNetTools.pdb", 
                         "bin\\Release64\\x86\\plugins\\DotNetTools.pdb"
+                        );
+                    Win32.CopyIfNewer(
+                        "bin\\Release32\\plugins\\ExtendedTools.dll",
+                        "bin\\Release64\\x86\\plugins\\ExtendedTools.dll"
+                        );
+                    Win32.CopyIfNewer(
+                        "bin\\Release32\\plugins\\ExtendedTools.pdb",
+                        "bin\\Release64\\x86\\plugins\\ExtendedTools.pdb"
                         );
                 }
             }
