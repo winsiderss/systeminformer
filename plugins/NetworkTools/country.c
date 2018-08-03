@@ -38,10 +38,7 @@ VOID LoadGeoLiteDb(
     dbpath = PhGetExpandStringSetting(SETTING_NAME_DB_LOCATION);
 
     if (PhIsNullOrEmptyString(dbpath))
-    {
-        PH_STRINGREF defaultDbPathSr = PH_STRINGREF_INIT(L"%APPDATA%\\Process Hacker\\GeoLite2-Country.mmdb");
-        PhMoveReference(&dbpath, PhExpandEnvironmentStrings(&defaultDbPathSr));
-    }
+        return;
 
     if (MMDB_open(PhGetString(dbpath), MMDB_MODE_MMAP, &GeoDb) == MMDB_SUCCESS)
     {
