@@ -1622,6 +1622,13 @@ VOID PhMwpOnInitMenuPopup(
     menuInfo.cbSize = sizeof(MENUINFO);
     menuInfo.fMask = MIM_STYLE;
     menuInfo.dwStyle = MNS_CHECKORBMP;
+
+    if (PhEnableThemeSupport)
+    {
+        menuInfo.fMask |= MIM_BACKGROUND;
+        menuInfo.hbrBack = PhMenuBackgroundBrush;
+    }
+
     SetMenuInfo(Menu, &menuInfo);
 
     menu = PhCreateEMenu();
