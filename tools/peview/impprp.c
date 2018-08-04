@@ -80,10 +80,10 @@ VOID PvpProcessImports(
                     }
                     else
                     {
+                        PLDR_DATA_TABLE_ENTRY impportEntry = NULL;
                         PPH_STRING exportName = NULL;
                         PPH_STRING baseDirectory;
                         PVOID importModule;
-                        PLDR_DATA_TABLE_ENTRY impportEntry;
                         PVOID moduleExportAddress;
 
                         if (baseDirectory = PhGetBaseDirectory(PvFileName))
@@ -97,7 +97,13 @@ VOID PvpProcessImports(
 
                         if (impportEntry && moduleExportAddress)
                         {
-                            if (PhLoadModuleSymbolProvider(PvSymbolProvider, impportEntry->FullDllName.Buffer, (ULONG64)importModule, impportEntry->SizeOfImage))
+                            // TODO: Lookup name from export address table.
+                            if (PhLoadModuleSymbolProvider(
+                                PvSymbolProvider,
+                                impportEntry->FullDllName.Buffer,
+                                (ULONG64)importModule,
+                                impportEntry->SizeOfImage
+                                ))
                             {
                                 exportName = PhGetSymbolFromAddress(
                                     PvSymbolProvider,
