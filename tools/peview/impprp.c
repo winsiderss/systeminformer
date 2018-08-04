@@ -3,7 +3,7 @@
  *   PE viewer
  *
  * Copyright (C) 2010-2011 wj32
- * Copyright (C) 2017 dmex
+ * Copyright (C) 2017-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -80,9 +80,61 @@ VOID PvpProcessImports(
                     }
                     else
                     {
-                        name = PhFormatString(L"(Ordinal %u)", importEntry.Ordinal);
-                        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, name->Buffer);
-                        PhDereferenceObject(name);
+                        PPH_STRING exportName = NULL;
+                        PPH_STRING baseDirectory;
+                        PVOID importModule;
+                        PLDR_DATA_TABLE_ENTRY impportEntry;
+                        PVOID moduleExportAddress;
+
+                        if (baseDirectory = PhGetBaseDirectory(PvFileName))
+                            AddDllDirectory(baseDirectory->Buffer);
+
+                        if (importModule = LoadLibrary(name->Buffer))
+                        {
+                            impportEntry = PhFindLoaderEntry(importModule, NULL, NULL);
+                            moduleExportAddress = PhGetDllBaseProcedureAddress(importModule, NULL, importEntry.Ordinal);
+                        }
+
+                        if (impportEntry && moduleExportAddress)
+                        {
+                            if (PhLoadModuleSymbolProvider(PvSymbolProvider, impportEntry->FullDllName.Buffer, (ULONG64)importModule, impportEntry->SizeOfImage))
+                            {
+                                exportName = PhGetSymbolFromAddress(
+                                    PvSymbolProvider,
+                                    (ULONG64)moduleExportAddress,
+                                    NULL,
+                                    NULL,
+                                    NULL,
+                                    NULL
+                                    );
+                            }
+                        }
+
+                        if (exportName)
+                        {
+                            PH_STRINGREF firstPart;
+                            PH_STRINGREF secondPart;
+
+                            if (PhSplitStringRefAtLastChar(&exportName->sr, L'!', &firstPart, &secondPart))
+                                name = PhFormatString(L"(Ordinal %u) [%s]", importEntry.Ordinal, secondPart.Buffer);
+                            else
+                                name = PhFormatString(L"(Ordinal %u) [%s]", importEntry.Ordinal, exportName->Buffer);
+                           
+                            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, name->Buffer);
+                            PhDereferenceObject(name);
+                            PhDereferenceObject(exportName);
+                        }
+                        else
+                        {
+                            name = PhFormatString(L"(Ordinal %u)", importEntry.Ordinal);
+                            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, name->Buffer);
+                            PhDereferenceObject(name);
+                        }
+
+                        if (baseDirectory)
+                        {
+                            PhDereferenceObject(baseDirectory);
+                        }
                     }
                 }
             }
