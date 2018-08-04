@@ -91,10 +91,16 @@ NTSTATUS EtpRefreshUnloadedDlls(
             return STATUS_FAIL_CHECK;
 
         if (!NT_SUCCESS(status = CallGetProcessUnloadedDlls(Context->ProcessItem->ProcessId, &eventTraceString)))
+        {
+            PhUiDisconnectFromPhSvc();
             return status;
+        }
 
         if (!PhHexStringToBuffer(&eventTraceString->sr, (PUCHAR)eventTrace))
+        {
+            PhUiDisconnectFromPhSvc();
             return STATUS_FAIL_CHECK;
+        }
 
         ExtendedListView_SetRedraw(Context->ListViewHandle, FALSE);
         ListView_DeleteAllItems(Context->ListViewHandle);
@@ -146,6 +152,7 @@ NTSTATUS EtpRefreshUnloadedDlls(
         ExtendedListView_SetRedraw(Context->ListViewHandle, TRUE);
 
         PhDereferenceObject(eventTraceString);
+        PhUiDisconnectFromPhSvc();
     }
     else
     {
