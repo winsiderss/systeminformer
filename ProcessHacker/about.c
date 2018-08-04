@@ -173,7 +173,8 @@ FORCEINLINE ULONG PhpGetObjectTypeObjectCount(
 {
     PH_OBJECT_TYPE_INFORMATION info;
 
-    PhGetObjectTypeInformation(ObjectType, &info);
+    memset(&info, 0, sizeof(PH_OBJECT_TYPE_INFORMATION));
+    if (ObjectType) PhGetObjectTypeInformation(ObjectType, &info);
 
     return info.NumberOfObjects;
 }
