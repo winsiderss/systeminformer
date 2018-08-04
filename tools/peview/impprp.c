@@ -83,16 +83,18 @@ VOID PvpProcessImports(
                         PLDR_DATA_TABLE_ENTRY moduleLdrEntry = NULL;
                         PVOID moduleExportAddress = NULL;
                         PVOID importModuleDllBase = NULL;
-                        PPH_STRING ordinalName = NULL;
+                        PPH_STRING exportOrdinalName = NULL;
+                        PPH_STRING exportSymbolName = NULL;
                         PPH_STRING baseDirectory;
 
                         if (baseDirectory = PhGetBaseDirectory(PvFileName))
                             AddDllDirectory(baseDirectory->Buffer);
 
-                        if (importModuleDllBase = LoadLibrary(name->Buffer))
+                        if (importModuleDllBase = LoadLibraryA(importDll.Name))
                         {
                             moduleLdrEntry = PhFindLoaderEntry(importModuleDllBase, NULL, NULL);
                             moduleExportAddress = PhGetDllBaseProcedureAddress(importModuleDllBase, NULL, importEntry.Ordinal);
+                            exportOrdinalName = PhGetExportNameFromOrdinal(importModuleDllBase, importEntry.Ordinal);
                         }
 
                         if (moduleLdrEntry && moduleExportAddress)
@@ -105,7 +107,7 @@ VOID PvpProcessImports(
                                 moduleLdrEntry->SizeOfImage
                                 ))
                             {
-                                ordinalName = PhGetSymbolFromAddress(
+                                exportSymbolName = PhGetSymbolFromAddress(
                                     PvSymbolProvider,
                                     (ULONG64)moduleExportAddress,
                                     NULL,
@@ -116,31 +118,33 @@ VOID PvpProcessImports(
                             }
                         }
 
-                        if (ordinalName)
+                        if (exportSymbolName)
                         {
                             PH_STRINGREF firstPart;
                             PH_STRINGREF secondPart;
 
-                            if (PhSplitStringRefAtLastChar(&ordinalName->sr, L'!', &firstPart, &secondPart))
+                            if (PhSplitStringRefAtLastChar(&exportSymbolName->sr, L'!', &firstPart, &secondPart))
                                 name = PhFormatString(L"(Ordinal %u) [%s]", importEntry.Ordinal, secondPart.Buffer);
                             else
-                                name = PhFormatString(L"(Ordinal %u) [%s]", importEntry.Ordinal, ordinalName->Buffer);
+                                name = PhFormatString(L"(Ordinal %u) [%s]", importEntry.Ordinal, exportSymbolName->Buffer);
                            
                             PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, name->Buffer);
                             PhDereferenceObject(name);
-                            PhDereferenceObject(ordinalName);
+                            PhDereferenceObject(exportSymbolName);
                         }
                         else
                         {
-                            name = PhFormatString(L"(Ordinal %u)", importEntry.Ordinal);
+                            if (exportOrdinalName)
+                                name = PhFormatString(L"(Ordinal %u) [%s]", importEntry.Ordinal, exportOrdinalName->Buffer);
+                            else
+                                name = PhFormatString(L"(Ordinal %u)", importEntry.Ordinal);
+
                             PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, name->Buffer);
                             PhDereferenceObject(name);
                         }
 
-                        if (baseDirectory)
-                        {
-                            PhDereferenceObject(baseDirectory);
-                        }
+                        PhClearReference(&exportOrdinalName);
+                        PhClearReference(&baseDirectory);
                     }
                 }
             }
