@@ -5898,3 +5898,44 @@ CleanupExit:
 
     return status;
 }
+
+PPH_STRING PhGetExportNameFromOrdinal(
+    _In_ PVOID DllBase,
+    _In_opt_ USHORT ProcedureNumber
+    )
+{
+    PIMAGE_NT_HEADERS imageNtHeader;
+    PIMAGE_DATA_DIRECTORY dataDirectory;
+    PIMAGE_EXPORT_DIRECTORY exportDirectory;
+    PULONG exportNameTable;
+    PUSHORT exportOrdinalTable;
+
+    if (!NT_SUCCESS(PhGetLoaderEntryImageNtHeaders(DllBase, &imageNtHeader)))
+        return NULL;
+
+    if (!NT_SUCCESS(PhGetLoaderEntryImageDirectory(
+        DllBase,
+        imageNtHeader,
+        IMAGE_DIRECTORY_ENTRY_EXPORT,
+        &dataDirectory,
+        &exportDirectory,
+        NULL
+        )))
+        return NULL;
+
+    exportNameTable = PTR_ADD_OFFSET(DllBase, exportDirectory->AddressOfNames);
+    exportOrdinalTable = PTR_ADD_OFFSET(DllBase, exportDirectory->AddressOfNameOrdinals);
+
+    if (ProcedureNumber > exportDirectory->Base + exportDirectory->NumberOfFunctions)
+        return NULL;
+
+    for (ULONG i = 0; i < exportDirectory->NumberOfNames; i++)
+    {
+        if ((exportOrdinalTable[i] + exportDirectory->Base) == ProcedureNumber)
+        {
+            return PhZeroExtendToUtf16(PTR_ADD_OFFSET(DllBase, exportNameTable[i]));
+        }
+    }
+
+    return NULL;
+}

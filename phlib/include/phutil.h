@@ -1244,6 +1244,14 @@ PhLoadPluginImage(
     _Out_opt_ PVOID *BaseAddress
     );
 
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetExportNameFromOrdinal(
+    _In_ PVOID DllBase,
+    _In_opt_ USHORT ProcedureNumber
+    );
+
 #ifdef __cplusplus
 }
 #endif
