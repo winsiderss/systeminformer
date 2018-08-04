@@ -80,32 +80,32 @@ VOID PvpProcessImports(
                     }
                     else
                     {
-                        PLDR_DATA_TABLE_ENTRY impportEntry = NULL;
-                        PPH_STRING exportName = NULL;
+                        PLDR_DATA_TABLE_ENTRY moduleLdrEntry = NULL;
+                        PVOID moduleExportAddress = NULL;
+                        PVOID importModuleDllBase = NULL;
+                        PPH_STRING ordinalName = NULL;
                         PPH_STRING baseDirectory;
-                        PVOID importModule;
-                        PVOID moduleExportAddress;
 
                         if (baseDirectory = PhGetBaseDirectory(PvFileName))
                             AddDllDirectory(baseDirectory->Buffer);
 
-                        if (importModule = LoadLibrary(name->Buffer))
+                        if (importModuleDllBase = LoadLibrary(name->Buffer))
                         {
-                            impportEntry = PhFindLoaderEntry(importModule, NULL, NULL);
-                            moduleExportAddress = PhGetDllBaseProcedureAddress(importModule, NULL, importEntry.Ordinal);
+                            moduleLdrEntry = PhFindLoaderEntry(importModuleDllBase, NULL, NULL);
+                            moduleExportAddress = PhGetDllBaseProcedureAddress(importModuleDllBase, NULL, importEntry.Ordinal);
                         }
 
-                        if (impportEntry && moduleExportAddress)
+                        if (moduleLdrEntry && moduleExportAddress)
                         {
                             // TODO: Lookup name from export address table.
                             if (PhLoadModuleSymbolProvider(
                                 PvSymbolProvider,
-                                impportEntry->FullDllName.Buffer,
-                                (ULONG64)importModule,
-                                impportEntry->SizeOfImage
+                                moduleLdrEntry->FullDllName.Buffer,
+                                (ULONG64)importModuleDllBase,
+                                moduleLdrEntry->SizeOfImage
                                 ))
                             {
-                                exportName = PhGetSymbolFromAddress(
+                                ordinalName = PhGetSymbolFromAddress(
                                     PvSymbolProvider,
                                     (ULONG64)moduleExportAddress,
                                     NULL,
@@ -116,19 +116,19 @@ VOID PvpProcessImports(
                             }
                         }
 
-                        if (exportName)
+                        if (ordinalName)
                         {
                             PH_STRINGREF firstPart;
                             PH_STRINGREF secondPart;
 
-                            if (PhSplitStringRefAtLastChar(&exportName->sr, L'!', &firstPart, &secondPart))
+                            if (PhSplitStringRefAtLastChar(&ordinalName->sr, L'!', &firstPart, &secondPart))
                                 name = PhFormatString(L"(Ordinal %u) [%s]", importEntry.Ordinal, secondPart.Buffer);
                             else
-                                name = PhFormatString(L"(Ordinal %u) [%s]", importEntry.Ordinal, exportName->Buffer);
+                                name = PhFormatString(L"(Ordinal %u) [%s]", importEntry.Ordinal, ordinalName->Buffer);
                            
                             PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, name->Buffer);
                             PhDereferenceObject(name);
-                            PhDereferenceObject(exportName);
+                            PhDereferenceObject(ordinalName);
                         }
                         else
                         {
