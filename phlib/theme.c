@@ -315,9 +315,7 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
     }
     else if (PhEqualStringZ(windowClassName, L"Button", FALSE))
     {
-        ULONG buttonWindowStyle = (ULONG)GetWindowLongPtr(WindowHandle, GWL_STYLE);
-
-        if ((buttonWindowStyle & BS_GROUPBOX) == BS_GROUPBOX)
+        if (PhGetWindowStyle(WindowHandle) & BS_GROUPBOX)
         {
             PhInitializeThemeWindowGroupBox(WindowHandle);
         }
@@ -336,7 +334,18 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
     }
     else if (PhEqualStringZ(windowClassName, L"ScrollBar", FALSE))
     {
-        NOTHING;
+        if (WindowsVersion > WINDOWS_10_RS4)
+        {
+            switch (PhpThemeColorMode)
+            {
+            case 0: // New colors
+                PhSetControlTheme(WindowHandle, L"");
+                break;
+            case 1: // Old colors
+                PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
+                break;
+            }
+        }
     }
     else if (PhEqualStringZ(windowClassName, L"SysHeader32", TRUE))
     {
@@ -367,7 +376,7 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
         case 1: // Old colors
             ListView_SetBkColor(WindowHandle, RGB(30, 30, 30));
             ListView_SetTextBkColor(WindowHandle, RGB(30, 30, 30));
-            ListView_SetTextColor(WindowHandle, RGB(0xff, 0xff, 0xff));
+            ListView_SetTextColor(WindowHandle, PhpThemeWindowTextColor);
             break;
         }
 
@@ -382,7 +391,7 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
         case 1: // Old colors
             TreeView_SetBkColor(WindowHandle, RGB(30, 30, 30));
             //TreeView_SetTextBkColor(WindowHandle, RGB(30, 30, 30));
-            TreeView_SetTextColor(WindowHandle, RGB(0xff, 0xff, 0xff));
+            TreeView_SetTextColor(WindowHandle, PhpThemeWindowTextColor);
             break;
         }
 
@@ -466,8 +475,23 @@ BOOLEAN CALLBACK PhpReInitializeThemeWindowEnumChildWindows(
         case 1: // Old colors
             ListView_SetBkColor(WindowHandle, RGB(30, 30, 30));
             ListView_SetTextBkColor(WindowHandle, RGB(30, 30, 30));
-            ListView_SetTextColor(WindowHandle, RGB(0xff, 0xff, 0xff));
+            ListView_SetTextColor(WindowHandle, PhpThemeWindowTextColor);
             break;
+        }
+    }
+    else if (PhEqualStringZ(windowClassName, L"ScrollBar", FALSE))
+    {
+        if (WindowsVersion > WINDOWS_10_RS4)
+        {
+            switch (PhpThemeColorMode)
+            {
+            case 0: // New colors
+                PhSetControlTheme(WindowHandle, L"");
+                break;
+            case 1: // Old colors
+                PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
+                break;
+            }
         }
     }
     else if (PhEqualStringZ(windowClassName, L"PhTreeNew", FALSE))
@@ -575,7 +599,7 @@ BOOLEAN PhThemeWindowDrawItem(
                     SetDCBrushColor(DrawInfo->hDC, PhpThemeWindowBackgroundColor);
                     break;
                 case 1: // Old colors
-                    SetTextColor(DrawInfo->hDC, RGB(0xff, 0xff, 0xff));
+                    SetTextColor(DrawInfo->hDC, PhpThemeWindowTextColor);
                     SetDCBrushColor(DrawInfo->hDC, RGB(128, 128, 128));
                     break;
                 }
@@ -624,9 +648,9 @@ BOOLEAN PhThemeWindowDrawItem(
                     oldTextColor = SetTextColor(DrawInfo->hDC, GetSysColor(COLOR_WINDOWTEXT));
                     break;
                 case 1: // Old colors
-                    oldTextColor = SetTextColor(DrawInfo->hDC, RGB(0xff, 0xff, 0xff));
+                    oldTextColor = SetTextColor(DrawInfo->hDC, PhpThemeWindowTextColor);
                     //FillRect(DrawInfo->hDC, &DrawInfo->rcItem, GetStockObject(DC_BRUSH));
-                    //SetTextColor(DrawInfo->hDC, RGB(0xff, 0xff, 0xff));
+                    //SetTextColor(DrawInfo->hDC, PhpThemeWindowTextColor);
                     break;
                 }
 
@@ -844,7 +868,6 @@ LRESULT CALLBACK PhpThemeWindowDrawButton(
                     SetDCBrushColor(DrawInfo->hdc, RGB(78, 78, 78));
                     break;
                 }
-
                 FillRect(DrawInfo->hdc, &DrawInfo->rc, GetStockObject(DC_BRUSH));
             }
             else if (isHighlighted)
@@ -860,7 +883,6 @@ LRESULT CALLBACK PhpThemeWindowDrawButton(
                     SetDCBrushColor(DrawInfo->hdc, RGB(65, 65, 65));
                     break;
                 }
-
                 FillRect(DrawInfo->hdc, &DrawInfo->rc, GetStockObject(DC_BRUSH));
             }
             else
@@ -876,11 +898,10 @@ LRESULT CALLBACK PhpThemeWindowDrawButton(
                     SetDCBrushColor(DrawInfo->hdc, RGB(42, 42, 42)); // WindowForegroundColor
                     break;
                 }
-
                 FillRect(DrawInfo->hdc, &DrawInfo->rc, GetStockObject(DC_BRUSH));
             }
 
-            if ((GetWindowLongPtr(DrawInfo->hdr.hwndFrom, GWL_STYLE) & BS_CHECKBOX) != 0)
+            if (PhGetWindowStyle(DrawInfo->hdr.hwndFrom) & BS_CHECKBOX)
             {
                 HFONT newFont = PhDuplicateFontWithNewHeight(PhApplicationFont, 22);
                 oldFont = SelectFont(DrawInfo->hdc, newFont);
@@ -929,10 +950,11 @@ LRESULT CALLBACK PhpThemeWindowDrawButton(
                 };
                 HICON buttonIcon;
 
+                SetDCBrushColor(DrawInfo->hdc, RGB(65, 65, 65));
+                FrameRect(DrawInfo->hdc, &DrawInfo->rc, GetStockObject(DC_BRUSH));
+
                 if (!(buttonIcon = Static_GetIcon(DrawInfo->hdr.hwndFrom, 0)))
-                {
                     buttonIcon = (HICON)SendMessage(DrawInfo->hdr.hwndFrom, BM_GETIMAGE, IMAGE_ICON, 0);
-                }
 
                 if (buttonIcon)
                 {
@@ -1000,7 +1022,7 @@ LRESULT CALLBACK PhThemeWindowDrawRebar(
                 SetTextColor(DrawInfo->hdc, RGB(0x0, 0x0, 0x0));
                 SetDCBrushColor(DrawInfo->hdc, GetSysColor(COLOR_3DFACE)); // RGB(0x0, 0x0, 0x0));
             case 1: // Old colors
-                SetTextColor(DrawInfo->hdc, RGB(0xff, 0xff, 0xff));
+                SetTextColor(DrawInfo->hdc, PhpThemeWindowTextColor);
                 SetDCBrushColor(DrawInfo->hdc, RGB(65, 65, 65));
                 break;
             }
@@ -1062,7 +1084,7 @@ LRESULT CALLBACK PhThemeWindowDrawToolbar(
 
             //if (isMouseDown)
             //{
-            //    SetTextColor(DrawInfo->nmcd.hdc, RGB(0xff, 0xff, 0xff));
+            //    SetTextColor(DrawInfo->nmcd.hdc, PhpThemeWindowTextColor);
             //    SetDCBrushColor(DrawInfo->nmcd.hdc, RGB(0xff, 0xff, 0xff));
             //    FillRect(DrawInfo->nmcd.hdc, &DrawInfo->nmcd.rc, GetStockObject(DC_BRUSH));
             //}
@@ -1109,7 +1131,7 @@ LRESULT CALLBACK PhThemeWindowDrawToolbar(
                     FillRect(DrawInfo->nmcd.hdc, &DrawInfo->nmcd.rc, GetStockObject(DC_BRUSH));
                     break;
                 case 1: // Old colors
-                    SetTextColor(DrawInfo->nmcd.hdc, RGB(0xff, 0xff, 0xff));
+                    SetTextColor(DrawInfo->nmcd.hdc, PhpThemeWindowTextColor);
                     SetDCBrushColor(DrawInfo->nmcd.hdc, RGB(128, 128, 128));
                     FillRect(DrawInfo->nmcd.hdc, &DrawInfo->nmcd.rc, GetStockObject(DC_BRUSH));
                     break;
@@ -1125,7 +1147,7 @@ LRESULT CALLBACK PhThemeWindowDrawToolbar(
                     FillRect(DrawInfo->nmcd.hdc, &DrawInfo->nmcd.rc, GetStockObject(DC_BRUSH));
                     break;
                 case 1: // Old colors
-                    SetTextColor(DrawInfo->nmcd.hdc, RGB(0xff, 0xff, 0xff));
+                    SetTextColor(DrawInfo->nmcd.hdc, PhpThemeWindowTextColor);
                     SetDCBrushColor(DrawInfo->nmcd.hdc, RGB(65, 65, 65)); //RGB(28, 28, 28)); // RGB(65, 65, 65));
                     FillRect(DrawInfo->nmcd.hdc, &DrawInfo->nmcd.rc, GetStockObject(DC_BRUSH));
                     break;
