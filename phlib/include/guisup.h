@@ -75,6 +75,13 @@ VOID PhSetControlTheme(
     _In_ PWSTR Theme
     );
 
+FORCEINLINE LONG_PTR PhGetWindowStyle(
+    _In_ HWND WindowHandle
+    )
+{
+    return GetWindowLongPtr(WindowHandle, GWL_STYLE);
+}
+
 FORCEINLINE VOID PhSetWindowStyle(
     _In_ HWND Handle,
     _In_ LONG_PTR Mask,
