@@ -5269,7 +5269,7 @@ BOOLEAN PhExtractIconEx(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static HRESULT (WINAPI *PrivateExtractIconExW)(
+    static UINT (WINAPI *PrivateExtractIconExW)(
         _In_ PCWSTR FileName,
         _In_ INT IconIndex,
         _Out_opt_ HICON* IconLarge,
@@ -5288,7 +5288,7 @@ BOOLEAN PhExtractIconEx(
     if (!PrivateExtractIconExW)
         return FALSE;
 
-    return SUCCEEDED(PrivateExtractIconExW(FileName, IconIndex, IconLarge, IconSmall, 1));
+    return PrivateExtractIconExW(FileName, IconIndex, IconLarge, IconSmall, 1) > 0; // -1 on error or the number of icons.
 }
 
 /**
