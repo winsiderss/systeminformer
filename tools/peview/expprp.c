@@ -70,10 +70,6 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
                         WCHAR number[PH_INT32_STR_LEN_1];
                         WCHAR pointer[PH_PTR_STR_LEN_1];
 
-                        // HACK: Skip exports with an empty RVA (TODO: make optional) -dmex
-                        if (!exportFunction.Function)
-                            continue;
-
                         PhPrintUInt64(number, i + 1);
                         lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, number, NULL);
 
