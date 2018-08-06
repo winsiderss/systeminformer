@@ -109,7 +109,7 @@ VOID PvpProcessImports(
                             {
                                 if (PhLoadModuleSymbolProvider(
                                     PvSymbolProvider,
-                                    PhGetUnicodeString(&moduleLdrEntry->FullDllName),
+                                    moduleLdrEntry->FullDllName.Buffer,
                                     (ULONG64)importModuleDllBase,
                                     moduleLdrEntry->SizeOfImage
                                     ))
