@@ -315,7 +315,7 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
     }
     else if (PhEqualStringZ(windowClassName, L"Button", FALSE))
     {
-        if (PhGetWindowStyle(WindowHandle) & BS_GROUPBOX)
+        if ((PhGetWindowStyle(WindowHandle) & BS_GROUPBOX) == BS_GROUPBOX)
         {
             PhInitializeThemeWindowGroupBox(WindowHandle);
         }
@@ -901,7 +901,7 @@ LRESULT CALLBACK PhpThemeWindowDrawButton(
                 FillRect(DrawInfo->hdc, &DrawInfo->rc, GetStockObject(DC_BRUSH));
             }
 
-            if (PhGetWindowStyle(DrawInfo->hdr.hwndFrom) & BS_CHECKBOX)
+            if ((PhGetWindowStyle(DrawInfo->hdr.hwndFrom) & BS_CHECKBOX) == BS_CHECKBOX)
             {
                 HFONT newFont = PhDuplicateFontWithNewHeight(PhApplicationFont, 22);
                 oldFont = SelectFont(DrawInfo->hdc, newFont);
