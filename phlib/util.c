@@ -5907,8 +5907,10 @@ PPH_STRING PhGetExportNameFromOrdinal(
     PIMAGE_NT_HEADERS imageNtHeader;
     PIMAGE_DATA_DIRECTORY dataDirectory;
     PIMAGE_EXPORT_DIRECTORY exportDirectory;
+    PULONG exportAddressTable;
     PULONG exportNameTable;
     PUSHORT exportOrdinalTable;
+    ULONG i;
 
     if (!NT_SUCCESS(PhGetLoaderEntryImageNtHeaders(DllBase, &imageNtHeader)))
         return NULL;
@@ -5923,17 +5925,28 @@ PPH_STRING PhGetExportNameFromOrdinal(
         )))
         return NULL;
 
+    exportAddressTable = PTR_ADD_OFFSET(DllBase, exportDirectory->AddressOfFunctions);
     exportNameTable = PTR_ADD_OFFSET(DllBase, exportDirectory->AddressOfNames);
     exportOrdinalTable = PTR_ADD_OFFSET(DllBase, exportDirectory->AddressOfNameOrdinals);
 
-    if (ProcedureNumber > exportDirectory->Base + exportDirectory->NumberOfFunctions)
-        return NULL;
-
-    for (ULONG i = 0; i < exportDirectory->NumberOfNames; i++)
+    for (i = 0; i < exportDirectory->NumberOfNames; i++)
     {
         if ((exportOrdinalTable[i] + exportDirectory->Base) == ProcedureNumber)
         {
-            return PhZeroExtendToUtf16(PTR_ADD_OFFSET(DllBase, exportNameTable[i]));
+            PVOID baseAddress = PTR_ADD_OFFSET(DllBase, exportAddressTable[exportOrdinalTable[i]]);
+
+            if (
+                ((ULONG_PTR)baseAddress >= (ULONG_PTR)exportDirectory) &&
+                ((ULONG_PTR)baseAddress < (ULONG_PTR)PTR_ADD_OFFSET(exportDirectory, dataDirectory->Size))
+                )
+            {
+                // This is a forwarder RVA.
+                return PhZeroExtendToUtf16((PSTR)baseAddress);
+            }
+            else
+            {
+                return PhZeroExtendToUtf16(PTR_ADD_OFFSET(DllBase, exportNameTable[i]));
+            }
         }
     }
 
