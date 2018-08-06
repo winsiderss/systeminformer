@@ -99,7 +99,6 @@ VOID PvpProcessImports(
 
                         if (moduleLdrEntry && moduleExportAddress)
                         {
-                            // TODO: Lookup name from export address table.
                             if (PhLoadModuleSymbolProvider(
                                 PvSymbolProvider,
                                 moduleLdrEntry->FullDllName.Buffer,
