@@ -8026,14 +8026,14 @@ RtlConvertDeviceFamilyInfoToString(
     _Out_writes_bytes_(*DeviceFormBufferSize) PWSTR DeviceForm
     );
 
-#endif
-
 NTSYSAPI
 OS_DEPLOYEMENT_STATE_VALUES
 NTAPI
 RtlOsDeploymentState(
     _Reserved_ _In_ ULONG Flags
     );
+
+#endif
 
 #if (PHNT_VERSION >= PHNT_VISTA)
 
