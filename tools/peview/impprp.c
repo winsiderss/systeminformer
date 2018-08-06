@@ -97,51 +97,56 @@ VOID PvpProcessImports(
                             exportOrdinalName = PhGetExportNameFromOrdinal(importModuleDllBase, importEntry.Ordinal);
                         }
 
-                        if (moduleLdrEntry && moduleExportAddress)
+                        if (exportOrdinalName)
                         {
-                            if (PhLoadModuleSymbolProvider(
-                                PvSymbolProvider,
-                                moduleLdrEntry->FullDllName.Buffer,
-                                (ULONG64)importModuleDllBase,
-                                moduleLdrEntry->SizeOfImage
-                                ))
-                            {
-                                exportSymbolName = PhGetSymbolFromAddress(
-                                    PvSymbolProvider,
-                                    (ULONG64)moduleExportAddress,
-                                    NULL,
-                                    NULL,
-                                    NULL,
-                                    NULL
-                                    );
-                            }
-                        }
-
-                        if (exportSymbolName)
-                        {
-                            PH_STRINGREF firstPart;
-                            PH_STRINGREF secondPart;
-
-                            if (PhSplitStringRefAtLastChar(&exportSymbolName->sr, L'!', &firstPart, &secondPart))
-                                name = PhFormatString(L"(Ordinal %u) [%s]", importEntry.Ordinal, secondPart.Buffer);
-                            else
-                                name = PhFormatString(L"(Ordinal %u) [%s]", importEntry.Ordinal, exportSymbolName->Buffer);
-                           
+                            name = PhFormatString(L"(Ordinal %u) [%s]", importEntry.Ordinal, exportOrdinalName->Buffer);
                             PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, name->Buffer);
                             PhDereferenceObject(name);
-                            PhDereferenceObject(exportSymbolName);
                         }
                         else
                         {
-                            if (exportOrdinalName)
-                                name = PhFormatString(L"(Ordinal %u) [%s]", importEntry.Ordinal, exportOrdinalName->Buffer);
-                            else
-                                name = PhFormatString(L"(Ordinal %u)", importEntry.Ordinal);
+                            if (moduleLdrEntry && moduleExportAddress)
+                            {
+                                if (PhLoadModuleSymbolProvider(
+                                    PvSymbolProvider,
+                                    PhGetUnicodeString(&moduleLdrEntry->FullDllName),
+                                    (ULONG64)importModuleDllBase,
+                                    moduleLdrEntry->SizeOfImage
+                                    ))
+                                {
+                                    exportSymbolName = PhGetSymbolFromAddress(
+                                        PvSymbolProvider,
+                                        (ULONG64)moduleExportAddress,
+                                        NULL,
+                                        NULL,
+                                        NULL,
+                                        NULL
+                                        );
+                                }
+                            }
 
-                            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, name->Buffer);
-                            PhDereferenceObject(name);
+                            if (exportSymbolName)
+                            {
+                                PH_STRINGREF firstPart;
+                                PH_STRINGREF secondPart;
+
+                                if (PhSplitStringRefAtLastChar(&exportSymbolName->sr, L'!', &firstPart, &secondPart))
+                                    name = PhFormatString(L"(Ordinal %u) [%s]", importEntry.Ordinal, secondPart.Buffer);
+                                else
+                                    name = PhFormatString(L"(Ordinal %u) [%s]", importEntry.Ordinal, exportSymbolName->Buffer);
+
+                                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, name->Buffer);
+                                PhDereferenceObject(name);
+                            }
+                            else
+                            {
+                                name = PhFormatString(L"(Ordinal %u)", importEntry.Ordinal);
+                                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, name->Buffer);
+                                PhDereferenceObject(name);
+                            }
                         }
 
+                        PhClearReference(&exportSymbolName);
                         PhClearReference(&exportOrdinalName);
                         PhClearReference(&baseDirectory);
                     }
