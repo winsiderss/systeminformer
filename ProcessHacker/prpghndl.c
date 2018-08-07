@@ -323,16 +323,14 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
     _In_ LPARAM lParam
     )
 {
-    LPPROPSHEETPAGE propSheetPage;
     PPH_PROCESS_PROPPAGECONTEXT propPageContext;
     PPH_PROCESS_ITEM processItem;
     PPH_HANDLES_CONTEXT handlesContext;
     HWND tnHandle;
 
-    if (PhpPropPageDlgProcHeader(hwndDlg, uMsg, lParam,
-        &propSheetPage, &propPageContext, &processItem))
+    if (PhPropPageDlgProcHeader(hwndDlg, uMsg, lParam, NULL, &propPageContext, &processItem))
     {
-        handlesContext = (PPH_HANDLES_CONTEXT)propPageContext->Context;
+        handlesContext = propPageContext->Context;
 
         if (handlesContext)
             tnHandle = handlesContext->ListContext.TreeNewHandle;
@@ -346,8 +344,8 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
     {
     case WM_INITDIALOG:
         {
-            handlesContext = propPageContext->Context =
-                PhAllocate(PhEmGetObjectSize(EmHandlesContextType, sizeof(PH_HANDLES_CONTEXT)));
+            handlesContext = propPageContext->Context = PhAllocate(PhEmGetObjectSize(EmHandlesContextType, sizeof(PH_HANDLES_CONTEXT)));
+            memset(handlesContext, 0, sizeof(PH_HANDLES_CONTEXT));
 
             handlesContext->Provider = PhCreateHandleProvider(
                 processItem->ProcessId
@@ -382,13 +380,14 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                 handlesContext,
                 &handlesContext->UpdatedEventRegistration
                 );
-            handlesContext->WindowHandle = hwndDlg;
 
+            handlesContext->WindowHandle = hwndDlg;
             handlesContext->SearchboxHandle = GetDlgItem(hwndDlg, IDC_HANDLESEARCH);
+            tnHandle = GetDlgItem(hwndDlg, IDC_LIST);
+
             PhCreateSearchControl(hwndDlg, handlesContext->SearchboxHandle, L"Search Handles (Ctrl+K)");
 
             // Initialize the list.
-            tnHandle = GetDlgItem(hwndDlg, IDC_LIST);
             BringWindowToTop(tnHandle);
             PhInitializeHandleList(hwndDlg, tnHandle, &handlesContext->ListContext);
             TreeNew_SetEmptyText(tnHandle, &PhpLoadingText, 0);
@@ -459,23 +458,17 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
             PhDeleteHandleList(&handlesContext->ListContext);
 
             PhFree(handlesContext);
-
-            PhpPropPageDlgProcDestroy(hwndDlg);
         }
         break;
     case WM_SHOWWINDOW:
         {
-            if (!propPageContext->LayoutInitialized)
+            PPH_LAYOUT_ITEM dialogItem;
+
+            if (dialogItem = PhBeginPropPageLayout(hwndDlg, propPageContext))
             {
-                PPH_LAYOUT_ITEM dialogItem;
-                
-                dialogItem = PhAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
                 PhAddPropPageLayoutItem(hwndDlg, handlesContext->SearchboxHandle, dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST), dialogItem, PH_ANCHOR_ALL);
-
-                PhDoPropPageLayout(hwndDlg);
-
-                propPageContext->LayoutInitialized = TRUE;
+                PhEndPropPageLayout(hwndDlg, propPageContext);
             }
         }
         break;

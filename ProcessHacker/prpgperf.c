@@ -55,8 +55,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
     PPH_PROCESS_ITEM processItem;
     PPH_PERFORMANCE_CONTEXT performanceContext;
 
-    if (PhpPropPageDlgProcHeader(hwndDlg, uMsg, lParam,
-        &propSheetPage, &propPageContext, &processItem))
+    if (PhPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext, &processItem))
     {
         performanceContext = (PPH_PERFORMANCE_CONTEXT)propPageContext->Context;
     }
@@ -69,8 +68,8 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
     {
     case WM_INITDIALOG:
         {
-            performanceContext = propPageContext->Context =
-                PhAllocate(sizeof(PH_PERFORMANCE_CONTEXT));
+            performanceContext = propPageContext->Context = PhAllocate(sizeof(PH_PERFORMANCE_CONTEXT));
+            memset(performanceContext, 0, sizeof(PH_PERFORMANCE_CONTEXT));
 
             performanceContext->WindowHandle = hwndDlg;
 
@@ -120,22 +119,15 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                 &performanceContext->ProcessesUpdatedRegistration
                 );
             PhFree(performanceContext);
-
-            PhpPropPageDlgProcDestroy(hwndDlg);
         }
         break;
     case WM_SHOWWINDOW:
         {
-            if (!propPageContext->LayoutInitialized)
+            PPH_LAYOUT_ITEM dialogItem;
+
+            if (dialogItem = PhBeginPropPageLayout(hwndDlg, propPageContext))
             {
-                PPH_LAYOUT_ITEM dialogItem;
-
-                dialogItem = PhAddPropPageLayoutItem(hwndDlg, hwndDlg,
-                    PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
-
-                PhDoPropPageLayout(hwndDlg);
-
-                propPageContext->LayoutInitialized = TRUE;
+                PhEndPropPageLayout(hwndDlg, propPageContext);
             }
         }
         break;

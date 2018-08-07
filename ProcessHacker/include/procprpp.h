@@ -70,18 +70,18 @@ FORCEINLINE BOOLEAN PhpPropPageDlgProcHeader(
     if (!propSheetPage)
         return FALSE;
 
+    propPageContext = (PPH_PROCESS_PROPPAGECONTEXT)propSheetPage->lParam;;
+
     *PropSheetPage = propSheetPage;
-    *PropPageContext = propPageContext = (PPH_PROCESS_PROPPAGECONTEXT)propSheetPage->lParam;
+    *PropPageContext = propPageContext;
     *ProcessItem = propPageContext->PropContext->ProcessItem;
 
-    return TRUE;
-}
+    if (uMsg == WM_NCDESTROY)
+    {
+        PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+    }
 
-FORCEINLINE VOID PhpPropPageDlgProcDestroy(
-    _In_ HWND hwndDlg
-    )
-{
-    PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+    return TRUE;
 }
 
 #define SET_BUTTON_ICON(Id, Icon) \

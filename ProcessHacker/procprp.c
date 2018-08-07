@@ -463,14 +463,34 @@ BOOLEAN PhPropPageDlgProcHeader(
     _Out_ PPH_PROCESS_ITEM *ProcessItem
     )
 {
-    return PhpPropPageDlgProcHeader(hwndDlg, uMsg, lParam, PropSheetPage, PropPageContext, ProcessItem);
-}
+    LPPROPSHEETPAGE propSheetPage;
+    PPH_PROCESS_PROPPAGECONTEXT propPageContext;
 
-VOID PhPropPageDlgProcDestroy(
-    _In_ HWND hwndDlg
-    )
-{
-    PhpPropPageDlgProcDestroy(hwndDlg);
+    if (uMsg == WM_INITDIALOG)
+    {
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, (PVOID)lParam);
+    }
+
+    propSheetPage = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+
+    if (!propSheetPage)
+        return FALSE;
+
+    propPageContext = (PPH_PROCESS_PROPPAGECONTEXT)propSheetPage->lParam;
+
+    if (PropSheetPage)
+        *PropSheetPage = propSheetPage;
+    if (PropPageContext)
+        *PropPageContext = propPageContext;
+    if (ProcessItem)
+        *ProcessItem = propPageContext->PropContext->ProcessItem;
+
+    if (uMsg == WM_NCDESTROY)
+    {
+        PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+    }
+
+    return TRUE;
 }
 
 PPH_LAYOUT_ITEM PhAddPropPageLayoutItem(

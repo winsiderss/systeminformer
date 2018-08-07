@@ -82,7 +82,7 @@ NTSTATUS DispatchGetRuntimeNameByAddress(
     _Out_ PDN_API_GETRUNTIMENAMEBYADDRESS Out
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status;
     PVOID nameBuffer;
     PCLR_PROCESS_SUPPORT support;
     PPH_STRING name;
