@@ -854,6 +854,28 @@ PhEnumDirectoryFile(
     _In_opt_ PVOID Context
     );
 
+#define PH_FIRST_FILE_EA(Information) \
+    ((PFILE_FULL_EA_INFORMATION)(Information))
+#define PH_NEXT_FILE_EA(Information) \
+    (((PFILE_FULL_EA_INFORMATION)(Information))->NextEntryOffset ? \
+    (PTR_ADD_OFFSET((Information), ((PFILE_FULL_EA_INFORMATION)(Information))->NextEntryOffset)) : \
+    NULL \
+    )
+
+typedef BOOLEAN (NTAPI *PPH_ENUM_FILE_EA)(
+    _In_ PFILE_FULL_EA_INFORMATION Information,
+    _In_opt_ PVOID Context
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhEnumFileExtendedAttributes(
+    _In_ HANDLE FileHandle,
+    _In_ PPH_ENUM_FILE_EA Callback,
+    _In_opt_ PVOID Context
+    );
+
 #define PH_FIRST_STREAM(Streams) ((PFILE_STREAM_INFORMATION)(Streams))
 #define PH_NEXT_STREAM(Stream) ( \
     ((PFILE_STREAM_INFORMATION)(Stream))->NextEntryOffset ? \

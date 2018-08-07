@@ -4999,6 +4999,90 @@ NTSTATUS PhEnumDirectoryFile(
     return status;
 }
 
+NTSTATUS PhEnumFileExtendedAttributes(
+    _In_ HANDLE FileHandle,
+    _In_ PPH_ENUM_FILE_EA Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    NTSTATUS status;
+    BOOLEAN firstTime = TRUE;
+    BOOLEAN success = FALSE;
+    IO_STATUS_BLOCK isb;
+    ULONG bufferSize;
+    PVOID buffer;
+    PFILE_FULL_EA_INFORMATION i;
+
+    bufferSize = 0x400;
+    buffer = PhAllocate(bufferSize);
+
+    while (TRUE)
+    {
+        while (TRUE)
+        {
+            status = NtQueryEaFile(
+                FileHandle,
+                &isb,
+                buffer,
+                bufferSize,
+                FALSE,
+                NULL,
+                0,
+                NULL,
+                firstTime
+                );
+
+            if (status == STATUS_PENDING)
+            {
+                status = NtWaitForSingleObject(FileHandle, FALSE, NULL);
+
+                if (NT_SUCCESS(status))
+                    status = isb.Status;
+            }
+
+            if (status == STATUS_BUFFER_OVERFLOW || status == STATUS_INFO_LENGTH_MISMATCH)
+            {
+                PhFree(buffer);
+                bufferSize *= 2;
+                buffer = PhAllocate(bufferSize);
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        if (status == STATUS_NO_MORE_FILES)
+        {
+            status = STATUS_SUCCESS;
+            break;
+        }
+
+        if (!NT_SUCCESS(status))
+            break;
+
+        success = TRUE;
+
+        for (i = PH_FIRST_FILE_EA(buffer); i; i = PH_NEXT_FILE_EA(i))
+        {
+            if (!Callback(i, Context))
+            {
+                success = FALSE;
+                break;
+            }
+        }
+
+        if (!success)
+            break;
+
+        firstTime = FALSE;
+    }
+
+    PhFree(buffer);
+
+    return status;
+}
+
 NTSTATUS PhEnumFileStreams(
     _In_ HANDLE FileHandle,
     _Out_ PVOID *Streams
