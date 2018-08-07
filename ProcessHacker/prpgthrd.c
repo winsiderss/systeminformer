@@ -657,20 +657,15 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             PhDeleteThreadList(&threadsContext->ListContext);
 
             PhFree(threadsContext);
-
-            PhpPropPageDlgProcDestroy(hwndDlg);
         }
         break;
     case WM_SHOWWINDOW:
         {
-            if (!propPageContext->LayoutInitialized)
-            {
-                PPH_LAYOUT_ITEM dialogItem;
+            PPH_LAYOUT_ITEM dialogItem;
 
-                dialogItem = PhAddPropPageLayoutItem(hwndDlg, hwndDlg,
-                    PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
-                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST),
-                    dialogItem, PH_ANCHOR_ALL);
+            if (dialogItem = PhBeginPropPageLayout(hwndDlg, propPageContext))
+            {
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST), dialogItem, PH_ANCHOR_ALL);
 
 #define ADD_BL_ITEM(Id) \
     PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, Id), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM)
@@ -686,10 +681,8 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                     ADD_BL_ITEM(IDC_STATICBL12);
                 }
 
-                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_STARTMODULE),
-                    dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
-                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_OPENSTARTMODULE),
-                    dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_STARTMODULE), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_OPENSTARTMODULE), dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
                 ADD_BL_ITEM(IDC_STARTED);
                 ADD_BL_ITEM(IDC_KERNELTIME);
                 ADD_BL_ITEM(IDC_USERTIME);
@@ -702,9 +695,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                 ADD_BL_ITEM(IDC_PAGEPRIORITY);
                 ADD_BL_ITEM(IDC_IDEALPROCESSOR);
 
-                PhDoPropPageLayout(hwndDlg);
-
-                propPageContext->LayoutInitialized = TRUE;
+                PhEndPropPageLayout(hwndDlg, propPageContext);
             }
         }
         break;

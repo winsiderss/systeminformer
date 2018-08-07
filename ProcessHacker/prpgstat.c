@@ -342,22 +342,17 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
             if (statisticsContext->ProcessHandle)
                 NtClose(statisticsContext->ProcessHandle);
 
-            PhpPropPageDlgProcDestroy(hwndDlg);
             PhFree(statisticsContext);
         }
         break;
     case WM_SHOWWINDOW:
         {
-            if (!propPageContext->LayoutInitialized)
+            PPH_LAYOUT_ITEM dialogItem;
+
+            if (dialogItem = PhBeginPropPageLayout(hwndDlg, propPageContext))
             {
-                PPH_LAYOUT_ITEM dialogItem;
-
-                dialogItem = PhAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
                 PhAddPropPageLayoutItem(hwndDlg, statisticsContext->ListViewHandle, dialogItem, PH_ANCHOR_ALL);
-
-                PhDoPropPageLayout(hwndDlg);
-
-                propPageContext->LayoutInitialized = TRUE;
+                PhEndPropPageLayout(hwndDlg, propPageContext);
             }
 
             ExtendedListView_SetColumnWidth(statisticsContext->ListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);

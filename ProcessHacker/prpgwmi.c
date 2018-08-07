@@ -566,7 +566,7 @@ INT_PTR CALLBACK PhpProcessWmiProvidersDlgProc(
     PPH_PROCESS_ITEM processItem;
     PPH_WMI_CONTEXT context;
 
-    if (PhpPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext, &processItem))
+    if (PhPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext, &processItem))
     {
         context = (PPH_WMI_CONTEXT)propPageContext->Context;
     }
@@ -618,22 +618,16 @@ INT_PTR CALLBACK PhpProcessWmiProvidersDlgProc(
             PhDereferenceObject(context->WmiProviderList);
 
             PhFree(context);
-
-            PhpPropPageDlgProcDestroy(hwndDlg);
         }
         break;
     case WM_SHOWWINDOW:
         {
-            if (!propPageContext->LayoutInitialized)
+            PPH_LAYOUT_ITEM dialogItem;
+
+            if (dialogItem = PhBeginPropPageLayout(hwndDlg, propPageContext))
             {
-                PPH_LAYOUT_ITEM dialogItem;
-
-                dialogItem = PhAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
                 PhAddPropPageLayoutItem(hwndDlg, context->ListViewHandle, dialogItem, PH_ANCHOR_ALL);
-
-                PhDoPropPageLayout(hwndDlg);
-
-                propPageContext->LayoutInitialized = TRUE;
+                PhEndPropPageLayout(hwndDlg, propPageContext);
             }
         }
         break;

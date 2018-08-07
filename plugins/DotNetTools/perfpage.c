@@ -858,7 +858,6 @@ INT_PTR CALLBACK DotNetPerfPageDlgProc(
             PhSaveListViewColumnsToSetting(SETTING_NAME_DOT_NET_COUNTERS_COLUMNS, context->CountersLv);
 
             PhFree(context);
-            PhPropPageDlgProcDestroy(hwndDlg);
         }
         break;
     case WM_SHOWWINDOW:

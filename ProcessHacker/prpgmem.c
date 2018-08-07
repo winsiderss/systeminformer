@@ -310,8 +310,7 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
     PPH_MEMORY_CONTEXT memoryContext;
     HWND tnHandle;
 
-    if (PhpPropPageDlgProcHeader(hwndDlg, uMsg, lParam,
-        &propSheetPage, &propPageContext, &processItem))
+    if (PhPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext, &processItem))
     {
         memoryContext = (PPH_MEMORY_CONTEXT)propPageContext->Context;
 
@@ -327,8 +326,7 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
     {
     case WM_INITDIALOG:
         {
-            memoryContext = propPageContext->Context =
-                PhAllocate(PhEmGetObjectSize(EmMemoryContextType, sizeof(PH_MEMORY_CONTEXT)));
+            memoryContext = propPageContext->Context = PhAllocate(PhEmGetObjectSize(EmMemoryContextType, sizeof(PH_MEMORY_CONTEXT)));
             memset(memoryContext, 0, sizeof(PH_MEMORY_CONTEXT));
             memoryContext->ProcessId = processItem->ProcessId;
 
@@ -386,23 +384,17 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
 
             PhClearReference(&memoryContext->ErrorMessage);
             PhFree(memoryContext);
-
-            PhpPropPageDlgProcDestroy(hwndDlg);
         }
         break;
     case WM_SHOWWINDOW:
         {
-            if (!propPageContext->LayoutInitialized)
-            {
-                PPH_LAYOUT_ITEM dialogItem;
+            PPH_LAYOUT_ITEM dialogItem;
 
-                dialogItem = PhAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
+            if (dialogItem = PhBeginPropPageLayout(hwndDlg, propPageContext))
+            {
                 PhAddPropPageLayoutItem(hwndDlg, memoryContext->SearchboxHandle, dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, memoryContext->ListContext.TreeNewHandle, dialogItem, PH_ANCHOR_ALL);
-
-                PhDoPropPageLayout(hwndDlg);
-
-                propPageContext->LayoutInitialized = TRUE;
+                PhEndPropPageLayout(hwndDlg, propPageContext);
             }
         }
         break;

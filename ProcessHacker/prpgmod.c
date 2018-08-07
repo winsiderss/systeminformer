@@ -408,8 +408,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
     PPH_MODULES_CONTEXT modulesContext;
     HWND tnHandle;
 
-    if (PhpPropPageDlgProcHeader(hwndDlg, uMsg, lParam,
-        &propSheetPage, &propPageContext, &processItem))
+    if (PhPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext, &processItem))
     {
         modulesContext = (PPH_MODULES_CONTEXT)propPageContext->Context;
 
@@ -425,10 +424,8 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
     {
     case WM_INITDIALOG:
         {
-            // Lots of boilerplate code...
-
-            modulesContext = propPageContext->Context =
-                PhAllocate(PhEmGetObjectSize(EmModulesContextType, sizeof(PH_MODULES_CONTEXT)));
+            modulesContext = propPageContext->Context = PhAllocate(PhEmGetObjectSize(EmModulesContextType, sizeof(PH_MODULES_CONTEXT)));
+            memset(modulesContext, 0, sizeof(PH_MODULES_CONTEXT));
 
             modulesContext->Provider = PhCreateModuleProvider(
                 processItem->ProcessId
@@ -537,23 +534,17 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
 
             PhClearReference(&modulesContext->ErrorMessage);
             PhFree(modulesContext);
-
-            PhpPropPageDlgProcDestroy(hwndDlg);
         }
         break;
     case WM_SHOWWINDOW:
         {
-            if (!propPageContext->LayoutInitialized)
-            {
-                PPH_LAYOUT_ITEM dialogItem;
+            PPH_LAYOUT_ITEM dialogItem;
 
-                dialogItem = PhAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
+            if (dialogItem = PhBeginPropPageLayout(hwndDlg, propPageContext))
+            {
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_SEARCH), dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, modulesContext->ListContext.TreeNewHandle, dialogItem, PH_ANCHOR_ALL);
-
-                PhDoPropPageLayout(hwndDlg);
-
-                propPageContext->LayoutInitialized = TRUE;
+                PhEndPropPageLayout(hwndDlg, propPageContext);
             }
         }
         break;

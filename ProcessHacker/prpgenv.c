@@ -84,9 +84,11 @@ typedef struct _PHP_PROCESS_ENVIRONMENT_TREENODE
 } PHP_PROCESS_ENVIRONMENT_TREENODE, *PPHP_PROCESS_ENVIRONMENT_TREENODE;
 
 PPHP_PROCESS_ENVIRONMENT_TREENODE PhpAddEnvironmentChildNode(
-    _Inout_ PPH_ENVIRONMENT_CONTEXT Context,
+    _In_ PPH_ENVIRONMENT_CONTEXT Context,
     _In_opt_ PPHP_PROCESS_ENVIRONMENT_TREENODE ParentNode,
-    _In_opt_ PPH_STRING Name,
+    _In_ ULONG Id,
+    _In_ PROCESS_ENVIRONMENT_TREENODE_TYPE Type,
+    _In_ PPH_STRING Name,
     _In_opt_ PPH_STRING Value
     );
 
@@ -163,9 +165,9 @@ VOID PhpRefreshEnvironmentList(
     ULONG i;
 
     PhpClearEnvironmentTree(Context);
-    processRootNode = PhpAddEnvironmentChildNode(Context, NULL, PhaCreateString(L"Process"), NULL);
-    userRootNode = PhpAddEnvironmentChildNode(Context, NULL, PhaCreateString(L"User"), NULL);
-    systemRootNode = PhpAddEnvironmentChildNode(Context, NULL, PhaCreateString(L"System"), NULL);
+    processRootNode = PhpAddEnvironmentChildNode(Context, NULL, 0, 0, PhaCreateString(L"Process"), NULL);
+    userRootNode = PhpAddEnvironmentChildNode(Context, NULL, 0, 0, PhaCreateString(L"User"), NULL);
+    systemRootNode = PhpAddEnvironmentChildNode(Context, NULL, 0, 0, PhaCreateString(L"System"), NULL);
 
     if (DestroyEnvironmentBlock && Context->SystemDefaultEnvironment) 
         DestroyEnvironmentBlock(Context->SystemDefaultEnvironment);
@@ -223,7 +225,6 @@ VOID PhpRefreshEnvironmentList(
     {
         UNICODE_STRING variableNameUs;
         UNICODE_STRING variableValueUs;
-        PROCESS_ENVIRONMENT_TREENODE_TYPE variableType;
 
         item = PhItemArray(&Context->Items, i);
 
@@ -236,7 +237,7 @@ VOID PhpRefreshEnvironmentList(
             &variableValueUs
             ) == STATUS_BUFFER_TOO_SMALL)
         {
-            variableType = PROCESS_ENVIRONMENT_TREENODE_TYPE_SYSTEM;
+            PhpAddEnvironmentChildNode(Context, systemRootNode, i, PROCESS_ENVIRONMENT_TREENODE_TYPE_SYSTEM, item->Name, item->Value);
         }
         else if (RtlQueryEnvironmentVariable_U(
             Context->UserDefaultEnvironment,
@@ -244,36 +245,11 @@ VOID PhpRefreshEnvironmentList(
             &variableValueUs
             ) == STATUS_BUFFER_TOO_SMALL)
         {
-            variableType = PROCESS_ENVIRONMENT_TREENODE_TYPE_USER;
+            PhpAddEnvironmentChildNode(Context, userRootNode, i, PROCESS_ENVIRONMENT_TREENODE_TYPE_USER, item->Name, item->Value);
         }
         else
         {
-            variableType = PROCESS_ENVIRONMENT_TREENODE_TYPE_PROCESS;
-        }
-
-        switch (variableType)
-        {
-        case PROCESS_ENVIRONMENT_TREENODE_TYPE_PROCESS:
-            {
-                PPHP_PROCESS_ENVIRONMENT_TREENODE node = PhpAddEnvironmentChildNode(Context, processRootNode, item->Name, item->Value);
-                node->Id = i;
-                node->Type = variableType;
-            }
-            break;
-        case PROCESS_ENVIRONMENT_TREENODE_TYPE_USER:
-            {
-                PPHP_PROCESS_ENVIRONMENT_TREENODE node = PhpAddEnvironmentChildNode(Context, userRootNode, item->Name, item->Value);
-                node->Id = i;
-                node->Type = variableType;
-            }
-            break;
-        case PROCESS_ENVIRONMENT_TREENODE_TYPE_SYSTEM:
-            {
-                PPHP_PROCESS_ENVIRONMENT_TREENODE node = PhpAddEnvironmentChildNode(Context, systemRootNode, item->Name, item->Value);
-                node->Id = i;
-                node->Type = variableType;
-            }
-            break;
+            PhpAddEnvironmentChildNode(Context, processRootNode, i, PROCESS_ENVIRONMENT_TREENODE_TYPE_PROCESS, item->Name, item->Value);
         }
     }
 
@@ -771,6 +747,8 @@ PPHP_PROCESS_ENVIRONMENT_TREENODE PhpAddEnvironmentRootNode(
 PPHP_PROCESS_ENVIRONMENT_TREENODE PhpAddEnvironmentChildNode(
     _In_ PPH_ENVIRONMENT_CONTEXT Context,
     _In_opt_ PPHP_PROCESS_ENVIRONMENT_TREENODE ParentNode,
+    _In_ ULONG Id,
+    _In_ PROCESS_ENVIRONMENT_TREENODE_TYPE Type,
     _In_ PPH_STRING Name,
     _In_opt_ PPH_STRING Value
     )
@@ -1224,14 +1202,13 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
-)
+    )
 {
-    LPPROPSHEETPAGE propSheetPage;
     PPH_PROCESS_PROPPAGECONTEXT propPageContext;
     PPH_PROCESS_ITEM processItem;
     PPH_ENVIRONMENT_CONTEXT context;
 
-    if (PhpPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext, &processItem))
+    if (PhPropPageDlgProcHeader(hwndDlg, uMsg, lParam, NULL, &propPageContext, &processItem))
     {
         context = propPageContext->Context;
     }
@@ -1282,23 +1259,17 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
                 DestroyEnvironmentBlock(context->UserDefaultEnvironment);
 
             PhFree(context);
-
-            PhpPropPageDlgProcDestroy(hwndDlg);
         }
         break;
     case WM_SHOWWINDOW:
         {
-            if (!propPageContext->LayoutInitialized)
-            {
-                PPH_LAYOUT_ITEM dialogItem;
+            PPH_LAYOUT_ITEM dialogItem;
 
-                dialogItem = PhAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
+            if (dialogItem = PhBeginPropPageLayout(hwndDlg, propPageContext))
+            {
                 PhAddPropPageLayoutItem(hwndDlg, context->SearchWindowHandle, dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_TOP);
                 PhAddPropPageLayoutItem(hwndDlg, context->TreeNewHandle, dialogItem, PH_ANCHOR_ALL);
-
-                PhDoPropPageLayout(hwndDlg);
-
-                propPageContext->LayoutInitialized = TRUE;
+                PhEndPropPageLayout(hwndDlg, propPageContext);
             }
         }
         break;

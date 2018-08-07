@@ -563,8 +563,6 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
 
             PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), &context->ProcessesUpdatedRegistration);
             PhFree(context);
-
-            PhPropPageDlgProcDestroy(hwndDlg);
         }
         break;
     case WM_SHOWWINDOW:

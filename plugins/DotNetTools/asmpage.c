@@ -1273,8 +1273,6 @@ INT_PTR CALLBACK DotNetAsmPageDlgProc(
 
             PhClearReference(&context->TnErrorMessage);
             PhFree(context);
-
-            PhPropPageDlgProcDestroy(hwndDlg);
         }
         break;
     case WM_SHOWWINDOW:

@@ -1760,8 +1760,6 @@ INT_PTR CALLBACK ProcessCommentPageDlgProc(
             PhDereferenceObject(context->OriginalComment);
             PhFree(context);
 
-            PhPropPageDlgProcDestroy(hwndDlg);
-
             SaveDb();
             InvalidateProcessComments();
         }

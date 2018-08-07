@@ -787,11 +787,10 @@ INT_PTR CALLBACK WepWindowsPageProc(
     )
 {
     PWINDOWS_CONTEXT context;
-    LPPROPSHEETPAGE propSheetPage;
     PPH_PROCESS_PROPPAGECONTEXT propPageContext;
     PPH_PROCESS_ITEM processItem;
 
-    if (PhPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext, &processItem))
+    if (PhPropPageDlgProcHeader(hwndDlg, uMsg, lParam, NULL, &propPageContext, &processItem))
     {
         context = propPageContext->Context;
     }
