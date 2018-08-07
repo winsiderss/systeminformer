@@ -91,6 +91,7 @@ LRESULT CALLBACK PhpThemeWindowStatusbarWndSubclassProc(
     );
 
 ULONG PhpThemeColorMode = 0;
+BOOLEAN PhpThemeEnable = FALSE;
 BOOLEAN PhpThemeBorderEnable = TRUE;
 HBRUSH PhMenuBackgroundBrush = NULL;
 COLORREF PhpThemeWindowForegroundColor = RGB(28, 28, 28);
@@ -110,6 +111,7 @@ VOID PhInitializeWindowTheme(
     )
 {
     PhpThemeColorMode = PhGetIntegerSetting(L"GraphColorMode");
+    PhpThemeEnable = !!PhGetIntegerSetting(L"EnableThemeSupport");
     PhpThemeBorderEnable = !!PhGetIntegerSetting(L"TreeListBorderEnable");
 
     if (!PhMenuBackgroundBrush) // HACK
@@ -153,6 +155,9 @@ VOID PhReInitializeWindowTheme(
     )
 {
     HWND currentWindow = NULL;
+
+    if (!PhpThemeEnable)
+        return;
 
     // HACK
     { 
