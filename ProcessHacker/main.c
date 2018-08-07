@@ -182,7 +182,6 @@ INT WINAPI wWinMain(
 
     if (PhStartupParameters.ShowOptions)
     {
-        // Elevated options dialog for changing the value of Replace Task Manager with Process Hacker.
         PhShowOptionsDialog(PhStartupParameters.WindowHandle);
         RtlExitUserProcess(STATUS_SUCCESS);
     }
@@ -427,20 +426,17 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
         HWND hwnd;
         HANDLE processHandle = NULL;
         HANDLE tokenHandle = NULL;
-        PTOKEN_USER tokenCurrent = NULL;
         PTOKEN_USER tokenUser = NULL;
 
         if (objectInfo.ClientId.UniqueProcess == NtCurrentProcessId())
             goto CleanupExit;
-        if (!NT_SUCCESS(PhOpenProcess(&processHandle, ProcessQueryAccess, objectInfo.ClientId.UniqueProcess)))
+        if (!NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, objectInfo.ClientId.UniqueProcess)))
             goto CleanupExit;
         if (!NT_SUCCESS(PhOpenProcessToken(processHandle, TOKEN_QUERY, &tokenHandle)))
             goto CleanupExit;
         if (!NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
             goto CleanupExit;
-        if (!NT_SUCCESS(PhGetTokenUser(PhGetOwnTokenAttributes().TokenHandle, &tokenCurrent)))
-            goto CleanupExit;
-        if (!RtlEqualSid(tokenUser->User.Sid, tokenCurrent->User.Sid))
+        if (!RtlEqualSid(tokenUser->User.Sid, PhGetOwnTokenAttributes().TokenSid))
             goto CleanupExit;
 
         hwnd = PhGetProcessMainWindowEx(
@@ -464,7 +460,6 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
 
     CleanupExit:
         if (tokenUser) PhFree(tokenUser);
-        if (tokenCurrent) PhFree(tokenCurrent);
         if (tokenHandle) NtClose(tokenHandle);
         if (processHandle) NtClose(processHandle);
     }
