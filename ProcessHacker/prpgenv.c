@@ -488,7 +488,7 @@ VOID PhpShowEnvironmentNodeContextMenu(
             {
             case ENVIRONMENT_TREE_COLUMN_MENU_ITEM_EDIT:
                 {
-                    PPH_ENVIRONMENT_ITEM item = PhItemArray(&Context->Items, node->Id);
+                    //PPH_ENVIRONMENT_ITEM item = PhItemArray(&Context->Items, node->Id);
                     BOOLEAN refresh;
 
                     if (PhGetIntegerSetting(L"EnableWarnings") && !PhShowConfirmMessage(
@@ -505,8 +505,8 @@ VOID PhpShowEnvironmentNodeContextMenu(
                     if (PhpShowEditEnvDialog(
                         Context->WindowHandle,
                         Context->ProcessItem,
-                        item->Name->Buffer,
-                        item->Value->Buffer, 
+                        node->NameText->Buffer,
+                        node->ValueText->Buffer,
                         &refresh
                         ) == IDOK && refresh)
                     {
@@ -516,7 +516,7 @@ VOID PhpShowEnvironmentNodeContextMenu(
                 break;
             case ENVIRONMENT_TREE_COLUMN_MENU_ITEM_DELETE:
                 {
-                    PPH_ENVIRONMENT_ITEM item = PhItemArray(&Context->Items, node->Id);
+                    //PPH_ENVIRONMENT_ITEM item = PhItemArray(&Context->Items, node->Id);
                     NTSTATUS status;
                     HANDLE processHandle;
 
@@ -543,7 +543,7 @@ VOID PhpShowEnvironmentNodeContextMenu(
                         timeout.QuadPart = -(LONGLONG)UInt32x32To64(10, PH_TIMEOUT_SEC);
                         status = PhSetEnvironmentVariableRemote(
                             processHandle, 
-                            &item->Name->sr, 
+                            &node->NameText->sr,
                             NULL, 
                             &timeout
                             );
