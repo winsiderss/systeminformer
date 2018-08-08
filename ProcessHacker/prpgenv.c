@@ -712,6 +712,7 @@ VOID PhpDestroyEnvironmentNode(
 
 PPHP_PROCESS_ENVIRONMENT_TREENODE PhpAddEnvironmentRootNode(
     _In_ PPH_ENVIRONMENT_CONTEXT Context,
+    _In_ PROCESS_ENVIRONMENT_TREENODE_TYPE Type,
     _In_ PPH_STRING KeyPath,
     _In_opt_ PPH_STRING Value
     )
@@ -727,6 +728,7 @@ PPHP_PROCESS_ENVIRONMENT_TREENODE PhpAddEnvironmentRootNode(
     node->Children = PhCreateList(1);
 
     PhReferenceObject(KeyPath);
+    node->Type = Type;
     node->NameText = KeyPath;
 
     if (Value)
@@ -755,7 +757,7 @@ PPHP_PROCESS_ENVIRONMENT_TREENODE PhpAddEnvironmentChildNode(
 {
     PPHP_PROCESS_ENVIRONMENT_TREENODE node;
 
-    node = PhpAddEnvironmentRootNode(Context, Name, Value);
+    node = PhpAddEnvironmentRootNode(Context, Type, Name, Value);
 
     if (ParentNode)
     {
