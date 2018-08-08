@@ -45,12 +45,15 @@ typedef struct _PH_THREAD_NODE
 
     ULONG ValidMask;
 
+    ULONG PagePriority;
+    IO_PRIORITY_HINT IoPriority;
     WCHAR ThreadIdText[PH_INT32_STR_LEN_1];
     WCHAR CpuUsageText[PH_INT32_STR_LEN_1];
     PPH_STRING CyclesDeltaText; // used for Context Switches Delta as well
     PPH_STRING StartAddressText;
     PPH_STRING PrioritySymbolicText;
     PPH_STRING CreatedText;
+    PPH_STRING NameText;
     WCHAR ContextSwitchesText[PH_INT64_STR_LEN_1];
     WCHAR PriorityText[PH_INT32_STR_LEN_1];
     WCHAR BasePriorityText[PH_INT32_STR_LEN_1];
