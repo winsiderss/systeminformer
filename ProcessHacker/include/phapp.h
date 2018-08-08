@@ -203,7 +203,6 @@ typedef struct _PH_LOG_ENTRY
 } PH_LOG_ENTRY, *PPH_LOG_ENTRY;
 
 extern PH_CIRCULAR_BUFFER_PVOID PhLogBuffer;
-PHAPPAPI extern PH_CALLBACK PhLoggedCallback; // phapppub
 
 VOID PhLogInitialization(
     VOID
