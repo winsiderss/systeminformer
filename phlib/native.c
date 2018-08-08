@@ -1605,7 +1605,6 @@ NTSTATUS PhUnloadDllProcess(
     return status;
 }
 
-// Contributed by dmex
 /**
  * Sets an environment variable in a process.
  *
@@ -1649,20 +1648,20 @@ NTSTATUS PhSetEnvironmentVariableRemote(
 
     if (isWow64)
     {
-        PH_STRINGREF systemRoot;
+        PH_STRINGREF systemRootSr;
 
-        PhGetSystemRoot(&systemRoot);
-        ntdllFileName = PhConcatStringRefZ(&systemRoot, L"\\SysWow64\\ntdll.dll");
-        kernel32FileName = PhConcatStringRefZ(&systemRoot, L"\\SysWow64\\kernel32.dll");
+        PhGetSystemRoot(&systemRootSr);
+        ntdllFileName = PhConcatStringRefZ(&systemRootSr, L"\\SysWow64\\ntdll.dll");
+        kernel32FileName = PhConcatStringRefZ(&systemRootSr, L"\\SysWow64\\kernel32.dll");
     }
     else
     {
 #endif
-        PH_STRINGREF systemRoot;
+        PH_STRINGREF systemRootSr;
 
-        PhGetSystemRoot(&systemRoot);
-        ntdllFileName = PhConcatStringRefZ(&systemRoot, L"\\System32\\ntdll.dll");
-        kernel32FileName = PhConcatStringRefZ(&systemRoot, L"\\System32\\kernel32.dll");
+        PhGetSystemRoot(&systemRootSr);
+        ntdllFileName = PhConcatStringRefZ(&systemRootSr, L"\\System32\\ntdll.dll");
+        kernel32FileName = PhConcatStringRefZ(&systemRootSr, L"\\System32\\kernel32.dll");
 #ifdef _WIN64
     }
 #endif
@@ -1689,6 +1688,7 @@ NTSTATUS PhSetEnvironmentVariableRemote(
     {
         goto CleanupExit;
     }
+
     if (!NT_SUCCESS(status = NtAllocateVirtualMemory(
         ProcessHandle,
         &nameBaseAddress,
@@ -1755,8 +1755,6 @@ NTSTATUS PhSetEnvironmentVariableRemote(
 #ifdef _WIN64
     if (isWow64)
     {
-        // NtQueueApcThread doesn't work for WOW64 processes - we need to use RtlQueueApcWow64Thread
-        // instead.
         if (!NT_SUCCESS(status = RtlQueueApcWow64Thread(
             threadHandle,
             setEnvironmentVariableW,
@@ -1786,13 +1784,20 @@ NTSTATUS PhSetEnvironmentVariableRemote(
     }
 #endif
 
-    // This causes our APC to be executed.
-    NtResumeThread(threadHandle, NULL);
+    status = NtAlertResumeThread(threadHandle, NULL);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
     status = NtWaitForSingleObject(threadHandle, FALSE, Timeout);
 
 CleanupExit:
+
     if (threadHandle)
+    {
         NtClose(threadHandle);
+    }
+
     if (nameBaseAddress)
     {
         nameAllocationSize = 0;
@@ -1803,6 +1808,7 @@ CleanupExit:
             MEM_RELEASE
             );
     }
+
     if (valueBaseAddress)
     {
         valueAllocationSize = 0;
@@ -1813,6 +1819,7 @@ CleanupExit:
             MEM_RELEASE
             );
     }
+
     PhClearReference(&ntdllFileName);
     PhClearReference(&kernel32FileName);
 
