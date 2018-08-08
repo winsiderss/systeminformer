@@ -107,7 +107,7 @@ typedef enum _PH_HANDLE_OBJECT_TREE_COLUMN_ITEM_NAME
     PH_OBJECT_SEARCH_TREE_COLUMN_HANDLE, 
     PH_OBJECT_SEARCH_TREE_COLUMN_OBJECTADDRESS,
     PH_OBJECT_SEARCH_TREE_COLUMN_ORIGINALNAME,
-    TREE_COLUMN_ITEM_MAXIMUM
+    PH_OBJECT_SEARCH_TREE_COLUMN_MAXIMUM
 } PH_HANDLE_OBJECT_TREE_COLUMN_ITEM_NAME;
 
 typedef struct _PH_HANDLE_OBJECT_TREE_ROOT_NODE
@@ -127,7 +127,7 @@ typedef struct _PH_HANDLE_OBJECT_TREE_ROOT_NODE
 
     SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX HandleInfo;
 
-    PH_STRINGREF TextCache[TREE_COLUMN_ITEM_MAXIMUM];
+    PH_STRINGREF TextCache[PH_OBJECT_SEARCH_TREE_COLUMN_MAXIMUM];
 } PH_HANDLE_OBJECT_TREE_ROOT_NODE, *PPH_HANDLE_OBJECT_TREE_ROOT_NODE;
 
 #define SORT_FUNCTION(Column) HandleObjectTreeNewCompare##Column
@@ -248,9 +248,9 @@ PPH_HANDLE_OBJECT_TREE_ROOT_NODE AddHandleObjectNode(
 
     PhInitializeTreeNewNode(&handleObjectNode->Node);
 
-    memset(handleObjectNode->TextCache, 0, sizeof(PH_STRINGREF) * TREE_COLUMN_ITEM_MAXIMUM);
+    memset(handleObjectNode->TextCache, 0, sizeof(PH_STRINGREF) * PH_OBJECT_SEARCH_TREE_COLUMN_MAXIMUM);
     handleObjectNode->Node.TextCache = handleObjectNode->TextCache;
-    handleObjectNode->Node.TextCacheSize = TREE_COLUMN_ITEM_MAXIMUM;
+    handleObjectNode->Node.TextCacheSize = PH_OBJECT_SEARCH_TREE_COLUMN_MAXIMUM;
 
     handleObjectNode->Handle = Handle;
 
@@ -307,7 +307,7 @@ VOID UpdateHandleObjectNode(
     _In_ PPH_HANDLE_OBJECT_TREE_ROOT_NODE Node
     )
 {
-    memset(Node->TextCache, 0, sizeof(PH_STRINGREF) * TREE_COLUMN_ITEM_MAXIMUM);
+    memset(Node->TextCache, 0, sizeof(PH_STRINGREF) * PH_OBJECT_SEARCH_TREE_COLUMN_MAXIMUM);
 
     PhInvalidateTreeNewNode(&Node->Node, TN_CACHE_COLOR);
     TreeNew_NodesStructured(Context->TreeNewHandle);
@@ -344,7 +344,7 @@ BOOLEAN NTAPI HandleObjectTreeNewCallback(
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
-                if (context->TreeNewSortColumn < TREE_COLUMN_ITEM_MAXIMUM)
+                if (context->TreeNewSortColumn < PH_OBJECT_SEARCH_TREE_COLUMN_MAXIMUM)
                     sortFunction = sortFunctions[context->TreeNewSortColumn];
                 else
                     sortFunction = NULL;
