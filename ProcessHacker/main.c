@@ -847,14 +847,6 @@ BOOLEAN PhInitializeAppSystem(
         return FALSE;
     if (!PhNetworkProviderInitialization())
         return FALSE;
-    if (!PhModuleProviderInitialization())
-        return FALSE;
-    if (!PhThreadProviderInitialization())
-        return FALSE;
-    if (!PhHandleProviderInitialization())
-        return FALSE;
-    if (!PhMemoryProviderInitialization())
-        return FALSE;
 
     PhSetHandleClientIdFunction(PhGetClientIdName);
 

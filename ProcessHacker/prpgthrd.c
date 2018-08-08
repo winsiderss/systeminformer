@@ -495,8 +495,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
     PPH_THREADS_CONTEXT threadsContext;
     HWND tnHandle;
 
-    if (PhpPropPageDlgProcHeader(hwndDlg, uMsg, lParam,
-        &propSheetPage, &propPageContext, &processItem))
+    if (PhPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext, &processItem))
     {
         threadsContext = (PPH_THREADS_CONTEXT)propPageContext->Context;
 
@@ -512,8 +511,8 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
     {
     case WM_INITDIALOG:
         {
-            threadsContext = propPageContext->Context =
-                PhAllocate(PhEmGetObjectSize(EmThreadsContextType, sizeof(PH_THREADS_CONTEXT)));
+            threadsContext = propPageContext->Context = PhAllocate(PhEmGetObjectSize(EmThreadsContextType, sizeof(PH_THREADS_CONTEXT)));
+            memset(threadsContext, 0, sizeof(PH_THREADS_CONTEXT));
 
             // The thread provider has a special registration mechanism.
             threadsContext->Provider = PhCreateThreadProvider(
@@ -701,9 +700,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
         break;
     case WM_COMMAND:
         {
-            INT id = LOWORD(wParam);
-
-            switch (id)
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case ID_SHOWCONTEXTMENU:
                 {
@@ -856,7 +853,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                     {
                         ULONG threadPriorityWin32;
 
-                        switch (id)
+                        switch (GET_WM_COMMAND_ID(wParam, lParam))
                         {
                         case ID_PRIORITY_TIMECRITICAL:
                             threadPriorityWin32 = THREAD_PRIORITY_TIME_CRITICAL;
@@ -898,7 +895,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                     {
                         IO_PRIORITY_HINT ioPriority;
 
-                        switch (id)
+                        switch (GET_WM_COMMAND_ID(wParam, lParam))
                         {
                         case ID_IOPRIORITY_VERYLOW:
                             ioPriority = IoPriorityVeryLow;
@@ -932,7 +929,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                     {
                         ULONG pagePriority;
 
-                        switch (id)
+                        switch (GET_WM_COMMAND_ID(wParam, lParam))
                         {
                             case ID_PAGEPRIORITY_VERYLOW:
                                 pagePriority = MEMORY_PRIORITY_VERY_LOW;

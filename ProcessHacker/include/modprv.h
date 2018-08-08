@@ -76,10 +76,6 @@ typedef struct _PH_MODULE_PROVIDER
 } PH_MODULE_PROVIDER, *PPH_MODULE_PROVIDER;
 // end_phapppub
 
-BOOLEAN PhModuleProviderInitialization(
-    VOID
-    );
-
 PPH_MODULE_PROVIDER PhCreateModuleProvider(
     _In_ HANDLE ProcessId
     );
