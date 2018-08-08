@@ -194,8 +194,8 @@ VOID PhpThreadProviderDeleteProcedure(
             data = CONTAINING_RECORD(entry, PH_THREAD_QUERY_DATA, ListEntry);
             entry = entry->Next;
 
-            PhDereferenceObject(data->StartAddressString);
-            PhDereferenceObject(data->ServiceName);
+            PhClearReference(&data->StartAddressString);
+            PhClearReference(&data->ServiceName);
             PhDereferenceObject(data->ThreadItem);
             PhFree(data);
         }
