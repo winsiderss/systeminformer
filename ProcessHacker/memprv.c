@@ -34,16 +34,7 @@ VOID PhpMemoryItemDeleteProcedure(
     _In_ ULONG Flags
     );
 
-PPH_OBJECT_TYPE PhMemoryItemType;
-
-BOOLEAN PhMemoryProviderInitialization(
-    VOID
-    )
-{
-    PhMemoryItemType = PhCreateObjectType(L"MemoryItem", 0, PhpMemoryItemDeleteProcedure);
-
-    return TRUE;
-}
+PPH_OBJECT_TYPE PhMemoryItemType = NULL;
 
 VOID PhGetMemoryProtectionString(
     _In_ ULONG Protection,
@@ -136,7 +127,14 @@ PPH_MEMORY_ITEM PhCreateMemoryItem(
     VOID
     )
 {
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
     PPH_MEMORY_ITEM memoryItem;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PhMemoryItemType = PhCreateObjectType(L"MemoryItem", 0, PhpMemoryItemDeleteProcedure);
+        PhEndInitOnce(&initOnce);
+    }
 
     memoryItem = PhCreateObject(sizeof(PH_MEMORY_ITEM), PhMemoryItemType);
     memset(memoryItem, 0, sizeof(PH_MEMORY_ITEM));

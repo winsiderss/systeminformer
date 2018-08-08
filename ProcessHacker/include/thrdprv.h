@@ -65,10 +65,6 @@ typedef struct _PH_THREAD_PROVIDER
 } PH_THREAD_PROVIDER, *PPH_THREAD_PROVIDER;
 // end_phapppub
 
-BOOLEAN PhThreadProviderInitialization(
-    VOID
-    );
-
 PPH_THREAD_PROVIDER PhCreateThreadProvider(
     _In_ HANDLE ProcessId
     );

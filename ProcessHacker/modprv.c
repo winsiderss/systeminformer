@@ -62,26 +62,24 @@ ULONG NTAPI PhpModuleHashtableHashFunction(
     _In_ PVOID Entry
     );
 
-PPH_OBJECT_TYPE PhModuleProviderType;
-PPH_OBJECT_TYPE PhModuleItemType;
-
-BOOLEAN PhModuleProviderInitialization(
-    VOID
-    )
-{
-    PhModuleProviderType = PhCreateObjectType(L"ModuleProvider", 0, PhpModuleProviderDeleteProcedure);
-    PhModuleItemType = PhCreateObjectType(L"ModuleItem", 0, PhpModuleItemDeleteProcedure);
-
-    return TRUE;
-}
+PPH_OBJECT_TYPE PhModuleProviderType = NULL;
+PPH_OBJECT_TYPE PhModuleItemType = NULL;
 
 PPH_MODULE_PROVIDER PhCreateModuleProvider(
     _In_ HANDLE ProcessId
     )
 {
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
     NTSTATUS status;
     PPH_MODULE_PROVIDER moduleProvider;
     PPH_STRING fileName;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PhModuleProviderType = PhCreateObjectType(L"ModuleProvider", 0, PhpModuleProviderDeleteProcedure);
+        PhModuleItemType = PhCreateObjectType(L"ModuleItem", 0, PhpModuleItemDeleteProcedure);
+        PhEndInitOnce(&initOnce);
+    }
 
     moduleProvider = PhCreateObject(
         PhEmGetObjectSize(EmModuleProviderType, sizeof(PH_MODULE_PROVIDER)),

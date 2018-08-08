@@ -89,21 +89,10 @@ VOID PhpThreadProviderUpdate(
     _In_ PVOID ProcessInformation
     );
 
-PPH_OBJECT_TYPE PhThreadProviderType;
-PPH_OBJECT_TYPE PhThreadItemType;
-
+PPH_OBJECT_TYPE PhThreadProviderType = NULL;
+PPH_OBJECT_TYPE PhThreadItemType = NULL;
 PH_WORK_QUEUE PhThreadProviderWorkQueue;
 PH_INITONCE PhThreadProviderWorkQueueInitOnce = PH_INITONCE_INIT;
-
-BOOLEAN PhThreadProviderInitialization(
-    VOID
-    )
-{
-    PhThreadProviderType = PhCreateObjectType(L"ThreadProvider", 0, PhpThreadProviderDeleteProcedure);
-    PhThreadItemType = PhCreateObjectType(L"ThreadItem", 0, PhpThreadItemDeleteProcedure);
-
-    return TRUE;
-}
 
 VOID PhpQueueThreadWorkQueueItem(
     _In_ PTHREAD_START_ROUTINE Function,
@@ -123,7 +112,15 @@ PPH_THREAD_PROVIDER PhCreateThreadProvider(
     _In_ HANDLE ProcessId
     )
 {
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
     PPH_THREAD_PROVIDER threadProvider;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PhThreadProviderType = PhCreateObjectType(L"ThreadProvider", 0, PhpThreadProviderDeleteProcedure);
+        PhThreadItemType = PhCreateObjectType(L"ThreadItem", 0, PhpThreadItemDeleteProcedure);
+        PhEndInitOnce(&initOnce);
+    }
 
     threadProvider = PhCreateObject(
         PhEmGetObjectSize(EmThreadProviderType, sizeof(PH_THREAD_PROVIDER)),

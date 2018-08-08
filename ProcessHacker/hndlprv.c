@@ -47,24 +47,22 @@ VOID NTAPI PhpHandleItemDeleteProcedure(
     _In_ ULONG Flags
     );
 
-PPH_OBJECT_TYPE PhHandleProviderType;
-PPH_OBJECT_TYPE PhHandleItemType;
-
-BOOLEAN PhHandleProviderInitialization(
-    VOID
-    )
-{
-    PhHandleProviderType = PhCreateObjectType(L"HandleProvider", 0, PhpHandleProviderDeleteProcedure);
-    PhHandleItemType = PhCreateObjectType(L"HandleItem", 0, PhpHandleItemDeleteProcedure);
-
-    return TRUE;
-}
+PPH_OBJECT_TYPE PhHandleProviderType = NULL;
+PPH_OBJECT_TYPE PhHandleItemType = NULL;
 
 PPH_HANDLE_PROVIDER PhCreateHandleProvider(
     _In_ HANDLE ProcessId
     )
 {
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
     PPH_HANDLE_PROVIDER handleProvider;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PhHandleProviderType = PhCreateObjectType(L"HandleProvider", 0, PhpHandleProviderDeleteProcedure);
+        PhHandleItemType = PhCreateObjectType(L"HandleItem", 0, PhpHandleItemDeleteProcedure);
+        PhEndInitOnce(&initOnce);
+    }
 
     handleProvider = PhCreateObject(
         PhEmGetObjectSize(EmHandleProviderType, sizeof(PH_HANDLE_PROVIDER)),

@@ -98,10 +98,6 @@ typedef struct _PH_MEMORY_ITEM_LIST
 } PH_MEMORY_ITEM_LIST, *PPH_MEMORY_ITEM_LIST;
 // end_phapppub
 
-BOOLEAN PhMemoryProviderInitialization(
-    VOID
-    );
-
 VOID PhGetMemoryProtectionString(
     _In_ ULONG Protection,
     _Out_writes_(17) PWSTR String
