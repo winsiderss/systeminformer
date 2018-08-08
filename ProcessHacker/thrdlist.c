@@ -219,6 +219,8 @@ PPH_THREAD_NODE PhAddThreadNode(
     PhReferenceObject(ThreadItem);
     threadNode->ThreadId = ThreadItem->ThreadId;
     threadNode->ThreadItem = ThreadItem;
+    threadNode->PagePriority = MEMORY_PRIORITY_NORMAL + 1;
+    threadNode->IoPriority = MaxIoPriorityTypes;
 
     memset(threadNode->TextCache, 0, sizeof(PH_STRINGREF) * PH_THREAD_TREELIST_COLUMN_MAXIMUM);
     threadNode->Node.TextCache = threadNode->TextCache;
@@ -402,7 +404,7 @@ BEGIN_SORT_FUNCTION(StartAddress)
 }
 END_SORT_FUNCTION
 
-BEGIN_SORT_FUNCTION(Priority)
+BEGIN_SORT_FUNCTION(PrioritySymbolic)
 {
     sortResult = intcmp(threadItem1->BasePriorityIncrement, threadItem2->BasePriorityIncrement);
 }
@@ -416,7 +418,80 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Name)
 {
-    sortResult = PhCompareStringWithNull(threadItem1->ThreadName, threadItem2->ThreadName, TRUE);
+    sortResult = PhCompareStringWithNull(node1->NameText, node2->NameText, TRUE);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(Started)
+{
+    sortResult = uint64cmp(threadItem1->CreateTime.QuadPart, threadItem2->CreateTime.QuadPart);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(StartModule)
+{
+    sortResult = PhCompareStringWithNull(threadItem1->StartAddressFileName, threadItem2->StartAddressFileName, TRUE);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(ContextSwitches)
+{
+    sortResult = uint64cmp(threadItem1->ContextSwitchesDelta.Value, threadItem2->ContextSwitchesDelta.Value);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(Priority)
+{
+    sortResult = intcmp(threadItem1->Priority, threadItem2->Priority);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(BasePriority)
+{
+    sortResult = intcmp(threadItem1->BasePriority, threadItem2->BasePriority);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(PagePriority)
+{
+    sortResult = uintcmp(node1->PagePriority, node2->PagePriority);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(IoPriority)
+{
+    sortResult = uintcmp(node1->IoPriority, node2->IoPriority);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(Cycles)
+{
+    sortResult = uint64cmp(threadItem1->CyclesDelta.Value, threadItem2->CyclesDelta.Value);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(State)
+{
+    sortResult = uintcmp(threadItem1->WaitReason, threadItem2->WaitReason);
+    //sortResult = uintcmp(threadItem1->State, threadItem2->State);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(KernelTime)
+{
+    sortResult = uint64cmp(threadItem1->KernelTime.QuadPart, threadItem2->KernelTime.QuadPart);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(UserTime)
+{
+    sortResult = uint64cmp(threadItem1->UserTime.QuadPart, threadItem2->UserTime.QuadPart);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(IdealProcessor)
+{
+    sortResult = PhCompareStringZ(node1->IdealProcessorText, node2->IdealProcessorText, TRUE);
 }
 END_SORT_FUNCTION
 
@@ -450,9 +525,21 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     SORT_FUNCTION(Cpu),
                     SORT_FUNCTION(CyclesDelta),
                     SORT_FUNCTION(StartAddress),
-                    SORT_FUNCTION(Priority),
+                    SORT_FUNCTION(PrioritySymbolic),
                     SORT_FUNCTION(Service),
-                    SORT_FUNCTION(Name)
+                    SORT_FUNCTION(Name),
+                    SORT_FUNCTION(Started),
+                    SORT_FUNCTION(StartModule),
+                    SORT_FUNCTION(ContextSwitches),
+                    SORT_FUNCTION(Priority),
+                    SORT_FUNCTION(BasePriority),
+                    SORT_FUNCTION(PagePriority),
+                    SORT_FUNCTION(IoPriority),
+                    SORT_FUNCTION(Cycles),
+                    SORT_FUNCTION(State),
+                    SORT_FUNCTION(KernelTime),
+                    SORT_FUNCTION(UserTime),
+                    SORT_FUNCTION(IdealProcessor)
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
@@ -583,7 +670,19 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                 getCellText->Text = PhGetStringRef(threadItem->ServiceName);
                 break;
             case PH_THREAD_TREELIST_COLUMN_NAME:
-                getCellText->Text = PhGetStringRef(threadItem->ThreadName);
+                {
+                    if (threadItem->ThreadHandle && WindowsVersion >= WINDOWS_10_RS1)
+                    {
+                        PPH_STRING threadName;
+
+                        if (NT_SUCCESS(PhGetThreadName(threadItem->ThreadHandle, &threadName)))
+                        {
+                            node->NameText = threadName;
+                        }
+                    }
+
+                    getCellText->Text = PhGetStringRef(node->NameText);
+                }
                 break;
             case PH_THREAD_TREELIST_COLUMN_STARTED:
                 {
@@ -649,6 +748,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     {
                         if (NT_SUCCESS(PhGetThreadPagePriority(threadItem->ThreadHandle, &pagePriorityInteger)) && pagePriorityInteger <= MEMORY_PRIORITY_NORMAL)
                         {
+                            node->PagePriority = pagePriorityInteger;
                             pagePriority = PhPagePriorityNames[pagePriorityInteger];
                         }
                     }
@@ -665,6 +765,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     {
                         if (NT_SUCCESS(PhGetThreadIoPriority(threadItem->ThreadHandle, &ioPriorityInteger)) && ioPriorityInteger < MaxIoPriorityTypes)
                         {
+                            node->IoPriority = ioPriorityInteger;
                             ioPriority = PhIoPriorityHintNames[ioPriorityInteger];
                         }
                     }

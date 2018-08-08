@@ -27,7 +27,6 @@ typedef struct _PH_THREAD_ITEM
     HANDLE ThreadHandle;
 
     PPH_STRING ServiceName;
-    PPH_STRING ThreadName;
 
     ULONG64 StartAddress;
     PPH_STRING StartAddressString;
