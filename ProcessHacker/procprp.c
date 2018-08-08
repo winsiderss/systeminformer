@@ -485,7 +485,7 @@ BOOLEAN PhPropPageDlgProcHeader(
     if (ProcessItem)
         *ProcessItem = propPageContext->PropContext->ProcessItem;
 
-    if (uMsg == WM_NCDESTROY)
+    if (uMsg == WM_DESTROY)
     {
         PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
     }

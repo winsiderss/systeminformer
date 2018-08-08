@@ -48,42 +48,6 @@ INT CALLBACK PhpStandardPropPageProc(
     _In_ LPPROPSHEETPAGE ppsp
     );
 
-FORCEINLINE BOOLEAN PhpPropPageDlgProcHeader(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ LPARAM lParam,
-    _Out_ LPPROPSHEETPAGE *PropSheetPage,
-    _Out_ PPH_PROCESS_PROPPAGECONTEXT *PropPageContext,
-    _Out_ PPH_PROCESS_ITEM *ProcessItem
-    )
-{
-    LPPROPSHEETPAGE propSheetPage;
-    PPH_PROCESS_PROPPAGECONTEXT propPageContext;
-
-    if (uMsg == WM_INITDIALOG)
-    {
-        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, (PVOID)lParam);
-    }
-
-    propSheetPage = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-
-    if (!propSheetPage)
-        return FALSE;
-
-    propPageContext = (PPH_PROCESS_PROPPAGECONTEXT)propSheetPage->lParam;;
-
-    *PropSheetPage = propSheetPage;
-    *PropPageContext = propPageContext;
-    *ProcessItem = propPageContext->PropContext->ProcessItem;
-
-    if (uMsg == WM_NCDESTROY)
-    {
-        PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-    }
-
-    return TRUE;
-}
-
 #define SET_BUTTON_ICON(Id, Icon) \
     SendMessage(GetDlgItem(hwndDlg, (Id)), BM_SETIMAGE, IMAGE_ICON, (LPARAM)(Icon))
 
