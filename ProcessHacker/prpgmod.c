@@ -467,7 +467,6 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
 
             // Initialize the list.
             tnHandle = GetDlgItem(hwndDlg, IDC_LIST);
-            BringWindowToTop(tnHandle);
             PhInitializeModuleList(hwndDlg, tnHandle, &modulesContext->ListContext);
             TreeNew_SetEmptyText(tnHandle, &PhpLoadingText, 0);
             PhInitializeProviderEventQueue(&modulesContext->EventQueue, 100);
@@ -767,6 +766,9 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             case PSN_KILLACTIVE:
                 PhSetEnabledProvider(&modulesContext->ProviderRegistration, FALSE);
                 break;
+            case PSN_QUERYINITIALFOCUS:
+                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LPARAM)GetDlgItem(hwndDlg, IDC_LIST));
+                return TRUE;
             }
         }
         break;
