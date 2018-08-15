@@ -3,7 +3,7 @@
  *   Process properties: Handles page
  *
  * Copyright (C) 2009-2016 wj32
- * Copyright (C) 2017 dmex
+ * Copyright (C) 2017-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -383,12 +383,11 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
 
             handlesContext->WindowHandle = hwndDlg;
             handlesContext->SearchboxHandle = GetDlgItem(hwndDlg, IDC_HANDLESEARCH);
-            tnHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
             PhCreateSearchControl(hwndDlg, handlesContext->SearchboxHandle, L"Search Handles (Ctrl+K)");
 
             // Initialize the list.
-            BringWindowToTop(tnHandle);
+            tnHandle = GetDlgItem(hwndDlg, IDC_LIST);
             PhInitializeHandleList(hwndDlg, tnHandle, &handlesContext->ListContext);
             TreeNew_SetEmptyText(tnHandle, &PhpLoadingText, 0);
             PhInitializeProviderEventQueue(&handlesContext->EventQueue, 100);
@@ -621,6 +620,9 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
             case PSN_KILLACTIVE:
                 PhSetEnabledProvider(&handlesContext->ProviderRegistration, FALSE);
                 break;
+            case PSN_QUERYINITIALFOCUS:
+                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LPARAM)GetDlgItem(hwndDlg, IDC_LIST));
+                return TRUE;
             }
         }
         break;

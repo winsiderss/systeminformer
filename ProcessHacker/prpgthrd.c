@@ -420,7 +420,6 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
 
             // Initialize the list.
             tnHandle = GetDlgItem(hwndDlg, IDC_LIST);
-            BringWindowToTop(tnHandle);
             PhInitializeThreadList(hwndDlg, tnHandle, &threadsContext->ListContext);
             TreeNew_SetEmptyText(tnHandle, &EmptyThreadsText, 0);
             PhInitializeProviderEventQueue(&threadsContext->EventQueue, 100);
@@ -830,6 +829,9 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             case PSN_KILLACTIVE:
                 // Can't disable, it screws up the deltas.
                 break;
+            case PSN_QUERYINITIALFOCUS:
+                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LPARAM)GetDlgItem(hwndDlg, IDC_LIST));
+                return TRUE;
             }
         }
         break;

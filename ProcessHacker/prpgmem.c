@@ -335,7 +335,6 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
 
             // Initialize the list.
             tnHandle = GetDlgItem(hwndDlg, IDC_LIST);
-            BringWindowToTop(tnHandle);
             PhInitializeMemoryList(hwndDlg, tnHandle, &memoryContext->ListContext);
             TreeNew_SetEmptyText(tnHandle, &PhpLoadingText, 0);
             memoryContext->LastRunStatus = -1;
@@ -750,6 +749,18 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                     PhDestroyEMenu(menu);
                 }
                 break;
+            }
+        }
+        break;
+    case WM_NOTIFY:
+        {
+            LPNMHDR header = (LPNMHDR)lParam;
+
+            switch (header->code)
+            {
+            case PSN_QUERYINITIALFOCUS:
+                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LPARAM)GetDlgItem(hwndDlg, IDC_LIST));
+                return TRUE;
             }
         }
         break;

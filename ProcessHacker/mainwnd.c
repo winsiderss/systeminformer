@@ -402,6 +402,17 @@ VOID PhMwpInitializeControls(
     ULONG treelistCustomColors;
     PH_TREENEW_CREATEPARAMS treelistCreateParams;
 
+    thinRows = PhGetIntegerSetting(L"ThinRows") ? TN_STYLE_THIN_ROWS : 0;
+    treelistBorder = (PhGetIntegerSetting(L"TreeListBorderEnable") && !PhEnableThemeSupport) ? WS_BORDER : 0;
+    treelistCustomColors = PhGetIntegerSetting(L"TreeListCustomColorsEnable") ? TN_STYLE_CUSTOM_COLORS : 0;
+
+    if (treelistCustomColors)
+    {
+        treelistCreateParams.TextColor = PhGetIntegerSetting(L"TreeListCustomColorText");
+        treelistCreateParams.FocusColor = PhGetIntegerSetting(L"TreeListCustomColorFocus");
+        treelistCreateParams.SelectionColor = PhGetIntegerSetting(L"TreeListCustomColorSelection");
+    }
+
     TabControlHandle = CreateWindow(
         WC_TABCONTROL,
         NULL,
@@ -416,18 +427,6 @@ VOID PhMwpInitializeControls(
         NULL
         );
     SendMessage(TabControlHandle, WM_SETFONT, (WPARAM)PhApplicationFont, FALSE);
-    BringWindowToTop(TabControlHandle);
-
-    thinRows = PhGetIntegerSetting(L"ThinRows") ? TN_STYLE_THIN_ROWS : 0;
-    treelistBorder = (PhGetIntegerSetting(L"TreeListBorderEnable") && !PhEnableThemeSupport) ? WS_BORDER : 0;
-    treelistCustomColors = PhGetIntegerSetting(L"TreeListCustomColorsEnable") ? TN_STYLE_CUSTOM_COLORS : 0;
-
-    if (treelistCustomColors)
-    {
-        treelistCreateParams.TextColor = PhGetIntegerSetting(L"TreeListCustomColorText");
-        treelistCreateParams.FocusColor = PhGetIntegerSetting(L"TreeListCustomColorFocus");
-        treelistCreateParams.SelectionColor = PhGetIntegerSetting(L"TreeListCustomColorSelection");
-    }
 
     PhMwpProcessTreeNewHandle = CreateWindow(
         PH_TREENEW_CLASSNAME,
@@ -442,7 +441,6 @@ VOID PhMwpInitializeControls(
         PhInstanceHandle,
         &treelistCreateParams
         );
-    BringWindowToTop(PhMwpProcessTreeNewHandle);
 
     PhMwpServiceTreeNewHandle = CreateWindow(
         PH_TREENEW_CLASSNAME,
@@ -457,7 +455,6 @@ VOID PhMwpInitializeControls(
         PhInstanceHandle,
         &treelistCreateParams
         );
-    BringWindowToTop(PhMwpServiceTreeNewHandle);
 
     PhMwpNetworkTreeNewHandle = CreateWindow(
         PH_TREENEW_CLASSNAME,
@@ -472,7 +469,6 @@ VOID PhMwpInitializeControls(
         PhInstanceHandle,
         &treelistCreateParams
         );
-    BringWindowToTop(PhMwpNetworkTreeNewHandle);
 
     PageList = PhCreateList(10);
 
