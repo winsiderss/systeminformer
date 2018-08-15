@@ -153,7 +153,7 @@ VOID PhpRemoveProcessRecord(
     _Inout_ PPH_PROCESS_RECORD ProcessRecord
     );
 
-PPH_OBJECT_TYPE PhProcessItemType;
+PPH_OBJECT_TYPE PhProcessItemType = NULL;
 
 PPH_HASH_ENTRY PhProcessHashSet[256] = PH_HASH_SET_INIT;
 ULONG PhProcessHashSetCount = 0;
@@ -161,43 +161,43 @@ PH_QUEUED_LOCK PhProcessHashSetLock = PH_QUEUED_LOCK_INIT;
 
 SLIST_HEADER PhProcessQueryDataListHead;
 
-PPH_LIST PhProcessRecordList;
+PPH_LIST PhProcessRecordList = NULL;
 PH_QUEUED_LOCK PhProcessRecordListLock = PH_QUEUED_LOCK_INIT;
 
 ULONG PhStatisticsSampleCount = 512;
 BOOLEAN PhEnablePurgeProcessRecords = TRUE;
 BOOLEAN PhEnableCycleCpuUsage = TRUE;
 
-PVOID PhProcessInformation; // only can be used if running on same thread as process provider
+PVOID PhProcessInformation = NULL; // only can be used if running on same thread as process provider
 SYSTEM_PERFORMANCE_INFORMATION PhPerfInformation;
-PSYSTEM_PROCESSOR_PERFORMANCE_INFORMATION PhCpuInformation;
+PSYSTEM_PROCESSOR_PERFORMANCE_INFORMATION PhCpuInformation = NULL;
 SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION PhCpuTotals;
-ULONG PhTotalProcesses;
-ULONG PhTotalThreads;
-ULONG PhTotalHandles;
+ULONG PhTotalProcesses = 0;
+ULONG PhTotalThreads = 0;
+ULONG PhTotalHandles = 0;
 
-PSYSTEM_PROCESS_INFORMATION PhDpcsProcessInformation;
-PSYSTEM_PROCESS_INFORMATION PhInterruptsProcessInformation;
+PSYSTEM_PROCESS_INFORMATION PhDpcsProcessInformation = NULL;
+PSYSTEM_PROCESS_INFORMATION PhInterruptsProcessInformation = NULL;
 
-ULONG64 PhCpuTotalCycleDelta; // real cycle time delta for this period
-PLARGE_INTEGER PhCpuIdleCycleTime; // cycle time for Idle
-PLARGE_INTEGER PhCpuSystemCycleTime; // cycle time for DPCs and Interrupts
+ULONG64 PhCpuTotalCycleDelta = 0; // real cycle time delta for this period
+PLARGE_INTEGER PhCpuIdleCycleTime = NULL; // cycle time for Idle
+PLARGE_INTEGER PhCpuSystemCycleTime = NULL; // cycle time for DPCs and Interrupts
 PH_UINT64_DELTA PhCpuIdleCycleDelta;
 PH_UINT64_DELTA PhCpuSystemCycleDelta;
 //PPH_UINT64_DELTA PhCpusIdleCycleDelta;
 
-FLOAT PhCpuKernelUsage;
-FLOAT PhCpuUserUsage;
-PFLOAT PhCpusKernelUsage;
-PFLOAT PhCpusUserUsage;
+FLOAT PhCpuKernelUsage = 0.0f;
+FLOAT PhCpuUserUsage = 0.0f;
+PFLOAT PhCpusKernelUsage = NULL;
+PFLOAT PhCpusUserUsage = NULL;
 
 PH_UINT64_DELTA PhCpuKernelDelta;
 PH_UINT64_DELTA PhCpuUserDelta;
 PH_UINT64_DELTA PhCpuIdleDelta;
 
-PPH_UINT64_DELTA PhCpusKernelDelta;
-PPH_UINT64_DELTA PhCpusUserDelta;
-PPH_UINT64_DELTA PhCpusIdleDelta;
+PPH_UINT64_DELTA PhCpusKernelDelta = NULL;
+PPH_UINT64_DELTA PhCpusUserDelta = NULL;
+PPH_UINT64_DELTA PhCpusIdleDelta = NULL;
 
 PH_UINT64_DELTA PhIoReadDelta;
 PH_UINT64_DELTA PhIoWriteDelta;
@@ -230,7 +230,7 @@ PH_CIRCULAR_BUFFER_ULONG64 PhMaxIoReadOtherHistory;
 PH_CIRCULAR_BUFFER_ULONG64 PhMaxIoWriteHistory;
 #endif
 
-static PPH_HASHTABLE PhpSidFullNameCacheHashtable;
+static PPH_HASHTABLE PhpSidFullNameCacheHashtable = NULL;
 
 BOOLEAN PhProcessProviderInitialization(
     VOID

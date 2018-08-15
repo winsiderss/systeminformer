@@ -714,7 +714,7 @@ NTSTATUS PhpProcessPropertiesThreadStart(
     PropContext->PropSheetHeader.dwFlags |= PSH_USEPSTARTPAGE;
     PropContext->PropSheetHeader.pStartPage = startPage->Buffer;
 
-    PhModalPropertySheet(&PropContext->PropSheetHeader);;
+    PhModalPropertySheet(&PropContext->PropSheetHeader);
 
     PhDereferenceObject(startPage);
     PhDereferenceObject(PropContext);
