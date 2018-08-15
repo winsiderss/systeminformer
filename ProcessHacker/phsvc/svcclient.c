@@ -28,8 +28,8 @@ VOID NTAPI PhSvcpClientDeleteProcedure(
     _In_ ULONG Flags
     );
 
-PPH_OBJECT_TYPE PhSvcClientType;
-LIST_ENTRY PhSvcClientListHead;
+PPH_OBJECT_TYPE PhSvcClientType = NULL;
+LIST_ENTRY PhSvcClientListHead = { &PhSvcClientListHead, &PhSvcClientListHead };
 PH_QUEUED_LOCK PhSvcClientListLock = PH_QUEUED_LOCK_INIT;
 
 NTSTATUS PhSvcClientInitialization(
@@ -37,7 +37,6 @@ NTSTATUS PhSvcClientInitialization(
     )
 {
     PhSvcClientType = PhCreateObjectType(L"Client", 0, PhSvcpClientDeleteProcedure);
-    InitializeListHead(&PhSvcClientListHead);
 
     return STATUS_SUCCESS;
 }

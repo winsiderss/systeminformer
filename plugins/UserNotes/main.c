@@ -1642,11 +1642,10 @@ INT_PTR CALLBACK ProcessCommentPageDlgProc(
             PDB_OBJECT object;
             PPH_STRING comment;
 
-            context = PhAllocate(sizeof(PROCESS_COMMENT_PAGE_CONTEXT));
+            context = propPageContext->Context = PhAllocate(sizeof(PROCESS_COMMENT_PAGE_CONTEXT));
             context->CommentHandle = GetDlgItem(hwndDlg, IDC_COMMENT);
             context->RevertHandle = GetDlgItem(hwndDlg, IDC_REVERT);
             context->MatchCommandlineHandle = GetDlgItem(hwndDlg, IDC_MATCHCOMMANDLINE);
-            propPageContext->Context = context;
 
             // Load the comment.
             Edit_LimitText(context->CommentHandle, UNICODE_STRING_MAX_CHARS);

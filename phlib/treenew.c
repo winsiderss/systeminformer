@@ -6366,7 +6366,7 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
         break;
     }
 
-    return CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);;
+    return CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
 }
 
 BOOLEAN PhTnpDetectDrag(

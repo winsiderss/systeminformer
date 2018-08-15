@@ -136,22 +136,21 @@ VOID PhpWorkaroundWindows10ServiceTypeBug(
     _Inout_ LPENUM_SERVICE_STATUS_PROCESS ServieEntry
     );
 
-PPH_OBJECT_TYPE PhServiceItemType;
-PPH_HASHTABLE PhServiceHashtable;
+PPH_OBJECT_TYPE PhServiceItemType = NULL;
+PPH_HASHTABLE PhServiceHashtable = NULL;
 PH_QUEUED_LOCK PhServiceHashtableLock = PH_QUEUED_LOCK_INIT;
 
 BOOLEAN PhEnableServiceNonPoll = FALSE;
 static BOOLEAN PhpNonPollInitialized = FALSE;
 static BOOLEAN PhpNonPollActive = FALSE;
-static ULONG PhpNonPollGate;
-static HANDLE PhpNonPollEventHandle;
+static ULONG PhpNonPollGate = 0;
+static HANDLE PhpNonPollEventHandle = NULL;
 static PH_QUEUED_LOCK PhpNonPollServiceListLock = PH_QUEUED_LOCK_INIT;
-static LIST_ENTRY PhpNonPollServiceListHead;
-static LIST_ENTRY PhpNonPollServicePendingListHead;
+static LIST_ENTRY PhpNonPollServiceListHead = { &PhpNonPollServiceListHead, &PhpNonPollServiceListHead };
+static LIST_ENTRY PhpNonPollServicePendingListHead = { &PhpNonPollServicePendingListHead, &PhpNonPollServicePendingListHead };
 static SLIST_HEADER PhpServiceQueryDataListHead;
-
-static _SubscribeServiceChangeNotifications SubscribeServiceChangeNotifications_I;
-static _UnsubscribeServiceChangeNotifications UnsubscribeServiceChangeNotifications_I;
+static _SubscribeServiceChangeNotifications SubscribeServiceChangeNotifications_I = NULL;
+static _UnsubscribeServiceChangeNotifications UnsubscribeServiceChangeNotifications_I = NULL;
 
 BOOLEAN PhServiceProviderInitialization(
     VOID
@@ -167,7 +166,7 @@ BOOLEAN PhServiceProviderInitialization(
 
     RtlInitializeSListHead(&PhpServiceQueryDataListHead);
 
-    if (WindowsVersion > WINDOWS_7)
+    if (WindowsVersion >= WINDOWS_8)
     {
         SubscribeServiceChangeNotifications_I = PhGetDllProcedureAddress(L"sechost.dll", "SubscribeServiceChangeNotifications", 0);
         UnsubscribeServiceChangeNotifications_I = PhGetDllProcedureAddress(L"sechost.dll", "UnsubscribeServiceChangeNotifications", 0);
@@ -1172,9 +1171,6 @@ NTSTATUS PhpServiceNonPollThreadStart(
 
         if (!scManagerHandle)
             goto ErrorExit;
-
-        InitializeListHead(&PhpNonPollServiceListHead);
-        InitializeListHead(&PhpNonPollServicePendingListHead);
 
         if (!(services = PhEnumServices(scManagerHandle, 0, 0, &numberOfServices)))
             goto ErrorExit;

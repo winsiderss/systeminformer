@@ -107,7 +107,7 @@ VOID PhSetExtendedListView(
 {
     PPH_EXTLV_CONTEXT context;
 
-    context = PhAllocate(sizeof(PH_EXTLV_CONTEXT));
+    context = PhAllocateZero(sizeof(PH_EXTLV_CONTEXT));
 
     context->Handle = hWnd;
     context->Context = NULL;

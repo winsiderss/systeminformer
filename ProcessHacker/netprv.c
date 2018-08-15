@@ -87,9 +87,8 @@ BOOLEAN PhGetNetworkConnections(
     _Out_ PULONG NumberOfConnections
     );
 
-PPH_OBJECT_TYPE PhNetworkItemType;
-
-PPH_HASHTABLE PhNetworkHashtable;
+PPH_OBJECT_TYPE PhNetworkItemType = NULL;
+PPH_HASHTABLE PhNetworkHashtable = NULL;
 PH_QUEUED_LOCK PhNetworkHashtableLock = PH_QUEUED_LOCK_INIT;
 
 PH_INITONCE PhNetworkProviderWorkQueueInitOnce = PH_INITONCE_INIT;
@@ -98,7 +97,7 @@ SLIST_HEADER PhNetworkItemQueryListHead;
 
 BOOLEAN PhEnableNetworkProviderResolve = TRUE;
 static BOOLEAN NetworkImportDone = FALSE;
-static PPH_HASHTABLE PhpResolveCacheHashtable;
+static PPH_HASHTABLE PhpResolveCacheHashtable = NULL;
 static PH_QUEUED_LOCK PhpResolveCacheHashtableLock = PH_QUEUED_LOCK_INIT;
 
 BOOLEAN PhNetworkProviderInitialization(

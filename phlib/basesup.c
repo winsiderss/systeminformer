@@ -111,7 +111,7 @@ static PPH_STRING PhSharedEmptyString = NULL;
 static PH_FREE_LIST PhpBaseThreadContextFreeList;
 #ifdef DEBUG
 ULONG PhDbgThreadDbgTlsIndex;
-LIST_ENTRY PhDbgThreadListHead;
+LIST_ENTRY PhDbgThreadListHead = { &PhDbgThreadListHead, &PhDbgThreadListHead };
 PH_QUEUED_LOCK PhDbgThreadListLock = PH_QUEUED_LOCK_INIT;
 #endif
 
@@ -163,7 +163,6 @@ BOOLEAN PhBaseInitialization(
 
 #ifdef DEBUG
     PhDbgThreadDbgTlsIndex = TlsAlloc();
-    InitializeListHead(&PhDbgThreadListHead);
 #endif
 
     return TRUE;
