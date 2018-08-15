@@ -1331,7 +1331,7 @@ PhGetStringOrEmpty(
     if (String)
         return String->Buffer;
     else
-        return L"";
+        return (PWSTR)L"";
 }
 
 /**
