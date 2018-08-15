@@ -5899,7 +5899,7 @@ NTAPI
 RtlDeriveCapabilitySidsFromName(
     _Inout_ PUNICODE_STRING UnicodeString,
     _Out_ PSID CapabilityGroupSid,
-    _Out_ PSID CapabilitySid,
+    _Out_ PSID CapabilitySid
     );
 #endif
 
