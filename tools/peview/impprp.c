@@ -99,9 +99,8 @@ VOID PvpProcessImports(
 
                         if (exportOrdinalName)
                         {
-                            name = PhFormatString(L"(Ordinal %u) [%s]", importEntry.Ordinal, exportOrdinalName->Buffer);
-                            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, name->Buffer);
-                            PhDereferenceObject(name);
+                            name = PhaFormatString(L"%s (Ordinal %u)", PhGetStringOrEmpty(exportOrdinalName), importEntry.Ordinal);
+                            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, PhGetString(name));
                         }
                         else
                         {
@@ -131,18 +130,16 @@ VOID PvpProcessImports(
                                 PH_STRINGREF secondPart;
 
                                 if (PhSplitStringRefAtLastChar(&exportSymbolName->sr, L'!', &firstPart, &secondPart))
-                                    name = PhFormatString(L"(Ordinal %u) [%s]", importEntry.Ordinal, secondPart.Buffer);
+                                    name = PhaFormatString(L"%s (Ordinal %u)", secondPart.Buffer, importEntry.Ordinal);
                                 else
-                                    name = PhFormatString(L"(Ordinal %u) [%s]", importEntry.Ordinal, exportSymbolName->Buffer);
+                                    name = PhaFormatString(L"%s (Ordinal %u)", exportSymbolName->Buffer, importEntry.Ordinal);
 
                                 PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, name->Buffer);
-                                PhDereferenceObject(name);
                             }
                             else
                             {
-                                name = PhFormatString(L"(Ordinal %u)", importEntry.Ordinal);
+                                name = PhaFormatString(L"(Ordinal %u) [??]", importEntry.Ordinal);
                                 PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, name->Buffer);
-                                PhDereferenceObject(name);
                             }
                         }
 
