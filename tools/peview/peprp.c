@@ -45,8 +45,8 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
 PH_MAPPED_IMAGE PvMappedImage;
 PIMAGE_COR20_HEADER PvImageCor20Header = NULL;
 PPH_SYMBOL_PROVIDER PvSymbolProvider = NULL;
-static HICON PvImageSmallIcon;
-static HICON PvImageLargeIcon;
+HICON PvImageSmallIcon = NULL;
+HICON PvImageLargeIcon = NULL;
 static PH_IMAGE_VERSION_INFO PvImageVersionInfo;
 static VERIFY_RESULT PvImageVerifyResult;
 static PPH_STRING PvImageSignerName;
@@ -59,6 +59,11 @@ VOID PvPeProperties(
     PH_MAPPED_IMAGE_IMPORTS imports;
     PH_MAPPED_IMAGE_EXPORTS exports;
     PIMAGE_DATA_DIRECTORY entry;
+
+    if (!PhExtractIcon(PvFileName->Buffer, &PvImageLargeIcon, &PvImageSmallIcon))
+    {
+        PhGetStockApplicationIcon(&PvImageSmallIcon, &PvImageLargeIcon);
+    }
 
     if (PvpLoadDbgHelp(&PvSymbolProvider))
     {
@@ -373,13 +378,6 @@ VOID PvpSetPeImageVersionInfo(
 
     PhInitializeImageVersionInfo(&PvImageVersionInfo, PvFileName->Buffer);
 
-    if (!PhExtractIcon(PvFileName->Buffer, &PvImageLargeIcon, &PvImageSmallIcon))
-    {
-        PhGetStockApplicationIcon(&PvImageSmallIcon, &PvImageLargeIcon);
-    }
-
-    SendMessage(GetParent(WindowHandle), WM_SETICON, ICON_BIG, (LPARAM)PvImageLargeIcon);
-    SendMessage(GetParent(WindowHandle), WM_SETICON, ICON_SMALL, (LPARAM)PvImageSmallIcon);
     Static_SetIcon(GetDlgItem(WindowHandle, IDC_FILEICON), PvImageLargeIcon);
 
     string = PhConcatStrings2(L"(Verifying...) ", PvpGetStringOrNa(PvImageVersionInfo.CompanyName));

@@ -148,9 +148,10 @@ INT CALLBACK PvpPropSheetProc(
         {
             PPV_PROPSHEETCONTEXT context;
 
-            context = PhAllocate(sizeof(PV_PROPSHEETCONTEXT));
-            memset(context, 0, sizeof(PV_PROPSHEETCONTEXT));
+            SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PvImageLargeIcon);
+            SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)PvImageSmallIcon);
 
+            context = PhAllocateZero(sizeof(PV_PROPSHEETCONTEXT));
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
 
             context->DefaultWindowProc = (WNDPROC)GetWindowLongPtr(hwndDlg, GWLP_WNDPROC);
