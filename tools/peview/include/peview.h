@@ -44,6 +44,8 @@ extern PPH_STRING PvFileName;
 extern PH_MAPPED_IMAGE PvMappedImage;
 extern PIMAGE_COR20_HEADER PvImageCor20Header;
 extern PPH_SYMBOL_PROVIDER PvSymbolProvider;
+extern HICON PvImageSmallIcon;
+extern HICON PvImageLargeIcon;
 
 // peprp
 
