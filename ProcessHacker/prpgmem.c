@@ -38,20 +38,14 @@
 #include <procprv.h>
 #include <settings.h>
 
+static PPH_OBJECT_TYPE PhMemoryContextType = NULL;
 static PH_STRINGREF EmptyMemoryText = PH_STRINGREF_INIT(L"There are no memory regions to display.");
 
-VOID PhpRefreshProcessMemoryList(
-    _In_ HWND hwndDlg,
-    _In_ PPH_PROCESS_PROPPAGECONTEXT PropPageContext
+NTSTATUS PhpRefreshProcessMemoryThread(
+    _In_ PVOID Context
     )
 {
-    PPH_MEMORY_CONTEXT memoryContext = PropPageContext->Context;
-
-    if (memoryContext->MemoryItemListValid)
-    {
-        PhDeleteMemoryItemList(&memoryContext->MemoryItemList);
-        memoryContext->MemoryItemListValid = FALSE;
-    }
+    PPH_MEMORY_CONTEXT memoryContext = Context;
 
     memoryContext->LastRunStatus = PhQueryMemoryItemList(
         memoryContext->ProcessId,
@@ -72,20 +66,29 @@ VOID PhpRefreshProcessMemoryList(
         }
 
         memoryContext->MemoryItemListValid = TRUE;
-        TreeNew_SetEmptyText(memoryContext->ListContext.TreeNewHandle, &EmptyMemoryText, 0);
-        PhReplaceMemoryList(&memoryContext->ListContext, &memoryContext->MemoryItemList);
     }
-    else
+
+    PostMessage(memoryContext->WindowHandle, WM_PH_INVOKE, 0, 0);
+
+    PhDereferenceObject(memoryContext);
+
+    return STATUS_SUCCESS;
+}
+
+VOID PhpRefreshProcessMemoryList(
+    _In_ PPH_PROCESS_PROPPAGECONTEXT PropPageContext
+    )
+{
+    PPH_MEMORY_CONTEXT memoryContext = PropPageContext->Context;
+
+    if (memoryContext->MemoryItemListValid)
     {
-        PPH_STRING message;
-
-        message = PhGetStatusMessage(memoryContext->LastRunStatus, 0);
-        PhMoveReference(&memoryContext->ErrorMessage, PhFormatString(L"Unable to query memory information:\n%s", PhGetStringOrDefault(message, L"Unknown error.")));
-        PhClearReference(&message);
-        TreeNew_SetEmptyText(memoryContext->ListContext.TreeNewHandle, &memoryContext->ErrorMessage->sr, 0);
-
-        PhReplaceMemoryList(&memoryContext->ListContext, NULL);
+        PhDeleteMemoryItemList(&memoryContext->MemoryItemList);
+        memoryContext->MemoryItemListValid = FALSE;
     }
+
+    PhReferenceObject(memoryContext);
+    PhCreateThread2(PhpRefreshProcessMemoryThread, memoryContext);
 }
 
 VOID PhpInitializeMemoryMenu(
@@ -297,6 +300,43 @@ BOOLEAN PhpMemoryTreeFilterCallback(
     return FALSE;
 }
 
+VOID PhpMemoryContextDeleteProcedure(
+    _In_ PVOID Object,
+    _In_ ULONG Flags
+    )
+{
+    PPH_MEMORY_CONTEXT memoryContext = (PPH_MEMORY_CONTEXT)Object;
+
+    PhDeleteMemoryList(&memoryContext->ListContext);
+
+    if (memoryContext->MemoryItemListValid)
+        PhDeleteMemoryItemList(&memoryContext->MemoryItemList);
+
+    PhClearReference(&memoryContext->ErrorMessage);
+}
+
+PPH_MEMORY_CONTEXT PhCreateMemoryContext(
+    VOID
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    PPH_MEMORY_CONTEXT memoryContext;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PhMemoryContextType = PhCreateObjectType(L"ProcessMemoryContext", 0, PhpMemoryContextDeleteProcedure);
+        PhEndInitOnce(&initOnce);
+    }
+
+    memoryContext = PhCreateObject(
+        PhEmGetObjectSize(EmMemoryContextType, sizeof(PH_MEMORY_CONTEXT)),
+        PhMemoryContextType
+        );
+    memset(memoryContext, 0, sizeof(PH_MEMORY_CONTEXT));
+
+    return memoryContext;
+}
+
 INT_PTR CALLBACK PhpProcessMemoryDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -326,11 +366,11 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
     {
     case WM_INITDIALOG:
         {
-            memoryContext = propPageContext->Context = PhAllocate(PhEmGetObjectSize(EmMemoryContextType, sizeof(PH_MEMORY_CONTEXT)));
-            memset(memoryContext, 0, sizeof(PH_MEMORY_CONTEXT));
+            memoryContext = propPageContext->Context = PhCreateMemoryContext();
+            memoryContext->WindowHandle = hwndDlg;
             memoryContext->ProcessId = processItem->ProcessId;
-
             memoryContext->SearchboxHandle = GetDlgItem(hwndDlg, IDC_SEARCH);
+
             PhCreateSearchControl(hwndDlg, memoryContext->SearchboxHandle, L"Search Memory (Ctrl+K)");
 
             // Initialize the list.
@@ -357,7 +397,7 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
 
             PhLoadSettingsMemoryList(&memoryContext->ListContext);
 
-            PhpRefreshProcessMemoryList(hwndDlg, propPageContext);
+            PhpRefreshProcessMemoryList(propPageContext);
 
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
@@ -376,13 +416,8 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
             }
 
             PhSaveSettingsMemoryList(&memoryContext->ListContext);
-            PhDeleteMemoryList(&memoryContext->ListContext);
 
-            if (memoryContext->MemoryItemListValid)
-                PhDeleteMemoryItemList(&memoryContext->MemoryItemList);
-
-            PhClearReference(&memoryContext->ErrorMessage);
-            PhFree(memoryContext);
+            PhDereferenceObject(memoryContext);
         }
         break;
     case WM_SHOWWINDOW:
@@ -602,7 +637,7 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                 }
                 break;
             case IDC_REFRESH:
-                PhpRefreshProcessMemoryList(hwndDlg, propPageContext);
+                PhpRefreshProcessMemoryList(propPageContext);
                 break;
             case IDC_FILTEROPTIONS:
                 {
@@ -761,6 +796,28 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
             case PSN_QUERYINITIALFOCUS:
                 SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LPARAM)GetDlgItem(hwndDlg, IDC_LIST));
                 return TRUE;
+            }
+        }
+        break;
+    case WM_PH_INVOKE:
+        {
+            if (memoryContext->MemoryItemListValid)
+            {
+                TreeNew_SetEmptyText(memoryContext->ListContext.TreeNewHandle, &EmptyMemoryText, 0);
+
+                PhReplaceMemoryList(&memoryContext->ListContext, &memoryContext->MemoryItemList);
+            }
+            else
+            {
+                PPH_STRING message;
+
+                message = PhGetStatusMessage(memoryContext->LastRunStatus, 0);
+                PhMoveReference(&memoryContext->ErrorMessage, PhFormatString(L"Unable to query memory information:\n%s", PhGetStringOrDefault(message, L"Unknown error.")));
+                TreeNew_SetEmptyText(memoryContext->ListContext.TreeNewHandle, &memoryContext->ErrorMessage->sr, 0);
+
+                PhReplaceMemoryList(&memoryContext->ListContext, NULL);
+
+                PhClearReference(&message);
             }
         }
         break;
