@@ -544,6 +544,7 @@
 #define IDC_FILESIZE                    1408
 #define IDC_FILETYPE                    1409
 #define IDC_FILEMODE                    1410
+#define IDC_DEFAULTPERM                 1410
 #define ID_HACKER_EXIT                  40001
 #define ID_PROCESS_PROPERTIES           40006
 #define ID_PROCESS_TERMINATE            40007
