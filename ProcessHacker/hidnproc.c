@@ -111,7 +111,7 @@ VOID PhShowHiddenProcessesDialog(
         SetForegroundWindow(PhHiddenProcessesWindowHandle);
 }
 
-static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
+INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -140,16 +140,6 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
             PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_SCAN), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
-            MinimumSize.left = 0;
-            MinimumSize.top = 0;
-            MinimumSize.right = 330;
-            MinimumSize.bottom = 140;
-            MapDialogRect(hwndDlg, &MinimumSize);
-
-            PhRegisterDialog(hwndDlg);
-
-            PhLoadWindowPlacementFromSetting(L"HiddenProcessesWindowPosition", L"HiddenProcessesWindowSize", hwndDlg);
-
             PhSetListViewStyle(lvHandle, TRUE, TRUE);
             PhSetControlTheme(lvHandle, L"explorer");
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 320, L"Process");
@@ -163,7 +153,16 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
 
             ComboBox_AddString(GetDlgItem(hwndDlg, IDC_METHOD), L"Brute force");
             ComboBox_AddString(GetDlgItem(hwndDlg, IDC_METHOD), L"CSR handles");
-            PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_METHOD), L"CSR handles", FALSE);
+            ComboBox_AddString(GetDlgItem(hwndDlg, IDC_METHOD), L"Process handles");
+            PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_METHOD), L"Process handles", FALSE);
+
+            MinimumSize.left = 0;
+            MinimumSize.top = 0;
+            MinimumSize.right = 330;
+            MinimumSize.bottom = 140;
+            MapDialogRect(hwndDlg, &MinimumSize);
+
+            PhLoadWindowPlacementFromSetting(L"HiddenProcessesWindowPosition", L"HiddenProcessesWindowSize", hwndDlg);
 
             EnableWindow(GetDlgItem(hwndDlg, IDC_TERMINATE), FALSE);
         }
@@ -183,7 +182,7 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
             case IDCANCEL:
             case IDOK:
                 {
-                    EndDialog(hwndDlg, IDOK);
+                    DestroyWindow(hwndDlg);
                 }
                 break;
             case IDC_SCAN:
@@ -212,10 +211,13 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
 
                     ProcessesList = PhCreateList(40);
 
-                    ProcessesMethod =
-                        PhEqualString2(method, L"Brute force", TRUE) ?
-                        BruteForceScanMethod :
-                        CsrHandlesScanMethod;
+                    if (PhEqualString2(method, L"Brute force", TRUE))
+                        ProcessesMethod = BruteForceScanMethod;
+                    else if (PhEqualString2(method, L"CSR handles", TRUE))
+                        ProcessesMethod = CsrHandlesScanMethod;
+                    else if (PhEqualString2(method, L"Process handles", TRUE))
+                        ProcessesMethod = ProcessHandleScanMethod;
+
                     NumberOfHiddenProcesses = 0;
                     NumberOfTerminatedProcesses = 0;
 
@@ -927,26 +929,110 @@ NTSTATUS PhpEnumHiddenProcessesCsrHandles(
     return status;
 }
 
+NTSTATUS PhpEnumHiddenProcessHandles(
+    _In_ PPH_ENUM_HIDDEN_PROCESSES_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    NTSTATUS status;
+    PVOID processes;
+    HANDLE processHandle;
+
+    if (!NT_SUCCESS(status = PhEnumProcesses(&processes)))
+        return status;
+
+    if (NT_SUCCESS(NtGetNextProcess(
+        NULL,
+        PROCESS_QUERY_LIMITED_INFORMATION,
+        0,
+        0,
+        &processHandle
+        )))
+    {
+        while (TRUE)
+        {
+            HANDLE newProcessHandle;
+            PROCESS_EXTENDED_BASIC_INFORMATION basicInfo;
+
+            if (NT_SUCCESS(PhGetProcessExtendedBasicInformation(processHandle, &basicInfo)))
+            {
+                if (!PhFindProcessInformation(PhProcessInformation, basicInfo.BasicInfo.UniqueProcessId))
+                {
+                    PH_HIDDEN_PROCESS_ENTRY entry;
+                    PPH_STRING fileName;
+
+                    entry.ProcessId = basicInfo.BasicInfo.UniqueProcessId;
+
+                    if (NT_SUCCESS(status = PhGetProcessImageFileName(processHandle, &fileName)))
+                    {
+                        entry.FileName = PhGetFileName(fileName);
+                        PhDereferenceObject(fileName);
+                        entry.Type = HiddenProcess;
+
+                        if (basicInfo.IsProcessDeleting)
+                            entry.Type = TerminatedProcess;
+
+                        if (!Callback(&entry, Context))
+                            break;
+
+                        PhDereferenceObject(entry.FileName);
+                    }
+
+                    if (!NT_SUCCESS(status))
+                    {
+                        entry.FileName = NULL;
+                        entry.Type = UnknownProcess;
+
+                        if (!Callback(&entry, Context))
+                            break;
+                    }
+                }
+            }
+
+            if (NT_SUCCESS(status = NtGetNextProcess(
+                processHandle,
+                PROCESS_QUERY_LIMITED_INFORMATION,
+                0,
+                0,
+                &newProcessHandle
+                )))
+            {
+                NtClose(processHandle);
+                processHandle = newProcessHandle;
+            }
+            else
+            {
+                NtClose(processHandle);
+                break;
+            }
+        }
+    }
+
+    PhFree(processes);
+
+    if (status == STATUS_NO_MORE_ENTRIES)
+        status = STATUS_SUCCESS; // HACK
+
+    return status;
+}
+
 NTSTATUS PhEnumHiddenProcesses(
     _In_ PH_HIDDEN_PROCESS_METHOD Method,
     _In_ PPH_ENUM_HIDDEN_PROCESSES_CALLBACK Callback,
     _In_opt_ PVOID Context
     )
 {
-    if (Method == BruteForceScanMethod)
+    switch (Method)
     {
-        return PhpEnumHiddenProcessesBruteForce(
-            Callback,
-            Context
-            );
+    case BruteForceScanMethod:
+        return PhpEnumHiddenProcessesBruteForce(Callback, Context);
+    case CsrHandlesScanMethod:
+        return PhpEnumHiddenProcessesCsrHandles(Callback, Context);
+    case ProcessHandleScanMethod:
+        return PhpEnumHiddenProcessHandles(Callback, Context);
     }
-    else
-    {
-        return PhpEnumHiddenProcessesCsrHandles(
-            Callback,
-            Context
-            );
-    }
+
+    return STATUS_FAIL_CHECK;
 }
 
 NTSTATUS PhpOpenCsrProcesses(
