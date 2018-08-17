@@ -68,6 +68,7 @@ PPH_HANDLE_PROVIDER PhCreateHandleProvider(
         PhEmGetObjectSize(EmHandleProviderType, sizeof(PH_HANDLE_PROVIDER)),
         PhHandleProviderType
         );
+    memset(handleProvider, 0, sizeof(PH_HANDLE_PROVIDER));
 
     handleProvider->HandleHashSetSize = 128;
     handleProvider->HandleHashSet = PhCreateHashSet(handleProvider->HandleHashSetSize);

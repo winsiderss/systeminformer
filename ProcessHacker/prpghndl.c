@@ -410,10 +410,6 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
 
             PhLoadSettingsHandleList(&handlesContext->ListContext);
 
-            PhSetOptionsHandleList(&handlesContext->ListContext, !!PhGetIntegerSetting(L"HideUnnamedHandles"));
-            Button_SetCheck(GetDlgItem(hwndDlg, IDC_HIDEUNNAMEDHANDLES),
-                handlesContext->ListContext.HideUnnamedHandles ? BST_CHECKED : BST_UNCHECKED);
-
             PhSetEnabledProvider(&handlesContext->ProviderRegistration, TRUE);
             PhBoostProvider(&handlesContext->ProviderRegistration, NULL);
 
@@ -594,15 +590,39 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                     PhDereferenceObject(text);
                 }
                 break;
-            case IDC_HIDEUNNAMEDHANDLES:
+            case IDC_OPTIONS:
                 {
-                    BOOLEAN hide;
+                    RECT rect;
+                    PPH_EMENU menu;
+                    PPH_EMENU_ITEM unnamedMenuItem;
+                    PPH_EMENU_ITEM selectedItem;
 
-                    hide = Button_GetCheck(GetDlgItem(hwndDlg, IDC_HIDEUNNAMEDHANDLES)) == BST_CHECKED;
+                    GetWindowRect(GetDlgItem(hwndDlg, IDC_OPTIONS), &rect);
 
-                    PhSetIntegerSetting(L"HideUnnamedHandles", hide); 
-                    PhSetOptionsHandleList(&handlesContext->ListContext, hide);
-                    PhApplyTreeNewFilters(&handlesContext->ListContext.TreeFilterSupport);
+                    menu = PhCreateEMenu();
+                    unnamedMenuItem = PhCreateEMenuItem(0, PH_HANDLE_TREE_MENUITEM_HIDEUNNAMEDHANDLES, L"Hide unnamed handles", NULL, NULL);
+                    PhInsertEMenuItem(menu, unnamedMenuItem, ULONG_MAX);
+                    
+                    if (handlesContext->ListContext.HideUnnamedHandles)
+                        unnamedMenuItem->Flags |= PH_EMENU_CHECKED;
+
+                    selectedItem = PhShowEMenu(
+                        menu,
+                        hwndDlg,
+                        PH_EMENU_SHOW_LEFTRIGHT,
+                        PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                        rect.left,
+                        rect.bottom
+                        );
+
+                    if (selectedItem && selectedItem->Id)
+                    {
+                        PhSetOptionsHandleList(&handlesContext->ListContext, selectedItem->Id);
+                        PhSaveSettingsHandleList(&handlesContext->ListContext);
+                        PhApplyTreeNewFilters(&handlesContext->ListContext.TreeFilterSupport);
+                    }
+
+                    PhDestroyEMenu(menu);
                 }
                 break;
             }
