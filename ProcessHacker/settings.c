@@ -81,7 +81,6 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"HideOnMinimize", L"0");
     PhpAddIntegerSetting(L"HideOtherUserProcesses", L"0");
     PhpAddIntegerSetting(L"HideSignedProcesses", L"0");
-    PhpAddIntegerSetting(L"HideUnnamedHandles", L"1");
     PhpAddIntegerSetting(L"HighlightingDuration", L"3e8"); // 1000ms
     PhpAddStringSetting(L"IconSettings", L"1|1");
     PhpAddIntegerSetting(L"IconNotifyMask", L"c"); // PH_NOTIFY_SERVICE_CREATE | PH_NOTIFY_SERVICE_DELETE
