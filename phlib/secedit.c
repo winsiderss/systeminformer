@@ -165,7 +165,7 @@ ISecurityInformation *PhSecurityInformation_Create(
     PhSecurityInformation *info;
     ULONG i;
 
-    info = PhAllocate(sizeof(PhSecurityInformation));
+    info = PhAllocateZero(sizeof(PhSecurityInformation));
     info->VTable = &PhSecurityInformation_VTable;
     info->RefCount = 1;
 
@@ -179,11 +179,10 @@ ISecurityInformation *PhSecurityInformation_Create(
 
     if (PhGetAccessEntries(ObjectType, &info->AccessEntriesArray, &info->NumberOfAccessEntries))
     {
-        info->AccessEntries = PhAllocate(sizeof(SI_ACCESS) * info->NumberOfAccessEntries);
+        info->AccessEntries = PhAllocateZero(sizeof(SI_ACCESS) * info->NumberOfAccessEntries);
 
         for (i = 0; i < info->NumberOfAccessEntries; i++)
         {
-            memset(&info->AccessEntries[i], 0, sizeof(SI_ACCESS));
             info->AccessEntries[i].pszName = info->AccessEntriesArray[i].Name;
             info->AccessEntries[i].mask = info->AccessEntriesArray[i].Access;
 
@@ -218,7 +217,7 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_QueryInterface(
         {
             PhSecurityInformation2 *info;
 
-            info = PhAllocate(sizeof(PhSecurityInformation2));
+            info = PhAllocateZero(sizeof(PhSecurityInformation2));
             info->VTable = &PhSecurityInformation_VTable2;
             info->RefCount = 1;
 
@@ -462,7 +461,7 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation2_LookupSids(
 {
     PhSecurityIDataObject *dataObject;
 
-    dataObject = PhAllocate(sizeof(PhSecurityInformation));
+    dataObject = PhAllocateZero(sizeof(PhSecurityInformation));
     dataObject->VTable = &PhDataObject_VTable;
     dataObject->RefCount = 1;
 
