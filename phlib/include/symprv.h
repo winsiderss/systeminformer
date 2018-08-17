@@ -16,6 +16,7 @@ typedef struct _PH_SYMBOL_PROVIDER
     HANDLE ProcessHandle;
     BOOLEAN IsRealHandle;
     BOOLEAN IsRegistered;
+    BOOLEAN Terminating;
 
     PH_INITONCE InitOnce;
     PH_AVL_TREE ModulesSet;
@@ -55,6 +56,7 @@ typedef enum _PH_SYMBOL_EVENT_TYPE
 
 typedef struct _PH_SYMBOL_EVENT_DATA
 {
+    HANDLE ProcessHandle;
     PPH_SYMBOL_PROVIDER SymbolProvider;
     PH_SYMBOL_EVENT_TYPE Type;
 
@@ -287,6 +289,24 @@ NTAPI
 PhUndecorateSymbolName(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
     _In_ PWSTR DecoratedName
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhSymbolProviderRegisterEventCallback(
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
+    _In_ PPH_CALLBACK_FUNCTION Function,
+    _In_opt_ PVOID Context,
+    _Out_ PPH_CALLBACK_REGISTRATION Registration
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhSymbolProviderUnregisterEventCallback(
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
+    _In_ PPH_CALLBACK_REGISTRATION Registration
     );
 
 #ifdef __cplusplus
