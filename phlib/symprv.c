@@ -188,52 +188,51 @@ NTSTATUS PhpSymbolCallbackWorker(
 {
     PPH_SYMBOL_EVENT_DATA data = Parameter;
 
-    dprintf("symbol event %d: %S\n", data->Type, data->FileName->Buffer);
+    //dprintf("symbol event %d: %S\n", data->Type, data->FileName->Buffer);
     PhInvokeCallback(&data->SymbolProvider->EventCallback, data);
-    PhClearReference(&data->FileName);
+
+    if (data->FileName) PhDereferenceObject(data->FileName);
     PhDereferenceObject(data);
 
     return STATUS_SUCCESS;
 }
 
 BOOL CALLBACK PhpSymbolCallbackFunction(
-    _In_ HANDLE hProcess,
+    _In_ HANDLE ProcessHandle,
     _In_ ULONG ActionCode,
     _In_opt_ ULONG64 CallbackData,
     _In_opt_ ULONG64 UserContext
     )
 {
+    PIMAGEHLP_DEFERRED_SYMBOL_LOADW64 callbackData = (PIMAGEHLP_DEFERRED_SYMBOL_LOADW64)CallbackData;
     PPH_SYMBOL_PROVIDER symbolProvider = (PPH_SYMBOL_PROVIDER)UserContext;
-    PPH_SYMBOL_EVENT_DATA data;
-    PIMAGEHLP_DEFERRED_SYMBOL_LOADW64 callbackData;
+
+    assert(ProcessHandle == symbolProvider->ProcessHandle);
 
     if (!IsListEmpty(&symbolProvider->EventCallback.ListHead))
     {
-        switch (ActionCode)
-        {
-        case SymbolDeferredSymbolLoadStart: // CBA_DEFERRED_SYMBOL_LOAD_START
-        case SymbolDeferredSymbolLoadComplete: // CBA_DEFERRED_SYMBOL_LOAD_COMPLETE
-        case SymbolDeferredSymbolLoadFailure: // CBA_DEFERRED_SYMBOL_LOAD_FAILURE
-        case SymbolSymbolsUnloaded: // CBA_SYMBOLS_UNLOADED
-        case SymbolDeferredSymbolLoadCancel: // CBA_DEFERRED_SYMBOL_LOAD_CANCEL
-            data = PhCreateAlloc(sizeof(PH_SYMBOL_EVENT_DATA));
-            memset(data, 0, sizeof(PH_SYMBOL_EVENT_DATA));
-            data->SymbolProvider = symbolProvider;
-            data->Type = ActionCode;
+        PPH_SYMBOL_EVENT_DATA data;
 
-            if (ActionCode != SymbolSymbolsUnloaded)
-            {
-                callbackData = (PIMAGEHLP_DEFERRED_SYMBOL_LOADW64)CallbackData;
-                data->BaseAddress = callbackData->BaseOfImage;
-                data->CheckSum = callbackData->CheckSum;
-                data->TimeStamp = callbackData->TimeDateStamp;
-                data->FileName = PhCreateString(callbackData->FileName);
-            }
+        data = PhCreateAlloc(sizeof(PH_SYMBOL_EVENT_DATA));
+        memset(data, 0, sizeof(PH_SYMBOL_EVENT_DATA));
 
-            PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), PhpSymbolCallbackWorker, data);
+        data->Type = ActionCode;
+        data->ProcessHandle = ProcessHandle;
+        data->SymbolProvider = symbolProvider;
+        data->BaseAddress = callbackData->BaseOfImage;
+        data->CheckSum = callbackData->CheckSum;
+        data->TimeStamp = callbackData->TimeDateStamp;
 
-            break;
-        }
+        if (callbackData->FileName[0])
+            data->FileName = PhCreateString(callbackData->FileName);
+
+        PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), PhpSymbolCallbackWorker, data);
+    }
+
+    if (ActionCode == CBA_DEFERRED_SYMBOL_LOAD_CANCEL)
+    {
+        if (symbolProvider->Terminating) // HACK
+            return TRUE;
     }
 
     return FALSE;
@@ -385,7 +384,7 @@ VOID PhpRegisterSymbolProvider(
             SymInitializeW_I(SymbolProvider->ProcessHandle, NULL, FALSE);
 
             if (SymRegisterCallbackW64_I)
-                SymRegisterCallbackW64_I(SymbolProvider->ProcessHandle, PhpSymbolCallbackFunction, (ULONG64)SymbolProvider);
+                SymRegisterCallbackW64_I(SymbolProvider->ProcessHandle, PhpSymbolCallbackFunction, SymbolProvider);
 
             PH_UNLOCK_SYMBOLS();
 
@@ -1718,4 +1717,35 @@ PPH_STRING PhUndecorateSymbolName(
     PhFree(undecoratedBuffer);
 
     return undecoratedSymbolName;
+}
+
+VOID PhSymbolProviderRegisterEventCallback(
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
+    _In_ PPH_CALLBACK_FUNCTION Function,
+    _In_opt_ PVOID Context,
+    _Out_ PPH_CALLBACK_REGISTRATION Registration
+    )
+{
+    //PH_LOCK_SYMBOLS();
+
+    PhRegisterCallback(
+        &SymbolProvider->EventCallback,
+        Function,
+        Context,
+        Registration
+        );
+
+    //PH_UNLOCK_SYMBOLS();
+}
+
+VOID PhSymbolProviderUnregisterEventCallback(
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
+    _In_ PPH_CALLBACK_REGISTRATION Registration
+    )
+{
+    //PH_LOCK_SYMBOLS();
+
+    PhUnregisterCallback(&SymbolProvider->EventCallback, Registration);
+
+    //PH_UNLOCK_SYMBOLS();
 }
