@@ -31,9 +31,9 @@ PVOID WeGetProcedureAddress(
     static PVOID imageBase = NULL;
 
     if (!imageBase)
-        imageBase = GetModuleHandle(L"ProcessHacker.exe");
+        imageBase = PhGetDllHandle(L"ProcessHacker.exe");
 
-    return (PVOID)GetProcAddress(imageBase, Name);
+    return PhGetProcedureAddress(imageBase, Name, 0);
 }
 
 VOID WeFormatLocalObjectName(

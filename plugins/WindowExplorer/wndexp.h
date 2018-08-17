@@ -11,7 +11,6 @@
 #include "resource.h"
 #include "wndtree.h"
 
-extern BOOLEAN IsHookClient;
 extern PPH_PLUGIN PluginInstance;
 
 #define PLUGIN_NAME L"ProcessHacker.WindowExplorer"
@@ -19,58 +18,6 @@ extern PPH_PLUGIN PluginInstance;
 #define SETTING_NAME_WINDOW_TREE_LIST_COLUMNS (PLUGIN_NAME L".WindowTreeListColumns")
 #define SETTING_NAME_WINDOWS_WINDOW_POSITION (PLUGIN_NAME L".WindowsWindowPosition")
 #define SETTING_NAME_WINDOWS_WINDOW_SIZE (PLUGIN_NAME L".WindowsWindowSize")
-
-// hook
-
-#define WE_SERVER_MESSAGE_NAME L"WE_ServerMessage"
-#define WE_SERVER_SHARED_SECTION_NAME L"\\BaseNamedObjects\\WeSharedSection"
-#define WE_SERVER_SHARED_SECTION_LOCK_NAME L"\\BaseNamedObjects\\WeSharedSectionLock"
-#define WE_SERVER_SHARED_SECTION_EVENT_NAME L"\\BaseNamedObjects\\WeSharedSectionEvent"
-#define WE_CLIENT_MESSAGE_TIMEOUT 2000
-
-typedef struct _WE_HOOK_SHARED_DATA
-{
-    ULONG MessageId;
-
-    struct
-    {
-        ULONG_PTR WndProc;
-        ULONG_PTR DlgProc;
-        WNDCLASSEX ClassInfo;
-    } c;
-} WE_HOOK_SHARED_DATA, *PWE_HOOK_SHARED_DATA;
-
-VOID WeHookServerInitialization(
-    VOID
-    );
-
-VOID WeHookServerUninitialization(
-    VOID
-    );
-
-BOOLEAN WeIsServerActive(
-    VOID
-    );
-
-BOOLEAN WeLockServerSharedData(
-    _Out_ PWE_HOOK_SHARED_DATA *Data
-    );
-
-VOID WeUnlockServerSharedData(
-    VOID
-    );
-
-BOOLEAN WeSendServerRequest(
-    _In_ HWND hWnd
-    );
-
-VOID WeHookClientInitialization(
-    VOID
-    );
-
-VOID WeHookClientUninitialization(
-    VOID
-    );
 
 // wnddlg
 

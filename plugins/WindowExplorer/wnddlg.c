@@ -61,8 +61,7 @@ VOID WeShowWindowsDialog(
 {
     PWINDOWS_CONTEXT context;
 
-    context = PhAllocate(sizeof(WINDOWS_CONTEXT));
-    memset(context, 0, sizeof(WINDOWS_CONTEXT));
+    context = PhAllocateZero(sizeof(WINDOWS_CONTEXT));
     memcpy(&context->Selector, Selector, sizeof(WE_WINDOW_SELECTOR));
 
     ProcessHacker_Invoke(WE_PhMainWndHandle, WepShowWindowsDialogCallback, context);
@@ -75,8 +74,7 @@ VOID WeShowWindowsPropPage(
 {
     PWINDOWS_CONTEXT context;
 
-    context = PhAllocate(sizeof(WINDOWS_CONTEXT));
-    memset(context, 0, sizeof(WINDOWS_CONTEXT));
+    context = PhAllocateZero(sizeof(WINDOWS_CONTEXT));
     memcpy(&context->Selector, Selector, sizeof(WE_WINDOW_SELECTOR));
 
     PhAddProcessPropPage(
@@ -810,8 +808,6 @@ INT_PTR CALLBACK WepWindowsPageProc(
 
             WeInitializeWindowTree(hwndDlg, context->TreeNewHandle, &context->TreeContext);
 
-            PhRegisterDialog(hwndDlg);
-
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_SEARCHEDIT), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_LIST), NULL, PH_ANCHOR_ALL);
@@ -821,21 +817,19 @@ INT_PTR CALLBACK WepWindowsPageProc(
             PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
         }
         break;
-    case WM_SHOWWINDOW:
-        {
-            if (PhBeginPropPageLayout(hwndDlg, propPageContext))
-                PhEndPropPageLayout(hwndDlg, propPageContext);
-        }
-        break;
     case WM_DESTROY:
         {
             PhDeleteLayoutManager(&context->LayoutManager);
 
-            PhUnregisterDialog(hwndDlg);
-
             WeDeleteWindowTree(&context->TreeContext);
             WepDeleteWindowSelector(&context->Selector);
             PhFree(context);
+        }
+        break;
+    case WM_SHOWWINDOW:
+        {
+            if (PhBeginPropPageLayout(hwndDlg, propPageContext))
+                PhEndPropPageLayout(hwndDlg, propPageContext);
         }
         break;
     case WM_COMMAND:

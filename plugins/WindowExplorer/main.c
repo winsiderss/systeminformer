@@ -46,7 +46,7 @@ VOID NTAPI UnloadCallback(
     _In_opt_ PVOID Context
     )
 {
-    WeHookServerUninitialization();
+    NOTHING;
 }
 
 BOOL CALLBACK WepEnumDesktopProc(
@@ -209,7 +209,7 @@ LOGICAL DllMain(
     {
     case DLL_PROCESS_ATTACH:
         {
-            BOOLEAN isClient;
+            
             PPH_PLUGIN_INFORMATION info;
             PH_SETTING_CREATE settings[] =
             {
@@ -219,30 +219,11 @@ LOGICAL DllMain(
                 { ScalableIntegerPairSettingType, SETTING_NAME_WINDOWS_WINDOW_SIZE, L"@96|690,540" }
             };
 
-            isClient = FALSE;
-
-            if (!GetModuleHandle(L"ProcessHacker.exe") || !WeGetProcedureAddress("PhInstanceHandle"))
-            {
-                isClient = TRUE;
-            }
-            else
-            {
-                // WindowExplorer appears to be loading within Process Hacker. However, if there is
-                // already a server instance, the the hook will be active, and our DllMain routine
-                // will most likely be called before the plugin system is even initialized. Attempting
-                // to register a plugin would result in an access violation, so load as a client for now.
-                if (WeIsServerActive())
-                    isClient = TRUE;
-            }
-
-            if (isClient)
-            {
-                // This DLL is being loaded not as a Process Hacker plugin, but as a hook.
-                IsHookClient = TRUE;
-                WeHookClientInitialization();
-
-                break;
-            }
+            //BOOLEAN isClient = FALSE;
+            //if (!GetModuleHandle(L"ProcessHacker.exe") || !WeGetProcedureAddress("PhInstanceHandle"))
+            //{
+            //    isClient = TRUE;
+            //}
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
 
@@ -250,7 +231,7 @@ LOGICAL DllMain(
                 return FALSE;
 
             info->DisplayName = L"Window Explorer";
-            info->Author = L"wj32";
+            info->Author = L"dmex, wj32";
             info->Description = L"View and manipulate windows.";
             info->Url = L"https://wj32.org/processhacker/forums/viewtopic.php?t=1116";
             info->HasOptions = FALSE;
@@ -293,15 +274,7 @@ LOGICAL DllMain(
                 &ThreadMenuInitializingCallbackRegistration
                 );
 
-            PhAddSettings(settings, ARRAYSIZE(settings));    
-        }
-        break;
-    case DLL_PROCESS_DETACH:
-        {
-            if (IsHookClient)
-            {
-                WeHookClientUninitialization();
-            }
+            PhAddSettings(settings, RTL_NUMBER_OF(settings));    
         }
         break;
     }

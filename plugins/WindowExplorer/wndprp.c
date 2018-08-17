@@ -51,8 +51,6 @@ typedef struct _WINDOW_PROPERTIES_CONTEXT
     PPH_STRING ClassWndProcSymbol;
     ULONG ClassWndProcResolving;
 
-    BOOLEAN HookDataValid;
-    BOOLEAN HookDataSuccess;
     ULONG_PTR WndProc;
     ULONG_PTR DlgProc;
     WNDCLASSEX ClassInfo;
@@ -593,57 +591,6 @@ FORCEINLINE BOOLEAN WepPropPageDlgProcHeader(
     return TRUE;
 }
 
-static VOID WepEnsureHookDataValid(
-    _In_ PWINDOW_PROPERTIES_CONTEXT Context
-    )
-{
-    if (!Context->HookDataValid)
-    {
-        PWE_HOOK_SHARED_DATA data;
-#ifdef _WIN64
-        HANDLE processHandle;
-        BOOLEAN isWow64 = FALSE;
-#endif
-
-        // The desktop window is owned by CSR. The hook will never work on the desktop window.
-        if (Context->WindowHandle == GetDesktopWindow())
-        {
-            Context->HookDataValid = TRUE;
-            return;
-        }
-
-#ifdef _WIN64
-        // We can't use the hook on WOW64 processes.
-        if (NT_SUCCESS(PhOpenProcess(&processHandle, *(PULONG)WeGetProcedureAddress("ProcessQueryAccess"), Context->ClientId.UniqueProcess)))
-        {
-            PhGetProcessIsWow64(processHandle, &isWow64);
-            NtClose(processHandle);
-        }
-
-        if (isWow64)
-            return;
-#endif
-
-        WeHookServerInitialization();
-
-        Context->HookDataSuccess = FALSE;
-
-        if (WeLockServerSharedData(&data))
-        {
-            if (WeSendServerRequest(Context->WindowHandle))
-            {
-                Context->WndProc = data->c.WndProc;
-                Context->DlgProc = data->c.DlgProc;
-                memcpy(&Context->ClassInfo, &data->c.ClassInfo, sizeof(WNDCLASSEX));
-                Context->HookDataSuccess = TRUE;
-            }
-
-            WeUnlockServerSharedData();
-        }
-
-        Context->HookDataValid = TRUE;
-    }
-}
 
 static BOOLEAN NTAPI EnumGenericModulesCallback(
     _In_ PPH_MODULE_INFO Module,
@@ -658,7 +605,7 @@ static BOOLEAN NTAPI EnumGenericModulesCallback(
     return TRUE;
 }
 
-static NTSTATUS WepResolveSymbolFunction(
+NTSTATUS WepResolveSymbolFunction(
     _In_ PVOID Parameter
     )
 {
@@ -845,7 +792,7 @@ static VOID WepRefreshWindowGeneralInfo(
     PhSetDialogItemText(hwndDlg, IDC_UNICODE, IsWindowUnicode(Context->WindowHandle) ? L"Yes" : L"No");
     PhSetDialogItemText(hwndDlg, IDC_CTRLID, PhaFormatString(L"%lu", windowId)->Buffer);
 
-    WepEnsureHookDataValid(Context);
+    //WepQueryProcessWndProc(Context);
 
     if (Context->WndProc != 0)
     {
@@ -889,7 +836,6 @@ INT_PTR CALLBACK WepWindowGeneralDlgProc(
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDC_REFRESH:
-                context->HookDataValid = FALSE;
                 PhClearReference(&context->WndProcSymbol);
                 WepRefreshWindowGeneralInfo(hwndDlg, context);
                 break;
@@ -1061,14 +1007,12 @@ static VOID WepRefreshWindowClassInfo(
     if (!GetClassName(Context->WindowHandle, className, sizeof(className) / sizeof(WCHAR)))
         className[0] = 0;
 
-    WepEnsureHookDataValid(Context);
+    //WepQueryProcessWndProc(Context);
 
-    if (!Context->HookDataSuccess)
-    {
-        Context->ClassInfo.cbSize = sizeof(WNDCLASSEX);
-        GetClassInfoEx(NULL, className, &Context->ClassInfo);
-    }
-
+    //if (!Context->HookDataSuccess)
+    Context->ClassInfo.cbSize = sizeof(WNDCLASSEX);
+    GetClassInfoEx(NULL, className, &Context->ClassInfo);
+    
     instanceHandle = (PVOID)GetClassLongPtr(Context->WindowHandle, GCLP_HMODULE);
     // TODO: GetWindowLongPtr(Context->WindowHandle, GCLP_WNDPROC);
 
@@ -1169,7 +1113,6 @@ INT_PTR CALLBACK WepWindowClassDlgProc(
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDC_REFRESH:
-                context->HookDataValid = FALSE;
                 PhClearReference(&context->ClassWndProcSymbol);
                 WepRefreshWindowClassInfo(hwndDlg, context);
                 break;
