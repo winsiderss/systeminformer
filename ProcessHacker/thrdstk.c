@@ -3,7 +3,7 @@
  *   thread stack viewer
  *
  * Copyright (C) 2010-2016 wj32
- * Copyright (C) 2017 dmex
+ * Copyright (C) 2017-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -35,10 +35,13 @@
 #include <settings.h>
 #include <thrdprv.h>
 
+#include <dbghelp.h>
+
 #define WM_PH_COMPLETED (WM_APP + 301)
-#define WM_PH_STATUS_UPDATE (WM_APP + 302)
+//#define WM_PH_STATUS_UPDATE (WM_APP + 302)
 #define WM_PH_SHOWSTACKMENU (WM_APP + 303)
 
+static PPH_OBJECT_TYPE PhThreadStackContextType = NULL;
 static RECT MinimumSize = { -1, -1, -1, -1 };
 
 typedef struct _PH_THREAD_STACK_CONTEXT
@@ -48,14 +51,19 @@ typedef struct _PH_THREAD_STACK_CONTEXT
     HANDLE ThreadHandle;
     PPH_THREAD_PROVIDER ThreadProvider;
     PPH_SYMBOL_PROVIDER SymbolProvider;
-    BOOLEAN CustomWalk;
 
+    BOOLEAN CustomWalk;
     BOOLEAN StopWalk;
+    BOOLEAN EnableCloseDialog;
+
     PPH_LIST List;
     PPH_LIST NewList;
-    HWND ProgressWindowHandle;
+
+    HWND TaskDialogHandle;
+
     NTSTATUS WalkStatus;
     PPH_STRING StatusMessage;
+    PPH_STRING StatusContent;
     PH_QUEUED_LOCK StatusLock;
 
     PH_LAYOUT_MANAGER LayoutManager;
@@ -67,6 +75,8 @@ typedef struct _PH_THREAD_STACK_CONTEXT
     PPH_HASHTABLE NodeHashtable;
     PPH_LIST NodeList;
     PPH_LIST NodeRootList;
+    WNDPROC ThreadStackStatusDefaultWindowProc;
+    PH_CALLBACK_REGISTRATION SymbolProviderEventRegistration;
 } PH_THREAD_STACK_CONTEXT, *PPH_THREAD_STACK_CONTEXT;
 
 typedef struct _THREAD_STACK_ITEM
@@ -127,13 +137,6 @@ VOID PhpFreeThreadStackItem(
 NTSTATUS PhpRefreshThreadStack(
     _In_ HWND hwnd,
     _In_ PPH_THREAD_STACK_CONTEXT ThreadStackContext
-    );
-
-INT_PTR CALLBACK PhpThreadStackProgressDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
     );
 
 #define SORT_FUNCTION(Column) ThreadStackTreeNewCompare##Column
@@ -669,6 +672,164 @@ VOID DeleteThreadStackTree(
     PhDereferenceObject(Context->NodeList);
 }
 
+typedef struct _PH_THREAD_SYMBOL_STACK_CONTEXT
+{
+    HANDLE ProcessId;
+    PPH_SYMBOL_PROVIDER SymbolProvider;
+} PH_THREAD_SYMBOL_STACK_CONTEXT, *PPH_THREAD_SYMBOL_STACK_CONTEXT;
+
+static BOOLEAN LoadSymbolsEnumGenericModulesCallback(
+    _In_ PPH_MODULE_INFO Module,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_THREAD_SYMBOL_STACK_CONTEXT context = Context;
+    PPH_SYMBOL_PROVIDER symbolProvider = context->SymbolProvider;
+
+    if (symbolProvider->Terminating)
+        return FALSE;
+
+    // If we're loading kernel module symbols for a process other than System, ignore modules which
+    // are in user space. This may happen in Windows 7.
+    if (context->ProcessId == SYSTEM_PROCESS_ID &&
+        (ULONG_PTR)Module->BaseAddress <= PhSystemBasicInformation.MaximumUserModeAddress)
+    {
+        return TRUE;
+    }
+
+    PhLoadModuleSymbolProvider(
+        symbolProvider,
+        Module->FileName->Buffer,
+        (ULONG64)Module->BaseAddress,
+        Module->Size
+        );
+
+    return TRUE;
+}
+
+static BOOLEAN LoadBasicSymbolsEnumGenericModulesCallback(
+    _In_ PPH_MODULE_INFO Module,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_THREAD_SYMBOL_STACK_CONTEXT context = Context;
+    PPH_SYMBOL_PROVIDER symbolProvider = context->SymbolProvider;
+
+    if (symbolProvider->Terminating)
+        return FALSE;
+
+    if (PhEqualString2(Module->Name, L"ntdll.dll", TRUE) ||
+        PhEqualString2(Module->Name, L"kernel32.dll", TRUE))
+    {
+        PhLoadModuleSymbolProvider(
+            symbolProvider,
+            Module->FileName->Buffer,
+            (ULONG64)Module->BaseAddress,
+            Module->Size
+            );
+    }
+
+    return TRUE;
+}
+
+VOID PhpLoadThreadStackSymbols(
+    _In_ HANDLE ProcessId,
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider
+    )
+{
+    PH_THREAD_SYMBOL_STACK_CONTEXT loadContext;
+
+    loadContext.SymbolProvider = SymbolProvider;
+
+    if (ProcessId != SYSTEM_IDLE_PROCESS_ID)
+    {
+        if (SymbolProvider->IsRealHandle || ProcessId == SYSTEM_PROCESS_ID)
+        {
+            loadContext.ProcessId = ProcessId;
+            PhEnumGenericModules(
+                ProcessId,
+                SymbolProvider->ProcessHandle,
+                0,
+                LoadSymbolsEnumGenericModulesCallback,
+                &loadContext
+                );
+        }
+        else
+        {
+            // We can't enumerate the process modules. Load symbols for ntdll.dll and kernel32.dll.
+            loadContext.ProcessId = NtCurrentProcessId();
+            PhEnumGenericModules(
+                NtCurrentProcessId(),
+                NtCurrentProcess(),
+                0,
+                LoadBasicSymbolsEnumGenericModulesCallback,
+                &loadContext
+                );
+        }
+
+        // Load kernel module symbols as well.
+        if (ProcessId != SYSTEM_PROCESS_ID)
+        {
+            loadContext.ProcessId = SYSTEM_PROCESS_ID;
+            PhEnumGenericModules(
+                SYSTEM_PROCESS_ID,
+                NULL,
+                0,
+                LoadSymbolsEnumGenericModulesCallback,
+                &loadContext
+                );
+        }
+    }
+    else
+    {
+        // System Idle Process has one thread for each CPU, each having a start address at
+        // KiIdleLoop. We need to load symbols for the kernel.
+
+        PRTL_PROCESS_MODULES kernelModules;
+
+        if (NT_SUCCESS(PhEnumKernelModules(&kernelModules)))
+        {
+            if (kernelModules->NumberOfModules > 0)
+            {
+                PPH_STRING fileName;
+                PPH_STRING newFileName;
+
+                fileName = PhConvertMultiByteToUtf16(kernelModules->Modules[0].FullPathName);
+                newFileName = PhGetFileName(fileName);
+                PhDereferenceObject(fileName);
+
+                PhLoadModuleSymbolProvider(
+                    SymbolProvider,
+                    newFileName->Buffer,
+                    (ULONG64)kernelModules->Modules[0].ImageBase,
+                    kernelModules->Modules[0].ImageSize
+                    );
+                PhDereferenceObject(newFileName);
+            }
+
+            PhFree(kernelModules);
+        }
+    }
+}
+
+VOID NTAPI PhpThreadStackContextDeleteProcedure(
+    _In_ PVOID Object,
+    _In_ ULONG Flags
+    )
+{
+    PPH_THREAD_STACK_CONTEXT context = (PPH_THREAD_STACK_CONTEXT)Object;
+
+    PhDereferenceObject(context->ThreadProvider);
+    PhDereferenceObject(context->SymbolProvider);
+
+    PhDereferenceObject(context->StatusMessage);
+    PhDereferenceObject(context->NewList);
+    PhDereferenceObject(context->List);
+
+    if (context->ThreadHandle)
+        NtClose(context->ThreadHandle);
+}
+
 VOID PhShowThreadStackDialog(
     _In_ HWND ParentWindowHandle,
     _In_ HANDLE ProcessId,
@@ -676,9 +837,10 @@ VOID PhShowThreadStackDialog(
     _In_ PPH_THREAD_PROVIDER ThreadProvider
     )
 {
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
     NTSTATUS status;
-    PH_THREAD_STACK_CONTEXT threadStackContext;
-    HANDLE threadHandle = NULL;
+    HANDLE threadHandle;
+    PPH_THREAD_STACK_CONTEXT context;
 
     // If the user is trying to view a system thread stack
     // but KProcessHacker is not loaded, show an error message.
@@ -687,12 +849,6 @@ VOID PhShowThreadStackDialog(
         PhShowError(ParentWindowHandle, PH_KPH_ERROR_MESSAGE);
         return;
     }
-
-    memset(&threadStackContext, 0, sizeof(PH_THREAD_STACK_CONTEXT));
-    threadStackContext.ProcessId = ProcessId;
-    threadStackContext.ThreadId = ThreadId;
-    threadStackContext.ThreadProvider = ThreadProvider;
-    threadStackContext.SymbolProvider = ThreadProvider->SymbolProvider;
 
     if (!NT_SUCCESS(status = PhOpenThread(
         &threadHandle,
@@ -712,32 +868,41 @@ VOID PhShowThreadStackDialog(
 
     if (!NT_SUCCESS(status))
     {
-        PhShowStatus(ParentWindowHandle, L"Unable to open the thread", status, 0);
+        PhShowStatus(ParentWindowHandle, L"Unable to open the thread.", status, 0);
         return;
     }
 
-    threadStackContext.ThreadHandle = threadHandle;
-    threadStackContext.List = PhCreateList(10);
-    threadStackContext.NewList = PhCreateList(10);
-    PhInitializeQueuedLock(&threadStackContext.StatusLock);
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PhThreadStackContextType = PhCreateObjectType(L"ThreadStackContext", 0, PhpThreadStackContextDeleteProcedure);
+        PhEndInitOnce(&initOnce);
+    }
+
+    context = PhCreateObject(sizeof(PH_THREAD_STACK_CONTEXT), PhThreadStackContextType);
+    memset(context, 0, sizeof(PH_THREAD_STACK_CONTEXT));
+
+    context->List = PhCreateList(10);
+    context->NewList = PhCreateList(10);
+    PhInitializeQueuedLock(&context->StatusLock);
+
+    context->ThreadHandle = threadHandle;
+    context->ProcessId = ProcessId;
+    context->ThreadId = ThreadId;
+    context->ThreadProvider = PhReferenceObject(ThreadProvider);
+    context->SymbolProvider = PhReferenceObject(ThreadProvider->SymbolProvider);
+    //context->SymbolProvider = PhCreateSymbolProvider(ProcessId);
+    //PhpLoadThreadStackSymbols(ProcessId, context->SymbolProvider);
 
     DialogBoxParam(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_THRDSTACK),
         ParentWindowHandle,
         PhpThreadStackDlgProc,
-        (LPARAM)&threadStackContext
+        (LPARAM)context
         );
-
-    PhClearReference(&threadStackContext.StatusMessage);
-    PhDereferenceObject(threadStackContext.NewList);
-    PhDereferenceObject(threadStackContext.List);
-
-    if (threadStackContext.ThreadHandle)
-        NtClose(threadStackContext.ThreadHandle);
 }
 
-static INT_PTR CALLBACK PhpThreadStackDlgProc(
+INT_PTR CALLBACK PhpThreadStackDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -847,6 +1012,7 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
             PhSaveWindowPlacementToSetting(NULL, L"ThreadStackWindowSize", hwndDlg);
 
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+            PhDereferenceObject(context);
         }
         break;
     case WM_COMMAND:
@@ -929,93 +1095,15 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
     return FALSE;
 }
 
-static VOID PhpFreeThreadStackItem(
+VOID PhpFreeThreadStackItem(
     _In_ PTHREAD_STACK_ITEM StackItem
     )
 {
-    PhClearReference(&StackItem->Symbol);
+    if (StackItem->Symbol) PhDereferenceObject(StackItem->Symbol);
     PhFree(StackItem);
 }
 
-static NTSTATUS PhpRefreshThreadStack(
-    _In_ HWND hwnd,
-    _In_ PPH_THREAD_STACK_CONTEXT Context
-    )
-{
-    ULONG i;
-
-    Context->StopWalk = FALSE;
-    PhMoveReference(&Context->StatusMessage, PhCreateString(L"Loading stack..."));
-
-    DialogBoxParam(
-        PhInstanceHandle,
-        MAKEINTRESOURCE(IDD_PROGRESS),
-        hwnd,
-        PhpThreadStackProgressDlgProc,
-        (LPARAM)Context
-        );
-
-    if (!Context->StopWalk && NT_SUCCESS(Context->WalkStatus))
-    {
-        for (i = 0; i < Context->List->Count; i++)
-            PhpFreeThreadStackItem(Context->List->Items[i]);
-
-        PhDereferenceObject(Context->List);
-        Context->List = Context->NewList;
-        Context->NewList = PhCreateList(10);
-
-        ClearThreadStackTree(Context);
-
-        for (i = 0; i < Context->List->Count; i++)
-        {
-            PTHREAD_STACK_ITEM item = Context->List->Items[i];
-            PPH_STACK_TREE_ROOT_NODE stackNode;
-
-            stackNode = AddThreadStackNode(Context, item->Index);
-            stackNode->StackFrame = item->StackFrame;
-
-            if (!PhIsNullOrEmptyString(item->Symbol))
-                stackNode->SymbolString = PhReferenceObject(item->Symbol);
-
-            if (item->StackFrame.StackAddress)
-                PhPrintPointer(stackNode->StackAddressString, item->StackFrame.StackAddress);
-            if (item->StackFrame.FrameAddress)
-                PhPrintPointer(stackNode->FrameAddressString, item->StackFrame.FrameAddress);
-
-            // There are no params for kernel-mode stack traces.
-            if ((ULONG_PTR)item->StackFrame.PcAddress <= PhSystemBasicInformation.MaximumUserModeAddress)
-            {
-                PhPrintPointer(stackNode->Parameter1String, item->StackFrame.Params[0]);
-                PhPrintPointer(stackNode->Parameter2String, item->StackFrame.Params[1]);
-                PhPrintPointer(stackNode->Parameter3String, item->StackFrame.Params[2]);
-                PhPrintPointer(stackNode->Parameter4String, item->StackFrame.Params[3]);
-            }
-
-            if (item->StackFrame.PcAddress)
-                PhPrintPointer(stackNode->PcAddressString, item->StackFrame.PcAddress);
-            if (item->StackFrame.ReturnAddress)
-                PhPrintPointer(stackNode->ReturnAddressString, item->StackFrame.ReturnAddress);
-
-            UpdateThreadStackNode(Context, stackNode);
-        }
-
-        TreeNew_NodesStructured(Context->TreeNewHandle);
-    }
-    else
-    {
-        for (i = 0; i < Context->NewList->Count; i++)
-            PhpFreeThreadStackItem(Context->NewList->Items[i]);
-
-        PhClearList(Context->NewList);
-    }
-
-    if (Context->StopWalk)
-        return STATUS_ABANDONED;
-
-    return Context->WalkStatus;
-}
-
-static BOOLEAN NTAPI PhpWalkThreadStackCallback(
+BOOLEAN NTAPI PhpWalkThreadStackCallback(
     _In_ PPH_THREAD_STACK_FRAME StackFrame,
     _In_opt_ PVOID Context
     )
@@ -1028,10 +1116,8 @@ static BOOLEAN NTAPI PhpWalkThreadStackCallback(
         return FALSE;
 
     PhAcquireQueuedLockExclusive(&threadStackContext->StatusLock);
-    PhMoveReference(&threadStackContext->StatusMessage,
-        PhFormatString(L"Processing frame %u...", threadStackContext->NewList->Count));
+    PhMoveReference(&threadStackContext->StatusMessage, PhFormatString(L"Processing stack frame %u...", threadStackContext->NewList->Count));
     PhReleaseQueuedLockExclusive(&threadStackContext->StatusLock);
-    PostMessage(threadStackContext->ProgressWindowHandle, WM_PH_STATUS_UPDATE, 0, 0);
 
     symbol = PhGetSymbolFromAddress(
         threadStackContext->SymbolProvider,
@@ -1049,7 +1135,7 @@ static BOOLEAN NTAPI PhpWalkThreadStackCallback(
         PhMoveReference(&symbol, PhConcatStrings2(symbol->Buffer, L" (No unwind info)"));
     }
 
-    item = PhAllocate(sizeof(THREAD_STACK_ITEM));
+    item = PhAllocateZero(sizeof(THREAD_STACK_ITEM));
     item->StackFrame = *StackFrame;
     item->Index = threadStackContext->NewList->Count;
 
@@ -1072,7 +1158,7 @@ static BOOLEAN NTAPI PhpWalkThreadStackCallback(
     return TRUE;
 }
 
-static NTSTATUS PhpRefreshThreadStackThreadStart(
+NTSTATUS PhpRefreshThreadStackThreadStart(
     _In_ PVOID Parameter
     )
 {
@@ -1143,14 +1229,16 @@ static NTSTATUS PhpRefreshThreadStackThreadStart(
         status = STATUS_SUCCESS;
 
     threadStackContext->WalkStatus = status;
-    PostMessage(threadStackContext->ProgressWindowHandle, WM_PH_COMPLETED, 0, 0);
+    PostMessage(threadStackContext->TaskDialogHandle, WM_PH_COMPLETED, 0, 0);
 
     PhDeleteAutoPool(&autoPool);
+
+    PhDereferenceObject(threadStackContext);
 
     return STATUS_SUCCESS;
 }
 
-static INT_PTR CALLBACK PhpThreadStackProgressDlgProc(
+LRESULT CALLBACK PhpThreadStackTaskDialogSubclassProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -1158,83 +1246,262 @@ static INT_PTR CALLBACK PhpThreadStackProgressDlgProc(
     )
 {
     PPH_THREAD_STACK_CONTEXT context;
+    WNDPROC oldWndProc;
 
-    if (uMsg == WM_INITDIALOG)
-    {
-        context = (PPH_THREAD_STACK_CONTEXT)lParam;
-        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
-    }
-    else
-    {
-        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-    }
+    if (!(context = PhGetWindowContext(hwndDlg, 0xF)))
+        return 0;
 
-    if (!context)
-        return FALSE;
+    oldWndProc = context->ThreadStackStatusDefaultWindowProc;
 
     switch (uMsg)
     {
-    case WM_INITDIALOG:
-        {
-            HANDLE threadHandle;
-
-            context->ProgressWindowHandle = hwndDlg;
-            
-            if (threadHandle = PhCreateThread(0, PhpRefreshThreadStackThreadStart, context))
-            {
-                NtClose(threadHandle);
-            }
-            else
-            {
-                context->WalkStatus = STATUS_UNSUCCESSFUL;
-                EndDialog(hwndDlg, IDOK);
-                break;
-            }
-
-            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
-
-            PhSetWindowStyle(GetDlgItem(hwndDlg, IDC_PROGRESS), PBS_MARQUEE, PBS_MARQUEE);
-            SendMessage(GetDlgItem(hwndDlg, IDC_PROGRESS), PBM_SETMARQUEE, TRUE, 75);
-            SetWindowText(hwndDlg, L"Loading stack...");
-        }
-        break;
     case WM_DESTROY:
         {
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-        }
-        break;
-    case WM_COMMAND:
-        {
-            switch (LOWORD(wParam))
-            {
-            case IDCANCEL:
-                {
-                    EnableWindow(GetDlgItem(hwndDlg, IDCANCEL), FALSE);
-                    context->StopWalk = TRUE;
-                }
-                break;
-            }
+            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+            PhRemoveWindowContext(hwndDlg, 0xF);
         }
         break;
     case WM_PH_COMPLETED:
         {
-            EndDialog(hwndDlg, IDOK);
-        }
-        break;
-    case WM_PH_STATUS_UPDATE:
-        {
-            PPH_STRING message;
+            context->EnableCloseDialog = TRUE;
 
-            PhAcquireQueuedLockExclusive(&context->StatusLock);
-            message = context->StatusMessage;
-            PhReferenceObject(message);
-            PhReleaseQueuedLockExclusive(&context->StatusLock);
-
-            PhSetDialogItemText(hwndDlg, IDC_PROGRESSTEXT, message->Buffer);
-            PhDereferenceObject(message);
+            SendMessage(hwndDlg, TDM_CLICK_BUTTON, IDOK, 0);
         }
         break;
     }
 
-    return FALSE;
+    return CallWindowProc(oldWndProc, hwndDlg, uMsg, wParam, lParam);
+}
+
+VOID PhpSymbolProviderEventCallbackHandler(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_SYMBOL_EVENT_DATA data = Parameter;
+    PPH_THREAD_STACK_CONTEXT context = Context;
+    PPH_STRING statusMessage = NULL;
+
+    switch (data->Type)
+    {
+    case CBA_DEFERRED_SYMBOL_LOAD_START:
+        statusMessage = PhFormatString(L"Loading %s...", PhGetBaseName(data->FileName)->Buffer);
+        break;
+    case CBA_DEFERRED_SYMBOL_LOAD_COMPLETE:
+        statusMessage = PhFormatString(L"Loaded %s...", PhGetBaseName(data->FileName)->Buffer);
+        break;
+    case CBA_DEFERRED_SYMBOL_LOAD_FAILURE:
+        statusMessage = PhFormatString(L"Failed %s...", PhGetBaseName(data->FileName)->Buffer);
+        break;
+    case CBA_SYMBOLS_UNLOADED:
+        statusMessage = PhFormatString(L"Unloaded %s...", data->FileName->Buffer);
+        break;
+    case CBA_READ_MEMORY:
+        //statusMessage = PhFormatString(L"Reading memory: %I64u (FileNameImageAddress: %s)", data->BaseAddress);
+        break;
+    case CBA_DEFERRED_SYMBOL_LOAD_CANCEL:
+        //statusMessage = PhFormatString(L"Canceled: %s", data->FileName->Buffer);
+        break;
+    default:
+        //statusMessage = PhFormatString(L"Unknown: %lu", data->Type);
+        break;
+    }
+
+    if (statusMessage)
+    {
+        PhAcquireQueuedLockExclusive(&context->StatusLock);
+        PhMoveReference(&context->StatusContent, statusMessage);
+        PhReleaseQueuedLockExclusive(&context->StatusLock);
+        //dprintf("SymbolProviderEventCallback: %S\r\n", statusMessage->Buffer);
+    }
+}
+
+HRESULT CALLBACK PhpThreadStackTaskDialogCallback(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam,
+    _In_ LONG_PTR dwRefData
+    )
+{
+    PPH_THREAD_STACK_CONTEXT context = (PPH_THREAD_STACK_CONTEXT)dwRefData;
+
+    switch (uMsg)
+    {
+    case TDN_CREATED:
+        {
+            context->TaskDialogHandle = hwndDlg;
+ 
+            PhSymbolProviderRegisterEventCallback(
+                context->SymbolProvider,
+                PhpSymbolProviderEventCallbackHandler,
+                context,
+                &context->SymbolProviderEventRegistration
+                );
+
+            SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
+            SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
+            SendMessage(hwndDlg, TDM_UPDATE_ICON, TDIE_ICON_MAIN, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
+
+            SendMessage(hwndDlg, TDM_SET_MARQUEE_PROGRESS_BAR, TRUE, 0);
+            SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
+
+            context->ThreadStackStatusDefaultWindowProc = (WNDPROC)GetWindowLongPtr(hwndDlg, GWLP_WNDPROC);
+            PhSetWindowContext(hwndDlg, 0xF, context);
+            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)PhpThreadStackTaskDialogSubclassProc);
+
+            PhReferenceObject(context);
+            PhCreateThread2(PhpRefreshThreadStackThreadStart, context);
+        }
+        break;
+    case TDN_DESTROYED:
+        {
+            PhSymbolProviderUnregisterEventCallback(context->SymbolProvider, &context->SymbolProviderEventRegistration);
+        }
+        break;
+    case TDN_BUTTON_CLICKED:
+        {
+            if ((INT)wParam == IDCANCEL)
+            {
+                context->StopWalk = TRUE;
+                //context->SymbolProvider->Terminating = TRUE; // HACK: Cancel symbol load/download.
+            }
+
+            //if (!context->EnableCloseDialog)
+            //    return S_FALSE;
+        }
+        break;
+    case TDN_TIMER:
+        {
+            PPH_STRING message;
+            PPH_STRING content;
+
+            PhAcquireQueuedLockExclusive(&context->StatusLock);
+
+            message = context->StatusMessage;
+            content = context->StatusContent;
+
+            if (message) PhReferenceObject(message);
+            if (content) PhReferenceObject(content);
+
+            PhReleaseQueuedLockExclusive(&context->StatusLock);
+
+            SendMessage(
+                context->TaskDialogHandle,
+                TDM_SET_ELEMENT_TEXT,
+                TDE_MAIN_INSTRUCTION,
+                (LPARAM)PhGetStringOrDefault(message, L" ")
+                );
+
+            SendMessage(
+                context->TaskDialogHandle,
+                TDM_SET_ELEMENT_TEXT,
+                TDE_CONTENT,
+                (LPARAM)PhGetStringOrDefault(content, L" ")
+                );
+
+            if (message) PhDereferenceObject(message);
+            if (content) PhDereferenceObject(content);
+        }
+        break;
+    }
+
+    return S_OK;
+}
+
+BOOLEAN PhpShowThreadStackWindow(
+    _In_ PPH_THREAD_STACK_CONTEXT Context
+    )
+{
+    TASKDIALOGCONFIG config;
+    INT result;
+
+    memset(&config, 0, sizeof(TASKDIALOGCONFIG));
+    config.cbSize = sizeof(TASKDIALOGCONFIG);
+    config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_POSITION_RELATIVE_TO_WINDOW | TDF_SHOW_MARQUEE_PROGRESS_BAR | TDF_CALLBACK_TIMER;
+    config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
+    config.pfCallback = PhpThreadStackTaskDialogCallback;
+    config.lpCallbackData = (LONG_PTR)Context;
+    config.hwndParent = Context->WindowHandle;
+    config.pszWindowTitle = PhApplicationName;
+    config.pszMainInstruction = L"Processing stack frames...";
+    config.pszContent = L" ";
+    config.cxWidth = 200;
+
+    return SUCCEEDED(TaskDialogIndirect(&config, &result, NULL, NULL)) && result == IDOK;
+}
+
+static NTSTATUS PhpRefreshThreadStack(
+    _In_ HWND hwnd,
+    _In_ PPH_THREAD_STACK_CONTEXT Context
+    )
+{
+    ULONG i;
+
+    Context->StopWalk = FALSE;
+    PhMoveReference(&Context->StatusMessage, PhCreateString(L"Processing stack frames..."));
+
+    if (PhpShowThreadStackWindow(Context))
+    {
+
+    }
+
+    if (!Context->StopWalk && NT_SUCCESS(Context->WalkStatus))
+    {
+        for (i = 0; i < Context->List->Count; i++)
+            PhpFreeThreadStackItem(Context->List->Items[i]);
+
+        PhDereferenceObject(Context->List);
+        Context->List = Context->NewList;
+        Context->NewList = PhCreateList(10);
+
+        ClearThreadStackTree(Context);
+
+        for (i = 0; i < Context->List->Count; i++)
+        {
+            PTHREAD_STACK_ITEM item = Context->List->Items[i];
+            PPH_STACK_TREE_ROOT_NODE stackNode;
+
+            stackNode = AddThreadStackNode(Context, item->Index);
+            stackNode->StackFrame = item->StackFrame;
+
+            if (!PhIsNullOrEmptyString(item->Symbol))
+                stackNode->SymbolString = PhReferenceObject(item->Symbol);
+
+            if (item->StackFrame.StackAddress)
+                PhPrintPointer(stackNode->StackAddressString, item->StackFrame.StackAddress);
+            if (item->StackFrame.FrameAddress)
+                PhPrintPointer(stackNode->FrameAddressString, item->StackFrame.FrameAddress);
+
+            // There are no params for kernel-mode stack traces.
+            if ((ULONG_PTR)item->StackFrame.PcAddress <= PhSystemBasicInformation.MaximumUserModeAddress)
+            {
+                PhPrintPointer(stackNode->Parameter1String, item->StackFrame.Params[0]);
+                PhPrintPointer(stackNode->Parameter2String, item->StackFrame.Params[1]);
+                PhPrintPointer(stackNode->Parameter3String, item->StackFrame.Params[2]);
+                PhPrintPointer(stackNode->Parameter4String, item->StackFrame.Params[3]);
+            }
+
+            if (item->StackFrame.PcAddress)
+                PhPrintPointer(stackNode->PcAddressString, item->StackFrame.PcAddress);
+            if (item->StackFrame.ReturnAddress)
+                PhPrintPointer(stackNode->ReturnAddressString, item->StackFrame.ReturnAddress);
+
+            UpdateThreadStackNode(Context, stackNode);
+        }
+
+        TreeNew_NodesStructured(Context->TreeNewHandle);
+    }
+    else
+    {
+        for (i = 0; i < Context->NewList->Count; i++)
+            PhpFreeThreadStackItem(Context->NewList->Items[i]);
+
+        PhClearList(Context->NewList);
+    }
+
+    if (Context->StopWalk)
+        return STATUS_ABANDONED;
+
+    return Context->WalkStatus;
 }
