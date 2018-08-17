@@ -510,6 +510,14 @@ ACCESS_ENTRIES(Token)
     { L"Query source", TOKEN_QUERY_SOURCE, FALSE, TRUE }
 };
 
+ACCESS_ENTRIES(TokenDefault)
+{
+    { L"Full control", GENERIC_ALL, TRUE, TRUE },
+    { L"Read", GENERIC_READ, TRUE, TRUE },
+    { L"Write", GENERIC_WRITE, TRUE, TRUE },
+    { L"Execute", GENERIC_EXECUTE, TRUE, TRUE }
+};
+
 ACCESS_ENTRIES(TpWorkerFactory)
 {
     { L"Full control", WORKER_FACTORY_ALL_ACCESS, TRUE, TRUE },
@@ -605,6 +613,7 @@ static PH_SPECIFIC_TYPE PhSpecificTypes[] =
     ACCESS_ENTRY(TmTm, FALSE),
     ACCESS_ENTRY(TmTx, FALSE),
     ACCESS_ENTRY(Token, FALSE),
+    ACCESS_ENTRY(TokenDefault, FALSE),
     ACCESS_ENTRY(TpWorkerFactory, FALSE),
     ACCESS_ENTRY(Type, FALSE),
     ACCESS_ENTRY(WindowStation, FALSE),
@@ -698,10 +707,7 @@ BOOLEAN PhGetAccessEntries(
     }
     else
     {
-        accessEntries = PhAllocate(sizeof(PhStandardAccessEntries));
-        memcpy(accessEntries, PhStandardAccessEntries, sizeof(PhStandardAccessEntries));
-
-        *AccessEntries = accessEntries;
+        *AccessEntries = PhAllocateCopy(PhStandardAccessEntries, sizeof(PhStandardAccessEntries));
         *NumberOfAccessEntries = sizeof(PhStandardAccessEntries) / sizeof(PH_ACCESS_ENTRY);
     }
 
