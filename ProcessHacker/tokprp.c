@@ -891,6 +891,18 @@ INT_PTR CALLBACK PhpTokenPageProc(
                     PhCopyListView(tokenPageContext->ListViewHandle);
                 }
                 break;
+            case IDC_DEFAULTPERM:
+                {
+                    PhEditSecurity(
+                        PhCsForceNoParent ? NULL : hwndDlg,
+                        L"Default Token",
+                        L"TokenDefault",
+                        tokenPageContext->OpenObject,
+                        NULL,
+                        tokenPageContext->Context
+                        );
+                }
+                break;
             case IDC_PERMISSIONS:
                 {
                     PhEditSecurity(
