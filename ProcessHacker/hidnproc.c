@@ -941,77 +941,77 @@ NTSTATUS PhpEnumHiddenProcessHandles(
     if (!NT_SUCCESS(status = PhEnumProcesses(&processes)))
         return status;
 
-    if (NT_SUCCESS(NtGetNextProcess(
+    if (!NT_SUCCESS(status = NtGetNextProcess(
         NULL,
-        PROCESS_QUERY_LIMITED_INFORMATION,
+        ProcessQueryAccess,
         0,
         0,
         &processHandle
         )))
+        goto CleanupExit;
+
+    while (TRUE)
     {
-        while (TRUE)
+        HANDLE enumProcessHandle;
+        PROCESS_EXTENDED_BASIC_INFORMATION basicInfo;
+
+        if (NT_SUCCESS(PhGetProcessExtendedBasicInformation(processHandle, &basicInfo)))
         {
-            HANDLE newProcessHandle;
-            PROCESS_EXTENDED_BASIC_INFORMATION basicInfo;
-
-            if (NT_SUCCESS(PhGetProcessExtendedBasicInformation(processHandle, &basicInfo)))
+            if (!PhFindProcessInformation(processes, basicInfo.BasicInfo.UniqueProcessId))
             {
-                if (!PhFindProcessInformation(PhProcessInformation, basicInfo.BasicInfo.UniqueProcessId))
+                PH_HIDDEN_PROCESS_ENTRY entry;
+                PPH_STRING fileName;
+
+                entry.ProcessId = basicInfo.BasicInfo.UniqueProcessId;
+
+                if (NT_SUCCESS(PhGetProcessImageFileName(processHandle, &fileName)))
                 {
-                    PH_HIDDEN_PROCESS_ENTRY entry;
-                    PPH_STRING fileName;
+                    entry.FileName = PhGetFileName(fileName);
+                    PhDereferenceObject(fileName);
+                    entry.Type = HiddenProcess;
 
-                    entry.ProcessId = basicInfo.BasicInfo.UniqueProcessId;
+                    if (basicInfo.IsProcessDeleting)
+                        entry.Type = TerminatedProcess;
 
-                    if (NT_SUCCESS(status = PhGetProcessImageFileName(processHandle, &fileName)))
-                    {
-                        entry.FileName = PhGetFileName(fileName);
-                        PhDereferenceObject(fileName);
-                        entry.Type = HiddenProcess;
+                    if (!Callback(&entry, Context))
+                        break;
 
-                        if (basicInfo.IsProcessDeleting)
-                            entry.Type = TerminatedProcess;
+                    PhDereferenceObject(entry.FileName);
+                }
+                else
+                {
+                    entry.FileName = NULL;
+                    entry.Type = UnknownProcess;
 
-                        if (!Callback(&entry, Context))
-                            break;
-
-                        PhDereferenceObject(entry.FileName);
-                    }
-
-                    if (!NT_SUCCESS(status))
-                    {
-                        entry.FileName = NULL;
-                        entry.Type = UnknownProcess;
-
-                        if (!Callback(&entry, Context))
-                            break;
-                    }
+                    if (!Callback(&entry, Context))
+                        break;
                 }
             }
+        }
 
-            if (NT_SUCCESS(status = NtGetNextProcess(
-                processHandle,
-                PROCESS_QUERY_LIMITED_INFORMATION,
-                0,
-                0,
-                &newProcessHandle
-                )))
-            {
-                NtClose(processHandle);
-                processHandle = newProcessHandle;
-            }
-            else
-            {
-                NtClose(processHandle);
-                break;
-            }
+        if (NT_SUCCESS(status = NtGetNextProcess(
+            processHandle,
+            ProcessQueryAccess,
+            0,
+            0,
+            &enumProcessHandle
+            )))
+        {
+            NtClose(processHandle);
+            processHandle = enumProcessHandle;
+        }
+        else
+        {
+            NtClose(processHandle);
+            break;
         }
     }
 
-    PhFree(processes);
-
     if (status == STATUS_NO_MORE_ENTRIES)
         status = STATUS_SUCCESS; // HACK
+
+CleanupExit:
+    PhFree(processes);
 
     return status;
 }
