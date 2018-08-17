@@ -159,7 +159,10 @@ VOID PhLoadSettingsHandleList(
 
     settings = PhGetStringSetting(L"HandleTreeListColumns");
     sortSettings = PhGetStringSetting(L"HandleTreeListSort");
+    Context->Flags = PhGetIntegerSetting(L"HandleTreeListFlags");
+
     PhCmLoadSettingsEx(Context->TreeNewHandle, &Context->Cm, 0, &settings->sr, &sortSettings->sr);
+
     PhDereferenceObject(settings);
     PhDereferenceObject(sortSettings);
 }
@@ -172,20 +175,25 @@ VOID PhSaveSettingsHandleList(
     PPH_STRING sortSettings;
 
     settings = PhCmSaveSettingsEx(Context->TreeNewHandle, &Context->Cm, 0, &sortSettings);
+
+    PhSetIntegerSetting(L"HandleTreeListFlags", Context->Flags);
     PhSetStringSetting2(L"HandleTreeListColumns", &settings->sr);
     PhSetStringSetting2(L"HandleTreeListSort", &sortSettings->sr);
+
     PhDereferenceObject(settings);
     PhDereferenceObject(sortSettings);
 }
 
 VOID PhSetOptionsHandleList(
     _Inout_ PPH_HANDLE_LIST_CONTEXT Context,
-    _In_ BOOLEAN HideUnnamedHandles
+    _In_ ULONG Options
     )
 {
-    if (Context->HideUnnamedHandles != HideUnnamedHandles)
+    switch (Options)
     {
-        Context->HideUnnamedHandles = HideUnnamedHandles;
+    case HANDLE_TREE_MENU_ITEM_HIDE_UNNAMED_HANDLES:
+        Context->HideUnnamedHandles = !Context->HideUnnamedHandles;
+        break;
     }
 }
 

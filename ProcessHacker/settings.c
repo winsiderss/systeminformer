@@ -68,6 +68,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"ForceNoParent", L"1");
     PhpAddStringSetting(L"HandleTreeListColumns", L"");
     PhpAddStringSetting(L"HandleTreeListSort", L"0,1"); // 0, AscendingSortOrder
+    PhpAddIntegerSetting(L"HandleTreeListFlags", L"0");
     PhpAddIntegerPairSetting(L"HandlePropertiesWindowPosition", L"0,0");
     PhpAddScalableIntegerPairSetting(L"HandlePropertiesWindowSize", L"@96|260,260");
     PhpAddIntegerSetting(L"HiddenProcessesMenuEnabled", L"0");
