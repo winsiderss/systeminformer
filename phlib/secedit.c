@@ -754,7 +754,7 @@ _Callback_ NTSTATUS PhStdGetObjectSecurity(
         status = PhpGetObjectSecurityWithTimeout(handle, SecurityInformation, SecurityDescriptor);
         NtClose(handle);
     }
-    if (
+    else if (
         PhEqualString2(this->ObjectType, L"LsaAccount", TRUE) ||
         PhEqualString2(this->ObjectType, L"LsaPolicy", TRUE) ||
         PhEqualString2(this->ObjectType, L"LsaSecret", TRUE) ||
@@ -806,6 +806,37 @@ _Callback_ NTSTATUS PhStdGetObjectSecurity(
         //}
         //
         //SamCloseHandle(handle);
+    }
+    else if (PhEqualString2(this->ObjectType, L"TokenDefault", TRUE)) // HACK: Fake non-system type (dmex)
+    {
+        PTOKEN_DEFAULT_DACL defaultDacl;
+
+        status = PhQueryTokenVariableSize(
+            handle,
+            TokenDefaultDacl,
+            &defaultDacl
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            PSECURITY_DESCRIPTOR securityDescriptor;
+            PTOKEN_OWNER tokenOwner;
+
+            securityDescriptor = PhAllocateZero(SECURITY_DESCRIPTOR_MIN_LENGTH);
+            RtlCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
+            RtlSetDaclSecurityDescriptor(securityDescriptor, TRUE, defaultDacl->DefaultDacl, FALSE);
+
+            if (NT_SUCCESS(PhGetTokenOwner(handle, &tokenOwner)))
+            {
+                RtlSetOwnerSecurityDescriptor(securityDescriptor, tokenOwner->Owner, FALSE);
+                PhFree(tokenOwner);
+            }
+
+            *SecurityDescriptor = securityDescriptor;
+            PhFree(defaultDacl);
+        }
+
+        NtClose(handle);
     }
     else
     {
@@ -880,6 +911,10 @@ _Callback_ NTSTATUS PhStdSetObjectSecurity(
         //   );
         //
         //SamCloseHandle(handle);
+    }
+    else if (PhEqualString2(this->ObjectType, L"TokenDefault", TRUE))
+    {
+        // TODO
     }
     else
     {
