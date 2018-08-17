@@ -754,6 +754,59 @@ _Callback_ NTSTATUS PhStdGetObjectSecurity(
         status = PhpGetObjectSecurityWithTimeout(handle, SecurityInformation, SecurityDescriptor);
         NtClose(handle);
     }
+    if (
+        PhEqualString2(this->ObjectType, L"LsaAccount", TRUE) ||
+        PhEqualString2(this->ObjectType, L"LsaPolicy", TRUE) ||
+        PhEqualString2(this->ObjectType, L"LsaSecret", TRUE) ||
+        PhEqualString2(this->ObjectType, L"LsaTrusted", TRUE)
+        )
+    {
+        PSECURITY_DESCRIPTOR securityDescriptor;
+
+        status = LsaQuerySecurityObject(
+            handle,
+            SecurityInformation,
+            &securityDescriptor
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            *SecurityDescriptor = PhAllocateCopy(
+                securityDescriptor,
+                RtlLengthSecurityDescriptor(securityDescriptor)
+                );
+            LsaFreeMemory(securityDescriptor);
+        }
+
+        LsaClose(handle);
+    }
+    else if (
+        PhEqualString2(this->ObjectType, L"SamAlias", TRUE) ||
+        PhEqualString2(this->ObjectType, L"SamDomain", TRUE) ||
+        PhEqualString2(this->ObjectType, L"SamGroup", TRUE) ||
+        PhEqualString2(this->ObjectType, L"SamServer", TRUE) ||
+        PhEqualString2(this->ObjectType, L"SamUser", TRUE)
+        )
+    {
+        //PSECURITY_DESCRIPTOR securityDescriptor;
+        //
+        //status = SamQuerySecurityObject(
+        //    handle,
+        //    SecurityInformation,
+        //    &securityDescriptor
+        //    );
+        //
+        //if (NT_SUCCESS(status))
+        //{
+        //    *SecurityDescriptor = PhAllocateCopy(
+        //        securityDescriptor,
+        //        RtlLengthSecurityDescriptor(securityDescriptor)
+        //        );
+        //    SamFreeMemory(securityDescriptor);
+        //}
+        //
+        //SamCloseHandle(handle);
+    }
     else
     {
         status = PhGetObjectSecurity(handle, SecurityInformation, SecurityDescriptor);
@@ -796,6 +849,37 @@ _Callback_ NTSTATUS PhStdSetObjectSecurity(
     {
         status = PhSetSeObjectSecurity(handle, SE_SERVICE, SecurityInformation, SecurityDescriptor);
         CloseServiceHandle(handle);
+    }
+    else if (
+        PhEqualString2(this->ObjectType, L"LsaAccount", TRUE) ||
+        PhEqualString2(this->ObjectType, L"LsaPolicy", TRUE) ||
+        PhEqualString2(this->ObjectType, L"LsaSecret", TRUE) ||
+        PhEqualString2(this->ObjectType, L"LsaTrusted", TRUE)
+        )
+    {
+        status = LsaSetSecurityObject(
+            handle,
+            SecurityInformation,
+            SecurityDescriptor
+            );
+        
+        LsaClose(handle);
+    }
+    else if (
+        PhEqualString2(this->ObjectType, L"SamAlias", TRUE) ||
+        PhEqualString2(this->ObjectType, L"SamDomain", TRUE) ||
+        PhEqualString2(this->ObjectType, L"SamGroup", TRUE) ||
+        PhEqualString2(this->ObjectType, L"SamServer", TRUE) ||
+        PhEqualString2(this->ObjectType, L"SamUser", TRUE)
+        )
+    {
+        //status = SamSetSecurityObject(
+        //    handle,
+        //    SecurityInformation,
+        //   SecurityDescriptor
+        //   );
+        //
+        //SamCloseHandle(handle);
     }
     else
     {
