@@ -149,24 +149,6 @@ FORCEINLINE LRESULT PhReflectMessage(
     return 0;
 }
 
-#define PH_DEFINE_MAKE_ATOM(AtomName) \
-do { \
-    static UNICODE_STRING atomName = RTL_CONSTANT_STRING(AtomName); \
-    static PH_INITONCE initOnce = PH_INITONCE_INIT; \
-    static RTL_ATOM atom = 0; \
-\
-    if (PhBeginInitOnce(&initOnce)) \
-    { \
-        NtAddAtom(atomName.Buffer, atomName.Length, &atom); \
-        PhEndInitOnce(&initOnce); \
-    } \
-\
-    if (atom) \
-        return (PWSTR)(ULONG_PTR)atom; \
-    else \
-        return atomName.Buffer; \
-} while (0)
-
 FORCEINLINE VOID PhSetListViewStyle(
     _In_ HWND Handle,
     _In_ BOOLEAN AllowDragDrop,

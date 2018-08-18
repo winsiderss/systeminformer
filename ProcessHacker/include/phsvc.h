@@ -36,10 +36,6 @@ typedef struct _PHSVC_CLIENT
     PVOID ClientViewLimit;
 } PHSVC_CLIENT, *PPHSVC_CLIENT;
 
-NTSTATUS PhSvcClientInitialization(
-    VOID
-    );
-
 PPHSVC_CLIENT PhSvcCreateClient(
     _In_opt_ PCLIENT_ID ClientId
     );
@@ -81,10 +77,6 @@ VOID PhSvcHandleConnectionRequest(
     );
 
 // svcapi
-
-NTSTATUS PhSvcApiInitialization(
-    VOID
-    );
 
 typedef NTSTATUS (NTAPI *PPHSVC_API_PROCEDURE)(
     _In_ PPHSVC_CLIENT Client,

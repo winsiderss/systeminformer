@@ -24,8 +24,8 @@
 #include <phapp.h>
 #include <phsvc.h>
 
-HANDLE PhSvcTimeoutStandbyEventHandle;
-HANDLE PhSvcTimeoutCancelEventHandle;
+HANDLE PhSvcTimeoutStandbyEventHandle = NULL;
+HANDLE PhSvcTimeoutCancelEventHandle = NULL;
 
 NTSTATUS PhSvcMain(
     _In_opt_ PPH_STRING PortName,
@@ -48,10 +48,6 @@ NTSTATUS PhSvcMain(
             RtlInitUnicodeString(&portName, PHSVC_PORT_NAME);
     }
 
-    if (!NT_SUCCESS(status = PhSvcClientInitialization()))
-        return status;
-    if (!NT_SUCCESS(status = PhSvcApiInitialization()))
-        return status;
     if (!NT_SUCCESS(status = PhSvcApiPortInitialization(&portName)))
         return status;
 

@@ -37,7 +37,7 @@ typedef struct _PH_MEMORY_STRING_OPTIONS
         {
             BOOLEAN DetectUnicode : 1;
             BOOLEAN ExtendedUnicode : 1;
-            BOOLEAN Spare : 7;
+            BOOLEAN Spare : 6;
         };
     };
 } PH_MEMORY_STRING_OPTIONS, *PPH_MEMORY_STRING_OPTIONS;

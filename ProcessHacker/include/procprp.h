@@ -94,13 +94,6 @@ PhPropPageDlgProcHeader(
     _Out_ PPH_PROCESS_ITEM *ProcessItem
     );
 
-PHAPPAPI
-VOID
-NTAPI
-PhPropPageDlgProcDestroy(
-    _In_ HWND hwndDlg
-    );
-
 #define PH_PROP_PAGE_TAB_CONTROL_PARENT ((PPH_LAYOUT_ITEM)0x1)
 
 PHAPPAPI
