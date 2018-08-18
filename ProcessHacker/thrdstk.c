@@ -672,155 +672,12 @@ VOID DeleteThreadStackTree(
     PhDereferenceObject(Context->NodeList);
 }
 
-typedef struct _PH_THREAD_SYMBOL_STACK_CONTEXT
-{
-    HANDLE ProcessId;
-    PPH_SYMBOL_PROVIDER SymbolProvider;
-} PH_THREAD_SYMBOL_STACK_CONTEXT, *PPH_THREAD_SYMBOL_STACK_CONTEXT;
-
-static BOOLEAN LoadSymbolsEnumGenericModulesCallback(
-    _In_ PPH_MODULE_INFO Module,
-    _In_opt_ PVOID Context
-    )
-{
-    PPH_THREAD_SYMBOL_STACK_CONTEXT context = Context;
-    PPH_SYMBOL_PROVIDER symbolProvider = context->SymbolProvider;
-
-    if (symbolProvider->Terminating)
-        return FALSE;
-
-    // If we're loading kernel module symbols for a process other than System, ignore modules which
-    // are in user space. This may happen in Windows 7.
-    if (context->ProcessId == SYSTEM_PROCESS_ID &&
-        (ULONG_PTR)Module->BaseAddress <= PhSystemBasicInformation.MaximumUserModeAddress)
-    {
-        return TRUE;
-    }
-
-    PhLoadModuleSymbolProvider(
-        symbolProvider,
-        Module->FileName->Buffer,
-        (ULONG64)Module->BaseAddress,
-        Module->Size
-        );
-
-    return TRUE;
-}
-
-static BOOLEAN LoadBasicSymbolsEnumGenericModulesCallback(
-    _In_ PPH_MODULE_INFO Module,
-    _In_opt_ PVOID Context
-    )
-{
-    PPH_THREAD_SYMBOL_STACK_CONTEXT context = Context;
-    PPH_SYMBOL_PROVIDER symbolProvider = context->SymbolProvider;
-
-    if (symbolProvider->Terminating)
-        return FALSE;
-
-    if (PhEqualString2(Module->Name, L"ntdll.dll", TRUE) ||
-        PhEqualString2(Module->Name, L"kernel32.dll", TRUE))
-    {
-        PhLoadModuleSymbolProvider(
-            symbolProvider,
-            Module->FileName->Buffer,
-            (ULONG64)Module->BaseAddress,
-            Module->Size
-            );
-    }
-
-    return TRUE;
-}
-
-VOID PhpLoadThreadStackSymbols(
-    _In_ HANDLE ProcessId,
-    _In_ PPH_SYMBOL_PROVIDER SymbolProvider
-    )
-{
-    PH_THREAD_SYMBOL_STACK_CONTEXT loadContext;
-
-    loadContext.SymbolProvider = SymbolProvider;
-
-    if (ProcessId != SYSTEM_IDLE_PROCESS_ID)
-    {
-        if (SymbolProvider->IsRealHandle || ProcessId == SYSTEM_PROCESS_ID)
-        {
-            loadContext.ProcessId = ProcessId;
-            PhEnumGenericModules(
-                ProcessId,
-                SymbolProvider->ProcessHandle,
-                0,
-                LoadSymbolsEnumGenericModulesCallback,
-                &loadContext
-                );
-        }
-        else
-        {
-            // We can't enumerate the process modules. Load symbols for ntdll.dll and kernel32.dll.
-            loadContext.ProcessId = NtCurrentProcessId();
-            PhEnumGenericModules(
-                NtCurrentProcessId(),
-                NtCurrentProcess(),
-                0,
-                LoadBasicSymbolsEnumGenericModulesCallback,
-                &loadContext
-                );
-        }
-
-        // Load kernel module symbols as well.
-        if (ProcessId != SYSTEM_PROCESS_ID)
-        {
-            loadContext.ProcessId = SYSTEM_PROCESS_ID;
-            PhEnumGenericModules(
-                SYSTEM_PROCESS_ID,
-                NULL,
-                0,
-                LoadSymbolsEnumGenericModulesCallback,
-                &loadContext
-                );
-        }
-    }
-    else
-    {
-        // System Idle Process has one thread for each CPU, each having a start address at
-        // KiIdleLoop. We need to load symbols for the kernel.
-
-        PRTL_PROCESS_MODULES kernelModules;
-
-        if (NT_SUCCESS(PhEnumKernelModules(&kernelModules)))
-        {
-            if (kernelModules->NumberOfModules > 0)
-            {
-                PPH_STRING fileName;
-                PPH_STRING newFileName;
-
-                fileName = PhConvertMultiByteToUtf16(kernelModules->Modules[0].FullPathName);
-                newFileName = PhGetFileName(fileName);
-                PhDereferenceObject(fileName);
-
-                PhLoadModuleSymbolProvider(
-                    SymbolProvider,
-                    newFileName->Buffer,
-                    (ULONG64)kernelModules->Modules[0].ImageBase,
-                    kernelModules->Modules[0].ImageSize
-                    );
-                PhDereferenceObject(newFileName);
-            }
-
-            PhFree(kernelModules);
-        }
-    }
-}
-
 VOID NTAPI PhpThreadStackContextDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
     )
 {
     PPH_THREAD_STACK_CONTEXT context = (PPH_THREAD_STACK_CONTEXT)Object;
-
-    PhDereferenceObject(context->ThreadProvider);
-    PhDereferenceObject(context->SymbolProvider);
 
     PhDereferenceObject(context->StatusMessage);
     PhDereferenceObject(context->NewList);
@@ -888,10 +745,8 @@ VOID PhShowThreadStackDialog(
     context->ThreadHandle = threadHandle;
     context->ProcessId = ProcessId;
     context->ThreadId = ThreadId;
-    context->ThreadProvider = PhReferenceObject(ThreadProvider);
-    context->SymbolProvider = PhReferenceObject(ThreadProvider->SymbolProvider);
-    //context->SymbolProvider = PhCreateSymbolProvider(ProcessId);
-    //PhpLoadThreadStackSymbols(ProcessId, context->SymbolProvider);
+    context->ThreadProvider = ThreadProvider;
+    context->SymbolProvider = ThreadProvider->SymbolProvider;
 
     DialogBoxParam(
         PhInstanceHandle,
@@ -1017,11 +872,9 @@ INT_PTR CALLBACK PhpThreadStackDlgProc(
         break;
     case WM_COMMAND:
         {
-            INT id = LOWORD(wParam);
-
-            switch (id)
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
-            case IDCANCEL: // Esc and X button to close
+            case IDCANCEL:
             case IDOK:
                 EndDialog(hwndDlg, IDOK);
                 break;
@@ -1120,7 +973,7 @@ BOOLEAN NTAPI PhpWalkThreadStackCallback(
     PhReleaseQueuedLockExclusive(&threadStackContext->StatusLock);
 
     symbol = PhGetSymbolFromAddress(
-        threadStackContext->SymbolProvider,
+       threadStackContext->SymbolProvider,
         (ULONG64)StackFrame->PcAddress,
         NULL,
         NULL,
@@ -1232,7 +1085,6 @@ NTSTATUS PhpRefreshThreadStackThreadStart(
     PostMessage(threadStackContext->TaskDialogHandle, WM_PH_COMPLETED, 0, 0);
 
     PhDeleteAutoPool(&autoPool);
-
     PhDereferenceObject(threadStackContext);
 
     return STATUS_SUCCESS;
@@ -1264,7 +1116,6 @@ LRESULT CALLBACK PhpThreadStackTaskDialogSubclassProc(
     case WM_PH_COMPLETED:
         {
             context->EnableCloseDialog = TRUE;
-
             SendMessage(hwndDlg, TDM_CLICK_BUTTON, IDOK, 0);
         }
         break;
@@ -1278,41 +1129,73 @@ VOID PhpSymbolProviderEventCallbackHandler(
     _In_opt_ PVOID Context
     )
 {
-    PPH_SYMBOL_EVENT_DATA data = Parameter;
+    PPH_SYMBOL_EVENT_DATA event = Parameter;
     PPH_THREAD_STACK_CONTEXT context = Context;
     PPH_STRING statusMessage = NULL;
 
-    switch (data->Type)
+    switch (event->ActionCode)
     {
     case CBA_DEFERRED_SYMBOL_LOAD_START:
-        statusMessage = PhFormatString(L"Loading %s...", PhGetBaseName(data->FileName)->Buffer);
-        break;
     case CBA_DEFERRED_SYMBOL_LOAD_COMPLETE:
-        statusMessage = PhFormatString(L"Loaded %s...", PhGetBaseName(data->FileName)->Buffer);
-        break;
     case CBA_DEFERRED_SYMBOL_LOAD_FAILURE:
-        statusMessage = PhFormatString(L"Failed %s...", PhGetBaseName(data->FileName)->Buffer);
-        break;
     case CBA_SYMBOLS_UNLOADED:
-        statusMessage = PhFormatString(L"Unloaded %s...", data->FileName->Buffer);
+        {
+            PIMAGEHLP_DEFERRED_SYMBOL_LOADW64 callbackData = (PIMAGEHLP_DEFERRED_SYMBOL_LOADW64)event->EventData;
+            PPH_STRING fileName;
+
+            fileName = PhCreateString(callbackData->FileName);
+            PhMoveReference(&fileName, PhGetBaseName(fileName));
+
+            switch (event->ActionCode)
+            {
+            case CBA_DEFERRED_SYMBOL_LOAD_START:
+                statusMessage = PhFormatString(L"Loading symbols from %s...", PhGetStringOrEmpty(fileName));
+                break;
+            case CBA_DEFERRED_SYMBOL_LOAD_COMPLETE:
+                statusMessage = PhFormatString(L"Loaded symbols from %s...", PhGetStringOrEmpty(fileName));
+                break;
+            case CBA_DEFERRED_SYMBOL_LOAD_FAILURE:
+                statusMessage = PhFormatString(L"Failed to load %s...", PhGetStringOrEmpty(fileName));
+                break;
+            case CBA_SYMBOLS_UNLOADED:
+                statusMessage = PhFormatString(L"Unloading %s...", PhGetStringOrEmpty(fileName));
+                break;
+            }
+        }
         break;
     case CBA_READ_MEMORY:
-        //statusMessage = PhFormatString(L"Reading memory: %I64u (FileNameImageAddress: %s)", data->BaseAddress);
+        {
+            PIMAGEHLP_CBA_READ_MEMORY callbackEvent = (PIMAGEHLP_CBA_READ_MEMORY)event->EventData;
+            //statusMessage = PhFormatString(L"Reading %lu bytes of memory from %I64u...", callbackEvent->bytes, callbackEvent->addr);
+        }
         break;
+    case CBA_EVENT:
+        {
+            PIMAGEHLP_CBA_EVENTW callbackEvent = (PIMAGEHLP_CBA_EVENTW)event->EventData;
+            //statusMessage = PhFormatString(L"%s", callbackEvent->desc);
+        }
+        break;
+    case CBA_DEBUG_INFO:
+        {
+            //statusMessage = PhFormatString(L"%s", event->EventData);
+        }
+        break;
+    case CBA_ENGINE_PRESENT:
+    case CBA_DEFERRED_SYMBOL_LOAD_PARTIAL:
     case CBA_DEFERRED_SYMBOL_LOAD_CANCEL:
-        //statusMessage = PhFormatString(L"Canceled: %s", data->FileName->Buffer);
-        break;
     default:
-        //statusMessage = PhFormatString(L"Unknown: %lu", data->Type);
+        {
+            //statusMessage = PhFormatString(L"Unknown: %lu", event->ActionCode);
+        }
         break;
     }
 
     if (statusMessage)
     {
+        //dprintf("%S\r\n", statusMessage->Buffer);
         PhAcquireQueuedLockExclusive(&context->StatusLock);
         PhMoveReference(&context->StatusContent, statusMessage);
         PhReleaseQueuedLockExclusive(&context->StatusLock);
-        //dprintf("SymbolProviderEventCallback: %S\r\n", statusMessage->Buffer);
     }
 }
 
@@ -1331,9 +1214,9 @@ HRESULT CALLBACK PhpThreadStackTaskDialogCallback(
     case TDN_CREATED:
         {
             context->TaskDialogHandle = hwndDlg;
- 
-            PhSymbolProviderRegisterEventCallback(
-                context->SymbolProvider,
+
+            PhRegisterCallback(
+                &PhSymbolEventCallback,
                 PhpSymbolProviderEventCallbackHandler,
                 context,
                 &context->SymbolProviderEventRegistration
@@ -1356,7 +1239,7 @@ HRESULT CALLBACK PhpThreadStackTaskDialogCallback(
         break;
     case TDN_DESTROYED:
         {
-            PhSymbolProviderUnregisterEventCallback(context->SymbolProvider, &context->SymbolProviderEventRegistration);
+            PhUnregisterCallback(&PhSymbolEventCallback, &context->SymbolProviderEventRegistration);
         }
         break;
     case TDN_BUTTON_CLICKED:
@@ -1418,7 +1301,10 @@ BOOLEAN PhpShowThreadStackWindow(
 
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
     config.cbSize = sizeof(TASKDIALOGCONFIG);
-    config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_POSITION_RELATIVE_TO_WINDOW | TDF_SHOW_MARQUEE_PROGRESS_BAR | TDF_CALLBACK_TIMER;
+    config.dwFlags =
+        TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION |
+        TDF_POSITION_RELATIVE_TO_WINDOW | TDF_SHOW_MARQUEE_PROGRESS_BAR |
+        TDF_CALLBACK_TIMER;
     config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
     config.pfCallback = PhpThreadStackTaskDialogCallback;
     config.lpCallbackData = (LONG_PTR)Context;
