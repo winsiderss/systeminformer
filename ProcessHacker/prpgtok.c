@@ -3,6 +3,7 @@
  *   Process properties: Token page
  *
  * Copyright (C) 2009-2016 wj32
+ * Copyright (C) 2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -42,11 +43,19 @@ NTSTATUS NTAPI PhpOpenProcessTokenForPage(
         )))
         return status;
 
-    status = PhOpenProcessToken(
+    if (!NT_SUCCESS(status = PhOpenProcessToken(
         processHandle,
         DesiredAccess | TOKEN_READ | TOKEN_ADJUST_DEFAULT | READ_CONTROL, // HACK: Add extra access_masks for querying default token. (dmex)
         Handle
-        );
+        )))
+    {
+        status = PhOpenProcessToken(
+            processHandle,
+            DesiredAccess,
+            Handle
+            );
+    }
+
     NtClose(processHandle);
 
     return status;
