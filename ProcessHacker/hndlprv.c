@@ -60,7 +60,6 @@ PPH_HANDLE_PROVIDER PhCreateHandleProvider(
     if (PhBeginInitOnce(&initOnce))
     {
         PhHandleProviderType = PhCreateObjectType(L"HandleProvider", 0, PhpHandleProviderDeleteProcedure);
-        PhHandleItemType = PhCreateObjectType(L"HandleItem", 0, PhpHandleItemDeleteProcedure);
         PhEndInitOnce(&initOnce);
     }
 
@@ -123,7 +122,14 @@ PPH_HANDLE_ITEM PhCreateHandleItem(
     _In_opt_ PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX Handle
     )
 {
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
     PPH_HANDLE_ITEM handleItem;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PhHandleItemType = PhCreateObjectType(L"HandleItem", 0, PhpHandleItemDeleteProcedure);
+        PhEndInitOnce(&initOnce);
+    }
 
     handleItem = PhCreateObject(
         PhEmGetObjectSize(EmHandleItemType, sizeof(PH_HANDLE_ITEM)),
