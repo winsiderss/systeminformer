@@ -1115,6 +1115,33 @@ PhGetTokenLinkedToken(
     return status;
 }
 
+FORCEINLINE
+NTSTATUS
+PhGetTokenIsRestricted(
+    _In_ HANDLE TokenHandle,
+    _Out_ PBOOLEAN IsRestricted
+    )
+{
+    NTSTATUS status;
+    ULONG returnLength;
+    ULONG restricted;
+
+    status = NtQueryInformationToken(
+        TokenHandle,
+        TokenIsRestricted,
+        &restricted,
+        sizeof(ULONG),
+        &returnLength
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    *IsRestricted = !!restricted;
+
+    return status;
+}
+
 /**
  * Gets whether virtualization is allowed for a token.
  *
