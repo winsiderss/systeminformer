@@ -32,20 +32,18 @@ PPH_OBJECT_TYPE PhSvcClientType = NULL;
 LIST_ENTRY PhSvcClientListHead = { &PhSvcClientListHead, &PhSvcClientListHead };
 PH_QUEUED_LOCK PhSvcClientListLock = PH_QUEUED_LOCK_INIT;
 
-NTSTATUS PhSvcClientInitialization(
-    VOID
-    )
-{
-    PhSvcClientType = PhCreateObjectType(L"Client", 0, PhSvcpClientDeleteProcedure);
-
-    return STATUS_SUCCESS;
-}
-
 PPHSVC_CLIENT PhSvcCreateClient(
     _In_opt_ PCLIENT_ID ClientId
     )
 {
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
     PPHSVC_CLIENT client;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PhSvcClientType = PhCreateObjectType(L"Client", 0, PhSvcpClientDeleteProcedure);
+        PhEndInitOnce(&initOnce);
+    }
 
     client = PhCreateObject(sizeof(PHSVC_CLIENT), PhSvcClientType);
     memset(client, 0, sizeof(PHSVC_CLIENT));

@@ -162,7 +162,6 @@ typedef struct _PH_PROCESS_ITEM
             ULONG IsSecureProcess : 1;
             ULONG IsSubsystemProcess : 1;
             ULONG IsControlFlowGuardEnabled : 1;
-
             ULONG Spare : 14;
         };
     };
