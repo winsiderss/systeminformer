@@ -39,15 +39,6 @@
 #include "sha.h"
 #include "sha256.h"
 
-typedef BOOLEAN (NTAPI *_WinStationQueryInformationW)(
-    _In_opt_ HANDLE ServerHandle,
-    _In_ ULONG LogonId,
-    _In_ WINSTATIONINFOCLASS WinStationInformationClass,
-    _Out_writes_bytes_(WinStationInformationLength) PVOID WinStationInformation,
-    _In_ ULONG WinStationInformationLength,
-    _Out_ PULONG ReturnLength
-    );
-
 DECLSPEC_SELECTANY WCHAR *PhSizeUnitNames[7] = { L"B", L"kB", L"MB", L"GB", L"TB", L"PB", L"EB" };
 DECLSPEC_SELECTANY ULONG PhMaxSizeUnit = MAXULONG32;
 
@@ -2597,23 +2588,11 @@ NTSTATUS PhCreateProcessAsUser(
     _Out_opt_ PHANDLE ThreadHandle
     )
 {
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static _WinStationQueryInformationW WinStationQueryInformationW_I = NULL;
     NTSTATUS status;
     HANDLE tokenHandle;
     PVOID defaultEnvironment = NULL;
     STARTUPINFO startupInfo = { sizeof(startupInfo) };
     BOOLEAN needsDuplicate = FALSE;
-
-    if (PhBeginInitOnce(&initOnce))
-    {
-        HMODULE winsta;
-
-        winsta = LoadLibrary(L"winsta.dll");
-        WinStationQueryInformationW_I = PhGetDllBaseProcedureAddress(winsta, "WinStationQueryInformationW", 0);
-
-        PhEndInitOnce(&initOnce);
-    }
 
     if ((Flags & PH_CREATE_PROCESS_USE_PROCESS_TOKEN) && (Flags & PH_CREATE_PROCESS_USE_SESSION_TOKEN))
         return STATUS_INVALID_PARAMETER_2;
@@ -2722,10 +2701,7 @@ NTSTATUS PhCreateProcessAsUser(
         WINSTATIONUSERTOKEN userToken;
         ULONG returnLength;
 
-        if (!WinStationQueryInformationW_I)
-            return STATUS_PROCEDURE_NOT_FOUND;
-
-        if (!WinStationQueryInformationW_I(
+        if (!WinStationQueryInformationW(
             NULL,
             Information->SessionIdWithToken,
             WinStationUserToken,
