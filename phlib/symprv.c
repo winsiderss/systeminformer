@@ -62,6 +62,7 @@ LONG NTAPI PhpSymbolModuleCompareFunction(
     );
 
 PPH_OBJECT_TYPE PhSymbolProviderType = NULL;
+PH_CALLBACK_DECLARE(PhSymbolEventCallback);
 static PH_INITONCE PhSymInitOnce = PH_INITONCE_INIT;
 static HANDLE PhNextFakeHandle = (HANDLE)0;
 static PH_FAST_LOCK PhSymMutex = PH_FAST_LOCK_INIT;
@@ -107,7 +108,6 @@ PPH_SYMBOL_PROVIDER PhCreateSymbolProvider(
     InitializeListHead(&symbolProvider->ModulesListHead);
     PhInitializeQueuedLock(&symbolProvider->ModulesListLock);
     PhInitializeAvlTree(&symbolProvider->ModulesSet, PhpSymbolModuleCompareFunction);
-    PhInitializeCallback(&symbolProvider->EventCallback);
     PhInitializeInitOnce(&symbolProvider->InitOnce);
 
     if (ProcessId)
@@ -155,8 +155,6 @@ VOID NTAPI PhpSymbolProviderDeleteProcedure(
     PPH_SYMBOL_PROVIDER symbolProvider = (PPH_SYMBOL_PROVIDER)Object;
     PLIST_ENTRY listEntry;
 
-    PhDeleteCallback(&symbolProvider->EventCallback);
-
     if (SymCleanup_I)
     {
         PH_LOCK_SYMBOLS();
@@ -182,21 +180,6 @@ VOID NTAPI PhpSymbolProviderDeleteProcedure(
     if (symbolProvider->IsRealHandle) NtClose(symbolProvider->ProcessHandle);
 }
 
-NTSTATUS PhpSymbolCallbackWorker(
-    _In_ PVOID Parameter
-    )
-{
-    PPH_SYMBOL_EVENT_DATA data = Parameter;
-
-    //dprintf("symbol event %d: %S\n", data->Type, data->FileName->Buffer);
-    PhInvokeCallback(&data->SymbolProvider->EventCallback, data);
-
-    if (data->FileName) PhDereferenceObject(data->FileName);
-    PhDereferenceObject(data);
-
-    return STATUS_SUCCESS;
-}
-
 BOOL CALLBACK PhpSymbolCallbackFunction(
     _In_ HANDLE ProcessHandle,
     _In_ ULONG ActionCode,
@@ -204,29 +187,21 @@ BOOL CALLBACK PhpSymbolCallbackFunction(
     _In_opt_ ULONG64 UserContext
     )
 {
-    PIMAGEHLP_DEFERRED_SYMBOL_LOADW64 callbackData = (PIMAGEHLP_DEFERRED_SYMBOL_LOADW64)CallbackData;
     PPH_SYMBOL_PROVIDER symbolProvider = (PPH_SYMBOL_PROVIDER)UserContext;
 
-    assert(ProcessHandle == symbolProvider->ProcessHandle);
-
-    if (!IsListEmpty(&symbolProvider->EventCallback.ListHead))
+    if (!IsListEmpty(&PhSymbolEventCallback.ListHead))
     {
         PPH_SYMBOL_EVENT_DATA data;
 
-        data = PhCreateAlloc(sizeof(PH_SYMBOL_EVENT_DATA));
-        memset(data, 0, sizeof(PH_SYMBOL_EVENT_DATA));
-
-        data->Type = ActionCode;
+        data = PhAllocateZero(sizeof(PH_SYMBOL_EVENT_DATA));
+        data->ActionCode = ActionCode;
         data->ProcessHandle = ProcessHandle;
         data->SymbolProvider = symbolProvider;
-        data->BaseAddress = callbackData->BaseOfImage;
-        data->CheckSum = callbackData->CheckSum;
-        data->TimeStamp = callbackData->TimeDateStamp;
+        data->EventData = (PVOID)CallbackData;
 
-        if (callbackData->FileName[0])
-            data->FileName = PhCreateString(callbackData->FileName);
+        PhInvokeCallback(&PhSymbolEventCallback, data);
 
-        PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), PhpSymbolCallbackWorker, data);
+        PhFree(data);
     }
 
     if (ActionCode == CBA_DEFERRED_SYMBOL_LOAD_CANCEL)
@@ -362,8 +337,7 @@ VOID PhpRegisterSymbolProvider(
                 SymGetOptions_I() |
                 SYMOPT_AUTO_PUBLICS | SYMOPT_CASE_INSENSITIVE | SYMOPT_DEFERRED_LOADS |
                 SYMOPT_FAIL_CRITICAL_ERRORS | SYMOPT_INCLUDE_32BIT_MODULES |
-                SYMOPT_LOAD_LINES | SYMOPT_OMAP_FIND_NEAREST | SYMOPT_UNDNAME |
-                SYMOPT_SECURE // | SYMOPT_DEBUG
+                SYMOPT_LOAD_LINES | SYMOPT_OMAP_FIND_NEAREST | SYMOPT_UNDNAME // | SYMOPT_DEBUG
                 );
 
             PH_UNLOCK_SYMBOLS();
@@ -1717,35 +1691,4 @@ PPH_STRING PhUndecorateSymbolName(
     PhFree(undecoratedBuffer);
 
     return undecoratedSymbolName;
-}
-
-VOID PhSymbolProviderRegisterEventCallback(
-    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
-    _In_ PPH_CALLBACK_FUNCTION Function,
-    _In_opt_ PVOID Context,
-    _Out_ PPH_CALLBACK_REGISTRATION Registration
-    )
-{
-    //PH_LOCK_SYMBOLS();
-
-    PhRegisterCallback(
-        &SymbolProvider->EventCallback,
-        Function,
-        Context,
-        Registration
-        );
-
-    //PH_UNLOCK_SYMBOLS();
-}
-
-VOID PhSymbolProviderUnregisterEventCallback(
-    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
-    _In_ PPH_CALLBACK_REGISTRATION Registration
-    )
-{
-    //PH_LOCK_SYMBOLS();
-
-    PhUnregisterCallback(&SymbolProvider->EventCallback, Registration);
-
-    //PH_UNLOCK_SYMBOLS();
 }

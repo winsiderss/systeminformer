@@ -6,6 +6,7 @@ extern "C" {
 #endif
 
 extern PPH_OBJECT_TYPE PhSymbolProviderType;
+extern PH_CALLBACK PhSymbolEventCallback;
 
 #define PH_MAX_SYMBOL_NAME_LEN 128
 
@@ -14,13 +15,21 @@ typedef struct _PH_SYMBOL_PROVIDER
     LIST_ENTRY ModulesListHead;
     PH_QUEUED_LOCK ModulesListLock;
     HANDLE ProcessHandle;
-    BOOLEAN IsRealHandle;
-    BOOLEAN IsRegistered;
-    BOOLEAN Terminating;
+
+    union
+    {
+        BOOLEAN Flags;
+        struct
+        {
+            BOOLEAN IsRealHandle : 1;
+            BOOLEAN IsRegistered : 1;
+            BOOLEAN Terminating : 1;
+            BOOLEAN Spare : 5;
+        };
+    };
 
     PH_INITONCE InitOnce;
     PH_AVL_TREE ModulesSet;
-    PH_CALLBACK EventCallback;
 } PH_SYMBOL_PROVIDER, *PPH_SYMBOL_PROVIDER;
 
 typedef enum _PH_SYMBOL_RESOLVE_LEVEL
@@ -56,14 +65,10 @@ typedef enum _PH_SYMBOL_EVENT_TYPE
 
 typedef struct _PH_SYMBOL_EVENT_DATA
 {
+    PH_SYMBOL_EVENT_TYPE ActionCode;
     HANDLE ProcessHandle;
     PPH_SYMBOL_PROVIDER SymbolProvider;
-    PH_SYMBOL_EVENT_TYPE Type;
-
-    ULONG64 BaseAddress;
-    ULONG CheckSum;
-    ULONG TimeStamp;
-    PPH_STRING FileName;
+    PVOID EventData;
 } PH_SYMBOL_EVENT_DATA, *PPH_SYMBOL_EVENT_DATA;
 
 PHLIBAPI
@@ -289,24 +294,6 @@ NTAPI
 PhUndecorateSymbolName(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
     _In_ PWSTR DecoratedName
-    );
-
-PHLIBAPI
-VOID
-NTAPI
-PhSymbolProviderRegisterEventCallback(
-    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
-    _In_ PPH_CALLBACK_FUNCTION Function,
-    _In_opt_ PVOID Context,
-    _Out_ PPH_CALLBACK_REGISTRATION Registration
-    );
-
-PHLIBAPI
-VOID
-NTAPI
-PhSymbolProviderUnregisterEventCallback(
-    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
-    _In_ PPH_CALLBACK_REGISTRATION Registration
     );
 
 #ifdef __cplusplus
