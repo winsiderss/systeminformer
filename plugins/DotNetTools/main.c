@@ -24,20 +24,20 @@
 #include "dn.h"
 
 PPH_PLUGIN PluginInstance;
-static PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
-static PH_CALLBACK_REGISTRATION PluginUnloadCallbackRegistration;
-static PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
-static PH_CALLBACK_REGISTRATION PluginTreeNewMessageCallbackRegistration;
-static PH_CALLBACK_REGISTRATION PluginPhSvcRequestCallbackRegistration;
-static PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
-static PH_CALLBACK_REGISTRATION ProcessPropertiesInitializingCallbackRegistration;
-static PH_CALLBACK_REGISTRATION ProcessMenuInitializingCallbackRegistration;
-static PH_CALLBACK_REGISTRATION ThreadMenuInitializingCallbackRegistration;
-static PH_CALLBACK_REGISTRATION ModuleMenuInitializingCallbackRegistration;
-static PH_CALLBACK_REGISTRATION ProcessTreeNewInitializingCallbackRegistration;
-static PH_CALLBACK_REGISTRATION ThreadTreeNewInitializingCallbackRegistration;
-static PH_CALLBACK_REGISTRATION ThreadTreeNewUninitializingCallbackRegistration;
-static PH_CALLBACK_REGISTRATION ThreadStackControlCallbackRegistration;
+PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
+PH_CALLBACK_REGISTRATION PluginUnloadCallbackRegistration;
+PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
+PH_CALLBACK_REGISTRATION PluginTreeNewMessageCallbackRegistration;
+PH_CALLBACK_REGISTRATION PluginPhSvcRequestCallbackRegistration;
+PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
+PH_CALLBACK_REGISTRATION ProcessPropertiesInitializingCallbackRegistration;
+PH_CALLBACK_REGISTRATION ProcessMenuInitializingCallbackRegistration;
+PH_CALLBACK_REGISTRATION ThreadMenuInitializingCallbackRegistration;
+PH_CALLBACK_REGISTRATION ModuleMenuInitializingCallbackRegistration;
+PH_CALLBACK_REGISTRATION ProcessTreeNewInitializingCallbackRegistration;
+PH_CALLBACK_REGISTRATION ThreadTreeNewInitializingCallbackRegistration;
+PH_CALLBACK_REGISTRATION ThreadTreeNewUninitializingCallbackRegistration;
+PH_CALLBACK_REGISTRATION ThreadStackControlCallbackRegistration;
 
 VOID NTAPI LoadCallback(
     _In_opt_ PVOID Parameter,
@@ -200,6 +200,7 @@ LOGICAL DllMain(
             PH_SETTING_CREATE settings[] =
             {
                 { StringSettingType, SETTING_NAME_ASM_TREE_LIST_COLUMNS, L"" },
+                { IntegerSettingType, SETTING_NAME_ASM_TREE_LIST_FLAGS, L"0" },
                 { IntegerSettingType, SETTING_NAME_DOT_NET_CATEGORY_INDEX, L"5" },
                 { StringSettingType, SETTING_NAME_DOT_NET_COUNTERS_COLUMNS, L"" },
                 { IntegerSettingType, SETTING_NAME_DOT_NET_SHOW_BYTE_SIZE, L"1" }
@@ -311,7 +312,7 @@ LOGICAL DllMain(
                 );
             InitializeTreeNewObjectExtensions();
 
-            PhAddSettings(settings, ARRAYSIZE(settings));
+            PhAddSettings(settings, RTL_NUMBER_OF(settings));
         }
         break;
     }

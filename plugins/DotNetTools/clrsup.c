@@ -90,7 +90,7 @@ PPH_STRING GetRuntimeNameByAddressClrProcess(
     ULONG64 displacement;
 
     bufferLength = 33;
-    buffer = PhCreateStringEx(NULL, (bufferLength - 1) * 2);
+    buffer = PhCreateStringEx(NULL, (bufferLength - 1) * sizeof(WCHAR));
 
     returnLength = 0;
 
@@ -113,7 +113,7 @@ PPH_STRING GetRuntimeNameByAddressClrProcess(
     {
         PhDereferenceObject(buffer);
         bufferLength = returnLength;
-        buffer = PhCreateStringEx(NULL, (bufferLength - 1) * 2);
+        buffer = PhCreateStringEx(NULL, (bufferLength - 1) * sizeof(WCHAR));
 
         if (!SUCCEEDED(IXCLRDataProcess_GetRuntimeNameByAddress(
             Support->DataProcess,
@@ -133,7 +133,7 @@ PPH_STRING GetRuntimeNameByAddressClrProcess(
     if (Displacement)
         *Displacement = displacement;
 
-    buffer->Length = (returnLength - 1) * 2;
+    buffer->Length = (returnLength - 1) * sizeof(WCHAR);
 
     return buffer;
 }
@@ -150,7 +150,7 @@ PPH_STRING GetNameXClrDataAppDomain(
     appDomain = AppDomain;
 
     bufferLength = 33;
-    buffer = PhCreateStringEx(NULL, (bufferLength - 1) * 2);
+    buffer = PhCreateStringEx(NULL, (bufferLength - 1) * sizeof(WCHAR));
 
     returnLength = 0;
 
@@ -165,7 +165,7 @@ PPH_STRING GetNameXClrDataAppDomain(
     {
         PhDereferenceObject(buffer);
         bufferLength = returnLength;
-        buffer = PhCreateStringEx(NULL, (bufferLength - 1) * 2);
+        buffer = PhCreateStringEx(NULL, (bufferLength - 1) * sizeof(WCHAR));
 
         if (!SUCCEEDED(IXCLRDataAppDomain_GetName(appDomain, bufferLength, &returnLength, buffer->Buffer)))
         {
@@ -174,7 +174,7 @@ PPH_STRING GetNameXClrDataAppDomain(
         }
     }
 
-    buffer->Length = (returnLength - 1) * 2;
+    buffer->Length = (returnLength - 1) * sizeof(WCHAR);
 
     return buffer;
 }
