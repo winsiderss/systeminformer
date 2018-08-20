@@ -5530,7 +5530,6 @@ static BOOLEAN EnumGenericProcessModulesCallback(
     moduleInfo.Flags = Module->Flags;
     moduleInfo.LoadOrderIndex = (USHORT)(context->LoadOrderIndex++);
     moduleInfo.LoadCount = Module->ObsoleteLoadCount;
-    moduleInfo.ParentBaseAddress = Module->ParentDllBase;
 
     moduleInfo.Name = PhCreateStringFromUnicodeString(&Module->BaseDllName);
     moduleInfo.OriginalFileName = PhCreateStringFromUnicodeString(&Module->FullDllName);
@@ -5538,11 +5537,13 @@ static BOOLEAN EnumGenericProcessModulesCallback(
 
     if (WindowsVersion >= WINDOWS_8)
     {
+        moduleInfo.ParentBaseAddress = Module->ParentDllBase;
         moduleInfo.LoadReason = (USHORT)Module->LoadReason;
         moduleInfo.LoadTime = Module->LoadTime;
     }
     else
     {
+        moduleInfo.ParentBaseAddress = NULL;
         moduleInfo.LoadReason = USHRT_MAX;
         moduleInfo.LoadTime.QuadPart = 0;
     }
