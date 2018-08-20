@@ -202,6 +202,59 @@ VOID PhDereferenceObjects(
         PhDereferenceObject(Objects[i]);
 }
 
+// NLS support
+// TODO: Move to seperate file. (dmex)
+
+LCID PhGetSystemDefaultLCID(
+    VOID
+    )
+{
+    LCID localeId;
+
+    if (NT_SUCCESS(NtQueryDefaultLocale(FALSE, &localeId)))
+        return localeId;
+
+    return MAKELCID(MAKELANGID(LANG_ENGLISH, SUBLANG_DEFAULT), SORT_DEFAULT);
+}
+
+LCID PhGetUserDefaultLCID(
+    VOID
+    )
+{
+    LCID localeId;
+
+    if (NT_SUCCESS(NtQueryDefaultLocale(TRUE, &localeId)))
+        return localeId;
+
+    return MAKELCID(MAKELANGID(LANG_ENGLISH, SUBLANG_DEFAULT), SORT_DEFAULT);
+}
+
+LANGID PhGetSystemDefaultLangID(
+    VOID
+    )
+{
+    return LANGIDFROMLCID(PhGetSystemDefaultLCID());
+}
+
+LANGID PhGetUserDefaultLangID(
+    VOID
+    )
+{
+    return LANGIDFROMLCID(PhGetUserDefaultLCID());
+}
+
+LANGID PhGetUserDefaultUILanguage(
+    VOID
+    )
+{
+    LANGID languageId;
+
+    if (NT_SUCCESS(NtQueryDefaultUILanguage(&languageId)))
+        return languageId;
+
+    return MAKELANGID(LANG_ENGLISH, SUBLANG_DEFAULT);
+}
+
 /**
  * Gets a string stored in a DLL's message table.
  *
@@ -237,7 +290,7 @@ PPH_STRING PhGetMessage(
         status = RtlFindMessage(
             DllHandle,
             MessageTableId,
-            GetSystemDefaultLangID(),
+            PhGetSystemDefaultLangID(),
             MessageId,
             &messageEntry
             );
@@ -284,7 +337,7 @@ PPH_STRING PhGetNtMessage(
     PPH_STRING message;
 
     if (!NT_NTWIN32(Status))
-        message = PhGetMessage(PhGetDllHandle(L"ntdll.dll"), 0xb, GetUserDefaultLangID(), (ULONG)Status);
+        message = PhGetMessage(PhGetDllHandle(L"ntdll.dll"), 0xb, PhGetUserDefaultLangID(), (ULONG)Status);
     else
         message = PhGetWin32Message(WIN32_FROM_NTSTATUS(Status));
 
@@ -326,7 +379,7 @@ PPH_STRING PhGetWin32Message(
 {
     PPH_STRING message;
 
-    message = PhGetMessage(PhGetDllHandle(L"kernel32.dll"), 0xb, GetUserDefaultLangID(), Result);
+    message = PhGetMessage(PhGetDllHandle(L"kernel32.dll"), 0xb, PhGetUserDefaultLangID(), Result);
 
     if (message)
         PhTrimToNullTerminatorString(message);
