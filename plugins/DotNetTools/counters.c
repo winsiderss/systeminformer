@@ -2,7 +2,7 @@
  * Process Hacker .NET Tools -
  *   IPC support functions
  *
- * Copyright (C) 2015-2016 dmex
+ * Copyright (C) 2015-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -24,26 +24,6 @@
 #include "clr/dbgappdomain.h"
 #include "clr/ipcheader.h"
 #include "clr/ipcshared.h"
-
-PPH_STRING GeneratePrivateName(_In_ HANDLE ProcessId)
-{
-    return PhaFormatString(L"\\BaseNamedObjects\\" CorLegacyPrivateIPCBlock, HandleToUlong(ProcessId));
-}
-
-PPH_STRING GeneratePrivateNameV4(_In_ HANDLE ProcessId)
-{
-    return PhaFormatString(L"\\BaseNamedObjects\\" CorLegacyPrivateIPCBlockTempV4, HandleToUlong(ProcessId));
-}
-
-PPH_STRING GenerateLegacyPublicName(_In_ HANDLE ProcessId)
-{
-    return PhaFormatString(L"\\BaseNamedObjects\\" CorLegacyPublicIPCBlock, HandleToUlong(ProcessId));
-}
-
-PPH_STRING GenerateBoundaryDescriptorName(_In_ HANDLE ProcessId)
-{
-    return PhaFormatString(CorSxSBoundaryDescriptor, HandleToUlong(ProcessId));
-}
 
 PVOID GetLegacyBlockTableEntry(
     _In_ BOOLEAN Wow64,
@@ -470,7 +450,7 @@ BOOLEAN OpenDotNetPublicControlBlock_V2(
     LARGE_INTEGER sectionOffset = { 0 };
     SIZE_T viewSize = 0;
 
-    if (!PhStringRefToUnicodeString(&GenerateLegacyPublicName(ProcessId)->sr, &sectionNameUs))
+    if (!PhStringRefToUnicodeString(&PhaFormatString(L"\\BaseNamedObjects\\" CorLegacyPublicIPCBlock, HandleToUlong(ProcessId))->sr, &sectionNameUs))
         return FALSE;
 
     InitializeObjectAttributes(
@@ -543,7 +523,7 @@ BOOLEAN OpenDotNetPublicControlBlock_V4(
     PTOKEN_APPCONTAINER_INFORMATION appContainerInfo = NULL;
     SID_IDENTIFIER_AUTHORITY SIDWorldAuth = SECURITY_WORLD_SID_AUTHORITY;
 
-    if (!PhStringRefToUnicodeString(&GenerateBoundaryDescriptorName(ProcessId)->sr, &boundaryNameUs))
+    if (!PhStringRefToUnicodeString(&PhaFormatString(CorSxSBoundaryDescriptor, HandleToUlong(ProcessId))->sr, &boundaryNameUs))
         goto CleanupExit;
 
     if (!(boundaryDescriptorHandle = RtlCreateBoundaryDescriptor(&boundaryNameUs, 0)))
@@ -700,15 +680,21 @@ PPH_LIST QueryDotNetAppDomainsForPid_V2(
     _In_ HANDLE ProcessId
     )
 {
-    LARGE_INTEGER sectionOffset = { 0 };
-    SIZE_T viewSize = 0;
-    OBJECT_ATTRIBUTES objectAttributes;
-    UNICODE_STRING sectionNameUs;
+    PPH_LIST appDomainsList = NULL;
+    PPH_STRING legacyPrivateBlockName = NULL;
     HANDLE legacyPrivateBlockHandle = NULL;
     PVOID ipcControlBlockTable = NULL;
-    PPH_LIST appDomainsList = NULL;
+    OBJECT_ATTRIBUTES objectAttributes;
+    UNICODE_STRING sectionNameUs;
+    LARGE_INTEGER sectionOffset;
+    SIZE_T viewSize;
 
-    if (!PhStringRefToUnicodeString(&GeneratePrivateName(ProcessId)->sr, &sectionNameUs))
+    legacyPrivateBlockName = PhFormatString(
+        L"\\BaseNamedObjects\\" CorLegacyPrivateIPCBlock,
+        HandleToUlong(ProcessId)
+        );
+
+    if (!PhStringRefToUnicodeString(&legacyPrivateBlockName->sr, &sectionNameUs))
         goto CleanupExit;
 
     InitializeObjectAttributes(
@@ -727,6 +713,9 @@ PPH_LIST QueryDotNetAppDomainsForPid_V2(
     {
         goto CleanupExit;
     }
+
+    viewSize = 0;
+    sectionOffset.QuadPart = 0;
 
     if (!NT_SUCCESS(NtMapViewOfSection(
         legacyPrivateBlockHandle,
@@ -809,6 +798,8 @@ CleanupExit:
         NtClose(legacyPrivateBlockHandle);
     }
 
+    PhDereferenceObject(legacyPrivateBlockName);
+
     return appDomainsList;
 }
 
@@ -818,15 +809,21 @@ PPH_LIST QueryDotNetAppDomainsForPid_V4(
     _In_ HANDLE ProcessId
     )
 {
+    PPH_LIST appDomainsList = NULL;
+    PPH_STRING legacyPrivateBlockName = NULL;
     HANDLE legacyPrivateBlockHandle = NULL;
     PVOID ipcControlBlockTable = NULL;
-    LARGE_INTEGER sectionOffset = { 0 };
-    SIZE_T viewSize = 0;
     OBJECT_ATTRIBUTES objectAttributes;
     UNICODE_STRING sectionNameUs;
-    PPH_LIST appDomainsList = NULL;
+    LARGE_INTEGER sectionOffset;
+    SIZE_T viewSize;
+    
+    legacyPrivateBlockName = PhaFormatString(
+        L"\\BaseNamedObjects\\" CorLegacyPrivateIPCBlockTempV4,
+        HandleToUlong(ProcessId)
+        );
 
-    if (!PhStringRefToUnicodeString(&GeneratePrivateNameV4(ProcessId)->sr, &sectionNameUs))
+    if (!PhStringRefToUnicodeString(&legacyPrivateBlockName->sr, &sectionNameUs))
         goto CleanupExit;
 
     InitializeObjectAttributes(
@@ -845,6 +842,9 @@ PPH_LIST QueryDotNetAppDomainsForPid_V4(
     {
         goto CleanupExit;
     }
+
+    viewSize = 0;
+    sectionOffset.QuadPart = 0;
 
     if (!NT_SUCCESS(NtMapViewOfSection(
         legacyPrivateBlockHandle,

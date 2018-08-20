@@ -9,10 +9,11 @@
 #define ID_CLR_INSPECT                  105
 #define ID_COPY                         106
 #define IDC_APPDOMAINS                  1001
-#define IDC_CATEGORIES                  1002
+#define IDC_OPTIONS                     1002
 #define IDC_COUNTERS                    1003
+#define IDC_REFRESH                     1003
 #define IDC_LIST                        1005
-#define IDC_DOTNET_PERF_SHOWBYTES       1006
+#define IDC_SEARCHEDIT                  1035
 
 // Next default values for new objects
 // 
