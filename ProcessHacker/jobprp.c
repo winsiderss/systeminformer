@@ -226,9 +226,10 @@ INT_PTR CALLBACK PhpJobPageProc(
             PhSetListViewStyle(limitsLv, FALSE, TRUE);
             PhSetControlTheme(processesLv, L"explorer");
             PhSetControlTheme(limitsLv, L"explorer");
+            PhSetExtendedListView(processesLv);
+            PhSetExtendedListView(limitsLv);
 
             PhAddListViewColumn(processesLv, 0, 0, 0, LVCFMT_LEFT, 240, L"Name");
-
             PhAddListViewColumn(limitsLv, 0, 0, 0, LVCFMT_LEFT, 120, L"Name");
             PhAddListViewColumn(limitsLv, 1, 1, 1, LVCFMT_LEFT, 160, L"Value");
             PhLoadListViewColumnsFromSetting(L"JobListViewColumns", limitsLv);
@@ -250,7 +251,7 @@ INT_PTR CALLBACK PhpJobPageProc(
                 PhGetHandleInformation(
                     NtCurrentProcess(),
                     jobHandle,
-                    -1,
+                    ULONG_MAX,
                     NULL,
                     NULL,
                     NULL,
@@ -390,6 +391,11 @@ INT_PTR CALLBACK PhpJobPageProc(
     case WM_DESTROY:
         PhSaveListViewColumnsToSetting(L"JobListViewColumns", GetDlgItem(hwndDlg, IDC_LIMITS));
         break;
+    case WM_SHOWWINDOW:
+        {
+            ExtendedListView_SetColumnWidth(GetDlgItem(hwndDlg, IDC_PROCESSES), 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
+        }
+        break;
     case WM_COMMAND:
         {
             switch (GET_WM_COMMAND_ID(wParam, lParam))
@@ -478,8 +484,22 @@ INT_PTR CALLBACK PhpJobPageProc(
         break;
     case WM_NOTIFY:
         {
+            LPNMHDR header = (LPNMHDR)lParam;
+
+            switch (header->code)
+            {
+            case PSN_QUERYINITIALFOCUS:
+                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LPARAM)GetDlgItem(hwndDlg, IDC_PROCESSES));
+                return TRUE;
+            }
+
             PhHandleListViewNotifyBehaviors(lParam, GetDlgItem(hwndDlg, IDC_PROCESSES), PH_LIST_VIEW_DEFAULT_1_BEHAVIORS);
             PhHandleListViewNotifyBehaviors(lParam, GetDlgItem(hwndDlg, IDC_LIMITS), PH_LIST_VIEW_DEFAULT_1_BEHAVIORS);
+        }
+        break;
+    case WM_SIZE:
+        {
+            ExtendedListView_SetColumnWidth(GetDlgItem(hwndDlg, IDC_PROCESSES), 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
         }
         break;
     }
