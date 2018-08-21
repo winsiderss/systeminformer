@@ -223,34 +223,67 @@ VOID PhpRefreshEnvironmentList(
 
     for (i = 0; i < Context->Items.Count; i++)
     {
-        UNICODE_STRING variableNameUs;
-        UNICODE_STRING variableValueUs;
+        PPHP_PROCESS_ENVIRONMENT_TREENODE parentNode;
+        PROCESS_ENVIRONMENT_TREENODE_TYPE nodeType;
+        PPH_STRING variableValue;
 
         item = PhItemArray(&Context->Items, i);
 
-        PhStringRefToUnicodeString(&item->Name->sr, &variableNameUs);
-        RtlInitUnicodeString(&variableValueUs, UNICODE_NULL);
-
-        if (RtlQueryEnvironmentVariable_U(
+        if (PhQueryEnvironmentVariable(
             Context->SystemDefaultEnvironment,
-            &variableNameUs,
-            &variableValueUs
+            &item->Name->sr,
+            NULL
             ) == STATUS_BUFFER_TOO_SMALL)
         {
-            PhpAddEnvironmentChildNode(Context, systemRootNode, i, PROCESS_ENVIRONMENT_TREENODE_TYPE_SYSTEM, item->Name, item->Value);
+            nodeType = PROCESS_ENVIRONMENT_TREENODE_TYPE_SYSTEM;
+            parentNode = systemRootNode;
+
+            if (NT_SUCCESS(PhQueryEnvironmentVariable(
+                Context->SystemDefaultEnvironment,
+                &item->Name->sr,
+                &variableValue
+                )))
+            {
+                if (!PhEqualString(variableValue, item->Value, FALSE))
+                {
+                    nodeType = PROCESS_ENVIRONMENT_TREENODE_TYPE_PROCESS;
+                    parentNode = processRootNode;
+                }
+
+                PhDereferenceObject(variableValue);
+            }
         }
-        else if (RtlQueryEnvironmentVariable_U(
+        else if (PhQueryEnvironmentVariable(
             Context->UserDefaultEnvironment,
-            &variableNameUs,
-            &variableValueUs
+            &item->Name->sr,
+            NULL
             ) == STATUS_BUFFER_TOO_SMALL)
         {
-            PhpAddEnvironmentChildNode(Context, userRootNode, i, PROCESS_ENVIRONMENT_TREENODE_TYPE_USER, item->Name, item->Value);
+            nodeType = PROCESS_ENVIRONMENT_TREENODE_TYPE_USER;
+            parentNode = userRootNode;
+
+            if (NT_SUCCESS(PhQueryEnvironmentVariable(
+                Context->UserDefaultEnvironment,
+                &item->Name->sr,
+                &variableValue
+                )))
+            {
+                if (!PhEqualString(variableValue, item->Value, FALSE))
+                {
+                    nodeType = PROCESS_ENVIRONMENT_TREENODE_TYPE_PROCESS;
+                    parentNode = processRootNode;
+                }
+
+                PhDereferenceObject(variableValue);
+            }
         }
         else
         {
-            PhpAddEnvironmentChildNode(Context, processRootNode, i, PROCESS_ENVIRONMENT_TREENODE_TYPE_PROCESS, item->Name, item->Value);
+            nodeType = PROCESS_ENVIRONMENT_TREENODE_TYPE_PROCESS;
+            parentNode = processRootNode;
         }
+
+        PhpAddEnvironmentChildNode(Context, parentNode, i, nodeType, item->Name, item->Value);
     }
 
     PhApplyTreeNewFilters(&Context->TreeFilterSupport);
@@ -335,6 +368,20 @@ INT_PTR CALLBACK PhpEditEnvDlgProc(
                     HANDLE processHandle;
                     LARGE_INTEGER timeout;
 
+                    if (PhIsProcessSuspended(context->ProcessItem->ProcessId))
+                    {
+                        if (PhGetIntegerSetting(L"EnableWarnings") && PhShowMessage2(
+                            hwndDlg,
+                            TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
+                            TD_WARNING_ICON,
+                            L"The process is suspended.",
+                            L"Editing environment variable(s) of suspended processes is not supported.\n\nAre you sure you want to continue?"
+                            ) == IDNO)
+                        {
+                            break;
+                        }
+                    }
+
                     if (!PhIsNullOrEmptyString(name))
                     {
                         if (!PhEqualString2(name, context->Name, FALSE) ||
@@ -394,7 +441,7 @@ INT_PTR CALLBACK PhpEditEnvDlgProc(
                 break;
             case IDC_NAME:
                 {
-                    if (HIWORD(wParam) == EN_CHANGE)
+                    if (GET_WM_COMMAND_CMD(wParam, lParam) == EN_CHANGE)
                     {
                         EnableWindow(GetDlgItem(hwndDlg, IDOK), PhGetWindowTextLength(GetDlgItem(hwndDlg, IDC_NAME)) > 0);
                     }
