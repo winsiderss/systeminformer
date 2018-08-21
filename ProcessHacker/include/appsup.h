@@ -15,6 +15,13 @@ NTAPI
 PhGetProcessIsSuspended(
     _In_ PSYSTEM_PROCESS_INFORMATION Process
     );
+
+PHAPPAPI
+BOOLEAN
+NTAPI
+PhIsProcessSuspended(
+    _In_ HANDLE ProcessId
+    );
 // end_phapppub
 
 NTSTATUS PhGetProcessSwitchContext(

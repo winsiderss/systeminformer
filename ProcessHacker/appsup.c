@@ -72,6 +72,24 @@ BOOLEAN PhGetProcessIsSuspended(
     return Process->NumberOfThreads != 0;
 }
 
+BOOLEAN PhIsProcessSuspended(
+    _In_ HANDLE ProcessId
+    )
+{
+    PVOID processes;
+    PSYSTEM_PROCESS_INFORMATION process;
+
+    if (NT_SUCCESS(PhEnumProcesses(&processes)))
+    {
+        if (process = PhFindProcessInformation(processes, ProcessId))
+            return PhGetProcessIsSuspended(process);
+
+        PhFree(processes);
+    }
+
+    return FALSE;
+}
+
 /**
  * Determines the OS compatibility context of a process.
  *
@@ -828,12 +846,18 @@ VOID PhShellExecuteUserString(
             if (ErrorMessage)
             {
                 ntMessage = PhGetNtMessage(status);
-                PhShowError(hWnd, L"Unable to execute the command: %s\n%s", PhGetStringOrDefault(ntMessage, L"An unknown error occurred."), ErrorMessage);
+                PhShowError2(
+                    hWnd,
+                    L"Unable to execute the command.",
+                    L"%s\n%s",
+                    PhGetStringOrDefault(ntMessage, L"An unknown error occurred."),
+                    ErrorMessage
+                    );
                 PhDereferenceObject(ntMessage);
             }
             else
             {
-                PhShowStatus(hWnd, L"Unable to execute the command", status, 0);
+                PhShowStatus(hWnd, L"Unable to execute the command.", status, 0);
             }
         }
     }
