@@ -332,6 +332,19 @@ LRESULT CALLBACK PhMwpWndProc(
                 return result;
         }
         break;
+    case WM_DEVICECHANGE:
+        {
+            MSG message;
+
+            memset(&message, 0, sizeof(MSG));
+            message.hwnd = hWnd;
+            message.message = uMsg;
+            message.wParam = wParam;
+            message.lParam = lParam;
+
+            PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackWindowNotifyEvent), &message);
+        }
+        break;
     }
 
     if (uMsg >= WM_PH_FIRST && uMsg <= WM_PH_LAST)
