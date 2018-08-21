@@ -294,7 +294,7 @@ DECLARE_INTERFACE_IID(IStartMenuAppItems61, IUnknown)
     STDMETHOD(EnumItems)(THIS,
         _In_ ULONG Flags,
         _In_ REFIID riid,
-        _Outptr_ IEnumObjects *ppvObject
+        _Outptr_ IEnumObjects **ppvObject
         ) PURE;
     STDMETHOD(GetItem)(THIS,
         _In_ ULONG Flags,
@@ -332,7 +332,7 @@ DECLARE_INTERFACE_IID(IStartMenuAppItems62, IUnknown)
     STDMETHOD(EnumItems)(THIS,
         _In_ ULONG Flags,
         _In_ REFIID riid,
-        _Outptr_ IEnumObjects *ppvObject
+        _Outptr_ IEnumObjects **ppvObject
         ) PURE;
     STDMETHOD(GetItem)(THIS,
         _In_ ULONG Flags,
