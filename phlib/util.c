@@ -229,6 +229,20 @@ LCID PhGetUserDefaultLCID(
     return MAKELCID(MAKELANGID(LANG_ENGLISH, SUBLANG_DEFAULT), SORT_DEFAULT);
 }
 
+LCID PhGetCurrentThreadLCID(
+    VOID
+    )
+{
+    PTEB currentTeb;
+
+    currentTeb = NtCurrentTeb();
+
+    if (!currentTeb->CurrentLocale)
+        currentTeb->CurrentLocale = PhGetUserDefaultLCID();
+
+    return currentTeb->CurrentLocale;
+}
+
 LANGID PhGetSystemDefaultLangID(
     VOID
     )
@@ -253,6 +267,23 @@ LANGID PhGetUserDefaultUILanguage(
         return languageId;
 
     return MAKELANGID(LANG_ENGLISH, SUBLANG_DEFAULT);
+}
+
+PPH_STRING PhGetUserDefaultLocaleName(
+    VOID
+    )
+{
+    UNICODE_STRING localeNameUs;
+    WCHAR localeName[LOCALE_NAME_MAX_LENGTH];
+
+    RtlInitEmptyUnicodeString(&localeNameUs, localeName, sizeof(localeName));
+
+    if (NT_SUCCESS(RtlLcidToLocaleName(PhGetUserDefaultLCID(), &localeNameUs, 0, FALSE)))
+    {
+        return PhCreateString(localeName);
+    }
+
+    return NULL;
 }
 
 /**
