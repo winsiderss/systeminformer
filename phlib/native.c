@@ -1092,6 +1092,65 @@ BOOLEAN PhEnumProcessEnvironmentVariables(
     return TRUE;
 }
 
+NTSTATUS PhQueryEnvironmentVariable(
+    _In_opt_ PVOID Environment,
+    _In_ PPH_STRINGREF Name,
+    _Out_opt_ PPH_STRING* Value
+    )
+{
+    NTSTATUS status;
+    UNICODE_STRING variableNameUs;
+    UNICODE_STRING variableValueUs;
+
+    PhStringRefToUnicodeString(Name, &variableNameUs);
+
+    if (Value)
+    {
+        variableValueUs.Length = 0x100 * sizeof(WCHAR);
+        variableValueUs.MaximumLength = variableValueUs.Length + sizeof(UNICODE_NULL);
+        variableValueUs.Buffer = PhAllocateZero(variableValueUs.MaximumLength);
+    }
+    else
+    {
+        RtlInitUnicodeString(&variableValueUs, UNICODE_NULL);
+    }
+
+    status = RtlQueryEnvironmentVariable_U(
+        Environment,
+        &variableNameUs,
+        &variableValueUs
+        );
+
+    if (Value && status == STATUS_BUFFER_TOO_SMALL)
+    {
+        if (variableValueUs.Length + sizeof(UNICODE_NULL) > UNICODE_STRING_MAX_BYTES)
+            variableValueUs.MaximumLength = variableValueUs.Length;
+        else
+            variableValueUs.MaximumLength = variableValueUs.Length + sizeof(UNICODE_NULL);
+
+        PhFree(variableValueUs.Buffer);
+        variableValueUs.Buffer = PhAllocateZero(variableValueUs.MaximumLength);
+
+        status = RtlQueryEnvironmentVariable_U(
+            Environment,
+            &variableNameUs,
+            &variableValueUs
+            );
+    }
+
+    if (Value && NT_SUCCESS(status))
+    {
+        *Value = PhCreateStringFromUnicodeString(&variableValueUs);
+    }
+
+    if (Value && variableValueUs.Buffer)
+    {
+        PhFree(variableValueUs.Buffer);
+    }
+
+    return status;
+}
+
 /**
  * Gets the file name of a mapped section.
  *
