@@ -262,6 +262,15 @@ PhEnumProcessEnvironmentVariables(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhQueryEnvironmentVariable(
+    _In_opt_ PVOID Environment,
+    _In_ PPH_STRINGREF Name,
+    _Out_opt_ PPH_STRING* Value
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhGetProcessMappedFileName(
     _In_ HANDLE ProcessHandle,
     _In_ PVOID BaseAddress,
