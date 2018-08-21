@@ -22,7 +22,9 @@
 // begin_phapppub
 typedef enum _PH_HANDLE_TREE_MENUITEM
 {
-    PH_HANDLE_TREE_MENUITEM_HIDEUNNAMEDHANDLES = 1,
+    PH_HANDLE_TREE_MENUITEM_NONE,
+    PH_HANDLE_TREE_MENUITEM_HIDEUNNAMEDHANDLES,
+    PH_HANDLE_TREE_MENUITEM_HIDEETWHANDLES,
     PH_HANDLE_TREE_MENUITEM_MAXIMUM
 } PH_HANDLE_TREE_MENUITEM;
 // end_phapppub
@@ -63,7 +65,8 @@ typedef struct _PH_HANDLE_LIST_CONTEXT
         {
             ULONG EnableStateHighlighting : 1;
             ULONG HideUnnamedHandles : 1;
-            ULONG Spare : 23;
+            ULONG HideEtwHandles : 1;
+            ULONG Spare : 22;
         };
     };
 
