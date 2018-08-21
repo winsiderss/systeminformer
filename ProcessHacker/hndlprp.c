@@ -942,7 +942,10 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
             PhpUpdateHandleGeneralListViewGroups(context);
             PhpUpdateHandleGeneral(context);
 
-            PhInitializeWindowTheme(GetParent(hwndDlg), PhEnableThemeSupport); // HACK
+            if (PhEnableThemeSupport) // TODO: Required for compat (dmex)
+                PhInitializeWindowTheme(GetParent(hwndDlg), PhEnableThemeSupport);
+            else
+                PhInitializeWindowTheme(hwndDlg, FALSE);
         }
         break;
     case WM_DESTROY:
