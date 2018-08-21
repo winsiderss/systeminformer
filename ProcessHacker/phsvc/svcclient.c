@@ -41,7 +41,7 @@ PPHSVC_CLIENT PhSvcCreateClient(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        PhSvcClientType = PhCreateObjectType(L"Client", 0, PhSvcpClientDeleteProcedure);
+        PhSvcClientType = PhCreateObjectType(L"PhSvcClient", 0, PhSvcpClientDeleteProcedure);
         PhEndInitOnce(&initOnce);
     }
 
