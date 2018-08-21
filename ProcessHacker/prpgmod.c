@@ -669,7 +669,6 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                     PPH_EMENU_ITEM dotnetItem;
                     PPH_EMENU_ITEM immersiveItem;
                     PPH_EMENU_ITEM relocatedItem;
-                    PPH_EMENU_ITEM stringsItem;
                     PPH_EMENU_ITEM selectedItem;
 
                     GetWindowRect(GetDlgItem(hwndDlg, IDC_FILTEROPTIONS), &rect);
@@ -686,8 +685,8 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                     PhInsertEMenuItem(menu, untrustedItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_HIGHLIGHT_UNSIGNED_OPTION, L"Highlight untrusted modules", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PH_MODULE_FLAGS_LOAD_MODULE_OPTION, L"Load module...", NULL, NULL), ULONG_MAX);
-                    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
-                    PhInsertEMenuItem(menu, stringsItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_MODULE_STRINGS_OPTION, L"Strings...", NULL, NULL), ULONG_MAX);
+                    //PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+                    //PhInsertEMenuItem(menu, stringsItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_MODULE_STRINGS_OPTION, L"Strings...", NULL, NULL), ULONG_MAX);
 
                     if (modulesContext->ListContext.HideDynamicModules)
                         dynamicItem->Flags |= PH_EMENU_CHECKED;
@@ -705,8 +704,6 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                         relocatedItem->Flags |= PH_EMENU_CHECKED;
                     if (modulesContext->ListContext.HighlightUntrustedModules)
                         untrustedItem->Flags |= PH_EMENU_CHECKED;
-
-                    stringsItem->Flags |= PH_EMENU_DISABLED; // TODO
 
                     selectedItem = PhShowEMenu(
                         menu,
