@@ -27,6 +27,7 @@
 
 #include <cpysave.h>
 #include <emenu.h>
+#include <hndlinfo.h>
 #include <kphuser.h>
 
 #include <actions.h>
@@ -255,6 +256,25 @@ BOOLEAN PhpHandleTreeFilterCallback(
 
     if (handlesContext->ListContext.HideUnnamedHandles && PhIsNullOrEmptyString(handleItem->BestObjectName))
         return FALSE;
+
+    if (handlesContext->ListContext.HideEtwHandles)
+    {
+        static PH_INITONCE initOnce = PH_INITONCE_INIT;
+        static ULONG eventTraceTypeIndex = ULONG_MAX;
+
+        // HACK: lazy init the etw object type index (dmex)
+        if (PhBeginInitOnce(&initOnce))
+        {
+            UNICODE_STRING fileTypeName;
+
+            RtlInitUnicodeString(&fileTypeName, L"EtwRegistration");
+            eventTraceTypeIndex = PhGetObjectTypeNumber(&fileTypeName);
+            PhEndInitOnce(&initOnce);
+        }
+
+        if (handleItem->TypeIndex == eventTraceTypeIndex)
+            return FALSE;
+    }
 
     if (PhIsNullOrEmptyString(handlesContext->SearchboxText))
         return TRUE;
@@ -595,16 +615,20 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                     RECT rect;
                     PPH_EMENU menu;
                     PPH_EMENU_ITEM unnamedMenuItem;
+                    PPH_EMENU_ITEM etwMenuItem;
                     PPH_EMENU_ITEM selectedItem;
 
                     GetWindowRect(GetDlgItem(hwndDlg, IDC_OPTIONS), &rect);
 
                     menu = PhCreateEMenu();
-                    unnamedMenuItem = PhCreateEMenuItem(0, PH_HANDLE_TREE_MENUITEM_HIDEUNNAMEDHANDLES, L"Hide unnamed handles", NULL, NULL);
-                    PhInsertEMenuItem(menu, unnamedMenuItem, ULONG_MAX);
-                    
+                    PhInsertEMenuItem(menu, unnamedMenuItem = PhCreateEMenuItem(0, PH_HANDLE_TREE_MENUITEM_HIDEUNNAMEDHANDLES, L"Hide unnamed handles", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, etwMenuItem = PhCreateEMenuItem(0, PH_HANDLE_TREE_MENUITEM_HIDEETWHANDLES, L"Hide etw handles", NULL, NULL), ULONG_MAX);
+
                     if (handlesContext->ListContext.HideUnnamedHandles)
                         unnamedMenuItem->Flags |= PH_EMENU_CHECKED;
+
+                    if (handlesContext->ListContext.HideEtwHandles)
+                        etwMenuItem->Flags |= PH_EMENU_CHECKED;
 
                     selectedItem = PhShowEMenu(
                         menu,

@@ -194,6 +194,9 @@ VOID PhSetOptionsHandleList(
     case PH_HANDLE_TREE_MENUITEM_HIDEUNNAMEDHANDLES:
         Context->HideUnnamedHandles = !Context->HideUnnamedHandles;
         break;
+    case PH_HANDLE_TREE_MENUITEM_HIDEETWHANDLES:
+        Context->HideEtwHandles = !Context->HideEtwHandles;
+        break;
     }
 }
 
