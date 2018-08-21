@@ -155,15 +155,28 @@ INT_PTR CALLBACK PvpPeResourcesDlgProc(
 
                     if (IS_INTRESOURCE(entry.Language))
                     {
-                        WCHAR name[LOCALE_NAME_MAX_LENGTH];
+                        NTSTATUS status;
+                        UNICODE_STRING localeNameUs;
+                        WCHAR localeName[LOCALE_NAME_MAX_LENGTH];
 
-                        PhPrintUInt32(number, (ULONG)entry.Language);
+                        RtlInitEmptyUnicodeString(&localeNameUs, localeName, sizeof(localeName));
 
-                        // TODO: RtlLcidToLocaleName
-                        if (LCIDToLocaleName((ULONG)entry.Language, name, LOCALE_NAME_MAX_LENGTH, LOCALE_ALLOW_NEUTRAL_NAMES))
-                            PhSetListViewSubItem(lvHandle, lvItemIndex, PVE_RESOURCES_COLUMN_INDEX_LCID, PhaFormatString(L"%s (%s)", number, name)->Buffer);
+                        // Note: Win32 defaults to the current user locale when zero is specified (e.g. LCIDToLocaleName).
+                        if ((ULONG)entry.Language)
+                            status = RtlLcidToLocaleName((ULONG)entry.Language, &localeNameUs, 0, FALSE);
                         else
+                            status = RtlLcidToLocaleName(PhGetUserDefaultLCID(), &localeNameUs, 0, FALSE);
+
+                        if (NT_SUCCESS(status))
+                        {
+                            PhPrintUInt32(number, (ULONG)entry.Language);
+                            PhSetListViewSubItem(lvHandle, lvItemIndex, PVE_RESOURCES_COLUMN_INDEX_LCID, PhaFormatString(L"%s (%s)", number, localeName)->Buffer);
+                        }
+                        else
+                        {
+                            PhPrintUInt32(number, (ULONG)entry.Language);
                             PhSetListViewSubItem(lvHandle, lvItemIndex, PVE_RESOURCES_COLUMN_INDEX_LCID, number);
+                        }
                     }
                     else
                     {

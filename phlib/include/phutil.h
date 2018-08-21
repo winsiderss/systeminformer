@@ -188,6 +188,18 @@ PhDereferenceObjects(
     _In_ ULONG NumberOfObjects
     );
 
+// NLS
+
+LCID PhGetSystemDefaultLCID(
+    VOID
+    );
+
+LCID PhGetUserDefaultLCID(
+    VOID
+    );
+
+// Error messages
+
 PHLIBAPI
 PPH_STRING
 NTAPI
