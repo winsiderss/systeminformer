@@ -46,7 +46,7 @@ typedef enum _PHP_QUERY_OBJECT_WORK
     NtQueryObjectWork,
     NtQuerySecurityObjectWork,
     NtSetSecurityObjectWork,
-    NtQueryFileInformation
+    NtQueryFileInformationWork
 } PHP_QUERY_OBJECT_WORK;
 
 typedef struct _PHP_QUERY_OBJECT_COMMON_CONTEXT
@@ -1701,7 +1701,7 @@ NTSTATUS PhpCommonQueryObjectRoutine(
             context->u.NtSetSecurityObject.SecurityDescriptor
             );
         break;
-    case NtQueryFileInformation:
+    case NtQueryFileInformationWork:
         {
             IO_STATUS_BLOCK isb;
 
@@ -1812,7 +1812,7 @@ NTSTATUS PhCallNtQueryFileInformationWithTimeout(
     PPHP_QUERY_OBJECT_COMMON_CONTEXT context;
 
     context = PhAllocate(sizeof(PHP_QUERY_OBJECT_COMMON_CONTEXT));
-    context->Work = NtQueryFileInformation;
+    context->Work = NtQueryFileInformationWork;
     context->Status = STATUS_UNSUCCESSFUL;
     context->u.NtQueryObject.Handle = Handle;
     context->u.NtQueryObject.ObjectInformationClass = ObjectInformationClass;
