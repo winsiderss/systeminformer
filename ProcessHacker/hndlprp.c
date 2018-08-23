@@ -664,6 +664,7 @@ VOID PhpUpdateHandleGeneral(
         {
             BOOLEAN disableFlushButton = FALSE;
             BOOLEAN isFileOrDirectory = FALSE;
+            BOOLEAN isConsoleHandle = FALSE;
             FILE_FS_DEVICE_INFORMATION fileDeviceInfo;
             FILE_MODE_INFORMATION fileModeInfo;
             FILE_STANDARD_INFORMATION fileStandardInfo;
@@ -694,19 +695,39 @@ VOID PhpUpdateHandleGeneral(
                     isFileOrDirectory = TRUE;
                     PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_FILETYPE], 1, L"File or directory");
                     break;
+                case FILE_DEVICE_CONSOLE:
+                    isConsoleHandle = TRUE;
+                    PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_FILETYPE], 1, L"Console");
+                    break;
                 default:
                     PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_FILETYPE], 1, L"Other");
                     break;
                 }
             }
-            
-            if (NT_SUCCESS(NtQueryInformationFile(
-                fileHandle,
-                &isb,
-                &fileModeInfo,
-                sizeof(FILE_MODE_INFORMATION),
-                FileModeInformation
-                )))
+
+            if (isConsoleHandle)
+            {
+                // TODO: We block indefinitely when calling NtQueryInformationFile for '\Device\ConDrv\CurrentIn'
+                // but we can query other '\Device\ConDrv' console handles (dmex)
+                status = PhCallNtQueryFileInformationWithTimeout(
+                    fileHandle,
+                    FileModeInformation,
+                    &fileModeInfo,
+                    sizeof(FILE_MODE_INFORMATION)
+                    );
+            }
+            else
+            {
+                status = NtQueryInformationFile(
+                    fileHandle,
+                    &isb,
+                    &fileModeInfo,
+                    sizeof(FILE_MODE_INFORMATION),
+                    FileModeInformation
+                    );
+            }
+
+            if (NT_SUCCESS(status))
             {
                 PH_FORMAT format[5];
                 PPH_STRING fileModeAccessStr;
@@ -732,67 +753,69 @@ VOID PhpUpdateHandleGeneral(
 
                 PhDereferenceObject(fileModeAccessStr);
             }
-            
-            if (NT_SUCCESS(NtQueryInformationFile(
-                fileHandle,
-                &isb,
-                &fileStandardInfo,
-                sizeof(FILE_STANDARD_INFORMATION),
-                FileStandardInformation
-                )))
+
+            if (!isConsoleHandle)
             {
-                PH_FORMAT format[1];
-                WCHAR fileSizeString[PH_INT64_STR_LEN];
-
-                PhInitFormatSize(&format[0], fileStandardInfo.EndOfFile.QuadPart);
-
-                if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), fileSizeString, sizeof(fileSizeString), NULL))
-                {
-                    PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_FILESIZE], 1, fileSizeString);
-                }
-
-                if (isFileOrDirectory)
-                {
-                    PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_FILETYPE], 1, fileStandardInfo.Directory ? L"Directory" : L"File");
-                }
-
-                disableFlushButton |= fileStandardInfo.Directory;
-            }
-
-            if (NT_SUCCESS(NtQueryInformationFile(
-                fileHandle,
-                &isb,
-                &filePositionInfo,
-                sizeof(FILE_POSITION_INFORMATION),
-                FilePositionInformation
-                )))
-            {
-                if (filePositionInfo.CurrentByteOffset.QuadPart != 0 &&
-                    fileStandardInfo.EndOfFile.QuadPart != 0)
-                {
-                    PH_FORMAT format[4];
-                    WCHAR filePositionString[PH_INT64_STR_LEN];
-
-                    PhInitFormatI64UGroupDigits(&format[0], filePositionInfo.CurrentByteOffset.QuadPart);
-                    PhInitFormatS(&format[1], L" (");
-                    PhInitFormatF(&format[2], (DOUBLE)(filePositionInfo.CurrentByteOffset.QuadPart / fileStandardInfo.EndOfFile.QuadPart * 100), 1);
-                    PhInitFormatS(&format[3], L"%)");
-
-                    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), filePositionString, sizeof(filePositionString), NULL))
-                    {
-                        PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_FILEPOSITION], 1, filePositionString);
-                    }
-                }
-                else
+                if (NT_SUCCESS(NtQueryInformationFile(
+                    fileHandle,
+                    &isb,
+                    &fileStandardInfo,
+                    sizeof(FILE_STANDARD_INFORMATION),
+                    FileStandardInformation
+                    )))
                 {
                     PH_FORMAT format[1];
-                    WCHAR filePositionString[PH_INT64_STR_LEN];
+                    WCHAR fileSizeString[PH_INT64_STR_LEN];
 
-                    PhInitFormatI64UGroupDigits(&format[0], filePositionInfo.CurrentByteOffset.QuadPart);
+                    PhInitFormatSize(&format[0], fileStandardInfo.EndOfFile.QuadPart);
 
-                    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), filePositionString, sizeof(filePositionString), NULL))
+                    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), fileSizeString, sizeof(fileSizeString), NULL))
                     {
-                        PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_FILEPOSITION], 1, filePositionString);
+                        PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_FILESIZE], 1, fileSizeString);
+                    }
+
+                    if (isFileOrDirectory)
+                    {
+                        PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_FILETYPE], 1, fileStandardInfo.Directory ? L"Directory" : L"File");
+                    }
+
+                    disableFlushButton |= fileStandardInfo.Directory;
+                }
+
+                if (NT_SUCCESS(NtQueryInformationFile(
+                    fileHandle,
+                    &isb,
+                    &filePositionInfo,
+                    sizeof(FILE_POSITION_INFORMATION),
+                    FilePositionInformation
+                    )))
+                {
+                    if (filePositionInfo.CurrentByteOffset.QuadPart != 0 && fileStandardInfo.EndOfFile.QuadPart != 0)
+                    {
+                        PH_FORMAT format[4];
+                        WCHAR filePositionString[PH_INT64_STR_LEN];
+
+                        PhInitFormatI64UGroupDigits(&format[0], filePositionInfo.CurrentByteOffset.QuadPart);
+                        PhInitFormatS(&format[1], L" (");
+                        PhInitFormatF(&format[2], (DOUBLE)(filePositionInfo.CurrentByteOffset.QuadPart / fileStandardInfo.EndOfFile.QuadPart * 100), 1);
+                        PhInitFormatS(&format[3], L"%)");
+
+                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), filePositionString, sizeof(filePositionString), NULL))
+                        {
+                            PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_FILEPOSITION], 1, filePositionString);
+                        }
+                    }
+                    else if (filePositionInfo.CurrentByteOffset.QuadPart != 0)
+                    {
+                        PH_FORMAT format[1];
+                        WCHAR filePositionString[PH_INT64_STR_LEN];
+
+                        PhInitFormatI64UGroupDigits(&format[0], filePositionInfo.CurrentByteOffset.QuadPart);
+
+                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), filePositionString, sizeof(filePositionString), NULL))
+                        {
+                            PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_FILEPOSITION], 1, filePositionString);
+                        }
                     }
                 }
             }

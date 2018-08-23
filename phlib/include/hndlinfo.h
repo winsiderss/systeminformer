@@ -131,6 +131,16 @@ PhCallNtSetSecurityObjectWithTimeout(
     _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhCallNtQueryFileInformationWithTimeout(
+    _In_ HANDLE Handle,
+    _In_ OBJECT_INFORMATION_CLASS ObjectInformationClass,
+    _Out_writes_bytes_opt_(ObjectInformationLength) PVOID ObjectInformation,
+    _In_ ULONG ObjectInformationLength
+    );
+
 #ifdef __cplusplus
 }
 #endif
