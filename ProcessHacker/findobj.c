@@ -113,7 +113,7 @@ typedef enum _PH_HANDLE_OBJECT_TREE_COLUMN_ITEM_NAME
 typedef struct _PH_HANDLE_OBJECT_TREE_ROOT_NODE
 {
     PH_TREENEW_NODE Node;
-
+    ULONG64 UniqueId; // used to stabilize sorting
     PHP_OBJECT_RESULT_TYPE ResultType;
     PVOID HandleObject;
     HANDLE Handle;
@@ -143,7 +143,7 @@ typedef struct _PH_HANDLE_OBJECT_TREE_ROOT_NODE
 
 #define END_SORT_FUNCTION \
     if (sortResult == 0) \
-        sortResult = uintptrcmp((ULONG_PTR)node1->Node.Index, (ULONG_PTR)node2->Node.Index); \
+        sortResult = uintptrcmp((ULONG_PTR)node1->UniqueId, (ULONG_PTR)node2->UniqueId); \
     \
     return PhModifySort(sortResult, ((PPH_HANDLE_SEARCH_CONTEXT)_context)->TreeNewSortOrder); \
 }
@@ -241,11 +241,11 @@ PPH_HANDLE_OBJECT_TREE_ROOT_NODE AddHandleObjectNode(
     _In_ HANDLE Handle
     )
 {
+    static ULONG64 NextUniqueId = 0;
     PPH_HANDLE_OBJECT_TREE_ROOT_NODE handleObjectNode;
 
     handleObjectNode = PhCreateAlloc(sizeof(PH_HANDLE_OBJECT_TREE_ROOT_NODE));
     memset(handleObjectNode, 0, sizeof(PH_HANDLE_OBJECT_TREE_ROOT_NODE));
-
     PhInitializeTreeNewNode(&handleObjectNode->Node);
 
     memset(handleObjectNode->TextCache, 0, sizeof(PH_STRINGREF) * PH_OBJECT_SEARCH_TREE_COLUMN_MAXIMUM);
@@ -253,6 +253,7 @@ PPH_HANDLE_OBJECT_TREE_ROOT_NODE AddHandleObjectNode(
     handleObjectNode->Node.TextCacheSize = PH_OBJECT_SEARCH_TREE_COLUMN_MAXIMUM;
 
     handleObjectNode->Handle = Handle;
+    handleObjectNode->UniqueId = ++NextUniqueId;
 
     PhAddEntryHashtable(Context->NodeHashtable, &handleObjectNode);
     PhAddItemList(Context->NodeList, handleObjectNode);
