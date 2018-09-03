@@ -3,6 +3,7 @@
  *   module provider
  *
  * Copyright (C) 2009-2016 wj32
+ * Copyright (C) 2017-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -41,6 +42,7 @@ typedef struct _PH_MODULE_QUERY_DATA
 
     VERIFY_RESULT VerifyResult;
     PPH_STRING VerifySignerName;
+    ULONG ImageFlags;
 } PH_MODULE_QUERY_DATA, *PPH_MODULE_QUERY_DATA;
 
 VOID NTAPI PhpModuleProviderDeleteProcedure(
@@ -318,6 +320,7 @@ NTSTATUS PhpModuleQueryWorker(
     )
 {
     PPH_MODULE_QUERY_DATA data = (PPH_MODULE_QUERY_DATA)Parameter;
+    PH_MAPPED_IMAGE mappedImage = { 0 };
 
     data->VerifyResult = PhVerifyFileCached(
         data->ModuleItem->FileName,
@@ -325,6 +328,42 @@ NTSTATUS PhpModuleQueryWorker(
         &data->VerifySignerName,
         FALSE
         );
+
+    if (data->ModuleProvider->ProcessId != NtCurrentProcessId())
+    {
+        // HACK HACK HACK
+        // 3rd party CLR's don't set the LDRP_COR_IMAGE flag so we'll check binaries for a CLR section and set the flag ourselves.
+        // This is needed to detect standard .NET images loaded by .NET core, Mono and other CLR runtimes.
+        if (NT_SUCCESS(PhLoadMappedImageEx(PhGetString(data->ModuleItem->FileName), NULL, TRUE, &mappedImage)))
+        {
+            if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+            {
+                PIMAGE_OPTIONAL_HEADER32 optionalHeader = (PIMAGE_OPTIONAL_HEADER32)&mappedImage.NtHeaders->OptionalHeader;
+
+                if (optionalHeader->NumberOfRvaAndSizes >= IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR)
+                {
+                    if (optionalHeader->DataDirectory[IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR].VirtualAddress)
+                    {
+                        data->ImageFlags |= LDRP_COR_IMAGE;
+                    }
+                }
+            }
+            else if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+            {
+                PIMAGE_OPTIONAL_HEADER64 optionalHeader = (PIMAGE_OPTIONAL_HEADER64)&mappedImage.NtHeaders->OptionalHeader;
+
+                if (optionalHeader->NumberOfRvaAndSizes >= IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR)
+                {
+                    if (optionalHeader->DataDirectory[IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR].VirtualAddress)
+                    {
+                        data->ImageFlags |= LDRP_COR_IMAGE;
+                    }
+                }
+            }
+
+            PhUnloadMappedImage(&mappedImage);
+        }
+    }
 
     RtlInterlockedPushEntrySList(&data->ModuleProvider->QueryListHead, &data->ListEntry);
 
@@ -341,8 +380,8 @@ VOID PhpQueueModuleQuery(
     PPH_MODULE_QUERY_DATA data;
     PH_WORK_QUEUE_ENVIRONMENT environment;
 
-    if (!PhEnableProcessQueryStage2)
-        return;
+    //if (!PhEnableProcessQueryStage2) // (dmex)
+    //    return;
 
     data = PhAllocate(sizeof(PH_MODULE_QUERY_DATA));
     memset(data, 0, sizeof(PH_MODULE_QUERY_DATA));
@@ -466,6 +505,7 @@ VOID PhModuleProviderUpdate(
 
             data->ModuleItem->VerifyResult = data->VerifyResult;
             data->ModuleItem->VerifySignerName = data->VerifySignerName;
+            data->ModuleItem->Flags |= data->ImageFlags;
             data->ModuleItem->JustProcessed = TRUE;
 
             PhDereferenceObject(data->ModuleItem);
@@ -604,11 +644,10 @@ VOID PhModuleProviderUpdate(
             if (moduleItem->Type != PH_MODULE_TYPE_ELF_MAPPED_IMAGE)
             {
                 // See if the file has already been verified; if not, queue for verification.
-
                 moduleItem->VerifyResult = PhVerifyFileCached(moduleItem->FileName, NULL, &moduleItem->VerifySignerName, TRUE);
 
-                if (moduleItem->VerifyResult == VrUnknown)
-                    PhpQueueModuleQuery(moduleProvider, moduleItem);
+                //if (moduleItem->VerifyResult == VrUnknown) // (dmex)
+                PhpQueueModuleQuery(moduleProvider, moduleItem);
             }
 
             // Add the module item to the hashtable.
