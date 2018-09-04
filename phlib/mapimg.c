@@ -179,18 +179,9 @@ NTSTATUS PhLoadMappedImageEx(
 
     if (NT_SUCCESS(status))
     {
-        PUSHORT imageHeaderSignature = viewBase;
-
-        __try
-        {
-            PhProbeAddress(imageHeaderSignature, sizeof(USHORT), viewBase, size, 1);
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            return GetExceptionCode();
-        }
-
-        MappedImage->Signature = *imageHeaderSignature;
+        MappedImage->Signature = *(PUSHORT)viewBase;
+        MappedImage->ViewBase = viewBase;
+        MappedImage->Size = size;
 
         switch (MappedImage->Signature)
         {
@@ -212,6 +203,14 @@ NTSTATUS PhLoadMappedImageEx(
                     );
             }
             break;
+        default:
+            status = STATUS_IMAGE_SUBSYSTEM_NOT_PRESENT;
+            break;
+        }
+
+        if (!NT_SUCCESS(status))
+        {
+            PhUnloadMappedImage(MappedImage);
         }
     }
 
@@ -1709,4 +1708,3 @@ NTSTATUS PhGetMappedImageResources(
 CleanupExit:
     return status;
 }
-    
