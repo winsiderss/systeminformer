@@ -581,7 +581,7 @@ NTSTATUS KpiQueryInformationObject(
     PEPROCESS process;
     KPROCESSOR_MODE referenceMode;
     KAPC_STATE apcState;
-    ULONG returnLength;
+    ULONG returnLength = 0UL;
 
     PAGED_CODE();
 
