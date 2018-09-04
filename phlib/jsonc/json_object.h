@@ -33,11 +33,11 @@
 #define JSON_C_CONST_FUNCTION(func) func
 #endif
 
-#if defined(_MSC_VER) 
-#define JSON_EXPORT __declspec(dllexport)
-#else
+//#if defined(_MSC_VER) -- (disable dllexport - dmex)
+//#define JSON_EXPORT __declspec(dllexport)
+//#else
 #define JSON_EXPORT extern
-#endif
+//#endif
 
 #include <stddef.h>
 #include "json_inttypes.h"
