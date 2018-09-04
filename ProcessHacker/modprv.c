@@ -332,7 +332,6 @@ NTSTATUS PhpModuleQueryWorker(
             );
     }
 
-    if (data->ModuleProvider->ProcessId != NtCurrentProcessId())
     {
         // HACK HACK HACK (dmex)
         // 3rd party CLR's don't set the LDRP_COR_IMAGE flag so we'll check binaries for a CLR section and set the flag ourselves.
