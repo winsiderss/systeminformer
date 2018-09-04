@@ -191,17 +191,15 @@ BOOL CALLBACK PhpSymbolCallbackFunction(
 
     if (!IsListEmpty(&PhSymbolEventCallback.ListHead))
     {
-        PPH_SYMBOL_EVENT_DATA data;
+        PH_SYMBOL_EVENT_DATA data;
 
-        data = PhAllocateZero(sizeof(PH_SYMBOL_EVENT_DATA));
-        data->ActionCode = ActionCode;
-        data->ProcessHandle = ProcessHandle;
-        data->SymbolProvider = symbolProvider;
-        data->EventData = (PVOID)CallbackData;
+        memset(&data, 0, sizeof(PH_SYMBOL_EVENT_DATA));
+        data.ActionCode = ActionCode;
+        data.ProcessHandle = ProcessHandle;
+        data.SymbolProvider = symbolProvider;
+        data.EventData = (PVOID)CallbackData;
 
-        PhInvokeCallback(&PhSymbolEventCallback, data);
-
-        PhFree(data);
+        PhInvokeCallback(&PhSymbolEventCallback, &data);
     }
 
     if (ActionCode == CBA_DEFERRED_SYMBOL_LOAD_CANCEL)
