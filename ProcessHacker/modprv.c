@@ -322,16 +322,19 @@ NTSTATUS PhpModuleQueryWorker(
     PPH_MODULE_QUERY_DATA data = (PPH_MODULE_QUERY_DATA)Parameter;
     PH_MAPPED_IMAGE mappedImage = { 0 };
 
-    data->VerifyResult = PhVerifyFileCached(
-        data->ModuleItem->FileName,
-        data->ModuleProvider->PackageFullName,
-        &data->VerifySignerName,
-        FALSE
-        );
+    if (PhEnableProcessQueryStage2) // HACK (dmex)
+    {
+        data->VerifyResult = PhVerifyFileCached(
+            data->ModuleItem->FileName,
+            data->ModuleProvider->PackageFullName,
+            &data->VerifySignerName,
+            FALSE
+            );
+    }
 
     if (data->ModuleProvider->ProcessId != NtCurrentProcessId())
     {
-        // HACK HACK HACK
+        // HACK HACK HACK (dmex)
         // 3rd party CLR's don't set the LDRP_COR_IMAGE flag so we'll check binaries for a CLR section and set the flag ourselves.
         // This is needed to detect standard .NET images loaded by .NET core, Mono and other CLR runtimes.
         if (NT_SUCCESS(PhLoadMappedImageEx(PhGetString(data->ModuleItem->FileName), NULL, TRUE, &mappedImage)))
@@ -379,9 +382,6 @@ VOID PhpQueueModuleQuery(
 {
     PPH_MODULE_QUERY_DATA data;
     PH_WORK_QUEUE_ENVIRONMENT environment;
-
-    //if (!PhEnableProcessQueryStage2) // (dmex)
-    //    return;
 
     data = PhAllocate(sizeof(PH_MODULE_QUERY_DATA));
     memset(data, 0, sizeof(PH_MODULE_QUERY_DATA));
