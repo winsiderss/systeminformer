@@ -1865,7 +1865,7 @@ LRESULT CALLBACK PhpThemeWindowHeaderSubclassProc(
         break;
     case WM_CONTEXTMENU:
         {
-            LRESULT result = DefSubclassProc(WindowHandle, uMsg, wParam, lParam);
+            LRESULT result = CallWindowProc(oldWndProc, WindowHandle, uMsg, wParam, lParam);
 
             InvalidateRect(WindowHandle, NULL, TRUE);
 
