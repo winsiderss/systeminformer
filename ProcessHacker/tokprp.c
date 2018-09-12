@@ -85,6 +85,16 @@ typedef struct _TOKEN_PAGE_CONTEXT
     ATTRIBUTE_TREE_CONTEXT AuthzTreeContext;
 } TOKEN_PAGE_CONTEXT, *PTOKEN_PAGE_CONTEXT;
 
+PH_ACCESS_ENTRY GroupDescriptionEntries[6] =
+{
+{ NULL, SE_GROUP_INTEGRITY | SE_GROUP_INTEGRITY_ENABLED, FALSE, FALSE, L"Integrity" },
+{ NULL, SE_GROUP_LOGON_ID, FALSE, FALSE, L"Logon Id" },
+{ NULL, SE_GROUP_OWNER, FALSE, FALSE, L"Owner" },
+{ NULL, SE_GROUP_MANDATORY, FALSE, FALSE, L"Mandatory" },
+{ NULL, SE_GROUP_USE_FOR_DENY_ONLY, FALSE, FALSE, L"Use for deny only" },
+{ NULL, SE_GROUP_RESOURCE, FALSE, FALSE, L"Resource" }
+};
+
 INT CALLBACK PhpTokenPropPageProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
@@ -246,7 +256,7 @@ PPH_STRING PhGetGroupAttributesString(
         if (Attributes & SE_GROUP_ENABLED_BY_DEFAULT)
             string = PhCreateString(L"Default Enabled");
         else if (Attributes & SE_GROUP_ENABLED)
-            string = PhReferenceEmptyString();
+            string = PhCreateString(L"Enabled");
         else
             string = PhCreateString(L"Disabled");
     }
@@ -260,39 +270,6 @@ PPH_STRING PhGetGroupAttributesString(
 
     return string;
 }
-
-PWSTR PhGetGroupDescriptionString(
-    _In_ ULONG Attributes
-    )
-{
-    PWSTR baseString;
-
-    if (Attributes & SE_GROUP_INTEGRITY)
-    {
-        if (Attributes & SE_GROUP_INTEGRITY_ENABLED)
-            baseString = L"Integrity";
-        else
-            baseString = NULL;
-    }
-    else
-    {
-        if (Attributes & SE_GROUP_LOGON_ID)
-            baseString = L"Logon ID";
-        else if (Attributes & SE_GROUP_MANDATORY)
-            baseString = L"Mandatory";
-        else if (Attributes & SE_GROUP_OWNER)
-            baseString = L"Owner";
-        else if (Attributes & SE_GROUP_RESOURCE)
-            baseString = L"Resource";
-        else if (Attributes & SE_GROUP_USE_FOR_DENY_ONLY)
-            baseString = L"Use for deny only";
-        else
-            baseString = NULL;
-    }
-
-    return baseString;
-}
-
 
 COLORREF PhGetGroupAttributesColor(
     _In_ ULONG Attributes
@@ -309,7 +286,7 @@ COLORREF PhGetGroupAttributesColor(
     if (Attributes & SE_GROUP_ENABLED_BY_DEFAULT)
         return RGB(0xc0, 0xf0, 0xc0);
     else if (Attributes & SE_GROUP_ENABLED)
-        return GetSysColor(COLOR_WINDOW);
+        return RGB(0xe0, 0xf0, 0xe0);
     else
         return RGB(0xf0, 0xe0, 0xe0);
 }
@@ -401,7 +378,7 @@ VOID PhpUpdateSidsFromTokenGroups(
         INT lvItemIndex;
         PPH_STRING fullName;
         PPH_STRING attributesString;
-        PWSTR descriptionString;
+        PPH_STRING descriptionString;
 
         if (!(fullName = PhGetSidFullName(Groups->Groups[i].Sid, TRUE, NULL)))
             fullName = PhSidToStringSid(Groups->Groups[i].Sid);
@@ -430,9 +407,16 @@ VOID PhpUpdateSidsFromTokenGroups(
                 PhDereferenceObject(attributesString);
             }
 
-            if (descriptionString = PhGetGroupDescriptionString(Groups->Groups[i].Attributes))
+            descriptionString = PhGetAccessString(
+                Groups->Groups[i].Attributes,
+                GroupDescriptionEntries,
+                RTL_NUMBER_OF(GroupDescriptionEntries)
+            );
+
+            if (descriptionString)
             {
-                PhSetListViewSubItem(ListViewHandle, lvItemIndex, PH_PROCESS_TOKEN_INDEX_DESCRIPTION, descriptionString);
+                PhSetListViewSubItem(ListViewHandle, lvItemIndex, PH_PROCESS_TOKEN_INDEX_DESCRIPTION, PhGetString(descriptionString));
+                PhDereferenceObject(descriptionString);
             }
       
             PhDereferenceObject(fullName);
