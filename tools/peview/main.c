@@ -87,6 +87,19 @@ INT WINAPI wWinMain(
         PhDereferenceObject(objectName);
     }
 
+#ifndef DEBUG
+    if (PhIsExecutingInWow64())
+    {
+        PhShowWarning(
+            NULL,
+            L"You are attempting to run the 32-bit version of PE Viewer on 64-bit Windows. "
+            L"Most features will not work correctly.\n\n"
+            L"Please run the 64-bit version of PE Viewer instead."
+            );
+        RtlExitUserProcess(STATUS_IMAGE_SUBSYSTEM_NOT_PRESENT);
+    }
+#endif
+
     PhGuiSupportInitialization();
     PhSettingsInitialization();
     PeInitializeSettings();
