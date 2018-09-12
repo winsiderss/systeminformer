@@ -4005,6 +4005,61 @@ CleanupExit:
     return status;
 }
 
+typedef struct _GET_DLL_BASE_REMOTE_CONTEXT
+{
+    PH_STRINGREF BaseDllName;
+    PVOID DllBase;
+} GET_DLL_BASE_REMOTE_CONTEXT, *PGET_DLL_BASE_REMOTE_CONTEXT;
+
+static BOOLEAN PhpGetDllBaseRemoteCallback(
+    _In_ PLDR_DATA_TABLE_ENTRY Module,
+    _In_opt_ PVOID Context
+    )
+{
+    PGET_DLL_BASE_REMOTE_CONTEXT context = Context;
+    PH_STRINGREF baseDllName;
+
+    PhUnicodeStringToStringRef(&Module->BaseDllName, &baseDllName);
+
+    if (PhEqualStringRef(&baseDllName, &context->BaseDllName, TRUE))
+    {
+        context->DllBase = Module->DllBase;
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+NTSTATUS PhGetDllBaseRemote(
+    _In_ HANDLE ProcessHandle,
+    _In_ PPH_STRINGREF BaseDllName,
+    _Out_ PVOID *DllBase
+    )
+{
+    NTSTATUS status;
+    GET_DLL_BASE_REMOTE_CONTEXT context;
+#ifdef _WIN64
+    BOOLEAN isWow64 = FALSE;
+#endif
+
+    context.BaseDllName = *BaseDllName;
+    context.DllBase = NULL;
+
+#ifdef _WIN64
+    PhGetProcessIsWow64(ProcessHandle, &isWow64);
+
+    if (isWow64)
+        status = PhEnumProcessModules32(ProcessHandle, PhpGetDllBaseRemoteCallback, &context);
+    if (!context.DllBase)
+#endif
+        status = PhEnumProcessModules(ProcessHandle, PhpGetDllBaseRemoteCallback, &context);
+
+    if (NT_SUCCESS(status))
+        *DllBase = context.DllBase;
+
+    return status;
+}
+
 /**
  * Enumerates the modules loaded by the kernel.
  *

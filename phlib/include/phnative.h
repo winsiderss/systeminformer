@@ -656,6 +656,15 @@ PhGetProcedureAddressRemote(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhGetDllBaseRemote(
+    _In_ HANDLE ProcessHandle,
+    _In_ PPH_STRINGREF BaseDllName,
+    _Out_ PVOID *DllBase
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhEnumKernelModules(
     _Out_ PRTL_PROCESS_MODULES *Modules
     );

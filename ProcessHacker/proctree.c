@@ -1211,6 +1211,133 @@ static VOID PhpUpdateProcessNodeAppId(
     }
 }
 
+static ULONG PhpGet_gfDPIAwareOffset32(
+    /* user32VBase is the base the offset in the movzx is relative to,
+     * either the current load address if relocations are performed, or
+     * the default base if not. */
+    _In_ ULONG user32VBase,
+    _In_ PBYTE isProcessDPIAware32)
+{
+    // 0FB605xxxxxxxx    movzx eax, gfDPIAware
+    // C3                ret
+    __try
+    {
+        if (isProcessDPIAware32[0] == 0x0F && isProcessDPIAware32[1] == 0xB6 &&
+            isProcessDPIAware32[2] == 0x05 && isProcessDPIAware32[7] == 0xC3)
+        {
+            return *(PULONG)(isProcessDPIAware32 + 3) - user32VBase;
+        }
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        return 0;
+    }
+    return 0;
+}
+
+static ULONG_PTR PhpGet_gfDPIAwareOffset64(
+    _In_ PBYTE user32Base,
+    _In_ PBYTE isProcessDPIAware64)
+{
+    // 0FB605xxxxxxxx    movzx eax,byte [rel gfDPIAware]
+    // C3                ret
+    __try
+    {
+        if (isProcessDPIAware64[0] == 0x0F && isProcessDPIAware64[1] == 0xB6 &&
+            isProcessDPIAware64[2] == 0x05 && isProcessDPIAware64[7] == 0xC3)
+        {
+            /* NB: x86_64 relative addressing is relative to start
+                   of the following instruction, hence the + 7 */
+            PBYTE gfDPIAwareOffsetAddr =
+                PTR_ADD_OFFSET(
+                    PTR_ADD_OFFSET(isProcessDPIAware64, *(PULONG)(isProcessDPIAware64 + 3)),
+                    7);
+            return gfDPIAwareOffsetAddr - user32Base;
+        }
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        return 0;
+    }
+    return 0;
+}
+
+static void PhpInit_gfDPIAwareOffset32WoW(_Out_ PULONG_PTR gfDPIAwareOffset32)
+{
+    PBYTE isProcessDPIAware32;
+    PH_STRINGREF systemRoot;
+    PPH_STRING user32FileName;
+    PH_MAPPED_IMAGE mappedImage;
+    PH_MAPPED_IMAGE_EXPORTS exports;
+    PH_MAPPED_IMAGE_EXPORT_FUNCTION isProcessDPIAwareFun;
+    NTSTATUS status;
+
+    *gfDPIAwareOffset32 = 0;
+
+    PhGetSystemRoot(&systemRoot);
+    user32FileName = PhConcatStringRefZ(&systemRoot, L"\\SysWow64\\user32.dll");
+    status = PhLoadMappedImage(user32FileName->Buffer, NULL, TRUE, &mappedImage);
+    PhDereferenceObject(user32FileName);
+    if (!NT_SUCCESS(status))
+        return;
+
+    if (!NT_SUCCESS(PhGetMappedImageExports(&exports, &mappedImage)))
+        goto CleanupExit;
+
+    if (!NT_SUCCESS(PhGetMappedImageExportFunction(
+        &exports,
+        "IsProcessDPIAware",
+        0,
+        &isProcessDPIAwareFun
+        )) || !isProcessDPIAwareFun.Function)
+        goto CleanupExit;
+    isProcessDPIAware32 = PhMappedImageRvaToVa(
+        &mappedImage,
+        PtrToUlong(isProcessDPIAwareFun.Function),
+        NULL);
+    if (isProcessDPIAware32)
+        *gfDPIAwareOffset32 = PhpGet_gfDPIAwareOffset32(
+            mappedImage.NtHeaders32->OptionalHeader.ImageBase,
+            isProcessDPIAware32);
+
+CleanupExit:
+    PhUnloadMappedImage(&mappedImage);
+}
+
+#ifdef _WIN64
+#define PhpGet_gfDPIAwareOffset PhpGet_gfDPIAwareOffset64
+#else
+#define PhpGet_gfDPIAwareOffset PhpGet_gfDPIAwareOffset32
+#endif
+
+static void PhpInitDpiAwarenessValues(
+    _Out_ PVOID* getProcessDpiAwarenessInternal,
+#ifdef _WIN64
+    _Out_ PULONG_PTR gfDPIAwareOffset32,
+#endif
+    _Out_ PULONG_PTR gfDPIAwareOffset
+    )
+{
+    PBYTE isProcessDPIAware = 0;
+    PVOID user32Base;
+
+    *gfDPIAwareOffset = 0;
+    user32Base = PhGetLoaderEntryDllBase(L"user32.dll");
+    if (!user32Base)
+        return;
+    if (*getProcessDpiAwarenessInternal =
+        PhGetDllBaseProcedureAddress(user32Base, "GetProcessDpiAwarenessInternal", 0))
+        return;
+    isProcessDPIAware = PhGetDllProcedureAddress(L"user32.dll", "IsProcessDPIAware", 0);
+
+    if (isProcessDPIAware)
+        *gfDPIAwareOffset = PhpGet_gfDPIAwareOffset(user32Base, isProcessDPIAware);
+
+#ifdef _WIN64
+    PhpInit_gfDPIAwareOffset32WoW(gfDPIAwareOffset32);
+#endif
+}
+
 static VOID PhpUpdateProcessNodeDpiAwareness(
     _Inout_ PPH_PROCESS_NODE ProcessNode
     )
@@ -1220,15 +1347,38 @@ static VOID PhpUpdateProcessNodeDpiAwareness(
         _In_ HANDLE hprocess,
         _Out_ ULONG *value
         );
+    static ULONG_PTR gfDPIAwareOffset;
+    BOOL query_gfDPIAware32 = FALSE;
+    BOOL query_gfDPIAware64 = FALSE;
+#ifdef _WIN64
+    static ULONG_PTR gfDPIAwareOffset32;
+#endif
 
     if (PhBeginInitOnce(&initOnce))
     {
-        getProcessDpiAwarenessInternal = PhGetDllProcedureAddress(L"user32.dll", "GetProcessDpiAwarenessInternal", 0);
+        PhpInitDpiAwarenessValues(
+            (PVOID*)&getProcessDpiAwarenessInternal,
+#ifdef _WIN64
+            &gfDPIAwareOffset32,
+#endif
+            &gfDPIAwareOffset
+        );
         PhEndInitOnce(&initOnce);
     }
 
     if (!getProcessDpiAwarenessInternal)
-        return;
+    {
+#ifdef _WIN64
+        query_gfDPIAware32 = ProcessNode->ProcessItem->IsWow64 &&
+            gfDPIAwareOffset32;
+        query_gfDPIAware64 = !ProcessNode->ProcessItem->IsWow64 &&
+            gfDPIAwareOffset;
+#else
+        query_gfDPIAware32 = gfDPIAwareOffset;
+#endif
+        if (!query_gfDPIAware32 && !query_gfDPIAware64)
+            return;
+    }
 
     if (!(ProcessNode->ValidMask & PHPN_DPIAWARENESS))
     {
@@ -1236,8 +1386,47 @@ static VOID PhpUpdateProcessNodeDpiAwareness(
         {
             ULONG dpiAwareness;
 
-            if (getProcessDpiAwarenessInternal(ProcessNode->ProcessItem->QueryHandle, &dpiAwareness))
-                ProcessNode->DpiAwareness = dpiAwareness + 1;
+            if (getProcessDpiAwarenessInternal)
+            {
+                if (getProcessDpiAwarenessInternal(ProcessNode->ProcessItem->QueryHandle, &dpiAwareness))
+                    ProcessNode->DpiAwareness = dpiAwareness + 1;
+            }
+            else
+            {
+                ULONG_PTR curOffset;
+#ifdef _WIN64
+                if (ProcessNode->ProcessItem->IsWow64)
+                    curOffset = gfDPIAwareOffset32;
+                else
+#endif
+                    curOffset = gfDPIAwareOffset;
+                PH_STRINGREF user32sr = PH_STRINGREF_INIT(L"user32.dll");
+                PVOID user32Base;
+                BOOLEAN gfDPIAware;
+
+                HANDLE processHandle = NULL;
+
+                if (!NT_SUCCESS(PhOpenProcess(&processHandle, ProcessQueryAccess | PROCESS_VM_READ, ProcessNode->ProcessId)))
+                    goto clean;
+                if (!NT_SUCCESS(
+                    PhGetDllBaseRemote(
+                        processHandle,
+                        &user32sr,
+                        &user32Base)) || !user32Base)
+                    goto clean;
+                if (!NT_SUCCESS(
+                    NtReadVirtualMemory(
+                        processHandle,
+                        PTR_ADD_OFFSET(user32Base, curOffset),
+                        &gfDPIAware,
+                        sizeof(BOOLEAN),
+                        NULL)))
+                    goto clean;
+                ProcessNode->DpiAwareness = !!gfDPIAware + 1;
+            clean:
+                if (processHandle)
+                    NtClose(processHandle);
+            }
         }
 
         ProcessNode->ValidMask |= PHPN_DPIAWARENESS;
