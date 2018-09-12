@@ -347,7 +347,7 @@ NTSTATUS KpiVerifyClient(
         return GetExceptionCode();
     }
 
-    KphVerifyClient(Client, CodeAddress, Signature, SignatureSize);
+    KphVerifyClient(Client, CodeAddress, signature, SignatureSize);
     ExFreePoolWithTag(signature, 'ThpK');
 
     return Client->VerificationStatus;
