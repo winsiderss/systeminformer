@@ -5883,6 +5883,114 @@ CleanupExit:
     return status;
 }
 
+static NTSTATUS PhpFixupLoaderEntryImageDelayImports(
+    _In_ PVOID BaseAddress,
+    _In_ PIMAGE_NT_HEADERS ImageNtHeader
+    )
+{
+    NTSTATUS status;
+    SIZE_T importDirectorySize;
+    ULONG importDirectoryProtect;
+    PIMAGE_DATA_DIRECTORY dataDirectory;
+    PIMAGE_DELAYLOAD_DESCRIPTOR delayImportDirectory;
+    PIMAGE_SECTION_HEADER importDirectorySection;
+
+    status = PhGetLoaderEntryImageDirectory(
+        BaseAddress,
+        ImageNtHeader,
+        IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT,
+        &dataDirectory,
+        &delayImportDirectory,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        if (status == STATUS_INVALID_FILE_FOR_SECTION)
+            status = STATUS_SUCCESS;
+
+        goto CleanupExit;
+    }
+
+    status = PhGetLoaderEntryImageSection(
+        BaseAddress,
+        ImageNtHeader,
+        delayImportDirectory,
+        &importDirectorySection,
+        &importDirectorySize
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = NtProtectVirtualMemory(
+        NtCurrentProcess(),
+        &importDirectorySection,
+        &importDirectorySize,
+        PAGE_READWRITE,
+        &importDirectoryProtect
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    for (delayImportDirectory = delayImportDirectory; delayImportDirectory->DllNameRVA; delayImportDirectory++)
+    {
+        PSTR importName;
+        PIMAGE_THUNK_DATA importThunk;
+        PIMAGE_THUNK_DATA originalThunk;
+
+        importName = PTR_ADD_OFFSET(BaseAddress, delayImportDirectory->DllNameRVA);
+        importThunk = PTR_ADD_OFFSET(BaseAddress, delayImportDirectory->ImportAddressTableRVA);
+        originalThunk = PTR_ADD_OFFSET(BaseAddress, delayImportDirectory->ImportNameTableRVA);
+
+        if (PhEqualBytesZ(importName, "ProcessHacker.exe", TRUE))
+        {
+            for (
+                originalThunk = originalThunk, importThunk = importThunk;
+                originalThunk->u1.AddressOfData;
+                originalThunk++, importThunk++
+                )
+            {
+                if (IMAGE_SNAP_BY_ORDINAL(originalThunk->u1.Ordinal))
+                {
+                    USHORT procedureOrdinal;
+                    PVOID procedureAddress;
+
+                    procedureOrdinal = IMAGE_ORDINAL(originalThunk->u1.Ordinal);
+                    procedureAddress = PhGetDllBaseProcedureAddress(PhInstanceHandle, NULL, procedureOrdinal);
+
+                    importThunk->u1.Function = (ULONG_PTR)procedureAddress;
+                }
+                else
+                {
+                    PIMAGE_IMPORT_BY_NAME importByName;
+                    PVOID procedureAddress;
+
+                    importByName = PTR_ADD_OFFSET(BaseAddress, originalThunk->u1.AddressOfData);
+                    procedureAddress = PhGetDllBaseProcedureAddress(PhInstanceHandle, importByName->Name, 0);
+
+                    importThunk->u1.Function = (ULONG_PTR)procedureAddress;
+                }
+            }
+        }
+    }
+
+    status = NtProtectVirtualMemory(
+        NtCurrentProcess(),
+        &importDirectorySection,
+        &importDirectorySize,
+        importDirectoryProtect,
+        &importDirectoryProtect
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+CleanupExit:
+    return status;
+}
+
 // dmex: This function and the other LoaderEntryImage functions don't belong in this file
 // and should be moved into mapimg.c at some stage.
 //
@@ -5901,15 +6009,15 @@ NTSTATUS PhLoadPluginImage(
     PVOID imageBaseAddress;
     PIMAGE_NT_HEADERS imageHeaders;
     PLDR_INIT_ROUTINE imageEntryRoutine;
-    UNICODE_STRING fileNameUs;
+    UNICODE_STRING imageFileNameUs;
 
     imageType = IMAGE_FILE_EXECUTABLE_IMAGE;
-    PhStringRefToUnicodeString(&FileName->sr, &fileNameUs);
+    PhStringRefToUnicodeString(&FileName->sr, &imageFileNameUs);
 
     status = LdrLoadDll(
         NULL, 
         &imageType, 
-        &fileNameUs, 
+        &imageFileNameUs,
         &imageBaseAddress
         );
 
@@ -5926,6 +6034,14 @@ NTSTATUS PhLoadPluginImage(
 
     status = PhpFixupLoaderEntryImageImports(
         imageBaseAddress, 
+        imageHeaders
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhpFixupLoaderEntryImageDelayImports(
+        imageBaseAddress,
         imageHeaders
         );
 
