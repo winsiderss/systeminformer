@@ -121,8 +121,8 @@ INT WINAPI wWinMain(
         return 1;
     if (!PhInitializeMitigationPolicy())
         return 1;
-    if (!PhInitializeRestartPolicy())
-        return 1;
+    //if (!PhInitializeRestartPolicy())
+    //    return 1;
 
     PhpProcessStartupParameters();
     PhpEnablePrivileges();

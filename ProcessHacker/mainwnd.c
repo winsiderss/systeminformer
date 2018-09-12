@@ -517,8 +517,7 @@ NTSTATUS PhMwpLoadStage1Worker(
     PhNfLoadStage2();
 
     // Make sure we get closed late in the shutdown process.
-    SetProcessShutdownParameters(0x100, 0);  
-    //PhInitializeRestartPolicy();
+    SetProcessShutdownParameters(0x100, 0);
 
     DelayedLoadCompleted = TRUE;
     //PostMessage(PhMainWndHandle, WM_PH_DELAYED_LOAD_COMPLETED, 0, 0);
