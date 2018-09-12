@@ -253,12 +253,20 @@ PPH_STRING PhGetGroupAttributesString(
     }
     else
     {
-        if (Attributes & SE_GROUP_ENABLED_BY_DEFAULT)
-            string = PhCreateString(L"Default Enabled");
-        else if (Attributes & SE_GROUP_ENABLED)
-            string = PhCreateString(L"Enabled");
+        if (Attributes & SE_GROUP_ENABLED)
+        {
+            if (Attributes & SE_GROUP_ENABLED_BY_DEFAULT)
+                string = PhCreateString(L"Enabled");
+            else
+                string = PhCreateString(L"Enabled (modified)");
+        }
         else
-            string = PhCreateString(L"Disabled");
+        {
+            if (Attributes & SE_GROUP_ENABLED_BY_DEFAULT)
+                string = PhCreateString(L"Disabled (modified");
+            else
+                string = PhCreateString(L"Disabled");
+        }
     }
 
     if (Restricted)
@@ -283,24 +291,40 @@ COLORREF PhGetGroupAttributesColor(
             return GetSysColor(COLOR_WINDOW);
     }
 
-    if (Attributes & SE_GROUP_ENABLED_BY_DEFAULT)
-        return RGB(0xc0, 0xf0, 0xc0);
-    else if (Attributes & SE_GROUP_ENABLED)
-        return RGB(0xe0, 0xf0, 0xe0);
+    if (Attributes & SE_GROUP_ENABLED)
+    {
+        if (Attributes & SE_GROUP_ENABLED_BY_DEFAULT)
+            return RGB(0xe0, 0xf0, 0xe0);
+        else
+            return RGB(0xc0, 0xf0, 0xc0);
+    }
     else
-        return RGB(0xf0, 0xe0, 0xe0);
+    {
+        if (Attributes & SE_GROUP_ENABLED_BY_DEFAULT)
+            return RGB(0xf0, 0xc0, 0xc0);
+        else
+            return RGB(0xf0, 0xe0, 0xe0);
+    }
 }
 
 COLORREF PhGetPrivilegeAttributesColor(
     _In_ ULONG Attributes
     )
 {
-    if (Attributes & SE_PRIVILEGE_ENABLED_BY_DEFAULT)
-        return RGB(0xc0, 0xf0, 0xc0);
-    else if (Attributes & SE_PRIVILEGE_ENABLED)
-        return RGB(0xe0, 0xf0, 0xe0);
+    if (Attributes & SE_PRIVILEGE_ENABLED)
+    {
+        if (Attributes & SE_PRIVILEGE_ENABLED_BY_DEFAULT)
+            return RGB(0xe0, 0xf0, 0xe0);
+        else
+            return RGB(0xc0, 0xf0, 0xc0);
+    }
     else
-        return RGB(0xf0, 0xe0, 0xe0);
+    {
+        if (Attributes & SE_PRIVILEGE_ENABLED_BY_DEFAULT)
+            return RGB(0xf0, 0xc0, 0xc0);
+        else
+            return RGB(0xf0, 0xe0, 0xe0);
+    }
 }
 
 static COLORREF NTAPI PhpTokenGroupColorFunction(
@@ -321,12 +345,20 @@ PWSTR PhGetPrivilegeAttributesString(
     _In_ ULONG Attributes
     )
 {
-    if (Attributes & SE_PRIVILEGE_ENABLED_BY_DEFAULT)
-        return L"Default Enabled";
-    else if (Attributes & SE_PRIVILEGE_ENABLED)
-        return L"Enabled";
+    if (Attributes & SE_PRIVILEGE_ENABLED)
+    {
+        if (Attributes & SE_PRIVILEGE_ENABLED_BY_DEFAULT)
+            return L"Enabled";
+        else
+            return L"Enabled (modified)";
+    }
     else
-        return L"Disabled";
+    {
+        if (Attributes & SE_PRIVILEGE_ENABLED_BY_DEFAULT)
+            return L"Disabled (modified)";
+        else
+            return L"Disabled";
+    }
 }
 
 PWSTR PhGetElevationTypeString(
@@ -765,36 +797,14 @@ INT_PTR CALLBACK PhpTokenPageProc(
                             switch (LOWORD(wParam))
                             {
                             case ID_PRIVILEGE_ENABLE:
-                                newAttributes = SE_PRIVILEGE_ENABLED;
+                                newAttributes = listViewItems[i]->TokenPrivilege->Attributes | SE_PRIVILEGE_ENABLED;
                                 break;
                             case ID_PRIVILEGE_DISABLE:
-                                newAttributes = 0;
+                                newAttributes = listViewItems[i]->TokenPrivilege->Attributes & ~SE_PRIVILEGE_ENABLED;
                                 break;
                             case ID_PRIVILEGE_REMOVE:
                                 newAttributes = SE_PRIVILEGE_REMOVED;
                                 break;
-                            }
-
-                            // Privileges which are enabled by default cannot be
-                            // modified except to remove them.
-
-                            if (
-                                listViewItems[i]->TokenPrivilege->Attributes & SE_PRIVILEGE_ENABLED_BY_DEFAULT &&
-                                LOWORD(wParam) != ID_PRIVILEGE_REMOVE
-                                )
-                            {
-                                if (LOWORD(wParam) == ID_PRIVILEGE_DISABLE)
-                                {
-                                    if (!PhShowContinueStatus(
-                                        hwndDlg,
-                                        PhaConcatStrings2(L"Unable to disable ", privilegeName->Buffer)->Buffer,
-                                        STATUS_UNSUCCESSFUL,
-                                        0
-                                        ))
-                                        break;
-                                }
-
-                                continue;
                             }
 
                             if (PhSetTokenPrivilege(
