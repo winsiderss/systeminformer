@@ -88,7 +88,18 @@ VOID PvpProcessImports(
                         PPH_STRING baseDirectory;
 
                         if (baseDirectory = PhGetBaseDirectory(PvFileName))
-                            AddDllDirectory(baseDirectory->Buffer);
+                        {
+                            static DLL_DIRECTORY_COOKIE (WINAPI *AddDllDirectory_I)(
+                                _In_ PCWSTR NewDirectory
+                                );
+
+                            if (AddDllDirectory_I = PhGetDllProcedureAddress(L"kernel32.dll", "AddDllDirectory", 0))
+                            {
+                                // HACK (dmex)
+                                // Add the parent directory to the search path so we can locate exports from 3rd party binaries.
+                                AddDllDirectory_I(baseDirectory->Buffer);
+                            }
+                        }
 
                         if (importModuleDllBase = LoadLibraryA(importDll.Name))
                         {
