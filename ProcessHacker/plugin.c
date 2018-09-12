@@ -65,16 +65,6 @@ static PH_CALLBACK GeneralCallbacks[GeneralCallbackMaximum];
 static PPH_STRING PluginsDirectory;
 static ULONG NextPluginId = IDPLUGINS + 1;
 
-VOID PhPluginsInitialization(
-    VOID
-    )
-{
-    ULONG i;
-
-    for (i = 0; i < GeneralCallbackMaximum; i++)
-        PhInitializeCallback(&GeneralCallbacks[i]);
-}
-
 INT NTAPI PhpPluginsCompareFunction(
     _In_ PPH_AVL_LINKS Links1,
     _In_ PPH_AVL_LINKS Links2
@@ -661,6 +651,14 @@ PPH_CALLBACK PhGetPluginCallback(
         PhRaiseStatus(STATUS_INVALID_PARAMETER_2);
 
     return &Plugin->Callbacks[Callback];
+}
+
+VOID PhInitializeCallbacks( // HACK (dmex)
+    VOID
+    )
+{
+    for (ULONG i = 0; i < GeneralCallbackMaximum; i++)
+        PhInitializeCallback(&GeneralCallbacks[i]);
 }
 
 /**

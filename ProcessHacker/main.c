@@ -171,6 +171,7 @@ INT WINAPI wWinMain(
     PhInitializeAutoPool(&BaseAutoPool);
 
     PhInitializeAppSystem();
+    PhInitializeCallbacks();
     PhInitializeCommonControls();
 
     PhEmInitialization();
@@ -188,7 +189,6 @@ INT WINAPI wWinMain(
 
     if (PhPluginsEnabled = PhGetIntegerSetting(L"EnablePlugins") && !PhStartupParameters.NoPlugins)
     {
-        PhPluginsInitialization();
         PhLoadPlugins();
     }
 

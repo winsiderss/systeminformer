@@ -131,7 +131,7 @@ VOID PhInitializeFont(
 
 extern PH_AVL_TREE PhPluginsByName;
 
-VOID PhPluginsInitialization(
+VOID PhInitializeCallbacks(
     VOID
     );
 
