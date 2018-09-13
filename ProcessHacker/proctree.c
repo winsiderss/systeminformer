@@ -1380,57 +1380,54 @@ static VOID PhpUpdateProcessNodeDpiAwareness(
             return;
     }
 
-    if (!(ProcessNode->ValidMask & PHPN_DPIAWARENESS))
+    if (ProcessNode->ProcessItem->QueryHandle)
     {
-        if (ProcessNode->ProcessItem->QueryHandle)
+        ULONG dpiAwareness;
+
+        if (getProcessDpiAwarenessInternal)
         {
-            ULONG dpiAwareness;
-
-            if (getProcessDpiAwarenessInternal)
-            {
-                if (getProcessDpiAwarenessInternal(ProcessNode->ProcessItem->QueryHandle, &dpiAwareness))
-                    ProcessNode->DpiAwareness = dpiAwareness + 1;
-            }
-            else
-            {
-                ULONG_PTR curOffset;
-#ifdef _WIN64
-                if (ProcessNode->ProcessItem->IsWow64)
-                    curOffset = gfDPIAwareOffset32;
-                else
-#endif
-                    curOffset = gfDPIAwareOffset;
-                PH_STRINGREF user32sr = PH_STRINGREF_INIT(L"user32.dll");
-                PVOID user32Base;
-                BOOLEAN gfDPIAware;
-
-                HANDLE processHandle = NULL;
-
-                if (!NT_SUCCESS(PhOpenProcess(&processHandle, ProcessQueryAccess | PROCESS_VM_READ, ProcessNode->ProcessId)))
-                    goto clean;
-                if (!NT_SUCCESS(
-                    PhGetDllBaseRemote(
-                        processHandle,
-                        &user32sr,
-                        &user32Base)) || !user32Base)
-                    goto clean;
-                if (!NT_SUCCESS(
-                    NtReadVirtualMemory(
-                        processHandle,
-                        PTR_ADD_OFFSET(user32Base, curOffset),
-                        &gfDPIAware,
-                        sizeof(BOOLEAN),
-                        NULL)))
-                    goto clean;
-                ProcessNode->DpiAwareness = !!gfDPIAware + 1;
-            clean:
-                if (processHandle)
-                    NtClose(processHandle);
-            }
+            if (getProcessDpiAwarenessInternal(ProcessNode->ProcessItem->QueryHandle, &dpiAwareness))
+                ProcessNode->DpiAwareness = dpiAwareness + 1;
         }
+        else
+        {
+            ULONG_PTR curOffset;
+#ifdef _WIN64
+            if (ProcessNode->ProcessItem->IsWow64)
+                curOffset = gfDPIAwareOffset32;
+            else
+#endif
+                curOffset = gfDPIAwareOffset;
+            PH_STRINGREF user32sr = PH_STRINGREF_INIT(L"user32.dll");
+            PVOID user32Base;
+            BOOLEAN gfDPIAware;
 
-        ProcessNode->ValidMask |= PHPN_DPIAWARENESS;
+            HANDLE processHandle = NULL;
+
+            if (!NT_SUCCESS(PhOpenProcess(&processHandle, ProcessQueryAccess | PROCESS_VM_READ, ProcessNode->ProcessId)))
+                goto clean;
+            if (!NT_SUCCESS(
+                PhGetDllBaseRemote(
+                    processHandle,
+                    &user32sr,
+                    &user32Base)) || !user32Base)
+                goto clean;
+            if (!NT_SUCCESS(
+                NtReadVirtualMemory(
+                    processHandle,
+                    PTR_ADD_OFFSET(user32Base, curOffset),
+                    &gfDPIAware,
+                    sizeof(BOOLEAN),
+                    NULL)))
+                goto clean;
+            ProcessNode->DpiAwareness = !!gfDPIAware + 1;
+        clean:
+            if (processHandle)
+                NtClose(processHandle);
+        }
     }
+
+    ProcessNode->ValidMask |= PHPN_DPIAWARENESS;
 }
 
 static VOID PhpUpdateProcessNodeFileAttributes(
