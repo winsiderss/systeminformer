@@ -87,12 +87,12 @@ typedef struct _TOKEN_PAGE_CONTEXT
 
 PH_ACCESS_ENTRY GroupDescriptionEntries[6] =
 {
-{ NULL, SE_GROUP_INTEGRITY | SE_GROUP_INTEGRITY_ENABLED, FALSE, FALSE, L"Integrity" },
-{ NULL, SE_GROUP_LOGON_ID, FALSE, FALSE, L"Logon Id" },
-{ NULL, SE_GROUP_OWNER, FALSE, FALSE, L"Owner" },
-{ NULL, SE_GROUP_MANDATORY, FALSE, FALSE, L"Mandatory" },
-{ NULL, SE_GROUP_USE_FOR_DENY_ONLY, FALSE, FALSE, L"Use for deny only" },
-{ NULL, SE_GROUP_RESOURCE, FALSE, FALSE, L"Resource" }
+    { NULL, SE_GROUP_INTEGRITY | SE_GROUP_INTEGRITY_ENABLED, FALSE, FALSE, L"Integrity" },
+    { NULL, SE_GROUP_LOGON_ID, FALSE, FALSE, L"Logon Id" },
+    { NULL, SE_GROUP_OWNER, FALSE, FALSE, L"Owner" },
+    { NULL, SE_GROUP_MANDATORY, FALSE, FALSE, L"Mandatory" },
+    { NULL, SE_GROUP_USE_FOR_DENY_ONLY, FALSE, FALSE, L"Use for deny only" },
+    { NULL, SE_GROUP_RESOURCE, FALSE, FALSE, L"Resource" }
 };
 
 INT CALLBACK PhpTokenPropPageProc(
@@ -263,7 +263,7 @@ PPH_STRING PhGetGroupAttributesString(
         else
         {
             if (Attributes & SE_GROUP_ENABLED_BY_DEFAULT)
-                string = PhCreateString(L"Disabled (modified");
+                string = PhCreateString(L"Disabled (modified)");
             else
                 string = PhCreateString(L"Disabled");
         }
@@ -419,9 +419,7 @@ VOID PhpUpdateSidsFromTokenGroups(
         {
             PPHP_TOKEN_PAGE_LISTVIEW_ITEM lvitem;
 
-            lvitem = PhAllocate(sizeof(PHP_TOKEN_PAGE_LISTVIEW_ITEM));
-            memset(lvitem, 0, sizeof(PHP_TOKEN_PAGE_LISTVIEW_ITEM));
-
+            lvitem = PhAllocateZero(sizeof(PHP_TOKEN_PAGE_LISTVIEW_ITEM));
             lvitem->IsTokenGroupEntry = TRUE;
             lvitem->TokenGroup = &Groups->Groups[i];
 
@@ -443,7 +441,7 @@ VOID PhpUpdateSidsFromTokenGroups(
                 Groups->Groups[i].Attributes,
                 GroupDescriptionEntries,
                 RTL_NUMBER_OF(GroupDescriptionEntries)
-            );
+                );
 
             if (descriptionString)
             {
