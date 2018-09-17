@@ -642,19 +642,17 @@ VOID PhTickProcessNodes(
 
     for (i = 0; i < ProcessNodeList->Count; i++)
     {
-        ULONG remainsValidMask;
         PPH_PROCESS_NODE node = ProcessNodeList->Items[i];
 
         // The name and PID never change, so we don't invalidate that.
         memset(&node->TextCache[2], 0, sizeof(PH_STRINGREF) * (PHPRTLC_MAXIMUM - 2));
+        node->ValidMask &= PHPN_OSCONTEXT | PHPN_IMAGE | PHPN_DPIAWARENESS | PHPN_APPID | PHPN_DESKTOPINFO | PHPN_USERNAME; // Items that always remain valid
 
-        remainsValidMask = PHPN_OSCONTEXT | PHPN_IMAGE | PHPN_APPID | PHPN_DESKTOPINFO | PHPN_USERNAME; // Items that always remain valid
         // The DPI awareness defaults to unaware if not set or declared in the manifest in which case
         // it can be changed once, so we can only be sure that it won't be changed again if it is different
-        // from Unaware.
+        // from Unaware (poizan42).
         if (node->DpiAwareness != 1)
-            remainsValidMask |= PHPN_DPIAWARENESS;
-        node->ValidMask &= remainsValidMask;
+            node->ValidMask |= PHPN_DPIAWARENESS;
 
         // Invalidate graph buffers.
         node->CpuGraphBuffers.Valid = FALSE;
