@@ -553,6 +553,9 @@ EXPORTS
 	PhGetMappedImageCfgEntry
 	PhGetMappedImageLoadConfig32
 	PhGetMappedImageLoadConfig64
+	PhGetMappedImageExports
+	PhGetMappedImageExportFunction
+	PhMappedImageRvaToVa
 	PhInitializeMappedImage
 	PhLoadMappedImage
 	PhLoadMappedImageEx
