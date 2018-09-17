@@ -3093,14 +3093,6 @@ RtlGetFunctionTableListHead(
 // Images
 
 NTSYSAPI
-PVOID
-NTAPI
-RtlPcToFileHeader(
-    _In_ PVOID PcValue,
-    _Out_ PVOID *BaseOfImage
-    );
-
-NTSYSAPI
 PIMAGE_NT_HEADERS
 NTAPI
 RtlImageNtHeader(
@@ -5650,6 +5642,7 @@ RtlEqualSid(
 _Check_return_
 NTSYSAPI
 BOOLEAN
+NTAPI
 RtlEqualPrefixSid(
     _In_ PSID Sid1,
     _In_ PSID Sid2
@@ -6669,18 +6662,6 @@ RtlGetNtVersionNumbers(
     _Out_opt_ PULONG NtBuildNumber
     );
 
-// private
-NTSYSAPI
-BOOLEAN
-WINAPI
-RtlGetProductInfo(
-    _In_ ULONG OSMajorVersion,
-    _In_ ULONG OSMinorVersion,
-    _In_ ULONG SpMajorVersion,
-    _In_ ULONG SpMinorVersion,
-    _Out_ PULONG ReturnedProductType // PRODUCT_PROFESSIONAL
-    );
-
 // System information
 
 // rev
@@ -7363,28 +7344,6 @@ NTAPI
 RtlQueryPerformanceFrequency(
     _Out_ PLARGE_INTEGER PerformanceFrequency
     );
-#endif
-
-#if (PHNT_VERSION >= PHNT_WIN8)
-
-NTSYSAPI
-ULONG
-NTAPI
-RtlCrc32(
-    _In_reads_bytes_(Size) const void *Buffer,
-    _In_ size_t Size,
-    _In_ ULONG InitialCrc
-    );
-
-NTSYSAPI
-ULONGLONG
-NTAPI
-RtlCrc64(
-    _In_reads_bytes_(Size) const void *Buffer,
-    _In_ size_t Size,
-    _In_ ULONGLONG InitialCrc
-    );
-
 #endif
 
 // Image Mitigation
