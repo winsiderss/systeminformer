@@ -797,7 +797,7 @@ VOID PhpUpdateHandleGeneral(
 
                         PhInitFormatI64UGroupDigits(&format[0], filePositionInfo.CurrentByteOffset.QuadPart);
                         PhInitFormatS(&format[1], L" (");
-                        PhInitFormatF(&format[2], (DOUBLE)(filePositionInfo.CurrentByteOffset.QuadPart / fileStandardInfo.EndOfFile.QuadPart * 100), 1);
+                        PhInitFormatF(&format[2], (DOUBLE)filePositionInfo.CurrentByteOffset.QuadPart / (DOUBLE)fileStandardInfo.EndOfFile.QuadPart * 100.0, 1);
                         PhInitFormatS(&format[3], L"%)");
 
                         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), filePositionString, sizeof(filePositionString), NULL))
