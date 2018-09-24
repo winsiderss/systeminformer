@@ -301,7 +301,7 @@ typedef struct _PerfCounterIPCControlBlock
     Perf_Contexts             Context;
     Perf_Interop              Interop;
     Perf_Loading              Loading;
-    Perf_Excep                Excep;
+    Perf_Excep                Exceptions;
     Perf_LocksAndThreads      LocksAndThreads;
     Perf_Jit                  Jit;
     Perf_Security             Security;
@@ -322,7 +322,7 @@ typedef struct _PerfCounterIPCControlBlock_Wow64
     Perf_Contexts           Context;
     Perf_Interop            Interop;
     Perf_Loading_Wow64      Loading;
-    Perf_Excep              Excep;
+    Perf_Excep              Exceptions;
     Perf_LocksAndThreads    LocksAndThreads;
     Perf_Jit                Jit;
     Perf_Security_Wow64     Security;
