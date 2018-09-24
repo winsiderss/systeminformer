@@ -1092,12 +1092,28 @@ INT_PTR CALLBACK PhpTokenPageProc(
 
                 if (numberOfItems != 0)
                 {
+                    BOOLEAN listViewGroupItemsValid = FALSE;
+                    ULONG i;
+
+                    for (i = 0; i < numberOfItems; i++)
+                    {
+                        if (listviewItems[i]->IsTokenGroupEntry)
+                        {
+                            listViewGroupItemsValid = TRUE;
+                            break;
+                        }
+                    }
+
                     menu = PhCreateEMenu();
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PRIVILEGE_ENABLE, L"&Enable", NULL, NULL), ULONG_MAX);
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PRIVILEGE_DISABLE, L"&Disable", NULL, NULL), ULONG_MAX);
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PRIVILEGE_REMOVE, L"&Remove", NULL, NULL), ULONG_MAX);
-                    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+                    if (!listViewGroupItemsValid)
+                    {
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PRIVILEGE_ENABLE, L"&Enable", NULL, NULL), ULONG_MAX);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PRIVILEGE_DISABLE, L"&Disable", NULL, NULL), ULONG_MAX);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PRIVILEGE_REMOVE, L"&Remove", NULL, NULL), ULONG_MAX);
+                        PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+                    }
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PRIVILEGE_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
+
                     PhShowEMenu(
                         menu,
                         hwndDlg,
