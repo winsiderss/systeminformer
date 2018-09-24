@@ -3302,7 +3302,7 @@ VOID PhShellExploreFile(
         }
         else
         {
-            PhShowError(hWnd, L"The location \"%s\" could not be found.", FileName);
+            PhShowError2(hWnd, L"The location could not be found.", L"%s", FileName);
         }
     }
     else
