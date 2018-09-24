@@ -567,7 +567,6 @@ INT_PTR CALLBACK PhpTokenPageProc(
     PTOKEN_PAGE_CONTEXT tokenPageContext;
 
     tokenPageContext = PhpTokenPageHeader(hwndDlg, uMsg, wParam, lParam);
-    tokenPageContext = PhpGenericPropertyPageHeader(hwndDlg, uMsg, wParam, lParam, 3);
 
     if (!tokenPageContext)
         return FALSE;
@@ -713,12 +712,12 @@ INT_PTR CALLBACK PhpTokenPageProc(
         break;
     case WM_DESTROY:
         {
+            PhSaveListViewColumnsToSetting(L"TokenGroupsListViewColumns", tokenPageContext->ListViewHandle);
+
             if (tokenPageContext->ListViewImageList)
                 ImageList_Destroy(tokenPageContext->ListViewImageList);
 
             PhpTokenPageFreeListViewEntries(tokenPageContext);
-
-            PhSaveListViewColumnsToSetting(L"TokenGroupsListViewColumns", tokenPageContext->ListViewHandle);
 
             if (tokenPageContext->Groups) PhFree(tokenPageContext->Groups);
             if (tokenPageContext->RestrictedSids) PhFree(tokenPageContext->RestrictedSids);
@@ -727,7 +726,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
         break;
     case WM_COMMAND:
         {
-            switch (LOWORD(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case ID_PRIVILEGE_ENABLE:
             case ID_PRIVILEGE_DISABLE:
@@ -841,7 +840,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                             {
                                 PWSTR action = L"set";
 
-                                switch (LOWORD(wParam))
+                                switch (GET_WM_COMMAND_ID(wParam, lParam))
                                 {
                                 case ID_PRIVILEGE_ENABLE:
                                     action = L"enable";
@@ -1079,6 +1078,9 @@ INT_PTR CALLBACK PhpTokenPageProc(
             if ((HWND)wParam == tokenPageContext->ListViewHandle)
             {
                 POINT point;
+                PPH_EMENU menu;
+                PPHP_TOKEN_PAGE_LISTVIEW_ITEM *listviewItems;
+                ULONG numberOfItems;
 
                 point.x = GET_X_LPARAM(lParam);
                 point.y = GET_Y_LPARAM(lParam);
@@ -1086,50 +1088,28 @@ INT_PTR CALLBACK PhpTokenPageProc(
                 if (point.x == -1 && point.y == -1)
                     PhGetListViewContextMenuPoint((HWND)wParam, &point);
 
-                if (ListView_GetSelectedCount(tokenPageContext->ListViewHandle) != 0)
+                PhGetSelectedListViewItemParams(tokenPageContext->ListViewHandle, &listviewItems, &numberOfItems);
+
+                if (numberOfItems != 0)
                 {
-                    PPH_EMENU menu;
-                    BOOLEAN listViewGroupItemsValid = TRUE;
-                    PPHP_TOKEN_PAGE_LISTVIEW_ITEM *listviewItems;
-                    ULONG numberOfItems;
-                    ULONG i;
-
-                    PhGetSelectedListViewItemParams(
-                        tokenPageContext->ListViewHandle,
-                        &listviewItems,
-                        &numberOfItems
-                        );
-
-                    for (i = 0; i < numberOfItems; i++)
-                    {
-                        if (listviewItems[i]->IsTokenGroupEntry)
-                        {
-                            listViewGroupItemsValid = FALSE;
-                            break;
-                        }
-                    }
-
                     menu = PhCreateEMenu();
-                    if (listViewGroupItemsValid)
-                    {
-                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PRIVILEGE_ENABLE, L"&Enable", NULL, NULL), -1);
-                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PRIVILEGE_DISABLE, L"&Disable", NULL, NULL), -1);
-                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PRIVILEGE_REMOVE, L"&Remove", NULL, NULL), -1);
-                        PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), -1);
-                    }
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PRIVILEGE_COPY, L"&Copy", NULL, NULL), -1);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PRIVILEGE_ENABLE, L"&Enable", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PRIVILEGE_DISABLE, L"&Disable", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PRIVILEGE_REMOVE, L"&Remove", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PRIVILEGE_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
                     PhShowEMenu(
-                        menu, 
-                        hwndDlg, 
+                        menu,
+                        hwndDlg,
                         PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT,
-                        PH_ALIGN_LEFT | PH_ALIGN_TOP, 
-                        point.x, 
+                        PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                        point.x,
                         point.y
                         );
                     PhDestroyEMenu(menu);
-
-                    PhFree(listviewItems);
                 }
+
+                PhFree(listviewItems);
             }
         }
         break;
@@ -1378,7 +1358,7 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
         break;
     case WM_COMMAND:
         {
-            switch (LOWORD(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDC_LINKEDTOKEN:
                 {
