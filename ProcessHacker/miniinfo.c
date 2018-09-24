@@ -31,6 +31,7 @@
 #include <mainwnd.h>
 #include <notifico.h>
 #include <phplug.h>
+#include <phsettings.h>
 #include <procprv.h>
 #include <proctree.h>
 
@@ -470,6 +471,8 @@ VOID PhMipOnInitDialog(
     oldWndProc = (WNDPROC)GetWindowLongPtr(GetDlgItem(PhMipWindow, IDC_SECTION), GWLP_WNDPROC);
     PhSetWindowContext(GetDlgItem(PhMipWindow, IDC_SECTION), 0xF, oldWndProc);
     SetWindowLongPtr(GetDlgItem(PhMipWindow, IDC_SECTION), GWLP_WNDPROC, (LONG_PTR)PhMipSectionControlHookWndProc);
+
+    PhInitializeWindowTheme(PhMipWindow, PhEnableThemeSupport);
 }
 
 VOID PhMipOnShowWindow(
@@ -882,6 +885,8 @@ VOID PhMipCreateSectionDialog(
                 createDialog.DialogProc,
                 createDialog.Parameter
                 );
+
+            PhInitializeWindowTheme(Section->DialogHandle, PhEnableThemeSupport);
         }
     }
 }
