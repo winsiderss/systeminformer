@@ -141,6 +141,7 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"ProcPropPage", L"General");
     PhpAddIntegerPairSetting(L"ProcPropPosition", L"200,200");
     PhpAddScalableIntegerPairSetting(L"ProcPropSize", L"@96|460,580");
+    PhpAddStringSetting(L"ProcStatPropPageGroupStates", L"");
     PhpAddStringSetting(L"ProgramInspectExecutables", L"peview.exe \"%s\"");
     PhpAddIntegerSetting(L"PropagateCpuUsage", L"0");
     PhpAddStringSetting(L"RunAsProgram", L"");
