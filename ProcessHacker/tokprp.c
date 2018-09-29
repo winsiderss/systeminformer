@@ -599,6 +599,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
             PhAddListViewGroup(tokenPageContext->ListViewHandle, PH_PROCESS_TOKEN_CATEGORY_GROUPS, L"Groups");
             ListView_SetImageList(tokenPageContext->ListViewHandle, tokenPageContext->ListViewImageList, LVSIL_SMALL);
             PhLoadListViewColumnsFromSetting(L"TokenGroupsListViewColumns", tokenPageContext->ListViewHandle);
+            PhLoadListViewSortColumnsFromSetting(L"TokenGroupsListViewSort", tokenPageContext->ListViewHandle);
 
             PhSetDialogItemText(hwndDlg, IDC_USER, L"Unknown");
             PhSetDialogItemText(hwndDlg, IDC_USERSID, L"Unknown");
@@ -712,6 +713,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
         break;
     case WM_DESTROY:
         {
+            PhSaveListViewSortColumnsToSetting(L"TokenGroupsListViewSort", tokenPageContext->ListViewHandle);
             PhSaveListViewColumnsToSetting(L"TokenGroupsListViewColumns", tokenPageContext->ListViewHandle);
 
             if (tokenPageContext->ListViewImageList)
@@ -760,7 +762,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                         break;
                     }
 
-                    if (LOWORD(wParam) == ID_PRIVILEGE_REMOVE)
+                    if (GET_WM_COMMAND_ID(wParam, lParam) == ID_PRIVILEGE_REMOVE)
                     {
                         if (!PhShowConfirmMessage(
                             hwndDlg,
@@ -857,7 +859,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
 
                                 if (!PhShowContinueStatus(
                                     hwndDlg,
-                                    PhaFormatString(L"Unable to %s %s", action, privilegeName->Buffer)->Buffer,
+                                    PhaFormatString(L"Unable to %s %s.", action, PhGetStringOrDefault(privilegeName, L"privilege"))->Buffer,
                                     STATUS_UNSUCCESSFUL,
                                     0
                                     ))
@@ -871,7 +873,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                     }
                     else
                     {
-                        PhShowStatus(hwndDlg, L"Unable to open the token", status, 0);
+                        PhShowStatus(hwndDlg, L"Unable to open the token.", status, 0);
                     }
 
                     PhFree(listViewItems);
