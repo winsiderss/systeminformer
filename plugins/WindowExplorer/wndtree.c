@@ -52,7 +52,7 @@ BOOLEAN WordMatchStringRef(
     PH_STRINGREF part;
     PH_STRINGREF remainingPart;
 
-    remainingPart = Context->SearchboxText->sr;
+    remainingPart = PhGetStringRef(Context->SearchboxText);
 
     while (remainingPart.Length != 0)
     {
