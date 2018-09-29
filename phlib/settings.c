@@ -3,7 +3,7 @@
  *   settings
  *
  * Copyright (C) 2010-2016 wj32
- * Copyright (C) 2017 dmex
+ * Copyright (C) 2017-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -38,6 +38,7 @@
 #include <ph.h>
 #include <phbasesup.h>
 #include <phutil.h>
+#include <guisup.h>
 #include <settings.h>
 
 #include <commctrl.h>
@@ -1149,7 +1150,7 @@ BOOLEAN PhLoadListViewColumnSettings(
     ULONG maxOrder;
     ULONG scale;
 
-    if (Settings->Length == 0)
+    if (PhIsNullOrEmptyString(Settings))
         return FALSE;
 
     remainingPart = Settings->sr;
@@ -1283,6 +1284,66 @@ VOID PhSaveListViewColumnsToSetting(
     PPH_STRING string;
 
     string = PhSaveListViewColumnSettings(ListViewHandle);
+    PhSetStringSetting2(Name, &string->sr);
+    PhDereferenceObject(string);
+}
+
+VOID PhLoadListViewSortColumnsFromSetting(
+    _In_ PWSTR Name,
+    _In_ HWND ListViewHandle
+    )
+{
+    PPH_STRING string;
+    ULONG sortColumn = 0;
+    PH_SORT_ORDER sortOrder = AscendingSortOrder;
+    PH_STRINGREF remainingPart;
+
+    string = PhGetStringSetting(Name);
+
+    if (PhIsNullOrEmptyString(string))
+        return;
+
+    remainingPart = string->sr;
+
+    if (remainingPart.Length != 0)
+    {
+        PH_STRINGREF orderPart;
+        PH_STRINGREF widthPart;
+        ULONG64 integer;
+
+        if (!PhSplitStringRefAtChar(&remainingPart, ',', &orderPart, &widthPart))
+            return;
+
+        if (!PhStringToInteger64(&orderPart, 10, &integer))
+            return;
+
+        sortColumn = (ULONG)integer;
+
+        if (!PhStringToInteger64(&widthPart, 10, &integer))
+            return;
+
+        sortOrder = (ULONG)integer;
+    }
+
+    ExtendedListView_SetSort(ListViewHandle, sortColumn, sortOrder);
+
+    PhDereferenceObject(string);
+}
+
+VOID PhSaveListViewSortColumnsToSetting(
+    _In_ PWSTR Name,
+    _In_ HWND ListViewHandle
+    )
+{
+    PPH_STRING string;
+    ULONG sortColumn = 0;
+    PH_SORT_ORDER sortOrder = AscendingSortOrder;
+
+    if (ExtendedListView_GetSort(ListViewHandle, &sortColumn, &sortOrder))
+        string = PhFormatString(L"%u,%u", sortColumn, sortOrder);
+    else
+        string = PhCreateString(L"0,0");
+
     PhSetStringSetting2(Name, &string->sr);
     PhDereferenceObject(string);
 }

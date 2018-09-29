@@ -263,6 +263,20 @@ PhSaveListViewColumnsToSetting(
     _In_ PWSTR Name,
     _In_ HWND ListViewHandle
     );
+
+VOID
+NTAPI
+PhLoadListViewSortColumnsFromSetting(
+    _In_ PWSTR Name,
+    _In_ HWND ListViewHandle
+    );
+
+VOID
+NTAPI
+PhSaveListViewSortColumnsToSetting(
+    _In_ PWSTR Name,
+    _In_ HWND ListViewHandle
+    );
 // end_phapppub
 
 #define PH_SET_INTEGER_CACHED_SETTING(Name, Value) (PhSetIntegerSetting(L#Name, PhCs##Name = (Value)))
