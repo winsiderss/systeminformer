@@ -548,6 +548,46 @@ BOOLEAN PhInitializeRestartPolicy(
     return TRUE;
 }
 
+#ifndef DEBUG
+static ULONG CALLBACK PhpUnhandledExceptionCallback(
+    _In_ PEXCEPTION_POINTERS ExceptionInfo
+    )
+{
+    PPH_STRING errorMessage;
+
+    if (NT_NTWIN32(ExceptionInfo->ExceptionRecord->ExceptionCode))
+        errorMessage = PhGetStatusMessage(0, WIN32_FROM_NTSTATUS(ExceptionInfo->ExceptionRecord->ExceptionCode));
+    else
+        errorMessage = PhGetStatusMessage(ExceptionInfo->ExceptionRecord->ExceptionCode, 0);
+
+    if (PhShowMessage2(
+        NULL,
+        TDCBF_RETRY_BUTTON | TDCBF_CANCEL_BUTTON,
+        TD_ERROR_ICON,
+        L"Process Hacker has crashed :(",
+        L"Error code: 0x%08X (%s)",
+        ExceptionInfo->ExceptionRecord->ExceptionCode,
+        PhGetStringOrEmpty(errorMessage)
+        ) == IDRETRY)
+    {
+        PhShellProcessHacker(
+            NULL,
+            NULL,
+            SW_SHOW,
+            0,
+            PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
+            0,
+            NULL
+            );
+    }
+
+    RtlExitUserProcess(ExceptionInfo->ExceptionRecord->ExceptionCode);
+
+    PhDereferenceObject(errorMessage);
+    return EXCEPTION_EXECUTE_HANDLER;
+}
+#endif
+
 BOOLEAN PhInitializeExceptionPolicy(
     VOID
     )
@@ -560,16 +600,21 @@ BOOLEAN PhInitializeExceptionPolicy(
         errorMode &= ~(SEM_NOOPENFILEERRORBOX | SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
         PhSetProcessErrorMode(NtCurrentProcess(), errorMode);
     }
+
+    // NOTE: We really shouldn't be using this function since it can be
+    // preempted by the Win32 SetUnhandledExceptionFilter function. (dmex)
+    RtlSetUnhandledExceptionFilter(PhpUnhandledExceptionCallback);
 #endif
+
     return TRUE;
-}   
+}
 
 BOOLEAN PhInitializeNamespacePolicy(
     VOID
     )
 {
     HANDLE mutantHandle;
-    PPH_STRING objectName;
+    WCHAR objectName[PH_INT64_STR_LEN_1];
     OBJECT_ATTRIBUTES objectAttributes;
     UNICODE_STRING objectNameUs;
     PH_FORMAT format[2];
@@ -577,9 +622,18 @@ BOOLEAN PhInitializeNamespacePolicy(
     PhInitFormatS(&format[0], L"PhMutant_");
     PhInitFormatU(&format[1], HandleToUlong(NtCurrentProcessId()));
 
-    objectName = PhFormat(format, RTL_NUMBER_OF(format), 16);
-    PhStringRefToUnicodeString(&objectName->sr, &objectNameUs);
+    if (!PhFormatToBuffer(
+        format,
+        RTL_NUMBER_OF(format),
+        objectName,
+        sizeof(objectName),
+        NULL
+        ))
+    {
+        return FALSE;
+    }
 
+    RtlInitUnicodeString(&objectNameUs, objectName);
     InitializeObjectAttributes(
         &objectAttributes,
         &objectNameUs,
@@ -595,11 +649,9 @@ BOOLEAN PhInitializeNamespacePolicy(
         TRUE
         )))
     {
-        PhDereferenceObject(objectName);
         return TRUE;
     }
 
-    PhDereferenceObject(objectName);
     return FALSE;
 }
 
