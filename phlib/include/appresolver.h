@@ -32,6 +32,11 @@ BOOLEAN PhAppResolverGetAppIdForProcess(
     _Out_ PPH_STRING *ApplicationUserModelId
     );
 
+BOOLEAN PhAppResolverGetAppIdForWindow(
+    _In_ HWND WindowHandle,
+    _Out_ PPH_STRING *ApplicationUserModelId
+    );
+
 HRESULT PhAppResolverActivateAppId(
     _In_ PPH_STRING AppUserModelId,
     _In_opt_ PWSTR CommandLine,

@@ -156,6 +156,49 @@ BOOLEAN PhAppResolverGetAppIdForProcess(
     return FALSE;
 }
 
+BOOLEAN PhAppResolverGetAppIdForWindow(
+    _In_ HWND WindowHandle,
+    _Out_ PPH_STRING *ApplicationUserModelId
+    )
+{
+    PVOID resolverInterface;
+    PWSTR appIdText = NULL;
+
+    if (!(resolverInterface = PhpQueryAppResolverInterface()))
+        return FALSE;
+
+    if (WindowsVersion < WINDOWS_8)
+    {
+        IApplicationResolver_GetAppIDForWindow(
+            (IApplicationResolver61*)resolverInterface,
+            WindowHandle,
+            &appIdText,
+            NULL,
+            NULL,
+            NULL
+            );
+    }
+    else
+    {
+        IApplicationResolver_GetAppIDForWindow(
+            (IApplicationResolver62*)resolverInterface,
+            WindowHandle,
+            &appIdText,
+            NULL,
+            NULL,
+            NULL
+            );
+    }
+
+    if (appIdText)
+    {
+        *ApplicationUserModelId = PhCreateString(appIdText);
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
 HRESULT PhAppResolverActivateAppId(
     _In_ PPH_STRING AppUserModelId,
     _In_opt_ PWSTR CommandLine,
