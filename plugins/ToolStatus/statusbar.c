@@ -284,7 +284,7 @@ VOID StatusBarUpdate(
                 FLOAT cpuUsage = SystemStatistics.CpuKernelUsage + SystemStatistics.CpuUserUsage;
                 PH_FORMAT format[3];
 
-                PhInitFormatS(&format[0], L"CPU Usage: ");
+                PhInitFormatS(&format[0], L"CPU usage: ");
                 PhInitFormatF(&format[1], cpuUsage * 100, 2);
                 PhInitFormatS(&format[2], L"%");
 
