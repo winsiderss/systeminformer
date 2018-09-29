@@ -788,10 +788,12 @@ INT_PTR CALLBACK PhpTokenPageProc(
                             PPH_STRING privilegeName = NULL;
                             ULONG newAttributes;
 
-                            PhLookupPrivilegeName(&listViewItems[i]->TokenPrivilege->Luid, &privilegeName);
-                            PH_AUTO(privilegeName);
+                            if (PhLookupPrivilegeName(&listViewItems[i]->TokenPrivilege->Luid, &privilegeName))
+                            {
+                                PH_AUTO(privilegeName);
+                            }
 
-                            switch (LOWORD(wParam))
+                            switch (GET_WM_COMMAND_ID(wParam, lParam))
                             {
                             case ID_PRIVILEGE_ENABLE:
                                 newAttributes = listViewItems[i]->TokenPrivilege->Attributes | SE_PRIVILEGE_ENABLED;
@@ -817,7 +819,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                                     listViewItems[i]
                                     );
 
-                                if (LOWORD(wParam) != ID_PRIVILEGE_REMOVE)
+                                if (GET_WM_COMMAND_ID(wParam, lParam) != ID_PRIVILEGE_REMOVE)
                                 {
                                     // Refresh the status text (and background color).
                                     listViewItems[i]->TokenPrivilege->Attributes = newAttributes;
