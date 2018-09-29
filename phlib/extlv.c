@@ -105,15 +105,23 @@ VOID PhSetExtendedListView(
     _In_ HWND hWnd
     )
 {
+    PhSetExtendedListViewEx(hWnd, 0, AscendingSortOrder);
+}
+
+VOID PhSetExtendedListViewEx(
+    _In_ HWND WindowHandle,
+    _In_ ULONG SortColumn,
+    _In_ ULONG SortOrder
+    )
+{
     PPH_EXTLV_CONTEXT context;
 
     context = PhAllocateZero(sizeof(PH_EXTLV_CONTEXT));
-
-    context->Handle = hWnd;
+    context->Handle = WindowHandle;
     context->Context = NULL;
     context->TriState = FALSE;
-    context->SortColumn = 0;
-    context->SortOrder = AscendingSortOrder;
+    context->SortColumn = SortColumn;
+    context->SortOrder = SortOrder;
     context->SortFast = FALSE;
     context->TriStateCompareFunction = NULL;
     memset(context->CompareFunctions, 0, sizeof(context->CompareFunctions));
@@ -123,11 +131,11 @@ VOID PhSetExtendedListView(
     context->EnableRedraw = 1;
     context->Cursor = NULL;
 
-    context->OldWndProc = (WNDPROC)GetWindowLongPtr(hWnd, GWLP_WNDPROC);
-    PhSetWindowContext(hWnd, MAXCHAR, context);
-    SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)PhpExtendedListViewWndProc);
+    context->OldWndProc = (WNDPROC)GetWindowLongPtr(WindowHandle, GWLP_WNDPROC);
+    PhSetWindowContext(WindowHandle, MAXCHAR, context);
+    SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)PhpExtendedListViewWndProc);
 
-    ExtendedListView_Init(hWnd);
+    ExtendedListView_Init(WindowHandle);
 }
 
 LRESULT CALLBACK PhpExtendedListViewWndProc(
@@ -421,6 +429,17 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
             {
                 SendMessage(hwnd, WM_SETREDRAW, FALSE, 0);
             }
+        }
+        return TRUE;
+    case ELVM_GETSORT:
+        {
+            PULONG sortColumn = (PULONG)wParam;
+            PPH_SORT_ORDER sortOrder = (PPH_SORT_ORDER)lParam;
+
+            if (sortColumn)
+                *sortColumn = context->SortColumn;
+            if (sortOrder)
+                *sortOrder = context->SortOrder;
         }
         return TRUE;
     case ELVM_SETSORT:
