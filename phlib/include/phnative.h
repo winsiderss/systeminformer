@@ -440,6 +440,16 @@ PhSetTokenPrivilege2(
     );
 
 PHLIBAPI
+BOOLEAN
+NTAPI
+PhSetTokenGroups(
+    _In_ HANDLE TokenHandle,
+    _In_opt_ PWSTR GroupName,
+    _In_opt_ PSID GroupSid,
+    _In_ ULONG Attributes
+    );
+
+PHLIBAPI
 NTSTATUS
 NTAPI
 PhSetTokenIsVirtualizationEnabled(

@@ -2213,6 +2213,64 @@ BOOLEAN PhSetTokenPrivilege2(
     return PhSetTokenPrivilege(TokenHandle, NULL, &privilegeLuid, Attributes);
 }
 
+BOOLEAN PhSetTokenGroups(
+    _In_ HANDLE TokenHandle,
+    _In_opt_ PWSTR GroupName,
+    _In_opt_ PSID GroupSid,
+    _In_ ULONG Attributes
+    )
+{
+    NTSTATUS status;
+    TOKEN_GROUPS groups;
+
+    groups.GroupCount = 1;
+    groups.Groups[0].Attributes = Attributes;
+
+    if (GroupSid)
+    {
+        groups.Groups[0].Sid = GroupSid;
+    }
+    else if (GroupName)
+    {
+        PH_STRINGREF groupName;
+
+        PhInitializeStringRef(&groupName, GroupName);
+
+        if (!NT_SUCCESS(status = PhLookupName(&groupName, &groups.Groups[0].Sid, NULL, NULL)))
+            return FALSE;
+    }
+    else
+    {
+        return FALSE;
+    }
+
+    if (!NT_SUCCESS(status = NtAdjustGroupsToken(
+        TokenHandle,
+        FALSE,
+        &groups,
+        0,
+        NULL,
+        NULL
+        )))
+    {
+        goto CleanupExit;
+    }
+
+    if (status == STATUS_NOT_ALL_ASSIGNED)
+        goto CleanupExit;
+
+    if (GroupName && groups.Groups[0].Sid)
+        PhFree(groups.Groups[0].Sid);
+
+    return TRUE;
+
+CleanupExit:
+    if (GroupName && groups.Groups[0].Sid)
+        PhFree(groups.Groups[0].Sid);
+
+    return FALSE;
+}
+
 /**
  * Sets whether virtualization is enabled for a token.
  *
