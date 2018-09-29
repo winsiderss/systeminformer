@@ -24,6 +24,7 @@
 #include <phapp.h>
 #include <phsettings.h>
 #include <phplug.h>
+#include <settings.h>
 #include <procprp.h>
 #include <procprpp.h>
 #include <procprv.h>
@@ -320,6 +321,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
             PhSetExtendedListView(statisticsContext->ListViewHandle);
 
             PhpUpdateStatisticsAddListViewGroups(statisticsContext->ListViewHandle);
+            PhLoadListViewGroupStatesFromSetting(L"ProcStatPropPageGroupStates", statisticsContext->ListViewHandle);
 
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
@@ -335,6 +337,8 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
         break;
     case WM_DESTROY:
         {
+            PhSaveListViewGroupStatesToSetting(L"ProcStatPropPageGroupStates", statisticsContext->ListViewHandle);
+
             PhUnregisterCallback(
                 PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
                 &statisticsContext->ProcessesUpdatedRegistration
