@@ -685,6 +685,15 @@ PhSetExtendedListView(
 PHLIBAPI
 VOID
 NTAPI
+PhSetExtendedListViewEx(
+    _In_ HWND WindowHandle,
+    _In_ ULONG SortColumn,
+    _In_ ULONG SortOrder
+    );
+
+PHLIBAPI
+VOID
+NTAPI
 PhSetHeaderSortIcon(
     _In_ HWND hwnd,
     _In_ INT Index,
@@ -706,7 +715,7 @@ PhSetHeaderSortIcon(
 #define ELVM_SETITEMFONTFUNCTION (WM_APP + 1117)
 #define ELVM_RESERVED1 (WM_APP + 1112)
 #define ELVM_SETREDRAW (WM_APP + 1116)
-#define ELVM_RESERVED2 (WM_APP + 1113)
+#define ELVM_GETSORT (WM_APP + 1113)
 #define ELVM_SETSORT (WM_APP + 1108)
 #define ELVM_SETSORTFAST (WM_APP + 1119)
 #define ELVM_RESERVED0 (WM_APP + 1110)
@@ -735,6 +744,8 @@ PhSetHeaderSortIcon(
     SendMessage((hWnd), ELVM_SETITEMFONTFUNCTION, 0, (LPARAM)(ItemFontFunction))
 #define ExtendedListView_SetRedraw(hWnd, Redraw) \
     SendMessage((hWnd), ELVM_SETREDRAW, (WPARAM)(Redraw), 0)
+#define ExtendedListView_GetSort(hWnd, Column, Order) \
+    SendMessage((hWnd), ELVM_GETSORT, (WPARAM)(Column), (LPARAM)(Order))
 #define ExtendedListView_SetSort(hWnd, Column, Order) \
     SendMessage((hWnd), ELVM_SETSORT, (WPARAM)(Column), (LPARAM)(Order))
 #define ExtendedListView_SetSortFast(hWnd, Fast) \
