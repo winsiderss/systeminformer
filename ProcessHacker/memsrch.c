@@ -301,7 +301,7 @@ VOID PhSearchMemoryString(
                 // ExtendedUnicode option then we'll use iswprint (GetStringTypeW) which does check 
                 // every available character by default.
                 if (detectUnicode && extendedUnicode && !iswascii(byte))
-                    printable = iswprint(byte);
+                    printable = !!iswprint(byte);
                 else
                     printable = PhCharIsPrintable[byte];
 
