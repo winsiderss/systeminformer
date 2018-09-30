@@ -39,10 +39,10 @@
 #include "ipcenums.h"
 
 // Current version of the IPC Block
-const USHORT VER_IPC_BLOCK = 4;
+#define VER_IPC_BLOCK 0x4
 // Legacy version of the IPC Block
-const USHORT VER_LEGACYPRIVATE_IPC_BLOCK = 2;
-const USHORT VER_LEGACYPUBLIC_IPC_BLOCK = 3;
+#define VER_LEGACYPRIVATE_IPC_BLOCK 0x2
+#define VER_LEGACYPUBLIC_IPC_BLOCK 0x3
 
 //-----------------------------------------------------------------------------
 // Entry in the IPC Directory. Ensure binary compatibility across versions
@@ -60,9 +60,9 @@ typedef struct IPCEntry
 } IPCEntry;
 
 // Newer versions of the CLR use Flags field
-const USHORT IPC_FLAG_USES_FLAGS  = 0x1;
-const USHORT IPC_FLAG_INITIALIZED = 0x2;
-const USHORT IPC_FLAG_X86         = 0x4;
+#define IPC_FLAG_USES_FLAGS 0x1
+#define IPC_FLAG_INITIALIZED 0x2
+#define IPC_FLAG_X86 0x4
 
 // In hindsight, we should have made the offsets be absolute, but we made them
 // relative to the end of the FullIPCHeader.
@@ -70,8 +70,8 @@ const USHORT IPC_FLAG_X86         = 0x4;
 // the header size grew.
 // Thus we make IPCEntry::Offset is relative to IPC_ENTRY_OFFSET_BASE, which
 // corresponds to sizeof(PrivateIPCHeader) for an v1.0 /v1.1 build.
-const ULONG IPC_ENTRY_OFFSET_BASE_X86 = 0x14;
-const ULONG IPC_ENTRY_OFFSET_BASE_X64 = 0x0;
+#define IPC_ENTRY_OFFSET_BASE_X86 0x14
+#define IPC_ENTRY_OFFSET_BASE_X64 0x0
 
 
 /******************************************************************************
