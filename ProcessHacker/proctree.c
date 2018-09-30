@@ -2947,7 +2947,10 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 getNodeColor->BackColor = PhCsColorWow64Processes;
             else if (PhCsUseColorJobProcesses && processItem->IsInSignificantJob)
                 getNodeColor->BackColor = PhCsColorJobProcesses;
-            else if (PhCsUseColorServiceProcesses && processItem->ServiceList && processItem->ServiceList->Count != 0)
+            else if (
+                PhCsUseColorServiceProcesses &&
+                (processItem->Sid && RtlEqualSid(processItem->Sid, &PhSeLocalServiceSid) ||
+                 processItem->ServiceList && processItem->ServiceList->Count != 0))
                 getNodeColor->BackColor = PhCsColorServiceProcesses;
             else if (
                 PhCsUseColorSystemProcesses &&
