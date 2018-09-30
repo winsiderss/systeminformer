@@ -203,7 +203,8 @@ LOGICAL DllMain(
                 { IntegerSettingType, SETTING_NAME_ASM_TREE_LIST_FLAGS, L"0" },
                 { IntegerSettingType, SETTING_NAME_DOT_NET_CATEGORY_INDEX, L"5" },
                 { StringSettingType, SETTING_NAME_DOT_NET_COUNTERS_COLUMNS, L"" },
-                { IntegerSettingType, SETTING_NAME_DOT_NET_SHOW_BYTE_SIZE, L"1" }
+                { StringSettingType, SETTING_NAME_DOT_NET_COUNTERS_SORTCOLUMN, L"" },
+                { StringSettingType, SETTING_NAME_DOT_NET_COUNTERS_GROUPSTATES, L"" }
             };
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);

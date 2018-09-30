@@ -791,6 +791,8 @@ INT_PTR CALLBACK DotNetPerfPageDlgProc(
 
             DotNetPerfAddListViewGroups(context->CountersListViewHandle);
             PhLoadListViewColumnsFromSetting(SETTING_NAME_DOT_NET_COUNTERS_COLUMNS, context->CountersListViewHandle);
+            PhLoadListViewSortColumnsFromSetting(SETTING_NAME_DOT_NET_COUNTERS_SORTCOLUMN, context->CountersListViewHandle);
+            PhLoadListViewGroupStatesFromSetting(SETTING_NAME_DOT_NET_COUNTERS_GROUPSTATES, context->CountersListViewHandle);
 
 #ifdef _WIN64
             context->IsWow64 = !!context->ProcessItem->IsWow64;
@@ -890,6 +892,8 @@ INT_PTR CALLBACK DotNetPerfPageDlgProc(
                 NtClose(context->ProcessHandle);
             }
 
+            PhSaveListViewGroupStatesToSetting(SETTING_NAME_DOT_NET_COUNTERS_GROUPSTATES, context->CountersListViewHandle);
+            PhSaveListViewSortColumnsToSetting(SETTING_NAME_DOT_NET_COUNTERS_SORTCOLUMN, context->CountersListViewHandle);
             PhSaveListViewColumnsToSetting(SETTING_NAME_DOT_NET_COUNTERS_COLUMNS, context->CountersListViewHandle);
 
             PhFree(context);
