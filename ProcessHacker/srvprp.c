@@ -3,6 +3,7 @@
  *   service properties
  *
  * Copyright (C) 2010-2015 wj32
+ * Copyright (C) 2017-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -338,8 +339,10 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
 
             context->Ready = TRUE;
 
-            PhInitializeWindowTheme(GetParent(hwndDlg), PhEnableThemeSupport); // HACK
-            //PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            if (PhEnableThemeSupport) // TODO: Required for compat (dmex)
+                PhInitializeWindowTheme(GetParent(hwndDlg), PhEnableThemeSupport);  // HACK (GetParent)
+            else
+                PhInitializeWindowTheme(hwndDlg, FALSE);
         }
         break;
     case WM_DESTROY:
