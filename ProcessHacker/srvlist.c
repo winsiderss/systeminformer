@@ -404,7 +404,7 @@ static VOID PhpUpdateServiceNodeDescription(
         ServiceNode->ValidMask |= PHSN_DESCRIPTION;
     }
 
-    // NOTE: Querying the service description via RPC is extremely slow.
+    // NOTE: Querying the service description via RPC is extremely slow. (dmex)
     //SC_HANDLE serviceHandle;
     //
     //if (serviceHandle = PhOpenService(ServiceNode->ServiceItem->Name->Buffer, SERVICE_QUERY_CONFIG))
