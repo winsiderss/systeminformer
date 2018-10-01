@@ -33,6 +33,19 @@ typedef struct _PH_NETWORK_ITEM
     ULONGLONG OwnerInfo[PH_NETWORK_OWNER_INFO_SIZE];
     ULONG LocalScopeId;
     ULONG RemoteScopeId;
+
+    union
+    {
+        ULONG Flags;
+        struct
+        {
+            ULONG UnknownProcess : 1;
+            ULONG SubsystemProcess : 1;
+            ULONG Spare : 30;
+        };
+    };
+
+    PPH_PROCESS_ITEM ProcessItem;
 } PH_NETWORK_ITEM, *PPH_NETWORK_ITEM;
 // end_phapppub
 
