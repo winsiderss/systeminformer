@@ -157,6 +157,10 @@ VOID NTAPI PhpNetworkItemDeleteProcedure(
         PhDereferenceObject(networkItem->LocalHostString);
     if (networkItem->RemoteHostString)
         PhDereferenceObject(networkItem->RemoteHostString);
+
+    // NOTE: Dereferencing the ProcessItem will destroy the NetworkItem->ProcessIcon handle.
+    if (networkItem->ProcessItem)
+        PhDereferenceObject(networkItem->ProcessItem);
 }
 
 BOOLEAN PhpNetworkHashtableEqualFunction(
@@ -651,8 +655,9 @@ VOID PhNetworkProviderUpdate(
             // Get process information.
             if (processItem = PhReferenceProcessItem(networkItem->ProcessId))
             {
-                PhReferenceObject(processItem->ProcessName);
-                networkItem->ProcessName = processItem->ProcessName;
+                networkItem->ProcessItem = processItem;
+                networkItem->ProcessName = PhReferenceObject(processItem->ProcessName);
+                networkItem->SubsystemProcess = !!processItem->IsSubsystemProcess;
                 PhpUpdateNetworkItemOwner(networkItem, processItem);
 
                 if (PhTestEvent(&processItem->Stage1Event))
@@ -661,7 +666,35 @@ VOID PhNetworkProviderUpdate(
                     networkItem->ProcessIconValid = TRUE;
                 }
 
-                PhDereferenceObject(processItem);
+                // NOTE: We dereference processItem in PhpNetworkItemDeleteProcedure. (dmex)
+            }
+            else
+            {
+                HANDLE processHandle;
+                PPH_STRING fileName;
+                PROCESS_EXTENDED_BASIC_INFORMATION basicInfo;
+
+                // HACK HACK HACK
+                // WSL subsystem processes (e.g. nginx) create sockets, clone/fork themselves, duplicate the socket into the child process and then terminate.
+                // The socket handle remains valid and in-use by the child process BUT the socket continues returning the PID of the exited process???
+                // Fixing this causes a major performance problem; If we have 100,000 sockets then on previous versions of Windows we would only need 2 system calls maximum
+                // (for the process list) to identify the owner of every socket but now we need to make 4 system calls for every_last_socket totaling 400,000 system calls... great.
+                if (NT_SUCCESS(PhOpenProcess(&processHandle, ProcessQueryAccess, networkItem->ProcessId)))
+                {
+                    if (NT_SUCCESS(PhGetProcessExtendedBasicInformation(processHandle, &basicInfo)))
+                    {
+                        networkItem->SubsystemProcess = !!basicInfo.IsSubsystemProcess;
+                    }
+
+                    if (NT_SUCCESS(PhGetProcessImageFileName(processHandle, &fileName)))
+                    {
+                        PhMoveReference(&networkItem->ProcessName, PhGetBaseName(fileName));
+                    }
+                
+                    NtClose(processHandle);
+                }
+
+                networkItem->UnknownProcess = TRUE;
             }
 
             // Add the network item to the hashtable.
@@ -675,7 +708,6 @@ VOID PhNetworkProviderUpdate(
         else
         {
             BOOLEAN modified = FALSE;
-            PPH_PROCESS_ITEM processItem;
 
             if (InterlockedExchange(&networkItem->JustResolved, 0) != 0)
                 modified = TRUE;
@@ -686,26 +718,29 @@ VOID PhNetworkProviderUpdate(
                 modified = TRUE;
             }
 
-            if (!networkItem->ProcessName || !networkItem->ProcessIconValid)
+            if (!networkItem->ProcessIconValid)
             {
-                if (processItem = PhReferenceProcessItem(networkItem->ProcessId))
+                if (!networkItem->ProcessItem)
+                {
+                    networkItem->ProcessItem = PhReferenceProcessItem(networkItem->ProcessId);
+                    // NOTE: We dereference processItem in PhpNetworkItemDeleteProcedure. (dmex)
+                }
+
+                if (networkItem->ProcessItem)
                 {
                     if (!networkItem->ProcessName)
                     {
-                        PhReferenceObject(processItem->ProcessName);
-                        networkItem->ProcessName = processItem->ProcessName;
-                        PhpUpdateNetworkItemOwner(networkItem, processItem);
+                        networkItem->ProcessName = PhReferenceObject(networkItem->ProcessItem->ProcessName);
+                        PhpUpdateNetworkItemOwner(networkItem, networkItem->ProcessItem);
                         modified = TRUE;
                     }
 
-                    if (!networkItem->ProcessIconValid && PhTestEvent(&processItem->Stage1Event))
+                    if (!networkItem->ProcessIconValid && PhTestEvent(&networkItem->ProcessItem->Stage1Event))
                     {
-                        networkItem->ProcessIcon = processItem->SmallIcon;
+                        networkItem->ProcessIcon = networkItem->ProcessItem->SmallIcon;
                         networkItem->ProcessIconValid = TRUE;
                         modified = TRUE;
                     }
-
-                    PhDereferenceObject(processItem);
                 }
             }
 

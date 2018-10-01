@@ -669,6 +669,31 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
             PhShowNetworkContextMenu(contextMenu);
         }
         return TRUE;
+    case TreeNewGetNodeColor:
+        {
+            PPH_TREENEW_GET_NODE_COLOR getNodeColor = Parameter1;
+            node = (PPH_NETWORK_NODE)getNodeColor->Node;
+
+            if (!node->NetworkItem)
+            {
+                NOTHING;
+            }
+            else if (!node->NetworkItem->ProcessId)
+            {
+                NOTHING;
+            }
+            else if (PhCsUseColorPacked && node->NetworkItem->UnknownProcess)
+            {
+                getNodeColor->BackColor = PhCsColorPacked;
+            }
+            else if (PhCsUseColorPicoProcesses && node->NetworkItem->SubsystemProcess)
+            {
+                getNodeColor->BackColor = PhCsColorPicoProcesses;
+            }
+
+            getNodeColor->Flags |= TN_AUTO_FORECOLOR;
+        }
+        return TRUE;
     }
 
     return FALSE;
