@@ -227,7 +227,8 @@ INT_PTR CALLBACK PhpServicesPageProc(
     {
     case WM_INITDIALOG:
         {
-            ULONG i;
+            context->WindowHandle = hwndDlg;
+            context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackServiceProviderModifiedEvent),
@@ -235,9 +236,6 @@ INT_PTR CALLBACK PhpServicesPageProc(
                 context,
                 &context->ModifiedEventRegistration
                 );
-
-            context->WindowHandle = hwndDlg;
-            context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
             // Initialize the list.
             PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
@@ -248,7 +246,7 @@ INT_PTR CALLBACK PhpServicesPageProc(
 
             PhSetExtendedListView(context->ListViewHandle);
 
-            for (i = 0; i < context->NumberOfServices; i++)
+            for (ULONG i = 0; i < context->NumberOfServices; i++)
             {
                 SC_HANDLE serviceHandle;
                 PPH_SERVICE_ITEM serviceItem;
@@ -299,15 +297,15 @@ INT_PTR CALLBACK PhpServicesPageProc(
         {
             ULONG i;
 
-            for (i = 0; i < context->NumberOfServices; i++)
-                PhDereferenceObject(context->Services[i]);
-
-            PhFree(context->Services);
-
             PhUnregisterCallback(
                 PhGetGeneralCallback(GeneralCallbackServiceProviderModifiedEvent),
                 &context->ModifiedEventRegistration
                 );
+
+            for (i = 0; i < context->NumberOfServices; i++)
+                PhDereferenceObject(context->Services[i]);
+
+            PhFree(context->Services);
 
             if (context->ListViewSettingName)
                 PhSaveListViewColumnsToSetting(context->ListViewSettingName, context->ListViewHandle);
