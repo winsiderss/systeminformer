@@ -918,7 +918,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                     {
                         if (userName = PhGetTokenUserString(tokenHandle, TRUE))
                         {
-                            SetWindowText(context->UserComboBoxWindowHandle, userName->Buffer);
+                            PhSetWindowText(context->UserComboBoxWindowHandle, userName->Buffer);
                             PhDereferenceObject(userName);
                         }
 
@@ -1050,7 +1050,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                     if (!IsServiceAccount(username))
                     {
                         password = PhGetWindowText(context->PasswordEditWindowHandle);
-                        SetWindowText(context->PasswordEditWindowHandle, L"");
+                        PhSetWindowText(context->PasswordEditWindowHandle, L"");
                     }
 
                     //if (IsCurrentUserAccount(username))
@@ -1174,7 +1174,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                         PPH_STRING fileName;
 
                         fileName = PhGetFileDialogFileName(fileDialog);
-                        SetWindowText(context->ProgramComboBoxWindowHandle, fileName->Buffer);
+                        PhSetWindowText(context->ProgramComboBoxWindowHandle, fileName->Buffer);
                         PhDereferenceObject(fileName);
                     }
 

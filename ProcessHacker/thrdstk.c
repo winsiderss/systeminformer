@@ -791,7 +791,7 @@ INT_PTR CALLBACK PhpThreadStackDlgProc(
             SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
             SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
 
-            SetWindowText(hwndDlg, PhaFormatString(L"Stack - thread %u", HandleToUlong(context->ThreadId))->Buffer);
+            PhSetWindowText(hwndDlg, PhaFormatString(L"Stack - thread %u", HandleToUlong(context->ThreadId))->Buffer);
 
             InitializeThreadStackTree(context);
 

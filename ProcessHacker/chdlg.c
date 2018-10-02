@@ -108,8 +108,8 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
             PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
-            SetWindowText(hwndDlg, context->Title);
-            SetWindowText(GetDlgItem(hwndDlg, IDC_MESSAGE), context->Message);
+            PhSetWindowText(hwndDlg, context->Title);
+            PhSetWindowText(GetDlgItem(hwndDlg, IDC_MESSAGE), context->Message);
 
             type = context->Flags & PH_CHOICE_DIALOG_TYPE_MASK;
 
@@ -192,7 +192,7 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
             if (type == PH_CHOICE_DIALOG_PASSWORD)
             {
                 if (*context->SelectedChoice)
-                    SetWindowText(comboBoxHandle, (*context->SelectedChoice)->Buffer);
+                    PhSetWindowText(comboBoxHandle, (*context->SelectedChoice)->Buffer);
 
                 Edit_SetSel(comboBoxHandle, 0, -1);
             }
@@ -205,7 +205,7 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
                 {
                     if (type == PH_CHOICE_DIALOG_USER_CHOICE && *context->SelectedChoice)
                     {
-                        SetWindowText(comboBoxHandle, (*context->SelectedChoice)->Buffer);
+                        PhSetWindowText(comboBoxHandle, (*context->SelectedChoice)->Buffer);
                     }
                     else if (type == PH_CHOICE_DIALOG_CHOICE && context->NumberOfChoices != 0)
                     {
@@ -219,7 +219,7 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
 
             if (context->Option)
             {
-                SetWindowText(checkBoxHandle, context->Option);
+                PhSetWindowText(checkBoxHandle, context->Option);
 
                 if (context->SelectedOption)
                     Button_SetCheck(checkBoxHandle, *context->SelectedOption ? BST_CHECKED : BST_UNCHECKED);

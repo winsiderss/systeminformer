@@ -134,7 +134,7 @@ INT_PTR CALLBACK PhpProcessRecordDlgProc(
 
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
             PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDOK));
-            SetWindowText(hwndDlg, processNameString->Buffer);
+            PhSetWindowText(hwndDlg, processNameString->Buffer);
 
             PhSetDialogItemText(hwndDlg, IDC_PROCESSNAME, processNameString->Buffer);
 
