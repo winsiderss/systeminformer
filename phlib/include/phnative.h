@@ -440,7 +440,7 @@ PhSetTokenPrivilege2(
     );
 
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 PhSetTokenGroups(
     _In_ HANDLE TokenHandle,
