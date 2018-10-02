@@ -2213,7 +2213,17 @@ BOOLEAN PhSetTokenPrivilege2(
     return PhSetTokenPrivilege(TokenHandle, NULL, &privilegeLuid, Attributes);
 }
 
-BOOLEAN PhSetTokenGroups(
+/**
+* Modifies a token group.
+*
+* \param TokenHandle A handle to a token. The handle must have TOKEN_ADJUST_GROUPS access.
+* \param GroupName The name of the group to modify. If this parameter is NULL, you must
+* specify a PSID in the \a GroupSid parameter.
+* \param GroupSid The PSID of the group to modify. If this parameter is NULL, you must
+* specify a group name in the \a GroupName parameter.
+* \param Attributes The new attributes of the group.
+*/
+NTSTATUS PhSetTokenGroups(
     _In_ HANDLE TokenHandle,
     _In_opt_ PWSTR GroupName,
     _In_opt_ PSID GroupSid,
@@ -2237,11 +2247,11 @@ BOOLEAN PhSetTokenGroups(
         PhInitializeStringRef(&groupName, GroupName);
 
         if (!NT_SUCCESS(status = PhLookupName(&groupName, &groups.Groups[0].Sid, NULL, NULL)))
-            return FALSE;
+            return status;
     }
     else
     {
-        return FALSE;
+        return STATUS_INVALID_PARAMETER;
     }
 
     if (!NT_SUCCESS(status = NtAdjustGroupsToken(
@@ -2262,13 +2272,13 @@ BOOLEAN PhSetTokenGroups(
     if (GroupName && groups.Groups[0].Sid)
         PhFree(groups.Groups[0].Sid);
 
-    return TRUE;
+    return status;
 
 CleanupExit:
     if (GroupName && groups.Groups[0].Sid)
         PhFree(groups.Groups[0].Sid);
 
-    return FALSE;
+    return status;
 }
 
 /**
