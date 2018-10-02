@@ -137,24 +137,24 @@ VOID PhpFixProcessServicesControls(
         {
         case SERVICE_RUNNING:
             {
-                SetWindowText(startButton, L"S&top");
-                SetWindowText(pauseButton, L"&Pause");
+                PhSetWindowText(startButton, L"S&top");
+                PhSetWindowText(pauseButton, L"&Pause");
                 EnableWindow(startButton, ServiceItem->ControlsAccepted & SERVICE_ACCEPT_STOP);
                 EnableWindow(pauseButton, ServiceItem->ControlsAccepted & SERVICE_ACCEPT_PAUSE_CONTINUE);
             }
             break;
         case SERVICE_PAUSED:
             {
-                SetWindowText(startButton, L"S&top");
-                SetWindowText(pauseButton, L"C&ontinue");
+                PhSetWindowText(startButton, L"S&top");
+                PhSetWindowText(pauseButton, L"C&ontinue");
                 EnableWindow(startButton, ServiceItem->ControlsAccepted & SERVICE_ACCEPT_STOP);
                 EnableWindow(pauseButton, ServiceItem->ControlsAccepted & SERVICE_ACCEPT_PAUSE_CONTINUE);
             }
             break;
         case SERVICE_STOPPED:
             {
-                SetWindowText(startButton, L"&Start");
-                SetWindowText(pauseButton, L"&Pause");
+                PhSetWindowText(startButton, L"&Start");
+                PhSetWindowText(pauseButton, L"&Pause");
                 EnableWindow(startButton, TRUE);
                 EnableWindow(pauseButton, FALSE);
             }
@@ -164,8 +164,8 @@ VOID PhpFixProcessServicesControls(
         case SERVICE_PAUSE_PENDING:
         case SERVICE_STOP_PENDING:
             {
-                SetWindowText(startButton, L"&Start");
-                SetWindowText(pauseButton, L"&Pause");
+                PhSetWindowText(startButton, L"&Start");
+                PhSetWindowText(pauseButton, L"&Pause");
                 EnableWindow(startButton, FALSE);
                 EnableWindow(pauseButton, FALSE);
             }
@@ -179,7 +179,7 @@ VOID PhpFixProcessServicesControls(
         {
             if (description = PhGetServiceDescription(serviceHandle))
             {
-                SetWindowText(descriptionLabel, description->Buffer);
+                PhSetWindowText(descriptionLabel, description->Buffer);
                 PhDereferenceObject(description);
             }
 
@@ -188,11 +188,11 @@ VOID PhpFixProcessServicesControls(
     }
     else
     {
-        SetWindowText(startButton, L"&Start");
-        SetWindowText(pauseButton, L"&Pause");
+        PhSetWindowText(startButton, L"&Start");
+        PhSetWindowText(pauseButton, L"&Pause");
         EnableWindow(startButton, FALSE);
         EnableWindow(pauseButton, FALSE);
-        SetWindowText(descriptionLabel, L"");
+        PhSetWindowText(descriptionLabel, L"");
     }
 }
 

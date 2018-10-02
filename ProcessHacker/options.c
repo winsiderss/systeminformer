@@ -1505,7 +1505,7 @@ static INT_PTR CALLBACK PhpOptionsAdvancedEditDlgProc(
             SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
             SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
 
-            SetWindowText(hwndDlg, L"Setting Editor");
+            PhSetWindowText(hwndDlg, L"Setting Editor");
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, setting);

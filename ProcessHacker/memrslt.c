@@ -288,7 +288,7 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
 
                 if (processItem = PhReferenceProcessItem(context->ProcessId))
                 {
-                    SetWindowText(hwndDlg, PhaFormatString(L"Results - %s (%u)",
+                    PhSetWindowText(hwndDlg, PhaFormatString(L"Results - %s (%u)",
                         processItem->ProcessName->Buffer, HandleToUlong(processItem->ProcessId))->Buffer);
                     PhDereferenceObject(processItem);
                 }

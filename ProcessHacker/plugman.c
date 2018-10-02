@@ -668,7 +668,7 @@ INT_PTR CALLBACK PhpPluginsDlgProc(
 
             PhpEnumerateLoadedPlugins(context);
             TreeNew_AutoSizeColumn(context->TreeNewHandle, PH_PLUGIN_TREE_COLUMN_ITEM_NAME, TN_AUTOSIZE_REMAINING_SPACE);
-            SetWindowText(GetDlgItem(hwndDlg, IDC_DISABLED), PhaFormatString(L"Disabled Plugins (%lu)", PhpDisabledPluginsCount())->Buffer);
+            PhSetWindowText(GetDlgItem(hwndDlg, IDC_DISABLED), PhaFormatString(L"Disabled Plugins (%lu)", PhpDisabledPluginsCount())->Buffer);
 
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
@@ -720,7 +720,7 @@ INT_PTR CALLBACK PhpPluginsDlgProc(
                     ClearPluginsTree(context);
                     PhpEnumerateLoadedPlugins(context);
                     TreeNew_AutoSizeColumn(context->TreeNewHandle, PH_PLUGIN_TREE_COLUMN_ITEM_NAME, TN_AUTOSIZE_REMAINING_SPACE);
-                    SetWindowText(GetDlgItem(hwndDlg, IDC_DISABLED), PhaFormatString(L"Disabled Plugins (%lu)", PhpDisabledPluginsCount())->Buffer);
+                    PhSetWindowText(GetDlgItem(hwndDlg, IDC_DISABLED), PhaFormatString(L"Disabled Plugins (%lu)", PhpDisabledPluginsCount())->Buffer);
                 }
                 break;
             case ID_SHOWCONTEXTMENU:
@@ -788,7 +788,7 @@ INT_PTR CALLBACK PhpPluginsDlgProc(
 
                                 RemovePluginsNode(context, selectedNode);
 
-                                SetWindowText(GetDlgItem(hwndDlg, IDC_DISABLED), PhaFormatString(L"Disabled Plugins (%lu)", PhpDisabledPluginsCount())->Buffer);
+                                PhSetWindowText(GetDlgItem(hwndDlg, IDC_DISABLED), PhaFormatString(L"Disabled Plugins (%lu)", PhpDisabledPluginsCount())->Buffer);
                             }
                             break;
                         case PH_PLUGIN_TREE_ITEM_MENU_PROPERTIES:
