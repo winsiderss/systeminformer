@@ -248,7 +248,7 @@ PPH_STRING PhGetGroupAttributesString(
     if (Attributes & (SE_GROUP_INTEGRITY | SE_GROUP_INTEGRITY_ENABLED))
     {
         if (Attributes & SE_GROUP_ENABLED)
-            string = PhCreateString(L"Enabled (as group)");
+            string = PhCreateString(L"Enabled (as a group)");
         else
             string = PhReferenceEmptyString();
     }
