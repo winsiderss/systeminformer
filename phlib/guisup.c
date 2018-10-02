@@ -1546,7 +1546,7 @@ VOID PhSetDialogItemValue(
 
     if (controlHandle = GetDlgItem(WindowHandle, ControlID))
     {
-        SendMessage(controlHandle, WM_SETTEXT, 0, (LPARAM)valueString); // DefWindowProc
+        PhSetWindowText(controlHandle, valueString);
     }
 }
 
@@ -1560,8 +1560,16 @@ VOID PhSetDialogItemText(
 
     if (controlHandle = GetDlgItem(WindowHandle, ControlID))
     {
-        SendMessage(controlHandle, WM_SETTEXT, 0, (LPARAM)WindowText); // DefWindowProc
+        PhSetWindowText(controlHandle, WindowText);
     }
+}
+
+VOID PhSetWindowText(
+    _In_ HWND WindowHandle,
+    _In_ PCWSTR WindowText
+    )
+{
+    SendMessage(WindowHandle, WM_SETTEXT, 0, (LPARAM)WindowText); // TODO: DefWindowProc (dmex)
 }
 
 VOID PhSetWindowAlwaysOnTop(
@@ -1569,7 +1577,7 @@ VOID PhSetWindowAlwaysOnTop(
     _In_ BOOLEAN AlwaysOnTop
     )
 {
-    SetFocus(WindowHandle); // HACK - SetWindowPos doesn't work properly without this
+    SetFocus(WindowHandle); // HACK - SetWindowPos doesn't work properly without this (wj32)
     SetWindowPos(
         WindowHandle,
         AlwaysOnTop ? HWND_TOPMOST : HWND_NOTOPMOST, 
