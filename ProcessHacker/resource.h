@@ -741,6 +741,10 @@
 #define ID_MINIINFO_REFRESHAUTOMATICALLY 40289
 #define IDC_MAXSCREEN                   40293
 #define ID_EMPTY_COMBINEMEMORYLISTS     40295
+#define ID_PRIVILEGE_RESET              40296
+#define ID_GROUP_ENABLE                 40297
+#define ID_GROUP_DISABLE                40298
+#define ID_GROUP_RESET                  40299
 #define IDDYNAMIC                       50000
 #define IDPLUGINS                       55000
 
