@@ -1442,6 +1442,10 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemSpeculationControlInformation, // SYSTEM_SPECULATION_CONTROL_INFORMATION // (CVE-2017-5715) REDSTONE3 and above.
     SystemDmaGuardPolicyInformation, // SYSTEM_DMA_GUARD_POLICY_INFORMATION
     SystemEnclaveLaunchControlInformation, // SYSTEM_ENCLAVE_LAUNCH_CONTROL_INFORMATION
+    SystemWorkloadAllowedCpuSetsInformation, // SYSTEM_WORKLOAD_ALLOWED_CPU_SET_INFORMATION // since REDSTONE5
+    SystemCodeIntegrityUnlockModeInformation,
+    SystemLeapSecondInformation, // SYSTEM_LEAP_SECOND_INFORMATION
+    SystemFlags2Information,
     MaxSystemInfoClass
 } SYSTEM_INFORMATION_CLASS;
 
@@ -2824,7 +2828,7 @@ typedef struct _PROCESS_ENERGY_VALUES_EXTENSION
 {
     union
     {
-        TIMELINE_BITMAP Timelines[14]; // 9 for REDSTONE2, 14 for REDSTONE3
+        TIMELINE_BITMAP Timelines[14]; // 9 for REDSTONE2, 14 for REDSTONE3/4/5
         struct
         {
             TIMELINE_BITMAP CpuTimeline;
@@ -3248,6 +3252,13 @@ typedef struct _SYSTEM_ENCLAVE_LAUNCH_CONTROL_INFORMATION
 {
     UCHAR EnclaveLaunchSigner[32];
 } SYSTEM_ENCLAVE_LAUNCH_CONTROL_INFORMATION, *PSYSTEM_ENCLAVE_LAUNCH_CONTROL_INFORMATION;
+
+// private
+typedef struct _SYSTEM_WORKLOAD_ALLOWED_CPU_SET_INFORMATION
+{
+    ULONGLONG WorkloadClass;
+    ULONGLONG CpuSets[1];
+} SYSTEM_WORKLOAD_ALLOWED_CPU_SET_INFORMATION, *PSYSTEM_WORKLOAD_ALLOWED_CPU_SET_INFORMATION;
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 

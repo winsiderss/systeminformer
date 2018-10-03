@@ -153,6 +153,10 @@ NTSTATUS KphInitializeDynamicPackage(
             Package->BuildNumber = 17134;
             Package->ResultingNtVersion = PHNT_REDSTONE4;
             break;
+        case 17763:
+            Package->BuildNumber = 17763;
+            Package->ResultingNtVersion = PHNT_REDSTONE5;
+            break;
         default:
             Package->BuildNumber = USHRT_MAX;
             Package->ResultingNtVersion = PHNT_THRESHOLD;
