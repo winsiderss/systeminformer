@@ -568,7 +568,7 @@ VOID PhMwpOnSettingChange(
     SendMessage(TabControlHandle, WM_SETFONT, (WPARAM)PhApplicationFont, FALSE);
 }
 
-static NTSTATUS PhpOpenSCM(
+static NTSTATUS PhpOpenServiceControlManager(
     _Out_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ PVOID Context
@@ -927,10 +927,10 @@ VOID PhMwpOnCommand(
     case ID_TOOLS_SCM_PERMISSIONS:
         {
             PhEditSecurity(
-                PhMainWndHandle,
+                NULL,
                 L"Service Control Manager",
                 L"SCManager",
-                PhpOpenSCM,
+                PhpOpenServiceControlManager,
                 NULL,
                 NULL
                 );
