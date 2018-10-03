@@ -48,6 +48,7 @@
 #include <procprp.h>
 #include <procprv.h>
 #include <proctree.h>
+#include <secedit.h>
 #include <settings.h>
 #include <srvlist.h>
 #include <srvprv.h>
@@ -567,6 +568,23 @@ VOID PhMwpOnSettingChange(
     SendMessage(TabControlHandle, WM_SETFONT, (WPARAM)PhApplicationFont, FALSE);
 }
 
+static NTSTATUS PhpOpenSCM(
+    _Out_ PHANDLE Handle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ PVOID Context
+    )
+{
+    SC_HANDLE serviceHandle;
+    
+    if (serviceHandle = OpenSCManager(NULL, NULL, DesiredAccess))
+    {
+        *Handle = serviceHandle;
+        return STATUS_SUCCESS;
+    }
+
+    return PhGetLastWin32ErrorAsNtStatus();
+}
+
 VOID PhMwpOnCommand(
     _In_ ULONG Id
     )
@@ -904,6 +922,18 @@ VOID PhMwpOnCommand(
             {
                 PhCreateProcessIgnoreIfeoDebugger(taskmgrFileName->Buffer);
             }
+        }
+        break;
+    case ID_TOOLS_SCM_PERMISSIONS:
+        {
+            PhEditSecurity(
+                PhMainWndHandle,
+                L"Service Control Manager",
+                L"SCManager",
+                PhpOpenSCM,
+                NULL,
+                NULL
+                );
         }
         break;
     case ID_USER_CONNECT:
