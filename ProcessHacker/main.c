@@ -670,7 +670,8 @@ BOOLEAN PhInitializeMitigationPolicy(
      PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_REMOTE_ALWAYS_ON | \
      PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_LOW_LABEL_ALWAYS_ON)
 
-    static PH_STRINGREF commandlinePart = PH_STRINGREF_INIT(L" -nomp");
+    static PH_STRINGREF nompCommandlinePart = PH_STRINGREF_INIT(L" -nomp");
+    static PH_STRINGREF rasCommandlinePart = PH_STRINGREF_INIT(L" -ras");
     BOOLEAN success = TRUE;
     PH_STRINGREF commandlineSr;
     PPH_STRING commandline = NULL;
@@ -683,7 +684,12 @@ BOOLEAN PhInitializeMitigationPolicy(
 
     PhUnicodeStringToStringRef(&NtCurrentPeb()->ProcessParameters->CommandLine, &commandlineSr);
 
-    if (PhEndsWithStringRef(&commandlineSr, &commandlinePart, FALSE))
+    // NOTE: The SCM has a bug where calling CreateProcess with PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY to restart the service with mitigations
+    // causes the SCM to spew EVENT_SERVICE_DIFFERENT_PID_CONNECTED in the system eventlog and terminate the service. (dmex)
+    // WARN: This bug makes it impossible to start services with mitigation polices when the service doesn't have an IFEO key...
+    if (PhFindStringInStringRef(&commandlineSr, &rasCommandlinePart, FALSE) != -1)
+        return TRUE;
+    if (PhEndsWithStringRef(&commandlineSr, &nompCommandlinePart, FALSE))
         return TRUE;
 
     if (!(LdrSystemDllInitBlock_I = PhGetDllProcedureAddress(L"ntdll.dll", "LdrSystemDllInitBlock", 0)))
@@ -706,7 +712,7 @@ BOOLEAN PhInitializeMitigationPolicy(
     if (!UpdateProcThreadAttribute(startupInfo.lpAttributeList, 0, PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY, &(ULONG64){ DEFAULT_MITIGATION_POLICY_FLAGS }, sizeof(ULONG64), NULL, NULL))
         goto CleanupExit;
 
-    commandline = PhConcatStringRef2(&commandlineSr, &commandlinePart);
+    commandline = PhConcatStringRef2(&commandlineSr, &nompCommandlinePart);
 
     if (NT_SUCCESS(PhCreateProcessWin32Ex(
         NULL,
