@@ -385,6 +385,17 @@ ACCESS_ENTRIES(Service)
     { L"User-defined control", SERVICE_USER_DEFINED_CONTROL, TRUE, TRUE }
 };
 
+ACCESS_ENTRIES(SCManager)
+{
+    { L"Full control", SC_MANAGER_ALL_ACCESS, TRUE, TRUE },
+    { L"Create service", SC_MANAGER_CREATE_SERVICE, TRUE, TRUE },
+    { L"Connect", SC_MANAGER_CONNECT, TRUE, TRUE },
+    { L"Enumerate services", SC_MANAGER_ENUMERATE_SERVICE, TRUE, TRUE },
+    { L"Lock", SC_MANAGER_LOCK, TRUE, TRUE },
+    { L"Modify boot config", SC_MANAGER_MODIFY_BOOT_CONFIG, TRUE, TRUE },
+    { L"Query lock status", SC_MANAGER_QUERY_LOCK_STATUS, TRUE, TRUE }
+};
+
 ACCESS_ENTRIES(Session)
 {
     { L"Full control", SESSION_ALL_ACCESS, TRUE, TRUE },
@@ -603,6 +614,7 @@ static PH_SPECIFIC_TYPE PhSpecificTypes[] =
     ACCESS_ENTRY(Section, FALSE),
     ACCESS_ENTRY(Semaphore, TRUE),
     ACCESS_ENTRY(Service, FALSE),
+    ACCESS_ENTRY(SCManager, FALSE),
     ACCESS_ENTRY(Session, FALSE),
     ACCESS_ENTRY(SymbolicLink, FALSE),
     ACCESS_ENTRY(Thread, TRUE),
