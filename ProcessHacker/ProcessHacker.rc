@@ -138,6 +138,7 @@ BEGIN
     POPUP "&Tools"
     BEGIN
         MENUITEM "&Create service...",          ID_TOOLS_CREATESERVICE
+        MENUITEM "Service Control per&missions",ID_TOOLS_SCM_PERMISSIONS
         MENUITEM "&Hidden processes",           ID_TOOLS_HIDDENPROCESSES
         MENUITEM "Inspect e&xecutable file...", ID_TOOLS_INSPECTEXECUTABLEFILE
         MENUITEM "&Pagefiles",                  ID_TOOLS_PAGEFILES

@@ -743,7 +743,7 @@ _Callback_ NTSTATUS PhStdGetObjectSecurity(
     if (!NT_SUCCESS(status))
         return status;
 
-    if (PhEqualString2(this->ObjectType, L"Service", TRUE))
+    if (PhEqualString2(this->ObjectType, L"Service", TRUE) || PhEqualString2(this->ObjectType, L"SCManager", TRUE))
     {
         status = PhGetSeObjectSecurity(handle, SE_SERVICE, SecurityInformation, SecurityDescriptor);
         CloseServiceHandle(handle);
@@ -875,7 +875,7 @@ _Callback_ NTSTATUS PhStdSetObjectSecurity(
     if (!NT_SUCCESS(status))
         return status;
 
-    if (PhEqualString2(this->ObjectType, L"Service", TRUE))
+    if (PhEqualString2(this->ObjectType, L"Service", TRUE) || PhEqualString2(this->ObjectType, L"SCManager", TRUE))
     {
         status = PhSetSeObjectSecurity(handle, SE_SERVICE, SecurityInformation, SecurityDescriptor);
         CloseServiceHandle(handle);
