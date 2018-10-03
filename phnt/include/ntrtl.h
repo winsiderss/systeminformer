@@ -3277,7 +3277,7 @@ NTAPI
 RtlSetEnvironmentVariable(
     _In_opt_ PVOID *Environment,
     _In_ PUNICODE_STRING Name,
-    _In_ PUNICODE_STRING Value
+    _In_opt_ PUNICODE_STRING Value
     );
 
 #if (PHNT_VERSION >= PHNT_VISTA)

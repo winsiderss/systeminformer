@@ -177,7 +177,7 @@ typedef enum _PROCESSINFOCLASS
     ProcessActivityThrottleState, // PROCESS_ACTIVITY_THROTTLE_STATE
     ProcessActivityThrottlePolicy, // PROCESS_ACTIVITY_THROTTLE_POLICY
     ProcessWin32kSyscallFilterInformation,
-    ProcessDisableSystemAllowedCpuSets,
+    ProcessDisableSystemAllowedCpuSets, // 80
     ProcessWakeInformation, // PROCESS_WAKE_INFORMATION
     ProcessEnergyTrackingState, // PROCESS_ENERGY_TRACKING_STATE
     ProcessManageWritesToExecutableMemory, // MANAGE_WRITES_TO_EXECUTABLE_MEMORY // since REDSTONE3
@@ -187,9 +187,14 @@ typedef enum _PROCESSINFOCLASS
     ProcessEnableReadWriteVmLogging, // PROCESS_READWRITEVM_LOGGING_INFORMATION
     ProcessUptimeInformation, // PROCESS_UPTIME_INFORMATION
     ProcessImageSection,
-    ProcessDebugAuthInformation, // since REDSTONE4
+    ProcessDebugAuthInformation, // since REDSTONE4 // 90
     ProcessSystemResourceManagement, // PROCESS_SYSTEM_RESOURCE_MANAGEMENT
     ProcessSequenceNumber, // q: ULONGLONG
+    ProcessLoaderDetour, // since REDSTONE5
+    ProcessSecurityDomainInformation, // PROCESS_SECURITY_DOMAIN_INFORMATION
+    ProcessCombineSecurityDomainsInformation, // PROCESS_COMBINE_SECURITY_DOMAINS_INFORMATION
+    ProcessEnableLogging, // PROCESS_LOGGING_INFORMATION
+    ProcessLeapSecondInformation, // PROCESS_LEAP_SECOND_INFORMATION
     MaxProcessInfoClass
 } PROCESSINFOCLASS;
 #endif
@@ -247,6 +252,7 @@ typedef enum _THREADINFOCLASS
     ThreadAttachContainer,
     ThreadManageWritesToExecutableMemory, // MANAGE_WRITES_TO_EXECUTABLE_MEMORY // since REDSTONE3
     ThreadPowerThrottlingState, // THREAD_POWER_THROTTLING_STATE
+    ThreadWorkloadClass, // THREAD_WORKLOAD_CLASS // since REDSTONE5 // 50
     MaxThreadInfoClass
 } THREADINFOCLASS;
 #endif
@@ -850,6 +856,39 @@ typedef union _PROCESS_SYSTEM_RESOURCE_MANAGEMENT
     };
 } PROCESS_SYSTEM_RESOURCE_MANAGEMENT, *PPROCESS_SYSTEM_RESOURCE_MANAGEMENT;
 
+// private
+typedef struct _PROCESS_SECURITY_DOMAIN_INFORMATION
+{
+    ULONGLONG SecurityDomain;
+} PROCESS_SECURITY_DOMAIN_INFORMATION, *PPROCESS_SECURITY_DOMAIN_INFORMATION;
+
+// private
+typedef struct _PROCESS_COMBINE_SECURITY_DOMAINS_INFORMATION
+{
+    HANDLE ProcessHandle;
+} PROCESS_COMBINE_SECURITY_DOMAINS_INFORMATION, *PPROCESS_COMBINE_SECURITY_DOMAINS_INFORMATION;
+
+// private
+typedef struct _PROCESS_LOGGING_INFORMATION
+{
+    ULONG Flags;
+    struct
+    {
+        ULONG EnableReadVmLogging : 1;
+        ULONG EnableWriteVmLogging : 1;
+        ULONG EnableProcessSuspendResumeLogging : 1;
+        ULONG EnableThreadSuspendResumeLogging : 1;
+        ULONG Reserved : 28;
+    };
+} PROCESS_LOGGING_INFORMATION, *PPROCESS_LOGGING_INFORMATION;
+
+// private
+typedef struct _PROCESS_LEAP_SECOND_INFORMATION
+{
+    ULONG Flags;
+    ULONG Reserved;
+} PROCESS_LEAP_SECOND_INFORMATION, *PPROCESS_LEAP_SECOND_INFORMATION;
+
 // end_private
 
 #endif
@@ -996,6 +1035,14 @@ typedef enum _SUBSYSTEM_INFORMATION_TYPE
     MaxSubsystemInformationType
 } SUBSYSTEM_INFORMATION_TYPE;
 #endif
+
+// private
+typedef enum _THREAD_WORKLOAD_CLASS
+{
+    ThreadWorkloadClassDefault,
+    ThreadWorkloadClassGraphics,
+    MaxThreadWorkloadClass
+} THREAD_WORKLOAD_CLASS;
 
 // Processes
 

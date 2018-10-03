@@ -177,7 +177,18 @@ NTSTATUS PhGetProcessSwitchContext(
     if (!data)
         return STATUS_UNSUCCESSFUL; // no compatibility context data
 
-    if (WindowsVersion >= WINDOWS_10_RS2)
+    if (WindowsVersion >= WINDOWS_10_RS5)
+    {
+        if (!NT_SUCCESS(status = NtReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(data, 2040 + 24), // Magic value from SbReadProcContextByHandle
+            Guid,
+            sizeof(GUID),
+            NULL
+            )))
+            return status;
+    }
+    else if (WindowsVersion >= WINDOWS_10_RS2)
     {
         if (!NT_SUCCESS(status = NtReadVirtualMemory(
             ProcessHandle,
