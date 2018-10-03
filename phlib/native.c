@@ -2254,27 +2254,15 @@ NTSTATUS PhSetTokenGroups(
         return STATUS_INVALID_PARAMETER;
     }
 
-    if (!NT_SUCCESS(status = NtAdjustGroupsToken(
+    status = NtAdjustGroupsToken(
         TokenHandle,
         FALSE,
         &groups,
         0,
         NULL,
         NULL
-        )))
-    {
-        goto CleanupExit;
-    }
+        );
 
-    if (status == STATUS_NOT_ALL_ASSIGNED)
-        goto CleanupExit;
-
-    if (GroupName && groups.Groups[0].Sid)
-        PhFree(groups.Groups[0].Sid);
-
-    return status;
-
-CleanupExit:
     if (GroupName && groups.Groups[0].Sid)
         PhFree(groups.Groups[0].Sid);
 
