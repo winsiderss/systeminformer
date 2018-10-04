@@ -821,7 +821,8 @@ _Callback_ NTSTATUS PhStdGetObjectSecurity(
             PSECURITY_DESCRIPTOR securityDescriptor;
             PTOKEN_OWNER tokenOwner;
 
-            securityDescriptor = PhAllocateZero(SECURITY_DESCRIPTOR_MIN_LENGTH);
+            // Note: We should enumerate the DefaultDacl entires to calculate the length but it's easier to use PAGE_SIZE. (dmex)
+            securityDescriptor = PhAllocateZero(PAGE_SIZE);
             RtlCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
             RtlSetDaclSecurityDescriptor(securityDescriptor, TRUE, defaultDacl->DefaultDacl, FALSE);
 
@@ -906,14 +907,39 @@ _Callback_ NTSTATUS PhStdSetObjectSecurity(
         //status = SamSetSecurityObject(
         //    handle,
         //    SecurityInformation,
-        //   SecurityDescriptor
-        //   );
+        //    SecurityDescriptor
+        //    );
         //
         //SamCloseHandle(handle);
     }
-    else if (PhEqualString2(this->ObjectType, L"TokenDefault", TRUE))
+    else if (PhEqualString2(this->ObjectType, L"TokenDefault", TRUE)) // HACK: Fake non-system type (dmex)
     {
-        // TODO
+        BOOLEAN present = FALSE;
+        BOOLEAN defaulted = FALSE;
+        PACL dacl = NULL;
+
+        status = RtlGetDaclSecurityDescriptor(
+            SecurityDescriptor,
+            &present,
+            &dacl,
+            &defaulted
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            TOKEN_DEFAULT_DACL defaultDacl;
+
+            defaultDacl.DefaultDacl = dacl;
+
+            status = NtSetInformationToken(
+                handle,
+                TokenDefaultDacl,
+                &defaultDacl,
+                sizeof(TOKEN_DEFAULT_DACL)
+                );
+        }
+
+        NtClose(handle);
     }
     else
     {
