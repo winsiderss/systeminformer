@@ -3,6 +3,7 @@
  *   working set watch
  *
  * Copyright (C) 2011 wj32
+ * Copyright (C) 2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -37,6 +38,8 @@ typedef struct _WS_WATCH_CONTEXT
     HANDLE ProcessHandle;
     PVOID Buffer;
     ULONG BufferSize;
+
+    PH_LAYOUT_MANAGER LayoutManager;
 
     PPH_SYMBOL_PROVIDER SymbolProvider;
     HANDLE LoadingSymbolsForProcessId;
@@ -74,19 +77,17 @@ VOID EtShowWsWatchDialog(
 {
     PWS_WATCH_CONTEXT context;
 
-    context = PhAllocate(sizeof(WS_WATCH_CONTEXT));
-    memset(context, 0, sizeof(WS_WATCH_CONTEXT));
+    context = PhAllocateZero(sizeof(WS_WATCH_CONTEXT));
     context->RefCount = 1;
-    context->ProcessItem = ProcessItem;
+    context->ProcessItem = PhReferenceObject(ProcessItem);
 
     DialogBoxParam(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_WSWATCH),
-        ParentWindowHandle,
+        !!PhGetIntegerSetting(L"ForceNoParent") ? NULL : ParentWindowHandle,
         EtpWsWatchDlgProc,
         (LPARAM)context
         );
-    EtpDereferenceWsWatchContext(context);
 }
 
 static VOID EtpReferenceWsWatchContext(
@@ -124,6 +125,8 @@ static VOID EtpDereferenceWsWatchContext(
         }
 
         PhReleaseQueuedLockExclusive(&Context->ResultListLock);
+
+        PhDereferenceObject(Context->ProcessItem);
 
         PhFree(Context);
     }
@@ -199,7 +202,7 @@ static PPH_STRING EtpGetBasicSymbol(
 
     if (!fileName)
     {
-        symbol = PhCreateStringEx(NULL, PH_PTR_STR_LEN * 2);
+        symbol = PhCreateStringEx(NULL, PH_PTR_STR_LEN * sizeof(WCHAR));
         PhPrintPointer(symbol->Buffer, (PVOID)Address);
         PhTrimToNullTerminatorString(symbol);
     }
@@ -428,19 +431,28 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
     {
     case WM_INITDIALOG:
         {
-            HWND lvHandle;
-
-            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+            SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
+            SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
 
             context->WindowHandle = hwndDlg;
-            context->ListViewHandle = lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
+            context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
-            PhSetListViewStyle(lvHandle, FALSE, TRUE);
-            PhSetControlTheme(lvHandle, L"explorer");
-            PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 340, L"Instruction");
-            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 80, L"Count");
-            PhSetExtendedListView(lvHandle);
-            ExtendedListView_SetSort(lvHandle, 1, DescendingSortOrder);
+            PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
+            PhSetControlTheme(context->ListViewHandle, L"explorer");
+            PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 340, L"Instruction");
+            PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 80, L"Count");
+            PhSetExtendedListView(context->ListViewHandle);
+            PhLoadListViewColumnsFromSetting(SETTING_NAME_WSWATCH_COLUMNS, context->ListViewHandle);
+            ExtendedListView_SetSort(context->ListViewHandle, 1, DescendingSortOrder);
+
+            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+
+            if (PhGetIntegerPairSetting(SETTING_NAME_WSWATCH_WINDOW_POSITION).X != 0)
+                PhLoadWindowPlacementFromSetting(SETTING_NAME_WSWATCH_WINDOW_POSITION, SETTING_NAME_WSWATCH_WINDOW_SIZE, hwndDlg);
+            else
+                PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             context->Hashtable = PhCreateSimpleHashtable(64);
             context->BufferSize = 0x2000;
@@ -498,6 +510,9 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
         {
             context->Destroying = TRUE;
 
+            PhSaveListViewColumnsToSetting(SETTING_NAME_WSWATCH_COLUMNS, context->ListViewHandle);
+            PhSaveWindowPlacementToSetting(SETTING_NAME_WSWATCH_WINDOW_POSITION, SETTING_NAME_WSWATCH_WINDOW_SIZE, hwndDlg);
+
             PhDereferenceObject(context->Hashtable);
 
             if (context->Buffer)
@@ -505,6 +520,10 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
                 PhFree(context->Buffer);
                 context->Buffer = NULL;
             }
+
+            PhDeleteLayoutManager(&context->LayoutManager);
+
+            EtpDereferenceWsWatchContext(context);
         }
         break;
     case WM_COMMAND:
@@ -553,6 +572,11 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
     case WM_NOTIFY:
         {
             PhHandleListViewNotifyForCopy(lParam, context->ListViewHandle);
+        }
+        break;
+    case WM_SIZE:
+        {
+            PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
     case WM_TIMER:
