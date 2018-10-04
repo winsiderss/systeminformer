@@ -818,21 +818,47 @@ _Callback_ NTSTATUS PhStdGetObjectSecurity(
 
         if (NT_SUCCESS(status))
         {
-            PSECURITY_DESCRIPTOR securityDescriptor;
-            PTOKEN_OWNER tokenOwner;
+            ACL_SIZE_INFORMATION aclSizeInfo;
 
-            // Note: We should enumerate the DefaultDacl entires to calculate the length but it's easier to use PAGE_SIZE. (dmex)
-            securityDescriptor = PhAllocateZero(PAGE_SIZE);
-            RtlCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
-            RtlSetDaclSecurityDescriptor(securityDescriptor, TRUE, defaultDacl->DefaultDacl, FALSE);
+            status = RtlQueryInformationAcl(
+                defaultDacl->DefaultDacl,
+                &aclSizeInfo,
+                sizeof(ACL_SIZE_INFORMATION),
+                AclSizeInformation
+                );
 
-            if (NT_SUCCESS(PhGetTokenOwner(handle, &tokenOwner)))
+            if (NT_SUCCESS(status))
             {
-                RtlSetOwnerSecurityDescriptor(securityDescriptor, tokenOwner->Owner, FALSE);
-                PhFree(tokenOwner);
+                ULONG allocationLength;
+                PSECURITY_DESCRIPTOR securityDescriptor;
+                PTOKEN_OWNER tokenOwner;
+                PSID tokenOwnerSid = NULL;
+
+                if (NT_SUCCESS(PhGetTokenOwner(handle, &tokenOwner)))
+                {
+                    tokenOwnerSid = PhAllocateCopy(tokenOwner->Owner, RtlLengthSid(tokenOwner->Owner));
+                    PhFree(tokenOwner);
+                }
+
+                allocationLength = SECURITY_DESCRIPTOR_MIN_LENGTH +
+                    aclSizeInfo.AclBytesInUse +
+                    (tokenOwnerSid ? RtlLengthSid(tokenOwnerSid) : 0);
+
+                securityDescriptor = PhAllocateZero(allocationLength);
+                RtlCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
+                RtlSetDaclSecurityDescriptor(securityDescriptor, TRUE, defaultDacl->DefaultDacl, FALSE);
+
+                if (tokenOwnerSid)
+                {
+                    RtlSetOwnerSecurityDescriptor(securityDescriptor, tokenOwnerSid, TRUE);
+                    PhFree(tokenOwnerSid);
+                }
+
+                assert(allocationLength == RtlLengthSecurityDescriptor(securityDescriptor));
+
+                *SecurityDescriptor = securityDescriptor;
             }
 
-            *SecurityDescriptor = securityDescriptor;
             PhFree(defaultDacl);
         }
 
