@@ -32,6 +32,9 @@ extern HWND NetworkTreeNewHandle;
 #define SETTING_NAME_MODULE_SERVICES_WINDOW_SIZE (PLUGIN_NAME L".ModuleServiceWindowSize")
 #define SETTING_NAME_GPU_NODES_WINDOW_POSITION (PLUGIN_NAME L".GpuNodesWindowPosition")
 #define SETTING_NAME_GPU_NODES_WINDOW_SIZE (PLUGIN_NAME L".GpuNodesWindowSize")
+#define SETTING_NAME_WSWATCH_WINDOW_POSITION (PLUGIN_NAME L".WsWatchWindowPosition")
+#define SETTING_NAME_WSWATCH_WINDOW_SIZE (PLUGIN_NAME L".WsWatchWindowSize")
+#define SETTING_NAME_WSWATCH_COLUMNS (PLUGIN_NAME L".WsWatchListColumns")
 
 // Window messages
 #define ET_WM_SHOWDIALOG (WM_APP + 1)

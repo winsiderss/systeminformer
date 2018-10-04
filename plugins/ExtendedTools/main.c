@@ -100,7 +100,7 @@ VOID NTAPI MenuItemCallback(
         break;
     case ID_PROCESS_WSWATCH:
         {
-            EtShowWsWatchDialog(PhMainWndHandle, menuItem->Context);
+            EtShowWsWatchDialog(menuItem->OwnerWindow, menuItem->Context);
         }
         break;
     case ID_THREAD_CANCELIO:
@@ -508,6 +508,9 @@ LOGICAL DllMain(
                 { ScalableIntegerPairSettingType, SETTING_NAME_MODULE_SERVICES_WINDOW_SIZE, L"@96|850,490" },
                 { IntegerPairSettingType, SETTING_NAME_GPU_NODES_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_GPU_NODES_WINDOW_SIZE, L"@96|850,490" },
+                { IntegerPairSettingType, SETTING_NAME_WSWATCH_WINDOW_POSITION, L"0,0" },
+                { ScalableIntegerPairSettingType, SETTING_NAME_WSWATCH_WINDOW_SIZE, L"@96|325,266" },
+                { StringSettingType, SETTING_NAME_WSWATCH_COLUMNS, L"" },
             };
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
