@@ -1213,6 +1213,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
     )
 {
     static PH_LAYOUT_MANAGER LayoutManager;
+    static BOOLEAN GeneralListViewStateInitializing = FALSE;
 
     switch (uMsg)
     {
@@ -1268,8 +1269,10 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                 }
             }
 
+            GeneralListViewStateInitializing = TRUE;
             PhpAdvancedPageLoad(hwndDlg);
             PhpRefreshTaskManagerState(hwndDlg);
+            GeneralListViewStateInitializing = FALSE;
         }
         break;
     case WM_DESTROY:
@@ -1342,7 +1345,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
 
                     PhCreateThread2(PhpElevateAdvancedThreadStart, PhFormatString(
                         L"-showoptions -hwnd %Ix",
-                        (ULONG_PTR)GetParent(GetParent(hwndDlg))
+                        (ULONG_PTR)PhOptionsWindowHandle // GetParent(GetParent(hwndDlg))
                         ));
                 }
                 break;
@@ -1388,6 +1391,43 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                             // Emulate the checkbox control label click behavior and check/uncheck the checkbox when the listview item is clicked.
                             itemChecked = ListView_GetCheckState(GetDlgItem(hwndDlg, IDC_SETTINGS), itemActivate->iItem) == BST_CHECKED;
                             ListView_SetCheckState(GetDlgItem(hwndDlg, IDC_SETTINGS), itemActivate->iItem, !itemChecked);
+                        }
+                    }
+                }
+                break;
+            case LVN_ITEMCHANGING:
+                {
+                    LPNM_LISTVIEW listView = (LPNM_LISTVIEW)lParam;
+
+                    if (listView->uChanged & LVIF_STATE)
+                    {
+                        if (GeneralListViewStateInitializing)
+                            break;
+
+                        switch (listView->uNewState & LVIS_STATEIMAGEMASK)
+                        {
+                        case INDEXTOSTATEIMAGEMASK(1): // unchecked
+                            {
+                                switch (listView->iItem)
+                                {
+                                case PHP_OPTIONS_INDEX_ENABLE_DRIVER:
+                                    {
+                                        if (PhShowMessage2(
+                                            PhOptionsWindowHandle,
+                                            TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
+                                            TD_WARNING_ICON,
+                                            L"Are you sure you want to disable the kernel-mode driver?",
+                                            L"You will be unable to use more advanced features, view details about system processes or terminate malicious software."
+                                            ) == IDNO)
+                                        {
+                                            SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, TRUE);
+                                            return TRUE;
+                                        }
+                                    }
+                                    break;
+                                }
+                            }
+                            break;
                         }
                     }
                 }
