@@ -520,6 +520,8 @@ typedef struct _CFG_CALL_TARGET_LIST_INFORMATION
     ULONG Reserved;
     PULONG NumberOfEntriesProcessed;
     PCFG_CALL_TARGET_INFO CallTargetInfo;
+    PVOID Section; // since REDSTONE5
+    ULONGLONG FileOffset;
 } CFG_CALL_TARGET_LIST_INFORMATION, *PCFG_CALL_TARGET_LIST_INFORMATION;
 #endif
 // end_private
@@ -580,6 +582,23 @@ NtCreateSection(
     _In_ ULONG AllocationAttributes,
     _In_opt_ HANDLE FileHandle
     );
+
+#if (PHNT_VERSION >= PHNT_REDSTONE5)
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtCreateSectionEx(
+    _Out_ PHANDLE SectionHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ PLARGE_INTEGER MaximumSize,
+    _In_ ULONG SectionPageProtection,
+    _In_ ULONG AllocationAttributes,
+    _In_opt_ HANDLE FileHandle,
+    _In_ PMEM_EXTENDED_PARAMETER ExtendedParameters,
+    _In_ ULONG ExtendedParameterCount
+    );
+#endif
 
 NTSYSCALLAPI
 NTSTATUS

@@ -56,7 +56,7 @@ typedef struct _COUNTED_REASON_CONTEXT
 /** \endcond */
 #endif
 
-typedef enum
+typedef enum _POWER_STATE_HANDLER_TYPE
 {
     PowerStateSleeping1 = 0,
     PowerStateSleeping2 = 1,

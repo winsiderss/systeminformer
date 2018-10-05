@@ -265,6 +265,10 @@ typedef enum _FILE_INFORMATION_CLASS
     FileMemoryPartitionInformation, // FILE_MEMORY_PARTITION_INFORMATION // since REDSTONE3
     FileStatLxInformation, // FILE_STAT_LX_INFORMATION // since REDSTONE4
     FileCaseSensitiveInformation, // FILE_CASE_SENSITIVE_INFORMATION
+    FileLinkInformationEx, // since REDSTONE5
+    FileLinkInformationExBypassAccessCheck,
+    FileStorageReserveIdInformation,
+    FileCaseSensitiveInformationForceAccessCheck,
     FileMaximumInformation
 } FILE_INFORMATION_CLASS, *PFILE_INFORMATION_CLASS;
 
@@ -947,6 +951,7 @@ typedef enum _FSINFOCLASS
     FileFsSectorSizeInformation, // FILE_FS_SECTOR_SIZE_INFORMATION // since WIN8
     FileFsDataCopyInformation, // FILE_FS_DATA_COPY_INFORMATION
     FileFsMetadataSizeInformation, // FILE_FS_METADATA_SIZE_INFORMATION // since THRESHOLD
+    FileFsFullSizeInformationEx, // FILE_FS_FULL_SIZE_INFORMATION_EX // since REDSTONE5
     FileFsMaximumInformation
 } FSINFOCLASS, *PFSINFOCLASS;
 
@@ -1050,12 +1055,31 @@ typedef struct _FILE_FS_DATA_COPY_INFORMATION
     ULONG NumberOfCopies;
 } FILE_FS_DATA_COPY_INFORMATION, *PFILE_FS_DATA_COPY_INFORMATION;
 
+// private
 typedef struct _FILE_FS_METADATA_SIZE_INFORMATION
 {
     LARGE_INTEGER TotalMetadataAllocationUnits;
     ULONG SectorsPerAllocationUnit;
     ULONG BytesPerSector;
 } FILE_FS_METADATA_SIZE_INFORMATION, *PFILE_FS_METADATA_SIZE_INFORMATION;
+
+// private
+typedef struct _FILE_FS_FULL_SIZE_INFORMATION_EX
+{
+    ULONGLONG ActualTotalAllocationUnits;
+    ULONGLONG ActualAvailableAllocationUnits;
+    ULONGLONG ActualPoolUnavailableAllocationUnits;
+    ULONGLONG CallerTotalAllocationUnits;
+    ULONGLONG CallerAvailableAllocationUnits;
+    ULONGLONG CallerPoolUnavailableAllocationUnits;
+    ULONGLONG UsedAllocationUnits;
+    ULONGLONG TotalReservedAllocationUnits;
+    ULONGLONG VolumeStorageReserveAllocationUnits;
+    ULONGLONG AvailableCommittedAllocationUnits;
+    ULONGLONG PoolAvailableAllocationUnits;
+    ULONG SectorsPerAllocationUnit;
+    ULONG BytesPerSector;
+} FILE_FS_FULL_SIZE_INFORMATION_EX, *PFILE_FS_FULL_SIZE_INFORMATION_EX;
 
 // System calls
 
