@@ -261,13 +261,32 @@ BOOLEAN PhpMemoryTreeFilterCallback(
     if (PhIsNullOrEmptyString(memoryContext->SearchboxText))
         return TRUE;
 
-    if (
-        memoryContext->UseSearchPointer && 
-        (memoryNode->MemoryItem->BaseAddress == (PVOID)memoryContext->SearchPointer ||
-        memoryNode->MemoryItem->AllocationBase == (PVOID)memoryContext->SearchPointer)
-        )
+    if (memoryContext->UseSearchPointer)
     {
-        return TRUE;
+        // Show all the nodes for which the specified pointer is the allocation base
+        if ((ULONG64)memoryNode->MemoryItem->AllocationBase == memoryContext->SearchPointer)
+        {
+            return TRUE;
+        }
+
+        // Show the AllocationBaseNode for which the specified pointer is within its range
+        if (
+            memoryNode->IsAllocationBase &&
+            (ULONG64)memoryNode->MemoryItem->AllocationBase <= memoryContext->SearchPointer &&
+            (ULONG64)memoryNode->MemoryItem->AllocationBase + (ULONG64)memoryNode->MemoryItem->RegionSize > memoryContext->SearchPointer
+            )
+        {
+            return TRUE;
+        }
+
+        // Show the RegionNode for which the specified pointer is within its range
+        if (
+            (ULONG64)memoryNode->MemoryItem->BaseAddress <= memoryContext->SearchPointer &&
+            (ULONG64)memoryNode->MemoryItem->BaseAddress + (ULONG64)memoryNode->MemoryItem->RegionSize > memoryContext->SearchPointer
+            )
+        {
+            return TRUE;
+        }
     }
 
     if (memoryNode->BaseAddressText[0])
