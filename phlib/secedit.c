@@ -282,6 +282,9 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_GetObjectInformation(
     ObjectInfo->dwFlags = SI_EDIT_ALL | SI_ADVANCED | SI_MAY_WRITE;
     ObjectInfo->pszObjectName = PhGetString(this->ObjectName);
 
+    if (PhEqualString2(this->ObjectType, L"TokenDefault", TRUE))
+        ObjectInfo->dwFlags &= ~SI_EDIT_OWNER;
+
     return S_OK;
 }
 
@@ -806,7 +809,7 @@ _Callback_ NTSTATUS PhStdGetObjectSecurity(
         //
         //SamCloseHandle(handle);
     }
-    else if (PhEqualString2(this->ObjectType, L"TokenDefault", TRUE)) // HACK: Fake non-system type (dmex)
+    else if (PhEqualString2(this->ObjectType, L"TokenDefault", TRUE))
     {
         PTOKEN_DEFAULT_DACL defaultDacl;
 
@@ -815,6 +818,10 @@ _Callback_ NTSTATUS PhStdGetObjectSecurity(
             TokenDefaultDacl,
             &defaultDacl
             );
+
+        // Note: NtQueryInformationToken returns success for processes with a NULL DefaultDacl. (dmex)
+        if (NT_SUCCESS(status) && !defaultDacl->DefaultDacl)
+            status = STATUS_INVALID_SECURITY_DESCR;
 
         if (NT_SUCCESS(status))
         {
@@ -831,28 +838,12 @@ _Callback_ NTSTATUS PhStdGetObjectSecurity(
             {
                 ULONG allocationLength;
                 PSECURITY_DESCRIPTOR securityDescriptor;
-                PTOKEN_OWNER tokenOwner;
-                PSID tokenOwnerSid = NULL;
 
-                if (NT_SUCCESS(PhGetTokenOwner(handle, &tokenOwner)))
-                {
-                    tokenOwnerSid = PhAllocateCopy(tokenOwner->Owner, RtlLengthSid(tokenOwner->Owner));
-                    PhFree(tokenOwner);
-                }
-
-                allocationLength = SECURITY_DESCRIPTOR_MIN_LENGTH +
-                    aclSizeInfo.AclBytesInUse +
-                    (tokenOwnerSid ? RtlLengthSid(tokenOwnerSid) : 0);
+                allocationLength = SECURITY_DESCRIPTOR_MIN_LENGTH + aclSizeInfo.AclBytesInUse;
 
                 securityDescriptor = PhAllocateZero(allocationLength);
                 RtlCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
                 RtlSetDaclSecurityDescriptor(securityDescriptor, TRUE, defaultDacl->DefaultDacl, FALSE);
-
-                if (tokenOwnerSid)
-                {
-                    RtlSetOwnerSecurityDescriptor(securityDescriptor, tokenOwnerSid, TRUE);
-                    PhFree(tokenOwnerSid);
-                }
 
                 assert(allocationLength == RtlLengthSecurityDescriptor(securityDescriptor));
 
@@ -938,7 +929,7 @@ _Callback_ NTSTATUS PhStdSetObjectSecurity(
         //
         //SamCloseHandle(handle);
     }
-    else if (PhEqualString2(this->ObjectType, L"TokenDefault", TRUE)) // HACK: Fake non-system type (dmex)
+    else if (PhEqualString2(this->ObjectType, L"TokenDefault", TRUE))
     {
         BOOLEAN present = FALSE;
         BOOLEAN defaulted = FALSE;
@@ -950,6 +941,10 @@ _Callback_ NTSTATUS PhStdSetObjectSecurity(
             &dacl,
             &defaulted
             );
+
+        // Note: RtlGetDaclSecurityDescriptor returns success for security descriptors with a NULL dacl. (dmex)
+        if (NT_SUCCESS(status) && !dacl)
+            status = STATUS_INVALID_SECURITY_DESCR;
 
         if (NT_SUCCESS(status))
         {
