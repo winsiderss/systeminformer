@@ -811,7 +811,7 @@ _Callback_ NTSTATUS PhStdGetObjectSecurity(
     }
     else if (PhEqualString2(this->ObjectType, L"TokenDefault", TRUE))
     {
-        PTOKEN_DEFAULT_DACL defaultDacl;
+        PTOKEN_DEFAULT_DACL defaultDacl = NULL;
 
         status = PhQueryTokenVariableSize(
             handle,
@@ -837,9 +837,10 @@ _Callback_ NTSTATUS PhStdGetObjectSecurity(
             assert(allocationLength == RtlLengthSecurityDescriptor(securityDescriptor));
 
             *SecurityDescriptor = securityDescriptor;
-
-            PhFree(defaultDacl);
         }
+
+        if (defaultDacl)
+            PhFree(defaultDacl);
 
         NtClose(handle);
     }
