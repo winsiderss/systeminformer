@@ -825,30 +825,18 @@ _Callback_ NTSTATUS PhStdGetObjectSecurity(
 
         if (NT_SUCCESS(status))
         {
-            ACL_SIZE_INFORMATION aclSizeInfo;
+            ULONG allocationLength;
+            PSECURITY_DESCRIPTOR securityDescriptor;
 
-            status = RtlQueryInformationAcl(
-                defaultDacl->DefaultDacl,
-                &aclSizeInfo,
-                sizeof(ACL_SIZE_INFORMATION),
-                AclSizeInformation
-                );
+            allocationLength = SECURITY_DESCRIPTOR_MIN_LENGTH + defaultDacl->DefaultDacl->AclSize;
 
-            if (NT_SUCCESS(status))
-            {
-                ULONG allocationLength;
-                PSECURITY_DESCRIPTOR securityDescriptor;
+            securityDescriptor = PhAllocateZero(PAGE_SIZE);
+            RtlCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
+            RtlSetDaclSecurityDescriptor(securityDescriptor, TRUE, defaultDacl->DefaultDacl, FALSE);
 
-                allocationLength = SECURITY_DESCRIPTOR_MIN_LENGTH + aclSizeInfo.AclBytesInUse;
+            assert(allocationLength == RtlLengthSecurityDescriptor(securityDescriptor));
 
-                securityDescriptor = PhAllocateZero(allocationLength);
-                RtlCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
-                RtlSetDaclSecurityDescriptor(securityDescriptor, TRUE, defaultDacl->DefaultDacl, FALSE);
-
-                assert(allocationLength == RtlLengthSecurityDescriptor(securityDescriptor));
-
-                *SecurityDescriptor = securityDescriptor;
-            }
+            *SecurityDescriptor = securityDescriptor;
 
             PhFree(defaultDacl);
         }
