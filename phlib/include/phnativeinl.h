@@ -590,6 +590,51 @@ PhGetProcessHandleCount(
         );
 }
 
+FORCEINLINE
+NTSTATUS
+PhGetProcessBreakOnTermination(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PBOOLEAN BreakOnTermination
+    )
+{
+    NTSTATUS status;
+    ULONG breakOnTermination;
+
+    status = NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessBreakOnTermination,
+        &breakOnTermination,
+        sizeof(ULONG),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *BreakOnTermination = !!breakOnTermination;
+    }
+
+    return status;
+}
+
+FORCEINLINE
+NTSTATUS
+PhSetProcessBreakOnTermination(
+    _In_ HANDLE ProcessHandle,
+    _In_ BOOLEAN BreakOnTermination
+    )
+{
+    ULONG breakOnTermination;
+
+    breakOnTermination = BreakOnTermination ? 1 : 0;
+
+    return NtSetInformationProcess(
+        ProcessHandle,
+        ProcessBreakOnTermination,
+        &breakOnTermination,
+        sizeof(ULONG)
+        );
+}
+
 /**
  * Gets basic information for a thread.
  *
@@ -863,6 +908,51 @@ PhGetThreadWow64Context(
         Context,
         sizeof(WOW64_CONTEXT),
         NULL
+        );
+}
+
+FORCEINLINE
+NTSTATUS
+PhGetThreadBreakOnTermination(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PBOOLEAN BreakOnTermination
+    )
+{
+    NTSTATUS status;
+    ULONG breakOnTermination;
+
+    status = NtQueryInformationThread(
+        ThreadHandle,
+        ThreadBreakOnTermination,
+        &breakOnTermination,
+        sizeof(ULONG),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *BreakOnTermination = !!breakOnTermination;
+    }
+
+    return status;
+}
+
+FORCEINLINE
+NTSTATUS
+PhSetThreadBreakOnTermination(
+    _In_ HANDLE ProcessHandle,
+    _In_ BOOLEAN BreakOnTermination
+    )
+{
+    ULONG breakOnTermination;
+
+    breakOnTermination = BreakOnTermination ? 1 : 0;
+
+    return NtSetInformationThread(
+        ProcessHandle,
+        ThreadBreakOnTermination,
+        &breakOnTermination,
+        sizeof(ULONG)
         );
 }
 
