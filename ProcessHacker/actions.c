@@ -1603,6 +1603,64 @@ BOOLEAN PhUiSetVirtualizationProcess(
     return TRUE;
 }
 
+BOOLEAN PhUiSetCriticalProcess(
+    _In_ HWND WindowHandle,
+    _In_ PPH_PROCESS_ITEM Process
+    )
+{
+    NTSTATUS status;
+    HANDLE processHandle;
+    BOOLEAN breakOnTermination;
+
+    status = PhOpenProcess(
+        &processHandle,
+        PROCESS_QUERY_INFORMATION | PROCESS_SET_INFORMATION,
+        Process->ProcessId
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        status = PhGetProcessBreakOnTermination(
+            processHandle,
+            &breakOnTermination
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            if (!breakOnTermination && (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
+                WindowHandle,
+                L"enable",
+                L"critical status on the process",
+                L"If the process ends, the operating system will shut down immediately.",
+                TRUE
+                )))
+            {
+                status = PhSetProcessBreakOnTermination(processHandle, TRUE);
+            }
+            else if (breakOnTermination && (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
+                WindowHandle,
+                L"disable",
+                L"critical status on the process",
+                NULL,
+                FALSE
+                )))
+            {
+                status = PhSetProcessBreakOnTermination(processHandle, FALSE);
+            }
+        }
+
+        NtClose(processHandle);
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhpShowErrorProcess(WindowHandle, L"set critical status", Process, status, 0);
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
 BOOLEAN PhUiDetachFromDebuggerProcess(
     _In_ HWND hWnd,
     _In_ PPH_PROCESS_ITEM Process

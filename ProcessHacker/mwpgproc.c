@@ -386,8 +386,8 @@ VOID PhMwpSetProcessMenuPriorityChecks(
 {
     HANDLE processHandle;
     PROCESS_PRIORITY_CLASS priorityClass = { 0 };
-    IO_PRIORITY_HINT ioPriority = -1;
-    ULONG pagePriority = -1;
+    IO_PRIORITY_HINT ioPriority = ULONG_MAX;
+    ULONG pagePriority = ULONG_MAX;
     ULONG id = 0;
 
     if (NT_SUCCESS(PhOpenProcess(
@@ -408,7 +408,7 @@ VOID PhMwpSetProcessMenuPriorityChecks(
                 &ioPriority
                 )))
             {
-                ioPriority = -1;
+                ioPriority = ULONG_MAX;
             }
         }
 
@@ -419,7 +419,7 @@ VOID PhMwpSetProcessMenuPriorityChecks(
                 &pagePriority
                 )))
             {
-                pagePriority = -1;
+                pagePriority = ULONG_MAX;
             }
         }
 
@@ -458,7 +458,7 @@ VOID PhMwpSetProcessMenuPriorityChecks(
         }
     }
 
-    if (SetIoPriority && ioPriority != -1)
+    if (SetIoPriority && ioPriority != ULONG_MAX)
     {
         id = 0;
 
@@ -486,7 +486,7 @@ VOID PhMwpSetProcessMenuPriorityChecks(
         }
     }
 
-    if (SetPagePriority && pagePriority != -1)
+    if (SetPagePriority && pagePriority != ULONG_MAX)
     {
         id = 0;
 
@@ -534,8 +534,7 @@ VOID PhMwpInitializeProcessMenu(
     {
         // All menu items are enabled by default.
 
-        // If the user selected a fake process, disable all but
-        // a few menu items.
+        // If the user selected a fake process, disable all but a few menu items.
         if (
             PH_IS_FAKE_PROCESS_ID(Processes[0]->ProcessId) || 
             Processes[0]->ProcessId == SYSTEM_IDLE_PROCESS_ID ||

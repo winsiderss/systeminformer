@@ -171,6 +171,7 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "Analy&ze",                    ID_ANALYZE_WAIT
         MENUITEM "&Affinity",                   ID_THREAD_AFFINITY
+        MENUITEM "Critical",                    ID_THREAD_CRITICAL
         MENUITEM "Per&missions",                ID_THREAD_PERMISSIONS
         MENUITEM "&Token",                      ID_THREAD_TOKEN
         POPUP "&Priority"
@@ -280,6 +281,7 @@ BEGIN
         END
         POPUP "&Miscellaneous"
         BEGIN
+            MENUITEM "&Critical",                   ID_MISCELLANEOUS_SETCRITICAL
             MENUITEM "&Detach from debugger",       ID_MISCELLANEOUS_DETACHFROMDEBUGGER
             MENUITEM "GDI &handles",                ID_MISCELLANEOUS_GDIHANDLES
             POPUP "Pa&ge priority"
@@ -2364,7 +2366,6 @@ IDR_RT_MANIFEST         RT_MANIFEST             "ProcessHacker.manifest"
 IDB_SEARCH_ACTIVE       PNG                     "resources\\active_search.png"
 
 IDB_SEARCH_INACTIVE     PNG                     "resources\\inactive_search.png"
-
 
 #endif    // English (Australia) resources
 /////////////////////////////////////////////////////////////////////////////

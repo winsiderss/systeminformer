@@ -210,10 +210,11 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_TIMESTAMP, FALSE, L"Time stamp", 140, PH_ALIGN_LEFT, -1, 0, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_FILEMODIFIEDTIME, FALSE, L"File modified time", 140, PH_ALIGN_LEFT, -1, 0, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_FILESIZE, FALSE, L"File size", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
-    PhAddTreeNewColumnEx(hwnd, PHPRTLC_SUBPROCESSCOUNT, FALSE, L"Subprocesses", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
-    PhAddTreeNewColumnEx(hwnd, PHPRTLC_JOBOBJECTID, FALSE, L"Job Object ID", 50, PH_ALIGN_LEFT, -1, 0, TRUE);
-    PhAddTreeNewColumnEx(hwnd, PHPRTLC_PROTECTION, FALSE, L"Protection", 105, PH_ALIGN_LEFT, -1, 0, TRUE);
-    PhAddTreeNewColumnEx(hwnd, PHPRTLC_DESKTOP, FALSE, L"Desktop", 80, PH_ALIGN_LEFT, -1, 0, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHPRTLC_SUBPROCESSCOUNT, FALSE, L"Subprocesses", 70, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHPRTLC_JOBOBJECTID, FALSE, L"Job Object ID", 50, PH_ALIGN_LEFT, ULONG_MAX, 0, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHPRTLC_PROTECTION, FALSE, L"Protection", 105, PH_ALIGN_LEFT, ULONG_MAX, 0, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHPRTLC_DESKTOP, FALSE, L"Desktop", 80, PH_ALIGN_LEFT, ULONG_MAX, 0, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHPRTLC_CRITICAL, FALSE, L"Critical", 80, PH_ALIGN_LEFT, ULONG_MAX, 0, TRUE);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -1303,6 +1304,31 @@ static VOID PhpUpdateProcessNodeDesktopInfo(
     }
 }
 
+static VOID PhpUpdateProcessBreakOnTermination(
+    _Inout_ PPH_PROCESS_NODE ProcessNode
+    )
+{
+    if (!(ProcessNode->ValidMask & PHPN_CRITICAL))
+    {
+        ProcessNode->BreakOnTerminationEnabled = FALSE;
+
+        if (ProcessNode->ProcessItem->QueryHandle)
+        {
+            BOOLEAN breakOnTermination;
+
+            if (NT_SUCCESS(PhGetProcessBreakOnTermination(
+                ProcessNode->ProcessItem->QueryHandle,
+                &breakOnTermination
+                )))
+            {
+                ProcessNode->BreakOnTerminationEnabled = breakOnTermination;
+            }
+        }
+
+        ProcessNode->ValidMask |= PHPN_CRITICAL;
+    }
+}
+
 #define SORT_FUNCTION(Column) PhpProcessTreeNewCompare##Column
 
 #define BEGIN_SORT_FUNCTION(Column) static int __cdecl PhpProcessTreeNewCompare##Column( \
@@ -1930,6 +1956,14 @@ BEGIN_SORT_FUNCTION(DesktopInfo)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(Critical)
+{
+    PhpUpdateProcessBreakOnTermination(node1);
+    PhpUpdateProcessBreakOnTermination(node2);
+    sortResult = ucharcmp(node1->BreakOnTerminationEnabled, node2->BreakOnTerminationEnabled);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpProcessTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -2052,7 +2086,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         SORT_FUNCTION(Subprocesses),
                         SORT_FUNCTION(JobObjectId),
                         SORT_FUNCTION(Protection),
-                        SORT_FUNCTION(DesktopInfo)
+                        SORT_FUNCTION(DesktopInfo),
+                        SORT_FUNCTION(Critical),
                     };
                     int (__cdecl *sortFunction)(const void *, const void *);
 
@@ -2879,6 +2914,14 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 {
                     PhpUpdateProcessNodeDesktopInfo(node);
                     getCellText->Text = PhGetStringRef(node->DesktopInfoText);
+                }
+                break;
+            case PHPRTLC_CRITICAL:
+                {
+                    PhpUpdateProcessBreakOnTermination(node);
+
+                    if (node->BreakOnTerminationEnabled)
+                        PhInitializeStringRef(&getCellText->Text, L"Critical");
                 }
                 break;
             default:
