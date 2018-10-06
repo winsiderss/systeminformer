@@ -47,6 +47,7 @@ typedef struct _PH_THREAD_QUERY_DATA
     ULONG64 RunId;
 
     PPH_STRING StartAddressString;
+    PPH_STRING StartAddressFileName;
     PH_SYMBOL_RESOLVE_LEVEL StartAddressResolveLevel;
 
     PPH_STRING ServiceName;
@@ -506,7 +507,7 @@ NTSTATUS PhpThreadQueryWorker(
         data->ThreadProvider->SymbolProvider,
         data->ThreadItem->StartAddress,
         &data->StartAddressResolveLevel,
-        &data->ThreadItem->StartAddressFileName,
+        &data->StartAddressFileName,
         NULL,
         NULL
         );
@@ -518,12 +519,12 @@ NTSTATUS PhpThreadQueryWorker(
         PhLoadSymbolsThreadProvider(data->ThreadProvider);
 
         PhClearReference(&data->StartAddressString);
-        PhClearReference(&data->ThreadItem->StartAddressFileName);
+        PhClearReference(&data->StartAddressFileName);
         data->StartAddressString = PhGetSymbolFromAddress(
             data->ThreadProvider->SymbolProvider,
             data->ThreadItem->StartAddress,
             &data->StartAddressResolveLevel,
-            &data->ThreadItem->StartAddressFileName,
+            &data->StartAddressFileName,
             NULL,
             NULL
             );
@@ -815,6 +816,7 @@ VOID PhpThreadProviderUpdate(
             if (data->StartAddressResolveLevel == PhsrlFunction && data->StartAddressString)
             {
                 PhSwapReference(&data->ThreadItem->StartAddressString, data->StartAddressString);
+                PhSwapReference(&data->ThreadItem->StartAddressFileName, data->StartAddressFileName);
                 data->ThreadItem->StartAddressResolveLevel = data->StartAddressResolveLevel;
             }
 
@@ -823,6 +825,7 @@ VOID PhpThreadProviderUpdate(
             data->ThreadItem->JustResolved = TRUE;
 
             if (data->StartAddressString) PhDereferenceObject(data->StartAddressString);
+            if (data->StartAddressFileName) PhDereferenceObject(data->StartAddressFileName);
             PhDereferenceObject(data->ThreadItem);
             PhFree(data);
         }

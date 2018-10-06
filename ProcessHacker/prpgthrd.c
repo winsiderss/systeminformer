@@ -3,6 +3,7 @@
  *   Process properties: Threads page
  *
  * Copyright (C) 2009-2016 wj32
+ * Copyright (C) 2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -27,6 +28,7 @@
 #include <cpysave.h>
 #include <emenu.h>
 #include <secedit.h>
+#include <settings.h>
 
 #include <actions.h>
 #include <extmgri.h>
@@ -134,13 +136,39 @@ VOID PhpInitializeThreadMenu(
 
     PhEnableEMenuItem(Menu, ID_THREAD_TOKEN, FALSE);
 
+    // Critical
+    if (NumberOfThreads == 1)
+    {
+        HANDLE threadHandle;
+
+        if (NT_SUCCESS(PhOpenThread(
+            &threadHandle,
+            THREAD_QUERY_INFORMATION,
+            Threads[0]->ThreadId
+            )))
+        {
+            BOOLEAN breakOnTermination;
+
+            if (NT_SUCCESS(PhGetThreadBreakOnTermination(
+                threadHandle,
+                &breakOnTermination
+                )))
+            {
+                if (breakOnTermination)
+                {
+                    PhSetFlagsEMenuItem(Menu, ID_THREAD_CRITICAL, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
+                }
+            }
+        }
+    }
+
     // Priority
     if (NumberOfThreads == 1)
     {
         HANDLE threadHandle;
         ULONG threadPriority = THREAD_PRIORITY_ERROR_RETURN;
-        IO_PRIORITY_HINT ioPriority = -1;
-        ULONG pagePriority = -1;
+        IO_PRIORITY_HINT ioPriority = ULONG_MAX;
+        ULONG pagePriority = ULONG_MAX;
         ULONG id = 0;
 
         if (NT_SUCCESS(PhOpenThread(
@@ -203,7 +231,7 @@ VOID PhpInitializeThreadMenu(
                 PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK);
         }
 
-        if (ioPriority != -1)
+        if (ioPriority != ULONG_MAX)
         {
             id = 0;
 
@@ -231,7 +259,7 @@ VOID PhpInitializeThreadMenu(
             }
         }
 
-        if (pagePriority != -1)
+        if (pagePriority != ULONG_MAX)
         {
             id = 0;
 
@@ -608,6 +636,63 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                         PhReferenceObject(threadItem);
                         PhShowProcessAffinityDialog(hwndDlg, NULL, threadItem);
                         PhDereferenceObject(threadItem);
+                    }
+                }
+                break;
+            case ID_THREAD_CRITICAL:
+                {
+                    PPH_THREAD_ITEM threadItem = PhGetSelectedThreadItem(&threadsContext->ListContext);
+
+                    if (threadItem)
+                    {
+                        NTSTATUS status;
+                        HANDLE threadHandle;
+                        BOOLEAN breakOnTermination;
+
+                        status = PhOpenThread(
+                            &threadHandle,
+                            THREAD_QUERY_INFORMATION | THREAD_SET_INFORMATION,
+                            threadItem->ThreadId
+                            );
+
+                        if (NT_SUCCESS(status))
+                        {
+                            status = PhGetThreadBreakOnTermination(
+                                threadHandle,
+                                &breakOnTermination
+                                );
+
+                            if (NT_SUCCESS(status))
+                            {
+                                if (!breakOnTermination && (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
+                                    hwndDlg,
+                                    L"enable",
+                                    L"critical status on the thread",
+                                    L"If the process ends, the operating system will shut down immediately.",
+                                    TRUE
+                                    )))
+                                {
+                                    status = PhSetThreadBreakOnTermination(threadHandle, TRUE);
+                                }
+                                else if (breakOnTermination && (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
+                                    hwndDlg,
+                                    L"disable",
+                                    L"critical status on the thread",
+                                    NULL,
+                                    FALSE
+                                    )))
+                                {
+                                    status = PhSetThreadBreakOnTermination(threadHandle, FALSE);
+                                }
+                            }
+
+                            NtClose(threadHandle);
+                        }
+
+                        if (!NT_SUCCESS(status))
+                        {
+                            PhShowStatus(hwndDlg, L"Unable to change the thread critical status.", status, 0);
+                        }
                     }
                 }
                 break;
