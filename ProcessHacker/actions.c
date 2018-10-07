@@ -791,7 +791,7 @@ static BOOLEAN PhpShowContinueMessageProcesses(
     for (i = 0; i < NumberOfProcesses; i++)
     {
         HANDLE processHandle;
-        ULONG breakOnTermination = 0;
+        BOOLEAN breakOnTermination = FALSE;
 
         if (PhpIsDangerousProcess(Processes[i]->ProcessId))
         {
@@ -802,11 +802,11 @@ static BOOLEAN PhpShowContinueMessageProcesses(
 
         if (NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_INFORMATION, Processes[i]->ProcessId)))
         {
-            NtQueryInformationProcess(processHandle, ProcessBreakOnTermination, &breakOnTermination, sizeof(ULONG), NULL);
+            PhGetProcessBreakOnTermination(processHandle, &breakOnTermination);
             NtClose(processHandle);
         }
 
-        if (breakOnTermination != 0)
+        if (breakOnTermination)
         {
             critical = TRUE;
             dangerous = TRUE;
@@ -3079,20 +3079,15 @@ BOOLEAN PhUiCloseHandles(
 
         if (WindowsVersion >= WINDOWS_10)
         {
-            ULONG breakOnTermination;
+            BOOLEAN breakOnTermination;
             PROCESS_MITIGATION_POLICY_INFORMATION policyInfo;
 
-            breakOnTermination = 0;
-
-            if (NT_SUCCESS(NtQueryInformationProcess(
+            if (NT_SUCCESS(PhGetProcessBreakOnTermination(
                 processHandle,
-                ProcessBreakOnTermination,
-                &breakOnTermination,
-                sizeof(ULONG),
-                NULL
+                &breakOnTermination
                 )))
             {
-                if (breakOnTermination != 0)
+                if (breakOnTermination)
                 {
                     critical = TRUE;
                 }
