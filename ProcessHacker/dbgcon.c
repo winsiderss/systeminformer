@@ -211,9 +211,9 @@ static VOID PhpPrintObjectInfo(
     else if (objectType == PhProcessItemType)
     {
         wprintf(
-            L"\t%.28s (%d)",
+            L"\t%.28s (%lu)",
             ((PPH_PROCESS_ITEM)object)->ProcessName->Buffer,
-            HandleToLong(((PPH_PROCESS_ITEM)object)->ProcessId)
+            HandleToUlong(((PPH_PROCESS_ITEM)object)->ProcessId)
             );
     }
     else if (objectType == PhServiceItemType)
@@ -222,7 +222,7 @@ static VOID PhpPrintObjectInfo(
     }
     else if (objectType == PhThreadItemType)
     {
-        wprintf(L"\tTID: %u", HandleToUlong(((PPH_THREAD_ITEM)object)->ThreadId));
+        wprintf(L"\tTID: %lu", HandleToUlong(((PPH_THREAD_ITEM)object)->ThreadId));
     }
 
     wprintf(L"\n");
