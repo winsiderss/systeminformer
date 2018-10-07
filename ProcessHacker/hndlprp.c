@@ -969,23 +969,10 @@ VOID PhpUpdateHandleGeneral(
                 Context->HandleItem->Handle,
                 NtCurrentProcess(),
                 &dupHandle,
-                ProcessQueryAccess,
+                PROCESS_QUERY_LIMITED_INFORMATION,
                 0,
                 0
                 );
-
-            if (!NT_SUCCESS(status))
-            {
-                status = NtDuplicateObject(
-                    processHandle,
-                    Context->HandleItem->Handle,
-                    NtCurrentProcess(),
-                    &dupHandle,
-                    PROCESS_QUERY_LIMITED_INFORMATION,
-                    0,
-                    0
-                    );
-            }
 
             NtClose(processHandle);
         }
