@@ -3912,6 +3912,9 @@ NtAddAtom(
     );
 
 #if (PHNT_VERSION >= PHNT_WIN8)
+
+#define ATOM_FLAG_GLOBAL 0x2
+
 // rev
 NTSYSCALLAPI
 NTSTATUS
@@ -3922,6 +3925,7 @@ NtAddAtomEx(
     _Out_opt_ PRTL_ATOM Atom,
     _In_ ULONG Flags
     );
+
 #endif
 
 NTSYSCALLAPI
