@@ -379,11 +379,14 @@ PH_KNOWN_PROCESS_TYPE PhGetProcessKnownTypeEx(
                 knownProcessType = UmdfHostProcessType;
             else if (PhEqualStringRef2(&name, L"\\wbem\\WmiPrvSE.exe", TRUE))
                 knownProcessType = WmiProviderHostType;
+            else if (PhEqualStringRef2(&name, L"\\MicrosoftEdgeCP.exe", TRUE)) // RS5
+                knownProcessType = EdgeProcessType;
+            else if (PhEqualStringRef2(&name, L"\\MicrosoftEdgeSH.exe", TRUE)) // RS5
+                knownProcessType = EdgeProcessType;
         }
         else
         {
-            // Microsoft Edge
-            if (PhEndsWithStringRef2(&name, L"\\MicrosoftEdgeCP.exe", TRUE))
+            if (PhEndsWithStringRef2(&name, L"\\MicrosoftEdgeCP.exe", TRUE)) // RS4
                 knownProcessType = EdgeProcessType;
             else if (PhEndsWithStringRef2(&name, L"\\MicrosoftEdge.exe", TRUE))
                 knownProcessType = EdgeProcessType;
