@@ -186,8 +186,4 @@ typedef struct _PH_NF_ICON_REGISTRATION_DATA
 // end_phapppub
 
 
-VOID PhShowTrayIconCustomizeDialog(
-    VOID
-);
-
 #endif
