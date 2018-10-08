@@ -375,9 +375,6 @@
     <ClCompile Include="searchbox.c">
       <Filter>Process Hacker</Filter>
     </ClCompile>
-    <ClCompile Include="splitter.c">
-      <Filter>Process Hacker</Filter>
-    </ClCompile>
     <ClCompile Include="settings.c">
       <Filter>Process Hacker</Filter>
     </ClCompile>

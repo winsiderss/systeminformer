@@ -340,7 +340,6 @@
     <ClCompile Include="sessprp.c" />
     <ClCompile Include="sessshad.c" />
     <ClCompile Include="settings.c" />
-    <ClCompile Include="splitter.c" />
     <ClCompile Include="srvcr.c" />
     <ClCompile Include="srvctl.c" />
     <ClCompile Include="srvlist.c" />
