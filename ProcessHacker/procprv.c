@@ -1125,7 +1125,7 @@ VOID PhpFillProcessItem(
     // Process information
     {
         // If we're dealing with System (PID 4), we need to get the
-        // kernel file name. Otherwise, get the image file name.
+        // kernel file name. Otherwise, get the image file name. (wj32)
 
         if (ProcessItem->ProcessId != SYSTEM_PROCESS_ID)
         {
@@ -1201,7 +1201,7 @@ VOID PhpFillProcessItem(
     else
     {
         if (ProcessItem->ProcessId == SYSTEM_IDLE_PROCESS_ID ||
-            ProcessItem->ProcessId == SYSTEM_PROCESS_ID) // System token can't be opened on XP
+            ProcessItem->ProcessId == SYSTEM_PROCESS_ID) // System token can't be opened on XP (wj32)
         {
             ProcessItem->Sid = PhAllocateCopy(&PhSeLocalSystemSid, RtlLengthSid(&PhSeLocalSystemSid));
         }
@@ -1229,7 +1229,7 @@ VOID PhpFillProcessItem(
         }
         else
         {
-            // HACK: 'emulate' the PS_PROTECTION info for older OSes.
+            // HACK: 'emulate' the PS_PROTECTION info for older OSes. (ge0rdi)
             if (ProcessItem->IsProtectedProcess)
                 ProcessItem->Protection.Type = PsProtectedTypeProtected;
         }
@@ -1237,7 +1237,7 @@ VOID PhpFillProcessItem(
     else
     {
         // Signalize that we weren't able to get protection info with a special value.
-        // Note: We use this value to determine if we should show protection information.
+        // Note: We use this value to determine if we should show protection information. (ge0rdi)
         ProcessItem->Protection.Level = UCHAR_MAX;
     }
 
@@ -1253,7 +1253,7 @@ VOID PhpFillProcessItem(
     }
 
     // On Windows 8.1 and above, processes without threads are reflected processes 
-    // which will not terminate if we have a handle open.
+    // which will not terminate if we have a handle open. (wj32)
     if (Process->NumberOfThreads == 0 && ProcessItem->QueryHandle)
     {
         NtClose(ProcessItem->QueryHandle);
