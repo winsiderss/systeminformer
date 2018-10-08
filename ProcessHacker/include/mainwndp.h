@@ -395,12 +395,11 @@ VOID PhMwpNeedNetworkTreeList(
     VOID
     );
 
-BOOLEAN PhMwpCurrentUserNetworkTreeFilter(
-    _In_ PPH_TREENEW_NODE Node,
-    _In_opt_ PVOID Context
+VOID PhMwpToggleNetworkWaitingConnectionTreeFilter(
+    VOID
     );
 
-BOOLEAN PhMwpSignedNetworkTreeFilter(
+BOOLEAN PhMwpNetworkTreeFilter(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
     );
