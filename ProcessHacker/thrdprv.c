@@ -95,7 +95,7 @@ PH_WORK_QUEUE PhThreadProviderWorkQueue;
 PH_INITONCE PhThreadProviderWorkQueueInitOnce = PH_INITONCE_INIT;
 
 VOID PhpQueueThreadWorkQueueItem(
-    _In_ PUSER_THREAD_START_ROUTINE Function,
+    _In_ PTHREAD_START_ROUTINE Function,
     _In_opt_ PVOID Context
     )
 {

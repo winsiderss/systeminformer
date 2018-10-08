@@ -54,9 +54,18 @@ typedef struct _PH_SYMBOL_LINE_INFORMATION
     ULONG64 Address;
 } PH_SYMBOL_LINE_INFORMATION, *PPH_SYMBOL_LINE_INFORMATION;
 
+typedef enum _PH_SYMBOL_EVENT_TYPE
+{
+    SymbolDeferredSymbolLoadStart = 1,
+    SymbolDeferredSymbolLoadComplete = 2,
+    SymbolDeferredSymbolLoadFailure = 3,
+    SymbolSymbolsUnloaded = 4,
+    SymbolDeferredSymbolLoadCancel = 7
+} PH_SYMBOL_EVENT_TYPE;
+
 typedef struct _PH_SYMBOL_EVENT_DATA
 {
-    ULONG ActionCode;
+    PH_SYMBOL_EVENT_TYPE ActionCode;
     HANDLE ProcessHandle;
     PPH_SYMBOL_PROVIDER SymbolProvider;
     PVOID EventData;
