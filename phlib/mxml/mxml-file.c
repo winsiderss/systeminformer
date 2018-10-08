@@ -1,7 +1,7 @@
 /*
  * File loading code for Mini-XML, a small XML file parsing library.
  *
- * Copyright 2003-2017 by Michael R Sweet.
+ * Copyright 2003-2018 by Michael R Sweet.
  *
  * These coded instructions, statements, and computer programs are the
  * property of Michael R Sweet and are protected by Federal copyright
@@ -16,8 +16,10 @@
  * Include necessary headers...
  */
 
+ /* dmex: modified to use file handles */
 #include <phbase.h>
-#ifndef WIN32
+
+#ifndef _WIN32
 #  include <unistd.h>
 #endif /* !WIN32 */
 #include "mxml-private.h"
@@ -107,6 +109,12 @@ static int		mxml_write_ws(mxml_node_t *node, void *p,
  * The constants @code MXML_INTEGER_CALLBACK@, @code MXML_OPAQUE_CALLBACK@,
  * @code MXML_REAL_CALLBACK@, and @code MXML_TEXT_CALLBACK@ are defined for
  * loading child (data) nodes of the specified type.
+ *
+ * Note: The most common programming error when using the Mini-XML library is
+ * to load an XML file using the @code MXML_TEXT_CALLBACK@, which returns inline
+ * text as a series of whitespace-delimited words, instead of using the
+ * @code MXML_OPAQUE_CALLBACK@ which returns the inline text as a single string
+ * (including whitespace).
  */
 
 mxml_node_t *				/* O - First node or @code NULL@ if the file could not be read. */
@@ -143,6 +151,12 @@ mxmlLoadFd(mxml_node_t    *top,		/* I - Top node */
  * The constants @code MXML_INTEGER_CALLBACK@, @code MXML_OPAQUE_CALLBACK@,
  * @code MXML_REAL_CALLBACK@, and @code MXML_TEXT_CALLBACK@ are defined for
  * loading child (data) nodes of the specified type.
+ *
+ * Note: The most common programming error when using the Mini-XML library is
+ * to load an XML file using the @code MXML_TEXT_CALLBACK@, which returns inline
+ * text as a series of whitespace-delimited words, instead of using the
+ * @code MXML_OPAQUE_CALLBACK@ which returns the inline text as a single string
+ * (including whitespace).
  */
 
 mxml_node_t *				/* O - First node or @code NULL@ if the file could not be read. */
@@ -168,6 +182,12 @@ mxmlLoadFile(mxml_node_t    *top,	/* I - Top node */
  * The constants @code MXML_INTEGER_CALLBACK@, @code MXML_OPAQUE_CALLBACK@,
  * @code MXML_REAL_CALLBACK@, and @code MXML_TEXT_CALLBACK@ are defined for
  * loading child (data) nodes of the specified type.
+ *
+ * Note: The most common programming error when using the Mini-XML library is
+ * to load an XML file using the @code MXML_TEXT_CALLBACK@, which returns inline
+ * text as a series of whitespace-delimited words, instead of using the
+ * @code MXML_OPAQUE_CALLBACK@ which returns the inline text as a single string
+ * (including whitespace).
  */
 
 mxml_node_t *				/* O - First node or @code NULL@ if the string has errors. */
@@ -259,7 +279,7 @@ mxmlSaveAllocString(
 
 int					/* O - 0 on success, -1 on error. */
 mxmlSaveFd(mxml_node_t    *node,	/* I - Node to write */
-       HANDLE         fd,		/* I - File descriptor to write to */
+           HANDLE         fd,		/* I - File descriptor to write to */
        mxml_save_cb_t cb)		/* I - Whitespace callback or @code MXML_NO_CALLBACK@ */
 {
   int		col;			/* Final column */
@@ -981,7 +1001,6 @@ mxml_fd_putc(int  ch,			/* I - Character */
 /*
  * 'mxml_fd_read()' - Read a buffer of data from a file descriptor.
  */
- /* wj32: modified to use file handles */
 
 static int				/* O - 0 on success, -1 on error */
 mxml_fd_read(_mxml_fdbuf_t *buf)		/* I - File descriptor buffer */
@@ -1007,7 +1026,6 @@ mxml_fd_read(_mxml_fdbuf_t *buf)		/* I - File descriptor buffer */
 /*
  * 'mxml_fd_write()' - Write a buffer of data to a file descriptor.
  */
- /* wj32: modified to use file handles */
 
 static int				/* O - 0 on success, -1 on error */
 mxml_fd_write(_mxml_fdbuf_t *buf)	/* I - File descriptor buffer */
@@ -2072,7 +2090,7 @@ mxml_parse_element(
 
   if ((value = PhAllocateSafe(64)) == NULL)
   {
-      PhFree(name);
+    PhFree(name);
     mxml_error("Unable to allocate memory for value!");
     return (EOF);
   }
@@ -2920,34 +2938,52 @@ mxml_write_node(mxml_node_t     *node,	/* I - Node to write */
 
     if ((next = current->child) == NULL)
     {
-      while ((next = current->next) == NULL)
+      if (current == node)
       {
-        if (current == node)
-          break;
-
        /*
-    * The ? and ! elements are special-cases and have no end tags...
-    */
+        * Don't traverse to sibling node if we are at the "root" node...
+        */
 
-    current = current->parent;
+        next = NULL;
+      }
+      else
+      {
+       /*
+        * Try the next sibling, and continue traversing upwards as needed...
+        */
 
-    if (current->value.element.name[0] != '!' &&
-        current->value.element.name[0] != '?')
+    while ((next = current->next) == NULL)
     {
-      col = mxml_write_ws(current, p, cb, MXML_WS_BEFORE_CLOSE, col, putc_cb);
+      if (current == node || !current->parent)
+        break;
 
-      if ((*putc_cb)('<', p) < 0)
-        return (-1);
-      if ((*putc_cb)('/', p) < 0)
-        return (-1);
-      if (mxml_write_string(current->value.element.name, p, putc_cb) < 0)
-        return (-1);
-      if ((*putc_cb)('>', p) < 0)
-        return (-1);
+     /*
+      * The ? and ! elements are special-cases and have no end tags...
+      */
 
-      col += (int)strlen(current->value.element.name) + 3;
+      current = current->parent;
 
-      col = mxml_write_ws(current, p, cb, MXML_WS_AFTER_CLOSE, col, putc_cb);
+      if (current->value.element.name[0] != '!' &&
+          current->value.element.name[0] != '?')
+      {
+        col = mxml_write_ws(current, p, cb, MXML_WS_BEFORE_CLOSE, col, putc_cb);
+
+        if ((*putc_cb)('<', p) < 0)
+          return (-1);
+        if ((*putc_cb)('/', p) < 0)
+          return (-1);
+        if (mxml_write_string(current->value.element.name, p, putc_cb) < 0)
+          return (-1);
+        if ((*putc_cb)('>', p) < 0)
+          return (-1);
+
+        col += (int)strlen(current->value.element.name) + 3;
+
+        col = mxml_write_ws(current, p, cb, MXML_WS_AFTER_CLOSE, col, putc_cb);
+      }
+
+      if (current == node)
+        break;
     }
       }
     }
