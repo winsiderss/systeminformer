@@ -78,6 +78,14 @@ typedef struct _PHP_QUERY_OBJECT_COMMON_CONTEXT
             SECURITY_INFORMATION SecurityInformation;
             PSECURITY_DESCRIPTOR SecurityDescriptor;
         } NtSetSecurityObject;
+        struct
+        {
+            HANDLE Handle;
+            FILE_INFORMATION_CLASS FileInformationClass;
+            PVOID FileInformation;
+            ULONG FileInformationLength;
+            PULONG ReturnLength;
+        } NtQueryFileInformation;
     } u;
 } PHP_QUERY_OBJECT_COMMON_CONTEXT, *PPHP_QUERY_OBJECT_COMMON_CONTEXT;
 
@@ -1706,11 +1714,11 @@ NTSTATUS PhpCommonQueryObjectRoutine(
             IO_STATUS_BLOCK isb;
 
             context->Status = NtQueryInformationFile(
-                context->u.NtQueryObject.Handle,
+                context->u.NtQueryFileInformation.Handle,
                 &isb,
-                context->u.NtQueryObject.ObjectInformation,
-                context->u.NtQueryObject.ObjectInformationLength,
-                context->u.NtQueryObject.ObjectInformationClass
+                context->u.NtQueryFileInformation.FileInformation,
+                context->u.NtQueryFileInformation.FileInformationLength,
+                context->u.NtQueryFileInformation.FileInformationClass
                 );
         }
         break;
@@ -1804,9 +1812,9 @@ NTSTATUS PhCallNtSetSecurityObjectWithTimeout(
 
 NTSTATUS PhCallNtQueryFileInformationWithTimeout(
     _In_ HANDLE Handle,
-    _In_ OBJECT_INFORMATION_CLASS ObjectInformationClass,
-    _Out_writes_bytes_opt_(ObjectInformationLength) PVOID ObjectInformation,
-    _In_ ULONG ObjectInformationLength
+    _In_ FILE_INFORMATION_CLASS FileInformationClass,
+    _Out_writes_bytes_opt_(FileInformationLength) PVOID FileInformation,
+    _In_ ULONG FileInformationLength
     )
 {
     PPHP_QUERY_OBJECT_COMMON_CONTEXT context;
@@ -1814,10 +1822,10 @@ NTSTATUS PhCallNtQueryFileInformationWithTimeout(
     context = PhAllocate(sizeof(PHP_QUERY_OBJECT_COMMON_CONTEXT));
     context->Work = NtQueryFileInformationWork;
     context->Status = STATUS_UNSUCCESSFUL;
-    context->u.NtQueryObject.Handle = Handle;
-    context->u.NtQueryObject.ObjectInformationClass = ObjectInformationClass;
-    context->u.NtQueryObject.ObjectInformation = ObjectInformation;
-    context->u.NtQueryObject.ObjectInformationLength = ObjectInformationLength;
+    context->u.NtQueryFileInformation.Handle = Handle;
+    context->u.NtQueryFileInformation.FileInformationClass = FileInformationClass;
+    context->u.NtQueryFileInformation.FileInformation = FileInformation;
+    context->u.NtQueryFileInformation.FileInformationLength = FileInformationLength;
 
     return PhpCommonQueryObjectWithTimeout(context);
 }
