@@ -584,7 +584,6 @@ VOID PhpUpdateHandleGeneral(
 
     if (PhEqualString2(Context->HandleItem->TypeName, L"ALPC Port", TRUE))
     {
-        PHANDLE_PROPERTIES_CONTEXT context = Context;
         NTSTATUS status;
         HANDLE processHandle;
         HANDLE alpcPortHandle;
@@ -637,7 +636,6 @@ VOID PhpUpdateHandleGeneral(
     }
     else if (PhEqualStringRef2(&Context->HandleItem->TypeName->sr, L"File", TRUE))
     {
-        PHANDLE_PROPERTIES_CONTEXT context = Context;
         NTSTATUS status;
         HANDLE processHandle;
         HANDLE fileHandle;
@@ -825,7 +823,6 @@ VOID PhpUpdateHandleGeneral(
     }
     else if (PhEqualStringRef2(&Context->HandleItem->TypeName->sr, L"Section", TRUE))
     {
-        PHANDLE_PROPERTIES_CONTEXT context = Context;
         NTSTATUS status;
         HANDLE processHandle;
         HANDLE sectionHandle;
@@ -902,7 +899,6 @@ VOID PhpUpdateHandleGeneral(
     }
     else if (PhEqualString2(Context->HandleItem->TypeName, L"Mutant", TRUE))
     {
-        PHANDLE_PROPERTIES_CONTEXT context = Context;
         NTSTATUS status;
         HANDLE processHandle;
         HANDLE mutantHandle;
@@ -953,7 +949,6 @@ VOID PhpUpdateHandleGeneral(
     }
     else if (PhEqualString2(Context->HandleItem->TypeName, L"Process", TRUE))
     {
-        PHANDLE_PROPERTIES_CONTEXT context = Context;
         NTSTATUS status;
         HANDLE processHandle;
         HANDLE dupHandle;
