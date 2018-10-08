@@ -3,7 +3,7 @@
  *   Main window: Processes tab
  *
  * Copyright (C) 2009-2016 wj32
- * Copyright (C) 2017 dmex
+ * Copyright (C) 2017-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -550,6 +550,23 @@ VOID PhMwpInitializeProcessMenu(
         {
             PhEnableEMenuItem(Menu, ID_PROCESS_OPENFILELOCATION, FALSE);  
         }
+
+        // Critical
+        if (Processes[0]->QueryHandle)
+        {
+            BOOLEAN breakOnTermination;
+
+            if (NT_SUCCESS(PhGetProcessBreakOnTermination(
+                Processes[0]->QueryHandle,
+                &breakOnTermination
+                )))
+            {
+                if (breakOnTermination)
+                {
+                    PhSetFlagsEMenuItem(Menu, ID_MISCELLANEOUS_SETCRITICAL, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
+                }
+            }
+        }
     }
     else
     {
@@ -607,19 +624,14 @@ VOID PhMwpInitializeProcessMenu(
     // Virtualization
     if (NumberOfProcesses == 1)
     {
-        HANDLE processHandle;
         HANDLE tokenHandle;
         BOOLEAN allowed = FALSE;
         BOOLEAN enabled = FALSE;
 
-        if (NT_SUCCESS(PhOpenProcess(
-            &processHandle,
-            ProcessQueryAccess,
-            Processes[0]->ProcessId
-            )))
+        if (Processes[0]->QueryHandle)
         {
             if (NT_SUCCESS(PhOpenProcessToken(
-                processHandle,
+                Processes[0]->QueryHandle,
                 TOKEN_QUERY,
                 &tokenHandle
                 )))
@@ -630,8 +642,6 @@ VOID PhMwpInitializeProcessMenu(
 
                 NtClose(tokenHandle);
             }
-
-            NtClose(processHandle);
         }
 
         if (!allowed)
