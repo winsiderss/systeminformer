@@ -49,6 +49,7 @@ static PH_CALLBACK_REGISTRATION NetworkItemsUpdatedRegistration;
 
 static BOOLEAN NetworkFirstTime = TRUE;
 static BOOLEAN NetworkTreeListLoaded = FALSE;
+static PPH_TN_FILTER_ENTRY NetworkFilterEntry = NULL;
 
 BOOLEAN PhMwpNetworkPageCallback(
     _In_ struct _PH_MAIN_TAB_PAGE *Page,
@@ -118,9 +119,23 @@ BOOLEAN PhMwpNetworkPageCallback(
             }
         }
         break;
+    case MainTabPageInitializeSectionMenuItems:
+        {
+            PPH_MAIN_TAB_PAGE_MENU_INFORMATION menuInfo = Parameter1;
+            PPH_EMENU menu = menuInfo->Menu;
+            ULONG startIndex = menuInfo->StartIndex;
+            PPH_EMENU_ITEM menuItem;
+
+            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_HIDEWAITINGCONNECTIONS, L"&Hide waiting connections", NULL, NULL), startIndex);
+
+            if (NetworkFilterEntry && (menuItem = PhFindEMenuItem(menu, 0, NULL, ID_VIEW_HIDEWAITINGCONNECTIONS)))
+                menuItem->Flags |= PH_EMENU_CHECKED;
+        }
+        return TRUE;
     case MainTabPageLoadSettings:
         {
-            // Nothing
+            if (PhGetIntegerSetting(L"HideWaitingConnections"))
+                NetworkFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportNetworkTreeList(), PhMwpNetworkTreeFilter, NULL);
         }
         return TRUE;
     case MainTabPageSaveSettings:
@@ -168,34 +183,35 @@ VOID PhMwpNeedNetworkTreeList(
     }
 }
 
-BOOLEAN PhMwpCurrentUserNetworkTreeFilter(
-    _In_ PPH_TREENEW_NODE Node,
-    _In_opt_ PVOID Context
+VOID PhMwpToggleNetworkWaitingConnectionTreeFilter(
+    VOID
     )
 {
-    PPH_NETWORK_NODE networkNode = (PPH_NETWORK_NODE)Node;
-    PPH_PROCESS_NODE processNode;
+    if (NetworkFilterEntry)
+    {
+        PhRemoveTreeNewFilter(PhGetFilterSupportNetworkTreeList(), NetworkFilterEntry);
+        NetworkFilterEntry = NULL;
+    }
+    else
+    {
+        NetworkFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportNetworkTreeList(), PhMwpNetworkTreeFilter, NULL);
+    }
 
-    processNode = PhFindProcessNode(networkNode->NetworkItem->ProcessId);
+    PhApplyTreeNewFilters(PhGetFilterSupportNetworkTreeList());
 
-    if (processNode)
-        return PhMwpCurrentUserProcessTreeFilter(&processNode->Node, NULL);
-
-    return TRUE;
+    PhSetIntegerSetting(L"HideWaitingConnections", !!NetworkFilterEntry);
 }
 
-BOOLEAN PhMwpSignedNetworkTreeFilter(
+BOOLEAN PhMwpNetworkTreeFilter(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
     )
 {
     PPH_NETWORK_NODE networkNode = (PPH_NETWORK_NODE)Node;
-    PPH_PROCESS_NODE processNode;
 
-    processNode = PhFindProcessNode(networkNode->NetworkItem->ProcessId);
-
-    if (processNode)
-        return PhMwpSignedProcessTreeFilter(&processNode->Node, NULL);
+    // Waiting connections don't have a ProcessId. (dmex)
+    if (!networkNode->NetworkItem->ProcessId)
+        return FALSE;
 
     return TRUE;
 }

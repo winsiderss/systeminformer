@@ -791,6 +791,11 @@ VOID PhMwpOnCommand(
             PhMwpToggleDriverServiceTreeFilter();
         }
         break;
+    case ID_VIEW_HIDEWAITINGCONNECTIONS:
+        {
+            PhMwpToggleNetworkWaitingConnectionTreeFilter();
+        }
+        break;
     case ID_VIEW_ALWAYSONTOP:
         {
             AlwaysOnTop = !AlwaysOnTop;
