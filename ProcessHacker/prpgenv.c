@@ -169,15 +169,26 @@ VOID PhpRefreshEnvironmentList(
     userRootNode = PhpAddEnvironmentChildNode(Context, NULL, 0, 0, PhaCreateString(L"User"), NULL);
     systemRootNode = PhpAddEnvironmentChildNode(Context, NULL, 0, 0, PhaCreateString(L"System"), NULL);
 
-    if (DestroyEnvironmentBlock && Context->SystemDefaultEnvironment) 
-        DestroyEnvironmentBlock(Context->SystemDefaultEnvironment);
-    if (DestroyEnvironmentBlock && Context->UserDefaultEnvironment)
-        DestroyEnvironmentBlock(Context->UserDefaultEnvironment);
+    if (DestroyEnvironmentBlock)
+    {
+        if (Context->SystemDefaultEnvironment)
+        {
+            DestroyEnvironmentBlock(Context->SystemDefaultEnvironment);
+            Context->SystemDefaultEnvironment = NULL;
+        }
 
-    if (CreateEnvironmentBlock) 
+        if (Context->UserDefaultEnvironment)
+        {
+            DestroyEnvironmentBlock(Context->UserDefaultEnvironment);
+            Context->UserDefaultEnvironment = NULL;
+        }
+    }
+
+    if (CreateEnvironmentBlock)
+    {
         CreateEnvironmentBlock(&Context->SystemDefaultEnvironment, NULL, FALSE);
-    if (CreateEnvironmentBlock) 
         CreateEnvironmentBlock(&Context->UserDefaultEnvironment, PhGetOwnTokenAttributes().TokenHandle, FALSE);
+    }
 
     if (NT_SUCCESS(PhOpenProcess(
         &processHandle,
@@ -1302,10 +1313,13 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
             PhDeleteArray(&context->Items);
             PhClearReference(&context->StatusMessage);
 
-            if (DestroyEnvironmentBlock && context->SystemDefaultEnvironment)
-                DestroyEnvironmentBlock(context->SystemDefaultEnvironment);
-            if (DestroyEnvironmentBlock && context->UserDefaultEnvironment)
-                DestroyEnvironmentBlock(context->UserDefaultEnvironment);
+            if (DestroyEnvironmentBlock)
+            {
+                if (context->SystemDefaultEnvironment)
+                    DestroyEnvironmentBlock(context->SystemDefaultEnvironment);
+                if (context->UserDefaultEnvironment)
+                    DestroyEnvironmentBlock(context->UserDefaultEnvironment);
+            }
 
             PhFree(context);
         }
