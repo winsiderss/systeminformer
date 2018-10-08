@@ -788,6 +788,7 @@ typedef enum _D3DDDI_QUERYREGISTRY_TYPE
     D3DDDI_QUERYREGISTRY_SERVICEKEY = 0, // HKLM\System\CurrentControlSet\Services\nvlddmkm
     D3DDDI_QUERYREGISTRY_ADAPTERKEY = 1, // HKLM\System\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}\0000
     D3DDDI_QUERYREGISTRY_DRIVERSTOREPATH = 2,
+    D3DDDI_QUERYREGISTRY_DRIVERIMAGEPATH = 3, // REDSTONE5
     D3DDDI_QUERYREGISTRY_MAX,
 } D3DDDI_QUERYREGISTRY_TYPE;
 
@@ -848,6 +849,7 @@ typedef struct _D3DKMT_NODE_PERFDATA
     _Out_ ULONG Voltage; // Voltage of the engine in milli volts mV
     _Out_ ULONG VoltageMax; // The max voltage of the engine in milli volts while not overclocked.
     _Out_ ULONG VoltageMaxOC; // The max voltage of the engine while overclocked in milli volts.
+    _Out_ ULONGLONG MaxTransitionLatency; // Max transition latency to change the frequency in 100 nanoseconds // REDSTONE5
 } D3DKMT_NODE_PERFDATA;
 
 // Represents performance data collected per adapter on an interval basis.
