@@ -726,6 +726,7 @@
 #define ID_DIGIT7                       40269
 #define ID_DIGIT8                       40270
 #define ID_DIGIT9                       40271
+#define ID_VIEW_HIDEWAITINGCONNECTIONS  40272
 #define ID_VIEW_HIDEDRIVERSERVICES      40273
 #define ID_VIEW_SECTIONPLACEHOLDER      40274
 #define ID_VIEW_SCROLLTONEWPROCESSES    40275
