@@ -749,6 +749,7 @@
 #define ID_GROUP_DISABLE                40298
 #define ID_GROUP_RESET                  40299
 #define ID_TOOLS_SCM_PERMISSIONS        40300
+#define ID_TOOLS_RDP_PERMISSIONS        40301
 #define IDDYNAMIC                       50000
 #define IDPLUGINS                       55000
 
