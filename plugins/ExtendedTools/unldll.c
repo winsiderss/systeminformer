@@ -251,8 +251,8 @@ static INT NTAPI EtpNumberCompareFunction(
         return uintcmp(item1->Sequence, item2->Sequence);
     }
     else
-    {
 #endif
+    {
         PRTL_UNLOAD_EVENT_TRACE item1 = Item1;
         PRTL_UNLOAD_EVENT_TRACE item2 = Item2;
 
@@ -277,8 +277,8 @@ static INT NTAPI EtpBaseAddressCompareFunction(
         return uintptrcmp((ULONG_PTR)item1->BaseAddress, (ULONG_PTR)item2->BaseAddress);
     }
     else
-    {
 #endif
+    {
         PRTL_UNLOAD_EVENT_TRACE item1 = Item1;
         PRTL_UNLOAD_EVENT_TRACE item2 = Item2;
 
@@ -303,8 +303,8 @@ static INT NTAPI EtpSizeCompareFunction(
         return uintptrcmp(item1->SizeOfImage, item2->SizeOfImage);
     }
     else
-    {
 #endif
+    {
         PRTL_UNLOAD_EVENT_TRACE item1 = Item1;
         PRTL_UNLOAD_EVENT_TRACE item2 = Item2;
 
@@ -329,8 +329,8 @@ static INT NTAPI EtpTimeStampCompareFunction(
         return uintcmp(item1->TimeDateStamp, item2->TimeDateStamp);
     }
     else
-    {
 #endif
+    {
         PRTL_UNLOAD_EVENT_TRACE item1 = Item1;
         PRTL_UNLOAD_EVENT_TRACE item2 = Item2;
 
@@ -355,8 +355,8 @@ static INT NTAPI EtpCheckSumCompareFunction(
         return uintcmp(item1->CheckSum, item2->CheckSum);
     }
     else
-    {
 #endif
+    {
         PRTL_UNLOAD_EVENT_TRACE item1 = Item1;
         PRTL_UNLOAD_EVENT_TRACE item2 = Item2;
 
