@@ -136,9 +136,9 @@ NTSTATUS
 NTAPI
 PhCallNtQueryFileInformationWithTimeout(
     _In_ HANDLE Handle,
-    _In_ OBJECT_INFORMATION_CLASS ObjectInformationClass,
-    _Out_writes_bytes_opt_(ObjectInformationLength) PVOID ObjectInformation,
-    _In_ ULONG ObjectInformationLength
+    _In_ FILE_INFORMATION_CLASS FileInformationClass,
+    _Out_writes_bytes_opt_(FileInformationLength) PVOID FileInformation,
+    _In_ ULONG FileInformationLength
     );
 
 #ifdef __cplusplus
