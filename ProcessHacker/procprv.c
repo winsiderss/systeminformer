@@ -2200,10 +2200,16 @@ VOID PhProcessProviderUpdate(
             if (processItem->UpdateIsDotNet)
             {
                 BOOLEAN isDotNet;
+                ULONG flags = 0;
 
-                if (NT_SUCCESS(PhGetProcessIsDotNet(processItem->ProcessId, &isDotNet)))
+                if (NT_SUCCESS(PhGetProcessIsDotNetEx(processItem->ProcessId, NULL, 0, &isDotNet, &flags)))
                 {
                     processItem->IsDotNet = isDotNet;
+
+                    // This check is needed for the DotNetTools plugin. (dmex)
+                    if (!isDotNet && (flags & PH_CLR_JIT_PRESENT))
+                        processItem->IsDotNet = TRUE;
+
                     modified = TRUE;
                 }
 

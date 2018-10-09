@@ -108,14 +108,20 @@ VOID NTAPI ProcessPropertiesInitializingCallback(
     )
 {
     PPH_PLUGIN_PROCESS_PROPCONTEXT propContext = Parameter;
-    BOOLEAN isDotNet;
+    BOOLEAN isDotNet = FALSE;
+    ULONG flags = 0;
 
-    if (NT_SUCCESS(PhGetProcessIsDotNet(propContext->ProcessItem->ProcessId, &isDotNet)))
+    if (NT_SUCCESS(PhGetProcessIsDotNetEx(propContext->ProcessItem->ProcessId, NULL, 0, &isDotNet, &flags)))
     {
         if (isDotNet)
         {
             AddAsmPageToPropContext(propContext);
             AddPerfPageToPropContext(propContext);
+        }
+        else if (flags & PH_CLR_JIT_PRESENT) // CoreCLR support. (dmex)
+        {
+            isDotNet = TRUE;
+            AddAsmPageToPropContext(propContext);
         }
 
         if (propContext->ProcessItem->IsDotNet != isDotNet)
