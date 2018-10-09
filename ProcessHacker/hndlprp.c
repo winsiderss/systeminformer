@@ -359,7 +359,11 @@ VOID PhpUpdateHandleGeneralListViewGroups(
         NULL
         );
 
-    if (PhEqualString2(Context->HandleItem->TypeName, L"ALPC Port", TRUE))
+    if (PhIsNullOrEmptyString(Context->HandleItem->TypeName))
+    {
+        NOTHING;
+    }
+    else if (PhEqualString2(Context->HandleItem->TypeName, L"ALPC Port", TRUE))
     {
         PhAddListViewGroup(Context->ListViewHandle, PH_HANDLE_GENERAL_CATEGORY_ALPC, L"ALPC Port");
         Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_SEQUENCENUMBER] = PhAddListViewGroupItem(
@@ -582,7 +586,11 @@ VOID PhpUpdateHandleGeneral(
         NtClose(processHandle);
     }
 
-    if (PhEqualString2(Context->HandleItem->TypeName, L"ALPC Port", TRUE))
+    if (PhIsNullOrEmptyString(Context->HandleItem->TypeName))
+    {
+        NOTHING;
+    }
+    else if (PhEqualString2(Context->HandleItem->TypeName, L"ALPC Port", TRUE))
     {
         NTSTATUS status;
         HANDLE processHandle;
