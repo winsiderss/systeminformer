@@ -105,7 +105,7 @@ typedef ULONG64 (WINAPI *_SymGetModuleBase64)(
 typedef BOOL (WINAPI *_SymRegisterCallbackW64)(
     _In_ HANDLE ProcessHandle,
     _In_ PSYMBOL_REGISTERED_CALLBACK64 CallbackFunction,
-    _In_ PVOID UserContext
+    _In_ ULONG64 UserContext
     );
 
 typedef BOOL (WINAPI *_StackWalk64)(
