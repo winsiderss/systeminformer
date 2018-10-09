@@ -91,6 +91,13 @@ PhGetObjectTypeNumber(
     );
 
 PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetObjectTypeName(
+    _In_ ULONG TypeIndex
+    );
+
+PHLIBAPI
 NTSTATUS
 NTAPI
 PhCallWithTimeout(
