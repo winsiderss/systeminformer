@@ -1214,7 +1214,7 @@ NTSTATUS DotNetTraceQueryThreadStart(
         }
     }
 
-    if (context->ClrVersions & PH_CLR_VERSION_4_ABOVE)
+    if ((context->ClrVersions & PH_CLR_VERSION_4_ABOVE) || (context->ClrVersions & PH_CLR_JIT_PRESENT)) // PH_CLR_JIT_PRESENT CoreCLR support. (dmex)
     {
         result = UpdateDotNetTraceInfoWithTimeout(context, FALSE, &timeout);
 
@@ -1224,6 +1224,7 @@ NTSTATUS DotNetTraceQueryThreadStart(
             result = ERROR_SUCCESS;
         }
     }
+
     // If we reached the timeout, check whether we got any data back.
     if (timeoutReached)
     {
