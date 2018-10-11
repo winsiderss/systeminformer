@@ -1042,16 +1042,14 @@ LRESULT CALLBACK PhpThemeWindowDrawButton(
                         DI_NORMAL
                         );
                 }
-                else
-                {
-                    DrawText(
-                        DrawInfo->hdc,
-                        buttonText->Buffer,
-                        (UINT)buttonText->Length / sizeof(WCHAR),
-                        &DrawInfo->rc,
-                        DT_CENTER | DT_SINGLELINE | DT_VCENTER | DT_HIDEPREFIX
-                        );
-                }
+
+                DrawText(
+                    DrawInfo->hdc,
+                    buttonText->Buffer,
+                    (UINT)buttonText->Length / sizeof(WCHAR),
+                    &DrawInfo->rc,
+                    DT_CENTER | DT_SINGLELINE | DT_VCENTER | DT_HIDEPREFIX
+                    );
             }
 
             PhDereferenceObject(buttonText);
@@ -1710,10 +1708,14 @@ LRESULT CALLBACK PhpThemeWindowTabControlWndSubclassProc(
             RECT clientRect;
             PAINTSTRUCT ps;
 
-            BeginPaint(WindowHandle, &ps);
+            if (!BeginPaint(WindowHandle, &ps))
+                break;
 
             GetWindowRect(WindowHandle, &windowRect);
             GetClientRect(WindowHandle, &clientRect);
+
+            TabCtrl_AdjustRect(WindowHandle, FALSE, &clientRect); // Make sure we don't paint in the client area.
+            ExcludeClipRect(ps.hdc, clientRect.left, clientRect.top, clientRect.right, clientRect.bottom);
 
             windowRect.right -= windowRect.left;
             windowRect.bottom -= windowRect.top;
