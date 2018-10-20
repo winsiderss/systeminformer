@@ -3,7 +3,7 @@
  *   PE viewer
  *
  * Copyright (C) 2010-2011 wj32
- * Copyright (C) 2017 dmex
+ * Copyright (C) 2017-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -22,6 +22,39 @@
  */
 
 #include <peview.h>
+
+PPH_STRING PvpGetPeGuardFlagsText(
+    _In_ ULONG GuardFlags
+    )
+{
+    PH_STRING_BUILDER stringBuilder;
+
+    PhInitializeStringBuilder(&stringBuilder, 10);
+
+    if (GuardFlags & IMAGE_GUARD_CF_INSTRUMENTED)
+        PhAppendStringBuilder2(&stringBuilder, L"Instrumented, ");
+    if (GuardFlags & IMAGE_GUARD_CFW_INSTRUMENTED)
+        PhAppendStringBuilder2(&stringBuilder, L"Instrumented (Write), ");
+    if (GuardFlags & IMAGE_GUARD_CF_FUNCTION_TABLE_PRESENT)
+        PhAppendStringBuilder2(&stringBuilder, L"Function table, ");
+    if (GuardFlags & IMAGE_GUARD_SECURITY_COOKIE_UNUSED)
+        PhAppendStringBuilder2(&stringBuilder, L"Unused security cookie, ");
+    if (GuardFlags & IMAGE_GUARD_PROTECT_DELAYLOAD_IAT)
+        PhAppendStringBuilder2(&stringBuilder, L"Delay-load IAT protected, ");
+    if (GuardFlags & IMAGE_GUARD_DELAYLOAD_IAT_IN_ITS_OWN_SECTION)
+        PhAppendStringBuilder2(&stringBuilder, L"Delay-load private section, ");
+    if (GuardFlags & IMAGE_GUARD_CF_ENABLE_EXPORT_SUPPRESSION)
+        PhAppendStringBuilder2(&stringBuilder, L"Export supression, ");
+    if (GuardFlags & IMAGE_GUARD_CF_EXPORT_SUPPRESSION_INFO_PRESENT)
+        PhAppendStringBuilder2(&stringBuilder, L"Export information supression, ");
+    if (GuardFlags & IMAGE_GUARD_CF_LONGJUMP_TABLE_PRESENT)
+        PhAppendStringBuilder2(&stringBuilder, L"Longjump table, ");
+
+    if (PhEndsWithString2(stringBuilder.String, L", ", FALSE))
+        PhRemoveEndStringBuilder(&stringBuilder, 2);
+
+    return PhFinalStringBuilderString(&stringBuilder);
+}
 
 INT_PTR CALLBACK PvpPeLoadConfigDlgProc(
     _In_ HWND hwndDlg,
@@ -87,7 +120,7 @@ INT_PTR CALLBACK PvpPeLoadConfigDlgProc(
                 \
                 if (RTL_CONTAINS_FIELD((Config), (Config)->Size, GuardCFCheckFunctionPointer)) \
                 { \
-                    ADD_VALUE(L"CFG GuardFlags", PhaFormatString(L"0x%Ix", (Config)->GuardFlags)->Buffer); \
+                    ADD_VALUE(L"CFG GuardFlags", PhaFormatString(L"0x%Ix", PH_AUTO_T(PH_STRING, PvpGetPeGuardFlagsText((Config)->GuardFlags))->Buffer, (Config)->GuardFlags)->Buffer); \
                     ADD_VALUE(L"CFG Check Function pointer", PhaFormatString(L"0x%Ix", (Config)->GuardCFCheckFunctionPointer)->Buffer); \
                     ADD_VALUE(L"CFG Check Dispatch pointer", PhaFormatString(L"0x%Ix", (Config)->GuardCFDispatchFunctionPointer)->Buffer); \
                     ADD_VALUE(L"CFG Function table", PhaFormatString(L"0x%Ix", (Config)->GuardCFFunctionTable)->Buffer); \
