@@ -3196,7 +3196,10 @@ typedef struct _SYSTEM_KERNEL_VA_SHADOW_INFORMATION
             ULONG KvaShadowInvpcid : 1;
             ULONG KvaShadowRequired : 1; // REDSTONE4
             ULONG KvaShadowRequiredAvailable : 1;
-            ULONG Reserved : 26;
+            ULONG InvalidPteBit : 6;
+            ULONG L1DataCacheFlushSupported : 1;
+            ULONG L1TerminalFaultMitigationPresent : 1;
+            ULONG Reserved : 18;
         };
     };
 } SYSTEM_KERNEL_VA_SHADOW_INFORMATION, *PSYSTEM_KERNEL_VA_SHADOW_INFORMATION;
@@ -3231,12 +3234,13 @@ typedef struct _SYSTEM_SPECULATION_CONTROL_INFORMATION
             ULONG IbrsPresent : 1;
             ULONG StibpPresent : 1;
             ULONG SmepPresent : 1;
-            ULONG MemoryDisambiguationDisableAvailable : 1; // REDSTONE4 (CVE-2018-3639)
-            ULONG MemoryDisambiguationDisableSupported : 1;
-            ULONG MemoryDisambiguationDisabledSystemWide : 1;
-            ULONG MemoryDisambiguationDisabledKernel : 1;
-            ULONG MemoryDisambiguationDisableRequired : 1;
-            ULONG Reserved : 19;
+            ULONG SpeculativeStoreBypassDisableAvailable : 1; // REDSTONE4 (CVE-2018-3639)
+            ULONG SpeculativeStoreBypassDisableSupported : 1;
+            ULONG SpeculativeStoreBypassDisabledSystemWide : 1;
+            ULONG SpeculativeStoreBypassDisabledKernel : 1;
+            ULONG SpeculativeStoreBypassDisableRequired : 1;
+            ULONG BpbDisabledKernelToUser : 1;
+            ULONG Reserved : 18;
         };
     };
 } SYSTEM_SPECULATION_CONTROL_INFORMATION, *PSYSTEM_SPECULATION_CONTROL_INFORMATION;
