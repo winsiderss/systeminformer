@@ -653,7 +653,7 @@ VOID PhTickProcessNodes(
         // it can be changed once, so we can only be sure that it won't be changed again if it is different
         // from Unaware (poizan42).
         if (node->DpiAwareness != 1)
-            node->ValidMask |= PHPN_DPIAWARENESS;
+            node->ValidMask &= ~PHPN_DPIAWARENESS;
 
         // Invalidate graph buffers.
         node->CpuGraphBuffers.Valid = FALSE;
