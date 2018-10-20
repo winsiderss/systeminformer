@@ -306,9 +306,7 @@ INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
 
             sampleCount = PhGetIntegerSetting(L"SampleCount");
 
-            context = PhAllocate(sizeof(ET_DISKNET_CONTEXT));
-            memset(context, 0, sizeof(ET_DISKNET_CONTEXT));
-
+            context = PhAllocateZero(sizeof(ET_DISKNET_CONTEXT));
             context->WindowHandle = hwndDlg;
             context->Block = EtGetProcessBlock(processItem);
             context->Enabled = TRUE;
@@ -337,6 +335,8 @@ INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
                 context,
                 &context->ProcessesUpdatedRegistration
                 );
+
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
         }
         break;
     case WM_DESTROY:

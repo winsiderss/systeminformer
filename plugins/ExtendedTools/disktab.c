@@ -1131,13 +1131,15 @@ INT_PTR CALLBACK EtpDiskTabErrorDialogProc(
         {
             if (!PhGetOwnTokenAttributes().Elevated)
             {
-                SendMessage(GetDlgItem(hwndDlg, IDC_RESTART), BCM_SETSHIELD, 0, TRUE);
+                Button_SetElevationRequiredState(GetDlgItem(hwndDlg, IDC_RESTART), TRUE);
             }
             else
             {
                 PhSetDialogItemText(hwndDlg, IDC_ERROR, L"Unable to start the kernel event tracing session.");
                 ShowWindow(GetDlgItem(hwndDlg, IDC_RESTART), SW_HIDE);
             }
+
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
         }
         break;
     case WM_COMMAND:
