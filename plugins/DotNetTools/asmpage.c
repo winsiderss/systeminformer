@@ -99,7 +99,9 @@ typedef struct _ASMPAGE_CONTEXT
             ULONG EnableStateHighlighting : 1;
             ULONG HideDynamicModules : 1;
             ULONG HighlightDynamicModules : 1;
-            ULONG Spare : 29;
+            ULONG HideNativeModules : 1;
+            ULONG HighlightNativeModules : 1;
+            ULONG Spare : 27;
         };
     };
 
@@ -626,12 +628,18 @@ BOOLEAN NTAPI DotNetAsmTreeNewCallback(
                 break;
             case DNA_TYPE_ASSEMBLY:
                 {
-                    //getNodeColor->BackColor = PhGetIntegerSetting(L"ColorDotNet");
-
-                    if (context->HighlightDynamicModules && node->u.Assembly.AssemblyFlags == 2)
+                    if (context->HighlightDynamicModules && (node->u.Assembly.AssemblyFlags & 0x2) == 0x2)
                     {
                         getNodeColor->BackColor = PhGetIntegerSetting(L"ColorPacked");
-                    } 
+                    }
+                    else if (context->HighlightNativeModules && (node->u.Assembly.AssemblyFlags & 0x4) == 0x4)
+                    {
+                        getNodeColor->BackColor = PhGetIntegerSetting(L"ColorSystemProcesses");
+                    }
+                    else
+                    {
+                        //getNodeColor->BackColor = PhGetIntegerSetting(L"ColorDotNet");
+                    }
                 }
                 break;
             }
@@ -751,6 +759,12 @@ VOID DotNetAsmSetOptionsTreeList(
         break;
     case DN_ASM_MENU_HIGHLIGHT_DYNAMIC_OPTION:
         Context->HighlightDynamicModules = !Context->HighlightDynamicModules;
+        break;
+    case DN_ASM_MENU_HIDE_NATIVE_OPTION:
+        Context->HideNativeModules = !Context->HideNativeModules;
+        break;
+    case DN_ASM_MENU_HIGHLIGHT_NATIVE_OPTION:
+        Context->HighlightNativeModules = !Context->HighlightNativeModules;
         break;
     }
 }
@@ -1386,7 +1400,9 @@ BOOLEAN DotNetAsmTreeFilterCallback(
     PASMPAGE_CONTEXT context = Context;
     PDNA_NODE node = (PDNA_NODE)Node;
 
-    if (context->HideDynamicModules && node->Type == DNA_TYPE_ASSEMBLY && node->u.Assembly.AssemblyFlags == 2)
+    if (context->HideDynamicModules && node->Type == DNA_TYPE_ASSEMBLY && (node->u.Assembly.AssemblyFlags & 0x2) == 0x2)
+        return FALSE;
+    if (context->HideNativeModules && node->Type == DNA_TYPE_ASSEMBLY && (node->u.Assembly.AssemblyFlags & 0x4) == 0x4)
         return FALSE;
 
     if (PhIsNullOrEmptyString(context->SearchBoxText))
@@ -1567,21 +1583,29 @@ INT_PTR CALLBACK DotNetAsmPageDlgProc(
                     RECT rect;
                     PPH_EMENU menu;
                     PPH_EMENU_ITEM dynamicItem;
+                    PPH_EMENU_ITEM nativeItem;
                     PPH_EMENU_ITEM highlightDynamicItem;
+                    PPH_EMENU_ITEM highlightNativeItem;
                     PPH_EMENU_ITEM selectedItem;
 
                     GetWindowRect(GetDlgItem(hwndDlg, IDC_OPTIONS), &rect);
 
                     menu = PhCreateEMenu();
                     PhInsertEMenuItem(menu, dynamicItem = PhCreateEMenuItem(0, DN_ASM_MENU_HIDE_DYNAMIC_OPTION, L"Hide dynamic", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, nativeItem = PhCreateEMenuItem(0, DN_ASM_MENU_HIDE_NATIVE_OPTION, L"Hide native", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                     PhInsertEMenuItem(menu, highlightDynamicItem = PhCreateEMenuItem(0, DN_ASM_MENU_HIGHLIGHT_DYNAMIC_OPTION, L"Highlight dynamic", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, highlightNativeItem = PhCreateEMenuItem(0, DN_ASM_MENU_HIGHLIGHT_NATIVE_OPTION, L"Highlight native", NULL, NULL), ULONG_MAX);
 
                     if (context->HideDynamicModules)
                         dynamicItem->Flags |= PH_EMENU_CHECKED;
                     if (context->HighlightDynamicModules)
                         highlightDynamicItem->Flags |= PH_EMENU_CHECKED;
-    
+                    if (context->HideNativeModules)
+                        nativeItem->Flags |= PH_EMENU_CHECKED;
+                    if (context->HighlightNativeModules)
+                        highlightNativeItem->Flags |= PH_EMENU_CHECKED;
+
                     selectedItem = PhShowEMenu(
                         menu,
                         hwndDlg,
