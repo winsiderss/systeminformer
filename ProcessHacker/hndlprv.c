@@ -467,10 +467,10 @@ VOID PhHandleProviderUpdate(
 
         if (PhBeginInitOnce(&initOnce))
         {
-            UNICODE_STRING fileTypeName;
+            UNICODE_STRING fileTypeName = RTL_CONSTANT_STRING(L"File");
 
-            RtlInitUnicodeString(&fileTypeName, L"File");
             fileObjectTypeIndex = PhGetObjectTypeNumber(&fileTypeName);
+
             PhEndInitOnce(&initOnce);
         }
     }
