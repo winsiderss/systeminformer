@@ -67,10 +67,10 @@ namespace CustomBuildTool
                 process.StartInfo.Arguments = args;
                 process.Start();
 
-                process.WaitForExit();
-
                 output = process.StandardOutput.ReadToEnd();
                 output = output.Replace("\n\n", "\r\n").Trim();
+
+                process.WaitForExit();
             }
 
             return output;
