@@ -173,7 +173,7 @@ VOID PhpInitializeThreadMenu(
 
         if (NT_SUCCESS(PhOpenThread(
             &threadHandle,
-            ThreadQueryAccess,
+            THREAD_QUERY_LIMITED_INFORMATION,
             Threads[0]->ThreadId
             )))
         {
@@ -723,7 +723,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                     {
                         if (NT_SUCCESS(status = PhOpenThread(
                             &threadHandle,
-                            ThreadQueryAccess,
+                            THREAD_QUERY_LIMITED_INFORMATION,
                             threadItem->ThreadId
                             )))
                         {

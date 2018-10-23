@@ -41,7 +41,7 @@ VOID PhShowCreateServiceDialog(
     DialogBox(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_CREATESERVICE),
-        ParentWindowHandle,
+        PhCsForceNoParent ? NULL : ParentWindowHandle,
         PhpCreateServiceDlgProc
         );
 }
@@ -72,7 +72,7 @@ INT_PTR CALLBACK PhpCreateServiceDlgProc(
 
             if (!PhGetOwnTokenAttributes().Elevated)
             {
-                SendMessage(GetDlgItem(hwndDlg, IDOK), BCM_SETSHIELD, 0, TRUE);
+                Button_SetElevationRequiredState(GetDlgItem(hwndDlg, IDOK), TRUE);
             }
 
             PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDC_NAME));
@@ -81,7 +81,7 @@ INT_PTR CALLBACK PhpCreateServiceDlgProc(
         break;
     case WM_COMMAND:
         {
-            switch (LOWORD(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDCANCEL:
                 {

@@ -84,7 +84,6 @@ typedef struct _PHP_QUERY_OBJECT_COMMON_CONTEXT
             FILE_INFORMATION_CLASS FileInformationClass;
             PVOID FileInformation;
             ULONG FileInformationLength;
-            PULONG ReturnLength;
         } NtQueryFileInformation;
     } u;
 } PHP_QUERY_OBJECT_COMMON_CONTEXT, *PPHP_QUERY_OBJECT_COMMON_CONTEXT;
@@ -927,7 +926,7 @@ NTSTATUS PhpGetBestObjectName(
                 Handle,
                 NtCurrentProcess(),
                 &dupHandle,
-                ThreadQueryAccess,
+                THREAD_QUERY_LIMITED_INFORMATION,
                 0,
                 0
                 );

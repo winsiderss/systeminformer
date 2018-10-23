@@ -36,7 +36,7 @@ PVOID PhpImportProcedure(
     if (*CacheValid)
         return *Cache;
 
-    module = PhGetDllHandle(ModuleName);
+    module = PhGetLoaderEntryDllBase(ModuleName);
 
     if (!module)
         return NULL;

@@ -236,7 +236,7 @@ VOID ThreadTreeNewInitializing(
 #if _WIN64
         HANDLE processHandle;
 
-        if (NT_SUCCESS(PhOpenProcess(&processHandle, ProcessQueryAccess, threadsContext->Provider->ProcessId)))
+        if (NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, threadsContext->Provider->ProcessId)))
         {
             PhGetProcessIsWow64(processHandle, &context->IsWow64);
             NtClose(processHandle);

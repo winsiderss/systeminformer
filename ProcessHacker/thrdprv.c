@@ -865,7 +865,7 @@ VOID PhpThreadProviderUpdate(
             {
                 PhOpenThread(
                     &threadItem->ThreadHandle,
-                    ThreadQueryAccess,
+                    THREAD_QUERY_LIMITED_INFORMATION,
                     threadItem->ThreadId
                     );
             }
