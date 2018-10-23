@@ -143,6 +143,7 @@
   &lt;/Dependencies&gt;
   &lt;Capabilities&gt;
     &lt;rescap:Capability Name="runFullTrust"/&gt;
+    &lt;rescap:Capability Name="allowElevation" /&gt;
   &lt;/Capabilities&gt;
   &lt;Applications&gt;
     &lt;Application Id="ProcessHacker" Executable="ProcessHacker.exe" EntryPoint="Windows.FullTrustApplication"&gt;

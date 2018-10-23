@@ -10,6 +10,7 @@ namespace CustomBuildTool
     {
         public static void BuildAppxPackage(string BuildOutputFolder, string BuildLongVersion, BuildFlags Flags)
         {
+            string error = string.Empty;
             string sdkRootPath = string.Empty;
             string[] cleanupAppxArray =
             {
@@ -27,13 +28,13 @@ namespace CustomBuildTool
 
             using (var view32 = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry32))
             {
-                using (var kitsroot = view32.OpenSubKey("Microsoft\\Windows Kits\\Installed Roots\\", false))
+                using (var kitsroot = view32.OpenSubKey("Software\\Microsoft\\Windows Kits\\Installed Roots", false))
                 {
                     sdkRootPath = (string)kitsroot.GetValue("WdkBinRootVersioned", string.Empty);
                 }
             }
 
-            if (!string.IsNullOrEmpty(sdkRootPath))
+            if (string.IsNullOrEmpty(sdkRootPath))
             {
                 Program.PrintColorMessage("[Skipped] Windows SDK", ConsoleColor.Red);
                 return ;
@@ -82,20 +83,20 @@ namespace CustomBuildTool
                     File.WriteAllText(BuildOutputFolder + "\\package32.map", packageMap32.ToString());
 
                     // create the package
-                    Win32.ShellExecute(
+                    error = Win32.ShellExecute(
                         makeAppxExePath,
                         "pack /o /f " + BuildOutputFolder + "\\package32.map /p " +
                         BuildOutputFolder + "\\processhacker-build-package-x32.appx"
                         );
-                    //Program.PrintColorMessage(Environment.NewLine + error, ConsoleColor.Gray);
+                    Program.PrintColorMessage(Environment.NewLine + error, ConsoleColor.Gray, true, Flags);
 
                     // sign the package
-                    Win32.ShellExecute(
+                    error = Win32.ShellExecute(
                         signToolExePath,
                         "sign /v /fd SHA256 /a /f " + BuildOutputFolder + "\\processhacker-appx.pfx /td SHA256 " +
                         BuildOutputFolder + "\\processhacker-build-package-x32.appx"
                         );
-                    //Program.PrintColorMessage(Environment.NewLine + error, ConsoleColor.Gray);
+                    Program.PrintColorMessage(Environment.NewLine + error, ConsoleColor.Gray, true, Flags);
                 }
 
                 if ((Flags & BuildFlags.Build64bit) == BuildFlags.Build64bit)
@@ -131,20 +132,20 @@ namespace CustomBuildTool
                     File.WriteAllText(BuildOutputFolder + "\\package64.map", packageMap64.ToString());
 
                     // create the package
-                    Win32.ShellExecute(
+                    error = Win32.ShellExecute(
                         makeAppxExePath,
                         "pack /o /f " + BuildOutputFolder + "\\package64.map /p " +
                         BuildOutputFolder + "\\processhacker-build-package-x64.appx"
                         );
-                    //Program.PrintColorMessage(Environment.NewLine + error, ConsoleColor.Gray);
+                    Program.PrintColorMessage(Environment.NewLine + error, ConsoleColor.Gray, true, Flags);
 
                     // sign the package
-                    Win32.ShellExecute(
+                    error = Win32.ShellExecute(
                         signToolExePath,
                         "sign /v /fd SHA256 /a /f " + BuildOutputFolder + "\\processhacker-appx.pfx /td SHA256 " +
                         BuildOutputFolder + "\\processhacker-build-package-x64.appx"
                         );
-                    //Program.PrintColorMessage(Environment.NewLine + error, ConsoleColor.Gray);
+                    Program.PrintColorMessage(Environment.NewLine + error, ConsoleColor.Gray, true, Flags);
                 }
 
                 {
@@ -159,20 +160,20 @@ namespace CustomBuildTool
                         File.Delete(BuildOutputFolder + "\\processhacker-build-package.appxbundle");
 
                     // create the appx bundle package
-                    Win32.ShellExecute(
+                    error = Win32.ShellExecute(
                         makeAppxExePath,
                         "bundle /f " + BuildOutputFolder + "\\bundle.map /p " +
                         BuildOutputFolder + "\\processhacker-build-package.appxbundle"
                         );
-                    //Program.PrintColorMessage(Environment.NewLine + error, ConsoleColor.Gray);
+                    Program.PrintColorMessage(Environment.NewLine + error, ConsoleColor.Gray, true, Flags);
 
                     // sign the appx bundle package
-                    Win32.ShellExecute(
+                    error = Win32.ShellExecute(
                         signToolExePath,
                         "sign /v /fd SHA256 /a /f " + BuildOutputFolder + "\\processhacker-appx.pfx /td SHA256 " +
                         BuildOutputFolder + "\\processhacker-build-package.appxbundle"
                         );
-                    //Program.PrintColorMessage(Environment.NewLine + error, ConsoleColor.Gray);
+                    Program.PrintColorMessage(Environment.NewLine + error, ConsoleColor.Gray, true, Flags);
                 }
 
                 foreach (string file in cleanupAppxArray)
@@ -201,13 +202,13 @@ namespace CustomBuildTool
 
             using (var view32 = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry32))
             {
-                using (var kitsroot = view32.OpenSubKey("Microsoft\\Windows Kits\\Installed Roots\\", false))
+                using (var kitsroot = view32.OpenSubKey("Software\\Microsoft\\Windows Kits\\Installed Roots", false))
                 {
                     sdkRootPath = (string)kitsroot.GetValue("WdkBinRootVersioned", string.Empty);
                 }
             }
 
-            if (!string.IsNullOrEmpty(sdkRootPath))
+            if (string.IsNullOrEmpty(sdkRootPath))
             {
                 Program.PrintColorMessage("[Skipped] Windows SDK", ConsoleColor.Red);
                 return false;
@@ -262,6 +263,8 @@ namespace CustomBuildTool
                     Program.PrintColorMessage("[Certutil] " + output, ConsoleColor.Red);
                     return false;
                 }
+
+                Program.PrintColorMessage("[Pvk2Pfx] " + output, ConsoleColor.Green);
             }
             catch (Exception ex)
             {
