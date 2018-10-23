@@ -2609,7 +2609,7 @@ BOOLEAN PhUiSetPriorityThread(
 
     if (NT_SUCCESS(status = PhOpenThread(
         &threadHandle,
-        ThreadSetAccess,
+        THREAD_SET_LIMITED_INFORMATION,
         Thread->ThreadId
         )))
     {

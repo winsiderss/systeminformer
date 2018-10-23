@@ -803,7 +803,7 @@ INT_PTR CALLBACK DotNetPerfPageDlgProc(
 
             if (NT_SUCCESS(PhOpenProcess(
                 &context->ProcessHandle,
-                PROCESS_VM_READ | ProcessQueryAccess | PROCESS_DUP_HANDLE | SYNCHRONIZE,
+                PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ | PROCESS_DUP_HANDLE | SYNCHRONIZE,
                 context->ProcessItem->ProcessId
                 )))
             {

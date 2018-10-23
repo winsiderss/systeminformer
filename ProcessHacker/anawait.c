@@ -141,11 +141,11 @@ VOID PhUiAnalyzeWaitThread(
 
     if (!NT_SUCCESS(status = PhOpenThread(
         &threadHandle,
-        ThreadQueryAccess | THREAD_GET_CONTEXT | THREAD_SUSPEND_RESUME,
+        THREAD_QUERY_LIMITED_INFORMATION | THREAD_GET_CONTEXT | THREAD_SUSPEND_RESUME,
         ThreadId
         )))
     {
-        PhShowStatus(hWnd, L"Unable to open the thread", status, 0);
+        PhShowStatus(hWnd, L"Unable to open the thread.", status, 0);
         return;
     }
 

@@ -937,7 +937,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
             Edit_SetSel(context->ProgramComboBoxWindowHandle, -1, -1);
 
             //if (!PhGetOwnTokenAttributes().Elevated)
-            //    SendMessage(GetDlgItem(hwndDlg, IDOK), BCM_SETSHIELD, 0, TRUE);
+            //    Button_SetElevationRequiredState(GetDlgItem(hwndDlg, IDOK), TRUE);
 
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }

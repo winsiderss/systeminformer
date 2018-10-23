@@ -962,7 +962,7 @@ VOID PhpRefreshTaskManagerState(
 {
     if (!PhGetOwnTokenAttributes().Elevated)
     {
-        SendMessage(GetDlgItem(WindowHandle, IDC_REPLACETASKMANAGER), BCM_SETSHIELD, 0, TRUE);
+        Button_SetElevationRequiredState(GetDlgItem(WindowHandle, IDC_REPLACETASKMANAGER), TRUE);
     }
 
     if (PhpIsDefaultTaskManager())

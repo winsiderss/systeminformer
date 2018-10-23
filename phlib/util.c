@@ -368,7 +368,7 @@ PPH_STRING PhGetNtMessage(
     PPH_STRING message;
 
     if (!NT_NTWIN32(Status))
-        message = PhGetMessage(PhGetDllHandle(L"ntdll.dll"), 0xb, PhGetUserDefaultLangID(), (ULONG)Status);
+        message = PhGetMessage(PhGetLoaderEntryDllBase(L"ntdll.dll"), 0xb, PhGetUserDefaultLangID(), (ULONG)Status);
     else
         message = PhGetWin32Message(WIN32_FROM_NTSTATUS(Status));
 
@@ -410,7 +410,7 @@ PPH_STRING PhGetWin32Message(
 {
     PPH_STRING message;
 
-    message = PhGetMessage(PhGetDllHandle(L"kernel32.dll"), 0xb, PhGetUserDefaultLangID(), Result);
+    message = PhGetMessage(PhGetLoaderEntryDllBase(L"kernel32.dll"), 0xb, PhGetUserDefaultLangID(), Result);
 
     if (message)
         PhTrimToNullTerminatorString(message);

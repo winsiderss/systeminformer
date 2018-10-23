@@ -183,7 +183,7 @@ NTSTATUS GetProcessAffinity(
 
     if (NT_SUCCESS(status = PhOpenProcess(
         &processHandle,
-        ProcessQueryAccess,
+        PROCESS_QUERY_LIMITED_INFORMATION,
         ProcessId
         )))
     {
@@ -213,7 +213,7 @@ IO_PRIORITY_HINT GetProcessIoPriority(
 
     if (NT_SUCCESS(PhOpenProcess(
         &processHandle,
-        ProcessQueryAccess,
+        PROCESS_QUERY_LIMITED_INFORMATION,
         ProcessId
         )))
     {

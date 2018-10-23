@@ -77,9 +77,11 @@ NTSTATUS KphInitializeDynamicPackage(
 
         if (servicePack == 0)
         {
+            NOTHING;
         }
         else if (servicePack == 1)
         {
+            NOTHING;
         }
         else
         {

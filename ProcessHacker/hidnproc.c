@@ -1238,7 +1238,7 @@ NTSTATUS PhOpenProcessByCsrHandle(
             Handle->Handle,
             NtCurrentProcess(),
             &threadHandle,
-            ThreadQueryAccess,
+            THREAD_QUERY_LIMITED_INFORMATION,
             0,
             0
             )))
