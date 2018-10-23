@@ -3,6 +3,7 @@
  *   column chooser
  *
  * Copyright (C) 2010 wj32
+ * Copyright (C) 2017-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -22,6 +23,8 @@
 
 #include <phapp.h>
 #include <settings.h>
+
+#include <phsettings.h>
 
 typedef struct _COLUMNS_DIALOG_CONTEXT
 {
@@ -190,6 +193,8 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
 
             SendMessage(hwndDlg, WM_COMMAND, MAKEWPARAM(IDC_INACTIVE, LBN_SELCHANGE), (LPARAM)context->InactiveList);
             SendMessage(hwndDlg, WM_COMMAND, MAKEWPARAM(IDC_ACTIVE, LBN_SELCHANGE), (LPARAM)context->ActiveList);
+
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
