@@ -2267,55 +2267,130 @@ VOID ShowModuleSymbolInfo(
     //PhaFormatString(L"Public symbols: %s\n", info.Publics ? L"Available" : L"Not available")->Buffer
 }
 
-PPH_STRING PvFindDbghelpPath(
-    _In_ ULONG Type
+BOOLEAN PepSymbolProviderInitialization(
+    VOID
     )
 {
-    static struct
-    {
-        BOOLEAN Type;
-        PH_STRINGREF AppendPath;
-    } locations[] =
-    {
 #ifdef _WIN64
-        { FALSE, PH_STRINGREF_INIT(L"%ProgramFiles(x86)%\\Windows Kits\\10\\Debuggers\\x64\\dbghelp.dll") },
-        { FALSE, PH_STRINGREF_INIT(L"%ProgramFiles(x86)%\\Windows Kits\\8.1\\Debuggers\\x64\\dbghelp.dll") },
-        { FALSE, PH_STRINGREF_INIT(L"%ProgramFiles(x86)%\\Windows Kits\\8.0\\Debuggers\\x64\\dbghelp.dll") },
-        { FALSE, PH_STRINGREF_INIT(L"%ProgramFiles%\\Debugging Tools for Windows (x64)\\dbghelp.dll") },
-        { TRUE, PH_STRINGREF_INIT(L"%ProgramFiles(x86)%\\Windows Kits\\10\\Debuggers\\x64\\symsrv.dll") },
-        { TRUE, PH_STRINGREF_INIT(L"%ProgramFiles(x86)%\\Windows Kits\\8.1\\Debuggers\\x64\\symsrv.dll") },
-        { TRUE, PH_STRINGREF_INIT(L"%ProgramFiles(x86)%\\Windows Kits\\8.0\\Debuggers\\x64\\symsrv.dll") },
-        { TRUE, PH_STRINGREF_INIT(L"%ProgramFiles%\\Debugging Tools for Windows (x64)\\symsrv.dll") }
+    static PH_STRINGREF windowsKitsRootKeyName = PH_STRINGREF_INIT(L"Software\\Wow6432Node\\Microsoft\\Windows Kits\\Installed Roots");
 #else
-        { FALSE, PH_STRINGREF_INIT(L"%ProgramFiles%\\Windows Kits\\10\\Debuggers\\x86\\dbghelp.dll") },
-        { FALSE, PH_STRINGREF_INIT(L"%ProgramFiles%\\Windows Kits\\8.1\\Debuggers\\x86\\dbghelp.dll") },
-        { FALSE, PH_STRINGREF_INIT(L"%ProgramFiles%\\Windows Kits\\8.0\\Debuggers\\x86\\dbghelp.dll") },
-        { FALSE, PH_STRINGREF_INIT(L"%ProgramFiles%\\Debugging Tools for Windows (x86)\\dbghelp.dll") },
-        { TRUE, PH_STRINGREF_INIT(L"%ProgramFiles%\\Windows Kits\\10\\Debuggers\\x86\\symsrv.dll") },
-        { TRUE, PH_STRINGREF_INIT(L"%ProgramFiles%\\Windows Kits\\8.1\\Debuggers\\x86\\symsrv.dll") },
-        { TRUE, PH_STRINGREF_INIT(L"%ProgramFiles%\\Windows Kits\\8.0\\Debuggers\\x86\\symsrv.dll") },
-        { TRUE, PH_STRINGREF_INIT(L"%ProgramFiles%\\Debugging Tools for Windows (x86)\\symsrv.dll") }
+    static PH_STRINGREF windowsKitsRootKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows Kits\\Installed Roots");
 #endif
-    };
+    static PH_STRINGREF dbghelpFileName = PH_STRINGREF_INIT(L"dbghelp.dll");
+    static PH_STRINGREF symsrvFileName = PH_STRINGREF_INIT(L"symsrv.dll");
+    PVOID dbghelpHandle;
+    PVOID symsrvHandle;
+    HANDLE keyHandle;
 
-    PPH_STRING path;
-    ULONG i;
-
-    for (i = 0; i < sizeof(locations) / sizeof(locations[0]); i++)
+    if (PhFindLoaderEntry(NULL, NULL, &dbghelpFileName) &&
+        PhFindLoaderEntry(NULL, NULL, &symsrvFileName))
     {
-        if (locations[i].Type != Type)
-            continue;
+        dbghelpHandle = PhGetLoaderEntryDllBase(L"dbghelp.dll");
+        SymInitializeW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymInitializeW", 0);
+        SymCleanup_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymCleanup", 0);
+        SymEnumSymbolsW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymEnumSymbolsW", 0);
+        SymEnumTypesW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymEnumTypesW", 0);
+        SymSetSearchPathW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymSetSearchPathW", 0);
+        SymGetOptions_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymGetOptions", 0);
+        SymSetOptions_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymSetOptions", 0);
+        SymLoadModuleExW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymLoadModuleExW", 0);
+        SymGetModuleInfoW64_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymGetModuleInfoW64", 0);
+        SymGetTypeFromNameW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymGetTypeFromNameW", 0);
+        SymGetTypeInfo_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymGetTypeInfo", 0);
+        SymSetContext_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymSetContext", 0);
+        SymSearchW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymSearchW", 0);
 
-        if (path = PhExpandEnvironmentStrings(&locations[i].AppendPath))
+        if (SymInitializeW_I && SymCleanup_I && SymEnumSymbolsW_I && SymEnumTypesW_I && SymSetSearchPathW_I &&
+            SymGetOptions_I && SymSetOptions_I && SymLoadModuleExW_I && SymGetModuleInfoW64_I &&
+            SymGetTypeFromNameW_I && SymGetTypeInfo_I && SymSetContext_I && SymSearchW_I)
         {
-            if (RtlDoesFileExists_U(path->Buffer))
-                return path;
-
-            PhDereferenceObject(path);
+            return TRUE;
         }
     }
 
-    return NULL;
+    dbghelpHandle = NULL;
+    symsrvHandle = NULL;
+
+    if (NT_SUCCESS(PhOpenKey(
+        &keyHandle,
+        KEY_READ,
+        PH_KEY_LOCAL_MACHINE,
+        &windowsKitsRootKeyName,
+        0
+        )))
+    {
+        PPH_STRING winsdkPath;
+        PPH_STRING dbghelpName;
+        PPH_STRING symsrvName;
+
+        winsdkPath = PhQueryRegistryString(keyHandle, L"KitsRoot10"); // Windows 10 SDK
+
+        if (PhIsNullOrEmptyString(winsdkPath))
+            PhMoveReference(&winsdkPath, PhQueryRegistryString(keyHandle, L"KitsRoot81")); // Windows 8.1 SDK
+
+        if (PhIsNullOrEmptyString(winsdkPath))
+            PhMoveReference(&winsdkPath, PhQueryRegistryString(keyHandle, L"KitsRoot")); // Windows 8 SDK
+
+        if (!PhIsNullOrEmptyString(winsdkPath))
+        {
+#ifdef _WIN64
+            PhMoveReference(&winsdkPath, PhConcatStringRefZ(&winsdkPath->sr, L"\\Debuggers\\x64\\"));
+#else
+            PhMoveReference(&winsdkPath, PhConcatStringRefZ(&winsdkPath->sr, L"\\Debuggers\\x86\\"));
+#endif
+        }
+
+        if (winsdkPath)
+        {
+            if (dbghelpName = PhConcatStringRef2(&winsdkPath->sr, &dbghelpFileName))
+            {
+                dbghelpHandle = LoadLibrary(dbghelpName->Buffer);
+                PhDereferenceObject(dbghelpName);
+            }
+
+            if (symsrvName = PhConcatStringRef2(&winsdkPath->sr, &symsrvFileName))
+            {
+                symsrvHandle = LoadLibrary(symsrvName->Buffer);
+                PhDereferenceObject(symsrvName);
+            }
+
+            PhDereferenceObject(winsdkPath);
+        }
+
+        NtClose(keyHandle);
+    }
+
+    if (!dbghelpHandle)
+        dbghelpHandle = LoadLibrary(L"dbghelp.dll");
+
+    if (!symsrvHandle)
+        symsrvHandle = LoadLibrary(L"symsrv.dll");
+
+    if (dbghelpHandle)
+    {
+        SymInitializeW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymInitializeW", 0);
+        SymCleanup_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymCleanup", 0);
+        SymEnumSymbolsW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymEnumSymbolsW", 0);
+        SymEnumTypesW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymEnumTypesW", 0);
+        SymSetSearchPathW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymSetSearchPathW", 0);
+        SymGetOptions_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymGetOptions", 0);
+        SymSetOptions_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymSetOptions", 0);
+        SymLoadModuleExW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymLoadModuleExW", 0);
+        SymGetModuleInfoW64_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymGetModuleInfoW64", 0);
+        SymGetTypeFromNameW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymGetTypeFromNameW", 0);
+        SymGetTypeInfo_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymGetTypeInfo", 0);
+        SymSetContext_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymSetContext", 0);
+        SymSearchW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymSearchW", 0);
+    }
+
+    if (SymInitializeW_I && SymCleanup_I && SymEnumSymbolsW_I && SymEnumTypesW_I && SymSetSearchPathW_I &&
+        SymGetOptions_I && SymSetOptions_I && SymLoadModuleExW_I && SymGetModuleInfoW64_I &&
+        SymGetTypeFromNameW_I && SymGetTypeInfo_I && SymSetContext_I && SymSearchW_I)
+    {
+        return TRUE;
+    }
+
+    return FALSE;
 }
 
 NTSTATUS PeDumpFileSymbols(
@@ -2324,36 +2399,11 @@ NTSTATUS PeDumpFileSymbols(
 {
     NTSTATUS status;
     HANDLE fileHandle = NULL;
-    HMODULE dbghelpHandle;
-    HMODULE symsrvHandle;
     ULONG64 baseAddress = 0;
     LARGE_INTEGER fileSize;
-    PPH_STRING dbghelpPath;
-    PPH_STRING symsrvPath;
 
-    if (!(dbghelpPath = PvFindDbghelpPath(FALSE)))
-        return 1;
-    if (!(symsrvPath = PvFindDbghelpPath(TRUE)))
-        return 1;
-
-    if (!(dbghelpHandle = LoadLibrary(dbghelpPath->Buffer)))
-        return 1;
-    if (!(symsrvHandle = LoadLibrary(symsrvPath->Buffer)))
-        return 1;
-
-    SymInitializeW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymInitializeW", 0);
-    SymCleanup_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymCleanup", 0);
-    SymEnumSymbolsW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymEnumSymbolsW", 0);
-    SymEnumTypesW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymEnumTypesW", 0);
-    SymSetSearchPathW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymSetSearchPathW", 0);
-    SymGetOptions_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymGetOptions", 0);
-    SymSetOptions_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymSetOptions", 0);
-    SymLoadModuleExW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymLoadModuleExW", 0);
-    SymGetModuleInfoW64_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymGetModuleInfoW64", 0);
-    SymGetTypeFromNameW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymGetTypeFromNameW", 0);
-    SymGetTypeInfo_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymGetTypeInfo", 0);
-    SymSetContext_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymSetContext", 0);
-    SymSearchW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymSearchW", 0);
+    if (!PepSymbolProviderInitialization())
+        return STATUS_FAIL_CHECK;
 
     SymSetOptions_I(
         SymGetOptions_I() |
