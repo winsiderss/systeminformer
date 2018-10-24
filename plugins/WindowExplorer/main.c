@@ -209,21 +209,19 @@ LOGICAL DllMain(
     {
     case DLL_PROCESS_ATTACH:
         {
-            
             PPH_PLUGIN_INFORMATION info;
             PH_SETTING_CREATE settings[] =
             {
                 { IntegerSettingType, SETTING_NAME_SHOW_DESKTOP_WINDOWS, L"0" },
                 { StringSettingType, SETTING_NAME_WINDOW_TREE_LIST_COLUMNS, L"" },
-                { IntegerPairSettingType, SETTING_NAME_WINDOWS_WINDOW_POSITION, L"100,100" },
-                { ScalableIntegerPairSettingType, SETTING_NAME_WINDOWS_WINDOW_SIZE, L"@96|690,540" }
+                { IntegerPairSettingType, SETTING_NAME_WINDOWS_WINDOW_POSITION, L"0,0" },
+                { ScalableIntegerPairSettingType, SETTING_NAME_WINDOWS_WINDOW_SIZE, L"@96|690,540" },
+                { StringSettingType, SETTING_NAME_WINDOWS_PROPERTY_COLUMNS, L"" },
+                { IntegerPairSettingType, SETTING_NAME_WINDOWS_PROPERTY_POSITION, L"0,0" },
+                { ScalableIntegerPairSettingType, SETTING_NAME_WINDOWS_PROPERTY_SIZE, L"@96|690,540" },
+                { StringSettingType, SETTING_NAME_WINDOWS_PROPLIST_COLUMNS, L"" },
+                { StringSettingType, SETTING_NAME_WINDOWS_PROPSTORAGE_COLUMNS, L"" },
             };
-
-            //BOOLEAN isClient = FALSE;
-            //if (!GetModuleHandle(L"ProcessHacker.exe") || !WeGetProcedureAddress("PhInstanceHandle"))
-            //{
-            //    isClient = TRUE;
-            //}
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
 

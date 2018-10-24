@@ -73,12 +73,14 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.c" />
+    <ClCompile Include="prpsh.c" />
     <ClCompile Include="utils.c" />
     <ClCompile Include="wnddlg.c" />
     <ClCompile Include="wndprp.c" />
     <ClCompile Include="wndtree.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="prpsh.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="wndexp.h" />
     <ClInclude Include="wndtree.h" />

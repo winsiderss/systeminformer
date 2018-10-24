@@ -3,6 +3,7 @@
  *   window treelist
  *
  * Copyright (C) 2011 wj32
+ * Copyright (C) 2017-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -115,6 +116,12 @@ BOOLEAN WeWindowTreeFilterCallback(
             return TRUE;
     }
 
+    if (!PhIsNullOrEmptyString(windowNode->ModuleString))
+    {
+        if (WordMatchStringRef(context, &windowNode->ModuleString->sr))
+            return TRUE;
+    }
+
     return FALSE;
 }
 
@@ -149,6 +156,7 @@ VOID WeInitializeWindowTree(
     PhAddTreeNewColumn(hwnd, WEWNTLC_HANDLE, TRUE, L"Handle", 70, PH_ALIGN_LEFT, 1, 0);
     PhAddTreeNewColumn(hwnd, WEWNTLC_TEXT, TRUE, L"Text", 220, PH_ALIGN_LEFT, 2, 0);
     PhAddTreeNewColumn(hwnd, WEWNTLC_THREAD, TRUE, L"Thread", 150, PH_ALIGN_LEFT, 3, 0);
+    PhAddTreeNewColumn(hwnd, WEWNTLC_MODULE, TRUE, L"Module", 150, PH_ALIGN_LEFT, 4, 0);
 
     TreeNew_SetTriState(hwnd, TRUE);
     TreeNew_SetSort(hwnd, WEWNTLC_CLASS, NoSortOrder);
@@ -286,8 +294,8 @@ VOID WepDestroyWindowNode(
     PhDereferenceObject(WindowNode->Children);
 
     if (WindowNode->WindowText) PhDereferenceObject(WindowNode->WindowText);
-
     if (WindowNode->ThreadString) PhDereferenceObject(WindowNode->ThreadString);
+    if (WindowNode->ModuleString) PhDereferenceObject(WindowNode->ModuleString);
 
     PhFree(WindowNode);
 }
@@ -335,6 +343,12 @@ BEGIN_SORT_FUNCTION(Thread)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(Module)
+{
+    sortResult = PhCompareString(node1->ModuleString, node2->ModuleString, TRUE);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI WepWindowTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -378,7 +392,8 @@ BOOLEAN NTAPI WepWindowTreeNewCallback(
                         SORT_FUNCTION(Class),
                         SORT_FUNCTION(Handle),
                         SORT_FUNCTION(Text),
-                        SORT_FUNCTION(Thread)
+                        SORT_FUNCTION(Thread),
+                        SORT_FUNCTION(Module)
                     };
                     int (__cdecl *sortFunction)(void *, const void *, const void *);
 
@@ -433,6 +448,9 @@ BOOLEAN NTAPI WepWindowTreeNewCallback(
                     node->ThreadString = PhGetClientIdName(&node->ClientId);
                 getCellText->Text = PhGetStringRef(node->ThreadString);
                 break;
+            case WEWNTLC_MODULE:
+                getCellText->Text = PhGetStringRef(node->ModuleString);
+                break;
             default:
                 return FALSE;
             }
@@ -482,6 +500,22 @@ BOOLEAN NTAPI WepWindowTreeNewCallback(
             PPH_TREENEW_CONTEXT_MENU contextMenuEvent = Parameter1;
 
             SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_SHOWCONTEXTMENU, (LPARAM)contextMenuEvent);
+        }
+        return TRUE;
+    case TreeNewHeaderRightClick:
+        {
+            PH_TN_COLUMN_MENU_DATA data;
+
+            data.TreeNewHandle = hwnd;
+            data.MouseEvent = Parameter1;
+            data.DefaultSortColumn = 0;
+            data.DefaultSortOrder = AscendingSortOrder;
+            PhInitializeTreeNewColumnMenu(&data);
+
+            data.Selection = PhShowEMenu(data.Menu, hwnd, PH_EMENU_SHOW_LEFTRIGHT,
+                PH_ALIGN_LEFT | PH_ALIGN_TOP, data.MouseEvent->ScreenLocation.x, data.MouseEvent->ScreenLocation.y);
+            PhHandleTreeNewColumnMenu(&data);
+            PhDeleteTreeNewColumnMenu(&data);
         }
         return TRUE;
     }

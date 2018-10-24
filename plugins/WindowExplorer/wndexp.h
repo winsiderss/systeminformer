@@ -10,6 +10,7 @@
 
 #include "resource.h"
 #include "wndtree.h"
+#include "prpsh.h"
 
 extern PPH_PLUGIN PluginInstance;
 
@@ -18,7 +19,11 @@ extern PPH_PLUGIN PluginInstance;
 #define SETTING_NAME_WINDOW_TREE_LIST_COLUMNS (PLUGIN_NAME L".WindowTreeListColumns")
 #define SETTING_NAME_WINDOWS_WINDOW_POSITION (PLUGIN_NAME L".WindowsWindowPosition")
 #define SETTING_NAME_WINDOWS_WINDOW_SIZE (PLUGIN_NAME L".WindowsWindowSize")
-
+#define SETTING_NAME_WINDOWS_PROPERTY_COLUMNS (PLUGIN_NAME L".WindowsPropertyColumns")
+#define SETTING_NAME_WINDOWS_PROPERTY_POSITION (PLUGIN_NAME L".WindowsPropertyPosition")
+#define SETTING_NAME_WINDOWS_PROPERTY_SIZE (PLUGIN_NAME L".WindowsPropertySize")
+#define SETTING_NAME_WINDOWS_PROPLIST_COLUMNS (PLUGIN_NAME L".WindowsPropListColumns")
+#define SETTING_NAME_WINDOWS_PROPSTORAGE_COLUMNS (PLUGIN_NAME L".WindowsPropStorageColumns")
 // wnddlg
 
 typedef enum _WE_WINDOW_SELECTOR_TYPE
@@ -73,12 +78,6 @@ VOID WeShowWindowProperties(
 
 PVOID WeGetProcedureAddress(
     _In_ PSTR Name
-    );
-
-VOID WeFormatLocalObjectName(
-    _In_ PWSTR OriginalName,
-    _Inout_updates_(256) PWCHAR Buffer,
-    _Out_ PUNICODE_STRING ObjectName
     );
 
 VOID WeInvertWindowBorder(
