@@ -14,7 +14,9 @@
 #define IDB_SEARCH_ACTIVE               110
 #define IDD_ELFGENERAL                  110
 #define IDB_SEARCH_INACTIVE             111
+#define IDD_PEPROPSTORAGE               111
 #define IDB_SEARCH_ACTIVE_BMP           112
+#define IDD_PEATTR                      112
 #define IDB_SEARCH_INACTIVE_BMP         113
 #define IDC_SYMBOLTREE                  119
 #define IDC_TARGETMACHINE               1003
@@ -42,7 +44,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        119
+#define _APS_NEXT_RESOURCE_VALUE        121
 #define _APS_NEXT_COMMAND_VALUE         40001
 #define _APS_NEXT_CONTROL_VALUE         1023
 #define _APS_NEXT_SYMED_VALUE           115
