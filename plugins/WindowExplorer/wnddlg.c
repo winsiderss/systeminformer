@@ -2,8 +2,8 @@
  * Process Hacker Window Explorer -
  *   window tree dialog
  *
- * Copyright (C) 2016 dmex
  * Copyright (C) 2011 wj32
+ * Copyright (C) 2016-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -134,6 +134,34 @@ VOID WepFillWindowInfo(
 
     Node->WindowVisible = !!IsWindowVisible(hwnd);
     Node->HasChildren = !!FindWindowEx(hwnd, NULL, NULL, NULL);
+
+    if (processId)
+    {
+        HANDLE processHandle;
+        PVOID instanceHandle;
+        PPH_STRING fileName;
+
+        if (NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, UlongToHandle(processId))))
+        {
+            if (!(instanceHandle = (PVOID)GetWindowLongPtr(hwnd, GWLP_HINSTANCE)))
+            {
+                instanceHandle = (PVOID)GetClassLongPtr(hwnd, GCLP_HMODULE);
+            }
+
+            if (instanceHandle)
+            {
+                if (NT_SUCCESS(PhGetProcessMappedFileName(processHandle, instanceHandle, &fileName)))
+                {
+                    PhMoveReference(&fileName, PhResolveDevicePrefix(fileName));
+                    PhMoveReference(&fileName, PhGetBaseName(fileName));
+
+                    PhMoveReference(&Node->ModuleString, fileName);
+                }
+            }
+
+            NtClose(processHandle);
+        }
+    }
 }
 
 PWE_WINDOW_NODE WepAddChildWindowNode(
@@ -343,8 +371,9 @@ INT_PTR CALLBACK WepWindowsDlgProc(
         {
             PH_RECTANGLE windowRectangle;
 
-            SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_SMALL((*(PVOID *)WeGetProcedureAddress("PhInstanceHandle")), MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
-            SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE((*(PVOID *)WeGetProcedureAddress("PhInstanceHandle")), MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
+            HINSTANCE phInstanceHandle = *(HINSTANCE*)WeGetProcedureAddress("PhInstanceHandle");
+            SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_SMALL(phInstanceHandle, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
+            SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(phInstanceHandle, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
 
             context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_LIST);
             context->SearchBoxHandle = GetDlgItem(hwndDlg, IDC_SEARCHEDIT);
@@ -352,7 +381,6 @@ INT_PTR CALLBACK WepWindowsDlgProc(
             SetWindowText(hwndDlg, PH_AUTO_T(PH_STRING, WepGetWindowTitleForSelector(&context->Selector))->Buffer);
 
             PhCreateSearchControl(hwndDlg, context->SearchBoxHandle, L"Search Windows (Ctrl+K)");
-
             WeInitializeWindowTree(hwndDlg, context->TreeNewHandle, &context->TreeContext);
 
             PhRegisterDialog(hwndDlg);
@@ -376,7 +404,8 @@ INT_PTR CALLBACK WepWindowsDlgProc(
             WepRefreshWindows(context);
 
             // HACK
-            PhSetDialogFocus(GetParent(hwndDlg), GetDlgItem(GetParent(hwndDlg), IDCANCEL));
+            //PhSetDialogFocus(GetParent(hwndDlg), GetDlgItem(GetParent(hwndDlg), IDCANCEL));
+            PhSetDialogFocus(hwndDlg, context->TreeNewHandle);
 
             PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
         }
