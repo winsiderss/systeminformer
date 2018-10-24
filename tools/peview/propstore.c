@@ -33,7 +33,7 @@ VOID PvpPeEnumerateFilePropStore(
     if (SUCCEEDED(SHGetPropertyStoreFromParsingName(
         PvFileName->Buffer,
         NULL,
-        GPS_DEFAULT,
+        GPS_DEFAULT | GPS_EXTRINSICPROPERTIES | GPS_VOLATILEPROPERTIES,
         &IID_IPropertyStore,
         &propstore
         )))
