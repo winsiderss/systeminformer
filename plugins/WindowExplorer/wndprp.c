@@ -26,6 +26,10 @@
 #include <workqueue.h>
 #include <symprv.h>
 
+#include <shellapi.h>
+#include <propsys.h>
+#include <propvarutil.h>
+
 #define WEM_RESOLVE_DONE (WM_APP + 1234)
 
 typedef struct _WINDOW_PROPERTIES_CONTEXT
@@ -1047,12 +1051,74 @@ INT_PTR CALLBACK WepWindowPropertiesDlgProc(
     return FALSE;
 }
 
+VOID WepRefreshWindowPropertyStorage(
+    _In_ HWND hwndDlg,
+    _In_ HWND ListViewHandle,
+    _In_ PWINDOW_PROPERTIES_CONTEXT Context
+    )
+{
+    IPropertyStore *propstore;
+    ULONG count;
+    ULONG i;
 
-#pragma comment(lib, "propsys.lib")
-#include <shellapi.h>
-#include <propsys.h>
-#include <propvarutil.h>
-//#include <propkey.h> // remove
+    ExtendedListView_SetRedraw(ListViewHandle, FALSE);
+    ListView_DeleteAllItems(ListViewHandle);
+
+    if (SUCCEEDED(SHGetPropertyStoreForWindow(Context->WindowHandle, &IID_IPropertyStore, &propstore)))
+    {
+        if (SUCCEEDED(IPropertyStore_GetCount(propstore, &count)))
+        {
+            for (i = 0; i < count; i++)
+            {
+                PROPERTYKEY propkey;
+
+                if (SUCCEEDED(IPropertyStore_GetAt(propstore, i, &propkey)))
+                {
+                    INT lvItemIndex;
+                    PROPVARIANT propKeyVariant = { 0 };
+                    PWSTR propKeyName;
+
+                    if (SUCCEEDED(PSGetNameFromPropertyKey(&propkey, &propKeyName)))
+                    {
+                        lvItemIndex = PhAddListViewItem(ListViewHandle, MAXINT, propKeyName, NULL);
+                        CoTaskMemFree(propKeyName);
+                    }
+                    else
+                    {
+                        WCHAR propKeyString[PKEYSTR_MAX];
+
+                        if (SUCCEEDED(PSStringFromPropertyKey(&propkey, propKeyString, RTL_NUMBER_OF(propKeyString))))
+                            lvItemIndex = PhAddListViewItem(ListViewHandle, MAXINT, propKeyString, NULL);
+                        else
+                            lvItemIndex = PhAddListViewItem(ListViewHandle, MAXINT, L"Unknown", NULL);
+                    }
+
+                    if (SUCCEEDED(IPropertyStore_GetValue(propstore, &propkey, &propKeyVariant)))
+                    {
+                        if (SUCCEEDED(PSFormatForDisplayAlloc(&propkey, &propKeyVariant, PDFF_DEFAULT, &propKeyName)))
+                        {
+                            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, propKeyName);
+                            CoTaskMemFree(propKeyName);
+                        }
+
+                        //if (SUCCEEDED(PropVariantToStringAlloc(&propKeyVariant, &propKeyName)))
+                        //{
+                        //    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, propKeyName);
+                        //    CoTaskMemFree(propKeyName);
+                        //}
+
+                        PropVariantClear(&propKeyVariant);
+                    }
+                }
+            }
+        }
+
+        IPropertyStore_Release(propstore);
+    }
+
+    ExtendedListView_SortItems(ListViewHandle);
+    ExtendedListView_SetRedraw(ListViewHandle, TRUE);
+}
 
 INT_PTR CALLBACK WepWindowPropStoreDlgProc(
     _In_ HWND hwndDlg,
@@ -1088,76 +1154,7 @@ INT_PTR CALLBACK WepWindowPropStoreDlgProc(
             PhSetExtendedListView(lvHandle);
             PhLoadListViewColumnsFromSetting(SETTING_NAME_WINDOWS_PROPSTORAGE_COLUMNS, lvHandle);
 
-            {
-                IPropertyStore *propstore;
-                ULONG count;
-                ULONG i;
-
-                if (SUCCEEDED(SHGetPropertyStoreForWindow(context->WindowHandle, &IID_IPropertyStore, &propstore)))
-                {
-                    if (SUCCEEDED(IPropertyStore_GetCount(propstore, &count)))
-                    {
-                        for (i = 0; i < count; i++)
-                        {
-                            PROPERTYKEY propkey;
-
-                            if (SUCCEEDED(IPropertyStore_GetAt(propstore, i, &propkey)))
-                            {
-                                INT lvItemIndex;
-                                PROPVARIANT propKeyVariant = { 0 };
-                                PWSTR propKeyName;
-                                WCHAR propKeyString[PKEYSTR_MAX];
-
-                                if (SUCCEEDED(PSGetNameFromPropertyKey(&propkey, &propKeyName)))
-                                {
-                                    lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, propKeyName, NULL);
-                                    CoTaskMemFree(propKeyName);
-                                }
-                                else
-                                {
-                                    lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, L"Unknown", NULL);
-                                }
-
-                                if (SUCCEEDED(PSStringFromPropertyKey(&propkey, propKeyString, RTL_NUMBER_OF(propKeyString))))
-                                {
-                                    //PhSetListViewSubItem(lvHandle, lvItemIndex, 1, propKeyString);
-                                }
-
-                                if (SUCCEEDED(IPropertyStore_GetValue(propstore, &propkey, &propKeyVariant)))
-                                {
-                                    if (SUCCEEDED(PSFormatForDisplayAlloc(&propkey, &propKeyVariant, PDFF_DEFAULT, &propKeyName)))
-                                    {
-                                        PhSetListViewSubItem(lvHandle, lvItemIndex, 1, propKeyName);
-                                        CoTaskMemFree(propKeyName);
-                                    }
-
-                                    //if (SUCCEEDED(PropVariantToStringAlloc(&propKeyVariant, &propKeyName)))
-                                    //{
-                                    //     PhSetListViewSubItem(lvHandle, lvItemIndex, 1, propKeyName);
-                                    //    CoTaskMemFree(propKeyName);
-                                    //}
-
-                                    PropVariantClear(&propKeyVariant);
-                                }
-
-
-                                // IPropertyDescription *propstoreDesc;
-                                //if (SUCCEEDED(PSGetPropertyDescription(&propkey, &IID_IPropertyDescription, &propstoreDesc)))
-                                //{
-                                //    if (SUCCEEDED(IPropertyDescription_GetCanonicalName(propstoreDesc, &propKeyName)))
-                                //    {
-                                //        CoTaskMemFree(propKeyName);
-                                //    }
-                                //
-                                //    IPropertyDescription_Release(propstoreDesc);
-                                //}
-                            }
-                        }
-                    }
-
-                    IPropertyStore_Release(propstore);
-                }
-            }
+            WepRefreshWindowPropertyStorage(hwndDlg, lvHandle, context);
 
             PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
         }
@@ -1165,16 +1162,6 @@ INT_PTR CALLBACK WepWindowPropStoreDlgProc(
     case WM_DESTROY:
         {
             PhSaveListViewColumnsToSetting(SETTING_NAME_WINDOWS_PROPSTORAGE_COLUMNS, GetDlgItem(hwndDlg, IDC_LIST));
-        }
-        break;
-    case WM_COMMAND:
-        {
-            switch (GET_WM_COMMAND_ID(wParam, lParam))
-            {
-            case IDC_REFRESH:
-                //WepRefreshWindowProps(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST), context);
-                break;
-            }
         }
         break;
     case WM_SHOWWINDOW:
