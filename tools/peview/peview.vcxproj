@@ -99,7 +99,7 @@
       <SDLCheck>true</SDLCheck>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>noarg.obj;noenv.obj;phlib.lib;ntdll.lib;uxtheme.lib;userenv.lib;windowscodecs.lib;winsta.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>noarg.obj;noenv.obj;propsys.lib;phlib.lib;ntdll.lib;uxtheme.lib;userenv.lib;windowscodecs.lib;winsta.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\..\phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalManifestDependencies>
       </AdditionalManifestDependencies>
@@ -130,7 +130,7 @@
       <SDLCheck>true</SDLCheck>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>noarg.obj;noenv.obj;phlib.lib;ntdll.lib;uxtheme.lib;userenv.lib;windowscodecs.lib;winsta.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>noarg.obj;noenv.obj;propsys.lib;phlib.lib;ntdll.lib;uxtheme.lib;userenv.lib;windowscodecs.lib;winsta.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\..\phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalManifestDependencies>
       </AdditionalManifestDependencies>
@@ -164,7 +164,7 @@
       <ControlFlowGuard>Guard</ControlFlowGuard>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>noarg.obj;noenv.obj;phlib.lib;ntdll.lib;uxtheme.lib;userenv.lib;windowscodecs.lib;winsta.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>noarg.obj;noenv.obj;propsys.lib;phlib.lib;ntdll.lib;uxtheme.lib;userenv.lib;windowscodecs.lib;winsta.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\..\phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalManifestDependencies>
       </AdditionalManifestDependencies>
@@ -200,7 +200,7 @@
       <ControlFlowGuard>Guard</ControlFlowGuard>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>noarg.obj;noenv.obj;phlib.lib;ntdll.lib;uxtheme.lib;userenv.lib;windowscodecs.lib;winsta.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>noarg.obj;noenv.obj;propsys.lib;phlib.lib;ntdll.lib;uxtheme.lib;userenv.lib;windowscodecs.lib;winsta.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\..\phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalManifestDependencies>
       </AdditionalManifestDependencies>
@@ -222,6 +222,7 @@
     <ClCompile Include="cfgprp.c" />
     <ClCompile Include="clrprp.c" />
     <ClCompile Include="colmgr.c" />
+    <ClCompile Include="eaprp.c" />
     <ClCompile Include="exlfexports.c" />
     <ClCompile Include="exlfimports.c" />
     <ClCompile Include="exlfprp.c" />
@@ -234,6 +235,7 @@
     <ClCompile Include="pdb.c" />
     <ClCompile Include="pdbprp.c" />
     <ClCompile Include="peprp.c" />
+    <ClCompile Include="propstore.c" />
     <ClCompile Include="prpsh.c" />
     <ClCompile Include="resprp.c" />
     <ClCompile Include="searchbox.c" />

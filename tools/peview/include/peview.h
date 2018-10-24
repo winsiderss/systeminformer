@@ -329,6 +329,20 @@ INT_PTR CALLBACK PvpPeResourcesDlgProc(
     _In_ LPARAM lParam
     );
 
+INT_PTR CALLBACK PvpPePropStoreDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
+INT_PTR CALLBACK PvpPeExtendedAttributesDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
 // ELF
 
 PWSTR PvpGetSymbolTypeName(

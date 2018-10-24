@@ -81,6 +81,12 @@
     <ClCompile Include="exlfexports.c">
       <Filter>Source Files\Pages\Linux</Filter>
     </ClCompile>
+    <ClCompile Include="eaprp.c">
+      <Filter>Source Files\Pages</Filter>
+    </ClCompile>
+    <ClCompile Include="propstore.c">
+      <Filter>Source Files\Pages</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\peview.h">

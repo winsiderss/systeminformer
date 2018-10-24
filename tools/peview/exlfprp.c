@@ -104,6 +104,22 @@ VOID PvExlfProperties(
             );
         PvAddPropPage(propContext, newPage);
 
+        // Properties page
+        newPage = PvCreatePropPageContext(
+            MAKEINTRESOURCE(IDD_PEPROPSTORAGE),
+            PvpPePropStoreDlgProc,
+            NULL
+            );
+        PvAddPropPage(propContext, newPage);
+
+        // Extended attributes page
+        newPage = PvCreatePropPageContext(
+            MAKEINTRESOURCE(IDD_PEATTR),
+            PvpPeExtendedAttributesDlgProc,
+            NULL
+            );
+        PvAddPropPage(propContext, newPage);
+        
         PhModalPropertySheet(&propContext->PropSheetHeader);
 
         PhDereferenceObject(propContext);
