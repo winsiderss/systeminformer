@@ -22,47 +22,57 @@
 
 #include <peview.h>
 
-typedef struct _PV_EA_CALLBACK
-{
-    HWND ListViewHandle;
-    ULONG Count;
-} PV_EA_CALLBACK, *PPV_EA_CALLBACK;
-
-BOOLEAN NTAPI PvpEnumFileAttributesCallback(
-    _In_ PFILE_FULL_EA_INFORMATION Information,
-    _In_opt_ PVOID Context
+VOID PvpPeEnumerateFileStreams(
+    _In_ HWND ListViewHandle
     )
 {
-    PPV_EA_CALLBACK context = Context;
-    PPH_STRING attributeName;
-    INT lvItemIndex;
-    WCHAR number[PH_INT32_STR_LEN_1];
+    HANDLE fileHandle;
 
-    PhPrintUInt32(number, context->Count);
-    lvItemIndex = PhAddListViewItem(context->ListViewHandle, MAXINT, number, NULL);
+    if (NT_SUCCESS(PhCreateFileWin32(
+        &fileHandle,
+        PhGetString(PvFileName),
+        FILE_READ_ATTRIBUTES | FILE_READ_DATA | SYNCHRONIZE,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        )))
+    {
+        ULONG count = 0;
+        PVOID buffer;
+        PFILE_STREAM_INFORMATION i;
 
-    attributeName = PhZeroExtendToUtf16(Information->EaName);
-    PhSetListViewSubItem(
-        context->ListViewHandle,
-        lvItemIndex,
-        1,
-        attributeName->Buffer
-        );
-    PhDereferenceObject(attributeName);
+        if (NT_SUCCESS(PhEnumFileStreams(fileHandle, &buffer)))
+        {
+            for (i = PH_FIRST_STREAM(buffer); i; i = PH_NEXT_STREAM(i))
+            {
+                INT lvItemIndex;
+                PPH_STRING attributeName;
+                WCHAR number[PH_INT32_STR_LEN_1];
 
-    PhSetListViewSubItem(
-        context->ListViewHandle,
-        lvItemIndex,
-        2,
-        PhaFormatSize(Information->EaValueLength, ULONG_MAX)->Buffer
-        );
+                PhPrintUInt32(number, ++count);
+                lvItemIndex = PhAddListViewItem(ListViewHandle, MAXINT, number, NULL);
 
-    context->Count++;
+                attributeName = PhCreateStringEx(i->StreamName, i->StreamNameLength);
+                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, attributeName->Buffer);
+                PhDereferenceObject(attributeName);
 
-    return TRUE;
+                PhSetListViewSubItem(
+                    ListViewHandle,
+                    lvItemIndex,
+                    2,
+                    PhaFormatSize(i->StreamSize.QuadPart, ULONG_MAX)->Buffer
+                    );
+            }
+
+            PhFree(buffer);
+        }
+
+        NtClose(fileHandle);
+    }
 }
 
-INT_PTR CALLBACK PvpPeExtendedAttributesDlgProc(
+INT_PTR CALLBACK PvpPeStreamsDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -79,7 +89,6 @@ INT_PTR CALLBACK PvpPeExtendedAttributesDlgProc(
     {
     case WM_INITDIALOG:
         {
-            HANDLE fileHandle;
             HWND lvHandle;
 
             lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
@@ -87,36 +96,19 @@ INT_PTR CALLBACK PvpPeExtendedAttributesDlgProc(
             PhSetControlTheme(lvHandle, L"explorer");
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"#");
             PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 150, L"Name");
-            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 200, L"Value");
+            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 150, L"Size");
             PhSetExtendedListView(lvHandle);
-            PhLoadListViewColumnsFromSetting(L"ImageAttributesListViewColumns", lvHandle);
+            PhLoadListViewColumnsFromSetting(L"ImageStreamsListViewColumns", lvHandle);
 
-            if (NT_SUCCESS(PhCreateFileWin32(
-                &fileHandle,
-                PhGetString(PvFileName),
-                FILE_READ_ATTRIBUTES | FILE_READ_DATA | FILE_READ_EA | SYNCHRONIZE,
-                FILE_ATTRIBUTE_NORMAL,
-                FILE_SHARE_READ,
-                FILE_OPEN,
-                FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-                )))
-            {
-                PV_EA_CALLBACK context;
-
-                context.ListViewHandle = lvHandle;
-                context.Count = 0;
-
-                PhEnumFileExtendedAttributes(fileHandle, PvpEnumFileAttributesCallback, &context);
-
-                NtClose(lvHandle);
-            }
-
+            PvpPeEnumerateFileStreams(lvHandle);
+            //ExtendedListView_SortItems(lvHandle);
+            
             EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
         }
         break;
     case WM_DESTROY:
         {
-            PhSaveListViewColumnsToSetting(L"ImageAttributesListViewColumns", GetDlgItem(hwndDlg, IDC_LIST));
+            PhSaveListViewColumnsToSetting(L"ImageStreamsListViewColumns", GetDlgItem(hwndDlg, IDC_LIST));
         }
         break;
     case WM_SHOWWINDOW:

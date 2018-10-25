@@ -81,10 +81,13 @@
     <ClCompile Include="exlfexports.c">
       <Filter>Source Files\Pages\Linux</Filter>
     </ClCompile>
-    <ClCompile Include="eaprp.c">
+    <ClCompile Include="propstore.c">
       <Filter>Source Files\Pages</Filter>
     </ClCompile>
-    <ClCompile Include="propstore.c">
+    <ClCompile Include="streams.c">
+      <Filter>Source Files\Pages</Filter>
+    </ClCompile>
+    <ClCompile Include="attributes.c">
       <Filter>Source Files\Pages</Filter>
     </ClCompile>
   </ItemGroup>

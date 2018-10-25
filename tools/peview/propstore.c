@@ -51,7 +51,7 @@ VOID PvpPeEnumerateFilePropStore(
                     PWSTR propKeyName;
                     WCHAR number[PH_INT32_STR_LEN_1];
 
-                    PhPrintUInt32(number, i);
+                    PhPrintUInt32(number, i + 1);
                     lvItemIndex = PhAddListViewItem(ListViewHandle, MAXINT, number, NULL);
 
                     if (SUCCEEDED(PSGetNameFromPropertyKey(&propkey, &propKeyName)))

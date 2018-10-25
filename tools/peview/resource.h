@@ -18,6 +18,7 @@
 #define IDB_SEARCH_ACTIVE_BMP           112
 #define IDD_PEATTR                      112
 #define IDB_SEARCH_INACTIVE_BMP         113
+#define IDD_PESTREAMS                   113
 #define IDC_SYMBOLTREE                  119
 #define IDC_TARGETMACHINE               1003
 #define IDC_CHECKSUM                    1004

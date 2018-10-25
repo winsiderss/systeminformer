@@ -198,6 +198,16 @@ VOID PvPeProperties(
             PvAddPropPage(propContext, newPage);
         }
 
+        // Streams page
+        {
+            newPage = PvCreatePropPageContext(
+                MAKEINTRESOURCE(IDD_PESTREAMS),
+                PvpPeStreamsDlgProc,
+                NULL
+                );
+            PvAddPropPage(propContext, newPage);
+        }
+
         // Symbols page
         if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_DEBUG, &entry)) && entry->VirtualAddress)
         {

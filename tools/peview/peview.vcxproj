@@ -222,7 +222,7 @@
     <ClCompile Include="cfgprp.c" />
     <ClCompile Include="clrprp.c" />
     <ClCompile Include="colmgr.c" />
-    <ClCompile Include="eaprp.c" />
+    <ClCompile Include="attributes.c" />
     <ClCompile Include="exlfexports.c" />
     <ClCompile Include="exlfimports.c" />
     <ClCompile Include="exlfprp.c" />
@@ -240,6 +240,7 @@
     <ClCompile Include="resprp.c" />
     <ClCompile Include="searchbox.c" />
     <ClCompile Include="settings.c" />
+    <ClCompile Include="streams.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="colmgr.h" />
