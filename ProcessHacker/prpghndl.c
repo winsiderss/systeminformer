@@ -265,10 +265,10 @@ BOOLEAN PhpHandleTreeFilterCallback(
         // HACK: lazy init the etw object type index (dmex)
         if (PhBeginInitOnce(&initOnce))
         {
-            UNICODE_STRING fileTypeName;
+            UNICODE_STRING etwTypeName = RTL_CONSTANT_STRING(L"EtwRegistration");
 
-            RtlInitUnicodeString(&fileTypeName, L"EtwRegistration");
-            eventTraceTypeIndex = PhGetObjectTypeNumber(&fileTypeName);
+            eventTraceTypeIndex = PhGetObjectTypeNumber(&etwTypeName);
+
             PhEndInitOnce(&initOnce);
         }
 
