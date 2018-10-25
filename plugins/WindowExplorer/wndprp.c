@@ -843,7 +843,9 @@ INT_PTR CALLBACK WepWindowGeneralDlgProc(
             HINSTANCE phInstanceHandle = *(HINSTANCE*)WeGetProcedureAddress("PhInstanceHandle");
             SendMessage(GetParent(hwndDlg), WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_SMALL(phInstanceHandle, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
             SendMessage(GetParent(hwndDlg), WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(phInstanceHandle, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
-            PhCenterWindow(GetParent(hwndDlg), context->ParentWindowHandle);
+            
+            if (PhGetIntegerPairSetting(SETTING_NAME_WINDOWS_PROPERTY_POSITION).X == 0) // HACK
+                PhCenterWindow(GetParent(hwndDlg), context->ParentWindowHandle);
 
             PhSetListViewStyle(listViewHandle, FALSE, TRUE);
             PhSetControlTheme(listViewHandle, L"explorer");

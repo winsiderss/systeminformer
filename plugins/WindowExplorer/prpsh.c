@@ -252,7 +252,8 @@ BOOLEAN PhpInitializePropSheetLayoutStage1(
         // Set the Cancel button's text to "Close".
         PhSetDialogItemText(hwnd, IDCANCEL, L"Close");
 
-        PhLoadWindowPlacementFromSetting(SETTING_NAME_WINDOWS_PROPERTY_POSITION, SETTING_NAME_WINDOWS_PROPERTY_SIZE, hwnd);
+        if (PhGetIntegerPairSetting(SETTING_NAME_WINDOWS_PROPERTY_POSITION).X != 0) // HACK
+            PhLoadWindowPlacementFromSetting(SETTING_NAME_WINDOWS_PROPERTY_POSITION, SETTING_NAME_WINDOWS_PROPERTY_SIZE, hwnd);
 
         PropSheetContext->LayoutInitialized = TRUE;
 
