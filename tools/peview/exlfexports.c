@@ -41,7 +41,7 @@ VOID PvpProcessElfExports(
         if (!export->ExportSymbol)
             continue;
 
-        PhPrintUInt64(number, ++count);
+        PhPrintUInt32(number, ++count);
         lvItemIndex = PhAddListViewItem(ListViewHandle, MAXINT, number, NULL);
 
         PhPrintPointer(pointer, (PVOID)export->Address);

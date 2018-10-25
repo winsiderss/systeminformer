@@ -119,7 +119,15 @@ VOID PvExlfProperties(
             NULL
             );
         PvAddPropPage(propContext, newPage);
-        
+
+        // Streams page
+        newPage = PvCreatePropPageContext(
+            MAKEINTRESOURCE(IDD_PESTREAMS),
+            PvpPeStreamsDlgProc,
+            NULL
+            );
+        PvAddPropPage(propContext, newPage);
+
         PhModalPropertySheet(&propContext->PropSheetHeader);
 
         PhDereferenceObject(propContext);
