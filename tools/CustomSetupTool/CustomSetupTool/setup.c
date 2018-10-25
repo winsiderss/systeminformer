@@ -438,7 +438,7 @@ VOID SetupStartKph(
                 PhGetString(clientPath),
                 L"-installkph -s",
                 SW_NORMAL,
-                0,
+                PhGetOwnTokenAttributes().Elevated ? 0 : PH_SHELL_EXECUTE_ADMIN,
                 0,
                 &processHandle
                 ))
