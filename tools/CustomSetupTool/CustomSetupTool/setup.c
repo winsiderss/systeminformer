@@ -458,13 +458,31 @@ BOOLEAN SetupUninstallKph(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
+    PPH_STRING clientPath;
+
     // Query the current KPH installation state.
     Context->SetupKphInstallRequired = SetupKphCheckInstallState();
 
     // Stop and uninstall the current installation.
-    if (SetupMode == SETUP_COMMAND_UPDATE)
-    {        
-        SetupStopService(L"KProcessHacker3", FALSE);
+    clientPath = PhConcatStrings2(PhGetString(SetupInstallPath), L"\\ProcessHacker.exe");
+
+    if (RtlDoesFileExists_U(PhGetString(clientPath)))
+    {
+        HANDLE processHandle;
+
+        if (PhShellExecuteEx(
+            NULL,
+            PhGetString(clientPath),
+            L"-uninstallkph -s",
+            SW_NORMAL,
+            0,
+            0,
+            &processHandle
+            ))
+        {
+            NtWaitForSingleObject(processHandle, FALSE, NULL);
+            NtClose(processHandle);
+        }
     }
     else
     {
