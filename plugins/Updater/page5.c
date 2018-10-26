@@ -29,6 +29,34 @@ static TASKDIALOG_BUTTON TaskDialogButtonArray[] =
     { IDYES, L"Install" }
 };
 
+BOOLEAN UpdaterCheckKphInstallState(
+    VOID
+    )
+{
+    static PH_STRINGREF kph3ServiceKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services\\KProcessHacker3");
+    BOOLEAN kphInstallRequired = FALSE;
+    HANDLE runKeyHandle;
+
+    if (NT_SUCCESS(PhOpenKey(
+        &runKeyHandle,
+        KEY_READ,
+        PH_KEY_LOCAL_MACHINE,
+        &kph3ServiceKeyName,
+        0
+        )))
+    {
+        // Make sure we re-install the driver when KPH was installed as a service. 
+        if (PhQueryRegistryUlong(runKeyHandle, L"Start") == SERVICE_SYSTEM_START)
+        {
+            kphInstallRequired = TRUE;
+        }
+
+        NtClose(runKeyHandle);
+    }
+
+    return kphInstallRequired;
+}
+
 BOOLEAN UpdaterCheckApplicationDirectory(
     VOID
     )
@@ -36,6 +64,9 @@ BOOLEAN UpdaterCheckApplicationDirectory(
     HANDLE fileHandle;
     PPH_STRING directory;
     PPH_STRING file;
+
+    if (UpdaterCheckKphInstallState())
+        return FALSE;
 
     directory = PH_AUTO(PhGetApplicationDirectory());
     file = PH_AUTO(PhConcatStrings(2, PhGetStringOrEmpty(directory), L"\\processhacker.update"));
