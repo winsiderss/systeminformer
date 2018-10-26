@@ -293,6 +293,9 @@ VOID PhpDestroyThreadNode(
     if (ThreadNode->CyclesDeltaText) PhDereferenceObject(ThreadNode->CyclesDeltaText);
     if (ThreadNode->StartAddressText) PhDereferenceObject(ThreadNode->StartAddressText);
     if (ThreadNode->PrioritySymbolicText) PhDereferenceObject(ThreadNode->PrioritySymbolicText);
+    if (ThreadNode->CreatedText) PhDereferenceObject(ThreadNode->CreatedText);
+    if (ThreadNode->NameText) PhDereferenceObject(ThreadNode->NameText);
+    if (ThreadNode->StateText) PhDereferenceObject(ThreadNode->StateText);
 
     PhDereferenceObject(ThreadNode->ThreadItem);
 
@@ -685,7 +688,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
 
                         if (NT_SUCCESS(PhGetThreadName(threadItem->ThreadHandle, &threadName)))
                         {
-                            node->NameText = threadName;
+                            PhMoveReference(&node->NameText, threadName);
                         }
                     }
 
