@@ -26,17 +26,31 @@ VOID PvpPeEnumerateFilePropStore(
     _In_ HWND ListViewHandle
     )
 {
+    HRESULT status;
     IPropertyStore *propstore;
     ULONG count;
     ULONG i;
 
-    if (SUCCEEDED(SHGetPropertyStoreFromParsingName(
+    status = SHGetPropertyStoreFromParsingName(
         PvFileName->Buffer,
         NULL,
         GPS_DEFAULT | GPS_EXTRINSICPROPERTIES | GPS_VOLATILEPROPERTIES,
         &IID_IPropertyStore,
         &propstore
-        )))
+        );
+
+    if (status == HRESULT_FROM_WIN32(ERROR_RESOURCE_TYPE_NOT_FOUND))
+    {
+        status = SHGetPropertyStoreFromParsingName(
+            PvFileName->Buffer,
+            NULL,
+            GPS_FASTPROPERTIESONLY,
+            &IID_IPropertyStore,
+            &propstore
+            );
+    }
+
+    if (SUCCEEDED(status))
     {
         if (SUCCEEDED(IPropertyStore_GetCount(propstore, &count)))
         {
