@@ -5217,6 +5217,36 @@ NTSTATUS PhEnumFileStreams(
         );
 }
 
+NTSTATUS PhEnumFileStreamsEx(
+    _In_ HANDLE FileHandle,
+    _In_ PPH_ENUM_FILE_STREAMS Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    NTSTATUS status;
+    PVOID buffer;
+    PFILE_STREAM_INFORMATION i;
+
+    status = PhpQueryFileVariableSize(
+        FileHandle,
+        FileStreamInformation,
+        &buffer
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        for (i = PH_FIRST_STREAM(buffer); i; i = PH_NEXT_STREAM(i))
+        {
+            if (!Callback(i, Context))
+                break;
+        }
+
+        PhFree(buffer);
+    }
+
+    return status;
+}
+
 /**
  * Initializes the device prefixes module.
  */

@@ -898,8 +898,8 @@ PhEnumFileExtendedAttributes(
 #define PH_FIRST_STREAM(Streams) ((PFILE_STREAM_INFORMATION)(Streams))
 #define PH_NEXT_STREAM(Stream) ( \
     ((PFILE_STREAM_INFORMATION)(Stream))->NextEntryOffset ? \
-    (PFILE_STREAM_INFORMATION)((PCHAR)(Stream) + \
-    ((PFILE_STREAM_INFORMATION)(Stream))->NextEntryOffset) : \
+    (PFILE_STREAM_INFORMATION)(PTR_ADD_OFFSET((Stream), \
+    ((PFILE_STREAM_INFORMATION)(Stream))->NextEntryOffset)) : \
     NULL \
     )
 
@@ -909,6 +909,20 @@ NTAPI
 PhEnumFileStreams(
     _In_ HANDLE FileHandle,
     _Out_ PVOID *Streams
+    );
+
+typedef BOOLEAN (NTAPI *PPH_ENUM_FILE_STREAMS)(
+    _In_ PFILE_STREAM_INFORMATION Information,
+    _In_opt_ PVOID Context
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhEnumFileStreamsEx(
+    _In_ HANDLE FileHandle,
+    _In_ PPH_ENUM_FILE_STREAMS Callback,
+    _In_opt_ PVOID Context
     );
 
 PHLIBAPI
