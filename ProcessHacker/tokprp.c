@@ -512,9 +512,7 @@ BOOLEAN PhpUpdateTokenPrivileges(
         {
             PPHP_TOKEN_PAGE_LISTVIEW_ITEM lvitem;
 
-            lvitem = PhAllocate(sizeof(PHP_TOKEN_PAGE_LISTVIEW_ITEM));
-            memset(lvitem, 0, sizeof(PHP_TOKEN_PAGE_LISTVIEW_ITEM));
-
+            lvitem = PhAllocateZero(sizeof(PHP_TOKEN_PAGE_LISTVIEW_ITEM));
             lvitem->TokenPrivilege = &privileges->Privileges[i];
 
             privilegeDisplayName = NULL;
@@ -1677,16 +1675,16 @@ INT_PTR CALLBACK PhpTokenAdvancedPageProc(
     return FALSE;
 }
 
-static COLORREF NTAPI PhpTokenCapabilitiesColorFunction(
-    _In_ INT Index,
-    _In_ PVOID Param,
-    _In_opt_ PVOID Context
-    )
-{
-    PSID_AND_ATTRIBUTES sidAndAttributes = Param;
-
-    return PhGetGroupAttributesColor(sidAndAttributes->Attributes);
-}
+//static COLORREF NTAPI PhpTokenCapabilitiesColorFunction(
+//    _In_ INT Index,
+//    _In_ PVOID Param,
+//    _In_opt_ PVOID Context
+//    )
+//{
+//    PSID_AND_ATTRIBUTES sidAndAttributes = Param;
+//
+//    return PhGetGroupAttributesColor(sidAndAttributes->Attributes);
+//}
 
 INT_PTR CALLBACK PhpTokenCapabilitiesPageProc(
     _In_ HWND hwndDlg,
@@ -1715,9 +1713,9 @@ INT_PTR CALLBACK PhpTokenCapabilitiesPageProc(
             PhSetListViewStyle(lvHandle, FALSE, TRUE);
             PhSetControlTheme(lvHandle, L"explorer");
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 160, L"Name");
-            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 200, L"Flags");
+            //PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 200, L"Flags");
             PhSetExtendedListView(lvHandle);
-            ExtendedListView_SetItemColorFunction(lvHandle, PhpTokenCapabilitiesColorFunction);
+            //ExtendedListView_SetItemColorFunction(lvHandle, PhpTokenCapabilitiesColorFunction);
 
             if (NT_SUCCESS(tokenPageContext->OpenObject(
                 &tokenHandle,
@@ -1731,7 +1729,7 @@ INT_PTR CALLBACK PhpTokenCapabilitiesPageProc(
                     {
                         INT lvItemIndex;
                         PPH_STRING name;
-                        PPH_STRING attributesString;
+                        //PPH_STRING attributesString;
 
                         name = PhGetSidFullName(tokenPageContext->Capabilities->Groups[i].Sid, TRUE, NULL);
 
@@ -1740,13 +1738,11 @@ INT_PTR CALLBACK PhpTokenCapabilitiesPageProc(
 
                         if (name)
                         {
-                            lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, name->Buffer,
-                                &tokenPageContext->Capabilities->Groups[i]);
-                            attributesString = PhGetGroupAttributesString(
-                                tokenPageContext->Capabilities->Groups[i].Attributes, FALSE);
-                            PhSetListViewSubItem(lvHandle, lvItemIndex, 1, attributesString->Buffer);
-
-                            PhDereferenceObject(attributesString);
+                            lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, name->Buffer, &tokenPageContext->Capabilities->Groups[i]);
+                            //attributesString = PhGetGroupAttributesString(tokenPageContext->Capabilities->Groups[i].Attributes, FALSE);
+                            //PhSetListViewSubItem(lvHandle, lvItemIndex, 1, attributesString->Buffer);
+                            //
+                            //PhDereferenceObject(attributesString);
                             PhDereferenceObject(name);
                         }
                     }
