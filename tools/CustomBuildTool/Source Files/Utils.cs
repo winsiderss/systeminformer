@@ -78,18 +78,22 @@ namespace CustomBuildTool
 
         public static string SearchFile(string FileName)
         {
-            if (File.Exists(FileName))
-                return Path.GetFullPath(FileName);
-
-            string values = Environment.GetEnvironmentVariable("PATH");
-
-            foreach (string path in values.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries))
+            try
             {
-                string whereResult = Path.Combine(path, FileName);
+                if (File.Exists(FileName))
+                    return Path.GetFullPath(FileName);
 
-                if (File.Exists(whereResult))
-                    return whereResult;
+                string values = Environment.GetEnvironmentVariable("PATH");
+
+                foreach (string path in values.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries))
+                {
+                    string whereResult = Path.Combine(path, FileName);
+
+                    if (File.Exists(whereResult))
+                        return whereResult;
+                }
             }
+            catch (Exception) { }
 
             return null;
         }
@@ -347,11 +351,7 @@ namespace CustomBuildTool
 
         static AppVeyor()
         {
-            try
-            {
-                AppVeyorPath = Win32.SearchFile("appveyor");
-            }
-            catch (Exception) { }
+            AppVeyorPath = Win32.SearchFile("appveyor.exe");
         }
 
         public static bool AppVeyorNightlyBuild()
