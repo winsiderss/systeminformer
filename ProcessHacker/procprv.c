@@ -1159,7 +1159,10 @@ VOID PhpFillProcessItem(
     }
 
     // Token information
-    if (ProcessItem->QueryHandle)
+    if (
+        ProcessItem->QueryHandle &&
+        ProcessItem->ProcessId != SYSTEM_PROCESS_ID // System token can't be opened (dmex)
+        )
     {
         HANDLE tokenHandle;
 
@@ -2169,6 +2172,122 @@ VOID PhProcessProviderUpdate(
                 {
                     maxIoValue = processItem->IoReadDelta.Delta + processItem->IoWriteDelta.Delta;
                     maxIoProcessItem = processItem;
+                }
+            }
+
+            // Token information
+            if (
+                processItem->QueryHandle &&
+                processItem->ProcessId != SYSTEM_PROCESS_ID // System token can't be opened (dmex)
+                )
+            {
+                HANDLE tokenHandle;
+
+                if (NT_SUCCESS(PhOpenProcessToken(
+                    processItem->QueryHandle,
+                    TOKEN_QUERY,
+                    &tokenHandle
+                    )))
+                {
+                    PTOKEN_USER tokenUser;
+                    TOKEN_ELEVATION_TYPE elevationType;
+                    MANDATORY_LEVEL integrityLevel;
+                    PWSTR integrityString;
+
+                    // User
+                    if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
+                    {
+                        PSID processSid = processItem->Sid;
+
+                        processItem->Sid = PhAllocateCopy(tokenUser->User.Sid, RtlLengthSid(tokenUser->User.Sid));
+
+                        PhFree(processSid);
+                        PhFree(tokenUser);
+                        modified = TRUE;
+                    }
+
+                    // Elevation
+                    if (NT_SUCCESS(PhGetTokenElevationType(tokenHandle, &elevationType)))
+                    {
+                        if (processItem->ElevationType != elevationType)
+                        {
+                            processItem->ElevationType = elevationType;
+                            processItem->IsElevated = elevationType == TokenElevationTypeFull;
+                            modified = TRUE;
+                        }
+                    }
+
+                    // Integrity
+                    if (NT_SUCCESS(PhGetTokenIntegrityLevel(tokenHandle, &integrityLevel, &integrityString)))
+                    {
+                        if (processItem->IntegrityLevel != integrityLevel)
+                        {
+                            processItem->IntegrityLevel = integrityLevel;
+                            processItem->IntegrityString = integrityString;
+                            modified = TRUE;
+                        }
+                    }
+
+                    NtClose(tokenHandle);
+                }
+            }
+
+            // Job
+            if (processItem->QueryHandle)
+            {
+                NTSTATUS status;
+
+                if (KphIsConnected())
+                {
+                    HANDLE jobHandle = NULL;
+
+                    status = KphOpenProcessJob(
+                        processItem->QueryHandle,
+                        JOB_OBJECT_QUERY,
+                        &jobHandle
+                        );
+
+                    if (NT_SUCCESS(status) && status != STATUS_PROCESS_NOT_IN_JOB)
+                    {
+                        JOBOBJECT_BASIC_LIMIT_INFORMATION basicLimits;
+                        PPH_STRING jobName = NULL;
+
+                        processItem->IsInJob = TRUE;
+
+                        PhGetHandleInformation(
+                            NtCurrentProcess(),
+                            jobHandle,
+                            ULONG_MAX,
+                            NULL,
+                            NULL,
+                            NULL,
+                            &jobName
+                            );
+
+                        if (jobName)
+                            PhMoveReference(&processItem->JobName, jobName);
+
+                        // Process Explorer only recognizes processes as being in jobs if they don't have
+                        // the silent-breakaway-OK limit as their only limit. Emulate this behaviour. (wj32)
+                        if (NT_SUCCESS(PhGetJobBasicLimits(jobHandle, &basicLimits)))
+                        {
+                            processItem->IsInSignificantJob =
+                                basicLimits.LimitFlags != JOB_OBJECT_LIMIT_SILENT_BREAKAWAY_OK;
+                        }
+                    }
+
+                    if (jobHandle)
+                        NtClose(jobHandle);
+                }
+                else
+                {
+                    // KProcessHacker is not available. We can determine if the process is in a job, but we
+                    // can't get a handle to the job. (wj32)
+
+                    status = NtIsProcessInJob(processItem->QueryHandle, NULL);
+
+                    if (NT_SUCCESS(status))
+                        processItem->IsInJob = status == STATUS_PROCESS_IN_JOB;
                 }
             }
 
