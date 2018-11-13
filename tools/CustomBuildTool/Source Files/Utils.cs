@@ -78,18 +78,36 @@ namespace CustomBuildTool
 
         public static string SearchFile(string FileName)
         {
-            string where = Environment.ExpandEnvironmentVariables("%SystemRoot%\\System32\\where.exe");
+            if (File.Exists(FileName))
+                return Path.GetFullPath(FileName);
 
-            if (File.Exists(where))
+            string values = Environment.GetEnvironmentVariable("PATH");
+
+            foreach (string path in values.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries))
             {
-                string whereResult = ShellExecute(where, FileName);
+                string whereResult = Path.Combine(path, FileName);
 
-                if (!string.IsNullOrEmpty(whereResult))
+                if (File.Exists(whereResult))
                     return whereResult;
             }
 
             return null;
         }
+
+        //public static string SearchFile(string FileName)
+        //{
+        //    string where = Environment.ExpandEnvironmentVariables("%SystemRoot%\\System32\\where.exe");
+        //
+        //    if (File.Exists(where))
+        //    {
+        //        string whereResult = ShellExecute(where, FileName);
+        //
+        //        if (!string.IsNullOrEmpty(whereResult))
+        //            return whereResult;
+        //    }
+        //
+        //    return null;
+        //}
 
         public static void ImageResizeFile(int size, string FileName, string OutName)
         {
