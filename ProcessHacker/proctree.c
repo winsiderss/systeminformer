@@ -1298,6 +1298,8 @@ static VOID PhpUpdateProcessNodeDesktopInfo(
             {
                 ProcessNode->DesktopInfoText = desktopinfo;
             }
+
+            NtClose(processHandle);
         }
 
         ProcessNode->ValidMask |= PHPN_DESKTOPINFO;
