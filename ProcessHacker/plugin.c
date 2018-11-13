@@ -190,7 +190,8 @@ static BOOLEAN EnumPluginsDirectoryCallback(
     static PWSTR PhpPluginBlocklist[] =
     {
         L"CommonUtil.dll",
-        L"ExtraPlugins.dll"
+        L"ExtraPlugins.dll",
+        L"SbieSupport.dll"
     };
     BOOLEAN blacklistedPlugin = FALSE;
     PH_STRINGREF baseName;
