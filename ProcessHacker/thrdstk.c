@@ -706,7 +706,7 @@ VOID PhShowThreadStackDialog(
     // but KProcessHacker is not loaded, show an error message.
     if (ProcessId == SYSTEM_PROCESS_ID && !KphIsConnected())
     {
-        PhShowError(ParentWindowHandle, PH_KPH_ERROR_MESSAGE);
+        PhShowError2(ParentWindowHandle, PH_KPH_ERROR_TITLE, PH_KPH_ERROR_MESSAGE);
         return;
     }
 

@@ -3175,7 +3175,7 @@ BOOLEAN PhUiSetAttributesHandle(
 
     if (!KphIsConnected())
     {
-        PhShowError(hWnd, PH_KPH_ERROR_MESSAGE);
+        PhShowError2(hWnd, PH_KPH_ERROR_TITLE, PH_KPH_ERROR_MESSAGE);
         return FALSE;
     }
 
