@@ -193,7 +193,7 @@ static BOOLEAN EnumPluginsDirectoryCallback(
         L"ExtraPlugins.dll",
         L"SbieSupport.dll"
     };
-    BOOLEAN blacklistedPlugin = FALSE;
+    BOOLEAN blocklistedPlugin = FALSE;
     PH_STRINGREF baseName;
     PPH_STRING fileName;
 
@@ -208,14 +208,14 @@ static BOOLEAN EnumPluginsDirectoryCallback(
     {
         if (PhEndsWithStringRef2(&baseName, PhpPluginBlocklist[i], TRUE))
         {
-            blacklistedPlugin = TRUE;
+            blocklistedPlugin = TRUE;
             break;
         }
     }
 
     fileName = PhConcatStringRef2(&PluginsDirectory->sr, &baseName);
 
-    if (blacklistedPlugin)
+    if (blocklistedPlugin)
     {
         PhDeleteFileWin32(fileName->Buffer);
     }
@@ -231,7 +231,7 @@ static BOOLEAN EnumPluginsDirectoryCallback(
             PPHP_PLUGIN_LOAD_ERROR loadError;
             PPH_STRING errorMessage;
 
-            loadError = PhAllocate(sizeof(PHP_PLUGIN_LOAD_ERROR));
+            loadError = PhAllocateZero(sizeof(PHP_PLUGIN_LOAD_ERROR));
             PhSetReference(&loadError->FileName, fileName);
 
             if (errorMessage = PhGetNtMessage(status))
