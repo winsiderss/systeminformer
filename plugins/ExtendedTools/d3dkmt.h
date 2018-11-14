@@ -413,10 +413,11 @@ typedef enum D3DKMT_DRIVERVERSION
     KMT_DRIVERVERSION_WDDM_1_2 = 1200, // The display miniport driver supports the Windows Vista display driver model with released Windows 8 features. Supported starting with Windows 8.
     KMT_DRIVERVERSION_WDDM_1_3 = 1300, // The display miniport driver supports the Windows display driver model with released Windows 8.1 features. Supported starting with Windows 8.1.
     KMT_DRIVERVERSION_WDDM_2_0 = 2000, // The display miniport driver supports the Windows display driver model with released Windows 10 features. Supported starting with Windows 10.
-    KMT_DRIVERVERSION_WDDM_2_1 = 2100,
-    KMT_DRIVERVERSION_WDDM_2_2 = 2200,
-    KMT_DRIVERVERSION_WDDM_2_3 = 2300,
-    KMT_DRIVERVERSION_WDDM_2_4 = 2400,
+    KMT_DRIVERVERSION_WDDM_2_1 = 2100, // 1607
+    KMT_DRIVERVERSION_WDDM_2_2 = 2200, // 1703
+    KMT_DRIVERVERSION_WDDM_2_3 = 2300, // 1709
+    KMT_DRIVERVERSION_WDDM_2_4 = 2400, // 1803
+    KMT_DRIVERVERSION_WDDM_2_5 = 2500, // 1809
 } D3DKMT_DRIVERVERSION;
 
 // Specifies the type of display device that the graphics adapter supports.
