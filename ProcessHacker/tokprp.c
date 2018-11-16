@@ -32,7 +32,7 @@
 #include <phsettings.h>
 
 typedef enum _PH_PROCESS_TOKEN_CATEGORY
-{    
+{
     PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES,
     PH_PROCESS_TOKEN_CATEGORY_GROUPS,
     PH_PROCESS_TOKEN_CATEGORY_RESTRICTED,
@@ -360,7 +360,7 @@ static COLORREF NTAPI PhpTokenGroupColorFunction(
     if (entry->ItemCategory == PH_PROCESS_TOKEN_CATEGORY_DANGEROUS_FLAGS)
         return PhGetDangerousFlagColor(entry->ItemFlagState);
     else if (entry->ItemCategory == PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES)
-        return PhGetPrivilegeAttributesColor(entry->TokenPrivilege->Attributes);    
+        return PhGetPrivilegeAttributesColor(entry->TokenPrivilege->Attributes);
     else
         return PhGetGroupAttributesColor(entry->TokenGroup->Attributes);
 }
@@ -448,10 +448,10 @@ VOID PhpUpdateSidsFromTokenGroups(
             lvitem->TokenGroup = &Groups->Groups[i];
 
             lvItemIndex = PhAddListViewGroupItem(
-                ListViewHandle, 
+                ListViewHandle,
                 lvitem->ItemCategory,
-                PH_PROCESS_TOKEN_INDEX_NAME, 
-                fullName->Buffer, 
+                PH_PROCESS_TOKEN_INDEX_NAME,
+                fullName->Buffer,
                 lvitem
                 );
 
@@ -472,7 +472,7 @@ VOID PhpUpdateSidsFromTokenGroups(
                 PhSetListViewSubItem(ListViewHandle, lvItemIndex, PH_PROCESS_TOKEN_INDEX_DESCRIPTION, PhGetString(descriptionString));
                 PhDereferenceObject(descriptionString);
             }
-      
+
             PhDereferenceObject(fullName);
         }
     }
@@ -615,7 +615,7 @@ BOOLEAN PhpUpdateTokenDangerousFlags(
     _In_ HANDLE TokenHandle
     )
 {
-    TOKEN_MANDATORY_POLICY mandatoryPolicy;    
+    TOKEN_MANDATORY_POLICY mandatoryPolicy;
     BOOLEAN isSandboxInert;
     BOOLEAN isUIAccess;
 
@@ -632,7 +632,7 @@ BOOLEAN PhpUpdateTokenDangerousFlags(
                 L"Prevents the process from modifying objects with higher integrity"
                 );
         }
-    }    
+    }
 
     if (NT_SUCCESS(PhGetTokenIsSandBoxInert(TokenHandle, &isSandboxInert)))
     {
@@ -663,7 +663,7 @@ BOOLEAN PhpUpdateTokenDangerousFlags(
                 );
         }
     }
-    
+
     return TRUE;
 }
 
@@ -795,7 +795,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                         if (appContainerInfo->TokenAppContainer)
                         {
                             appContainerName = PhGetAppContainerName(appContainerInfo->TokenAppContainer);
-                            appContainerSid = PhSidToStringSid(appContainerInfo->TokenAppContainer);    
+                            appContainerSid = PhSidToStringSid(appContainerInfo->TokenAppContainer);
                         }
 
                         PhFree(appContainerInfo);
@@ -1015,7 +1015,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                         PhShowStatus(hwndDlg, L"Unable to open the token.", status, 0);
                     }
 
-                    PhFree(listViewItems);                                                            
+                    PhFree(listViewItems);
                 }
                 break;
             case ID_GROUP_ENABLE:
@@ -1094,7 +1094,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                                     tokenPageContext->ListViewHandle,
                                     -1,
                                     listViewItems[i]
-                                    );                                
+                                    );
 
                                 // Refresh the status text (and background color).
                                 listViewItems[i]->TokenGroup->Attributes = newAttributes;
@@ -1158,7 +1158,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                         &listViewItems,
                         &numberOfItems
                         );
-      
+
                     if (numberOfItems != 1)
                     {
                         PhFree(listViewItems);
@@ -1209,12 +1209,12 @@ INT_PTR CALLBACK PhpTokenPageProc(
                         }
                         else
                         {
-                            PhShowStatus(hwndDlg, L"Unable to disable UIAccess flag.", status, 0);                         
+                            PhShowStatus(hwndDlg, L"Unable to disable UIAccess flag.", status, 0);
                         }
 
                         ExtendedListView_SortItems(tokenPageContext->ListViewHandle);
                         ExtendedListView_SetRedraw(tokenPageContext->ListViewHandle, TRUE);
-                       
+
                         NtClose(tokenHandle);
                     }
                     else
@@ -1311,7 +1311,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                             if (customLevelPosition)
                             {
                                 PPH_EMENU_ITEM unknownIntegrityItem;
-                                
+
                                 unknownIntegrityItem = PhCreateEMenuItem(0, (ULONG)integrityLevelRID, L"Intermediate level", NULL, NULL);
                                 unknownIntegrityItem->Flags |= PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK;
                                 PhInsertEMenuItem(menu, unknownIntegrityItem, customLevelPosition);
