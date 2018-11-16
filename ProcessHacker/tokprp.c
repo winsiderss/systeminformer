@@ -629,7 +629,7 @@ BOOLEAN PhpUpdateTokenDangerousFlags(
                 PH_PROCESS_TOKEN_FLAG_NO_WRITE_UP,
                 FALSE,
                 L"No-Write-Up Policy",
-                L"Prevents the process from modifying objects with higher integrity"
+                L"Prevents the process from modifying objects with a higher integrity"
                 );
         }
     }
