@@ -720,7 +720,7 @@ VOID PhShowThreadStackDialog(
         {
             status = PhOpenThread(
                 &threadHandle,
-                ThreadQueryAccess,
+                THREAD_QUERY_LIMITED_INFORMATION,
                 ThreadId
                 );
         }

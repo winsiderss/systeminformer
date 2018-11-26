@@ -906,7 +906,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
 
                 if (NT_SUCCESS(PhOpenProcess(
                     &processHandle,
-                    ProcessQueryAccess,
+                    PROCESS_QUERY_LIMITED_INFORMATION,
                     context->ProcessId
                     )))
                 {

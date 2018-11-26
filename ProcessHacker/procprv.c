@@ -760,7 +760,7 @@ VOID PhpProcessQueryStage1(
         {
             status = PhOpenProcess(
                 &processHandle,
-                ProcessQueryAccess | PROCESS_VM_READ,
+                PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ,
                 processId
                 );
         }

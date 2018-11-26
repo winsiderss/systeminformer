@@ -38,7 +38,7 @@ NTSTATUS NTAPI PhpOpenProcessJobForPage(
 
     if (!NT_SUCCESS(status = PhOpenProcess(
         &processHandle,
-        ProcessQueryAccess,
+        PROCESS_QUERY_LIMITED_INFORMATION,
         (HANDLE)Context
         )))
         return status;

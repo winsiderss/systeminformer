@@ -583,7 +583,7 @@ static PPH_PROCESS_ITEM PhpCreateProcessItemForHiddenProcess(
     {
         status = PhOpenProcess(
             &processHandle,
-            ProcessQueryAccess,
+            PROCESS_QUERY_LIMITED_INFORMATION,
             Entry->ProcessId
             );
     }
@@ -591,7 +591,7 @@ static PPH_PROCESS_ITEM PhpCreateProcessItemForHiddenProcess(
     {
         status = PhOpenProcessByCsrHandles(
             &processHandle,
-            ProcessQueryAccess,
+            PROCESS_QUERY_LIMITED_INFORMATION,
             Entry->ProcessId
             );
     }
@@ -674,7 +674,7 @@ static PPH_PROCESS_ITEM PhpCreateProcessItemForHiddenProcess(
 
     status = PhOpenProcess(
         &processHandle2,
-        ProcessQueryAccess | PROCESS_VM_READ,
+        PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ,
         Entry->ProcessId
         );
 
@@ -746,7 +746,7 @@ NTSTATUS PhpEnumHiddenProcessesBruteForce(
 
         status2 = PhOpenProcess(
             &processHandle,
-            ProcessQueryAccess,
+            PROCESS_QUERY_LIMITED_INFORMATION,
             UlongToHandle(pid)
             );
 
@@ -849,7 +849,7 @@ static BOOLEAN NTAPI PhpCsrProcessHandlesCallback(
 
     if (NT_SUCCESS(status = PhOpenProcessByCsrHandle(
         &processHandle,
-        ProcessQueryAccess,
+        PROCESS_QUERY_LIMITED_INFORMATION,
         Handle
         )))
     {
@@ -943,7 +943,7 @@ NTSTATUS PhpEnumHiddenProcessHandles(
 
     if (!NT_SUCCESS(status = NtGetNextProcess(
         NULL,
-        ProcessQueryAccess,
+        PROCESS_QUERY_LIMITED_INFORMATION,
         0,
         0,
         &processHandle
@@ -991,7 +991,7 @@ NTSTATUS PhpEnumHiddenProcessHandles(
 
         if (NT_SUCCESS(status = NtGetNextProcess(
             processHandle,
-            ProcessQueryAccess,
+            PROCESS_QUERY_LIMITED_INFORMATION,
             0,
             0,
             &enumProcessHandle
@@ -1059,7 +1059,7 @@ NTSTATUS PhpOpenCsrProcesses(
 
         if (NT_SUCCESS(PhOpenProcess(
             &processHandle,
-            ProcessQueryAccess | PROCESS_DUP_HANDLE,
+            PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_DUP_HANDLE,
             process->UniqueProcessId
             )))
         {

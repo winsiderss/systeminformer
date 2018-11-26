@@ -4871,7 +4871,7 @@ NTSTATUS PhGetProcessIsDotNetEx(
 
         if (!ProcessHandle)
         {
-            if (!NT_SUCCESS(status = PhOpenProcess(&processHandle, ProcessQueryAccess | PROCESS_VM_READ, ProcessId)))
+            if (!NT_SUCCESS(status = PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ, ProcessId)))
                 return status;
 
             ProcessHandle = processHandle;
@@ -6078,7 +6078,7 @@ NTSTATUS PhEnumGenericModules(
             {
                 if (!NT_SUCCESS(status = PhOpenProcess(
                     &ProcessHandle,
-                    ProcessQueryAccess | PROCESS_VM_READ,
+                    PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ,
                     ProcessId
                     )))
                 {

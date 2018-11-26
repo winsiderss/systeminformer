@@ -1336,7 +1336,7 @@ BOOLEAN PhUiRestartProcess(
 
     if (!NT_SUCCESS(status = PhOpenProcess(
         &processHandle,
-        ProcessQueryAccess | PROCESS_VM_READ,
+        PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ,
         Process->ProcessId
         )))
         goto ErrorExit;
@@ -1577,7 +1577,7 @@ BOOLEAN PhUiSetVirtualizationProcess(
 
     if (NT_SUCCESS(status = PhOpenProcess(
         &processHandle,
-        ProcessQueryAccess,
+        PROCESS_QUERY_LIMITED_INFORMATION,
         Process->ProcessId
         )))
     {
@@ -1746,7 +1746,7 @@ BOOLEAN PhUiLoadDllProcess(
 
     if (NT_SUCCESS(status = PhOpenProcess(
         &processHandle,
-        ProcessQueryAccess | PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION |
+        PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION |
         PROCESS_VM_READ | PROCESS_VM_WRITE,
         Process->ProcessId
         )))
@@ -2769,7 +2769,7 @@ BOOLEAN PhUiUnloadModule(
     case PH_MODULE_TYPE_WOW64_MODULE:
         if (NT_SUCCESS(status = PhOpenProcess(
             &processHandle,
-            ProcessQueryAccess | PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION |
+            PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION |
             PROCESS_VM_READ | PROCESS_VM_WRITE,
             ProcessId
             )))
@@ -3181,7 +3181,7 @@ BOOLEAN PhUiSetAttributesHandle(
 
     if (NT_SUCCESS(status = PhOpenProcess(
         &processHandle,
-        ProcessQueryAccess,
+        PROCESS_QUERY_LIMITED_INFORMATION,
         ProcessId
         )))
     {

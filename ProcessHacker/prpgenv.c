@@ -400,7 +400,7 @@ INT_PTR CALLBACK PhpEditEnvDlgProc(
                         {
                             if (NT_SUCCESS(status = PhOpenProcess(
                                 &processHandle,
-                                ProcessQueryAccess | PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION |
+                                PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION |
                                 PROCESS_VM_READ | PROCESS_VM_WRITE,
                                 context->ProcessItem->ProcessId
                                 )))
@@ -591,7 +591,7 @@ VOID PhpShowEnvironmentNodeContextMenu(
 
                     if (NT_SUCCESS(status = PhOpenProcess(
                         &processHandle,
-                        ProcessQueryAccess | PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION |
+                        PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION |
                         PROCESS_VM_READ | PROCESS_VM_WRITE,
                         Context->ProcessItem->ProcessId
                         )))
