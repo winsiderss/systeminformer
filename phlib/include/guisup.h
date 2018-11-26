@@ -958,7 +958,7 @@ PhDuplicateFontWithNewHeight(
 
     if (GetObject(Font, sizeof(LOGFONT), &logFont))
     {
-        logFont.lfHeight = NewHeight;
+        logFont.lfHeight = PhMultiplyDivide(NewHeight, PhGlobalDpi, 96);
         return CreateFontIndirect(&logFont);
     }
 
