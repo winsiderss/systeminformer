@@ -1334,6 +1334,13 @@ PhGetTokenIsUIAccessEnabled(
     return status;
 }
 
+/**
+* Sets UIAccess flag for a token.
+*
+* \param TokenHandle A handle to a token. The handle must have TOKEN_ADJUST_DEFAULT access.
+* \param IsUIAccessEnabled The new flag state.
+* \remarks Enabling UIAccess requires SeTcbPrivilege.
+*/
 FORCEINLINE
 NTSTATUS
 PhSetTokenUIAccessEnabled(
@@ -1384,6 +1391,34 @@ PhGetTokenIsSandBoxInert(
 
     *IsSandBoxInert = !!sandBoxInert;
 
+    return status;
+}
+
+/**
+* Gets Mandatory Policy for a token.
+*
+* \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
+* \param MandatoryPolicy A variable which receives a set of mandatory integrity
+* policies enforced for the token.
+*/
+FORCEINLINE
+NTSTATUS
+PhGetTokenMandatoryPolicy(
+    _In_ HANDLE TokenHandle,
+    _Out_ PTOKEN_MANDATORY_POLICY MandatoryPolicy
+    )
+{
+    NTSTATUS status;
+    ULONG returnLength;
+
+    status = NtQueryInformationToken(
+        TokenHandle,
+        TokenMandatoryPolicy,
+        MandatoryPolicy,
+        sizeof(TOKEN_MANDATORY_POLICY),
+        &returnLength
+        );
+    
     return status;
 }
 
