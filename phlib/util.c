@@ -2762,7 +2762,7 @@ NTSTATUS PhCreateProcessAsUser(
 
         if (!NT_SUCCESS(status = PhOpenProcess(
             &processHandle,
-            ProcessQueryAccess,
+            PROCESS_QUERY_LIMITED_INFORMATION,
             Information->ProcessIdWithToken
             )))
             return status;

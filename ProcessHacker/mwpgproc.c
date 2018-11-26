@@ -392,7 +392,7 @@ VOID PhMwpSetProcessMenuPriorityChecks(
 
     if (NT_SUCCESS(PhOpenProcess(
         &processHandle,
-        ProcessQueryAccess,
+        PROCESS_QUERY_LIMITED_INFORMATION,
         ProcessId
         )))
     {

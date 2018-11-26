@@ -1495,7 +1495,7 @@ HWND PhGetProcessMainWindowEx(
     if (ProcessHandle)
         processHandle = ProcessHandle;
     else
-        PhOpenProcess(&processHandle, ProcessQueryAccess, ProcessId);
+        PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, ProcessId);
 
     if (processHandle && IsImmersiveProcess_I)
         context.IsImmersive = IsImmersiveProcess_I(processHandle);

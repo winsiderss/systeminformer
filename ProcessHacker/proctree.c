@@ -1024,7 +1024,7 @@ static VOID PhpUpdateProcessOsContext(
     {
         HANDLE processHandle;
 
-        if (NT_SUCCESS(PhOpenProcess(&processHandle, ProcessQueryAccess | PROCESS_VM_READ, ProcessNode->ProcessId)))
+        if (NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ, ProcessNode->ProcessId)))
         {
             if (NT_SUCCESS(PhGetProcessSwitchContext(processHandle, &ProcessNode->OsContextGuid)))
             {
@@ -1092,7 +1092,7 @@ static VOID PhpUpdateProcessNodeImage(
             PVOID imageBaseAddress;
             PH_REMOTE_MAPPED_IMAGE mappedImage;
 
-            if (NT_SUCCESS(PhOpenProcess(&processHandle, ProcessQueryAccess | PROCESS_VM_READ, ProcessNode->ProcessId)))
+            if (NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ, ProcessNode->ProcessId)))
             {
                 if (NT_SUCCESS(PhGetProcessBasicInformation(processHandle, &basicInfo)) && basicInfo.PebBaseAddress != 0)
                 {
@@ -1288,7 +1288,7 @@ static VOID PhpUpdateProcessNodeDesktopInfo(
 
         if (NT_SUCCESS(PhOpenProcess(
             &processHandle,
-            ProcessQueryAccess | PROCESS_VM_READ,
+            PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ,
             ProcessNode->ProcessId
             )))
         {

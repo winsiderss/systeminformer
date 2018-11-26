@@ -155,7 +155,7 @@ VOID PhShowHandleObjectProperties1(
         {
             if (NT_SUCCESS(PhOpenProcess(
                 &processHandle,
-                ProcessQueryAccess,
+                PROCESS_QUERY_LIMITED_INFORMATION,
                 Info->ProcessId
                 )))
             {
@@ -183,7 +183,7 @@ VOID PhShowHandleObjectProperties1(
 
             if (NT_SUCCESS(PhpDuplicateHandleFromProcessItem(
                 &handle,
-                ProcessQueryAccess,
+                PROCESS_QUERY_LIMITED_INFORMATION,
                 Info->ProcessId,
                 Info->Handle
                 )))
@@ -325,7 +325,7 @@ VOID PhShowHandleObjectProperties1(
         {
             if (NT_SUCCESS(PhOpenProcess(
                 &processHandle,
-                ProcessQueryAccess,
+                PROCESS_QUERY_LIMITED_INFORMATION,
                 Info->ProcessId
                 )))
             {

@@ -111,7 +111,7 @@ static VOID PhpRefreshProcessList(
         lvItemIndex = PhAddListViewItem(Context->ListViewHandle, MAXINT, name->Buffer, process->UniqueProcessId);
         PhDereferenceObject(name);
 
-        if (NT_SUCCESS(PhOpenProcess(&processHandle, ProcessQueryAccess, process->UniqueProcessId)))
+        if (NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, process->UniqueProcessId)))
         {
             HANDLE tokenHandle;
             PTOKEN_USER user;

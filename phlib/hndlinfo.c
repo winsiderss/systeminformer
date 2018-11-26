@@ -818,7 +818,7 @@ NTSTATUS PhpGetBestObjectName(
                 Handle,
                 NtCurrentProcess(),
                 &dupHandle,
-                ProcessQueryAccess,
+                PROCESS_QUERY_LIMITED_INFORMATION,
                 0,
                 0
                 );

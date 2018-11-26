@@ -124,7 +124,7 @@ VOID PhUiAnalyzeWaitThread(
 #ifdef _WIN64
     // Determine if the process is WOW64. If not, we use the passive method.
 
-    if (!NT_SUCCESS(status = PhOpenProcess(&processHandle, ProcessQueryAccess, ProcessId)))
+    if (!NT_SUCCESS(status = PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, ProcessId)))
     {
         PhShowStatus(hWnd, L"Unable to open the process", status, 0);
         return;

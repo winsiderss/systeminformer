@@ -290,7 +290,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             if (NT_SUCCESS(PhOpenProcess(
                 &processHandle,
-                ProcessQueryAccess | PROCESS_VM_READ,
+                PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ,
                 processItem->ProcessId
                 )))
             {
@@ -372,7 +372,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             if (NT_SUCCESS(PhOpenProcess(
                 &processHandle,
-                ProcessQueryAccess,
+                PROCESS_QUERY_LIMITED_INFORMATION,
                 processItem->ProcessId
                 )))
             {
