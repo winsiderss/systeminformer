@@ -114,17 +114,24 @@ VOID PhInitializeWindowTheme(
     PhpThemeEnable = !!PhGetIntegerSetting(L"EnableThemeSupport");
     PhpThemeBorderEnable = !!PhGetIntegerSetting(L"TreeListBorderEnable");
 
-    if (!PhMenuBackgroundBrush) // HACK
+    switch (PhpThemeColorMode)
     {
-        switch (PhpThemeColorMode) // HACK
+    case 0: // New colors
         {
-        case 0: // New colors
+            if (PhMenuBackgroundBrush)
+                DeleteBrush(PhMenuBackgroundBrush);
+
             PhMenuBackgroundBrush = CreateSolidBrush(PhpThemeWindowTextColor);
-            break;
-        case 1: // Old colors
-            PhMenuBackgroundBrush = CreateSolidBrush(PhpThemeWindowForegroundColor);
-            break;
         }
+        break;
+    case 1: // Old colors
+        {
+            if (PhMenuBackgroundBrush)
+                DeleteBrush(PhMenuBackgroundBrush);
+
+            PhMenuBackgroundBrush = CreateSolidBrush(PhpThemeWindowForegroundColor);
+        }
+        break;
     }
 
     if (EnableThemeSupport)
@@ -132,8 +139,12 @@ VOID PhInitializeWindowTheme(
         WNDPROC defaultWindowProc;
 
         defaultWindowProc = (WNDPROC)GetWindowLongPtr(WindowHandle, GWLP_WNDPROC);
-        PhSetWindowContext(WindowHandle, SHRT_MAX, defaultWindowProc);
-        SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)PhpThemeWindowSubclassProc);
+
+        if (defaultWindowProc != PhpThemeWindowSubclassProc)
+        {
+            PhSetWindowContext(WindowHandle, SHRT_MAX, defaultWindowProc);
+            SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)PhpThemeWindowSubclassProc);
+        }
 
         PhEnumChildWindows(
             WindowHandle,
