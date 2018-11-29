@@ -49,6 +49,8 @@ PPH_STRING PvpGetPeGuardFlagsText(
         PhAppendStringBuilder2(&stringBuilder, L"Export information supression, ");
     if (GuardFlags & IMAGE_GUARD_CF_LONGJUMP_TABLE_PRESENT)
         PhAppendStringBuilder2(&stringBuilder, L"Longjump table, ");
+    if (GuardFlags & IMAGE_GUARD_RETPOLINE_PRESENT)
+        PhAppendStringBuilder2(&stringBuilder, L"Retpoline present, ");
 
     if (PhEndsWithString2(stringBuilder.String, L", ", FALSE))
         PhRemoveEndStringBuilder(&stringBuilder, 2);
