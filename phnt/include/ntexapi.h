@@ -3240,7 +3240,9 @@ typedef struct _SYSTEM_SPECULATION_CONTROL_INFORMATION
             ULONG SpeculativeStoreBypassDisabledKernel : 1;
             ULONG SpeculativeStoreBypassDisableRequired : 1;
             ULONG BpbDisabledKernelToUser : 1;
-            ULONG Reserved : 18;
+            ULONG SpecCtrlRetpolineEnabled : 1;
+            ULONG SpecCtrlImportOptimizationEnabled : 1;
+            ULONG Reserved : 16;
         };
     };
 } SYSTEM_SPECULATION_CONTROL_INFORMATION, *PSYSTEM_SPECULATION_CONTROL_INFORMATION;
