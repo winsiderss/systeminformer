@@ -313,13 +313,17 @@ VOID NTAPI NetworkMenuInitializingCallback(
         {
             if (
                 IN4_IS_ADDR_UNSPECIFIED(&networkItem->RemoteEndpoint.Address.InAddr) ||
-                IN4_IS_ADDR_LOOPBACK(&networkItem->RemoteEndpoint.Address.InAddr) || 
-                IN4_IS_ADDR_RFC1918(&networkItem->RemoteEndpoint.Address.InAddr)
+                IN4_IS_ADDR_LOOPBACK(&networkItem->RemoteEndpoint.Address.InAddr)
                 )
             {
                 PhSetDisabledEMenuItem(whoisMenu);
                 PhSetDisabledEMenuItem(traceMenu);
                 PhSetDisabledEMenuItem(pingMenu);
+            }
+
+            if (IN4_IS_ADDR_RFC1918(&networkItem->RemoteEndpoint.Address.InAddr))
+            {
+                PhSetDisabledEMenuItem(whoisMenu);
             }
         }
         else  if (networkItem->RemoteEndpoint.Address.Type == PH_IPV6_NETWORK_TYPE)
