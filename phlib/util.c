@@ -5636,7 +5636,7 @@ PVOID PhGetLoaderEntryImageExportFunction(
     _In_opt_ USHORT ExportOrdinal
     )
 {
-    PVOID baseAddress = NULL;
+    PVOID exportAddress = NULL;
     PULONG exportAddressTable;
     PULONG exportNameTable;
     PUSHORT exportOrdinalTable;
@@ -5650,7 +5650,7 @@ PVOID PhGetLoaderEntryImageExportFunction(
         if (ExportOrdinal > ExportDirectory->Base + ExportDirectory->NumberOfFunctions)
             return NULL;
 
-        baseAddress = PTR_ADD_OFFSET(BaseAddress, exportAddressTable[ExportOrdinal - ExportDirectory->Base]);
+        exportAddress = PTR_ADD_OFFSET(BaseAddress, exportAddressTable[ExportOrdinal - ExportDirectory->Base]);
     }
     else if (ExportName)
     {
@@ -5658,18 +5658,18 @@ PVOID PhGetLoaderEntryImageExportFunction(
         {
             if (PhEqualBytesZ(ExportName, PTR_ADD_OFFSET(BaseAddress, exportNameTable[i]), FALSE))
             {
-                baseAddress = PTR_ADD_OFFSET(BaseAddress, exportAddressTable[exportOrdinalTable[i]]);
+                exportAddress = PTR_ADD_OFFSET(BaseAddress, exportAddressTable[exportOrdinalTable[i]]);
                 break;
             }
         }
     }
 
-    if (!baseAddress)
+    if (!exportAddress)
         return NULL;
 
     if (
-        ((ULONG_PTR)baseAddress >= (ULONG_PTR)ExportDirectory) &&
-        ((ULONG_PTR)baseAddress < (ULONG_PTR)PTR_ADD_OFFSET(ExportDirectory, DataDirectory->Size))
+        ((ULONG_PTR)exportAddress >= (ULONG_PTR)ExportDirectory) &&
+        ((ULONG_PTR)exportAddress < (ULONG_PTR)PTR_ADD_OFFSET(ExportDirectory, DataDirectory->Size))
         )
     {
         PPH_STRING dllForwarderString;
@@ -5678,7 +5678,7 @@ PVOID PhGetLoaderEntryImageExportFunction(
 
         // This is a forwarder RVA.
 
-        dllForwarderString = PhZeroExtendToUtf16((PSTR)baseAddress);
+        dllForwarderString = PhZeroExtendToUtf16((PSTR)exportAddress);
 
         if (PhSplitStringRefAtChar(&dllForwarderString->sr, L'.', &dllNameRef, &dllProcedureRef))
         {
@@ -5691,7 +5691,7 @@ PVOID PhGetLoaderEntryImageExportFunction(
 
             if (libraryModule = LoadLibrary(libraryNameString->Buffer))
             {
-                baseAddress = PhGetDllBaseProcedureAddress(libraryModule, libraryFunctionString->Buffer, 0);
+                exportAddress = PhGetDllBaseProcedureAddress(libraryModule, libraryFunctionString->Buffer, 0);
             }
 
             PhDereferenceObject(libraryFunctionString);
@@ -5701,7 +5701,7 @@ PVOID PhGetLoaderEntryImageExportFunction(
         PhDereferenceObject(dllForwarderString);
     }
 
-    return baseAddress;
+    return exportAddress;
 }
 
 static NTSTATUS PhpFixupLoaderEntryImageImports(
