@@ -843,7 +843,7 @@ static VOID PhpUpdateProcessNodeUserName(
     {
         if (ProcessNode->ProcessItem->Sid)
         {
-            ProcessNode->UserName = PhGetSidFullName(ProcessNode->ProcessItem->Sid, TRUE, NULL);
+            PhMoveReference(&ProcessNode->UserName, PhGetSidFullName(ProcessNode->ProcessItem->Sid, TRUE, NULL));
         }
 
         ProcessNode->ValidMask |= PHPN_USERNAME;
