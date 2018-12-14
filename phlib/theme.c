@@ -90,6 +90,20 @@ LRESULT CALLBACK PhpThemeWindowStatusbarWndSubclassProc(
     _In_ LPARAM lParam
     );
 
+// rev // Win10-RS5 (uxtheme.dll ordinal 132)
+BOOLEAN (WINAPI *ShouldAppsUseDarkMode_I)(
+    VOID
+    ) = NULL;
+// rev // Win10-RS5 (uxtheme.dll ordinal 133)
+BOOLEAN (WINAPI *AllowDarkModeForWindow_I)(
+    _In_ HWND WindowHandle,
+    _In_ BOOL Enabled
+    ) = NULL;
+// rev // Win10-RS5 (uxtheme.dll ordinal 137)
+BOOLEAN (WINAPI *IsDarkModeAllowedForWindow_I)(
+    _In_ HWND WindowHandle
+    ) = NULL;
+
 ULONG PhpThemeColorMode = 0;
 BOOLEAN PhpThemeEnable = FALSE;
 BOOLEAN PhpThemeBorderEnable = TRUE;
