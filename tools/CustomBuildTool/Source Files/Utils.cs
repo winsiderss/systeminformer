@@ -262,6 +262,11 @@ namespace CustomBuildTool
     {
         public static string GetMsbuildFilePath()
         {
+            string[] MsBuildPathArray =
+            {
+                "\\MSBuild\\Current\\Bin\\MSBuild.exe",
+                "\\MSBuild\\15.0\\Bin\\MSBuild.exe"
+            };
             string vswhere = string.Empty;
 
             if (Environment.Is64BitOperatingSystem)
@@ -274,6 +279,7 @@ namespace CustomBuildTool
             {
                 string vswhereResult = Win32.ShellExecute(vswhere,
                     "-latest " +
+                    "-prerelease " +
                     "-products * " +
                     "-requires Microsoft.Component.MSBuild " +
                     "-property installationPath "
@@ -282,8 +288,11 @@ namespace CustomBuildTool
                 if (string.IsNullOrEmpty(vswhereResult))
                     return null;
 
-                if (File.Exists(vswhereResult + "\\MSBuild\\15.0\\Bin\\MSBuild.exe"))
-                    return vswhereResult + "\\MSBuild\\15.0\\Bin\\MSBuild.exe";
+                foreach (string path in MsBuildPathArray)
+                {
+                    if (File.Exists(vswhereResult + path))
+                        return vswhereResult + path;
+                }
 
                 return null;
             }
@@ -295,8 +304,11 @@ namespace CustomBuildTool
 
                     if (instance != null)
                     {
-                        if (File.Exists(instance.Path + "\\MSBuild\\15.0\\Bin\\MSBuild.exe"))
-                            return instance.Path + "\\MSBuild\\15.0\\Bin\\MSBuild.exe";
+                        foreach (string path in MsBuildPathArray)
+                        {
+                            if (File.Exists(instance.Path + path))
+                                return instance.Path + path;
+                        }
                     }
                 }
                 catch (Exception ex)
