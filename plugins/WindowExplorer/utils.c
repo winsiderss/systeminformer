@@ -3,6 +3,7 @@
  *   utility functions
  *
  * Copyright (C) 2011 wj32
+ * Copyright (C) 2017-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -28,12 +29,7 @@ PVOID WeGetProcedureAddress(
     _In_ PSTR Name
     )
 {
-    static PVOID imageBase = NULL;
-
-    if (!imageBase)
-        imageBase = PhGetDllHandle(L"ProcessHacker.exe");
-
-    return PhGetProcedureAddress(imageBase, Name, 0);
+    return PhGetProcedureAddress(NtCurrentPeb()->ImageBaseAddress, Name, 0);
 }
 
 VOID WeFormatLocalObjectName(
