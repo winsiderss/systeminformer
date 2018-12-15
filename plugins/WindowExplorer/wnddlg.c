@@ -371,9 +371,8 @@ INT_PTR CALLBACK WepWindowsDlgProc(
         {
             PH_RECTANGLE windowRectangle;
 
-            HINSTANCE phInstanceHandle = *(HINSTANCE*)WeGetProcedureAddress("PhInstanceHandle");
-            SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_SMALL(phInstanceHandle, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
-            SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(phInstanceHandle, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
+            SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_SMALL(WE_PhInstanceHandle, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
+            SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(WE_PhInstanceHandle, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
 
             context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_LIST);
             context->SearchBoxHandle = GetDlgItem(hwndDlg, IDC_SEARCHEDIT);
@@ -899,7 +898,13 @@ INT_PTR CALLBACK WepWindowsPageProc(
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDC_REFRESH:
-                WepRefreshWindows(context);
+                {
+                    WepRefreshWindows(context);
+
+                    PhApplyTreeNewFilters(&context->TreeContext.FilterSupport);
+
+                    TreeNew_NodesStructured(context->TreeNewHandle);
+                }
                 break;
             case ID_SHOWCONTEXTMENU:
                 {
