@@ -458,7 +458,13 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                 DestroyWindow(hwndDlg);
                 break;
             case IDC_REFRESH:
-                WepRefreshWindows(context);
+                {
+                    WepRefreshWindows(context);
+
+                    PhApplyTreeNewFilters(&context->TreeContext.FilterSupport);
+
+                    TreeNew_NodesStructured(context->TreeNewHandle);
+                }
                 break;
             case ID_SHOWCONTEXTMENU:
                 {
