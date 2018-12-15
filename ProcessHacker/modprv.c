@@ -104,6 +104,7 @@ PPH_MODULE_PROVIDER PhCreateModuleProvider(
 
     moduleProvider->ProcessId = ProcessId;
     moduleProvider->ProcessHandle = NULL;
+    moduleProvider->ProcessFileName = NULL;
     moduleProvider->PackageFullName = NULL;
     moduleProvider->RunStatus = STATUS_SUCCESS;
 
@@ -201,6 +202,7 @@ VOID PhpModuleProviderDeleteProcedure(
         }
     }
 
+    if (moduleProvider->ProcessFileName) PhDereferenceObject(moduleProvider->ProcessFileName);
     if (moduleProvider->PackageFullName) PhDereferenceObject(moduleProvider->PackageFullName);
     if (moduleProvider->ProcessHandle) NtClose(moduleProvider->ProcessHandle);
 }
@@ -560,11 +562,14 @@ VOID PhModuleProviderUpdate(
 
             if (!moduleProvider->HaveFirst)
             {
-                // moduleItem->IsFirst = i == 0;
-                if (PhEqualString(moduleProvider->ProcessFileName, moduleItem->FileName, FALSE))
+                if (moduleProvider->ProcessFileName && PhEqualString(moduleProvider->ProcessFileName, moduleItem->FileName, FALSE))
                 {
                     moduleItem->IsFirst = TRUE;
                     moduleProvider->HaveFirst = TRUE;
+                }
+                else
+                {
+                    moduleItem->IsFirst = i == 0;
                 }
             }
 
