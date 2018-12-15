@@ -494,7 +494,7 @@ BOOLEAN DiskDriveQueryDeviceInformation(
     {
         PPH_STRING diskVendor;
 
-        diskVendor = PH_AUTO(PhConvertMultiByteToUtf16((PBYTE)deviceDescriptor + deviceDescriptor->VendorIdOffset));
+        diskVendor = PH_AUTO(PhConvertMultiByteToUtf16(PTR_ADD_OFFSET(deviceDescriptor, deviceDescriptor->VendorIdOffset)));
 
         *DiskVendor = TrimString(diskVendor);
     }
@@ -503,7 +503,7 @@ BOOLEAN DiskDriveQueryDeviceInformation(
     {
         PPH_STRING diskModel;
 
-        diskModel = PH_AUTO(PhConvertMultiByteToUtf16((PBYTE)deviceDescriptor + deviceDescriptor->ProductIdOffset));
+        diskModel = PH_AUTO(PhConvertMultiByteToUtf16(PTR_ADD_OFFSET(deviceDescriptor, deviceDescriptor->ProductIdOffset)));
 
         *DiskModel = TrimString(diskModel);
     }
@@ -512,7 +512,7 @@ BOOLEAN DiskDriveQueryDeviceInformation(
     {
         PPH_STRING diskRevision;
 
-        diskRevision = PH_AUTO(PhConvertMultiByteToUtf16((PBYTE)deviceDescriptor + deviceDescriptor->ProductRevisionOffset));
+        diskRevision = PH_AUTO(PhConvertMultiByteToUtf16(PTR_ADD_OFFSET(deviceDescriptor, deviceDescriptor->ProductRevisionOffset)));
 
         *DiskRevision = TrimString(diskRevision);
     }
@@ -521,7 +521,7 @@ BOOLEAN DiskDriveQueryDeviceInformation(
     {
         PPH_STRING diskSerial;
 
-        diskSerial = PH_AUTO(PhConvertMultiByteToUtf16((PBYTE)deviceDescriptor + deviceDescriptor->SerialNumberOffset));
+        diskSerial = PH_AUTO(PhConvertMultiByteToUtf16(PTR_ADD_OFFSET(deviceDescriptor, deviceDescriptor->SerialNumberOffset)));
 
         *DiskSerial = TrimString(diskSerial);
     }
