@@ -558,8 +558,7 @@ PPH_STRING PhGetSymbolFromAddress(
     if (!SymFromAddrW_I)
         return NULL;
 
-    symbolInfo = PhAllocate(FIELD_OFFSET(SYMBOL_INFOW, Name) + PH_MAX_SYMBOL_NAME_LEN * 2);
-    memset(symbolInfo, 0, sizeof(SYMBOL_INFOW));
+    symbolInfo = PhAllocateZero(FIELD_OFFSET(SYMBOL_INFOW, Name) + PH_MAX_SYMBOL_NAME_LEN * sizeof(WCHAR));
     symbolInfo->SizeOfStruct = sizeof(SYMBOL_INFOW);
     symbolInfo->MaxNameLen = PH_MAX_SYMBOL_NAME_LEN;
 
@@ -582,8 +581,7 @@ PPH_STRING PhGetSymbolFromAddress(
     if (nameLength + 1 > PH_MAX_SYMBOL_NAME_LEN)
     {
         PhFree(symbolInfo);
-        symbolInfo = PhAllocate(FIELD_OFFSET(SYMBOL_INFOW, Name) + nameLength * 2 + 2);
-        memset(symbolInfo, 0, sizeof(SYMBOL_INFOW));
+        symbolInfo = PhAllocateZero(FIELD_OFFSET(SYMBOL_INFOW, Name) + nameLength * sizeof(WCHAR) + sizeof(UNICODE_NULL));
         symbolInfo->SizeOfStruct = sizeof(SYMBOL_INFOW);
         symbolInfo->MaxNameLen = nameLength + 1;
 
@@ -632,7 +630,7 @@ PPH_STRING PhGetSymbolFromAddress(
     if (!modFileName)
     {
         resolveLevel = PhsrlAddress;
-        symbol = PhCreateStringEx(NULL, PH_PTR_STR_LEN * 2);
+        symbol = PhCreateStringEx(NULL, PH_PTR_STR_LEN * sizeof(WCHAR));
         PhPrintPointer(symbol->Buffer, (PVOID)Address);
         PhTrimToNullTerminatorString(symbol);
 
@@ -660,7 +658,8 @@ PPH_STRING PhGetSymbolFromAddress(
 
     // If we have everything, return the full symbol name: module!symbol+offset.
 
-    symbolName = PhCreateStringEx(symbolInfo->Name, symbolInfo->NameLen * 2);
+    symbolName = PhCreateStringEx(symbolInfo->Name, symbolInfo->NameLen * sizeof(WCHAR));
+    PhTrimToNullTerminatorString(symbolName); // SymFromAddr doesn't give us the correct name length for vm protected binaries (dmex)
     resolveLevel = PhsrlFunction;
 
     if (displacement == 0)
@@ -712,7 +711,7 @@ BOOLEAN PhGetSymbolFromName(
     )
 {
     PSYMBOL_INFOW symbolInfo;
-    UCHAR symbolInfoBuffer[FIELD_OFFSET(SYMBOL_INFOW, Name) + PH_MAX_SYMBOL_NAME_LEN * 2];
+    UCHAR symbolInfoBuffer[FIELD_OFFSET(SYMBOL_INFOW, Name) + PH_MAX_SYMBOL_NAME_LEN * sizeof(WCHAR)];
     BOOL result;
 
     PhpRegisterSymbolProvider(SymbolProvider);
