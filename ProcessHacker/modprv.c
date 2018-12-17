@@ -562,14 +562,19 @@ VOID PhModuleProviderUpdate(
 
             if (!moduleProvider->HaveFirst)
             {
-                if (moduleProvider->ProcessFileName && PhEqualString(moduleProvider->ProcessFileName, moduleItem->FileName, FALSE))
+                if (WindowsVersion < WINDOWS_10)
                 {
-                    moduleItem->IsFirst = TRUE;
+                    moduleItem->IsFirst = i == 0;
                     moduleProvider->HaveFirst = TRUE;
                 }
                 else
                 {
-                    moduleItem->IsFirst = i == 0;
+                    // Windows loads the PE image first and WSL loads the ELF image last (dmex)
+                    if (moduleProvider->ProcessFileName && PhEqualString(moduleProvider->ProcessFileName, moduleItem->FileName, FALSE))
+                    {
+                        moduleItem->IsFirst = TRUE;
+                        moduleProvider->HaveFirst = TRUE;
+                    }
                 }
             }
 
@@ -683,6 +688,9 @@ VOID PhModuleProviderUpdate(
             PhDereferenceObject(moduleItem);
         }
     }
+
+    if (!moduleProvider->HaveFirst) // Some processes don't have a primary image (e.g. System/Registry/Secure System) (dmex)
+        moduleProvider->HaveFirst = TRUE;
 
     // Free the modules list.
 
