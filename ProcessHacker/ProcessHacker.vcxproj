@@ -383,7 +383,6 @@
     <ClInclude Include="include\procprv.h" />
     <ClInclude Include="include\proctree.h" />
     <ClInclude Include="include\phsettings.h" />
-    <ClInclude Include="include\splitter.h" />
     <ClInclude Include="include\srvlist.h" />
     <ClInclude Include="include\srvprv.h" />
     <ClInclude Include="include\sysinfo.h" />
