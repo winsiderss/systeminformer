@@ -131,7 +131,8 @@ INT WINAPI wWinMain(
         CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
 
         fileDialog = PhCreateOpenFileDialog();
-        PhSetFileDialogFilter(fileDialog, filters, ARRAYSIZE(filters));
+        PhSetFileDialogOptions(fileDialog, PH_FILEDIALOG_NOPATHVALIDATE);
+        PhSetFileDialogFilter(fileDialog, filters, RTL_NUMBER_OF(filters));
 
         if (PhShowFileDialog(NULL, fileDialog))
         {
