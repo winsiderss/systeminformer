@@ -2,7 +2,7 @@
  * Process Hacker Plugins -
  *   Hardware Devices Plugin
  *
- * Copyright (C) 2015-2016 dmex
+ * Copyright (C) 2015-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -413,6 +413,9 @@ VOID FindDiskDrives(
         PhDereferenceObject(deviceDescription);
     }
 
+    // Cleanup.
+    PhFree(deviceInterfaceList);
+
     // Sort the entries
     qsort(deviceList->Items, deviceList->Count, sizeof(PVOID), DiskEntryCompareFunction);
 
@@ -546,6 +549,8 @@ PPH_STRING FindDiskDeviceInstance(
             break;
         }
     }
+
+    PhFree(deviceInterfaceList);
 
     return deviceInstanceString;
 }

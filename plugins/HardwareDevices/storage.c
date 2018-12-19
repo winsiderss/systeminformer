@@ -708,9 +708,9 @@ NTSTATUS DiskDriveQueryImminentFailure(
                 attribute->Id != 0xFF
                 )
             {
-                PSMART_ATTRIBUTES info = PhAllocate(sizeof(SMART_ATTRIBUTES));
-                memset(info, 0, sizeof(SMART_ATTRIBUTES));
+                PSMART_ATTRIBUTES info;
 
+                info = PhAllocateZero(sizeof(SMART_ATTRIBUTES));
                 info->AttributeId = attribute->Id;
                 info->CurrentValue = attribute->CurrentValue;
                 info->WorstValue = attribute->WorstValue;
