@@ -28,7 +28,6 @@
 #include <lsasup.h>
 #include <secedit.h>
 #include <settings.h>
-#include <splitter.h>
 #include <phsettings.h>
 
 typedef enum _PH_PROCESS_TOKEN_CATEGORY
