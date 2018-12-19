@@ -291,7 +291,8 @@ INT_PTR CALLBACK PhOptionsDialogProc(
             //PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_APPLY), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            if (PhEnableThemeSupport) // TODO: fix options dialog theme (dmex)
+                PhInitializeWindowTheme(hwndDlg, TRUE);
 
             {
                 PPH_OPTIONS_SECTION section;
