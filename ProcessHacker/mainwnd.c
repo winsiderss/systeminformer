@@ -828,6 +828,12 @@ VOID PhMwpOnCommand(
         {
             PhBoostProvider(&PhMwpProcessProviderRegistration, NULL);
             PhBoostProvider(&PhMwpServiceProviderRegistration, NULL);
+
+            // Note: Don't boost the network provider unless it's currently enabled. (dmex)
+            if (PhGetEnabledProvider(&PhMwpNetworkProviderRegistration))
+            {
+                PhBoostProvider(&PhMwpNetworkProviderRegistration, NULL);
+            }
         }
         break;
     case ID_UPDATEINTERVAL_FAST:
