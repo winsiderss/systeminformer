@@ -2,8 +2,8 @@
  * Process Hacker Plugins -
  *   Hardware Devices Plugin
  *
- * Copyright (C) 2015-2016 dmex
  * Copyright (C) 2016 wj32
+ * Copyright (C) 2015-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -474,6 +474,9 @@ VOID FindNetworkAdapters(
             PhClearReference(&deviceDescription);
         }
 
+        // Cleanup.
+        PhFree(deviceInterfaceList);
+
         // Sort the entries
         qsort(deviceList->Items, deviceList->Count, sizeof(PVOID), AdapterEntryCompareFunction);
 
@@ -660,6 +663,8 @@ PPH_STRING FindNetworkDeviceInstance(
             NtClose(keyHandle);
         }
     }
+
+    PhFree(deviceInterfaceList);
 
     return deviceInstanceString;
 }
