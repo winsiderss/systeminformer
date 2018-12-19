@@ -238,9 +238,9 @@ PWE_WINDOW_NODE WeAddWindowNode(
     PhAddEntryHashtable(Context->NodeHashtable, &windowNode);
     PhAddItemList(Context->NodeList, windowNode);
 
-    if (Context->FilterSupport.FilterList)
-        windowNode->Node.Visible = PhApplyTreeNewFiltersToNode(&Context->FilterSupport, &windowNode->Node);
-
+    //if (Context->FilterSupport.FilterList)
+    //   windowNode->Node.Visible = PhApplyTreeNewFiltersToNode(&Context->FilterSupport, &windowNode->Node);
+    //
     //TreeNew_NodesStructured(Context->TreeNewHandle);
 
     return windowNode;
@@ -437,15 +437,12 @@ BOOLEAN NTAPI WepWindowTreeNewCallback(
                 PhInitializeStringRef(&getCellText->Text, node->WindowClass);
                 break;
             case WEWNTLC_HANDLE:
-                PhPrintPointer(node->WindowHandleString, node->WindowHandle);
                 PhInitializeStringRef(&getCellText->Text, node->WindowHandleString);
                 break;
             case WEWNTLC_TEXT:
                 getCellText->Text = PhGetStringRef(node->WindowText);
                 break;
             case WEWNTLC_THREAD:
-                if (!node->ThreadString)
-                    node->ThreadString = PhGetClientIdName(&node->ClientId);
                 getCellText->Text = PhGetStringRef(node->ThreadString);
                 break;
             case WEWNTLC_MODULE:

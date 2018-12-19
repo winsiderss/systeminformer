@@ -113,27 +113,30 @@ VOID WepDeleteWindowSelector(
 }
 
 VOID WepFillWindowInfo(
+    _In_ PWE_WINDOW_TREE_CONTEXT Context,
     _In_ PWE_WINDOW_NODE Node
     )
 {
-    HWND hwnd;
+    PPH_STRING windowText;
     ULONG threadId;
     ULONG processId;
 
-    hwnd = Node->WindowHandle;
+    PhPrintPointer(Node->WindowHandleString, Node->WindowHandle);
+    GetClassName(Node->WindowHandle, Node->WindowClass, sizeof(Node->WindowClass) / sizeof(WCHAR));
 
-    GetClassName(hwnd, Node->WindowClass, sizeof(Node->WindowClass) / sizeof(WCHAR));
-    Node->WindowText = PhGetWindowText(hwnd);
+    if (PhGetWindowTextEx(Node->WindowHandle, PH_GET_WINDOW_TEXT_INTERNAL, &windowText) > 0)
+        PhMoveReference(&Node->WindowText, windowText);
 
-    if (!Node->WindowText)
-        Node->WindowText = PhReferenceEmptyString();
+    if (PhIsNullOrEmptyString(Node->WindowText))
+        PhMoveReference(&Node->WindowText, PhReferenceEmptyString());
 
-    threadId = GetWindowThreadProcessId(hwnd, &processId);
+    threadId = GetWindowThreadProcessId(Node->WindowHandle, &processId);
     Node->ClientId.UniqueProcess = UlongToHandle(processId);
     Node->ClientId.UniqueThread = UlongToHandle(threadId);
+    Node->ThreadString = PhGetClientIdName(&Node->ClientId);
 
-    Node->WindowVisible = !!IsWindowVisible(hwnd);
-    Node->HasChildren = !!FindWindowEx(hwnd, NULL, NULL, NULL);
+    Node->WindowVisible = !!IsWindowVisible(Node->WindowHandle);
+    Node->HasChildren = !!FindWindowEx(Node->WindowHandle, NULL, NULL, NULL);
 
     if (processId)
     {
@@ -143,9 +146,9 @@ VOID WepFillWindowInfo(
 
         if (NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, UlongToHandle(processId))))
         {
-            if (!(instanceHandle = (PVOID)GetWindowLongPtr(hwnd, GWLP_HINSTANCE)))
+            if (!(instanceHandle = (PVOID)GetWindowLongPtr(Node->WindowHandle, GWLP_HINSTANCE)))
             {
-                instanceHandle = (PVOID)GetClassLongPtr(hwnd, GCLP_HMODULE);
+                instanceHandle = (PVOID)GetClassLongPtr(Node->WindowHandle, GCLP_HMODULE);
             }
 
             if (instanceHandle)
@@ -162,6 +165,9 @@ VOID WepFillWindowInfo(
             NtClose(processHandle);
         }
     }
+
+    if (Context->FilterSupport.FilterList) // Note: Apply filter after filling window node data. (dmex)
+        Node->Node.Visible = PhApplyTreeNewFiltersToNode(&Context->FilterSupport, &Node->Node);
 }
 
 PWE_WINDOW_NODE WepAddChildWindowNode(
@@ -175,7 +181,7 @@ PWE_WINDOW_NODE WepAddChildWindowNode(
     childNode = WeAddWindowNode(Context);
     childNode->WindowHandle = hwnd;
 
-    WepFillWindowInfo(childNode);
+    WepFillWindowInfo(Context, childNode);
 
     if (ParentNode)
     {
@@ -274,7 +280,7 @@ VOID WepRefreshWindows(
 
             desktopNode = WeAddWindowNode(&Context->TreeContext);
             desktopNode->WindowHandle = GetDesktopWindow();
-            WepFillWindowInfo(desktopNode);
+            WepFillWindowInfo(&Context->TreeContext, desktopNode);
 
             PhAddItemList(Context->TreeContext.NodeRootList, desktopNode);
 
