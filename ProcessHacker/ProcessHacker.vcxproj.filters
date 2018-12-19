@@ -542,9 +542,6 @@
     <ClInclude Include="include\procprp.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="include\splitter.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
     <ClInclude Include="include\phsettings.h">
       <Filter>Headers</Filter>
     </ClInclude>
