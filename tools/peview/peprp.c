@@ -421,15 +421,9 @@ VOID PvpSetPeImageVersionInfo(
     PhDereferenceObject(string);
 }
 
-
-#ifndef IMAGE_FILE_MACHINE_ARM64
-#define IMAGE_FILE_MACHINE_ARM64 0xAA64 // ARM64 Little-Endian
-#endif
-
 #ifndef IMAGE_FILE_MACHINE_CHPE_X86
-#define IMAGE_FILE_MACHINE_CHPE_X86 0x3A64 /// defined in ntimage.h
+#define IMAGE_FILE_MACHINE_CHPE_X86 0x3A64 // defined in ntimage.h
 #endif
-
 
 VOID PvpSetPeImageMachineType(
     _In_ HWND WindowHandle
