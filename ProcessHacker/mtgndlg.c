@@ -188,7 +188,7 @@ INT_PTR CALLBACK PhpProcessMitigationPolicyDlgProc(
                     entry = PhAllocate(sizeof(MITIGATION_POLICY_ENTRY));
                     entry->NonStandard = TRUE;
                     entry->ShortDescription = PhCreateString(L"Loader Integrity");
-                    entry->LongDescription = PhCreateString(L"OS signing levels for depenedent module loads are enabled.");
+                    entry->LongDescription = PhCreateString(L"OS signing levels for dependent module loads are enabled.");
 
                     PhAddListViewItem(lvHandle, MAXINT, entry->ShortDescription->Buffer, entry);
                 }
