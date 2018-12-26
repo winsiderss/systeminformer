@@ -556,7 +556,6 @@ PPH_PLUGIN PhRegisterPlugin(
     plugin = PhAllocateZero(sizeof(PH_PLUGIN));
     plugin->Name = pluginName;
     plugin->DllBase = DllBase;
-
     plugin->FileName = fileName;
 
     existingLinks = PhAddElementAvlTree(&PhPluginsByName, &plugin->Links);
