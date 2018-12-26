@@ -1045,6 +1045,7 @@ NTSTATUS PhpFindObjectsThreadStart(
             else
             {
                 SEARCH_HANDLE_CONTEXT searchHandleContext;
+
                 searchHandleContext.WindowContext = context;
                 searchHandleContext.NeedToFree = FALSE;
                 searchHandleContext.HandleInfo = handleInfo;
