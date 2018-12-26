@@ -25,6 +25,25 @@
 HWND UpdateDialogHandle = NULL;
 HANDLE UpdateDialogThreadHandle = NULL;
 PH_EVENT InitializedEvent = PH_EVENT_INIT;
+PPH_OBJECT_TYPE UpdateContextType = NULL;
+PH_INITONCE UpdateContextTypeInitOnce = PH_INITONCE_INIT;
+
+VOID UpdateContextDeleteProcedure(
+    _In_ PVOID Object,
+    _In_ ULONG Flags
+    )
+{
+    PPH_UPDATER_CONTEXT context = Object;
+
+    PhClearReference(&context->CurrentVersionString);
+    PhClearReference(&context->Version);
+    PhClearReference(&context->RelDate);
+    PhClearReference(&context->SetupFileDownloadUrl);
+    PhClearReference(&context->SetupFileLength);
+    PhClearReference(&context->SetupFileHash);
+    PhClearReference(&context->SetupFileSignature);
+    PhClearReference(&context->BuildMessage);
+}
 
 PPH_UPDATER_CONTEXT CreateUpdateContext(
     _In_ BOOLEAN StartupCheck
@@ -32,30 +51,19 @@ PPH_UPDATER_CONTEXT CreateUpdateContext(
 {
     PPH_UPDATER_CONTEXT context;
 
-    context = (PPH_UPDATER_CONTEXT)PhCreateAlloc(sizeof(PH_UPDATER_CONTEXT));
+    if (PhBeginInitOnce(&UpdateContextTypeInitOnce))
+    {
+        UpdateContextType = PhCreateObjectType(L"UpdaterContextObjectType", 0, UpdateContextDeleteProcedure);
+        PhEndInitOnce(&UpdateContextTypeInitOnce);
+    }
+
+    context = PhCreateObjectZero(sizeof(PH_UPDATER_CONTEXT), UpdateContextType);
     memset(context, 0, sizeof(PH_UPDATER_CONTEXT));
 
     context->CurrentVersionString = PhGetPhVersion();
     context->StartupCheck = StartupCheck;
 
     return context;
-}
-
-VOID FreeUpdateContext(
-    _In_ _Post_invalid_ PPH_UPDATER_CONTEXT Context
-    )
-{
-    PhClearReference(&Context->CurrentVersionString);
-
-    PhClearReference(&Context->Version);
-    PhClearReference(&Context->RelDate);
-    PhClearReference(&Context->SetupFileDownloadUrl);
-    PhClearReference(&Context->SetupFileLength);
-    PhClearReference(&Context->SetupFileHash);
-    PhClearReference(&Context->SetupFileSignature);
-    PhClearReference(&Context->BuildMessage);
-
-    PhDereferenceObject(Context);
 }
 
 VOID TaskDialogCreateIcons(
@@ -402,7 +410,7 @@ NTSTATUS UpdateCheckSilentThread(
 CleanupExit:
 
     if (!context->HaveData)
-        FreeUpdateContext(context);
+        PhDereferenceObject(context);
 
     return STATUS_SUCCESS;
 }
@@ -869,7 +877,7 @@ NTSTATUS ShowUpdateDialogThread(
     config.pfCallback = TaskDialogBootstrapCallback;
     TaskDialogIndirect(&config, NULL, NULL, NULL);
 
-    FreeUpdateContext(context);
+    PhDereferenceObject(context);
     PhDeleteAutoPool(&autoPool);
 
     if (UpdateDialogThreadHandle)
