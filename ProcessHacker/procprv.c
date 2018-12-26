@@ -1129,19 +1129,23 @@ VOID PhpFillProcessItem(
 
         if (ProcessItem->ProcessId != SYSTEM_PROCESS_ID)
         {
+            NTSTATUS status = STATUS_UNSUCCESSFUL;
             PPH_STRING fileName;
 
             if (ProcessItem->QueryHandle && !ProcessItem->IsSubsystemProcess)
             {
-                PhGetProcessImageFileNameWin32(ProcessItem->QueryHandle, &ProcessItem->FileName);
+                status = PhGetProcessImageFileNameWin32(ProcessItem->QueryHandle, &fileName);
             }
-            else
+
+            if (!NT_SUCCESS(status))
             {
-                if (NT_SUCCESS(PhGetProcessImageFileNameByProcessId(ProcessItem->ProcessId, &fileName)))
-                {
-                    ProcessItem->FileName = PhGetFileName(fileName);
-                    PhDereferenceObject(fileName);
-                }
+                status = PhGetProcessImageFileNameByProcessId(ProcessItem->ProcessId, &fileName);
+            }
+
+            if (NT_SUCCESS(status))
+            {
+                ProcessItem->FileName = PhGetFileName(fileName);
+                PhDereferenceObject(fileName);
             }
         }
         else
