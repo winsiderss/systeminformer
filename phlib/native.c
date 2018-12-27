@@ -2506,6 +2506,78 @@ NTSTATUS PhSetFileSize(
         );
 }
 
+NTSTATUS PhGetFileHandleName(
+    _In_ HANDLE FileHandle,
+    _Out_ PPH_STRING *FileName
+    )
+{
+    NTSTATUS status;
+    ULONG bufferSize;
+    PFILE_NAME_INFORMATION buffer;
+    IO_STATUS_BLOCK isb;
+
+    bufferSize = sizeof(FILE_NAME_INFORMATION) + MAX_PATH;
+    buffer = PhAllocateZero(bufferSize);
+
+    status = NtQueryInformationFile(
+        FileHandle,
+        &isb,
+        buffer,
+        bufferSize,
+        FileNameInformation
+        );
+
+    if (status == STATUS_BUFFER_OVERFLOW)
+    {
+        bufferSize = sizeof(FILE_NAME_INFORMATION) + buffer->FileNameLength + sizeof(UNICODE_NULL);
+        PhFree(buffer);
+        buffer = PhAllocateZero(bufferSize);
+
+        status = NtQueryInformationFile(
+            FileHandle,
+            &isb,
+            buffer,
+            bufferSize,
+            FileNameInformation
+            );
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhFree(buffer);
+        return status;
+    }
+
+    *FileName = PhCreateStringEx(buffer->FileName, buffer->FileNameLength);
+    PhFree(buffer);
+
+    return status;
+}
+
+NTSTATUS PhGetFileAllInformation(
+    _In_ HANDLE FileHandle,
+    _Out_ PFILE_ALL_INFORMATION *FileInformation
+    )
+{
+    return PhpQueryFileVariableSize(
+        FileHandle,
+        FileAllInformation,
+        FileInformation
+        );
+}
+
+NTSTATUS PhGetFileId(
+    _In_ HANDLE FileHandle,
+    _Out_ PFILE_ID_INFORMATION *FileId
+    )
+{
+    return PhpQueryFileVariableSize(
+        FileHandle,
+        FileIdInformation,
+        FileId
+        );
+}
+
 NTSTATUS PhpQueryTransactionManagerVariableSize(
     _In_ HANDLE TransactionManagerHandle,
     _In_ TRANSACTIONMANAGER_INFORMATION_CLASS TransactionManagerInformationClass,
@@ -5236,6 +5308,48 @@ NTSTATUS PhEnumFileStreamsEx(
     if (NT_SUCCESS(status))
     {
         for (i = PH_FIRST_STREAM(buffer); i; i = PH_NEXT_STREAM(i))
+        {
+            if (!Callback(i, Context))
+                break;
+        }
+
+        PhFree(buffer);
+    }
+
+    return status;
+}
+
+NTSTATUS PhEnumFileHardLinks(
+    _In_ HANDLE FileHandle,
+    _Out_ PVOID *HardLinks
+    )
+{
+    return PhpQueryFileVariableSize(
+        FileHandle,
+        FileHardLinkInformation,
+        HardLinks
+        );
+}
+
+NTSTATUS PhEnumFileHardLinksEx(
+    _In_ HANDLE FileHandle,
+    _In_ PPH_ENUM_FILE_HARDLINKS Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    NTSTATUS status;
+    PFILE_LINKS_INFORMATION buffer;
+    PFILE_LINK_ENTRY_INFORMATION i;
+
+    status = PhpQueryFileVariableSize(
+        FileHandle,
+        FileHardLinkInformation,
+        &buffer
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        for (i = PH_FIRST_LINK(&buffer->Entry); i; i = PH_NEXT_LINK(i))
         {
             if (!Callback(i, Context))
                 break;

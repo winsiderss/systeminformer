@@ -494,6 +494,30 @@ PhSetFileSize(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhGetFileHandleName(
+    _In_ HANDLE FileHandle,
+    _Out_ PPH_STRING *FileName
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetFileAllInformation(
+    _In_ HANDLE FileHandle,
+    _Out_ PFILE_ALL_INFORMATION *FileId
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetFileId(
+    _In_ HANDLE FileHandle,
+    _Out_ PFILE_ID_INFORMATION *FileId
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhGetTransactionManagerBasicInformation(
     _In_ HANDLE TransactionManagerHandle,
     _Out_ PTRANSACTIONMANAGER_BASIC_INFORMATION BasicInformation
@@ -922,6 +946,36 @@ NTAPI
 PhEnumFileStreamsEx(
     _In_ HANDLE FileHandle,
     _In_ PPH_ENUM_FILE_STREAMS Callback,
+    _In_opt_ PVOID Context
+    );
+
+#define PH_FIRST_LINK(Links) ((PFILE_LINK_ENTRY_INFORMATION)(Links))
+#define PH_NEXT_LINK(Links) ( \
+    ((PFILE_LINK_ENTRY_INFORMATION)(Links))->NextEntryOffset ? \
+    (PFILE_LINK_ENTRY_INFORMATION)(PTR_ADD_OFFSET((Links), \
+    ((PFILE_LINK_ENTRY_INFORMATION)(Links))->NextEntryOffset)) : \
+    NULL \
+    )
+
+typedef BOOLEAN (NTAPI *PPH_ENUM_FILE_HARDLINKS)(
+    _In_ PFILE_LINK_ENTRY_INFORMATION Information,
+    _In_opt_ PVOID Context
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhEnumFileHardLinks(
+    _In_ HANDLE FileHandle,
+    _Out_ PVOID *HardLinks
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhEnumFileHardLinksEx(
+    _In_ HANDLE FileHandle,
+    _In_ PPH_ENUM_FILE_HARDLINKS Callback,
     _In_opt_ PVOID Context
     );
 
