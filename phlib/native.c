@@ -2578,6 +2578,18 @@ NTSTATUS PhGetFileId(
         );
 }
 
+NTSTATUS PhGetProcessIdsUsingFile(
+    _In_ HANDLE FileHandle,
+    _Out_ PFILE_PROCESS_IDS_USING_FILE_INFORMATION *ProcessIdsUsingFile
+    )
+{
+    return PhpQueryFileVariableSize(
+        FileHandle,
+        FileProcessIdsUsingFileInformation,
+        ProcessIdsUsingFile
+        );
+}
+
 NTSTATUS PhpQueryTransactionManagerVariableSize(
     _In_ HANDLE TransactionManagerHandle,
     _In_ TRANSACTIONMANAGER_INFORMATION_CLASS TransactionManagerInformationClass,
