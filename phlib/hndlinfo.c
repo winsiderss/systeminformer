@@ -1496,12 +1496,15 @@ PPH_STRING PhGetObjectTypeName(
     _In_ ULONG TypeIndex
     )
 {
-    POBJECT_TYPES_INFORMATION objectTypes;
+    static POBJECT_TYPES_INFORMATION objectTypes = NULL;
     POBJECT_TYPE_INFORMATION objectType;
     PPH_STRING objectTypeName = NULL;
     ULONG i;
 
-    if (NT_SUCCESS(PhEnumObjectTypes(&objectTypes)))
+    if (!objectTypes) // HACK (dmex)
+        PhEnumObjectTypes(&objectTypes);
+
+    if (objectTypes)
     {
         objectType = PH_FIRST_OBJECT_TYPE(objectTypes);
 
@@ -1526,8 +1529,6 @@ PPH_STRING PhGetObjectTypeName(
 
             objectType = PH_NEXT_OBJECT_TYPE(objectType);
         }
-
-        PhFree(objectTypes);
     }
 
     return objectTypeName;
