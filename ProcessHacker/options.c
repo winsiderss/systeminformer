@@ -271,7 +271,7 @@ INT_PTR CALLBACK PhOptionsDialogProc(
             SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
             SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
 
-            OptionsTreeImageList = ImageList_Create(2, 22, ILC_COLOR, 1, 1);
+            OptionsTreeImageList = ImageList_Create(2, PH_SCALE_DPI(22), ILC_COLOR, 1, 1);
             OptionsTreeControl = GetDlgItem(hwndDlg, IDC_SECTIONTREE);
             ContainerControl = GetDlgItem(hwndDlg, IDD_CONTAINER);
 
@@ -1227,7 +1227,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
 
             comboBoxHandle = GetDlgItem(hwndDlg, IDC_MAXSIZEUNIT);
             listviewHandle = GetDlgItem(hwndDlg, IDC_SETTINGS);
-            GeneralListviewImageList = ImageList_Create(1, 22, ILC_COLOR, 1, 1);
+            GeneralListviewImageList = ImageList_Create(1, PH_SCALE_DPI(22), ILC_COLOR, 1, 1);
 
             PhInitializeLayoutManager(&LayoutManager, hwndDlg);
             PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_SEARCHENGINE), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
