@@ -129,7 +129,7 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"NetworkTreeListColumns", L"");
     PhpAddStringSetting(L"NetworkTreeListSort", L"0,1"); // 0, AscendingSortOrder
     PhpAddIntegerSetting(L"NoPurgeProcessRecords", L"0");
-    PhpAddIntegerPairSetting(L"OptionsWindowPosition", L"200,200");
+    PhpAddIntegerPairSetting(L"OptionsWindowPosition", L"0,0");
     PhpAddScalableIntegerPairSetting(L"OptionsWindowSize", L"@96|900,590");
     PhpAddIntegerPairSetting(L"PluginManagerWindowPosition", L"0,0");
     PhpAddScalableIntegerPairSetting(L"PluginManagerWindowSize", L"@96|900,590");
