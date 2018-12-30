@@ -92,7 +92,7 @@ VOID PhAddDefaultSettings(
     //PhpAddIntegerSetting(L"KphUnloadOnShutdown", L"0");
     PhpAddIntegerSetting(L"LogEntries", L"200"); // 512
     PhpAddStringSetting(L"LogListViewColumns", L"");
-    PhpAddIntegerPairSetting(L"LogWindowPosition", L"300,300");
+    PhpAddIntegerPairSetting(L"LogWindowPosition", L"0,0");
     PhpAddScalableIntegerPairSetting(L"LogWindowSize", L"@96|450,500");
     PhpAddIntegerSetting(L"MainWindowAlwaysOnTop", L"0");
     PhpAddStringSetting(L"MainWindowClassName", L"MainWindowClassName");
