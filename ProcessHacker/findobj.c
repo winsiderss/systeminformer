@@ -1168,8 +1168,10 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
             context->MinimumSize.bottom = 100;
             MapDialogRect(hwndDlg, &context->MinimumSize);
 
-            PhCenterWindow(hwndDlg, PhMainWndHandle);
-            PhLoadWindowPlacementFromSetting(L"FindObjWindowPosition", L"FindObjWindowSize", hwndDlg);
+            if (PhGetIntegerPairSetting(L"FindObjWindowPosition").X)
+                PhLoadWindowPlacementFromSetting(L"FindObjWindowPosition", L"FindObjWindowSize", hwndDlg);
+            else
+                PhCenterWindow(hwndDlg, PhMainWndHandle);
 
             context->SearchResults = PhCreateList(128);
             context->SearchResultsAddIndex = 0;
