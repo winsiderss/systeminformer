@@ -162,33 +162,49 @@ INT WINAPI wWinMain(
     else
     {
         NTSTATUS status;
+        HANDLE fileHandle;
 
-        status = PhLoadMappedImageEx(
-            PvFileName->Buffer, 
-            NULL, 
-            TRUE,
-            &PvMappedImage
+        status = PhCreateFileWin32(
+            &fileHandle,
+            PvFileName->Buffer,
+            FILE_READ_ATTRIBUTES | FILE_READ_DATA | SYNCHRONIZE,
+            FILE_ATTRIBUTE_NORMAL,
+            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+            FILE_OPEN,
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
             );
 
         if (NT_SUCCESS(status))
         {
-            switch (PvMappedImage.Signature)
+            status = PhLoadMappedImageEx(
+                PvFileName->Buffer,
+                fileHandle,
+                TRUE,
+                &PvMappedImage
+                );
+            NtClose(fileHandle);
+
+            if (NT_SUCCESS(status))
             {
-            case IMAGE_DOS_SIGNATURE:
-                PvPeProperties();
-                break;
-            case IMAGE_ELF_SIGNATURE:
-                PvExlfProperties();
-                break;
-            default:
-                status = STATUS_IMAGE_SUBSYSTEM_NOT_PRESENT;
-                break;
+                switch (PvMappedImage.Signature)
+                {
+                case IMAGE_DOS_SIGNATURE:
+                    PvPeProperties();
+                    break;
+                case IMAGE_ELF_SIGNATURE:
+                    PvExlfProperties();
+                    break;
+                default:
+                    status = STATUS_IMAGE_SUBSYSTEM_NOT_PRESENT;
+                    break;
+                }
             }
+
+            if (NT_SUCCESS(status))
+                PhUnloadMappedImage(&PvMappedImage);
         }
 
-        if (NT_SUCCESS(status))
-            PhUnloadMappedImage(&PvMappedImage);
-        else
+        if (!NT_SUCCESS(status))
             PhShowStatus(NULL, L"Unable to load the file.", status, 0);
     }
 
