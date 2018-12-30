@@ -4045,6 +4045,72 @@ NTSTATUS PhSetProcessModuleLoadCount32(
     return context.Status;
 }
 
+PVOID PhGetDllHandle(
+    _In_ PWSTR DllName
+    )
+{
+    UNICODE_STRING dllName;
+    PVOID dllHandle;
+
+    RtlInitUnicodeString(&dllName, DllName);
+
+    if (NT_SUCCESS(LdrGetDllHandle(NULL, NULL, &dllName, &dllHandle)))
+        return dllHandle;
+    else
+        return NULL;
+}
+
+PVOID PhGetModuleProcAddress(
+    _In_ PWSTR ModuleName,
+    _In_ PSTR ProcName
+    )
+{
+    PVOID module;
+
+    module = PhGetDllHandle(ModuleName);
+
+    if (module)
+        return PhGetProcedureAddress(module, ProcName, 0);
+    else
+        return NULL;
+}
+
+PVOID PhGetProcedureAddress(
+    _In_ PVOID DllHandle,
+    _In_opt_ PSTR ProcedureName,
+    _In_opt_ ULONG ProcedureNumber
+    )
+{
+    NTSTATUS status;
+    ANSI_STRING procedureName;
+    PVOID procedureAddress;
+
+    if (ProcedureName)
+    {
+        RtlInitAnsiString(&procedureName, ProcedureName);
+        status = LdrGetProcedureAddress(
+            DllHandle,
+            &procedureName,
+            0,
+            &procedureAddress
+            );
+    }
+    else
+    {
+        status = LdrGetProcedureAddress(
+            DllHandle,
+            NULL,
+            ProcedureNumber,
+            &procedureAddress
+            );
+    }
+
+    if (!NT_SUCCESS(status))
+        return NULL;
+
+    return procedureAddress;
+}
+
 typedef struct _GET_PROCEDURE_ADDRESS_REMOTE_CONTEXT
 {
     PH_STRINGREF FileName;
