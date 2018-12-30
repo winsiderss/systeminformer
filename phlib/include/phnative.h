@@ -684,6 +684,30 @@ PhSetProcessModuleLoadCount32(
     );
 
 PHLIBAPI
+PVOID
+NTAPI
+PhGetDllHandle(
+    _In_ PWSTR DllName
+    );
+
+PHLIBAPI
+PVOID
+NTAPI
+PhGetModuleProcAddress(
+    _In_ PWSTR ModuleName,
+    _In_ PSTR ProcName
+    );
+
+PHLIBAPI
+PVOID
+NTAPI
+PhGetProcedureAddress(
+    _In_ PVOID DllHandle,
+    _In_opt_ PSTR ProcedureName,
+    _In_opt_ ULONG ProcedureNumber
+    );
+
+PHLIBAPI
 NTSTATUS
 NTAPI
 PhGetProcedureAddressRemote(

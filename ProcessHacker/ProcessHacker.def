@@ -266,6 +266,9 @@ EXPORTS
     PhGetKernelFileName
     PhGetObjectSecurity
     PhGetOwnTokenAttributes
+    PhGetDllHandle
+    PhGetModuleProcAddress
+    PhGetProcedureAddress
     PhGetProcedureAddressRemote
     PhGetProcessCommandLine
     PhGetProcessDepStatus
