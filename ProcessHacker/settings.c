@@ -60,7 +60,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"EnvironmentTreeListFlags", L"0");
     PhpAddIntegerSetting(L"FindObjRegex", L"0");
     PhpAddStringSetting(L"FindObjTreeListColumns", L"");
-    PhpAddIntegerPairSetting(L"FindObjWindowPosition", L"350,350");
+    PhpAddIntegerPairSetting(L"FindObjWindowPosition", L"0,0");
     PhpAddScalableIntegerPairSetting(L"FindObjWindowSize", L"@96|550,420");
     PhpAddStringSetting(L"FileBrowseExecutable", L"%SystemRoot%\\explorer.exe /select,\"%s\"");
     PhpAddIntegerSetting(L"FirstRun", L"1");
