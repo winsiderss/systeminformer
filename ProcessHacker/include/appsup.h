@@ -164,19 +164,20 @@ PhHandleListViewNotifyForCopy(
     _In_ LPARAM lParam,
     _In_ HWND ListViewHandle
     );
-// end_phapppub
 
 #define PH_LIST_VIEW_CTRL_C_BEHAVIOR 0x1
 #define PH_LIST_VIEW_CTRL_A_BEHAVIOR 0x2
 #define PH_LIST_VIEW_DEFAULT_1_BEHAVIORS (PH_LIST_VIEW_CTRL_C_BEHAVIOR | PH_LIST_VIEW_CTRL_A_BEHAVIOR)
 
-VOID PhHandleListViewNotifyBehaviors(
+PHAPPAPI
+VOID
+NTAPI
+PhHandleListViewNotifyBehaviors(
     _In_ LPARAM lParam,
     _In_ HWND ListViewHandle,
     _In_ ULONG Behaviors
     );
 
-// begin_phapppub
 PHAPPAPI
 BOOLEAN
 NTAPI
