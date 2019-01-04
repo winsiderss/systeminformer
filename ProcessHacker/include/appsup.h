@@ -391,6 +391,31 @@ NTAPI
 PhHandleCopyCellEMenuItem(
     _In_ struct _PH_EMENU_ITEM *SelectedItem
     );
+
+typedef struct _PH_COPY_ITEM_CONTEXT
+{
+    HWND ListViewHandle;
+    ULONG Id;
+    ULONG SubId;
+    PPH_STRING MenuItemText;
+} PH_COPY_ITEM_CONTEXT, *PPH_COPY_ITEM_CONTEXT;
+
+PHAPPAPI
+BOOLEAN
+NTAPI
+PhInsertCopyListViewEMenuItem(
+    _In_ struct _PH_EMENU_ITEM *Menu,
+    _In_ ULONG InsertAfterId,
+    _In_ HWND ListViewHandle
+    );
+
+PHAPPAPI
+BOOLEAN
+NTAPI
+PhHandleCopyListViewEMenuItem(
+    _In_ struct _PH_EMENU_ITEM *SelectedItem
+    );
+
 // end_phapppub
 
 BOOLEAN PhShellOpenKey2(
