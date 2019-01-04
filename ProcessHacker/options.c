@@ -1081,7 +1081,7 @@ static VOID PhpOptionsNotifyChangeCallback(
     if (RestartRequired)
     {
         if (PhShowMessage2(
-            PhMainWndHandle,
+            (IsWindowVisible(PhMainWndHandle) && !IsMinimized(PhMainWndHandle)) ? PhMainWndHandle : NULL,
             TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
             TD_INFORMATION_ICON,
             L"One or more options you have changed requires a restart of Process Hacker.",
