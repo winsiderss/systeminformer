@@ -24,10 +24,12 @@
 #include <phapp.h>
 #include <phsettings.h>
 #include <phplug.h>
-#include <settings.h>
 #include <procprp.h>
 #include <procprpp.h>
 #include <procprv.h>
+
+#include <emenu.h>
+#include <settings.h>
 
 typedef enum _PH_PROCESS_STATISTICS_CATEGORY
 {
@@ -473,6 +475,8 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
         {
             LPNMHDR header = (LPNMHDR)lParam;
 
+            PhHandleListViewNotifyBehaviors(lParam, statisticsContext->ListViewHandle, PH_LIST_VIEW_DEFAULT_1_BEHAVIORS);
+
             switch (header->code)
             {
             case PSN_SETACTIVE:
@@ -492,6 +496,69 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
     case WM_SIZE:
         {
             ExtendedListView_SetColumnWidth(statisticsContext->ListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
+        }
+        break;
+    case WM_CONTEXTMENU:
+        {
+            if ((HWND)wParam == statisticsContext->ListViewHandle)
+            {
+                POINT point;
+                PPH_EMENU menu;
+                PPH_EMENU item;
+                PVOID *listviewItems;
+                ULONG numberOfItems;
+
+                point.x = GET_X_LPARAM(lParam);
+                point.y = GET_Y_LPARAM(lParam);
+
+                if (point.x == -1 && point.y == -1)
+                    PhGetListViewContextMenuPoint((HWND)wParam, &point);
+
+                PhGetSelectedListViewItemParams(statisticsContext->ListViewHandle, &listviewItems, &numberOfItems);
+
+                if (numberOfItems != 0)
+                {
+                    menu = PhCreateEMenu();
+
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
+                    PhInsertCopyListViewEMenuItem(menu, IDC_COPY, statisticsContext->ListViewHandle);
+
+                    item = PhShowEMenu(
+                        menu,
+                        hwndDlg,
+                        PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT,
+                        PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                        point.x,
+                        point.y
+                        );
+
+                    if (item)
+                    {
+                        BOOLEAN handled = FALSE;
+
+                        handled = PhHandleCopyListViewEMenuItem(item);
+
+                        //if (!handled && PhPluginsEnabled)
+                        //    handled = PhPluginTriggerEMenuItem(&menuInfo, item);
+
+                        if (!handled)
+                        {
+                            switch (item->Id)
+                            {
+                            case IDC_COPY:
+                                {
+                                    PhCopyListView(statisticsContext->ListViewHandle);
+                                }
+                                break;
+                            }
+                        }
+                    }
+
+                    PhDestroyEMenu(menu);
+                }
+
+                PhFree(listviewItems);
+            }
         }
         break;
     }
