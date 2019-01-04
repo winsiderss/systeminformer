@@ -1796,6 +1796,114 @@ BOOLEAN PhHandleCopyCellEMenuItem(
     return TRUE;
 }
 
+BOOLEAN PhInsertCopyListViewEMenuItem(
+    _In_ struct _PH_EMENU_ITEM *Menu,
+    _In_ ULONG InsertAfterId,
+    _In_ HWND ListViewHandle
+    )
+{
+    PPH_EMENU_ITEM parentItem;
+    ULONG indexInParent;
+    PPH_COPY_ITEM_CONTEXT context;
+    PPH_STRING columnText = NULL;
+    PPH_STRING escapedText;
+    PPH_STRING menuItemText;
+    PPH_EMENU_ITEM copyMenuItem;
+    POINT location;
+    LVHITTESTINFO lvHitInfo;
+    HDITEM headerItem;
+    WCHAR headerText[MAX_PATH];
+
+    GetCursorPos(&location);
+    ScreenToClient(ListViewHandle, &location);
+
+    memset(&lvHitInfo, 0, sizeof(LVHITTESTINFO));
+    lvHitInfo.pt = location;
+
+    if (ListView_SubItemHitTest(ListViewHandle, &lvHitInfo) == -1)
+        return FALSE;
+
+    memset(headerText, 0, sizeof(headerText));
+    memset(&headerItem, 0, sizeof(HDITEM));
+    headerItem.mask = HDI_TEXT;
+    headerItem.cchTextMax = RTL_NUMBER_OF(headerText);
+    headerItem.pszText = headerText;
+
+    if (!Header_GetItem(ListView_GetHeader(ListViewHandle), lvHitInfo.iSubItem, &headerItem))
+        return FALSE;
+
+    columnText = PhaCreateString(headerText);
+
+    if (PhIsNullOrEmptyString(columnText))
+        return FALSE;
+
+    if (!PhFindEMenuItemEx(Menu, 0, NULL, InsertAfterId, &parentItem, &indexInParent))
+        return FALSE;
+
+    indexInParent++;
+
+    context = PhAllocate(sizeof(PH_COPY_ITEM_CONTEXT));
+    context->ListViewHandle = ListViewHandle;
+    context->Id = lvHitInfo.iItem;
+    context->SubId = lvHitInfo.iSubItem;
+
+    escapedText = PhEscapeStringForMenuPrefix(&columnText->sr);
+    menuItemText = PhFormatString(L"Copy \"%s\"", escapedText->Buffer);
+    PhDereferenceObject(escapedText);
+
+    copyMenuItem = PhCreateEMenuItem(0, ID_COPY_CELL, menuItemText->Buffer, NULL, context);
+    copyMenuItem->DeleteFunction = PhpCopyCellEMenuItemDeleteFunction;
+    context->MenuItemText = menuItemText;
+
+    PhInsertEMenuItem(parentItem, copyMenuItem, indexInParent);
+
+    return TRUE;
+}
+
+BOOLEAN PhHandleCopyListViewEMenuItem(
+    _In_ struct _PH_EMENU_ITEM *SelectedItem
+    )
+{
+    PPH_COPY_ITEM_CONTEXT context;
+    PH_STRING_BUILDER stringBuilder;
+    ULONG count;
+    ULONG selectedCount;
+    ULONG i;
+    PPH_STRING getItemText;
+
+    if (!SelectedItem)
+        return FALSE;
+    if (SelectedItem->Id != ID_COPY_CELL)
+        return FALSE;
+
+    context = SelectedItem->Context;
+
+    PhInitializeStringBuilder(&stringBuilder, 0x100);
+    count = ListView_GetItemCount(context->ListViewHandle);
+    selectedCount = 0;
+
+    for (i = 0; i < count; i++)
+    {
+        if (!(ListView_GetItemState(context->ListViewHandle, i, LVIS_SELECTED) & LVIS_SELECTED))
+            continue;
+
+        getItemText = PhaGetListViewItemText(context->ListViewHandle, i, context->SubId);
+
+        PhAppendStringBuilder(&stringBuilder, &getItemText->sr);
+        PhAppendStringBuilder2(&stringBuilder, L"\r\n");
+
+        selectedCount++;
+    }
+
+    if (stringBuilder.String->Length != 0 && selectedCount == 1)
+        PhRemoveEndStringBuilder(&stringBuilder, 2);
+
+    PhSetClipboardString(context->ListViewHandle, &stringBuilder.String->sr);
+    PhDeleteStringBuilder(&stringBuilder);
+
+    return TRUE;
+}
+
 BOOLEAN PhpSelectFavoriteInRegedit(
     _In_ HWND RegeditWindow,
     _In_ PPH_STRINGREF FavoriteName,
