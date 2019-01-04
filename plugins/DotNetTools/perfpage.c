@@ -3,7 +3,7 @@
  *   .NET Performance property page
  *
  * Copyright (C) 2011-2015 wj32
- * Copyright (C) 2015-2018 dmex
+ * Copyright (C) 2015-2019 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -917,6 +917,9 @@ INT_PTR CALLBACK DotNetPerfPageDlgProc(
         {
             LPNMHDR header = (LPNMHDR)lParam;
 
+            PhHandleListViewNotifyBehaviors(lParam, context->AppDomainsListViewHandle, PH_LIST_VIEW_DEFAULT_1_BEHAVIORS);
+            PhHandleListViewNotifyBehaviors(lParam, context->CountersListViewHandle, PH_LIST_VIEW_DEFAULT_1_BEHAVIORS);
+
             switch (header->code)
             {
             case PSN_SETACTIVE:
@@ -1788,9 +1791,6 @@ INT_PTR CALLBACK DotNetPerfPageDlgProc(
                 }
                 break;
             }
-
-            PhHandleListViewNotifyForCopy(lParam, context->AppDomainsListViewHandle);
-            PhHandleListViewNotifyForCopy(lParam, context->CountersListViewHandle);
         }
         break;
     case MSG_UPDATE:
@@ -1804,6 +1804,76 @@ INT_PTR CALLBACK DotNetPerfPageDlgProc(
     case WM_SIZE:
         {
             ExtendedListView_SetColumnWidth(context->AppDomainsListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
+        }
+        break;
+    case WM_CONTEXTMENU:
+        {
+            HWND listViewHandle = NULL;
+
+            if ((HWND)wParam == context->AppDomainsListViewHandle)
+                listViewHandle = context->AppDomainsListViewHandle;
+            else if ((HWND)wParam == context->CountersListViewHandle)
+                listViewHandle = context->CountersListViewHandle;
+
+            if (listViewHandle)
+            {
+                POINT point;
+                PPH_EMENU menu;
+                PPH_EMENU item;
+                PVOID *listviewItems;
+                ULONG numberOfItems;
+
+                point.x = GET_X_LPARAM(lParam);
+                point.y = GET_Y_LPARAM(lParam);
+
+                if (point.x == -1 && point.y == -1)
+                    PhGetListViewContextMenuPoint((HWND)wParam, &point);
+
+                PhGetSelectedListViewItemParams(listViewHandle, &listviewItems, &numberOfItems);
+
+                if (numberOfItems != 0)
+                {
+                    menu = PhCreateEMenu();
+
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_CLR_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
+                    PhInsertCopyListViewEMenuItem(menu, ID_CLR_COPY, listViewHandle);
+
+                    item = PhShowEMenu(
+                        menu,
+                        hwndDlg,
+                        PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT,
+                        PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                        point.x,
+                        point.y
+                    );
+
+                    if (item)
+                    {
+                        BOOLEAN handled = FALSE;
+
+                        handled = PhHandleCopyListViewEMenuItem(item);
+
+                        //if (!handled && PhPluginsEnabled)
+                        //    handled = PhPluginTriggerEMenuItem(&menuInfo, item);
+
+                        if (!handled)
+                        {
+                            switch (item->Id)
+                            {
+                            case ID_CLR_COPY:
+                                {
+                                    PhCopyListView(listViewHandle);
+                                }
+                                break;
+                            }
+                        }
+                    }
+
+                    PhDestroyEMenu(menu);
+                }
+
+                PhFree(listviewItems);
+            }
         }
         break;
     }
