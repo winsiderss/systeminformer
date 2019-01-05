@@ -283,7 +283,9 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_GetObjectInformation(
     ObjectInfo->pszObjectName = PhGetString(this->ObjectName);
 
     if (PhEqualString2(this->ObjectType, L"TokenDefault", TRUE))
-        ObjectInfo->dwFlags &= ~SI_EDIT_OWNER;
+    {
+        ObjectInfo->dwFlags &= ~(SI_EDIT_OWNER | SI_EDIT_AUDITS);
+    }
 
     return S_OK;
 }
