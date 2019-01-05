@@ -111,9 +111,9 @@ VOID NTAPI MenuItemCallback(
     case ID_MODULE_SERVICES:
         {
             EtShowModuleServicesDialog(
-                menuItem->OwnerWindow,
+                !!PhGetIntegerSetting(L"ForceNoParent") ? NULL : menuItem->OwnerWindow,
                 ModuleProcessId,
-                ((PPH_MODULE_ITEM)menuItem->Context)->Name->Buffer
+                ((PPH_MODULE_ITEM)menuItem->Context)->Name
                 );
         }
         break;
@@ -506,6 +506,7 @@ LOGICAL DllMain(
                 { StringSettingType, SETTING_NAME_UNLOADED_COLUMNS, L"" },
                 { IntegerPairSettingType, SETTING_NAME_MODULE_SERVICES_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_MODULE_SERVICES_WINDOW_SIZE, L"@96|850,490" },
+                { StringSettingType, SETTING_NAME_MODULE_SERVICES_COLUMNS, L"" },
                 { IntegerPairSettingType, SETTING_NAME_GPU_NODES_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_GPU_NODES_WINDOW_SIZE, L"@96|850,490" },
                 { IntegerPairSettingType, SETTING_NAME_WSWATCH_WINDOW_POSITION, L"0,0" },
