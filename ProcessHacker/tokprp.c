@@ -3,7 +3,7 @@
  *   token properties
  *
  * Copyright (C) 2010-2012 wj32
- * Copyright (C) 2017-2018 dmex
+ * Copyright (C) 2017-2019 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -1224,11 +1224,6 @@ INT_PTR CALLBACK PhpTokenPageProc(
                     PhFree(listViewItems);
                 }
                 break;
-            case ID_PRIVILEGE_COPY:
-                {
-                    PhCopyListView(tokenPageContext->ListViewHandle);
-                }
-                break;
             case IDC_DEFAULTPERM:
                 {
                     PhEditSecurity(
@@ -1426,6 +1421,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
             {
                 POINT point;
                 PPH_EMENU menu;
+                PPH_EMENU item;
                 PPHP_TOKEN_PAGE_LISTVIEW_ITEM *listviewItems;
                 ULONG numberOfItems;
 
@@ -1484,9 +1480,10 @@ INT_PTR CALLBACK PhpTokenPageProc(
                         }
                     }
 
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PRIVILEGE_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
+                    PhInsertCopyListViewEMenuItem(menu, IDC_COPY, tokenPageContext->ListViewHandle);
 
-                    PhShowEMenu(
+                    item = PhShowEMenu(
                         menu,
                         hwndDlg,
                         PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT,
@@ -1494,6 +1491,29 @@ INT_PTR CALLBACK PhpTokenPageProc(
                         point.x,
                         point.y
                         );
+
+                    if (item)
+                    {
+                        BOOLEAN handled = FALSE;
+
+                        handled = PhHandleCopyListViewEMenuItem(item);
+
+                        //if (!handled && PhPluginsEnabled)
+                        //    handled = PhPluginTriggerEMenuItem(&menuInfo, item);
+
+                        if (!handled)
+                        {
+                            switch (item->Id)
+                            {
+                            case IDC_COPY:
+                                {
+                                    PhCopyListView(tokenPageContext->ListViewHandle);
+                                }
+                                break;
+                            }
+                        }
+                    }
+
                     PhDestroyEMenu(menu);
                 }
 
