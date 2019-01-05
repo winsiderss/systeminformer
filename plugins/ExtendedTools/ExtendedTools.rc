@@ -494,36 +494,6 @@ BEGIN
 END
 
 
-/////////////////////////////////////////////////////////////////////////////
-//
-// AFX_DIALOG_LAYOUT
-//
-
-IDD_OBJTPWORKERFACTORY AFX_DIALOG_LAYOUT
-BEGIN
-    0
-END
-
-IDD_PROCGPU_DETAILS AFX_DIALOG_LAYOUT
-BEGIN
-    0
-END
-
-IDD_PROCGPU_PANEL AFX_DIALOG_LAYOUT
-BEGIN
-    0
-END
-
-IDD_OPTIONS AFX_DIALOG_LAYOUT
-BEGIN
-    0
-END
-
-IDD_UNLOADEDDLLS AFX_DIALOG_LAYOUT
-BEGIN
-    0
-END
-
 #endif    // English (Australia) resources
 /////////////////////////////////////////////////////////////////////////////
 
