@@ -673,7 +673,6 @@
 #define ID_ESC_EXIT                     40190
 #define ID_PROCESS_COPY                 40194
 #define ID_THREAD_COPY                  40195
-#define ID_PRIVILEGE_COPY               40196
 #define ID_NETWORK_COPY                 40197
 #define ID_SERVICE_COPY                 40198
 #define ID_MODULE_COPY                  40199
