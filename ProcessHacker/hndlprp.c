@@ -747,6 +747,7 @@ VOID PhpUpdateHandleGeneral(
                     FileModeAccessEntries,
                     RTL_NUMBER_OF(FileModeAccessEntries)
                     );
+
                 PhInitFormatS(&format[0], L"0x");
                 PhInitFormatX(&format[1], fileModeInfo.Mode);
                 PhInitFormatS(&format[2], L" (");

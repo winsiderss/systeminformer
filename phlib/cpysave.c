@@ -475,7 +475,7 @@ PPH_STRING PhaGetListViewItemText(
 
         allocatedCount *= 2;
         buffer = PhCreateStringEx(NULL, allocatedCount * sizeof(WCHAR));
-        buffer->Buffer[0] = 0;
+        buffer->Buffer[0] = UNICODE_NULL;
 
         lvItem.iSubItem = SubItemIndex;
         lvItem.cchTextMax = (INT)allocatedCount + 1;

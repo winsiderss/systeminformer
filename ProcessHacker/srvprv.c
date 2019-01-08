@@ -948,7 +948,7 @@ VOID PhServiceProviderUpdate(
                     if (serviceItem->ProcessId)
                         PhPrintUInt32(serviceItem->ProcessIdString, HandleToUlong(serviceItem->ProcessId));
                     else
-                        serviceItem->ProcessIdString[0] = 0;
+                        serviceItem->ProcessIdString[0] = UNICODE_NULL;
 
                     // Add/remove the service from its process.
 

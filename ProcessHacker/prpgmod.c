@@ -178,7 +178,6 @@ VOID PhShowModuleContextMenu(
     PhFree(modules);
 }
 
-
 static BOOLEAN PhpWordMatchHandleStringRef(
     _In_ PPH_STRING SearchText,
     _In_ PPH_STRINGREF Text
@@ -541,7 +540,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
 
             if (dialogItem = PhBeginPropPageLayout(hwndDlg, propPageContext))
             {
-                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_SEARCH), dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+                PhAddPropPageLayoutItem(hwndDlg, modulesContext->SearchboxHandle, dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, modulesContext->ListContext.TreeNewHandle, dialogItem, PH_ANCHOR_ALL);
                 PhEndPropPageLayout(hwndDlg, propPageContext);
             }

@@ -1108,9 +1108,9 @@ VOID PhWritePhTextHeader(
         PhDereferenceObject(version);
     }
 
-    PhWriteStringFormatAsUtf8FileStream(FileStream, L"\r\nWindows NT %u.%u", PhOsVersion.dwMajorVersion, PhOsVersion.dwMinorVersion);
+    PhWriteStringFormatAsUtf8FileStream(FileStream, L"\r\nWindows NT %lu.%lu", PhOsVersion.dwMajorVersion, PhOsVersion.dwMinorVersion);
 
-    if (PhOsVersion.szCSDVersion[0] != 0)
+    if (PhOsVersion.szCSDVersion[0] != UNICODE_NULL)
         PhWriteStringFormatAsUtf8FileStream(FileStream, L" %s", PhOsVersion.szCSDVersion);
 
 #ifdef _WIN64
@@ -1223,7 +1223,7 @@ BOOLEAN PhShellProcessHackerEx(
             PhAppendStringBuilder2(&sb, L" -newinstance");
 
         if (PhStartupParameters.SelectPid != 0)
-            PhAppendFormatStringBuilder(&sb, L" -selectpid %u", PhStartupParameters.SelectPid);
+            PhAppendFormatStringBuilder(&sb, L" -selectpid %lu", PhStartupParameters.SelectPid);
 
         if (PhStartupParameters.PriorityClass != 0)
         {

@@ -78,9 +78,7 @@ HWND PhCreateServiceListControl(
     HWND windowHandle;
     PPH_SERVICES_CONTEXT servicesContext;
 
-    servicesContext = PhAllocate(sizeof(PH_SERVICES_CONTEXT));
-
-    memset(servicesContext, 0, sizeof(PH_SERVICES_CONTEXT));
+    servicesContext = PhAllocateZero(sizeof(PH_SERVICES_CONTEXT));
     servicesContext->Services = Services;
     servicesContext->NumberOfServices = NumberOfServices;
 

@@ -933,7 +933,7 @@ static BOOLEAN PhpShowErrorProcess(
         return PhShowContinueStatus(
             hWnd,
             PhaFormatString(
-            L"Unable to %s %s (PID %u)",
+            L"Unable to %s %s (PID %lu)",
             Verb,
             Process->ProcessName->Buffer,
             HandleToUlong(Process->ProcessId)
@@ -2384,7 +2384,7 @@ static BOOLEAN PhpShowErrorThread(
     return PhShowContinueStatus(
         hWnd,
         PhaFormatString(
-        L"Unable to %s thread %u",
+        L"Unable to %s thread %lu",
         Verb,
         HandleToUlong(Thread->ThreadId)
         )->Buffer,
@@ -2436,7 +2436,7 @@ BOOLEAN PhUiTerminateThreads(
 
             if (!cancelled && PhpShowErrorAndConnectToPhSvc(
                 hWnd,
-                PhaFormatString(L"Unable to terminate thread %u", HandleToUlong(Threads[i]->ThreadId))->Buffer,
+                PhaFormatString(L"Unable to terminate thread %lu", HandleToUlong(Threads[i]->ThreadId))->Buffer,
                 status,
                 &connected
                 ))
@@ -2499,7 +2499,7 @@ BOOLEAN PhUiSuspendThreads(
 
             if (!cancelled && PhpShowErrorAndConnectToPhSvc(
                 hWnd,
-                PhaFormatString(L"Unable to suspend thread %u", HandleToUlong(Threads[i]->ThreadId))->Buffer,
+                PhaFormatString(L"Unable to suspend thread %lu", HandleToUlong(Threads[i]->ThreadId))->Buffer,
                 status,
                 &connected
                 ))
@@ -2562,7 +2562,7 @@ BOOLEAN PhUiResumeThreads(
 
             if (!cancelled && PhpShowErrorAndConnectToPhSvc(
                 hWnd,
-                PhaFormatString(L"Unable to resume thread %u", HandleToUlong(Threads[i]->ThreadId))->Buffer,
+                PhaFormatString(L"Unable to resume thread %lu", HandleToUlong(Threads[i]->ThreadId))->Buffer,
                 status,
                 &connected
                 ))
@@ -2655,7 +2655,7 @@ BOOLEAN PhUiSetIoPriorityThread(
         // The operation may have failed due to the lack of SeIncreaseBasePriorityPrivilege.
         if (PhpShowErrorAndConnectToPhSvc(
             hWnd,
-            PhaFormatString(L"Unable to set the I/O priority of thread %u", HandleToUlong(Thread->ThreadId))->Buffer,
+            PhaFormatString(L"Unable to set the I/O priority of thread %lu", HandleToUlong(Thread->ThreadId))->Buffer,
             status,
             &connected
             ))

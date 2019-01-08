@@ -1243,7 +1243,7 @@ PPH_STRING PhSaveListViewColumnSettings(
 
     PhInitializeStringBuilder(&stringBuilder, 20);
 
-    PhAppendFormatStringBuilder(&stringBuilder, L"@%u|", PhGlobalDpi);
+    PhAppendFormatStringBuilder(&stringBuilder, L"@%lu|", PhGlobalDpi);
 
     lvColumn.mask = LVCF_WIDTH | LVCF_ORDER;
 
@@ -1340,7 +1340,7 @@ VOID PhSaveListViewSortColumnsToSetting(
     PH_SORT_ORDER sortOrder = AscendingSortOrder;
 
     if (ExtendedListView_GetSort(ListViewHandle, &sortColumn, &sortOrder))
-        string = PhFormatString(L"%u,%u", sortColumn, sortOrder);
+        string = PhFormatString(L"%lu,%lu", sortColumn, sortOrder);
     else
         string = PhCreateString(L"0,0");
 

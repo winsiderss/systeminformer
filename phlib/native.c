@@ -3441,7 +3441,7 @@ BOOLEAN NTAPI PhpEnumProcessModulesCallback(
         // Read the full DLL name string and add a null terminator.
 
         fullDllNameOriginal = Entry->FullDllName.Buffer;
-        fullDllNameBuffer = PhAllocate(Entry->FullDllName.Length + sizeof(WCHAR));
+        fullDllNameBuffer = PhAllocate(Entry->FullDllName.Length + sizeof(UNICODE_NULL));
         Entry->FullDllName.Buffer = fullDllNameBuffer;
 
         if (NT_SUCCESS(status = NtReadVirtualMemory(
@@ -3478,7 +3478,7 @@ BOOLEAN NTAPI PhpEnumProcessModulesCallback(
         {
             // Read the base DLL name string and add a null terminator.
 
-            baseDllNameBuffer = PhAllocate(Entry->BaseDllName.Length + sizeof(WCHAR));
+            baseDllNameBuffer = PhAllocate(Entry->BaseDllName.Length + sizeof(UNICODE_NULL));
             Entry->BaseDllName.Buffer = baseDllNameBuffer;
 
             if (NT_SUCCESS(NtReadVirtualMemory(
@@ -3886,7 +3886,7 @@ BOOLEAN NTAPI PhpEnumProcessModules32Callback(
         }
         else
         {
-            fullDllNameBuffer[0] = 0;
+            fullDllNameBuffer[0] = UNICODE_NULL;
             nativeEntry.FullDllName.Length = 0;
         }
 
