@@ -478,19 +478,19 @@ PPH_STRING PhGetMemoryRegionUseText(
         return PhFormatString(L"PEB%s", type == Peb32Region ? L" 32-bit" : L"");
     case TebRegion:
     case Teb32Region:
-        return PhFormatString(L"TEB%s (thread %u)",
+        return PhFormatString(L"TEB%s (thread %lu)",
             type == Teb32Region ? L" 32-bit" : L"", HandleToUlong(MemoryItem->u.Teb.ThreadId));
     case StackRegion:
     case Stack32Region:
-        return PhFormatString(L"Stack%s (thread %u)",
+        return PhFormatString(L"Stack%s (thread %lu)",
             type == Stack32Region ? L" 32-bit" : L"", HandleToUlong(MemoryItem->u.Stack.ThreadId));
     case HeapRegion:
     case Heap32Region:
-        return PhFormatString(L"Heap%s (ID %u)",
+        return PhFormatString(L"Heap%s (ID %lu)",
             type == Heap32Region ? L" 32-bit" : L"", (ULONG)MemoryItem->u.Heap.Index + 1);
     case HeapSegmentRegion:
     case HeapSegment32Region:
-        return PhFormatString(L"Heap segment%s (ID %u)",
+        return PhFormatString(L"Heap segment%s (ID %lu)",
             type == HeapSegment32Region ? L" 32-bit" : L"", (ULONG)MemoryItem->u.HeapSegment.HeapItem->u.Heap.Index + 1);
     case CfgBitmapRegion:
     case CfgBitmap32Region:

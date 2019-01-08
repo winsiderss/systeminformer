@@ -5215,7 +5215,7 @@ PPH_STRING PhLoadString(
     PPH_STRING string = NULL;
     ULONG resourceLength;
     PVOID resourceBuffer;
-    ULONG stringCount;
+    ULONG stringIndex;
     PWSTR stringBuffer;
     ULONG i;
 
@@ -5231,9 +5231,9 @@ PPH_STRING PhLoadString(
     }
 
     stringBuffer = resourceBuffer;
-    stringCount = ResourceId & 0x000F;
+    stringIndex = ResourceId & 0x000F;
 
-    for (i = 0; i < stringCount; i++) // dmex: Copied from ReactOS.
+    for (i = 0; i < stringIndex; i++) // dmex: Copied from ReactOS.
     {
         stringBuffer += *stringBuffer + 1;
     }
@@ -5807,7 +5807,7 @@ static NTSTATUS PhpFixupLoaderEntryImageImports(
                         
                         if (NT_SUCCESS(PhGetProcessMappedFileName(NtCurrentProcess(), BaseAddress, &fileName)))
                         {
-                            PhMoveReference(&fileName, PhResolveDevicePrefix(fileName));
+                            PhMoveReference(&fileName, PhGetFileName(fileName));
                             PhMoveReference(&fileName, PhGetBaseName(fileName));
                         
                             PhShowError(
@@ -5844,7 +5844,7 @@ static NTSTATUS PhpFixupLoaderEntryImageImports(
                         
                         if (NT_SUCCESS(PhGetProcessMappedFileName(NtCurrentProcess(), BaseAddress, &fileName)))
                         {
-                            PhMoveReference(&fileName, PhResolveDevicePrefix(fileName));
+                            PhMoveReference(&fileName, PhGetFileName(fileName));
                             PhMoveReference(&fileName, PhGetBaseName(fileName));
                         
                             PhShowError(

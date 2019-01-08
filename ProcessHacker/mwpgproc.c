@@ -828,7 +828,7 @@ VOID PhMwpOnProcessAdded(
                 PhMwpLastNotificationDetails.ProcessId = ProcessItem->ProcessId;
 
                 PhShowIconNotification(L"Process Created", PhaFormatString(
-                    L"The process %s (%u) was created by %s (%u)",
+                    L"The process %s (%lu) was created by %s (%lu)",
                     ProcessItem->ProcessName->Buffer,
                     HandleToUlong(ProcessItem->ProcessId),
                     PhGetStringOrDefault(parentName, L"Unknown process"),
@@ -883,7 +883,7 @@ VOID PhMwpOnProcessRemoved(
             PhMwpLastNotificationDetails.ProcessId = ProcessItem->ProcessId;
 
             PhShowIconNotification(L"Process Terminated", PhaFormatString(
-                L"The process %s (%u) was terminated.",
+                L"The process %s (%lu) was terminated.",
                 ProcessItem->ProcessName->Buffer,
                 HandleToUlong(ProcessItem->ProcessId)
                 )->Buffer, NIIF_INFO);

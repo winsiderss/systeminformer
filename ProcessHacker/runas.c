@@ -624,7 +624,7 @@ static VOID PhpAddSessionsToComboBox(
                 sessions[i].WinStationName[0] != UNICODE_NULL
                 )
             {
-                menuString = PhFormatString(L"%u: %s (%s\\%s)",
+                menuString = PhFormatString(L"%lu: %s (%s\\%s)",
                     sessions[i].SessionId,
                     sessions[i].WinStationName,
                     winStationInfo.Domain,
@@ -633,7 +633,7 @@ static VOID PhpAddSessionsToComboBox(
             }
             else if (winStationInfo.UserName[0] != UNICODE_NULL)
             {
-                menuString = PhFormatString(L"%u: %s\\%s",
+                menuString = PhFormatString(L"%lu: %s\\%s",
                     sessions[i].SessionId,
                     winStationInfo.Domain,
                     winStationInfo.UserName
@@ -641,14 +641,14 @@ static VOID PhpAddSessionsToComboBox(
             }
             else if (sessions[i].WinStationName[0] != UNICODE_NULL)
             {
-                menuString = PhFormatString(L"%u: %s",
+                menuString = PhFormatString(L"%lu: %s",
                     sessions[i].SessionId,
                     sessions[i].WinStationName
                     );
             }
             else
             {
-                menuString = PhFormatString(L"%u", sessions[i].SessionId);
+                menuString = PhFormatString(L"%lu", sessions[i].SessionId);
             }
 
             {

@@ -202,7 +202,7 @@ VOID PhpAnalyzeWaitPassive(
 
     if (!NT_SUCCESS(status = PhOpenThread(&threadHandle, THREAD_GET_CONTEXT, ThreadId)))
     {
-        PhShowStatus(hWnd, L"Unable to open the thread", status, 0);
+        PhShowStatus(hWnd, L"Unable to open the thread.", status, 0);
         return;
     }
 
@@ -216,7 +216,7 @@ VOID PhpAnalyzeWaitPassive(
     if (!NT_SUCCESS(status = PhOpenProcess(&processHandle, PROCESS_DUP_HANDLE, ProcessId)))
     {
         NtClose(threadHandle);
-        PhShowStatus(hWnd, L"Unable to open the process", status, 0);
+        PhShowStatus(hWnd, L"Unable to open the process.", status, 0);
         return;
     }
 
@@ -231,7 +231,7 @@ VOID PhpAnalyzeWaitPassive(
     }
     else if (lastSystemCall.SystemCallNumber == NumberForWfmo)
     {
-        PhAppendFormatStringBuilder(&stringBuilder, L"Thread is waiting for multiple (%u) objects.", PtrToUlong(lastSystemCall.FirstArgument));
+        PhAppendFormatStringBuilder(&stringBuilder, L"Thread is waiting for multiple (%lu) objects.", PtrToUlong(lastSystemCall.FirstArgument));
     }
     else if (lastSystemCall.SystemCallNumber == NumberForRf)
     {
@@ -307,7 +307,7 @@ static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
     {
         PhAppendFormatStringBuilder(
             &context->StringBuilder,
-            L"Thread is sleeping. Timeout: %u milliseconds.",
+            L"Thread is sleeping. Timeout: %lu milliseconds.",
             PtrToUlong(StackFrame->Params[0])
             );
     }
@@ -994,7 +994,7 @@ static PPH_STRING PhpaGetSendMessageReceiver(
     clientIdName = PH_AUTO(PhGetClientIdName(&clientId));
 
     if (!GetClassName(windowHandle, windowClass, sizeof(windowClass) / sizeof(WCHAR)))
-        windowClass[0] = 0;
+        windowClass[0] = UNICODE_NULL;
 
     windowText = PH_AUTO(PhGetWindowText(windowHandle));
 
@@ -1038,7 +1038,7 @@ static PPH_STRING PhpaGetAlpcInformation(
         clientId.UniqueThread = NULL;
         clientIdName = PH_AUTO(PhGetClientIdName(&clientId));
 
-        string = PhaFormatString(L"ALPC Port: %.*s (%s)", serverInfo->Out.ConnectionPortName.Length / 2, serverInfo->Out.ConnectionPortName.Buffer, clientIdName->Buffer);
+        string = PhaFormatString(L"ALPC Port: %.*s (%s)", serverInfo->Out.ConnectionPortName.Length / sizeof(WCHAR), serverInfo->Out.ConnectionPortName.Buffer, clientIdName->Buffer);
     }
 
     PhFree(serverInfo);

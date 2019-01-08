@@ -795,7 +795,7 @@ PPH_STRING PhSipGetMaxCpuString(
         if (!PH_IS_FAKE_PROCESS_ID(maxProcessRecord->ProcessId))
         {
             maxUsageString = PhaFormatString(
-                L"\n%s (%u): %.2f%%",
+                L"\n%s (%lu): %.2f%%",
                 maxProcessRecord->ProcessName->Buffer,
                 HandleToUlong(maxProcessRecord->ProcessId),
                 maxCpuUsage * 100

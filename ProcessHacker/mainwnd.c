@@ -3420,7 +3420,7 @@ VOID PhMwpUpdateUsersMenu(
             }
 
             menuText = PhFormatString(
-                L"%u: %s\\%s",
+                L"%lu: %s\\%s",
                 sessions[i].SessionId,
                 winStationInfo.Domain,
                 winStationInfo.UserName

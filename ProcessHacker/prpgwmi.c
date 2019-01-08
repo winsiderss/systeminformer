@@ -579,9 +579,7 @@ INT_PTR CALLBACK PhpProcessWmiProvidersDlgProc(
     {
     case WM_INITDIALOG:
         {
-            context = propPageContext->Context = PhAllocate(sizeof(PH_WMI_CONTEXT));
-            memset(context, 0, sizeof(PH_WMI_CONTEXT));
-
+            context = propPageContext->Context = PhAllocateZero(sizeof(PH_WMI_CONTEXT));
             context->WindowHandle = hwndDlg;
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
             context->Enabled = TRUE;

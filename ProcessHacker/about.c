@@ -59,7 +59,7 @@ static INT_PTR CALLBACK PhpAboutDlgProc(
 
 #if (PHAPP_VERSION_REVISION != 0)
             appName = PhFormatString(
-                L"Process Hacker %u.%u.%u (%hs)",
+                L"Process Hacker %lu.%lu.%lu (%hs)",
                 PHAPP_VERSION_MAJOR,
                 PHAPP_VERSION_MINOR,
                 PHAPP_VERSION_REVISION,
@@ -67,7 +67,7 @@ static INT_PTR CALLBACK PhpAboutDlgProc(
                 );
 #else
             appName = PhFormatString(
-                L"Process Hacker %u.%u",
+                L"Process Hacker %lu.%lu",
                 PHAPP_VERSION_MAJOR,
                 PHAPP_VERSION_MINOR
                 );
@@ -190,7 +190,7 @@ PPH_STRING PhGetDiagnosticsString(
     PhAppendFormatStringBuilder(&stringBuilder, L"OBJECT INFORMATION\r\n");
 
 #define OBJECT_TYPE_COUNT(Type) PhAppendFormatStringBuilder(&stringBuilder, \
-    L#Type L": %u objects\r\n", PhpGetObjectTypeObjectCount(Type))
+    L#Type L": %lu objects\r\n", PhpGetObjectTypeObjectCount(Type))
 
     // ref
     OBJECT_TYPE_COUNT(PhObjectTypeObject);
