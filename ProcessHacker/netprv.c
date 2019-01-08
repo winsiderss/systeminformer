@@ -188,7 +188,7 @@ ULONG NTAPI PhpNetworkHashtableHashFunction(
         networkItem->ProtocolType ^
         PhHashIpEndpoint(&networkItem->LocalEndpoint) ^
         PhHashIpEndpoint(&networkItem->RemoteEndpoint) ^
-        HandleToUlong(networkItem->ProcessId);
+        (HandleToUlong(networkItem->ProcessId) / 4);
 }
 
 PPH_NETWORK_ITEM PhReferenceNetworkItem(
