@@ -1796,6 +1796,17 @@ BOOLEAN PhHandleCopyCellEMenuItem(
     return TRUE;
 }
 
+VOID NTAPI PhpCopyListViewEMenuItemDeleteFunction(
+    _In_ struct _PH_EMENU_ITEM *Item
+    )
+{
+    PPH_COPY_ITEM_CONTEXT context;
+
+    context = Item->Context;
+    PhDereferenceObject(context->MenuItemText);
+    PhFree(context);
+}
+
 BOOLEAN PhInsertCopyListViewEMenuItem(
     _In_ struct _PH_EMENU_ITEM *Menu,
     _In_ ULONG InsertAfterId,
@@ -1814,8 +1825,10 @@ BOOLEAN PhInsertCopyListViewEMenuItem(
     HDITEM headerItem;
     WCHAR headerText[MAX_PATH];
 
-    GetCursorPos(&location);
-    ScreenToClient(ListViewHandle, &location);
+    if (!GetCursorPos(&location))
+        return FALSE;
+    if (!ScreenToClient(ListViewHandle, &location))
+        return FALSE;
 
     memset(&lvHitInfo, 0, sizeof(LVHITTESTINFO));
     lvHitInfo.pt = location;
@@ -1852,7 +1865,7 @@ BOOLEAN PhInsertCopyListViewEMenuItem(
     PhDereferenceObject(escapedText);
 
     copyMenuItem = PhCreateEMenuItem(0, ID_COPY_CELL, menuItemText->Buffer, NULL, context);
-    copyMenuItem->DeleteFunction = PhpCopyCellEMenuItemDeleteFunction;
+    copyMenuItem->DeleteFunction = PhpCopyListViewEMenuItemDeleteFunction;
     context->MenuItemText = menuItemText;
 
     PhInsertEMenuItem(parentItem, copyMenuItem, indexInParent);
