@@ -199,6 +199,11 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
             PvHandleListViewNotifyForCopy(lParam, GetDlgItem(hwndDlg, IDC_LIST));
         }
         break;
+    case WM_CONTEXTMENU:
+        {
+            PvHandleListViewCommandCopy(hwndDlg, lParam, wParam, GetDlgItem(hwndDlg, IDC_LIST));
+        }
+        break;
     }
 
     return FALSE;
