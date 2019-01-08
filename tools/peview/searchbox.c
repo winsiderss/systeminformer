@@ -109,7 +109,7 @@ VOID PhpSearchInitializeTheme(
     _Inout_ PEDIT_CONTEXT Context
     )
 {
-    Context->CXWidth = 20;// PH_SCALE_DPI(20);
+    Context->CXWidth = PhMultiplyDivideSigned(20, PhGlobalDpi, 96);// PH_SCALE_DPI(20);
     Context->BrushNormal = GetSysColorBrush(COLOR_WINDOW);
     Context->BrushHot = CreateSolidBrush(RGB(205, 232, 255));
     Context->BrushPushed = CreateSolidBrush(RGB(153, 209, 255));

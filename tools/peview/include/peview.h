@@ -80,6 +80,13 @@ VOID PvHandleListViewNotifyForCopy(
     _In_ HWND ListViewHandle
     );
 
+VOID PvHandleListViewCommandCopy(
+    _In_ HWND WindowHandle,
+    _In_ LPARAM lParam,
+    _In_ WPARAM wParam,
+    _In_ HWND ListViewHandle
+    );
+
 // settings
 
 VOID PeInitializeSettings(
