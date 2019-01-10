@@ -113,7 +113,6 @@ namespace CustomBuildTool
             "nttp.h",
             "ntwow64.h",
             "ntxcapi.h",
-            "ntzwapi.h",
             "phnt.h",
             "phnt_ntdef.h",
             "phnt_windows.h",

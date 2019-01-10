@@ -241,7 +241,25 @@ NtCreateDebugObject(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwCreateDebugObject(
+    _Out_ PHANDLE DebugObjectHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ ULONG Flags
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtDebugActiveProcess(
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE DebugObjectHandle
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwDebugActiveProcess(
     _In_ HANDLE ProcessHandle,
     _In_ HANDLE DebugObjectHandle
     );
@@ -258,7 +276,24 @@ NtDebugContinue(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwDebugContinue(
+    _In_ HANDLE DebugObjectHandle,
+    _In_ PCLIENT_ID ClientId,
+    _In_ NTSTATUS ContinueStatus
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtRemoveProcessDebug(
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE DebugObjectHandle
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwRemoveProcessDebug(
     _In_ HANDLE ProcessHandle,
     _In_ HANDLE DebugObjectHandle
     );
@@ -277,7 +312,28 @@ NtSetInformationDebugObject(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwSetInformationDebugObject(
+    _In_ HANDLE DebugObjectHandle,
+    _In_ DEBUGOBJECTINFOCLASS DebugObjectInformationClass,
+    _In_ PVOID DebugInformation,
+    _In_ ULONG DebugInformationLength,
+    _Out_opt_ PULONG ReturnLength
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtWaitForDebugEvent(
+    _In_ HANDLE DebugObjectHandle,
+    _In_ BOOLEAN Alertable,
+    _In_opt_ PLARGE_INTEGER Timeout,
+    _Out_ PVOID WaitStateChange
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwWaitForDebugEvent(
     _In_ HANDLE DebugObjectHandle,
     _In_ BOOLEAN Alertable,
     _In_opt_ PLARGE_INTEGER Timeout,

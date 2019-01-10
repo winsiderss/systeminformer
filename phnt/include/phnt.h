@@ -94,8 +94,6 @@ extern "C" {
 
 #include <ntmisc.h>
 
-#include <ntzwapi.h>
-
 #endif
 
 #ifdef __cplusplus

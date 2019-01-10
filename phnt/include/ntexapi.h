@@ -35,12 +35,30 @@ NtDelayExecution(
     _In_ PLARGE_INTEGER DelayInterval
     );
 
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwDelayExecution(
+    _In_ BOOLEAN Alertable,
+    _In_ PLARGE_INTEGER DelayInterval
+    );
+
 // Environment values
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtQuerySystemEnvironmentValue(
+    _In_ PUNICODE_STRING VariableName,
+    _Out_writes_bytes_(ValueLength) PWSTR VariableValue,
+    _In_ USHORT ValueLength,
+    _Out_opt_ PUSHORT ReturnLength
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwQuerySystemEnvironmentValue(
     _In_ PUNICODE_STRING VariableName,
     _Out_writes_bytes_(ValueLength) PWSTR VariableValue,
     _In_ USHORT ValueLength,
@@ -58,7 +76,26 @@ NtSetSystemEnvironmentValue(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwSetSystemEnvironmentValue(
+    _In_ PUNICODE_STRING VariableName,
+    _In_ PUNICODE_STRING VariableValue
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtQuerySystemEnvironmentValueEx(
+    _In_ PUNICODE_STRING VariableName,
+    _In_ LPGUID VendorGuid,
+    _Out_writes_bytes_opt_(*ValueLength) PVOID Value,
+    _Inout_ PULONG ValueLength,
+    _Out_opt_ PULONG Attributes
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwQuerySystemEnvironmentValueEx(
     _In_ PUNICODE_STRING VariableName,
     _In_ LPGUID VendorGuid,
     _Out_writes_bytes_opt_(*ValueLength) PVOID Value,
@@ -80,7 +117,27 @@ NtSetSystemEnvironmentValueEx(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwSetSystemEnvironmentValueEx(
+    _In_ PUNICODE_STRING VariableName,
+    _In_ LPGUID VendorGuid,
+    _In_reads_bytes_opt_(ValueLength) PVOID Value,
+    _In_ ULONG ValueLength,
+    _In_ ULONG Attributes
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtEnumerateSystemEnvironmentValuesEx(
+    _In_ ULONG InformationClass,
+    _Out_ PVOID Buffer,
+    _Inout_ PULONG BufferLength
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwEnumerateSystemEnvironmentValuesEx(
     _In_ ULONG InformationClass,
     _Out_ PVOID Buffer,
     _Inout_ PULONG BufferLength
@@ -158,7 +215,22 @@ NtAddBootEntry(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwAddBootEntry(
+    _In_ PBOOT_ENTRY BootEntry,
+    _Out_opt_ PULONG Id
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtDeleteBootEntry(
+    _In_ ULONG Id
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwDeleteBootEntry(
     _In_ ULONG Id
     );
 
@@ -172,7 +244,22 @@ NtModifyBootEntry(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwModifyBootEntry(
+    _In_ PBOOT_ENTRY BootEntry
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtEnumerateBootEntries(
+    _Out_writes_bytes_opt_(*BufferLength) PVOID Buffer,
+    _Inout_ PULONG BufferLength
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwEnumerateBootEntries(
     _Out_writes_bytes_opt_(*BufferLength) PVOID Buffer,
     _Inout_ PULONG BufferLength
     );
@@ -188,7 +275,23 @@ NtQueryBootEntryOrder(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwQueryBootEntryOrder(
+    _Out_writes_opt_(*Count) PULONG Ids,
+    _Inout_ PULONG Count
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtSetBootEntryOrder(
+    _In_reads_(Count) PULONG Ids,
+    _In_ ULONG Count
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwSetBootEntryOrder(
     _In_reads_(Count) PULONG Ids,
     _In_ ULONG Count
     );
@@ -204,7 +307,23 @@ NtQueryBootOptions(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwQueryBootOptions(
+    _Out_writes_bytes_opt_(*BootOptionsLength) PBOOT_OPTIONS BootOptions,
+    _Inout_ PULONG BootOptionsLength
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtSetBootOptions(
+    _In_ PBOOT_OPTIONS BootOptions,
+    _In_ ULONG FieldsToChange
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwSetBootOptions(
     _In_ PBOOT_OPTIONS BootOptions,
     _In_ ULONG FieldsToChange
     );
@@ -222,7 +341,25 @@ NtTranslateFilePath(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwTranslateFilePath(
+    _In_ PFILE_PATH InputFilePath,
+    _In_ ULONG OutputType,
+    _Out_writes_bytes_opt_(*OutputFilePathLength) PFILE_PATH OutputFilePath,
+    _Inout_opt_ PULONG OutputFilePathLength
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtAddDriverEntry(
+    _In_ PEFI_DRIVER_ENTRY DriverEntry,
+    _Out_opt_ PULONG Id
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwAddDriverEntry(
     _In_ PEFI_DRIVER_ENTRY DriverEntry,
     _Out_opt_ PULONG Id
     );
@@ -237,6 +374,13 @@ NtDeleteDriverEntry(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwDeleteDriverEntry(
+    _In_ ULONG Id
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtModifyDriverEntry(
     _In_ PEFI_DRIVER_ENTRY DriverEntry
     );
@@ -244,7 +388,22 @@ NtModifyDriverEntry(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwModifyDriverEntry(
+    _In_ PEFI_DRIVER_ENTRY DriverEntry
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtEnumerateDriverEntries(
+    _Out_writes_bytes_opt_(*BufferLength) PVOID Buffer,
+    _Inout_ PULONG BufferLength
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwEnumerateDriverEntries(
     _Out_writes_bytes_opt_(*BufferLength) PVOID Buffer,
     _Inout_ PULONG BufferLength
     );
@@ -260,7 +419,23 @@ NtQueryDriverEntryOrder(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwQueryDriverEntryOrder(
+    _Out_writes_opt_(*Count) PULONG Ids,
+    _Inout_ PULONG Count
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtSetDriverEntryOrder(
+    _In_reads_(Count) PULONG Ids,
+    _In_ ULONG Count
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwSetDriverEntryOrder(
     _In_reads_(Count) PULONG Ids,
     _In_ ULONG Count
     );
@@ -278,6 +453,17 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtFilterBootOption(
+    _In_ FILTER_BOOT_OPTION_OPERATION FilterOperation,
+    _In_ ULONG ObjectType,
+    _In_ ULONG ElementType,
+    _In_reads_bytes_opt_(DataSize) PVOID Data,
+    _In_ ULONG DataSize
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwFilterBootOption(
     _In_ FILTER_BOOT_OPTION_OPERATION FilterOperation,
     _In_ ULONG ObjectType,
     _In_ ULONG ElementType,
@@ -319,7 +505,27 @@ NtCreateEvent(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwCreateEvent(
+    _Out_ PHANDLE EventHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ EVENT_TYPE EventType,
+    _In_ BOOLEAN InitialState
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtOpenEvent(
+    _Out_ PHANDLE EventHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwOpenEvent(
     _Out_ PHANDLE EventHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_ POBJECT_ATTRIBUTES ObjectAttributes
@@ -336,7 +542,22 @@ NtSetEvent(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwSetEvent(
+    _In_ HANDLE EventHandle,
+    _Out_opt_ PLONG PreviousState
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtSetEventBoostPriority(
+    _In_ HANDLE EventHandle
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwSetEventBoostPriority(
     _In_ HANDLE EventHandle
     );
 
@@ -350,7 +571,22 @@ NtClearEvent(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwClearEvent(
+    _In_ HANDLE EventHandle
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtResetEvent(
+    _In_ HANDLE EventHandle,
+    _Out_opt_ PLONG PreviousState
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwResetEvent(
     _In_ HANDLE EventHandle,
     _Out_opt_ PLONG PreviousState
     );
@@ -366,7 +602,26 @@ NtPulseEvent(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwPulseEvent(
+    _In_ HANDLE EventHandle,
+    _Out_opt_ PLONG PreviousState
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtQueryEvent(
+    _In_ HANDLE EventHandle,
+    _In_ EVENT_INFORMATION_CLASS EventInformationClass,
+    _Out_writes_bytes_(EventInformationLength) PVOID EventInformation,
+    _In_ ULONG EventInformationLength,
+    _Out_opt_ PULONG ReturnLength
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwQueryEvent(
     _In_ HANDLE EventHandle,
     _In_ EVENT_INFORMATION_CLASS EventInformationClass,
     _Out_writes_bytes_(EventInformationLength) PVOID EventInformation,
@@ -390,7 +645,25 @@ NtCreateEventPair(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwCreateEventPair(
+    _Out_ PHANDLE EventPairHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtOpenEventPair(
+    _Out_ PHANDLE EventPairHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwOpenEventPair(
     _Out_ PHANDLE EventPairHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_ POBJECT_ATTRIBUTES ObjectAttributes
@@ -406,7 +679,21 @@ NtSetLowEventPair(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwSetLowEventPair(
+    _In_ HANDLE EventPairHandle
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtSetHighEventPair(
+    _In_ HANDLE EventPairHandle
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwSetHighEventPair(
     _In_ HANDLE EventPairHandle
     );
 
@@ -420,7 +707,21 @@ NtWaitLowEventPair(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwWaitLowEventPair(
+    _In_ HANDLE EventPairHandle
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtWaitHighEventPair(
+    _In_ HANDLE EventPairHandle
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwWaitHighEventPair(
     _In_ HANDLE EventPairHandle
     );
 
@@ -434,7 +735,21 @@ NtSetLowWaitHighEventPair(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwSetLowWaitHighEventPair(
+    _In_ HANDLE EventPairHandle
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtSetHighWaitLowEventPair(
+    _In_ HANDLE EventPairHandle
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwSetHighWaitLowEventPair(
     _In_ HANDLE EventPairHandle
     );
 
@@ -471,7 +786,26 @@ NtCreateMutant(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwCreateMutant(
+    _Out_ PHANDLE MutantHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ BOOLEAN InitialOwner
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtOpenMutant(
+    _Out_ PHANDLE MutantHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwOpenMutant(
     _Out_ PHANDLE MutantHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_ POBJECT_ATTRIBUTES ObjectAttributes
@@ -488,7 +822,26 @@ NtReleaseMutant(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwReleaseMutant(
+    _In_ HANDLE MutantHandle,
+    _Out_opt_ PLONG PreviousCount
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtQueryMutant(
+    _In_ HANDLE MutantHandle,
+    _In_ MUTANT_INFORMATION_CLASS MutantInformationClass,
+    _Out_writes_bytes_(MutantInformationLength) PVOID MutantInformation,
+    _In_ ULONG MutantInformationLength,
+    _Out_opt_ PULONG ReturnLength
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwQueryMutant(
     _In_ HANDLE MutantHandle,
     _In_ MUTANT_INFORMATION_CLASS MutantInformationClass,
     _Out_writes_bytes_(MutantInformationLength) PVOID MutantInformation,
@@ -527,7 +880,27 @@ NtCreateSemaphore(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwCreateSemaphore(
+    _Out_ PHANDLE SemaphoreHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ LONG InitialCount,
+    _In_ LONG MaximumCount
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtOpenSemaphore(
+    _Out_ PHANDLE SemaphoreHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwOpenSemaphore(
     _Out_ PHANDLE SemaphoreHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_ POBJECT_ATTRIBUTES ObjectAttributes
@@ -545,7 +918,27 @@ NtReleaseSemaphore(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwReleaseSemaphore(
+    _In_ HANDLE SemaphoreHandle,
+    _In_ LONG ReleaseCount,
+    _Out_opt_ PLONG PreviousCount
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtQuerySemaphore(
+    _In_ HANDLE SemaphoreHandle,
+    _In_ SEMAPHORE_INFORMATION_CLASS SemaphoreInformationClass,
+    _Out_writes_bytes_(SemaphoreInformationLength) PVOID SemaphoreInformation,
+    _In_ ULONG SemaphoreInformationLength,
+    _Out_opt_ PULONG ReturnLength
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwQuerySemaphore(
     _In_ HANDLE SemaphoreHandle,
     _In_ SEMAPHORE_INFORMATION_CLASS SemaphoreInformationClass,
     _Out_writes_bytes_(SemaphoreInformationLength) PVOID SemaphoreInformation,
@@ -606,6 +999,16 @@ NtCreateTimer(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwCreateTimer(
+    _Out_ PHANDLE TimerHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ TIMER_TYPE TimerType
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtOpenTimer(
     _Out_ PHANDLE TimerHandle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -615,7 +1018,29 @@ NtOpenTimer(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwOpenTimer(
+    _Out_ PHANDLE TimerHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtSetTimer(
+    _In_ HANDLE TimerHandle,
+    _In_ PLARGE_INTEGER DueTime,
+    _In_opt_ PTIMER_APC_ROUTINE TimerApcRoutine,
+    _In_opt_ PVOID TimerContext,
+    _In_ BOOLEAN ResumeTimer,
+    _In_opt_ LONG Period,
+    _Out_opt_ PBOOLEAN PreviousState
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwSetTimer(
     _In_ HANDLE TimerHandle,
     _In_ PLARGE_INTEGER DueTime,
     _In_opt_ PTIMER_APC_ROUTINE TimerApcRoutine,
@@ -635,6 +1060,16 @@ NtSetTimerEx(
     _Inout_updates_bytes_opt_(TimerSetInformationLength) PVOID TimerSetInformation,
     _In_ ULONG TimerSetInformationLength
     );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwSetTimerEx(
+    _In_ HANDLE TimerHandle,
+    _In_ TIMER_SET_INFORMATION_CLASS TimerSetInformationClass,
+    _Inout_updates_bytes_opt_(TimerSetInformationLength) PVOID TimerSetInformation,
+    _In_ ULONG TimerSetInformationLength
+    );
 #endif
 
 NTSYSCALLAPI
@@ -648,7 +1083,26 @@ NtCancelTimer(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwCancelTimer(
+    _In_ HANDLE TimerHandle,
+    _Out_opt_ PBOOLEAN CurrentState
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtQueryTimer(
+    _In_ HANDLE TimerHandle,
+    _In_ TIMER_INFORMATION_CLASS TimerInformationClass,
+    _Out_writes_bytes_(TimerInformationLength) PVOID TimerInformation,
+    _In_ ULONG TimerInformationLength,
+    _Out_opt_ PULONG ReturnLength
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwQueryTimer(
     _In_ HANDLE TimerHandle,
     _In_ TIMER_INFORMATION_CLASS TimerInformationClass,
     _Out_writes_bytes_(TimerInformationLength) PVOID TimerInformation,
@@ -669,7 +1123,23 @@ NtCreateIRTimer(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwCreateIRTimer(
+    _Out_ PHANDLE TimerHandle,
+    _In_ ACCESS_MASK DesiredAccess
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtSetIRTimer(
+    _In_ HANDLE TimerHandle,
+    _In_opt_ PLARGE_INTEGER DueTime
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwSetIRTimer(
     _In_ HANDLE TimerHandle,
     _In_opt_ PLARGE_INTEGER DueTime
     );
@@ -701,6 +1171,17 @@ NtCreateTimer2(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwCreateTimer2(
+    _Out_ PHANDLE TimerHandle,
+    _In_opt_ PVOID Reserved1,
+    _In_opt_ PVOID Reserved2,
+    _In_ ULONG Attributes,
+    _In_ ACCESS_MASK DesiredAccess
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtSetTimer2(
     _In_ HANDLE TimerHandle,
     _In_ PLARGE_INTEGER DueTime,
@@ -711,7 +1192,25 @@ NtSetTimer2(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwSetTimer2(
+    _In_ HANDLE TimerHandle,
+    _In_ PLARGE_INTEGER DueTime,
+    _In_opt_ PLARGE_INTEGER Period,
+    _In_ PT2_SET_PARAMETERS Parameters
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtCancelTimer2(
+    _In_ HANDLE TimerHandle,
+    _In_ PT2_CANCEL_PARAMETERS Parameters
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwCancelTimer2(
     _In_ HANDLE TimerHandle,
     _In_ PT2_CANCEL_PARAMETERS Parameters
     );
@@ -727,6 +1226,21 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtCreateProfile(
+    _Out_ PHANDLE ProfileHandle,
+    _In_opt_ HANDLE Process,
+    _In_ PVOID ProfileBase,
+    _In_ SIZE_T ProfileSize,
+    _In_ ULONG BucketSize,
+    _In_reads_bytes_(BufferSize) PULONG Buffer,
+    _In_ ULONG BufferSize,
+    _In_ KPROFILE_SOURCE ProfileSource,
+    _In_ KAFFINITY Affinity
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwCreateProfile(
     _Out_ PHANDLE ProfileHandle,
     _In_opt_ HANDLE Process,
     _In_ PVOID ProfileBase,
@@ -754,6 +1268,22 @@ NtCreateProfileEx(
     _In_ USHORT GroupCount,
     _In_reads_(GroupCount) PGROUP_AFFINITY GroupAffinity
     );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwCreateProfileEx(
+    _Out_ PHANDLE ProfileHandle,
+    _In_opt_ HANDLE Process,
+    _In_ PVOID ProfileBase,
+    _In_ SIZE_T ProfileSize,
+    _In_ ULONG BucketSize,
+    _In_reads_bytes_(BufferSize) PULONG Buffer,
+    _In_ ULONG BufferSize,
+    _In_ KPROFILE_SOURCE ProfileSource,
+    _In_ USHORT GroupCount,
+    _In_reads_(GroupCount) PGROUP_AFFINITY GroupAffinity
+    );
 #endif
 
 NTSYSCALLAPI
@@ -766,7 +1296,21 @@ NtStartProfile(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwStartProfile(
+    _In_ HANDLE ProfileHandle
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtStopProfile(
+    _In_ HANDLE ProfileHandle
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwStopProfile(
     _In_ HANDLE ProfileHandle
     );
 
@@ -781,7 +1325,23 @@ NtQueryIntervalProfile(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwQueryIntervalProfile(
+    _In_ KPROFILE_SOURCE ProfileSource,
+    _Out_ PULONG Interval
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtSetIntervalProfile(
+    _In_ ULONG Interval,
+    _In_ KPROFILE_SOURCE Source
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwSetIntervalProfile(
     _In_ ULONG Interval,
     _In_ KPROFILE_SOURCE Source
     );
@@ -806,7 +1366,26 @@ NtCreateKeyedEvent(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwCreateKeyedEvent(
+    _Out_ PHANDLE KeyedEventHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ ULONG Flags
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtOpenKeyedEvent(
+    _Out_ PHANDLE KeyedEventHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwOpenKeyedEvent(
     _Out_ PHANDLE KeyedEventHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_ POBJECT_ATTRIBUTES ObjectAttributes
@@ -825,7 +1404,27 @@ NtReleaseKeyedEvent(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwReleaseKeyedEvent(
+    _In_ HANDLE KeyedEventHandle,
+    _In_ PVOID KeyValue,
+    _In_ BOOLEAN Alertable,
+    _In_opt_ PLARGE_INTEGER Timeout
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtWaitForKeyedEvent(
+    _In_ HANDLE KeyedEventHandle,
+    _In_ PVOID KeyValue,
+    _In_ BOOLEAN Alertable,
+    _In_opt_ PLARGE_INTEGER Timeout
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwWaitForKeyedEvent(
     _In_ HANDLE KeyedEventHandle,
     _In_ PVOID KeyValue,
     _In_ BOOLEAN Alertable,
@@ -839,6 +1438,13 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtUmsThreadYield(
+    _In_ PVOID SchedulerParam
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwUmsThreadYield(
     _In_ PVOID SchedulerParam
     );
 #endif
@@ -919,6 +1525,19 @@ NtCreateWnfStateName(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwCreateWnfStateName(
+    _Out_ PWNF_STATE_NAME StateName,
+    _In_ WNF_STATE_NAME_LIFETIME NameLifetime,
+    _In_ WNF_DATA_SCOPE DataScope,
+    _In_ BOOLEAN PersistData,
+    _In_opt_ PCWNF_TYPE_ID TypeId,
+    _In_ ULONG MaximumStateSize,
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtDeleteWnfStateName(
     _In_ PCWNF_STATE_NAME StateName
     );
@@ -926,7 +1545,27 @@ NtDeleteWnfStateName(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwDeleteWnfStateName(
+    _In_ PCWNF_STATE_NAME StateName
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtUpdateWnfStateData(
+    _In_ PCWNF_STATE_NAME StateName,
+    _In_reads_bytes_opt_(Length) const VOID *Buffer,
+    _In_opt_ ULONG Length,
+    _In_opt_ PCWNF_TYPE_ID TypeId,
+    _In_opt_ const VOID *ExplicitScope,
+    _In_ WNF_CHANGE_STAMP MatchingChangeStamp,
+    _In_ LOGICAL CheckStamp
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwUpdateWnfStateData(
     _In_ PCWNF_STATE_NAME StateName,
     _In_reads_bytes_opt_(Length) const VOID *Buffer,
     _In_opt_ ULONG Length,
@@ -947,7 +1586,27 @@ NtDeleteWnfStateData(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwDeleteWnfStateData(
+    _In_ PCWNF_STATE_NAME StateName,
+    _In_opt_ const VOID *ExplicitScope
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtQueryWnfStateData(
+    _In_ PCWNF_STATE_NAME StateName,
+    _In_opt_ PCWNF_TYPE_ID TypeId,
+    _In_opt_ const VOID *ExplicitScope,
+    _Out_ PWNF_CHANGE_STAMP ChangeStamp,
+    _Out_writes_bytes_to_opt_(*BufferSize, *BufferSize) PVOID Buffer,
+    _Inout_ PULONG BufferSize
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwQueryWnfStateData(
     _In_ PCWNF_STATE_NAME StateName,
     _In_opt_ PCWNF_TYPE_ID TypeId,
     _In_opt_ const VOID *ExplicitScope,
@@ -970,6 +1629,17 @@ NtQueryWnfStateNameInformation(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwQueryWnfStateNameInformation(
+    _In_ PCWNF_STATE_NAME StateName,
+    _In_ WNF_STATE_NAME_INFORMATION NameInfoClass,
+    _In_opt_ const VOID *ExplicitScope,
+    _Out_writes_bytes_(InfoBufferSize) PVOID InfoBuffer,
+    _In_ ULONG InfoBufferSize
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtSubscribeWnfStateChange(
     _In_ PCWNF_STATE_NAME StateName,
     _In_opt_ WNF_CHANGE_STAMP ChangeStamp,
@@ -980,7 +1650,24 @@ NtSubscribeWnfStateChange(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwSubscribeWnfStateChange(
+    _In_ PCWNF_STATE_NAME StateName,
+    _In_opt_ WNF_CHANGE_STAMP ChangeStamp,
+    _In_ ULONG EventMask,
+    _Out_opt_ PULONG64 SubscriptionId
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtUnsubscribeWnfStateChange(
+    _In_ PCWNF_STATE_NAME StateName
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwUnsubscribeWnfStateChange(
     _In_ PCWNF_STATE_NAME StateName
     );
 
@@ -1003,7 +1690,26 @@ NtGetCompleteWnfStateSubscription(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwGetCompleteWnfStateSubscription(
+    _In_opt_ PWNF_STATE_NAME OldDescriptorStateName,
+    _In_opt_ ULONG64 *OldSubscriptionId,
+    _In_opt_ ULONG OldDescriptorEventMask,
+    _In_opt_ ULONG OldDescriptorStatus,
+    _Out_writes_bytes_(DescriptorSize) PWNF_DELIVERY_DESCRIPTOR NewDeliveryDescriptor,
+    _In_ ULONG DescriptorSize
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtSetWnfProcessNotificationEvent(
+    _In_ HANDLE NotificationEvent
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwSetWnfProcessNotificationEvent(
     _In_ HANDLE NotificationEvent
     );
 
@@ -1105,7 +1811,34 @@ NtCreateWorkerFactory(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwCreateWorkerFactory(
+    _Out_ PHANDLE WorkerFactoryHandleReturn,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ HANDLE CompletionPortHandle,
+    _In_ HANDLE WorkerProcessHandle,
+    _In_ PVOID StartRoutine,
+    _In_opt_ PVOID StartParameter,
+    _In_opt_ ULONG MaxThreadCount,
+    _In_opt_ SIZE_T StackReserve,
+    _In_opt_ SIZE_T StackCommit
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtQueryInformationWorkerFactory(
+    _In_ HANDLE WorkerFactoryHandle,
+    _In_ WORKERFACTORYINFOCLASS WorkerFactoryInformationClass,
+    _Out_writes_bytes_(WorkerFactoryInformationLength) PVOID WorkerFactoryInformation,
+    _In_ ULONG WorkerFactoryInformationLength,
+    _Out_opt_ PULONG ReturnLength
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwQueryInformationWorkerFactory(
     _In_ HANDLE WorkerFactoryHandle,
     _In_ WORKERFACTORYINFOCLASS WorkerFactoryInformationClass,
     _Out_writes_bytes_(WorkerFactoryInformationLength) PVOID WorkerFactoryInformation,
@@ -1126,7 +1859,25 @@ NtSetInformationWorkerFactory(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwSetInformationWorkerFactory(
+    _In_ HANDLE WorkerFactoryHandle,
+    _In_ WORKERFACTORYINFOCLASS WorkerFactoryInformationClass,
+    _In_reads_bytes_(WorkerFactoryInformationLength) PVOID WorkerFactoryInformation,
+    _In_ ULONG WorkerFactoryInformationLength
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtShutdownWorkerFactory(
+    _In_ HANDLE WorkerFactoryHandle,
+    _Inout_ volatile LONG *PendingWorkerCount
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwShutdownWorkerFactory(
     _In_ HANDLE WorkerFactoryHandle,
     _Inout_ volatile LONG *PendingWorkerCount
     );
@@ -1141,7 +1892,21 @@ NtReleaseWorkerFactoryWorker(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwReleaseWorkerFactoryWorker(
+    _In_ HANDLE WorkerFactoryHandle
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtWorkerFactoryWorkerReady(
+    _In_ HANDLE WorkerFactoryHandle
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwWorkerFactoryWorkerReady(
     _In_ HANDLE WorkerFactoryHandle
     );
 
@@ -1151,6 +1916,14 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtWaitForWorkViaWorkerFactory(
+    _In_ HANDLE WorkerFactoryHandle,
+    _Out_ struct _FILE_IO_COMPLETION_INFORMATION *MiniPacket
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwWaitForWorkViaWorkerFactory(
     _In_ HANDLE WorkerFactoryHandle,
     _Out_ struct _FILE_IO_COMPLETION_INFORMATION *MiniPacket
     );
@@ -1169,7 +1942,22 @@ NtQuerySystemTime(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwQuerySystemTime(
+    _Out_ PLARGE_INTEGER SystemTime
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtSetSystemTime(
+    _In_opt_ PLARGE_INTEGER SystemTime,
+    _Out_opt_ PLARGE_INTEGER PreviousTime
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwSetSystemTime(
     _In_opt_ PLARGE_INTEGER SystemTime,
     _Out_opt_ PLARGE_INTEGER PreviousTime
     );
@@ -1186,7 +1974,25 @@ NtQueryTimerResolution(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwQueryTimerResolution(
+    _Out_ PULONG MaximumTime,
+    _Out_ PULONG MinimumTime,
+    _Out_ PULONG CurrentTime
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtSetTimerResolution(
+    _In_ ULONG DesiredTime,
+    _In_ BOOLEAN SetResolution,
+    _Out_ PULONG ActualTime
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwSetTimerResolution(
     _In_ ULONG DesiredTime,
     _In_ BOOLEAN SetResolution,
     _Out_ PULONG ActualTime
@@ -1202,12 +2008,27 @@ NtQueryPerformanceCounter(
     _Out_opt_ PLARGE_INTEGER PerformanceFrequency
     );
 
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwQueryPerformanceCounter(
+    _Out_ PLARGE_INTEGER PerformanceCounter,
+    _Out_opt_ PLARGE_INTEGER PerformanceFrequency
+    );
+
 // LUIDs
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtAllocateLocallyUniqueId(
+    _Out_ PLUID Luid
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwAllocateLocallyUniqueId(
     _Out_ PLUID Luid
     );
 
@@ -1223,7 +2044,24 @@ NtSetUuidSeed(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwSetUuidSeed(
+    _In_ PCHAR Seed
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtAllocateUuids(
+    _Out_ PULARGE_INTEGER Time,
+    _Out_ PULONG Range,
+    _Out_ PULONG Sequence,
+    _Out_ PCHAR Seed
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwAllocateUuids(
     _Out_ PULARGE_INTEGER Time,
     _Out_ PULONG Range,
     _Out_ PULONG Sequence,
@@ -3278,11 +4116,33 @@ NtQuerySystemInformation(
     _Out_opt_ PULONG ReturnLength
     );
 
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwQuerySystemInformation(
+    _In_ SYSTEM_INFORMATION_CLASS SystemInformationClass,
+    _Out_writes_bytes_opt_(SystemInformationLength) PVOID SystemInformation,
+    _In_ ULONG SystemInformationLength,
+    _Out_opt_ PULONG ReturnLength
+    );
+
 #if (PHNT_VERSION >= PHNT_WIN7)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtQuerySystemInformationEx(
+    _In_ SYSTEM_INFORMATION_CLASS SystemInformationClass,
+    _In_reads_bytes_(InputBufferLength) PVOID InputBuffer,
+    _In_ ULONG InputBufferLength,
+    _Out_writes_bytes_opt_(SystemInformationLength) PVOID SystemInformation,
+    _In_ ULONG SystemInformationLength,
+    _Out_opt_ PULONG ReturnLength
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwQuerySystemInformationEx(
     _In_ SYSTEM_INFORMATION_CLASS SystemInformationClass,
     _In_reads_bytes_(InputBufferLength) PVOID InputBuffer,
     _In_ ULONG InputBufferLength,
@@ -3296,6 +4156,15 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtSetSystemInformation(
+    _In_ SYSTEM_INFORMATION_CLASS SystemInformationClass,
+    _In_reads_bytes_opt_(SystemInformationLength) PVOID SystemInformation,
+    _In_ ULONG SystemInformationLength
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwSetSystemInformation(
     _In_ SYSTEM_INFORMATION_CLASS SystemInformationClass,
     _In_reads_bytes_opt_(SystemInformationLength) PVOID SystemInformation,
     _In_ ULONG SystemInformationLength
@@ -3466,6 +4335,18 @@ NtSystemDebugControl(
     _Out_opt_ PULONG ReturnLength
     );
 
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwSystemDebugControl(
+    _In_ SYSDBG_COMMAND Command,
+    _Inout_updates_bytes_opt_(InputBufferLength) PVOID InputBuffer,
+    _In_ ULONG InputBufferLength,
+    _Out_writes_bytes_opt_(OutputBufferLength) PVOID OutputBuffer,
+    _In_ ULONG OutputBufferLength,
+    _Out_opt_ PULONG ReturnLength
+    );
+
 // Hard errors
 
 typedef enum _HARDERROR_RESPONSE_OPTION
@@ -3502,6 +4383,18 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtRaiseHardError(
+    _In_ NTSTATUS ErrorStatus,
+    _In_ ULONG NumberOfParameters,
+    _In_ ULONG UnicodeStringParameterMask,
+    _In_reads_(NumberOfParameters) PULONG_PTR Parameters,
+    _In_ ULONG ValidResponseOptions,
+    _Out_ PULONG Response
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwRaiseHardError(
     _In_ NTSTATUS ErrorStatus,
     _In_ ULONG NumberOfParameters,
     _In_ ULONG UnicodeStringParameterMask,
@@ -3776,7 +4669,23 @@ NtQueryDefaultLocale(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwQueryDefaultLocale(
+    _In_ BOOLEAN UserProfile,
+    _Out_ PLCID DefaultLocaleId
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtSetDefaultLocale(
+    _In_ BOOLEAN UserProfile,
+    _In_ LCID DefaultLocaleId
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwSetDefaultLocale(
     _In_ BOOLEAN UserProfile,
     _In_ LCID DefaultLocaleId
     );
@@ -3788,12 +4697,27 @@ NtQueryInstallUILanguage(
     _Out_ LANGID *InstallUILanguageId
     );
 
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwQueryInstallUILanguage(
+    _Out_ LANGID *InstallUILanguageId
+    );
+
 #if (PHNT_VERSION >= PHNT_VISTA)
 // private
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtFlushInstallUILanguage(
+    _In_ LANGID InstallUILanguage,
+    _In_ ULONG SetComittedFlag
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwFlushInstallUILanguage(
     _In_ LANGID InstallUILanguage,
     _In_ ULONG SetComittedFlag
     );
@@ -3809,7 +4733,21 @@ NtQueryDefaultUILanguage(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwQueryDefaultUILanguage(
+    _Out_ LANGID *DefaultUILanguageId
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtSetDefaultUILanguage(
+    _In_ LANGID DefaultUILanguageId
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwSetDefaultUILanguage(
     _In_ LANGID DefaultUILanguageId
     );
 
@@ -3819,6 +4757,13 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtIsUILanguageComitted(
+    VOID
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwIsUILanguageComitted(
     VOID
     );
 #endif
@@ -3838,11 +4783,30 @@ NtInitializeNlsFiles(
     _Out_ PLCID DefaultLocaleId,
     _Out_ PLARGE_INTEGER DefaultCasingTableSize
     );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwInitializeNlsFiles(
+    _Out_ PVOID *BaseAddress,
+    _Out_ PLCID DefaultLocaleId,
+    _Out_ PLARGE_INTEGER DefaultCasingTableSize
+    );
 #else
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtInitializeNlsFiles(
+    _Out_ PVOID *BaseAddress,
+    _Out_ PLCID DefaultLocaleId,
+    _Out_ PLARGE_INTEGER DefaultCasingTableSize,
+    _Out_opt_ PULONG CurrentNLSVersion
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwInitializeNlsFiles(
     _Out_ PVOID *BaseAddress,
     _Out_ PLCID DefaultLocaleId,
     _Out_ PLARGE_INTEGER DefaultCasingTableSize,
@@ -3854,6 +4818,17 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtGetNlsSectionPtr(
+    _In_ ULONG SectionType,
+    _In_ ULONG SectionData,
+    _In_ PVOID ContextData,
+    _Out_ PVOID *SectionPointer,
+    _Out_ PULONG SectionSize
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwGetNlsSectionPtr(
     _In_ ULONG SectionType,
     _In_ ULONG SectionData,
     _In_ PVOID ContextData,
@@ -3875,7 +4850,23 @@ NtAcquireCMFViewOwnership(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwAcquireCMFViewOwnership(
+    _Out_ PULONGLONG TimeStamp,
+    _Out_ PBOOLEAN tokenTaken,
+    _In_ BOOLEAN replaceExisting
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtReleaseCMFViewOwnership(
+    VOID
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwReleaseCMFViewOwnership(
     VOID
     );
 
@@ -3896,7 +4887,28 @@ NtMapCMFModule(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwMapCMFModule(
+    _In_ ULONG What,
+    _In_ ULONG Index,
+    _Out_opt_ PULONG CacheIndexOut,
+    _Out_opt_ PULONG CacheFlagsOut,
+    _Out_opt_ PULONG ViewSizeOut,
+    _Out_opt_ PVOID *BaseAddress
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtGetMUIRegistryInfo(
+    _In_ ULONG Flags,
+    _Inout_ PULONG DataSize,
+    _Out_ PVOID Data
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwGetMUIRegistryInfo(
     _In_ ULONG Flags,
     _Inout_ PULONG DataSize,
     _Out_ PVOID Data
@@ -3917,6 +4929,15 @@ NtAddAtom(
     _Out_opt_ PRTL_ATOM Atom
     );
 
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwAddAtom(
+    _In_reads_bytes_opt_(Length) PWSTR AtomName,
+    _In_ ULONG Length,
+    _Out_opt_ PRTL_ATOM Atom
+    );
+
 #if (PHNT_VERSION >= PHNT_WIN8)
 
 #define ATOM_FLAG_GLOBAL 0x2
@@ -3926,6 +4947,16 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtAddAtomEx(
+    _In_reads_bytes_opt_(Length) PWSTR AtomName,
+    _In_ ULONG Length,
+    _Out_opt_ PRTL_ATOM Atom,
+    _In_ ULONG Flags
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwAddAtomEx(
     _In_reads_bytes_opt_(Length) PWSTR AtomName,
     _In_ ULONG Length,
     _Out_opt_ PRTL_ATOM Atom,
@@ -3946,7 +4977,23 @@ NtFindAtom(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwFindAtom(
+    _In_reads_bytes_opt_(Length) PWSTR AtomName,
+    _In_ ULONG Length,
+    _Out_opt_ PRTL_ATOM Atom
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtDeleteAtom(
+    _In_ RTL_ATOM Atom
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwDeleteAtom(
     _In_ RTL_ATOM Atom
     );
 
@@ -3974,6 +5021,17 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtQueryInformationAtom(
+    _In_ RTL_ATOM Atom,
+    _In_ ATOM_INFORMATION_CLASS AtomInformationClass,
+    _Out_writes_bytes_(AtomInformationLength) PVOID AtomInformation,
+    _In_ ULONG AtomInformationLength,
+    _Out_opt_ PULONG ReturnLength
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwQueryInformationAtom(
     _In_ RTL_ATOM Atom,
     _In_ ATOM_INFORMATION_CLASS AtomInformationClass,
     _Out_writes_bytes_(AtomInformationLength) PVOID AtomInformation,
@@ -4073,12 +5131,30 @@ NtQueryLicenseValue(
     _Out_ PULONG ResultDataSize
     );
 
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwQueryLicenseValue(
+    _In_ PUNICODE_STRING ValueName,
+    _Out_opt_ PULONG Type,
+    _Out_writes_bytes_to_opt_(DataSize, *ResultDataSize) PVOID Data,
+    _In_ ULONG DataSize,
+    _Out_ PULONG ResultDataSize
+    );
+
 // Misc.
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtSetDefaultHardErrorPort(
+    _In_ HANDLE DefaultHardErrorPort
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwSetDefaultHardErrorPort(
     _In_ HANDLE DefaultHardErrorPort
     );
 
@@ -4099,7 +5175,21 @@ NtShutdownSystem(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwShutdownSystem(
+    _In_ SHUTDOWN_ACTION Action
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtDisplayString(
+    _In_ PUNICODE_STRING String
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwDisplayString(
     _In_ PUNICODE_STRING String
     );
 
@@ -4111,6 +5201,13 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtDrawText(
+    _In_ PUNICODE_STRING Text
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwDrawText(
     _In_ PUNICODE_STRING Text
     );
 #endif

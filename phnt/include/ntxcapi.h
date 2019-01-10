@@ -35,7 +35,24 @@ NtContinue(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwContinue(
+    _In_ PCONTEXT ContextRecord,
+    _In_ BOOLEAN TestAlert
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtRaiseException(
+    _In_ PEXCEPTION_RECORD ExceptionRecord,
+    _In_ PCONTEXT ContextRecord,
+    _In_ BOOLEAN FirstChance
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwRaiseException(
     _In_ PEXCEPTION_RECORD ExceptionRecord,
     _In_ PCONTEXT ContextRecord,
     _In_ BOOLEAN FirstChance

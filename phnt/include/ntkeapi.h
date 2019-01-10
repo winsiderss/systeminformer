@@ -127,11 +127,27 @@ NtCallbackReturn(
     _In_ NTSTATUS Status
     );
 
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwCallbackReturn(
+    _In_reads_bytes_opt_(OutputLength) PVOID OutputBuffer,
+    _In_ ULONG OutputLength,
+    _In_ NTSTATUS Status
+    );
+
 #if (PHNT_VERSION >= PHNT_VISTA)
 NTSYSCALLAPI
 VOID
 NTAPI
 NtFlushProcessWriteBuffers(
+    VOID
+    );
+
+NTSYSCALLAPI
+VOID
+NTAPI
+ZwFlushProcessWriteBuffers(
     VOID
     );
 #endif
@@ -140,6 +156,14 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtQueryDebugFilterState(
+    _In_ ULONG ComponentId,
+    _In_ ULONG Level
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwQueryDebugFilterState(
     _In_ ULONG ComponentId,
     _In_ ULONG Level
     );
@@ -156,7 +180,23 @@ NtSetDebugFilterState(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwSetDebugFilterState(
+    _In_ ULONG ComponentId,
+    _In_ ULONG Level,
+    _In_ BOOLEAN State
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtYieldExecution(
+    VOID
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwYieldExecution(
     VOID
     );
 

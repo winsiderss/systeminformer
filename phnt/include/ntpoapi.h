@@ -133,7 +133,26 @@ NtPowerInformation(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwPowerInformation(
+    _In_ POWER_INFORMATION_LEVEL InformationLevel,
+    _In_reads_bytes_opt_(InputBufferLength) PVOID InputBuffer,
+    _In_ ULONG InputBufferLength,
+    _Out_writes_bytes_opt_(OutputBufferLength) PVOID OutputBuffer,
+    _In_ ULONG OutputBufferLength
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtSetThreadExecutionState(
+    _In_ EXECUTION_STATE NewFlags, // ES_* flags
+    _Out_ EXECUTION_STATE *PreviousFlags
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwSetThreadExecutionState(
     _In_ EXECUTION_STATE NewFlags, // ES_* flags
     _Out_ EXECUTION_STATE *PreviousFlags
     );
@@ -148,7 +167,24 @@ NtRequestWakeupLatency(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwRequestWakeupLatency(
+    _In_ LATENCY_TIME latency
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtInitiatePowerAction(
+    _In_ POWER_ACTION SystemAction,
+    _In_ SYSTEM_POWER_STATE LightestSystemState,
+    _In_ ULONG Flags, // POWER_ACTION_* flags
+    _In_ BOOLEAN Asynchronous
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwInitiatePowerAction(
     _In_ POWER_ACTION SystemAction,
     _In_ SYSTEM_POWER_STATE LightestSystemState,
     _In_ ULONG Flags, // POWER_ACTION_* flags
@@ -167,7 +203,24 @@ NtSetSystemPowerState(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwSetSystemPowerState(
+    _In_ POWER_ACTION SystemAction,
+    _In_ SYSTEM_POWER_STATE LightestSystemState,
+    _In_ ULONG Flags // POWER_ACTION_* flags
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtGetDevicePowerState(
+    _In_ HANDLE Device,
+    _Out_ PDEVICE_POWER_STATE State
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwGetDevicePowerState(
     _In_ HANDLE Device,
     _Out_ PDEVICE_POWER_STATE State
     );
@@ -176,6 +229,13 @@ NTSYSCALLAPI
 BOOLEAN
 NTAPI
 NtIsSystemResumeAutomatic(
+    VOID
+    );
+
+NTSYSCALLAPI
+BOOLEAN
+NTAPI
+ZwIsSystemResumeAutomatic(
     VOID
     );
 

@@ -1103,7 +1103,44 @@ NtCreateFile(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwCreateFile(
+    _Out_ PHANDLE FileHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock,
+    _In_opt_ PLARGE_INTEGER AllocationSize,
+    _In_ ULONG FileAttributes,
+    _In_ ULONG ShareAccess,
+    _In_ ULONG CreateDisposition,
+    _In_ ULONG CreateOptions,
+    _In_reads_bytes_opt_(EaLength) PVOID EaBuffer,
+    _In_ ULONG EaLength
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtCreateNamedPipeFile(
+    _Out_ PHANDLE FileHandle,
+    _In_ ULONG DesiredAccess,
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock,
+    _In_ ULONG ShareAccess,
+    _In_ ULONG CreateDisposition,
+    _In_ ULONG CreateOptions,
+    _In_ ULONG NamedPipeType,
+    _In_ ULONG ReadMode,
+    _In_ ULONG CompletionMode,
+    _In_ ULONG MaximumInstances,
+    _In_ ULONG InboundQuota,
+    _In_ ULONG OutboundQuota,
+    _In_opt_ PLARGE_INTEGER DefaultTimeout
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwCreateNamedPipeFile(
     _Out_ PHANDLE FileHandle,
     _In_ ULONG DesiredAccess,
     _In_ POBJECT_ATTRIBUTES ObjectAttributes,
@@ -1137,7 +1174,33 @@ NtCreateMailslotFile(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwCreateMailslotFile(
+    _Out_ PHANDLE FileHandle,
+    _In_ ULONG DesiredAccess,
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock,
+    _In_ ULONG CreateOptions,
+    _In_ ULONG MailslotQuota,
+    _In_ ULONG MaximumMessageSize,
+    _In_ PLARGE_INTEGER ReadTimeout
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtOpenFile(
+    _Out_ PHANDLE FileHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock,
+    _In_ ULONG ShareAccess,
+    _In_ ULONG OpenOptions
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwOpenFile(
     _Out_ PHANDLE FileHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_ POBJECT_ATTRIBUTES ObjectAttributes,
@@ -1156,7 +1219,22 @@ NtDeleteFile(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwDeleteFile(
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtFlushBuffersFile(
+    _In_ HANDLE FileHandle,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwFlushBuffersFile(
     _In_ HANDLE FileHandle,
     _Out_ PIO_STATUS_BLOCK IoStatusBlock
     );
@@ -1176,6 +1254,17 @@ NtFlushBuffersFileEx(
     _In_ ULONG ParametersSize,
     _Out_ PIO_STATUS_BLOCK IoStatusBlock
     );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwFlushBuffersFileEx(
+    _In_ HANDLE FileHandle,
+    _In_ ULONG Flags,
+    _In_reads_bytes_(ParametersSize) PVOID Parameters,
+    _In_ ULONG ParametersSize,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock
+    );
 #endif
 
 NTSYSCALLAPI
@@ -1189,11 +1278,33 @@ NtQueryInformationFile(
     _In_ FILE_INFORMATION_CLASS FileInformationClass
     );
 
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwQueryInformationFile(
+    _In_ HANDLE FileHandle,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock,
+    _Out_writes_bytes_(Length) PVOID FileInformation,
+    _In_ ULONG Length,
+    _In_ FILE_INFORMATION_CLASS FileInformationClass
+    );
+
 #if (PHNT_VERSION >= PHNT_REDSTONE2)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtQueryInformationByName(
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock,
+    _Out_writes_bytes_(Length) PVOID FileInformation,
+    _In_ ULONG Length,
+    _In_ FILE_INFORMATION_CLASS FileInformationClass
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwQueryInformationByName(
     _In_ POBJECT_ATTRIBUTES ObjectAttributes,
     _Out_ PIO_STATUS_BLOCK IoStatusBlock,
     _Out_writes_bytes_(Length) PVOID FileInformation,
@@ -1216,7 +1327,35 @@ NtSetInformationFile(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwSetInformationFile(
+    _In_ HANDLE FileHandle,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock,
+    _In_reads_bytes_(Length) PVOID FileInformation,
+    _In_ ULONG Length,
+    _In_ FILE_INFORMATION_CLASS FileInformationClass
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtQueryDirectoryFile(
+    _In_ HANDLE FileHandle,
+    _In_opt_ HANDLE Event,
+    _In_opt_ PIO_APC_ROUTINE ApcRoutine,
+    _In_opt_ PVOID ApcContext,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock,
+    _Out_writes_bytes_(Length) PVOID FileInformation,
+    _In_ ULONG Length,
+    _In_ FILE_INFORMATION_CLASS FileInformationClass,
+    _In_ BOOLEAN ReturnSingleEntry,
+    _In_opt_ PUNICODE_STRING FileName,
+    _In_ BOOLEAN RestartScan
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwQueryDirectoryFile(
     _In_ HANDLE FileHandle,
     _In_opt_ HANDLE Event,
     _In_opt_ PIO_APC_ROUTINE ApcRoutine,
@@ -1248,7 +1387,32 @@ NtQueryEaFile(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwQueryEaFile(
+    _In_ HANDLE FileHandle,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock,
+    _Out_writes_bytes_(Length) PVOID Buffer,
+    _In_ ULONG Length,
+    _In_ BOOLEAN ReturnSingleEntry,
+    _In_reads_bytes_opt_(EaListLength) PVOID EaList,
+    _In_ ULONG EaListLength,
+    _In_opt_ PULONG EaIndex,
+    _In_ BOOLEAN RestartScan
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtSetEaFile(
+    _In_ HANDLE FileHandle,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock,
+    _In_reads_bytes_(Length) PVOID Buffer,
+    _In_ ULONG Length
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwSetEaFile(
     _In_ HANDLE FileHandle,
     _Out_ PIO_STATUS_BLOCK IoStatusBlock,
     _In_reads_bytes_(Length) PVOID Buffer,
@@ -1273,6 +1437,21 @@ NtQueryQuotaInformationFile(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwQueryQuotaInformationFile(
+    _In_ HANDLE FileHandle,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock,
+    _Out_writes_bytes_(Length) PVOID Buffer,
+    _In_ ULONG Length,
+    _In_ BOOLEAN ReturnSingleEntry,
+    _In_reads_bytes_opt_(SidListLength) PVOID SidList,
+    _In_ ULONG SidListLength,
+    _In_opt_ PSID StartSid,
+    _In_ BOOLEAN RestartScan
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtSetQuotaInformationFile(
     _In_ HANDLE FileHandle,
     _Out_ PIO_STATUS_BLOCK IoStatusBlock,
@@ -1283,7 +1462,28 @@ NtSetQuotaInformationFile(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwSetQuotaInformationFile(
+    _In_ HANDLE FileHandle,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock,
+    _In_reads_bytes_(Length) PVOID Buffer,
+    _In_ ULONG Length
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtQueryVolumeInformationFile(
+    _In_ HANDLE FileHandle,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock,
+    _Out_writes_bytes_(Length) PVOID FsInformation,
+    _In_ ULONG Length,
+    _In_ FSINFOCLASS FsInformationClass
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwQueryVolumeInformationFile(
     _In_ HANDLE FileHandle,
     _Out_ PIO_STATUS_BLOCK IoStatusBlock,
     _Out_writes_bytes_(Length) PVOID FsInformation,
@@ -1305,7 +1505,26 @@ NtSetVolumeInformationFile(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwSetVolumeInformationFile(
+    _In_ HANDLE FileHandle,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock,
+    _In_reads_bytes_(Length) PVOID FsInformation,
+    _In_ ULONG Length,
+    _In_ FSINFOCLASS FsInformationClass
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtCancelIoFile(
+    _In_ HANDLE FileHandle,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwCancelIoFile(
     _In_ HANDLE FileHandle,
     _Out_ PIO_STATUS_BLOCK IoStatusBlock
     );
@@ -1315,6 +1534,15 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtCancelIoFileEx(
+    _In_ HANDLE FileHandle,
+    _In_opt_ PIO_STATUS_BLOCK IoRequestToCancel,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwCancelIoFileEx(
     _In_ HANDLE FileHandle,
     _In_opt_ PIO_STATUS_BLOCK IoRequestToCancel,
     _Out_ PIO_STATUS_BLOCK IoStatusBlock
@@ -1330,12 +1558,37 @@ NtCancelSynchronousIoFile(
     _In_opt_ PIO_STATUS_BLOCK IoRequestToCancel,
     _Out_ PIO_STATUS_BLOCK IoStatusBlock
     );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwCancelSynchronousIoFile(
+    _In_ HANDLE ThreadHandle,
+    _In_opt_ PIO_STATUS_BLOCK IoRequestToCancel,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock
+    );
 #endif
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtDeviceIoControlFile(
+    _In_ HANDLE FileHandle,
+    _In_opt_ HANDLE Event,
+    _In_opt_ PIO_APC_ROUTINE ApcRoutine,
+    _In_opt_ PVOID ApcContext,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock,
+    _In_ ULONG IoControlCode,
+    _In_reads_bytes_opt_(InputBufferLength) PVOID InputBuffer,
+    _In_ ULONG InputBufferLength,
+    _Out_writes_bytes_opt_(OutputBufferLength) PVOID OutputBuffer,
+    _In_ ULONG OutputBufferLength
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwDeviceIoControlFile(
     _In_ HANDLE FileHandle,
     _In_opt_ HANDLE Event,
     _In_opt_ PIO_APC_ROUTINE ApcRoutine,
@@ -1367,7 +1620,38 @@ NtFsControlFile(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwFsControlFile(
+    _In_ HANDLE FileHandle,
+    _In_opt_ HANDLE Event,
+    _In_opt_ PIO_APC_ROUTINE ApcRoutine,
+    _In_opt_ PVOID ApcContext,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock,
+    _In_ ULONG FsControlCode,
+    _In_reads_bytes_opt_(InputBufferLength) PVOID InputBuffer,
+    _In_ ULONG InputBufferLength,
+    _Out_writes_bytes_opt_(OutputBufferLength) PVOID OutputBuffer,
+    _In_ ULONG OutputBufferLength
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtReadFile(
+    _In_ HANDLE FileHandle,
+    _In_opt_ HANDLE Event,
+    _In_opt_ PIO_APC_ROUTINE ApcRoutine,
+    _In_opt_ PVOID ApcContext,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock,
+    _Out_writes_bytes_(Length) PVOID Buffer,
+    _In_ ULONG Length,
+    _In_opt_ PLARGE_INTEGER ByteOffset,
+    _In_opt_ PULONG Key
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwReadFile(
     _In_ HANDLE FileHandle,
     _In_opt_ HANDLE Event,
     _In_opt_ PIO_APC_ROUTINE ApcRoutine,
@@ -1397,6 +1681,21 @@ NtWriteFile(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwWriteFile(
+    _In_ HANDLE FileHandle,
+    _In_opt_ HANDLE Event,
+    _In_opt_ PIO_APC_ROUTINE ApcRoutine,
+    _In_opt_ PVOID ApcContext,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock,
+    _In_reads_bytes_(Length) PVOID Buffer,
+    _In_ ULONG Length,
+    _In_opt_ PLARGE_INTEGER ByteOffset,
+    _In_opt_ PULONG Key
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtReadFileScatter(
     _In_ HANDLE FileHandle,
     _In_opt_ HANDLE Event,
@@ -1412,7 +1711,37 @@ NtReadFileScatter(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwReadFileScatter(
+    _In_ HANDLE FileHandle,
+    _In_opt_ HANDLE Event,
+    _In_opt_ PIO_APC_ROUTINE ApcRoutine,
+    _In_opt_ PVOID ApcContext,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock,
+    _In_ PFILE_SEGMENT_ELEMENT SegmentArray,
+    _In_ ULONG Length,
+    _In_opt_ PLARGE_INTEGER ByteOffset,
+    _In_opt_ PULONG Key
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtWriteFileGather(
+    _In_ HANDLE FileHandle,
+    _In_opt_ HANDLE Event,
+    _In_opt_ PIO_APC_ROUTINE ApcRoutine,
+    _In_opt_ PVOID ApcContext,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock,
+    _In_ PFILE_SEGMENT_ELEMENT SegmentArray,
+    _In_ ULONG Length,
+    _In_opt_ PLARGE_INTEGER ByteOffset,
+    _In_opt_ PULONG Key
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwWriteFileGather(
     _In_ HANDLE FileHandle,
     _In_opt_ HANDLE Event,
     _In_opt_ PIO_APC_ROUTINE ApcRoutine,
@@ -1443,7 +1772,34 @@ NtLockFile(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwLockFile(
+    _In_ HANDLE FileHandle,
+    _In_opt_ HANDLE Event,
+    _In_opt_ PIO_APC_ROUTINE ApcRoutine,
+    _In_opt_ PVOID ApcContext,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock,
+    _In_ PLARGE_INTEGER ByteOffset,
+    _In_ PLARGE_INTEGER Length,
+    _In_ ULONG Key,
+    _In_ BOOLEAN FailImmediately,
+    _In_ BOOLEAN ExclusiveLock
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtUnlockFile(
+    _In_ HANDLE FileHandle,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock,
+    _In_ PLARGE_INTEGER ByteOffset,
+    _In_ PLARGE_INTEGER Length,
+    _In_ ULONG Key
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwUnlockFile(
     _In_ HANDLE FileHandle,
     _Out_ PIO_STATUS_BLOCK IoStatusBlock,
     _In_ PLARGE_INTEGER ByteOffset,
@@ -1462,7 +1818,23 @@ NtQueryAttributesFile(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwQueryAttributesFile(
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _Out_ PFILE_BASIC_INFORMATION FileInformation
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtQueryFullAttributesFile(
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _Out_ PFILE_NETWORK_OPEN_INFORMATION FileInformation
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwQueryFullAttributesFile(
     _In_ POBJECT_ATTRIBUTES ObjectAttributes,
     _Out_ PFILE_NETWORK_OPEN_INFORMATION FileInformation
     );
@@ -1485,6 +1857,21 @@ NtNotifyChangeDirectoryFile(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwNotifyChangeDirectoryFile(
+    _In_ HANDLE FileHandle,
+    _In_opt_ HANDLE Event,
+    _In_opt_ PIO_APC_ROUTINE ApcRoutine,
+    _In_opt_ PVOID ApcContext,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock,
+    _Out_writes_bytes_(Length) PVOID Buffer, // FILE_NOTIFY_INFORMATION
+    _In_ ULONG Length,
+    _In_ ULONG CompletionFilter,
+    _In_ BOOLEAN WatchTree
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtLoadDriver(
     _In_ PUNICODE_STRING DriverServiceName
     );
@@ -1492,7 +1879,21 @@ NtLoadDriver(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwLoadDriver(
+    _In_ PUNICODE_STRING DriverServiceName
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtUnloadDriver(
+    _In_ PUNICODE_STRING DriverServiceName
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwUnloadDriver(
     _In_ PUNICODE_STRING DriverServiceName
     );
 
@@ -1525,7 +1926,26 @@ NtCreateIoCompletion(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwCreateIoCompletion(
+    _Out_ PHANDLE IoCompletionHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ ULONG Count
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtOpenIoCompletion(
+    _Out_ PHANDLE IoCompletionHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwOpenIoCompletion(
     _Out_ PHANDLE IoCompletionHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_ POBJECT_ATTRIBUTES ObjectAttributes
@@ -1545,7 +1965,29 @@ NtQueryIoCompletion(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwQueryIoCompletion(
+    _In_ HANDLE IoCompletionHandle,
+    _In_ IO_COMPLETION_INFORMATION_CLASS IoCompletionInformationClass,
+    _Out_writes_bytes_(IoCompletionInformationLength) PVOID IoCompletionInformation,
+    _In_ ULONG IoCompletionInformationLength,
+    _Out_opt_ PULONG ReturnLength
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtSetIoCompletion(
+    _In_ HANDLE IoCompletionHandle,
+    _In_opt_ PVOID KeyContext,
+    _In_opt_ PVOID ApcContext,
+    _In_ NTSTATUS IoStatus,
+    _In_ ULONG_PTR IoStatusInformation
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwSetIoCompletion(
     _In_ HANDLE IoCompletionHandle,
     _In_opt_ PVOID KeyContext,
     _In_opt_ PVOID ApcContext,
@@ -1558,6 +2000,18 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtSetIoCompletionEx(
+    _In_ HANDLE IoCompletionHandle,
+    _In_ HANDLE IoCompletionPacketHandle,
+    _In_opt_ PVOID KeyContext,
+    _In_opt_ PVOID ApcContext,
+    _In_ NTSTATUS IoStatus,
+    _In_ ULONG_PTR IoStatusInformation
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwSetIoCompletionEx(
     _In_ HANDLE IoCompletionHandle,
     _In_ HANDLE IoCompletionPacketHandle,
     _In_opt_ PVOID KeyContext,
@@ -1578,11 +2032,34 @@ NtRemoveIoCompletion(
     _In_opt_ PLARGE_INTEGER Timeout
     );
 
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwRemoveIoCompletion(
+    _In_ HANDLE IoCompletionHandle,
+    _Out_ PVOID *KeyContext,
+    _Out_ PVOID *ApcContext,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock,
+    _In_opt_ PLARGE_INTEGER Timeout
+    );
+
 #if (PHNT_VERSION >= PHNT_VISTA)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtRemoveIoCompletionEx(
+    _In_ HANDLE IoCompletionHandle,
+    _Out_writes_to_(Count, *NumEntriesRemoved) PFILE_IO_COMPLETION_INFORMATION IoCompletionInformation,
+    _In_ ULONG Count,
+    _Out_ PULONG NumEntriesRemoved,
+    _In_opt_ PLARGE_INTEGER Timeout,
+    _In_ BOOLEAN Alertable
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwRemoveIoCompletionEx(
     _In_ HANDLE IoCompletionHandle,
     _Out_writes_to_(Count, *NumEntriesRemoved) PFILE_IO_COMPLETION_INFORMATION IoCompletionInformation,
     _In_ ULONG Count,
@@ -1608,6 +2085,15 @@ NtCreateWaitCompletionPacket(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwCreateWaitCompletionPacket(
+    _Out_ PHANDLE WaitCompletionPacketHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtAssociateWaitCompletionPacket(
     _In_ HANDLE WaitCompletionPacketHandle,
     _In_ HANDLE IoCompletionHandle,
@@ -1622,7 +2108,29 @@ NtAssociateWaitCompletionPacket(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwAssociateWaitCompletionPacket(
+    _In_ HANDLE WaitCompletionPacketHandle,
+    _In_ HANDLE IoCompletionHandle,
+    _In_ HANDLE TargetObjectHandle,
+    _In_opt_ PVOID KeyContext,
+    _In_opt_ PVOID ApcContext,
+    _In_ NTSTATUS IoStatus,
+    _In_ ULONG_PTR IoStatusInformation,
+    _Out_opt_ PBOOLEAN AlreadySignaled
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtCancelWaitCompletionPacket(
+    _In_ HANDLE WaitCompletionPacketHandle,
+    _In_ BOOLEAN RemoveSignaledPacket
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwCancelWaitCompletionPacket(
     _In_ HANDLE WaitCompletionPacketHandle,
     _In_ BOOLEAN RemoveSignaledPacket
     );
@@ -1661,6 +2169,20 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtNotifyChangeSession(
+    _In_ HANDLE SessionHandle,
+    _In_ ULONG ChangeSequenceNumber,
+    _In_ PLARGE_INTEGER ChangeTimeStamp,
+    _In_ IO_SESSION_EVENT Event,
+    _In_ IO_SESSION_STATE NewState,
+    _In_ IO_SESSION_STATE PreviousState,
+    _In_reads_bytes_opt_(PayloadSize) PVOID Payload,
+    _In_ ULONG PayloadSize
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwNotifyChangeSession(
     _In_ HANDLE SessionHandle,
     _In_ ULONG ChangeSequenceNumber,
     _In_ PLARGE_INTEGER ChangeTimeStamp,
