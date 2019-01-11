@@ -3,7 +3,7 @@
  *   native wrapper and support functions
  *
  * Copyright (C) 2009-2016 wj32
- * Copyright (C) 2017 dmex
+ * Copyright (C) 2017-2019 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -6995,6 +6995,77 @@ NTSTATUS PhCreateFileWin32Ex(
 
     if (CreateStatus)
         *CreateStatus = (ULONG)isb.Information;
+
+    return status;
+}
+
+NTSTATUS PhOpenFileWin32(
+    _Out_ PHANDLE FileHandle,
+    _In_ PWSTR FileName,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ ULONG ShareAccess,
+    _In_ ULONG OpenOptions
+    )
+{
+    return PhOpenFileWin32Ex(
+        FileHandle,
+        FileName,
+        DesiredAccess,
+        ShareAccess,
+        OpenOptions,
+        NULL
+        );
+}
+
+NTSTATUS PhOpenFileWin32Ex(
+    _Out_ PHANDLE FileHandle,
+    _In_ PWSTR FileName,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ ULONG ShareAccess,
+    _In_ ULONG OpenOptions,
+    _Out_opt_ PULONG OpenStatus
+    )
+{
+    NTSTATUS status;
+    HANDLE fileHandle;
+    UNICODE_STRING fileNameUs;
+    OBJECT_ATTRIBUTES objectAttributes;
+    IO_STATUS_BLOCK isb;
+
+    if (!NT_SUCCESS(status = RtlDosPathNameToNtPathName_U_WithStatus(
+        FileName,
+        &fileNameUs,
+        NULL,
+        NULL
+        )))
+        return status;
+
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &fileNameUs,
+        OBJ_CASE_INSENSITIVE,
+        NULL,
+        NULL
+        );
+
+    status = NtOpenFile(
+        &fileHandle,
+        DesiredAccess,
+        &objectAttributes,
+        &isb,
+        ShareAccess,
+        OpenOptions
+        );
+
+    RtlFreeUnicodeString(&fileNameUs);
+
+    if (NT_SUCCESS(status))
+    {
+        *FileHandle = fileHandle;
+    }
+
+    if (OpenStatus)
+        *OpenStatus = (ULONG)isb.Information;
 
     return status;
 }
