@@ -912,8 +912,8 @@ INT_PTR CALLBACK WepWindowGeneralDlgProc(
                 {
                     menu = PhCreateEMenu();
 
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
-                    PhInsertCopyListViewEMenuItem(menu, IDC_COPY, listViewHandle);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_IDC_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
+                    PhInsertCopyListViewEMenuItem(menu, PHAPP_IDC_COPY, listViewHandle);
 
                     item = PhShowEMenu(
                         menu,
@@ -930,7 +930,7 @@ INT_PTR CALLBACK WepWindowGeneralDlgProc(
                         {
                             switch (item->Id)
                             {
-                            case IDC_COPY:
+                            case PHAPP_IDC_COPY:
                                 {
                                     PhCopyListView(listViewHandle);
                                 }
@@ -1139,8 +1139,8 @@ INT_PTR CALLBACK WepWindowPropertiesDlgProc(
                 {
                     menu = PhCreateEMenu();
 
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
-                    PhInsertCopyListViewEMenuItem(menu, IDC_COPY, listViewHandle);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_IDC_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
+                    PhInsertCopyListViewEMenuItem(menu, PHAPP_IDC_COPY, listViewHandle);
 
                     item = PhShowEMenu(
                         menu,
@@ -1157,7 +1157,7 @@ INT_PTR CALLBACK WepWindowPropertiesDlgProc(
                         {
                             switch (item->Id)
                             {
-                            case IDC_COPY:
+                            case PHAPP_IDC_COPY:
                                 {
                                     PhCopyListView(listViewHandle);
                                 }
@@ -1334,8 +1334,8 @@ INT_PTR CALLBACK WepWindowPropStoreDlgProc(
                 {
                     menu = PhCreateEMenu();
 
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
-                    PhInsertCopyListViewEMenuItem(menu, IDC_COPY, listViewHandle);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_IDC_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
+                    PhInsertCopyListViewEMenuItem(menu, PHAPP_IDC_COPY, listViewHandle);
 
                     item = PhShowEMenu(
                         menu,
@@ -1352,7 +1352,7 @@ INT_PTR CALLBACK WepWindowPropStoreDlgProc(
                         {
                             switch (item->Id)
                             {
-                            case IDC_COPY:
+                            case PHAPP_IDC_COPY:
                                 {
                                     PhCopyListView(listViewHandle);
                                 }
