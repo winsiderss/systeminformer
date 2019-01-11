@@ -3,7 +3,7 @@
  *   object security editor
  *
  * Copyright (C) 2010-2016 wj32
- * Copyright (C) 2017-2018 dmex
+ * Copyright (C) 2017-2019 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -52,6 +52,15 @@ static ISecurityInformation2Vtbl PhSecurityInformation_VTable2 =
     PhSecurityInformation2_Release,
     PhSecurityInformation2_IsDaclCanonical,
     PhSecurityInformation2_LookupSids
+};
+
+static ISecurityInformation3Vtbl PhSecurityInformation_VTable3 =
+{
+    PhSecurityInformation3_QueryInterface,
+    PhSecurityInformation3_AddRef,
+    PhSecurityInformation3_Release,
+    PhSecurityInformation3_GetFullResourceName,
+    PhSecurityInformation3_OpenElevatedEditor
 };
 
 static IDataObjectVtbl PhDataObject_VTable =
@@ -111,6 +120,8 @@ static NTSTATUS PhpEditSecurityInformationThread(
 {
     PhSecurityInformation *this = (PhSecurityInformation *)Context;
 
+    // The EditSecurityAdvanced function on Windows 7 doesn't handle the SI_PAGE_TYPE
+    // parameter correctly and also doesn't show the Audit and Owner tabs... (dmex)
     if (WindowsVersion >= WINDOWS_8 && PhGetIntegerSetting(L"EnableSecurityAdvancedDialog"))
         EditSecurityAdvanced(this->WindowHandle, Context, COMBINE_PAGE_ACTIVATION(SI_PAGE_PERM, SI_SHOW_PERM_ACTIVATED));
     else
@@ -202,6 +213,8 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_QueryInterface(
     _Out_ PVOID *Object
     )
 {
+    PhSecurityInformation *this = (PhSecurityInformation *)This;
+
     if (
         IsEqualIID(Riid, &IID_IUnknown) ||
         IsEqualIID(Riid, &IID_ISecurityInformation)
@@ -219,6 +232,22 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_QueryInterface(
 
             info = PhAllocateZero(sizeof(PhSecurityInformation2));
             info->VTable = &PhSecurityInformation_VTable2;
+            info->Context = this;
+            info->RefCount = 1;
+
+            *Object = info;
+            return S_OK;
+        }
+    }
+    else if (IsEqualGUID(Riid, &IID_ISecurityInformation3))
+    {
+        if (WindowsVersion >= WINDOWS_8)
+        {
+            PhSecurityInformation3 *info;
+
+            info = PhAllocateZero(sizeof(PhSecurityInformation3));
+            info->VTable = &PhSecurityInformation_VTable3;
+            info->Context = this;
             info->RefCount = 1;
 
             *Object = info;
@@ -279,7 +308,7 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_GetObjectInformation(
     PhSecurityInformation *this = (PhSecurityInformation *)This;
 
     memset(ObjectInfo, 0, sizeof(SI_OBJECT_INFO));
-    ObjectInfo->dwFlags = SI_EDIT_ALL | SI_ADVANCED | SI_MAY_WRITE;
+    ObjectInfo->dwFlags = SI_EDIT_ALL | SI_ADVANCED | (WindowsVersion >= WINDOWS_8 ? SI_VIEW_ONLY : 0);
     ObjectInfo->pszObjectName = PhGetString(this->ObjectName);
 
     if (PhEqualString2(this->ObjectType, L"TokenDefault", TRUE))
@@ -401,6 +430,8 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_PropertySheetPageCallback(
     return E_NOTIMPL;
 }
 
+// ISecurityInformation2
+
 HRESULT STDMETHODCALLTYPE PhSecurityInformation2_QueryInterface(
     _In_ ISecurityInformation2 *This,
     _In_ REFIID Riid,
@@ -478,6 +509,81 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation2_LookupSids(
 
     return S_OK;
 }
+
+// ISecurityInformation3
+
+HRESULT STDMETHODCALLTYPE PhSecurityInformation3_QueryInterface(
+    _In_ ISecurityInformation3 *This,
+    _In_ REFIID Riid,
+    _Out_ PVOID *Object
+    )
+{
+    if (
+        IsEqualIID(Riid, &IID_IUnknown) ||
+        IsEqualIID(Riid, &IID_ISecurityInformation3)
+        )
+    {
+        PhSecurityInformation3_AddRef(This);
+        *Object = This;
+        return S_OK;
+    }
+
+    *Object = NULL;
+    return E_NOINTERFACE;
+}
+
+ULONG STDMETHODCALLTYPE PhSecurityInformation3_AddRef(
+    _In_ ISecurityInformation3 *This
+    )
+{
+    PhSecurityInformation3 *this = (PhSecurityInformation3 *)This;
+
+    this->RefCount++;
+
+    return this->RefCount;
+}
+
+ULONG STDMETHODCALLTYPE PhSecurityInformation3_Release(
+    _In_ ISecurityInformation3 *This
+    )
+{
+    PhSecurityInformation3 *this = (PhSecurityInformation3 *)This;
+
+    this->RefCount--;
+
+    if (this->RefCount == 0)
+    {
+        PhFree(this);
+        return 0;
+    }
+
+    return this->RefCount;
+}
+
+BOOL STDMETHODCALLTYPE PhSecurityInformation3_GetFullResourceName(
+    _In_ ISecurityInformation3 *This,
+    _Outptr_ PWSTR *ppszResourceName
+    )
+{
+    PhSecurityInformation3 *this = (PhSecurityInformation3 *)This;
+
+    *ppszResourceName = PhGetString(this->Context->ObjectName);
+
+    return TRUE;
+}
+
+HRESULT STDMETHODCALLTYPE PhSecurityInformation3_OpenElevatedEditor(
+    _In_ ISecurityInformation3 *This,
+    _In_ HWND hWnd,
+    _In_ SI_PAGE_TYPE uPage
+    )
+{
+    PhSecurityInformation3 *this = (PhSecurityInformation3 *)This;
+
+    return E_NOTIMPL;
+}
+
+// IDataObject
 
 HRESULT STDMETHODCALLTYPE PhSecurityDataObject_QueryInterface(
     _In_ IDataObject *This,

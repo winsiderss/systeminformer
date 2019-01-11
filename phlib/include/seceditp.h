@@ -27,8 +27,17 @@ typedef struct
 {
     ISecurityInformation2Vtbl *VTable;
 
+    PhSecurityInformation *Context;
     ULONG RefCount;
 } PhSecurityInformation2;
+
+typedef struct
+{
+    ISecurityInformation3Vtbl *VTable;
+
+    PhSecurityInformation *Context;
+    ULONG RefCount;
+} PhSecurityInformation3;
 
 typedef struct
 {
@@ -41,6 +50,8 @@ typedef struct
 
     PPH_LIST NameCache;
 } PhSecurityIDataObject;
+
+// ISecurityInformation
 
 ISecurityInformation *PhSecurityInformation_Create(
     _In_ HWND WindowHandle,
@@ -113,6 +124,8 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_PropertySheetPageCallback(
     _In_ SI_PAGE_TYPE uPage
     );
 
+// ISecurityInformation2
+
 HRESULT STDMETHODCALLTYPE PhSecurityInformation2_QueryInterface(
     _In_ ISecurityInformation2 *This,
     _In_ REFIID Riid,
@@ -138,6 +151,35 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation2_LookupSids(
     _In_ PSID *rgpSids,
     _Out_ LPDATAOBJECT *ppdo
     );
+
+// ISecurityInformation3
+
+HRESULT STDMETHODCALLTYPE PhSecurityInformation3_QueryInterface(
+    _In_ ISecurityInformation3 *This,
+    _In_ REFIID Riid,
+    _Out_ PVOID *Object
+    );
+
+ULONG STDMETHODCALLTYPE PhSecurityInformation3_AddRef(
+    _In_ ISecurityInformation3 *This
+    );
+
+ULONG STDMETHODCALLTYPE PhSecurityInformation3_Release(
+    _In_ ISecurityInformation3 *This
+    );
+
+BOOL STDMETHODCALLTYPE PhSecurityInformation3_GetFullResourceName(
+    _In_ ISecurityInformation3 *This,
+    _Outptr_ PWSTR *ppszResourceName
+    );
+
+HRESULT STDMETHODCALLTYPE PhSecurityInformation3_OpenElevatedEditor(
+    _In_ ISecurityInformation3 *This,
+    _In_ HWND hWnd,
+    _In_ SI_PAGE_TYPE uPage
+    );
+
+// IDataObject
 
 HRESULT STDMETHODCALLTYPE PhSecurityDataObject_QueryInterface(
     _In_ IDataObject *This,
