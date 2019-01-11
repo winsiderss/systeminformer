@@ -5173,6 +5173,25 @@ NTSTATUS PhEnumDirectoryFile(
     _In_opt_ PVOID Context
     )
 {
+    return PhEnumDirectoryFileEx(
+        FileHandle,
+        FileDirectoryInformation,
+        FALSE,
+        SearchPattern,
+        Callback,
+        Context
+        );
+}
+
+NTSTATUS PhEnumDirectoryFileEx(
+    _In_ HANDLE FileHandle,
+    _In_ FILE_INFORMATION_CLASS FileInformationClass,
+    _In_ BOOLEAN ReturnSingleEntry,
+    _In_opt_ PUNICODE_STRING SearchPattern,
+    _In_ PPH_ENUM_DIRECTORY_FILE Callback,
+    _In_opt_ PVOID Context
+    )
+{
     NTSTATUS status;
     IO_STATUS_BLOCK isb;
     BOOLEAN firstTime = TRUE;
@@ -5185,7 +5204,7 @@ NTSTATUS PhEnumDirectoryFile(
 
     while (TRUE)
     {
-        // Query the directory, doubling the buffer each time NtQueryDirectoryFile fails.
+        // Query the directory, doubling the buffer each time NtQueryDirectoryFile fails. (wj32)
         while (TRUE)
         {
             status = NtQueryDirectoryFile(
@@ -5196,14 +5215,13 @@ NTSTATUS PhEnumDirectoryFile(
                 &isb,
                 buffer,
                 bufferSize,
-                FileDirectoryInformation,
-                FALSE,
+                FileInformationClass,
+                ReturnSingleEntry,
                 SearchPattern,
                 firstTime
                 );
 
-            // Our ISB is on the stack, so we have to wait for the operation to complete before
-            // continuing.
+            // Our ISB is on the stack, so we have to wait for the operation to complete before continuing. (wj32)
             if (status == STATUS_PENDING)
             {
                 status = NtWaitForSingleObject(FileHandle, FALSE, NULL);
@@ -5224,7 +5242,7 @@ NTSTATUS PhEnumDirectoryFile(
             }
         }
 
-        // If we don't have any entries to read, exit.
+        // If we don't have any entries to read, exit. (wj32)
         if (status == STATUS_NO_MORE_FILES)
         {
             status = STATUS_SUCCESS;
@@ -5234,21 +5252,19 @@ NTSTATUS PhEnumDirectoryFile(
         if (!NT_SUCCESS(status))
             break;
 
-        // Read the batch and execute the callback function for each file.
+        // Read the batch and execute the callback function for each file. (wj32)
 
         i = 0;
         cont = TRUE;
 
         while (TRUE)
         {
-            PFILE_DIRECTORY_INFORMATION information;
+            PFILE_NAMES_INFORMATION information;
 
-            information = (PFILE_DIRECTORY_INFORMATION)PTR_ADD_OFFSET(buffer, i);
+            // HACK: Use the wrong structure for the NextEntryOffset. (dmex)
+            information = PTR_ADD_OFFSET(buffer, i); 
 
-            if (!Callback(
-                information,
-                Context
-                ))
+            if (!Callback(information, Context))
             {
                 cont = FALSE;
                 break;
