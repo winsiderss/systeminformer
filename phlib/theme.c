@@ -160,6 +160,19 @@ VOID PhInitializeWindowTheme(
             SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)PhpThemeWindowSubclassProc);
         }
 
+        // Enable dark window frame support (undocumented RS5 feature).
+        switch (PhpThemeColorMode)
+        {
+        case 0: // New colors
+            if (WindowsVersion >= WINDOWS_10_RS5)
+                RemoveProp(WindowHandle, L"UseImmersiveDarkModeColors");
+            break;
+        case 1: // Old colors
+            if (WindowsVersion >= WINDOWS_10_RS5)
+                SetProp(WindowHandle, L"UseImmersiveDarkModeColors", (HANDLE)TRUE);
+            break;
+        }
+
         PhEnumChildWindows(
             WindowHandle,
             0x1000,
@@ -198,9 +211,13 @@ VOID PhReInitializeWindowTheme(
         {
         case 0: // New colors
             PhMenuBackgroundBrush = CreateSolidBrush(PhpThemeWindowTextColor);
+            if (WindowsVersion >= WINDOWS_10_RS5)
+                RemoveProp(WindowHandle, L"UseImmersiveDarkModeColors");
             break;
         case 1: // Old colors
             PhMenuBackgroundBrush = CreateSolidBrush(PhpThemeWindowForegroundColor);
+            if (WindowsVersion >= WINDOWS_10_RS5)
+                SetProp(WindowHandle, L"UseImmersiveDarkModeColors", (HANDLE)TRUE);
             break;
         }
     }
