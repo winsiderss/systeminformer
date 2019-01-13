@@ -35,6 +35,7 @@ PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginTreeNewMessageCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginPhSvcRequestCallbackRegistration;
 PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
+PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessPropertiesInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION HandlePropertiesInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessMenuInitializingCallbackRegistration;
@@ -45,9 +46,10 @@ PH_CALLBACK_REGISTRATION NetworkTreeNewInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION SystemInformationInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION MiniInformationInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION TrayIconsInitializingCallbackRegistration;
-PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
+PH_CALLBACK_REGISTRATION ProcessItemsUpdatedCallbackRegistration;
 PH_CALLBACK_REGISTRATION NetworkItemsUpdatedCallbackRegistration;
 
+ULONG ProcessesUpdatedCount = 0;
 static HANDLE ModuleProcessId = NULL;
 
 VOID NTAPI LoadCallback(
@@ -147,6 +149,19 @@ VOID NTAPI MainWindowShowingCallback(
     )
 {
     EtInitializeDiskTab();
+    EtRegisterToolbarGraphs();
+}
+
+VOID NTAPI ProcessesUpdatedCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    if (ProcessesUpdatedCount < 2)
+    {
+        ProcessesUpdatedCount++;
+        return;
+    }
 }
 
 VOID NTAPI ProcessPropertiesInitializingCallback(
@@ -318,7 +333,7 @@ VOID NTAPI TrayIconsInitializingCallback(
     EtRegisterNotifyIcons(Parameter);
 }
 
-VOID NTAPI ProcessesUpdatedCallback(
+VOID NTAPI ProcessItemsUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -568,6 +583,13 @@ LOGICAL DllMain(
                 &MainWindowShowingCallbackRegistration
                 );
             PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackProcessesUpdated),
+                ProcessesUpdatedCallback,
+                NULL,
+                &ProcessesUpdatedCallbackRegistration
+                );
+
+            PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackProcessPropertiesInitializing),
                 ProcessPropertiesInitializingCallback,
                 NULL,
@@ -631,9 +653,9 @@ LOGICAL DllMain(
 
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
-                ProcessesUpdatedCallback,
+                ProcessItemsUpdatedCallback,
                 NULL,
-                &ProcessesUpdatedCallbackRegistration
+                &ProcessItemsUpdatedCallbackRegistration
                 );
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackNetworkProviderUpdatedEvent),

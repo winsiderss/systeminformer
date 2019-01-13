@@ -16,6 +16,7 @@ extern LIST_ENTRY EtProcessBlockListHead;
 extern LIST_ENTRY EtNetworkBlockListHead;
 extern HWND ProcessTreeNewHandle;
 extern HWND NetworkTreeNewHandle;
+extern ULONG ProcessesUpdatedCount;
 
 #define PLUGIN_NAME L"ProcessHacker.ExtendedTools"
 #define SETTING_NAME_DISK_TREE_LIST_COLUMNS (PLUGIN_NAME L".DiskTreeListColumns")
@@ -560,6 +561,10 @@ VOID EtGpuMiniInformationInitializing(
 
 VOID EtRegisterNotifyIcons(
     _In_ PPH_TRAY_ICON_POINTERS Pointers
+    );
+
+VOID EtRegisterToolbarGraphs(
+    VOID
     );
 
 // modsrv
