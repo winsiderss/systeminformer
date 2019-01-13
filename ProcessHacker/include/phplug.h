@@ -738,6 +738,14 @@ PhPluginCallPhSvc(
     _Out_writes_bytes_opt_(OutLength) PVOID OutBuffer,
     _In_ ULONG OutLength
     );
+
+PHAPPAPI
+PPH_STRING
+NTAPI
+PhGetPluginName(
+    _In_ PPH_PLUGIN Plugin
+    );
+
 // end_phapppub
 
 #endif

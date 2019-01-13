@@ -1034,3 +1034,10 @@ NTSTATUS PhPluginCallPhSvc(
 
     return status;
 }
+
+PPH_STRING PhGetPluginName(
+    _In_ PPH_PLUGIN Plugin
+    )
+{
+    return PhCreateString2(&Plugin->Name);
+}
