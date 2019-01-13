@@ -66,7 +66,7 @@ PPH_HASHTABLE EtFileNameHashtable;
 PH_QUEUED_LOCK EtFileNameHashtableLock = PH_QUEUED_LOCK_INIT;
 
 static LARGE_INTEGER EtpPerformanceFrequency;
-static PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
+static PH_CALLBACK_REGISTRATION EtpProcessesUpdatedCallbackRegistration;
 
 VOID EtInitializeDiskInformation(
     VOID
@@ -98,7 +98,7 @@ VOID EtInitializeDiskInformation(
         PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
         EtpDiskProcessesUpdatedCallback,
         NULL,
-        &ProcessesUpdatedCallbackRegistration
+        &EtpProcessesUpdatedCallbackRegistration
         );
 }
 

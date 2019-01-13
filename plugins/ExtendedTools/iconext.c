@@ -3,6 +3,7 @@
  *   notification icon extensions
  *
  * Copyright (C) 2011 wj32
+ * Copyright (C) 2016-2019 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -21,6 +22,9 @@
  */
 
 #include "exttools.h"
+#include "etwsys.h"
+#include "gpusys.h"
+#include <toolstatusintf.h>
 
 #define GPU_ICON_ID 1
 #define DISK_ICON_ID 2
@@ -757,4 +761,341 @@ VOID EtpNetworkTextIconUpdateCallback(
 
     *NewText = PhFormat(format, maxNetworkProcessItem ? 6 : 4, 128);
     if (maxNetworkProcessItem) PhDereferenceObject(maxNetworkProcessItem);
+}
+
+// Toolbar graphs
+
+TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(EtpToolbarGpuHistoryGraphMessageCallback)
+{
+    switch (Header->code)
+    {
+    case GCN_GETDRAWINFO:
+        {
+            PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
+            PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
+
+            drawInfo->Flags = PH_GRAPH_USE_GRID_X;
+            PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), 0);
+
+            if (ProcessesUpdatedCount < 2)
+                return;
+
+            PhGraphStateGetDrawInfo(GraphState, getDrawInfo, EtGpuNodeHistory.Count);
+
+            if (!GraphState->Valid)
+            {
+                PhCopyCircularBuffer_FLOAT(&EtGpuNodeHistory, GraphState->Data1, drawInfo->LineDataCount);
+
+                GraphState->Valid = TRUE;
+            }
+        }
+        break;
+    case GCN_GETTOOLTIPTEXT:
+        {
+            PPH_GRAPH_GETTOOLTIPTEXT getTooltipText = (PPH_GRAPH_GETTOOLTIPTEXT)Header;
+
+            if (getTooltipText->Index < getTooltipText->TotalCount)
+            {
+                if (GraphState->TooltipIndex != getTooltipText->Index)
+                {
+                    FLOAT gpu;
+
+                    gpu = PhGetItemCircularBuffer_FLOAT(&EtGpuNodeHistory, getTooltipText->Index);
+
+                    PhMoveReference(&GraphState->TooltipText, PhFormatString(
+                        L"%.2f%%%s\n%s",
+                        gpu * 100,
+                        PhGetStringOrEmpty(EtpGetMaxNodeString(getTooltipText->Index)),
+                        ((PPH_STRING)PH_AUTO(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
+                        ));
+                }
+
+                getTooltipText->Text = PhGetStringRef(GraphState->TooltipText);
+            }
+        }
+        break;
+    case GCN_MOUSEEVENT:
+        {
+            PPH_GRAPH_MOUSEEVENT mouseEvent = (PPH_GRAPH_MOUSEEVENT)Header;
+            PPH_PROCESS_RECORD record;
+
+            record = NULL;
+
+            if (mouseEvent->Message == WM_LBUTTONDBLCLK && mouseEvent->Index < mouseEvent->TotalCount)
+            {
+                record = EtpReferenceMaxNodeRecord(mouseEvent->Index);
+            }
+
+            if (record)
+            {
+                PhShowProcessRecordDialog(PhMainWndHandle, record);
+                PhDereferenceProcessRecord(record);
+            }
+        }
+        break;
+    }
+}
+
+TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(EtpToolbarDiskHistoryGraphMessageCallback)
+{
+    switch (Header->code)
+    {
+    case GCN_GETDRAWINFO:
+        {
+            PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
+            PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
+
+            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_LINE_2;
+            PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorIoReadOther"), PhGetIntegerSetting(L"ColorIoWrite"));
+
+            if (ProcessesUpdatedCount < 2)
+                return;
+
+            PhGraphStateGetDrawInfo(
+                GraphState,
+                getDrawInfo,
+                EtDiskReadHistory.Count
+                );
+
+            if (!GraphState->Valid)
+            {
+                ULONG i;
+                FLOAT max = 1024 * 1024; // Minimum scaling of 1 MB
+
+                for (i = 0; i < drawInfo->LineDataCount; i++)
+                {
+                    FLOAT data1;
+                    FLOAT data2;
+
+                    GraphState->Data1[i] = data1 =
+                        (FLOAT)PhGetItemCircularBuffer_ULONG(&EtDiskReadHistory, i);
+                    GraphState->Data2[i] = data2 =
+                        (FLOAT)PhGetItemCircularBuffer_ULONG(&EtDiskWriteHistory, i);
+
+                    if (max < data1 + data2)
+                        max = data1 + data2;
+                }
+
+                if (max != 0)
+                {
+                    // Scale the data.
+
+                    PhDivideSinglesBySingle(
+                        GraphState->Data1,
+                        max,
+                        drawInfo->LineDataCount
+                        );
+                    PhDivideSinglesBySingle(
+                        GraphState->Data2,
+                        max,
+                        drawInfo->LineDataCount
+                        );
+                }
+
+                GraphState->Valid = TRUE;
+            }
+        }
+        break;
+    case GCN_GETTOOLTIPTEXT:
+        {
+            PPH_GRAPH_GETTOOLTIPTEXT getTooltipText = (PPH_GRAPH_GETTOOLTIPTEXT)Header;
+
+            if (getTooltipText->Index < getTooltipText->TotalCount)
+            {
+                if (GraphState->TooltipIndex != getTooltipText->Index)
+                {
+                    ULONG64 diskRead;
+                    ULONG64 diskWrite;
+
+                    diskRead = PhGetItemCircularBuffer_ULONG(&EtDiskReadHistory, getTooltipText->Index);
+                    diskWrite = PhGetItemCircularBuffer_ULONG(&EtDiskWriteHistory, getTooltipText->Index);
+
+                    PhMoveReference(&GraphState->TooltipText, PhFormatString(
+                        L"R: %s\nW: %s%s\n%s",
+                        PhaFormatSize(diskRead, ULONG_MAX)->Buffer,
+                        PhaFormatSize(diskWrite, ULONG_MAX)->Buffer,
+                        PhGetStringOrEmpty(EtpGetMaxDiskString(getTooltipText->Index)),
+                        ((PPH_STRING)PH_AUTO(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
+                        ));
+                }
+
+                getTooltipText->Text = PhGetStringRef(GraphState->TooltipText);
+            }
+        }
+        break;
+    case GCN_MOUSEEVENT:
+        {
+            PPH_GRAPH_MOUSEEVENT mouseEvent = (PPH_GRAPH_MOUSEEVENT)Header;
+            PPH_PROCESS_RECORD record;
+
+            record = NULL;
+
+            if (mouseEvent->Message == WM_LBUTTONDBLCLK && mouseEvent->Index < mouseEvent->TotalCount)
+            {
+                record = EtpReferenceMaxDiskRecord(mouseEvent->Index);
+            }
+
+            if (record)
+            {
+                PhShowProcessRecordDialog(PhMainWndHandle, record);
+                PhDereferenceProcessRecord(record);
+            }
+        }
+        break;
+    }
+}
+
+TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(EtpToolbarNetworkHistoryGraphMessageCallback)
+{
+    switch (Header->code)
+    {
+    case GCN_GETDRAWINFO:
+        {
+            PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
+            PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
+
+            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_LINE_2;
+            PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorIoReadOther"), PhGetIntegerSetting(L"ColorIoWrite"));
+
+            if (ProcessesUpdatedCount < 2)
+                return;
+
+            PhGraphStateGetDrawInfo(
+                GraphState,
+                getDrawInfo,
+                EtNetworkReceiveHistory.Count
+                );
+
+            if (!GraphState->Valid)
+            {
+                ULONG i;
+                FLOAT max = 1024 * 1024; // Minimum scaling of 1 MB
+
+                for (i = 0; i < drawInfo->LineDataCount; i++)
+                {
+                    FLOAT data1;
+                    FLOAT data2;
+
+                    GraphState->Data1[i] = data1 =
+                        (FLOAT)PhGetItemCircularBuffer_ULONG(&EtNetworkReceiveHistory, i);
+                    GraphState->Data2[i] = data2 =
+                        (FLOAT)PhGetItemCircularBuffer_ULONG(&EtNetworkSendHistory, i);
+
+                    if (max < data1 + data2)
+                        max = data1 + data2;
+                }
+
+                if (max != 0)
+                {
+                    // Scale the data.
+
+                    PhDivideSinglesBySingle(
+                        GraphState->Data1,
+                        max,
+                        drawInfo->LineDataCount
+                        );
+                    PhDivideSinglesBySingle(
+                        GraphState->Data2,
+                        max,
+                        drawInfo->LineDataCount
+                        );
+                }
+
+                GraphState->Valid = TRUE;
+            }
+        }
+        break;
+    case GCN_GETTOOLTIPTEXT:
+        {
+            PPH_GRAPH_GETTOOLTIPTEXT getTooltipText = (PPH_GRAPH_GETTOOLTIPTEXT)Header;
+
+            if (getTooltipText->Index < getTooltipText->TotalCount)
+            {
+                if (GraphState->TooltipIndex != getTooltipText->Index)
+                {
+                    ULONG64 networkReceive;
+                    ULONG64 networkSend;
+
+                    networkReceive = PhGetItemCircularBuffer_ULONG(&EtNetworkReceiveHistory, getTooltipText->Index);
+                    networkSend = PhGetItemCircularBuffer_ULONG(&EtNetworkSendHistory, getTooltipText->Index);
+
+                    PhMoveReference(&GraphState->TooltipText, PhFormatString(
+                        L"R: %s\nS: %s%s\n%s",
+                        PhaFormatSize(networkReceive, ULONG_MAX)->Buffer,
+                        PhaFormatSize(networkSend, ULONG_MAX)->Buffer,
+                        PhGetStringOrEmpty(EtpGetMaxNetworkString(getTooltipText->Index)),
+                        ((PPH_STRING)PH_AUTO(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
+                        ));
+                }
+
+                getTooltipText->Text = PhGetStringRef(GraphState->TooltipText);
+            }
+        }
+        break;
+    case GCN_MOUSEEVENT:
+        {
+            PPH_GRAPH_MOUSEEVENT mouseEvent = (PPH_GRAPH_MOUSEEVENT)Header;
+            PPH_PROCESS_RECORD record;
+
+            record = NULL;
+
+            if (mouseEvent->Message == WM_LBUTTONDBLCLK && mouseEvent->Index < mouseEvent->TotalCount)
+            {
+                record = EtpReferenceMaxNetworkRecord(mouseEvent->Index);
+            }
+
+            if (record)
+            {
+                PhShowProcessRecordDialog(PhMainWndHandle, record);
+                PhDereferenceProcessRecord(record);
+            }
+        }
+        break;
+    }
+}
+
+VOID EtRegisterToolbarGraphs(
+    VOID
+    )
+{
+    PPH_PLUGIN toolStatusPlugin;
+    PTOOLSTATUS_INTERFACE ToolStatusInterface = NULL;
+
+    if (toolStatusPlugin = PhFindPlugin(TOOLSTATUS_PLUGIN_NAME))
+    {
+        ToolStatusInterface = PhGetPluginInformation(toolStatusPlugin)->Interface;
+
+        if (ToolStatusInterface->Version < TOOLSTATUS_INTERFACE_VERSION)
+            ToolStatusInterface = NULL;
+    }
+
+    if (ToolStatusInterface)
+    {
+        ToolStatusInterface->RegisterToolbarGraph(
+            PluginInstance,
+            5,
+            L"GPU history",
+            EtGpuEnabled ? 0 : TOOLSTATUS_GRAPH_UNAVAILABLE,
+            NULL,
+            EtpToolbarGpuHistoryGraphMessageCallback
+            );
+
+        ToolStatusInterface->RegisterToolbarGraph(
+            PluginInstance,
+            6,
+            L"Disk history",
+            EtEtwEnabled ? 0 : TOOLSTATUS_GRAPH_UNAVAILABLE,
+            NULL,
+            EtpToolbarDiskHistoryGraphMessageCallback
+            );
+
+        ToolStatusInterface->RegisterToolbarGraph(
+            PluginInstance,
+            7,
+            L"Network history",
+            EtEtwEnabled ? 0 : TOOLSTATUS_GRAPH_UNAVAILABLE,
+            NULL,
+            EtpToolbarNetworkHistoryGraphMessageCallback
+            );
+    }
 }
