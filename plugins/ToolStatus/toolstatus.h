@@ -115,7 +115,8 @@ typedef union _TOOLSTATUS_CONFIG
         ULONG ResolveGhostWindows : 1;
         ULONG ModernIcons : 1;
         ULONG AutoHideMenu : 1;
-        ULONG Spare : 25;
+        ULONG Reserved : 4;
+        ULONG Spare : 21;
     };
 } TOOLSTATUS_CONFIG;
 
