@@ -2,7 +2,7 @@
  * Process Hacker ToolStatus -
  *   main toolbar
  *
- * Copyright (C) 2011-2017 dmex
+ * Copyright (C) 2011-2019 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -267,8 +267,6 @@ VOID RebarLoadSettings(
         if (StatusBarHandle && IsWindowVisible(StatusBarHandle))
             ShowWindow(StatusBarHandle, SW_HIDE);
     }
-
-    ToolbarCreateGraphs();
 }
 
 VOID ToolbarLoadSettings(
@@ -802,7 +800,7 @@ VOID ReBarLoadLayoutSettings(
         PhStringToInteger64(&stylePart, 10, &styleInteger);
 
         if ((oldBandIndex = (UINT)SendMessage(RebarHandle, RB_IDTOINDEX, (UINT)idInteger, 0)) == UINT_MAX)
-            break;
+            continue;
 
         if (oldBandIndex != index)
         {

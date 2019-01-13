@@ -3,7 +3,7 @@
  *   toolstatus header
  *
  * Copyright (C) 2010-2013 wj32
- * Copyright (C) 2011-2016 dmex
+ * Copyright (C) 2011-2019 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -39,6 +39,7 @@
 #define SETTING_NAME_TOOLSTATUS_CONFIG (PLUGIN_NAME L".Config")
 #define SETTING_NAME_REBAR_CONFIG (PLUGIN_NAME L".RebarConfig")
 #define SETTING_NAME_TOOLBAR_CONFIG (PLUGIN_NAME L".ToolbarButtonConfig")
+#define SETTING_NAME_TOOLBAR_GRAPH_CONFIG (PLUGIN_NAME L".ToolbarGraphConfig")
 #define SETTING_NAME_STATUSBAR_CONFIG (PLUGIN_NAME L".StatusbarConfig")
 #define SETTING_NAME_TOOLBAR_THEME (PLUGIN_NAME L".ToolbarTheme")
 #define SETTING_NAME_TOOLBARDISPLAYSTYLE (PLUGIN_NAME L".ToolbarDisplayStyle")
@@ -65,12 +66,9 @@ typedef enum _TOOLBAR_COMMAND_ID
 {
     COMMAND_ID_ENABLE_MENU = 1,
     COMMAND_ID_ENABLE_SEARCHBOX,
-    COMMAND_ID_ENABLE_CPU_GRAPH,
-    COMMAND_ID_ENABLE_MEMORY_GRAPH,
-    COMMAND_ID_ENABLE_COMMIT_GRAPH,
-    COMMAND_ID_ENABLE_IO_GRAPH,
     COMMAND_ID_TOOLBAR_LOCKUNLOCK,
     COMMAND_ID_TOOLBAR_CUSTOMIZE,
+    COMMAND_ID_GRAPHS_CUSTOMIZE,
 } TOOLBAR_COMMAND_ID;
 
 //typedef enum _TOOLBAR_THEME
@@ -115,15 +113,9 @@ typedef union _TOOLSTATUS_CONFIG
         ULONG StatusBarEnabled : 1;
         ULONG ToolBarLocked : 1;
         ULONG ResolveGhostWindows : 1;
-
         ULONG ModernIcons : 1;
         ULONG AutoHideMenu : 1;
-        ULONG CpuGraphEnabled : 1;
-        ULONG MemGraphEnabled : 1;
-        ULONG CommitGraphEnabled : 1;
-        ULONG IoGraphEnabled : 1;
-
-        ULONG Spare : 21;
+        ULONG Spare : 25;
     };
 } TOOLSTATUS_CONFIG;
 
@@ -258,14 +250,76 @@ NTSTATUS QueryServiceFileName(
 
 // graph.c
 
-extern HWND CpuGraphHandle;
-extern HWND MemGraphHandle;
-extern HWND CommitGraphHandle;
-extern HWND IoGraphHandle;
+typedef struct _PH_TOOLBAR_GRAPH
+{
+    struct _PH_PLUGIN *Plugin;
 
-VOID ToolbarCreateGraphs(VOID);
-VOID ToolbarUpdateGraphs(VOID);
-VOID ToolbarUpdateGraphsInfo(LPNMHDR Header);
+    ULONG Flags;
+    ULONG GraphId;
+
+    HWND GraphHandle;
+    PVOID Context;
+    PWSTR Text;
+
+    PTOOLSTATUS_GRAPH_MESSAGE_CALLBACK MessageCallback;
+    PH_GRAPH_STATE GraphState;
+} PH_TOOLBAR_GRAPH, *PPH_TOOLBAR_GRAPH;
+
+VOID ToolbarGraphLoadSettings(
+    VOID
+    );
+
+VOID ToolbarGraphSaveSettings(
+    VOID
+    );
+
+VOID ToolbarGraphsInitialize(
+    VOID
+    );
+
+VOID ToolbarRegisterGraph(
+    _In_ struct _PH_PLUGIN *Plugin,
+    _In_ ULONG Id,
+    _In_ PWSTR Text,
+    _In_ ULONG Flags,
+    _In_opt_ PVOID Context,
+    _In_opt_ PTOOLSTATUS_GRAPH_MESSAGE_CALLBACK MessageCallback
+    );
+
+VOID ToolbarCreateGraphs(
+    VOID
+    );
+
+VOID ToolbarUpdateGraphs(
+    VOID
+    );
+
+BOOLEAN ToolbarUpdateGraphsInfo(
+    _In_ LPNMHDR Header
+    );
+
+VOID ToolbarSetVisibleGraph(
+    _In_ PPH_TOOLBAR_GRAPH Icon,
+    _In_ BOOLEAN Visible
+    );
+
+BOOLEAN ToolbarGraphsEnabled(
+    VOID
+    );
+
+PPH_TOOLBAR_GRAPH ToolbarGraphFindById(
+    _In_ ULONG SubId
+    );
+
+PPH_TOOLBAR_GRAPH ToolbarGraphFindByName(
+    _In_ PPH_STRINGREF PluginName,
+    _In_ ULONG SubId
+    );
+
+VOID ToolbarGraphCreateMenu(
+    _In_ PPH_EMENU ParentMenu,
+    _In_ ULONG MenuId
+    );
 
 // statusbar.c
 
