@@ -76,18 +76,21 @@ BOOLEAN PhIsProcessSuspended(
     _In_ HANDLE ProcessId
     )
 {
+    BOOLEAN suspended = FALSE;
     PVOID processes;
     PSYSTEM_PROCESS_INFORMATION process;
 
     if (NT_SUCCESS(PhEnumProcesses(&processes)))
     {
         if (process = PhFindProcessInformation(processes, ProcessId))
-            return PhGetProcessIsSuspended(process);
+        {
+            suspended = PhGetProcessIsSuspended(process);
+        }
 
         PhFree(processes);
     }
 
-    return FALSE;
+    return suspended;
 }
 
 /**
