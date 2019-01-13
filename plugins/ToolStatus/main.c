@@ -3,7 +3,7 @@
  *   main program
  *
  * Copyright (C) 2010-2016 wj32
- * Copyright (C) 2011-2017 dmex
+ * Copyright (C) 2011-2019 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -40,7 +40,8 @@ TOOLSTATUS_CONFIG ToolStatusConfig = { 0 };
 HWND ProcessTreeNewHandle = NULL;
 HWND ServiceTreeNewHandle = NULL;
 HWND NetworkTreeNewHandle = NULL;
-INT SelectedTabIndex;
+INT SelectedTabIndex = 0;
+ULONG ProcessesUpdatedCount = 0;
 BOOLEAN UpdateAutomatically = TRUE;
 BOOLEAN UpdateGraphs = TRUE;
 TOOLBAR_DISPLAY_STYLE DisplayStyle = TOOLBAR_DISPLAY_STYLE_SELECTIVETEXT;
@@ -67,7 +68,8 @@ TOOLSTATUS_INTERFACE PluginInterface =
     WordMatchStringRef,
     RegisterTabSearch,
     &SearchChangedEvent,
-    RegisterTabInfo
+    RegisterTabInfo,
+    ToolbarRegisterGraph
 };
 
 static ULONG TargetingMode = 0;
@@ -97,10 +99,11 @@ VOID NTAPI ProcessesUpdatedCallback(
     _In_opt_ PVOID Context
     )
 {
-    ProcessesUpdatedCount++;
-
     if (ProcessesUpdatedCount < 2)
+    {
+        ProcessesUpdatedCount++;
         return;
+    }
 
     PhPluginGetSystemStatistics(&SystemStatistics);
 
@@ -208,10 +211,8 @@ VOID ShowCustomizeMenu(
     menu = PhCreateEMenu();
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_ENABLE_MENU, L"Main menu (auto-hide)", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_ENABLE_SEARCHBOX, L"Search box", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_ENABLE_CPU_GRAPH, L"CPU history", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_ENABLE_IO_GRAPH, L"I/O history", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_ENABLE_MEMORY_GRAPH, L"Physical memory history", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_ENABLE_COMMIT_GRAPH, L"Commit charge history", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+    ToolbarGraphCreateMenu(menu, COMMAND_ID_GRAPHS_CUSTOMIZE);
     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_TOOLBAR_LOCKUNLOCK, L"Lock the toolbar", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_TOOLBAR_CUSTOMIZE, L"Customize...", NULL, NULL), ULONG_MAX);
@@ -224,26 +225,6 @@ VOID ShowCustomizeMenu(
     if (ToolStatusConfig.SearchBoxEnabled)
     {
         PhSetFlagsEMenuItem(menu, COMMAND_ID_ENABLE_SEARCHBOX, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
-    }
-
-    if (ToolStatusConfig.CpuGraphEnabled)
-    {
-        PhSetFlagsEMenuItem(menu, COMMAND_ID_ENABLE_CPU_GRAPH, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
-    }
-
-    if (ToolStatusConfig.MemGraphEnabled)
-    {
-        PhSetFlagsEMenuItem(menu, COMMAND_ID_ENABLE_MEMORY_GRAPH, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
-    }
-
-    if (ToolStatusConfig.CommitGraphEnabled)
-    {
-        PhSetFlagsEMenuItem(menu, COMMAND_ID_ENABLE_COMMIT_GRAPH, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
-    }
-
-    if (ToolStatusConfig.IoGraphEnabled)
-    {
-        PhSetFlagsEMenuItem(menu, COMMAND_ID_ENABLE_IO_GRAPH, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
     }
 
     if (ToolStatusConfig.ToolBarLocked)
@@ -298,46 +279,6 @@ VOID ShowCustomizeMenu(
                 }
             }
             break;
-        case COMMAND_ID_ENABLE_CPU_GRAPH:
-            {
-                ToolStatusConfig.CpuGraphEnabled = !ToolStatusConfig.CpuGraphEnabled;
-
-                PhSetIntegerSetting(SETTING_NAME_TOOLSTATUS_CONFIG, ToolStatusConfig.Flags);
-
-                ToolbarLoadSettings();
-                ReBarSaveLayoutSettings();
-            }
-            break;
-        case COMMAND_ID_ENABLE_MEMORY_GRAPH:
-            {
-                ToolStatusConfig.MemGraphEnabled = !ToolStatusConfig.MemGraphEnabled;
-
-                PhSetIntegerSetting(SETTING_NAME_TOOLSTATUS_CONFIG, ToolStatusConfig.Flags);
-
-                ToolbarLoadSettings();
-                ReBarSaveLayoutSettings();
-            }
-            break;
-        case COMMAND_ID_ENABLE_COMMIT_GRAPH:
-            {
-                ToolStatusConfig.CommitGraphEnabled = !ToolStatusConfig.CommitGraphEnabled;
-
-                PhSetIntegerSetting(SETTING_NAME_TOOLSTATUS_CONFIG, ToolStatusConfig.Flags);
-
-                ToolbarLoadSettings();
-                ReBarSaveLayoutSettings();
-            }
-            break;
-        case COMMAND_ID_ENABLE_IO_GRAPH:
-            {
-                ToolStatusConfig.IoGraphEnabled = !ToolStatusConfig.IoGraphEnabled;
-
-                PhSetIntegerSetting(SETTING_NAME_TOOLSTATUS_CONFIG, ToolStatusConfig.Flags);
-
-                ToolbarLoadSettings();
-                ReBarSaveLayoutSettings();
-            }
-            break;
         case COMMAND_ID_TOOLBAR_LOCKUNLOCK:
             {
                 UINT bandCount;
@@ -389,6 +330,20 @@ VOID ShowCustomizeMenu(
         case COMMAND_ID_TOOLBAR_CUSTOMIZE:
             {
                 ToolBarShowCustomizeDialog();
+            }
+            break;
+        case COMMAND_ID_GRAPHS_CUSTOMIZE:
+            {
+                PPH_TOOLBAR_GRAPH icon;
+
+                if (!selectedItem->Context)
+                    break;
+
+                icon = selectedItem->Context;
+                ToolbarSetVisibleGraph(icon, !(icon->Flags & PH_NF_ICON_ENABLED));
+
+                ToolbarGraphSaveSettings();
+                ReBarSaveLayoutSettings();
             }
             break;
         }
@@ -1017,7 +972,7 @@ LRESULT CALLBACK MainWndSubclassProc(
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_RESTARTBOOTOPTIONS, L"Restart to boot &options", NULL, NULL), ULONG_MAX);
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_SHUTDOWN, L"Shu&t down", NULL, NULL), ULONG_MAX);
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_SHUTDOWNHYBRID, L"H&ybrid shut down", NULL, NULL), ULONG_MAX);
-                        
+
                         if (WindowsVersion < WINDOWS_8)
                         {
                             PPH_EMENU_ITEM menuItemRemove;
@@ -1100,16 +1055,12 @@ LRESULT CALLBACK MainWndSubclassProc(
 
                 goto DefaultWndProc;
             }
-            else if (
-                CpuGraphHandle && hdr->hwndFrom == CpuGraphHandle ||
-                MemGraphHandle && hdr->hwndFrom == MemGraphHandle ||
-                CommitGraphHandle && hdr->hwndFrom == CommitGraphHandle ||
-                IoGraphHandle && hdr->hwndFrom == IoGraphHandle
-                )
+            else
             {
-                ToolbarUpdateGraphsInfo(hdr);
-
-                goto DefaultWndProc;
+                if (ToolbarUpdateGraphsInfo(hdr))
+                {
+                    goto DefaultWndProc;
+                }
             }
         }
         break;
@@ -1326,6 +1277,9 @@ LRESULT CALLBACK MainWndSubclassProc(
             else if ((wParam & 0xFFF0) == SC_RESTORE)
             {
                 UpdateGraphs = TRUE;
+
+                // TODO: The graphs don't redraw when updating is disabled (e.g. F6) and you maximize then restore the main window.
+                RedrawWindow(hWnd, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_FRAME | RDW_ALLCHILDREN);
             }
         }
         break;
@@ -1385,6 +1339,7 @@ VOID NTAPI MainWindowShowingCallback(
     SetWindowLongPtr(PhMainWndHandle, GWLP_WNDPROC, (LONG_PTR)MainWndSubclassProc);
 
     ToolbarLoadSettings();
+    ToolbarCreateGraphs();
     ReBarLoadLayoutSettings();
     StatusBarLoadSettings();
 
@@ -1404,6 +1359,8 @@ VOID NTAPI LoadCallback(
     DisplayStyle = (TOOLBAR_DISPLAY_STYLE)PhGetIntegerSetting(SETTING_NAME_TOOLBARDISPLAYSTYLE);
     SearchBoxDisplayMode = (SEARCHBOX_DISPLAY_MODE)PhGetIntegerSetting(SETTING_NAME_SEARCHBOXDISPLAYMODE);
     UpdateGraphs = !PhGetIntegerSetting(L"StartHidden");
+
+    ToolbarGraphsInitialize();
 }
 
 VOID NTAPI ShowOptionsCallback(
@@ -1441,7 +1398,8 @@ LOGICAL DllMain(
                 { IntegerSettingType, SETTING_NAME_SEARCHBOXDISPLAYMODE, L"0" },
                 { StringSettingType, SETTING_NAME_REBAR_CONFIG, L"" },
                 { StringSettingType, SETTING_NAME_TOOLBAR_CONFIG, L"" },
-                { StringSettingType, SETTING_NAME_STATUSBAR_CONFIG, L"" }
+                { StringSettingType, SETTING_NAME_STATUSBAR_CONFIG, L"" },
+                { StringSettingType, SETTING_NAME_TOOLBAR_GRAPH_CONFIG, L"" }
             };
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);

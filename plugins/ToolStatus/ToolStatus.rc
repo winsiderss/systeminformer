@@ -215,27 +215,6 @@ IDB_POWER_MODERN        PNG                     "resources\\lightbulb_off_modern
 
 /////////////////////////////////////////////////////////////////////////////
 //
-// AFX_DIALOG_LAYOUT
-//
-
-IDD_OPTIONS AFX_DIALOG_LAYOUT
-BEGIN
-    0
-END
-
-IDD_CUSTOMIZE_TB AFX_DIALOG_LAYOUT
-BEGIN
-    0
-END
-
-IDD_CUSTOMIZE_SB AFX_DIALOG_LAYOUT
-BEGIN
-    0
-END
-
-
-/////////////////////////////////////////////////////////////////////////////
-//
 // Icon
 //
 
