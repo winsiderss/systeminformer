@@ -430,23 +430,4 @@ typedef struct _ELF_VERSION_AUX // Elf_Vernaux
     unsigned int vna_next;
 } ELF_VERSION_AUX, *PELF_VERSION_AUX;
 
-typedef struct _ELF_EXTERNAL_NOTE // Elf_External_Note
-{
-    unsigned char namesz[4]; /* Size of entry's owner string */
-    unsigned char descsz[4]; /* Size of the note descriptor */
-    unsigned char type[4]; /* Interpretation of the descriptor */
-    char name[1]; /* Start of the name+desc data */
-    //char desc[1];
-} ELF_EXTERNAL_NOTE, *PELF_EXTERNAL_NOTE;
-
-typedef struct elf_internal_note {
-    unsigned long	namesz;			/* Size of entry's owner string */
-    unsigned long	descsz;			/* Size of the note descriptor */
-    unsigned long	type;			/* Interpretation of the descriptor */
-    char *	namedata;		/* Start of the name+desc data */
-    char *	descdata;		/* Start of the desc data */
-    unsigned long	descpos;		/* File offset of the descdata */
-} Elf_Internal_Note;
-
-
 #endif
