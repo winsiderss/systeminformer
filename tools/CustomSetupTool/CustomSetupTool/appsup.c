@@ -391,7 +391,7 @@ BOOLEAN CheckProcessHackerInstalled(
 
     if (!PhIsNullOrEmptyString(installPath))
     {
-        exePath = PhConcatStrings2(installPath->Buffer, L"\\ProcessHacker.exe");
+        exePath = SetupCreateFullPath(installPath, L"\\ProcessHacker.exe");
 
         // Check if the value has a valid file path.
         installed = GetFileAttributes(PhGetString(exePath)) != INVALID_FILE_ATTRIBUTES;
@@ -555,4 +555,23 @@ NTSTATUS QueryProcessesUsingVolumeOrFile(
     *Information = (PFILE_PROCESS_IDS_USING_FILE_INFORMATION)buffer;
 
     return status;
+}
+
+PPH_STRING SetupCreateFullPath(
+    _In_ PPH_STRING Path,
+    _In_ PWSTR FileName
+    )
+{
+    PPH_STRING pathString;
+    PPH_STRING tempString;
+
+    pathString = PhConcatStrings2(PhGetString(Path), FileName);
+
+    if (NT_SUCCESS(PhGetFullPathEx(pathString->Buffer, NULL, &tempString)))
+    {
+        PhMoveReference(&pathString, tempString);
+        return pathString;
+    }
+
+    return pathString;
 }
