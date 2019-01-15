@@ -38,10 +38,13 @@ BOOLEAN NTAPI PvpEnumFileAttributesCallback(
     INT lvItemIndex;
     WCHAR number[PH_INT32_STR_LEN_1];
 
+    if (Information->EaNameLength == 0)
+        return TRUE;
+
     PhPrintUInt32(number, ++context->Count);
     lvItemIndex = PhAddListViewItem(context->ListViewHandle, MAXINT, number, NULL);
 
-    attributeName = PhZeroExtendToUtf16(Information->EaName);
+    attributeName = PhZeroExtendToUtf16Ex(Information->EaName, Information->EaNameLength);
     PhSetListViewSubItem(
         context->ListViewHandle,
         lvItemIndex,
@@ -135,6 +138,11 @@ INT_PTR CALLBACK PvpPeExtendedAttributesDlgProc(
     case WM_NOTIFY:
         {
             PvHandleListViewNotifyForCopy(lParam, GetDlgItem(hwndDlg, IDC_LIST));
+        }
+        break;
+    case WM_CONTEXTMENU:
+        {
+            PvHandleListViewCommandCopy(hwndDlg, lParam, wParam, GetDlgItem(hwndDlg, IDC_LIST));
         }
         break;
     }
