@@ -512,3 +512,97 @@ VOID PhFreeMappedWslImageSymbols(
 
     PhDereferenceObject(ImageSymbols);
 }
+
+BOOLEAN PhGetMappedWslImageDynamic(
+    _In_ PPH_MAPPED_IMAGE MappedWslImage,
+    _Out_ PPH_LIST *ImageDynamic
+    )
+{
+    PELF64_IMAGE_SECTION_HEADER sectionHeader;
+    PELF64_IMAGE_SECTION_HEADER section;
+    PPH_LIST dynamicSymbols;
+    USHORT i;
+
+    dynamicSymbols = PhCreateList(0x40);
+    sectionHeader = IMAGE_FIRST_ELF64_SECTION(MappedWslImage);
+
+    for (i = 0; i < MappedWslImage->Headers64->e_shnum; i++)
+    {
+        ULONGLONG count;
+        ULONGLONG ii;
+        PELF64_IMAGE_DYNAMIC_ENTRY entry;
+        PVOID stringTable;
+
+        section = IMAGE_ELF64_SECTION_BY_INDEX(sectionHeader, i);
+
+        if (section->sh_type != SHT_DYNAMIC)
+            continue;
+
+        if (section->sh_entsize != sizeof(ELF64_IMAGE_DYNAMIC_ENTRY))
+            return FALSE;
+
+        count = section->sh_size / sizeof(ELF64_IMAGE_DYNAMIC_ENTRY);
+        entry = PTR_ADD_OFFSET(MappedWslImage->Header, section->sh_offset);
+        stringTable = PhGetMappedWslImageSectionData(MappedWslImage, NULL, section->sh_link);
+
+        for (ii = 0; ii < count; ii++)
+        {
+            PPH_ELF_IMAGE_DYNAMIC_ENTRY dynamic;
+
+            dynamic = PhAllocateZero(sizeof(PH_ELF_IMAGE_DYNAMIC_ENTRY));
+            dynamic->Tag = entry[ii].d_tag;
+
+            switch (dynamic->Tag)
+            {
+            case DT_NEEDED:
+                dynamic->Value = PhConvertUtf8ToUtf16(PTR_ADD_OFFSET(stringTable, entry[ii].d_val));
+                break;
+            case DT_PLTRELSZ:
+            case DT_RELASZ:
+            case DT_RELAENT:
+            case DT_STRSZ:
+            case DT_SYMENT:
+            case DT_RELSZ:
+            case DT_RELENT:
+            case DT_INIT_ARRAYSZ:
+            case DT_FINI_ARRAYSZ:
+            case DT_PREINIT_ARRAYSZ:
+                dynamic->Value = PhFormatSize(entry[ii].d_val, ULONG_MAX);
+                break;
+            case DT_RELACOUNT:
+            case DT_RELCOUNT:
+            case DT_VERDEFNUM:
+            case DT_VERNEEDNUM:
+                dynamic->Value = PhFormatUInt64(entry[ii].d_val, TRUE);
+                break;
+            default:
+                dynamic->Value = PhFormatString(L"0x%llx", entry[ii].d_val);
+                break;
+            }
+
+            PhAddItemList(dynamicSymbols, dynamic);
+
+            if (entry[ii].d_tag == DT_NULL)
+                break;
+        }
+    }
+
+    *ImageDynamic = dynamicSymbols;
+
+    return TRUE;
+}
+
+VOID PhFreeMappedWslImageDynamic(
+    _In_ PPH_LIST ImageDynamic
+    )
+{
+    for (ULONG i = 0; i < ImageDynamic->Count; i++)
+    {
+        PPH_ELF_IMAGE_DYNAMIC_ENTRY dynamic = ImageDynamic->Items[i];
+
+        PhDereferenceObject(dynamic->Value);
+        PhFree(dynamic);
+    }
+
+    PhDereferenceObject(ImageDynamic);
+}
