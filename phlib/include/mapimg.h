@@ -571,8 +571,8 @@ typedef struct _PH_ELF_IMAGE_SYMBOL_ENTRY
     UCHAR TypeInfo;
     ULONGLONG Address;
     ULONGLONG Size;
-    WCHAR Name[0x80];
-    WCHAR Module[0x80];
+    WCHAR Name[MAX_PATH * 2];
+    WCHAR Module[MAX_PATH * 2];
 } PH_ELF_IMAGE_SYMBOL_ENTRY, *PPH_ELF_IMAGE_SYMBOL_ENTRY;
 
 BOOLEAN PhGetMappedWslImageSymbols(
@@ -582,6 +582,22 @@ BOOLEAN PhGetMappedWslImageSymbols(
 
 VOID PhFreeMappedWslImageSymbols(
     _In_ PPH_LIST ImageSymbols
+    );
+
+typedef struct _PH_ELF_IMAGE_DYNAMIC_ENTRY
+{
+    LONGLONG Tag;
+    PWSTR Type;
+    PPH_STRING Value;
+} PH_ELF_IMAGE_DYNAMIC_ENTRY, *PPH_ELF_IMAGE_DYNAMIC_ENTRY;
+
+BOOLEAN PhGetMappedWslImageDynamic(
+    _In_ PPH_MAPPED_IMAGE MappedWslImage,
+    _Out_ PPH_LIST *DynamicSymbols
+    );
+
+VOID PhFreeMappedWslImageDynamic(
+    _In_ PPH_LIST ImageDynamic
     );
 
 #ifdef __cplusplus
