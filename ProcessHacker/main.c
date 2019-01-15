@@ -187,7 +187,7 @@ INT WINAPI wWinMain(
         RtlExitUserProcess(STATUS_SUCCESS);
     }
 
-    if (PhPluginsEnabled = PhGetIntegerSetting(L"EnablePlugins") && !PhStartupParameters.NoPlugins)
+    if (PhPluginsEnabled && !PhStartupParameters.NoPlugins)
     {
         PhLoadPlugins();
     }
@@ -1100,6 +1100,7 @@ VOID PhpInitializeSettings(
     }
 
     // Apply basic global settings.
+    PhPluginsEnabled = !!PhGetIntegerSetting(L"EnablePlugins");
     PhMaxSizeUnit = PhGetIntegerSetting(L"MaxSizeUnit");
 
     if (PhGetIntegerSetting(L"SampleCountAutomatic"))
