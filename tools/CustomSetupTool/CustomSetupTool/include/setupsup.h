@@ -79,4 +79,9 @@ QueryProcessesUsingVolumeOrFile(
     _Out_ PFILE_PROCESS_IDS_USING_FILE_INFORMATION *Information
     );
 
+PPH_STRING SetupCreateFullPath(
+    _In_ PPH_STRING Path,
+    _In_ PWSTR FileName
+    );
+
 #endif

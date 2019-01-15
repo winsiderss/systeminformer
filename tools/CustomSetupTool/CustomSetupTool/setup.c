@@ -54,7 +54,7 @@ NTSTATUS SetupCreateUninstallKey(
     {
         PPH_STRING tempString;
         
-        tempString = PhConcatStrings2(PhGetString(SetupInstallPath), L"\\processhacker.exe,0");
+        tempString = SetupCreateFullPath(SetupInstallPath, L"\\processhacker.exe,0");
         PhStringRefToUnicodeString(&tempString->sr, &value);
         RtlInitUnicodeString(&name, L"DisplayIcon");
         PhStringRefToUnicodeString(&tempString->sr, &value);
@@ -427,7 +427,7 @@ VOID SetupStartKph(
     {
         PPH_STRING clientPath;
 
-        clientPath = PhConcatStrings2(PhGetString(SetupInstallPath), L"\\ProcessHacker.exe");
+        clientPath = SetupCreateFullPath(SetupInstallPath, L"\\ProcessHacker.exe");
 
         if (RtlDoesFileExists_U(PhGetString(clientPath)))
         {
@@ -464,7 +464,7 @@ BOOLEAN SetupUninstallKph(
     Context->SetupKphInstallRequired = SetupKphCheckInstallState();
 
     // Stop and uninstall the current installation.
-    clientPath = PhConcatStrings2(PhGetString(SetupInstallPath), L"\\ProcessHacker.exe");
+    clientPath = SetupCreateFullPath(SetupInstallPath, L"\\ProcessHacker.exe");
 
     if (RtlDoesFileExists_U(PhGetString(clientPath)))
     {
@@ -503,7 +503,7 @@ VOID SetupSetWindowsOptions(
     PPH_STRING clientPathString;
     PPH_STRING startmenuFolderString;
 
-    clientPathString = PhConcatStrings2(PhGetString(SetupInstallPath), L"\\ProcessHacker.exe");
+    clientPathString = SetupCreateFullPath(SetupInstallPath, L"\\ProcessHacker.exe");
 
     // Create the startmenu shortcut.
     // PhGetKnownLocation(CSIDL_COMMON_PROGRAMS, L"\\Process Hacker.lnk"))
@@ -758,7 +758,7 @@ BOOLEAN SetupExecuteProcessHacker(
     BOOLEAN success = FALSE;
     PPH_STRING clientPath;
 
-    clientPath = PhConcatStrings2(PhGetString(SetupInstallPath), L"\\ProcessHacker.exe");
+    clientPath = SetupCreateFullPath(SetupInstallPath, L"\\ProcessHacker.exe");
 
     if (RtlDoesFileExists_U(clientPath->Buffer))
     {
