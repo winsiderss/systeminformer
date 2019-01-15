@@ -19,6 +19,7 @@
 #define IDD_PEATTR                      112
 #define IDB_SEARCH_INACTIVE_BMP         113
 #define IDD_PESTREAMS                   113
+#define IDD_PELINKS                     114
 #define IDD_ELFDYNAMIC                  116
 #define IDC_SYMBOLTREE                  119
 #define IDC_TARGETMACHINE               1003
