@@ -88,6 +88,14 @@ VOID PvExlfProperties(
             );
         PvAddPropPage(propContext, newPage);
 
+        // Dynamic
+        newPage = PvCreatePropPageContext(
+            MAKEINTRESOURCE(IDD_ELFDYNAMIC),
+            PvpExlfDynamicDlgProc,
+            NULL
+            );
+        PvAddPropPage(propContext, newPage);
+
         // Imports
         newPage = PvCreatePropPageContext(
             MAKEINTRESOURCE(IDD_PEIMPORTS),
@@ -408,6 +416,11 @@ INT_PTR CALLBACK PvpExlfGeneralDlgProc(
     case WM_NOTIFY:
         {
             PvHandleListViewNotifyForCopy(lParam, GetDlgItem(hwndDlg, IDC_LIST));
+        }
+        break;
+    case WM_CONTEXTMENU:
+        {
+            PvHandleListViewCommandCopy(hwndDlg, lParam, wParam, GetDlgItem(hwndDlg, IDC_LIST));
         }
         break;
     }
