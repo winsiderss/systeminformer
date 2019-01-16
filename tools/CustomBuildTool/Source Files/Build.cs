@@ -581,8 +581,8 @@ namespace CustomBuildTool
         {
             if (!File.Exists(CustomSignToolPath))
                 return true;
-            //if (!File.Exists("build\\kph.key"))
-            //    return true;
+            if (!File.Exists("build\\kph.key"))
+                return true;
 
             if ((Flags & BuildFlags.Build32bit) == BuildFlags.Build32bit)
             {
