@@ -555,6 +555,9 @@ BOOLEAN PhGetMappedWslImageDynamic(
             switch (dynamic->Tag)
             {
             case DT_NEEDED:
+            case DT_SONAME:
+            case DT_RPATH:
+            case DT_RUNPATH:
                 dynamic->Value = PhConvertUtf8ToUtf16(PTR_ADD_OFFSET(stringTable, entry[ii].d_val));
                 break;
             case DT_PLTRELSZ:
