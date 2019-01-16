@@ -80,8 +80,8 @@ NTSTATUS PhInitializeMappedWslImage(
         return STATUS_IMAGE_SUBSYSTEM_NOT_PRESENT;
     }
 
-    if (MappedWslImage->Headers64->e_phentsize != sizeof(ELF64_IMAGE_SEGMENT_HEADER))
-        return STATUS_FAIL_CHECK;
+    //if (MappedWslImage->Headers64->e_phentsize != sizeof(ELF64_IMAGE_SEGMENT_HEADER))
+    //    return STATUS_FAIL_CHECK;
     if (MappedWslImage->Headers64->e_shentsize != sizeof(ELF64_IMAGE_SECTION_HEADER))
         return STATUS_FAIL_CHECK;
 
@@ -418,6 +418,7 @@ BOOLEAN PhGetMappedWslImageSymbols(
                 import->Address = entry[ii].st_value;
                 import->Size = entry[ii].st_size;
                 import->TypeInfo = entry[ii].st_info;
+                import->OtherInfo = entry[ii].st_other;
 
                 // function name
                 PhCopyStringZFromBytes(
@@ -459,6 +460,7 @@ BOOLEAN PhGetMappedWslImageSymbols(
                 export->Address = entry[ii].st_value;
                 export->Size = entry[ii].st_size;
                 export->TypeInfo = entry[ii].st_info;
+                export->OtherInfo = entry[ii].st_other;
 
                 // function name
                 PhCopyStringZFromBytes(
@@ -480,6 +482,7 @@ BOOLEAN PhGetMappedWslImageSymbols(
                 export->Address = entry[ii].st_value;
                 export->Size = entry[ii].st_size;
                 export->TypeInfo = entry[ii].st_info;
+                export->OtherInfo = entry[ii].st_other;
 
                 // function name
                 PhCopyStringZFromBytes(
