@@ -84,6 +84,8 @@ PWSTR PvpGetDynamicTagName(
         return L"INIT_ARRAYSZ";
     case DT_FINI_ARRAYSZ:
         return L"FINI_ARRAYSZ";
+    case DT_RUNPATH:
+        return L"RUNPATH";
     case DT_FLAGS:
         return L"FLAGS";
     case DT_PREINIT_ARRAY:
