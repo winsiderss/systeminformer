@@ -245,7 +245,7 @@ typedef enum _THREADINFOCLASS
     ThreadSystemThreadInformation, // q: SYSTEM_THREAD_INFORMATION // 40
     ThreadActualGroupAffinity, // since THRESHOLD2
     ThreadDynamicCodePolicyInfo,
-    ThreadExplicitCaseSensitivity,
+    ThreadExplicitCaseSensitivity, // qs: ULONG; s: 0 disables, otherwise enables
     ThreadWorkOnBehalfTicket,
     ThreadSubsystemInformation, // q: SUBSYSTEM_INFORMATION_TYPE // since REDSTONE2
     ThreadDbgkWerReportActive,
