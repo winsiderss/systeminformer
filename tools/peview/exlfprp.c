@@ -70,6 +70,25 @@ PWSTR PvpGetSymbolBindingName(
     return L"***ERROR***";
 }
 
+PWSTR PvpGetSymbolVisibility(
+    _In_ UCHAR OtherInfo
+    )
+{
+    switch (ELF_ST_VISIBILITY(OtherInfo))
+    {
+    case STV_DEFAULT:
+        return L"Default";
+    case STV_INTERNAL:
+        return L"Internal";
+    case STV_HIDDEN:
+        return L"Hidden";
+    case STV_PROTECTED:
+        return L"Protected";
+    }
+
+    return L"***ERROR***";
+}
+
 VOID PvExlfProperties(
     VOID
     )
@@ -150,6 +169,9 @@ VOID PvpSetWslImageType(
 
     switch (PvMappedImage.Header->e_type)
     {
+    case ET_REL:
+        type = L"Relocatable";
+        break;
     case ET_DYN:
         type = L"Dynamic";
         break;

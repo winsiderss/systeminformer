@@ -374,6 +374,10 @@ PWSTR PvpGetSymbolBindingName(
     _In_ UCHAR TypeInfo
     );
 
+PWSTR PvpGetSymbolVisibility(
+    _In_ UCHAR OtherInfo
+    );
+
 INT_PTR CALLBACK PvpExlfGeneralDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,

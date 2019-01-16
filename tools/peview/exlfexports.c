@@ -51,6 +51,7 @@ VOID PvpProcessElfExports(
         PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, PhaFormatSize(export->Size, -1)->Buffer);
         PhSetListViewSubItem(ListViewHandle, lvItemIndex, 4, PvpGetSymbolTypeName(export->TypeInfo));
         PhSetListViewSubItem(ListViewHandle, lvItemIndex, 5, PvpGetSymbolBindingName(export->TypeInfo));
+        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 6, PvpGetSymbolVisibility(export->OtherInfo));
     }
 
     PhFreeMappedWslImageSymbols(exports);
@@ -84,6 +85,7 @@ INT_PTR CALLBACK PvpExlfExportsDlgProc(
             PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 80, L"Size");
             PhAddListViewColumn(lvHandle, 4, 4, 4, LVCFMT_LEFT, 80, L"Type");
             PhAddListViewColumn(lvHandle, 5, 5, 5, LVCFMT_LEFT, 80, L"Binding");
+            PhAddListViewColumn(lvHandle, 6, 6, 6, LVCFMT_LEFT, 80, L"Visibility");
             PhSetExtendedListView(lvHandle);
             PhLoadListViewColumnsFromSetting(L"ExportsWslListViewColumns", lvHandle);
 
