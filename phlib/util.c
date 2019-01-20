@@ -6194,7 +6194,9 @@ PPH_STRING PhFileReadAllText(
         data[dataLength] = ANSI_NULL;
 
         string = PhConvertUtf8ToUtf16Ex(data, dataLength);
+
         PhFree(data);
+        NtClose(fileHandle);
     }
 
     return string;
