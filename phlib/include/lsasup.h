@@ -89,6 +89,13 @@ PhGetTokenUserString(
     _In_ BOOLEAN IncludeDomain
     );
 
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetCapabilitySidName(
+    _In_ PSID CapabilitySid
+    );
+
 #ifdef __cplusplus
 }
 #endif

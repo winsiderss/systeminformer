@@ -1961,7 +1961,10 @@ INT_PTR CALLBACK PhpTokenCapabilitiesPageProc(
                         PPH_STRING name;
                         //PPH_STRING attributesString;
 
-                        name = PhGetSidFullName(tokenPageContext->Capabilities->Groups[i].Sid, TRUE, NULL);
+                        name = PhGetCapabilitySidName(tokenPageContext->Capabilities->Groups[i].Sid);
+
+                        if (!name)
+                            name = PhGetSidFullName(tokenPageContext->Capabilities->Groups[i].Sid, TRUE, NULL);
 
                         if (!name)
                             name = PhSidToStringSid(tokenPageContext->Capabilities->Groups[i].Sid);
