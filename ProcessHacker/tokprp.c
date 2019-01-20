@@ -1982,8 +1982,8 @@ INT_PTR CALLBACK PhpTokenCapabilitiesPageProc(
 
                     if (ListView_GetItemCount(lvHandle) != 0)
                     {
-                        ListView_SetColumnWidth(lvHandle, 0, LVSCW_AUTOSIZE);
-                        ExtendedListView_SetColumnWidth(lvHandle, 1, ELVSCW_AUTOSIZE_REMAININGSPACE);
+                        //ListView_SetColumnWidth(lvHandle, 0, LVSCW_AUTOSIZE);
+                        ExtendedListView_SetColumnWidth(lvHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
                     }
 
                     ExtendedListView_SortItems(lvHandle);
