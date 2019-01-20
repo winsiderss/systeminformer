@@ -3,7 +3,7 @@
  *   GPU process properties page
  *
  * Copyright (C) 2011 wj32
- * Copyright (C) 2015-2016 dmex
+ * Copyright (C) 2015-2018 dmex
  *
  * This file is part of Process Hacker.
  *
