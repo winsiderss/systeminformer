@@ -50,6 +50,17 @@ VOID PvpPeEnumerateFilePropStore(
             );
     }
 
+    if (FAILED(status))
+    {
+        status = SHGetPropertyStoreFromParsingName(
+            PvFileName->Buffer,
+            NULL,
+            GPS_DEFAULT, // required for Windows 7 (dmex)
+            &IID_IPropertyStore,
+            &propstore
+            );
+    }
+
     if (SUCCEEDED(status))
     {
         if (SUCCEEDED(IPropertyStore_GetCount(propstore, &count)))
