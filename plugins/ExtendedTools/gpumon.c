@@ -262,7 +262,7 @@ PPH_STRING EtpQueryDeviceProperty(
             FileTimeToLocalFileTime((PFILETIME)buffer, &newFileTime);
             FileTimeToSystemTime(&newFileTime, &systemTime);
 
-            string = PhFormatDateTime(&systemTime);
+            string = PhFormatDate(&systemTime, NULL);
 
             PhFree(buffer);
             return string;
