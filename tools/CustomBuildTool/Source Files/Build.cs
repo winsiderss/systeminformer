@@ -536,6 +536,58 @@ namespace CustomBuildTool
             return true;
         }
 
+        public static bool CopySidCapsFile(BuildFlags Flags)
+        {
+            //Program.PrintColorMessage("Copying capability sid support file...", ConsoleColor.Cyan);
+
+            try
+            {
+                if (Flags.HasFlag(BuildFlags.BuildDebug))
+                {
+                    if (Flags.HasFlag(BuildFlags.Build32bit))
+                    {
+                        Win32.CopyIfNewer(
+                            "ProcessHacker\\resources\\capslist.txt",
+                            "bin\\Debug32\\capslist.txt"
+                            );
+                    }
+
+                    if (Flags.HasFlag(BuildFlags.Build64bit))
+                    {
+                        Win32.CopyIfNewer(
+                            "ProcessHacker\\resources\\capslist.txt",
+                            "bin\\Debug64\\capslist.txt"
+                            );
+                    }
+                }
+                else
+                {
+                    if (Flags.HasFlag(BuildFlags.Build32bit))
+                    {
+                        Win32.CopyIfNewer(
+                            "ProcessHacker\\resources\\capslist.txt",
+                            "bin\\Release32\\capslist.txt"
+                            );
+                    }
+
+                    if (Flags.HasFlag(BuildFlags.Build64bit))
+                    {
+                        Win32.CopyIfNewer(
+                            "ProcessHacker\\resources\\capslist.txt",
+                            "bin\\Release64\\capslist.txt"
+                            );
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Program.PrintColorMessage("[ERROR] " + ex, ConsoleColor.Red);
+                return false;
+            }
+
+            return true;
+        }
+
         public static bool FixupResourceHeader()
         {
             try
