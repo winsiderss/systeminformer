@@ -94,8 +94,9 @@
 #define PHPRTLC_PROTECTION 81
 #define PHPRTLC_DESKTOP 82
 #define PHPRTLC_CRITICAL 83
+#define PHPRTLC_PIDHEX 84
 
-#define PHPRTLC_MAXIMUM 84
+#define PHPRTLC_MAXIMUM 85
 #define PHPRTLC_IOGROUP_COUNT 9
 
 #define PHPN_WSCOUNTERS 0x1
@@ -228,6 +229,7 @@ typedef struct _PH_PROCESS_NODE
     PPH_STRING ProtectionText;
     PPH_STRING DesktopInfoText;
     PPH_STRING UserName;
+    WCHAR PidHexText[PH_PTR_STR_LEN_1];
 
     // Graph buffers
     PH_GRAPH_BUFFERS CpuGraphBuffers;

@@ -604,10 +604,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     PH_FORMAT format;
                     SIZE_T returnLength;
 
-                    if (PhEnableHexId)
-                        PhInitFormatIX(&format, HandleToUlong(threadItem->ThreadId));
-                    else
-                        PhInitFormatIU(&format, HandleToUlong(threadItem->ThreadId));
+                    PhInitFormatIU(&format, HandleToUlong(threadItem->ThreadId));
 
                     if (PhFormatToBuffer(&format, 1, node->ThreadIdText, sizeof(node->ThreadIdText), &returnLength))
                     {
@@ -883,6 +880,20 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                             if (breakOnTermination)
                                 PhInitializeStringRef(&getCellText->Text, L"Critical");
                         }
+                    }
+                }
+                break;
+            case PH_THREAD_TREELIST_COLUMN_TIDHEX:
+                {
+                    PH_FORMAT format;
+                    SIZE_T returnLength;
+
+                    PhInitFormatIX(&format, HandleToUlong(threadItem->ThreadId));
+
+                    if (PhFormatToBuffer(&format, 1, node->ThreadIdHexText, sizeof(node->ThreadIdHexText), &returnLength))
+                    {
+                        getCellText->Text.Buffer = node->ThreadIdHexText;
+                        getCellText->Text.Length = returnLength - sizeof(WCHAR); // minus null terminator
                     }
                 }
                 break;
