@@ -93,6 +93,9 @@
     <ClCompile Include="links.c">
       <Filter>Source Files\Pages\Windows</Filter>
     </ClCompile>
+    <ClCompile Include="processes.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="exlfdynamic.c">
       <Filter>Source Files\Pages\Linux</Filter>
     </ClCompile>
