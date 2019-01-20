@@ -547,6 +547,9 @@ VOID PhInitializeCapabilitySidCache(
             PSID capabilitySid = (PSID)capabilitySidBuffer;
             UNICODE_STRING capabilityNameUs;
 
+            if (PhEndsWithStringRef2(&namePart, L"\r", FALSE))
+                namePart.Length -= sizeof(WCHAR);
+
             if (!PhStringRefToUnicodeString(&namePart, &capabilityNameUs))
                 continue;
 
