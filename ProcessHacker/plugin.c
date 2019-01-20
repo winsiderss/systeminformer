@@ -3,7 +3,7 @@
  *   plugin support
  *
  * Copyright (C) 2010-2015 wj32
- * Copyright (C) 2017-2018 dmex
+ * Copyright (C) 2017-2019 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -183,7 +183,7 @@ VOID PhSetPluginDisabled(
 }
 
 static BOOLEAN EnumPluginsDirectoryCallback(
-    _In_ PFILE_DIRECTORY_INFORMATION Information,
+    _In_ PFILE_NAMES_INFORMATION Information,
     _In_opt_ PVOID Context
     )
 {
@@ -290,16 +290,37 @@ VOID PhLoadPlugins(
     if (NT_SUCCESS(PhCreateFileWin32(
         &pluginsDirectoryHandle,
         PhGetString(PluginsDirectory),
-        FILE_GENERIC_READ,
-        FILE_ATTRIBUTE_NORMAL,
-        FILE_SHARE_READ,
+        FILE_LIST_DIRECTORY | SYNCHRONIZE,
+        FILE_ATTRIBUTE_DIRECTORY,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
         FILE_OPEN,
         FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
         )))
     {
         UNICODE_STRING pattern = RTL_CONSTANT_STRING(L"*.dll");
 
-        PhEnumDirectoryFile(pluginsDirectoryHandle, &pattern, EnumPluginsDirectoryCallback, pluginLoadErrors);
+        if (!NT_SUCCESS(PhEnumDirectoryFileEx(
+            pluginsDirectoryHandle,
+            FileNamesInformation,
+            FALSE,
+            &pattern,
+            EnumPluginsDirectoryCallback,
+            pluginLoadErrors
+            )))
+        {
+            // Note: The MUP devices for Virtualbox and VMware improperly truncate
+            // data returned by NtQueryDirectoryFile when ReturnSingleEntry=FALSE and also have
+            // various other bugs and issues for information classes other than FileNamesInformation. (dmex)  
+            PhEnumDirectoryFileEx(
+                pluginsDirectoryHandle,
+                FileNamesInformation,
+                TRUE,
+                &pattern,
+                EnumPluginsDirectoryCallback,
+                pluginLoadErrors
+                );
+        }
+
         NtClose(pluginsDirectoryHandle);
     }
 
