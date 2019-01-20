@@ -686,6 +686,7 @@ interopServices
 kinectAudio
 kinectGamechat
 liveIdService
+location
 locationHistory
 locationSystem
 lockScreenCreatives
@@ -704,6 +705,7 @@ lpacPrinting
 lpacServicesManagement
 lpacSessionManagement
 lpacWebPlatform
+microphone
 microsoftEdgeRemoteDebugging
 multiplaneOverlay
 muma
@@ -779,6 +781,7 @@ visualElementsSystem
 visualVoiceMail
 voipCall
 walletSystem
+webcam
 windowsHelloCredentialAccess
 xboxAccessoryManagement
 xboxBroadcaster
