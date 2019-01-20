@@ -40,10 +40,6 @@
 
 #include <procprv.h>
 
-typedef HWND (WINAPI *_GetSendMessageReceiver)(
-    _In_ HANDLE ThreadId
-    );
-
 typedef struct _ANALYZE_WAIT_CONTEXT
 {
     BOOLEAN Found;
@@ -962,7 +958,9 @@ static PPH_STRING PhpaGetSendMessageReceiver(
     _In_ HANDLE ThreadId
     )
 {
-    static _GetSendMessageReceiver GetSendMessageReceiver_I;
+    static HWND (WINAPI *GetSendMessageReceiver_I)(
+        _In_ HANDLE ThreadId
+        );
 
     HWND windowHandle;
     ULONG threadId;
