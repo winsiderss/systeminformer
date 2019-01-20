@@ -1084,14 +1084,10 @@ VOID PhpFillProcessItem(
 
     if (PH_IS_REAL_PROCESS_ID(ProcessItem->ProcessId))
     {
-        if (PhEnableHexId)
-            PhPrintUInt32Hex(ProcessItem->ProcessIdString, HandleToUlong(ProcessItem->ProcessId));
-        else
-            PhPrintUInt32(ProcessItem->ProcessIdString, HandleToUlong(ProcessItem->ProcessId));
+        PhPrintUInt32(ProcessItem->ProcessIdString, HandleToUlong(ProcessItem->ProcessId));
+        PhPrintUInt32(ProcessItem->ParentProcessIdString, HandleToUlong(ProcessItem->ParentProcessId));
+        PhPrintUInt32(ProcessItem->SessionIdString, ProcessItem->SessionId);
     }
-
-    PhPrintUInt32(ProcessItem->ParentProcessIdString, HandleToUlong(ProcessItem->ParentProcessId));
-    PhPrintUInt32(ProcessItem->SessionIdString, ProcessItem->SessionId);
 
     // Open a handle to the process for later usage.
     if (PH_IS_REAL_PROCESS_ID(ProcessItem->ProcessId))

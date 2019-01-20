@@ -1000,7 +1000,6 @@ typedef enum _PHP_OPTIONS_INDEX
     PHP_OPTIONS_INDEX_ICON_SINGLE_CLICK,
     PHP_OPTIONS_INDEX_ICON_TOGGLE_VISIBILITY,
     PHP_OPTIONS_INDEX_PROPAGATE_CPU_USAGE,
-    PHP_OPTIONS_INDEX_SHOW_HEX_ID,
     PHP_OPTIONS_INDEX_SHOW_ADVANCED_OPTIONS
 } PHP_OPTIONS_GENERAL_INDEX;
 
@@ -1038,7 +1037,6 @@ static VOID PhpAdvancedPageLoad(
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ICON_SINGLE_CLICK, L"Single-click tray icons", NULL);
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ICON_TOGGLE_VISIBILITY, L"Icon click toggles visibility", NULL);
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_PROPAGATE_CPU_USAGE, L"Include usage of collapsed processes", NULL);
-    PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_SHOW_HEX_ID, L"Show hexadecimal IDs (experimental)", NULL);
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_SHOW_ADVANCED_OPTIONS, L"Show advanced options (experimental)", NULL);
 
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_SINGLE_INSTANCE, L"AllowOnlyOneInstance");
@@ -1060,7 +1058,6 @@ static VOID PhpAdvancedPageLoad(
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ICON_SINGLE_CLICK, L"IconSingleClick");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ICON_TOGGLE_VISIBILITY, L"IconTogglesVisibility");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_PROPAGATE_CPU_USAGE, L"PropagateCpuUsage");
-    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_SHOW_HEX_ID, L"ShowHexId");
 
     if (CurrentUserRunPresent)
         ListView_SetCheckState(listViewHandle, PHP_OPTIONS_INDEX_START_ATLOGON, TRUE);
@@ -1152,7 +1149,6 @@ static VOID PhpAdvancedPageSave(
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ICON_SINGLE_CLICK, L"IconSingleClick");
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ICON_TOGGLE_VISIBILITY, L"IconTogglesVisibility");
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_PROPAGATE_CPU_USAGE, L"PropagateCpuUsage");
-    SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_SHOW_HEX_ID, L"ShowHexId");
 
     WriteCurrentUserRun(
         ListView_GetCheckState(listViewHandle, PHP_OPTIONS_INDEX_START_ATLOGON) == BST_CHECKED,

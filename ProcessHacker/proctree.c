@@ -215,6 +215,7 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_PROTECTION, FALSE, L"Protection", 105, PH_ALIGN_LEFT, ULONG_MAX, 0, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_DESKTOP, FALSE, L"Desktop", 80, PH_ALIGN_LEFT, ULONG_MAX, 0, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_CRITICAL, FALSE, L"Critical", 80, PH_ALIGN_LEFT, ULONG_MAX, 0, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHPRTLC_PIDHEX, FALSE, L"PID (Hex)", 50, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -1968,6 +1969,12 @@ BEGIN_SORT_FUNCTION(Critical)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(HexPid)
+{
+    sortResult = intptrcmp((LONG_PTR)processItem1->ProcessId, (LONG_PTR)processItem2->ProcessId);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpProcessTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -2092,6 +2099,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         SORT_FUNCTION(Protection),
                         SORT_FUNCTION(DesktopInfo),
                         SORT_FUNCTION(Critical),
+                        SORT_FUNCTION(HexPid),
                     };
                     int (__cdecl *sortFunction)(const void *, const void *);
 
@@ -2926,6 +2934,15 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 
                     if (node->BreakOnTerminationEnabled)
                         PhInitializeStringRef(&getCellText->Text, L"Critical");
+                }
+                break;
+            case PHPRTLC_PIDHEX:
+                {
+                    if (PH_IS_REAL_PROCESS_ID(processItem->ProcessId))
+                    {
+                        PhPrintUInt32Hex(node->PidHexText, HandleToUlong(processItem->ProcessId));
+                        PhInitializeStringRefLongHint(&getCellText->Text, node->PidHexText);
+                    }
                 }
                 break;
             default:
