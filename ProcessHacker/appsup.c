@@ -1314,15 +1314,9 @@ BOOLEAN PhCreateProcessIgnoreIfeoDebugger(
     )
 {
     BOOLEAN result;
-    BOOL (NTAPI *debugSetProcessKillOnExit)(BOOL);
-    BOOL (NTAPI *debugActiveProcessStop)(ULONG);
     BOOLEAN originalValue;
     STARTUPINFO startupInfo;
     PROCESS_INFORMATION processInfo;
-
-    if (!(debugSetProcessKillOnExit = PhGetDllProcedureAddress(L"kernel32.dll", "DebugSetProcessKillOnExit", 0)) ||
-        !(debugActiveProcessStop = PhGetDllProcedureAddress(L"kernel32.dll", "DebugActiveProcessStop", 0)))
-        return FALSE;
 
     result = FALSE;
 
@@ -1339,9 +1333,31 @@ BOOLEAN PhCreateProcessIgnoreIfeoDebugger(
     // allows us to skip the Debugger IFEO value.
     if (CreateProcess(FileName, NULL, NULL, NULL, FALSE, DEBUG_PROCESS | DEBUG_ONLY_THIS_PROCESS, NULL, NULL, &startupInfo, &processInfo))
     {
-        // Stop debugging the process now.
-        debugSetProcessKillOnExit(FALSE);
-        debugActiveProcessStop(processInfo.dwProcessId);
+        HANDLE debugObjectHandle;
+
+        if (NT_SUCCESS(PhGetProcessDebugObject(
+            processInfo.hProcess,
+            &debugObjectHandle
+            )))
+        {
+            ULONG killProcessOnExit;
+
+            // Disable kill-on-close.
+            killProcessOnExit = 0;
+            NtSetInformationDebugObject(
+                debugObjectHandle,
+                DebugObjectKillProcessOnExitInformation,
+                &killProcessOnExit,
+                sizeof(ULONG),
+                NULL
+                );
+
+            // Stop debugging the process now.
+            NtRemoveProcessDebug(processInfo.hProcess, debugObjectHandle);
+
+            NtClose(debugObjectHandle);
+        }
+
         result = TRUE;
     }
 
@@ -2126,3 +2142,4 @@ HBITMAP PhGetShieldBitmap(
 
     return shieldBitmap;
 }
+
