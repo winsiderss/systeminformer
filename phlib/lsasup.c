@@ -593,12 +593,12 @@ PPH_STRING PhGetCapabilitySidName(
 
         if (RtlEqualSid(entry->CapabilitySid, CapabilitySid))
         {
-            return entry->Name;
+            return PhReferenceObject(entry->Name);
         }
 
         if (RtlEqualSid(entry->CapabilityGroupSid, CapabilitySid))
         {
-            return entry->Name;
+            return PhReferenceObject(entry->Name);
         }
     }
 
