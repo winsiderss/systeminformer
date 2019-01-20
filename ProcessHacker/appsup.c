@@ -1100,7 +1100,6 @@ VOID PhWritePhTextHeader(
     PPH_STRING version;
     LARGE_INTEGER time;
     SYSTEMTIME systemTime;
-    PPH_STRING dateString;
     PPH_STRING timeString;
 
     PhWriteStringAsUtf8FileStream2(FileStream, L"Process Hacker ");
@@ -1125,10 +1124,8 @@ VOID PhWritePhTextHeader(
     PhQuerySystemTime(&time);
     PhLargeIntegerToLocalSystemTime(&systemTime, &time);
 
-    dateString = PhFormatDate(&systemTime, NULL);
-    timeString = PhFormatTime(&systemTime, NULL);
-    PhWriteStringFormatAsUtf8FileStream(FileStream, L"\r\n%s %s\r\n\r\n", dateString->Buffer, timeString->Buffer);
-    PhDereferenceObject(dateString);
+    timeString = PhFormatDateTime(&systemTime);
+    PhWriteStringFormatAsUtf8FileStream(FileStream, L"\r\n%s\r\n\r\n", timeString->Buffer);
     PhDereferenceObject(timeString);
 }
 
