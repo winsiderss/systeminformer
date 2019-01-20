@@ -391,7 +391,7 @@ BOOLEAN PhGetMappedWslImageSymbols(
 
         section = IMAGE_ELF64_SECTION_BY_INDEX(sectionHeader, i);
 
-        // NOTE: The below code needs some improvements for SHT_DYNSYM -dmex
+        // NOTE: The below code needs some improvements for SHT_SYMTAB -dmex
         if (section->sh_type != SHT_SYMTAB && section->sh_type != SHT_DYNSYM)
             continue;
 

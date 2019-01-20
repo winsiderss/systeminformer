@@ -2956,7 +2956,7 @@ PhNextEnumHashtable(
         entry = (PPH_HASHTABLE_ENTRY)Context->Current;
         Context->Current += Context->Step;
 
-        if (entry->HashCode != -1)
+        if (entry->HashCode != ULONG_MAX)
             return &entry->Body;
     }
 
