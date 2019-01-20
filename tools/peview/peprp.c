@@ -218,6 +218,16 @@ VOID PvPeProperties(
             PvAddPropPage(propContext, newPage);
         }
 
+        // Processes page
+        {
+            newPage = PvCreatePropPageContext(
+                MAKEINTRESOURCE(IDD_PIDS),
+                PvpPeProcessesDlgProc,
+                NULL
+                );
+            PvAddPropPage(propContext, newPage);
+        }
+
         // Symbols page
         if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_DEBUG, &entry)) && entry->VirtualAddress)
         {
