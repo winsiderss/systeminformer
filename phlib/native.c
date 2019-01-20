@@ -2693,10 +2693,18 @@ NTSTATUS PhGetTransactionManagerLogFileName(
     if (!NT_SUCCESS(status))
         return status;
 
-    *LogFileName = PhCreateStringEx(
-        logPathInfo->LogPath,
-        logPathInfo->LogPathLength
-        );
+    if (logPathInfo->LogPathLength == 0)
+    {
+        *LogFileName = PhReferenceEmptyString();
+    }
+    else
+    {
+        *LogFileName = PhCreateStringEx(
+            logPathInfo->LogPath,
+            logPathInfo->LogPathLength
+            );
+    }
+
     PhFree(logPathInfo);
 
     return status;
@@ -2896,10 +2904,17 @@ NTSTATUS PhGetResourceManagerBasicInformation(
 
     if (Description)
     {
-        *Description = PhCreateStringEx(
-            basicInfo->Description,
-            basicInfo->DescriptionLength
-            );
+        if (basicInfo->DescriptionLength == 0)
+        {
+            *Description = PhReferenceEmptyString();
+        }
+        else
+        {
+            *Description = PhCreateStringEx(
+                basicInfo->Description,
+                basicInfo->DescriptionLength
+                );
+        }
     }
 
     PhFree(basicInfo);

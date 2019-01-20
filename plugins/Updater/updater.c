@@ -135,20 +135,25 @@ BOOLEAN LastUpdateCheckExpired(
     VOID
     )
 {
-    ULONG64 lastUpdateTimeTicks = 0;
+    ULONG64 lastUpdateTimeTicks;
     LARGE_INTEGER currentUpdateTimeTicks;
     PPH_STRING lastUpdateTimeString;
 
     PhQuerySystemTime(&currentUpdateTimeTicks);
 
     lastUpdateTimeString = PhGetStringSetting(SETTING_NAME_LAST_CHECK);
-    PhStringToInteger64(&lastUpdateTimeString->sr, 0, &lastUpdateTimeTicks);
+
+    if (PhIsNullOrEmptyString(lastUpdateTimeString))
+        return TRUE;
+
+    if (!PhStringToInteger64(&lastUpdateTimeString->sr, 0, &lastUpdateTimeTicks))
+        return TRUE;
 
     if (currentUpdateTimeTicks.QuadPart - lastUpdateTimeTicks >= 7 * PH_TICKS_PER_DAY)
     {
         PPH_STRING currentUpdateTimeString;
         
-        currentUpdateTimeString = PhFormatUInt64(currentUpdateTimeTicks.QuadPart, FALSE);
+        currentUpdateTimeString = PhIntegerToString64(currentUpdateTimeTicks.QuadPart, 0, FALSE);
         PhSetStringSetting2(SETTING_NAME_LAST_CHECK, &currentUpdateTimeString->sr);
 
         PhDereferenceObject(currentUpdateTimeString);
