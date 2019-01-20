@@ -545,7 +545,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
 
     PhDereferenceObject(ntdllFileName);
 
-    if (NT_SUCCESS(status) && ldrInitBlock.Size)
+    if (NT_SUCCESS(status) && ldrInitBlock.Size != 0)
     {
         PVOID cfgBitmapAddress = NULL;
         PVOID cfgBitmapWow64Address = NULL;
