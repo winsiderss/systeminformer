@@ -796,8 +796,7 @@ PPH_EMENU_ITEM PhPluginCreateEMenuItem(
     pluginMenuItem->Id = Id;
     pluginMenuItem->Context = Context;
 
-    item = PhCreateEMenuItem(Flags, ID_PLUGIN_MENU_ITEM, Text, NULL, NULL);
-    item->Context = pluginMenuItem;
+    item = PhCreateEMenuItem(Flags, ID_PLUGIN_MENU_ITEM, Text, NULL, pluginMenuItem);
     item->DeleteFunction = PhpPluginEMenuItemDeleteFunction;
 
     return item;
