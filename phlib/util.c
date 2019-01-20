@@ -6128,3 +6128,74 @@ PPH_STRING PhGetExportNameFromOrdinal(
 
     return NULL;
 }
+
+PPH_STRING PhFileReadAllText(
+    _In_ PWSTR FileName
+    )
+{
+    PPH_STRING string = NULL;
+    HANDLE fileHandle;
+    IO_STATUS_BLOCK isb;
+
+    if (NT_SUCCESS(PhCreateFileWin32(
+        &fileHandle,
+        FileName,
+        FILE_GENERIC_READ,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        )))
+    {
+        PSTR data;
+        ULONG allocatedLength;
+        ULONG dataLength;
+        ULONG returnLength;
+        BYTE buffer[PAGE_SIZE];
+
+        allocatedLength = sizeof(buffer);
+        data = PhAllocate(allocatedLength);
+        dataLength = 0;
+
+        while (NT_SUCCESS(NtReadFile(
+            fileHandle,
+            NULL,
+            NULL,
+            NULL,
+            &isb,
+            buffer,
+            PAGE_SIZE,
+            NULL,
+            NULL
+            )))
+        {
+            returnLength = (ULONG)isb.Information;
+
+            if (returnLength == 0)
+                break;
+
+            if (allocatedLength < dataLength + returnLength)
+            {
+                allocatedLength *= 2;
+                data = PhReAllocate(data, allocatedLength);
+            }
+
+            memcpy(data + dataLength, buffer, returnLength);
+
+            dataLength += returnLength;
+        }
+
+        if (allocatedLength < dataLength + sizeof(ANSI_NULL))
+        {
+            allocatedLength++;
+            data = PhReAllocate(data, allocatedLength);
+        }
+
+        data[dataLength] = ANSI_NULL;
+
+        string = PhConvertUtf8ToUtf16Ex(data, dataLength);
+        PhFree(data);
+    }
+
+    return string;
+}

@@ -1264,6 +1264,13 @@ PhGetExportNameFromOrdinal(
     _In_opt_ USHORT ProcedureNumber
     );
 
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhFileReadAllText(
+    _In_ PWSTR FileName
+    );
+
 #ifdef __cplusplus
 }
 #endif
