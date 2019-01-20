@@ -1965,6 +1965,41 @@ INT_PTR CALLBACK PhpTokenCapabilitiesPageProc(
                         name = PhGetCapabilitySidName(tokenPageContext->Capabilities->Groups[i].Sid);
 
                         if (!name)
+                        {
+                            ULONG ridCount;
+                            ULONG subAuthority;
+
+                            ridCount = *(PULONG)RtlSubAuthorityCountSid(tokenPageContext->Capabilities->Groups[i].Sid);
+                            subAuthority = *(PULONG)RtlSubAuthoritySid(tokenPageContext->Capabilities->Groups[i].Sid, 0);
+
+                            //memcmp((BYTE[])SECURITY_APP_PACKAGE_AUTHORITY, RtlIdentifierAuthoritySid(tokenPageContext->Capabilities->Groups[i].Sid), sizeof((BYTE[])SECURITY_APP_PACKAGE_AUTHORITY))
+                            if (
+                                ridCount == SECURITY_CAPABILITY_RID_COUNT &&
+                                subAuthority == SECURITY_CAPABILITY_BASE_RID
+                                )
+                            {
+                                GUID capabilityGuid;
+                                ULONG firstPart;
+                                ULONG secondPart;
+                                ULONG thirdPart;
+                                ULONG lastPart;
+
+                                firstPart = *(PULONG)RtlSubAuthoritySid(tokenPageContext->Capabilities->Groups[i].Sid, 1);
+                                secondPart = *(PULONG)RtlSubAuthoritySid(tokenPageContext->Capabilities->Groups[i].Sid, 2);
+                                thirdPart = *(PULONG)RtlSubAuthoritySid(tokenPageContext->Capabilities->Groups[i].Sid, 3);
+                                lastPart = *(PULONG)RtlSubAuthoritySid(tokenPageContext->Capabilities->Groups[i].Sid, 4);
+
+                                capabilityGuid.Data1 = firstPart;
+                                capabilityGuid.Data2 = LOWORD(secondPart);
+                                capabilityGuid.Data3 = HIWORD(secondPart);
+                                memcpy(capabilityGuid.Data4, &thirdPart, sizeof(ULONG));
+                                memcpy(capabilityGuid.Data4 + sizeof(ULONG), &lastPart, sizeof(ULONG));
+
+                                name = PhFormatGuid(&capabilityGuid);
+                            }
+                        }
+
+                        if (!name)
                             name = PhGetSidFullName(tokenPageContext->Capabilities->Groups[i].Sid, TRUE, NULL);
 
                         if (!name)
