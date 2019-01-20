@@ -118,7 +118,7 @@ struct json_object* json_object_from_file(wchar_t * filename)
     status = PhCreateFileWin32(
         &fileHandle,
         filename,
-        FILE_GENERIC_WRITE,
+        FILE_GENERIC_READ,
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ,
         FILE_OPEN,
@@ -163,7 +163,7 @@ struct json_object* json_object_from_file(wchar_t * filename)
             data = (PSTR)PhReAllocate(data, allocatedLength);
         }
 
-        data[dataLength] = 0;
+        data[dataLength] = ANSI_NULL;
 
         obj = json_tokener_parse(data);
 

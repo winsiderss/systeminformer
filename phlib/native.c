@@ -646,6 +646,12 @@ NTSTATUS PhGetProcessPebString(
             )))
             return status;
 
+        if (unicodeString.Length == 0)
+        {
+            *String = PhReferenceEmptyString();
+            return status;
+        }
+
         string = PhCreateStringEx(NULL, unicodeString.Length);
 
         // Read the string contents.
@@ -687,6 +693,12 @@ NTSTATUS PhGetProcessPebString(
             NULL
             )))
             return status;
+
+        if (unicodeString32.Length == 0)
+        {
+            *String = PhReferenceEmptyString();
+            return status;
+        }
 
         string = PhCreateStringEx(NULL, unicodeString32.Length);
 
@@ -3427,8 +3439,8 @@ BOOLEAN NTAPI PhpEnumProcessModulesCallback(
 
         if (indexOfLastBackslash != -1)
         {
-            Entry->BaseDllName.Buffer = PTR_ADD_OFFSET(Entry->FullDllName.Buffer, PTR_ADD_OFFSET(indexOfLastBackslash * sizeof(WCHAR), sizeof(WCHAR)));
-            Entry->BaseDllName.Length = Entry->FullDllName.Length - (USHORT)indexOfLastBackslash * sizeof(WCHAR) - sizeof(WCHAR);
+            Entry->BaseDllName.Buffer = PTR_ADD_OFFSET(Entry->FullDllName.Buffer, PTR_ADD_OFFSET(indexOfLastBackslash * sizeof(WCHAR), sizeof(UNICODE_NULL)));
+            Entry->BaseDllName.Length = Entry->FullDllName.Length - (USHORT)indexOfLastBackslash * sizeof(WCHAR) - sizeof(UNICODE_NULL);
             Entry->BaseDllName.MaximumLength = Entry->BaseDllName.Length;
         }
         else
