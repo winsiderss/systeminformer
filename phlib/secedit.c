@@ -567,7 +567,10 @@ BOOL STDMETHODCALLTYPE PhSecurityInformation3_GetFullResourceName(
 {
     PhSecurityInformation3 *this = (PhSecurityInformation3 *)This;
 
-    *ppszResourceName = PhGetString(this->Context->ObjectName);
+    if (PhIsNullOrEmptyString(this->Context->ObjectName))
+        *ppszResourceName = PhGetString(this->Context->ObjectType);
+    else
+        *ppszResourceName = PhGetString(this->Context->ObjectName);
 
     return TRUE;
 }
