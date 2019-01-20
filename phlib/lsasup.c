@@ -3,6 +3,7 @@
  *   LSA support functions
  *
  * Copyright (C) 2010-2011 wj32
+ * Copyright (C) 2019 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -490,4 +491,116 @@ PPH_STRING PhGetTokenUserString(
     }
 
     return tokenUserString;
+}
+
+typedef struct _PH_CAPABILITY_ENTRY
+{
+    PPH_STRING Name;
+    PSID CapabilityGroupSid;
+    PSID CapabilitySid;
+} PH_CAPABILITY_ENTRY, *PPH_CAPABILITY_ENTRY;
+
+PH_ARRAY PhpSidCapArrayList;
+
+VOID PhInitializeCapabilitySidCache(
+    VOID
+    )
+{
+    NTSTATUS (NTAPI *RtlDeriveCapabilitySidsFromName_I)(
+        _Inout_ PUNICODE_STRING UnicodeString,
+        _Out_ PSID CapabilityGroupSid,
+        _Out_ PSID CapabilitySid
+        );
+    PPH_STRING applicationDirectory;
+    PPH_STRING capabilityListFileName;
+    PPH_STRING capabilityListString;
+    PH_STRINGREF namePart;
+    PH_STRINGREF remainingPart;
+
+    if (!(RtlDeriveCapabilitySidsFromName_I = PhGetDllProcedureAddress(L"ntdll.dll", "RtlDeriveCapabilitySidsFromName", 0)))
+        return;
+
+    if (applicationDirectory = PhGetApplicationDirectory())
+    {
+        capabilityListFileName = PhConcatStringRefZ(&applicationDirectory->sr, L"capslist.txt");
+        PhDereferenceObject(applicationDirectory);
+
+        capabilityListString = PhFileReadAllText(capabilityListFileName->Buffer);
+        PhDereferenceObject(capabilityListFileName);      
+    }
+
+    if (PhIsNullOrEmptyString(capabilityListString))
+        return;
+
+    PhInitializeArray(&PhpSidCapArrayList, sizeof(PH_CAPABILITY_ENTRY), 800);
+    remainingPart = capabilityListString->sr;
+
+    while (remainingPart.Length != 0)
+    {
+        PhSplitStringRefAtChar(&remainingPart, '\n', &namePart, &remainingPart);
+
+        if (namePart.Length != 0)
+        {
+            BYTE capabilityGroupSidBuffer[SECURITY_MAX_SID_SIZE];
+            BYTE capabilitySidBuffer[SECURITY_MAX_SID_SIZE];
+            PSID capabilityGroupSid = (PSID)capabilityGroupSidBuffer;
+            PSID capabilitySid = (PSID)capabilitySidBuffer;
+            UNICODE_STRING capabilityNameUs;
+
+            if (!PhStringRefToUnicodeString(&namePart, &capabilityNameUs))
+                continue;
+
+            if (NT_SUCCESS(RtlDeriveCapabilitySidsFromName_I(
+                &capabilityNameUs,
+                capabilityGroupSid,
+                capabilitySid
+                )))
+            {
+                PH_CAPABILITY_ENTRY entry;
+
+                entry.Name = PhCreateStringFromUnicodeString(&capabilityNameUs);
+                entry.CapabilityGroupSid = PhAllocateCopy(capabilityGroupSid, RtlLengthSid(capabilityGroupSid));
+                entry.CapabilitySid = PhAllocateCopy(capabilitySid, RtlLengthSid(capabilitySid));
+
+                PhAddItemArray(&PhpSidCapArrayList, &entry);
+            }
+        }
+    }
+
+    PhDereferenceObject(capabilityListString);
+}
+
+PPH_STRING PhGetCapabilitySidName(
+    _In_ PSID CapabilitySid
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    PPH_CAPABILITY_ENTRY entry;
+    ULONG i;
+
+    if (WindowsVersion < WINDOWS_8)
+        return NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PhInitializeCapabilitySidCache();
+        PhEndInitOnce(&initOnce);
+    }
+
+    for (i = 0; i < PhpSidCapArrayList.Count; i++)
+    {
+        entry = PhItemArray(&PhpSidCapArrayList, i);
+
+        if (RtlEqualSid(entry->CapabilitySid, CapabilitySid))
+        {
+            return entry->Name;
+        }
+
+        if (RtlEqualSid(entry->CapabilityGroupSid, CapabilitySid))
+        {
+            return entry->Name;
+        }
+    }
+
+    return NULL;
 }

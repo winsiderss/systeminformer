@@ -657,7 +657,6 @@ HRESULT STDMETHODCALLTYPE PhSecurityDataObject_GetData(
         SID_NAME_USE sidNameUse;
 
         memset(&sidInfo, 0, sizeof(SID_INFO));
-
         sidInfo.pSid = this->Sids[i];
 
         if (sidString = PhGetSidFullName(sidInfo.pSid, FALSE, &sidNameUse))
@@ -689,6 +688,12 @@ HRESULT STDMETHODCALLTYPE PhSecurityDataObject_GetData(
         else if (sidString = PhGetAppContainerName(sidInfo.pSid))
         {
             PhMoveReference(&sidString, PhFormatString(L"%s (APP_CONTAINER)", PhGetString(sidString)));
+            sidInfo.pwzCommonName = PhGetString(sidString);
+            PhAddItemList(this->NameCache, sidString);
+        }
+        else if (sidString = PhGetCapabilitySidName(sidInfo.pSid))
+        {
+            PhMoveReference(&sidString, PhFormatString(L"%s (APP_CAPABILITY)", PhGetString(sidString)));
             sidInfo.pwzCommonName = PhGetString(sidString);
             PhAddItemList(this->NameCache, sidString);
         }
