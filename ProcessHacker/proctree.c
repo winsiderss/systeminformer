@@ -602,6 +602,8 @@ VOID PhpRemoveProcessNode(
     PhClearReference(&ProcessNode->FileSizeText);
     PhClearReference(&ProcessNode->SubprocessCountText);
     PhClearReference(&ProcessNode->ProtectionText);
+    PhClearReference(&ProcessNode->DesktopInfoText);
+    PhClearReference(&ProcessNode->UserName);
 
     PhDeleteGraphBuffers(&ProcessNode->CpuGraphBuffers);
     PhDeleteGraphBuffers(&ProcessNode->PrivateGraphBuffers);
@@ -3530,7 +3532,10 @@ VOID PhpPopulateTableWithProcessNodes(
 
         if (i != 0)
         {
-            text = PhaCreateStringEx(getCellText.Text.Buffer, getCellText.Text.Length);
+            if (getCellText.Text.Length == 0)
+                text = PhReferenceEmptyString();
+            else
+                text = PhaCreateStringEx(getCellText.Text.Buffer, getCellText.Text.Length);
         }
         else
         {
