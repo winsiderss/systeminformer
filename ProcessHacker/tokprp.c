@@ -76,6 +76,7 @@ typedef struct _ATTRIBUTE_NODE
 
 typedef struct _ATTRIBUTE_TREE_CONTEXT
 {
+    HWND WindowHandle;
     PPH_LIST RootList;
     PPH_LIST NodeList;
 } ATTRIBUTE_TREE_CONTEXT, *PATTRIBUTE_TREE_CONTEXT;
@@ -403,13 +404,13 @@ VOID PhpTokenPageFreeListViewEntries(
     _In_ PTOKEN_PAGE_CONTEXT TokenPageContext
     )
 {
-    ULONG index = -1;
+    ULONG index = ULONG_MAX;
 
     while ((index = PhFindListViewItemByFlags(
         TokenPageContext->ListViewHandle,
         index,
         LVNI_ALL
-        )) != -1)
+        )) != ULONG_MAX)
     {
         PPHP_TOKEN_PAGE_LISTVIEW_ITEM entry;
 
@@ -1260,14 +1261,14 @@ INT_PTR CALLBACK PhpTokenPageProc(
                     GetWindowRect(GetDlgItem(hwndDlg, IDC_INTEGRITY), &rect);
 
                     menu = PhCreateEMenu();
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatorySecureProcessRID, L"Protected", NULL, NULL), -1);
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatorySystemRID, L"System", NULL, NULL), -1);
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatoryHighRID, L"High", NULL, NULL), -1);
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatoryMediumRID, L"Medium", NULL, NULL), -1);
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatoryLowRID, L"Low", NULL, NULL), -1);
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatoryUntrustedRID, L"Untrusted", NULL, NULL), -1);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatorySecureProcessRID, L"Protected", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatorySystemRID, L"System", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatoryHighRID, L"High", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatoryMediumRID, L"Medium", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatoryLowRID, L"Low", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatoryUntrustedRID, L"Untrusted", NULL, NULL), ULONG_MAX);
 
-                    integrityLevelRID = -1;
+                    integrityLevelRID = ULONG_MAX;
 
                     // Put a radio check on the menu item that corresponds with the current integrity level.
                     // Also disable menu items which correspond to higher integrity levels since
@@ -1643,7 +1644,7 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
             PPH_STRING tokenUserSid = NULL;
             PPH_STRING tokenOwnerName = NULL;
             PPH_STRING tokenPrimaryGroupName = NULL;
-            ULONG tokenSessionId = -1;
+            ULONG tokenSessionId = ULONG_MAX;
             PWSTR tokenElevated = L"N/A";
             BOOLEAN hasLinkedToken = FALSE;
             PWSTR tokenVirtualization = L"N/A";
@@ -1749,7 +1750,7 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
             PhSetDialogItemText(hwndDlg, IDC_OWNER, PhGetStringOrDefault(tokenOwnerName, L"Unknown"));
             PhSetDialogItemText(hwndDlg, IDC_PRIMARYGROUP, PhGetStringOrDefault(tokenPrimaryGroupName, L"Unknown"));
 
-            if (tokenSessionId != -1)
+            if (tokenSessionId != ULONG_MAX)
                 PhSetDialogItemValue(hwndDlg, IDC_SESSIONID, tokenSessionId, FALSE);
             else
                 PhSetDialogItemText(hwndDlg, IDC_SESSIONID, L"Unknown");
@@ -1885,8 +1886,8 @@ INT_PTR CALLBACK PhpTokenAdvancedPageProc(
 
                     // DynamicCharged contains the number of bytes allocated.
                     // DynamicAvailable contains the number of bytes free.
-                    memoryUsed = PhaFormatSize(statistics.DynamicCharged - statistics.DynamicAvailable, -1);
-                    memoryAvailable = PhaFormatSize(statistics.DynamicCharged, -1);
+                    memoryUsed = PhaFormatSize(statistics.DynamicCharged - statistics.DynamicAvailable, ULONG_MAX);
+                    memoryAvailable = PhaFormatSize(statistics.DynamicCharged, ULONG_MAX);
                 }
 
                 NtClose(tokenHandle);
@@ -1974,16 +1975,9 @@ INT_PTR CALLBACK PhpTokenCapabilitiesPageProc(
                             lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, name->Buffer, &tokenPageContext->Capabilities->Groups[i]);
                             //attributesString = PhGetGroupAttributesString(tokenPageContext->Capabilities->Groups[i].Attributes, FALSE);
                             //PhSetListViewSubItem(lvHandle, lvItemIndex, 1, attributesString->Buffer);
-                            //
                             //PhDereferenceObject(attributesString);
                             PhDereferenceObject(name);
                         }
-                    }
-
-                    if (ListView_GetItemCount(lvHandle) != 0)
-                    {
-                        //ListView_SetColumnWidth(lvHandle, 0, LVSCW_AUTOSIZE);
-                        ExtendedListView_SetColumnWidth(lvHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
                     }
 
                     ExtendedListView_SortItems(lvHandle);
@@ -1991,6 +1985,8 @@ INT_PTR CALLBACK PhpTokenCapabilitiesPageProc(
 
                 NtClose(tokenHandle);
             }
+
+            ExtendedListView_SetColumnWidth(lvHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
 
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
@@ -2004,6 +2000,61 @@ INT_PTR CALLBACK PhpTokenCapabilitiesPageProc(
     case WM_NOTIFY:
         {
             PhHandleListViewNotifyBehaviors(lParam, lvHandle, PH_LIST_VIEW_DEFAULT_1_BEHAVIORS);
+        }
+        break;
+    case WM_CONTEXTMENU:
+        {
+            if ((HWND)wParam == lvHandle)
+            {
+                POINT point;
+                PPH_EMENU menu;
+                PPH_EMENU item;
+                PVOID *listviewItems;
+                ULONG numberOfItems;
+
+                point.x = GET_X_LPARAM(lParam);
+                point.y = GET_Y_LPARAM(lParam);
+
+                if (point.x == -1 && point.y == -1)
+                    PhGetListViewContextMenuPoint((HWND)wParam, &point);
+
+                PhGetSelectedListViewItemParams(lvHandle, &listviewItems, &numberOfItems);
+
+                if (numberOfItems != 0)
+                {
+                    menu = PhCreateEMenu();
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
+                    PhInsertCopyListViewEMenuItem(menu, IDC_COPY, lvHandle);
+
+                    item = PhShowEMenu(
+                        menu,
+                        hwndDlg,
+                        PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT,
+                        PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                        point.x,
+                        point.y
+                        );
+
+                    if (item && item->Id != ULONG_MAX)
+                    {
+                        if (!PhHandleCopyListViewEMenuItem(item))
+                        {
+                            switch (item->Id)
+                            {
+                            case IDC_COPY:
+                                {
+                                    PhCopyListView(lvHandle);
+                                }
+                                break;
+                            }
+                        }
+                    }
+
+                    PhDestroyEMenu(menu);
+                }
+
+                PhFree(listviewItems);
+            }
         }
         break;
     }
@@ -2086,6 +2137,18 @@ BOOLEAN NTAPI PhpAttributeTreeNewCallback(
             }
         }
         return TRUE;
+    case TreeNewContextMenu:
+        {
+            PPH_TREENEW_CONTEXT_MENU contextMenuEvent = Parameter1;
+
+            SendMessage(
+                context->WindowHandle,
+                WM_CONTEXTMENU,
+                0,
+                (LPARAM)contextMenuEvent
+                );
+        }
+        return TRUE;
     }
 
     return FALSE;
@@ -2126,20 +2189,46 @@ VOID PhpDestroyAttributeNode(
     PhFree(Node);
 }
 
+VOID PhpGetSelectedAttributeTreeNodes(
+    _Inout_ PATTRIBUTE_TREE_CONTEXT Context,
+    _Out_ PATTRIBUTE_NODE **AttributeNodes,
+    _Out_ PULONG NumberOfAttributeNodes
+    )
+{
+    PPH_LIST list;
+
+    list = PhCreateList(2);
+
+    for (ULONG i = 0; i < Context->NodeList->Count; i++)
+    {
+        PATTRIBUTE_NODE node = (PATTRIBUTE_NODE)Context->NodeList->Items[i];
+
+        if (node->Node.Selected)
+        {
+            PhAddItemList(list, node);
+        }
+    }
+
+    *AttributeNodes = PhAllocateCopy(list->Items, sizeof(PVOID) * list->Count);
+    *NumberOfAttributeNodes = list->Count;
+
+    PhDereferenceObject(list);
+}
+
 VOID PhpInitializeAttributeTreeContext(
     _Out_ PATTRIBUTE_TREE_CONTEXT Context,
+    _In_ HWND WindowHandle,
     _In_ HWND TreeNewHandle
     )
 {
-    PH_TREENEW_VIEW_PARTS parts;
-
+    Context->WindowHandle = WindowHandle;
     Context->NodeList = PhCreateList(10);
     Context->RootList = PhCreateList(10);
 
     PhSetControlTheme(TreeNewHandle, L"explorer");
     TreeNew_SetCallback(TreeNewHandle, PhpAttributeTreeNewCallback, Context);
-    TreeNew_GetViewParts(TreeNewHandle, &parts);
-    PhAddTreeNewColumnEx2(TreeNewHandle, 0, TRUE, L"Attributes", parts.ClientRect.right - parts.VScrollWidth, PH_ALIGN_LEFT, 0, 0, TN_COLUMN_FLAG_NODPISCALEONADD);
+    //TreeNew_GetViewParts(TreeNewHandle, &parts); // column width = (parts.ClientRect.right - parts.VScrollWidth) // TODO: VScrollWidth not set during INITDIALOG. (dmex)
+    PhAddTreeNewColumnEx2(TreeNewHandle, 0, TRUE, L"Attributes", 200, PH_ALIGN_LEFT, 0, 0, TN_COLUMN_FLAG_NODPISCALEONADD);
 }
 
 VOID PhpDeleteAttributeTreeContext(
@@ -2394,7 +2483,7 @@ INT_PTR CALLBACK PhpTokenClaimsPageProc(
             PATTRIBUTE_NODE userNode;
             PATTRIBUTE_NODE deviceNode;
 
-            PhpInitializeAttributeTreeContext(&tokenPageContext->ClaimsTreeContext, tnHandle);
+            PhpInitializeAttributeTreeContext(&tokenPageContext->ClaimsTreeContext, hwndDlg, tnHandle);
 
             TreeNew_SetRedraw(tnHandle, FALSE);
 
@@ -2417,6 +2506,61 @@ INT_PTR CALLBACK PhpTokenClaimsPageProc(
     case WM_DESTROY:
         {
             PhpDeleteAttributeTreeContext(&tokenPageContext->ClaimsTreeContext);
+        }
+        break;
+    case WM_SHOWWINDOW:
+        {
+            TreeNew_AutoSizeColumn(tnHandle, 0, TN_AUTOSIZE_REMAINING_SPACE);
+        }
+        break;
+    case WM_CONTEXTMENU:
+        {
+            PPH_TREENEW_CONTEXT_MENU contextMenuEvent = (PPH_TREENEW_CONTEXT_MENU)lParam;
+            PPH_EMENU menu;
+            PPH_EMENU_ITEM selectedItem;
+            PATTRIBUTE_NODE *attributeObjectNodes = NULL;
+            ULONG numberOfAttributeObjectNodes = 0;
+
+            PhpGetSelectedAttributeTreeNodes(&tokenPageContext->ClaimsTreeContext, &attributeObjectNodes, &numberOfAttributeObjectNodes);
+
+            if (numberOfAttributeObjectNodes != 0)
+            {
+                menu = PhCreateEMenu();
+                PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"Copy", NULL, NULL), ULONG_MAX);
+                PhInsertCopyCellEMenuItem(menu, IDC_COPY, tnHandle, contextMenuEvent->Column);
+
+                selectedItem = PhShowEMenu(
+                    menu,
+                    hwndDlg,
+                    PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT,
+                    PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                    contextMenuEvent->Location.x,
+                    contextMenuEvent->Location.y
+                    );
+
+                if (selectedItem && selectedItem->Id != ULONG_MAX)
+                {
+                    if (!PhHandleCopyCellEMenuItem(selectedItem))
+                    {
+                        switch (selectedItem->Id)
+                        {
+                        case IDC_COPY:
+                            {
+                                PPH_STRING text;
+
+                                text = PhGetTreeNewText(tnHandle, 0);
+                                PhSetClipboardString(tnHandle, &text->sr);
+                                PhDereferenceObject(text);
+                            }
+                            break;
+                        }
+                    }
+                }
+
+                PhDestroyEMenu(menu);
+            }
+
+            PhFree(attributeObjectNodes);
         }
         break;
     }
@@ -2502,7 +2646,7 @@ INT_PTR CALLBACK PhpTokenAttributesPageProc(
     {
     case WM_INITDIALOG:
         {
-            PhpInitializeAttributeTreeContext(&tokenPageContext->AuthzTreeContext, tnHandle);
+            PhpInitializeAttributeTreeContext(&tokenPageContext->AuthzTreeContext, hwndDlg, tnHandle);
 
             TreeNew_SetRedraw(tnHandle, FALSE);
 
@@ -2520,6 +2664,61 @@ INT_PTR CALLBACK PhpTokenAttributesPageProc(
     case WM_DESTROY:
         {
             PhpDeleteAttributeTreeContext(&tokenPageContext->AuthzTreeContext);
+        }
+        break;
+    case WM_SHOWWINDOW:
+        {
+            TreeNew_AutoSizeColumn(tnHandle, 0, TN_AUTOSIZE_REMAINING_SPACE);
+        }
+        break;
+    case WM_CONTEXTMENU:
+        {
+            PPH_TREENEW_CONTEXT_MENU contextMenuEvent = (PPH_TREENEW_CONTEXT_MENU)lParam;
+            PPH_EMENU menu;
+            PPH_EMENU_ITEM selectedItem;
+            PATTRIBUTE_NODE *attributeObjectNodes = NULL;
+            ULONG numberOfAttributeObjectNodes = 0;
+
+            PhpGetSelectedAttributeTreeNodes(&tokenPageContext->AuthzTreeContext, &attributeObjectNodes, &numberOfAttributeObjectNodes);
+
+            if (numberOfAttributeObjectNodes != 0)
+            {
+                menu = PhCreateEMenu();
+                PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"Copy", NULL, NULL), ULONG_MAX);
+                PhInsertCopyCellEMenuItem(menu, IDC_COPY, tnHandle, contextMenuEvent->Column);
+
+                selectedItem = PhShowEMenu(
+                    menu,
+                    hwndDlg,
+                    PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT,
+                    PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                    contextMenuEvent->Location.x,
+                    contextMenuEvent->Location.y
+                    );
+
+                if (selectedItem && selectedItem->Id != ULONG_MAX)
+                {
+                    if (!PhHandleCopyCellEMenuItem(selectedItem))
+                    {
+                        switch (selectedItem->Id)
+                        {
+                        case IDC_COPY:
+                            {
+                                PPH_STRING text;
+
+                                text = PhGetTreeNewText(tnHandle, 0);
+                                PhSetClipboardString(tnHandle, &text->sr);
+                                PhDereferenceObject(text);
+                            }
+                            break;
+                        }
+                    }
+                }
+
+                PhDestroyEMenu(menu);
+            }
+
+            PhFree(attributeObjectNodes);
         }
         break;
     }
