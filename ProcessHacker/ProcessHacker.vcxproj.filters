@@ -576,9 +576,6 @@
     <ResourceCompile Include="ProcessHacker.rc">
       <Filter>Resources</Filter>
     </ResourceCompile>
-    <ResourceCompile Include="version.rc">
-      <Filter>Resources</Filter>
-    </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
     <Manifest Include="ProcessHacker.manifest">
