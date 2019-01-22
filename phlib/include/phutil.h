@@ -172,22 +172,6 @@ PhLargeIntegerToLocalSystemTime(
     FileTimeToSystemTime(&newFileTime, SystemTime);
 }
 
-PHLIBAPI
-VOID
-NTAPI
-PhReferenceObjects(
-    _In_reads_(NumberOfObjects) PVOID *Objects,
-    _In_ ULONG NumberOfObjects
-    );
-
-PHLIBAPI
-VOID
-NTAPI
-PhDereferenceObjects(
-    _In_reads_(NumberOfObjects) PVOID *Objects,
-    _In_ ULONG NumberOfObjects
-    );
-
 // NLS
 
 LCID PhGetSystemDefaultLCID(
