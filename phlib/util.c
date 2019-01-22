@@ -171,6 +171,7 @@ VOID PhCenterWindow(
 // NLS support
 // TODO: Move to seperate file. (dmex)
 
+// rev from GetSystemDefaultLCID
 LCID PhGetSystemDefaultLCID(
     VOID
     )
@@ -183,6 +184,7 @@ LCID PhGetSystemDefaultLCID(
     return MAKELCID(MAKELANGID(LANG_ENGLISH, SUBLANG_DEFAULT), SORT_DEFAULT);
 }
 
+// rev from GetUserDefaultLCID
 LCID PhGetUserDefaultLCID(
     VOID
     )
@@ -195,6 +197,7 @@ LCID PhGetUserDefaultLCID(
     return MAKELCID(MAKELANGID(LANG_ENGLISH, SUBLANG_DEFAULT), SORT_DEFAULT);
 }
 
+// rev from GetThreadLocale
 LCID PhGetCurrentThreadLCID(
     VOID
     )
@@ -209,6 +212,7 @@ LCID PhGetCurrentThreadLCID(
     return currentTeb->CurrentLocale;
 }
 
+// rev from GetSystemDefaultLangID
 LANGID PhGetSystemDefaultLangID(
     VOID
     )
@@ -216,6 +220,7 @@ LANGID PhGetSystemDefaultLangID(
     return LANGIDFROMLCID(PhGetSystemDefaultLCID());
 }
 
+// rev from GetUserDefaultLangID
 LANGID PhGetUserDefaultLangID(
     VOID
     )
@@ -223,6 +228,7 @@ LANGID PhGetUserDefaultLangID(
     return LANGIDFROMLCID(PhGetUserDefaultLCID());
 }
 
+// rev from GetUserDefaultUILanguage
 LANGID PhGetUserDefaultUILanguage(
     VOID
     )
@@ -235,6 +241,7 @@ LANGID PhGetUserDefaultUILanguage(
     return MAKELANGID(LANG_ENGLISH, SUBLANG_DEFAULT);
 }
 
+// rev from GetUserDefaultLocaleName
 PPH_STRING PhGetUserDefaultLocaleName(
     VOID
     )

@@ -551,6 +551,22 @@ PhFormatImageVersionInfo(
     );
 
 PHLIBAPI
+BOOLEAN
+NTAPI
+PhInitializeImageVersionInfoCached(
+    _Out_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
+    _In_ PPH_STRING FileName,
+    _In_ BOOLEAN IsSubsystemProcess
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhFlushImageVersionInfoCache(
+    VOID
+    );
+
+PHLIBAPI
 PPH_STRING
 NTAPI
 PhGetFullPath(
