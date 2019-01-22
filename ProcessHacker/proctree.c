@@ -745,7 +745,7 @@ static BOOLEAN PhpFormatInt32GroupDigits(
         if (String)
         {
             String->Buffer = Buffer;
-            String->Length = returnLength - sizeof(WCHAR);
+            String->Length = returnLength - sizeof(UNICODE_NULL);
         }
 
         return TRUE;
@@ -2173,7 +2173,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         if (PhFormatToBuffer(&format, 1, node->CpuUsageText, sizeof(node->CpuUsageText), &returnLength))
                         {
                             getCellText->Text.Buffer = node->CpuUsageText;
-                            getCellText->Text.Length = returnLength - sizeof(WCHAR); // minus null terminator
+                            getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL); // minus null terminator
                         }
                     }
                     else if (cpuUsage != 0 && PhCsShowCpuBelow001)
@@ -2187,7 +2187,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         if (PhFormatToBuffer(format, 2, node->CpuUsageText, sizeof(node->CpuUsageText), &returnLength))
                         {
                             getCellText->Text.Buffer = node->CpuUsageText;
-                            getCellText->Text.Length = returnLength - sizeof(WCHAR);
+                            getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
                         }
                     }
                 }
@@ -2216,7 +2216,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), node->IoTotalRateText, sizeof(node->IoTotalRateText), &returnLength))
                         {
                             getCellText->Text.Buffer = node->IoTotalRateText;
-                            getCellText->Text.Length = returnLength - sizeof(WCHAR);
+                            getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
                         }
                     }
                 }
@@ -2233,7 +2233,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), node->PrivateBytesText, sizeof(node->PrivateBytesText), &returnLength))
                     {
                         getCellText->Text.Buffer = node->PrivateBytesText;
-                        getCellText->Text.Length = returnLength - sizeof(WCHAR);
+                        getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
                     }
                 }
                 break;
@@ -2287,7 +2287,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), node->PrivateWsText, sizeof(node->PrivateWsText), &returnLength))
                     {
                         getCellText->Text.Buffer = node->PrivateWsText;
-                        getCellText->Text.Length = returnLength - sizeof(WCHAR);
+                        getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
                     }
                 }
                 break;
@@ -2940,8 +2940,16 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 {
                     if (PH_IS_REAL_PROCESS_ID(processItem->ProcessId))
                     {
-                        PhPrintUInt32Hex(node->PidHexText, HandleToUlong(processItem->ProcessId));
-                        PhInitializeStringRefLongHint(&getCellText->Text, node->PidHexText);
+                        PH_FORMAT format;
+                        SIZE_T returnLength;
+
+                        PhInitFormatIX(&format, HandleToUlong(processItem->ProcessId));
+
+                        if (PhFormatToBuffer(&format, 1, node->PidHexText, sizeof(node->PidHexText), &returnLength))
+                        {
+                            getCellText->Text.Buffer = node->PidHexText;
+                            getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
+                        }
                     }
                 }
                 break;
