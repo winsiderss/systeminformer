@@ -1966,15 +1966,15 @@ INT_PTR CALLBACK PhpTokenCapabilitiesPageProc(
 
                         if (!name)
                         {
-                            ULONG ridCount;
+                            ULONG subAuthoritiesCount;
                             ULONG subAuthority;
 
-                            ridCount = *(PULONG)RtlSubAuthorityCountSid(tokenPageContext->Capabilities->Groups[i].Sid);
+                            subAuthoritiesCount = *(PULONG)RtlSubAuthorityCountSid(tokenPageContext->Capabilities->Groups[i].Sid);
                             subAuthority = *(PULONG)RtlSubAuthoritySid(tokenPageContext->Capabilities->Groups[i].Sid, 0);
 
                             //memcmp((BYTE[])SECURITY_APP_PACKAGE_AUTHORITY, RtlIdentifierAuthoritySid(tokenPageContext->Capabilities->Groups[i].Sid), sizeof((BYTE[])SECURITY_APP_PACKAGE_AUTHORITY))
                             if (
-                                ridCount == SECURITY_CAPABILITY_RID_COUNT &&
+                                subAuthoritiesCount == SECURITY_CAPABILITY_RID_COUNT &&
                                 subAuthority == SECURITY_CAPABILITY_BASE_RID
                                 )
                             {
