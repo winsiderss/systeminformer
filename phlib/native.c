@@ -7433,7 +7433,7 @@ NTSTATUS PhCreatePipe(
     if (!NT_SUCCESS(status))
         return status;
 
-    RtlInitUnicodeString(&pipeNameUs, UNICODE_NULL);
+    RtlInitEmptyUnicodeString(&pipeNameUs, NULL, 0);
     InitializeObjectAttributes(
         &oa,
         &pipeNameUs,
@@ -7463,10 +7463,10 @@ NTSTATUS PhCreatePipe(
         FILE_PIPE_BYTE_STREAM_TYPE,
         FILE_PIPE_BYTE_STREAM_MODE,
         FILE_PIPE_QUEUE_OPERATION,
-        ULONG_MAX,
+        1,
         PAGE_SIZE,
         PAGE_SIZE,
-        PhTimeoutFromMilliseconds(&pipeTimeout, 500)
+        PhTimeoutFromMilliseconds(&pipeTimeout, 120000)
         );
 
     if (!NT_SUCCESS(status))
@@ -7478,7 +7478,7 @@ NTSTATUS PhCreatePipe(
         return status;
     }
 
-    RtlInitUnicodeString(&pipeNameUs, UNICODE_NULL);
+    RtlInitEmptyUnicodeString(&pipeNameUs, NULL, 0);
     InitializeObjectAttributes(
         &oa,
         &pipeNameUs,
