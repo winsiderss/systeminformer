@@ -3,7 +3,7 @@
  *   process tree list
  *
  * Copyright (C) 2010-2016 wj32
- * Copyright (C) 2016-2017 dmex
+ * Copyright (C) 2016-2019 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -930,14 +930,24 @@ static VOID PhpUpdateProcessNodeWindow(
 {
     if (!(ProcessNode->ValidMask & PHPN_WINDOW))
     {
-        ProcessNode->WindowHandle = PhGetProcessMainWindow(ProcessNode->ProcessId, ProcessNode->ProcessItem->QueryHandle);
-
         PhClearReference(&ProcessNode->WindowText);
 
-        if (ProcessNode->WindowHandle)
+        if (ProcessNode->ProcessItem->IsSubsystemProcess)
         {
-            PhGetWindowTextEx(ProcessNode->WindowHandle, PH_GET_WINDOW_TEXT_INTERNAL, &ProcessNode->WindowText);
-            ProcessNode->WindowHung = !!IsHungAppWindow(ProcessNode->WindowHandle);
+            NOTHING;
+        }
+        else
+        {
+            ProcessNode->WindowHandle = PhGetProcessMainWindow(
+                ProcessNode->ProcessId,
+                ProcessNode->ProcessItem->QueryHandle
+                );
+
+            if (ProcessNode->WindowHandle)
+            {
+                PhGetWindowTextEx(ProcessNode->WindowHandle, PH_GET_WINDOW_TEXT_INTERNAL, &ProcessNode->WindowText);
+                ProcessNode->WindowHung = !!IsHungAppWindow(ProcessNode->WindowHandle);
+            }
         }
 
         ProcessNode->ValidMask |= PHPN_WINDOW;
@@ -1027,7 +1037,11 @@ static VOID PhpUpdateProcessOsContext(
     {
         HANDLE processHandle;
 
-        if (NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ, ProcessNode->ProcessId)))
+        if (ProcessNode->ProcessItem->IsSubsystemProcess)
+        {
+            NOTHING;
+        }
+        else if (NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ, ProcessNode->ProcessId)))
         {
             if (NT_SUCCESS(PhGetProcessSwitchContext(processHandle, &ProcessNode->OsContextGuid)))
             {
@@ -1147,7 +1161,11 @@ static VOID PhpUpdateProcessNodeAppId(
 
         PhClearReference(&ProcessNode->AppIdText);
 
-        if (PhAppResolverGetAppIdForProcess(ProcessNode->ProcessItem->ProcessId, &applicationUserModelId))
+        if (ProcessNode->ProcessItem->IsSubsystemProcess)
+        {
+            NOTHING;
+        }
+        else if (PhAppResolverGetAppIdForProcess(ProcessNode->ProcessItem->ProcessId, &applicationUserModelId))
         {
             ProcessNode->AppIdText = applicationUserModelId;
         }
