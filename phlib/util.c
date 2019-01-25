@@ -1626,7 +1626,7 @@ PPH_STRING PhGetFileVersionInfoString(
         PPH_STRING string;
 
         // Check if the string has a valid length.
-        if (length <= sizeof(WCHAR))
+        if (length <= sizeof(UNICODE_NULL))
             return NULL;
 
         string = PhCreateStringEx((PWCHAR)buffer, length * sizeof(WCHAR));
