@@ -7402,6 +7402,16 @@ NTSTATUS PhCreatePipe(
     _Out_ PHANDLE PipeWriteHandle
     )
 {
+    return PhCreatePipeEx(PipeReadHandle, PipeWriteHandle, FALSE, NULL);
+}
+
+NTSTATUS PhCreatePipeEx(
+    _Out_ PHANDLE PipeReadHandle,
+    _Out_ PHANDLE PipeWriteHandle,
+    _In_ BOOLEAN InheritHandles,
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
+    )
+{
     NTSTATUS status;
     PACL pipeAcl = NULL;
     HANDLE pipeDirectoryHandle;
@@ -7409,12 +7419,12 @@ NTSTATUS PhCreatePipe(
     HANDLE pipeWriteHandle;
     LARGE_INTEGER pipeTimeout;
     UNICODE_STRING pipeNameUs;
-    OBJECT_ATTRIBUTES oa;
+    OBJECT_ATTRIBUTES objectAttributes;
     IO_STATUS_BLOCK isb;
 
     RtlInitUnicodeString(&pipeNameUs, DEVICE_NAMED_PIPE);
     InitializeObjectAttributes(
-        &oa,
+        &objectAttributes,
         &pipeNameUs,
         OBJ_CASE_INSENSITIVE,
         NULL,
@@ -7424,7 +7434,7 @@ NTSTATUS PhCreatePipe(
     status = NtOpenFile(
         &pipeDirectoryHandle,
         GENERIC_READ | SYNCHRONIZE,
-        &oa,
+        &objectAttributes,
         &isb,
         FILE_SHARE_READ | FILE_SHARE_WRITE,
         FILE_SYNCHRONOUS_IO_NONALERT
@@ -7435,27 +7445,34 @@ NTSTATUS PhCreatePipe(
 
     RtlInitEmptyUnicodeString(&pipeNameUs, NULL, 0);
     InitializeObjectAttributes(
-        &oa,
+        &objectAttributes,
         &pipeNameUs,
-        OBJ_CASE_INSENSITIVE,
+        OBJ_CASE_INSENSITIVE | (InheritHandles ? OBJ_INHERIT : 0),
         pipeDirectoryHandle,
         NULL
         );
 
-    if (NT_SUCCESS(RtlDefaultNpAcl(&pipeAcl)))
+    if (SecurityDescriptor)
     {
-        SECURITY_DESCRIPTOR securityDescriptor;
+        objectAttributes.SecurityDescriptor = SecurityDescriptor;
+    }
+    else
+    {
+        if (NT_SUCCESS(RtlDefaultNpAcl(&pipeAcl)))
+        {
+            SECURITY_DESCRIPTOR securityDescriptor;
 
-        RtlCreateSecurityDescriptor(&securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
-        RtlSetDaclSecurityDescriptor(&securityDescriptor, TRUE, pipeAcl, FALSE);
+            RtlCreateSecurityDescriptor(&securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
+            RtlSetDaclSecurityDescriptor(&securityDescriptor, TRUE, pipeAcl, FALSE);
 
-        oa.SecurityDescriptor = &securityDescriptor;
+            objectAttributes.SecurityDescriptor = &securityDescriptor;
+        }
     }
 
     status = NtCreateNamedPipeFile(
         &pipeReadHandle,
         FILE_WRITE_ATTRIBUTES | GENERIC_READ | SYNCHRONIZE,
-        &oa,
+        &objectAttributes,
         &isb,
         FILE_SHARE_READ | FILE_SHARE_WRITE,
         FILE_CREATE,
@@ -7480,9 +7497,9 @@ NTSTATUS PhCreatePipe(
 
     RtlInitEmptyUnicodeString(&pipeNameUs, NULL, 0);
     InitializeObjectAttributes(
-        &oa,
+        &objectAttributes,
         &pipeNameUs,
-        OBJ_CASE_INSENSITIVE,
+        OBJ_CASE_INSENSITIVE | (InheritHandles ? OBJ_INHERIT : 0),
         pipeReadHandle,
         NULL
         );
@@ -7490,7 +7507,7 @@ NTSTATUS PhCreatePipe(
     status = NtOpenFile(
         &pipeWriteHandle,
         FILE_READ_ATTRIBUTES | GENERIC_WRITE | SYNCHRONIZE,
-        &oa,
+        &objectAttributes,
         &isb,
         FILE_SHARE_READ | FILE_SHARE_WRITE,
         FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT

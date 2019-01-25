@@ -1272,6 +1272,16 @@ PhCreatePipe(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhCreatePipeEx(
+    _Out_ PHANDLE PipeReadHandle,
+    _Out_ PHANDLE PipeWriteHandle,
+    _In_ BOOLEAN InheritHandles,
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhCreateNamedPipe(
     _Out_ PHANDLE PipeHandle,
     _In_ PWSTR PipeName
