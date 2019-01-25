@@ -1267,6 +1267,13 @@ PhGetExportNameFromOrdinal(
 PHLIBAPI
 PPH_STRING
 NTAPI
+PhGetFileText(
+    _In_ HANDLE FileHandle
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
 PhFileReadAllText(
     _In_ PWSTR FileName
     );
