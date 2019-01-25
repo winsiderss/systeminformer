@@ -239,6 +239,9 @@
     <ClCompile Include="theme.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="wslsup.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\circbuf.h">
@@ -510,6 +513,9 @@
     </ClInclude>
     <ClInclude Include="jsonc\strerror_override_private.h">
       <Filter>Json-C\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\wslsup.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
