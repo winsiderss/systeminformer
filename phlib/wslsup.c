@@ -100,8 +100,7 @@ PPH_STRING PhGetWslDistributionFromPath(
                 break;
         }
 
-        for (i = 0; i < distributionGuidList->Count; i++)
-            PhDereferenceObject(distributionGuidList->Items[i]);
+        PhDereferenceObjects(distributionGuidList->Items, distributionGuidList->Count);
         PhDereferenceObject(distributionGuidList);
 
         NtClose(keyHandle);
