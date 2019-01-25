@@ -35,6 +35,8 @@
 #include <mapimg.h>
 #include <settings.h>
 
+#include <wslsup.h>
+
 #include "md5.h"
 #include "sha.h"
 #include "sha256.h"
@@ -1866,6 +1868,125 @@ PPH_STRING PhFormatImageVersionInfo(
         PhRemoveEndStringBuilder(&stringBuilder, 1);
 
     return PhFinalStringBuilderString(&stringBuilder);
+}
+
+typedef struct _PH_FILE_VERSIONINFO_CACHE_ENTRY
+{
+    PPH_STRING FileName;
+    PPH_STRING CompanyName;
+    PPH_STRING FileDescription;
+    PPH_STRING FileVersion;
+    PPH_STRING ProductName;
+} PH_FILE_VERSIONINFO_CACHE_ENTRY, *PPH_FILE_VERSIONINFO_CACHE_ENTRY;
+
+static PPH_HASHTABLE PhpImageVersionInfoCacheHashtable = NULL;
+
+static BOOLEAN PhpImageVersionInfoCacheHashtableEqualFunction(
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
+    )
+{
+    PPH_FILE_VERSIONINFO_CACHE_ENTRY entry1 = Entry1;
+    PPH_FILE_VERSIONINFO_CACHE_ENTRY entry2 = Entry2;
+
+    return PhEqualString(entry1->FileName, entry2->FileName, TRUE);
+}
+
+static ULONG PhpImageVersionInfoCacheHashtableHashFunction(
+    _In_ PVOID Entry
+    )
+{
+    PPH_FILE_VERSIONINFO_CACHE_ENTRY entry = Entry;
+
+    return PhHashStringRef(&entry->FileName->sr, TRUE);
+}
+
+BOOLEAN PhInitializeImageVersionInfoCached(
+    _Out_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
+    _In_ PPH_STRING FileName,
+    _In_ BOOLEAN IsSubsystemProcess
+    )
+{
+    PH_IMAGE_VERSION_INFO versionInfo = { 0 };
+    PH_FILE_VERSIONINFO_CACHE_ENTRY newEntry;
+
+    if (PhpImageVersionInfoCacheHashtable)
+    {
+        PPH_FILE_VERSIONINFO_CACHE_ENTRY entry;
+        PH_FILE_VERSIONINFO_CACHE_ENTRY lookupEntry;
+
+        lookupEntry.FileName = FileName;
+        entry = PhFindEntryHashtable(PhpImageVersionInfoCacheHashtable, &lookupEntry);
+
+        if (entry)
+        {
+            PhSetReference(&ImageVersionInfo->CompanyName, entry->CompanyName);
+            PhSetReference(&ImageVersionInfo->FileDescription, entry->FileDescription);
+            PhSetReference(&ImageVersionInfo->FileVersion, entry->FileVersion);
+            PhSetReference(&ImageVersionInfo->ProductName, entry->ProductName);
+
+            return TRUE;
+        }
+    }
+
+    if (IsSubsystemProcess)
+    {
+        if (!PhInitializeLxssImageVersionInfo(&versionInfo, FileName))
+            return FALSE;
+    }
+    else
+    {
+        if (!PhInitializeImageVersionInfo(&versionInfo, FileName->Buffer))
+            return FALSE;
+    }
+
+    if (!PhpImageVersionInfoCacheHashtable)
+    {
+        PhpImageVersionInfoCacheHashtable = PhCreateHashtable(
+            sizeof(PH_FILE_VERSIONINFO_CACHE_ENTRY),
+            PhpImageVersionInfoCacheHashtableEqualFunction,
+            PhpImageVersionInfoCacheHashtableHashFunction,
+            100
+            );
+    }
+
+    PhSetReference(&newEntry.FileName, FileName);
+    PhSetReference(&newEntry.CompanyName, versionInfo.CompanyName);
+    PhSetReference(&newEntry.FileDescription, versionInfo.FileDescription);
+    PhSetReference(&newEntry.FileVersion, versionInfo.FileVersion);
+    PhSetReference(&newEntry.ProductName, versionInfo.ProductName);
+
+    PhAddEntryHashtable(PhpImageVersionInfoCacheHashtable, &newEntry);
+
+    ImageVersionInfo->CompanyName = versionInfo.CompanyName;
+    ImageVersionInfo->FileDescription = versionInfo.FileDescription;
+    ImageVersionInfo->FileVersion = versionInfo.FileVersion;
+    ImageVersionInfo->ProductName = versionInfo.ProductName;
+    return TRUE;
+}
+
+VOID PhFlushImageVersionInfoCache(
+    VOID
+    )
+{
+    PH_HASHTABLE_ENUM_CONTEXT enumContext;
+    PPH_FILE_VERSIONINFO_CACHE_ENTRY entry;
+
+    if (!PhpImageVersionInfoCacheHashtable)
+        return;
+
+    PhBeginEnumHashtable(PhpImageVersionInfoCacheHashtable, &enumContext);
+
+    while (entry = PhNextEnumHashtable(&enumContext))
+    {
+        if (entry->FileName) PhDereferenceObject(entry->FileName);
+        if (entry->CompanyName) PhDereferenceObject(entry->CompanyName);
+        if (entry->FileDescription) PhDereferenceObject(entry->FileDescription);
+        if (entry->FileVersion) PhDereferenceObject(entry->FileVersion);
+        if (entry->ProductName) PhDereferenceObject(entry->ProductName);
+    }
+
+    PhClearReference(&PhpImageVersionInfoCacheHashtable);
 }
 
 /**

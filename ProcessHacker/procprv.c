@@ -3,7 +3,7 @@
  *   process provider
  *
  * Copyright (C) 2009-2016 wj32
- * Copyright (C) 2017-2018 dmex
+ * Copyright (C) 2017-2019 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -120,6 +120,7 @@ typedef struct _PH_PROCESS_QUERY_S2_DATA
     BOOLEAN IsPacked;
     ULONG ImportFunctions;
     ULONG ImportModules;
+    PH_IMAGE_VERSION_INFO VersionInfo; // LXSS only
 } PH_PROCESS_QUERY_S2_DATA, *PPH_PROCESS_QUERY_S2_DATA;
 
 typedef struct _PH_SID_FULL_NAME_CACHE_ENTRY
@@ -729,7 +730,7 @@ VOID PhpProcessQueryStage1(
         }
 
         // Version info.
-        PhInitializeImageVersionInfo(&Data->VersionInfo, processItem->FileName->Buffer);
+        PhInitializeImageVersionInfoCached(&Data->VersionInfo, processItem->FileName, FALSE);
     }
 
     // Debugged
@@ -937,6 +938,11 @@ VOID PhpProcessQueryStage2(
             Data->ImportFunctions = -1;
         }
     }
+
+    if (PhEnableProcessQueryStage2 && processItem->FileName && processItem->IsSubsystemProcess)
+    {
+        PhInitializeImageVersionInfoCached(&Data->VersionInfo, processItem->FileName, TRUE);
+    }
 }
 
 NTSTATUS PhpProcessQueryStage1Worker(
@@ -1050,6 +1056,12 @@ VOID PhpFillProcessItemStage2(
     processItem->IsPacked = Data->IsPacked;
     processItem->ImportFunctions = Data->ImportFunctions;
     processItem->ImportModules = Data->ImportModules;
+
+    // Note: We query Win32 processes in stage1 so don't overwrite the previous data.
+    if (processItem->IsSubsystemProcess)
+    {
+        memcpy(&processItem->VersionInfo, &Data->VersionInfo, sizeof(PH_IMAGE_VERSION_INFO));
+    }
 }
 
 VOID PhpFillProcessItemExtension(
@@ -1753,6 +1765,8 @@ VOID PhProcessProviderUpdate(
     {
         if (PhEnablePurgeProcessRecords)
             PhPurgeProcessRecords();
+
+        PhFlushImageVersionInfoCache();
     }
 
     if (!PhProcessStatisticsInitialized)
