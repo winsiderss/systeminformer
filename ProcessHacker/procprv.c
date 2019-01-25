@@ -1057,7 +1057,7 @@ VOID PhpFillProcessItemStage2(
     processItem->ImportFunctions = Data->ImportFunctions;
     processItem->ImportModules = Data->ImportModules;
 
-    // Note: We query Win32 processes in stage1 so don't overwrite the previous data.
+    // Note: We query Win32 processes in stage1 so don't overwrite the previous data. (dmex)
     if (processItem->IsSubsystemProcess)
     {
         memcpy(&processItem->VersionInfo, &Data->VersionInfo, sizeof(PH_IMAGE_VERSION_INFO));
