@@ -530,7 +530,9 @@ FORCEINLINE PLARGE_INTEGER PhTimeoutFromMilliseconds(
     return Timeout;
 }
 
-FORCEINLINE NTSTATUS PhGetLastWin32ErrorAsNtStatus()
+FORCEINLINE NTSTATUS PhGetLastWin32ErrorAsNtStatus(
+    VOID
+    )
 {
     ULONG win32Result;
 
