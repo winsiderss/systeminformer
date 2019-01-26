@@ -1880,6 +1880,7 @@ typedef struct _PH_FILE_VERSIONINFO_CACHE_ENTRY
 } PH_FILE_VERSIONINFO_CACHE_ENTRY, *PPH_FILE_VERSIONINFO_CACHE_ENTRY;
 
 static PPH_HASHTABLE PhpImageVersionInfoCacheHashtable = NULL;
+static PH_QUEUED_LOCK PhpImageVersionInfoCacheLock = PH_QUEUED_LOCK_INIT;
 
 static BOOLEAN PhpImageVersionInfoCacheHashtableEqualFunction(
     _In_ PVOID Entry1,
@@ -1916,7 +1917,10 @@ BOOLEAN PhInitializeImageVersionInfoCached(
         PH_FILE_VERSIONINFO_CACHE_ENTRY lookupEntry;
 
         lookupEntry.FileName = FileName;
+
+        PhAcquireQueuedLockShared(&PhpImageVersionInfoCacheLock);
         entry = PhFindEntryHashtable(PhpImageVersionInfoCacheHashtable, &lookupEntry);
+        PhReleaseQueuedLockShared(&PhpImageVersionInfoCacheLock);
 
         if (entry)
         {
@@ -1956,7 +1960,9 @@ BOOLEAN PhInitializeImageVersionInfoCached(
     PhSetReference(&newEntry.FileVersion, versionInfo.FileVersion);
     PhSetReference(&newEntry.ProductName, versionInfo.ProductName);
 
+    PhAcquireQueuedLockExclusive(&PhpImageVersionInfoCacheLock);
     PhAddEntryHashtable(PhpImageVersionInfoCacheHashtable, &newEntry);
+    PhReleaseQueuedLockExclusive(&PhpImageVersionInfoCacheLock);
 
     ImageVersionInfo->CompanyName = versionInfo.CompanyName;
     ImageVersionInfo->FileDescription = versionInfo.FileDescription;
@@ -1975,6 +1981,8 @@ VOID PhFlushImageVersionInfoCache(
     if (!PhpImageVersionInfoCacheHashtable)
         return;
 
+    PhAcquireQueuedLockExclusive(&PhpImageVersionInfoCacheLock);
+
     PhBeginEnumHashtable(PhpImageVersionInfoCacheHashtable, &enumContext);
 
     while (entry = PhNextEnumHashtable(&enumContext))
@@ -1987,6 +1995,15 @@ VOID PhFlushImageVersionInfoCache(
     }
 
     PhClearReference(&PhpImageVersionInfoCacheHashtable);
+
+    PhpImageVersionInfoCacheHashtable = PhCreateHashtable(
+        sizeof(PH_FILE_VERSIONINFO_CACHE_ENTRY),
+        PhpImageVersionInfoCacheHashtableEqualFunction,
+        PhpImageVersionInfoCacheHashtableHashFunction,
+        100
+        );
+
+    PhReleaseQueuedLockExclusive(&PhpImageVersionInfoCacheLock);
 }
 
 /**
