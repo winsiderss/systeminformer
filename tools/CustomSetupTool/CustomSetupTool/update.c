@@ -31,7 +31,10 @@ NTSTATUS SetupUpdateBuild(
     )
 {
     if (!ShutdownProcessHacker())
+    {
+        Context->ErrorCode = ERROR_INVALID_FUNCTION;
         goto CleanupExit;
+    }
 
     if (!SetupCreateUninstallFile(Context))
         goto CleanupExit;
