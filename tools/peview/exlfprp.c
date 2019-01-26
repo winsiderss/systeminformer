@@ -166,17 +166,32 @@ VOID PvExlfProperties(
     }
 }
 
+static NTSTATUS PvpQueryWslImageThreadStart(
+    _In_ PVOID Parameter
+    )
+{
+    HWND windowHandle = Parameter;
+
+    PhInitializeLxssImageVersionInfo(&PvImageVersionInfo, PvFileName);
+
+    PhSetDialogItemText(windowHandle, IDC_NAME, PvpGetStringOrNa(PvImageVersionInfo.FileDescription));
+    PhSetDialogItemText(windowHandle, IDC_COMPANYNAME, PvpGetStringOrNa(PvImageVersionInfo.CompanyName));
+    PhSetDialogItemText(windowHandle, IDC_VERSION, PvpGetStringOrNa(PvImageVersionInfo.FileVersion));
+
+    return STATUS_SUCCESS;
+}
+
 VOID PvpSetWslmageVersionInfo(
     _In_ HWND WindowHandle
     )
 {
-    PhInitializeLxssImageVersionInfo(&PvImageVersionInfo, PvFileName);
+    PhSetDialogItemText(WindowHandle, IDC_NAME, L"Loading...");
+    PhSetDialogItemText(WindowHandle, IDC_COMPANYNAME, L"Loading...");
+    PhSetDialogItemText(WindowHandle, IDC_VERSION, L"Loading...");
+
+    PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), PvpQueryWslImageThreadStart, WindowHandle);
 
     Static_SetIcon(GetDlgItem(WindowHandle, IDC_FILEICON), PvImageLargeIcon);
-
-    PhSetDialogItemText(WindowHandle, IDC_NAME, PvpGetStringOrNa(PvImageVersionInfo.FileDescription));
-    PhSetDialogItemText(WindowHandle, IDC_COMPANYNAME, PvpGetStringOrNa(PvImageVersionInfo.CompanyName));
-    PhSetDialogItemText(WindowHandle, IDC_VERSION, PvpGetStringOrNa(PvImageVersionInfo.FileVersion));
 }
 
 VOID PvpSetWslImageType(
