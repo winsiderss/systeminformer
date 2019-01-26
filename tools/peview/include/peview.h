@@ -46,6 +46,17 @@ extern PIMAGE_COR20_HEADER PvImageCor20Header;
 extern PPH_SYMBOL_PROVIDER PvSymbolProvider;
 extern HICON PvImageSmallIcon;
 extern HICON PvImageLargeIcon;
+extern PH_IMAGE_VERSION_INFO PvImageVersionInfo;
+
+FORCEINLINE PWSTR PvpGetStringOrNa(
+    _In_ PPH_STRING String
+    )
+{
+    if (!PhIsNullOrEmptyString(String))
+        return String->Buffer;
+    else
+        return L"N/A";
+}
 
 // peprp
 

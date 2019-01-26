@@ -47,7 +47,7 @@ PIMAGE_COR20_HEADER PvImageCor20Header = NULL;
 PPH_SYMBOL_PROVIDER PvSymbolProvider = NULL;
 HICON PvImageSmallIcon = NULL;
 HICON PvImageLargeIcon = NULL;
-static PH_IMAGE_VERSION_INFO PvImageVersionInfo;
+PH_IMAGE_VERSION_INFO PvImageVersionInfo;
 static VERIFY_RESULT PvImageVerifyResult;
 static PPH_STRING PvImageSignerName;
 
@@ -349,16 +349,6 @@ static NTSTATUS VerifyImageThreadStart(
     PostMessage(windowHandle, PVM_VERIFY_DONE, 0, 0);
 
     return STATUS_SUCCESS;
-}
-
-FORCEINLINE PWSTR PvpGetStringOrNa(
-    _In_ PPH_STRING String
-    )
-{
-    if (!PhIsNullOrEmptyString(String))
-        return String->Buffer;
-    else
-        return L"N/A";
 }
 
 FORCEINLINE PPH_STRING PvpGetSectionCharacteristics(
