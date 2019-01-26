@@ -40,7 +40,7 @@ HRESULT CALLBACK CheckingForUpdatesCallbackProc(
             SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
 
             PhReferenceObject(context);
-            PhCreateThread2(UpdateCheckThread, context);
+            PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), UpdateCheckThread, context);
         }
         break;
     }
