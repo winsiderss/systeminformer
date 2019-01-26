@@ -159,12 +159,16 @@ BOOLEAN SetupCreateUninstallFile(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
+    NTSTATUS status;
     PPH_STRING currentFilePath;
     PPH_STRING backupFilePath;
     PPH_STRING uninstallFilePath;
 
-    if (!NT_SUCCESS(PhGetProcessImageFileNameWin32(NtCurrentProcess(), &currentFilePath)))
+    if (!NT_SUCCESS(status = PhGetProcessImageFileNameWin32(NtCurrentProcess(), &currentFilePath)))
+    {
+        Context->ErrorCode = WIN32_FROM_NTSTATUS(status);
         return FALSE;
+    }
 
     // Check if the user has started the setup from the installation folder.
     if (PhStartsWithStringRef2(&currentFilePath->sr, PhGetString(SetupInstallPath), TRUE))

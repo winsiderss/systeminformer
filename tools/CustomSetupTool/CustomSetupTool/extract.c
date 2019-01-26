@@ -48,12 +48,18 @@ BOOLEAN SetupExtractBuild(
     PPH_BYTES zipPathUtf8;
 
     if (PhIsNullOrEmptyString(Context->FilePath))
+    {
+        Context->ErrorCode = ERROR_PATH_NOT_FOUND;
         goto CleanupExit;
+    }
 
     zipPathUtf8 = PhConvertUtf16ToUtf8(PhGetString(Context->FilePath));
 
     if (!(status = mz_zip_reader_init_file(&zip_archive, zipPathUtf8->Buffer, 0)))
+    {
+        Context->ErrorCode = ERROR_FILE_CORRUPT;
         goto CleanupExit;
+    }
 
     PhDereferenceObject(zipPathUtf8);
 #endif
@@ -144,11 +150,15 @@ BOOLEAN SetupExtractBuild(
             0
             )))
         {
+            Context->ErrorCode = ERROR_FILE_INVALID;
             goto CleanupExit;
         }
 
         if ((zipFileCrc32 = mz_crc32(zipFileCrc32, buffer, bufferLength)) != zipFileStat.m_crc32)
+        {
+            Context->ErrorCode = ERROR_CRC;
             goto CleanupExit;
+        }
 
         extractPath = PhConcatStrings(
             3, 
@@ -162,12 +172,16 @@ BOOLEAN SetupExtractBuild(
             PPH_STRING directoryPath;
 
             if (indexOfFileName == -1)
+            {
+                Context->ErrorCode = ERROR_FILE_CORRUPT;
                 goto CleanupExit;
+            }
 
             if (directoryPath = PhSubstring(fullSetupPath, 0, indexOfFileName))
             {
                 if (!NT_SUCCESS(PhCreateDirectory(directoryPath)))
                 {
+                    Context->ErrorCode = ERROR_DIRECTORY_NOT_SUPPORTED;
                     PhDereferenceObject(directoryPath);
                     PhDereferenceObject(fullSetupPath);
                     goto CleanupExit;
@@ -206,6 +220,7 @@ BOOLEAN SetupExtractBuild(
             FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
             )))
         {
+            Context->ErrorCode = ERROR_FILE_CORRUPT;
             goto CleanupExit;
         }
 
@@ -221,11 +236,15 @@ BOOLEAN SetupExtractBuild(
             NULL
             )))
         {
+            Context->ErrorCode = ERROR_FILE_CORRUPT;
             goto CleanupExit;
         }
 
         if (isb.Information != bufferLength)
+        {
+            Context->ErrorCode = ERROR_FILE_CORRUPT;
             goto CleanupExit;
+        }
 
         currentLength += bufferLength;
 
