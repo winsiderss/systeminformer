@@ -68,8 +68,8 @@ BOOLEAN UpdaterCheckApplicationDirectory(
     if (UpdaterCheckKphInstallState())
         return FALSE;
 
-    directory = PH_AUTO(PhGetApplicationDirectory());
-    file = PH_AUTO(PhConcatStrings(2, PhGetStringOrEmpty(directory), L"\\processhacker.update"));
+    directory = PhGetApplicationDirectory();
+    file = PhConcatStrings(2, PhGetStringOrEmpty(directory), L"\\processhacker.update");
 
     if (NT_SUCCESS(PhCreateFileWin32(
         &fileHandle,
@@ -81,10 +81,15 @@ BOOLEAN UpdaterCheckApplicationDirectory(
         FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_DELETE_ON_CLOSE
         )))
     {
+        PhDereferenceObject(file);
+        PhDereferenceObject(directory);
+
         NtClose(fileHandle);
         return TRUE;
     }
 
+    PhDereferenceObject(file);
+    PhDereferenceObject(directory);
     return FALSE;
 }
 

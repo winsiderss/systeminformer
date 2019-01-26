@@ -35,14 +35,22 @@ VOID UpdateContextDeleteProcedure(
 {
     PPH_UPDATER_CONTEXT context = Object;
 
-    PhClearReference(&context->CurrentVersionString);
-    PhClearReference(&context->Version);
-    PhClearReference(&context->RelDate);
-    PhClearReference(&context->SetupFileDownloadUrl);
-    PhClearReference(&context->SetupFileLength);
-    PhClearReference(&context->SetupFileHash);
-    PhClearReference(&context->SetupFileSignature);
-    PhClearReference(&context->BuildMessage);
+    if (context->CurrentVersionString)
+        PhDereferenceObject(context->CurrentVersionString);
+    if (context->Version)
+        PhDereferenceObject(context->Version);
+    if (context->RelDate)
+        PhDereferenceObject(context->RelDate);
+    if (context->SetupFileDownloadUrl)
+        PhDereferenceObject(context->SetupFileDownloadUrl);
+    if (context->SetupFileLength)
+        PhDereferenceObject(context->SetupFileLength);
+    if (context->SetupFileHash)
+        PhDereferenceObject(context->SetupFileHash);
+    if (context->SetupFileSignature)
+        PhDereferenceObject(context->SetupFileSignature);
+    if (context->BuildMessage)
+        PhDereferenceObject(context->BuildMessage);
 }
 
 PPH_UPDATER_CONTEXT CreateUpdateContext(
@@ -57,7 +65,7 @@ PPH_UPDATER_CONTEXT CreateUpdateContext(
         PhEndInitOnce(&UpdateContextTypeInitOnce);
     }
 
-    context = PhCreateObjectZero(sizeof(PH_UPDATER_CONTEXT), UpdateContextType);
+    context = PhCreateObject(sizeof(PH_UPDATER_CONTEXT), UpdateContextType);
     memset(context, 0, sizeof(PH_UPDATER_CONTEXT));
 
     context->CurrentVersionString = PhGetPhVersion();
@@ -330,7 +338,11 @@ BOOLEAN QueryUpdateData(
     Context->BuildMessage = PhGetJsonValueAsString(jsonObject, "changelog");
 
     Context->CurrentVersion = ParseVersionString(Context->CurrentVersionString);
+#ifdef FORCE_LATEST_VERSION
+    Context->LatestVersion = ParseVersionString(Context->CurrentVersionString);
+#else
     Context->LatestVersion = ParseVersionString(Context->Version);
+#endif
 
     PhFreeJsonParser(jsonObject);
 
@@ -491,6 +503,7 @@ NTSTATUS UpdateDownloadThread(
     _In_ PVOID Parameter
     )
 {
+    PPH_UPDATER_CONTEXT context = (PPH_UPDATER_CONTEXT)Parameter;
     BOOLEAN downloadSuccess = FALSE;
     BOOLEAN hashSuccess = FALSE;
     BOOLEAN signatureSuccess = FALSE;
@@ -504,7 +517,6 @@ NTSTATUS UpdateDownloadThread(
     LARGE_INTEGER timeStart;
     ULONG64 timeTicks = 0;
     ULONG64 timeBitsPerSecond = 0;
-    PPH_UPDATER_CONTEXT context = (PPH_UPDATER_CONTEXT)Parameter;
 
     SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Initializing download request...");
 
@@ -663,9 +675,9 @@ NTSTATUS UpdateDownloadThread(
             // TODO: Update on timer callback.
             {
                 FLOAT percent = ((FLOAT)downloadedBytes / contentLength * 100);
-                PPH_STRING totalLength = PhFormatSize(contentLength, -1);
-                PPH_STRING totalDownloaded = PhFormatSize(downloadedBytes, -1);
-                PPH_STRING totalSpeed = PhFormatSize(timeBitsPerSecond, -1);
+                PPH_STRING totalLength = PhFormatSize(contentLength, ULONG_MAX);
+                PPH_STRING totalDownloaded = PhFormatSize(downloadedBytes, ULONG_MAX);
+                PPH_STRING totalSpeed = PhFormatSize(timeBitsPerSecond, ULONG_MAX);
 
                 PPH_STRING statusMessage = PhFormatString(
                     L"Downloaded: %s of %s (%.0f%%)\r\nSpeed: %s/s",
@@ -918,5 +930,5 @@ VOID StartInitialCheck(
     VOID
     )
 {
-    PhCreateThread2(UpdateCheckSilentThread, NULL);
+    PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), UpdateCheckSilentThread, NULL);
 }
