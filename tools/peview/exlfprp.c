@@ -2,7 +2,7 @@
  * Process Hacker -
  *   PE viewer
  *
- * Copyright (C) 2017 dmex
+ * Copyright (C) 2017-2019 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -22,7 +22,7 @@
 
 #include <peview.h>
 #include <mapimg.h>
-#include <uxtheme.h>
+#include <wslsup.h>
 
 PWSTR PvpGetSymbolTypeName(
     _In_ UCHAR TypeInfo
@@ -95,6 +95,11 @@ VOID PvExlfProperties(
 {
     PPV_PROPCONTEXT propContext;
 
+    if (!PhExtractIcon(PvFileName->Buffer, &PvImageLargeIcon, &PvImageSmallIcon))
+    {
+        PhGetStockApplicationIcon(&PvImageSmallIcon, &PvImageLargeIcon);
+    }
+
     if (propContext = PvCreatePropContext(PvFileName))
     {
         PPV_PROPPAGECONTEXT newPage;
@@ -159,6 +164,19 @@ VOID PvExlfProperties(
 
         PhDereferenceObject(propContext);
     }
+}
+
+VOID PvpSetWslmageVersionInfo(
+    _In_ HWND WindowHandle
+    )
+{
+    PhInitializeLxssImageVersionInfo(&PvImageVersionInfo, PvFileName);
+
+    Static_SetIcon(GetDlgItem(WindowHandle, IDC_FILEICON), PvImageLargeIcon);
+
+    PhSetDialogItemText(WindowHandle, IDC_NAME, PvpGetStringOrNa(PvImageVersionInfo.FileDescription));
+    PhSetDialogItemText(WindowHandle, IDC_COMPANYNAME, PvpGetStringOrNa(PvImageVersionInfo.CompanyName));
+    PhSetDialogItemText(WindowHandle, IDC_VERSION, PvpGetStringOrNa(PvImageVersionInfo.FileVersion));
 }
 
 VOID PvpSetWslImageType(
@@ -405,6 +423,7 @@ INT_PTR CALLBACK PvpExlfGeneralDlgProc(
             PhSetExtendedListView(lvHandle);
             PhLoadListViewColumnsFromSetting(L"GeneralWslTreeListColumns", lvHandle);
 
+            PvpSetWslmageVersionInfo(hwndDlg);
             PvpSetWslImageType(hwndDlg);
             PvpSetWslImageMachineType(hwndDlg);
             PvpSetWslImageBase(hwndDlg);
@@ -427,6 +446,9 @@ INT_PTR CALLBACK PvpExlfGeneralDlgProc(
                 PPH_LAYOUT_ITEM dialogItem;
 
                 dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
+                PvAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_FILE), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+                PvAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_NAME), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+                PvAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_COMPANYNAME), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PvAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST), dialogItem, PH_ANCHOR_ALL);
 
                 PvDoPropPageLayout(hwndDlg);
