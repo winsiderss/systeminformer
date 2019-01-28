@@ -529,7 +529,7 @@ VOID PhpServiceQueryStage1(
         //PhInitializeImageVersionInfo(&Data->VersionInfo, Data->FileName->Buffer);
     }
 
-    PhpResetServiceNonPollGate(); // HACK
+    PhpResetServiceNonPollGate(); // HACK (dmex)
 }
 
 VOID PhpServiceQueryStage2(
@@ -548,7 +548,7 @@ VOID PhpServiceQueryStage2(
             );
     }
 
-    PhpResetServiceNonPollGate(); // HACK
+    PhpResetServiceNonPollGate(); // HACK (dmex)
 }
 
 NTSTATUS PhpServiceQueryStage1Worker(
@@ -733,7 +733,7 @@ VOID PhServiceProviderUpdate(
 
     // This has caused a massive decrease in background CPU usage, and
     // is certainly much better than the quadratic-time string comparisons
-    // we were doing before (in the "Look for dead services" section).
+    // we were doing before (in the "Look for dead services" section). (wj32)
 
     nameEntriesCount = 0;
 
@@ -885,14 +885,14 @@ VOID PhServiceProviderUpdate(
                     {
                         // The process doesn't exist yet (to us). Set the pending
                         // flag and when the process is added this will be
-                        // fixed.
+                        // fixed. (wj32)
                         serviceItem->PendingProcess = TRUE;
                     }
                 }
 
                 // If this is the first run of the provider, queue the
                 // process query tasks. Otherwise, perform stage 1
-                // processing now and queue stage 2 processing.
+                // processing now and queue stage 2 processing. (wj32)
                 if (runCount > 0)
                 {
                     PH_SERVICE_QUERY_S1_DATA data;
@@ -992,7 +992,7 @@ VOID PhServiceProviderUpdate(
                         PPH_PROCESS_ITEM processItem;
 
                         // The service stopped and started, and the only change we have detected
-                        // is in the process ID.
+                        // is in the process ID. (wj32)
 
                         if (processItem = PhReferenceProcessItem(serviceModifiedData.OldService.ProcessId))
                         {
@@ -1018,7 +1018,7 @@ VOID PhServiceProviderUpdate(
                         serviceItem->NeedsConfigUpdate = FALSE;
                     }
 
-                    if (serviceItem->JustProcessed) // HACK
+                    if (serviceItem->JustProcessed) // HACK (dmex)
                         serviceItem->JustProcessed = FALSE;
 
                     // Raise the service modified event.
@@ -1125,7 +1125,7 @@ VOID CALLBACK PhpServicePropertyChangeNotifyCallback(
     PPH_SERVICE_ITEM serviceItem;
 
     // Note: Ignore deleted nofications since we handle this elsewhere and our
-    // notify context gets destroyed before services.exe invokes this callback. 
+    // notify context gets destroyed before services.exe invokes this callback. (dmex)
     if (ServiceNotifyFlags == SERVICE_NOTIFY_DELETED)
         return;
 
@@ -1245,7 +1245,7 @@ NTSTATUS PhpServiceNonPollThreadStart(
 
                             if (SubscribeServiceChangeNotifications_I(
                                 notifyContext->ServiceHandle,
-                                SC_EVENT_PROPERTY_CHANGE, // TODO: SC_EVENT_STATUS_CHANGE
+                                SC_EVENT_PROPERTY_CHANGE, // TODO: SC_EVENT_STATUS_CHANGE (dmex)
                                 PhpServicePropertyChangeNotifyCallback,
                                 notifyContext,
                                 &serviceNotifyRegistration
@@ -1279,7 +1279,7 @@ NTSTATUS PhpServiceNonPollThreadStart(
                             InsertTailList(&PhpNonPollServiceListHead, &notifyContext->ListEntry);
                             break;
                         case ERROR_SERVICE_NOTIFY_CLIENT_LAGGING:
-                            // We are lagging behind. Re-open the handle to the SCM as soon as possible.
+                            // We are lagging behind. Re-open the handle to the SCM as soon as possible. (wj32)
                             lagging = TRUE;
                             break;
                         case ERROR_SERVICE_MARKED_FOR_DELETE:
@@ -1340,7 +1340,7 @@ VOID PhpInitializeServiceNonPoll(
     )
 {
     PhpNonPollActive = TRUE;
-    PhpNonPollGate = 1; // initially the gate should be open since we only just initialized everything
+    PhpNonPollGate = 1; // initially the gate should be open since we only just initialized everything (wj32)
 
     PhCreateThread2(PhpServiceNonPollThreadStart, NULL);
 }
@@ -1349,7 +1349,7 @@ VOID PhpWorkaroundWindows10ServiceTypeBug(
     _Inout_ LPENUM_SERVICE_STATUS_PROCESS ServieEntry
     )
 {
-    // https://github.com/processhacker2/processhacker/issues/120
+    // https://github.com/processhacker2/processhacker/issues/120 (dmex)
     if (ServieEntry->ServiceStatusProcess.dwServiceType == SERVICE_WIN32)
         ServieEntry->ServiceStatusProcess.dwServiceType = SERVICE_WIN32_SHARE_PROCESS;
     if (ServieEntry->ServiceStatusProcess.dwServiceType == (SERVICE_WIN32 | SERVICE_USER_SHARE_PROCESS | SERVICE_USERSERVICE_INSTANCE))
