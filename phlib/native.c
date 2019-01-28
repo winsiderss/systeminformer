@@ -2321,6 +2321,7 @@ NTSTATUS PhGetTokenIntegrityLevelRID(
 {
     NTSTATUS status;
     PTOKEN_MANDATORY_LABEL mandatoryLabel;
+    ULONG subAuthoritiesCount;
     ULONG subAuthority;
     PWSTR integrityString;
 
@@ -2329,7 +2330,17 @@ NTSTATUS PhGetTokenIntegrityLevelRID(
     if (!NT_SUCCESS(status))
         return status;
 
-    subAuthority = *RtlSubAuthoritySid(mandatoryLabel->Label.Sid, 0);
+    subAuthoritiesCount = *RtlSubAuthorityCountSid(mandatoryLabel->Label.Sid);
+
+    if (subAuthoritiesCount > 0)
+    {
+        subAuthority = *RtlSubAuthoritySid(mandatoryLabel->Label.Sid, subAuthoritiesCount - 1);
+    }
+    else
+    {
+        subAuthority = SECURITY_MANDATORY_UNTRUSTED_RID;
+    }
+
     PhFree(mandatoryLabel);
 
     if (IntegrityString)
