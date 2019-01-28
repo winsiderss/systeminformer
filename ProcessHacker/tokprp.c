@@ -1969,33 +1969,73 @@ INT_PTR CALLBACK PhpTokenCapabilitiesPageProc(
                             ULONG subAuthoritiesCount;
                             ULONG subAuthority;
 
-                            subAuthoritiesCount = *(PULONG)RtlSubAuthorityCountSid(tokenPageContext->Capabilities->Groups[i].Sid);
-                            subAuthority = *(PULONG)RtlSubAuthoritySid(tokenPageContext->Capabilities->Groups[i].Sid, 0);
+                            subAuthoritiesCount = *RtlSubAuthorityCountSid(tokenPageContext->Capabilities->Groups[i].Sid);
+                            subAuthority = *RtlSubAuthoritySid(tokenPageContext->Capabilities->Groups[i].Sid, 0);
 
-                            //memcmp((BYTE[])SECURITY_APP_PACKAGE_AUTHORITY, RtlIdentifierAuthoritySid(tokenPageContext->Capabilities->Groups[i].Sid), sizeof((BYTE[])SECURITY_APP_PACKAGE_AUTHORITY))
-                            if (
-                                subAuthoritiesCount == SECURITY_CAPABILITY_RID_COUNT &&
-                                subAuthority == SECURITY_CAPABILITY_BASE_RID
-                                )
+                            // RtlIdentifierAuthoritySid(tokenPageContext->Capabilities->Groups[i].Sid) == (BYTE[])SECURITY_APP_PACKAGE_AUTHORITY
+                            if (subAuthority == SECURITY_CAPABILITY_BASE_RID)
                             {
-                                GUID capabilityGuid;
-                                ULONG firstPart;
-                                ULONG secondPart;
-                                ULONG thirdPart;
-                                ULONG lastPart;
+                                if (subAuthoritiesCount == SECURITY_APP_PACKAGE_RID_COUNT)
+                                {
+                                    PTOKEN_APPCONTAINER_INFORMATION appContainerInfo;
 
-                                firstPart = *(PULONG)RtlSubAuthoritySid(tokenPageContext->Capabilities->Groups[i].Sid, 1);
-                                secondPart = *(PULONG)RtlSubAuthoritySid(tokenPageContext->Capabilities->Groups[i].Sid, 2);
-                                thirdPart = *(PULONG)RtlSubAuthoritySid(tokenPageContext->Capabilities->Groups[i].Sid, 3);
-                                lastPart = *(PULONG)RtlSubAuthoritySid(tokenPageContext->Capabilities->Groups[i].Sid, 4);
+                                    //if (*RtlSubAuthoritySid(tokenPageContext->Capabilities->Groups[i].Sid, 1) == SECURITY_CAPABILITY_APP_RID)
+                                    //    continue;
 
-                                capabilityGuid.Data1 = firstPart;
-                                capabilityGuid.Data2 = LOWORD(secondPart);
-                                capabilityGuid.Data3 = HIWORD(secondPart);
-                                memcpy(capabilityGuid.Data4, &thirdPart, sizeof(ULONG));
-                                memcpy(capabilityGuid.Data4 + sizeof(ULONG), &lastPart, sizeof(ULONG));
+                                    if (NT_SUCCESS(PhQueryTokenVariableSize(tokenHandle, TokenAppContainerSid, &appContainerInfo)))
+                                    {
+                                        if (appContainerInfo->TokenAppContainer)
+                                        {
+                                            BOOLEAN isPackageCapability = TRUE;
 
-                                name = PhFormatGuid(&capabilityGuid);
+                                            for (ULONG ii = 1; ii < subAuthoritiesCount - 1; ii++)
+                                            {
+                                                if (
+                                                    *RtlSubAuthoritySid(appContainerInfo->TokenAppContainer, ii) !=
+                                                    *RtlSubAuthoritySid(tokenPageContext->Capabilities->Groups[i].Sid, ii)
+                                                    )
+                                                {
+                                                    isPackageCapability = FALSE;
+                                                    break;
+                                                }
+                                            }
+
+                                            if (isPackageCapability)
+                                            {
+                                                HANDLE processHandle;
+
+                                                if (NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, (HANDLE)tokenPageContext->Context)))
+                                                {
+                                                    name = PhGetProcessPackageFullName(processHandle);
+                                                    NtClose(processHandle);
+                                                }
+                                            }
+                                        }
+
+                                        PhFree(appContainerInfo);
+                                    }
+                                }
+                                else if (subAuthoritiesCount == SECURITY_CAPABILITY_RID_COUNT)
+                                {
+                                    GUID capabilityGuid;
+                                    ULONG firstPart;
+                                    ULONG secondPart;
+                                    ULONG thirdPart;
+                                    ULONG lastPart;
+
+                                    firstPart = *RtlSubAuthoritySid(tokenPageContext->Capabilities->Groups[i].Sid, 1);
+                                    secondPart = *RtlSubAuthoritySid(tokenPageContext->Capabilities->Groups[i].Sid, 2);
+                                    thirdPart = *RtlSubAuthoritySid(tokenPageContext->Capabilities->Groups[i].Sid, 3);
+                                    lastPart = *RtlSubAuthoritySid(tokenPageContext->Capabilities->Groups[i].Sid, 4);
+
+                                    capabilityGuid.Data1 = firstPart;
+                                    capabilityGuid.Data2 = LOWORD(secondPart);
+                                    capabilityGuid.Data3 = HIWORD(secondPart);
+                                    *((PULONG)&capabilityGuid.Data4[0]) = thirdPart;
+                                    *((PULONG)&capabilityGuid.Data4[4]) = lastPart;
+
+                                    name = PhFormatGuid(&capabilityGuid);
+                                }
                             }
                         }
 
@@ -2330,6 +2370,8 @@ PPH_STRING PhGetSecurityAttributeFlagsString(
         PhAppendStringBuilder2(&sb, L"Case-sensitive, ");
     if (Flags & TOKEN_SECURITY_ATTRIBUTE_NON_INHERITABLE)
         PhAppendStringBuilder2(&sb, L"Non-inheritable, ");
+    if (Flags & TOKEN_SECURITY_ATTRIBUTE_COMPARE_IGNORE)
+        PhAppendStringBuilder2(&sb, L"Compare-Ignore, ");
 
     if (sb.String->Length != 0)
         PhRemoveEndStringBuilder(&sb, 2);
@@ -2471,7 +2513,7 @@ BOOLEAN PhpAddTokenClaimAttributes(
             // Flags
             temp = PhGetSecurityAttributeFlagsString(attribute->Flags);
             PhpAddAttributeNode(&TokenPageContext->ClaimsTreeContext, node,
-                PhFormatString(L"Flags: %s", temp->Buffer));
+                PhFormatString(L"Flags: %s (0x%lx)", temp->Buffer, attribute->Flags));
             PhDereferenceObject(temp);
 
             // Values
@@ -2637,7 +2679,7 @@ BOOLEAN PhpAddTokenAttributes(
             // Flags
             temp = PhGetSecurityAttributeFlagsString(attribute->Flags);
             PhpAddAttributeNode(&TokenPageContext->AuthzTreeContext, node,
-                PhFormatString(L"Flags: %s", temp->Buffer));
+                PhFormatString(L"Flags: %s (0x%lx)", temp->Buffer, attribute->Flags));
             PhDereferenceObject(temp);
 
             // Values
