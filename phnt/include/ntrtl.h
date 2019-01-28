@@ -3389,6 +3389,13 @@ RtlDetermineDosPathNameType_U(
     );
 
 NTSYSAPI
+RTL_PATH_TYPE
+NTAPI
+RtlDetermineDosPathNameType_Ustr(
+    _In_ PCUNICODE_STRING DosFileName
+    );
+
+NTSYSAPI
 ULONG
 NTAPI
 RtlIsDosDeviceName_U(
