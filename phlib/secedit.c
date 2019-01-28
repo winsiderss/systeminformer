@@ -629,8 +629,7 @@ ULONG STDMETHODCALLTYPE PhSecurityDataObject_Release(
 
     if (this->RefCount == 0)
     {
-        for (ULONG i = 0; i < this->NameCache->Count; i++)
-            PhDereferenceObject(this->NameCache->Items[i]);
+        PhDereferenceObjects(this->NameCache->Items, this->NameCache->Count);
         PhDereferenceObject(this->NameCache);
 
         PhFree(this);
