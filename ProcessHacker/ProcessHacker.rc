@@ -423,29 +423,6 @@ BEGIN
     END
 END
 
-IDR_MEMFILTER MENU
-BEGIN
-    POPUP "Filter"
-    BEGIN
-        MENUITEM "Contains...",                 ID_FILTER_CONTAINS
-        MENUITEM "Contains (case-insensitive)...", ID_FILTER_CONTAINS_CASEINSENSITIVE
-        MENUITEM "Regex...",                    ID_FILTER_REGEX
-        MENUITEM "Regex (case-insensitive)...", ID_FILTER_REGEX_CASEINSENSITIVE
-    END
-END
-
-IDR_EMPTYMEMLISTS MENU
-BEGIN
-    POPUP "Empty"
-    BEGIN
-        MENUITEM "&Combine memory lists",       ID_EMPTY_COMBINEMEMORYLISTS
-        MENUITEM "Empty &working sets",         ID_EMPTY_EMPTYWORKINGSETS
-        MENUITEM "Empty &modified page list",   ID_EMPTY_EMPTYMODIFIEDPAGELIST
-        MENUITEM "Empty &standby list",         ID_EMPTY_EMPTYSTANDBYLIST
-        MENUITEM "Empty &priority 0 standby list", ID_EMPTY_EMPTYPRIORITY0STANDBYLIST
-    END
-END
-
 IDR_MINIINFO MENU
 BEGIN
     POPUP "Mini Info"
