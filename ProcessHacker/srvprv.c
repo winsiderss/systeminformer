@@ -1221,11 +1221,20 @@ NTSTATUS PhpServiceNonPollThreadStart(
                     break;
                 case SnAdding:
                     {
-                        notifyContext->ServiceHandle =
-                            OpenService(scManagerHandle, notifyContext->ServiceName->Buffer, SERVICE_QUERY_STATUS | SERVICE_QUERY_CONFIG);
+                        notifyContext->ServiceHandle = OpenService(
+                            scManagerHandle,
+                            notifyContext->ServiceName->Buffer,
+                            SERVICE_QUERY_STATUS | SERVICE_QUERY_CONFIG
+                            );
 
                         if (!notifyContext->ServiceHandle)
-                            OpenService(scManagerHandle, notifyContext->ServiceName->Buffer, SERVICE_QUERY_STATUS);
+                        {
+                            notifyContext->ServiceHandle = OpenService(
+                                scManagerHandle,
+                                notifyContext->ServiceName->Buffer,
+                                SERVICE_QUERY_STATUS
+                                );
+                        }
 
                         if (!notifyContext->ServiceHandle)
                         {
