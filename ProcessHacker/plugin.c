@@ -187,11 +187,13 @@ static BOOLEAN EnumPluginsDirectoryCallback(
     _In_opt_ PVOID Context
     )
 {
-    static PWSTR PhpPluginBlocklist[] =
+    static PH_STRINGREF PhpPluginExtension = PH_STRINGREF_INIT(L".dll");
+    static PH_STRINGREF PhpPluginBlocklist[] =
     {
-        L"CommonUtil.dll",
-        L"ExtraPlugins.dll",
-        L"SbieSupport.dll"
+        PH_STRINGREF_INIT(L"CommonUtil.dll"),
+        PH_STRINGREF_INIT(L"ExtraPlugins.dll"),
+        PH_STRINGREF_INIT(L"SbieSupport.dll"),
+        PH_STRINGREF_INIT(L"HexPidPlugin.dll")
     };
     BOOLEAN blocklistedPlugin = FALSE;
     PH_STRINGREF baseName;
@@ -201,12 +203,12 @@ static BOOLEAN EnumPluginsDirectoryCallback(
     baseName.Length = Information->FileNameLength;
 
     // Note: The *.dll pattern passed to NtQueryDirectoryFile includes extensions other than dll (For example: *.dll* or .dllmanifest). (dmex)
-    if (!PhEndsWithStringRef2(&baseName, L".dll", FALSE))
+    if (!PhEndsWithStringRef(&baseName, &PhpPluginExtension, FALSE))
         return TRUE;
 
     for (ULONG i = 0; i < RTL_NUMBER_OF(PhpPluginBlocklist); i++)
     {
-        if (PhEndsWithStringRef2(&baseName, PhpPluginBlocklist[i], TRUE))
+        if (PhEndsWithStringRef(&baseName, &PhpPluginBlocklist[i], TRUE))
         {
             blocklistedPlugin = TRUE;
             break;
