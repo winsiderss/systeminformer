@@ -607,3 +607,172 @@ PPH_STRING PhGetCapabilitySidName(
 
     return NULL;
 }
+
+typedef struct _PH_CAPABILITY_GUID_ENTRY
+{
+    PPH_STRING Name;
+    PPH_STRING CapabilityGuid;
+} PH_CAPABILITY_GUID_ENTRY, *PPH_CAPABILITY_GUID_ENTRY;
+
+PH_ARRAY PhpCapGuidArrayList;
+
+BOOLEAN NTAPI PhpTokenEnumerateKeyCallback(
+    _In_ PKEY_BASIC_INFORMATION Information,
+    _In_opt_ PVOID Context
+    )
+{
+    PhAddItemList(Context, PhCreateStringEx(Information->Name, Information->NameLength));
+    return TRUE;
+}
+
+VOID PhInitializeCapabilityGuidCache(
+    VOID
+    )
+{
+    static PH_STRINGREF accessManagerKeyPath = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\Capabilities");
+    static PH_STRINGREF deviceAccessKeyPath = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\DeviceAccess\\CapabilityMappings");
+    HANDLE keyHandle;
+    ULONG i;
+
+    PhInitializeArray(&PhpCapGuidArrayList, sizeof(PH_CAPABILITY_GUID_ENTRY), 100);
+
+    if (NT_SUCCESS(PhOpenKey(
+        &keyHandle,
+        KEY_READ,
+        PH_KEY_LOCAL_MACHINE,
+        &accessManagerKeyPath,
+        0
+        )))
+    {
+        PPH_LIST capabilityNameList;
+
+        capabilityNameList = PhCreateList(1);
+        PhEnumerateKey(keyHandle, PhpTokenEnumerateKeyCallback, capabilityNameList);
+
+        for (i = 0; i < capabilityNameList->Count; i++)
+        {
+            HANDLE subKeyHandle;
+            PPH_STRING subKeyName;
+            PPH_STRING guidString;
+
+            subKeyName = capabilityNameList->Items[i];
+
+            if (NT_SUCCESS(PhOpenKey(
+                &subKeyHandle,
+                KEY_READ,
+                keyHandle,
+                &subKeyName->sr,
+                0
+                )))
+            {
+                if (guidString = PhQueryRegistryString(subKeyHandle, L"LegacyInterfaceClassGuid"))
+                {
+                    PH_CAPABILITY_GUID_ENTRY entry;
+
+                    PhSetReference(&entry.Name, subKeyName);
+                    PhSetReference(&entry.CapabilityGuid, guidString);
+                    PhAddItemArray(&PhpCapGuidArrayList, &entry);
+
+                    PhDereferenceObject(guidString);
+                }
+
+                NtClose(subKeyHandle);
+            }
+        }
+
+        PhDereferenceObjects(capabilityNameList->Items, capabilityNameList->Count);
+        PhDereferenceObject(capabilityNameList);
+
+        NtClose(keyHandle);
+    }
+
+    if (NT_SUCCESS(PhOpenKey(
+        &keyHandle,
+        KEY_READ,
+        PH_KEY_LOCAL_MACHINE,
+        &deviceAccessKeyPath,
+        0
+        )))
+    {
+        PPH_LIST capabilityNameList;
+
+        capabilityNameList = PhCreateList(1);
+        PhEnumerateKey(keyHandle, PhpTokenEnumerateKeyCallback, capabilityNameList);
+
+        for (i = 0; i < capabilityNameList->Count; i++)
+        {
+            HANDLE subKeyHandle;
+            PPH_STRING subKeyName;
+
+            subKeyName = capabilityNameList->Items[i];
+
+            if (NT_SUCCESS(PhOpenKey(
+                &subKeyHandle,
+                KEY_READ,
+                keyHandle,
+                &subKeyName->sr,
+                0
+                )))
+            {
+                PPH_LIST capabilityGuidList;
+                ULONG ii;
+
+                capabilityGuidList = PhCreateList(1);
+                PhEnumerateKey(subKeyHandle, PhpTokenEnumerateKeyCallback, capabilityGuidList);
+
+                for (ii = 0; ii < capabilityGuidList->Count; ii++)
+                {
+                    PPH_STRING guidString;
+                    PH_CAPABILITY_GUID_ENTRY entry;
+
+                    guidString = capabilityGuidList->Items[ii];
+
+                    PhSetReference(&entry.Name, subKeyName);
+                    entry.CapabilityGuid = guidString;
+
+                    PhAddItemArray(&PhpCapGuidArrayList, &entry);
+                }
+
+                PhDereferenceObjects(capabilityGuidList->Items, capabilityGuidList->Count);
+                PhDereferenceObject(capabilityGuidList);
+
+                NtClose(subKeyHandle);
+            }
+        }
+
+        PhDereferenceObjects(capabilityNameList->Items, capabilityNameList->Count);
+        PhDereferenceObject(capabilityNameList);
+
+        NtClose(keyHandle);
+    }
+}
+
+PPH_STRING PhGetCapabilityGuidName(
+    _In_ PPH_STRING GuidString
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    PPH_CAPABILITY_GUID_ENTRY entry;
+    ULONG i;
+
+    if (WindowsVersion < WINDOWS_8)
+        return NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PhInitializeCapabilityGuidCache();
+        PhEndInitOnce(&initOnce);
+    }
+
+    for (i = 0; i < PhpCapGuidArrayList.Count; i++)
+    {
+        entry = PhItemArray(&PhpCapGuidArrayList, i);
+
+        if (PhEqualString(entry->CapabilityGuid, GuidString, TRUE))
+        {
+            return PhReferenceObject(entry->Name);
+        }
+    }
+
+    return NULL;
+}
