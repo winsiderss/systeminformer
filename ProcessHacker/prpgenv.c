@@ -184,19 +184,29 @@ VOID PhpRefreshEnvironmentList(
         }
     }
 
-    if (CreateEnvironmentBlock)
-    {
-        CreateEnvironmentBlock(&Context->SystemDefaultEnvironment, NULL, FALSE);
-        CreateEnvironmentBlock(&Context->UserDefaultEnvironment, PhGetOwnTokenAttributes().TokenHandle, FALSE);
-    }
-
     if (NT_SUCCESS(PhOpenProcess(
         &processHandle,
         PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
         ProcessItem->ProcessId
         )))
     {
+        HANDLE tokenHandle;
         ULONG flags = 0;
+
+        if (CreateEnvironmentBlock)
+        {
+            CreateEnvironmentBlock(&Context->SystemDefaultEnvironment, NULL, FALSE);
+
+            if (NT_SUCCESS(PhOpenProcessToken(
+                processHandle,
+                TOKEN_QUERY | TOKEN_DUPLICATE,
+                &tokenHandle
+                )))
+            {
+                CreateEnvironmentBlock(&Context->UserDefaultEnvironment, tokenHandle, FALSE);
+                NtClose(tokenHandle);
+            }
+        }
 
 #ifdef _WIN64
         if (ProcessItem->IsWow64)
@@ -240,7 +250,7 @@ VOID PhpRefreshEnvironmentList(
 
         item = PhItemArray(&Context->Items, i);
 
-        if (PhQueryEnvironmentVariable(
+        if (Context->SystemDefaultEnvironment && PhQueryEnvironmentVariable(
             Context->SystemDefaultEnvironment,
             &item->Name->sr,
             NULL
@@ -264,7 +274,7 @@ VOID PhpRefreshEnvironmentList(
                 PhDereferenceObject(variableValue);
             }
         }
-        else if (PhQueryEnvironmentVariable(
+        else if (Context->UserDefaultEnvironment && PhQueryEnvironmentVariable(
             Context->UserDefaultEnvironment,
             &item->Name->sr,
             NULL
