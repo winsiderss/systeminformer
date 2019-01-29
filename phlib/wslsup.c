@@ -73,26 +73,26 @@ PPH_STRING PhGetWslDistributionFromPath(
                 0
                 )))
             {
-                PPH_STRING basePathName = PhQueryRegistryString(subKeyHandle, L"BasePath");
+                PPH_STRING lxssBasePathName = PhQueryRegistryString(subKeyHandle, L"BasePath");
 
-                if (PhStartsWithString(FileName, basePathName, TRUE))
+                if (PhStartsWithString(FileName, lxssBasePathName, TRUE))
                 {
                     lxssDistributionName = PhQueryRegistryString(subKeyHandle, L"DistributionName");
                     
                     if (LxssDistroPath)
                     {
-                        PhSetReference(&lxssDistroPath, basePathName);
+                        PhSetReference(&lxssDistroPath, lxssBasePathName);
                     }
 
                     if (LxssFileName)
                     {
                         lxssFileName = PhDuplicateString(FileName);
-                        PhSkipStringRef(&lxssFileName->sr, basePathName->Length);
+                        PhSkipStringRef(&lxssFileName->sr, lxssBasePathName->Length);
                         PhSkipStringRef(&lxssFileName->sr, sizeof(L"rootfs"));
                     }
                 }
 
-                PhDereferenceObject(basePathName);
+                PhDereferenceObject(lxssBasePathName);
                 NtClose(subKeyHandle);
             }
 
