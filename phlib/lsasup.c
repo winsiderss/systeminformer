@@ -728,7 +728,7 @@ VOID PhInitializeCapabilityGuidCache(
                     guidString = capabilityGuidList->Items[ii];
 
                     PhSetReference(&entry.Name, subKeyName);
-                    entry.CapabilityGuid = guidString;
+                    PhSetReference(&entry.CapabilityGuid, guidString);
 
                     PhAddItemArray(&PhpCapGuidArrayList, &entry);
                 }
