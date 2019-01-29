@@ -2017,6 +2017,7 @@ INT_PTR CALLBACK PhpTokenCapabilitiesPageProc(
                                 }
                                 else if (subAuthoritiesCount == SECURITY_CAPABILITY_RID_COUNT)
                                 {
+                                    PPH_STRING capabilityName;
                                     GUID capabilityGuid;
                                     ULONG firstPart;
                                     ULONG secondPart;
@@ -2034,7 +2035,13 @@ INT_PTR CALLBACK PhpTokenCapabilitiesPageProc(
                                     *((PULONG)&capabilityGuid.Data4[0]) = thirdPart;
                                     *((PULONG)&capabilityGuid.Data4[4]) = lastPart;
 
-                                    name = PhFormatGuid(&capabilityGuid);
+                                    if (name = PhFormatGuid(&capabilityGuid))
+                                    {
+                                        if (capabilityName = PhGetCapabilityGuidName(name))
+                                        {
+                                            PhMoveReference(&name, capabilityName);
+                                        }
+                                    }
                                 }
                             }
                         }
