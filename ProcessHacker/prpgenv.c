@@ -35,9 +35,11 @@
 
 typedef enum _ENVIRONMENT_TREE_MENU_ITEM
 {
-    ENVIRONMENT_TREE_MENU_ITEM_HIDE_PROCESS_TYPE = 1,
+    ENVIRONMENT_TREE_MENU_ITEM_HIDE_SUBSTITUTION_TYPE = 1,
+    ENVIRONMENT_TREE_MENU_ITEM_HIDE_PROCESS_TYPE,
     ENVIRONMENT_TREE_MENU_ITEM_HIDE_USER_TYPE,
     ENVIRONMENT_TREE_MENU_ITEM_HIDE_SYSTEM_TYPE,
+    ENVIRONMENT_TREE_MENU_ITEM_HIGHLIGHT_SUBSTITUTION_TYPE,
     ENVIRONMENT_TREE_MENU_ITEM_HIGHLIGHT_PROCESS_TYPE,
     ENVIRONMENT_TREE_MENU_ITEM_HIGHLIGHT_USER_TYPE,
     ENVIRONMENT_TREE_MENU_ITEM_HIGHLIGHT_SYSTEM_TYPE,
@@ -63,6 +65,7 @@ typedef enum _ENVIRONMENT_TREE_COLUMN_ITEM_NAME
 typedef enum _PROCESS_ENVIRONMENT_TREENODE_TYPE
 {
     PROCESS_ENVIRONMENT_TREENODE_TYPE_GROUP,
+    PROCESS_ENVIRONMENT_TREENODE_TYPE_SUBSTITUTION,
     PROCESS_ENVIRONMENT_TREENODE_TYPE_PROCESS,
     PROCESS_ENVIRONMENT_TREENODE_TYPE_USER,
     PROCESS_ENVIRONMENT_TREENODE_TYPE_SYSTEM
@@ -159,12 +162,14 @@ VOID PhpRefreshEnvironmentList(
     ULONG enumerationKey;
     PH_ENVIRONMENT_VARIABLE variable;
     PPH_ENVIRONMENT_ITEM item;
+    PPHP_PROCESS_ENVIRONMENT_TREENODE substitutionRootNode;
     PPHP_PROCESS_ENVIRONMENT_TREENODE processRootNode;
     PPHP_PROCESS_ENVIRONMENT_TREENODE userRootNode;
     PPHP_PROCESS_ENVIRONMENT_TREENODE systemRootNode;
     ULONG i;
 
     PhpClearEnvironmentTree(Context);
+    substitutionRootNode = PhpAddEnvironmentChildNode(Context, NULL, 0, 0, PhaCreateString(L"Substitutions"), NULL);
     processRootNode = PhpAddEnvironmentChildNode(Context, NULL, 0, 0, PhaCreateString(L"Process"), NULL);
     userRootNode = PhpAddEnvironmentChildNode(Context, NULL, 0, 0, PhaCreateString(L"User"), NULL);
     systemRootNode = PhpAddEnvironmentChildNode(Context, NULL, 0, 0, PhaCreateString(L"System"), NULL);
@@ -226,8 +231,9 @@ VOID PhpRefreshEnvironmentList(
             {
                 PH_ENVIRONMENT_ITEM item;
 
-                // Don't display pairs with no name.
-                if (variable.Name.Length == 0)
+                // Remove the most confusing item. Some say it's just a weird per-drive current directory 
+                // with a colon used as a drive letter for some reason. It should not be here. (diversenok)
+                if (PhEqualStringZ(variable.Name.Buffer, L"=::=::\\", FALSE))
                     continue;
 
                 item.Name = PhCreateString2(&variable.Name);
@@ -250,7 +256,12 @@ VOID PhpRefreshEnvironmentList(
 
         item = PhItemArray(&Context->Items, i);
 
-        if (Context->SystemDefaultEnvironment && PhQueryEnvironmentVariable(
+        if (PhStartsWithString2(item->Name, L"=", FALSE))
+        {
+            nodeType = PROCESS_ENVIRONMENT_TREENODE_TYPE_SUBSTITUTION;
+            parentNode = substitutionRootNode;
+        }
+        else if (Context->SystemDefaultEnvironment && PhQueryEnvironmentVariable(
             Context->SystemDefaultEnvironment,
             &item->Name->sr,
             NULL
@@ -727,6 +738,9 @@ VOID PhSetOptionsEnvironmentList(
 {
     switch (Options)
     {
+    case ENVIRONMENT_TREE_MENU_ITEM_HIDE_SUBSTITUTION_TYPE:
+        Context->HideSubstitutionEnvironment = !Context->HideSubstitutionEnvironment;
+        break;
     case ENVIRONMENT_TREE_MENU_ITEM_HIDE_PROCESS_TYPE:
         Context->HideProcessEnvironment = !Context->HideProcessEnvironment;
         break;
@@ -735,6 +749,9 @@ VOID PhSetOptionsEnvironmentList(
         break;
     case ENVIRONMENT_TREE_MENU_ITEM_HIDE_SYSTEM_TYPE:
         Context->HideSystemEnvironment = !Context->HideSystemEnvironment;
+        break;
+    case ENVIRONMENT_TREE_MENU_ITEM_HIGHLIGHT_SUBSTITUTION_TYPE:
+        Context->HighlightSubstitutionEnvironment = !Context->HighlightSubstitutionEnvironment;
         break;
     case ENVIRONMENT_TREE_MENU_ITEM_HIGHLIGHT_PROCESS_TYPE:
         Context->HighlightProcessEnvironment = !Context->HighlightProcessEnvironment;
@@ -1067,7 +1084,9 @@ BOOLEAN NTAPI PhpEnvironmentTreeNewCallback(
             }
             else
             {
-                if (context->HighlightProcessEnvironment && node->Type == PROCESS_ENVIRONMENT_TREENODE_TYPE_PROCESS)
+                if (context->HighlightSubstitutionEnvironment && node->Type == PROCESS_ENVIRONMENT_TREENODE_TYPE_SUBSTITUTION)
+                    getNodeColor->BackColor = PhCsColorDebuggedProcesses;
+                else if (context->HighlightProcessEnvironment && node->Type == PROCESS_ENVIRONMENT_TREENODE_TYPE_PROCESS)
                     getNodeColor->BackColor = PhCsColorServiceProcesses;
                 else if (context->HighlightUserEnvironment && node->Type == PROCESS_ENVIRONMENT_TREENODE_TYPE_USER)
                     getNodeColor->BackColor = PhCsColorOwnProcesses;
@@ -1242,6 +1261,8 @@ BOOLEAN PhpProcessEnvironmentTreeFilterCallback(
     if (context->TreeNewSortOrder != NoSortOrder && environmentNode->HasChildren)
         return FALSE;
 
+    if (context->HideSubstitutionEnvironment && environmentNode->Type == PROCESS_ENVIRONMENT_TREENODE_TYPE_SUBSTITUTION)
+        return FALSE;
     if (context->HideProcessEnvironment && environmentNode->Type == PROCESS_ENVIRONMENT_TREENODE_TYPE_PROCESS)
         return FALSE;
     if (context->HideUserEnvironment && environmentNode->Type == PROCESS_ENVIRONMENT_TREENODE_TYPE_USER)
@@ -1379,9 +1400,11 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
                 {
                     RECT rect;
                     PPH_EMENU menu;
+                    PPH_EMENU_ITEM substitutionMenuItem;
                     PPH_EMENU_ITEM processMenuItem;
                     PPH_EMENU_ITEM userMenuItem;
                     PPH_EMENU_ITEM systemMenuItem;
+                    PPH_EMENU_ITEM highlightSubstitutionMenuItem;
                     PPH_EMENU_ITEM highlightProcessMenuItem;
                     PPH_EMENU_ITEM highlightUserMenuItem;
                     PPH_EMENU_ITEM highlightSystemMenuItem;
@@ -1390,31 +1413,39 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
 
                     GetWindowRect(GetDlgItem(hwndDlg, IDC_OPTIONS), &rect);
 
+                    substitutionMenuItem = PhCreateEMenuItem(0, ENVIRONMENT_TREE_MENU_ITEM_HIDE_SUBSTITUTION_TYPE, L"Hide substitutions", NULL, NULL);
                     processMenuItem = PhCreateEMenuItem(0, ENVIRONMENT_TREE_MENU_ITEM_HIDE_PROCESS_TYPE, L"Hide process", NULL, NULL);
                     userMenuItem = PhCreateEMenuItem(0, ENVIRONMENT_TREE_MENU_ITEM_HIDE_USER_TYPE, L"Hide user", NULL, NULL);
                     systemMenuItem = PhCreateEMenuItem(0, ENVIRONMENT_TREE_MENU_ITEM_HIDE_SYSTEM_TYPE, L"Hide system", NULL, NULL);
+                    highlightSubstitutionMenuItem = PhCreateEMenuItem(0, ENVIRONMENT_TREE_MENU_ITEM_HIGHLIGHT_SUBSTITUTION_TYPE, L"Highlight substitutions", NULL, NULL);
                     highlightProcessMenuItem = PhCreateEMenuItem(0, ENVIRONMENT_TREE_MENU_ITEM_HIGHLIGHT_PROCESS_TYPE, L"Highlight process", NULL, NULL);
                     highlightUserMenuItem = PhCreateEMenuItem(0, ENVIRONMENT_TREE_MENU_ITEM_HIGHLIGHT_USER_TYPE, L"Highlight user", NULL, NULL);
                     highlightSystemMenuItem = PhCreateEMenuItem(0, ENVIRONMENT_TREE_MENU_ITEM_HIGHLIGHT_SYSTEM_TYPE, L"Highlight system", NULL, NULL);
                     newProcessMenuItem = PhCreateEMenuItem(0, ENVIRONMENT_TREE_MENU_ITEM_NEW_ENVIRONMENT_VARIABLE, L"New variable...", NULL, NULL);
 
                     menu = PhCreateEMenu();
+                    PhInsertEMenuItem(menu, substitutionMenuItem, ULONG_MAX);
                     PhInsertEMenuItem(menu, processMenuItem, ULONG_MAX);
                     PhInsertEMenuItem(menu, userMenuItem, ULONG_MAX);
                     PhInsertEMenuItem(menu, systemMenuItem, ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+                    PhInsertEMenuItem(menu, highlightSubstitutionMenuItem, ULONG_MAX);
                     PhInsertEMenuItem(menu, highlightProcessMenuItem, ULONG_MAX);
                     PhInsertEMenuItem(menu, highlightUserMenuItem, ULONG_MAX);
                     PhInsertEMenuItem(menu, highlightSystemMenuItem, ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                     PhInsertEMenuItem(menu, newProcessMenuItem, ULONG_MAX);
 
+                    if (context->HideSubstitutionEnvironment)
+                        substitutionMenuItem->Flags |= PH_EMENU_CHECKED;
                     if (context->HideProcessEnvironment)
                         processMenuItem->Flags |= PH_EMENU_CHECKED;
                     if (context->HideUserEnvironment)
                         userMenuItem->Flags |= PH_EMENU_CHECKED;
                     if (context->HideSystemEnvironment)
                         systemMenuItem->Flags |= PH_EMENU_CHECKED;
+                    if (context->HighlightSubstitutionEnvironment)
+                        highlightSubstitutionMenuItem->Flags |= PH_EMENU_CHECKED;
                     if (context->HighlightProcessEnvironment)
                         highlightProcessMenuItem->Flags |= PH_EMENU_CHECKED;
                     if (context->HighlightUserEnvironment)
