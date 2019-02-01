@@ -743,6 +743,8 @@ INT_PTR CALLBACK PhpTokenPageProc(
                 PPH_STRING appContainerName;
                 PPH_STRING appContainerSid;
 
+                // TOKEN_BNO_ISOLATION_INFORMATION
+
                 if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
                 {
                     if (fullUserName = PhGetSidFullName(tokenUser->User.Sid, TRUE, NULL))
@@ -1986,21 +1988,7 @@ INT_PTR CALLBACK PhpTokenCapabilitiesPageProc(
                                     {
                                         if (appContainerInfo->TokenAppContainer)
                                         {
-                                            BOOLEAN isPackageCapability = TRUE;
-
-                                            for (ULONG ii = 1; ii < subAuthoritiesCount - 1; ii++)
-                                            {
-                                                if (
-                                                    *RtlSubAuthoritySid(appContainerInfo->TokenAppContainer, ii) !=
-                                                    *RtlSubAuthoritySid(tokenPageContext->Capabilities->Groups[i].Sid, ii)
-                                                    )
-                                                {
-                                                    isPackageCapability = FALSE;
-                                                    break;
-                                                }
-                                            }
-
-                                            if (isPackageCapability)
+                                            if (PhIsPackageCapabilitySid(appContainerInfo->TokenAppContainer, tokenPageContext->Capabilities->Groups[i].Sid))
                                             {
                                                 HANDLE processHandle;
 
