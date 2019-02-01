@@ -1834,7 +1834,6 @@ INT_PTR CALLBACK DotNetPerfPageDlgProc(
                 if (numberOfItems != 0)
                 {
                     menu = PhCreateEMenu();
-
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_CLR_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
                     PhInsertCopyListViewEMenuItem(menu, ID_CLR_COPY, listViewHandle);
 
@@ -1845,7 +1844,7 @@ INT_PTR CALLBACK DotNetPerfPageDlgProc(
                         PH_ALIGN_LEFT | PH_ALIGN_TOP,
                         point.x,
                         point.y
-                    );
+                        );
 
                     if (item)
                     {
