@@ -366,11 +366,7 @@ static VOID PhpDeleteNewObjectList(
 {
     if (NewObjectList)
     {
-        ULONG i;
-
-        for (i = 0; i < NewObjectList->Count; i++)
-            PhDereferenceObject(NewObjectList->Items[i]);
-
+        PhDereferenceObjects(NewObjectList->Items, NewObjectList->Count);
         PhDereferenceObject(NewObjectList);
         NewObjectList = NULL;
     }

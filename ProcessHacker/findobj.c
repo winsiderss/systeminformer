@@ -848,9 +848,7 @@ static NTSTATUS NTAPI SearchHandleFunction(
         {
             PPHP_OBJECT_SEARCH_RESULT searchResult;
 
-            searchResult = PhAllocate(sizeof(PHP_OBJECT_SEARCH_RESULT));
-            memset(searchResult, 0, sizeof(PHP_OBJECT_SEARCH_RESULT));
-
+            searchResult = PhAllocateZero(sizeof(PHP_OBJECT_SEARCH_RESULT));
             searchResult->ProcessId = (HANDLE)handleContext->HandleInfo->UniqueProcessId;
             searchResult->ResultType = HandleSearchResult;
             searchResult->Object = handleContext->HandleInfo->Object;
