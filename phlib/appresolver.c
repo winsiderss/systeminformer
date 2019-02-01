@@ -398,6 +398,28 @@ PPH_STRING PhGetProcessPackageFullName(
     return packageName;
 }
 
+BOOLEAN PhIsPackageCapabilitySid(
+    _In_ PSID AppContainerSid,
+    _In_ PSID Sid
+    )
+{
+    BOOLEAN isPackageCapability = TRUE;
+
+    for (ULONG i = 1; i < SECURITY_APP_PACKAGE_RID_COUNT - 1; i++)
+    {
+        if (
+            *RtlSubAuthoritySid(AppContainerSid, i) !=
+            *RtlSubAuthoritySid(Sid, i)
+            )
+        {
+            isPackageCapability = FALSE;
+            break;
+        }
+    }
+
+    return isPackageCapability;
+}
+
 BOOLEAN PhGetAppWindowingModel(
     _In_ HANDLE ProcessTokenHandle,
     _Out_ AppPolicyWindowingModel *ProcessWindowingModelPolicy
