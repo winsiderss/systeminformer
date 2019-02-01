@@ -495,10 +495,12 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation2_LookupSids(
     _Out_ LPDATAOBJECT *ppdo
     )
 {
+    PhSecurityInformation2 *this = (PhSecurityInformation2 *)This;
     PhSecurityIDataObject *dataObject;
 
     dataObject = PhAllocateZero(sizeof(PhSecurityInformation));
     dataObject->VTable = &PhDataObject_VTable;
+    dataObject->Context = this->Context;
     dataObject->RefCount = 1;
 
     dataObject->SidCount = cSids;
