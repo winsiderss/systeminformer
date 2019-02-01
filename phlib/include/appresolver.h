@@ -59,6 +59,11 @@ PPH_STRING PhGetProcessPackageFullName(
     _In_ HANDLE ProcessHandle
     );
 
+BOOLEAN PhIsPackageCapabilitySid(
+    _In_ PSID AppContainerSid,
+    _In_ PSID Sid
+    );
+
 PPH_STRING PhGetPackagePath(
     _In_ PPH_STRING PackageFullName
     );
