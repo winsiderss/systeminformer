@@ -24,6 +24,7 @@
 #include <wslsup.h>
 
 BOOLEAN NTAPI PhpWslDistributionNamesCallback(
+    _In_ HANDLE RootDirectory,
     _In_ PKEY_BASIC_INFORMATION Information,
     _In_opt_ PVOID Context
     )

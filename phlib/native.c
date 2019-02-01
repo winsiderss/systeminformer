@@ -6853,7 +6853,7 @@ NTSTATUS PhEnumerateKey(
     bufferSize = 0x100;
     buffer = PhAllocate(bufferSize);
 
-    while (TRUE)
+    do
     {
         status = NtEnumerateKey(
             KeyHandle,
@@ -6888,11 +6888,11 @@ NTSTATUS PhEnumerateKey(
         if (!NT_SUCCESS(status))
             break;
 
-        if (!Callback(buffer, Context))
+        if (!Callback(KeyHandle, buffer, Context))
             break;
 
         index++;
-    }
+    } while (TRUE);
 
     PhFree(buffer);
 
