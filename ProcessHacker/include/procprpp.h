@@ -347,7 +347,9 @@ typedef struct _PH_ENVIRONMENT_CONTEXT
             ULONG HighlightProcessEnvironment : 1;
             ULONG HighlightUserEnvironment : 1;
             ULONG HighlightSystemEnvironment : 1;
-            ULONG Spare : 25;
+            ULONG HideCmdTypeEnvironment : 1;
+            ULONG HighlightCmdEnvironment : 1;
+            ULONG Spare : 23;
         };
     };
 
