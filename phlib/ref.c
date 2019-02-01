@@ -242,7 +242,7 @@ VOID PhDereferenceObject(
     // Decrement the reference count.
     newRefCount = _InterlockedDecrement(&objectHeader->RefCount);
     ASSUME_ASSERT(newRefCount >= 0);
-    assert(!(newRefCount < 0));
+    ASSUME_ASSERT(!(newRefCount < 0));
 
     // Free the object if it has 0 references.
     if (newRefCount == 0)
