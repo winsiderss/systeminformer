@@ -43,11 +43,10 @@ typedef struct
 {
     IDataObjectVtbl *VTable;
 
+    PhSecurityInformation *Context;
     ULONG RefCount;
-
     ULONG SidCount;
     PSID *Sids;
-
     PPH_LIST NameCache;
 } PhSecurityIDataObject;
 
