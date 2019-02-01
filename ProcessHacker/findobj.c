@@ -1171,6 +1171,8 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
             else
                 PhCenterWindow(hwndDlg, PhMainWndHandle);
 
+            PhRegisterWindowCallback(hwndDlg, PH_PLUGIN_WINDOW_EVENT_TYPE_TOPMOST, NULL);
+
             context->SearchResults = PhCreateList(128);
             context->SearchResultsAddIndex = 0;
 
@@ -1233,6 +1235,8 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
 
             PhSetIntegerSetting(L"FindObjRegex", Button_GetCheck(GetDlgItem(hwndDlg, IDC_REGEX)) == BST_CHECKED);
             PhSaveWindowPlacementToSetting(L"FindObjWindowPosition", L"FindObjWindowSize", hwndDlg);
+
+            PhUnregisterWindowCallback(hwndDlg);
 
             PhDeleteLayoutManager(&context->LayoutManager);
 
