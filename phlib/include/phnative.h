@@ -1169,6 +1169,7 @@ PhQueryValueKey(
     );
 
 typedef BOOLEAN (NTAPI *PPH_ENUM_KEY_CALLBACK)(
+    _In_ HANDLE RootDirectory,
     _In_ PKEY_BASIC_INFORMATION Information,
     _In_opt_ PVOID Context
     );
