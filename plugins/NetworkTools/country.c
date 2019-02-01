@@ -29,13 +29,49 @@ BOOLEAN GeoDbExpired = FALSE;
 HIMAGELIST GeoImageList = NULL;
 static MMDB_s GeoDb = { 0 };
 
+PPH_STRING NetToolsGetGeoLiteDbPath(
+    VOID
+    )
+{
+    PPH_STRING databaseFile;
+    PPH_STRING directory;
+    PPH_STRING path;
+
+    if (!(databaseFile = PhGetExpandStringSetting(SETTING_NAME_DB_LOCATION)))
+        return NULL;
+
+    PhMoveReference(&databaseFile, PhGetBaseName(databaseFile));
+    directory = PH_AUTO(PhGetApplicationDirectory());
+    path = PH_AUTO(PhConcatStringRef2(&directory->sr, &databaseFile->sr));
+
+    if (RtlDoesFileExists_U(path->Buffer))
+    {
+        return PhReferenceObject(path);
+    }
+    else
+    {
+        path = PhaGetStringSetting(SETTING_NAME_DB_LOCATION);
+        path = PH_AUTO(PhExpandEnvironmentStrings(&path->sr));
+
+        if (RtlDetermineDosPathNameType_U(path->Buffer) == RtlPathTypeRelative)
+        {
+            directory = PH_AUTO(PhGetApplicationDirectory());
+            path = PH_AUTO(PhConcatStringRef2(&directory->sr, &path->sr));
+        }
+
+        return PhReferenceObject(path);
+    }
+
+    return NULL;
+}
+
 VOID LoadGeoLiteDb(
     VOID
     )
 {
     PPH_STRING dbpath;
 
-    dbpath = PhGetExpandStringSetting(SETTING_NAME_DB_LOCATION);
+    dbpath = NetToolsGetGeoLiteDbPath();
 
     if (PhIsNullOrEmptyString(dbpath))
         return;
