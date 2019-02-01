@@ -1094,6 +1094,8 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
             PhpUpdateHandleGeneralListViewGroups(context);
             PhpUpdateHandleGeneral(context);
 
+            PhRegisterWindowCallback(GetParent(hwndDlg), PH_PLUGIN_WINDOW_EVENT_TYPE_TOPMOST, NULL);
+
             if (PhEnableThemeSupport) // TODO: Required for compat (dmex)
                 PhInitializeWindowTheme(GetParent(hwndDlg), PhEnableThemeSupport);
             else
@@ -1102,6 +1104,8 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
         break;
     case WM_DESTROY:
         {
+            PhUnregisterWindowCallback(GetParent(hwndDlg));
+
             PhSaveWindowPlacementToSetting(L"HandlePropertiesWindowPosition", NULL, GetParent(hwndDlg)); // HACK
 
             PhDeleteLayoutManager(&context->LayoutManager);
