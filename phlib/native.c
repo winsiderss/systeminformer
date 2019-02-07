@@ -735,10 +735,9 @@ NTSTATUS PhGetProcessCommandLine(
     _Out_ PPH_STRING *CommandLine
     )
 {
-    NTSTATUS status;
-
     if (WindowsVersion >= WINDOWS_8_1)
     {
+        NTSTATUS status;
         PUNICODE_STRING commandLine;
 
         status = PhpQueryProcessVariableSize(
@@ -7226,7 +7225,7 @@ NTSTATUS PhCreateDirectory(
                         &directoryHandle,
                         PhGetString(tempPathString),
                         FILE_GENERIC_READ,
-                        FILE_ATTRIBUTE_NORMAL,
+                        FILE_ATTRIBUTE_DIRECTORY,
                         FILE_SHARE_READ | FILE_SHARE_WRITE,
                         FILE_CREATE,
                         FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_FOR_BACKUP_INTENT
@@ -7280,7 +7279,7 @@ static BOOLEAN PhpDeleteDirectoryCallback(
             &directoryHandle,
             PhGetString(fullName),
             FILE_GENERIC_READ | DELETE,
-            FILE_ATTRIBUTE_NORMAL,
+            FILE_ATTRIBUTE_DIRECTORY,
             FILE_SHARE_READ | FILE_SHARE_DELETE,
             FILE_OPEN,
             FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
@@ -7364,7 +7363,7 @@ NTSTATUS PhDeleteDirectory(
         &directoryHandle,
         PhGetString(DirectoryPath),
         FILE_GENERIC_READ | DELETE,
-        FILE_ATTRIBUTE_NORMAL,
+        FILE_ATTRIBUTE_DIRECTORY,
         FILE_SHARE_READ | FILE_SHARE_DELETE,
         FILE_OPEN,
         FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
