@@ -33,8 +33,9 @@ BOOLEAN NTAPI PhpWslDistributionNamesCallback(
     return TRUE;
 }
 
-PPH_STRING PhGetWslDistributionFromPath(
+BOOLEAN PhGetWslDistributionFromPath(
     _In_ PPH_STRING FileName,
+    _Out_opt_ PPH_STRING *LxssDistroName,
     _Out_opt_ PPH_STRING *LxssDistroPath,
     _Out_opt_ PPH_STRING *LxssFileName
     )
@@ -79,7 +80,7 @@ PPH_STRING PhGetWslDistributionFromPath(
                 if (PhStartsWithString(FileName, lxssBasePathName, TRUE))
                 {
                     lxssDistributionName = PhQueryRegistryString(subKeyHandle, L"DistributionName");
-                    
+
                     if (LxssDistroPath)
                     {
                         PhSetReference(&lxssDistroPath, lxssBasePathName);
@@ -126,7 +127,16 @@ PPH_STRING PhGetWslDistributionFromPath(
         *LxssFileName = lxssFileName;
     }
 
-    return lxssDistributionName;
+    if (LxssDistroName)
+    {
+        if (lxssDistributionName)
+        {
+            *LxssDistroName = lxssDistributionName;
+            return TRUE;
+        }
+    }
+
+    return FALSE;
 }
 
 BOOLEAN PhInitializeLxssImageVersionInfo(
@@ -144,24 +154,24 @@ BOOLEAN PhInitializeLxssImageVersionInfo(
     PPH_STRING result;
 
     lxssBaseFileName = PhGetBaseName(FileName);
-    lxssDistroName = PhGetWslDistributionFromPath(
+
+    if (!PhGetWslDistributionFromPath(
         FileName,
+        &lxssDistroName,
         &lxssDistroPath,
         &lxssFileName
-        );
+        ))
+    {
+        return FALSE;
+    }
 
-    if (!(lxssDistroName && lxssFileName && lxssBaseFileName))
+    if (PhIsNullOrEmptyString(lxssDistroName) || PhIsNullOrEmptyString(lxssFileName) || PhIsNullOrEmptyString(lxssBaseFileName))
     {
         if (lxssDistroName) PhDereferenceObject(lxssDistroName);
         if (lxssDistroPath) PhDereferenceObject(lxssDistroPath);
         if (lxssFileName) PhDereferenceObject(lxssFileName);
         if (lxssBaseFileName) PhDereferenceObject(lxssBaseFileName);
         return FALSE;
-    }
-
-    if (PhEqualString2(lxssFileName, L"/init", FALSE))
-    {
-        PhMoveReference(&lxssFileName, PhCreateString(L"/sbin/init"));
     }
 
     PhMoveReference(&lxssCommandLine, PhFormatString(
@@ -216,9 +226,18 @@ BOOLEAN PhInitializeLxssImageVersionInfo(
         PhDereferenceObject(result);
     }
 
+    if (!lxssPackageName)
+    {
+        PhDereferenceObject(lxssCommandLine);
+        PhDereferenceObject(lxssDistroName);
+        PhDereferenceObject(lxssFileName);
+        PhDereferenceObject(lxssBaseFileName);
+        return FALSE;
+    }
+
     PhMoveReference(&lxssCommandLine, PhFormatString(
         L"dpkg-query -W -f=${Version}|${Maintainer}|${binary:Summary} %s",
-        lxssPackageName ? lxssPackageName->Buffer : lxssBaseFileName->Buffer
+        lxssPackageName->Buffer
         ));
 
     status = PhCreateProcessLxss(
