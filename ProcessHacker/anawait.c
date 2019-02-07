@@ -175,7 +175,7 @@ VOID PhUiAnalyzeWaitThread(
     }
     else
     {
-        PhShowInformation(hWnd, L"The thread does not appear to be waiting.");
+        PhShowInformation2(hWnd, L"The thread does not appear to be waiting.", L"");
     }
 
     PhDeleteStringBuilder(&context.StringBuilder);
