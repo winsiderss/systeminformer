@@ -2638,6 +2638,17 @@ RtlCreateUserProcess(
     _Out_ PRTL_USER_PROCESS_INFORMATION ProcessInformation
     );
 
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlCreateUserProcessEx(
+    _In_ PUNICODE_STRING NtImagePathName,
+    _In_ PRTL_USER_PROCESS_PARAMETERS ProcessParameters,
+    _In_ BOOLEAN InheritHandles,
+    _Reserved_ ULONG Flags,
+    _Out_ PRTL_USER_PROCESS_INFORMATION ProcessInformation
+    );
+
 #if (PHNT_VERSION >= PHNT_VISTA)
 DECLSPEC_NORETURN
 NTSYSAPI
