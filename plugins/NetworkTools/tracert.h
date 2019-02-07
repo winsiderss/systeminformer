@@ -52,6 +52,7 @@ typedef struct _TRACERT_ROOT_NODE
     ULONG PingStatus[DEFAULT_MAXIMUM_PINGS];
     ULONG PingList[DEFAULT_MAXIMUM_PINGS];
     PPH_STRING PingString[DEFAULT_MAXIMUM_PINGS];
+    PPH_STRING PingMessage[DEFAULT_MAXIMUM_PINGS];
 
     INT CountryIconIndex;
     PPH_STRING TtlString;
@@ -107,6 +108,10 @@ VOID ClearTracertTree(
 
 PTRACERT_ROOT_NODE GetSelectedTracertNode(
     _In_ PNETWORK_TRACERT_CONTEXT Context
+    );
+
+PPH_STRING TracertGetErrorMessage(
+    _In_ IP_STATUS Result
     );
 
 #endif

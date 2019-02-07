@@ -48,6 +48,8 @@ VOID NTAPI TracertTreeNodeItemDeleteProcedure(
     {
         if (tracertNode->PingString[i])
             PhDereferenceObject(tracertNode->PingString[i]);
+        if (tracertNode->PingMessage[i])
+            PhDereferenceObject(tracertNode->PingMessage[i]);
     }
 }
 
@@ -298,7 +300,8 @@ VOID UpdateTracertNodePingText(
     }
     else
     {
-        PhInitializeEmptyStringRef(&CellText->Text);
+        Node->PingMessage[Index] = TracertGetErrorMessage(Node->PingStatus[Index]);
+        CellText->Text = PhGetStringRef(Node->PingMessage[Index]);
     }
 }
 

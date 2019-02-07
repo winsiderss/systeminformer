@@ -257,6 +257,7 @@ NTSTATUS NetworkTracertThreadStart(
     HANDLE icmpHandle = INVALID_HANDLE_VALUE;
     SOCKADDR_STORAGE sourceAddress = { 0 };
     SOCKADDR_STORAGE destinationAddress = { 0 };
+    ULONG icmpReplyCount = 0;
     ULONG icmpReplyLength = 0;
     PVOID icmpReplyBuffer = NULL;
     PPH_BYTES icmpEchoBuffer = NULL;
@@ -331,7 +332,7 @@ NTSTATUS NetworkTracertThreadStart(
                 icmpReplyBuffer = PhAllocate(icmpReplyLength);
                 memset(icmpReplyBuffer, 0, icmpReplyLength);
 
-                if (IcmpSendEcho2Ex(
+                icmpReplyCount = IcmpSendEcho2Ex(
                     icmpHandle,
                     0,
                     NULL,
@@ -344,7 +345,9 @@ NTSTATUS NetworkTracertThreadStart(
                     icmpReplyBuffer,
                     icmpReplyLength,
                     DEFAULT_TIMEOUT
-                    ))
+                    );
+
+                if (icmpReplyCount > 0)
                 {
                     PICMP_ECHO_REPLY reply4 = (PICMP_ECHO_REPLY)icmpReplyBuffer;
 
@@ -377,7 +380,7 @@ NTSTATUS NetworkTracertThreadStart(
                 }
                 else
                 {
-                    node->PingStatus[ii] = IP_REQ_TIMED_OUT;
+                    node->PingStatus[ii] = GetLastError(); // IP_REQ_TIMED_OUT;
                     UpdateTracertNode(context, node);
                 }
 
@@ -389,7 +392,7 @@ NTSTATUS NetworkTracertThreadStart(
                 icmpReplyBuffer = PhAllocate(icmpReplyLength);
                 memset(icmpReplyBuffer, 0, icmpReplyLength);
 
-                if (Icmp6SendEcho2(
+                icmpReplyCount = Icmp6SendEcho2(
                     icmpHandle,
                     0,
                     NULL,
@@ -402,7 +405,9 @@ NTSTATUS NetworkTracertThreadStart(
                     icmpReplyBuffer,
                     icmpReplyLength,
                     DEFAULT_TIMEOUT
-                    ))
+                    );
+
+                if (icmpReplyCount > 0)
                 {
                     PICMPV6_ECHO_REPLY reply6 = (PICMPV6_ECHO_REPLY)icmpReplyBuffer;
 
@@ -428,7 +433,7 @@ NTSTATUS NetworkTracertThreadStart(
                 }
                 else
                 {
-                    node->PingStatus[ii] = IP_REQ_TIMED_OUT;
+                    node->PingStatus[ii] = GetLastError(); // IP_REQ_TIMED_OUT;
                     UpdateTracertNode(context, node);
                 }
 

@@ -253,8 +253,16 @@ typedef enum _NETWORK_COLUMN_ID
 } NETWORK_COLUMN_ID;
 
 // country.c
-VOID LoadGeoLiteDb(VOID);
-VOID FreeGeoLiteDb(VOID);
+
+PPH_STRING NetToolsGetGeoLiteDbPath(
+    VOID
+    );
+VOID LoadGeoLiteDb(
+    VOID
+    );
+VOID FreeGeoLiteDb(
+    VOID
+    );
 
 BOOLEAN LookupCountryCode(
     _In_ PH_IP_ADDRESS RemoteAddress,
