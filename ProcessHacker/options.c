@@ -291,6 +291,8 @@ INT_PTR CALLBACK PhOptionsDialogProc(
             //PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_APPLY), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
+            PhRegisterWindowCallback(hwndDlg, PH_PLUGIN_WINDOW_EVENT_TYPE_TOPMOST, NULL);
+
             if (PhEnableThemeSupport) // TODO: fix options dialog theme (dmex)
                 PhInitializeWindowTheme(hwndDlg, TRUE);
 
@@ -346,6 +348,8 @@ INT_PTR CALLBACK PhOptionsDialogProc(
             SectionList = NULL;
 
             if (OptionsTreeImageList) ImageList_Destroy(OptionsTreeImageList);
+
+            PhUnregisterWindowCallback(hwndDlg);
 
             PhUnregisterDialog(PhOptionsWindowHandle);
             PhOptionsWindowHandle = NULL;
