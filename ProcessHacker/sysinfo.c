@@ -1463,17 +1463,17 @@ VOID PhSipDefaultDrawPanel(
     {
         if (CurrentView == SysInfoSummaryView)
         {
-            if (Section->GraphHot)
-            {
-                DrawThemeBackground(
-                    ThemeData,
-                    hdc,
-                    TVP_TREEITEM,
-                    TREIS_HOT,
-                    &DrawPanel->Rect,
-                    &DrawPanel->Rect
-                    );
-            }
+            //if (Section->GraphHot)
+            //{
+            //    DrawThemeBackground(
+            //        ThemeData,
+            //        hdc,
+            //        TVP_TREEITEM,
+            //        TREIS_HOT,
+            //        &DrawPanel->Rect,
+            //        &DrawPanel->Rect
+            //        );
+            //}
         }
         else if (CurrentView == SysInfoSectionView)
         {
