@@ -776,6 +776,8 @@ LRESULT CALLBACK TaskDialogSubclassProc(
         {
             SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
             PhRemoveWindowContext(hwndDlg, UCHAR_MAX);
+
+            PhUnregisterWindowCallback(hwndDlg);
         }
         break;
     case PH_SHOWDIALOG:
@@ -854,6 +856,8 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
 
             // Create the Taskdialog icons.
             TaskDialogCreateIcons(context);
+
+            PhRegisterWindowCallback(hwndDlg, PH_PLUGIN_WINDOW_EVENT_TYPE_TOPMOST, NULL);
 
             // Subclass the Taskdialog.
             context->DefaultWindowProc = (WNDPROC)GetWindowLongPtr(hwndDlg, GWLP_WNDPROC);
