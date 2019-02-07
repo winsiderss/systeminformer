@@ -372,7 +372,7 @@ NTSTATUS GeoIPUpdateThread(
         }
 
         {
-            dbpath = PhGetExpandStringSetting(SETTING_NAME_DB_LOCATION);
+            dbpath = NetToolsGetGeoLiteDbPath();
 
             if (PhIsNullOrEmptyString(dbpath))
                 goto CleanupExit;
@@ -390,7 +390,7 @@ NTSTATUS GeoIPUpdateThread(
                 // Create the directory if it does not exist.
                 if (fullPath = PhGetFullPath(dbpath->Buffer, &indexOfFileName))
                 {
-                    if (indexOfFileName != -1)
+                    if (indexOfFileName != ULONG_MAX)
                         PhCreateDirectory(PhaSubstring(fullPath, 0, indexOfFileName));
 
                     PhDereferenceObject(fullPath);
