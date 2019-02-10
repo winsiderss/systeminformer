@@ -89,6 +89,23 @@ PWSTR PvpGetSymbolVisibility(
     return L"***ERROR***";
 }
 
+PPH_STRING PvpGetSymbolSectionName(
+    _In_ ULONG Index
+    )
+{
+    switch (Index)
+    {
+    case SHN_UNDEF:
+        return PhCreateString(L"UND");
+    case SHN_ABS:
+        return PhCreateString(L"ABS");
+    case SHN_COMMON:
+        return PhCreateString(L"Common");
+    }
+
+    return PhaFormatUInt64(Index, TRUE);
+}
+
 VOID PvExlfProperties(
     VOID
     )

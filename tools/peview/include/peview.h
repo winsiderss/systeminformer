@@ -403,6 +403,10 @@ PWSTR PvpGetSymbolVisibility(
     _In_ UCHAR OtherInfo
     );
 
+PPH_STRING PvpGetSymbolSectionName(
+    _In_ ULONG Index
+    );
+
 INT_PTR CALLBACK PvpExlfGeneralDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
