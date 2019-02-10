@@ -113,7 +113,7 @@ VOID NTAPI MenuItemCallback(
     case ID_MODULE_SERVICES:
         {
             EtShowModuleServicesDialog(
-                !!PhGetIntegerSetting(L"ForceNoParent") ? NULL : menuItem->OwnerWindow,
+                menuItem->OwnerWindow,
                 ModuleProcessId,
                 ((PPH_MODULE_ITEM)menuItem->Context)->Name
                 );
