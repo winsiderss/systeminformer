@@ -241,6 +241,17 @@ VOID PvPeProperties(
             PvAddPropPage(propContext, newPage);
         }
 
+        // TLS page
+        if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_TLS, &entry)) && entry->VirtualAddress)
+        {
+            newPage = PvCreatePropPageContext(
+                MAKEINTRESOURCE(IDD_TLS),
+                PvpPeTlsDlgProc,
+                NULL
+                );
+            PvAddPropPage(propContext, newPage);
+        }
+
         // Symbols page
         if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_DEBUG, &entry)) && entry->VirtualAddress)
         {
