@@ -69,12 +69,25 @@ VOID PvPeProperties(
     {
         // Load current PE pdb
         // TODO: Move into seperate thread.
-        PhLoadModuleSymbolProvider(
-            PvSymbolProvider,
-            PvFileName->Buffer,
-            (ULONG64)PvMappedImage.NtHeaders->OptionalHeader.ImageBase,
-            PvMappedImage.NtHeaders->OptionalHeader.SizeOfImage
-            );
+
+        if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+        {
+            PhLoadModuleSymbolProvider(
+                PvSymbolProvider,
+                PvFileName->Buffer,
+                (ULONG64)PvMappedImage.NtHeaders32->OptionalHeader.ImageBase,
+                PvMappedImage.NtHeaders32->OptionalHeader.SizeOfImage
+                );
+        }
+        else
+        {
+            PhLoadModuleSymbolProvider(
+                PvSymbolProvider,
+                PvFileName->Buffer,
+                (ULONG64)PvMappedImage.NtHeaders->OptionalHeader.ImageBase,
+                PvMappedImage.NtHeaders->OptionalHeader.SizeOfImage
+                );
+        }
     }
 
     if (propContext = PvCreatePropContext(PvFileName))
