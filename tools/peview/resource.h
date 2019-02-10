@@ -22,6 +22,7 @@
 #define IDD_PELINKS                     114
 #define IDD_PIDS                        115
 #define IDD_ELFDYNAMIC                  116
+#define IDD_TLS                         117
 #define IDC_SYMBOLTREE                  119
 #define IDC_TARGETMACHINE               1003
 #define IDC_CHECKSUM                    1004

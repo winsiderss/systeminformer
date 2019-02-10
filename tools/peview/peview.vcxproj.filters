@@ -99,6 +99,9 @@
     <ClCompile Include="exlfdynamic.c">
       <Filter>Source Files\Pages\Linux</Filter>
     </ClCompile>
+    <ClCompile Include="tlsprp.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\peview.h">
