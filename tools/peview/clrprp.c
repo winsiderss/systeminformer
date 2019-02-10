@@ -38,7 +38,7 @@ typedef struct _STORAGESIGNATURE
     USHORT MinorVersion;
     ULONG ExtraData;        // Offset to next structure of information
     ULONG VersionLength;    // Length of version string
-    UCHAR VersionString[1]; // dmex: added for convenience.
+    //UCHAR VersionString[1];
 } STORAGESIGNATURE, *PSTORAGESIGNATURE;
 
 typedef struct _STORAGEHEADER
@@ -137,12 +137,12 @@ INT_PTR CALLBACK PvpPeClrDlgProc(
 
             if (metaData && metaData->VersionLength != 0)
             {
-                string = PhZeroExtendToUtf16Ex((PCHAR)metaData->VersionString, metaData->VersionLength);
+                string = PhZeroExtendToUtf16Ex(PTR_ADD_OFFSET(metaData, RTL_SIZEOF_THROUGH_FIELD(STORAGESIGNATURE, VersionLength)), metaData->VersionLength);
                 PhSetDialogItemText(hwndDlg, IDC_VERSIONSTRING, string->Buffer);
                 PhDereferenceObject(string);
 
                 {
-                    PSTORAGEHEADER storageHeader = PTR_ADD_OFFSET(metaData, (sizeof(STORAGESIGNATURE) - sizeof(UCHAR)) + metaData->VersionLength);
+                    PSTORAGEHEADER storageHeader = PTR_ADD_OFFSET(metaData, sizeof(STORAGESIGNATURE) + metaData->VersionLength);
                     PSTORAGESTREAM streamHeader = PTR_ADD_OFFSET(storageHeader, sizeof(STORAGEHEADER));
 
                     for (USHORT i = 0; i < storageHeader->Streams; i++)
@@ -169,7 +169,7 @@ INT_PTR CALLBACK PvpPeClrDlgProc(
 
                         // Stream headers don't have fixed sizes...
                         // The size is aligned up based on a variable length string at the end.
-                        streamHeader = PTR_ADD_OFFSET(streamHeader, ALIGN_UP(FIELD_OFFSET(STORAGESTREAM, Name) + strlen(streamHeader->Name) + 1, 4));
+                        streamHeader = PTR_ADD_OFFSET(streamHeader, ALIGN_UP(UFIELD_OFFSET(STORAGESTREAM, Name) + strlen(streamHeader->Name) + 1, ULONG));
                     }
                 }
             }
