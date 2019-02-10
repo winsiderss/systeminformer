@@ -1708,3 +1708,183 @@ NTSTATUS PhGetMappedImageResources(
 CleanupExit:
     return status;
 }
+
+NTSTATUS PhGetMappedImageTlsCallbackDirectory32(
+    _Out_ PPH_MAPPED_IMAGE_TLS_CALLBACKS TlsCallbacks,
+    _In_ PPH_MAPPED_IMAGE MappedImage
+    )
+{
+    NTSTATUS status;
+    PIMAGE_TLS_DIRECTORY32 tlsDirectory;
+    ULONG_PTR tlsCallbacksOffset;
+
+    // Get a pointer to the resource directory.
+
+    status = PhGetMappedImageDataEntry(
+        MappedImage,
+        IMAGE_DIRECTORY_ENTRY_TLS,
+        &TlsCallbacks->DataDirectory
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    tlsDirectory = PhMappedImageRvaToVa(
+        MappedImage,
+        TlsCallbacks->DataDirectory->VirtualAddress,
+        NULL
+        );
+
+    if (!tlsDirectory)
+        return STATUS_INVALID_PARAMETER;
+
+    __try
+    {
+        PhpMappedImageProbe(MappedImage, tlsDirectory, sizeof(PIMAGE_TLS_DIRECTORY32));
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        return GetExceptionCode();
+    }
+
+    TlsCallbacks->TlsDirectory32 = tlsDirectory;
+
+    if (tlsDirectory->StartAddressOfRawData > MappedImage->NtHeaders32->OptionalHeader.ImageBase)
+        tlsCallbacksOffset = MappedImage->NtHeaders32->OptionalHeader.ImageBase;
+    else
+        tlsCallbacksOffset = 0;
+
+    TlsCallbacks->CallbackIndexes = PhMappedImageRvaToVa(MappedImage, (ULONG)(ULONG_PTR)PTR_SUB_OFFSET(tlsDirectory->AddressOfIndex, tlsCallbacksOffset), NULL);
+    TlsCallbacks->CallbackAddress = PhMappedImageRvaToVa(MappedImage, (ULONG)(ULONG_PTR)PTR_SUB_OFFSET(tlsDirectory->AddressOfCallBacks, tlsCallbacksOffset), NULL);
+
+    if (TlsCallbacks->CallbackAddress)
+        return STATUS_SUCCESS;
+
+    return STATUS_INVALID_PARAMETER;
+}
+
+NTSTATUS PhGetMappedImageTlsCallbackDirectory64(
+    _Out_ PPH_MAPPED_IMAGE_TLS_CALLBACKS TlsCallbacks,
+    _In_ PPH_MAPPED_IMAGE MappedImage
+    )
+{
+    NTSTATUS status;
+    PIMAGE_TLS_DIRECTORY64 tlsDirectory;
+    ULONG_PTR tlsCallbacksOffset;
+
+    // Get a pointer to the resource directory.
+
+    status = PhGetMappedImageDataEntry(
+        MappedImage,
+        IMAGE_DIRECTORY_ENTRY_TLS,
+        &TlsCallbacks->DataDirectory
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    tlsDirectory = PhMappedImageRvaToVa(
+        MappedImage,
+        TlsCallbacks->DataDirectory->VirtualAddress,
+        NULL
+        );
+
+    if (!tlsDirectory)
+        return STATUS_INVALID_PARAMETER;
+
+    __try
+    {
+        PhpMappedImageProbe(MappedImage, tlsDirectory, sizeof(PIMAGE_TLS_DIRECTORY64));
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        return GetExceptionCode();
+    }
+
+    TlsCallbacks->TlsDirectory64 = tlsDirectory;
+
+    if (tlsDirectory->StartAddressOfRawData > MappedImage->NtHeaders->OptionalHeader.ImageBase)
+        tlsCallbacksOffset = MappedImage->NtHeaders->OptionalHeader.ImageBase;
+    else
+        tlsCallbacksOffset = 0;
+
+    TlsCallbacks->CallbackIndexes = PhMappedImageRvaToVa(MappedImage, (ULONG)(ULONG_PTR)PTR_SUB_OFFSET(tlsDirectory->AddressOfIndex, tlsCallbacksOffset), NULL);
+    TlsCallbacks->CallbackAddress = PhMappedImageRvaToVa(MappedImage, (ULONG)(ULONG_PTR)PTR_SUB_OFFSET(tlsDirectory->AddressOfCallBacks, tlsCallbacksOffset), NULL);
+
+    if (TlsCallbacks->CallbackAddress)
+        return STATUS_SUCCESS;
+
+    return STATUS_INVALID_PARAMETER;
+}
+
+NTSTATUS PhGetMappedImageTlsCallbacks(
+    _Out_ PPH_MAPPED_IMAGE_TLS_CALLBACKS TlsCallbacks,
+    _In_ PPH_MAPPED_IMAGE MappedImage
+    )
+{
+    NTSTATUS status;
+    ULONG count = 0;
+    ULONG i;
+
+    // Get a pointer to the TLS directory.
+
+    if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+        status = PhGetMappedImageTlsCallbackDirectory32(TlsCallbacks, MappedImage);
+    else
+        status = PhGetMappedImageTlsCallbackDirectory64(TlsCallbacks, MappedImage);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    // Do a scan to determine how many callbacks there are.
+
+    if (TlsCallbacks->CallbackAddress)
+    {
+        if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+        {
+            PULONG array = (PULONG)(PULONG_PTR)TlsCallbacks->CallbackAddress;
+
+            for (i = 0; array[i]; i++)
+                count++;
+        }
+        else
+        {
+            PULONGLONG array = (PULONGLONG)(PULONG_PTR)TlsCallbacks->CallbackAddress;
+
+            for (i = 0; array[i]; i++)
+                count++;
+        }
+    }
+
+    if (count == 0)
+        return STATUS_INVALID_IMAGE_FORMAT;
+
+    // Allocate the number of callbacks.
+
+    TlsCallbacks->NumberOfEntries = count;
+    TlsCallbacks->Entries = PhAllocate(sizeof(PH_IMAGE_TLS_CALLBACK_ENTRY) * count);
+    memset(TlsCallbacks->Entries, 0, sizeof(PH_IMAGE_TLS_CALLBACK_ENTRY) * count);
+
+    // Add the callbacks into our buffer.
+
+    if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+    {
+        PULONG array = (PULONG)(PULONG_PTR)TlsCallbacks->CallbackAddress;
+
+        for (i = 0; i < count; i++)
+        {
+            TlsCallbacks->Entries[i].Address = array[i];
+        }
+    }
+    else
+    {
+        PULONGLONG array = (PULONGLONG)(PULONG_PTR)TlsCallbacks->CallbackAddress;
+
+        for (i = 0; i < count; i++)
+        {
+            TlsCallbacks->Entries[i].Address = array[i];
+        }
+    }
+
+    return status;
+}
