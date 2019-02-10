@@ -510,8 +510,7 @@ VOID PhInitializeCapabilitySidCache(
         _Out_ PSID CapabilitySid
         );
     PPH_STRING applicationDirectory;
-    PPH_STRING capabilityListFileName;
-    PPH_STRING capabilityListString;
+    PPH_STRING capabilityListString = NULL;
     PH_STRINGREF namePart;
     PH_STRINGREF remainingPart;
 
@@ -520,6 +519,8 @@ VOID PhInitializeCapabilitySidCache(
 
     if (applicationDirectory = PhGetApplicationDirectory())
     {
+        PPH_STRING capabilityListFileName;
+
         capabilityListFileName = PhConcatStringRefZ(&applicationDirectory->sr, L"capslist.txt");
         PhDereferenceObject(applicationDirectory);
 
