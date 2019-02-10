@@ -426,6 +426,38 @@ PhGetMappedImageResources(
     _In_ PPH_MAPPED_IMAGE MappedImage
     );
 
+typedef struct _PH_IMAGE_TLS_CALLBACK_ENTRY
+{
+    ULONG_PTR Index;
+    ULONG_PTR Address;
+} PH_IMAGE_TLS_CALLBACK_ENTRY, *PPH_IMAGE_TLS_CALLBACK_ENTRY;
+
+typedef struct _PH_MAPPED_IMAGE_TLS_CALLBACKS
+{
+    PPH_MAPPED_IMAGE MappedImage;
+    PIMAGE_DATA_DIRECTORY DataDirectory;
+
+    union
+    {
+        PIMAGE_TLS_DIRECTORY32 TlsDirectory32;
+        PIMAGE_TLS_DIRECTORY64 TlsDirectory64;
+    };
+
+    PVOID CallbackIndexes;
+    PVOID CallbackAddress;
+
+    ULONG NumberOfEntries;
+    PPH_IMAGE_TLS_CALLBACK_ENTRY Entries;
+} PH_MAPPED_IMAGE_TLS_CALLBACKS, *PPH_MAPPED_IMAGE_TLS_CALLBACKS;
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetMappedImageTlsCallbacks(
+    _Out_ PPH_MAPPED_IMAGE_TLS_CALLBACKS TlsCallbacks,
+    _In_ PPH_MAPPED_IMAGE MappedImage
+    );
+
 // maplib
 
 struct _PH_MAPPED_ARCHIVE;
