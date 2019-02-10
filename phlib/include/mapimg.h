@@ -602,6 +602,7 @@ typedef struct _PH_ELF_IMAGE_SYMBOL_ENTRY
     };
     UCHAR TypeInfo;
     UCHAR OtherInfo;
+    ULONG SectionIndex;
     ULONGLONG Address;
     ULONGLONG Size;
     WCHAR Name[MAX_PATH * 2];
