@@ -1882,7 +1882,7 @@ NTSTATUS PhGetMappedImageTlsCallbacks(
 
         for (i = 0; i < count; i++)
         {
-            TlsCallbacks->Entries[i].Address = array[i];
+            TlsCallbacks->Entries[i].Address = (ULONG_PTR)array[i];
         }
     }
 
