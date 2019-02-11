@@ -49,28 +49,14 @@ VOID PvpPeEnumerateTlsCallbacks(
             PhPrintPointer(pointer, (PVOID)(ULONG_PTR)entry.Address);
             PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, pointer);
 
-            if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
-            {
-                symbol = PhGetSymbolFromAddress(
-                    PvSymbolProvider,
-                    (ULONG64)ULongToPtr((ULONG)entry.Address),
-                    NULL,
-                    NULL,
-                    &symbolName,
-                    NULL
-                    );
-            }
-            else
-            {
-                symbol = PhGetSymbolFromAddress(
-                    PvSymbolProvider,
-                    (ULONG64)(ULONGLONG)entry.Address,
-                    NULL,
-                    NULL,
-                    &symbolName,
-                    NULL
-                    );
-            }
+            symbol = PhGetSymbolFromAddress(
+                PvSymbolProvider,
+                (ULONG64)entry.Address,
+                NULL,
+                NULL,
+                &symbolName,
+                NULL
+                );
 
             if (symbolName)
             {
