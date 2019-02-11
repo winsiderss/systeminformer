@@ -970,7 +970,7 @@ BOOLEAN PhCopyStringZFromMultiByte(
         if (NT_SUCCESS(status))
         {
             // RtlMultiByteToUnicodeN doesn't null terminate the string.
-            *(PWCHAR)PTR_ADD_OFFSET(OutputBuffer, unicodeBytes) = 0;
+            *(PWCHAR)PTR_ADD_OFFSET(OutputBuffer, unicodeBytes) = UNICODE_NULL;
             copied = TRUE;
         }
         else
