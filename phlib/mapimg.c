@@ -1630,7 +1630,7 @@ NTSTATUS PhGetMappedImageResources(
     for (ULONG i = 0; i < resourceTypeCount; ++i, ++resourceType)
     {
         if (!resourceType->DataIsDirectory)
-            return STATUS_RESOURCE_TYPE_NOT_FOUND;
+            continue; // return STATUS_RESOURCE_TYPE_NOT_FOUND;
 
         nameDirectory = PTR_ADD_OFFSET(resourceDirectory, resourceType->OffsetToDirectory);
         resourceName = PTR_ADD_OFFSET(nameDirectory, sizeof(IMAGE_RESOURCE_DIRECTORY));
@@ -1639,7 +1639,7 @@ NTSTATUS PhGetMappedImageResources(
         for (ULONG j = 0; j < resourceNameCount; ++j, ++resourceName)
         {
             if (!resourceName->DataIsDirectory)
-                return STATUS_RESOURCE_NAME_NOT_FOUND;
+                continue; // return STATUS_RESOURCE_NAME_NOT_FOUND;
 
             languageDirectory = PTR_ADD_OFFSET(resourceDirectory, resourceName->OffsetToDirectory);
             resourceLanguage = PTR_ADD_OFFSET(languageDirectory, sizeof(IMAGE_RESOURCE_DIRECTORY));
@@ -1648,7 +1648,7 @@ NTSTATUS PhGetMappedImageResources(
             for (ULONG k = 0; k < resourceLanguageCount; ++k, ++resourceLanguage)
             {
                 if (resourceLanguage->DataIsDirectory)
-                    return STATUS_RESOURCE_DATA_NOT_FOUND;
+                    continue; // return STATUS_RESOURCE_DATA_NOT_FOUND;
 
                 resourceCount++;
             }
@@ -1754,8 +1754,8 @@ NTSTATUS PhGetMappedImageTlsCallbackDirectory32(
     else
         tlsCallbacksOffset = 0;
 
-    TlsCallbacks->CallbackIndexes = PhMappedImageRvaToVa(MappedImage, (ULONG)(ULONG_PTR)PTR_SUB_OFFSET(tlsDirectory->AddressOfIndex, tlsCallbacksOffset), NULL);
-    TlsCallbacks->CallbackAddress = PhMappedImageRvaToVa(MappedImage, (ULONG)(ULONG_PTR)PTR_SUB_OFFSET(tlsDirectory->AddressOfCallBacks, tlsCallbacksOffset), NULL);
+    TlsCallbacks->CallbackIndexes = PhMappedImageRvaToVa(MappedImage, PtrToUlong(PTR_SUB_OFFSET(tlsDirectory->AddressOfIndex, tlsCallbacksOffset)), NULL);
+    TlsCallbacks->CallbackAddress = PhMappedImageRvaToVa(MappedImage, PtrToUlong(PTR_SUB_OFFSET(tlsDirectory->AddressOfCallBacks, tlsCallbacksOffset)), NULL);
 
     if (TlsCallbacks->CallbackAddress)
         return STATUS_SUCCESS;
@@ -1808,8 +1808,8 @@ NTSTATUS PhGetMappedImageTlsCallbackDirectory64(
     else
         tlsCallbacksOffset = 0;
 
-    TlsCallbacks->CallbackIndexes = PhMappedImageRvaToVa(MappedImage, (ULONG)(ULONG_PTR)PTR_SUB_OFFSET(tlsDirectory->AddressOfIndex, tlsCallbacksOffset), NULL);
-    TlsCallbacks->CallbackAddress = PhMappedImageRvaToVa(MappedImage, (ULONG)(ULONG_PTR)PTR_SUB_OFFSET(tlsDirectory->AddressOfCallBacks, tlsCallbacksOffset), NULL);
+    TlsCallbacks->CallbackIndexes = PhMappedImageRvaToVa(MappedImage, PtrToUlong(PTR_SUB_OFFSET(tlsDirectory->AddressOfIndex, tlsCallbacksOffset)), NULL);
+    TlsCallbacks->CallbackAddress = PhMappedImageRvaToVa(MappedImage, PtrToUlong(PTR_SUB_OFFSET(tlsDirectory->AddressOfCallBacks, tlsCallbacksOffset)), NULL);
 
     if (TlsCallbacks->CallbackAddress)
         return STATUS_SUCCESS;
@@ -1882,7 +1882,7 @@ NTSTATUS PhGetMappedImageTlsCallbacks(
 
         for (i = 0; i < count; i++)
         {
-            TlsCallbacks->Entries[i].Address = (ULONG_PTR)array[i];
+            TlsCallbacks->Entries[i].Address = array[i];
         }
     }
 
