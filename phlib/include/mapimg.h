@@ -428,8 +428,8 @@ PhGetMappedImageResources(
 
 typedef struct _PH_IMAGE_TLS_CALLBACK_ENTRY
 {
-    ULONG_PTR Index;
-    ULONG_PTR Address;
+    ULONGLONG Index;
+    ULONGLONG Address;
 } PH_IMAGE_TLS_CALLBACK_ENTRY, *PPH_IMAGE_TLS_CALLBACK_ENTRY;
 
 typedef struct _PH_MAPPED_IMAGE_TLS_CALLBACKS
