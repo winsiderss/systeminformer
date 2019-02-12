@@ -679,3 +679,6 @@ EXPORTS
 ; cache
     PhCreateCacheFile
     PhDeleteCacheFile
+
+; appresolver
+    PhAppResolverGetAppIdForWindow
