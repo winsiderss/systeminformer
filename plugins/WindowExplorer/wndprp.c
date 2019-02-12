@@ -23,6 +23,7 @@
 
 #include "wndexp.h"
 #include "resource.h"
+#include <appresolver.h>
 #include <workqueue.h>
 #include <symprv.h>
 
@@ -80,6 +81,7 @@ typedef enum _WINDOW_PROPERTIES_CATEGORY
 
 typedef enum _NETADAPTER_DETAILS_INDEX
 {
+    WINDOW_PROPERTIES_INDEX_APPID,
     WINDOW_PROPERTIES_INDEX_TEXT,
     WINDOW_PROPERTIES_INDEX_THREAD,
     WINDOW_PROPERTIES_INDEX_RECT,
@@ -461,6 +463,7 @@ VOID WepRefreshWindowGeneralInfo(
     MONITORINFO monitorInfo = { sizeof(MONITORINFO) };
     HANDLE processHandle;
     PPH_STRING fileName = NULL;
+    PPH_STRING appIdText;
     HMENU menuHandle;
     PVOID instanceHandle;
     PVOID userdataHandle;
@@ -554,6 +557,12 @@ VOID WepRefreshWindowGeneralInfo(
     }
 
     WepRefreshWindowGeneralInfoSymbols(ListViewHandle, Context);
+
+    if (PhAppResolverGetAppIdForWindow(Context->WindowHandle, &appIdText))
+    {
+        PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_APPID, 1, appIdText->Buffer);
+        PhDereferenceObject(appIdText);
+    }
 }
 
 VOID WepRefreshWindowStyles(
@@ -788,6 +797,7 @@ VOID WepGeneralAddListViewItemGroups(
     PhAddListViewGroup(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, L"General");
     PhAddListViewGroup(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_CLASS, L"Class");
 
+    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_APPID, L"AppId", NULL);
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_TEXT, L"Text", NULL);
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_THREAD, L"Thread", NULL);
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_RECT, L"Rectangle", NULL);
