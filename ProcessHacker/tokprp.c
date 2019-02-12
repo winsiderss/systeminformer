@@ -95,6 +95,7 @@ typedef struct _TOKEN_PAGE_CONTEXT
     PTOKEN_PRIVILEGES Privileges;
     PTOKEN_GROUPS Capabilities;
 
+    ATTRIBUTE_TREE_CONTEXT CapsTreeContext;
     ATTRIBUTE_TREE_CONTEXT ClaimsTreeContext;
     ATTRIBUTE_TREE_CONTEXT AuthzTreeContext;
 } TOKEN_PAGE_CONTEXT, *PTOKEN_PAGE_CONTEXT;
@@ -1908,232 +1909,6 @@ INT_PTR CALLBACK PhpTokenAdvancedPageProc(
     return FALSE;
 }
 
-//static COLORREF NTAPI PhpTokenCapabilitiesColorFunction(
-//    _In_ INT Index,
-//    _In_ PVOID Param,
-//    _In_opt_ PVOID Context
-//    )
-//{
-//    PSID_AND_ATTRIBUTES sidAndAttributes = Param;
-//
-//    return PhGetGroupAttributesColor(sidAndAttributes->Attributes);
-//}
-
-INT_PTR CALLBACK PhpTokenCapabilitiesPageProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    )
-{
-    PTOKEN_PAGE_CONTEXT tokenPageContext;
-    HWND lvHandle;
-
-    tokenPageContext = PhpTokenPageHeader(hwndDlg, uMsg, wParam, lParam);
-
-    if (!tokenPageContext)
-        return FALSE;
-
-    lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
-
-    switch (uMsg)
-    {
-    case WM_INITDIALOG:
-        {
-            HANDLE tokenHandle;
-            ULONG i;
-
-            PhSetListViewStyle(lvHandle, FALSE, TRUE);
-            PhSetControlTheme(lvHandle, L"explorer");
-            PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 160, L"Name");
-            //PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 200, L"Flags");
-            PhSetExtendedListView(lvHandle);
-            //ExtendedListView_SetItemColorFunction(lvHandle, PhpTokenCapabilitiesColorFunction);
-
-            if (NT_SUCCESS(tokenPageContext->OpenObject(
-                &tokenHandle,
-                TOKEN_QUERY,
-                tokenPageContext->Context
-                )))
-            {
-                if (NT_SUCCESS(PhQueryTokenVariableSize(tokenHandle, TokenCapabilities, &tokenPageContext->Capabilities)))
-                {
-                    for (i = 0; i < tokenPageContext->Capabilities->GroupCount; i++)
-                    {
-                        INT lvItemIndex;
-                        PPH_STRING name;
-                        //PPH_STRING attributesString;
-
-                        name = PhGetCapabilitySidName(tokenPageContext->Capabilities->Groups[i].Sid);
-
-                        if (!name)
-                        {
-                            ULONG subAuthoritiesCount;
-                            ULONG subAuthority;
-
-                            subAuthoritiesCount = *RtlSubAuthorityCountSid(tokenPageContext->Capabilities->Groups[i].Sid);
-                            subAuthority = *RtlSubAuthoritySid(tokenPageContext->Capabilities->Groups[i].Sid, 0);
-
-                            // RtlIdentifierAuthoritySid(tokenPageContext->Capabilities->Groups[i].Sid) == (BYTE[])SECURITY_APP_PACKAGE_AUTHORITY
-                            if (subAuthority == SECURITY_CAPABILITY_BASE_RID)
-                            {
-                                if (subAuthoritiesCount == SECURITY_APP_PACKAGE_RID_COUNT)
-                                {
-                                    PTOKEN_APPCONTAINER_INFORMATION appContainerInfo;
-
-                                    //if (*RtlSubAuthoritySid(tokenPageContext->Capabilities->Groups[i].Sid, 1) == SECURITY_CAPABILITY_APP_RID)
-                                    //    continue;
-
-                                    if (NT_SUCCESS(PhQueryTokenVariableSize(tokenHandle, TokenAppContainerSid, &appContainerInfo)))
-                                    {
-                                        if (appContainerInfo->TokenAppContainer)
-                                        {
-                                            if (PhIsPackageCapabilitySid(appContainerInfo->TokenAppContainer, tokenPageContext->Capabilities->Groups[i].Sid))
-                                            {
-                                                HANDLE processHandle;
-
-                                                if (NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, (HANDLE)tokenPageContext->Context)))
-                                                {
-                                                    name = PhGetProcessPackageFullName(processHandle);
-                                                    NtClose(processHandle);
-                                                }
-                                            }
-                                        }
-
-                                        PhFree(appContainerInfo);
-                                    }
-                                }
-                                else if (subAuthoritiesCount == SECURITY_CAPABILITY_RID_COUNT)
-                                {
-                                    PPH_STRING capabilityName;
-                                    GUID capabilityGuid;
-                                    ULONG firstPart;
-                                    ULONG secondPart;
-                                    ULONG thirdPart;
-                                    ULONG lastPart;
-
-                                    firstPart = *RtlSubAuthoritySid(tokenPageContext->Capabilities->Groups[i].Sid, 1);
-                                    secondPart = *RtlSubAuthoritySid(tokenPageContext->Capabilities->Groups[i].Sid, 2);
-                                    thirdPart = *RtlSubAuthoritySid(tokenPageContext->Capabilities->Groups[i].Sid, 3);
-                                    lastPart = *RtlSubAuthoritySid(tokenPageContext->Capabilities->Groups[i].Sid, 4);
-
-                                    capabilityGuid.Data1 = firstPart;
-                                    capabilityGuid.Data2 = LOWORD(secondPart);
-                                    capabilityGuid.Data3 = HIWORD(secondPart);
-                                    *((PULONG)&capabilityGuid.Data4[0]) = thirdPart;
-                                    *((PULONG)&capabilityGuid.Data4[4]) = lastPart;
-
-                                    if (name = PhFormatGuid(&capabilityGuid))
-                                    {
-                                        if (capabilityName = PhGetCapabilityGuidName(name))
-                                        {
-                                            PhMoveReference(&name, capabilityName);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        if (!name)
-                            name = PhGetSidFullName(tokenPageContext->Capabilities->Groups[i].Sid, TRUE, NULL);
-
-                        if (!name)
-                            name = PhSidToStringSid(tokenPageContext->Capabilities->Groups[i].Sid);
-
-                        if (name)
-                        {
-                            lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, name->Buffer, &tokenPageContext->Capabilities->Groups[i]);
-                            //attributesString = PhGetGroupAttributesString(tokenPageContext->Capabilities->Groups[i].Attributes, FALSE);
-                            //PhSetListViewSubItem(lvHandle, lvItemIndex, 1, attributesString->Buffer);
-                            //PhDereferenceObject(attributesString);
-                            PhDereferenceObject(name);
-                        }
-                    }
-
-                    ExtendedListView_SortItems(lvHandle);
-                }
-
-                NtClose(tokenHandle);
-            }
-
-            ExtendedListView_SetColumnWidth(lvHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
-
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
-        }
-        break;
-    case WM_DESTROY:
-        {
-            PhFree(tokenPageContext->Capabilities);
-            tokenPageContext->Capabilities = NULL;
-        }
-        break;
-    case WM_NOTIFY:
-        {
-            PhHandleListViewNotifyBehaviors(lParam, lvHandle, PH_LIST_VIEW_DEFAULT_1_BEHAVIORS);
-        }
-        break;
-    case WM_CONTEXTMENU:
-        {
-            if ((HWND)wParam == lvHandle)
-            {
-                POINT point;
-                PPH_EMENU menu;
-                PPH_EMENU item;
-                PVOID *listviewItems;
-                ULONG numberOfItems;
-
-                point.x = GET_X_LPARAM(lParam);
-                point.y = GET_Y_LPARAM(lParam);
-
-                if (point.x == -1 && point.y == -1)
-                    PhGetListViewContextMenuPoint((HWND)wParam, &point);
-
-                PhGetSelectedListViewItemParams(lvHandle, &listviewItems, &numberOfItems);
-
-                if (numberOfItems != 0)
-                {
-                    menu = PhCreateEMenu();
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
-                    PhInsertCopyListViewEMenuItem(menu, IDC_COPY, lvHandle);
-
-                    item = PhShowEMenu(
-                        menu,
-                        hwndDlg,
-                        PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT,
-                        PH_ALIGN_LEFT | PH_ALIGN_TOP,
-                        point.x,
-                        point.y
-                        );
-
-                    if (item && item->Id != ULONG_MAX)
-                    {
-                        if (!PhHandleCopyListViewEMenuItem(item))
-                        {
-                            switch (item->Id)
-                            {
-                            case IDC_COPY:
-                                {
-                                    PhCopyListView(lvHandle);
-                                }
-                                break;
-                            }
-                        }
-                    }
-
-                    PhDestroyEMenu(menu);
-                }
-
-                PhFree(listviewItems);
-            }
-        }
-        break;
-    }
-
-    REFLECT_MESSAGE_DLG(hwndDlg, lvHandle, uMsg, wParam, lParam);
-
-    return FALSE;
-}
-
 BOOLEAN NTAPI PhpAttributeTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -2312,6 +2087,241 @@ VOID PhpDeleteAttributeTreeContext(
 
     PhDereferenceObject(Context->NodeList);
     PhDereferenceObject(Context->RootList);
+}
+
+//static COLORREF NTAPI PhpTokenCapabilitiesColorFunction(
+//    _In_ INT Index,
+//    _In_ PVOID Param,
+//    _In_opt_ PVOID Context
+//    )
+//{
+//    PSID_AND_ATTRIBUTES sidAndAttributes = Param;
+//
+//    return PhGetGroupAttributesColor(sidAndAttributes->Attributes);
+//}
+
+BOOLEAN PhpAddTokenCapabilities(
+    _In_ PTOKEN_PAGE_CONTEXT TokenPageContext,
+    _In_ HWND tnHandle
+    )
+{
+    HANDLE tokenHandle;
+    ULONG i;
+
+    if (!NT_SUCCESS(TokenPageContext->OpenObject(
+        &tokenHandle,
+        TOKEN_QUERY,
+        TokenPageContext->Context
+        )))
+        return FALSE;
+
+    if (NT_SUCCESS(PhQueryTokenVariableSize(tokenHandle, TokenCapabilities, &TokenPageContext->Capabilities)))
+    {
+        for (i = 0; i < TokenPageContext->Capabilities->GroupCount; i++)
+        {
+            PATTRIBUTE_NODE node;
+            PPH_STRING name;
+            ULONG subAuthoritiesCount;
+            ULONG subAuthority;
+
+            name = PhSidToStringSid(TokenPageContext->Capabilities->Groups[i].Sid);
+            node = PhpAddAttributeNode(&TokenPageContext->CapsTreeContext, NULL, name);
+
+            if (name = PhGetSidFullName(TokenPageContext->Capabilities->Groups[i].Sid, TRUE, NULL))
+            {
+                PhpAddAttributeNode(&TokenPageContext->CapsTreeContext, node, PhFormatString(L"FullName: %s", PhGetString(name)));
+                PhDereferenceObject(name);
+            }
+
+            if (name = PhGetCapabilitySidName(TokenPageContext->Capabilities->Groups[i].Sid))
+            {
+                PhpAddAttributeNode(&TokenPageContext->CapsTreeContext, node, PhFormatString(L"Capability: %s", PhGetString(name)));
+                PhDereferenceObject(name);
+            }
+
+            subAuthoritiesCount = *RtlSubAuthorityCountSid(TokenPageContext->Capabilities->Groups[i].Sid);
+            subAuthority = *RtlSubAuthoritySid(TokenPageContext->Capabilities->Groups[i].Sid, 0);
+
+            // RtlIdentifierAuthoritySid(TokenPageContext->Capabilities->Groups[i].Sid) == (BYTE[])SECURITY_APP_PACKAGE_AUTHORITY
+            if (subAuthority == SECURITY_CAPABILITY_BASE_RID)
+            {
+                if (subAuthoritiesCount == SECURITY_APP_PACKAGE_RID_COUNT)
+                {
+                    PTOKEN_APPCONTAINER_INFORMATION appContainerInfo;
+
+                    //if (*RtlSubAuthoritySid(TokenPageContext->Capabilities->Groups[i].Sid, 1) == SECURITY_CAPABILITY_APP_RID)
+                    //    continue;
+
+                    if (NT_SUCCESS(PhQueryTokenVariableSize(tokenHandle, TokenAppContainerSid, &appContainerInfo)))
+                    {
+                        if (appContainerInfo->TokenAppContainer)
+                        {
+                            if (PhIsPackageCapabilitySid(appContainerInfo->TokenAppContainer, TokenPageContext->Capabilities->Groups[i].Sid))
+                            {
+                                HANDLE processHandle;
+
+                                if (NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, (HANDLE)TokenPageContext->Context)))
+                                {
+                                    name = PhGetProcessPackageFullName(processHandle);
+                                    PhpAddAttributeNode(&TokenPageContext->CapsTreeContext, node, PhFormatString(L"Package: %s", PhGetString(name)));
+                                    PhDereferenceObject(name);
+
+                                    NtClose(processHandle);
+                                }
+                            }
+                        }
+
+                        PhFree(appContainerInfo);
+                    }
+                }
+                else if (subAuthoritiesCount == SECURITY_CAPABILITY_RID_COUNT)
+                {
+                    PPH_STRING capabilityName;
+                    GUID capabilityGuid;
+                    ULONG firstPart;
+                    ULONG secondPart;
+                    ULONG thirdPart;
+                    ULONG lastPart;
+
+                    firstPart = *RtlSubAuthoritySid(TokenPageContext->Capabilities->Groups[i].Sid, 1);
+                    secondPart = *RtlSubAuthoritySid(TokenPageContext->Capabilities->Groups[i].Sid, 2);
+                    thirdPart = *RtlSubAuthoritySid(TokenPageContext->Capabilities->Groups[i].Sid, 3);
+                    lastPart = *RtlSubAuthoritySid(TokenPageContext->Capabilities->Groups[i].Sid, 4);
+
+                    capabilityGuid.Data1 = firstPart;
+                    capabilityGuid.Data2 = LOWORD(secondPart);
+                    capabilityGuid.Data3 = HIWORD(secondPart);
+                    *((PULONG)&capabilityGuid.Data4[0]) = thirdPart;
+                    *((PULONG)&capabilityGuid.Data4[4]) = lastPart;
+
+                    if (name = PhFormatGuid(&capabilityGuid))
+                    {
+                        PhpAddAttributeNode(&TokenPageContext->CapsTreeContext, node, PhFormatString(L"Guid: %s", PhGetString(name)));
+
+                        if (capabilityName = PhGetCapabilityGuidName(name))
+                        {
+                            PhpAddAttributeNode(&TokenPageContext->CapsTreeContext, node, PhFormatString(L"GuidName: %s", PhGetString(capabilityName)));
+                            PhDereferenceObject(capabilityName);
+                        }
+
+                        PhDereferenceObject(name);
+                    }
+                }
+            }
+        }
+    }
+
+    NtClose(tokenHandle);
+
+    return TRUE;
+}
+
+INT_PTR CALLBACK PhpTokenCapabilitiesPageProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+    PTOKEN_PAGE_CONTEXT tokenPageContext;
+    HWND tnHandle;
+
+    tokenPageContext = PhpTokenPageHeader(hwndDlg, uMsg, wParam, lParam);
+
+    if (!tokenPageContext)
+        return FALSE;
+
+    tnHandle = GetDlgItem(hwndDlg, IDC_LIST);
+
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            tokenPageContext->CapsTreeContext.WindowHandle = hwndDlg;
+            tokenPageContext->CapsTreeContext.NodeList = PhCreateList(10);
+            tokenPageContext->CapsTreeContext.RootList = PhCreateList(10);
+
+            PhSetControlTheme(tnHandle, L"explorer");
+            TreeNew_SetCallback(tnHandle, PhpAttributeTreeNewCallback, &tokenPageContext->CapsTreeContext);
+            PhAddTreeNewColumnEx2(tnHandle, 0, TRUE, L"Capabilities", 200, PH_ALIGN_LEFT, 0, 0, TN_COLUMN_FLAG_NODPISCALEONADD);
+
+            TreeNew_SetRedraw(tnHandle, FALSE);
+            PhpAddTokenCapabilities(tokenPageContext, tnHandle);
+            TreeNew_NodesStructured(tnHandle);
+            TreeNew_SetRedraw(tnHandle, TRUE);
+
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhpDeleteAttributeTreeContext(&tokenPageContext->CapsTreeContext);
+
+            if (tokenPageContext->Capabilities)
+            {
+                PhFree(tokenPageContext->Capabilities);
+                tokenPageContext->Capabilities = NULL;
+            }
+        }
+        break;
+    case WM_SHOWWINDOW:
+        {
+            TreeNew_AutoSizeColumn(tnHandle, 0, TN_AUTOSIZE_REMAINING_SPACE);
+        }
+        break;
+    case WM_CONTEXTMENU:
+        {
+            PPH_TREENEW_CONTEXT_MENU contextMenuEvent = (PPH_TREENEW_CONTEXT_MENU)lParam;
+            PPH_EMENU menu;
+            PPH_EMENU_ITEM selectedItem;
+            PATTRIBUTE_NODE *attributeObjectNodes = NULL;
+            ULONG numberOfAttributeObjectNodes = 0;
+
+            PhpGetSelectedAttributeTreeNodes(&tokenPageContext->CapsTreeContext, &attributeObjectNodes, &numberOfAttributeObjectNodes);
+
+            if (numberOfAttributeObjectNodes != 0)
+            {
+                menu = PhCreateEMenu();
+                PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"Copy", NULL, NULL), ULONG_MAX);
+                PhInsertCopyCellEMenuItem(menu, IDC_COPY, tnHandle, contextMenuEvent->Column);
+
+                selectedItem = PhShowEMenu(
+                    menu,
+                    hwndDlg,
+                    PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT,
+                    PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                    contextMenuEvent->Location.x,
+                    contextMenuEvent->Location.y
+                    );
+
+                if (selectedItem && selectedItem->Id != ULONG_MAX)
+                {
+                    if (!PhHandleCopyCellEMenuItem(selectedItem))
+                    {
+                        switch (selectedItem->Id)
+                        {
+                        case IDC_COPY:
+                            {
+                                PPH_STRING text;
+
+                                text = PhGetTreeNewText(tnHandle, 0);
+                                PhSetClipboardString(tnHandle, &text->sr);
+                                PhDereferenceObject(text);
+                            }
+                            break;
+                        }
+                    }
+                }
+
+                PhDestroyEMenu(menu);
+            }
+
+            PhFree(attributeObjectNodes);
+        }
+        break;
+    }
+
+    return FALSE;
 }
 
 PWSTR PhGetSecurityAttributeTypeString(
@@ -2526,8 +2536,6 @@ BOOLEAN PhpAddTokenClaimAttributes(
 
     NtClose(tokenHandle);
 
-    TreeNew_NodesStructured(tnHandle);
-
     return TRUE;
 }
 
@@ -2691,8 +2699,6 @@ BOOLEAN PhpAddTokenAttributes(
     }
 
     NtClose(tokenHandle);
-
-    TreeNew_NodesStructured(tnHandle);
 
     return TRUE;
 }
