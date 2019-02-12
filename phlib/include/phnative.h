@@ -1244,6 +1244,14 @@ PhQueryFullAttributesFileWin32(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhQueryAttributesFileWin32(
+    _In_ PWSTR FileName,
+    _Out_ PFILE_BASIC_INFORMATION FileInformation
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhDeleteFileWin32(
     _In_ PWSTR FileName
     );
