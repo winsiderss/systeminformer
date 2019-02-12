@@ -1879,7 +1879,7 @@ BOOLEAN PhMwpOnNotify(
                         PPH_STRING filePathString;
 
                         // The user typed a name without a path so attempt to locate the executable.
-                        if (PhSearchFilePath(fileName->Buffer, L".exe", &filePathString))
+                        if (filePathString = PhSearchFilePath(fileName->Buffer, L".exe"))
                             PhMoveReference(&fileName, filePathString);
                         else
                             PhClearReference(&fileName);

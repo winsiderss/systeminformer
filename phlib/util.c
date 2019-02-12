@@ -2691,7 +2691,7 @@ NTSTATUS PhCreateProcessWin32Ex(
             PPH_STRING filePathSr;
 
             // The user typed a name without a path so attempt to locate the executable.
-            if (PhSearchFilePath(fileName->Buffer, L".exe", &filePathSr))
+            if (filePathSr = PhSearchFilePath(fileName->Buffer, L".exe"))
                 PhMoveReference(&fileName, filePathSr);
             else
                 PhClearReference(&fileName);
@@ -5017,7 +5017,7 @@ BOOLEAN PhParseCommandLineFuzzy(
 
             tempCommandLine = PhCreateString2(&commandLine);
 
-            if (PhSearchFilePath(tempCommandLine->Buffer, L".exe", &filePathSr))
+            if (filePathSr = PhSearchFilePath(tempCommandLine->Buffer, L".exe"))
             {
                 *FullFileName = filePathSr;
             }
@@ -5073,7 +5073,7 @@ BOOLEAN PhParseCommandLineFuzzy(
         if (result)
         {
             FileName->Buffer = commandLine.Buffer;
-            FileName->Length = ((PCHAR)currentPart.Buffer - (PCHAR)temp.Buffer) + currentPart.Length;
+            FileName->Length = (SIZE_T)PTR_SUB_OFFSET(currentPart.Buffer, temp.Buffer) + currentPart.Length;
 
             PhTrimStringRef(&remainingPart, &whitespace, PH_TRIM_START_ONLY);
             *Arguments = remainingPart;
@@ -5100,61 +5100,62 @@ BOOLEAN PhParseCommandLineFuzzy(
     return FALSE;
 }
 
-BOOLEAN PhSearchFilePath(
+PPH_STRING PhSearchFilePath(
     _In_ PWSTR FileName,
-    _In_opt_ PWSTR Extension,
-    _Out_ PPH_STRING *FilePath
+    _In_opt_ PWSTR Extension
     )
 {
-    NTSTATUS status;
-    ULONG bufferLength;
-    UNICODE_STRING fileNameUs;
-    OBJECT_ATTRIBUTES objectAttributes;
+    PPH_STRING fullPath;
+    ULONG bufferSize;
+    ULONG returnLength;
     FILE_BASIC_INFORMATION basicInfo;
-    WCHAR buffer[MAX_PATH + 1] = L"";
 
-    bufferLength = SearchPath(
+    bufferSize = MAX_PATH;
+    fullPath = PhCreateStringEx(NULL, bufferSize * sizeof(WCHAR));
+
+    returnLength = SearchPath(
         NULL,
         FileName,
         Extension,
-        MAX_PATH,
-        buffer,
+        (ULONG)fullPath->Length / sizeof(WCHAR),
+        fullPath->Buffer,
         NULL
         );
 
-    if (bufferLength == 0 && bufferLength <= MAX_PATH)
-        return FALSE;
+    if (returnLength == 0 && returnLength <= MAX_PATH)
+        goto CleanupExit;
+
+    if (returnLength > bufferSize)
+    {
+        bufferSize = returnLength;
+        PhDereferenceObject(fullPath);
+        fullPath = PhCreateStringEx(NULL, bufferSize * sizeof(WCHAR));
+
+        returnLength = SearchPath(
+            NULL,
+            FileName,
+            Extension,
+            (ULONG)fullPath->Length / sizeof(WCHAR),
+            fullPath->Buffer,
+            NULL
+            );
+    }
+
+    if (returnLength == 0 && returnLength <= MAX_PATH)
+        goto CleanupExit;
 
     // Make sure this is not a directory.
 
-    if (!NT_SUCCESS(RtlDosPathNameToNtPathName_U_WithStatus(
-        buffer,
-        &fileNameUs,
-        NULL,
-        NULL
-        )))
-    {
-        return FALSE;
-    }
-
-    InitializeObjectAttributes(
-        &objectAttributes,
-        &fileNameUs,
-        OBJ_CASE_INSENSITIVE,
-        NULL,
-        NULL
-        );
-
-    status = NtQueryAttributesFile(&objectAttributes, &basicInfo);
-    RtlFreeUnicodeString(&fileNameUs);
-
-    if (!NT_SUCCESS(status))
-        return FALSE;
+    if (!NT_SUCCESS(PhQueryAttributesFileWin32(fullPath->Buffer, &basicInfo)))
+        goto CleanupExit;
     if (basicInfo.FileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-        return FALSE;
+        goto CleanupExit;
 
-    *FilePath = PhCreateString(buffer);
-    return TRUE;
+    return fullPath;
+
+CleanupExit:
+    PhDereferenceObject(fullPath);
+    return NULL;
 }
 
 PPH_STRING PhCreateCacheFile(
