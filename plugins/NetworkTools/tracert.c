@@ -59,6 +59,10 @@ NTSTATUS TracertHostnameLookupCallback(
     )
 {
     PTRACERT_RESOLVE_WORKITEM resolve = Parameter;
+    WSADATA winsockStartup;
+
+    if (WSAStartup(WINSOCK_VERSION, &winsockStartup) != ERROR_SUCCESS)
+        return STATUS_INVALID_PARAMETER;
 
     if (resolve->Type == PH_IPV4_NETWORK_TYPE)
     {
@@ -130,6 +134,8 @@ NTSTATUS TracertHostnameLookupCallback(
             PhDereferenceObject(resolve);
         }
     }
+
+    WSACleanup();
 
     return STATUS_SUCCESS;
 }
@@ -269,11 +275,6 @@ NTSTATUS NetworkTracertThreadStart(
         IP_FLAG_DF,
         0
     };
-    WSADATA winsockStartup;
-
-    // WSAStartup required by GetNameInfo.
-    if (WSAStartup(WINSOCK_VERSION, &winsockStartup) != ERROR_SUCCESS)
-        goto CleanupExit;
 
     if (icmpRandString = PhCreateStringEx(NULL, PhGetIntegerSetting(SETTING_NAME_PING_SIZE) * 2 + 2))
     {
@@ -468,7 +469,6 @@ CleanupExit:
     if (icmpEchoBuffer)
         PhDereferenceObject(icmpEchoBuffer);
 
-    WSACleanup();
     return STATUS_SUCCESS;
 }
 
