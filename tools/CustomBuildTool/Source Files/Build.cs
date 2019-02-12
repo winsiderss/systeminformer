@@ -123,6 +123,7 @@ namespace CustomBuildTool
 
         private static readonly string[] phlib_headers =
         {
+            "appresolver.h",
             "circbuf.h",
             "circbuf_h.h",
             "cpysave.h",
