@@ -765,6 +765,7 @@ lpacSessionManagement
 lpacWebPlatform
 microphone
 microsoftEdgeRemoteDebugging
+microsoft.eSIMManagement_8wekyb3d8bbwe
 mixedRealityEnvironmentInternal
 mmsTransportSystem
 multiplaneOverlay
