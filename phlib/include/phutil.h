@@ -1105,12 +1105,11 @@ PhParseCommandLineFuzzy(
     );
 
 PHLIBAPI
-BOOLEAN
+PPH_STRING
 NTAPI
 PhSearchFilePath(
     _In_ PWSTR FileName,
-    _In_opt_ PWSTR Extension,
-    _Out_ PPH_STRING *FilePath
+    _In_opt_ PWSTR Extension
     );
 
 PHLIBAPI
