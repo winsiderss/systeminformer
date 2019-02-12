@@ -5053,7 +5053,6 @@ BOOLEAN PhParseCommandLineFuzzy(
     while (remainingPart.Length != 0)
     {
         BOOLEAN found;
-        BOOLEAN result;
 
         found = PhSplitStringRefAtChar(&remainingPart, ' ', &currentPart, &remainingPart);
 
@@ -5063,14 +5062,14 @@ BOOLEAN PhParseCommandLineFuzzy(
             *(remainingPart.Buffer - 1) = 0;
         }
 
-        result = PhSearchFilePath(temp.Buffer, L".exe", &filePathSr);
+        filePathSr = PhSearchFilePath(temp.Buffer, L".exe");
 
         if (found)
         {
             *(remainingPart.Buffer - 1) = originalChar;
         }
 
-        if (result)
+        if (filePathSr)
         {
             FileName->Buffer = commandLine.Buffer;
             FileName->Length = (SIZE_T)PTR_SUB_OFFSET(currentPart.Buffer, temp.Buffer) + currentPart.Length;
@@ -5122,7 +5121,7 @@ PPH_STRING PhSearchFilePath(
         NULL
         );
 
-    if (returnLength == 0 && returnLength <= MAX_PATH)
+    if (returnLength == 0 && returnLength <= bufferSize)
         goto CleanupExit;
 
     if (returnLength > bufferSize)
@@ -5141,7 +5140,7 @@ PPH_STRING PhSearchFilePath(
             );
     }
 
-    if (returnLength == 0 && returnLength <= MAX_PATH)
+    if (returnLength == 0 && returnLength <= bufferSize)
         goto CleanupExit;
 
     // Make sure this is not a directory.
