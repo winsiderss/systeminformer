@@ -3,7 +3,7 @@
  *   PE viewer
  *
  * Copyright (C) 2010-2011 wj32
- * Copyright (C) 2017 dmex
+ * Copyright (C) 2017-2019 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -118,16 +118,30 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
                             if (exportFunction.Function)
                             {
                                 PPH_STRING exportName;
-                                
+
                                 // Try find the export name using symbols.
-                                exportName = PhGetSymbolFromAddress(
-                                    PvSymbolProvider,
-                                    (ULONG64)PTR_ADD_OFFSET(PvMappedImage.NtHeaders->OptionalHeader.ImageBase, exportFunction.Function),
-                                    NULL,
-                                    NULL,
-                                    NULL,
-                                    NULL
-                                    );
+                                if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+                                {
+                                    exportName = PhGetSymbolFromAddress(
+                                        PvSymbolProvider,
+                                        (ULONG64)PTR_ADD_OFFSET(PvMappedImage.NtHeaders32->OptionalHeader.ImageBase, exportFunction.Function),
+                                        NULL,
+                                        NULL,
+                                        NULL,
+                                        NULL
+                                        );
+                                }
+                                else
+                                {
+                                    exportName = PhGetSymbolFromAddress(
+                                        PvSymbolProvider,
+                                        (ULONG64)PTR_ADD_OFFSET(PvMappedImage.NtHeaders->OptionalHeader.ImageBase, exportFunction.Function),
+                                        NULL,
+                                        NULL,
+                                        NULL,
+                                        NULL
+                                        );
+                                }
 
                                 if (exportName)
                                 {
@@ -158,7 +172,7 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
                         PhPrintUInt32(number, exportEntry.Ordinal);
                         PhSetListViewSubItem(lvHandle, lvItemIndex, 3, number);
 
-                        if (exportEntry.Name) // Note: The 'Hint' is only valid for named exports.
+                        if (exportEntry.Name) // Note: The 'Hint' is only valid for named exports. (dmex)
                         {
                             PhPrintUInt32(number, exportEntry.Hint);
                             PhSetListViewSubItem(lvHandle, lvItemIndex, 4, number);
@@ -183,10 +197,8 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
             {
                 PPH_LAYOUT_ITEM dialogItem;
 
-                dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg,
-                    PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
-                PvAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST),
-                    dialogItem, PH_ANCHOR_ALL);
+                dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
+                PvAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST), dialogItem, PH_ANCHOR_ALL);
 
                 PvDoPropPageLayout(hwndDlg);
 
