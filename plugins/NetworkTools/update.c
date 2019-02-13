@@ -2,7 +2,7 @@
  * Process Hacker Network Tools -
  *   GeoIP database updater
  *
- * Copyright (C) 2016 dmex
+ * Copyright (C) 2016-2019 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -29,21 +29,36 @@
 HWND UpdateDialogHandle = NULL;
 HANDLE UpdateDialogThreadHandle = NULL;
 PH_EVENT InitializedEvent = PH_EVENT_INIT;
+PPH_OBJECT_TYPE UpdateContextType = NULL;
+PH_INITONCE UpdateContextTypeInitOnce = PH_INITONCE_INIT;
 
-VOID FreeUpdateContext(
-    _In_ _Post_invalid_ PPH_UPDATER_CONTEXT Context
+VOID UpdateContextDeleteProcedure(
+    _In_ PVOID Object,
+    _In_ ULONG Flags
     )
 {
-    if (Context->FileDownloadUrl)
-        PhDereferenceObject(Context->FileDownloadUrl);
+    PPH_UPDATER_CONTEXT context = Object;
 
-    if (Context->RevVersion)
-        PhDereferenceObject(Context->RevVersion);
+    if (context->FileDownloadUrl)
+        PhDereferenceObject(context->FileDownloadUrl);
+}
 
-    if (Context->Size)
-        PhDereferenceObject(Context->Size);
+PPH_UPDATER_CONTEXT CreateUpdateContext(
+    VOID
+    )
+{
+    PPH_UPDATER_CONTEXT context;
 
-    PhDereferenceObject(Context);
+    if (PhBeginInitOnce(&UpdateContextTypeInitOnce))
+    {
+        UpdateContextType = PhCreateObjectType(L"GeoIpContextObjectType", 0, UpdateContextDeleteProcedure);
+        PhEndInitOnce(&UpdateContextTypeInitOnce);
+    }
+
+    context = PhCreateObject(sizeof(PH_UPDATER_CONTEXT), UpdateContextType);
+    memset(context, 0, sizeof(PH_UPDATER_CONTEXT));
+
+    return context;
 }
 
 VOID TaskDialogCreateIcons(
@@ -484,16 +499,66 @@ CleanupExit:
     {
         if (success)
         {
-            ShowDbInstallRestartDialog(context);
+            PostMessage(context->DialogHandle, PH_SHOWINSTALL, 0, 0);
         }
         else
         {
-            ShowDbUpdateFailedDialog(context);
+            PostMessage(context->DialogHandle, PH_SHOWERROR, 0, 0);
         }
     }
 
     PhDereferenceObject(context);
     return STATUS_SUCCESS;
+}
+
+LRESULT CALLBACK TaskDialogSubclassProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+    PPH_UPDATER_CONTEXT context;
+    WNDPROC oldWndProc;
+
+    if (!(context = PhGetWindowContext(hwndDlg, UCHAR_MAX)))
+        return 0;
+
+    oldWndProc = context->DefaultWindowProc;
+
+    switch (uMsg)
+    {
+    case WM_DESTROY:
+        {
+            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+            PhRemoveWindowContext(hwndDlg, UCHAR_MAX);
+
+            PhUnregisterWindowCallback(hwndDlg);
+        }
+        break;
+    case PH_SHOWDIALOG:
+        {
+            if (IsMinimized(hwndDlg))
+                ShowWindow(hwndDlg, SW_RESTORE);
+            else
+                ShowWindow(hwndDlg, SW_SHOW);
+
+            SetForegroundWindow(hwndDlg);
+        }
+        break;
+    case PH_SHOWINSTALL:
+        {
+            ShowDbInstallRestartDialog(context);
+        }
+        break;
+    case PH_SHOWERROR:
+        {
+            ShowDbUpdateFailedDialog(context);
+        }
+        break;
+    }
+
+    return CallWindowProc(oldWndProc, hwndDlg, uMsg, wParam, lParam);
 }
 
 HRESULT CALLBACK TaskDialogBootstrapCallback(
@@ -518,6 +583,13 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
             // Create the Taskdialog icons
             TaskDialogCreateIcons(context);
 
+            PhRegisterWindowCallback(hwndDlg, PH_PLUGIN_WINDOW_EVENT_TYPE_TOPMOST, NULL);
+
+            // Subclass the Taskdialog.
+            context->DefaultWindowProc = (WNDPROC)GetWindowLongPtr(hwndDlg, GWLP_WNDPROC);
+            PhSetWindowContext(hwndDlg, UCHAR_MAX, context);
+            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)TaskDialogSubclassProc);
+
             ShowDbCheckForUpdatesDialog(context);
         }
         break;
@@ -532,13 +604,11 @@ NTSTATUS GeoIPUpdateDialogThread(
 {
     PH_AUTO_POOL autoPool;
     PPH_UPDATER_CONTEXT context;
-    INT result = 0;
     TASKDIALOGCONFIG config = { sizeof(TASKDIALOGCONFIG) };
 
     PhInitializeAutoPool(&autoPool);
 
-    context = (PPH_UPDATER_CONTEXT)PhCreateAlloc(sizeof(PH_UPDATER_CONTEXT));
-    memset(context, 0, sizeof(PH_UPDATER_CONTEXT));
+    context = CreateUpdateContext();
 
     config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED;
     config.pszContent = L"Initializing...";
@@ -546,9 +616,9 @@ NTSTATUS GeoIPUpdateDialogThread(
     config.pfCallback = TaskDialogBootstrapCallback;
     config.hwndParent = Parameter;
 
-    TaskDialogIndirect(&config, &result, NULL, NULL);
+    TaskDialogIndirect(&config, NULL, NULL, NULL);
 
-    FreeUpdateContext(context);
+    PhDereferenceObject(context);
     PhDeleteAutoPool(&autoPool);
 
     return STATUS_SUCCESS;
@@ -601,5 +671,16 @@ VOID ShowGeoIPUpdateDialog(
     _In_opt_ HWND Parent
     )
 {
-    PhCreateThread2(GeoIPUpdateDialogThread, Parent);
+    if (!UpdateDialogThreadHandle)
+    {
+        if (!(UpdateDialogThreadHandle = PhCreateThread(0, GeoIPUpdateDialogThread, NULL)))
+        {
+            PhShowStatus(PhMainWndHandle, L"Unable to create the updater window.", 0, GetLastError());
+            return;
+        }
+
+        PhWaitForEvent(&InitializedEvent, NULL);
+    }
+
+    PostMessage(UpdateDialogHandle, PH_SHOWDIALOG, 0, 0);
 }

@@ -93,6 +93,7 @@ typedef enum _PH_NETWORK_ACTION
     MENU_ACTION_COPY,
 } PH_NETWORK_ACTION;
 
+#define UPDATE_MENUITEM 1005
 #define NTM_RECEIVEDTRACE (WM_APP + 1)
 #define NTM_RECEIVEDWHOIS (WM_APP + 2)
 #define NTM_RECEIVEDFINISH (WM_APP + 3)
@@ -100,7 +101,9 @@ typedef enum _PH_NETWORK_ACTION
 #define WM_TRACERT_HOSTNAME (WM_APP + 5)
 #define WM_TRACERT_COUNTRY (WM_APP + 6)
 
-#define UPDATE_MENUITEM    1005
+#define PH_SHOWDIALOG (WM_APP + 10)
+#define PH_SHOWINSTALL (WM_APP + 11)
+#define PH_SHOWERROR (WM_APP + 12)
 
 typedef struct _NETWORK_PING_CONTEXT
 {
@@ -154,6 +157,12 @@ typedef struct _NETWORK_WHOIS_CONTEXT
     PH_IP_ENDPOINT RemoteEndpoint;
     WCHAR IpAddressString[INET6_ADDRSTRLEN + 1];
 } NETWORK_WHOIS_CONTEXT, *PNETWORK_WHOIS_CONTEXT;
+
+// TDM_NAVIGATE_PAGE can not be called from other threads without comctl32.dll throwing access violations 
+// after navigating to the page and you press keys such as ctrl, alt, home and insert. (dmex)
+#define TaskDialogNavigatePage(WindowHandle, Config) \
+    assert(HandleToUlong(NtCurrentThreadId()) == GetWindowThreadProcessId(WindowHandle, NULL)); \
+    SendMessage(WindowHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)Config);
 
 VOID ShowWhoisWindow(
     _In_ PPH_NETWORK_ITEM NetworkItem
@@ -294,14 +303,12 @@ VOID DrawCountryIcon(
 
 typedef struct _PH_UPDATER_CONTEXT
 {
-    BOOLEAN FixedWindowStyles;
     HWND DialogHandle;
     HICON IconSmallHandle;
     HICON IconLargeHandle;
+    WNDPROC DefaultWindowProc;
 
     PPH_STRING FileDownloadUrl;
-    PPH_STRING RevVersion;
-    PPH_STRING Size;
 } PH_UPDATER_CONTEXT, *PPH_UPDATER_CONTEXT;
 
 VOID TaskDialogLinkClicked(
