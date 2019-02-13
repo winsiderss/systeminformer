@@ -2,7 +2,7 @@
  * Process Hacker Plugins -
  *   Update Checker Plugin
  *
- * Copyright (C) 2016 dmex
+ * Copyright (C) 2016-2019 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -52,7 +52,6 @@ PUPDATER_HASH_CONTEXT UpdaterInitializeHash(
     VOID
     )
 {
-    BOOLEAN success = FALSE;
     ULONG querySize;
     PUPDATER_HASH_CONTEXT hashContext;
 

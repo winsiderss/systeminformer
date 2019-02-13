@@ -2,7 +2,7 @@
  * Process Hacker Plugins -
  *   Update Checker Plugin
  *
- * Copyright (C) 2016 dmex
+ * Copyright (C) 2016-2019 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -73,5 +73,5 @@ VOID ShowProgressDialog(
     config.pszMainInstruction = PhaFormatString(L"Downloading update %s...", PhGetStringOrEmpty(Context->Version))->Buffer;
     config.pszContent = L"Downloaded: ~ of ~ (0%)\r\nSpeed: ~ KB/s";
 
-    SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
+    TaskDialogNavigatePage(Context->DialogHandle, &config);
 }
