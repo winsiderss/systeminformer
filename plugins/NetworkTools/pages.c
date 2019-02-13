@@ -182,7 +182,7 @@ VOID ShowDbCheckForUpdatesDialog(
     config.pszMainInstruction = L"Download the latest GeoIP database?";
     config.pszContent = L"This product includes GeoLite2 data created by MaxMind, available from <a href=\"http://www.maxmind.com\">http://www.maxmind.com</a>\r\n\r\nSelect download to continue.";
 
-    SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
+    TaskDialogNavigatePage(Context->DialogHandle, &config);
 }
 
 VOID ShowDbCheckingForUpdatesDialog(
@@ -204,7 +204,7 @@ VOID ShowDbCheckingForUpdatesDialog(
     config.pszMainInstruction = L"Downloading";
     config.pszContent = L"Downloaded: ~ of ~ (~%%)\r\nSpeed: ~/s";
 
-    SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
+    TaskDialogNavigatePage(Context->DialogHandle, &config);
 }
 
 VOID ShowDbInstallRestartDialog(
@@ -228,7 +228,7 @@ VOID ShowDbInstallRestartDialog(
     config.pszMainInstruction = L"The GeoIP database has been installed";
     config.pszContent = L"You need to restart Process Hacker for the changes to take effect...";
 
-    SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
+    TaskDialogNavigatePage(Context->DialogHandle, &config);
 }
 
 VOID ShowDbUpdateFailedDialog(
@@ -251,5 +251,5 @@ VOID ShowDbUpdateFailedDialog(
     config.pszMainInstruction = L"Error downloading GeoIP database.";
     config.pszContent = L"Click Retry to download the database again.";
 
-    SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
+    TaskDialogNavigatePage(Context->DialogHandle, &config);
 }
