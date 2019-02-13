@@ -2,7 +2,7 @@
  * Process Hacker Plugins -
  *   Update Checker Plugin
  *
- * Copyright (C) 2016 dmex
+ * Copyright (C) 2016-2019 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -196,13 +196,13 @@ VOID ShowUpdateInstallDialog(
     config.pfCallback = FinalTaskDialogCallbackProc;
     config.lpCallbackData = (LONG_PTR)Context;
     config.pButtons = TaskDialogButtonArray;
-    config.cButtons = ARRAYSIZE(TaskDialogButtonArray);
+    config.cButtons = RTL_NUMBER_OF(TaskDialogButtonArray);
 
     config.pszWindowTitle = L"Process Hacker - Updater";
     config.pszMainInstruction = L"Ready to install update?";
     config.pszContent = L"The update has been successfully downloaded and verified.\r\n\r\nClick Install to continue.";
 
-    SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
+    TaskDialogNavigatePage(Context->DialogHandle, &config);
 }
 
 VOID ShowLatestVersionDialog(
@@ -226,7 +226,7 @@ VOID ShowLatestVersionDialog(
     
     // HACK
     imageDosHeader = (PIMAGE_DOS_HEADER)NtCurrentPeb()->ImageBaseAddress;
-    imageNtHeader = (PIMAGE_NT_HEADERS)PTR_ADD_OFFSET(imageDosHeader, (ULONG)imageDosHeader->e_lfanew);
+    imageNtHeader = (PIMAGE_NT_HEADERS)PTR_ADD_OFFSET(imageDosHeader, imageDosHeader->e_lfanew);
     RtlSecondsSince1970ToTime(imageNtHeader->FileHeader.TimeDateStamp, &time);
     PhLargeIntegerToLocalSystemTime(&systemTime, &time);
 
@@ -238,7 +238,7 @@ VOID ShowLatestVersionDialog(
         PhaFormatDateTime(&systemTime)->Buffer
         )->Buffer;
 
-    SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
+    TaskDialogNavigatePage(Context->DialogHandle, &config);
 }
 
 VOID ShowNewerVersionDialog(
@@ -263,7 +263,7 @@ VOID ShowNewerVersionDialog(
         PhGetStringOrEmpty(Context->CurrentVersionString)
         )->Buffer;
 
-    SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
+    TaskDialogNavigatePage(Context->DialogHandle, &config);
 }
 
 VOID ShowUpdateFailedDialog(
@@ -318,5 +318,5 @@ VOID ShowUpdateFailedDialog(
     config.pfCallback = FinalTaskDialogCallbackProc;
     config.lpCallbackData = (LONG_PTR)Context;
 
-    SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
+    TaskDialogNavigatePage(Context->DialogHandle, &config);
 }

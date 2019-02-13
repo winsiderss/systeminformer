@@ -452,7 +452,7 @@ NTSTATUS UpdateCheckThread(
 
     if (!context->HaveData)
     {
-        ShowUpdateFailedDialog(context, FALSE, FALSE);
+        PostMessage(context->DialogHandle, PH_SHOWERROR, FALSE, FALSE);
 
         PhDereferenceObject(context);
         PhDeleteAutoPool(&autoPool);
@@ -462,17 +462,17 @@ NTSTATUS UpdateCheckThread(
     if (context->CurrentVersion == context->LatestVersion)
     {
         // User is running the latest version
-        ShowLatestVersionDialog(context);
+        PostMessage(context->DialogHandle, PH_SHOWLATEST, 0, 0);
     }
     else if (context->CurrentVersion > context->LatestVersion)
     {
         // User is running a newer version
-        ShowNewerVersionDialog(context);
+        PostMessage(context->DialogHandle, PH_SHOWNEWEST, 0, 0);
     }
     else
     {
         // User is running an older version
-        ShowAvailableDialog(context);
+        PostMessage(context->DialogHandle, PH_SHOWUPDATE, 0, 0);
     }
 
     PhDereferenceObject(context);
@@ -734,20 +734,20 @@ CleanupExit:
     {
         if (downloadSuccess && hashSuccess && signatureSuccess)
         {
-            ShowUpdateInstallDialog(context);
+            PostMessage(context->DialogHandle, PH_SHOWINSTALL, 0, 0);
         }
         else if (downloadSuccess)
         {
             if (signatureSuccess)
-                ShowUpdateFailedDialog(context, TRUE, FALSE);
+                PostMessage(context->DialogHandle, PH_SHOWERROR, TRUE, FALSE);
             else if (hashSuccess)
-                ShowUpdateFailedDialog(context, FALSE, TRUE);
+                PostMessage(context->DialogHandle, PH_SHOWERROR, FALSE, TRUE);
             else
-                ShowUpdateFailedDialog(context, FALSE, FALSE);
+                PostMessage(context->DialogHandle, PH_SHOWERROR, FALSE, FALSE);
         }
         else
         {
-            ShowUpdateFailedDialog(context, FALSE, FALSE);
+            PostMessage(context->DialogHandle, PH_SHOWERROR, FALSE, FALSE);
         }
     }
 
@@ -788,6 +788,31 @@ LRESULT CALLBACK TaskDialogSubclassProc(
                 ShowWindow(hwndDlg, SW_SHOW);
 
             SetForegroundWindow(hwndDlg);
+        }
+        break;
+    case PH_SHOWLATEST:
+        {
+            ShowLatestVersionDialog(context);
+        }
+        break;
+    case PH_SHOWNEWEST:
+        {
+            ShowNewerVersionDialog(context);
+        }
+        break;
+    case PH_SHOWUPDATE:
+        {
+            ShowAvailableDialog(context);
+        }
+        break;
+    case PH_SHOWINSTALL:
+        {
+            ShowUpdateInstallDialog(context);
+        }
+        break;
+    case PH_SHOWERROR:
+        {
+            ShowUpdateFailedDialog(context, (BOOLEAN)wParam, (BOOLEAN)lParam);
         }
         break;
     //case WM_PARENTNOTIFY:

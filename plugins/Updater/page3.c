@@ -2,7 +2,7 @@
  * Process Hacker Plugins -
  *   Update Checker Plugin
  *
- * Copyright (C) 2016 dmex
+ * Copyright (C) 2016-2019 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -75,7 +75,7 @@ VOID ShowAvailableDialog(
     config.hMainIcon = Context->IconLargeHandle;
     config.cxWidth = 200;
     config.pButtons = TaskDialogButtonArray;
-    config.cButtons = ARRAYSIZE(TaskDialogButtonArray);
+    config.cButtons = RTL_NUMBER_OF(TaskDialogButtonArray);
     config.lpCallbackData = (LONG_PTR)Context;
     config.pfCallback = ShowAvailableCallbackProc;
 
@@ -86,5 +86,5 @@ VOID ShowAvailableDialog(
         PhGetStringOrEmpty(Context->SetupFileLength)
         )->Buffer;
 
-    SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
+    TaskDialogNavigatePage(Context->DialogHandle, &config);
 }

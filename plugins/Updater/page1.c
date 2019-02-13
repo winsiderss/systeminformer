@@ -2,7 +2,7 @@
  * Process Hacker Plugins -
  *   Update Checker Plugin
  *
- * Copyright (C) 2016 dmex
+ * Copyright (C) 2016-2019 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -69,7 +69,7 @@ VOID ShowCheckForUpdatesDialog(
     config.hMainIcon = Context->IconLargeHandle;
     config.cxWidth = 200;
     config.pButtons = TaskDialogButtonArray;
-    config.cButtons = ARRAYSIZE(TaskDialogButtonArray);
+    config.cButtons = RTL_NUMBER_OF(TaskDialogButtonArray);
     config.pfCallback = CheckForUpdatesCallbackProc;
     config.lpCallbackData = (LONG_PTR)Context;
 
@@ -78,5 +78,5 @@ VOID ShowCheckForUpdatesDialog(
     //config.pszContent = L"The updater will check for new Process Hacker releases and optionally download and install the update.\r\n\r\nClick the check for updates button to continue.";
     config.pszContent = L"Select \"check for updates\" to continue.\r\n";
 
-    SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
+    TaskDialogNavigatePage(Context->DialogHandle, &config);
 }
