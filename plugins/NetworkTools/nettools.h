@@ -324,6 +324,9 @@ VOID ShowGeoIPUpdateDialog(
     );
 
 // pages.c
+
+extern PH_EVENT InitializedEvent;
+
 VOID ShowDbCheckForUpdatesDialog(
     _In_ PPH_UPDATER_CONTEXT Context
     );

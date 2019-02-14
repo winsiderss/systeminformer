@@ -46,6 +46,7 @@ HRESULT CALLBACK CheckForUpdatesDbCallbackProc(
     switch (uMsg)
     {
     case TDN_NAVIGATED:
+        PhSetEvent(&InitializedEvent);
         break;
     case TDN_BUTTON_CLICKED:
         {

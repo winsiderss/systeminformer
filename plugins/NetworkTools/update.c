@@ -621,6 +621,8 @@ NTSTATUS GeoIPUpdateDialogThread(
     PhDereferenceObject(context);
     PhDeleteAutoPool(&autoPool);
 
+    PhResetEvent(&InitializedEvent);
+
     return STATUS_SUCCESS;
 
     //SHELLEXECUTEINFO info = { sizeof(SHELLEXECUTEINFO) };
