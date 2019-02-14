@@ -5143,6 +5143,8 @@ PPH_STRING PhSearchFilePath(
     if (returnLength == 0 && returnLength <= bufferSize)
         goto CleanupExit;
 
+    PhTrimToNullTerminatorString(fullPath);
+
     // Make sure this is not a directory.
 
     if (!NT_SUCCESS(PhQueryAttributesFileWin32(fullPath->Buffer, &basicInfo)))
