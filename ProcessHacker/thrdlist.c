@@ -610,7 +610,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     if (PhFormatToBuffer(&format, 1, node->ThreadIdText, sizeof(node->ThreadIdText), &returnLength))
                     {
                         getCellText->Text.Buffer = node->ThreadIdText;
-                        getCellText->Text.Length = returnLength - sizeof(WCHAR); // minus null terminator
+                        getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL); // minus null terminator
                     }
                 }
                 break;
@@ -630,7 +630,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                         if (PhFormatToBuffer(&format, 1, node->CpuUsageText, sizeof(node->CpuUsageText), &returnLength))
                         {
                             getCellText->Text.Buffer = node->CpuUsageText;
-                            getCellText->Text.Length = returnLength - sizeof(WCHAR); // minus null terminator
+                            getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
                         }
                     }
                     else if (cpuUsage != 0 && PhCsShowCpuBelow001)
@@ -644,7 +644,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                         if (PhFormatToBuffer(format, 2, node->CpuUsageText, sizeof(node->CpuUsageText), &returnLength))
                         {
                             getCellText->Text.Buffer = node->CpuUsageText;
-                            getCellText->Text.Length = returnLength - sizeof(WCHAR);
+                            getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
                         }
                     }
                 }
@@ -894,7 +894,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     if (PhFormatToBuffer(&format, 1, node->ThreadIdHexText, sizeof(node->ThreadIdHexText), &returnLength))
                     {
                         getCellText->Text.Buffer = node->ThreadIdHexText;
-                        getCellText->Text.Length = returnLength - sizeof(WCHAR); // minus null terminator
+                        getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
                     }
                 }
                 break;

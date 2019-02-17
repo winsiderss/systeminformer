@@ -1123,7 +1123,7 @@ NTSTATUS PhQueryEnvironmentVariable(
     }
     else
     {
-        RtlInitUnicodeString(&variableValueUs, UNICODE_NULL);
+        RtlInitEmptyUnicodeString(&variableValueUs, NULL, 0);
     }
 
     status = RtlQueryEnvironmentVariable_U(
@@ -3550,8 +3550,7 @@ BOOLEAN NTAPI PhpEnumProcessModulesCallback(
             NULL
             )))
         {
-            // HACK: Fixup the module load count.
-            // Temp fix until PhpModuleQueryWorker can be used for 'Stage2'. 
+            // Fixup the module load count. (dmex)
             Entry->ObsoleteLoadCount = (USHORT)ldrDagNode.LoadCount;
         }
     }
@@ -3860,7 +3859,7 @@ BOOLEAN NTAPI PhpEnumProcessModules32Callback(
     {
         // Read the base DLL name string and add a null terminator.
 
-        baseDllNameBuffer = PhAllocate(nativeEntry.BaseDllName.Length + sizeof(WCHAR));
+        baseDllNameBuffer = PhAllocate(nativeEntry.BaseDllName.Length + sizeof(UNICODE_NULL));
 
         if (NT_SUCCESS(NtReadVirtualMemory(
             ProcessHandle,
@@ -3882,7 +3881,7 @@ BOOLEAN NTAPI PhpEnumProcessModules32Callback(
 
         // Read the full DLL name string and add a null terminator.
 
-        fullDllNameBuffer = PhAllocate(nativeEntry.FullDllName.Length + sizeof(WCHAR));
+        fullDllNameBuffer = PhAllocate(nativeEntry.FullDllName.Length + sizeof(UNICODE_NULL));
 
         if (NT_SUCCESS(NtReadVirtualMemory(
             ProcessHandle,
@@ -3942,8 +3941,7 @@ BOOLEAN NTAPI PhpEnumProcessModules32Callback(
             NULL
             )))
         {
-            // HACK: Fixup the module load count.
-            // Temp fix until PhpModuleQueryWorker can be used for 'Stage2'. 
+            // Fixup the module load count. (dmex)
             nativeEntry.ObsoleteLoadCount = (USHORT)ldrDagNode32.LoadCount;
         }
     }
@@ -5841,10 +5839,10 @@ PPH_STRING PhGetFileName(
         PH_STRINGREF systemRoot;
 
         PhGetSystemRoot(&systemRoot);
-        newFileName = PhCreateStringEx(NULL, systemRoot.Length + sizeof(WCHAR) + FileName->Length);
+        newFileName = PhCreateStringEx(NULL, systemRoot.Length + sizeof(UNICODE_NULL) + FileName->Length);
         memcpy(newFileName->Buffer, systemRoot.Buffer, systemRoot.Length);
         newFileName->Buffer[systemRoot.Length / sizeof(WCHAR)] = OBJ_NAME_PATH_SEPARATOR;
-        memcpy(PTR_ADD_OFFSET(newFileName->Buffer, systemRoot.Length + sizeof(WCHAR)), FileName->Buffer, FileName->Length);
+        memcpy(PTR_ADD_OFFSET(newFileName->Buffer, systemRoot.Length + sizeof(UNICODE_NULL)), FileName->Buffer, FileName->Length);
     }
     else if (FileName->Length != 0 && FileName->Buffer[0] == OBJ_NAME_PATH_SEPARATOR)
     {
@@ -5862,7 +5860,7 @@ PPH_STRING PhGetFileName(
             // If the file name starts with "\Windows", prepend the system drive.
             if (PhStartsWithString2(newFileName, L"\\Windows", TRUE))
             {
-                newFileName = PhCreateStringEx(NULL, FileName->Length + sizeof(WCHAR) * sizeof(WCHAR));
+                newFileName = PhCreateStringEx(NULL, FileName->Length + sizeof(UNICODE_NULL) * sizeof(WCHAR));
                 newFileName->Buffer[0] = USER_SHARED_DATA->NtSystemRoot[0];
                 newFileName->Buffer[1] = ':';
                 memcpy(&newFileName->Buffer[2], FileName->Buffer, FileName->Length);
@@ -6801,7 +6799,7 @@ NTSTATUS PhQueryValueKey(
     }
     else
     {
-        RtlInitUnicodeString(&valueName, NULL);
+        RtlInitEmptyUnicodeString(&valueName, NULL, 0);
     }
 
     bufferSize = 0x100;
@@ -7451,7 +7449,7 @@ NTSTATUS PhCreatePipeEx(
     _Out_ PHANDLE PipeReadHandle,
     _Out_ PHANDLE PipeWriteHandle,
     _In_ BOOLEAN InheritHandles,
-    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
+    _In_opt_ PSECURITY_DESCRIPTOR SecurityDescriptor
     )
 {
     NTSTATUS status;

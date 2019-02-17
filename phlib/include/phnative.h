@@ -1285,7 +1285,7 @@ PhCreatePipeEx(
     _Out_ PHANDLE PipeReadHandle,
     _Out_ PHANDLE PipeWriteHandle,
     _In_ BOOLEAN InheritHandles,
-    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
+    _In_opt_ PSECURITY_DESCRIPTOR SecurityDescriptor
     );
 
 PHLIBAPI

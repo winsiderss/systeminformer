@@ -255,7 +255,7 @@ PPH_STRING PhGetUserDefaultLocaleName(
 
     if (NT_SUCCESS(RtlLcidToLocaleName(PhGetUserDefaultLCID(), &localeNameUs, 0, FALSE)))
     {
-        return PhCreateString(localeName);
+        return PhCreateStringFromUnicodeString(&localeNameUs);
     }
 
     return NULL;
@@ -411,7 +411,7 @@ PPH_STRING PhGetWin32Message(
  * \return The user's response.
  */
 INT PhShowMessage(
-    _In_ HWND hWnd,
+    _In_opt_ HWND hWnd,
     _In_ ULONG Type,
     _In_ PWSTR Format,
     ...
@@ -435,7 +435,7 @@ INT PhShowMessage(
 }
 
 INT PhShowMessage2(
-    _In_ HWND hWnd,
+    _In_opt_ HWND hWnd,
     _In_ ULONG Buttons,
     _In_opt_ PWSTR Icon,
     _In_opt_ PWSTR Title,

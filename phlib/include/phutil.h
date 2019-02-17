@@ -212,7 +212,7 @@ PHLIBAPI
 INT
 NTAPI
 PhShowMessage(
-    _In_ HWND hWnd,
+    _In_opt_ HWND hWnd,
     _In_ ULONG Type,
     _In_ PWSTR Format,
     ...
@@ -226,7 +226,7 @@ PHLIBAPI
 INT 
 NTAPI
 PhShowMessage2(
-    _In_ HWND hWnd,
+    _In_opt_ HWND hWnd,
     _In_ ULONG Buttons,
     _In_opt_ PWSTR Icon,
     _In_opt_ PWSTR Title,
