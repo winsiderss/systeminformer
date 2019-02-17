@@ -39,6 +39,7 @@
 #define IDC_VERSION                     1013
 #define IDC_VERSIONSTRING               1014
 #define IDC_IMAGEBASE                   1015
+#define IDC_MVIDSTRING                  1015
 #define IDC_ENTRYPOINT                  1016
 #define IDC_SYMSEARCH                   1017
 #define IDC_IMAGETYPE                   1017

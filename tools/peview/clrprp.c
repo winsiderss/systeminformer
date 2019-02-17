@@ -56,6 +56,156 @@ typedef struct _STORAGESTREAM
 } STORAGESTREAM, *PSTORAGESTREAM;
 #include <poppack.h>
 
+PSTORAGESIGNATURE PvpPeGetClrMetaDataHeader(
+    VOID
+    )
+{
+    PSTORAGESIGNATURE metaData;
+
+    metaData = PhMappedImageRvaToVa(&PvMappedImage, PvImageCor20Header->MetaData.VirtualAddress, NULL);
+
+    if (metaData)
+    {
+        __try
+        {
+            PhProbeAddress(metaData, PvImageCor20Header->MetaData.Size, PvMappedImage.ViewBase, PvMappedImage.Size, 4);
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            metaData = NULL;
+        }
+    }
+
+    return metaData;
+}
+
+PPH_STRING PvpPeGetClrFlagsText(
+    VOID
+    )
+{
+    PH_STRING_BUILDER stringBuilder;
+
+    PhInitializeStringBuilder(&stringBuilder, 256);
+
+    if (PvImageCor20Header->Flags & COMIMAGE_FLAGS_ILONLY)
+        PhAppendStringBuilder2(&stringBuilder, L"IL only, ");
+    if (PvImageCor20Header->Flags & COMIMAGE_FLAGS_32BITREQUIRED)
+        PhAppendStringBuilder2(&stringBuilder, L"32-bit only, ");
+    if (PvImageCor20Header->Flags & COMIMAGE_FLAGS_32BITPREFERRED)
+        PhAppendStringBuilder2(&stringBuilder, L"32-bit preferred, ");
+    if (PvImageCor20Header->Flags & COMIMAGE_FLAGS_IL_LIBRARY)
+        PhAppendStringBuilder2(&stringBuilder, L"IL library, ");
+
+    if (PvImageCor20Header->StrongNameSignature.VirtualAddress != 0 && PvImageCor20Header->StrongNameSignature.Size != 0)
+    {
+        if (PvImageCor20Header->Flags & COMIMAGE_FLAGS_STRONGNAMESIGNED)
+            PhAppendStringBuilder2(&stringBuilder, L"Strong-name signed, ");
+        else
+            PhAppendStringBuilder2(&stringBuilder, L"Strong-name delay signed, ");
+    }
+
+    if (PvImageCor20Header->Flags & COMIMAGE_FLAGS_NATIVE_ENTRYPOINT)
+        PhAppendStringBuilder2(&stringBuilder, L"Native entry-point, ");
+    if (PvImageCor20Header->Flags & COMIMAGE_FLAGS_TRACKDEBUGDATA)
+        PhAppendStringBuilder2(&stringBuilder, L"Track debug data, ");
+
+    if (PhEndsWithString2(stringBuilder.String, L", ", FALSE))
+        PhRemoveEndStringBuilder(&stringBuilder, 2);
+
+    return PhFinalStringBuilderString(&stringBuilder);
+}
+
+PPH_STRING PvpPeGetClrVersionText(
+    VOID
+    )
+{
+    return PhFormatString(
+        L"%hu.%hu",
+        PvImageCor20Header->MajorRuntimeVersion,
+        PvImageCor20Header->MinorRuntimeVersion
+        );
+}
+
+PPH_STRING PvpPeGetClrStorageVersionText(
+    _In_ PSTORAGESIGNATURE ClrMetaData
+    )
+{
+    if (ClrMetaData && ClrMetaData->VersionLength != 0)
+    {
+        return PhZeroExtendToUtf16Ex(
+            PTR_ADD_OFFSET(ClrMetaData, RTL_SIZEOF_THROUGH_FIELD(STORAGESIGNATURE, VersionLength)),
+            ClrMetaData->VersionLength
+            );
+    }
+
+    return PhCreateString(L"N/A");
+}
+
+PPH_STRING PvpPeClrGetMvid(
+    _In_ PSTORAGESIGNATURE ClrMetaData
+    )
+{
+    PPH_STRING guidMvidString = NULL;
+    PSTORAGEHEADER storageHeader;
+    PSTORAGESTREAM streamHeader;
+    USHORT i;
+
+    storageHeader = PTR_ADD_OFFSET(ClrMetaData, sizeof(STORAGESIGNATURE) + ClrMetaData->VersionLength);
+    streamHeader = PTR_ADD_OFFSET(storageHeader, sizeof(STORAGEHEADER));
+
+    for (i = 0; i < storageHeader->Streams; i++)
+    {
+        if (PhEqualBytesZ(streamHeader->Name, "#GUID", TRUE))
+        {
+            guidMvidString = PhFormatGuid(PTR_ADD_OFFSET(ClrMetaData, streamHeader->Offset));
+            break;
+        }
+
+        streamHeader = PTR_ADD_OFFSET(streamHeader, ALIGN_UP(UFIELD_OFFSET(STORAGESTREAM, Name) + strlen(streamHeader->Name) + 1, ULONG));
+    }
+
+    return guidMvidString;
+}
+
+VOID PvpPeClrEnumSections(
+    _In_ PSTORAGESIGNATURE ClrMetaData,
+    _In_ HWND ListViewHandle
+    )
+{
+    PSTORAGEHEADER storageHeader;
+    PSTORAGESTREAM streamHeader;
+    USHORT i;
+
+    storageHeader = PTR_ADD_OFFSET(ClrMetaData, sizeof(STORAGESIGNATURE) + ClrMetaData->VersionLength);
+    streamHeader = PTR_ADD_OFFSET(storageHeader, sizeof(STORAGEHEADER));
+
+    for (i = 0; i < storageHeader->Streams; i++)
+    {
+        INT lvItemIndex;
+        WCHAR sectionName[65];
+        WCHAR pointer[PH_PTR_STR_LEN_1];
+
+        if (PhCopyStringZFromBytes(
+            streamHeader->Name,
+            sizeof(streamHeader->Name),
+            sectionName,
+            ARRAYSIZE(sectionName),
+            NULL
+            ))
+        {
+            lvItemIndex = PhAddListViewItem(ListViewHandle, MAXINT, sectionName, NULL);
+            PhPrintPointer(pointer, UlongToPtr(streamHeader->Offset));
+            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, pointer);
+            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, PhaFormatSize(streamHeader->Size, -1)->Buffer);
+        }
+
+        // Stream headers don't have fixed sizes...
+        // The size is aligned up based on a variable length string at the end.
+        streamHeader = PTR_ADD_OFFSET(streamHeader, ALIGN_UP(UFIELD_OFFSET(STORAGESTREAM, Name) + strlen(streamHeader->Name) + 1, ULONG));
+    }
+}
+
+
 INT_PTR CALLBACK PvpPeClrDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -74,9 +224,7 @@ INT_PTR CALLBACK PvpPeClrDlgProc(
     case WM_INITDIALOG:
         {
             HWND lvHandle;
-            PPH_STRING string;
-            PH_STRING_BUILDER stringBuilder;
-            PSTORAGESIGNATURE metaData;
+            PSTORAGESIGNATURE clrMetaData;
 
             lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
             PhSetListViewStyle(lvHandle, TRUE, TRUE);
@@ -85,97 +233,15 @@ INT_PTR CALLBACK PvpPeClrDlgProc(
             PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 80, L"VA");
             PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 80, L"Size");
 
-            string = PhaFormatString(
-                L"%u.%u", 
-                PvImageCor20Header->MajorRuntimeVersion,
-                PvImageCor20Header->MinorRuntimeVersion);
-            PhSetDialogItemText(hwndDlg, IDC_RUNTIMEVERSION, string->Buffer);
+            PhSetDialogItemText(hwndDlg, IDC_RUNTIMEVERSION, PH_AUTO_T(PH_STRING, PvpPeGetClrVersionText())->Buffer);
+            PhSetDialogItemText(hwndDlg, IDC_FLAGS, PH_AUTO_T(PH_STRING, PvpPeGetClrFlagsText())->Buffer);
 
-            PhInitializeStringBuilder(&stringBuilder, 256);
-
-            if (PvImageCor20Header->Flags & COMIMAGE_FLAGS_ILONLY)
-                PhAppendStringBuilder2(&stringBuilder, L"IL only, ");
-            if (PvImageCor20Header->Flags & COMIMAGE_FLAGS_32BITREQUIRED)
-                PhAppendStringBuilder2(&stringBuilder, L"32-bit only, ");
-            if (PvImageCor20Header->Flags & COMIMAGE_FLAGS_32BITPREFERRED)
-                PhAppendStringBuilder2(&stringBuilder, L"32-bit preferred, ");
-            if (PvImageCor20Header->Flags & COMIMAGE_FLAGS_IL_LIBRARY)
-                PhAppendStringBuilder2(&stringBuilder, L"IL library, ");
-
-            if (PvImageCor20Header->StrongNameSignature.VirtualAddress != 0 && PvImageCor20Header->StrongNameSignature.Size != 0)
+            if (clrMetaData = PvpPeGetClrMetaDataHeader())
             {
-                if (PvImageCor20Header->Flags & COMIMAGE_FLAGS_STRONGNAMESIGNED)
-                    PhAppendStringBuilder2(&stringBuilder, L"Strong-name signed, ");
-                else
-                    PhAppendStringBuilder2(&stringBuilder, L"Strong-name delay signed, ");
-            }
+                PhSetDialogItemText(hwndDlg, IDC_VERSIONSTRING, PH_AUTO_T(PH_STRING, PvpPeGetClrStorageVersionText(clrMetaData))->Buffer);
+                PhSetDialogItemText(hwndDlg, IDC_MVIDSTRING, PH_AUTO_T(PH_STRING, PvpPeClrGetMvid(clrMetaData))->Buffer);
 
-            if (PvImageCor20Header->Flags & COMIMAGE_FLAGS_NATIVE_ENTRYPOINT)
-                PhAppendStringBuilder2(&stringBuilder, L"Native entry-point, ");
-            if (PvImageCor20Header->Flags & COMIMAGE_FLAGS_TRACKDEBUGDATA)
-                PhAppendStringBuilder2(&stringBuilder, L"Track debug data, ");
-
-            if (PhEndsWithString2(stringBuilder.String, L", ", FALSE))
-                PhRemoveEndStringBuilder(&stringBuilder, 2);
-
-            PhSetDialogItemText(hwndDlg, IDC_FLAGS, stringBuilder.String->Buffer);
-            PhDeleteStringBuilder(&stringBuilder);
-
-            metaData = PhMappedImageRvaToVa(&PvMappedImage, PvImageCor20Header->MetaData.VirtualAddress, NULL);
-
-            if (metaData)
-            {
-                __try
-                {
-                    PhProbeAddress(metaData, PvImageCor20Header->MetaData.Size, PvMappedImage.ViewBase, PvMappedImage.Size, 4);
-                }
-                __except (EXCEPTION_EXECUTE_HANDLER)
-                {
-                    metaData = NULL;
-                }
-            }
-
-            if (metaData && metaData->VersionLength != 0)
-            {
-                string = PhZeroExtendToUtf16Ex(PTR_ADD_OFFSET(metaData, RTL_SIZEOF_THROUGH_FIELD(STORAGESIGNATURE, VersionLength)), metaData->VersionLength);
-                PhSetDialogItemText(hwndDlg, IDC_VERSIONSTRING, string->Buffer);
-                PhDereferenceObject(string);
-
-                {
-                    PSTORAGEHEADER storageHeader = PTR_ADD_OFFSET(metaData, sizeof(STORAGESIGNATURE) + metaData->VersionLength);
-                    PSTORAGESTREAM streamHeader = PTR_ADD_OFFSET(storageHeader, sizeof(STORAGEHEADER));
-
-                    for (USHORT i = 0; i < storageHeader->Streams; i++)
-                    {
-                        INT lvItemIndex;
-                        WCHAR sectionName[65];
-                        WCHAR pointer[PH_PTR_STR_LEN_1];
-
-                        if (PhCopyStringZFromBytes(
-                            streamHeader->Name, 
-                            sizeof(streamHeader->Name), 
-                            sectionName, 
-                            ARRAYSIZE(sectionName),
-                            NULL
-                            ))
-                        {
-                            lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, sectionName, NULL);
-
-                            PhPrintPointer(pointer, UlongToPtr(streamHeader->Offset));
-
-                            PhSetListViewSubItem(lvHandle, lvItemIndex, 1, pointer);
-                            PhSetListViewSubItem(lvHandle, lvItemIndex, 2, PhaFormatSize(streamHeader->Size, -1)->Buffer);
-                        }
-
-                        // Stream headers don't have fixed sizes...
-                        // The size is aligned up based on a variable length string at the end.
-                        streamHeader = PTR_ADD_OFFSET(streamHeader, ALIGN_UP(UFIELD_OFFSET(STORAGESTREAM, Name) + strlen(streamHeader->Name) + 1, ULONG));
-                    }
-                }
-            }
-            else
-            {
-                PhSetDialogItemText(hwndDlg, IDC_VERSIONSTRING, L"N/A");
+                PvpPeClrEnumSections(clrMetaData, lvHandle);
             }
         }
         break;
