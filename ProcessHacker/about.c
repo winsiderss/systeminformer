@@ -161,7 +161,7 @@ VOID PhShowAboutDialog(
         ShowWindow(PhAboutWindowHandle, SW_SHOW);
     }
 
-    if (IsIconic(PhAboutWindowHandle))
+    if (IsMinimized(PhAboutWindowHandle))
         ShowWindow(PhAboutWindowHandle, SW_RESTORE);
     else
         SetForegroundWindow(PhAboutWindowHandle);

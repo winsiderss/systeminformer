@@ -840,7 +840,7 @@ VOID PhSipGetCpuBrandString(
         );
 
     PhZeroExtendToUtf16Buffer(brandString, 48, BrandString);
-    BrandString[48] = 0;
+    BrandString[48] = UNICODE_NULL;
 }
 
 BOOLEAN PhSipGetCpuFrequencyFromDistribution(

@@ -721,8 +721,8 @@ static INT PhpDefaultCompareListViewItems(
     _In_ ULONG Column
     )
 {
-    WCHAR xText[261];
-    WCHAR yText[261];
+    WCHAR xText[MAX_PATH + 1];
+    WCHAR yText[MAX_PATH + 1];
     LVITEM item;
 
     // Get the X item text.
@@ -731,18 +731,18 @@ static INT PhpDefaultCompareListViewItems(
     item.iItem = X;
     item.iSubItem = Column;
     item.pszText = xText;
-    item.cchTextMax = 260;
+    item.cchTextMax = MAX_PATH;
 
-    xText[0] = 0;
+    xText[0] = UNICODE_NULL;
     CallWindowProc(Context->OldWndProc, Context->Handle, LVM_GETITEM, 0, (LPARAM)&item);
 
     // Get the Y item text.
 
     item.iItem = Y;
     item.pszText = yText;
-    item.cchTextMax = 260;
+    item.cchTextMax = MAX_PATH;
 
-    yText[0] = 0;
+    yText[0] = UNICODE_NULL;
     CallWindowProc(Context->OldWndProc, Context->Handle, LVM_GETITEM, 0, (LPARAM)&item);
 
     // Compare them.

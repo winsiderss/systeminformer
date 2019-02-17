@@ -967,7 +967,7 @@ NTSTATUS PhpLookupDynamicFunctionTable(
                 }
                 else
                 {
-                    OutOfProcessCallbackDllBuffer[0] = 0;
+                    OutOfProcessCallbackDllBuffer[0] = UNICODE_NULL;
 
                     if (OutOfProcessCallbackDllString)
                     {

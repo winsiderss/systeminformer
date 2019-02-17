@@ -273,7 +273,7 @@ LRESULT CALLBACK PhpPropSheetWndProc(
         break;
     case WM_SIZE:
         {
-            if (!IsIconic(hwnd))
+            if (!IsMinimized(hwnd))
             {
                 PhLayoutManagerLayout(&propSheetContext->LayoutManager);
             }

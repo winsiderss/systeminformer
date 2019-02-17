@@ -252,7 +252,7 @@ LRESULT CALLBACK PvpPropSheetWndProc(
         break;
     case WM_SIZE:
         {
-            if (!IsIconic(hWnd))
+            if (!IsMinimized(hWnd))
             {
                 PhLayoutManagerLayout(&propSheetContext->LayoutManager);
             }

@@ -242,7 +242,7 @@ VOID PhReInitializeWindowTheme(
                 WCHAR windowClassName[MAX_PATH];
 
                 if (!GetClassName(currentWindow, windowClassName, RTL_NUMBER_OF(windowClassName)))
-                    windowClassName[0] = 0;
+                    windowClassName[0] = UNICODE_NULL;
 
                 //dprintf("PhReInitializeWindowTheme: %S\r\n", windowClassName);
 
@@ -352,7 +352,7 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
         return TRUE;
 
     if (!GetClassName(WindowHandle, windowClassName, RTL_NUMBER_OF(windowClassName)))
-        windowClassName[0] = 0;
+        windowClassName[0] = UNICODE_NULL;
 
     //dprintf("PhpThemeWindowEnumChildWindows: %S\r\n", windowClassName);
 
@@ -506,7 +506,7 @@ BOOLEAN CALLBACK PhpReInitializeThemeWindowEnumChildWindows(
         );
 
     if (!GetClassName(WindowHandle, windowClassName, RTL_NUMBER_OF(windowClassName)))
-        windowClassName[0] = 0;
+        windowClassName[0] = UNICODE_NULL;
 
     //dprintf("PhpReInitializeThemeWindowEnumChildWindows: %S\r\n", windowClassName);
 
@@ -1442,7 +1442,7 @@ LRESULT CALLBACK PhpThemeWindowSubclassProc(
                     WCHAR className[MAX_PATH];
 
                     if (!GetClassName(customDraw->hdr.hwndFrom, className, RTL_NUMBER_OF(className)))
-                        className[0] = 0;
+                        className[0] = UNICODE_NULL;
 
                     //dprintf("NM_CUSTOMDRAW: %S\r\n", className);
 
