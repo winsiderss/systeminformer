@@ -3401,14 +3401,14 @@ VOID PhShellExploreFile(
     _In_ PWSTR FileName
     )
 {
-    if (SHOpenFolderAndSelectItems_Import() && SHParseDisplayName_Import())
+    if (SHOpenFolderAndSelectItems && SHParseDisplayName)
     {
         LPITEMIDLIST item;
         SFGAOF attributes;
 
-        if (SUCCEEDED(SHParseDisplayName_Import()(FileName, NULL, &item, 0, &attributes)))
+        if (SUCCEEDED(SHParseDisplayName(FileName, NULL, &item, 0, &attributes)))
         {
-            SHOpenFolderAndSelectItems_Import()(item, 0, NULL, 0);
+            SHOpenFolderAndSelectItems(item, 0, NULL, 0);
             CoTaskMemFree(item);
         }
         else
@@ -4263,7 +4263,7 @@ VOID PhSetFileDialogFileName(
         PH_STRINGREF baseNamePart;
 
         if (PhSplitStringRefAtLastChar(&fileName, OBJ_NAME_PATH_SEPARATOR, &pathNamePart, &baseNamePart) &&
-            SHParseDisplayName_Import() && SHCreateShellItem_Import())
+            SHParseDisplayName && SHCreateShellItem)
         {
             LPITEMIDLIST item;
             SFGAOF attributes;
@@ -4271,9 +4271,9 @@ VOID PhSetFileDialogFileName(
 
             pathName = PhCreateString2(&pathNamePart);
 
-            if (SUCCEEDED(SHParseDisplayName_Import()(pathName->Buffer, NULL, &item, 0, &attributes)))
+            if (SUCCEEDED(SHParseDisplayName(pathName->Buffer, NULL, &item, 0, &attributes)))
             {
-                SHCreateShellItem_Import()(NULL, NULL, item, &shellItem);
+                SHCreateShellItem(NULL, NULL, item, &shellItem);
                 CoTaskMemFree(item);
             }
 

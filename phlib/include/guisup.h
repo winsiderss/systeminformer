@@ -11,10 +11,6 @@ extern "C" {
 
 // guisup
 
-typedef BOOL (WINAPI *_IsImmersiveProcess)(
-    _In_ HANDLE hProcess
-    );
-
 #define RFF_NOBROWSE 0x0001
 #define RFF_NODEFAULT 0x0002
 #define RFF_CALCDIRECTORY 0x0004
@@ -42,24 +38,6 @@ typedef LPNMRUNFILEDLGW LPNMRUNFILEDLG;
 #define RF_RETRY 0x0002
 
 typedef HANDLE HTHEME;
-
-typedef BOOL (WINAPI *_RunFileDlg)(
-    _In_ HWND hwndOwner,
-    _In_opt_ HICON hIcon,
-    _In_opt_ LPCWSTR lpszDirectory,
-    _In_opt_ LPCWSTR lpszTitle,
-    _In_opt_ LPCWSTR lpszDescription,
-    _In_ ULONG uFlags
-    );
-
-typedef HRESULT (WINAPI *_SHAutoComplete)(
-    _In_ HWND hwndEdit,
-    _In_ ULONG dwFlags
-    );
-
-extern _IsImmersiveProcess IsImmersiveProcess_I;
-extern _RunFileDlg RunFileDlg;
-extern _SHAutoComplete SHAutoComplete_I;
 
 extern PH_INTEGER_PAIR PhSmallIconSize;
 extern PH_INTEGER_PAIR PhLargeIconSize;
@@ -903,6 +881,18 @@ VOID
 NTAPI
 PhWindowNotifyTopMostEvent(
     _In_ BOOLEAN TopMost
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhShowRunFileDialog(
+    _In_ HWND WindowHandle,
+    _In_opt_ HICON WindowIcon,
+    _In_opt_ PWSTR WorkingDirectory,
+    _In_opt_ PWSTR WindowTitle,
+    _In_opt_ PWSTR WindowDescription,
+    _In_ ULONG Flags
     );
 
 // theme support (theme.c)

@@ -855,8 +855,8 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
 
                 if (SendMessage(context->ProgramComboBoxWindowHandle, CB_GETCOMBOBOXINFO, 0, (LPARAM)&info))
                 {
-                    if (SHAutoComplete_I)
-                        SHAutoComplete_I(info.hwndItem, SHACF_DEFAULT);
+                    if (SHAutoComplete)
+                        SHAutoComplete(info.hwndItem, SHACF_DEFAULT);
                 }
             }
 
