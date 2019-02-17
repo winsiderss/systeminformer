@@ -2177,24 +2177,24 @@ BOOLEAN PhpAddTokenCapabilities(
                 else if (subAuthoritiesCount == SECURITY_CAPABILITY_RID_COUNT)
                 {
                     PPH_STRING capabilityName;
-                    GUID capabilityGuid;
-                    ULONG firstPart;
-                    ULONG secondPart;
-                    ULONG thirdPart;
-                    ULONG lastPart;
+                    union
+                    {
+                        GUID Guid;
+                        struct
+                        {
+                            ULONG Data1;
+                            ULONG Data2;
+                            ULONG Data3;
+                            ULONG Data4;
+                        };
+                    } capabilityGuid;
 
-                    firstPart = *RtlSubAuthoritySid(TokenPageContext->Capabilities->Groups[i].Sid, 1);
-                    secondPart = *RtlSubAuthoritySid(TokenPageContext->Capabilities->Groups[i].Sid, 2);
-                    thirdPart = *RtlSubAuthoritySid(TokenPageContext->Capabilities->Groups[i].Sid, 3);
-                    lastPart = *RtlSubAuthoritySid(TokenPageContext->Capabilities->Groups[i].Sid, 4);
+                    capabilityGuid.Data1 = *RtlSubAuthoritySid(TokenPageContext->Capabilities->Groups[i].Sid, 1);
+                    capabilityGuid.Data2 = *RtlSubAuthoritySid(TokenPageContext->Capabilities->Groups[i].Sid, 2);
+                    capabilityGuid.Data3 = *RtlSubAuthoritySid(TokenPageContext->Capabilities->Groups[i].Sid, 3);
+                    capabilityGuid.Data4 = *RtlSubAuthoritySid(TokenPageContext->Capabilities->Groups[i].Sid, 4);
 
-                    capabilityGuid.Data1 = firstPart;
-                    capabilityGuid.Data2 = LOWORD(secondPart);
-                    capabilityGuid.Data3 = HIWORD(secondPart);
-                    *((PULONG)&capabilityGuid.Data4[0]) = thirdPart;
-                    *((PULONG)&capabilityGuid.Data4[4]) = lastPart;
-
-                    if (name = PhFormatGuid(&capabilityGuid))
+                    if (name = PhFormatGuid(&capabilityGuid.Guid))
                     {
                         PhpAddAttributeNode(&TokenPageContext->CapsTreeContext, node, PhFormatString(L"Guid: %s", PhGetString(name)));
 
@@ -2206,6 +2206,17 @@ BOOLEAN PhpAddTokenCapabilities(
 
                         PhDereferenceObject(name);
                     }
+
+                    //ULONG firstPart = *RtlSubAuthoritySid(TokenPageContext->Capabilities->Groups[i].Sid, 1);
+                    //ULONG secondPart = *RtlSubAuthoritySid(TokenPageContext->Capabilities->Groups[i].Sid, 2);
+                    //ULONG thirdPart = *RtlSubAuthoritySid(TokenPageContext->Capabilities->Groups[i].Sid, 3);
+                    //ULONG lastPart = *RtlSubAuthoritySid(TokenPageContext->Capabilities->Groups[i].Sid, 4);
+                    //GUID capabilityGuid;
+                    //capabilityGuid.Data1 = firstPart;
+                    //capabilityGuid.Data2 = LOWORD(secondPart);
+                    //capabilityGuid.Data3 = HIWORD(secondPart);
+                    //*((PULONG)&capabilityGuid.Data4[0]) = thirdPart;
+                    //*((PULONG)&capabilityGuid.Data4[4]) = lastPart;
                 }
             }
         }
