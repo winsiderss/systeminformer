@@ -651,7 +651,7 @@ PSTR PhDuplicateBytesZ(
     PSTR newString;
     SIZE_T length;
 
-    length = strlen(String) + 1; // include the null terminator
+    length = strlen(String) + sizeof(ANSI_NULL); // include the null terminator
 
     newString = PhAllocate(length);
     memcpy(newString, String, length);
@@ -674,7 +674,7 @@ PSTR PhDuplicateBytesZSafe(
     PSTR newString;
     SIZE_T length;
 
-    length = strlen(String) + 1; // include the null terminator
+    length = strlen(String) + sizeof(ANSI_NULL); // include the null terminator
 
     newString = PhAllocateSafe(length);
 
@@ -700,7 +700,7 @@ PWSTR PhDuplicateStringZ(
     PWSTR newString;
     SIZE_T length;
 
-    length = (PhCountStringZ(String) + 1) * sizeof(WCHAR); // include the null terminator
+    length = (PhCountStringZ(String) + sizeof(UNICODE_NULL)) * sizeof(WCHAR); // include the null terminator
 
     newString = PhAllocate(length);
     memcpy(newString, String, length);
@@ -753,10 +753,10 @@ BOOLEAN PhCopyBytesZ(
 
     // Copy the string if there is enough room.
 
-    if (OutputBuffer && OutputCount >= i + 1) // need one character for null terminator
+    if (OutputBuffer && OutputCount >= i + sizeof(ANSI_NULL)) // need one character for null terminator
     {
         memcpy(OutputBuffer, InputBuffer, i);
-        OutputBuffer[i] = 0;
+        OutputBuffer[i] = ANSI_NULL;
         copied = TRUE;
     }
     else
@@ -765,7 +765,7 @@ BOOLEAN PhCopyBytesZ(
     }
 
     if (ReturnCount)
-        *ReturnCount = i + 1;
+        *ReturnCount = i + sizeof(ANSI_NULL);
 
     return copied;
 }
@@ -815,10 +815,10 @@ BOOLEAN PhCopyStringZ(
 
     // Copy the string if there is enough room.
 
-    if (OutputBuffer && OutputCount >= i + 1) // need one character for null terminator
+    if (OutputBuffer && OutputCount >= i + sizeof(UNICODE_NULL)) // need one character for null terminator
     {
         memcpy(OutputBuffer, InputBuffer, i * sizeof(WCHAR));
-        OutputBuffer[i] = 0;
+        OutputBuffer[i] = UNICODE_NULL;
         copied = TRUE;
     }
     else
@@ -827,7 +827,7 @@ BOOLEAN PhCopyStringZ(
     }
 
     if (ReturnCount)
-        *ReturnCount = i + 1;
+        *ReturnCount = i + sizeof(UNICODE_NULL);
 
     return copied;
 }
@@ -877,10 +877,10 @@ BOOLEAN PhCopyStringZFromBytes(
 
     // Copy the string if there is enough room.
 
-    if (OutputBuffer && OutputCount >= i + 1) // need one character for null terminator
+    if (OutputBuffer && OutputCount >= i + sizeof(UNICODE_NULL)) // need one character for null terminator
     {
         PhZeroExtendToUtf16Buffer(InputBuffer, i, OutputBuffer);
-        OutputBuffer[i] = 0;
+        OutputBuffer[i] = UNICODE_NULL;
         copied = TRUE;
     }
     else
@@ -889,7 +889,7 @@ BOOLEAN PhCopyStringZFromBytes(
     }
 
     if (ReturnCount)
-        *ReturnCount = i + 1;
+        *ReturnCount = i + sizeof(UNICODE_NULL);
 
     return copied;
 }
@@ -957,7 +957,7 @@ BOOLEAN PhCopyStringZFromMultiByte(
 
     // Convert the string to Unicode if there is enough room.
 
-    if (OutputBuffer && OutputCount >= unicodeBytes / sizeof(WCHAR) + 1)
+    if (OutputBuffer && OutputCount >= unicodeBytes / sizeof(WCHAR) + sizeof(UNICODE_NULL))
     {
         status = RtlMultiByteToUnicodeN(
             OutputBuffer,
@@ -984,7 +984,7 @@ BOOLEAN PhCopyStringZFromMultiByte(
     }
 
     if (ReturnCount)
-        *ReturnCount = unicodeBytes / sizeof(WCHAR) + 1;
+        *ReturnCount = unicodeBytes / sizeof(WCHAR) + sizeof(UNICODE_NULL);
 
     return copied;
 }
@@ -2187,7 +2187,7 @@ PPH_STRING PhCreateStringEx(
     PPH_STRING string;
 
     string = PhCreateObject(
-        FIELD_OFFSET(PH_STRING, Data) + Length + sizeof(WCHAR), // Null terminator
+        UFIELD_OFFSET(PH_STRING, Data) + Length + sizeof(UNICODE_NULL), // Null terminator for compatibility
         PhStringType
         );
 
@@ -2483,7 +2483,7 @@ PPH_BYTES PhCreateBytesEx(
     PPH_BYTES bytes;
 
     bytes = PhCreateObject(
-        FIELD_OFFSET(PH_BYTES, Data) + Length + sizeof(CHAR), // Null terminator for compatibility
+        UFIELD_OFFSET(PH_BYTES, Data) + Length + sizeof(ANSI_NULL), // Null terminator for compatibility
         PhBytesType
         );
 
@@ -3513,7 +3513,7 @@ VOID PhpResizeStringBuilder(
     memcpy(
         newString->Buffer,
         StringBuilder->String->Buffer,
-        StringBuilder->String->Length + sizeof(WCHAR) // Include null terminator
+        StringBuilder->String->Length + sizeof(UNICODE_NULL) // Include null terminator
         );
 
     // Copy the old string length.
@@ -3889,7 +3889,7 @@ VOID PhpResizeBytesBuilder(
     memcpy(
         newBytes->Buffer,
         BytesBuilder->Bytes->Buffer,
-        BytesBuilder->Bytes->Length + sizeof(CHAR) // Include null terminator
+        BytesBuilder->Bytes->Length + sizeof(ANSI_NULL) // Include null terminator
         );
 
     // Copy the old byte string length.
@@ -5217,7 +5217,7 @@ PVOID PhAllocateFromFreeList(
     }
     else
     {
-        entry = PhAllocate(FIELD_OFFSET(PH_FREE_LIST_ENTRY, Body) + FreeList->Size);
+        entry = PhAllocate(UFIELD_OFFSET(PH_FREE_LIST_ENTRY, Body) + FreeList->Size);
     }
 
     return &entry->Body;
