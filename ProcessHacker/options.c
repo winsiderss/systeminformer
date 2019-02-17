@@ -174,7 +174,7 @@ VOID PhShowOptionsDialog(
             ShowWindow(PhOptionsWindowHandle, SW_SHOW);
         }
 
-        if (IsIconic(PhOptionsWindowHandle))
+        if (IsMinimized(PhOptionsWindowHandle))
             ShowWindow(PhOptionsWindowHandle, SW_RESTORE);
         else
             SetForegroundWindow(PhOptionsWindowHandle);

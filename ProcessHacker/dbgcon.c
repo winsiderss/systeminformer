@@ -90,9 +90,10 @@ VOID PhShowDebugConsole(
         // Set a handler so we can catch Ctrl+C and Ctrl+Break.
         SetConsoleCtrlHandler(ConsoleHandlerRoutine, TRUE);
 
-        freopen("CONOUT$", "w", stdout);
-        freopen("CONOUT$", "w", stderr);
-        freopen("CONIN$", "r", stdin);
+        _wfreopen(L"CONOUT$", L"w", stdout);
+        _wfreopen(L"CONOUT$", L"w", stderr);
+        _wfreopen(L"CONIN$", L"r", stdin);
+
         DebugConsoleThreadHandle = PhCreateThread(0, PhpDebugConsoleThreadStart, NULL);
     }
     else
@@ -102,7 +103,7 @@ VOID PhShowDebugConsole(
         consoleWindow = GetConsoleWindow();
 
         // Console window already exists, so bring it to the top.
-        if (IsIconic(consoleWindow))
+        if (IsMinimized(consoleWindow))
             ShowWindow(consoleWindow, SW_RESTORE);
         else
             BringWindowToTop(consoleWindow);
@@ -115,9 +116,9 @@ VOID PhCloseDebugConsole(
     VOID
     )
 {
-    freopen("NUL", "w", stdout);
-    freopen("NUL", "w", stderr);
-    freopen("NUL", "r", stdin);
+    _wfreopen(L"NUL", L"w", stdout);
+    _wfreopen(L"NUL", L"w", stderr);
+    _wfreopen(L"NUL", L"r", stdin);
 
     FreeConsole();
 }
@@ -599,7 +600,7 @@ static VOID PhpTestRwLock(
     Context->ReleaseShared(Context->Parameter);
 
     // Null test
-
+    PhInitializeStopwatch(&stopwatch);
     PhStartStopwatch(&stopwatch);
 
     for (i = 0; i < 2000000; i++)
@@ -626,6 +627,7 @@ static VOID PhpTestRwLock(
     }
 
     PhWaitForBarrier(&RwStartBarrier, FALSE);
+    PhInitializeStopwatch(&stopwatch);
     PhStartStopwatch(&stopwatch);
     NtWaitForMultipleObjects(RW_PROCESSORS, threadHandles, WaitAll, FALSE, NULL);
     PhStopStopwatch(&stopwatch);
@@ -742,7 +744,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
         inputLength = (ULONG)PhCountStringZ(line);
 
         if (inputLength != 0)
-            line[inputLength - 1] = 0;
+            line[inputLength - 1] = UNICODE_NULL;
 
         context = NULL;
         command = wcstok_s(line, delims, &context);

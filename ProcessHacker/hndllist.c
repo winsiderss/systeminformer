@@ -596,7 +596,7 @@ BOOLEAN NTAPI PhpHandleTreeNewCallback(
                     node->FileShareAccessText[0] = '-';
                     node->FileShareAccessText[1] = '-';
                     node->FileShareAccessText[2] = '-';
-                    node->FileShareAccessText[3] = 0;
+                    node->FileShareAccessText[3] = UNICODE_NULL;
 
                     if (handleItem->FileFlags & PH_HANDLE_FILE_SHARED_READ)
                         node->FileShareAccessText[0] = 'R';

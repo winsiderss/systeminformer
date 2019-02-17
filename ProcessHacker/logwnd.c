@@ -58,7 +58,7 @@ VOID PhShowLogDialog(
         ShowWindow(PhLogWindowHandle, SW_SHOW);
     }
 
-    if (IsIconic(PhLogWindowHandle))
+    if (IsMinimized(PhLogWindowHandle))
         ShowWindow(PhLogWindowHandle, SW_RESTORE);
     else
         SetForegroundWindow(PhLogWindowHandle);

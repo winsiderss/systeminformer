@@ -62,7 +62,7 @@ VOID PhShowMemoryListsDialog(
 
     if (!IsWindowVisible(PhMemoryListsWindowHandle))
         ShowWindow(PhMemoryListsWindowHandle, SW_SHOW);
-    else if (IsIconic(PhMemoryListsWindowHandle))
+    else if (IsMinimized(PhMemoryListsWindowHandle))
         ShowWindow(PhMemoryListsWindowHandle, SW_RESTORE);
     else
         SetForegroundWindow(PhMemoryListsWindowHandle);

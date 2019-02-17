@@ -133,7 +133,7 @@ VOID PhShowMemoryEditorDialog(
     {
         context = CONTAINING_RECORD(links, MEMORY_EDITOR_CONTEXT, Links);
 
-        if (IsIconic(context->WindowHandle))
+        if (IsMinimized(context->WindowHandle))
             ShowWindow(context->WindowHandle, SW_RESTORE);
         else
             SetForegroundWindow(context->WindowHandle);

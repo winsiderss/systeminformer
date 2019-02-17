@@ -294,14 +294,14 @@ NTSTATUS PhpGetMappedArchiveMemberFromHeader(
         {
             // Longnames member. Set the name to "/".
             Member->NameBuffer[0] = '/';
-            Member->NameBuffer[1] = 0;
+            Member->NameBuffer[1] = ANSI_NULL;
 
             Member->Type = LongnamesArchiveMemberType;
         }
         else
         {
             // Linker member. Set the name to "".
-            Member->NameBuffer[0] = 0;
+            Member->NameBuffer[0] = ANSI_NULL;
 
             Member->Type = LinkerArchiveMemberType;
         }

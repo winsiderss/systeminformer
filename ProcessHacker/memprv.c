@@ -46,7 +46,7 @@ VOID PhGetMemoryProtectionString(
 
     if (!Protection)
     {
-        String[0] = 0;
+        String[0] = UNICODE_NULL;
         return;
     }
 

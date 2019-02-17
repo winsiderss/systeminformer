@@ -1712,7 +1712,7 @@ VOID PhMwpOnSize(
     VOID
     )
 {
-    if (!IsIconic(PhMainWndHandle))
+    if (!IsMinimized(PhMainWndHandle))
     {
         HDWP deferHandle;
 
@@ -1956,7 +1956,7 @@ ULONG_PTR PhMwpOnUserMessage(
                     ShowWindow(PhMainWndHandle, SW_SHOW);
                 }
 
-                if (IsIconic(PhMainWndHandle))
+                if (IsMinimized(PhMainWndHandle))
                 {
                     ShowWindow(PhMainWndHandle, SW_RESTORE);
                 }
@@ -2351,7 +2351,7 @@ VOID PhMwpActivateWindow(
     _In_ BOOLEAN Toggle
     )
 {
-    if (IsIconic(PhMainWndHandle))
+    if (IsMinimized(PhMainWndHandle))
     {
         ShowWindow(PhMainWndHandle, SW_RESTORE);
         SetForegroundWindow(PhMainWndHandle);
