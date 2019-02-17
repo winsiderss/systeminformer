@@ -606,43 +606,34 @@ VOID PhMwpOnCommand(
         break;
     case ID_HACKER_RUN:
         {
-            if (RunFileDlg)
-            {
-                SelectedRunAsMode = 0;
-                RunFileDlg(PhMainWndHandle, NULL, NULL, NULL, NULL, RFF_OPTRUNAS);
-            }
+            SelectedRunAsMode = 0;
+            PhShowRunFileDialog(PhMainWndHandle, NULL, NULL, NULL, NULL, RFF_OPTRUNAS);
         }
         break;
     case ID_HACKER_RUNASADMINISTRATOR:
         {
-            if (RunFileDlg)
-            {
-                SelectedRunAsMode = RUNAS_MODE_ADMIN;
-                RunFileDlg(
-                    PhMainWndHandle,
-                    NULL,
-                    NULL,
-                    NULL,
-                    L"Type the name of a program that will be opened under alternate credentials.",
-                    0
-                    );
-            }
+            SelectedRunAsMode = RUNAS_MODE_ADMIN;
+            PhShowRunFileDialog(
+                PhMainWndHandle,
+                NULL,
+                NULL,
+                NULL,
+                L"Type the name of a program that will be opened under alternate credentials.",
+                0
+                );
         }
         break;
     case ID_HACKER_RUNASLIMITEDUSER:
         {
-            if (RunFileDlg)
-            {
-                SelectedRunAsMode = RUNAS_MODE_LIMITED;
-                RunFileDlg(
-                    PhMainWndHandle,
-                    NULL,
-                    NULL,
-                    NULL,
-                    L"Type the name of a program that will be opened under standard user privileges.",
-                    0
-                    );
-            }
+            SelectedRunAsMode = RUNAS_MODE_LIMITED;
+            PhShowRunFileDialog(
+                PhMainWndHandle,
+                NULL,
+                NULL,
+                NULL,
+                L"Type the name of a program that will be opened under standard user privileges.",
+                0
+                );
         }
         break;
     case ID_HACKER_RUNAS:

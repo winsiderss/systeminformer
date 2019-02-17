@@ -35,42 +35,11 @@ typedef NTSTATUS (NTAPI *_NtQueryInformationTransactionManager)(
     _Out_opt_ PULONG ReturnLength
     );
 
-// shell32
-
-#if defined(_M_IX86)
-#define __unaligned
-#endif
-
-typedef HRESULT (WINAPI *_SHCreateShellItem)(
-    _In_opt_ const struct _ITEMIDLIST __unaligned *pidlParent,
-    _In_opt_ struct IShellFolder *psfParent,
-    _In_ const struct _ITEMIDLIST __unaligned *pidl,
-    _Out_ struct IShellItem **ppsi
-    );
-
-typedef HRESULT (WINAPI *_SHOpenFolderAndSelectItems)(
-    _In_ const struct _ITEMIDLIST __unaligned *pidlFolder,
-    _In_ UINT cidl,
-    _In_reads_opt_(cidl) const struct _ITEMIDLIST __unaligned **apidl,
-    _In_ ULONG dwFlags
-    );
-
-typedef HRESULT (WINAPI *_SHParseDisplayName)(
-    _In_ LPCWSTR pszName,
-    _In_opt_ struct IBindCtx *pbc,
-    _Out_ const struct _ITEMIDLIST __unaligned **ppidl,
-    _In_ ULONG sfgaoIn,
-    _Out_ ULONG *psfgaoOut
-    );
-
 #define PH_DECLARE_IMPORT(Name) _##Name Name##_Import(VOID)
 
 PH_DECLARE_IMPORT(NtQueryInformationEnlistment);
 PH_DECLARE_IMPORT(NtQueryInformationResourceManager);
 PH_DECLARE_IMPORT(NtQueryInformationTransaction);
 PH_DECLARE_IMPORT(NtQueryInformationTransactionManager);
-PH_DECLARE_IMPORT(SHCreateShellItem);
-PH_DECLARE_IMPORT(SHOpenFolderAndSelectItems);
-PH_DECLARE_IMPORT(SHParseDisplayName);
 
 #endif

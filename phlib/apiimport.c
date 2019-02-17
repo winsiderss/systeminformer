@@ -62,6 +62,3 @@ PH_DEFINE_IMPORT(L"ntdll.dll", NtQueryInformationEnlistment);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtQueryInformationResourceManager);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtQueryInformationTransaction);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtQueryInformationTransactionManager);
-PH_DEFINE_IMPORT(L"shell32.dll", SHCreateShellItem);
-PH_DEFINE_IMPORT(L"shell32.dll", SHOpenFolderAndSelectItems);
-PH_DEFINE_IMPORT(L"shell32.dll", SHParseDisplayName);

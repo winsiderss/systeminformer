@@ -53,10 +53,6 @@ typedef struct _PH_WINDOW_PROPERTY_CONTEXT
     PVOID Context;
 } PH_WINDOW_PROPERTY_CONTEXT, *PPH_WINDOW_PROPERTY_CONTEXT;
 
-_IsImmersiveProcess IsImmersiveProcess_I = NULL;
-_RunFileDlg RunFileDlg = NULL;
-_SHAutoComplete SHAutoComplete_I = NULL;
-
 HFONT PhApplicationFont = NULL;
 HFONT PhTreeWindowFont = NULL;
 PH_INTEGER_PAIR PhSmallIconSize = { 16, 16 };
@@ -76,8 +72,6 @@ VOID PhGuiSupportInitialization(
     )
 {
     HDC hdc;
-    PVOID shell32Handle;
-    PVOID shlwapiHandle;
 
     WindowCallbackHashTable = PhCreateHashtable(
         sizeof(PH_PLUGIN_WINDOW_CALLBACK_REGISTRATION),
@@ -102,14 +96,6 @@ VOID PhGuiSupportInitialization(
         PhGlobalDpi = GetDeviceCaps(hdc, LOGPIXELSY);
         ReleaseDC(NULL, hdc);
     }
-
-    shell32Handle = LoadLibrary(L"shell32.dll");
-    shlwapiHandle = LoadLibrary(L"shlwapi.dll");
-
-    if (WINDOWS_HAS_IMMERSIVE)
-        IsImmersiveProcess_I = PhGetDllProcedureAddress(L"user32.dll", "IsImmersiveProcess", 0);
-    RunFileDlg = PhGetDllBaseProcedureAddress(shell32Handle, NULL, 61);
-    SHAutoComplete_I = PhGetDllBaseProcedureAddress(shlwapiHandle, "SHAutoComplete", 0);
 }
 
 VOID PhSetControlTheme(
@@ -1497,8 +1483,8 @@ HWND PhGetProcessMainWindowEx(
     else
         PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, ProcessId);
 
-    if (processHandle && IsImmersiveProcess_I)
-        context.IsImmersive = IsImmersiveProcess_I(processHandle);
+    if (processHandle && WINDOWS_HAS_IMMERSIVE && IsImmersiveProcess)
+        context.IsImmersive = IsImmersiveProcess(processHandle);
 
     PhEnumChildWindows(NULL, 0x800, PhpGetProcessMainWindowEnumWindowsProc, &context);
 
@@ -1675,4 +1661,44 @@ VOID PhWindowNotifyTopMostEvent(
     }
 
     PhReleaseQueuedLockExclusive(&WindowCallbackListLock);
+}
+
+BOOLEAN PhShowRunFileDialog(
+    _In_ HWND WindowHandle,
+    _In_opt_ HICON WindowIcon,
+    _In_opt_ PWSTR WorkingDirectory,
+    _In_opt_ PWSTR WindowTitle,
+    _In_opt_ PWSTR WindowDescription,
+    _In_ ULONG Flags
+    )
+{
+    BOOL (WINAPI *RunFileDlg_I)(
+        _In_ HWND hwndOwner,
+        _In_opt_ HICON hIcon,
+        _In_opt_ LPCWSTR lpszDirectory,
+        _In_opt_ LPCWSTR lpszTitle,
+        _In_opt_ LPCWSTR lpszDescription,
+        _In_ ULONG uFlags
+        );
+    BOOLEAN result = FALSE;
+    PVOID shell32Handle;
+
+    if (shell32Handle = LoadLibrary(L"shell32.dll"))
+    {
+        if (RunFileDlg_I = PhGetDllBaseProcedureAddress(shell32Handle, NULL, 61))
+        {
+            result = !!RunFileDlg_I(
+                WindowHandle,
+                WindowIcon,
+                WorkingDirectory,
+                WindowTitle,
+                WindowDescription,
+                Flags
+                );
+        }
+
+        FreeLibrary(shell32Handle);
+    }
+
+    return result;
 }
