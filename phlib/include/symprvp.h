@@ -62,12 +62,12 @@ typedef BOOL (WINAPI *_SymGetLineFromAddrW64)(
 typedef ULONG64 (WINAPI *_SymLoadModuleExW)(
     _In_ HANDLE ProcessHandle,
     _In_opt_ HANDLE FileHandle,
-    _In_ PCWSTR ImageName,
-    _In_ PCWSTR ModuleName,
+    _In_opt_ PCWSTR ImageName,
+    _In_opt_ PCWSTR ModuleName,
     _In_ ULONG64 BaseOfDll,
     _In_ ULONG DllSize,
-    _In_ PMODLOAD_DATA Data,
-    _In_ ULONG Flags
+    _In_opt_ PMODLOAD_DATA Data,
+    _In_opt_ ULONG Flags
     );
 
 typedef ULONG (WINAPI *_SymGetOptions)();
@@ -125,9 +125,9 @@ typedef BOOL (WINAPI *_MiniDumpWriteDump)(
     _In_ ULONG ProcessId,
     _In_ HANDLE FileHandle,
     _In_ MINIDUMP_TYPE DumpType,
-    _In_ PMINIDUMP_EXCEPTION_INFORMATION ExceptionParam,
-    _In_ PMINIDUMP_USER_STREAM_INFORMATION UserStreamParam,
-    _In_ PMINIDUMP_CALLBACK_INFORMATION CallbackParam
+    _In_opt_ PMINIDUMP_EXCEPTION_INFORMATION ExceptionParam,
+    _In_opt_ PMINIDUMP_USER_STREAM_INFORMATION UserStreamParam,
+    _In_opt_ PMINIDUMP_CALLBACK_INFORMATION CallbackParam
     );
 
 typedef UINT_PTR (CALLBACK *_SymbolServerGetOptions)(

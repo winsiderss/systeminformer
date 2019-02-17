@@ -120,7 +120,7 @@ VOID PhShowMemoryEditorDialog(
             return;
         }
 
-        if (SelectOffset != -1)
+        if (SelectOffset != ULONG_MAX)
             PostMessage(context->WindowHandle, WM_PH_SELECT_OFFSET, SelectOffset, SelectLength);
 
         PhRegisterDialog(context->WindowHandle);
@@ -138,7 +138,7 @@ VOID PhShowMemoryEditorDialog(
         else
             SetForegroundWindow(context->WindowHandle);
 
-        if (SelectOffset != -1)
+        if (SelectOffset != ULONG_MAX)
             PostMessage(context->WindowHandle, WM_PH_SELECT_OFFSET, SelectOffset, SelectLength);
 
         // Just in case.
@@ -542,7 +542,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
     case WM_PH_SELECT_OFFSET:
         {
             HexEdit_SetEditMode(context->HexEditHandle, EDIT_ASCII);
-            HexEdit_SetSel(context->HexEditHandle, (ULONG)wParam, (ULONG)wParam + (ULONG)lParam);
+            HexEdit_SetSel(context->HexEditHandle, (ULONG)wParam, PtrToUlong(PTR_ADD_OFFSET(wParam, lParam)));
         }
         break;
     }

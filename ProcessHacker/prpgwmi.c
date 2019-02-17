@@ -142,22 +142,25 @@ HRESULT PhpWmiProviderExecMethod(
             VariantClear(&variant);
         }
 
-        if (
-            PhEqualString(Entry->NamespacePath, namespacePath, FALSE) &&
-            PhEqualString(Entry->ProviderName, providerName, FALSE) &&
-            PhEqualString(Entry->UserName, userName, FALSE)
-            )
+        if (namespacePath && providerName && userName && instancePath)
         {
-            status = IWbemServices_ExecMethod(
-                wbemServices, 
-                instancePath->Buffer, 
-                Method,
-                0,
-                NULL,
-                wbemClassObject,
-                NULL,
-                NULL
-                );
+            if (
+                PhEqualString(Entry->NamespacePath, namespacePath, FALSE) &&
+                PhEqualString(Entry->ProviderName, providerName, FALSE) &&
+                PhEqualString(Entry->UserName, userName, FALSE)
+                )
+            {
+                status = IWbemServices_ExecMethod(
+                    wbemServices,
+                    instancePath->Buffer,
+                    Method,
+                    0,
+                    NULL,
+                    wbemClassObject,
+                    NULL,
+                    NULL
+                    );
+            }
         }
 
         if (instancePath)

@@ -528,11 +528,11 @@ VOID PhInitializeCapabilitySidCache(
         PhDereferenceObject(capabilityListFileName);      
     }
 
-    if (PhIsNullOrEmptyString(capabilityListString))
+    if (!capabilityListString)
         return;
 
     PhInitializeArray(CapabilitySidArrayList, sizeof(PH_CAPABILITY_ENTRY), 800);
-    remainingPart = capabilityListString->sr;
+    remainingPart = PhGetStringRef(capabilityListString);
 
     while (remainingPart.Length != 0)
     {
