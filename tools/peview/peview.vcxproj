@@ -107,7 +107,7 @@
       <SubSystem>Windows</SubSystem>
       <TargetMachine>MachineX86</TargetMachine>
       <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
-      <DelayLoadDLLs>advapi32.dll;comctl32.dll;gdi32.dll;ole32.dll;propsys.dll;shell32.dll;user32.dll;userenv.dll;uxtheme.dll;version.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>advapi32.dll;comctl32.dll;comdlg32.dll;gdi32.dll;ole32.dll;propsys.dll;shell32.dll;user32.dll;userenv.dll;uxtheme.dll;version.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
     <ResourceCompile>
       <AdditionalIncludeDirectories>..\..\phnt\include;..\..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -138,7 +138,7 @@
       <SubSystem>Windows</SubSystem>
       <TargetMachine>MachineX64</TargetMachine>
       <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
-      <DelayLoadDLLs>advapi32.dll;comctl32.dll;gdi32.dll;ole32.dll;propsys.dll;shell32.dll;user32.dll;userenv.dll;uxtheme.dll;version.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>advapi32.dll;comctl32.dll;comdlg32.dll;gdi32.dll;ole32.dll;propsys.dll;shell32.dll;user32.dll;userenv.dll;uxtheme.dll;version.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
     <ResourceCompile>
       <AdditionalIncludeDirectories>..\..\phnt\include;..\..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -175,7 +175,7 @@
       <TargetMachine>MachineX86</TargetMachine>
       <SetChecksum>true</SetChecksum>
       <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
-      <DelayLoadDLLs>advapi32.dll;comctl32.dll;gdi32.dll;ole32.dll;propsys.dll;shell32.dll;user32.dll;userenv.dll;uxtheme.dll;version.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>advapi32.dll;comctl32.dll;comdlg32.dll;gdi32.dll;ole32.dll;propsys.dll;shell32.dll;user32.dll;userenv.dll;uxtheme.dll;version.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
     <ResourceCompile>
       <AdditionalIncludeDirectories>..\..\phnt\include;..\..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -211,7 +211,7 @@
       <TargetMachine>MachineX64</TargetMachine>
       <SetChecksum>true</SetChecksum>
       <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
-      <DelayLoadDLLs>advapi32.dll;comctl32.dll;gdi32.dll;ole32.dll;propsys.dll;shell32.dll;user32.dll;userenv.dll;uxtheme.dll;version.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>advapi32.dll;comctl32.dll;comdlg32.dll;gdi32.dll;ole32.dll;propsys.dll;shell32.dll;user32.dll;userenv.dll;uxtheme.dll;version.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
     <ResourceCompile>
       <AdditionalIncludeDirectories>..\..\phnt\include;..\..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
