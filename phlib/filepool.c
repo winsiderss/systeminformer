@@ -1277,7 +1277,7 @@ VOID PhFppFreeBlocks(
     RtlInitializeBitMap(&bitmap, SegmentHeader->Bitmap, PH_FP_BLOCK_COUNT);
 
     // Mark the blocks as free.
-    startIndex = (ULONG)((PCHAR)BlockHeader - (PCHAR)FirstBlock) >> Pool->BlockShift;
+    startIndex = PtrToUlong(PTR_SUB_OFFSET(BlockHeader, FirstBlock)) >> Pool->BlockShift;
     blockSpan = BlockHeader->Span;
     RtlClearBits(&bitmap, startIndex, blockSpan);
     SegmentHeader->FreeBlocks += blockSpan;
@@ -1480,7 +1480,7 @@ ULONG PhFppEncodeRva(
     _In_ PVOID Address
     )
 {
-    return (SegmentIndex << Pool->SegmentShift) + (ULONG)((PCHAR)Address - (PCHAR)FirstBlock);
+    return (SegmentIndex << Pool->SegmentShift) + PtrToUlong(PTR_SUB_OFFSET(Address, FirstBlock));
 }
 
 /**
