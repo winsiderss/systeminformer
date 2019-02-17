@@ -158,10 +158,6 @@ INT CALLBACK PvpPropSheetProc(
             PhSetWindowContext(hwndDlg, UCHAR_MAX, context);
             SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)PvpPropSheetWndProc);
 
-            // HACK HACK HACK
-            if (WindowsVersion >= WINDOWS_10_RS3)
-                PhSetWindowStyle(hwndDlg, WS_POPUP, 0);
-
             if (MinimumSize.left == -1)
             {
                 RECT rect;
