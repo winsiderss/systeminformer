@@ -63,48 +63,54 @@ PPH_STRING PvpQueryModuleOrdinalName(
                         }
                         else
                         {
-                            if (exportFunction.Function)
+                            if (exportFunction.ForwardedName)
                             {
-                                PPH_STRING symbolName;
+                                PPH_STRING forwardName;
 
-                                // Try find the export name using symbols.
-                                if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+                                forwardName = PhZeroExtendToUtf16(exportFunction.ForwardedName);
+
+                                if (forwardName->Buffer[0] == '?')
                                 {
-                                    symbolName = PhGetSymbolFromAddress(
+                                    PPH_STRING undecoratedName;
+
+                                    if (undecoratedName = PhUndecorateSymbolName(PvSymbolProvider, forwardName->Buffer))
+                                        PhMoveReference(&forwardName, undecoratedName);
+                                }
+
+                                PhMoveReference(&exportName, PhFormatString(L"%s (Forwarded)", forwardName->Buffer));
+                                PhDereferenceObject(forwardName);
+                            }
+                            else if (exportFunction.Function)
+                            {
+                                PPH_STRING exportSymbol = NULL;
+                                PPH_STRING exportSymbolName = NULL;
+
+                                if (PhLoadModuleSymbolProvider(
+                                    PvSymbolProvider,
+                                    FileName->Buffer,
+                                    (ULONG64)mappedImage.ViewBase,
+                                    (ULONG)mappedImage.Size
+                                    ))
+                                {
+                                    // Try find the export name using symbols.
+                                    exportSymbol = PhGetSymbolFromAddress(
                                         PvSymbolProvider,
-                                        (ULONG64)PTR_ADD_OFFSET(PvMappedImage.NtHeaders32->OptionalHeader.ImageBase, exportFunction.Function),
+                                        (ULONG64)PTR_ADD_OFFSET(mappedImage.ViewBase, exportFunction.Function),
                                         NULL,
                                         NULL,
-                                        NULL,
+                                        &exportSymbolName,
                                         NULL
                                         );
                                 }
-                                else
+
+                                if (exportSymbolName)
                                 {
-                                    symbolName = PhGetSymbolFromAddress(
-                                        PvSymbolProvider,
-                                        (ULONG64)PTR_ADD_OFFSET(PvMappedImage.NtHeaders->OptionalHeader.ImageBase, exportFunction.Function),
-                                        NULL,
-                                        NULL,
-                                        NULL,
-                                        NULL
-                                        );
+                                    PhSetReference(&exportName, exportSymbolName);
+                                    PhDereferenceObject(exportSymbolName);
                                 }
 
-                                if (symbolName)
-                                {
-                                    static PH_STRINGREF unnamedText = PH_STRINGREF_INIT(L" (unnamed)");
-                                    PH_STRINGREF exportNameText;
-                                    PH_STRINGREF firstPart;
-                                    PH_STRINGREF secondPart;
-
-                                    if (PhSplitStringRefAtLastChar(&symbolName->sr, L'!', &firstPart, &secondPart))
-                                        exportNameText = secondPart;
-                                    else
-                                        exportNameText = symbolName->sr;
-
-                                    exportName = PhCreateString2(&exportNameText);
-                                }
+                                if (exportSymbol)
+                                    PhDereferenceObject(exportSymbol);
                             }
                         }
 
@@ -149,7 +155,7 @@ VOID PvpProcessImports(
                     else
                         name = PhZeroExtendToUtf16(importDll.Name);
 
-                    PhPrintUInt64(number, ++(*Count)); // HACK
+                    PhPrintUInt32(number, ++(*Count)); // HACK
                     lvItemIndex = PhAddListViewItem(ListViewHandle, MAXINT, number, NULL);
 
                     PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, name->Buffer);
@@ -177,37 +183,15 @@ VOID PvpProcessImports(
                     }
                     else
                     {
-                        PLDR_DATA_TABLE_ENTRY moduleLdrEntry = NULL;
-                        PVOID moduleExportAddress = NULL;
-                        PVOID importModuleDllBase = NULL;
-                        PPH_STRING exportDllName = NULL;
+                        PPH_STRING exportDllName;
                         PPH_STRING exportOrdinalName = NULL;
-                        PPH_STRING exportSymbolName = NULL;
-
-                        //PPH_STRING baseDirectory;
-                        //
-                        //if (baseDirectory = PhGetBaseDirectory(PvFileName))
-                        //{
-                        //    static DLL_DIRECTORY_COOKIE (WINAPI *AddDllDirectory_I)(
-                        //        _In_ PCWSTR NewDirectory
-                        //        );
-                        //
-                        //    if (AddDllDirectory_I = PhGetDllProcedureAddress(L"kernel32.dll", "AddDllDirectory", 0))
-                        //    {
-                        //        AddDllDirectory_I(baseDirectory->Buffer);
-                        //    }
-                        //}
-                        //
-                        //if (importModuleDllBase = LoadLibraryA(importDll.Name))
-                        //{
-                        //    moduleLdrEntry = PhFindLoaderEntry(importModuleDllBase, NULL, NULL);
-                        //    moduleExportAddress = PhGetDllBaseProcedureAddress(importModuleDllBase, NULL, importEntry.Ordinal);
-                        //    exportOrdinalName = PhGetExportNameFromOrdinal(importModuleDllBase, importEntry.Ordinal);
-                        //}
 
                         if (exportDllName = PhConvertUtf8ToUtf16(importDll.Name))
                         {
                             PPH_STRING filePath;
+
+                            // TODO: Implement ApiSet mappings for exportDllName. (dmex)
+                            // TODO: Add DLL directory to PhSearchFilePath for locating non-system images. (dmex)
 
                             if (filePath = PhSearchFilePath(exportDllName->Buffer, L".dll"))
                             {
@@ -215,57 +199,20 @@ VOID PvpProcessImports(
                             }
 
                             exportOrdinalName = PvpQueryModuleOrdinalName(exportDllName, importEntry.Ordinal);
+                            PhDereferenceObject(exportDllName);
                         }
 
                         if (exportOrdinalName)
                         {
                             name = PhaFormatString(L"%s (Ordinal %u)", PhGetStringOrEmpty(exportOrdinalName), importEntry.Ordinal);
                             PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, PhGetString(name));
+                            PhDereferenceObject(exportOrdinalName);
                         }
                         else
                         {
-                            if (moduleLdrEntry && moduleExportAddress)
-                            {
-                                if (PhLoadModuleSymbolProvider(
-                                    PvSymbolProvider,
-                                    moduleLdrEntry->FullDllName.Buffer,
-                                    (ULONG64)importModuleDllBase,
-                                    moduleLdrEntry->SizeOfImage
-                                    ))
-                                {
-                                    exportSymbolName = PhGetSymbolFromAddress(
-                                        PvSymbolProvider,
-                                        (ULONG64)moduleExportAddress,
-                                        NULL,
-                                        NULL,
-                                        NULL,
-                                        NULL
-                                        );
-                                }
-                            }
-
-                            if (exportSymbolName)
-                            {
-                                PH_STRINGREF firstPart;
-                                PH_STRINGREF secondPart;
-
-                                if (PhSplitStringRefAtLastChar(&exportSymbolName->sr, L'!', &firstPart, &secondPart))
-                                    name = PhaFormatString(L"%s (Ordinal %u)", secondPart.Buffer, importEntry.Ordinal);
-                                else
-                                    name = PhaFormatString(L"%s (Ordinal %u)", exportSymbolName->Buffer, importEntry.Ordinal);
-
-                                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, name->Buffer);
-                            }
-                            else
-                            {
-                                name = PhaFormatString(L"(Ordinal %u)", importEntry.Ordinal);
-                                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, name->Buffer);
-                            }
+                            name = PhaFormatString(L"(Ordinal %u)", importEntry.Ordinal);
+                            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, name->Buffer);
                         }
-
-                        if (exportSymbolName) PhDereferenceObject(exportSymbolName);
-                        if (exportOrdinalName) PhDereferenceObject(exportOrdinalName);
-                        if (exportDllName) PhDereferenceObject(exportDllName);
                     }
                 }
             }

@@ -70,7 +70,7 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
                         WCHAR number[PH_INT32_STR_LEN_1];
                         WCHAR pointer[PH_PTR_STR_LEN_1];
 
-                        PhPrintUInt64(number, i + 1);
+                        PhPrintUInt32(number, i + 1);
                         lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, number, NULL);
 
                         if (exportFunction.ForwardedName)
@@ -117,51 +117,45 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
                         {
                             if (exportFunction.Function)
                             {
-                                PPH_STRING exportName;
+                                PPH_STRING exportSymbol = NULL;
+                                PPH_STRING exportSymbolName = NULL;
 
                                 // Try find the export name using symbols.
                                 if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
                                 {
-                                    exportName = PhGetSymbolFromAddress(
+                                    exportSymbol = PhGetSymbolFromAddress(
                                         PvSymbolProvider,
                                         (ULONG64)PTR_ADD_OFFSET(PvMappedImage.NtHeaders32->OptionalHeader.ImageBase, exportFunction.Function),
                                         NULL,
                                         NULL,
-                                        NULL,
+                                        &exportSymbolName,
                                         NULL
                                         );
                                 }
                                 else
                                 {
-                                    exportName = PhGetSymbolFromAddress(
+                                    exportSymbol = PhGetSymbolFromAddress(
                                         PvSymbolProvider,
                                         (ULONG64)PTR_ADD_OFFSET(PvMappedImage.NtHeaders->OptionalHeader.ImageBase, exportFunction.Function),
                                         NULL,
                                         NULL,
-                                        NULL,
+                                        &exportSymbolName,
                                         NULL
                                         );
                                 }
 
-                                if (exportName)
+                                if (exportSymbolName)
                                 {
-                                    static PH_STRINGREF unnamedText = PH_STRINGREF_INIT(L" (unnamed)");
-                                    PH_STRINGREF exportNameText;
-                                    PH_STRINGREF firstPart;
-                                    PH_STRINGREF secondPart;
-
-                                    if (PhSplitStringRefAtLastChar(&exportName->sr, L'!', &firstPart, &secondPart))
-                                        exportNameText = secondPart;
-                                    else
-                                        exportNameText = exportName->sr;
-
-                                    PhSetListViewSubItem(lvHandle, lvItemIndex, 2, PH_AUTO_T(PH_STRING, PhConcatStringRef2(&exportNameText, &unnamedText))->Buffer);
-                                    PhDereferenceObject(exportName);
+                                    PhSetListViewSubItem(lvHandle, lvItemIndex, 2, PH_AUTO_T(PH_STRING, PhConcatStringRefZ(&exportSymbolName->sr, L" (unnamed)"))->Buffer);
+                                    PhDereferenceObject(exportSymbolName);
                                 }
                                 else
                                 {
                                     PhSetListViewSubItem(lvHandle, lvItemIndex, 2, L"(unnamed)");
                                 }
+
+                                if (exportSymbol)
+                                    PhDereferenceObject(exportSymbol);
                             }
                             else
                             {
