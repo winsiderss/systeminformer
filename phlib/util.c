@@ -5673,7 +5673,7 @@ NTSTATUS PhGetLoaderEntryImageEntryPoint(
     )
 {
     if (ImageNtHeader->OptionalHeader.AddressOfEntryPoint == 0)
-        return STATUS_FAIL_CHECK; // STATUS_ENTRYPOINT_NOT_FOUND
+        return STATUS_ENTRYPOINT_NOT_FOUND;
 
     *ImageEntryPoint = PTR_ADD_OFFSET(BaseAddress, ImageNtHeader->OptionalHeader.AddressOfEntryPoint);
     return STATUS_SUCCESS;
@@ -5877,6 +5877,7 @@ static NTSTATUS PhpFixupLoaderEntryImageImports(
         if (PhEqualBytesZ(importName, "ProcessHacker.exe", FALSE))
         {
             importBaseAddress = PhInstanceHandle;
+            status = STATUS_SUCCESS;
         }
         else
         {
@@ -5998,7 +5999,8 @@ CleanupExit:
 
 static NTSTATUS PhpFixupLoaderEntryImageDelayImports(
     _In_ PVOID BaseAddress,
-    _In_ PIMAGE_NT_HEADERS ImageNtHeader
+    _In_ PIMAGE_NT_HEADERS ImageNtHeaders,
+    _In_ PSTR ImportDllName
     )
 {
     NTSTATUS status;
@@ -6010,7 +6012,7 @@ static NTSTATUS PhpFixupLoaderEntryImageDelayImports(
 
     status = PhGetLoaderEntryImageDirectory(
         BaseAddress,
-        ImageNtHeader,
+        ImageNtHeaders,
         IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT,
         &dataDirectory,
         &delayImportDirectory,
@@ -6027,7 +6029,7 @@ static NTSTATUS PhpFixupLoaderEntryImageDelayImports(
 
     status = PhGetLoaderEntryImageSection(
         BaseAddress,
-        ImageNtHeader,
+        ImageNtHeaders,
         delayImportDirectory,
         &importDirectorySection,
         &importDirectorySize
@@ -6050,15 +6052,54 @@ static NTSTATUS PhpFixupLoaderEntryImageDelayImports(
     for (delayImportDirectory = delayImportDirectory; delayImportDirectory->DllNameRVA; delayImportDirectory++)
     {
         PSTR importName;
+        PVOID* importHandle;
         PIMAGE_THUNK_DATA importThunk;
         PIMAGE_THUNK_DATA originalThunk;
+        PVOID importBaseAddress;
+        BOOLEAN importNeedsFree = FALSE;
 
         importName = PTR_ADD_OFFSET(BaseAddress, delayImportDirectory->DllNameRVA);
+        importHandle = PTR_ADD_OFFSET(BaseAddress, delayImportDirectory->ModuleHandleRVA);
         importThunk = PTR_ADD_OFFSET(BaseAddress, delayImportDirectory->ImportAddressTableRVA);
         originalThunk = PTR_ADD_OFFSET(BaseAddress, delayImportDirectory->ImportNameTableRVA);
 
-        if (PhEqualBytesZ(importName, "ProcessHacker.exe", TRUE))
+        if (PhEqualBytesZ(importName, ImportDllName, TRUE))
         {
+            if (PhEqualBytesZ(importName, "ProcessHacker.exe", FALSE))
+            {
+                importBaseAddress = PhInstanceHandle;
+                status = STATUS_SUCCESS;
+            }
+            else if (*importHandle)
+            {
+                importBaseAddress = *importHandle;
+                status = STATUS_SUCCESS;
+            }
+            else
+            {
+                PPH_STRING importNameSr;
+
+                importNameSr = PhZeroExtendToUtf16(importName);
+
+                if (!(importBaseAddress = PhGetLoaderEntryDllBase(importNameSr->Buffer)))
+                {
+                    if (importBaseAddress = LoadLibrary(importNameSr->Buffer))
+                    {
+                        importNeedsFree = TRUE;
+                        status = STATUS_SUCCESS;
+                    }
+                    else
+                    {
+                        status = PhGetLastWin32ErrorAsNtStatus();
+                    }
+                }
+
+                PhDereferenceObject(importNameSr);
+            }
+
+            if (!NT_SUCCESS(status))
+                break;
+
             for (
                 originalThunk = originalThunk, importThunk = importThunk;
                 originalThunk->u1.AddressOfData;
@@ -6071,7 +6112,7 @@ static NTSTATUS PhpFixupLoaderEntryImageDelayImports(
                     PVOID procedureAddress;
 
                     procedureOrdinal = IMAGE_ORDINAL(originalThunk->u1.Ordinal);
-                    procedureAddress = PhGetDllBaseProcedureAddress(PhInstanceHandle, NULL, procedureOrdinal);
+                    procedureAddress = PhGetDllBaseProcedureAddress(importBaseAddress, NULL, procedureOrdinal);
 
                     importThunk->u1.Function = (ULONG_PTR)procedureAddress;
                 }
@@ -6081,10 +6122,15 @@ static NTSTATUS PhpFixupLoaderEntryImageDelayImports(
                     PVOID procedureAddress;
 
                     importByName = PTR_ADD_OFFSET(BaseAddress, originalThunk->u1.AddressOfData);
-                    procedureAddress = PhGetDllBaseProcedureAddress(PhInstanceHandle, importByName->Name, 0);
+                    procedureAddress = PhGetDllBaseProcedureAddress(importBaseAddress, importByName->Name, 0);
 
                     importThunk->u1.Function = (ULONG_PTR)procedureAddress;
                 }
+            }
+
+            if ((InterlockedExchangePointer(importHandle, importBaseAddress) == importBaseAddress) && importNeedsFree)
+            {
+                FreeLibrary(importBaseAddress); // A different thread has already updated the cache.
             }
         }
     }
@@ -6104,14 +6150,49 @@ CleanupExit:
     return status;
 }
 
+NTSTATUS PhLoaderEntryLoadAllImportsForDll(
+    _In_ PVOID BaseAddress,
+    _In_ PSTR ImportDllName
+    )
+{
+    NTSTATUS status;
+    PIMAGE_NT_HEADERS imageNtHeaders;
+
+    status = PhGetLoaderEntryImageNtHeaders(
+        BaseAddress,
+        &imageNtHeaders
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = PhpFixupLoaderEntryImageDelayImports(
+        BaseAddress,
+        imageNtHeaders,
+        ImportDllName
+        );
+
+    return status;
+}
+
+NTSTATUS PhLoadAllImportsForDll(
+    _In_ PWSTR TargetDllName,
+    _In_ PSTR ImportDllName
+    )
+{
+    PVOID imageBaseAddress;
+
+    if (!(imageBaseAddress = PhGetLoaderEntryDllBase(TargetDllName)))
+        return STATUS_INVALID_PARAMETER;
+
+    return PhLoaderEntryLoadAllImportsForDll(
+        imageBaseAddress,
+        ImportDllName
+        );
+}
+
 // dmex: This function and the other LoaderEntryImage functions don't belong in this file
 // and should be moved into mapimg.c at some stage.
-//
-// We use this function to load plugins since we can 'fixup' the import table at runtime which is required when 
-// users have renamed the main executable to avoid malware, spyware and other software that targets Process Hacker. 
-// This function can only fixup images that have static imports from processhacker.exe, 
-// plugins that use LoadLibrary/GetProcAddress will continue to fail when the main executable is renamed.
-// Note: This functionality is a WIP and not be used for anything other than plugins.
 NTSTATUS PhLoadPluginImage(
     _In_ PPH_STRING FileName,
     _Out_opt_ PVOID *BaseAddress
@@ -6153,9 +6234,11 @@ NTSTATUS PhLoadPluginImage(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
+    //status = PhLoaderEntryLoadAllImportsForDll(imageBaseAddress, "ProcessHacker.exe");
     status = PhpFixupLoaderEntryImageDelayImports(
         imageBaseAddress,
-        imageHeaders
+        imageHeaders,
+        "ProcessHacker.exe"
         );
 
     if (!NT_SUCCESS(status))
