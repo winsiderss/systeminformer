@@ -2201,14 +2201,14 @@ PPH_STRING PhGetSystemDirectory(
 
     // Use the cached value if possible.
 
-    if (cachedSystemDirectory)
-        return PhReferenceObject(cachedSystemDirectory);
+    if (systemDirectory = InterlockedCompareExchangePointer(&cachedSystemDirectory, NULL, NULL))
+        return PhReferenceObject(systemDirectory);
 
     PhGetSystemRoot(&systemRootString);
     systemDirectory = PhConcatStringRef2(&systemRootString, &system32String);
 
     // Try to cache the value.
-    if (_InterlockedCompareExchangePointer(
+    if (InterlockedCompareExchangePointer(
         &cachedSystemDirectory,
         systemDirectory,
         NULL

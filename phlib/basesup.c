@@ -2214,13 +2214,17 @@ PPH_STRING PhReferenceEmptyString(
     PPH_STRING string;
     PPH_STRING newString;
 
-    string = PhSharedEmptyString;
+    string = InterlockedCompareExchangePointer(
+        &PhSharedEmptyString,
+        NULL,
+        NULL
+        );
 
     if (!string)
     {
         newString = PhCreateStringEx(NULL, 0);
 
-        string = _InterlockedCompareExchangePointer(
+        string = InterlockedCompareExchangePointer(
             &PhSharedEmptyString,
             newString,
             NULL
