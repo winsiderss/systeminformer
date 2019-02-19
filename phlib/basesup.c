@@ -877,7 +877,7 @@ BOOLEAN PhCopyStringZFromBytes(
 
     // Copy the string if there is enough room.
 
-    if (OutputBuffer && OutputCount >= i + sizeof(UNICODE_NULL)) // need one character for null terminator
+    if (OutputBuffer && OutputCount >= i + sizeof(ANSI_NULL)) // need one character for null terminator
     {
         PhZeroExtendToUtf16Buffer(InputBuffer, i, OutputBuffer);
         OutputBuffer[i] = UNICODE_NULL;
@@ -889,7 +889,7 @@ BOOLEAN PhCopyStringZFromBytes(
     }
 
     if (ReturnCount)
-        *ReturnCount = i + sizeof(UNICODE_NULL);
+        *ReturnCount = i + sizeof(ANSI_NULL);
 
     return copied;
 }
