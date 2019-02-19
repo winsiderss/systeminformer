@@ -440,7 +440,7 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
         if (!RtlEqualSid(tokenUser->User.Sid, PhGetOwnTokenAttributes().TokenSid))
             goto CleanupExit;
 
-        // Try to locate the window a few times because some users reported issues that it might not yet have been created. (dmex)
+        // Try to locate the window a few times because some users reported that it might not yet have been created. (dmex)
         do
         {
             if (hwnd = PhGetProcessMainWindowEx(
