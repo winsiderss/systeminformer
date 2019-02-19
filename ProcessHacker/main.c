@@ -427,6 +427,7 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
         HANDLE processHandle = NULL;
         HANDLE tokenHandle = NULL;
         PTOKEN_USER tokenUser = NULL;
+        ULONG attempts = 50;
 
         if (objectInfo.ClientId.UniqueProcess == NtCurrentProcessId())
             goto CleanupExit;
@@ -439,11 +440,20 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
         if (!RtlEqualSid(tokenUser->User.Sid, PhGetOwnTokenAttributes().TokenSid))
             goto CleanupExit;
 
-        hwnd = PhGetProcessMainWindowEx(
-            objectInfo.ClientId.UniqueProcess,
-            processHandle,
-            FALSE
-            );
+        // Try to locate the window a few times because some users reported issues that it might not yet have been created. (dmex)
+        do
+        {
+            if (hwnd = PhGetProcessMainWindowEx(
+                objectInfo.ClientId.UniqueProcess,
+                processHandle,
+                FALSE
+                ))
+            {
+                break;
+            }
+
+            PhDelayExecution(100);
+        } while (--attempts != 0);
 
         if (hwnd)
         {
