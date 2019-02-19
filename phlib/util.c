@@ -5427,8 +5427,8 @@ PPH_STRING PhLoadIndirectString(
 // rev from ExtractIconExW
 BOOLEAN PhExtractIcon(
     _In_ PWSTR FileName, 
-    _In_ HICON *IconLarge,
-    _In_ HICON *IconSmall
+    _Out_opt_ HICON *IconLarge,
+    _Out_opt_ HICON *IconSmall
     )
 {
     return PhExtractIconEx(FileName, 0, IconLarge, IconSmall);
@@ -5437,8 +5437,8 @@ BOOLEAN PhExtractIcon(
 BOOLEAN PhExtractIconEx(
     _In_ PWSTR FileName,
     _In_ INT IconIndex,
-    _In_ HICON *IconLarge,
-    _In_ HICON *IconSmall
+    _Out_opt_ HICON *IconLarge,
+    _Out_opt_ HICON *IconSmall
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
