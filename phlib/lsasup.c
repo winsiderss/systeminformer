@@ -64,7 +64,7 @@ LSA_HANDLE PhGetLookupPolicyHandle(
 
     // Use the cached value if possible.
 
-    lookupPolicyHandle = cachedLookupPolicyHandle;
+    lookupPolicyHandle = InterlockedCompareExchangePointer(&cachedLookupPolicyHandle, NULL, NULL);
 
     // If there is no cached handle, open one.
 
@@ -79,7 +79,7 @@ LSA_HANDLE PhGetLookupPolicyHandle(
             // We succeeded in opening a policy handle, and since we did not have a cached handle
             // before, we will now store it.
 
-            lookupPolicyHandle = _InterlockedCompareExchangePointer(
+            lookupPolicyHandle = InterlockedCompareExchangePointer(
                 &cachedLookupPolicyHandle,
                 newLookupPolicyHandle,
                 NULL
