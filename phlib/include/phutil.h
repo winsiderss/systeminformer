@@ -1264,6 +1264,14 @@ PhGetExportNameFromOrdinal(
     );
 
 PHLIBAPI
+NTSTATUS
+NTAPI
+PhLoadAllImportsForDll(
+    _In_ PWSTR TargetDllName,
+    _In_ PSTR ImportDllName
+    );
+
+PHLIBAPI
 PPH_STRING
 NTAPI
 PhGetFileText(
