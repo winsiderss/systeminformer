@@ -651,6 +651,8 @@ EXPORTS
 
 ; mxml
     mxmlDelete
+    mxmlElementGetAttrCount
+    mxmlElementGetAttrByIndex
     mxmlElementSetAttr
     mxmlLoadFd
     mxmlNewOpaque
