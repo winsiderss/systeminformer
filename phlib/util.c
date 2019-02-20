@@ -3360,6 +3360,8 @@ BOOLEAN PhShellExecuteEx(
 
     if (Flags & PH_SHELL_EXECUTE_ADMIN)
         info.lpVerb = L"runas";
+    if (Flags & PH_SHELL_EXECUTE_NOZONECHECKS)
+        info.fMask |= SEE_MASK_NOZONECHECKS;
 
     if (ShellExecuteEx(&info))
     {
