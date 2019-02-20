@@ -494,6 +494,13 @@ PhSetFileSize(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhDeleteFile(
+    _In_ HANDLE FileHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhGetFileHandleName(
     _In_ HANDLE FileHandle,
     _Out_ PPH_STRING *FileName
