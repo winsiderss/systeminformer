@@ -331,7 +331,7 @@ BOOLEAN PhpStartPhSvcProcess(
             hWnd,
             L"-phsvc",
             SW_HIDE,
-            PH_SHELL_EXECUTE_ADMIN,
+            PH_SHELL_EXECUTE_ADMIN | PH_SHELL_EXECUTE_NOZONECHECKS,
             PH_SHELL_APP_PROPAGATE_PARAMETERS,
             0,
             NULL
@@ -373,7 +373,7 @@ BOOLEAN PhpStartPhSvcProcess(
                         fileName->Buffer,
                         L"-phsvc",
                         SW_HIDE,
-                        0,
+                        PH_SHELL_EXECUTE_NOZONECHECKS,
                         PH_SHELL_APP_PROPAGATE_PARAMETERS,
                         0,
                         NULL
