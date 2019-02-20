@@ -139,7 +139,7 @@ HRESULT CALLBACK FinalTaskDialogCallbackProc(
                 info.lpVerb = UpdaterCheckApplicationDirectory() ? NULL : L"runas";
                 info.nShow = SW_SHOW;
                 info.hwnd = hwndDlg;
-                info.fMask = SEE_MASK_NOASYNC | SEE_MASK_FLAG_NO_UI;
+                info.fMask = SEE_MASK_NOASYNC | SEE_MASK_FLAG_NO_UI | SEE_MASK_NOZONECHECKS;
 
                 ProcessHacker_PrepareForEarlyShutdown(PhMainWndHandle);
 
@@ -157,7 +157,7 @@ HRESULT CALLBACK FinalTaskDialogCallbackProc(
                     // Show error dialog.
                     if (errorCode != ERROR_CANCELLED) // Ignore UAC decline.
                     {
-                        PhShowStatus(hwndDlg, L"Unable to execute the setup.", 0, GetLastError());
+                        PhShowStatus(hwndDlg, L"Unable to execute the setup.", 0, errorCode);
 
                         if (context->StartupCheck)
                             ShowAvailableDialog(context);
