@@ -1496,13 +1496,17 @@ PPH_STRING PhGetObjectTypeName(
     _In_ ULONG TypeIndex
     )
 {
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
     static POBJECT_TYPES_INFORMATION objectTypes = NULL;
     POBJECT_TYPE_INFORMATION objectType;
     PPH_STRING objectTypeName = NULL;
     ULONG i;
 
-    if (!objectTypes) // HACK (dmex)
+    if (PhBeginInitOnce(&initOnce))
+    {
         PhEnumObjectTypes(&objectTypes);
+        PhEndInitOnce(&initOnce);
+    }
 
     if (objectTypes)
     {
@@ -1539,7 +1543,6 @@ PPHP_CALL_WITH_TIMEOUT_THREAD_CONTEXT PhpAcquireCallWithTimeoutThread(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-
     PPHP_CALL_WITH_TIMEOUT_THREAD_CONTEXT threadContext;
     PSLIST_ENTRY listEntry;
     PH_QUEUED_WAIT_BLOCK waitBlock;
