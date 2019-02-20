@@ -731,9 +731,11 @@ PPH_STRING PhpGetOpaqueXmlNodeText(
     _In_ mxml_node_t *node
     )
 {
-    if (node->child && node->child->type == MXML_OPAQUE && node->child->value.opaque)
+    PCSTR string;
+
+    if (string = mxmlGetOpaque(node))
     {
-        return PhConvertUtf8ToUtf16(node->child->value.opaque);
+        return PhConvertUtf8ToUtf16((PSTR)string);
     }
     else
     {
