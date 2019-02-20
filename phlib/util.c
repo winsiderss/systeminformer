@@ -3529,7 +3529,7 @@ VOID PhShellOpenKey(
 
     RtlInitUnicodeString(&valueName, L"LastKey");
     lastKey = PhExpandKeyName(KeyName, TRUE);
-    NtSetValueKey(regeditKeyHandle, &valueName, 0, REG_SZ, lastKey->Buffer, (ULONG)lastKey->Length + 2);
+    NtSetValueKey(regeditKeyHandle, &valueName, 0, REG_SZ, lastKey->Buffer, (ULONG)lastKey->Length + sizeof(UNICODE_NULL));
     PhDereferenceObject(lastKey);
 
     NtClose(regeditKeyHandle); 
@@ -3583,8 +3583,8 @@ PPH_STRING PhQueryRegistryString(
             buffer->Type == REG_MULTI_SZ ||
             buffer->Type == REG_EXPAND_SZ)
         {
-            if (buffer->DataLength >= sizeof(WCHAR))
-                string = PhCreateStringEx((PWCHAR)buffer->Data, buffer->DataLength - sizeof(WCHAR));
+            if (buffer->DataLength >= sizeof(UNICODE_NULL))
+                string = PhCreateStringEx((PWCHAR)buffer->Data, buffer->DataLength - sizeof(UNICODE_NULL));
             else
                 string = PhReferenceEmptyString();
         }
@@ -3786,9 +3786,7 @@ OPENFILENAME *PhpCreateOpenFileName(
 {
     OPENFILENAME *ofn;
 
-    ofn = PhAllocate(sizeof(OPENFILENAME));
-    memset(ofn, 0, sizeof(OPENFILENAME));
-
+    ofn = PhAllocateZero(sizeof(OPENFILENAME));
     ofn->lStructSize = sizeof(OPENFILENAME);
     ofn->nMaxFile = 0x400;
     ofn->lpstrFile = PhAllocate(ofn->nMaxFile * sizeof(WCHAR));
@@ -3939,7 +3937,7 @@ VOID PhFreeFileDialog(
  * occurred.
  */
 BOOLEAN PhShowFileDialog(
-    _In_ HWND hWnd,
+    _In_opt_ HWND hWnd,
     _In_ PVOID FileDialog
     )
 {
@@ -4186,7 +4184,7 @@ VOID PhSetFileDialogFilter(
         if (ofn->lpstrFilter)
             PhFree((PVOID)ofn->lpstrFilter);
 
-        ofn->lpstrFilter = PhAllocateCopy(filterString->Buffer, filterString->Length + 2);
+        ofn->lpstrFilter = PhAllocateCopy(filterString->Buffer, filterString->Length + sizeof(UNICODE_NULL));
         PhDereferenceObject(filterString);
     }
 }
