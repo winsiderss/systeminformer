@@ -790,14 +790,11 @@ NTSTATUS PhLoadSettings(
     while (currentNode)
     {
         PPH_STRING settingName = NULL;
+        PCSTR elementValue;
 
-        if (
-            currentNode->type == MXML_ELEMENT &&
-            currentNode->value.element.num_attrs >= 1 &&
-            _stricmp(currentNode->value.element.attrs[0].name, "name") == 0
-            )
+        if (elementValue = mxmlElementGetAttr(currentNode, "name"))
         {
-            settingName = PhConvertUtf8ToUtf16(currentNode->value.element.attrs[0].value);
+            settingName = PhConvertUtf8ToUtf16((PSTR)elementValue);
         }
 
         if (settingName)

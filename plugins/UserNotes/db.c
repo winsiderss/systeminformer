@@ -239,25 +239,32 @@ NTSTATUS LoadDb(
         PPH_STRING collapse = NULL;
         PPH_STRING affinityMask = NULL;
 
-        if (currentNode->type == MXML_ELEMENT &&
-            currentNode->value.element.num_attrs >= 2)
+        if (mxmlElementGetAttrCount(currentNode) >= 2)
         {
-            for (INT i = 0; i < currentNode->value.element.num_attrs; i++)
+            for (INT i = 0; i < mxmlElementGetAttrCount(currentNode); i++)
             {
-                if (_stricmp(currentNode->value.element.attrs[i].name, "tag") == 0)
-                    PhMoveReference(&tag, PhConvertUtf8ToUtf16(currentNode->value.element.attrs[i].value));
-                else if (_stricmp(currentNode->value.element.attrs[i].name, "name") == 0)
-                    PhMoveReference(&name, PhConvertUtf8ToUtf16(currentNode->value.element.attrs[i].value));
-                else if (_stricmp(currentNode->value.element.attrs[i].name, "priorityclass") == 0)
-                    PhMoveReference(&priorityClass, PhConvertUtf8ToUtf16(currentNode->value.element.attrs[i].value));
-                else if (_stricmp(currentNode->value.element.attrs[i].name, "iopriorityplusone") == 0)
-                    PhMoveReference(&ioPriorityPlusOne, PhConvertUtf8ToUtf16(currentNode->value.element.attrs[i].value));
-                else if (_stricmp(currentNode->value.element.attrs[i].name, "backcolor") == 0)
-                    PhMoveReference(&backColor, PhConvertUtf8ToUtf16(currentNode->value.element.attrs[i].value));
-                else if (_stricmp(currentNode->value.element.attrs[i].name, "collapse") == 0)
-                    PhMoveReference(&collapse, PhConvertUtf8ToUtf16(currentNode->value.element.attrs[i].value));
-                else if (_stricmp(currentNode->value.element.attrs[i].name, "affinity") == 0)
-                    PhMoveReference(&affinityMask, PhConvertUtf8ToUtf16(currentNode->value.element.attrs[i].value));
+                PSTR elementName;
+                PSTR elementValue;
+
+                elementValue = (PSTR)mxmlElementGetAttrByIndex(currentNode, i, &elementName);
+
+                if (!(elementName && elementValue))
+                    continue;
+
+                if (_stricmp(elementName, "tag") == 0)
+                    PhMoveReference(&tag, PhConvertUtf8ToUtf16(elementValue));
+                else if (_stricmp(elementName, "name") == 0)
+                    PhMoveReference(&name, PhConvertUtf8ToUtf16(elementValue));
+                else if (_stricmp(elementName, "priorityclass") == 0)
+                    PhMoveReference(&priorityClass, PhConvertUtf8ToUtf16(elementValue));
+                else if (_stricmp(elementName, "iopriorityplusone") == 0)
+                    PhMoveReference(&ioPriorityPlusOne, PhConvertUtf8ToUtf16(elementValue));
+                else if (_stricmp(elementName, "backcolor") == 0)
+                    PhMoveReference(&backColor, PhConvertUtf8ToUtf16(elementValue));
+                else if (_stricmp(elementName, "collapse") == 0)
+                    PhMoveReference(&collapse, PhConvertUtf8ToUtf16(elementValue));
+                else if (_stricmp(elementName, "affinity") == 0)
+                    PhMoveReference(&affinityMask, PhConvertUtf8ToUtf16(elementValue));
             }
         }
 
