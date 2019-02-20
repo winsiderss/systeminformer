@@ -177,7 +177,7 @@ PPH_STRING GetOpaqueXmlNodeText(
 
     if (string = mxmlGetOpaque(node))
     {
-        return PhConvertUtf8ToUtf16(node->child->value.opaque);
+        return PhConvertUtf8ToUtf16(string);
     }
     else
     {
