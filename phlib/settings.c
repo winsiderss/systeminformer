@@ -781,13 +781,13 @@ NTSTATUS PhLoadSettings(
     if (!topNode)
         return STATUS_FILE_CORRUPT_ERROR;
 
-    if (topNode->type != MXML_ELEMENT)
+    if (mxmlGetType(topNode) != MXML_ELEMENT)
     {
         mxmlDelete(topNode);
         return STATUS_FILE_CORRUPT_ERROR;
     }
 
-    currentNode = topNode->child;
+    currentNode = mxmlGetFirstChild(topNode);
 
     while (currentNode)
     {
@@ -849,7 +849,7 @@ NTSTATUS PhLoadSettings(
             PhDereferenceObject(settingName);
         }
 
-        currentNode = currentNode->next;
+        currentNode = mxmlGetNextSibling(currentNode);
     }
 
     mxmlDelete(topNode);
@@ -864,14 +864,19 @@ char *PhpSettingsSaveCallback(
     _In_ int position
     )
 {
-    if (PhEqualBytesZ(node->value.element.name, "setting", TRUE))
+    PSTR elementName;
+
+    if (!(elementName = (PSTR)mxmlGetElement(node)))
+        return NULL;
+
+    if (PhEqualBytesZ(elementName, "setting", TRUE))
     {
         if (position == MXML_WS_BEFORE_OPEN)
             return "  ";
         else if (position == MXML_WS_AFTER_CLOSE)
             return "\r\n";
     }
-    else if (PhEqualBytesZ(node->value.element.name, "settings", TRUE))
+    else if (PhEqualBytesZ(elementName, "settings", TRUE))
     {
         if (position == MXML_WS_AFTER_OPEN)
             return "\r\n";

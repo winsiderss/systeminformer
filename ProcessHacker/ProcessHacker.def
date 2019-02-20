@@ -654,7 +654,10 @@ EXPORTS
     mxmlElementGetAttrCount
     mxmlElementGetAttrByIndex
     mxmlElementSetAttr
+    mxmlGetFirstChild
+    mxmlGetNextSibling
     mxmlGetOpaque
+    mxmlGetType
     mxmlLoadFd
     mxmlNewOpaque
     mxmlNewElement

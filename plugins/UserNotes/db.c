@@ -221,7 +221,7 @@ NTSTATUS LoadDb(
     if (!topNode)
         return STATUS_FILE_CORRUPT_ERROR;
 
-    if (topNode->type != MXML_ELEMENT)
+    if (mxmlGetType(topNode) != MXML_ELEMENT)
     {
         mxmlDelete(topNode);
         return STATUS_FILE_CORRUPT_ERROR;
@@ -229,7 +229,7 @@ NTSTATUS LoadDb(
 
     LockDb();
 
-    for (currentNode = topNode->child; currentNode; currentNode = currentNode->next)
+    for (currentNode = mxmlGetFirstChild(topNode); currentNode; currentNode = mxmlGetNextSibling(currentNode))
     {
         PDB_OBJECT object = NULL;
         PPH_STRING tag = NULL;
