@@ -230,7 +230,7 @@ extern mxml_node_t	*mxmlGetFirstChild(mxml_node_t *node);
 extern int		mxmlGetInteger(mxml_node_t *node);
 extern mxml_node_t	*mxmlGetLastChild(mxml_node_t *node);
 extern mxml_node_t	*mxmlGetNextSibling(mxml_node_t *node);
-extern const char	*mxmlGetOpaque(mxml_node_t *node);
+PHMXMLAPI extern const char	*mxmlGetOpaque(mxml_node_t *node);
 extern mxml_node_t	*mxmlGetParent(mxml_node_t *node);
 extern mxml_node_t	*mxmlGetPrevSibling(mxml_node_t *node);
 extern double		mxmlGetReal(mxml_node_t *node);
