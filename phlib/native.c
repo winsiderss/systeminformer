@@ -2528,6 +2528,24 @@ NTSTATUS PhSetFileSize(
         );
 }
 
+NTSTATUS PhDeleteFile(
+    _In_ HANDLE FileHandle
+    )
+{
+    FILE_DISPOSITION_INFORMATION dispositionInfo;
+    IO_STATUS_BLOCK isb;
+
+    dispositionInfo.DeleteFile = TRUE;
+
+    return NtSetInformationFile(
+        FileHandle,
+        &isb,
+        &dispositionInfo,
+        sizeof(FILE_DISPOSITION_INFORMATION),
+        FileDispositionInformation
+        );
+}
+
 NTSTATUS PhGetFileHandleName(
     _In_ HANDLE FileHandle,
     _Out_ PPH_STRING *FileName
@@ -7315,20 +7333,10 @@ static BOOLEAN PhpDeleteDirectoryCallback(
             FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
             )))
         {
-            IO_STATUS_BLOCK isb;
-            FILE_DISPOSITION_INFORMATION fileInfo;
-
             PhEnumDirectoryFile(directoryHandle, NULL, PhpDeleteDirectoryCallback, fullName);
 
             // Delete the directory. 
-            fileInfo.DeleteFile = TRUE;
-            NtSetInformationFile(
-                directoryHandle,
-                &isb,
-                &fileInfo,
-                sizeof(FILE_DISPOSITION_INFORMATION),
-                FileDispositionInformation
-                );
+            PhDeleteFile(directoryHandle);
 
             NtClose(directoryHandle);
         }
@@ -7401,9 +7409,6 @@ NTSTATUS PhDeleteDirectory(
 
     if (NT_SUCCESS(status))
     {
-        IO_STATUS_BLOCK isb;
-        FILE_DISPOSITION_INFORMATION fileInfo;
-
         // Remove any files or folders inside the directory.
         status = PhEnumDirectoryFile(
             directoryHandle, 
@@ -7413,14 +7418,7 @@ NTSTATUS PhDeleteDirectory(
             );
 
         // Remove the directory. 
-        fileInfo.DeleteFile = TRUE;
-        status = NtSetInformationFile(
-            directoryHandle,
-            &isb,
-            &fileInfo,
-            sizeof(FILE_DISPOSITION_INFORMATION),
-            FileDispositionInformation
-            );
+        PhDeleteFile(directoryHandle);
 
         NtClose(directoryHandle);
     }
