@@ -6021,8 +6021,7 @@ VOID PhpRtlModulesToGenericModules(
             // directory.
             PhGetSystemRoot(&systemRoot);
             newFileName = PhConcatStringRef3(&systemRoot, &driversString, &moduleInfo.Name->sr);
-            PhDereferenceObject(moduleInfo.FileName);
-            moduleInfo.FileName = newFileName;
+            PhMoveReference(&moduleInfo.FileName, newFileName);
         }
 
         cont = Callback(&moduleInfo, Context);

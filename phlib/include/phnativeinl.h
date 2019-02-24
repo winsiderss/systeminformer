@@ -890,7 +890,7 @@ PhGetThreadLastSystemCall(
         ThreadHandle,
         ThreadLastSystemCall,
         LastSystemCall,
-        RTL_SIZEOF_THROUGH_FIELD(THREAD_LAST_SYSCALL_INFORMATION, Pad), // HACK: Win7 requires exact size.
+        RTL_SIZEOF_THROUGH_FIELD(THREAD_LAST_SYSCALL_INFORMATION, Pad), // HACK: Win7 requires exact size. (dmex)
         NULL
         );
 }

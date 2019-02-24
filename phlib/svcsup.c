@@ -562,7 +562,7 @@ NTSTATUS PhGetServiceDllParameter(
         // The SCM creates multiple "user service instance" processes for each user session with the following template:
         // [Host Service Instance Name]_[LUID for Session]
         // The SCM internally uses the ServiceDll of the "host service instance" for all "user service instance" processes/services
-        // and we need to parse the user service template and query the "host service instance" configuration.
+        // and we need to parse the user service template and query the "host service instance" configuration. (hsebs)
 
         if (PhSplitStringRefAtLastChar(ServiceName, L'_', &hostServiceName, &userSessionLuid))
             keyName = PhConcatStringRef3(&servicesKeyName, &hostServiceName, &parameters);
