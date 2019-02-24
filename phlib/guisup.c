@@ -1702,3 +1702,32 @@ BOOLEAN PhShowRunFileDialog(
 
     return result;
 }
+
+HICON PhGetInternalWindowIcon(
+    _In_ HWND WindowHandle,
+    _In_ UINT Type
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static HICON (WINAPI *InternalGetWindowIcon_I)(
+        _In_ HWND WindowHandle,
+        _In_ ULONG Type
+        ) = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID shell32Handle;
+
+        if (shell32Handle = LoadLibrary(L"shell32.dll"))
+        {
+            InternalGetWindowIcon_I = PhGetDllBaseProcedureAddress(shell32Handle, "InternalGetWindowIcon", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!InternalGetWindowIcon_I)
+        return NULL; 
+
+    return InternalGetWindowIcon_I(WindowHandle, Type);;
+}
