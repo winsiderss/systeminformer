@@ -267,7 +267,7 @@ NTSTATUS PhpProcessMiniDumpThreadStart(
                 L"A 64-bit dump will be created instead. Do you want to continue?"
                 ) == IDNO)
             {
-                PhDeleteFile(context->FileHandle, TRUE);
+                PhDeleteFile(context->FileHandle);
                 goto Completed;
             }
         }
