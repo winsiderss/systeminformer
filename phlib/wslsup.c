@@ -183,8 +183,7 @@ BOOLEAN PhInitializeLxssImageVersionInfo(
         lxssDistroName->Buffer,
         lxssCommandLine->Buffer,
         NULL,
-        &result,
-        NULL
+        &result
         );
 
     if (status == 0)
@@ -201,8 +200,7 @@ BOOLEAN PhInitializeLxssImageVersionInfo(
         lxssDistroName->Buffer,
         lxssCommandLine->Buffer,
         NULL,
-        &result,
-        NULL
+        &result
         );
 
     if (status != 0)
@@ -244,8 +242,7 @@ BOOLEAN PhInitializeLxssImageVersionInfo(
         lxssDistroName->Buffer,
         lxssCommandLine->Buffer,
         NULL,
-        &result,
-        NULL
+        &result
         );
 
     if (status != 0)
@@ -269,7 +266,7 @@ ParseResult:
         PH_STRINGREF descriptionPart;
         PH_STRINGREF versionPart;
 
-        remainingPart = result->sr;
+        remainingPart = PhGetStringRef(result);
         PhSplitStringRefAtChar(&remainingPart, '|', &versionPart, &remainingPart);
         PhSplitStringRefAtChar(&remainingPart, '|', &companyPart, &remainingPart);
         PhSplitStringRefAtChar(&remainingPart, '|', &descriptionPart, &remainingPart);
@@ -296,8 +293,7 @@ ULONG PhCreateProcessLxss(
     _In_ PWSTR LxssDistribution,
     _In_ PWSTR LxssCommandLine,
     _In_opt_ PWSTR LxssCurrentDirectory,
-    _Out_ PPH_STRING *Result,
-    _Out_opt_ PHANDLE ProcessHandle
+    _Out_ PPH_STRING *Result
     )
 {
     NTSTATUS status;
