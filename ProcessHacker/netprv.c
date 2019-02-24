@@ -371,7 +371,7 @@ PPH_STRING PhpGetIp6ReverseNameFromAddress(
 {
     PH_STRING_BUILDER stringBuilder;
 
-    PhInitializeStringBuilder(&stringBuilder, 32);
+    PhInitializeStringBuilder(&stringBuilder, DNS_MAX_NAME_BUFFER_LENGTH);
 
     for (INT i = sizeof(IN6_ADDR) - 1; i >= 0; i--)
     {
@@ -753,10 +753,10 @@ VOID PhNetworkProviderUpdate(
                 PROCESS_EXTENDED_BASIC_INFORMATION basicInfo;
 
                 // HACK HACK HACK
-                // WSL subsystem processes (e.g. nginx) create sockets, clone/fork themselves, duplicate the socket into the child process and then terminate.
+                // WSL subsystem processes (e.g. apache/nginx) create sockets, clone/fork themselves, duplicate the socket into the child process and then terminate.
                 // The socket handle remains valid and in-use by the child process BUT the socket continues returning the PID of the exited process???
                 // Fixing this causes a major performance problem; If we have 100,000 sockets then on previous versions of Windows we would only need 2 system calls maximum
-                // (for the process list) to identify the owner of every socket but now we need to make 4 system calls for every_last_socket totaling 400,000 system calls... great.
+                // (for the process list) to identify the owner of every socket but now we need to make 4 system calls for every_last_socket totaling 400,000 system calls... great. (dmex)
                 if (NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, networkItem->ProcessId)))
                 {
                     if (NT_SUCCESS(PhGetProcessExtendedBasicInformation(processHandle, &basicInfo)))
@@ -768,7 +768,7 @@ VOID PhNetworkProviderUpdate(
                     {
                         PhMoveReference(&networkItem->ProcessName, PhGetBaseName(fileName));
                     }
-                
+
                     NtClose(processHandle);
                 }
 
