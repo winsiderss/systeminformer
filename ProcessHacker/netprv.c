@@ -356,7 +356,7 @@ PPH_STRING PhpGetIp4ReverseNameFromAddress(
     )
 {
     return PhFormatString(
-        L"%u.%u.%u.%u.%s",
+        L"%hhu.%hhu.%hhu.%hhu.%s",
         Address.s_impno,
         Address.s_lh,
         Address.s_host,
@@ -377,7 +377,7 @@ PPH_STRING PhpGetIp6ReverseNameFromAddress(
     {
         PhAppendFormatStringBuilder(
             &stringBuilder,
-            L"%x.%x.",
+            L"%hhx.%hhx.",
             Address.s6_addr[i] & 0xF,
             (Address.s6_addr[i] >> 4) & 0xF
             );
@@ -412,7 +412,7 @@ PPH_STRING PhGetHostNameFromAddressEx(
     DnsQuery(
         addressReverse->Buffer,
         DNS_TYPE_PTR,
-        DNS_QUERY_BYPASS_CACHE | DNS_QUERY_NO_HOSTS_FILE,
+        DNS_QUERY_NO_HOSTS_FILE, // DNS_QUERY_BYPASS_CACHE
         NULL,
         &addressResults,
         NULL
