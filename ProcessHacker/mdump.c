@@ -245,25 +245,12 @@ NTSTATUS PhpProcessMiniDumpThreadStart(
             }
             else
             {
-                // We may have an old version of dbghelp - in that case, try using minimal dump flags.
-                if (status == STATUS_INVALID_PARAMETER && NT_SUCCESS(status = PhSvcCallWriteMiniDumpProcess(
-                    context->ProcessHandle,
-                    context->ProcessId,
-                    context->FileHandle,
-                    MiniDumpWithFullMemory | MiniDumpWithHandleData
-                    )))
-                {
-                    context->Succeeded = TRUE;
-                }
-                else
-                {
-                    SendMessage(
-                        context->WindowHandle,
-                        WM_PH_MINIDUMP_STATUS_UPDATE,
-                        PH_MINIDUMP_ERROR,
-                        (LPARAM)PhNtStatusToDosError(status)
-                        );
-                }
+                SendMessage(
+                    context->WindowHandle,
+                    WM_PH_MINIDUMP_STATUS_UPDATE,
+                    PH_MINIDUMP_ERROR,
+                    (LPARAM)PhNtStatusToDosError(status)
+                    );
             }
 
             PhUiDisconnectFromPhSvc();
@@ -280,18 +267,7 @@ NTSTATUS PhpProcessMiniDumpThreadStart(
                 L"A 64-bit dump will be created instead. Do you want to continue?"
                 ) == IDNO)
             {
-                FILE_DISPOSITION_INFORMATION dispositionInfo;
-                IO_STATUS_BLOCK isb;
-
-                dispositionInfo.DeleteFile = TRUE;
-                NtSetInformationFile(
-                    context->FileHandle,
-                    &isb,
-                    &dispositionInfo,
-                    sizeof(FILE_DISPOSITION_INFORMATION),
-                    FileDispositionInformation
-                    );
-
+                PhDeleteFile(context->FileHandle, TRUE);
                 goto Completed;
             }
         }
@@ -312,28 +288,12 @@ NTSTATUS PhpProcessMiniDumpThreadStart(
     }
     else
     {
-        // We may have an old version of dbghelp - in that case, try using minimal dump flags.
-        if (GetLastError() == HRESULT_FROM_WIN32(ERROR_INVALID_PARAMETER) && PhWriteMiniDumpProcess(
-            context->ProcessHandle,
-            context->ProcessId,
-            context->FileHandle,
-            MiniDumpWithFullMemory | MiniDumpWithHandleData,
-            NULL,
-            NULL,
-            &callbackInfo
-            ))
-        {
-            context->Succeeded = TRUE;
-        }
-        else
-        {
-            SendMessage(
-                context->WindowHandle,
-                WM_PH_MINIDUMP_STATUS_UPDATE,
-                PH_MINIDUMP_ERROR,
-                (LPARAM)GetLastError()
-                );
-        }
+        SendMessage(
+            context->WindowHandle,
+            WM_PH_MINIDUMP_STATUS_UPDATE,
+            PH_MINIDUMP_ERROR,
+            (LPARAM)GetLastError()
+            );
     }
 
 #ifdef _WIN64
@@ -421,7 +381,6 @@ INT_PTR CALLBACK PhpProcessMiniDumpDlgProc(
                     // No status message update for 2 seconds.
 
                     PhSetDialogItemText(hwndDlg, IDC_PROGRESSTEXT, L"Creating the dump file...");
-                    InvalidateRect(GetDlgItem(hwndDlg, IDC_PROGRESSTEXT), NULL, FALSE);
 
                     context->LastTickCount = currentTickCount;
                 }
@@ -434,7 +393,6 @@ INT_PTR CALLBACK PhpProcessMiniDumpDlgProc(
             {
             case PH_MINIDUMP_STATUS_UPDATE:
                 PhSetDialogItemText(hwndDlg, IDC_PROGRESSTEXT, (PWSTR)lParam);
-                InvalidateRect(GetDlgItem(hwndDlg, IDC_PROGRESSTEXT), NULL, FALSE);
                 context->LastTickCount = NtGetTickCount64();
                 break;
             case PH_MINIDUMP_ERROR:
