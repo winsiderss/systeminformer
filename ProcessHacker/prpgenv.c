@@ -1233,6 +1233,8 @@ VOID PhpDeleteEnvironmentTree(
     _In_ PPH_ENVIRONMENT_CONTEXT Context
     )
 {
+    PhDeleteTreeNewFilterSupport(&Context->TreeFilterSupport);
+
     for (ULONG i = 0; i < Context->NodeList->Count; i++)
     {
         PhpDestroyEnvironmentNode(Context->NodeList->Items[i]);
@@ -1331,6 +1333,9 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
         break;
     case WM_DESTROY:
         {
+            PhRemoveTreeNewFilter(&context->TreeFilterSupport, context->TreeFilterEntry);
+            if (context->SearchboxText) PhDereferenceObject(context->SearchboxText);
+
             PhSaveSettingsEnvironmentList(context);
             PhpDeleteEnvironmentTree(context);
 
