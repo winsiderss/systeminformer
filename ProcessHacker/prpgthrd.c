@@ -315,6 +315,136 @@ static NTSTATUS NTAPI PhpOpenThreadTokenObject(
         );
 }
 
+static BOOLEAN PhpWordMatchThreadStringRef(
+    _In_ PPH_STRING SearchText,
+    _In_ PPH_STRINGREF Text
+    )
+{
+    PH_STRINGREF part;
+    PH_STRINGREF remainingPart;
+
+    remainingPart = SearchText->sr;
+
+    while (remainingPart.Length)
+    {
+        PhSplitStringRefAtChar(&remainingPart, '|', &part, &remainingPart);
+
+        if (part.Length)
+        {
+            if (PhFindStringInStringRef(Text, &part, TRUE) != -1)
+                return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
+static BOOLEAN PhpWordMatchThreadStringZ(
+    _In_ PPH_STRING SearchText,
+    _In_ PWSTR Text
+    )
+{
+    PH_STRINGREF text;
+
+    PhInitializeStringRef(&text, Text);
+
+    return PhpWordMatchThreadStringRef(SearchText, &text);
+}
+
+BOOLEAN PhpThreadTreeFilterCallback(
+    _In_ PPH_TREENEW_NODE Node,
+    _In_opt_ PPH_THREADS_CONTEXT Context
+    )
+{
+    PPH_THREAD_NODE threadNode = (PPH_THREAD_NODE)Node;
+    PPH_THREAD_ITEM threadItem = threadNode->ThreadItem;
+
+    if (PhIsNullOrEmptyString(Context->SearchboxText))
+        return TRUE;
+
+    // thread properties
+
+    if (threadNode->ThreadIdText[0])
+    {
+        if (PhpWordMatchThreadStringZ(Context->SearchboxText, threadNode->ThreadIdText))
+            return TRUE;
+    }
+
+    if (threadNode->PriorityText[0])
+    {
+        if (PhpWordMatchThreadStringZ(Context->SearchboxText, threadNode->PriorityText))
+            return TRUE;
+    }
+
+    if (threadNode->BasePriorityText[0])
+    {
+        if (PhpWordMatchThreadStringZ(Context->SearchboxText, threadNode->BasePriorityText))
+            return TRUE;
+    }
+
+    if (threadNode->IdealProcessorText[0])
+    {
+        if (PhpWordMatchThreadStringZ(Context->SearchboxText, threadNode->IdealProcessorText))
+            return TRUE;
+    }
+
+    if (threadNode->ThreadIdHexText[0])
+    {
+        if (PhpWordMatchThreadStringZ(Context->SearchboxText, threadNode->ThreadIdHexText))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(threadNode->StartAddressText))
+    {
+        if (PhpWordMatchThreadStringRef(Context->SearchboxText, &threadNode->StartAddressText->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(threadNode->PrioritySymbolicText))
+    {
+        if (PhpWordMatchThreadStringRef(Context->SearchboxText, &threadNode->PrioritySymbolicText->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(threadNode->CreatedText))
+    {
+        if (PhpWordMatchThreadStringRef(Context->SearchboxText, &threadNode->CreatedText->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(threadNode->NameText))
+    {
+        if (PhpWordMatchThreadStringRef(Context->SearchboxText, &threadNode->NameText->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(threadNode->StateText))
+    {
+        if (PhpWordMatchThreadStringRef(Context->SearchboxText, &threadNode->StateText->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(threadNode->ThreadItem->ServiceName))
+    {
+        if (PhpWordMatchThreadStringRef(Context->SearchboxText, &threadNode->ThreadItem->ServiceName->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(threadNode->ThreadItem->StartAddressString))
+    {
+        if (PhpWordMatchThreadStringRef(Context->SearchboxText, &threadNode->ThreadItem->StartAddressString->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(threadNode->ThreadItem->StartAddressFileName))
+    {
+        if (PhpWordMatchThreadStringRef(Context->SearchboxText, &threadNode->ThreadItem->StartAddressFileName->sr))
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
 VOID PhShowThreadContextMenu(
     _In_ HWND hwndDlg,
     _In_ PPH_PROCESS_ITEM ProcessItem,
@@ -445,21 +575,27 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                 &threadsContext->LoadingStateChangedEventRegistration
                 );
             threadsContext->WindowHandle = hwndDlg;
+            threadsContext->SearchboxHandle = GetDlgItem(hwndDlg, IDC_SEARCH);
+
+            PhCreateSearchControl(hwndDlg, threadsContext->SearchboxHandle, L"Search Threads (Ctrl+K)");
 
             // Initialize the list.
             tnHandle = GetDlgItem(hwndDlg, IDC_LIST);
             PhInitializeThreadList(hwndDlg, tnHandle, &threadsContext->ListContext);
             TreeNew_SetEmptyText(tnHandle, &EmptyThreadsText, 0);
             PhInitializeProviderEventQueue(&threadsContext->EventQueue, 100);
+            threadsContext->SearchboxText = PhReferenceEmptyString();
+            threadsContext->FilterEntry = PhAddTreeNewFilter(&threadsContext->ListContext.TreeFilterSupport, PhpThreadTreeFilterCallback, threadsContext);
+
             // Use Cycles instead of Context Switches on Vista and above, but only when we can
             // open the process, since cycle time information requires sufficient access to the
-            // threads.
+            // threads. (wj32)
             {
                 HANDLE processHandle;
 
                 // We make a distinction between PROCESS_QUERY_INFORMATION and PROCESS_QUERY_LIMITED_INFORMATION since
                 // the latter can be used when opening audiodg.exe even though we can't access its threads using
-                // THREAD_QUERY_LIMITED_INFORMATION.
+                // THREAD_QUERY_LIMITED_INFORMATION. (wj32)
 
                 if (processItem->ProcessId == SYSTEM_IDLE_PROCESS_ID)
                 {
@@ -474,7 +610,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                 {
                     threadsContext->ListContext.UseCycleTime = TRUE;
 
-                    // We can't use cycle time for protected processes (without KProcessHacker).
+                    // We can't use cycle time for protected processes (without KProcessHacker). (wj32)
                     if (processItem->IsProtectedProcess)
                     {
                         threadsContext->ListContext.UseCycleTime = FALSE;
@@ -509,6 +645,9 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
         break;
     case WM_DESTROY:
         {
+            PhRemoveTreeNewFilter(&threadsContext->ListContext.TreeFilterSupport, threadsContext->FilterEntry);
+            if (threadsContext->SearchboxText) PhDereferenceObject(threadsContext->SearchboxText);
+
             PhEmCallObjectOperation(EmThreadsContextType, threadsContext, EmObjectDelete);
 
             PhUnregisterCallback(
@@ -557,13 +696,36 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
 
             if (dialogItem = PhBeginPropPageLayout(hwndDlg, propPageContext))
             {
-                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST), dialogItem, PH_ANCHOR_ALL);
+                PhAddPropPageLayoutItem(hwndDlg, threadsContext->SearchboxHandle, dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+                PhAddPropPageLayoutItem(hwndDlg, tnHandle, dialogItem, PH_ANCHOR_ALL);
                 PhEndPropPageLayout(hwndDlg, propPageContext);
             }
         }
         break;
     case WM_COMMAND:
         {
+            switch (GET_WM_COMMAND_CMD(wParam, lParam))
+            {
+            case EN_CHANGE:
+                {
+                    PPH_STRING newSearchboxText;
+
+                    if (GET_WM_COMMAND_HWND(wParam, lParam) != threadsContext->SearchboxHandle)
+                        break;
+
+                    newSearchboxText = PH_AUTO(PhGetWindowText(threadsContext->SearchboxHandle));
+
+                    if (!PhEqualString(threadsContext->SearchboxText, newSearchboxText, FALSE))
+                    {
+                        // Cache the current search text for our callback.
+                        PhSwapReference(&threadsContext->SearchboxText, newSearchboxText);
+
+                        PhApplyTreeNewFilters(&threadsContext->ListContext.TreeFilterSupport);
+                    }
+                }
+                break;
+            }
+
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case ID_SHOWCONTEXTMENU:
@@ -915,7 +1077,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                 // Can't disable, it screws up the deltas.
                 break;
             case PSN_QUERYINITIALFOCUS:
-                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LPARAM)GetDlgItem(hwndDlg, IDC_LIST));
+                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LPARAM)tnHandle);
                 return TRUE;
             }
         }

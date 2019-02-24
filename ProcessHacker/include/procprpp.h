@@ -164,8 +164,10 @@ typedef struct _PH_THREADS_CONTEXT
     PH_CALLBACK_REGISTRATION LoadingStateChangedEventRegistration;
 
     HWND WindowHandle;
+    HWND SearchboxHandle;
 // end_phapppub
-
+    PPH_STRING SearchboxText;
+    PPH_TN_FILTER_ENTRY FilterEntry;
     union
     {
         PH_THREAD_LIST_CONTEXT ListContext;
