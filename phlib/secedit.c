@@ -140,7 +140,7 @@ static NTSTATUS PhpEditSecurityInformationThread(
  * \param Context A user-defined value to pass to the callback functions.
  */
 VOID PhEditSecurity(
-    _In_ HWND WindowHandle,
+    _In_opt_ HWND WindowHandle,
     _In_ PWSTR ObjectName,
     _In_ PWSTR ObjectType,
     _In_ PPH_OPEN_OBJECT OpenObject,
