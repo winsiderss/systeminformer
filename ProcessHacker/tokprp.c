@@ -1766,6 +1766,11 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
 
             if (!hasLinkedToken)
                 ShowWindow(GetDlgItem(hwndDlg, IDC_LINKEDTOKEN), SW_HIDE);
+
+            if (PhEnableThemeSupport) // TODO: Required for compat (dmex)
+                PhInitializeWindowTheme(GetParent(hwndDlg), PhEnableThemeSupport);  // HACK (GetParent)
+            else
+                PhInitializeWindowTheme(hwndDlg, FALSE);
         }
         break;
     case WM_COMMAND:
@@ -1902,6 +1907,8 @@ INT_PTR CALLBACK PhpTokenAdvancedPageProc(
             PhSetDialogItemText(hwndDlg, IDC_AUTHENTICATIONLUID, authenticationLuid);
             PhSetDialogItemText(hwndDlg, IDC_MEMORYUSED, PhGetStringOrDefault(memoryUsed, L"Unknown"));
             PhSetDialogItemText(hwndDlg, IDC_MEMORYAVAILABLE, PhGetStringOrDefault(memoryAvailable, L"Unknown"));
+
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     }
