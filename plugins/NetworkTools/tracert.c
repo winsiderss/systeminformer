@@ -58,7 +58,8 @@ PPH_STRING PhpGetIp4ReverseNameFromAddress(
     _In_ IN_ADDR Address
     )
 {
-    return PhFormatString(L"%u.%u.%u.%u.%s",
+    return PhFormatString(
+        L"%hhu.%hhu.%hhu.%hhu.%s",
         Address.s_impno,
         Address.s_lh,
         Address.s_host,
@@ -73,13 +74,13 @@ PPH_STRING PhpGetIp6ReverseNameFromAddress(
 {
     PH_STRING_BUILDER stringBuilder;
 
-    PhInitializeStringBuilder(&stringBuilder, 32);
+    PhInitializeStringBuilder(&stringBuilder, DNS_MAX_NAME_BUFFER_LENGTH);
 
     for (INT i = sizeof(IN6_ADDR) - 1; i >= 0; i--)
     {
         PhAppendFormatStringBuilder(
             &stringBuilder,
-            L"%x.%x.",
+            L"%hhx.%hhx.",
             Address.s6_addr[i] & 0xF,
             (Address.s6_addr[i] >> 4) & 0xF
             );
