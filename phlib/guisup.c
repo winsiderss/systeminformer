@@ -1393,7 +1393,7 @@ VOID PhEnumChildWindows(
     _In_opt_ HWND WindowHandle,
     _In_ ULONG Limit,
     _In_ PH_CHILD_ENUM_CALLBACK Callback,
-    _In_ PVOID Context
+    _In_opt_ PVOID Context
     )
 {
     HWND childWindow = NULL;
@@ -1592,7 +1592,7 @@ static ULONG NTAPI PhpWindowCallbackHashtableHashFunction(
 VOID PhRegisterWindowCallback(
     _In_ HWND WindowHandle,
     _In_ PH_PLUGIN_WINDOW_EVENT_TYPE Type,
-    _In_ PVOID Context
+    _In_opt_ PVOID Context
     )
 {
     PPH_PLUGIN_WINDOW_CALLBACK_REGISTRATION entry;
