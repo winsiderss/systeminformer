@@ -283,7 +283,7 @@ VOID ToolbarUpdateGraphs(
         graph->GraphState.TooltipIndex = ULONG_MAX;
         Graph_MoveGrid(graph->GraphHandle, 1);
         Graph_Draw(graph->GraphHandle);
-        Graph_UpdateTooltip(graph->GraphHandle);
+        //Graph_UpdateTooltip(graph->GraphHandle);
         InvalidateRect(graph->GraphHandle, NULL, FALSE);
     }
 }
