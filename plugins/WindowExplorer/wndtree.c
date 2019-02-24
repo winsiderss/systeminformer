@@ -187,6 +187,9 @@ VOID WeDeleteWindowTree(
     PPH_STRING settings;
     ULONG i;
 
+    PhRemoveTreeNewFilter(&Context->FilterSupport, Context->TreeFilterEntry);
+    if (Context->SearchboxText) PhDereferenceObject(Context->SearchboxText);
+
     PhDeleteTreeNewFilterSupport(&Context->FilterSupport);
 
     settings = PhCmSaveSettings(Context->TreeNewHandle);

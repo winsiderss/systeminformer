@@ -423,6 +423,10 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
         break;
     case WM_DESTROY:
         {
+            PhRemoveTreeNewFilter(&memoryContext->ListContext.TreeFilterSupport, memoryContext->FilterEntry);
+            PhRemoveTreeNewFilter(&memoryContext->ListContext.TreeFilterSupport, memoryContext->AllocationFilterEntry);
+            if (memoryContext->SearchboxText) PhDereferenceObject(memoryContext->SearchboxText);
+
             PhEmCallObjectOperation(EmMemoryContextType, memoryContext, EmObjectDelete);
 
             if (PhPluginsEnabled)

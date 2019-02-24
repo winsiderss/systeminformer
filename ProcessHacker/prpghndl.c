@@ -438,6 +438,9 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
         break;
     case WM_DESTROY:
         {
+            PhRemoveTreeNewFilter(&handlesContext->ListContext.TreeFilterSupport, handlesContext->FilterEntry);
+            if (handlesContext->SearchboxText) PhDereferenceObject(handlesContext->SearchboxText);
+
             PhEmCallObjectOperation(EmHandlesContextType, handlesContext, EmObjectDelete);
 
             PhUnregisterCallback(
