@@ -85,6 +85,7 @@ typedef struct _PH_THREAD_LIST_CONTEXT
 
     BOOLEAN EnableStateHighlighting;
     PPH_POINTER_LIST NodeStateList;
+    PH_TN_FILTER_SUPPORT TreeFilterSupport;
 } PH_THREAD_LIST_CONTEXT, *PPH_THREAD_LIST_CONTEXT;
 
 VOID PhInitializeThreadList(
