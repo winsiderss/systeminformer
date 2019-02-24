@@ -2075,7 +2075,7 @@ BOOLEAN PhShellOpenKey2(
     PhUnicodeStringToStringRef(&valueName, &valueNameSr);
 
     expandedKeyName = PhExpandKeyName(KeyName, TRUE);
-    NtSetValueKey(favoritesKeyHandle, &valueName, 0, REG_SZ, expandedKeyName->Buffer, (ULONG)expandedKeyName->Length + 2);
+    NtSetValueKey(favoritesKeyHandle, &valueName, 0, REG_SZ, expandedKeyName->Buffer, (ULONG)expandedKeyName->Length + sizeof(UNICODE_NULL));
     PhDereferenceObject(expandedKeyName);
 
     // Select our entry in regedit.
