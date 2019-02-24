@@ -54,88 +54,105 @@ PPH_STRING TracertGetErrorMessage(
     return message;
 }
 
+PPH_STRING PhpGetIp4ReverseNameFromAddress(
+    _In_ IN_ADDR Address
+    )
+{
+    return PhFormatString(L"%u.%u.%u.%u.%s",
+        Address.s_impno,
+        Address.s_lh,
+        Address.s_host,
+        Address.s_net,
+        DNS_IP4_REVERSE_DOMAIN_STRING_W
+        );
+}
+
+PPH_STRING PhpGetIp6ReverseNameFromAddress(
+    _In_ IN6_ADDR Address
+    )
+{
+    PH_STRING_BUILDER stringBuilder;
+
+    PhInitializeStringBuilder(&stringBuilder, 32);
+
+    for (INT i = sizeof(IN6_ADDR) - 1; i >= 0; i--)
+    {
+        PhAppendFormatStringBuilder(
+            &stringBuilder,
+            L"%x.%x.",
+            Address.s6_addr[i] & 0xF,
+            (Address.s6_addr[i] >> 4) & 0xF
+            );
+    }
+
+    PhAppendStringBuilder2(&stringBuilder, DNS_IP6_REVERSE_DOMAIN_STRING_W);
+
+    return PhFinalStringBuilderString(&stringBuilder);
+}
+
 NTSTATUS TracertHostnameLookupCallback(
     _In_ PVOID Parameter
     )
 {
     PTRACERT_RESOLVE_WORKITEM resolve = Parameter;
-    WSADATA winsockStartup;
-
-    if (WSAStartup(WINSOCK_VERSION, &winsockStartup) != ERROR_SUCCESS)
-        return STATUS_INVALID_PARAMETER;
+    DNS_STATUS status;
+    PPH_STRING addressHostName = NULL;
+    PPH_STRING addressReverse = NULL;
+    PDNS_RECORD dnsQueryResults = NULL;
 
     if (resolve->Type == PH_IPV4_NETWORK_TYPE)
     {
-        if (!GetNameInfo(
-            (PSOCKADDR)&resolve->SocketAddress,
-            sizeof(SOCKADDR_IN),
-            resolve->SocketAddressHostname,
-            sizeof(resolve->SocketAddressHostname),
-            NULL,
-            0,
-            NI_NAMEREQD
-            ))
-        {
-            SendMessage(
-                resolve->WindowHandle, 
-                WM_TRACERT_HOSTNAME, 
-                resolve->Index, 
-                (LPARAM)PhCreateString(resolve->SocketAddressHostname)
-                );
-        }
-        else
-        {
-            ULONG errorCode = WSAGetLastError();
-            if (errorCode != WSAHOST_NOT_FOUND && errorCode != WSATRY_AGAIN)
-            {
-                SendMessage(
-                    resolve->WindowHandle,
-                    WM_TRACERT_HOSTNAME,
-                    resolve->Index,
-                    (LPARAM)PhGetWin32Message(errorCode)
-                    );
-            }
-
-            PhDereferenceObject(resolve);
-        }
+        addressReverse = PhpGetIp4ReverseNameFromAddress(((PSOCKADDR_IN)&resolve->SocketAddress)->sin_addr);
     }
     else if (resolve->Type == PH_IPV6_NETWORK_TYPE)
     {
-        if (!GetNameInfo(
-            (PSOCKADDR)&resolve->SocketAddress,
-            sizeof(SOCKADDR_IN6),
-            resolve->SocketAddressHostname,
-            sizeof(resolve->SocketAddressHostname),
-            NULL,
-            0,
-            NI_NAMEREQD
-            ))
-        {
-            SendMessage(
-                resolve->WindowHandle, 
-                WM_TRACERT_HOSTNAME, 
-                resolve->Index, 
-                (LPARAM)PhCreateString(resolve->SocketAddressHostname)
-                );
-        }
-        else
-        {
-            ULONG errorCode = WSAGetLastError();
-            if (errorCode != WSAHOST_NOT_FOUND && errorCode != WSATRY_AGAIN)
-            {
-                SendMessage(
-                    resolve->WindowHandle,
-                    WM_TRACERT_HOSTNAME,
-                    resolve->Index,
-                    (LPARAM)PhGetWin32Message(errorCode)
-                    );
-            }
-
-            PhDereferenceObject(resolve);
-        }
+        addressReverse = PhpGetIp6ReverseNameFromAddress(((PSOCKADDR_IN6)&resolve->SocketAddress)->sin6_addr);
+    }
+    else
+    {
+        return STATUS_INVALID_PARAMETER;
     }
 
-    WSACleanup();
+    status = DnsQuery(
+        addressReverse->Buffer,
+        DNS_TYPE_PTR,
+        DNS_QUERY_BYPASS_CACHE | DNS_QUERY_NO_HOSTS_FILE,
+        NULL,
+        &dnsQueryResults,
+        NULL
+        );
+
+    if (dnsQueryResults)
+    {
+        addressHostName = PhCreateString(dnsQueryResults->Data.PTR.pNameHost); // Return the first result (dmex)
+        DnsRecordListFree(dnsQueryResults, DnsFreeRecordList);
+    }
+
+    if (addressHostName)
+    {
+        SendMessage(
+            resolve->WindowHandle,
+            WM_TRACERT_HOSTNAME,
+            resolve->Index,
+            (LPARAM)addressHostName
+            );
+    }
+    else
+    {
+        if (status != DNS_ERROR_RCODE_NAME_ERROR)
+        {
+            SendMessage(
+                resolve->WindowHandle,
+                WM_TRACERT_HOSTNAME,
+                resolve->Index,
+                (LPARAM)PhGetWin32Message(status)
+                );
+        }
+
+        PhDereferenceObject(resolve);
+    }
+
+    PhDereferenceObject(addressReverse);
 
     return STATUS_SUCCESS;
 }
@@ -276,7 +293,7 @@ NTSTATUS NetworkTracertThreadStart(
         0
     };
 
-    if (icmpRandString = PhCreateStringEx(NULL, PhGetIntegerSetting(SETTING_NAME_PING_SIZE) * 2 + 2))
+    if (icmpRandString = PhCreateStringEx(NULL, PhGetIntegerSetting(SETTING_NAME_PING_SIZE) * sizeof(WCHAR) + sizeof(UNICODE_NULL)))
     {
         PhGenerateRandomAlphaString(icmpRandString->Buffer, (ULONG)icmpRandString->Length / sizeof(WCHAR));
 
@@ -485,7 +502,7 @@ VOID TracertMenuActionCallback(
             PWSTR terminator = NULL;
             PTRACERT_ROOT_NODE node;
 
-            if (node = GetSelectedTracertNode(Context))
+            if ((node = GetSelectedTracertNode(Context)) && !PhIsNullOrEmptyString(node->IpAddressString))
             {
                 if (NT_SUCCESS(RtlIpv4StringToAddress(
                     node->IpAddressString->Buffer, 
@@ -518,7 +535,7 @@ VOID TracertMenuActionCallback(
             PWSTR terminator = NULL;
             PTRACERT_ROOT_NODE node;
 
-            if (node = GetSelectedTracertNode(Context))
+            if ((node = GetSelectedTracertNode(Context)) && !PhIsNullOrEmptyString(node->IpAddressString))
             {
                 if (NT_SUCCESS(RtlIpv4StringToAddress(
                     node->IpAddressString->Buffer, 
@@ -551,7 +568,7 @@ VOID TracertMenuActionCallback(
             PWSTR terminator = NULL;
             PTRACERT_ROOT_NODE node;
 
-            if (node = GetSelectedTracertNode(Context))
+            if ((node = GetSelectedTracertNode(Context)) && !PhIsNullOrEmptyString(node->IpAddressString))
             {
                 if (NT_SUCCESS(RtlIpv4StringToAddress(
                     node->IpAddressString->Buffer, 
@@ -719,6 +736,13 @@ INT_PTR CALLBACK TracertDlgProc(
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MENU_ACTION_COPY, L"Copy", NULL, NULL), ULONG_MAX);
                         PhInsertCopyCellEMenuItem(menu, MENU_ACTION_COPY, context->TreeNewHandle, contextMenuEvent->Column);
 
+                        if (PhIsNullOrEmptyString(selectedNode->IpAddressString))
+                        {
+                            PhSetFlagsEMenuItem(menu, MAINMENU_ACTION_PING, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
+                            PhSetFlagsEMenuItem(menu, NETWORK_ACTION_TRACEROUTE, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
+                            PhSetFlagsEMenuItem(menu, NETWORK_ACTION_WHOIS, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
+                        }
+
                         selectedItem = PhShowEMenu(
                             menu,
                             hwndDlg,
@@ -856,7 +880,12 @@ VOID ShowTracertWindow(
     memset(context, 0, sizeof(NETWORK_TRACERT_CONTEXT));
 
     context->MaximumHops = PhGetIntegerSetting(SETTING_NAME_TRACERT_MAX_HOPS);
-    context->RemoteEndpoint = NetworkItem->RemoteEndpoint;
+
+    RtlCopyMemory(
+        &context->RemoteEndpoint,
+        &NetworkItem->RemoteEndpoint,
+        sizeof(PH_IP_ENDPOINT)
+        );
 
     if (NetworkItem->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
     {
@@ -880,7 +909,12 @@ VOID ShowTracertWindowFromAddress(
     memset(context, 0, sizeof(NETWORK_TRACERT_CONTEXT));
 
     context->MaximumHops = PhGetIntegerSetting(SETTING_NAME_TRACERT_MAX_HOPS);
-    context->RemoteEndpoint = RemoteEndpoint;
+
+    RtlCopyMemory(
+        &context->RemoteEndpoint,
+        &RemoteEndpoint,
+        sizeof(PH_IP_ENDPOINT)
+        );
 
     if (RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
     {

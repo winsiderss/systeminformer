@@ -193,7 +193,7 @@ VOID DestroyTracertNode(
     _In_ PTRACERT_ROOT_NODE Node
     )
 {
-   PhDereferenceObject(Node);
+    PhDereferenceObject(Node);
 }
 
 PTRACERT_ROOT_NODE AddTracertNode(
@@ -277,8 +277,8 @@ VOID UpdateTracertNodePingText(
     _In_ ULONG Index
     )
 {
-    if (Node->PingStatus[Index] == IP_HOP_LIMIT_EXCEEDED ||
-        Node->PingStatus[Index] == IP_SUCCESS)
+    if (Node->PingStatus[Index] == IP_SUCCESS ||
+        Node->PingStatus[Index] == IP_TTL_EXPIRED_TRANSIT) // IP_HOP_LIMIT_EXCEEDED
     {
         if (Node->PingList[Index])
         {
