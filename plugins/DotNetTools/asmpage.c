@@ -1504,6 +1504,7 @@ INT_PTR CALLBACK DotNetAsmPageDlgProc(
         {
             PhRemoveTreeNewFilter(&context->TreeFilterSupport, context->TreeFilterEntry);
             PhDeleteTreeNewFilterSupport(&context->TreeFilterSupport);
+            if (context->SearchBoxText) PhDereferenceObject(context->SearchBoxText);
 
             DotNetAsmSaveSettingsTreeList(context);
             DotNetAsmDestroyTreeNodes(context);
