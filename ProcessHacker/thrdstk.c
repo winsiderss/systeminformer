@@ -3,7 +3,7 @@
  *   thread stack viewer
  *
  * Copyright (C) 2010-2016 wj32
- * Copyright (C) 2017-2018 dmex
+ * Copyright (C) 2017-2019 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -819,6 +819,8 @@ INT_PTR CALLBACK PhpThreadStackDlgProc(
 
             PhLoadWindowPlacementFromSetting(NULL, L"ThreadStackWindowSize", hwndDlg);
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
 
             if (PhPluginsEnabled)
             {
