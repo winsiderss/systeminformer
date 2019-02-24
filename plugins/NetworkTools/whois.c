@@ -573,7 +573,11 @@ VOID ShowWhoisWindow(
     context = (PNETWORK_WHOIS_CONTEXT)PhCreateAlloc(sizeof(NETWORK_WHOIS_CONTEXT));
     memset(context, 0, sizeof(NETWORK_WHOIS_CONTEXT));
 
-    context->RemoteEndpoint = NetworkItem->RemoteEndpoint;
+    RtlCopyMemory(
+        &context->RemoteEndpoint,
+        &NetworkItem->RemoteEndpoint,
+        sizeof(PH_IP_ENDPOINT)
+        );
 
     if (NetworkItem->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
     {
@@ -596,7 +600,11 @@ VOID ShowWhoisWindowFromAddress(
     context = (PNETWORK_WHOIS_CONTEXT)PhCreateAlloc(sizeof(NETWORK_WHOIS_CONTEXT));
     memset(context, 0, sizeof(NETWORK_WHOIS_CONTEXT));
 
-    context->RemoteEndpoint = RemoteEndpoint;
+    RtlCopyMemory(
+        &context->RemoteEndpoint,
+        &RemoteEndpoint,
+        sizeof(PH_IP_ENDPOINT)
+        );
 
     if (RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
     {

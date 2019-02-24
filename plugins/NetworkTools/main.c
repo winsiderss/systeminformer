@@ -836,7 +836,7 @@ VOID ProcessesUpdatedCallback(
                 sizeof(TCP_ESTATS_PATH_ROD_v0)
                 ) == ERROR_SUCCESS)
             {
-                extension->NumberOfLostPackets = pathRod.FastRetran + pathRod.PktsRetrans;
+                extension->NumberOfLostPackets = UInt32Add32To64(pathRod.FastRetran, pathRod.PktsRetrans);
                 extension->SampleRtt = pathRod.SampleRtt;
 
                 if (extension->SampleRtt == ULONG_MAX) // HACK
@@ -883,7 +883,7 @@ VOID ProcessesUpdatedCallback(
                 sizeof(TCP_ESTATS_PATH_ROD_v0)
                 ) == ERROR_SUCCESS)
             {
-                extension->NumberOfLostPackets = pathRod.FastRetran + pathRod.PktsRetrans;
+                extension->NumberOfLostPackets = UInt32Add32To64(pathRod.FastRetran, pathRod.PktsRetrans);
                 extension->SampleRtt = pathRod.SampleRtt;
 
                 if (extension->SampleRtt == ULONG_MAX) // HACK
