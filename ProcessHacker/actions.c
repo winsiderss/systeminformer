@@ -386,8 +386,9 @@ BOOLEAN PhpStartPhSvcProcess(
                 }
 
                 PhClearReference(&fileName);
-                PhClearReference(&applicationDirectory);
             }
+
+            PhClearReference(&applicationDirectory);
         }
         break;
     }
