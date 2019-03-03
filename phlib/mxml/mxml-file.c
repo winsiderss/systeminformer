@@ -2000,7 +2000,7 @@ mxml_load_data(
   * Free the string buffer - we don't need it anymore...
   */
 
-  free(buffer);
+  PhFree(buffer);
 
  /*
   * Find the top element and return it...
@@ -2036,7 +2036,7 @@ mxml_load_data(
 
   mxmlDelete(first);
 
-  free(buffer);
+  PhFree(buffer);
 
   return (NULL);
 }
