@@ -7,7 +7,7 @@ and semantics are as close as possible to those of the Perl 5 language.
 
                        Written by Philip Hazel
      Original API code Copyright (c) 1997-2012 University of Cambridge
-         New API code Copyright (c) 2016 University of Cambridge
+          New API code Copyright (c) 2016-2018 University of Cambridge
 
 -----------------------------------------------------------------------------
 Redistribution and use in source and binary forms, with or without
@@ -104,6 +104,14 @@ fprintf(f,
   "tables are passed to PCRE2 by the application that calls it. The tables\n"
   "are used only for characters whose code values are less than 256. */\n\n");
 
+fprintf(f,
+  "/*The dftables program (which is distributed with PCRE2) can be used to\n"
+  "build alternative versions of this file. This is necessary if you are\n"
+  "running in an EBCDIC environment, or if you want to default to a different\n"
+  "encoding, for example ISO-8859-1. When dftables is run, it creates these\n"
+  "tables in the current locale. This happens automatically if PCRE2 is\n"
+  "configured with --enable-rebuild-chartables. */\n\n");
+
 /* Force config.h in z/OS */
 
 #if defined NATIVE_ZOS
@@ -115,7 +123,7 @@ fprintf(f,
 #endif
 
 fprintf(f,
-  "/* The following #includes are present because without them gcc 4.x may remove\n"
+  "/* The following #include is present because without it gcc 4.x may remove\n"
   "the array definition from the final binary if PCRE2 is built into a static\n"
   "library and dead code stripping is activated. This leads to link errors.\n"
   "Pulling in the header ensures that the array gets flagged as \"someone\n"
@@ -153,11 +161,10 @@ for (i = 0; i < 256; i++)
 fprintf(f, ",\n\n");
 
 fprintf(f,
-  "/* This table contains bit maps for various character classes.\n"
-  "Each map is 32 bytes long and the bits run from the least\n"
-  "significant end of each byte. The classes that have their own\n"
-  "maps are: space, xdigit, digit, upper, lower, word, graph\n"
-  "print, punct, and cntrl. Other classes are built from combinations. */\n\n");
+  "/* This table contains bit maps for various character classes. Each map is 32\n"
+  "bytes long and the bits run from the least significant end of each byte. The\n"
+  "classes that have their own maps are: space, xdigit, digit, upper, lower, word,\n"
+  "graph print, punct, and cntrl. Other classes are built from combinations. */\n\n");
 
 fprintf(f, "  ");
 for (i = 0; i < cbit_length; i++)
@@ -178,10 +185,8 @@ fprintf(f,
   "  0x%02x   letter\n"
   "  0x%02x   decimal digit\n"
   "  0x%02x   hexadecimal digit\n"
-  "  0x%02x   alphanumeric or '_'\n"
-  "  0x%02x   regular expression metacharacter or binary zero\n*/\n\n",
-  ctype_space, ctype_letter, ctype_digit, ctype_xdigit, ctype_word,
-  ctype_meta);
+  "  0x%02x   alphanumeric or '_'\n*/\n\n",
+  ctype_space, ctype_letter, ctype_digit, ctype_xdigit, ctype_word);
 
 fprintf(f, "  ");
 for (i = 0; i < 256; i++)
