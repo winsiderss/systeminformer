@@ -2,7 +2,7 @@
  * Visual Studio configuration file for Mini-XML, a small XML file parsing
  * library.
  *
- * Copyright 2003-2018 by Michael R Sweet.
+ * Copyright 2003-2019 by Michael R Sweet.
  *
  * These coded instructions, statements, and computer programs are the
  * property of Michael R Sweet and are protected by Federal copyright
@@ -63,7 +63,7 @@
  * Version number...
  */
 
-#define MXML_VERSION "Mini-XML v2.12"
+#define MXML_VERSION "Mini-XML v3.0"
 
 
 /*
@@ -112,6 +112,11 @@
 extern char	*_mxml_strdup(const char *);
 #    define strdup _mxml_strdup
 #  endif /* !HAVE_STRDUP */
+
+#  ifndef HAVE_STRLCAT
+extern size_t	_mxml_strlcat(char *, const char *, size_t);
+#    define strlcat _mxml_strlcat
+#  endif /* !HAVE_STRLCAT */
 
 #  ifndef HAVE_STRLCPY
 extern size_t	_mxml_strlcpy(char *, const char *, size_t);

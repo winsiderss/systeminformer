@@ -1,25 +1,20 @@
 /*
  * Node support code for Mini-XML, a small XML file parsing library.
  *
- * Copyright 2003-2018 by Michael R Sweet.
+ * https://www.msweet.org/mxml
  *
- * These coded instructions, statements, and computer programs are the
- * property of Michael R Sweet and are protected by Federal copyright
- * law.  Distribution and use rights are outlined in the file "COPYING"
- * which should have been included with this file.  If this file is
- * missing or damaged, see the license at:
+ * Copyright © 2003-2019 by Michael R Sweet.
  *
- *     https://michaelrsweet.github.io/mxml
+ * Licensed under Apache License v2.0.  See the file "LICENSE" for more
+ * information.
  */
 
 /*
  * Include necessary headers...
  */
 
-#include <phbase.h>
-
 #include "config.h"
-#include "mxml.h"
+#include "mxml-private.h"
 
 
 /*
@@ -45,7 +40,7 @@ void
 mxmlAdd(mxml_node_t *parent,		/* I - Parent node */
         int         where,		/* I - Where to add, @code MXML_ADD_BEFORE@ or @code MXML_ADD_AFTER@ */
         mxml_node_t *child,		/* I - Child node for where or @code MXML_ADD_TO_PARENT@ */
-    mxml_node_t *node)		/* I - Node to add */
+	mxml_node_t *node)		/* I - Node to add */
 {
 #ifdef MXMLDEBUG
   fprintf(stderr, "mxmlAdd(parent=%p, where=%d, child=%p, node=%p)\n", parent,
@@ -87,71 +82,71 @@ mxmlAdd(mxml_node_t *parent,		/* I - Parent node */
   {
     case MXML_ADD_BEFORE :
         if (!child || child == parent->child || child->parent != parent)
-    {
-     /*
-      * Insert as first node under parent...
-      */
+	{
+	 /*
+	  * Insert as first node under parent...
+	  */
 
-      node->next = parent->child;
+	  node->next = parent->child;
 
-      if (parent->child)
-        parent->child->prev = node;
-      else
-        parent->last_child = node;
+	  if (parent->child)
+	    parent->child->prev = node;
+	  else
+	    parent->last_child = node;
 
-      parent->child = node;
-    }
-    else
-    {
-     /*
-      * Insert node before this child...
-      */
+	  parent->child = node;
+	}
+	else
+	{
+	 /*
+	  * Insert node before this child...
+	  */
 
-      node->next = child;
-      node->prev = child->prev;
+	  node->next = child;
+	  node->prev = child->prev;
 
-      if (child->prev)
-        child->prev->next = node;
-      else
-        parent->child = node;
+	  if (child->prev)
+	    child->prev->next = node;
+	  else
+	    parent->child = node;
 
-      child->prev = node;
-    }
+	  child->prev = node;
+	}
         break;
 
     case MXML_ADD_AFTER :
         if (!child || child == parent->last_child || child->parent != parent)
-    {
-     /*
-      * Insert as last node under parent...
-      */
+	{
+	 /*
+	  * Insert as last node under parent...
+	  */
 
-      node->parent = parent;
-      node->prev   = parent->last_child;
+	  node->parent = parent;
+	  node->prev   = parent->last_child;
 
-      if (parent->last_child)
-        parent->last_child->next = node;
-      else
-        parent->child = node;
+	  if (parent->last_child)
+	    parent->last_child->next = node;
+	  else
+	    parent->child = node;
 
-      parent->last_child = node;
+	  parent->last_child = node;
         }
-    else
-    {
-     /*
-      * Insert node after this child...
-      */
+	else
+	{
+	 /*
+	  * Insert node after this child...
+	  */
 
-      node->prev = child;
-      node->next = child->next;
+	  node->prev = child;
+	  node->next = child->next;
 
-      if (child->next)
-        child->next->prev = node;
-      else
-        parent->last_child = node;
+	  if (child->next)
+	    child->next->prev = node;
+	  else
+	    parent->last_child = node;
 
-      child->next = node;
-    }
+	  child->next = node;
+	}
         break;
   }
 
@@ -179,7 +174,7 @@ void
 mxmlDelete(mxml_node_t *node)		/* I - Node to delete */
 {
   mxml_node_t	*current,		/* Current node */
-        *next;			/* Next node */
+		*next;			/* Next node */
 
 
 #ifdef MXMLDEBUG
@@ -286,7 +281,7 @@ mxmlGetRefCount(mxml_node_t *node)	/* I - Node */
 
 mxml_node_t *				/* O - New node */
 mxmlNewCDATA(mxml_node_t *parent,	/* I - Parent node or @code MXML_NO_PARENT@ */
-         const char  *data)		/* I - Data string */
+	     const char  *data)		/* I - Data string */
 {
   mxml_node_t	*node;			/* New node */
 
@@ -472,7 +467,7 @@ mxmlNewOpaque(mxml_node_t *parent,	/* I - Parent node or @code MXML_NO_PARENT@ *
 mxml_node_t *				/* O - New node */
 mxmlNewOpaquef(mxml_node_t *parent,	/* I - Parent node or @code MXML_NO_PARENT@ */
                const char  *format,	/* I - Printf-style format string */
-           ...)			/* I - Additional args as needed */
+	       ...)			/* I - Additional args as needed */
 {
   mxml_node_t	*node;			/* New node */
   va_list	ap;			/* Pointer to arguments */
@@ -549,7 +544,7 @@ mxmlNewReal(mxml_node_t *parent,	/* I - Parent node or @code MXML_NO_PARENT@ */
 mxml_node_t *				/* O - New node */
 mxmlNewText(mxml_node_t *parent,	/* I - Parent node or @code MXML_NO_PARENT@ */
             int         whitespace,	/* I - 1 = leading whitespace, 0 = no whitespace */
-        const char  *string)	/* I - String */
+	    const char  *string)	/* I - String */
 {
   mxml_node_t	*node;			/* New node */
 
@@ -593,8 +588,8 @@ mxmlNewText(mxml_node_t *parent,	/* I - Parent node or @code MXML_NO_PARENT@ */
 mxml_node_t *				/* O - New node */
 mxmlNewTextf(mxml_node_t *parent,	/* I - Parent node or @code MXML_NO_PARENT@ */
              int         whitespace,	/* I - 1 = leading whitespace, 0 = no whitespace */
-         const char  *format,	/* I - Printf-style format string */
-         ...)			/* I - Additional args as needed */
+	     const char  *format,	/* I - Printf-style format string */
+	     ...)			/* I - Additional args as needed */
 {
   mxml_node_t	*node;			/* New node */
   va_list	ap;			/* Pointer to arguments */
@@ -780,18 +775,18 @@ mxml_free(mxml_node_t *node)		/* I - Node */
         if (node->value.element.name)
             PhFree(node->value.element.name);
 
-    if (node->value.element.num_attrs)
-    {
-      for (i = 0; i < node->value.element.num_attrs; i ++)
-      {
-        if (node->value.element.attrs[i].name)
+	if (node->value.element.num_attrs)
+	{
+	  for (i = 0; i < node->value.element.num_attrs; i ++)
+	  {
+	    if (node->value.element.attrs[i].name)
             PhFree(node->value.element.attrs[i].name);
-        if (node->value.element.attrs[i].value)
+	    if (node->value.element.attrs[i].value)
             PhFree(node->value.element.attrs[i].value);
-      }
+	  }
 
       PhFree(node->value.element.attrs);
-    }
+	}
         break;
     case MXML_INTEGER :
        /* Nothing to do */
@@ -809,9 +804,9 @@ mxml_free(mxml_node_t *node)		/* I - Node */
         break;
     case MXML_CUSTOM :
         if (node->value.custom.data &&
-        node->value.custom.destroy)
-      (*(node->value.custom.destroy))(node->value.custom.data);
-    break;
+	    node->value.custom.destroy)
+	  (*(node->value.custom.destroy))(node->value.custom.data);
+	break;
     default :
         break;
   }

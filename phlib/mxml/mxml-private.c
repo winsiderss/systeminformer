@@ -1,15 +1,12 @@
 /*
  * Private functions for Mini-XML, a small XML file parsing library.
  *
- * Copyright 2003-2017 by Michael R Sweet.
+ * https://www.msweet.org/mxml
  *
- * These coded instructions, statements, and computer programs are the
- * property of Michael R Sweet and are protected by Federal copyright
- * law.  Distribution and use rights are outlined in the file "COPYING"
- * which should have been included with this file.  If this file is
- * missing or damaged, see the license at:
+ * Copyright © 2003-2019 by Michael R Sweet.
  *
- *     https://michaelrsweet.github.io/mxml
+ * Licensed under Apache License v2.0.  See the file "LICENSE" for more
+ * information.
  */
 
 /*
@@ -57,7 +54,7 @@ mxml_error(const char *format,		/* I - Printf-style format string */
   va_list	ap;			/* Pointer to arguments */
   char		s[1024];		/* Message string */
   _mxml_global_t *global = _mxml_global();
-                    /* Global data */
+					/* Global data */
 
 
  /*
@@ -145,7 +142,7 @@ mxml_real_cb(mxml_node_t *node)		/* I - Current node */
 
 static pthread_key_t	_mxml_key = -1;	/* Thread local storage key */
 static pthread_once_t	_mxml_key_once = PTHREAD_ONCE_INIT;
-                    /* One-time initialization object */
+					/* One-time initialization object */
 static void		_mxml_init(void);
 static void		_mxml_destructor(void *g);
 
@@ -219,7 +216,7 @@ _mxml_init(void)
 }
 
 
-#elif defined(WIN32) && defined(MXML1_EXPORTS) /**** WIN32 threading ****/
+#elif defined(_WIN32) && defined(MXML1_EXPORTS) /**** WIN32 threading ****/
 #  include <windows.h>
 
 static DWORD _mxml_tls_index;		/* Index for global storage */
