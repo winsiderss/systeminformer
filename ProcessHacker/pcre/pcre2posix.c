@@ -7,7 +7,7 @@ and semantics are as close as possible to those of the Perl 5 language.
 
                        Written by Philip Hazel
      Original API code Copyright (c) 1997-2012 University of Cambridge
-         New API code Copyright (c) 2016 University of Cambridge
+          New API code Copyright (c) 2016-2018 University of Cambridge
 
 -----------------------------------------------------------------------------
 Redistribution and use in source and binary forms, with or without
@@ -38,9 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 -----------------------------------------------------------------------------
 */
 
-// dmex: Disable warnings.
-#pragma warning(push)
-#pragma warning(disable : 4267)
 
 /* This module is a wrapper that provides a POSIX API to the underlying PCRE2
 functions. */
@@ -96,7 +93,7 @@ information; I know nothing about MSVC myself). For example, something like
 
   void __cdecl function(....)
 
-might be needed. In order so make this easy, all the exported functions have
+might be needed. In order to make this easy, all the exported functions have
 PCRE2_CALL_CONVENTION just before their names. It is rarely needed; if not
 set, we ensure here that it has no effect. */
 
@@ -347,8 +344,10 @@ if (rc >= 0)
   if ((size_t)rc > nmatch) rc = (int)nmatch;
   for (i = 0; i < (size_t)rc; i++)
     {
-    pmatch[i].rm_so = ovector[i*2] + so;
-    pmatch[i].rm_eo = ovector[i*2+1] + so;
+    pmatch[i].rm_so = (ovector[i*2] == PCRE2_UNSET)? -1 :
+      (int)(ovector[i*2] + so);
+    pmatch[i].rm_eo = (ovector[i*2+1] == PCRE2_UNSET)? -1 :
+      (int)(ovector[i*2+1] + so);
     }
   for (; i < nmatch; i++) pmatch[i].rm_so = pmatch[i].rm_eo = -1;
   return 0;
@@ -374,4 +373,3 @@ switch(rc)
 }
 
 /* End of pcre2posix.c */
-#pragma warning(pop)

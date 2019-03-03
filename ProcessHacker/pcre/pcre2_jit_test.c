@@ -1331,8 +1331,9 @@ static int regression_tests(void)
 				ovector8_2[i] = -2;
 		}
 		if (re8) {
+                        (void)pcre2_set_match_limit_8(mcontext8, 10000000);
 			return_value8[1] = pcre2_match_8(re8, (PCRE2_SPTR8)current->input, strlen(current->input),
-				current->start_offset & OFFSET_MASK, current->match_options, mdata8_2, NULL);
+				current->start_offset & OFFSET_MASK, current->match_options, mdata8_2, mcontext8);
 
 			if (pcre2_jit_compile_8(re8, jit_compile_mode)) {
 				printf("\n8 bit: JIT compiler does not support \"%s\"\n", current->pattern);
@@ -1375,8 +1376,9 @@ static int regression_tests(void)
 			else
 				length16 = copy_char8_to_char16((PCRE2_SPTR8)current->input, regtest_buf16, REGTEST_MAX_LENGTH16);
 
+                        (void)pcre2_set_match_limit_16(mcontext16, 10000000);
 			return_value16[1] = pcre2_match_16(re16, regtest_buf16, length16,
-				current->start_offset & OFFSET_MASK, current->match_options, mdata16_2, NULL);
+				current->start_offset & OFFSET_MASK, current->match_options, mdata16_2, mcontext16);
 
 			if (pcre2_jit_compile_16(re16, jit_compile_mode)) {
 				printf("\n16 bit: JIT compiler does not support \"%s\"\n", current->pattern);
@@ -1419,8 +1421,9 @@ static int regression_tests(void)
 			else
 				length32 = copy_char8_to_char32((PCRE2_SPTR8)current->input, regtest_buf32, REGTEST_MAX_LENGTH32);
 
+                        (void)pcre2_set_match_limit_32(mcontext32, 10000000);
 			return_value32[1] = pcre2_match_32(re32, regtest_buf32, length32,
-				current->start_offset & OFFSET_MASK, current->match_options, mdata32_2, NULL);
+				current->start_offset & OFFSET_MASK, current->match_options, mdata32_2, mcontext32);
 
 			if (pcre2_jit_compile_32(re32, jit_compile_mode)) {
 				printf("\n32 bit: JIT compiler does not support \"%s\"\n", current->pattern);
