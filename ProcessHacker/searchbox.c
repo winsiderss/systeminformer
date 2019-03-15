@@ -34,9 +34,10 @@ typedef struct _EDIT_CONTEXT
         ULONG Flags;
         struct
         {
+            ULONG ThemeSupport : 1;
             ULONG Hot : 1;
             ULONG Pushed : 1;
-            ULONG Spare : 30;
+            ULONG Spare : 29;
         };
     };
 
@@ -170,6 +171,7 @@ VOID PhpSearchGetButtonRect(
 
 VOID PhpSearchDrawButton(
     _Inout_ PEDIT_CONTEXT Context,
+    _In_ RECT WindowRect,
     _In_ RECT ButtonRect
     )
 {
@@ -240,6 +242,28 @@ VOID PhpSearchDrawButton(
     DeleteObject(bufferBitmap);
     DeleteDC(bufferDc);
 
+    if (Context->ThemeSupport) // HACK
+    {
+        if (GetFocus() == Context->WindowHandle)
+        {
+            SetDCBrushColor(hdc, RGB(0x0, 0x66, 0xcc));
+            SelectObject(hdc, GetStockObject(DC_BRUSH));
+            PatBlt(hdc, WindowRect.left, WindowRect.top, 2, WindowRect.bottom - WindowRect.top, PATCOPY);
+            PatBlt(hdc, WindowRect.right - 2, WindowRect.top, 2, WindowRect.bottom - WindowRect.top, PATCOPY);
+            PatBlt(hdc, WindowRect.left, WindowRect.top, WindowRect.right - WindowRect.left, 2, PATCOPY);
+            PatBlt(hdc, WindowRect.left, WindowRect.bottom - 2, WindowRect.right - WindowRect.left, 2, PATCOPY);
+        }
+        else
+        {
+            SetDCBrushColor(hdc, RGB(65, 65, 65));
+            SelectObject(hdc, GetStockObject(DC_BRUSH));
+            PatBlt(hdc, WindowRect.left, WindowRect.top, 2, WindowRect.bottom - WindowRect.top, PATCOPY);
+            PatBlt(hdc, WindowRect.right - 2, WindowRect.top, 2, WindowRect.bottom - WindowRect.top, PATCOPY);
+            PatBlt(hdc, WindowRect.left, WindowRect.top, WindowRect.right - WindowRect.left, 2, PATCOPY);
+            PatBlt(hdc, WindowRect.left, WindowRect.bottom - 2, WindowRect.right - WindowRect.left, 2, PATCOPY);
+        }
+    }
+
     ReleaseDC(Context->WindowHandle, hdc);
 }
 
@@ -253,7 +277,7 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
     PEDIT_CONTEXT context;
     WNDPROC oldWndProc;
 
-    if (!(context = PhGetWindowContext(hWnd, 10)))
+    if (!(context = PhGetWindowContext(hWnd, SHRT_MAX)))
         return 0;
 
     oldWndProc = context->DefaultWindowProc;
@@ -268,7 +292,7 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
                 DeleteObject(context->WindowFont);
 
             SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
-            PhRemoveWindowContext(hWnd, 10);
+            PhRemoveWindowContext(hWnd, SHRT_MAX);
             PhFree(context);
         }
         break;
@@ -288,6 +312,7 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
     case WM_NCPAINT:
         {
             RECT windowRect;
+            RECT buttonRect;
 
             // Let Windows handle the non-client defaults.
             CallWindowProc(oldWndProc, hWnd, uMsg, wParam, lParam);
@@ -297,12 +322,13 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
 
             // Adjust the coordinates (start from 0,0).
             OffsetRect(&windowRect, -windowRect.left, -windowRect.top);
+            buttonRect = windowRect;
 
             // Get the position of the inserted button.
-            PhpSearchGetButtonRect(context, &windowRect);
+            PhpSearchGetButtonRect(context, &buttonRect);
 
             // Draw the button.
-            PhpSearchDrawButton(context, windowRect);
+            PhpSearchDrawButton(context, windowRect, buttonRect);
         }
         return 0;
     case WM_NCHITTEST:
@@ -523,6 +549,7 @@ VOID PhCreateSearchControl(
     memset(context, 0, sizeof(EDIT_CONTEXT));
 
     context->WindowHandle = WindowHandle;
+    context->ThemeSupport = !!PhGetIntegerSetting(L"EnableThemeSupport"); // HACK
 
     //PhpSearchInitializeTheme(context);
     PhpSearchInitializeImages(context);
@@ -533,7 +560,7 @@ VOID PhCreateSearchControl(
 
     // Subclass the Edit control window procedure.
     context->DefaultWindowProc = (WNDPROC)GetWindowLongPtr(WindowHandle, GWLP_WNDPROC);
-    PhSetWindowContext(WindowHandle, 10, context);
+    PhSetWindowContext(WindowHandle, SHRT_MAX, context);
     SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)PhpSearchWndSubclassProc);
 
     // Initialize the theme parameters.
