@@ -3,6 +3,7 @@
  *   service creation dialog
  *
  * Copyright (C) 2010-2013 wj32
+ * Copyright (C) 2019 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -57,14 +58,14 @@ INT_PTR CALLBACK PhpCreateServiceDlgProc(
     {
     case WM_INITDIALOG:
         {
+            SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
+            SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
+
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
-            PhAddComboBoxStrings(GetDlgItem(hwndDlg, IDC_TYPE), PhServiceTypeStrings,
-                sizeof(PhServiceTypeStrings) / sizeof(WCHAR *));
-            PhAddComboBoxStrings(GetDlgItem(hwndDlg, IDC_STARTTYPE), PhServiceStartTypeStrings,
-                sizeof(PhServiceStartTypeStrings) / sizeof(WCHAR *));
-            PhAddComboBoxStrings(GetDlgItem(hwndDlg, IDC_ERRORCONTROL), PhServiceErrorControlStrings,
-                sizeof(PhServiceErrorControlStrings) / sizeof(WCHAR *));
+            PhAddComboBoxStrings(GetDlgItem(hwndDlg, IDC_TYPE), PhServiceTypeStrings, RTL_NUMBER_OF(PhServiceTypeStrings));
+            PhAddComboBoxStrings(GetDlgItem(hwndDlg, IDC_STARTTYPE), PhServiceStartTypeStrings, RTL_NUMBER_OF(PhServiceStartTypeStrings));
+            PhAddComboBoxStrings(GetDlgItem(hwndDlg, IDC_ERRORCONTROL), PhServiceErrorControlStrings, RTL_NUMBER_OF(PhServiceErrorControlStrings));
 
             PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_TYPE), L"Own Process", FALSE);
             PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_STARTTYPE), L"Demand Start", FALSE);
@@ -90,11 +91,11 @@ INT_PTR CALLBACK PhpCreateServiceDlgProc(
                 break;
             case IDOK:
                 {
-                    NTSTATUS status = 0;
+                    NTSTATUS status = STATUS_SUCCESS;
                     BOOLEAN success = FALSE;
                     SC_HANDLE scManagerHandle;
                     SC_HANDLE serviceHandle;
-                    ULONG win32Result = 0;
+                    ULONG win32Result = ERROR_SUCCESS;
                     PPH_STRING serviceName;
                     PPH_STRING serviceDisplayName;
                     PPH_STRING serviceTypeString;
