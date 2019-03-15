@@ -401,11 +401,10 @@ PVOID PhMappedImageVaToVa(
     if (Section)
         *Section = section;
 
-    return PTR_ADD_OFFSET(
-        MappedImage->ViewBase, 
-        (rva - section->VirtualAddress) +
+    return PTR_ADD_OFFSET(MappedImage->ViewBase, PTR_ADD_OFFSET(
+        PTR_SUB_OFFSET(rva, section->VirtualAddress),
         section->PointerToRawData
-        );
+        ));
 }
 
 BOOLEAN PhGetMappedImageSectionName(
