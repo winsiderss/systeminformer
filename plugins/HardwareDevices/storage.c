@@ -698,7 +698,7 @@ NTSTATUS DiskDriveQueryImminentFailure(
 
         for (UCHAR i = 0; i < 30; ++i)
         {
-            PSMART_ATTRIBUTE attribute = (PSMART_ATTRIBUTE)(storagePredictFailure.VendorSpecific + i * sizeof(SMART_ATTRIBUTE) + SMART_HEADER_SIZE);
+            PSMART_ATTRIBUTE attribute = (PSMART_ATTRIBUTE)PTR_ADD_OFFSET(storagePredictFailure.VendorSpecific, i * sizeof(SMART_ATTRIBUTE) + SMART_HEADER_SIZE);
 
             // Attribute values 0x00, 0xFE, 0xFF are invalid.
             // There is no requirement that attributes be in any particular order.
@@ -1501,6 +1501,10 @@ PWSTR SmartAttributeGetText(
         return L"Media Wearout Indicator";
     case SMART_ATTRIBUTE_ID_SSD_ERASE_COUNT:
         return L"Erase count";
+    case SMART_ATTRIBUTE_ID_MIN_SPARES_REMAINING:
+        return L"Minimum Spares Remaining";
+    case SMART_ATTRIBUTE_ID_NEWLY_ADDED_BAD_FLASH_BLOCK:
+        return L"Newly Added Bad Flash Block";
     }
 
     return L"BUG BUG BUG";
