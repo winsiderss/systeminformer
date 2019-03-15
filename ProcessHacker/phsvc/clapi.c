@@ -116,6 +116,13 @@ NTSTATUS PhSvcConnectToServer(
         return STATUS_INSUFFICIENT_RESOURCES;
     }
 
+    RtlSetHeapInformation(
+        PhSvcClPortHeap,
+        HeapCompatibilityInformation,
+        &(ULONG){ HEAP_COMPATIBILITY_LFH },
+        sizeof(ULONG)
+        );
+
     return status;
 }
 
@@ -153,7 +160,7 @@ PVOID PhSvcpAllocateHeap(
     if (!memory)
         return NULL;
 
-    *Offset = (ULONG)((ULONG_PTR)memory - (ULONG_PTR)PhSvcClPortHeap);
+    *Offset = PtrToUlong(PTR_SUB_OFFSET(memory, PhSvcClPortHeap));
 
     return memory;
 }
