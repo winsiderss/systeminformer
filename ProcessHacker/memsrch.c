@@ -97,6 +97,13 @@ PVOID PhAllocateForMemorySearch(
 
     if (PhMemorySearchHeap)
     {
+        RtlSetHeapInformation(
+            PhMemorySearchHeap,
+            HeapCompatibilityInformation,
+            &(ULONG){ HEAP_COMPATIBILITY_LFH },
+            sizeof(ULONG)
+            );
+
         // Don't use HEAP_NO_SERIALIZE - it's very slow on Vista and above.
         memory = RtlAllocateHeap(PhMemorySearchHeap, 0, Size);
 

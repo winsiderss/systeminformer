@@ -76,6 +76,7 @@ NTSTATUS PhInitializePhLibEx(
 {
     PhApplicationName = ApplicationName;
     PhInstanceHandle = ImageBaseAddress;
+
     PhHeapHandle = RtlCreateHeap(
         HEAP_GROWABLE | HEAP_CLASS_1,
         NULL,
@@ -87,6 +88,13 @@ NTSTATUS PhInitializePhLibEx(
 
     if (!PhHeapHandle)
         return STATUS_INSUFFICIENT_RESOURCES;
+
+    RtlSetHeapInformation(
+        PhHeapHandle,
+        HeapCompatibilityInformation,
+        &(ULONG){ HEAP_COMPATIBILITY_LFH },
+        sizeof(ULONG)
+        );
 
     PhInitializeWindowsVersion();
     PhInitializeSystemInformation();
