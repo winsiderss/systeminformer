@@ -104,6 +104,15 @@ PhMappedImageRvaToVa(
     );
 
 PHLIBAPI
+PVOID
+NTAPI
+PhMappedImageVaToVa(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ ULONG Va,
+    _Out_opt_ PIMAGE_SECTION_HEADER* Section
+    );
+
+PHLIBAPI
 BOOLEAN
 NTAPI
 PhGetMappedImageSectionName(
@@ -243,6 +252,7 @@ PhGetMappedImageExportFunctionRemote(
     );
 
 #define PH_MAPPED_IMAGE_DELAY_IMPORTS 0x1
+#define PH_MAPPED_IMAGE_DELAY_IMPORTS_V1 0x2
 
 typedef struct _PH_MAPPED_IMAGE_IMPORTS
 {
