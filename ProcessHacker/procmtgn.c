@@ -119,7 +119,7 @@ NTSTATUS PhGetProcessMitigationPolicy(
     COPY_PROCESS_MITIGATION_POLICY(SystemCallFilter, PROCESS_MITIGATION_SYSTEM_CALL_FILTER_POLICY); // REDSTONE3
     COPY_PROCESS_MITIGATION_POLICY(PayloadRestriction, PROCESS_MITIGATION_PAYLOAD_RESTRICTION_POLICY);
     COPY_PROCESS_MITIGATION_POLICY(ChildProcess, PROCESS_MITIGATION_CHILD_PROCESS_POLICY);
-    COPY_PROCESS_MITIGATION_POLICY(SideChannelIsolation, PROCESS_MITIGATION_CHILD_PROCESS_POLICY);
+    COPY_PROCESS_MITIGATION_POLICY(SideChannelIsolation, PROCESS_MITIGATION_SIDE_CHANNEL_ISOLATION_POLICY);
 
     return status;
 }
@@ -474,6 +474,55 @@ BOOLEAN PhDescribeProcessMitigationPolicy(
 
                 if (LongDescription)
                     *LongDescription = PhCreateString(L"Child processes cannot be created by this process.\r\n");
+
+                result = TRUE;
+            }
+        }
+        break;
+    case ProcessSideChannelIsolationPolicy:
+        {
+            PPROCESS_MITIGATION_SIDE_CHANNEL_ISOLATION_POLICY data = Data;
+
+            if (data->SmtBranchTargetIsolation)
+            {
+                if (ShortDescription)
+                    *ShortDescription = PhCreateString(L"SMT-thread branch target isolation");
+
+                if (LongDescription)
+                    *LongDescription = PhCreateString(L"Branch target pollution cross-SMT-thread in user mode is enabled.\r\n");
+
+                result = TRUE;
+            }
+
+            if (data->IsolateSecurityDomain)
+            {
+                if (ShortDescription)
+                    *ShortDescription = PhCreateString(L"Distinct security domain");
+
+                if (LongDescription)
+                    *LongDescription = PhCreateString(L"Isolated security domain is enabled.\r\n");
+
+                result = TRUE;
+            }
+
+            if (data->DisablePageCombine)
+            {
+                if (ShortDescription)
+                    *ShortDescription = PhCreateString(L"Restricted page combining");
+
+                if (LongDescription)
+                    *LongDescription = PhCreateString(L"Disables all page combining for this process.\r\n");
+
+                result = TRUE;
+            }
+
+            if (data->SpeculativeStoreBypassDisable)
+            {
+                if (ShortDescription)
+                    *ShortDescription = PhCreateString(L"Restricted page combining");
+
+                if (LongDescription)
+                    *LongDescription = PhCreateString(L"Memory Disambiguation is enabled for this process.\r\n");
 
                 result = TRUE;
             }
