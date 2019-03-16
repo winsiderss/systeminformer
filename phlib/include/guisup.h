@@ -917,6 +917,13 @@ PhReInitializeWindowTheme(
     );
 
 PHLIBAPI
+VOID
+NTAPI
+PhInitializeThemeWindowFrame(
+    _In_ HWND WindowHandle
+    );
+
+PHLIBAPI
 BOOLEAN
 NTAPI
 PhThemeWindowDrawItem(

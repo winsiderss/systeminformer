@@ -274,6 +274,26 @@ VOID PhReInitializeWindowTheme(
     InvalidateRect(WindowHandle, NULL, FALSE);
 }
 
+VOID PhInitializeThemeWindowFrame(
+    _In_ HWND WindowHandle
+    )
+{
+    if (!PhpThemeEnable)
+        return;
+
+    switch (PhpThemeColorMode)
+    {
+    case 0: // New colors
+        if (WindowsVersion >= WINDOWS_10_RS5)
+            RemoveProp(WindowHandle, L"UseImmersiveDarkModeColors");
+        break;
+    case 1: // Old colors
+        if (WindowsVersion >= WINDOWS_10_RS5)
+            SetProp(WindowHandle, L"UseImmersiveDarkModeColors", (HANDLE)TRUE);
+        break;
+    }
+}
+
 VOID PhInitializeThemeWindowHeader(
     _In_ HWND HeaderWindow
     )
