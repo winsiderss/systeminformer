@@ -151,9 +151,12 @@ VOID PvpAddPeEnclaveConfig(
         PIMAGE_LOAD_CONFIG_DIRECTORY32 imageConfig32 = ImageConfig;
         PIMAGE_ENCLAVE_CONFIG32 enclaveConfig;
 
-        enclaveConfig = PhMappedImageRvaToVa(
+        if (!RTL_CONTAINS_FIELD(imageConfig32, imageConfig32->Size, EnclaveConfigurationPointer))
+            return;
+
+        enclaveConfig = PhMappedImageVaToVa(
             &PvMappedImage,
-            PtrToUlong(PTR_SUB_OFFSET(imageConfig32->EnclaveConfigurationPointer, PvMappedImage.NtHeaders32->OptionalHeader.ImageBase)),
+            (ULONG)imageConfig32->EnclaveConfigurationPointer,
             NULL
             );
 
@@ -176,9 +179,12 @@ VOID PvpAddPeEnclaveConfig(
         PIMAGE_LOAD_CONFIG_DIRECTORY64 imageConfig64 = ImageConfig;
         PIMAGE_ENCLAVE_CONFIG64 enclaveConfig;
 
-        enclaveConfig = PhMappedImageRvaToVa(
+        if (!RTL_CONTAINS_FIELD(imageConfig64, imageConfig64->Size, EnclaveConfigurationPointer))
+            return;
+
+        enclaveConfig = PhMappedImageVaToVa(
             &PvMappedImage,
-            PtrToUlong(PTR_SUB_OFFSET(imageConfig64->EnclaveConfigurationPointer, PvMappedImage.NtHeaders->OptionalHeader.ImageBase)),
+            (ULONG)imageConfig64->EnclaveConfigurationPointer,
             NULL
             );
 
