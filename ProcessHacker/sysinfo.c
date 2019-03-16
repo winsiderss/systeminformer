@@ -464,6 +464,7 @@ VOID PhSipOnInitDialog(
     }
 
     PhRegisterWindowCallback(PhSipWindow, PH_PLUGIN_WINDOW_EVENT_TYPE_TOPMOST, NULL);
+    PhInitializeThemeWindowFrame(PhSipWindow);
 
     PhSipOnSize();
     PhSipOnUserMessage(SI_MSG_SYSINFO_UPDATE, 0, 0);
