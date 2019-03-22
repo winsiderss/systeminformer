@@ -1016,9 +1016,16 @@ typedef struct _THREAD_UMS_INFORMATION
     THREAD_UMS_INFORMATION_COMMAND Command;
     PRTL_UMS_COMPLETION_LIST CompletionList;
     PRTL_UMS_CONTEXT UmsContext;
-    ULONG Flags;
-    ULONG IsUmsSchedulerThread;
-    ULONG IsUmsWorkerThread;
+    union
+    {
+        ULONG Flags;
+        struct
+        {
+            ULONG IsUmsSchedulerThread : 1;
+            ULONG IsUmsWorkerThread : 1;
+            ULONG SpareBits : 30;
+        };
+    };
 } THREAD_UMS_INFORMATION, *PTHREAD_UMS_INFORMATION;
 
 // private
