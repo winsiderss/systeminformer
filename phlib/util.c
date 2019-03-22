@@ -455,7 +455,7 @@ INT PhShowMessage2(
     if (!message)
         return -1;
 
-    config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | ((hWnd && IsWindowVisible(hWnd)) ? TDF_POSITION_RELATIVE_TO_WINDOW : 0) | TDF_SIZE_TO_CONTENT;
+    config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | ((hWnd && IsWindowVisible(hWnd) && !IsMinimized(hWnd)) ? TDF_POSITION_RELATIVE_TO_WINDOW : 0);
     config.dwCommonButtons = Buttons;
     config.hwndParent = hWnd;
     config.pszWindowTitle = PhApplicationName;
@@ -628,7 +628,7 @@ BOOLEAN PhShowConfirmMessage(
 
     config.hwndParent = hWnd;
     config.hInstance = PhInstanceHandle;
-    config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | ((hWnd && IsWindowVisible(hWnd)) ? TDF_POSITION_RELATIVE_TO_WINDOW : 0);
+    config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | ((hWnd && IsWindowVisible(hWnd) && !IsMinimized(hWnd)) ? TDF_POSITION_RELATIVE_TO_WINDOW : 0);
     config.pszWindowTitle = PhApplicationName;
     config.pszMainIcon = Warning ? TD_WARNING_ICON : TD_INFORMATION_ICON;
     config.pszMainInstruction = PhaConcatStrings(3, L"Do you want to ", action->Buffer, L"?")->Buffer;
