@@ -520,7 +520,7 @@ BOOLEAN PhUiLockComputer(
     if (LockWorkStation())
         return TRUE;
     else
-        PhShowStatus(hWnd, L"Unable to lock the computer", 0, GetLastError());
+        PhShowStatus(hWnd, L"Unable to lock the computer.", 0, GetLastError());
 
     return FALSE;
 }
@@ -532,7 +532,7 @@ BOOLEAN PhUiLogoffComputer(
     if (ExitWindowsEx(EWX_LOGOFF, 0))
         return TRUE;
     else
-        PhShowStatus(hWnd, L"Unable to log off the computer", 0, GetLastError());
+        PhShowStatus(hWnd, L"Unable to log off the computer.", 0, GetLastError());
 
     return FALSE;
 }
@@ -551,7 +551,7 @@ BOOLEAN PhUiSleepComputer(
         )))
         return TRUE;
     else
-        PhShowStatus(hWnd, L"Unable to sleep the computer", status, 0);
+        PhShowStatus(hWnd, L"Unable to sleep the computer.", status, 0);
 
     return FALSE;
 }
@@ -570,7 +570,7 @@ BOOLEAN PhUiHibernateComputer(
         )))
         return TRUE;
     else
-        PhShowStatus(hWnd, L"Unable to hibernate the computer", status, 0);
+        PhShowStatus(hWnd, L"Unable to hibernate the computer.", status, 0);
 
     return FALSE;
 }
@@ -580,6 +580,13 @@ BOOLEAN PhUiRestartComputer(
     _In_ ULONG Flags
     )
 {
+    NTSTATUS status;
+    BOOLEAN forceShutdown;
+
+    // Taskmgr prior to Windows 8 included a feature to force shutdown via NT instead of CSRSS
+    // when holding the control key. (dmex)
+    forceShutdown = !!(GetKeyState(VK_CONTROL) < 0);
+
     if (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
         hWnd,
         L"restart",
@@ -588,10 +595,20 @@ BOOLEAN PhUiRestartComputer(
         FALSE
         ))
     {
-        if (ExitWindowsEx(EWX_REBOOT | Flags, 0))
-            return TRUE;
+        if (forceShutdown)
+        {
+            if (!NT_SUCCESS(status = NtShutdownSystem(ShutdownReboot)))
+            {
+                PhShowStatus(hWnd, L"Unable to restart the computer.", status, 0);
+            }
+        }
         else
-            PhShowStatus(hWnd, L"Unable to restart the computer", 0, GetLastError());
+        {
+            if (ExitWindowsEx(EWX_REBOOT | Flags, 0))
+                return TRUE;
+            else
+                PhShowStatus(hWnd, L"Unable to restart the computer.", 0, GetLastError());
+        }
     }
 
     return FALSE;
@@ -602,6 +619,13 @@ BOOLEAN PhUiShutdownComputer(
     _In_ ULONG Flags
     )
 {
+    NTSTATUS status;
+    BOOLEAN forceShutdown;
+
+    // Taskmgr prior to Windows 8 included a feature to force shutdown via NT instead of CSRSS
+    // when holding the control key. (dmex)
+    forceShutdown = !!(GetKeyState(VK_CONTROL) < 0);
+
     if (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
         hWnd,
         L"shut down",
@@ -610,17 +634,27 @@ BOOLEAN PhUiShutdownComputer(
         FALSE
         ))
     {
-        if (ExitWindowsEx(EWX_POWEROFF | Flags, 0))
+        if (forceShutdown)
         {
-            return TRUE;
-        }
-        else if (ExitWindowsEx(EWX_SHUTDOWN | Flags, 0))
-        {
-            return TRUE;
+            if (!NT_SUCCESS(status = NtShutdownSystem(ShutdownPowerOff)))
+            {
+                PhShowStatus(hWnd, L"Unable to shut down the computer.", status, 0);
+            }
         }
         else
         {
-            PhShowStatus(hWnd, L"Unable to shut down the computer.", 0, GetLastError());
+            if (ExitWindowsEx(EWX_POWEROFF | Flags, 0))
+            {
+                return TRUE;
+            }
+            else if (ExitWindowsEx(EWX_SHUTDOWN | Flags, 0))
+            {
+                return TRUE;
+            }
+            else
+            {
+                PhShowStatus(hWnd, L"Unable to shut down the computer.", 0, GetLastError());
+            }
         }
     }
 
@@ -637,7 +671,7 @@ BOOLEAN PhUiConnectSession(
     PPH_STRING oldSelectedChoice = NULL;
 
     // Try once with no password.
-    if (WinStationConnectW(NULL, SessionId, -1, L"", TRUE))
+    if (WinStationConnectW(NULL, SessionId, LOGONID_CURRENT, L"", TRUE))
         return TRUE;
 
     while (PhaChoiceDialog(
@@ -661,7 +695,7 @@ BOOLEAN PhUiConnectSession(
 
         oldSelectedChoice = selectedChoice;
 
-        if (WinStationConnectW(NULL, SessionId, -1, selectedChoice->Buffer, TRUE))
+        if (WinStationConnectW(NULL, SessionId, LOGONID_CURRENT, selectedChoice->Buffer, TRUE))
         {
             success = TRUE;
             break;
