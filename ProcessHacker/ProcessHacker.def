@@ -686,6 +686,7 @@ EXPORTS
 
 ; cache
     PhCreateCacheFile
+    PhClearCacheDirectory
     PhDeleteCacheFile
 
 ; appresolver

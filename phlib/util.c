@@ -5163,7 +5163,7 @@ PPH_STRING PhCreateCacheFile(
     _In_ PPH_STRING FileName
     )
 {
-    static PH_STRINGREF cacheDirectorySr = PH_STRINGREF_INIT(L"%TEMP%");
+    static PH_STRINGREF cacheDirectorySr = PH_STRINGREF_INIT(L"%APPDATA%\\Process Hacker\\Cache");
     PPH_STRING cacheDirectory;
     PPH_STRING cacheFilePath;
     PPH_STRING cacheFullFilePath = NULL;
@@ -5197,6 +5197,20 @@ PPH_STRING PhCreateCacheFile(
     PhDereferenceObject(cacheDirectory);
 
     return cacheFullFilePath;
+}
+
+VOID PhClearCacheDirectory(
+    VOID
+    )
+{
+    static PH_STRINGREF cacheDirectorySr = PH_STRINGREF_INIT(L"%APPDATA%\\Process Hacker\\Cache");
+    PPH_STRING cacheDirectory;
+
+    if (cacheDirectory = PhExpandEnvironmentStrings(&cacheDirectorySr))
+    {
+        PhDeleteDirectory(cacheDirectory);
+        PhDereferenceObject(cacheDirectory);
+    }
 }
 
 VOID PhDeleteCacheFile(
