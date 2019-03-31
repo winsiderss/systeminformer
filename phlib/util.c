@@ -2078,7 +2078,7 @@ NTSTATUS PhGetFullPathEx(
         if (filePart)
         {
             // The path points to a file.
-            *IndexOfFileName = PtrToUlong(PTR_SUB_OFFSET(filePart, fullPath->Buffer));
+            *IndexOfFileName = (ULONG)(filePart - fullPath->Buffer);
         }
         else
         {
