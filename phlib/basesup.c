@@ -4733,7 +4733,7 @@ VOID PhpResizeHashtable(
 
     for (i = 0; i < Hashtable->NextEntry; i++)
     {
-        if (entry->HashCode != -1)
+        if (entry->HashCode != ULONG_MAX)
         {
             ULONG index = PhpIndexFromHash(Hashtable, entry->HashCode);
 
@@ -4764,7 +4764,7 @@ FORCEINLINE PVOID PhpAddEntryHashtable(
     {
         ULONG i;
 
-        for (i = Hashtable->Buckets[index]; i != -1; i = entry->Next)
+        for (i = Hashtable->Buckets[index]; i != ULONG_MAX; i = entry->Next)
         {
             entry = PH_HASHTABLE_GET_ENTRY(Hashtable, i);
 
@@ -4779,7 +4779,7 @@ FORCEINLINE PVOID PhpAddEntryHashtable(
     }
 
     // Use a free entry if possible.
-    if (Hashtable->FreeEntry != -1)
+    if (Hashtable->FreeEntry != ULONG_MAX)
     {
         freeEntry = Hashtable->FreeEntry;
         entry = PH_HASHTABLE_GET_ENTRY(Hashtable, freeEntry);
@@ -4909,7 +4909,7 @@ BOOLEAN PhEnumHashtable(
 
         (*EnumerationKey)++;
 
-        if (entry->HashCode != -1)
+        if (entry->HashCode != ULONG_MAX)
         {
             *Entry = &entry->Body;
             return TRUE;
@@ -4944,7 +4944,7 @@ PVOID PhFindEntryHashtable(
     hashCode = PhpValidateHash(Hashtable->HashFunction(Entry));
     index = PhpIndexFromHash(Hashtable, hashCode);
 
-    for (i = Hashtable->Buckets[index]; i != -1; i = entry->Next)
+    for (i = Hashtable->Buckets[index]; i != ULONG_MAX; i = entry->Next)
     {
         entry = PH_HASHTABLE_GET_ENTRY(Hashtable, i);
 
@@ -4981,16 +4981,16 @@ BOOLEAN PhRemoveEntryHashtable(
 
     hashCode = PhpValidateHash(Hashtable->HashFunction(Entry));
     index = PhpIndexFromHash(Hashtable, hashCode);
-    previousIndex = -1;
+    previousIndex = ULONG_MAX;
 
-    for (i = Hashtable->Buckets[index]; i != -1; i = entry->Next)
+    for (i = Hashtable->Buckets[index]; i != ULONG_MAX; i = entry->Next)
     {
         entry = PH_HASHTABLE_GET_ENTRY(Hashtable, i);
 
         if (entry->HashCode == hashCode && Hashtable->EqualFunction(&entry->Body, Entry))
         {
             // Unlink the entry from the bucket.
-            if (previousIndex == -1)
+            if (previousIndex == ULONG_MAX)
             {
                 Hashtable->Buckets[index] = entry->Next;
             }
@@ -4999,7 +4999,7 @@ BOOLEAN PhRemoveEntryHashtable(
                 PH_HASHTABLE_GET_ENTRY(Hashtable, previousIndex)->Next = entry->Next;
             }
 
-            entry->HashCode = -1; // indicates the entry is not being used
+            entry->HashCode = ULONG_MAX; // indicates the entry is not being used
             entry->Next = Hashtable->FreeEntry;
             Hashtable->FreeEntry = i;
 

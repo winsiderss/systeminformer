@@ -1519,7 +1519,7 @@ PPH_STRING PhFormatSize(
     // PhFormat handles this better than the old method.
 
     format.Type = SizeFormatType | FormatUseRadix;
-    format.Radix = (UCHAR)(MaxSizeUnit != -1 ? MaxSizeUnit : PhMaxSizeUnit);
+    format.Radix = (UCHAR)(MaxSizeUnit != ULONG_MAX ? MaxSizeUnit : PhMaxSizeUnit);
     format.u.Size = Size;
 
     return PhFormat(&format, 1, 0);
@@ -2078,12 +2078,12 @@ NTSTATUS PhGetFullPathEx(
         if (filePart)
         {
             // The path points to a file.
-            *IndexOfFileName = (ULONG)(filePart - fullPath->Buffer);
+            *IndexOfFileName = PtrToUlong(PTR_SUB_OFFSET(filePart, fullPath->Buffer));
         }
         else
         {
             // The path points to a directory.
-            *IndexOfFileName = -1;
+            *IndexOfFileName = ULONG_MAX;
         }
     }
 
@@ -5167,7 +5167,7 @@ PPH_STRING PhCreateCacheFile(
     PPH_STRING cacheDirectory;
     PPH_STRING cacheFilePath;
     PPH_STRING cacheFullFilePath = NULL;
-    ULONG indexOfFileName = -1;
+    ULONG indexOfFileName = ULONG_MAX;
     WCHAR alphastring[16] = L"";
 
     cacheDirectory = PhExpandEnvironmentStrings(&cacheDirectorySr);
@@ -5186,7 +5186,7 @@ PPH_STRING PhCreateCacheFile(
     {
         PPH_STRING directoryPath;
 
-        if (indexOfFileName != -1 && (directoryPath = PhSubstring(cacheFullFilePath, 0, indexOfFileName)))
+        if (indexOfFileName != ULONG_MAX && (directoryPath = PhSubstring(cacheFullFilePath, 0, indexOfFileName)))
         {
             PhCreateDirectory(directoryPath);
             PhDereferenceObject(directoryPath);
@@ -5205,7 +5205,7 @@ VOID PhDeleteCacheFile(
 {
     PPH_STRING cacheDirectory;
     PPH_STRING cacheFullFilePath;
-    ULONG indexOfFileName = -1;
+    ULONG indexOfFileName = ULONG_MAX;
 
     if (RtlDoesFileExists_U(PhGetString(FileName)))
     {
@@ -5214,7 +5214,7 @@ VOID PhDeleteCacheFile(
 
     if (cacheFullFilePath = PhGetFullPath(PhGetString(FileName), &indexOfFileName))
     {
-        if (indexOfFileName != -1 && (cacheDirectory = PhSubstring(cacheFullFilePath, 0, indexOfFileName)))
+        if (indexOfFileName != ULONG_MAX && (cacheDirectory = PhSubstring(cacheFullFilePath, 0, indexOfFileName)))
         {
             PhDeleteDirectory(cacheDirectory);
             PhDereferenceObject(cacheDirectory);

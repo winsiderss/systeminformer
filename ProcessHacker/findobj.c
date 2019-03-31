@@ -726,7 +726,10 @@ VOID PhpFindObjectAddResultEntries(
             PhPrintPointer(objectNode->ObjectString, searchResult->Object);
         }
 
-        PhDereferenceObject(processItem);
+        if (processItem)
+        {
+            PhDereferenceObject(processItem);
+        }
     }
 
     Context->SearchResultsAddIndex = i;
