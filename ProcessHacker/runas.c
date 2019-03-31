@@ -273,7 +273,7 @@ BOOLEAN PhpInitializeNetApi(VOID)
             NetApiBufferFree_I = PhGetDllBaseProcedureAddress(netapiModuleHandle, "NetApiBufferFree", 0);
         }
 
-        if (!NetUserEnum_I && !NetApiBufferFree_I)
+        if (netapiModuleHandle && !NetUserEnum_I && !NetApiBufferFree_I)
         {
             FreeLibrary(netapiModuleHandle);
             netapiModuleHandle = NULL;
@@ -414,7 +414,8 @@ VOID PhpFreeProgramsComboBox(
 {
     ULONG total;
 
-    total = ComboBox_GetCount(ComboBoxHandle);
+    if ((total = ComboBox_GetCount(ComboBoxHandle)) == CB_ERR)
+        return;
 
     for (ULONG i = 0; i < total; i++)
     {
@@ -428,7 +429,8 @@ static VOID PhpFreeAccountsComboBox(
 {
     ULONG total;
 
-    total = ComboBox_GetCount(ComboBoxHandle);
+    if ((total = ComboBox_GetCount(ComboBoxHandle)) == CB_ERR)
+        return;
 
     for (ULONG i = 0; i < total; i++)
     {
@@ -573,7 +575,8 @@ static VOID PhpFreeSessionsComboBox(
     ULONG total;
     ULONG i;
 
-    total = ComboBox_GetCount(ComboBoxHandle);
+    if ((total = ComboBox_GetCount(ComboBoxHandle)) == CB_ERR)
+        return;
 
     for (i = 0; i < total; i++)
     {
@@ -701,7 +704,8 @@ static VOID PhpFreeDesktopsComboBox(
     ULONG total;
     ULONG i;
 
-    total = ComboBox_GetCount(ComboBoxHandle);
+    if ((total = ComboBox_GetCount(ComboBoxHandle)) == CB_ERR)
+        return;
 
     for (i = 0; i < total; i++)
     {
@@ -1512,8 +1516,8 @@ NTSTATUS PhExecuteRunAsCommand3(
 
 static VOID PhpSplitUserName(
     _In_ PWSTR UserName,
-    _Out_ PPH_STRING *DomainPart,
-    _Out_ PPH_STRING *UserPart
+    _Out_opt_ PPH_STRING *DomainPart,
+    _Out_opt_ PPH_STRING *UserPart
     )
 {
     PH_STRINGREF userName;

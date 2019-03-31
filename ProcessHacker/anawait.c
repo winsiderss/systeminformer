@@ -999,7 +999,7 @@ static PPH_STRING PhpaGetSendMessageReceiver(
     return PhaFormatString(L"Window 0x%Ix (%s): %s \"%s\"", windowHandle, clientIdName->Buffer, windowClass, PhGetStringOrEmpty(windowText));
 }
 
-static PPH_STRING PhpaGetAlpcInformation(
+PPH_STRING PhpaGetAlpcInformation(
     _In_ HANDLE ThreadId
     )
 {
