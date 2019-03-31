@@ -1237,6 +1237,24 @@ PhGetLoaderEntryImageSection(
     );
 
 PHLIBAPI
+NTSTATUS
+NTAPI
+PhLoaderEntryImageRvaToSection(
+    _In_ PIMAGE_NT_HEADERS ImageNtHeader,
+    _In_ ULONG Rva,
+    _Out_ PIMAGE_SECTION_HEADER *ImageSection,
+    _Out_ SIZE_T *ImageSectionLength
+    );
+
+PHLIBAPI
+PVOID
+NTAPI
+PhLoaderEntryImageRvaToVa(
+    _In_ PVOID BaseAddress,
+    _In_ ULONG Rva
+    );
+
+PHLIBAPI
 PVOID
 NTAPI
 PhGetLoaderEntryImageExportFunction(

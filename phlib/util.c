@@ -5290,6 +5290,49 @@ HANDLE PhGetNamespaceHandle(
     return directory;
 }
 
+// rev from LdrAccessResource (dmex)
+NTSTATUS PhAccessResource(
+    _In_ PVOID DllBase,
+    _In_ PIMAGE_RESOURCE_DATA_ENTRY ResourceDataEntry,
+    _Out_opt_ PVOID *ResourceBuffer,
+    _Out_opt_ ULONG *ResourceLength
+    )
+{
+    PVOID baseAddress;
+
+    if (LDR_IS_DATAFILE(DllBase))
+        baseAddress = (PVOID)((ULONG_PTR)DllBase & ~1);
+    else if (LDR_IS_IMAGEMAPPING(DllBase))
+        baseAddress = (PVOID)((ULONG_PTR)DllBase & ~2);
+    else
+        baseAddress = DllBase;
+
+    if (ResourceBuffer)
+    {
+        if (LDR_IS_DATAFILE(DllBase))
+        {
+            *ResourceBuffer = PhLoaderEntryImageRvaToVa(
+                baseAddress,
+                ResourceDataEntry->OffsetToData
+                );
+        }
+        else
+        {
+            *ResourceBuffer = PTR_ADD_OFFSET(
+                baseAddress,
+                ResourceDataEntry->OffsetToData
+                );
+        }
+    }
+
+    if (ResourceLength)
+    {
+        *ResourceLength = ResourceDataEntry->Size;
+    }
+
+    return STATUS_SUCCESS;
+}
+
 BOOLEAN PhLoadResource(
     _In_ PVOID DllBase,
     _In_ PCWSTR Name,
@@ -5310,7 +5353,7 @@ BOOLEAN PhLoadResource(
     if (!NT_SUCCESS(LdrFindResource_U(DllBase, &resourceInfo, RESOURCE_DATA_LEVEL, &resourceData)))
         return FALSE;
 
-    if (!NT_SUCCESS(LdrAccessResource(DllBase, resourceData, &resourceBuffer, &resourceLength)))
+    if (!NT_SUCCESS(PhAccessResource(DllBase, resourceData, &resourceBuffer, &resourceLength)))
         return FALSE;
 
     if (ResourceLength)
@@ -5738,6 +5781,77 @@ NTSTATUS PhGetLoaderEntryImageSection(
     }
 
     return STATUS_SECTION_NOT_IMAGE;
+}
+
+NTSTATUS PhLoaderEntryImageRvaToSection(
+    _In_ PIMAGE_NT_HEADERS ImageNtHeader,
+    _In_ ULONG Rva,
+    _Out_ PIMAGE_SECTION_HEADER *ImageSection,
+    _Out_ SIZE_T *ImageSectionLength
+    )
+{
+    SIZE_T directorySectionLength = 0;
+    PIMAGE_SECTION_HEADER sectionHeader;
+    PIMAGE_SECTION_HEADER directorySectionHeader = NULL;
+    ULONG i;
+
+    for (i = 0; i < ImageNtHeader->FileHeader.NumberOfSections; i++)
+    {
+        sectionHeader = PTR_ADD_OFFSET(IMAGE_FIRST_SECTION(ImageNtHeader), sizeof(IMAGE_SECTION_HEADER) * i);
+
+        if (
+            ((ULONG_PTR)Rva >= (ULONG_PTR)sectionHeader->VirtualAddress) &&
+            ((ULONG_PTR)Rva < (ULONG_PTR)PTR_ADD_OFFSET(sectionHeader->VirtualAddress, sectionHeader->SizeOfRawData))
+            )
+        {
+            directorySectionLength = sectionHeader->Misc.VirtualSize;
+            directorySectionHeader = sectionHeader;
+            break;
+        }
+    }
+
+    if (directorySectionHeader && directorySectionLength)
+    {
+        *ImageSection = directorySectionHeader;
+        *ImageSectionLength = directorySectionLength;
+        return STATUS_SUCCESS;
+    }
+
+    return STATUS_SECTION_NOT_IMAGE;
+}
+
+PVOID PhLoaderEntryImageRvaToVa(
+    _In_ PVOID BaseAddress,
+    _In_ ULONG Rva
+    )
+{
+    NTSTATUS status;
+    SIZE_T imageSectionSize;
+    PIMAGE_SECTION_HEADER imageSection;
+    PIMAGE_NT_HEADERS imageNtHeader;
+
+    status = PhGetLoaderEntryImageNtHeaders(
+        BaseAddress,
+        &imageNtHeader
+        );
+
+    if (!NT_SUCCESS(status))
+        return NULL;
+
+    status = PhLoaderEntryImageRvaToSection(
+        imageNtHeader,
+        Rva,
+        &imageSection,
+        &imageSectionSize
+        );
+
+    if (!NT_SUCCESS(status))
+        return NULL;
+
+    return PTR_ADD_OFFSET(BaseAddress, PTR_ADD_OFFSET(
+        PTR_SUB_OFFSET(Rva, imageSection->VirtualAddress),
+        imageSection->PointerToRawData
+        ));
 }
 
 PVOID PhGetLoaderEntryImageExportFunction(
