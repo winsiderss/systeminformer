@@ -1123,6 +1123,13 @@ PhCreateCacheFile(
 PHLIBAPI
 VOID
 NTAPI
+PhClearCacheDirectory(
+    VOID
+    );
+
+PHLIBAPI
+VOID
+NTAPI
 PhDeleteCacheFile(
     _In_ PPH_STRING FileName
     );

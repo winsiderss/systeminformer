@@ -444,6 +444,8 @@ NTSTATUS UpdateCheckThread(
 
     PhInitializeAutoPool(&autoPool);
 
+    PhClearCacheDirectory(); // HACK
+
     // Check if we have cached update data
     if (!context->HaveData)
     {
