@@ -356,6 +356,20 @@ NTSTATUS PhOpenProcessToken(
     return status;
 }
 
+/** Limited API for untrusted/external code. */
+NTSTATUS PhOpenProcessTokenPublic(
+    _In_ HANDLE ProcessHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _Out_ PHANDLE TokenHandle
+    )
+{
+    return NtOpenProcessToken(
+        ProcessHandle,
+        DesiredAccess,
+        TokenHandle
+        );
+}
+
 NTSTATUS PhGetObjectSecurity(
     _In_ HANDLE Handle,
     _In_ SECURITY_INFORMATION SecurityInformation,

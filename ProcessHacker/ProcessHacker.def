@@ -298,10 +298,12 @@ EXPORTS
     PhOpenProcess = PhOpenProcessPublic
     PhOpenThread = PhOpenThreadPublic
     PhOpenThreadProcess
+    PhOpenProcessToken = PhOpenProcessTokenPublic
     PhPeekNamedPipe
     PhQueryFullAttributesFileWin32
     PhQueryKey
     PhQueryValueKey
+    PhQueryTokenVariableSize
     PhResolveDevicePrefix
     PhSetFileSize
     PhSetObjectSecurity
