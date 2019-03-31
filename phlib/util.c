@@ -5321,14 +5321,24 @@ NTSTATUS PhAccessResource(
     else
         baseAddress = DllBase;
 
+    if (ResourceLength)
+    {
+        *ResourceLength = ResourceDataEntry->Size;
+    }
+
     if (ResourceBuffer)
     {
         if (LDR_IS_DATAFILE(DllBase))
         {
-            *ResourceBuffer = PhLoaderEntryImageRvaToVa(
+            NTSTATUS status;
+
+            status = PhLoaderEntryImageRvaToVa(
                 baseAddress,
-                ResourceDataEntry->OffsetToData
+                ResourceDataEntry->OffsetToData,
+                ResourceBuffer
                 );
+
+            return status;
         }
         else
         {
@@ -5336,12 +5346,9 @@ NTSTATUS PhAccessResource(
                 baseAddress,
                 ResourceDataEntry->OffsetToData
                 );
-        }
-    }
 
-    if (ResourceLength)
-    {
-        *ResourceLength = ResourceDataEntry->Size;
+            return STATUS_SUCCESS;
+        }
     }
 
     return STATUS_SUCCESS;
@@ -5834,9 +5841,10 @@ NTSTATUS PhLoaderEntryImageRvaToSection(
     return STATUS_SECTION_NOT_IMAGE;
 }
 
-PVOID PhLoaderEntryImageRvaToVa(
+NTSTATUS PhLoaderEntryImageRvaToVa(
     _In_ PVOID BaseAddress,
-    _In_ ULONG Rva
+    _In_ ULONG Rva,
+    _Out_ PVOID *Va
     )
 {
     NTSTATUS status;
@@ -5850,7 +5858,7 @@ PVOID PhLoaderEntryImageRvaToVa(
         );
 
     if (!NT_SUCCESS(status))
-        return NULL;
+        return status;
 
     status = PhLoaderEntryImageRvaToSection(
         imageNtHeader,
@@ -5860,12 +5868,14 @@ PVOID PhLoaderEntryImageRvaToVa(
         );
 
     if (!NT_SUCCESS(status))
-        return NULL;
+        return status;
 
-    return PTR_ADD_OFFSET(BaseAddress, PTR_ADD_OFFSET(
+    *Va = PTR_ADD_OFFSET(BaseAddress, PTR_ADD_OFFSET(
         PTR_SUB_OFFSET(Rva, imageSection->VirtualAddress),
         imageSection->PointerToRawData
         ));
+
+    return STATUS_SUCCESS;
 }
 
 PVOID PhGetLoaderEntryImageExportFunction(
@@ -6043,28 +6053,26 @@ static NTSTATUS PhpFixupLoaderEntryImageImports(
 
                 if (!procedureAddress)
                 {
-                    if (PhGetIntegerSetting(L"ShowPluginLoadErrors")) // HACK abstraction violation (dmex)
-                    {
-                        PPH_STRING fileName;
-                        
-                        if (NT_SUCCESS(PhGetProcessMappedFileName(NtCurrentProcess(), BaseAddress, &fileName)))
-                        {
-                            PhMoveReference(&fileName, PhGetFileName(fileName));
-                            PhMoveReference(&fileName, PhGetBaseName(fileName));
-                        
-                            PhShowError(
-                                NULL, 
-                                L"Unable to load plugin.\r\nName: %s\r\nOrdinal: %u\r\nModule: %hs", 
-                                PhGetStringOrEmpty(fileName), 
-                                procedureOrdinal,
-                                importName
-                                );
-                        
-                            PhDereferenceObject(fileName);
-                        }
-                    }
+#ifdef DEBUG
+                    PPH_STRING fileName;
 
-                    status = STATUS_INVALID_PARAMETER;STATUS_ORDINAL_NOT_FOUND;
+                    if (NT_SUCCESS(PhGetProcessMappedFileName(NtCurrentProcess(), BaseAddress, &fileName)))
+                    {
+                        PhMoveReference(&fileName, PhGetFileName(fileName));
+                        PhMoveReference(&fileName, PhGetBaseName(fileName));
+
+                        PhShowError(
+                            NULL,
+                            L"Unable to load plugin.\r\nName: %s\r\nOrdinal: %u\r\nModule: %hs",
+                            PhGetStringOrEmpty(fileName),
+                            procedureOrdinal,
+                            importName
+                            );
+
+                        PhDereferenceObject(fileName);
+                    }
+#endif
+                    status = STATUS_ORDINAL_NOT_FOUND;
                     goto CleanupExit;
                 }
 
@@ -6080,27 +6088,25 @@ static NTSTATUS PhpFixupLoaderEntryImageImports(
 
                 if (!procedureAddress)
                 {
-                    if (PhGetIntegerSetting(L"ShowPluginLoadErrors")) // HACK abstraction violation (dmex)
-                    {
-                        PPH_STRING fileName;
-                        
-                        if (NT_SUCCESS(PhGetProcessMappedFileName(NtCurrentProcess(), BaseAddress, &fileName)))
-                        {
-                            PhMoveReference(&fileName, PhGetFileName(fileName));
-                            PhMoveReference(&fileName, PhGetBaseName(fileName));
-                        
-                            PhShowError(
-                                NULL,
-                                L"Unable to load plugin.\r\nName: %s\r\nFunction: %hs\r\nModule: %hs",
-                                PhGetStringOrEmpty(fileName),
-                                importByName->Name,
-                                importName
-                                );
-                        
-                            PhDereferenceObject(fileName);
-                        }
-                    }
+#ifdef DEBUG
+                    PPH_STRING fileName;
 
+                    if (NT_SUCCESS(PhGetProcessMappedFileName(NtCurrentProcess(), BaseAddress, &fileName)))
+                    {
+                        PhMoveReference(&fileName, PhGetFileName(fileName));
+                        PhMoveReference(&fileName, PhGetBaseName(fileName));
+
+                        PhShowError(
+                            NULL,
+                            L"Unable to load plugin.\r\nName: %s\r\nFunction: %hs\r\nModule: %hs",
+                            PhGetStringOrEmpty(fileName),
+                            importByName->Name,
+                            importName
+                            );
+
+                        PhDereferenceObject(fileName);
+                    }
+#endif
                     status = STATUS_PROCEDURE_NOT_FOUND;
                     goto CleanupExit;
                 }

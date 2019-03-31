@@ -1254,11 +1254,12 @@ PhLoaderEntryImageRvaToSection(
     );
 
 PHLIBAPI
-PVOID
+NTSTATUS
 NTAPI
 PhLoaderEntryImageRvaToVa(
     _In_ PVOID BaseAddress,
-    _In_ ULONG Rva
+    _In_ ULONG Rva,
+    _Out_ PVOID *Va
     );
 
 PHLIBAPI
