@@ -812,7 +812,7 @@ BOOLEAN PvpLoadDbgHelp(
     else
     {
         // Set the default path (C:\\Symbols is the default hard-coded path for livekd). 
-        symbolSearchPath = PhCreateString(L"SRV*C:\\Symbols*http://msdl.microsoft.com/download/symbols");
+        symbolSearchPath = PhCreateString(L"SRV*C:\\Symbols*https://msdl.microsoft.com/download/symbols");
     }
 
     PhSetSearchPathSymbolProvider(symbolProvider, symbolSearchPath->Buffer);
