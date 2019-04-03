@@ -3528,7 +3528,7 @@ VOID PhShellOpenKey(
         return;
 
     RtlInitUnicodeString(&valueName, L"LastKey");
-    lastKey = PhExpandKeyName(KeyName, TRUE);
+    lastKey = PhExpandKeyName(KeyName, FALSE);
     NtSetValueKey(regeditKeyHandle, &valueName, 0, REG_SZ, lastKey->Buffer, (ULONG)lastKey->Length + sizeof(UNICODE_NULL));
     PhDereferenceObject(lastKey);
 
