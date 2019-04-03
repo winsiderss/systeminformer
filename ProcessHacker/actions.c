@@ -431,7 +431,7 @@ BOOLEAN PhUiConnectToPhSvcEx(
     {
         PhAcquireQueuedLockExclusive(&PhSvcStartLock);
 
-        if (PhSvcReferenceCount == 0)
+        if (_InterlockedExchange(PhSvcReferenceCount, 0) == 0)
         {
             started = FALSE;
             PhpGetPhSvcPortName(Mode, &portName);

@@ -534,6 +534,9 @@ FORCEINLINE PLARGE_INTEGER PhTimeoutFromMilliseconds(
     return Timeout;
 }
 
+#define PhTimeoutFromMillisecondsEx(Milliseconds) \
+    &(LARGE_INTEGER) { -(LONGLONG)UInt32x32To64((Milliseconds), PH_TIMEOUT_MS) }
+
 FORCEINLINE NTSTATUS PhGetLastWin32ErrorAsNtStatus(
     VOID
     )
