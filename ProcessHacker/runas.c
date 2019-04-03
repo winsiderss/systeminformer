@@ -1612,11 +1612,11 @@ NTSTATUS PhRunAsServiceStart(
         &tokenHandle
         )))
     {
-        PhSetTokenPrivilege(tokenHandle, L"SeAssignPrimaryTokenPrivilege", NULL, SE_PRIVILEGE_ENABLED);
-        PhSetTokenPrivilege(tokenHandle, L"SeBackupPrivilege", NULL, SE_PRIVILEGE_ENABLED);
-        PhSetTokenPrivilege(tokenHandle, L"SeImpersonatePrivilege", NULL, SE_PRIVILEGE_ENABLED);
-        PhSetTokenPrivilege(tokenHandle, L"SeIncreaseQuotaPrivilege", NULL, SE_PRIVILEGE_ENABLED);
-        PhSetTokenPrivilege(tokenHandle, L"SeRestorePrivilege", NULL, SE_PRIVILEGE_ENABLED);
+        PhSetTokenPrivilege2(tokenHandle, SE_ASSIGNPRIMARYTOKEN_PRIVILEGE, SE_PRIVILEGE_ENABLED);
+        PhSetTokenPrivilege2(tokenHandle, SE_INCREASE_QUOTA_PRIVILEGE, SE_PRIVILEGE_ENABLED);
+        PhSetTokenPrivilege2(tokenHandle, SE_BACKUP_PRIVILEGE, SE_PRIVILEGE_ENABLED);
+        PhSetTokenPrivilege2(tokenHandle, SE_RESTORE_PRIVILEGE, SE_PRIVILEGE_ENABLED);
+        PhSetTokenPrivilege2(tokenHandle, SE_IMPERSONATE_PRIVILEGE, SE_PRIVILEGE_ENABLED);
         NtClose(tokenHandle);
     }
 
