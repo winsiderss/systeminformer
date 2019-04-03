@@ -44,6 +44,7 @@ typedef enum _PHP_HANDLE_GENERAL_CATEGORY
     PH_HANDLE_GENERAL_CATEGORY_SECTION,
     PH_HANDLE_GENERAL_CATEGORY_MUTANT,
     PH_HANDLE_GENERAL_CATEGORY_PROCESS,
+    PH_HANDLE_GENERAL_CATEGORY_THREAD,
 
     PH_HANDLE_GENERAL_CATEGORY_MAXIMUM
 } PHP_HANDLE_GENERAL_CATEGORY;
@@ -81,6 +82,8 @@ typedef enum _PHP_HANDLE_GENERAL_INDEX
     PH_HANDLE_GENERAL_INDEX_PROCESSCREATETIME,
     PH_HANDLE_GENERAL_INDEX_PROCESSEXITTIME,
     PH_HANDLE_GENERAL_INDEX_PROCESSEXITCODE,
+
+    PH_HANDLE_GENERAL_INDEX_THREADEXITCODE,
 
     PH_HANDLE_GENERAL_INDEX_MAXIMUM
 } PHP_PROCESS_STATISTICS_INDEX;
@@ -496,6 +499,18 @@ VOID PhpUpdateHandleGeneralListViewGroups(
             Context->ListViewHandle,
             PH_HANDLE_GENERAL_CATEGORY_PROCESS,
             PH_HANDLE_GENERAL_INDEX_PROCESSEXITCODE,
+            L"Exit status",
+            NULL
+            );
+    }
+    else if (PhEqualStringRef2(&Context->HandleItem->TypeName->sr, L"Thread", TRUE))
+    {
+        PhAddListViewGroup(Context->ListViewHandle, PH_HANDLE_GENERAL_CATEGORY_THREAD, L"Thread information");
+
+        Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_THREADEXITCODE] = PhAddListViewGroupItem(
+            Context->ListViewHandle,
+            PH_HANDLE_GENERAL_CATEGORY_THREAD,
+            PH_HANDLE_GENERAL_INDEX_THREADEXITCODE,
             L"Exit status",
             NULL
             );
@@ -1036,6 +1051,77 @@ VOID PhpUpdateHandleGeneral(
 
                 PhDereferenceObject(exitcode);
                 PhDereferenceObject(status);
+            }
+
+            NtClose(dupHandle);
+        }
+    }
+    else if (PhEqualString2(Context->HandleItem->TypeName, L"Thread", TRUE))
+    {
+        NTSTATUS status;
+        HANDLE processHandle;
+        HANDLE dupHandle;
+
+        if (NT_SUCCESS(status = PhOpenProcess(
+            &processHandle,
+            PROCESS_DUP_HANDLE,
+            Context->ProcessId
+            )))
+        {
+            status = NtDuplicateObject(
+                processHandle,
+                Context->HandleItem->Handle,
+                NtCurrentProcess(),
+                &dupHandle,
+                THREAD_QUERY_LIMITED_INFORMATION | SYNCHRONIZE,
+                0,
+                0
+                );
+
+            NtClose(processHandle);
+        }
+
+        if (NT_SUCCESS(status))
+        {
+            LARGE_INTEGER timeout;
+
+            timeout.QuadPart = 0;
+
+            if (NtWaitForSingleObject(dupHandle, FALSE, &timeout) == STATUS_TIMEOUT)
+            {
+                PhSetListViewSubItem(
+                    Context->ListViewHandle,
+                    Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_THREADEXITCODE],
+                    1,
+                    L"Still active"
+                    );
+            }
+            else
+            {
+                THREAD_BASIC_INFORMATION basicInfo;
+
+                if (NT_SUCCESS(PhGetThreadBasicInformation(dupHandle, &basicInfo)))
+                {
+                    PPH_STRING status;
+                    PPH_STRING exitcode;
+
+                    status = PhGetStatusMessage(basicInfo.ExitStatus, 0);
+                    exitcode = PhFormatString(
+                        L"0x%x (%s)",
+                        basicInfo.ExitStatus,
+                        status->Buffer
+                        );
+
+                    PhSetListViewSubItem(
+                        Context->ListViewHandle,
+                        Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_THREADEXITCODE],
+                        1,
+                        PhGetStringOrEmpty(exitcode)
+                        );
+
+                    PhDereferenceObject(exitcode);
+                    PhDereferenceObject(status);
+                }
             }
 
             NtClose(dupHandle);

@@ -567,8 +567,19 @@ _Callback_ PPH_STRING PhStdGetClientIdName(
     {
         if (processInfo)
         {
+            PSYSTEM_THREAD_INFORMATION threadInfo = NULL;
+
+            for (ULONG i = 0; i < processInfo->NumberOfThreads; i++)
+            {
+                if (processInfo->Threads[i].ClientId.UniqueThread == ClientId->UniqueThread)
+                {
+                    threadInfo = &processInfo->Threads[i];
+                    break;
+                }
+            }
+
             name = PhFormatString(
-                L"%.*s (%lu): %lu",
+                threadInfo ? L"%.*s (%lu): %lu" : L"%.*s (%lu): non-existent thread %lu",
                 processInfo->ImageName.Length / sizeof(WCHAR),
                 processInfo->ImageName.Buffer,
                 HandleToUlong(ClientId->UniqueProcess),

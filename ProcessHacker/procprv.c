@@ -339,10 +339,27 @@ PPH_STRING PhGetClientIdNameEx(
     {
         if (ProcessName)
         {
+            HANDLE hThread;
+            BOOLEAN threadTerminated = FALSE;
+
+            if (NT_SUCCESS(PhOpenThread(&hThread, SYNCHRONIZE, ClientId->UniqueThread)))
+            {
+                LARGE_INTEGER timeout;
+
+                timeout.QuadPart = 0;
+
+                if (NtWaitForSingleObject(hThread, FALSE, &timeout) == STATUS_WAIT_0)
+                {
+                    threadTerminated = TRUE;
+                }
+
+                NtClose(hThread);
+            }
+
             PhInitFormatSR(&format[0], ProcessName->sr);
             PhInitFormatS(&format[1], L" (");
             PhInitFormatIU(&format[2], (ULONG_PTR)ClientId->UniqueProcess);
-            PhInitFormatS(&format[3], L"): ");
+            PhInitFormatS(&format[3], threadTerminated ? L"): non-existent thread ": L"): ");
             PhInitFormatIU(&format[4], (ULONG_PTR)ClientId->UniqueThread);
 
             name = PhFormat(format, 5, ProcessName->Length + 16 * sizeof(WCHAR));
