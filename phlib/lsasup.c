@@ -270,6 +270,127 @@ NTSTATUS PhLookupSid(
 }
 
 /**
+ * Converts an array of SIDs to a human-readable form.
+ *
+ * \param Count The size of the array.
+ * \param Sids An array of SIDs to query.
+ * \param FullNames A variable which receives a pointer to an array of strings in the following format:
+ * domain\\user. If not applicable to a particular SID, the function returns its SDDL representation.
+ * You must free each item using PhDereferenceObject(), and then free the array by calling PhFree().
+ */
+VOID PhLookupSids(
+    _In_ ULONG Count,
+    _In_ PSID *Sids,
+    _Out_ PPH_STRING **FullNames
+    )
+{
+    NTSTATUS status;
+    PLSA_REFERENCED_DOMAIN_LIST referencedDomains = NULL;
+    PLSA_TRANSLATED_NAME names = NULL;
+    PPH_STRING *translatedNames;
+
+    translatedNames = PhAllocateZero(sizeof(PPH_STRING) * Count);
+
+    status = LsaLookupSids(
+        PhGetLookupPolicyHandle(),
+        Count,
+        Sids,
+        &referencedDomains,
+        &names
+        );
+
+    if (status == STATUS_NONE_MAPPED)
+    {
+        // Even without mapping names it converts most of them to SDDL representation
+        status = STATUS_SOME_NOT_MAPPED;
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        PPH_STRING userName;
+        PPH_STRING domainName;
+
+        for (ULONG i = 0; i < Count; i++)
+        {
+            userName = NULL;
+            domainName = NULL;
+
+            // Reference user if present
+            if (names[i].Name.Length > 0)
+            {
+                userName = PhCreateStringFromUnicodeString(&names[i].Name);
+            }
+
+            // Reference domain if present
+            if (names[i].DomainIndex >= 0)
+            {
+                PLSA_TRUST_INFORMATION trustInfo;
+
+                trustInfo = &referencedDomains->Domains[names[i].DomainIndex];
+
+                if (trustInfo->Name.Length > 0)
+                {
+                    domainName = PhCreateStringFromUnicodeString(&trustInfo->Name);
+                }
+            }
+
+            // Construct the name
+            if (names[i].Use != SidTypeInvalid && names[i].Use != SidTypeUnknown)
+            {
+                if (domainName && userName)
+                {
+                    translatedNames[i] = PhConcatStrings(
+                        3,
+                        domainName->Buffer,
+                        L"\\",
+                        userName->Buffer
+                        );
+                }
+                else if (domainName)
+                {
+                    translatedNames[i] = PhDuplicateString(domainName);
+                }
+                else if (userName)
+                {
+                    translatedNames[i] = PhDuplicateString(userName);
+                }
+            }
+            else
+            {
+                if (PhStartsWithString2(userName, L"S-1-", TRUE))
+                {
+                    translatedNames[i] = PhDuplicateString(userName);
+                }
+            }
+
+            if (userName)
+            {
+                PhDereferenceObject(userName);
+            }
+
+            if (domainName)
+            {
+                PhDereferenceObject(domainName);
+            }
+        }
+
+        LsaFreeMemory(referencedDomains);
+        LsaFreeMemory(names);
+    }
+
+    for (ULONG i = 0; i < Count; i++)
+    {
+        // Make sure everything is converted at least to SDDL
+        if (!translatedNames[i])
+        {
+            translatedNames[i] = PhSidToStringSid(Sids[i]);
+        }
+    }
+
+    *FullNames = translatedNames;
+}
+
+/**
  * Gets information about a name.
  *
  * \param Name A name to query.
