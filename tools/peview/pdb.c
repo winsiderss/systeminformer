@@ -2415,7 +2415,7 @@ NTSTATUS PeDumpFileSymbols(
     if (!SymInitializeW_I(NtCurrentProcess(), NULL, FALSE))
         return 1;
 
-    if (!SymSetSearchPathW_I(NtCurrentProcess(), L"SRV*C:\\symbols*http://msdl.microsoft.com/download/symbols"))
+    if (!SymSetSearchPathW_I(NtCurrentProcess(), L"SRV*C:\\symbols*https://msdl.microsoft.com/download/symbols"))
         goto CleanupExit;
 
     if (!NT_SUCCESS(status = PhCreateFileWin32(
