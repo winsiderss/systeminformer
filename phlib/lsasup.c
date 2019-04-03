@@ -348,18 +348,18 @@ VOID PhLookupSids(
                 }
                 else if (domainName)
                 {
-                    translatedNames[i] = PhDuplicateString(domainName);
+                    translatedNames[i] = PhReferenceObject(domainName);
                 }
                 else if (userName)
                 {
-                    translatedNames[i] = PhDuplicateString(userName);
+                    translatedNames[i] = PhReferenceObject(userName);
                 }
             }
             else
             {
                 if (PhStartsWithString2(userName, L"S-1-", TRUE))
                 {
-                    translatedNames[i] = PhDuplicateString(userName);
+                    translatedNames[i] = PhReferenceObject(userName);
                 }
             }
 
