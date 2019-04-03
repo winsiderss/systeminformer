@@ -2074,7 +2074,7 @@ BOOLEAN PhShellOpenKey2(
     RtlInitUnicodeString(&valueName, favoriteName);
     PhUnicodeStringToStringRef(&valueName, &valueNameSr);
 
-    expandedKeyName = PhExpandKeyName(KeyName, TRUE);
+    expandedKeyName = PhExpandKeyName(KeyName, FALSE);
     NtSetValueKey(favoritesKeyHandle, &valueName, 0, REG_SZ, expandedKeyName->Buffer, (ULONG)expandedKeyName->Length + sizeof(UNICODE_NULL));
     PhDereferenceObject(expandedKeyName);
 
