@@ -90,7 +90,7 @@ HPROPSHEETPAGE PhCreateSecurityPage(
     _In_ PWSTR ObjectName,
     _In_ PWSTR ObjectType,
     _In_ PPH_OPEN_OBJECT OpenObject,
-    _In_ PPH_CLOSE_OBJECT CloseObject,
+    _In_opt_ PPH_CLOSE_OBJECT CloseObject,
     _In_opt_ PVOID Context
     )
 {
@@ -144,7 +144,7 @@ VOID PhEditSecurity(
     _In_ PWSTR ObjectName,
     _In_ PWSTR ObjectType,
     _In_ PPH_OPEN_OBJECT OpenObject,
-    _In_ PPH_CLOSE_OBJECT CloseObject,
+    _In_opt_ PPH_CLOSE_OBJECT CloseObject,
     _In_opt_ PVOID Context
     )
 {
