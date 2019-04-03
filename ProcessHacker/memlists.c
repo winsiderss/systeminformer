@@ -175,7 +175,7 @@ INT_PTR CALLBACK PhpMemoryListsDlgProc(
 
             if (NT_SUCCESS(PhOpenProcessToken(NtCurrentProcess(), TOKEN_ADJUST_PRIVILEGES, &tokenHandle)))
             {
-                PhSetTokenPrivilege(tokenHandle, L"SeProfileSingleProcessPrivilege", NULL, SE_PRIVILEGE_ENABLED);
+                PhSetTokenPrivilege2(tokenHandle, SE_PROF_SINGLE_PROCESS_PRIVILEGE, SE_PRIVILEGE_ENABLED);
                 NtClose(tokenHandle);
             }
 
