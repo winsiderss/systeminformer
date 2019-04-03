@@ -56,6 +56,15 @@ PhLookupSid(
     );
 
 PHLIBAPI
+VOID
+NTAPI
+PhLookupSids(
+    _In_ ULONG Count,
+    _In_ PSID *Sids,
+    _Out_ PPH_STRING **FullNames
+    );
+
+PHLIBAPI
 NTSTATUS
 NTAPI
 PhLookupName(

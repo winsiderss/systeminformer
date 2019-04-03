@@ -429,19 +429,26 @@ VOID PhpUpdateSidsFromTokenGroups(
     )
 {
     ULONG i;
+    PSID *sids;
+    PPH_STRING *names = NULL;
+
+    sids = PhAllocate(sizeof(PSID) * Groups->GroupCount);
 
     for (i = 0; i < Groups->GroupCount; i++)
     {
-        INT lvItemIndex;
-        PPH_STRING fullName;
-        PPH_STRING attributesString;
-        PPH_STRING descriptionString;
+        sids[i] = Groups->Groups[i].Sid;
+    }
 
-        if (!(fullName = PhGetSidFullName(Groups->Groups[i].Sid, TRUE, NULL)))
-            fullName = PhSidToStringSid(Groups->Groups[i].Sid);
+    PhLookupSids(Groups->GroupCount, sids, &names);
+    PhFree(sids);
 
-        if (fullName)
+    for (i = 0; i < Groups->GroupCount; i++)
+    {
+        if (names[i])
         {
+            INT lvItemIndex;
+            PPH_STRING attributesString;
+            PPH_STRING descriptionString;
             PPHP_TOKEN_PAGE_LISTVIEW_ITEM lvitem;
 
             lvitem = PhAllocateZero(sizeof(PHP_TOKEN_PAGE_LISTVIEW_ITEM));
@@ -452,7 +459,7 @@ VOID PhpUpdateSidsFromTokenGroups(
                 ListViewHandle,
                 lvitem->ItemCategory,
                 PH_PROCESS_TOKEN_INDEX_NAME,
-                fullName->Buffer,
+                names[i]->Buffer,
                 lvitem
                 );
 
@@ -474,9 +481,11 @@ VOID PhpUpdateSidsFromTokenGroups(
                 PhDereferenceObject(descriptionString);
             }
 
-            PhDereferenceObject(fullName);
+            PhDereferenceObject(names[i]);
         }
     }
+
+    PhFree(names);
 }
 
 BOOLEAN PhpUpdateTokenGroups(
