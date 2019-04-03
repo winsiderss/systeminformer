@@ -682,9 +682,10 @@ VOID NTAPI PhpThreadStackContextDeleteProcedure(
 {
     PPH_THREAD_STACK_CONTEXT context = (PPH_THREAD_STACK_CONTEXT)Object;
 
-    PhDereferenceObject(context->StatusMessage);
-    PhDereferenceObject(context->NewList);
-    PhDereferenceObject(context->List);
+    if (context->StatusMessage) PhDereferenceObject(context->StatusMessage);
+    if (context->StatusContent) PhDereferenceObject(context->StatusContent);
+    if (context->NewList) PhDereferenceObject(context->NewList);
+    if (context->List) PhDereferenceObject(context->List);
 
     if (context->ThreadHandle)
         NtClose(context->ThreadHandle);
@@ -985,7 +986,7 @@ BOOLEAN NTAPI PhpWalkThreadStackCallback(
     PhReleaseQueuedLockExclusive(&threadStackContext->StatusLock);
 
     symbol = PhGetSymbolFromAddress(
-       threadStackContext->SymbolProvider,
+        threadStackContext->SymbolProvider,
         (ULONG64)StackFrame->PcAddress,
         NULL,
         NULL,
