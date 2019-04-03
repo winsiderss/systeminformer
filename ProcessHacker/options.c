@@ -105,7 +105,7 @@ PPH_OPTIONS_SECTION PhOptionsCreateSection(
     _In_ PVOID Instance,
     _In_ PWSTR Template,
     _In_ DLGPROC DialogProc,
-    _In_ PVOID Parameter
+    _In_opt_ PVOID Parameter
     );
 
 PPH_OPTIONS_SECTION PhOptionsCreateSectionAdvanced(
@@ -113,7 +113,7 @@ PPH_OPTIONS_SECTION PhOptionsCreateSectionAdvanced(
     _In_ PVOID Instance,
     _In_ PWSTR Template,
     _In_ DLGPROC DialogProc,
-    _In_ PVOID Parameter
+    _In_opt_ PVOID Parameter
     );
 
 BOOLEAN PhpIsDefaultTaskManager(
@@ -523,7 +523,7 @@ PPH_OPTIONS_SECTION PhOptionsCreateSection(
     _In_ PVOID Instance,
     _In_ PWSTR Template,
     _In_ DLGPROC DialogProc,
-    _In_ PVOID Parameter
+    _In_opt_ PVOID Parameter
     )
 {
     PPH_OPTIONS_SECTION section;
@@ -546,7 +546,7 @@ PPH_OPTIONS_SECTION PhOptionsCreateSectionAdvanced(
     _In_ PVOID Instance,
     _In_ PWSTR Template,
     _In_ DLGPROC DialogProc,
-    _In_ PVOID Parameter
+    _In_opt_ PVOID Parameter
     )
 {
     PPH_OPTIONS_SECTION section;
@@ -839,7 +839,7 @@ static BOOLEAN PathMatchesPh(
         }
         // Allow for a quoted value.
         else if (
-            OldTaskMgrDebugger->Length == fileName->Length + sizeof(WCHAR) * sizeof(WCHAR) &&
+            OldTaskMgrDebugger->Length == (fileName->Length + sizeof(UNICODE_NULL)) * sizeof(WCHAR) &&
             OldTaskMgrDebugger->Buffer[0] == '"' &&
             OldTaskMgrDebugger->Buffer[OldTaskMgrDebugger->Length / sizeof(WCHAR) - 1] == '"'
             )
@@ -847,7 +847,7 @@ static BOOLEAN PathMatchesPh(
             PH_STRINGREF partInside;
 
             partInside.Buffer = &OldTaskMgrDebugger->Buffer[1];
-            partInside.Length = OldTaskMgrDebugger->Length - sizeof(WCHAR) * sizeof(WCHAR);
+            partInside.Length = (OldTaskMgrDebugger->Length - sizeof(UNICODE_NULL)) * sizeof(WCHAR);
 
             if (PhEqualStringRef(&partInside, &fileName->sr, TRUE))
                 match = TRUE;
@@ -943,7 +943,7 @@ VOID PhpSetDefaultTaskManager(
                         0, 
                         REG_SZ, 
                         quotedFileName->Buffer, 
-                        (ULONG)quotedFileName->Length + sizeof(WCHAR)
+                        (ULONG)quotedFileName->Length + sizeof(UNICODE_NULL)
                         );
 
                     PhDereferenceObject(applicationFileName);
