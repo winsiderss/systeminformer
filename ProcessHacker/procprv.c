@@ -939,7 +939,7 @@ VOID PhpProcessQueryStage2(
         }
     }
 
-    if (PhEnableProcessQueryStage2 && processItem->FileName && processItem->IsSubsystemProcess)
+    if (PhEnableLinuxSubsystemSupport && processItem->FileName && processItem->IsSubsystemProcess)
     {
         PhInitializeImageVersionInfoCached(&Data->VersionInfo, processItem->FileName, TRUE);
     }
