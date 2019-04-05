@@ -188,6 +188,8 @@ NTSTATUS PhpShowServicePropertiesThread(
 
     PhModalPropertySheet(&propSheetHeader);
 
+    PhDereferenceObject(serviceItem);
+
     return STATUS_SUCCESS;
 }
 
@@ -196,6 +198,7 @@ VOID PhShowServiceProperties(
     _In_ PPH_SERVICE_ITEM ServiceItem
     )
 {
+    PhReferenceObject(ServiceItem);
     PhCreateThread2(PhpShowServicePropertiesThread, ServiceItem);
 }
 
