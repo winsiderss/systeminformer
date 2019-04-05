@@ -2216,7 +2216,7 @@ BOOLEAN PhpAddTokenCapabilities(
 
                         if (capabilityName = PhGetCapabilityGuidName(name))
                         {
-                            PhpAddAttributeNode(&TokenPageContext->CapsTreeContext, node, PhFormatString(L"GuidName: %s", PhGetString(capabilityName)));
+                            PhpAddAttributeNode(&TokenPageContext->CapsTreeContext, node, PhFormatString(L"Capability: %s", PhGetString(capabilityName)));
                             PhDereferenceObject(capabilityName);
                         }
 
