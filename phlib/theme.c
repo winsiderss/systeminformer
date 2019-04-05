@@ -598,6 +598,10 @@ BOOLEAN CALLBACK PhpReInitializeThemeWindowEnumChildWindows(
             break;
         }
     }
+    else if (PhEqualStringZ(windowClassName, L"Edit", FALSE))
+    {
+        SendMessage(WindowHandle, WM_THEMECHANGED, 0, 0); // searchbox.c
+    }
 
     InvalidateRect(WindowHandle, NULL, TRUE);
 
