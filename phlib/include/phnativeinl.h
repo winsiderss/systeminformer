@@ -454,6 +454,32 @@ PhGetProcessCycleTime(
 
 FORCEINLINE
 NTSTATUS
+PhGetProcessUptime(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPROCESS_UPTIME_INFORMATION Uptime
+    )
+{
+    NTSTATUS status;
+    PROCESS_UPTIME_INFORMATION uptimeInfo;
+
+    status = NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessUptimeInformation,
+        &uptimeInfo,
+        sizeof(PROCESS_UPTIME_INFORMATION),
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    *Uptime = uptimeInfo;
+
+    return status;
+}
+
+FORCEINLINE
+NTSTATUS
 PhGetProcessConsoleHostProcessId(
     _In_ HANDLE ProcessHandle,
     _Out_ PHANDLE ConsoleHostProcessId

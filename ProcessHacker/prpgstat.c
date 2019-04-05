@@ -85,6 +85,11 @@ typedef enum _PH_PROCESS_STATISTICS_INDEX
     PH_PROCESS_STATISTICS_INDEX_GDIHANDLES,
     PH_PROCESS_STATISTICS_INDEX_USERHANDLES,
 
+    PH_PROCESS_STATISTICS_INDEX_RUNNINGTIME,
+    PH_PROCESS_STATISTICS_INDEX_SUSPENDEDTIME,
+    PH_PROCESS_STATISTICS_INDEX_HANGCOUNT,
+    PH_PROCESS_STATISTICS_INDEX_GHOSTCOUNT,
+
     PH_PROCESS_STATISTICS_INDEX_CONTEXTSWITCHES,
     PH_PROCESS_STATISTICS_INDEX_DISKREAD,
     PH_PROCESS_STATISTICS_INDEX_DISKWRITE,
@@ -141,12 +146,20 @@ VOID PhpUpdateStatisticsAddListViewGroups(
     PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_IO, PH_PROCESS_STATISTICS_INDEX_OTHERDELTA, L"Other delta", NULL);
     PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_IO, PH_PROCESS_STATISTICS_INDEX_OTHERBYTES, L"Other bytes", NULL);
     PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_IO, PH_PROCESS_STATISTICS_INDEX_OTHERBYTESDELTA, L"Other bytes delta", NULL);
-
     PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_IO, PH_PROCESS_STATISTICS_INDEX_IOPRIORITY, L"I/O priority", NULL);
+
     PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_OTHER, PH_PROCESS_STATISTICS_INDEX_HANDLES, L"Handles", NULL);
     PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_OTHER, PH_PROCESS_STATISTICS_INDEX_PEAKHANDLES, L"Peak handles", NULL);
     PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_OTHER, PH_PROCESS_STATISTICS_INDEX_GDIHANDLES, L"GDI handles", NULL);
     PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_OTHER, PH_PROCESS_STATISTICS_INDEX_USERHANDLES, L"USER handles", NULL);
+
+    if (WindowsVersion >= WINDOWS_10_RS3)
+    {
+        PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_OTHER, PH_PROCESS_STATISTICS_INDEX_RUNNINGTIME, L"Running time", NULL);
+        PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_OTHER, PH_PROCESS_STATISTICS_INDEX_SUSPENDEDTIME, L"Suspended time", NULL);
+        PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_OTHER, PH_PROCESS_STATISTICS_INDEX_HANGCOUNT, L"Hang count", NULL);
+        PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_OTHER, PH_PROCESS_STATISTICS_INDEX_GHOSTCOUNT, L"Ghost count", NULL);
+    }
 
     if (WindowsVersion >= WINDOWS_10_RS3 && !PhIsExecutingInWow64())
     {
@@ -281,11 +294,18 @@ VOID PhpUpdateProcessStatistics(
         PPH_STRING sharedWs = NULL;
         BOOLEAN gotCycles = FALSE;
         BOOLEAN gotWsCounters = FALSE;
+        BOOLEAN gotUptime = FALSE;
+        ULONG hangCount = 0;
+        ULONG ghostCount = 0;
+        ULONGLONG runningTime = 0;
+        ULONGLONG suspendedTime = 0;
+        WCHAR timeSpan[PH_TIMESPAN_STR_LEN_1] = L"";
 
         if (ProcessItem->QueryHandle)
         {
             ULONG64 cycleTime;
             PROCESS_HANDLE_INFORMATION handleInfo;
+            PROCESS_UPTIME_INFORMATION uptimeInfo;
 
             if (NT_SUCCESS(PhGetProcessHandleCount(ProcessItem->QueryHandle, &handleInfo)))
             {
@@ -303,6 +323,15 @@ VOID PhpUpdateProcessStatistics(
 
             PhGetProcessPagePriority(ProcessItem->QueryHandle, &pagePriority);
             PhGetProcessIoPriority(ProcessItem->QueryHandle, &ioPriority);
+
+            if (WindowsVersion >= WINDOWS_10_RS3 && NT_SUCCESS(PhGetProcessUptime(ProcessItem->QueryHandle, &uptimeInfo)))
+            {
+                runningTime = uptimeInfo.Uptime;
+                suspendedTime = uptimeInfo.SuspendedTime;
+                hangCount = uptimeInfo.HangCount;
+                ghostCount = uptimeInfo.GhostCount;
+                gotUptime = TRUE;
+            }
         }
 
         if (Context->ProcessHandle)
@@ -342,6 +371,16 @@ VOID PhpUpdateProcessStatistics(
         PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_PEAKHANDLES, 1, PhGetStringOrDefault(peakHandles, L"N/A"));
         PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_GDIHANDLES, 1, PhGetStringOrDefault(gdiHandles, L"N/A"));
         PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_USERHANDLES, 1, PhGetStringOrDefault(userHandles, L"N/A"));
+
+        if (WindowsVersion >= WINDOWS_10_RS3)
+        {
+            PhPrintTimeSpan(timeSpan, runningTime, PH_TIMESPAN_HMSM);
+            PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_RUNNINGTIME, 1, timeSpan);
+            PhPrintTimeSpan(timeSpan, suspendedTime, PH_TIMESPAN_HMSM);
+            PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_SUSPENDEDTIME, 1, timeSpan);
+            PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_HANGCOUNT, 1, PhaFormatUInt64(hangCount, TRUE)->Buffer);
+            PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_GHOSTCOUNT, 1, PhaFormatUInt64(ghostCount, TRUE)->Buffer);
+        }
     }
 
     if (WindowsVersion >= WINDOWS_10_RS3 && !PhIsExecutingInWow64())
@@ -404,9 +443,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
     {
     case WM_INITDIALOG:
         {
-            statisticsContext = propPageContext->Context = PhAllocate(sizeof(PH_STATISTICS_CONTEXT));
-            memset(statisticsContext, 0, sizeof(PH_STATISTICS_CONTEXT));
-
+            statisticsContext = propPageContext->Context = PhAllocateZero(sizeof(PH_STATISTICS_CONTEXT));
             statisticsContext->WindowHandle = hwndDlg;
             statisticsContext->ListViewHandle = GetDlgItem(hwndDlg, IDC_STATISTICS_LIST);
             statisticsContext->Enabled = TRUE;
