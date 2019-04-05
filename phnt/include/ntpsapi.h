@@ -911,12 +911,9 @@ typedef struct _THREAD_LAST_SYSCALL_INFORMATION
 {
     PVOID FirstArgument;
     USHORT SystemCallNumber;
-#ifdef WIN64
-    USHORT Pad[0x3]; // since REDSTONE2
-#else
-    USHORT Pad[0x1]; // since REDSTONE2
+#if (PHNT_VERSION >= PHNT_WINBLUE)
+    ULONG64 WaitTime; // may be omitted
 #endif
-    ULONG64 WaitTime;
 } THREAD_LAST_SYSCALL_INFORMATION, *PTHREAD_LAST_SYSCALL_INFORMATION;
 
 // private
