@@ -1536,4 +1536,24 @@ PhGetTimerBasicInformation(
         );
 }
 
+FORCEINLINE
+NTSTATUS
+PhSetDebugKillProcessOnExit(
+    _In_ HANDLE DebugObjectHandle,
+    _In_ BOOLEAN KillProcessOnExit
+    )
+{
+    ULONG killProcessOnExit;
+
+    killProcessOnExit = KillProcessOnExit ? 1 : 0;
+
+    return NtSetInformationDebugObject(
+        DebugObjectHandle,
+        DebugObjectKillProcessOnExitInformation,
+        &killProcessOnExit,
+        sizeof(ULONG),
+        NULL
+        );
+}
+
 #endif
