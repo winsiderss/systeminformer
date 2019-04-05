@@ -933,14 +933,14 @@ VOID PhpThreadProviderUpdate(
                 PhTrimToNullTerminatorString(threadItem->StartAddressString);
             }
 
-            PhpQueueThreadQuery(threadProvider, threadItem);
-
             // Is it a GUI thread?
             {
                 GUITHREADINFO info = { sizeof(GUITHREADINFO) };
 
                 threadItem->IsGuiThread = !!GetGUIThreadInfo(HandleToUlong(threadItem->ThreadId), &info);
             }
+
+            PhpQueueThreadQuery(threadProvider, threadItem);
 
             // Add the thread item to the hashtable.
             PhAcquireFastLockExclusive(&threadProvider->ThreadHashtableLock);

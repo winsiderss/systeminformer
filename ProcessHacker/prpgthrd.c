@@ -359,6 +359,11 @@ BOOLEAN PhpThreadTreeFilterCallback(
     PPH_THREAD_NODE threadNode = (PPH_THREAD_NODE)Node;
     PPH_THREAD_ITEM threadItem = threadNode->ThreadItem;
 
+    if (Context->ListContext.HideSuspended && threadItem->WaitReason == Suspended)
+        return FALSE;
+    if (Context->ListContext.HideGuiThreads && threadItem->IsGuiThread)
+        return FALSE;
+
     if (PhIsNullOrEmptyString(Context->SearchboxText))
         return TRUE;
 
@@ -1062,6 +1067,59 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             //        }
             //    }
             //    break;
+            case IDC_OPTIONS:
+                {
+                    RECT rect;
+                    PPH_EMENU menu;
+                    PPH_EMENU_ITEM hideSuspendedMenuItem;
+                    PPH_EMENU_ITEM hideGuiMenuItem;
+                    PPH_EMENU_ITEM highlightSuspendedMenuItem;
+                    PPH_EMENU_ITEM highlightGuiMenuItem;
+                    PPH_EMENU_ITEM selectedItem;
+
+                    if (!GetWindowRect(GetDlgItem(hwndDlg, IDC_OPTIONS), &rect))
+                        break;
+
+                    hideSuspendedMenuItem = PhCreateEMenuItem(0, PH_THREAD_TREELIST_MENUITEM_HIDE_SUSPENDED, L"Hide suspended", NULL, NULL);
+                    hideGuiMenuItem = PhCreateEMenuItem(0, PH_THREAD_TREELIST_MENUITEM_HIDE_GUITHREADS, L"Hide gui", NULL, NULL);
+                    highlightSuspendedMenuItem = PhCreateEMenuItem(0, PH_THREAD_TREELIST_MENUITEM_HIGHLIGHT_SUSPENDED, L"Highlight suspended", NULL, NULL);
+                    highlightGuiMenuItem = PhCreateEMenuItem(0, PH_THREAD_TREELIST_MENUITEM_HIGHLIGHT_GUITHREADS, L"Highlight gui", NULL, NULL);
+
+                    menu = PhCreateEMenu();
+                    PhInsertEMenuItem(menu, hideSuspendedMenuItem, ULONG_MAX);
+                    PhInsertEMenuItem(menu, hideGuiMenuItem, ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+                    PhInsertEMenuItem(menu, highlightSuspendedMenuItem, ULONG_MAX);
+                    PhInsertEMenuItem(menu, highlightGuiMenuItem, ULONG_MAX);
+
+                    if (threadsContext->ListContext.HideSuspended)
+                        hideSuspendedMenuItem->Flags |= PH_EMENU_CHECKED;
+                    if (threadsContext->ListContext.HideGuiThreads)
+                        hideGuiMenuItem->Flags |= PH_EMENU_CHECKED;
+                    if (threadsContext->ListContext.HighlightSuspended)
+                        highlightSuspendedMenuItem->Flags |= PH_EMENU_CHECKED;
+                    if (threadsContext->ListContext.HighlightGuiThreads)
+                        highlightGuiMenuItem->Flags |= PH_EMENU_CHECKED;
+
+                    selectedItem = PhShowEMenu(
+                        menu,
+                        hwndDlg,
+                        PH_EMENU_SHOW_LEFTRIGHT,
+                        PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                        rect.left,
+                        rect.bottom
+                        );
+
+                    if (selectedItem && selectedItem->Id)
+                    {
+                        PhSetOptionsThreadList(&threadsContext->ListContext, selectedItem->Id);
+                        PhSaveSettingsThreadList(&threadsContext->ListContext);
+                        PhApplyTreeNewFilters(&threadsContext->ListContext.TreeFilterSupport);
+                    }
+
+                    PhDestroyEMenu(menu);
+                }
+                break;
             }
         }
         break;
