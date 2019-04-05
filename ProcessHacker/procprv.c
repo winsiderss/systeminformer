@@ -776,7 +776,7 @@ VOID PhpProcessQueryStage1(
                 // can't display them, we'll replace them with spaces.
                 for (ULONG i = 0; i < (ULONG)commandLine->Length / sizeof(WCHAR); i++)
                 {
-                    if (commandLine->Buffer[i] == 0)
+                    if (commandLine->Buffer[i] == UNICODE_NULL)
                         commandLine->Buffer[i] = ' ';
                 }
 
@@ -949,11 +949,10 @@ NTSTATUS PhpProcessQueryStage1Worker(
     _In_ PVOID Parameter
     )
 {
-    PPH_PROCESS_QUERY_S1_DATA data;
     PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)Parameter;
+    PPH_PROCESS_QUERY_S1_DATA data;
 
-    data = PhAllocate(sizeof(PH_PROCESS_QUERY_S1_DATA));
-    memset(data, 0, sizeof(PH_PROCESS_QUERY_S1_DATA));
+    data = PhAllocateZero(sizeof(PH_PROCESS_QUERY_S1_DATA));
     data->Header.Stage = 1;
     data->Header.ProcessItem = processItem;
 
@@ -968,11 +967,10 @@ NTSTATUS PhpProcessQueryStage2Worker(
     _In_ PVOID Parameter
     )
 {
-    PPH_PROCESS_QUERY_S2_DATA data;
     PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)Parameter;
+    PPH_PROCESS_QUERY_S2_DATA data;
 
-    data = PhAllocate(sizeof(PH_PROCESS_QUERY_S2_DATA));
-    memset(data, 0, sizeof(PH_PROCESS_QUERY_S2_DATA));
+    data = PhAllocateZero(sizeof(PH_PROCESS_QUERY_S2_DATA));
     data->Header.Stage = 2;
     data->Header.ProcessItem = processItem;
 
