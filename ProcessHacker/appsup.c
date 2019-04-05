@@ -1315,8 +1315,7 @@ BOOLEAN PhCreateProcessIgnoreIfeoDebugger(
 {
     BOOLEAN result;
     BOOLEAN originalValue;
-    STARTUPINFO startupInfo;
-    PROCESS_INFORMATION processInfo;
+    HANDLE processHandle;
 
     result = FALSE;
 
@@ -1325,47 +1324,45 @@ BOOLEAN PhCreateProcessIgnoreIfeoDebugger(
     NtCurrentPeb()->ReadImageFileExecOptions = FALSE;
     RtlLeaveCriticalSection(NtCurrentPeb()->FastPebLock);
 
-    memset(&startupInfo, 0, sizeof(STARTUPINFO));
-    startupInfo.cb = sizeof(STARTUPINFO);
-    memset(&processInfo, 0, sizeof(PROCESS_INFORMATION));
-
     // The combination of ReadImageFileExecOptions = FALSE and the DEBUG_PROCESS flag
-    // allows us to skip the Debugger IFEO value.
-    if (CreateProcess(FileName, NULL, NULL, NULL, FALSE, DEBUG_PROCESS | DEBUG_ONLY_THIS_PROCESS, NULL, NULL, &startupInfo, &processInfo))
+    // allows us to skip the Debugger IFEO value. (wj32)
+
+    if (NT_SUCCESS(PhCreateProcessWin32(
+        FileName,
+        NULL,
+        NULL,
+        NULL,
+        PH_CREATE_PROCESS_DEBUG | PH_CREATE_PROCESS_DEBUG_ONLY_THIS_PROCESS,
+        NULL,
+        &processHandle,
+        NULL
+        )))
     {
         HANDLE debugObjectHandle;
 
         if (NT_SUCCESS(PhGetProcessDebugObject(
-            processInfo.hProcess,
+            processHandle,
             &debugObjectHandle
             )))
         {
-            ULONG killProcessOnExit;
-
             // Disable kill-on-close.
-            killProcessOnExit = 0;
-            NtSetInformationDebugObject(
+            if (NT_SUCCESS(PhSetDebugKillProcessOnExit(
                 debugObjectHandle,
-                DebugObjectKillProcessOnExitInformation,
-                &killProcessOnExit,
-                sizeof(ULONG),
-                NULL
-                );
-
-            // Stop debugging the process now.
-            NtRemoveProcessDebug(processInfo.hProcess, debugObjectHandle);
+                FALSE
+                )))
+            {
+                // Stop debugging the process now.
+                NtRemoveProcessDebug(processHandle, debugObjectHandle);
+            }
 
             NtClose(debugObjectHandle);
         }
 
         result = TRUE;
+
+        NtClose(processHandle);
     }
 
-    if (processInfo.hProcess)
-        NtClose(processInfo.hProcess);
-    if (processInfo.hThread)
-        NtClose(processInfo.hThread);
-    
     if (originalValue)
     {
         RtlEnterCriticalSection(NtCurrentPeb()->FastPebLock);
