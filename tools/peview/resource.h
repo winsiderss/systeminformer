@@ -24,6 +24,7 @@
 #define IDD_ELFDYNAMIC                  116
 #define IDD_TLS                         117
 #define IDC_SYMBOLTREE                  119
+#define IDI_APPICON                     122
 #define IDC_TARGETMACHINE               1003
 #define IDC_CHECKSUM                    1004
 #define IDC_SUBSYSTEM                   1005
@@ -50,7 +51,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        122
+#define _APS_NEXT_RESOURCE_VALUE        123
 #define _APS_NEXT_COMMAND_VALUE         40001
 #define _APS_NEXT_CONTROL_VALUE         1023
 #define _APS_NEXT_SYMED_VALUE           115
