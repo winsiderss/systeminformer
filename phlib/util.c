@@ -2606,6 +2606,8 @@ static const PH_FLAG_MAPPING PhpCreateProcessMappings[] =
     { PH_CREATE_PROCESS_SUSPENDED, CREATE_SUSPENDED },
     { PH_CREATE_PROCESS_BREAKAWAY_FROM_JOB, CREATE_BREAKAWAY_FROM_JOB },
     { PH_CREATE_PROCESS_NEW_CONSOLE, CREATE_NEW_CONSOLE },
+    { PH_CREATE_PROCESS_DEBUG, DEBUG_PROCESS },
+    { PH_CREATE_PROCESS_DEBUG_ONLY_THIS_PROCESS, DEBUG_ONLY_THIS_PROCESS },
     { PH_CREATE_PROCESS_EXTENDED_STARTUPINFO, EXTENDED_STARTUPINFO_PRESENT }
 };
 
@@ -5374,7 +5376,7 @@ BOOLEAN PhLoadResource(
     if (!NT_SUCCESS(LdrFindResource_U(DllBase, &resourceInfo, RESOURCE_DATA_LEVEL, &resourceData)))
         return FALSE;
 
-    if (!NT_SUCCESS(PhAccessResource(DllBase, resourceData, &resourceBuffer, &resourceLength)))
+    if (!NT_SUCCESS(LdrAccessResource(DllBase, resourceData, &resourceBuffer, &resourceLength)))
         return FALSE;
 
     if (ResourceLength)
