@@ -363,7 +363,7 @@ typedef struct _PH_PLUGIN_MINIINFO_POINTERS
 typedef struct _PH_NF_ICON * (NTAPI *PPH_REGISTER_TRAY_ICON)(
     _In_ struct _PH_PLUGIN * Plugin,
     _In_ ULONG SubId,
-    _In_ PGUID Guid,
+    _In_ GUID Guid,
     _In_opt_ PVOID Context,
     _In_ PWSTR Text,
     _In_ ULONG Flags,

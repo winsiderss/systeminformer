@@ -92,7 +92,7 @@ typedef struct _PH_NF_ICON
     PWSTR Text;
     ULONG Flags;
     ULONG IconId;
-    PGUID IconGuid;
+    GUID IconGuid;
     PPH_NF_ICON_UPDATE_CALLBACK UpdateCallback;
     PPH_NF_ICON_MESSAGE_CALLBACK MessageCallback;
 
@@ -141,7 +141,7 @@ HICON PhNfBitmapToIcon(
 struct _PH_NF_ICON *PhNfPluginRegisterIcon(
     _In_ struct _PH_PLUGIN * Plugin,
     _In_ ULONG SubId,
-    _In_ PGUID Guid,
+    _In_ GUID Guid,
     _In_opt_ PVOID Context,
     _In_ PWSTR Text,
     _In_ ULONG Flags,
@@ -151,7 +151,7 @@ struct _PH_NF_ICON *PhNfPluginRegisterIcon(
 PPH_NF_ICON PhNfRegisterIcon(
     _In_opt_ struct _PH_PLUGIN *Plugin,
     _In_ ULONG Id,
-    _In_ PGUID Guid,
+    _In_ GUID Guid,
     _In_opt_ PVOID Context,
     _In_ PWSTR Text,
     _In_ ULONG Flags,
