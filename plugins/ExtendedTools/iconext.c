@@ -33,6 +33,19 @@
 #define DISK_ICON_TEXT_ID 5
 #define NETWORK_ICON_TEXT_ID 6
 
+// {0B50C566-8386-44A5-897F-8FE07D55975C}
+static GUID EtpGpuIconGuid = { 0xb50c566, 0x8386, 0x44a5, { 0x89, 0x7f, 0x8f, 0xe0, 0x7d, 0x55, 0x97, 0x5c } };
+// {633E07FF-4B3C-405E-82EF-1F0C6904FC05}
+static GUID EtpDiskIconGuid = { 0x633e07ff, 0x4b3c, 0x405e, { 0x82, 0xef, 0x1f, 0xc, 0x69, 0x4, 0xfc, 0x5 } };
+// {05606BEE-D4B0-4BC8-B6B7-69F9685AF782}
+static GUID EtpNetworkIconGuid = { 0x5606bee, 0xd4b0, 0x4bc8, { 0xb6, 0xb7, 0x69, 0xf9, 0x68, 0x5a, 0xf7, 0x82 } };
+// {A2DA7963-AD12-4938-8DF8-280D971E5277}
+static GUID EtpGpuTextIconGuid = { 0xa2da7963, 0xad12, 0x4938, { 0x8d, 0xf8, 0x28, 0xd, 0x97, 0x1e, 0x52, 0x77 } };
+// {C76B1DF8-F2D2-42D0-AA78-13E214BDC663}
+static GUID EtpDiskTextIconGuid = { 0xc76b1df8, 0xf2d2, 0x42d0, { 0xaa, 0x78, 0x13, 0xe2, 0x14, 0xbd, 0xc6, 0x63 } };
+// {0AE1EDF2-220D-4EAA-B4F8-ED3E07A6FB12}
+static GUID EtpNetworkTextIconGuid = { 0xae1edf2, 0x220d, 0x4eaa, { 0xb4, 0xf8, 0xed, 0x3e, 0x7, 0xa6, 0xfb, 0x12 } };
+
 VOID EtpGpuIconUpdateCallback(
     _In_ struct _PH_NF_ICON *Icon,
     _Out_ PVOID *NewIconOrBitmap,
@@ -115,6 +128,7 @@ VOID EtRegisterNotifyIcons(
     Pointers->RegisterTrayIcon(
         PluginInstance,
         GPU_ICON_ID,
+        &EtpGpuIconGuid,
         NULL,
         L"&GPU history",
         EtGpuEnabled ? 0 : PH_NF_ICON_UNAVAILABLE,
@@ -126,6 +140,7 @@ VOID EtRegisterNotifyIcons(
     Pointers->RegisterTrayIcon(
         PluginInstance,
         DISK_ICON_ID,
+        &EtpDiskIconGuid,
         NULL,
         L"&Disk history",
         EtEtwEnabled ? 0 : PH_NF_ICON_UNAVAILABLE,
@@ -137,6 +152,7 @@ VOID EtRegisterNotifyIcons(
     Pointers->RegisterTrayIcon(
         PluginInstance,
         NETWORK_ICON_ID,
+        &EtpNetworkIconGuid,
         NULL,
         L"&Network history",
         EtEtwEnabled ? 0 : PH_NF_ICON_UNAVAILABLE,
@@ -148,6 +164,7 @@ VOID EtRegisterNotifyIcons(
     Pointers->RegisterTrayIcon(
         PluginInstance,
         GPU_ICON_TEXT_ID,
+        &EtpGpuTextIconGuid,
         NULL,
         L"&GPU usage (Text)",
         EtGpuEnabled ? 0 : PH_NF_ICON_UNAVAILABLE,
@@ -159,6 +176,7 @@ VOID EtRegisterNotifyIcons(
     Pointers->RegisterTrayIcon(
         PluginInstance,
         DISK_ICON_TEXT_ID,
+        &EtpDiskTextIconGuid,
         NULL,
         L"&Disk usage (Text)",
         EtEtwEnabled ? 0 : PH_NF_ICON_UNAVAILABLE,
@@ -170,6 +188,7 @@ VOID EtRegisterNotifyIcons(
     Pointers->RegisterTrayIcon(
         PluginInstance,
         NETWORK_ICON_TEXT_ID,
+        &EtpNetworkTextIconGuid,
         NULL,
         L"&Network usage (Text)",
         EtEtwEnabled ? 0 : PH_NF_ICON_UNAVAILABLE,
