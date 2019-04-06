@@ -330,6 +330,7 @@ VOID NTAPI TrayIconsInitializingCallback(
     _In_opt_ PVOID Context
     )
 {
+    EtLoadTrayIconGuids();
     EtRegisterNotifyIcons(Parameter);
 }
 
@@ -527,6 +528,7 @@ LOGICAL DllMain(
                 { IntegerPairSettingType, SETTING_NAME_WSWATCH_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_WSWATCH_WINDOW_SIZE, L"@96|325,266" },
                 { StringSettingType, SETTING_NAME_WSWATCH_COLUMNS, L"" },
+                { StringSettingType, SETTING_NAME_TRAYICON_GUIDS, L"" },
             };
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);

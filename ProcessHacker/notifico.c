@@ -48,30 +48,12 @@ PH_NF_BITMAP PhNfpDefaultBitmapContext = { 0 };
 PH_NF_BITMAP PhNfpBlackBitmapContext = { 0 };
 HBITMAP PhNfpBlackBitmap = NULL;
 HICON PhNfpBlackIcon = NULL;
+GUID PhNfpTrayIconItemGuids[PH_TRAY_ICON_GUID_MAXIMUM];
 
 static POINT IconClickLocation;
 static PH_NF_MSG_SHOWMINIINFOSECTION_DATA IconClickShowMiniInfoSectionData;
 static BOOLEAN IconClickUpDueToDown = FALSE;
 static BOOLEAN IconDisableHover = FALSE;
-
-// {41713862-1CEA-4AA0-AF28-FA2F4C5C5A3B}
-static GUID PhNfCpuUsageGuid = { 0x41713862, 0x1cea, 0x4aa0, { 0xaf, 0x28, 0xfa, 0x2f, 0x4c, 0x5c, 0x5a, 0x3b } };
-// {5485E389-97BC-4E5B-969D-3273127DA696}
-static GUID PhNfCpuHistoryGuid = { 0x5485e389, 0x97bc, 0x4e5b, { 0x96, 0x9d, 0x32, 0x73, 0x12, 0x7d, 0xa6, 0x96 } };
-// {7EAE88B5-ABBB-4024-99B8-AB7982E66AA3}
-static GUID PhNfIoHistoryGuid = { 0x7eae88b5, 0xabbb, 0x4024, { 0x99, 0xb8, 0xab, 0x79, 0x82, 0xe6, 0x6a, 0xa3 } };
-// {040C2141-11EC-4D2B-B438-C407B11A6242}
-static GUID PhNfCommitHistoryGuid = { 0x40c2141, 0x11ec, 0x4d2b, { 0xb4, 0x38, 0xc4, 0x7, 0xb1, 0x1a, 0x62, 0x42 } };
-// {85071CE7-FC91-4847-8F7C-CD722F6540AE}
-static GUID PhNfPhysicalHistoryGuid = { 0x85071ce7, 0xfc91, 0x4847, { 0x8f, 0x7c, 0xcd, 0x72, 0x2f, 0x65, 0x40, 0xae } };
-// {BFCCBE8A-C2D8-469E-9F50-2941C895273E}
-static GUID PhNfCpuUsageTextGuid = { 0xbfccbe8a, 0xc2d8, 0x469e, { 0x9f, 0x50, 0x29, 0x41, 0xc8, 0x95, 0x27, 0x3e } };
-// {E040836D-8436-4E81-A1AA-954DD37FDDDF}
-static GUID PhNfIoUsageTextGuid = { 0xe040836d, 0x8436, 0x4e81, { 0xa1, 0xaa, 0x95, 0x4d, 0xd3, 0x7f, 0xdd, 0xdf } };
-// {CEA50FA3-F116-4720-8F8A-921E8030904C}
-static GUID PhNfCommitTextGuid = { 0xcea50fa3, 0xf116, 0x4720, { 0x8f, 0x8a, 0x92, 0x1e, 0x80, 0x30, 0x90, 0x4c } };
-// {3A7A2A3A-FAAB-49CA-A313-A31C4CF60E1B}
-static GUID PhNfPhysicalUsageTextGuid = { 0x3a7a2a3a, 0xfaab, 0x49ca, { 0xa3, 0x13, 0xa3, 0x1c, 0x4c, 0xf6, 0xe, 0x1b } };
 
 VOID PhNfLoadStage1(
     VOID
@@ -90,7 +72,7 @@ VOID PhNfLoadSettings(
     PH_STRINGREF remaining;
 
     settingsString = PhGetStringSetting(L"IconSettings");
-    remaining = settingsString->sr;
+    remaining = PhGetStringRef(settingsString);
 
     if (remaining.Length == 0)
         return;
@@ -165,21 +147,92 @@ VOID PhNfSaveSettings(
     PhDereferenceObject(settingsString);
 }
 
+VOID PhNfLoadGuids(
+    VOID
+    )
+{
+    PPH_STRING settingsString = NULL;
+    PH_STRINGREF remaining;
+    ULONG i;
+
+    settingsString = PhGetStringSetting(L"IconGuids");
+
+    if (PhIsNullOrEmptyString(settingsString))
+    {
+        PH_STRING_BUILDER iconListBuilder;
+        PPH_STRING iconGuid;
+
+        PhInitializeStringBuilder(&iconListBuilder, 100);
+
+        for (i = 0; i < RTL_NUMBER_OF(PhNfpTrayIconItemGuids); i++)
+        {
+            PhGenerateGuid(&PhNfpTrayIconItemGuids[i]);
+
+            if (iconGuid = PhFormatGuid(&PhNfpTrayIconItemGuids[i]))
+            {
+                PhAppendFormatStringBuilder(
+                    &iconListBuilder,
+                    L"%s|",
+                    iconGuid->Buffer
+                    );
+                PhDereferenceObject(iconGuid);
+            }
+        }
+
+        if (iconListBuilder.String->Length != 0)
+            PhRemoveEndStringBuilder(&iconListBuilder, 1);
+
+        PhMoveReference(&settingsString, PhFinalStringBuilderString(&iconListBuilder));
+        PhSetStringSetting2(L"IconGuids", &settingsString->sr);
+        PhDereferenceObject(settingsString);
+    }
+    else
+    {
+        remaining = PhGetStringRef(settingsString);
+
+        for (i = 0; i < RTL_NUMBER_OF(PhNfpTrayIconItemGuids); i++)
+        {
+            PH_STRINGREF guidPart;
+            UNICODE_STRING guidStringUs;
+            GUID guid;
+
+            if (remaining.Length == 0)
+                continue;
+
+            PhSplitStringRefAtChar(&remaining, '|', &guidPart, &remaining);
+
+            if (guidPart.Length == 0)
+                continue;
+
+            if (!PhStringRefToUnicodeString(&guidPart, &guidStringUs))
+                continue;
+
+            if (!NT_SUCCESS(RtlGUIDFromString(&guidStringUs, &guid)))
+                PhGenerateGuid(&PhNfpTrayIconItemGuids[i]);
+            else
+                PhNfpTrayIconItemGuids[i] = guid;
+        }
+
+        PhDereferenceObject(settingsString);
+    }
+}
+
 VOID PhNfLoadStage2(
     VOID
     )
 {
     PhNfMiniInfoEnabled = !!PhGetIntegerSetting(L"MiniInfoWindowEnabled");
+    PhNfLoadGuids();
 
-    PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_CPU_USAGE, PhNfCpuUsageGuid, NULL, L"CPU &usage", 0, PhNfpCpuUsageIconUpdateCallback, NULL);
-    PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_CPU_HISTORY, PhNfCpuHistoryGuid, NULL, L"CPU &history", 0, PhNfpCpuHistoryIconUpdateCallback, NULL);
-    PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_IO_HISTORY, PhNfIoHistoryGuid, NULL, L"&I/O history", 0, PhNfpIoHistoryIconUpdateCallback, NULL);
-    PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_COMMIT_HISTORY, PhNfCommitHistoryGuid, NULL, L"&Commit charge history", 0, PhNfpCommitHistoryIconUpdateCallback, NULL);
-    PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_PHYSICAL_HISTORY, PhNfPhysicalHistoryGuid, NULL, L"&Physical memory history", 0, PhNfpPhysicalHistoryIconUpdateCallback, NULL);
-    PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_CPU_TEXT, PhNfCpuUsageTextGuid, NULL, L"CPU usage (text)", 0, PhNfpCpuUsageTextIconUpdateCallback, NULL);
-    PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_IO_TEXT, PhNfIoUsageTextGuid, NULL, L"IO usage (text)", 0, PhNfpIoUsageTextIconUpdateCallback, NULL);
-    PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_COMMIT_TEXT, PhNfCommitTextGuid, NULL, L"Commit usage (text)", 0, PhNfpCommitTextIconUpdateCallback, NULL);
-    PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_PHYSICAL_TEXT, PhNfPhysicalUsageTextGuid, NULL, L"Physical usage (text)", 0, PhNfpPhysicalUsageTextIconUpdateCallback, NULL);
+    PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_CPU_USAGE, PhNfpTrayIconItemGuids[PH_TRAY_ICON_GUID_CPU_USAGE], NULL, L"CPU &usage", 0, PhNfpCpuUsageIconUpdateCallback, NULL);
+    PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_CPU_HISTORY, PhNfpTrayIconItemGuids[PH_TRAY_ICON_GUID_CPU_HISTORY], NULL, L"CPU &history", 0, PhNfpCpuHistoryIconUpdateCallback, NULL);
+    PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_IO_HISTORY, PhNfpTrayIconItemGuids[PH_TRAY_ICON_GUID_IO_HISTORY], NULL, L"&I/O history", 0, PhNfpIoHistoryIconUpdateCallback, NULL);
+    PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_COMMIT_HISTORY, PhNfpTrayIconItemGuids[PH_TRAY_ICON_GUID_COMMIT_HISTORY], NULL, L"&Commit charge history", 0, PhNfpCommitHistoryIconUpdateCallback, NULL);
+    PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_PHYSICAL_HISTORY, PhNfpTrayIconItemGuids[PH_TRAY_ICON_GUID_PHYSICAL_HISTORY], NULL, L"&Physical memory history", 0, PhNfpPhysicalHistoryIconUpdateCallback, NULL);
+    PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_CPU_TEXT, PhNfpTrayIconItemGuids[PH_TRAY_ICON_GUID_CPU_TEXT], NULL, L"CPU usage (text)", 0, PhNfpCpuUsageTextIconUpdateCallback, NULL);
+    PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_IO_TEXT, PhNfpTrayIconItemGuids[PH_TRAY_ICON_GUID_IO_TEXT], NULL, L"IO usage (text)", 0, PhNfpIoUsageTextIconUpdateCallback, NULL);
+    PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_COMMIT_TEXT, PhNfpTrayIconItemGuids[PH_TRAY_ICON_GUID_COMMIT_TEXT], NULL, L"Commit usage (text)", 0, PhNfpCommitTextIconUpdateCallback, NULL);
+    PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_PHYSICAL_TEXT, PhNfpTrayIconItemGuids[PH_TRAY_ICON_GUID_PHYSICAL_TEXT], NULL, L"Physical usage (text)", 0, PhNfpPhysicalUsageTextIconUpdateCallback, NULL);
 
     if (PhPluginsEnabled)
     {
