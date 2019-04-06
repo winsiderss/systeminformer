@@ -3302,7 +3302,7 @@ VOID PhShowIconNotification(
     _In_ ULONG Flags
     )
 {
-    PhNfShowBalloonTip(0, Title, Text, 10, Flags);
+    PhNfShowBalloonTip(Title, Text, 10, Flags);
 }
 
 VOID PhShowDetailsForIconNotification(
