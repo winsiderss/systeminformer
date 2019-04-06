@@ -128,7 +128,7 @@ VOID EtRegisterNotifyIcons(
     Pointers->RegisterTrayIcon(
         PluginInstance,
         GPU_ICON_ID,
-        &EtpGpuIconGuid,
+        EtpGpuIconGuid,
         NULL,
         L"&GPU history",
         EtGpuEnabled ? 0 : PH_NF_ICON_UNAVAILABLE,
@@ -140,7 +140,7 @@ VOID EtRegisterNotifyIcons(
     Pointers->RegisterTrayIcon(
         PluginInstance,
         DISK_ICON_ID,
-        &EtpDiskIconGuid,
+        EtpDiskIconGuid,
         NULL,
         L"&Disk history",
         EtEtwEnabled ? 0 : PH_NF_ICON_UNAVAILABLE,
@@ -152,7 +152,7 @@ VOID EtRegisterNotifyIcons(
     Pointers->RegisterTrayIcon(
         PluginInstance,
         NETWORK_ICON_ID,
-        &EtpNetworkIconGuid,
+        EtpNetworkIconGuid,
         NULL,
         L"&Network history",
         EtEtwEnabled ? 0 : PH_NF_ICON_UNAVAILABLE,
@@ -164,7 +164,7 @@ VOID EtRegisterNotifyIcons(
     Pointers->RegisterTrayIcon(
         PluginInstance,
         GPU_ICON_TEXT_ID,
-        &EtpGpuTextIconGuid,
+        EtpGpuTextIconGuid,
         NULL,
         L"&GPU usage (Text)",
         EtGpuEnabled ? 0 : PH_NF_ICON_UNAVAILABLE,
@@ -176,7 +176,7 @@ VOID EtRegisterNotifyIcons(
     Pointers->RegisterTrayIcon(
         PluginInstance,
         DISK_ICON_TEXT_ID,
-        &EtpDiskTextIconGuid,
+        EtpDiskTextIconGuid,
         NULL,
         L"&Disk usage (Text)",
         EtEtwEnabled ? 0 : PH_NF_ICON_UNAVAILABLE,
@@ -188,7 +188,7 @@ VOID EtRegisterNotifyIcons(
     Pointers->RegisterTrayIcon(
         PluginInstance,
         NETWORK_ICON_TEXT_ID,
-        &EtpNetworkTextIconGuid,
+        EtpNetworkTextIconGuid,
         NULL,
         L"&Network usage (Text)",
         EtEtwEnabled ? 0 : PH_NF_ICON_UNAVAILABLE,

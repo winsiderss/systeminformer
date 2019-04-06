@@ -171,15 +171,15 @@ VOID PhNfLoadStage2(
 {
     PhNfMiniInfoEnabled = !!PhGetIntegerSetting(L"MiniInfoWindowEnabled");
 
-    PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_CPU_USAGE, &PhNfCpuUsageGuid, NULL, L"CPU &usage", 0, PhNfpCpuUsageIconUpdateCallback, NULL);
-    PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_CPU_HISTORY, &PhNfCpuHistoryGuid, NULL, L"CPU &history", 0, PhNfpCpuHistoryIconUpdateCallback, NULL);
-    PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_IO_HISTORY, &PhNfIoHistoryGuid, NULL, L"&I/O history", 0, PhNfpIoHistoryIconUpdateCallback, NULL);
-    PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_COMMIT_HISTORY, &PhNfCommitHistoryGuid, NULL, L"&Commit charge history", 0, PhNfpCommitHistoryIconUpdateCallback, NULL);
-    PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_PHYSICAL_HISTORY, &PhNfPhysicalHistoryGuid, NULL, L"&Physical memory history", 0, PhNfpPhysicalHistoryIconUpdateCallback, NULL);
-    PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_CPU_TEXT, &PhNfCpuUsageTextGuid, NULL, L"CPU usage (text)", 0, PhNfpCpuUsageTextIconUpdateCallback, NULL);
-    PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_IO_TEXT, &PhNfIoUsageTextGuid, NULL, L"IO usage (text)", 0, PhNfpIoUsageTextIconUpdateCallback, NULL);
-    PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_COMMIT_TEXT, &PhNfCommitTextGuid, NULL, L"Commit usage (text)", 0, PhNfpCommitTextIconUpdateCallback, NULL);
-    PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_PHYSICAL_TEXT, &PhNfPhysicalUsageTextGuid, NULL, L"Physical usage (text)", 0, PhNfpPhysicalUsageTextIconUpdateCallback, NULL);
+    PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_CPU_USAGE, PhNfCpuUsageGuid, NULL, L"CPU &usage", 0, PhNfpCpuUsageIconUpdateCallback, NULL);
+    PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_CPU_HISTORY, PhNfCpuHistoryGuid, NULL, L"CPU &history", 0, PhNfpCpuHistoryIconUpdateCallback, NULL);
+    PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_IO_HISTORY, PhNfIoHistoryGuid, NULL, L"&I/O history", 0, PhNfpIoHistoryIconUpdateCallback, NULL);
+    PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_COMMIT_HISTORY, PhNfCommitHistoryGuid, NULL, L"&Commit charge history", 0, PhNfpCommitHistoryIconUpdateCallback, NULL);
+    PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_PHYSICAL_HISTORY, PhNfPhysicalHistoryGuid, NULL, L"&Physical memory history", 0, PhNfpPhysicalHistoryIconUpdateCallback, NULL);
+    PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_CPU_TEXT, PhNfCpuUsageTextGuid, NULL, L"CPU usage (text)", 0, PhNfpCpuUsageTextIconUpdateCallback, NULL);
+    PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_IO_TEXT, PhNfIoUsageTextGuid, NULL, L"IO usage (text)", 0, PhNfpIoUsageTextIconUpdateCallback, NULL);
+    PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_COMMIT_TEXT, PhNfCommitTextGuid, NULL, L"Commit usage (text)", 0, PhNfpCommitTextIconUpdateCallback, NULL);
+    PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_PHYSICAL_TEXT, PhNfPhysicalUsageTextGuid, NULL, L"Physical usage (text)", 0, PhNfpPhysicalUsageTextIconUpdateCallback, NULL);
 
     if (PhPluginsEnabled)
     {
@@ -412,7 +412,7 @@ BOOLEAN PhNfShowBalloonTip(
     notifyIcon.uFlags = NIF_INFO | NIF_GUID;
     notifyIcon.hWnd = PhMainWndHandle;
     notifyIcon.uID = registeredIcon->IconId;
-    notifyIcon.guidItem = *registeredIcon->IconGuid;
+    notifyIcon.guidItem = registeredIcon->IconGuid;
     wcsncpy_s(notifyIcon.szInfoTitle, RTL_NUMBER_OF(notifyIcon.szInfoTitle), Title, _TRUNCATE);
     wcsncpy_s(notifyIcon.szInfo, RTL_NUMBER_OF(notifyIcon.szInfo), Text, _TRUNCATE);
     notifyIcon.uTimeout = Timeout;
@@ -443,7 +443,7 @@ HICON PhNfBitmapToIcon(
 PPH_NF_ICON PhNfRegisterIcon(
     _In_opt_ struct _PH_PLUGIN *Plugin,
     _In_ ULONG Id,
-    _In_ PGUID Guid,
+    _In_ GUID Guid,
     _In_opt_ PVOID Context,
     _In_ PWSTR Text,
     _In_ ULONG Flags,
@@ -474,7 +474,7 @@ PPH_NF_ICON PhNfRegisterIcon(
 struct _PH_NF_ICON *PhNfPluginRegisterIcon(
     _In_ struct _PH_PLUGIN * Plugin,
     _In_ ULONG Id,
-    _In_ PGUID Guid,
+    _In_ GUID Guid,
     _In_opt_ PVOID Context,
     _In_ PWSTR Text,
     _In_ ULONG Flags,
@@ -616,7 +616,7 @@ BOOLEAN PhNfpAddNotifyIcon(
     notifyIcon.uID = Icon->IconId;
     notifyIcon.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP | NIF_GUID;
     notifyIcon.uCallbackMessage = WM_PH_NOTIFY_ICON_MESSAGE;
-    notifyIcon.guidItem = *Icon->IconGuid;
+    notifyIcon.guidItem = Icon->IconGuid;
     wcsncpy_s(
         notifyIcon.szTip, sizeof(notifyIcon.szTip) / sizeof(WCHAR),
         PhGetStringOrDefault(Icon->TextCache, PhApplicationName),
@@ -644,7 +644,7 @@ BOOLEAN PhNfpRemoveNotifyIcon(
     notifyIcon.uFlags = NIF_GUID;
     notifyIcon.hWnd = PhMainWndHandle;
     notifyIcon.uID = Icon->IconId;
-    notifyIcon.guidItem = *Icon->IconGuid;
+    notifyIcon.guidItem = Icon->IconGuid;
 
     Shell_NotifyIcon(NIM_DELETE, &notifyIcon);
 
@@ -668,7 +668,7 @@ BOOLEAN PhNfpModifyNotifyIcon(
     notifyIcon.uFlags = Flags | NIF_GUID;
     notifyIcon.hWnd = PhMainWndHandle;
     notifyIcon.uID = Icon->IconId;
-    notifyIcon.guidItem = *Icon->IconGuid;
+    notifyIcon.guidItem = Icon->IconGuid;
     notifyIcon.hIcon = IconHandle;
 
     if (!PhNfMiniInfoEnabled || PhNfMiniInfoPinned || (Icon->Flags & PH_NF_ICON_NOSHOW_MINIINFO))
