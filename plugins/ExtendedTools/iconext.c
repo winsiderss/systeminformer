@@ -26,25 +26,28 @@
 #include "gpusys.h"
 #include <toolstatusintf.h>
 
-#define GPU_ICON_ID 1
-#define DISK_ICON_ID 2
-#define NETWORK_ICON_ID 3
-#define GPU_ICON_TEXT_ID 4
-#define DISK_ICON_TEXT_ID 5
-#define NETWORK_ICON_TEXT_ID 6
+typedef enum _ETP_TRAY_ICON_ID
+{
+    ETP_TRAY_ICON_ID_NONE,
+    ETP_TRAY_ICON_ID_GPU,
+    ETP_TRAY_ICON_ID_DISK,
+    ETP_TRAY_ICON_ID_NETWORK,
+    ETP_TRAY_ICON_ID_GPUTEXT,
+    ETP_TRAY_ICON_ID_DISKTEXT,
+    ETP_TRAY_ICON_ID_NETWORKTEXT,
+    ETP_TRAY_ICON_ID_MAXIMUM
+} ETP_TRAY_ICON_ID;
 
-// {0B50C566-8386-44A5-897F-8FE07D55975C}
-static GUID EtpGpuIconGuid = { 0xb50c566, 0x8386, 0x44a5, { 0x89, 0x7f, 0x8f, 0xe0, 0x7d, 0x55, 0x97, 0x5c } };
-// {633E07FF-4B3C-405E-82EF-1F0C6904FC05}
-static GUID EtpDiskIconGuid = { 0x633e07ff, 0x4b3c, 0x405e, { 0x82, 0xef, 0x1f, 0xc, 0x69, 0x4, 0xfc, 0x5 } };
-// {05606BEE-D4B0-4BC8-B6B7-69F9685AF782}
-static GUID EtpNetworkIconGuid = { 0x5606bee, 0xd4b0, 0x4bc8, { 0xb6, 0xb7, 0x69, 0xf9, 0x68, 0x5a, 0xf7, 0x82 } };
-// {A2DA7963-AD12-4938-8DF8-280D971E5277}
-static GUID EtpGpuTextIconGuid = { 0xa2da7963, 0xad12, 0x4938, { 0x8d, 0xf8, 0x28, 0xd, 0x97, 0x1e, 0x52, 0x77 } };
-// {C76B1DF8-F2D2-42D0-AA78-13E214BDC663}
-static GUID EtpDiskTextIconGuid = { 0xc76b1df8, 0xf2d2, 0x42d0, { 0xaa, 0x78, 0x13, 0xe2, 0x14, 0xbd, 0xc6, 0x63 } };
-// {0AE1EDF2-220D-4EAA-B4F8-ED3E07A6FB12}
-static GUID EtpNetworkTextIconGuid = { 0xae1edf2, 0x220d, 0x4eaa, { 0xb4, 0xf8, 0xed, 0x3e, 0x7, 0xa6, 0xfb, 0x12 } };
+typedef enum _ETP_TRAY_ICON_GUID
+{
+    ETP_TRAY_ICON_GUID_GPU,
+    ETP_TRAY_ICON_GUID_DISK,
+    ETP_TRAY_ICON_GUID_NETWORK,
+    ETP_TRAY_ICON_GUID_GPUTEXT,
+    ETP_TRAY_ICON_GUID_DISKTEXT,
+    ETP_TRAY_ICON_GUID_NETWORKTEXT,
+    ETP_TRAY_ICON_GUID_MAXIMUM
+} ETP_TRAY_ICON_GUID;
 
 VOID EtpGpuIconUpdateCallback(
     _In_ struct _PH_NF_ICON *Icon,
@@ -115,6 +118,78 @@ VOID EtpNetworkTextIconUpdateCallback(
     _In_opt_ PVOID Context
     );
 
+GUID EtpTrayIconGuids[ETP_TRAY_ICON_GUID_MAXIMUM];
+
+VOID EtLoadTrayIconGuids(
+    VOID
+    )
+{
+    PPH_STRING settingsString = NULL;
+    PH_STRINGREF remaining;
+    ULONG i;
+
+    settingsString = PhGetStringSetting(SETTING_NAME_TRAYICON_GUIDS);
+
+    if (PhIsNullOrEmptyString(settingsString))
+    {
+        PH_STRING_BUILDER iconListBuilder;
+        PPH_STRING iconGuid;
+
+        PhInitializeStringBuilder(&iconListBuilder, 100);
+
+        for (i = 0; i < RTL_NUMBER_OF(EtpTrayIconGuids); i++)
+        {
+            PhGenerateGuid(&EtpTrayIconGuids[i]);
+
+            if (iconGuid = PhFormatGuid(&EtpTrayIconGuids[i]))
+            {
+                PhAppendFormatStringBuilder(
+                    &iconListBuilder,
+                    L"%s|",
+                    iconGuid->Buffer
+                    );
+                PhDereferenceObject(iconGuid);
+            }
+        }
+
+        if (iconListBuilder.String->Length != 0)
+            PhRemoveEndStringBuilder(&iconListBuilder, 1);
+
+        PhMoveReference(&settingsString, PhFinalStringBuilderString(&iconListBuilder));
+        PhSetStringSetting2(SETTING_NAME_TRAYICON_GUIDS, &settingsString->sr);
+        PhDereferenceObject(settingsString);
+    }
+    else
+    {
+        remaining = PhGetStringRef(settingsString);
+
+        for (i = 0; i < RTL_NUMBER_OF(EtpTrayIconGuids); i++)
+        {
+            PH_STRINGREF guidPart;
+            UNICODE_STRING guidStringUs;
+            GUID guid;
+
+            if (remaining.Length == 0)
+                continue;
+
+            PhSplitStringRefAtChar(&remaining, '|', &guidPart, &remaining);
+
+            if (guidPart.Length == 0)
+                continue;
+
+            if (!PhStringRefToUnicodeString(&guidPart, &guidStringUs))
+                continue;
+
+            if (!NT_SUCCESS(RtlGUIDFromString(&guidStringUs, &guid)))
+                PhGenerateGuid(&EtpTrayIconGuids[i]);
+            else
+                EtpTrayIconGuids[i] = guid;
+        }
+
+        PhDereferenceObject(settingsString);
+    }
+}
+
 VOID EtRegisterNotifyIcons(
     _In_ PPH_TRAY_ICON_POINTERS Pointers
     )
@@ -127,8 +202,8 @@ VOID EtRegisterNotifyIcons(
     data.MessageCallback = EtpGpuIconMessageCallback;
     Pointers->RegisterTrayIcon(
         PluginInstance,
-        GPU_ICON_ID,
-        EtpGpuIconGuid,
+        ETP_TRAY_ICON_ID_GPU,
+        EtpTrayIconGuids[ETP_TRAY_ICON_GUID_GPU],
         NULL,
         L"&GPU history",
         EtGpuEnabled ? 0 : PH_NF_ICON_UNAVAILABLE,
@@ -139,8 +214,8 @@ VOID EtRegisterNotifyIcons(
     data.MessageCallback = EtpDiskIconMessageCallback;
     Pointers->RegisterTrayIcon(
         PluginInstance,
-        DISK_ICON_ID,
-        EtpDiskIconGuid,
+        ETP_TRAY_ICON_ID_DISK,
+        EtpTrayIconGuids[ETP_TRAY_ICON_GUID_DISK],
         NULL,
         L"&Disk history",
         EtEtwEnabled ? 0 : PH_NF_ICON_UNAVAILABLE,
@@ -151,8 +226,8 @@ VOID EtRegisterNotifyIcons(
     data.MessageCallback = EtpNetworkIconMessageCallback;
     Pointers->RegisterTrayIcon(
         PluginInstance,
-        NETWORK_ICON_ID,
-        EtpNetworkIconGuid,
+        ETP_TRAY_ICON_ID_NETWORK,
+        EtpTrayIconGuids[ETP_TRAY_ICON_GUID_NETWORK],
         NULL,
         L"&Network history",
         EtEtwEnabled ? 0 : PH_NF_ICON_UNAVAILABLE,
@@ -163,8 +238,8 @@ VOID EtRegisterNotifyIcons(
     data.MessageCallback = EtpGpuIconMessageCallback;
     Pointers->RegisterTrayIcon(
         PluginInstance,
-        GPU_ICON_TEXT_ID,
-        EtpGpuTextIconGuid,
+        ETP_TRAY_ICON_ID_GPUTEXT,
+        EtpTrayIconGuids[ETP_TRAY_ICON_GUID_GPUTEXT],
         NULL,
         L"&GPU usage (Text)",
         EtGpuEnabled ? 0 : PH_NF_ICON_UNAVAILABLE,
@@ -175,8 +250,8 @@ VOID EtRegisterNotifyIcons(
     data.MessageCallback = EtpDiskIconMessageCallback;
     Pointers->RegisterTrayIcon(
         PluginInstance,
-        DISK_ICON_TEXT_ID,
-        EtpDiskTextIconGuid,
+        ETP_TRAY_ICON_ID_DISKTEXT,
+        EtpTrayIconGuids[ETP_TRAY_ICON_GUID_DISKTEXT],
         NULL,
         L"&Disk usage (Text)",
         EtEtwEnabled ? 0 : PH_NF_ICON_UNAVAILABLE,
@@ -187,8 +262,8 @@ VOID EtRegisterNotifyIcons(
     data.MessageCallback = EtpNetworkIconMessageCallback;
     Pointers->RegisterTrayIcon(
         PluginInstance,
-        NETWORK_ICON_TEXT_ID,
-        EtpNetworkTextIconGuid,
+        ETP_TRAY_ICON_ID_NETWORKTEXT,
+        EtpTrayIconGuids[ETP_TRAY_ICON_GUID_NETWORKTEXT],
         NULL,
         L"&Network usage (Text)",
         EtEtwEnabled ? 0 : PH_NF_ICON_UNAVAILABLE,

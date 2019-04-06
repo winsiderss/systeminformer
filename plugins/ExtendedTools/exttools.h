@@ -37,6 +37,7 @@ extern ULONG ProcessesUpdatedCount;
 #define SETTING_NAME_WSWATCH_WINDOW_POSITION (PLUGIN_NAME L".WsWatchWindowPosition")
 #define SETTING_NAME_WSWATCH_WINDOW_SIZE (PLUGIN_NAME L".WsWatchWindowSize")
 #define SETTING_NAME_WSWATCH_COLUMNS (PLUGIN_NAME L".WsWatchListColumns")
+#define SETTING_NAME_TRAYICON_GUIDS (PLUGIN_NAME L".TrayIconGuids")
 
 // Window messages
 #define ET_WM_SHOWDIALOG (WM_APP + 1)
@@ -558,6 +559,10 @@ VOID EtGpuMiniInformationInitializing(
     );
 
 // iconext
+
+VOID EtLoadTrayIconGuids(
+    VOID
+    );
 
 VOID EtRegisterNotifyIcons(
     _In_ PPH_TRAY_ICON_POINTERS Pointers
