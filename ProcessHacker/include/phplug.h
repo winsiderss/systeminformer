@@ -352,6 +352,7 @@ typedef struct _PH_PLUGIN_MINIINFO_POINTERS
  * \param Plugin A plugin instance structure.
  * \param SubId An identifier for the column. This should be unique within the
  * plugin.
+ * \param Guid A unique guid for this icon.
  * \param Context A user-defined value.
  * \param Text A string describing the notification icon.
  * \param Flags A combination of flags.
@@ -362,6 +363,7 @@ typedef struct _PH_PLUGIN_MINIINFO_POINTERS
 typedef struct _PH_NF_ICON * (NTAPI *PPH_REGISTER_TRAY_ICON)(
     _In_ struct _PH_PLUGIN * Plugin,
     _In_ ULONG SubId,
+    _In_ PGUID Guid,
     _In_opt_ PVOID Context,
     _In_ PWSTR Text,
     _In_ ULONG Flags,
