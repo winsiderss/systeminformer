@@ -445,7 +445,7 @@ BOOLEAN PhNfShowBalloonTip(
     _In_ ULONG Flags
     )
 {
-    NOTIFYICONDATA notifyIcon = { NOTIFYICONDATA_V3_SIZE };
+    NOTIFYICONDATA notifyIcon = { sizeof(NOTIFYICONDATA) };
     PPH_NF_ICON registeredIcon = NULL;
 
     for (ULONG i = 0; i < PhTrayIconItemList->Count; i++)
@@ -660,7 +660,7 @@ BOOLEAN PhNfpAddNotifyIcon(
     _In_ PPH_NF_ICON Icon
     )
 {
-    NOTIFYICONDATA notifyIcon = { NOTIFYICONDATA_V3_SIZE };
+    NOTIFYICONDATA notifyIcon = { sizeof(NOTIFYICONDATA) };
 
     if (PhMainWndExiting)
         return FALSE;
@@ -692,7 +692,7 @@ BOOLEAN PhNfpRemoveNotifyIcon(
     _In_ PPH_NF_ICON Icon
     )
 {
-    NOTIFYICONDATA notifyIcon = { NOTIFYICONDATA_V3_SIZE };
+    NOTIFYICONDATA notifyIcon = { sizeof(NOTIFYICONDATA) };
 
     notifyIcon.uFlags = NIF_GUID;
     notifyIcon.hWnd = PhMainWndHandle;
