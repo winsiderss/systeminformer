@@ -3,6 +3,7 @@
  *   service list control
  *
  * Copyright (C) 2010-2011 wj32
+ * Copyright (C) 2017-2019 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -25,6 +26,7 @@
 #include <phsettings.h>
 #include <svcsup.h>
 #include <settings.h>
+#include <emenu.h>
 
 #include <actions.h>
 #include <mainwnd.h>
@@ -424,6 +426,68 @@ INT_PTR CALLBACK PhpServicesPageProc(
 
             context->ListViewSettingName = settingName;
             PhLoadListViewColumnsFromSetting(settingName, context->ListViewHandle);
+        }
+        break;
+    case WM_CONTEXTMENU:
+        {
+            if ((HWND)wParam == context->ListViewHandle)
+            {
+                POINT point;
+                PPH_EMENU menu;
+                PPH_EMENU item;
+                PVOID* listviewItems;
+                ULONG numberOfItems;
+
+                point.x = GET_X_LPARAM(lParam);
+                point.y = GET_Y_LPARAM(lParam);
+
+                if (point.x == -1 && point.y == -1)
+                    PhGetListViewContextMenuPoint((HWND)wParam, &point);
+
+                PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
+
+                if (numberOfItems != 0)
+                {
+                    menu = PhCreateEMenu();
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
+                    PhInsertCopyListViewEMenuItem(menu, IDC_COPY, context->ListViewHandle);
+
+                    item = PhShowEMenu(
+                        menu,
+                        hwndDlg,
+                        PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT,
+                        PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                        point.x,
+                        point.y
+                        );
+
+                    if (item)
+                    {
+                        BOOLEAN handled = FALSE;
+
+                        handled = PhHandleCopyListViewEMenuItem(item);
+
+                        //if (!handled && PhPluginsEnabled)
+                        //    handled = PhPluginTriggerEMenuItem(&menuInfo, item);
+
+                        if (!handled)
+                        {
+                            switch (item->Id)
+                            {
+                            case IDC_COPY:
+                                {
+                                    PhCopyListView(context->ListViewHandle);
+                                }
+                                break;
+                            }
+                        }
+                    }
+
+                    PhDestroyEMenu(menu);
+                }
+
+                PhFree(listviewItems);
+            }
         }
         break;
     }
