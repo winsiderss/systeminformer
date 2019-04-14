@@ -2090,7 +2090,7 @@ INT_PTR CALLBACK PhpTokenAdvancedPageProc(
                 POINT point;
                 PPH_EMENU menu;
                 PPH_EMENU item;
-                PPHP_TOKEN_PAGE_LISTVIEW_ITEM* listviewItems;
+                PVOID* listviewItems;
                 ULONG numberOfItems;
 
                 point.x = GET_X_LPARAM(lParam);
@@ -3288,7 +3288,7 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
                 POINT point;
                 PPH_EMENU menu;
                 PPH_EMENU item;
-                PPHP_TOKEN_PAGE_LISTVIEW_ITEM* listviewItems;
+                PVOID* listviewItems;
                 ULONG numberOfItems;
 
                 point.x = GET_X_LPARAM(lParam);
