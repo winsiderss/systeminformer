@@ -313,7 +313,7 @@ PH_KNOWN_PROCESS_TYPE PhGetProcessKnownTypeEx(
     BOOLEAN isWow64 = FALSE;
 #endif
 
-    if (ProcessId == SYSTEM_PROCESS_ID)
+    if (ProcessId == SYSTEM_PROCESS_ID || ProcessId == SYSTEM_IDLE_PROCESS_ID)
         return SystemProcessType;
 
     if (PhIsNullOrEmptyString(FileName))
