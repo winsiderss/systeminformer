@@ -799,12 +799,14 @@ PWSTR PhGetPrivilegeAttributesString(
 VOID PhShowTokenProperties(
     _In_ HWND ParentWindowHandle,
     _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_ HANDLE ProcessId,
     _In_opt_ PVOID Context,
     _In_opt_ PWSTR Title
     );
 
 HPROPSHEETPAGE PhCreateTokenPage(
     _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_ HANDLE ProcessId,
     _In_opt_ PVOID Context,
     _In_opt_ DLGPROC HookProc
     );

@@ -897,6 +897,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                             PhShowTokenProperties(
                                 hwndDlg,
                                 PhpOpenThreadTokenObject,
+                                threadsContext->Provider->ProcessId,
                                 (PVOID)threadHandle,
                                 NULL
                                 );

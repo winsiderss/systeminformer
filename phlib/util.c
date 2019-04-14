@@ -5518,9 +5518,7 @@ BOOLEAN PhExtractIconEx(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        if (!PrivateExtractIconExW)
-            PrivateExtractIconExW = PhGetDllProcedureAddress(L"user32.dll", "PrivateExtractIconExW", 0);
-
+        PrivateExtractIconExW = PhGetDllProcedureAddress(L"user32.dll", "PrivateExtractIconExW", 0);
         PhEndInitOnce(&initOnce);
     }
 
