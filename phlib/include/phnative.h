@@ -147,6 +147,14 @@ PhSetObjectSecurity(
     );
 
 PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetSecurityDescriptorAsString(
+    _In_ SECURITY_INFORMATION SecurityInformation,
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
+    );
+
+PHLIBAPI
 NTSTATUS
 NTAPI
 PhTerminateProcess(
@@ -424,6 +432,33 @@ PhGetTokenTrustLevel(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhGetTokenNamedObjectPath(
+    _In_ HANDLE TokenHandle,
+    _In_opt_ PSID Sid,
+    _Out_ PPH_STRING* ObjectPath
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetAppContainerNamedObjectPath(
+    _In_ HANDLE TokenHandle,
+    _In_opt_ PSID AppContainerSid,
+    _In_ BOOLEAN RelativePath,
+    _Out_ PPH_STRING* ObjectPath
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetTokenSecurityDescriptorAsString(
+    _In_ HANDLE TokenHandle,
+    _Out_ PPH_STRING* SecurityDescriptorString
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhSetTokenSessionId(
     _In_ HANDLE TokenHandle,
     _In_ ULONG SessionId
@@ -482,6 +517,17 @@ PhGetTokenIntegrityLevel(
     _In_ HANDLE TokenHandle,
     _Out_opt_ PMANDATORY_LEVEL IntegrityLevel,
     _Out_opt_ PWSTR *IntegrityString
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetTokenProcessTrustLevelRID(
+    _In_ HANDLE TokenHandle,
+    _Out_opt_ PULONG ProtectionType,
+    _Out_opt_ PULONG ProtectionLevel,
+    _Out_opt_ PPH_STRING* TrustLevelString,
+    _Out_opt_ PPH_STRING* TrustLevelSidString
     );
 
 PHLIBAPI
@@ -782,6 +828,12 @@ PhGetKernelFileName(
     ((PSYSTEM_PROCESS_INFORMATION_EXTENSION)PTR_ADD_OFFSET((Process), \
     UFIELD_OFFSET(SYSTEM_PROCESS_INFORMATION, Threads) + \
     sizeof(SYSTEM_THREAD_INFORMATION) * \
+    ((PSYSTEM_PROCESS_INFORMATION)(Process))->NumberOfThreads))
+
+#define PH_EXTENDED_PROCESS_EXTENSION(Process) \
+    ((PSYSTEM_PROCESS_INFORMATION_EXTENSION)PTR_ADD_OFFSET((Process), \
+    UFIELD_OFFSET(SYSTEM_PROCESS_INFORMATION, Threads) + \
+    sizeof(SYSTEM_EXTENDED_THREAD_INFORMATION) * \
     ((PSYSTEM_PROCESS_INFORMATION)(Process))->NumberOfThreads))
 
 PHLIBAPI

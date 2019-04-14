@@ -1468,6 +1468,52 @@ PhGetTokenOrigin(
 
 FORCEINLINE
 NTSTATUS
+PhGetTokenIsAppContainer(
+    _In_ HANDLE TokenHandle,
+    _Out_ PBOOLEAN IsAppContainer
+    )
+{
+    NTSTATUS status;
+    ULONG returnLength;
+    ULONG isAppContainer;
+
+    status = NtQueryInformationToken(
+        TokenHandle,
+        TokenIsAppContainer,
+        &isAppContainer,
+        sizeof(ULONG),
+        &returnLength
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    *IsAppContainer = !!isAppContainer;
+
+    return status;
+}
+
+FORCEINLINE
+NTSTATUS
+PhGetTokenAppContainerNumber(
+    _In_ HANDLE TokenHandle,
+    _Out_ PULONG AppContainerNumber
+    )
+{
+    ULONG returnLength;
+
+    return NtQueryInformationToken(
+        TokenHandle,
+        TokenAppContainerNumber,
+        AppContainerNumber,
+        sizeof(ULONG),
+        &returnLength
+        );
+}
+
+
+FORCEINLINE
+NTSTATUS
 PhGetEventBasicInformation(
     _In_ HANDLE EventHandle,
     _Out_ PEVENT_BASIC_INFORMATION BasicInformation

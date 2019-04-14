@@ -28,6 +28,8 @@
 #include <lsasup.h>
 #include <mapimg.h>
 
+#include <sddl.h>
+
 #define PH_DEVICE_PREFIX_LENGTH 64
 #define PH_DEVICE_MUP_PREFIX_MAX_COUNT 16
 
@@ -431,6 +433,33 @@ NTSTATUS PhSetObjectSecurity(
         SecurityInformation,
         SecurityDescriptor
         );
+}
+
+PPH_STRING PhGetSecurityDescriptorAsString(
+    _In_ SECURITY_INFORMATION SecurityInformation,
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
+    )
+{
+    PPH_STRING securityDescriptorString = NULL;
+    ULONG stringSecurityDescriptorLength;
+    PWSTR stringSecurityDescriptor;
+
+    if (ConvertSecurityDescriptorToStringSecurityDescriptor(
+        SecurityDescriptor,
+        SDDL_REVISION,
+        SecurityInformation,
+        &stringSecurityDescriptor,
+        &stringSecurityDescriptorLength
+        ))
+    {
+        securityDescriptorString = PhCreateStringEx(
+            stringSecurityDescriptor,
+            stringSecurityDescriptorLength * sizeof(WCHAR)
+            );
+        LocalFree(stringSecurityDescriptor);
+    }
+
+    return securityDescriptorString;
 }
 
 /**
@@ -2165,6 +2194,86 @@ NTSTATUS PhSetTokenSessionId(
         );
 }
 
+NTSTATUS PhGetTokenNamedObjectPath(
+    _In_ HANDLE TokenHandle,
+    _In_opt_ PSID Sid,
+    _Out_ PPH_STRING* ObjectPath
+    )
+{
+    NTSTATUS status;
+    UNICODE_STRING namedObjectPathUs;
+
+    status = RtlGetTokenNamedObjectPath(
+        TokenHandle,
+        Sid,
+        &namedObjectPathUs
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *ObjectPath = PhCreateStringFromUnicodeString(&namedObjectPathUs);
+        RtlFreeUnicodeString(&namedObjectPathUs);
+    }
+
+    return status;
+}
+
+NTSTATUS PhGetAppContainerNamedObjectPath(
+    _In_ HANDLE TokenHandle,
+    _In_opt_ PSID AppContainerSid,
+    _In_ BOOLEAN RelativePath,
+    _Out_ PPH_STRING* ObjectPath
+    )
+{
+    NTSTATUS status;
+    UNICODE_STRING namedObjectPathUs;
+
+    status = RtlGetAppContainerNamedObjectPath(
+        TokenHandle,
+        AppContainerSid,
+        RelativePath,
+        &namedObjectPathUs
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *ObjectPath = PhCreateStringFromUnicodeString(&namedObjectPathUs);
+        RtlFreeUnicodeString(&namedObjectPathUs);
+    }
+
+    return status;
+}
+
+BOOLEAN PhGetTokenSecurityDescriptorAsString(
+    _In_ HANDLE TokenHandle,
+    _Out_ PPH_STRING* SecurityDescriptorString
+    )
+{
+    PSECURITY_DESCRIPTOR securityDescriptor;
+
+    if (NT_SUCCESS(PhGetObjectSecurity(
+        TokenHandle,
+        OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION |
+        DACL_SECURITY_INFORMATION | LABEL_SECURITY_INFORMATION |
+        ATTRIBUTE_SECURITY_INFORMATION | SCOPE_SECURITY_INFORMATION,
+        &securityDescriptor
+        )))
+    {
+        *SecurityDescriptorString = PhGetSecurityDescriptorAsString(
+            OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION |
+            DACL_SECURITY_INFORMATION | LABEL_SECURITY_INFORMATION |
+            ATTRIBUTE_SECURITY_INFORMATION | SCOPE_SECURITY_INFORMATION,
+            securityDescriptor
+            );
+
+        PhFree(securityDescriptor);
+
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
 /**
  * Modifies a token privilege.
  *
@@ -2447,6 +2556,97 @@ NTSTATUS PhGetTokenIntegrityLevel(
 
         *IntegrityLevel = integrityLevel;
     }
+
+    return status;
+}
+
+NTSTATUS PhGetTokenProcessTrustLevelRID(
+    _In_ HANDLE TokenHandle,
+    _Out_opt_ PULONG ProtectionType,
+    _Out_opt_ PULONG ProtectionLevel,
+    _Out_opt_ PPH_STRING* TrustLevelString,
+    _Out_opt_ PPH_STRING* TrustLevelSidString
+    )
+{
+    NTSTATUS status;
+    PTOKEN_SID_INFORMATION trustLevel;
+    ULONG subAuthoritiesCount;
+    ULONG protectionType;
+    ULONG protectionLevel;
+
+    status = PhpQueryTokenVariableSize(TokenHandle, TokenProcessTrustLevel, &trustLevel);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (!RtlValidSid(trustLevel->Sid))
+        return STATUS_UNSUCCESSFUL;
+
+    subAuthoritiesCount = *RtlSubAuthorityCountSid(trustLevel->Sid);
+    //RtlIdentifierAuthoritySid(TokenPageContext->Capabilities->Groups[i].Sid) == (BYTE[])SECURITY_PROCESS_TRUST_AUTHORITY
+
+    if (subAuthoritiesCount == SECURITY_PROCESS_TRUST_AUTHORITY_RID_COUNT)
+    {
+        protectionType = *RtlSubAuthoritySid(trustLevel->Sid, 0);
+        protectionLevel = *RtlSubAuthoritySid(trustLevel->Sid, 1);
+    }
+    else
+    {
+        protectionType = SECURITY_PROCESS_PROTECTION_TYPE_NONE_RID;
+        protectionLevel = SECURITY_PROCESS_PROTECTION_LEVEL_NONE_RID;
+    }
+
+    if (ProtectionType)
+        *ProtectionType = protectionType;
+    if (ProtectionLevel)
+        *ProtectionLevel = protectionLevel;
+
+    if (TrustLevelString)
+    {
+        PWSTR protectionTypeString = NULL;
+        PWSTR protectionLevelString = NULL;
+
+        switch (protectionType)
+        {
+        case SECURITY_PROCESS_PROTECTION_TYPE_FULL_RID:
+            protectionTypeString = L"Full";
+            break;
+        case SECURITY_PROCESS_PROTECTION_TYPE_LITE_RID:
+            protectionTypeString = L"Lite";
+            break;
+        }
+
+        switch (protectionLevel)
+        {
+        case SECURITY_PROCESS_PROTECTION_LEVEL_WINTCB_RID:
+            protectionLevelString = L" (WinTcb)";
+            break;
+        case SECURITY_PROCESS_PROTECTION_LEVEL_WINDOWS_RID:
+            protectionLevelString = L" (Windows)";
+            break;
+        case SECURITY_PROCESS_PROTECTION_LEVEL_APP_RID:
+            protectionLevelString = L" (StoreApp)";
+            break;
+        case SECURITY_PROCESS_PROTECTION_LEVEL_ANTIMALWARE_RID:
+            protectionLevelString = L" (Antimalware)";
+            break;
+        case SECURITY_PROCESS_PROTECTION_LEVEL_AUTHENTICODE_RID:
+            protectionLevelString = L" (Authenticode)";
+            break;
+        }
+
+        if (protectionTypeString && protectionLevelString)
+            *TrustLevelString = PhConcatStrings2(protectionTypeString, protectionLevelString);
+        else
+            *TrustLevelString = PhCreateString(L"Unknown");
+    }
+
+    if (TrustLevelSidString)
+    {
+        *TrustLevelSidString = PhSidToStringSid(trustLevel->Sid);
+    }
+
+    PhFree(trustLevel);
 
     return status;
 }
