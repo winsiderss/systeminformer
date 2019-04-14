@@ -71,7 +71,7 @@ static BOOL (WINAPI* AppContainerFreeMemory_I)(
 static HRESULT (WINAPI* AppPolicyGetWindowingModel_I)(
     _In_ HANDLE ProcessTokenHandle,
     _Out_ AppPolicyWindowingModel *ProcessWindowingModelPolicy
-    );
+    ) = NULL;
 
 typedef enum _START_MENU_APP_ITEMS_FLAGS
 {
@@ -494,8 +494,8 @@ DECLARE_INTERFACE_IID(IResourceMap, IUnknown)
     ((This)->lpVtbl->GetNamedResourceCount(This, Count)) 
 #define IResourceMap_GetNamedResourceUri(This, Index, Name) \
     ((This)->lpVtbl->GetNamedResourceUri(This, Index, Name)) 
-#define IResourceMap_GetNamedResource(This) \
-    ((This)->lpVtbl->GetNamedResource(This)) 
+#define IResourceMap_GetNamedResource(This, Name, rrid, ppvObject) \
+    ((This)->lpVtbl->GetNamedResource(This, Name, rrid, ppvObject))
 #define IResourceMap_GetFullyQualifiedReference(This) \
     ((This)->lpVtbl->GetFullyQualifiedReference(This)) 
 #define IResourceMap_GetFilePathByUri(This) \
