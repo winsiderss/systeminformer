@@ -235,6 +235,7 @@ NTSTATUS PhpShowHandlePropertiesThread(
     {
         pages[propSheetHeader.nPages++] = PhCreateTokenPage(
             PhpDuplicateHandleFromProcess,
+            context.ProcessId,
             &context,
             NULL
             );
@@ -643,7 +644,7 @@ VOID PhpUpdateHandleGeneral(
             NtClose(alpcPortHandle);
         }
     }
-    else if (PhEqualStringRef2(&Context->HandleItem->TypeName->sr, L"File", TRUE))
+    else if (PhEqualString2(Context->HandleItem->TypeName, L"File", TRUE))
     {
         NTSTATUS status;
         HANDLE processHandle;
@@ -831,7 +832,7 @@ VOID PhpUpdateHandleGeneral(
             NtClose(fileHandle);
         }
     }
-    else if (PhEqualStringRef2(&Context->HandleItem->TypeName->sr, L"Section", TRUE))
+    else if (PhEqualString2(Context->HandleItem->TypeName, L"Section", TRUE))
     {
         NTSTATUS status;
         HANDLE processHandle;

@@ -2200,10 +2200,25 @@ NTSTATUS PhGetTokenNamedObjectPath(
     _Out_ PPH_STRING* ObjectPath
     )
 {
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static NTSTATUS(WINAPI * RtlGetTokenNamedObjectPath_I)(
+        _In_ HANDLE Token,
+        _In_opt_ PSID Sid,
+        _Out_ PUNICODE_STRING ObjectPath
+        ) = NULL;
     NTSTATUS status;
     UNICODE_STRING namedObjectPathUs;
 
-    status = RtlGetTokenNamedObjectPath(
+    if (PhBeginInitOnce(&initOnce))
+    {
+        RtlGetTokenNamedObjectPath_I = PhGetDllProcedureAddress(L"ntdll.dll", "RtlGetTokenNamedObjectPath", 0);
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!RtlGetTokenNamedObjectPath_I)
+        return STATUS_UNSUCCESSFUL;
+
+    status = RtlGetTokenNamedObjectPath_I(
         TokenHandle,
         Sid,
         &namedObjectPathUs
@@ -2225,10 +2240,26 @@ NTSTATUS PhGetAppContainerNamedObjectPath(
     _Out_ PPH_STRING* ObjectPath
     )
 {
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static NTSTATUS (WINAPI * RtlGetAppContainerNamedObjectPath_I)(
+        _In_opt_ HANDLE Token,
+        _In_opt_ PSID AppContainerSid,
+        _In_ BOOLEAN RelativePath,
+        _Out_ PUNICODE_STRING ObjectPath
+        ) = NULL;
     NTSTATUS status;
     UNICODE_STRING namedObjectPathUs;
 
-    status = RtlGetAppContainerNamedObjectPath(
+    if (PhBeginInitOnce(&initOnce))
+    {
+        RtlGetAppContainerNamedObjectPath_I = PhGetDllProcedureAddress(L"ntdll.dll", "RtlGetAppContainerNamedObjectPath", 0);
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!RtlGetAppContainerNamedObjectPath_I)
+        return STATUS_UNSUCCESSFUL;
+
+    status = RtlGetAppContainerNamedObjectPath_I(
         TokenHandle,
         AppContainerSid,
         RelativePath,

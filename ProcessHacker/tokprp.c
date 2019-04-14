@@ -86,6 +86,7 @@ typedef struct _TOKEN_PAGE_CONTEXT
     PPH_OPEN_OBJECT OpenObject;
     PVOID Context;
     DLGPROC HookProc;
+    HANDLE ProcessId;
 
     HWND ListViewHandle;
     HIMAGELIST ListViewImageList;
@@ -186,6 +187,7 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
 VOID PhShowTokenProperties(
     _In_ HWND ParentWindowHandle,
     _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_ HANDLE ProcessId,
     _In_opt_ PVOID Context,
     _In_opt_ PWSTR Title
     )
@@ -204,13 +206,14 @@ VOID PhShowTokenProperties(
     propSheetHeader.nStartPage = 0;
     propSheetHeader.phpage = pages;
 
-    pages[0] = PhCreateTokenPage(OpenObject, Context, NULL);
+    pages[0] = PhCreateTokenPage(OpenObject, ProcessId, Context, NULL);
 
     PhModalPropertySheet(&propSheetHeader);
 }
 
 HPROPSHEETPAGE PhCreateTokenPage(
     _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_ HANDLE ProcessId,
     _In_opt_ PVOID Context,
     _In_opt_ DLGPROC HookProc
     )
@@ -224,6 +227,7 @@ HPROPSHEETPAGE PhCreateTokenPage(
     tokenPageContext->OpenObject = OpenObject;
     tokenPageContext->Context = Context;
     tokenPageContext->HookProc = HookProc;
+    tokenPageContext->ProcessId = ProcessId;
 
     memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
     propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
@@ -1835,7 +1839,7 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
                         tokenPageContext->Context
                         )))
                     {
-                        PhShowTokenProperties(hwndDlg, PhpOpenLinkedToken, (PVOID)tokenHandle, L"Linked Token");
+                        PhShowTokenProperties(hwndDlg, PhpOpenLinkedToken, tokenPageContext->ProcessId, (PVOID)tokenHandle, L"Linked Token");
                         NtClose(tokenHandle);
                     }
                     else
@@ -3079,6 +3083,7 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
             BOOLEAN isLessPrivilegedAppContainer = FALSE;
             WCHAR appContainerNumberString[PH_INT64_STR_LEN_1] = L"Unknown";
             PPH_STRING tokenNamedObjectPathString = NULL;
+            HANDLE processHandle;
 
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
@@ -3094,17 +3099,18 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
             PhAddListViewGroup(context->ListViewHandle, 0, L"General");
             PhAddListViewGroup(context->ListViewHandle, 1, L"Properties");
             PhAddListViewGroup(context->ListViewHandle, 2, L"Parent");
+            PhAddListViewGroup(context->ListViewHandle, 3, L"Package");
 
             PhAddListViewGroupItem(context->ListViewHandle, 0, MAXINT, L"Name", NULL);
             PhAddListViewGroupItem(context->ListViewHandle, 0, MAXINT, L"Type", NULL);
             PhAddListViewGroupItem(context->ListViewHandle, 0, MAXINT, L"SID", NULL);
-
             PhAddListViewGroupItem(context->ListViewHandle, 1, MAXINT, L"Number", NULL);
             PhAddListViewGroupItem(context->ListViewHandle, 1, MAXINT, L"LPAC", NULL);
             PhAddListViewGroupItem(context->ListViewHandle, 1, MAXINT, L"Token object path", NULL);
-
             PhAddListViewGroupItem(context->ListViewHandle, 2, MAXINT, L"Name", NULL);
             PhAddListViewGroupItem(context->ListViewHandle, 2, MAXINT, L"SID", NULL);
+            PhAddListViewGroupItem(context->ListViewHandle, 3, MAXINT, L"Name", NULL);
+            PhAddListViewGroupItem(context->ListViewHandle, 3, MAXINT, L"Path", NULL);
 
             if (NT_SUCCESS(tokenPageContext->OpenObject(
                 &tokenHandle,
@@ -3123,8 +3129,27 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
                 {
                     if (appContainerInfo->TokenAppContainer)
                     {
-                        RtlGetAppContainerSidType(appContainerInfo->TokenAppContainer, &appContainerSidType);
-                        RtlGetAppContainerParent(appContainerInfo->TokenAppContainer, &appContainerSidParent);
+                        static PH_INITONCE initOnce = PH_INITONCE_INIT;
+                        static NTSTATUS (WINAPI* RtlGetAppContainerSidType_I)(
+                            _In_ PSID AppContainerSid,
+                            _Out_ PAPPCONTAINER_SID_TYPE AppContainerSidType
+                            ) = NULL;
+                        static NTSTATUS (WINAPI* RtlGetAppContainerParent_I)(
+                            _In_ PSID AppContainerSid,
+                            _Out_ PSID* AppContainerSidParent
+                            ) = NULL;
+
+                        if (PhBeginInitOnce(&initOnce))
+                        {
+                            RtlGetAppContainerSidType_I = PhGetDllProcedureAddress(L"ntdll.dll", "RtlGetAppContainerSidType", 0);
+                            RtlGetAppContainerParent_I = PhGetDllProcedureAddress(L"ntdll.dll", "RtlGetAppContainerParent", 0);
+                            PhEndInitOnce(&initOnce);
+                        }
+
+                        if (RtlGetAppContainerSidType_I)
+                            RtlGetAppContainerSidType_I(appContainerInfo->TokenAppContainer, &appContainerSidType);
+                        if (RtlGetAppContainerParent_I)
+                            RtlGetAppContainerParent_I(appContainerInfo->TokenAppContainer, &appContainerSidParent);
 
                         appContainerName = PhGetAppContainerName(appContainerInfo->TokenAppContainer);
                         appContainerSid = PhSidToStringSid(appContainerInfo->TokenAppContainer);
@@ -3215,6 +3240,27 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
                 }
 
                 NtClose(tokenHandle);
+            }
+
+            if (NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, tokenPageContext->ProcessId)))
+            {
+                PPH_STRING packageFullName;
+                PPH_STRING packagePath;
+
+                if (packageFullName = PhGetProcessPackageFullName(processHandle))
+                {
+                    PhSetListViewSubItem(context->ListViewHandle, 8, 1, packageFullName->Buffer);
+
+                    if (packagePath = PhGetPackagePath(packageFullName))
+                    {
+                        PhSetListViewSubItem(context->ListViewHandle, 9, 1, packagePath->Buffer);
+                        PhDereferenceObject(packagePath);
+                    }
+
+                    PhDereferenceObject(packageFullName);
+                }
+
+                NtClose(processHandle);
             }
 
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);

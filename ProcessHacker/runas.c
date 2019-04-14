@@ -160,8 +160,8 @@ VOID PhSetDesktopWinStaAccess(
 
 VOID PhpSplitUserName(
     _In_ PWSTR UserName,
-    _Out_ PPH_STRING *DomainPart,
-    _Out_ PPH_STRING *UserPart
+    _Out_opt_ PPH_STRING* DomainPart,
+    _Out_opt_ PPH_STRING* UserPart
     );
 
 #define SIP(String, Integer) { (String), (PVOID)(Integer) }

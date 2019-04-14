@@ -624,7 +624,7 @@ NTSTATUS PhpProcessPropertiesThreadStart(
     // Token
     PhAddProcessPropPage2(
         PropContext,
-        PhCreateTokenPage(PhpOpenProcessTokenForPage, (PVOID)PropContext->ProcessItem->ProcessId, PhpProcessTokenHookProc)
+        PhCreateTokenPage(PhpOpenProcessTokenForPage, PropContext->ProcessItem->ProcessId, (PVOID)PropContext->ProcessItem->ProcessId, PhpProcessTokenHookProc)
         );
 
     // Modules
