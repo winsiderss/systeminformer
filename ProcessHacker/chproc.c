@@ -21,6 +21,7 @@
  */
 
 #include <phapp.h>
+#include <procprv.h>
 #include <lsasup.h>
 
 typedef struct _CHOOSE_PROCESS_DIALOG_CONTEXT
@@ -137,7 +138,7 @@ static VOID PhpRefreshProcessList(
 
         if (process->UniqueProcessId == SYSTEM_PROCESS_ID)
             fileName = PhGetKernelFileName();
-        else
+        else if (PH_IS_REAL_PROCESS_ID(process->UniqueProcessId))
             PhGetProcessImageFileNameByProcessId(process->UniqueProcessId, &fileName);
 
         if (fileName)
