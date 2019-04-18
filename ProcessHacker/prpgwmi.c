@@ -680,7 +680,8 @@ INT_PTR CALLBACK PhpProcessWmiProvidersDlgProc(
                         PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), -1);
                     }
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 4, L"Open &file location", NULL, NULL), -1);
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 5, L"&Copy", NULL, NULL), -1);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy", NULL, NULL), -1);
+                    PhInsertCopyListViewEMenuItem(menu, IDC_COPY, context->ListViewHandle);
 
                     selectedItem = PhShowEMenu(
                         menu,
@@ -692,10 +693,19 @@ INT_PTR CALLBACK PhpProcessWmiProvidersDlgProc(
                         );
                     PhDestroyEMenu(menu);
 
-                    if (selectedItem && selectedItem->Id != -1)
+                    if (selectedItem && selectedItem->Id != ULONG_MAX)
                     {
                         PPH_WMI_ENTRY entry;
-                        
+                        BOOLEAN handled = FALSE;
+
+                        handled = PhHandleCopyListViewEMenuItem(selectedItem);
+
+                        //if (!handled && PhPluginsEnabled)
+                        //    handled = PhPluginTriggerEMenuItem(&menuInfo, item);
+
+                        if (handled)
+                            break;
+
                         entry = context->WmiProviderList->Items[PtrToUlong(index) - 1];
 
                         switch (selectedItem->Id)
@@ -739,6 +749,11 @@ INT_PTR CALLBACK PhpProcessWmiProvidersDlgProc(
                                 PhDereferenceObject(string);
 
                                 PhSetDialogFocus(hwndDlg, context->ListViewHandle);
+                            }
+                            break;
+                        case IDC_COPY:
+                            {
+                                PhCopyListView(context->ListViewHandle);
                             }
                             break;
                         }
