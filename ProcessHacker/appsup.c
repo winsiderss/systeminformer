@@ -321,7 +321,7 @@ PH_KNOWN_PROCESS_TYPE PhGetProcessKnownTypeEx(
 
     PhGetSystemRoot(&systemRootPrefix);
 
-    fileName = PhDuplicateString(FileName);
+    fileName = PhReferenceObject(FileName);
     name = fileName->sr;
 
     knownProcessType = UnknownProcessType;
