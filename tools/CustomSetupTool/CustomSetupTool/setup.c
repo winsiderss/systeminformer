@@ -348,7 +348,7 @@ VOID SetupStopService(
         {
             if (status.dwCurrentState != SERVICE_STOPPED)
             {
-                ULONG attempts = 10;
+                ULONG attempts = 60;
 
                 do
                 {
