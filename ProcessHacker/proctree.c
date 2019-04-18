@@ -3433,6 +3433,10 @@ VOID PhGetSelectedProcessItems(
     {
         PPH_PROCESS_NODE node = ProcessNodeList->Items[i];
 
+        // HACK workaround issue with multiple select->search->termination and Searchbox->PhApplyTreeNewFilters (dmex)
+        if (!node->Node.Visible)
+            continue;
+
         if (node->Node.Selected)
             PhAddItemArray(&array, &node->ProcessItem);
     }
