@@ -2,7 +2,7 @@
  * Process Hacker -
  *   Appmodel support functions
  *
- * Copyright (C) 2017-2018 dmex
+ * Copyright (C) 2017-2019 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -71,6 +71,34 @@ static BOOL (WINAPI* AppContainerFreeMemory_I)(
 static HRESULT (WINAPI* AppPolicyGetWindowingModel_I)(
     _In_ HANDLE ProcessTokenHandle,
     _Out_ AppPolicyWindowingModel *ProcessWindowingModelPolicy
+    ) = NULL;
+
+// rev
+static NTSTATUS (NTAPI* PsmGetKeyFromProcess_I)(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PVOID KeyBuffer,
+    _Inout_ PULONG KeyLength
+    ) = NULL;
+
+// rev
+static NTSTATUS (NTAPI* PsmGetKeyFromToken_I)(
+    _In_ HANDLE TokenHandle,
+    _Out_ PVOID KeyBuffer,
+    _Inout_ PULONG KeyLength
+    ) = NULL;
+
+// rev
+static NTSTATUS (NTAPI* PsmGetApplicationNameFromKey_I)(
+    _In_ PVOID KeyBuffer,
+    _Out_ PVOID NameBuffer,
+    _Inout_ PULONG NameLength
+    ) = NULL;
+
+// rev
+static NTSTATUS (NTAPI* PsmGetPackageFullNameFromKey_I)(
+    _In_ PVOID KeyBuffer,
+    _Out_ PVOID NameBuffer,
+    _Inout_ PULONG NameLength
     ) = NULL;
 
 typedef enum _START_MENU_APP_ITEMS_FLAGS
