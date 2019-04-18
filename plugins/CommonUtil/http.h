@@ -53,8 +53,8 @@ BOOLEAN
 NTAPI
 PhHttpSocketSendRequest(
     _In_ PPH_HTTP_CONTEXT HttpContext,
-    _In_ PVOID RequestData,
-    _In_ ULONG RequestDataLength
+    _In_opt_ PVOID RequestData,
+    _In_opt_ ULONG RequestDataLength
     );
 
 BOOLEAN
