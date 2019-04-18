@@ -43,6 +43,16 @@ HRESULT PhAppResolverActivateAppId(
     _Out_opt_ HANDLE *ProcessId
     );
 
+typedef struct _PH_PACKAGE_TASK_ENTRY
+{
+    PPH_STRING TaskName;
+    GUID TaskGuid;
+} PH_PACKAGE_TASK_ENTRY, *PPH_PACKAGE_TASK_ENTRY;
+
+PPH_LIST PhAppResolverEnumeratePackageBackgroundTasks(
+    _In_ PPH_STRING PackageFullName
+    );
+
 PPH_STRING PhGetAppContainerName(
     _In_ PSID AppContainerSid
     );
