@@ -240,6 +240,62 @@ HRESULT PhAppResolverActivateAppId(
     return status;
 }
 
+PPH_LIST PhAppResolverEnumeratePackageBackgroundTasks(
+    _In_ PPH_STRING PackageFullName
+    )
+{
+    HRESULT status;
+    PPH_LIST packageTasks = NULL;
+    IPackageDebugSettings* packageDebugSettings;
+
+    status = CoCreateInstance(
+        &CLSID_PackageDebugSettings,
+        NULL,
+        CLSCTX_INPROC_SERVER,
+        &IID_IPackageDebugSettings,
+        &packageDebugSettings
+        );
+
+    if (SUCCEEDED(status))
+    {
+        ULONG taskCount = 0;
+        PGUID taskIds = NULL;
+        PWSTR* taskNames = NULL;
+
+        status = IPackageDebugSettings_EnumerateBackgroundTasks(
+            packageDebugSettings,
+            PhGetString(PackageFullName),
+            &taskCount,
+            &taskIds,
+            &taskNames
+            );
+
+        if (SUCCEEDED(status))
+        {
+            for (ULONG i = 0; i < taskCount; i++)
+            {
+                PPH_PACKAGE_TASK_ENTRY entry;
+
+                entry = PhAllocateZero(sizeof(PH_PACKAGE_TASK_ENTRY));
+                entry->TaskGuid = taskIds[i];
+                entry->TaskName = PhCreateString(taskNames[i]);
+
+                if (!packageTasks)
+                    packageTasks = PhCreateList(taskCount);
+
+                PhAddItemList(packageTasks, entry);
+            }
+        }
+
+        IPackageDebugSettings_Release(packageDebugSettings);
+    }
+
+    if (packageTasks)
+        return packageTasks;
+    else
+        return NULL;
+}
+
 PPH_STRING PhGetAppContainerName(
     _In_ PSID AppContainerSid
     )
@@ -355,6 +411,60 @@ PPH_STRING PhGetPackagePath(
     PhDereferenceObject(keyPath);
 
     return packagePath;
+}
+
+PPH_STRING PhGetPackageAppDataPath(
+    _In_ HANDLE ProcessHandle
+    )
+{
+    static UNICODE_STRING attributeNameUs = RTL_CONSTANT_STRING(L"WIN://SYSAPPID");
+    static PH_STRINGREF appdataPackages = PH_STRINGREF_INIT(L"%APPDATALOCAL%\\Packages\\");
+    HANDLE tokenHandle;
+    PTOKEN_SECURITY_ATTRIBUTES_INFORMATION info;
+    PPH_STRING packageAppDataPath = NULL;
+
+    if (NT_SUCCESS(PhOpenProcessToken(
+        ProcessHandle,
+        TOKEN_QUERY,
+        &tokenHandle
+        )))
+    {
+        if (NT_SUCCESS(PhQueryTokenVariableSize(tokenHandle, TokenSecurityAttributes, &info)))
+        {
+            for (ULONG i = 0; i < info->AttributeCount; i++)
+            {
+                PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = &info->Attribute.pAttributeV1[i];
+
+                if (attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_STRING)
+                {
+                    if (RtlEqualUnicodeString(&attribute->Name, &attributeNameUs, FALSE))
+                    {
+                        PPH_STRING attributeValue;
+                        PPH_STRING attributePath;
+
+                        attributeValue = PhCreateStringFromUnicodeString(&attribute->Values.pString[2]);
+
+                        if (attributePath = PhExpandEnvironmentStrings(&appdataPackages))
+                        {
+                            packageAppDataPath = PhConcatStringRef2(&attributePath->sr, &attributeValue->sr);
+
+                            PhDereferenceObject(attributePath);
+                            PhDereferenceObject(attributeValue);
+                            break;
+                        }
+
+                        PhDereferenceObject(attributeValue);
+                    }
+                }
+            }
+
+            PhFree(info);
+        }
+
+        NtClose(tokenHandle);
+    }
+
+    return packageAppDataPath;
 }
 
 PPH_STRING PhGetProcessPackageFullName(
