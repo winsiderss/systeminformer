@@ -7669,6 +7669,15 @@ RtlCheckTokenMembershipEx(
 NTSYSAPI
 NTSTATUS
 NTAPI
+RtlQueryTokenHostIdAsUlong64(
+    _In_ HANDLE TokenHandle,
+    _Out_ PULONG64 HostId // (WIN://PKGHOSTID)
+    );
+
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
 RtlIsParentOfChildAppContainer(
     _In_ PSID ParentAppContainerSid,
     _In_ PSID ChildAppContainerSid
