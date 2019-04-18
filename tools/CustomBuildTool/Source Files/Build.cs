@@ -1164,8 +1164,7 @@ namespace CustomBuildTool
 
         public static bool BuildDeployUpdateConfig()
         {
-            string accountName; 
-            string projectName;
+            string buildJobId;
             string buildPostUrl;
             string buildPostApiKey;
             string buildChangelog;
@@ -1173,14 +1172,11 @@ namespace CustomBuildTool
             string buildMessage;
             string buildPostString;
 
-            accountName = Environment.ExpandEnvironmentVariables("%APPVEYOR_ACCOUNT_NAME%").Replace("%APPVEYOR_ACCOUNT_NAME%", string.Empty);
-            projectName = Environment.ExpandEnvironmentVariables("%APPVEYOR_PROJECT_NAME%").Replace("%APPVEYOR_PROJECT_NAME%", string.Empty);
+            buildJobId = Environment.ExpandEnvironmentVariables("%APPVEYOR_JOB_ID%").Replace("%APPVEYOR_JOB_ID%", string.Empty);
             buildPostUrl = Environment.ExpandEnvironmentVariables("%APPVEYOR_BUILD_API%").Replace("%APPVEYOR_BUILD_API%", string.Empty);
             buildPostApiKey = Environment.ExpandEnvironmentVariables("%APPVEYOR_BUILD_KEY%").Replace("%APPVEYOR_BUILD_KEY%", string.Empty);
 
-            if (string.IsNullOrEmpty(accountName))
-                return true;
-            if (string.IsNullOrEmpty(projectName))
+            if (string.IsNullOrEmpty(buildJobId))
                 return true;
             if (string.IsNullOrEmpty(buildPostUrl))
                 return true;
@@ -1209,12 +1205,12 @@ namespace CustomBuildTool
                 BuildCommit = BuildCommit,
                 BuildMessage = buildMessage,
 
-                BinUrl = $"https://ci.appveyor.com/api/projects/{accountName}/{projectName}/artifacts/processhacker-build-bin.zip",
+                BinUrl = $"https://ci.appveyor.com/api/buildjobs/{buildJobId}/artifacts/processhacker-build-bin.zip",
                 BinLength = BuildBinFileLength.ToString(),
                 BinHash = BuildBinHash,
                 BinSig = BuildBinSig,
 
-                SetupUrl = $"https://ci.appveyor.com/api/projects/{accountName}/{projectName}/artifacts/processhacker-build-setup.exe",
+                SetupUrl = $"https://ci.appveyor.com/api/buildjobs/{buildJobId}/artifacts/processhacker-build-setup.exe",
                 SetupLength = BuildSetupFileLength.ToString(),
                 SetupHash = BuildSetupHash,
                 SetupSig = BuildSetupSig,
