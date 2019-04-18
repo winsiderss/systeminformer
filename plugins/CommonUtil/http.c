@@ -132,7 +132,7 @@ BOOLEAN PhHttpSocketBeginRequest(
         &httpFlags,
         Flags,
         PhpHttpRequestFlagMappings,
-        ARRAYSIZE(PhpHttpRequestFlagMappings)
+        RTL_NUMBER_OF(PhpHttpRequestFlagMappings)
         );
 
     HttpContext->RequestHandle = WinHttpOpenRequest(
@@ -160,8 +160,8 @@ BOOLEAN PhHttpSocketBeginRequest(
 
 BOOLEAN PhHttpSocketSendRequest(
     _In_ PPH_HTTP_CONTEXT HttpContext,
-    _In_ PVOID RequestData,
-    _In_ ULONG RequestDataLength
+    _In_opt_ PVOID RequestData,
+    _In_opt_ ULONG RequestDataLength
     )
 {
     return !!WinHttpSendRequest(
@@ -271,7 +271,7 @@ BOOLEAN PhHttpSocketQueryHeaderUlong(
         &queryFlags,
         QueryValue,
         PhpHttpHeaderQueryMappings,
-        ARRAYSIZE(PhpHttpHeaderQueryMappings)
+        RTL_NUMBER_OF(PhpHttpHeaderQueryMappings)
         );
 
     if (WinHttpQueryHeaders(
@@ -422,7 +422,7 @@ BOOLEAN PhHttpSocketSetFeature(
         &featureValue,
         Feature,
         PhpHttpFeatureMappings,
-        ARRAYSIZE(PhpHttpFeatureMappings)
+        RTL_NUMBER_OF(PhpHttpFeatureMappings)
         );
 
     return !!WinHttpSetOption(
