@@ -207,8 +207,11 @@ VOID PhInitializeWindowsVersion(
         case 17763:
             WindowsVersion = WINDOWS_10_RS5;
             break;
+        case 18362:
+            WindowsVersion = WINDOWS_10_19H1;
+            break;
         default:
-            WindowsVersion = buildVersion > 17763 ? WINDOWS_10_RS5 : WINDOWS_10;
+            WindowsVersion = WINDOWS_10;
             break;
         }
     }

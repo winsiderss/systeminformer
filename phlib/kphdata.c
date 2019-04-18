@@ -43,7 +43,7 @@ ULONG KphpGetKernelRevisionNumber(
     PhDereferenceObject(kernelFileName);
 
     if (versionInfo && VerQueryValue(versionInfo, L"\\", &rootBlock, &rootBlockLength) && rootBlockLength != 0)
-        result = rootBlock->dwFileVersionLS & 0xffff;
+        result = LOWORD(rootBlock->dwFileVersionLS);
 
     PhFree(versionInfo);
 
@@ -66,7 +66,7 @@ NTSTATUS KphInitializeDynamicPackage(
     Package->MajorVersion = (USHORT)majorVersion;
     Package->MinorVersion = (USHORT)minorVersion;
     Package->ServicePackMajor = (USHORT)servicePack;
-    Package->BuildNumber = -1;
+    Package->BuildNumber = USHRT_MAX;
 
     // Windows 7, Windows Server 2008 R2
     if (majorVersion == 6 && minorVersion == 1)
@@ -158,6 +158,10 @@ NTSTATUS KphInitializeDynamicPackage(
         case 17763:
             Package->BuildNumber = 17763;
             Package->ResultingNtVersion = PHNT_REDSTONE5;
+            break;
+        case 18362:
+            Package->BuildNumber = 18362;
+            Package->ResultingNtVersion = PHNT_19H1;
             break;
         default:
             return STATUS_NOT_SUPPORTED;
@@ -296,6 +300,10 @@ NTSTATUS KphInitializeDynamicPackage(
         case 17763:
             Package->BuildNumber = 17763;
             Package->ResultingNtVersion = PHNT_REDSTONE5;
+            break;
+        case 18362:
+            Package->BuildNumber = 18362;
+            Package->ResultingNtVersion = PHNT_19H1;
             break;
         default:
             return STATUS_NOT_SUPPORTED;
