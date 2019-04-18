@@ -215,11 +215,10 @@ namespace CustomBuildTool
 
         public static void Encrypt(string fileName, string outFileName, string secret)
         {
-            FileStream fileOutStream = File.Create(outFileName);
-
+            using (FileStream fileOutStream = File.Create(outFileName))
             using (Rijndael rijndael = GetRijndael(secret))
             using (FileStream fileStream = File.OpenRead(fileName))
-            using (CryptoStream cryptoStream = new CryptoStream(fileOutStream, rijndael.CreateEncryptor(), CryptoStreamMode.Write))
+            using (CryptoStream cryptoStream = new CryptoStream(fileOutStream, rijndael.CreateEncryptor(), CryptoStreamMode.Write, true))
             {
                 fileStream.CopyTo(cryptoStream);
             }
@@ -227,11 +226,10 @@ namespace CustomBuildTool
 
         public static void Decrypt(string FileName, string outFileName, string secret)
         {
-            FileStream fileOutStream = File.Create(outFileName);
-
+            using (FileStream fileOutStream = File.Create(outFileName))
             using (Rijndael rijndael = GetRijndael(secret))
             using (FileStream fileStream = File.OpenRead(FileName))
-            using (CryptoStream cryptoStream = new CryptoStream(fileOutStream, rijndael.CreateDecryptor(), CryptoStreamMode.Write))
+            using (CryptoStream cryptoStream = new CryptoStream(fileOutStream, rijndael.CreateDecryptor(), CryptoStreamMode.Write, true))
             {
                 fileStream.CopyTo(cryptoStream);
             }
@@ -246,8 +244,7 @@ namespace CustomBuildTool
             //    return BitConverter.ToString(hashBytes).Replace("-", String.Empty);
             //}
 
-            FileStream fileInStream = File.OpenRead(FileName);
-
+            using (FileStream fileInStream = File.OpenRead(FileName))
             using (BufferedStream bufferedStream = new BufferedStream(fileInStream, 0x1000))
             {
                 SHA256Managed sha = new SHA256Managed();
