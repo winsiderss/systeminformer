@@ -2,7 +2,7 @@
  * Process Hacker -
  *   Process properties: WMI Providor page
  *
- * Copyright (C) 2017 dmex
+ * Copyright (C) 2017-2019 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -256,7 +256,11 @@ HRESULT PhpQueryWmiProviderFileName(
 
         if (SUCCEEDED(IWbemClassObject_Get(wbemClassObject, L"CLSID", 0, &variant, 0, 0)))
         {
-            clsidString = PhCreateString(variant.bstrVal);
+            if (variant.bstrVal) // returns NULL for some host processes (dmex)
+            {
+                clsidString = PhCreateString(variant.bstrVal);
+            }
+
             VariantClear(&variant);
         }
 
