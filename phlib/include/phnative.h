@@ -1432,6 +1432,21 @@ PhGetThreadName(
     _Out_ PPH_STRING *ThreadName
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhImpersonateToken(
+    _In_ HANDLE ThreadHandle,
+    _In_ HANDLE TokenHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhRevertImpersonationToken(
+    _In_ HANDLE ThreadHandle
+    );
+
 #ifdef __cplusplus
 }
 #endif

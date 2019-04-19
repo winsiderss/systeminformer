@@ -8227,3 +8227,65 @@ NTSTATUS PhGetThreadName(
 
     return status;
 }
+
+NTSTATUS PhImpersonateToken(
+    _In_ HANDLE ThreadHandle,
+    _In_ HANDLE TokenHandle
+    )
+{
+    NTSTATUS status;
+    SECURITY_QUALITY_OF_SERVICE securityService;
+    OBJECT_ATTRIBUTES objectAttributes;
+    HANDLE tokenHandle;
+
+    InitializeObjectAttributes(
+        &objectAttributes,
+        NULL,
+        0,
+        NULL,
+        NULL
+        );
+
+    securityService.Length = sizeof(SECURITY_QUALITY_OF_SERVICE);
+    securityService.ImpersonationLevel = SecurityImpersonation;
+    securityService.ContextTrackingMode = SECURITY_DYNAMIC_TRACKING;
+    securityService.EffectiveOnly = FALSE;
+    objectAttributes.SecurityQualityOfService = &securityService;
+
+    status = NtDuplicateToken(
+        TokenHandle,
+        TOKEN_IMPERSONATE | TOKEN_QUERY,
+        &objectAttributes,
+        FALSE,
+        TokenImpersonation,
+        &tokenHandle
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = NtSetInformationThread(
+        ThreadHandle,
+        ThreadImpersonationToken,
+        &tokenHandle,
+        sizeof(HANDLE)
+        );
+
+    NtClose(tokenHandle);
+
+    return status;
+}
+
+NTSTATUS PhRevertImpersonationToken(
+    _In_ HANDLE ThreadHandle
+    )
+{
+    HANDLE tokenHandle = NULL;
+
+    return NtSetInformationThread(
+        ThreadHandle,
+        ThreadImpersonationToken,
+        &tokenHandle,
+        sizeof(HANDLE)
+        );
+}
