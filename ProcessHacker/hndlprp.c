@@ -673,6 +673,7 @@ VOID PhpUpdateHandleGeneral(
             BOOLEAN disableFlushButton = FALSE;
             BOOLEAN isFileOrDirectory = FALSE;
             BOOLEAN isConsoleHandle = FALSE;
+            BOOLEAN isPipeHandle = FALSE;
             FILE_FS_DEVICE_INFORMATION fileDeviceInfo;
             FILE_MODE_INFORMATION fileModeInfo;
             FILE_STANDARD_INFORMATION fileStandardInfo;
@@ -690,6 +691,7 @@ VOID PhpUpdateHandleGeneral(
                 switch (fileDeviceInfo.DeviceType)
                 {
                 case FILE_DEVICE_NAMED_PIPE:
+                    isPipeHandle = TRUE;
                     PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_FILETYPE], 1, L"Pipe");
                     break;
                 case FILE_DEVICE_CD_ROM:
@@ -713,10 +715,11 @@ VOID PhpUpdateHandleGeneral(
                 }
             }
 
-            if (isConsoleHandle)
+            if (isPipeHandle || isConsoleHandle)
             {
-                // TODO: We block indefinitely when calling NtQueryInformationFile for '\Device\ConDrv\CurrentIn'
-                // but we can query other '\Device\ConDrv' console handles (dmex)
+                // NOTE: NtQueryInformationFile for '\Device\ConDrv\CurrentIn' causes a deadlock but
+                // we can query other '\Device\ConDrv' console handles. NtQueryInformationFile also
+                // causes a deadlock for some types of named pipes and only on Win10 (dmex)
                 status = PhCallNtQueryFileInformationWithTimeout(
                     fileHandle,
                     FileModeInformation,
