@@ -672,6 +672,10 @@ BOOLEAN PhGetAccessEntries(
     {
         Type = L"Thread60";
     }
+    else if (PhEqualStringZ(Type, L"FileObject", TRUE))
+    {
+        Type = L"File";
+    }
 
     // Find the specific type.
     for (i = 0; i < sizeof(PhSpecificTypes) / sizeof(PH_SPECIFIC_TYPE); i++)
