@@ -28,6 +28,8 @@
 #include <shlobj.h>
 #include <shellapi.h>
 
+#include <secedit.h>
+
 #define PVM_CHECKSUM_DONE (WM_APP + 1)
 #define PVM_VERIFY_DONE (WM_APP + 2)
 
@@ -50,6 +52,8 @@ HICON PvImageLargeIcon = NULL;
 PH_IMAGE_VERSION_INFO PvImageVersionInfo;
 static VERIFY_RESULT PvImageVerifyResult;
 static PPH_STRING PvImageSignerName;
+static HWND ResetButton;
+static WNDPROC OldWndProc;
 
 VOID PvPeProperties(
     VOID
@@ -273,17 +277,36 @@ static NTSTATUS CheckSumImageThreadStart(
     _In_ PVOID Parameter
     )
 {
-    HWND windowHandle;
+    HWND windowHandle = Parameter;
+    PPH_STRING importHash = NULL;
     ULONG checkSum;
+    HANDLE fileHandle;
 
-    windowHandle = Parameter;
     checkSum = PhCheckSumMappedImage(&PvMappedImage);
+
+    if (NT_SUCCESS(PhCreateFileWin32(
+        &fileHandle,
+        PhGetString(PvFileName),
+        FILE_READ_ACCESS,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        FILE_OPEN,
+        0
+        )))
+    {
+        BYTE importTableShaHash[16];
+
+        if (NT_SUCCESS(RtlComputeImportTableHash(fileHandle, importTableShaHash, 1)))
+        {
+            importHash = PhBufferToHexString(importTableShaHash, 16);
+        }
+    }
 
     PostMessage(
         windowHandle,
         PVM_CHECKSUM_DONE,
         checkSum,
-        0
+        (LPARAM)importHash
         );
 
     return STATUS_SUCCESS;
@@ -533,7 +556,7 @@ VOID PvpSetPeImageEntryPoint(
     if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
         string = PhFormatString(L"0x%I32x", ((PIMAGE_OPTIONAL_HEADER32)&PvMappedImage.NtHeaders->OptionalHeader)->AddressOfEntryPoint);
     else
-        string = PhFormatString(L"0x%I64x", ((PIMAGE_OPTIONAL_HEADER64)&PvMappedImage.NtHeaders->OptionalHeader)->AddressOfEntryPoint);
+        string = PhFormatString(L"0x%I32x", ((PIMAGE_OPTIONAL_HEADER64)&PvMappedImage.NtHeaders->OptionalHeader)->AddressOfEntryPoint);
 
     PhSetDialogItemText(WindowHandle, IDC_ENTRYPOINT, string->Buffer);
     PhDereferenceObject(string);
@@ -701,6 +724,128 @@ VOID PvpSetPeImageSections(
     }
 }
 
+NTSTATUS PhpOpenFileSecurity(
+    _Out_ PHANDLE Handle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ PVOID Context
+    )
+{
+    NTSTATUS status;
+    FILE_NETWORK_OPEN_INFORMATION networkOpenInfo;
+
+    status = PhQueryFullAttributesFileWin32(PhGetString(PvFileName), &networkOpenInfo);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (networkOpenInfo.FileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+    {
+        status = PhCreateFileWin32(
+            Handle,
+            PhGetString(PvFileName),
+            DesiredAccess| READ_CONTROL | WRITE_DAC,
+            FILE_ATTRIBUTE_DIRECTORY,
+            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+            FILE_OPEN,
+            0
+            );
+    }
+    else
+    {
+        status = PhCreateFileWin32(
+            Handle,
+            PhGetString(PvFileName),
+            DesiredAccess | READ_CONTROL | WRITE_DAC,
+            FILE_ATTRIBUTE_NORMAL,
+            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+            FILE_OPEN,
+            0
+            );
+
+        if (!NT_SUCCESS(status))
+        {
+            status = PhCreateFileWin32(
+                Handle,
+                PhGetString(PvFileName),
+                DesiredAccess | READ_CONTROL,
+                FILE_ATTRIBUTE_NORMAL,
+                FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                FILE_OPEN,
+                0
+                );
+        }
+    }
+
+    return status;
+}
+
+LRESULT CALLBACK PhpOptionsWndProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+    switch (uMsg)
+    {
+    case WM_COMMAND:
+        {
+            if (GET_WM_COMMAND_HWND(wParam, lParam) == ResetButton)
+            {
+                PhEditSecurity(
+                    hwndDlg,
+                    PhGetString(PvFileName),
+                    L"FileObject",
+                    PhpOpenFileSecurity,
+                    NULL,
+                    NULL
+                    );
+            }
+        }
+        break;
+    }
+
+    return CallWindowProc(OldWndProc, hwndDlg, uMsg, wParam, lParam);
+}
+
+static HWND PvpCreateSecurityButton(
+    _In_ HWND hwndDlg
+    )
+{
+    if (!ResetButton)
+    {
+        HWND optionsWindow;
+        RECT clientRect;
+        RECT rect;
+
+        optionsWindow = GetParent(hwndDlg);
+        OldWndProc = (WNDPROC)GetWindowLongPtr(optionsWindow, GWLP_WNDPROC);
+        SetWindowLongPtr(optionsWindow, GWLP_WNDPROC, (LONG_PTR)PhpOptionsWndProc);
+
+        // Create the Reset button.
+        GetClientRect(optionsWindow, &clientRect);
+        GetWindowRect(GetDlgItem(optionsWindow, IDCANCEL), &rect);
+        MapWindowPoints(NULL, optionsWindow, (POINT*)&rect, 2);
+        ResetButton = CreateWindowEx(
+            WS_EX_NOPARENTNOTIFY,
+            WC_BUTTON,
+            L"Security",
+            WS_CHILD | WS_VISIBLE | WS_TABSTOP,
+            clientRect.right - rect.right,
+            rect.top,
+            rect.right - rect.left,
+            rect.bottom - rect.top,
+            optionsWindow,
+            NULL,
+            PhInstanceHandle,
+            NULL
+            );
+        SendMessage(ResetButton, WM_SETFONT, SendMessage(GetDlgItem(optionsWindow, IDCANCEL), WM_GETFONT, 0, 0), TRUE);
+    }
+
+    return ResetButton;
+}
+
 INT_PTR CALLBACK PvpPeGeneralDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -720,6 +865,16 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
         {
             HWND lvHandle;
 
+            lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
+            PhSetListViewStyle(lvHandle, TRUE, TRUE);
+            PhSetControlTheme(lvHandle, L"explorer");
+            PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 80, L"Name");
+            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 80, L"VA");
+            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 80, L"Size");
+            PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 250, L"Characteristics");
+            //PhAddListViewColumn(lvHandle, 4, 4, 4, LVCFMT_LEFT, 80, L"Hash");
+            PhLoadListViewColumnsFromSetting(L"ImageGeneralListViewColumns", lvHandle);
+
             // File version information
             PvpSetPeImageVersionInfo(hwndDlg);
 
@@ -731,16 +886,6 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
             PvpSetPeImageCheckSum(hwndDlg);
             PvpSetPeImageSubsystem(hwndDlg);
             PvpSetPeImageCharacteristics(hwndDlg);
-
-            lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
-            PhSetListViewStyle(lvHandle, TRUE, TRUE);
-            PhSetControlTheme(lvHandle, L"explorer");
-            PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 80, L"Name");
-            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 80, L"VA");
-            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 80, L"Size");
-            PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 250, L"Characteristics");
-            //PhAddListViewColumn(lvHandle, 4, 4, 4, LVCFMT_LEFT, 80, L"Hash");
-            PhLoadListViewColumnsFromSetting(L"ImageGeneralListViewColumns", lvHandle);
 
             PvpSetPeImageSections(lvHandle);
         }
@@ -762,6 +907,8 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
                 PvAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_CHARACTERISTICS), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PvAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST), dialogItem, PH_ANCHOR_ALL);
 
+                PvAddPropPageLayoutItem(hwndDlg, PvpCreateSecurityButton(hwndDlg), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
+
                 PvDoPropPageLayout(hwndDlg);
 
                 propPageContext->LayoutInitialized = TRUE;
@@ -771,31 +918,35 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
     case PVM_CHECKSUM_DONE:
         {
             PPH_STRING string;
+            PPH_STRING importTableHash;
             ULONG headerCheckSum;
             ULONG realCheckSum;
 
             headerCheckSum = PvMappedImage.NtHeaders->OptionalHeader.CheckSum; // same for 32-bit and 64-bit images
             realCheckSum = (ULONG)wParam;
+            importTableHash = (PPH_STRING)lParam;
 
             if (headerCheckSum == 0)
             {
                 // Some executables, like .NET ones, don't have a check sum.
-                string = PhFormatString(L"0x0 (real 0x%Ix)", realCheckSum);
+                string = PhFormatString(L"0x0 (real 0x%Ix) (%s)", realCheckSum, PhGetStringOrDefault(importTableHash, L"N/A"));
                 PhSetDialogItemText(hwndDlg, IDC_CHECKSUM, string->Buffer);
                 PhDereferenceObject(string);
             }
             else if (headerCheckSum == realCheckSum)
             {
-                string = PhFormatString(L"0x%Ix (correct)", headerCheckSum);
+                string = PhFormatString(L"0x%Ix (correct) (%s)", headerCheckSum, PhGetStringOrDefault(importTableHash, L"N/A"));
                 PhSetDialogItemText(hwndDlg, IDC_CHECKSUM, string->Buffer);
                 PhDereferenceObject(string);
             }
             else
             {
-                string = PhFormatString(L"0x%Ix (incorrect, real 0x%Ix)", headerCheckSum, realCheckSum);
+                string = PhFormatString(L"0x%Ix (incorrect, real 0x%Ix) (%s)", headerCheckSum, realCheckSum, PhGetStringOrDefault(importTableHash, L"N/A"));
                 PhSetDialogItemText(hwndDlg, IDC_CHECKSUM, string->Buffer);
                 PhDereferenceObject(string);
             }
+
+            PhClearReference(&importTableHash);
         }
         break;
     case PVM_VERIFY_DONE:
