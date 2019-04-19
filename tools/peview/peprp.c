@@ -300,6 +300,8 @@ static NTSTATUS CheckSumImageThreadStart(
         {
             importHash = PhBufferToHexString(importTableShaHash, 16);
         }
+
+        NtClose(fileHandle);
     }
 
     PostMessage(
