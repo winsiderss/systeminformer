@@ -448,6 +448,16 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_MapGeneric(
     _Inout_ PACCESS_MASK Mask
     )
 {
+    static GENERIC_MAPPING genericMappings =
+    {
+        FILE_GENERIC_READ,
+        FILE_GENERIC_WRITE,
+        FILE_GENERIC_EXECUTE,
+        FILE_ALL_ACCESS
+    };
+
+    RtlMapGenericMask(Mask, &genericMappings);
+
     return S_OK;
 }
 
@@ -457,7 +467,21 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_GetInheritTypes(
     _Out_ PULONG InheritTypesCount
     )
 {
-    return E_NOTIMPL;
+    static SI_INHERIT_TYPE inheritTypes[] =
+    {
+        0, 0, L"This folder only",
+        0, CONTAINER_INHERIT_ACE, L"This folder, subfolders and files",
+        0, INHERIT_ONLY_ACE | CONTAINER_INHERIT_ACE, L"Subfolders and files only",
+    };
+
+    PhSecurityInformation* this = (PhSecurityInformation*)This;
+
+    // if (Folder-Container)
+    *InheritTypes = inheritTypes;
+    *InheritTypesCount = RTL_NUMBER_OF(inheritTypes);
+    return S_OK;
+    // else
+    //return E_NOTIMPL;
 }
 
 HRESULT STDMETHODCALLTYPE PhSecurityInformation_PropertySheetPageCallback(
