@@ -86,11 +86,8 @@ PVIRUSTOTAL_FILE_HASH_ENTRY VirusTotalAddCacheResult(
 {
     PVIRUSTOTAL_FILE_HASH_ENTRY result;
     
-    result = PhAllocate(sizeof(VIRUSTOTAL_FILE_HASH_ENTRY));
-    memset(result, 0, sizeof(VIRUSTOTAL_FILE_HASH_ENTRY));
-
-    PhReferenceObject(FileName);
-    result->FileName = FileName;
+    result = PhAllocateZero(sizeof(VIRUSTOTAL_FILE_HASH_ENTRY));
+    result->FileName = PhReferenceObject(FileName);
     result->FileNameAnsi = PhConvertUtf16ToMultiByte(PhGetString(FileName));
     result->Extension = Extension;
 
@@ -224,9 +221,7 @@ PPH_LIST VirusTotalJsonToResultList(
         if (!(jsonArrayObject = PhGetJsonArrayIndexObject(JsonObject, i)))
             continue;
 
-        result = PhAllocate(sizeof(VIRUSTOTAL_API_RESULT));
-        memset(result, 0, sizeof(VIRUSTOTAL_API_RESULT));
-
+        result = PhAllocateZero(sizeof(VIRUSTOTAL_API_RESULT));
         result->FileHash = PhGetJsonValueAsString(jsonArrayObject, "hash");
         result->Found = PhGetJsonObjectBool(jsonArrayObject, "found") == TRUE;
         result->Positives = PhGetJsonValueAsLong64(jsonArrayObject, "positives");
@@ -437,9 +432,7 @@ PVIRUSTOTAL_FILE_REPORT VirusTotalRequestFileReport(
     if (!(jsonRootObject = PhCreateJsonParser(jsonString->Buffer)))
         goto CleanupExit;
 
-    result = PhAllocate(sizeof(VIRUSTOTAL_FILE_REPORT));
-    memset(result, 0, sizeof(VIRUSTOTAL_FILE_REPORT));
-
+    result = PhAllocateZero(sizeof(VIRUSTOTAL_FILE_REPORT));
     result->ResponseCode = PhGetJsonValueAsLong64(jsonRootObject, "response_code");
     result->StatusMessage = PhGetJsonValueAsString(jsonRootObject, "verbose_msg");
     result->PermaLink = PhGetJsonValueAsString(jsonRootObject, "permalink");
@@ -464,9 +457,7 @@ PVIRUSTOTAL_FILE_REPORT VirusTotalRequestFileReport(
                 PVIRUSTOTAL_FILE_REPORT_RESULT entry;
                 PJSON_ARRAY_LIST_OBJECT object = jsonArrayList->Items[i];
 
-                entry = PhAllocate(sizeof(VIRUSTOTAL_FILE_REPORT_RESULT));
-                memset(entry, 0, sizeof(VIRUSTOTAL_FILE_REPORT_RESULT));
-
+                entry = PhAllocateZero(sizeof(VIRUSTOTAL_FILE_REPORT_RESULT));
                 entry->Vendor = PhConvertUtf8ToUtf16(object->Key);
                 entry->Detected = PhGetJsonObjectBool(object->Entry, "detected");
                 entry->EngineVersion = PhGetJsonValueAsString(object->Entry, "version");
@@ -602,9 +593,7 @@ PVIRUSTOTAL_API_RESPONSE VirusTotalRequestFileReScan(
     if (!(jsonRootObject = PhCreateJsonParser(jsonString->Buffer)))
         goto CleanupExit;
 
-    result = PhAllocate(sizeof(VIRUSTOTAL_API_RESPONSE));
-    memset(result, 0, sizeof(VIRUSTOTAL_API_RESPONSE));
-
+    result = PhAllocateZero(sizeof(VIRUSTOTAL_API_RESPONSE));
     result->ResponseCode = PhGetJsonValueAsLong64(jsonRootObject, "response_code");
     result->StatusMessage = PhGetJsonValueAsString(jsonRootObject, "verbose_msg");
     result->PermaLink = PhGetJsonValueAsString(jsonRootObject, "permalink");
@@ -711,9 +700,7 @@ PVIRUSTOTAL_API_RESPONSE VirusTotalRequestIpAddressReport(
     if (!(jsonRootObject = PhCreateJsonParser(jsonString->Buffer)))
         goto CleanupExit;
 
-    result = PhAllocate(sizeof(VIRUSTOTAL_API_RESPONSE));
-    memset(result, 0, sizeof(VIRUSTOTAL_API_RESPONSE));
-
+    result = PhAllocateZero(sizeof(VIRUSTOTAL_API_RESPONSE));
     //result->ResponseCode = PhGetJsonValueAsLong64(jsonRootObject, "response_code");
     //result->StatusMessage = PhGetJsonValueAsString(jsonRootObject, "verbose_msg");
     //result->PermaLink = PhGetJsonValueAsString(jsonRootObject, "permalink");
@@ -923,7 +910,6 @@ VOID CleanupVirusTotalProcessMonitor(
         PhDereferenceObject(VirusTotalList);
     }
 }
-
 
 // NOTE: This function does not use the SCM due to major performance issues.
 // For now just query this information from the registry but it might be out-of-sync 

@@ -176,7 +176,7 @@ NTSTATUS HashFileAndResetPosition(
     FILE_POSITION_INFORMATION positionInfo;
     LONG priority;
     IO_PRIORITY_HINT ioPriority;
-    UCHAR buffer[PAGE_SIZE];
+    BYTE buffer[PAGE_SIZE];
     
     bytesRemaining = FileSize->QuadPart;
 
@@ -213,7 +213,7 @@ NTSTATUS HashFileAndResetPosition(
 
     if (NT_SUCCESS(status))
     {
-        UCHAR hash[32];
+        BYTE hash[32];
 
         switch (Algorithm)
         {
