@@ -25,10 +25,13 @@
 #include <appresolver.h>
 #include <cpysave.h>
 #include <emenu.h>
+#include <hndlinfo.h>
 #include <lsasup.h>
 #include <secedit.h>
 #include <settings.h>
 #include <phsettings.h>
+
+#include <userenv.h>
 
 typedef enum _PH_PROCESS_TOKEN_CATEGORY
 {
@@ -3048,6 +3051,63 @@ INT_PTR CALLBACK PhpTokenAttributesPageProc(
     return FALSE;
 }
 
+PPH_STRING PhpGetTokenAppContainerFolderPath(
+    _In_ PSID TokenAppContainerSid
+    )
+{
+    PPH_STRING appContainerFolderPath = NULL;
+    PPH_STRING appContainerSid;
+    PWSTR folderPath;
+
+    appContainerSid = PhSidToStringSid(TokenAppContainerSid);
+
+    if (GetAppContainerFolderPath)
+    {
+        if (SUCCEEDED(GetAppContainerFolderPath(appContainerSid->Buffer, &folderPath)))
+        {
+            appContainerFolderPath = PhCreateString(folderPath);
+            CoTaskMemFree(folderPath);
+        }
+    }
+
+    PhDereferenceObject(appContainerSid);
+
+    return appContainerFolderPath;
+}
+
+PPH_STRING PhpGetTokenAppContainerRegistryPath(
+    _In_ HANDLE TokenHandle
+    )
+{
+    PPH_STRING appContainerRegistryPath = NULL;
+    HKEY registryHandle = NULL;
+
+    if (NT_SUCCESS(PhImpersonateToken(NtCurrentThread(), TokenHandle)))
+    {
+        if (GetAppContainerRegistryLocation)
+            GetAppContainerRegistryLocation(KEY_READ, &registryHandle);
+
+        PhRevertImpersonationToken(NtCurrentThread());
+    }
+
+    if (registryHandle)
+    {
+        PhGetHandleInformation(
+            NtCurrentProcess(),
+            registryHandle,
+            ULONG_MAX,
+            NULL,
+            NULL,
+            NULL,
+            &appContainerRegistryPath
+            );
+
+        NtClose(registryHandle);
+    }
+
+    return appContainerRegistryPath;
+}
+
 INT_PTR CALLBACK PhpTokenContainerPageProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -3100,6 +3160,7 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
             PhAddListViewGroup(context->ListViewHandle, 1, L"Properties");
             PhAddListViewGroup(context->ListViewHandle, 2, L"Parent");
             PhAddListViewGroup(context->ListViewHandle, 3, L"Package");
+            PhAddListViewGroup(context->ListViewHandle, 4, L"Profile");
 
             PhAddListViewGroupItem(context->ListViewHandle, 0, MAXINT, L"Name", NULL);
             PhAddListViewGroupItem(context->ListViewHandle, 0, MAXINT, L"Type", NULL);
@@ -3111,6 +3172,8 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
             PhAddListViewGroupItem(context->ListViewHandle, 2, MAXINT, L"SID", NULL);
             PhAddListViewGroupItem(context->ListViewHandle, 3, MAXINT, L"Name", NULL);
             PhAddListViewGroupItem(context->ListViewHandle, 3, MAXINT, L"Path", NULL);
+            PhAddListViewGroupItem(context->ListViewHandle, 4, MAXINT, L"Folder path", NULL);
+            PhAddListViewGroupItem(context->ListViewHandle, 4, MAXINT, L"Registry path", NULL);
 
             if (NT_SUCCESS(tokenPageContext->OpenObject(
                 &tokenHandle,
@@ -3130,11 +3193,11 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
                     if (appContainerInfo->TokenAppContainer)
                     {
                         static PH_INITONCE initOnce = PH_INITONCE_INIT;
-                        static NTSTATUS (WINAPI* RtlGetAppContainerSidType_I)(
+                        static NTSTATUS (NTAPI* RtlGetAppContainerSidType_I)(
                             _In_ PSID AppContainerSid,
                             _Out_ PAPPCONTAINER_SID_TYPE AppContainerSidType
                             ) = NULL;
-                        static NTSTATUS (WINAPI* RtlGetAppContainerParent_I)(
+                        static NTSTATUS (NTAPI* RtlGetAppContainerParent_I)(
                             _In_ PSID AppContainerSid,
                             _Out_ PSID* AppContainerSidParent
                             ) = NULL;
@@ -3242,7 +3305,11 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
                 NtClose(tokenHandle);
             }
 
-            if (NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, tokenPageContext->ProcessId)))
+            if (NT_SUCCESS(PhOpenProcess(
+                &processHandle,
+                PROCESS_QUERY_LIMITED_INFORMATION,
+                tokenPageContext->ProcessId
+                )))
             {
                 PPH_STRING packageFullName;
                 PPH_STRING packagePath;
@@ -3261,6 +3328,41 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
                 }
 
                 NtClose(processHandle);
+            }
+
+            if (NT_SUCCESS(tokenPageContext->OpenObject(
+                &tokenHandle,
+                TOKEN_QUERY | TOKEN_IMPERSONATE | TOKEN_DUPLICATE,
+                tokenPageContext->Context
+                )))
+            {
+                PTOKEN_APPCONTAINER_INFORMATION appContainerInfo;
+                PPH_STRING appContainerFolderPath = NULL;
+                PPH_STRING appContainerRegistryPath = NULL;
+
+                if (NT_SUCCESS(PhQueryTokenVariableSize(tokenHandle, TokenAppContainerSid, &appContainerInfo)))
+                {
+                    if (appContainerInfo->TokenAppContainer)
+                    {
+                        appContainerFolderPath = PhpGetTokenAppContainerFolderPath(appContainerInfo->TokenAppContainer);
+                    }
+
+                    PhFree(appContainerInfo);
+                }
+
+                if (appContainerFolderPath)
+                {
+                    PhSetListViewSubItem(context->ListViewHandle, 10, 1, appContainerFolderPath->Buffer);
+                    PhDereferenceObject(appContainerFolderPath);
+                }
+
+                if (appContainerRegistryPath = PhpGetTokenAppContainerRegistryPath(tokenHandle))
+                {
+                    PhSetListViewSubItem(context->ListViewHandle, 11, 1, appContainerRegistryPath->Buffer);
+                    PhDereferenceObject(appContainerRegistryPath);
+                }
+
+                NtClose(tokenHandle);
             }
 
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
