@@ -121,7 +121,7 @@ INT_PTR CALLBACK PvpPeResourcesDlgProc(
 
                     entry = resources.ResourceEntries[i];
 
-                    PhPrintUInt64(number, ++count);
+                    PhPrintUInt32(number, ++count);
                     lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, number, NULL);
 
                     if (IS_INTRESOURCE(entry.Type))

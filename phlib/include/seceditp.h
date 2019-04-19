@@ -225,7 +225,7 @@ HRESULT STDMETHODCALLTYPE PhSecurityDataObject_GetData(
     _Out_ STGMEDIUM *pmedium);
 
 HRESULT STDMETHODCALLTYPE PhSecurityDataObject_GetDataHere(
-    IDataObject *This,
+    _In_ IDataObject *This,
     _In_ FORMATETC *pformatetc,
     _Inout_ STGMEDIUM *pmedium
     );

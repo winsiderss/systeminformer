@@ -172,7 +172,7 @@ VOID PhEditSecurity(
 }
 
 ISecurityInformation *PhSecurityInformation_Create(
-    _In_ HWND WindowHandle,
+    _In_opt_ HWND WindowHandle,
     _In_ PWSTR ObjectName,
     _In_ PWSTR ObjectType,
     _In_ PPH_OPEN_OBJECT OpenObject,

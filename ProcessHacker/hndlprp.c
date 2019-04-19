@@ -511,7 +511,7 @@ VOID PhpUpdateHandleGeneral(
     PPH_ACCESS_ENTRY accessEntries;
     ULONG numberOfAccessEntries;
     OBJECT_BASIC_INFORMATION basicInfo;
-    WCHAR string[PH_PTR_STR_LEN];
+    WCHAR string[PH_INT64_STR_LEN_1];
 
     PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_NAME], 1, PhGetStringOrEmpty(Context->HandleItem->BestObjectName));
     PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_TYPE], 1, PhGetStringOrEmpty(Context->HandleItem->TypeName));
