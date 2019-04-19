@@ -50,6 +50,31 @@ typedef struct
     PPH_LIST NameCache;
 } PhSecurityIDataObject;
 
+
+#undef INTERFACE
+#define INTERFACE   ISecurityObjectTypeInfoEx
+DECLARE_INTERFACE_IID_(ISecurityObjectTypeInfoEx, IUnknown, "FC3066EB-79EF-444b-9111-D18A75EBF2FA")
+{
+    // *** IUnknown methods ***
+    STDMETHOD(QueryInterface) (THIS_ _In_ REFIID riid, _Outptr_ void** ppvObj) PURE;
+    STDMETHOD_(ULONG, AddRef) (THIS)  PURE;
+    STDMETHOD_(ULONG, Release) (THIS) PURE;
+
+    // *** ISecurityInformation methods ***
+    STDMETHOD(GetInheritSource)(THIS_ SECURITY_INFORMATION si,
+        PACL pACL,
+        PINHERITED_FROM * ppInheritArray) PURE;
+};
+typedef ISecurityObjectTypeInfoEx* LPSecurityObjectTypeInfoEx;
+
+typedef struct
+{
+    ISecurityObjectTypeInfoExVtbl* VTable;
+
+    PhSecurityInformation* Context;
+    ULONG RefCount;
+} PhSecurityObjectTypeInfo;
+
 // ISecurityInformation
 
 ISecurityInformation *PhSecurityInformation_Create(
@@ -57,7 +82,7 @@ ISecurityInformation *PhSecurityInformation_Create(
     _In_ PWSTR ObjectName,
     _In_ PWSTR ObjectType,
     _In_ PPH_OPEN_OBJECT OpenObject,
-    _In_ PPH_CLOSE_OBJECT CloseObject,
+    _In_opt_ PPH_CLOSE_OBJECT CloseObject,
     _In_opt_ PVOID Context,
     _In_ BOOLEAN IsPage
     );
@@ -183,7 +208,7 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation3_OpenElevatedEditor(
 HRESULT STDMETHODCALLTYPE PhSecurityDataObject_QueryInterface(
     _In_ IDataObject *This,
     _In_ REFIID Riid,
-    _Out_ PVOID *Object
+    _COM_Outptr_ PVOID *Object
     );
 
 ULONG STDMETHODCALLTYPE PhSecurityDataObject_AddRef(
@@ -245,6 +270,29 @@ HRESULT STDMETHODCALLTYPE PhSecurityDataObject_DUnadvise(
 HRESULT STDMETHODCALLTYPE PhSecurityDataObject_EnumDAdvise(
     _In_ IDataObject *This,
     _Out_opt_ IEnumSTATDATA **ppenumAdvise
+    );
+
+// ISecurityObjectTypeInfo
+
+HRESULT STDMETHODCALLTYPE PhSecurityObjectTypeInfo_QueryInterface(
+    _In_ ISecurityObjectTypeInfoEx* This,
+    _In_ REFIID Riid,
+    _Out_ PVOID* Object
+    );
+
+ULONG STDMETHODCALLTYPE PhSecurityObjectTypeInfo_AddRef(
+    _In_ ISecurityObjectTypeInfoEx* This
+    );
+
+ULONG STDMETHODCALLTYPE PhSecurityObjectTypeInfo_Release(
+    _In_ ISecurityObjectTypeInfoEx* This
+    );
+
+HRESULT STDMETHODCALLTYPE PhSecurityObjectTypeInfo_GetInheritSource(
+    _In_ ISecurityObjectTypeInfoEx* This,
+    _In_ SECURITY_INFORMATION SecurityInfo,
+    _In_ PACL Acl,
+    _Out_ PINHERITED_FROM *InheritArray
     );
 
 #endif
