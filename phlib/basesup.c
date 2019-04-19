@@ -5905,9 +5905,10 @@ VOID PhPrintTimeSpan(
     switch (Mode)
     {
     case PH_TIMESPAN_HMSM:
-        _snwprintf(
+        _snwprintf_s(
             Destination,
             PH_TIMESPAN_STR_LEN,
+            _TRUNCATE,
             L"%02I64u:%02I64u:%02I64u.%03I64u",
             PH_TICKS_PARTIAL_HOURS(Ticks),
             PH_TICKS_PARTIAL_MIN(Ticks),
@@ -5916,9 +5917,10 @@ VOID PhPrintTimeSpan(
             );
         break;
     case PH_TIMESPAN_DHMS:
-        _snwprintf(
+        _snwprintf_s(
             Destination,
             PH_TIMESPAN_STR_LEN,
+            _TRUNCATE,
             L"%I64u:%02I64u:%02I64u:%02I64u",
             PH_TICKS_PARTIAL_DAYS(Ticks),
             PH_TICKS_PARTIAL_HOURS(Ticks),
@@ -5927,9 +5929,10 @@ VOID PhPrintTimeSpan(
             );
         break;
     default:
-        _snwprintf(
+        _snwprintf_s(
             Destination,
             PH_TIMESPAN_STR_LEN,
+            _TRUNCATE,
             L"%02I64u:%02I64u:%02I64u",
             PH_TICKS_PARTIAL_HOURS(Ticks),
             PH_TICKS_PARTIAL_MIN(Ticks),
