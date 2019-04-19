@@ -3,6 +3,7 @@
  *   PE viewer
  *
  * Copyright (C) 2010 wj32
+ * Copyright (C) 2017-2019 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -21,11 +22,10 @@
  */
 
 #include <peview.h>
-#include <objbase.h>
 
 PPH_STRING PvFileName = NULL;
 
-static BOOLEAN NTAPI PvCommandLineCallback(
+BOOLEAN NTAPI PvpCommandLineCallback(
     _In_opt_ PPH_COMMAND_LINE_OPTION Option,
     _In_opt_ PPH_STRING Value,
     _In_opt_ PVOID Context
@@ -112,9 +112,9 @@ INT WINAPI wWinMain(
     PhParseCommandLine(
         &commandLine->sr,
         options,
-        sizeof(options) / sizeof(PH_COMMAND_LINE_OPTION),
+        RTL_NUMBER_OF(options),
         PH_COMMAND_LINE_IGNORE_FIRST_PART,
-        PvCommandLineCallback,
+        PvpCommandLineCallback,
         NULL
         );
     PhDereferenceObject(commandLine);
@@ -127,8 +127,6 @@ INT WINAPI wWinMain(
             { L"All files (*.*)", L"*.*" }
         };
         PVOID fileDialog;
-
-        CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
 
         fileDialog = PhCreateOpenFileDialog();
         PhSetFileDialogOptions(fileDialog, PH_FILEDIALOG_NOPATHVALIDATE);
