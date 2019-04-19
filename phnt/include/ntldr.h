@@ -937,6 +937,16 @@ LdrControlFlowGuardEnforced(
     VOID
     );
 
+#if (PHNT_VERSION >= PHNT_19H1)
+// rev
+NTSYSAPI
+BOOLEAN
+NTAPI
+LdrIsModuleSxsRedirected(
+    _In_ PVOID DllHandle
+    );
+#endif
+
 #endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 #endif
