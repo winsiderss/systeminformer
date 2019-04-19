@@ -912,6 +912,13 @@ PhInitializeWindowTheme(
 PHLIBAPI
 VOID
 NTAPI
+PhInitializeWindowThemeEx(
+    _In_ HWND WindowHandle
+    );
+
+PHLIBAPI
+VOID
+NTAPI
 PhReInitializeWindowTheme(
     _In_ HWND WindowHandle
     );

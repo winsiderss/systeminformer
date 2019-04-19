@@ -194,6 +194,29 @@ VOID PhInitializeWindowTheme(
     }
 }
 
+VOID PhInitializeWindowThemeEx(
+    _In_ HWND WindowHandle
+    )
+{
+    static PH_STRINGREF keyPath = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize");
+    HANDLE keyHandle;
+    BOOLEAN enableThemeSupport = FALSE;
+
+    if (NT_SUCCESS(PhOpenKey(
+        &keyHandle,
+        KEY_READ,
+        PH_KEY_CURRENT_USER,
+        &keyPath,
+        0
+        )))
+    {
+        enableThemeSupport = !PhQueryRegistryUlong(keyHandle, L"AppsUseLightTheme");
+        NtClose(keyHandle);
+    }
+
+    PhInitializeWindowTheme(WindowHandle, enableThemeSupport);
+}
+
 VOID PhReInitializeWindowTheme(
     _In_ HWND WindowHandle
     )
