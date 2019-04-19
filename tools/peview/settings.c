@@ -54,6 +54,8 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"LibListViewColumns", L"");
     PhpAddStringSetting(L"PdbTreeListColumns", L"");
 
+    PhpAddIntegerSetting(L"TreeListBorderEnable", L"0");
+
     // Wsl properties
     PhpAddStringSetting(L"GeneralWslTreeListColumns", L"");
     PhpAddStringSetting(L"DynamicWslListViewColumns", L"");
