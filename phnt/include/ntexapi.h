@@ -1051,6 +1051,7 @@ typedef enum _WORKERFACTORYINFOCLASS
     WorkerFactoryTimeoutWaiters, // since THRESHOLD
     WorkerFactoryFlags,
     WorkerFactoryThreadSoftMaximum,
+    WorkerFactoryThreadCpuSets, // since REDSTONE5
     MaxWorkerFactoryInfoClass
 } WORKERFACTORYINFOCLASS, *PWORKERFACTORYINFOCLASS;
 
@@ -1446,6 +1447,8 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemCodeIntegrityUnlockModeInformation,
     SystemLeapSecondInformation, // SYSTEM_LEAP_SECOND_INFORMATION
     SystemFlags2Information,
+    SystemSecurityModelInformation, // SYSTEM_SECURITY_MODEL_INFORMATION // since 19H1
+    SystemCodeIntegritySyntheticCacheInformation,
     MaxSystemInfoClass
 } SYSTEM_INFORMATION_CLASS;
 
@@ -2119,10 +2122,49 @@ typedef struct _SYSTEM_RANGE_START_INFORMATION
     PVOID SystemRangeStart;
 } SYSTEM_RANGE_START_INFORMATION, *PSYSTEM_RANGE_START_INFORMATION;
 
+typedef struct _SYSTEM_VERIFIER_INFORMATION_LEGACY // pre-19H1
+{
+    ULONG NextEntryOffset;
+    ULONG Level;
+    UNICODE_STRING DriverName;
+
+    ULONG RaiseIrqls;
+    ULONG AcquireSpinLocks;
+    ULONG SynchronizeExecutions;
+    ULONG AllocationsAttempted;
+
+    ULONG AllocationsSucceeded;
+    ULONG AllocationsSucceededSpecialPool;
+    ULONG AllocationsWithNoTag;
+    ULONG TrimRequests;
+
+    ULONG Trims;
+    ULONG AllocationsFailed;
+    ULONG AllocationsFailedDeliberately;
+    ULONG Loads;
+
+    ULONG Unloads;
+    ULONG UnTrackedPool;
+    ULONG CurrentPagedPoolAllocations;
+    ULONG CurrentNonPagedPoolAllocations;
+
+    ULONG PeakPagedPoolAllocations;
+    ULONG PeakNonPagedPoolAllocations;
+
+    SIZE_T PagedPoolUsageInBytes;
+    SIZE_T NonPagedPoolUsageInBytes;
+    SIZE_T PeakPagedPoolUsageInBytes;
+    SIZE_T PeakNonPagedPoolUsageInBytes;
+} SYSTEM_VERIFIER_INFORMATION_LEGACY, *PSYSTEM_VERIFIER_INFORMATION_LEGACY;
+
 typedef struct _SYSTEM_VERIFIER_INFORMATION
 {
     ULONG NextEntryOffset;
     ULONG Level;
+    ULONG RuleClasses[2];
+    ULONG TriageContext;
+    ULONG AreAllDriversBeingVerified;
+
     UNICODE_STRING DriverName;
 
     ULONG RaiseIrqls;
@@ -2355,6 +2397,9 @@ typedef struct _SYSTEM_BOOT_ENVIRONMENT_INFORMATION
             ULONGLONG DbgHiberBoot : 1;
             ULONGLONG DbgSoftBoot : 1;
             ULONGLONG DbgMeasuredLaunch : 1;
+            ULONGLONG DbgMeasuredLaunchCapable : 1; // 19H1
+            ULONGLONG DbgSystemHiveReplace : 1;
+            ULONGLONG DbgMeasuredLaunchSmmProtections : 1;
         };
     };
 } SYSTEM_BOOT_ENVIRONMENT_INFORMATION, *PSYSTEM_BOOT_ENVIRONMENT_INFORMATION;
@@ -2615,18 +2660,40 @@ typedef struct _MEMORY_SCRUB_INFORMATION
 // private
 typedef struct _PEBS_DS_SAVE_AREA
 {
-    ULONGLONG BtsBufferBase;
-    ULONGLONG BtsIndex;
-    ULONGLONG BtsAbsoluteMaximum;
-    ULONGLONG BtsInterruptThreshold;
-    ULONGLONG PebsBufferBase;
-    ULONGLONG PebsIndex;
-    ULONGLONG PebsAbsoluteMaximum;
-    ULONGLONG PebsInterruptThreshold;
-    ULONGLONG PebsCounterReset0;
-    ULONGLONG PebsCounterReset1;
-    ULONGLONG PebsCounterReset2;
-    ULONGLONG PebsCounterReset3;
+    union
+    {
+        ULONG As32Bit; // PEBS_DS_SAVE_AREA32
+        struct
+        {
+            ULONG BtsBufferBase;
+            ULONG BtsIndex;
+            ULONG BtsAbsoluteMaximum;
+            ULONG BtsInterruptThreshold;
+            ULONG PebsBufferBase;
+            ULONG PebsIndex;
+            ULONG PebsAbsoluteMaximum;
+            ULONG PebsInterruptThreshold;
+            ULONG PebsGpCounterReset[8];
+            ULONG PebsFixedCounterReset[4];
+        };
+    };
+    union
+    {
+        ULONGLONG As64Bit; // PEBS_DS_SAVE_AREA64
+        struct
+        {
+            ULONGLONG BtsBufferBase;
+            ULONGLONG BtsIndex;
+            ULONGLONG BtsAbsoluteMaximum;
+            ULONGLONG BtsInterruptThreshold;
+            ULONGLONG PebsBufferBase;
+            ULONGLONG PebsIndex;
+            ULONGLONG PebsAbsoluteMaximum;
+            ULONGLONG PebsInterruptThreshold;
+            ULONGLONG PebsGpCounterReset[8];
+            ULONGLONG PebsFixedCounterReset[4];
+        };
+    };
 } PEBS_DS_SAVE_AREA, *PPEBS_DS_SAVE_AREA;
 
 // private
@@ -2803,7 +2870,7 @@ typedef union _ENERGY_STATE_DURATION
 
 typedef struct _PROCESS_ENERGY_VALUES
 {
-    ULONGLONG Cycles[2][4];
+    ULONGLONG Cycles[4][2];
     ULONGLONG DiskEnergy;
     ULONGLONG NetworkTailEnergy;
     ULONGLONG MBBTailEnergy;
@@ -2979,7 +3046,7 @@ typedef struct _SYSTEM_HYPERVISOR_DETAIL_INFORMATION
 // private
 typedef struct _SYSTEM_PROCESSOR_CYCLE_STATS_INFORMATION
 {
-    ULONGLONG Cycles[2][4];
+    ULONGLONG Cycles[4][2];
 } SYSTEM_PROCESSOR_CYCLE_STATS_INFORMATION, *PSYSTEM_PROCESSOR_CYCLE_STATS_INFORMATION;
 
 // private
@@ -3014,9 +3081,10 @@ typedef struct _SYSTEM_ISOLATED_USER_MODE_INFORMATION
     BOOLEAN DebugEnabled : 1;
     BOOLEAN FirmwarePageProtection : 1;
     BOOLEAN EncryptionKeyAvailable : 1;
-    BOOLEAN SpareFlags : 1;
+    BOOLEAN SpareFlags : 2;
     BOOLEAN TrustletRunning : 1;
-    BOOLEAN SpareFlags2 : 1;
+    BOOLEAN HvciDisableAllowed : 1;
+    BOOLEAN SpareFlags2 : 6;
     BOOLEAN Spare0[6];
     ULONGLONG Spare1;
 } SYSTEM_ISOLATED_USER_MODE_INFORMATION, *PSYSTEM_ISOLATED_USER_MODE_INFORMATION;
@@ -3167,10 +3235,9 @@ typedef struct _SYSTEM_CODEINTEGRITY_UNLOCK_INFORMATION
         struct
         {
             ULONG Locked : 1;
-            ULONG Unlockable : 1;
-            ULONG UnlockApplied : 1;
-            ULONG UnlockIdValid : 1; // REDSTONE4
-            ULONG Reserved : 28;
+            ULONG UnlockApplied : 1; // Unlockable field removed 19H1
+            ULONG UnlockIdValid : 1;
+            ULONG Reserved : 29;
         };
     };
     UCHAR UnlockId[32]; // REDSTONE4
@@ -3252,7 +3319,15 @@ typedef struct _SYSTEM_SPECULATION_CONTROL_INFORMATION
             ULONG BpbDisabledKernelToUser : 1;
             ULONG SpecCtrlRetpolineEnabled : 1;
             ULONG SpecCtrlImportOptimizationEnabled : 1;
-            ULONG Reserved : 16;
+            ULONG EnhancedIbrs : 1; // since 19H1
+            ULONG HvL1tfStatusAvailable : 1;
+            ULONG HvL1tfProcessorNotAffected : 1;
+            ULONG HvL1tfMigitationEnabled : 1;
+            ULONG HvL1tfMigitationNotEnabled_Hardware : 1;
+            ULONG HvL1tfMigitationNotEnabled_LoadOption : 1;
+            ULONG HvL1tfMigitationNotEnabled_CoreScheduler : 1;
+            ULONG EnhancedIbrsReported : 1;
+            ULONG Reserved : 8;
         };
     };
 } SYSTEM_SPECULATION_CONTROL_INFORMATION, *PSYSTEM_SPECULATION_CONTROL_INFORMATION;
@@ -3275,6 +3350,21 @@ typedef struct _SYSTEM_WORKLOAD_ALLOWED_CPU_SET_INFORMATION
     ULONGLONG WorkloadClass;
     ULONGLONG CpuSets[1];
 } SYSTEM_WORKLOAD_ALLOWED_CPU_SET_INFORMATION, *PSYSTEM_WORKLOAD_ALLOWED_CPU_SET_INFORMATION;
+
+// private
+typedef struct _SYSTEM_SECURITY_MODEL_INFORMATION
+{
+    union
+    {
+        ULONG SecurityModelFlags;
+        struct
+        {
+            ULONG SModeAdminlessEnabled : 1;
+            ULONG AllowDeviceOwnerProtectionDowngrade : 1;
+            ULONG Reserved : 30;
+        };
+    };
+} SYSTEM_SECURITY_MODEL_INFORMATION, *PSYSTEM_SECURITY_MODEL_INFORMATION;
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
@@ -3600,7 +3690,8 @@ typedef struct _KUSER_SHARED_DATA
             UCHAR Reserved : 2;
         };
     };
-    UCHAR Reserved6[2];
+
+    USHORT CyclesPerYield;
 
     volatile ULONG ActiveConsoleId;
 
