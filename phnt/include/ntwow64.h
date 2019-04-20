@@ -141,7 +141,8 @@ typedef struct _LDR_DATA_TABLE_ENTRY32
             ULONG CorImage : 1;
             ULONG DontRelocate : 1;
             ULONG CorILOnly : 1;
-            ULONG ReservedFlags5 : 3;
+            ULONG ChpeImage : 1;
+            ULONG ReservedFlags5 : 2;
             ULONG Redirected : 1;
             ULONG ReservedFlags6 : 2;
             ULONG CompatDatabaseProcessed : 1;
@@ -225,6 +226,11 @@ typedef struct _RTL_USER_PROCESS_PARAMETERS32
     WOW64_POINTER(PVOID) PackageDependencyData;
     ULONG ProcessGroupId;
     ULONG LoaderThreads;
+
+    UNICODE_STRING32 RedirectionDllName; // REDSTONE4
+    UNICODE_STRING32 HeapPartitionName; // 19H1
+    WOW64_POINTER(ULONG_PTR) DefaultThreadpoolCpuSetMasks;
+    ULONG DefaultThreadpoolCpuSetMaskCount;
 } RTL_USER_PROCESS_PARAMETERS32, *PRTL_USER_PROCESS_PARAMETERS32;
 
 typedef struct _PEB32
@@ -275,7 +281,7 @@ typedef struct _PEB32
         WOW64_POINTER(PVOID) KernelCallbackTable;
         WOW64_POINTER(PVOID) UserSharedInfoPtr;
     };
-    ULONG SystemReserved[1];
+    ULONG SystemReserved;
     ULONG AtlThunkSListPtr32;
     WOW64_POINTER(PVOID) ApiSetMap;
     ULONG TlsExpansionCounter;
@@ -338,11 +344,13 @@ typedef struct _PEB32
 
     WOW64_POINTER(SIZE_T) MinimumStackCommit;
 
-    WOW64_POINTER(PVOID *) FlsCallback;
-    LIST_ENTRY32 FlsListHead;
-    WOW64_POINTER(PVOID) FlsBitmap;
-    ULONG FlsBitmapBits[FLS_MAXIMUM_AVAILABLE / (sizeof(ULONG) * 8)];
-    ULONG FlsHighIndex;
+    WOW64_POINTER(PVOID) SparePointers[4];
+    ULONG SpareUlongs[5];
+    //WOW64_POINTER(PVOID *) FlsCallback;
+    //LIST_ENTRY32 FlsListHead;
+    //WOW64_POINTER(PVOID) FlsBitmap;
+    //ULONG FlsBitmapBits[FLS_MAXIMUM_AVAILABLE / (sizeof(ULONG) * 8)];
+    //ULONG FlsHighIndex;
 
     WOW64_POINTER(PVOID) WerRegistrationData;
     WOW64_POINTER(PVOID) WerShipAssertPtr;
