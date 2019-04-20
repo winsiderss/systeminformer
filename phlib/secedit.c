@@ -448,15 +448,40 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_MapGeneric(
     _Inout_ PACCESS_MASK Mask
     )
 {
-    static GENERIC_MAPPING genericMappings =
-    {
-        FILE_GENERIC_READ,
-        FILE_GENERIC_WRITE,
-        FILE_GENERIC_EXECUTE,
-        FILE_ALL_ACCESS
-    };
+    PhSecurityInformation* this = (PhSecurityInformation*)This;
 
-    RtlMapGenericMask(Mask, &genericMappings);
+    if (PhEqualString2(this->ObjectType, L"FileObject", TRUE))
+    {
+        static GENERIC_MAPPING genericMappings =
+        {
+            FILE_GENERIC_READ,
+            FILE_GENERIC_WRITE,
+            FILE_GENERIC_EXECUTE,
+            FILE_ALL_ACCESS
+        };
+
+        RtlMapGenericMask(Mask, &genericMappings);
+    }
+
+    // TODO we're supposed to lookup the GenericMapping for the object type. (dmex)
+
+    //POBJECT_TYPES_INFORMATION objectTypes;
+    //POBJECT_TYPE_INFORMATION objectType;
+
+    //if (NT_SUCCESS(PhEnumObjectTypes(&objectTypes)))
+    //{
+    //    objectType = PH_FIRST_OBJECT_TYPE(objectTypes);
+    //
+    //    for (ULONG i = 0; i < objectTypes->NumberOfTypes; i++)
+    //    {
+    //        RtlMapGenericMask(Mask, &objectType->GenericMapping);
+    //    }
+    //
+    //    PhFree(objectTypes);
+    //}
+
+    // TODO
+    // NtQuerySystemInformation(SystemObjectInformation);
 
     return S_OK;
 }
