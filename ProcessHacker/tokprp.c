@@ -3415,11 +3415,11 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
                         {
                             PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = &info->Attribute.pAttributeV1[i];
 
-                            if (attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_STRING)
+                            if (RtlEqualUnicodeString(&attribute->Name, &attributeNameUs, FALSE))
                             {
-                                if (RtlEqualUnicodeString(&attribute->Name, &attributeNameUs, FALSE))
+                                if (attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_UINT64)
                                 {
-                                    isLessPrivilegedAppContainer = TRUE;
+                                    isLessPrivilegedAppContainer = TRUE; // (*attribute->Values.pUint64 == 1);
                                     break;
                                 }
                             }
