@@ -2658,42 +2658,40 @@ typedef struct _MEMORY_SCRUB_INFORMATION
 } MEMORY_SCRUB_INFORMATION, *PMEMORY_SCRUB_INFORMATION;
 
 // private
-typedef struct _PEBS_DS_SAVE_AREA
+typedef struct _PEBS_DS_SAVE_AREA32
 {
-    union
-    {
-        ULONG As32Bit; // PEBS_DS_SAVE_AREA32
-        struct
-        {
-            ULONG BtsBufferBase;
-            ULONG BtsIndex;
-            ULONG BtsAbsoluteMaximum;
-            ULONG BtsInterruptThreshold;
-            ULONG PebsBufferBase;
-            ULONG PebsIndex;
-            ULONG PebsAbsoluteMaximum;
-            ULONG PebsInterruptThreshold;
-            ULONG PebsGpCounterReset[8];
-            ULONG PebsFixedCounterReset[4];
-        };
-    };
-    union
-    {
-        ULONGLONG As64Bit; // PEBS_DS_SAVE_AREA64
-        struct
-        {
-            ULONGLONG BtsBufferBase;
-            ULONGLONG BtsIndex;
-            ULONGLONG BtsAbsoluteMaximum;
-            ULONGLONG BtsInterruptThreshold;
-            ULONGLONG PebsBufferBase;
-            ULONGLONG PebsIndex;
-            ULONGLONG PebsAbsoluteMaximum;
-            ULONGLONG PebsInterruptThreshold;
-            ULONGLONG PebsGpCounterReset[8];
-            ULONGLONG PebsFixedCounterReset[4];
-        };
-    };
+    ULONG BtsBufferBase;
+    ULONG BtsIndex;
+    ULONG BtsAbsoluteMaximum;
+    ULONG BtsInterruptThreshold;
+    ULONG PebsBufferBase;
+    ULONG PebsIndex;
+    ULONG PebsAbsoluteMaximum;
+    ULONG PebsInterruptThreshold;
+    ULONG PebsGpCounterReset[8];
+    ULONG PebsFixedCounterReset[4];
+} PEBS_DS_SAVE_AREA32, *PPEBS_DS_SAVE_AREA32;
+
+// private
+typedef struct _PEBS_DS_SAVE_AREA64
+{
+    ULONGLONG BtsBufferBase;
+    ULONGLONG BtsIndex;
+    ULONGLONG BtsAbsoluteMaximum;
+    ULONGLONG BtsInterruptThreshold;
+    ULONGLONG PebsBufferBase;
+    ULONGLONG PebsIndex;
+    ULONGLONG PebsAbsoluteMaximum;
+    ULONGLONG PebsInterruptThreshold;
+    ULONGLONG PebsGpCounterReset[8];
+    ULONGLONG PebsFixedCounterReset[4];
+} PEBS_DS_SAVE_AREA64, *PPEBS_DS_SAVE_AREA64;
+
+// private
+typedef union _PEBS_DS_SAVE_AREA
+{
+    PEBS_DS_SAVE_AREA32 As32Bit;
+    PEBS_DS_SAVE_AREA64 As64Bit;
 } PEBS_DS_SAVE_AREA, *PPEBS_DS_SAVE_AREA;
 
 // private
