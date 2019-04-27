@@ -139,7 +139,7 @@ PPH_CM_COLUMN PhCmCreateColumn(
     tnColumn.Text = Column->Text;
     tnColumn.Width = Column->Width;
     tnColumn.Alignment = Column->Alignment;
-    tnColumn.DisplayIndex = Column->Visible ? Column->DisplayIndex : -1;
+    tnColumn.DisplayIndex = Column->Visible ? Column->DisplayIndex : ULONG_MAX;
     tnColumn.TextFlags = Column->TextFlags;
     TreeNew_AddColumn(Manager->Handle, &tnColumn);
 
@@ -157,7 +157,7 @@ VOID PhCmSetNotifyPlugin(
     }
     else
     {
-        if (PhFindItemList(Manager->NotifyList, Plugin) != -1)
+        if (PhFindItemList(Manager->NotifyList, Plugin) != ULONG_MAX)
             return;
     }
 
@@ -297,7 +297,7 @@ BOOLEAN PhCmLoadSettingsEx(
                     if (valuePart.Length != 0)
                         goto CleanupExit;
 
-                    displayIndex = -1;
+                    displayIndex = ULONG_MAX;
                 }
 
                 // Width
@@ -413,7 +413,7 @@ CleanupExit:
             ULONG sortColumn;
             PH_SORT_ORDER sortOrder;
 
-            sortColumn = -1;
+            sortColumn = ULONG_MAX;
 
             if (valuePart.Buffer[0] == '+')
             {
@@ -439,7 +439,7 @@ CleanupExit:
             PhStringToInteger64(&subPart, 10, &integer);
             sortOrder = (PH_SORT_ORDER)integer;
 
-            if (sortColumn != -1 && sortOrder <= DescendingSortOrder)
+            if (sortColumn != ULONG_MAX && sortOrder <= DescendingSortOrder)
             {
                 TreeNew_SetSort(TreeNewHandle, sortColumn, sortOrder);
             }

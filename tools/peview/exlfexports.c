@@ -48,7 +48,7 @@ VOID PvpProcessElfExports(
 
         PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, pointer);
         PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, export->Name);
-        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, PhaFormatSize(export->Size, -1)->Buffer);
+        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, PhaFormatSize(export->Size, ULONG_MAX)->Buffer);
         PhSetListViewSubItem(ListViewHandle, lvItemIndex, 4, PvpGetSymbolTypeName(export->TypeInfo));
         PhSetListViewSubItem(ListViewHandle, lvItemIndex, 5, PvpGetSymbolBindingName(export->TypeInfo));
         PhSetListViewSubItem(ListViewHandle, lvItemIndex, 6, PvpGetSymbolVisibility(export->OtherInfo));

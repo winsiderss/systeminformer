@@ -912,7 +912,7 @@ VOID PhSiSetColorsGraphDrawInfo(
     )
 {
     static PH_QUEUED_LOCK lock = PH_QUEUED_LOCK_INIT;
-    static ULONG lastDpi = -1;
+    static ULONG lastDpi = ULONG_MAX;
     static HFONT iconTitleFont;
 
     // Get the appropriate fonts.

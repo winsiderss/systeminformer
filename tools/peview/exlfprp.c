@@ -416,7 +416,7 @@ VOID PvpLoadWslSections(
             PhPrintPointer(pointer, (PVOID)imageSections[i].Offset);
             PhSetListViewSubItem(LvHandle, lvItemIndex, 3, pointer);
 
-            PhSetListViewSubItem(LvHandle, lvItemIndex, 4, PhaFormatSize(imageSections[i].Size, -1)->Buffer);
+            PhSetListViewSubItem(LvHandle, lvItemIndex, 4, PhaFormatSize(imageSections[i].Size, ULONG_MAX)->Buffer);
             PhSetListViewSubItem(LvHandle, lvItemIndex, 5, PH_AUTO_T(PH_STRING, PvpGetWslImageSectionFlagsString(imageSections[i].Flags))->Buffer);
         }
 

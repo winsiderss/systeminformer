@@ -357,7 +357,7 @@ ULONG PhGetServiceTypeInteger(
         ))
         return integer;
     else
-        return -1;
+        return ULONG_MAX;
 }
 
 PWSTR PhGetServiceStartTypeString(
@@ -391,7 +391,7 @@ ULONG PhGetServiceStartTypeInteger(
         ))
         return integer;
     else
-        return -1;
+        return ULONG_MAX;
 }
 
 PWSTR PhGetServiceErrorControlString(
@@ -425,7 +425,7 @@ ULONG PhGetServiceErrorControlInteger(
         ))
         return integer;
     else
-        return -1;
+        return ULONG_MAX;
 }
 
 PPH_STRING PhGetServiceNameFromTag(

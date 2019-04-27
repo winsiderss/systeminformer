@@ -326,7 +326,7 @@ INT_PTR CALLBACK PhSipCpuDialogProc(
 
             if (header->hwndFrom == CpuGraphHandle)
             {
-                PhSipNotifyCpuGraph(-1, header);
+                PhSipNotifyCpuGraph(ULONG_MAX, header);
             }
             else
             {
@@ -543,7 +543,7 @@ VOID PhSipNotifyCpuGraph(
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_USE_LINE_2;
             PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorCpuKernel, PhCsColorCpuUser);
 
-            if (Index == -1)
+            if (Index == ULONG_MAX)
             {
                 PhGraphStateGetDrawInfo(
                     &CpuGraphState,
@@ -581,7 +581,7 @@ VOID PhSipNotifyCpuGraph(
 
             if (getTooltipText->Index < getTooltipText->TotalCount)
             {
-                if (Index == -1)
+                if (Index == ULONG_MAX)
                 {
                     if (CpuGraphState.TooltipIndex != getTooltipText->Index)
                     {
@@ -655,7 +655,7 @@ VOID PhSipUpdateCpuGraphs(
     ULONG i;
 
     CpuGraphState.Valid = FALSE;
-    CpuGraphState.TooltipIndex = -1;
+    CpuGraphState.TooltipIndex = ULONG_MAX;
     Graph_MoveGrid(CpuGraphHandle, 1);
     Graph_Draw(CpuGraphHandle);
     Graph_UpdateTooltip(CpuGraphHandle);
@@ -664,7 +664,7 @@ VOID PhSipUpdateCpuGraphs(
     for (i = 0; i < NumberOfProcessors; i++)
     {
         CpusGraphState[i].Valid = FALSE;
-        CpusGraphState[i].TooltipIndex = -1;
+        CpusGraphState[i].TooltipIndex = ULONG_MAX;
         Graph_MoveGrid(CpusGraphHandle[i], 1);
         Graph_Draw(CpusGraphHandle[i]);
         Graph_UpdateTooltip(CpusGraphHandle[i]);

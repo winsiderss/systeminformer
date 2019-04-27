@@ -196,7 +196,7 @@ VOID PvpPeClrEnumSections(
             lvItemIndex = PhAddListViewItem(ListViewHandle, MAXINT, sectionName, NULL);
             PhPrintPointer(pointer, UlongToPtr(streamHeader->Offset));
             PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, pointer);
-            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, PhaFormatSize(streamHeader->Size, -1)->Buffer);
+            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, PhaFormatSize(streamHeader->Size, ULONG_MAX)->Buffer);
         }
 
         // Stream headers don't have fixed sizes...
