@@ -34,11 +34,11 @@ PETP_GPU_ADAPTER EtpAllocateGpuAdapter(
 
 BOOLEAN EtQueryDeviceProperties(
     _In_ PWSTR DeviceInterface,
-    _Out_ PPH_STRING *Description,
-    _Out_ PPH_STRING *DriverDate,
-    _Out_ PPH_STRING *DriverVersion,
-    _Out_ PPH_STRING *LocationInfo,
-    _Out_ ULONG64 *InstalledMemory
+    _Out_opt_ PPH_STRING *Description,
+    _Out_opt_ PPH_STRING *DriverDate,
+    _Out_opt_ PPH_STRING *DriverVersion,
+    _Out_opt_ PPH_STRING *LocationInfo,
+    _Out_opt_ ULONG64 *InstalledMemory
     );
 
 VOID NTAPI EtGpuProcessesUpdatedCallback(
