@@ -29,6 +29,7 @@
  */
 
 #include <ph.h>
+#include <apiimport.h>
 #include <lsasup.h>
 
 NTSTATUS PhOpenLsaPolicy(
@@ -625,17 +626,12 @@ VOID PhInitializeCapabilitySidCache(
     _Inout_ PPH_ARRAY CapabilitySidArrayList
     )
 {
-    NTSTATUS (NTAPI *RtlDeriveCapabilitySidsFromName_I)(
-        _Inout_ PUNICODE_STRING UnicodeString,
-        _Out_ PSID CapabilityGroupSid,
-        _Out_ PSID CapabilitySid
-        );
     PPH_STRING applicationDirectory;
     PPH_STRING capabilityListString = NULL;
     PH_STRINGREF namePart;
     PH_STRINGREF remainingPart;
 
-    if (!(RtlDeriveCapabilitySidsFromName_I = PhGetDllProcedureAddress(L"ntdll.dll", "RtlDeriveCapabilitySidsFromName", 0)))
+    if (!RtlDeriveCapabilitySidsFromName_Import())
         return;
 
     if (applicationDirectory = PhGetApplicationDirectory())
@@ -673,7 +669,7 @@ VOID PhInitializeCapabilitySidCache(
             if (!PhStringRefToUnicodeString(&namePart, &capabilityNameUs))
                 continue;
 
-            if (NT_SUCCESS(RtlDeriveCapabilitySidsFromName_I(
+            if (NT_SUCCESS(RtlDeriveCapabilitySidsFromName_Import()(
                 &capabilityNameUs,
                 capabilityGroupSid,
                 capabilitySid

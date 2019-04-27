@@ -69,9 +69,9 @@ PhReferenceNetworkItem(
     );
 // end_phapppub
 
-PPH_STRING PhGetHostNameFromAddress(
-    _In_ PPH_IP_ADDRESS Address
-    );
+//PPH_STRING PhGetHostNameFromAddress(
+//    _In_ PPH_IP_ADDRESS Address
+//    );
 
 VOID PhNetworkProviderUpdate(
     _In_ PVOID Object
