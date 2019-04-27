@@ -444,7 +444,10 @@ PPH_STRING PhGetSecurityDescriptorAsString(
     ULONG stringSecurityDescriptorLength;
     PWSTR stringSecurityDescriptor;
 
-    if (ConvertSecurityDescriptorToStringSecurityDescriptor(
+    if (!ConvertSecurityDescriptorToStringSecurityDescriptorW_Import())
+        return NULL;
+
+    if (ConvertSecurityDescriptorToStringSecurityDescriptorW_Import()(
         SecurityDescriptor,
         SDDL_REVISION,
         SecurityInformation,
@@ -1503,7 +1506,7 @@ NTSTATUS PhLoadDllProcess(
     if (!isModule32)
     {
 #endif
-        threadStart = PhGetModuleProcAddress(L"kernel32.dll", "LoadLibraryW");
+        threadStart = PhGetDllProcedureAddress(L"kernel32.dll", "LoadLibraryW", 0);
 #ifdef _WIN64
     }
     else
@@ -1750,10 +1753,10 @@ NTSTATUS PhSetEnvironmentVariableRemote(
     PVOID setEnvironmentVariableW = NULL;
     HANDLE threadHandle = NULL;
 
-    nameAllocationSize = Name->Length + sizeof(WCHAR);
+    nameAllocationSize = Name->Length + sizeof(UNICODE_NULL);
 
     if (Value)
-        valueAllocationSize = Value->Length + sizeof(WCHAR);
+        valueAllocationSize = Value->Length + sizeof(UNICODE_NULL);
 
 #ifdef _WIN64
     if (!NT_SUCCESS(status = PhGetProcessIsWow64(ProcessHandle, &isWow64)))
@@ -1790,6 +1793,7 @@ NTSTATUS PhSetEnvironmentVariableRemote(
     {
         goto CleanupExit;
     }
+
     if (!NT_SUCCESS(status = PhGetProcedureAddressRemote(
         ProcessHandle,
         kernel32FileName->Buffer,
@@ -1813,6 +1817,7 @@ NTSTATUS PhSetEnvironmentVariableRemote(
     {
         goto CleanupExit;
     }
+
     if (!NT_SUCCESS(status = NtWriteVirtualMemory(
         ProcessHandle,
         nameBaseAddress,
@@ -1837,6 +1842,7 @@ NTSTATUS PhSetEnvironmentVariableRemote(
         {
             goto CleanupExit;
         }
+
         if (!NT_SUCCESS(status = NtWriteVirtualMemory(
             ProcessHandle,
             valueBaseAddress,
@@ -2200,34 +2206,22 @@ NTSTATUS PhGetTokenNamedObjectPath(
     _Out_ PPH_STRING* ObjectPath
     )
 {
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static NTSTATUS(WINAPI * RtlGetTokenNamedObjectPath_I)(
-        _In_ HANDLE Token,
-        _In_opt_ PSID Sid,
-        _Out_ PUNICODE_STRING ObjectPath
-        ) = NULL;
     NTSTATUS status;
-    UNICODE_STRING namedObjectPathUs;
+    UNICODE_STRING objectPathUs;
 
-    if (PhBeginInitOnce(&initOnce))
-    {
-        RtlGetTokenNamedObjectPath_I = PhGetDllProcedureAddress(L"ntdll.dll", "RtlGetTokenNamedObjectPath", 0);
-        PhEndInitOnce(&initOnce);
-    }
+    if (!RtlGetTokenNamedObjectPath_Import())
+        return STATUS_NOT_SUPPORTED;
 
-    if (!RtlGetTokenNamedObjectPath_I)
-        return STATUS_UNSUCCESSFUL;
-
-    status = RtlGetTokenNamedObjectPath_I(
+    status = RtlGetTokenNamedObjectPath_Import()(
         TokenHandle,
         Sid,
-        &namedObjectPathUs
+        &objectPathUs
         );
 
     if (NT_SUCCESS(status))
     {
-        *ObjectPath = PhCreateStringFromUnicodeString(&namedObjectPathUs);
-        RtlFreeUnicodeString(&namedObjectPathUs);
+        *ObjectPath = PhCreateStringFromUnicodeString(&objectPathUs);
+        RtlFreeUnicodeString(&objectPathUs);
     }
 
     return status;
@@ -2240,36 +2234,23 @@ NTSTATUS PhGetAppContainerNamedObjectPath(
     _Out_ PPH_STRING* ObjectPath
     )
 {
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static NTSTATUS (WINAPI * RtlGetAppContainerNamedObjectPath_I)(
-        _In_opt_ HANDLE Token,
-        _In_opt_ PSID AppContainerSid,
-        _In_ BOOLEAN RelativePath,
-        _Out_ PUNICODE_STRING ObjectPath
-        ) = NULL;
     NTSTATUS status;
-    UNICODE_STRING namedObjectPathUs;
+    UNICODE_STRING objectPathUs;
 
-    if (PhBeginInitOnce(&initOnce))
-    {
-        RtlGetAppContainerNamedObjectPath_I = PhGetDllProcedureAddress(L"ntdll.dll", "RtlGetAppContainerNamedObjectPath", 0);
-        PhEndInitOnce(&initOnce);
-    }
-
-    if (!RtlGetAppContainerNamedObjectPath_I)
+    if (!RtlGetAppContainerNamedObjectPath_Import())
         return STATUS_UNSUCCESSFUL;
 
-    status = RtlGetAppContainerNamedObjectPath_I(
+    status = RtlGetAppContainerNamedObjectPath_Import()(
         TokenHandle,
         AppContainerSid,
         RelativePath,
-        &namedObjectPathUs
+        &objectPathUs
         );
 
     if (NT_SUCCESS(status))
     {
-        *ObjectPath = PhCreateStringFromUnicodeString(&namedObjectPathUs);
-        RtlFreeUnicodeString(&namedObjectPathUs);
+        *ObjectPath = PhCreateStringFromUnicodeString(&objectPathUs);
+        RtlFreeUnicodeString(&objectPathUs);
     }
 
     return status;
@@ -2281,6 +2262,7 @@ BOOLEAN PhGetTokenSecurityDescriptorAsString(
     )
 {
     PSECURITY_DESCRIPTOR securityDescriptor;
+    PPH_STRING securityDescriptorString;
 
     if (NT_SUCCESS(PhGetObjectSecurity(
         TokenHandle,
@@ -2290,16 +2272,20 @@ BOOLEAN PhGetTokenSecurityDescriptorAsString(
         &securityDescriptor
         )))
     {
-        *SecurityDescriptorString = PhGetSecurityDescriptorAsString(
+        if (securityDescriptorString = PhGetSecurityDescriptorAsString(
             OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION |
             DACL_SECURITY_INFORMATION | LABEL_SECURITY_INFORMATION |
             ATTRIBUTE_SECURITY_INFORMATION | SCOPE_SECURITY_INFORMATION,
             securityDescriptor
-            );
+            ))
+        {
+            *SecurityDescriptorString = securityDescriptorString;
+
+            PhFree(securityDescriptor);
+            return TRUE;
+        }
 
         PhFree(securityDescriptor);
-
-        return TRUE;
     }
 
     return FALSE;
@@ -4347,30 +4333,34 @@ PVOID PhGetDllHandle(
     _In_ PWSTR DllName
     )
 {
-    UNICODE_STRING dllName;
-    PVOID dllHandle;
+    return PhGetLoaderEntryDllBase(DllName);
 
-    RtlInitUnicodeString(&dllName, DllName);
-
-    if (NT_SUCCESS(LdrGetDllHandle(NULL, NULL, &dllName, &dllHandle)))
-        return dllHandle;
-    else
-        return NULL;
+    //UNICODE_STRING dllName;
+    //PVOID dllHandle;
+    //
+    //RtlInitUnicodeString(&dllName, DllName);
+    //
+    //if (NT_SUCCESS(LdrGetDllHandle(NULL, NULL, &dllName, &dllHandle)))
+    //    return dllHandle;
+    //else
+    //    return NULL;
 }
 
 PVOID PhGetModuleProcAddress(
     _In_ PWSTR ModuleName,
-    _In_ PSTR ProcName
+    _In_ PSTR ProcedureName
     )
 {
-    PVOID module;
+    return PhGetDllProcedureAddress(ModuleName, ProcedureName, 0);
 
-    module = PhGetDllHandle(ModuleName);
-
-    if (module)
-        return PhGetProcedureAddress(module, ProcName, 0);
-    else
-        return NULL;
+    //PVOID module;
+    //
+    //module = PhGetDllHandle(ModuleName);
+    //
+    //if (module)
+    //    return PhGetProcedureAddress(module, ProcName, 0);
+    //else
+    //    return NULL;
 }
 
 PVOID PhGetProcedureAddress(
@@ -4379,34 +4369,36 @@ PVOID PhGetProcedureAddress(
     _In_opt_ ULONG ProcedureNumber
     )
 {
-    NTSTATUS status;
-    ANSI_STRING procedureName;
-    PVOID procedureAddress;
+    return PhGetDllBaseProcedureAddress(DllHandle, ProcedureName, (USHORT)ProcedureNumber);
 
-    if (ProcedureName)
-    {
-        RtlInitAnsiString(&procedureName, ProcedureName);
-        status = LdrGetProcedureAddress(
-            DllHandle,
-            &procedureName,
-            0,
-            &procedureAddress
-            );
-    }
-    else
-    {
-        status = LdrGetProcedureAddress(
-            DllHandle,
-            NULL,
-            ProcedureNumber,
-            &procedureAddress
-            );
-    }
-
-    if (!NT_SUCCESS(status))
-        return NULL;
-
-    return procedureAddress;
+    //NTSTATUS status;
+    //ANSI_STRING procedureName;
+    //PVOID procedureAddress;
+    //
+    //if (ProcedureName)
+    //{
+    //    RtlInitAnsiString(&procedureName, ProcedureName);
+    //    status = LdrGetProcedureAddress(
+    //        DllHandle,
+    //        &procedureName,
+    //        0,
+    //        &procedureAddress
+    //        );
+    //}
+    //else
+    //{
+    //    status = LdrGetProcedureAddress(
+    //        DllHandle,
+    //        NULL,
+    //        ProcedureNumber,
+    //        &procedureAddress
+    //        );
+    //}
+    //
+    //if (!NT_SUCCESS(status))
+    //    return NULL;
+    //
+    //return procedureAddress;
 }
 
 typedef struct _GET_PROCEDURE_ADDRESS_REMOTE_CONTEXT

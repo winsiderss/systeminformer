@@ -22,6 +22,7 @@
  */
 
 #include <phapp.h>
+#include <apiimport.h>
 #include <appresolver.h>
 #include <cpysave.h>
 #include <emenu.h>
@@ -3213,9 +3214,9 @@ PPH_STRING PhpGetTokenAppContainerFolderPath(
 
     appContainerSid = PhSidToStringSid(TokenAppContainerSid);
 
-    if (GetAppContainerFolderPath)
+    if (GetAppContainerFolderPath_Import())
     {
-        if (SUCCEEDED(GetAppContainerFolderPath(appContainerSid->Buffer, &folderPath)))
+        if (SUCCEEDED(GetAppContainerFolderPath_Import()(appContainerSid->Buffer, &folderPath)))
         {
             appContainerFolderPath = PhCreateString(folderPath);
             CoTaskMemFree(folderPath);
@@ -3236,8 +3237,8 @@ PPH_STRING PhpGetTokenAppContainerRegistryPath(
 
     if (NT_SUCCESS(PhImpersonateToken(NtCurrentThread(), TokenHandle)))
     {
-        if (GetAppContainerRegistryLocation)
-            GetAppContainerRegistryLocation(KEY_READ, &registryHandle);
+        if (GetAppContainerRegistryLocation_Import())
+            GetAppContainerRegistryLocation_Import()(KEY_READ, &registryHandle);
 
         PhRevertImpersonationToken(NtCurrentThread());
     }
@@ -3344,27 +3345,10 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
                 {
                     if (appContainerInfo->TokenAppContainer)
                     {
-                        static PH_INITONCE initOnce = PH_INITONCE_INIT;
-                        static NTSTATUS (NTAPI* RtlGetAppContainerSidType_I)(
-                            _In_ PSID AppContainerSid,
-                            _Out_ PAPPCONTAINER_SID_TYPE AppContainerSidType
-                            ) = NULL;
-                        static NTSTATUS (NTAPI* RtlGetAppContainerParent_I)(
-                            _In_ PSID AppContainerSid,
-                            _Out_ PSID* AppContainerSidParent
-                            ) = NULL;
-
-                        if (PhBeginInitOnce(&initOnce))
-                        {
-                            RtlGetAppContainerSidType_I = PhGetDllProcedureAddress(L"ntdll.dll", "RtlGetAppContainerSidType", 0);
-                            RtlGetAppContainerParent_I = PhGetDllProcedureAddress(L"ntdll.dll", "RtlGetAppContainerParent", 0);
-                            PhEndInitOnce(&initOnce);
-                        }
-
-                        if (RtlGetAppContainerSidType_I)
-                            RtlGetAppContainerSidType_I(appContainerInfo->TokenAppContainer, &appContainerSidType);
-                        if (RtlGetAppContainerParent_I)
-                            RtlGetAppContainerParent_I(appContainerInfo->TokenAppContainer, &appContainerSidParent);
+                        if (RtlGetAppContainerSidType_Import())
+                            RtlGetAppContainerSidType_Import()(appContainerInfo->TokenAppContainer, &appContainerSidType);
+                        if (RtlGetAppContainerParent_Import())
+                            RtlGetAppContainerParent_Import()(appContainerInfo->TokenAppContainer, &appContainerSidParent);
 
                         appContainerName = PhGetAppContainerName(appContainerInfo->TokenAppContainer);
                         appContainerSid = PhSidToStringSid(appContainerInfo->TokenAppContainer);

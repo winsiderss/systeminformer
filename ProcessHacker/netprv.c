@@ -281,75 +281,75 @@ PPHP_RESOLVE_CACHE_ITEM PhpLookupResolveCacheItem(
         return NULL;
 }
 
-PPH_STRING PhGetHostNameFromAddress(
-    _In_ PPH_IP_ADDRESS Address
-    )
-{
-    SOCKADDR_IN ipv4Address;
-    SOCKADDR_IN6 ipv6Address;
-    PSOCKADDR address;
-    socklen_t length;
-    PPH_STRING hostName;
-
-    if (Address->Type == PH_IPV4_NETWORK_TYPE)
-    {
-        ipv4Address.sin_family = AF_INET;
-        ipv4Address.sin_port = 0;
-        ipv4Address.sin_addr = Address->InAddr;
-        address = (PSOCKADDR)&ipv4Address;
-        length = sizeof(ipv4Address);
-    }
-    else if (Address->Type == PH_IPV6_NETWORK_TYPE)
-    {
-        ipv6Address.sin6_family = AF_INET6;
-        ipv6Address.sin6_port = 0;
-        ipv6Address.sin6_flowinfo = 0;
-        ipv6Address.sin6_addr = Address->In6Addr;
-        ipv6Address.sin6_scope_id = 0;
-        address = (PSOCKADDR)&ipv6Address;
-        length = sizeof(ipv6Address);
-    }
-    else
-    {
-        return NULL;
-    }
-
-    hostName = PhCreateStringEx(NULL, 128);
-
-    if (GetNameInfo(
-        address,
-        length,
-        hostName->Buffer,
-        (ULONG)hostName->Length / sizeof(WCHAR) + 1,
-        NULL,
-        0,
-        NI_NAMEREQD
-        ) != 0)
-    {
-        // Try with the maximum host name size.
-        PhDereferenceObject(hostName);
-        hostName = PhCreateStringEx(NULL, NI_MAXHOST * sizeof(WCHAR));
-
-        if (GetNameInfo(
-            address,
-            length,
-            hostName->Buffer,
-            (ULONG)hostName->Length / sizeof(WCHAR) + 1,
-            NULL,
-            0,
-            NI_NAMEREQD
-            ) != 0)
-        {
-            PhDereferenceObject(hostName);
-
-            return NULL;
-        }
-    }
-
-    PhTrimToNullTerminatorString(hostName);
-
-    return hostName;
-}
+//PPH_STRING PhGetHostNameFromAddress(
+//    _In_ PPH_IP_ADDRESS Address
+//    )
+//{
+//    SOCKADDR_IN ipv4Address;
+//    SOCKADDR_IN6 ipv6Address;
+//    PSOCKADDR address;
+//    socklen_t length;
+//    PPH_STRING hostName;
+//
+//    if (Address->Type == PH_IPV4_NETWORK_TYPE)
+//    {
+//        ipv4Address.sin_family = AF_INET;
+//        ipv4Address.sin_port = 0;
+//        ipv4Address.sin_addr = Address->InAddr;
+//        address = (PSOCKADDR)&ipv4Address;
+//        length = sizeof(ipv4Address);
+//    }
+//    else if (Address->Type == PH_IPV6_NETWORK_TYPE)
+//    {
+//        ipv6Address.sin6_family = AF_INET6;
+//        ipv6Address.sin6_port = 0;
+//        ipv6Address.sin6_flowinfo = 0;
+//        ipv6Address.sin6_addr = Address->In6Addr;
+//        ipv6Address.sin6_scope_id = 0;
+//        address = (PSOCKADDR)&ipv6Address;
+//        length = sizeof(ipv6Address);
+//    }
+//    else
+//    {
+//        return NULL;
+//    }
+//
+//    hostName = PhCreateStringEx(NULL, 128);
+//
+//    if (GetNameInfo(
+//        address,
+//        length,
+//        hostName->Buffer,
+//        (ULONG)hostName->Length / sizeof(WCHAR) + 1,
+//        NULL,
+//        0,
+//        NI_NAMEREQD
+//        ) != 0)
+//    {
+//        // Try with the maximum host name size.
+//        PhDereferenceObject(hostName);
+//        hostName = PhCreateStringEx(NULL, NI_MAXHOST * sizeof(WCHAR));
+//
+//        if (GetNameInfo(
+//            address,
+//            length,
+//            hostName->Buffer,
+//            (ULONG)hostName->Length / sizeof(WCHAR) + 1,
+//            NULL,
+//            0,
+//            NI_NAMEREQD
+//            ) != 0)
+//        {
+//            PhDereferenceObject(hostName);
+//
+//            return NULL;
+//        }
+//    }
+//
+//    PhTrimToNullTerminatorString(hostName);
+//
+//    return hostName;
+//}
 
 PPH_STRING PhpGetIp4ReverseNameFromAddress(
     _In_ IN_ADDR Address
