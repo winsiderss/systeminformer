@@ -144,9 +144,9 @@ BOOLEAN PhSipIoSectionCallback(
 
             PhMoveReference(&Section->GraphState.TooltipText, PhFormatString(
                 L"R: %s\nW: %s\nO: %s%s\n%s",
-                PhaFormatSize(ioRead, -1)->Buffer,
-                PhaFormatSize(ioWrite, -1)->Buffer,
-                PhaFormatSize(ioOther, -1)->Buffer,
+                PhaFormatSize(ioRead, ULONG_MAX)->Buffer,
+                PhaFormatSize(ioWrite, ULONG_MAX)->Buffer,
+                PhaFormatSize(ioOther, ULONG_MAX)->Buffer,
                 PhGetStringOrEmpty(PhSipGetMaxIoString(getTooltipText->Index)),
                 PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->Buffer
                 ));
@@ -380,9 +380,9 @@ VOID PhSipNotifyIoGraph(
 
                     PhMoveReference(&IoGraphState.TooltipText, PhFormatString(
                         L"R: %s\nW: %s\nO: %s%s\n%s",
-                        PhaFormatSize(ioRead, -1)->Buffer,
-                        PhaFormatSize(ioWrite, -1)->Buffer,
-                        PhaFormatSize(ioOther, -1)->Buffer,
+                        PhaFormatSize(ioRead, ULONG_MAX)->Buffer,
+                        PhaFormatSize(ioWrite, ULONG_MAX)->Buffer,
+                        PhaFormatSize(ioOther, ULONG_MAX)->Buffer,
                         PhGetStringOrEmpty(PhSipGetMaxIoString(getTooltipText->Index)),
                         PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->Buffer
                         ));
@@ -419,7 +419,7 @@ VOID PhSipUpdateIoGraph(
     )
 {
     IoGraphState.Valid = FALSE;
-    IoGraphState.TooltipIndex = -1;
+    IoGraphState.TooltipIndex = ULONG_MAX;
     Graph_MoveGrid(IoGraphHandle, 1);
     Graph_Draw(IoGraphHandle);
     Graph_UpdateTooltip(IoGraphHandle);
@@ -447,9 +447,9 @@ VOID PhSipUpdateIoPanel(
 
     if (PhIoReadHistory.Count != 0)
     {
-        PhSetDialogItemText(IoPanel, IDC_ZREADBYTESDELTA_V, PhaFormatSize(PhIoReadDelta.Delta, -1)->Buffer);
-        PhSetDialogItemText(IoPanel, IDC_ZWRITEBYTESDELTA_V, PhaFormatSize(PhIoWriteDelta.Delta, -1)->Buffer);
-        PhSetDialogItemText(IoPanel, IDC_ZOTHERBYTESDELTA_V, PhaFormatSize(PhIoOtherDelta.Delta, -1)->Buffer);
+        PhSetDialogItemText(IoPanel, IDC_ZREADBYTESDELTA_V, PhaFormatSize(PhIoReadDelta.Delta, ULONG_MAX)->Buffer);
+        PhSetDialogItemText(IoPanel, IDC_ZWRITEBYTESDELTA_V, PhaFormatSize(PhIoWriteDelta.Delta, ULONG_MAX)->Buffer);
+        PhSetDialogItemText(IoPanel, IDC_ZOTHERBYTESDELTA_V, PhaFormatSize(PhIoOtherDelta.Delta, ULONG_MAX)->Buffer);
     }
     else
     {
@@ -461,11 +461,11 @@ VOID PhSipUpdateIoPanel(
     // I/O Totals
 
     PhSetDialogItemText(IoPanel, IDC_ZREADS_V, PhaFormatUInt64(PhPerfInformation.IoReadOperationCount, TRUE)->Buffer);
-    PhSetDialogItemText(IoPanel, IDC_ZREADBYTES_V, PhaFormatSize(PhPerfInformation.IoReadTransferCount.QuadPart, -1)->Buffer);
+    PhSetDialogItemText(IoPanel, IDC_ZREADBYTES_V, PhaFormatSize(PhPerfInformation.IoReadTransferCount.QuadPart, ULONG_MAX)->Buffer);
     PhSetDialogItemText(IoPanel, IDC_ZWRITES_V, PhaFormatUInt64(PhPerfInformation.IoWriteOperationCount, TRUE)->Buffer);
-    PhSetDialogItemText(IoPanel, IDC_ZWRITEBYTES_V, PhaFormatSize(PhPerfInformation.IoWriteTransferCount.QuadPart, -1)->Buffer);
+    PhSetDialogItemText(IoPanel, IDC_ZWRITEBYTES_V, PhaFormatSize(PhPerfInformation.IoWriteTransferCount.QuadPart, ULONG_MAX)->Buffer);
     PhSetDialogItemText(IoPanel, IDC_ZOTHER_V, PhaFormatUInt64(PhPerfInformation.IoOtherOperationCount, TRUE)->Buffer);
-    PhSetDialogItemText(IoPanel, IDC_ZOTHERBYTES_V, PhaFormatSize(PhPerfInformation.IoOtherTransferCount.QuadPart, -1)->Buffer);
+    PhSetDialogItemText(IoPanel, IDC_ZOTHERBYTES_V, PhaFormatSize(PhPerfInformation.IoOtherTransferCount.QuadPart, ULONG_MAX)->Buffer);
 }
 
 PPH_PROCESS_RECORD PhSipReferenceMaxIoRecord(
@@ -513,8 +513,8 @@ PPH_STRING PhSipGetMaxIoString(
                 L"\n%s (%u): R+O: %s, W: %s",
                 maxProcessRecord->ProcessName->Buffer,
                 HandleToUlong(maxProcessRecord->ProcessId),
-                PhaFormatSize(maxIoReadOther, -1)->Buffer,
-                PhaFormatSize(maxIoWrite, -1)->Buffer
+                PhaFormatSize(maxIoReadOther, ULONG_MAX)->Buffer,
+                PhaFormatSize(maxIoWrite, ULONG_MAX)->Buffer
                 );
         }
         else
@@ -522,8 +522,8 @@ PPH_STRING PhSipGetMaxIoString(
             maxUsageString = PhaFormatString(
                 L"\n%s: R+O: %s, W: %s",
                 maxProcessRecord->ProcessName->Buffer,
-                PhaFormatSize(maxIoReadOther, -1)->Buffer,
-                PhaFormatSize(maxIoWrite, -1)->Buffer
+                PhaFormatSize(maxIoReadOther, ULONG_MAX)->Buffer,
+                PhaFormatSize(maxIoWrite, ULONG_MAX)->Buffer
                 );
         }
 #else

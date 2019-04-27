@@ -934,8 +934,8 @@ VOID PhpProcessQueryStage2(
             )
         {
             Data->IsPacked = TRUE;
-            Data->ImportModules = -1;
-            Data->ImportFunctions = -1;
+            Data->ImportModules = ULONG_MAX;
+            Data->ImportFunctions = ULONG_MAX;
         }
     }
 
