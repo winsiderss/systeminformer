@@ -260,6 +260,66 @@ PPH_STRING GetCurrentWinStaName(
     }
 }
 
+PPH_STRING GetCurrentDesktopName(
+    VOID
+    )
+{
+    PPH_STRING string;
+
+    string = PhCreateStringEx(NULL, 0x200);
+
+    if (GetUserObjectInformation(
+        GetThreadDesktop(HandleToULong(NtCurrentThreadId())),
+        UOI_NAME,
+        string->Buffer,
+        (ULONG)string->Length + sizeof(UNICODE_NULL),
+        NULL
+        ))
+    {
+        PhTrimToNullTerminatorString(string);
+        return string;
+    }
+    else
+    {
+        PhDereferenceObject(string);
+        return PhCreateString(L"Default");
+    }
+}
+
+PPH_STRING PhpGetCurrentDesktopInfo(
+    VOID
+    )
+{
+    static PH_STRINGREF seperator = PH_STRINGREF_INIT(L"\\"); // OBJ_NAME_PATH_SEPARATOR
+    PPH_STRING desktopInfo = NULL;
+    PPH_STRING winstationName = NULL;
+    PPH_STRING desktopName = NULL;
+
+    winstationName = GetCurrentWinStaName();
+    desktopName = GetCurrentDesktopName();
+
+    if (winstationName && desktopName)
+    {
+        desktopInfo = PhConcatStringRef3(&winstationName->sr, &seperator, &desktopName->sr);
+    }
+
+    if (PhIsNullOrEmptyString(desktopInfo))
+    {
+        PH_STRINGREF desktopInfoSr;
+
+        PhUnicodeStringToStringRef(&NtCurrentPeb()->ProcessParameters->DesktopInfo, &desktopInfoSr);
+
+        PhMoveReference(&desktopInfo, PhCreateString2(&desktopInfoSr));
+    }
+
+    if (winstationName)
+        PhDereferenceObject(winstationName);
+    if (desktopName)
+        PhDereferenceObject(desktopName);
+
+    return desktopInfo;
+}
+
 BOOLEAN PhpInitializeNetApi(VOID)
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
@@ -795,23 +855,28 @@ VOID SetDefaultDesktopEntry(
     )
 {
     INT sessionCount;
-    PH_STRINGREF desktopName;
+    PPH_STRING desktopName;
 
-    PhUnicodeStringToStringRef(&NtCurrentPeb()->ProcessParameters->DesktopInfo, &desktopName);
+    desktopName = PhpGetCurrentDesktopInfo();
 
     if ((sessionCount = ComboBox_GetCount(ComboBoxHandle)) == CB_ERR)
+    {
+        PhClearReference(&desktopName);
         return;
+    }
 
     for (INT i = 0; i < sessionCount; i++)
     {
         PPH_RUNAS_DESKTOP_ITEM entry = (PPH_RUNAS_DESKTOP_ITEM)ComboBox_GetItemData(ComboBoxHandle, i);
 
-        if (PhEqualStringRef(&entry->DesktopName->sr, &desktopName, TRUE))
+        if (PhEqualStringRef(&entry->DesktopName->sr, &desktopName->sr, TRUE))
         {
             ComboBox_SetCurSel(ComboBoxHandle, i);
             break;
         }
     }
+
+    PhClearReference(&desktopName);
 }
 
 INT_PTR CALLBACK PhpRunAsDlgProc(
@@ -1078,10 +1143,14 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                         &logonType
                         ))
                     {
+                        ULONG sessionId = ULONG_MAX;
+
+                        PhGetProcessSessionId(NtCurrentProcess(), &sessionId);
+
                         if (
                             logonType == LOGON32_LOGON_INTERACTIVE &&
                             !context->ProcessId &&
-                            sessionId == NtCurrentPeb()->SessionId &&
+                            sessionId == sessionId &&
                             !useLinkedToken
                             )
                         {
