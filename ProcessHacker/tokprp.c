@@ -767,7 +767,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
             if (NT_SUCCESS(tokenPageContext->OpenObject(
                 &tokenHandle,
                 TOKEN_QUERY,
-                tokenPageContext->Context
+                tokenPageContext->ProcessId
                 )))
             {
                 PTOKEN_USER tokenUser;
@@ -943,7 +943,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                     status = tokenPageContext->OpenObject(
                         &tokenHandle,
                         TOKEN_ADJUST_PRIVILEGES,
-                        tokenPageContext->Context
+                        tokenPageContext->ProcessId
                         );
 
                     if (NT_SUCCESS(status))
@@ -1091,7 +1091,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                     status = tokenPageContext->OpenObject(
                         &tokenHandle,
                         TOKEN_ADJUST_GROUPS,
-                        tokenPageContext->Context
+                        tokenPageContext->ProcessId
                         );
 
                     if (NT_SUCCESS(status))
@@ -1226,7 +1226,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                     status = tokenPageContext->OpenObject(
                         &tokenHandle,
                         TOKEN_ADJUST_DEFAULT,
-                        tokenPageContext->Context
+                        tokenPageContext->ProcessId
                         );
 
                     if (NT_SUCCESS(status))
@@ -1271,7 +1271,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                         L"TokenDefault",
                         tokenPageContext->OpenObject,
                         NULL,
-                        tokenPageContext->Context
+                        tokenPageContext->ProcessId
                         );
                 }
                 break;
@@ -1283,7 +1283,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                         L"Token",
                         tokenPageContext->OpenObject,
                         NULL,
-                        tokenPageContext->Context
+                        tokenPageContext->ProcessId
                         );
                 }
                 break;
@@ -1314,7 +1314,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                     if (NT_SUCCESS(status = tokenPageContext->OpenObject(
                         &tokenHandle,
                         TOKEN_QUERY,
-                        tokenPageContext->Context
+                        tokenPageContext->ProcessId
                         )))
                     {
                         if (NT_SUCCESS(status = PhGetTokenIntegrityLevelRID(
@@ -1385,7 +1385,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                             if (NT_SUCCESS(status = tokenPageContext->OpenObject(
                                 &tokenHandle,
                                 TOKEN_QUERY | TOKEN_ADJUST_DEFAULT,
-                                tokenPageContext->Context
+                                tokenPageContext->ProcessId
                                 )))
                             {
                                 static SID_IDENTIFIER_AUTHORITY mandatoryLabelAuthority = SECURITY_MANDATORY_LABEL_AUTHORITY;
@@ -1437,7 +1437,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                     if (NT_SUCCESS(tokenPageContext->OpenObject(
                         &tokenHandle,
                         TOKEN_QUERY,
-                        tokenPageContext->Context
+                        tokenPageContext->ProcessId
                         )))
                     {
                         PhGetTokenIsAppContainer(tokenHandle, &tokenIsAppContainer);
@@ -1723,7 +1723,7 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
             if (NT_SUCCESS(tokenPageContext->OpenObject(
                 &tokenHandle,
                 TOKEN_QUERY,
-                tokenPageContext->Context
+                tokenPageContext->ProcessId
                 )))
             {
                 PTOKEN_USER tokenUser;
@@ -1789,7 +1789,7 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
             if (NT_SUCCESS(tokenPageContext->OpenObject(
                 &tokenHandle,
                 TOKEN_QUERY_SOURCE,
-                tokenPageContext->Context
+                tokenPageContext->ProcessId
                 )))
             {
                 TOKEN_SOURCE tokenSource;
@@ -1847,7 +1847,7 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
                     if (NT_SUCCESS(status = tokenPageContext->OpenObject(
                         &tokenHandle,
                         TOKEN_QUERY,
-                        tokenPageContext->Context
+                        tokenPageContext->ProcessId
                         )))
                     {
                         PhShowTokenProperties(hwndDlg, PhpOpenLinkedToken, tokenPageContext->ProcessId, (PVOID)tokenHandle, L"Linked Token");
@@ -1966,7 +1966,7 @@ INT_PTR CALLBACK PhpTokenAdvancedPageProc(
             if (NT_SUCCESS(tokenPageContext->OpenObject(
                 &tokenHandle,
                 TOKEN_QUERY,
-                tokenPageContext->Context
+                tokenPageContext->ProcessId
                 )))
             {
                 TOKEN_STATISTICS statistics;
@@ -2451,7 +2451,7 @@ BOOLEAN PhpAddTokenCapabilities(
                             {
                                 HANDLE processHandle;
 
-                                if (NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, (HANDLE)TokenPageContext->Context)))
+                                if (NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, TokenPageContext->ProcessId)))
                                 {
                                     name = PhGetProcessPackageFullName(processHandle);
                                     PhpAddAttributeNode(&TokenPageContext->CapsTreeContext, node, PhFormatString(L"Package: %s", PhGetString(name)));
@@ -2790,7 +2790,7 @@ BOOLEAN PhpAddTokenClaimAttributes(
     if (!NT_SUCCESS(TokenPageContext->OpenObject(
         &tokenHandle,
         TOKEN_QUERY,
-        TokenPageContext->Context
+        TokenPageContext->ProcessId
         )))
         return FALSE;
 
@@ -2963,7 +2963,7 @@ BOOLEAN PhpAddTokenAttributes(
     if (!NT_SUCCESS(TokenPageContext->OpenObject(
         &tokenHandle,
         TOKEN_QUERY,
-        TokenPageContext->Context
+        TokenPageContext->ProcessId
         )))
         return FALSE;
 
@@ -3331,7 +3331,7 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
             if (NT_SUCCESS(tokenPageContext->OpenObject(
                 &tokenHandle,
                 TOKEN_QUERY,
-                tokenPageContext->Context
+                tokenPageContext->ProcessId
                 )))
             {
                 PTOKEN_APPCONTAINER_INFORMATION appContainerInfo;
@@ -3469,7 +3469,7 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
             if (NT_SUCCESS(tokenPageContext->OpenObject(
                 &tokenHandle,
                 TOKEN_QUERY | TOKEN_IMPERSONATE | TOKEN_DUPLICATE,
-                tokenPageContext->Context
+                tokenPageContext->ProcessId
                 )))
             {
                 PTOKEN_APPCONTAINER_INFORMATION appContainerInfo;
