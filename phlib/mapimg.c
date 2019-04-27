@@ -766,7 +766,6 @@ NTSTATUS PhGetMappedImageExportEntry(
         }
     }
 
-
     if (exportByName)
     {
         name = PhMappedImageRvaToVa(
@@ -807,7 +806,7 @@ NTSTATUS PhGetMappedImageExportFunction(
 
         index = PhpLookupMappedImageExportName(Exports, Name);
 
-        if (index == -1)
+        if (index == ULONG_MAX)
             return STATUS_PROCEDURE_NOT_FOUND;
 
         Ordinal = Exports->OrdinalTable[index] + (USHORT)Exports->ExportDirectory->Base;
@@ -865,7 +864,7 @@ NTSTATUS PhGetMappedImageExportFunctionRemote(
 
         index = PhpLookupMappedImageExportName(Exports, Name);
 
-        if (index == -1)
+        if (index == ULONG_MAX)
             return STATUS_PROCEDURE_NOT_FOUND;
 
         Ordinal = Exports->OrdinalTable[index] + (USHORT)Exports->ExportDirectory->Base;
@@ -904,7 +903,7 @@ ULONG PhpLookupMappedImageExportName(
     LONG i;
 
     if (Exports->ExportDirectory->NumberOfNames == 0)
-        return -1;
+        return ULONG_MAX;
 
     low = 0;
     high = Exports->ExportDirectory->NumberOfNames - 1;
@@ -923,7 +922,7 @@ ULONG PhpLookupMappedImageExportName(
             );
 
         if (!name)
-            return -1;
+            return ULONG_MAX;
 
         // TODO: Probe the name.
 
@@ -937,7 +936,7 @@ ULONG PhpLookupMappedImageExportName(
             low = i + 1;
     } while (low <= high);
 
-    return -1;
+    return ULONG_MAX;
 }
 
 NTSTATUS PhGetMappedImageImports(
