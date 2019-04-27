@@ -460,7 +460,7 @@ BEGIN_SORT_FUNCTION(Name)
 }
 END_SORT_FUNCTION
 
-BEGIN_SORT_FUNCTION(Started)
+BEGIN_SORT_FUNCTION(Created)
 {
     sortResult = uint64cmp(threadItem1->CreateTime.QuadPart, threadItem2->CreateTime.QuadPart);
 }
@@ -539,6 +539,13 @@ BEGIN_SORT_FUNCTION(Critical)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(TidHex)
+{
+    sortResult = uintptrcmp((ULONG_PTR)node1->ThreadId, (ULONG_PTR)node2->ThreadId);
+    //sortResult = ucharcmp(node1->ThreadIdHexText, node2->ThreadIdHexText, TRUE);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpThreadTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -572,7 +579,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     SORT_FUNCTION(PrioritySymbolic),
                     SORT_FUNCTION(Service),
                     SORT_FUNCTION(Name),
-                    SORT_FUNCTION(Started),
+                    SORT_FUNCTION(Created),
                     SORT_FUNCTION(StartModule),
                     SORT_FUNCTION(ContextSwitches),
                     SORT_FUNCTION(Priority),
@@ -584,7 +591,8 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     SORT_FUNCTION(KernelTime),
                     SORT_FUNCTION(UserTime),
                     SORT_FUNCTION(IdealProcessor),
-                    SORT_FUNCTION(Critical)
+                    SORT_FUNCTION(Critical),
+                    SORT_FUNCTION(TidHex),
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
