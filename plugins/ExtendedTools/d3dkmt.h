@@ -71,6 +71,9 @@ typedef enum _KMTQUERYADAPTERINFOTYPE
     KMTQAITYPE_ADAPTERPERFDATA = 62, // D3DKMT_ADAPTER_PERFDATA
     KMTQAITYPE_ADAPTERPERFDATA_CAPS = 63, // D3DKMT_ADAPTER_PERFDATACAPS
     KMTQUITYPE_GPUVERSION = 64, // D3DKMT_GPUVERSION
+    KMTQAITYPE_DRIVER_DESCRIPTION = 65, // D3DKMT_DRIVER_DESCRIPTION // since WDDM2_6
+    KMTQAITYPE_DRIVER_DESCRIPTION_RENDER = 66, // D3DKMT_DRIVER_DESCRIPTION
+    KMTQAITYPE_SCANOUT_CAPS = 67, // D3DKMT_QUERY_SCANOUT_CAPS
 } KMTQUERYADAPTERINFOTYPE;
 
 typedef enum _KMTUMDVERSION
@@ -418,6 +421,7 @@ typedef enum D3DKMT_DRIVERVERSION
     KMT_DRIVERVERSION_WDDM_2_3 = 2300, // 1709
     KMT_DRIVERVERSION_WDDM_2_4 = 2400, // 1803
     KMT_DRIVERVERSION_WDDM_2_5 = 2500, // 1809
+    KMT_DRIVERVERSION_WDDM_2_6 = 2600, // 19H1
 } D3DKMT_DRIVERVERSION;
 
 // Specifies the type of display device that the graphics adapter supports.
@@ -888,6 +892,18 @@ typedef struct _D3DKMT_GPUVERSION
     _Out_ WCHAR BiosVersion[DXGK_MAX_GPUVERSION_NAME_LENGTH]; // The current bios of the adapter.
     _Out_ WCHAR GpuArchitecture[DXGK_MAX_GPUVERSION_NAME_LENGTH]; // The gpu architecture of the adapter.
 } D3DKMT_GPUVERSION;
+
+// Describes the kernel mode display driver.
+typedef struct _D3DKMT_DRIVER_DESCRIPTION
+{
+    WCHAR DriverDescription[4096]; // out: Pointer to a string of characters that represent the driver description.
+} D3DKMT_DRIVER_DESCRIPTION;
+
+typedef struct _D3DKMT_QUERY_SCANOUT_CAPS
+{
+    ULONG VidPnSourceId;
+    UINT Caps;
+} D3DKMT_QUERY_SCANOUT_CAPS;
 
 // Describes the mapping of the given name of a device to a graphics adapter handle and monitor output.
 typedef struct _D3DKMT_OPENADAPTERFROMDEVICENAME
@@ -1480,6 +1496,7 @@ typedef enum _D3DKMT_ESCAPETYPE
     // unused (35 previously was D3DKMT_ESCAPE_GET_PREFERRED_MODE)
     D3DKMT_ESCAPE_GET_DISPLAY_CONFIGURATIONS = 36, // since WDDM2_3
     D3DKMT_ESCAPE_QUERY_IOMMU_STATUS = 37, // since WDDM2_4
+    D3DKMT_ESCAPE_CCD_DATABASE = 38, // since WDDM2_6
 
     D3DKMT_ESCAPE_WIN32K_START = 1024,
     D3DKMT_ESCAPE_WIN32K_HIP_DEVICE_INFO = 1024,
