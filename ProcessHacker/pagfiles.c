@@ -67,17 +67,17 @@ static VOID PhpAddPagefileItems(
         PhDereferenceObject(newFileName);
 
         // Usage
-        usage = PhFormatSize(UInt32x32To64(pagefile->TotalInUse, PAGE_SIZE), -1);
+        usage = PhFormatSize(UInt32x32To64(pagefile->TotalInUse, PAGE_SIZE), ULONG_MAX);
         PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, usage->Buffer);
         PhDereferenceObject(usage);
 
         // Peak usage
-        usage = PhFormatSize(UInt32x32To64(pagefile->PeakUsage, PAGE_SIZE), -1);
+        usage = PhFormatSize(UInt32x32To64(pagefile->PeakUsage, PAGE_SIZE), ULONG_MAX);
         PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, usage->Buffer);
         PhDereferenceObject(usage);
 
         // Total
-        usage = PhFormatSize(UInt32x32To64(pagefile->TotalSize, PAGE_SIZE), -1);
+        usage = PhFormatSize(UInt32x32To64(pagefile->TotalSize, PAGE_SIZE), ULONG_MAX);
         PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, usage->Buffer);
         PhDereferenceObject(usage);
 

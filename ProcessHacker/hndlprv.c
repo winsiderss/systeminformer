@@ -436,7 +436,7 @@ VOID PhHandleProviderUpdate(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static ULONG fileObjectTypeIndex = -1;
+    static ULONG fileObjectTypeIndex = ULONG_MAX;
 
     PPH_HANDLE_PROVIDER handleProvider = (PPH_HANDLE_PROVIDER)Object;
     PSYSTEM_HANDLE_INFORMATION_EX handleInfo;

@@ -439,7 +439,7 @@ PPH_STRING PhGetComboBoxString(
     {
         Index = ComboBox_GetCurSel(hwnd);
 
-        if (Index == -1)
+        if (Index == CB_ERR)
             return NULL;
     }
 

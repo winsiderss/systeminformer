@@ -97,9 +97,9 @@ PPH_STRING PhpaGetAlpcInformation(
     );
 
 static PH_INITONCE ServiceNumbersInitOnce = PH_INITONCE_INIT;
-static USHORT NumberForWfso = -1;
-static USHORT NumberForWfmo = -1;
-static USHORT NumberForRf = -1;
+static USHORT NumberForWfso = USHRT_MAX;
+static USHORT NumberForWfmo = USHRT_MAX;
+static USHORT NumberForRf = USHRT_MAX;
 
 VOID PhUiAnalyzeWaitThread(
     _In_ HWND hWnd,

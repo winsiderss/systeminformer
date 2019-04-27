@@ -4311,7 +4311,7 @@ ULONG PhFindItemList(
             return i;
     }
 
-    return -1;
+    return ULONG_MAX;
 }
 
 /**

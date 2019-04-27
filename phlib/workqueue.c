@@ -104,7 +104,7 @@ VOID PhDeleteWorkQueue(
 
 #ifdef DEBUG
     PhAcquireQueuedLockExclusive(&PhDbgWorkQueueListLock);
-    if ((index = PhFindItemList(PhDbgWorkQueueList, WorkQueue)) != -1)
+    if ((index = PhFindItemList(PhDbgWorkQueueList, WorkQueue)) != ULONG_MAX)
         PhRemoveItemList(PhDbgWorkQueueList, index);
     PhReleaseQueuedLockExclusive(&PhDbgWorkQueueListLock);
 #endif
