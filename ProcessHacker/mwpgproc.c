@@ -162,8 +162,8 @@ BOOLEAN PhMwpProcessesPageCallback(
                         PPH_COLUMN_SET_ENTRY entry = columnSetList->Items[index];
 
                         menuItem = PhCreateEMenuItem(PH_EMENU_TEXT_OWNED, ID_VIEW_LOADCOLUMNSET, 
-                            PhAllocateCopy(entry->Name->Buffer, entry->Name->Length + sizeof(WCHAR)), NULL, NULL);
-                        PhInsertEMenuItem(columnSetMenuItem, menuItem, -1);
+                            PhAllocateCopy(entry->Name->Buffer, entry->Name->Length + sizeof(UNICODE_NULL)), NULL, NULL);
+                        PhInsertEMenuItem(columnSetMenuItem, menuItem, ULONG_MAX);
                     }
                 }
 

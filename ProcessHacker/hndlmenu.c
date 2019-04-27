@@ -240,7 +240,7 @@ VOID PhShowHandleObjectProperties1(
             PVOID viewBase = NULL;
             BOOLEAN tooBig = FALSE;
 
-            PhGetHandleInformation(NtCurrentProcess(), handle, -1, NULL, NULL, NULL, &sectionName);
+            PhGetHandleInformation(NtCurrentProcess(), handle, ULONG_MAX, NULL, NULL, NULL, &sectionName);
 
             if (NT_SUCCESS(status = PhGetSectionBasicInformation(handle, &basicInfo)))
             {
@@ -289,7 +289,7 @@ VOID PhShowHandleObjectProperties1(
                     showMemoryEditor->ProcessId = NtCurrentProcessId();
                     showMemoryEditor->BaseAddress = viewBase;
                     showMemoryEditor->RegionSize = viewSize;
-                    showMemoryEditor->SelectOffset = -1;
+                    showMemoryEditor->SelectOffset = ULONG_MAX;
                     showMemoryEditor->SelectLength = 0;
                     showMemoryEditor->Title = sectionName ? PhConcatStrings2(L"Section - ", sectionName->Buffer) : PhCreateString(L"Section");
                     showMemoryEditor->Flags = PH_MEMORY_EDITOR_UNMAP_VIEW_OF_SECTION;
