@@ -261,6 +261,34 @@ PPH_STRING PhGetUserDefaultLocaleName(
     return NULL;
 }
 
+// rev from LCIDToLocaleName
+PPH_STRING PhLCIDToLocaleName(
+    _In_ LCID lcid
+    )
+{
+    UNICODE_STRING localeNameUs;
+    WCHAR localeName[LOCALE_NAME_MAX_LENGTH];
+
+    RtlInitEmptyUnicodeString(&localeNameUs, localeName, sizeof(localeName));
+
+    if (lcid)
+    {
+        if (NT_SUCCESS(RtlLcidToLocaleName(lcid, &localeNameUs, 0, FALSE)))
+        {
+            return PhCreateStringFromUnicodeString(&localeNameUs);
+        }
+    }
+    else // Return the current user locale when zero is specified.
+    {
+        if (NT_SUCCESS(RtlLcidToLocaleName(PhGetUserDefaultLCID(), &localeNameUs, 0, FALSE)))
+        {
+            return PhCreateStringFromUnicodeString(&localeNameUs);
+        }
+    }
+
+    return NULL;
+}
+
 /**
  * Gets a string stored in a DLL's message table.
  *
