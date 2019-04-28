@@ -1348,7 +1348,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemVirtualAddressInformation, // q: SYSTEM_VA_LIST_INFORMATION[]; s: SYSTEM_VA_LIST_INFORMATION[] (requires SeIncreaseQuotaPrivilege) // MmQuerySystemVaInformation
     SystemLogicalProcessorAndGroupInformation, // q: SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX // since WIN7 // KeQueryLogicalProcessorRelationship
     SystemProcessorCycleTimeInformation, // q: SYSTEM_PROCESSOR_CYCLE_TIME_INFORMATION[]
-    SystemStoreInformation, // q; s // SmQueryStoreInformation
+    SystemStoreInformation, // q; s: SYSTEM_STORE_INFORMATION // SmQueryStoreInformation
     SystemRegistryAppendString, // s: SYSTEM_REGISTRY_APPEND_STRING_PARAMETERS // 110
     SystemAitSamplingValue, // s: ULONG (requires SeProfileSingleProcessPrivilege)
     SystemVhdBootInformation, // q: SYSTEM_VHD_BOOT_INFORMATION
@@ -2494,6 +2494,35 @@ typedef struct _SYSTEM_VA_LIST_INFORMATION
     SIZE_T VirtualLimit;
     SIZE_T AllocationFailures;
 } SYSTEM_VA_LIST_INFORMATION, *PSYSTEM_VA_LIST_INFORMATION;
+
+// rev
+typedef enum _SYSTEM_STORE_INFORMATION_CLASS
+{
+    SystemStoreCompressionInformation = 23 // q: SYSTEM_STORE_COMPRESSION_INFORMATION
+} SYSTEM_STORE_INFORMATION_CLASS;
+
+// rev
+#define SYSTEM_STORE_INFORMATION_VERSION 1
+
+// rev
+typedef struct _SYSTEM_STORE_INFORMATION
+{
+    _In_ ULONG Version;
+    _In_ SYSTEM_STORE_INFORMATION_CLASS StoreInformationClass;
+    _Inout_ PVOID Data;
+    _Inout_ ULONG Length;
+} SYSTEM_STORE_INFORMATION, *PSYSTEM_STORE_INFORMATION;
+
+// rev
+typedef struct _SYSTEM_STORE_COMPRESSION_INFORMATION
+{
+    ULONG Version;
+    ULONG CompressionPid;
+    ULONGLONG CompressionWorkingSetSize;
+    ULONGLONG CompressSize;
+    ULONGLONG CompressedSize;
+    ULONGLONG NonCompressedSize;
+} SYSTEM_STORE_COMPRESSION_INFORMATION, *PSYSTEM_STORE_COMPRESSION_INFORMATION;
 
 // private
 typedef struct _SYSTEM_REGISTRY_APPEND_STRING_PARAMETERS
