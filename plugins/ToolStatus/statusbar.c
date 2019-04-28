@@ -237,7 +237,7 @@ VOID StatusBarUpdate(
     ULONG widths[MAX_STATUSBAR_ITEMS];
     WCHAR text[MAX_STATUSBAR_ITEMS][0x80];
 
-    if (ProcessesUpdatedCount < 2)
+    if (ProcessesUpdatedCount <= 2)
         return;
 
     if (ResetMaxWidths)
