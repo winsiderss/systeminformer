@@ -255,7 +255,8 @@ HANDLE PhCreateThread(
     // NOTE: PhCreateThread previously used CreateThread with callers using GetLastError()
     // for checking errors. We need to preserve this behavior for compatibility -dmex
     // TODO: Migrate code over to PhCreateThreadEx and remove this function.
-    RtlSetLastWin32ErrorAndNtStatusFromNtStatus(status);
+    //RtlSetLastWin32ErrorAndNtStatusFromNtStatus(status);
+    SetLastError(RtlNtStatusToDosError(status));
 
     if (NT_SUCCESS(status))
     {
