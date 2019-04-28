@@ -108,9 +108,13 @@ VOID PhShowSessionShadowDialog(
     _In_ ULONG SessionId
     )
 {
-    if (SessionId == NtCurrentPeb()->SessionId)
+    ULONG sessionId = ULONG_MAX;
+
+    PhGetProcessSessionId(NtCurrentProcess(), &sessionId);
+
+    if (SessionId == sessionId)
     {
-        PhShowError(ParentWindowHandle, L"You cannot remote control the current session.");
+        PhShowError2(ParentWindowHandle, L"Unable to shadow session.", L"You cannot remote control the current session.");
         return;
     }
 
