@@ -892,7 +892,8 @@ VOID InitializeVirusTotalProcessMonitor(
     )
 {
     VirusTotalList = PhCreateList(100);
-    VirusTotalHandle = PhCreateThread(0, VirusTotalProcessApiThread, NULL);
+
+    PhCreateThreadEx(&VirusTotalHandle, VirusTotalProcessApiThread, NULL);
 }
 
 VOID CleanupVirusTotalProcessMonitor(
@@ -921,8 +922,6 @@ NTSTATUS QueryServiceFileName(
     )
 {   
     static PH_STRINGREF servicesKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services\\");
-    static PH_STRINGREF typeKeyName = PH_STRINGREF_INIT(L"Type");
-
     NTSTATUS status;
     HANDLE keyHandle;
     ULONG serviceType = 0;
@@ -943,25 +942,8 @@ NTSTATUS QueryServiceFileName(
         )))
     {
         PPH_STRING serviceImagePath;
-        PKEY_VALUE_PARTIAL_INFORMATION buffer;
 
-        if (NT_SUCCESS(status = PhQueryValueKey(
-            keyHandle,
-            &typeKeyName,
-            KeyValuePartialInformation,
-            &buffer
-            )))
-        {
-            if (
-                buffer->Type == REG_DWORD &&
-                buffer->DataLength == sizeof(ULONG)
-                )
-            {
-                serviceType = *(PULONG)buffer->Data;
-            }
-
-            PhFree(buffer);
-        }
+        serviceType = PhQueryRegistryUlong(keyHandle, L"Type");
 
         if (serviceImagePath = PhQueryRegistryString(keyHandle, L"ImagePath"))
         {

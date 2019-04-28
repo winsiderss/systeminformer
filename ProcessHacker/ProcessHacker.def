@@ -114,6 +114,7 @@ EXPORTS
     PhCreateStringEx
     PhCreateThread
     PhCreateThread2
+    PhCreateThreadEx
     PhDecodeUnicodeDecoder
     PhDeleteArray
     PhDeleteBytesBuilder

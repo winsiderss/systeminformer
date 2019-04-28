@@ -71,7 +71,6 @@ static PEVENT_TRACE_PROPERTIES EtpTraceProperties;
 static BOOLEAN EtpEtwActive;
 static BOOLEAN EtpStartedSession;
 static BOOLEAN EtpEtwExiting;
-static HANDLE EtpEtwMonitorThreadHandle;
 
 // ETW rundown layer
 
@@ -79,7 +78,6 @@ static UNICODE_STRING EtpRundownLoggerName = RTL_CONSTANT_STRING(L"PhEtRundownLo
 static TRACEHANDLE EtpRundownSessionHandle;
 static PEVENT_TRACE_PROPERTIES EtpRundownTraceProperties;
 static BOOLEAN EtpRundownActive;
-static HANDLE EtpRundownEtwMonitorThreadHandle;
 
 VOID EtEtwMonitorInitialization(
     VOID
@@ -90,7 +88,9 @@ VOID EtEtwMonitorInitialization(
         EtStartEtwSession();
 
         if (EtEtwEnabled)
-            EtpEtwMonitorThreadHandle = PhCreateThread(0, EtpEtwMonitorThreadStart, NULL);
+        {
+            PhCreateThread2(EtpEtwMonitorThreadStart, NULL);
+        }
     }
 }
 
@@ -484,7 +484,7 @@ ULONG EtStartEtwRundown(
     }
 
     EtpRundownActive = TRUE;
-    EtpRundownEtwMonitorThreadHandle = PhCreateThread(0, EtpRundownEtwMonitorThreadStart, NULL);
+    PhCreateThread2(EtpRundownEtwMonitorThreadStart, NULL);
 
     return result;
 }
@@ -571,12 +571,9 @@ NTSTATUS EtpRundownEtwMonitorThreadStart(
     {
         ProcessTrace(&traceHandle, 1, NULL, NULL);
 
-        if (traceHandle != 0)
+        if (traceHandle != INVALID_PROCESSTRACE_HANDLE)
             CloseTrace(traceHandle);
     }
-
-    NtClose(EtpRundownEtwMonitorThreadHandle);
-    EtpRundownEtwMonitorThreadHandle = NULL;
 
     return STATUS_SUCCESS;
 }

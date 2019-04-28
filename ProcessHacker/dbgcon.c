@@ -94,7 +94,7 @@ VOID PhShowDebugConsole(
         _wfreopen(L"CONOUT$", L"w", stderr);
         _wfreopen(L"CONIN$", L"r", stdin);
 
-        DebugConsoleThreadHandle = PhCreateThread(0, PhpDebugConsoleThreadStart, NULL);
+        PhCreateThreadEx(&DebugConsoleThreadHandle, PhpDebugConsoleThreadStart, NULL);
     }
     else
     {
@@ -623,7 +623,7 @@ static VOID PhpTestRwLock(
 
     for (i = 0; i < RW_PROCESSORS; i++)
     {
-        threadHandles[i] = PhCreateThread(0, PhpRwLockTestThreadStart, Context);
+        PhCreateThreadEx(&threadHandles[i], PhpRwLockTestThreadStart, Context);
     }
 
     PhWaitForBarrier(&RwStartBarrier, FALSE);
