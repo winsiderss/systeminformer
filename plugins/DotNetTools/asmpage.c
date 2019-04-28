@@ -1169,7 +1169,8 @@ ULONG UpdateDotNetTraceInfoWithTimeout(
     Context->TraceHandleActive = 0;
     Context->TraceHandle = 0;
 
-    threadHandle = PhCreateThread(0, UpdateDotNetTraceInfoThreadStart, Context);
+    if (!NT_SUCCESS(PhCreateThreadEx(&threadHandle, UpdateDotNetTraceInfoThreadStart, Context)))
+        return ERROR_INVALID_HANDLE;
 
     if (NtWaitForSingleObject(threadHandle, FALSE, Timeout) != STATUS_WAIT_0)
     {
