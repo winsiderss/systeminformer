@@ -2498,7 +2498,7 @@ typedef struct _SYSTEM_VA_LIST_INFORMATION
 // rev
 typedef enum _SYSTEM_STORE_INFORMATION_CLASS
 {
-    SystemStoreCompressionInformation = 23 // q: SYSTEM_STORE_COMPRESSION_INFORMATION
+    SystemStoreCompressionInformation = 22 // q: SYSTEM_STORE_COMPRESSION_INFORMATION
 } SYSTEM_STORE_INFORMATION_CLASS;
 
 // rev
