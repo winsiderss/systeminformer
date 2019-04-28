@@ -857,7 +857,8 @@ VOID SetDefaultDesktopEntry(
     INT sessionCount;
     PPH_STRING desktopName;
 
-    desktopName = PhpGetCurrentDesktopInfo();
+    if (!(desktopName = PhpGetCurrentDesktopInfo()))
+        return;
 
     if ((sessionCount = ComboBox_GetCount(ComboBoxHandle)) == CB_ERR)
     {
