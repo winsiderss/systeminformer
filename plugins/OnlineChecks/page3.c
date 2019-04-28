@@ -43,7 +43,11 @@ HRESULT CALLBACK TaskDialogProgressCallbackProc(
                 ITaskbarList3_SetProgressState(context->TaskbarListClass, PhMainWndHandle, TBPF_INDETERMINATE);
 
             PhReferenceObject(context);
-            context->UploadThreadHandle = PhCreateThread(0, UploadFileThreadStart, context);
+
+            if (!NT_SUCCESS(PhCreateThreadEx(&context->UploadThreadHandle, UploadFileThreadStart, context)))
+            {
+                PhDereferenceObject(context);
+            }
         }
         break;
     case TDN_BUTTON_CLICKED:
@@ -81,7 +85,11 @@ HRESULT CALLBACK TaskDialogReScanProgressCallbackProc(
             SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
 
             PhReferenceObject(context);
-            context->UploadThreadHandle = PhCreateThread(0, UploadRecheckThreadStart, context);
+
+            if (!NT_SUCCESS(PhCreateThreadEx(&context->UploadThreadHandle, UploadRecheckThreadStart, context)))
+            {
+                PhDereferenceObject(context);
+            }
         }
         break;
     case TDN_BUTTON_CLICKED:
@@ -119,7 +127,11 @@ HRESULT CALLBACK TaskDialogViewReportProgressCallbackProc(
             SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
 
             PhReferenceObject(context);
-            context->UploadThreadHandle = PhCreateThread(0, ViewReportThreadStart, context);
+
+            if (!NT_SUCCESS(PhCreateThreadEx(&context->UploadThreadHandle, ViewReportThreadStart, context)))
+            {
+                PhDereferenceObject(context);
+            }
         }
         break;
     case TDN_BUTTON_CLICKED:
