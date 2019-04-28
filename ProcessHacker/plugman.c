@@ -895,9 +895,9 @@ VOID PhShowPluginsDialog(
     {
         if (!PhPluginsThreadHandle)
         {
-            if (!(PhPluginsThreadHandle = PhCreateThread(0, PhpPluginsDialogThreadStart, NULL)))
+            if (!NT_SUCCESS(PhCreateThreadEx(&PhPluginsThreadHandle, PhpPluginsDialogThreadStart, NULL)))
             {
-                PhShowStatus(PhMainWndHandle, L"Unable to create the window.", 0, GetLastError());
+                PhShowError(PhMainWndHandle, L"Unable to create the window.");
                 return;
             }
 

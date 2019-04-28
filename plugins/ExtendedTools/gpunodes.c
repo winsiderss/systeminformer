@@ -97,9 +97,9 @@ VOID EtShowGpuNodesDialog(
 {
     if (!EtGpuNodesThreadHandle)
     {
-        if (!(EtGpuNodesThreadHandle = PhCreateThread(0, EtpGpuNodesDialogThreadStart, ParentWindowHandle)))
+        if (!NT_SUCCESS(PhCreateThreadEx(&EtGpuNodesThreadHandle, EtpGpuNodesDialogThreadStart, ParentWindowHandle)))
         {
-            PhShowStatus(PhMainWndHandle, L"Unable to create the window.", 0, GetLastError());
+            PhShowError(PhMainWndHandle, L"Unable to create the window.");
             return;
         }
 

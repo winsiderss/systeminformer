@@ -85,11 +85,11 @@ VOID PhShowSystemInformationDialog(
 {
     InitialSectionName = SectionName;
 
-    if (!PhSipWindow)
+    if (!PhSipThread)
     {
-        if (!(PhSipThread = PhCreateThread(0, PhSipSysInfoThreadStart, NULL)))
+        if (!NT_SUCCESS(PhCreateThreadEx(&PhSipThread, PhSipSysInfoThreadStart, NULL)))
         {
-            PhShowStatus(PhMainWndHandle, L"Unable to create the system information window", 0, GetLastError());
+            PhShowError(PhMainWndHandle, L"Unable to create the window.");
             return;
         }
 

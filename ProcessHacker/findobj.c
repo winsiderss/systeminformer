@@ -1353,10 +1353,12 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
                         // Start the search.
 
                         PhReferenceObject(context);
-                        context->SearchThreadHandle = PhCreateThread(0, PhpFindObjectsThreadStart, context);
 
-                        if (!context->SearchThreadHandle)
+                        if (!NT_SUCCESS(PhCreateThreadEx(&context->SearchThreadHandle, PhpFindObjectsThreadStart, context)))
+                        {
+                            PhDereferenceObject(context);
                             break;
+                        }
 
                         PhSetDialogItemText(hwndDlg, IDOK, L"Cancel");
 
@@ -1654,9 +1656,9 @@ VOID PhShowFindObjectsDialog(
 {
     if (!PhFindObjectsThreadHandle)
     {
-        if (!(PhFindObjectsThreadHandle = PhCreateThread(0, PhpFindObjectsDialogThreadStart, NULL)))
+        if (!NT_SUCCESS(PhCreateThreadEx(&PhFindObjectsThreadHandle, PhpFindObjectsDialogThreadStart, NULL)))
         {
-            PhShowStatus(PhMainWndHandle, L"Unable to create the window.", 0, GetLastError());
+            PhShowError(PhMainWndHandle, L"Unable to create the window.");
             return;
         }
 

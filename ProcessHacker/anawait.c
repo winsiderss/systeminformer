@@ -769,7 +769,7 @@ static VOID PhpInitializeServiceNumbers(
 
         if (NT_SUCCESS(status))
         {
-            if (threadHandle = PhCreateThread(0, PhpWfsoThreadStart, eventHandle))
+            if (NT_SUCCESS(PhCreateThreadEx(&threadHandle, PhpWfsoThreadStart, eventHandle)))
             {
                 if (PhpWaitUntilThreadIsWaiting(threadHandle))
                 {
@@ -790,7 +790,7 @@ static VOID PhpInitializeServiceNumbers(
 
         if (NT_SUCCESS(status))
         {
-            if (threadHandle = PhCreateThread(0, PhpWfmoThreadStart, eventHandle))
+            if (NT_SUCCESS(PhCreateThreadEx(&threadHandle, PhpWfmoThreadStart, eventHandle)))
             {
                 if (PhpWaitUntilThreadIsWaiting(threadHandle))
                 {
@@ -810,7 +810,7 @@ static VOID PhpInitializeServiceNumbers(
 
         if (NT_SUCCESS(status))
         {
-            if (threadHandle = PhCreateThread(0, PhpRfThreadStart, pipeReadHandle))
+            if (NT_SUCCESS(PhCreateThreadEx(&threadHandle, PhpRfThreadStart, pipeReadHandle)))
             {
                 ULONG data = 0;
                 IO_STATUS_BLOCK isb;
