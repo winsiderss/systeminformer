@@ -3,6 +3,7 @@
  *   object security data
  *
  * Copyright (C) 2010-2016 wj32
+ * Copyright (C) 2017-2019 dmex
  *
  * This file is part of Process Hacker.
  *
