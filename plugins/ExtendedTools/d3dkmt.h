@@ -973,7 +973,7 @@ typedef struct _D3DKMT_QUERYADAPTERINFO
 {
     _In_ D3DKMT_HANDLE AdapterHandle;
     _In_ KMTQUERYADAPTERINFOTYPE Type;
-    _Out_ PVOID PrivateDriverData;
+    _Inout_bytecount_(PrivateDriverDataSize) PVOID PrivateDriverData;
     _Out_ UINT32 PrivateDriverDataSize;
 } D3DKMT_QUERYADAPTERINFO;
 
