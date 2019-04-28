@@ -2814,7 +2814,11 @@ NTSTATUS PhCreateProcessAsUser(
 
         if (Flags & PH_CREATE_PROCESS_SET_SESSION_ID)
         {
-            if (Information->SessionId != NtCurrentPeb()->SessionId)
+            ULONG sessionId = ULONG_MAX;
+
+            PhGetProcessSessionId(NtCurrentProcess(), &sessionId);
+
+            if (Information->SessionId != sessionId)
                 useWithLogon = FALSE;
         }
 
