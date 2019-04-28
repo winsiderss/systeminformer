@@ -99,7 +99,7 @@ VOID NTAPI ProcessesUpdatedCallback(
     _In_opt_ PVOID Context
     )
 {
-    if (ProcessesUpdatedCount < 2)
+    if (ProcessesUpdatedCount <= 2)
     {
         ProcessesUpdatedCount++;
         return;

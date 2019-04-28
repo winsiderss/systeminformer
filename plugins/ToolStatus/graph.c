@@ -670,7 +670,7 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(PhysicalHistoryGraphMessageCallback)
                     GraphState->Data1,
                     (FLOAT)PhSystemBasicInformation.NumberOfPhysicalPages,
                     drawInfo->LineDataCount
-                );
+                    );
 
                 GraphState->Valid = TRUE;
             }
@@ -692,7 +692,7 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(PhysicalHistoryGraphMessageCallback)
                         L"Physical memory: %s\n%s",
                         PhaFormatSize(UInt32x32To64(physicalUsage, PAGE_SIZE), -1)->Buffer,
                         PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->Buffer
-                    ));
+                        ));
                 }
 
                 getTooltipText->Text = PhGetStringRef(GraphState->TooltipText);
