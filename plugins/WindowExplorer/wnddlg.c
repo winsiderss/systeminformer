@@ -115,7 +115,7 @@ VOID WeShowWindowsDialog(
         if (!NT_SUCCESS(PhCreateThreadEx(&WepWindowsDialogThreadHandle, WepShowWindowsDialogThread, context)))
         {
             PhFree(context);
-            PhShowError(PhMainWndHandle, L"Unable to create the window.");
+            PhShowError(ParentWindowHandle, L"Unable to create the window.");
             return;
         }
 
