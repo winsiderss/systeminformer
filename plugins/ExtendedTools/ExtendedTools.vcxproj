@@ -87,7 +87,6 @@
     <ClCompile Include="gpuprprp.c" />
     <ClCompile Include="gpusys.c" />
     <ClCompile Include="iconext.c" />
-    <ClCompile Include="procicon.c" />
     <ClCompile Include="svcext.c" />
     <ClCompile Include="treeext.c" />
     <ClCompile Include="etwstat.c" />
