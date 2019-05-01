@@ -203,14 +203,14 @@ VOID EtwDiskNetworkUpdateGraphs(
     )
 {
     Context->DiskGraphState.Valid = FALSE;
-    Context->DiskGraphState.TooltipIndex = -1;
+    Context->DiskGraphState.TooltipIndex = ULONG_MAX;
     Graph_MoveGrid(Context->DiskGraphHandle, 1);
     Graph_Draw(Context->DiskGraphHandle);
     Graph_UpdateTooltip(Context->DiskGraphHandle);
     InvalidateRect(Context->DiskGraphHandle, NULL, FALSE);
 
     Context->NetworkGraphState.Valid = FALSE;
-    Context->NetworkGraphState.TooltipIndex = -1;
+    Context->NetworkGraphState.TooltipIndex = ULONG_MAX;
     Graph_MoveGrid(Context->NetworkGraphHandle, 1);
     Graph_Draw(Context->NetworkGraphHandle);
     Graph_UpdateTooltip(Context->NetworkGraphHandle);
@@ -224,18 +224,18 @@ VOID EtwDiskNetworkUpdatePanel(
     PET_PROCESS_BLOCK block = Context->Block;
 
     PhSetDialogItemText(Context->PanelHandle, IDC_ZREADS_V, PhaFormatUInt64(block->DiskReadCount, TRUE)->Buffer);
-    PhSetDialogItemText(Context->PanelHandle, IDC_ZREADBYTES_V, PhaFormatSize(block->DiskReadRawDelta.Value, -1)->Buffer);
-    PhSetDialogItemText(Context->PanelHandle, IDC_ZREADBYTESDELTA_V, PhaFormatSize(block->DiskReadRawDelta.Delta, -1)->Buffer);
+    PhSetDialogItemText(Context->PanelHandle, IDC_ZREADBYTES_V, PhaFormatSize(block->DiskReadRawDelta.Value, ULONG_MAX)->Buffer);
+    PhSetDialogItemText(Context->PanelHandle, IDC_ZREADBYTESDELTA_V, PhaFormatSize(block->DiskReadRawDelta.Delta, ULONG_MAX)->Buffer);
     PhSetDialogItemText(Context->PanelHandle, IDC_ZWRITES_V, PhaFormatUInt64(block->DiskWriteCount, TRUE)->Buffer);
-    PhSetDialogItemText(Context->PanelHandle, IDC_ZWRITEBYTES_V, PhaFormatSize(block->DiskWriteRawDelta.Value, -1)->Buffer);
-    PhSetDialogItemText(Context->PanelHandle, IDC_ZWRITEBYTESDELTA_V, PhaFormatSize(block->DiskWriteRawDelta.Delta, -1)->Buffer);
+    PhSetDialogItemText(Context->PanelHandle, IDC_ZWRITEBYTES_V, PhaFormatSize(block->DiskWriteRawDelta.Value, ULONG_MAX)->Buffer);
+    PhSetDialogItemText(Context->PanelHandle, IDC_ZWRITEBYTESDELTA_V, PhaFormatSize(block->DiskWriteRawDelta.Delta, ULONG_MAX)->Buffer);
 
     PhSetDialogItemText(Context->PanelHandle, IDC_ZRECEIVES_V, PhaFormatUInt64(block->NetworkReceiveCount, TRUE)->Buffer);
-    PhSetDialogItemText(Context->PanelHandle, IDC_ZRECEIVEBYTES_V, PhaFormatSize(block->NetworkReceiveRawDelta.Value, -1)->Buffer);
-    PhSetDialogItemText(Context->PanelHandle, IDC_ZRECEIVEBYTESDELTA_V, PhaFormatSize(block->NetworkReceiveRawDelta.Delta, -1)->Buffer);
+    PhSetDialogItemText(Context->PanelHandle, IDC_ZRECEIVEBYTES_V, PhaFormatSize(block->NetworkReceiveRawDelta.Value, ULONG_MAX)->Buffer);
+    PhSetDialogItemText(Context->PanelHandle, IDC_ZRECEIVEBYTESDELTA_V, PhaFormatSize(block->NetworkReceiveRawDelta.Delta, ULONG_MAX)->Buffer);
     PhSetDialogItemText(Context->PanelHandle, IDC_ZSENDS_V, PhaFormatUInt64(block->NetworkSendCount, TRUE)->Buffer);
-    PhSetDialogItemText(Context->PanelHandle, IDC_ZSENDBYTES_V, PhaFormatSize(block->NetworkSendRawDelta.Value, -1)->Buffer);
-    PhSetDialogItemText(Context->PanelHandle, IDC_ZSENDBYTESDELTA_V, PhaFormatSize(block->NetworkSendRawDelta.Delta, -1)->Buffer);
+    PhSetDialogItemText(Context->PanelHandle, IDC_ZSENDBYTES_V, PhaFormatSize(block->NetworkSendRawDelta.Value, ULONG_MAX)->Buffer);
+    PhSetDialogItemText(Context->PanelHandle, IDC_ZSENDBYTESDELTA_V, PhaFormatSize(block->NetworkSendRawDelta.Delta, ULONG_MAX)->Buffer);
 }
 
 VOID EtwDiskNetworkUpdateInfo(
@@ -393,8 +393,8 @@ INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
 
                             PhMoveReference(&context->DiskGraphState.Text, PhFormatString(
                                 L"R: %s, W: %s",
-                                PhaFormatSize(context->CurrentDiskRead, -1)->Buffer,
-                                PhaFormatSize(context->CurrentDiskWrite, -1)->Buffer
+                                PhaFormatSize(context->CurrentDiskRead, ULONG_MAX)->Buffer,
+                                PhaFormatSize(context->CurrentDiskWrite, ULONG_MAX)->Buffer
                                 ));
 
                             hdc = Graph_GetBufferedContext(context->DiskGraphHandle);
@@ -461,8 +461,8 @@ INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
 
                             PhMoveReference(&context->NetworkGraphState.Text, PhFormatString(
                                 L"R: %s, S: %s",
-                                PhaFormatSize(context->CurrentNetworkReceive, -1)->Buffer,
-                                PhaFormatSize(context->CurrentNetworkSend, -1)->Buffer
+                                PhaFormatSize(context->CurrentNetworkReceive, ULONG_MAX)->Buffer,
+                                PhaFormatSize(context->CurrentNetworkSend, ULONG_MAX)->Buffer
                                 ));
 
                             hdc = Graph_GetBufferedContext(context->NetworkGraphHandle);
@@ -545,8 +545,8 @@ INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
 
                                 PhMoveReference(&context->DiskGraphState.TooltipText, PhFormatString(
                                     L"R: %s\nW: %s\n%s",
-                                    PhaFormatSize(diskRead, -1)->Buffer,
-                                    PhaFormatSize(diskWrite, -1)->Buffer,
+                                    PhaFormatSize(diskRead, ULONG_MAX)->Buffer,
+                                    PhaFormatSize(diskWrite, ULONG_MAX)->Buffer,
                                     ((PPH_STRING)PH_AUTO(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
                                     ));
                             }
@@ -569,8 +569,8 @@ INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
 
                                 PhMoveReference(&context->NetworkGraphState.TooltipText, PhFormatString(
                                     L"S: %s\nR: %s\n%s",
-                                    PhaFormatSize(networkSend, -1)->Buffer,
-                                    PhaFormatSize(networkReceive, -1)->Buffer,
+                                    PhaFormatSize(networkSend, ULONG_MAX)->Buffer,
+                                    PhaFormatSize(networkReceive, ULONG_MAX)->Buffer,
                                     ((PPH_STRING)PH_AUTO(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
                                     ));
                             }

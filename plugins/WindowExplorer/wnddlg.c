@@ -621,7 +621,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                             contextMenuEvent->Location.y
                             );
 
-                        if (selectedItem && selectedItem->Id != -1)
+                        if (selectedItem && selectedItem->Id != ULONG_MAX)
                         {
                             BOOLEAN handled = FALSE;
 
@@ -1062,7 +1062,7 @@ INT_PTR CALLBACK WepWindowsPageProc(
                             contextMenuEvent->Location.y
                             );
 
-                        if (selectedItem && selectedItem->Id != -1)
+                        if (selectedItem && selectedItem->Id != ULONG_MAX)
                         {
                             BOOLEAN handled = FALSE;
 

@@ -38,9 +38,9 @@ VOID DiskDriveUpdatePanel(
     _Inout_ PDV_DISK_SYSINFO_CONTEXT Context
     )
 {
-    PhSetDialogItemText(Context->PanelWindowHandle, IDC_STAT_BREAD, PhaFormatSize(Context->DiskEntry->BytesReadDelta.Value, -1)->Buffer);
-    PhSetDialogItemText(Context->PanelWindowHandle, IDC_STAT_BWRITE, PhaFormatSize(Context->DiskEntry->BytesWrittenDelta.Value, -1)->Buffer);
-    PhSetDialogItemText(Context->PanelWindowHandle, IDC_STAT_BTOTAL, PhaFormatSize(Context->DiskEntry->BytesReadDelta.Value + Context->DiskEntry->BytesWrittenDelta.Value, -1)->Buffer);
+    PhSetDialogItemText(Context->PanelWindowHandle, IDC_STAT_BREAD, PhaFormatSize(Context->DiskEntry->BytesReadDelta.Value, ULONG_MAX)->Buffer);
+    PhSetDialogItemText(Context->PanelWindowHandle, IDC_STAT_BWRITE, PhaFormatSize(Context->DiskEntry->BytesWrittenDelta.Value, ULONG_MAX)->Buffer);
+    PhSetDialogItemText(Context->PanelWindowHandle, IDC_STAT_BTOTAL, PhaFormatSize(Context->DiskEntry->BytesReadDelta.Value + Context->DiskEntry->BytesWrittenDelta.Value, ULONG_MAX)->Buffer);
 
     PhSetDialogItemText(Context->PanelWindowHandle, IDC_STAT_ACTIVE,
         PhaFormatString(L"%.0f%%", Context->DiskEntry->ActiveTime)->Buffer
@@ -324,8 +324,8 @@ INT_PTR CALLBACK DiskDriveDialogProc(
 
                                 PhMoveReference(&context->GraphState.TooltipText, PhFormatString(
                                     L"R: %s\nW: %s\n%s",
-                                    PhaFormatSize(diskReadValue, -1)->Buffer,
-                                    PhaFormatSize(diskWriteValue, -1)->Buffer,
+                                    PhaFormatSize(diskReadValue, ULONG_MAX)->Buffer,
+                                    PhaFormatSize(diskWriteValue, ULONG_MAX)->Buffer,
                                     ((PPH_STRING)PhAutoDereferenceObject(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
                                     ));
                             }
@@ -453,8 +453,8 @@ BOOLEAN DiskDriveSectionCallback(
 
             PhMoveReference(&Section->GraphState.TooltipText, PhFormatString(
                 L"R: %s\nW: %s\n%s",
-                PhaFormatSize(diskReadValue, -1)->Buffer,
-                PhaFormatSize(diskWriteValue, -1)->Buffer,
+                PhaFormatSize(diskReadValue, ULONG_MAX)->Buffer,
+                PhaFormatSize(diskWriteValue, ULONG_MAX)->Buffer,
                 ((PPH_STRING)PhAutoDereferenceObject(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
                 ));
 
@@ -468,8 +468,8 @@ BOOLEAN DiskDriveSectionCallback(
             PhSetReference(&drawPanel->Title, context->DiskEntry->DiskIndexName);
             drawPanel->SubTitle = PhFormatString(
                 L"R: %s\nW: %s",
-                PhaFormatSize(context->DiskEntry->BytesReadDelta.Delta, -1)->Buffer,
-                PhaFormatSize(context->DiskEntry->BytesWrittenDelta.Delta, -1)->Buffer
+                PhaFormatSize(context->DiskEntry->BytesReadDelta.Delta, ULONG_MAX)->Buffer,
+                PhaFormatSize(context->DiskEntry->BytesWrittenDelta.Delta, ULONG_MAX)->Buffer
                 );
 
             if (!drawPanel->Title)

@@ -28,7 +28,7 @@ VOID NetAdapterUpdateGraphs(
     )
 {
     Context->GraphState.Valid = FALSE;
-    Context->GraphState.TooltipIndex = -1;
+    Context->GraphState.TooltipIndex = ULONG_MAX;
     Graph_MoveGrid(Context->GraphHandle, 1);
     Graph_Draw(Context->GraphHandle);
     Graph_UpdateTooltip(Context->GraphHandle);
@@ -131,14 +131,14 @@ VOID NetAdapterUpdatePanel(
         }
     }
 
-    PhSetDialogItemText(Context->PanelWindowHandle, IDC_STAT_BSENT, PhaFormatSize(outOctetsValue, -1)->Buffer);
-    PhSetDialogItemText(Context->PanelWindowHandle, IDC_STAT_BRECEIVED, PhaFormatSize(inOctetsValue, -1)->Buffer);
-    PhSetDialogItemText(Context->PanelWindowHandle, IDC_STAT_BTOTAL, PhaFormatSize(inOctetsValue + outOctetsValue, -1)->Buffer);
+    PhSetDialogItemText(Context->PanelWindowHandle, IDC_STAT_BSENT, PhaFormatSize(outOctetsValue, ULONG_MAX)->Buffer);
+    PhSetDialogItemText(Context->PanelWindowHandle, IDC_STAT_BRECEIVED, PhaFormatSize(inOctetsValue, ULONG_MAX)->Buffer);
+    PhSetDialogItemText(Context->PanelWindowHandle, IDC_STAT_BTOTAL, PhaFormatSize(inOctetsValue + outOctetsValue, ULONG_MAX)->Buffer);
 
     if (mediaState == MediaConnectStateConnected)
     {
         PhSetDialogItemText(Context->PanelWindowHandle, IDC_LINK_STATE, L"Connected");
-        PhSetDialogItemText(Context->PanelWindowHandle, IDC_LINK_SPEED, PhaFormatString(L"%s/s", PhaFormatSize(linkSpeedValue / BITS_IN_ONE_BYTE, -1)->Buffer)->Buffer);
+        PhSetDialogItemText(Context->PanelWindowHandle, IDC_LINK_SPEED, PhaFormatString(L"%s/s", PhaFormatSize(linkSpeedValue / BITS_IN_ONE_BYTE, ULONG_MAX)->Buffer)->Buffer);
     }
     else
     {
@@ -372,8 +372,8 @@ INT_PTR CALLBACK NetAdapterDialogProc(
 
                                 PhMoveReference(&context->GraphState.TooltipText, PhFormatString(
                                     L"R: %s\nS: %s\n%s",
-                                    PhaFormatSize(adapterInboundValue, -1)->Buffer,
-                                    PhaFormatSize(adapterOutboundValue, -1)->Buffer,
+                                    PhaFormatSize(adapterInboundValue, ULONG_MAX)->Buffer,
+                                    PhaFormatSize(adapterOutboundValue, ULONG_MAX)->Buffer,
                                     ((PPH_STRING)PH_AUTO(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
                                     ));
                             }
@@ -495,8 +495,8 @@ BOOLEAN NetAdapterSectionCallback(
 
             PhMoveReference(&Section->GraphState.TooltipText, PhFormatString(
                 L"R: %s\nS: %s\n%s",
-                PhaFormatSize(adapterInboundValue, -1)->Buffer,
-                PhaFormatSize(adapterOutboundValue, -1)->Buffer,
+                PhaFormatSize(adapterInboundValue, ULONG_MAX)->Buffer,
+                PhaFormatSize(adapterOutboundValue, ULONG_MAX)->Buffer,
                 ((PPH_STRING)PH_AUTO(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
                 ));
 
@@ -510,8 +510,8 @@ BOOLEAN NetAdapterSectionCallback(
             PhSetReference(&drawPanel->Title, context->AdapterEntry->AdapterName);
             drawPanel->SubTitle = PhFormatString(
                 L"R: %s\nS: %s",
-                PhaFormatSize(context->AdapterEntry->InboundValue, -1)->Buffer,
-                PhaFormatSize(context->AdapterEntry->OutboundValue, -1)->Buffer
+                PhaFormatSize(context->AdapterEntry->InboundValue, ULONG_MAX)->Buffer,
+                PhaFormatSize(context->AdapterEntry->OutboundValue, ULONG_MAX)->Buffer
                 );
 
             if (!drawPanel->Title)

@@ -451,7 +451,7 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
             for (ULONG i = 0; i < EtGpuTotalNodeCount; i++)
             {
                 GraphState[i].Valid = FALSE;
-                GraphState[i].TooltipIndex = -1;
+                GraphState[i].TooltipIndex = ULONG_MAX;
                 Graph_MoveGrid(GraphHandle[i], 1);
                 Graph_Draw(GraphHandle[i]);
                 Graph_UpdateTooltip(GraphHandle[i]);

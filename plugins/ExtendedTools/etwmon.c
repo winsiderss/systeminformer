@@ -222,7 +222,7 @@ VOID NTAPI EtpEtwEventCallback(
         ET_ETW_DISK_EVENT diskEvent;
 
         memset(&diskEvent, 0, sizeof(ET_ETW_DISK_EVENT));
-        diskEvent.Type = -1;
+        diskEvent.Type = ULONG_MAX;
 
         switch (EventRecord->EventHeader.EventDescriptor.Opcode)
         {
@@ -236,7 +236,7 @@ VOID NTAPI EtpEtwEventCallback(
             break;
         }
 
-        if (diskEvent.Type != -1)
+        if (diskEvent.Type != ULONG_MAX)
         {
             DiskIo_TypeGroup1 *data = EventRecord->UserData;
 
@@ -247,7 +247,7 @@ VOID NTAPI EtpEtwEventCallback(
             }
             else
             {
-                if (EventRecord->EventHeader.ProcessId != -1)
+                if (EventRecord->EventHeader.ProcessId != ULONG_MAX)
                 {
                     diskEvent.ClientId.UniqueProcess = UlongToHandle(EventRecord->EventHeader.ProcessId);
                     diskEvent.ClientId.UniqueThread = UlongToHandle(EventRecord->EventHeader.ThreadId);
@@ -270,7 +270,7 @@ VOID NTAPI EtpEtwEventCallback(
         ET_ETW_FILE_EVENT fileEvent;
 
         memset(&fileEvent, 0, sizeof(ET_ETW_FILE_EVENT));
-        fileEvent.Type = -1;
+        fileEvent.Type = ULONG_MAX;
 
         switch (EventRecord->EventHeader.EventDescriptor.Opcode)
         {
@@ -287,7 +287,7 @@ VOID NTAPI EtpEtwEventCallback(
             break;
         }
 
-        if (fileEvent.Type != -1)
+        if (fileEvent.Type != ULONG_MAX)
         {
             if (PhIsExecutingInWow64())
             {
@@ -317,7 +317,7 @@ VOID NTAPI EtpEtwEventCallback(
         ET_ETW_NETWORK_EVENT networkEvent;
 
         memset(&networkEvent, 0, sizeof(ET_ETW_NETWORK_EVENT));
-        networkEvent.Type = -1;
+        networkEvent.Type = ULONG_MAX;
 
         switch (EventRecord->EventHeader.EventDescriptor.Opcode)
         {
@@ -344,7 +344,7 @@ VOID NTAPI EtpEtwEventCallback(
         else
             networkEvent.ProtocolType |= PH_UDP_PROTOCOL_TYPE;
 
-        if (networkEvent.Type != -1)
+        if (networkEvent.Type != ULONG_MAX)
         {
             PH_IP_ENDPOINT source;
             PH_IP_ENDPOINT destination;
@@ -518,7 +518,7 @@ VOID NTAPI EtpRundownEtwEventCallback(
         ET_ETW_FILE_EVENT fileEvent;
 
         memset(&fileEvent, 0, sizeof(ET_ETW_FILE_EVENT));
-        fileEvent.Type = -1;
+        fileEvent.Type = ULONG_MAX;
 
         switch (EventRecord->EventHeader.EventDescriptor.Opcode)
         {
@@ -529,7 +529,7 @@ VOID NTAPI EtpRundownEtwEventCallback(
             break;
         }
 
-        if (fileEvent.Type != -1)
+        if (fileEvent.Type != ULONG_MAX)
         {
             if (PhIsExecutingInWow64())
             {

@@ -495,7 +495,7 @@ VOID DotNetAsmShowContextMenu(
         ContextMenuEvent->Location.y
         );
 
-    if (selectedItem && selectedItem->Id != -1)
+    if (selectedItem && selectedItem->Id != ULONG_MAX)
     {
         BOOLEAN handled = FALSE;
 

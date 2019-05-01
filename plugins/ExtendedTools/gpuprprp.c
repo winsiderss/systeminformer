@@ -367,28 +367,28 @@ VOID GpuPropUpdateGraphs(
     )
 {
     Context->GpuGraphState.Valid = FALSE;
-    Context->GpuGraphState.TooltipIndex = -1;
+    Context->GpuGraphState.TooltipIndex = ULONG_MAX;
     Graph_MoveGrid(Context->GpuGraphHandle, 1);
     Graph_Draw(Context->GpuGraphHandle);
     Graph_UpdateTooltip(Context->GpuGraphHandle);
     InvalidateRect(Context->GpuGraphHandle, NULL, FALSE);
 
     Context->MemoryGraphState.Valid = FALSE;
-    Context->MemoryGraphState.TooltipIndex = -1;
+    Context->MemoryGraphState.TooltipIndex = ULONG_MAX;
     Graph_MoveGrid(Context->MemGraphHandle, 1);
     Graph_Draw(Context->MemGraphHandle);
     Graph_UpdateTooltip(Context->MemGraphHandle);
     InvalidateRect(Context->MemGraphHandle, NULL, FALSE);
 
     Context->MemorySharedGraphState.Valid = FALSE;
-    Context->MemorySharedGraphState.TooltipIndex = -1;
+    Context->MemorySharedGraphState.TooltipIndex = ULONG_MAX;
     Graph_MoveGrid(Context->SharedGraphHandle, 1);
     Graph_Draw(Context->SharedGraphHandle);
     Graph_UpdateTooltip(Context->SharedGraphHandle);
     InvalidateRect(Context->SharedGraphHandle, NULL, FALSE);
 
     Context->GpuCommittedGraphState.Valid = FALSE;
-    Context->GpuCommittedGraphState.TooltipIndex = -1;
+    Context->GpuCommittedGraphState.TooltipIndex = ULONG_MAX;
     Graph_MoveGrid(Context->CommittedGraphHandle, 1);
     Graph_Draw(Context->CommittedGraphHandle);
     Graph_UpdateTooltip(Context->CommittedGraphHandle);
@@ -411,16 +411,16 @@ VOID GpuPropUpdatePanel(
     if (Context->DetailsHandle)
     {
         // Note: no lock is needed because we only ever update the 'details' dialog text on this same thread.
-        PhSetDialogItemText(Context->DetailsHandle, IDC_ZDEDICATEDCOMMITTED_V, PhaFormatSize(Context->GpuStatistics.DedicatedCommitted, -1)->Buffer);
-        PhSetDialogItemText(Context->DetailsHandle, IDC_ZSHAREDCOMMITTED_V, PhaFormatSize(Context->GpuStatistics.SharedCommitted, -1)->Buffer);
-        PhSetDialogItemText(Context->DetailsHandle, IDC_ZTOTALALLOCATED_V, PhaFormatSize(Context->GpuStatistics.BytesAllocated, -1)->Buffer);
-        PhSetDialogItemText(Context->DetailsHandle, IDC_ZTOTALRESERVED_V, PhaFormatSize(Context->GpuStatistics.BytesReserved, -1)->Buffer);
-        PhSetDialogItemText(Context->DetailsHandle, IDC_ZWRITECOMBINEDALLOCATED_V, PhaFormatSize(Context->GpuStatistics.WriteCombinedBytesAllocated, -1)->Buffer);
-        PhSetDialogItemText(Context->DetailsHandle, IDC_ZWRITECOMBINEDRESERVED_V, PhaFormatSize(Context->GpuStatistics.WriteCombinedBytesReserved, -1)->Buffer);
-        PhSetDialogItemText(Context->DetailsHandle, IDC_ZCACHEDALLOCATED_V, PhaFormatSize(Context->GpuStatistics.CachedBytesAllocated, -1)->Buffer);
-        PhSetDialogItemText(Context->DetailsHandle, IDC_ZCACHEDRESERVED_V, PhaFormatSize(Context->GpuStatistics.CachedBytesReserved, -1)->Buffer);
-        PhSetDialogItemText(Context->DetailsHandle, IDC_ZSECTIONALLOCATED_V, PhaFormatSize(Context->GpuStatistics.SectionBytesAllocated, -1)->Buffer);
-        PhSetDialogItemText(Context->DetailsHandle, IDC_ZSECTIONRESERVED_V, PhaFormatSize(Context->GpuStatistics.SectionBytesReserved, -1)->Buffer);
+        PhSetDialogItemText(Context->DetailsHandle, IDC_ZDEDICATEDCOMMITTED_V, PhaFormatSize(Context->GpuStatistics.DedicatedCommitted, ULONG_MAX)->Buffer);
+        PhSetDialogItemText(Context->DetailsHandle, IDC_ZSHAREDCOMMITTED_V, PhaFormatSize(Context->GpuStatistics.SharedCommitted, ULONG_MAX)->Buffer);
+        PhSetDialogItemText(Context->DetailsHandle, IDC_ZTOTALALLOCATED_V, PhaFormatSize(Context->GpuStatistics.BytesAllocated, ULONG_MAX)->Buffer);
+        PhSetDialogItemText(Context->DetailsHandle, IDC_ZTOTALRESERVED_V, PhaFormatSize(Context->GpuStatistics.BytesReserved, ULONG_MAX)->Buffer);
+        PhSetDialogItemText(Context->DetailsHandle, IDC_ZWRITECOMBINEDALLOCATED_V, PhaFormatSize(Context->GpuStatistics.WriteCombinedBytesAllocated, ULONG_MAX)->Buffer);
+        PhSetDialogItemText(Context->DetailsHandle, IDC_ZWRITECOMBINEDRESERVED_V, PhaFormatSize(Context->GpuStatistics.WriteCombinedBytesReserved, ULONG_MAX)->Buffer);
+        PhSetDialogItemText(Context->DetailsHandle, IDC_ZCACHEDALLOCATED_V, PhaFormatSize(Context->GpuStatistics.CachedBytesAllocated, ULONG_MAX)->Buffer);
+        PhSetDialogItemText(Context->DetailsHandle, IDC_ZCACHEDRESERVED_V, PhaFormatSize(Context->GpuStatistics.CachedBytesReserved, ULONG_MAX)->Buffer);
+        PhSetDialogItemText(Context->DetailsHandle, IDC_ZSECTIONALLOCATED_V, PhaFormatSize(Context->GpuStatistics.SectionBytesAllocated, ULONG_MAX)->Buffer);
+        PhSetDialogItemText(Context->DetailsHandle, IDC_ZSECTIONRESERVED_V, PhaFormatSize(Context->GpuStatistics.SectionBytesReserved, ULONG_MAX)->Buffer);
     }
 }
 
@@ -627,7 +627,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
 
                             PhMoveReference(&context->MemoryGraphState.Text, PhFormatString(
                                 L"%s",
-                                PhaFormatSize(UInt32x32To64(context->CurrentMemUsage, PAGE_SIZE), -1)->Buffer
+                                PhaFormatSize(UInt32x32To64(context->CurrentMemUsage, PAGE_SIZE), ULONG_MAX)->Buffer
                                 ));
 
                             hdc = Graph_GetBufferedContext(context->MemGraphHandle);
@@ -681,7 +681,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
 
                             PhMoveReference(&context->MemorySharedGraphState.Text, PhFormatString(
                                 L"%s",
-                                PhaFormatSize(UInt32x32To64(context->CurrentMemSharedUsage, PAGE_SIZE), -1)->Buffer
+                                PhaFormatSize(UInt32x32To64(context->CurrentMemSharedUsage, PAGE_SIZE), ULONG_MAX)->Buffer
                                 ));
 
                             hdc = Graph_GetBufferedContext(context->SharedGraphHandle);
@@ -729,7 +729,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
 
                             PhMoveReference(&context->GpuCommittedGraphState.Text, PhFormatString(
                                 L"%s",
-                                PhaFormatSize(UInt32x32To64(context->CurrentCommitUsage, PAGE_SIZE), -1)->Buffer
+                                PhaFormatSize(UInt32x32To64(context->CurrentCommitUsage, PAGE_SIZE), ULONG_MAX)->Buffer
                                 ));
 
                             hdc = Graph_GetBufferedContext(context->CommittedGraphHandle);
@@ -812,7 +812,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
 
                                 PhMoveReference(&context->MemoryGraphState.TooltipText, PhFormatString(
                                     L"%s\n%s",
-                                    PhFormatSize(UInt32x32To64(gpuMemory, PAGE_SIZE), -1)->Buffer,
+                                    PhFormatSize(UInt32x32To64(gpuMemory, PAGE_SIZE), ULONG_MAX)->Buffer,
                                     PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->Buffer)
                                     );
                             }
@@ -830,7 +830,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
 
                                 PhMoveReference(&context->MemorySharedGraphState.TooltipText, PhFormatString(
                                     L"%s\n%s",
-                                    PhFormatSize(UInt32x32To64(gpuSharedMemory, PAGE_SIZE), -1)->Buffer,
+                                    PhFormatSize(UInt32x32To64(gpuSharedMemory, PAGE_SIZE), ULONG_MAX)->Buffer,
                                     PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->Buffer)
                                     );
                             }
@@ -848,7 +848,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
 
                                 PhMoveReference(&context->GpuCommittedGraphState.TooltipText, PhFormatString(
                                     L"%s\n%s",
-                                    PhFormatSize(UInt32x32To64(gpuCommitMemory, PAGE_SIZE), -1)->Buffer,
+                                    PhFormatSize(UInt32x32To64(gpuCommitMemory, PAGE_SIZE), ULONG_MAX)->Buffer,
                                     PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->Buffer)
                                     );
                             }
