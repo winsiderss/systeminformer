@@ -390,6 +390,32 @@ NTSTATUS PhpGetObjectName(
     return status;
 }
 
+NTSTATUS PhpGetEtwObjectName(
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE Handle,
+    _Out_ PPH_STRING *ObjectName
+    )
+{
+    NTSTATUS status;
+    ETWREG_BASIC_INFORMATION basicInfo;
+
+    status = KphQueryInformationObject(
+        ProcessHandle,
+        Handle,
+        KphObjectEtwRegBasicInformation,
+        &basicInfo,
+        sizeof(ETWREG_BASIC_INFORMATION),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *ObjectName = PhFormatGuid(&basicInfo.Guid);
+    }
+
+    return status;
+}
+
 PPH_STRING PhFormatNativeKeyName(
     _In_ PPH_STRING Name
     )
@@ -1340,6 +1366,14 @@ NTSTATUS PhGetHandleInformationEx(
             ProcessHandle,
             KphIsConnected() ? Handle : dupHandle,
             TRUE,
+            &objectName
+            );
+    }
+    else if (PhEqualString2(typeName, L"EtwRegistration", TRUE) && KphIsConnected())
+    {
+        status = PhpGetEtwObjectName(
+            ProcessHandle,
+            Handle,
             &objectName
             );
     }
