@@ -733,8 +733,8 @@ VOID PhNetworkProviderUpdate(
             // Get process information.
             if (processItem = PhReferenceProcessItem(networkItem->ProcessId))
             {
-                networkItem->ProcessItem = processItem;
-                networkItem->ProcessName = PhReferenceObject(processItem->ProcessName);
+                PhSetReference(&networkItem->ProcessItem, processItem);
+                PhSetReference(&networkItem->ProcessName, processItem->ProcessName);
                 networkItem->SubsystemProcess = !!processItem->IsSubsystemProcess;
                 PhpUpdateNetworkItemOwner(networkItem, processItem);
 
@@ -796,29 +796,26 @@ VOID PhNetworkProviderUpdate(
                 modified = TRUE;
             }
 
-            if (!networkItem->ProcessIconValid)
+            if (!networkItem->ProcessItem)
             {
-                if (!networkItem->ProcessItem)
+                networkItem->ProcessItem = PhReferenceProcessItem(networkItem->ProcessId);
+                // NOTE: We dereference processItem in PhpNetworkItemDeleteProcedure. (dmex)
+            }
+
+            if (networkItem->ProcessItem)
+            {
+                if (!networkItem->ProcessName)
                 {
-                    networkItem->ProcessItem = PhReferenceProcessItem(networkItem->ProcessId);
-                    // NOTE: We dereference processItem in PhpNetworkItemDeleteProcedure. (dmex)
+                    networkItem->ProcessName = PhReferenceObject(networkItem->ProcessItem->ProcessName);
+                    PhpUpdateNetworkItemOwner(networkItem, networkItem->ProcessItem);
+                    modified = TRUE;
                 }
 
-                if (networkItem->ProcessItem)
+                if (!networkItem->ProcessIconValid && PhTestEvent(&networkItem->ProcessItem->Stage1Event))
                 {
-                    if (!networkItem->ProcessName)
-                    {
-                        networkItem->ProcessName = PhReferenceObject(networkItem->ProcessItem->ProcessName);
-                        PhpUpdateNetworkItemOwner(networkItem, networkItem->ProcessItem);
-                        modified = TRUE;
-                    }
-
-                    if (!networkItem->ProcessIconValid && PhTestEvent(&networkItem->ProcessItem->Stage1Event))
-                    {
-                        networkItem->ProcessIcon = networkItem->ProcessItem->SmallIcon;
-                        networkItem->ProcessIconValid = TRUE;
-                        modified = TRUE;
-                    }
+                    networkItem->ProcessIcon = networkItem->ProcessItem->SmallIcon;
+                    networkItem->ProcessIconValid = TRUE;
+                    modified = TRUE;
                 }
             }
 
