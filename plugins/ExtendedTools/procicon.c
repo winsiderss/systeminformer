@@ -33,7 +33,7 @@ PET_PROCESS_ICON EtProcIconCreateProcessIcon(
     processIcon->RefCount = 1;
     processIcon->Icon = ProcessItem->SmallIcon;
 
-    PhReferenceObject(ProcessItem);
+    PhSetReference(&processIcon->ProcessItem, ProcessItem);
 
     return processIcon;
 }
