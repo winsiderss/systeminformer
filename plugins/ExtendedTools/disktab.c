@@ -347,7 +347,7 @@ VOID EtRemoveDiskNode(
 
     PhRemoveEntryHashtable(DiskNodeHashtable, &DiskNode);
 
-    if ((index = PhFindItemList(DiskNodeList, DiskNode)) != -1)
+    if ((index = PhFindItemList(DiskNodeList, DiskNode)) != ULONG_MAX)
         PhRemoveItemList(DiskNodeList, index);
 
     if (DiskNode->ProcessNameText) PhDereferenceObject(DiskNode->ProcessNameText);
@@ -613,7 +613,7 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
             {
                 getCellTooltip->Text = node->TooltipText->sr;
                 getCellTooltip->Unfolding = FALSE;
-                getCellTooltip->MaximumWidth = -1;
+                getCellTooltip->MaximumWidth = ULONG_MAX;
             }
             else
             {

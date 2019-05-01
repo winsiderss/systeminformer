@@ -932,7 +932,7 @@ VOID EsHandleEventServiceTrigger(
             {
                 index = PhFindItemList(Context->InfoList, info);
 
-                if (index != -1)
+                if (index != ULONG_MAX)
                 {
                     Context->EditingInfo = EspCloneTriggerInfo(info);
 
@@ -983,7 +983,7 @@ VOID EsHandleEventServiceTrigger(
             {
                 index = PhFindItemList(Context->InfoList, info);
 
-                if (index != -1)
+                if (index != ULONG_MAX)
                 {
                     EspDestroyTriggerInfo(info);
                     PhRemoveItemList(Context->InfoList, index);

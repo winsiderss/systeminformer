@@ -185,11 +185,11 @@ VOID NTAPI ProcessMenuInitializingCallback(
                 servicesMenuItem = serviceMenuItem;
             }
 
-            PhInsertEMenuItem(serviceMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, ID_SERVICE_GOTOSERVICE, L"&Go to service", serviceItem), -1);
-            PhInsertEMenuItem(serviceMenuItem, startMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_SERVICE_START, L"Sta&rt", serviceItem), -1);
-            PhInsertEMenuItem(serviceMenuItem, continueMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_SERVICE_CONTINUE, L"&Continue", serviceItem), -1);
-            PhInsertEMenuItem(serviceMenuItem, pauseMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_SERVICE_PAUSE, L"&Pause", serviceItem), -1);
-            PhInsertEMenuItem(serviceMenuItem, stopMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_SERVICE_STOP, L"St&op", serviceItem), -1);
+            PhInsertEMenuItem(serviceMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, ID_SERVICE_GOTOSERVICE, L"&Go to service", serviceItem), ULONG_MAX);
+            PhInsertEMenuItem(serviceMenuItem, startMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_SERVICE_START, L"Sta&rt", serviceItem), ULONG_MAX);
+            PhInsertEMenuItem(serviceMenuItem, continueMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_SERVICE_CONTINUE, L"&Continue", serviceItem), ULONG_MAX);
+            PhInsertEMenuItem(serviceMenuItem, pauseMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_SERVICE_PAUSE, L"&Pause", serviceItem), ULONG_MAX);
+            PhInsertEMenuItem(serviceMenuItem, stopMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_SERVICE_STOP, L"St&op", serviceItem), ULONG_MAX);
 
             // Massive copy and paste from mainwnd.c.
             // == START ==
@@ -247,7 +247,7 @@ VOID NTAPI ProcessMenuInitializingCallback(
             // == END ==
 
             if (serviceList->Count != 1)
-                PhInsertEMenuItem(servicesMenuItem, serviceMenuItem, -1);
+                PhInsertEMenuItem(servicesMenuItem, serviceMenuItem, ULONG_MAX);
         }
 
         // Insert our Services menu after the I/O Priority menu.

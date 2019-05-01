@@ -282,7 +282,7 @@ VOID WeRemoveWindowNode(
 
     PhRemoveEntryHashtable(Context->NodeHashtable, &WindowNode);
 
-    if ((index = PhFindItemList(Context->NodeList, WindowNode)) != -1)
+    if ((index = PhFindItemList(Context->NodeList, WindowNode)) != ULONG_MAX)
         PhRemoveItemList(Context->NodeList, index);
 
     WepDestroyWindowNode(WindowNode);

@@ -633,7 +633,7 @@ PPH_STRING DiskDriveQueryGeometry(
         )))
     {
         // TODO: This doesn't return total capacity like Task Manager.
-        return PhFormatSize(result.Cylinders.QuadPart * result.TracksPerCylinder * result.SectorsPerTrack * result.BytesPerSector, -1);
+        return PhFormatSize(result.Cylinders.QuadPart * result.TracksPerCylinder * result.SectorsPerTrack * result.BytesPerSector, ULONG_MAX);
     }
 
     return PhReferenceEmptyString();

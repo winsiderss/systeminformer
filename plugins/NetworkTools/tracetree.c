@@ -251,7 +251,7 @@ VOID RemoveTracertNode(
 
     PhRemoveEntryHashtable(Context->NodeHashtable, &Node);
 
-    if ((index = PhFindItemList(Context->NodeList, Node)) != -1)
+    if ((index = PhFindItemList(Context->NodeList, Node)) != ULONG_MAX)
     {
         PhRemoveItemList(Context->NodeList, index);
     }
