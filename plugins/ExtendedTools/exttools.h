@@ -78,6 +78,7 @@ typedef struct _ET_PROCESS_ICON
 {
     LONG RefCount;
     HICON Icon;
+    PPH_PROCESS_ITEM ProcessItem;
 } ET_PROCESS_ICON, *PET_PROCESS_ICON;
 
 // Disk item
@@ -368,7 +369,7 @@ PPH_STRING EtFileObjectToFileName(
 // procicon
 
 PET_PROCESS_ICON EtProcIconCreateProcessIcon(
-    _In_ HICON Icon
+    _In_ PPH_PROCESS_ITEM ProcessItem
     );
 
 VOID EtProcIconReferenceProcessIcon(
