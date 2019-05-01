@@ -399,7 +399,7 @@ typedef PPH_OPTIONS_SECTION (NTAPI *PPH_OPTIONS_CREATE_SECTION)(
     _In_ PVOID Instance,
     _In_ PWSTR Template,
     _In_ DLGPROC DialogProc,
-    _In_ PVOID Parameter
+    _In_opt_ PVOID Parameter
     );
 
 typedef PPH_OPTIONS_SECTION (NTAPI *PPH_OPTIONS_FIND_SECTION)(
