@@ -3,6 +3,7 @@
  *   process icon duplication
  *
  * Copyright (C) 2011 wj32
+ * Copyright (C) 2019 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -23,14 +24,16 @@
 #include "exttools.h"
 
 PET_PROCESS_ICON EtProcIconCreateProcessIcon(
-    _In_ HICON Icon
+    _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
     PET_PROCESS_ICON processIcon;
 
     processIcon = PhAllocate(sizeof(ET_PROCESS_ICON));
     processIcon->RefCount = 1;
-    processIcon->Icon = CopyIcon(Icon);
+    processIcon->Icon = ProcessItem->SmallIcon;
+
+    PhReferenceObject(ProcessItem);
 
     return processIcon;
 }
@@ -48,7 +51,8 @@ VOID EtProcIconDereferenceProcessIcon(
 {
     if (_InterlockedDecrement(&ProcessIcon->RefCount) == 0)
     {
-        DestroyIcon(ProcessIcon->Icon);
+        PhDereferenceObject(ProcessIcon->ProcessItem);
+
         PhFree(ProcessIcon);
     }
 }
@@ -63,7 +67,7 @@ PET_PROCESS_ICON EtProcIconReferenceSmallProcessIcon(
 
     if (!smallProcessIcon && PhTestEvent(&Block->ProcessItem->Stage1Event) && Block->ProcessItem->SmallIcon)
     {
-        smallProcessIcon = EtProcIconCreateProcessIcon(Block->ProcessItem->SmallIcon);
+        smallProcessIcon = EtProcIconCreateProcessIcon(Block->ProcessItem);
 
         if (_InterlockedCompareExchangePointer(
             &Block->SmallProcessIcon,
