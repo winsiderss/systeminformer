@@ -43,7 +43,7 @@ typedef enum _PHP_HANDLE_GENERAL_CATEGORY
     PH_HANDLE_GENERAL_CATEGORY_FILE,
     PH_HANDLE_GENERAL_CATEGORY_SECTION,
     PH_HANDLE_GENERAL_CATEGORY_MUTANT,
-    PH_HANDLE_GENERAL_CATEGORY_PROCESS,
+    PH_HANDLE_GENERAL_CATEGORY_PROCESSTHREAD,
 
     PH_HANDLE_GENERAL_CATEGORY_MAXIMUM
 } PHP_HANDLE_GENERAL_CATEGORY;
@@ -77,10 +77,10 @@ typedef enum _PHP_HANDLE_GENERAL_INDEX
     PH_HANDLE_GENERAL_INDEX_MUTANTABANDONED,
     PH_HANDLE_GENERAL_INDEX_MUTANTOWNER,
 
-    PH_HANDLE_GENERAL_INDEX_PROCESSNAME,
-    PH_HANDLE_GENERAL_INDEX_PROCESSCREATETIME,
-    PH_HANDLE_GENERAL_INDEX_PROCESSEXITTIME,
-    PH_HANDLE_GENERAL_INDEX_PROCESSEXITCODE,
+    PH_HANDLE_GENERAL_INDEX_PROCESSTHREADNAME,
+    PH_HANDLE_GENERAL_INDEX_PROCESSTHREADCREATETIME,
+    PH_HANDLE_GENERAL_INDEX_PROCESSTHREADEXITTIME,
+    PH_HANDLE_GENERAL_INDEX_PROCESSTHREADEXITCODE,
 
     PH_HANDLE_GENERAL_INDEX_MAXIMUM
 } PHP_PROCESS_STATISTICS_INDEX;
@@ -470,33 +470,66 @@ VOID PhpUpdateHandleGeneralListViewGroups(
     }
     else if (PhEqualStringRef2(&Context->HandleItem->TypeName->sr, L"Process", TRUE))
     {
-        PhAddListViewGroup(Context->ListViewHandle, PH_HANDLE_GENERAL_CATEGORY_PROCESS, L"Process information");
+        PhAddListViewGroup(Context->ListViewHandle, PH_HANDLE_GENERAL_CATEGORY_PROCESSTHREAD, L"Process information");
 
-        Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_PROCESSNAME] = PhAddListViewGroupItem(
+        Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_PROCESSTHREADNAME] = PhAddListViewGroupItem(
             Context->ListViewHandle,
-            PH_HANDLE_GENERAL_CATEGORY_PROCESS,
-            PH_HANDLE_GENERAL_INDEX_PROCESSNAME,
+            PH_HANDLE_GENERAL_CATEGORY_PROCESSTHREAD,
+            PH_HANDLE_GENERAL_INDEX_PROCESSTHREADNAME,
             L"Name",
             NULL
             );
-        Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_PROCESSCREATETIME] = PhAddListViewGroupItem(
+        Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_PROCESSTHREADCREATETIME] = PhAddListViewGroupItem(
             Context->ListViewHandle,
-            PH_HANDLE_GENERAL_CATEGORY_PROCESS,
-            PH_HANDLE_GENERAL_INDEX_PROCESSCREATETIME,
+            PH_HANDLE_GENERAL_CATEGORY_PROCESSTHREAD,
+            PH_HANDLE_GENERAL_INDEX_PROCESSTHREADCREATETIME,
             L"Created",
             NULL
             );
-        Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_PROCESSEXITTIME] = PhAddListViewGroupItem(
+        Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_PROCESSTHREADEXITTIME] = PhAddListViewGroupItem(
             Context->ListViewHandle,
-            PH_HANDLE_GENERAL_CATEGORY_PROCESS,
-            PH_HANDLE_GENERAL_INDEX_PROCESSEXITTIME,
+            PH_HANDLE_GENERAL_CATEGORY_PROCESSTHREAD,
+            PH_HANDLE_GENERAL_INDEX_PROCESSTHREADEXITTIME,
             L"Exited",
             NULL
             );
-        Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_PROCESSEXITCODE] = PhAddListViewGroupItem(
+        Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_PROCESSTHREADEXITCODE] = PhAddListViewGroupItem(
             Context->ListViewHandle,
-            PH_HANDLE_GENERAL_CATEGORY_PROCESS,
-            PH_HANDLE_GENERAL_INDEX_PROCESSEXITCODE,
+            PH_HANDLE_GENERAL_CATEGORY_PROCESSTHREAD,
+            PH_HANDLE_GENERAL_INDEX_PROCESSTHREADEXITCODE,
+            L"Exit status",
+            NULL
+            );
+    }
+    else if (PhEqualStringRef2(&Context->HandleItem->TypeName->sr, L"Thread", TRUE))
+    {
+        PhAddListViewGroup(Context->ListViewHandle, PH_HANDLE_GENERAL_CATEGORY_PROCESSTHREAD, L"Thread information");
+
+        Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_PROCESSTHREADNAME] = PhAddListViewGroupItem(
+            Context->ListViewHandle,
+            PH_HANDLE_GENERAL_CATEGORY_PROCESSTHREAD,
+            PH_HANDLE_GENERAL_INDEX_PROCESSTHREADNAME,
+            L"Name",
+            NULL
+            );
+        Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_PROCESSTHREADCREATETIME] = PhAddListViewGroupItem(
+            Context->ListViewHandle,
+            PH_HANDLE_GENERAL_CATEGORY_PROCESSTHREAD,
+            PH_HANDLE_GENERAL_INDEX_PROCESSTHREADCREATETIME,
+            L"Created",
+            NULL
+            );
+        Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_PROCESSTHREADEXITTIME] = PhAddListViewGroupItem(
+            Context->ListViewHandle,
+            PH_HANDLE_GENERAL_CATEGORY_PROCESSTHREAD,
+            PH_HANDLE_GENERAL_INDEX_PROCESSTHREADEXITTIME,
+            L"Exited",
+            NULL
+            );
+        Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_PROCESSTHREADEXITCODE] = PhAddListViewGroupItem(
+            Context->ListViewHandle,
+            PH_HANDLE_GENERAL_CATEGORY_PROCESSTHREAD,
+            PH_HANDLE_GENERAL_INDEX_PROCESSTHREADEXITCODE,
             L"Exit status",
             NULL
             );
@@ -996,7 +1029,7 @@ VOID PhpUpdateHandleGeneral(
             if (NT_SUCCESS(PhGetProcessImageFileName(dupHandle, &fileName)))
             {
                 PhMoveReference(&fileName, PhGetFileName(fileName));
-                PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_PROCESSNAME], 1, PhGetStringOrEmpty(fileName));
+                PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_PROCESSTHREADNAME], 1, PhGetStringOrEmpty(fileName));
                 PhDereferenceObject(fileName);
             }
 
@@ -1010,12 +1043,12 @@ VOID PhpUpdateHandleGeneral(
                 SYSTEMTIME time;
 
                 PhLargeIntegerToLocalSystemTime(&time, &times.CreateTime);
-                PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_PROCESSCREATETIME], 1, PhaFormatDateTime(&time)->Buffer);
+                PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_PROCESSTHREADCREATETIME], 1, PhaFormatDateTime(&time)->Buffer);
 
                 if (exitStatus != STATUS_PENDING)
                 {
                     PhLargeIntegerToLocalSystemTime(&time, &times.ExitTime);
-                    PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_PROCESSEXITTIME], 1, PhaFormatDateTime(&time)->Buffer);
+                    PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_PROCESSTHREADEXITTIME], 1, PhaFormatDateTime(&time)->Buffer);
                 }
             }
 
@@ -1033,7 +1066,107 @@ VOID PhpUpdateHandleGeneral(
 
                 PhSetListViewSubItem(
                     Context->ListViewHandle,
-                    Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_PROCESSEXITCODE],
+                    Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_PROCESSTHREADEXITCODE],
+                    1,
+                    PhGetStringOrEmpty(exitcode)
+                    );
+
+                PhDereferenceObject(exitcode);
+                PhDereferenceObject(status);
+            }
+
+            NtClose(dupHandle);
+        }
+    }
+    else if (PhEqualString2(Context->HandleItem->TypeName, L"Thread", TRUE))
+    {
+        NTSTATUS status;
+        HANDLE processHandle;
+        HANDLE dupHandle;
+
+        if (NT_SUCCESS(status = PhOpenProcess(
+            &processHandle,
+            PROCESS_DUP_HANDLE,
+            Context->ProcessId
+            )))
+        {
+            status = NtDuplicateObject(
+                processHandle,
+                Context->HandleItem->Handle,
+                NtCurrentProcess(),
+                &dupHandle,
+                THREAD_QUERY_LIMITED_INFORMATION,
+                0,
+                0
+                );
+
+            NtClose(processHandle);
+        }
+
+        if (NT_SUCCESS(status))
+        {
+            NTSTATUS exitStatus = STATUS_PENDING;
+            THREAD_BASIC_INFORMATION basicInfo;
+            KERNEL_USER_TIMES times;
+            PPH_STRING name;
+
+            if (NT_SUCCESS(PhGetThreadName(dupHandle, &name)))
+            {
+                PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_PROCESSTHREADNAME], 1, PhGetStringOrEmpty(name));
+                PhDereferenceObject(name);
+            }
+
+
+            if (NT_SUCCESS(PhGetThreadBasicInformation(dupHandle, &basicInfo)))
+            {
+                exitStatus = basicInfo.ExitStatus;
+
+                //if (NT_SUCCESS(PhOpenProcess(
+                //    &processHandle,
+                //    PROCESS_QUERY_LIMITED_INFORMATION,
+                //    basicInfo.ClientId.UniqueProcess
+                //    )))
+                //{
+                //    if (NT_SUCCESS(PhGetProcessImageFileName(processHandle, &fileName)))
+                //    {
+                //        PhMoveReference(&fileName, PhGetFileName(fileName));
+                //        PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_PROCESSTHREADNAME], 1, PhGetStringOrEmpty(fileName));
+                //        PhDereferenceObject(fileName);
+                //    }
+                //
+                //    NtClose(processHandle);
+                //}
+            }
+
+            if (NT_SUCCESS(PhGetThreadTimes(dupHandle, &times)))
+            {
+                SYSTEMTIME time;
+
+                PhLargeIntegerToLocalSystemTime(&time, &times.CreateTime);
+                PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_PROCESSTHREADCREATETIME], 1, PhaFormatDateTime(&time)->Buffer);
+
+                if (exitStatus != STATUS_PENDING)
+                {
+                    PhLargeIntegerToLocalSystemTime(&time, &times.ExitTime);
+                    PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_PROCESSTHREADEXITTIME], 1, PhaFormatDateTime(&time)->Buffer);
+                }
+            }
+
+            if (exitStatus != STATUS_PENDING)
+            {
+                PPH_STRING status;
+                PPH_STRING exitcode;
+
+                status = PhGetStatusMessage(exitStatus, 0);
+                exitcode = PhFormatString(
+                    L"0x%x (%s)",
+                    exitStatus,
+                    status->Buffer
+                    );
+
+                PhSetListViewSubItem(
+                    Context->ListViewHandle,
+                    Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_PROCESSTHREADEXITCODE],
                     1,
                     PhGetStringOrEmpty(exitcode)
                     );
