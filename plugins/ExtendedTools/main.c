@@ -424,11 +424,7 @@ VOID EtDeleteProcessBlock(
     _In_ PET_PROCESS_BLOCK Block
     )
 {
-    ULONG i;
-
-    EtProcIconNotifyProcessDelete(Block);
-
-    for (i = 1; i <= ETPRTNC_MAXIMUM; i++)
+    for (ULONG i = 1; i <= ETPRTNC_MAXIMUM; i++)
     {
         PhClearReference(&Block->TextCache[i]);
     }
@@ -451,9 +447,7 @@ VOID EtDeleteNetworkBlock(
     _In_ PET_NETWORK_BLOCK Block
     )
 {
-    ULONG i;
-
-    for (i = 1; i <= ETNETNC_MAXIMUM; i++)
+    for (ULONG i = 1; i <= ETNETNC_MAXIMUM; i++)
     {
         PhClearReference(&Block->TextCache[i]);
     }

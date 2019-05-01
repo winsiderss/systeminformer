@@ -560,7 +560,7 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
 
             if (node->DiskItem->ProcessIcon)
             {
-                getNodeIcon->Icon = node->DiskItem->ProcessIcon->Icon;
+                getNodeIcon->Icon = node->DiskItem->ProcessIcon;
             }
             else
             {
