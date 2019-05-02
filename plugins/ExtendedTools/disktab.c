@@ -3,6 +3,7 @@
  *   ETW disk monitoring
  *
  * Copyright (C) 2011-2015 wj32
+ * Copyright (C) 2018-2019 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -25,20 +26,20 @@
 #include <toolstatusintf.h>
 #include "disktabp.h"
 
-static PPH_MAIN_TAB_PAGE DiskPage;
+static PPH_MAIN_TAB_PAGE DiskPage = NULL;
 static BOOLEAN DiskTreeNewCreated = FALSE;
-static HWND DiskTreeNewHandle;
-static ULONG DiskTreeNewSortColumn;
-static PH_SORT_ORDER DiskTreeNewSortOrder;
+static HWND DiskTreeNewHandle = NULL;
+static ULONG DiskTreeNewSortColumn = 0;
+static PH_SORT_ORDER DiskTreeNewSortOrder = NoSortOrder;
 
-static PPH_HASHTABLE DiskNodeHashtable; // hashtable of all nodes
-static PPH_LIST DiskNodeList; // list of all nodes
+static PPH_HASHTABLE DiskNodeHashtable = NULL; // hashtable of all nodes
+static PPH_LIST DiskNodeList = NULL; // list of all nodes
 
+static PH_PROVIDER_EVENT_QUEUE EtpDiskEventQueue;
 static PH_CALLBACK_REGISTRATION DiskItemAddedRegistration;
 static PH_CALLBACK_REGISTRATION DiskItemModifiedRegistration;
 static PH_CALLBACK_REGISTRATION DiskItemRemovedRegistration;
 static PH_CALLBACK_REGISTRATION DiskItemsUpdatedRegistration;
-static BOOLEAN DiskNeedsRedraw = FALSE;
 
 static PH_TN_FILTER_SUPPORT FilterSupport;
 static PTOOLSTATUS_INTERFACE ToolStatusInterface;
@@ -134,6 +135,8 @@ BOOLEAN EtpDiskPageCallback(
             DiskNodeList = PhCreateList(100);
 
             EtInitializeDiskTreeList(hwnd);
+
+            PhInitializeProviderEventQueue(&EtpDiskEventQueue, 100);
 
             PhRegisterCallback(
                 &EtDiskItemAddedEvent,
@@ -370,8 +373,30 @@ VOID EtUpdateDiskNode(
 {
     memset(DiskNode->TextCache, 0, sizeof(PH_STRINGREF) * ETDSTNC_MAXIMUM);
 
+    PhClearReference(&DiskNode->TooltipText);
+
     PhInvalidateTreeNewNode(&DiskNode->Node, TN_CACHE_ICON);
     TreeNew_NodesStructured(DiskTreeNewHandle);
+}
+
+VOID EtTickDiskNodes(
+    VOID
+    )
+{
+    // Text invalidation
+
+    for (ULONG i = 0; i < DiskNodeList->Count; i++)
+    {
+        PET_DISK_NODE node = DiskNodeList->Items[i];
+
+        // The name and file name never change, so we don't invalidate that.
+        memset(&node->TextCache[2], 0, sizeof(PH_STRINGREF) * (ETDSTNC_MAXIMUM - 2));
+
+        // Always get the newest tooltip text from the process tree.
+        PhClearReference(&node->TooltipText);
+    }
+
+    InvalidateRect(DiskTreeNewHandle, NULL, FALSE);
 }
 
 #define SORT_FUNCTION(Column) EtpDiskTreeNewCompare##Column
@@ -972,7 +997,7 @@ VOID NTAPI EtpDiskItemAddedHandler(
     PET_DISK_ITEM diskItem = (PET_DISK_ITEM)Parameter;
 
     PhReferenceObject(diskItem);
-    ProcessHacker_Invoke(PhMainWndHandle, EtpOnDiskItemAdded, diskItem);
+    PhPushProviderEventQueue(&EtpDiskEventQueue, ProviderAddedEvent, Parameter, EtRunCount);
 }
 
 VOID NTAPI EtpDiskItemModifiedHandler(
@@ -980,7 +1005,7 @@ VOID NTAPI EtpDiskItemModifiedHandler(
     _In_opt_ PVOID Context
     )
 {
-    ProcessHacker_Invoke(PhMainWndHandle, EtpOnDiskItemModified, (PET_DISK_ITEM)Parameter);
+    PhPushProviderEventQueue(&EtpDiskEventQueue, ProviderModifiedEvent, Parameter, EtRunCount);
 }
 
 VOID NTAPI EtpDiskItemRemovedHandler(
@@ -988,7 +1013,7 @@ VOID NTAPI EtpDiskItemRemovedHandler(
     _In_opt_ PVOID Context
     )
 {
-    ProcessHacker_Invoke(PhMainWndHandle, EtpOnDiskItemRemoved, (PET_DISK_ITEM)Parameter);
+    PhPushProviderEventQueue(&EtpDiskEventQueue, ProviderRemovedEvent, Parameter, EtRunCount);
 }
 
 VOID NTAPI EtpDiskItemsUpdatedHandler(
@@ -996,75 +1021,52 @@ VOID NTAPI EtpDiskItemsUpdatedHandler(
     _In_opt_ PVOID Context
     )
 {
-    ProcessHacker_Invoke(PhMainWndHandle, EtpOnDiskItemsUpdated, NULL);
-}
-
-VOID NTAPI EtpOnDiskItemAdded(
-    _In_ PVOID Parameter
-    )
-{
-    PET_DISK_ITEM diskItem = Parameter;
-    PET_DISK_NODE diskNode;
-
-    if (!DiskNeedsRedraw)
-    {
-        TreeNew_SetRedraw(DiskTreeNewHandle, FALSE);
-        DiskNeedsRedraw = TRUE;
-    }
-
-    diskNode = EtAddDiskNode(diskItem);
-    PhDereferenceObject(diskItem);
-}
-
-VOID NTAPI EtpOnDiskItemModified(
-    _In_ PVOID Parameter
-    )
-{
-    PET_DISK_ITEM diskItem = Parameter;
-
-    EtUpdateDiskNode(EtFindDiskNode(diskItem));
-}
-
-VOID NTAPI EtpOnDiskItemRemoved(
-    _In_ PVOID Parameter
-    )
-{
-    PET_DISK_ITEM diskItem = Parameter;
-
-    if (!DiskNeedsRedraw)
-    {
-        TreeNew_SetRedraw(DiskTreeNewHandle, FALSE);
-        DiskNeedsRedraw = TRUE;
-    }
-
-    EtRemoveDiskNode(EtFindDiskNode(diskItem));
+    ProcessHacker_Invoke(PhMainWndHandle, EtpOnDiskItemsUpdated, ULongToPtr(EtRunCount));
 }
 
 VOID NTAPI EtpOnDiskItemsUpdated(
     _In_ PVOID Parameter
     )
 {
+    PPH_PROVIDER_EVENT events;
+    ULONG runId;
+    ULONG count;
     ULONG i;
 
-    if (DiskNeedsRedraw)
+    runId = PtrToUlong(Parameter);
+    events = PhFlushProviderEventQueue(&EtpDiskEventQueue, runId, &count);
+
+    if (events)
     {
+        TreeNew_SetRedraw(DiskTreeNewHandle, FALSE);
+
+        for (i = 0; i < count; i++)
+        {
+            PH_PROVIDER_EVENT_TYPE type = PH_PROVIDER_EVENT_TYPE(events[i]);
+            PET_DISK_ITEM diskItem = PH_PROVIDER_EVENT_OBJECT(events[i]);
+
+            switch (type)
+            {
+            case ProviderAddedEvent:
+                EtAddDiskNode(diskItem);
+                PhDereferenceObject(diskItem);
+                break;
+            case ProviderModifiedEvent:
+                EtUpdateDiskNode(EtFindDiskNode(diskItem));
+                break;
+            case ProviderRemovedEvent:
+                EtRemoveDiskNode(EtFindDiskNode(diskItem));
+                break;
+            }
+        }
+
+        PhFree(events);
+    }
+
+    EtTickDiskNodes();
+
+    if (count != 0)
         TreeNew_SetRedraw(DiskTreeNewHandle, TRUE);
-        DiskNeedsRedraw = FALSE;
-    }
-
-    // Text invalidation
-
-    for (i = 0; i < DiskNodeList->Count; i++)
-    {
-        PET_DISK_NODE node = DiskNodeList->Items[i];
-
-        // The name and file name never change, so we don't invalidate that.
-        memset(&node->TextCache[2], 0, sizeof(PH_STRINGREF) * (ETDSTNC_MAXIMUM - 2));
-        // Always get the newest tooltip text from the process tree.
-        PhClearReference(&node->TooltipText);
-    }
-
-    InvalidateRect(DiskTreeNewHandle, NULL, FALSE);
 }
 
 VOID NTAPI EtpSearchChangedHandler(

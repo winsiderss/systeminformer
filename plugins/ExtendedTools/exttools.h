@@ -334,6 +334,7 @@ VOID EtEtwStatisticsUninitialization(
 // etwdisk
 
 extern BOOLEAN EtDiskEnabled;
+extern ULONG EtRunCount;
 
 extern PPH_OBJECT_TYPE EtDiskItemType;
 extern PH_CALLBACK EtDiskItemAddedEvent;
