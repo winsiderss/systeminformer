@@ -786,7 +786,7 @@ VOID NTAPI PhMwpProcessesUpdatedHandler(
     _In_opt_ PVOID Context
     )
 {
-    PostMessage(PhMainWndHandle, WM_PH_PROCESSES_UPDATED, PhGetRunIdProvider(&PhMwpProcessProviderRegistration), 0);
+    ProcessHacker_Invoke(PhMainWndHandle, PhMwpOnProcessesUpdated, PhGetRunIdProvider(&PhMwpProcessProviderRegistration));
 }
 
 VOID PhMwpOnProcessAdded(

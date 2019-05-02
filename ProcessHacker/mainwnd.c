@@ -2160,21 +2160,6 @@ ULONG_PTR PhMwpOnUserMessage(
             PhMwpActivateWindow(!!PhGetIntegerSetting(L"IconTogglesVisibility"));
         }
         break;
-    case WM_PH_PROCESSES_UPDATED:
-        {
-            PhMwpOnProcessesUpdated((ULONG)WParam);
-        }
-        break;
-    case WM_PH_SERVICES_UPDATED:
-        {
-            PhMwpOnServicesUpdated((ULONG)WParam);
-        }
-        break;
-    case WM_PH_NETWORK_ITEMS_UPDATED:
-        {
-            PhMwpOnNetworkItemsUpdated((ULONG)WParam);
-        }
-        break;
     }
 
     return 0;
