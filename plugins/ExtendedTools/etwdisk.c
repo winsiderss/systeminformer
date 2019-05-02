@@ -50,6 +50,7 @@ VOID NTAPI EtpDiskProcessesUpdatedCallback(
     );
 
 BOOLEAN EtDiskEnabled = FALSE;
+ULONG EtRunCount = 0;
 
 PPH_OBJECT_TYPE EtDiskItemType;
 PPH_HASHTABLE EtDiskHashtable;
@@ -410,8 +411,6 @@ VOID NTAPI EtpDiskProcessesUpdatedCallback(
     _In_opt_ PVOID Context
     )
 {
-    static ULONG runCount = 0;
-
     PSLIST_ENTRY listEntry;
     PLIST_ENTRY ageListEntry;
 
@@ -426,7 +425,7 @@ VOID NTAPI EtpDiskProcessesUpdatedCallback(
         packet = CONTAINING_RECORD(listEntry, ETP_DISK_PACKET, ListEntry);
         listEntry = listEntry->Next;
 
-        EtpProcessDiskPacket(packet, runCount);
+        EtpProcessDiskPacket(packet, EtRunCount);
 
         if (packet->FileName)
             PhDereferenceObject(packet->FileName);
@@ -445,7 +444,7 @@ VOID NTAPI EtpDiskProcessesUpdatedCallback(
         diskItem = CONTAINING_RECORD(ageListEntry, ET_DISK_ITEM, AgeListEntry);
         ageListEntry = ageListEntry->Blink;
 
-        if (runCount - diskItem->FreshTime < HISTORY_SIZE) // must compare like this to avoid overflow/underflow problems
+        if (EtRunCount - diskItem->FreshTime < HISTORY_SIZE) // must compare like this to avoid overflow/underflow problems
             break;
 
         PhInvokeCallback(&EtDiskItemRemovedEvent, diskItem);
@@ -497,7 +496,7 @@ VOID NTAPI EtpDiskProcessesUpdatedCallback(
         diskItem->ReadAverage = EtpCalculateAverage(diskItem->ReadHistory, HISTORY_SIZE, diskItem->HistoryPosition, diskItem->HistoryCount, HISTORY_SIZE);
         diskItem->WriteAverage = EtpCalculateAverage(diskItem->WriteHistory, HISTORY_SIZE, diskItem->HistoryPosition, diskItem->HistoryCount, HISTORY_SIZE);
 
-        if (diskItem->AddTime != runCount)
+        if (diskItem->AddTime != EtRunCount)
         {
             BOOLEAN modified = FALSE;
 
@@ -541,5 +540,5 @@ VOID NTAPI EtpDiskProcessesUpdatedCallback(
     }
 
     PhInvokeCallback(&EtDiskItemsUpdatedEvent, NULL);
-    runCount++;
+    EtRunCount++;
 }

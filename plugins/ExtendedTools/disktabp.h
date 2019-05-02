@@ -8,27 +8,6 @@ BOOLEAN EtpDiskPageCallback(
     _In_opt_ PVOID Parameter2
     );
 
-VOID NTAPI EtpDiskTabSelectionChangedCallback(
-    _In_ PVOID Parameter1,
-    _In_ PVOID Parameter2,
-    _In_ PVOID Parameter3,
-    _In_ PVOID Context
-    );
-
-VOID NTAPI EtpDiskTabSaveContentCallback(
-    _In_ PVOID Parameter1,
-    _In_ PVOID Parameter2,
-    _In_ PVOID Parameter3,
-    _In_ PVOID Context
-    );
-
-VOID NTAPI EtpDiskTabFontChangedCallback(
-    _In_ PVOID Parameter1,
-    _In_ PVOID Parameter2,
-    _In_ PVOID Parameter3,
-    _In_ PVOID Context
-    );
-
 BOOLEAN EtpDiskNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -129,18 +108,6 @@ VOID NTAPI EtpDiskItemRemovedHandler(
 VOID NTAPI EtpDiskItemsUpdatedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
-    );
-
-VOID NTAPI EtpOnDiskItemAdded(
-    _In_ PVOID Parameter
-    );
-
-VOID NTAPI EtpOnDiskItemModified(
-    _In_ PVOID Parameter
-    );
-
-VOID NTAPI EtpOnDiskItemRemoved(
-    _In_ PVOID Parameter
     );
 
 VOID NTAPI EtpOnDiskItemsUpdated(
