@@ -371,7 +371,7 @@ VOID NTAPI PhMwpServicesUpdatedHandler(
     _In_opt_ PVOID Context
     )
 {
-    PostMessage(PhMainWndHandle, WM_PH_SERVICES_UPDATED, PhGetRunIdProvider(&PhMwpServiceProviderRegistration), 0);
+    ProcessHacker_Invoke(PhMainWndHandle, PhMwpOnServicesUpdated, PhGetRunIdProvider(&PhMwpServiceProviderRegistration));
 }
 
 VOID PhMwpOnServiceAdded(
