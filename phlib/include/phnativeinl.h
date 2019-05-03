@@ -982,6 +982,32 @@ PhSetThreadBreakOnTermination(
         );
 }
 
+FORCEINLINE
+NTSTATUS
+PhGetThreadIsIoPending(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PBOOLEAN IsIoPending
+    )
+{
+    NTSTATUS status;
+    ULONG isIoPending;
+
+    status = NtQueryInformationThread(
+        ThreadHandle,
+        ThreadIsIoPending,
+        &isIoPending,
+        sizeof(ULONG),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *IsIoPending = !!isIoPending;
+    }
+
+    return status;
+}
+
 /**
  * Gets time information for a thread.
  *
