@@ -3,6 +3,7 @@
  *   procedure import module
  *
  * Copyright (C) 2015 wj32
+ * Copyright (C) 2019 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -36,7 +37,8 @@ PVOID PhpImportProcedure(
     if (*CacheValid)
         return *Cache;
 
-    module = PhGetLoaderEntryDllBase(ModuleName);
+    if (!(module = PhGetLoaderEntryDllBase(ModuleName)))
+        module = LoadLibrary(ModuleName); // HACK (dmex)
 
     if (!module)
         return NULL;
