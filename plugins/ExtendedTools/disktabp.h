@@ -111,7 +111,7 @@ VOID NTAPI EtpDiskItemsUpdatedHandler(
     );
 
 VOID NTAPI EtpOnDiskItemsUpdated(
-    _In_ PVOID Parameter
+    _In_ ULONG RunId
     );
 
 VOID NTAPI EtpSearchChangedHandler(

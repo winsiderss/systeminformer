@@ -128,8 +128,7 @@ VOID NTAPI EtpDiskItemDeleteProcedure(
     if (diskItem->ProcessRecord) PhDereferenceProcessRecord(diskItem->ProcessRecord);
 
     // NOTE: Dereferencing the ProcessItem will destroy the DiskItem->ProcessIcon handle.
-    if (diskItem->ProcessItem)
-        PhDereferenceObject(diskItem->ProcessItem);
+    if (diskItem->ProcessItem) PhDereferenceObject(diskItem->ProcessItem);
 }
 
 BOOLEAN NTAPI EtpDiskHashtableEqualFunction(
@@ -306,12 +305,12 @@ VOID EtpProcessDiskPacket(
 
         if (processItem = PhReferenceProcessItem(diskItem->ProcessId))
         {
-            PhSetReference(&diskItem->ProcessItem, processItem);
+            diskItem->ProcessItem = processItem;
             PhSetReference(&diskItem->ProcessName, processItem->ProcessName);
             diskItem->ProcessRecord = processItem->Record;
             PhReferenceProcessRecord(diskItem->ProcessRecord);
 
-            if (PhTestEvent(&processItem->Stage1Event))
+            if (!diskItem->ProcessIconValid && PhTestEvent(&processItem->Stage1Event))
             {
                 diskItem->ProcessIcon = processItem->SmallIcon;
                 diskItem->ProcessIconValid = TRUE;
