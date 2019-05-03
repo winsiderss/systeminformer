@@ -733,7 +733,7 @@ VOID PhNetworkProviderUpdate(
             // Get process information.
             if (processItem = PhReferenceProcessItem(networkItem->ProcessId))
             {
-                PhSetReference(&networkItem->ProcessItem, processItem);
+                networkItem->ProcessItem = processItem;
                 PhSetReference(&networkItem->ProcessName, processItem->ProcessName);
                 networkItem->SubsystemProcess = !!processItem->IsSubsystemProcess;
                 PhpUpdateNetworkItemOwner(networkItem, processItem);
