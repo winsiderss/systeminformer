@@ -583,7 +583,7 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
 
             node = (PET_DISK_NODE)getNodeIcon->Node;
 
-            if (node->DiskItem->ProcessIcon)
+            if (node->DiskItem->ProcessIconValid && node->DiskItem->ProcessIcon)
             {
                 getNodeIcon->Icon = node->DiskItem->ProcessIcon;
             }
@@ -1021,20 +1021,18 @@ VOID NTAPI EtpDiskItemsUpdatedHandler(
     _In_opt_ PVOID Context
     )
 {
-    ProcessHacker_Invoke(PhMainWndHandle, EtpOnDiskItemsUpdated, ULongToPtr(EtRunCount));
+    ProcessHacker_Invoke(PhMainWndHandle, EtpOnDiskItemsUpdated, EtRunCount);
 }
 
 VOID NTAPI EtpOnDiskItemsUpdated(
-    _In_ PVOID Parameter
+    _In_ ULONG RunId
     )
 {
     PPH_PROVIDER_EVENT events;
-    ULONG runId;
     ULONG count;
     ULONG i;
 
-    runId = PtrToUlong(Parameter);
-    events = PhFlushProviderEventQueue(&EtpDiskEventQueue, runId, &count);
+    events = PhFlushProviderEventQueue(&EtpDiskEventQueue, RunId, &count);
 
     if (events)
     {
