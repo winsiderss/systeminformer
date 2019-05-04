@@ -259,6 +259,23 @@ LRESULT CALLBACK PhpPropSheetWndProc(
             PhFree(propSheetContext);
         }
         break;
+    case WM_SYSCOMMAND:
+        {
+            // Note: Clicking the X on the taskbar window thumbnail preview doens't close modeless property sheets
+            // when there are more than 1 window and the window doesn't have focus... The MFC, ATL and WTL libraries
+            // check if the propsheet is modeless and SendMessage WM_CLOSE and so we'll implement the same solution. (dmex)
+            switch (wParam & 0xFFF0)
+            {
+            case SC_CLOSE:
+                {
+                    PostMessage(hwnd, WM_CLOSE, 0, 0);
+                    //SetWindowLongPtr(hwnd, DWLP_MSGRESULT, TRUE);
+                    //return TRUE;
+                }
+                break;
+            }
+        }
+        break;
     case WM_COMMAND:
         {
             switch (GET_WM_COMMAND_ID(wParam, lParam))
