@@ -215,7 +215,7 @@ VOID NTAPI EtpEtwEventCallback(
     _In_ PEVENT_RECORD EventRecord
     )
 {
-    if (memcmp(&EventRecord->EventHeader.ProviderId, &DiskIoGuid_I, sizeof(GUID)) == 0)
+    if (IsEqualGUID(&EventRecord->EventHeader.ProviderId, &DiskIoGuid_I))
     {
         // DiskIo
 
@@ -263,7 +263,7 @@ VOID NTAPI EtpEtwEventCallback(
             EtDiskProcessDiskEvent(&diskEvent);
         }
     }
-    else if (memcmp(&EventRecord->EventHeader.ProviderId, &FileIoGuid_I, sizeof(GUID)) == 0)
+    else if (IsEqualGUID(&EventRecord->EventHeader.ProviderId, &FileIoGuid_I))
     {
         // FileIo
 
@@ -308,8 +308,8 @@ VOID NTAPI EtpEtwEventCallback(
         }
     }
     else if (
-        memcmp(&EventRecord->EventHeader.ProviderId, &TcpIpGuid_I, sizeof(GUID)) == 0 ||
-        memcmp(&EventRecord->EventHeader.ProviderId, &UdpIpGuid_I, sizeof(GUID)) == 0
+        IsEqualGUID(&EventRecord->EventHeader.ProviderId, &TcpIpGuid_I) ||
+        IsEqualGUID(&EventRecord->EventHeader.ProviderId, &UdpIpGuid_I)
         )
     {
         // TcpIp/UdpIp
@@ -339,7 +339,7 @@ VOID NTAPI EtpEtwEventCallback(
             break;
         }
 
-        if (memcmp(&EventRecord->EventHeader.ProviderId, &TcpIpGuid_I, sizeof(GUID)) == 0)
+        if (IsEqualGUID(&EventRecord->EventHeader.ProviderId, &TcpIpGuid_I))
             networkEvent.ProtocolType |= PH_TCP_PROTOCOL_TYPE;
         else
             networkEvent.ProtocolType |= PH_UDP_PROTOCOL_TYPE;
@@ -511,7 +511,7 @@ VOID NTAPI EtpRundownEtwEventCallback(
     // TODO: Find a way to call CloseTrace when the enumeration finishes so we can
     // stop the trace cleanly.
 
-    if (memcmp(&EventRecord->EventHeader.ProviderId, &FileIoGuid_I, sizeof(GUID)) == 0)
+    if (IsEqualGUID(&EventRecord->EventHeader.ProviderId, &FileIoGuid_I))
     {
         // FileIo
 
