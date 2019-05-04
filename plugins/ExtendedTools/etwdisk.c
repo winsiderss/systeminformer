@@ -307,8 +307,9 @@ VOID EtpProcessDiskPacket(
         {
             diskItem->ProcessItem = processItem;
             PhSetReference(&diskItem->ProcessName, processItem->ProcessName);
+
+            PhReferenceProcessRecord(processItem->Record);
             diskItem->ProcessRecord = processItem->Record;
-            PhReferenceProcessRecord(diskItem->ProcessRecord);
 
             if (!diskItem->ProcessIconValid && PhTestEvent(&processItem->Stage1Event))
             {
@@ -522,7 +523,7 @@ VOID NTAPI EtpDiskProcessesUpdatedCallback(
 
                 if (!diskItem->ProcessRecord)
                 {
-                    PhReferenceProcessRecord(diskItem->ProcessRecord);
+                    PhReferenceProcessRecord(diskItem->ProcessItem->Record);
                     diskItem->ProcessRecord = diskItem->ProcessItem->Record;
                     modified = TRUE;
                 }
