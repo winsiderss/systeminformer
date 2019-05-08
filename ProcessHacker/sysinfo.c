@@ -3,7 +3,7 @@
  *   System Information window
  *
  * Copyright (C) 2011-2016 wj32
- * Copyright (C) 2017 dmex
+ * Copyright (C) 2017-2019 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -228,7 +228,7 @@ INT_PTR CALLBACK PhSipSysInfoDialogProc(
         break;
     case WM_COMMAND:
         {
-            PhSipOnCommand(LOWORD(wParam), HIWORD(wParam));
+            PhSipOnCommand((HWND)lParam, LOWORD(wParam), HIWORD(wParam));
         }
         break;
     case WM_NOTIFY:
@@ -397,7 +397,7 @@ VOID PhSipOnInitDialog(
         3,
         3,
         PhSipWindow,
-        (HMENU)IDC_SEPARATOR,
+        NULL,
         PhInstanceHandle,
         NULL
         );
@@ -410,7 +410,7 @@ VOID PhSipOnInitDialog(
         3,
         3,
         PhSipWindow,
-        (HMENU)IDC_RESET,
+        NULL,
         PhInstanceHandle,
         NULL
         );
@@ -560,6 +560,7 @@ VOID PhSipOnThemeChanged(
 }
 
 VOID PhSipOnCommand(
+    _In_ HWND HwndControl,
     _In_ ULONG Id,
     _In_ ULONG Code
     )
@@ -568,14 +569,6 @@ VOID PhSipOnCommand(
     {
     case IDCANCEL:
         DestroyWindow(PhSipWindow);
-        break;
-    case IDC_RESET:
-        {
-            if (Code == STN_CLICKED)
-            {
-                PhSipRestoreSummaryView();
-            }
-        }
         break;
     case IDC_BACK:
         {
@@ -652,6 +645,14 @@ VOID PhSipOnCommand(
                 PhSipEnterSectionView(section);
                 break;
             }
+        }
+    }
+
+    if (HwndControl == RestoreSummaryControl)
+    {
+        if (Code == STN_CLICKED)
+        {
+            PhSipRestoreSummaryView();
         }
     }
 }
@@ -784,12 +785,12 @@ BOOLEAN PhSipOnDrawItem(
     ULONG i;
     PPH_SYSINFO_SECTION section;
 
-    if (Id == IDC_RESET)
+    if (DrawItemStruct->hwndItem == RestoreSummaryControl)
     {
         PhSipDrawRestoreSummaryPanel(DrawItemStruct);
         return TRUE;
     }
-    else if (Id == IDC_SEPARATOR)
+    else if (DrawItemStruct->hwndItem == SeparatorControl)
     {
         PhSipDrawSeparator(DrawItemStruct);
         return TRUE;
@@ -1135,9 +1136,7 @@ PPH_SYSINFO_SECTION PhSipCreateSection(
     PPH_SYSINFO_SECTION section;
     PH_GRAPH_OPTIONS options;
 
-    section = PhAllocate(sizeof(PH_SYSINFO_SECTION));
-    memset(section, 0, sizeof(PH_SYSINFO_SECTION));
-
+    section = PhAllocateZero(sizeof(PH_SYSINFO_SECTION));
     section->Name = Template->Name;
     section->Flags = Template->Flags;
     section->Callback = Template->Callback;

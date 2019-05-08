@@ -243,7 +243,7 @@ INT_PTR CALLBACK PhSipIoDialogProc(
                 3,
                 3,
                 IoDialog,
-                (HMENU)IDC_IO,
+                NULL,
                 PhInstanceHandle,
                 NULL
                 );

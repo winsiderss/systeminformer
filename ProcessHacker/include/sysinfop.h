@@ -76,6 +76,7 @@ VOID PhSipOnThemeChanged(
     );
 
 VOID PhSipOnCommand(
+    _In_ HWND HwndControl,
     _In_ ULONG Id,
     _In_ ULONG Code
     );
