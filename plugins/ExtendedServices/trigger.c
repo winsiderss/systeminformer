@@ -653,7 +653,7 @@ VOID EspFormatTriggerInfo(
                         triggerString = SubTypeEntries[i].Name;
                         break;
                     }
-                    else if (Info->Subtype && SubTypeEntries[i].Guid && memcmp(Info->Subtype, SubTypeEntries[i].Guid, sizeof(GUID)) == 0)
+                    else if (Info->Subtype && SubTypeEntries[i].Guid && IsEqualGUID(Info->Subtype, SubTypeEntries[i].Guid))
                     {
                         subTypeFound = TRUE;
                         triggerString = SubTypeEntries[i].Name;
@@ -1320,7 +1320,7 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
                         SubTypeEntries[i].Type == context->EditingInfo->Type &&
                         SubTypeEntries[i].Guid &&
                         context->EditingInfo->Subtype &&
-                        memcmp(SubTypeEntries[i].Guid, context->EditingInfo->Subtype, sizeof(GUID)) == 0
+                        IsEqualGUID(SubTypeEntries[i].Guid, context->EditingInfo->Subtype)
                         )
                     {
                         PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_SUBTYPE), SubTypeEntries[i].Name, FALSE);
