@@ -5974,7 +5974,21 @@ PVOID PhGetLoaderEntryImageExportFunction(
 
             if (libraryModule = LoadLibrary(libraryNameString->Buffer))
             {
-                exportAddress = PhGetDllBaseProcedureAddress(libraryModule, libraryFunctionString->Buffer, 0);
+                if (libraryFunctionString->Buffer[0] == L'#') // This is a forwarder RVA with an ordinal import.
+                {
+                    ULONG64 importOrdinal;
+
+                    PhSkipStringRef(&dllProcedureRef, sizeof(WCHAR));
+
+                    if (PhStringToInteger64(&dllProcedureRef, 10, &importOrdinal))
+                        exportAddress = PhGetDllBaseProcedureAddress(libraryModule, NULL, (USHORT)importOrdinal);
+                    else
+                        exportAddress = PhGetDllBaseProcedureAddress(libraryModule, libraryFunctionString->Buffer, 0);
+                }
+                else
+                {
+                    exportAddress = PhGetDllBaseProcedureAddress(libraryModule, libraryFunctionString->Buffer, 0);
+                }
             }
 
             PhDereferenceObject(libraryFunctionString);
