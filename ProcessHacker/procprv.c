@@ -114,6 +114,8 @@ typedef struct _PH_PROCESS_QUERY_S2_DATA
 {
     PH_PROCESS_QUERY_DATA Header;
 
+    PPH_STRING UserName;
+
     VERIFY_RESULT VerifyResult;
     PPH_STRING VerifySignerName;
 
@@ -477,6 +479,7 @@ VOID PhpProcessItemDeleteProcedure(
     if (processItem->JobName) PhDereferenceObject(processItem->JobName);
     if (processItem->VerifySignerName) PhDereferenceObject(processItem->VerifySignerName);
     if (processItem->PackageFullName) PhDereferenceObject(processItem->PackageFullName);
+    if (processItem->UserName) PhDereferenceObject(processItem->UserName);
 
     if (processItem->QueryHandle) NtClose(processItem->QueryHandle);
 
@@ -908,6 +911,14 @@ VOID PhpProcessQueryStage2(
 {
     PPH_PROCESS_ITEM processItem = Data->Header.ProcessItem;
 
+    if (processItem->Sid)
+    {
+        // Note: We delay resolving the SID name because the local LSA cache might still be
+        // initializing for users on domain networks with slow links (e.g. VPNs). This can block
+        // for a very long time depending on server/network conditions. (dmex)
+        PhMoveReference(&Data->UserName, PhGetSidFullName(processItem->Sid, TRUE, NULL));
+    }
+
     if (PhEnableProcessQueryStage2 && processItem->FileName && !processItem->IsSubsystemProcess)
     {
         NTSTATUS status;
@@ -1044,6 +1055,7 @@ VOID PhpFillProcessItemStage2(
 {
     PPH_PROCESS_ITEM processItem = Data->Header.ProcessItem;
 
+    processItem->UserName = Data->UserName;
     processItem->VerifyResult = Data->VerifyResult;
     processItem->VerifySignerName = Data->VerifySignerName;
     processItem->IsPacked = Data->IsPacked;
@@ -2204,13 +2216,20 @@ VOID PhProcessProviderUpdate(
                     // User
                     if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
                     {
-                        PSID processSid = processItem->Sid;
+                        if (!RtlEqualSid(processItem->Sid, tokenUser->User.Sid))
+                        {
+                            PSID processSid;
 
-                        processItem->Sid = PhAllocateCopy(tokenUser->User.Sid, RtlLengthSid(tokenUser->User.Sid));
+                            // HACK (dmex)
+                            processSid = processItem->Sid;
+                            processItem->Sid = PhAllocateCopy(tokenUser->User.Sid, RtlLengthSid(tokenUser->User.Sid));
+                            PhFree(processSid);
 
-                        PhFree(processSid);
-                        PhFree(tokenUser);
-                        modified = TRUE;
+                            PhMoveReference(&processItem->UserName, PhGetSidFullName(processItem->Sid, TRUE, NULL));
+                            
+                            PhFree(tokenUser);
+                            modified = TRUE;
+                        }
                     }
 
                     // Elevation
