@@ -228,7 +228,6 @@ typedef struct _PH_PROCESS_NODE
     WCHAR JobObjectIdText[PH_INT32_STR_LEN_1];
     PPH_STRING ProtectionText;
     PPH_STRING DesktopInfoText;
-    PPH_STRING UserName;
     WCHAR PidHexText[PH_PTR_STR_LEN_1];
 
     // Graph buffers
