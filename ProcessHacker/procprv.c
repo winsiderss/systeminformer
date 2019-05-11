@@ -92,6 +92,7 @@ typedef struct _PH_PROCESS_QUERY_S1_DATA
     PPH_STRING JobName;
     HANDLE ConsoleHostProcessId;
     PPH_STRING PackageFullName;
+    PPH_STRING UserName;
 
     union
     {
@@ -114,7 +115,6 @@ typedef struct _PH_PROCESS_QUERY_S2_DATA
 {
     PH_PROCESS_QUERY_DATA Header;
 
-    PPH_STRING UserName;
 
     VERIFY_RESULT VerifyResult;
     PPH_STRING VerifySignerName;
@@ -649,7 +649,7 @@ ULONG PhpSidFullNameCacheHashtableHashFunction(
     return PhHashBytes(entry->Sid, RtlLengthSid(entry->Sid));
 }
 
-PPH_STRING PhpGetSidFullNameCached(
+PPH_STRING PhpGetSidFullNameCachedSlow(
     _In_ PSID Sid
     )
 {
@@ -688,6 +688,39 @@ PPH_STRING PhpGetSidFullNameCached(
     PhAddEntryHashtable(PhpSidFullNameCacheHashtable, &newEntry);
 
     return fullName;
+}
+
+PPH_STRING PhpGetSidFullNameCached(
+    _In_ PSID Sid
+    )
+{
+    //if (!PhpSidFullNameCacheHashtable)
+    //{
+    //    PhpSidFullNameCacheHashtable = PhCreateHashtable(
+    //        sizeof(PH_SID_FULL_NAME_CACHE_ENTRY),
+    //        PhpSidFullNameCacheHashtableEqualFunction,
+    //        PhpSidFullNameCacheHashtableHashFunction,
+    //        16
+    //        );
+    //    // HACK pre-cache local SIDs (dmex)
+    //    PhpGetSidFullNameCachedSlow(&PhSeLocalSystemSid);
+    //    PhpGetSidFullNameCachedSlow(&PhSeLocalServiceSid);
+    //    PhpGetSidFullNameCachedSlow(&PhSeNetworkServiceSid);
+    //}
+
+    if (PhpSidFullNameCacheHashtable)
+    {
+        PPH_SID_FULL_NAME_CACHE_ENTRY entry;
+        PH_SID_FULL_NAME_CACHE_ENTRY lookupEntry;
+
+        lookupEntry.Sid = Sid;
+        entry = PhFindEntryHashtable(PhpSidFullNameCacheHashtable, &lookupEntry);
+
+        if (entry)
+            return PhReferenceObject(entry->FullName);
+    }
+
+    return NULL;
 }
 
 VOID PhpFlushSidFullNameCache(
@@ -903,6 +936,15 @@ VOID PhpProcessQueryStage1(
             Data->IsFilteredHandle = TRUE;
         }
     }
+
+    if (!processItem->UserName && processItem->Sid)
+    {
+        // Note: We delay resolving the SID name because the local LSA cache might still be
+        // initializing for users on domain networks with slow links (e.g. VPNs). This can block
+        // for a very long time depending on server/network conditions. (dmex)
+        // TODO: This might need to be moved to Stage2...
+        PhMoveReference(&Data->UserName, PhpGetSidFullNameCachedSlow(processItem->Sid));
+    }
 }
 
 VOID PhpProcessQueryStage2(
@@ -910,14 +952,6 @@ VOID PhpProcessQueryStage2(
     )
 {
     PPH_PROCESS_ITEM processItem = Data->Header.ProcessItem;
-
-    if (processItem->Sid)
-    {
-        // Note: We delay resolving the SID name because the local LSA cache might still be
-        // initializing for users on domain networks with slow links (e.g. VPNs). This can block
-        // for a very long time depending on server/network conditions. (dmex)
-        PhMoveReference(&Data->UserName, PhGetSidFullName(processItem->Sid, TRUE, NULL));
-    }
 
     if (PhEnableProcessQueryStage2 && processItem->FileName && !processItem->IsSubsystemProcess)
     {
@@ -1045,6 +1079,12 @@ VOID PhpFillProcessItemStage1(
 
     PhSwapReference(&processItem->Record->CommandLine, processItem->CommandLine);
 
+    // Note: We might have referenced the cached username so don't overwrite the previous data. (dmex)
+    if (!processItem->UserName)
+        processItem->UserName = Data->UserName;
+    else if (Data->UserName)
+        PhDereferenceObject(Data->UserName);
+
     // Note: Queue stage 2 processing after filling stage1 process data. 
     PhpQueueProcessQueryStage2(processItem);
 }
@@ -1055,7 +1095,6 @@ VOID PhpFillProcessItemStage2(
 {
     PPH_PROCESS_ITEM processItem = Data->Header.ProcessItem;
 
-    processItem->UserName = Data->UserName;
     processItem->VerifyResult = Data->VerifyResult;
     processItem->VerifySignerName = Data->VerifySignerName;
     processItem->IsPacked = Data->IsPacked;
@@ -1198,6 +1237,8 @@ VOID PhpFillProcessItem(
             if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
             {
                 ProcessItem->Sid = PhAllocateCopy(tokenUser->User.Sid, RtlLengthSid(tokenUser->User.Sid));
+                ProcessItem->UserName = PhpGetSidFullNameCached(tokenUser->User.Sid);
+
                 PhFree(tokenUser);
             }
 
@@ -1224,6 +1265,7 @@ VOID PhpFillProcessItem(
             ProcessItem->ProcessId == SYSTEM_PROCESS_ID) // System token can't be opened on XP (wj32)
         {
             ProcessItem->Sid = PhAllocateCopy(&PhSeLocalSystemSid, RtlLengthSid(&PhSeLocalSystemSid));
+            ProcessItem->UserName = PhpGetSidFullNameCached(&PhSeLocalSystemSid);
         }
     }
 
@@ -1770,6 +1812,8 @@ VOID PhProcessProviderUpdate(
     {
         if (PhEnablePurgeProcessRecords)
             PhPurgeProcessRecords();
+
+        PhpFlushSidFullNameCache();
 
         PhFlushImageVersionInfoCache();
     }
@@ -2411,8 +2455,6 @@ VOID PhProcessProviderUpdate(
         PhFree(PhProcessInformation);
 
     PhProcessInformation = processes;
-
-    PhpFlushSidFullNameCache();
 
     // History cannot be updated on the first run because the deltas are invalid. For example, the
     // I/O "deltas" will be huge because they are currently the raw accumulated values.
