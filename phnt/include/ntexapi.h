@@ -1036,14 +1036,14 @@ NtSetWnfProcessNotificationEvent(
 
 typedef enum _WORKERFACTORYINFOCLASS
 {
-    WorkerFactoryTimeout,
-    WorkerFactoryRetryTimeout,
-    WorkerFactoryIdleTimeout,
+    WorkerFactoryTimeout, // q; s: LARGE_INTEGER
+    WorkerFactoryRetryTimeout, // q; s: LARGE_INTEGER
+    WorkerFactoryIdleTimeout, // q; s: LARGE_INTEGER
     WorkerFactoryBindingCount,
-    WorkerFactoryThreadMinimum,
-    WorkerFactoryThreadMaximum,
-    WorkerFactoryPaused,
-    WorkerFactoryBasicInformation,
+    WorkerFactoryThreadMinimum, // q; s: ULONG
+    WorkerFactoryThreadMaximum, // q; s: ULONG
+    WorkerFactoryPaused, // ULONG or BOOLEAN
+    WorkerFactoryBasicInformation, // WORKER_FACTORY_BASIC_INFORMATION
     WorkerFactoryAdjustThreadGoal,
     WorkerFactoryCallbackType,
     WorkerFactoryStackInformation, // 10
