@@ -3184,19 +3184,24 @@ PPH_STRING PhpGetTokenRegistryPath(
 
     if (tokenUserSid)
     {
-        HANDLE keyHandle;
+        NTSTATUS status;
+        HANDLE keyHandle = NULL;
 
-        if (NT_SUCCESS(PhOpenKey(
+        status = PhOpenKey(
             &keyHandle,
             KEY_READ,
             PH_KEY_USERS,
             &tokenUserSid->sr,
             0
-            )))
+            );
+
+        if (NT_SUCCESS(status) || status == STATUS_ACCESS_DENIED)
         {
             profileRegistryPath = PhConcatStrings2(L"HKU\\", tokenUserSid->Buffer);
-            NtClose(keyHandle);
         }
+
+        if (keyHandle)
+            NtClose(keyHandle);
 
         PhDereferenceObject(tokenUserSid);
     }
