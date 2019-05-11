@@ -127,7 +127,6 @@ typedef struct _PH_PROCESS_ITEM
 
     // Other
 
-    PPH_STRING JobName;
     HANDLE ConsoleHostProcessId;
 
     // Signature, Packed

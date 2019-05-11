@@ -89,7 +89,6 @@ typedef struct _PH_PROCESS_QUERY_S1_DATA
     HICON LargeIcon;
     PH_IMAGE_VERSION_INFO VersionInfo;
 
-    PPH_STRING JobName;
     HANDLE ConsoleHostProcessId;
     PPH_STRING PackageFullName;
     PPH_STRING UserName;
@@ -475,7 +474,6 @@ VOID PhpProcessItemDeleteProcedure(
     if (processItem->LargeIcon) DestroyIcon(processItem->LargeIcon);
     PhDeleteImageVersionInfo(&processItem->VersionInfo);
     if (processItem->Sid) PhFree(processItem->Sid);
-    if (processItem->JobName) PhDereferenceObject(processItem->JobName);
     if (processItem->VerifySignerName) PhDereferenceObject(processItem->VerifySignerName);
     if (processItem->PackageFullName) PhDereferenceObject(processItem->PackageFullName);
     if (processItem->UserName) PhDereferenceObject(processItem->UserName);
@@ -858,16 +856,6 @@ VOID PhpProcessQueryStage1(
 
                 Data->IsInJob = TRUE;
 
-                PhGetHandleInformation(
-                    NtCurrentProcess(),
-                    jobHandle,
-                    ULONG_MAX,
-                    NULL,
-                    NULL,
-                    NULL,
-                    &Data->JobName
-                    );
-
                 // Process Explorer only recognizes processes as being in jobs if they don't have
                 // the silent-breakaway-OK limit as their only limit. Emulate this behaviour.
                 if (NT_SUCCESS(PhGetJobBasicLimits(jobHandle, &basicLimits)))
@@ -1066,7 +1054,6 @@ VOID PhpFillProcessItemStage1(
     processItem->SmallIcon = Data->SmallIcon;
     processItem->LargeIcon = Data->LargeIcon;
     memcpy(&processItem->VersionInfo, &Data->VersionInfo, sizeof(PH_IMAGE_VERSION_INFO));
-    processItem->JobName = Data->JobName;
     processItem->ConsoleHostProcessId = Data->ConsoleHostProcessId;
     processItem->PackageFullName = Data->PackageFullName;
     processItem->IsDotNet = Data->IsDotNet;
@@ -2305,6 +2292,8 @@ VOID PhProcessProviderUpdate(
             if (processItem->QueryHandle)
             {
                 NTSTATUS status;
+                BOOLEAN isInSignificantJob = FALSE;
+                BOOLEAN isInJob = FALSE;
 
                 if (KphIsConnected())
                 {
@@ -2319,29 +2308,12 @@ VOID PhProcessProviderUpdate(
                     if (NT_SUCCESS(status) && status != STATUS_PROCESS_NOT_IN_JOB)
                     {
                         JOBOBJECT_BASIC_LIMIT_INFORMATION basicLimits;
-                        PPH_STRING jobName = NULL;
 
-                        processItem->IsInJob = TRUE;
+                        isInJob = TRUE;
 
-                        PhGetHandleInformation(
-                            NtCurrentProcess(),
-                            jobHandle,
-                            ULONG_MAX,
-                            NULL,
-                            NULL,
-                            NULL,
-                            &jobName
-                            );
-
-                        if (jobName)
-                            PhMoveReference(&processItem->JobName, jobName);
-
-                        // Process Explorer only recognizes processes as being in jobs if they don't have
-                        // the silent-breakaway-OK limit as their only limit. Emulate this behaviour. (wj32)
                         if (NT_SUCCESS(PhGetJobBasicLimits(jobHandle, &basicLimits)))
                         {
-                            processItem->IsInSignificantJob =
-                                basicLimits.LimitFlags != JOB_OBJECT_LIMIT_SILENT_BREAKAWAY_OK;
+                            isInSignificantJob = basicLimits.LimitFlags != JOB_OBJECT_LIMIT_SILENT_BREAKAWAY_OK;
                         }
                     }
 
@@ -2350,13 +2322,22 @@ VOID PhProcessProviderUpdate(
                 }
                 else
                 {
-                    // KProcessHacker is not available. We can determine if the process is in a job, but we
-                    // can't get a handle to the job. (wj32)
-
                     status = NtIsProcessInJob(processItem->QueryHandle, NULL);
 
                     if (NT_SUCCESS(status))
-                        processItem->IsInJob = status == STATUS_PROCESS_IN_JOB;
+                        isInJob = status == STATUS_PROCESS_IN_JOB;
+                }
+
+                if (processItem->IsInSignificantJob != isInSignificantJob)
+                {
+                    processItem->IsInSignificantJob = isInSignificantJob;
+                    modified = TRUE;
+                }
+
+                if (processItem->IsInJob != isInJob)
+                {
+                    processItem->IsInJob = isInJob;
+                    modified = TRUE;
                 }
             }
 
