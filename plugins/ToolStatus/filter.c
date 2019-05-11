@@ -121,11 +121,11 @@ BOOLEAN ProcessTreeFilterCallback(
             return TRUE;
     }
 
-    if (!PhIsNullOrEmptyString(processNode->ProcessItem->JobName))
-    {
-        if (WordMatchStringRef(&processNode->ProcessItem->JobName->sr))
-            return TRUE;
-    }
+    //if (!PhIsNullOrEmptyString(processNode->ProcessItem->JobName))
+    //{
+    //    if (WordMatchStringRef(&processNode->ProcessItem->JobName->sr))
+    //        return TRUE;
+    //}
 
     if (!PhIsNullOrEmptyString(processNode->ProcessItem->VerifySignerName))
     {
