@@ -115,7 +115,6 @@ typedef struct _PH_PROCESS_QUERY_S2_DATA
 {
     PH_PROCESS_QUERY_DATA Header;
 
-
     VERIFY_RESULT VerifyResult;
     PPH_STRING VerifySignerName;
 
