@@ -522,13 +522,13 @@ BOOLEAN PhpUpdateTokenGroups(
     _In_ HANDLE TokenHandle
     )
 {
-    PTOKEN_GROUPS groups;
+    PTOKEN_GROUPS groups = NULL;
     PTOKEN_GROUPS restrictedSIDs = NULL;
 
-    if (!NT_SUCCESS(PhGetTokenGroups(TokenHandle, &groups)))
-        return FALSE;
-
-    PhpUpdateSidsFromTokenGroups(ListViewHandle, groups, FALSE);
+    if (NT_SUCCESS(PhGetTokenGroups(TokenHandle, &groups)))
+    {
+        PhpUpdateSidsFromTokenGroups(ListViewHandle, groups, FALSE);
+    }
 
     if (NT_SUCCESS(PhGetTokenRestrictedSids(TokenHandle, &restrictedSIDs)))
     {
@@ -537,12 +537,10 @@ BOOLEAN PhpUpdateTokenGroups(
 
     if (TokenPageContext->RestrictedSids)
         PhFree(TokenPageContext->RestrictedSids);
-
-    TokenPageContext->RestrictedSids = restrictedSIDs;
-
     if (TokenPageContext->Groups)
         PhFree(TokenPageContext->Groups);
 
+    TokenPageContext->RestrictedSids = restrictedSIDs;
     TokenPageContext->Groups = groups;
 
     return TRUE;
@@ -994,23 +992,26 @@ INT_PTR CALLBACK PhpTokenPageProc(
                                     listViewItems[i]
                                     );
 
-                                if (GET_WM_COMMAND_ID(wParam, lParam) != ID_PRIVILEGE_REMOVE)
+                                if (lvItemIndex != -1)
                                 {
-                                    // Refresh the status text (and background color).
-                                    listViewItems[i]->TokenPrivilege->Attributes = newAttributes;
-                                    PhSetListViewSubItem(
-                                        tokenPageContext->ListViewHandle,
-                                        lvItemIndex,
-                                        PH_PROCESS_TOKEN_INDEX_STATUS,
-                                        PhGetPrivilegeAttributesString(newAttributes)
-                                        );
-                                }
-                                else
-                                {
-                                    ListView_DeleteItem(
-                                        tokenPageContext->ListViewHandle,
-                                        lvItemIndex
-                                        );
+                                    if (GET_WM_COMMAND_ID(wParam, lParam) != ID_PRIVILEGE_REMOVE)
+                                    {
+                                        // Refresh the status text (and background color).
+                                        listViewItems[i]->TokenPrivilege->Attributes = newAttributes;
+                                        PhSetListViewSubItem(
+                                            tokenPageContext->ListViewHandle,
+                                            lvItemIndex,
+                                            PH_PROCESS_TOKEN_INDEX_STATUS,
+                                            PhGetPrivilegeAttributesString(newAttributes)
+                                            );
+                                    }
+                                    else
+                                    {
+                                        ListView_DeleteItem(
+                                            tokenPageContext->ListViewHandle,
+                                            lvItemIndex
+                                            );
+                                    }
                                 }
                             }
                             else
@@ -1127,21 +1128,28 @@ INT_PTR CALLBACK PhpTokenPageProc(
                                 newAttributes
                                 )))
                             {
-                                PPH_STRING attributesString = PhGetGroupAttributesString(newAttributes, FALSE);
-                                INT lvItemIndex = PhFindListViewItemByParam(
+                                PPH_STRING attributesString;
+                                INT lvItemIndex;
+
+                                attributesString = PhGetGroupAttributesString(newAttributes, FALSE);
+                                lvItemIndex = PhFindListViewItemByParam(
                                     tokenPageContext->ListViewHandle,
                                     -1,
                                     listViewItems[i]
                                     );
 
-                                // Refresh the status text (and background color).
-                                listViewItems[i]->TokenGroup->Attributes = newAttributes;
-                                PhSetListViewSubItem(
-                                    tokenPageContext->ListViewHandle,
-                                    lvItemIndex,
-                                    PH_PROCESS_TOKEN_INDEX_STATUS,
-                                    attributesString->Buffer
-                                    );
+                                if (lvItemIndex != -1)
+                                {
+                                    // Refresh the status text (and background color).
+                                    listViewItems[i]->TokenGroup->Attributes = newAttributes;
+                                    PhSetListViewSubItem(
+                                        tokenPageContext->ListViewHandle,
+                                        lvItemIndex,
+                                        PH_PROCESS_TOKEN_INDEX_STATUS,
+                                        attributesString->Buffer
+                                        );
+                                }
+
                                 PhDereferenceObject(attributesString);
                             }
                             else
@@ -1243,7 +1251,10 @@ INT_PTR CALLBACK PhpTokenPageProc(
                                 listViewItems[0]
                                 );
 
-                            ListView_DeleteItem(tokenPageContext->ListViewHandle, lvItemIndex);
+                            if (lvItemIndex != -1)
+                            {
+                                ListView_DeleteItem(tokenPageContext->ListViewHandle, lvItemIndex);
+                            }
                         }
                         else
                         {
