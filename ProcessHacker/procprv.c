@@ -924,7 +924,7 @@ VOID PhpProcessQueryStage1(
         }
     }
 
-    if (!processItem->UserName && processItem->Sid)
+    if (processItem->Sid)
     {
         // Note: We delay resolving the SID name because the local LSA cache might still be
         // initializing for users on domain networks with slow links (e.g. VPNs). This can block
@@ -2255,11 +2255,12 @@ VOID PhProcessProviderUpdate(
                             processItem->Sid = PhAllocateCopy(tokenUser->User.Sid, RtlLengthSid(tokenUser->User.Sid));
                             PhFree(processSid);
 
-                            PhMoveReference(&processItem->UserName, PhGetSidFullName(processItem->Sid, TRUE, NULL));
-                            
-                            PhFree(tokenUser);
+                            PhMoveReference(&processItem->UserName, PhpGetSidFullNameCachedSlow(processItem->Sid));
+
                             modified = TRUE;
                         }
+
+                        PhFree(tokenUser);
                     }
 
                     // Elevation
