@@ -178,10 +178,13 @@ LCID PhGetSystemDefaultLCID(
     VOID
     )
 {
-    LCID localeId;
+    if (NtQueryDefaultLocale_Import())
+    {
+        LCID localeId;
 
-    if (NT_SUCCESS(NtQueryDefaultLocale(FALSE, &localeId)))
-        return localeId;
+        if (NT_SUCCESS(NtQueryDefaultLocale_Import()(FALSE, &localeId)))
+            return localeId;
+    }
 
     return MAKELCID(MAKELANGID(LANG_ENGLISH, SUBLANG_DEFAULT), SORT_DEFAULT);
 }
@@ -191,10 +194,13 @@ LCID PhGetUserDefaultLCID(
     VOID
     )
 {
-    LCID localeId;
+    if (NtQueryDefaultLocale_Import())
+    {
+        LCID localeId;
 
-    if (NT_SUCCESS(NtQueryDefaultLocale(TRUE, &localeId)))
-        return localeId;
+        if (NT_SUCCESS(NtQueryDefaultLocale_Import()(TRUE, &localeId)))
+            return localeId;
+    }
 
     return MAKELCID(MAKELANGID(LANG_ENGLISH, SUBLANG_DEFAULT), SORT_DEFAULT);
 }
@@ -235,10 +241,13 @@ LANGID PhGetUserDefaultUILanguage(
     VOID
     )
 {
-    LANGID languageId;
+    if (NtQueryDefaultUILanguage_Import())
+    {
+        LANGID languageId;
 
-    if (NT_SUCCESS(NtQueryDefaultUILanguage(&languageId)))
-        return languageId;
+        if (NT_SUCCESS(NtQueryDefaultUILanguage_Import()(&languageId)))
+            return languageId;
+    }
 
     return MAKELANGID(LANG_ENGLISH, SUBLANG_DEFAULT);
 }

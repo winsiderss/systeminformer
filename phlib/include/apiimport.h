@@ -35,6 +35,15 @@ typedef NTSTATUS (NTAPI *_NtQueryInformationTransactionManager)(
     _Out_opt_ PULONG ReturnLength
     );
 
+typedef NTSTATUS (NTAPI *_NtQueryDefaultLocale)(
+    _In_ BOOLEAN UserProfile,
+    _Out_ PLCID DefaultLocaleId
+    );
+
+typedef NTSTATUS (NTAPI *_NtQueryDefaultUILanguage)(
+    _Out_ LANGID* DefaultUILanguageId
+    );
+
 typedef NTSTATUS (NTAPI* _RtlGetTokenNamedObjectPath)(
     _In_ HANDLE Token,
     _In_opt_ PSID Sid,
@@ -88,6 +97,8 @@ PH_DECLARE_IMPORT(NtQueryInformationEnlistment);
 PH_DECLARE_IMPORT(NtQueryInformationResourceManager);
 PH_DECLARE_IMPORT(NtQueryInformationTransaction);
 PH_DECLARE_IMPORT(NtQueryInformationTransactionManager);
+PH_DECLARE_IMPORT(NtQueryDefaultLocale);
+PH_DECLARE_IMPORT(NtQueryDefaultUILanguage);
 
 PH_DECLARE_IMPORT(RtlGetTokenNamedObjectPath);
 PH_DECLARE_IMPORT(RtlGetAppContainerNamedObjectPath);
