@@ -186,6 +186,14 @@ PhGetProcessImageFileNameWin32(
     _Out_ PPH_STRING *FileName
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetProcessIsBeingDebugged(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PBOOLEAN IsBeingDebugged
+    );
+
 /** Specifies a PEB string. */
 typedef enum _PH_PEB_OFFSET
 {
