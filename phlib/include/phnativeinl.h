@@ -179,66 +179,6 @@ PhGetProcessPeb32(
 }
 
 /**
- * Gets whether a process is being debugged.
- *
- * \param ProcessHandle A handle to a process. The handle must have PROCESS_QUERY_INFORMATION
- * access.
- * \param IsBeingDebugged A variable which receives a boolean indicating whether the process is
- * being debugged.
- */
-FORCEINLINE
-NTSTATUS
-PhGetProcessIsBeingDebugged(
-    _In_ HANDLE ProcessHandle,
-    _Out_ PBOOLEAN IsBeingDebugged
-    )
-{
-    NTSTATUS status;
-    PVOID debugPort;
-
-    status = NtQueryInformationProcess(
-        ProcessHandle,
-        ProcessDebugPort,
-        &debugPort,
-        sizeof(PVOID),
-        NULL
-        );
-
-    if (NT_SUCCESS(status))
-    {
-        *IsBeingDebugged = !!debugPort;
-    }
-    else
-    {
-        HANDLE debugHandle;
-
-        // The ProcessDebugPort is only set by CsrCreateProcess when DEBUG_PROCESS is specified during process creation. 
-        // Processes that are debugged at runtime (without the CreateProcess DEBUG_PROCESS flag) won't have a ProcessDebugPort and
-        // will instead only have the ProcessDebugObjectHandle and so we have to check both classes. (dmex)
-        status = NtQueryInformationProcess(
-            ProcessHandle,
-            ProcessDebugObjectHandle,
-            &debugHandle,
-            sizeof(HANDLE),
-            NULL
-            );
-
-        if (NT_SUCCESS(status))
-        {
-            *IsBeingDebugged = TRUE;
-            NtClose(debugHandle);
-        }
-        else if (status == STATUS_ACCESS_DENIED)
-        {
-            *IsBeingDebugged = TRUE;
-            status = STATUS_SUCCESS;
-        }
-    }
-
-    return status;
-}
-
-/**
  * Gets a handle to a process' debug object.
  *
  * \param ProcessHandle A handle to a process. The handle must have PROCESS_QUERY_INFORMATION

@@ -624,6 +624,67 @@ NTSTATUS PhGetProcessImageFileNameWin32(
 }
 
 /**
+ * Gets whether a process is being debugged.
+ *
+ * \param ProcessHandle A handle to a process. The handle must have PROCESS_QUERY_INFORMATION
+ * access.
+ * \param IsBeingDebugged A variable which receives a boolean indicating whether the process is
+ * being debugged.
+ */
+NTSTATUS PhGetProcessIsBeingDebugged(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PBOOLEAN IsBeingDebugged
+    )
+{
+    NTSTATUS status;
+
+    // NOTE: The ProcessDebugObjectHandle is always valid when the process is being debugged while the ProcessDebugPort 
+    // is only set when the process was created with DEBUG_PROCESS flag by CsrCreateProcess. (dmex)
+    if (KphIsVerified())
+    {
+        HANDLE debugHandle;
+
+        status = NtQueryInformationProcess(
+            ProcessHandle,
+            ProcessDebugObjectHandle,
+            &debugHandle,
+            sizeof(HANDLE),
+            NULL
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            *IsBeingDebugged = TRUE;
+            NtClose(debugHandle);
+        }
+        else if (status == STATUS_ACCESS_DENIED)
+        {
+            *IsBeingDebugged = TRUE;
+            status = STATUS_SUCCESS;
+        }
+    }
+    else
+    {
+        PVOID debugPort;
+
+        status = NtQueryInformationProcess(
+            ProcessHandle,
+            ProcessDebugPort,
+            &debugPort,
+            sizeof(PVOID),
+            NULL
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            *IsBeingDebugged = !!debugPort;
+        }
+    }
+
+    return status;
+}
+
+/**
  * Gets a string stored in a process' parameters structure.
  *
  * \param ProcessHandle A handle to a process. The handle must have
