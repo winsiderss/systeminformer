@@ -1601,7 +1601,7 @@ NTSTATUS PhLoadDllProcess(
 #endif
 
     PhInitializeStringRefLongHint(&fileName, FileName);
-    allocSize = fileName.Length + sizeof(WCHAR);
+    allocSize = fileName.Length + sizeof(UNICODE_NULL);
 
     if (!NT_SUCCESS(status = NtAllocateVirtualMemory(
         ProcessHandle,
@@ -1617,7 +1617,7 @@ NTSTATUS PhLoadDllProcess(
         ProcessHandle,
         baseAddress,
         fileName.Buffer,
-        fileName.Length + sizeof(WCHAR),
+        fileName.Length + sizeof(UNICODE_NULL),
         NULL
         )))
         goto FreeExit;
@@ -1758,7 +1758,7 @@ NTSTATUS PhUnloadDllProcess(
         0,
         0,
         0,
-        (PUSER_THREAD_START_ROUTINE)threadStart,
+        threadStart,
         BaseAddress,
         &threadHandle,
         NULL
@@ -1923,7 +1923,7 @@ NTSTATUS PhSetEnvironmentVariableRemote(
         0,
         0,
         0,
-        (PUSER_THREAD_START_ROUTINE)rtlExitUserThread,
+        rtlExitUserThread,
         NULL,
         &threadHandle,
         NULL
@@ -5059,6 +5059,44 @@ NTSTATUS PhEnumPagefiles(
 
     while ((status = NtQuerySystemInformation(
         SystemPageFileInformation,
+        buffer,
+        bufferSize,
+        NULL
+        )) == STATUS_INFO_LENGTH_MISMATCH)
+    {
+        PhFree(buffer);
+        bufferSize *= 2;
+
+        // Fail if we're resizing the buffer to something very large.
+        if (bufferSize > PH_LARGE_BUFFER_SIZE)
+            return STATUS_INSUFFICIENT_RESOURCES;
+
+        buffer = PhAllocate(bufferSize);
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhFree(buffer);
+        return status;
+    }
+
+    *Pagefiles = buffer;
+
+    return status;
+}
+
+NTSTATUS PhEnumPagefilesEx(
+    _Out_ PVOID *Pagefiles
+    )
+{
+    NTSTATUS status;
+    PVOID buffer;
+    ULONG bufferSize = 0x200;
+
+    buffer = PhAllocate(bufferSize);
+
+    while ((status = NtQuerySystemInformation(
+        SystemPageFileInformationEx,
         buffer,
         bufferSize,
         NULL
