@@ -983,6 +983,7 @@ NtTerminateEnclave(
     _In_ BOOLEAN WaitForThread
     );
 
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
 // rev
 NTSYSAPI
 NTSTATUS
@@ -993,5 +994,6 @@ NtCallEnclave(
     _In_ BOOLEAN WaitForThread,
     _Out_opt_ PVOID *ReturnValue
     );
+#endif
 
 #endif
