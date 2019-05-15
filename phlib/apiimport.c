@@ -64,6 +64,8 @@ PH_DEFINE_IMPORT(L"ntdll.dll", NtQueryInformationEnlistment);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtQueryInformationResourceManager);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtQueryInformationTransaction);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtQueryInformationTransactionManager);
+PH_DEFINE_IMPORT(L"ntdll.dll", NtQueryDefaultLocale);
+PH_DEFINE_IMPORT(L"ntdll.dll", NtQueryDefaultUILanguage);
 
 PH_DEFINE_IMPORT(L"ntdll.dll", RtlGetTokenNamedObjectPath);
 PH_DEFINE_IMPORT(L"ntdll.dll", RtlGetAppContainerNamedObjectPath);
