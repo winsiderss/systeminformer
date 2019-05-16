@@ -155,7 +155,7 @@ typedef enum _PROCESSINFOCLASS
     ProcessKeepAliveCount, // q: PROCESS_KEEPALIVE_COUNT_INFORMATION
     ProcessRevokeFileHandles, // s: PROCESS_REVOKE_FILE_HANDLES_INFORMATION
     ProcessWorkingSetControl, // s: PROCESS_WORKING_SET_CONTROL
-    ProcessHandleTable, // since WINBLUE
+    ProcessHandleTable, // q: ULONG[] // since WINBLUE
     ProcessCheckStackExtentsMode,
     ProcessCommandLineInformation, // q: UNICODE_STRING // 60
     ProcessProtectionInformation, // q: PS_PROTECTION
@@ -168,7 +168,7 @@ typedef enum _PROCESSINFOCLASS
     ProcessSubsystemProcess,
     ProcessJobMemoryInformation, // PROCESS_JOB_MEMORY_INFO
     ProcessInPrivate, // since THRESHOLD2 // 70
-    ProcessRaiseUMExceptionOnInvalidHandleClose,
+    ProcessRaiseUMExceptionOnInvalidHandleClose, // qs: ULONG; s: 0 disables, otherwise enables
     ProcessIumChallengeResponse,
     ProcessChildProcessInformation, // PROCESS_CHILD_PROCESS_INFORMATION
     ProcessHighGraphicsPriorityInformation,
@@ -186,7 +186,7 @@ typedef enum _PROCESSINFOCLASS
     ProcessEnclaveInformation,
     ProcessEnableReadWriteVmLogging, // PROCESS_READWRITEVM_LOGGING_INFORMATION
     ProcessUptimeInformation, // PROCESS_UPTIME_INFORMATION
-    ProcessImageSection,
+    ProcessImageSection, // q: HANDLE
     ProcessDebugAuthInformation, // since REDSTONE4 // 90
     ProcessSystemResourceManagement, // PROCESS_SYSTEM_RESOURCE_MANAGEMENT
     ProcessSequenceNumber, // q: ULONGLONG
