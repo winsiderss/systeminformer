@@ -161,7 +161,7 @@ NTSTATUS KphInitializeDynamicPackage(
             break;
         case 18362:
             Package->BuildNumber = 18362;
-            Package->ResultingNtVersion = PHNT_19H1;
+            Package->ResultingNtVersion = PHNT_REDSTONE6;
             break;
         default:
             return STATUS_NOT_SUPPORTED;
