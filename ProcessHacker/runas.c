@@ -1144,14 +1144,14 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                         &logonType
                         ))
                     {
-                        ULONG sessionId = ULONG_MAX;
+                        ULONG currentSessionId = ULONG_MAX;
 
-                        PhGetProcessSessionId(NtCurrentProcess(), &sessionId);
+                        PhGetProcessSessionId(NtCurrentProcess(), &currentSessionId);
 
                         if (
                             logonType == LOGON32_LOGON_INTERACTIVE &&
                             !context->ProcessId &&
-                            sessionId == sessionId &&
+                            sessionId == currentSessionId &&
                             !useLinkedToken
                             )
                         {
