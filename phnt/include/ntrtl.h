@@ -2619,8 +2619,8 @@ RtlDeNormalizeProcessParams(
 typedef struct _RTL_USER_PROCESS_INFORMATION
 {
     ULONG Length;
-    HANDLE Process;
-    HANDLE Thread;
+    HANDLE ProcessHandle;
+    HANDLE ThreadHandle;
     CLIENT_ID ClientId;
     SECTION_IMAGE_INFORMATION ImageInformation;
 } RTL_USER_PROCESS_INFORMATION, *PRTL_USER_PROCESS_INFORMATION;
