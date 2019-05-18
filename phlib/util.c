@@ -2579,20 +2579,20 @@ NTSTATUS PhCreateProcess(
     if (NT_SUCCESS(status))
     {
         if (!(Flags & PH_CREATE_PROCESS_SUSPENDED))
-            NtResumeThread(processInfo.Thread, NULL);
+            NtResumeThread(processInfo.ThreadHandle, NULL);
 
         if (ClientId)
             *ClientId = processInfo.ClientId;
 
         if (ProcessHandle)
-            *ProcessHandle = processInfo.Process;
+            *ProcessHandle = processInfo.ProcessHandle;
         else
-            NtClose(processInfo.Process);
+            NtClose(processInfo.ProcessHandle);
 
         if (ThreadHandle)
-            *ThreadHandle = processInfo.Thread;
+            *ThreadHandle = processInfo.ThreadHandle;
         else
-            NtClose(processInfo.Thread);
+            NtClose(processInfo.ThreadHandle);
     }
 
     return status;
