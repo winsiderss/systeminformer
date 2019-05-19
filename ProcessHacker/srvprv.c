@@ -558,8 +558,7 @@ NTSTATUS PhpServiceQueryStage1Worker(
     PPH_SERVICE_QUERY_S1_DATA data;
     PPH_SERVICE_ITEM serviceItem = (PPH_SERVICE_ITEM)Parameter;
 
-    data = PhAllocate(sizeof(PH_SERVICE_QUERY_S1_DATA));
-    memset(data, 0, sizeof(PH_SERVICE_QUERY_S1_DATA));
+    data = PhAllocateZero(sizeof(PH_SERVICE_QUERY_S1_DATA));
     data->Header.Stage = 1;
     data->Header.ServiceItem = serviceItem;
 
@@ -577,8 +576,7 @@ NTSTATUS PhpServiceQueryStage2Worker(
     PPH_SERVICE_QUERY_S2_DATA data;
     PPH_SERVICE_ITEM serviceItem = (PPH_SERVICE_ITEM)Parameter;
 
-    data = PhAllocate(sizeof(PH_SERVICE_QUERY_S2_DATA));
-    memset(data, 0, sizeof(PH_SERVICE_QUERY_S2_DATA));
+    data = PhAllocateZero(sizeof(PH_SERVICE_QUERY_S2_DATA));
     data->Header.Stage = 2;
     data->Header.ServiceItem = serviceItem;
 
@@ -1064,8 +1062,7 @@ VOID CALLBACK PhpServiceNonPollScNotifyCallback(
                     PPHP_SERVICE_NOTIFY_CONTEXT newNotifyContext;
 
                     // Service creation
-                    newNotifyContext = PhAllocate(sizeof(PHP_SERVICE_NOTIFY_CONTEXT));
-                    memset(newNotifyContext, 0, sizeof(PHP_SERVICE_NOTIFY_CONTEXT));
+                    newNotifyContext = PhAllocateZero(sizeof(PHP_SERVICE_NOTIFY_CONTEXT));
                     newNotifyContext->State = SnAdding;
                     newNotifyContext->ServiceName = PhCreateString(name + 1);
                     InsertTailList(&PhpNonPollServicePendingListHead, &newNotifyContext->ListEntry);
@@ -1184,8 +1181,7 @@ NTSTATUS PhpServiceNonPollThreadStart(
 
             if (serviceHandle)
             {
-                notifyContext = PhAllocate(sizeof(PHP_SERVICE_NOTIFY_CONTEXT));
-                memset(notifyContext, 0, sizeof(PHP_SERVICE_NOTIFY_CONTEXT));
+                notifyContext = PhAllocateZero(sizeof(PHP_SERVICE_NOTIFY_CONTEXT));
                 notifyContext->ServiceHandle = serviceHandle;
                 notifyContext->State = SnNotify;
                 notifyContext->ServiceName = PhCreateString(services[i].lpServiceName);
@@ -1195,8 +1191,7 @@ NTSTATUS PhpServiceNonPollThreadStart(
 
         PhFree(services);
 
-        notifyContext = PhAllocate(sizeof(PHP_SERVICE_NOTIFY_CONTEXT));
-        memset(notifyContext, 0, sizeof(PHP_SERVICE_NOTIFY_CONTEXT));
+        notifyContext = PhAllocateZero(sizeof(PHP_SERVICE_NOTIFY_CONTEXT));
         notifyContext->ServiceHandle = scManagerHandle;
         notifyContext->IsServiceManager = TRUE;
         notifyContext->State = SnNotify;
