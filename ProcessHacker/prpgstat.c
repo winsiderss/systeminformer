@@ -392,7 +392,7 @@ VOID PhpUpdateProcessStatistics(
         if (NT_SUCCESS(PhEnumProcesses(&processes)))
         {
             processInfo = PhFindProcessInformation(processes, ProcessItem->ProcessId);
-        
+
             if (processInfo && (processExtension = PH_PROCESS_EXTENSION(processInfo)))
             {
                 PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_CONTEXTSWITCHES, 1, PhaFormatUInt64(processExtension->ContextSwitches, TRUE)->Buffer); // TODO: ContextSwitchesDelta
@@ -401,13 +401,13 @@ VOID PhpUpdateProcessStatistics(
                 PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_NETWORKTXRXBYTES, 1, PhaFormatSize(processExtension->EnergyValues.NetworkTxRxBytes, ULONG_MAX)->Buffer);
                 PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_MBBTXRXBYTES, 1, PhaFormatSize(processExtension->EnergyValues.MBBTxRxBytes, ULONG_MAX)->Buffer);
             }
-        
+
             PhFree(processes);
         }
     }
 }
 
-static VOID NTAPI StatisticsUpdateHandler(
+static VOID NTAPI PhpStatisticsUpdateHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -470,7 +470,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
 
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
-                StatisticsUpdateHandler,
+                PhpStatisticsUpdateHandler,
                 statisticsContext,
                 &statisticsContext->ProcessesUpdatedRegistration
                 );
