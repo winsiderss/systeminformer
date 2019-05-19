@@ -75,6 +75,9 @@ _##Name Name##_Import(VOID) \
     return (_##Name)PhpImportProcedure(&cache, &cacheValid, Module, #Name); \
 }
 
+PH_DEFINE_IMPORT(L"ntdll.dll", NtOpenProcess);
+PH_DEFINE_IMPORT(L"ntdll.dll", NtOpenThread);
+PH_DEFINE_IMPORT(L"ntdll.dll", NtTerminateProcess);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtQueryInformationEnlistment);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtQueryInformationResourceManager);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtQueryInformationTransaction);
