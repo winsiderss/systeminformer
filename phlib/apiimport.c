@@ -24,6 +24,20 @@
 #include <ph.h>
 #include <apiimport.h>
 
+PVOID PhpEncodeDecodePointer( // dmex
+    _In_ PVOID Pointer
+    )
+{
+    static ULONG cookie = 0;
+
+    if (cookie == 0)
+    {
+        RtlRandomEx(&cookie);
+    }
+
+    return (PVOID)((ULONG_PTR)Pointer ^ cookie);
+}
+
 PVOID PhpImportProcedure(
     _Inout_ PVOID *Cache,
     _Inout_ PBOOLEAN CacheValid,
@@ -35,7 +49,7 @@ PVOID PhpImportProcedure(
     PVOID procedure;
 
     if (*CacheValid)
-        return *Cache;
+        return PhpEncodeDecodePointer(*Cache);
 
     if (!(module = PhGetLoaderEntryDllBase(ModuleName)))
         module = LoadLibrary(ModuleName); // HACK (dmex)
@@ -44,7 +58,8 @@ PVOID PhpImportProcedure(
         return NULL;
 
     procedure = PhGetDllBaseProcedureAddress(module, ProcedureName, 0);
-    *Cache = procedure;
+    *Cache = PhpEncodeDecodePointer(procedure);
+
     MemoryBarrier();
     *CacheValid = TRUE;
 
