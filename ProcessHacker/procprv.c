@@ -924,6 +924,17 @@ VOID PhpProcessQueryStage1(
         }
     }
 
+    // Debugged
+    if (processHandleLimited && !processItem->IsSubsystemProcess && !Data->IsFilteredHandle) // Don't query the debug object if the handle was filtered (dmex)
+    {
+        BOOLEAN isBeingDebugged;
+
+        if (NT_SUCCESS(PhGetProcessIsBeingDebugged(processHandleLimited, &isBeingDebugged)))
+        {
+            Data->IsBeingDebugged = isBeingDebugged;
+        }
+    }
+
     if (processItem->Sid)
     {
         // Note: We delay resolving the SID name because the local LSA cache might still be
@@ -1379,8 +1390,7 @@ VOID PhpUpdateCpuInformation(
 
     for (i = 0; i < (ULONG)PhSystemBasicInformation.NumberOfProcessors; i++)
     {
-        PSYSTEM_PROCESSOR_PERFORMANCE_INFORMATION cpuInfo =
-            &PhCpuInformation[i];
+        PSYSTEM_PROCESSOR_PERFORMANCE_INFORMATION cpuInfo = &PhCpuInformation[i];
 
         // KernelTime includes IdleTime.
         cpuInfo->KernelTime.QuadPart -= cpuInfo->IdleTime.QuadPart;
@@ -1407,8 +1417,8 @@ VOID PhpUpdateCpuInformation(
             }
             else
             {
-                PhCpusKernelUsage[i] = 0;
-                PhCpusUserUsage[i] = 0;
+                PhCpusKernelUsage[i] = 0.0f;
+                PhCpusUserUsage[i] = 0.0f;
             }
         }
     }
@@ -1428,8 +1438,8 @@ VOID PhpUpdateCpuInformation(
         }
         else
         {
-            PhCpuKernelUsage = 0;
-            PhCpuUserUsage = 0;
+            PhCpuKernelUsage = 0.0f;
+            PhCpuUserUsage = 0.0f;
         }
     }
 
@@ -2343,7 +2353,7 @@ VOID PhProcessProviderUpdate(
             }
 
             // Debugged
-            if (processItem->QueryHandle)
+            if (processItem->QueryHandle && !processItem->IsSubsystemProcess && !processItem->IsProtectedHandle)
             {
                 BOOLEAN isBeingDebugged;
 
@@ -2387,7 +2397,7 @@ VOID PhProcessProviderUpdate(
             }
 
             // Immersive
-            if (processItem->QueryHandle && WINDOWS_HAS_IMMERSIVE && IsImmersiveProcess)
+            if (processItem->QueryHandle && WINDOWS_HAS_IMMERSIVE && IsImmersiveProcess && !processItem->IsSubsystemProcess)
             {
                 BOOLEAN isImmersive;
 
