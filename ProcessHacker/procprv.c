@@ -766,17 +766,6 @@ VOID PhpProcessQueryStage1(
         PhInitializeImageVersionInfoCached(&Data->VersionInfo, processItem->FileName, FALSE);
     }
 
-    // Debugged
-    if (processHandleLimited && !processItem->IsSubsystemProcess)
-    {
-        BOOLEAN isBeingDebugged;
-
-        if (NT_SUCCESS(PhGetProcessIsBeingDebugged(processHandleLimited, &isBeingDebugged)))
-        {
-            Data->IsBeingDebugged = isBeingDebugged;
-        }
-    }
-
     // Command line, .NET
     if (processHandleLimited && !processItem->IsSubsystemProcess)
     {
