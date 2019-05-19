@@ -24,9 +24,9 @@ extern "C" {
 typedef struct _NMRUNFILEDLGW
 {
     NMHDR hdr;
-    LPCWSTR lpszFile;
-    LPCWSTR lpszDirectory;
-    UINT nShow;
+    PWSTR lpszFile;
+    PWSTR lpszDirectory;
+    UINT ShowCmd;
 } NMRUNFILEDLGW, *LPNMRUNFILEDLGW, *PNMRUNFILEDLGW;
 
 typedef NMRUNFILEDLGW NMRUNFILEDLG;

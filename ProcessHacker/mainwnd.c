@@ -1759,7 +1759,7 @@ BOOLEAN PhMwpOnNotify(
             PPH_STRING fullFileName;
             PPH_STRING argumentsString;
 
-            PhInitializeStringRefLongHint(&string, (PWSTR)runFileDlg->lpszFile);
+            PhInitializeStringRefLongHint(&string, runFileDlg->lpszFile);
             PhParseCommandLineFuzzy(&string, &fileName, &arguments, &fullFileName);
 
             if (!fullFileName)
@@ -1767,8 +1767,15 @@ BOOLEAN PhMwpOnNotify(
 
             argumentsString = PhCreateString2(&arguments);
 
-            if (PhShellExecuteEx(PhMainWndHandle, fullFileName->Buffer, argumentsString->Buffer,
-                runFileDlg->nShow, PH_SHELL_EXECUTE_ADMIN, 0, NULL))
+            if (PhShellExecuteEx(
+                PhMainWndHandle,
+                fullFileName->Buffer,
+                argumentsString->Buffer,
+                runFileDlg->ShowCmd,
+                PH_SHELL_EXECUTE_ADMIN,
+                0,
+                NULL
+                ))
             {
                 *Result = RF_CANCEL;
             }
@@ -1802,7 +1809,7 @@ BOOLEAN PhMwpOnNotify(
                 {
                     status = PhCreateProcessWin32(
                         NULL,
-                        (PWSTR)runFileDlg->lpszFile,
+                        runFileDlg->lpszFile,
                         NULL,
                         NULL,
                         0,
