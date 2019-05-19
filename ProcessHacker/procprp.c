@@ -149,7 +149,7 @@ INT CALLBACK PhpPropSheetProc(
         {
             if (lParam)
             {
-                if (((DLGTEMPLATEEX *)lParam)->signature == 0xffff)
+                if (((DLGTEMPLATEEX *)lParam)->signature == USHRT_MAX)
                 {
                     ((DLGTEMPLATEEX *)lParam)->style |= PROPSHEET_ADD_STYLE;
                 }
@@ -384,11 +384,9 @@ BOOLEAN PhAddProcessPropPage(
     // which would have added a reference.
     PhDereferenceObject(PropPageContext);
 
-    PropPageContext->PropContext = PropContext;
-    PhReferenceObject(PropContext);
+    PhSetReference(&PropPageContext->PropContext, PropContext);
 
-    PropContext->PropSheetPages[PropContext->PropSheetHeader.nPages] =
-        propSheetPageHandle;
+    PropContext->PropSheetPages[PropContext->PropSheetHeader.nPages] = propSheetPageHandle;
     PropContext->PropSheetHeader.nPages++;
 
     return TRUE;
@@ -402,8 +400,7 @@ BOOLEAN PhAddProcessPropPage2(
     if (PropContext->PropSheetHeader.nPages == PH_PROCESS_PROPCONTEXT_MAXPAGES)
         return FALSE;
 
-    PropContext->PropSheetPages[PropContext->PropSheetHeader.nPages] =
-        PropSheetPageHandle;
+    PropContext->PropSheetPages[PropContext->PropSheetHeader.nPages] = PropSheetPageHandle;
     PropContext->PropSheetHeader.nPages++;
 
     return TRUE;
@@ -427,9 +424,7 @@ PPH_PROCESS_PROPPAGECONTEXT PhCreateProcessPropPageContextEx(
 {
     PPH_PROCESS_PROPPAGECONTEXT propPageContext;
 
-    propPageContext = PhCreateObject(sizeof(PH_PROCESS_PROPPAGECONTEXT), PhpProcessPropPageContextType);
-    memset(propPageContext, 0, sizeof(PH_PROCESS_PROPPAGECONTEXT));
-
+    propPageContext = PhCreateObjectZero(sizeof(PH_PROCESS_PROPPAGECONTEXT), PhpProcessPropPageContextType);
     propPageContext->PropSheetPage.dwSize = sizeof(PROPSHEETPAGE);
     propPageContext->PropSheetPage.dwFlags = PSP_USECALLBACK;
     propPageContext->PropSheetPage.hInstance = InstanceHandle;
