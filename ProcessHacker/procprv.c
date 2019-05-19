@@ -2344,12 +2344,11 @@ VOID PhProcessProviderUpdate(
             // Debugged
             if (processItem->QueryHandle && !processItem->IsSubsystemProcess && !processItem->IsProtectedHandle)
             {
-                BOOLEAN isBeingDebugged;
+                BOOLEAN isBeingDebugged = FALSE;
 
-                if (NT_SUCCESS(PhGetProcessIsBeingDebugged(
-                    processItem->QueryHandle,
-                    &isBeingDebugged
-                    )) && processItem->IsBeingDebugged != isBeingDebugged)
+                PhGetProcessIsBeingDebugged(processItem->QueryHandle, &isBeingDebugged);
+
+                if (processItem->IsBeingDebugged != isBeingDebugged)
                 {
                     processItem->IsBeingDebugged = isBeingDebugged;
                     modified = TRUE;
