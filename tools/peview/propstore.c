@@ -81,7 +81,23 @@ VOID PvpPeEnumerateFilePropStore(
 
                     if (SUCCEEDED(PSGetNameFromPropertyKey(&propkey, &propKeyName)))
                     {
+                        IPropertyDescription* propertyDescriptionPtr = NULL;
+
                         PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, propKeyName);
+
+                        if (SUCCEEDED(PSGetPropertyDescriptionByName(propKeyName, &IID_IPropertyDescription, &propertyDescriptionPtr)))
+                        {
+                            PWSTR propertyLabel = NULL;
+
+                            if (SUCCEEDED(IPropertyDescription_GetDisplayName(propertyDescriptionPtr, &propertyLabel)))
+                            {
+                                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, propertyLabel);
+                                CoTaskMemFree(propertyLabel);
+                            }
+
+                            IPropertyDescription_Release(propertyDescriptionPtr);
+                        }
+       
                         CoTaskMemFree(propKeyName);
                     }
                     else
@@ -137,6 +153,7 @@ INT_PTR CALLBACK PvpPePropStoreDlgProc(
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"#");
             PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 150, L"Name");
             PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 250, L"Value");
+            PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 150, L"Description");
             PhSetExtendedListView(lvHandle);
             PhLoadListViewColumnsFromSetting(L"ImagePropertiesListViewColumns", lvHandle);
 
