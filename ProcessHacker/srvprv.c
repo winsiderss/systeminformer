@@ -1164,7 +1164,7 @@ NTSTATUS PhpServiceNonPollThreadStart(
 
     while (TRUE)
     {
-        scManagerHandle = OpenSCManager(NULL, NULL, SC_MANAGER_ENUMERATE_SERVICE);
+        scManagerHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CONNECT | SC_MANAGER_ENUMERATE_SERVICE);
 
         if (!scManagerHandle)
             goto ErrorExit;
@@ -1243,6 +1243,15 @@ NTSTATUS PhpServiceNonPollThreadStart(
                     __fallthrough;
                 case SnNotify:
                     {
+                        if (notifyContext->NotifyRegistration)
+                        {
+                            if (UnsubscribeServiceChangeNotifications_I && notifyContext->NotifyRegistration)
+                                UnsubscribeServiceChangeNotifications_I(notifyContext->NotifyRegistration);
+
+                            notifyContext->JustAddedNotifyRegistration = FALSE;
+                            notifyContext->NotifyRegistration = NULL;
+                        }
+
                         if (SubscribeServiceChangeNotifications_I && !notifyContext->IsServiceManager)
                         {
                             PSC_NOTIFICATION_REGISTRATION serviceNotifyRegistration;
