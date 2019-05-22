@@ -679,7 +679,7 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
             switch (getCellText->Id)
             {
             case PHSVTLC_NAME:
-                getCellText->Text = serviceItem->Name->sr;
+                getCellText->Text = PhGetStringRef(serviceItem->Name);
                 break;
             case PHSVTLC_DISPLAYNAME:
                 getCellText->Text = PhGetStringRef(serviceItem->DisplayName);
