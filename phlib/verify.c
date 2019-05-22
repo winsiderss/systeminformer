@@ -60,20 +60,27 @@ static VOID PhpVerifyInitialization(
     wintrust = LoadLibrary(L"wintrust.dll");
     crypt32 = LoadLibrary(L"crypt32.dll");
 
-    CryptCATAdminCalcHashFromFileHandle = PhGetDllBaseProcedureAddress(wintrust, "CryptCATAdminCalcHashFromFileHandle", 0);
-    CryptCATAdminCalcHashFromFileHandle2 = PhGetDllBaseProcedureAddress(wintrust, "CryptCATAdminCalcHashFromFileHandle2", 0);
-    CryptCATAdminAcquireContext = PhGetDllBaseProcedureAddress(wintrust, "CryptCATAdminAcquireContext", 0);
-    CryptCATAdminAcquireContext2 = PhGetDllBaseProcedureAddress(wintrust, "CryptCATAdminAcquireContext2", 0);
-    CryptCATAdminEnumCatalogFromHash = PhGetDllBaseProcedureAddress(wintrust, "CryptCATAdminEnumCatalogFromHash", 0);
-    CryptCATCatalogInfoFromContext = PhGetDllBaseProcedureAddress(wintrust, "CryptCATCatalogInfoFromContext", 0);
-    CryptCATAdminReleaseCatalogContext = PhGetDllBaseProcedureAddress(wintrust, "CryptCATAdminReleaseCatalogContext", 0);
-    CryptCATAdminReleaseContext = PhGetDllBaseProcedureAddress(wintrust, "CryptCATAdminReleaseContext", 0);
-    WTHelperProvDataFromStateData_I = PhGetDllBaseProcedureAddress(wintrust, "WTHelperProvDataFromStateData", 0);
-    WTHelperGetProvSignerFromChain_I = PhGetDllBaseProcedureAddress(wintrust, "WTHelperGetProvSignerFromChain", 0);
-    WinVerifyTrust_I = PhGetDllBaseProcedureAddress(wintrust, "WinVerifyTrust", 0);
-    CertNameToStr_I = PhGetDllBaseProcedureAddress(crypt32, "CertNameToStrW", 0);
-    CertDuplicateCertificateContext_I = PhGetDllBaseProcedureAddress(crypt32, "CertDuplicateCertificateContext", 0);
-    CertFreeCertificateContext_I = PhGetDllBaseProcedureAddress(crypt32, "CertFreeCertificateContext", 0);
+    if (wintrust)
+    {
+        CryptCATAdminCalcHashFromFileHandle = PhGetDllBaseProcedureAddress(wintrust, "CryptCATAdminCalcHashFromFileHandle", 0);
+        CryptCATAdminCalcHashFromFileHandle2 = PhGetDllBaseProcedureAddress(wintrust, "CryptCATAdminCalcHashFromFileHandle2", 0);
+        CryptCATAdminAcquireContext = PhGetDllBaseProcedureAddress(wintrust, "CryptCATAdminAcquireContext", 0);
+        CryptCATAdminAcquireContext2 = PhGetDllBaseProcedureAddress(wintrust, "CryptCATAdminAcquireContext2", 0);
+        CryptCATAdminEnumCatalogFromHash = PhGetDllBaseProcedureAddress(wintrust, "CryptCATAdminEnumCatalogFromHash", 0);
+        CryptCATCatalogInfoFromContext = PhGetDllBaseProcedureAddress(wintrust, "CryptCATCatalogInfoFromContext", 0);
+        CryptCATAdminReleaseCatalogContext = PhGetDllBaseProcedureAddress(wintrust, "CryptCATAdminReleaseCatalogContext", 0);
+        CryptCATAdminReleaseContext = PhGetDllBaseProcedureAddress(wintrust, "CryptCATAdminReleaseContext", 0);
+        WTHelperProvDataFromStateData_I = PhGetDllBaseProcedureAddress(wintrust, "WTHelperProvDataFromStateData", 0);
+        WTHelperGetProvSignerFromChain_I = PhGetDllBaseProcedureAddress(wintrust, "WTHelperGetProvSignerFromChain", 0);
+        WinVerifyTrust_I = PhGetDllBaseProcedureAddress(wintrust, "WinVerifyTrust", 0);
+    }
+
+    if (crypt32)
+    {
+        CertNameToStr_I = PhGetDllBaseProcedureAddress(crypt32, "CertNameToStrW", 0);
+        CertDuplicateCertificateContext_I = PhGetDllBaseProcedureAddress(crypt32, "CertDuplicateCertificateContext", 0);
+        CertFreeCertificateContext_I = PhGetDllBaseProcedureAddress(crypt32, "CertFreeCertificateContext", 0);
+    }
 }
 
 VERIFY_RESULT PhpStatusToVerifyResult(

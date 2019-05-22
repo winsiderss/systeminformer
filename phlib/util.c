@@ -5502,7 +5502,7 @@ PPH_STRING PhLoadIndirectString(
             // HACK: Services.exe includes custom logic for indirect Service description strings by reading descriptions from inf files,
             // these strings use the following format: "@FileName.inf,%SectionKeyName%;DefaultString".
             // Return the last token of the service string instead of locating and parsing the inf file with GetPrivateProfileString.
-            if (dllIndexRef.Buffer[0] == L'%' && PhSplitStringRefAtChar(&sourceRef, L';', &dllNameRef, &dllIndexRef))
+            if (PhSplitStringRefAtChar(&sourceRef, L';', &dllNameRef, &dllIndexRef)) // dllIndexRef.Buffer[0] == L'%'
                 return PhCreateString2(&dllIndexRef);
             else
                 return NULL;
