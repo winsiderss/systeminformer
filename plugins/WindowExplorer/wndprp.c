@@ -94,6 +94,7 @@ typedef enum _NETADAPTER_DETAILS_INDEX
     WINDOW_PROPERTIES_INDEX_WNDPROC,
     WINDOW_PROPERTIES_INDEX_DLGPROC,
     WINDOW_PROPERTIES_INDEX_DLGCTLID,
+    WINDOW_PROPERTIES_INDEX_FONTNAME,
     WINDOW_PROPERTIES_INDEX_STYLES,
     WINDOW_PROPERTIES_INDEX_EXSTYLES,
 
@@ -457,6 +458,7 @@ VOID WepRefreshWindowGeneralInfo(
     PVOID instanceHandle;
     PVOID userdataHandle;
     ULONG windowId;
+    HFONT fontHandle;
 
     menuHandle = GetMenu(Context->WindowHandle);
     instanceHandle = (PVOID)GetWindowLongPtr(Context->WindowHandle, GWLP_HINSTANCE);
@@ -528,6 +530,20 @@ VOID WepRefreshWindowGeneralInfo(
     PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_USERDATA, 1, PhaFormatString(L"0x%Ix", userdataHandle)->Buffer);
     PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_UNICODE, 1, IsWindowUnicode(Context->WindowHandle) ? L"Yes" : L"No");
     PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_DLGCTLID, 1, PhaFormatString(L"%lu", windowId)->Buffer);
+
+    if (fontHandle = (HFONT)SendMessage(Context->WindowHandle, WM_GETFONT, 0, 0))
+    {
+        LOGFONT logFont;
+
+        if (GetObject(fontHandle, sizeof(LOGFONT), &logFont))
+            PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_FONTNAME, 1, logFont.lfFaceName);
+        else
+            PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_FONTNAME, 1, L"N/A");
+    }
+    else
+    {
+        PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_FONTNAME, 1, L"N/A");
+    }
 
     //ULONG version;
     //if (SendMessageTimeout(Context->WindowHandle, CCM_GETVERSION, 0, 0, SMTO_ABORTIFHUNG, 5000, &version))
@@ -799,6 +815,7 @@ VOID WepGeneralAddListViewItemGroups(
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_WNDPROC, L"Window procedure", NULL);
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_DLGPROC, L"Dialog procedure", NULL);
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_DLGCTLID, L"Dialog control ID", NULL);
+    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_FONTNAME, L"Font", NULL);
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_STYLES, L"Styles", NULL);
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_EXSTYLES, L"Extended styles", NULL);
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_CLASS, WINDOW_PROPERTIES_INDEX_CLASS_NAME, L"Name", NULL);
