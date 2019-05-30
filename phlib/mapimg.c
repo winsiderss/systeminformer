@@ -86,12 +86,12 @@ NTSTATUS PhInitializeMappedImage(
         PhpMappedImageProbe(
             MappedImage,
             MappedImage->NtHeaders,
-            FIELD_OFFSET(IMAGE_NT_HEADERS, OptionalHeader)
+            UFIELD_OFFSET(IMAGE_NT_HEADERS, OptionalHeader)
             );
         PhpMappedImageProbe(
             MappedImage,
             MappedImage->NtHeaders,
-            FIELD_OFFSET(IMAGE_NT_HEADERS, OptionalHeader) +
+            UFIELD_OFFSET(IMAGE_NT_HEADERS, OptionalHeader) +
             MappedImage->NtHeaders->FileHeader.SizeOfOptionalHeader +
             MappedImage->NtHeaders->FileHeader.NumberOfSections * sizeof(IMAGE_SECTION_HEADER)
             );
