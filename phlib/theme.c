@@ -468,6 +468,19 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
     }
     else if (PhEqualStringZ(windowClassName, L"SysListView32", FALSE))
     {
+        if (WindowsVersion >= WINDOWS_10_RS5)
+        {
+            switch (PhpThemeColorMode)
+            {
+            case 0: // New colors
+                PhSetControlTheme(WindowHandle, L"explorer");
+                break;
+            case 1: // Old colors
+                PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
+                break;
+            }
+        }
+
         if (PhpThemeBorderEnable)
         {
             PhSetWindowStyle(WindowHandle, WS_BORDER, WS_BORDER);
@@ -580,6 +593,19 @@ BOOLEAN CALLBACK PhpReInitializeThemeWindowEnumChildWindows(
 
     if (PhEqualStringZ(windowClassName, L"SysListView32", FALSE))
     {
+        if (WindowsVersion >= WINDOWS_10_RS5)
+        {
+            switch (PhpThemeColorMode)
+            {
+            case 0: // New colors
+                PhSetControlTheme(WindowHandle, L"explorer");
+                break;
+            case 1: // Old colors
+                PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
+                break;
+            }
+        }
+
         switch (PhpThemeColorMode)
         {
         case 0: // New colors
