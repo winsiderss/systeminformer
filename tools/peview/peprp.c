@@ -708,26 +708,26 @@ VOID PvpSetPeImageSections(
             PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, PhaFormatSize(PvMappedImage.Sections[i].SizeOfRawData, ULONG_MAX)->Buffer);
             PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, PH_AUTO_T(PH_STRING, PvpGetSectionCharacteristics(PvMappedImage.Sections[i].Characteristics))->Buffer);
 
-            if (PvMappedImage.Sections[i].VirtualAddress && PvMappedImage.Sections[i].SizeOfRawData)
-            {
-                PVOID imageSectionData;
-                PH_HASH_CONTEXT hashContext;
-                PPH_STRING hashString;
-                UCHAR hash[32];
-
-                if (imageSectionData = PhMappedImageRvaToVa(&PvMappedImage, PvMappedImage.Sections[i].VirtualAddress, NULL))
-                {
-                    PhInitializeHash(&hashContext, Md5HashAlgorithm); // PhGetIntegerSetting(L"HashAlgorithm")
-                    PhUpdateHash(&hashContext, imageSectionData, PvMappedImage.Sections[i].SizeOfRawData);
-
-                    if (PhFinalHash(&hashContext, hash, 16, NULL))
-                    {
-                        hashString = PhBufferToHexString(hash, 16);
-                        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 4, hashString->Buffer);
-                        PhDereferenceObject(hashString);
-                    }
-                }
-            }
+            //if (PvMappedImage.Sections[i].VirtualAddress && PvMappedImage.Sections[i].SizeOfRawData)
+            //{
+            //    PVOID imageSectionData;
+            //    PH_HASH_CONTEXT hashContext;
+            //    PPH_STRING hashString;
+            //    UCHAR hash[32];
+            //
+            //    if (imageSectionData = PhMappedImageRvaToVa(&PvMappedImage, PvMappedImage.Sections[i].VirtualAddress, NULL))
+            //    {
+            //        PhInitializeHash(&hashContext, Md5HashAlgorithm); // PhGetIntegerSetting(L"HashAlgorithm")
+            //        PhUpdateHash(&hashContext, imageSectionData, PvMappedImage.Sections[i].SizeOfRawData);
+            //
+            //        if (PhFinalHash(&hashContext, hash, 16, NULL))
+            //        {
+            //            hashString = PhBufferToHexString(hash, 16);
+            //            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 4, hashString->Buffer);
+            //            PhDereferenceObject(hashString);
+            //        }
+            //    }
+            //}
         }
     }
 }
@@ -880,7 +880,7 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
             PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 80, L"VA");
             PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 80, L"Size");
             PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 250, L"Characteristics");
-            PhAddListViewColumn(lvHandle, 4, 4, 4, LVCFMT_LEFT, 80, L"Hash");
+            //PhAddListViewColumn(lvHandle, 4, 4, 4, LVCFMT_LEFT, 80, L"Hash");
             PhLoadListViewColumnsFromSetting(L"ImageGeneralListViewColumns", lvHandle);
 
             // File version information
