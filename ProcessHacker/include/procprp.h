@@ -89,9 +89,9 @@ PhPropPageDlgProcHeader(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ LPARAM lParam,
-    _Out_ LPPROPSHEETPAGE *PropSheetPage,
-    _Out_ PPH_PROCESS_PROPPAGECONTEXT *PropPageContext,
-    _Out_ PPH_PROCESS_ITEM *ProcessItem
+    _Out_opt_ LPPROPSHEETPAGE *PropSheetPage,
+    _Out_opt_ PPH_PROCESS_PROPPAGECONTEXT *PropPageContext,
+    _Out_opt_ PPH_PROCESS_ITEM *ProcessItem
     );
 
 #define PH_PROP_PAGE_TAB_CONTROL_PARENT ((PPH_LAYOUT_ITEM)0x1)
