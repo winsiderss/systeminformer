@@ -196,7 +196,7 @@ VOID WepFillWindowInfo(
             {
                 if (NT_SUCCESS(PhGetProcessMappedFileName(processHandle, instanceHandle, &fileName)))
                 {
-                    PhMoveReference(&fileName, PhResolveDevicePrefix(fileName));
+                    PhMoveReference(&fileName, PhGetFileName(fileName));
                     PhMoveReference(&fileName, PhGetBaseName(fileName));
 
                     PhMoveReference(&Node->ModuleString, fileName);

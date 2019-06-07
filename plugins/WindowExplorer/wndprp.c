@@ -502,7 +502,7 @@ VOID WepRefreshWindowGeneralInfo(
     {
         if (NT_SUCCESS(PhGetProcessMappedFileName(processHandle, instanceHandle, &fileName)))
         {
-            PhMoveReference(&fileName, PhResolveDevicePrefix(fileName));
+            PhMoveReference(&fileName, PhGetFileName(fileName));
             PhMoveReference(&fileName, PhGetBaseName(fileName));
         }
 
@@ -702,7 +702,7 @@ VOID WepRefreshClassModule(
     {
         if (NT_SUCCESS(PhGetProcessMappedFileName(processHandle, instanceHandle, &fileName)))
         {
-            PhMoveReference(&fileName, PhResolveDevicePrefix(fileName));
+            PhMoveReference(&fileName, PhGetFileName(fileName));
             PhMoveReference(&fileName, PhGetBaseName(fileName));
         }
 
