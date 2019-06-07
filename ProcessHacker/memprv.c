@@ -520,9 +520,12 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
     PS_SYSTEM_DLL_INIT_BLOCK ldrInitBlock = { 0 };
     PVOID ldrInitBlockBaseAddress = NULL;
     PPH_MEMORY_ITEM cfgBitmapMemoryItem;
+    PH_STRINGREF systemRootString;
     PPH_STRING ntdllFileName;
-    
-    ntdllFileName = PhConcatStrings2(USER_SHARED_DATA->NtSystemRoot, L"\\System32\\ntdll.dll");
+
+    PhGetSystemRoot(&systemRootString);
+    ntdllFileName = PhConcatStringRefZ(&systemRootString, L"\\System32\\ntdll.dll");
+
     status = PhGetProcedureAddressRemote(
         ProcessHandle,
         ntdllFileName->Buffer,
