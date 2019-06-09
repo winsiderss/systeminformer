@@ -6424,14 +6424,13 @@ NTSTATUS PhLoadPluginImage(
         goto CleanupExit;
 
     //status = PhLoaderEntryLoadAllImportsForDll(imageBaseAddress, "ProcessHacker.exe");
-    //status = PhpFixupLoaderEntryImageDelayImports(
-    //    imageBaseAddress,
-    //    imageHeaders,
-    //    "ProcessHacker.exe"
-    //    );
-    //
-    //if (!NT_SUCCESS(status))
-    //    goto CleanupExit;
+    status = PhpFixupLoaderEntryImageDelayImports(
+        imageBaseAddress,
+        imageHeaders,
+        "ProcessHacker.exe"
+        );
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
 
     status = PhGetLoaderEntryImageEntryPoint(
         imageBaseAddress, 
