@@ -5807,17 +5807,17 @@ NTSTATUS PhGetLoaderEntryImageDirectory(
     return STATUS_SUCCESS;
 }
 
-NTSTATUS PhGetLoaderEntryImageSection(
+NTSTATUS PhGetLoaderEntryImageVaToSection(
     _In_ PVOID BaseAddress,
     _In_ PIMAGE_NT_HEADERS ImageNtHeader,
-    _In_ PVOID ImageDirectory,
-    _Out_ PIMAGE_SECTION_HEADER *ImageSection,
+    _In_ PVOID ImageDirectoryAddress,
+    _Out_ PVOID *ImageSectionAddress,
     _Out_ SIZE_T *ImageSectionLength
     )
 {
     SIZE_T directorySectionLength = 0;
     PIMAGE_SECTION_HEADER sectionHeader;
-    PIMAGE_SECTION_HEADER directorySectionHeader = NULL;
+    PVOID directorySectionAddress = NULL;
     ULONG i;
 
     for (i = 0; i < ImageNtHeader->FileHeader.NumberOfSections; i++)
@@ -5825,19 +5825,19 @@ NTSTATUS PhGetLoaderEntryImageSection(
         sectionHeader = PTR_ADD_OFFSET(IMAGE_FIRST_SECTION(ImageNtHeader), sizeof(IMAGE_SECTION_HEADER) * i);
         
         if (
-            ((ULONG_PTR)ImageDirectory >= (ULONG_PTR)PTR_ADD_OFFSET(BaseAddress, sectionHeader->VirtualAddress)) &&
-            ((ULONG_PTR)ImageDirectory < (ULONG_PTR)PTR_ADD_OFFSET(PTR_ADD_OFFSET(BaseAddress, sectionHeader->VirtualAddress), sectionHeader->SizeOfRawData))
+            ((ULONG_PTR)ImageDirectoryAddress >= (ULONG_PTR)PTR_ADD_OFFSET(BaseAddress, sectionHeader->VirtualAddress)) &&
+            ((ULONG_PTR)ImageDirectoryAddress < (ULONG_PTR)PTR_ADD_OFFSET(PTR_ADD_OFFSET(BaseAddress, sectionHeader->VirtualAddress), sectionHeader->SizeOfRawData))
             )
         {
             directorySectionLength = sectionHeader->Misc.VirtualSize;
-            directorySectionHeader = PTR_ADD_OFFSET(BaseAddress, sectionHeader->VirtualAddress);
+            directorySectionAddress = PTR_ADD_OFFSET(BaseAddress, sectionHeader->VirtualAddress);
             break;
         }
     }
 
-    if (directorySectionHeader && directorySectionLength)
+    if (directorySectionAddress && directorySectionLength)
     {
-        *ImageSection = directorySectionHeader;
+        *ImageSectionAddress = directorySectionAddress;
         *ImageSectionLength = directorySectionLength;
         return STATUS_SUCCESS;
     }
@@ -6020,7 +6020,7 @@ static NTSTATUS PhpFixupLoaderEntryImageImports(
     ULONG importDirectoryProtect;
     PIMAGE_DATA_DIRECTORY dataDirectory;
     PIMAGE_IMPORT_DESCRIPTOR importDirectory;
-    PIMAGE_SECTION_HEADER importDirectorySection;
+    PVOID importDirectorySectionAddress;
 
     status = PhGetLoaderEntryImageDirectory(
         BaseAddress,
@@ -6034,11 +6034,11 @@ static NTSTATUS PhpFixupLoaderEntryImageImports(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    status = PhGetLoaderEntryImageSection(
+    status = PhGetLoaderEntryImageVaToSection(
         BaseAddress,
         ImageNtHeader,
         importDirectory,
-        &importDirectorySection,
+        &importDirectorySectionAddress,
         &importDirectorySize
         );
 
@@ -6047,7 +6047,7 @@ static NTSTATUS PhpFixupLoaderEntryImageImports(
 
     status = NtProtectVirtualMemory(
         NtCurrentProcess(),
-        &importDirectorySection,
+        &importDirectorySectionAddress,
         &importDirectorySize,
         PAGE_READWRITE,
         &importDirectoryProtect
@@ -6173,7 +6173,7 @@ static NTSTATUS PhpFixupLoaderEntryImageImports(
 
     status = NtProtectVirtualMemory(
         NtCurrentProcess(),
-        &importDirectorySection,
+        &importDirectorySectionAddress,
         &importDirectorySize,
         importDirectoryProtect,
         &importDirectoryProtect
@@ -6193,11 +6193,11 @@ static NTSTATUS PhpFixupLoaderEntryImageDelayImports(
     )
 {
     NTSTATUS status;
-    SIZE_T importDirectorySize;
+    SIZE_T importDirectorySectionSize;
     ULONG importDirectoryProtect;
     PIMAGE_DATA_DIRECTORY dataDirectory;
     PIMAGE_DELAYLOAD_DESCRIPTOR delayImportDirectory;
-    PIMAGE_SECTION_HEADER importDirectorySection;
+    PVOID importDirectorySectionAddress;
 
     status = PhGetLoaderEntryImageDirectory(
         BaseAddress,
@@ -6216,12 +6216,12 @@ static NTSTATUS PhpFixupLoaderEntryImageDelayImports(
         goto CleanupExit;
     }
 
-    status = PhGetLoaderEntryImageSection(
+    status = PhGetLoaderEntryImageVaToSection(
         BaseAddress,
         ImageNtHeaders,
-        delayImportDirectory,
-        &importDirectorySection,
-        &importDirectorySize
+        PTR_ADD_OFFSET(BaseAddress, delayImportDirectory->ImportAddressTableRVA),
+        &importDirectorySectionAddress,
+        &importDirectorySectionSize
         );
 
     if (!NT_SUCCESS(status))
@@ -6229,8 +6229,8 @@ static NTSTATUS PhpFixupLoaderEntryImageDelayImports(
 
     status = NtProtectVirtualMemory(
         NtCurrentProcess(),
-        &importDirectorySection,
-        &importDirectorySize,
+        &importDirectorySectionAddress,
+        &importDirectorySectionSize,
         PAGE_READWRITE,
         &importDirectoryProtect
         );
@@ -6326,8 +6326,8 @@ static NTSTATUS PhpFixupLoaderEntryImageDelayImports(
 
     status = NtProtectVirtualMemory(
         NtCurrentProcess(),
-        &importDirectorySection,
-        &importDirectorySize,
+        &importDirectorySectionAddress,
+        &importDirectorySectionSize,
         importDirectoryProtect,
         &importDirectoryProtect
         );
