@@ -1237,11 +1237,11 @@ PhGetLoaderEntryImageDirectory(
 PHLIBAPI
 NTSTATUS
 NTAPI
-PhGetLoaderEntryImageSection(
+PhGetLoaderEntryImageVaToSection(
     _In_ PVOID BaseAddress,
     _In_ PIMAGE_NT_HEADERS ImageNtHeader,
-    _In_ PVOID ImageDirectory,
-    _Out_ PIMAGE_SECTION_HEADER *ImageSection,
+    _In_ PVOID ImageDirectoryAddress,
+    _Out_ PVOID *ImageSectionAddress,
     _Out_ SIZE_T *ImageSectionLength
     );
 
