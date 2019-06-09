@@ -1151,6 +1151,14 @@ typedef struct _PH_MODULE_INFO
     USHORT LoadReason; // -1 if N/A
     USHORT Reserved;
     LARGE_INTEGER LoadTime; // 0 if N/A
+    ULONG32 LoadWhileUnloadingCount;
+    LDR_DDAG_STATE State;
+    ULONG32 PreorderNumber;
+    ULONG32 LowestLink;
+    PPH_LIST Dependencies;
+    PPH_LIST IncomingDependencies;
+    PPH_LIST ServiceTagList;
+    BOOLEAN HasDDAG;
 } PH_MODULE_INFO, *PPH_MODULE_INFO;
 
 /**

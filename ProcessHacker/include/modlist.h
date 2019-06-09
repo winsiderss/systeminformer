@@ -28,8 +28,15 @@
 #define PHMOTLC_FILESIZE 17
 #define PHMOTLC_ENTRYPOINT 18
 #define PHMOTLC_PARENTBASEADDRESS 19
+#define PHMOTLC_LOADWHILEUNLOADINGCOUNT 20
+#define PHMOTLC_STATE 21
+#define PHMOTLC_PREORDERNUMBER 22
+#define PHMOTLC_LOWESTLINK 23
+#define PHMOTLC_DEPENDENCIES 24
+#define PHMOTLC_INCOMINGDEPENDENCIES 25
+#define PHMOTLC_SERVICETAGLIST 26
 
-#define PHMOTLC_MAXIMUM 20
+#define PHMOTLC_MAXIMUM 27
 
 // begin_phapppub
 typedef struct _PH_MODULE_NODE
@@ -49,13 +56,22 @@ typedef struct _PH_MODULE_NODE
 
     PPH_STRING SizeText;
     WCHAR LoadCountText[PH_INT32_STR_LEN_1];
+    WCHAR PreorderNumberText[PH_INT32_STR_LEN_1];
+    WCHAR StateText[PH_INT32_STR_LEN_1];
+    WCHAR LoadWhileUnloadingCountText[PH_INT32_STR_LEN_1];
+    WCHAR LowestLinkText[PH_INT32_STR_LEN_1];
     PPH_STRING TimeStampText;
     PPH_STRING LoadTimeText;
     PPH_STRING FileModifiedTimeText;
     PPH_STRING FileSizeText;
+    PPH_STRING DependenciesText;
+    PPH_STRING IncomingDependenciesText;
+    PPH_STRING ServiceTagText;
 
     struct _PH_MODULE_NODE *Parent;
     PPH_LIST Children;
+
+    BOOLEAN HasDDAG;
 // begin_phapppub
 } PH_MODULE_NODE, *PPH_MODULE_NODE;
 // end_phapppub

@@ -6242,7 +6242,85 @@ typedef struct _ENUM_GENERIC_PROCESS_MODULES_CONTEXT
     PPH_HASHTABLE BaseAddressHashtable;
 
     ULONG LoadOrderIndex;
+    HANDLE ProcessHandle;
 } ENUM_GENERIC_PROCESS_MODULES_CONTEXT, *PENUM_GENERIC_PROCESS_MODULES_CONTEXT;
+
+static void PhReadLdrpDependencyList(
+    _In_ HANDLE ProcessHandle,
+    _In_ LDRP_CSLIST List,
+    _Inout_ PPH_LIST TargetList
+    )
+{
+    const PSINGLE_LIST_ENTRY DependencyListHead = List.Tail;
+    if (DependencyListHead)
+    {
+        SINGLE_LIST_ENTRY DependencyListItem;
+        LDR_DDAG_NODE DependencyListNode;
+        DependencyListItem.Next = List.Tail;
+        do
+        {
+            if (!(NT_SUCCESS(NtReadVirtualMemory(
+                ProcessHandle,
+                DependencyListItem.Next,
+                &DependencyListItem,
+                sizeof(SINGLE_LIST_ENTRY),
+                NULL
+            ))))
+                break;
+
+            PVOID DagPointer;
+
+            if (!(NT_SUCCESS(NtReadVirtualMemory(
+                ProcessHandle,
+                PTR_ADD_OFFSET(DependencyListItem.Next, sizeof(ULONG_PTR)),
+                &DagPointer,
+                sizeof(PVOID),
+                NULL
+            ))))
+                break;
+
+            if (!(NT_SUCCESS(NtReadVirtualMemory(
+                ProcessHandle,
+                DagPointer,
+                &DependencyListNode,
+                sizeof(LDR_DDAG_NODE),
+                NULL
+            ))))
+                break;
+
+            LDR_DATA_TABLE_ENTRY Entry;
+            if (!(NT_SUCCESS(NtReadVirtualMemory(
+                ProcessHandle,
+                PTR_SUB_OFFSET(DependencyListNode.Modules.Flink,
+                    UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, NodeModuleLink)),
+                &Entry,
+                sizeof(LDR_DATA_TABLE_ENTRY),
+                NULL
+            ))))
+                break;
+
+            if (!Entry.BaseDllName.Length)
+                continue;
+
+            const PPH_STRING BaseName = PhCreateStringEx(NULL, Entry.BaseDllName.Length);
+
+            if (NT_SUCCESS(NtReadVirtualMemory(
+                ProcessHandle,
+                Entry.BaseDllName.Buffer,
+                BaseName->Buffer,
+                BaseName->Length,
+                NULL
+            )))
+            {
+                PhAddItemList(TargetList, BaseName);
+            }
+            else
+            {
+                PhDereferenceObject(BaseName);
+            }
+        } while (DependencyListItem.Next != DependencyListHead);
+    }
+}
 
 static BOOLEAN EnumGenericProcessModulesCallback(
     _In_ PLDR_DATA_TABLE_ENTRY Module,
@@ -6250,7 +6328,7 @@ static BOOLEAN EnumGenericProcessModulesCallback(
     )
 {
     PENUM_GENERIC_PROCESS_MODULES_CONTEXT context;
-    PH_MODULE_INFO moduleInfo;
+    PH_MODULE_INFO moduleInfo = {0};
     BOOLEAN cont;
 
     context = (PENUM_GENERIC_PROCESS_MODULES_CONTEXT)Context;
@@ -6277,10 +6355,70 @@ static BOOLEAN EnumGenericProcessModulesCallback(
     moduleInfo.OriginalFileName = PhCreateStringFromUnicodeString(&Module->FullDllName);
     moduleInfo.FileName = PhGetFileName(moduleInfo.OriginalFileName);
 
+    moduleInfo.LoadWhileUnloadingCount = 0;
+    moduleInfo.State = 0;
+    moduleInfo.PreorderNumber = 0;
+    moduleInfo.LowestLink = 0;
+    moduleInfo.Dependencies = NULL;
+    moduleInfo.IncomingDependencies = NULL;
+    moduleInfo.ServiceTagList = NULL;
+
     if (WindowsVersion >= WINDOWS_8)
     {
+        LDR_DDAG_NODE ldrDagNode;
+
+        memset(&ldrDagNode, 0, sizeof(LDR_DDAG_NODE));
+
+        const HANDLE ProcessHandle = context->ProcessHandle;
+        if (NT_SUCCESS(NtReadVirtualMemory(
+            ProcessHandle,
+            Module->DdagNode,
+            &ldrDagNode,
+            sizeof(LDR_DDAG_NODE),
+            NULL
+        )))
+        {
+            moduleInfo.HasDDAG = TRUE;
+
+            moduleInfo.LoadWhileUnloadingCount = ldrDagNode.LoadWhileUnloadingCount;
+            moduleInfo.State = ldrDagNode.State;
+            moduleInfo.PreorderNumber = ldrDagNode.PreorderNumber;
+            moduleInfo.LowestLink = ldrDagNode.LowestLink;
+            moduleInfo.Dependencies = PhCreateList(10);
+            moduleInfo.IncomingDependencies = PhCreateList(10);
+            moduleInfo.ServiceTagList = PhCreateList(10);
+
+            LDR_SERVICE_TAG_RECORD TagRecord;
+            if (NT_SUCCESS(NtReadVirtualMemory(
+                ProcessHandle,
+                ldrDagNode.ServiceTagList,
+                &TagRecord,
+                sizeof(LDR_SERVICE_TAG_RECORD),
+                NULL
+            )))
+            {
+                PhAddItemList(moduleInfo.ServiceTagList, PhIntegerToString64(TagRecord.ServiceTag, 16, FALSE));
+                while (TagRecord.Next)
+                {
+                    if (!(NT_SUCCESS(NtReadVirtualMemory(
+                        ProcessHandle,
+                        TagRecord.Next,
+                        &TagRecord,
+                        sizeof(LDR_SERVICE_TAG_RECORD),
+                        NULL
+                    ))))
+                        break;
+
+                    PhAddItemList(moduleInfo.ServiceTagList, PhIntegerToString64(TagRecord.ServiceTag, 16, FALSE));
+                }
+            }
+
+            PhReadLdrpDependencyList(ProcessHandle, ldrDagNode.Dependencies, moduleInfo.Dependencies);
+            PhReadLdrpDependencyList(ProcessHandle, ldrDagNode.IncomingDependencies, moduleInfo.IncomingDependencies);
+        }
+
         moduleInfo.ParentBaseAddress = Module->ParentDllBase;
-        moduleInfo.LoadReason = (USHORT)Module->LoadReason;
+        moduleInfo.LoadReason = Module->LoadReason;
         moduleInfo.LoadTime = Module->LoadTime;
     }
     else
@@ -6308,7 +6446,7 @@ VOID PhpRtlModulesToGenericModules(
 {
     PRTL_PROCESS_MODULE_INFORMATION module;
     ULONG i;
-    PH_MODULE_INFO moduleInfo;
+    PH_MODULE_INFO moduleInfo = {0};
     BOOLEAN cont;
 
     for (i = 0; i < Modules->NumberOfModules; i++)
@@ -6379,7 +6517,7 @@ VOID PhpRtlModulesExToGenericModules(
     )
 {
     PRTL_PROCESS_MODULE_INFORMATION_EX module;
-    PH_MODULE_INFO moduleInfo;
+    PH_MODULE_INFO moduleInfo = {0};
     BOOLEAN cont;
 
     module = Modules;
@@ -6441,7 +6579,7 @@ BOOLEAN PhpCallbackMappedFileOrImage(
     _In_ PPH_HASHTABLE BaseAddressHashtable
     )
 {
-    PH_MODULE_INFO moduleInfo;
+    PH_MODULE_INFO moduleInfo = {0};
     BOOLEAN cont;
 
     moduleInfo.Type = Type;
@@ -6690,6 +6828,7 @@ NTSTATUS PhEnumGenericModules(
         context.Type = PH_MODULE_TYPE_MODULE;
         context.BaseAddressHashtable = baseAddressHashtable;
         context.LoadOrderIndex = 0;
+        context.ProcessHandle = ProcessHandle;
 
         parameters.Callback = EnumGenericProcessModulesCallback;
         parameters.Context = &context;

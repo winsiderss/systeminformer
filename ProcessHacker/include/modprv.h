@@ -26,7 +26,8 @@ typedef struct _PH_MODULE_ITEM
         {
             BOOLEAN JustProcessed : 1;
             BOOLEAN IsFirst : 1;
-            BOOLEAN Spare : 6;
+            BOOLEAN HasDDAG : 1;
+            BOOLEAN Spare : 5;
         };
     };
 
@@ -40,6 +41,14 @@ typedef struct _PH_MODULE_ITEM
     LARGE_INTEGER LoadTime;
     LARGE_INTEGER FileLastWriteTime;
     LARGE_INTEGER FileEndOfFile;
+
+    ULONG32 PreorderNumber;
+    LDR_DDAG_STATE State;
+    ULONG32 LoadWhileUnloadingCount;
+    ULONG32 LowestLink;
+    PPH_LIST Dependencies;
+    PPH_LIST IncomingDependencies;
+    PPH_LIST ServiceTagList;
 
     WCHAR BaseAddressString[PH_PTR_STR_LEN_1];
     WCHAR ParentBaseAddressString[PH_PTR_STR_LEN_1];

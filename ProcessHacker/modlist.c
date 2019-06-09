@@ -116,6 +116,13 @@ VOID PhInitializeModuleList(
     PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_FILESIZE, FALSE, L"File size", 70, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_ENTRYPOINT, FALSE, L"Entry point", 70, PH_ALIGN_LEFT, ULONG_MAX, 0, TRUE);
     PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_PARENTBASEADDRESS, FALSE, L"Parent base address", 70, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PHMOTLC_LOADWHILEUNLOADINGCOUNT, FALSE, L"Load while unloading count", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PHMOTLC_STATE, FALSE, L"State", 40, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PHMOTLC_PREORDERNUMBER, FALSE, L"Preorder number", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PHMOTLC_LOWESTLINK, FALSE, L"Lowest link", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PHMOTLC_DEPENDENCIES, FALSE, L"Dependencies", 100, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PHMOTLC_INCOMINGDEPENDENCIES, FALSE, L"Incoming dependencies", 100, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PHMOTLC_SERVICETAGLIST, FALSE, L"Service tags", 100, PH_ALIGN_LEFT, ULONG_MAX, 0);
 
     TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
 
@@ -648,6 +655,79 @@ BEGIN_SORT_FUNCTION(ParentBaseAddress)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(PreorderNumber)
+{
+    sortResult = uintcmp(moduleItem1->PreorderNumber, moduleItem2->PreorderNumber);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(State)
+{
+    sortResult = intcmp(moduleItem1->State, moduleItem2->State);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(LoadWhileUnloadingCount)
+{
+    sortResult = uintcmp(moduleItem1->LoadWhileUnloadingCount, moduleItem2->LoadWhileUnloadingCount);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(LowestLink)
+{
+    sortResult = uintcmp(moduleItem1->LowestLink, moduleItem2->LowestLink);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(Dependencies)
+{
+    const ULONG count1 = moduleItem1->Dependencies ? moduleItem1->Dependencies->Count : 0;
+    const ULONG count2 = moduleItem2->Dependencies ? moduleItem2->Dependencies->Count : 0;
+    sortResult = uintcmp(count1, count2);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(IncomingDependencies)
+{
+    const ULONG count1 = moduleItem1->IncomingDependencies ? moduleItem1->IncomingDependencies->Count : 0;
+    const ULONG count2 = moduleItem2->IncomingDependencies ? moduleItem2->IncomingDependencies->Count : 0;
+    sortResult = uintcmp(count1, count2);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(ServiceTagList)
+{
+    const ULONG count1 = moduleItem1->ServiceTagList ? moduleItem1->ServiceTagList->Count : 0;
+    const ULONG count2 = moduleItem2->ServiceTagList ? moduleItem2->ServiceTagList->Count : 0;
+    sortResult = uintcmp(count1, count2);
+}
+END_SORT_FUNCTION
+
+PPH_STRING PhConcatListToString(
+    _In_opt_ PPH_LIST list
+    )
+{
+    if (!list)
+    {
+        return PhCreateString(L"N/A");
+    }
+
+    PPH_STRING result = PhReferenceEmptyString();
+    for (SIZE_T i = 0; i < list->Count; ++i)
+    {
+        if (i > 0)
+        {
+            PH_STRINGREF resultRef = PhGetStringRef(result);
+            result = PhConcatStringRefZ(&resultRef, L", ");
+        }
+        const PPH_STRING item = list->Items[i];
+        PH_STRINGREF ref = PhGetStringRef(item);
+        PH_STRINGREF resultRef = PhGetStringRef(result);
+        result = PhConcatStringRef2(&resultRef, &ref);
+    }
+    return result;
+}
+
 BOOLEAN NTAPI PhpModuleTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -709,7 +789,14 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                     SORT_FUNCTION(FileModifiedTime),
                     SORT_FUNCTION(FileSize),
                     SORT_FUNCTION(EntryPoint),
-                    SORT_FUNCTION(ParentBaseAddress)
+                    SORT_FUNCTION(ParentBaseAddress),
+                    SORT_FUNCTION(LoadWhileUnloadingCount),
+                    SORT_FUNCTION(State),
+                    SORT_FUNCTION(PreorderNumber),
+                    SORT_FUNCTION(LowestLink),
+                    SORT_FUNCTION(Dependencies),
+                    SORT_FUNCTION(IncomingDependencies),
+                    SORT_FUNCTION(ServiceTagList),
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
@@ -766,6 +853,12 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
 
             node = (PPH_MODULE_NODE)getCellText->Node;
             moduleItem = node->ModuleItem;
+
+            BOOLEAN moduleItemWithoutLdrEntry = moduleItem->Type != PH_MODULE_TYPE_MODULE
+                && moduleItem->Type != PH_MODULE_TYPE_KERNEL_MODULE
+                && moduleItem->Type != PH_MODULE_TYPE_WOW64_MODULE;
+
+            PhInitializeEmptyStringRef(&getCellText->Text);
 
             switch (getCellText->Id)
             {
@@ -824,23 +917,118 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 }
                 break;
             case PHMOTLC_LOADCOUNT:
-                if (moduleItem->Type == PH_MODULE_TYPE_MODULE || moduleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE ||
-                    moduleItem->Type == PH_MODULE_TYPE_WOW64_MODULE)
+                if (moduleItemWithoutLdrEntry)
+                    break;
+
+                if (moduleItem->LoadCount != USHRT_MAX)
                 {
-                    if (moduleItem->LoadCount != USHRT_MAX)
-                    {
-                        PhPrintInt32(node->LoadCountText, moduleItem->LoadCount);
-                        PhInitializeStringRefLongHint(&getCellText->Text, node->LoadCountText);
-                    }
-                    else
-                    {
-                        PhInitializeStringRef(&getCellText->Text, L"Static");
-                    }
+                    PhPrintInt32(node->LoadCountText, moduleItem->LoadCount);
+                    PhInitializeStringRefLongHint(&getCellText->Text, node->LoadCountText);
                 }
                 else
                 {
-                    PhInitializeEmptyStringRef(&getCellText->Text);
+                    PhInitializeStringRef(&getCellText->Text, L"Static");
                 }
+
+                break;
+            case PHMOTLC_LOADWHILEUNLOADINGCOUNT:
+                if (!moduleItem->HasDDAG || moduleItemWithoutLdrEntry)
+                    break;
+
+                PhPrintInt32(node->LoadWhileUnloadingCountText, moduleItem->LoadWhileUnloadingCount);
+                PhInitializeStringRefLongHint(&getCellText->Text, node->LoadWhileUnloadingCountText);
+                break;
+            case PHMOTLC_STATE:
+                if (!moduleItem->HasDDAG || moduleItemWithoutLdrEntry)
+                    break;
+
+                PWSTR stateString;
+
+                switch (moduleItem->State)
+                {
+                    case LdrModulesMerged:
+                        stateString = L"Merged";
+                        break;
+                    case LdrModulesInitError:
+                        stateString = L"InitError";
+                        break;
+                    case LdrModulesSnapError:
+                        stateString = L"SnapError";
+                        break;
+                    case LdrModulesUnloaded:
+                        stateString = L"Unloaded";
+                        break;
+                    case LdrModulesUnloading:
+                        stateString = L"Unloading";
+                        break;
+                    case LdrModulesPlaceHolder:
+                        stateString = L"PlaceHolder";
+                        break;
+                    case LdrModulesMapping:
+                        stateString = L"Mapping";
+                        break;
+                    case LdrModulesMapped:
+                        stateString = L"Mapped";
+                        break;
+                    case LdrModulesWaitingForDependencies:
+                        stateString = L"WaitingForDependencies";
+                        break;
+                    case LdrModulesSnapping:
+                        stateString = L"Snapping";
+                        break;
+                    case LdrModulesSnapped:
+                        stateString = L"Snapped";
+                        break;
+                    case LdrModulesCondensed:
+                        stateString = L"Condensed";
+                        break;
+                    case LdrModulesReadyToInit:
+                        stateString = L"ReadyToInit";
+                        break;
+                    case LdrModulesInitializing:
+                        stateString = L"Initializing";
+                        break;
+                    case LdrModulesReadyToRun:
+                        stateString = L"ReadyToRun";
+                        break;
+                    default:
+                        stateString = L"Unknown";
+                        break;
+                }
+
+                PhInitializeStringRefLongHint(&getCellText->Text, stateString);
+                break;
+            case PHMOTLC_LOWESTLINK:
+                if (!moduleItem->HasDDAG || moduleItemWithoutLdrEntry)
+                    break;
+
+                PhPrintInt32(node->LowestLinkText, moduleItem->LowestLink);
+                PhInitializeStringRefLongHint(&getCellText->Text, node->LowestLinkText);
+                break;
+            case PHMOTLC_PREORDERNUMBER:
+                if (!moduleItem->HasDDAG || moduleItemWithoutLdrEntry)
+                    break;
+
+                PhPrintInt32(node->PreorderNumberText, moduleItem->PreorderNumber);
+                PhInitializeStringRefLongHint(&getCellText->Text, node->PreorderNumberText);
+                break;
+            case PHMOTLC_DEPENDENCIES:
+                if (!moduleItem->HasDDAG || moduleItemWithoutLdrEntry)
+                    break;
+
+                getCellText->Text = PhGetStringRef(PhConcatListToString(moduleItem->Dependencies));
+                break;
+            case PHMOTLC_INCOMINGDEPENDENCIES:
+                if (!moduleItem->HasDDAG || moduleItemWithoutLdrEntry)
+                    break;
+
+                getCellText->Text = PhGetStringRef(PhConcatListToString(moduleItem->IncomingDependencies));
+                break;
+            case PHMOTLC_SERVICETAGLIST:
+                if (!moduleItem->HasDDAG || moduleItemWithoutLdrEntry)
+                    break;
+
+                getCellText->Text = PhGetStringRef(PhConcatListToString(moduleItem->ServiceTagList));
                 break;
             case PHMOTLC_VERIFICATIONSTATUS:
                 {
@@ -867,17 +1055,13 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                     LARGE_INTEGER time;
                     SYSTEMTIME systemTime;
 
-                    if (moduleItem->ImageTimeDateStamp != 0)
-                    {
-                        RtlSecondsSince1970ToTime(moduleItem->ImageTimeDateStamp, &time);
-                        PhLargeIntegerToLocalSystemTime(&systemTime, &time);
-                        PhMoveReference(&node->TimeStampText, PhFormatDateTime(&systemTime));
-                        getCellText->Text = node->TimeStampText->sr;
-                    }
-                    else
-                    {
-                        PhInitializeEmptyStringRef(&getCellText->Text);
-                    }
+                    if (moduleItem->ImageTimeDateStamp == 0)
+                        break;
+
+                    RtlSecondsSince1970ToTime(moduleItem->ImageTimeDateStamp, &time);
+                    PhLargeIntegerToLocalSystemTime(&systemTime, &time);
+                    PhMoveReference(&node->TimeStampText, PhFormatDateTime(&systemTime));
+                    getCellText->Text = node->TimeStampText->sr;
                 }
                 break;
             case PHMOTLC_CFGUARD:
@@ -888,16 +1072,12 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 {
                     SYSTEMTIME systemTime;
 
-                    if (moduleItem->LoadTime.QuadPart != 0)
-                    {
-                        PhLargeIntegerToLocalSystemTime(&systemTime, &moduleItem->LoadTime);
-                        PhMoveReference(&node->LoadTimeText, PhFormatDateTime(&systemTime));
-                        getCellText->Text = node->LoadTimeText->sr;
-                    }
-                    else
-                    {
-                        PhInitializeEmptyStringRef(&getCellText->Text);
-                    }
+                    if (moduleItem->LoadTime.QuadPart == 0)
+                        break;
+
+                    PhLargeIntegerToLocalSystemTime(&systemTime, &moduleItem->LoadTime);
+                    PhMoveReference(&node->LoadTimeText, PhFormatDateTime(&systemTime));
+                    getCellText->Text = node->LoadTimeText->sr;
                 }
                 break;
             case PHMOTLC_LOADREASON:

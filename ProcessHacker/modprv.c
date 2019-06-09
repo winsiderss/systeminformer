@@ -541,6 +541,14 @@ VOID PhModuleProviderUpdate(
             moduleItem->Name = module->Name;
             moduleItem->FileName = module->FileName;
             moduleItem->ParentBaseAddress = module->ParentBaseAddress;
+            moduleItem->PreorderNumber = module->PreorderNumber;
+            moduleItem->State = module->State;
+            moduleItem->LoadWhileUnloadingCount = module->LoadWhileUnloadingCount;
+            moduleItem->LowestLink = module->LowestLink;
+            moduleItem->Dependencies = module->Dependencies;
+            moduleItem->IncomingDependencies = module->IncomingDependencies;
+            moduleItem->ServiceTagList = module->ServiceTagList;
+            moduleItem->HasDDAG = module->HasDDAG;
 
             PhInitializeImageVersionInfo(&moduleItem->VersionInfo, moduleItem->FileName->Buffer);
 
@@ -679,6 +687,54 @@ VOID PhModuleProviderUpdate(
             if (moduleItem->LoadCount != module->LoadCount)
             {
                 moduleItem->LoadCount = module->LoadCount;
+                modified = TRUE;
+            }
+
+            if (moduleItem->LoadWhileUnloadingCount != module->LoadWhileUnloadingCount)
+            {
+                moduleItem->LoadWhileUnloadingCount = module->LoadWhileUnloadingCount;
+                modified = TRUE;
+            }
+
+            if (moduleItem->State != module->State)
+            {
+                moduleItem->State = module->State;
+                modified = TRUE;
+            }
+
+            if (moduleItem->PreorderNumber != module->PreorderNumber)
+            {
+                moduleItem->PreorderNumber = module->PreorderNumber;
+                modified = TRUE;
+            }
+
+            if (moduleItem->LowestLink != module->LowestLink)
+            {
+                moduleItem->LowestLink = module->LowestLink;
+                modified = TRUE;
+            }
+
+            if (moduleItem->Dependencies != module->Dependencies)
+            {
+                moduleItem->Dependencies = module->Dependencies;
+                modified = TRUE;
+            }
+
+            if (moduleItem->IncomingDependencies != module->IncomingDependencies)
+            {
+                moduleItem->IncomingDependencies = module->IncomingDependencies;
+                modified = TRUE;
+            }
+
+            if (moduleItem->ServiceTagList != module->ServiceTagList)
+            {
+                moduleItem->ServiceTagList = module->ServiceTagList;
+                modified = TRUE;
+            }
+
+            if (moduleItem->HasDDAG != module->HasDDAG)
+            {
+                moduleItem->HasDDAG = module->HasDDAG;
                 modified = TRUE;
             }
 
