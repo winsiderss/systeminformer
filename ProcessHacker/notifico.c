@@ -939,8 +939,8 @@ VOID PhNfpCpuHistoryIconUpdateCallback(
 
     Icon->Pointers->BeginBitmap(&drawInfo.Width, &drawInfo.Height, &bitmap, &bits, &hdc, &oldBitmap);
     maxDataCount = drawInfo.Width / 2 + 1;
-    lineData1 = _alloca(maxDataCount * sizeof(FLOAT));
-    lineData2 = _alloca(maxDataCount * sizeof(FLOAT));
+    lineData1 = _malloca(maxDataCount * sizeof(FLOAT));
+    lineData2 = _malloca(maxDataCount * sizeof(FLOAT));
 
     lineDataCount = min(maxDataCount, PhCpuKernelHistory.Count);
     PhCopyCircularBuffer_FLOAT(&PhCpuKernelHistory, lineData1, lineDataCount);
@@ -988,6 +988,9 @@ VOID PhNfpCpuHistoryIconUpdateCallback(
 
     *NewText = PhFormat(format, maxCpuProcessItem ? 8 : 3, 128);
     if (maxCpuProcessItem) PhDereferenceObject(maxCpuProcessItem);
+
+    _freea(lineData2);
+    _freea(lineData1);
 }
 
 VOID PhNfpIoHistoryIconUpdateCallback(
@@ -1031,8 +1034,8 @@ VOID PhNfpIoHistoryIconUpdateCallback(
 
     Icon->Pointers->BeginBitmap(&drawInfo.Width, &drawInfo.Height, &bitmap, &bits, &hdc, &oldBitmap);
     maxDataCount = drawInfo.Width / 2 + 1;
-    lineData1 = _alloca(maxDataCount * sizeof(FLOAT));
-    lineData2 = _alloca(maxDataCount * sizeof(FLOAT));
+    lineData1 = _malloca(maxDataCount * sizeof(FLOAT));
+    lineData2 = _malloca(maxDataCount * sizeof(FLOAT));
 
     lineDataCount = min(maxDataCount, PhIoReadHistory.Count);
     max = 1024 * 1024; // minimum scaling of 1 MB.
@@ -1094,6 +1097,9 @@ VOID PhNfpIoHistoryIconUpdateCallback(
 
     *NewText = PhFormat(format, maxIoProcessItem ? 8 : 6, 128);
     if (maxIoProcessItem) PhDereferenceObject(maxIoProcessItem);
+
+    _freea(lineData2);
+    _freea(lineData1);
 }
 
 VOID PhNfpCommitHistoryIconUpdateCallback(
@@ -1134,7 +1140,7 @@ VOID PhNfpCommitHistoryIconUpdateCallback(
 
     Icon->Pointers->BeginBitmap(&drawInfo.Width, &drawInfo.Height, &bitmap, &bits, &hdc, &oldBitmap);
     maxDataCount = drawInfo.Width / 2 + 1;
-    lineData1 = _alloca(maxDataCount * sizeof(FLOAT));
+    lineData1 = _malloca(maxDataCount * sizeof(FLOAT));
 
     lineDataCount = min(maxDataCount, PhCommitHistory.Count);
 
@@ -1166,6 +1172,8 @@ VOID PhNfpCommitHistoryIconUpdateCallback(
     PhInitFormatS(&format[4], L"%)");
 
     *NewText = PhFormat(format, 5, 96);
+
+    _freea(lineData1);
 }
 
 VOID PhNfpPhysicalHistoryIconUpdateCallback(
@@ -1207,7 +1215,7 @@ VOID PhNfpPhysicalHistoryIconUpdateCallback(
 
     Icon->Pointers->BeginBitmap(&drawInfo.Width, &drawInfo.Height, &bitmap, &bits, &hdc, &oldBitmap);
     maxDataCount = drawInfo.Width / 2 + 1;
-    lineData1 = _alloca(maxDataCount * sizeof(FLOAT));
+    lineData1 = _malloca(maxDataCount * sizeof(FLOAT));
 
     lineDataCount = min(maxDataCount, PhPhysicalHistory.Count);
 
@@ -1240,6 +1248,8 @@ VOID PhNfpPhysicalHistoryIconUpdateCallback(
     PhInitFormatS(&format[4], L"%)");
 
     *NewText = PhFormat(format, 5, 96);
+
+    _freea(lineData1);
 }
 
 VOID PhNfpCpuUsageIconUpdateCallback(
