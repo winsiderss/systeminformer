@@ -3,6 +3,7 @@
  *   ETW monitoring
  *
  * Copyright (C) 2010-2015 wj32
+ * Copyright (C) 2019 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -376,6 +377,16 @@ VOID NTAPI EtpEtwEventCallback(
                 destination.Address.Type = PH_IPV6_NETWORK_TYPE;
                 destination.Address.In6Addr = data->daddr;
                 destination.Port = _byteswap_ushort(data->dport);
+            }
+
+            // Note: The endpoints are swapped for incoming UDP packets. The destination endpoint
+            // corresponds to the local socket not the source endpoint. (DavidXanatos)
+            if ((networkEvent.ProtocolType & PH_UDP_PROTOCOL_TYPE) != 0 &&
+                networkEvent.Type == EtEtwNetworkReceiveType)
+            {
+                PH_IP_ENDPOINT swapsource = source;
+                source = destination;
+                destination = swapsource;
             }
 
             networkEvent.LocalEndpoint = source;
