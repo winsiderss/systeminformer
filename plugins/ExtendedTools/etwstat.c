@@ -3,6 +3,7 @@
  *   ETW statistics collection
  *
  * Copyright (C) 2010-2011 wj32
+ * Copyright (C) 2019 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -184,12 +185,33 @@ VOID EtProcessNetworkEvent(
         PhDereferenceObject(processItem);
     }
 
-    if (networkItem = PhReferenceNetworkItem(
+    networkItem = PhReferenceNetworkItem(
         Event->ProtocolType,
         &Event->LocalEndpoint,
         &Event->RemoteEndpoint,
         Event->ClientId.UniqueProcess
-        ))
+        );
+
+    if (!networkItem && Event->ProtocolType & PH_UDP_PROTOCOL_TYPE)
+    {
+        // Note: ETW generates UDP events with the LocalEndpoint set to the LAN endpoint address 
+        // of the local adapter the packet was sent or recieved but GetExtendedUdpTable 
+        // returns some UDP connections with endpoints set to in4addr_any/in6addr_any (zero). (dmex)
+
+        if (Event->ProtocolType & PH_IPV4_NETWORK_TYPE)
+            memset(&Event->LocalEndpoint.Address.InAddr, 0, sizeof(IN_ADDR)); // same as in4addr_any
+        else
+            memset(&Event->LocalEndpoint.Address.In6Addr, 0, sizeof(IN6_ADDR)); // same as in6addr_any
+
+        networkItem = PhReferenceNetworkItem(
+            Event->ProtocolType,
+            &Event->LocalEndpoint,
+            &Event->RemoteEndpoint,
+            Event->ClientId.UniqueProcess
+            );
+    }
+
+    if (networkItem)
     {
         networkBlock = EtGetNetworkBlock(networkItem);
 
