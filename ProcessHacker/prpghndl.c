@@ -305,12 +305,6 @@ BOOLEAN PhpHandleTreeFilterCallback(
             return TRUE;
     }
 
-    if (handleItem->ObjectString[0])
-    {
-        if (PhpWordMatchHandleStringZ(handlesContext->SearchboxText, handleItem->ObjectString))
-            return TRUE;
-    }
-
     if (handleItem->GrantedAccessString[0])
     {
         if (PhpWordMatchHandleStringZ(handlesContext->SearchboxText, handleItem->GrantedAccessString))
@@ -320,6 +314,12 @@ BOOLEAN PhpHandleTreeFilterCallback(
     // TODO: Add search for handleItem->Attributes
 
     // node properties
+
+    if (handleNode->ObjectString[0])
+    {
+        if (PhpWordMatchHandleStringZ(handlesContext->SearchboxText, handleNode->ObjectString))
+            return TRUE;
+    }
 
     if (!PhIsNullOrEmptyString(handleNode->GrantedAccessSymbolicText))
     {
