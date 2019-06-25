@@ -912,11 +912,7 @@ static VOID PhpUpdateProcessNodeWindow(
     {
         PhClearReference(&ProcessNode->WindowText);
 
-        if (ProcessNode->ProcessItem->IsSubsystemProcess)
-        {
-            NOTHING;
-        }
-        else
+        if (ProcessNode->ProcessItem->QueryHandle && !ProcessNode->ProcessItem->IsSubsystemProcess)
         {
             ProcessNode->WindowHandle = PhGetProcessMainWindow(
                 ProcessNode->ProcessId,
@@ -925,7 +921,12 @@ static VOID PhpUpdateProcessNodeWindow(
 
             if (ProcessNode->WindowHandle)
             {
-                PhGetWindowTextEx(ProcessNode->WindowHandle, PH_GET_WINDOW_TEXT_INTERNAL, &ProcessNode->WindowText);
+                PhGetWindowTextEx(
+                    ProcessNode->WindowHandle,
+                    PH_GET_WINDOW_TEXT_INTERNAL,
+                    &ProcessNode->WindowText
+                    );
+
                 ProcessNode->WindowHung = !!IsHungAppWindow(ProcessNode->WindowHandle);
             }
         }
