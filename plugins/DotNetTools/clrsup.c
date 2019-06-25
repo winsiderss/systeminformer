@@ -225,7 +225,7 @@ HRESULT CreateXCLRDataProcess(
     ULONG flags;
     BOOLEAN clrV4;
     HMODULE dllBase;
-    HRESULT (__stdcall *clrDataCreateInstance)(REFIID, ICLRDataTarget *, void **);
+    PFN_CLRDataCreateInstance clrDataCreateInstance;
 
     clrV4 = FALSE;
 

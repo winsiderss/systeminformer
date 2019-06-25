@@ -335,8 +335,8 @@ INT_PTR CALLBACK NetworkPingWndProc(
             else
                 PhCenterWindow(hwndDlg, PhMainWndHandle);
 
-            SetWindowText(hwndDlg, PhaFormatString(L"Ping %s", context->IpAddressString)->Buffer);
-            SetWindowText(context->StatusHandle, PhaFormatString(L"Pinging %s with %lu bytes of data...",
+            PhSetWindowText(hwndDlg, PhaFormatString(L"Ping %s", context->IpAddressString)->Buffer);
+            PhSetWindowText(context->StatusHandle, PhaFormatString(L"Pinging %s with %lu bytes of data...",
                 context->IpAddressString,
                 PhGetIntegerSetting(SETTING_NAME_PING_SIZE))->Buffer
                 );

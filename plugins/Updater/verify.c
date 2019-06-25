@@ -232,7 +232,7 @@ BOOLEAN UpdaterVerifySignature(
 }
 
 VOID UpdaterDestroyHash(
-    _Inout_ PUPDATER_HASH_CONTEXT Context
+    _Frees_ptr_opt_ PUPDATER_HASH_CONTEXT Context
     )
 {
     if (Context->HashAlgHandle)
