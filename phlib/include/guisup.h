@@ -491,6 +491,16 @@ PhRemoveWindowContext(
     _In_ ULONG PropertyHash
     );
 
+typedef BOOL (CALLBACK* PH_ENUM_CALLBACK)(
+    _In_ HWND WindowHandle,
+    _In_opt_ PVOID Context
+    );
+
+VOID PhEnumWindows(
+    _In_ PH_ENUM_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    );
+
 typedef BOOLEAN (CALLBACK *PH_CHILD_ENUM_CALLBACK)(
     _In_ HWND WindowHandle, 
     _In_opt_ PVOID Context

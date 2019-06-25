@@ -1389,6 +1389,14 @@ VOID PhRemoveWindowContext(
     PhReleaseQueuedLockExclusive(&WindowContextListLock);
 }
 
+VOID PhEnumWindows(
+    _In_ PH_ENUM_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    EnumWindows((WNDENUMPROC)Callback, (LPARAM)Context);
+}
+
 VOID PhEnumChildWindows(
     _In_opt_ HWND WindowHandle,
     _In_ ULONG Limit,
@@ -1417,7 +1425,7 @@ typedef struct _GET_PROCESS_MAIN_WINDOW_CONTEXT
     BOOLEAN SkipInvisible;
 } GET_PROCESS_MAIN_WINDOW_CONTEXT, *PGET_PROCESS_MAIN_WINDOW_CONTEXT;
 
-BOOLEAN CALLBACK PhpGetProcessMainWindowEnumWindowsProc(
+BOOL CALLBACK PhpGetProcessMainWindowEnumWindowsProc(
     _In_ HWND WindowHandle,
     _In_opt_ PVOID Context
     )
@@ -1486,7 +1494,8 @@ HWND PhGetProcessMainWindowEx(
     if (processHandle && WINDOWS_HAS_IMMERSIVE && IsImmersiveProcess)
         context.IsImmersive = IsImmersiveProcess(processHandle);
 
-    PhEnumChildWindows(NULL, 0x800, PhpGetProcessMainWindowEnumWindowsProc, &context);
+    PhEnumWindows(PhpGetProcessMainWindowEnumWindowsProc, &context);
+    //PhEnumChildWindows(NULL, 0x800, PhpGetProcessMainWindowEnumWindowsProc, &context);
 
     if (!ProcessHandle && processHandle)
         NtClose(processHandle);
