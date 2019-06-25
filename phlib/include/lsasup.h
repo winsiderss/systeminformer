@@ -99,6 +99,14 @@ PhGetTokenUserString(
     );
 
 PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetAccountPrivileges(
+    _In_ PSID AccountSid,
+    _Out_ PTOKEN_PRIVILEGES* Privileges
+    );
+
+PHLIBAPI
 PPH_STRING
 NTAPI
 PhGetCapabilitySidName(

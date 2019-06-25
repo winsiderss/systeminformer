@@ -3101,38 +3101,6 @@ NTSTATUS PhCreateProcessAsUser(
     return status;
 }
 
-NTSTATUS PhpGetAccountPrivileges(
-    _In_ PSID AccountSid,
-    _Out_ PTOKEN_PRIVILEGES *Privileges
-    )
-{
-    NTSTATUS status;
-    LSA_HANDLE accountHandle;
-    PPRIVILEGE_SET accountPrivileges;
-    PTOKEN_PRIVILEGES privileges;
-
-    status = LsaOpenAccount(PhGetLookupPolicyHandle(), AccountSid, ACCOUNT_VIEW, &accountHandle);
-
-    if (!NT_SUCCESS(status))
-        return status;
-
-    status = LsaEnumeratePrivilegesOfAccount(accountHandle, &accountPrivileges);
-    LsaClose(accountHandle);
-
-    if (!NT_SUCCESS(status))
-        return status;
-
-    privileges = PhAllocate(FIELD_OFFSET(TOKEN_PRIVILEGES, Privileges) + sizeof(LUID_AND_ATTRIBUTES) * accountPrivileges->PrivilegeCount);
-    privileges->PrivilegeCount = accountPrivileges->PrivilegeCount;
-    memcpy(privileges->Privileges, accountPrivileges->Privilege, sizeof(LUID_AND_ATTRIBUTES) * accountPrivileges->PrivilegeCount);
-
-    LsaFreeMemory(accountPrivileges);
-
-    *Privileges = privileges;
-
-    return status;
-}
-
 /**
  * Filters a token to create a limited user security context.
  *
@@ -3212,7 +3180,7 @@ NTSTATUS PhFilterTokenForLimitedUser(
         return status;
 
     // Get the privileges of the Users group - the privileges that we are going to allow.
-    if (!NT_SUCCESS(PhpGetAccountPrivileges(usersSid, &privilegesOfUsers)))
+    if (!NT_SUCCESS(PhGetAccountPrivileges(usersSid, &privilegesOfUsers)))
     {
         // Unsuccessful, so use the default set of privileges.
         privilegesOfUsers = PhAllocate(FIELD_OFFSET(TOKEN_PRIVILEGES, Privileges) + sizeof(defaultAllowedPrivileges));
