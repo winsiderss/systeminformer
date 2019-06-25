@@ -635,7 +635,7 @@ static BOOLEAN SharedIconCacheHashtableEqualFunction(
     if (IS_INTRESOURCE(entry1->Name))
     {
         if (IS_INTRESOURCE(entry2->Name))
-            return entry1->Name == entry2->Name;
+            return PtrToUlong(entry1->Name) == PtrToUlong(entry2->Name);
         else
             return FALSE;
     }
