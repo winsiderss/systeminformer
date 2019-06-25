@@ -529,7 +529,7 @@ PPH_STRING PhGetSidFullName(
 
             if (domainNameBuffer && domainNameLength != 0)
             {
-                fullName = PhCreateStringEx(NULL, domainNameLength + sizeof(WCHAR) + names[0].Name.Length);
+                fullName = PhCreateStringEx(NULL, domainNameLength + sizeof(UNICODE_NULL) + names[0].Name.Length);
                 memcpy(&fullName->Buffer[0], domainNameBuffer, domainNameLength);
                 fullName->Buffer[domainNameLength / sizeof(WCHAR)] = OBJ_NAME_PATH_SEPARATOR;
                 memcpy(&fullName->Buffer[domainNameLength / sizeof(WCHAR) + 1], names[0].Name.Buffer, names[0].Name.Length);
@@ -613,6 +613,38 @@ PPH_STRING PhGetTokenUserString(
     }
 
     return tokenUserString;
+}
+
+NTSTATUS PhGetAccountPrivileges(
+    _In_ PSID AccountSid,
+    _Out_ PTOKEN_PRIVILEGES *Privileges
+    )
+{
+    NTSTATUS status;
+    LSA_HANDLE accountHandle;
+    PPRIVILEGE_SET accountPrivileges;
+    PTOKEN_PRIVILEGES privileges;
+
+    status = LsaOpenAccount(PhGetLookupPolicyHandle(), AccountSid, ACCOUNT_VIEW, &accountHandle);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = LsaEnumeratePrivilegesOfAccount(accountHandle, &accountPrivileges);
+    LsaClose(accountHandle);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    privileges = PhAllocate(FIELD_OFFSET(TOKEN_PRIVILEGES, Privileges) + sizeof(LUID_AND_ATTRIBUTES) * accountPrivileges->PrivilegeCount);
+    privileges->PrivilegeCount = accountPrivileges->PrivilegeCount;
+    memcpy(privileges->Privileges, accountPrivileges->Privilege, sizeof(LUID_AND_ATTRIBUTES) * accountPrivileges->PrivilegeCount);
+
+    LsaFreeMemory(accountPrivileges);
+
+    *Privileges = privileges;
+
+    return status;
 }
 
 typedef struct _PH_CAPABILITY_ENTRY
