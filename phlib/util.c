@@ -1349,7 +1349,6 @@ PPH_STRING PhFormatTimeSpanRelative(
     _In_ ULONG64 TimeSpan
     )
 {
-    PH_AUTO_POOL autoPool;
     PPH_STRING string;
     DOUBLE days;
     DOUBLE weeks;
@@ -1357,8 +1356,6 @@ PPH_STRING PhFormatTimeSpanRelative(
     DOUBLE months;
     DOUBLE years;
     DOUBLE centuries;
-
-    PhInitializeAutoPool(&autoPool);
 
     days = (DOUBLE)TimeSpan / PH_TICKS_PER_DAY;
     weeks = days / 7;
@@ -1369,23 +1366,23 @@ PPH_STRING PhFormatTimeSpanRelative(
 
     if (centuries >= 1)
     {
-        string = PhaFormatString(L"%u %s", (ULONG)centuries, (ULONG)centuries == 1 ? L"century" : L"centuries");
+        string = PhFormatString(L"%u %s", (ULONG)centuries, (ULONG)centuries == 1 ? L"century" : L"centuries");
     }
     else if (years >= 1)
     {
-        string = PhaFormatString(L"%u %s", (ULONG)years, (ULONG)years == 1 ? L"year" : L"years");
+        string = PhFormatString(L"%u %s", (ULONG)years, (ULONG)years == 1 ? L"year" : L"years");
     }
     else if (months >= 1)
     {
-        string = PhaFormatString(L"%u %s", (ULONG)months, (ULONG)months == 1 ? L"month" : L"months");
+        string = PhFormatString(L"%u %s", (ULONG)months, (ULONG)months == 1 ? L"month" : L"months");
     }
     else if (fortnights >= 1)
     {
-        string = PhaFormatString(L"%u %s", (ULONG)fortnights, (ULONG)fortnights == 1 ? L"fortnight" : L"fortnights");
+        string = PhFormatString(L"%u %s", (ULONG)fortnights, (ULONG)fortnights == 1 ? L"fortnight" : L"fortnights");
     }
     else if (weeks >= 1)
     {
-        string = PhaFormatString(L"%u %s", (ULONG)weeks, (ULONG)weeks == 1 ? L"week" : L"weeks");
+        string = PhFormatString(L"%u %s", (ULONG)weeks, (ULONG)weeks == 1 ? L"week" : L"weeks");
     }
     else
     {
@@ -1404,45 +1401,72 @@ PPH_STRING PhFormatTimeSpanRelative(
 
         if (days >= 1)
         {
-            string = PhaFormatString(L"%u %s", (ULONG)days, (ULONG)days == 1 ? L"day" : L"days");
             hoursPartial = (ULONG)PH_TICKS_PARTIAL_HOURS(TimeSpan);
 
             if (hoursPartial >= 1)
             {
-                string = PhaFormatString(L"%s and %u %s", string->Buffer, hoursPartial, hoursPartial == 1 ? L"hour" : L"hours");
+                string = PhFormatString(
+                    L"%u %s and %u %s",
+                    (ULONG)days,
+                    (ULONG)days == 1 ? L"day" : L"days",
+                    hoursPartial,
+                    hoursPartial == 1 ? L"hour" : L"hours"
+                    );
+            }
+            else
+            {
+                string = PhFormatString(L"%u %s", (ULONG)days, (ULONG)days == 1 ? L"day" : L"days");
             }
         }
         else if (hours >= 1)
         {
-            string = PhaFormatString(L"%u %s", (ULONG)hours, (ULONG)hours == 1 ? L"hour" : L"hours");
             minutesPartial = (ULONG)PH_TICKS_PARTIAL_MIN(TimeSpan);
 
             if (minutesPartial >= 1)
             {
-                string = PhaFormatString(L"%s and %u %s", string->Buffer, (ULONG)minutesPartial, (ULONG)minutesPartial == 1 ? L"minute" : L"minutes");
+                string = PhFormatString(
+                    L"%u %s and %u %s",
+                    (ULONG)hours,
+                    (ULONG)hours == 1 ? L"hour" : L"hours",
+                    (ULONG)minutesPartial,
+                    (ULONG)minutesPartial == 1 ? L"minute" : L"minutes"
+                    );
+            }
+            else
+            {
+                string = PhFormatString(L"%u %s", (ULONG)hours, (ULONG)hours == 1 ? L"hour" : L"hours");
             }
         }
         else if (minutes >= 1)
         {
-            string = PhaFormatString(L"%u %s", (ULONG)minutes, (ULONG)minutes == 1 ? L"minute" : L"minutes");
             secondsPartial = (ULONG)PH_TICKS_PARTIAL_SEC(TimeSpan);
 
             if (secondsPartial >= 1)
             {
-                string = PhaFormatString(L"%s and %u %s", string->Buffer, (ULONG)secondsPartial, (ULONG)secondsPartial == 1 ? L"second" : L"seconds");
+                string = PhFormatString(
+                    L"%u %s and %u %s",
+                    (ULONG)minutes,
+                    (ULONG)minutes == 1 ? L"minute" : L"minutes",
+                    (ULONG)secondsPartial,
+                    (ULONG)secondsPartial == 1 ? L"second" : L"seconds"
+                    );
+            }
+            else
+            {
+                string = PhFormatString(L"%u %s", (ULONG)minutes, (ULONG)minutes == 1 ? L"minute" : L"minutes");
             }
         }
         else if (seconds >= 1)
         {
-            string = PhaFormatString(L"%u %s", (ULONG)seconds, (ULONG)seconds == 1 ? L"second" : L"seconds");
+            string = PhFormatString(L"%u %s", (ULONG)seconds, (ULONG)seconds == 1 ? L"second" : L"seconds");
         }
         else if (milliseconds >= 1)
         {
-            string = PhaFormatString(L"%u %s", (ULONG)milliseconds, (ULONG)milliseconds == 1 ? L"millisecond" : L"milliseconds");
+            string = PhFormatString(L"%u %s", (ULONG)milliseconds, (ULONG)milliseconds == 1 ? L"millisecond" : L"milliseconds");
         }
         else
         {
-            string = PhaCreateString(L"a very short time");
+            string = PhCreateString(L"a very short time");
         }
     }
 
@@ -1451,13 +1475,10 @@ PPH_STRING PhFormatTimeSpanRelative(
     {
         // Special vowel case: a hour -> an hour
         if (string->Buffer[2] != 'h')
-            string = PhaConcatStrings2(L"a ", &string->Buffer[2]);
+            PhMoveReference(&string, PhConcatStrings2(L"a ", &string->Buffer[2]));
         else
-            string = PhaConcatStrings2(L"an ", &string->Buffer[2]);
+            PhMoveReference(&string, PhConcatStrings2(L"an ", &string->Buffer[2]));
     }
-
-    PhReferenceObject(string);
-    PhDeleteAutoPool(&autoPool);
 
     return string;
 }
