@@ -859,7 +859,7 @@ static VOID NTAPI DotNetEventCallback(
                 node->Type = DNA_TYPE_CLR;
                 node->u.Clr.ClrInstanceID = data->ClrInstanceID;
                 node->u.Clr.StartupFlags = data->StartupFlags;
-                node->u.Clr.DisplayName = PhFormatString(L"CLR v%u.%u.%u.%u", data->VMMajorVersion, data->VMMinorVersion, data->VMBuildNumber, data->VMQfeNumber);
+                node->u.Clr.DisplayName = PhFormatString(L"CLR v%hu.%hu.%hu.%hu", data->VMMajorVersion, data->VMMinorVersion, data->VMBuildNumber, data->VMQfeNumber);
                 node->StructureText = node->u.Clr.DisplayName->sr;
                 node->IdText = PhFormatUInt64(data->ClrInstanceID, FALSE);
 

@@ -121,7 +121,7 @@ BOOLEAN PhHttpSocketConnect(
 
 BOOLEAN PhHttpSocketBeginRequest(
     _In_ PPH_HTTP_CONTEXT HttpContext,
-    _In_ PWSTR Method,
+    _In_opt_ PWSTR Method,
     _In_ PWSTR UrlPath,
     _In_ ULONG Flags
     )
@@ -211,7 +211,7 @@ BOOLEAN PhHttpSocketAddRequestHeaders(
     return !!WinHttpAddRequestHeaders(
         HttpContext->RequestHandle, 
         Headers, 
-        HeadersLength ? HeadersLength : -1L, 
+        HeadersLength ? HeadersLength : ULONG_MAX,
         WINHTTP_ADDREQ_FLAG_ADD | WINHTTP_ADDREQ_FLAG_REPLACE
         );
 }

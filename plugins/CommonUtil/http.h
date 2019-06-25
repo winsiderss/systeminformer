@@ -44,7 +44,7 @@ BOOLEAN
 NTAPI
 PhHttpSocketBeginRequest(
     _In_ PPH_HTTP_CONTEXT HttpContext,
-    _In_ PWSTR Method,
+    _In_opt_ PWSTR Method,
     _In_ PWSTR UrlPath,
     _In_ ULONG Flags
     );
