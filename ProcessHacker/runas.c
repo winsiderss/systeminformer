@@ -200,18 +200,29 @@ BOOLEAN IsServiceAccount(
     _In_ PPH_STRING UserName
     )
 {
+    BOOLEAN serviceAccount = FALSE;
+    PPH_STRING localSystemSidName;
+    PPH_STRING localServiceSidName;
+    PPH_STRING localNetworkSidName;
+
+    localSystemSidName = PhGetSidFullName(&PhSeLocalSystemSid, TRUE, NULL);
+    localServiceSidName = PhGetSidFullName(&PhSeLocalServiceSid, TRUE, NULL);
+    localNetworkSidName = PhGetSidFullName(&PhSeNetworkServiceSid, TRUE, NULL);
+
     if (
-        PhEqualString2(UserName, L"NT AUTHORITY\\LOCAL SERVICE", TRUE) ||
-        PhEqualString2(UserName, L"NT AUTHORITY\\NETWORK SERVICE", TRUE) ||
-        PhEqualString2(UserName, L"NT AUTHORITY\\SYSTEM", TRUE)
+        PhEqualString(localSystemSidName, UserName, TRUE) ||
+        PhEqualString(localServiceSidName, UserName, TRUE) ||
+        PhEqualString(localNetworkSidName, UserName, TRUE)
         )
     {
-        return TRUE;
+        serviceAccount = TRUE;
     }
-    else
-    {
-        return FALSE;
-    }
+
+    PhDereferenceObject(localNetworkSidName);
+    PhDereferenceObject(localServiceSidName);
+    PhDereferenceObject(localSystemSidName);
+
+    return serviceAccount;
 }
 
 BOOLEAN IsCurrentUserAccount(
