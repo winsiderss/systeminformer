@@ -2824,18 +2824,36 @@ NTSTATUS PhDeleteFile(
     _In_ HANDLE FileHandle
     )
 {
-    FILE_DISPOSITION_INFORMATION dispositionInfo;
-    IO_STATUS_BLOCK isb;
+    if (WindowsVersion >= WINDOWS_10_RS5)
+    {
+        FILE_DISPOSITION_INFO_EX dispositionInfoEx;
+        IO_STATUS_BLOCK isb;
 
-    dispositionInfo.DeleteFile = TRUE;
+        dispositionInfoEx.Flags = FILE_DISPOSITION_FLAG_DELETE | FILE_DISPOSITION_FLAG_IGNORE_READONLY_ATTRIBUTE;
 
-    return NtSetInformationFile(
-        FileHandle,
-        &isb,
-        &dispositionInfo,
-        sizeof(FILE_DISPOSITION_INFORMATION),
-        FileDispositionInformation
-        );
+        return NtSetInformationFile(
+            FileHandle,
+            &isb,
+            &dispositionInfoEx,
+            sizeof(FILE_DISPOSITION_INFO_EX),
+            FileDispositionInformationEx
+            );
+    }
+    else
+    {
+        FILE_DISPOSITION_INFORMATION dispositionInfo;
+        IO_STATUS_BLOCK isb;
+
+        dispositionInfo.DeleteFile = TRUE;
+
+        return NtSetInformationFile(
+            FileHandle,
+            &isb,
+            &dispositionInfo,
+            sizeof(FILE_DISPOSITION_INFORMATION),
+            FileDispositionInformation
+            );
+    }
 }
 
 NTSTATUS PhGetFileHandleName(
@@ -7699,7 +7717,7 @@ static BOOLEAN PhpDeleteDirectoryCallback(
     }
     else
     {
-        if (Information->FileAttributes & FILE_ATTRIBUTE_READONLY)
+        if (WindowsVersion < WINDOWS_10_RS5 && (Information->FileAttributes & FILE_ATTRIBUTE_READONLY))
         {
             HANDLE fileHandle;
 
