@@ -1326,6 +1326,13 @@ PhQueryAttributesFileWin32(
     );
 
 PHLIBAPI
+BOOLEAN
+NTAPI
+PhDoesFileExistsWin32(
+    _In_ PWSTR FileName
+    );
+
+PHLIBAPI
 NTSTATUS
 NTAPI
 PhDeleteFileWin32(

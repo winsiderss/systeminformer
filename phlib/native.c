@@ -7528,6 +7528,27 @@ NTSTATUS PhQueryAttributesFileWin32(
     return status;
 }
 
+BOOLEAN PhDoesFileExistsWin32(
+    _In_ PWSTR FileName
+    )
+{
+    NTSTATUS status;
+    FILE_BASIC_INFORMATION basicInfo;
+
+    status = PhQueryAttributesFileWin32(FileName, &basicInfo);
+
+    if (
+        NT_SUCCESS(status) ||
+        status == STATUS_SHARING_VIOLATION ||
+        status == STATUS_ACCESS_DENIED
+        )
+    {
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
 /**
  * Deletes a file.
  *
@@ -7575,7 +7596,7 @@ NTSTATUS PhCreateDirectory(
     if (PhIsNullOrEmptyString(DirectoryPath))
         return STATUS_FAIL_CHECK;
 
-    if (RtlDoesFileExists_U(PhGetString(DirectoryPath)))
+    if (PhDoesFileExistsWin32(PhGetString(DirectoryPath)))
         return STATUS_SUCCESS;
 
     remainingPart = PhGetStringRef(DirectoryPath);
@@ -7599,7 +7620,7 @@ NTSTATUS PhCreateDirectory(
                     );
 
                 // Check if the directory already exists.
-                if (!RtlDoesFileExists_U(PhGetString(tempPathString)))
+                if (!PhDoesFileExistsWin32(PhGetString(tempPathString)))
                 {
                     HANDLE directoryHandle;
 
@@ -7626,7 +7647,7 @@ NTSTATUS PhCreateDirectory(
     if (directoryPath)
         PhDereferenceObject(directoryPath);
 
-    if (RtlDoesFileExists_U(PhGetString(DirectoryPath)))
+    if (PhDoesFileExistsWin32(PhGetString(DirectoryPath)))
         return STATUS_SUCCESS;
     else
         return STATUS_NOT_FOUND;
