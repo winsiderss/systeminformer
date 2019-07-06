@@ -314,7 +314,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
 
         if (NT_SUCCESS(PhGetProcessBasicInformation(ProcessHandle, &basicInfo)) && basicInfo.PebBaseAddress != 0)
         {
-            // HACK: Windows 10 RS2 and above 'added TEB/PEB sub-VAD segments' and we need to tag individual sections.
+            // HACK: Windows 10 RS2 and above 'added TEB/PEB sub-VAD segments' and we need to tag individual sections. (dmex)
             PhpSetMemoryRegionType(List, basicInfo.PebBaseAddress, WindowsVersion < WINDOWS_10_RS2 ? TRUE : FALSE, PebRegion);
 
             if (NT_SUCCESS(NtReadVirtualMemory(ProcessHandle,
@@ -469,7 +469,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
             }
         }
 
-        if (memoryItem->VirtualAttributes.Valid && memoryItem->State & MEM_COMMIT)
+        if (memoryItem->State & MEM_COMMIT && memoryItem->Valid && !memoryItem->Bad)
         {
             UCHAR buffer[HEAP_SEGMENT_MAX_SIZE];
 
@@ -798,7 +798,10 @@ NTSTATUS PhQueryMemoryItemList(
             NULL
             )))
         {
-            memoryItem->VirtualAttributes = info.u1.VirtualAttributes;
+            PMEMORY_WORKING_SET_EX_BLOCK block = &info.u1.VirtualAttributes;
+
+            memoryItem->Valid = !!block->Valid;
+            memoryItem->Bad = !!block->Bad;
         }
 
         PhAddElementAvlTree(&List->Set, &memoryItem->Links);
