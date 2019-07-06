@@ -3,7 +3,7 @@
  *   Main window: Processes tab
  *
  * Copyright (C) 2009-2016 wj32
- * Copyright (C) 2017-2018 dmex
+ * Copyright (C) 2017-2019 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -537,8 +537,8 @@ VOID PhMwpInitializeProcessMenu(
         // If the user selected a fake process, disable all but a few menu items.
         if (
             PH_IS_FAKE_PROCESS_ID(Processes[0]->ProcessId) || 
-            Processes[0]->ProcessId == SYSTEM_IDLE_PROCESS_ID ||
-            Processes[0]->ProcessId == SYSTEM_PROCESS_ID // TODO: Some menu entires could be enabled for the system process?
+            Processes[0]->ProcessId == SYSTEM_IDLE_PROCESS_ID
+            //Processes[0]->ProcessId == SYSTEM_PROCESS_ID // (dmex)
             )
         {
             PhSetFlagsAllEMenuItems(Menu, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
