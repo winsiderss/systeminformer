@@ -1199,18 +1199,97 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                         }
                         else
                         {
-                            status = PhExecuteRunAsCommand3(
-                                hwndDlg,
-                                PhGetString(program),
-                                PhGetString(username),
-                                PhGetStringOrEmpty(password),
-                                logonType,
-                                context->ProcessId,
-                                sessionId,
-                                PhGetString(desktopName),
-                                useLinkedToken,
-                                createSuspended
+                            HANDLE processHandle = NULL;
+                            HANDLE newProcessHandle;
+                            STARTUPINFOEX startupInfo;
+                            SIZE_T attributeListLength = 0;
+
+                            memset(&startupInfo, 0, sizeof(STARTUPINFOEX));
+                            startupInfo.StartupInfo.cb = sizeof(STARTUPINFOEX);
+                            startupInfo.StartupInfo.dwFlags = STARTF_USESHOWWINDOW;
+                            startupInfo.StartupInfo.wShowWindow = SW_SHOWNORMAL;
+
+                            status = PhOpenProcess(
+                                &processHandle,
+                                PROCESS_CREATE_PROCESS,
+                                context->ProcessId
                                 );
+
+                            if (!NT_SUCCESS(status))
+                                goto CleanupExit;
+
+                            if (!InitializeProcThreadAttributeList(NULL, 1, 0, &attributeListLength) && GetLastError() != ERROR_INSUFFICIENT_BUFFER)
+                            {
+                                status = PhGetLastWin32ErrorAsNtStatus();
+                                goto CleanupExit;
+                            }
+
+                            startupInfo.lpAttributeList = PhAllocate(attributeListLength);
+
+                            if (!InitializeProcThreadAttributeList(startupInfo.lpAttributeList, 1, 0, &attributeListLength))
+                            {
+                                status = PhGetLastWin32ErrorAsNtStatus();
+                                goto CleanupExit;
+                            }
+
+                            if (!UpdateProcThreadAttribute(startupInfo.lpAttributeList, 0, PROC_THREAD_ATTRIBUTE_PARENT_PROCESS, &processHandle, sizeof(HANDLE), NULL, NULL))
+                            {
+                                status = PhGetLastWin32ErrorAsNtStatus();
+                                goto CleanupExit;
+                            }
+
+                            status = PhCreateProcessWin32Ex(
+                                NULL,
+                                PhGetString(program),
+                                NULL,
+                                NULL,
+                                &startupInfo.StartupInfo,
+                                PH_CREATE_PROCESS_SUSPENDED | PH_CREATE_PROCESS_NEW_CONSOLE | PH_CREATE_PROCESS_EXTENDED_STARTUPINFO,
+                                NULL,
+                                NULL,
+                                &newProcessHandle,
+                                NULL
+                                );
+
+                            if (NT_SUCCESS(status))
+                            {
+                                PROCESS_BASIC_INFORMATION basicInfo;
+
+                                if (NT_SUCCESS(PhGetProcessBasicInformation(newProcessHandle, &basicInfo)))
+                                {
+                                    AllowSetForegroundWindow(HandleToUlong(basicInfo.UniqueProcessId));
+                                }
+
+                                NtResumeProcess(newProcessHandle);
+                                NtClose(newProcessHandle);
+                            }
+
+                        CleanupExit:
+
+                            if (startupInfo.lpAttributeList)
+                            {
+                                DeleteProcThreadAttributeList(startupInfo.lpAttributeList);
+                                PhFree(startupInfo.lpAttributeList);
+                            }
+
+                            if (processHandle)
+                            {
+                                NtClose(processHandle);
+                            }
+
+                            // TODO: Commented out while testing above method (dmex)
+                            //status = PhExecuteRunAsCommand3(
+                            //    hwndDlg,
+                            //    PhGetString(program),
+                            //    PhGetString(username),
+                            //    PhGetStringOrEmpty(password),
+                            //    logonType,
+                            //    context->ProcessId,
+                            //    sessionId,
+                            //    PhGetString(desktopName),
+                            //    useLinkedToken,
+                            //    createSuspended
+                            //    );
                         }
                     }
                     else
