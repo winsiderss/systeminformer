@@ -34,6 +34,7 @@ typedef struct _PH_MEMORY_ITEM
 
     union
     {
+        MEMORY_BASIC_INFORMATION BasicInfo;
         struct
         {
             PVOID BaseAddress;
@@ -44,12 +45,17 @@ typedef struct _PH_MEMORY_ITEM
             ULONG Protect;
             ULONG Type;
         };
-        MEMORY_BASIC_INFORMATION BasicInfo;
     };
 
     union
     {
-        MEMORY_WORKING_SET_EX_BLOCK VirtualAttributes;
+        BOOLEAN Attributes;
+        struct
+        {
+            BOOLEAN Valid : 1;
+            BOOLEAN Bad : 1;
+            BOOLEAN Spare : 6;
+        };
     };
 
     struct _PH_MEMORY_ITEM *AllocationBaseItem;
