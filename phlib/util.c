@@ -3343,7 +3343,7 @@ VOID PhShellExecute(
     _In_opt_ PWSTR Parameters
     )
 {
-    SHELLEXECUTEINFO info = { sizeof(info) };
+    SHELLEXECUTEINFO info = { sizeof(SHELLEXECUTEINFO) };
 
     info.lpFile = FileName;
     info.lpParameters = Parameters;
@@ -4337,7 +4337,7 @@ VOID PhSetFileDialogFileName(
 
         ofn->nMaxFile = (ULONG)max(fileName.Length / sizeof(WCHAR) + 1, 0x400);
         ofn->lpstrFile = PhAllocate(ofn->nMaxFile * sizeof(WCHAR));
-        memcpy(ofn->lpstrFile, fileName.Buffer, fileName.Length + sizeof(WCHAR));
+        memcpy(ofn->lpstrFile, fileName.Buffer, fileName.Length + sizeof(UNICODE_NULL));
     }
 }
 
@@ -5076,7 +5076,7 @@ BOOLEAN PhParseCommandLineFuzzy(
     // Note that we do not trim whitespace in each part because filenames can contain trailing
     // whitespace before the extension (e.g. "Internet  .exe").
 
-    temp.Buffer = PhAllocate(commandLine.Length + sizeof(WCHAR));
+    temp.Buffer = PhAllocate(commandLine.Length + sizeof(UNICODE_NULL));
     memcpy(temp.Buffer, commandLine.Buffer, commandLine.Length);
     temp.Buffer[commandLine.Length / sizeof(WCHAR)] = UNICODE_NULL;
     temp.Length = commandLine.Length;

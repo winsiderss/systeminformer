@@ -5345,7 +5345,7 @@ NTSTATUS PhGetProcessIsDotNetEx(
         // * Better performance.
         // * No need for admin rights to get .NET status of processes owned by other users.
 
-        PhInitFormatIU(&format[1], (ULONG_PTR)ProcessId);
+        PhInitFormatU(&format[1], HandleToUlong(ProcessId));
 
         // Version 4 section object
 

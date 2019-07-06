@@ -119,7 +119,7 @@ static ULONG (WINAPI *NetUserEnum_I)(
     _In_ PCWSTR servername,
     _In_ ULONG level,
     _In_ ULONG filter,
-    _Out_ PBYTE *bufptr,
+    _Out_ PVOID *bufptr,
     _In_ ULONG prefmaxlen,
     _Out_ PULONG entriesread,
     _Out_ PULONG totalentries,
@@ -280,7 +280,7 @@ PPH_STRING GetCurrentDesktopName(
     string = PhCreateStringEx(NULL, 0x200);
 
     if (GetUserObjectInformation(
-        GetThreadDesktop(HandleToULong(NtCurrentThreadId())),
+        GetThreadDesktop(HandleToUlong(NtCurrentThreadId())),
         UOI_NAME,
         string->Buffer,
         (ULONG)string->Length + sizeof(UNICODE_NULL),
@@ -517,10 +517,8 @@ static VOID PhpAddAccountsToComboBox(
 {
     NET_API_STATUS status;
     LPUSER_INFO_0 userinfoArray = NULL;
-    ULONG userinfoMaxLength = MAX_PREFERRED_LENGTH;
     ULONG userinfoEntriesRead = 0;
     ULONG userinfoTotalEntries = 0;
-    ULONG userinfoResumeHandle = 0;
 
     PhpFreeAccountsComboBox(ComboBoxHandle);
 
@@ -535,11 +533,11 @@ static VOID PhpAddAccountsToComboBox(
         NULL,
         0,
         FILTER_NORMAL_ACCOUNT,
-        (PBYTE*)&userinfoArray,
-        userinfoMaxLength,
+        &userinfoArray,
+        MAX_PREFERRED_LENGTH,
         &userinfoEntriesRead,
         &userinfoTotalEntries,
-        &userinfoResumeHandle
+        NULL
         );
 
     if (userinfoArray)
@@ -552,11 +550,11 @@ static VOID PhpAddAccountsToComboBox(
         NULL,
         0,
         FILTER_NORMAL_ACCOUNT,
-        (PBYTE*)&userinfoArray,
-        userinfoMaxLength,
+        &userinfoArray,
+        MAX_PREFERRED_LENGTH,
         &userinfoEntriesRead,
         &userinfoTotalEntries,
-        &userinfoResumeHandle
+        NULL
         );
 
     if (status == NERR_Success)
@@ -816,7 +814,7 @@ static VOID PhpAddDesktopsToComboBox(
         {
             PPH_RUNAS_DESKTOP_ITEM entry;
 
-            entry = PhAllocateZero(sizeof(PH_RUNAS_DESKTOP_ITEM));
+            entry = PhAllocate(sizeof(PH_RUNAS_DESKTOP_ITEM));
             entry->DesktopName = callback.DesktopList->Items[i];
 
             ComboBox_SetItemData(ComboBoxHandle, itemIndex, entry);
