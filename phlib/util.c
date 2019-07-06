@@ -2725,11 +2725,12 @@ NTSTATUS PhCreateProcessWin32Ex(
     NTSTATUS status;
     PPH_STRING fileName = NULL;
     PPH_STRING commandLine = NULL;
+    PPH_STRING currentDirectory = NULL;
     STARTUPINFO startupInfo;
     PROCESS_INFORMATION processInfo;
     ULONG newFlags;
 
-    if (CommandLine) // duplicate because CreateProcess modifies the string
+    if (CommandLine) // duplicate because CreateProcess modifies the string (wj32)
         commandLine = PhCreateString(CommandLine);
 
     if (FileName)
@@ -2739,7 +2740,7 @@ NTSTATUS PhCreateProcessWin32Ex(
         INT cmdlineArgCount;
         PWSTR* cmdlineArgList;
 
-        // (dmex) Try extract the filename or CreateProcess might execute the wrong executable.
+        // Try extract the filename or CreateProcess might execute the wrong executable. (dmex)
         if (commandLine && (cmdlineArgList = CommandLineToArgvW(commandLine->Buffer, &cmdlineArgCount)))
         {
             PhMoveReference(&fileName, PhCreateString(cmdlineArgList[0]));
@@ -2750,12 +2751,22 @@ NTSTATUS PhCreateProcessWin32Ex(
         {
             PPH_STRING filePathSr;
 
-            // The user typed a name without a path so attempt to locate the executable.
+            // The user typed a name without a path so attempt to locate the executable. (dmex)
             if (filePathSr = PhSearchFilePath(fileName->Buffer, L".exe"))
                 PhMoveReference(&fileName, filePathSr);
             else
                 PhClearReference(&fileName);
         }
+    }
+
+    // Set the current directory to the same location as the target executable
+    // or CreateProcess uses our current directory. (dmex)
+    if (CurrentDirectory)
+        currentDirectory = PhCreateString(CurrentDirectory);
+    else
+    {
+        if (!PhIsNullOrEmptyString(fileName))
+            currentDirectory = PhGetBaseDirectory(fileName);
     }
 
     newFlags = 0;
@@ -2778,7 +2789,7 @@ NTSTATUS PhCreateProcessWin32Ex(
             !!(Flags & PH_CREATE_PROCESS_INHERIT_HANDLES),
             newFlags,
             Environment,
-            CurrentDirectory,
+            PhGetString(currentDirectory),
             StartupInfo ? StartupInfo : &startupInfo,
             &processInfo
             ))
@@ -2796,7 +2807,7 @@ NTSTATUS PhCreateProcessWin32Ex(
             !!(Flags & PH_CREATE_PROCESS_INHERIT_HANDLES),
             newFlags,
             Environment,
-            CurrentDirectory,
+            PhGetString(currentDirectory),
             StartupInfo ? StartupInfo : &startupInfo,
             &processInfo
             ))
@@ -2809,6 +2820,8 @@ NTSTATUS PhCreateProcessWin32Ex(
         PhDereferenceObject(fileName);
     if (commandLine)
         PhDereferenceObject(commandLine);
+    if (currentDirectory)
+        PhDereferenceObject(currentDirectory);
 
     if (NT_SUCCESS(status))
     {
