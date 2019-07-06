@@ -2398,6 +2398,41 @@ VOID PhProcessProviderUpdate(
                 }
             }
 
+            if (processItem->QueryHandle && processItem->IsHandleValid)
+            {
+                OBJECT_BASIC_INFORMATION basicInfo;
+                BOOLEAN filteredHandle = FALSE;
+
+                if (NT_SUCCESS(PhGetHandleInformationEx(
+                    NtCurrentProcess(),
+                    processItem->QueryHandle,
+                    ULONG_MAX,
+                    0,
+                    NULL,
+                    &basicInfo,
+                    NULL,
+                    NULL,
+                    NULL,
+                    NULL
+                    )))
+                {
+                    if ((basicInfo.GrantedAccess & PROCESS_QUERY_INFORMATION) != PROCESS_QUERY_INFORMATION)
+                    {
+                        filteredHandle = TRUE;
+                    }
+                }
+                else
+                {
+                    filteredHandle = TRUE;
+                }
+
+                if (processItem->IsProtectedHandle != filteredHandle)
+                {
+                    processItem->IsProtectedHandle = filteredHandle;
+                    modified = TRUE;
+                }
+            }
+
             if (modified)
             {
                 PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderModifiedEvent), processItem);
