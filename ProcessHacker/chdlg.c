@@ -22,6 +22,7 @@
 
 #include <phapp.h>
 #include <settings.h>
+#include <phsettings.h>
 
 typedef struct _CHOICE_DIALOG_CONTEXT
 {
@@ -258,6 +259,8 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
                     rect.right - rect.left, rect.bottom - rect.top,
                     SWP_NOACTIVATE | SWP_NOZORDER);
             }
+
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
 
             PhSetDialogFocus(hwndDlg, comboBoxHandle);
         }
