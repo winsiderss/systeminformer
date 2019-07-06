@@ -47,6 +47,11 @@ typedef struct _PH_MEMORY_ITEM
         MEMORY_BASIC_INFORMATION BasicInfo;
     };
 
+    union
+    {
+        MEMORY_WORKING_SET_EX_BLOCK VirtualAttributes;
+    };
+
     struct _PH_MEMORY_ITEM *AllocationBaseItem;
 
     SIZE_T CommittedSize;
