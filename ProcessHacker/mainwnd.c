@@ -636,6 +636,19 @@ VOID PhMwpOnCommand(
                 );
         }
         break;
+    //case ID_HACKER_RUNASLIMITEDUSER:
+    //    {
+    //        SelectedRunAsMode = RUNAS_MODE_LIMITED;
+    //        PhShowRunFileDialog(
+    //            PhMainWndHandle,
+    //            NULL,
+    //            NULL,
+    //            NULL,
+    //            L"Type the name of a program that will be opened under standard user privileges.",
+    //            0
+    //            );
+    //    }
+    //    break;
     case ID_HACKER_RUNAS:
         {
             PhShowRunAsDialog(PhMainWndHandle, NULL);
@@ -1751,7 +1764,10 @@ BOOLEAN PhMwpOnNotify(
     {
         LPNMRUNFILEDLG runFileDlg = (LPNMRUNFILEDLG)Header;
 
-        if (SelectedRunAsMode == RUNAS_MODE_ADMIN)
+        if (SelectedRunAsMode == RUNAS_MODE_ADMIN ||
+            // The explorer runas dialog executes programs as administrator when holding ctrl/shift keys 
+            // and clicking the OK button, so we'll implement the same functionality. (dmex)
+            (!!(GetKeyState(VK_CONTROL) < 0 && !!(GetKeyState(VK_SHIFT) < 0))))
         {
             PH_STRINGREF string;
             PH_STRINGREF fileName;
@@ -1789,53 +1805,53 @@ BOOLEAN PhMwpOnNotify(
 
             return TRUE;
         }
-        else if (SelectedRunAsMode == RUNAS_MODE_LIMITED)
-        {
-            NTSTATUS status;
-            HANDLE tokenHandle;
-            HANDLE newTokenHandle;
-
-            if (NT_SUCCESS(status = PhOpenProcessToken(
-                NtCurrentProcess(),
-                TOKEN_ASSIGN_PRIMARY | TOKEN_DUPLICATE | TOKEN_QUERY | TOKEN_ADJUST_GROUPS |
-                TOKEN_ADJUST_DEFAULT | READ_CONTROL | WRITE_DAC,
-                &tokenHandle
-                )))
-            {
-                if (NT_SUCCESS(status = PhFilterTokenForLimitedUser(
-                    tokenHandle,
-                    &newTokenHandle
-                    )))
-                {
-                    status = PhCreateProcessWin32(
-                        NULL,
-                        runFileDlg->lpszFile,
-                        NULL,
-                        NULL,
-                        0,
-                        newTokenHandle,
-                        NULL,
-                        NULL
-                        );
-
-                    NtClose(newTokenHandle);
-                }
-
-                NtClose(tokenHandle);
-            }
-
-            if (NT_SUCCESS(status))
-            {
-                *Result = RF_CANCEL;
-            }
-            else
-            {
-                PhShowStatus(PhMainWndHandle, L"Unable to execute the program.", status, 0);
-                *Result = RF_RETRY;
-            }
-
-            return TRUE;
-        }
+        //else if (SelectedRunAsMode == RUNAS_MODE_LIMITED)
+        //{
+        //    NTSTATUS status;
+        //    HANDLE tokenHandle;
+        //    HANDLE newTokenHandle;
+        //
+        //    if (NT_SUCCESS(status = PhOpenProcessToken(
+        //        NtCurrentProcess(),
+        //        TOKEN_ASSIGN_PRIMARY | TOKEN_DUPLICATE | TOKEN_QUERY | TOKEN_ADJUST_GROUPS |
+        //        TOKEN_ADJUST_DEFAULT | READ_CONTROL | WRITE_DAC,
+        //        &tokenHandle
+        //        )))
+        //    {
+        //        if (NT_SUCCESS(status = PhFilterTokenForLimitedUser(
+        //            tokenHandle,
+        //            &newTokenHandle
+        //            )))
+        //        {
+        //            status = PhCreateProcessWin32(
+        //                NULL,
+        //                runFileDlg->lpszFile,
+        //                NULL,
+        //                NULL,
+        //                0,
+        //                newTokenHandle,
+        //                NULL,
+        //                NULL
+        //                );
+        //
+        //            NtClose(newTokenHandle);
+        //        }
+        //
+        //        NtClose(tokenHandle);
+        //    }
+        //
+        //    if (NT_SUCCESS(status))
+        //    {
+        //        *Result = RF_CANCEL;
+        //    }
+        //    else
+        //    {
+        //        PhShowStatus(PhMainWndHandle, L"Unable to execute the program.", status, 0);
+        //        *Result = RF_RETRY;
+        //    }
+        //
+        //    return TRUE;
+        //}
     }
     else if (Header->code == RFN_LIMITEDRUNAS)
     {

@@ -78,7 +78,6 @@ BEGIN
     BEGIN
         MENUITEM "&Run...\aCtrl+R",             ID_HACKER_RUN
         MENUITEM "Run as ad&ministrator...",    ID_HACKER_RUNASADMINISTRATOR
-        MENUITEM "Run as &limited user...",     ID_HACKER_RUNASLIMITEDUSER
         MENUITEM "Run &as...\aCtrl+Shift+R",    ID_HACKER_RUNAS
         MENUITEM "Show &details for all processes", ID_HACKER_SHOWDETAILSFORALLPROCESSES
         MENUITEM SEPARATOR
