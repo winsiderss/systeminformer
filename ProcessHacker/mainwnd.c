@@ -618,20 +618,7 @@ VOID PhMwpOnCommand(
                 NULL,
                 NULL,
                 NULL,
-                L"Type the name of a program that will be opened under alternate credentials.",
-                0
-                );
-        }
-        break;
-    case ID_HACKER_RUNASLIMITEDUSER:
-        {
-            SelectedRunAsMode = RUNAS_MODE_LIMITED;
-            PhShowRunFileDialog(
-                PhMainWndHandle,
-                NULL,
-                NULL,
-                NULL,
-                L"Type the name of a program that will be opened under standard user privileges.",
+                L"Type the name of a program that will be opened with administrative credentials.",
                 0
                 );
         }
