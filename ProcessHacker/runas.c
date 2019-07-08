@@ -1215,7 +1215,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                                     &processHandle,
                                     PROCESS_CREATE_PROCESS,
                                     context->ProcessId
-                                );
+                                    );
 
                                 if (!NT_SUCCESS(status))
                                     goto CleanupExit;
