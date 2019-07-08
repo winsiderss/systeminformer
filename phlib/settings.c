@@ -859,7 +859,7 @@ NTSTATUS PhLoadSettings(
     return STATUS_SUCCESS;
 }
 
-char *PhpSettingsSaveCallback(
+PSTR PhpSettingsSaveCallback(
     _In_ mxml_node_t *node,
     _In_ int position
     )
@@ -967,7 +967,7 @@ NTSTATUS PhSaveSettings(
             if (indexOfFileName != -1)
             {
                 directoryName = PhSubstring(fullPath, 0, indexOfFileName);
-                //PhCreateDirectory(directoryName);
+                PhCreateDirectory(directoryName);
                 PhDereferenceObject(directoryName);
             }
 
