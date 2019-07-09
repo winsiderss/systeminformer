@@ -900,8 +900,6 @@ LRESULT CALLBACK MainWndSubclassProc(
 
                         if (toolbarDisplayInfo->dwMask & TBNF_IMAGE)
                         {
-                            BOOLEAN found = FALSE;
-
                             // Try to find the cached bitmap index.
                             // NOTE: The TBNF_DI_SETITEM flag below will cache the index so we only get called once.
                             //       However, when adding buttons from the customize dialog we get called a second time,
@@ -910,20 +908,15 @@ LRESULT CALLBACK MainWndSubclassProc(
                             {
                                 if (ToolbarButtons[i].idCommand == toolbarDisplayInfo->idCommand)
                                 {
-                                    if (ToolbarButtons[i].iBitmap == I_IMAGECALLBACK)
-                                    {
-                                        found = TRUE;
-
-                                        // Cache the bitmap index.
-                                        toolbarDisplayInfo->dwMask |= TBNF_DI_SETITEM;
-                                        // Set the bitmap index.
-                                        toolbarDisplayInfo->iImage = ToolbarButtons[i].iBitmap;
-                                    }
+                                    // Cache the bitmap index.
+                                    toolbarDisplayInfo->dwMask |= TBNF_DI_SETITEM;
+                                    // Set the bitmap index.
+                                    toolbarDisplayInfo->iImage = ToolbarButtons[i].iBitmap;
                                     break;
                                 }
                             }
 
-                            if (!found)
+                            if (toolbarDisplayInfo->iImage == I_IMAGECALLBACK)
                             {
                                 // We didn't find a cached bitmap index...
                                 // Load the button bitmap and cache the index.

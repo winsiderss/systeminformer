@@ -675,7 +675,7 @@ VOID ToolbarLoadButtonSettings(
         PhStringToInteger64(&commandIdPart, 10, &commandInteger);
 
         buttonArray[index].idCommand = (INT)commandInteger;
-        //buttonArray[index].iBitmap = I_IMAGECALLBACK;
+        buttonArray[index].iBitmap = I_IMAGECALLBACK;
         buttonArray[index].fsState = TBSTATE_ENABLED;
 
         if (commandInteger)
