@@ -180,6 +180,20 @@ BOOLEAN EtpDiskPageCallback(
             // Nothing
         }
         return TRUE;
+    case MainTabPageSelected:
+        {
+            BOOLEAN selected = (BOOLEAN)Parameter1;
+
+            if (selected)
+            {
+                EtDiskEnabled = TRUE;
+            }
+            else
+            {
+                EtDiskEnabled = FALSE;
+            }
+        }
+        break;
     case MainTabPageExportContent:
         {
             PPH_MAIN_TAB_PAGE_EXPORT_CONTENT exportContent = Parameter1;
