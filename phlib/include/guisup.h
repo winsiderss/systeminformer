@@ -183,14 +183,14 @@ INT PhFindListViewItemByParam(
     );
 
 PHLIBAPI
-LOGICAL PhGetListViewItemImageIndex(
+BOOLEAN PhGetListViewItemImageIndex(
     _In_ HWND ListViewHandle,
     _In_ INT Index,
     _Out_ PINT ImageIndex
     );
 
 PHLIBAPI
-LOGICAL PhGetListViewItemParam(
+BOOLEAN PhGetListViewItemParam(
     _In_ HWND ListViewHandle,
     _In_ INT Index,
     _Out_ PVOID *Param
