@@ -241,6 +241,7 @@ EXPORTS
     PhConnectPipe
     PhDeleteDirectory
     PhDeleteFileWin32
+    PhDoesFileExistsWin32
     PhDisconnectNamedPipe
     PhEnumDirectoryFile
     PhEnumDirectoryObjects

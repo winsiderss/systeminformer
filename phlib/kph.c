@@ -152,7 +152,7 @@ NTSTATUS KphConnect2Ex(
         CloseServiceHandle(scmHandle);
     }
 
-    if (!started && RtlDoesFileExists_U(FileName))
+    if (!started && PhDoesFileExistsWin32(FileName))
     {
         // Try to create the service.
 

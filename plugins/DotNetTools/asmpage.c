@@ -480,7 +480,7 @@ VOID DotNetAsmShowContextMenu(
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_CLR_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
     PhInsertCopyCellEMenuItem(menu, ID_CLR_COPY, Context->TreeNewHandle, ContextMenuEvent->Column);
 
-    if (PhIsNullOrEmptyString(node->PathText) || !RtlDoesFileExists_U(node->PathText->Buffer))
+    if (PhIsNullOrEmptyString(node->PathText) || !PhDoesFileExistsWin32(PhGetString(node->PathText)))
     {
         PhSetFlagsEMenuItem(menu, ID_CLR_INSPECT, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
         PhSetFlagsEMenuItem(menu, ID_CLR_OPENFILELOCATION, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
@@ -507,7 +507,7 @@ VOID DotNetAsmShowContextMenu(
             {
             case ID_CLR_INSPECT:
                 {
-                    if (!PhIsNullOrEmptyString(node->PathText) && RtlDoesFileExists_U(node->PathText->Buffer))
+                    if (!PhIsNullOrEmptyString(node->PathText) && PhDoesFileExistsWin32(PhGetString(node->PathText)))
                     {
                         PhShellExecuteUserString(
                             Context->WindowHandle,
@@ -521,7 +521,7 @@ VOID DotNetAsmShowContextMenu(
                 break;
             case ID_CLR_OPENFILELOCATION:
                 {
-                    if (!PhIsNullOrEmptyString(node->PathText) && RtlDoesFileExists_U(node->PathText->Buffer))
+                    if (!PhIsNullOrEmptyString(node->PathText) && PhDoesFileExistsWin32(PhGetString(node->PathText)))
                     {
                         PhShellExploreFile(Context->WindowHandle, node->PathText->Buffer);
                     }

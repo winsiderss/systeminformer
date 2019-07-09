@@ -392,7 +392,7 @@ NTSTATUS GeoIPUpdateThread(
             if (PhIsNullOrEmptyString(dbpath))
                 goto CleanupExit;
 
-            if (RtlDoesFileExists_U(PhGetString(dbpath)))
+            if (PhDoesFileExistsWin32(PhGetString(dbpath)))
             {
                 if (!NT_SUCCESS(PhDeleteFileWin32(PhGetString(dbpath))))
                     goto CleanupExit;
