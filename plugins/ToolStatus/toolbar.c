@@ -155,10 +155,12 @@ VOID RebarLoadSettings(
         SendMessage(ToolBarHandle, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
         // Set the toolbar extended toolbar styles.
         SendMessage(ToolBarHandle, TB_SETEXTENDEDSTYLE, 0, TBSTYLE_EX_DOUBLEBUFFER | TBSTYLE_EX_MIXEDBUTTONS | TBSTYLE_EX_HIDECLIPPEDBUTTONS);
-        // Configure the toolbar imagelist.
-        SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList);
+
         // Add the buttons to the toolbar.
         ToolbarLoadButtonSettings();
+        // Configure the toolbar imagelist.
+        SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList);
+        // Configure the toolbar font.
         SendMessage(ToolBarHandle, WM_SETFONT, (WPARAM)ToolStatusWindowFont, FALSE);
         // Resize the toolbar.
         SendMessage(ToolBarHandle, TB_AUTOSIZE, 0, 0);
@@ -692,16 +694,20 @@ VOID ToolbarLoadButtonSettings(
             {
                 HBITMAP bitmap;
 
-                bitmap = ToolbarGetImage(ToolbarButtons[i].idCommand);
+                if (buttonArray[index].fsStyle & BTNS_SEP)
+                    continue;
 
-                // Add the image, cache the value in the ToolbarButtons array, set the bitmap index.
-                buttonArray[index].iBitmap = ToolbarButtons[i].iBitmap = ImageList_Add(
-                    ToolBarImageList,
-                    bitmap,
-                    NULL
-                    );
+                if (bitmap = ToolbarGetImage(ToolbarButtons[i].idCommand))
+                {
+                    // Add the image, cache the value in the ToolbarButtons array, set the bitmap index.
+                    buttonArray[index].iBitmap = ToolbarButtons[i].iBitmap = ImageList_Add(
+                        ToolBarImageList,
+                        bitmap,
+                        NULL
+                        );
 
-                DeleteObject(bitmap);
+                    DeleteObject(bitmap);
+                }
                 break;
             }
         }

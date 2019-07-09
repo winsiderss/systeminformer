@@ -54,6 +54,7 @@ INT_PTR CALLBACK OptionsDlgProc(
             PhSetIntegerSetting(SETTING_NAME_TOOLSTATUS_CONFIG, ToolStatusConfig.Flags);
 
             ToolbarLoadSettings();
+            ToolbarCreateGraphs();
 
             if (ToolStatusConfig.AutoHideMenu)
             {

@@ -107,7 +107,7 @@ VOID NTAPI ProcessesUpdatedCallback(
 
     PhPluginGetSystemStatistics(&SystemStatistics);
 
-    if (UpdateGraphs)
+    if (ToolStatusConfig.ToolBarEnabled && ToolBarHandle && UpdateGraphs)
         ToolbarUpdateGraphs();
 
     if (ToolStatusConfig.StatusBarEnabled)
@@ -910,7 +910,7 @@ LRESULT CALLBACK MainWndSubclassProc(
                             {
                                 if (ToolbarButtons[i].idCommand == toolbarDisplayInfo->idCommand)
                                 {
-                                    if (ToolbarButtons[i].iBitmap != I_IMAGECALLBACK)
+                                    if (ToolbarButtons[i].iBitmap == I_IMAGECALLBACK)
                                     {
                                         found = TRUE;
 
@@ -933,18 +933,20 @@ LRESULT CALLBACK MainWndSubclassProc(
                                     {
                                         HBITMAP buttonImage;
 
-                                        buttonImage = ToolbarGetImage(toolbarDisplayInfo->idCommand);
+                                        if (buttonImage = ToolbarGetImage(toolbarDisplayInfo->idCommand))
+                                        {
+                                            // Cache the bitmap index.
+                                            toolbarDisplayInfo->dwMask |= TBNF_DI_SETITEM;
 
-                                        // Cache the bitmap index.
-                                        toolbarDisplayInfo->dwMask |= TBNF_DI_SETITEM;
-                                        // Add the image, cache the value in the ToolbarButtons array, set the bitmap index.
-                                        toolbarDisplayInfo->iImage = ToolbarButtons[i].iBitmap = ImageList_Add(
-                                            ToolBarImageList,
-                                            buttonImage,
-                                            NULL
-                                            );
+                                            // Add the image, cache the value in the ToolbarButtons array, set the bitmap index.
+                                            toolbarDisplayInfo->iImage = ToolbarButtons[i].iBitmap = ImageList_Add(
+                                                ToolBarImageList,
+                                                buttonImage,
+                                                NULL
+                                                );
 
-                                        DeleteObject(buttonImage);
+                                            DeleteObject(buttonImage);
+                                        }
                                         break;
                                     }
                                 }
@@ -1057,7 +1059,11 @@ LRESULT CALLBACK MainWndSubclassProc(
             }
             else
             {
-                if (ToolbarUpdateGraphsInfo(hdr))
+                if (
+                    ToolStatusConfig.ToolBarEnabled &&
+                    ToolBarHandle &&
+                    ToolbarUpdateGraphsInfo(hdr)
+                    )
                 {
                     goto DefaultWndProc;
                 }
