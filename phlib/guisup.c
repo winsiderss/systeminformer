@@ -169,50 +169,44 @@ INT PhFindListViewItemByParam(
     return ListView_FindItem(ListViewHandle, StartIndex, &findInfo);
 }
 
-LOGICAL PhGetListViewItemImageIndex(
+BOOLEAN PhGetListViewItemImageIndex(
     _In_ HWND ListViewHandle,
     _In_ INT Index,
     _Out_ PINT ImageIndex
     )
 {
-    LOGICAL result;
     LVITEM item;
 
     item.mask = LVIF_IMAGE;
     item.iItem = Index;
     item.iSubItem = 0;
 
-    result = ListView_GetItem(ListViewHandle, &item);
-
-    if (!result)
-        return result;
+    if (!ListView_GetItem(ListViewHandle, &item))
+        return FALSE;
 
     *ImageIndex = item.iImage;
 
-    return result;
+    return TRUE;
 }
 
-LOGICAL PhGetListViewItemParam(
+BOOLEAN PhGetListViewItemParam(
     _In_ HWND ListViewHandle,
     _In_ INT Index,
     _Out_ PVOID *Param
     )
 {
-    LOGICAL result;
     LVITEM item;
 
     item.mask = LVIF_PARAM;
     item.iItem = Index;
     item.iSubItem = 0;
 
-    result = ListView_GetItem(ListViewHandle, &item);
-
-    if (!result)
-        return result;
+    if (!ListView_GetItem(ListViewHandle, &item))
+        return FALSE;
 
     *Param = (PVOID)item.lParam;
 
-    return result;
+    return TRUE;
 }
 
 VOID PhRemoveListViewItem(
@@ -530,12 +524,12 @@ VOID PhSetStateAllListViewItems(
     _In_ ULONG Mask
     )
 {
-    ULONG i;
-    ULONG count;
+    INT i;
+    INT count;
 
     count = ListView_GetItemCount(hWnd);
 
-    if (count == -1)
+    if (count <= 0)
         return;
 
     for (i = 0; i < count; i++)
@@ -919,7 +913,7 @@ VOID PhSetClipboardString(
     HANDLE data;
     PVOID memory;
 
-    data = GlobalAlloc(GMEM_MOVEABLE, String->Length + sizeof(WCHAR));
+    data = GlobalAlloc(GMEM_MOVEABLE, String->Length + sizeof(UNICODE_NULL));
     memory = GlobalLock(data);
 
     memcpy(memory, String->Buffer, String->Length);
@@ -1432,7 +1426,6 @@ BOOL CALLBACK PhpGetProcessMainWindowEnumWindowsProc(
 {
     PGET_PROCESS_MAIN_WINDOW_CONTEXT context = (PGET_PROCESS_MAIN_WINDOW_CONTEXT)Context;
     ULONG processId;
-    HWND parentWindow;
     WINDOWINFO windowInfo;
 
     if (context->SkipInvisible && !IsWindowVisible(WindowHandle))
@@ -1440,9 +1433,11 @@ BOOL CALLBACK PhpGetProcessMainWindowEnumWindowsProc(
 
     GetWindowThreadProcessId(WindowHandle, &processId);
 
-    if (UlongToHandle(processId) == context->ProcessId && (context->SkipInvisible ?
-        !((parentWindow = GetParent(WindowHandle)) && IsWindowVisible(parentWindow)) && // skip windows with a visible parent
-        PhGetWindowTextEx(WindowHandle, PH_GET_WINDOW_TEXT_INTERNAL | PH_GET_WINDOW_TEXT_LENGTH_ONLY, NULL) != 0 : TRUE)) // skip windows with no title
+    //if (UlongToHandle(processId) == context->ProcessId && (context->SkipInvisible ?
+    //    !((parentWindow = GetParent(WindowHandle)) && IsWindowVisible(parentWindow)) && // skip windows with a visible parent
+    //    PhGetWindowTextEx(WindowHandle, PH_GET_WINDOW_TEXT_INTERNAL | PH_GET_WINDOW_TEXT_LENGTH_ONLY, NULL) != 0 : TRUE)) // skip windows with no title
+
+    if (UlongToHandle(processId) == context->ProcessId)
     {
         if (!context->ImmersiveWindow && context->IsImmersive &&
             GetProp(WindowHandle, L"Windows.ImmersiveShell.IdentifyAsMainCoreWindow"))
