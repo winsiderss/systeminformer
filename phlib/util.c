@@ -2747,7 +2747,7 @@ NTSTATUS PhCreateProcessWin32Ex(
             LocalFree(cmdlineArgList);
         }
 
-        if (fileName && !RtlDoesFileExists_U(fileName->Buffer))
+        if (fileName && !PhDoesFileExistsWin32(fileName->Buffer))
         {
             PPH_STRING filePathSr;
 
@@ -2867,6 +2867,8 @@ NTSTATUS PhCreateProcessAsUser(
     if (!Information->ApplicationName && !Information->CommandLine)
         return STATUS_INVALID_PARAMETER_MIX;
 
+    startupInfo.dwFlags = STARTF_USESHOWWINDOW;
+    startupInfo.wShowWindow = SW_NORMAL;
     startupInfo.lpDesktop = Information->DesktopName;
 
     // Try to use CreateProcessWithLogonW if we need to load the user profile.
@@ -5266,7 +5268,7 @@ VOID PhDeleteCacheFile(
     PPH_STRING cacheFullFilePath;
     ULONG indexOfFileName = ULONG_MAX;
 
-    if (RtlDoesFileExists_U(PhGetString(FileName)))
+    if (PhDoesFileExistsWin32(PhGetString(FileName)))
     {
         PhDeleteFileWin32(PhGetString(FileName));
     }

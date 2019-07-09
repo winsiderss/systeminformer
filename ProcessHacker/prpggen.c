@@ -232,7 +232,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 }
                 else
                 {
-                    if (!RtlDoesFileExists_U(PhGetString(processItem->FileName)))
+                    if (!PhDoesFileExistsWin32(PhGetString(processItem->FileName)))
                     {
                         EnableWindow(GetDlgItem(hwndDlg, IDC_OPENFILENAME), FALSE);
                         EnableWindow(GetDlgItem(hwndDlg, IDC_INSPECT), FALSE);

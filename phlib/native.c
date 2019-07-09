@@ -7612,7 +7612,7 @@ NTSTATUS PhCreateDirectory(
     PH_STRINGREF remainingPart;
 
     if (PhIsNullOrEmptyString(DirectoryPath))
-        return STATUS_FAIL_CHECK;
+        return STATUS_INVALID_PARAMETER;
 
     if (PhDoesFileExistsWin32(PhGetString(DirectoryPath)))
         return STATUS_SUCCESS;
@@ -7797,7 +7797,7 @@ NTSTATUS PhDeleteDirectory(
         NtClose(directoryHandle);
     }
 
-    if (!RtlDoesFileExists_U(PhGetString(DirectoryPath)))
+    if (!PhDoesFileExistsWin32(PhGetString(DirectoryPath)))
         return STATUS_SUCCESS;
 
     return status;

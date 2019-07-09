@@ -294,7 +294,7 @@ VOID NTAPI LoadCallback(
     directory = PH_AUTO(PhGetApplicationDirectory());
     path = PH_AUTO(PhConcatStringRef2(&directory->sr, &databaseFile));
 
-    if (RtlDoesFileExists_U(path->Buffer))
+    if (PhDoesFileExistsWin32(path->Buffer))
     {
         SetDbPath(path);
     }

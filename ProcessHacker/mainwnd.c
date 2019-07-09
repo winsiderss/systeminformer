@@ -1300,7 +1300,7 @@ VOID PhMwpOnCommand(
 
             if (processItem && 
                 !PhIsNullOrEmptyString(processItem->FileName) && 
-                RtlDoesFileExists_U(PhGetString(processItem->FileName)
+                PhDoesFileExistsWin32(PhGetString(processItem->FileName)
                 ))
             {
                 PhReferenceObject(processItem);
@@ -1983,7 +1983,7 @@ BOOLEAN PhMwpOnNotify(
         //        {
         //            PPH_STRING fileName = PhCreateString(cmdlineArgList[0]);
         //
-        //            if (fileName && !RtlDoesFileExists_U(fileName->Buffer))
+        //            if (fileName && !PhDoesFileExistsWin32(fileName->Buffer))
         //            {
         //                PPH_STRING filePathString;
         //

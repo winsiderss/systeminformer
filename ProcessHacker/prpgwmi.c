@@ -721,7 +721,7 @@ INT_PTR CALLBACK PhpProcessWmiProvidersDlgProc(
                             break;
                         case 4:
                             {
-                                if (!PhIsNullOrEmptyString(entry->FileName) && RtlDoesFileExists_U(entry->FileName->Buffer))
+                                if (!PhIsNullOrEmptyString(entry->FileName) && PhDoesFileExistsWin32(entry->FileName->Buffer))
                                 {
                                     PhShellExecuteUserString(
                                         hwndDlg,

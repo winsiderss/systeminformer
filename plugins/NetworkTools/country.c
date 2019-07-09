@@ -44,7 +44,7 @@ PPH_STRING NetToolsGetGeoLiteDbPath(
     directory = PH_AUTO(PhGetApplicationDirectory());
     path = PH_AUTO(PhConcatStringRef2(&directory->sr, &databaseFile->sr));
 
-    if (RtlDoesFileExists_U(path->Buffer))
+    if (PhDoesFileExistsWin32(path->Buffer))
     {
         return PhReferenceObject(path);
     }
