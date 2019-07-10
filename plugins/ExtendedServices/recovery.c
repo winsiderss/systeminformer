@@ -323,7 +323,7 @@ INT_PTR CALLBACK EspServiceRecoveryDlgProc(
                 EnableWindow(GetDlgItem(hwndDlg, IDC_ENABLEFORERRORSTOPS), TRUE);
  
                 PhShowWarning(hwndDlg, L"Unable to query service recovery information: %s",
-                    ((PPH_STRING)PH_AUTO(PhGetNtMessage(status)))->Buffer);
+                    PhGetString((PPH_STRING)PH_AUTO(PhGetNtMessage(status))));
             }
 
             EspFixControls(hwndDlg, context);
@@ -559,7 +559,7 @@ ErrorCase:
                         hwndDlg,
                         MB_ICONERROR | MB_RETRYCANCEL,
                         L"Unable to change service recovery information: %s",
-                        ((PPH_STRING)PH_AUTO(PhGetWin32Message(GetLastError())))->Buffer
+                        PhGetString((PPH_STRING)PH_AUTO(PhGetWin32Message(GetLastError())))
                         ) == IDRETRY)
                     {
                         SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_INVALID);

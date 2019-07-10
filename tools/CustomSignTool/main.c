@@ -100,7 +100,7 @@ static VOID CstFailWithStatus(
     _In_opt_ ULONG Win32Result
     )
 {
-    wprintf(L"%s: %s\n", Message, PhGetStatusMessage(Status, Win32Result)->Buffer);
+    wprintf(L"%s: %s\n", Message, PhGetStringOrEmpty(PhGetStatusMessage(Status, Win32Result)));
     exit(1);
 }
 

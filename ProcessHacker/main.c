@@ -903,7 +903,7 @@ VOID PhpShowKphError(
         {
             statusMessage = PhConcatStrings(
                 3,
-                errorMessage->Buffer,
+                PhGetStringOrDefault(errorMessage, L"Unknown error."),
                 L"\r\n\r\n",
                 L"You will be unable to use more advanced features, view details about system processes or terminate malicious software."
                 );

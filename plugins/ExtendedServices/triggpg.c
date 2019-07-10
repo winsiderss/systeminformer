@@ -96,7 +96,7 @@ INT_PTR CALLBACK EspServiceTriggersDlgProc(
             if (!NT_SUCCESS(status))
             {
                 PhShowWarning(hwndDlg, L"Unable to query service trigger information: %s",
-                    ((PPH_STRING)PH_AUTO(PhGetNtMessage(status)))->Buffer);
+                    PhGetString((PPH_STRING)PH_AUTO(PhGetNtMessage(status))));
             }
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
@@ -158,7 +158,7 @@ INT_PTR CALLBACK EspServiceTriggersDlgProc(
                             hwndDlg,
                             MB_ICONERROR | MB_RETRYCANCEL,
                             L"Unable to change service trigger information: %s",
-                            ((PPH_STRING)PH_AUTO(PhGetWin32Message(win32Result)))->Buffer
+                            PhGetString((PPH_STRING)PH_AUTO(PhGetWin32Message(win32Result)))
                             ) == IDRETRY))
                         {
                             SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_INVALID);
