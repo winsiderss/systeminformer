@@ -971,7 +971,7 @@ BOOLEAN PdbGetSymbolChildren(
         return TRUE;
 
     length = sizeof(TI_FINDCHILDREN_PARAMS) + symbolCount * sizeof(ULONG);
-    symbols = _alloca(length);
+    symbols = _malloca(length);
     memset(symbols, 0, length);
 
     symbols->Count = symbolCount;
@@ -1019,6 +1019,8 @@ BOOLEAN PdbGetSymbolUdtVariables(
                 break;
         }
     }
+
+    _freea(symbolParams);
 
     return TRUE;
 }
@@ -1096,6 +1098,8 @@ BOOLEAN PdbGetSymbolUdtBaseClasses(
         }
     }
 
+    _freea(symbolParams);
+
     return TRUE;
 }
 
@@ -1133,6 +1137,8 @@ BOOLEAN PdbGetSymbolUdtUnionMembers(
                 break;
         }
     }
+
+    _freea(symbolParams);
 
     return TRUE;
 }
@@ -1172,6 +1178,8 @@ BOOLEAN PdbGetSymbolFunctionArguments(
         }
     }
 
+    _freea(symbolParams);
+
     return TRUE;
 }
 
@@ -1209,6 +1217,8 @@ BOOLEAN PdbGetSymbolEnumerations(
                 break;
         }
     }
+
+    _freea(symbolParams);
 
     return TRUE;
 }
