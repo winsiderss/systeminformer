@@ -46,7 +46,7 @@ VOID PhMwpApplyUpdateInterval(
     );
 
 VOID PhMwpInitializeControls(
-    VOID
+    _In_ HWND WindowHandle
     );
 
 NTSTATUS PhMwpLoadStage1Worker(
@@ -68,33 +68,38 @@ VOID PhMwpOnSettingChange(
     );
 
 VOID PhMwpOnCommand(
+    _In_ HWND WindowHandle,
     _In_ ULONG Id
     );
 
 VOID PhMwpOnShowWindow(
+    _In_ HWND WindowHandle,
     _In_ BOOLEAN Showing,
     _In_ ULONG State
     );
 
 BOOLEAN PhMwpOnSysCommand(
+    _In_ HWND WindowHandle,
     _In_ ULONG Type,
     _In_ LONG CursorScreenX,
     _In_ LONG CursorScreenY
     );
 
 VOID PhMwpOnMenuCommand(
+    _In_ HWND WindowHandle,
     _In_ ULONG Index,
     _In_ HMENU Menu
     );
 
 VOID PhMwpOnInitMenuPopup(
+    _In_ HWND WindowHandle,
     _In_ HMENU Menu,
     _In_ ULONG Index,
     _In_ BOOLEAN IsWindowMenu
     );
 
 VOID PhMwpOnSize(
-    VOID
+    _In_ HWND WindowHandle
     );
 
 VOID PhMwpOnSizing(
@@ -112,6 +117,7 @@ BOOLEAN PhMwpOnNotify(
     );
 
 ULONG_PTR PhMwpOnUserMessage(
+    _In_ HWND WindowHandle,
     _In_ ULONG Message,
     _In_ ULONG_PTR WParam,
     _In_ ULONG_PTR LParam
@@ -155,6 +161,7 @@ BOOLEAN PhMwpExecuteComputerCommand(
     );
 
 VOID PhMwpActivateWindow(
+    _In_ HWND WindowHandle,
     _In_ BOOLEAN Toggle
     );
 
@@ -165,6 +172,7 @@ VOID PhMwpInitializeMainMenu(
     );
 
 VOID PhMwpDispatchMenuCommand(
+    _In_ HWND WindowHandle,
     _In_ HMENU MenuHandle,
     _In_ ULONG ItemIndex,
     _In_ ULONG ItemId,

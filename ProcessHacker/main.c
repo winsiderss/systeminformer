@@ -512,6 +512,9 @@ VOID PhInitializeFont(
 {
     NONCLIENTMETRICS metrics = { sizeof(metrics) };
 
+    if (PhApplicationFont)
+        DeleteObject(PhApplicationFont);
+
     if (
         !(PhApplicationFont = PhCreateFont(L"Microsoft Sans Serif", 8, FW_NORMAL)) &&
         !(PhApplicationFont = PhCreateFont(L"Tahoma", 8, FW_NORMAL))
