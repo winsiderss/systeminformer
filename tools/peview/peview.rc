@@ -205,7 +205,6 @@ BEGIN
     LTEXT           "Target machine:",IDC_STATIC,7,57,53,8
     LTEXT           "Static",IDC_TARGETMACHINE,78,57,215,8
     LTEXT           "Checksum:",IDC_STATIC,7,100,36,8
-    LTEXT           "Static",IDC_CHECKSUM,78,100,215,8
     LTEXT           "Subsystem:",IDC_STATIC,7,111,38,8
     LTEXT           "Subsystem version:",IDC_STATIC,7,122,64,8
     LTEXT           "Characteristics:",IDC_STATIC,7,133,51,8
@@ -227,6 +226,7 @@ BEGIN
     LTEXT           "Version:",IDC_STATIC,15,41,27,8
     EDITTEXT        IDC_VERSION,44,41,242,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
     CONTROL         "<a>Company Name Link</a>",IDC_COMPANYNAME_LINK,"SysLink",LWS_NOPREFIX | NOT WS_VISIBLE | WS_TABSTOP,46,29,240,9
+    EDITTEXT        IDC_CHECKSUM,76,100,217,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
 END
 
 IDD_PEIMPORTS DIALOGEX 0, 0, 300, 280
