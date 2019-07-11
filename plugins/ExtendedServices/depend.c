@@ -210,8 +210,8 @@ ContinueLoop:
 
                 PhSetDialogItemText(hwndDlg, IDC_SERVICES_LAYOUT, PhaConcatStrings2(
                     L"Unable to enumerate dependencies: ",
-                    PhGetStringOrDefault(errorMessage, L"Unknown error."))
-                    );
+                    PhGetStringOrDefault(errorMessage, L"Unknown error.")
+                    )->Buffer);
 
                 ShowWindow(GetDlgItem(hwndDlg, IDC_SERVICES_LAYOUT), SW_SHOW);
                 PhClearReference(&errorMessage);
@@ -330,8 +330,8 @@ INT_PTR CALLBACK EspServiceDependentsDlgProc(
 
                 PhSetDialogItemText(hwndDlg, IDC_SERVICES_LAYOUT, PhaConcatStrings2(
                     L"Unable to enumerate dependents: ",
-                    PhGetStringOrDefault(errorMessage, L"Unknown error."))
-                    );
+                    PhGetStringOrDefault(errorMessage, L"Unknown error.")
+                    )->Buffer);
 
                 ShowWindow(GetDlgItem(hwndDlg, IDC_SERVICES_LAYOUT), SW_SHOW);
                 PhClearReference(&errorMessage);
