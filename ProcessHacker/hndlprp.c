@@ -1066,7 +1066,7 @@ VOID PhpUpdateHandleGeneral(
                 exitcode = PhFormatString(
                     L"0x%x (%s)",
                     exitStatus,
-                    status->Buffer
+                    PhGetStringOrDefault(status, L"Unknown")
                     );
 
                 PhSetListViewSubItem(
@@ -1077,7 +1077,7 @@ VOID PhpUpdateHandleGeneral(
                     );
 
                 PhDereferenceObject(exitcode);
-                PhDereferenceObject(status);
+                PhClearReference(&status);
             }
 
             NtClose(dupHandle);
@@ -1166,7 +1166,7 @@ VOID PhpUpdateHandleGeneral(
                 exitcode = PhFormatString(
                     L"0x%x (%s)",
                     exitStatus,
-                    status->Buffer
+                    PhGetStringOrDefault(status, L"Unknown")
                     );
 
                 PhSetListViewSubItem(
@@ -1177,7 +1177,7 @@ VOID PhpUpdateHandleGeneral(
                     );
 
                 PhDereferenceObject(exitcode);
-                PhDereferenceObject(status);
+                PhClearReference(&status);
             }
 
             NtClose(dupHandle);

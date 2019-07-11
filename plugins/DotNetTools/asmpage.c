@@ -1665,12 +1665,16 @@ INT_PTR CALLBACK DotNetAsmPageDlgProc(
             }
             else
             {
+                PPH_STRING errorMessage = PhGetWin32Message(result);
 
-                PhMoveReference(&context->TreeErrorMessage,
-                    PhConcatStrings2(L"Unable to start the event tracing session: ", PhGetStringOrDefault(PhGetWin32Message(result), L"Unknown error"))
-                    );
+                PhMoveReference(&context->TreeErrorMessage, PhConcatStrings2(
+                    L"Unable to start the event tracing session: ",
+                    PhGetStringOrDefault(errorMessage, L"Unknown error")
+                    ));
                 TreeNew_SetEmptyText(context->TreeNewHandle, &context->TreeErrorMessage->sr, 0);
                 TreeNew_NodesStructured(context->TreeNewHandle);
+
+                PhClearReference(&errorMessage);
             }
 
             DestroyDotNetTraceQuery(queryContext);

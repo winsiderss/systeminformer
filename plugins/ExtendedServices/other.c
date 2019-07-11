@@ -375,8 +375,15 @@ INT_PTR CALLBACK EspServiceOtherDlgProc(
 
             if (!NT_SUCCESS(status))
             {
-                PhShowWarning(hwndDlg, L"Unable to query service information: %s",
-                    ((PPH_STRING)PH_AUTO(PhGetNtMessage(status)))->Buffer);
+                PPH_STRING errorMessage = PhGetNtMessage(status);
+
+                PhShowWarning(
+                    hwndDlg,
+                    L"Unable to query service information: %s",
+                    PhGetStringOrDefault(errorMessage, L"Unknown error.")
+                    );
+
+                PhClearReference(&errorMessage);
             }
 
             context->Ready = TRUE;
@@ -585,7 +592,7 @@ INT_PTR CALLBACK EspServiceOtherDlgProc(
             case PSN_APPLY:
                 {
                     SC_HANDLE serviceHandle = NULL;
-                    ULONG win32Result = 0;
+                    ULONG win32Result = ERROR_SUCCESS;
                     BOOLEAN connectedToPhSvc = FALSE;
                     PPH_STRING launchProtectedString;
                     ULONG launchProtected;
@@ -624,7 +631,7 @@ INT_PTR CALLBACK EspServiceOtherDlgProc(
                                 // Elevate using phsvc.
                                 if (PhUiConnectToPhSvc(hwndDlg, FALSE))
                                 {
-                                    win32Result = 0;
+                                    win32Result = ERROR_SUCCESS;
                                     connectedToPhSvc = TRUE;
                                 }
                                 else
@@ -666,7 +673,7 @@ INT_PTR CALLBACK EspServiceOtherDlgProc(
 
                             requiredPrivilegesInfo.pmszRequiredPrivileges = sb.String->Buffer;
 
-                            if (win32Result == 0 && !EspChangeServiceConfig2(context->ServiceItem->Name->Buffer, serviceHandle,
+                            if (win32Result == ERROR_SUCCESS && !EspChangeServiceConfig2(context->ServiceItem->Name->Buffer, serviceHandle,
                                 SERVICE_CONFIG_REQUIRED_PRIVILEGES_INFO, &requiredPrivilegesInfo))
                             {
                                 win32Result = GetLastError();
@@ -682,7 +689,7 @@ INT_PTR CALLBACK EspServiceOtherDlgProc(
                             sidTypeString = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_SIDTYPE)));
                             sidInfo.dwServiceSidType = EspGetServiceSidTypeInteger(sidTypeString->Buffer);
 
-                            if (win32Result == 0 && !EspChangeServiceConfig2(context->ServiceItem->Name->Buffer, serviceHandle,
+                            if (win32Result == ERROR_SUCCESS && !EspChangeServiceConfig2(context->ServiceItem->Name->Buffer, serviceHandle,
                                 SERVICE_CONFIG_SERVICE_SID_INFO, &sidInfo))
                             {
                                 win32Result = GetLastError();
@@ -707,17 +714,21 @@ Done:
                         if (serviceHandle)
                             CloseServiceHandle(serviceHandle);
 
-                        if (win32Result != 0)
+                        if (win32Result != ERROR_SUCCESS)
                         {
+                            PPH_STRING errorMessage = PhGetWin32Message(win32Result);
+
                             if (win32Result == ERROR_CANCELLED || PhShowMessage(
                                 hwndDlg,
                                 MB_ICONERROR | MB_RETRYCANCEL,
                                 L"Unable to change service information: %s",
-                                ((PPH_STRING)PH_AUTO(PhGetWin32Message(win32Result)))->Buffer
+                                PhGetStringOrDefault(errorMessage, L"Unknown error.")
                                 ) == IDRETRY)
                             {
                                 SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_INVALID);
                             }
+
+                            PhClearReference(&errorMessage);
                         }
                     }
 

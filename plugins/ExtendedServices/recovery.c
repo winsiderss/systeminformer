@@ -317,13 +317,20 @@ INT_PTR CALLBACK EspServiceRecoveryDlgProc(
             }
             else if (!NT_SUCCESS(status))
             {
+                PPH_STRING errorMessage = PhGetNtMessage(status);
+
                 PhSetDialogItemText(hwndDlg, IDC_RESETFAILCOUNT, L"0");
  
                 context->EnableFlagCheckBox = TRUE;               
                 EnableWindow(GetDlgItem(hwndDlg, IDC_ENABLEFORERRORSTOPS), TRUE);
- 
-                PhShowWarning(hwndDlg, L"Unable to query service recovery information: %s",
-                    ((PPH_STRING)PH_AUTO(PhGetNtMessage(status)))->Buffer);
+
+                PhShowWarning(
+                    hwndDlg,
+                    L"Unable to query service recovery information: %s",
+                    PhGetStringOrDefault(errorMessage, L"Unknown error.")
+                    );
+
+                PhClearReference(&errorMessage);
             }
 
             EspFixControls(hwndDlg, context);
@@ -555,14 +562,20 @@ INT_PTR CALLBACK EspServiceRecoveryDlgProc(
 
                     return TRUE;
 ErrorCase:
-                    if (PhShowMessage(
-                        hwndDlg,
-                        MB_ICONERROR | MB_RETRYCANCEL,
-                        L"Unable to change service recovery information: %s",
-                        ((PPH_STRING)PH_AUTO(PhGetWin32Message(GetLastError())))->Buffer
-                        ) == IDRETRY)
                     {
-                        SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_INVALID);
+                        PPH_STRING errorMessage = PhGetWin32Message(GetLastError());
+
+                        if (PhShowMessage(
+                            hwndDlg,
+                            MB_ICONERROR | MB_RETRYCANCEL,
+                            L"Unable to change service recovery information: %s",
+                            PhGetStringOrDefault(errorMessage, L"Unknown error.")
+                            ) == IDRETRY)
+                        {
+                            SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_INVALID);
+                        }
+
+                        PhClearReference(&errorMessage);
                     }
                 }
                 return TRUE;

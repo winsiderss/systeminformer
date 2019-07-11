@@ -139,7 +139,7 @@ INT_PTR CALLBACK EspServiceDependenciesDlgProc(
             HWND serviceListHandle;
             PPH_LIST serviceList;
             SC_HANDLE serviceHandle;
-            ULONG win32Result = 0;
+            ULONG win32Result = ERROR_SUCCESS;
             BOOLEAN success = FALSE;
             PPH_SERVICE_ITEM *services;
 
@@ -206,9 +206,15 @@ ContinueLoop:
 
             if (!success)
             {
-                PhSetDialogItemText(hwndDlg, IDC_SERVICES_LAYOUT, PhaConcatStrings2(L"Unable to enumerate dependencies: ",
-                    ((PPH_STRING)PH_AUTO(PhGetWin32Message(win32Result)))->Buffer)->Buffer);
+                PPH_STRING errorMessage = PhGetWin32Message(win32Result);
+
+                PhSetDialogItemText(hwndDlg, IDC_SERVICES_LAYOUT, PhaConcatStrings2(
+                    L"Unable to enumerate dependencies: ",
+                    PhGetStringOrDefault(errorMessage, L"Unknown error."))
+                    );
+
                 ShowWindow(GetDlgItem(hwndDlg, IDC_SERVICES_LAYOUT), SW_SHOW);
+                PhClearReference(&errorMessage);
             }
 
             PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
@@ -269,7 +275,7 @@ INT_PTR CALLBACK EspServiceDependentsDlgProc(
             HWND serviceListHandle;
             PPH_LIST serviceList;
             SC_HANDLE serviceHandle;
-            ULONG win32Result = 0;
+            ULONG win32Result = ERROR_SUCCESS;
             BOOLEAN success = FALSE;
             PPH_SERVICE_ITEM *services;
 
@@ -320,9 +326,15 @@ INT_PTR CALLBACK EspServiceDependentsDlgProc(
 
             if (!success)
             {
-                PhSetDialogItemText(hwndDlg, IDC_SERVICES_LAYOUT, PhaConcatStrings2(L"Unable to enumerate dependents: ",
-                    ((PPH_STRING)PH_AUTO(PhGetWin32Message(win32Result)))->Buffer)->Buffer);
+                PPH_STRING errorMessage = PhGetWin32Message(win32Result);
+
+                PhSetDialogItemText(hwndDlg, IDC_SERVICES_LAYOUT, PhaConcatStrings2(
+                    L"Unable to enumerate dependents: ",
+                    PhGetStringOrDefault(errorMessage, L"Unknown error."))
+                    );
+
                 ShowWindow(GetDlgItem(hwndDlg, IDC_SERVICES_LAYOUT), SW_SHOW);
+                PhClearReference(&errorMessage);
             }
 
             PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
