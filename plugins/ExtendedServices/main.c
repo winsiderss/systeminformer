@@ -67,7 +67,7 @@ VOID NTAPI MenuItemCallback(
         {
             PPH_SERVICE_ITEM serviceItem = menuItem->Context;
             SC_HANDLE serviceHandle;
-            ULONG win32Result = 0;
+            ULONG win32Result = ERROR_SUCCESS;
 
             if (serviceHandle = PhOpenService(serviceItem->Name->Buffer, SERVICE_QUERY_STATUS))
             {
@@ -79,7 +79,7 @@ VOID NTAPI MenuItemCallback(
                 win32Result = GetLastError();
             }
 
-            if (win32Result != 0)
+            if (win32Result != ERROR_SUCCESS)
             {
                 PhShowStatus(
                     PhMainWndHandle,

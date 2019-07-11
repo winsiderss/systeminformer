@@ -821,7 +821,7 @@ INT_PTR CALLBACK TracertDlgProc(
                 }
             }
 
-            PhDereferenceObject(hostName);
+            PhClearReference(&hostName);
         }
         break;
     }

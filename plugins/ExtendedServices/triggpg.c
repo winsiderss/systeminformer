@@ -95,8 +95,15 @@ INT_PTR CALLBACK EspServiceTriggersDlgProc(
 
             if (!NT_SUCCESS(status))
             {
-                PhShowWarning(hwndDlg, L"Unable to query service trigger information: %s",
-                    ((PPH_STRING)PH_AUTO(PhGetNtMessage(status)))->Buffer);
+                PPH_STRING errorMessage = PhGetNtMessage(status);
+
+                PhShowWarning(
+                    hwndDlg,
+                    L"Unable to query service trigger information: %s",
+                    PhGetStringOrDefault(errorMessage, L"Unknown error.")
+                    );
+
+                PhClearReference(&errorMessage);
             }
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
@@ -148,20 +155,31 @@ INT_PTR CALLBACK EspServiceTriggersDlgProc(
                 return TRUE;
             case PSN_APPLY:
                 {
-                    ULONG win32Result = 0;
+                    ULONG win32Result = ERROR_SUCCESS;
 
                     SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_NOERROR);
 
                     if (!EsSaveServiceTriggerInfo(context->TriggerContext, &win32Result))
                     {
-                        if (win32Result == ERROR_CANCELLED || (PhShowMessage(
-                            hwndDlg,
-                            MB_ICONERROR | MB_RETRYCANCEL,
-                            L"Unable to change service trigger information: %s",
-                            ((PPH_STRING)PH_AUTO(PhGetWin32Message(win32Result)))->Buffer
-                            ) == IDRETRY))
+                        if (win32Result == ERROR_CANCELLED)
                         {
                             SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_INVALID);
+                        }
+                        else
+                        {
+                            PPH_STRING errorMessage = PhGetWin32Message(win32Result);
+
+                            if (PhShowMessage(
+                                hwndDlg,
+                                MB_ICONERROR | MB_RETRYCANCEL,
+                                L"Unable to change service trigger information: %s",
+                                PhGetStringOrDefault(errorMessage, L"Unknown error.")
+                                ) == IDRETRY)
+                            {
+                                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_INVALID);
+                            }
+
+                            PhClearReference(&errorMessage);
                         }
                     }
 
