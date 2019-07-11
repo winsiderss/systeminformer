@@ -51,6 +51,7 @@ typedef struct _EDIT_CONTEXT
     HBRUSH BrushNormal;
     HBRUSH BrushPushed;
     HBRUSH BrushHot;
+    WNDPROC DefaultWindowProc;
 } EDIT_CONTEXT, *PEDIT_CONTEXT;
 
 HICON PhpSearchBitmapToIcon(
@@ -421,12 +422,16 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
     _In_ HWND hWnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
-    _In_ LPARAM lParam,
-    _In_ UINT_PTR uIdSubclass,
-    _In_ ULONG_PTR dwRefData
+    _In_ LPARAM lParam
     )
 {
-    PEDIT_CONTEXT context = (PEDIT_CONTEXT)dwRefData;
+    PEDIT_CONTEXT context;
+    WNDPROC oldWndProc;
+
+    if (!(context = PhGetWindowContext(hWnd, SHRT_MAX)))
+        return 0;
+
+    oldWndProc = context->DefaultWindowProc;
 
     switch (uMsg)
     {
@@ -437,7 +442,8 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
             if (context->WindowFont)
                 DeleteObject(context->WindowFont);
 
-            RemoveWindowSubclass(hWnd, PhpSearchWndSubclassProc, uIdSubclass);
+            SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+            PhRemoveWindowContext(hWnd, SHRT_MAX);
             PhFree(context);
         }
         break;
@@ -651,7 +657,7 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
         break;
     }
 
-    return DefSubclassProc(hWnd, uMsg, wParam, lParam);
+    return CallWindowProc(oldWndProc, hWnd, uMsg, wParam, lParam);
 }
 
 HICON PhpSearchBitmapToIcon(
@@ -687,9 +693,7 @@ VOID PvCreateSearchControl(
 {
     PEDIT_CONTEXT context;
 
-    context = (PEDIT_CONTEXT)PhAllocate(sizeof(EDIT_CONTEXT));
-    memset(context, 0, sizeof(EDIT_CONTEXT));
-
+    context = PhAllocateZero(sizeof(EDIT_CONTEXT));
     context->WindowHandle = WindowHandle;
 
     //PhpSearchInitializeTheme(context);
@@ -700,7 +704,9 @@ VOID PvCreateSearchControl(
         Edit_SetCueBannerText(context->WindowHandle, BannerText);
 
     // Subclass the Edit control window procedure.
-    SetWindowSubclass(context->WindowHandle, PhpSearchWndSubclassProc, 0, (ULONG_PTR)context);
+    context->DefaultWindowProc = (WNDPROC)GetWindowLongPtr(WindowHandle, GWLP_WNDPROC);
+    PhSetWindowContext(WindowHandle, SHRT_MAX, context);
+    SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)PhpSearchWndSubclassProc);
 
     // Initialize the theme parameters.
     SendMessage(context->WindowHandle, WM_THEMECHANGED, 0, 0);
