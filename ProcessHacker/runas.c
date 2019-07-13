@@ -1206,7 +1206,9 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                                 HANDLE newProcessHandle;
                                 STARTUPINFOEX startupInfo;
                                 SIZE_T attributeListLength = 0;
+                                PVOID environment = NULL;
                                 HANDLE tokenHandle;
+                                ULONG flags = 0;
 
                                 memset(&startupInfo, 0, sizeof(STARTUPINFOEX));
                                 startupInfo.StartupInfo.cb = sizeof(STARTUPINFOEX);
