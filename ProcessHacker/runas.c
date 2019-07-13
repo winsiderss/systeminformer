@@ -62,6 +62,7 @@
 #include <phapp.h>
 
 #include <shlwapi.h>
+#include <userenv.h>
 #include <winsta.h>
 #include <lm.h>
 
@@ -1205,6 +1206,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                                 HANDLE newProcessHandle;
                                 STARTUPINFOEX startupInfo;
                                 SIZE_T attributeListLength = 0;
+                                HANDLE tokenHandle;
 
                                 memset(&startupInfo, 0, sizeof(STARTUPINFOEX));
                                 startupInfo.StartupInfo.cb = sizeof(STARTUPINFOEX);
@@ -1240,18 +1242,28 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                                     goto CleanupExit;
                                 }
 
+                                if (NT_SUCCESS(PhOpenProcessToken(processHandle, TOKEN_QUERY, &tokenHandle)))
+                                {
+                                    if (CreateEnvironmentBlock && CreateEnvironmentBlock(&environment, tokenHandle, FALSE))
+                                    {
+                                        flags |= PH_CREATE_PROCESS_UNICODE_ENVIRONMENT;
+                                    }
+
+                                    NtClose(tokenHandle);
+                                }
+                
                                 status = PhCreateProcessWin32Ex(
                                     NULL,
                                     PhGetString(program),
-                                    NULL,
+                                    environment,
                                     NULL,
                                     &startupInfo.StartupInfo,
-                                    PH_CREATE_PROCESS_SUSPENDED | PH_CREATE_PROCESS_NEW_CONSOLE | PH_CREATE_PROCESS_EXTENDED_STARTUPINFO,
+                                    PH_CREATE_PROCESS_SUSPENDED | PH_CREATE_PROCESS_NEW_CONSOLE | PH_CREATE_PROCESS_EXTENDED_STARTUPINFO | flags,
                                     NULL,
                                     NULL,
                                     &newProcessHandle,
                                     NULL
-                                );
+                                    );
 
                                 if (NT_SUCCESS(status))
                                 {
@@ -1267,6 +1279,11 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                                 }
 
                             CleanupExit:
+
+                                if (environment && DestroyEnvironmentBlock)
+                                {
+                                    DestroyEnvironmentBlock(environment);
+                                }
 
                                 if (startupInfo.lpAttributeList)
                                 {
