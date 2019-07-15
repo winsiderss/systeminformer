@@ -605,8 +605,13 @@ VOID PhMwpOnCommand(
         break;
     case ID_HACKER_RUN:
         {
+            ULONG flags = RFF_OPTRUNAS;
+            if (PhGetIntegerSetting(L"RunDlgHideRunAsAdministrator"))
+            {
+                flags = 0;
+            }
             SelectedRunAsMode = 0;
-            PhShowRunFileDialog(WindowHandle, NULL, NULL, NULL, NULL, RFF_OPTRUNAS);
+            PhShowRunFileDialog(WindowHandle, NULL, NULL, NULL, NULL, flags);
         }
         break;
     case ID_HACKER_RUNASADMINISTRATOR:
