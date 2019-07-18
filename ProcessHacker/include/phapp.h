@@ -559,6 +559,15 @@ VOID PhShowRunAsDialog(
     _In_opt_ HANDLE ProcessId
     );
 
+// begin_phapppub
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhShowRunFileDialog(
+    _In_ HWND ParentWindowHandle
+    );
+// end_phapppub
+
 NTSTATUS PhExecuteRunAsCommand(
     _In_ PPH_RUNAS_SERVICE_PARAMETERS Parameters
     );

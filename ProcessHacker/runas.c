@@ -61,6 +61,7 @@
 
 #include <phapp.h>
 
+#include <shellapi.h>
 #include <shlwapi.h>
 #include <userenv.h>
 #include <winsta.h>
@@ -155,6 +156,13 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
     _In_ LPARAM lParam
     );
 
+INT_PTR CALLBACK PhpRunFileWndProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
 VOID PhSetDesktopWinStaAccess(
     VOID
     );
@@ -195,6 +203,51 @@ VOID PhShowRunAsDialog(
         PhpRunAsDlgProc,
         (LPARAM)ProcessId
         );
+}
+
+BOOLEAN PhShowRunFileDialog(
+    _In_ HWND ParentWindowHandle
+    )
+{
+    if (DialogBox(
+        PhInstanceHandle,
+        MAKEINTRESOURCE(IDD_RUNFILEDLG),
+        ParentWindowHandle,
+        PhpRunFileWndProc
+        ) == IDOK)
+    {
+        return TRUE;
+    }
+
+    return FALSE;
+
+    // Removed from guisup.c (dmex)
+    //BOOL (WINAPI *RunFileDlg_I)(
+    //    _In_ HWND hwndOwner,
+    //    _In_opt_ HICON hIcon,
+    //    _In_opt_ LPCWSTR lpszDirectory,
+    //    _In_opt_ LPCWSTR lpszTitle,
+    //    _In_opt_ LPCWSTR lpszDescription,
+    //    _In_ ULONG uFlags
+    //    );
+    //PVOID shell32Handle;
+    //
+    //if (shell32Handle = LoadLibrary(L"shell32.dll"))
+    //{
+    //    if (RunFileDlg_I = PhGetDllBaseProcedureAddress(shell32Handle, NULL, 61))
+    //    {
+    //        result = !!RunFileDlg_I(
+    //            WindowHandle,
+    //            WindowIcon,
+    //            WorkingDirectory,
+    //            WindowTitle,
+    //            WindowDescription,
+    //            Flags
+    //            );
+    //    }
+    //
+    //    FreeLibrary(shell32Handle);
+    //}
 }
 
 BOOLEAN IsServiceAccount(
@@ -1867,4 +1920,436 @@ NTSTATUS PhInvokeRunAsService(
     if (userName) PhDereferenceObject(userName);
 
     return status;
+}
+
+typedef struct _PHP_RUNFILEDLG
+{
+    HWND ComboBoxHandle;
+    HWND RunAsCheckboxHandle;
+} PHP_RUNFILEDLG, *PPHP_RUNFILEDLG;
+
+INT_PTR CALLBACK PhpRunFileWndProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+    PPHP_RUNFILEDLG context = NULL;
+
+    if (uMsg == WM_INITDIALOG)
+    {
+        context = PhAllocateZero(sizeof(PHP_RUNFILEDLG));
+
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+    }
+    else
+    {
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+
+        if (uMsg == WM_DESTROY)
+        {
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+        }
+    }
+
+    if (!context)
+        return FALSE;
+
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            context->ComboBoxHandle = GetDlgItem(hwndDlg, IDC_PROGRAMCOMBO);
+            context->RunAsCheckboxHandle = GetDlgItem(hwndDlg, IDC_TOGGLEELEVATION);
+
+            SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
+            SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
+
+            PhpAddProgramsToComboBox(context->ComboBoxHandle);
+            ComboBox_SetCurSel(context->ComboBoxHandle, 0);
+
+            {
+                COMBOBOXINFO info = { sizeof(COMBOBOXINFO) };
+
+                if (SendMessage(context->ComboBoxHandle, CB_GETCOMBOBOXINFO, 0, (LPARAM)& info))
+                {
+                    if (SHAutoComplete)
+                        SHAutoComplete(info.hwndItem, SHACF_DEFAULT);
+                }
+            }
+
+            Button_SetCheck(context->RunAsCheckboxHandle, PhGetIntegerSetting(L"RunFileDlgState") ? TRUE : FALSE); 
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhSetIntegerSetting(L"RunFileDlgState", Button_GetCheck(context->RunAsCheckboxHandle) == BST_CHECKED);
+
+            PhFree(context);
+        }
+        break;
+    case WM_CTLCOLORSTATIC:
+        {
+            HDC hdc = (HDC)wParam;
+
+            SetBkMode(hdc, TRANSPARENT);
+
+            return (INT_PTR)GetStockBrush(WHITE_BRUSH);
+        }
+        break;
+    case WM_ERASEBKGND:
+        {
+            HDC hdc = (HDC)wParam;
+            RECT clientRect;
+
+            if (!GetClientRect(hwndDlg, &clientRect))
+                break;
+
+            SetBkMode(hdc, TRANSPARENT);
+
+            clientRect.bottom -= PH_SCALE_DPI(60);
+            FillRect(hdc, &clientRect, GetSysColorBrush(COLOR_WINDOW));
+
+            clientRect.top = clientRect.bottom;
+            clientRect.bottom = clientRect.top + PH_SCALE_DPI(60);
+            FillRect(hdc, &clientRect, GetSysColorBrush(COLOR_3DFACE));
+
+            SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, TRUE);
+        }
+        return TRUE;
+    case WM_COMMAND:
+        {
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
+            {
+            case IDCANCEL:
+                EndDialog(hwndDlg, IDCANCEL);
+                break;
+            case IDOK:
+                {
+                    PPH_STRING string = NULL;
+                    PPH_STRING fullFileName = NULL;
+                    PPH_STRING argumentsString = NULL;
+                    PH_STRINGREF fileName;
+                    PH_STRINGREF arguments;
+                    FILE_BASIC_INFORMATION basicInfo;
+                    BOOLEAN isDirectory = FALSE;
+
+                    if (!(string = PhGetWindowText(context->ComboBoxHandle)))
+                        break;
+
+                    PhParseCommandLineFuzzy(&string->sr, &fileName, &arguments, &fullFileName);
+
+                    if (PhIsNullOrEmptyString(fullFileName))
+                        PhMoveReference(&fullFileName, PhCreateString2(&fileName));
+
+                    if (PhIsNullOrEmptyString(fullFileName))
+                    {
+                        PhDereferenceObject(string);
+                        break;
+                    }
+
+                    if (arguments.Length)
+                    {
+                        argumentsString = PhCreateString2(&arguments);
+                    }
+
+                    if (NT_SUCCESS(PhQueryAttributesFileWin32(fullFileName->Buffer, &basicInfo)))
+                    {
+                        isDirectory = !!(basicInfo.FileAttributes & FILE_ATTRIBUTE_DIRECTORY);
+                    }
+
+                    if (isDirectory)
+                    {
+                        if (PhShellExecuteEx(
+                            hwndDlg,
+                            fullFileName->Buffer,
+                            PhGetString(argumentsString),
+                            SW_SHOWNORMAL,
+                            0,
+                            0,
+                            NULL
+                            ))
+                        {
+                            PhpAddRunMRUListEntry(string);
+
+                            EndDialog(hwndDlg, IDOK);
+                        }
+                    }
+                    else if (Button_GetCheck(context->RunAsCheckboxHandle) == BST_CHECKED ||
+                        // The explorer runas dialog executes programs as administrator when holding ctrl/shift keys 
+                        // and clicking the OK button, so we'll implement the same functionality. (dmex)
+                        (!!(GetKeyState(VK_CONTROL) < 0 && !!(GetKeyState(VK_SHIFT) < 0))))
+                    {
+                        if (PhShellExecuteEx(
+                            hwndDlg,
+                            fullFileName->Buffer,
+                            PhGetString(argumentsString),
+                            SW_SHOWNORMAL,
+                            PH_SHELL_EXECUTE_ADMIN,
+                            0,
+                            NULL
+                            ))
+                        {
+                            PhpAddRunMRUListEntry(string);
+
+                            EndDialog(hwndDlg, IDOK);
+                        }
+                    }
+                    else if (!PhDoesFileExistsWin32(fullFileName->Buffer))
+                    {
+                        if (PhShellExecuteEx(
+                            hwndDlg,
+                            fullFileName->Buffer,
+                            PhGetString(argumentsString),
+                            SW_SHOWNORMAL,
+                            0,
+                            0,
+                            NULL
+                            ))
+                        {
+                            PhpAddRunMRUListEntry(string);
+
+                            EndDialog(hwndDlg, IDOK);
+                        }
+                    }
+                    else
+                    {
+                        NTSTATUS status = STATUS_UNSUCCESSFUL;
+                        ULONG processId = ULONG_MAX;
+                        HANDLE processHandle = NULL;
+                        HANDLE newProcessHandle;
+                        HANDLE tokenHandle;
+                        HWND shellWindow;
+                        STARTUPINFOEX startupInfo;
+                        SIZE_T attributeListLength = 0;
+                        PVOID environment = NULL;
+                        ULONG flags = 0;
+
+                        memset(&startupInfo, 0, sizeof(STARTUPINFOEX));
+                        startupInfo.StartupInfo.cb = sizeof(STARTUPINFOEX);
+                        startupInfo.StartupInfo.dwFlags = STARTF_USESHOWWINDOW;
+                        startupInfo.StartupInfo.wShowWindow = SW_SHOWNORMAL;
+
+                        if (!(shellWindow = GetShellWindow()))
+                        {
+                            PVOID wdcLibraryHandle;
+
+                            if (wdcLibraryHandle = LoadLibrary(L"wdc.dll"))
+                            {
+                                ULONG (WINAPI *WdcRunTaskAsInteractiveUser_I)(
+                                    _In_ PCWSTR CommandLine,
+                                    _In_ PCWSTR CurrentDirectory,
+                                    _In_ ULONG Reserved
+                                    );
+
+                                if (WdcRunTaskAsInteractiveUser_I = PhGetDllBaseProcedureAddress(wdcLibraryHandle, "WdcRunTaskAsInteractiveUser", 0))
+                                {
+                                    PPH_STRING executeString = NULL;
+                                    INT cmdlineArgCount;
+                                    PWSTR* cmdlineArgList;
+
+                                    // Extract the filename.
+                                    if (cmdlineArgList = CommandLineToArgvW(string->Buffer, &cmdlineArgCount))
+                                    {
+                                        PPH_STRING fileName = PhCreateString(cmdlineArgList[0]);
+
+                                        if (fileName && !PhDoesFileExistsWin32(fileName->Buffer))
+                                        {
+                                            PPH_STRING filePathString;
+
+                                            // The user typed a name without a path so attempt to locate the executable.
+                                            if (filePathString = PhSearchFilePath(fileName->Buffer, L".exe"))
+                                                PhMoveReference(&fileName, filePathString);
+                                            else
+                                                PhClearReference(&fileName);
+                                        }
+
+                                        if (fileName)
+                                        {
+                                            // Escape the filename.
+                                            PhMoveReference(&fileName, PhConcatStrings(3, L"\"", fileName->Buffer, L"\""));
+
+                                            if (cmdlineArgCount == 2)
+                                            {
+                                                PPH_STRING fileArgs = PhCreateString(cmdlineArgList[1]);
+
+                                                // Escape the parameters.
+                                                PhMoveReference(&fileArgs, PhConcatStrings(3, L"\"", fileArgs->Buffer, L"\""));
+
+                                                // Create the escaped execute string.
+                                                PhMoveReference(&executeString, PhConcatStrings(3, fileName->Buffer, L" ", fileArgs->Buffer));
+
+                                                // Cleanup.
+                                                PhDereferenceObject(fileArgs);
+                                            }
+                                            else
+                                            {
+                                                // Create the escaped execute string.
+                                                executeString = PhReferenceObject(fileName);
+                                            }
+
+                                            PhDereferenceObject(fileName);
+                                        }
+
+                                        LocalFree(cmdlineArgList);
+                                    }
+
+                                    if (!PhIsNullOrEmptyString(executeString))
+                                    {
+                                        if (WdcRunTaskAsInteractiveUser_I(executeString->Buffer, NULL, 0) == 0)
+                                            status = STATUS_SUCCESS;
+                                        else
+                                            status = STATUS_UNSUCCESSFUL;
+                                    }
+                                    else
+                                    {
+                                        status = STATUS_UNSUCCESSFUL;
+                                    }
+
+                                    PhClearReference(&executeString);
+                                }
+
+                                FreeLibrary(wdcLibraryHandle);
+                            }
+
+                            goto CleanupExit;
+                        }
+
+                        GetWindowThreadProcessId(shellWindow, &processId);
+
+                        if (processId == ULONG_MAX)
+                        {
+                            status = STATUS_UNSUCCESSFUL;
+                            goto CleanupExit;
+                        }
+
+                        status = PhOpenProcess(
+                            &processHandle,
+                            PROCESS_CREATE_PROCESS,
+                            UlongToHandle(processId)
+                            );
+
+                        if (!NT_SUCCESS(status))
+                            goto CleanupExit;
+
+                        if (!InitializeProcThreadAttributeList(NULL, 1, 0, &attributeListLength) && GetLastError() != ERROR_INSUFFICIENT_BUFFER)
+                        {
+                            status = PhGetLastWin32ErrorAsNtStatus();
+                            goto CleanupExit;
+                        }
+
+                        startupInfo.lpAttributeList = PhAllocate(attributeListLength);
+
+                        if (!InitializeProcThreadAttributeList(startupInfo.lpAttributeList, 1, 0, &attributeListLength))
+                        {
+                            status = PhGetLastWin32ErrorAsNtStatus();
+                            goto CleanupExit;
+                        }
+
+                        if (!UpdateProcThreadAttribute(startupInfo.lpAttributeList, 0, PROC_THREAD_ATTRIBUTE_PARENT_PROCESS, &(HANDLE){ processHandle }, sizeof(HANDLE), NULL, NULL))
+                        {
+                            status = PhGetLastWin32ErrorAsNtStatus();
+                            goto CleanupExit;
+                        }
+
+                        if (NT_SUCCESS(PhOpenProcessToken(processHandle, TOKEN_QUERY, &tokenHandle)))
+                        {
+                            if (CreateEnvironmentBlock && CreateEnvironmentBlock(&environment, tokenHandle, FALSE))
+                            {
+                                flags |= PH_CREATE_PROCESS_UNICODE_ENVIRONMENT;
+                            }
+
+                            NtClose(tokenHandle);
+                        }
+
+                        status = PhCreateProcessWin32Ex(
+                            fullFileName->Buffer,
+                            PhGetString(argumentsString),
+                            environment,
+                            NULL,
+                            &startupInfo.StartupInfo,
+                            PH_CREATE_PROCESS_SUSPENDED | PH_CREATE_PROCESS_NEW_CONSOLE | PH_CREATE_PROCESS_EXTENDED_STARTUPINFO | flags,
+                            NULL,
+                            NULL,
+                            &newProcessHandle,
+                            NULL
+                            );
+
+                        if (NT_SUCCESS(status))
+                        {
+                            PROCESS_BASIC_INFORMATION basicInfo;
+
+                            if (NT_SUCCESS(PhGetProcessBasicInformation(newProcessHandle, &basicInfo)))
+                            {
+                                AllowSetForegroundWindow(HandleToUlong(basicInfo.UniqueProcessId));
+                            }
+
+                            NtResumeProcess(newProcessHandle);
+
+                            NtClose(newProcessHandle);
+                        }
+
+                    CleanupExit:
+
+                        if (environment && DestroyEnvironmentBlock)
+                        {
+                            DestroyEnvironmentBlock(environment);
+                        }
+
+                        if (startupInfo.lpAttributeList)
+                        {
+                            DeleteProcThreadAttributeList(startupInfo.lpAttributeList);
+                            PhFree(startupInfo.lpAttributeList);
+                        }
+
+                        if (processHandle)
+                        {
+                            NtClose(processHandle);
+                        }
+
+                        if (NT_SUCCESS(status))
+                        {
+                            PhpAddRunMRUListEntry(string);
+
+                            EndDialog(hwndDlg, IDOK);
+                        }
+                    }
+
+                    if (fullFileName) PhDereferenceObject(fullFileName);
+                    if (argumentsString) PhDereferenceObject(argumentsString);
+                    if (string) PhDereferenceObject(string);
+                }
+                break;
+            case IDC_BROWSE:
+                {
+                    PH_FILETYPE_FILTER filters[] =
+                    {
+                        { L"Executable files (*.exe;*.pif;*.com;*.bat;*.cmd)", L"*.exe;*.pif;*.com;*.bat;*.cmd" },
+                        { L"All files (*.*)", L"*.*" }
+                    };
+                    PVOID fileDialog = PhCreateOpenFileDialog();
+
+                    PhSetFileDialogFilter(fileDialog, filters, RTL_NUMBER_OF(filters));
+
+                    if (PhShowFileDialog(hwndDlg, fileDialog))
+                    {
+                        PPH_STRING fileName;
+
+                        if (fileName = PhGetFileDialogFileName(fileDialog))
+                        {
+                            ComboBox_SetText(GetDlgItem(hwndDlg, IDC_PROGRAMCOMBO), PhGetString(fileName));
+                            PhDereferenceObject(fileName);
+                        }
+                    }
+
+                    PhFreeFileDialog(fileDialog);
+                }
+                break;
+            }
+        }
+        break;
+    }
+
+    return FALSE;
 }
