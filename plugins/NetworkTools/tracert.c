@@ -633,7 +633,7 @@ INT_PTR CALLBACK TracertDlgProc(
             PhSaveWindowPlacementToSetting(SETTING_NAME_TRACERT_WINDOW_POSITION, SETTING_NAME_TRACERT_WINDOW_SIZE, hwndDlg);
 
             if (context->FontHandle)
-                DeleteObject(context->FontHandle);
+                DeleteFont(context->FontHandle);
 
             DeleteTracertTree(context);
 

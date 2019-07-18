@@ -97,7 +97,7 @@ VOID PhpDestroyEMenuItem(
     if ((Item->Flags & PH_EMENU_TEXT_OWNED) && Item->Text)
         PhFree(Item->Text);
     if ((Item->Flags & PH_EMENU_BITMAP_OWNED) && Item->Bitmap)
-        DeleteObject(Item->Bitmap);
+        DeleteBitmap(Item->Bitmap);
 
     if (Item->Items)
     {
@@ -856,7 +856,7 @@ VOID PhModifyEMenuItem(
     if (ModifyFlags & PH_EMENU_MODIFY_BITMAP)
     {
         if ((Item->Flags & PH_EMENU_BITMAP_OWNED) && Item->Bitmap)
-            DeleteObject(Item->Bitmap);
+            DeleteBitmap(Item->Bitmap);
 
         Item->Bitmap = Bitmap;
         Item->Flags &= ~PH_EMENU_BITMAP_OWNED;

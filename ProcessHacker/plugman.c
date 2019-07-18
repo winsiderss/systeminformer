@@ -441,14 +441,14 @@ BOOLEAN NTAPI PluginsTreeNewCallback(
 
                     // top
                     SetTextColor(customDraw->Dc, RGB(0x0, 0x0, 0x0));
-                    SelectObject(customDraw->Dc, context->TitleFontHandle);
+                    SelectFont(customDraw->Dc, context->TitleFontHandle);
                     text = PhIsNullOrEmptyString(node->Name) ? PhGetStringRef(node->InternalName) : PhGetStringRef(node->Name);
                     GetTextExtentPoint32(customDraw->Dc, text.Buffer, (ULONG)text.Length / sizeof(WCHAR), &nameSize);
                     DrawText(customDraw->Dc, text.Buffer, (ULONG)text.Length / sizeof(WCHAR), &rect, DT_TOP | DT_LEFT | DT_END_ELLIPSIS | DT_SINGLELINE);
 
                     // bottom
                     SetTextColor(customDraw->Dc, RGB(0x64, 0x64, 0x64));
-                    SelectObject(customDraw->Dc, context->NormalFontHandle);
+                    SelectFont(customDraw->Dc, context->NormalFontHandle);
                     text = PhGetStringRef(node->Description);
                     GetTextExtentPoint32(customDraw->Dc, text.Buffer, (ULONG)text.Length / sizeof(WCHAR), &textSize);
                     DrawText(
@@ -558,9 +558,9 @@ VOID DeletePluginsTree(
     )
 {
     if (Context->TitleFontHandle)
-        DeleteObject(Context->TitleFontHandle);
+        DeleteFont(Context->TitleFontHandle);
     if (Context->NormalFontHandle)
-        DeleteObject(Context->NormalFontHandle);
+        DeleteFont(Context->NormalFontHandle);
 
     PluginsSaveSettingsTreeList(Context);
 

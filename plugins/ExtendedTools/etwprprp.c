@@ -398,7 +398,7 @@ INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
                                 ));
 
                             hdc = Graph_GetBufferedContext(context->DiskGraphHandle);
-                            SelectObject(hdc, PhApplicationFont);
+                            SelectFont(hdc, PhApplicationFont);
                             PhSetGraphText(hdc, drawInfo, &context->DiskGraphState.Text->sr,
                                 &NormalGraphTextMargin, &NormalGraphTextPadding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
                         }
@@ -466,7 +466,7 @@ INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
                                 ));
 
                             hdc = Graph_GetBufferedContext(context->NetworkGraphHandle);
-                            SelectObject(hdc, PhApplicationFont);
+                            SelectFont(hdc, PhApplicationFont);
                             PhSetGraphText(hdc, drawInfo, &context->NetworkGraphState.Text->sr,
                                 &NormalGraphTextMargin, &NormalGraphTextPadding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
                         }

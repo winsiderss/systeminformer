@@ -607,7 +607,7 @@ VOID PhSetImageListBitmap(
     if (bitmap)
     {
         ImageList_Replace(ImageList, Index, bitmap, NULL);
-        DeleteObject(bitmap);
+        DeleteBitmap(bitmap);
     }
 }
 
@@ -1733,5 +1733,5 @@ HICON PhGetInternalWindowIcon(
     if (!InternalGetWindowIcon_I)
         return NULL; 
 
-    return InternalGetWindowIcon_I(WindowHandle, Type);;
+    return InternalGetWindowIcon_I(WindowHandle, Type);
 }

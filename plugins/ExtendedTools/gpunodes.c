@@ -337,7 +337,7 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
                                 }
 
                                 hdc = Graph_GetBufferedContext(GraphHandle[i]);
-                                SelectObject(hdc, PhApplicationFont);
+                                SelectFont(hdc, PhApplicationFont);
                                 PhSetGraphText(hdc, drawInfo, &GraphState[i].Text->sr,
                                     &NormalGraphTextMargin, &NormalGraphTextPadding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
                             }

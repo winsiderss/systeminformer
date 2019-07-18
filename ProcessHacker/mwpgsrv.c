@@ -138,7 +138,7 @@ BOOLEAN PhMwpServicesPageCallback(
         {
             HFONT font = (HFONT)Parameter1;
 
-            SendMessage(PhMwpServiceTreeNewHandle, WM_SETFONT, (WPARAM)font, TRUE);
+            SetWindowFont(PhMwpServiceTreeNewHandle, font, TRUE);
         }
         break;
     case MainTabPageUpdateAutomaticallyChanged:

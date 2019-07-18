@@ -660,7 +660,7 @@ VOID PhpPopulateObjectTypes(
         maxLength = 0;
         comboDc = GetDC(FilterTypeCombo);
 
-        SendMessage(FilterTypeCombo, WM_SETFONT, (WPARAM)PhApplicationFont, TRUE);
+        SetWindowFont(FilterTypeCombo, PhApplicationFont, TRUE);
 
         for (ULONG i = 0; i < objectTypeList->Count; i++)
         {

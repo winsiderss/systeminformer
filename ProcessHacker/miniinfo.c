@@ -486,7 +486,7 @@ VOID PhMipOnShowWindow(
     SectionList = PhCreateList(8);
     PhMipInitializeParameters();
 
-    SendMessage(GetDlgItem(PhMipWindow, IDC_SECTION), WM_SETFONT, (WPARAM)CurrentParameters.MediumFont, FALSE);
+    SetWindowFont(GetDlgItem(PhMipWindow, IDC_SECTION), CurrentParameters.MediumFont, FALSE);
 
     PhMipCreateInternalListSection(L"CPU", 0, PhMipCpuListSectionCallback);
     PhMipCreateInternalListSection(L"Commit charge", 0, PhMipCommitListSectionCallback);
@@ -783,19 +783,19 @@ VOID PhMipInitializeParameters(
     logFont.lfHeight -= PhMultiplyDivide(2, PhGlobalDpi, 72);
     CurrentParameters.MediumFont = CreateFontIndirect(&logFont);
 
-    originalFont = SelectObject(hdc, CurrentParameters.Font);
+    originalFont = SelectFont(hdc, CurrentParameters.Font);
     GetTextMetrics(hdc, &textMetrics);
     CurrentParameters.FontHeight = textMetrics.tmHeight;
     CurrentParameters.FontAverageWidth = textMetrics.tmAveCharWidth;
 
-    SelectObject(hdc, CurrentParameters.MediumFont);
+    SelectFont(hdc, CurrentParameters.MediumFont);
     GetTextMetrics(hdc, &textMetrics);
     CurrentParameters.MediumFontHeight = textMetrics.tmHeight;
     CurrentParameters.MediumFontAverageWidth = textMetrics.tmAveCharWidth;
 
     CurrentParameters.SetSectionText = PhMipSetSectionText;
 
-    SelectObject(hdc, originalFont);
+    SelectFont(hdc, originalFont);
     ReleaseDC(PhMipWindow, hdc);
 }
 
@@ -1540,7 +1540,7 @@ BOOLEAN PhMipListSectionTreeNewCallback(
                 0, NULL, DI_NORMAL);
             rect.left += (MIP_CELL_PADDING - MIP_ICON_PADDING) + PhLargeIconSize.X + MIP_CELL_PADDING;
             rect.top += MIP_CELL_PADDING - MIP_ICON_PADDING;
-            SelectObject(hdc, CurrentParameters.Font);
+            SelectFont(hdc, CurrentParameters.Font);
 
             // This color changes depending on whether the node is selected, etc.
             originalTextColor = GetTextColor(hdc);

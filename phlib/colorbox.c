@@ -156,8 +156,8 @@ LRESULT CALLBACK PhpColorBoxWndProc(
                     SetDCBrushColor(hdc, PhMakeColorBrighter(context->SelectedColor, 64));
 
                 // Draw the rectangle.
-                SelectObject(hdc, GetStockObject(DC_PEN));
-                SelectObject(hdc, GetStockObject(DC_BRUSH));
+                SelectPen(hdc, GetStockPen(DC_PEN));
+                SelectBrush(hdc, GetStockBrush(DC_BRUSH));
                 Rectangle(hdc, clientRect.left, clientRect.top, clientRect.right, clientRect.bottom);
 
                 EndPaint(hwnd, &paintStruct);

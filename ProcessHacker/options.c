@@ -442,7 +442,7 @@ INT_PTR CALLBACK PhOptionsDialogProc(
                     case 1: // Old colors
                         {
                             SetDCBrushColor(drawInfo->hDC, RGB(0, 0, 0));
-                            FillRect(drawInfo->hDC, &rect, GetStockObject(DC_BRUSH));
+                            FillRect(drawInfo->hDC, &rect, GetStockBrush(DC_BRUSH));
                         }
                         break;
                     }
@@ -1268,9 +1268,9 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
 
                 if (CurrentFontInstance)
                 {
-                    SendMessage(OptionsTreeControl, WM_SETFONT, (WPARAM)CurrentFontInstance, TRUE); // HACK
-                    SendMessage(listviewHandle, WM_SETFONT, (WPARAM)CurrentFontInstance, TRUE);
-                    SendMessage(GetDlgItem(hwndDlg, IDC_FONT), WM_SETFONT, (WPARAM)CurrentFontInstance, TRUE);
+                    SetWindowFont(OptionsTreeControl, CurrentFontInstance, TRUE); // HACK
+                    SetWindowFont(listviewHandle, CurrentFontInstance, TRUE);
+                    SetWindowFont(GetDlgItem(hwndDlg, IDC_FONT), CurrentFontInstance, TRUE);
                 }
             }
 
@@ -1291,7 +1291,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
             PhpAdvancedPageSave(hwndDlg);
 
             if (CurrentFontInstance)
-                DeleteObject(CurrentFontInstance);
+                DeleteFont(CurrentFontInstance);
 
             if (GeneralListviewImageList)
                 ImageList_Destroy(GeneralListviewImageList);
@@ -1333,13 +1333,13 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                         // Update the button's font.
 
                         if (CurrentFontInstance)
-                            DeleteObject(CurrentFontInstance);
+                            DeleteFont(CurrentFontInstance);
 
                         CurrentFontInstance = CreateFontIndirect(&font);
 
-                        SendMessage(OptionsTreeControl, WM_SETFONT, (WPARAM)CurrentFontInstance, TRUE); // HACK
-                        SendMessage(GetDlgItem(hwndDlg, IDC_SETTINGS), WM_SETFONT, (WPARAM)CurrentFontInstance, TRUE);
-                        SendMessage(GetDlgItem(hwndDlg, IDC_FONT), WM_SETFONT, (WPARAM)CurrentFontInstance, TRUE);
+                        SetWindowFont(OptionsTreeControl, CurrentFontInstance, TRUE); // HACK
+                        SetWindowFont(GetDlgItem(hwndDlg, IDC_SETTINGS), CurrentFontInstance, TRUE);
+                        SetWindowFont(GetDlgItem(hwndDlg, IDC_FONT), CurrentFontInstance, TRUE);
                         RestartRequired = TRUE; // HACK: Fix ToolStatus plugin toolbar resize on font change
                     }
                 }
@@ -1485,13 +1485,13 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
     //        if (GetDlgCtrlID(control) == IDC_DEFSTATE)
     //        {
     //            if (!BoldFont)
-    //                BoldFont = PhDuplicateFontWithNewWeight((HFONT)SendMessage(control, WM_GETFONT, 0, 0), FW_BOLD);
+    //                BoldFont = PhDuplicateFontWithNewWeight(GetWindowFont(control), FW_BOLD);
     //
     //            SetBkMode(hdc, TRANSPARENT);
     //
     //            if (!PhpIsDefaultTaskManager())
     //            {
-    //                SelectObject(hdc, BoldFont);
+    //                SelectFont(hdc, BoldFont);
     //            }
     //        }
     //    }

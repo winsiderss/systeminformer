@@ -650,7 +650,7 @@ HICON PhNfpGetBlackIcon(
         iconInfo.hbmColor = PhNfpBlackBitmap;
         PhNfpBlackIcon = CreateIconIndirect(&iconInfo);
 
-        SelectObject(hdc, oldBitmap);
+        SelectBitmap(hdc, oldBitmap);
     }
 
     return PhNfpBlackIcon;
@@ -897,7 +897,7 @@ VOID PhNfpBeginBitmap2(
     *Bitmap = Context->Bitmap;
     if (Bits) *Bits = Context->Bits;
     *Hdc = Context->Hdc;
-    *OldBitmap = SelectObject(Context->Hdc, Context->Bitmap);
+    *OldBitmap = SelectBitmap(Context->Hdc, Context->Bitmap);
 }
 
 VOID PhNfpCpuHistoryIconUpdateCallback(
@@ -957,7 +957,7 @@ VOID PhNfpCpuHistoryIconUpdateCallback(
     if (bits)
         PhDrawGraphDirect(hdc, bits, &drawInfo);
 
-    SelectObject(hdc, oldBitmap);
+    SelectBitmap(hdc, oldBitmap);
     *NewIconOrBitmap = bitmap;
     *Flags = PH_NF_UPDATE_IS_BITMAP;
 
@@ -1066,7 +1066,7 @@ VOID PhNfpIoHistoryIconUpdateCallback(
     if (bits)
         PhDrawGraphDirect(hdc, bits, &drawInfo);
 
-    SelectObject(hdc, oldBitmap);
+    SelectBitmap(hdc, oldBitmap);
     *NewIconOrBitmap = bitmap;
     *Flags = PH_NF_UPDATE_IS_BITMAP;
 
@@ -1157,7 +1157,7 @@ VOID PhNfpCommitHistoryIconUpdateCallback(
     if (bits)
         PhDrawGraphDirect(hdc, bits, &drawInfo);
 
-    SelectObject(hdc, oldBitmap);
+    SelectBitmap(hdc, oldBitmap);
     *NewIconOrBitmap = bitmap;
     *Flags = PH_NF_UPDATE_IS_BITMAP;
 
@@ -1232,7 +1232,7 @@ VOID PhNfpPhysicalHistoryIconUpdateCallback(
     if (bits)
         PhDrawGraphDirect(hdc, bits, &drawInfo);
 
-    SelectObject(hdc, oldBitmap);
+    SelectBitmap(hdc, oldBitmap);
     *NewIconOrBitmap = bitmap;
     *Flags = PH_NF_UPDATE_IS_BITMAP;
 
@@ -1285,11 +1285,11 @@ VOID PhNfpCpuUsageIconUpdateCallback(
         LONG ul = (LONG)(u * height);
         RECT rect;
         HBRUSH dcBrush;
-        HBRUSH dcPen;
+        HPEN dcPen;
         POINT points[2];
 
-        dcBrush = GetStockObject(DC_BRUSH);
-        dcPen = GetStockObject(DC_PEN);
+        dcBrush = GetStockBrush(DC_BRUSH);
+        dcPen = GetStockPen(DC_PEN);
         rect.left = 0;
         rect.top = 0;
         rect.right = width;
@@ -1300,7 +1300,7 @@ VOID PhNfpCpuUsageIconUpdateCallback(
         // Draw the base line.
         if (kl + ul == 0)
         {
-            SelectObject(hdc, dcPen);
+            SelectPen(hdc, dcPen);
             SetDCPenColor(hdc, uColor);
             points[0].x = 0;
             points[0].y = height - 1;
@@ -1322,7 +1322,7 @@ VOID PhNfpCpuUsageIconUpdateCallback(
             if (points[0].y < 0) points[0].y = 0;
             points[1].x = width;
             points[1].y = points[0].y;
-            SelectObject(hdc, dcPen);
+            SelectPen(hdc, dcPen);
             SetDCPenColor(hdc, uColor);
             Polyline(hdc, points, 2);
 
@@ -1340,14 +1340,14 @@ VOID PhNfpCpuUsageIconUpdateCallback(
                 if (points[0].y < 0) points[0].y = 0;
                 points[1].x = width;
                 points[1].y = points[0].y;
-                SelectObject(hdc, dcPen);
+                SelectPen(hdc, dcPen);
                 SetDCPenColor(hdc, kColor);
                 Polyline(hdc, points, 2);
             }
         }
     }
 
-    SelectObject(hdc, oldBitmap);
+    SelectBitmap(hdc, oldBitmap);
     *NewIconOrBitmap = bitmap;
     *Flags = PH_NF_UPDATE_IS_BITMAP;
 
@@ -1422,7 +1422,7 @@ VOID PhNfpCpuUsageTextIconUpdateCallback(
         PhDrawTrayIconText(hdc, bits, &drawInfo, &text->sr);
     PhDereferenceObject(text);
 
-    SelectObject(hdc, oldBitmap);
+    SelectBitmap(hdc, oldBitmap);
     *NewIconOrBitmap = bitmap;
     *Flags = PH_NF_UPDATE_IS_BITMAP;
 
@@ -1500,7 +1500,7 @@ VOID PhNfpIoUsageTextIconUpdateCallback(
         PhDrawTrayIconText(hdc, bits, &drawInfo, &text->sr);
     PhDereferenceObject(text);
 
-    SelectObject(hdc, oldBitmap);
+    SelectBitmap(hdc, oldBitmap);
     *NewIconOrBitmap = bitmap;
     *Flags = PH_NF_UPDATE_IS_BITMAP;
 
@@ -1575,7 +1575,7 @@ VOID PhNfpCommitTextIconUpdateCallback(
     PhDrawTrayIconText(hdc, bits, &drawInfo, &text->sr);
     PhDereferenceObject(text);
 
-    SelectObject(hdc, oldBitmap);
+    SelectBitmap(hdc, oldBitmap);
     *NewIconOrBitmap = bitmap;
     *Flags = PH_NF_UPDATE_IS_BITMAP;
 
@@ -1638,7 +1638,7 @@ VOID PhNfpPhysicalUsageTextIconUpdateCallback(
     PhDrawTrayIconText(hdc, bits, &drawInfo, &text->sr);
     PhDereferenceObject(text);
 
-    SelectObject(hdc, oldBitmap);
+    SelectBitmap(hdc, oldBitmap);
     *NewIconOrBitmap = bitmap;
     *Flags = PH_NF_UPDATE_IS_BITMAP;
 

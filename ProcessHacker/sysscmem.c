@@ -303,8 +303,8 @@ INT_PTR CALLBACK PhSipMemoryDialogProc(
             panelItem = PhAddLayoutItem(&MemoryLayoutManager, GetDlgItem(hwndDlg, IDC_LAYOUT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             MemoryGraphMargin = graphItem->Margin;
 
-            SendMessage(GetDlgItem(hwndDlg, IDC_TITLE), WM_SETFONT, (WPARAM)MemorySection->Parameters->LargeFont, FALSE);
-            SendMessage(GetDlgItem(hwndDlg, IDC_TOTALPHYSICAL), WM_SETFONT, (WPARAM)MemorySection->Parameters->MediumFont, FALSE);
+            SetWindowFont(GetDlgItem(hwndDlg, IDC_TITLE), MemorySection->Parameters->LargeFont, FALSE);
+            SetWindowFont(GetDlgItem(hwndDlg, IDC_TOTALPHYSICAL), MemorySection->Parameters->MediumFont, FALSE);
 
             if (!getPhysicallyInstalledSystemMemory)
                 getPhysicallyInstalledSystemMemory = PhGetDllProcedureAddress(L"kernel32.dll", "GetPhysicallyInstalledSystemMemory", 0);

@@ -253,7 +253,7 @@ VOID StatusBarUpdate(
     }
 
     hdc = GetDC(StatusBarHandle);
-    SelectObject(hdc, (HFONT)SendMessage(StatusBarHandle, WM_GETFONT, 0, 0));
+    SelectFont(hdc, GetWindowFont(StatusBarHandle));
 
     // Reset max. widths for Max. CPU Process and Max. I/O Process parts once in a while.
     {

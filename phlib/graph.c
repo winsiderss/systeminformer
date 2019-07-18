@@ -518,7 +518,7 @@ VOID PhDrawGraphDirect(
             RECT rect;
 
             if (DrawInfo->LabelYFont)
-                oldFont = SelectObject(hdc, DrawInfo->LabelYFont);
+                oldFont = SelectFont(hdc, DrawInfo->LabelYFont);
 
             SetTextColor(hdc, DrawInfo->LabelYColor);
             SetBkMode(hdc, TRANSPARENT);
@@ -539,7 +539,7 @@ VOID PhDrawGraphDirect(
             DrawText(hdc, label->Buffer, (ULONG)label->Length / sizeof(WCHAR), &rect, DT_NOCLIP | DT_RIGHT);
 
             if (oldFont)
-                SelectObject(hdc, oldFont);
+                SelectFont(hdc, oldFont);
 
             PhDereferenceObject(label);
         }
@@ -550,11 +550,11 @@ VOID PhDrawGraphDirect(
         HFONT oldFont = NULL;
 
         if (DrawInfo->TextFont)
-            oldFont = SelectObject(hdc, DrawInfo->TextFont);
+            oldFont = SelectFont(hdc, DrawInfo->TextFont);
 
         // Fill in the text box.
         SetDCBrushColor(hdc, DrawInfo->TextBoxColor);
-        FillRect(hdc, &DrawInfo->TextBoxRect, GetStockObject(DC_BRUSH));
+        FillRect(hdc, &DrawInfo->TextBoxRect, GetStockBrush(DC_BRUSH));
 
         // Draw the text.
         SetTextColor(hdc, DrawInfo->TextColor);
@@ -562,7 +562,7 @@ VOID PhDrawGraphDirect(
         DrawText(hdc, DrawInfo->Text.Buffer, (ULONG)DrawInfo->Text.Length / sizeof(WCHAR), &DrawInfo->TextRect, DT_NOCLIP);
 
         if (oldFont)
-            SelectObject(hdc, oldFont);
+            SelectFont(hdc, oldFont);
     }
 }
 
@@ -592,13 +592,13 @@ VOID PhSetGraphText(
     PH_RECTANGLE textRectangle;
 
     if (DrawInfo->TextFont)
-        oldFont = SelectObject(hdc, DrawInfo->TextFont);
+        oldFont = SelectFont(hdc, DrawInfo->TextFont);
 
     DrawInfo->Text = *Text;
     GetTextExtentPoint32(hdc, Text->Buffer, (ULONG)Text->Length / sizeof(WCHAR), &textSize);
 
     if (oldFont)
-        SelectObject(hdc, oldFont);
+        SelectFont(hdc, oldFont);
 
     // Calculate the box rectangle.
 
@@ -690,7 +690,7 @@ VOID PhDrawTrayIconText( // dmex
         DrawInfo->TextFont = PhpTrayIconFont();
 
     if (DrawInfo->TextFont)
-        oldFont = SelectObject(hdc, DrawInfo->TextFont);
+        oldFont = SelectFont(hdc, DrawInfo->TextFont);
 
     DrawInfo->Text = *Text;
     GetTextExtentPoint32(hdc, Text->Buffer, (ULONG)Text->Length / sizeof(WCHAR), &textSize);
@@ -715,7 +715,7 @@ VOID PhDrawTrayIconText( // dmex
 
     // Fill in the text box.
     //SetDCBrushColor(hdc, DrawInfo->TextBoxColor);
-    //FillRect(hdc, &DrawInfo->TextBoxRect, GetStockObject(DC_BRUSH));
+    //FillRect(hdc, &DrawInfo->TextBoxRect, GetStockBrush(DC_BRUSH));
 
     // Draw the text.
     SetTextColor(hdc, DrawInfo->TextColor);
@@ -724,7 +724,7 @@ VOID PhDrawTrayIconText( // dmex
     DrawText(hdc, DrawInfo->Text.Buffer, (ULONG)DrawInfo->Text.Length / sizeof(WCHAR), &DrawInfo->TextRect, DT_NOCLIP | DT_SINGLELINE);
 
     if (oldFont)
-        SelectObject(hdc, oldFont);
+        SelectFont(hdc, oldFont);
 }
 
 VOID PhpCreateGraphContext(
@@ -780,8 +780,8 @@ static VOID PhpDeleteBufferedContext(
     {
         // The original bitmap must be selected back into the context, otherwise the bitmap can't be
         // deleted.
-        SelectObject(Context->BufferedContext, Context->BufferedOldBitmap);
-        DeleteObject(Context->BufferedBitmap);
+        SelectBitmap(Context->BufferedContext, Context->BufferedOldBitmap);
+        DeleteBitmap(Context->BufferedBitmap);
         DeleteDC(Context->BufferedContext);
 
         Context->BufferedContext = NULL;
@@ -814,7 +814,7 @@ static VOID PhpCreateBufferedContext(
     Context->BufferedBitmap = CreateDIBSection(hdc, (BITMAPINFO *)&header, DIB_RGB_COLORS, &Context->BufferedBits, NULL, 0);
 
     ReleaseDC(Context->Handle, hdc);
-    Context->BufferedOldBitmap = SelectObject(Context->BufferedContext, Context->BufferedBitmap);
+    Context->BufferedOldBitmap = SelectBitmap(Context->BufferedContext, Context->BufferedBitmap);
 }
 
 static VOID PhpDeleteFadeOutContext(
@@ -823,8 +823,8 @@ static VOID PhpDeleteFadeOutContext(
 {
     if (Context->FadeOutContext)
     {
-        SelectObject(Context->FadeOutContext, Context->FadeOutOldBitmap);
-        DeleteObject(Context->FadeOutBitmap);
+        SelectBitmap(Context->FadeOutContext, Context->FadeOutOldBitmap);
+        DeleteBitmap(Context->FadeOutBitmap);
         DeleteDC(Context->FadeOutContext);
 
         Context->FadeOutContext = NULL;
@@ -866,7 +866,7 @@ static VOID PhpCreateFadeOutContext(
     Context->FadeOutBitmap = CreateDIBSection(hdc, (BITMAPINFO *)&header, DIB_RGB_COLORS, &Context->FadeOutBits, NULL, 0);
 
     ReleaseDC(Context->Handle, hdc);
-    Context->FadeOutOldBitmap = SelectObject(Context->FadeOutContext, Context->FadeOutBitmap);
+    Context->FadeOutOldBitmap = SelectBitmap(Context->FadeOutContext, Context->FadeOutBitmap);
 
     if (!Context->FadeOutBits)
         return;
@@ -1128,7 +1128,7 @@ LRESULT CALLBACK PhpGraphWndProc(
                     rect.right += 2;
                     rect.bottom += 2;
                     SetDCBrushColor(hdc, RGB(0x8f, 0x8f, 0x8f));
-                    FrameRect(hdc, &rect, GetStockObject(DC_BRUSH));
+                    FrameRect(hdc, &rect, GetStockBrush(DC_BRUSH));
 
                     ReleaseDC(hwnd, hdc);
                     return 0;
