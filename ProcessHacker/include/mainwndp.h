@@ -56,11 +56,11 @@ NTSTATUS PhMwpLoadStage1Worker(
 // Event handlers
 
 VOID PhMwpOnDestroy(
-    VOID
+    _In_ HWND WindowHandle
     );
 
 VOID PhMwpOnEndSession(
-    VOID
+    _In_ HWND WindowHandle
     );
 
 VOID PhMwpOnSettingChange(
