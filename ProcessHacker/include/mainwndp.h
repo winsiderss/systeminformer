@@ -126,15 +126,15 @@ ULONG_PTR PhMwpOnUserMessage(
 // Settings
 
 VOID PhMwpLoadSettings(
-    VOID
+    _In_ HWND WindowHandle
     );
 
 VOID PhMwpSaveSettings(
-    VOID
+    _In_ HWND WindowHandle
     );
 
 VOID PhMwpSaveWindowState(
-    VOID
+    _In_ HWND WindowHandle
     );
 
 // Misc.
