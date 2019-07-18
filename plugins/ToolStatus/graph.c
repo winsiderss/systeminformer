@@ -295,6 +295,7 @@ VOID ToolbarUpdateGraphs(
 }
 
 BOOLEAN ToolbarUpdateGraphsInfo(
+    _In_ HWND WindowHandle,
     _In_ LPNMHDR Header
     )
 {
@@ -308,7 +309,7 @@ BOOLEAN ToolbarUpdateGraphsInfo(
 
             if (mouseEvent->Message == WM_RBUTTONUP)
             {
-                ShowCustomizeMenu();
+                ShowCustomizeMenu(WindowHandle);
             }
         }
 
