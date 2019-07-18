@@ -489,6 +489,9 @@ ContinueLoop:
         baseAddress = PTR_ADD_OFFSET(baseAddress, basicInfo.RegionSize);
     }
 
+    if (displayBuffer)
+        PhFreePage(displayBuffer);
+
     if (buffer)
         PhFreePage(buffer);
 }
