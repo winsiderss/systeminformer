@@ -195,12 +195,12 @@ BOOLEAN PhMainWndInitialization(
     // Allow WM_PH_ACTIVATE to pass through UIPI.
     ChangeWindowMessageFilterEx(PhMainWndHandle, WM_PH_ACTIVATE, MSGFLT_ADD, NULL);
 
-    PhMwpOnSettingChange();
-
     // Initialize child controls.
     PhMwpInitializeControls(PhMainWndHandle);
 
-    PhMwpLoadSettings();
+    PhMwpOnSettingChange();
+
+    PhMwpLoadSettings(PhMainWndHandle);
     PhLogInitialization();
 
     PhInitializeWindowTheme(PhMainWndHandle, PhEnableThemeSupport); // HACK
@@ -415,7 +415,7 @@ VOID PhMwpInitializeControls(
     ULONG thinRows;
     ULONG treelistBorder;
     ULONG treelistCustomColors;
-    PH_TREENEW_CREATEPARAMS treelistCreateParams;
+    PH_TREENEW_CREATEPARAMS treelistCreateParams = { 0 };
 
     thinRows = PhGetIntegerSetting(L"ThinRows") ? TN_STYLE_THIN_ROWS : 0;
     treelistBorder = (PhGetIntegerSetting(L"TreeListBorderEnable") && !PhEnableThemeSupport) ? WS_BORDER : 0;
@@ -441,7 +441,6 @@ VOID PhMwpInitializeControls(
         PhInstanceHandle,
         NULL
         );
-    SendMessage(TabControlHandle, WM_SETFONT, (WPARAM)PhApplicationFont, FALSE);
 
     PhMwpProcessTreeNewHandle = CreateWindow(
         PH_TREENEW_CLASSNAME,
@@ -563,7 +562,10 @@ VOID PhMwpOnSettingChange(
 {
     PhInitializeFont();
 
-    SendMessage(TabControlHandle, WM_SETFONT, (WPARAM)PhApplicationFont, FALSE);
+    if (TabControlHandle)
+    {
+        SetWindowFont(TabControlHandle, PhApplicationFont, TRUE);
+    }
 }
 
 static NTSTATUS PhpOpenServiceControlManager(
@@ -1054,7 +1056,7 @@ VOID PhMwpOnCommand(
             {
                 PhReferenceObject(processItem);
 
-                if (PhUiRestartProcess(PhMainWndHandle, processItem))
+                if (PhUiRestartProcess(WindowHandle, processItem))
                     PhDeselectAllProcessNodes();
 
                 PhDereferenceObject(processItem);
@@ -2256,7 +2258,7 @@ ULONG_PTR PhMwpOnUserMessage(
                 if (newFont)
                 {
                     if (PhTreeWindowFont)
-                        DeleteObject(PhTreeWindowFont);
+                        DeleteFont(PhTreeWindowFont);
                     PhTreeWindowFont = newFont;
 
                     PhMwpNotifyAllPages(MainTabPageFontChanged, newFont, NULL);
@@ -2265,7 +2267,7 @@ ULONG_PTR PhMwpOnUserMessage(
         }
         break;
     case WM_PH_GET_FONT:
-        return SendMessage(PhMwpProcessTreeNewHandle, WM_GETFONT, 0, 0);
+        return (ULONG_PTR)GetWindowFont(PhMwpProcessTreeNewHandle);
     case WM_PH_INVOKE:
         {
             VOID (NTAPI *function)(PVOID);
@@ -2308,7 +2310,7 @@ ULONG_PTR PhMwpOnUserMessage(
 }
 
 VOID PhMwpLoadSettings(
-    VOID
+    _In_ HWND WindowHandle
     )
 {
     ULONG opacity;
@@ -2331,23 +2333,23 @@ VOID PhMwpLoadSettings(
     if (PhGetIntegerSetting(L"MainWindowAlwaysOnTop"))
     {
         AlwaysOnTop = TRUE;
-        SetWindowPos(PhMainWndHandle, HWND_TOPMOST, 0, 0, 0, 0,
+        SetWindowPos(WindowHandle, HWND_TOPMOST, 0, 0, 0, 0,
             SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOREDRAW | SWP_NOSIZE);
     }
 
     if (opacity != 0)
-        PhSetWindowOpacity(PhMainWndHandle, opacity);
+        PhSetWindowOpacity(WindowHandle, opacity);
 
     PhNfLoadStage1();
 
     if (customFont->Length / sizeof(WCHAR) / 2 == sizeof(LOGFONT))
-        SendMessage(PhMainWndHandle, WM_PH_UPDATE_FONT, 0, 0);
+        SendMessage(WindowHandle, WM_PH_UPDATE_FONT, 0, 0);
 
     PhMwpNotifyAllPages(MainTabPageLoadSettings, NULL, NULL);
 }
 
 VOID PhMwpSaveSettings(
-    VOID
+    _In_ HWND WindowHandle
     )
 {
     PhMwpNotifyAllPages(MainTabPageSaveSettings, NULL, NULL);
@@ -2355,20 +2357,20 @@ VOID PhMwpSaveSettings(
     PhNfSaveSettings();
     PhSetIntegerSetting(L"IconNotifyMask", PhMwpNotifyIconNotifyMask);
 
-    PhSaveWindowPlacementToSetting(L"MainWindowPosition", L"MainWindowSize", PhMainWndHandle);
-    PhMwpSaveWindowState();
+    PhSaveWindowPlacementToSetting(L"MainWindowPosition", L"MainWindowSize", WindowHandle);
+    PhMwpSaveWindowState(WindowHandle);
 
     if (PhSettingsFileName)
         PhSaveSettings(PhSettingsFileName->Buffer);
 }
 
 VOID PhMwpSaveWindowState(
-    VOID
+    _In_ HWND WindowHandle
     )
 {
     WINDOWPLACEMENT placement = { sizeof(placement) };
 
-    GetWindowPlacement(PhMainWndHandle, &placement);
+    GetWindowPlacement(WindowHandle, &placement);
 
     if (placement.showCmd == SW_NORMAL)
         PhSetIntegerSetting(L"MainWindowState", SW_NORMAL);
@@ -2538,7 +2540,7 @@ VOID PhMwpDispatchMenuCommand(
 
             if (menuItem)
             {
-                PhPluginInitializeMenuInfo(&menuInfo, NULL, PhMainWndHandle, 0);
+                PhPluginInitializeMenuInfo(&menuInfo, NULL, WindowHandle, 0);
                 PhPluginTriggerEMenuItem(&menuInfo, menuItem);
             }
 
@@ -2581,7 +2583,7 @@ VOID PhMwpDispatchMenuCommand(
         break;
     case ID_VIEW_ORGANIZECOLUMNSETS:
         {
-            PhShowColumnSetEditorDialog(PhMainWndHandle, L"ProcessTreeColumnSetConfig");
+            PhShowColumnSetEditorDialog(WindowHandle, L"ProcessTreeColumnSetConfig");
         }
         return;
     case ID_VIEW_SAVECOLUMNSET:
@@ -2592,7 +2594,7 @@ VOID PhMwpDispatchMenuCommand(
             menuItem = (PPH_EMENU_ITEM)ItemData;
 
             while (PhaChoiceDialog(
-                PhMainWndHandle,
+                WindowHandle,
                 L"Column Set Name",
                 L"Enter a name for this column set:",
                 NULL,

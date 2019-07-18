@@ -27,9 +27,9 @@ extern BOOLEAN PhMainWndExiting;
 #define WM_PH_SELECT_PROCESS_NODE (WM_APP + 133)
 #define WM_PH_SELECT_SERVICE_ITEM (WM_APP + 134)
 #define WM_PH_SELECT_NETWORK_ITEM (WM_APP + 135)
-// end_phapppub
 #define WM_PH_UPDATE_FONT (WM_APP + 136)
 #define WM_PH_GET_FONT (WM_APP + 137)
+// end_phapppub
 // begin_phapppub
 #define WM_PH_INVOKE (WM_APP + 138)
 // WM_PH_DEPRECATED (WM_APP + 139)
