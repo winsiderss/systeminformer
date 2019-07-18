@@ -1581,7 +1581,7 @@ BOOLEAN PhMwpOnSysCommand(
     case SC_MINIMIZE:
         {
             // Save the current window state because we may not have a chance to later.
-            PhMwpSaveWindowState();
+            PhMwpSaveWindowState(WindowHandle);
 
             if (PhGetIntegerSetting(L"HideOnMinimize") && PhNfIconsEnabled())
             {
