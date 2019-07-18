@@ -186,7 +186,7 @@ LCID PhGetSystemDefaultLCID(
             return localeId;
     }
 
-    return MAKELCID(MAKELANGID(LANG_ENGLISH, SUBLANG_DEFAULT), SORT_DEFAULT);
+    return LOCALE_SYSTEM_DEFAULT; // MAKELCID(MAKELANGID(LANG_ENGLISH, SUBLANG_DEFAULT), SORT_DEFAULT);
 }
 
 // rev from GetUserDefaultLCID
@@ -202,7 +202,7 @@ LCID PhGetUserDefaultLCID(
             return localeId;
     }
 
-    return MAKELCID(MAKELANGID(LANG_ENGLISH, SUBLANG_DEFAULT), SORT_DEFAULT);
+    return LOCALE_USER_DEFAULT; // MAKELCID(MAKELANGID(LANG_ENGLISH, SUBLANG_DEFAULT), SORT_DEFAULT);
 }
 
 // rev from GetThreadLocale
@@ -483,7 +483,7 @@ INT PhShowMessage2(
     INT result;
     va_list argptr;
     PPH_STRING message;
-    TASKDIALOGCONFIG config = { sizeof(config) };
+    TASKDIALOGCONFIG config = { sizeof(TASKDIALOGCONFIG) };
 
     va_start(argptr, Format);
     message = PhFormatString_V(Format, argptr);
@@ -500,12 +500,12 @@ INT PhShowMessage2(
     config.pszMainInstruction = Title;
     config.pszContent = message->Buffer;
 
-    if (TaskDialogIndirect(
+    if (SUCCEEDED(TaskDialogIndirect(
         &config,
         &result,
         NULL,
         NULL
-        ) == S_OK)
+        )))
     {
         PhDereferenceObject(message);
         return result;
@@ -682,12 +682,12 @@ BOOLEAN PhShowConfirmMessage(
     config.pButtons = buttons;
     config.nDefaultButton = IDYES;
 
-    if (TaskDialogIndirect(
+    if (SUCCEEDED(TaskDialogIndirect(
         &config,
         &button,
         NULL,
         NULL
-        ) == S_OK)
+        )))
     {
         return button == IDYES;
     }
