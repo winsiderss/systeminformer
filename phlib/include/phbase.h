@@ -1,8 +1,6 @@
 #ifndef _PH_PHBASE_H
 #define _PH_PHBASE_H
 
-#pragma once
-
 #ifndef PHLIB_NO_DEFAULT_LIB
 #pragma comment(lib, "ntdll.lib")
 #pragma comment(lib, "comctl32.lib")
