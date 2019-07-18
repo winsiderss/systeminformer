@@ -272,12 +272,12 @@ LRESULT CALLBACK PhMwpWndProc(
     {
     case WM_DESTROY:
         {
-            PhMwpOnDestroy();
+            PhMwpOnDestroy(hWnd);
         }
         break;
     case WM_ENDSESSION:
         {
-            PhMwpOnEndSession();
+            PhMwpOnEndSession(hWnd);
         }
         break;
     case WM_SETTINGCHANGE:
@@ -527,7 +527,7 @@ NTSTATUS PhMwpLoadStage1Worker(
 }
 
 VOID PhMwpOnDestroy(
-    VOID
+    _In_ HWND WindowHandle
     )
 {
     PhMainWndExiting = TRUE;
@@ -542,7 +542,7 @@ VOID PhMwpOnDestroy(
         PhUnloadPlugins();
 
     if (!PhMainWndEarlyExit)
-        PhMwpSaveSettings();
+        PhMwpSaveSettings(WindowHandle);
 
     PhNfUninitialization();
 
@@ -550,10 +550,10 @@ VOID PhMwpOnDestroy(
 }
 
 VOID PhMwpOnEndSession(
-    VOID
+    _In_ HWND WindowHandle
     )
 {
-    PhMwpOnDestroy();
+    PhMwpOnDestroy(WindowHandle);
 }
 
 VOID PhMwpOnSettingChange(
@@ -2125,12 +2125,12 @@ ULONG_PTR PhMwpOnUserMessage(
         break;
     case WM_PH_SAVE_ALL_SETTINGS:
         {
-            PhMwpSaveSettings();
+            PhMwpSaveSettings(WindowHandle);
         }
         break;
     case WM_PH_PREPARE_FOR_EARLY_SHUTDOWN:
         {
-            PhMwpSaveSettings();
+            PhMwpSaveSettings(WindowHandle);
             PhMainWndEarlyExit = TRUE;
         }
         break;
