@@ -600,7 +600,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
                                 ));
 
                             hdc = Graph_GetBufferedContext(context->GpuGraphHandle);
-                            SelectObject(hdc, PhApplicationFont);
+                            SelectFont(hdc, PhApplicationFont);
                             PhSetGraphText(hdc, drawInfo, &context->GpuGraphState.Text->sr,
                                 &NormalGraphTextMargin, &NormalGraphTextPadding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
                         }
@@ -631,7 +631,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
                                 ));
 
                             hdc = Graph_GetBufferedContext(context->MemGraphHandle);
-                            SelectObject(hdc, PhApplicationFont);
+                            SelectFont(hdc, PhApplicationFont);
                             PhSetGraphText(
                                 hdc,
                                 drawInfo,
@@ -685,7 +685,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
                                 ));
 
                             hdc = Graph_GetBufferedContext(context->SharedGraphHandle);
-                            SelectObject(hdc, PhApplicationFont);
+                            SelectFont(hdc, PhApplicationFont);
                             PhSetGraphText(hdc, drawInfo, &context->MemorySharedGraphState.Text->sr,
                                 &NormalGraphTextMargin, &NormalGraphTextPadding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
                         }
@@ -733,7 +733,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
                                 ));
 
                             hdc = Graph_GetBufferedContext(context->CommittedGraphHandle);
-                            SelectObject(hdc, PhApplicationFont);
+                            SelectFont(hdc, PhApplicationFont);
                             PhSetGraphText(hdc, drawInfo, &context->GpuCommittedGraphState.Text->sr,
                                 &NormalGraphTextMargin, &NormalGraphTextPadding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
                         }

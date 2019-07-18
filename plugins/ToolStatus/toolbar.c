@@ -115,10 +115,9 @@ VOID RebarLoadSettings(
 
         HFONT newFont;
 
-        if (newFont = ToolStatusGetTreeWindowFont())
+        if (newFont = (HFONT)SendMessage(PhMainWndHandle, WM_PH_GET_FONT, 0, 0))
         {
-            if (ToolStatusWindowFont)
-                DeleteObject(ToolStatusWindowFont);
+            if (ToolStatusWindowFont) DeleteFont(ToolStatusWindowFont);
             ToolStatusWindowFont = newFont;
         }
     }
@@ -161,7 +160,7 @@ VOID RebarLoadSettings(
         // Configure the toolbar imagelist.
         SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList);
         // Configure the toolbar font.
-        SendMessage(ToolBarHandle, WM_SETFONT, (WPARAM)ToolStatusWindowFont, FALSE);
+        SetWindowFont(ToolBarHandle, ToolStatusWindowFont, FALSE);
         // Resize the toolbar.
         SendMessage(ToolBarHandle, TB_AUTOSIZE, 0, 0);
 
@@ -706,7 +705,7 @@ VOID ToolbarLoadButtonSettings(
                         NULL
                         );
 
-                    DeleteObject(bitmap);
+                    DeleteBitmap(bitmap);
                 }
                 break;
             }

@@ -155,7 +155,7 @@ BOOLEAN PhMwpNetworkPageCallback(
         {
             HFONT font = (HFONT)Parameter1;
 
-            SendMessage(PhMwpNetworkTreeNewHandle, WM_SETFONT, (WPARAM)font, TRUE);
+            SetWindowFont(PhMwpNetworkTreeNewHandle, font, TRUE);
         }
         break;
     case MainTabPageUpdateAutomaticallyChanged:

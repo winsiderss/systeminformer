@@ -136,7 +136,7 @@ VOID PhDeleteModuleList(
     PhDeleteTreeNewFilterSupport(&Context->TreeFilterSupport);
 
     if (Context->BoldFont)
-        DeleteObject(Context->BoldFont);
+        DeleteFont(Context->BoldFont);
 
     PhCmDeleteManager(&Context->Cm);
 
@@ -1021,7 +1021,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
             if (node->ModuleItem->IsFirst)
             {
                 if (!context->BoldFont)
-                    context->BoldFont = PhDuplicateFontWithNewWeight((HFONT)SendMessage(hwnd, WM_GETFONT, 0, 0), FW_BOLD);
+                    context->BoldFont = PhDuplicateFontWithNewWeight(GetWindowFont(hwnd), FW_BOLD);
 
                 getNodeFont->Font = context->BoldFont ? context->BoldFont : NULL;
                 getNodeFont->Flags = TN_CACHE;

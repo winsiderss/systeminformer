@@ -95,7 +95,7 @@ VOID PhpFreeHexEditContext(
 {
     if (!Context->UserBuffer && Context->Data) PhFree(Context->Data);
     if (Context->CharBuffer) PhFree(Context->CharBuffer);
-    if (Context->Font) DeleteObject(Context->Font);
+    if (Context->Font) DeleteFont(Context->Font);
     PhFree(Context);
 }
 
@@ -1000,7 +1000,7 @@ VOID PhpHexEditUpdateMetrics(
     if (!hdc && UpdateLineHeight)
     {
         hdc = CreateCompatibleDC(hdc);
-        SelectObject(hdc, Context->Font);
+        SelectFont(hdc, Context->Font);
         freeHdc = TRUE;
     }
 
@@ -1059,11 +1059,11 @@ VOID PhpHexEditOnPaint(
 
     bufferDc = CreateCompatibleDC(hdc);
     bufferBitmap = CreateCompatibleBitmap(hdc, clientRect.right, clientRect.bottom);
-    oldBufferBitmap = SelectObject(bufferDc, bufferBitmap);
+    oldBufferBitmap = SelectBitmap(bufferDc, bufferBitmap);
 
     SetDCBrushColor(bufferDc, GetSysColor(COLOR_WINDOW));
-    FillRect(bufferDc, &clientRect, GetStockObject(DC_BRUSH));
-    SelectObject(bufferDc, Context->Font);
+    FillRect(bufferDc, &clientRect, GetStockBrush(DC_BRUSH));
+    SelectFont(bufferDc, Context->Font);
     SetBoundsRect(bufferDc, &clientRect, DCB_DISABLE);
 
     requiredBufferLength = (max(8, Context->BytesPerRow * 3) + 1) * sizeof(WCHAR);
@@ -1301,8 +1301,8 @@ VOID PhpHexEditOnPaint(
     }
 
     BitBlt(hdc, 0, 0, clientRect.right, clientRect.bottom, bufferDc, 0, 0, SRCCOPY);
-    SelectObject(bufferDc, oldBufferBitmap);
-    DeleteObject(bufferBitmap);
+    SelectBitmap(bufferDc, oldBufferBitmap);
+    DeleteBitmap(bufferBitmap);
     DeleteDC(bufferDc);
 }
 

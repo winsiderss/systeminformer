@@ -279,8 +279,8 @@ INT_PTR CALLBACK PhSipCpuDialogProc(
             CpuGraphMargin = graphItem->Margin;
             panelItem = PhAddLayoutItem(&CpuLayoutManager, GetDlgItem(hwndDlg, IDC_LAYOUT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
-            SendMessage(GetDlgItem(hwndDlg, IDC_TITLE), WM_SETFONT, (WPARAM)CpuSection->Parameters->LargeFont, FALSE);
-            SendMessage(GetDlgItem(hwndDlg, IDC_CPUNAME), WM_SETFONT, (WPARAM)CpuSection->Parameters->MediumFont, FALSE);
+            SetWindowFont(GetDlgItem(hwndDlg, IDC_TITLE), CpuSection->Parameters->LargeFont, FALSE);
+            SetWindowFont(GetDlgItem(hwndDlg, IDC_CPUNAME), CpuSection->Parameters->MediumFont, FALSE);
 
             PhSipGetCpuBrandString(brandString);
             PhSetDialogItemText(hwndDlg, IDC_CPUNAME, brandString);
@@ -357,13 +357,13 @@ INT_PTR CALLBACK PhSipCpuPanelDialogProc(
     {
     case WM_INITDIALOG:
         {
-            SendMessage(GetDlgItem(hwndDlg, IDC_UTILIZATION), WM_SETFONT, (WPARAM)CpuSection->Parameters->MediumFont, FALSE);
-            SendMessage(GetDlgItem(hwndDlg, IDC_SPEED), WM_SETFONT, (WPARAM)CpuSection->Parameters->MediumFont, FALSE);
+            SetWindowFont(GetDlgItem(hwndDlg, IDC_UTILIZATION), CpuSection->Parameters->MediumFont, FALSE);
+            SetWindowFont(GetDlgItem(hwndDlg, IDC_SPEED), CpuSection->Parameters->MediumFont, FALSE);
         }
         break;
     case WM_COMMAND:
         {
-            switch (LOWORD(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDC_ONEGRAPHPERCPU:
                 {

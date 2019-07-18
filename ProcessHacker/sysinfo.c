@@ -269,7 +269,7 @@ INT_PTR CALLBACK PhSipSysInfoDialogProc(
                 break;
             }
 
-            return (INT_PTR)GetStockObject(DC_BRUSH);
+            return (INT_PTR)GetStockBrush(DC_BRUSH);
         }
         break;
     }
@@ -317,7 +317,7 @@ INT_PTR CALLBACK PhSipContainerDialogProc(
                 SetDCBrushColor((HDC)wParam, GetSysColor(COLOR_WINDOW));
             }
 
-            return (INT_PTR)GetStockObject(DC_BRUSH);
+            return (INT_PTR)GetStockBrush(DC_BRUSH);
         }
         break;
     }
@@ -1058,17 +1058,17 @@ VOID PhSipInitializeParameters(
 
     CurrentParameters.ColorSetupFunction = PhSiSetColorsGraphDrawInfo;
 
-    originalFont = SelectObject(hdc, CurrentParameters.Font);
+    originalFont = SelectFont(hdc, CurrentParameters.Font);
     GetTextMetrics(hdc, &textMetrics);
     CurrentParameters.FontHeight = textMetrics.tmHeight;
     CurrentParameters.FontAverageWidth = textMetrics.tmAveCharWidth;
 
-    SelectObject(hdc, CurrentParameters.MediumFont);
+    SelectFont(hdc, CurrentParameters.MediumFont);
     GetTextMetrics(hdc, &textMetrics);
     CurrentParameters.MediumFontHeight = textMetrics.tmHeight;
     CurrentParameters.MediumFontAverageWidth = textMetrics.tmAveCharWidth;
 
-    SelectObject(hdc, originalFont);
+    SelectFont(hdc, originalFont);
 
     // Internal padding and other values
     CurrentParameters.PanelPadding = PH_SCALE_DPI(PH_SYSINFO_PANEL_PADDING);
@@ -1105,11 +1105,11 @@ VOID PhSipDeleteParameters(
     )
 {
     if (CurrentParameters.Font)
-        DeleteObject(CurrentParameters.Font);
+        DeleteFont(CurrentParameters.Font);
     if (CurrentParameters.MediumFont)
-        DeleteObject(CurrentParameters.MediumFont);
+        DeleteFont(CurrentParameters.MediumFont);
     if (CurrentParameters.LargeFont)
-        DeleteObject(CurrentParameters.LargeFont);
+        DeleteFont(CurrentParameters.LargeFont);
 }
 
 VOID PhSipUpdateColorParameters(
@@ -1260,7 +1260,7 @@ VOID PhSipDrawRestoreSummaryPanel(
 
     bufferDc = CreateCompatibleDC(hdc);
     bufferBitmap = CreateCompatibleBitmap(hdc, bufferRect.right, bufferRect.bottom);
-    oldBufferBitmap = SelectObject(bufferDc, bufferBitmap);
+    oldBufferBitmap = SelectBitmap(bufferDc, bufferBitmap);
     
     SetBkMode(bufferDc, TRANSPARENT);
 
@@ -1275,7 +1275,7 @@ VOID PhSipDrawRestoreSummaryPanel(
         case 1: // Old colors
             SetTextColor(bufferDc, CurrentParameters.PanelForeColor);
             SetDCBrushColor(bufferDc, RGB(30, 30, 30));
-            FillRect(bufferDc, &bufferRect, GetStockObject(DC_BRUSH));
+            FillRect(bufferDc, &bufferRect, GetStockBrush(DC_BRUSH));
             break;
         }
     }
@@ -1304,7 +1304,7 @@ VOID PhSipDrawRestoreSummaryPanel(
         }
     }
 
-    SelectObject(bufferDc, CurrentParameters.MediumFont);
+    SelectFont(bufferDc, CurrentParameters.MediumFont);
     DrawText(bufferDc, L"Back", 4, &bufferRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 
     BitBlt(
@@ -1319,8 +1319,8 @@ VOID PhSipDrawRestoreSummaryPanel(
         SRCCOPY
         );
 
-    SelectObject(bufferDc, oldBufferBitmap);
-    DeleteObject(bufferBitmap);
+    SelectBitmap(bufferDc, oldBufferBitmap);
+    DeleteBitmap(bufferBitmap);
     DeleteDC(bufferDc);
 
     ReleaseDC(DrawItemStruct->hwndItem, hdc);
@@ -1346,7 +1346,7 @@ VOID PhSipDrawSeparator(
 
     bufferDc = CreateCompatibleDC(hdc);
     bufferBitmap = CreateCompatibleBitmap(hdc, bufferRect.right, bufferRect.bottom);
-    oldBufferBitmap = SelectObject(bufferDc, bufferBitmap);
+    oldBufferBitmap = SelectBitmap(bufferDc, bufferBitmap);
 
     SetBkMode(bufferDc, TRANSPARENT);
 
@@ -1365,7 +1365,7 @@ VOID PhSipDrawSeparator(
         case 1: // Old colors
             {
                 SetDCBrushColor(bufferDc, RGB(0, 0, 0));
-                FillRect(bufferDc, &bufferRect, GetStockObject(DC_BRUSH));
+                FillRect(bufferDc, &bufferRect, GetStockBrush(DC_BRUSH));
             }
             break;
         }
@@ -1390,8 +1390,8 @@ VOID PhSipDrawSeparator(
         SRCCOPY
         );
 
-    SelectObject(bufferDc, oldBufferBitmap);
-    DeleteObject(bufferBitmap);
+    SelectBitmap(bufferDc, oldBufferBitmap);
+    DeleteBitmap(bufferBitmap);
     DeleteDC(bufferDc);
 
     ReleaseDC(DrawItemStruct->hwndItem, hdc);
@@ -1416,7 +1416,7 @@ VOID PhSipDrawPanel(
                 break;
             case 1: // Old colors
                 SetDCBrushColor(hdc, RGB(30, 30, 30));
-                FillRect(hdc, Rect, GetStockObject(DC_BRUSH));
+                FillRect(hdc, Rect, GetStockBrush(DC_BRUSH));
                 break;
             }
         }
@@ -1574,7 +1574,7 @@ VOID PhSipDefaultDrawPanel(
 
     if (DrawPanel->Title)
     {
-        SelectObject(hdc, CurrentParameters.MediumFont);
+        SelectFont(hdc, CurrentParameters.MediumFont);
         DrawText(hdc, DrawPanel->Title->Buffer, (ULONG)DrawPanel->Title->Length / sizeof(WCHAR), &rect, flags | DT_SINGLELINE);
     }
 
@@ -1592,7 +1592,7 @@ VOID PhSipDefaultDrawPanel(
         rect.top += CurrentParameters.MediumFontHeight + CurrentParameters.PanelPadding;
         measureRect = rect;
 
-        SelectObject(hdc, CurrentParameters.Font);
+        SelectFont(hdc, CurrentParameters.Font);
         GetTextExtentPoint32(hdc, DrawPanel->SubTitle->Buffer, (ULONG)DrawPanel->SubTitle->Length / sizeof(WCHAR), &textSize);
         DrawText(hdc, DrawPanel->SubTitle->Buffer, (ULONG)DrawPanel->SubTitle->Length / sizeof(WCHAR), &measureRect, flags | DT_CALCRECT);
 

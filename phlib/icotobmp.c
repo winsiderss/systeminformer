@@ -132,8 +132,8 @@ static VOID PhpConvertToPArgb32IfNeeded(
                     PhpConvertToPArgb32(hdc, argb, iconInfo.hbmMask, Width, Height, rowWidth);
                 }
 
-                DeleteObject(iconInfo.hbmColor);
-                DeleteObject(iconInfo.hbmMask);
+                DeleteBitmap(iconInfo.hbmColor);
+                DeleteBitmap(iconInfo.hbmMask);
             }
         }
     }
@@ -164,7 +164,7 @@ HBITMAP PhIconToBitmap(
     hdc = CreateCompatibleDC(screenHdc);
     bitmap = PhpCreateBitmap32(screenHdc, Width, Height, NULL);
     ReleaseDC(NULL, screenHdc);
-    oldBitmap = SelectObject(hdc, bitmap);
+    oldBitmap = SelectBitmap(hdc, bitmap);
 
     paintParams.dwFlags = BPPF_ERASE;
     paintParams.pBlendFunction = &blendFunction;
@@ -182,10 +182,10 @@ HBITMAP PhIconToBitmap(
         // Default to unbuffered painting.
         FillRect(hdc, &iconRectangle, (HBRUSH)(COLOR_WINDOW + 1));
         DrawIconEx(hdc, 0, 0, Icon, Width, Height, 0, NULL, DI_NORMAL);
-        SelectObject(hdc, oldBitmap);
+        //SelectBitmap(hdc, oldBitmap); // ?? (dmex)
     }
 
-    SelectObject(hdc, oldBitmap);
+    SelectBitmap(hdc, oldBitmap);
     DeleteDC(hdc);
 
     return bitmap;

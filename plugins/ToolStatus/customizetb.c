@@ -252,7 +252,7 @@ VOID CustomizeFreeToolbarItems(
             {
                 if (button->IconHandle)
                 {
-                    DeleteObject(button->IconHandle);
+                    DestroyIcon(button->IconHandle);
                 }
 
                 PhFree(button);
@@ -268,7 +268,7 @@ VOID CustomizeFreeToolbarItems(
             {
                 if (button->IconHandle)
                 {
-                    DeleteObject(button->IconHandle);
+                    DestroyIcon(button->IconHandle);
                 }
 
                 PhFree(button);
@@ -445,7 +445,7 @@ HICON CustomizeGetToolbarIcon(
     bitmapHandle = ToolbarGetImage(CommandID);
     iconHandle = CommonBitmapToIcon(bitmapHandle, Context->CXWidth, Context->CXWidth);
 
-    DeleteObject(bitmapHandle);
+    DeleteBitmap(bitmapHandle);
     return iconHandle;
 }
 
@@ -470,7 +470,7 @@ VOID CustomizeResetToolbarImages(
                     NULL
                     );
 
-                DeleteObject(bitmap);
+                DeleteBitmap(bitmap);
             }
         }
     }
@@ -524,7 +524,7 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
             context->BrushNormal = GetSysColorBrush(COLOR_WINDOW);
             context->BrushHot = CreateSolidBrush(RGB(145, 201, 247));
             context->BrushPushed = CreateSolidBrush(RGB(153, 209, 255));
-            context->FontHandle = PhDuplicateFont((HFONT)SendMessage(ToolBarHandle, WM_GETFONT, 0, 0));
+            context->FontHandle = PhDuplicateFont(GetWindowFont(ToolBarHandle));
 
             ListBox_SetItemHeight(context->AvailableListHandle, 0, context->CXWidth + 6); // BitmapHeight
             ListBox_SetItemHeight(context->CurrentListHandle, 0, context->CXWidth + 6); // BitmapHeight
@@ -542,13 +542,13 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
             CustomizeFreeToolbarItems(context);
 
             if (context->BrushHot)
-                DeleteObject(context->BrushHot);
+                DeleteBrush(context->BrushHot);
 
             if (context->BrushPushed)
-                DeleteObject(context->BrushPushed);
+                DeleteBrush(context->BrushPushed);
 
             if (context->FontHandle)
-                DeleteObject(context->FontHandle);
+                DeleteBrush(context->FontHandle);
         }
         break;
     case WM_COMMAND:

@@ -209,7 +209,7 @@ BOOLEAN EtpDiskPageCallback(
             HFONT font = (HFONT)Parameter1;
 
             if (DiskTreeNewHandle)
-                SendMessage(DiskTreeNewHandle, WM_SETFONT, (WPARAM)Parameter1, TRUE);
+                SetWindowFont(DiskTreeNewHandle, font, TRUE);
         }
         break;
     }

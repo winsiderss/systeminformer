@@ -66,13 +66,11 @@ VOID PhpSearchFreeTheme(
     )
 {
     if (Context->BrushNormal)
-        DeleteObject(Context->BrushNormal);
-
+        DeleteBrush(Context->BrushNormal);
     if (Context->BrushHot)
-        DeleteObject(Context->BrushHot);
-
+        DeleteBrush(Context->BrushHot);
     if (Context->BrushPushed)
-        DeleteObject(Context->BrushPushed);
+        DeleteBrush(Context->BrushPushed);
 }
 
 VOID PhpSearchInitializeFont(
@@ -80,7 +78,7 @@ VOID PhpSearchInitializeFont(
     )
 {
     if (Context->WindowFont) 
-        DeleteObject(Context->WindowFont);
+        DeleteFont(Context->WindowFont);
 
     Context->WindowFont = PhCreateCommonFont(10, FW_MEDIUM, Context->WindowHandle);
 }
@@ -147,7 +145,7 @@ VOID PhpSearchInitializeImages(
     if (bitmap = PhLoadPngImageFromResource(PhInstanceHandle, Context->ImageWidth, Context->ImageHeight, MAKEINTRESOURCE(IDB_SEARCH_ACTIVE), TRUE))
     {
         ImageList_Replace(Context->ImageListHandle, 0, bitmap, NULL);
-        DeleteObject(bitmap);
+        DeleteBitmap(bitmap);
     }
     else
     {
@@ -157,7 +155,7 @@ VOID PhpSearchInitializeImages(
     if (bitmap = PhLoadPngImageFromResource(PhInstanceHandle, Context->ImageWidth, Context->ImageHeight, MAKEINTRESOURCE(IDB_SEARCH_INACTIVE), TRUE))
     {
         ImageList_Replace(Context->ImageListHandle, 1, bitmap, NULL);
-        DeleteObject(bitmap);
+        DeleteBitmap(bitmap);
     }
     else
     {
@@ -198,7 +196,7 @@ VOID PhpSearchDrawButton(
 
     bufferDc = CreateCompatibleDC(hdc);
     bufferBitmap = CreateCompatibleBitmap(hdc, bufferRect.right, bufferRect.bottom);
-    oldBufferBitmap = SelectObject(bufferDc, bufferBitmap);
+    oldBufferBitmap = SelectBitmap(bufferDc, bufferBitmap);
 
     if (Context->Pushed)
     {
@@ -212,7 +210,7 @@ VOID PhpSearchDrawButton(
             case 1: // Old colors
                 SetTextColor(bufferDc, GetSysColor(COLOR_HIGHLIGHTTEXT));
                 SetDCBrushColor(bufferDc, RGB(99, 99, 99));
-                FillRect(bufferDc, &bufferRect, GetStockObject(DC_BRUSH));
+                FillRect(bufferDc, &bufferRect, GetStockBrush(DC_BRUSH));
                 break;
             }
         }
@@ -234,7 +232,7 @@ VOID PhpSearchDrawButton(
             case 1: // Old colors
                 SetTextColor(bufferDc, GetSysColor(COLOR_HIGHLIGHTTEXT));
                 SetDCBrushColor(bufferDc, RGB(78, 78, 78));
-                FillRect(bufferDc, &bufferRect, GetStockObject(DC_BRUSH));
+                FillRect(bufferDc, &bufferRect, GetStockBrush(DC_BRUSH));
                 break;
             }
         }
@@ -256,7 +254,7 @@ VOID PhpSearchDrawButton(
             case 1: // Old colors
                 SetTextColor(bufferDc, GetSysColor(COLOR_HIGHLIGHTTEXT));
                 SetDCBrushColor(bufferDc, RGB(60, 60, 60));
-                FillRect(bufferDc, &bufferRect, GetStockObject(DC_BRUSH));
+                FillRect(bufferDc, &bufferRect, GetStockBrush(DC_BRUSH));
                 break;
             }
 
@@ -291,8 +289,8 @@ VOID PhpSearchDrawButton(
     }
 
     BitBlt(hdc, ButtonRect.left, ButtonRect.top, ButtonRect.right, ButtonRect.bottom, bufferDc, 0, 0, SRCCOPY);
-    SelectObject(bufferDc, oldBufferBitmap);
-    DeleteObject(bufferBitmap);
+    SelectBitmap(bufferDc, oldBufferBitmap);
+    DeleteBitmap(bufferBitmap);
     DeleteDC(bufferDc);
 
     if (Context->ThemeSupport) // HACK
@@ -309,7 +307,7 @@ VOID PhpSearchDrawButton(
                 break;
             }
 
-            SelectObject(hdc, GetStockObject(DC_BRUSH));
+            SelectBrush(hdc, GetStockBrush(DC_BRUSH));
             PatBlt(hdc, WindowRect.left, WindowRect.top, 1, WindowRect.bottom - WindowRect.top, PATCOPY);
             PatBlt(hdc, WindowRect.right - 1, WindowRect.top, 1, WindowRect.bottom - WindowRect.top, PATCOPY);
             PatBlt(hdc, WindowRect.left, WindowRect.top, WindowRect.right - WindowRect.left, 1, PATCOPY);
@@ -325,7 +323,7 @@ VOID PhpSearchDrawButton(
                 break;
             }
 
-            SelectObject(hdc, GetStockObject(DC_BRUSH));
+            SelectBrush(hdc, GetStockBrush(DC_BRUSH));
             PatBlt(hdc, WindowRect.left + 1, WindowRect.top + 1, 1, WindowRect.bottom - WindowRect.top - 2, PATCOPY);
             PatBlt(hdc, WindowRect.right - 2, WindowRect.top + 1, 1, WindowRect.bottom - WindowRect.top - 2, PATCOPY);
             PatBlt(hdc, WindowRect.left + 1, WindowRect.top + 1, WindowRect.right - WindowRect.left - 2, 1, PATCOPY);
@@ -343,7 +341,7 @@ VOID PhpSearchDrawButton(
                 break;
             }
 
-            SelectObject(hdc, GetStockObject(DC_BRUSH));
+            SelectBrush(hdc, GetStockBrush(DC_BRUSH));
             PatBlt(hdc, WindowRect.left, WindowRect.top, 1, WindowRect.bottom - WindowRect.top, PATCOPY);
             PatBlt(hdc, WindowRect.right - 1, WindowRect.top, 1, WindowRect.bottom - WindowRect.top, PATCOPY);
             PatBlt(hdc, WindowRect.left, WindowRect.top, WindowRect.right - WindowRect.left, 1, PATCOPY);
@@ -359,7 +357,7 @@ VOID PhpSearchDrawButton(
                 break;
             }
 
-            SelectObject(hdc, GetStockObject(DC_BRUSH));
+            SelectBrush(hdc, GetStockBrush(DC_BRUSH));
             PatBlt(hdc, WindowRect.left + 1, WindowRect.top + 1, 1, WindowRect.bottom - WindowRect.top - 2, PATCOPY);
             PatBlt(hdc, WindowRect.right - 2, WindowRect.top + 1, 1, WindowRect.bottom - WindowRect.top - 2, PATCOPY);
             PatBlt(hdc, WindowRect.left + 1, WindowRect.top + 1, WindowRect.right - WindowRect.left - 2, 1, PATCOPY);
@@ -393,7 +391,7 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
 
             if (context->WindowFont)
             {
-                DeleteObject(context->WindowFont);
+                DeleteFont(context->WindowFont);
                 context->WindowFont = NULL;
             }
 
@@ -643,7 +641,7 @@ HICON PhpSearchBitmapToIcon(
 
     icon = CreateIconIndirect(&iconInfo);
 
-    DeleteObject(screenBitmap);
+    DeleteBitmap(screenBitmap);
     ReleaseDC(NULL, screenDc);
 
     return icon;
@@ -827,6 +825,6 @@ CleanupExit:
     if (success)
         return bitmapHandle;
 
-    DeleteObject(bitmapHandle);
+    DeleteBitmap(bitmapHandle);
     return NULL;
 }

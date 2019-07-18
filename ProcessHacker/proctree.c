@@ -701,8 +701,8 @@ static VOID PhpNeedGraphContext(
     {
         // The original bitmap must be selected back into the context, otherwise
         // the bitmap can't be deleted.
-        SelectObject(GraphContext, GraphBitmap);
-        DeleteObject(GraphBitmap);
+        SelectBitmap(GraphContext, GraphBitmap);
+        DeleteBitmap(GraphBitmap);
         DeleteDC(GraphContext);
 
         GraphContext = NULL;
@@ -719,7 +719,7 @@ static VOID PhpNeedGraphContext(
     header.biPlanes = 1;
     header.biBitCount = 32;
     GraphBitmap = CreateDIBSection(hdc, (BITMAPINFO *)&header, DIB_RGB_COLORS, &GraphBits, NULL, 0);
-    GraphOldBitmap = SelectObject(GraphContext, GraphBitmap);
+    GraphOldBitmap = SelectBitmap(GraphContext, GraphBitmap);
 }
 
 static BOOLEAN PhpFormatInt32GroupDigits(

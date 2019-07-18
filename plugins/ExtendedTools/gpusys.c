@@ -198,8 +198,8 @@ INT_PTR CALLBACK EtpGpuDialogProc(
             GpuGraphMargin = graphItem->Margin;
             panelItem = PhAddLayoutItem(&GpuLayoutManager, GetDlgItem(hwndDlg, IDC_PANEL_LAYOUT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
-            SendMessage(GetDlgItem(hwndDlg, IDC_TITLE), WM_SETFONT, (WPARAM)GpuSection->Parameters->LargeFont, FALSE);
-            SendMessage(GetDlgItem(hwndDlg, IDC_GPUNAME), WM_SETFONT, (WPARAM)GpuSection->Parameters->MediumFont, FALSE);
+            SetWindowFont(GetDlgItem(hwndDlg, IDC_TITLE), GpuSection->Parameters->LargeFont, FALSE);
+            SetWindowFont(GetDlgItem(hwndDlg, IDC_GPUNAME), GpuSection->Parameters->MediumFont, FALSE);
 
             PhSetDialogItemText(hwndDlg, IDC_GPUNAME, ((PPH_STRING)PH_AUTO(EtpGetGpuNameString()))->Buffer);
 

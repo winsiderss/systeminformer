@@ -352,9 +352,7 @@ VOID PhTnpCreateTreeNewContext(
 {
     PPH_TREENEW_CONTEXT context;
 
-    context = PhAllocate(sizeof(PH_TREENEW_CONTEXT));
-    memset(context, 0, sizeof(PH_TREENEW_CONTEXT));
-
+    context = PhAllocateZero(sizeof(PH_TREENEW_CONTEXT));
     context->FixedWidthMinimum = 20;
     context->RowHeight = 1; // must never be 0
     context->HotNodeIndex = -1;
@@ -374,11 +372,9 @@ VOID PhTnpDestroyTreeNewContext(
     _In_ PPH_TREENEW_CONTEXT Context
     )
 {
-    ULONG i;
-
     if (Context->Columns)
     {
-        for (i = 0; i < Context->NextId; i++)
+        for (ULONG i = 0; i < Context->NextId; i++)
         {
             if (Context->Columns[i])
                 PhFree(Context->Columns[i]);
@@ -393,7 +389,7 @@ VOID PhTnpDestroyTreeNewContext(
     PhDereferenceObject(Context->FlatList);
 
     if (Context->FontOwned)
-        DeleteObject(Context->Font);
+        DeleteFont(Context->Font);
 
     if (Context->ThemeData)
         CloseThemeData(Context->ThemeData);
@@ -408,7 +404,7 @@ VOID PhTnpDestroyTreeNewContext(
         PhTnpDestroyBufferedContext(Context);
 
     if (Context->SuspendUpdateRegion)
-        DeleteObject(Context->SuspendUpdateRegion);
+        DeleteRgn(Context->SuspendUpdateRegion);
 
     PhFree(Context);
 }
@@ -660,7 +656,7 @@ VOID PhTnpOnPaint(
             else
             {
                 CombineRgn(Context->SuspendUpdateRegion, Context->SuspendUpdateRegion, updateRegion, RGN_OR);
-                DeleteObject(updateRegion);
+                DeleteRgn(updateRegion);
             }
 
             // Pretend we painted something; this ensures the update region is validated properly.
@@ -2022,7 +2018,7 @@ VOID PhTnpSetFont(
 {
     if (Context->FontOwned)
     {
-        DeleteObject(Context->Font);
+        DeleteFont(Context->Font);
         Context->FontOwned = FALSE;
     }
 
@@ -2039,12 +2035,12 @@ VOID PhTnpSetFont(
         }
     }
 
-    SendMessage(Context->FixedHeaderHandle, WM_SETFONT, (WPARAM)Context->Font, Redraw);
-    SendMessage(Context->HeaderHandle, WM_SETFONT, (WPARAM)Context->Font, Redraw);
+    SetWindowFont(Context->FixedHeaderHandle, Context->Font, Redraw);
+    SetWindowFont(Context->HeaderHandle, Context->Font, Redraw);
 
     if (Context->TooltipsHandle)
     {
-        SendMessage(Context->TooltipsHandle, WM_SETFONT, (WPARAM)Context->Font, FALSE);
+        SetWindowFont(Context->TooltipsHandle, Context->Font, FALSE);
         Context->TooltipFont = Context->Font;
     }
 
@@ -2078,7 +2074,7 @@ VOID PhTnpUpdateTextMetrics(
 
     if (hdc = GetDC(Context->Handle))
     {
-        SelectObject(hdc, Context->Font);
+        SelectFont(hdc, Context->Font);
         GetTextMetrics(hdc, &Context->TextMetrics);
 
         if (!Context->CustomRowHeight)
@@ -2337,7 +2333,7 @@ VOID PhTnpSetRedraw(
         if (Context->SuspendUpdateRegion)
         {
             InvalidateRgn(Context->Handle, Context->SuspendUpdateRegion, FALSE);
-            DeleteObject(Context->SuspendUpdateRegion);
+            DeleteRgn(Context->SuspendUpdateRegion);
             Context->SuspendUpdateRegion = NULL;
         }
     }
@@ -3145,7 +3141,7 @@ VOID PhTnpAutoSizeColumnHeader(
 
             if (hdc = GetDC(Context->Handle))
             {
-                SelectObject(hdc, Context->Font);
+                SelectFont(hdc, Context->Font);
 
                 if (GetTextExtentPoint32(hdc, text, (ULONG)textCount, &textSize))
                 {
@@ -3508,7 +3504,7 @@ BOOLEAN PhTnpGetCellParts(
                 else
                     font = Context->Font;
 
-                SelectObject(hdc, font);
+                SelectFont(hdc, font);
 
                 if (GetTextExtentPoint32(hdc, text.Buffer, (ULONG)text.Length / sizeof(WCHAR), &textSize))
                 {
@@ -5094,7 +5090,7 @@ VOID PhTnpPaint(
 
             SetTextColor(hdc, RGB(0xff, 0xff, 0xff));
             SetDCBrushColor(hdc, RGB(30, 30, 30));
-            FillRect(hdc, &rowRect, GetStockObject(DC_BRUSH));
+            FillRect(hdc, &rowRect, GetStockBrush(DC_BRUSH));
 
             if (tempDc = CreateCompatibleDC(hdc))
             {
@@ -5112,7 +5108,7 @@ VOID PhTnpPaint(
                     //FrameRect(hdc, &rowRect, GetSysColorBrush(COLOR_HIGHLIGHT));
 
                     // Fill in the selection rectangle.
-                    oldBitmap = SelectObject(tempDc, bitmap);
+                    oldBitmap = SelectBitmap(tempDc, bitmap);
                     tempRect.left = 0;
                     tempRect.top = 0;
                     tempRect.right = 1;
@@ -5123,12 +5119,12 @@ VOID PhTnpPaint(
                     if (node->s.DrawBackColor != 16777215)
                     {
                         SetDCBrushColor(tempDc, node->s.DrawBackColor);
-                        FillRect(tempDc, &tempRect, GetStockObject(DC_BRUSH));
+                        FillRect(tempDc, &tempRect, GetStockBrush(DC_BRUSH));
                     }
                     else
                     {
                         SetDCBrushColor(tempDc, RGB(30, 30, 30));
-                        FillRect(tempDc, &tempRect, GetStockObject(DC_BRUSH));
+                        FillRect(tempDc, &tempRect, GetStockBrush(DC_BRUSH));
                     }
 
                     blendFunction.BlendOp = AC_SRC_OVER;
@@ -5169,7 +5165,7 @@ VOID PhTnpPaint(
                     {
                         SetTextColor(hdc, Context->CustomTextColor);
                         SetDCBrushColor(hdc, Context->CustomFocusColor);
-                        FillRect(hdc, &rowRect, GetStockObject(DC_BRUSH));
+                        FillRect(hdc, &rowRect, GetStockBrush(DC_BRUSH));
                     }
                     else
                     {
@@ -5183,7 +5179,7 @@ VOID PhTnpPaint(
                     {
                         SetTextColor(hdc, Context->CustomTextColor);
                         SetDCBrushColor(hdc, Context->CustomSelectedColor);
-                        FillRect(hdc, &rowRect, GetStockObject(DC_BRUSH));
+                        FillRect(hdc, &rowRect, GetStockBrush(DC_BRUSH));
                     }
                     else
                     {
@@ -5196,7 +5192,7 @@ VOID PhTnpPaint(
             {
                 SetTextColor(hdc, node->s.DrawForeColor);
                 SetDCBrushColor(hdc, node->s.DrawBackColor);
-                FillRect(hdc, &rowRect, GetStockObject(DC_BRUSH));
+                FillRect(hdc, &rowRect, GetStockBrush(DC_BRUSH));
             }
         }
 
@@ -5266,7 +5262,7 @@ VOID PhTnpPaint(
 
             if (GetClipRgn(hdc, oldClipRegion) != 1)
             {
-                DeleteObject(oldClipRegion);
+                DeleteRgn(oldClipRegion);
                 oldClipRegion = NULL;
             }
 
@@ -5285,7 +5281,7 @@ VOID PhTnpPaint(
 
             if (oldClipRegion)
             {
-                DeleteObject(oldClipRegion);
+                DeleteRgn(oldClipRegion);
             }
         }
 
@@ -5302,7 +5298,7 @@ VOID PhTnpPaint(
         {
             SetTextColor(hdc, RGB(0xff, 0xff, 0xff));
             SetDCBrushColor(hdc, RGB(30, 30, 30));
-            FillRect(hdc, &rowRect, GetStockObject(DC_BRUSH));
+            FillRect(hdc, &rowRect, GetStockBrush(DC_BRUSH));
         }
         else
         {
@@ -5322,7 +5318,7 @@ VOID PhTnpPaint(
         {
             SetTextColor(hdc, RGB(0xff, 0xff, 0xff));
             SetDCBrushColor(hdc, RGB(30, 30, 30));
-            FillRect(hdc, &rowRect, GetStockObject(DC_BRUSH));
+            FillRect(hdc, &rowRect, GetStockBrush(DC_BRUSH));
         }
         else
         {
@@ -5515,7 +5511,7 @@ VOID PhTnpDrawCell(
 
             if (GetClipRgn(hdc, oldClipRegion) != 1)
             {
-                DeleteObject(oldClipRegion);
+                DeleteRgn(oldClipRegion);
                 oldClipRegion = NULL;
             }
 
@@ -5600,7 +5596,7 @@ VOID PhTnpDrawCell(
             SelectClipRgn(hdc, oldClipRegion);
 
             if (oldClipRegion)
-                DeleteObject(oldClipRegion);
+                DeleteRgn(oldClipRegion);
         }
 
         if (textRect.left > textRect.right)
@@ -5644,7 +5640,7 @@ VOID PhTnpDrawCell(
         textRect.bottom = CellRect->bottom;
 
         if (font)
-            oldFont = SelectObject(hdc, font);
+            oldFont = SelectFont(hdc, font);
 
         DrawText(
             hdc,
@@ -5655,7 +5651,7 @@ VOID PhTnpDrawCell(
             );
 
         if (font)
-            SelectObject(hdc, oldFont);
+            SelectFont(hdc, oldFont);
     }
 }
 
@@ -5684,7 +5680,7 @@ VOID PhTnpDrawDivider(
             points[1].x = Context->ClientRect.right;
             points[1].y = Context->ClientRect.bottom;
             SetDCPenColor(Context->BufferedContext, RGB(0x77, 0x77, 0x77));
-            SelectObject(Context->BufferedContext, GetStockObject(DC_PEN));
+            SelectPen(Context->BufferedContext, GetStockPen(DC_PEN));
             Polyline(Context->BufferedContext, points, 2);
 
             blendFunction.BlendOp = AC_SRC_OVER;
@@ -5721,7 +5717,7 @@ VOID PhTnpDrawDivider(
     points[1].x = Context->FixedWidth;
     points[1].y = Context->ClientRect.bottom;
     SetDCPenColor(hdc, RGB(0x77, 0x77, 0x77));
-    SelectObject(hdc, GetStockObject(DC_PEN));
+    SelectPen(hdc, GetStockPen(DC_PEN));
     Polyline(hdc, points, 2);
 }
 
@@ -5738,9 +5734,9 @@ VOID PhTnpDrawPlusMinusGlyph(
 
     savedDc = SaveDC(hdc);
 
-    SelectObject(hdc, GetStockObject(DC_PEN));
+    SelectPen(hdc, GetStockPen(DC_PEN));
     SetDCPenColor(hdc, RGB(0x55, 0x55, 0x55));
-    SelectObject(hdc, GetStockObject(DC_BRUSH));
+    SelectBrush(hdc, GetStockBrush(DC_BRUSH));
     SetDCBrushColor(hdc, RGB(0xff, 0xff, 0xff));
 
     width = Rect->right - Rect->left;
@@ -5818,7 +5814,7 @@ VOID PhTnpDrawSelectionRectangle(
 
                 // Fill in the selection rectangle.
 
-                oldBitmap = SelectObject(tempDc, bitmap);
+                oldBitmap = SelectBitmap(tempDc, bitmap);
                 tempRect.left = 0;
                 tempRect.top = 0;
                 tempRect.right = 1;
@@ -5846,8 +5842,8 @@ VOID PhTnpDrawSelectionRectangle(
 
                 drewWithAlpha = TRUE;
 
-                SelectObject(tempDc, oldBitmap);
-                DeleteObject(bitmap);
+                SelectBitmap(tempDc, oldBitmap);
+                DeleteBitmap(bitmap);
             }
 
             DeleteDC(tempDc);
@@ -5973,7 +5969,7 @@ VOID PhTnpInitializeTooltips(
     SetWindowLongPtr(Context->HeaderHandle, GWLP_WNDPROC, (LONG_PTR)PhTnpHeaderHookWndProc);
 
     SendMessage(Context->TooltipsHandle, TTM_SETMAXTIPWIDTH, 0, MAXSHORT); // no limit
-    SendMessage(Context->TooltipsHandle, WM_SETFONT, (WPARAM)Context->Font, FALSE);
+    SetWindowFont(Context->TooltipsHandle, Context->Font, FALSE);
     Context->TooltipFont = Context->Font;
 }
 
@@ -6096,7 +6092,7 @@ BOOLEAN PhTnpPrepareTooltipShow(
     if (Context->TooltipFont != Context->NewTooltipFont)
     {
         Context->TooltipFont = Context->NewTooltipFont;
-        SendMessage(Context->TooltipsHandle, WM_SETFONT, (WPARAM)Context->TooltipFont, FALSE);
+        SetWindowFont(Context->TooltipsHandle, Context->TooltipFont, FALSE);
     }
 
     if (!Context->TooltipUnfolding)
@@ -6234,7 +6230,7 @@ VOID PhTnpGetHeaderTooltipText(
         if (!(hdc = GetDC(Context->Handle)))
             return;
 
-        SelectObject(hdc, Context->Font);
+        SelectFont(hdc, Context->Font);
 
         result = GetTextExtentPoint32(hdc, text, (ULONG)textCount, &textSize);
         ReleaseDC(Context->Handle, hdc);
@@ -6813,7 +6809,7 @@ VOID PhTnpCreateBufferedContext(
         }
 
         ReleaseDC(Context->Handle, hdc);
-        Context->BufferedOldBitmap = SelectObject(Context->BufferedContext, Context->BufferedBitmap);
+        Context->BufferedOldBitmap = SelectBitmap(Context->BufferedContext, Context->BufferedBitmap);
     }
 }
 
@@ -6823,8 +6819,8 @@ VOID PhTnpDestroyBufferedContext(
 {
     // The original bitmap must be selected back into the context, otherwise the bitmap can't be
     // deleted.
-    SelectObject(Context->BufferedContext, Context->BufferedOldBitmap);
-    DeleteObject(Context->BufferedBitmap);
+    SelectBitmap(Context->BufferedContext, Context->BufferedOldBitmap);
+    DeleteBitmap(Context->BufferedBitmap);
     DeleteDC(Context->BufferedContext);
 
     Context->BufferedContext = NULL;

@@ -201,8 +201,8 @@ INT_PTR CALLBACK DiskDriveDialogProc(
             graphItem = PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_GRAPH_LAYOUT), NULL, PH_ANCHOR_ALL);
             panelItem = PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_LAYOUT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
-            SendMessage(GetDlgItem(hwndDlg, IDC_DISKMOUNTPATH), WM_SETFONT, (WPARAM)context->SysinfoSection->Parameters->LargeFont, FALSE);
-            SendMessage(GetDlgItem(hwndDlg, IDC_DISKNAME), WM_SETFONT, (WPARAM)context->SysinfoSection->Parameters->MediumFont, FALSE);
+            SetWindowFont(GetDlgItem(hwndDlg, IDC_DISKMOUNTPATH), context->SysinfoSection->Parameters->LargeFont, FALSE);
+            SetWindowFont(GetDlgItem(hwndDlg, IDC_DISKNAME), context->SysinfoSection->Parameters->MediumFont, FALSE);
 
             if (context->DiskEntry->DiskIndexName)
                 PhSetDialogItemText(hwndDlg, IDC_DISKMOUNTPATH, context->DiskEntry->DiskIndexName->Buffer);

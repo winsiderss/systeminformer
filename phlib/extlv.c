@@ -254,7 +254,7 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                                 }
 
                                 if (newFont)
-                                    SelectObject(customDraw->nmcd.hdc, newFont);
+                                    SelectFont(customDraw->nmcd.hdc, newFont);
 
                                 if (colorChanged)
                                 {

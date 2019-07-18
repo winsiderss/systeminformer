@@ -496,22 +496,20 @@ INT LookupCountryIcon(
             {
                 HBITMAP countryBitmap;
 
-                countryBitmap = PhLoadPngImageFromResource(
-                    PluginInstance->DllBase, 
+                if (countryBitmap = PhLoadPngImageFromResource(
+                    PluginInstance->DllBase,
                     16,
-                    11, 
-                    MAKEINTRESOURCE(CountryResourceTable[i].ResourceID), 
+                    11,
+                    MAKEINTRESOURCE(CountryResourceTable[i].ResourceID),
                     TRUE
-                    );
-
-                if (countryBitmap)
+                    ))
                 {
                     CountryResourceTable[i].IconIndex = ImageList_Add(
                         GeoImageList, 
                         countryBitmap, 
                         NULL
                         );
-                    DeleteObject(countryBitmap);
+                    DeleteBitmap(countryBitmap);
                 }
             }
 

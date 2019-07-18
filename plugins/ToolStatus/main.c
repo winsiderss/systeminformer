@@ -938,7 +938,7 @@ LRESULT CALLBACK MainWndSubclassProc(
                                                 NULL
                                                 );
 
-                                            DeleteObject(buttonImage);
+                                            DeleteBitmap(buttonImage);
                                         }
                                         break;
                                     }

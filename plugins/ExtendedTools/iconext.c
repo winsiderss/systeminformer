@@ -323,7 +323,7 @@ VOID EtpGpuIconUpdateCallback(
     if (bits)
         PhDrawGraphDirect(hdc, bits, &drawInfo);
 
-    SelectObject(hdc, oldBitmap);
+    SelectBitmap(hdc, oldBitmap);
     *NewIconOrBitmap = bitmap;
     *Flags = PH_NF_UPDATE_IS_BITMAP;
 
@@ -450,7 +450,7 @@ VOID EtpDiskIconUpdateCallback(
     if (bits)
         PhDrawGraphDirect(hdc, bits, &drawInfo);
 
-    SelectObject(hdc, oldBitmap);
+    SelectBitmap(hdc, oldBitmap);
     *NewIconOrBitmap = bitmap;
     *Flags = PH_NF_UPDATE_IS_BITMAP;
 
@@ -576,7 +576,7 @@ VOID EtpNetworkIconUpdateCallback(
     if (bits)
         PhDrawGraphDirect(hdc, bits, &drawInfo);
 
-    SelectObject(hdc, oldBitmap);
+    SelectBitmap(hdc, oldBitmap);
     *NewIconOrBitmap = bitmap;
     *Flags = PH_NF_UPDATE_IS_BITMAP;
 
@@ -676,7 +676,7 @@ VOID EtpGpuTextIconUpdateCallback(
     PhDrawTrayIconText(hdc, bits, &drawInfo, &text->sr);
     PhDereferenceObject(text);
 
-    SelectObject(hdc, oldBitmap);
+    SelectBitmap(hdc, oldBitmap);
     *NewIconOrBitmap = bitmap;
     *Flags = PH_NF_UPDATE_IS_BITMAP;
 
@@ -756,7 +756,7 @@ VOID EtpDiskTextIconUpdateCallback(
     PhDrawTrayIconText(hdc, bits, &drawInfo, &text->sr);
     PhDereferenceObject(text);
 
-    SelectObject(hdc, oldBitmap);
+    SelectBitmap(hdc, oldBitmap);
     *NewIconOrBitmap = bitmap;
     *Flags = PH_NF_UPDATE_IS_BITMAP;
 
@@ -834,7 +834,7 @@ VOID EtpNetworkTextIconUpdateCallback(
     PhDrawTrayIconText(hdc, bits, &drawInfo, &text->sr);
     PhDereferenceObject(text);
 
-    SelectObject(hdc, oldBitmap);
+    SelectBitmap(hdc, oldBitmap);
     *NewIconOrBitmap = bitmap;
     *Flags = PH_NF_UPDATE_IS_BITMAP;
 

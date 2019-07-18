@@ -46,7 +46,7 @@ CommonBitmapToIcon(
 
     icon = CreateIconIndirect(&iconInfo);
 
-    DeleteObject(screenBitmap);
+    DeleteBitmap(screenBitmap);
     ReleaseDC(NULL, screenDc);
 
     return icon;
