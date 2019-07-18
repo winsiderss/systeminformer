@@ -1667,46 +1667,6 @@ VOID PhWindowNotifyTopMostEvent(
     PhReleaseQueuedLockExclusive(&WindowCallbackListLock);
 }
 
-BOOLEAN PhShowRunFileDialog(
-    _In_ HWND WindowHandle,
-    _In_opt_ HICON WindowIcon,
-    _In_opt_ PWSTR WorkingDirectory,
-    _In_opt_ PWSTR WindowTitle,
-    _In_opt_ PWSTR WindowDescription,
-    _In_ ULONG Flags
-    )
-{
-    BOOL (WINAPI *RunFileDlg_I)(
-        _In_ HWND hwndOwner,
-        _In_opt_ HICON hIcon,
-        _In_opt_ LPCWSTR lpszDirectory,
-        _In_opt_ LPCWSTR lpszTitle,
-        _In_opt_ LPCWSTR lpszDescription,
-        _In_ ULONG uFlags
-        );
-    BOOLEAN result = FALSE;
-    PVOID shell32Handle;
-
-    if (shell32Handle = LoadLibrary(L"shell32.dll"))
-    {
-        if (RunFileDlg_I = PhGetDllBaseProcedureAddress(shell32Handle, NULL, 61))
-        {
-            result = !!RunFileDlg_I(
-                WindowHandle,
-                WindowIcon,
-                WorkingDirectory,
-                WindowTitle,
-                WindowDescription,
-                Flags
-                );
-        }
-
-        FreeLibrary(shell32Handle);
-    }
-
-    return result;
-}
-
 HICON PhGetInternalWindowIcon(
     _In_ HWND WindowHandle,
     _In_ UINT Type
