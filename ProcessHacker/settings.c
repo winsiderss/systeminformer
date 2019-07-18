@@ -150,7 +150,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"PropagateCpuUsage", L"0");
     PhpAddStringSetting(L"RunAsProgram", L"");
     PhpAddStringSetting(L"RunAsUserName", L"");
-    PhpAddIntegerSetting(L"RunDlgHideRunAsAdministrator", L"0");
+    PhpAddIntegerSetting(L"RunFileDlgState", L"0");
     PhpAddIntegerSetting(L"SampleCount", L"200"); // 512
     PhpAddIntegerSetting(L"SampleCountAutomatic", L"1");
     PhpAddIntegerSetting(L"ScrollToNewProcesses", L"0");
