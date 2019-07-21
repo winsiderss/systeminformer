@@ -5480,20 +5480,19 @@ HMENU PhLoadMenu(
     )
 {
     HMENU menuHandle = NULL;
-    ULONG resourceLength;
-    PVOID resourceBuffer;
+    LPMENUTEMPLATE templateBuffer;
 
     if (PhLoadResource(
         DllBase,
         MenuName,
         RT_MENU,
-        &resourceLength,
-        &resourceBuffer
+        NULL,
+        &templateBuffer
         ))
     {
-        menuHandle = LoadMenuIndirect(resourceBuffer);
+        menuHandle = LoadMenuIndirect(templateBuffer);
 
-        PhFree(resourceBuffer);
+        PhFree(templateBuffer);
     }
 
     return menuHandle;
