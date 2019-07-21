@@ -5382,9 +5382,7 @@ VOID PhInvokeCallback(
 
     PhAcquireQueuedLockShared(&Callback->ListLock);
 
-    listEntry = Callback->ListHead.Flink;
-
-    while (listEntry != &Callback->ListHead)
+    for (listEntry = Callback->ListHead.Flink; listEntry != &Callback->ListHead; listEntry = listEntry->Flink)
     {
         PPH_CALLBACK_REGISTRATION registration;
         LONG busy;
@@ -5414,8 +5412,6 @@ VOID PhInvokeCallback(
             // wake them.
             PhPulseAllCondition(&Callback->BusyCondition);
         }
-
-        listEntry = listEntry->Flink;
     }
 
     PhReleaseQueuedLockShared(&Callback->ListLock);
