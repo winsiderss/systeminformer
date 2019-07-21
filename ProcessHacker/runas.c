@@ -1967,17 +1967,18 @@ PPH_STRING PhpQueryRunFileParentDirectory(
     }
 }
 
-BOOLEAN PhpCustomShellExecute(
+NTSTATUS PhpCustomShellExecute(
     _In_ HWND hWnd,
     _In_ PWSTR FileName,
     _In_opt_ PWSTR Parameters,
-    _In_ ULONG Flags
+    _In_ BOOLEAN Elevated
     )
 {
+    NTSTATUS status;
     PPH_STRING parentDirectory = NULL;
     SHELLEXECUTEINFO info;
 
-    parentDirectory = PhpQueryRunFileParentDirectory(!!(Flags & PH_SHELL_EXECUTE_ADMIN));
+    parentDirectory = PhpQueryRunFileParentDirectory(Elevated);
 
     memset(&info, 0, sizeof(SHELLEXECUTEINFO));
     info.cbSize = sizeof(SHELLEXECUTEINFO);
@@ -1988,7 +1989,7 @@ BOOLEAN PhpCustomShellExecute(
     info.nShow = SW_SHOWNORMAL;
     info.hwnd = hWnd;
 
-    if (Flags & PH_SHELL_EXECUTE_ADMIN)
+    if (Elevated)
         info.lpVerb = L"runas";
 
     if (ShellExecuteEx(&info))
@@ -1996,18 +1997,18 @@ BOOLEAN PhpCustomShellExecute(
         if (info.hProcess)
             NtClose(info.hProcess);
 
-        if (parentDirectory)
-            PhDereferenceObject(parentDirectory);
-
-        return TRUE;
+        status = STATUS_SUCCESS;
+    }
+    else
+    {
+        status = PhGetLastWin32ErrorAsNtStatus();
     }
 
     if (parentDirectory)
         PhDereferenceObject(parentDirectory);
 
-    return FALSE;
+    return status;
 }
-
 
 BOOLEAN PhpRunFileAsInteractiveUser(
     _In_ PPHP_RUNFILEDLG Context,
@@ -2101,12 +2102,12 @@ BOOLEAN PhpRunFileAsInteractiveUser(
     return success;
 }
 
-BOOLEAN PhpRunFileProgram(
+NTSTATUS PhpRunFileProgram(
     _In_ PPHP_RUNFILEDLG Context,
     _In_ PPH_STRING Command
     )
 {
-    BOOLEAN success = FALSE;
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
     PPH_STRING commandString = NULL;
     PPH_STRING fullFileName = NULL;
     PPH_STRING argumentsString = NULL;
@@ -2116,7 +2117,7 @@ BOOLEAN PhpRunFileProgram(
     BOOLEAN isDirectory = FALSE;
 
     if (PhIsNullOrEmptyString(Command))
-        return FALSE;
+        return STATUS_UNSUCCESSFUL;
 
     if (!(commandString = PhExpandEnvironmentStrings(&Command->sr)))
         commandString = PhCreateString2(&Command->sr);
@@ -2131,7 +2132,7 @@ BOOLEAN PhpRunFileProgram(
         if (fullFileName)
             PhDereferenceObject(fullFileName);
 
-        return FALSE;
+        return STATUS_UNSUCCESSFUL;
     }
 
     if (arguments.Length)
@@ -2147,34 +2148,27 @@ BOOLEAN PhpRunFileProgram(
     // If the file doesn't exist its probably a URL with http, https, www (dmex)
     if (isDirectory || !PhDoesFileExistsWin32(fullFileName->Buffer))
     {
-        if (PhpCustomShellExecute(
+        status = PhpCustomShellExecute(
             Context->WindowHandle,
             commandString->Buffer,
             NULL,
-            0
-            ))
-        {
-            success = TRUE;
-        }
+            FALSE
+            );
     }
     else if (Button_GetCheck(Context->RunAsCheckboxHandle) == BST_CHECKED ||
         // The explorer runas dialog executes programs as administrator when holding ctrl/shift keys 
         // and clicking the OK button, so we'll implement the same functionality. (dmex)
         (!!(GetKeyState(VK_CONTROL) < 0 && !!(GetKeyState(VK_SHIFT) < 0))))
     {
-        if (PhpCustomShellExecute(
+        status = PhpCustomShellExecute(
             Context->WindowHandle,
             commandString->Buffer,
             NULL,
-            PH_SHELL_EXECUTE_ADMIN
-            ))
-        {
-            success = TRUE;
-        }
+            TRUE
+            );
     }
     else
     {
-        NTSTATUS status = STATUS_UNSUCCESSFUL;
         ULONG processId = ULONG_MAX;
         PPH_STRING parentDirectory = NULL;
         HANDLE processHandle = NULL;
@@ -2193,7 +2187,9 @@ BOOLEAN PhpRunFileProgram(
 
         if (!(shellWindow = GetShellWindow()))
         {
-            success = PhpRunFileAsInteractiveUser(Context, commandString);
+            if (PhpRunFileAsInteractiveUser(Context, commandString))
+                status = STATUS_SUCCESS;
+
             goto CleanupExit;
         }
 
@@ -2295,18 +2291,13 @@ BOOLEAN PhpRunFileProgram(
         {
             PhDereferenceObject(parentDirectory);
         }
-
-        if (NT_SUCCESS(status))
-        {
-            success = TRUE;
-        }
     }
 
     if (fullFileName) PhDereferenceObject(fullFileName);
     if (argumentsString) PhDereferenceObject(argumentsString);
     if (commandString) PhDereferenceObject(commandString);
 
-    return success;
+    return status;
 }
 
 INT_PTR CALLBACK PhpRunFileWndProc(
@@ -2409,11 +2400,17 @@ INT_PTR CALLBACK PhpRunFileWndProc(
                 break;
             case IDOK:
                 {
+                    NTSTATUS status;
                     PPH_STRING commandString;
 
                     if (commandString = PhGetWindowText(context->ComboBoxHandle))
                     {
-                        if (PhpRunFileProgram(context, commandString))
+                        status = PhpRunFileProgram(
+                            context,
+                            commandString
+                            );
+
+                        if (NT_SUCCESS(status))
                         {
                             PhpAddRunMRUListEntry(commandString);
 
@@ -2421,7 +2418,10 @@ INT_PTR CALLBACK PhpRunFileWndProc(
                         }
                         else
                         {
-                            PhShowStatus(hwndDlg, L"Unable to execute the command.", 0, ERROR_FILE_NOT_FOUND);
+                            if (!(NT_NTWIN32(status) && WIN32_FROM_NTSTATUS(status) == ERROR_CANCELLED))
+                            {
+                                PhShowStatus(hwndDlg, L"Unable to execute the command.", status, 0);
+                            }
                         }
 
                         PhDereferenceObject(commandString);
@@ -2445,7 +2445,7 @@ INT_PTR CALLBACK PhpRunFileWndProc(
 
                         if (fileName = PhGetFileDialogFileName(fileDialog))
                         {
-                            ComboBox_SetText(GetDlgItem(hwndDlg, IDC_PROGRAMCOMBO), PhGetString(fileName));
+                            ComboBox_SetText(context->ComboBoxHandle, PhGetString(fileName));
                             PhDereferenceObject(fileName);
                         }
                     }
