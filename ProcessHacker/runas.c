@@ -1929,6 +1929,86 @@ typedef struct _PHP_RUNFILEDLG
     HWND RunAsCheckboxHandle;
 } PHP_RUNFILEDLG, *PPHP_RUNFILEDLG;
 
+PPH_STRING PhpQueryRunFileParentDirectory(
+    _In_ BOOLEAN Elevated
+    )
+{
+    // Note: Explorer creates new processes with the parent directory as SystemRoot when elevated or
+    // the below environment variables when not elevated. (dmex)
+    if (!Elevated)
+    {
+        static PH_STRINGREF homeDriveNameSr = PH_STRINGREF_INIT(L"HOMEDRIVE");
+        static PH_STRINGREF homePathNameSr = PH_STRINGREF_INIT(L"HOMEPATH");
+        PPH_STRING parentDirectoryString = NULL;
+        PPH_STRING homeDriveNameString = NULL;
+        PPH_STRING homePathNameString = NULL;
+
+        PhQueryEnvironmentVariable(NULL, &homeDriveNameSr, &homeDriveNameString);
+        PhQueryEnvironmentVariable(NULL, &homePathNameSr, &homePathNameString);
+
+        if (homeDriveNameString && homePathNameString)
+        {
+            parentDirectoryString = PhConcatStringRef2(
+                &homeDriveNameString->sr,
+                &homePathNameString->sr
+                );
+        }
+
+        if (homeDriveNameString)
+            PhDereferenceObject(homeDriveNameString);
+        if (homePathNameString)
+            PhDereferenceObject(homePathNameString);
+
+        return parentDirectoryString;
+    }
+    else
+    {
+        return PhGetSystemDirectory();
+    }
+}
+
+BOOLEAN PhpCustomShellExecute(
+    _In_ HWND hWnd,
+    _In_ PWSTR FileName,
+    _In_opt_ PWSTR Parameters,
+    _In_ ULONG Flags
+    )
+{
+    PPH_STRING parentDirectory = NULL;
+    SHELLEXECUTEINFO info;
+
+    parentDirectory = PhpQueryRunFileParentDirectory(!!(Flags & PH_SHELL_EXECUTE_ADMIN));
+
+    memset(&info, 0, sizeof(SHELLEXECUTEINFO));
+    info.cbSize = sizeof(SHELLEXECUTEINFO);
+    info.lpFile = FileName;
+    info.lpParameters = Parameters;
+    info.lpDirectory = PhGetString(parentDirectory);
+    info.fMask = SEE_MASK_FLAG_NO_UI;
+    info.nShow = SW_SHOWNORMAL;
+    info.hwnd = hWnd;
+
+    if (Flags & PH_SHELL_EXECUTE_ADMIN)
+        info.lpVerb = L"runas";
+
+    if (ShellExecuteEx(&info))
+    {
+        if (info.hProcess)
+            NtClose(info.hProcess);
+
+        if (parentDirectory)
+            PhDereferenceObject(parentDirectory);
+
+        return TRUE;
+    }
+
+    if (parentDirectory)
+        PhDereferenceObject(parentDirectory);
+
+    return FALSE;
+}
+
+
 BOOLEAN PhpRunFileAsInteractiveUser(
     _In_ PPHP_RUNFILEDLG Context,
     _In_ PPH_STRING Command
@@ -2002,8 +2082,17 @@ BOOLEAN PhpRunFileAsInteractiveUser(
 
     if (!PhIsNullOrEmptyString(executeString))
     {
-        if (WdcRunTaskAsInteractiveUser_I(executeString->Buffer, NULL, 0) == 0)
+        PPH_STRING parentDirectory = PhpQueryRunFileParentDirectory(FALSE);
+
+        if (WdcRunTaskAsInteractiveUser_I(executeString->Buffer, PhGetString(parentDirectory), 0) == 0)
+        {
             success = TRUE;
+        }
+
+        if (parentDirectory)
+        {
+            PhDereferenceObject(parentDirectory);
+        }
     }
 
     if (executeString) PhDereferenceObject(executeString);
@@ -2018,6 +2107,7 @@ BOOLEAN PhpRunFileProgram(
     )
 {
     BOOLEAN success = FALSE;
+    PPH_STRING commandString = NULL;
     PPH_STRING fullFileName = NULL;
     PPH_STRING argumentsString = NULL;
     PH_STRINGREF fileName;
@@ -2025,13 +2115,22 @@ BOOLEAN PhpRunFileProgram(
     FILE_BASIC_INFORMATION basicInfo;
     BOOLEAN isDirectory = FALSE;
 
-    PhParseCommandLineFuzzy(&Command->sr, &fileName, &arguments, &fullFileName);
+    if (PhIsNullOrEmptyString(Command))
+        return FALSE;
+
+    if (!(commandString = PhExpandEnvironmentStrings(&Command->sr)))
+        commandString = PhCreateString2(&Command->sr);
+
+    PhParseCommandLineFuzzy(&commandString->sr, &fileName, &arguments, &fullFileName);
 
     if (PhIsNullOrEmptyString(fullFileName))
         PhMoveReference(&fullFileName, PhCreateString2(&fileName));
 
     if (PhIsNullOrEmptyString(fullFileName))
     {
+        if (fullFileName)
+            PhDereferenceObject(fullFileName);
+
         return FALSE;
     }
 
@@ -2045,16 +2144,14 @@ BOOLEAN PhpRunFileProgram(
         isDirectory = !!(basicInfo.FileAttributes & FILE_ATTRIBUTE_DIRECTORY);
     }
 
-    if (isDirectory)
+    // If the file doesn't exist its probably a URL with http, https, www (dmex)
+    if (isDirectory || !PhDoesFileExistsWin32(fullFileName->Buffer))
     {
-        if (PhShellExecuteEx(
+        if (PhpCustomShellExecute(
             Context->WindowHandle,
-            fullFileName->Buffer,
-            PhGetString(argumentsString),
-            SW_SHOWNORMAL,
-            0,
-            0,
-            NULL
+            commandString->Buffer,
+            NULL,
+            0
             ))
         {
             success = TRUE;
@@ -2065,29 +2162,11 @@ BOOLEAN PhpRunFileProgram(
         // and clicking the OK button, so we'll implement the same functionality. (dmex)
         (!!(GetKeyState(VK_CONTROL) < 0 && !!(GetKeyState(VK_SHIFT) < 0))))
     {
-        if (PhShellExecuteEx(
+        if (PhpCustomShellExecute(
             Context->WindowHandle,
-            fullFileName->Buffer,
-            PhGetString(argumentsString),
-            SW_SHOWNORMAL,
-            PH_SHELL_EXECUTE_ADMIN,
-            0,
-            NULL
-            ))
-        {
-            success = TRUE;
-        }
-    }
-    else if (!PhDoesFileExistsWin32(fullFileName->Buffer))
-    {
-        if (PhShellExecuteEx(
-            Context->WindowHandle,
-            fullFileName->Buffer,
-            PhGetString(argumentsString),
-            SW_SHOWNORMAL,
-            0,
-            0,
-            NULL
+            commandString->Buffer,
+            NULL,
+            PH_SHELL_EXECUTE_ADMIN
             ))
         {
             success = TRUE;
@@ -2097,6 +2176,7 @@ BOOLEAN PhpRunFileProgram(
     {
         NTSTATUS status = STATUS_UNSUCCESSFUL;
         ULONG processId = ULONG_MAX;
+        PPH_STRING parentDirectory = NULL;
         HANDLE processHandle = NULL;
         HANDLE newProcessHandle;
         HANDLE tokenHandle;
@@ -2113,7 +2193,7 @@ BOOLEAN PhpRunFileProgram(
 
         if (!(shellWindow = GetShellWindow()))
         {
-            success = PhpRunFileAsInteractiveUser(Context, Command);
+            success = PhpRunFileAsInteractiveUser(Context, commandString);
             goto CleanupExit;
         }
 
@@ -2164,11 +2244,13 @@ BOOLEAN PhpRunFileProgram(
             NtClose(tokenHandle);
         }
 
+        parentDirectory = PhpQueryRunFileParentDirectory(FALSE);
+
         status = PhCreateProcessWin32Ex(
             fullFileName->Buffer,
             PhGetString(argumentsString),
             environment,
-            NULL,
+            PhGetString(parentDirectory),
             &startupInfo.StartupInfo,
             PH_CREATE_PROCESS_SUSPENDED | PH_CREATE_PROCESS_NEW_CONSOLE | PH_CREATE_PROCESS_EXTENDED_STARTUPINFO | flags,
             NULL,
@@ -2209,6 +2291,11 @@ BOOLEAN PhpRunFileProgram(
             NtClose(processHandle);
         }
 
+        if (parentDirectory)
+        {
+            PhDereferenceObject(parentDirectory);
+        }
+
         if (NT_SUCCESS(status))
         {
             success = TRUE;
@@ -2217,6 +2304,7 @@ BOOLEAN PhpRunFileProgram(
 
     if (fullFileName) PhDereferenceObject(fullFileName);
     if (argumentsString) PhDereferenceObject(argumentsString);
+    if (commandString) PhDereferenceObject(commandString);
 
     return success;
 }
