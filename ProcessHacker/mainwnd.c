@@ -721,7 +721,7 @@ VOID PhMwpOnCommand(
     case ID_COMPUTER_RESTARTBOOTOPTIONS:
     case ID_COMPUTER_SHUTDOWN:
     case ID_COMPUTER_SHUTDOWNHYBRID:
-        PhMwpExecuteComputerCommand(Id);
+        PhMwpExecuteComputerCommand(WindowHandle, Id);
         break;
     case ID_HACKER_EXIT:
         ProcessHacker_Destroy(WindowHandle);
@@ -2104,34 +2104,35 @@ VOID PhMwpSetupComputerMenu(
 }
 
 BOOLEAN PhMwpExecuteComputerCommand(
+    _In_ HWND WindowHandle,
     _In_ ULONG Id
     )
 {
     switch (Id)
     {
     case ID_COMPUTER_LOCK:
-        PhUiLockComputer(PhMainWndHandle);
+        PhUiLockComputer(WindowHandle);
         return TRUE;
     case ID_COMPUTER_LOGOFF:
-        PhUiLogoffComputer(PhMainWndHandle);
+        PhUiLogoffComputer(WindowHandle);
         return TRUE;
     case ID_COMPUTER_SLEEP:
-        PhUiSleepComputer(PhMainWndHandle);
+        PhUiSleepComputer(WindowHandle);
         return TRUE;
     case ID_COMPUTER_HIBERNATE:
-        PhUiHibernateComputer(PhMainWndHandle);
+        PhUiHibernateComputer(WindowHandle);
         return TRUE;
     case ID_COMPUTER_RESTART:
-        PhUiRestartComputer(PhMainWndHandle, 0);
+        PhUiRestartComputer(WindowHandle, 0);
         return TRUE;
     case ID_COMPUTER_RESTARTBOOTOPTIONS:
-        PhUiRestartComputer(PhMainWndHandle, EWX_BOOTOPTIONS);
+        PhUiRestartComputer(WindowHandle, EWX_BOOTOPTIONS);
         return TRUE;
     case ID_COMPUTER_SHUTDOWN:
-        PhUiShutdownComputer(PhMainWndHandle, 0);
+        PhUiShutdownComputer(WindowHandle, 0);
         return TRUE;
     case ID_COMPUTER_SHUTDOWNHYBRID:
-        PhUiShutdownComputer(PhMainWndHandle, EWX_HYBRID_SHUTDOWN);
+        PhUiShutdownComputer(WindowHandle, EWX_HYBRID_SHUTDOWN);
         return TRUE;
     }
 
@@ -3026,7 +3027,7 @@ VOID PhShowIconContextMenu(
             handled = PhHandleMiniProcessMenuItem(item);
 
         if (!handled)
-            handled = PhMwpExecuteComputerCommand(item->Id);
+            handled = PhMwpExecuteComputerCommand(PhMainWndHandle, item->Id);
 
         if (!handled)
         {

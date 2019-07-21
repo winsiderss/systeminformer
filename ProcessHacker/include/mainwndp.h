@@ -157,6 +157,7 @@ VOID PhMwpSetupComputerMenu(
     );
 
 BOOLEAN PhMwpExecuteComputerCommand(
+    _In_ HWND WindowHandle,
     _In_ ULONG Id
     );
 
