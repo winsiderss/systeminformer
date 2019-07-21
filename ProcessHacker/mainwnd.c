@@ -176,7 +176,7 @@ BOOLEAN PhMainWndInitialization(
 
     // Load the main menu
 
-    PhMainWndMenuHandle = LoadMenu(PhInstanceHandle, MAKEINTRESOURCE(IDR_MAINWND));
+    PhMainWndMenuHandle = PhLoadMenu(PhInstanceHandle, MAKEINTRESOURCE(IDR_MAINWND));
     SetMenu(PhMainWndHandle, PhMainWndMenuHandle);
     PhMwpInitializeMainMenu(PhMainWndMenuHandle);
 

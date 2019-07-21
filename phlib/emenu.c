@@ -680,7 +680,7 @@ VOID PhLoadResourceEMenuItem(
     HMENU menu;
     HMENU realMenu;
 
-    menu = LoadMenu(InstanceHandle, Resource);
+    menu = PhLoadMenu(InstanceHandle, Resource);
 
     if (SubMenuIndex != ULONG_MAX)
         realMenu = GetSubMenu(menu, SubMenuIndex);
