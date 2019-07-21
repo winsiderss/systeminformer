@@ -1155,6 +1155,14 @@ PhLoadResource(
     );
 
 PHLIBAPI
+HMENU
+NTAPI
+PhLoadMenu(
+    _In_ PVOID DllBase,
+    _In_ PWSTR MenuName
+    );
+
+PHLIBAPI
 PPH_STRING
 NTAPI
 PhLoadIndirectString(
