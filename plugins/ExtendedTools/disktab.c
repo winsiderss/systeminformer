@@ -476,7 +476,7 @@ BEGIN_SORT_FUNCTION(ResponseTime)
 END_SORT_FUNCTION
 
 BOOLEAN NTAPI EtpDiskTreeNewCallback(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PH_TREENEW_MESSAGE Message,
     _In_opt_ PVOID Parameter1,
     _In_opt_ PVOID Parameter2,
@@ -662,9 +662,9 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
         return TRUE;
     case TreeNewSortChanged:
         {
-            TreeNew_GetSort(hwnd, &DiskTreeNewSortColumn, &DiskTreeNewSortOrder);
+            TreeNew_GetSort(WindowHandle, &DiskTreeNewSortColumn, &DiskTreeNewSortOrder);
             // Force a rebuild to sort the items.
-            TreeNew_NodesStructured(hwnd);
+            TreeNew_NodesStructured(WindowHandle);
         }
         return TRUE;
     case TreeNewKeyDown:
@@ -675,14 +675,14 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
             {
             case 'C':
                 if (GetKeyState(VK_CONTROL) < 0)
-                    EtHandleDiskCommand(ID_DISK_COPY);
+                    EtHandleDiskCommand(WindowHandle, ID_DISK_COPY);
                 break;
             case 'A':
                 if (GetKeyState(VK_CONTROL) < 0)
                     TreeNew_SelectRange(DiskTreeNewHandle, 0, -1);
                 break;
             case VK_RETURN:
-                EtHandleDiskCommand(ID_DISK_OPENFILELOCATION);
+                EtHandleDiskCommand(WindowHandle, ID_DISK_OPENFILELOCATION);
                 break;
             }
         }
@@ -691,13 +691,13 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
         {
             PH_TN_COLUMN_MENU_DATA data;
 
-            data.TreeNewHandle = hwnd;
+            data.TreeNewHandle = WindowHandle;
             data.MouseEvent = Parameter1;
             data.DefaultSortColumn = 0;
             data.DefaultSortOrder = AscendingSortOrder;
             PhInitializeTreeNewColumnMenu(&data);
 
-            data.Selection = PhShowEMenu(data.Menu, hwnd, PH_EMENU_SHOW_LEFTRIGHT,
+            data.Selection = PhShowEMenu(data.Menu, WindowHandle, PH_EMENU_SHOW_LEFTRIGHT,
                 PH_ALIGN_LEFT | PH_ALIGN_TOP, data.MouseEvent->ScreenLocation.x, data.MouseEvent->ScreenLocation.y);
             PhHandleTreeNewColumnMenu(&data);
             PhDeleteTreeNewColumnMenu(&data);
@@ -705,14 +705,14 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
         return TRUE;
     case TreeNewLeftDoubleClick:
         {
-            EtHandleDiskCommand(ID_DISK_OPENFILELOCATION);
+            EtHandleDiskCommand(WindowHandle, ID_DISK_OPENFILELOCATION);
         }
         return TRUE;
     case TreeNewContextMenu:
         {
             PPH_TREENEW_CONTEXT_MENU contextMenuEvent = Parameter1;
 
-            EtShowDiskContextMenu(hwnd, contextMenuEvent);
+            EtShowDiskContextMenu(WindowHandle, contextMenuEvent);
         }
         return TRUE;
     case TreeNewDestroying:
@@ -850,6 +850,7 @@ VOID EtWriteDiskList(
 }
 
 VOID EtHandleDiskCommand(
+    _In_ HWND WindowHandle,
     _In_ ULONG Id
     )
 {
@@ -980,7 +981,7 @@ VOID EtShowDiskContextMenu(
 
         item = PhShowEMenu(
             menu,
-            PhMainWndHandle,
+            TreeWindowHandle,
             PH_EMENU_SHOW_LEFTRIGHT,
             PH_ALIGN_LEFT | PH_ALIGN_TOP,
             ContextMenuEvent->Location.x,
@@ -994,7 +995,7 @@ VOID EtShowDiskContextMenu(
             handled = PhHandleCopyCellEMenuItem(item);
 
             if (!handled)
-                EtHandleDiskCommand(item->Id);
+                EtHandleDiskCommand(TreeWindowHandle, item->Id);
         }
 
         PhDestroyEMenu(menu);
