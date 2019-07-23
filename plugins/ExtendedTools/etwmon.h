@@ -32,8 +32,8 @@ typedef struct
 {
     ULONG PID;
     ULONG size;
-    ULONG daddr;
-    ULONG saddr;
+    IN_ADDR daddr;
+    IN_ADDR saddr;
     USHORT dport;
     USHORT sport;
 } TcpIpOrUdpIp_IPV4_Header;

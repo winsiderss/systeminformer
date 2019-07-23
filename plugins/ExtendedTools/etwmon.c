@@ -358,10 +358,10 @@ VOID NTAPI EtpEtwEventCallback(
                 networkEvent.TransferSize = data->size;
 
                 source.Address.Type = PH_IPV4_NETWORK_TYPE;
-                source.Address.Ipv4 = data->saddr;
+                source.Address.Ipv4 = data->saddr.s_addr;
                 source.Port = _byteswap_ushort(data->sport);
                 destination.Address.Type = PH_IPV4_NETWORK_TYPE;
-                destination.Address.Ipv4 = data->daddr;
+                destination.Address.Ipv4 = data->daddr.s_addr;
                 destination.Port = _byteswap_ushort(data->dport);
             }
             else if (networkEvent.ProtocolType & PH_IPV6_NETWORK_TYPE)
