@@ -1807,7 +1807,7 @@ ULONG_PTR PhMwpOnUserMessage(
         break;
     case WM_PH_NOTIFY_ICON_MESSAGE:
         {
-            PhNfForwardMessage(WParam, LParam);
+            PhNfForwardMessage(WindowHandle, WParam, LParam);
         }
         break;
     case WM_PH_TOGGLE_VISIBLE:

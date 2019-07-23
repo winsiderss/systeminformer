@@ -133,6 +133,7 @@ VOID PhNfUninitialization(
     );
 
 VOID PhNfForwardMessage(
+    _In_ HWND WindowHandle,
     _In_ ULONG_PTR WParam,
     _In_ ULONG_PTR LParam
     );

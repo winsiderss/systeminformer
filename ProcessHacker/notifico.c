@@ -282,6 +282,7 @@ VOID PhNfUninitialization(
 }
 
 VOID PhNfForwardMessage(
+    _In_ HWND WindowHandle,
     _In_ ULONG_PTR WParam,
     _In_ ULONG_PTR LParam
     )
@@ -325,7 +326,7 @@ VOID PhNfForwardMessage(
         {
             if (PhGetIntegerSetting(L"IconSingleClick"))
             {
-                ProcessHacker_IconClick(PhMainWndHandle);
+                ProcessHacker_IconClick(WindowHandle);
                 PhNfpDisableHover();
             }
             else
@@ -355,11 +356,11 @@ VOID PhNfForwardMessage(
                         IconClickShowMiniInfoSectionData.SectionName = PhDuplicateStringZ(showMiniInfoSectionData.SectionName);
                     }
 
-                    SetTimer(PhMainWndHandle, TIMER_ICON_CLICK_ACTIVATE, GetDoubleClickTime() + NFP_ICON_CLICK_ACTIVATE_DELAY, PhNfpIconClickActivateTimerProc);
+                    SetTimer(WindowHandle, TIMER_ICON_CLICK_ACTIVATE, GetDoubleClickTime() + NFP_ICON_CLICK_ACTIVATE_DELAY, PhNfpIconClickActivateTimerProc);
                 }
                 else
                 {
-                    KillTimer(PhMainWndHandle, TIMER_ICON_CLICK_ACTIVATE);
+                    KillTimer(WindowHandle, TIMER_ICON_CLICK_ACTIVATE);
                 }
             }
         }
@@ -372,12 +373,12 @@ VOID PhNfForwardMessage(
                 {
                     // We will get another WM_LBUTTONUP message corresponding to the double-click,
                     // and we need to make sure that it doesn't start the activation timer again.
-                    KillTimer(PhMainWndHandle, TIMER_ICON_CLICK_ACTIVATE);
+                    KillTimer(WindowHandle, TIMER_ICON_CLICK_ACTIVATE);
                     IconClickUpDueToDown = FALSE;
                     PhNfpDisableHover();
                 }
 
-                ProcessHacker_IconClick(PhMainWndHandle);
+                ProcessHacker_IconClick(WindowHandle);
             }
         }
         break;
@@ -387,7 +388,7 @@ VOID PhNfForwardMessage(
             POINT location;
 
             if (!PhGetIntegerSetting(L"IconSingleClick") && PhNfMiniInfoEnabled)
-                KillTimer(PhMainWndHandle, TIMER_ICON_CLICK_ACTIVATE);
+                KillTimer(WindowHandle, TIMER_ICON_CLICK_ACTIVATE);
 
             PhPinMiniInformation(MiniInfoIconPinType, -1, 0, 0, NULL, NULL);
             GetCursorPos(&location);
@@ -396,8 +397,8 @@ VOID PhNfForwardMessage(
         break;
     case NIN_KEYSELECT:
         // HACK: explorer seems to send two NIN_KEYSELECT messages when the user selects the icon and presses ENTER.
-        if (GetForegroundWindow() != PhMainWndHandle)
-            ProcessHacker_IconClick(PhMainWndHandle);
+        if (GetForegroundWindow() != WindowHandle)
+            ProcessHacker_IconClick(WindowHandle);
         break;
     case NIN_BALLOONUSERCLICK:
         PhShowDetailsForIconNotification();
