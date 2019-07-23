@@ -787,12 +787,13 @@ VOID PhGetStockApplicationIcon(
 
             if (systemDirectory = PhGetSystemDirectory())
             {
-                PH_STRINGREF dllBaseName;
+                dllFileName = PhConcatStringRefZ(&systemDirectory->sr, L"\\user32.dll");
 
-                PhInitializeStringRef(&dllBaseName, L"\\user32.dll");
-                dllFileName = PhConcatStringRef2(&systemDirectory->sr, &dllBaseName);
-
-                PhExtractIcon(dllFileName->Buffer, &largeIcon, &smallIcon);
+                PhExtractIcon(
+                    dllFileName->Buffer,
+                    &largeIcon,
+                    &smallIcon
+                    );
 
                 PhDereferenceObject(dllFileName);
                 PhDereferenceObject(systemDirectory);
