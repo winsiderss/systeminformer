@@ -38,7 +38,7 @@ VOID EtUpdateDiskNode(
     );
 
 BOOLEAN NTAPI EtpDiskTreeNewCallback(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PH_TREENEW_MESSAGE Message,
     _In_opt_ PVOID Parameter1,
     _In_opt_ PVOID Parameter2,
@@ -76,6 +76,7 @@ VOID EtWriteDiskList(
     );
 
 VOID EtHandleDiskCommand(
+    _In_ HWND WindowHandle,
     _In_ ULONG Id
     );
 
