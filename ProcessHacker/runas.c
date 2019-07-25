@@ -1259,7 +1259,8 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                                 HANDLE newProcessHandle;
                                 STARTUPINFOEX startupInfo;
                                 SIZE_T attributeListLength = 0;
-                                PSECURITY_DESCRIPTOR securityDescriptor = NULL;
+                                PSECURITY_DESCRIPTOR processSecurityDescriptor = NULL;
+                                PSECURITY_DESCRIPTOR tokenSecurityDescriptor = NULL;
                                 PVOID environment = NULL;
                                 HANDLE tokenHandle;
                                 ULONG flags = 0;
@@ -1271,7 +1272,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
 
                                 status = PhOpenProcess(
                                     &processHandle,
-                                    PROCESS_CREATE_PROCESS | PROCESS_QUERY_LIMITED_INFORMATION,
+                                    PROCESS_CREATE_PROCESS | (PhGetOwnTokenAttributes().Elevated ? PROCESS_QUERY_LIMITED_INFORMATION | READ_CONTROL : 0),
                                     context->ProcessId
                                     );
 
@@ -1298,6 +1299,15 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                                     goto CleanupExit;
                                 }
 
+                                if (PhGetOwnTokenAttributes().Elevated)
+                                {
+                                    PhGetObjectSecurity(
+                                        processHandle,
+                                        OWNER_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION | LABEL_SECURITY_INFORMATION,
+                                        &processSecurityDescriptor
+                                        );
+                                }
+
                                 if (NT_SUCCESS(PhOpenProcessToken(
                                     processHandle,
                                     TOKEN_QUERY | (PhGetOwnTokenAttributes().Elevated ? READ_CONTROL : 0),
@@ -1309,7 +1319,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                                         PhGetObjectSecurity(
                                             tokenHandle,
                                             OWNER_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION | LABEL_SECURITY_INFORMATION,
-                                            &securityDescriptor
+                                            &tokenSecurityDescriptor
                                             );
                                     }
 
@@ -1338,22 +1348,32 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                                 {
                                     PROCESS_BASIC_INFORMATION basicInfo;
 
-                                    if (PhGetOwnTokenAttributes().Elevated && securityDescriptor)
+                                    if (PhGetOwnTokenAttributes().Elevated)
                                     {
-                                        if (NT_SUCCESS(PhOpenProcessToken(
+                                        // Note: This is needed to workaround a severe bug with PROC_THREAD_ATTRIBUTE_PARENT_PROCESS 
+                                        // where the process and token security descriptors are created without an ACE for the current user, 
+                                        // owned by the wrong user and with a High-IL when the process token is Medium-IL 
+                                        // preventing the new process from accessing user/system resources above Low-IL. (dmex)
+
+                                        if (processSecurityDescriptor)
+                                        {
+                                            PhSetObjectSecurity(
+                                                newProcessHandle,
+                                                OWNER_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION | LABEL_SECURITY_INFORMATION,
+                                                processSecurityDescriptor
+                                                );
+                                        }
+
+                                        if (tokenSecurityDescriptor && NT_SUCCESS(PhOpenProcessToken(
                                             newProcessHandle,
                                             WRITE_DAC | WRITE_OWNER,
                                             &tokenHandle
                                             )))
                                         {
-                                            // Note: This is needed to workaround a severe bug with CreateProcess where the new process
-                                            // token DAC is created without an ACE for the current user, owned by the wrong user
-                                            // and with a High-IL when the process token is Medium-IL blocking the new process from 
-                                            // accessing system resources. (dmex)
                                             PhSetObjectSecurity(
                                                 tokenHandle,
                                                 OWNER_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION | LABEL_SECURITY_INFORMATION,
-                                                securityDescriptor
+                                                tokenSecurityDescriptor
                                                 );
                                             NtClose(tokenHandle);
                                         }
@@ -1375,9 +1395,14 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                                     DestroyEnvironmentBlock(environment);
                                 }
 
-                                if (securityDescriptor)
+                                if (tokenSecurityDescriptor)
                                 {
-                                    PhFree(securityDescriptor);
+                                    PhFree(tokenSecurityDescriptor);
+                                }
+
+                                if (processSecurityDescriptor)
+                                {
+                                    PhFree(processSecurityDescriptor);
                                 }
 
                                 if (startupInfo.lpAttributeList)
@@ -2217,7 +2242,8 @@ NTSTATUS PhpRunFileProgram(
         HWND shellWindow;
         STARTUPINFOEX startupInfo;
         SIZE_T attributeListLength = 0;
-        PSECURITY_DESCRIPTOR securityDescriptor = NULL;
+        PSECURITY_DESCRIPTOR processSecurityDescriptor = NULL;
+        PSECURITY_DESCRIPTOR tokenSecurityDescriptor = NULL;
         PVOID environment = NULL;
         ULONG flags = 0;
 
@@ -2245,7 +2271,7 @@ NTSTATUS PhpRunFileProgram(
 
         status = PhOpenProcess(
             &processHandle,
-            PROCESS_CREATE_PROCESS | PROCESS_QUERY_LIMITED_INFORMATION,
+            PROCESS_CREATE_PROCESS | (PhGetOwnTokenAttributes().Elevated ? PROCESS_QUERY_LIMITED_INFORMATION | READ_CONTROL : 0),
             UlongToHandle(processId)
             );
 
@@ -2272,6 +2298,15 @@ NTSTATUS PhpRunFileProgram(
             goto CleanupExit;
         }
 
+        if (PhGetOwnTokenAttributes().Elevated)
+        {
+            PhGetObjectSecurity(
+                processHandle,
+                OWNER_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION | LABEL_SECURITY_INFORMATION,
+                &processSecurityDescriptor
+                );
+        }
+
         if (NT_SUCCESS(PhOpenProcessToken(
             processHandle,
             TOKEN_QUERY | (PhGetOwnTokenAttributes().Elevated ? READ_CONTROL : 0),
@@ -2283,7 +2318,7 @@ NTSTATUS PhpRunFileProgram(
                 PhGetObjectSecurity(
                     tokenHandle,
                     OWNER_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION | LABEL_SECURITY_INFORMATION,
-                    &securityDescriptor
+                    &tokenSecurityDescriptor
                     );
             }
 
@@ -2312,22 +2347,32 @@ NTSTATUS PhpRunFileProgram(
         {
             PROCESS_BASIC_INFORMATION basicInfo;
 
-            if (PhGetOwnTokenAttributes().Elevated && securityDescriptor)
+            if (PhGetOwnTokenAttributes().Elevated)
             {
-                if (NT_SUCCESS(PhOpenProcessToken(
+                // Note: This is needed to workaround a severe bug with PROC_THREAD_ATTRIBUTE_PARENT_PROCESS 
+                // where the process and token security descriptors are created without an ACE for the current user, 
+                // owned by the wrong user and with a High-IL when the process token is Medium-IL 
+                // preventing the new process from accessing user/system resources above Low-IL. (dmex)
+
+                if (processSecurityDescriptor)
+                {
+                    PhSetObjectSecurity(
+                        newProcessHandle,
+                        OWNER_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION | LABEL_SECURITY_INFORMATION,
+                        processSecurityDescriptor
+                        );
+                }
+
+                if (tokenSecurityDescriptor && NT_SUCCESS(PhOpenProcessToken(
                     newProcessHandle,
                     WRITE_DAC | WRITE_OWNER,
                     &tokenHandle
                     )))
                 {
-                    // Note: This is needed to workaround a severe bug with CreateProcess where the new process
-                    // token DAC is created without an ACE for the current user, owned by the wrong user
-                    // and with a High-IL when the process token is Medium-IL blocking the new process from 
-                    // accessing system resources. (dmex)
-                    status = PhSetObjectSecurity(
+                    PhSetObjectSecurity(
                         tokenHandle,
                         OWNER_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION | LABEL_SECURITY_INFORMATION,
-                        securityDescriptor
+                        tokenSecurityDescriptor
                         );
                     NtClose(tokenHandle);
                 }
@@ -2350,9 +2395,14 @@ NTSTATUS PhpRunFileProgram(
             DestroyEnvironmentBlock(environment);
         }
 
-        if (securityDescriptor)
+        if (tokenSecurityDescriptor)
         {
-            PhFree(securityDescriptor);
+            PhFree(tokenSecurityDescriptor);
+        }
+
+        if (processSecurityDescriptor)
+        {
+            PhFree(processSecurityDescriptor);
         }
 
         if (startupInfo.lpAttributeList)
