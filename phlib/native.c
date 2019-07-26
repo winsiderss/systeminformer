@@ -465,6 +465,42 @@ PPH_STRING PhGetSecurityDescriptorAsString(
     return securityDescriptorString;
 }
 
+BOOLEAN PhGetObjectSecurityDescriptorAsString(
+    _In_ HANDLE Handle,
+    _Out_ PPH_STRING* SecurityDescriptorString
+    )
+{
+    PSECURITY_DESCRIPTOR securityDescriptor;
+    PPH_STRING securityDescriptorString;
+
+    if (NT_SUCCESS(PhGetObjectSecurity(
+        Handle,
+        OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION |
+        DACL_SECURITY_INFORMATION | LABEL_SECURITY_INFORMATION |
+        ATTRIBUTE_SECURITY_INFORMATION | SCOPE_SECURITY_INFORMATION,
+        &securityDescriptor
+        )))
+    {
+        if (securityDescriptorString = PhGetSecurityDescriptorAsString(
+            OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION |
+            DACL_SECURITY_INFORMATION | LABEL_SECURITY_INFORMATION |
+            ATTRIBUTE_SECURITY_INFORMATION | SCOPE_SECURITY_INFORMATION,
+            securityDescriptor
+            ))
+        {
+            *SecurityDescriptorString = securityDescriptorString;
+
+            PhFree(securityDescriptor);
+            return TRUE;
+        }
+
+        PhFree(securityDescriptor);
+    }
+
+    return FALSE;
+}
+
+
 /**
  * Terminates a process.
  *
@@ -2315,41 +2351,6 @@ NTSTATUS PhGetAppContainerNamedObjectPath(
     }
 
     return status;
-}
-
-BOOLEAN PhGetTokenSecurityDescriptorAsString(
-    _In_ HANDLE TokenHandle,
-    _Out_ PPH_STRING* SecurityDescriptorString
-    )
-{
-    PSECURITY_DESCRIPTOR securityDescriptor;
-    PPH_STRING securityDescriptorString;
-
-    if (NT_SUCCESS(PhGetObjectSecurity(
-        TokenHandle,
-        OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION |
-        DACL_SECURITY_INFORMATION | LABEL_SECURITY_INFORMATION |
-        ATTRIBUTE_SECURITY_INFORMATION | SCOPE_SECURITY_INFORMATION,
-        &securityDescriptor
-        )))
-    {
-        if (securityDescriptorString = PhGetSecurityDescriptorAsString(
-            OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION |
-            DACL_SECURITY_INFORMATION | LABEL_SECURITY_INFORMATION |
-            ATTRIBUTE_SECURITY_INFORMATION | SCOPE_SECURITY_INFORMATION,
-            securityDescriptor
-            ))
-        {
-            *SecurityDescriptorString = securityDescriptorString;
-
-            PhFree(securityDescriptor);
-            return TRUE;
-        }
-
-        PhFree(securityDescriptor);
-    }
-
-    return FALSE;
 }
 
 /**
