@@ -2101,7 +2101,7 @@ INT_PTR CALLBACK PhpTokenAdvancedPageProc(
                 }
 
                 PhGetTokenNamedObjectPath(tokenHandle, NULL, &tokenNamedObjectPathString);
-                PhGetTokenSecurityDescriptorAsString(tokenHandle, &tokenSecurityDescriptorString);
+                PhGetObjectSecurityDescriptorAsString(tokenHandle, &tokenSecurityDescriptorString);
 
                 if (NT_SUCCESS(PhGetTokenProcessTrustLevelRID(
                     tokenHandle,

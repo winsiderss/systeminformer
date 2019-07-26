@@ -155,6 +155,14 @@ PhGetSecurityDescriptorAsString(
     );
 
 PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetObjectSecurityDescriptorAsString(
+    _In_ HANDLE Handle,
+    _Out_ PPH_STRING* SecurityDescriptorString
+    );
+
+PHLIBAPI
 NTSTATUS
 NTAPI
 PhTerminateProcess(
@@ -454,14 +462,6 @@ PhGetAppContainerNamedObjectPath(
     _In_opt_ PSID AppContainerSid,
     _In_ BOOLEAN RelativePath,
     _Out_ PPH_STRING* ObjectPath
-    );
-
-PHLIBAPI
-BOOLEAN
-NTAPI
-PhGetTokenSecurityDescriptorAsString(
-    _In_ HANDLE TokenHandle,
-    _Out_ PPH_STRING* SecurityDescriptorString
     );
 
 PHLIBAPI
