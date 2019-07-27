@@ -7718,7 +7718,7 @@ static BOOLEAN PhpDeleteDirectoryCallback(
     }
     else
     {
-        if (WindowsVersion < WINDOWS_10_RS5 && (Information->FileAttributes & FILE_ATTRIBUTE_READONLY))
+        if (Information->FileAttributes & FILE_ATTRIBUTE_READONLY)
         {
             HANDLE fileHandle;
 
