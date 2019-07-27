@@ -1331,7 +1331,7 @@ PPH_STRING PhFormatTimeSpan(
 {
     PPH_STRING string;
 
-    string = PhCreateStringEx(NULL, PH_TIMESPAN_STR_LEN);
+    string = PhCreateStringEx(NULL, PH_TIMESPAN_STR_LEN * sizeof(WCHAR));
     PhPrintTimeSpan(string->Buffer, Ticks, Mode);
     PhTrimToNullTerminatorString(string);
 
