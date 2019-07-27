@@ -638,11 +638,12 @@ INT_PTR CALLBACK WepWindowsDlgProc(
 
                     if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
                     {
-                        WINDOWPLACEMENT placement = { sizeof(placement) };
+                        WINDOWPLACEMENT placement = { sizeof(WINDOWPLACEMENT) };
 
-                        GetWindowPlacement(selectedNode->WindowHandle, &placement);
+                        if (!GetWindowPlacement(selectedNode->WindowHandle, &placement))
+                            break;
 
-                        if (placement.showCmd == SW_SHOWMINIMIZED)
+                        if (placement.showCmd == SW_SHOWMINIMIZED || placement.showCmd == SW_MINIMIZE)
                         {
                             ShowWindowAsync(selectedNode->WindowHandle, SW_RESTORE);
                         }
