@@ -80,7 +80,6 @@ HRESULT CALLBACK PhpElevateActionCallbackProc(
 BOOLEAN PhpShowElevatePrompt(
     _In_ HWND hWnd,
     _In_ PWSTR Message,
-    _In_ NTSTATUS Status,
     _Out_ PINT Button
     )
 {
@@ -95,7 +94,7 @@ BOOLEAN PhpShowElevatePrompt(
     config.hwndParent = hWnd;
     config.hInstance = PhInstanceHandle;
     config.dwFlags = IsWindowVisible(hWnd) ? TDF_POSITION_RELATIVE_TO_WINDOW : 0;
-    config.pszWindowTitle = L"Process Hacker";
+    config.pszWindowTitle = PhApplicationName;
     config.pszMainIcon = TD_ERROR_ICON;
     config.pszMainInstruction = PhaConcatStrings2(Message, L".")->Buffer;
     config.pszContent = L"You will need to provide administrator permission. "
@@ -169,7 +168,7 @@ BOOLEAN PhpShowErrorAndElevateAction(
 
     if (elevationLevel == PromptElevateAction)
     {
-        if (!PhpShowElevatePrompt(hWnd, Message, Status, &button))
+        if (!PhpShowElevatePrompt(hWnd, Message, &button))
             return FALSE;
     }
 
@@ -269,7 +268,7 @@ BOOLEAN PhpShowErrorAndConnectToPhSvc(
 
     if (elevationLevel == PromptElevateAction)
     {
-        if (!PhpShowElevatePrompt(hWnd, Message, Status, &button))
+        if (!PhpShowElevatePrompt(hWnd, Message, &button))
             return FALSE;
     }
 
@@ -362,11 +361,14 @@ BOOLEAN PhpStartPhSvcProcess(
             for (i = 0; i < RTL_NUMBER_OF(relativeFileNames); i++)
             {
                 PPH_STRING fileName;
+                PPH_STRING fileFullPath;
 
-                fileName = PhConcatStrings2(applicationDirectory->Buffer, relativeFileNames[i]);
-                PhMoveReference(&fileName, PhGetFullPath(fileName->Buffer, NULL));
+                fileName = PhConcatStringRefZ(&applicationDirectory->sr, relativeFileNames[i]);
 
-                if (fileName && PhDoesFileExistsWin32(fileName->Buffer))
+                if (fileFullPath = PhGetFullPath(fileName->Buffer, NULL))
+                    PhMoveReference(&fileName, fileFullPath);
+
+                if (PhDoesFileExistsWin32(fileName->Buffer))
                 {
                     if (PhShellProcessHackerEx(
                         hWnd,
@@ -385,10 +387,10 @@ BOOLEAN PhpStartPhSvcProcess(
                     }
                 }
 
-                PhClearReference(&fileName);
+                PhDereferenceObject(fileName);
             }
 
-            PhClearReference(&applicationDirectory);
+            PhDereferenceObject(applicationDirectory);
         }
         break;
     }
