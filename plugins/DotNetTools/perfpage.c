@@ -935,6 +935,9 @@ INT_PTR CALLBACK DotNetPerfPageDlgProc(
                 {
                     NMLVDISPINFO *dispInfo = (NMLVDISPINFO *)header;
 
+                    if (!context->ControlBlockValid) // Don't show statistics when the CLR data is invalid. (dmex)
+                        break;
+
                     if (dispInfo->item.iSubItem == 1)
                     {
                         if (dispInfo->item.mask & LVIF_TEXT)
