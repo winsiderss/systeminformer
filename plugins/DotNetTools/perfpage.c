@@ -152,7 +152,6 @@ typedef struct _PERFPAGE_CONTEXT
     };
 
     HANDLE ProcessHandle;
-    HANDLE BlockTableHandle;
     PVOID BlockTableAddress;
     PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
     Perf_GC DotNetPerfGC;
@@ -836,7 +835,6 @@ INT_PTR CALLBACK DotNetPerfPageDlgProc(
                     !!context->ProcessItem->IsImmersive,
                     context->ProcessHandle,
                     context->ProcessItem->ProcessId,
-                    &context->BlockTableHandle,
                     &context->BlockTableAddress
                     ))
                 {
@@ -847,7 +845,6 @@ INT_PTR CALLBACK DotNetPerfPageDlgProc(
             {
                 if (OpenDotNetPublicControlBlock_V2(
                     context->ProcessItem->ProcessId,
-                    &context->BlockTableHandle,
                     &context->BlockTableAddress
                     ))
                 {
@@ -880,11 +877,6 @@ INT_PTR CALLBACK DotNetPerfPageDlgProc(
             if (context->BlockTableAddress)
             {
                 NtUnmapViewOfSection(NtCurrentProcess(), context->BlockTableAddress);
-            }
-
-            if (context->BlockTableHandle)
-            {
-                NtClose(context->BlockTableHandle);
             }
 
             if (context->ProcessHandle)
