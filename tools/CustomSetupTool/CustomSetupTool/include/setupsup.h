@@ -73,8 +73,7 @@ BOOLEAN ShutdownProcessHacker(
     VOID
     );
 
-NTSTATUS 
-QueryProcessesUsingVolumeOrFile(
+NTSTATUS QueryProcessesUsingVolumeOrFile(
     _In_ HANDLE VolumeOrFileHandle,
     _Out_ PFILE_PROCESS_IDS_USING_FILE_INFORMATION *Information
     );
@@ -82,6 +81,13 @@ QueryProcessesUsingVolumeOrFile(
 PPH_STRING SetupCreateFullPath(
     _In_ PPH_STRING Path,
     _In_ PWSTR FileName
+    );
+
+BOOLEAN SetupBase64StringToBufferEx(
+    _In_ PVOID InputBuffer,
+    _In_ ULONG InputBufferLength,
+    _Out_opt_ PVOID* OutputBuffer,
+    _Out_opt_ ULONG* OutputBufferLength
     );
 
 #endif

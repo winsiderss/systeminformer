@@ -110,7 +110,7 @@ END
 //
 #if defined(PH_BUILD_API)
 
-IDR_BIN_DATA            RCDATA                  "../../../../build/output/processhacker-build-bin.zip"
+IDR_BIN_DATA            RCDATA                  "../../../../build/output/processhacker-build-bin.64"
 
 #endif
 
