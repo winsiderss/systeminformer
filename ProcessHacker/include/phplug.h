@@ -62,6 +62,7 @@ typedef enum _PH_GENERAL_CALLBACK
     GeneralCallbackLoggedEvent,
     GeneralCallbackTrayIconsInitializing,
     GeneralCallbackWindowNotifyEvent,
+    GeneralCallbackProcessStatsNotifyEvent,
     GeneralCallbackMaximum
 } PH_GENERAL_CALLBACK, *PPH_GENERAL_CALLBACK;
 
@@ -127,6 +128,14 @@ typedef struct _PH_PLUGIN_OBJECT_PROPERTIES
     ULONG MaximumNumberOfPages;
     HPROPSHEETPAGE *Pages;
 } PH_PLUGIN_OBJECT_PROPERTIES, *PPH_PLUGIN_OBJECT_PROPERTIES;
+
+typedef struct _PH_PLUGIN_PROCESS_STATS_EVENT
+{
+    ULONG Version;
+    ULONG Type;
+    PPH_PROCESS_ITEM ProcessItem;
+    PVOID Parameter;
+} PH_PLUGIN_PROCESS_STATS_EVENT, *PPH_PLUGIN_PROCESS_STATS_EVENT;
 
 typedef struct _PH_PLUGIN_HANDLE_PROPERTIES_CONTEXT
 {

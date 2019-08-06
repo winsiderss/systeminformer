@@ -52,10 +52,10 @@ VOID NTAPI EtpDiskProcessesUpdatedCallback(
 BOOLEAN EtDiskEnabled = FALSE;
 ULONG EtRunCount = 0;
 
-PPH_OBJECT_TYPE EtDiskItemType;
-PPH_HASHTABLE EtDiskHashtable;
+PPH_OBJECT_TYPE EtDiskItemType = NULL;
+PPH_HASHTABLE EtDiskHashtable = NULL;
 PH_QUEUED_LOCK EtDiskHashtableLock = PH_QUEUED_LOCK_INIT;
-LIST_ENTRY EtDiskAgeListHead;
+LIST_ENTRY EtDiskAgeListHead = { &EtDiskAgeListHead, &EtDiskAgeListHead };
 PH_CALLBACK_DECLARE(EtDiskItemAddedEvent);
 PH_CALLBACK_DECLARE(EtDiskItemModifiedEvent);
 PH_CALLBACK_DECLARE(EtDiskItemRemovedEvent);
@@ -63,7 +63,7 @@ PH_CALLBACK_DECLARE(EtDiskItemsUpdatedEvent);
 
 PH_FREE_LIST EtDiskPacketFreeList;
 SLIST_HEADER EtDiskPacketListHead;
-PPH_HASHTABLE EtFileNameHashtable;
+PPH_HASHTABLE EtFileNameHashtable = NULL;
 PH_QUEUED_LOCK EtFileNameHashtableLock = PH_QUEUED_LOCK_INIT;
 
 static LARGE_INTEGER EtpPerformanceFrequency;
@@ -82,7 +82,6 @@ VOID EtInitializeDiskInformation(
         EtpDiskHashtableHashFunction,
         128
         );
-    InitializeListHead(&EtDiskAgeListHead);
 
     PhInitializeFreeList(&EtDiskPacketFreeList, sizeof(ETP_DISK_PACKET), 64);
     RtlInitializeSListHead(&EtDiskPacketListHead);

@@ -23,11 +23,11 @@
 
 #include "exttools.h"
 
-PPH_PLUGIN PluginInstance;
-LIST_ENTRY EtProcessBlockListHead;
-LIST_ENTRY EtNetworkBlockListHead;
-HWND ProcessTreeNewHandle;
-HWND NetworkTreeNewHandle;
+PPH_PLUGIN PluginInstance = NULL;
+HWND ProcessTreeNewHandle = NULL;
+HWND NetworkTreeNewHandle = NULL;
+LIST_ENTRY EtProcessBlockListHead = { &EtProcessBlockListHead, &EtProcessBlockListHead };
+LIST_ENTRY EtNetworkBlockListHead = { &EtNetworkBlockListHead, &EtNetworkBlockListHead };
 PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginUnloadCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
@@ -48,6 +48,7 @@ PH_CALLBACK_REGISTRATION MiniInformationInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION TrayIconsInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessItemsUpdatedCallbackRegistration;
 PH_CALLBACK_REGISTRATION NetworkItemsUpdatedCallbackRegistration;
+PH_CALLBACK_REGISTRATION ProcessStatsEventCallbackRegistration;
 
 ULONG ProcessesUpdatedCount = 0;
 static HANDLE ModuleProcessId = NULL;
@@ -390,6 +391,123 @@ VOID NTAPI NetworkItemsUpdatedCallback(
     }
 }
 
+VOID NTAPI ProcessStatsEventCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_PLUGIN_PROCESS_STATS_EVENT event = Parameter;
+
+    if (event->Version)
+        return;
+
+    switch (event->Type)
+    {
+    case 1:
+        {
+            HWND listViewHandle = event->Parameter;
+            PET_PROCESS_BLOCK block;
+
+            if (!(block = EtGetProcessBlock(event->ProcessItem)))
+                break;
+
+            block->ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_GPU] = PhAddListViewGroup(
+                listViewHandle, (INT)ListView_GetGroupCount(listViewHandle), L"GPU");
+            block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_RUNNINGTIME] = PhAddListViewGroupItem(
+                listViewHandle, block->ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_GPU], MAXINT, L"Running time", NULL);
+            block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_CONTEXTSWITCHES] = PhAddListViewGroupItem(
+                listViewHandle, block->ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_GPU], MAXINT, L"Context switches", NULL);
+            block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_TOTALNODES] = PhAddListViewGroupItem(
+                listViewHandle, block->ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_GPU], MAXINT, L"Total Nodes", NULL);
+            block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_TOTALSEGMENTS] = PhAddListViewGroupItem(
+                listViewHandle, block->ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_GPU], MAXINT, L"Total Segments", NULL);
+
+            block->ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_DISK] = PhAddListViewGroup(
+                listViewHandle, (INT)ListView_GetGroupCount(event->Parameter), L"Disk I/O");
+            block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_DISKREADS] = PhAddListViewGroupItem(
+                listViewHandle, block->ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_DISK], MAXINT, L"Reads", NULL);
+            block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_DISKREADBYTES] = PhAddListViewGroupItem(
+                listViewHandle, block->ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_DISK], MAXINT, L"Read bytes", NULL);
+            block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_DISKREADBYTESDELTA] = PhAddListViewGroupItem(
+                listViewHandle, block->ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_DISK], MAXINT, L"Read bytes delta", NULL);
+            block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_DISKWRITES] = PhAddListViewGroupItem(
+                listViewHandle, block->ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_DISK], MAXINT, L"Writes", NULL);
+            block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_DISKWRITEBYTES] = PhAddListViewGroupItem(
+                listViewHandle, block->ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_DISK], MAXINT, L"Write bytes", NULL);
+            block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_DISKWRITEBYTESDELTA] = PhAddListViewGroupItem(
+                listViewHandle, block->ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_DISK], MAXINT, L"Write bytes delta", NULL);
+
+            block->ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_NETWORK] = PhAddListViewGroup(
+                listViewHandle, (INT)ListView_GetGroupCount(event->Parameter), L"Network I/O");
+            block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_NETWORKREADS] = PhAddListViewGroupItem(
+                listViewHandle, block->ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_NETWORK], MAXINT, L"Receives", NULL);
+            block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_NETWORKREADBYTES] = PhAddListViewGroupItem(
+                listViewHandle, block->ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_NETWORK], MAXINT, L"Receive bytes", NULL);
+            block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_NETWORKREADBYTESDELTA] = PhAddListViewGroupItem(
+                listViewHandle, block->ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_NETWORK], MAXINT, L"Receive bytes delta", NULL);
+            block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_NETWORKWRITES] = PhAddListViewGroupItem(
+                listViewHandle, block->ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_NETWORK], MAXINT, L"Sends", NULL);
+            block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_NETWORKWRITEBYTES] = PhAddListViewGroupItem(
+                listViewHandle, block->ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_NETWORK], MAXINT, L"Send bytes", NULL);
+            block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_NETWORKWRITEBYTESDELTA] = PhAddListViewGroupItem(
+                listViewHandle, block->ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_NETWORK], MAXINT, L"Send bytes delta", NULL);
+        }
+        break;
+    case 2:
+        {
+            HWND listViewHandle = event->Parameter;
+            PET_PROCESS_BLOCK block;
+            ET_PROCESS_GPU_STATISTICS gpuStatistics;
+            WCHAR runningTimeString[PH_TIMESPAN_STR_LEN_1] = L"N/A";
+
+            if (!(block = EtGetProcessBlock(event->ProcessItem)))
+                break;
+
+            if (block->ProcessItem->QueryHandle)
+                EtQueryProcessGpuStatistics(block->ProcessItem->QueryHandle, &gpuStatistics);
+            else
+                memset(&gpuStatistics, 0, sizeof(ET_PROCESS_GPU_STATISTICS));
+
+            PhPrintTimeSpan(runningTimeString, gpuStatistics.RunningTime * 10, PH_TIMESPAN_HMSM);
+            PhSetListViewSubItem(listViewHandle, block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_RUNNINGTIME], 1,
+                runningTimeString);
+            PhSetListViewSubItem(listViewHandle, block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_CONTEXTSWITCHES], 1,
+                PhaFormatUInt64(gpuStatistics.ContextSwitches, TRUE)->Buffer);
+            PhSetListViewSubItem(listViewHandle, block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_TOTALNODES], 1,
+                PhaFormatUInt64(gpuStatistics.NodeCount, TRUE)->Buffer);
+            PhSetListViewSubItem(listViewHandle, block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_TOTALSEGMENTS], 1,
+                PhaFormatUInt64(gpuStatistics.SegmentCount, TRUE)->Buffer);
+
+            PhSetListViewSubItem(listViewHandle, block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_DISKREADS], 1,
+                PhaFormatUInt64(block->DiskReadCount, TRUE)->Buffer);
+            PhSetListViewSubItem(listViewHandle, block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_DISKREADBYTES], 1,
+                PhaFormatSize(block->DiskReadRawDelta.Value, ULONG_MAX)->Buffer);
+            PhSetListViewSubItem(listViewHandle, block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_DISKREADBYTESDELTA], 1,
+                PhaFormatSize(block->DiskReadRawDelta.Delta, ULONG_MAX)->Buffer);
+            PhSetListViewSubItem(listViewHandle, block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_DISKWRITES], 1,
+                PhaFormatUInt64(block->DiskWriteCount, TRUE)->Buffer);
+            PhSetListViewSubItem(listViewHandle, block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_DISKWRITEBYTES], 1,
+                PhaFormatSize(block->DiskWriteRawDelta.Value, ULONG_MAX)->Buffer);
+            PhSetListViewSubItem(listViewHandle, block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_DISKWRITEBYTESDELTA], 1,
+                PhaFormatSize(block->DiskWriteRawDelta.Delta, ULONG_MAX)->Buffer);
+
+            PhSetListViewSubItem(listViewHandle, block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_NETWORKREADS], 1,
+                PhaFormatUInt64(block->NetworkReceiveCount, TRUE)->Buffer);
+            PhSetListViewSubItem(listViewHandle, block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_NETWORKREADBYTES], 1,
+                PhaFormatSize(block->NetworkReceiveRawDelta.Value, ULONG_MAX)->Buffer);
+            PhSetListViewSubItem(listViewHandle, block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_NETWORKREADBYTESDELTA], 1,
+                PhaFormatSize(block->NetworkReceiveRawDelta.Delta, ULONG_MAX)->Buffer);
+            PhSetListViewSubItem(listViewHandle, block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_NETWORKWRITES], 1,
+                PhaFormatUInt64(block->NetworkSendCount, TRUE)->Buffer);
+            PhSetListViewSubItem(listViewHandle, block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_NETWORKWRITEBYTES], 1,
+                PhaFormatSize(block->NetworkSendRawDelta.Value, ULONG_MAX)->Buffer);
+            PhSetListViewSubItem(listViewHandle, block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_NETWORKWRITEBYTESDELTA], 1,
+                PhaFormatSize(block->NetworkSendRawDelta.Delta, ULONG_MAX)->Buffer);
+        }
+        break;
+    }
+}
+
 PET_PROCESS_BLOCK EtGetProcessBlock(
     _In_ PPH_PROCESS_ITEM ProcessItem
     )
@@ -660,8 +778,12 @@ LOGICAL DllMain(
                 &NetworkItemsUpdatedCallbackRegistration
                 );
 
-            InitializeListHead(&EtProcessBlockListHead);
-            InitializeListHead(&EtNetworkBlockListHead);
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackProcessStatsNotifyEvent),
+                ProcessStatsEventCallback,
+                NULL,
+                &ProcessStatsEventCallbackRegistration
+                );
 
             PhPluginSetObjectExtension(
                 PluginInstance,
