@@ -293,6 +293,7 @@ typedef struct _PH_STATISTICS_CONTEXT
     HWND ListViewHandle;
     BOOLEAN Enabled;
     HANDLE ProcessHandle;
+    PPH_PROCESS_ITEM ProcessItem;
 } PH_STATISTICS_CONTEXT, *PPH_STATISTICS_CONTEXT;
 
 #define WM_PH_PERFORMANCE_UPDATE (WM_APP + 241)
