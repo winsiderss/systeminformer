@@ -508,17 +508,17 @@ ACCESS_ENTRIES(TmTx)
 ACCESS_ENTRIES(Token)
 {
     { L"Full control", TOKEN_ALL_ACCESS, TRUE, TRUE },
-    { L"Read", TOKEN_READ, TRUE, FALSE },
-    { L"Write", TOKEN_WRITE, TRUE, FALSE },
-    { L"Execute", TOKEN_EXECUTE, TRUE, FALSE },
-    { L"Adjust privileges", TOKEN_ADJUST_PRIVILEGES, FALSE, TRUE },
-    { L"Adjust groups", TOKEN_ADJUST_GROUPS, FALSE, TRUE },
-    { L"Adjust defaults", TOKEN_ADJUST_DEFAULT, FALSE, TRUE },
-    { L"Adjust session ID", TOKEN_ADJUST_SESSIONID, FALSE, TRUE },
-    { L"Assign as primary token", TOKEN_ASSIGN_PRIMARY, FALSE, TRUE, L"Assign primary" },
-    { L"Duplicate", TOKEN_DUPLICATE, FALSE, TRUE },
-    { L"Impersonate", TOKEN_IMPERSONATE, FALSE, TRUE },
-    { L"Query", TOKEN_QUERY, FALSE, TRUE },
+    { L"Read", TOKEN_READ, FALSE, FALSE },
+    { L"Write", TOKEN_WRITE, FALSE, FALSE },
+    { L"Execute", TOKEN_EXECUTE, FALSE, FALSE },
+    { L"Adjust privileges", TOKEN_ADJUST_PRIVILEGES, TRUE, TRUE },
+    { L"Adjust groups", TOKEN_ADJUST_GROUPS, TRUE, TRUE },
+    { L"Adjust defaults", TOKEN_ADJUST_DEFAULT, TRUE, TRUE },
+    { L"Adjust session ID", TOKEN_ADJUST_SESSIONID, TRUE, TRUE },
+    { L"Assign as primary token", TOKEN_ASSIGN_PRIMARY, TRUE, TRUE, L"Assign primary" },
+    { L"Duplicate", TOKEN_DUPLICATE, TRUE, TRUE },
+    { L"Impersonate", TOKEN_IMPERSONATE, TRUE, TRUE },
+    { L"Query", TOKEN_QUERY, TRUE, TRUE },
     { L"Query source", TOKEN_QUERY_SOURCE, FALSE, TRUE }
 };
 
