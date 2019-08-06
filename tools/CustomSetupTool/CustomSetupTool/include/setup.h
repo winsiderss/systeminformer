@@ -32,6 +32,7 @@
 
 #include <aclapi.h>
 #include <wincodec.h>
+#include <wincrypt.h>
 #include <uxtheme.h>
 #include <shlwapi.h>
 #include <shlobj.h>

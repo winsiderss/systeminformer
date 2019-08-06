@@ -575,3 +575,43 @@ PPH_STRING SetupCreateFullPath(
 
     return pathString;
 }
+
+BOOLEAN SetupBase64StringToBufferEx(
+    _In_ PVOID InputBuffer,
+    _In_ ULONG InputBufferLength,
+    _Out_opt_ PVOID* OutputBuffer,
+    _Out_opt_ ULONG* OutputBufferLength
+    )
+{
+    PVOID buffer = NULL;
+    ULONG bufferLength = 0;
+    ULONG bufferSkip = 0;
+    ULONG bufferFlags = 0;
+
+    if (CryptStringToBinary(InputBuffer, InputBufferLength, CRYPT_STRING_BASE64, NULL, &bufferLength, &bufferSkip, &bufferFlags))
+    {
+        if (buffer = PhAllocateSafe(bufferLength))
+        {
+            if (!CryptStringToBinary(InputBuffer, InputBufferLength, CRYPT_STRING_BASE64, buffer, &bufferLength, &bufferSkip, &bufferFlags))
+            {
+                PhFree(buffer);
+                buffer = NULL;
+            }
+        }
+    }
+
+    if (buffer)
+    {
+        if (OutputBuffer)
+            *OutputBuffer = buffer;
+        else
+            PhFree(buffer);
+
+        if (OutputBufferLength)
+            *OutputBufferLength = bufferLength;
+
+        return TRUE;
+    }
+
+    return FALSE;
+}
