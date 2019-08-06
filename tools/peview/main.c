@@ -134,7 +134,28 @@ INT WINAPI wWinMain(
 
         if (PhShowFileDialog(NULL, fileDialog))
         {
-            PvFileName = PhGetFileDialogFileName(fileDialog);
+            PPH_STRING applicationFileName;
+
+            if (PvFileName = PhGetFileDialogFileName(fileDialog))
+            {
+                if (applicationFileName = PhGetApplicationFileName())
+                {
+                    PhMoveReference(&PvFileName, PhConcatStrings(3, L"\"", PvFileName->Buffer, L"\""));
+
+                    if (PhShellExecuteEx(
+                        NULL,
+                        PhGetString(applicationFileName),
+                        PvFileName->Buffer,
+                        SW_SHOWDEFAULT,
+                        0,
+                        ULONG_MAX,
+                        NULL
+                        ))
+                    {
+                        RtlExitUserProcess(STATUS_SUCCESS);
+                    }
+                }
+            }
         }
 
         PhFreeFileDialog(fileDialog);
