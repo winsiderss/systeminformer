@@ -64,6 +64,12 @@ VOID PvPeProperties(
     VOID
     );
 
+NTSTATUS PhpOpenFileSecurity(
+    _Out_ PHANDLE Handle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ PVOID Context
+    );
+
 // libprp
 
 VOID PvLibProperties(

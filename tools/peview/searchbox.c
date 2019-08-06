@@ -65,13 +65,13 @@ VOID PhpSearchFreeTheme(
     )
 {
     if (Context->BrushNormal)
-        DeleteObject(Context->BrushNormal);
+        DeleteBrush(Context->BrushNormal);
 
     if (Context->BrushHot)
-        DeleteObject(Context->BrushHot);
+        DeleteBrush(Context->BrushHot);
 
     if (Context->BrushPushed)
-        DeleteObject(Context->BrushPushed);
+        DeleteBrush(Context->BrushPushed);
 }
 
 VOID PhpSearchInitializeFont(
@@ -81,7 +81,7 @@ VOID PhpSearchInitializeFont(
     LOGFONT logFont;
 
     if (Context->WindowFont) 
-        DeleteObject(Context->WindowFont);
+        DeleteFont(Context->WindowFont);
 
     if (!SystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, 0))
         return;
@@ -103,7 +103,7 @@ VOID PhpSearchInitializeFont(
         logFont.lfFaceName
         );
 
-    SendMessage(Context->WindowHandle, WM_SETFONT, (WPARAM)Context->WindowFont, TRUE);
+    SetWindowFont(Context->WindowHandle, Context->WindowFont, TRUE);
 }
 
 VOID PhpSearchInitializeTheme(
@@ -296,7 +296,7 @@ CleanupExit:
         return bitmapHandle;
     }
 
-    DeleteObject(bitmapHandle);
+    DeleteBitmap(bitmapHandle);
     return NULL;
 }
 
@@ -312,23 +312,23 @@ VOID PhpSearchInitializeImages(
     if (bitmap = PhLoadPngImageFromResource(PhInstanceHandle, Context->ImageWidth, Context->ImageHeight, MAKEINTRESOURCE(IDB_SEARCH_ACTIVE), TRUE))
     {
         Context->BitmapActive = PhpSearchBitmapToIcon(bitmap, Context->ImageWidth, Context->ImageHeight);
-        DeleteObject(bitmap);
+        DeleteBitmap(bitmap);
     }
     else if (bitmap = LoadImage(PhInstanceHandle, MAKEINTRESOURCE(IDB_SEARCH_ACTIVE_BMP), IMAGE_BITMAP, 0, 0, 0))
     {
         Context->BitmapActive = PhpSearchBitmapToIcon(bitmap, Context->ImageWidth, Context->ImageHeight);
-        DeleteObject(bitmap);
+        DeleteBitmap(bitmap);
     }
 
     if (bitmap = PhLoadPngImageFromResource(PhInstanceHandle, Context->ImageWidth, Context->ImageHeight, MAKEINTRESOURCE(IDB_SEARCH_INACTIVE), TRUE))
     {
         Context->BitmapInactive = PhpSearchBitmapToIcon(bitmap, Context->ImageWidth, Context->ImageHeight);
-        DeleteObject(bitmap);
+        DeleteBitmap(bitmap);
     }
     else if (bitmap = LoadImage(PhInstanceHandle, MAKEINTRESOURCE(IDB_SEARCH_INACTIVE_BMP), IMAGE_BITMAP, 0, 0, 0))
     {
         Context->BitmapInactive = PhpSearchBitmapToIcon(bitmap, Context->ImageWidth, Context->ImageHeight);
-        DeleteObject(bitmap);
+        DeleteBitmap(bitmap);
     }
 }
 
@@ -364,7 +364,7 @@ VOID PhpSearchDrawButton(
 
     bufferDc = CreateCompatibleDC(hdc);
     bufferBitmap = CreateCompatibleBitmap(hdc, bufferRect.right, bufferRect.bottom);
-    oldBufferBitmap = SelectObject(bufferDc, bufferBitmap);
+    oldBufferBitmap = SelectBitmap(bufferDc, bufferBitmap);
 
     if (Context->Pushed)
     {
@@ -411,8 +411,8 @@ VOID PhpSearchDrawButton(
     }
 
     BitBlt(hdc, ButtonRect.left, ButtonRect.top, ButtonRect.right, ButtonRect.bottom, bufferDc, 0, 0, SRCCOPY);
-    SelectObject(bufferDc, oldBufferBitmap);
-    DeleteObject(bufferBitmap);
+    SelectBitmap(bufferDc, oldBufferBitmap);
+    DeleteBitmap(bufferBitmap);
     DeleteDC(bufferDc);
 
     ReleaseDC(Context->WindowHandle, hdc);
@@ -440,7 +440,7 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
             PhpSearchFreeTheme(context);
 
             if (context->WindowFont)
-                DeleteObject(context->WindowFont);
+                DeleteFont(context->WindowFont);
 
             SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
             PhRemoveWindowContext(hWnd, SHRT_MAX);
@@ -680,7 +680,7 @@ HICON PhpSearchBitmapToIcon(
 
     icon = CreateIconIndirect(&iconInfo);
 
-    DeleteObject(screenBitmap);
+    DeleteBitmap(screenBitmap);
     ReleaseDC(NULL, screenDc);
 
     return icon;

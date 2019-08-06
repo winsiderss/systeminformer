@@ -23,6 +23,7 @@
 // NOTE: Copied from processhacker2\ProcessHacker\procprp.c
 
 #include <peview.h>
+#include <secedit.h>
 #include <settings.h>
 
 PPH_OBJECT_TYPE PvpPropContextType;
@@ -119,6 +120,176 @@ VOID NTAPI PvpPropContextDeleteProcedure(
     PhDereferenceObject(propContext->StartPage);
 }
 
+static HWND OptionsButton = NULL;
+static HWND SecurityButton = NULL;
+static WNDPROC OldOptionsWndProc = NULL;
+static WNDPROC OldSecurityWndProc = NULL;
+
+INT_PTR CALLBACK PvpOptionsWndProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            HWND comboBoxHandle;
+
+            SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)PvImageSmallIcon);
+            SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PvImageLargeIcon);
+
+            comboBoxHandle = GetDlgItem(hwndDlg, IDC_MAXSIZEUNIT);
+
+            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+
+            //PhSetDialogItemText(hwndDlg, IDC_DBGHELPSEARCHPATH, PhaGetStringSetting(L"DbgHelpSearchPath")->Buffer);
+
+            for (ULONG i = 0; i < RTL_NUMBER_OF(PhSizeUnitNames); i++)
+                ComboBox_AddString(comboBoxHandle, PhSizeUnitNames[i]);
+
+            if (PhMaxSizeUnit != ULONG_MAX)
+                ComboBox_SetCurSel(comboBoxHandle, PhMaxSizeUnit);
+            else
+                ComboBox_SetCurSel(comboBoxHandle, RTL_NUMBER_OF(PhSizeUnitNames) - 1);
+
+            //PhInitializeWindowThemeEx(hwndDlg);
+        }
+        break;
+    case WM_COMMAND:
+        {
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
+            {
+            case IDCANCEL:
+                EndDialog(hwndDlg, IDCANCEL);
+                break;
+            }
+        }
+        break;
+    }
+
+    return FALSE;
+}
+LRESULT CALLBACK PvpButtonWndProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+    switch (uMsg)
+    {
+    case WM_COMMAND:
+        {
+            if (GET_WM_COMMAND_HWND(wParam, lParam) == OptionsButton)
+            {
+                DialogBox(
+                    PhInstanceHandle,
+                    MAKEINTRESOURCE(IDD_OPTIONS),
+                    hwndDlg,
+                    PvpOptionsWndProc
+                    );
+            }
+            else if (GET_WM_COMMAND_HWND(wParam, lParam) == SecurityButton)
+            {
+                PhEditSecurity(
+                    hwndDlg,
+                    PhGetString(PvFileName),
+                    L"FileObject",
+                    PhpOpenFileSecurity,
+                    NULL,
+                    NULL
+                    );
+            }
+        }
+        break;
+    }
+
+    return CallWindowProc(OldOptionsWndProc, hwndDlg, uMsg, wParam, lParam);
+}
+
+static HWND PvpCreateOptionsButton(
+    _In_ HWND hwndDlg
+)
+{
+    if (!OptionsButton)
+    {
+        HWND optionsWindow;
+        RECT clientRect;
+        RECT rect;
+
+        optionsWindow = hwndDlg;
+        OldOptionsWndProc = (WNDPROC)GetWindowLongPtr(optionsWindow, GWLP_WNDPROC);
+        SetWindowLongPtr(optionsWindow, GWLP_WNDPROC, (LONG_PTR)PvpButtonWndProc);
+
+        // Create the Reset button.
+        GetClientRect(optionsWindow, &clientRect);
+        GetWindowRect(GetDlgItem(optionsWindow, IDCANCEL), &rect);
+        MapWindowPoints(NULL, optionsWindow, (POINT*)& rect, 2);
+        OptionsButton = CreateWindowEx(
+            WS_EX_NOPARENTNOTIFY,
+            WC_BUTTON,
+            L"Options",
+            WS_CHILD | WS_VISIBLE | WS_TABSTOP,
+            clientRect.right - rect.right,
+            rect.top,
+            rect.right - rect.left,
+            rect.bottom - rect.top,
+            optionsWindow,
+            NULL,
+            PhInstanceHandle,
+            NULL
+            );
+        SetWindowFont(OptionsButton, GetWindowFont(GetDlgItem(optionsWindow, IDCANCEL)), TRUE);
+    }
+
+    return OptionsButton;
+}
+
+static HWND PvpCreateSecurityButton(
+    _In_ HWND hwndDlg
+)
+{
+    if (!SecurityButton)
+    {
+        HWND optionsWindow;
+        RECT clientRect;
+        RECT rect;
+
+        optionsWindow = hwndDlg;
+        OldSecurityWndProc = (WNDPROC)GetWindowLongPtr(optionsWindow, GWLP_WNDPROC);
+        SetWindowLongPtr(optionsWindow, GWLP_WNDPROC, (LONG_PTR)PvpButtonWndProc);
+
+        // Create the Reset button.
+        GetClientRect(optionsWindow, &clientRect);
+        GetWindowRect(OptionsButton, &rect);
+        MapWindowPoints(NULL, optionsWindow, (POINT*)& rect, 2);
+
+        SecurityButton = CreateWindowEx(
+            WS_EX_NOPARENTNOTIFY,
+            WC_BUTTON,
+            L"Security",
+            WS_CHILD | WS_VISIBLE | WS_TABSTOP,
+            rect.right,
+            rect.top,
+            rect.right - rect.left,
+            rect.bottom - rect.top,
+            optionsWindow,
+            NULL,
+            PhInstanceHandle,
+            NULL
+            );
+
+        SetWindowFont(SecurityButton, GetWindowFont(GetDlgItem(optionsWindow, IDCANCEL)), TRUE);
+    }
+
+    return SecurityButton;
+}
+
+
+
 INT CALLBACK PvpPropSheetProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -147,9 +318,13 @@ INT CALLBACK PvpPropSheetProc(
     case PSCB_INITIALIZED:
         {
             PPV_PROPSHEETCONTEXT context;
+            HICON smallIcon;
+            HICON largeIcon;
 
-            SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PvImageLargeIcon);
-            SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)PvImageSmallIcon);
+            PhGetStockApplicationIcon(&smallIcon, &largeIcon);
+
+            SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)smallIcon);
+            SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)largeIcon);
 
             context = PhAllocateZero(sizeof(PV_PROPSHEETCONTEXT));
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
@@ -276,15 +451,14 @@ BOOLEAN PhpInitializePropSheetLayoutStage1(
         PPH_LAYOUT_ITEM tabPageItem;
 
         tabControlHandle = PropSheet_GetTabControl(hwnd);
-        tabControlItem = PhAddLayoutItem(&PropSheetContext->LayoutManager, tabControlHandle,
-            NULL, PH_ANCHOR_ALL | PH_LAYOUT_IMMEDIATE_RESIZE);
-        tabPageItem = PhAddLayoutItem(&PropSheetContext->LayoutManager, tabControlHandle,
-            NULL, PH_LAYOUT_TAB_CONTROL); // dummy item to fix multiline tab control
+        tabControlItem = PhAddLayoutItem(&PropSheetContext->LayoutManager, tabControlHandle, NULL, PH_ANCHOR_ALL | PH_LAYOUT_IMMEDIATE_RESIZE);
+        tabPageItem = PhAddLayoutItem(&PropSheetContext->LayoutManager, tabControlHandle, NULL, PH_LAYOUT_TAB_CONTROL); // dummy item to fix multiline tab control
 
         PropSheetContext->TabPageItem = tabPageItem;
 
-        PhAddLayoutItem(&PropSheetContext->LayoutManager, GetDlgItem(hwnd, IDCANCEL),
-            NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+        PhAddLayoutItem(&PropSheetContext->LayoutManager, GetDlgItem(hwnd, IDCANCEL), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+        PhAddLayoutItem(&PropSheetContext->LayoutManager, PvpCreateOptionsButton(hwnd), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
+        PhAddLayoutItem(&PropSheetContext->LayoutManager, PvpCreateSecurityButton(hwnd), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
 
         // Hide the OK button.
         ShowWindow(GetDlgItem(hwnd, IDOK), SW_HIDE);
@@ -345,8 +519,7 @@ BOOLEAN PvAddPropPage(
     PropPageContext->PropContext = PropContext;
     PhReferenceObject(PropContext);
 
-    PropContext->PropSheetPages[PropContext->PropSheetHeader.nPages] =
-        propSheetPageHandle;
+    PropContext->PropSheetPages[PropContext->PropSheetHeader.nPages] = propSheetPageHandle;
     PropContext->PropSheetHeader.nPages++;
 
     return TRUE;

@@ -547,9 +547,9 @@ PPH_STRING SymbolInfo_GetTypeName(
     _In_ ULONG Index,
     _In_ PWSTR VarName
     );
-PWSTR SymbolInfo_TagStr(enum SymTagEnum Tag);
-PWSTR SymbolInfo_BaseTypeStr(BasicType Type, ULONG64 Length);
-PWSTR SymbolInfo_CallConvStr(CV_call_e CallConv);
+PWSTR SymbolInfo_TagStr(_In_ enum SymTagEnum Tag);
+PWSTR SymbolInfo_BaseTypeStr(_In_ BasicType Type, _In_ ULONG64 Length);
+PWSTR SymbolInfo_CallConvStr(_In_ CV_call_e CallConv);
 PWSTR SymbolInfo_DataKindFromSymbolInfo(_In_ PSYMBOL_INFOW rSymbol);
 PWSTR SymbolInfo_DataKindStr(DataKind dataKind);
 VOID SymbolInfo_SymbolLocationStr(PSYMBOL_INFOW rSymbol, PWSTR pBuffer);

@@ -25,6 +25,7 @@
 #define IDD_TLS                         117
 #define IDC_SYMBOLTREE                  119
 #define IDI_APPICON                     122
+#define IDD_OPTIONS                     126
 #define IDC_TARGETMACHINE               1003
 #define IDC_CHECKSUM                    1004
 #define IDC_SUBSYSTEM                   1005
@@ -46,6 +47,11 @@
 #define IDC_IMAGETYPE                   1017
 #define IDC_NAME                        1019
 #define IDC_COMPANYNAME_LINK            1020
+#define IDC_FONT                        1079
+#define IDC_SEARCHENGINE                1143
+#define IDC_MAXSIZEUNIT                 1144
+#define IDC_DBGHELPSEARCHPATH           1218
+#define IDC_SETTINGS                    1399
 
 // Next default values for new objects
 // 
