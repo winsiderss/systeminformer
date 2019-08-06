@@ -134,7 +134,6 @@ typedef enum _DOTNET_INDEX
 typedef struct _PERFPAGE_CONTEXT
 {
     HWND WindowHandle;
-    HWND AppDomainsListViewHandle;
     HWND CountersListViewHandle;
     PPH_PROCESS_ITEM ProcessItem;
 
@@ -593,7 +592,7 @@ VOID DotNetPerfAddListViewGroups(
     // Reserved for future use.
 }
 
-VOID DotNetPerfAddProcessAppDomains(
+/*VOID DotNetPerfAddProcessAppDomains(
     _In_ HWND hwndDlg,
     _In_ PPERFPAGE_CONTEXT Context
     )
@@ -641,7 +640,7 @@ VOID DotNetPerfAddProcessAppDomains(
     }
 
     ExtendedListView_SetRedraw(Context->AppDomainsListViewHandle, TRUE);
-}
+}*/
 
 VOID DotNetPerfUpdateCounterData(
     _In_ HWND hwndDlg,
@@ -773,14 +772,8 @@ INT_PTR CALLBACK DotNetPerfPageDlgProc(
             context = propPageContext->Context = PhAllocateZero(sizeof(PERFPAGE_CONTEXT));
             context->WindowHandle = hwndDlg;
             context->ProcessItem = processItem;
-            context->AppDomainsListViewHandle = GetDlgItem(hwndDlg, IDC_APPDOMAINS);
             context->CountersListViewHandle = GetDlgItem(hwndDlg, IDC_COUNTERS);
             context->Enabled = TRUE;
-
-            PhSetListViewStyle(context->AppDomainsListViewHandle, FALSE, TRUE);
-            PhSetControlTheme(context->AppDomainsListViewHandle, L"explorer");
-            PhAddListViewColumn(context->AppDomainsListViewHandle, 0, 0, 0, LVCFMT_LEFT, 300, L"Application domain");
-            PhSetExtendedListView(context->AppDomainsListViewHandle);
 
             PhSetListViewStyle(context->CountersListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->CountersListViewHandle, L"explorer");
@@ -820,12 +813,6 @@ INT_PTR CALLBACK DotNetPerfPageDlgProc(
                     {
                         context->ClrV4 = TRUE;
                     }
-                }
-
-                // Skip AppDomain enumeration of 'Modern' .NET applications as they don't expose the CLR 'Private IPC' block.
-                if (!context->ProcessItem->IsImmersive)
-                {
-                    DotNetPerfAddProcessAppDomains(hwndDlg, context);
                 }
             }
 
@@ -897,19 +884,15 @@ INT_PTR CALLBACK DotNetPerfPageDlgProc(
 
             if (dialogItem = PhBeginPropPageLayout(hwndDlg, propPageContext))
             {
-                PhAddPropPageLayoutItem(hwndDlg, context->AppDomainsListViewHandle, dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, context->CountersListViewHandle, dialogItem, PH_ANCHOR_ALL);
                 PhEndPropPageLayout(hwndDlg, propPageContext);
             }
-
-            ExtendedListView_SetColumnWidth(context->AppDomainsListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
         }
         break;
     case WM_NOTIFY:
         {
             LPNMHDR header = (LPNMHDR)lParam;
 
-            PhHandleListViewNotifyBehaviors(lParam, context->AppDomainsListViewHandle, PH_LIST_VIEW_DEFAULT_1_BEHAVIORS);
             PhHandleListViewNotifyBehaviors(lParam, context->CountersListViewHandle, PH_LIST_VIEW_DEFAULT_1_BEHAVIORS);
 
             switch (header->code)
@@ -1798,19 +1781,12 @@ INT_PTR CALLBACK DotNetPerfPageDlgProc(
         break;
     case WM_SIZE:
         {
-            ExtendedListView_SetColumnWidth(context->AppDomainsListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
+            //ExtendedListView_SetColumnWidth(context->AppDomainsListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
         }
         break;
     case WM_CONTEXTMENU:
         {
-            HWND listViewHandle = NULL;
-
-            if ((HWND)wParam == context->AppDomainsListViewHandle)
-                listViewHandle = context->AppDomainsListViewHandle;
-            else if ((HWND)wParam == context->CountersListViewHandle)
-                listViewHandle = context->CountersListViewHandle;
-
-            if (listViewHandle)
+            if ((HWND)wParam == context->CountersListViewHandle)
             {
                 POINT point;
                 PPH_EMENU menu;
@@ -1824,13 +1800,13 @@ INT_PTR CALLBACK DotNetPerfPageDlgProc(
                 if (point.x == -1 && point.y == -1)
                     PhGetListViewContextMenuPoint((HWND)wParam, &point);
 
-                PhGetSelectedListViewItemParams(listViewHandle, &listviewItems, &numberOfItems);
+                PhGetSelectedListViewItemParams(context->CountersListViewHandle, &listviewItems, &numberOfItems);
 
                 if (numberOfItems != 0)
                 {
                     menu = PhCreateEMenu();
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_CLR_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
-                    PhInsertCopyListViewEMenuItem(menu, ID_CLR_COPY, listViewHandle);
+                    PhInsertCopyListViewEMenuItem(menu, ID_CLR_COPY, context->CountersListViewHandle);
 
                     item = PhShowEMenu(
                         menu,
@@ -1856,7 +1832,7 @@ INT_PTR CALLBACK DotNetPerfPageDlgProc(
                             {
                             case ID_CLR_COPY:
                                 {
-                                    PhCopyListView(listViewHandle);
+                                    PhCopyListView(context->CountersListViewHandle);
                                 }
                                 break;
                             }
