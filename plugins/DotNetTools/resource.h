@@ -8,7 +8,6 @@
 #define ID_CLR_COPY                     104
 #define ID_CLR_INSPECT                  105
 #define ID_COPY                         106
-#define IDC_APPDOMAINS                  1001
 #define IDC_OPTIONS                     1002
 #define IDC_COUNTERS                    1003
 #define IDC_REFRESH                     1003
