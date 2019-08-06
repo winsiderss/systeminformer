@@ -123,7 +123,7 @@ VOID PhPinMiniInformation(
 
             PhMipContainerWindow = CreateWindow(
                 MAKEINTATOM(windowAtom),
-                PhGetIntegerSetting(L"EnableWindowText") ? L"Process Hacker" : NULL,
+                PhGetIntegerSetting(L"EnableWindowText") ? PhApplicationName : NULL,
                 WS_BORDER | WS_THICKFRAME | WS_POPUP,
                 0,
                 0,
