@@ -903,8 +903,14 @@ namespace CustomBuildTool
 
                 if (File.Exists(BuildOutputFolder + "\\processhacker-build-bin.zip"))
                     File.Delete(BuildOutputFolder + "\\processhacker-build-bin.zip");
-
                 Zip.CreateCompressedFolder("bin", BuildOutputFolder + "\\processhacker-build-bin.zip");
+
+                if (File.Exists(BuildOutputFolder + "\\processhacker-build-bin.64"))
+                    File.Delete(BuildOutputFolder + "\\processhacker-build-bin.64");
+                File.WriteAllBytes(
+                    BuildOutputFolder + "\\processhacker-build-bin.64",
+                    Encoding.UTF8.GetBytes(Convert.ToBase64String(File.ReadAllBytes(BuildOutputFolder + "\\processhacker-build-bin.zip")))
+                    );
 
                 Directory.Move("bin\\x32", "bin\\Release32");
                 Directory.Move("bin\\x64", "bin\\Release64");
