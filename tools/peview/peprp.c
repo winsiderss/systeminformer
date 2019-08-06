@@ -3,7 +3,7 @@
  *   PE viewer
  *
  * Copyright (C) 2010-2011 wj32
- * Copyright (C) 2017-2018 dmex
+ * Copyright (C) 2017-2019 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -52,8 +52,6 @@ HICON PvImageLargeIcon = NULL;
 PH_IMAGE_VERSION_INFO PvImageVersionInfo;
 static VERIFY_RESULT PvImageVerifyResult;
 static PPH_STRING PvImageSignerName;
-static HWND ResetButton;
-static WNDPROC OldWndProc;
 
 VOID PvPeProperties(
     VOID
@@ -453,7 +451,7 @@ FORCEINLINE PPH_STRING PvpGetSectionCharacteristics(
     if (PhEndsWithString2(stringBuilder.String, L", ", FALSE))
         PhRemoveEndStringBuilder(&stringBuilder, 2);
 
-    PhPrintPointer(pointer, (PVOID)(ULONG_PTR)Characteristics);
+    PhPrintPointer(pointer, UlongToPtr(Characteristics));
     PhAppendFormatStringBuilder(&stringBuilder, L" (%s)", pointer);
 
     return PhFinalStringBuilderString(&stringBuilder);
@@ -787,72 +785,6 @@ NTSTATUS PhpOpenFileSecurity(
     return status;
 }
 
-LRESULT CALLBACK PhpOptionsWndProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    )
-{
-    switch (uMsg)
-    {
-    case WM_COMMAND:
-        {
-            if (GET_WM_COMMAND_HWND(wParam, lParam) == ResetButton)
-            {
-                PhEditSecurity(
-                    hwndDlg,
-                    PhGetString(PvFileName),
-                    L"FileObject",
-                    PhpOpenFileSecurity,
-                    NULL,
-                    NULL
-                    );
-            }
-        }
-        break;
-    }
-
-    return CallWindowProc(OldWndProc, hwndDlg, uMsg, wParam, lParam);
-}
-
-static HWND PvpCreateSecurityButton(
-    _In_ HWND hwndDlg
-    )
-{
-    if (!ResetButton)
-    {
-        HWND optionsWindow;
-        RECT clientRect;
-        RECT rect;
-
-        optionsWindow = GetParent(hwndDlg);
-        OldWndProc = (WNDPROC)GetWindowLongPtr(optionsWindow, GWLP_WNDPROC);
-        SetWindowLongPtr(optionsWindow, GWLP_WNDPROC, (LONG_PTR)PhpOptionsWndProc);
-
-        // Create the Reset button.
-        GetClientRect(optionsWindow, &clientRect);
-        GetWindowRect(GetDlgItem(optionsWindow, IDCANCEL), &rect);
-        MapWindowPoints(NULL, optionsWindow, (POINT*)&rect, 2);
-        ResetButton = CreateWindowEx(
-            WS_EX_NOPARENTNOTIFY,
-            WC_BUTTON,
-            L"Security",
-            WS_CHILD | WS_VISIBLE | WS_TABSTOP,
-            clientRect.right - rect.right,
-            rect.top,
-            rect.right - rect.left,
-            rect.bottom - rect.top,
-            optionsWindow,
-            NULL,
-            PhInstanceHandle,
-            NULL
-            );
-        SendMessage(ResetButton, WM_SETFONT, SendMessage(GetDlgItem(optionsWindow, IDCANCEL), WM_GETFONT, 0, 0), TRUE);
-    }
-
-    return ResetButton;
-}
 
 INT_PTR CALLBACK PvpPeGeneralDlgProc(
     _In_ HWND hwndDlg,
@@ -914,8 +846,6 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
                 PvAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_NAME), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PvAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_CHARACTERISTICS), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PvAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST), dialogItem, PH_ANCHOR_ALL);
-
-                PvAddPropPageLayoutItem(hwndDlg, PvpCreateSecurityButton(hwndDlg), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
 
                 PvDoPropPageLayout(hwndDlg);
 
