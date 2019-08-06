@@ -85,6 +85,8 @@ INT_PTR CALLBACK EspRestartServiceDlgProc(
             {
             case IDCANCEL:
                 {
+                    KillTimer(hwndDlg, 1);
+
                     EndDialog(hwndDlg, IDCANCEL);
                 }
                 break;
