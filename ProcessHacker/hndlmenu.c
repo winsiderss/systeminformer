@@ -126,7 +126,7 @@ VOID PhShowHandleObjectProperties1(
         if (Info->BestObjectName)
         {
             PhShellExecuteUserString(
-                PhMainWndHandle,
+                hWnd,
                 L"FileBrowseExecutable",
                 Info->BestObjectName->Buffer,
                 FALSE,
