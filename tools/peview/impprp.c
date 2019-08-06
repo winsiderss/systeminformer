@@ -126,6 +126,93 @@ PPH_STRING PvpQueryModuleOrdinalName(
     return exportName;
 }
 
+INT PvpAddListViewGroup(
+    _In_ HWND ListViewHandle,
+    _In_ PWSTR Text
+    )
+{
+    LVGROUP group;
+
+    memset(&group, 0, sizeof(LVGROUP));
+    group.cbSize = sizeof(LVGROUP);
+    group.mask = LVGF_HEADER | LVGF_ALIGN | LVGF_STATE | LVGF_GROUPID;// | LVGF_TASK;
+    group.uAlign = LVGA_HEADER_LEFT;
+    group.state = LVGS_COLLAPSIBLE;
+    group.iGroupId = (INT)ListView_GetGroupCount(ListViewHandle);
+    group.pszHeader = Text;
+    //group.pszTask = L"Properties";
+
+    return (INT)ListView_InsertGroup(ListViewHandle, MAXINT, &group);
+}
+
+BOOLEAN PvpCheckGroupExists(
+    _In_ HWND ListViewHandle,
+    _In_ PWSTR GroupText
+    )
+{
+    BOOLEAN exists = FALSE;
+    INT groupCount;
+
+    groupCount = (INT)ListView_GetGroupCount(ListViewHandle);
+
+    for (INT i = 0; i < groupCount; i++)
+    {
+        LVGROUP group;
+        WCHAR headerText[MAX_PATH] = L"";
+
+        memset(&group, 0, sizeof(LVGROUP));
+        group.cbSize = sizeof(LVGROUP);
+        group.mask = LVGF_HEADER;
+        group.cchHeader = RTL_NUMBER_OF(headerText);
+        group.pszHeader = headerText;
+
+        if (ListView_GetGroupInfoByIndex(ListViewHandle, i, &group))
+        {
+            if (PhEqualStringZ(headerText, GroupText, TRUE))
+            {
+                exists = TRUE;
+                break;
+            }
+        }
+    }
+
+    return exists;
+}
+
+INT PvpGroupIndex(
+    _In_ HWND ListViewHandle,
+    _In_ PWSTR GroupText
+    )
+{
+    INT groupIndex = MAXINT;
+    INT groupCount;
+
+    groupCount = (INT)ListView_GetGroupCount(ListViewHandle);
+
+    for (INT i = 0; i < groupCount; i++)
+    {
+        LVGROUP group;
+        WCHAR headerText[MAX_PATH] = L"";
+
+        memset(&group, 0, sizeof(LVGROUP));
+        group.cbSize = sizeof(LVGROUP);
+        group.mask = LVGF_HEADER | LVGF_GROUPID;
+        group.cchHeader = RTL_NUMBER_OF(headerText);
+        group.pszHeader = headerText;
+
+        if (ListView_GetGroupInfoByIndex(ListViewHandle, i, &group))
+        {
+            if (PhEqualStringZ(headerText, GroupText, TRUE))
+            {
+                groupIndex = group.iGroupId;
+                break;
+            }
+        }
+    }
+
+    return groupIndex;
+}
+
 VOID PvpProcessImports(
     _In_ HWND ListViewHandle,
     _In_ PPH_MAPPED_IMAGE_IMPORTS Imports,
@@ -137,6 +224,7 @@ VOID PvpProcessImports(
     PH_MAPPED_IMAGE_IMPORT_ENTRY importEntry;
     ULONG i;
     ULONG j;
+    INT groupCount = 0;
 
     for (i = 0; i < Imports->NumberOfDlls; i++)
     {
@@ -146,8 +234,9 @@ VOID PvpProcessImports(
             {
                 if (NT_SUCCESS(PhGetMappedImageImportEntry(&importDll, j, &importEntry)))
                 {
-                    INT lvItemIndex;
-                    PPH_STRING name;
+                    INT groupId = INT_MAX;
+                    INT lvItemIndex = INT_MAX;
+                    PPH_STRING name = NULL;
                     WCHAR number[PH_INT32_STR_LEN_1];
 
                     if (DelayImports)
@@ -155,8 +244,17 @@ VOID PvpProcessImports(
                     else
                         name = PhZeroExtendToUtf16(importDll.Name);
 
+                    if (PvpCheckGroupExists(ListViewHandle, name->Buffer))
+                    {
+                        groupId = PvpGroupIndex(ListViewHandle, name->Buffer);
+                    }
+                    else
+                    {
+                        groupId = PvpAddListViewGroup(ListViewHandle, name->Buffer);
+                    }
+
                     PhPrintUInt32(number, ++(*Count)); // HACK
-                    lvItemIndex = PhAddListViewItem(ListViewHandle, MAXINT, number, NULL);
+                    lvItemIndex = PhAddListViewGroupItem(ListViewHandle, groupId, MAXINT, number, NULL); // PhAddListViewItem(ListViewHandle, MAXINT, number, NULL);
 
                     PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, name->Buffer);
                     PhDereferenceObject(name);
@@ -253,6 +351,8 @@ INT_PTR CALLBACK PvpPeImportsDlgProc(
             ExtendedListView_AddFallbackColumns(lvHandle, 3, fallbackColumns);
             PhLoadListViewColumnsFromSetting(L"ImageImportsListViewColumns", lvHandle);
 
+            ListView_EnableGroupView(lvHandle, TRUE);
+
             if (NT_SUCCESS(PhGetMappedImageImports(&imports, &PvMappedImage)))
             {
                 PvpProcessImports(lvHandle, &imports, FALSE, &count);
@@ -290,6 +390,69 @@ INT_PTR CALLBACK PvpPeImportsDlgProc(
         break;
     case WM_NOTIFY:
         {
+            LPNMHDR header = (LPNMHDR)lParam;
+
+            switch (header->code)
+            {
+            case LVN_LINKCLICK:
+                {
+                    PNMLVLINK lvLinkInfo = (PNMLVLINK)lParam;
+                    PPH_STRING applicationFileName;
+                    LVGROUP groupInfo;
+                    WCHAR headerText[MAX_PATH] = L"";
+
+                    memset(&groupInfo, 0, sizeof(LVGROUP));
+                    groupInfo.cbSize = sizeof(LVGROUP);
+                    groupInfo.mask = LVGF_HEADER | LVGF_TASK;
+                    groupInfo.cchHeader = RTL_NUMBER_OF(headerText);
+                    groupInfo.pszHeader = headerText;
+
+                    ListView_GetGroupInfoByIndex(lvLinkInfo->hdr.hwndFrom, lvLinkInfo->iSubItem, &groupInfo);
+
+                    memset(&groupInfo, 0, sizeof(LVGROUP));
+                    groupInfo.cbSize = sizeof(LVGROUP);
+                    groupInfo.mask = LVGF_TASK;
+
+                    if (ListView_GetGroupState(lvLinkInfo->hdr.hwndFrom, lvLinkInfo->iSubItem, LVGS_COLLAPSED))
+                    {
+                        //ListView_SetGroupState(lvLinkInfo->hdr.hwndFrom, lvLinkInfo->iSubItem, LVGS_COLLAPSED, 0);
+                        groupInfo.pszTask = L"Properties";
+                    }
+                    else
+                    {
+                        //ListView_SetGroupState(lvLinkInfo->hdr.hwndFrom, lvLinkInfo->iSubItem, LVGS_COLLAPSED, LVGS_COLLAPSED);
+                        groupInfo.pszTask = L"Properties";
+                    }
+
+                    ListView_SetGroupInfo(lvLinkInfo->hdr.hwndFrom, lvLinkInfo->iSubItem, &groupInfo);
+
+                    if (applicationFileName = PhGetApplicationFileName())
+                    {
+                        PPH_STRING filePath;
+
+                        if (filePath = PhSearchFilePath(headerText, NULL))
+                        {
+                            PhMoveReference(&filePath, PhConcatStrings(3, L"\"", filePath->Buffer, L"\""));
+
+                            PhShellExecuteEx(
+                                hwndDlg,
+                                PhGetString(applicationFileName),
+                                PhGetString(filePath),
+                                SW_SHOW,
+                                0,
+                                0,
+                                NULL
+                                );
+
+                            PhDereferenceObject(filePath);
+                        }
+
+                        PhDereferenceObject(applicationFileName);
+                    }
+                    break;
+                }
+            }
+
             PvHandleListViewNotifyForCopy(lParam, GetDlgItem(hwndDlg, IDC_LIST));
         }
         break;
