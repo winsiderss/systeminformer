@@ -232,7 +232,7 @@ static HWND PvpCreateOptionsButton(
             WS_EX_NOPARENTNOTIFY,
             WC_BUTTON,
             L"Options",
-            WS_CHILD | WS_VISIBLE | WS_TABSTOP,
+            WS_CHILD | WS_VISIBLE | WS_TABSTOP | WS_DISABLED, // TODO: Remove disabled flag
             clientRect.right - rect.right,
             rect.top,
             rect.right - rect.left,
