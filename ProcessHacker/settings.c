@@ -178,7 +178,8 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"ThreadStackTreeListColumns", L"");
     PhpAddScalableIntegerPairSetting(L"ThreadStackWindowSize", L"@96|420,400");
     PhpAddStringSetting(L"TokenGroupsListViewColumns", L"");
-    PhpAddStringSetting(L"TokenGroupsListViewSort", L"");
+    PhpAddStringSetting(L"TokenGroupsListViewStates", L"");
+    PhpAddStringSetting(L"TokenGroupsListViewSort", L"1,2");
     PhpAddIntegerSetting(L"TokenSplitterEnable", L"0");
     PhpAddIntegerSetting(L"TokenSplitterPosition", L"150");
     PhpAddStringSetting(L"TokenPrivilegesListViewColumns", L"");
