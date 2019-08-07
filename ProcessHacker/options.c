@@ -831,30 +831,30 @@ static BOOLEAN PathMatchesPh(
     BOOLEAN match = FALSE;
     PPH_STRING fileName;
 
-    if (fileName = PhGetApplicationFileName())
+    if (!(fileName = PhGetApplicationFileName()))
+        return FALSE;
+
+    if (PhEqualString(OldTaskMgrDebugger, fileName, TRUE))
     {
-        if (PhEqualString(OldTaskMgrDebugger, fileName, TRUE))
-        {
-            match = TRUE;
-        }
-        // Allow for a quoted value.
-        else if (
-            OldTaskMgrDebugger->Length == (fileName->Length + sizeof(UNICODE_NULL)) * sizeof(WCHAR) &&
-            OldTaskMgrDebugger->Buffer[0] == '"' &&
-            OldTaskMgrDebugger->Buffer[OldTaskMgrDebugger->Length / sizeof(WCHAR) - 1] == '"'
-            )
-        {
-            PH_STRINGREF partInside;
-
-            partInside.Buffer = &OldTaskMgrDebugger->Buffer[1];
-            partInside.Length = (OldTaskMgrDebugger->Length - sizeof(UNICODE_NULL)) * sizeof(WCHAR);
-
-            if (PhEqualStringRef(&partInside, &fileName->sr, TRUE))
-                match = TRUE;
-        }
-
-        PhDereferenceObject(fileName);
+        match = TRUE;
     }
+    // Allow for a quoted value.
+    else if (
+        OldTaskMgrDebugger->Length == fileName->Length + 4 &&
+        OldTaskMgrDebugger->Buffer[0] == L'"' &&
+        OldTaskMgrDebugger->Buffer[OldTaskMgrDebugger->Length / sizeof(WCHAR) - 1] == L'"'
+        )
+    {
+        PH_STRINGREF partInside;
+
+        partInside.Buffer = &OldTaskMgrDebugger->Buffer[1];
+        partInside.Length = OldTaskMgrDebugger->Length - sizeof(WCHAR) * sizeof(WCHAR);
+
+        if (PhEqualStringRef(&partInside, &fileName->sr, TRUE))
+            match = TRUE;
+    }
+
+    PhDereferenceObject(fileName);
 
     return match;
 }
