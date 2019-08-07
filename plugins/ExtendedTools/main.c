@@ -417,10 +417,10 @@ VOID NTAPI ProcessStatsEventCallback(
                 listViewHandle, block->ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_GPU], MAXINT, L"Running time", NULL);
             block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_CONTEXTSWITCHES] = PhAddListViewGroupItem(
                 listViewHandle, block->ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_GPU], MAXINT, L"Context switches", NULL);
-            block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_TOTALNODES] = PhAddListViewGroupItem(
-                listViewHandle, block->ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_GPU], MAXINT, L"Total Nodes", NULL);
-            block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_TOTALSEGMENTS] = PhAddListViewGroupItem(
-                listViewHandle, block->ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_GPU], MAXINT, L"Total Segments", NULL);
+            //block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_TOTALNODES] = PhAddListViewGroupItem(
+            //    listViewHandle, block->ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_GPU], MAXINT, L"Total Nodes", NULL);
+            //block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_TOTALSEGMENTS] = PhAddListViewGroupItem(
+            //    listViewHandle, block->ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_GPU], MAXINT, L"Total Segments", NULL);
             block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_TOTALDEDICATED] = PhAddListViewGroupItem(
                 listViewHandle, block->ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_GPU], MAXINT, L"Total Dedicated", NULL);
             block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_TOTALSHARED] = PhAddListViewGroupItem(
@@ -429,7 +429,7 @@ VOID NTAPI ProcessStatsEventCallback(
                 listViewHandle, block->ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_GPU], MAXINT, L"Total Commit", NULL);
 
             block->ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_DISK] = PhAddListViewGroup(
-                listViewHandle, (INT)ListView_GetGroupCount(event->Parameter), L"Disk I/O");
+                listViewHandle, (INT)ListView_GetGroupCount(listViewHandle), L"Disk I/O");
             block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_DISKREADS] = PhAddListViewGroupItem(
                 listViewHandle, block->ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_DISK], MAXINT, L"Reads", NULL);
             block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_DISKREADBYTES] = PhAddListViewGroupItem(
@@ -444,7 +444,7 @@ VOID NTAPI ProcessStatsEventCallback(
                 listViewHandle, block->ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_DISK], MAXINT, L"Write bytes delta", NULL);
 
             block->ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_NETWORK] = PhAddListViewGroup(
-                listViewHandle, (INT)ListView_GetGroupCount(event->Parameter), L"Network I/O");
+                listViewHandle, (INT)ListView_GetGroupCount(listViewHandle), L"Network I/O");
             block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_NETWORKREADS] = PhAddListViewGroupItem(
                 listViewHandle, block->ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_NETWORK], MAXINT, L"Receives", NULL);
             block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_NETWORKREADBYTES] = PhAddListViewGroupItem(
@@ -479,10 +479,10 @@ VOID NTAPI ProcessStatsEventCallback(
                 runningTimeString);
             PhSetListViewSubItem(listViewHandle, block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_CONTEXTSWITCHES], 1,
                 PhaFormatUInt64(gpuStatistics.ContextSwitches, TRUE)->Buffer);
-            PhSetListViewSubItem(listViewHandle, block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_TOTALNODES], 1,
-                PhaFormatUInt64(gpuStatistics.NodeCount, TRUE)->Buffer);
-            PhSetListViewSubItem(listViewHandle, block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_TOTALSEGMENTS], 1,
-                PhaFormatUInt64(gpuStatistics.SegmentCount, TRUE)->Buffer);
+            //PhSetListViewSubItem(listViewHandle, block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_TOTALNODES], 1,
+            //    PhaFormatUInt64(gpuStatistics.NodeCount, TRUE)->Buffer);
+            //PhSetListViewSubItem(listViewHandle, block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_TOTALSEGMENTS], 1,
+            //    PhaFormatUInt64(gpuStatistics.SegmentCount, TRUE)->Buffer);
             PhSetListViewSubItem(listViewHandle, block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_TOTALDEDICATED], 1,
                 PhaFormatSize(gpuStatistics.DedicatedCommitted, ULONG_MAX)->Buffer);
             PhSetListViewSubItem(listViewHandle, block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_TOTALSHARED], 1,
