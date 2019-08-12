@@ -254,6 +254,16 @@ BOOLEAN PhpModulesTreeFilterCallback(
     if (Context->ListContext.HideSignedModules && moduleItem->VerifyResult == VrTrusted)
         return FALSE;
 
+    if (
+        PhEnableProcessQueryStage2 &&
+        Context->ListContext.HideSystemModules &&
+        moduleItem->VerifyResult == VrTrusted &&
+        PhEqualStringRef2(&moduleItem->VerifySignerName->sr, L"Microsoft Windows", TRUE)
+        )
+    {
+        return FALSE;
+    }
+
     if (PhIsNullOrEmptyString(Context->SearchboxText))
         return TRUE;
 
@@ -667,7 +677,9 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                     PPH_EMENU_ITEM mappedItem;
                     PPH_EMENU_ITEM staticItem;
                     PPH_EMENU_ITEM verifiedItem;
+                    PPH_EMENU_ITEM systemItem;
                     PPH_EMENU_ITEM untrustedItem;
+                    PPH_EMENU_ITEM systemHighlightItem;
                     PPH_EMENU_ITEM dotnetItem;
                     PPH_EMENU_ITEM immersiveItem;
                     PPH_EMENU_ITEM relocatedItem;
@@ -680,11 +692,13 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                     PhInsertEMenuItem(menu, mappedItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_MAPPED_OPTION, L"Hide mapped", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, staticItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_STATIC_OPTION, L"Hide static", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, verifiedItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_SIGNED_OPTION, L"Hide verified", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, systemItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_SYSTEM_OPTION, L"Hide system", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                     PhInsertEMenuItem(menu, dotnetItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_HIGHLIGHT_DOTNET_OPTION, L"Highlight .NET modules", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, immersiveItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_HIGHLIGHT_IMMERSIVE_OPTION, L"Highlight immersive modules", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, relocatedItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_HIGHLIGHT_RELOCATED_OPTION, L"Highlight relocated modules", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, untrustedItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_HIGHLIGHT_UNSIGNED_OPTION, L"Highlight untrusted modules", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, systemHighlightItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_HIGHLIGHT_SYSTEM_OPTION, L"Highlight system modules", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PH_MODULE_FLAGS_LOAD_MODULE_OPTION, L"Load module...", NULL, NULL), ULONG_MAX);
                     //PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
@@ -698,6 +712,8 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                         staticItem->Flags |= PH_EMENU_CHECKED;
                     if (modulesContext->ListContext.HideSignedModules)
                         verifiedItem->Flags |= PH_EMENU_CHECKED;
+                    if (modulesContext->ListContext.HideSystemModules)
+                        systemItem->Flags |= PH_EMENU_CHECKED;
                     if (modulesContext->ListContext.HighlightDotNetModules)
                         dotnetItem->Flags |= PH_EMENU_CHECKED;
                     if (modulesContext->ListContext.HighlightImmersiveModules)
@@ -706,6 +722,8 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                         relocatedItem->Flags |= PH_EMENU_CHECKED;
                     if (modulesContext->ListContext.HighlightUntrustedModules)
                         untrustedItem->Flags |= PH_EMENU_CHECKED;
+                    if (modulesContext->ListContext.HighlightSystemModules)
+                        systemHighlightItem->Flags |= PH_EMENU_CHECKED;
 
                     selectedItem = PhShowEMenu(
                         menu,

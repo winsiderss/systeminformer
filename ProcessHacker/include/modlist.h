@@ -70,6 +70,8 @@ typedef struct _PH_MODULE_NODE
 #define PH_MODULE_FLAGS_HIGHLIGHT_RELOCATED_OPTION 8
 #define PH_MODULE_FLAGS_LOAD_MODULE_OPTION 9
 #define PH_MODULE_FLAGS_MODULE_STRINGS_OPTION 10
+#define PH_MODULE_FLAGS_SYSTEM_OPTION 11
+#define PH_MODULE_FLAGS_HIGHLIGHT_SYSTEM_OPTION 12
 
 typedef struct _PH_MODULE_LIST_CONTEXT
 {
@@ -94,7 +96,9 @@ typedef struct _PH_MODULE_LIST_CONTEXT
             ULONG HighlightDotNetModules : 1;
             ULONG HighlightImmersiveModules : 1;
             ULONG HighlightRelocatedModules : 1;
-            ULONG Spare : 23;
+            ULONG HideSystemModules : 1;
+            ULONG HighlightSystemModules : 1;
+            ULONG Spare : 21;
         };
     };
 
