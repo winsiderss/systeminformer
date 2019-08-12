@@ -233,6 +233,12 @@ VOID PhSetOptionsModuleList(
     case PH_MODULE_FLAGS_HIGHLIGHT_RELOCATED_OPTION:
         Context->HighlightRelocatedModules = !Context->HighlightRelocatedModules;
         break;
+    case PH_MODULE_FLAGS_SYSTEM_OPTION:
+        Context->HideSystemModules = !Context->HideSystemModules;
+        break;
+    case PH_MODULE_FLAGS_HIGHLIGHT_SYSTEM_OPTION:
+        Context->HighlightSystemModules = !Context->HighlightSystemModules;
+        break;
     }
 }
 
@@ -999,14 +1005,28 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
 
             if (!moduleItem)
                 ; // Dummy
-            else if (PhEnableProcessQueryStage2 && context->HighlightUntrustedModules && moduleItem->VerifyResult != VrTrusted && moduleItem->Type != PH_MODULE_TYPE_ELF_MAPPED_IMAGE)
+            else if (PhEnableProcessQueryStage2 &&
+                context->HighlightUntrustedModules &&
+                moduleItem->VerifyResult != VrTrusted &&
+                moduleItem->Type != PH_MODULE_TYPE_ELF_MAPPED_IMAGE
+                )
+            {
                 getNodeColor->BackColor = PhCsColorUnknown;
+            }
             else if (context->HighlightDotNetModules && (moduleItem->Flags & LDRP_COR_IMAGE))
                 getNodeColor->BackColor = PhCsColorDotNet;
             else if (context->HighlightImmersiveModules && (moduleItem->ImageDllCharacteristics & IMAGE_DLLCHARACTERISTICS_APPCONTAINER))
                 getNodeColor->BackColor = PhCsColorImmersiveProcesses;
             else if (context->HighlightRelocatedModules && (moduleItem->Flags & LDRP_IMAGE_NOT_AT_BASE))
                 getNodeColor->BackColor = PhCsColorRelocatedModules;
+            else if (PhEnableProcessQueryStage2 &&
+                context->HighlightSystemModules &&
+                moduleItem->VerifyResult == VrTrusted &&
+                PhEqualStringRef2(&moduleItem->VerifySignerName->sr, L"Microsoft Windows", TRUE)
+                )
+            {
+                getNodeColor->BackColor = PhCsColorSystemProcesses;
+            }
 
             getNodeColor->Flags = TN_AUTO_FORECOLOR;
         }
