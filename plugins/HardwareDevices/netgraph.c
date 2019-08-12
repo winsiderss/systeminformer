@@ -2,7 +2,7 @@
  * Process Hacker Plugins -
  *   Hardware Devices Plugin
  *
- * Copyright (C) 2015-2016 dmex
+ * Copyright (C) 2015-2019 dmex
  * Copyright (C) 2016 wj32
  *
  * This file is part of Process Hacker.
@@ -42,6 +42,8 @@ VOID NetAdapterUpdatePanel(
     ULONG64 inOctetsValue = 0;
     ULONG64 outOctetsValue = 0;
     ULONG64 linkSpeedValue = 0;
+    ULONG64 interfaceRcvSpeed = 0;
+    ULONG64 interfaceXmitSpeed = 0;
     NDIS_MEDIA_CONNECT_STATE mediaState = MediaConnectStateUnknown;
     HANDLE deviceHandle = NULL;
 
@@ -96,13 +98,9 @@ VOID NetAdapterUpdatePanel(
         }
         else
         {
-            // Note: The above code fails for some drivers that don't implement statistics (even though statistics are mandatory).
-            // NDIS handles these two OIDs for all miniport drivers and we can use these for those special cases.
-
             // https://msdn.microsoft.com/en-us/library/ff569443.aspx
-            inOctetsValue = NetworkAdapterQueryValue(deviceHandle, OID_GEN_BYTES_RCV);
-
             // https://msdn.microsoft.com/en-us/library/ff569445.aspx
+            inOctetsValue = NetworkAdapterQueryValue(deviceHandle, OID_GEN_BYTES_RCV);
             outOctetsValue = NetworkAdapterQueryValue(deviceHandle, OID_GEN_BYTES_XMIT);
         }
 
@@ -131,6 +129,21 @@ VOID NetAdapterUpdatePanel(
         }
     }
 
+    interfaceRcvSpeed = inOctetsValue - Context->LastInboundValue;
+    interfaceXmitSpeed = outOctetsValue - Context->LastOutboundValue;
+    Context->LastInboundValue = inOctetsValue;
+    Context->LastOutboundValue = outOctetsValue;
+
+    //interfaceRcvUnicastSpeed = interfaceStats.ifHCInUcastOctets - Context->LastDetailsInboundUnicastValue;
+    //interfaceXmitUnicastSpeed = interfaceStats.ifHCOutUcastOctets - Context->LastDetailsIOutboundUnicastValue;
+
+    if (!Context->HaveFirstSample)
+    {
+        interfaceRcvSpeed = 0;
+        interfaceXmitSpeed = 0;
+        Context->HaveFirstSample = TRUE;
+    }
+
     PhSetDialogItemText(Context->PanelWindowHandle, IDC_STAT_BSENT, PhaFormatSize(outOctetsValue, ULONG_MAX)->Buffer);
     PhSetDialogItemText(Context->PanelWindowHandle, IDC_STAT_BRECEIVED, PhaFormatSize(inOctetsValue, ULONG_MAX)->Buffer);
     PhSetDialogItemText(Context->PanelWindowHandle, IDC_STAT_BTOTAL, PhaFormatSize(inOctetsValue + outOctetsValue, ULONG_MAX)->Buffer);
@@ -138,23 +151,42 @@ VOID NetAdapterUpdatePanel(
     if (mediaState == MediaConnectStateConnected)
     {
         PhSetDialogItemText(Context->PanelWindowHandle, IDC_LINK_STATE, L"Connected");
-        PhSetDialogItemText(Context->PanelWindowHandle, IDC_LINK_SPEED, PhaFormatString(L"%s/s", PhaFormatSize(linkSpeedValue / BITS_IN_ONE_BYTE, ULONG_MAX)->Buffer)->Buffer);
+        PhSetDialogItemText(Context->PanelWindowHandle, IDC_LINK_SPEED, PhaFormatString(
+            L"%s/s",
+            PhaFormatSize(linkSpeedValue / BITS_IN_ONE_BYTE, ULONG_MAX)->Buffer
+            )->Buffer);
     }
     else
     {
         PhSetDialogItemText(Context->PanelWindowHandle, IDC_LINK_STATE, L"Disconnected");
         PhSetDialogItemText(Context->PanelWindowHandle, IDC_LINK_SPEED, L"N/A");
     }
+
+    PhSetDialogItemText(Context->PanelWindowHandle, IDC_STAT_QUEUELENGTH, PhaFormatString(
+        L"%s/s",
+        PhaFormatSize(interfaceRcvSpeed + interfaceXmitSpeed, ULONG_MAX)->Buffer)->Buffer
+        );
 }
 
 VOID UpdateNetAdapterDialog(
     _Inout_ PDV_NETADAPTER_SYSINFO_CONTEXT Context
     )
 {
+    MIB_IF_ROW2 interfaceRow;
+
     if (Context->AdapterEntry->AdapterName)
         PhSetDialogItemText(Context->WindowHandle, IDC_ADAPTERNAME, Context->AdapterEntry->AdapterName->Buffer);
     else
         PhSetDialogItemText(Context->WindowHandle, IDC_ADAPTERNAME, L"Unknown network adapter");
+
+    if (QueryInterfaceRow(&Context->AdapterEntry->AdapterId, &interfaceRow))
+    {
+        PhSetDialogItemText(Context->WindowHandle, IDC_ADAPTERTEXT, interfaceRow.Alias);
+    }
+    else
+    {
+        PhSetDialogItemText(Context->WindowHandle, IDC_ADAPTERTEXT, L"");
+    }
 
     NetAdapterUpdateGraphs(Context);
     NetAdapterUpdatePanel(Context);
@@ -238,6 +270,7 @@ INT_PTR CALLBACK NetAdapterDialogProc(
         {
             PPH_LAYOUT_ITEM graphItem;
             PPH_LAYOUT_ITEM panelItem;
+            MIB_IF_ROW2 interfaceRow;
 
             context->WindowHandle = hwndDlg;
 
@@ -248,7 +281,19 @@ INT_PTR CALLBACK NetAdapterDialogProc(
             graphItem = PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_GRAPH_LAYOUT), NULL, PH_ANCHOR_ALL);
             panelItem = PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_LAYOUT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
-            SetWindowFont(GetDlgItem(hwndDlg, IDC_ADAPTERNAME), context->SysinfoSection->Parameters->LargeFont, FALSE);
+            SetWindowFont(GetDlgItem(hwndDlg, IDC_ADAPTERTEXT), context->SysinfoSection->Parameters->LargeFont, FALSE);
+            SetWindowFont(GetDlgItem(hwndDlg, IDC_ADAPTERNAME), context->SysinfoSection->Parameters->MediumFont, FALSE);
+
+            if (QueryInterfaceRow(&context->AdapterEntry->AdapterId, &interfaceRow))
+            {
+                PhSetDialogItemText(hwndDlg, IDC_ADAPTERTEXT, interfaceRow.Alias);
+            }
+            else
+            {
+                PhSetDialogItemText(hwndDlg, IDC_ADAPTERTEXT, L"");
+            }
+
+            //SetWindowFont(GetDlgItem(hwndDlg, IDC_ADAPTERNAME), context->SysinfoSection->Parameters->LargeFont, FALSE);
             PhSetDialogItemText(hwndDlg, IDC_ADAPTERNAME, PhGetStringOrDefault(context->AdapterEntry->AdapterName, L"Unknown network adapter"));
 
             context->PanelWindowHandle = CreateDialogParam(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_NETADAPTER_PANEL), hwndDlg, NetAdapterPanelDialogProc, (LPARAM)context);

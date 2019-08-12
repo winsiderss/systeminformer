@@ -65,6 +65,7 @@ VOID NetAdaptersUpdate(
         ULONG64 networkOutOctets = 0;
         ULONG64 networkRcvSpeed = 0;
         ULONG64 networkXmitSpeed = 0;
+        ULONG64 linkSpeedValue = 0;
         NDIS_MEDIA_CONNECT_STATE mediaState = MediaConnectStateUnknown;
 
         entry = PhReferenceObjectSafe(NetworkAdaptersList->Items[i]);
@@ -114,6 +115,11 @@ VOID NetAdaptersUpdate(
             if (NT_SUCCESS(NetworkAdapterQueryLinkState(deviceHandle, &interfaceState)))
             {
                 mediaState = interfaceState.MediaConnectState;
+                linkSpeedValue = interfaceState.XmitLinkSpeed;
+            }
+            else
+            {
+                NetworkAdapterQueryLinkSpeed(deviceHandle, &linkSpeedValue);
             }
 
             if (NT_SUCCESS(NetworkAdapterQueryStatistics(deviceHandle, &interfaceStats)))
@@ -174,8 +180,17 @@ VOID NetAdaptersUpdate(
         if (mediaState == MediaConnectStateUnknown)
         {
             // We don't want incorrect data when the adapter is disabled.
-            networkRcvSpeed = 0;
-            networkXmitSpeed = 0;
+            entry->HaveFirstSample = FALSE;
+        }
+
+        if (networkRcvSpeed > linkSpeedValue)
+        {
+            entry->HaveFirstSample = FALSE;
+        }
+
+        if (networkXmitSpeed > linkSpeedValue)
+        {
+            entry->HaveFirstSample = FALSE;
         }
 
         if (!entry->HaveFirstSample)

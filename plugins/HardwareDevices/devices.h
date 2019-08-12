@@ -119,6 +119,19 @@ typedef struct _DV_NETADAPTER_SYSINFO_CONTEXT
     PPH_SYSINFO_SECTION SysinfoSection;
     PH_GRAPH_STATE GraphState;
     PH_LAYOUT_MANAGER LayoutManager;
+
+    union
+    {
+        BOOLEAN Flags;
+        struct
+        {
+            BOOLEAN HaveFirstSample : 1;
+            BOOLEAN Spare : 7;
+        };
+    };
+
+    ULONG64 LastInboundValue;
+    ULONG64 LastOutboundValue;
 } DV_NETADAPTER_SYSINFO_CONTEXT, *PDV_NETADAPTER_SYSINFO_CONTEXT;
 
 typedef struct _DV_NETADAPTER_DETAILS_CONTEXT

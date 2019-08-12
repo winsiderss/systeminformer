@@ -10,7 +10,6 @@
 #define IDD_DISKDRIVE_DETAILS_FILESYSTEM 109
 #define IDC_NETADAPTERS_LISTVIEW        1001
 #define IDC_LINK_SPEED                  1002
-#define IDC_ADAPTERNAME                 1003
 #define IDC_LAYOUT                      1004
 #define IDC_LINK_STATE                  1005
 #define IDC_STAT_BSENT                  1006
@@ -25,8 +24,11 @@
 #define IDD_DISKDRIVE_DETAILS_SMART     1017
 #define IDC_DISKDRIVE_LISTVIEW          1017
 #define IDC_DISKMOUNTPATH               1018
+#define IDD_NETADAPTER_DIALOG           1018
 #define IDC_STAT_BREAD                  1020
 #define IDC_STAT_BWRITE                 1021
+#define IDC_ADAPTERNAME                 1021
+#define IDC_ADAPTERTEXT                 1022
 #define IDC_STAT_ACTIVE                 1023
 #define IDC_STAT_RESPONSETIME           1024
 #define IDC_STAT_QUEUELENGTH            1025
@@ -36,9 +38,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        114
+#define _APS_NEXT_RESOURCE_VALUE        117
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1021
+#define _APS_NEXT_CONTROL_VALUE         1023
 #define _APS_NEXT_SYMED_VALUE           106
 #endif
 #endif
