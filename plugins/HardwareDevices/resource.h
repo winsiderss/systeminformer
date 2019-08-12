@@ -3,7 +3,6 @@
 // Used by HardwareDevices.rc
 //
 #define IDD_NETADAPTER_OPTIONS          101
-#define IDD_NETADAPTER_DIALOG           102
 #define IDC_GRAPH_LAYOUT                103
 #define IDD_NETADAPTER_PANEL            104
 #define IDD_NETADAPTER_DETAILS          105
