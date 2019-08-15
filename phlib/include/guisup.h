@@ -893,6 +893,13 @@ PhWindowNotifyTopMostEvent(
     _In_ BOOLEAN TopMost
     );
 
+PHLIBAPI
+HANDLE
+NTAPI
+PhGetGlobalTimerQueue(
+    VOID
+    );
+
 // theme support (theme.c)
 
 PHLIBAPI extern HFONT PhApplicationFont; // phapppub
