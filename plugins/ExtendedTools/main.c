@@ -463,32 +463,26 @@ VOID NTAPI ProcessStatsEventCallback(
         {
             HWND listViewHandle = event->Parameter;
             PET_PROCESS_BLOCK block;
-            ET_PROCESS_GPU_STATISTICS gpuStatistics;
             WCHAR runningTimeString[PH_TIMESPAN_STR_LEN_1] = L"N/A";
 
             if (!(block = EtGetProcessBlock(event->ProcessItem)))
                 break;
 
-            if (block->ProcessItem->QueryHandle)
-                EtQueryProcessGpuStatistics(block->ProcessItem->QueryHandle, &gpuStatistics);
-            else
-                memset(&gpuStatistics, 0, sizeof(ET_PROCESS_GPU_STATISTICS));
-
-            PhPrintTimeSpan(runningTimeString, gpuStatistics.RunningTime * 10, PH_TIMESPAN_HMSM);
+            PhPrintTimeSpan(runningTimeString, block->GpuRunningTimeDelta.Value * 10, PH_TIMESPAN_HMSM);
             PhSetListViewSubItem(listViewHandle, block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_RUNNINGTIME], 1,
                 runningTimeString);
             PhSetListViewSubItem(listViewHandle, block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_CONTEXTSWITCHES], 1,
-                PhaFormatUInt64(gpuStatistics.ContextSwitches, TRUE)->Buffer);
+                PhaFormatUInt64(block->GpuContextSwitches, TRUE)->Buffer);
             //PhSetListViewSubItem(listViewHandle, block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_TOTALNODES], 1,
             //    PhaFormatUInt64(gpuStatistics.NodeCount, TRUE)->Buffer);
             //PhSetListViewSubItem(listViewHandle, block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_TOTALSEGMENTS], 1,
             //    PhaFormatUInt64(gpuStatistics.SegmentCount, TRUE)->Buffer);
             PhSetListViewSubItem(listViewHandle, block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_TOTALDEDICATED], 1,
-                PhaFormatSize(gpuStatistics.DedicatedCommitted, ULONG_MAX)->Buffer);
+                PhaFormatSize(block->GpuDedicatedUsage, ULONG_MAX)->Buffer);
             PhSetListViewSubItem(listViewHandle, block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_TOTALSHARED], 1,
-                PhaFormatSize(gpuStatistics.SharedCommitted, ULONG_MAX)->Buffer);
+                PhaFormatSize(block->GpuSharedUsage, ULONG_MAX)->Buffer);
             PhSetListViewSubItem(listViewHandle, block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_TOTALCOMMIT], 1,
-                PhaFormatSize(gpuStatistics.BytesAllocated, ULONG_MAX)->Buffer);
+                PhaFormatSize(block->GpuCommitUsage, ULONG_MAX)->Buffer);
 
             PhSetListViewSubItem(listViewHandle, block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_DISKREADS], 1,
                 PhaFormatUInt64(block->DiskReadCount, TRUE)->Buffer);
