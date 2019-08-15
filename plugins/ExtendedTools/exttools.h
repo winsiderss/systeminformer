@@ -270,6 +270,8 @@ typedef struct _ET_PROCESS_BLOCK
     //PPH_UINT64_DELTA GpuTotalRunningTimeDelta;
     //PPH_CIRCULAR_BUFFER_FLOAT GpuTotalNodesHistory;
 
+    ULONG GpuNodeCount;
+    ULONG GpuSegmentCount;
     FLOAT GpuNodeUsage;
     ULONG64 GpuDedicatedUsage;
     ULONG64 GpuSharedUsage;
