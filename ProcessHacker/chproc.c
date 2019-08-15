@@ -102,7 +102,7 @@ static VOID PhpRefreshProcessList(
         HICON icon = NULL;
         WCHAR processIdString[PH_INT32_STR_LEN_1];
         PPH_STRING userName = NULL;
-        INT imageIndex;
+        INT imageIndex = INT_MAX;
 
         if (process->UniqueProcessId != SYSTEM_IDLE_PROCESS_ID)
             name = PhCreateStringFromUnicodeString(&process->ImageName);
@@ -144,14 +144,23 @@ static VOID PhpRefreshProcessList(
         if (fileName)
             PhMoveReference(&fileName, PhGetFileName(fileName));
 
-        icon = PhGetFileShellIcon(PhGetString(fileName), L".exe", FALSE);
-
         // Icon
+        if (!PhIsNullOrEmptyString(fileName))
+        {
+            PhExtractIcon(PhGetString(fileName), NULL, &icon);
+        }
+
         if (icon)
         {
             imageIndex = ImageList_AddIcon(Context->ImageList, icon);
             PhSetListViewItemImageIndex(Context->ListViewHandle, lvItemIndex, imageIndex);
             DestroyIcon(icon);
+        }
+        else
+        {
+            PhGetStockApplicationIcon(NULL, &icon);
+            imageIndex = ImageList_AddIcon(Context->ImageList, icon);
+            PhSetListViewItemImageIndex(Context->ListViewHandle, lvItemIndex, imageIndex);
         }
 
         // PID

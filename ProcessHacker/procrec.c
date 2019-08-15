@@ -77,7 +77,7 @@ PPH_STRING PhpaGetRelativeTimeString(
 }
 
 FORCEINLINE PWSTR PhpGetStringOrNa(
-    _In_ PPH_STRING String
+    _In_ _Maybenull_ PPH_STRING String
     )
 {
     if (String)
@@ -175,17 +175,31 @@ INT_PTR CALLBACK PhpProcessRecordDlgProc(
 
             if (context->Record->FileName)
             {
+                PhExtractIcon(
+                    context->Record->FileName->Buffer,
+                    &context->FileIcon,
+                    NULL
+                    );
+
                 if (PhInitializeImageVersionInfo(&versionInfo, context->Record->FileName->Buffer))
                     versionInfoInitialized = TRUE;
             }
 
-            context->FileIcon = PhGetFileShellIcon(PhGetString(context->Record->FileName), L".exe", TRUE);
+            if (context->FileIcon)
+            {
+                SendMessage(GetDlgItem(hwndDlg, IDC_FILEICON), STM_SETICON, (WPARAM)context->FileIcon, 0);
+            }
+            else
+            {
+                HICON largeIcon;
+
+                PhGetStockApplicationIcon(NULL, &largeIcon);
+                SendMessage(GetDlgItem(hwndDlg, IDC_FILEICON), STM_SETICON, (WPARAM)largeIcon, 0);
+            }
 
             SendMessage(GetDlgItem(hwndDlg, IDC_OPENFILENAME), BM_SETIMAGE, IMAGE_ICON,
                 (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_FOLDER)));
-            SendMessage(GetDlgItem(hwndDlg, IDC_FILEICON), STM_SETICON,
-                (WPARAM)context->FileIcon, 0);
-
+  
             PhSetDialogItemText(hwndDlg, IDC_NAME, PhpGetStringOrNa(versionInfo.FileDescription));
             PhSetDialogItemText(hwndDlg, IDC_COMPANYNAME, PhpGetStringOrNa(versionInfo.CompanyName));
             PhSetDialogItemText(hwndDlg, IDC_VERSION, PhpGetStringOrNa(versionInfo.FileVersion));
