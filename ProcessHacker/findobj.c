@@ -62,7 +62,6 @@ typedef struct _PH_HANDLE_SEARCH_CONTEXT
     PPH_HASHTABLE NodeHashtable;
     PPH_LIST NodeList;
 
-    HANDLE TimerQueueHandle;
     HANDLE UpdateTimerHandle;
     HANDLE SearchThreadHandle;
 
@@ -761,14 +760,14 @@ VOID CALLBACK PhpFindObjectTreeUpdateCallback(
 {
     if (!Context->SearchThreadHandle)
     {
-        RtlUpdateTimer(Context->TimerQueueHandle, Context->UpdateTimerHandle, 1000, INFINITE);
+        RtlUpdateTimer(PhGetGlobalTimerQueue(), Context->UpdateTimerHandle, 1000, INFINITE);
         return;
     }
 
     // Update the search results.
     PhpFindObjectAddResultEntries(Context);
 
-    RtlUpdateTimer(Context->TimerQueueHandle, Context->UpdateTimerHandle, 1000, INFINITE);
+    RtlUpdateTimer(PhGetGlobalTimerQueue(), Context->UpdateTimerHandle, 1000, INFINITE);
 }
 
 static BOOLEAN MatchSearchString(
@@ -1179,18 +1178,15 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
             context->SearchResults = PhCreateList(128);
             context->SearchResultsAddIndex = 0;
 
-            if (NT_SUCCESS(RtlCreateTimerQueue(&context->TimerQueueHandle)))
-            {
-                RtlCreateTimer(
-                    context->TimerQueueHandle,
-                    &context->UpdateTimerHandle,
-                    PhpFindObjectTreeUpdateCallback,
-                    context,
-                    0,
-                    1000,
-                    0
-                    );
-            }
+            RtlCreateTimer(
+                PhGetGlobalTimerQueue(),
+                &context->UpdateTimerHandle,
+                PhpFindObjectTreeUpdateCallback,
+                context,
+                0,
+                1000,
+                0
+                );
 
             Edit_SetSel(context->SearchWindowHandle, 0, -1);
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_REGEX), PhGetIntegerSetting(L"FindObjRegex") ? BST_CHECKED : BST_UNCHECKED);
@@ -1204,14 +1200,8 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
 
             if (context->UpdateTimerHandle)
             {
-                RtlDeleteTimer(context->TimerQueueHandle, context->UpdateTimerHandle, NULL);
-                context->TimerQueueHandle = NULL;
-            }
-
-            if (context->TimerQueueHandle)
-            {
-                RtlDeleteTimerQueue(context->TimerQueueHandle);
-                context->TimerQueueHandle = NULL;
+                RtlDeleteTimer(PhGetGlobalTimerQueue(), context->UpdateTimerHandle, NULL);
+                context->UpdateTimerHandle = NULL;
             }
 
             if (context->SearchThreadHandle)

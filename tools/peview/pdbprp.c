@@ -1058,7 +1058,7 @@ VOID CALLBACK PvSymbolTreeUpdateCallback(
     TreeNew_NodesStructured(Context->TreeNewHandle);
     TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
 
-    RtlUpdateTimer(Context->TimerQueueHandle, Context->UpdateTimerHandle, 1000, INFINITE);
+    RtlUpdateTimer(PhGetGlobalTimerQueue(), Context->UpdateTimerHandle, 1000, INFINITE);
 }
 
 INT_PTR CALLBACK PvpSymbolsDlgProc(
@@ -1105,18 +1105,15 @@ INT_PTR CALLBACK PvpSymbolsDlgProc(
 
             PhCreateThread2(PeDumpFileSymbols, context);
 
-            if (NT_SUCCESS(RtlCreateTimerQueue(&context->TimerQueueHandle)))
-            {
-                RtlCreateTimer(
-                    context->TimerQueueHandle,
-                    &context->UpdateTimerHandle,
-                    PvSymbolTreeUpdateCallback,
-                    context,
-                    0,
-                    1000,
-                    0
-                    );
-            }
+            RtlCreateTimer(
+                PhGetGlobalTimerQueue(),
+                &context->UpdateTimerHandle,
+                PvSymbolTreeUpdateCallback,
+                context,
+                0,
+                1000,
+                0
+                );
 
             EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
         }
@@ -1125,14 +1122,8 @@ INT_PTR CALLBACK PvpSymbolsDlgProc(
         {
             if (context->UpdateTimerHandle)
             {
-                RtlDeleteTimer(context->TimerQueueHandle, context->UpdateTimerHandle, NULL);
+                RtlDeleteTimer(PhGetGlobalTimerQueue(), context->UpdateTimerHandle, NULL);
                 context->UpdateTimerHandle = NULL;
-            }
-
-            if (context->TimerQueueHandle)
-            {
-                RtlDeleteTimerQueue(context->TimerQueueHandle);
-                context->TimerQueueHandle = NULL;
             }
 
             PvDeleteSymbolTree(context);
@@ -1193,14 +1184,8 @@ INT_PTR CALLBACK PvpSymbolsDlgProc(
 
             //if (context->UpdateTimerHandle)
             //{
-            //    RtlDeleteTimer(context->TimerQueueHandle, context->UpdateTimerHandle, NULL);
+            //    RtlDeleteTimer(PhGetGlobalTimerQueue(), context->UpdateTimerHandle, NULL);
             //    context->UpdateTimerHandle = NULL;
-            //}
-
-            //if (context->TimerQueueHandle)
-            //{
-            //    RtlDeleteTimerQueue(context->TimerQueueHandle);
-            //    context->TimerQueueHandle = NULL;
             //}
         }
         break;
