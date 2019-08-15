@@ -274,6 +274,7 @@ typedef struct _ET_PROCESS_BLOCK
     ULONG64 GpuDedicatedUsage;
     ULONG64 GpuSharedUsage;
     ULONG64 GpuCommitUsage;
+    ULONG64 GpuContextSwitches;
 
     PH_UINT32_DELTA HardFaultsDelta;
 

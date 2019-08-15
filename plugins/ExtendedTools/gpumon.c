@@ -738,12 +738,14 @@ VOID EtpUpdateProcessSegmentInformation(
     D3DKMT_QUERYSTATISTICS queryStatistics;
     ULONG64 dedicatedUsage;
     ULONG64 sharedUsage;
+    ULONG64 commitUsage;
 
     if (!Block->ProcessItem->QueryHandle)
         return;
 
     dedicatedUsage = 0;
     sharedUsage = 0;
+    commitUsage = 0;
 
     for (ULONG i = 0; i < EtpGpuAdapterList->Count; i++)
     {
@@ -774,8 +776,24 @@ VOID EtpUpdateProcessSegmentInformation(
         }
     }
 
+    for (ULONG i = 0; i < EtpGpuAdapterList->Count; i++)
+    {
+        gpuAdapter = EtpGpuAdapterList->Items[i];
+
+        memset(&queryStatistics, 0, sizeof(D3DKMT_QUERYSTATISTICS));
+        queryStatistics.Type = D3DKMT_QUERYSTATISTICS_PROCESS;
+        queryStatistics.AdapterLuid = gpuAdapter->AdapterLuid;
+        queryStatistics.ProcessHandle = Block->ProcessItem->QueryHandle;
+
+        if (NT_SUCCESS(D3DKMTQueryStatistics(&queryStatistics)))
+        {
+            commitUsage += queryStatistics.QueryResult.ProcessInformation.SystemMemory.BytesAllocated;
+        }
+    }
+
     Block->GpuDedicatedUsage = dedicatedUsage;
     Block->GpuSharedUsage = sharedUsage;
+    Block->GpuCommitUsage = commitUsage;
 }
 
 VOID EtpUpdateSystemSegmentInformation(
@@ -829,11 +847,13 @@ VOID EtpUpdateProcessNodeInformation(
     PETP_GPU_ADAPTER gpuAdapter;
     D3DKMT_QUERYSTATISTICS queryStatistics;
     ULONG64 totalRunningTime;
+    ULONG64 totalContextSwitches;
 
     if (!Block->ProcessItem->QueryHandle)
         return;
 
     totalRunningTime = 0;
+    totalContextSwitches = 0;
 
     for (ULONG i = 0; i < EtpGpuAdapterList->Count; i++)
     {
@@ -854,11 +874,13 @@ VOID EtpUpdateProcessNodeInformation(
                 //PhUpdateDelta(&Block->GpuTotalRunningTimeDelta[j], runningTime);
 
                 totalRunningTime += queryStatistics.QueryResult.ProcessNodeInformation.RunningTime.QuadPart;
+                totalContextSwitches += queryStatistics.QueryResult.ProcessNodeInformation.ContextSwitch;
             }
         }
     }
 
     PhUpdateDelta(&Block->GpuRunningTimeDelta, totalRunningTime);
+    Block->GpuContextSwitches = totalContextSwitches;
 }
 
 VOID EtpUpdateSystemNodeInformation(
