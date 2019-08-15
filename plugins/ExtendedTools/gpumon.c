@@ -739,6 +739,7 @@ VOID EtpUpdateProcessSegmentInformation(
     ULONG64 dedicatedUsage;
     ULONG64 sharedUsage;
     ULONG64 commitUsage;
+    ULONG segmentCount;
 
     if (!Block->ProcessItem->QueryHandle)
         return;
@@ -746,6 +747,7 @@ VOID EtpUpdateProcessSegmentInformation(
     dedicatedUsage = 0;
     sharedUsage = 0;
     commitUsage = 0;
+    segmentCount = 0;
 
     for (ULONG i = 0; i < EtpGpuAdapterList->Count; i++)
     {
@@ -773,6 +775,8 @@ VOID EtpUpdateProcessSegmentInformation(
                 else
                     dedicatedUsage += bytesCommitted;
             }
+
+            segmentCount++;
         }
     }
 
@@ -794,6 +798,7 @@ VOID EtpUpdateProcessSegmentInformation(
     Block->GpuDedicatedUsage = dedicatedUsage;
     Block->GpuSharedUsage = sharedUsage;
     Block->GpuCommitUsage = commitUsage;
+    Block->GpuSegmentCount = segmentCount;
 }
 
 VOID EtpUpdateSystemSegmentInformation(
@@ -848,12 +853,14 @@ VOID EtpUpdateProcessNodeInformation(
     D3DKMT_QUERYSTATISTICS queryStatistics;
     ULONG64 totalRunningTime;
     ULONG64 totalContextSwitches;
+    ULONG totalNodes;
 
     if (!Block->ProcessItem->QueryHandle)
         return;
 
     totalRunningTime = 0;
     totalContextSwitches = 0;
+    totalNodes = 0;
 
     for (ULONG i = 0; i < EtpGpuAdapterList->Count; i++)
     {
@@ -876,11 +883,14 @@ VOID EtpUpdateProcessNodeInformation(
                 totalRunningTime += queryStatistics.QueryResult.ProcessNodeInformation.RunningTime.QuadPart;
                 totalContextSwitches += queryStatistics.QueryResult.ProcessNodeInformation.ContextSwitch;
             }
+
+            totalNodes++;
         }
     }
 
     PhUpdateDelta(&Block->GpuRunningTimeDelta, totalRunningTime);
     Block->GpuContextSwitches = totalContextSwitches;
+    Block->GpuNodeCount = totalNodes;
 }
 
 VOID EtpUpdateSystemNodeInformation(

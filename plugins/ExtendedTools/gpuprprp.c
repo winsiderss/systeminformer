@@ -397,23 +397,24 @@ VOID GpuPropUpdatePanel(
     _Inout_ PET_GPU_CONTEXT Context
     )
 {
+    PET_PROCESS_BLOCK block = Context->Block;
     WCHAR runningTimeString[PH_TIMESPAN_STR_LEN_1] = L"N/A";
-    ET_PROCESS_GPU_STATISTICS processGpuStatistics;
 
-    if (Context->Block->ProcessItem->QueryHandle)
-        EtQueryProcessGpuStatistics(Context->Block->ProcessItem->QueryHandle, &processGpuStatistics);
-    else
-        memset(&processGpuStatistics, 0, sizeof(ET_PROCESS_GPU_STATISTICS));
-
-    PhPrintTimeSpan(runningTimeString, processGpuStatistics.RunningTime * 10, PH_TIMESPAN_HMSM);
+    PhPrintTimeSpan(runningTimeString, block->GpuRunningTimeDelta.Value * 10, PH_TIMESPAN_HMSM);
     PhSetDialogItemText(Context->PanelHandle, IDC_ZRUNNINGTIME_V, runningTimeString);
-    PhSetDialogItemText(Context->PanelHandle, IDC_ZCONTEXTSWITCHES_V, PhaFormatUInt64(processGpuStatistics.ContextSwitches, TRUE)->Buffer);
-    PhSetDialogItemText(Context->PanelHandle, IDC_ZTOTALNODES_V, PhaFormatUInt64(processGpuStatistics.NodeCount, TRUE)->Buffer);
-    PhSetDialogItemText(Context->PanelHandle, IDC_ZTOTALSEGMENTS_V, PhaFormatUInt64(processGpuStatistics.SegmentCount, TRUE)->Buffer);
+    PhSetDialogItemText(Context->PanelHandle, IDC_ZCONTEXTSWITCHES_V, PhaFormatUInt64(block->GpuContextSwitches, TRUE)->Buffer);
+    PhSetDialogItemText(Context->PanelHandle, IDC_ZTOTALNODES_V, PhaFormatUInt64(block->GpuNodeCount, TRUE)->Buffer);
+    PhSetDialogItemText(Context->PanelHandle, IDC_ZTOTALSEGMENTS_V, PhaFormatUInt64(block->GpuSegmentCount, TRUE)->Buffer);
 
     if (Context->DetailsHandle)
     {
-        // Note: no lock is needed because we only ever update the 'details' dialog text on this same thread.
+        ET_PROCESS_GPU_STATISTICS processGpuStatistics;
+
+        if (Context->Block->ProcessItem->QueryHandle)
+            EtQueryProcessGpuStatistics(Context->Block->ProcessItem->QueryHandle, &processGpuStatistics);
+        else
+            memset(&processGpuStatistics, 0, sizeof(ET_PROCESS_GPU_STATISTICS));
+
         PhSetDialogItemText(Context->DetailsHandle, IDC_ZDEDICATEDCOMMITTED_V, PhaFormatSize(processGpuStatistics.DedicatedCommitted, ULONG_MAX)->Buffer);
         PhSetDialogItemText(Context->DetailsHandle, IDC_ZSHAREDCOMMITTED_V, PhaFormatSize(processGpuStatistics.SharedCommitted, ULONG_MAX)->Buffer);
         PhSetDialogItemText(Context->DetailsHandle, IDC_ZTOTALALLOCATED_V, PhaFormatSize(processGpuStatistics.BytesAllocated, ULONG_MAX)->Buffer);
