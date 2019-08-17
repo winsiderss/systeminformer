@@ -287,6 +287,38 @@ PhUndecorateSymbolName(
     _In_ PWSTR DecoratedName
     );
 
+typedef struct _PH_SYMBOL_INFO {
+    PH_STRINGREF Name;
+    ULONG        TypeIndex;        // Type Index of symbol
+    ULONG        Index;
+    ULONG        Size;
+    ULONG64      ModBase;          // Base Address of module comtaining this symbol
+    ULONG        Flags;
+    ULONG64      Value;            // Value of symbol, ValuePresent should be 1
+    ULONG64      Address;          // Address of symbol including base address of module
+    ULONG        Register;         // register holding value or pointer to value
+    ULONG        Scope;            // scope of the symbol
+    ULONG        Tag;              // pdb classification
+} PH_SYMBOL_INFO, *PPH_SYMBOL_INFO;
+
+typedef BOOLEAN (NTAPI* PPH_ENUMERATE_SYMBOLS_CALLBACK)(
+    _In_ PPH_SYMBOL_INFO pSymInfo,
+    _In_ ULONG SymbolSize,
+    _In_opt_ PVOID UserContext
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhEnumerateSymbols(
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
+    _In_ HANDLE ProcessHandle,
+    _In_ ULONG64 BaseOfDll,
+    _In_opt_ PCWSTR Mask,
+    _In_ PPH_ENUMERATE_SYMBOLS_CALLBACK EnumSymbolsCallback,
+    _In_opt_ const PVOID UserContext
+    );
+
 #ifdef __cplusplus
 }
 #endif
