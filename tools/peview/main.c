@@ -134,10 +134,11 @@ INT WINAPI wWinMain(
 
         if (PhShowFileDialog(NULL, fileDialog))
         {
-            PPH_STRING applicationFileName;
-
             if (PvFileName = PhGetFileDialogFileName(fileDialog))
             {
+#ifndef DEBUG
+                PPH_STRING applicationFileName;
+
                 if (applicationFileName = PhGetApplicationFileName())
                 {
                     PhMoveReference(&PvFileName, PhConcatStrings(3, L"\"", PvFileName->Buffer, L"\""));
@@ -155,13 +156,14 @@ INT WINAPI wWinMain(
                         RtlExitUserProcess(STATUS_SUCCESS);
                     }
                 }
+#endif
             }
         }
 
         PhFreeFileDialog(fileDialog);
     }
 
-    if (!PvFileName)
+    if (PhIsNullOrEmptyString(PvFileName))
         return 1;
 
     if (PhEndsWithString2(PvFileName, L".lnk", TRUE))

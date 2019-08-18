@@ -135,14 +135,14 @@ INT PvpAddListViewGroup(
 
     memset(&group, 0, sizeof(LVGROUP));
     group.cbSize = sizeof(LVGROUP);
-    group.mask = LVGF_HEADER | LVGF_ALIGN | LVGF_STATE | LVGF_GROUPID;// | LVGF_TASK;
+    group.mask = LVGF_HEADER | LVGF_ALIGN | LVGF_STATE | LVGF_GROUPID | LVGF_TASK;
     group.uAlign = LVGA_HEADER_LEFT;
     group.state = LVGS_COLLAPSIBLE;
     group.iGroupId = (INT)ListView_GetGroupCount(ListViewHandle);
     group.pszHeader = Text;
-    //group.pszTask = L"Properties";
+    group.pszTask = L"Properties";
 
-    return (INT)ListView_InsertGroup(ListViewHandle, MAXINT, &group);
+    return (INT)ListView_InsertGroup(ListViewHandle, group.iGroupId, &group);
 }
 
 BOOLEAN PvpCheckGroupExists(
@@ -254,7 +254,7 @@ VOID PvpProcessImports(
                     }
 
                     PhPrintUInt32(number, ++(*Count)); // HACK
-                    lvItemIndex = PhAddListViewGroupItem(ListViewHandle, groupId, MAXINT, number, NULL); // PhAddListViewItem(ListViewHandle, MAXINT, number, NULL);
+                    lvItemIndex = PhAddListViewGroupItem(ListViewHandle, groupId, MAXINT, number, NULL);
 
                     PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, name->Buffer);
                     PhDereferenceObject(name);
@@ -351,6 +351,7 @@ INT_PTR CALLBACK PvpPeImportsDlgProc(
             ExtendedListView_AddFallbackColumns(lvHandle, 3, fallbackColumns);
             PhLoadListViewColumnsFromSetting(L"ImageImportsListViewColumns", lvHandle);
 
+            ExtendedListView_SetRedraw(lvHandle, FALSE);
             ListView_EnableGroupView(lvHandle, TRUE);
 
             if (NT_SUCCESS(PhGetMappedImageImports(&imports, &PvMappedImage)))
@@ -364,6 +365,7 @@ INT_PTR CALLBACK PvpPeImportsDlgProc(
             }
 
             ExtendedListView_SortItems(lvHandle);
+            ExtendedListView_SetRedraw(lvHandle, TRUE);
 
             EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
         }
@@ -445,6 +447,10 @@ INT_PTR CALLBACK PvpPeImportsDlgProc(
                                 );
 
                             PhDereferenceObject(filePath);
+                        }
+                        else
+                        {
+                            PhShowStatus(hwndDlg, L"Unable to locate the DLL", 0, ERROR_FILE_NOT_FOUND);
                         }
 
                         PhDereferenceObject(applicationFileName);

@@ -263,8 +263,6 @@ typedef struct _PDB_SYMBOL_CONTEXT
     HWND SearchHandle;
     HWND TreeNewHandle;
     HWND ParentWindowHandle;
-
-    HANDLE TimerQueueHandle;
     HANDLE UpdateTimerHandle;
 
     ULONG64 BaseAddress;
