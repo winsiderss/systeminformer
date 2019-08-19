@@ -430,9 +430,21 @@ INT_PTR CALLBACK PvpPeImportsDlgProc(
 
                     if (applicationFileName = PhGetApplicationFileName())
                     {
+                        PH_STRINGREF delayTextSr = PH_STRINGREF_INIT(L" (Delay)");
+                        PH_STRINGREF headerTextSr;
+                        PPH_STRING fileName;
                         PPH_STRING filePath;
 
-                        if (filePath = PhSearchFilePath(headerText, NULL))
+                        PhInitializeStringRefLongHint(&headerTextSr, headerText);
+
+                        if (PhEndsWithStringRef(&headerTextSr, &delayTextSr, TRUE))
+                        {
+                            headerTextSr.Length -= delayTextSr.Length;
+                        }
+                         
+                        fileName = PhCreateString2(&headerTextSr);
+
+                        if (filePath = PhSearchFilePath(fileName->Buffer, NULL))
                         {
                             PhMoveReference(&filePath, PhConcatStrings(3, L"\"", filePath->Buffer, L"\""));
 
@@ -440,7 +452,7 @@ INT_PTR CALLBACK PvpPeImportsDlgProc(
                                 hwndDlg,
                                 PhGetString(applicationFileName),
                                 PhGetString(filePath),
-                                SW_SHOW,
+                                SW_SHOWNORMAL,
                                 0,
                                 0,
                                 NULL
@@ -453,6 +465,7 @@ INT_PTR CALLBACK PvpPeImportsDlgProc(
                             PhShowStatus(hwndDlg, L"Unable to locate the DLL", 0, ERROR_FILE_NOT_FOUND);
                         }
 
+                        PhDereferenceObject(fileName);
                         PhDereferenceObject(applicationFileName);
                     }
                     break;
