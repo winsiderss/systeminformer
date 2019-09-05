@@ -691,17 +691,30 @@ VOID PvpSetPeImageSections(
     _In_ HWND ListViewHandle
     )
 {
+    ExtendedListView_SetRedraw(ListViewHandle, FALSE); 
+    ListView_DeleteAllItems(ListViewHandle);
+
     for (ULONG i = 0; i < PvMappedImage.NumberOfSections; i++)
     {
         INT lvItemIndex;
         WCHAR sectionName[IMAGE_SIZEOF_SHORT_NAME + 1];
         WCHAR pointer[PH_PTR_STR_LEN_1];
 
-        if (PhGetMappedImageSectionName(&PvMappedImage.Sections[i], sectionName, ARRAYSIZE(sectionName), NULL))
+        if (PhGetMappedImageSectionName(
+            &PvMappedImage.Sections[i],
+            sectionName,
+            RTL_NUMBER_OF(sectionName),
+            NULL
+            ))
         {
             PhPrintPointer(pointer, UlongToPtr(PvMappedImage.Sections[i].VirtualAddress));
 
-            lvItemIndex = PhAddListViewItem(ListViewHandle, MAXINT, sectionName, NULL);
+            lvItemIndex = PhAddListViewItem(
+                ListViewHandle,
+                MAXINT,
+                sectionName,
+                &PvMappedImage.Sections[i]
+                );
             PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, pointer);
             PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, PhaFormatSize(PvMappedImage.Sections[i].SizeOfRawData, ULONG_MAX)->Buffer);
             PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, PH_AUTO_T(PH_STRING, PvpGetSectionCharacteristics(PvMappedImage.Sections[i].Characteristics))->Buffer);
@@ -728,6 +741,9 @@ VOID PvpSetPeImageSections(
             //}
         }
     }
+
+    ExtendedListView_SortItems(ListViewHandle);
+    ExtendedListView_SetRedraw(ListViewHandle, TRUE);
 }
 
 NTSTATUS PhpOpenFileSecurity(
@@ -785,6 +801,76 @@ NTSTATUS PhpOpenFileSecurity(
     return status;
 }
 
+static COLORREF NTAPI PhpTokenGroupColorFunction(
+    _In_ INT Index,
+    _In_ PVOID Param,
+    _In_opt_ PVOID Context
+    )
+{
+    PIMAGE_SECTION_HEADER imageSection = Param;
+
+    if (imageSection->Characteristics & IMAGE_SCN_MEM_WRITE)
+    {
+        return RGB(0xf0, 0xa0, 0xa0);
+    }
+    if (imageSection->Characteristics & IMAGE_SCN_MEM_EXECUTE)
+    {
+        return RGB(0xf0, 0xb0, 0xb0);
+    }
+    if (imageSection->Characteristics & IMAGE_SCN_CNT_CODE)
+    {
+        return RGB(0xe0, 0xf0, 0xe0);
+    }
+    if (imageSection->Characteristics & IMAGE_SCN_MEM_READ)
+    {
+        return RGB(0xc0, 0xf0, 0xc0);
+    }
+
+    return RGB(0xff, 0xff, 0xff);
+}
+
+static INT NTAPI PvpPeVirtualAddressCompareFunction(
+    _In_ PVOID Item1,
+    _In_ PVOID Item2,
+    _In_opt_ PVOID Context
+    )
+{
+    PIMAGE_SECTION_HEADER entry1 = Item1;
+    PIMAGE_SECTION_HEADER entry2 = Item2;
+
+    return uintcmp(entry1->VirtualAddress, entry2->VirtualAddress);
+}
+
+static INT NTAPI PvpPeSizeOfRawDataCompareFunction(
+    _In_ PVOID Item1,
+    _In_ PVOID Item2,
+    _In_opt_ PVOID Context
+    )
+{
+    PIMAGE_SECTION_HEADER entry1 = Item1;
+    PIMAGE_SECTION_HEADER entry2 = Item2;
+
+    return uintcmp(entry1->SizeOfRawData, entry2->SizeOfRawData);
+}
+
+static INT NTAPI PvpPeCharacteristicsCompareFunction(
+    _In_ PVOID Item1,
+    _In_ PVOID Item2,
+    _In_opt_ PVOID Context
+    )
+{
+    PIMAGE_SECTION_HEADER entry1 = Item1;
+    PIMAGE_SECTION_HEADER entry2 = Item2;
+
+    return uintcmp(entry1->Characteristics, entry2->Characteristics);
+}
+
+typedef struct _PVP_PE_GENERAL_CONTEXT
+{
+    HWND WindowHandle;
+    HWND ListViewHandle;
+    HIMAGELIST ListViewImageList;
+} PVP_PE_GENERAL_CONTEXT, *PPVP_PE_GENERAL_CONTEXT;
 
 INT_PTR CALLBACK PvpPeGeneralDlgProc(
     _In_ HWND hwndDlg,
@@ -795,25 +881,45 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
 {
     LPPROPSHEETPAGE propSheetPage;
     PPV_PROPPAGECONTEXT propPageContext;
+    PPVP_PE_GENERAL_CONTEXT context;
+    HWND lvHandle;
 
-    if (!PvPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext))
+    if (PhPropContextPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext))
+    {
+        if (context = propPageContext->Context)
+            lvHandle = context->ListViewHandle;
+        else
+            lvHandle = NULL;
+    }
+    else
+    {
         return FALSE;
+    }
 
     switch (uMsg)
     {
     case WM_INITDIALOG:
         {
-            HWND lvHandle;
+            context = propPageContext->Context = PhAllocateZero(sizeof(PVP_PE_GENERAL_CONTEXT));
+            lvHandle = context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
-            lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
-            PhSetListViewStyle(lvHandle, TRUE, TRUE);
+            PhSetExtendedListView(lvHandle);
+            PhSetListViewStyle(lvHandle, FALSE, TRUE);
             PhSetControlTheme(lvHandle, L"explorer");
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 80, L"Name");
             PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 80, L"VA");
             PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 80, L"Size");
             PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 250, L"Characteristics");
             //PhAddListViewColumn(lvHandle, 4, 4, 4, LVCFMT_LEFT, 80, L"Hash");
+            //ExtendedListView_SetItemColorFunction(lvHandle, PhpTokenGroupColorFunction);
+            ExtendedListView_SetCompareFunction(lvHandle, 1, PvpPeVirtualAddressCompareFunction);
+            ExtendedListView_SetCompareFunction(lvHandle, 2, PvpPeSizeOfRawDataCompareFunction);
+            ExtendedListView_SetCompareFunction(lvHandle, 3, PvpPeCharacteristicsCompareFunction);
             PhLoadListViewColumnsFromSetting(L"ImageGeneralListViewColumns", lvHandle);
+            PhLoadListViewSortColumnsFromSetting(L"ImageGeneralListViewSort", lvHandle);
+
+            if (context->ListViewImageList = ImageList_Create(2, 20, ILC_COLOR, 1, 1))
+                ListView_SetImageList(lvHandle, context->ListViewImageList, LVSIL_SMALL);
 
             // File version information
             PvpSetPeImageVersionInfo(hwndDlg);
@@ -832,7 +938,13 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
         break;
     case WM_DESTROY:
         {
-            PhSaveListViewColumnsToSetting(L"ImageGeneralListViewColumns", GetDlgItem(hwndDlg, IDC_LIST));
+            PhSaveListViewSortColumnsToSetting(L"ImageGeneralListViewSort", lvHandle);
+            PhSaveListViewColumnsToSetting(L"ImageGeneralListViewColumns", lvHandle);
+
+            if (context->ListViewImageList)
+                ImageList_Destroy(context->ListViewImageList);
+
+            PhFree(context);
         }
         break;
     case WM_SHOWWINDOW:
@@ -940,15 +1052,17 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
                 break;
             }
 
-            PvHandleListViewNotifyForCopy(lParam, GetDlgItem(hwndDlg, IDC_LIST));
+            PvHandleListViewNotifyForCopy(lParam, lvHandle);
         }
         break;
     case WM_CONTEXTMENU:
         {
-            PvHandleListViewCommandCopy(hwndDlg, lParam, wParam, GetDlgItem(hwndDlg, IDC_LIST));
+            PvHandleListViewCommandCopy(hwndDlg, lParam, wParam, lvHandle);
         }
         break;
     }
+
+    REFLECT_MESSAGE_DLG(hwndDlg, lvHandle, uMsg, wParam, lParam);
 
     return FALSE;
 }
@@ -957,28 +1071,22 @@ BOOLEAN PvpLoadDbgHelp(
     _Inout_ PPH_SYMBOL_PROVIDER *SymbolProvider
     )
 {
-    static UNICODE_STRING symbolPathVarName = RTL_CONSTANT_STRING(L"_NT_SYMBOL_PATH");
-    PPH_STRING symbolSearchPath;
+    static PH_STRINGREF symbolPathVarName = PH_STRINGREF_INIT(L"_NT_SYMBOL_PATH");
+    PPH_STRING symbolSearchPath = NULL;
     PPH_SYMBOL_PROVIDER symbolProvider;
-    UNICODE_STRING symbolPathUs;
-    WCHAR buffer[512];
 
-    // Load symbol path from _NT_SYMBOL_PATH if configured by the user.
-    RtlInitEmptyUnicodeString(&symbolPathUs, buffer, sizeof(buffer));
-
-    if (NT_SUCCESS(RtlQueryEnvironmentVariable_U(NULL, &symbolPathVarName, &symbolPathUs)))
+    if (!NT_SUCCESS(PhQueryEnvironmentVariable(NULL, &symbolPathVarName, &symbolSearchPath)))
     {
-        symbolSearchPath = PhCreateStringFromUnicodeString(&symbolPathUs);
-    }
-    else
-    {
-        // Set the default path (C:\\Symbols is the default hard-coded path for livekd). 
         symbolSearchPath = PhCreateString(L"SRV*C:\\Symbols*https://msdl.microsoft.com/download/symbols");
     }
 
     symbolProvider = PhCreateSymbolProvider(NULL);
-    PhSetSearchPathSymbolProvider(symbolProvider, symbolSearchPath->Buffer);
-    PhDereferenceObject(symbolSearchPath);
+
+    if (symbolSearchPath)
+    {
+        PhSetSearchPathSymbolProvider(symbolProvider, symbolSearchPath->Buffer);
+        PhDereferenceObject(symbolSearchPath);
+    }
 
     *SymbolProvider = symbolProvider;
     return TRUE;
