@@ -884,7 +884,7 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
     PPVP_PE_GENERAL_CONTEXT context;
     HWND lvHandle;
 
-    if (PhPropContextPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext))
+    if (PvPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext))
     {
         if (context = propPageContext->Context)
             lvHandle = context->ListViewHandle;
