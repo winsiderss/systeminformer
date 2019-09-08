@@ -994,7 +994,7 @@ BOOLEAN PdbGetSymbolUdtVariables(
     )
 {
     ULONG childrenLength = 0;
-    TI_FINDCHILDREN_PARAMS* symbolParams;
+    TI_FINDCHILDREN_PARAMS* symbolParams = NULL;
 
     if (!PdbCheckTagType(BaseAddress, Index, SymTagUDT))
         return FALSE;
@@ -1072,7 +1072,7 @@ BOOLEAN PdbGetSymbolUdtBaseClasses(
     )
 {
     ULONG childrenLength = 0;
-    TI_FINDCHILDREN_PARAMS* symbolParams;
+    TI_FINDCHILDREN_PARAMS* symbolParams = NULL;
 
     if (!PdbCheckTagType(BaseAddress, Index, SymTagUDT))
         return FALSE;
@@ -1112,7 +1112,7 @@ BOOLEAN PdbGetSymbolUdtUnionMembers(
     )
 {
     ULONG childrenLength = 0;
-    TI_FINDCHILDREN_PARAMS* symbolParams;
+    TI_FINDCHILDREN_PARAMS* symbolParams = NULL;
 
     if (!PdbCheckTagType(BaseAddress, Index, SymTagUDT))
         return FALSE;
@@ -1152,7 +1152,7 @@ BOOLEAN PdbGetSymbolFunctionArguments(
     )
 {
     ULONG childrenLength = 0;
-    TI_FINDCHILDREN_PARAMS* symbolParams;
+    TI_FINDCHILDREN_PARAMS* symbolParams = NULL;
 
     if (!PdbCheckTagType(BaseAddress, Index, SymTagFunctionType))
         return FALSE;
@@ -1192,7 +1192,7 @@ BOOLEAN PdbGetSymbolEnumerations(
     )
 {
     ULONG childrenLength = 0;
-    TI_FINDCHILDREN_PARAMS* symbolParams;
+    TI_FINDCHILDREN_PARAMS* symbolParams = NULL;
 
     if (!PdbCheckTagType(BaseAddress, Index, SymTagEnum))
         return FALSE;
