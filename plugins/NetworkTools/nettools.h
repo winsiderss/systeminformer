@@ -33,8 +33,6 @@
 #include <icmpapi.h>
 #include <shlobj.h>
 
-#include <http.h>
-
 #include "resource.h"
 
 #define PLUGIN_NAME L"ProcessHacker.NetworkTools"
