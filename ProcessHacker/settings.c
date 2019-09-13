@@ -46,6 +46,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableKphWarnings", L"1");
     PhpAddIntegerSetting(L"EnableHandleSnapshot", L"1");
     PhpAddIntegerSetting(L"EnableNetworkResolve", L"1");
+    PhpAddIntegerSetting(L"EnableNetworkResolveDoH", L"0");
     PhpAddIntegerSetting(L"EnablePlugins", L"1");
     PhpAddIntegerSetting(L"EnableServiceNonPoll", L"0");
     PhpAddIntegerSetting(L"EnableStage2", L"1");

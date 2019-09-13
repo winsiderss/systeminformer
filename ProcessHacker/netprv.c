@@ -24,6 +24,7 @@
 
 #include <phapp.h>
 #include <phplug.h>
+#include <phsettings.h>
 #include <netprv.h>
 #include <svcsup.h>
 #include <workqueue.h>
@@ -392,36 +393,98 @@ PPH_STRING PhGetHostNameFromAddressEx(
     _In_ PPH_IP_ADDRESS Address
     )
 {
+    BOOLEAN dnsLocalQuery = FALSE;
     PPH_STRING addressHostName = NULL;
     PPH_STRING addressReverse = NULL;
-    PDNS_RECORD addressResults = NULL;
+    PDNS_RECORD dnsRecordList = NULL;
 
-    if (Address->Type == PH_IPV4_NETWORK_TYPE)
+    if (PhEnableNetworkResolveDoHSupport)
     {
-        addressReverse = PhpGetIp4ReverseNameFromAddress(Address->InAddr);
-    }
-    else if (Address->Type == PH_IPV6_NETWORK_TYPE)
-    {
-        addressReverse = PhpGetIp6ReverseNameFromAddress(Address->In6Addr);
+        if (Address->Type == PH_IPV4_NETWORK_TYPE)
+        {
+            addressReverse = PhpGetIp4ReverseNameFromAddress(Address->InAddr);
+
+            if (
+                IN4_IS_ADDR_UNSPECIFIED(&Address->InAddr) ||
+                IN4_IS_ADDR_LOOPBACK(&Address->InAddr) ||
+                IN4_IS_ADDR_RFC1918(&Address->InAddr)
+                )
+            {
+                dnsLocalQuery = TRUE;
+            }
+        }
+        else if (Address->Type == PH_IPV6_NETWORK_TYPE)
+        {
+            addressReverse = PhpGetIp6ReverseNameFromAddress(Address->In6Addr);
+
+            if (
+                IN6_IS_ADDR_UNSPECIFIED(&Address->In6Addr) ||
+                IN6_IS_ADDR_LOOPBACK(&Address->In6Addr) ||
+                IN6_IS_ADDR_LINKLOCAL(&Address->In6Addr)
+                )
+            {
+                dnsLocalQuery = TRUE;
+            }
+        }
+        else
+        {
+            return NULL;
+        }
+
+        if (!dnsLocalQuery)
+        {
+            dnsRecordList = PhHttpDnsQuery(addressReverse->Buffer, DNS_TYPE_PTR);
+        }
+
+        if (!dnsRecordList)
+        {
+            DnsQuery(
+                addressReverse->Buffer,
+                DNS_TYPE_PTR,
+                DNS_QUERY_NO_HOSTS_FILE, // DNS_QUERY_BYPASS_CACHE
+                NULL,
+                &dnsRecordList,
+                NULL
+                );
+        }
     }
     else
     {
-        return NULL;
+        if (Address->Type == PH_IPV4_NETWORK_TYPE)
+        {
+            addressReverse = PhpGetIp4ReverseNameFromAddress(Address->InAddr);
+        }
+        else if (Address->Type == PH_IPV6_NETWORK_TYPE)
+        {
+            addressReverse = PhpGetIp6ReverseNameFromAddress(Address->In6Addr);
+        }
+        else
+        {
+            return NULL;
+        }
+
+        DnsQuery(
+            addressReverse->Buffer,
+            DNS_TYPE_PTR,
+            DNS_QUERY_NO_HOSTS_FILE, // DNS_QUERY_BYPASS_CACHE
+            NULL,
+            &dnsRecordList,
+            NULL
+            );
     }
 
-    DnsQuery(
-        addressReverse->Buffer,
-        DNS_TYPE_PTR,
-        DNS_QUERY_NO_HOSTS_FILE, // DNS_QUERY_BYPASS_CACHE
-        NULL,
-        &addressResults,
-        NULL
-        );
-
-    if (addressResults)
+    if (dnsRecordList)
     {
-        addressHostName = PhCreateString(addressResults->Data.PTR.pNameHost); // Return the first result (dmex)
-        DnsRecordListFree(addressResults, DnsFreeRecordList);
+        for (PDNS_RECORD dnsRecord = dnsRecordList; dnsRecord; dnsRecord = dnsRecord->pNext)
+        {
+            if (dnsRecord->wType == DNS_TYPE_PTR)
+            {
+                addressHostName = PhCreateString(dnsRecord->Data.PTR.pNameHost); // Return the first result (dmex)
+                break;
+            }
+        }
+
+        DnsFree(dnsRecordList, DnsFreeRecordList);
     }
 
     PhDereferenceObject(addressReverse);
