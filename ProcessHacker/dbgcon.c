@@ -672,14 +672,11 @@ NTSTATUS PhpDebugConsoleThreadStart(
     PhLoadSymbolProviderOptions(DebugConsoleSymbolProvider);
 
     {
-        static UNICODE_STRING variableNameUs = RTL_CONSTANT_STRING(L"_NT_SYMBOL_PATH");
-        UNICODE_STRING variableValueUs;
+        static PH_STRINGREF variableNameSr = PH_STRINGREF_INIT(L"_NT_SYMBOL_PATH");
+        PPH_STRING variableValue;
         PPH_STRING newSearchPath;
-        WCHAR buffer[MAX_PATH];
 
-        RtlInitEmptyUnicodeString(&variableValueUs, buffer, sizeof(buffer));
-
-        if (NT_SUCCESS(RtlQueryEnvironmentVariable_U(NULL, &variableNameUs, &variableValueUs)))
+        if (NT_SUCCESS(PhQueryEnvironmentVariable(NULL, &variableNameSr, &variableValue)))
         {
             PPH_STRING currentDirectory = PhGetApplicationDirectory();
             PPH_STRING currentSearchPath = PhGetStringSetting(L"DbgHelpSearchPath");
@@ -688,7 +685,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
             {
                 newSearchPath = PhFormatString(
                     L"%s;%s;%s",
-                    buffer,
+                    variableValue->Buffer,
                     PhGetStringOrEmpty(currentSearchPath),
                     PhGetStringOrEmpty(currentDirectory)
                     );
@@ -697,13 +694,14 @@ NTSTATUS PhpDebugConsoleThreadStart(
             {
                 newSearchPath = PhFormatString(
                     L"%s;%s",
-                    buffer,
+                    variableValue->Buffer,
                     PhGetStringOrEmpty(currentDirectory)
                     );
             }
 
             PhSetSearchPathSymbolProvider(DebugConsoleSymbolProvider, PhGetString(newSearchPath));
 
+            PhDereferenceObject(variableValue);
             PhDereferenceObject(newSearchPath);
             PhDereferenceObject(currentDirectory);
         }
