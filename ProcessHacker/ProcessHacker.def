@@ -695,3 +695,25 @@ EXPORTS
 
 ; appresolver
     PhAppResolverGetAppIdForWindow
+
+; http
+    PhHttpSocketCreate
+    PhHttpSocketDestroy
+    PhHttpSocketConnect
+    PhHttpSocketBeginRequest
+    PhHttpSocketSendRequest
+    PhHttpSocketEndRequest
+    PhHttpSocketReadData
+    PhHttpSocketWriteData
+    PhHttpSocketAddRequestHeaders
+    PhHttpSocketQueryHeaders
+    PhHttpSocketQueryHeaderString
+    PhHttpSocketQueryHeaderUlong
+    PhHttpSocketQueryOptionString
+    PhHttpSocketReadDataToBuffer
+    PhHttpSocketDownloadString
+    PhHttpSocketSetFeature
+    PhHttpSocketParseUrl
+    PhHttpSocketGetErrorMessage
+    PhHttpSocketSetCredentials
+    PhHttpDnsQuery
