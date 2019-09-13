@@ -938,16 +938,11 @@ PDNS_RECORD PhHttpDnsQuery(
 
     if (WindowsVersion <= WINDOWS_8)
     {
-        ULONG option = SECURITY_FLAG_IGNORE_UNKNOWN_CA |
-            SECURITY_FLAG_IGNORE_CERT_WRONG_USAGE |
-            SECURITY_FLAG_IGNORE_CERT_CN_INVALID |
-            SECURITY_FLAG_IGNORE_CERT_DATE_INVALID;
-
-        // Winhttp on Windows 7 doesn't support newer certificates. (dmex)
+        // Winhttp on Windows 7 doesn't correctly validate the certificate CN for connections using an IP address. (dmex)
         WinHttpSetOption(
             httpRequestHandle,
             WINHTTP_OPTION_SECURITY_FLAGS,
-            &option,
+            &(ULONG){ SECURITY_FLAG_IGNORE_CERT_CN_INVALID },
             sizeof(ULONG)
             );
     }
