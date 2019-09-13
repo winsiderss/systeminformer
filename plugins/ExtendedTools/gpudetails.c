@@ -328,38 +328,38 @@ VOID EtpGpuDetailsEnumAdapters(
     )
 {
     PETP_GPU_ADAPTER gpuAdapter;
-    D3DKMT_OPENADAPTERFROMLUID openAdapterFromLuid;
+    D3DKMT_OPENADAPTERFROMDEVICENAME openAdapterFromDeviceName;
 
     for (ULONG i = 0; i < EtpGpuAdapterList->Count; i++)
     {
         gpuAdapter = EtpGpuAdapterList->Items[i];
 
-        memset(&openAdapterFromLuid, 0, sizeof(D3DKMT_OPENADAPTERFROMLUID));
-        openAdapterFromLuid.AdapterLuid = gpuAdapter->AdapterLuid;
+        memset(&openAdapterFromDeviceName, 0, sizeof(D3DKMT_OPENADAPTERFROMDEVICENAME));
+        openAdapterFromDeviceName.DeviceName = PhGetString(gpuAdapter->DeviceInterface);
 
-        if (!NT_SUCCESS(D3DKMTOpenAdapterFromLuid(&openAdapterFromLuid)))
+        if (!NT_SUCCESS(D3DKMTOpenAdapterFromDeviceName(&openAdapterFromDeviceName)))
             continue;
 
         if (!ListView_HasGroup(ListViewHandle, i))
         {
             if (PhAddListViewGroup(ListViewHandle, i, PhGetString(gpuAdapter->Description)) == MAXINT)
             {
-                EtCloseAdapterHandle(openAdapterFromLuid.AdapterHandle);
+                EtCloseAdapterHandle(openAdapterFromDeviceName.AdapterHandle);
                 continue;
             }
 
             EtpGpuDetailsAddListViewItemGroups(ListViewHandle, i);
         }
 
-        EtpQueryAdapterDeviceProperties(PhGetString(gpuAdapter->DeviceInterface), ListViewHandle);
-        //EtpQueryAdapterRegistryInfo(openAdapterFromLuid.AdapterHandle, ListViewHandle);
-        EtpQueryAdapterDriverModel(openAdapterFromLuid.AdapterHandle, ListViewHandle);
-        //EtpQueryAdapterDriverVersion(openAdapterFromLuid.AdapterHandle, ListViewHandle);
-        EtpQueryAdapterDeviceIds(openAdapterFromLuid.AdapterHandle, ListViewHandle);
-        //EtQueryAdapterFeatureLevel(openAdapterFromLuid.AdapterLuid);
-        EtpQueryAdapterPerfInfo(openAdapterFromLuid.AdapterHandle, ListViewHandle);
+        EtpQueryAdapterDeviceProperties(openAdapterFromDeviceName.DeviceName, ListViewHandle);
+        //EtpQueryAdapterRegistryInfo(openAdapterFromDeviceName.AdapterHandle, ListViewHandle);
+        EtpQueryAdapterDriverModel(openAdapterFromDeviceName.AdapterHandle, ListViewHandle);
+        //EtpQueryAdapterDriverVersion(openAdapterFromDeviceName.AdapterHandle, ListViewHandle);
+        EtpQueryAdapterDeviceIds(openAdapterFromDeviceName.AdapterHandle, ListViewHandle);
+        //EtQueryAdapterFeatureLevel(openAdapterFromDeviceName.AdapterLuid);
+        EtpQueryAdapterPerfInfo(openAdapterFromDeviceName.AdapterHandle, ListViewHandle);
 
-        EtCloseAdapterHandle(openAdapterFromLuid.AdapterHandle);
+        EtCloseAdapterHandle(openAdapterFromDeviceName.AdapterHandle);
     }
 }
 
