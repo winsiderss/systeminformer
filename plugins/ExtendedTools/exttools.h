@@ -38,6 +38,7 @@ extern ULONG ProcessesUpdatedCount;
 #define SETTING_NAME_WSWATCH_WINDOW_SIZE (PLUGIN_NAME L".WsWatchWindowSize")
 #define SETTING_NAME_WSWATCH_COLUMNS (PLUGIN_NAME L".WsWatchListColumns")
 #define SETTING_NAME_TRAYICON_GUIDS (PLUGIN_NAME L".TrayIconGuids")
+#define SETTING_NAME_ENABLE_FAHRENHEIT (PLUGIN_NAME L".EnableFahrenheit")
 
 // Window messages
 #define ET_WM_SHOWDIALOG (WM_APP + 1)

@@ -23,9 +23,6 @@
 #include "exttools.h"
 #include "gpumon.h"
 
-static PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
-static PH_LAYOUT_MANAGER LayoutManager;
-
 typedef enum _GPUADAPTER_DETAILS_INDEX
 {
     GPUADAPTER_DETAILS_INDEX_PHYSICALLOCTION,
@@ -188,7 +185,7 @@ VOID EtpQueryAdapterDriverVersion(
         )))
     {
         PPH_STRING driverVersionString = PhFormatString(
-            L"%hu.%hu.%hu.%hu", 
+            L"%hu.%hu.%hu.%hu",
             HIWORD(driverUserVersion.DriverVersion.HighPart),
             LOWORD(driverUserVersion.DriverVersion.HighPart),
             HIWORD(driverUserVersion.DriverVersion.LowPart),
@@ -260,12 +257,69 @@ VOID EtpQueryAdapterPerfInfo(
         sizeof(D3DKMT_ADAPTER_PERFDATA)
         )))
     {
-        PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_MEMORYFREQUENCY, 1, PhaFormatString(L"%lu MHz", adapterPerfData.MemoryFrequency / 1000 / 1000)->Buffer);
+        PH_FORMAT format[2];
+        WCHAR formatBuffer[256];
+
+        PhInitFormatI64U(&format[0], adapterPerfData.MemoryFrequency / 1000 / 1000);
+        PhInitFormatS(&format[1], L"MHz");
+
+        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
+        {
+            PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_MEMORYFREQUENCY, 1, formatBuffer);
+        }
+        else
+        {
+            PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_MEMORYFREQUENCY, 1, PhaFormatString(
+                L"%lu MHz",
+                adapterPerfData.MemoryFrequency / 1000 / 1000
+                )->Buffer);
+        }
+
         PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_MEMORYBANDWIDTH, 1, PhaFormatSize(adapterPerfData.MemoryBandwidth, ULONG_MAX)->Buffer);
         PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_PCIEBANDWIDTH, 1, PhaFormatSize(adapterPerfData.PCIEBandwidth, ULONG_MAX)->Buffer);
         PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_FANRPM, 1, PhaFormatUInt64(adapterPerfData.FanRPM, FALSE)->Buffer);
         PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_POWERUSAGE, 1, PhaFormatString(L"%lu%%", adapterPerfData.Power * 100 / 1000)->Buffer);
-        PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_TEMPERATURE, 1, PhaFormatString(L"%lu\u00b0C", adapterPerfData.Temperature * 100 / 1000)->Buffer);
+
+        if (PhGetIntegerSetting(SETTING_NAME_ENABLE_FAHRENHEIT))
+        {
+            ULONG gpuCurrentTemp = adapterPerfData.Temperature * 100 / 1000;
+            FLOAT gpuFahrenheitTemp = (FLOAT)(gpuCurrentTemp * 1.8 + 32);
+
+            PhInitFormatF(&format[0], gpuFahrenheitTemp, 1);
+            PhInitFormatS(&format[1], L"\u00b0F");
+
+            if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
+            {
+                PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_TEMPERATURE, 1, formatBuffer);
+            }
+            else
+            {
+                PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_TEMPERATURE, 1, PhaFormatString(
+                    L"%.1f\u00b0F (%lu\u00b0C)",
+                    gpuFahrenheitTemp,
+                    gpuCurrentTemp
+                    )->Buffer);
+            }
+        }
+        else
+        {
+            ULONG gpuCurrentTemp = adapterPerfData.Temperature * 100 / 1000;
+
+            PhInitFormatI64U(&format[0], gpuCurrentTemp);
+            PhInitFormatS(&format[1], L"\u00b0C");
+
+            if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
+            {
+                PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_TEMPERATURE, 1, formatBuffer);
+            }
+            else
+            {
+                PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_TEMPERATURE, 1, PhaFormatString(
+                    L"%lu\u00b0C",
+                    gpuCurrentTemp
+                    )->Buffer);
+            }
+        }
     }
 }
 
@@ -274,38 +328,38 @@ VOID EtpGpuDetailsEnumAdapters(
     )
 {
     PETP_GPU_ADAPTER gpuAdapter;
-    D3DKMT_OPENADAPTERFROMDEVICENAME openAdapterFromDeviceName;
+    D3DKMT_OPENADAPTERFROMLUID openAdapterFromLuid;
 
     for (ULONG i = 0; i < EtpGpuAdapterList->Count; i++)
     {
         gpuAdapter = EtpGpuAdapterList->Items[i];
 
-        memset(&openAdapterFromDeviceName, 0, sizeof(D3DKMT_OPENADAPTERFROMDEVICENAME));
-        openAdapterFromDeviceName.DeviceName = PhGetString(gpuAdapter->DeviceInterface);
+        memset(&openAdapterFromLuid, 0, sizeof(D3DKMT_OPENADAPTERFROMLUID));
+        openAdapterFromLuid.AdapterLuid = gpuAdapter->AdapterLuid;
 
-        if (!NT_SUCCESS(D3DKMTOpenAdapterFromDeviceName(&openAdapterFromDeviceName)))
+        if (!NT_SUCCESS(D3DKMTOpenAdapterFromLuid(&openAdapterFromLuid)))
             continue;
 
         if (!ListView_HasGroup(ListViewHandle, i))
         {
             if (PhAddListViewGroup(ListViewHandle, i, PhGetString(gpuAdapter->Description)) == MAXINT)
             {
-                EtCloseAdapterHandle(openAdapterFromDeviceName.AdapterHandle);
+                EtCloseAdapterHandle(openAdapterFromLuid.AdapterHandle);
                 continue;
             }
 
             EtpGpuDetailsAddListViewItemGroups(ListViewHandle, i);
         }
 
-        EtpQueryAdapterDeviceProperties(openAdapterFromDeviceName.DeviceName, ListViewHandle);
-        //EtpQueryAdapterRegistryInfo(openAdapterFromDeviceName.AdapterHandle, ListViewHandle);
-        EtpQueryAdapterDriverModel(openAdapterFromDeviceName.AdapterHandle, ListViewHandle);
-        //EtpQueryAdapterDriverVersion(openAdapterFromDeviceName.AdapterHandle, ListViewHandle);
-        EtpQueryAdapterDeviceIds(openAdapterFromDeviceName.AdapterHandle, ListViewHandle);
-        //EtQueryAdapterFeatureLevel(openAdapterFromDeviceName.AdapterLuid);
-        EtpQueryAdapterPerfInfo(openAdapterFromDeviceName.AdapterHandle, ListViewHandle);
+        EtpQueryAdapterDeviceProperties(PhGetString(gpuAdapter->DeviceInterface), ListViewHandle);
+        //EtpQueryAdapterRegistryInfo(openAdapterFromLuid.AdapterHandle, ListViewHandle);
+        EtpQueryAdapterDriverModel(openAdapterFromLuid.AdapterHandle, ListViewHandle);
+        //EtpQueryAdapterDriverVersion(openAdapterFromLuid.AdapterHandle, ListViewHandle);
+        EtpQueryAdapterDeviceIds(openAdapterFromLuid.AdapterHandle, ListViewHandle);
+        //EtQueryAdapterFeatureLevel(openAdapterFromLuid.AdapterLuid);
+        EtpQueryAdapterPerfInfo(openAdapterFromLuid.AdapterHandle, ListViewHandle);
 
-        EtCloseAdapterHandle(openAdapterFromDeviceName.AdapterHandle);
+        EtCloseAdapterHandle(openAdapterFromLuid.AdapterHandle);
     }
 }
 
@@ -317,6 +371,14 @@ static VOID ProcessesUpdatedCallback(
     PostMessage((HWND)Context, ET_WM_UPDATE, 0, 0);
 }
 
+typedef struct _ET_GPU_DETAILS_CONTEXT
+{
+    HWND DialogHandle;
+    HWND ListViewHandle;
+    PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
+    PH_LAYOUT_MANAGER LayoutManager;
+} ET_GPU_DETAILS_CONTEXT, *PET_GPU_DETAILS_CONTEXT;
+
 INT_PTR CALLBACK EtpGpuDetailsDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -324,44 +386,69 @@ INT_PTR CALLBACK EtpGpuDetailsDlgProc(
     _In_ LPARAM lParam
     )
 {
+    PET_GPU_DETAILS_CONTEXT context = NULL;
+
+    if (uMsg == WM_INITDIALOG)
+    {
+        context = PhAllocateZero(sizeof(ET_GPU_DETAILS_CONTEXT));
+
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+    }
+    else
+    {
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+
+        if (uMsg == WM_DESTROY)
+        {
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+        }
+    }
+
+    if (context == NULL)
+        return FALSE;
+
     switch (uMsg)
     {
     case WM_INITDIALOG:
         {
-            HWND listViewHandle = GetDlgItem(hwndDlg, IDC_GPULIST);
-
             SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
             SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
 
+            context->DialogHandle = hwndDlg;
+            context->ListViewHandle = GetDlgItem(hwndDlg, IDC_GPULIST);
+
+            PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
+            PhSetControlTheme(context->ListViewHandle, L"explorer");
+            PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 230, L"Property");
+            PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 200, L"Value");
+            PhSetExtendedListView(context->ListViewHandle);
+            ListView_EnableGroupView(context->ListViewHandle, TRUE);
+
+            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
+
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
-            PhSetListViewStyle(listViewHandle, FALSE, TRUE);
-            PhSetControlTheme(listViewHandle, L"explorer");
-            PhAddListViewColumn(listViewHandle, 0, 0, 0, LVCFMT_LEFT, 230, L"Property");
-            PhAddListViewColumn(listViewHandle, 1, 1, 1, LVCFMT_LEFT, 200, L"Value");
-            PhSetExtendedListView(listViewHandle);
-            ListView_EnableGroupView(listViewHandle, TRUE);
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
 
-            PhInitializeLayoutManager(&LayoutManager, hwndDlg);
-            PhAddLayoutItem(&LayoutManager, listViewHandle, NULL, PH_ANCHOR_ALL);
-
-            EtpGpuDetailsEnumAdapters(listViewHandle);
+            EtpGpuDetailsEnumAdapters(context->ListViewHandle);
 
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
                 ProcessesUpdatedCallback,
                 hwndDlg,
-                &ProcessesUpdatedCallbackRegistration
+                &context->ProcessesUpdatedCallbackRegistration
                 );
-
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
         }
         break;
     case WM_DESTROY:
         {
-            PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), &ProcessesUpdatedCallbackRegistration);
+            PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), &context->ProcessesUpdatedCallbackRegistration);
 
-            PhDeleteLayoutManager(&LayoutManager);
+            PhDeleteLayoutManager(&context->LayoutManager);
+            PhFree(context);
+
+            PostQuitMessage(0);
         }
         break;
     case WM_COMMAND:
@@ -369,19 +456,80 @@ INT_PTR CALLBACK EtpGpuDetailsDlgProc(
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDCANCEL:
-                EndDialog(hwndDlg, IDOK);
+            case IDOK:
+                DestroyWindow(hwndDlg);
                 break;
             }
         }
         break;
     case WM_SIZE:
         {
-            PhLayoutManagerLayout(&LayoutManager);
+            PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
     case ET_WM_UPDATE:
         {
-            EtpGpuDetailsEnumAdapters(GetDlgItem(hwndDlg, IDC_GPULIST));
+            EtpGpuDetailsEnumAdapters(context->ListViewHandle);
+        }
+        break;
+    case WM_CONTEXTMENU:
+        {
+            if ((HWND)wParam == context->ListViewHandle)
+            {
+                POINT point;
+                PPH_EMENU menu;
+                PPH_EMENU item;
+                PVOID *listviewItems;
+                ULONG numberOfItems;
+
+                point.x = GET_X_LPARAM(lParam);
+                point.y = GET_Y_LPARAM(lParam);
+
+                if (point.x == -1 && point.y == -1)
+                    PhGetListViewContextMenuPoint((HWND)wParam, &point);
+
+                PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
+
+                if (numberOfItems != 0)
+                {
+                    menu = PhCreateEMenu();
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 1, L"&Copy", NULL, NULL), ULONG_MAX);
+                    PhInsertCopyListViewEMenuItem(menu, 1, context->ListViewHandle);
+
+                    item = PhShowEMenu(
+                        menu,
+                        hwndDlg,
+                        PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT,
+                        PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                        point.x,
+                        point.y
+                        );
+
+                    if (item)
+                    {
+                        BOOLEAN handled = FALSE;
+
+                        handled = PhHandleCopyListViewEMenuItem(item);
+
+                        //if (!handled && PhPluginsEnabled)
+                        //    handled = PhPluginTriggerEMenuItem(&menuInfo, item);
+
+                        if (!handled)
+                        {
+                            switch (item->Id)
+                            {
+                            case 1:
+                                PhCopyListView(context->ListViewHandle);
+                                break;
+                            }
+                        }
+                    }
+
+                    PhDestroyEMenu(menu);
+                }
+
+                PhFree(listviewItems);
+            }
         }
         break;
     }
@@ -389,14 +537,49 @@ INT_PTR CALLBACK EtpGpuDetailsDlgProc(
     return FALSE;
 }
 
+NTSTATUS EtGpuDetailsDialogThreadStart(
+    _In_ PVOID Parameter
+    )
+{
+    BOOL result;
+    MSG message;
+    HWND windowHandle;
+    PH_AUTO_POOL autoPool;
+
+    PhInitializeAutoPool(&autoPool);
+
+    windowHandle = CreateDialog(
+        PluginInstance->DllBase,
+        MAKEINTRESOURCE(IDD_SYSINFO_GPUDETAILS),
+        !!PhGetIntegerSetting(L"ForceNoParent") ? NULL : Parameter,
+        EtpGpuDetailsDlgProc
+        );
+
+    ShowWindow(windowHandle, SW_SHOW);
+    SetForegroundWindow(windowHandle);
+
+    while (result = GetMessage(&message, NULL, 0, 0))
+    {
+        if (result == -1)
+            break;
+
+        if (!IsDialogMessage(windowHandle, &message))
+        {
+            TranslateMessage(&message);
+            DispatchMessage(&message);
+        }
+
+        PhDrainAutoPool(&autoPool);
+    }
+
+    PhDeleteAutoPool(&autoPool);
+
+    return STATUS_SUCCESS;
+}
+
 VOID EtShowGpuDetailsDialog(
     _In_ HWND ParentWindowHandle
     )
 {
-    DialogBox(
-        PluginInstance->DllBase, 
-        MAKEINTRESOURCE(IDD_SYSINFO_GPUDETAILS),
-        ParentWindowHandle,
-        EtpGpuDetailsDlgProc
-        );
+    PhCreateThread2(EtGpuDetailsDialogThreadStart, ParentWindowHandle);
 }
