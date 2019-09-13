@@ -370,11 +370,7 @@ PPH_STRING PhpGetCurrentDesktopInfo(
 
     if (PhIsNullOrEmptyString(desktopInfo))
     {
-        PH_STRINGREF desktopInfoSr;
-
-        PhUnicodeStringToStringRef(&NtCurrentPeb()->ProcessParameters->DesktopInfo, &desktopInfoSr);
-
-        PhMoveReference(&desktopInfo, PhCreateString2(&desktopInfoSr));
+        PhMoveReference(&desktopInfo, PhCreateStringFromUnicodeString(&NtCurrentPeb()->ProcessParameters->DesktopInfo));
     }
 
     if (winstationName)
@@ -2386,6 +2382,15 @@ NTSTATUS PhpRunFileProgram(
             NtResumeProcess(newProcessHandle);
 
             NtClose(newProcessHandle);
+        }
+        else if (WIN32_FROM_NTSTATUS(status) == ERROR_ELEVATION_REQUIRED)
+        {
+            status = PhpCustomShellExecute(
+                Context->WindowHandle,
+                commandString->Buffer,
+                NULL,
+                TRUE
+                );
         }
 
     CleanupExit:
