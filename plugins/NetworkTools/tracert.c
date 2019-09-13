@@ -96,64 +96,116 @@ NTSTATUS TracertHostnameLookupCallback(
     )
 {
     PTRACERT_RESOLVE_WORKITEM resolve = Parameter;
-    DNS_STATUS status;
-    PPH_STRING addressHostName = NULL;
-    PPH_STRING addressReverse = NULL;
-    PDNS_RECORD dnsQueryResults = NULL;
+    BOOLEAN dnsLocalQuery = FALSE;
+    PPH_STRING dnsHostNameString = NULL;
+    PPH_STRING dnsReverseNameString = NULL;
+    PDNS_RECORD dnsRecordList = NULL;
 
     if (resolve->Type == PH_IPV4_NETWORK_TYPE)
     {
-        addressReverse = PhpGetIp4ReverseNameFromAddress(((PSOCKADDR_IN)&resolve->SocketAddress)->sin_addr);
+        IN_ADDR inAddr4 = ((PSOCKADDR_IN)&resolve->SocketAddress)->sin_addr;
+
+        if (
+            IN4_IS_ADDR_UNSPECIFIED(&inAddr4) ||
+            IN4_IS_ADDR_LOOPBACK(&inAddr4) ||
+            IN4_IS_ADDR_RFC1918(&inAddr4)
+            )
+        {
+            dnsLocalQuery = TRUE;
+        }
+
+        dnsReverseNameString = PhpGetIp4ReverseNameFromAddress(inAddr4);
     }
     else if (resolve->Type == PH_IPV6_NETWORK_TYPE)
     {
-        addressReverse = PhpGetIp6ReverseNameFromAddress(((PSOCKADDR_IN6)&resolve->SocketAddress)->sin6_addr);
+        IN6_ADDR inAddr6 = ((PSOCKADDR_IN6)&resolve->SocketAddress)->sin6_addr;
+
+        if (
+            IN6_IS_ADDR_UNSPECIFIED(&inAddr6) ||
+            IN6_IS_ADDR_LOOPBACK(&inAddr6) ||
+            IN6_IS_ADDR_LINKLOCAL(&inAddr6)
+            )
+        {
+            dnsLocalQuery = TRUE;
+        }
+
+        dnsReverseNameString = PhpGetIp6ReverseNameFromAddress(inAddr6);
     }
     else
     {
         return STATUS_INVALID_PARAMETER;
     }
 
-    status = DnsQuery(
-        addressReverse->Buffer,
-        DNS_TYPE_PTR,
-        DNS_QUERY_BYPASS_CACHE | DNS_QUERY_NO_HOSTS_FILE,
-        NULL,
-        &dnsQueryResults,
-        NULL
-        );
-
-    if (dnsQueryResults)
+    if (PhGetIntegerSetting(L"EnableNetworkResolveDoH"))
     {
-        addressHostName = PhCreateString(dnsQueryResults->Data.PTR.pNameHost); // Return the first result (dmex)
-        DnsRecordListFree(dnsQueryResults, DnsFreeRecordList);
+        if (!dnsLocalQuery)
+        {
+            dnsRecordList = PhHttpDnsQuery(dnsReverseNameString->Buffer, DNS_TYPE_PTR);
+        }
+
+        if (!dnsRecordList)
+        {
+            DnsQuery(
+                dnsReverseNameString->Buffer,
+                DNS_TYPE_PTR,
+                DNS_QUERY_BYPASS_CACHE | DNS_QUERY_NO_HOSTS_FILE,
+                NULL,
+                &dnsRecordList,
+                NULL
+                );
+        }
+    }
+    else
+    {
+        DnsQuery(
+            dnsReverseNameString->Buffer,
+            DNS_TYPE_PTR,
+            DNS_QUERY_BYPASS_CACHE | DNS_QUERY_NO_HOSTS_FILE,
+            NULL,
+            &dnsRecordList,
+            NULL
+            );
     }
 
-    if (addressHostName)
+    if (dnsRecordList)
+    {
+        for (PDNS_RECORD dnsRecord = dnsRecordList; dnsRecord; dnsRecord = dnsRecord->pNext)
+        {
+            if (dnsRecord->wType == DNS_TYPE_PTR)
+            {
+                dnsHostNameString = PhCreateString(dnsRecord->Data.PTR.pNameHost); // Return the first result (dmex)
+                break;
+            }
+        }
+
+        DnsFree(dnsRecordList, DnsFreeRecordList);
+    }
+
+    if (dnsHostNameString)
     {
         SendMessage(
             resolve->WindowHandle,
             WM_TRACERT_HOSTNAME,
             resolve->Index,
-            (LPARAM)addressHostName
+            (LPARAM)dnsHostNameString
             );
     }
     else
     {
-        if (status != DNS_ERROR_RCODE_NAME_ERROR)
-        {
-            SendMessage(
-                resolve->WindowHandle,
-                WM_TRACERT_HOSTNAME,
-                resolve->Index,
-                (LPARAM)PhGetWin32Message(status)
-                );
-        }
+        //if (status != DNS_ERROR_RCODE_NAME_ERROR)
+        //{
+        //    SendMessage(
+        //        resolve->WindowHandle,
+        //        WM_TRACERT_HOSTNAME,
+        //        resolve->Index,
+        //        (LPARAM)PhGetWin32Message(status)
+        //        );
+        //}
 
         PhDereferenceObject(resolve);
     }
 
-    PhDereferenceObject(addressReverse);
+    PhDereferenceObject(dnsReverseNameString);
 
     return STATUS_SUCCESS;
 }
