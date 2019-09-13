@@ -44,6 +44,10 @@ typedef NTSTATUS (NTAPI *_NtQueryDefaultUILanguage)(
     _Out_ LANGID* DefaultUILanguageId
     );
 
+typedef NTSTATUS (NTAPI* _RtlDefaultNpAcl)(
+    _Out_ PACL* Acl
+    );
+
 typedef NTSTATUS (NTAPI* _RtlGetTokenNamedObjectPath)(
     _In_ HANDLE Token,
     _In_opt_ PSID Sid,
@@ -100,6 +104,7 @@ PH_DECLARE_IMPORT(NtQueryInformationTransactionManager);
 PH_DECLARE_IMPORT(NtQueryDefaultLocale);
 PH_DECLARE_IMPORT(NtQueryDefaultUILanguage);
 
+PH_DECLARE_IMPORT(RtlDefaultNpAcl);
 PH_DECLARE_IMPORT(RtlGetTokenNamedObjectPath);
 PH_DECLARE_IMPORT(RtlGetAppContainerNamedObjectPath);
 PH_DECLARE_IMPORT(RtlGetAppContainerSidType);
