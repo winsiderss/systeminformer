@@ -24,23 +24,10 @@
 #include <ph.h>
 #include <apiimport.h>
 
-PVOID PhpEncodeDecodePointer( // dmex
-    _In_ PVOID Pointer
-    )
-{
-    static ULONG cookie = 0;
-
-    if (cookie == 0)
-    {
-        RtlRandomEx(&cookie);
-    }
-
-    return (PVOID)((ULONG_PTR)Pointer ^ cookie);
-}
-
 PVOID PhpImportProcedure(
     _Inout_ PVOID *Cache,
     _Inout_ PBOOLEAN CacheValid,
+    _Inout_ PULONG Cookie,
     _In_ PWSTR ModuleName,
     _In_ PSTR ProcedureName
     )
@@ -49,16 +36,18 @@ PVOID PhpImportProcedure(
     PVOID procedure;
 
     if (*CacheValid)
-        return PhpEncodeDecodePointer(*Cache);
+        return (PVOID)((ULONG_PTR)*Cache ^ (ULONG_PTR)*Cookie);
 
     if (!(module = PhGetLoaderEntryDllBase(ModuleName)))
-        module = LoadLibrary(ModuleName); // HACK (dmex)
+        module = LoadLibrary(ModuleName);
 
     if (!module)
         return NULL;
 
     procedure = PhGetDllBaseProcedureAddress(module, ProcedureName, 0);
-    *Cache = PhpEncodeDecodePointer(procedure);
+
+    if (*Cookie == 0) RtlRandomEx(Cookie);
+    *Cache = (PVOID)((ULONG_PTR)procedure ^ (ULONG_PTR)*Cookie);
 
     MemoryBarrier();
     *CacheValid = TRUE;
@@ -71,8 +60,9 @@ _##Name Name##_Import(VOID) \
 { \
     static PVOID cache = NULL; \
     static BOOLEAN cacheValid = FALSE; \
+    static ULONG cookie = 0; \
 \
-    return (_##Name)PhpImportProcedure(&cache, &cacheValid, Module, #Name); \
+    return (_##Name)PhpImportProcedure(&cache, &cacheValid, &cookie, Module, #Name); \
 }
 
 PH_DEFINE_IMPORT(L"ntdll.dll", NtQueryInformationEnlistment);
@@ -82,6 +72,7 @@ PH_DEFINE_IMPORT(L"ntdll.dll", NtQueryInformationTransactionManager);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtQueryDefaultLocale);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtQueryDefaultUILanguage);
 
+PH_DEFINE_IMPORT(L"ntdll.dll", RtlDefaultNpAcl);
 PH_DEFINE_IMPORT(L"ntdll.dll", RtlGetTokenNamedObjectPath);
 PH_DEFINE_IMPORT(L"ntdll.dll", RtlGetAppContainerNamedObjectPath);
 PH_DEFINE_IMPORT(L"ntdll.dll", RtlGetAppContainerSidType);
