@@ -209,6 +209,21 @@ BOOLEAN PhGetListViewItemParam(
     return TRUE;
 }
 
+BOOLEAN PhSetListViewItemParam(
+    _In_ HWND ListViewHandle,
+    _In_ INT Index,
+    _In_ PVOID Param
+    )
+{
+    LVITEM item;
+
+    item.mask = LVIF_PARAM;
+    item.iItem = Index;
+    item.lParam = (LPARAM)Param;
+
+    return !!ListView_SetItem(ListViewHandle, &item);
+}
+
 VOID PhRemoveListViewItem(
     _In_ HWND ListViewHandle,
     _In_ INT Index
@@ -696,11 +711,13 @@ HICON PhLoadIcon(
 
     if (Flags & (PH_LOAD_ICON_SIZE_SMALL | PH_LOAD_ICON_SIZE_LARGE))
     {
-        LoadIconMetric(InstanceHandle, Name, (Flags & PH_LOAD_ICON_SIZE_SMALL) ? LIM_SMALL : LIM_LARGE, &icon);
+        if (LoadIconMetric)
+            LoadIconMetric(InstanceHandle, Name, (Flags & PH_LOAD_ICON_SIZE_SMALL) ? LIM_SMALL : LIM_LARGE, &icon);
     }
     else
     {
-        LoadIconWithScaleDown(InstanceHandle, Name, Width, Height, &icon);
+        if (LoadIconWithScaleDown)
+            LoadIconWithScaleDown(InstanceHandle, Name, Width, Height, &icon);
     }
 
     if (!icon && !(Flags & PH_LOAD_ICON_STRICT))

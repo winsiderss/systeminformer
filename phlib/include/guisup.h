@@ -161,7 +161,9 @@ INT PhAddListViewColumn(
     );
 
 PHLIBAPI
-INT PhAddListViewItem(
+INT
+NTAPI
+PhAddListViewItem(
     _In_ HWND ListViewHandle,
     _In_ INT Index,
     _In_ PWSTR Text,
@@ -169,31 +171,48 @@ INT PhAddListViewItem(
     );
 
 PHLIBAPI
-INT PhFindListViewItemByFlags(
+INT
+NTAPI
+PhFindListViewItemByFlags(
     _In_ HWND ListViewHandle,
     _In_ INT StartIndex,
     _In_ ULONG Flags
     );
 
 PHLIBAPI
-INT PhFindListViewItemByParam(
+INT
+NTAPI
+PhFindListViewItemByParam(
     _In_ HWND ListViewHandle,
     _In_ INT StartIndex,
     _In_opt_ PVOID Param
     );
 
 PHLIBAPI
-BOOLEAN PhGetListViewItemImageIndex(
+BOOLEAN
+NTAPI
+PhGetListViewItemImageIndex(
     _In_ HWND ListViewHandle,
     _In_ INT Index,
     _Out_ PINT ImageIndex
     );
 
 PHLIBAPI
-BOOLEAN PhGetListViewItemParam(
+BOOLEAN
+NTAPI
+PhGetListViewItemParam(
     _In_ HWND ListViewHandle,
     _In_ INT Index,
     _Out_ PVOID *Param
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhSetListViewItemParam(
+    _In_ HWND ListViewHandle,
+    _In_ INT Index,
+    _In_ PVOID Param
     );
 
 PHLIBAPI
