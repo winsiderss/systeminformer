@@ -216,7 +216,7 @@ BOOLEAN PhHttpSocketBeginRequest(
     //    PhDereferenceObject(headerHost);
     //}
 
-    //PhHttpSocketSetFeature(HttpContext, PH_HTTP_FEATURE_KEEP_ALIVE, FALSE);
+    PhHttpSocketSetFeature(HttpContext, PH_HTTP_FEATURE_KEEP_ALIVE, FALSE);
     //
     //WinHttpSetOption(
     //    HttpContext->RequestHandle,
