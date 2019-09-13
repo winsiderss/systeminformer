@@ -16,7 +16,8 @@
 #define PHNETLC_TIMESTAMP 8
 #define PHNETLC_LOCALHOSTNAME 9
 #define PHNETLC_REMOTEHOSTNAME 10
-#define PHNETLC_MAXIMUM 11
+#define PHNETLC_PID 11
+#define PHNETLC_MAXIMUM 12
 
 // begin_phapppub
 typedef struct _PH_NETWORK_NODE
@@ -33,6 +34,7 @@ typedef struct _PH_NETWORK_NODE
     ULONG64 UniqueId;
     PPH_STRING ProcessNameText;
     PPH_STRING TimeStampText;
+    PPH_STRING PidText;
 
     PPH_STRING TooltipText;
 // begin_phapppub
