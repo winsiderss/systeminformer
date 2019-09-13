@@ -352,41 +352,46 @@ PPHP_RESOLVE_CACHE_ITEM PhpLookupResolveCacheItem(
 //    return hostName;
 //}
 
-PPH_STRING PhpGetIp4ReverseNameFromAddress(
-    _In_ IN_ADDR Address
+PPH_STRING PhpGetDnsReverseNameFromAddress(
+    _In_ PPH_IP_ADDRESS Address
     )
 {
-    return PhFormatString(
-        L"%hhu.%hhu.%hhu.%hhu.%s",
-        Address.s_impno,
-        Address.s_lh,
-        Address.s_host,
-        Address.s_net,
-        DNS_IP4_REVERSE_DOMAIN_STRING_W
-        );
-}
-
-PPH_STRING PhpGetIp6ReverseNameFromAddress(
-    _In_ IN6_ADDR Address
-    )
-{
-    PH_STRING_BUILDER stringBuilder;
-
-    PhInitializeStringBuilder(&stringBuilder, DNS_MAX_NAME_BUFFER_LENGTH);
-
-    for (INT i = sizeof(IN6_ADDR) - 1; i >= 0; i--)
+    switch (Address->Type)
     {
-        PhAppendFormatStringBuilder(
-            &stringBuilder,
-            L"%hhx.%hhx.",
-            Address.s6_addr[i] & 0xF,
-            (Address.s6_addr[i] >> 4) & 0xF
-            );
+    case PH_IPV4_NETWORK_TYPE:
+        {
+            return PhFormatString(
+                L"%hhu.%hhu.%hhu.%hhu.%s",
+                Address->InAddr.s_impno,
+                Address->InAddr.s_lh,
+                Address->InAddr.s_host,
+                Address->InAddr.s_net,
+                DNS_IP4_REVERSE_DOMAIN_STRING_W
+                );
+        }
+    case PH_IPV6_NETWORK_TYPE:
+        {
+            PH_STRING_BUILDER stringBuilder;
+
+            PhInitializeStringBuilder(&stringBuilder, DNS_MAX_NAME_BUFFER_LENGTH);
+
+            for (INT i = sizeof(IN6_ADDR) - 1; i >= 0; i--)
+            {
+                PhAppendFormatStringBuilder(
+                    &stringBuilder,
+                    L"%hhx.%hhx.",
+                    Address->In6Addr.s6_addr[i] & 0xF,
+                    (Address->In6Addr.s6_addr[i] >> 4) & 0xF
+                    );
+            }
+
+            PhAppendStringBuilder2(&stringBuilder, DNS_IP6_REVERSE_DOMAIN_STRING_W);
+
+            return PhFinalStringBuilderString(&stringBuilder);
+        }
     }
 
-    PhAppendStringBuilder2(&stringBuilder, DNS_IP6_REVERSE_DOMAIN_STRING_W);
-
-    return PhFinalStringBuilderString(&stringBuilder);
+    return NULL;
 }
 
 PPH_STRING PhGetHostNameFromAddressEx(
@@ -394,52 +399,47 @@ PPH_STRING PhGetHostNameFromAddressEx(
     )
 {
     BOOLEAN dnsLocalQuery = FALSE;
-    PPH_STRING addressHostName = NULL;
-    PPH_STRING addressReverse = NULL;
+    PPH_STRING dnsHostNameString = NULL;
+    PPH_STRING dnsReverseNameString = NULL;
     PDNS_RECORD dnsRecordList = NULL;
+
+    if (!(dnsReverseNameString = PhpGetDnsReverseNameFromAddress(Address)))
+        return NULL;
+
+    if (Address->Type == PH_IPV4_NETWORK_TYPE)
+    {
+        if (
+            IN4_IS_ADDR_UNSPECIFIED(&Address->InAddr) ||
+            IN4_IS_ADDR_LOOPBACK(&Address->InAddr) ||
+            IN4_IS_ADDR_RFC1918(&Address->InAddr)
+            )
+        {
+            dnsLocalQuery = TRUE;
+        }
+    }
+    else if (Address->Type == PH_IPV6_NETWORK_TYPE)
+    {
+        if (
+            IN6_IS_ADDR_UNSPECIFIED(&Address->In6Addr) ||
+            IN6_IS_ADDR_LOOPBACK(&Address->In6Addr) ||
+            IN6_IS_ADDR_LINKLOCAL(&Address->In6Addr)
+            )
+        {
+            dnsLocalQuery = TRUE;
+        }
+    }
 
     if (PhEnableNetworkResolveDoHSupport)
     {
-        if (Address->Type == PH_IPV4_NETWORK_TYPE)
-        {
-            addressReverse = PhpGetIp4ReverseNameFromAddress(Address->InAddr);
-
-            if (
-                IN4_IS_ADDR_UNSPECIFIED(&Address->InAddr) ||
-                IN4_IS_ADDR_LOOPBACK(&Address->InAddr) ||
-                IN4_IS_ADDR_RFC1918(&Address->InAddr)
-                )
-            {
-                dnsLocalQuery = TRUE;
-            }
-        }
-        else if (Address->Type == PH_IPV6_NETWORK_TYPE)
-        {
-            addressReverse = PhpGetIp6ReverseNameFromAddress(Address->In6Addr);
-
-            if (
-                IN6_IS_ADDR_UNSPECIFIED(&Address->In6Addr) ||
-                IN6_IS_ADDR_LOOPBACK(&Address->In6Addr) ||
-                IN6_IS_ADDR_LINKLOCAL(&Address->In6Addr)
-                )
-            {
-                dnsLocalQuery = TRUE;
-            }
-        }
-        else
-        {
-            return NULL;
-        }
-
         if (!dnsLocalQuery)
         {
-            dnsRecordList = PhHttpDnsQuery(addressReverse->Buffer, DNS_TYPE_PTR);
+            dnsRecordList = PhHttpDnsQuery(dnsReverseNameString->Buffer, DNS_TYPE_PTR);
         }
 
         if (!dnsRecordList)
         {
             DnsQuery(
-                addressReverse->Buffer,
+                dnsReverseNameString->Buffer,
                 DNS_TYPE_PTR,
                 DNS_QUERY_NO_HOSTS_FILE, // DNS_QUERY_BYPASS_CACHE
                 NULL,
@@ -450,21 +450,8 @@ PPH_STRING PhGetHostNameFromAddressEx(
     }
     else
     {
-        if (Address->Type == PH_IPV4_NETWORK_TYPE)
-        {
-            addressReverse = PhpGetIp4ReverseNameFromAddress(Address->InAddr);
-        }
-        else if (Address->Type == PH_IPV6_NETWORK_TYPE)
-        {
-            addressReverse = PhpGetIp6ReverseNameFromAddress(Address->In6Addr);
-        }
-        else
-        {
-            return NULL;
-        }
-
         DnsQuery(
-            addressReverse->Buffer,
+            dnsReverseNameString->Buffer,
             DNS_TYPE_PTR,
             DNS_QUERY_NO_HOSTS_FILE, // DNS_QUERY_BYPASS_CACHE
             NULL,
@@ -479,7 +466,7 @@ PPH_STRING PhGetHostNameFromAddressEx(
         {
             if (dnsRecord->wType == DNS_TYPE_PTR)
             {
-                addressHostName = PhCreateString(dnsRecord->Data.PTR.pNameHost); // Return the first result (dmex)
+                dnsHostNameString = PhCreateString(dnsRecord->Data.PTR.pNameHost); // Return the first result (dmex)
                 break;
             }
         }
@@ -487,9 +474,9 @@ PPH_STRING PhGetHostNameFromAddressEx(
         DnsFree(dnsRecordList, DnsFreeRecordList);
     }
 
-    PhDereferenceObject(addressReverse);
+    PhDereferenceObject(dnsReverseNameString);
 
-    return addressHostName;
+    return dnsHostNameString;
 }
 
 NTSTATUS PhpNetworkItemQueryWorker(
