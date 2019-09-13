@@ -719,6 +719,20 @@ HINTERNET PhpCreateHttpConnectionHandle(
                     );
             }
 
+            {
+                ULONG option = WINHTTP_FLAG_SECURE_PROTOCOL_ALL |
+                    WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_1 |
+                    WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_2 |
+                    WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_3;
+            
+                WinHttpSetOption(
+                    httpSessionHandle,
+                    WINHTTP_OPTION_SECURE_PROTOCOLS,
+                    &option,
+                    sizeof(ULONG)
+                    );
+            }
+
             WinHttpSetOption(
                 httpSessionHandle,
                 WINHTTP_OPTION_MAX_CONNS_PER_SERVER,
@@ -726,32 +740,45 @@ HINTERNET PhpCreateHttpConnectionHandle(
                 sizeof(ULONG)
                 );
 
-            // Cloudflare DoH
-            // https://developers.cloudflare.com/1.1.1.1/dns-over-https/wireformat/
-            // host: cloudflare-dns.com
-            // host: one.one.one.one
-            // 1.1.1.1
-            // 1.0.0.1
-            // 2606:4700:4700::1111
-            // 2606:4700:4700::1001
-            //
-            // Google DoH
-            // https://developers.google.com/speed/public-dns/docs/doh/
-            // host: dns.google
-            // 8.8.4.4
-            // 8.8.8.8
-            // 2001:4860:4860::8888
-            // 2001:4860:4860::8844
-
-            httpConnectionHandle = WinHttpConnect(
-                httpSessionHandle,
-                L"1.1.1.1",
-                INTERNET_DEFAULT_HTTPS_PORT,
-                0
-                );
+            if (WindowsVersion >= WINDOWS_10)
+            {
+                httpConnectionHandle = WinHttpConnect(
+                    httpSessionHandle,
+                    L"1.1.1.1",
+                    INTERNET_DEFAULT_HTTPS_PORT,
+                    0
+                    );
+            }
         }
 
         PhEndInitOnce(&initOnce);
+    }
+
+    // Cloudflare DoH
+    // https://developers.cloudflare.com/1.1.1.1/dns-over-https/wireformat/
+    // host: cloudflare-dns.com
+    // host: one.one.one.one
+    // 1.1.1.1
+    // 1.0.0.1
+    // 2606:4700:4700::1111
+    // 2606:4700:4700::1001
+    //
+    // Google DoH
+    // https://developers.google.com/speed/public-dns/docs/doh/
+    // host: dns.google
+    // 8.8.4.4
+    // 8.8.8.8
+    // 2001:4860:4860::8888
+    // 2001:4860:4860::8844
+
+    if (WindowsVersion < WINDOWS_10)
+    {
+        httpConnectionHandle = WinHttpConnect(
+            httpSessionHandle,
+            L"1.1.1.1",
+            INTERNET_DEFAULT_HTTPS_PORT,
+            0
+            );
     }
 
     return httpConnectionHandle;
@@ -855,7 +882,7 @@ static BOOLEAN PhpParseDnsMessageBuffer(
     return FALSE;
 }
 
-// DNS over HTTPs (DOH)
+// DNS over HTTPs (DoH)
 // https://developers.cloudflare.com/1.1.1.1/dns-over-https/wireformat/
 PDNS_RECORD PhHttpDnsQuery(
     _In_ PWSTR DnsQueryMessage,
@@ -907,6 +934,22 @@ PDNS_RECORD PhHttpDnsQuery(
         ))
     {
         goto CleanupExit;
+    }
+
+    if (WindowsVersion <= WINDOWS_8)
+    {
+        ULONG option = SECURITY_FLAG_IGNORE_UNKNOWN_CA |
+            SECURITY_FLAG_IGNORE_CERT_WRONG_USAGE |
+            SECURITY_FLAG_IGNORE_CERT_CN_INVALID |
+            SECURITY_FLAG_IGNORE_CERT_DATE_INVALID;
+
+        // Winhttp on Windows 7 doesn't support newer certificates. (dmex)
+        WinHttpSetOption(
+            httpRequestHandle,
+            WINHTTP_OPTION_SECURITY_FLAGS,
+            &option,
+            sizeof(ULONG)
+            );
     }
 
     if (!WinHttpSendRequest(
