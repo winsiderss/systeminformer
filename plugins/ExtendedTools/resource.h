@@ -52,6 +52,7 @@
 #define IDC_ENABLEETWMONITOR            1035
 #define IDC_ENABLE                      1036
 #define IDC_WSWATCHENABLED              1037
+#define IDC_ENABLEFAHRENHEITTEMP        1038
 #define IDC_NODES                       1048
 #define IDC_ENABLEGPUMONITOR            1049
 #define IDC_ENABLESYSINFOGRAPHS         1050
