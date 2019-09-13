@@ -6844,7 +6844,7 @@ NTAPI
 RtlDeleteTimer(
     _In_ HANDLE TimerQueueHandle,
     _In_ HANDLE TimerToCancel,
-    _In_ HANDLE Event
+    _In_opt_ HANDLE Event
     );
 
 NTSYSAPI
