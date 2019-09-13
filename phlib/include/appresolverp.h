@@ -320,12 +320,12 @@ DECLARE_INTERFACE_IID(IStartMenuAppItems61, IUnknown)
 
     // IStartMenuAppItems61
     STDMETHOD(EnumItems)(THIS,
-        _In_ ULONG Flags,
+        _In_ START_MENU_APP_ITEMS_FLAGS Flags,
         _In_ REFIID riid,
         _Outptr_ IEnumObjects **ppvObject
         ) PURE;
     STDMETHOD(GetItem)(THIS,
-        _In_ ULONG Flags,
+        _In_ START_MENU_APP_ITEMS_FLAGS Flags,
         _In_ PWSTR AppUserModelId,
         _In_ REFIID riid,
         _Outptr_ PVOID *ppvObject // ppvObject == IPropertyStore, IStartMenuAppItems61
@@ -358,12 +358,12 @@ DECLARE_INTERFACE_IID(IStartMenuAppItems62, IUnknown)
 
     // IStartMenuAppItems62
     STDMETHOD(EnumItems)(THIS,
-        _In_ ULONG Flags,
+        _In_ START_MENU_APP_ITEMS_FLAGS Flags,
         _In_ REFIID riid,
         _Outptr_ IEnumObjects **ppvObject
         ) PURE;
     STDMETHOD(GetItem)(THIS,
-        _In_ ULONG Flags,
+        _In_ START_MENU_APP_ITEMS_FLAGS Flags,
         _In_ PWSTR AppUserModelId,
         _In_ REFIID riid,
         _Outptr_ PVOID *ppvObject // ppvObject == IPropertyStore, IStartMenuAppItems61
