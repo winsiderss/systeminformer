@@ -174,6 +174,7 @@
     <ClCompile Include="handle.c" />
     <ClCompile Include="hexedit.c" />
     <ClCompile Include="hndlinfo.c" />
+    <ClCompile Include="http.c" />
     <ClCompile Include="icotobmp.c" />
     <ClCompile Include="filestream.c" />
     <ClCompile Include="json.c" />

@@ -32,7 +32,6 @@
 
 #include <shlobj.h>
 
-#include <http.h>
 #include <commonutil.h>
 
 #include "resource.h"

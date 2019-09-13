@@ -242,6 +242,9 @@
     <ClCompile Include="wslsup.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="http.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\circbuf.h">
