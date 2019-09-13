@@ -142,6 +142,13 @@ PhCenterWindow(
     _In_opt_ HWND ParentWindowHandle
     );
 
+PHLIBAPI
+LANGID
+NTAPI
+PhGetUserDefaultLangID(
+    VOID
+    );
+
 FORCEINLINE
 VOID
 PhLargeIntegerToSystemTime(
