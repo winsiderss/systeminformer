@@ -239,11 +239,6 @@ VOID PhpRefreshEnvironmentList(
             {
                 PH_ENVIRONMENT_ITEM item;
 
-                // Remove the most confusing item. Some say it's just a weird per-drive current directory 
-                // with a colon used as a drive letter for some reason. It should not be here. (diversenok)
-                //if (PhEqualStringRef2(&variable.Name, L"=::", FALSE) && PhEqualStringRef2(&variable.Value, L"::\\", FALSE))
-                //    continue;
-
                 item.Name = PhCreateString2(&variable.Name);
                 item.Value = PhCreateString2(&variable.Value);
 
