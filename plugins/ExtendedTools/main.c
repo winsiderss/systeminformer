@@ -647,6 +647,7 @@ LOGICAL DllMain(
                 { ScalableIntegerPairSettingType, SETTING_NAME_WSWATCH_WINDOW_SIZE, L"@96|325,266" },
                 { StringSettingType, SETTING_NAME_WSWATCH_COLUMNS, L"" },
                 { StringSettingType, SETTING_NAME_TRAYICON_GUIDS, L"" },
+                { IntegerSettingType, SETTING_NAME_ENABLE_FAHRENHEIT, L"0" }
             };
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
