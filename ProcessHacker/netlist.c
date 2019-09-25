@@ -136,7 +136,7 @@ VOID PhInitializeNetworkTreeList(
     PhAddTreeNewColumnEx(hwnd, PHNETLC_TIMESTAMP, FALSE, L"Time stamp", 100, PH_ALIGN_LEFT, -1, 0, TRUE);
     PhAddTreeNewColumn(hwnd, PHNETLC_LOCALHOSTNAME, FALSE, L"Local hostname", 120, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumn(hwnd, PHNETLC_REMOTEHOSTNAME, FALSE, L"Remote hostname", 120, PH_ALIGN_LEFT, -1, 0);
-    PhAddTreeNewColumn(hwnd, PHNETLC_PID, TRUE, L"PID", 50, PH_ALIGN_RIGHT, 0, DT_RIGHT);
+    PhAddTreeNewColumn(hwnd, PHNETLC_PID, FALSE, L"PID", 50, PH_ALIGN_RIGHT, 0, DT_RIGHT);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -453,6 +453,12 @@ BEGIN_SORT_FUNCTION(TimeStamp)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(Pid)
+{
+    sortResult = intptrcmp((LONG_PTR)networkItem1->ProcessId, (LONG_PTR)networkItem2->ProcessId);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpNetworkTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -486,7 +492,8 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
                     SORT_FUNCTION(Owner),
                     SORT_FUNCTION(TimeStamp),
                     SORT_FUNCTION(LocalHostname),
-                    SORT_FUNCTION(RemoteHostname)
+                    SORT_FUNCTION(RemoteHostname),
+                    SORT_FUNCTION(Pid)
                 };
                 int (__cdecl *sortFunction)(const void *, const void *);
 
