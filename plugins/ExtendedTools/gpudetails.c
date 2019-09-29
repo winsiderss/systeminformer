@@ -43,22 +43,22 @@ typedef enum _GPUADAPTER_DETAILS_INDEX
 
 VOID EtpGpuDetailsAddListViewItemGroups(
     _In_ HWND ListViewHandle,
-    _In_ INT DiskGroupId)
+    _In_ INT GpuGroupId)
 {
-    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, GPUADAPTER_DETAILS_INDEX_PHYSICALLOCTION, L"Physical Location", NULL);
-    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, GPUADAPTER_DETAILS_INDEX_DRIVERDATE, L"Driver Date", NULL);
-    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, GPUADAPTER_DETAILS_INDEX_DRIVERVERSION, L"Driver Version", NULL);
-    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, GPUADAPTER_DETAILS_INDEX_WDDMVERSION, L"WDDM Version", NULL);
-    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, GPUADAPTER_DETAILS_INDEX_VENDORID, L"Vendor ID", NULL);
-    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, GPUADAPTER_DETAILS_INDEX_DEVICEID, L"Device ID", NULL);
-    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, GPUADAPTER_DETAILS_INDEX_TOTALMEMORY, L"Total Memory", NULL);
-    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, GPUADAPTER_DETAILS_INDEX_RESERVEDMEMORY, L"Reserved Memory", NULL);
-    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, GPUADAPTER_DETAILS_INDEX_MEMORYFREQUENCY, L"Memory Frequency", NULL);
-    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, GPUADAPTER_DETAILS_INDEX_MEMORYBANDWIDTH, L"Memory Bandwidth", NULL);
-    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, GPUADAPTER_DETAILS_INDEX_PCIEBANDWIDTH, L"PCIE Bandwidth", NULL);
-    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, GPUADAPTER_DETAILS_INDEX_FANRPM, L"Fan RPM", NULL);
-    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, GPUADAPTER_DETAILS_INDEX_POWERUSAGE, L"Power Usage", NULL);
-    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, GPUADAPTER_DETAILS_INDEX_TEMPERATURE, L"Temperature", NULL);
+    PhAddListViewGroupItem(ListViewHandle, GpuGroupId, GPUADAPTER_DETAILS_INDEX_PHYSICALLOCTION, L"Physical Location", NULL);
+    PhAddListViewGroupItem(ListViewHandle, GpuGroupId, GPUADAPTER_DETAILS_INDEX_DRIVERDATE, L"Driver Date", NULL);
+    PhAddListViewGroupItem(ListViewHandle, GpuGroupId, GPUADAPTER_DETAILS_INDEX_DRIVERVERSION, L"Driver Version", NULL);
+    PhAddListViewGroupItem(ListViewHandle, GpuGroupId, GPUADAPTER_DETAILS_INDEX_WDDMVERSION, L"WDDM Version", NULL);
+    PhAddListViewGroupItem(ListViewHandle, GpuGroupId, GPUADAPTER_DETAILS_INDEX_VENDORID, L"Vendor ID", NULL);
+    PhAddListViewGroupItem(ListViewHandle, GpuGroupId, GPUADAPTER_DETAILS_INDEX_DEVICEID, L"Device ID", NULL);
+    PhAddListViewGroupItem(ListViewHandle, GpuGroupId, GPUADAPTER_DETAILS_INDEX_TOTALMEMORY, L"Total Memory", NULL);
+    PhAddListViewGroupItem(ListViewHandle, GpuGroupId, GPUADAPTER_DETAILS_INDEX_RESERVEDMEMORY, L"Reserved Memory", NULL);
+    PhAddListViewGroupItem(ListViewHandle, GpuGroupId, GPUADAPTER_DETAILS_INDEX_MEMORYFREQUENCY, L"Memory Frequency", NULL);
+    PhAddListViewGroupItem(ListViewHandle, GpuGroupId, GPUADAPTER_DETAILS_INDEX_MEMORYBANDWIDTH, L"Memory Bandwidth", NULL);
+    PhAddListViewGroupItem(ListViewHandle, GpuGroupId, GPUADAPTER_DETAILS_INDEX_PCIEBANDWIDTH, L"PCIE Bandwidth", NULL);
+    PhAddListViewGroupItem(ListViewHandle, GpuGroupId, GPUADAPTER_DETAILS_INDEX_FANRPM, L"Fan RPM", NULL);
+    PhAddListViewGroupItem(ListViewHandle, GpuGroupId, GPUADAPTER_DETAILS_INDEX_POWERUSAGE, L"Power Usage", NULL);
+    PhAddListViewGroupItem(ListViewHandle, GpuGroupId, GPUADAPTER_DETAILS_INDEX_TEMPERATURE, L"Temperature", NULL);
 }
 
 VOID EtpQueryAdapterDeviceProperties(
@@ -421,7 +421,7 @@ INT_PTR CALLBACK EtpGpuDetailsDlgProc(
             PhSetControlTheme(context->ListViewHandle, L"explorer");
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 230, L"Property");
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 200, L"Value");
-            PhSetExtendedListView(context->ListViewHandle);
+            //PhSetExtendedListView(context->ListViewHandle);
             ListView_EnableGroupView(context->ListViewHandle, TRUE);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
