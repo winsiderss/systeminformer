@@ -712,6 +712,7 @@ VOID PhpUpdateHandleGeneral(
             BOOLEAN isFileOrDirectory = FALSE;
             BOOLEAN isConsoleHandle = FALSE;
             BOOLEAN isPipeHandle = FALSE;
+            BOOLEAN isNetworkHandle = FALSE;
             FILE_FS_DEVICE_INFORMATION fileDeviceInfo;
             FILE_MODE_INFORMATION fileModeInfo;
             FILE_STANDARD_INFORMATION fileStandardInfo;
@@ -731,6 +732,10 @@ VOID PhpUpdateHandleGeneral(
                 case FILE_DEVICE_NAMED_PIPE:
                     isPipeHandle = TRUE;
                     PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_FILETYPE], 1, L"Pipe");
+                    break;
+                case FILE_DEVICE_NETWORK:
+                    isNetworkHandle = TRUE;
+                    PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_FILETYPE], 1, L"Network");
                     break;
                 case FILE_DEVICE_CD_ROM:
                 case FILE_DEVICE_CD_ROM_FILE_SYSTEM:
@@ -753,30 +758,17 @@ VOID PhpUpdateHandleGeneral(
                 }
             }
 
-            if (isPipeHandle || isConsoleHandle)
-            {
-                // NOTE: NtQueryInformationFile for '\Device\ConDrv\CurrentIn' causes a deadlock but
-                // we can query other '\Device\ConDrv' console handles. NtQueryInformationFile also
-                // causes a deadlock for some types of named pipes and only on Win10 (dmex)
-                status = PhCallNtQueryFileInformationWithTimeout(
-                    fileHandle,
-                    FileModeInformation,
-                    &fileModeInfo,
-                    sizeof(FILE_MODE_INFORMATION)
-                    );
-            }
-            else
-            {
-                status = NtQueryInformationFile(
-                    fileHandle,
-                    &isb,
-                    &fileModeInfo,
-                    sizeof(FILE_MODE_INFORMATION),
-                    FileModeInformation
-                    );
-            }
+            // Note: These devices deadlock without a timeout (dmex)
+            // 1) Named pipes
+            // 2) \Device\ConDrv\CurrentIn
+            // 3) \Device\VolMgrControl
 
-            if (NT_SUCCESS(status))
+            if (NT_SUCCESS(status = PhCallNtQueryFileInformationWithTimeout(
+                fileHandle,
+                FileModeInformation,
+                &fileModeInfo,
+                sizeof(FILE_MODE_INFORMATION)
+                )))
             {
                 PH_FORMAT format[5];
                 PPH_STRING fileModeAccessStr;
@@ -806,12 +798,11 @@ VOID PhpUpdateHandleGeneral(
 
             if (!isConsoleHandle)
             {
-                if (NT_SUCCESS(NtQueryInformationFile(
+                if (NT_SUCCESS(status = PhCallNtQueryFileInformationWithTimeout(
                     fileHandle,
-                    &isb,
+                    FileStandardInformation,
                     &fileStandardInfo,
-                    sizeof(FILE_STANDARD_INFORMATION),
-                    FileStandardInformation
+                    sizeof(FILE_STANDARD_INFORMATION)
                     )))
                 {
                     PH_FORMAT format[1];
@@ -832,12 +823,11 @@ VOID PhpUpdateHandleGeneral(
                     disableFlushButton |= fileStandardInfo.Directory;
                 }
 
-                if (NT_SUCCESS(NtQueryInformationFile(
+                if (NT_SUCCESS(status = PhCallNtQueryFileInformationWithTimeout(
                     fileHandle,
-                    &isb,
+                    FilePositionInformation,
                     &filePositionInfo,
-                    sizeof(FILE_POSITION_INFORMATION),
-                    FilePositionInformation
+                    sizeof(FILE_POSITION_INFORMATION)
                     )))
                 {
                     if (filePositionInfo.CurrentByteOffset.QuadPart != 0 && fileStandardInfo.EndOfFile.QuadPart != 0)
