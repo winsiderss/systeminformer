@@ -750,7 +750,7 @@ HINTERNET PhpCreateDohConnectionHandle(
             {
                 httpConnectionHandle = WinHttpConnect(
                     httpSessionHandle,
-                    L"1.1.1.1",
+                    DnsServerAddress ? DnsServerAddress : L"1.1.1.1",
                     INTERNET_DEFAULT_HTTPS_PORT,
                     0
                     );
@@ -781,7 +781,7 @@ HINTERNET PhpCreateDohConnectionHandle(
     {
         httpConnectionHandle = WinHttpConnect(
             httpSessionHandle,
-            L"1.1.1.1",
+            DnsServerAddress ? DnsServerAddress : L"1.1.1.1",
             INTERNET_DEFAULT_HTTPS_PORT,
             0
             );
