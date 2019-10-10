@@ -2,7 +2,7 @@
  * Process Hacker Network Tools -
  *   Tracert dialog
  *
- * Copyright (C) 2015-2017 dmex
+ * Copyright (C) 2015-2019 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -22,8 +22,6 @@
 
 #include "nettools.h"
 #include "tracert.h"
-#include <commonutil.h>
-#include <math.h>
 
 PPH_STRING TracertGetErrorMessage(
     _In_ IP_STATUS Result
@@ -54,108 +52,114 @@ PPH_STRING TracertGetErrorMessage(
     return message;
 }
 
-PPH_STRING PhpGetIp4ReverseNameFromAddress(
-    _In_ IN_ADDR Address
+PPH_STRING PhpGetDnsReverseNameFromAddress(
+    _In_ PTRACERT_RESOLVE_WORKITEM Address
     )
 {
-    return PhFormatString(
-        L"%hhu.%hhu.%hhu.%hhu.%s",
-        Address.s_impno,
-        Address.s_lh,
-        Address.s_host,
-        Address.s_net,
-        DNS_IP4_REVERSE_DOMAIN_STRING_W
-        );
-}
-
-PPH_STRING PhpGetIp6ReverseNameFromAddress(
-    _In_ IN6_ADDR Address
-    )
-{
-    PH_STRING_BUILDER stringBuilder;
-
-    PhInitializeStringBuilder(&stringBuilder, DNS_MAX_NAME_BUFFER_LENGTH);
-
-    for (INT i = sizeof(IN6_ADDR) - 1; i >= 0; i--)
+    switch (Address->Type)
     {
-        PhAppendFormatStringBuilder(
-            &stringBuilder,
-            L"%hhx.%hhx.",
-            Address.s6_addr[i] & 0xF,
-            (Address.s6_addr[i] >> 4) & 0xF
-            );
+    case PH_IPV4_NETWORK_TYPE:
+        {
+            IN_ADDR inAddr4 = ((PSOCKADDR_IN)&Address->SocketAddress)->sin_addr;
+            PH_STRING_BUILDER stringBuilder;
+
+            PhInitializeStringBuilder(&stringBuilder, DNS_MAX_IP4_REVERSE_NAME_LENGTH);
+
+            PhAppendFormatStringBuilder(
+                &stringBuilder,
+                L"%hhu.%hhu.%hhu.%hhu.",
+                inAddr4.s_impno,
+                inAddr4.s_lh,
+                inAddr4.s_host,
+                inAddr4.s_net
+                );
+
+            PhAppendStringBuilder2(&stringBuilder, DNS_IP4_REVERSE_DOMAIN_STRING);
+
+            return PhFinalStringBuilderString(&stringBuilder);
+        }
+    case PH_IPV6_NETWORK_TYPE:
+        {
+            IN6_ADDR inAddr6 = ((PSOCKADDR_IN6)&Address->SocketAddress)->sin6_addr;
+            PH_STRING_BUILDER stringBuilder;
+
+            PhInitializeStringBuilder(&stringBuilder, DNS_MAX_IP6_REVERSE_NAME_LENGTH);
+
+            for (INT i = sizeof(IN6_ADDR) - 1; i >= 0; i--)
+            {
+                PhAppendFormatStringBuilder(
+                    &stringBuilder,
+                    L"%hhx.%hhx.",
+                    inAddr6.s6_addr[i] & 0xF,
+                    (inAddr6.s6_addr[i] >> 4) & 0xF
+                    );
+            }
+
+            PhAppendStringBuilder2(&stringBuilder, DNS_IP6_REVERSE_DOMAIN_STRING);
+
+            return PhFinalStringBuilderString(&stringBuilder);
+        }
+    default:
+        return NULL;
     }
-
-    PhAppendStringBuilder2(&stringBuilder, DNS_IP6_REVERSE_DOMAIN_STRING_W);
-
-    return PhFinalStringBuilderString(&stringBuilder);
 }
 
 NTSTATUS TracertHostnameLookupCallback(
     _In_ PVOID Parameter
     )
 {
-    PTRACERT_RESOLVE_WORKITEM resolve = Parameter;
+    PTRACERT_RESOLVE_WORKITEM workitem = Parameter;
     BOOLEAN dnsLocalQuery = FALSE;
     PPH_STRING dnsHostNameString = NULL;
     PPH_STRING dnsReverseNameString = NULL;
     PDNS_RECORD dnsRecordList = NULL;
 
-    if (resolve->Type == PH_IPV4_NETWORK_TYPE)
-    {
-        IN_ADDR inAddr4 = ((PSOCKADDR_IN)&resolve->SocketAddress)->sin_addr;
-
-        if (
-            IN4_IS_ADDR_UNSPECIFIED(&inAddr4) ||
-            IN4_IS_ADDR_LOOPBACK(&inAddr4) ||
-            IN4_IS_ADDR_RFC1918(&inAddr4)
-            )
-        {
-            dnsLocalQuery = TRUE;
-        }
-
-        dnsReverseNameString = PhpGetIp4ReverseNameFromAddress(inAddr4);
-    }
-    else if (resolve->Type == PH_IPV6_NETWORK_TYPE)
-    {
-        IN6_ADDR inAddr6 = ((PSOCKADDR_IN6)&resolve->SocketAddress)->sin6_addr;
-
-        if (
-            IN6_IS_ADDR_UNSPECIFIED(&inAddr6) ||
-            IN6_IS_ADDR_LOOPBACK(&inAddr6) ||
-            IN6_IS_ADDR_LINKLOCAL(&inAddr6)
-            )
-        {
-            dnsLocalQuery = TRUE;
-        }
-
-        dnsReverseNameString = PhpGetIp6ReverseNameFromAddress(inAddr6);
-    }
-    else
-    {
-        return STATUS_INVALID_PARAMETER;
-    }
-
     if (PhGetIntegerSetting(L"EnableNetworkResolveDoH"))
     {
-        if (!dnsLocalQuery)
+        if (workitem->Type == PH_IPV4_NETWORK_TYPE)
         {
-            dnsRecordList = PhHttpDnsQuery(dnsReverseNameString->Buffer, DNS_TYPE_PTR);
-        }
+            IN_ADDR inAddr4 = ((PSOCKADDR_IN)&workitem->SocketAddress)->sin_addr;
 
-        if (!dnsRecordList)
+            if (
+                IN4_IS_ADDR_UNSPECIFIED(&inAddr4) ||
+                IN4_IS_ADDR_LOOPBACK(&inAddr4) ||
+                IN4_IS_ADDR_RFC1918(&inAddr4)
+                )
+            {
+                dnsLocalQuery = TRUE;
+            }
+        }
+        else if (workitem->Type == PH_IPV6_NETWORK_TYPE)
         {
-            DnsQuery(
-                dnsReverseNameString->Buffer,
-                DNS_TYPE_PTR,
-                DNS_QUERY_BYPASS_CACHE | DNS_QUERY_NO_HOSTS_FILE,
-                NULL,
-                &dnsRecordList,
-                NULL
-                );
+            IN6_ADDR inAddr6 = ((PSOCKADDR_IN6)&workitem->SocketAddress)->sin6_addr;
+
+            if (
+                IN6_IS_ADDR_UNSPECIFIED(&inAddr6) ||
+                IN6_IS_ADDR_LOOPBACK(&inAddr6) ||
+                IN6_IS_ADDR_LINKLOCAL(&inAddr6)
+                )
+            {
+                dnsLocalQuery = TRUE;
+            }
         }
     }
-    else
+
+    if (!(dnsReverseNameString = PhpGetDnsReverseNameFromAddress(workitem)))
+    {
+        PhFree(workitem);
+        return STATUS_FAIL_CHECK;
+    }
+
+    if (!dnsLocalQuery)
+    {
+        dnsRecordList = PhHttpDnsQuery(
+            NULL,
+            dnsReverseNameString->Buffer,
+            DNS_TYPE_PTR
+            );
+    }
+
+    if (!dnsRecordList)
     {
         DnsQuery(
             dnsReverseNameString->Buffer,
@@ -184,9 +188,9 @@ NTSTATUS TracertHostnameLookupCallback(
     if (dnsHostNameString)
     {
         SendMessage(
-            resolve->WindowHandle,
+            workitem->WindowHandle,
             WM_TRACERT_HOSTNAME,
-            resolve->Index,
+            workitem->Index,
             (LPARAM)dnsHostNameString
             );
     }
@@ -195,17 +199,17 @@ NTSTATUS TracertHostnameLookupCallback(
         //if (status != DNS_ERROR_RCODE_NAME_ERROR)
         //{
         //    SendMessage(
-        //        resolve->WindowHandle,
+        //        workitem->WindowHandle,
         //        WM_TRACERT_HOSTNAME,
-        //        resolve->Index,
+        //        workitem->Index,
         //        (LPARAM)PhGetWin32Message(status)
         //        );
         //}
-
-        PhDereferenceObject(resolve);
     }
 
     PhDereferenceObject(dnsReverseNameString);
+
+    PhFree(workitem);
 
     return STATUS_SUCCESS;
 }
@@ -231,28 +235,25 @@ VOID TracertQueueHostLookup(
 
         if (NT_SUCCESS(RtlIpv4AddressToStringEx(&sockAddrIn, 0, addressString, &addressStringLength)))
         {
-            if (!PhIsNullOrEmptyString(Node->IpAddressString))
+            if (PhIsNullOrEmptyString(Node->IpAddressString))
             {
-                // Make sure we don't append the same address.
-                if (PhFindStringInString(Node->IpAddressString, 0, addressString) == -1)
-                {
-                    // Some routes can return multiple addresses for the same ping or 'hop', 
-                    // so make sure we don't lose this information (as every other tracert tool does) 
-                    // and instead append the additional IP address to the node.
-                    PhMoveReference(&Node->IpAddressString, 
-                        PhFormatString(L"%s, %s", PhGetString(Node->IpAddressString), addressString)
-                        );
-                }
+                PhMoveReference(&Node->IpAddressString, PhCreateString(addressString));     
             }
             else
             {
-                PhMoveReference(&Node->IpAddressString, PhCreateString(addressString));
+                // Make sure we don't append the same address. (dmex)
+                if (PhFindStringInString(Node->IpAddressString, 0, addressString) == -1)
+                {
+                    // Append multiple address routes for the same ping or 'hop', to the node. (dmex)
+                    PhMoveReference(
+                        &Node->IpAddressString,
+                        PhConcatStrings(3, PhGetStringOrEmpty(Node->IpAddressString), L", ", addressString)
+                        );
+                }
             }
         }
 
-        resolve = PhCreateAlloc(sizeof(TRACERT_RESOLVE_WORKITEM));
-        memset(resolve, 0, sizeof(TRACERT_RESOLVE_WORKITEM));
-
+        resolve = PhAllocateZero(sizeof(TRACERT_RESOLVE_WORKITEM));
         resolve->Type = PH_IPV4_NETWORK_TYPE;
         resolve->WindowHandle = Context->WindowHandle;
         resolve->Index = Node->TTL;
@@ -282,28 +283,25 @@ VOID TracertQueueHostLookup(
 
         if (NT_SUCCESS(RtlIpv6AddressToStringEx(&sockAddrIn6, 0, 0, addressString, &addressStringLength)))
         {
-            if (!PhIsNullOrEmptyString(Node->IpAddressString))
+            if (PhIsNullOrEmptyString(Node->IpAddressString))
+            {
+                PhMoveReference(&Node->IpAddressString, PhCreateString(addressString));
+            }
+            else
             {
                 // Make sure we don't append the same address.
                 if (PhFindStringInString(Node->IpAddressString, 0, addressString) == -1)
                 {
-                    // Some routes can return multiple addresses for the same TTL, 
-                    // so make sure we don't lose this information (as every other tracert tool does)
-                    // and instead append the additional IP address to the node.
-                    PhMoveReference(&Node->IpAddressString, 
-                        PhFormatString(L"%s, %s", PhGetString(Node->IpAddressString), addressString)
+                    // Append multiple address routes for the same ping or 'hop', to the node. (dmex)
+                    PhMoveReference(
+                        &Node->IpAddressString,
+                        PhConcatStrings(3, PhGetStringOrEmpty(Node->IpAddressString), L", ", addressString)
                         );
                 }
             }
-            else
-            {
-                PhMoveReference(&Node->IpAddressString, PhCreateString(addressString));
-            }
         }
 
-        resolve = PhCreateAlloc(sizeof(TRACERT_RESOLVE_WORKITEM));
-        memset(resolve, 0, sizeof(TRACERT_RESOLVE_WORKITEM));
-
+        resolve = PhAllocateZero(sizeof(TRACERT_RESOLVE_WORKITEM));
         resolve->Type = PH_IPV6_NETWORK_TYPE;
         resolve->WindowHandle = Context->WindowHandle;
         resolve->Index = Node->TTL;
@@ -848,28 +846,25 @@ INT_PTR CALLBACK TracertDlgProc(
 
             if (traceNode = FindTracertNode(context, index))
             {
-                if (!PhIsNullOrEmptyString(traceNode->HostnameString))
-                {
-                    // Make sure we don't append the same hostname.
-                    if (PhFindStringInString(traceNode->HostnameString, 0, PhGetString(hostName)) == -1)
-                    {
-                        // Some routes can return multiple addresses for the same ping or 'hop', 
-                        // so make sure we don't lose this information (as every other tracert tool does) 
-                        // and instead append the additional hostname to the node.
-                        PhMoveReference(&traceNode->HostnameString, PhFormatString(
-                            L"%s, %s", 
-                            PhGetString(traceNode->HostnameString), 
-                            PhGetString(hostName)
-                            ));
-
-                        UpdateTracertNode(context, traceNode);
-                    }
-                }
-                else
+                if (PhIsNullOrEmptyString(traceNode->HostnameString))
                 {
                     PhSwapReference(&traceNode->HostnameString, hostName);
 
                     UpdateTracertNode(context, traceNode);
+                }
+                else
+                {
+                    // Make sure we don't append the same address. (dmex)
+                    if (PhFindStringInString(traceNode->HostnameString, 0, PhGetStringOrEmpty(hostName)) == -1)
+                    {
+                        // Append multiple address routes for the same ping or 'hop', to the node. (dmex)
+                        PhMoveReference(
+                            &traceNode->HostnameString,
+                            PhConcatStrings(3, PhGetStringOrEmpty(traceNode->HostnameString), L", ", PhGetStringOrEmpty(hostName))
+                            );
+
+                        UpdateTracertNode(context, traceNode);
+                    }
                 }
             }
 
