@@ -360,20 +360,28 @@ PPH_STRING PhpGetDnsReverseNameFromAddress(
     {
     case PH_IPV4_NETWORK_TYPE:
         {
-            return PhFormatString(
-                L"%hhu.%hhu.%hhu.%hhu.%s",
+            PH_STRING_BUILDER stringBuilder;
+
+            PhInitializeStringBuilder(&stringBuilder, DNS_MAX_IP4_REVERSE_NAME_LENGTH);
+
+            PhAppendFormatStringBuilder(
+                &stringBuilder,
+                L"%hhu.%hhu.%hhu.%hhu.",
                 Address->InAddr.s_impno,
                 Address->InAddr.s_lh,
                 Address->InAddr.s_host,
-                Address->InAddr.s_net,
-                DNS_IP4_REVERSE_DOMAIN_STRING_W
+                Address->InAddr.s_net
                 );
+
+            PhAppendStringBuilder2(&stringBuilder, DNS_IP4_REVERSE_DOMAIN_STRING);
+
+            return PhFinalStringBuilderString(&stringBuilder);
         }
     case PH_IPV6_NETWORK_TYPE:
         {
             PH_STRING_BUILDER stringBuilder;
 
-            PhInitializeStringBuilder(&stringBuilder, DNS_MAX_NAME_BUFFER_LENGTH);
+            PhInitializeStringBuilder(&stringBuilder, DNS_MAX_IP6_REVERSE_NAME_LENGTH);
 
             for (INT i = sizeof(IN6_ADDR) - 1; i >= 0; i--)
             {
@@ -385,13 +393,13 @@ PPH_STRING PhpGetDnsReverseNameFromAddress(
                     );
             }
 
-            PhAppendStringBuilder2(&stringBuilder, DNS_IP6_REVERSE_DOMAIN_STRING_W);
+            PhAppendStringBuilder2(&stringBuilder, DNS_IP6_REVERSE_DOMAIN_STRING);
 
             return PhFinalStringBuilderString(&stringBuilder);
         }
+    default:
+        return NULL;
     }
-
-    return NULL;
 }
 
 PPH_STRING PhGetHostNameFromAddressEx(
@@ -402,9 +410,6 @@ PPH_STRING PhGetHostNameFromAddressEx(
     PPH_STRING dnsHostNameString = NULL;
     PPH_STRING dnsReverseNameString = NULL;
     PDNS_RECORD dnsRecordList = NULL;
-
-    if (!(dnsReverseNameString = PhpGetDnsReverseNameFromAddress(Address)))
-        return NULL;
 
     if (Address->Type == PH_IPV4_NETWORK_TYPE)
     {
@@ -429,11 +434,18 @@ PPH_STRING PhGetHostNameFromAddressEx(
         }
     }
 
+    if (!(dnsReverseNameString = PhpGetDnsReverseNameFromAddress(Address)))
+        return NULL;
+
     if (PhEnableNetworkResolveDoHSupport)
     {
         if (!dnsLocalQuery)
         {
-            dnsRecordList = PhHttpDnsQuery(dnsReverseNameString->Buffer, DNS_TYPE_PTR);
+            dnsRecordList = PhHttpDnsQuery(
+                NULL,
+                dnsReverseNameString->Buffer,
+                DNS_TYPE_PTR
+                );
         }
 
         if (!dnsRecordList)
