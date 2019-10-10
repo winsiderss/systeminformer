@@ -347,6 +347,7 @@ PHLIBAPI
 PDNS_RECORD
 NTAPI
 PhHttpDnsQuery(
+    _In_opt_ PWSTR DnsServerAddress,
     _In_ PWSTR DnsQueryMessage,
     _In_ USHORT DnsQueryMessageType
     );
