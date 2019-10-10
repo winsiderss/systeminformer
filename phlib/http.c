@@ -541,15 +541,26 @@ BOOLEAN PhHttpSocketReadDataToBuffer(
         data = (PSTR)PhReAllocate(data, allocatedLength);
     }
 
-    // Ensure that the buffer is null-terminated.
     data[dataLength] = 0;
 
-    if (Buffer)
-        *Buffer = data;
-    if (BufferLength)
-        *BufferLength = dataLength;
+    if (dataLength)
+    {
+        if (Buffer)
+            *Buffer = data;
+        else
+            PhFree(data);
 
-    return TRUE;
+        if (BufferLength)
+            *BufferLength = dataLength;
+
+        return TRUE;
+    }
+    else
+    {
+        PhFree(data);
+
+        return FALSE;
+    }
 }
 
 PVOID PhHttpSocketDownloadString(
@@ -681,12 +692,12 @@ BOOLEAN PhHttpSocketSetCredentials(
         );
 }
 
-HINTERNET PhpCreateHttpConnectionHandle(
-    VOID
+HINTERNET PhpCreateDohConnectionHandle(
+    _In_ PWSTR DnsServerAddress
     )
 {
-    static HINTERNET httpSessionHandle;
-    static HINTERNET httpConnectionHandle;
+    static HINTERNET httpSessionHandle = NULL;
+    static HINTERNET httpConnectionHandle = NULL;
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
 
     if (PhBeginInitOnce(&initOnce))
@@ -720,15 +731,10 @@ HINTERNET PhpCreateHttpConnectionHandle(
             }
 
             {
-                ULONG option = WINHTTP_FLAG_SECURE_PROTOCOL_ALL |
-                    WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_1 |
-                    WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_2 |
-                    WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_3;
-            
                 WinHttpSetOption(
                     httpSessionHandle,
                     WINHTTP_OPTION_SECURE_PROTOCOLS,
-                    &option,
+                    &(ULONG){ WINHTTP_FLAG_SECURE_PROTOCOL_ALL | WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_1 | WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_2 |  WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_3 },
                     sizeof(ULONG)
                     );
             }
@@ -784,6 +790,46 @@ HINTERNET PhpCreateHttpConnectionHandle(
     return httpConnectionHandle;
 }
 
+HINTERNET PhpCreateDohRequestHandle(
+    _In_ HINTERNET HttpConnectionHandle
+    )
+{
+    HINTERNET httpRequestHandle;
+
+    if (!(httpRequestHandle = WinHttpOpenRequest(
+        HttpConnectionHandle,
+        L"POST",
+        L"/dns-query",
+        NULL,
+        WINHTTP_NO_REFERER,
+        WINHTTP_DEFAULT_ACCEPT_TYPES,
+        WINHTTP_FLAG_SECURE
+        )))
+    {
+        return NULL;
+    }
+
+    WinHttpAddRequestHeaders(
+        httpRequestHandle,
+        L"Content-Type: application/dns-message",
+        ULONG_MAX,
+        WINHTTP_ADDREQ_FLAG_ADD | WINHTTP_ADDREQ_FLAG_REPLACE
+        );
+
+    if (WindowsVersion <= WINDOWS_8)
+    {
+        // Winhttp on Windows 7 doesn't correctly validate the certificate CN for connections using an IP address. (dmex)
+        WinHttpSetOption(
+            httpRequestHandle,
+            WINHTTP_OPTION_SECURITY_FLAGS,
+            &(ULONG){ SECURITY_FLAG_IGNORE_CERT_CN_INVALID },
+            sizeof(ULONG)
+            );
+    }
+
+    return httpRequestHandle;
+}
+
 _Success_(return)
 static BOOLEAN PhpCreateDnsMessageBuffer(
     _In_ PWSTR Message,
@@ -793,11 +839,11 @@ static BOOLEAN PhpCreateDnsMessageBuffer(
     _Out_opt_ ULONG* BufferLength
     )
 {
-    BOOLEAN status;
+    BOOLEAN status = FALSE;
     ULONG dnsBufferLength;
     PDNS_MESSAGE_BUFFER dnsBuffer;
 
-    dnsBufferLength = 0x100;
+    dnsBufferLength = PAGE_SIZE;
     dnsBuffer = PhAllocate(dnsBufferLength);
 
     if (!(status = !!DnsWriteQuestionToBuffer_W(
@@ -826,6 +872,9 @@ static BOOLEAN PhpCreateDnsMessageBuffer(
     {
         if (Buffer)
             *Buffer = dnsBuffer;
+        else
+            PhFree(dnsBuffer);
+
         if (BufferLength)
             *BufferLength = dnsBufferLength;
 
@@ -850,17 +899,21 @@ static BOOLEAN PhpParseDnsMessageBuffer(
 {
     DNS_STATUS status;
     PDNS_RECORD dnsRecordList = NULL;
+    PDNS_HEADER dnsRecordHeader;
 
     if (DnsReplyBufferLength > USHRT_MAX)
         return FALSE;
 
-    DNS_BYTE_FLIP_HEADER_COUNTS(&DnsReplyBuffer->MessageHead);
+    // DNS_BYTE_FLIP_HEADER_COUNTS
+    dnsRecordHeader = &DnsReplyBuffer->MessageHead;
+    dnsRecordHeader->Xid = _byteswap_ushort(dnsRecordHeader->Xid);
+    dnsRecordHeader->QuestionCount = _byteswap_ushort(dnsRecordHeader->QuestionCount);
+    dnsRecordHeader->AnswerCount = _byteswap_ushort(dnsRecordHeader->AnswerCount);
+    dnsRecordHeader->NameServerCount = _byteswap_ushort(dnsRecordHeader->NameServerCount);
+    dnsRecordHeader->AdditionalCount = _byteswap_ushort(dnsRecordHeader->AdditionalCount);
 
-    if (DnsReplyBuffer->MessageHead.Xid != Xid)
+    if (dnsRecordHeader->Xid != Xid)
         return FALSE;
-
-    //DnsReplyBuffer->MessageHead.IsResponse
-    //DnsReplyBuffer->MessageHead.ResponseCode
 
     status = DnsExtractRecordsFromMessage_W(
         DnsReplyBuffer,
@@ -885,6 +938,7 @@ static BOOLEAN PhpParseDnsMessageBuffer(
 // DNS over HTTPs (DoH)
 // https://developers.cloudflare.com/1.1.1.1/dns-over-https/wireformat/
 PDNS_RECORD PhHttpDnsQuery(
+    _In_opt_ PWSTR DnsServerAddress,
     _In_ PWSTR DnsQueryMessage,
     _In_ USHORT DnsQueryMessageType
     )
@@ -910,42 +964,11 @@ PDNS_RECORD PhHttpDnsQuery(
         goto CleanupExit;
     }
 
-    if (!(httpConnectionHandle = PhpCreateHttpConnectionHandle()))
+    if (!(httpConnectionHandle = PhpCreateDohConnectionHandle(DnsServerAddress)))
         goto CleanupExit;
 
-    if (!(httpRequestHandle = WinHttpOpenRequest(
-        httpConnectionHandle,
-        L"POST",
-        L"/dns-query",
-        NULL,
-        WINHTTP_NO_REFERER,
-        WINHTTP_DEFAULT_ACCEPT_TYPES,
-        WINHTTP_FLAG_SECURE
-        )))
-    {
+    if (!(httpRequestHandle = PhpCreateDohRequestHandle(httpConnectionHandle)))
         goto CleanupExit;
-    }
-
-    if (!WinHttpAddRequestHeaders(
-        httpRequestHandle,
-        L"Content-Type: application/dns-message",
-        ULONG_MAX,
-        WINHTTP_ADDREQ_FLAG_ADD | WINHTTP_ADDREQ_FLAG_REPLACE
-        ))
-    {
-        goto CleanupExit;
-    }
-
-    if (WindowsVersion <= WINDOWS_8)
-    {
-        // Winhttp on Windows 7 doesn't correctly validate the certificate CN for connections using an IP address. (dmex)
-        WinHttpSetOption(
-            httpRequestHandle,
-            WINHTTP_OPTION_SECURITY_FLAGS,
-            &(ULONG){ SECURITY_FLAG_IGNORE_CERT_CN_INVALID },
-            sizeof(ULONG)
-            );
-    }
 
     if (!WinHttpSendRequest(
         httpRequestHandle,
