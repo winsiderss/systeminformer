@@ -262,7 +262,7 @@ typedef enum _NETWORK_COLUMN_ID
 // country.c
 
 PPH_STRING NetToolsGetGeoLiteDbPath(
-    VOID
+    _In_ PWSTR SettingName
     );
 VOID LoadGeoLiteDb(
     VOID
