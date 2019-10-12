@@ -24,10 +24,8 @@
 #define IDD_GPUNODES                    123
 #define IDD_SYSINFO_NETPANEL            124
 #define IDD_SYSINFO_NET                 125
-#define IDD_PROCGPU_PANEL               126
 #define IDD_DISKTABERROR                128
 #define IDD_PROCDISKNET_PANEL           129
-#define IDD_PROCGPU_DETAILS             131
 #define IDC_UTILIZATION                 132
 #define IDC_SPEED                       133
 #define IDD_SYSINFO_GPUDETAILS          141
@@ -59,26 +57,11 @@
 #define IDC_GROUPGPU                    1051
 #define IDC_GROUPMEM                    1052
 #define IDC_GROUPSHARED                 1053
-#define IDC_GROUPDEDICATED              1054
 #define IDC_GROUPCOMMIT                 1054
 #define IDC_ZDEDICATEDCURRENT_V         1055
 #define IDC_ZDEDICATEDLIMIT_V           1056
 #define IDC_ZSHAREDCURRENT_V            1057
 #define IDC_ZSHAREDLIMIT_V              1058
-#define IDC_ZDEDICATEDCOMMITTED_V       1059
-#define IDC_ZRUNNINGTIME_V              1060
-#define IDC_ZCONTEXTSWITCHES_V          1061
-#define IDC_ZTOTALNODES_V               1062
-#define IDC_ZCACHEDALLOCATED_V          1063
-#define IDC_ZCACHEDRESERVED_V           1064
-#define IDC_ZSHAREDCOMMITTED_V          1065
-#define IDC_ZTOTALALLOCATED_V           1066
-#define IDC_ZTOTALRESERVED_V            1067
-#define IDC_ZWRITECOMBINEDALLOCATED_V   1068
-#define IDC_ZWRITECOMBINEDRESERVED_V    1069
-#define IDC_ZSECTIONALLOCATED_V         1070
-#define IDC_ZSECTIONRESERVED_V          1071
-#define IDC_ZTOTALSEGMENTS_V            1072
 #define IDC_TITLE                       1073
 #define IDC_GRAPH_LAYOUT                1074
 #define IDC_LAYOUT                      1075
@@ -95,8 +78,6 @@
 #define IDC_ERROR                       1087
 #define IDC_GROUPDISK                   1088
 #define IDC_GROUPNETWORK                1089
-#define IDC_GPUDETAILS                  1090
-#define IDC_BUTTON1                     1092
 #define IDC_DETAILS                     1092
 #define IDC_GPULIST                     1093
 #define ID_DISK_GOTOPROCESS             40005
@@ -108,7 +89,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        144
+#define _APS_NEXT_RESOURCE_VALUE        145
 #define _APS_NEXT_COMMAND_VALUE         40009
 #define _APS_NEXT_CONTROL_VALUE         1094
 #define _APS_NEXT_SYMED_VALUE           134

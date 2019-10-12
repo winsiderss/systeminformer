@@ -26,7 +26,8 @@
 #include <ntddvdeo.h>
 #include "gpumon.h"
 
-BOOLEAN EtGpuEnabled;
+BOOLEAN EtGpuEnabled = FALSE;
+BOOLEAN EtD3DEnabled = FALSE;
 PPH_LIST EtpGpuAdapterList;
 static PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
 
@@ -56,6 +57,8 @@ VOID EtGpuMonitorInitialization(
     VOID
     )
 {
+    EtD3DEnabled = !!PhGetIntegerSetting(SETTING_NAME_ENABLE_D3DKMT);
+  
     if (PhGetIntegerSetting(SETTING_NAME_ENABLE_GPU_MONITOR))
     {
         EtpGpuAdapterList = PhCreateList(4);
@@ -77,7 +80,7 @@ VOID EtGpuMonitorInitialization(
         PhInitializeCircularBuffer_ULONG64(&EtGpuSharedHistory, sampleCount);
 
         EtGpuNodesTotalRunningTimeDelta = PhAllocateZero(sizeof(PH_UINT64_DELTA) * EtGpuTotalNodeCount);
-        EtGpuNodesHistory = PhAllocate(sizeof(PH_CIRCULAR_BUFFER_FLOAT) * EtGpuTotalNodeCount);
+        EtGpuNodesHistory = PhAllocateZero(sizeof(PH_CIRCULAR_BUFFER_FLOAT) * EtGpuTotalNodeCount);
 
         for (i = 0; i < EtGpuTotalNodeCount; i++)
         {
@@ -739,7 +742,14 @@ VOID EtpUpdateProcessSegmentInformation(
     ULONG64 dedicatedUsage;
     ULONG64 sharedUsage;
     ULONG64 commitUsage;
-    ULONG segmentCount;
+
+    if (EtD3DEnabled && WindowsVersion >= WINDOWS_10_RS5)
+    {
+        Block->GpuDedicatedUsage = EtLookupProcessGpuDedicated(Block->ProcessItem->ProcessId);
+        Block->GpuSharedUsage = EtLookupProcessGpuSharedUsage(Block->ProcessItem->ProcessId);
+        Block->GpuCommitUsage = EtLookupProcessGpuCommitUsage(Block->ProcessItem->ProcessId);
+        return;
+    }
 
     if (!Block->ProcessItem->QueryHandle)
         return;
@@ -747,7 +757,6 @@ VOID EtpUpdateProcessSegmentInformation(
     dedicatedUsage = 0;
     sharedUsage = 0;
     commitUsage = 0;
-    segmentCount = 0;
 
     for (ULONG i = 0; i < EtpGpuAdapterList->Count; i++)
     {
@@ -775,8 +784,6 @@ VOID EtpUpdateProcessSegmentInformation(
                 else
                     dedicatedUsage += bytesCommitted;
             }
-
-            segmentCount++;
         }
     }
 
@@ -798,7 +805,6 @@ VOID EtpUpdateProcessSegmentInformation(
     Block->GpuDedicatedUsage = dedicatedUsage;
     Block->GpuSharedUsage = sharedUsage;
     Block->GpuCommitUsage = commitUsage;
-    Block->GpuSegmentCount = segmentCount;
 }
 
 VOID EtpUpdateSystemSegmentInformation(
@@ -853,14 +859,21 @@ VOID EtpUpdateProcessNodeInformation(
     D3DKMT_QUERYSTATISTICS queryStatistics;
     ULONG64 totalRunningTime;
     ULONG64 totalContextSwitches;
-    ULONG totalNodes;
+
+    if (EtD3DEnabled && WindowsVersion >= WINDOWS_10_RS5)
+    {
+        totalRunningTime = EtLookupProcessGpuEngineUtilization(Block->ProcessItem->ProcessId);
+
+        PhUpdateDelta(&Block->GpuRunningTimeDelta, totalRunningTime);
+
+        return;
+    }
 
     if (!Block->ProcessItem->QueryHandle)
         return;
 
     totalRunningTime = 0;
     totalContextSwitches = 0;
-    totalNodes = 0;
 
     for (ULONG i = 0; i < EtpGpuAdapterList->Count; i++)
     {
@@ -883,14 +896,11 @@ VOID EtpUpdateProcessNodeInformation(
                 totalRunningTime += queryStatistics.QueryResult.ProcessNodeInformation.RunningTime.QuadPart;
                 totalContextSwitches += queryStatistics.QueryResult.ProcessNodeInformation.ContextSwitch;
             }
-
-            totalNodes++;
         }
     }
 
     PhUpdateDelta(&Block->GpuRunningTimeDelta, totalRunningTime);
     Block->GpuContextSwitches = totalContextSwitches;
-    Block->GpuNodeCount = totalNodes;
 }
 
 VOID EtpUpdateSystemNodeInformation(

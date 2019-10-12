@@ -21,6 +21,8 @@ extern ULONG ProcessesUpdatedCount;
 #define PLUGIN_NAME L"ProcessHacker.ExtendedTools"
 #define SETTING_NAME_DISK_TREE_LIST_COLUMNS (PLUGIN_NAME L".DiskTreeListColumns")
 #define SETTING_NAME_DISK_TREE_LIST_SORT (PLUGIN_NAME L".DiskTreeListSort")
+#define SETTING_NAME_ENABLE_D3DKMT (PLUGIN_NAME L".EnableD3DKMT")
+#define SETTING_NAME_ENABLE_DISKEXT (PLUGIN_NAME L".EnableDiskExt")
 #define SETTING_NAME_ENABLE_ETW_MONITOR (PLUGIN_NAME L".EnableEtwMonitor")
 #define SETTING_NAME_ENABLE_GPU_MONITOR (PLUGIN_NAME L".EnableGpuMonitor")
 #define SETTING_NAME_ENABLE_SYSINFO_GRAPHS (PLUGIN_NAME L".EnableSysInfoGraphs")
@@ -255,6 +257,8 @@ typedef struct _ET_PROCESS_BLOCK
 
     ULONG64 DiskReadRaw;
     ULONG64 DiskWriteRaw;
+    //ULONG64 LastDiskReadValue;
+    //ULONG64 LastDiskWriteValue;
     ULONG64 NetworkReceiveRaw;
     ULONG64 NetworkSendRaw;
 
@@ -271,8 +275,6 @@ typedef struct _ET_PROCESS_BLOCK
     //PPH_UINT64_DELTA GpuTotalRunningTimeDelta;
     //PPH_CIRCULAR_BUFFER_FLOAT GpuTotalNodesHistory;
 
-    ULONG GpuNodeCount;
-    ULONG GpuSegmentCount;
     FLOAT GpuNodeUsage;
     ULONG64 GpuDedicatedUsage;
     ULONG64 GpuSharedUsage;
@@ -423,6 +425,7 @@ VOID EtSaveSettingsDiskTreeList(
 // gpumon
 
 extern BOOLEAN EtGpuEnabled;
+extern BOOLEAN EtD3DEnabled;
 extern PPH_LIST EtpGpuAdapterList;
 
 extern ULONG EtGpuTotalNodeCount;
@@ -626,6 +629,24 @@ VOID EtShowUnloadedDllsDialog(
 VOID EtShowWsWatchDialog(
     _In_ HWND ParentWindowHandle,
     _In_ PPH_PROCESS_ITEM ProcessItem
+    );
+
+// counters
+
+ULONG64 EtLookupProcessGpuEngineUtilization(
+    _In_opt_ HANDLE ProcessId
+    );
+
+ULONG64 EtLookupProcessGpuDedicated(
+    _In_opt_ HANDLE ProcessId
+    );
+
+ULONG64 EtLookupProcessGpuSharedUsage(
+    _In_opt_ HANDLE ProcessId
+    );
+
+ULONG64 EtLookupProcessGpuCommitUsage(
+    _In_opt_ HANDLE ProcessId
     );
 
 #endif
