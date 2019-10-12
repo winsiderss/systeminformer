@@ -96,10 +96,7 @@ typedef enum _PH_PROCESS_STATISTICS_INDEX
     PH_PROCESS_STATISTICS_INDEX_GHOSTCOUNT,
 
     PH_PROCESS_STATISTICS_INDEX_CONTEXTSWITCHES,
-    PH_PROCESS_STATISTICS_INDEX_DISKREAD,
-    PH_PROCESS_STATISTICS_INDEX_DISKWRITE,
-    PH_PROCESS_STATISTICS_INDEX_NETWORKTXRXBYTES,
-    PH_PROCESS_STATISTICS_INDEX_MBBTXRXBYTES
+    PH_PROCESS_STATISTICS_INDEX_NETWORKTXRXBYTES
 } PH_PROCESS_STATISTICS_INDEX;
 
 VOID PhpUpdateStatisticsAddListViewGroups(
@@ -172,10 +169,10 @@ VOID PhpUpdateStatisticsAddListViewGroups(
     if (WindowsVersion >= WINDOWS_10_RS3 && !PhIsExecutingInWow64())
     {
         PhAddListViewGroupItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_EXTENSION, PH_PROCESS_STATISTICS_INDEX_CONTEXTSWITCHES, L"ContextSwitches", NULL);
-        PhAddListViewGroupItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_EXTENSION, PH_PROCESS_STATISTICS_INDEX_DISKREAD, L"BytesRead", NULL);
-        PhAddListViewGroupItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_EXTENSION, PH_PROCESS_STATISTICS_INDEX_DISKWRITE, L"BytesWritten", NULL);
+        //PhAddListViewGroupItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_EXTENSION, PH_PROCESS_STATISTICS_INDEX_DISKREAD, L"BytesRead", NULL);
+        //PhAddListViewGroupItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_EXTENSION, PH_PROCESS_STATISTICS_INDEX_DISKWRITE, L"BytesWritten", NULL);
         PhAddListViewGroupItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_EXTENSION, PH_PROCESS_STATISTICS_INDEX_NETWORKTXRXBYTES, L"NetworkTxRxBytes", NULL);
-        PhAddListViewGroupItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_EXTENSION, PH_PROCESS_STATISTICS_INDEX_MBBTXRXBYTES, L"MBBTxRxBytes", NULL);
+        //PhAddListViewGroupItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_EXTENSION, PH_PROCESS_STATISTICS_INDEX_MBBTXRXBYTES, L"MBBTxRxBytes", NULL);
     }
 
     if (PhPluginsEnabled)
@@ -421,10 +418,10 @@ VOID PhpUpdateProcessStatistics(
             if (processInfo && (processExtension = PH_PROCESS_EXTENSION(processInfo)))
             {
                 PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_CONTEXTSWITCHES, 1, PhaFormatUInt64(processExtension->ContextSwitches, TRUE)->Buffer); // TODO: ContextSwitchesDelta
-                PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_DISKREAD, 1, PhaFormatSize(processExtension->DiskCounters.BytesRead, ULONG_MAX)->Buffer);
-                PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_DISKWRITE, 1, PhaFormatSize(processExtension->DiskCounters.BytesWritten, ULONG_MAX)->Buffer);
+                //PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_DISKREAD, 1, PhaFormatSize(processExtension->DiskCounters.BytesRead, ULONG_MAX)->Buffer);
+                //PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_DISKWRITE, 1, PhaFormatSize(processExtension->DiskCounters.BytesWritten, ULONG_MAX)->Buffer);
                 PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_NETWORKTXRXBYTES, 1, PhaFormatSize(processExtension->EnergyValues.NetworkTxRxBytes, ULONG_MAX)->Buffer);
-                PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_MBBTXRXBYTES, 1, PhaFormatSize(processExtension->EnergyValues.MBBTxRxBytes, ULONG_MAX)->Buffer);
+                //PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_MBBTXRXBYTES, 1, PhaFormatSize(processExtension->EnergyValues.MBBTxRxBytes, ULONG_MAX)->Buffer);
             }
 
             PhFree(processes);
