@@ -110,12 +110,12 @@ BOOLEAN PhpShowElevatePrompt(
 
     config.pfCallback = PhpElevateActionCallbackProc;
 
-    if (TaskDialogIndirect(
+    if (SUCCEEDED(TaskDialogIndirect(
         &config,
         &button,
         NULL,
         NULL
-        ) == S_OK)
+        )))
     {
         *Button = button;
         return TRUE;
