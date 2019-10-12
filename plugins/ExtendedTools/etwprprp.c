@@ -206,14 +206,14 @@ VOID EtwDiskNetworkUpdateGraphs(
     Context->DiskGraphState.TooltipIndex = ULONG_MAX;
     Graph_MoveGrid(Context->DiskGraphHandle, 1);
     Graph_Draw(Context->DiskGraphHandle);
-    Graph_UpdateTooltip(Context->DiskGraphHandle);
+    //Graph_UpdateTooltip(Context->DiskGraphHandle);
     InvalidateRect(Context->DiskGraphHandle, NULL, FALSE);
 
     Context->NetworkGraphState.Valid = FALSE;
     Context->NetworkGraphState.TooltipIndex = ULONG_MAX;
     Graph_MoveGrid(Context->NetworkGraphHandle, 1);
     Graph_Draw(Context->NetworkGraphHandle);
-    Graph_UpdateTooltip(Context->NetworkGraphHandle);
+    //Graph_UpdateTooltip(Context->NetworkGraphHandle);
     InvalidateRect(Context->NetworkGraphHandle, NULL, FALSE);
 }
 
@@ -304,8 +304,6 @@ INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
             // It's a good tradeoff since no one stares at the group boxes.
             PhSetWindowStyle(hwndDlg, WS_CLIPCHILDREN, WS_CLIPCHILDREN);
 
-            sampleCount = PhGetIntegerSetting(L"SampleCount");
-
             context = PhAllocateZero(sizeof(ET_DISKNET_CONTEXT));
             context->WindowHandle = hwndDlg;
             context->Block = EtGetProcessBlock(processItem);
@@ -319,6 +317,7 @@ INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
             PhInitializeGraphState(&context->DiskGraphState);
             PhInitializeGraphState(&context->NetworkGraphState);
 
+            sampleCount = PhGetIntegerSetting(L"SampleCount");
             PhInitializeCircularBuffer_ULONG64(&context->DiskReadHistory, sampleCount);
             PhInitializeCircularBuffer_ULONG64(&context->DiskWriteHistory, sampleCount);
             PhInitializeCircularBuffer_ULONG64(&context->NetworkSendHistory, sampleCount);
@@ -605,15 +604,12 @@ INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
 
 VOID EtProcessEtwPropertiesInitializing(
     _In_ PVOID Parameter
-    )
+)
 {
     PPH_PLUGIN_PROCESS_PROPCONTEXT propContext = Parameter;
 
-    if (EtEtwEnabled)
-    {
-        PhAddProcessPropPage(
-            propContext->PropContext,
-            PhCreateProcessPropPageContextEx(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_PROCDISKNET), EtwDiskNetworkPageDlgProc, NULL)
-            );
-    }
+    PhAddProcessPropPage(
+        propContext->PropContext,
+        PhCreateProcessPropPageContextEx(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_PROCDISKNET), EtwDiskNetworkPageDlgProc, NULL)
+        );
 }

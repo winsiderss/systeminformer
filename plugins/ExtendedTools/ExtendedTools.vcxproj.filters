@@ -90,6 +90,9 @@
     <ClCompile Include="svcext.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="counters.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">

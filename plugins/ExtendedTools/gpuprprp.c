@@ -26,8 +26,9 @@
 typedef struct _ET_GPU_CONTEXT
 {
     HWND WindowHandle;
-    HWND PanelHandle;
-    HWND DetailsHandle;
+    //HWND PanelHandle;
+    //HWND DetailsHandle;
+
     PET_PROCESS_BLOCK Block;
     PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
     BOOLEAN Enabled;
@@ -62,116 +63,116 @@ typedef struct _ET_GPU_CONTEXT
 static RECT NormalGraphTextMargin = { 5, 5, 5, 5 };
 static RECT NormalGraphTextPadding = { 3, 3, 3, 3 };
 
-VOID GpuPropUpdatePanel(
-    _Inout_ PET_GPU_CONTEXT Context
-    );
+//VOID GpuPropUpdatePanel(
+//    _Inout_ PET_GPU_CONTEXT Context
+//    );
 
-INT_PTR CALLBACK GpuDetailsDialogProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    )
-{
-    PET_GPU_CONTEXT context = NULL;
+//INT_PTR CALLBACK GpuDetailsDialogProc(
+//    _In_ HWND hwndDlg,
+//    _In_ UINT uMsg,
+//    _In_ WPARAM wParam,
+//    _In_ LPARAM lParam
+//    )
+//{
+//    PET_GPU_CONTEXT context = NULL;
+//
+//    if (uMsg == WM_INITDIALOG)
+//    {
+//        context = (PET_GPU_CONTEXT)lParam;
+//        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+//    }
+//    else
+//    {
+//        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+//
+//        if (uMsg == WM_DESTROY)
+//        {
+//            context->DetailsHandle = NULL;
+//            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+//        }
+//    }
+//
+//    if (context == NULL)
+//        return FALSE;
+//
+//    switch (uMsg)
+//    {
+//    case WM_INITDIALOG:
+//        {
+//            context->DetailsHandle = hwndDlg;
+//            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+//
+//            GpuPropUpdatePanel(context);
+//
+//            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+//        }
+//        break;
+//    case WM_COMMAND:
+//        {
+//            switch (GET_WM_COMMAND_ID(wParam, lparam))
+//            {
+//            case IDCANCEL:
+//                EndDialog(hwndDlg, IDCANCEL);
+//                break;
+//            }
+//        }
+//        break;
+//    }
+//
+//    return FALSE;
+//}
 
-    if (uMsg == WM_INITDIALOG)
-    {
-        context = (PET_GPU_CONTEXT)lParam;
-        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
-    }
-    else
-    {
-        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-
-        if (uMsg == WM_DESTROY)
-        {
-            context->DetailsHandle = NULL;
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-        }
-    }
-
-    if (context == NULL)
-        return FALSE;
-
-    switch (uMsg)
-    {
-    case WM_INITDIALOG:
-        {
-            context->DetailsHandle = hwndDlg;
-            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
-
-            GpuPropUpdatePanel(context);
-
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
-        }
-        break;
-    case WM_COMMAND:
-        {
-            switch (GET_WM_COMMAND_ID(wParam, lparam))
-            {
-            case IDCANCEL:
-                EndDialog(hwndDlg, IDCANCEL);
-                break;
-            }
-        }
-        break;
-    }
-
-    return FALSE;
-}
-
-INT_PTR CALLBACK GpuPanelDialogProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    )
-{
-    PET_GPU_CONTEXT context = NULL;
-
-    if (uMsg == WM_INITDIALOG)
-    {
-        context = (PET_GPU_CONTEXT)lParam;
-        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
-    }
-    else
-    {
-        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-
-        if (uMsg == WM_DESTROY)
-        {
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-        }
-    }
-
-    if (context == NULL)
-        return FALSE;
-
-    switch (uMsg)
-    {
-    case WM_COMMAND:
-        {
-            switch (GET_WM_COMMAND_ID(wParam, lparam))
-            {
-            case IDC_GPUDETAILS:
-                {
-                    DialogBoxParam(
-                        PluginInstance->DllBase,
-                        MAKEINTRESOURCE(IDD_PROCGPU_DETAILS),
-                        hwndDlg,
-                        GpuDetailsDialogProc,
-                        (LPARAM)context
-                        );
-                }
-                break;
-            }
-        }
-        break;
-    }
-
-    return FALSE;
-}
+//INT_PTR CALLBACK GpuPanelDialogProc(
+//    _In_ HWND hwndDlg,
+//    _In_ UINT uMsg,
+//    _In_ WPARAM wParam,
+//    _In_ LPARAM lParam
+//    )
+//{
+//    PET_GPU_CONTEXT context = NULL;
+//
+//    if (uMsg == WM_INITDIALOG)
+//    {
+//        context = (PET_GPU_CONTEXT)lParam;
+//        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+//    }
+//    else
+//    {
+//        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+//
+//        if (uMsg == WM_DESTROY)
+//        {
+//            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+//        }
+//    }
+//
+//    if (context == NULL)
+//        return FALSE;
+//
+//    switch (uMsg)
+//    {
+//    case WM_COMMAND:
+//        {
+//            switch (GET_WM_COMMAND_ID(wParam, lparam))
+//            {
+//            case IDC_GPUDETAILS:
+//                {
+//                    DialogBoxParam(
+//                        PluginInstance->DllBase,
+//                        MAKEINTRESOURCE(IDD_PROCGPU_DETAILS),
+//                        hwndDlg,
+//                        GpuDetailsDialogProc,
+//                        (LPARAM)context
+//                        );
+//                }
+//                break;
+//            }
+//        }
+//        break;
+//    }
+//
+//    return FALSE;
+//}
 
 VOID GpuPropCreateGraphs(
     _In_ PET_GPU_CONTEXT Context
@@ -244,22 +245,22 @@ VOID GpuPropCreatePanel(
 {
     RECT margin;
 
-    Context->PanelHandle = CreateDialogParam(
-        PluginInstance->DllBase,
-        MAKEINTRESOURCE(IDD_PROCGPU_PANEL),
-        Context->WindowHandle,
-        GpuPanelDialogProc,
-        (LPARAM)Context
-        );
-
-    SetWindowPos(
-        Context->PanelHandle,
-        NULL,
-        10, 0, 0, 0,
-        SWP_NOACTIVATE | SWP_NOREDRAW | SWP_NOSIZE | SWP_NOZORDER
-        );
-
-    ShowWindow(Context->PanelHandle, SW_SHOW);
+    //Context->PanelHandle = CreateDialogParam(
+    //    PluginInstance->DllBase,
+    //    MAKEINTRESOURCE(IDD_PROCGPU_PANEL),
+    //    Context->WindowHandle,
+    //    GpuPanelDialogProc,
+    //    (LPARAM)Context
+    //    );
+    //
+    //SetWindowPos(
+    //    Context->PanelHandle,
+    //    NULL,
+    //    10, 0, 0, 0,
+    //    SWP_NOACTIVATE | SWP_NOREDRAW | SWP_NOSIZE | SWP_NOZORDER
+    //    );
+    //
+    //ShowWindow(Context->PanelHandle, SW_SHOW);
 
     margin.left = 0;
     margin.top = 0;
@@ -267,13 +268,13 @@ VOID GpuPropCreatePanel(
     margin.bottom = 10;
     MapDialogRect(Context->WindowHandle, &margin);
 
-    PhAddLayoutItemEx(
-        &Context->LayoutManager,
-        Context->PanelHandle,
-        NULL,
-        PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT,
-        margin
-        );
+    //PhAddLayoutItemEx(
+    //    &Context->LayoutManager,
+    //    Context->PanelHandle,
+    //    NULL,
+    //    PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT,
+    //    margin
+    //    );
 
     SendMessage(Context->WindowHandle, WM_SIZE, 0, 0);
 }
@@ -284,7 +285,7 @@ VOID GpuPropLayoutGraphs(
 {
     HDWP deferHandle;
     RECT clientRect;
-    RECT panelRect;
+    //RECT panelRect;
     RECT margin = { PH_SCALE_DPI(13), PH_SCALE_DPI(13), PH_SCALE_DPI(13), PH_SCALE_DPI(13) };
     RECT innerMargin = { PH_SCALE_DPI(10), PH_SCALE_DPI(20), PH_SCALE_DPI(10), PH_SCALE_DPI(10) };
     LONG between = PH_SCALE_DPI(3);
@@ -300,9 +301,9 @@ VOID GpuPropLayoutGraphs(
     GetClientRect(Context->WindowHandle, &clientRect);
 
     // Limit the rectangle bottom to the top of the panel.
-    GetWindowRect(Context->PanelHandle, &panelRect);
-    MapWindowPoints(NULL, Context->WindowHandle, (PPOINT)&panelRect, 2);
-    clientRect.bottom = panelRect.top + 10; // +10 removing extra spacing
+    //GetWindowRect(Context->PanelHandle, &panelRect);
+    //MapWindowPoints(NULL, Context->WindowHandle, (PPOINT)&panelRect, 2);
+    //clientRect.bottom = panelRect.top + 10; // +10 removing extra spacing
 
     graphWidth = clientRect.right - margin.left - margin.right;
     graphHeight = (clientRect.bottom - margin.top - margin.bottom - between * 4) / 4;
@@ -393,40 +394,38 @@ VOID GpuPropUpdateGraphs(
     InvalidateRect(Context->CommittedGraphHandle, NULL, FALSE);
 }
 
-VOID GpuPropUpdatePanel(
-    _Inout_ PET_GPU_CONTEXT Context
-    )
-{
-    PET_PROCESS_BLOCK block = Context->Block;
-    WCHAR runningTimeString[PH_TIMESPAN_STR_LEN_1] = L"N/A";
-
-    PhPrintTimeSpan(runningTimeString, block->GpuRunningTimeDelta.Value * 10, PH_TIMESPAN_HMSM);
-    PhSetDialogItemText(Context->PanelHandle, IDC_ZRUNNINGTIME_V, runningTimeString);
-    PhSetDialogItemText(Context->PanelHandle, IDC_ZCONTEXTSWITCHES_V, PhaFormatUInt64(block->GpuContextSwitches, TRUE)->Buffer);
-    PhSetDialogItemText(Context->PanelHandle, IDC_ZTOTALNODES_V, PhaFormatUInt64(block->GpuNodeCount, TRUE)->Buffer);
-    PhSetDialogItemText(Context->PanelHandle, IDC_ZTOTALSEGMENTS_V, PhaFormatUInt64(block->GpuSegmentCount, TRUE)->Buffer);
-
-    if (Context->DetailsHandle)
-    {
-        ET_PROCESS_GPU_STATISTICS processGpuStatistics;
-
-        if (Context->Block->ProcessItem->QueryHandle)
-            EtQueryProcessGpuStatistics(Context->Block->ProcessItem->QueryHandle, &processGpuStatistics);
-        else
-            memset(&processGpuStatistics, 0, sizeof(ET_PROCESS_GPU_STATISTICS));
-
-        PhSetDialogItemText(Context->DetailsHandle, IDC_ZDEDICATEDCOMMITTED_V, PhaFormatSize(processGpuStatistics.DedicatedCommitted, ULONG_MAX)->Buffer);
-        PhSetDialogItemText(Context->DetailsHandle, IDC_ZSHAREDCOMMITTED_V, PhaFormatSize(processGpuStatistics.SharedCommitted, ULONG_MAX)->Buffer);
-        PhSetDialogItemText(Context->DetailsHandle, IDC_ZTOTALALLOCATED_V, PhaFormatSize(processGpuStatistics.BytesAllocated, ULONG_MAX)->Buffer);
-        PhSetDialogItemText(Context->DetailsHandle, IDC_ZTOTALRESERVED_V, PhaFormatSize(processGpuStatistics.BytesReserved, ULONG_MAX)->Buffer);
-        PhSetDialogItemText(Context->DetailsHandle, IDC_ZWRITECOMBINEDALLOCATED_V, PhaFormatSize(processGpuStatistics.WriteCombinedBytesAllocated, ULONG_MAX)->Buffer);
-        PhSetDialogItemText(Context->DetailsHandle, IDC_ZWRITECOMBINEDRESERVED_V, PhaFormatSize(processGpuStatistics.WriteCombinedBytesReserved, ULONG_MAX)->Buffer);
-        PhSetDialogItemText(Context->DetailsHandle, IDC_ZCACHEDALLOCATED_V, PhaFormatSize(processGpuStatistics.CachedBytesAllocated, ULONG_MAX)->Buffer);
-        PhSetDialogItemText(Context->DetailsHandle, IDC_ZCACHEDRESERVED_V, PhaFormatSize(processGpuStatistics.CachedBytesReserved, ULONG_MAX)->Buffer);
-        PhSetDialogItemText(Context->DetailsHandle, IDC_ZSECTIONALLOCATED_V, PhaFormatSize(processGpuStatistics.SectionBytesAllocated, ULONG_MAX)->Buffer);
-        PhSetDialogItemText(Context->DetailsHandle, IDC_ZSECTIONRESERVED_V, PhaFormatSize(processGpuStatistics.SectionBytesReserved, ULONG_MAX)->Buffer);
-    }
-}
+//VOID GpuPropUpdatePanel(
+//    _Inout_ PET_GPU_CONTEXT Context
+//    )
+//{
+//    PET_PROCESS_BLOCK block = Context->Block;
+//    WCHAR runningTimeString[PH_TIMESPAN_STR_LEN_1] = L"N/A";
+//
+//    PhPrintTimeSpan(runningTimeString, block->GpuRunningTimeDelta.Value * 10, PH_TIMESPAN_HMSM);
+//    PhSetDialogItemText(Context->PanelHandle, IDC_ZRUNNINGTIME_V, runningTimeString);
+//    PhSetDialogItemText(Context->PanelHandle, IDC_ZCONTEXTSWITCHES_V, PhaFormatUInt64(block->GpuContextSwitches, TRUE)->Buffer);
+//
+//    if (Context->DetailsHandle)
+//    {
+//        ET_PROCESS_GPU_STATISTICS processGpuStatistics;
+//    
+//        if (Context->Block->ProcessItem->QueryHandle)
+//            EtQueryProcessGpuStatistics(Context->Block->ProcessItem->QueryHandle, &processGpuStatistics);
+//        else
+//            memset(&processGpuStatistics, 0, sizeof(ET_PROCESS_GPU_STATISTICS));
+//    
+//        PhSetDialogItemText(Context->DetailsHandle, IDC_ZDEDICATEDCOMMITTED_V, PhaFormatSize(processGpuStatistics.DedicatedCommitted, ULONG_MAX)->Buffer);
+//        PhSetDialogItemText(Context->DetailsHandle, IDC_ZSHAREDCOMMITTED_V, PhaFormatSize(processGpuStatistics.SharedCommitted, ULONG_MAX)->Buffer);
+//        PhSetDialogItemText(Context->DetailsHandle, IDC_ZTOTALALLOCATED_V, PhaFormatSize(processGpuStatistics.BytesAllocated, ULONG_MAX)->Buffer);
+//        PhSetDialogItemText(Context->DetailsHandle, IDC_ZTOTALRESERVED_V, PhaFormatSize(processGpuStatistics.BytesReserved, ULONG_MAX)->Buffer);
+//        PhSetDialogItemText(Context->DetailsHandle, IDC_ZWRITECOMBINEDALLOCATED_V, PhaFormatSize(processGpuStatistics.WriteCombinedBytesAllocated, ULONG_MAX)->Buffer);
+//        PhSetDialogItemText(Context->DetailsHandle, IDC_ZWRITECOMBINEDRESERVED_V, PhaFormatSize(processGpuStatistics.WriteCombinedBytesReserved, ULONG_MAX)->Buffer);
+//        PhSetDialogItemText(Context->DetailsHandle, IDC_ZCACHEDALLOCATED_V, PhaFormatSize(processGpuStatistics.CachedBytesAllocated, ULONG_MAX)->Buffer);
+//        PhSetDialogItemText(Context->DetailsHandle, IDC_ZCACHEDRESERVED_V, PhaFormatSize(processGpuStatistics.CachedBytesReserved, ULONG_MAX)->Buffer);
+//        PhSetDialogItemText(Context->DetailsHandle, IDC_ZSECTIONALLOCATED_V, PhaFormatSize(processGpuStatistics.SectionBytesAllocated, ULONG_MAX)->Buffer);
+//        PhSetDialogItemText(Context->DetailsHandle, IDC_ZSECTIONRESERVED_V, PhaFormatSize(processGpuStatistics.SectionBytesReserved, ULONG_MAX)->Buffer);
+//    }
+//}
 
 VOID GpuPropUpdateInfo(
     _In_ PET_GPU_CONTEXT Context
@@ -523,7 +522,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
             GpuPropCreateGraphs(context);
             GpuPropCreatePanel(context);
             GpuPropUpdateInfo(context);
-            GpuPropUpdatePanel(context);
+            //GpuPropUpdatePanel(context);
 
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
@@ -557,8 +556,8 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
                 DestroyWindow(context->SharedGraphHandle);
             if (context->CommittedGraphHandle)
                 DestroyWindow(context->CommittedGraphHandle);
-            if (context->PanelHandle)
-                DestroyWindow(context->PanelHandle);
+            //if (context->PanelHandle)
+            //    DestroyWindow(context->PanelHandle);
 
             PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), &context->ProcessesUpdatedRegistration);
             PhFree(context);
@@ -866,7 +865,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
             {
                 GpuPropUpdateInfo(context);
                 GpuPropUpdateGraphs(context);
-                GpuPropUpdatePanel(context);
+                //GpuPropUpdatePanel(context);
             }
         }
         break;

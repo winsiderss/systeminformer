@@ -34,6 +34,7 @@ VOID NTAPI EtEtwNetworkItemsUpdatedCallback(
     _In_opt_ PVOID Context
     );
 
+BOOLEAN EtDiskExtEnabled = FALSE;
 static PH_CALLBACK_REGISTRATION EtpProcessesUpdatedCallbackRegistration;
 static PH_CALLBACK_REGISTRATION EtpNetworkItemsUpdatedCallbackRegistration;
 
@@ -71,7 +72,16 @@ VOID EtEtwStatisticsInitialization(
     VOID
     )
 {
+    EtDiskExtEnabled = !!PhGetIntegerSetting(SETTING_NAME_ENABLE_DISKEXT);
+
     EtEtwMonitorInitialization();
+
+    PhRegisterCallback(
+        PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
+        EtEtwProcessesUpdatedCallback,
+        NULL,
+        &EtpProcessesUpdatedCallbackRegistration
+        );
 
     if (EtEtwEnabled)
     {
@@ -85,12 +95,6 @@ VOID EtEtwStatisticsInitialization(
         PhInitializeCircularBuffer_ULONG(&EtMaxDiskHistory, sampleCount);
         PhInitializeCircularBuffer_ULONG(&EtMaxNetworkHistory, sampleCount);
 
-        PhRegisterCallback(
-            PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
-            EtEtwProcessesUpdatedCallback,
-            NULL,
-            &EtpProcessesUpdatedCallbackRegistration
-            );
         PhRegisterCallback(
             PhGetGeneralCallback(GeneralCallbackNetworkProviderUpdatedEvent),
             EtEtwNetworkItemsUpdatedCallback,
@@ -235,102 +239,165 @@ VOID NTAPI EtEtwProcessesUpdatedCallback(
     _In_opt_ PVOID Context
     )
 {
-    static ULONG runCount = 0; // MUST keep in sync with runCount in process provider
-
-    PLIST_ENTRY listEntry;
-    ULONG64 maxDiskValue = 0;
-    PET_PROCESS_BLOCK maxDiskBlock = NULL;
-    ULONG64 maxNetworkValue = 0;
-    PET_PROCESS_BLOCK maxNetworkBlock = NULL;
-
-    // Since Windows 8, we no longer get the correct process/thread IDs in the
-    // event headers for disk events. We need to update our process information since
-    // etwmon uses our EtThreadIdToProcessId function.
-    if (WindowsVersion >= WINDOWS_8)
+    if (
+        EtDiskExtEnabled &&
+        WindowsVersion >= WINDOWS_10_RS3 &&
+        !PhIsExecutingInWow64() &&
+        !PhGetOwnTokenAttributes().Elevated
+        )
+    {
         EtUpdateProcessInformation();
 
-    // ETW is extremely lazy when it comes to flushing buffers, so we must do it
-    // manually.
-    EtFlushEtwSession();
+        PhAcquireQueuedLockShared(&EtpProcessInformationLock);
 
-    // Update global statistics.
-
-    PhUpdateDelta(&EtDiskReadDelta, EtpDiskReadRaw);
-    PhUpdateDelta(&EtDiskWriteDelta, EtpDiskWriteRaw);
-    PhUpdateDelta(&EtNetworkReceiveDelta, EtpNetworkReceiveRaw);
-    PhUpdateDelta(&EtNetworkSendDelta, EtpNetworkSendRaw);
-
-    PhUpdateDelta(&EtDiskReadCountDelta, EtDiskReadCount);
-    PhUpdateDelta(&EtDiskWriteCountDelta, EtDiskWriteCount);
-    PhUpdateDelta(&EtNetworkReceiveCountDelta, EtNetworkReceiveCount);
-    PhUpdateDelta(&EtNetworkSendCountDelta, EtNetworkSendCount);
-
-    // Update per-process statistics.
-    // Note: no lock is needed because we only ever modify the list on this same thread.
-
-    listEntry = EtProcessBlockListHead.Flink;
-
-    while (listEntry != &EtProcessBlockListHead)
-    {
-        PET_PROCESS_BLOCK block;
-
-        block = CONTAINING_RECORD(listEntry, ET_PROCESS_BLOCK, ListEntry);
-
-        PhUpdateDelta(&block->DiskReadDelta, block->DiskReadCount);
-        PhUpdateDelta(&block->DiskReadRawDelta, block->DiskReadRaw);
-        PhUpdateDelta(&block->DiskWriteDelta, block->DiskWriteCount);
-        PhUpdateDelta(&block->DiskWriteRawDelta, block->DiskWriteRaw);
-        PhUpdateDelta(&block->NetworkReceiveDelta, block->NetworkReceiveCount);
-        PhUpdateDelta(&block->NetworkReceiveRawDelta, block->NetworkReceiveRaw);
-        PhUpdateDelta(&block->NetworkSendDelta, block->NetworkSendCount);
-        PhUpdateDelta(&block->NetworkSendRawDelta, block->NetworkSendRaw);
-
-        if (maxDiskValue < block->DiskReadRawDelta.Delta + block->DiskWriteRawDelta.Delta)
+        if (EtpProcessInformation)
         {
-            maxDiskValue = block->DiskReadRawDelta.Delta + block->DiskWriteRawDelta.Delta;
-            maxDiskBlock = block;
+            PSYSTEM_PROCESS_INFORMATION process;
+
+            process = PH_FIRST_PROCESS(EtpProcessInformation);
+
+            do
+            {
+                PSYSTEM_PROCESS_INFORMATION_EXTENSION processExtension;
+                PPH_PROCESS_ITEM processItem;
+                PET_PROCESS_BLOCK block;
+
+                if (processItem = PhReferenceProcessItem(process->UniqueProcessId))
+                {
+                    processExtension = PH_PROCESS_EXTENSION(process);
+                    block = EtGetProcessBlock(processItem);
+
+                    //block->DiskReadRaw += processExtension->DiskCounters.BytesRead - block->LastDiskReadValue;
+                    //block->DiskWriteRaw += processExtension->DiskCounters.BytesWritten - block->LastDiskWriteValue;
+                    block->DiskReadRaw = processExtension->DiskCounters.BytesRead;
+                    block->DiskWriteRaw = processExtension->DiskCounters.BytesWritten;
+                    //block->LastDiskReadValue = processExtension->DiskCounters.BytesRead;
+                    //block->LastDiskWriteValue = processExtension->DiskCounters.BytesWritten;
+
+                    //PhUpdateDelta(&block->DiskReadDelta, block->DiskReadCount);
+                    PhUpdateDelta(&block->DiskReadRawDelta, block->DiskReadRaw);
+                    //PhUpdateDelta(&block->DiskWriteDelta, block->DiskWriteCount);
+                    PhUpdateDelta(&block->DiskWriteRawDelta, block->DiskWriteRaw);
+                    //PhUpdateDelta(&block->NetworkReceiveDelta, block->NetworkReceiveCount);
+                    //PhUpdateDelta(&block->NetworkReceiveRawDelta, block->NetworkReceiveRaw);
+                    //PhUpdateDelta(&block->NetworkSendDelta, block->NetworkSendCount);
+                    //PhUpdateDelta(&block->NetworkSendRawDelta, block->NetworkSendRaw);
+
+                    PhDereferenceObject(processItem);
+                }
+            } while (process = PH_NEXT_PROCESS(process));
+
+            //PhUpdateDelta(&EtDiskReadDelta, EtpDiskReadRaw);
+            //PhUpdateDelta(&EtDiskWriteDelta, EtpDiskWriteRaw);
+            //PhUpdateDelta(&EtNetworkReceiveDelta, EtpNetworkReceiveRaw);
+            //PhUpdateDelta(&EtNetworkSendDelta, EtpNetworkSendRaw);
+
+            //PhUpdateDelta(&EtDiskReadCountDelta, EtDiskReadCount);
+            //PhUpdateDelta(&EtDiskWriteCountDelta, EtDiskWriteCount);
+            //PhUpdateDelta(&EtNetworkReceiveCountDelta, EtNetworkReceiveCount);
+            //PhUpdateDelta(&EtNetworkSendCountDelta, EtNetworkSendCount);
         }
 
-        if (maxNetworkValue < block->NetworkReceiveRawDelta.Delta + block->NetworkSendRawDelta.Delta)
-        {
-            maxNetworkValue = block->NetworkReceiveRawDelta.Delta + block->NetworkSendRawDelta.Delta;
-            maxNetworkBlock = block;
-        }
-
-        listEntry = listEntry->Flink;
+        PhReleaseQueuedLockShared(&EtpProcessInformationLock);    
     }
-
-    // Update history buffers.
-
-    if (runCount != 0)
+    else
     {
-        PhAddItemCircularBuffer_ULONG(&EtDiskReadHistory, EtDiskReadDelta.Delta);
-        PhAddItemCircularBuffer_ULONG(&EtDiskWriteHistory, EtDiskWriteDelta.Delta);
-        PhAddItemCircularBuffer_ULONG(&EtNetworkReceiveHistory, EtNetworkReceiveDelta.Delta);
-        PhAddItemCircularBuffer_ULONG(&EtNetworkSendHistory, EtNetworkSendDelta.Delta);
+        static ULONG runCount = 0; // MUST keep in sync with runCount in process provider
+        ULONG64 maxDiskValue = 0;
+        PET_PROCESS_BLOCK maxDiskBlock = NULL;
+        ULONG64 maxNetworkValue = 0;
+        PET_PROCESS_BLOCK maxNetworkBlock = NULL;
+        PLIST_ENTRY listEntry;
 
-        if (maxDiskBlock)
+        // Since Windows 8, we no longer get the correct process/thread IDs in the
+        // event headers for disk events. We need to update our process information since
+        // etwmon uses our EtThreadIdToProcessId function.
+        if (WindowsVersion >= WINDOWS_8)
+            EtUpdateProcessInformation();
+
+        // ETW is extremely lazy when it comes to flushing buffers, so we must do it
+        // manually.
+        EtFlushEtwSession();
+
+        // Update global statistics.
+
+        PhUpdateDelta(&EtDiskReadDelta, EtpDiskReadRaw);
+        PhUpdateDelta(&EtDiskWriteDelta, EtpDiskWriteRaw);
+        PhUpdateDelta(&EtNetworkReceiveDelta, EtpNetworkReceiveRaw);
+        PhUpdateDelta(&EtNetworkSendDelta, EtpNetworkSendRaw);
+
+        PhUpdateDelta(&EtDiskReadCountDelta, EtDiskReadCount);
+        PhUpdateDelta(&EtDiskWriteCountDelta, EtDiskWriteCount);
+        PhUpdateDelta(&EtNetworkReceiveCountDelta, EtNetworkReceiveCount);
+        PhUpdateDelta(&EtNetworkSendCountDelta, EtNetworkSendCount);
+
+        // Update per-process statistics.
+        // Note: no lock is needed because we only ever modify the list on this same thread.
+
+        listEntry = EtProcessBlockListHead.Flink;
+
+        while (listEntry != &EtProcessBlockListHead)
         {
-            PhAddItemCircularBuffer_ULONG(&EtMaxDiskHistory, HandleToUlong(maxDiskBlock->ProcessItem->ProcessId));
-            PhReferenceProcessRecordForStatistics(maxDiskBlock->ProcessItem->Record);
-        }
-        else
-        {
-            PhAddItemCircularBuffer_ULONG(&EtMaxDiskHistory, 0);
+            PET_PROCESS_BLOCK block;
+
+            block = CONTAINING_RECORD(listEntry, ET_PROCESS_BLOCK, ListEntry);
+
+            PhUpdateDelta(&block->DiskReadDelta, block->DiskReadCount);
+            PhUpdateDelta(&block->DiskReadRawDelta, block->DiskReadRaw);
+            PhUpdateDelta(&block->DiskWriteDelta, block->DiskWriteCount);
+            PhUpdateDelta(&block->DiskWriteRawDelta, block->DiskWriteRaw);
+            PhUpdateDelta(&block->NetworkReceiveDelta, block->NetworkReceiveCount);
+            PhUpdateDelta(&block->NetworkReceiveRawDelta, block->NetworkReceiveRaw);
+            PhUpdateDelta(&block->NetworkSendDelta, block->NetworkSendCount);
+            PhUpdateDelta(&block->NetworkSendRawDelta, block->NetworkSendRaw);
+
+            if (maxDiskValue < block->DiskReadRawDelta.Delta + block->DiskWriteRawDelta.Delta)
+            {
+                maxDiskValue = block->DiskReadRawDelta.Delta + block->DiskWriteRawDelta.Delta;
+                maxDiskBlock = block;
+            }
+
+            if (maxNetworkValue < block->NetworkReceiveRawDelta.Delta + block->NetworkSendRawDelta.Delta)
+            {
+                maxNetworkValue = block->NetworkReceiveRawDelta.Delta + block->NetworkSendRawDelta.Delta;
+                maxNetworkBlock = block;
+            }
+
+            listEntry = listEntry->Flink;
         }
 
-        if (maxNetworkBlock)
+        // Update history buffers.
+
+        if (runCount != 0)
         {
-            PhAddItemCircularBuffer_ULONG(&EtMaxNetworkHistory, HandleToUlong(maxNetworkBlock->ProcessItem->ProcessId));
-            PhReferenceProcessRecordForStatistics(maxNetworkBlock->ProcessItem->Record);
+            PhAddItemCircularBuffer_ULONG(&EtDiskReadHistory, EtDiskReadDelta.Delta);
+            PhAddItemCircularBuffer_ULONG(&EtDiskWriteHistory, EtDiskWriteDelta.Delta);
+            PhAddItemCircularBuffer_ULONG(&EtNetworkReceiveHistory, EtNetworkReceiveDelta.Delta);
+            PhAddItemCircularBuffer_ULONG(&EtNetworkSendHistory, EtNetworkSendDelta.Delta);
+
+            if (maxDiskBlock)
+            {
+                PhAddItemCircularBuffer_ULONG(&EtMaxDiskHistory, HandleToUlong(maxDiskBlock->ProcessItem->ProcessId));
+                PhReferenceProcessRecordForStatistics(maxDiskBlock->ProcessItem->Record);
+            }
+            else
+            {
+                PhAddItemCircularBuffer_ULONG(&EtMaxDiskHistory, 0);
+            }
+
+            if (maxNetworkBlock)
+            {
+                PhAddItemCircularBuffer_ULONG(&EtMaxNetworkHistory, HandleToUlong(maxNetworkBlock->ProcessItem->ProcessId));
+                PhReferenceProcessRecordForStatistics(maxNetworkBlock->ProcessItem->Record);
+            }
+            else
+            {
+                PhAddItemCircularBuffer_ULONG(&EtMaxNetworkHistory, 0);
+            }
         }
-        else
-        {
-            PhAddItemCircularBuffer_ULONG(&EtMaxNetworkHistory, 0);
-        }
+
+        runCount++;
     }
-
-    runCount++;
 }
 
 static VOID NTAPI EtpInvalidateNetworkNode(
