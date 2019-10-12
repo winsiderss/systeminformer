@@ -187,6 +187,7 @@ PPH_STRING QueryFwLinkUrl(
     if (!PhHttpSocketEndRequest(httpContext))
         goto CleanupExit;
     
+    //redirectUrl = PhCreateString(L"https://geolite.maxmind.com/download/geoip/database/GeoLite2-City.tar.gz");
     redirectUrl = PhHttpSocketQueryHeaderString(httpContext, L"Location"); // WINHTTP_QUERY_LOCATION
 
 CleanupExit:
@@ -387,7 +388,7 @@ NTSTATUS GeoIPUpdateThread(
         }
 
         {
-            dbpath = NetToolsGetGeoLiteDbPath();
+            dbpath = NetToolsGetGeoLiteDbPath(SETTING_NAME_DB_LOCATION);
 
             if (PhIsNullOrEmptyString(dbpath))
                 goto CleanupExit;

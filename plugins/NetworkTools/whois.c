@@ -244,7 +244,7 @@ BOOLEAN WhoisQueryServer(
     _In_ PWSTR WhoisServerAddress,
     _In_ PWSTR WhoisServerPort,
     _In_ PWSTR WhoisQueryAddress, 
-    _In_ PPH_STRING* response
+    _Out_ PPH_STRING* WhoisQueryResponse
     )
 {
     PADDRINFOW result = NULL;
@@ -303,7 +303,8 @@ BOOLEAN WhoisQueryServer(
 
     if (whoisResponce)
     {
-        *response = PhConvertUtf8ToUtf16(whoisResponce);
+        if (WhoisQueryResponse)
+            *WhoisQueryResponse = PhConvertUtf8ToUtf16(whoisResponce);
         return TRUE;
     }
 
@@ -357,9 +358,15 @@ NTSTATUS NetworkWhoisThreadStart(
             &whoisReferralServerPort
             ))
         {
+            SendMessage(context->WindowHandle, NTM_RECEIVEDWHOIS, 0, (LPARAM)PhFormatString(
+                L"%s referred the request to %s\n",
+                PhGetString(whoisServerName),
+                PhGetString(whoisReferralServerName)
+                ));
+
             PhAppendFormatStringBuilder(
                 &sb, 
-                L"%s referred the request to: %s\n", 
+                L"%s referred the request to %s\n", 
                 PhGetString(whoisServerName), 
                 PhGetString(whoisReferralServerName)
                 );
@@ -373,7 +380,9 @@ NTSTATUS NetworkWhoisThreadStart(
             {
                 PhAppendFormatStringBuilder(&sb, L"\n%s\n", PhGetString(whoisReferralResponse));
                 PhAppendFormatStringBuilder(&sb, L"\nOriginal request to %s:\n%s\n", PhGetString(whoisServerName), PhGetString(whoisResponse));
+
                 PostMessage(context->WindowHandle, NTM_RECEIVEDWHOIS, 0, (LPARAM)PhFinalStringBuilderString(&sb));
+
                 goto CleanupExit;
             }
         }
@@ -430,13 +439,22 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
     {
     case WM_INITDIALOG:
         {
+            context->WindowHandle = hwndDlg;
+            context->RichEditHandle = GetDlgItem(hwndDlg, IDC_NETOUTPUTEDIT);
+
             SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
             SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
 
-            SetWindowText(hwndDlg, PhaFormatString(L"Whois %s...", context->IpAddressString)->Buffer);
+            if (context->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
+            {
+                RtlIpv4AddressToString(&context->RemoteEndpoint.Address.InAddr, context->IpAddressString);
+            }
+            else if (context->RemoteEndpoint.Address.Type == PH_IPV6_NETWORK_TYPE)
+            {
+                RtlIpv6AddressToString(&context->RemoteEndpoint.Address.In6Addr, context->IpAddressString);
+            }
 
-            context->WindowHandle = hwndDlg;
-            context->RichEditHandle = GetDlgItem(hwndDlg, IDC_NETOUTPUTEDIT);
+            SetWindowText(hwndDlg, PhaFormatString(L"Whois %s...", context->IpAddressString)->Buffer);
 
             //SendMessage(context->RichEditHandle, EM_SETBKGNDCOLOR, RGB(0, 0, 0), 0);
             SendMessage(context->RichEditHandle, EM_SETEVENTMASK, 0, SendMessage(context->RichEditHandle, EM_GETEVENTMASK, 0, 0) | ENM_LINK);
@@ -462,7 +480,6 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDCANCEL:
-            case IDOK:
                 DestroyWindow(hwndDlg);
                 break;
             }
@@ -602,15 +619,6 @@ VOID ShowWhoisWindow(
         sizeof(PH_IP_ENDPOINT)
         );
 
-    if (NetworkItem->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
-    {
-        RtlIpv4AddressToString(&NetworkItem->RemoteEndpoint.Address.InAddr, context->IpAddressString);
-    }
-    else if (NetworkItem->RemoteEndpoint.Address.Type == PH_IPV6_NETWORK_TYPE)
-    {
-        RtlIpv6AddressToString(&NetworkItem->RemoteEndpoint.Address.In6Addr, context->IpAddressString);
-    }
-
     PhCreateThread2(NetworkWhoisDialogThreadStart, (PVOID)context);
 }
 
@@ -628,15 +636,6 @@ VOID ShowWhoisWindowFromAddress(
         &RemoteEndpoint,
         sizeof(PH_IP_ENDPOINT)
         );
-
-    if (RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
-    {
-        RtlIpv4AddressToString(&RemoteEndpoint.Address.InAddr, context->IpAddressString);
-    }
-    else if (RemoteEndpoint.Address.Type == PH_IPV6_NETWORK_TYPE)
-    {
-        RtlIpv6AddressToString(&RemoteEndpoint.Address.In6Addr, context->IpAddressString);
-    }
 
     PhCreateThread2(NetworkWhoisDialogThreadStart, (PVOID)context);
 }
