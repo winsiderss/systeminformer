@@ -206,14 +206,14 @@ VOID EtwDiskNetworkUpdateGraphs(
     Context->DiskGraphState.TooltipIndex = ULONG_MAX;
     Graph_MoveGrid(Context->DiskGraphHandle, 1);
     Graph_Draw(Context->DiskGraphHandle);
-    //Graph_UpdateTooltip(Context->DiskGraphHandle);
+    Graph_UpdateTooltip(Context->DiskGraphHandle);
     InvalidateRect(Context->DiskGraphHandle, NULL, FALSE);
 
     Context->NetworkGraphState.Valid = FALSE;
     Context->NetworkGraphState.TooltipIndex = ULONG_MAX;
     Graph_MoveGrid(Context->NetworkGraphHandle, 1);
     Graph_Draw(Context->NetworkGraphHandle);
-    //Graph_UpdateTooltip(Context->NetworkGraphHandle);
+    Graph_UpdateTooltip(Context->NetworkGraphHandle);
     InvalidateRect(Context->NetworkGraphHandle, NULL, FALSE);
 }
 
