@@ -37,7 +37,7 @@ VOID PhInitializeWindowsVersion(
 PHLIBAPI PVOID PhInstanceHandle = NULL;
 PHLIBAPI PWSTR PhApplicationName = NULL;
 PHLIBAPI ULONG PhGlobalDpi = 96;
-PHLIBAPI PVOID PhHeapHandle = NULL;
+PVOID PhHeapHandle = NULL;
 PHLIBAPI RTL_OSVERSIONINFOEXW PhOsVersion = { 0 };
 PHLIBAPI SYSTEM_BASIC_INFORMATION PhSystemBasicInformation = { 0 };
 PHLIBAPI ULONG WindowsVersion = WINDOWS_NEW;
