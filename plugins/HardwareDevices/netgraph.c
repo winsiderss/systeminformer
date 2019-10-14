@@ -151,9 +151,10 @@ VOID NetAdapterUpdatePanel(
     if (mediaState == MediaConnectStateConnected)
     {
         PhSetDialogItemText(Context->PanelWindowHandle, IDC_LINK_STATE, L"Connected");
-        PhSetDialogItemText(Context->PanelWindowHandle, IDC_LINK_SPEED, PhaFormatString(
-            L"%s/s",
-            PhaFormatSize(linkSpeedValue / BITS_IN_ONE_BYTE, ULONG_MAX)->Buffer
+        PhSetDialogItemText(Context->PanelWindowHandle, IDC_LINK_SPEED, PhaConcatStrings2(
+            PhaFormatSize(linkSpeedValue / BITS_IN_ONE_BYTE, ULONG_MAX)->Buffer,
+            L"/s"
+            //linkSpeedValue / 1000000.0   L"%.1f Mbps",
             )->Buffer);
     }
     else
