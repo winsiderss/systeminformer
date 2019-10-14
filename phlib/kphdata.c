@@ -163,6 +163,10 @@ NTSTATUS KphInitializeDynamicPackage(
             Package->BuildNumber = 18362;
             Package->ResultingNtVersion = PHNT_REDSTONE6;
             break;
+        case 18363:
+            Package->BuildNumber = 18363;
+            Package->ResultingNtVersion = PHNT_19H2;
+            break;
         default:
             return STATUS_NOT_SUPPORTED;
         }
@@ -304,6 +308,10 @@ NTSTATUS KphInitializeDynamicPackage(
         case 18362:
             Package->BuildNumber = 18362;
             Package->ResultingNtVersion = PHNT_REDSTONE6;
+            break;
+        case 18363:
+            Package->BuildNumber = 18363;
+            Package->ResultingNtVersion = PHNT_19H2;
             break;
         default:
             return STATUS_NOT_SUPPORTED;
