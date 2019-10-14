@@ -522,7 +522,7 @@ FORCEINLINE VOID PhProbeAddress(
 }
 
 FORCEINLINE PLARGE_INTEGER PhTimeoutFromMilliseconds(
-    _Out_ PLARGE_INTEGER Timeout,
+    _Inout_ PLARGE_INTEGER Timeout,
     _In_ ULONG Milliseconds
     )
 {
