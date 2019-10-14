@@ -72,7 +72,16 @@ VOID EtEtwStatisticsInitialization(
     VOID
     )
 {
+    ULONG sampleCount;
+
     EtDiskExtEnabled = !!PhGetIntegerSetting(SETTING_NAME_ENABLE_DISKEXT);
+    sampleCount = PhGetIntegerSetting(L"SampleCount");
+    PhInitializeCircularBuffer_ULONG(&EtDiskReadHistory, sampleCount);
+    PhInitializeCircularBuffer_ULONG(&EtDiskWriteHistory, sampleCount);
+    PhInitializeCircularBuffer_ULONG(&EtNetworkReceiveHistory, sampleCount);
+    PhInitializeCircularBuffer_ULONG(&EtNetworkSendHistory, sampleCount);
+    PhInitializeCircularBuffer_ULONG(&EtMaxDiskHistory, sampleCount);
+    PhInitializeCircularBuffer_ULONG(&EtMaxNetworkHistory, sampleCount);
 
     EtEtwMonitorInitialization();
 
@@ -85,15 +94,6 @@ VOID EtEtwStatisticsInitialization(
 
     if (EtEtwEnabled)
     {
-        ULONG sampleCount;
-
-        sampleCount = PhGetIntegerSetting(L"SampleCount");
-        PhInitializeCircularBuffer_ULONG(&EtDiskReadHistory, sampleCount);
-        PhInitializeCircularBuffer_ULONG(&EtDiskWriteHistory, sampleCount);
-        PhInitializeCircularBuffer_ULONG(&EtNetworkReceiveHistory, sampleCount);
-        PhInitializeCircularBuffer_ULONG(&EtNetworkSendHistory, sampleCount);
-        PhInitializeCircularBuffer_ULONG(&EtMaxDiskHistory, sampleCount);
-        PhInitializeCircularBuffer_ULONG(&EtMaxNetworkHistory, sampleCount);
 
         PhRegisterCallback(
             PhGetGeneralCallback(GeneralCallbackNetworkProviderUpdatedEvent),
