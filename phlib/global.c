@@ -210,6 +210,9 @@ VOID PhInitializeWindowsVersion(
         case 18362:
             WindowsVersion = WINDOWS_10_RS6;
             break;
+        case 18363:
+            WindowsVersion = WINDOWS_10_19H2;
+            break;
         default:
             WindowsVersion = WINDOWS_10;
             break;
