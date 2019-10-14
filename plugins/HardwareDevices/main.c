@@ -330,6 +330,10 @@ LOGICAL DllMain(
             {
                 { IntegerSettingType, SETTING_NAME_ENABLE_NDIS, L"1" },
                 { StringSettingType, SETTING_NAME_INTERFACE_LIST, L"" },
+                { IntegerPairSettingType, SETTING_NAME_NETWORK_POSITION, L"0,0" },
+                { ScalableIntegerPairSettingType, SETTING_NAME_NETWORK_SIZE, L"@96|309,265" },
+                { StringSettingType, SETTING_NAME_NETWORK_COLUMNS, L"" },
+                { StringSettingType, SETTING_NAME_NETWORK_SORTCOLUMN, L"" },
                 { StringSettingType, SETTING_NAME_DISK_LIST, L"" },
                 { IntegerPairSettingType, SETTING_NAME_DISK_POSITION, L"100,100" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_DISK_SIZE, L"@96|309,265" },
