@@ -448,7 +448,11 @@ VOID NetAdapterUpdateDetails(
     }
 
     PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_STATE, 1, mediaState == MediaConnectStateConnected ? L"Connected" : L"Disconnected");
-    PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_LINKSPEED, 1, PhaFormatString(L"%s/s", PhaFormatSize(interfaceLinkSpeed / BITS_IN_ONE_BYTE, ULONG_MAX)->Buffer)->Buffer);
+    PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_LINKSPEED, 1, PhaFormatString(
+        L"%s/s (%.1f Mbps)",
+        PhaFormatSize(interfaceLinkSpeed / BITS_IN_ONE_BYTE, ULONG_MAX)->Buffer,
+        interfaceLinkSpeed / 1000000.0
+        )->Buffer);
     PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_SENT, 1, PhaFormatSize(interfaceStats.ifHCOutOctets, ULONG_MAX)->Buffer);
     PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_RECEIVED, 1, PhaFormatSize(interfaceStats.ifHCInOctets, ULONG_MAX)->Buffer);
     PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_TOTAL, 1, PhaFormatSize(interfaceStats.ifHCInOctets + interfaceStats.ifHCOutOctets, ULONG_MAX)->Buffer);
@@ -457,9 +461,9 @@ VOID NetAdapterUpdateDetails(
     
     if (interfaceLinkSpeed > 0)
     {
-        FLOAT utilization = (FLOAT) (interfaceRcvSpeed + interfaceXmitSpeed) / (interfaceLinkSpeed / BITS_IN_ONE_BYTE);
+        FLOAT utilization = (FLOAT)(interfaceRcvSpeed + interfaceXmitSpeed) / (interfaceLinkSpeed / BITS_IN_ONE_BYTE);
 
-        PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_UTILIZATION, 1, PhaFormatString(L"%.2f%%", 100.0*utilization)->Buffer);
+        PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_UTILIZATION, 1, PhaFormatString(L"%.2f%%", 100.0 * utilization)->Buffer);
     }
     else
         PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_UTILIZATION, 1, L"N/A");
@@ -537,7 +541,6 @@ INT_PTR CALLBACK NetAdapterDetailsDlgProc(
             SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
 
             PhSetWindowText(hwndDlg, PhGetStringOrDefault(context->AdapterName, L"Unknown network adapter"));
-            PhCenterWindow(hwndDlg, context->ParentHandle);
 
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
@@ -547,7 +550,14 @@ INT_PTR CALLBACK NetAdapterDetailsDlgProc(
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
 
+            if (PhGetIntegerPairSetting(SETTING_NAME_NETWORK_POSITION).X != 0)
+                PhLoadWindowPlacementFromSetting(SETTING_NAME_NETWORK_POSITION, SETTING_NAME_NETWORK_SIZE, hwndDlg);
+            else
+                PhCenterWindow(hwndDlg, context->ParentHandle);
+
             NetAdapterAddListViewItemGroups(context->ListViewHandle);
+            PhLoadListViewColumnsFromSetting(SETTING_NAME_NETWORK_COLUMNS, context->ListViewHandle);
+            PhLoadListViewSortColumnsFromSetting(SETTING_NAME_NETWORK_SORTCOLUMN, context->ListViewHandle);
 
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
@@ -576,6 +586,10 @@ INT_PTR CALLBACK NetAdapterDetailsDlgProc(
 
             if (context->NotifyHandle)
                 CancelMibChangeNotify2(context->NotifyHandle);
+
+            PhSaveWindowPlacementToSetting(SETTING_NAME_NETWORK_POSITION, SETTING_NAME_NETWORK_SIZE, hwndDlg);
+            PhSaveListViewSortColumnsToSetting(SETTING_NAME_NETWORK_SORTCOLUMN, context->ListViewHandle);
+            PhSaveListViewColumnsToSetting(SETTING_NAME_NETWORK_COLUMNS, context->ListViewHandle);
 
             PhDeleteLayoutManager(&context->LayoutManager);
             PostQuitMessage(0);
