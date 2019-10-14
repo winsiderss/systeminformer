@@ -889,7 +889,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                     }
                 }
 
-                if (WINDOWS_HAS_IMMERSIVE)
+                if (WindowsVersion >= WINDOWS_8)
                 {
                     appContainerName = NULL;
                     appContainerSid = NULL;
