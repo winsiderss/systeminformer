@@ -1025,10 +1025,7 @@ BOOLEAN PhModalPropertySheet(
         if (result == -1)
             break;
 
-        if (
-            message.message == WM_KEYDOWN || // forward key messages (dmex)
-            message.message == WM_KEYUP
-            )
+        if (message.message == WM_KEYDOWN /*|| message.message == WM_KEYUP*/) // forward key messages (dmex)
         {
             SendMessage(hwnd, message.message, message.wParam, message.lParam);
         }

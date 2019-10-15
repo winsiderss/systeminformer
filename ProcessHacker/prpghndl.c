@@ -3,7 +3,7 @@
  *   Process properties: Handles page
  *
  * Copyright (C) 2009-2016 wj32
- * Copyright (C) 2017-2018 dmex
+ * Copyright (C) 2017-2019 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -402,9 +402,9 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                 );
 
             handlesContext->WindowHandle = hwndDlg;
-            handlesContext->SearchboxHandle = GetDlgItem(hwndDlg, IDC_HANDLESEARCH);
+            handlesContext->SearchWindowHandle = GetDlgItem(hwndDlg, IDC_HANDLESEARCH);
 
-            PhCreateSearchControl(hwndDlg, handlesContext->SearchboxHandle, L"Search Handles (Ctrl+K)");
+            PhCreateSearchControl(hwndDlg, handlesContext->SearchWindowHandle, L"Search Handles (Ctrl+K)");
 
             // Initialize the list.
             tnHandle = GetDlgItem(hwndDlg, IDC_LIST);
@@ -484,7 +484,7 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
 
             if (dialogItem = PhBeginPropPageLayout(hwndDlg, propPageContext))
             {
-                PhAddPropPageLayoutItem(hwndDlg, handlesContext->SearchboxHandle, dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+                PhAddPropPageLayoutItem(hwndDlg, handlesContext->SearchWindowHandle, dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST), dialogItem, PH_ANCHOR_ALL);
                 PhEndPropPageLayout(hwndDlg, propPageContext);
             }
@@ -498,10 +498,10 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                 {
                     PPH_STRING newSearchboxText;
 
-                    if (GET_WM_COMMAND_HWND(wParam, lParam) != handlesContext->SearchboxHandle)
+                    if (GET_WM_COMMAND_HWND(wParam, lParam) != handlesContext->SearchWindowHandle)
                         break;
 
-                    newSearchboxText = PH_AUTO(PhGetWindowText(handlesContext->SearchboxHandle));
+                    newSearchboxText = PH_AUTO(PhGetWindowText(handlesContext->SearchWindowHandle));
 
                     if (!PhEqualString(handlesContext->SearchboxText, newSearchboxText, FALSE))
                     {
@@ -670,6 +670,18 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
             case PSN_QUERYINITIALFOCUS:
                 SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LPARAM)GetDlgItem(hwndDlg, IDC_LIST));
                 return TRUE;
+            }
+        }
+        break;
+    case WM_KEYDOWN:
+        {
+            if (LOWORD(wParam) == 'K')
+            {
+                if (GetKeyState(VK_CONTROL) < 0)
+                {
+                    SetFocus(handlesContext->SearchWindowHandle);
+                    return TRUE;
+                }
             }
         }
         break;
