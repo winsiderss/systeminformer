@@ -1305,6 +1305,18 @@ INT_PTR CALLBACK WepWindowsPageProc(
             }
         }
         break;
+    case WM_KEYDOWN:
+        {
+            if (LOWORD(wParam) == 'K')
+            {
+                if (GetKeyState(VK_CONTROL) < 0)
+                {
+                    SetFocus(context->SearchBoxHandle);
+                    return TRUE;
+                }
+            }
+        }
+        break;
     }
 
     return FALSE;

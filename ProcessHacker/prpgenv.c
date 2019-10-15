@@ -1518,6 +1518,18 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
             }
         }
         break;
+    case WM_KEYDOWN:
+        {
+            if (LOWORD(wParam) == 'K')
+            {
+                if (GetKeyState(VK_CONTROL) < 0)
+                {
+                    SetFocus(context->SearchWindowHandle);
+                    return TRUE;
+                }
+            }
+        }
+        break;
     }
 
     return FALSE;

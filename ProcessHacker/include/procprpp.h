@@ -229,7 +229,7 @@ typedef struct _PH_HANDLES_CONTEXT
     PH_CALLBACK_REGISTRATION UpdatedEventRegistration;
 
     HWND WindowHandle;
-    HWND SearchboxHandle;
+    HWND SearchWindowHandle;
 // end_phapppub
 
     union

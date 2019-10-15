@@ -1141,6 +1141,18 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             }
         }
         break;
+    case WM_KEYDOWN:
+        {
+            if (LOWORD(wParam) == 'K')
+            {
+                if (GetKeyState(VK_CONTROL) < 0)
+                {
+                    SetFocus(threadsContext->SearchboxHandle);
+                    return TRUE;
+                }
+            }
+        }
+        break;
     case WM_PH_THREADS_UPDATED:
         {
             ULONG upToRunId = (ULONG)wParam;

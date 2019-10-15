@@ -3,7 +3,7 @@
  *   Process properties: Memory page
  *
  * Copyright (C) 2009-2016 wj32
- * Copyright (C) 2017-2018 dmex
+ * Copyright (C) 2017-2019 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -819,6 +819,18 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
             case PSN_QUERYINITIALFOCUS:
                 SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LPARAM)GetDlgItem(hwndDlg, IDC_LIST));
                 return TRUE;
+            }
+        }
+        break;
+    case WM_KEYDOWN:
+        {
+            if (LOWORD(wParam) == 'K')
+            {
+                if (GetKeyState(VK_CONTROL) < 0)
+                {
+                    SetFocus(memoryContext->SearchboxHandle);
+                    return TRUE;
+                }
             }
         }
         break;
