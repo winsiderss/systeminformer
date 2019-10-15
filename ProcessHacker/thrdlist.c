@@ -989,9 +989,6 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                 if (GetKeyState(VK_CONTROL) < 0)
                     TreeNew_SelectRange(context->TreeNewHandle, 0, -1);
                 break;
-            case 'K':
-                SetFocus(GetDlgItem(context->ParentWindowHandle, IDC_SEARCH));
-                break;
             case VK_DELETE:
                 SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_THREAD_TERMINATE, 0);
                 break;
