@@ -3,7 +3,7 @@
  *   Main Program
  *
  * Copyright (C) 2010-2013 wj32
- * Copyright (C) 2012-2018 dmex
+ * Copyright (C) 2012-2019 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -207,8 +207,6 @@ VOID NTAPI MenuItemCallback(
                         );
                     ProcessHacker_Destroy(PhMainWndHandle);
                 }
-
-                DestroyIcon(config.hMainIcon);
             }
         }
         break;
