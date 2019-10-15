@@ -301,6 +301,21 @@ LRESULT CALLBACK PhpPropSheetWndProc(
             PhResizingMinimumSize((PRECT)lParam, wParam, MinimumSize.right, MinimumSize.bottom);
         }
         break;
+    case WM_KEYDOWN: // forward key messages (dmex)
+    //case WM_KEYUP:
+        {
+            HWND pageWindowHandle;
+
+            if (pageWindowHandle = PropSheet_GetCurrentPageHwnd(hwnd))
+            {
+                // TODO: Add hotkey plugin support using hashlist register/callback for window handle. (dmex)
+                if (SendMessage(pageWindowHandle, uMsg, wParam, lParam))
+                {
+                    return TRUE;
+                }
+            }
+        }
+        break;
     }
 
     return CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
