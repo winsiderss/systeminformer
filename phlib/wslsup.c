@@ -170,6 +170,11 @@ BOOLEAN PhInitializeLxssImageVersionInfo(
         return FALSE;
     }
 
+    if (PhEqualString2(lxssFileName, L"/init", FALSE))
+    {
+        PhMoveReference(&lxssFileName, PhCreateString(L"/sbin/init"));
+    }
+
     PhMoveReference(&lxssCommandLine, PhFormatString(
         L"rpm -qf %s --queryformat \"%%{VERSION}|%%{VENDOR}|%%{SUMMARY}\"",
         lxssFileName->Buffer
