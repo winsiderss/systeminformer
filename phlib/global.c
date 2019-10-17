@@ -155,7 +155,7 @@ VOID PhInitializeWindowsVersion(
 
     versionInfo.dwOSVersionInfoSize = sizeof(RTL_OSVERSIONINFOEXW);
 
-    if (!NT_SUCCESS(RtlGetVersion((PRTL_OSVERSIONINFOW)&versionInfo)))
+    if (!NT_SUCCESS(RtlGetVersion(&versionInfo)))
     {
         WindowsVersion = WINDOWS_NEW;
         return;
@@ -208,7 +208,7 @@ VOID PhInitializeWindowsVersion(
             WindowsVersion = WINDOWS_10_RS5;
             break;
         case 18362:
-            WindowsVersion = WINDOWS_10_RS6;
+            WindowsVersion = WINDOWS_10_19H1;
             break;
         case 18363:
             WindowsVersion = WINDOWS_10_19H2;
