@@ -6673,14 +6673,14 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlGetVersion(
-    _Out_ PRTL_OSVERSIONINFOW lpVersionInformation
+    _Out_ PRTL_OSVERSIONINFOEXW VersionInformation // PRTL_OSVERSIONINFOW
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlVerifyVersionInfo(
-    _In_ PRTL_OSVERSIONINFOEXW VersionInfo,
+    _In_ PRTL_OSVERSIONINFOEXW VersionInformation, // PRTL_OSVERSIONINFOW
     _In_ ULONG TypeMask,
     _In_ ULONGLONG ConditionMask
     );
