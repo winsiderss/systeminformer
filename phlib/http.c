@@ -67,6 +67,13 @@ BOOLEAN PhHttpSocketCreate(
         return FALSE;
     }
 
+    WinHttpSetOption(
+        httpContext->SessionHandle,
+        WINHTTP_OPTION_SECURE_PROTOCOLS,
+        &(ULONG){ WINHTTP_FLAG_SECURE_PROTOCOL_ALL | WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_1 | WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_2 | WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_3 },
+        sizeof(ULONG)
+        );
+
     if (WindowsVersion >= WINDOWS_8_1)
     {
         WinHttpSetOption(
