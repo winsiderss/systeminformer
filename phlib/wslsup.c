@@ -172,7 +172,7 @@ BOOLEAN PhInitializeLxssImageVersionInfo(
 
     if (PhEqualString2(lxssFileName, L"/init", FALSE))
     {
-        PhMoveReference(&lxssFileName, PhCreateString(L"/sbin/init"));
+        PhMoveReference(&lxssFileName, PhCreateString(L"init"));
     }
 
     PhMoveReference(&lxssCommandLine, PhFormatString(
@@ -208,6 +208,7 @@ BOOLEAN PhInitializeLxssImageVersionInfo(
     {
         PhDereferenceObject(lxssCommandLine);
         PhDereferenceObject(lxssDistroName);
+        PhDereferenceObject(lxssDistroPath);
         PhDereferenceObject(lxssFileName);
         return FALSE;
     }
@@ -228,6 +229,7 @@ BOOLEAN PhInitializeLxssImageVersionInfo(
     {
         PhDereferenceObject(lxssCommandLine);
         PhDereferenceObject(lxssDistroName);
+        PhDereferenceObject(lxssDistroPath);
         PhDereferenceObject(lxssFileName);
         return FALSE;
     }
@@ -248,6 +250,7 @@ BOOLEAN PhInitializeLxssImageVersionInfo(
     {
         PhDereferenceObject(lxssCommandLine);
         PhDereferenceObject(lxssDistroName);
+        PhDereferenceObject(lxssDistroPath);
         PhDereferenceObject(lxssFileName);
         return FALSE;
     }
@@ -281,6 +284,7 @@ ParseResult:
     if (lxssCommandLine) PhDereferenceObject(lxssCommandLine);
     if (lxssPackageName) PhDereferenceObject(lxssPackageName);
     if (lxssDistroName) PhDereferenceObject(lxssDistroName);
+    if (lxssDistroPath) PhDereferenceObject(lxssDistroPath);
     if (lxssFileName) PhDereferenceObject(lxssFileName);
 
     return TRUE;
