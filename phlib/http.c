@@ -128,9 +128,7 @@ BOOLEAN PhHttpSocketConnect(
     //
     //if (dnsRecordList)
     //{
-    //    PDNS_RECORD dnsRecord;
-    //
-    //    for (dnsRecord = dnsRecordList; dnsRecord; dnsRecord = dnsRecord->pNext)
+    //    for (PDNS_RECORD dnsRecord = dnsRecordList; dnsRecord; dnsRecord = dnsRecord->pNext)
     //    {
     //        switch (dnsRecord->wType)
     //        {
@@ -138,7 +136,7 @@ BOOLEAN PhHttpSocketConnect(
     //            {
     //                WCHAR ipAddressString[INET_ADDRSTRLEN];
     //
-    //                RtlIpv4AddressToString((PIN_ADDR)& dnsRecord->Data.A.IpAddress, ipAddressString);
+    //                RtlIpv4AddressToString((PIN_ADDR)&dnsRecord->Data.A.IpAddress, ipAddressString);
     //
     //                HttpContext->ServerName = ServerName;
     //                HttpContext->ConnectionHandle = WinHttpConnect(
@@ -153,7 +151,15 @@ BOOLEAN PhHttpSocketConnect(
     //            {
     //                WCHAR ipAddressString[INET6_ADDRSTRLEN];
     //
-    //                RtlIpv6AddressToString((PIN6_ADDR)& dnsRecord->Data.AAAA.Ip6Address, ipAddressString);
+    //                RtlIpv6AddressToString((PIN6_ADDR)&dnsRecord->Data.AAAA.Ip6Address, ipAddressString);
+    //
+    //                HttpContext->ServerName = ServerName;
+    //                HttpContext->ConnectionHandle = WinHttpConnect(
+    //                    HttpContext->SessionHandle,
+    //                    ipAddressString,
+    //                    ServerPort,
+    //                    0
+    //                    );
     //            }
     //            break;
     //        }
@@ -495,7 +501,7 @@ PPH_STRING PhHttpSocketQueryOptionString(
 
     if (optionBuffer)
     {
-        stringBuffer = PhCreateString(optionBuffer); // FIXME
+        stringBuffer = PhCreateString(optionBuffer);
         PhFree(optionBuffer);
     }
 
@@ -693,7 +699,7 @@ BOOLEAN PhHttpSocketSetCredentials(
 }
 
 HINTERNET PhpCreateDohConnectionHandle(
-    _In_ PWSTR DnsServerAddress
+    _In_opt_ PWSTR DnsServerAddress
     )
 {
     static HINTERNET httpSessionHandle = NULL;
@@ -759,23 +765,6 @@ HINTERNET PhpCreateDohConnectionHandle(
 
         PhEndInitOnce(&initOnce);
     }
-
-    // Cloudflare DoH
-    // https://developers.cloudflare.com/1.1.1.1/dns-over-https/wireformat/
-    // host: cloudflare-dns.com
-    // host: one.one.one.one
-    // 1.1.1.1
-    // 1.0.0.1
-    // 2606:4700:4700::1111
-    // 2606:4700:4700::1001
-    //
-    // Google DoH
-    // https://developers.google.com/speed/public-dns/docs/doh/
-    // host: dns.google
-    // 8.8.4.4
-    // 8.8.8.8
-    // 2001:4860:4860::8888
-    // 2001:4860:4860::8844
 
     if (WindowsVersion < WINDOWS_10)
     {
@@ -934,9 +923,25 @@ static BOOLEAN PhpParseDnsMessageBuffer(
 
     return FALSE;
 }
+ 
 
-// DNS over HTTPs (DoH)
+// Cloudflare DNS over HTTPs (DoH)
 // https://developers.cloudflare.com/1.1.1.1/dns-over-https/wireformat/
+// host: cloudflare-dns.com
+// host: one.one.one.one
+// 1.1.1.1
+// 1.0.0.1
+// 2606:4700:4700::1111
+// 2606:4700:4700::1001
+//
+// Google DNS over HTTPs (DoH)
+// https://developers.google.com/speed/public-dns/docs/doh/
+// host: dns.google
+// 8.8.4.4
+// 8.8.8.8
+// 2001:4860:4860::8888
+// 2001:4860:4860::8844
+//
 PDNS_RECORD PhHttpDnsQuery(
     _In_opt_ PWSTR DnsServerAddress,
     _In_ PWSTR DnsQueryMessage,
@@ -985,7 +990,7 @@ PDNS_RECORD PhHttpDnsQuery(
 
     if (!WinHttpReceiveResponse(httpRequestHandle, NULL))
         goto CleanupExit;
-    //else
+
     //{
     //    ULONG option = 0;
     //    ULONG optionLength = sizeof(ULONG);
