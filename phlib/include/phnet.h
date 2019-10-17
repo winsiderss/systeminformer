@@ -169,7 +169,7 @@ PHLIBAPI
 VOID
 NTAPI
 PhHttpSocketDestroy(
-    _Frees_ptr_opt_ PPH_HTTP_CONTEXT HttpContext
+    _Frees_ptr_ PPH_HTTP_CONTEXT HttpContext
     );
 
 #define PH_HTTP_DEFAULT_PORT 0 // use the protocol-specific default port
