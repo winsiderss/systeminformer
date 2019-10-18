@@ -86,6 +86,9 @@ BOOLEAN PhSipCpuSectionCallback(
         {
             PPH_SYSINFO_CREATE_DIALOG createDialog = Parameter1;
 
+            if (!createDialog)
+                break;
+
             createDialog->Instance = PhInstanceHandle;
             createDialog->Template = MAKEINTRESOURCE(IDD_SYSINFO_CPU);
             createDialog->DialogProc = PhSipCpuDialogProc;
@@ -94,6 +97,9 @@ BOOLEAN PhSipCpuSectionCallback(
     case SysInfoGraphGetDrawInfo:
         {
             PPH_GRAPH_DRAW_INFO drawInfo = Parameter1;
+
+            if (!drawInfo)
+                break;
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_USE_LINE_2;
             Section->Parameters->ColorSetupFunction(drawInfo, PhCsColorCpuKernel, PhCsColorCpuUser);
@@ -113,6 +119,9 @@ BOOLEAN PhSipCpuSectionCallback(
             FLOAT cpuKernel;
             FLOAT cpuUser;
 
+            if (!getTooltipText)
+                break;
+
             cpuKernel = PhGetItemCircularBuffer_FLOAT(&PhCpuKernelHistory, getTooltipText->Index);
             cpuUser = PhGetItemCircularBuffer_FLOAT(&PhCpuUserHistory, getTooltipText->Index);
 
@@ -128,6 +137,9 @@ BOOLEAN PhSipCpuSectionCallback(
     case SysInfoGraphDrawPanel:
         {
             PPH_SYSINFO_DRAW_PANEL drawPanel = Parameter1;
+
+            if (!drawPanel)
+                break;
 
             drawPanel->Title = PhCreateString(L"CPU");
             drawPanel->SubTitle = PhFormatString(L"%.2f%%", (PhCpuKernelUsage + PhCpuUserUsage) * 100);
@@ -843,6 +855,7 @@ VOID PhSipGetCpuBrandString(
     BrandString[48] = UNICODE_NULL;
 }
 
+_Success_(return != FALSE)
 BOOLEAN PhSipGetCpuFrequencyFromDistribution(
     _Out_ DOUBLE *Fraction
     )
