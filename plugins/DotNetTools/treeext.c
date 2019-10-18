@@ -136,7 +136,9 @@ static VOID ThreadAddedHandler(
 {
     PPH_THREAD_ITEM threadItem = Parameter;
     PDN_THREAD_ITEM dnThread;
-    PTHREAD_TREE_CONTEXT context = Context;
+
+    if (!threadItem)
+        return;
 
     dnThread = PhPluginGetObjectExtension(PluginInstance, threadItem, EmThreadItemType);
     memset(dnThread, 0, sizeof(DN_THREAD_ITEM));
@@ -151,6 +153,9 @@ static VOID ThreadRemovedHandler(
     PPH_THREAD_ITEM threadItem = Parameter;
     PDN_THREAD_ITEM dnThread;
     PTHREAD_TREE_CONTEXT context = Context;
+
+    if (!threadItem)
+        return;
 
     dnThread = PhPluginGetObjectExtension(PluginInstance, threadItem, EmThreadItemType);
 
