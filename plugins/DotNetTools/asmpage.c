@@ -479,6 +479,7 @@ VOID DotNetAsmShowContextMenu(
     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_CLR_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
     PhInsertCopyCellEMenuItem(menu, ID_CLR_COPY, Context->TreeNewHandle, ContextMenuEvent->Column);
+    PhSetFlagsEMenuItem(menu, ID_CLR_INSPECT, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
 
     if (PhIsNullOrEmptyString(node->PathText) || !PhDoesFileExistsWin32(PhGetString(node->PathText)))
     {
@@ -676,6 +677,25 @@ BOOLEAN NTAPI DotNetAsmTreeNewCallback(
                 if (GetKeyState(VK_CONTROL) < 0)
                     SendMessage(context->WindowHandle, WM_COMMAND, ID_COPY, 0);
                 break;
+            }
+        }
+        return TRUE;
+    case TreeNewLeftDoubleClick:
+        {
+            PDNA_NODE node;
+
+            if (!(node = DotNetAsmGetSelectedTreeNode(Context)))
+                break;
+
+            if (!PhIsNullOrEmptyString(node->u.Assembly.FullyQualifiedAssemblyName) && PhDoesFileExistsWin32(PhGetString(node->PathText)))
+            {
+                PhShellExecuteUserString(
+                    context->WindowHandle,
+                    L"ProgramInspectExecutables",
+                    node->PathText->Buffer,
+                    FALSE,
+                    L"Make sure the PE Viewer executable file is present."
+                    );
             }
         }
         return TRUE;

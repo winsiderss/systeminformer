@@ -118,7 +118,12 @@ VOID NTAPI ProcessPropertiesInitializingCallback(
             AddAsmPageToPropContext(propContext);
             AddPerfPageToPropContext(propContext);
         }
-        else if (flags & PH_CLR_JIT_PRESENT) // CoreCLR support. (dmex)
+        else if (flags & PH_CLR_JIT_PRESENT)
+        {
+            isDotNet = TRUE;
+            AddAsmPageToPropContext(propContext);
+        }
+        else if (flags & PH_CLR_CORE_3_0_ABOVE)
         {
             isDotNet = TRUE;
             AddAsmPageToPropContext(propContext);
