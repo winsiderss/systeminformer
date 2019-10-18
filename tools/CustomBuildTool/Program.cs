@@ -69,7 +69,7 @@ namespace CustomBuildTool
             }
             else if (ProgramArgs.ContainsKey("-graph"))
             {
-                Build.ShowBuildEnvironment("changelog", true, false);
+                Build.ShowBuildEnvironment("changelog", true);
 
                 if (Win32.GetConsoleMode(Win32.GetStdHandle(Win32.STD_OUTPUT_HANDLE), out ConsoleMode mode))
                     Win32.SetConsoleMode(Win32.GetStdHandle(Win32.STD_OUTPUT_HANDLE), mode | ConsoleMode.ENABLE_VIRTUAL_TERMINAL_PROCESSING);
@@ -106,7 +106,7 @@ namespace CustomBuildTool
             }
             else if (ProgramArgs.ContainsKey("-bin"))
             {
-                Build.ShowBuildEnvironment("bin", false, true);
+                Build.ShowBuildEnvironment("bin", false);
                 Build.CopyKeyFiles();
 
                 if (!Build.BuildSolution("ProcessHacker.sln",
@@ -140,7 +140,7 @@ namespace CustomBuildTool
             }
             else if (ProgramArgs.ContainsKey("-debug"))
             {
-                Build.ShowBuildEnvironment("debug", true, true);
+                Build.ShowBuildEnvironment("debug", true);
                 Build.CopyKeyFiles();
 
                 if (!Build.BuildSolution("ProcessHacker.sln",
@@ -183,7 +183,7 @@ namespace CustomBuildTool
             }
             else if (ProgramArgs.ContainsKey("-appveyor"))
             {
-                Build.ShowBuildEnvironment("nightly", true, true);
+                Build.ShowBuildEnvironment("nightly", true);
                 Build.CopyKeyFiles();
 
                 if (!Build.BuildSolution("ProcessHacker.sln",
@@ -266,7 +266,7 @@ namespace CustomBuildTool
                 if (Restart("-appxmakecert"))
                     return;
 
-                Build.ShowBuildEnvironment("appxcert", true, true);
+                Build.ShowBuildEnvironment("appxcert", true);
 
                 Build.BuildAppxSignature();
 
@@ -274,7 +274,7 @@ namespace CustomBuildTool
             }
             else
             {
-                Build.ShowBuildEnvironment("release", true, true);
+                Build.ShowBuildEnvironment("release", true);
                 Build.CopyKeyFiles();
 
                 if (!Build.BuildSolution("ProcessHacker.sln",
