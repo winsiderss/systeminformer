@@ -100,7 +100,7 @@ LRESULT CALLBACK PhpThemeWindowStatusbarWndSubclassProc(
 BOOL (WINAPI *ShouldAppsUseDarkMode_I)(
     VOID
     ) = NULL;
-// rev // Win10-RS5 (uxtheme.dll ordinal 133)
+// Win10-RS5 (uxtheme.dll ordinal 133)
 BOOL (WINAPI *AllowDarkModeForWindow_I)(
     _In_ HWND WindowHandle,
     _In_ BOOL Enabled
@@ -243,10 +243,7 @@ VOID PhReInitializeWindowTheme(
 
     PhInitializeThemeWindowFrame(WindowHandle);
 
-        PhpThemeColorMode = PhGetIntegerSetting(L"GraphColorMode");
-        PhpThemeBorderEnable = !!PhGetIntegerSetting(L"TreeListBorderEnable");
 
-        switch (PhpThemeColorMode)
 
     switch (PhpThemeColorMode)
     {
@@ -263,6 +260,7 @@ VOID PhReInitializeWindowTheme(
             PhMenuBackgroundBrush = CreateSolidBrush(PhpThemeWindowBackgroundColor);
             if (brush) DeleteBrush(brush);
         }
+        break;
     }
 
     PhEnumChildWindows(
