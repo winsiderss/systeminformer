@@ -331,6 +331,9 @@ VOID NTAPI ShowOptionsCallback(
 {
     PPH_PLUGIN_OPTIONS_POINTERS optionsEntry = (PPH_PLUGIN_OPTIONS_POINTERS)Parameter;
 
+    if (!optionsEntry)
+        return;
+
     optionsEntry->CreateSection(
         L"UserNotes",
         PluginInstance->DllBase,
@@ -349,7 +352,7 @@ VOID NTAPI MenuItemCallback(
     PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
     PDB_OBJECT object;
 
-    if (!processItem)
+    if (!(menuItem && processItem))
         return;
 
     switch (menuItem->Id)
@@ -579,7 +582,12 @@ VOID NTAPI MenuHookCallback(
     )
 {
     PPH_PLUGIN_MENU_HOOK_INFORMATION menuHookInfo = Parameter;
-    ULONG id = menuHookInfo->SelectedItem->Id;
+    ULONG id;
+
+    if (!menuHookInfo)
+        return;
+
+    id = menuHookInfo->SelectedItem->Id;
 
     switch (id)
     {
@@ -830,6 +838,9 @@ VOID TreeNewMessageCallback(
 {
     PPH_PLUGIN_TREENEW_MESSAGE message = Parameter;
 
+    if (!message)
+        return;
+
     switch (message->Message)
     {
     case TreeNewGetCellText:
@@ -896,6 +907,9 @@ VOID ProcessPropertiesInitializingCallback(
     )
 {
     PPH_PLUGIN_PROCESS_PROPCONTEXT propContext = Parameter;
+
+    if (!propContext)
+        return;
 
     PhAddProcessPropPage(
         propContext->PropContext,
@@ -997,6 +1011,9 @@ VOID ProcessMenuInitializingCallback(
     PPH_EMENU_ITEM highlightMenuItem;
     PDB_OBJECT object;
 
+    if (!Parameter)
+        return;
+
     if (menuInfo->u.Process.NumberOfProcesses != 1)
         return;
 
@@ -1054,6 +1071,9 @@ VOID ProcessTreeNewInitializingCallback(
     PPH_PLUGIN_TREENEW_INFORMATION info = Parameter;
     PH_TREENEW_COLUMN column;
 
+    if (!Parameter)
+        return;
+
     ProcessTreeNewHandle = info->TreeNewHandle;
 
     memset(&column, 0, sizeof(PH_TREENEW_COLUMN));
@@ -1070,8 +1090,13 @@ VOID GetProcessHighlightingColorCallback(
     )
 {
     PPH_PLUGIN_GET_HIGHLIGHTING_COLOR getHighlightingColor = Parameter;
-    PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)getHighlightingColor->Parameter;
+    PPH_PROCESS_ITEM processItem;
     PDB_OBJECT object;
+
+    if (!Parameter)
+        return;
+
+    processItem = (PPH_PROCESS_ITEM)getHighlightingColor->Parameter;
 
     if (getHighlightingColor->Handled)
         return;
@@ -1095,6 +1120,9 @@ VOID ServicePropertiesInitializingCallback(
 {
     PPH_PLUGIN_OBJECT_PROPERTIES objectProperties = Parameter;
     PROPSHEETPAGE propSheetPage;
+
+    if (!Parameter)
+        return;
 
     if (objectProperties->NumberOfPages < objectProperties->MaximumNumberOfPages)
     {
@@ -1137,6 +1165,9 @@ VOID ServiceTreeNewInitializingCallback(
     PPH_PLUGIN_TREENEW_INFORMATION info = Parameter;
     PH_TREENEW_COLUMN column;
 
+    if (!info)
+        return;
+
     ServiceTreeNewHandle = info->TreeNewHandle;
 
     memset(&column, 0, sizeof(PH_TREENEW_COLUMN));
@@ -1153,7 +1184,12 @@ VOID MiListSectionMenuInitializingCallback(
     )
 {
     PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
-    PPH_PROCESS_ITEM processItem = menuInfo->u.MiListSection.ProcessGroup->Representative;
+    PPH_PROCESS_ITEM processItem;
+
+    if (!menuInfo)
+        return;
+
+    processItem = menuInfo->u.MiListSection.ProcessGroup->Representative;
 
     if (PH_IS_FAKE_PROCESS_ID(processItem->ProcessId) || processItem->ProcessId == SYSTEM_IDLE_PROCESS_ID || processItem->ProcessId == SYSTEM_PROCESS_ID)
         return;
@@ -1167,8 +1203,12 @@ VOID ProcessModifiedCallback(
     )
 {
     PPH_PROCESS_ITEM processItem = Parameter;
-    PPROCESS_EXTENSION extension = PhPluginGetObjectExtension(PluginInstance, processItem, EmProcessItemType);
+    PPROCESS_EXTENSION extension;
 
+    if (!processItem)
+        return;
+
+    extension = PhPluginGetObjectExtension(PluginInstance, processItem, EmProcessItemType);
     extension->Valid = FALSE;
 }
 
