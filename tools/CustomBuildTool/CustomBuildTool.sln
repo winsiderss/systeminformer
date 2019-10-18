@@ -1,9 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.26403.7
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29411.108
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CustomBuildTool", "CustomBuildTool.csproj", "{CD644DF2-A658-4CBC-9497-CA5DD13CFEC3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CustomBuildTool", "CustomBuildTool.csproj", "{CD644DF2-A658-4CBC-9497-CA5DD13CFEC3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -18,5 +18,8 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {0AFEBEF0-0A75-4953-97DD-CFE70C7C1E56}
 	EndGlobalSection
 EndGlobal

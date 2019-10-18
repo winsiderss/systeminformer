@@ -52,12 +52,12 @@ namespace CustomBuildTool
         {
             ProgramArgs = ParseArgs(args);
 
+            if (!Build.InitializeBuildEnvironment())
+                return;
+
             if (ProgramArgs.ContainsKey("-cleanup"))
             {
                 if (Restart("-cleanup"))
-                    return;
-
-                if (!Build.InitializeBuildEnvironment(true))
                     return;
 
                 Build.CleanupBuildEnvironment();
@@ -65,16 +65,10 @@ namespace CustomBuildTool
             }
             else if (ProgramArgs.ContainsKey("-phapppub_gen"))
             {
-                if (!Build.InitializeBuildEnvironment(false))
-                    return;
-
                 Build.BuildPublicHeaderFiles();
             }
             else if (ProgramArgs.ContainsKey("-graph"))
             {
-                if (!Build.InitializeBuildEnvironment(true))
-                    return;
-
                 Build.ShowBuildEnvironment("changelog", true, false);
 
                 if (Win32.GetConsoleMode(Win32.GetStdHandle(Win32.STD_OUTPUT_HANDLE), out ConsoleMode mode))
@@ -86,9 +80,6 @@ namespace CustomBuildTool
             }
             else if (ProgramArgs.ContainsKey("-sdk"))
             {
-                if (!Build.InitializeBuildEnvironment(false))
-                    return;
-
                 Build.CopyKProcessHacker(
                     BuildFlags.Build32bit | BuildFlags.Build64bit |
                     BuildFlags.BuildDebug
@@ -101,9 +92,6 @@ namespace CustomBuildTool
             }
             else if (ProgramArgs.ContainsKey("-cleansdk"))
             {
-                if (!Build.InitializeBuildEnvironment(false))
-                    return;
-
                 if (!Build.BuildSolution("ProcessHacker.sln",
                     BuildFlags.Build32bit | BuildFlags.Build64bit |
                     BuildFlags.BuildVerbose | BuildFlags.BuildApi
@@ -118,9 +106,6 @@ namespace CustomBuildTool
             }
             else if (ProgramArgs.ContainsKey("-bin"))
             {
-                if (!Build.InitializeBuildEnvironment(false))
-                    return;
-
                 Build.ShowBuildEnvironment("bin", false, true);
                 Build.CopyKeyFiles();
 
@@ -155,9 +140,6 @@ namespace CustomBuildTool
             }
             else if (ProgramArgs.ContainsKey("-debug"))
             {
-                if (!Build.InitializeBuildEnvironment(true))
-                    return;
-
                 Build.ShowBuildEnvironment("debug", true, true);
                 Build.CopyKeyFiles();
 
@@ -201,9 +183,6 @@ namespace CustomBuildTool
             }
             else if (ProgramArgs.ContainsKey("-appveyor"))
             {
-                if (!Build.InitializeBuildEnvironment(true))
-                    Environment.Exit(1);
-
                 Build.ShowBuildEnvironment("nightly", true, true);
                 Build.CopyKeyFiles();
 
@@ -253,44 +232,38 @@ namespace CustomBuildTool
                 if (!Build.BuildDeployUpdateConfig())
                     Environment.Exit(1);
             }
-            else if (ProgramArgs.ContainsKey("-appxbuild"))
-            {
-                if (!Build.InitializeBuildEnvironment(true))
-                    return;
-
-                Build.ShowBuildEnvironment("appx", true, true);
-                Build.CopyKeyFiles();
-
-                if (!Build.BuildSolution("ProcessHacker.sln",
-                    BuildFlags.Build32bit | BuildFlags.Build64bit |
-                    BuildFlags.BuildVerbose | BuildFlags.BuildApi
-                    ))
-                    return;
-
-                if (!BuildSdk(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
-                    return;
-
-                if (!Build.BuildSolution("plugins\\Plugins.sln",
-                    BuildFlags.Build32bit | BuildFlags.Build64bit |
-                    BuildFlags.BuildVerbose | BuildFlags.BuildApi
-                    ))
-                    return;
-
-                if (!Build.CopyWow64Files(BuildFlags.None))
-                    return;
-                if (!Build.CopySidCapsFile(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
-                    return;
-
-                Build.BuildAppxPackage(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose);
-
-                Build.ShowBuildStats();
-            }
+            //else if (ProgramArgs.ContainsKey("-appxbuild"))
+            //{
+            //    Build.ShowBuildEnvironment("appx", true, true);
+            //    Build.CopyKeyFiles();
+            //
+            //    if (!Build.BuildSolution("ProcessHacker.sln",
+            //        BuildFlags.Build32bit | BuildFlags.Build64bit |
+            //        BuildFlags.BuildVerbose | BuildFlags.BuildApi
+            //        ))
+            //        return;
+            //
+            //    if (!BuildSdk(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
+            //        return;
+            //
+            //    if (!Build.BuildSolution("plugins\\Plugins.sln",
+            //        BuildFlags.Build32bit | BuildFlags.Build64bit |
+            //        BuildFlags.BuildVerbose | BuildFlags.BuildApi
+            //        ))
+            //        return;
+            //
+            //    if (!Build.CopyWow64Files(BuildFlags.None))
+            //        return;
+            //    if (!Build.CopySidCapsFile(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
+            //        return;
+            //
+            //    Build.BuildAppxPackage(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose);
+            //
+            //    Build.ShowBuildStats();
+            //}
             else if (ProgramArgs.ContainsKey("-appxmakecert"))
             {
                 if (Restart("-appxmakecert"))
-                    return;
-
-                if (!Build.InitializeBuildEnvironment(false))
                     return;
 
                 Build.ShowBuildEnvironment("appxcert", true, true);
@@ -301,9 +274,6 @@ namespace CustomBuildTool
             }
             else
             {
-                if (!Build.InitializeBuildEnvironment(true))
-                    return;
-
                 Build.ShowBuildEnvironment("release", true, true);
                 Build.CopyKeyFiles();
 

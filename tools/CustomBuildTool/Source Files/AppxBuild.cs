@@ -45,9 +45,9 @@ namespace CustomBuildTool
 
             try
             {
-                Win32.ImageResizeFile(44, "ProcessHacker\\resources\\ProcessHacker.png", BuildOutputFolder + "\\ProcessHacker-44.png");
-                Win32.ImageResizeFile(50, "ProcessHacker\\resources\\ProcessHacker.png", BuildOutputFolder + "\\ProcessHacker-50.png");
-                Win32.ImageResizeFile(150, "ProcessHacker\\resources\\ProcessHacker.png", BuildOutputFolder + "\\ProcessHacker-150.png");
+                //Win32.ImageResizeFile(44, "ProcessHacker\\resources\\ProcessHacker.png", BuildOutputFolder + "\\ProcessHacker-44.png");
+                //Win32.ImageResizeFile(50, "ProcessHacker\\resources\\ProcessHacker.png", BuildOutputFolder + "\\ProcessHacker-50.png");
+                //Win32.ImageResizeFile(150, "ProcessHacker\\resources\\ProcessHacker.png", BuildOutputFolder + "\\ProcessHacker-150.png");
 
                 if ((Flags & BuildFlags.Build32bit) == BuildFlags.Build32bit)
                 {

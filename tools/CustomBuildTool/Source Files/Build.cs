@@ -166,12 +166,9 @@ namespace CustomBuildTool
         };
 #endregion
 
-        public static bool InitializeBuildEnvironment(bool CheckDependencies)
+        public static bool InitializeBuildEnvironment()
         {
             TimeStart = DateTime.Now;
-            BuildOutputFolder = "build\\output";
-            MSBuildExePath = VisualStudio.GetMsbuildFilePath();
-            GitExePath = Win32.SearchFile("git.exe");
             CustomSignToolPath = "tools\\CustomSignTool\\bin\\Release32\\CustomSignTool.exe";
             BuildNightly = !string.Equals(Environment.ExpandEnvironmentVariables("%APPVEYOR_BUILD_API%"), "%APPVEYOR_BUILD_API%", StringComparison.OrdinalIgnoreCase);
 
@@ -193,29 +190,28 @@ namespace CustomBuildTool
             }
             catch (Exception ex)
             {
-                Program.PrintColorMessage("Error while setting the root directory: " + ex, ConsoleColor.Red);
+                Program.PrintColorMessage("Unable to find project root directory: " + ex, ConsoleColor.Red);
                 return false;
             }
 
             if (!File.Exists("ProcessHacker.sln"))
             {
-                Program.PrintColorMessage("Unable to find project root directory... Exiting.", ConsoleColor.Red);
+                Program.PrintColorMessage("Unable to find project solution.", ConsoleColor.Red);
                 return false;
             }
 
-            if (!File.Exists(MSBuildExePath))
             {
-                Program.PrintColorMessage("MsBuild not installed. Exiting.", ConsoleColor.Red);
-                return false;
+                MSBuildExePath = VisualStudio.GetMsbuildFilePath();
+
+                if (!File.Exists(MSBuildExePath))
+                {
+                    Program.PrintColorMessage("Unable to find MsBuild. Exiting.", ConsoleColor.Red);
+                    return false;
+                }
             }
 
-            if (File.Exists(GitExePath))
             {
-                GitExportBuild = string.Equals(Win32.ShellExecute(GitExePath, "rev-parse --is-inside-work-tree"), string.Empty, StringComparison.OrdinalIgnoreCase);
-            }
-            else
-            {
-                GitExePath = Environment.ExpandEnvironmentVariables("%ProgramFiles%") + "\\git\\bin\\git.exe";
+                GitExePath = Win32.SearchFile("git.exe");
 
                 if (File.Exists(GitExePath))
                 {
@@ -223,20 +219,36 @@ namespace CustomBuildTool
                 }
                 else
                 {
-                    Program.PrintColorMessage("[Warning] Git not installed.", ConsoleColor.Yellow);
+                    GitExePath = Environment.ExpandEnvironmentVariables("%ProgramFiles%\\git\\bin\\git.exe");
+
+                    if (!File.Exists(GitExePath) && Environment.Is64BitOperatingSystem)
+                        GitExePath = Environment.ExpandEnvironmentVariables("%ProgramW6432%\\git\\bin\\git.exe");
+
+                    if (File.Exists(GitExePath))
+                    {
+                        GitExportBuild = string.Equals(Win32.ShellExecute(GitExePath, "rev-parse --is-inside-work-tree"), string.Empty, StringComparison.OrdinalIgnoreCase);
+                    }
+                    else
+                    {
+                        Program.PrintColorMessage("[Warning] Git not installed.", ConsoleColor.Yellow);
+                    }
                 }
             }
 
-            if (!Directory.Exists(BuildOutputFolder))
             {
-                try
+                BuildOutputFolder = "build\\output";
+
+                if (!Directory.Exists(BuildOutputFolder))
                 {
-                    Directory.CreateDirectory(BuildOutputFolder);
-                }
-                catch (Exception ex)
-                {
-                    Program.PrintColorMessage("Error creating output directory. " + ex, ConsoleColor.Red);
-                    return false;
+                    try
+                    {
+                        Directory.CreateDirectory(BuildOutputFolder);
+                    }
+                    catch (Exception ex)
+                    {
+                        Program.PrintColorMessage("Error creating output directory. " + ex, ConsoleColor.Red);
+                        return false;
+                    }
                 }
             }
 
@@ -1173,7 +1185,6 @@ namespace CustomBuildTool
             return true;
         }
 
-
         public static bool BuildDeployUpdateConfig()
         {
             string buildJobId;
@@ -1408,7 +1419,7 @@ namespace CustomBuildTool
         }
 
 
-        public static void BuildAppxPackage(BuildFlags Flags)
+        public static void BuildAppxPackage()
         {
             AppxBuild.BuildAppxPackage(BuildOutputFolder, BuildLongVersion, BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose);
         }
