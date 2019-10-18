@@ -67,31 +67,41 @@ BOOLEAN PhHttpSocketCreate(
         return FALSE;
     }
 
-    WinHttpSetOption(
-        httpContext->SessionHandle,
-        WINHTTP_OPTION_SECURE_PROTOCOLS,
-        &(ULONG){ WINHTTP_FLAG_SECURE_PROTOCOL_ALL | WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_1 | WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_2 | WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_3 },
-        sizeof(ULONG)
-        );
-
-    if (WindowsVersion >= WINDOWS_8_1)
+    if (WindowsVersion < WINDOWS_8_1)
     {
+        // Note: The PROTOCOL_ALL flag enables TLS 1.2 on Win7 and Win2k8. (dmex)
+        WinHttpSetOption(
+            httpContext->SessionHandle,
+            WINHTTP_OPTION_SECURE_PROTOCOLS,
+            &(ULONG){ WINHTTP_FLAG_SECURE_PROTOCOL_ALL },
+            sizeof(ULONG)
+            );
+    }
+    else
+    {
+        WinHttpSetOption(
+            httpContext->SessionHandle,
+            WINHTTP_OPTION_SECURE_PROTOCOLS,
+            &(ULONG){ WINHTTP_FLAG_SECURE_PROTOCOL_ALL | WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_1 | WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_2 | WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_3 },
+            sizeof(ULONG)
+            );
+
         WinHttpSetOption(
             httpContext->SessionHandle,
             WINHTTP_OPTION_DECOMPRESSION,
             &(ULONG){ WINHTTP_DECOMPRESSION_FLAG_GZIP | WINHTTP_DECOMPRESSION_FLAG_DEFLATE },
             sizeof(ULONG)
             );
-    }
 
-    if (WindowsVersion >= WINDOWS_10)
-    {
-        WinHttpSetOption(
-            httpContext->SessionHandle,
-            WINHTTP_OPTION_ENABLE_HTTP_PROTOCOL,
-            &(ULONG){ WINHTTP_PROTOCOL_FLAG_HTTP2 },
-            sizeof(ULONG)
-            );
+        if (WindowsVersion >= WINDOWS_10)
+        {
+            WinHttpSetOption(
+                httpContext->SessionHandle,
+                WINHTTP_OPTION_ENABLE_HTTP_PROTOCOL,
+                &(ULONG){ WINHTTP_PROTOCOL_FLAG_HTTP2 },
+                sizeof(ULONG)
+                );
+        }
     }
 
     *HttpContext = httpContext;
@@ -723,33 +733,41 @@ HINTERNET PhpCreateDohConnectionHandle(
             0
             ))
         {
-            if (WindowsVersion >= WINDOWS_8_1)
+            if (WindowsVersion < WINDOWS_8_1)
             {
+                // Note: The PROTOCOL_ALL flag enables TLS 1.2 on Win7 and Win2k8. (dmex)
+                WinHttpSetOption(
+                    httpSessionHandle,
+                    WINHTTP_OPTION_SECURE_PROTOCOLS,
+                    &(ULONG){ WINHTTP_FLAG_SECURE_PROTOCOL_ALL },
+                    sizeof(ULONG)
+                    );
+            }
+            else
+            {
+                WinHttpSetOption(
+                    httpSessionHandle,
+                    WINHTTP_OPTION_SECURE_PROTOCOLS,
+                    &(ULONG){ WINHTTP_FLAG_SECURE_PROTOCOL_ALL | WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_1 | WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_2 | WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_3 },
+                    sizeof(ULONG)
+                    );
+
                 WinHttpSetOption(
                     httpSessionHandle,
                     WINHTTP_OPTION_DECOMPRESSION,
                     &(ULONG){ WINHTTP_DECOMPRESSION_FLAG_GZIP | WINHTTP_DECOMPRESSION_FLAG_DEFLATE },
                     sizeof(ULONG)
                     );
-            }
 
-            if (WindowsVersion >= WINDOWS_10)
-            {
-                WinHttpSetOption(
-                    httpSessionHandle,
-                    WINHTTP_OPTION_ENABLE_HTTP_PROTOCOL,
-                    &(ULONG){ WINHTTP_PROTOCOL_FLAG_HTTP2 },
-                    sizeof(ULONG)
-                    );
-            }
-
-            {
-                WinHttpSetOption(
-                    httpSessionHandle,
-                    WINHTTP_OPTION_SECURE_PROTOCOLS,
-                    &(ULONG){ WINHTTP_FLAG_SECURE_PROTOCOL_ALL | WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_1 | WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_2 |  WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_3 },
-                    sizeof(ULONG)
-                    );
+                if (WindowsVersion >= WINDOWS_10)
+                {
+                    WinHttpSetOption(
+                        httpSessionHandle,
+                        WINHTTP_OPTION_ENABLE_HTTP_PROTOCOL,
+                        &(ULONG){ WINHTTP_PROTOCOL_FLAG_HTTP2 },
+                        sizeof(ULONG)
+                        );
+                }
             }
 
             WinHttpSetOption(
