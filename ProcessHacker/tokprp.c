@@ -2275,16 +2275,20 @@ BOOLEAN NTAPI PhpAttributeTreeNewCallback(
     _In_opt_ PVOID Context
     )
 {
-    PATTRIBUTE_TREE_CONTEXT context;
+    PATTRIBUTE_TREE_CONTEXT context = Context;
     PATTRIBUTE_NODE node;
 
-    context = Context;
+    if (!context)
+        return FALSE;
 
     switch (Message)
     {
     case TreeNewGetChildren:
         {
             PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
+
+            if (!getChildren)
+                break;
 
             node = (PATTRIBUTE_NODE)getChildren->Node;
 
@@ -2304,6 +2308,9 @@ BOOLEAN NTAPI PhpAttributeTreeNewCallback(
         {
             PPH_TREENEW_IS_LEAF isLeaf = Parameter1;
 
+            if (!isLeaf)
+                break;
+
             node = (PATTRIBUTE_NODE)isLeaf->Node;
 
             isLeaf->IsLeaf = node->Children->Count == 0;
@@ -2312,6 +2319,9 @@ BOOLEAN NTAPI PhpAttributeTreeNewCallback(
     case TreeNewGetCellText:
         {
             PPH_TREENEW_GET_CELL_TEXT getCellText = Parameter1;
+
+            if (!getCellText)
+                break;
 
             node = (PATTRIBUTE_NODE)getCellText->Node;
 
@@ -2324,6 +2334,9 @@ BOOLEAN NTAPI PhpAttributeTreeNewCallback(
     case TreeNewKeyDown:
         {
             PPH_TREENEW_KEY_EVENT keyEvent = Parameter1;
+
+            if (!keyEvent)
+                break;
 
             switch (keyEvent->VirtualKey)
             {
@@ -2343,6 +2356,9 @@ BOOLEAN NTAPI PhpAttributeTreeNewCallback(
     case TreeNewContextMenu:
         {
             PPH_TREENEW_CONTEXT_MENU contextMenuEvent = Parameter1;
+
+            if (!contextMenuEvent)
+                break;
 
             SendMessage(
                 context->WindowHandle,
