@@ -113,20 +113,20 @@ namespace CustomBuildTool
         //    return null;
         //}
 
-        public static void ImageResizeFile(int size, string FileName, string OutName)
-        {
-            using (var src = System.Drawing.Image.FromFile(FileName))
-            using (var dst = new System.Drawing.Bitmap(size, size))
-            using (var g = System.Drawing.Graphics.FromImage(dst))
-            {
-                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-                g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+        //public static void ImageResizeFile(int size, string FileName, string OutName)
+        //{
+        //    using (var src = System.Drawing.Image.FromFile(FileName))
+        //    using (var dst = new System.Drawing.Bitmap(size, size))
+        //    using (var g = System.Drawing.Graphics.FromImage(dst))
+        //    {
+        //        g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+        //        g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
 
-                g.DrawImage(src, 0, 0, dst.Width, dst.Height);
+        //        g.DrawImage(src, 0, 0, dst.Width, dst.Height);
 
-                dst.Save(OutName, System.Drawing.Imaging.ImageFormat.Png);
-            }
-        }
+        //        dst.Save(OutName, System.Drawing.Imaging.ImageFormat.Png);
+        //    }
+        //}
 
         public static void CopyIfNewer(string CurrentFile, string NewFile)
         {
@@ -266,10 +266,11 @@ namespace CustomBuildTool
             };
             string vswhere = string.Empty;
 
-            if (Environment.Is64BitOperatingSystem)
-                vswhere = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Microsoft Visual Studio\\Installer\\vswhere.exe");
-            else
-                vswhere = Environment.ExpandEnvironmentVariables("%ProgramFiles%\\Microsoft Visual Studio\\Installer\\vswhere.exe");
+            vswhere = Environment.ExpandEnvironmentVariables("%ProgramFiles%\\Microsoft Visual Studio\\Installer\\vswhere.exe");
+            //vswhere = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Microsoft Visual Studio\\Installer\\vswhere.exe");
+
+            if (!File.Exists(vswhere) && Environment.Is64BitOperatingSystem)
+                vswhere = Environment.ExpandEnvironmentVariables("%ProgramW6432%\\Microsoft Visual Studio\\Installer\\vswhere.exe");
 
             // Note: vswere.exe was only released with build 15.0.26418.1
             if (File.Exists(vswhere))
