@@ -5334,10 +5334,13 @@ NTSTATUS PhGetProcessIsDotNetEx(
     {
         NTSTATUS status;
         HANDLE sectionHandle;
+        SIZE_T returnLength;
+        FILE_BASIC_INFORMATION fileInfo;
         OBJECT_ATTRIBUTES objectAttributes;
-        PPH_STRING sectionName;
-        UNICODE_STRING sectionNameUs;
+        UNICODE_STRING objectNameUs;
+        PH_STRINGREF objectNameSr;
         PH_FORMAT format[2];
+        WCHAR formatBuffer[0x80];
 
         // Most .NET processes have a handle open to a section named
         // \BaseNamedObjects\Cor_Private_IPCBlock(_v4)_<ProcessId>. This is the same object used by
@@ -5345,18 +5348,27 @@ NTSTATUS PhGetProcessIsDotNetEx(
         // for the existence of that section object. This means:
         // * Better performance.
         // * No need for admin rights to get .NET status of processes owned by other users.
-
-        PhInitFormatU(&format[1], HandleToUlong(ProcessId));
-
+   
         // Version 4 section object
 
         PhInitFormatS(&format[0], L"\\BaseNamedObjects\\Cor_Private_IPCBlock_v4_");
-        sectionName = PhFormat(format, 2, 96);
-        PhStringRefToUnicodeString(&sectionName->sr, &sectionNameUs);
+        PhInitFormatU(&format[1], HandleToUlong(ProcessId));
+
+        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), &returnLength))
+        {
+            objectNameSr.Length = returnLength - sizeof(UNICODE_NULL);
+            objectNameSr.Buffer = formatBuffer;
+
+            PhStringRefToUnicodeString(&objectNameSr, &objectNameUs);
+        }
+        else
+        {
+            RtlInitEmptyUnicodeString(&objectNameUs, NULL, 0);
+        }
 
         InitializeObjectAttributes(
             &objectAttributes,
-            &sectionNameUs,
+            &objectNameUs,
             OBJ_CASE_INSENSITIVE,
             NULL,
             NULL
@@ -5366,7 +5378,6 @@ NTSTATUS PhGetProcessIsDotNetEx(
             SECTION_QUERY,
             &objectAttributes
             );
-        PhDereferenceObject(sectionName);
 
         if (NT_SUCCESS(status) || status == STATUS_ACCESS_DENIED)
         {
@@ -5385,12 +5396,23 @@ NTSTATUS PhGetProcessIsDotNetEx(
         // Version 2 section object
 
         PhInitFormatS(&format[0], L"\\BaseNamedObjects\\Cor_Private_IPCBlock_");
-        sectionName = PhFormat(format, 2, 90);
-        PhStringRefToUnicodeString(&sectionName->sr, &sectionNameUs);
+        PhInitFormatU(&format[1], HandleToUlong(ProcessId));
+
+        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), &returnLength))
+        {
+            objectNameSr.Length = returnLength - sizeof(UNICODE_NULL);
+            objectNameSr.Buffer = formatBuffer;
+
+            PhStringRefToUnicodeString(&objectNameSr, &objectNameUs);
+        }
+        else
+        {
+            RtlInitEmptyUnicodeString(&objectNameUs, NULL, 0);
+        }
 
         InitializeObjectAttributes(
             &objectAttributes,
-            &sectionNameUs,
+            &objectNameUs,
             OBJ_CASE_INSENSITIVE,
             NULL,
             NULL
@@ -5400,7 +5422,6 @@ NTSTATUS PhGetProcessIsDotNetEx(
             SECTION_QUERY,
             &objectAttributes
             );
-        PhDereferenceObject(sectionName);
 
         if (NT_SUCCESS(status) || status == STATUS_ACCESS_DENIED)
         {
@@ -5412,6 +5433,46 @@ NTSTATUS PhGetProcessIsDotNetEx(
 
             if (Flags)
                 *Flags = PH_CLR_VERSION_2_0;
+
+            return STATUS_SUCCESS;
+        }
+
+        // .NET Core 3.0
+
+        PhInitFormatS(&format[0], DEVICE_NAMED_PIPE L"dotnet-diagnostic-");
+        PhInitFormatU(&format[1], HandleToUlong(ProcessId));
+
+        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), &returnLength))
+        {
+            objectNameSr.Length = returnLength - sizeof(UNICODE_NULL);
+            objectNameSr.Buffer = formatBuffer;
+
+            PhStringRefToUnicodeString(&objectNameSr, &objectNameUs);
+        }
+        else
+        {
+            RtlInitEmptyUnicodeString(&objectNameUs, NULL, 0);
+        }
+
+        InitializeObjectAttributes(
+            &objectAttributes,
+            &objectNameUs,
+            OBJ_CASE_INSENSITIVE,
+            NULL,
+            NULL
+            );
+
+        status = NtQueryAttributesFile( // TODO: Remove (dmex)
+            &objectAttributes,
+            &fileInfo
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            if (IsDotNet)
+                *IsDotNet = TRUE;
+            if (Flags)
+                *Flags = PH_CLR_VERSION_4_ABOVE | PH_CLR_CORE_3_0_ABOVE;
 
             return STATUS_SUCCESS;
         }
