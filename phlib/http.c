@@ -69,11 +69,10 @@ BOOLEAN PhHttpSocketCreate(
 
     if (WindowsVersion < WINDOWS_8_1)
     {
-        // Note: The PROTOCOL_ALL flag enables TLS 1.2 on Win7 and Win2k8. (dmex)
         WinHttpSetOption(
             httpContext->SessionHandle,
             WINHTTP_OPTION_SECURE_PROTOCOLS,
-            &(ULONG){ WINHTTP_FLAG_SECURE_PROTOCOL_ALL },
+            &(ULONG){ WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_1 | WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_2 },
             sizeof(ULONG)
             );
     }
@@ -82,7 +81,7 @@ BOOLEAN PhHttpSocketCreate(
         WinHttpSetOption(
             httpContext->SessionHandle,
             WINHTTP_OPTION_SECURE_PROTOCOLS,
-            &(ULONG){ WINHTTP_FLAG_SECURE_PROTOCOL_ALL | WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_1 | WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_2 | WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_3 },
+            &(ULONG){ WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_1 | WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_2 | WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_3 },
             sizeof(ULONG)
             );
 
