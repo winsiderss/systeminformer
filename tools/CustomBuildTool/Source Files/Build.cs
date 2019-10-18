@@ -215,7 +215,13 @@ namespace CustomBuildTool
             }
             else
             {
-                if (CheckDependencies)
+                GitExePath = Environment.ExpandEnvironmentVariables("%ProgramFiles%") + "\\git\\bin\\git.exe";
+
+                if (File.Exists(GitExePath))
+                {
+                    GitExportBuild = string.Equals(Win32.ShellExecute(GitExePath, "rev-parse --is-inside-work-tree"), string.Empty, StringComparison.OrdinalIgnoreCase);
+                }
+                else
                 {
                     Program.PrintColorMessage("[Warning] Git not installed.", ConsoleColor.Yellow);
                 }
