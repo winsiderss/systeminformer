@@ -206,11 +206,15 @@ namespace CustomBuildTool
     {
         private static Rijndael GetRijndael(string secret)
         {
-            Rfc2898DeriveBytes rfc2898DeriveBytes = new Rfc2898DeriveBytes(secret, Convert.FromBase64String("e0U0RTY2RjU5LUNBRjItNEMzOS1BN0Y4LTQ2MDk3QjFDNDYxQn0="), 10000);
-            Rijndael rijndael = Rijndael.Create();
-            rijndael.Key = rfc2898DeriveBytes.GetBytes(32);
-            rijndael.IV = rfc2898DeriveBytes.GetBytes(16);
-            return rijndael;
+            using (Rfc2898DeriveBytes rfc2898DeriveBytes = new Rfc2898DeriveBytes(secret, Convert.FromBase64String("e0U0RTY2RjU5LUNBRjItNEMzOS1BN0Y4LTQ2MDk3QjFDNDYxQn0="), 10000))
+            {
+                Rijndael rijndael = Rijndael.Create();
+
+                rijndael.Key = rfc2898DeriveBytes.GetBytes(32);
+                rijndael.IV = rfc2898DeriveBytes.GetBytes(16);
+
+                return rijndael;
+            }
         }
 
         public static void Encrypt(string fileName, string outFileName, string secret)
@@ -257,6 +261,66 @@ namespace CustomBuildTool
 
     public static class VisualStudio
     {
+        public static string GetGitFilePath()
+        {
+            string GitExePath = Win32.SearchFile("git.exe");
+
+            if (File.Exists(GitExePath))
+                return GitExePath;
+            else
+            {
+                GitExePath = Environment.ExpandEnvironmentVariables("%ProgramFiles%\\git\\bin\\git.exe");
+
+                if (!File.Exists(GitExePath) && Environment.Is64BitOperatingSystem)
+                    GitExePath = Environment.ExpandEnvironmentVariables("%ProgramW6432%\\git\\bin\\git.exe");
+
+                if (File.Exists(GitExePath))
+                    return GitExePath;
+            }
+
+            return null;
+        }
+
+        public static string GetOutputDirectoryPath()
+        {
+            if (File.Exists(Environment.CurrentDirectory + "\\build\\output"))
+            {
+                return Environment.CurrentDirectory + "\\build\\output";
+            }
+            else
+            {
+                try
+                {
+                    Directory.CreateDirectory(Environment.CurrentDirectory + "\\build\\output");
+
+                    return Environment.CurrentDirectory + "\\build\\output";
+                }
+                catch (Exception ex)
+                {
+                    Program.PrintColorMessage("Error creating output directory. " + ex, ConsoleColor.Red);
+                }
+            }
+
+            return null;
+        }
+
+        public static string GetCustomSignToolFilePath()
+        {
+            string[] CustomSignToolPathArray =
+            {
+                "\\tools\\CustomSignTool\\bin\\Release32\\CustomSignTool.exe",
+                //"\\tools\\CustomSignTool\\bin\\Release64\\CustomSignTool.exe",
+            };
+
+            foreach (string path in CustomSignToolPathArray)
+            {
+                if (File.Exists(Environment.CurrentDirectory + path))
+                    return Environment.CurrentDirectory + path;
+            }
+
+            return null;
+        }
+
         public static string GetMsbuildFilePath()
         {
             string[] MsBuildPathArray =
@@ -264,9 +328,8 @@ namespace CustomBuildTool
                 "\\MSBuild\\Current\\Bin\\MSBuild.exe",
                 "\\MSBuild\\15.0\\Bin\\MSBuild.exe"
             };
-            string vswhere = string.Empty;
 
-            vswhere = Environment.ExpandEnvironmentVariables("%ProgramFiles%\\Microsoft Visual Studio\\Installer\\vswhere.exe");
+            string vswhere = Environment.ExpandEnvironmentVariables("%ProgramFiles%\\Microsoft Visual Studio\\Installer\\vswhere.exe");
             //vswhere = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Microsoft Visual Studio\\Installer\\vswhere.exe");
 
             if (!File.Exists(vswhere) && Environment.Is64BitOperatingSystem)

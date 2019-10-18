@@ -1,37 +1,44 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
+        <OutDir>$(SolutionDir)bin\$(Configuration)$(PlatformArchitecture)\</OutDir>
         <OutputType>Exe</OutputType>
-        <AssemblyName>CustomBuildTool</AssemblyName>
-        <TargetFramework>netcoreapp3.0</TargetFramework>
         <PublishTrimmed>true</PublishTrimmed>
         <PublishReadyToRun>true</PublishReadyToRun>
         <PublishSingleFile>true</PublishSingleFile>
         <PublishReadyToRunShowWarnings>true</PublishReadyToRunShowWarnings>
-        <PublishSingleFileShowWarnings>true</PublishSingleFileShowWarnings>
-        <RuntimeIdentifier>win-x86</RuntimeIdentifier>
-        <PlatformTarget>x86</PlatformTarget>
-        <ApplicationIcon></ApplicationIcon>
+        <TargetFramework>netcoreapp3.0</TargetFramework>
+        <Platforms>x64;x86</Platforms>
     </PropertyGroup>
 
-    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <PropertyGroup Condition="'$(Platform)'=='x86'">
+        <AssemblyName>CustomBuildTool</AssemblyName>
+        <PlatformTarget>x86</PlatformTarget>
+        <RuntimeIdentifiers>win-x86</RuntimeIdentifiers>
+        <RuntimeIdentifier>win-x86</RuntimeIdentifier>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Platform)'=='x64'">
+        <AssemblyName>CustomBuildTool64</AssemblyName>
+        <PlatformTarget>x64</PlatformTarget>
+        <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+        <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    </PropertyGroup>
+    
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
       <DefineConstants>DEBUG;TRACE</DefineConstants>
       <DebugType>full</DebugType>
       <DebugSymbols>true</DebugSymbols>
-      <FileAlignment>512</FileAlignment>
-      <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
-    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-      <DefineConstants></DefineConstants>
-      <FileAlignment>512</FileAlignment>
-      <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      <DefineConstants>DEBUG;TRACE</DefineConstants>
+      <DebugType>full</DebugType>
+      <DebugSymbols>true</DebugSymbols>
     </PropertyGroup>
-
+    
     <ItemGroup>
-        <PackageReference Include="Microsoft.Win32.Registry" Version="4.6.0">
-            <IncludeAssets>compile</IncludeAssets>
-        </PackageReference>
+        <PackageReference Include="Microsoft.Win32.Registry" Version="4.6.0" PrivateAssets="All" />
     </ItemGroup>
 
 </Project>

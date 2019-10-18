@@ -164,13 +164,11 @@ namespace CustomBuildTool
             "verify.h",
             "workqueue.h"
         };
-#endregion
+        #endregion
 
         public static bool InitializeBuildEnvironment()
         {
             TimeStart = DateTime.Now;
-            CustomSignToolPath = "tools\\CustomSignTool\\bin\\Release32\\CustomSignTool.exe";
-            BuildNightly = !string.Equals(Environment.ExpandEnvironmentVariables("%APPVEYOR_BUILD_API%"), "%APPVEYOR_BUILD_API%", StringComparison.OrdinalIgnoreCase);
 
             try
             {
@@ -182,7 +180,6 @@ namespace CustomBuildTool
 
                     if (File.Exists(info.FullName + "\\ProcessHacker.sln"))
                     {
-                        // Set the root directory.
                         Directory.SetCurrentDirectory(info.FullName);
                         break;
                     }
@@ -200,56 +197,25 @@ namespace CustomBuildTool
                 return false;
             }
 
-            {
-                MSBuildExePath = VisualStudio.GetMsbuildFilePath();
+            BuildOutputFolder = VisualStudio.GetOutputDirectoryPath();
+            MSBuildExePath = VisualStudio.GetMsbuildFilePath();
+            CustomSignToolPath = VisualStudio.GetCustomSignToolFilePath();
+            GitExePath = VisualStudio.GetGitFilePath();
+            BuildNightly = !string.Equals(Environment.ExpandEnvironmentVariables("%APPVEYOR_BUILD_API%"), "%APPVEYOR_BUILD_API%", StringComparison.OrdinalIgnoreCase);
 
-                if (!File.Exists(MSBuildExePath))
-                {
-                    Program.PrintColorMessage("Unable to find MsBuild. Exiting.", ConsoleColor.Red);
-                    return false;
-                }
+            if (!File.Exists(MSBuildExePath))
+            {
+                Program.PrintColorMessage("Unable to find MsBuild. Exiting.", ConsoleColor.Red);
+                return false;
             }
 
+            if (File.Exists(GitExePath))
             {
-                GitExePath = Win32.SearchFile("git.exe");
-
-                if (File.Exists(GitExePath))
-                {
-                    GitExportBuild = string.Equals(Win32.ShellExecute(GitExePath, "rev-parse --is-inside-work-tree"), string.Empty, StringComparison.OrdinalIgnoreCase);
-                }
-                else
-                {
-                    GitExePath = Environment.ExpandEnvironmentVariables("%ProgramFiles%\\git\\bin\\git.exe");
-
-                    if (!File.Exists(GitExePath) && Environment.Is64BitOperatingSystem)
-                        GitExePath = Environment.ExpandEnvironmentVariables("%ProgramW6432%\\git\\bin\\git.exe");
-
-                    if (File.Exists(GitExePath))
-                    {
-                        GitExportBuild = string.Equals(Win32.ShellExecute(GitExePath, "rev-parse --is-inside-work-tree"), string.Empty, StringComparison.OrdinalIgnoreCase);
-                    }
-                    else
-                    {
-                        Program.PrintColorMessage("[Warning] Git not installed.", ConsoleColor.Yellow);
-                    }
-                }
+                GitExportBuild = string.Equals(Win32.ShellExecute(GitExePath, "rev-parse --is-inside-work-tree"), string.Empty, StringComparison.OrdinalIgnoreCase);
             }
-
+            else
             {
-                BuildOutputFolder = "build\\output";
-
-                if (!Directory.Exists(BuildOutputFolder))
-                {
-                    try
-                    {
-                        Directory.CreateDirectory(BuildOutputFolder);
-                    }
-                    catch (Exception ex)
-                    {
-                        Program.PrintColorMessage("Error creating output directory. " + ex, ConsoleColor.Red);
-                        return false;
-                    }
-                }
+                Program.PrintColorMessage("[Warning] Git not installed.", ConsoleColor.Yellow);
             }
 
             return true;
@@ -278,7 +244,7 @@ namespace CustomBuildTool
             }
         }
 
-        public static void ShowBuildEnvironment(string Platform, bool ShowBuildInfo, bool ShowLogInfo)
+        public static void ShowBuildEnvironment(string Platform, bool ShowBuildInfo)
         {
             if (!GitExportBuild && File.Exists(GitExePath))
             {
@@ -300,7 +266,10 @@ namespace CustomBuildTool
 
             if (ShowBuildInfo && !GitExportBuild)
             {
-                Program.PrintColorMessage("Version: ", ConsoleColor.DarkGray, false);
+                //Program.PrintColorMessage("Win: ", ConsoleColor.DarkGray, false);
+                //Program.PrintColorMessage(Environment.OSVersion.VersionString, ConsoleColor.Green, true);
+
+                Program.PrintColorMessage("Build: ", ConsoleColor.DarkGray, false);
                 Program.PrintColorMessage(BuildVersion, ConsoleColor.Green, false);
 
                 if (!string.IsNullOrEmpty(BuildCommit))
