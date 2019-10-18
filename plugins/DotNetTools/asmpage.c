@@ -1525,13 +1525,12 @@ INT_PTR CALLBACK DotNetAsmPageDlgProc(
         {
             PhRemoveTreeNewFilter(&context->TreeFilterSupport, context->TreeFilterEntry);
             PhDeleteTreeNewFilterSupport(&context->TreeFilterSupport);
-            if (context->SearchBoxText) PhDereferenceObject(context->SearchBoxText);
 
             DotNetAsmSaveSettingsTreeList(context);
             DotNetAsmDestroyTreeNodes(context);
 
-            PhDereferenceObject(context->TreeErrorMessage);
-            PhDereferenceObject(context->SearchBoxText);
+            if (context->SearchBoxText) PhDereferenceObject(context->SearchBoxText);
+            if (context->TreeErrorMessage) PhDereferenceObject(context->TreeErrorMessage);
             PhFree(context);
         }
         break;
