@@ -32,7 +32,6 @@ namespace CustomBuildTool
     {
         public static void BuildAppxPackage(string BuildOutputFolder, string BuildLongVersion, BuildFlags Flags)
         {
-            string error = string.Empty;
             string sdkRootPath = string.Empty;
             string[] cleanupAppxArray =
             {
@@ -105,7 +104,7 @@ namespace CustomBuildTool
                     File.WriteAllText(BuildOutputFolder + "\\package32.map", packageMap32.ToString());
 
                     // create the package
-                    error = Win32.ShellExecute(
+                    var error = Win32.ShellExecute(
                         makeAppxExePath,
                         "pack /o /f " + BuildOutputFolder + "\\package32.map /p " +
                         BuildOutputFolder + "\\processhacker-build-package-x32.appx"
@@ -154,7 +153,7 @@ namespace CustomBuildTool
                     File.WriteAllText(BuildOutputFolder + "\\package64.map", packageMap64.ToString());
 
                     // create the package
-                    error = Win32.ShellExecute(
+                    var error = Win32.ShellExecute(
                         makeAppxExePath,
                         "pack /o /f " + BuildOutputFolder + "\\package64.map /p " +
                         BuildOutputFolder + "\\processhacker-build-package-x64.appx"
@@ -182,7 +181,7 @@ namespace CustomBuildTool
                         File.Delete(BuildOutputFolder + "\\processhacker-build-package.appxbundle");
 
                     // create the appx bundle package
-                    error = Win32.ShellExecute(
+                    var error = Win32.ShellExecute(
                         makeAppxExePath,
                         "bundle /f " + BuildOutputFolder + "\\bundle.map /p " +
                         BuildOutputFolder + "\\processhacker-build-package.appxbundle"

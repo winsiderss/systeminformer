@@ -36,6 +36,14 @@
       <DebugType>full</DebugType>
       <DebugSymbols>true</DebugSymbols>
     </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      <DefineConstants />
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
+      <DefineConstants />
+    </PropertyGroup>
     
     <ItemGroup>
         <PackageReference Include="Microsoft.Win32.Registry" Version="4.6.0" PrivateAssets="All" />

@@ -1,7 +1,8 @@
 ﻿/*
  * Process Hacker Toolchain - 
  *   Build script
- * 
+ *   
+ * Copyright (C) wj32
  * Copyright (C) dmex
  * 
  * This file is part of Process Hacker.
@@ -36,12 +37,12 @@ namespace CustomBuildTool
 
     public class HeaderGen
     {
-        private string BaseDirectory;
-        private string[] Modes;
-        private string[] Files;
-        private string OutputFile;
-        private string Header;
-        private string Footer;
+        private readonly string BaseDirectory;
+        private readonly string[] Modes;
+        private readonly string[] Files;
+        private readonly string OutputFile;
+        private readonly string Header;
+        private readonly string Footer;
 
         public HeaderGen()
         {
