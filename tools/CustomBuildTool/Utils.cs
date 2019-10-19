@@ -2,7 +2,7 @@
  * Process Hacker Toolchain - 
  *   Build script
  * 
- * Copyright (C) 2017 dmex
+ * Copyright (C) dmex
  * 
  * This file is part of Process Hacker.
  * 
@@ -263,42 +263,47 @@ namespace CustomBuildTool
     {
         public static string GetGitFilePath()
         {
-            string GitExePath = Win32.SearchFile("git.exe");
+            string git = Win32.SearchFile("git.exe");
 
-            if (File.Exists(GitExePath))
-                return GitExePath;
-            else
-            {
-                GitExePath = Environment.ExpandEnvironmentVariables("%ProgramFiles%\\git\\bin\\git.exe");
+            if (File.Exists(git))
+                return git;
 
-                if (!File.Exists(GitExePath) && Environment.Is64BitOperatingSystem)
-                    GitExePath = Environment.ExpandEnvironmentVariables("%ProgramW6432%\\git\\bin\\git.exe");
+            git = Environment.ExpandEnvironmentVariables("%ProgramFiles%\\Git\\bin\\git.exe");
 
-                if (File.Exists(GitExePath))
-                    return GitExePath;
-            }
+            if (File.Exists(git))
+                return git;
+
+            git = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Git\\bin\\git.exe");
+
+            if (File.Exists(git))
+                return git;
+
+            git = Environment.ExpandEnvironmentVariables("%ProgramW6432%\\Git\\bin\\git.exe");
+
+            if (File.Exists(git))
+                return git;
 
             return null;
         }
 
         public static string GetOutputDirectoryPath()
         {
-            if (File.Exists(Environment.CurrentDirectory + "\\build\\output"))
-            {
-                return Environment.CurrentDirectory + "\\build\\output";
-            }
-            else
-            {
-                try
-                {
-                    Directory.CreateDirectory(Environment.CurrentDirectory + "\\build\\output");
+            string folder = Environment.CurrentDirectory + "\\build\\output";
 
-                    return Environment.CurrentDirectory + "\\build\\output";
-                }
-                catch (Exception ex)
-                {
-                    Program.PrintColorMessage("Error creating output directory. " + ex, ConsoleColor.Red);
-                }
+            if (File.Exists(folder))
+            {
+                return folder;
+            }
+
+            try
+            {
+                Directory.CreateDirectory(folder);
+
+                return folder;
+            }
+            catch (Exception ex)
+            {
+                Program.PrintColorMessage("Error creating output directory. " + ex, ConsoleColor.Red);
             }
 
             return null;
@@ -330,12 +335,13 @@ namespace CustomBuildTool
             };
 
             string vswhere = Environment.ExpandEnvironmentVariables("%ProgramFiles%\\Microsoft Visual Studio\\Installer\\vswhere.exe");
-            //vswhere = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Microsoft Visual Studio\\Installer\\vswhere.exe");
 
-            if (!File.Exists(vswhere) && Environment.Is64BitOperatingSystem)
+            if (!File.Exists(vswhere))
+                vswhere = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Microsoft Visual Studio\\Installer\\vswhere.exe");
+
+            if (!File.Exists(vswhere))
                 vswhere = Environment.ExpandEnvironmentVariables("%ProgramW6432%\\Microsoft Visual Studio\\Installer\\vswhere.exe");
 
-            // Note: vswere.exe was only released with build 15.0.26418.1
             if (File.Exists(vswhere))
             {
                 string vswhereResult = Win32.ShellExecute(vswhere,
@@ -443,7 +449,7 @@ namespace CustomBuildTool
             }
             catch (Exception ex)
             {
-                Program.PrintColorMessage("[VisualStudioInstance] " + ex, ConsoleColor.Red, true);
+                Program.PrintColorMessage("[UpdateBuildVersion] " + ex, ConsoleColor.Red, true);
                 return false;
             }
 
@@ -466,42 +472,6 @@ namespace CustomBuildTool
             }
 
             return true;
-        }
-
-        private static VisualStudioInstance FindVisualStudioInstance()
-        {
-            var setupConfiguration = new SetupConfiguration() as ISetupConfiguration2;
-            var instanceEnumerator = setupConfiguration.EnumAllInstances();
-            var instances = new ISetupInstance2[3];
-
-            instanceEnumerator.Next(instances.Length, instances, out var instancesFetched);
-
-            if (instancesFetched == 0)
-                return null;
-
-            do
-            {
-                for (int i = 0; i < instancesFetched; i++)
-                {
-                    var instance = new VisualStudioInstance(instances[i]);
-                    var state = instances[i].GetState();
-                    var packages = instances[i].GetPackages().Where(package => package.GetId().Contains("Microsoft.Component.MSBuild"));
-
-                    if (
-                        state.HasFlag(InstanceState.Local | InstanceState.Registered | InstanceState.Complete) &&
-                        packages.Count() > 0 &&
-                        instance.Version.StartsWith("15.0", StringComparison.OrdinalIgnoreCase)
-                        )
-                    {
-                        return instance;
-                    }
-                }
-
-                instanceEnumerator.Next(instances.Length, instances, out instancesFetched);
-            }
-            while (instancesFetched != 0);
-
-            return null;
         }
     }
 
@@ -547,12 +517,6 @@ namespace CustomBuildTool
             {
                 this.InstallDate = DateTime.UtcNow;
             }
-
-            // FromInstance.GetState();
-            // FromInstance.GetPackages();
-            // FromInstance.GetProduct();            
-            // FromInstance.GetProperties();
-            // FromInstance.GetErrors();
         }
     }
 

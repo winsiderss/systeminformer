@@ -2,7 +2,7 @@
  * Process Hacker Toolchain - 
  *   Build script
  * 
- * Copyright (C) 2017 dmex
+ * Copyright (C) dmex
  * 
  * This file is part of Process Hacker.
  * 
