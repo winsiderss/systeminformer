@@ -1,25 +1,25 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <OutDir>$(SolutionDir)bin\$(Configuration)$(PlatformArchitecture)\</OutDir>
+        <AssemblyName>CustomBuildTool</AssemblyName>
         <OutputType>Exe</OutputType>
+        <Platforms>x64;x86</Platforms>
         <PublishTrimmed>true</PublishTrimmed>
         <PublishReadyToRun>true</PublishReadyToRun>
         <PublishSingleFile>true</PublishSingleFile>
         <PublishReadyToRunShowWarnings>true</PublishReadyToRunShowWarnings>
         <TargetFramework>netcoreapp3.0</TargetFramework>
-        <Platforms>x64;x86</Platforms>
+        <OutDir>$(SolutionDir)bin\$(Configuration)$(PlatformArchitecture)\$(TargetFramework)\</OutDir>
+        <IntDir>$(SolutionDir)obj\$(Configuration)$(PlatformArchitecture)\$(TargetFramework)\</IntDir>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Platform)'=='x86'">
-        <AssemblyName>CustomBuildTool</AssemblyName>
         <PlatformTarget>x86</PlatformTarget>
         <RuntimeIdentifiers>win-x86</RuntimeIdentifiers>
         <RuntimeIdentifier>win-x86</RuntimeIdentifier>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Platform)'=='x64'">
-        <AssemblyName>CustomBuildTool64</AssemblyName>
         <PlatformTarget>x64</PlatformTarget>
         <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
         <RuntimeIdentifier>win-x64</RuntimeIdentifier>
