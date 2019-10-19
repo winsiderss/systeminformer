@@ -83,7 +83,7 @@ PH_TOKEN_ATTRIBUTES PhGetOwnTokenAttributes(
         BOOLEAN elevated = TRUE;
         TOKEN_ELEVATION_TYPE elevationType = TokenElevationTypeFull;
 
-        if (WindowsVersion >= WINDOWS_8)
+        if (WindowsVersion >= WINDOWS_8_1)
         {
             attributes.TokenHandle = NtCurrentProcessToken();
         }
