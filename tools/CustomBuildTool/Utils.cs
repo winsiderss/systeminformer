@@ -250,8 +250,8 @@ namespace CustomBuildTool
 
             using (FileStream fileInStream = File.OpenRead(FileName))
             using (BufferedStream bufferedStream = new BufferedStream(fileInStream, 0x1000))
+            using (SHA256Managed sha = new SHA256Managed())
             {
-                SHA256Managed sha = new SHA256Managed();
                 byte[] checksum = sha.ComputeHash(bufferedStream);
 
                 return BitConverter.ToString(checksum).Replace("-", string.Empty);
