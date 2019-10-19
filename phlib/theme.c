@@ -243,7 +243,8 @@ VOID PhReInitializeWindowTheme(
 
     PhInitializeThemeWindowFrame(WindowHandle);
 
-
+    if (!PhpThemeEnable)
+        return;
 
     switch (PhpThemeColorMode)
     {
