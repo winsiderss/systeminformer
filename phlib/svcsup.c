@@ -183,6 +183,34 @@ SC_HANDLE PhOpenService(
     return serviceHandle;
 }
 
+NTSTATUS PhOpenServiceEx(
+    _In_ PWSTR ServiceName,
+    _In_ ACCESS_MASK DesiredAccess,
+    _Out_ SC_HANDLE* ServiceHandle
+    )
+{
+    NTSTATUS status;
+    SC_HANDLE scManagerHandle;
+    SC_HANDLE serviceHandle;
+
+    scManagerHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CONNECT);
+
+    if (!scManagerHandle)
+        return PhGetLastWin32ErrorAsNtStatus();
+
+    serviceHandle = OpenService(scManagerHandle, ServiceName, DesiredAccess);
+
+    if (!serviceHandle)
+    {
+        status = PhGetLastWin32ErrorAsNtStatus();
+        CloseServiceHandle(scManagerHandle);
+        return status;
+    }
+
+    *ServiceHandle = serviceHandle;
+    return STATUS_SUCCESS;
+}
+
 PVOID PhGetServiceConfig(
     _In_ SC_HANDLE ServiceHandle
     )

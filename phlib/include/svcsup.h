@@ -28,6 +28,15 @@ PhOpenService(
     );
 
 PHLIBAPI
+NTSTATUS
+NTAPI
+PhOpenServiceEx(
+    _In_ PWSTR ServiceName,
+    _In_ ACCESS_MASK DesiredAccess,
+    _Out_ SC_HANDLE* ServiceHandle
+    );
+
+PHLIBAPI
 PVOID
 NTAPI
 PhGetServiceConfig(
