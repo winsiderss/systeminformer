@@ -76,20 +76,18 @@ VOID LoadGeoLiteDb(
     {
         if (MMDB_open(dbpath->Buffer, MMDB_MODE_MMAP, &GeoDbCountry) == MMDB_SUCCESS)
         {
-            time_t systemTime;
+            LARGE_INTEGER systemTime;
+            ULONG secondsSince1970;
 
             // Query the current time
-            time(&systemTime);
+            PhQuerySystemTime(&systemTime);
+            // Convert to unix epoch time
+            RtlTimeToSecondsSince1970(&systemTime, &secondsSince1970);
 
             // Check if the Geoip database is older than 6 months (182 days = approx. 6 months).
-            if ((systemTime - GeoDbCountry.metadata.build_epoch) > (182 * 24 * 60 * 60))
+            if ((secondsSince1970 - GeoDbCountry.metadata.build_epoch) > (182 * 24 * 60 * 60))
             {
                 GeoDbExpired = TRUE;
-            }
-
-            if (GeoDbCountry.metadata.ip_version == 6)
-            {
-                // Database includes ipv6 entires.
             }
 
             GeoDbLoaded = TRUE;
