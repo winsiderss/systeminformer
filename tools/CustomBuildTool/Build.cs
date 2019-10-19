@@ -800,6 +800,24 @@ namespace CustomBuildTool
             return true;
         }
 
+        public static bool BuildSdk(BuildFlags Flags)
+        {
+            //PrintColorMessage("Copying Plugin SDK...", ConsoleColor.Cyan);
+
+            if (!CopyTextFiles())
+                return false;
+            if (!CopyPluginSdkHeaders())
+                return false;
+            if (!CopyVersionHeader())
+                return false;
+            if (!FixupResourceHeader())
+                return false;
+            if (!CopyLibFiles(Flags))
+                return false;
+
+            return true;
+        }
+
         public static bool BuildSetupExe()
         {
             Program.PrintColorMessage(BuildTimeStamp(), ConsoleColor.DarkGray, false);
