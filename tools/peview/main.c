@@ -156,6 +156,8 @@ INT WINAPI wWinMain(
                     {
                         RtlExitUserProcess(STATUS_SUCCESS);
                     }
+
+                    PhDereferenceObject(applicationFileName);
                 }
 #endif
             }
