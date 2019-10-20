@@ -1176,7 +1176,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtGetNextProcess(
-    _In_ HANDLE ProcessHandle,
+    _In_opt_ HANDLE ProcessHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_ ULONG HandleAttributes,
     _In_ ULONG Flags,
