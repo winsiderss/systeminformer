@@ -46,7 +46,7 @@ PVOID PhpImportProcedure(
 
     procedure = PhGetDllBaseProcedureAddress(module, ProcedureName, 0);
 
-    if (*Cookie == 0) RtlRandomEx(Cookie);
+    if (*Cookie == 0) *Cookie = NtGetTickCount();
     *Cache = (PVOID)((ULONG_PTR)procedure ^ (ULONG_PTR)*Cookie);
 
     MemoryBarrier();
