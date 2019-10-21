@@ -2049,22 +2049,10 @@ NTSTATUS PhGetJobProcessIdList(
 {
     NTSTATUS status;
     PVOID buffer;
-    ULONG bufferSize;
-
-    bufferSize = 0x100;
-    buffer = PhAllocate(bufferSize);
-
-    status = NtQueryInformationJobObject(
-        JobHandle,
-        JobObjectBasicProcessIdList,
-        buffer,
-        bufferSize,
-        &bufferSize
-        );
-
-    if (status == STATUS_BUFFER_OVERFLOW)
+    ULONG bufferSize = 0x100;
+    
+    do
     {
-        PhFree(buffer);
         buffer = PhAllocate(bufferSize);
 
         status = NtQueryInformationJobObject(
@@ -2072,17 +2060,19 @@ NTSTATUS PhGetJobProcessIdList(
             JobObjectBasicProcessIdList,
             buffer,
             bufferSize,
-            NULL
+            &bufferSize
             );
-    }
+        
+        if (NT_SUCCESS(status))
+        {
+            *ProcessIdList = (PJOBOBJECT_BASIC_PROCESS_ID_LIST)buffer;
+        }
+        else
+        {
+            PhFree(buffer);
+        }
 
-    if (!NT_SUCCESS(status))
-    {
-        PhFree(buffer);
-        return status;
-    }
-
-    *ProcessIdList = (PJOBOBJECT_BASIC_PROCESS_ID_LIST)buffer;
+    } while (status == STATUS_BUFFER_OVERFLOW);
 
     return status;
 }
