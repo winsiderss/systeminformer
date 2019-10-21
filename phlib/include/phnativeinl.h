@@ -650,6 +650,29 @@ PhGetThreadBasicInformation(
         );
 }
 
+/**
+ * Determines whether a thread is terminated.
+ *
+ * \param ThreadHandle A handle to a thread. The handle must have THREAD_QUERY_LIMITED_INFORMATION
+ * access.
+ * \param IsTerminated A variable which receives 0 if the thread is alive or a non-zero value otherwise.
+ */
+FORCEINLINE
+NTSTATUS
+PhGetThreadIsTerminated(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PULONG IsTerminated
+    )
+{
+    return NtQueryInformationThread(
+        ThreadHandle,
+        ThreadIsTerminated,
+        IsTerminated,
+        sizeof(ULONG),
+        NULL
+        );
+}
+
 FORCEINLINE
 NTSTATUS
 PhGetThreadBasePriority(
