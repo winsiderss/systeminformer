@@ -417,7 +417,14 @@ typedef struct _FILE_MOVE_CLUSTER_INFORMATION
 
 typedef struct _FILE_RENAME_INFORMATION
 {
+#if (PHNT_VERSION >= PHNT_REDSTONE)
+    union {
+        BOOLEAN ReplaceIfExists;  // FileRenameInformation
+        ULONG Flags;              // FileRenameInformationEx
+    };
+#else
     BOOLEAN ReplaceIfExists;
+#endif
     HANDLE RootDirectory;
     ULONG FileNameLength;
     WCHAR FileName[1];
