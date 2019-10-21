@@ -3279,7 +3279,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlSetEnvironmentVar(
-    _In_opt_ PWSTR *Environment,
+    _Inout_opt_ PVOID *Environment,
     _In_reads_(NameLength) PWSTR Name,
     _In_ SIZE_T NameLength,
     _In_reads_(ValueLength) PWSTR Value,
@@ -3291,7 +3291,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlSetEnvironmentVariable(
-    _In_opt_ PVOID *Environment,
+    _Inout_opt_ PVOID *Environment,
     _In_ PUNICODE_STRING Name,
     _In_opt_ PUNICODE_STRING Value
     );
@@ -3317,7 +3317,7 @@ NTAPI
 RtlQueryEnvironmentVariable_U(
     _In_opt_ PVOID Environment,
     _In_ PUNICODE_STRING Name,
-    _Out_ PUNICODE_STRING Value
+    _Inout_ PUNICODE_STRING Value
     );
 
 #if (PHNT_VERSION >= PHNT_VISTA)
@@ -3341,7 +3341,7 @@ NTAPI
 RtlExpandEnvironmentStrings_U(
     _In_opt_ PVOID Environment,
     _In_ PUNICODE_STRING Source,
-    _Out_ PUNICODE_STRING Destination,
+    _Inout_ PUNICODE_STRING Destination,
     _Out_opt_ PULONG ReturnedLength
     );
 
