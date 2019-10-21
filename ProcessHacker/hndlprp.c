@@ -1100,7 +1100,7 @@ VOID PhpUpdateHandleGeneral(
 
         if (NT_SUCCESS(status))
         {
-            ULONG isTerminated = FALSE;
+            BOOL isTerminated = FALSE;
             THREAD_BASIC_INFORMATION basicInfo;
             KERNEL_USER_TIMES times;
             PPH_STRING name;
@@ -1111,8 +1111,13 @@ VOID PhpUpdateHandleGeneral(
                 PhDereferenceObject(name);
             }
 
-            PhGetThreadIsTerminated(dupHandle, &isTerminated);
-            
+            NtQueryInformationThread(dupHandle,
+                ThreadIsTerminated,
+                &isTerminated,
+                sizeof(BOOL),
+                NULL
+                );
+
             if (isTerminated && NT_SUCCESS(PhGetThreadBasicInformation(dupHandle, &basicInfo)))
             {
                 PPH_STRING status;
