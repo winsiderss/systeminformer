@@ -997,6 +997,32 @@ PhGetThreadTimes(
         );
 }
 
+FORCEINLINE
+NTSTATUS
+PhGetThreadIsTerminated(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PBOOLEAN IsTerminated
+    )
+{
+    NTSTATUS status;
+    ULONG threadIsTerminated;
+
+    status = NtQueryInformationThread(
+        ThreadHandle,
+        ThreadIsTerminated,
+        &threadIsTerminated,
+        sizeof(ULONG),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *IsTerminated = !!threadIsTerminated;
+    }
+
+    return status;
+}
+
 /**
  * Sets a thread's affinity mask.
  *
