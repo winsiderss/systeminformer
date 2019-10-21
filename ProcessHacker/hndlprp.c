@@ -1100,7 +1100,7 @@ VOID PhpUpdateHandleGeneral(
 
         if (NT_SUCCESS(status))
         {
-            NTSTATUS exitStatus = STATUS_PENDING;
+            BOOL isTerminated = FALSE;
             THREAD_BASIC_INFORMATION basicInfo;
             KERNEL_USER_TIMES times;
             PPH_STRING name;
@@ -1111,10 +1111,34 @@ VOID PhpUpdateHandleGeneral(
                 PhDereferenceObject(name);
             }
 
+            NtQueryInformationThread(dupHandle,
+                ThreadIsTerminated,
+                &isTerminated,
+                sizeof(BOOL),
+                NULL
+                );
 
-            if (NT_SUCCESS(PhGetThreadBasicInformation(dupHandle, &basicInfo)))
+            if (isTerminated && NT_SUCCESS(PhGetThreadBasicInformation(dupHandle, &basicInfo)))
             {
-                exitStatus = basicInfo.ExitStatus;
+                PPH_STRING status;
+                PPH_STRING exitcode;
+
+                status = PhGetStatusMessage(basicInfo.ExitStatus, 0);
+                exitcode = PhFormatString(
+                    L"0x%x (%s)",
+                    basicInfo.ExitStatus,
+                    PhGetStringOrDefault(status, L"Unknown")
+                    );
+
+                PhSetListViewSubItem(
+                    Context->ListViewHandle,
+                    Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_PROCESSTHREADEXITCODE],
+                    1,
+                    PhGetStringOrEmpty(exitcode)
+                    );
+
+                PhDereferenceObject(exitcode);
+                PhClearReference(&status);
 
                 //if (NT_SUCCESS(PhOpenProcess(
                 //    &processHandle,
@@ -1140,34 +1164,11 @@ VOID PhpUpdateHandleGeneral(
                 PhLargeIntegerToLocalSystemTime(&time, &times.CreateTime);
                 PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_PROCESSTHREADCREATETIME], 1, PhaFormatDateTime(&time)->Buffer);
 
-                if (exitStatus != STATUS_PENDING)
+                if (isTerminated)
                 {
                     PhLargeIntegerToLocalSystemTime(&time, &times.ExitTime);
                     PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_PROCESSTHREADEXITTIME], 1, PhaFormatDateTime(&time)->Buffer);
                 }
-            }
-
-            if (exitStatus != STATUS_PENDING)
-            {
-                PPH_STRING status;
-                PPH_STRING exitcode;
-
-                status = PhGetStatusMessage(exitStatus, 0);
-                exitcode = PhFormatString(
-                    L"0x%x (%s)",
-                    exitStatus,
-                    PhGetStringOrDefault(status, L"Unknown")
-                    );
-
-                PhSetListViewSubItem(
-                    Context->ListViewHandle,
-                    Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_PROCESSTHREADEXITCODE],
-                    1,
-                    PhGetStringOrEmpty(exitcode)
-                    );
-
-                PhDereferenceObject(exitcode);
-                PhClearReference(&status);
             }
 
             NtClose(dupHandle);
