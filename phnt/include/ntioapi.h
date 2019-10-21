@@ -258,15 +258,15 @@ typedef enum _FILE_INFORMATION_CLASS
     FileHardLinkFullIdInformation, // FILE_LINK_ENTRY_FULL_ID_INFORMATION
     FileIdExtdBothDirectoryInformation, // FILE_ID_EXTD_BOTH_DIR_INFORMATION // since THRESHOLD
     FileDispositionInformationEx, // FILE_DISPOSITION_INFO_EX // since REDSTONE
-    FileRenameInformationEx, // FILE_RENAME_INFORMATION
-    FileRenameInformationExBypassAccessCheck, // FILE_RENAME_INFORMATION
+    FileRenameInformationEx, // FILE_RENAME_INFORMATION_EX
+    FileRenameInformationExBypassAccessCheck, // (kernel-mode only); FILE_RENAME_INFORMATION_EX
     FileDesiredStorageClassInformation, // FILE_DESIRED_STORAGE_CLASS_INFORMATION // since REDSTONE2
     FileStatInformation, // FILE_STAT_INFORMATION
     FileMemoryPartitionInformation, // FILE_MEMORY_PARTITION_INFORMATION // since REDSTONE3
     FileStatLxInformation, // FILE_STAT_LX_INFORMATION // since REDSTONE4 // 70
     FileCaseSensitiveInformation, // FILE_CASE_SENSITIVE_INFORMATION
-    FileLinkInformationEx, // FILE_LINK_INFORMATION // since REDSTONE5
-    FileLinkInformationExBypassAccessCheck, // FILE_LINK_INFORMATION
+    FileLinkInformationEx, // FILE_LINK_INFORMATION_EX // since REDSTONE5
+    FileLinkInformationExBypassAccessCheck, // (kernel-mode only); FILE_LINK_INFORMATION_EX
     FileStorageReserveIdInformation, // FILE_SET_STORAGE_RESERVE_ID_INFORMATION
     FileCaseSensitiveInformationForceAccessCheck, // FILE_CASE_SENSITIVE_INFORMATION
     FileMaximumInformation
@@ -407,6 +407,14 @@ typedef struct _FILE_LINK_INFORMATION
     WCHAR FileName[1];
 } FILE_LINK_INFORMATION, *PFILE_LINK_INFORMATION;
 
+typedef struct _FILE_LINK_INFORMATION_EX
+{
+    ULONG Flags;
+    HANDLE RootDirectory;
+    ULONG FileNameLength;
+    WCHAR FileName[1];
+} FILE_LINK_INFORMATION_EX, *PFILE_LINK_INFORMATION_EX;
+
 typedef struct _FILE_MOVE_CLUSTER_INFORMATION
 {
     ULONG ClusterCount;
@@ -417,18 +425,19 @@ typedef struct _FILE_MOVE_CLUSTER_INFORMATION
 
 typedef struct _FILE_RENAME_INFORMATION
 {
-#if (PHNT_VERSION >= PHNT_REDSTONE)
-    union {
-        BOOLEAN ReplaceIfExists;  // FileRenameInformation
-        ULONG Flags;              // FileRenameInformationEx
-    };
-#else
     BOOLEAN ReplaceIfExists;
-#endif
     HANDLE RootDirectory;
     ULONG FileNameLength;
     WCHAR FileName[1];
 } FILE_RENAME_INFORMATION, *PFILE_RENAME_INFORMATION;
+
+typedef struct _FILE_RENAME_INFORMATION_EX
+{
+    ULONG Flags;
+    HANDLE RootDirectory;
+    ULONG FileNameLength;
+    WCHAR FileName[1];
+} FILE_RENAME_INFORMATION_EX, *PFILE_RENAME_INFORMATION_EX;
 
 typedef struct _FILE_STREAM_INFORMATION
 {
