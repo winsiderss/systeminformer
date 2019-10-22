@@ -578,7 +578,8 @@ VOID PvpSetPeImageSize(
             &dataDirectory
             )))
         {
-            if (dataDirectory->VirtualAddress &&
+            if (
+                dataDirectory->VirtualAddress &&
                 (lastRawDataOffset + dataDirectory->Size == PvMappedImage.Size) &&
                 (lastRawDataOffset == dataDirectory->VirtualAddress)
                 )
@@ -598,10 +599,11 @@ VOID PvpSetPeImageSize(
             PhPrintPointer(pointer, UlongToPtr(lastRawDataAddress));
 
             string = PhFormatString(
-                L"%s (incorrect, real %s) (%s)",
+                L"%s (incorrect, %s) (%s - %s)",
                 PhaFormatSize(lastRawDataOffset, ULONG_MAX)->Buffer,
                 PhaFormatSize(PvMappedImage.Size, ULONG_MAX)->Buffer,
-                pointer
+                pointer,
+                PhaFormatSize(PvMappedImage.Size - lastRawDataOffset, ULONG_MAX)->Buffer
                 );
         }
     }
