@@ -804,7 +804,7 @@ INT_PTR CALLBACK DotNetPerfPageDlgProc(
                 if (NT_SUCCESS(PhGetProcessIsDotNetEx(
                     context->ProcessItem->ProcessId,
                     context->ProcessHandle,
-                    context->ProcessItem->IsImmersive == 1 ? 0 : PH_CLR_USE_SECTION_CHECK,
+                    context->ProcessItem->IsImmersive ? 0 : PH_CLR_USE_SECTION_CHECK,
                     NULL,
                     &flags
                     )))
