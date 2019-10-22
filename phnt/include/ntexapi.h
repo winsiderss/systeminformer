@@ -3369,7 +3369,10 @@ typedef struct _SYSTEM_SPECULATION_CONTROL_INFORMATION
             ULONG HvL1tfMigitationNotEnabled_LoadOption : 1;
             ULONG HvL1tfMigitationNotEnabled_CoreScheduler : 1;
             ULONG EnhancedIbrsReported : 1;
-            ULONG Reserved : 8;
+            ULONG MdsHardwareProtected : 1; // since 19H2
+            ULONG MbClearEnabled : 1;
+            ULONG MbClearReported : 1;
+            ULONG Reserved : 5;
         };
     };
 } SYSTEM_SPECULATION_CONTROL_INFORMATION, *PSYSTEM_SPECULATION_CONTROL_INFORMATION;
