@@ -547,6 +547,9 @@ NtSetInformationVirtualMemory(
 
 #endif
 
+#define MAP_PROCESS 1
+#define MAP_SYSTEM 2
+
 NTSYSCALLAPI
 NTSTATUS
 NTAPI

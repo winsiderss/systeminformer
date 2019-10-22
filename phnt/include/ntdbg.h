@@ -281,7 +281,7 @@ NtWaitForDebugEvent(
     _In_ HANDLE DebugObjectHandle,
     _In_ BOOLEAN Alertable,
     _In_opt_ PLARGE_INTEGER Timeout,
-    _Out_ PVOID WaitStateChange
+    _Out_ PDBGUI_WAIT_STATE_CHANGE WaitStateChange
     );
 
 // Debugging UI
