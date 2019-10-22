@@ -166,19 +166,19 @@ FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     LTEXT           "Target machine:",IDC_STATIC,7,57,53,8
     LTEXT           "Static",IDC_TARGETMACHINE,78,57,215,8
-    LTEXT           "Checksum:",IDC_STATIC,7,100,36,8
-    LTEXT           "Subsystem:",IDC_STATIC,7,111,38,8
-    LTEXT           "Subsystem version:",IDC_STATIC,7,122,64,8
-    LTEXT           "Characteristics:",IDC_STATIC,7,133,51,8
-    LTEXT           "Static",IDC_SUBSYSTEM,78,111,215,8
-    LTEXT           "Static",IDC_SUBSYSTEMVERSION,78,122,215,8
-    CONTROL         "",IDC_LIST,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_TABSTOP,7,156,286,116
-    LTEXT           "Sections:",IDC_STATIC,7,146,30,8
-    EDITTEXT        IDC_CHARACTERISTICS,76,133,217,23,ES_MULTILINE | ES_READONLY | NOT WS_BORDER
+    LTEXT           "Checksum:",IDC_STATIC,7,111,36,8
+    LTEXT           "Subsystem:",IDC_STATIC,7,122,38,8
+    LTEXT           "Subsystem version:",IDC_STATIC,7,133,64,8
+    LTEXT           "Characteristics:",IDC_STATIC,7,144,51,8
+    LTEXT           "Static",IDC_SUBSYSTEM,78,122,215,8
+    LTEXT           "Static",IDC_SUBSYSTEMVERSION,78,133,215,8
+    CONTROL         "",IDC_LIST,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_TABSTOP,7,167,286,106
+    LTEXT           "Sections:",IDC_STATIC,7,157,30,8
+    EDITTEXT        IDC_CHARACTERISTICS,76,144,217,23,ES_MULTILINE | ES_READONLY | NOT WS_BORDER
     LTEXT           "Time stamp:",IDC_STATIC,7,68,40,8
     LTEXT           "Static",IDC_TIMESTAMP,78,68,215,8
-    LTEXT           "Entry point:",IDC_STATIC,7,90,39,8
-    LTEXT           "Static",IDC_ENTRYPOINT,78,90,215,8
+    LTEXT           "Entry point:",IDC_STATIC,7,101,39,8
+    LTEXT           "Static",IDC_ENTRYPOINT,78,101,215,8
     LTEXT           "Image base:",IDC_STATIC,7,79,41,8
     LTEXT           "Static",IDC_IMAGEBASE,78,79,215,8
     ICON            "",IDC_FILEICON,14,18,20,20
@@ -188,7 +188,9 @@ BEGIN
     LTEXT           "Version:",IDC_STATIC,15,41,27,8
     EDITTEXT        IDC_VERSION,44,41,242,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
     CONTROL         "<a>Company Name Link</a>",IDC_COMPANYNAME_LINK,"SysLink",LWS_NOPREFIX | NOT WS_VISIBLE | WS_TABSTOP,46,29,240,9
-    EDITTEXT        IDC_CHECKSUM,76,100,217,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
+    EDITTEXT        IDC_CHECKSUM,76,111,217,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
+    LTEXT           "Image size:",IDC_STATIC,7,90,38,8
+    LTEXT           "Static",IDC_IMAGESIZE,78,90,215,8
 END
 
 IDD_PEIMPORTS DIALOGEX 0, 0, 300, 280
