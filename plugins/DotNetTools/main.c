@@ -121,7 +121,13 @@ VOID NTAPI ProcessPropertiesInitializingCallback(
     if (!propContext)
         return;
 
-    if (NT_SUCCESS(PhGetProcessIsDotNetEx(propContext->ProcessItem->ProcessId, NULL, 0, &isDotNet, &flags)))
+    if (NT_SUCCESS(PhGetProcessIsDotNetEx(
+        propContext->ProcessItem->ProcessId,
+        NULL,
+        propContext->ProcessItem->IsImmersive ? 0 : PH_CLR_USE_SECTION_CHECK,
+        &isDotNet,
+        &flags
+        )))
     {
         if (isDotNet)
         {
