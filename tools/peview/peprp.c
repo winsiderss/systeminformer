@@ -547,6 +547,47 @@ VOID PvpSetPeImageBaseAddress(
     PhDereferenceObject(string);
 }
 
+VOID PvpSetPeImageSize(
+    _In_ HWND WindowHandle
+    )
+{
+    PPH_STRING string;
+    ULONG lastRawDataAddress = 0;
+    ULONG64 lastRawDataSize = 0;
+
+    // https://reverseengineering.stackexchange.com/questions/2014/how-can-one-extract-the-appended-data-of-a-portable-executable/2015#2015
+
+    for (ULONG i = 0; i < PvMappedImage.NumberOfSections; i++)
+    {
+        if (PvMappedImage.Sections[i].PointerToRawData > lastRawDataAddress)
+        {
+            lastRawDataAddress = PvMappedImage.Sections[i].PointerToRawData;
+            lastRawDataSize = UInt32Add32To64(PvMappedImage.Sections[i].PointerToRawData, PvMappedImage.Sections[i].SizeOfRawData);
+        }
+    }
+
+    if (PvMappedImage.Size != lastRawDataSize)
+    {
+        WCHAR pointer[PH_PTR_STR_LEN_1];
+
+        PhPrintPointer(pointer, UlongToPtr(lastRawDataAddress));
+
+        string = PhFormatString(
+            L"%s (incorrect, real %s) (%s)",
+            PhaFormatSize(lastRawDataSize, ULONG_MAX)->Buffer,
+            PhaFormatSize(PvMappedImage.Size, ULONG_MAX)->Buffer,
+            pointer
+            );
+    }
+    else
+    {
+        string = PhFormatString(L"%s (correct)", PhaFormatSize(lastRawDataSize, ULONG_MAX)->Buffer);
+    }
+
+    PhSetDialogItemText(WindowHandle, IDC_IMAGESIZE, string->Buffer);
+    PhDereferenceObject(string);
+}
+
 VOID PvpSetPeImageEntryPoint(
     _In_ HWND WindowHandle
     )
@@ -928,6 +969,7 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
             PvpSetPeImageMachineType(hwndDlg);
             PvpSetPeImageTimeStamp(hwndDlg);
             PvpSetPeImageBaseAddress(hwndDlg);
+            PvpSetPeImageSize(hwndDlg);
             PvpSetPeImageEntryPoint(hwndDlg);
             PvpSetPeImageCheckSum(hwndDlg);
             PvpSetPeImageSubsystem(hwndDlg);
