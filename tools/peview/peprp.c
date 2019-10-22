@@ -553,7 +553,8 @@ VOID PvpSetPeImageSize(
 {
     PPH_STRING string;
     ULONG lastRawDataAddress = 0;
-    ULONG64 lastRawDataSize = 0;
+    ULONG64 lastRawDataOffset = 0;
+    ULONG64 lastRawDataAddressSize = 0;
 
     // https://reverseengineering.stackexchange.com/questions/2014/how-can-one-extract-the-appended-data-of-a-portable-executable/2015#2015
 
@@ -562,26 +563,51 @@ VOID PvpSetPeImageSize(
         if (PvMappedImage.Sections[i].PointerToRawData > lastRawDataAddress)
         {
             lastRawDataAddress = PvMappedImage.Sections[i].PointerToRawData;
-            lastRawDataSize = UInt32Add32To64(PvMappedImage.Sections[i].PointerToRawData, PvMappedImage.Sections[i].SizeOfRawData);
+            lastRawDataOffset = (ULONG64)PTR_ADD_OFFSET(lastRawDataAddress, PvMappedImage.Sections[i].SizeOfRawData);
         }
     }
 
-    if (PvMappedImage.Size != lastRawDataSize)
+    if (PvMappedImage.Size != lastRawDataOffset)
     {
-        WCHAR pointer[PH_PTR_STR_LEN_1];
+        BOOLEAN success = FALSE;
+        PIMAGE_DATA_DIRECTORY dataDirectory;
 
-        PhPrintPointer(pointer, UlongToPtr(lastRawDataAddress));
+        if (NT_SUCCESS(PhGetMappedImageDataEntry(
+            &PvMappedImage,
+            IMAGE_DIRECTORY_ENTRY_SECURITY,
+            &dataDirectory
+            )))
+        {
+            if (dataDirectory->VirtualAddress &&
+                (lastRawDataOffset + dataDirectory->Size == PvMappedImage.Size) &&
+                (lastRawDataOffset == dataDirectory->VirtualAddress)
+                )
+            {
+                success = TRUE;
+            }
+        }
 
-        string = PhFormatString(
-            L"%s (incorrect, real %s) (%s)",
-            PhaFormatSize(lastRawDataSize, ULONG_MAX)->Buffer,
-            PhaFormatSize(PvMappedImage.Size, ULONG_MAX)->Buffer,
-            pointer
-            );
+        if (success)
+        {
+            string = PhFormatString(L"%s (correct)", PhaFormatSize(PvMappedImage.Size, ULONG_MAX)->Buffer);
+        }
+        else
+        {
+            WCHAR pointer[PH_PTR_STR_LEN_1];
+
+            PhPrintPointer(pointer, UlongToPtr(lastRawDataAddress));
+
+            string = PhFormatString(
+                L"%s (incorrect, real %s) (%s)",
+                PhaFormatSize(lastRawDataOffset, ULONG_MAX)->Buffer,
+                PhaFormatSize(PvMappedImage.Size, ULONG_MAX)->Buffer,
+                pointer
+                );
+        }
     }
     else
     {
-        string = PhFormatString(L"%s (correct)", PhaFormatSize(lastRawDataSize, ULONG_MAX)->Buffer);
+        string = PhFormatString(L"%s (correct)", PhaFormatSize(PvMappedImage.Size, ULONG_MAX)->Buffer);
     }
 
     PhSetDialogItemText(WindowHandle, IDC_IMAGESIZE, string->Buffer);
