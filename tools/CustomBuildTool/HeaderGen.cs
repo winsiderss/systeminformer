@@ -33,6 +33,30 @@ namespace CustomBuildTool
         public string Name;
         public List<string> Lines;
         public List<HeaderFile> Dependencies;
+
+        public override string ToString()
+        {
+            return this.Name;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj == null)
+                return false;
+
+            HeaderFile file = obj as HeaderFile;
+
+            if (file == null)
+                return false;
+
+            return this.Name.Equals(file.Name, StringComparison.OrdinalIgnoreCase);
+
+        }
+
+        public override int GetHashCode()
+        {
+            return this.Name.GetHashCode();
+        }
     }
 
     public class HeaderGen
@@ -89,7 +113,7 @@ namespace CustomBuildTool
         private List<HeaderFile> OrderHeaderFiles(List<HeaderFile> headerFiles)
         {
             var result = new List<HeaderFile>();
-            var done = new HashSet<HeaderFile>();
+            var done = new List<HeaderFile>();
 
             foreach (var h in headerFiles)
                 OrderHeaderFiles(result, done, h);
@@ -97,7 +121,7 @@ namespace CustomBuildTool
             return result;
         }
 
-        private void OrderHeaderFiles(List<HeaderFile> result, HashSet<HeaderFile> done, HeaderFile headerFile)
+        private void OrderHeaderFiles(List<HeaderFile> result, List<HeaderFile> done, HeaderFile headerFile)
         {
             if (done.Contains(headerFile))
                 return;
@@ -110,34 +134,34 @@ namespace CustomBuildTool
             result.Add(headerFile);
         }
 
-        private List<string> ProcessHeaderLines(IEnumerable<string> lines)
+        private List<string> ProcessHeaderLines(List<string> lines)
         {
             var result = new List<string>();
-            var modes = new HashSet<string>();
+            var modes = new List<string>();
             var blankLine = false;
 
-            foreach (var line in lines)
+            foreach (string line in lines)
             {
-                var s = line.Trim();
+                string text = line.Trim();
 
-                if (s.StartsWith("// begin_"))
+                if (text.StartsWith("// begin_", StringComparison.OrdinalIgnoreCase))
                 {
-                    modes.Add(s.Remove(0, "// begin_".Length));
+                    modes.Add(text.Remove(0, "// begin_".Length));
                 }
-                else if (s.StartsWith("// end_"))
+                else if (text.StartsWith("// end_", StringComparison.OrdinalIgnoreCase))
                 {
-                    modes.Remove(s.Remove(0, "// end_".Length));
+                    modes.Remove(text.Remove(0, "// end_".Length));
                 }
                 else
                 {
-                    bool blockMode = this.Modes.Any(modes.Contains);
+                    bool blockMode = this.Modes.Any(mode => modes.Contains(mode, StringComparer.OrdinalIgnoreCase));
                     bool lineMode = this.Modes.Any(mode =>
                     {
-                        int indexOfMarker = s.LastIndexOf("// " + mode);
+                        int indexOfMarker = text.LastIndexOf("// " + mode, StringComparison.OrdinalIgnoreCase);
                         if (indexOfMarker == -1)
                             return false;
 
-                        return s.Substring(indexOfMarker).Trim().All(c => char.IsLetterOrDigit(c) || c == ' ' || c == '/');
+                        return text.Substring(indexOfMarker).Trim().All(c => char.IsLetterOrDigit(c) || c == ' ' || c == '/');
                     });
 
                     if (blockMode || lineMode)
@@ -148,7 +172,7 @@ namespace CustomBuildTool
                         result.Add(line);
                         blankLine = false;
                     }
-                    else if (s.Length == 0)
+                    else if (text.Length == 0)
                     {
                         blankLine = true;
                     }
@@ -162,14 +186,19 @@ namespace CustomBuildTool
         {
             // Read in all header files.
 
-            var headerFiles = this.Files.Select(fileName =>
-            {
-                var fullFileName = this.BaseDirectory + "\\" + fileName;
-                var lines = File.ReadAllLines(fullFileName).ToList();
+            var headerFiles = new Dictionary<string, HeaderFile>(StringComparer.OrdinalIgnoreCase);
 
-                return new HeaderFile { Name = Path.GetFileName(fullFileName).ToLowerInvariant(), Lines = lines };
-            })
-            .ToDictionary(h => h.Name);
+            foreach (string name in this.Files)
+            {
+                var file = this.BaseDirectory + Path.DirectorySeparatorChar + name;
+                var lines = File.ReadAllLines(file).ToList();
+
+                headerFiles.Add(name, new HeaderFile
+                {
+                    Name = name,
+                    Lines = lines
+                });
+            }
 
             foreach (HeaderFile h in headerFiles.Values)
             {
@@ -204,30 +233,29 @@ namespace CustomBuildTool
                 h.Lines = ProcessHeaderLines(h.Lines);
 
             // Write out the result.
-            StreamWriter sw = new StreamWriter(this.BaseDirectory + "\\" + this.OutputFile);
-
-            // Header
-            sw.Write(this.Header);
-
-            // Header files
-            foreach (HeaderFile h in orderedHeaderFiles)
+            using (StreamWriter sw = new StreamWriter(this.BaseDirectory + Path.DirectorySeparatorChar + this.OutputFile))
             {
-                //Console.WriteLine("Header file: " + h.Name);
-                sw.WriteLine();
-                sw.WriteLine("//");
-                sw.WriteLine("// " + Path.GetFileNameWithoutExtension(h.Name));
-                sw.WriteLine("//");
-                sw.WriteLine();
+                // Header
+                sw.Write(this.Header);
 
-                foreach (string line in h.Lines)
-                    sw.WriteLine(line);
+                // Header files
+                foreach (HeaderFile h in orderedHeaderFiles)
+                {
+                    //Console.WriteLine("Header file: " + h.Name);
+                    sw.WriteLine();
+                    sw.WriteLine("//");
+                    sw.WriteLine("// " + Path.GetFileNameWithoutExtension(h.Name));
+                    sw.WriteLine("//");
+                    sw.WriteLine();
+
+                    foreach (string line in h.Lines)
+                        sw.WriteLine(line);
+                }
+
+                // Footer
+
+                sw.Write(this.Footer);
             }
-
-            // Footer
-
-            sw.Write(this.Footer);
-
-            sw.Close();
         }
     }
 }

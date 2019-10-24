@@ -22,7 +22,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Security.Principal;
 
 namespace CustomBuildTool
 {
@@ -39,26 +38,12 @@ namespace CustomBuildTool
 
             if (ProgramArgs.ContainsKey("-cleanup"))
             {
-                if (Restart("-cleanup"))
-                    return;
-
                 Build.CleanupBuildEnvironment();
                 Build.ShowBuildStats();
             }
             else if (ProgramArgs.ContainsKey("-phapppub_gen"))
             {
                 Build.BuildPublicHeaderFiles();
-            }
-            else if (ProgramArgs.ContainsKey("-graph"))
-            {
-                Build.ShowBuildEnvironment("changelog", true);
-
-                if (Win32.GetConsoleMode(Win32.GetStdHandle(Win32.STD_OUTPUT_HANDLE), out ConsoleMode mode))
-                    Win32.SetConsoleMode(Win32.GetStdHandle(Win32.STD_OUTPUT_HANDLE), mode | ConsoleMode.ENABLE_VIRTUAL_TERMINAL_PROCESSING);
-
-                Console.WriteLine(Build.GetBuildLogString());
-
-                Build.ShowBuildStats();
             }
             else if (ProgramArgs.ContainsKey("-sdk"))
             {
@@ -92,11 +77,10 @@ namespace CustomBuildTool
             }
             else if (ProgramArgs.ContainsKey("-bin"))
             {
-                Build.ShowBuildEnvironment("bin", false);
-                Build.CopyKeyFiles();
+                Build.ShowBuildEnvironment(false);
 
                 if (!Build.BuildSolution("ProcessHacker.sln",
-                    BuildFlags.Build32bit | BuildFlags.Build64bit | 
+                    BuildFlags.Build32bit | BuildFlags.Build64bit |
                     BuildFlags.BuildVerbose | BuildFlags.BuildApi
                     ))
                     return;
@@ -127,12 +111,11 @@ namespace CustomBuildTool
             }
             else if (ProgramArgs.ContainsKey("-debug"))
             {
-                Build.ShowBuildEnvironment("debug", true);
-                Build.CopyKeyFiles();
+                Build.ShowBuildEnvironment(true);
 
                 if (!Build.BuildSolution("ProcessHacker.sln",
                     BuildFlags.Build32bit | BuildFlags.Build64bit |
-                    BuildFlags.BuildDebug | BuildFlags.BuildVerbose | 
+                    BuildFlags.BuildDebug | BuildFlags.BuildVerbose |
                     BuildFlags.BuildApi
                     ))
                     return;
@@ -152,7 +135,7 @@ namespace CustomBuildTool
 
                 if (!Build.BuildSolution("plugins\\Plugins.sln",
                     BuildFlags.Build32bit | BuildFlags.Build64bit |
-                    BuildFlags.BuildDebug | BuildFlags.BuildVerbose | 
+                    BuildFlags.BuildDebug | BuildFlags.BuildVerbose |
                     BuildFlags.BuildApi
                     ))
                 {
@@ -170,8 +153,7 @@ namespace CustomBuildTool
             }
             else if (ProgramArgs.ContainsKey("-appveyor"))
             {
-                Build.ShowBuildEnvironment("nightly", true);
-                Build.CopyKeyFiles();
+                Build.ShowBuildEnvironment(true);
 
                 if (!Build.BuildSolution("ProcessHacker.sln",
                     BuildFlags.Build32bit | BuildFlags.Build64bit |
@@ -204,11 +186,10 @@ namespace CustomBuildTool
                     Environment.Exit(1);
                 if (!Build.BuildPdbZip())
                     Environment.Exit(1);
-                if (!Build.BuildSdkZip())
-                    Environment.Exit(1);
-                if (!Build.BuildSrcZip())
-                    Environment.Exit(1);
-
+                //if (!Build.BuildSdkZip())
+                //    Environment.Exit(1);
+                //if (!Build.BuildSrcZip())
+                //    Environment.Exit(1);
                 if (!Build.BuildChecksumsFile())
                     Environment.Exit(1);
                 if (!Build.BuildUpdateSignature())
@@ -221,8 +202,7 @@ namespace CustomBuildTool
             }
             else
             {
-                Build.ShowBuildEnvironment("release", true);
-                Build.CopyKeyFiles();
+                Build.ShowBuildEnvironment(true);
 
                 if (!Build.BuildSolution("ProcessHacker.sln",
                     BuildFlags.Build32bit | BuildFlags.Build64bit |
@@ -232,7 +212,6 @@ namespace CustomBuildTool
 
                 if (!Build.CopyKProcessHacker(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
                     return;
-
                 if (!Build.BuildSdk(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
                     return;
 
@@ -251,52 +230,12 @@ namespace CustomBuildTool
                     return;
                 if (!Build.BuildSetupExe())
                     return;
-                Build.BuildPdbZip();
-                Build.BuildSdkZip();
-                Build.BuildSrcZip();
 
+                Build.BuildPdbZip();
+                //Build.BuildSdkZip();
+                //Build.BuildSrcZip();
                 Build.ShowBuildStats();
             }
-            //else if (ProgramArgs.ContainsKey("-appxbuild"))
-            //{
-            //    Build.ShowBuildEnvironment("appx", true, true);
-            //    Build.CopyKeyFiles();
-            //
-            //    if (!Build.BuildSolution("ProcessHacker.sln",
-            //        BuildFlags.Build32bit | BuildFlags.Build64bit |
-            //        BuildFlags.BuildVerbose | BuildFlags.BuildApi
-            //        ))
-            //        return;
-            //
-            //    if (!BuildSdk(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
-            //        return;
-            //
-            //    if (!Build.BuildSolution("plugins\\Plugins.sln",
-            //        BuildFlags.Build32bit | BuildFlags.Build64bit |
-            //        BuildFlags.BuildVerbose | BuildFlags.BuildApi
-            //        ))
-            //        return;
-            //
-            //    if (!Build.CopyWow64Files(BuildFlags.None))
-            //        return;
-            //    if (!Build.CopySidCapsFile(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
-            //        return;
-            //
-            //    Build.BuildAppxPackage(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose);
-            //
-            //    Build.ShowBuildStats();
-            //}
-            //else if (ProgramArgs.ContainsKey("-appxmakecert"))
-            //{
-            //    if (Restart("-appxmakecert"))
-            //        return;
-            //
-            //    Build.ShowBuildEnvironment("appxcert", true);
-            //
-            //    Build.BuildAppxSignature();
-            //
-            //    Build.ShowBuildStats();
-            //}
         }
 
         private static Dictionary<string, string> ParseArgs(string[] args)
@@ -342,30 +281,6 @@ namespace CustomBuildTool
             else
                 Console.Write(Message);
             Console.ResetColor();
-        }
-
-        private static bool Restart(string Arguments)
-        {
-            WindowsIdentity identity = WindowsIdentity.GetCurrent();
-            WindowsPrincipal principal = new WindowsPrincipal(identity);
-
-            if (principal.IsInRole(WindowsBuiltInRole.Administrator))
-                return false;
-
-            try
-            {
-                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName,
-                    Arguments = Arguments,
-                    Verb = "runas"
-                });
-            }
-            catch (Exception) { }
-
-            Environment.Exit(Environment.ExitCode);
-
-            return true;
         }
     }
 
