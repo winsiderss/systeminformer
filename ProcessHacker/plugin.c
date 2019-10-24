@@ -676,7 +676,7 @@ PPH_CALLBACK PhGetPluginCallback(
     return &Plugin->Callbacks[Callback];
 }
 
-VOID PhInitializeCallbacks( // HACK (dmex)
+VOID PhInitializeCallbacks(
     VOID
     )
 {
