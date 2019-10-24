@@ -180,8 +180,6 @@ namespace CustomBuildTool
 
                 if (!Build.BuildBinZip())
                     Environment.Exit(1);
-                //if (!Build.BuildWebSetupExe())
-                //    Environment.Exit(1);
                 if (!Build.BuildSetupExe())
                     Environment.Exit(1);
                 if (!Build.BuildPdbZip())
@@ -190,8 +188,8 @@ namespace CustomBuildTool
                 //    Environment.Exit(1);
                 //if (!Build.BuildSrcZip())
                 //    Environment.Exit(1);
-                if (!Build.BuildChecksumsFile())
-                    Environment.Exit(1);
+                //if (!Build.BuildChecksumsFile())
+                //    Environment.Exit(1);
                 if (!Build.BuildUpdateSignature())
                     Environment.Exit(1);
 
@@ -230,10 +228,11 @@ namespace CustomBuildTool
                     return;
                 if (!Build.BuildSetupExe())
                     return;
-
                 Build.BuildPdbZip();
-                //Build.BuildSdkZip();
-                //Build.BuildSrcZip();
+                Build.BuildSdkZip();
+                Build.BuildSrcZip();
+                Build.BuildChecksumsFile();
+
                 Build.ShowBuildStats();
             }
         }

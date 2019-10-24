@@ -510,6 +510,11 @@ namespace CustomBuildTool
         public InstanceState State { get; }
         public List<VisualStudioPackage> Packages { get; }
 
+        public VisualStudioInstance()
+        {
+            this.Packages = new List<VisualStudioPackage>();
+        }
+
         public VisualStudioInstance(ISetupInstance2 FromInstance)
         {
             this.Packages = new List<VisualStudioPackage>();
@@ -532,38 +537,67 @@ namespace CustomBuildTool
             }
         }
 
+        private VisualStudioPackage GetLatestSdkPackage()
+        {
+            var found = this.Packages.FindAll(p => p.Id.StartsWith("Microsoft.VisualStudio.Component.Windows10SDK.", StringComparison.OrdinalIgnoreCase));
+
+            if (found == null)
+                return null;
+            if (found.Count == 0)
+                return null;
+
+            found.Sort((p1, p2) => string.Compare(p1.Id, p2.Id, StringComparison.OrdinalIgnoreCase));
+
+            return found[found.Count - 1];
+        }
+
+        public string GetWindowsSdkVersion()
+        {
+            VisualStudioPackage package = GetLatestSdkPackage();
+
+            if (package == null)
+                return string.Empty;
+
+            return package.Id.Substring("Microsoft.VisualStudio.Component.Windows10SDK.".Length);
+        }
+
+        public string GetWindowsSdkFullVersion()
+        {
+            VisualStudioPackage package = GetLatestSdkPackage();
+
+            if (package == null)
+                return string.Empty;
+
+            return package.Version;
+        }
+
         public bool HasRequiredDependency()
         {
-            string[] array =
-            {
-                "Microsoft.Component.MSBuild",
-                //"Microsoft.VisualStudio.Component.Windows10SDK.17134",
-                //"Microsoft.VisualStudio.Component.Windows10SDK.17763",
-                "Microsoft.VisualStudio.Component.Windows10SDK.18362",
-                "Microsoft.VisualStudio.Component.VC.Tools.x86.x64",
-                "Microsoft.VisualStudio.Component.VC.Redist.14.Latest",
-                //"Microsoft.VisualStudio.Component.VC.14.20.x86.x64",
-                //"Microsoft.VisualStudio.Component.VC.14.21.x86.x64",
-                //"Microsoft.VisualStudio.Component.VC.14.22.x86.x64",
-                "Microsoft.VisualStudio.Component.VC.Runtimes.x86.x64.Spectre",
-                //"Microsoft.VisualStudio.Component.VC.14.20.x86.x64.Spectre",
-                //"Microsoft.VisualStudio.Component.VC.14.21.x86.x64.Spectre",
-                //"Microsoft.VisualStudio.Component.VC.14.22.x86.x64.Spectre",
-            };
-            bool success = true;
+            bool hasbuild = false;
+            bool hasruntimes = false;
+            bool haswindowssdk = false;
+            //string[] vctoolsPackageArray =
+            //{
+            //    "Microsoft.Component.MSBuild",
+            //    "Microsoft.VisualStudio.Component.Windows10SDK.17134",
+            //    "Microsoft.VisualStudio.Component.Windows10SDK.17763",
+            //    "Microsoft.VisualStudio.Component.Windows10SDK.18362",
+            //    "Microsoft.VisualStudio.Component.VC.Tools.x86.x64",
+            //    "Microsoft.VisualStudio.Component.VC.Redist.14.Latest",
+            //    "Microsoft.VisualStudio.Component.VC.Runtimes.x86.x64.Spectre",
+            //    "Microsoft.VisualStudio.Component.VC.14.20.x86.x64",
+            //    "Microsoft.VisualStudio.Component.VC.14.21.x86.x64",
+            //    "Microsoft.VisualStudio.Component.VC.14.22.x86.x64",
+            //    "Microsoft.VisualStudio.Component.VC.14.20.x86.x64.Spectre",
+            //    "Microsoft.VisualStudio.Component.VC.14.21.x86.x64.Spectre",
+            //    "Microsoft.VisualStudio.Component.VC.14.22.x86.x64.Spectre",
+            //};
 
-            foreach (var entry in array)
-            {
-                var found = this.Packages.Find(p => string.Equals(p.Id, entry, StringComparison.OrdinalIgnoreCase));
+            hasbuild = this.Packages.Find(p => p.Id.Equals("Microsoft.Component.MSBuild", StringComparison.OrdinalIgnoreCase)) != null;
+            hasruntimes = this.Packages.Find(p => p.Id.StartsWith("Microsoft.VisualStudio.Component.VC.14", StringComparison.OrdinalIgnoreCase)) != null;
+            haswindowssdk = this.Packages.Find(p => p.Id.StartsWith("Microsoft.VisualStudio.Component.Windows10SDK", StringComparison.OrdinalIgnoreCase)) != null;
 
-                if (found == null)
-                {
-                    success = false;
-                    break;
-                }
-            }
-
-            return success;
+            return hasbuild && hasruntimes && haswindowssdk;
         }
 
         public override string ToString()
