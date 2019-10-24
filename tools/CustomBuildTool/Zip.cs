@@ -63,25 +63,54 @@ namespace CustomBuildTool
             {
                 for (int i = 0; i < filesToAdd.Length; i++)
                 {
-                    // Ignore junk files
-                    if (filesToAdd[i].EndsWith(".pdb", StringComparison.OrdinalIgnoreCase) ||
-                        filesToAdd[i].EndsWith(".iobj", StringComparison.OrdinalIgnoreCase) ||
-                        filesToAdd[i].EndsWith(".ipdb", StringComparison.OrdinalIgnoreCase) ||
-                        filesToAdd[i].EndsWith(".exp", StringComparison.OrdinalIgnoreCase) ||
-                        filesToAdd[i].EndsWith(".lib", StringComparison.OrdinalIgnoreCase))
+                    string file = filesToAdd[i];
+
+                    if (
+                       file.StartsWith("bin\\Debug", StringComparison.OrdinalIgnoreCase) || // Ignore junk files
+                       file.EndsWith(".pdb", StringComparison.OrdinalIgnoreCase) ||
+                       file.EndsWith(".iobj", StringComparison.OrdinalIgnoreCase) ||
+                       file.EndsWith(".ipdb", StringComparison.OrdinalIgnoreCase) ||
+                       file.EndsWith(".exp", StringComparison.OrdinalIgnoreCase) ||
+                       file.EndsWith(".lib", StringComparison.OrdinalIgnoreCase)
+                       )
                     {
                         continue;
                     }
 
-                    // Ignore junk directories
-                    if (filesToAdd[i].Contains("bin\\Debug")) // Debug32 Debug64
-                    {
-                        continue;
-                    }
-
-                    archive.CreateEntryFromFile(filesToAdd[i], entryNames[i], CompressionLevel.Optimal);
+                    archive.CreateEntryFromFile(file, entryNames[i], CompressionLevel.Optimal);
                 }
             }
+
+            //using (var filestream = File.Create(destinationArchiveFileName))
+            //using (var archive = new SevenZipArchive(filestream, FileAccess.Write))
+            //using (var compressor = archive.Compressor())
+            //{
+            //    compressor.CompressHeader = true;
+            //    compressor.PreserveDirectoryStructure = true;
+            //    compressor.Solid = true;
+            //
+            //    for (int i = 0; i < filesToAdd.Length; i++)
+            //    {
+            //        string file = filesToAdd[i];
+            //
+            //        if (
+            //           file.StartsWith("Debug", StringComparison.OrdinalIgnoreCase) ||// Ignore directories (Debug32/Debug64)
+            //           file.EndsWith(".pdb", StringComparison.OrdinalIgnoreCase) ||  // Ignore files
+            //           file.EndsWith(".iobj", StringComparison.OrdinalIgnoreCase) ||
+            //           file.EndsWith(".ipdb", StringComparison.OrdinalIgnoreCase) ||
+            //           file.EndsWith(".exp", StringComparison.OrdinalIgnoreCase) ||
+            //           file.EndsWith(".lib", StringComparison.OrdinalIgnoreCase)
+            //           )
+            //        {
+            //            continue;
+            //        }
+            //
+            //        var name = file.Replace(sourceDirectoryName, string.Empty);
+            //        compressor.AddFile(file, name);
+            //    }
+            //
+            //    compressor.Finalize();
+            //}
         }
 
         public static void CreateCompressedSdkFromFolder(string sourceDirectoryName, string destinationArchiveFileName)
@@ -100,6 +129,30 @@ namespace CustomBuildTool
                     archive.CreateEntryFromFile(filesToAdd[i], entryNames[i], CompressionLevel.Optimal);
                 }
             }
+
+            //string[] filesToAdd = Directory.GetFiles(sourceDirectoryName, "*", SearchOption.AllDirectories);
+            //
+            //if (File.Exists(destinationArchiveFileName))
+            //    File.Delete(destinationArchiveFileName);
+            //
+            //using (var filestream = File.Create(destinationArchiveFileName))
+            //using (var archive = new SevenZipArchive(filestream, FileAccess.Write))
+            //using (var compressor = archive.Compressor())
+            //{
+            //    compressor.CompressHeader = true;
+            //    compressor.PreserveDirectoryStructure = true;
+            //    compressor.Solid = true;
+            //
+            //    for (int i = 0; i < filesToAdd.Length; i++)
+            //    {
+            //        string file = filesToAdd[i];
+            //        var name = file.Replace(sourceDirectoryName, string.Empty);
+            //
+            //        compressor.AddFile(file, name);
+            //    }
+            //
+            //    compressor.Finalize();
+            //}
         }
 
         public static void CreateCompressedPdbFromFolder(string sourceDirectoryName, string destinationArchiveFileName)
@@ -120,8 +173,8 @@ namespace CustomBuildTool
                         continue;
 
                     // Ignore junk directories
-                    if (filesToAdd[i].Contains("bin\\Debug") || 
-                        filesToAdd[i].Contains("obj\\") || 
+                    if (filesToAdd[i].Contains("bin\\Debug") ||
+                        filesToAdd[i].Contains("obj\\") ||
                         filesToAdd[i].Contains("tests\\"))
                         continue;
 

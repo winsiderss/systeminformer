@@ -9,6 +9,7 @@
         <PublishReadyToRunShowWarnings>true</PublishReadyToRunShowWarnings>
         <TargetFramework>netcoreapp3.0</TargetFramework>
         <RuntimeIdentifiers>win-x86;win-x64</RuntimeIdentifiers>
+        <TrimUnusedDependencies>true</TrimUnusedDependencies>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Platform)'=='x86'">
@@ -24,29 +25,30 @@
         <IntDir>$(SolutionDir)obj\$(Configuration)\\$(TargetFramework)-$(PlatformTarget)\</IntDir>
         <OutDir>$(SolutionDir)bin\$(Configuration)\\$(TargetFramework)-$(PlatformTarget)\</OutDir>
     </PropertyGroup>
-    
+
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
-      <DefineConstants>DEBUG;TRACE</DefineConstants>
-      <DebugType>full</DebugType>
-      <DebugSymbols>true</DebugSymbols>
+        <DefineConstants>DEBUG;TRACE</DefineConstants>
+        <DebugType>full</DebugType>
+        <DebugSymbols>true</DebugSymbols>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-      <DefineConstants>DEBUG;TRACE</DefineConstants>
-      <DebugType>full</DebugType>
-      <DebugSymbols>true</DebugSymbols>
+        <DefineConstants>TRACE;DEBUG;DISABLE_TRACE</DefineConstants>
+        <DebugType>full</DebugType>
+        <DebugSymbols>true</DebugSymbols>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-      <DefineConstants />
+        <DefineConstants />
+        <DebugType>portable</DebugType>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
-      <DefineConstants />
+        <DefineConstants />
     </PropertyGroup>
-    
+
     <ItemGroup>
-        <PackageReference Include="Microsoft.Win32.Registry" Version="4.6.0" PrivateAssets="All" />
+      <Compile Remove="AppxBuild.cs" />
     </ItemGroup>
 
 </Project>

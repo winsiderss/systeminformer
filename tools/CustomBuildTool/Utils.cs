@@ -21,9 +21,9 @@
  */
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
@@ -98,36 +98,6 @@ namespace CustomBuildTool
             return null;
         }
 
-        //public static string SearchFile(string FileName)
-        //{
-        //    string where = Environment.ExpandEnvironmentVariables("%SystemRoot%\\System32\\where.exe");
-        //
-        //    if (File.Exists(where))
-        //    {
-        //        string whereResult = ShellExecute(where, FileName);
-        //
-        //        if (!string.IsNullOrEmpty(whereResult))
-        //            return whereResult;
-        //    }
-        //
-        //    return null;
-        //}
-
-        //public static void ImageResizeFile(int size, string FileName, string OutName)
-        //{
-        //    using (var src = System.Drawing.Image.FromFile(FileName))
-        //    using (var dst = new System.Drawing.Bitmap(size, size))
-        //    using (var g = System.Drawing.Graphics.FromImage(dst))
-        //    {
-        //        g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-        //        g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
-
-        //        g.DrawImage(src, 0, 0, dst.Width, dst.Height);
-
-        //        dst.Save(OutName, System.Drawing.Imaging.ImageFormat.Png);
-        //    }
-        //}
-
         public static void CopyIfNewer(string CurrentFile, string NewFile)
         {
             if (!File.Exists(CurrentFile))
@@ -162,19 +132,35 @@ namespace CustomBuildTool
             }
         }
 
-        public static readonly IntPtr INVALID_HANDLE_VALUE = new IntPtr(-1);
-        public const int STD_OUTPUT_HANDLE = -11;
-        public const int STD_INPUT_HANDLE = -10;
-        public const int STD_ERROR_HANDLE = -12;
-
-        [DllImport("kernel32.dll", ExactSpelling = true)]
-        public static extern IntPtr GetStdHandle(int StdHandle);
-        [DllImport("kernel32.dll", ExactSpelling = true)]
-        public static extern bool GetConsoleMode(IntPtr ConsoleHandle, out ConsoleMode Mode);
-        [DllImport("kernel32.dll", ExactSpelling = true)]
-        public static extern bool SetConsoleMode(IntPtr ConsoleHandle, ConsoleMode Mode);
-        [DllImport("kernel32.dll", ExactSpelling = true)]
-        public static extern IntPtr GetConsoleWindow();
+        //public static string SearchFile(string FileName)
+        //{
+        //    string where = Environment.ExpandEnvironmentVariables("%SystemRoot%\\System32\\where.exe");
+        //
+        //    if (File.Exists(where))
+        //    {
+        //        string whereResult = ShellExecute(where, FileName);
+        //
+        //        if (!string.IsNullOrEmpty(whereResult))
+        //            return whereResult;
+        //    }
+        //
+        //    return null;
+        //}
+        //
+        //public static void ImageResizeFile(int size, string FileName, string OutName)
+        //{
+        //    using (var src = System.Drawing.Image.FromFile(FileName))
+        //    using (var dst = new System.Drawing.Bitmap(size, size))
+        //    using (var g = System.Drawing.Graphics.FromImage(dst))
+        //    {
+        //        g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+        //        g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+        //
+        //        g.DrawImage(src, 0, 0, dst.Width, dst.Height);
+        //
+        //        dst.Save(OutName, System.Drawing.Imaging.ImageFormat.Png);
+        //    }
+        //}
     }
 
     public static class Json<T> where T : class
@@ -228,15 +214,24 @@ namespace CustomBuildTool
             }
         }
 
-        public static void Decrypt(string FileName, string outFileName, string secret)
+        public static bool Decrypt(string FileName, string outFileName, string secret)
         {
-            using (FileStream fileOutStream = File.Create(outFileName))
-            using (Rijndael rijndael = GetRijndael(secret))
-            using (FileStream fileStream = File.OpenRead(FileName))
-            using (CryptoStream cryptoStream = new CryptoStream(fileOutStream, rijndael.CreateDecryptor(), CryptoStreamMode.Write, true))
+            try
             {
-                fileStream.CopyTo(cryptoStream);
+                using (FileStream fileOutStream = File.Create(outFileName))
+                using (Rijndael rijndael = GetRijndael(secret))
+                using (FileStream fileStream = File.OpenRead(FileName))
+                using (CryptoStream cryptoStream = new CryptoStream(fileOutStream, rijndael.CreateDecryptor(), CryptoStreamMode.Write, true))
+                {
+                    fileStream.CopyTo(cryptoStream);
+                }
             }
+            catch
+            {
+                return false;
+            }
+
+            return true;
         }
 
         public static string HashFile(string FileName)
@@ -261,30 +256,33 @@ namespace CustomBuildTool
 
     public static class VisualStudio
     {
-        public static string GetGitFilePath()
+        private static readonly string[] CustomSignToolPathArray =
         {
-            string git = Win32.SearchFile("git.exe");
+            "\\tools\\CustomSignTool\\bin\\Release32\\CustomSignTool.exe",
+            "\\tools\\CustomSignTool\\bin\\Release64\\CustomSignTool.exe",
+            //"\\tools\\CustomSignTool\\bin\\Debug32\\CustomSignTool.exe",
+            //"\\tools\\CustomSignTool\\bin\\RDebug64\\CustomSignTool.exe",
+        };
 
-            if (File.Exists(git))
-                return git;
+        private static readonly string[] MsBuildPathArray =
+        {
+            "\\MSBuild\\Current\\Bin\\MSBuild.exe",
+            "\\MSBuild\\15.0\\Bin\\MSBuild.exe"
+        };
 
-            git = Environment.ExpandEnvironmentVariables("%ProgramFiles%\\Git\\bin\\git.exe");
+        private static readonly string[] GitPathArray =
+        {
+            "%ProgramFiles%\\Git\\bin\\git.exe",
+            "%ProgramFiles(x86)%\\Git\\bin\\git.exe",
+            "%ProgramW6432%\\Git\\bin\\git.exe"
+        };
 
-            if (File.Exists(git))
-                return git;
-
-            git = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Git\\bin\\git.exe");
-
-            if (File.Exists(git))
-                return git;
-
-            git = Environment.ExpandEnvironmentVariables("%ProgramW6432%\\Git\\bin\\git.exe");
-
-            if (File.Exists(git))
-                return git;
-
-            return null;
-        }
+        private static readonly string[] VswherePathArray =
+        {
+            "%ProgramFiles%\\Microsoft Visual Studio\\Installer\\vswhere.exe",
+            "%ProgramFiles(x86)%\\Microsoft Visual Studio\\Installer\\vswhere.exe",
+            "%ProgramW6432%\\Microsoft Visual Studio\\Installer\\vswhere.exe"
+        };
 
         public static string GetOutputDirectoryPath()
         {
@@ -309,18 +307,50 @@ namespace CustomBuildTool
             return null;
         }
 
+        public static string GetGitFilePath()
+        {
+            string git = Win32.SearchFile("git.exe");
+
+            if (File.Exists(git))
+                return git;
+
+            foreach (string path in GitPathArray)
+            {
+                git = Environment.ExpandEnvironmentVariables(path);
+
+                if (File.Exists(git))
+                    return git;
+            }
+
+            return null;
+        }
+
+        public static string GetGitWorkPath(string Directory)
+        {
+            return "--git-dir=\"" + Directory + "\\.git\" --work-tree=\"" + Directory + "\" "; ;
+        }
+
+        public static string GetVswhereFilePath()
+        {
+            foreach (string path in VswherePathArray)
+            {
+                string file = Environment.ExpandEnvironmentVariables(path);
+
+                if (File.Exists(file))
+                    return file;
+            }
+
+            return null;
+        }
+
         public static string GetCustomSignToolFilePath()
         {
-            string[] CustomSignToolPathArray =
-            {
-                "\\tools\\CustomSignTool\\bin\\Release32\\CustomSignTool.exe",
-                //"\\tools\\CustomSignTool\\bin\\Release64\\CustomSignTool.exe",
-            };
-
             foreach (string path in CustomSignToolPathArray)
             {
-                if (File.Exists(Environment.CurrentDirectory + path))
-                    return Environment.CurrentDirectory + path;
+                string file = Environment.CurrentDirectory + path;
+
+                if (File.Exists(file))
+                    return file;
             }
 
             return null;
@@ -328,99 +358,90 @@ namespace CustomBuildTool
 
         public static string GetMsbuildFilePath()
         {
-            string[] MsBuildPathArray =
+            VisualStudioInstance instance;
+            string vswhere;
+            string vswhereResult;
+
+            instance = GetVisualStudioInstance();
+
+            if (instance != null)
             {
-                "\\MSBuild\\Current\\Bin\\MSBuild.exe",
-                "\\MSBuild\\15.0\\Bin\\MSBuild.exe"
-            };
-
-            string vswhere = Environment.ExpandEnvironmentVariables("%ProgramFiles%\\Microsoft Visual Studio\\Installer\\vswhere.exe");
-
-            if (!File.Exists(vswhere))
-                vswhere = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Microsoft Visual Studio\\Installer\\vswhere.exe");
-
-            if (!File.Exists(vswhere))
-                vswhere = Environment.ExpandEnvironmentVariables("%ProgramW6432%\\Microsoft Visual Studio\\Installer\\vswhere.exe");
-
-            if (File.Exists(vswhere))
-            {
-                string vswhereResult = Win32.ShellExecute(vswhere,
-                    "-latest " +
-                    "-prerelease " +
-                    "-products * " +
-                    "-requires Microsoft.Component.MSBuild " +
-                    "-property installationPath "
-                    );
-
-                if (string.IsNullOrEmpty(vswhereResult))
-                    return null;
-
                 foreach (string path in MsBuildPathArray)
                 {
-                    if (File.Exists(vswhereResult + path))
-                        return vswhereResult + path;
-                }
+                    string file = instance.Path + path;
 
-                return null;
-            }
-            else
-            {
-                try
-                {
-                    VisualStudioInstance instance = FindVisualStudioInstance();
-
-                    if (instance != null)
+                    if (File.Exists(file))
                     {
-                        foreach (string path in MsBuildPathArray)
-                        {
-                            if (File.Exists(instance.Path + path))
-                                return instance.Path + path;
-                        }
+                        return file;
                     }
                 }
-                catch (Exception ex)
-                {
-                    Program.PrintColorMessage("[VisualStudioInstance] " + ex, ConsoleColor.Red, true);
-                }
-
-                return null;
             }
-        }
 
-        private static VisualStudioInstance FindVisualStudioInstance()
-        {
-            var setupConfiguration = new SetupConfiguration() as ISetupConfiguration2;
-            var instanceEnumerator = setupConfiguration.EnumAllInstances();
-            var instances = new ISetupInstance2[3];
+            vswhere = GetVswhereFilePath();
 
-            instanceEnumerator.Next(instances.Length, instances, out var instancesFetched);
-
-            if (instancesFetched == 0)
+            if (string.IsNullOrEmpty(vswhere))
                 return null;
 
-            do
+            vswhereResult = Win32.ShellExecute(
+                vswhere,
+                "-latest " +
+                "-prerelease " +
+                "-products * " +
+                "-requiresAny " +
+                "-requires Microsoft.Component.MSBuild " +
+                "-property installationPath "
+                );
+
+            if (string.IsNullOrEmpty(vswhereResult))
+                return null;
+
+            foreach (string path in MsBuildPathArray)
             {
-                for (int i = 0; i < instancesFetched; i++)
+                string file = vswhereResult + path;
+
+                if (File.Exists(file))
                 {
-                    var instance = new VisualStudioInstance(instances[i]);
-                    var state = instances[i].GetState();
-                    var packages = instances[i].GetPackages().Where(package => package.GetId().Contains("Microsoft.Component.MSBuild"));
-
-                    if (
-                        state.HasFlag(InstanceState.Local | InstanceState.Registered | InstanceState.Complete) &&
-                        packages.Count() > 0 &&
-                        instance.Version.StartsWith("15.0", StringComparison.OrdinalIgnoreCase)
-                        )
-                    {
-                        return instance;
-                    }
+                    return file;
                 }
-
-                instanceEnumerator.Next(instances.Length, instances, out instancesFetched);
             }
-            while (instancesFetched != 0);
 
             return null;
+        }
+
+
+        private static List<VisualStudioInstance> VisualStudioInstanceList = null;
+        public static VisualStudioInstance GetVisualStudioInstance()
+        {
+            if (VisualStudioInstanceList == null)
+            {
+                VisualStudioInstanceList = new List<VisualStudioInstance>();
+
+                try
+                {
+                    var setupConfiguration = new SetupConfiguration() as ISetupConfiguration2;
+                    var instanceEnumerator = setupConfiguration.EnumAllInstances();
+                    var instances = new ISetupInstance2[3];
+
+                    instanceEnumerator.Next(instances.Length, instances, out var instancesFetched);
+
+                    if (instancesFetched == 0)
+                        return null;
+
+                    do
+                    {
+                        for (int i = 0; i < instancesFetched; i++)
+                        {
+                            VisualStudioInstanceList.Add(new VisualStudioInstance(instances[i]));
+                        }
+
+                        instanceEnumerator.Next(instances.Length, instances, out instancesFetched);
+                    }
+                    while (instancesFetched != 0);
+                }
+                catch { }
+            }
+
+            return VisualStudioInstanceList[0];
         }
     }
 
@@ -483,40 +504,113 @@ namespace CustomBuildTool
         public string Path { get; }
         public string Version { get; }
         public string DisplayName { get; }
-        public string Description { get; }
         public string ResolvePath { get; }
-        public string EnginePath { get; }
         public string ProductPath { get; }
         public string InstanceId { get; }
-        public DateTime InstallDate { get; }
+        public InstanceState State { get; }
+        public List<VisualStudioPackage> Packages { get; }
 
         public VisualStudioInstance(ISetupInstance2 FromInstance)
         {
+            this.Packages = new List<VisualStudioPackage>();
+
             this.IsLaunchable = FromInstance.IsLaunchable();
             this.IsComplete = FromInstance.IsComplete();
             this.Name = FromInstance.GetInstallationName();
             this.Path = FromInstance.GetInstallationPath();
             this.Version = FromInstance.GetInstallationVersion();
             this.DisplayName = FromInstance.GetDisplayName();
-            this.Description = FromInstance.GetDescription();
             this.ResolvePath = FromInstance.ResolvePath();
-            this.EnginePath = FromInstance.GetEnginePath();
             this.InstanceId = FromInstance.GetInstanceId();
             this.ProductPath = FromInstance.GetProductPath();
-
-            try
+            this.State = FromInstance.GetState();
+  
+            var packages = FromInstance.GetPackages();
+            foreach (var item in packages)
             {
-                var time = FromInstance.GetInstallDate();
-                ulong high = (ulong)time.dwHighDateTime;
-                uint low = (uint)time.dwLowDateTime;
-                long fileTime = (long)((high << 32) + low);
+                this.Packages.Add(new VisualStudioPackage(item));
+            }
+        }
 
-                this.InstallDate = DateTime.FromFileTimeUtc(fileTime);
-            }
-            catch
+        public bool HasRequiredDependency()
+        {
+            string[] array =
             {
-                this.InstallDate = DateTime.UtcNow;
+                "Microsoft.Component.MSBuild",
+                //"Microsoft.VisualStudio.Component.Windows10SDK.17134",
+                //"Microsoft.VisualStudio.Component.Windows10SDK.17763",
+                "Microsoft.VisualStudio.Component.Windows10SDK.18362",
+                "Microsoft.VisualStudio.Component.VC.Tools.x86.x64",
+                "Microsoft.VisualStudio.Component.VC.Redist.14.Latest",
+                //"Microsoft.VisualStudio.Component.VC.14.20.x86.x64",
+                //"Microsoft.VisualStudio.Component.VC.14.21.x86.x64",
+                //"Microsoft.VisualStudio.Component.VC.14.22.x86.x64",
+                "Microsoft.VisualStudio.Component.VC.Runtimes.x86.x64.Spectre",
+                //"Microsoft.VisualStudio.Component.VC.14.20.x86.x64.Spectre",
+                //"Microsoft.VisualStudio.Component.VC.14.21.x86.x64.Spectre",
+                //"Microsoft.VisualStudio.Component.VC.14.22.x86.x64.Spectre",
+            };
+            bool success = true;
+
+            foreach (var entry in array)
+            {
+                var found = this.Packages.Find(p => string.Equals(p.Id, entry, StringComparison.OrdinalIgnoreCase));
+
+                if (found == null)
+                {
+                    success = false;
+                    break;
+                }
             }
+
+            return success;
+        }
+
+        public override string ToString()
+        {
+            return this.DisplayName;
+        }
+    }
+
+    public class VisualStudioPackage : IComparable, IComparable<VisualStudioPackage>
+    {
+        public string Id { get; }
+        public string Version { get; }
+        public string Type { get; }
+        public string UniqueId { get; }
+
+        public VisualStudioPackage(ISetupPackageReference FromPackage)
+        {
+            this.Id = FromPackage.GetId();
+            this.Version = FromPackage.GetVersion();
+            this.Type = FromPackage.GetType();
+            this.UniqueId = FromPackage.GetUniqueId();
+        }
+
+        public override string ToString()
+        {
+            return this.Id;
+        }
+
+        public int CompareTo(object obj)
+        {
+            if (obj == null)
+                return 1;
+
+            VisualStudioPackage otherTemperature = obj as VisualStudioPackage;
+
+            if (otherTemperature != null)
+                return this.Id.CompareTo(otherTemperature.Id);
+            else
+                return 1;
+        }
+
+        public int CompareTo(VisualStudioPackage obj)
+        {
+            if (obj == null)
+                return 1;
+
+            return this.Id.CompareTo(obj.Id);
         }
     }
 
@@ -593,6 +687,7 @@ namespace CustomBuildTool
         ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004,
         DISABLE_NEWLINE_AUTO_RETURN = 0x0008,
         ENABLE_LVB_GRID_WORLDWIDE = 0x0010,
+        ENABLE_VIRTUAL_TERMINAL_INPUT = 0x0200
     }
 
     [Flags]
@@ -604,5 +699,141 @@ namespace CustomBuildTool
         NoRebootRequired = 4u,
         NoErrors = 8u,
         Complete = 4294967295u
+    }
+
+    [ComImport, ClassInterface(ClassInterfaceType.None), Guid("177F0C4A-1CD3-4DE7-A32C-71DBBB9FA36D")]
+    public class SetupConfigurationClass
+    {
+
+    }
+
+    [ComImport, CoClass(typeof(SetupConfigurationClass)), Guid("42843719-DB4C-46C2-8E7C-64F1816EFD5B")]
+    public interface SetupConfiguration : ISetupConfiguration2, ISetupConfiguration
+    {
+
+    }
+
+    [ComImport, Guid("6380BCFF-41D3-4B2E-8B2E-BF8A6810C848"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    public interface IEnumSetupInstances
+    {
+        void Next(
+            [MarshalAs(UnmanagedType.U4)] [In] int celt,
+            [MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.Interface)] [Out] ISetupInstance[] rgelt,
+            [MarshalAs(UnmanagedType.U4)] out int pceltFetched
+            );
+
+        void Skip([MarshalAs(UnmanagedType.U4)] [In] int celt);
+        void Reset();
+        IEnumSetupInstances Clone();
+    }
+
+    [ComImport, Guid("42843719-DB4C-46C2-8E7C-64F1816EFD5B"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    public interface ISetupConfiguration
+    {
+        IEnumSetupInstances EnumInstances();
+        ISetupInstance GetInstanceForCurrentProcess();
+        ISetupInstance GetInstanceForPath([In] string path);
+    }
+
+    [ComImport, Guid("26AAB78C-4A60-49D6-AF3B-3C35BC93365D"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    public interface ISetupConfiguration2 : ISetupConfiguration
+    {
+        IEnumSetupInstances EnumAllInstances();
+    }
+
+    [ComImport, Guid("46DCCD94-A287-476A-851E-DFBC2FFDBC20"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    public interface ISetupErrorState
+    {
+        ISetupFailedPackageReference[] GetFailedPackages();
+        ISetupPackageReference[] GetSkippedPackages();
+    }
+
+    [ComImport, Guid("E73559CD-7003-4022-B134-27DC650B280F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    public interface ISetupFailedPackageReference : ISetupPackageReference
+    {
+        new string GetId();
+        new string GetVersion();
+        new string GetChip();
+        new string GetLanguage();
+        new string GetBranch();
+        new string GetType();
+        new string GetUniqueId();
+        new bool GetIsExtension();
+    }
+
+    [ComImport, Guid("42B21B78-6192-463E-87BF-D577838F1D5C"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    public interface ISetupHelper
+    {
+        /// <summary>
+        /// Parses a dotted quad version string into a 64-bit unsigned integer.
+        /// </summary>
+        /// <param name="version">The dotted quad version string to parse, e.g. 1.2.3.4.</param>
+        /// <returns>A 64-bit unsigned integer representing the version. You can compare this to other versions.</returns>
+        ulong ParseVersion([In] string version);
+
+        /// <summary>
+        /// Parses a dotted quad version string into a 64-bit unsigned integer.
+        /// </summary>
+        /// <param name="versionRange">The string containing 1 or 2 dotted quad version strings to parse, e.g. [1.0,) that means 1.0.0.0 or newer.</param>
+        /// <param name="minVersion">A 64-bit unsigned integer representing the minimum version, which may be 0. You can compare this to other versions.</param>
+        /// <param name="maxVersion">A 64-bit unsigned integer representing the maximum version, which may be MAXULONGLONG. You can compare this to other versions.</param>
+        void ParseVersionRange([In] string versionRange, out ulong minVersion, out ulong maxVersion);
+    }
+
+    [ComImport, Guid("B41463C3-8866-43B5-BC33-2B0676F7F42E"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    public interface ISetupInstance
+    {
+        string GetInstanceId();
+        System.Runtime.InteropServices.ComTypes.FILETIME GetInstallDate();
+        string GetInstallationName();
+        string GetInstallationPath();
+        string GetInstallationVersion();
+        string GetDisplayName([In] int lcid = 0);
+        string GetDescription([In] int lcid = 0);
+        string ResolvePath([In] string pwszRelativePath = null);
+    }
+
+    [ComImport, Guid("89143C9A-05AF-49B0-B717-72E218A2185C"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    public interface ISetupInstance2 : ISetupInstance
+    {
+        new string GetInstanceId();
+        new System.Runtime.InteropServices.ComTypes.FILETIME GetInstallDate();
+        new string GetInstallationName();
+        new string GetInstallationPath();
+        new string GetInstallationVersion();
+        new string GetDisplayName([MarshalAs(UnmanagedType.U4)] [In] int lcid = 0);
+        new string GetDescription([MarshalAs(UnmanagedType.U4)] [In] int lcid = 0);
+        new string ResolvePath([MarshalAs(21)] [In] string pwszRelativePath = null);
+        InstanceState GetState();
+        ISetupPackageReference[] GetPackages();
+        ISetupPackageReference GetProduct();
+        string GetProductPath();
+        ISetupErrorState GetErrors();
+        bool IsLaunchable();
+        bool IsComplete();
+        ISetupPropertyStore GetProperties();
+        string GetEnginePath();
+    }
+
+    [ComImport, Guid("DA8D8A16-B2B6-4487-A2F1-594CCCCD6BF5"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    public interface ISetupPackageReference
+    {
+        string GetId();
+        string GetVersion();
+        string GetChip();
+        string GetLanguage();
+        string GetBranch();
+        string GetType();
+        string GetUniqueId();
+        bool GetIsExtension();
+    }
+
+    [ComImport, Guid("c601c175-a3be-44bc-91f6-4568d230fc83"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    public interface ISetupPropertyStore
+    {
+        [return: MarshalAs(UnmanagedType.SafeArray, SafeArraySubType = VarEnum.VT_BSTR)]
+        string[] GetNames();
+
+        object GetValue([MarshalAs(UnmanagedType.LPWStr)] [In] string pwszName);
     }
 }
