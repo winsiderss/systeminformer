@@ -1276,10 +1276,10 @@ namespace CustomBuildTool
                 foreach (string file in Build_Release_Files)
                 {
                     string sourceFile = BuildOutputFolder + file;
-                    string filename = Path.GetFileName(sourceFile);
 
                     if (File.Exists(sourceFile))
                     {
+                        string filename = Path.GetFileName(sourceFile);
                         FtpWebRequest request = (FtpWebRequest)WebRequest.Create(buildPostUrl + filename);
                         request.Credentials = new NetworkCredential(buildPostKey, buildPostName);
                         request.Method = WebRequestMethods.Ftp.UploadFile;
