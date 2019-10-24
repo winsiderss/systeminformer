@@ -68,7 +68,8 @@ namespace CustomBuildTool
             "\\processhacker-build-setup.exe",
             "\\processhacker-build-bin.zip",
             //"\\processhacker-build-src.zip",
-            //"\\processhacker-build-sdk.zip"
+            //"\\processhacker-build-sdk.zip",
+            //"\\processhacker-build-pdb.zip"
         };
 
         private static readonly string[] sdk_directories =
@@ -971,30 +972,23 @@ namespace CustomBuildTool
 
             try
             {
-                if (File.Exists(BuildOutputFolder + "\\processhacker-build-checksums.txt"))
-                    File.Delete(BuildOutputFolder + "\\processhacker-build-checksums.txt");
-
-                //if (File.Exists(BuildOutputFolder + "\\processhacker-build-websetup.exe"))
-                //    BuildWebSetupFileLength = new FileInfo(BuildOutputFolder + "\\processhacker-build-websetup.exe").Length;
                 if (File.Exists(BuildOutputFolder + "\\processhacker-build-setup.exe"))
                     BuildSetupFileLength = new FileInfo(BuildOutputFolder + "\\processhacker-build-setup.exe").Length;
                 if (File.Exists(BuildOutputFolder + "\\processhacker-build-bin.zip"))
                     BuildBinFileLength = new FileInfo(BuildOutputFolder + "\\processhacker-build-bin.zip").Length;
-                //if (File.Exists(BuildOutputFolder + "\\processhacker-build-websetup.exe"))
-                //    BuildWebSetupHash = Verify.HashFile(BuildOutputFolder + "\\processhacker-build-websetup.exe");
                 if (File.Exists(BuildOutputFolder + "\\processhacker-build-setup.exe"))
                     BuildSetupHash = Verify.HashFile(BuildOutputFolder + "\\processhacker-build-setup.exe");
                 if (File.Exists(BuildOutputFolder + "\\processhacker-build-bin.zip"))
                     BuildBinHash = Verify.HashFile(BuildOutputFolder + "\\processhacker-build-bin.zip");
 
                 StringBuilder sb = new StringBuilder();
-                //sb.AppendLine("processhacker-build-websetup.exe");
-                //sb.AppendLine("SHA256: " + BuildWebSetupHash + Environment.NewLine);
                 sb.AppendLine("processhacker-build-setup.exe");
                 sb.AppendLine("SHA256: " + BuildSetupHash + Environment.NewLine);
                 sb.AppendLine("processhacker-build-bin.zip");
                 sb.AppendLine("SHA256: " + BuildBinHash + Environment.NewLine);
 
+                if (File.Exists(BuildOutputFolder + "\\processhacker-build-checksums.txt"))
+                    File.Delete(BuildOutputFolder + "\\processhacker-build-checksums.txt");
                 File.WriteAllText(BuildOutputFolder + "\\processhacker-build-checksums.txt", sb.ToString());
             }
             catch (Exception ex)
@@ -1185,9 +1179,10 @@ namespace CustomBuildTool
             if (string.IsNullOrEmpty(BuildBinSig))
                 return false;
 
-            buildChangelog = Win32.ShellExecute(GitExePath, "log -n 30 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %s (%an)\"");
-            buildSummary = Win32.ShellExecute(GitExePath, "log -n 5 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %s (%an)\" --abbrev-commit");
-            buildMessage = Win32.ShellExecute(GitExePath, "log -1 --pretty=%B");
+            string currentGitDir = VisualStudio.GetGitWorkPath(Environment.CurrentDirectory);
+            buildChangelog = Win32.ShellExecute(GitExePath, currentGitDir + "log -n 30 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %s (%an)\"");
+            buildSummary = Win32.ShellExecute(GitExePath, currentGitDir + "log -n 5 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %s (%an)\" --abbrev-commit");
+            buildMessage = Win32.ShellExecute(GitExePath, currentGitDir + "log -1 --pretty=%B");
             // log -n 5 --date=format:%Y-%m-%d --pretty=format:\"%C(green)[%cd]%Creset %C(bold blue)%an%Creset %<(65,trunc)%s%Creset %C(#696969)(%Creset%C(yellow)%h%Creset%C(#696969))%Creset\" --abbrev-commit
             // log -n 5 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %an %s\" --abbrev-commit
             // log -n 1 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %an: %<(65,trunc)%s (%h)\" --abbrev-commi
@@ -1290,10 +1285,11 @@ namespace CustomBuildTool
 
                         Program.PrintColorMessage($"Uploading {filename}...", ConsoleColor.Cyan, true);
 
-                        using (BufferedStream localStream = new BufferedStream(File.OpenRead(sourceFile)))
+                        using (FileStream stream = File.OpenRead(sourceFile))
+                        using (BufferedStream localStream = new BufferedStream(stream))
                         using (BufferedStream remoteStream = new BufferedStream(request.GetRequestStream()))
                         {
-                            localStream.CopyTo(remoteStream, 4096);
+                            localStream.CopyTo(remoteStream);
                         }
 
                         using (FtpWebResponse response = (FtpWebResponse)request.GetResponse())
@@ -1352,6 +1348,10 @@ namespace CustomBuildTool
                         //        return false;
                         //    }
                         //}
+                    }
+                    else
+                    {
+                        Program.PrintColorMessage("[SKIPPED] missing file: " + sourceFile, ConsoleColor.Yellow);
                     }
                 }
             }
