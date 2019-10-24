@@ -279,7 +279,7 @@ namespace CustomBuildTool
                     "-addStore TrustedPeople " + BuildOutputFolder + "\\processhacker-appx.cer"
                     );
 
-                if (!string.IsNullOrEmpty(output) && !output.Contains("command completed successfully"))
+                if (!string.IsNullOrEmpty(output) && !output.Contains("command completed successfully", StringComparison.OrdinalIgnoreCase))
                 {
                     Program.PrintColorMessage("[Certutil] " + output, ConsoleColor.Red);
                     return false;
