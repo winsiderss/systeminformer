@@ -967,25 +967,38 @@ namespace CustomBuildTool
 
         public static bool BuildChecksumsFile()
         {
-            Program.PrintColorMessage(BuildTimeStamp(), ConsoleColor.DarkGray, false);
-            Program.PrintColorMessage("Building build-checksums.txt...", ConsoleColor.Cyan);
+            //Program.PrintColorMessage(BuildTimeStamp(), ConsoleColor.DarkGray, false);
+            //Program.PrintColorMessage("Building build-checksums.txt...", ConsoleColor.Cyan);
 
             try
             {
-                if (File.Exists(BuildOutputFolder + "\\processhacker-build-setup.exe"))
-                    BuildSetupFileLength = new FileInfo(BuildOutputFolder + "\\processhacker-build-setup.exe").Length;
-                if (File.Exists(BuildOutputFolder + "\\processhacker-build-bin.zip"))
-                    BuildBinFileLength = new FileInfo(BuildOutputFolder + "\\processhacker-build-bin.zip").Length;
-                if (File.Exists(BuildOutputFolder + "\\processhacker-build-setup.exe"))
-                    BuildSetupHash = Verify.HashFile(BuildOutputFolder + "\\processhacker-build-setup.exe");
-                if (File.Exists(BuildOutputFolder + "\\processhacker-build-bin.zip"))
-                    BuildBinHash = Verify.HashFile(BuildOutputFolder + "\\processhacker-build-bin.zip");
-
                 StringBuilder sb = new StringBuilder();
-                sb.AppendLine("processhacker-build-setup.exe");
-                sb.AppendLine("SHA256: " + BuildSetupHash + Environment.NewLine);
-                sb.AppendLine("processhacker-build-bin.zip");
-                sb.AppendLine("SHA256: " + BuildBinHash + Environment.NewLine);
+
+                foreach (string name in Build_Release_Files)
+                {
+                    string file = BuildOutputFolder + name;
+
+                    if (File.Exists(file))
+                    {
+                        var info = new FileInfo(file);
+                        var hash = Verify.HashFile(file);
+
+                        if (name.Equals("\\processhacker-build-setup.exe", StringComparison.OrdinalIgnoreCase))
+                        {
+                            BuildSetupFileLength = info.Length;
+                            BuildSetupHash = hash;
+                        }
+
+                        if (name.Equals("\\processhacker-build-bin.zip", StringComparison.OrdinalIgnoreCase))
+                        {
+                            BuildBinFileLength = info.Length;
+                            BuildBinHash = hash;
+                        }
+
+                        sb.AppendLine(info.Name);
+                        sb.AppendLine("SHA256: " + hash + Environment.NewLine);
+                    }
+                }
 
                 if (File.Exists(BuildOutputFolder + "\\processhacker-build-checksums.txt"))
                     File.Delete(BuildOutputFolder + "\\processhacker-build-checksums.txt");
@@ -1300,58 +1313,6 @@ namespace CustomBuildTool
                                 return false;
                             }
                         }
-
-                        //string boundary = "---------------------------" + Guid.NewGuid().ToString();
-                        //byte[] boundarybytes = Encoding.ASCII.GetBytes("\r\n--" + boundary + "\r\n");
-                        //byte[] headerbytes = Encoding.UTF8.GetBytes($"Content-Disposition: form-data; name=\"file\"; filename=\"{filename}\"\r\n\r\n");
-                        //
-                        //HttpWebRequest request = (HttpWebRequest)WebRequest.Create(new Uri(buildPostUrl));
-                        //request.KeepAlive = true;
-                        //request.SendChunked = true;
-                        //request.AllowWriteStreamBuffering = true;
-                        //request.ServicePoint.Expect100Continue = false;
-                        //request.ServicePoint.ReceiveBufferSize = 4096;
-                        //request.ServicePoint.ConnectionLeaseTimeout = System.Threading.Timeout.Infinite;
-                        //request.ReadWriteTimeout = System.Threading.Timeout.Infinite;
-                        //request.Timeout = System.Threading.Timeout.Infinite;
-                        //request.Method = WebRequestMethods.Http.Post;
-                        //request.ContentType = "multipart/form-data; boundary=" + boundary;
-                        //request.Headers.Add("X-ApiKey", buildPostKey);
-                        //
-                        //Program.PrintColorMessage($"Uploading {filename}...", ConsoleColor.Cyan, true);
-                        //
-                        //using (FileStream fileStream = File.OpenRead(sourceFile))
-                        //using (BufferedStream localStream = new BufferedStream(fileStream))
-                        //using (BufferedStream remoteStream = new BufferedStream(request.GetRequestStream()))
-                        //{
-                        //    int bytesRead = 0;
-                        //    var totalRead = 0;
-                        //    byte[] buffer = new byte[4096];
-                        //
-                        //    remoteStream.Write(boundarybytes, 0, boundarybytes.Length);
-                        //    remoteStream.Write(headerbytes, 0, headerbytes.Length);
-                        //
-                        //    while ((bytesRead = localStream.Read(buffer, 0, buffer.Length)) != 0)
-                        //    {
-                        //        totalRead += bytesRead;
-                        //        remoteStream.Write(buffer, 0, bytesRead);
-                        //    }
-                        //
-                        //    remoteStream.Write(boundarybytes, 0, boundarybytes.Length);
-                        //}
-                        //
-                        //using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
-                        //{
-                        //    if (response.StatusCode != HttpStatusCode.OK)
-                        //    {
-                        //        Program.PrintColorMessage("[HttpWebResponse]" + response.StatusDescription, ConsoleColor.Red);
-                        //        return false;
-                        //    }
-                        //}
-                    }
-                    else
-                    {
-                        Program.PrintColorMessage("[SKIPPED] missing file: " + sourceFile, ConsoleColor.Yellow);
                     }
                 }
             }
@@ -1380,10 +1341,6 @@ namespace CustomBuildTool
                             Program.PrintColorMessage("[WebServiceAppveyorUploadFile]", ConsoleColor.Red);
                             return false;
                         }
-                    }
-                    else
-                    {
-                        Program.PrintColorMessage("[SKIPPED] missing file: " + sourceFile, ConsoleColor.Yellow);
                     }
                 }
             }
