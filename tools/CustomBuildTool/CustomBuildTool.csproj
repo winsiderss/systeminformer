@@ -33,7 +33,7 @@
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-        <DefineConstants>TRACE;DEBUG;DISABLE_TRACE</DefineConstants>
+        <DefineConstants>TRACE;DEBUG</DefineConstants>
         <DebugType>full</DebugType>
         <DebugSymbols>true</DebugSymbols>
     </PropertyGroup>

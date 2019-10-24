@@ -284,13 +284,8 @@ namespace CustomBuildTool
                 var instance = VisualStudio.GetVisualStudioInstance();
                 if (instance != null)
                 {
-                    var win10sdk = instance.Packages.Find(p => p.Id.StartsWith("Microsoft.VisualStudio.Component.Windows10SDK.", StringComparison.OrdinalIgnoreCase));
-                    if (win10sdk != null)
-                    {
-                        Program.PrintColorMessage("WindowsSDK: ", ConsoleColor.DarkGray, false);
-                        Program.PrintColorMessage(win10sdk.Id.Substring("Microsoft.VisualStudio.Component.Windows10SDK.".Length) + " (" + win10sdk.Version + ")", ConsoleColor.Green, true);
-                    }
-
+                    Program.PrintColorMessage("WindowsSDK: ", ConsoleColor.DarkGray, false);
+                    Program.PrintColorMessage(instance.GetWindowsSdkVersion() + " (" + instance.GetWindowsSdkFullVersion() + ")", ConsoleColor.Green, true);//  
                     Program.PrintColorMessage("VisualStudio: ", ConsoleColor.DarkGray, false);
                     Program.PrintColorMessage(instance.Name, ConsoleColor.Green, true);
                 }
