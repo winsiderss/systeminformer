@@ -1314,10 +1314,6 @@ namespace CustomBuildTool
                             }
                         }
                     }
-                    else
-                    {
-                        Program.PrintColorMessage("[SKIPPED] missing file: " + sourceFile, ConsoleColor.Yellow);
-                    }
                 }
             }
             catch (Exception ex)
