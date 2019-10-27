@@ -133,7 +133,7 @@ NTSTATUS KphpLoadDynamicConfiguration(
     if (Length < UFIELD_OFFSET(KPH_DYN_CONFIGURATION, Packages) + config->NumberOfPackages * sizeof(KPH_DYN_PACKAGE))
         return STATUS_INVALID_PARAMETER;
 
-    dprintf("Loading dynamic configuration with %u package(s)\n", config->NumberOfPackages);
+    dprintf("Loading dynamic configuration with %lu package(s)\n", config->NumberOfPackages);
 
     for (i = 0; i < config->NumberOfPackages; i++)
     {
@@ -141,10 +141,10 @@ NTSTATUS KphpLoadDynamicConfiguration(
 
         if (package->MajorVersion == KphDynOsVersionInfo.dwMajorVersion &&
             package->MinorVersion == KphDynOsVersionInfo.dwMinorVersion &&
-            (package->ServicePackMajor == (USHORT)-1 || package->ServicePackMajor == KphDynOsVersionInfo.wServicePackMajor) &&
-            (package->BuildNumber == (USHORT)-1 || package->BuildNumber == KphDynOsVersionInfo.dwBuildNumber))
+            (package->ServicePackMajor == USHORT_MAX || package->ServicePackMajor == KphDynOsVersionInfo.wServicePackMajor) &&
+            (package->BuildNumber == USHORT_MAX || package->BuildNumber == KphDynOsVersionInfo.dwBuildNumber))
         {
-            dprintf("Found matching package at index %u for Windows %u.%u\n", i, package->MajorVersion, package->MinorVersion);
+            dprintf("Found matching package at index %lu for Windows %u.%u\n", i, package->MajorVersion, package->MinorVersion);
 
             KphDynNtVersion = package->ResultingNtVersion;
 

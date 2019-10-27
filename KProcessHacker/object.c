@@ -85,7 +85,7 @@ PHANDLE_TABLE KphReferenceProcessHandleTable(
     PAGED_CODE();
 
     // Fail if we don't have an offset.
-    if (KphDynEpObjectTable == -1)
+    if (KphDynEpObjectTable == ULONG_MAX)
         return NULL;
 
     // Prevent the process from terminating and get its handle table.
@@ -157,7 +157,7 @@ BOOLEAN KphpEnumerateProcessHandlesEnumCallback61(
     handleInfo.Handle = Handle;
     handleInfo.Object = objectHeader ? &objectHeader->Body : NULL;
     handleInfo.GrantedAccess = ObpDecodeGrantedAccess(HandleTableEntry->GrantedAccess);
-    handleInfo.ObjectTypeIndex = -1;
+    handleInfo.ObjectTypeIndex = USHORT_MAX;
     handleInfo.Reserved1 = 0;
     handleInfo.HandleAttributes = ObpGetHandleAttributes(HandleTableEntry);
     handleInfo.Reserved2 = 0;
@@ -166,7 +166,7 @@ BOOLEAN KphpEnumerateProcessHandlesEnumCallback61(
     {
         objectType = ObGetObjectType(handleInfo.Object);
 
-        if (objectType && KphDynOtIndex != -1)
+        if (objectType && KphDynOtIndex != ULONG_MAX)
             handleInfo.ObjectTypeIndex = (USHORT)*(PUCHAR)PTR_ADD_OFFSET(objectType, KphDynOtIndex);
     }
 
@@ -247,7 +247,7 @@ NTSTATUS KpiEnumerateProcessHandles(
 
     PAGED_CODE();
 
-    if (KphDynNtVersion >= PHNT_WIN8 && KphDynHtHandleContentionEvent == -1)
+    if (KphDynNtVersion >= PHNT_WIN8 && KphDynHtHandleContentionEvent == ULONG_MAX)
     {
         return STATUS_NOT_SUPPORTED;
     }
@@ -917,9 +917,9 @@ NTSTATUS KpiQueryInformationObject(
             ETWREG_BASIC_INFORMATION basicInfo;
 
             // Check dynamic data requirements.
-            if (KphDynEgeGuid != -1 &&
-                KphDynEreGuidEntry != -1 &&
-                KphDynOtName != -1)
+            if (KphDynEgeGuid != ULONG_MAX &&
+                KphDynEreGuidEntry != ULONG_MAX &&
+                KphDynOtName != ULONG_MAX)
             {
                 // Attach to the process and get a pointer to the object. We don't have a pointer to
                 // the EtwRegistration object type, so we'll just have to check the type name.

@@ -7,7 +7,7 @@
 
 #ifdef _DYNDATA_PRIVATE
 #define EXT
-#define OFFDEFAULT = -1
+#define OFFDEFAULT = ULONG_MAX
 #else
 #define EXT extern
 #define OFFDEFAULT
