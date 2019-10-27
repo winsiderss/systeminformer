@@ -41,38 +41,46 @@ namespace GenerateZw
 
     public class ZwGen
     {
-        private List<ServiceDefinition> Definitions = new List<ServiceDefinition>();
-        private string BaseDirectory = "phnt\\include";
-        private string OutputFile = "ntzwapi.h";
-        private string Header = "#ifndef _NTZWAPI_H\r\n#define _NTZWAPI_H\r\n\r\n// This file was automatically generated. Do not edit.\r\n\r\n";
-        private string Footer = "#endif\r\n";
-        private string[] Files = new[]
+        private string BaseDirectory;
+        private string OutputFile;
+        private string Header;
+        private string Footer;
+        private string[] Files;
+
+        public ZwGen()
         {
-            "ntdbg.h",
-            "ntexapi.h",
-            "ntgdi.h",
-            "ntioapi.h",
-            "ntkeapi.h",
-            "ntldr.h",
-            "ntlpcapi.h",
-            "ntmisc.h",
-            "ntmmapi.h",
-            "ntnls.h",
-            "ntobapi.h",
-            "ntpebteb.h",
-            "ntpfapi.h",
-            "ntpnpapi.h",
-            "ntpoapi.h",
-            "ntpsapi.h",
-            "ntregapi.h",
-            "ntrtl.h",
-            "ntsam.h",
-            "ntseapi.h",
-            "nttmapi.h",
-            "nttp.h",
-            "ntwow64.h",
-            "ntxcapi.h"
-        };
+            this.OutputFile = "ntzwapi.h";
+            this.BaseDirectory = "phnt\\include";
+            this.Files = new[]
+            {
+                "ntdbg.h",
+                "ntexapi.h",
+                "ntgdi.h",
+                "ntioapi.h",
+                "ntkeapi.h",
+                "ntldr.h",
+                "ntlpcapi.h",
+                "ntmisc.h",
+                "ntmmapi.h",
+                "ntnls.h",
+                "ntobapi.h",
+                "ntpebteb.h",
+                "ntpfapi.h",
+                "ntpnpapi.h",
+                "ntpoapi.h",
+                "ntpsapi.h",
+                "ntregapi.h",
+                "ntrtl.h",
+                "ntsam.h",
+                "ntseapi.h",
+                "nttmapi.h",
+                "nttp.h",
+                "ntwow64.h",
+                "ntxcapi.h"
+            };
+            this.Header = "#ifndef _NTZWAPI_H\r\n#define _NTZWAPI_H\r\n\r\n// This file was automatically generated. Do not edit.\r\n\r\n";
+            this.Footer = "#endif\r\n";
+        }
 
         private string UnEscape(string text)
         {
@@ -132,35 +140,36 @@ namespace GenerateZw
             }
         }
 
-        private void Parse(string text)
-        {
-            MatchCollection matches = Regex.Matches(text, @"NTSYSCALLAPI[\w\s_]*NTAPI\s*(Nt(\w)*)\(.*?\);", RegexOptions.Compiled | RegexOptions.Singleline);
-
-            foreach (Match match in matches)
-            {
-                this.Definitions.Add(new ServiceDefinition
-                {
-                    Name = match.Groups[1].Value,
-                    Text = match.Value,
-                    NameIndex = match.Groups[1].Index - match.Index
-                });
-            }
-        }
-
         public void Execute()
         {
             // Build up a list of definitions.
 
+            var definitions = new List<ServiceDefinition>();
+            var regex = new Regex(@"NTSYSCALLAPI[\w\s_]*NTAPI\s*(Nt(\w)*)\(.*?\);", RegexOptions.Compiled | RegexOptions.Singleline);
+
             foreach (string fileName in this.Files)
             {
-                Parse(File.ReadAllText(this.BaseDirectory + Path.DirectorySeparatorChar + fileName));
+                var file = this.BaseDirectory + Path.DirectorySeparatorChar + fileName;
+                var text = File.ReadAllText(file);
+
+                MatchCollection matches = regex.Matches(text);
+
+                foreach (Match match in matches)
+                {
+                    definitions.Add(new ServiceDefinition
+                    {
+                        Name = match.Groups[1].Value,
+                        Text = match.Value,
+                        NameIndex = match.Groups[1].Index - match.Index
+                    });
+                }
             }
 
             using (StreamWriter sw = new StreamWriter(this.BaseDirectory + Path.DirectorySeparatorChar + this.OutputFile))
             {
                 // Remove duplicates and sort.
 
-                var _defs = this.Definitions.Distinct().ToList();
+                var _defs = definitions.Distinct().ToList();
                 _defs.Sort((x, y) => string.Compare(x.Name, y.Name, StringComparison.OrdinalIgnoreCase));
 
                 // Header
