@@ -144,7 +144,7 @@ FORCEINLINE PVOID ObpDecodeObject(PVOID Object)
 #ifdef _M_X64
     if (KphDynNtVersion >= PHNT_WIN8)
     {
-        if (KphDynObDecodeShift != -1)
+        if (KphDynObDecodeShift != ULONG_MAX)
             return (PVOID)(((LONG_PTR)Object >> KphDynObDecodeShift) & ~(ULONG_PTR)0xf);
         else
             return NULL;
@@ -163,7 +163,7 @@ FORCEINLINE ULONG ObpGetHandleAttributes(PHANDLE_TABLE_ENTRY HandleTableEntry)
 #ifdef _M_X64
     if (KphDynNtVersion >= PHNT_WIN8)
     {
-        if (KphDynObAttributesShift != -1)
+        if (KphDynObAttributesShift != ULONG_MAX)
             return (ULONG)(HandleTableEntry->Value >> KphDynObAttributesShift) & 0x3;
         else
             return 0;

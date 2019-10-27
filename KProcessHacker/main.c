@@ -132,7 +132,7 @@ NTSTATUS KphDispatchCreate(
     fileObject = stackLocation->FileObject;
     securityContext = stackLocation->Parameters.Create.SecurityContext;
 
-    dprintf("Client (PID %Iu) is connecting\n", PsGetCurrentProcessId());
+    dprintf("Client (PID %lu) is connecting\n", HandleToUlong(PsGetCurrentProcessId()));
 
     if (KphParameters.SecurityLevel == KphSecurityPrivilegeCheck ||
         KphParameters.SecurityLevel == KphSecuritySignatureAndPrivilegeCheck)
@@ -156,7 +156,7 @@ NTSTATUS KphDispatchCreate(
             ))
         {
             status = STATUS_PRIVILEGE_NOT_HELD;
-            dprintf("Client (PID %Iu) was rejected\n", PsGetCurrentProcessId());
+            dprintf("Client (PID %lu) was rejected\n", HandleToUlong(PsGetCurrentProcessId()));
         }
     }
 
@@ -175,7 +175,7 @@ NTSTATUS KphDispatchCreate(
         }
         else
         {
-            dprintf("Unable to allocate memory for client (PID %Iu)\n", PsGetCurrentProcessId());
+            dprintf("Unable to allocate memory for client (PID %lu)\n", HandleToUlong(PsGetCurrentProcessId()));
             status = STATUS_INSUFFICIENT_RESOURCES;
         }
     }

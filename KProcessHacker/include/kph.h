@@ -2,6 +2,7 @@
 #define KPH_H
 
 #include <ntifs.h>
+#include <ntintsafe.h>
 #define PHNT_MODE PHNT_MODE_KERNEL
 #include <phnt.h>
 #include <ntfill.h>
