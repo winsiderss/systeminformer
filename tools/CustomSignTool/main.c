@@ -213,8 +213,8 @@ static PVOID CstHashFile(
     hash = PhAllocate(hashSize);
     if (!NT_SUCCESS(status = BCryptFinishHash(hashHandle, hash, hashSize, 0)))
         CstFailWithStatus(L"Unable to complete the hash", status, 0);
-    PhFree(hashObject);
     BCryptDestroyHash(hashHandle);
+    PhFree(hashObject); // must be freed after destroying hash object
     BCryptCloseAlgorithmProvider(hashAlgHandle, 0);
 
     *HashSize = hashSize;
