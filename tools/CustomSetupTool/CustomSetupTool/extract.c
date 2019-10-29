@@ -150,21 +150,27 @@ BOOLEAN SetupExtractBuild(
 
         if (info.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
         {
-            if (PhStartsWithString2(fileName, L"x32\\", TRUE))
+            if (PhStartsWithString2(fileName, L"32bit\\", TRUE) ||
+                PhStartsWithString2(fileName, L"x32\\", TRUE))
                 continue;
 
+            if (PhFindStringInString(fileName, 0, L"64bit\\") != -1)
+                PhMoveReference(&fileName, PhSubstring(fileName, 6, (fileName->Length / sizeof(WCHAR)) - 6));
             if (PhFindStringInString(fileName, 0, L"x64\\") != -1)
-                PhMoveReference(&fileName, PhSubstring(fileName, 4, (fileName->Length / 2) - 4));
+                PhMoveReference(&fileName, PhSubstring(fileName, 4, (fileName->Length / sizeof(WCHAR)) - 4));
         }
         else
         {
-            if (PhStartsWithString2(fileName, L"x64\\", TRUE))
-                continue;
-            if (PhStartsWithString2(fileName, L"x86\\", TRUE))
+            if (PhStartsWithString2(fileName, L"x86\\", TRUE) ||
+                PhStartsWithString2(fileName, L"x64\\", TRUE) ||
+                PhStartsWithString2(fileName, L"32bit\\", TRUE) ||
+                PhStartsWithString2(fileName, L"64bit\\", TRUE))
                 continue;
 
+            if (PhFindStringInString(fileName, 0, L"32bit\\") != -1)
+                PhMoveReference(&fileName, PhSubstring(fileName, 6, (fileName->Length / 2) - 6));
             if (PhFindStringInString(fileName, 0, L"x32\\") != -1)
-                PhMoveReference(&fileName, PhSubstring(fileName, 4, (fileName->Length / 2) - 4));
+                PhMoveReference(&fileName, PhSubstring(fileName, 4, (fileName->Length / sizeof(WCHAR)) - 4));
         }
 
         if (!(buffer = mz_zip_reader_extract_to_heap(

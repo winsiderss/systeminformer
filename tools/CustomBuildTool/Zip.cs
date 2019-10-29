@@ -64,6 +64,7 @@ namespace CustomBuildTool
                 for (int i = 0; i < filesToAdd.Length; i++)
                 {
                     string file = filesToAdd[i];
+                    string name = entryNames[i];
 
                     if (
                        file.StartsWith("bin\\Debug", StringComparison.OrdinalIgnoreCase) || // Ignore junk files
@@ -77,7 +78,12 @@ namespace CustomBuildTool
                         continue;
                     }
 
-                    archive.CreateEntryFromFile(file, entryNames[i], CompressionLevel.Optimal);
+                    if (name.StartsWith("Release32\\", StringComparison.OrdinalIgnoreCase))
+                        name = name.Replace("Release32\\", "32bit\\", StringComparison.OrdinalIgnoreCase);
+                    if (name.StartsWith("Release64\\", StringComparison.OrdinalIgnoreCase))
+                        name = name.Replace("Release64\\", "64bit\\", StringComparison.OrdinalIgnoreCase);
+
+                    archive.CreateEntryFromFile(file, name, CompressionLevel.Optimal);
                 }
             }
 
