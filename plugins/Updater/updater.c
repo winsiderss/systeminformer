@@ -879,7 +879,7 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
             UpdateDialogHandle = context->DialogHandle = hwndDlg;
 
             // Center the update window on PH if it's visible else we center on the desktop.
-            PhCenterWindow(hwndDlg, (IsWindowVisible(PhMainWndHandle) && !IsMinimized(PhMainWndHandle)) ? PhMainWndHandle : NULL);
+            PhCenterWindow(hwndDlg, PhMainWndHandle);
 
             // Create the Taskdialog icons.
             TaskDialogCreateIcons(context);

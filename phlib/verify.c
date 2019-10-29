@@ -510,7 +510,7 @@ NTSTATUS PhVerifyFileEx(
 }
 
 VOID PhFreeVerifySignatures(
-    _In_ PCERT_CONTEXT *Signatures,
+    _In_opt_ PCERT_CONTEXT *Signatures,
     _In_ ULONG NumberOfSignatures
     )
 {

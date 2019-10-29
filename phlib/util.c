@@ -136,6 +136,9 @@ VOID PhCenterWindow(
         RECT rect, parentRect;
         PH_RECTANGLE rectangle, parentRectangle;
 
+        if (!IsWindowVisible(ParentWindowHandle) || IsMinimized(ParentWindowHandle))
+            return;
+
         GetWindowRect(WindowHandle, &rect);
         GetWindowRect(ParentWindowHandle, &parentRect);
         rectangle = PhRectToRectangle(rect);
