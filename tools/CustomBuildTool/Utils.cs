@@ -68,7 +68,7 @@ namespace CustomBuildTool
                 process.Start();
 
                 output = process.StandardOutput.ReadToEnd();
-                output = output.Replace("\n\n", "\r\n").Trim();
+                output = output.Replace("\n\n", "\r\n", StringComparison.OrdinalIgnoreCase).Trim();
 
                 process.WaitForExit();
             }
@@ -418,7 +418,7 @@ namespace CustomBuildTool
 
                 try
                 {
-                    var setupConfiguration = new SetupConfiguration() as ISetupConfiguration2;
+                    var setupConfiguration = new SetupConfigurationClass() as ISetupConfiguration2;
                     var instanceEnumerator = setupConfiguration.EnumAllInstances();
                     var instances = new ISetupInstance2[3];
 
@@ -584,13 +584,9 @@ namespace CustomBuildTool
             //    "Microsoft.VisualStudio.Component.Windows10SDK.18362",
             //    "Microsoft.VisualStudio.Component.VC.Tools.x86.x64",
             //    "Microsoft.VisualStudio.Component.VC.Redist.14.Latest",
-            //    "Microsoft.VisualStudio.Component.VC.Runtimes.x86.x64.Spectre",
             //    "Microsoft.VisualStudio.Component.VC.14.20.x86.x64",
             //    "Microsoft.VisualStudio.Component.VC.14.21.x86.x64",
             //    "Microsoft.VisualStudio.Component.VC.14.22.x86.x64",
-            //    "Microsoft.VisualStudio.Component.VC.14.20.x86.x64.Spectre",
-            //    "Microsoft.VisualStudio.Component.VC.14.21.x86.x64.Spectre",
-            //    "Microsoft.VisualStudio.Component.VC.14.22.x86.x64.Spectre",
             //};
 
             hasbuild = this.Packages.Find(p => p.Id.Equals("Microsoft.Component.MSBuild", StringComparison.OrdinalIgnoreCase)) != null;
@@ -742,7 +738,7 @@ namespace CustomBuildTool
     }
 
     [ComImport, CoClass(typeof(SetupConfigurationClass)), Guid("42843719-DB4C-46C2-8E7C-64F1816EFD5B")]
-    public interface SetupConfiguration : ISetupConfiguration2, ISetupConfiguration
+    public interface ISetupConfigurationClass : ISetupConfiguration2, ISetupConfiguration
     {
 
     }
