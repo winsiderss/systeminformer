@@ -83,3 +83,6 @@ PH_DEFINE_IMPORT(L"userenv.dll", GetAppContainerRegistryLocation);
 PH_DEFINE_IMPORT(L"userenv.dll", GetAppContainerFolderPath);
 
 PH_DEFINE_IMPORT(L"advapi32.dll", ConvertSecurityDescriptorToStringSecurityDescriptorW);
+
+PH_DEFINE_IMPORT(L"kernel32.dll", PssCaptureSnapshot);
+PH_DEFINE_IMPORT(L"kernel32.dll", PssFreeSnapshot);
