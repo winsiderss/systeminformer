@@ -400,6 +400,9 @@ VOID NTAPI LayoutPaddingCallback(
 {
     PPH_LAYOUT_PADDING_DATA layoutPadding = Parameter;
 
+    if (!layoutPadding)
+        return;
+
     if (RebarHandle && ToolStatusConfig.ToolBarEnabled)
     {
         RECT rebarRect;
@@ -858,7 +861,11 @@ LRESULT CALLBACK MainWndSubclassProc(
                     }
                     break;
                 case NM_CUSTOMDRAW:
-                    return CallWindowProc(MainWindowHookProc, hWnd, uMsg, wParam, lParam); // HACK
+                    {
+                        //if (EnableThemeSupport)
+                        return PhThemeWindowDrawRebar((LPNMCUSTOMDRAW)lParam);
+                    }
+                    break;
                 }
 
                 goto DefaultWndProc;
@@ -1005,7 +1012,11 @@ LRESULT CALLBACK MainWndSubclassProc(
                     }
                     break;
                 case NM_CUSTOMDRAW:
-                    return CallWindowProc(MainWindowHookProc, hWnd, uMsg, wParam, lParam); // HACK
+                    {
+                        //if (EnableThemeSupport)
+                        return PhThemeWindowDrawToolbar((LPNMTBCUSTOMDRAW)lParam);
+                    }
+                    break;
                 }
 
                 goto DefaultWndProc;

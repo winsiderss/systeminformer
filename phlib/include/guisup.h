@@ -975,6 +975,20 @@ PhInitializeWindowThemeStatusBar(
     _In_ HWND StatusBarHandle
     );
 
+PHLIBAPI
+LRESULT
+CALLBACK
+PhThemeWindowDrawRebar(
+    _In_ LPNMCUSTOMDRAW DrawInfo
+    );
+
+PHLIBAPI
+LRESULT
+CALLBACK
+PhThemeWindowDrawToolbar(
+    _In_ LPNMTBCUSTOMDRAW DrawInfo
+    );
+
 FORCEINLINE
 HFONT
 PhDuplicateFontWithNewHeight(

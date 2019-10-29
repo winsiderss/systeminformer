@@ -2535,10 +2535,7 @@ VOID PhMwpSelectionChangedTabControl(
             if (!page->WindowHandle && !page->CreateWindowCalled)
             {
                 if (page->Callback(page, MainTabPageCreateWindow, &page->WindowHandle, NULL))
-                {
                     page->CreateWindowCalled = TRUE;
-                    PhInitializeWindowTheme(PhMainWndHandle, PhEnableThemeSupport); // TODO: Remove PhMainWndHandle enumeration (dmex)
-                }
 
                 if (page->WindowHandle)
                     BringWindowToTop(page->WindowHandle);

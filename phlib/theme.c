@@ -2420,8 +2420,10 @@ LRESULT CALLBACK PhpThemeWindowStatusbarWndSubclassProc(
             INT blockCount = (INT)SendMessage(WindowHandle, (UINT)SB_GETPARTS, (WPARAM)ARRAYSIZE(blockCoord), (WPARAM)blockCoord);
 
             // InvalidateRect(WindowHandle, NULL, FALSE);
-            BeginPaint(WindowHandle, &ps);
             GetClientRect(WindowHandle, &clientRect);
+
+            if (!BeginPaint(WindowHandle, &ps))
+                break;
 
             SetBkMode(ps.hdc, TRANSPARENT);
             HDC hdc = CreateCompatibleDC(ps.hdc);
@@ -2429,8 +2431,6 @@ LRESULT CALLBACK PhpThemeWindowStatusbarWndSubclassProc(
 
             HBITMAP hbm = CreateCompatibleBitmap(ps.hdc, clientRect.right, clientRect.bottom);
             SelectBitmap(hdc, hbm);
-
-
 
             if (!PhpStatusBarFontHandle)
             {
@@ -2480,35 +2480,42 @@ LRESULT CALLBACK PhpThemeWindowStatusbarWndSubclassProc(
                     switch (PhpThemeColorMode)
                     {
                     case 0: // New colors
-                        SetTextColor(hdc, PhpThemeWindowTextColor);
-                        SetDCBrushColor(hdc, PhpThemeWindowBackgroundColor);
+                        SetTextColor(hdc, RGB(0xff, 0xff, 0xff));
+                        SetDCBrushColor(hdc, RGB(64, 64, 64));
                         FillRect(hdc, &blockRect, GetStockBrush(DC_BRUSH));
                         break;
                     case 1: // Old colors
                         SetTextColor(hdc, RGB(0xff, 0xff, 0xff));
                         SetDCBrushColor(hdc, RGB(128, 128, 128));
                         FillRect(hdc, &blockRect, GetStockBrush(DC_BRUSH));
-                        //FrameRect(hdc, &blockRect, GetSysColorBrush(COLOR_HIGHLIGHT));
                         break;
                     }
+
+                    //FrameRect(hdc, &blockRect, GetSysColorBrush(COLOR_HIGHLIGHT));
                 }
                 else
                 {
-                    switch (PhpThemeColorMode)
-                    {
-                    case 0: // New colors
-                        SetTextColor(hdc, RGB(0x0, 0x0, 0x0));
-                        SetDCBrushColor(hdc, GetSysColor(COLOR_3DFACE)); // RGB(0xff, 0xff, 0xff));
-                        FillRect(hdc, &blockRect, GetStockBrush(DC_BRUSH));
-                        //FrameRect(hdc, &blockRect, GetSysColorBrush(COLOR_HIGHLIGHT));
-                        break;
-                    case 1: // Old colors
-                        SetTextColor(hdc, RGB(0xff, 0xff, 0xff));
-                        SetDCBrushColor(hdc, RGB(64, 64, 64));
-                        FillRect(hdc, &blockRect, GetStockBrush(DC_BRUSH));
-                        //FrameRect(hdc, &blockRect, GetSysColorBrush(COLOR_HIGHLIGHT));
-                        break;
-                    }
+                    SetTextColor(hdc, PhpThemeWindowTextColor);
+                    SetDCBrushColor(hdc, PhpThemeWindowBackgroundColor);
+                    FillRect(hdc, &blockRect, GetStockBrush(DC_BRUSH));
+
+                    //switch (PhpThemeColorMode)
+                    //{
+                    //case 0: // New colors
+                    //    SetTextColor(hdc, PhpThemeWindowTextColor);
+                    //    SetDCBrushColor(hdc, PhpThemeWindowBackgroundColor);
+                    //    //SetTextColor(hdc, RGB(0x0, 0x0, 0x0));
+                    //    //SetDCBrushColor(hdc, GetSysColor(COLOR_3DFACE)); // RGB(0xff, 0xff, 0xff));
+                    //    FillRect(hdc, &blockRect, GetStockBrush(DC_BRUSH));
+                    //    break;
+                    //case 1: // Old colors
+                    //    SetTextColor(hdc, RGB(0xff, 0xff, 0xff));
+                    //    SetDCBrushColor(hdc, RGB(64, 64, 64));
+                    //    FillRect(hdc, &blockRect, GetStockBrush(DC_BRUSH));
+                    //    break;
+                    //}
+                    //
+                    //FrameRect(hdc, &blockRect, GetSysColorBrush(COLOR_HIGHLIGHT));
                 }
 
                 DrawText(
