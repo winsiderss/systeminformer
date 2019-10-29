@@ -209,8 +209,9 @@ BOOLEAN PhMwpNetworkTreeFilter(
 {
     PPH_NETWORK_NODE networkNode = (PPH_NETWORK_NODE)Node;
 
-    // Waiting connections don't have a ProcessId. (dmex)
     if (!networkNode->NetworkItem->ProcessId)
+        return FALSE;
+    if (networkNode->NetworkItem->State == MIB_TCP_STATE_CLOSE_WAIT)
         return FALSE;
 
     return TRUE;
