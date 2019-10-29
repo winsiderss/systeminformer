@@ -95,6 +95,18 @@ typedef BOOL (WINAPI* _ConvertSecurityDescriptorToStringSecurityDescriptorW)(
     _Out_opt_ PULONG StringSecurityDescriptorLen
     );
 
+typedef ULONG (WINAPI* _PssCaptureSnapshot)(
+    _In_ HANDLE ProcessHandle,
+    _In_ ULONG CaptureFlags,
+    _In_opt_ ULONG ThreadContextFlags,
+    _Out_ HANDLE* SnapshotHandle
+    );
+
+typedef ULONG (WINAPI* _PssFreeSnapshot)(
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE SnapshotHandle
+    );
+
 #define PH_DECLARE_IMPORT(Name) _##Name Name##_Import(VOID)
 
 PH_DECLARE_IMPORT(NtQueryInformationEnlistment);
@@ -115,5 +127,8 @@ PH_DECLARE_IMPORT(GetAppContainerRegistryLocation);
 PH_DECLARE_IMPORT(GetAppContainerFolderPath);
 
 PH_DECLARE_IMPORT(ConvertSecurityDescriptorToStringSecurityDescriptorW);
+
+PH_DECLARE_IMPORT(PssCaptureSnapshot);
+PH_DECLARE_IMPORT(PssFreeSnapshot);
 
 #endif

@@ -3,6 +3,7 @@
  *   server API
  *
  * Copyright (C) 2011-2015 wj32
+ * Copyright (C) 2019 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -22,16 +23,17 @@
 
 #include <phapp.h>
 #include <phsvc.h>
-
-#include <accctrl.h>
-
+#include <apiimport.h>
+#include <extmgri.h>
 #include <lsasup.h>
+#include <phplug.h>
 #include <secedit.h>
 #include <svcsup.h>
-#include <symprv.h>
 
-#include <extmgri.h>
-#include <phplug.h>
+#include <accctrl.h>
+#include <dbghelp.h>
+#include <processsnapshot.h>
+#include <symprv.h>
 
 typedef struct _PHSVCP_CAPTURED_RUNAS_SERVICE_PARAMETERS
 {
@@ -1392,21 +1394,73 @@ NTSTATUS PhSvcApiSetServiceSecurity(
     return status;
 }
 
+static BOOL CALLBACK PhpProcessMiniDumpCallback(
+    _In_ PVOID CallbackParam,
+    _In_ const PMINIDUMP_CALLBACK_INPUT CallbackInput,
+    _Inout_ PMINIDUMP_CALLBACK_OUTPUT CallbackOutput
+    )
+{
+    switch (CallbackInput->CallbackType)
+    {
+    case IsProcessSnapshotCallback:
+        {
+            if (CallbackParam)
+                CallbackOutput->Status = S_FALSE;
+        }
+        break;
+    case ReadMemoryFailureCallback:
+        CallbackOutput->Status = S_OK;    
+        break;
+    }
+
+    return TRUE;
+}
+
 NTSTATUS PhSvcApiWriteMiniDumpProcess(
     _In_ PPHSVC_CLIENT Client,
     _Inout_ PPHSVC_API_PAYLOAD Payload
     )
 {
+    MINIDUMP_CALLBACK_INFORMATION callbackInfo = { 0 };
+    HANDLE processHandle = NULL;
+    HPSS snapshotHandle = NULL;
+
+    if (PssCaptureSnapshot_Import())
+    {
+        PssCaptureSnapshot_Import()(
+            UlongToHandle(Payload->u.WriteMiniDumpProcess.i.LocalProcessHandle),
+            PSS_CAPTURE_VA_CLONE | PSS_CAPTURE_VA_SPACE | PSS_CAPTURE_VA_SPACE_SECTION_INFORMATION |
+            PSS_CAPTURE_HANDLE_TRACE | PSS_CAPTURE_HANDLES | PSS_CAPTURE_HANDLE_BASIC_INFORMATION |
+            PSS_CAPTURE_HANDLE_TYPE_SPECIFIC_INFORMATION | PSS_CAPTURE_HANDLE_NAME_INFORMATION |
+            PSS_CAPTURE_THREADS | PSS_CAPTURE_THREAD_CONTEXT | PSS_CREATE_USE_VM_ALLOCATIONS,
+            CONTEXT_ALL,
+            &snapshotHandle
+            );
+    }
+
+    callbackInfo.CallbackRoutine = PhpProcessMiniDumpCallback;
+    callbackInfo.CallbackParam = snapshotHandle;
+
+    if (snapshotHandle)
+        processHandle = snapshotHandle;
+    else
+        processHandle = UlongToHandle(Payload->u.WriteMiniDumpProcess.i.LocalProcessHandle);
+
     if (PhWriteMiniDumpProcess(
-        UlongToHandle(Payload->u.WriteMiniDumpProcess.i.LocalProcessHandle),
+        processHandle,
         UlongToHandle(Payload->u.WriteMiniDumpProcess.i.ProcessId),
         UlongToHandle(Payload->u.WriteMiniDumpProcess.i.LocalFileHandle),
         Payload->u.WriteMiniDumpProcess.i.DumpType,
         NULL,
         NULL,
-        NULL
+        &callbackInfo
         ))
     {
+        if (PssFreeSnapshot_Import() && snapshotHandle)
+        {
+            PssFreeSnapshot_Import()(NtCurrentProcess(), snapshotHandle);
+        }
+
         return STATUS_SUCCESS;
     }
     else
@@ -1414,6 +1468,11 @@ NTSTATUS PhSvcApiWriteMiniDumpProcess(
         ULONG error;
 
         error = GetLastError();
+
+        if (PssFreeSnapshot_Import() && snapshotHandle)
+        {
+            PssFreeSnapshot_Import()(NtCurrentProcess(), snapshotHandle);
+        }
 
         if (error == HRESULT_FROM_WIN32(ERROR_INVALID_PARAMETER))
             return STATUS_INVALID_PARAMETER;
