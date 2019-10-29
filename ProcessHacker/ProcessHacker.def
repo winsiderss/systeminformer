@@ -539,6 +539,8 @@ EXPORTS
     PhReInitializeWindowTheme
     PhInitializeWindowThemeStatusBar
     PhGetGlobalTimerQueue
+    PhThemeWindowDrawRebar
+    PhThemeWindowDrawToolbar
 
 ; hndlinfo
     PhEnumObjectTypes
