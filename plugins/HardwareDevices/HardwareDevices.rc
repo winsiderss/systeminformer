@@ -18,45 +18,6 @@
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_AUS
 #pragma code_page(1252)
 
-/////////////////////////////////////////////////////////////////////////////
-//
-// Version
-//
-
-VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,5,0,0
- PRODUCTVERSION 1,5,0,0
- FILEFLAGSMASK 0x3fL
-#ifdef _DEBUG
- FILEFLAGS 0x1L
-#else
- FILEFLAGS 0x0L
-#endif
- FILEOS 0x40004L
- FILETYPE 0x2L
- FILESUBTYPE 0x0L
-BEGIN
-    BLOCK "StringFileInfo"
-    BEGIN
-        BLOCK "0c0904b0"
-        BEGIN
-            VALUE "CompanyName", "dmex"
-            VALUE "FileDescription", "Hardware Devices plugin for Process Hacker"
-            VALUE "FileVersion", "1.5"
-            VALUE "InternalName", "ProcessHacker.HardwareDevices"
-            VALUE "LegalCopyright", "Licensed under the GNU GPL, v3."
-            VALUE "OriginalFilename", "HardwareDevices.dll"
-            VALUE "ProductName", "Hardware Devices plugin for Process Hacker"
-            VALUE "ProductVersion", "1.5"
-        END
-    END
-    BLOCK "VarFileInfo"
-    BEGIN
-        VALUE "Translation", 0xc09, 1200
-    END
-END
-
-
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -255,7 +216,6 @@ BEGIN
     END
 END
 #endif    // APSTUDIO_INVOKED
-
 
 #endif    // English (Australia) resources
 /////////////////////////////////////////////////////////////////////////////
