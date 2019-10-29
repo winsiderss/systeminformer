@@ -28,7 +28,7 @@ using System.Collections.Generic;
 
 namespace CustomBuildTool
 {
-    public class HeaderFile
+    public class HeaderFile : IEquatable<HeaderFile>
     {
         public string Name;
         public List<string> Lines;
@@ -39,23 +39,25 @@ namespace CustomBuildTool
             return this.Name;
         }
 
+        public override int GetHashCode()
+        {
+            return this.Name.GetHashCode(StringComparison.OrdinalIgnoreCase);
+        }
+
         public override bool Equals(object obj)
         {
             if (obj == null)
                 return false;
 
-            HeaderFile file = obj as HeaderFile;
-
-            if (file == null)
+            if (!(obj is HeaderFile file))
                 return false;
 
             return this.Name.Equals(file.Name, StringComparison.OrdinalIgnoreCase);
-
         }
 
-        public override int GetHashCode()
+        public bool Equals(HeaderFile other)
         {
-            return this.Name.GetHashCode();
+            return this.Name.Equals(other.Name, StringComparison.OrdinalIgnoreCase);
         }
     }
 
@@ -204,7 +206,7 @@ namespace CustomBuildTool
             {
                 var partitions = h.Lines.Select(s =>
                 {
-                    var trimmed = s.Trim().ToLowerInvariant();
+                    var trimmed = s.Trim();
 
                     if (trimmed.StartsWith("#include <", StringComparison.OrdinalIgnoreCase) && trimmed.EndsWith(">", StringComparison.OrdinalIgnoreCase))
                     {
@@ -226,7 +228,19 @@ namespace CustomBuildTool
 
             // Generate the ordering.
 
-            var orderedHeaderFiles = OrderHeaderFiles(this.Files.Select(s => headerFiles[Path.GetFileName(s).ToLower()]).ToList());
+            var orderedHeaderFilesList = new List<HeaderFile>();
+
+            foreach (string file in this.Files)
+            {
+                string name = Path.GetFileName(file);
+
+                if (headerFiles.ContainsKey(name))
+                {
+                    orderedHeaderFilesList.Add(headerFiles[name]);
+                }
+            }
+
+            var orderedHeaderFiles = OrderHeaderFiles(orderedHeaderFilesList);
 
             // Process each header file and remove irrelevant content.
             foreach (HeaderFile h in orderedHeaderFiles)

@@ -584,7 +584,7 @@ namespace CustomBuildTool
 
                 if (!string.IsNullOrWhiteSpace(phappContent))
                 {
-                    phappContent = phappContent.Replace("#define ID", "#define PHAPP_ID");
+                    phappContent = phappContent.Replace("#define ID", "#define PHAPP_ID", StringComparison.OrdinalIgnoreCase);
 
                     File.WriteAllText("sdk\\include\\phappresource.h", phappContent);
                 }
@@ -656,7 +656,7 @@ namespace CustomBuildTool
 
             if (!File.Exists("build\\kph.key"))
             {
-                string kphKey = Environment.ExpandEnvironmentVariables("%KPH_BUILD_KEY%").Replace("%KPH_BUILD_KEY%", string.Empty);
+                string kphKey = Environment.ExpandEnvironmentVariables("%KPH_BUILD_KEY%").Replace("%KPH_BUILD_KEY%", string.Empty, StringComparison.OrdinalIgnoreCase);
 
                 if (!string.IsNullOrEmpty(kphKey))
                 {
@@ -1026,7 +1026,7 @@ namespace CustomBuildTool
 
             if (!File.Exists("build\\nightly.key"))
             {
-                string buildKey = Environment.ExpandEnvironmentVariables("%NIGHTLY_BUILD_KEY%").Replace("%NIGHTLY_BUILD_KEY%", string.Empty);
+                string buildKey = Environment.ExpandEnvironmentVariables("%NIGHTLY_BUILD_KEY%").Replace("%NIGHTLY_BUILD_KEY%", string.Empty, StringComparison.OrdinalIgnoreCase);
 
                 if (!string.IsNullOrEmpty(buildKey))
                 {
@@ -1171,9 +1171,9 @@ namespace CustomBuildTool
             if (!BuildNightly)
                 return true;
 
-            buildJobId = Environment.ExpandEnvironmentVariables("%APPVEYOR_JOB_ID%").Replace("%APPVEYOR_JOB_ID%", string.Empty);
-            buildPostUrl = Environment.ExpandEnvironmentVariables("%APPVEYOR_BUILD_API%").Replace("%APPVEYOR_BUILD_API%", string.Empty);
-            buildPostApiKey = Environment.ExpandEnvironmentVariables("%APPVEYOR_BUILD_KEY%").Replace("%APPVEYOR_BUILD_KEY%", string.Empty);
+            buildJobId = Environment.ExpandEnvironmentVariables("%APPVEYOR_JOB_ID%").Replace("%APPVEYOR_JOB_ID%", string.Empty, StringComparison.OrdinalIgnoreCase);
+            buildPostUrl = Environment.ExpandEnvironmentVariables("%APPVEYOR_BUILD_API%").Replace("%APPVEYOR_BUILD_API%", string.Empty, StringComparison.OrdinalIgnoreCase);
+            buildPostApiKey = Environment.ExpandEnvironmentVariables("%APPVEYOR_BUILD_KEY%").Replace("%APPVEYOR_BUILD_KEY%", string.Empty, StringComparison.OrdinalIgnoreCase);
 
             if (string.IsNullOrEmpty(buildJobId))
                 return false;
@@ -1266,9 +1266,9 @@ namespace CustomBuildTool
             if (!BuildNightly)
                 return true;
 
-            buildPostUrl = Environment.ExpandEnvironmentVariables("%APPVEYOR_NIGHTLY_URL%").Replace("%APPVEYOR_NIGHTLY_URL%", string.Empty);
-            buildPostKey = Environment.ExpandEnvironmentVariables("%APPVEYOR_NIGHTLY_KEY%").Replace("%APPVEYOR_NIGHTLY_KEY%", string.Empty);
-            buildPostName = Environment.ExpandEnvironmentVariables("%APPVEYOR_NIGHTLY_NAME%").Replace("%APPVEYOR_NIGHTLY_NAME%", string.Empty);
+            buildPostUrl = Environment.ExpandEnvironmentVariables("%APPVEYOR_NIGHTLY_URL%").Replace("%APPVEYOR_NIGHTLY_URL%", string.Empty, StringComparison.OrdinalIgnoreCase);
+            buildPostKey = Environment.ExpandEnvironmentVariables("%APPVEYOR_NIGHTLY_KEY%").Replace("%APPVEYOR_NIGHTLY_KEY%", string.Empty, StringComparison.OrdinalIgnoreCase);
+            buildPostName = Environment.ExpandEnvironmentVariables("%APPVEYOR_NIGHTLY_NAME%").Replace("%APPVEYOR_NIGHTLY_NAME%", string.Empty, StringComparison.OrdinalIgnoreCase);
 
             if (string.IsNullOrEmpty(buildPostUrl))
                 return false;
