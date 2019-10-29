@@ -977,7 +977,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
             context->PasswordEditWindowHandle = GetDlgItem(hwndDlg, IDC_PASSWORD);
             context->ProcessId = (HANDLE)lParam;
 
-            PhCenterWindow(hwndDlg, (IsWindowVisible(PhMainWndHandle) && !IsMinimized(PhMainWndHandle)) ? PhMainWndHandle : NULL);
+            PhCenterWindow(hwndDlg, PhMainWndHandle);
 
             {
                 COMBOBOXINFO info = { sizeof(COMBOBOXINFO) };

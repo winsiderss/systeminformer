@@ -208,7 +208,7 @@ INT_PTR CALLBACK EtpModuleServicesDlgProc(
             if ((win32Result = PhpQueryModuleServiceReferences(hwndDlg, context, &serviceList)) != STATUS_SUCCESS)
             {
                 PhShowStatus(
-                    (IsWindowVisible(context->ParentWindowHandle) && !IsMinimized(context->ParentWindowHandle)) ? context->ParentWindowHandle : NULL,
+                    context->ParentWindowHandle,
                     L"Unable to query module references.", 0, win32Result
                     );
                 DestroyWindow(hwndDlg);
