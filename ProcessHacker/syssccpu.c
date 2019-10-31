@@ -835,23 +835,21 @@ VOID PhSipGetCpuBrandString(
     _Out_writes_(49) PWSTR BrandString
     )
 {
-    // dmex: The __cpuid instruction generates quite a few FPs by security software (malware uses this as an anti-VM trick)...
-    // TODO: This comment block should be removed if the SystemProcessorBrandString class is more reliable.
-    //ULONG brandString[4 * 3];
-    //__cpuid(&brandString[0], 0x80000002);
-    //__cpuid(&brandString[4], 0x80000003);
-    //__cpuid(&brandString[8], 0x80000004);
+    ULONG brandString[4 * 3];
+    //CHAR brandString[49];
 
-    CHAR brandString[49];
+    __cpuid(&brandString[0], 0x80000002);
+    __cpuid(&brandString[4], 0x80000003);
+    __cpuid(&brandString[8], 0x80000004);
 
-    NtQuerySystemInformation(
-        SystemProcessorBrandString,
-        brandString,
-        sizeof(brandString),
-        NULL
-        );
+    //NtQuerySystemInformation(
+    //    SystemProcessorBrandString,
+    //    brandString,
+    //    sizeof(brandString),
+    //    NULL
+    //    );
 
-    PhZeroExtendToUtf16Buffer(brandString, 48, BrandString);
+    PhZeroExtendToUtf16Buffer((PSTR)brandString, 48, BrandString);
     BrandString[48] = UNICODE_NULL;
 }
 
