@@ -404,4 +404,12 @@ PhReferenceProcessItemForRecord(
     );
 // end_phapppub
 
+// begin_phapppub
+PHAPPAPI
+PVOID
+NTAPI
+PhGetProcessInformationCache(
+    VOID
+    );
+// end_phapppub
 #endif
