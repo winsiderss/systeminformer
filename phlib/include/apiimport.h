@@ -107,6 +107,15 @@ typedef ULONG (WINAPI* _PssFreeSnapshot)(
     _In_ HANDLE SnapshotHandle
     );
 
+typedef LONG (WINAPI* _DnsQuery)(
+    _In_ PWSTR Name,
+    _In_ USHORT Type,
+    _In_ ULONG Options,
+    _Inout_opt_ PVOID Extra,
+    _Outptr_result_maybenull_ PVOID* DnsRecordList,
+    _Outptr_opt_result_maybenull_ PVOID* Reserved
+    );
+
 typedef LONG (WINAPI* _DnsExtractRecordsFromMessage_W)(
     _In_ struct _DNS_MESSAGE_BUFFER* DnsBuffer,
     _In_ USHORT MessageLength,
@@ -120,6 +129,11 @@ typedef BOOL (WINAPI* _DnsWriteQuestionToBuffer_W)(
     _In_ USHORT Type,
     _In_ USHORT Xid,
     _In_ BOOL RecursionDesired
+    );
+
+typedef VOID (WINAPI* _DnsFree)(
+    _Pre_opt_valid_ _Frees_ptr_opt_ PVOID Data,
+    _In_ ULONG FreeType
     );
 
 #define PH_DECLARE_IMPORT(Name) _##Name Name##_Import(VOID)
@@ -145,7 +159,9 @@ PH_DECLARE_IMPORT(ConvertSecurityDescriptorToStringSecurityDescriptorW);
 PH_DECLARE_IMPORT(PssCaptureSnapshot);
 PH_DECLARE_IMPORT(PssFreeSnapshot);
 
+PH_DECLARE_IMPORT(DnsQuery);
 PH_DECLARE_IMPORT(DnsExtractRecordsFromMessage_W);
 PH_DECLARE_IMPORT(DnsWriteQuestionToBuffer_W);
+PH_DECLARE_IMPORT(DnsFree);
 
 #endif

@@ -29,6 +29,7 @@
 #include <svcsup.h>
 #include <workqueue.h>
 
+#include <apiimport.h>
 #include <extmgri.h>
 #include <procprv.h>
 
@@ -448,9 +449,9 @@ PPH_STRING PhGetHostNameFromAddressEx(
                 );
         }
 
-        if (!dnsRecordList)
+        if (!dnsRecordList && DnsQuery_Import())
         {
-            DnsQuery(
+            DnsQuery_Import()(
                 dnsReverseNameString->Buffer,
                 DNS_TYPE_PTR,
                 DNS_QUERY_NO_HOSTS_FILE, // DNS_QUERY_BYPASS_CACHE
@@ -462,14 +463,17 @@ PPH_STRING PhGetHostNameFromAddressEx(
     }
     else
     {
-        DnsQuery(
-            dnsReverseNameString->Buffer,
-            DNS_TYPE_PTR,
-            DNS_QUERY_NO_HOSTS_FILE, // DNS_QUERY_BYPASS_CACHE
-            NULL,
-            &dnsRecordList,
-            NULL
-            );
+        if (DnsQuery_Import())
+        {
+            DnsQuery_Import()(
+                dnsReverseNameString->Buffer,
+                DNS_TYPE_PTR,
+                DNS_QUERY_NO_HOSTS_FILE, // DNS_QUERY_BYPASS_CACHE
+                NULL,
+                &dnsRecordList,
+                NULL
+                );
+        }
     }
 
     if (dnsRecordList)
@@ -483,7 +487,8 @@ PPH_STRING PhGetHostNameFromAddressEx(
             }
         }
 
-        DnsFree(dnsRecordList, DnsFreeRecordList);
+        if (DnsFree_Import())
+            DnsFree_Import()(dnsRecordList, DnsFreeRecordList);
     }
 
     PhDereferenceObject(dnsReverseNameString);
