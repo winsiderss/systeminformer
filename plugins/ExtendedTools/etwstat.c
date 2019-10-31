@@ -426,19 +426,6 @@ VOID NTAPI EtEtwProcessesUpdatedCallback(
     runCount++;
 }
 
-static VOID NTAPI EtpInvalidateNetworkNode(
-    _In_ PVOID Parameter
-    )
-{
-    PPH_NETWORK_ITEM networkItem = Parameter;
-    PPH_NETWORK_NODE networkNode;
-
-    if (networkNode = PhFindNetworkNode(networkItem))
-        TreeNew_InvalidateNode(NetworkTreeNewHandle, &networkNode->Node);
-
-    PhDereferenceObject(networkItem);
-}
-
 VOID NTAPI EtEtwNetworkItemsUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -471,8 +458,9 @@ VOID NTAPI EtEtwNetworkItemsUpdatedCallback(
         if (memcmp(oldDeltas, block->Deltas, sizeof(block->Deltas)))
         {
             // Values have changed. Invalidate the network node.
-            PhReferenceObject(block->NetworkItem);
-            ProcessHacker_Invoke(PhMainWndHandle, EtpInvalidateNetworkNode, block->NetworkItem);
+            PhAcquireQueuedLockExclusive(&block->TextCacheLock);
+            memset(block->TextCacheValid, 0, sizeof(block->TextCacheValid));
+            PhReleaseQueuedLockExclusive(&block->TextCacheLock);
         }
 
         listEntry = listEntry->Flink;
