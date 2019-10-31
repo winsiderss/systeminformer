@@ -250,6 +250,8 @@ typedef struct _ET_PROCESS_BLOCK
     LIST_ENTRY ListEntry;
     PPH_PROCESS_ITEM ProcessItem;
 
+    BOOLEAN HaveFirstSample;
+
     ULONG64 DiskReadCount;
     ULONG64 DiskWriteCount;
     ULONG64 NetworkReceiveCount;
