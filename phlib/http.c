@@ -22,8 +22,8 @@
 
 #include <ph.h>
 #include <phnet.h>
-
 #include <winhttp.h>
+#include <apiimport.h>
 
 static const PH_FLAG_MAPPING PhpHttpRequestFlagMappings[] =
 {
@@ -856,10 +856,13 @@ static BOOLEAN PhpCreateDnsMessageBuffer(
     ULONG dnsBufferLength;
     PDNS_MESSAGE_BUFFER dnsBuffer;
 
+    if (!DnsWriteQuestionToBuffer_W_Import())
+        return FALSE;
+
     dnsBufferLength = PAGE_SIZE;
     dnsBuffer = PhAllocate(dnsBufferLength);
 
-    if (!(status = !!DnsWriteQuestionToBuffer_W(
+    if (!(status = !!DnsWriteQuestionToBuffer_W_Import()(
         dnsBuffer,
         &dnsBufferLength,
         Message,
@@ -871,7 +874,7 @@ static BOOLEAN PhpCreateDnsMessageBuffer(
         PhFree(dnsBuffer);
         dnsBuffer = PhAllocate(dnsBufferLength);
 
-        status = !!DnsWriteQuestionToBuffer_W(
+        status = !!DnsWriteQuestionToBuffer_W_Import()(
             dnsBuffer,
             &dnsBufferLength,
             Message,
@@ -914,6 +917,9 @@ static BOOLEAN PhpParseDnsMessageBuffer(
     PDNS_RECORD dnsRecordList = NULL;
     PDNS_HEADER dnsRecordHeader;
 
+    if (!DnsExtractRecordsFromMessage_W_Import())
+        return FALSE;
+
     if (DnsReplyBufferLength > USHRT_MAX)
         return FALSE;
 
@@ -928,7 +934,7 @@ static BOOLEAN PhpParseDnsMessageBuffer(
     if (dnsRecordHeader->Xid != Xid)
         return FALSE;
 
-    status = DnsExtractRecordsFromMessage_W(
+    status = DnsExtractRecordsFromMessage_W_Import()(
         DnsReplyBuffer,
         (USHORT)DnsReplyBufferLength,
         &dnsRecordList
