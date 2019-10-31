@@ -2965,3 +2965,9 @@ PPH_PROCESS_ITEM PhReferenceProcessItemForRecord(
     return processItem;
 }
 
+PVOID PhGetProcessInformationCache(
+    VOID
+    )
+{
+    return PhProcessInformation;
+}
