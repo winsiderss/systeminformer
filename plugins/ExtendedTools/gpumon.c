@@ -1010,6 +1010,19 @@ VOID NTAPI EtGpuProcessesUpdatedCallback(
 
             if (block->GpuNodeUsage > 1)
                 block->GpuNodeUsage = 1;
+
+            if (runCount != 0)
+            {
+                block->CurrentGpuUsage = block->GpuNodeUsage;
+                block->CurrentMemUsage = (ULONG)(block->GpuDedicatedUsage / PAGE_SIZE);
+                block->CurrentMemSharedUsage = (ULONG)(block->GpuSharedUsage / PAGE_SIZE);
+                block->CurrentCommitUsage = (ULONG)(block->GpuCommitUsage / PAGE_SIZE);
+
+                PhAddItemCircularBuffer_FLOAT(&block->GpuHistory, block->CurrentGpuUsage);
+                PhAddItemCircularBuffer_ULONG(&block->MemoryHistory, block->CurrentMemUsage);
+                PhAddItemCircularBuffer_ULONG(&block->MemorySharedHistory, block->CurrentMemSharedUsage);
+                PhAddItemCircularBuffer_ULONG(&block->GpuCommittedHistory, block->CurrentCommitUsage);
+            }
         }
 
         if (maxNodeValue < block->GpuNodeUsage)

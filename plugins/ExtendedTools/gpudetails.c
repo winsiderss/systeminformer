@@ -261,24 +261,41 @@ VOID EtpQueryAdapterPerfInfo(
         WCHAR formatBuffer[256];
 
         PhInitFormatI64U(&format[0], adapterPerfData.MemoryFrequency / 1000 / 1000);
-        PhInitFormatS(&format[1], L"MHz");
+        PhInitFormatS(&format[1], L" MHz");
 
-        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
-        {
+        if (PhFormatToBuffer(format, 2, formatBuffer, sizeof(formatBuffer), NULL))
             PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_MEMORYFREQUENCY, 1, formatBuffer);
-        }
         else
-        {
-            PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_MEMORYFREQUENCY, 1, PhaFormatString(
-                L"%lu MHz",
-                adapterPerfData.MemoryFrequency / 1000 / 1000
-                )->Buffer);
-        }
+            PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_MEMORYFREQUENCY, 1, PhaFormatString(L"%I64u MHz", adapterPerfData.MemoryFrequency / 1000 / 1000)->Buffer);
 
-        PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_MEMORYBANDWIDTH, 1, PhaFormatSize(adapterPerfData.MemoryBandwidth, ULONG_MAX)->Buffer);
-        PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_PCIEBANDWIDTH, 1, PhaFormatSize(adapterPerfData.PCIEBandwidth, ULONG_MAX)->Buffer);
-        PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_FANRPM, 1, PhaFormatUInt64(adapterPerfData.FanRPM, FALSE)->Buffer);
-        PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_POWERUSAGE, 1, PhaFormatString(L"%lu%%", adapterPerfData.Power * 100 / 1000)->Buffer);
+        PhInitFormatSize(&format[0], adapterPerfData.MemoryBandwidth);
+
+        if (PhFormatToBuffer(format, 1, formatBuffer, sizeof(formatBuffer), NULL))
+            PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_MEMORYBANDWIDTH, 1, formatBuffer);
+        else
+            PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_MEMORYBANDWIDTH, 1, PhaFormatSize(adapterPerfData.MemoryBandwidth, ULONG_MAX)->Buffer);
+
+        PhInitFormatSize(&format[0], adapterPerfData.PCIEBandwidth);
+
+        if (PhFormatToBuffer(format, 1, formatBuffer, sizeof(formatBuffer), NULL))
+            PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_PCIEBANDWIDTH, 1, formatBuffer);
+        else
+            PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_PCIEBANDWIDTH, 1, PhaFormatSize(adapterPerfData.PCIEBandwidth, ULONG_MAX)->Buffer);
+
+        PhInitFormatI64U(&format[0], adapterPerfData.FanRPM);
+
+        if (PhFormatToBuffer(format, 1, formatBuffer, sizeof(formatBuffer), NULL))
+            PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_FANRPM, 1, formatBuffer);
+        else
+            PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_FANRPM, 1, PhaFormatUInt64(adapterPerfData.FanRPM, FALSE)->Buffer);
+
+        PhInitFormatI64U(&format[0], adapterPerfData.Power * 100 / 1000);
+        PhInitFormatS(&format[1], L"%");
+
+        if (PhFormatToBuffer(format, 2, formatBuffer, sizeof(formatBuffer), NULL))
+            PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_POWERUSAGE, 1, formatBuffer);
+        else
+            PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_POWERUSAGE, 1, PhaFormatString(L"%lu%%", adapterPerfData.Power * 100 / 1000)->Buffer);
 
         if (PhGetIntegerSetting(SETTING_NAME_ENABLE_FAHRENHEIT))
         {

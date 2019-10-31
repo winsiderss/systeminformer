@@ -78,13 +78,16 @@ VOID NTAPI ShowOptionsCallback(
 {
     PPH_PLUGIN_OPTIONS_POINTERS optionsEntry = (PPH_PLUGIN_OPTIONS_POINTERS)Parameter;
 
-    optionsEntry->CreateSection(
-        L"ExtendedTools", 
-        PluginInstance->DllBase, 
-        MAKEINTRESOURCE(IDD_OPTIONS), 
-        OptionsDlgProc,
-        NULL
-        );
+    if (optionsEntry)
+    {
+        optionsEntry->CreateSection(
+            L"ExtendedTools",
+            PluginInstance->DllBase,
+            MAKEINTRESOURCE(IDD_OPTIONS),
+            OptionsDlgProc,
+            NULL
+            );
+    }
 }
 
 VOID NTAPI MenuItemCallback(
@@ -93,6 +96,9 @@ VOID NTAPI MenuItemCallback(
     )
 {
     PPH_PLUGIN_MENU_ITEM menuItem = Parameter;
+
+    if (!menuItem)
+        return;
 
     switch (menuItem->Id)
     {
@@ -129,6 +135,9 @@ VOID NTAPI TreeNewMessageCallback(
     )
 {
     PPH_PLUGIN_TREENEW_MESSAGE message = Parameter;
+
+    if (!message)
+        return;
 
     if (message->TreeNewHandle == ProcessTreeNewHandle)
         EtProcessTreeNewMessage(Parameter);
@@ -170,8 +179,11 @@ VOID NTAPI ProcessPropertiesInitializingCallback(
     _In_opt_ PVOID Context
     )
 {
-    EtProcessGpuPropertiesInitializing(Parameter);
-    EtProcessEtwPropertiesInitializing(Parameter);
+    if (Parameter)
+    {
+        EtProcessGpuPropertiesInitializing(Parameter);
+        EtProcessEtwPropertiesInitializing(Parameter);
+    }
 }
 
 VOID NTAPI HandlePropertiesInitializingCallback(
@@ -179,7 +191,8 @@ VOID NTAPI HandlePropertiesInitializingCallback(
     _In_opt_ PVOID Context
     )
 {
-    EtHandlePropertiesInitializing(Parameter);
+    if (Parameter)
+        EtHandlePropertiesInitializing(Parameter);
 }
 
 VOID NTAPI ProcessMenuInitializingCallback(
@@ -191,6 +204,9 @@ VOID NTAPI ProcessMenuInitializingCallback(
     PPH_PROCESS_ITEM processItem;
     ULONG flags;
     PPH_EMENU_ITEM miscMenu;
+
+    if (!menuInfo)
+        return;
 
     if (menuInfo->u.Process.NumberOfProcesses == 1)
         processItem = menuInfo->u.Process.Processes[0];
@@ -221,6 +237,9 @@ VOID NTAPI ThreadMenuInitializingCallback(
     ULONG insertIndex;
     PPH_EMENU_ITEM menuItem;
 
+    if (!menuInfo)
+        return;
+
     if (menuInfo->u.Thread.NumberOfThreads == 1)
         threadItem = menuInfo->u.Thread.Threads[0];
     else
@@ -250,6 +269,9 @@ VOID NTAPI ModuleMenuInitializingCallback(
     PPH_EMENU_ITEM menuItem;
 
     addMenuItem = FALSE;
+
+    if (!menuInfo)
+        return;
 
     if (processItem = PhReferenceProcessItem(menuInfo->u.Module.ProcessId))
     {
@@ -289,6 +311,9 @@ VOID NTAPI ProcessTreeNewInitializingCallback(
 {
     PPH_PLUGIN_TREENEW_INFORMATION treeNewInfo = Parameter;
 
+    if (!treeNewInfo)
+        return;
+
     ProcessTreeNewHandle = treeNewInfo->TreeNewHandle;
     EtProcessTreeNewInitializing(Parameter);
 }
@@ -299,6 +324,9 @@ VOID NTAPI NetworkTreeNewInitializingCallback(
     )
 {
     PPH_PLUGIN_TREENEW_INFORMATION treeNewInfo = Parameter;
+
+    if (!treeNewInfo)
+        return;
 
     NetworkTreeNewHandle = treeNewInfo->TreeNewHandle;
     EtNetworkTreeNewInitializing(Parameter);
@@ -533,9 +561,22 @@ VOID EtInitializeProcessBlock(
     _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
+    ULONG sampleCount;
+
     memset(Block, 0, sizeof(ET_PROCESS_BLOCK));
     Block->ProcessItem = ProcessItem;
     PhInitializeQueuedLock(&Block->TextCacheLock);
+
+    sampleCount = PhGetIntegerSetting(L"SampleCount");
+    PhInitializeCircularBuffer_ULONG64(&Block->DiskReadHistory, sampleCount);
+    PhInitializeCircularBuffer_ULONG64(&Block->DiskWriteHistory, sampleCount);
+    PhInitializeCircularBuffer_ULONG64(&Block->NetworkSendHistory, sampleCount);
+    PhInitializeCircularBuffer_ULONG64(&Block->NetworkReceiveHistory, sampleCount);
+
+    PhInitializeCircularBuffer_FLOAT(&Block->GpuHistory, sampleCount);
+    PhInitializeCircularBuffer_ULONG(&Block->MemoryHistory, sampleCount);
+    PhInitializeCircularBuffer_ULONG(&Block->MemorySharedHistory, sampleCount);
+    PhInitializeCircularBuffer_ULONG(&Block->GpuCommittedHistory, sampleCount);
 
     //Block->GpuTotalRunningTimeDelta = PhAllocate(sizeof(PH_UINT64_DELTA) * EtGpuTotalNodeCount);
     //memset(Block->GpuTotalRunningTimeDelta, 0, sizeof(PH_UINT64_DELTA) * EtGpuTotalNodeCount);
@@ -552,6 +593,16 @@ VOID EtDeleteProcessBlock(
     {
         PhClearReference(&Block->TextCache[i]);
     }
+
+    PhDeleteCircularBuffer_ULONG64(&Block->DiskReadHistory);
+    PhDeleteCircularBuffer_ULONG64(&Block->DiskWriteHistory);
+    PhDeleteCircularBuffer_ULONG64(&Block->NetworkSendHistory);
+    PhDeleteCircularBuffer_ULONG64(&Block->NetworkReceiveHistory);
+
+    PhDeleteCircularBuffer_ULONG(&Block->GpuCommittedHistory);
+    PhDeleteCircularBuffer_ULONG(&Block->MemorySharedHistory);
+    PhDeleteCircularBuffer_ULONG(&Block->MemoryHistory);
+    PhDeleteCircularBuffer_FLOAT(&Block->GpuHistory);
 
     RemoveEntryList(&Block->ListEntry);
 }
