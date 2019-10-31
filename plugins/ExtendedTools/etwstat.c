@@ -247,72 +247,56 @@ VOID NTAPI EtEtwProcessesUpdatedCallback(
         !PhGetOwnTokenAttributes().Elevated
         )
     {
-        EtUpdateProcessInformation();
+        PSYSTEM_PROCESS_INFORMATION process;
 
-        PhAcquireQueuedLockShared(&EtpProcessInformationLock);
+        if (!(process = PhGetProcessInformationCache()))
+            return;
 
-        if (EtpProcessInformation)
+        do
         {
-            PSYSTEM_PROCESS_INFORMATION process;
+            PPH_PROCESS_ITEM processItem;
 
-            process = PH_FIRST_PROCESS(EtpProcessInformation);
+            processItem = PhReferenceProcessItem(process->UniqueProcessId);
 
-            do
+            if (!processItem)
+                processItem = PhReferenceProcessItem(SYSTEM_PROCESS_ID);
+
+            if (processItem)
             {
                 PSYSTEM_PROCESS_INFORMATION_EXTENSION processExtension;
-                PPH_PROCESS_ITEM processItem;
                 PET_PROCESS_BLOCK block;
 
-                if (processItem = PhReferenceProcessItem(process->UniqueProcessId))
+                if (!(processExtension = PH_PROCESS_EXTENSION(process)))
+                    break;
+                if (!(block = EtGetProcessBlock(processItem)))
+                    break;
+
+                block->DiskReadRaw = processExtension->DiskCounters.BytesRead;
+                block->DiskWriteRaw = processExtension->DiskCounters.BytesWritten;
+
+                PhUpdateDelta(&block->DiskReadRawDelta, block->DiskReadRaw);
+                PhUpdateDelta(&block->DiskWriteRawDelta, block->DiskWriteRaw);
+
+                if (!block->HaveFirstSample)
                 {
-                    if (!(processExtension = PH_PROCESS_EXTENSION(process)))
-                        break;
-                    if (!(block = EtGetProcessBlock(processItem)))
-                        break;
-
-                    //block->DiskReadRaw += processExtension->DiskCounters.BytesRead - block->LastDiskReadValue;
-                    //block->DiskWriteRaw += processExtension->DiskCounters.BytesWritten - block->LastDiskWriteValue;
-                    block->DiskReadRaw = processExtension->DiskCounters.BytesRead;
-                    block->DiskWriteRaw = processExtension->DiskCounters.BytesWritten;
-                    //block->LastDiskReadValue = processExtension->DiskCounters.BytesRead;
-                    //block->LastDiskWriteValue = processExtension->DiskCounters.BytesWritten;
-                    //PhUpdateDelta(&block->DiskReadDelta, block->DiskReadCount);
-                    PhUpdateDelta(&block->DiskReadRawDelta, block->DiskReadRaw);
-                    //PhUpdateDelta(&block->DiskWriteDelta, block->DiskWriteCount);
-                    PhUpdateDelta(&block->DiskWriteRawDelta, block->DiskWriteRaw);
-                    //PhUpdateDelta(&block->NetworkReceiveDelta, block->NetworkReceiveCount);
-                    //PhUpdateDelta(&block->NetworkReceiveRawDelta, block->NetworkReceiveRaw);
-                    //PhUpdateDelta(&block->NetworkSendDelta, block->NetworkSendCount);
-                    //PhUpdateDelta(&block->NetworkSendRawDelta, block->NetworkSendRaw);
-
-                    if (runCount != 0)
-                    {
-                        block->CurrentDiskRead = block->DiskReadRawDelta.Delta;
-                        block->CurrentDiskWrite = block->DiskWriteRawDelta.Delta;
-                        //block->CurrentNetworkSend = block->NetworkSendRawDelta.Delta;
-                        //block->CurrentNetworkReceive = block->NetworkReceiveRawDelta.Delta;
-
-                        PhAddItemCircularBuffer_ULONG64(&block->DiskReadHistory, block->CurrentDiskRead);
-                        PhAddItemCircularBuffer_ULONG64(&block->DiskWriteHistory, block->CurrentDiskWrite);
-                        //PhAddItemCircularBuffer_ULONG64(&block->NetworkSendHistory, block->CurrentNetworkSend);
-                        //PhAddItemCircularBuffer_ULONG64(&block->NetworkReceiveHistory, block->CurrentNetworkReceive);
-                    }
-
-                    PhDereferenceObject(processItem);
+                    block->DiskReadRawDelta.Delta = 0;
+                    block->DiskWriteRawDelta.Delta = 0;
+                    block->HaveFirstSample = TRUE;
                 }
-            } while (process = PH_NEXT_PROCESS(process));
 
-            //PhUpdateDelta(&EtDiskReadDelta, EtpDiskReadRaw);
-            //PhUpdateDelta(&EtDiskWriteDelta, EtpDiskWriteRaw);
-            //PhUpdateDelta(&EtNetworkReceiveDelta, EtpNetworkReceiveRaw);
-            //PhUpdateDelta(&EtNetworkSendDelta, EtpNetworkSendRaw);
-            //PhUpdateDelta(&EtDiskReadCountDelta, EtDiskReadCount);
-            //PhUpdateDelta(&EtDiskWriteCountDelta, EtDiskWriteCount);
-            //PhUpdateDelta(&EtNetworkReceiveCountDelta, EtNetworkReceiveCount);
-            //PhUpdateDelta(&EtNetworkSendCountDelta, EtNetworkSendCount);
-        }
+                if (runCount != 0)
+                {
+                    block->CurrentDiskRead = block->DiskReadRawDelta.Delta;
+                    block->CurrentDiskWrite = block->DiskWriteRawDelta.Delta;
 
-        PhReleaseQueuedLockShared(&EtpProcessInformationLock);    
+                    PhAddItemCircularBuffer_ULONG64(&block->DiskReadHistory, block->CurrentDiskRead);
+                    PhAddItemCircularBuffer_ULONG64(&block->DiskWriteHistory, block->CurrentDiskWrite);
+                }
+
+                PhDereferenceObject(processItem);
+            }
+ 
+        } while (process = PH_NEXT_PROCESS(process));
     }
     else
     {       
