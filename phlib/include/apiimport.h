@@ -107,6 +107,21 @@ typedef ULONG (WINAPI* _PssFreeSnapshot)(
     _In_ HANDLE SnapshotHandle
     );
 
+typedef LONG (WINAPI* _DnsExtractRecordsFromMessage_W)(
+    _In_ struct _DNS_MESSAGE_BUFFER* DnsBuffer,
+    _In_ USHORT MessageLength,
+    _Out_ PVOID* DnsRecordList
+    );
+
+typedef BOOL (WINAPI* _DnsWriteQuestionToBuffer_W)(
+    _Inout_ struct _DNS_MESSAGE_BUFFER* DnsBuffer,
+    _Inout_ PULONG BufferSize,
+    _In_ PWSTR Name,
+    _In_ USHORT Type,
+    _In_ USHORT Xid,
+    _In_ BOOL RecursionDesired
+    );
+
 #define PH_DECLARE_IMPORT(Name) _##Name Name##_Import(VOID)
 
 PH_DECLARE_IMPORT(NtQueryInformationEnlistment);
@@ -125,10 +140,12 @@ PH_DECLARE_IMPORT(RtlDeriveCapabilitySidsFromName);
 
 PH_DECLARE_IMPORT(GetAppContainerRegistryLocation);
 PH_DECLARE_IMPORT(GetAppContainerFolderPath);
-
 PH_DECLARE_IMPORT(ConvertSecurityDescriptorToStringSecurityDescriptorW);
 
 PH_DECLARE_IMPORT(PssCaptureSnapshot);
 PH_DECLARE_IMPORT(PssFreeSnapshot);
+
+PH_DECLARE_IMPORT(DnsExtractRecordsFromMessage_W);
+PH_DECLARE_IMPORT(DnsWriteQuestionToBuffer_W);
 
 #endif

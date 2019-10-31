@@ -79,10 +79,10 @@ PH_DEFINE_IMPORT(L"ntdll.dll", RtlGetAppContainerSidType);
 PH_DEFINE_IMPORT(L"ntdll.dll", RtlGetAppContainerParent);
 PH_DEFINE_IMPORT(L"ntdll.dll", RtlDeriveCapabilitySidsFromName);
 
-PH_DEFINE_IMPORT(L"userenv.dll", GetAppContainerRegistryLocation);
-PH_DEFINE_IMPORT(L"userenv.dll", GetAppContainerFolderPath);
-
 PH_DEFINE_IMPORT(L"advapi32.dll", ConvertSecurityDescriptorToStringSecurityDescriptorW);
-
+PH_DEFINE_IMPORT(L"dnsapi.dll", DnsExtractRecordsFromMessage_W);
+PH_DEFINE_IMPORT(L"dnsapi.dll", DnsWriteQuestionToBuffer_W);
 PH_DEFINE_IMPORT(L"kernel32.dll", PssCaptureSnapshot);
 PH_DEFINE_IMPORT(L"kernel32.dll", PssFreeSnapshot);
+PH_DEFINE_IMPORT(L"userenv.dll", GetAppContainerRegistryLocation);
+PH_DEFINE_IMPORT(L"userenv.dll", GetAppContainerFolderPath);
