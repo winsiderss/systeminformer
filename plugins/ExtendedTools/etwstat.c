@@ -94,7 +94,6 @@ VOID EtEtwStatisticsInitialization(
 
     if (EtEtwEnabled)
     {
-
         PhRegisterCallback(
             PhGetGeneralCallback(GeneralCallbackNetworkProviderUpdatedEvent),
             EtEtwNetworkItemsUpdatedCallback,
@@ -239,6 +238,8 @@ VOID NTAPI EtEtwProcessesUpdatedCallback(
     _In_opt_ PVOID Context
     )
 {
+    static ULONG runCount = 0; // MUST keep in sync with runCount in process provider
+
     if (
         EtDiskExtEnabled &&
         WindowsVersion >= WINDOWS_10_RS3 &&
@@ -264,8 +265,10 @@ VOID NTAPI EtEtwProcessesUpdatedCallback(
 
                 if (processItem = PhReferenceProcessItem(process->UniqueProcessId))
                 {
-                    processExtension = PH_PROCESS_EXTENSION(process);
-                    block = EtGetProcessBlock(processItem);
+                    if (!(processExtension = PH_PROCESS_EXTENSION(process)))
+                        break;
+                    if (!(block = EtGetProcessBlock(processItem)))
+                        break;
 
                     //block->DiskReadRaw += processExtension->DiskCounters.BytesRead - block->LastDiskReadValue;
                     //block->DiskWriteRaw += processExtension->DiskCounters.BytesWritten - block->LastDiskWriteValue;
@@ -273,7 +276,6 @@ VOID NTAPI EtEtwProcessesUpdatedCallback(
                     block->DiskWriteRaw = processExtension->DiskCounters.BytesWritten;
                     //block->LastDiskReadValue = processExtension->DiskCounters.BytesRead;
                     //block->LastDiskWriteValue = processExtension->DiskCounters.BytesWritten;
-
                     //PhUpdateDelta(&block->DiskReadDelta, block->DiskReadCount);
                     PhUpdateDelta(&block->DiskReadRawDelta, block->DiskReadRaw);
                     //PhUpdateDelta(&block->DiskWriteDelta, block->DiskWriteCount);
@@ -283,6 +285,19 @@ VOID NTAPI EtEtwProcessesUpdatedCallback(
                     //PhUpdateDelta(&block->NetworkSendDelta, block->NetworkSendCount);
                     //PhUpdateDelta(&block->NetworkSendRawDelta, block->NetworkSendRaw);
 
+                    if (runCount != 0)
+                    {
+                        block->CurrentDiskRead = block->DiskReadRawDelta.Delta;
+                        block->CurrentDiskWrite = block->DiskWriteRawDelta.Delta;
+                        //block->CurrentNetworkSend = block->NetworkSendRawDelta.Delta;
+                        //block->CurrentNetworkReceive = block->NetworkReceiveRawDelta.Delta;
+
+                        PhAddItemCircularBuffer_ULONG64(&block->DiskReadHistory, block->CurrentDiskRead);
+                        PhAddItemCircularBuffer_ULONG64(&block->DiskWriteHistory, block->CurrentDiskWrite);
+                        //PhAddItemCircularBuffer_ULONG64(&block->NetworkSendHistory, block->CurrentNetworkSend);
+                        //PhAddItemCircularBuffer_ULONG64(&block->NetworkReceiveHistory, block->CurrentNetworkReceive);
+                    }
+
                     PhDereferenceObject(processItem);
                 }
             } while (process = PH_NEXT_PROCESS(process));
@@ -291,7 +306,6 @@ VOID NTAPI EtEtwProcessesUpdatedCallback(
             //PhUpdateDelta(&EtDiskWriteDelta, EtpDiskWriteRaw);
             //PhUpdateDelta(&EtNetworkReceiveDelta, EtpNetworkReceiveRaw);
             //PhUpdateDelta(&EtNetworkSendDelta, EtpNetworkSendRaw);
-
             //PhUpdateDelta(&EtDiskReadCountDelta, EtDiskReadCount);
             //PhUpdateDelta(&EtDiskWriteCountDelta, EtDiskWriteCount);
             //PhUpdateDelta(&EtNetworkReceiveCountDelta, EtNetworkReceiveCount);
@@ -301,8 +315,7 @@ VOID NTAPI EtEtwProcessesUpdatedCallback(
         PhReleaseQueuedLockShared(&EtpProcessInformationLock);    
     }
     else
-    {
-        static ULONG runCount = 0; // MUST keep in sync with runCount in process provider
+    {       
         ULONG64 maxDiskValue = 0;
         PET_PROCESS_BLOCK maxDiskBlock = NULL;
         ULONG64 maxNetworkValue = 0;
@@ -363,6 +376,19 @@ VOID NTAPI EtEtwProcessesUpdatedCallback(
                 maxNetworkBlock = block;
             }
 
+            if (runCount != 0)
+            {
+                block->CurrentDiskRead = block->DiskReadRawDelta.Delta;
+                block->CurrentDiskWrite = block->DiskWriteRawDelta.Delta;
+                block->CurrentNetworkSend = block->NetworkSendRawDelta.Delta;
+                block->CurrentNetworkReceive = block->NetworkReceiveRawDelta.Delta;
+
+                PhAddItemCircularBuffer_ULONG64(&block->DiskReadHistory, block->CurrentDiskRead);
+                PhAddItemCircularBuffer_ULONG64(&block->DiskWriteHistory, block->CurrentDiskWrite);
+                PhAddItemCircularBuffer_ULONG64(&block->NetworkSendHistory, block->CurrentNetworkSend);
+                PhAddItemCircularBuffer_ULONG64(&block->NetworkReceiveHistory, block->CurrentNetworkReceive);
+            }
+
             listEntry = listEntry->Flink;
         }
 
@@ -395,9 +421,9 @@ VOID NTAPI EtEtwProcessesUpdatedCallback(
                 PhAddItemCircularBuffer_ULONG(&EtMaxNetworkHistory, 0);
             }
         }
-
-        runCount++;
     }
+
+    runCount++;
 }
 
 static VOID NTAPI EtpInvalidateNetworkNode(

@@ -42,18 +42,8 @@ typedef struct _ET_DISKNET_CONTEXT
     HWND NetworkGraphHandle;
     HWND PanelHandle;
 
-    ULONG64 CurrentDiskRead;
-    ULONG64 CurrentDiskWrite;
-    ULONG64 CurrentNetworkSend;
-    ULONG64 CurrentNetworkReceive;
-
     PH_GRAPH_STATE DiskGraphState;
     PH_GRAPH_STATE NetworkGraphState;
-
-    PH_CIRCULAR_BUFFER_ULONG64 DiskReadHistory;
-    PH_CIRCULAR_BUFFER_ULONG64 DiskWriteHistory;
-    PH_CIRCULAR_BUFFER_ULONG64 NetworkSendHistory;
-    PH_CIRCULAR_BUFFER_ULONG64 NetworkReceiveHistory;
 } ET_DISKNET_CONTEXT, *PET_DISKNET_CONTEXT;
 
 INT_PTR CALLBACK EtwDiskNetworkPanelDialogProc(
@@ -238,23 +228,6 @@ VOID EtwDiskNetworkUpdatePanel(
     PhSetDialogItemText(Context->PanelHandle, IDC_ZSENDBYTESDELTA_V, PhaFormatSize(block->NetworkSendRawDelta.Delta, ULONG_MAX)->Buffer);
 }
 
-VOID EtwDiskNetworkUpdateInfo(
-    _In_ PET_DISKNET_CONTEXT Context
-    )
-{
-    PET_PROCESS_BLOCK block = Context->Block;
-
-    Context->CurrentDiskRead = block->DiskReadRawDelta.Delta;
-    Context->CurrentDiskWrite = block->DiskWriteRawDelta.Delta;
-    Context->CurrentNetworkSend = block->NetworkSendRawDelta.Delta;
-    Context->CurrentNetworkReceive = block->NetworkReceiveRawDelta.Delta;
-
-    PhAddItemCircularBuffer_ULONG64(&Context->DiskReadHistory, Context->CurrentDiskRead);
-    PhAddItemCircularBuffer_ULONG64(&Context->DiskWriteHistory, Context->CurrentDiskWrite);
-    PhAddItemCircularBuffer_ULONG64(&Context->NetworkSendHistory, Context->CurrentNetworkSend);
-    PhAddItemCircularBuffer_ULONG64(&Context->NetworkReceiveHistory, Context->CurrentNetworkReceive);
-}
-
 VOID NTAPI EtwDiskNetworkUpdateHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -262,10 +235,7 @@ VOID NTAPI EtwDiskNetworkUpdateHandler(
 {
     PET_DISKNET_CONTEXT context = Context;
 
-    if (!context->Enabled)
-        return;
-
-    if (context->WindowHandle)
+    if (context && context->WindowHandle && context->Enabled)
     {
         PostMessage(context->WindowHandle, ET_WM_UPDATE, 0, 0);
     }
@@ -296,8 +266,6 @@ INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
     {
     case WM_INITDIALOG:
         {
-            ULONG sampleCount;
-
             // We have already set the group boxes to have WS_EX_TRANSPARENT to fix
             // the drawing issue that arises when using WS_CLIPCHILDREN. However
             // in removing the flicker from the graphs the group boxes will now flicker.
@@ -317,15 +285,8 @@ INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
             PhInitializeGraphState(&context->DiskGraphState);
             PhInitializeGraphState(&context->NetworkGraphState);
 
-            sampleCount = PhGetIntegerSetting(L"SampleCount");
-            PhInitializeCircularBuffer_ULONG64(&context->DiskReadHistory, sampleCount);
-            PhInitializeCircularBuffer_ULONG64(&context->DiskWriteHistory, sampleCount);
-            PhInitializeCircularBuffer_ULONG64(&context->NetworkSendHistory, sampleCount);
-            PhInitializeCircularBuffer_ULONG64(&context->NetworkReceiveHistory, sampleCount);
-
             EtwDiskNetworkCreateGraphs(context);
             EtwDiskNetworkCreatePanel(context);
-            EtwDiskNetworkUpdateInfo(context);
             EtwDiskNetworkUpdatePanel(context);
 
             PhRegisterCallback(
@@ -344,11 +305,6 @@ INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
 
             PhDeleteGraphState(&context->DiskGraphState);
             PhDeleteGraphState(&context->NetworkGraphState);
-
-            PhDeleteCircularBuffer_ULONG64(&context->DiskReadHistory);
-            PhDeleteCircularBuffer_ULONG64(&context->DiskWriteHistory);
-            PhDeleteCircularBuffer_ULONG64(&context->NetworkSendHistory);
-            PhDeleteCircularBuffer_ULONG64(&context->NetworkReceiveHistory);
 
             if (context->DiskGraphHandle)
                 DestroyWindow(context->DiskGraphHandle);
@@ -392,8 +348,8 @@ INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
 
                             PhMoveReference(&context->DiskGraphState.Text, PhFormatString(
                                 L"R: %s, W: %s",
-                                PhaFormatSize(context->CurrentDiskRead, ULONG_MAX)->Buffer,
-                                PhaFormatSize(context->CurrentDiskWrite, ULONG_MAX)->Buffer
+                                PhaFormatSize(context->Block->CurrentDiskRead, ULONG_MAX)->Buffer,
+                                PhaFormatSize(context->Block->CurrentDiskWrite, ULONG_MAX)->Buffer
                                 ));
 
                             hdc = Graph_GetBufferedContext(context->DiskGraphHandle);
@@ -408,7 +364,7 @@ INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
 
                         drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y | PH_GRAPH_USE_LINE_2;
                         PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorIoReadOther"), PhGetIntegerSetting(L"ColorIoWrite"));
-                        PhGraphStateGetDrawInfo(&context->DiskGraphState, getDrawInfo, context->DiskReadHistory.Count);
+                        PhGraphStateGetDrawInfo(&context->DiskGraphState, getDrawInfo, context->Block->DiskReadHistory.Count);
 
                         if (!context->DiskGraphState.Valid)
                         {
@@ -419,8 +375,8 @@ INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
                                 FLOAT data1;
                                 FLOAT data2;
 
-                                context->DiskGraphState.Data1[i] = data1 = (FLOAT)PhGetItemCircularBuffer_ULONG64(&context->DiskReadHistory, i);
-                                context->DiskGraphState.Data2[i] = data2 = (FLOAT)PhGetItemCircularBuffer_ULONG64(&context->DiskWriteHistory, i);
+                                context->DiskGraphState.Data1[i] = data1 = (FLOAT)PhGetItemCircularBuffer_ULONG64(&context->Block->DiskReadHistory, i);
+                                context->DiskGraphState.Data2[i] = data2 = (FLOAT)PhGetItemCircularBuffer_ULONG64(&context->Block->DiskWriteHistory, i);
 
                                 if (max < data1 + data2)
                                     max = data1 + data2;
@@ -460,8 +416,8 @@ INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
 
                             PhMoveReference(&context->NetworkGraphState.Text, PhFormatString(
                                 L"R: %s, S: %s",
-                                PhaFormatSize(context->CurrentNetworkReceive, ULONG_MAX)->Buffer,
-                                PhaFormatSize(context->CurrentNetworkSend, ULONG_MAX)->Buffer
+                                PhaFormatSize(context->Block->CurrentNetworkReceive, ULONG_MAX)->Buffer,
+                                PhaFormatSize(context->Block->CurrentNetworkSend, ULONG_MAX)->Buffer
                                 ));
 
                             hdc = Graph_GetBufferedContext(context->NetworkGraphHandle);
@@ -476,7 +432,7 @@ INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
 
                         drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y | PH_GRAPH_USE_LINE_2;
                         PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorIoReadOther"), PhGetIntegerSetting(L"ColorIoWrite"));
-                        PhGraphStateGetDrawInfo(&context->NetworkGraphState, getDrawInfo, context->NetworkSendHistory.Count);
+                        PhGraphStateGetDrawInfo(&context->NetworkGraphState, getDrawInfo, context->Block->NetworkSendHistory.Count);
 
                         if (!context->NetworkGraphState.Valid)
                         {
@@ -487,8 +443,8 @@ INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
                                 FLOAT data1;
                                 FLOAT data2;
 
-                                context->NetworkGraphState.Data1[i] = data1 = (FLOAT)PhGetItemCircularBuffer_ULONG64(&context->NetworkReceiveHistory, i);
-                                context->NetworkGraphState.Data2[i] = data2 = (FLOAT)PhGetItemCircularBuffer_ULONG64(&context->NetworkSendHistory, i);
+                                context->NetworkGraphState.Data1[i] = data1 = (FLOAT)PhGetItemCircularBuffer_ULONG64(&context->Block->NetworkReceiveHistory, i);
+                                context->NetworkGraphState.Data2[i] = data2 = (FLOAT)PhGetItemCircularBuffer_ULONG64(&context->Block->NetworkSendHistory, i);
 
                                 if (max < data1 + data2)
                                     max = data1 + data2;
@@ -533,12 +489,12 @@ INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
                             if (context->DiskGraphState.TooltipIndex != getTooltipText->Index)
                             {
                                 ULONG64 diskRead = PhGetItemCircularBuffer_ULONG64(
-                                    &context->DiskReadHistory,
+                                    &context->Block->DiskReadHistory,
                                     getTooltipText->Index
                                     );
 
                                 ULONG64 diskWrite = PhGetItemCircularBuffer_ULONG64(
-                                    &context->DiskWriteHistory,
+                                    &context->Block->DiskWriteHistory,
                                     getTooltipText->Index
                                     );
 
@@ -557,12 +513,12 @@ INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
                             if (context->NetworkGraphState.TooltipIndex != getTooltipText->Index)
                             {
                                 ULONG64 networkSend = PhGetItemCircularBuffer_ULONG64(
-                                    &context->NetworkSendHistory,
+                                    &context->Block->NetworkSendHistory,
                                     getTooltipText->Index
                                     );
 
                                 ULONG64 networkReceive = PhGetItemCircularBuffer_ULONG64(
-                                    &context->NetworkReceiveHistory,
+                                    &context->Block->NetworkReceiveHistory,
                                     getTooltipText->Index
                                     );
 
@@ -586,7 +542,6 @@ INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
         {
             if (context->Enabled)
             {
-                EtwDiskNetworkUpdateInfo(context);
                 EtwDiskNetworkUpdateGraphs(context);
                 EtwDiskNetworkUpdatePanel(context);
             }
@@ -604,7 +559,7 @@ INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
 
 VOID EtProcessEtwPropertiesInitializing(
     _In_ PVOID Parameter
-)
+    )
 {
     PPH_PLUGIN_PROCESS_PROPCONTEXT propContext = Parameter;
 

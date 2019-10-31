@@ -262,6 +262,16 @@ typedef struct _ET_PROCESS_BLOCK
     ULONG64 NetworkReceiveRaw;
     ULONG64 NetworkSendRaw;
 
+    ULONG64 CurrentDiskRead;
+    ULONG64 CurrentDiskWrite;
+    ULONG64 CurrentNetworkSend;
+    ULONG64 CurrentNetworkReceive;
+
+    PH_CIRCULAR_BUFFER_ULONG64 DiskReadHistory;
+    PH_CIRCULAR_BUFFER_ULONG64 DiskWriteHistory;
+    PH_CIRCULAR_BUFFER_ULONG64 NetworkSendHistory;
+    PH_CIRCULAR_BUFFER_ULONG64 NetworkReceiveHistory;
+
     PH_UINT64_DELTA DiskReadDelta;
     PH_UINT64_DELTA DiskReadRawDelta;
     PH_UINT64_DELTA DiskWriteDelta;
@@ -274,6 +284,15 @@ typedef struct _ET_PROCESS_BLOCK
     PH_UINT64_DELTA GpuRunningTimeDelta;
     //PPH_UINT64_DELTA GpuTotalRunningTimeDelta;
     //PPH_CIRCULAR_BUFFER_FLOAT GpuTotalNodesHistory;
+
+    FLOAT CurrentGpuUsage;
+    ULONG CurrentMemUsage;
+    ULONG CurrentMemSharedUsage;
+    ULONG CurrentCommitUsage;
+    PH_CIRCULAR_BUFFER_FLOAT GpuHistory;
+    PH_CIRCULAR_BUFFER_ULONG MemoryHistory;
+    PH_CIRCULAR_BUFFER_ULONG MemorySharedHistory;
+    PH_CIRCULAR_BUFFER_ULONG GpuCommittedHistory;
 
     FLOAT GpuNodeUsage;
     ULONG64 GpuDedicatedUsage;

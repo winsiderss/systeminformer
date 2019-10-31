@@ -198,7 +198,7 @@ BOOLEAN EtpDiskPageCallback(
         {
             PPH_MAIN_TAB_PAGE_EXPORT_CONTENT exportContent = Parameter1;
 
-            if (!EtEtwEnabled)
+            if (!(EtEtwEnabled && exportContent))
                 return FALSE;
 
             EtWriteDiskList(exportContent->FileStream, exportContent->Mode);
@@ -524,6 +524,9 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
         {
             PPH_TREENEW_IS_LEAF isLeaf = Parameter1;
 
+            if (!isLeaf)
+                break;
+
             isLeaf->IsLeaf = TRUE;
         }
         return TRUE;
@@ -531,6 +534,9 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
         {
             PPH_TREENEW_GET_CELL_TEXT getCellText = Parameter1;
             PET_DISK_ITEM diskItem;
+
+            if (!getCellText)
+                break;
 
             node = (PET_DISK_NODE)getCellText->Node;
             diskItem = node->DiskItem;
@@ -595,6 +601,9 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
         {
             PPH_TREENEW_GET_NODE_ICON getNodeIcon = Parameter1;
 
+            if (!getNodeIcon)
+                break;
+
             node = (PET_DISK_NODE)getNodeIcon->Node;
 
             if (node->DiskItem->ProcessIconValid && node->DiskItem->ProcessIcon)
@@ -613,6 +622,9 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
         {
             PPH_TREENEW_GET_CELL_TOOLTIP getCellTooltip = Parameter1;
             PPH_PROCESS_NODE processNode;
+
+            if (!getCellTooltip)
+                break;
 
             node = (PET_DISK_NODE)getCellTooltip->Node;
 
@@ -671,6 +683,9 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
         {
             PPH_TREENEW_KEY_EVENT keyEvent = Parameter1;
 
+            if (!keyEvent)
+                break;
+
             switch (keyEvent->VirtualKey)
             {
             case 'C':
@@ -711,6 +726,9 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
     case TreeNewContextMenu:
         {
             PPH_TREENEW_CONTEXT_MENU contextMenuEvent = Parameter1;
+
+            if (!contextMenuEvent)
+                break;
 
             EtShowDiskContextMenu(WindowHandle, contextMenuEvent);
         }

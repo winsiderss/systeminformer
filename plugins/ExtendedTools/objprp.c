@@ -208,35 +208,58 @@ INT_PTR CALLBACK EtpTpWorkerFactoryPageDlgProc(
                 {
                     PPH_SYMBOL_PROVIDER symbolProvider;
                     PPH_STRING symbol = NULL;
+                    WCHAR value[PH_PTR_STR_LEN_1];
 
                     symbolProvider = PhCreateSymbolProvider(basicInfo.ProcessId);
                     PhLoadSymbolProviderOptions(symbolProvider);
 
                     if (symbolProvider->IsRealHandle)
                     {
-                        PhEnumGenericModules(basicInfo.ProcessId, symbolProvider->ProcessHandle,
-                            0, EnumGenericModulesCallback, symbolProvider);
+                        PhEnumGenericModules(
+                            basicInfo.ProcessId,
+                            symbolProvider->ProcessHandle,
+                            0,
+                            EnumGenericModulesCallback,
+                            symbolProvider
+                            );
 
-                        symbol = PhGetSymbolFromAddress(symbolProvider, (ULONG64)basicInfo.StartRoutine,
-                            NULL, NULL, NULL, NULL);
+                        symbol = PhGetSymbolFromAddress(
+                            symbolProvider,
+                            (ULONG64)basicInfo.StartRoutine,
+                            NULL,
+                            NULL,
+                            NULL,
+                            NULL
+                            );
                     }
 
                     PhDereferenceObject(symbolProvider);
 
                     if (symbol)
                     {
-                        PhSetDialogItemText(hwndDlg, IDC_WORKERTHREADSTART,
-                            PhaFormatString(L"Worker Thread Start: %s", symbol->Buffer)->Buffer);
+                        PhSetDialogItemText(
+                            hwndDlg,
+                            IDC_WORKERTHREADSTART,
+                            PhaFormatString(L"Worker Thread Start: %s", symbol->Buffer)->Buffer
+                            );
                         PhDereferenceObject(symbol);
                     }
                     else
                     {
-                        PhSetDialogItemText(hwndDlg, IDC_WORKERTHREADSTART,
-                            PhaFormatString(L"Worker Thread Start: 0x%Ix", basicInfo.StartRoutine)->Buffer);
+                        PhPrintPointer(value, basicInfo.StartRoutine);
+                        PhSetDialogItemText(
+                            hwndDlg,
+                            IDC_WORKERTHREADSTART,
+                            PhaFormatString(L"Worker Thread Start: %s", value)->Buffer
+                            );
                     }
 
-                    PhSetDialogItemText(hwndDlg, IDC_WORKERTHREADCONTEXT,
-                        PhaFormatString(L"Worker Thread Context: 0x%Ix", basicInfo.StartParameter)->Buffer);
+                    PhPrintPointer(value, basicInfo.StartParameter);
+                    PhSetDialogItemText(
+                        hwndDlg,
+                        IDC_WORKERTHREADCONTEXT,
+                        PhaFormatString(L"Worker Thread Context: %s", value)->Buffer
+                        );
                 }
 
                 NtClose(workerFactoryHandle);
