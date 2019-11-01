@@ -93,14 +93,16 @@ typedef struct _PH_THREAD_LIST_CONTEXT
     PPH_POINTER_LIST NodeStateList;
     PH_TN_FILTER_SUPPORT TreeFilterSupport;
 
+    BOOLEAN EnableStateHighlighting;
+    BOOLEAN UseCycleTime;
+    BOOLEAN HasServices;
+
     union
     {
         ULONG Flags;
         struct
         {
-            ULONG EnableStateHighlighting : 1;
-            ULONG UseCycleTime : 1;
-            ULONG HasServices : 1;
+            ULONG Reserved : 3;
 
             ULONG HideSuspended : 1;
             ULONG HideGuiThreads : 1;
