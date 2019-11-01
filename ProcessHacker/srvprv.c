@@ -84,6 +84,7 @@ typedef struct _PH_SERVICE_QUERY_DATA
 {
     SLIST_ENTRY ListEntry;
     ULONG Stage;
+    SC_HANDLE ServiceManagerHandle;
     PPH_SERVICE_ITEM ServiceItem;
 } PH_SERVICE_QUERY_DATA, *PPH_SERVICE_QUERY_DATA;
 
@@ -509,9 +510,14 @@ VOID PhpServiceQueryStage1(
     )
 {
     PPH_SERVICE_ITEM serviceItem = Data->Header.ServiceItem;
+    SC_HANDLE serviceManagerHandle = Data->Header.ServiceManagerHandle;
     SC_HANDLE serviceHandle;
 
-    if (serviceHandle = PhOpenService(serviceItem->Name->Buffer, SERVICE_QUERY_CONFIG))
+    if (serviceHandle = OpenService(
+        serviceManagerHandle,
+        serviceItem->Name->Buffer,
+        SERVICE_QUERY_CONFIG
+        ))
     {
         Data->FileName = PhGetServiceRelevantFileName(&serviceItem->Name->sr, serviceHandle);
         CloseServiceHandle(serviceHandle);
@@ -555,12 +561,7 @@ NTSTATUS PhpServiceQueryStage1Worker(
     _In_ PVOID Parameter
     )
 {
-    PPH_SERVICE_QUERY_S1_DATA data;
-    PPH_SERVICE_ITEM serviceItem = (PPH_SERVICE_ITEM)Parameter;
-
-    data = PhAllocateZero(sizeof(PH_SERVICE_QUERY_S1_DATA));
-    data->Header.Stage = 1;
-    data->Header.ServiceItem = serviceItem;
+    PPH_SERVICE_QUERY_S1_DATA data = Parameter;
 
     PhpServiceQueryStage1(data);
 
@@ -588,19 +589,20 @@ NTSTATUS PhpServiceQueryStage2Worker(
 }
 
 VOID PhpQueueServiceQueryStage1(
-    _In_ PPH_SERVICE_ITEM ServiceItem
+    _Inout_ PPH_SERVICE_QUERY_S1_DATA Data
     )
 {
+    PPH_SERVICE_ITEM serviceItem = Data->Header.ServiceItem;
     PH_WORK_QUEUE_ENVIRONMENT environment;
-
-    PhReferenceObject(ServiceItem);
 
     PhInitializeWorkQueueEnvironment(&environment);
     environment.BasePriority = THREAD_PRIORITY_BELOW_NORMAL;
     environment.IoPriority = IoPriorityLow;
     environment.PagePriority = MEMORY_PRIORITY_LOW;
 
-    PhQueueItemWorkQueueEx(PhGetGlobalWorkQueue(), PhpServiceQueryStage1Worker, ServiceItem, NULL, &environment);
+    PhReferenceObject(serviceItem);
+
+    PhQueueItemWorkQueueEx(PhGetGlobalWorkQueue(), PhpServiceQueryStage1Worker, Data, NULL, &environment);
 }
 
 VOID PhQueueServiceQueryStage2(
@@ -897,13 +899,21 @@ VOID PhServiceProviderUpdate(
 
                     memset(&data, 0, sizeof(PH_SERVICE_QUERY_S1_DATA));
                     data.Header.Stage = 1;
+                    data.Header.ServiceManagerHandle = scManagerHandle;
                     data.Header.ServiceItem = serviceItem;
                     PhpServiceQueryStage1(&data);
                     PhpFillServiceItemStage1(&data);
                 }
                 else
                 {
-                    PhpQueueServiceQueryStage1(serviceItem);
+                    PPH_SERVICE_QUERY_S1_DATA data;
+
+                    data = PhAllocateZero(sizeof(PH_SERVICE_QUERY_S1_DATA));
+                    data->Header.Stage = 1;
+                    data->Header.ServiceManagerHandle = scManagerHandle;
+                    data->Header.ServiceItem = serviceItem;
+
+                    PhpQueueServiceQueryStage1(data);
                 }
 
                 // Add the service item to the hashtable.
@@ -1162,13 +1172,15 @@ NTSTATUS PhpServiceNonPollThreadStart(
         return STATUS_UNSUCCESSFUL;
     }
 
+    if (!(scManagerHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CONNECT | SC_MANAGER_ENUMERATE_SERVICE)))
+    {
+        PhpNonPollActive = FALSE;
+        PhpNonPollGate = 1;
+        return STATUS_UNSUCCESSFUL;
+    }
+
     while (TRUE)
     {
-        scManagerHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CONNECT | SC_MANAGER_ENUMERATE_SERVICE);
-
-        if (!scManagerHandle)
-            goto ErrorExit;
-
         if (!(services = PhEnumServices(scManagerHandle, 0, 0, &numberOfServices)))
             goto ErrorExit;
 
@@ -1333,11 +1345,11 @@ NTSTATUS PhpServiceNonPollThreadStart(
             listEntry = listEntry->Flink;
             PhpDestroyServiceNotifyContext(notifyContext);
         }
-
-        CloseServiceHandle(scManagerHandle);
     }
 
     NtClose(PhpNonPollEventHandle);
+
+    CloseServiceHandle(scManagerHandle);
 
     return STATUS_SUCCESS;
 
