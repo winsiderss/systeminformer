@@ -285,8 +285,8 @@ PPH_STRING PhSipGetMaxCpuString(
     _In_ LONG Index
     );
 
-VOID PhSipGetCpuBrandString(
-    _Out_writes_(49) PWSTR BrandString
+PPH_STRING PhSipGetCpuBrandString(
+    VOID
     );
 
 BOOLEAN PhSipGetCpuFrequencyFromDistribution(

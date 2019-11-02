@@ -280,7 +280,7 @@ INT_PTR CALLBACK PhSipCpuDialogProc(
         {
             PPH_LAYOUT_ITEM graphItem;
             PPH_LAYOUT_ITEM panelItem;
-            WCHAR brandString[49];
+            PPH_STRING brandString;
 
             PhSipInitializeCpuDialog();
 
@@ -294,8 +294,9 @@ INT_PTR CALLBACK PhSipCpuDialogProc(
             SetWindowFont(GetDlgItem(hwndDlg, IDC_TITLE), CpuSection->Parameters->LargeFont, FALSE);
             SetWindowFont(GetDlgItem(hwndDlg, IDC_CPUNAME), CpuSection->Parameters->MediumFont, FALSE);
 
-            PhSipGetCpuBrandString(brandString);
-            PhSetDialogItemText(hwndDlg, IDC_CPUNAME, brandString);
+            brandString = PhSipGetCpuBrandString();
+            PhSetDialogItemText(hwndDlg, IDC_CPUNAME, PhGetStringOrEmpty(brandString));
+            PhClearReference(&brandString);
 
             CpuPanel = CreateDialog(PhInstanceHandle, MAKEINTRESOURCE(IDD_SYSINFO_CPUPANEL), hwndDlg, PhSipCpuPanelDialogProc);
             ShowWindow(CpuPanel, SW_SHOW);
@@ -831,26 +832,39 @@ PPH_STRING PhSipGetMaxCpuString(
     return maxUsageString;
 }
 
-VOID PhSipGetCpuBrandString(
-    _Out_writes_(49) PWSTR BrandString
+PPH_STRING PhSipGetCpuBrandString(
+    VOID
     )
 {
-    ULONG brandString[4 * 3];
-    //CHAR brandString[49];
+    PPH_STRING brand;
+    ULONG brandLength;
+    CHAR brandString[49];
 
-    __cpuid(&brandString[0], 0x80000002);
-    __cpuid(&brandString[4], 0x80000003);
-    __cpuid(&brandString[8], 0x80000004);
+    if (NT_SUCCESS(NtQuerySystemInformation(
+        SystemProcessorBrandString,
+        brandString,
+        sizeof(brandString),
+        NULL
+        )))
+    {
+        brandLength = sizeof(brandString) - sizeof(ANSI_NULL);
+        brand = PhZeroExtendToUtf16Ex(brandString, brandLength);
+    }
+    else
+    {
+        ULONG cpubrand[4 * 3];
 
-    //NtQuerySystemInformation(
-    //    SystemProcessorBrandString,
-    //    brandString,
-    //    sizeof(brandString),
-    //    NULL
-    //    );
+        __cpuid(&cpubrand[0], 0x80000002);
+        __cpuid(&cpubrand[4], 0x80000003);
+        __cpuid(&cpubrand[8], 0x80000004);
 
-    PhZeroExtendToUtf16Buffer((PSTR)brandString, 48, BrandString);
-    BrandString[48] = UNICODE_NULL;
+        brandLength = sizeof(brandString) - sizeof(ANSI_NULL);
+        brand = PhZeroExtendToUtf16Ex((PSTR)cpubrand, brandLength);
+    }
+
+    PhTrimToNullTerminatorString(brand);
+
+    return brand;
 }
 
 _Success_(return != FALSE)
