@@ -63,10 +63,7 @@ VOID NetAdaptersUpdate(
         PDV_NETADAPTER_ENTRY entry;
         ULONG64 networkInOctets = 0;
         ULONG64 networkOutOctets = 0;
-        ULONG64 networkRcvSpeed = 0;
-        ULONG64 networkXmitSpeed = 0;
         ULONG64 linkSpeedValue = 0;
-        NDIS_MEDIA_CONNECT_STATE mediaState = MediaConnectStateUnknown;
 
         entry = PhReferenceObjectSafe(NetworkAdaptersList->Items[i]);
 
@@ -108,19 +105,8 @@ VOID NetAdaptersUpdate(
         if (deviceHandle)
         {
             NDIS_STATISTICS_INFO interfaceStats;
-            NDIS_LINK_STATE interfaceState;
 
             memset(&interfaceStats, 0, sizeof(NDIS_STATISTICS_INFO));
-
-            if (NT_SUCCESS(NetworkAdapterQueryLinkState(deviceHandle, &interfaceState)))
-            {
-                mediaState = interfaceState.MediaConnectState;
-                linkSpeedValue = interfaceState.XmitLinkSpeed;
-            }
-            else
-            {
-                NetworkAdapterQueryLinkSpeed(deviceHandle, &linkSpeedValue);
-            }
 
             if (NT_SUCCESS(NetworkAdapterQueryStatistics(deviceHandle, &interfaceStats)))
             {
@@ -140,9 +126,6 @@ VOID NetAdaptersUpdate(
                 networkOutOctets = NetworkAdapterQueryValue(deviceHandle, OID_GEN_BYTES_XMIT);
             }
 
-            networkRcvSpeed = networkInOctets - entry->LastInboundValue;
-            networkXmitSpeed = networkOutOctets - entry->LastOutboundValue;
-
             // HACK: Pull the Adapter name from the current query.
             if (!entry->AdapterName)
                 entry->AdapterName = NetworkAdapterQueryName(deviceHandle, entry->AdapterId.InterfaceGuid);
@@ -159,9 +142,6 @@ VOID NetAdaptersUpdate(
             {
                 networkInOctets = interfaceRow.InOctets;
                 networkOutOctets = interfaceRow.OutOctets;
-                mediaState = interfaceRow.MediaConnectState;
-                networkRcvSpeed = networkInOctets - entry->LastInboundValue;
-                networkXmitSpeed = networkOutOctets - entry->LastOutboundValue;
 
                 // HACK: Pull the Adapter name from the current query.
                 if (!entry->AdapterName && PhCountStringZ(interfaceRow.Description) > 0)
@@ -177,41 +157,29 @@ VOID NetAdaptersUpdate(
             }
         }
 
-        if (mediaState == MediaConnectStateUnknown)
-        {
-            // We don't want incorrect data when the adapter is disabled.
-            entry->HaveFirstSample = FALSE;
-        }
+        if (entry->NetworkReceiveRaw < networkInOctets)
+            entry->NetworkReceiveRaw = networkInOctets;
+        if (entry->NetworkSendRaw < networkOutOctets)
+            entry->NetworkSendRaw = networkOutOctets;
 
-        if (networkRcvSpeed > linkSpeedValue)
-        {
-            entry->HaveFirstSample = FALSE;
-        }
-
-        if (networkXmitSpeed > linkSpeedValue)
-        {
-            entry->HaveFirstSample = FALSE;
-        }
+        PhUpdateDelta(&entry->NetworkSendDelta, entry->NetworkSendRaw);
+        PhUpdateDelta(&entry->NetworkReceiveDelta, entry->NetworkReceiveRaw);
 
         if (!entry->HaveFirstSample)
         {
-            // The first sample must be zero.
-            networkRcvSpeed = 0;
-            networkXmitSpeed = 0;
+            entry->NetworkSendDelta.Delta = 0;
+            entry->NetworkReceiveDelta.Delta = 0;
             entry->HaveFirstSample = TRUE;
         }
 
         if (runCount != 0)
         {
-            PhAddItemCircularBuffer_ULONG64(&entry->InboundBuffer, networkRcvSpeed);
-            PhAddItemCircularBuffer_ULONG64(&entry->OutboundBuffer, networkXmitSpeed);
-        }
+            entry->CurrentNetworkSend = entry->NetworkSendDelta.Delta;
+            entry->CurrentNetworkReceive = entry->NetworkReceiveDelta.Delta;
 
-        //context->LinkSpeed = networkLinkSpeed;
-        entry->InboundValue = networkRcvSpeed;
-        entry->OutboundValue = networkXmitSpeed;
-        entry->LastInboundValue = networkInOctets;
-        entry->LastOutboundValue = networkOutOctets;
+            PhAddItemCircularBuffer_ULONG64(&entry->OutboundBuffer, entry->CurrentNetworkSend);
+            PhAddItemCircularBuffer_ULONG64(&entry->InboundBuffer, entry->CurrentNetworkReceive);
+        }
 
         PhDereferenceObjectDeferDelete(entry);
     }

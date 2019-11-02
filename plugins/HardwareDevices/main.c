@@ -69,6 +69,9 @@ VOID NTAPI ShowOptionsCallback(
 {
     PPH_PLUGIN_OPTIONS_POINTERS optionsEntry = (PPH_PLUGIN_OPTIONS_POINTERS)Parameter;
 
+    if (!optionsEntry)
+        return;
+
     optionsEntry->CreateSection(
         L"Disk Drives",
         PluginInstance->DllBase,
@@ -109,6 +112,9 @@ VOID NTAPI SystemInformationInitializingCallback(
     )
 {
     PPH_PLUGIN_SYSINFO_POINTERS pluginEntry = (PPH_PLUGIN_SYSINFO_POINTERS)Parameter;
+
+    if (!pluginEntry)
+        return;
 
     // Disk Drives
 

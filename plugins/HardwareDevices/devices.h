@@ -101,11 +101,13 @@ typedef struct _DV_NETADAPTER_ENTRY
         };
     };
 
-    //ULONG64 LinkSpeed;
-    ULONG64 InboundValue;
-    ULONG64 OutboundValue;
-    ULONG64 LastInboundValue;
-    ULONG64 LastOutboundValue;
+    ULONG64 NetworkReceiveRaw;
+    ULONG64 NetworkSendRaw;
+    ULONG64 CurrentNetworkReceive;
+    ULONG64 CurrentNetworkSend;
+
+    PH_UINT64_DELTA NetworkReceiveDelta;
+    PH_UINT64_DELTA NetworkSendDelta;
 
     PH_CIRCULAR_BUFFER_ULONG64 InboundBuffer;
     PH_CIRCULAR_BUFFER_ULONG64 OutboundBuffer;
@@ -134,8 +136,13 @@ typedef struct _DV_NETADAPTER_SYSINFO_CONTEXT
         };
     };
 
-    ULONG64 LastInboundValue;
-    ULONG64 LastOutboundValue;
+    ULONG64 NetworkReceiveRaw;
+    ULONG64 NetworkSendRaw;
+    ULONG64 CurrentNetworkReceive;
+    ULONG64 CurrentNetworkSend;
+
+    PH_UINT64_DELTA NetworkReceiveDelta;
+    PH_UINT64_DELTA NetworkSendDelta;
 } DV_NETADAPTER_SYSINFO_CONTEXT, *PDV_NETADAPTER_SYSINFO_CONTEXT;
 
 typedef struct _DV_NETADAPTER_DETAILS_CONTEXT
