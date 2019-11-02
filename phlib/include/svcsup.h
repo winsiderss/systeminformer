@@ -33,6 +33,7 @@ NTAPI
 PhOpenServiceEx(
     _In_ PWSTR ServiceName,
     _In_ ACCESS_MASK DesiredAccess,
+    _In_ SC_HANDLE ScManagerHandle,
     _Out_ SC_HANDLE* ServiceHandle
     );
 
