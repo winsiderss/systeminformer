@@ -251,76 +251,85 @@ VOID NTAPI EtEtwProcessesUpdatedCallback(
         !PhGetOwnTokenAttributes().Elevated
         )
     {
-        PSYSTEM_PROCESS_INFORMATION process;
+        PVOID processesCache;
+        PLIST_ENTRY listEntry;
 
-        if (!(process = PhGetProcessInformationCache()))
+        if (!(processesCache = PhGetProcessInformationCache()))
             return;
 
-        do
+        // Note: no lock is needed because we only ever modify the list on this same thread.
+
+        listEntry = EtProcessBlockListHead.Flink;
+
+        while (listEntry != &EtProcessBlockListHead)
         {
-            PPH_PROCESS_ITEM processItem;
+            PET_PROCESS_BLOCK block;
+            PSYSTEM_PROCESS_INFORMATION processInfo;
+            PSYSTEM_PROCESS_INFORMATION_EXTENSION processExtension;
+            ULONG64 diskReadRaw = 0;
+            ULONG64 diskWriteRaw = 0;
+            ULONG64 networkReceiveRaw = 0;
 
-            processItem = PhReferenceProcessItem(process->UniqueProcessId);
+            block = CONTAINING_RECORD(listEntry, ET_PROCESS_BLOCK, ListEntry);
 
-            if (!processItem)
-                processItem = PhReferenceProcessItem(SYSTEM_PROCESS_ID);
-
-            if (processItem)
+            if (processInfo = PhFindProcessInformation(processesCache, block->ProcessItem->ProcessId))
             {
-                PSYSTEM_PROCESS_INFORMATION_EXTENSION processExtension;
-                PET_PROCESS_BLOCK block;
-
-                if (!(processExtension = PH_PROCESS_EXTENSION(process)))
-                    break;
-                if (!(block = EtGetProcessBlock(processItem)))
-                    break;
-
-                block->DiskReadRaw = processExtension->DiskCounters.BytesRead;
-                block->DiskWriteRaw = processExtension->DiskCounters.BytesWritten;
-                block->NetworkSendRaw = 0;
-                block->NetworkReceiveRaw = processExtension->EnergyValues.NetworkTxRxBytes;
-
-                PhUpdateDelta(&block->DiskReadRawDelta, block->DiskReadRaw);
-                PhUpdateDelta(&block->DiskWriteRawDelta, block->DiskWriteRaw);
-                PhUpdateDelta(&block->NetworkSendRawDelta, block->NetworkSendRaw);
-                PhUpdateDelta(&block->NetworkReceiveRawDelta, block->NetworkReceiveRaw);
-
-                if (!block->HaveFirstSample)
+                if (processExtension = PH_PROCESS_EXTENSION(processInfo))
                 {
-                    block->DiskReadRawDelta.Delta = 0;
-                    block->DiskWriteRawDelta.Delta = 0;
-                    block->HaveFirstSample = TRUE;
+                    diskReadRaw = processExtension->DiskCounters.BytesRead;
+                    diskWriteRaw = processExtension->DiskCounters.BytesWritten;
+                    networkReceiveRaw = processExtension->EnergyValues.NetworkTxRxBytes;
                 }
-
-                if (maxDiskValue < block->DiskReadRawDelta.Delta + block->DiskWriteRawDelta.Delta)
-                {
-                    maxDiskValue = block->DiskReadRawDelta.Delta + block->DiskWriteRawDelta.Delta;
-                    maxDiskBlock = block;
-                }
-
-                if (maxNetworkValue < block->NetworkReceiveRawDelta.Delta + block->NetworkSendRawDelta.Delta)
-                {
-                    maxNetworkValue = block->NetworkReceiveRawDelta.Delta + block->NetworkSendRawDelta.Delta;
-                    maxNetworkBlock = block;
-                }
-
-                if (runCount != 0)
-                {
-                    block->CurrentDiskRead = block->DiskReadRawDelta.Delta;
-                    block->CurrentDiskWrite = block->DiskWriteRawDelta.Delta;
-                    block->CurrentNetworkSend = block->NetworkSendRawDelta.Delta;
-                    block->CurrentNetworkReceive = block->NetworkReceiveRawDelta.Delta;
-
-                    PhAddItemCircularBuffer_ULONG64(&block->DiskReadHistory, block->CurrentDiskRead);
-                    PhAddItemCircularBuffer_ULONG64(&block->DiskWriteHistory, block->CurrentDiskWrite);
-                    PhAddItemCircularBuffer_ULONG64(&block->NetworkSendHistory, block->CurrentNetworkSend);
-                    PhAddItemCircularBuffer_ULONG64(&block->NetworkReceiveHistory, block->CurrentNetworkReceive);
-                }
-
-                PhDereferenceObject(processItem);
             }
 
-        } while (process = PH_NEXT_PROCESS(process));
+            if (block->DiskReadRaw < diskReadRaw)
+                block->DiskReadRaw = diskReadRaw;
+            if (block->DiskWriteRaw < diskWriteRaw)
+                block->DiskWriteRaw = diskWriteRaw;
+            if (block->NetworkReceiveRaw < networkReceiveRaw)
+                block->NetworkReceiveRaw = networkReceiveRaw;
+
+            PhUpdateDelta(&block->DiskReadRawDelta, block->DiskReadRaw);
+            PhUpdateDelta(&block->DiskWriteRawDelta, block->DiskWriteRaw);
+            PhUpdateDelta(&block->NetworkSendRawDelta, block->NetworkSendRaw);
+            PhUpdateDelta(&block->NetworkReceiveRawDelta, block->NetworkReceiveRaw);
+
+            if (!block->HaveFirstSample)
+            {
+                block->DiskReadRawDelta.Delta = 0;
+                block->DiskWriteRawDelta.Delta = 0;
+                block->NetworkSendRawDelta.Delta = 0;
+                block->NetworkReceiveRawDelta.Delta = 0;
+                block->HaveFirstSample = TRUE;
+            }
+
+            if (maxDiskValue < block->DiskReadRawDelta.Delta + block->DiskWriteRawDelta.Delta)
+            {
+                maxDiskValue = block->DiskReadRawDelta.Delta + block->DiskWriteRawDelta.Delta;
+                maxDiskBlock = block;
+            }
+
+            if (maxNetworkValue < block->NetworkReceiveRawDelta.Delta + block->NetworkSendRawDelta.Delta)
+            {
+                maxNetworkValue = block->NetworkReceiveRawDelta.Delta + block->NetworkSendRawDelta.Delta;
+                maxNetworkBlock = block;
+            }
+
+            if (runCount != 0)
+            {
+                block->CurrentDiskRead = block->DiskReadRawDelta.Delta;
+                block->CurrentDiskWrite = block->DiskWriteRawDelta.Delta;
+                block->CurrentNetworkSend = block->NetworkSendRawDelta.Delta;
+                block->CurrentNetworkReceive = block->NetworkReceiveRawDelta.Delta;
+
+                PhAddItemCircularBuffer_ULONG64(&block->DiskReadHistory, block->CurrentDiskRead);
+                PhAddItemCircularBuffer_ULONG64(&block->DiskWriteHistory, block->CurrentDiskWrite);
+                PhAddItemCircularBuffer_ULONG64(&block->NetworkSendHistory, block->CurrentNetworkSend);
+                PhAddItemCircularBuffer_ULONG64(&block->NetworkReceiveHistory, block->CurrentNetworkReceive);
+            }
+
+            listEntry = listEntry->Flink;
+        }
 
         if (maxDiskBlock)
         {
