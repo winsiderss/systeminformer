@@ -3,6 +3,7 @@
  *   service support functions
  *
  * Copyright (C) 2010-2012 wj32
+ * Copyright (C) 2019 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -21,9 +22,7 @@
  */
 
 #include <ph.h>
-
 #include <subprocesstag.h>
-
 #include <svcsup.h>
 
 #define SIP(String, Integer) { (String), (PVOID)(Integer) }
@@ -186,29 +185,46 @@ SC_HANDLE PhOpenService(
 NTSTATUS PhOpenServiceEx(
     _In_ PWSTR ServiceName,
     _In_ ACCESS_MASK DesiredAccess,
+    _In_ SC_HANDLE ScManagerHandle,
     _Out_ SC_HANDLE* ServiceHandle
     )
 {
-    NTSTATUS status;
-    SC_HANDLE scManagerHandle;
     SC_HANDLE serviceHandle;
 
-    scManagerHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CONNECT);
-
-    if (!scManagerHandle)
-        return PhGetLastWin32ErrorAsNtStatus();
-
-    serviceHandle = OpenService(scManagerHandle, ServiceName, DesiredAccess);
-
-    if (!serviceHandle)
+    if (ScManagerHandle)
     {
-        status = PhGetLastWin32ErrorAsNtStatus();
+        if (serviceHandle = OpenService(ScManagerHandle, ServiceName, DesiredAccess))
+        {
+            *ServiceHandle = serviceHandle;
+            return STATUS_SUCCESS;
+        }
+
+        return PhGetLastWin32ErrorAsNtStatus();
+    }
+    else
+    {
+        NTSTATUS status;
+        SC_HANDLE scManagerHandle;
+
+        if (!(scManagerHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CONNECT)))
+        {
+            return PhGetLastWin32ErrorAsNtStatus();
+        }
+
+        if (serviceHandle = OpenService(ScManagerHandle, ServiceName, DesiredAccess))
+        {
+            *ServiceHandle = serviceHandle;
+            status = STATUS_SUCCESS;
+        }
+        else
+        {
+            status = PhGetLastWin32ErrorAsNtStatus();
+        }
+        
         CloseServiceHandle(scManagerHandle);
+
         return status;
     }
-
-    *ServiceHandle = serviceHandle;
-    return STATUS_SUCCESS;
 }
 
 PVOID PhGetServiceConfig(
