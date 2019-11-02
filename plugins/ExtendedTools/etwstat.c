@@ -239,6 +239,10 @@ VOID NTAPI EtEtwProcessesUpdatedCallback(
     )
 {
     static ULONG runCount = 0; // MUST keep in sync with runCount in process provider
+    ULONG64 maxDiskValue = 0;
+    ULONG64 maxNetworkValue = 0;
+    PET_PROCESS_BLOCK maxDiskBlock = NULL;
+    PET_PROCESS_BLOCK maxNetworkBlock = NULL;
 
     if (
         EtDiskExtEnabled &&
@@ -273,9 +277,13 @@ VOID NTAPI EtEtwProcessesUpdatedCallback(
 
                 block->DiskReadRaw = processExtension->DiskCounters.BytesRead;
                 block->DiskWriteRaw = processExtension->DiskCounters.BytesWritten;
+                block->NetworkSendRaw = 0;
+                block->NetworkReceiveRaw = processExtension->EnergyValues.NetworkTxRxBytes;
 
                 PhUpdateDelta(&block->DiskReadRawDelta, block->DiskReadRaw);
                 PhUpdateDelta(&block->DiskWriteRawDelta, block->DiskWriteRaw);
+                PhUpdateDelta(&block->NetworkSendRawDelta, block->NetworkSendRaw);
+                PhUpdateDelta(&block->NetworkReceiveRawDelta, block->NetworkReceiveRaw);
 
                 if (!block->HaveFirstSample)
                 {
@@ -284,26 +292,58 @@ VOID NTAPI EtEtwProcessesUpdatedCallback(
                     block->HaveFirstSample = TRUE;
                 }
 
+                if (maxDiskValue < block->DiskReadRawDelta.Delta + block->DiskWriteRawDelta.Delta)
+                {
+                    maxDiskValue = block->DiskReadRawDelta.Delta + block->DiskWriteRawDelta.Delta;
+                    maxDiskBlock = block;
+                }
+
+                if (maxNetworkValue < block->NetworkReceiveRawDelta.Delta + block->NetworkSendRawDelta.Delta)
+                {
+                    maxNetworkValue = block->NetworkReceiveRawDelta.Delta + block->NetworkSendRawDelta.Delta;
+                    maxNetworkBlock = block;
+                }
+
                 if (runCount != 0)
                 {
                     block->CurrentDiskRead = block->DiskReadRawDelta.Delta;
                     block->CurrentDiskWrite = block->DiskWriteRawDelta.Delta;
+                    block->CurrentNetworkSend = block->NetworkSendRawDelta.Delta;
+                    block->CurrentNetworkReceive = block->NetworkReceiveRawDelta.Delta;
 
                     PhAddItemCircularBuffer_ULONG64(&block->DiskReadHistory, block->CurrentDiskRead);
                     PhAddItemCircularBuffer_ULONG64(&block->DiskWriteHistory, block->CurrentDiskWrite);
+                    PhAddItemCircularBuffer_ULONG64(&block->NetworkSendHistory, block->CurrentNetworkSend);
+                    PhAddItemCircularBuffer_ULONG64(&block->NetworkReceiveHistory, block->CurrentNetworkReceive);
                 }
 
                 PhDereferenceObject(processItem);
             }
- 
+
         } while (process = PH_NEXT_PROCESS(process));
+
+        if (maxDiskBlock)
+        {
+            PhAddItemCircularBuffer_ULONG(&EtMaxDiskHistory, HandleToUlong(maxDiskBlock->ProcessItem->ProcessId));
+            PhReferenceProcessRecordForStatistics(maxDiskBlock->ProcessItem->Record);
+        }
+        else
+        {
+            PhAddItemCircularBuffer_ULONG(&EtMaxDiskHistory, 0);
+        }
+
+        if (maxNetworkBlock)
+        {
+            PhAddItemCircularBuffer_ULONG(&EtMaxNetworkHistory, HandleToUlong(maxNetworkBlock->ProcessItem->ProcessId));
+            PhReferenceProcessRecordForStatistics(maxNetworkBlock->ProcessItem->Record);
+        }
+        else
+        {
+            PhAddItemCircularBuffer_ULONG(&EtMaxNetworkHistory, 0);
+        }
     }
     else
-    {       
-        ULONG64 maxDiskValue = 0;
-        PET_PROCESS_BLOCK maxDiskBlock = NULL;
-        ULONG64 maxNetworkValue = 0;
-        PET_PROCESS_BLOCK maxNetworkBlock = NULL;
+    {
         PLIST_ENTRY listEntry;
 
         // Since Windows 8, we no longer get the correct process/thread IDs in the
