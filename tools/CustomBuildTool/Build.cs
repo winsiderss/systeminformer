@@ -655,7 +655,7 @@ namespace CustomBuildTool
             if (!File.Exists(CustomSignToolPath))
                 return true;
 
-            if (!File.Exists("build\\kph.key"))
+            if (BuildNightly && !File.Exists("build\\kph.key"))
             {
                 string kphKey = Environment.ExpandEnvironmentVariables("%KPH_BUILD_KEY%").Replace("%KPH_BUILD_KEY%", string.Empty, StringComparison.OrdinalIgnoreCase);
 
