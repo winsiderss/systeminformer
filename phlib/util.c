@@ -2976,7 +2976,10 @@ NTSTATUS PhCreateProcessAsUser(
         WINSTATIONUSERTOKEN userToken;
         ULONG returnLength;
 
-        if (!WinStationQueryInformationW(
+        if (!WinStationQueryInformationW_Import())
+            return STATUS_PROCEDURE_NOT_FOUND;
+
+        if (!WinStationQueryInformationW_Import()(
             NULL,
             Information->SessionIdWithToken,
             WinStationUserToken,
@@ -3105,9 +3108,9 @@ NTSTATUS PhCreateProcessAsUser(
 
     if (!Information->Environment)
     {
-        if (CreateEnvironmentBlock)
+        if (CreateEnvironmentBlock_Import())
         {
-            CreateEnvironmentBlock(&defaultEnvironment, tokenHandle, FALSE);
+            CreateEnvironmentBlock_Import()(&defaultEnvironment, tokenHandle, FALSE);
 
             if (defaultEnvironment)
                 Flags |= PH_CREATE_PROCESS_UNICODE_ENVIRONMENT;
@@ -3127,11 +3130,8 @@ NTSTATUS PhCreateProcessAsUser(
         ThreadHandle
         );
 
-    if (defaultEnvironment)
-    {
-        if (DestroyEnvironmentBlock)
-            DestroyEnvironmentBlock(defaultEnvironment);
-    }
+    if (DestroyEnvironmentBlock_Import() && defaultEnvironment)
+        DestroyEnvironmentBlock_Import()(defaultEnvironment);
 
     NtClose(tokenHandle);
 

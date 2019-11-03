@@ -89,5 +89,9 @@ PH_DEFINE_IMPORT(L"dnsapi.dll", DnsFree);
 PH_DEFINE_IMPORT(L"kernel32.dll", PssCaptureSnapshot);
 PH_DEFINE_IMPORT(L"kernel32.dll", PssFreeSnapshot);
 
+PH_DEFINE_IMPORT(L"userenv.dll", CreateEnvironmentBlock);
+PH_DEFINE_IMPORT(L"userenv.dll", DestroyEnvironmentBlock);
 PH_DEFINE_IMPORT(L"userenv.dll", GetAppContainerRegistryLocation);
 PH_DEFINE_IMPORT(L"userenv.dll", GetAppContainerFolderPath);
+
+PH_DEFINE_IMPORT(L"winsta.dll", WinStationQueryInformationW);

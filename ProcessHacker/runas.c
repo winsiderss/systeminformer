@@ -70,6 +70,7 @@
 #include <emenu.h>
 #include <lsasup.h>
 
+#include <apiimport.h>
 #include <actions.h>
 #include <phsvc.h>
 #include <phsvccl.h>
@@ -1319,7 +1320,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                                             );
                                     }
 
-                                    if (CreateEnvironmentBlock && CreateEnvironmentBlock(&environment, tokenHandle, FALSE))
+                                    if (CreateEnvironmentBlock_Import() && CreateEnvironmentBlock_Import()(&environment, tokenHandle, FALSE))
                                     {
                                         flags |= PH_CREATE_PROCESS_UNICODE_ENVIRONMENT;
                                     }
@@ -1386,9 +1387,9 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
 
                             CleanupExit:
 
-                                if (environment && DestroyEnvironmentBlock)
+                                if (environment && DestroyEnvironmentBlock_Import())
                                 {
-                                    DestroyEnvironmentBlock(environment);
+                                    DestroyEnvironmentBlock_Import()(environment);
                                 }
 
                                 if (tokenSecurityDescriptor)
@@ -2318,7 +2319,7 @@ NTSTATUS PhpRunFileProgram(
                     );
             }
 
-            if (CreateEnvironmentBlock && CreateEnvironmentBlock(&environment, tokenHandle, FALSE))
+            if (CreateEnvironmentBlock_Import() && CreateEnvironmentBlock_Import()(&environment, tokenHandle, FALSE))
             {
                 flags |= PH_CREATE_PROCESS_UNICODE_ENVIRONMENT;
             }
@@ -2395,9 +2396,9 @@ NTSTATUS PhpRunFileProgram(
 
     CleanupExit:
 
-        if (environment && DestroyEnvironmentBlock)
+        if (environment && DestroyEnvironmentBlock_Import())
         {
-            DestroyEnvironmentBlock(environment);
+            DestroyEnvironmentBlock_Import()(environment);
         }
 
         if (tokenSecurityDescriptor)

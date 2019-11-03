@@ -498,14 +498,8 @@ CleanupExit:
 
     if (context->DialogHandle)
     {
-        if (success)
-        {
-            PostMessage(context->DialogHandle, PH_SHOWINSTALL, 0, 0);
-        }
-        else
-        {
-            PostMessage(context->DialogHandle, PH_SHOWERROR, 0, 0);
-        }
+        PostMessage(context->DialogHandle,
+            success ? PH_SHOWINSTALL : PH_SHOWERROR, 0, 0);
     }
 
     PhDereferenceObject(context);
@@ -579,7 +573,7 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
             UpdateDialogHandle = context->DialogHandle = hwndDlg;
 
             // Center the update window on PH if it's visible else we center on the desktop.
-            PhCenterWindow(hwndDlg, (IsWindowVisible(PhMainWndHandle) && !IsMinimized(PhMainWndHandle)) ? PhMainWndHandle : NULL);
+            PhCenterWindow(hwndDlg, PhMainWndHandle);
 
             // Create the Taskdialog icons
             TaskDialogCreateIcons(context);

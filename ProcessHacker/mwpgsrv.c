@@ -91,7 +91,10 @@ BOOLEAN PhMwpServicesPageCallback(
         break;
     case MainTabPageCreateWindow:
         {
-            *(HWND *)Parameter1 = PhMwpServiceTreeNewHandle;
+            if (Parameter1)
+            {
+                *(HWND*)Parameter1 = PhMwpServiceTreeNewHandle;
+            }
         }
         return TRUE;
     case MainTabPageSelected:
@@ -105,9 +108,15 @@ BOOLEAN PhMwpServicesPageCallback(
     case MainTabPageInitializeSectionMenuItems:
         {
             PPH_MAIN_TAB_PAGE_MENU_INFORMATION menuInfo = Parameter1;
-            PPH_EMENU menu = menuInfo->Menu;
-            ULONG startIndex = menuInfo->StartIndex;
+            PPH_EMENU menu;
+            ULONG startIndex;
             PPH_EMENU_ITEM menuItem;
+
+            if (!menuInfo)
+                break;
+
+            menu = menuInfo->Menu;
+            startIndex = menuInfo->StartIndex;
 
             PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_HIDEDRIVERSERVICES, L"&Hide driver services", NULL, NULL), startIndex);
 
@@ -131,7 +140,8 @@ BOOLEAN PhMwpServicesPageCallback(
         {
             PPH_MAIN_TAB_PAGE_EXPORT_CONTENT exportContent = Parameter1;
 
-            PhWriteServiceList(exportContent->FileStream, exportContent->Mode);
+            if (exportContent)
+                PhWriteServiceList(exportContent->FileStream, exportContent->Mode);
         }
         return TRUE;
     case MainTabPageFontChanged:
@@ -339,6 +349,9 @@ VOID NTAPI PhMwpServiceAddedHandler(
 {
     PPH_SERVICE_ITEM serviceItem = (PPH_SERVICE_ITEM)Parameter;
 
+    if (!serviceItem)
+        return;
+
     PhReferenceObject(serviceItem);
     PhPushProviderEventQueue(&PhMwpServiceEventQueue, ProviderAddedEvent, Parameter, PhGetRunIdProvider(&PhMwpServiceProviderRegistration));
 }
@@ -350,6 +363,9 @@ VOID NTAPI PhMwpServiceModifiedHandler(
 {
     PPH_SERVICE_MODIFIED_DATA serviceModifiedData = (PPH_SERVICE_MODIFIED_DATA)Parameter;
     PPH_SERVICE_MODIFIED_DATA copy;
+
+    if (!serviceModifiedData)
+        return;
 
     copy = PhAllocateCopy(serviceModifiedData, sizeof(PH_SERVICE_MODIFIED_DATA));
 

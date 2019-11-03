@@ -170,7 +170,7 @@ VOID NTAPI DotNetPerfProcessesUpdatedCallback(
 {
     PPERFPAGE_CONTEXT context = Context;
 
-    if (context->WindowHandle)
+    if (context && context->WindowHandle)
     {
         PostMessage(context->WindowHandle, MSG_UPDATE, 0, 0);
     }

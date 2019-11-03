@@ -136,6 +136,25 @@ typedef VOID (WINAPI* _DnsFree)(
     _In_ ULONG FreeType
     );
 
+typedef BOOL (WINAPI* _CreateEnvironmentBlock)(
+    _At_((PZZWSTR*)Environment, _Outptr_) PVOID* Environment,
+    _In_opt_ HANDLE TokenHandle,
+    _In_ BOOL Inherit
+    );
+
+typedef BOOL (WINAPI* _DestroyEnvironmentBlock)(
+    _In_ PVOID Environment
+    );
+
+typedef BOOLEAN (WINAPI* _WinStationQueryInformationW)(
+    _In_opt_ HANDLE ServerHandle,
+    _In_ ULONG SessionId,
+    _In_ ULONG WinStationInformationClass,
+    _Out_writes_bytes_(WinStationInformationLength) PVOID pWinStationInformation,
+    _In_ ULONG WinStationInformationLength,
+    _Out_ PULONG pReturnLength
+    );
+
 #define PH_DECLARE_IMPORT(Name) _##Name Name##_Import(VOID)
 
 PH_DECLARE_IMPORT(NtQueryInformationEnlistment);
@@ -152,16 +171,21 @@ PH_DECLARE_IMPORT(RtlGetAppContainerSidType);
 PH_DECLARE_IMPORT(RtlGetAppContainerParent);
 PH_DECLARE_IMPORT(RtlDeriveCapabilitySidsFromName);
 
-PH_DECLARE_IMPORT(GetAppContainerRegistryLocation);
-PH_DECLARE_IMPORT(GetAppContainerFolderPath);
 PH_DECLARE_IMPORT(ConvertSecurityDescriptorToStringSecurityDescriptorW);
-
-PH_DECLARE_IMPORT(PssCaptureSnapshot);
-PH_DECLARE_IMPORT(PssFreeSnapshot);
 
 PH_DECLARE_IMPORT(DnsQuery);
 PH_DECLARE_IMPORT(DnsExtractRecordsFromMessage_W);
 PH_DECLARE_IMPORT(DnsWriteQuestionToBuffer_W);
 PH_DECLARE_IMPORT(DnsFree);
+
+PH_DECLARE_IMPORT(PssCaptureSnapshot);
+PH_DECLARE_IMPORT(PssFreeSnapshot);
+
+PH_DECLARE_IMPORT(CreateEnvironmentBlock);
+PH_DECLARE_IMPORT(DestroyEnvironmentBlock);
+PH_DECLARE_IMPORT(GetAppContainerRegistryLocation);
+PH_DECLARE_IMPORT(GetAppContainerFolderPath);
+
+PH_DECLARE_IMPORT(WinStationQueryInformationW);
 
 #endif

@@ -102,6 +102,7 @@ VOID PvDoPropPageLayout(
     _In_ HWND hwnd
     );
 
+_Success_(return != FALSE)
 FORCEINLINE BOOLEAN PvPropPageDlgProcHeader(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,

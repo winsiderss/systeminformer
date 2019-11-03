@@ -383,6 +383,9 @@ BOOLEAN DiskDriveSectionCallback(
         {
             PPH_SYSINFO_CREATE_DIALOG createDialog = (PPH_SYSINFO_CREATE_DIALOG)Parameter1;
 
+            if (!createDialog)
+                break;
+
             createDialog->Instance = PluginInstance->DllBase;
             createDialog->Template = MAKEINTRESOURCE(IDD_DISKDRIVE_DIALOG);
             createDialog->DialogProc = DiskDriveDialogProc;
@@ -392,6 +395,9 @@ BOOLEAN DiskDriveSectionCallback(
     case SysInfoGraphGetDrawInfo:
         {
             PPH_GRAPH_DRAW_INFO drawInfo = (PPH_GRAPH_DRAW_INFO)Parameter1;
+
+            if (!drawInfo)
+                break;
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y | PH_GRAPH_USE_LINE_2;
             Section->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorIoReadOther"), PhGetIntegerSetting(L"ColorIoWrite"));
@@ -440,13 +446,18 @@ BOOLEAN DiskDriveSectionCallback(
     case SysInfoGraphGetTooltipText:
         {
             PPH_SYSINFO_GRAPH_GET_TOOLTIP_TEXT getTooltipText = (PPH_SYSINFO_GRAPH_GET_TOOLTIP_TEXT)Parameter1;
+            ULONG64 diskReadValue;
+            ULONG64 diskWriteValue;
 
-            ULONG64 diskReadValue = PhGetItemCircularBuffer_ULONG64(
+            if (!getTooltipText)
+                break;
+
+            diskReadValue = PhGetItemCircularBuffer_ULONG64(
                 &context->DiskEntry->ReadBuffer,
                 getTooltipText->Index
                 );
 
-            ULONG64 diskWriteValue = PhGetItemCircularBuffer_ULONG64(
+            diskWriteValue = PhGetItemCircularBuffer_ULONG64(
                 &context->DiskEntry->WriteBuffer,
                 getTooltipText->Index
                 );
@@ -458,12 +469,15 @@ BOOLEAN DiskDriveSectionCallback(
                 ((PPH_STRING)PH_AUTO(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
                 ));
 
-            getTooltipText->Text = Section->GraphState.TooltipText->sr;
+            getTooltipText->Text = PhGetStringRef(Section->GraphState.TooltipText);
         }
         return TRUE;
     case SysInfoGraphDrawPanel:
         {
             PPH_SYSINFO_DRAW_PANEL drawPanel = (PPH_SYSINFO_DRAW_PANEL)Parameter1;
+
+            if (!drawPanel)
+                break;
 
             PhSetReference(&drawPanel->Title, context->DiskEntry->DiskIndexName);
             drawPanel->SubTitle = PhFormatString(
