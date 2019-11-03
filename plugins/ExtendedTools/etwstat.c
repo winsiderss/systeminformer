@@ -268,17 +268,21 @@ VOID NTAPI EtEtwProcessesUpdatedCallback(
             PSYSTEM_PROCESS_INFORMATION_EXTENSION processExtension;
             ULONG64 diskReadRaw = 0;
             ULONG64 diskWriteRaw = 0;
+            ULONG64 networkSendRaw = 0;
             ULONG64 networkReceiveRaw = 0;
 
             block = CONTAINING_RECORD(listEntry, ET_PROCESS_BLOCK, ListEntry);
 
-            if (processInfo = PhFindProcessInformation(processesCache, block->ProcessItem->ProcessId))
+            if (PH_IS_REAL_PROCESS_ID(block->ProcessItem->ProcessId))
             {
-                if (processExtension = PH_PROCESS_EXTENSION(processInfo))
+                if (processInfo = PhFindProcessInformation(processesCache, block->ProcessItem->ProcessId))
                 {
-                    diskReadRaw = processExtension->DiskCounters.BytesRead;
-                    diskWriteRaw = processExtension->DiskCounters.BytesWritten;
-                    networkReceiveRaw = processExtension->EnergyValues.NetworkTxRxBytes;
+                    if (processExtension = PH_PROCESS_EXTENSION(processInfo))
+                    {
+                        diskReadRaw = processExtension->DiskCounters.BytesRead;
+                        diskWriteRaw = processExtension->DiskCounters.BytesWritten;
+                        networkReceiveRaw = processExtension->EnergyValues.NetworkTxRxBytes;
+                    }
                 }
             }
 
@@ -286,6 +290,8 @@ VOID NTAPI EtEtwProcessesUpdatedCallback(
                 block->DiskReadRaw = diskReadRaw;
             if (block->DiskWriteRaw < diskWriteRaw)
                 block->DiskWriteRaw = diskWriteRaw;
+            if (block->NetworkSendRaw < networkSendRaw)
+                block->NetworkSendRaw = networkSendRaw;
             if (block->NetworkReceiveRaw < networkReceiveRaw)
                 block->NetworkReceiveRaw = networkReceiveRaw;
 
