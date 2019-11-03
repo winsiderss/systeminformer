@@ -45,6 +45,7 @@
 // Math
 
 #define UInt32Add32To64(a, b)  ((unsigned __int64)((unsigned __int64)(a) + ((unsigned __int64)(b)))) // Avoids warning C26451 (dmex)
+#define UInt32Mul32To64(a, b)  ((unsigned __int64)((unsigned __int64)(a) * ((unsigned __int64)(b))))
 
 // Time
 
