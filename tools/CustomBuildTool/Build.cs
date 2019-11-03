@@ -184,13 +184,13 @@ namespace CustomBuildTool
             }
             catch (Exception ex)
             {
-                Program.PrintColorMessage("[Fatal] Unable to find project root directory: " + ex, ConsoleColor.Red);
+                Program.PrintColorMessage("Unable to find project root directory: " + ex, ConsoleColor.Red);
                 return false;
             }
 
             if (!File.Exists("ProcessHacker.sln"))
             {
-                Program.PrintColorMessage("[Fatal] Unable to find project solution.", ConsoleColor.Red);
+                Program.PrintColorMessage("Unable to find project solution.", ConsoleColor.Red);
                 return false;
             }
 
@@ -202,23 +202,24 @@ namespace CustomBuildTool
             
             if (!File.Exists(MSBuildExePath))
             {
-                Program.PrintColorMessage("[Fatal] Unable to find MsBuild.", ConsoleColor.Red);
+                Program.PrintColorMessage("Unable to find MsBuild.", ConsoleColor.Red);
                 return false;
             }
 
-            //var instance = VisualStudio.GetVisualStudioInstance();
-            //
-            //if (instance == null)
-            //{
-            //    Program.PrintColorMessage("[Fatal] Unable to find Visual Studio.", ConsoleColor.Red);
-            //    return false;
-            //}
-            //
-            //if (!instance.HasRequiredDependency())
-            //{
-            //    Program.PrintColorMessage("[Fatal] Visual Studio does not have required the packages.", ConsoleColor.Red);
-            //    return false;
-            //}
+            var instance = VisualStudio.GetVisualStudioInstance();
+
+            if (instance == null)
+            {
+                Program.PrintColorMessage("Unable to find Visual Studio.", ConsoleColor.Red);
+                return false;
+            }
+
+            if (!instance.HasRequiredDependency())
+            {
+                Program.PrintColorMessage("Visual Studio does not have required the packages: ", ConsoleColor.Red);
+                Program.PrintColorMessage(instance.MissingDependencyList(), ConsoleColor.Cyan);
+                return false;
+            }
 
             return true;
         }
@@ -1291,7 +1292,7 @@ namespace CustomBuildTool
                         FtpWebRequest request = (FtpWebRequest)WebRequest.Create(buildPostUrl + filename);
                         request.Credentials = new NetworkCredential(buildPostKey, buildPostName);
                         request.Method = WebRequestMethods.Ftp.UploadFile;
-                        request.Timeout = System.Threading.Timeout.Infinite;
+                        request.Timeout = 5000;
                         request.EnableSsl = true;
                         request.UsePassive = true;
                         request.UseBinary = true;
