@@ -589,11 +589,45 @@ namespace CustomBuildTool
             //    "Microsoft.VisualStudio.Component.VC.14.22.x86.x64",
             //};
 
-            hasbuild = this.Packages.Find(p => p.Id.Equals("Microsoft.Component.MSBuild", StringComparison.OrdinalIgnoreCase)) != null;
-            hasruntimes = this.Packages.Find(p => p.Id.StartsWith("Microsoft.VisualStudio.Component.VC.14", StringComparison.OrdinalIgnoreCase)) != null;
+            hasbuild = this.Packages.Find(p => p.Id.StartsWith("Microsoft.Component.MSBuild", StringComparison.OrdinalIgnoreCase)) != null;
+            hasruntimes = this.Packages.Find(p => p.Id.StartsWith("Microsoft.VisualStudio.Component.VC", StringComparison.OrdinalIgnoreCase)) != null;
             haswindowssdk = this.Packages.Find(p => p.Id.StartsWith("Microsoft.VisualStudio.Component.Windows10SDK", StringComparison.OrdinalIgnoreCase)) != null;
 
             return hasbuild && hasruntimes && haswindowssdk;
+        }
+
+        public string MissingDependencyList()
+        {
+            string list = string.Empty;
+            //string[] vctoolsPackageArray =
+            //{
+            //    "Microsoft.Component.MSBuild",
+            //    "Microsoft.VisualStudio.Component.Windows10SDK.17134",
+            //    "Microsoft.VisualStudio.Component.Windows10SDK.17763",
+            //    "Microsoft.VisualStudio.Component.Windows10SDK.18362",
+            //    "Microsoft.VisualStudio.Component.VC.Tools.x86.x64",
+            //    "Microsoft.VisualStudio.Component.VC.Redist.14.Latest",
+            //    "Microsoft.VisualStudio.Component.VC.14.20.x86.x64",
+            //    "Microsoft.VisualStudio.Component.VC.14.21.x86.x64",
+            //    "Microsoft.VisualStudio.Component.VC.14.22.x86.x64",
+            //};
+
+            if (this.Packages.Find(p => p.Id.StartsWith("Microsoft.Component.MSBuild", StringComparison.OrdinalIgnoreCase)) == null)
+            {
+                list += "MSBuild" + Environment.NewLine;
+            }
+
+            if (this.Packages.Find(p => p.Id.StartsWith("Microsoft.VisualStudio.Component.VC", StringComparison.OrdinalIgnoreCase)) == null)
+            {
+                list += "VC.14.Redist" + Environment.NewLine;
+            }
+
+            if (this.Packages.Find(p => p.Id.StartsWith("Microsoft.VisualStudio.Component.Windows10SDK", StringComparison.OrdinalIgnoreCase)) == null)
+            {
+                list += "Windows10SDK" + Environment.NewLine;
+            }
+
+            return list;
         }
 
         public override string ToString()
