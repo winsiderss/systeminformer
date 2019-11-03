@@ -289,6 +289,7 @@ PPH_STRING PhSipGetCpuBrandString(
     VOID
     );
 
+_Success_(return != FALSE)
 BOOLEAN PhSipGetCpuFrequencyFromDistribution(
     _Out_ DOUBLE *Fraction
     );

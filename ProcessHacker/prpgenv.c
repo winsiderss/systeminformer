@@ -26,6 +26,7 @@
 #include <emenu.h>
 #include <settings.h>
 
+#include <apiimport.h>
 #include <phsettings.h>
 #include <procprp.h>
 #include <procprpp.h>
@@ -182,17 +183,17 @@ VOID PhpRefreshEnvironmentList(
     userRootNode = PhpAddEnvironmentNode(Context, NULL, PROCESS_ENVIRONMENT_TREENODE_TYPE_GROUP, PhaCreateString(L"User"), NULL);
     systemRootNode = PhpAddEnvironmentNode(Context, NULL, PROCESS_ENVIRONMENT_TREENODE_TYPE_GROUP, PhaCreateString(L"System"), NULL);
 
-    if (DestroyEnvironmentBlock)
+    if (DestroyEnvironmentBlock_Import())
     {
         if (Context->SystemDefaultEnvironment)
         {
-            DestroyEnvironmentBlock(Context->SystemDefaultEnvironment);
+            DestroyEnvironmentBlock_Import()(Context->SystemDefaultEnvironment);
             Context->SystemDefaultEnvironment = NULL;
         }
 
         if (Context->UserDefaultEnvironment)
         {
-            DestroyEnvironmentBlock(Context->UserDefaultEnvironment);
+            DestroyEnvironmentBlock_Import()(Context->UserDefaultEnvironment);
             Context->UserDefaultEnvironment = NULL;
         }
     }
@@ -206,9 +207,9 @@ VOID PhpRefreshEnvironmentList(
         HANDLE tokenHandle;
         ULONG flags = 0;
 
-        if (CreateEnvironmentBlock)
+        if (CreateEnvironmentBlock_Import())
         {
-            CreateEnvironmentBlock(&Context->SystemDefaultEnvironment, NULL, FALSE);
+            CreateEnvironmentBlock_Import()(&Context->SystemDefaultEnvironment, NULL, FALSE);
 
             if (NT_SUCCESS(PhOpenProcessToken(
                 processHandle,
@@ -216,7 +217,7 @@ VOID PhpRefreshEnvironmentList(
                 &tokenHandle
                 )))
             {
-                CreateEnvironmentBlock(&Context->UserDefaultEnvironment, tokenHandle, FALSE);
+                CreateEnvironmentBlock_Import()(&Context->UserDefaultEnvironment, tokenHandle, FALSE);
                 NtClose(tokenHandle);
             }
         }
@@ -1338,12 +1339,12 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
             PhDeleteArray(&context->Items);
             PhClearReference(&context->StatusMessage);
 
-            if (DestroyEnvironmentBlock)
+            if (DestroyEnvironmentBlock_Import())
             {
                 if (context->SystemDefaultEnvironment)
-                    DestroyEnvironmentBlock(context->SystemDefaultEnvironment);
+                    DestroyEnvironmentBlock_Import()(context->SystemDefaultEnvironment);
                 if (context->UserDefaultEnvironment)
-                    DestroyEnvironmentBlock(context->UserDefaultEnvironment);
+                    DestroyEnvironmentBlock_Import()(context->UserDefaultEnvironment);
             }
 
             PhFree(context);

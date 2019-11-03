@@ -2507,6 +2507,7 @@ PhRemoveItemPointerList(
     _In_ HANDLE PointerHandle
     );
 
+_Success_(return != FALSE)
 FORCEINLINE
 BOOLEAN
 PhEnumPointerList(

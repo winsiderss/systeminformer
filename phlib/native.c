@@ -441,8 +441,8 @@ PPH_STRING PhGetSecurityDescriptorAsString(
     )
 {
     PPH_STRING securityDescriptorString = NULL;
-    ULONG stringSecurityDescriptorLength;
-    PWSTR stringSecurityDescriptor;
+    ULONG stringSecurityDescriptorLength = 0;
+    PWSTR stringSecurityDescriptor = NULL;
 
     if (!ConvertSecurityDescriptorToStringSecurityDescriptorW_Import())
         return NULL;
@@ -2299,6 +2299,8 @@ NTSTATUS PhGetTokenNamedObjectPath(
     if (!RtlGetTokenNamedObjectPath_Import())
         return STATUS_NOT_SUPPORTED;
 
+    RtlInitEmptyUnicodeString(&objectPathUs, NULL, 0);
+
     status = RtlGetTokenNamedObjectPath_Import()(
         TokenHandle,
         Sid,
@@ -2326,6 +2328,8 @@ NTSTATUS PhGetAppContainerNamedObjectPath(
 
     if (!RtlGetAppContainerNamedObjectPath_Import())
         return STATUS_UNSUCCESSFUL;
+
+    RtlInitEmptyUnicodeString(&objectPathUs, NULL, 0);
 
     status = RtlGetAppContainerNamedObjectPath_Import()(
         TokenHandle,
@@ -3327,7 +3331,7 @@ BOOLEAN NTAPI PhpOpenDriverByBaseAddressCallback(
 
     if (NT_SUCCESS(status))
     {
-        if (basicInfo.DriverStart == context->BaseAddress)
+        if (context && basicInfo.DriverStart == context->BaseAddress)
         {
             context->Status = STATUS_SUCCESS;
             context->DriverHandle = driverHandle;
@@ -3954,7 +3958,7 @@ BOOLEAN NTAPI PhpSetProcessModuleLoadCountCallback(
 {
     PSET_PROCESS_MODULE_LOAD_COUNT_CONTEXT context = Context1;
 
-    if (Entry->DllBase == context->BaseAddress)
+    if (context && Entry->DllBase == context->BaseAddress)
     {
         context->Status = NtWriteVirtualMemory(
             ProcessHandle,
@@ -4130,6 +4134,9 @@ BOOLEAN NTAPI PhpEnumProcessModules32Callback(
     PH_STRINGREF systemRootString;
 
     parameters = Context1;
+
+    if (!parameters)
+        return TRUE;
 
     // Convert the 32-bit entry to a native-sized entry.
 
@@ -4344,7 +4351,7 @@ BOOLEAN NTAPI PhpSetProcessModuleLoadCount32Callback(
 {
     PSET_PROCESS_MODULE_LOAD_COUNT_CONTEXT context = Context1;
 
-    if (UlongToPtr(Entry->DllBase) == context->BaseAddress)
+    if (context && UlongToPtr(Entry->DllBase) == context->BaseAddress)
     {
         context->Status = NtWriteVirtualMemory(
             ProcessHandle,
@@ -6319,11 +6326,12 @@ static BOOLEAN EnumGenericProcessModulesCallback(
     _In_opt_ PVOID Context
     )
 {
-    PENUM_GENERIC_PROCESS_MODULES_CONTEXT context;
+    PENUM_GENERIC_PROCESS_MODULES_CONTEXT context = Context;
     PH_MODULE_INFO moduleInfo;
     BOOLEAN cont;
 
-    context = (PENUM_GENERIC_PROCESS_MODULES_CONTEXT)Context;
+    if (!context)
+        return FALSE;
 
     // Check if we have a duplicate base address.
     if (PhFindEntryHashtable(context->BaseAddressHashtable, &Module->DllBase))
@@ -7732,6 +7740,9 @@ static BOOLEAN PhpDeleteDirectoryCallback(
     PPH_STRING parentDirectory = Context;
     PPH_STRING fullName;
     PH_STRINGREF baseName;
+
+    if (!parentDirectory)
+        return TRUE;
 
     baseName.Buffer = Information->FileName;
     baseName.Length = Information->FileNameLength;

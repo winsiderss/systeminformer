@@ -418,7 +418,7 @@ INT_PTR CALLBACK DiskDriveFileSystemDetailsDlgProc(
     _In_ LPARAM lParam
     )
 {
-    PDV_DISK_PAGE_CONTEXT context;
+    PDV_DISK_PAGE_CONTEXT context = NULL;
     LPPROPSHEETPAGE propSheetPage;
     PPV_PROPPAGECONTEXT propPageContext;
 
@@ -442,6 +442,7 @@ INT_PTR CALLBACK DiskDriveFileSystemDetailsDlgProc(
 
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
+            context = NULL;
         }
     }
 
@@ -561,7 +562,7 @@ INT_PTR CALLBACK DiskDriveSmartDetailsDlgProc(
     _In_ LPARAM lParam
     )
 {
-    PDV_DISK_PAGE_CONTEXT context;
+    PDV_DISK_PAGE_CONTEXT context = NULL;
     LPPROPSHEETPAGE propSheetPage;
     PPV_PROPPAGECONTEXT propPageContext;
 
@@ -585,6 +586,7 @@ INT_PTR CALLBACK DiskDriveSmartDetailsDlgProc(
             PhSaveListViewColumnsToSetting(SETTING_NAME_SMART_COUNTERS_COLUMNS, context->ListViewHandle);
 
             PhFree(context);
+            context = NULL;
         }
     }
 
