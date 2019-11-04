@@ -447,52 +447,44 @@ namespace CustomBuildTool
 
     public static class AppVeyor
     {
-        public static readonly string AppVeyorPath = string.Empty;
-
-        static AppVeyor()
-        {
-            AppVeyorPath = Win32.SearchFile("appveyor.exe");
-        }
-
-        public static bool AppVeyorNightlyBuild()
-        {
-            return !string.IsNullOrWhiteSpace(AppVeyorPath);
-        }
-
         public static bool UpdateBuildVersion(string BuildVersion)
         {
             try
             {
-                if (!string.IsNullOrWhiteSpace(AppVeyorPath))
+                string AppVeyorFilePath = Win32.SearchFile("appveyor.exe");
+
+                if (!string.IsNullOrWhiteSpace(AppVeyorFilePath) && !string.IsNullOrWhiteSpace(BuildVersion))
                 {
                     Win32.ShellExecute("appveyor", $"UpdateBuild -Version \"{BuildVersion}\" ");
+                    return true;
                 }
             }
             catch (Exception ex)
             {
                 Program.PrintColorMessage("[UpdateBuildVersion] " + ex, ConsoleColor.Red, true);
-                return false;
             }
 
-            return true;
+            return false;
         }
 
         public static bool UploadFile(string FileName)
         {
             try
             {
-                if (!string.IsNullOrWhiteSpace(AppVeyorPath))
+                string AppVeyorFilePath = Win32.SearchFile("appveyor.exe");
+
+                if (!string.IsNullOrWhiteSpace(AppVeyorFilePath) && !string.IsNullOrWhiteSpace(FileName))
                 {
                     Win32.ShellExecute("appveyor", $"PushArtifact \"{FileName}\" ");
+                    return true;
                 }
             }
             catch (Exception ex)
             {
                 Program.PrintColorMessage("[UploadFile] " + ex, ConsoleColor.Red, true);
-                return false;
             }
 
-            return true;
+            return false;
         }
     }
 
