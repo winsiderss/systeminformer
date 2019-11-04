@@ -68,12 +68,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #undef WIN32
 #endif
 
+#ifdef __VMS
+#include clidef
+#include descrip
+#include lib$routines
+#endif
+
 #ifdef WIN32
 #include <io.h>                /* For _setmode() */
 #include <fcntl.h>             /* For _O_BINARY */
 #endif
 
-#ifdef SUPPORT_PCRE2GREP_CALLOUT
+#if defined(SUPPORT_PCRE2GREP_CALLOUT) && defined(SUPPORT_PCRE2GREP_CALLOUT_FORK)
 #ifdef WIN32
 #include <process.h>
 #else
@@ -573,8 +579,6 @@ status of 1, which is not helpful. To help with this problem, define a symbol
 therein. */
 
 #ifdef __VMS
-#include descrip
-#include lib$routines
   char val_buf[4];
   $DESCRIPTOR(sym_nam, "PCRE2GREP_RC");
   $DESCRIPTOR(sym_val, val_buf);
@@ -1133,7 +1137,11 @@ printf("Search for PATTERN in each FILE or standard input." STDOUT_NL);
 printf("PATTERN must be present if neither -e nor -f is used." STDOUT_NL);
 
 #ifdef SUPPORT_PCRE2GREP_CALLOUT
-printf("Callout scripts in patterns are supported." STDOUT_NL);
+#ifdef SUPPORT_PCRE2GREP_CALLOUT_FORK
+printf("All callout scripts in patterns are supported." STDOUT_NL);
+#else
+printf("Non-fork callout scripts in patterns are supported." STDOUT_NL);
+#endif
 #else
 printf("Callout scripts are not supported in this pcre2grep." STDOUT_NL);
 #endif
@@ -2017,10 +2025,10 @@ return printed;
 *        Parse and execute callout scripts       *
 *************************************************/
 
-/* This function parses a callout string block and executes the
-program specified by the string. The string is a list of substrings
-separated by pipe characters. The first substring represents the
-executable name, and the following substrings specify the arguments:
+/* If SUPPORT_PCRE2GREP_CALLOUT_FORK is defined, this function parses a callout
+string block and executes the program specified by the string. The string is a
+list of substrings separated by pipe characters. The first substring represents
+the executable name, and the following substrings specify the arguments:
 
   program_name|param1|param2|...
 
@@ -2037,8 +2045,9 @@ follows:
   dollar or $| replaced by a pipe character.
 
 Alternatively, if string starts with pipe, the remainder is taken as an output
-string, same as --output. In this case, --om-separator is used to separate each
-callout, defaulting to newline.
+string, same as --output. This is the only form that is supported if
+SUPPORT_PCRE2GREP_FORK is not defined. In this case, --om-separator is used to
+separate each callout, defaulting to newline.
 
 Example:
 
@@ -2066,6 +2075,8 @@ PCRE2_SPTR string = calloutptr->callout_string;
 PCRE2_SPTR subject = calloutptr->subject;
 PCRE2_SIZE *ovector = calloutptr->offset_vector;
 PCRE2_SIZE capture_top = calloutptr->capture_top;
+
+#ifdef SUPPORT_PCRE2GREP_CALLOUT_FORK
 PCRE2_SIZE argsvectorlen = 2;
 PCRE2_SIZE argslen = 1;
 char *args;
@@ -2076,10 +2087,12 @@ char **argsvectorptr;
 pid_t pid;
 #endif
 int result = 0;
+#endif  /* SUPPORT_PCRE2GREP_CALLOUT_FORK */
 
 (void)unused;   /* Avoid compiler warning */
 
 /* Only callout with strings are supported. */
+
 if (string == NULL || length == 0) return 0;
 
 /* If there's no command, output the remainder directly. */
@@ -2091,6 +2104,10 @@ if (*string == '|')
   (void)display_output_text(string, TRUE, subject, ovector, capture_top);
   return 0;
   }
+
+#ifndef SUPPORT_PCRE2GREP_CALLOUT_FORK
+return 0;
+#else
 
 /* Checking syntax and compute the number of string fragments. Callout strings
 are ignored in case of a syntax error. */
@@ -2272,11 +2289,34 @@ while (length > 0)
 *argsptr++ = '\0';
 *argsvectorptr = NULL;
 
+/* Running an external command is system-dependent. Handle Windows and VMS as
+necessary, otherwise assume fork(). */
+
 #ifdef WIN32
 result = _spawnvp(_P_WAIT, argsvector[0], (const char * const *)argsvector);
-#else
-pid = fork();
 
+#elif defined __VMS
+  {
+  char cmdbuf[500];
+  short i = 0;
+  int flags = CLI$M_NOCLISYM|CLI$M_NOLOGNAM|CLI$M_NOKEYPAD, status, retstat;
+  $DESCRIPTOR(cmd, cmdbuf);
+
+  cmdbuf[0] = 0;
+  while (argsvector[i])
+  {
+    strcat(cmdbuf, argsvector[i]);
+    strcat(cmdbuf, " ");
+    i++;
+  }
+  cmd.dsc$w_length = strlen(cmdbuf) - 1;
+  status = lib$spawn(&cmd, 0,0, &flags, 0,0, &retstat);
+  if (!(status & 1)) result = 0;
+  else result = retstat & 1 ? 0 : 1;
+  }
+
+#else  /* Neither Windows nor VMS */
+pid = fork();
 if (pid == 0)
   {
   (void)execv(argsvector[0], argsvector);
@@ -2285,7 +2325,7 @@ if (pid == 0)
   }
 else if (pid > 0)
   (void)waitpid(pid, &result, 0);
-#endif
+#endif  /* End Windows/VMS/other handling */
 
 free(args);
 free(argsvector);
@@ -2294,9 +2334,9 @@ free(argsvector);
 continues) or non-zero (match fails). */
 
 return result != 0;
+#endif  /* SUPPORT_PCRE2GREP_CALLOUT_FORK */
 }
-
-#endif
+#endif  /* SUPPORT_PCRE2GREP_CALLOUT */
 
 
 
@@ -4302,6 +4342,7 @@ if (show_total_count && counts_printed != 1 && filenames != FN_NOMATCH_ONLY)
 
 EXIT:
 #ifdef SUPPORT_PCRE2GREP_JIT
+pcre2_jit_free_unused_memory(NULL);
 if (jit_stack != NULL) pcre2_jit_stack_free(jit_stack);
 #endif
 

@@ -3,11 +3,13 @@
 *************************************************/
 
 /* PCRE2 is a library of functions to support regular expressions whose syntax
-and semantics are as close as possible to those of the Perl 5 language.
+and semantics are as close as possible to those of the Perl 5 language. This is
+the public header file to be #included by applications that call PCRE2 via the
+POSIX wrapper interface.
 
                        Written by Philip Hazel
      Original API code Copyright (c) 1997-2012 University of Cambridge
-         New API code Copyright (c) 2016 University of Cambridge
+          New API code Copyright (c) 2016-2019 University of Cambridge
 
 -----------------------------------------------------------------------------
 Redistribution and use in source and binary forms, with or without
@@ -136,13 +138,30 @@ file. */
 #  endif
 #endif
 
-/* The functions */
+/* The functions. The actual code is in functions with pcre2_xxx names for
+uniqueness. POSIX names are provided as macros for API compatibility with POSIX
+regex functions. It's done this way to ensure to they are always linked from
+the PCRE2 library and not by accident from elsewhere (regex_t differs in size
+elsewhere). */
 
-PCRE2POSIX_EXP_DECL int regcomp(regex_t *, const char *, int);
-PCRE2POSIX_EXP_DECL int regexec(const regex_t *, const char *, size_t,
+PCRE2POSIX_EXP_DECL int pcre2_regcomp(regex_t *, const char *, int);
+PCRE2POSIX_EXP_DECL int pcre2_regexec(const regex_t *, const char *, size_t,
                      regmatch_t *, int);
-PCRE2POSIX_EXP_DECL size_t regerror(int, const regex_t *, char *, size_t);
-PCRE2POSIX_EXP_DECL void regfree(regex_t *);
+PCRE2POSIX_EXP_DECL size_t pcre2_regerror(int, const regex_t *, char *, size_t);
+PCRE2POSIX_EXP_DECL void pcre2_regfree(regex_t *);
+
+#define regcomp  pcre2_regcomp
+#define regexec  pcre2_regexec
+#define regerror pcre2_regerror
+#define regfree  pcre2_regfree
+
+/* Debian had a patch that used different names. These are now here to save
+them having to maintain their own patch, but are not documented by PCRE2. */
+
+#define PCRE2regcomp  pcre2_regcomp
+#define PCRE2regexec  pcre2_regexec
+#define PCRE2regerror pcre2_regerror
+#define PCRE2regfree  pcre2_regfree
 
 #ifdef __cplusplus
 }   /* extern "C" */
