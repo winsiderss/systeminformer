@@ -259,6 +259,7 @@ VOID PhUpdateCachedSettings(
     PH_UPDATE_SETTING(CollapseServicesOnStart);
     PH_UPDATE_SETTING(ForceNoParent);
     PH_UPDATE_SETTING(HighlightingDuration);
+    PH_UPDATE_SETTING(HideOtherUserProcesses);
     PH_UPDATE_SETTING(PropagateCpuUsage);
     PH_UPDATE_SETTING(ScrollToNewProcesses);
     PH_UPDATE_SETTING(ShowCpuBelow001);
