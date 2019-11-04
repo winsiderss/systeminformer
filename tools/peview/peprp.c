@@ -637,7 +637,7 @@ VOID PvpSetPeImageCheckSum(
 {
     PPH_STRING string;
 
-    string = PhFormatString(L"0x%Ix (verifying...)", PvMappedImage.NtHeaders->OptionalHeader.CheckSum); // same for 32-bit and 64-bit images
+    string = PhFormatString(L"0x%I32x (verifying...)", PvMappedImage.NtHeaders->OptionalHeader.CheckSum); // same for 32-bit and 64-bit images
 
     PhSetDialogItemText(WindowHandle, IDC_CHECKSUM, string->Buffer);
 
@@ -1049,19 +1049,19 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
             if (headerCheckSum == 0)
             {
                 // Some executables, like .NET ones, don't have a check sum.
-                string = PhFormatString(L"0x0 (real 0x%Ix) (%s)", realCheckSum, PhGetStringOrDefault(importTableHash, L"N/A"));
+                string = PhFormatString(L"0x0 (real 0x%I32x) (%s)", realCheckSum, PhGetStringOrDefault(importTableHash, L"N/A"));
                 PhSetDialogItemText(hwndDlg, IDC_CHECKSUM, string->Buffer);
                 PhDereferenceObject(string);
             }
             else if (headerCheckSum == realCheckSum)
             {
-                string = PhFormatString(L"0x%Ix (correct) (%s)", headerCheckSum, PhGetStringOrDefault(importTableHash, L"N/A"));
+                string = PhFormatString(L"0x%I32x (correct) (%s)", headerCheckSum, PhGetStringOrDefault(importTableHash, L"N/A"));
                 PhSetDialogItemText(hwndDlg, IDC_CHECKSUM, string->Buffer);
                 PhDereferenceObject(string);
             }
             else
             {
-                string = PhFormatString(L"0x%Ix (incorrect, real 0x%Ix) (%s)", headerCheckSum, realCheckSum, PhGetStringOrDefault(importTableHash, L"N/A"));
+                string = PhFormatString(L"0x%I32x (incorrect, real 0x%I32x) (%s)", headerCheckSum, realCheckSum, PhGetStringOrDefault(importTableHash, L"N/A"));
                 PhSetDialogItemText(hwndDlg, IDC_CHECKSUM, string->Buffer);
                 PhDereferenceObject(string);
             }
