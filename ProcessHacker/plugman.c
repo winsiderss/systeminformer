@@ -1113,6 +1113,7 @@ INT_PTR CALLBACK PhpPluginsDisabledDlgProc(
         {
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
+            context = NULL;
         }
     }
 
