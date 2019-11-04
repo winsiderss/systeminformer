@@ -121,9 +121,12 @@ static NTSTATUS PhpDuplicateHandleFromProcess(
     _In_opt_ PVOID Context
     )
 {
-    NTSTATUS status;
     PHANDLE_PROPERTIES_CONTEXT context = Context;
+    NTSTATUS status;
     HANDLE processHandle;
+
+    if (!context)
+        return STATUS_UNSUCCESSFUL;
 
     if (!NT_SUCCESS(status = PhOpenProcess(
         &processHandle,
@@ -666,17 +669,11 @@ VOID PhpUpdateHandleGeneral(
                 NULL
                 )))
             {
-                PH_FORMAT format[1];
-                PPH_STRING string;
+                PhPrintUInt32(string, basicInfo.SequenceNo);
+                PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_SEQUENCENUMBER], 1, string);
 
-                PhInitFormatI64UGroupDigits(&format[0], basicInfo.SequenceNo);
-
-                string = PhFormat(format, 1, 128);
-                PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_SEQUENCENUMBER], 1, string->Buffer);
-                PhDereferenceObject(string);
-
-                PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_PORTCONTEXT], 1, 
-                    PhaFormatString(L"0x%Ix", basicInfo.PortContext)->Buffer);
+                PhPrintPointer(string, basicInfo.PortContext);
+                PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_PORTCONTEXT], 1, string);
             }
 
             NtClose(alpcPortHandle);
