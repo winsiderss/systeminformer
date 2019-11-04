@@ -7,7 +7,7 @@ and semantics are as close as possible to those of the Perl 5 language.
 
                        Written by Philip Hazel
      Original API code Copyright (c) 1997-2012 University of Cambridge
-          New API code Copyright (c) 2016-2017 University of Cambridge
+          New API code Copyright (c) 2016-2018 University of Cambridge
 
 -----------------------------------------------------------------------------
 Redistribution and use in source and binary forms, with or without
@@ -38,7 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 -----------------------------------------------------------------------------
 */
 
-#include <phbase.h>
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -57,14 +56,14 @@ POSSIBILITY OF SUCH DAMAGE.
 static void *default_malloc(size_t size, void *data)
 {
 (void)data;
-return PhAllocateSafe(size);
+return malloc(size);
 }
 
 
 static void default_free(void *block, void *data)
 {
 (void)data;
-PhFree(block);
+free(block);
 }
 
 
@@ -87,7 +86,7 @@ extern void *
 PRIV(memctl_malloc)(size_t size, pcre2_memctl *memctl)
 {
 pcre2_memctl *newmemctl;
-void *yield = (memctl == NULL)? PhAllocateSafe(size) :
+void *yield = (memctl == NULL)? malloc(size) :
   memctl->malloc(size, memctl->memory_data);
 if (yield == NULL) return NULL;
 newmemctl = (pcre2_memctl *)yield;
@@ -164,11 +163,13 @@ when no context is supplied to a match function. */
 const pcre2_match_context PRIV(default_match_context) = {
   { default_malloc, default_free, NULL },
 #ifdef SUPPORT_JIT
-  NULL,
-  NULL,
+  NULL,          /* JIT callback */
+  NULL,          /* JIT callback data */
 #endif
-  NULL,
-  NULL,
+  NULL,          /* Callout function */
+  NULL,          /* Callout data */
+  NULL,          /* Substitute callout function */
+  NULL,          /* Substitute callout data */
   PCRE2_UNSET,   /* Offset limit */
   HEAP_LIMIT,
   MATCH_LIMIT,
@@ -401,6 +402,16 @@ pcre2_set_callout(pcre2_match_context *mcontext,
 {
 mcontext->callout = callout;
 mcontext->callout_data = callout_data;
+return 0;
+}
+
+PCRE2_EXP_DEFN int PCRE2_CALL_CONVENTION
+pcre2_set_substitute_callout(pcre2_match_context *mcontext,
+  int (*substitute_callout)(pcre2_substitute_callout_block *, void *),
+    void *substitute_callout_data)
+{
+mcontext->substitute_callout = substitute_callout;
+mcontext->substitute_callout_data = substitute_callout_data;
 return 0;
 }
 

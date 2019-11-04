@@ -7,7 +7,7 @@ and semantics are as close as possible to those of the Perl 5 language.
 
                        Written by Philip Hazel
      Original API code Copyright (c) 1997-2012 University of Cambridge
-          New API code Copyright (c) 2016-2018 University of Cambridge
+          New API code Copyright (c) 2016-2019 University of Cambridge
 
 -----------------------------------------------------------------------------
 Redistribution and use in source and binary forms, with or without
@@ -38,7 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 -----------------------------------------------------------------------------
 */
 
-#include <phbase.h>
 
 /* This module contains the external function pcre2_maketables(), which builds
 character tables for PCRE2 in the current locale. The file is compiled on its
@@ -82,7 +81,7 @@ pcre2_maketables(pcre2_general_context *gcontext)
 {
 uint8_t *yield = (uint8_t *)((gcontext != NULL)?
   gcontext->memctl.malloc(tables_length, gcontext->memctl.memory_data) :
-  PhAllocateSafe(tables_length));
+  malloc(tables_length));
 #endif  /* DFTABLES */
 
 int i;
@@ -115,17 +114,17 @@ test for alnum specially. */
 memset(p, 0, cbit_length);
 for (i = 0; i < 256; i++)
   {
-  if (isdigit(i)) p[cbit_digit  + i/8] |= 1 << (i&7);
-  if (isupper(i)) p[cbit_upper  + i/8] |= 1 << (i&7);
-  if (islower(i)) p[cbit_lower  + i/8] |= 1 << (i&7);
-  if (isalnum(i)) p[cbit_word   + i/8] |= 1 << (i&7);
-  if (i == '_')   p[cbit_word   + i/8] |= 1 << (i&7);
-  if (isspace(i)) p[cbit_space  + i/8] |= 1 << (i&7);
-  if (isxdigit(i))p[cbit_xdigit + i/8] |= 1 << (i&7);
-  if (isgraph(i)) p[cbit_graph  + i/8] |= 1 << (i&7);
-  if (isprint(i)) p[cbit_print  + i/8] |= 1 << (i&7);
-  if (ispunct(i)) p[cbit_punct  + i/8] |= 1 << (i&7);
-  if (iscntrl(i)) p[cbit_cntrl  + i/8] |= 1 << (i&7);
+  if (isdigit(i)) p[cbit_digit  + i/8] |= 1u << (i&7);
+  if (isupper(i)) p[cbit_upper  + i/8] |= 1u << (i&7);
+  if (islower(i)) p[cbit_lower  + i/8] |= 1u << (i&7);
+  if (isalnum(i)) p[cbit_word   + i/8] |= 1u << (i&7);
+  if (i == '_')   p[cbit_word   + i/8] |= 1u << (i&7);
+  if (isspace(i)) p[cbit_space  + i/8] |= 1u << (i&7);
+  if (isxdigit(i))p[cbit_xdigit + i/8] |= 1u << (i&7);
+  if (isgraph(i)) p[cbit_graph  + i/8] |= 1u << (i&7);
+  if (isprint(i)) p[cbit_print  + i/8] |= 1u << (i&7);
+  if (ispunct(i)) p[cbit_punct  + i/8] |= 1u << (i&7);
+  if (iscntrl(i)) p[cbit_cntrl  + i/8] |= 1u << (i&7);
   }
 p += cbit_length;
 
@@ -139,8 +138,8 @@ for (i = 0; i < 256; i++)
   int x = 0;
   if (isspace(i)) x += ctype_space;
   if (isalpha(i)) x += ctype_letter;
+  if (islower(i)) x += ctype_lcletter;
   if (isdigit(i)) x += ctype_digit;
-  if (isxdigit(i)) x += ctype_xdigit;
   if (isalnum(i) || i == '_') x += ctype_word;
   *p++ = x;
   }
