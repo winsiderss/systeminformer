@@ -294,6 +294,7 @@
     <ClCompile Include="pcre\pcre2_compile.c" />
     <ClCompile Include="pcre\pcre2_config.c" />
     <ClCompile Include="pcre\pcre2_context.c" />
+    <ClCompile Include="pcre\pcre2_convert.c" />
     <ClCompile Include="pcre\pcre2_dfa_match.c" />
     <ClCompile Include="pcre\pcre2_error.c" />
     <ClCompile Include="pcre\pcre2_extuni.c" />
@@ -305,6 +306,7 @@
     <ClCompile Include="pcre\pcre2_newline.c" />
     <ClCompile Include="pcre\pcre2_ord2utf.c" />
     <ClCompile Include="pcre\pcre2_pattern_info.c" />
+    <ClCompile Include="pcre\pcre2_script_run.c" />
     <ClCompile Include="pcre\pcre2_serialize.c" />
     <ClCompile Include="pcre\pcre2_string_utils.c" />
     <ClCompile Include="pcre\pcre2_study.c" />
