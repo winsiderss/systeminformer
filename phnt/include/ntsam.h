@@ -957,209 +957,36 @@ typedef struct _SR_SECURITY_DESCRIPTOR
 
 typedef enum _USER_INFORMATION_CLASS
 {
-    UserGeneralInformation = 1,
-    UserPreferencesInformation,
-    UserLogonInformation,
-    UserLogonHoursInformation,
-    UserAccountInformation,
-    UserNameInformation,
-    UserAccountNameInformation,
-    UserFullNameInformation,
-    UserPrimaryGroupInformation,
-    UserHomeInformation,
-    UserScriptInformation,
-    UserProfileInformation,
-    UserAdminCommentInformation,
-    UserWorkStationsInformation,
-    UserSetPasswordInformation,
-    UserControlInformation,
-    UserExpiresInformation,
+    UserGeneralInformation = 1, // USER_GENERAL_INFORMATION
+    UserPreferencesInformation, // USER_PREFERENCES_INFORMATION
+    UserLogonInformation, // USER_LOGON_INFORMATION
+    UserLogonHoursInformation, // USER_LOGON_HOURS_INFORMATION
+    UserAccountInformation, // USER_ACCOUNT_INFORMATION
+    UserNameInformation, // USER_NAME_INFORMATION
+    UserAccountNameInformation, // USER_ACCOUNT_NAME_INFORMATION
+    UserFullNameInformation, // USER_FULL_NAME_INFORMATION
+    UserPrimaryGroupInformation, // USER_PRIMARY_GROUP_INFORMATION
+    UserHomeInformation, // USER_HOME_INFORMATION
+    UserScriptInformation, // USER_SCRIPT_INFORMATION
+    UserProfileInformation, // USER_PROFILE_INFORMATION
+    UserAdminCommentInformation, // USER_ADMIN_COMMENT_INFORMATION
+    UserWorkStationsInformation, // USER_WORKSTATIONS_INFORMATION
+    UserSetPasswordInformation, // USER_SET_PASSWORD_INFORMATION
+    UserControlInformation, // USER_CONTROL_INFORMATION
+    UserExpiresInformation, // USER_EXPIRES_INFORMATION
     UserInternal1Information,
     UserInternal2Information,
-    UserParametersInformation,
-    UserAllInformation,
+    UserParametersInformation, // USER_PARAMETERS_INFORMATION
+    UserAllInformation, // USER_ALL_INFORMATION
     UserInternal3Information,
     UserInternal4Information,
     UserInternal5Information,
     UserInternal4InformationNew,
     UserInternal5InformationNew,
     UserInternal6Information,
-    UserExtendedInformation,
-    UserLogonUIInformation
+    UserExtendedInformation, // USER_EXTENDED_INFORMATION
+    UserLogonUIInformation // USER_LOGON_UI_INFORMATION
 } USER_INFORMATION_CLASS, *PUSER_INFORMATION_CLASS;
-
-#include <pshpack4.h>
-typedef struct _USER_ALL_INFORMATION
-{
-    LARGE_INTEGER LastLogon;
-    LARGE_INTEGER LastLogoff;
-    LARGE_INTEGER PasswordLastSet;
-    LARGE_INTEGER AccountExpires;
-    LARGE_INTEGER PasswordCanChange;
-    LARGE_INTEGER PasswordMustChange;
-    UNICODE_STRING UserName;
-    UNICODE_STRING FullName;
-    UNICODE_STRING HomeDirectory;
-    UNICODE_STRING HomeDirectoryDrive;
-    UNICODE_STRING ScriptPath;
-    UNICODE_STRING ProfilePath;
-    UNICODE_STRING AdminComment;
-    UNICODE_STRING WorkStations;
-    UNICODE_STRING UserComment;
-    UNICODE_STRING Parameters;
-    UNICODE_STRING LmPassword;
-    UNICODE_STRING NtPassword;
-    UNICODE_STRING PrivateData;
-    SR_SECURITY_DESCRIPTOR SecurityDescriptor;
-    ULONG UserId;
-    ULONG PrimaryGroupId;
-    ULONG UserAccountControl;
-    ULONG WhichFields;
-    LOGON_HOURS LogonHours;
-    USHORT BadPasswordCount;
-    USHORT LogonCount;
-    USHORT CountryCode;
-    USHORT CodePage;
-    BOOLEAN LmPasswordPresent;
-    BOOLEAN NtPasswordPresent;
-    BOOLEAN PasswordExpired;
-    BOOLEAN PrivateDataSensitive;
-} USER_ALL_INFORMATION, *PUSER_ALL_INFORMATION;
-#include <poppack.h>
-
-// Flags for WhichFields in USER_ALL_INFORMATION
-
-#define USER_ALL_USERNAME 0x00000001
-#define USER_ALL_FULLNAME 0x00000002
-#define USER_ALL_USERID 0x00000004
-#define USER_ALL_PRIMARYGROUPID 0x00000008
-#define USER_ALL_ADMINCOMMENT 0x00000010
-#define USER_ALL_USERCOMMENT 0x00000020
-#define USER_ALL_HOMEDIRECTORY 0x00000040
-#define USER_ALL_HOMEDIRECTORYDRIVE 0x00000080
-#define USER_ALL_SCRIPTPATH 0x00000100
-#define USER_ALL_PROFILEPATH 0x00000200
-#define USER_ALL_WORKSTATIONS 0x00000400
-#define USER_ALL_LASTLOGON 0x00000800
-#define USER_ALL_LASTLOGOFF 0x00001000
-#define USER_ALL_LOGONHOURS 0x00002000
-#define USER_ALL_BADPASSWORDCOUNT 0x00004000
-#define USER_ALL_LOGONCOUNT 0x00008000
-#define USER_ALL_PASSWORDCANCHANGE 0x00010000
-#define USER_ALL_PASSWORDMUSTCHANGE 0x00020000
-#define USER_ALL_PASSWORDLASTSET 0x00040000
-#define USER_ALL_ACCOUNTEXPIRES 0x00080000
-#define USER_ALL_USERACCOUNTCONTROL 0x00100000
-#define USER_ALL_PARAMETERS 0x00200000
-#define USER_ALL_COUNTRYCODE 0x00400000
-#define USER_ALL_CODEPAGE 0x00800000
-#define USER_ALL_NTPASSWORDPRESENT 0x01000000 // field AND boolean
-#define USER_ALL_LMPASSWORDPRESENT 0x02000000 // field AND boolean
-#define USER_ALL_PRIVATEDATA 0x04000000 // field AND boolean
-#define USER_ALL_PASSWORDEXPIRED 0x08000000
-#define USER_ALL_SECURITYDESCRIPTOR 0x10000000
-#define USER_ALL_OWFPASSWORD 0x20000000 // boolean
-
-#define USER_ALL_UNDEFINED_MASK 0xc0000000
-
-// Fields that require USER_READ_GENERAL access to read.
-
-#define USER_ALL_READ_GENERAL_MASK (USER_ALL_USERNAME | \
-    USER_ALL_FULLNAME | \
-    USER_ALL_USERID | \
-    USER_ALL_PRIMARYGROUPID | \
-    USER_ALL_ADMINCOMMENT | \
-    USER_ALL_USERCOMMENT)
-
-// Fields that require USER_READ_LOGON access to read.
-
-#define USER_ALL_READ_LOGON_MASK (USER_ALL_HOMEDIRECTORY | \
-    USER_ALL_HOMEDIRECTORYDRIVE | \
-    USER_ALL_SCRIPTPATH | \
-    USER_ALL_PROFILEPATH | \
-    USER_ALL_WORKSTATIONS | \
-    USER_ALL_LASTLOGON | \
-    USER_ALL_LASTLOGOFF | \
-    USER_ALL_LOGONHOURS | \
-    USER_ALL_BADPASSWORDCOUNT | \
-    USER_ALL_LOGONCOUNT | \
-    USER_ALL_PASSWORDCANCHANGE | \
-    USER_ALL_PASSWORDMUSTCHANGE)
-
-// Fields that require USER_READ_ACCOUNT access to read.
-
-#define USER_ALL_READ_ACCOUNT_MASK (USER_ALL_PASSWORDLASTSET | \
-    USER_ALL_ACCOUNTEXPIRES | \
-    USER_ALL_USERACCOUNTCONTROL | \
-    USER_ALL_PARAMETERS)
-
-// Fields that require USER_READ_PREFERENCES access to read.
-
-#define USER_ALL_READ_PREFERENCES_MASK (USER_ALL_COUNTRYCODE | \
-    USER_ALL_CODEPAGE)
-
-// Fields that can only be read by trusted clients.
-
-#define USER_ALL_READ_TRUSTED_MASK (USER_ALL_NTPASSWORDPRESENT | \
-    USER_ALL_LMPASSWORDPRESENT | \
-    USER_ALL_PASSWORDEXPIRED | \
-    USER_ALL_SECURITYDESCRIPTOR | \
-    USER_ALL_PRIVATEDATA)
-
-// Fields that can't be read.
-
-#define USER_ALL_READ_CANT_MASK USER_ALL_UNDEFINED_MASK
-
-// Fields that require USER_WRITE_ACCOUNT access to write.
-
-#define USER_ALL_WRITE_ACCOUNT_MASK (USER_ALL_USERNAME | \
-    USER_ALL_FULLNAME | \
-    USER_ALL_PRIMARYGROUPID | \
-    USER_ALL_HOMEDIRECTORY | \
-    USER_ALL_HOMEDIRECTORYDRIVE | \
-    USER_ALL_SCRIPTPATH | \
-    USER_ALL_PROFILEPATH | \
-    USER_ALL_ADMINCOMMENT | \
-    USER_ALL_WORKSTATIONS | \
-    USER_ALL_LOGONHOURS | \
-    USER_ALL_ACCOUNTEXPIRES | \
-    USER_ALL_USERACCOUNTCONTROL | \
-    USER_ALL_PARAMETERS)
-
-// Fields that require USER_WRITE_PREFERENCES access to write.
-
-#define USER_ALL_WRITE_PREFERENCES_MASK (USER_ALL_USERCOMMENT | \
-    USER_ALL_COUNTRYCODE | \
-    USER_ALL_CODEPAGE)
-
-// Fields that require USER_FORCE_PASSWORD_CHANGE access to write.
-//
-// Note that non-trusted clients only set the NT password as a
-// UNICODE string. The wrapper will convert it to an LM password,
-// OWF and encrypt both versions. Trusted clients can pass in OWF
-// versions of either or both.
-
-#define USER_ALL_WRITE_FORCE_PASSWORD_CHANGE_MASK \
-    (USER_ALL_NTPASSWORDPRESENT | \
-    USER_ALL_LMPASSWORDPRESENT | \
-    USER_ALL_PASSWORDEXPIRED)
-
-// Fields that can only be written by trusted clients.
-
-#define USER_ALL_WRITE_TRUSTED_MASK (USER_ALL_LASTLOGON | \
-    USER_ALL_LASTLOGOFF | \
-    USER_ALL_BADPASSWORDCOUNT | \
-    USER_ALL_LOGONCOUNT | \
-    USER_ALL_PASSWORDLASTSET | \
-    USER_ALL_SECURITYDESCRIPTOR | \
-    USER_ALL_PRIVATEDATA)
-
-// Fields that can't be written.
-
-#define USER_ALL_WRITE_CANT_MASK (USER_ALL_USERID | \
-    USER_ALL_PASSWORDCANCHANGE | \
-    USER_ALL_PASSWORDMUSTCHANGE | \
-    USER_ALL_UNDEFINED_MASK)
 
 typedef struct _USER_GENERAL_INFORMATION
 {
@@ -1177,11 +1004,6 @@ typedef struct _USER_PREFERENCES_INFORMATION
     USHORT CountryCode;
     USHORT CodePage;
 } USER_PREFERENCES_INFORMATION, *PUSER_PREFERENCES_INFORMATION;
-
-typedef struct _USER_PARAMETERS_INFORMATION
-{
-    UNICODE_STRING Parameters;
-} USER_PARAMETERS_INFORMATION, *PUSER_PARAMETERS_INFORMATION;
 
 #include <pshpack4.h>
 typedef struct _USER_LOGON_INFORMATION
@@ -1204,8 +1026,13 @@ typedef struct _USER_LOGON_INFORMATION
     USHORT BadPasswordCount;
     USHORT LogonCount;
     ULONG UserAccountControl;
-} USER_LOGON_INFORMATION, *PUSER_LOGON_INFORMATION;
+} USER_LOGON_INFORMATION, * PUSER_LOGON_INFORMATION;
 #include <poppack.h>
+
+typedef struct _USER_LOGON_HOURS_INFORMATION
+{
+    LOGON_HOURS LogonHours;
+} USER_LOGON_HOURS_INFORMATION, * PUSER_LOGON_HOURS_INFORMATION;
 
 #include <pshpack4.h>
 typedef struct _USER_ACCOUNT_INFORMATION
@@ -1228,8 +1055,14 @@ typedef struct _USER_ACCOUNT_INFORMATION
     LARGE_INTEGER PasswordLastSet;
     LARGE_INTEGER AccountExpires;
     ULONG UserAccountControl;
-} USER_ACCOUNT_INFORMATION, *PUSER_ACCOUNT_INFORMATION;
+} USER_ACCOUNT_INFORMATION, * PUSER_ACCOUNT_INFORMATION;
 #include <poppack.h>
+
+typedef struct _USER_NAME_INFORMATION
+{
+    UNICODE_STRING UserName;
+    UNICODE_STRING FullName;
+} USER_NAME_INFORMATION, *PUSER_NAME_INFORMATION;
 
 typedef struct _USER_ACCOUNT_NAME_INFORMATION
 {
@@ -1240,12 +1073,6 @@ typedef struct _USER_FULL_NAME_INFORMATION
 {
     UNICODE_STRING FullName;
 } USER_FULL_NAME_INFORMATION, *PUSER_FULL_NAME_INFORMATION;
-
-typedef struct _USER_NAME_INFORMATION
-{
-    UNICODE_STRING UserName;
-    UNICODE_STRING FullName;
-} USER_NAME_INFORMATION, *PUSER_NAME_INFORMATION;
 
 typedef struct _USER_PRIMARY_GROUP_INFORMATION
 {
@@ -1294,10 +1121,189 @@ typedef struct _USER_EXPIRES_INFORMATION
     LARGE_INTEGER AccountExpires;
 } USER_EXPIRES_INFORMATION, *PUSER_EXPIRES_INFORMATION;
 
-typedef struct _USER_LOGON_HOURS_INFORMATION
+typedef struct _USER_PARAMETERS_INFORMATION
 {
+    UNICODE_STRING Parameters;
+} USER_PARAMETERS_INFORMATION, *PUSER_PARAMETERS_INFORMATION;
+
+// Flags for WhichFields in USER_ALL_INFORMATION
+
+#define USER_ALL_USERNAME 0x00000001
+#define USER_ALL_FULLNAME 0x00000002
+#define USER_ALL_USERID 0x00000004
+#define USER_ALL_PRIMARYGROUPID 0x00000008
+#define USER_ALL_ADMINCOMMENT 0x00000010
+#define USER_ALL_USERCOMMENT 0x00000020
+#define USER_ALL_HOMEDIRECTORY 0x00000040
+#define USER_ALL_HOMEDIRECTORYDRIVE 0x00000080
+#define USER_ALL_SCRIPTPATH 0x00000100
+#define USER_ALL_PROFILEPATH 0x00000200
+#define USER_ALL_WORKSTATIONS 0x00000400
+#define USER_ALL_LASTLOGON 0x00000800
+#define USER_ALL_LASTLOGOFF 0x00001000
+#define USER_ALL_LOGONHOURS 0x00002000
+#define USER_ALL_BADPASSWORDCOUNT 0x00004000
+#define USER_ALL_LOGONCOUNT 0x00008000
+#define USER_ALL_PASSWORDCANCHANGE 0x00010000
+#define USER_ALL_PASSWORDMUSTCHANGE 0x00020000
+#define USER_ALL_PASSWORDLASTSET 0x00040000
+#define USER_ALL_ACCOUNTEXPIRES 0x00080000
+#define USER_ALL_USERACCOUNTCONTROL 0x00100000
+#define USER_ALL_PARAMETERS 0x00200000
+#define USER_ALL_COUNTRYCODE 0x00400000
+#define USER_ALL_CODEPAGE 0x00800000
+#define USER_ALL_NTPASSWORDPRESENT 0x01000000 // field AND boolean
+#define USER_ALL_LMPASSWORDPRESENT 0x02000000 // field AND boolean
+#define USER_ALL_PRIVATEDATA 0x04000000 // field AND boolean
+#define USER_ALL_PASSWORDEXPIRED 0x08000000
+#define USER_ALL_SECURITYDESCRIPTOR 0x10000000
+#define USER_ALL_OWFPASSWORD 0x20000000 // boolean
+
+#define USER_ALL_UNDEFINED_MASK 0xc0000000
+
+// Fields that require USER_READ_GENERAL access to read.
+
+#define USER_ALL_READ_GENERAL_MASK \
+    (USER_ALL_USERNAME | \
+    USER_ALL_FULLNAME | \
+    USER_ALL_USERID | \
+    USER_ALL_PRIMARYGROUPID | \
+    USER_ALL_ADMINCOMMENT | \
+    USER_ALL_USERCOMMENT)
+
+// Fields that require USER_READ_LOGON access to read.
+
+#define USER_ALL_READ_LOGON_MASK \
+   (USER_ALL_HOMEDIRECTORY | \
+    USER_ALL_HOMEDIRECTORYDRIVE | \
+    USER_ALL_SCRIPTPATH | \
+    USER_ALL_PROFILEPATH | \
+    USER_ALL_WORKSTATIONS | \
+    USER_ALL_LASTLOGON | \
+    USER_ALL_LASTLOGOFF | \
+    USER_ALL_LOGONHOURS | \
+    USER_ALL_BADPASSWORDCOUNT | \
+    USER_ALL_LOGONCOUNT | \
+    USER_ALL_PASSWORDCANCHANGE | \
+    USER_ALL_PASSWORDMUSTCHANGE)
+
+// Fields that require USER_READ_ACCOUNT access to read.
+
+#define USER_ALL_READ_ACCOUNT_MASK \
+    (USER_ALL_PASSWORDLASTSET | \
+    USER_ALL_ACCOUNTEXPIRES | \
+    USER_ALL_USERACCOUNTCONTROL | \
+    USER_ALL_PARAMETERS)
+
+// Fields that require USER_READ_PREFERENCES access to read.
+
+#define USER_ALL_READ_PREFERENCES_MASK \
+    (USER_ALL_COUNTRYCODE | USER_ALL_CODEPAGE)
+
+// Fields that can only be read by trusted clients.
+
+#define USER_ALL_READ_TRUSTED_MASK \
+    (USER_ALL_NTPASSWORDPRESENT | \
+    USER_ALL_LMPASSWORDPRESENT | \
+    USER_ALL_PASSWORDEXPIRED | \
+    USER_ALL_SECURITYDESCRIPTOR | \
+    USER_ALL_PRIVATEDATA)
+
+// Fields that can't be read.
+
+#define USER_ALL_READ_CANT_MASK USER_ALL_UNDEFINED_MASK
+
+// Fields that require USER_WRITE_ACCOUNT access to write.
+
+#define USER_ALL_WRITE_ACCOUNT_MASK \
+    (USER_ALL_USERNAME | \
+    USER_ALL_FULLNAME | \
+    USER_ALL_PRIMARYGROUPID | \
+    USER_ALL_HOMEDIRECTORY | \
+    USER_ALL_HOMEDIRECTORYDRIVE | \
+    USER_ALL_SCRIPTPATH | \
+    USER_ALL_PROFILEPATH | \
+    USER_ALL_ADMINCOMMENT | \
+    USER_ALL_WORKSTATIONS | \
+    USER_ALL_LOGONHOURS | \
+    USER_ALL_ACCOUNTEXPIRES | \
+    USER_ALL_USERACCOUNTCONTROL | \
+    USER_ALL_PARAMETERS)
+
+// Fields that require USER_WRITE_PREFERENCES access to write.
+
+#define USER_ALL_WRITE_PREFERENCES_MASK \
+    (USER_ALL_USERCOMMENT | USER_ALL_COUNTRYCODE | USER_ALL_CODEPAGE)
+
+// Fields that require USER_FORCE_PASSWORD_CHANGE access to write.
+//
+// Note that non-trusted clients only set the NT password as a
+// UNICODE string. The wrapper will convert it to an LM password,
+// OWF and encrypt both versions. Trusted clients can pass in OWF
+// versions of either or both.
+
+#define USER_ALL_WRITE_FORCE_PASSWORD_CHANGE_MASK \
+    (USER_ALL_NTPASSWORDPRESENT | \
+    USER_ALL_LMPASSWORDPRESENT | \
+    USER_ALL_PASSWORDEXPIRED)
+
+// Fields that can only be written by trusted clients.
+
+#define USER_ALL_WRITE_TRUSTED_MASK \
+    (USER_ALL_LASTLOGON | \
+    USER_ALL_LASTLOGOFF | \
+    USER_ALL_BADPASSWORDCOUNT | \
+    USER_ALL_LOGONCOUNT | \
+    USER_ALL_PASSWORDLASTSET | \
+    USER_ALL_SECURITYDESCRIPTOR | \
+    USER_ALL_PRIVATEDATA)
+
+// Fields that can't be written.
+
+#define USER_ALL_WRITE_CANT_MASK \
+    (USER_ALL_USERID | \
+    USER_ALL_PASSWORDCANCHANGE | \
+    USER_ALL_PASSWORDMUSTCHANGE | \
+    USER_ALL_UNDEFINED_MASK)
+
+#include <pshpack4.h>
+typedef struct _USER_ALL_INFORMATION
+{
+    LARGE_INTEGER LastLogon;
+    LARGE_INTEGER LastLogoff;
+    LARGE_INTEGER PasswordLastSet;
+    LARGE_INTEGER AccountExpires;
+    LARGE_INTEGER PasswordCanChange;
+    LARGE_INTEGER PasswordMustChange;
+    UNICODE_STRING UserName;
+    UNICODE_STRING FullName;
+    UNICODE_STRING HomeDirectory;
+    UNICODE_STRING HomeDirectoryDrive;
+    UNICODE_STRING ScriptPath;
+    UNICODE_STRING ProfilePath;
+    UNICODE_STRING AdminComment;
+    UNICODE_STRING WorkStations;
+    UNICODE_STRING UserComment;
+    UNICODE_STRING Parameters;
+    UNICODE_STRING LmPassword;
+    UNICODE_STRING NtPassword;
+    UNICODE_STRING PrivateData;
+    SR_SECURITY_DESCRIPTOR SecurityDescriptor;
+    ULONG UserId;
+    ULONG PrimaryGroupId;
+    ULONG UserAccountControl;
+    ULONG WhichFields;
     LOGON_HOURS LogonHours;
-} USER_LOGON_HOURS_INFORMATION, *PUSER_LOGON_HOURS_INFORMATION;
+    USHORT BadPasswordCount;
+    USHORT LogonCount;
+    USHORT CountryCode;
+    USHORT CodePage;
+    BOOLEAN LmPasswordPresent;
+    BOOLEAN NtPasswordPresent;
+    BOOLEAN PasswordExpired;
+    BOOLEAN PrivateDataSensitive;
+} USER_ALL_INFORMATION, *PUSER_ALL_INFORMATION;
+#include <poppack.h>
 
 typedef SAM_BYTE_ARRAY_32K SAM_USER_TILE, *PSAM_USER_TILE;
 
