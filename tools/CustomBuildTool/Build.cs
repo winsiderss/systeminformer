@@ -676,23 +676,13 @@ namespace CustomBuildTool
                 if (File.Exists("bin\\Debug32\\ProcessHacker.exe"))
                 {
                     File.WriteAllText("bin\\Debug32\\ProcessHacker.sig", string.Empty);
-
-                    string output = Win32.ShellExecute(CustomSignToolPath, "sign -k build\\kph.key bin\\Debug32\\ProcessHacker.exe -s bin\\Debug32\\ProcessHacker.sig");
-                    if (!string.IsNullOrEmpty(output))
-                    {
-                        Program.PrintColorMessage("[WARN] (Debug32) " + output, ConsoleColor.Yellow, true, Flags);
-                    }
+                    Win32.ShellExecute(CustomSignToolPath, "sign -k build\\kph.key bin\\Debug32\\ProcessHacker.exe -s bin\\Debug32\\ProcessHacker.sig");
                 }
 
                 if (File.Exists("bin\\Debug64\\ProcessHacker.exe"))
                 {
                     File.WriteAllText("bin\\Debug64\\ProcessHacker.sig", string.Empty);
-
-                    string output = Win32.ShellExecute(CustomSignToolPath, "sign -k build\\kph.key bin\\Debug64\\ProcessHacker.exe -s bin\\Debug64\\ProcessHacker.sig");
-                    if (!string.IsNullOrEmpty(output))
-                    {
-                        Program.PrintColorMessage("[WARN] (Debug64) " + output, ConsoleColor.Yellow, true, Flags);
-                    }
+                    Win32.ShellExecute(CustomSignToolPath, "sign -k build\\kph.key bin\\Debug64\\ProcessHacker.exe -s bin\\Debug64\\ProcessHacker.sig");
                 }
             }
 
@@ -701,23 +691,13 @@ namespace CustomBuildTool
                 if (File.Exists("bin\\Release32\\ProcessHacker.exe"))
                 {
                     File.WriteAllText("bin\\Release32\\ProcessHacker.sig", string.Empty);
-
-                    string output = Win32.ShellExecute(CustomSignToolPath, "sign -k build\\kph.key bin\\Release32\\ProcessHacker.exe -s bin\\Release32\\ProcessHacker.sig");
-                    if (!string.IsNullOrEmpty(output))
-                    {
-                        Program.PrintColorMessage("[WARN] (Release32) " + output, ConsoleColor.Yellow, true, Flags);
-                    }
+                    Win32.ShellExecute(CustomSignToolPath, "sign -k build\\kph.key bin\\Release32\\ProcessHacker.exe -s bin\\Release32\\ProcessHacker.sig");
                 }
 
                 if (File.Exists("bin\\Release64\\ProcessHacker.exe"))
                 {
                     File.WriteAllText("bin\\Release64\\ProcessHacker.sig", string.Empty);
-
-                    string output = Win32.ShellExecute(CustomSignToolPath, "sign -k build\\kph.key bin\\Release64\\ProcessHacker.exe -s bin\\Release64\\ProcessHacker.sig");
-                    if (!string.IsNullOrEmpty(output))
-                    {
-                        Program.PrintColorMessage("[WARN] (Release64) " + output, ConsoleColor.Yellow, true, Flags);
-                    }
+                    Win32.ShellExecute(CustomSignToolPath, "sign -k build\\kph.key bin\\Release64\\ProcessHacker.exe -s bin\\Release64\\ProcessHacker.sig");
                 }
             }
 
@@ -1025,7 +1005,7 @@ namespace CustomBuildTool
                 return true;
             }
 
-            if (!File.Exists("build\\nightly.key"))
+            if (BuildNightly && !File.Exists("build\\nightly.key"))
             {
                 string buildKey = Environment.ExpandEnvironmentVariables("%NIGHTLY_BUILD_KEY%").Replace("%NIGHTLY_BUILD_KEY%", string.Empty, StringComparison.OrdinalIgnoreCase);
 
@@ -1106,8 +1086,10 @@ namespace CustomBuildTool
                     compilerOptions.Append("PH_BUILD_API;");
                 if (!string.IsNullOrEmpty(BuildCommit))
                     compilerOptions.Append($"PHAPP_VERSION_COMMITHASH=\"{BuildCommit.Substring(0, 8)}\";");
-                compilerOptions.Append($"PHAPP_VERSION_REVISION=\"{BuildRevision}\";");
-                compilerOptions.Append($"PHAPP_VERSION_BUILD=\"{BuildCount}\"");
+                if (!string.IsNullOrEmpty(BuildRevision))
+                    compilerOptions.Append($"PHAPP_VERSION_REVISION=\"{BuildRevision}\";");
+                if (!string.IsNullOrEmpty(BuildCount))
+                    compilerOptions.Append($"PHAPP_VERSION_BUILD=\"{BuildCount}\"");
 
                 string error32 = Win32.ShellExecute(
                     MSBuildExePath,
@@ -1137,8 +1119,10 @@ namespace CustomBuildTool
                     compilerOptions.Append("PH_BUILD_API;");
                 if (!string.IsNullOrEmpty(BuildCommit))
                     compilerOptions.Append($"PHAPP_VERSION_COMMITHASH=\"{BuildCommit.Substring(0, 8)}\";");
-                compilerOptions.Append($"PHAPP_VERSION_REVISION=\"{BuildRevision}\";");
-                compilerOptions.Append($"PHAPP_VERSION_BUILD=\"{BuildCount}\"");
+                if (!string.IsNullOrEmpty(BuildRevision))
+                    compilerOptions.Append($"PHAPP_VERSION_REVISION=\"{BuildRevision}\";");
+                if (!string.IsNullOrEmpty(BuildCount))
+                    compilerOptions.Append($"PHAPP_VERSION_BUILD=\"{BuildCount}\"");
 
                 string error64 = Win32.ShellExecute(
                     MSBuildExePath,
