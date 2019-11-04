@@ -38,10 +38,10 @@ mxmlElementDeleteAttr(mxml_node_t *node,/* I - Element */
   _mxml_attr_t	*attr;			/* Cirrent attribute */
 
 
-#ifdef MXMLDEBUG
+#ifdef DEBUG
   fprintf(stderr, "mxmlElementDeleteAttr(node=%p, name=\"%s\")\n",
           node, name ? name : "(null)");
-#endif /* MXMLDEBUG */
+#endif /* DEBUG */
 
  /*
   * Range check input...
@@ -58,9 +58,9 @@ mxmlElementDeleteAttr(mxml_node_t *node,/* I - Element */
        i > 0;
        i --, attr ++)
   {
-#ifdef MXMLDEBUG
+#ifdef DEBUG
     printf("    %s=\"%s\"\n", attr->name, attr->value);
-#endif /* MXMLDEBUG */
+#endif /* DEBUG */
 
     if (!strcmp(attr->name, name))
     {
@@ -68,8 +68,8 @@ mxmlElementDeleteAttr(mxml_node_t *node,/* I - Element */
       * Delete this attribute...
       */
 
-        PhFree(attr->name);
-        PhFree(attr->value);
+      free(attr->name);
+      free(attr->value);
 
       i --;
       if (i > 0)
@@ -78,7 +78,7 @@ mxmlElementDeleteAttr(mxml_node_t *node,/* I - Element */
       node->value.element.num_attrs --;
 
       if (node->value.element.num_attrs == 0)
-          PhFree(node->value.element.attrs);
+        free(node->value.element.attrs);
       return;
     }
   }
@@ -100,10 +100,10 @@ mxmlElementGetAttr(mxml_node_t *node,	/* I - Element node */
   _mxml_attr_t	*attr;			/* Cirrent attribute */
 
 
-#ifdef MXMLDEBUG
+#ifdef DEBUG
   fprintf(stderr, "mxmlElementGetAttr(node=%p, name=\"%s\")\n",
           node, name ? name : "(null)");
-#endif /* MXMLDEBUG */
+#endif /* DEBUG */
 
  /*
   * Range check input...
@@ -120,15 +120,15 @@ mxmlElementGetAttr(mxml_node_t *node,	/* I - Element node */
        i > 0;
        i --, attr ++)
   {
-#ifdef MXMLDEBUG
+#ifdef DEBUG
     printf("    %s=\"%s\"\n", attr->name, attr->value);
-#endif /* MXMLDEBUG */
+#endif /* DEBUG */
 
     if (!strcmp(attr->name, name))
     {
-#ifdef MXMLDEBUG
+#ifdef DEBUG
       printf("    Returning \"%s\"!\n", attr->value);
-#endif /* MXMLDEBUG */
+#endif /* DEBUG */
       return (attr->value);
     }
   }
@@ -137,9 +137,9 @@ mxmlElementGetAttr(mxml_node_t *node,	/* I - Element node */
   * Didn't find attribute, so return NULL...
   */
 
-#ifdef MXMLDEBUG
+#ifdef DEBUG
   puts("    Returning NULL!\n");
-#endif /* MXMLDEBUG */
+#endif /* DEBUG */
 
   return (NULL);
 }
@@ -204,10 +204,10 @@ mxmlElementSetAttr(mxml_node_t *node,	/* I - Element node */
   char	*valuec;			/* Copy of value */
 
 
-#ifdef MXMLDEBUG
+#ifdef DEBUG
   fprintf(stderr, "mxmlElementSetAttr(node=%p, name=\"%s\", value=\"%s\")\n",
           node, name ? name : "(null)", value ? value : "(null)");
-#endif /* MXMLDEBUG */
+#endif /* DEBUG */
 
  /*
   * Range check input...
@@ -217,12 +217,12 @@ mxmlElementSetAttr(mxml_node_t *node,	/* I - Element node */
     return;
 
   if (value)
-    valuec = PhDuplicateBytesZSafe((char *)value);
+    valuec = strdup(value);
   else
     valuec = NULL;
 
   if (mxml_set_attr(node, name, valuec))
-      PhFree(valuec);
+    free(valuec);
 }
 
 
@@ -241,17 +241,17 @@ void
 mxmlElementSetAttrf(mxml_node_t *node,	/* I - Element node */
                     const char  *name,	/* I - Name of attribute */
                     const char  *format,/* I - Printf-style attribute value */
-		    ...)		/* I - Additional arguments as needed */
+            ...)		/* I - Additional arguments as needed */
 {
   va_list	ap;			/* Argument pointer */
   char		*value;			/* Value */
 
 
-#ifdef MXMLDEBUG
+#ifdef DEBUG
   fprintf(stderr,
           "mxmlElementSetAttrf(node=%p, name=\"%s\", format=\"%s\", ...)\n",
           node, name ? name : "(null)", format ? format : "(null)");
-#endif /* MXMLDEBUG */
+#endif /* DEBUG */
 
  /*
   * Range check input...
@@ -272,7 +272,7 @@ mxmlElementSetAttrf(mxml_node_t *node,	/* I - Element node */
     mxml_error("Unable to allocate memory for attribute '%s' in element %s!",
                name, node->value.element.name);
   else if (mxml_set_attr(node, name, value))
-      PhFree(value);
+    free(value);
 }
 
 
@@ -303,7 +303,7 @@ mxml_set_attr(mxml_node_t *node,	/* I - Element node */
       */
 
       if (attr->value)
-          PhFree(attr->value);
+        free(attr->value);
 
       attr->value = value;
 
@@ -315,9 +315,9 @@ mxml_set_attr(mxml_node_t *node,	/* I - Element node */
   */
 
   if (node->value.element.num_attrs == 0)
-    attr = PhAllocateSafe(sizeof(_mxml_attr_t));
+    attr = malloc(sizeof(_mxml_attr_t));
   else
-    attr = PhReAllocateSafe(node->value.element.attrs,
+    attr = realloc(node->value.element.attrs,
                    (node->value.element.num_attrs + 1) * sizeof(_mxml_attr_t));
 
   if (!attr)
@@ -330,7 +330,7 @@ mxml_set_attr(mxml_node_t *node,	/* I - Element node */
   node->value.element.attrs = attr;
   attr += node->value.element.num_attrs;
 
-  if ((attr->name = PhDuplicateBytesZSafe((char *)name)) == NULL)
+  if ((attr->name = strdup(name)) == NULL)
   {
     mxml_error("Unable to allocate memory for attribute '%s' in element %s!",
                name, node->value.element.name);
