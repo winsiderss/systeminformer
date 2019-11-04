@@ -1328,7 +1328,7 @@ namespace CustomBuildTool
                             client.DefaultRequestHeaders.Add("X-ApiKey", buildBuildUrlKey);
                             client.DefaultRequestHeaders.Add("X-FileName", fileName);
 
-                            var httpTask = client.PostAsync(buildBuildUrl, new ByteArrayContent(File.ReadAllBytes(fileName)));
+                            var httpTask = client.PostAsync(buildBuildUrl, new ByteArrayContent(File.ReadAllBytes(sourceFile)));
                             httpTask.Wait();
 
                             if (!httpTask.Result.IsSuccessStatusCode)
