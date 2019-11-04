@@ -187,6 +187,7 @@ static BOOLEAN EnumPluginsDirectoryCallback(
     _In_opt_ PVOID Context
     )
 {
+    static PH_STRINGREF PhpPathSeperator = PH_STRINGREF_INIT(L"\\"); // OBJ_NAME_PATH_SEPARATOR
     static PH_STRINGREF PhpPluginExtension = PH_STRINGREF_INIT(L".dll");
     static PH_STRINGREF PhpPluginBlocklist[] =
     {
@@ -215,7 +216,7 @@ static BOOLEAN EnumPluginsDirectoryCallback(
         }
     }
 
-    fileName = PhConcatStringRef2(&PluginsDirectory->sr, &baseName);
+    fileName = PhConcatStringRef3(&PluginsDirectory->sr, &PhpPathSeperator, &baseName);
 
     if (blocklistedPlugin)
     {
