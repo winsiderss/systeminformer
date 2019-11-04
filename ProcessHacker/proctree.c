@@ -427,37 +427,6 @@ PPH_PROCESS_NODE PhAddProcessNode(
         );
     PhAddItemList(ProcessNodeList, processNode);
 
-    if (PhCsCollapseServicesOnStart)
-    {
-        static PH_STRINGREF servicesBaseName = PH_STRINGREF_INIT(L"\\services.exe");
-        static BOOLEAN servicesFound = FALSE;
-        static PPH_STRING servicesFileName = NULL;
-
-        if (!servicesFound)
-        {
-            if (!servicesFileName)
-            {
-                PPH_STRING systemDirectory;
-
-                systemDirectory = PhGetSystemDirectory();
-                servicesFileName = PhConcatStringRef2(&systemDirectory->sr, &servicesBaseName);
-                PhDereferenceObject(systemDirectory);
-            }
-
-            // If this process is services.exe, collapse the node and free the string.
-            if (
-                ProcessItem->FileName &&
-                PhEqualString(ProcessItem->FileName, servicesFileName, TRUE)
-                )
-            {
-                processNode->Node.Expanded = FALSE;
-                PhDereferenceObject(servicesFileName);
-                servicesFileName = NULL;
-                servicesFound = TRUE;
-            }
-        }
-    }
-
     if (PhEnableCycleCpuUsage && ProcessItem->ProcessId == INTERRUPTS_PROCESS_ID)
         PhInitializeStringRef(&processNode->DescriptionText, L"Interrupts and DPCs");
 

@@ -118,9 +118,9 @@ BOOLEAN PhMwpProcessesPageCallback(
             PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_SCROLLTONEWPROCESSES, L"Scrol&l to new processes", NULL, NULL), startIndex + 2);
             PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_SHOWCPUBELOW001, L"Show CPU &below 0.01", NULL, NULL), startIndex + 3);
 
-            if (CurrentUserFilterEntry && (menuItem = PhFindEMenuItem(menu, 0, NULL, ID_VIEW_HIDEPROCESSESFROMOTHERUSERS)))
+            if (PhCsHideOtherUserProcesses && (menuItem = PhFindEMenuItem(menu, 0, NULL, ID_VIEW_HIDEPROCESSESFROMOTHERUSERS)))
                 menuItem->Flags |= PH_EMENU_CHECKED;
-            if (SignedFilterEntry && (menuItem = PhFindEMenuItem(menu, 0, NULL, ID_VIEW_HIDESIGNEDPROCESSES)))
+            if (PhGetIntegerSetting(L"HideSignedProcesses") && (menuItem = PhFindEMenuItem(menu, 0, NULL, ID_VIEW_HIDESIGNEDPROCESSES)))
                 menuItem->Flags |= PH_EMENU_CHECKED;
             if (PhCsScrollToNewProcesses && (menuItem = PhFindEMenuItem(menu, 0, NULL, ID_VIEW_SCROLLTONEWPROCESSES)))
                 menuItem->Flags |= PH_EMENU_CHECKED;
@@ -175,8 +175,8 @@ BOOLEAN PhMwpProcessesPageCallback(
         {
             PhLoadSettingsProcessTreeList();
 
-            if (PhGetIntegerSetting(L"HideOtherUserProcesses"))
-                CurrentUserFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), PhMwpCurrentUserProcessTreeFilter, NULL);
+            CurrentUserFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), PhMwpCurrentUserProcessTreeFilter, NULL);
+
             if (PhGetIntegerSetting(L"HideSignedProcesses"))
                 SignedFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), PhMwpSignedProcessTreeFilter, NULL);
         }
@@ -234,19 +234,11 @@ VOID PhMwpToggleCurrentUserProcessTreeFilter(
     VOID
     )
 {
-    if (!CurrentUserFilterEntry)
-    {
-        CurrentUserFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), PhMwpCurrentUserProcessTreeFilter, NULL);
-    }
-    else
-    {
-        PhRemoveTreeNewFilter(PhGetFilterSupportProcessTreeList(), CurrentUserFilterEntry);
-        CurrentUserFilterEntry = NULL;
-    }
+    PhCsHideOtherUserProcesses = !PhGetIntegerSetting(L"HideOtherUserProcesses");
+    PhSetIntegerSetting(L"HideOtherUserProcesses", PhCsHideOtherUserProcesses);
 
+    PhExpandAllProcessNodes(TRUE);
     PhApplyTreeNewFilters(PhGetFilterSupportProcessTreeList());
-
-    PhSetIntegerSetting(L"HideOtherUserProcesses", !!CurrentUserFilterEntry);
 }
 
 BOOLEAN PhMwpCurrentUserProcessTreeFilter(
@@ -256,11 +248,40 @@ BOOLEAN PhMwpCurrentUserProcessTreeFilter(
 {
     PPH_PROCESS_NODE processNode = (PPH_PROCESS_NODE)Node;
 
-    if (!processNode->ProcessItem->Sid)
-        return FALSE;
+    if (PhCsHideOtherUserProcesses)
+    {
+        if (!processNode->ProcessItem->Sid)
+            return FALSE;
 
-    if (!RtlEqualSid(processNode->ProcessItem->Sid, PhGetOwnTokenAttributes().TokenSid))
-        return FALSE;
+        if (!RtlEqualSid(processNode->ProcessItem->Sid, PhGetOwnTokenAttributes().TokenSid))
+            return FALSE;
+    }
+
+    if (PhCsCollapseServicesOnStart)
+    {
+        static PH_STRINGREF servicesBaseName = PH_STRINGREF_INIT(L"\\services.exe");
+        static PPH_STRING servicesFileName = NULL;
+
+        if (!servicesFileName)
+        {
+            PPH_STRING systemDirectory;
+
+            systemDirectory = PhGetSystemDirectory();
+            servicesFileName = PhConcatStringRef2(&systemDirectory->sr, &servicesBaseName);
+            PhDereferenceObject(systemDirectory);
+        }
+
+        // If this process is services.exe, collapse the node and free the string.
+        if (
+            processNode->ProcessItem->FileName &&
+            PhEqualString(processNode->ProcessItem->FileName, servicesFileName, TRUE)
+            )
+        {
+            processNode->Node.Expanded = FALSE;
+            PhDereferenceObject(servicesFileName);
+            servicesFileName = NULL;
+        }
+    }
 
     return TRUE;
 }
