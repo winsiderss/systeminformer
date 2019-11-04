@@ -7269,6 +7269,7 @@ NTSTATUS PhQueryValueKey(
 
 NTSTATUS PhEnumerateKey(
     _In_ HANDLE KeyHandle,
+    _In_ KEY_INFORMATION_CLASS InformationClass,
     _In_ PPH_ENUM_KEY_CALLBACK Callback,
     _In_opt_ PVOID Context
     )
@@ -7286,7 +7287,7 @@ NTSTATUS PhEnumerateKey(
         status = NtEnumerateKey(
             KeyHandle,
             index,
-            KeyBasicInformation,
+            InformationClass,
             buffer,
             bufferSize,
             &bufferSize
@@ -7306,7 +7307,67 @@ NTSTATUS PhEnumerateKey(
             status = NtEnumerateKey(
                 KeyHandle,
                 index,
-                KeyBasicInformation,
+                InformationClass,
+                buffer,
+                bufferSize,
+                &bufferSize
+                );
+        }
+
+        if (!NT_SUCCESS(status))
+            break;
+
+        if (!Callback(KeyHandle, buffer, Context))
+            break;
+
+        index++;
+    } while (TRUE);
+
+    PhFree(buffer);
+
+    return status;
+}
+
+NTSTATUS PhEnumerateValueKey(
+    _In_ HANDLE KeyHandle,
+    _In_ PPH_ENUM_KEY_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    NTSTATUS status;
+    PVOID buffer;
+    ULONG bufferSize;
+    ULONG index = 0;
+
+    bufferSize = 0x100;
+    buffer = PhAllocate(bufferSize);
+
+    do
+    {
+        status = NtEnumerateValueKey(
+            KeyHandle,
+            index,
+            KeyValueFullInformation,
+            buffer,
+            bufferSize,
+            &bufferSize
+            );
+
+        if (status == STATUS_NO_MORE_ENTRIES)
+        {
+            status = STATUS_SUCCESS;
+            break;
+        }
+
+        if (status == STATUS_BUFFER_OVERFLOW || status == STATUS_BUFFER_TOO_SMALL)
+        {
+            PhFree(buffer);
+            buffer = PhAllocate(bufferSize);
+
+            status = NtEnumerateValueKey(
+                KeyHandle,
+                index,
+                KeyValueFullInformation,
                 buffer,
                 bufferSize,
                 &bufferSize

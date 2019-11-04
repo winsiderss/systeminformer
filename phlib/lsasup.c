@@ -865,7 +865,7 @@ BOOLEAN NTAPI PhpDeviceAccessEnumerateKeyCallback(
         entry.KeyName = PhCreateString2(&keyName);
         entry.Context = Context;
 
-        PhEnumerateKey(keyHandle, PhpDeviceAccessSubKeyEnumerateKeyCallback, &entry);
+        PhEnumerateKey(keyHandle, KeyBasicInformation, PhpDeviceAccessSubKeyEnumerateKeyCallback, &entry);
 
         PhDereferenceObject(entry.KeyName);
         NtClose(keyHandle);
@@ -892,7 +892,7 @@ VOID PhInitializeCapabilityGuidCache(
         0
         )))
     {
-        PhEnumerateKey(keyHandle, PhpAccessManagerEnumerateKeyCallback, CapabilityGuidArrayList);
+        PhEnumerateKey(keyHandle, KeyBasicInformation, PhpAccessManagerEnumerateKeyCallback, CapabilityGuidArrayList);
         NtClose(keyHandle);
     }
 
@@ -904,7 +904,7 @@ VOID PhInitializeCapabilityGuidCache(
         0
         )))
     {
-        PhEnumerateKey(keyHandle, PhpDeviceAccessEnumerateKeyCallback, CapabilityGuidArrayList);
+        PhEnumerateKey(keyHandle, KeyBasicInformation, PhpDeviceAccessEnumerateKeyCallback, CapabilityGuidArrayList);
         NtClose(keyHandle);
     }
 }
