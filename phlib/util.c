@@ -4971,7 +4971,7 @@ PPH_STRING PhEscapeCommandLinePart(
         case '\"':
             if (numberOfBackslashes != 0)
             {
-                PhAppendCharStringBuilder2(&stringBuilder, OBJ_NAME_PATH_SEPARATOR, numberOfBackslashes * 2);
+                PhAppendCharStringBuilder2(&stringBuilder, OBJ_NAME_PATH_SEPARATOR, UInt32Mul32To64(numberOfBackslashes, 2));
                 numberOfBackslashes = 0;
             }
 

@@ -32,4 +32,9 @@ typedef struct _PH_UINTPTR_DELTA
     ((DltMgr)->Delta = (NewValue) - (DltMgr)->Value, \
     (DltMgr)->Value = (NewValue), (DltMgr)->Delta)
 
+#define PH_SINGLE_DELTA_INIT { 0.0F, 0.0F }
+#define PH_UINT32_DELTA_INIT { 0UL, 0UL }
+#define PH_UINT64_DELTA_INIT { 0ULL, 0ULL }
+#define PH_UINTPTR_DELTA_INIT { 0, 0 }
+
 #endif

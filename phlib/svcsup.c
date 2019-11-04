@@ -25,7 +25,8 @@
 #include <subprocesstag.h>
 #include <svcsup.h>
 
-#define SIP(String, Integer) { (String), (PVOID)(Integer) }
+#define SIP(String, Integer) \
+    { (String), (PVOID)(Integer) }
 
 static PH_KEY_VALUE_PAIR PhpServiceStatePairs[] =
 {
@@ -69,12 +70,36 @@ static PH_KEY_VALUE_PAIR PhpServiceErrorControlPairs[] =
     SIP(L"Critical", SERVICE_ERROR_CRITICAL)
 };
 
-WCHAR *PhServiceTypeStrings[10] = { L"Driver", L"FS driver", L"Own process", L"Share process",
-    L"Own interactive process", L"Share interactive process", L"User own process", L"User own process (instance)",
-    L"User share process", L"User share process (instance)" };
-WCHAR *PhServiceStartTypeStrings[5] = { L"Disabled", L"Boot start", L"System start",
-    L"Auto start", L"Demand start" };
-WCHAR *PhServiceErrorControlStrings[4] = { L"Ignore", L"Normal", L"Severe", L"Critical" };
+PWSTR PhServiceTypeStrings[10] =
+{
+    L"Driver",
+    L"FS driver",
+    L"Own process",
+    L"Share process",
+    L"Own interactive process",
+    L"Share interactive process",
+    L"User own process",
+    L"User own process (instance)",
+    L"User share process",
+    L"User share process (instance)"
+};
+
+PWSTR PhServiceStartTypeStrings[5] =
+{
+    L"Disabled",
+    L"Boot start",
+    L"System start",
+    L"Auto start",
+    L"Demand start"
+};
+
+PWSTR PhServiceErrorControlStrings[4] =
+{
+    L"Ignore",
+    L"Normal",
+    L"Severe",
+    L"Critical"
+};
 
 PVOID PhEnumServices(
     _In_ SC_HANDLE ScManagerHandle,
@@ -122,7 +147,7 @@ PVOID PhEnumServices(
         SC_ENUM_PROCESS_INFO,
         Type,
         State,
-        buffer,
+        (PBYTE)buffer,
         bufferSize,
         &returnLength,
         &servicesReturned,
@@ -141,7 +166,7 @@ PVOID PhEnumServices(
                 SC_ENUM_PROCESS_INFO,
                 Type,
                 State,
-                buffer,
+                (PBYTE)buffer,
                 bufferSize,
                 &returnLength,
                 &servicesReturned,
