@@ -25,7 +25,7 @@ mxmlEntityAddCallback(
     mxml_entity_cb_t cb)		/* I - Callback function to add */
 {
   _mxml_global_t *global = _mxml_global();
-					/* Global data */
+                    /* Global data */
 
 
   if (global->num_entity_cbs < (int)(sizeof(global->entity_cbs) / sizeof(global->entity_cbs[0])))
@@ -86,7 +86,7 @@ mxmlEntityGetValue(const char *name)	/* I - Entity name */
   int		i;			/* Looping var */
   int		ch;			/* Character value */
   _mxml_global_t *global = _mxml_global();
-					/* Global data */
+                    /* Global data */
 
 
   for (i = 0; i < global->num_entity_cbs; i ++)
@@ -107,7 +107,7 @@ mxmlEntityRemoveCallback(
 {
   int		i;			/* Looping var */
   _mxml_global_t *global = _mxml_global();
-					/* Global data */
+                    /* Global data */
 
 
   for (i = 0; i < global->num_entity_cbs; i ++)
@@ -121,7 +121,7 @@ mxmlEntityRemoveCallback(
 
       if (i < global->num_entity_cbs)
         memmove(global->entity_cbs + i, global->entity_cbs + i + 1,
-	        (global->num_entity_cbs - i) * sizeof(global->entity_cbs[0]));
+            (global->num_entity_cbs - i) * sizeof(global->entity_cbs[0]));
 
       return;
     }
@@ -136,9 +136,9 @@ int					/* O - Unicode value or -1 */
 _mxml_entity_cb(const char *name)	/* I - Entity name */
 {
   int	diff,				/* Difference between names */
-	current,			/* Current entity in search */
-	first,				/* First entity in search */
-	last;				/* Last entity in search */
+    current,			/* Current entity in search */
+    first,				/* First entity in search */
+    last;				/* Last entity in search */
   static const struct
   {
     const char	*name;			/* Entity name */

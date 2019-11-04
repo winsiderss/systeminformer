@@ -22,9 +22,9 @@
  */
 
 static int	index_compare(mxml_index_t *ind, mxml_node_t *first,
-		              mxml_node_t *second);
+                      mxml_node_t *second);
 static int	index_find(mxml_index_t *ind, const char *element,
-		           const char *value, mxml_node_t *node);
+                   const char *value, mxml_node_t *node);
 static void	index_sort(mxml_index_t *ind, int left, int right);
 
 
@@ -47,12 +47,12 @@ mxmlIndexDelete(mxml_index_t *ind)	/* I - Index to delete */
   */
 
   if (ind->attr)
-    PhFree(ind->attr);
+    free(ind->attr);
 
   if (ind->alloc_nodes)
-    PhFree(ind->nodes);
+    free(ind->nodes);
 
-  PhFree(ind);
+  free(ind);
 }
 
 
@@ -97,12 +97,12 @@ mxmlIndexEnum(mxml_index_t *ind)	/* I - Index to enumerate */
 mxml_node_t *				/* O - Node or @code NULL@ if none found */
 mxmlIndexFind(mxml_index_t *ind,	/* I - Index to search */
               const char   *element,	/* I - Element name to find, if any */
-	      const char   *value)	/* I - Attribute value, if any */
+          const char   *value)	/* I - Attribute value, if any */
 {
   int		diff,			/* Difference between names */
-		current,		/* Current entity in search */
-		first,			/* First entity in search */
-		last;			/* Last entity in search */
+        current,		/* Current entity in search */
+        first,			/* First entity in search */
+        last;			/* Last entity in search */
 
 
 #ifdef DEBUG
@@ -176,15 +176,15 @@ mxmlIndexFind(mxml_index_t *ind,	/* I - Index to search */
       {
        /*
         * Found a match, move back to find the first...
-	*/
+    */
 
 #ifdef DEBUG
         puts("    match!");
 #endif /* DEBUG */
 
         while (current > 0 &&
-	       !index_find(ind, element, value, ind->nodes[current - 1]))
-	  current --;
+           !index_find(ind, element, value, ind->nodes[current - 1]))
+      current --;
 
 #ifdef DEBUG
         printf("    returning first match=%d\n", current);
@@ -192,16 +192,16 @@ mxmlIndexFind(mxml_index_t *ind,	/* I - Index to search */
 
        /*
         * Return the first match and save the index to the next...
-	*/
+    */
 
         ind->cur_node = current + 1;
 
-	return (ind->nodes[current]);
+    return (ind->nodes[current]);
       }
       else if (diff < 0)
-	last = current;
+    last = current;
       else
-	first = current;
+    first = current;
 
 #ifdef DEBUG
       printf("    diff=%d\n", diff);
@@ -216,16 +216,16 @@ mxmlIndexFind(mxml_index_t *ind,	/* I - Index to search */
       if (!index_find(ind, element, value, ind->nodes[current]))
       {
        /*
-	* Found exactly one (or possibly two) match...
-	*/
+    * Found exactly one (or possibly two) match...
+    */
 
 #ifdef DEBUG
-	printf("    returning only match %d...\n", current);
+    printf("    returning only match %d...\n", current);
 #endif /* DEBUG */
 
-	ind->cur_node = current + 1;
+    ind->cur_node = current + 1;
 
-	return (ind->nodes[current]);
+    return (ind->nodes[current]);
       }
 
    /*
@@ -309,7 +309,7 @@ mxmlIndexNew(mxml_node_t *node,		/* I - XML node tree */
 {
   mxml_index_t	*ind;			/* New index */
   mxml_node_t	*current,		/* Current node in index */
-  		**temp;			/* Temporary node pointer array */
+        **temp;			/* Temporary node pointer array */
 
 
  /*
@@ -328,7 +328,7 @@ mxmlIndexNew(mxml_node_t *node,		/* I - XML node tree */
   * Create a new index...
   */
 
-  if ((ind = PhAllocateExSafe(sizeof(mxml_index_t), HEAP_ZERO_MEMORY)) == NULL)
+  if ((ind = calloc(1, sizeof(mxml_index_t))) == NULL)
   {
     mxml_error("Unable to allocate %d bytes for index - %s",
                sizeof(mxml_index_t), strerror(errno));
@@ -336,7 +336,7 @@ mxmlIndexNew(mxml_node_t *node,		/* I - XML node tree */
   }
 
   if (attr)
-    ind->attr = PhDuplicateBytesZSafe((char *)attr);
+    ind->attr = strdup(attr);
 
   if (!element && !attr)
     current = node;
@@ -348,22 +348,22 @@ mxmlIndexNew(mxml_node_t *node,		/* I - XML node tree */
     if (ind->num_nodes >= ind->alloc_nodes)
     {
       if (!ind->alloc_nodes)
-        temp = PhAllocateSafe(64 * sizeof(mxml_node_t *));
+        temp = malloc(64 * sizeof(mxml_node_t *));
       else
-        temp = PhReAllocateSafe(ind->nodes, (ind->alloc_nodes + 64) * sizeof(mxml_node_t *));
+        temp = realloc(ind->nodes, (ind->alloc_nodes + 64) * sizeof(mxml_node_t *));
 
       if (!temp)
       {
        /*
         * Unable to allocate memory for the index, so abort...
-	*/
+    */
 
         mxml_error("Unable to allocate %d bytes for index: %s",
-	           (ind->alloc_nodes + 64) * sizeof(mxml_node_t *),
-		   strerror(errno));
+               (ind->alloc_nodes + 64) * sizeof(mxml_node_t *),
+           strerror(errno));
 
         mxmlIndexDelete(ind);
-	return (NULL);
+    return (NULL);
       }
 
       ind->nodes       = temp;
@@ -392,9 +392,9 @@ mxmlIndexNew(mxml_node_t *node,		/* I - XML node tree */
       puts("--------  --------  --------------  ------------------------------");
 
       for (i = 0; i < ind->num_nodes; i ++)
-	printf("%8d  %-8p  %-14.14s  %s\n", i, ind->nodes[i],
-	       ind->nodes[i]->value.element.name,
-	       mxmlElementGetAttr(ind->nodes[i], attr));
+    printf("%8d  %-8p  %-14.14s  %s\n", i, ind->nodes[i],
+           ind->nodes[i]->value.element.name,
+           mxmlElementGetAttr(ind->nodes[i], attr));
     }
     else
     {
@@ -402,8 +402,8 @@ mxmlIndexNew(mxml_node_t *node,		/* I - XML node tree */
       puts("--------  --------  --------------");
 
       for (i = 0; i < ind->num_nodes; i ++)
-	printf("%8d  %-8p  %s\n", i, ind->nodes[i],
-	       ind->nodes[i]->value.element.name);
+    printf("%8d  %-8p  %s\n", i, ind->nodes[i],
+           ind->nodes[i]->value.element.name);
     }
 
     putchar('\n');
@@ -426,9 +426,9 @@ mxmlIndexNew(mxml_node_t *node,		/* I - XML node tree */
       puts("--------  --------  --------------  ------------------------------");
 
       for (i = 0; i < ind->num_nodes; i ++)
-	printf("%8d  %-8p  %-14.14s  %s\n", i, ind->nodes[i],
-	       ind->nodes[i]->value.element.name,
-	       mxmlElementGetAttr(ind->nodes[i], attr));
+    printf("%8d  %-8p  %-14.14s  %s\n", i, ind->nodes[i],
+           ind->nodes[i]->value.element.name,
+           mxmlElementGetAttr(ind->nodes[i], attr));
     }
     else
     {
@@ -436,8 +436,8 @@ mxmlIndexNew(mxml_node_t *node,		/* I - XML node tree */
       puts("--------  --------  --------------");
 
       for (i = 0; i < ind->num_nodes; i ++)
-	printf("%8d  %-8p  %s\n", i, ind->nodes[i],
-	       ind->nodes[i]->value.element.name);
+    printf("%8d  %-8p  %s\n", i, ind->nodes[i],
+           ind->nodes[i]->value.element.name);
     }
 
     putchar('\n');
@@ -537,7 +537,7 @@ index_compare(mxml_index_t *ind,	/* I - Index */
 static int				/* O - Result of comparison */
 index_find(mxml_index_t *ind,		/* I - Index */
            const char   *element,	/* I - Element name or @code NULL@ */
-	   const char   *value,		/* I - Attribute value or @code NULL@ */
+       const char   *value,		/* I - Attribute value or @code NULL@ */
            mxml_node_t  *node)		/* I - Node */
 {
   int	diff;				/* Difference */
@@ -580,12 +580,12 @@ index_find(mxml_index_t *ind,		/* I - Index */
 static void
 index_sort(mxml_index_t *ind,		/* I - Index to sort */
            int          left,		/* I - Left node in partition */
-	   int          right)		/* I - Right node in partition */
+       int          right)		/* I - Right node in partition */
 {
   mxml_node_t	*pivot,			/* Pivot node */
-		*temp;			/* Swap node */
+        *temp;			/* Swap node */
   int		templ,			/* Temporary left node */
-		tempr;			/* Temporary right node */
+        tempr;			/* Temporary right node */
 
 
  /*
@@ -608,7 +608,7 @@ index_sort(mxml_index_t *ind,		/* I - Index to sort */
 
       while ((templ < right) &&
              index_compare(ind, ind->nodes[templ], pivot) <= 0)
-	templ ++;
+    templ ++;
 
      /*
       * Move right while right node > pivot node...
@@ -616,7 +616,7 @@ index_sort(mxml_index_t *ind,		/* I - Index to sort */
 
       while ((tempr > left) &&
              index_compare(ind, ind->nodes[tempr], pivot) > 0)
-	tempr --;
+    tempr --;
 
      /*
       * Swap nodes if needed...
@@ -624,9 +624,9 @@ index_sort(mxml_index_t *ind,		/* I - Index to sort */
 
       if (templ < tempr)
       {
-	temp              = ind->nodes[templ];
-	ind->nodes[templ] = ind->nodes[tempr];
-	ind->nodes[tempr] = temp;
+    temp              = ind->nodes[templ];
+    ind->nodes[templ] = ind->nodes[tempr];
+    ind->nodes[tempr] = temp;
       }
     }
 

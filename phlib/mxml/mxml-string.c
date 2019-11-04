@@ -14,7 +14,7 @@
  */
 
 #include "config.h"
-#include "mxml-private.h"
+
 
 /*
  * The va_copy macro is part of C99, but many compilers don't implement it.
@@ -38,8 +38,8 @@
 int					/* O - Number of bytes formatted */
 _mxml_snprintf(char       *buffer,	/* I - Output buffer */
                size_t     bufsize,	/* I - Size of output buffer */
-	       const char *format,	/* I - Printf-style format string */
-	       ...)			/* I - Additional arguments as needed */
+           const char *format,	/* I - Printf-style format string */
+           ...)			/* I - Additional arguments as needed */
 {
   va_list	ap;			/* Argument list */
   int		bytes;			/* Number of bytes formatted */
@@ -196,19 +196,19 @@ _mxml_strlcpy(char       *dst,		/* I - Destination buffer */
 int					/* O - Number of bytes formatted */
 _mxml_vsnprintf(char       *buffer,	/* O - Output buffer */
                 size_t     bufsize,	/* O - Size of output buffer */
-		const char *format,	/* I - Printf-style format string */
- 		va_list    ap)		/* I - Pointer to additional arguments */
+        const char *format,	/* I - Printf-style format string */
+        va_list    ap)		/* I - Pointer to additional arguments */
 {
   char		*bufptr,		/* Pointer to position in buffer */
-		*bufend,		/* Pointer to end of buffer */
-		sign,			/* Sign of format width */
-		size,			/* Size character (h, l, L) */
-		type;			/* Format type character */
+        *bufend,		/* Pointer to end of buffer */
+        sign,			/* Sign of format width */
+        size,			/* Size character (h, l, L) */
+        type;			/* Format type character */
   int		width,			/* Width of field */
-		prec;			/* Number of characters of precision */
+        prec;			/* Number of characters of precision */
   char		tformat[100],		/* Temporary format string for sprintf() */
-		*tptr,			/* Pointer into temporary format */
-		temp[1024];		/* Buffer for formatted numbers */
+        *tptr,			/* Pointer into temporary format */
+        temp[1024];		/* Buffer for formatted numbers */
   char		*s;			/* Pointer to string */
   int		slen;			/* Length of string */
   int		bytes;			/* Total number of bytes needed */
@@ -235,7 +235,7 @@ _mxml_vsnprintf(char       *buffer,	/* O - Output buffer */
           *bufptr++ = *format;
         bytes ++;
         format ++;
-	continue;
+    continue;
       }
       else if (strchr(" -+#\'", *format))
       {
@@ -249,58 +249,58 @@ _mxml_vsnprintf(char       *buffer,	/* O - Output buffer */
       {
        /*
         * Get width from argument...
-	*/
+    */
 
-	format ++;
-	width = va_arg(ap, int);
+    format ++;
+    width = va_arg(ap, int);
 
-	snprintf(tptr, sizeof(tformat) - (tptr - tformat), "%d", width);
-	tptr += strlen(tptr);
+    snprintf(tptr, sizeof(tformat) - (tptr - tformat), "%d", width);
+    tptr += strlen(tptr);
       }
       else
       {
-	width = 0;
+    width = 0;
 
-	while (isdigit(*format & 255))
-	{
-	  if (tptr < (tformat + sizeof(tformat) - 1))
-	    *tptr++ = *format;
+    while (isdigit(*format & 255))
+    {
+      if (tptr < (tformat + sizeof(tformat) - 1))
+        *tptr++ = *format;
 
-	  width = width * 10 + *format++ - '0';
-	}
+      width = width * 10 + *format++ - '0';
+    }
       }
 
       if (*format == '.')
       {
-	if (tptr < (tformat + sizeof(tformat) - 1))
-	  *tptr++ = *format;
+    if (tptr < (tformat + sizeof(tformat) - 1))
+      *tptr++ = *format;
 
         format ++;
 
         if (*format == '*')
-	{
+    {
          /*
-	  * Get precision from argument...
-	  */
+      * Get precision from argument...
+      */
 
-	  format ++;
-	  prec = va_arg(ap, int);
+      format ++;
+      prec = va_arg(ap, int);
 
-	  snprintf(tptr, sizeof(tformat) - (tptr - tformat), "%d", prec);
-	  tptr += strlen(tptr);
-	}
-	else
-	{
-	  prec = 0;
+      snprintf(tptr, sizeof(tformat) - (tptr - tformat), "%d", prec);
+      tptr += strlen(tptr);
+    }
+    else
+    {
+      prec = 0;
 
-	  while (isdigit(*format & 255))
-	  {
-	    if (tptr < (tformat + sizeof(tformat) - 1))
-	      *tptr++ = *format;
+      while (isdigit(*format & 255))
+      {
+        if (tptr < (tformat + sizeof(tformat) - 1))
+          *tptr++ = *format;
 
-	    prec = prec * 10 + *format++ - '0';
-	  }
-	}
+        prec = prec * 10 + *format++ - '0';
+      }
+    }
       }
       else
         prec = -1;
@@ -309,18 +309,18 @@ _mxml_vsnprintf(char       *buffer,	/* O - Output buffer */
       {
         size = 'L';
 
-	if (tptr < (tformat + sizeof(tformat) - 2))
-	{
-	  *tptr++ = 'l';
-	  *tptr++ = 'l';
-	}
+    if (tptr < (tformat + sizeof(tformat) - 2))
+    {
+      *tptr++ = 'l';
+      *tptr++ = 'l';
+    }
 
-	format += 2;
+    format += 2;
       }
       else if (*format == 'h' || *format == 'l' || *format == 'L')
       {
-	if (tptr < (tformat + sizeof(tformat) - 1))
-	  *tptr++ = *format;
+    if (tptr < (tformat + sizeof(tformat) - 1))
+      *tptr++ = *format;
 
         size = *format++;
       }
@@ -336,145 +336,145 @@ _mxml_vsnprintf(char       *buffer,	/* O - Output buffer */
 
       switch (type)
       {
-	case 'E' : /* Floating point formats */
-	case 'G' :
-	case 'e' :
-	case 'f' :
-	case 'g' :
-	    if ((width + 2) > sizeof(temp))
-	      break;
+    case 'E' : /* Floating point formats */
+    case 'G' :
+    case 'e' :
+    case 'f' :
+    case 'g' :
+        if ((width + 2) > sizeof(temp))
+          break;
 
-	    sprintf(temp, tformat, va_arg(ap, double));
+        sprintf(temp, tformat, va_arg(ap, double));
 
             bytes += strlen(temp);
 
             if (bufptr)
-	    {
-	      if ((bufptr + strlen(temp)) > bufend)
-	      {
-		strncpy(bufptr, temp, (size_t)(bufend - bufptr));
-		bufptr = bufend;
-	      }
-	      else
-	      {
-		strcpy(bufptr, temp);
-		bufptr += strlen(temp);
-	      }
-	    }
-	    break;
+        {
+          if ((bufptr + strlen(temp)) > bufend)
+          {
+        strncpy(bufptr, temp, (size_t)(bufend - bufptr));
+        bufptr = bufend;
+          }
+          else
+          {
+        strcpy(bufptr, temp);
+        bufptr += strlen(temp);
+          }
+        }
+        break;
 
         case 'B' : /* Integer formats */
-	case 'X' :
-	case 'b' :
+    case 'X' :
+    case 'b' :
         case 'd' :
-	case 'i' :
-	case 'o' :
-	case 'u' :
-	case 'x' :
-	    if ((width + 2) > sizeof(temp))
-	      break;
+    case 'i' :
+    case 'o' :
+    case 'u' :
+    case 'x' :
+        if ((width + 2) > sizeof(temp))
+          break;
 
 #ifdef HAVE_LONG_LONG
-	    if (size == 'L')
-	      sprintf(temp, tformat, va_arg(ap, long long));
-	    else
+        if (size == 'L')
+          sprintf(temp, tformat, va_arg(ap, long long));
+        else
 #endif /* HAVE_LONG_LONG */
-	    sprintf(temp, tformat, va_arg(ap, int));
+        sprintf(temp, tformat, va_arg(ap, int));
 
             bytes += strlen(temp);
 
-	    if (bufptr)
-	    {
-	      if ((bufptr + strlen(temp)) > bufend)
-	      {
-		strncpy(bufptr, temp, (size_t)(bufend - bufptr));
-		bufptr = bufend;
-	      }
-	      else
-	      {
-		strcpy(bufptr, temp);
-		bufptr += strlen(temp);
-	      }
-	    }
-	    break;
+        if (bufptr)
+        {
+          if ((bufptr + strlen(temp)) > bufend)
+          {
+        strncpy(bufptr, temp, (size_t)(bufend - bufptr));
+        bufptr = bufend;
+          }
+          else
+          {
+        strcpy(bufptr, temp);
+        bufptr += strlen(temp);
+          }
+        }
+        break;
 
-	case 'p' : /* Pointer value */
-	    if ((width + 2) > sizeof(temp))
-	      break;
+    case 'p' : /* Pointer value */
+        if ((width + 2) > sizeof(temp))
+          break;
 
-	    sprintf(temp, tformat, va_arg(ap, void *));
+        sprintf(temp, tformat, va_arg(ap, void *));
 
             bytes += strlen(temp);
 
-	    if (bufptr)
-	    {
-	      if ((bufptr + strlen(temp)) > bufend)
-	      {
-		strncpy(bufptr, temp, (size_t)(bufend - bufptr));
-		bufptr = bufend;
-	      }
-	      else
-	      {
-		strcpy(bufptr, temp);
-		bufptr += strlen(temp);
-	      }
-	    }
-	    break;
+        if (bufptr)
+        {
+          if ((bufptr + strlen(temp)) > bufend)
+          {
+        strncpy(bufptr, temp, (size_t)(bufend - bufptr));
+        bufptr = bufend;
+          }
+          else
+          {
+        strcpy(bufptr, temp);
+        bufptr += strlen(temp);
+          }
+        }
+        break;
 
         case 'c' : /* Character or character array */
-	    bytes += width;
+        bytes += width;
 
-	    if (bufptr)
-	    {
-	      if (width <= 1)
-	        *bufptr++ = va_arg(ap, int);
-	      else
-	      {
-		if ((bufptr + width) > bufend)
-		  width = bufend - bufptr;
+        if (bufptr)
+        {
+          if (width <= 1)
+            *bufptr++ = va_arg(ap, int);
+          else
+          {
+        if ((bufptr + width) > bufend)
+          width = bufend - bufptr;
 
-		memcpy(bufptr, va_arg(ap, char *), (size_t)width);
-		bufptr += width;
-	      }
-	    }
-	    break;
+        memcpy(bufptr, va_arg(ap, char *), (size_t)width);
+        bufptr += width;
+          }
+        }
+        break;
 
-	case 's' : /* String */
-	    if ((s = va_arg(ap, char *)) == NULL)
-	      s = "(null)";
+    case 's' : /* String */
+        if ((s = va_arg(ap, char *)) == NULL)
+          s = "(null)";
 
-	    slen = strlen(s);
-	    if (slen > width && prec != width)
-	      width = slen;
+        slen = strlen(s);
+        if (slen > width && prec != width)
+          width = slen;
 
             bytes += width;
 
-	    if (bufptr)
-	    {
-	      if ((bufptr + width) > bufend)
-	        width = bufend - bufptr;
+        if (bufptr)
+        {
+          if ((bufptr + width) > bufend)
+            width = bufend - bufptr;
 
               if (slen > width)
-	        slen = width;
+            slen = width;
 
-	      if (sign == '-')
-	      {
-		strncpy(bufptr, s, (size_t)slen);
-		memset(bufptr + slen, ' ', (size_t)(width - slen));
-	      }
-	      else
-	      {
-		memset(bufptr, ' ', (size_t)(width - slen));
-		strncpy(bufptr + width - slen, s, (size_t)slen);
-	      }
+          if (sign == '-')
+          {
+        strncpy(bufptr, s, (size_t)slen);
+        memset(bufptr + slen, ' ', (size_t)(width - slen));
+          }
+          else
+          {
+        memset(bufptr, ' ', (size_t)(width - slen));
+        strncpy(bufptr + width - slen, s, (size_t)slen);
+          }
 
-	      bufptr += width;
-	    }
-	    break;
+          bufptr += width;
+        }
+        break;
 
-	case 'n' : /* Output number of chars so far */
-	    *(va_arg(ap, int *)) = bytes;
-	    break;
+    case 'n' : /* Output number of chars so far */
+        *(va_arg(ap, int *)) = bytes;
+        break;
       }
     }
     else
@@ -517,7 +517,7 @@ _mxml_vstrdupf(const char *format,	/* I - Printf-style format string */
 
 #else
   int		bytes;			/* Number of bytes required */
-  char		*buffer;		/* String buffer */
+  char      *buffer;		/* String buffer */
 
 
  /*
@@ -539,7 +539,7 @@ _mxml_vstrdupf(const char *format,	/* I - Printf-style format string */
     * Hey, the formatted string fits in the tiny buffer, so just dup that...
     */
 
-    return (PhDuplicateBytesZSafe(temp));
+    return (strdup(temp));
   }
 #  endif /* _WIN32 */
 
@@ -547,7 +547,7 @@ _mxml_vstrdupf(const char *format,	/* I - Printf-style format string */
   * Allocate memory for the whole thing and reformat to the new buffer...
   */
 
-  if ((buffer = PhAllocateExSafe(bytes + 1, HEAP_ZERO_MEMORY)) != NULL)
+  if ((buffer = calloc(1, bytes + 1)) != NULL)
     vsnprintf(buffer, bytes + 1, format, ap);
 
  /*

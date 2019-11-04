@@ -54,7 +54,7 @@ mxml_error(const char *format,		/* I - Printf-style format string */
   va_list	ap;			/* Pointer to arguments */
   char		s[1024];		/* Message string */
   _mxml_global_t *global = _mxml_global();
-					/* Global data */
+                    /* Global data */
 
 
  /*
@@ -142,7 +142,7 @@ mxml_real_cb(mxml_node_t *node)		/* I - Current node */
 
 static pthread_key_t	_mxml_key = -1;	/* Thread local storage key */
 static pthread_once_t	_mxml_key_once = PTHREAD_ONCE_INIT;
-					/* One-time initialization object */
+                    /* One-time initialization object */
 static void		_mxml_init(void);
 static void		_mxml_destructor(void *g);
 

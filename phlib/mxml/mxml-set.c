@@ -56,7 +56,7 @@ mxmlSetCDATA(mxml_node_t *node,		/* I - Node to set */
   s = _mxml_strdupf("![CDATA[%s", data);
 
   if (node->value.element.name)
-      PhFree(node->value.element.name);
+    free(node->value.element.name);
 
   node->value.element.name = s;
 
@@ -134,9 +134,9 @@ mxmlSetElement(mxml_node_t *node,	/* I - Node to set */
   */
 
   if (node->value.element.name)
-      PhFree(node->value.element.name);
+    free(node->value.element.name);
 
-  node->value.element.name = PhDuplicateBytesZSafe((char *)name);
+  node->value.element.name = strdup(name);
 
   return (0);
 }
@@ -202,9 +202,9 @@ mxmlSetOpaque(mxml_node_t *node,	/* I - Node to set */
   */
 
   if (node->value.opaque)
-      PhFree(node->value.opaque);
+    free(node->value.opaque);
 
-  node->value.opaque = PhDuplicateBytesZSafe((char *)opaque);
+  node->value.opaque = strdup(opaque);
 
   return (0);
 }
@@ -221,7 +221,7 @@ mxmlSetOpaque(mxml_node_t *node,	/* I - Node to set */
 int					/* O - 0 on success, -1 on failure */
 mxmlSetOpaquef(mxml_node_t *node,	/* I - Node to set */
                const char  *format,	/* I - Printf-style format string */
-	       ...)			/* I - Additional arguments as needed */
+           ...)			/* I - Additional arguments as needed */
 {
   va_list	ap;			/* Pointer to arguments */
   char		*s;			/* Temporary string */
@@ -247,7 +247,7 @@ mxmlSetOpaquef(mxml_node_t *node,	/* I - Node to set */
   va_end(ap);
 
   if (node->value.opaque)
-      PhFree(node->value.opaque);
+    free(node->value.opaque);
 
   node->value.opaque = s;
 
@@ -295,7 +295,7 @@ mxmlSetReal(mxml_node_t *node,		/* I - Node to set */
 int					/* O - 0 on success, -1 on failure */
 mxmlSetText(mxml_node_t *node,		/* I - Node to set */
             int         whitespace,	/* I - 1 = leading whitespace, 0 = no whitespace */
-	    const char  *string)	/* I - String */
+        const char  *string)	/* I - String */
 {
  /*
   * Range check input...
@@ -319,10 +319,10 @@ mxmlSetText(mxml_node_t *node,		/* I - Node to set */
   */
 
   if (node->value.text.string)
-      PhFree(node->value.text.string);
+    free(node->value.text.string);
 
   node->value.text.whitespace = whitespace;
-  node->value.text.string     = PhDuplicateBytesZSafe((char *)string);
+  node->value.text.string     = strdup(string);
 
   return (0);
 }
@@ -338,7 +338,7 @@ int					/* O - 0 on success, -1 on failure */
 mxmlSetTextf(mxml_node_t *node,		/* I - Node to set */
              int         whitespace,	/* I - 1 = leading whitespace, 0 = no whitespace */
              const char  *format,	/* I - Printf-style format string */
-	     ...)			/* I - Additional arguments as needed */
+         ...)			/* I - Additional arguments as needed */
 {
   va_list	ap;			/* Pointer to arguments */
   char		*s;			/* Temporary string */
@@ -364,7 +364,7 @@ mxmlSetTextf(mxml_node_t *node,		/* I - Node to set */
   va_end(ap);
 
   if (node->value.text.string)
-    PhFree(node->value.text.string);
+    free(node->value.text.string);
 
   node->value.text.whitespace = whitespace;
   node->value.text.string     = s;
