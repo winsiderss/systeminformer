@@ -183,7 +183,7 @@ LCID PhGetSystemDefaultLCID(
 {
     if (NtQueryDefaultLocale_Import())
     {
-        LCID localeId;
+        LCID localeId = LOCALE_SYSTEM_DEFAULT;
 
         if (NT_SUCCESS(NtQueryDefaultLocale_Import()(FALSE, &localeId)))
             return localeId;
@@ -199,7 +199,7 @@ LCID PhGetUserDefaultLCID(
 {
     if (NtQueryDefaultLocale_Import())
     {
-        LCID localeId;
+        LCID localeId = LOCALE_USER_DEFAULT;
 
         if (NT_SUCCESS(NtQueryDefaultLocale_Import()(TRUE, &localeId)))
             return localeId;
@@ -246,7 +246,7 @@ LANGID PhGetUserDefaultUILanguage(
 {
     if (NtQueryDefaultUILanguage_Import())
     {
-        LANGID languageId;
+        LANGID languageId = MAKELANGID(LANG_ENGLISH, SUBLANG_DEFAULT);
 
         if (NT_SUCCESS(NtQueryDefaultUILanguage_Import()(&languageId)))
             return languageId;
@@ -261,7 +261,7 @@ PPH_STRING PhGetUserDefaultLocaleName(
     )
 {
     UNICODE_STRING localeNameUs;
-    WCHAR localeName[LOCALE_NAME_MAX_LENGTH];
+    WCHAR localeName[LOCALE_NAME_MAX_LENGTH] = { UNICODE_NULL };
 
     RtlInitEmptyUnicodeString(&localeNameUs, localeName, sizeof(localeName));
 
@@ -279,7 +279,7 @@ PPH_STRING PhLCIDToLocaleName(
     )
 {
     UNICODE_STRING localeNameUs;
-    WCHAR localeName[LOCALE_NAME_MAX_LENGTH];
+    WCHAR localeName[LOCALE_NAME_MAX_LENGTH] = { UNICODE_NULL };
 
     RtlInitEmptyUnicodeString(&localeNameUs, localeName, sizeof(localeName));
 
@@ -2826,7 +2826,36 @@ NTSTATUS PhCreateProcessWin32Ex(
 
     if (NT_SUCCESS(status))
     {
-        PhpConvertProcessInformation(&processInfo, ClientId, ProcessHandle, ThreadHandle);
+        if (ClientId)
+        {
+            ClientId->UniqueProcess = UlongToHandle(processInfo.dwProcessId);
+            ClientId->UniqueThread = UlongToHandle(processInfo.dwThreadId);
+        }
+
+        if (ProcessHandle)
+        {
+            *ProcessHandle = processInfo.hProcess;
+        }
+        else if (processInfo.hProcess)
+        {
+            NtClose(processInfo.hProcess);
+        }
+
+        if (ThreadHandle)
+        {
+            *ThreadHandle = processInfo.hThread;
+        }
+        else if (processInfo.hThread)
+        {
+            NtClose(processInfo.hThread);
+        }
+    }
+    else
+    {
+        if (processInfo.hProcess)
+            NtClose(processInfo.hProcess);
+        if (processInfo.hThread)
+            NtClose(processInfo.hThread);
     }
 
     return status;
@@ -2938,7 +2967,36 @@ NTSTATUS PhCreateProcessAsUser(
 
             if (NT_SUCCESS(status))
             {
-                PhpConvertProcessInformation(&processInfo, ClientId, ProcessHandle, ThreadHandle);
+                if (ClientId)
+                {
+                    ClientId->UniqueProcess = UlongToHandle(processInfo.dwProcessId);
+                    ClientId->UniqueThread = UlongToHandle(processInfo.dwThreadId);
+                }
+
+                if (ProcessHandle)
+                {
+                    *ProcessHandle = processInfo.hProcess;
+                }
+                else if (processInfo.hProcess)
+                {
+                    NtClose(processInfo.hProcess);
+                }
+
+                if (ThreadHandle)
+                {
+                    *ThreadHandle = processInfo.hThread;
+                }
+                else if (processInfo.hThread)
+                {
+                    NtClose(processInfo.hThread);
+                }
+            }
+            else
+            {
+                if (processInfo.hProcess)
+                    NtClose(processInfo.hProcess);
+                if (processInfo.hThread)
+                    NtClose(processInfo.hThread);
             }
 
             return status;
@@ -3417,9 +3475,12 @@ BOOLEAN PhShellExecuteEx(
         {
             if (!(Flags & PH_SHELL_EXECUTE_PUMP_MESSAGES))
             {
-                LARGE_INTEGER timeout;
+                if (info.hProcess)
+                {
+                    LARGE_INTEGER timeout;
 
-                NtWaitForSingleObject(info.hProcess, FALSE, PhTimeoutFromMilliseconds(&timeout, Timeout));
+                    NtWaitForSingleObject(info.hProcess, FALSE, PhTimeoutFromMilliseconds(&timeout, Timeout));
+                }
             }
             else
             {

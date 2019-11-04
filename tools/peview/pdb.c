@@ -307,6 +307,7 @@ BOOLEAN PdbGetSymbolArrayType(
     return TRUE;
 }
 
+_Success_(return)
 BOOLEAN SymbolInfo_DumpUDT(
     _In_ ULONG64 BaseAddress,
     _In_ ULONG Index,
@@ -709,6 +710,7 @@ BOOLEAN PdbGetSymbolData(
     return TRUE;
 }
 
+_Success_(return)
 BOOLEAN SymbolInfo_DumpType(
     _In_ ULONG64 BaseAddress,
     _In_ ULONG Index,

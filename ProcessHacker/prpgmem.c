@@ -367,7 +367,7 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
     PPH_PROCESS_PROPPAGECONTEXT propPageContext;
     PPH_PROCESS_ITEM processItem;
     PPH_MEMORY_CONTEXT memoryContext;
-    HWND tnHandle;
+    HWND tnHandle = NULL;
 
     if (PhPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext, &processItem))
     {

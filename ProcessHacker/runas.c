@@ -502,7 +502,7 @@ static VOID PhpAddProgramsToComboBox(
         PH_STRINGREF nameSr;
         PH_STRINGREF firstPart;
         PH_STRINGREF remainingPart;
-        WCHAR entry[MAX_PATH];
+        WCHAR entry[MAX_PATH] = L"";
 
         if (!EnumMRUList_I(
             listHandle,
@@ -2147,7 +2147,7 @@ BOOLEAN PhpRunFileAsInteractiveUser(
     {
         PPH_STRING parentDirectory = PhpQueryRunFileParentDirectory(FALSE);
 
-        if (WdcRunTaskAsInteractiveUser_I(executeString->Buffer, PhGetString(parentDirectory), 0) == 0)
+        if (WdcRunTaskAsInteractiveUser_I(PhGetString(executeString), PhGetString(parentDirectory), 0) == 0)
         {
             success = TRUE;
         }

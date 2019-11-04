@@ -66,12 +66,12 @@ VOID PvpPeEnumerateProcessIds(
 
                 PhPrintUInt32(number, ++count);
                 lvItemIndex = PhAddListViewItem(ListViewHandle, MAXINT, number, NULL);
-
                 PhPrintUInt32(number, HandleToUlong(processId));
                 PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, number);
+                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, PhGetStringOrEmpty(fileName));
 
-                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, fileName->Buffer);
-                PhDereferenceObject(fileName);
+                if (fileName)
+                    PhDereferenceObject(fileName);
             }
 
             PhFree(processIds);
