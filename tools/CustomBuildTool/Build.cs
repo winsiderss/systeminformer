@@ -1315,7 +1315,7 @@ namespace CustomBuildTool
 
             try
             {
-                foreach (string file in Build_Release_Files)
+                foreach (string file in Build_Nightly_Files)
                 {
                     string sourceFile = BuildOutputFolder + file;
 
