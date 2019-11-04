@@ -58,7 +58,7 @@ BOOLEAN PhGetWslDistributionFromPath(
         PPH_LIST distributionGuidList;
 
         distributionGuidList = PhCreateList(1);
-        PhEnumerateKey(keyHandle, PhpWslDistributionNamesCallback, distributionGuidList);
+        PhEnumerateKey(keyHandle, KeyBasicInformation, PhpWslDistributionNamesCallback, distributionGuidList);
 
         for (i = 0; i < distributionGuidList->Count; i++)
         {

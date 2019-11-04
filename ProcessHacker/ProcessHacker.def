@@ -243,6 +243,8 @@ EXPORTS
     PhDeleteFileWin32
     PhDoesFileExistsWin32
     PhDisconnectNamedPipe
+    PhEnumerateKey
+    PhEnumerateValueKey
     PhEnumDirectoryFile
     PhEnumDirectoryObjects
     PhEnumFileStreams
@@ -493,6 +495,8 @@ EXPORTS
     PhAddListViewItem
     PhAddTabControlTab
     PhDeleteLayoutManager
+    PhEnumWindows
+    PhEnumChildWindows
     PhFindListViewItemByFlags
     PhFindListViewItemByParam
     PhGetComboBoxString
