@@ -92,7 +92,7 @@ NTSTATUS PhpProcessGeneralOpenProcess(
 }
 
 FORCEINLINE PWSTR PhpGetStringOrNa(
-    _In_ PPH_STRING String
+    _In_ _Maybenull_ PPH_STRING String
     )
 {
     if (String)

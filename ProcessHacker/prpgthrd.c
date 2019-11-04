@@ -940,7 +940,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
 
                     if (threadItem)
                     {
-                        ULONG threadPriorityWin32;
+                        ULONG threadPriorityWin32 = threadItem->Priority;
 
                         switch (GET_WM_COMMAND_ID(wParam, lParam))
                         {

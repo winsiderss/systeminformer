@@ -409,6 +409,7 @@ BOOLEAN PdbGetSymbolArrayType(
     _Inout_ ArrayTypeInfo* Info
     );
 
+_Success_(return)
 BOOLEAN SymbolInfo_DumpUDT(_In_ ULONG64 BaseAddress, _In_ ULONG Index, TypeInfo* Info);
 
 BOOLEAN PdbGetSymbolUDTClass(
@@ -447,8 +448,20 @@ BOOLEAN PdbGetSymbolData(
     _Inout_ DataInfo *Info
     );
 
-BOOLEAN SymbolInfo_DumpType(_In_ ULONG64 BaseAddress, _In_ ULONG Index, TypeInfo* Info);
-BOOLEAN SymbolInfo_DumpSymbolType(_Inout_ PPDB_SYMBOL_CONTEXT Context, _In_ ULONG Index, TypeInfo* Info, ULONG* TypeIndex);
+_Success_(return)
+BOOLEAN
+SymbolInfo_DumpType(
+    _In_ ULONG64 BaseAddress,
+    _In_ ULONG Index,
+    TypeInfo* Info);
+
+_Success_(return)
+BOOLEAN
+SymbolInfo_DumpSymbolType(
+    _Inout_ PPDB_SYMBOL_CONTEXT Context,
+    _In_ ULONG Index,
+    TypeInfo* Info,
+    ULONG* TypeIndex);
 
 BOOLEAN PdbCheckTagType(
     _In_ ULONG64 BaseAddress, 

@@ -3761,17 +3761,17 @@ BOOLEAN NTAPI PhpEnumProcessModulesCallback(
     _In_opt_ PVOID Context2
     )
 {
-    NTSTATUS status;
-    PPH_ENUM_PROCESS_MODULES_PARAMETERS parameters;
-    BOOLEAN cont;
-    PPH_STRING mappedFileName;
+    PPH_ENUM_PROCESS_MODULES_PARAMETERS parameters = Context1;
+    NTSTATUS status = STATUS_FAIL_CHECK;
+    BOOLEAN cont = FALSE;
+    PPH_STRING mappedFileName = NULL;
     PWSTR fullDllNameOriginal;
     PWSTR fullDllNameBuffer;
     PWSTR baseDllNameOriginal;
     PWSTR baseDllNameBuffer;
 
-    parameters = Context1;
-    mappedFileName = NULL;
+    if (!parameters)
+        return TRUE;
 
     if (parameters->Flags & PH_ENUM_PROCESS_MODULES_TRY_MAPPED_FILE_NAME)
     {
@@ -4494,7 +4494,7 @@ static BOOLEAN PhpGetProcedureAddressRemoteCallback(
 
     PhUnicodeStringToStringRef(&Module->FullDllName, &fullDllName);
 
-    if (PhEqualStringRef(&fullDllName, &context->FileName, TRUE))
+    if (context && PhEqualStringRef(&fullDllName, &context->FileName, TRUE))
     {
         context->DllBase = Module->DllBase;
         return FALSE;
