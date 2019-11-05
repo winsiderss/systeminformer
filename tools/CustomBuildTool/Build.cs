@@ -1282,7 +1282,7 @@ namespace CustomBuildTool
                         FtpWebRequest request = (FtpWebRequest)WebRequest.Create(buildPostUrl + filename);
                         request.Credentials = new NetworkCredential(buildPostKey, buildPostName);
                         request.Method = WebRequestMethods.Ftp.UploadFile;
-                        request.Timeout = 5000;
+                        request.Timeout = System.Threading.Timeout.Infinite;
                         request.EnableSsl = true;
                         request.UsePassive = true;
                         request.UseBinary = true;
@@ -1322,13 +1322,14 @@ namespace CustomBuildTool
                     if (File.Exists(sourceFile))
                     {
                         string fileName = Path.GetFileName(sourceFile);
+                        byte[] fileBytes = File.ReadAllBytes(sourceFile);
 
                         using (HttpClient client = new HttpClient())
                         {
                             client.DefaultRequestHeaders.Add("X-ApiKey", buildBuildUrlKey);
                             client.DefaultRequestHeaders.Add("X-FileName", fileName);
 
-                            var httpTask = client.PostAsync(buildBuildUrl, new ByteArrayContent(File.ReadAllBytes(sourceFile)));
+                            var httpTask = client.PostAsync(buildBuildUrl, new ByteArrayContent(fileBytes));
                             httpTask.Wait();
 
                             if (!httpTask.Result.IsSuccessStatusCode)
