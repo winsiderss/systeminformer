@@ -1322,14 +1322,18 @@ namespace CustomBuildTool
                     if (File.Exists(sourceFile))
                     {
                         string fileName = Path.GetFileName(sourceFile);
-                        byte[] fileBytes = File.ReadAllBytes(sourceFile);
 
                         using (HttpClient client = new HttpClient())
+                        using (FileStream fileStream = File.OpenRead(sourceFile))
+                        using (StreamContent streamContent = new StreamContent(fileStream))
+                        using (MultipartFormDataContent content = new MultipartFormDataContent())
                         {
                             client.DefaultRequestHeaders.Add("X-ApiKey", buildBuildUrlKey);
-                            client.DefaultRequestHeaders.Add("X-FileName", fileName);
+                            streamContent.Headers.Add("Content-Type", "application/octet-stream");
+                            streamContent.Headers.Add("Content-Disposition", "form-data; name=\"file\"; filename=\"" + fileName + "\"");
+                            content.Add(streamContent, "file", fileName);
 
-                            var httpTask = client.PostAsync(buildBuildUrl, new ByteArrayContent(fileBytes));
+                            var httpTask = client.PostAsync(buildBuildUrl, content);
                             httpTask.Wait();
 
                             if (!httpTask.Result.IsSuccessStatusCode)
