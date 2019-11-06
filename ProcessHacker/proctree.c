@@ -691,6 +691,7 @@ static VOID PhpNeedGraphContext(
     GraphOldBitmap = SelectBitmap(GraphContext, GraphBitmap);
 }
 
+_Success_(return)
 static BOOLEAN PhpFormatInt32GroupDigits(
     _In_ ULONG Value,
     _Out_writes_bytes_(BufferLength) PWCHAR Buffer,

@@ -82,12 +82,14 @@ typedef struct _PH_MODULE_LIST_CONTEXT
     PH_SORT_ORDER TreeNewSortOrder;
     PH_CM_MANAGER Cm;
 
+    BOOLEAN EnableStateHighlighting;
+
     union
     {
         ULONG Flags;
         struct
         {
-            ULONG EnableStateHighlighting : 1;
+            ULONG Reserved : 1;
             ULONG HideDynamicModules : 1;
             ULONG HideMappedModules : 1;
             ULONG HideSignedModules : 1;

@@ -710,6 +710,7 @@ BOOLEAN PhShowConfirmMessage(
  *
  * \remarks The search is case-sensitive.
  */
+_Success_(return)
 BOOLEAN PhFindIntegerSiKeyValuePairs(
     _In_ PPH_KEY_VALUE_PAIR KeyValuePairs,
     _In_ ULONG SizeOfKeyValuePairs,
@@ -717,9 +718,7 @@ BOOLEAN PhFindIntegerSiKeyValuePairs(
     _Out_ PULONG Integer
     )
 {
-    ULONG i;
-
-    for (i = 0; i < SizeOfKeyValuePairs / sizeof(PH_KEY_VALUE_PAIR); i++)
+    for (ULONG i = 0; i < SizeOfKeyValuePairs / sizeof(PH_KEY_VALUE_PAIR); i++)
     {
         if (PhEqualStringZ(KeyValuePairs[i].Key, String, TRUE))
         {
@@ -741,6 +740,7 @@ BOOLEAN PhFindIntegerSiKeyValuePairs(
  *
  * \return TRUE if the integer was found, otherwise FALSE.
  */
+_Success_(return)
 BOOLEAN PhFindStringSiKeyValuePairs(
     _In_ PPH_KEY_VALUE_PAIR KeyValuePairs,
     _In_ ULONG SizeOfKeyValuePairs,
@@ -748,9 +748,7 @@ BOOLEAN PhFindStringSiKeyValuePairs(
     _Out_ PWSTR *String
     )
 {
-    ULONG i;
-
-    for (i = 0; i < SizeOfKeyValuePairs / sizeof(PH_KEY_VALUE_PAIR); i++)
+    for (ULONG i = 0; i < SizeOfKeyValuePairs / sizeof(PH_KEY_VALUE_PAIR); i++)
     {
         if (PtrToUlong(KeyValuePairs[i].Value) == Integer)
         {
@@ -1748,6 +1746,7 @@ VOID PhpGetImageVersionInfoFields(
  * \param ImageVersionInfo The version information structure.
  * \param FileName The file name of an image.
  */
+_Success_(return)
 BOOLEAN PhInitializeImageVersionInfo(
     _Out_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
     _In_ PWSTR FileName
@@ -1961,6 +1960,7 @@ static ULONG PhpImageVersionInfoCacheHashtableHashFunction(
     return PhHashStringRef(&entry->FileName->sr, TRUE);
 }
 
+_Success_(return)
 BOOLEAN PhInitializeImageVersionInfoCached(
     _Out_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
     _In_ PPH_STRING FileName,
@@ -3446,6 +3446,7 @@ VOID PhShellExecute(
  * after the application is started.
  * \param ProcessHandle A variable which receives a handle to the new process.
  */
+_Success_(return)
 BOOLEAN PhShellExecuteEx(
     _In_opt_ HWND hWnd,
     _In_ PWSTR FileName,

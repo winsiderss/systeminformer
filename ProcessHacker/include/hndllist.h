@@ -59,12 +59,14 @@ typedef struct _PH_HANDLE_LIST_CONTEXT
     PH_SORT_ORDER TreeNewSortOrder;
     PH_CM_MANAGER Cm;
 
+    BOOLEAN EnableStateHighlighting;
+
     union
     {
         ULONG Flags;
         struct
         {
-            ULONG EnableStateHighlighting : 1;
+            ULONG Reserved : 1;
             ULONG HideUnnamedHandles : 1;
             ULONG HideEtwHandles : 1;
             ULONG Spare : 22;

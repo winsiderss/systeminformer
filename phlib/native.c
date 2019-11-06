@@ -1177,6 +1177,7 @@ NTSTATUS PhGetProcessEnvironment(
     return status;
 }
 
+_Success_(return)
 BOOLEAN PhEnumProcessEnvironmentVariables(
     _In_ PVOID Environment,
     _In_ ULONG EnvironmentLength,
@@ -5228,6 +5229,9 @@ BOOLEAN NTAPI PhpIsDotNetEnumProcessModulesCallback(
     static UNICODE_STRING clrjitString = RTL_CONSTANT_STRING(L"clrjit.dll");
     static UNICODE_STRING frameworkString = RTL_CONSTANT_STRING(L"\\Microsoft.NET\\Framework\\");
     static UNICODE_STRING framework64String = RTL_CONSTANT_STRING(L"\\Microsoft.NET\\Framework64\\");
+
+    if (!Context)
+        return TRUE;
 
     if (
         RtlEqualUnicodeString(&Module->BaseDllName, &clrString, TRUE) ||
