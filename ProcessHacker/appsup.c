@@ -418,7 +418,7 @@ static BOOLEAN NTAPI PhpSvchostCommandLineCallback(
 {
     PPH_KNOWN_PROCESS_COMMAND_LINE knownCommandLine = Context;
 
-    if (Option && Option->Id == 1)
+    if (knownCommandLine && Option && Option->Id == 1)
     {
         PhSwapReference(&knownCommandLine->ServiceHost.GroupName, Value);
     }
@@ -426,6 +426,7 @@ static BOOLEAN NTAPI PhpSvchostCommandLineCallback(
     return TRUE;
 }
 
+_Success_(return)
 BOOLEAN PhaGetProcessKnownCommandLine(
     _In_ PPH_STRING CommandLine,
     _In_ PH_KNOWN_PROCESS_TYPE KnownProcessType,
@@ -564,7 +565,7 @@ BOOLEAN PhaGetProcessKnownCommandLine(
 
             // Find "/processid:"; the GUID is just after that.
 
-            _wcsupr(argPart->Buffer);
+            PhUpperString(argPart);
             indexOfProcessId = PhFindStringInString(argPart, 0, L"/PROCESSID:");
 
             if (indexOfProcessId == -1)
@@ -1836,7 +1837,7 @@ BOOLEAN PhInsertCopyListViewEMenuItem(
     POINT location;
     LVHITTESTINFO lvHitInfo;
     HDITEM headerItem;
-    WCHAR headerText[MAX_PATH];
+    WCHAR headerText[MAX_PATH] = L"";
 
     if (!GetCursorPos(&location))
         return FALSE;
