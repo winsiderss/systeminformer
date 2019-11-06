@@ -24,7 +24,6 @@
 #define IDD_GPUNODES                    123
 #define IDD_SYSINFO_NETPANEL            124
 #define IDD_SYSINFO_NET                 125
-#define IDD_DISKTABERROR                128
 #define IDD_PROCDISKNET_PANEL           129
 #define IDC_UTILIZATION                 132
 #define IDC_SPEED                       133
@@ -74,8 +73,6 @@
 #define IDC_ZWRITESDELTA_V              1082
 #define IDC_ZREADSDELTA_V               1083
 #define IDC_PANEL_LAYOUT                1085
-#define IDC_RESTART                     1086
-#define IDC_ERROR                       1087
 #define IDC_GROUPDISK                   1088
 #define IDC_GROUPNETWORK                1089
 #define IDC_DETAILS                     1092
