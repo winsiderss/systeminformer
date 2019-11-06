@@ -2127,13 +2127,13 @@ BOOLEAN PhMwpExecuteComputerCommand(
         PhUiRestartComputer(WindowHandle, 0);
         return TRUE;
     case ID_COMPUTER_RESTARTBOOTOPTIONS:
-        PhUiRestartComputer(WindowHandle, EWX_BOOTOPTIONS);
+        PhUiRestartComputer(WindowHandle, SHUTDOWN_RESTART_BOOTOPTIONS);
         return TRUE;
     case ID_COMPUTER_SHUTDOWN:
         PhUiShutdownComputer(WindowHandle, 0);
         return TRUE;
     case ID_COMPUTER_SHUTDOWNHYBRID:
-        PhUiShutdownComputer(WindowHandle, EWX_HYBRID_SHUTDOWN);
+        PhUiShutdownComputer(WindowHandle, SHUTDOWN_HYBRID);
         return TRUE;
     }
 
