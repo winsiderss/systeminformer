@@ -486,27 +486,19 @@ static PPH_STRING UpdaterParseDownloadFileName(
     _In_ PPH_STRING DownloadUrlPath
     )
 {
-    static PH_STRINGREF seperator = PH_STRINGREF_INIT(L"="); // download=
     PH_STRINGREF pathPart;
     PH_STRINGREF baseNamePart;
     PPH_STRING filePath;
     PPH_STRING downloadFileName;
 
-    if (PhSplitStringRefAtLastChar(&DownloadUrlPath->sr, L'/', &pathPart, &baseNamePart))
-    {
-        if (PhFindStringInStringRef(&DownloadUrlPath->sr, &seperator, TRUE) != -1)
-        {
-            PhSplitStringRefAtString(&DownloadUrlPath->sr, &seperator, TRUE, &pathPart, &baseNamePart);
-        }
+    if (!PhSplitStringRefAtLastChar(&DownloadUrlPath->sr, '/', &pathPart, &baseNamePart))
+        return NULL;
 
-        downloadFileName = PhCreateString2(&baseNamePart);
-        filePath = PhCreateCacheFile(downloadFileName);
-        PhDereferenceObject(downloadFileName);
+    downloadFileName = PhCreateString2(&baseNamePart);
+    filePath = PhCreateCacheFile(downloadFileName);
+    PhDereferenceObject(downloadFileName);
 
-        return filePath;
-    }
-
-    return NULL;
+    return filePath;
 }
 
 NTSTATUS UpdateDownloadThread(
