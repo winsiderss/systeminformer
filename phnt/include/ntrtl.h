@@ -4100,6 +4100,7 @@ RtlWalkHeap(
 #define HeapOptimizeResources 0x3 // q; s: HEAP_OPTIMIZE_RESOURCES_INFORMATION 
 #define HeapTaggingInformation 0x4
 #define HeapStackDatabase 0x5
+#define HeapMemoryLimit 0x6 // 19H2
 #define HeapDetailedFailureInformation 0x80000001
 #define HeapSetDebuggingInformation 0x80000002 // q; s: HEAP_DEBUGGING_INFORMATION
 
