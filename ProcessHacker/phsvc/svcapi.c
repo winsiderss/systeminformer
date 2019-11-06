@@ -1458,7 +1458,7 @@ NTSTATUS PhSvcApiWriteMiniDumpProcess(
     {
         if (PssFreeSnapshot_Import() && snapshotHandle)
         {
-            PssFreeSnapshot_Import()(NtCurrentProcess(), snapshotHandle);
+            PssFreeSnapshot_Import()(processHandle, snapshotHandle);
         }
 
         return STATUS_SUCCESS;
@@ -1471,7 +1471,7 @@ NTSTATUS PhSvcApiWriteMiniDumpProcess(
 
         if (PssFreeSnapshot_Import() && snapshotHandle)
         {
-            PssFreeSnapshot_Import()(NtCurrentProcess(), snapshotHandle);
+            PssFreeSnapshot_Import()(processHandle, snapshotHandle);
         }
 
         if (error == HRESULT_FROM_WIN32(ERROR_INVALID_PARAMETER))
