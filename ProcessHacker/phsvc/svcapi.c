@@ -1403,13 +1403,11 @@ static BOOL CALLBACK PhpProcessMiniDumpCallback(
     switch (CallbackInput->CallbackType)
     {
     case IsProcessSnapshotCallback:
-        {
-            if (CallbackParam)
-                CallbackOutput->Status = S_FALSE;
-        }
+        if (CallbackParam)
+            CallbackOutput->Status = S_FALSE;
         break;
     case ReadMemoryFailureCallback:
-        CallbackOutput->Status = S_OK;    
+        CallbackOutput->Status = S_OK;
         break;
     }
 
@@ -1456,22 +1454,50 @@ NTSTATUS PhSvcApiWriteMiniDumpProcess(
         &callbackInfo
         ))
     {
-        if (PssFreeSnapshot_Import() && snapshotHandle)
+        if (snapshotHandle)
         {
-            PssFreeSnapshot_Import()(processHandle, snapshotHandle);
+            PSS_VA_CLONE_INFORMATION processInfo;
+
+            if (PssQuerySnapshot(
+                snapshotHandle,
+                PSS_QUERY_VA_CLONE_INFORMATION,
+                &processInfo,
+                sizeof(PSS_VA_CLONE_INFORMATION)
+                ) == ERROR_SUCCESS)
+            {
+                NtClose(processInfo.VaCloneHandle);
+            }
+
+            if (PssFreeSnapshot_Import() && snapshotHandle)
+            {
+                PssFreeSnapshot_Import()(processHandle, snapshotHandle);
+            }
         }
 
         return STATUS_SUCCESS;
     }
     else
     {
-        ULONG error;
+        ULONG error = GetLastError();
 
-        error = GetLastError();
-
-        if (PssFreeSnapshot_Import() && snapshotHandle)
+        if (snapshotHandle)
         {
-            PssFreeSnapshot_Import()(processHandle, snapshotHandle);
+            PSS_VA_CLONE_INFORMATION processInfo;
+
+            if (PssQuerySnapshot(
+                snapshotHandle,
+                PSS_QUERY_VA_CLONE_INFORMATION,
+                &processInfo,
+                sizeof(PSS_VA_CLONE_INFORMATION)
+                ) == ERROR_SUCCESS)
+            {
+                NtClose(processInfo.VaCloneHandle);
+            }
+
+            if (PssFreeSnapshot_Import() && snapshotHandle)
+            {
+                PssFreeSnapshot_Import()(processHandle, snapshotHandle);
+            }
         }
 
         if (error == HRESULT_FROM_WIN32(ERROR_INVALID_PARAMETER))
