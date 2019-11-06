@@ -31,6 +31,7 @@ static BOOLEAN DiskTreeNewCreated = FALSE;
 static HWND DiskTreeNewHandle = NULL;
 static ULONG DiskTreeNewSortColumn = 0;
 static PH_SORT_ORDER DiskTreeNewSortOrder = NoSortOrder;
+static PH_STRINGREF DiskTreeEmptyText = PH_STRINGREF_INIT(L"Disk monitoring requires Process Hacker to be restarted with administrative privileges.");
 
 static PPH_HASHTABLE DiskNodeHashtable = NULL; // hashtable of all nodes
 static PPH_LIST DiskNodeList = NULL; // list of all nodes
@@ -88,41 +89,27 @@ BOOLEAN EtpDiskPageCallback(
     case MainTabPageCreateWindow:
         {
             HWND hwnd;
+            ULONG thinRows;
+            ULONG treelistBorder;
 
-            if (EtEtwEnabled)
-            {
-                ULONG thinRows;
-                ULONG treelistBorder;
+            thinRows = PhGetIntegerSetting(L"ThinRows") ? TN_STYLE_THIN_ROWS : 0;
+            treelistBorder = PhGetIntegerSetting(L"TreeListBorderEnable") ? WS_BORDER : 0;
+            hwnd = CreateWindow(
+                PH_TREENEW_CLASSNAME,
+                NULL,
+                WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | thinRows | treelistBorder,
+                0,
+                0,
+                3,
+                3,
+                PhMainWndHandle,
+                NULL,
+                NULL,
+                NULL
+                );
 
-                thinRows = PhGetIntegerSetting(L"ThinRows") ? TN_STYLE_THIN_ROWS : 0;
-                treelistBorder = PhGetIntegerSetting(L"TreeListBorderEnable") ? WS_BORDER : 0;
-                hwnd = CreateWindow(
-                    PH_TREENEW_CLASSNAME,
-                    NULL,
-                    WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | thinRows | treelistBorder,
-                    0,
-                    0,
-                    3,
-                    3,
-                    PhMainWndHandle,
-                    NULL,
-                    NULL,
-                    NULL
-                    );
-
-                if (!hwnd)
-                    return FALSE;
-            }
-            else
-            {
-                *(HWND *)Parameter1 = CreateDialog(
-                    PluginInstance->DllBase,
-                    MAKEINTRESOURCE(IDD_DISKTABERROR),
-                    PhMainWndHandle,
-                    EtpDiskTabErrorDialogProc
-                    );
-                return TRUE;
-            }
+            if (!hwnd)
+                return FALSE;
 
             DiskTreeNewCreated = TRUE;
 
@@ -135,6 +122,9 @@ BOOLEAN EtpDiskPageCallback(
             DiskNodeList = PhCreateList(100);
 
             EtInitializeDiskTreeList(hwnd);
+
+            if (!EtEtwEnabled)
+                TreeNew_SetEmptyText(hwnd, &DiskTreeEmptyText, 0);
 
             PhInitializeProviderEventQueue(&EtpDiskEventQueue, 100);
 
@@ -1151,66 +1141,66 @@ HWND NTAPI EtpToolStatusGetTreeNewHandle(
     return DiskTreeNewHandle;
 }
 
-INT_PTR CALLBACK EtpDiskTabErrorDialogProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    )
-{
-    switch (uMsg)
-    {
-    case WM_INITDIALOG:
-        {
-            if (!PhGetOwnTokenAttributes().Elevated)
-            {
-                Button_SetElevationRequiredState(GetDlgItem(hwndDlg, IDC_RESTART), TRUE);
-            }
-            else
-            {
-                PhSetDialogItemText(hwndDlg, IDC_ERROR, L"Unable to start the kernel event tracing session.");
-                ShowWindow(GetDlgItem(hwndDlg, IDC_RESTART), SW_HIDE);
-            }
-
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
-        }
-        break;
-    case WM_COMMAND:
-        {
-            switch (GET_WM_COMMAND_ID(wParam, lParam))
-            {
-            case IDC_RESTART:
-                ProcessHacker_PrepareForEarlyShutdown(PhMainWndHandle);
-
-                if (PhShellProcessHacker(
-                    PhMainWndHandle,
-                    L"-v -selecttab Disk",
-                    SW_SHOW,
-                    PH_SHELL_EXECUTE_ADMIN,
-                    PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
-                    0,
-                    NULL
-                    ))
-                {
-                    ProcessHacker_Destroy(PhMainWndHandle);
-                }
-                else
-                {
-                    ProcessHacker_CancelEarlyShutdown(PhMainWndHandle);
-                }
-
-                break;
-            }
-        }
-        break;
-    case WM_CTLCOLORBTN:
-    case WM_CTLCOLORSTATIC:
-        {
-            SetBkMode((HDC)wParam, TRANSPARENT);
-            return (INT_PTR)GetSysColorBrush(COLOR_WINDOW);
-        }
-        break;
-    }
-
-    return FALSE;
-}
+//INT_PTR CALLBACK EtpDiskTabErrorDialogProc(
+//    _In_ HWND hwndDlg,
+//    _In_ UINT uMsg,
+//    _In_ WPARAM wParam,
+//    _In_ LPARAM lParam
+//    )
+//{
+//    switch (uMsg)
+//    {
+//    case WM_INITDIALOG:
+//        {
+//            if (!PhGetOwnTokenAttributes().Elevated)
+//            {
+//                Button_SetElevationRequiredState(GetDlgItem(hwndDlg, IDC_RESTART), TRUE);
+//            }
+//            else
+//            {
+//                PhSetDialogItemText(hwndDlg, IDC_ERROR, L"Unable to start the kernel event tracing session.");
+//                ShowWindow(GetDlgItem(hwndDlg, IDC_RESTART), SW_HIDE);
+//            }
+//
+//            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+//        }
+//        break;
+//    case WM_COMMAND:
+//        {
+//            switch (GET_WM_COMMAND_ID(wParam, lParam))
+//            {
+//            case IDC_RESTART:
+//                ProcessHacker_PrepareForEarlyShutdown(PhMainWndHandle);
+//
+//                if (PhShellProcessHacker(
+//                    PhMainWndHandle,
+//                    L"-v -selecttab Disk",
+//                    SW_SHOW,
+//                    PH_SHELL_EXECUTE_ADMIN,
+//                    PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
+//                    0,
+//                    NULL
+//                    ))
+//                {
+//                    ProcessHacker_Destroy(PhMainWndHandle);
+//                }
+//                else
+//                {
+//                    ProcessHacker_CancelEarlyShutdown(PhMainWndHandle);
+//                }
+//
+//                break;
+//            }
+//        }
+//        break;
+//    case WM_CTLCOLORBTN:
+//    case WM_CTLCOLORSTATIC:
+//        {
+//            SetBkMode((HDC)wParam, TRANSPARENT);
+//            return (INT_PTR)GetSysColorBrush(COLOR_WINDOW);
+//        }
+//        break;
+//    }
+//
+//    return FALSE;
+//}
