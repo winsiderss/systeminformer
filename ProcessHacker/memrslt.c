@@ -3,7 +3,7 @@
  *   memory search results
  *
  * Copyright (C) 2010-2016 wj32
- * Copyright (C) 2017 dmex
+ * Copyright (C) 2017-2019 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -89,13 +89,13 @@ static PPH_STRING PhpGetStringForSelectedResults(
     )
 {
     PH_STRING_BUILDER stringBuilder;
-    ULONG i;
 
     PhInitializeStringBuilder(&stringBuilder, 0x100);
 
-    for (i = 0; i < Results->Count; i++)
+    for (ULONG i = 0; i < Results->Count; i++)
     {
         PPH_MEMORY_RESULT result;
+        WCHAR value[PH_PTR_STR_LEN_1];
 
         if (!All)
         {
@@ -105,8 +105,14 @@ static PPH_STRING PhpGetStringForSelectedResults(
 
         result = Results->Items[i];
 
-        PhAppendFormatStringBuilder(&stringBuilder, L"0x%Ix (%lu): %s\r\n", result->Address, result->Length,
-            result->Display.Buffer ? result->Display.Buffer : L"");
+        PhPrintPointer(value, result->Address);
+        PhAppendFormatStringBuilder(
+            &stringBuilder,
+            L"%s (%lu): %s\r\n",
+            value,
+            (ULONG)result->Length,
+            result->Display.Buffer ? result->Display.Buffer : L""
+            );
     }
 
     return PhFinalStringBuilderString(&stringBuilder);
