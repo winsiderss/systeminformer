@@ -3442,6 +3442,21 @@ PhaLowerString(
 
 FORCEINLINE
 PPH_STRING
+NTAPI
+PhUpperString(
+    _In_ PPH_STRING String
+    )
+{
+    PPH_STRING newString;
+
+    newString = PhDuplicateString(String);
+    _wcsupr(newString->Buffer);
+
+    return newString;
+}
+
+FORCEINLINE
+PPH_STRING
 PhaUpperString(
     _In_ PPH_STRING String
     )

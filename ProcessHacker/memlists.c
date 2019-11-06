@@ -56,7 +56,9 @@ VOID PhShowMemoryListsDialog(
             ParentWindowHandle,
             PhpMemoryListsDlgProc
             );
-        RegisterDialog(PhMemoryListsWindowHandle);
+
+        if (RegisterDialog)
+            RegisterDialog(PhMemoryListsWindowHandle);
         UnregisterDialogFunction = UnregisterDialog;
     }
 
@@ -195,7 +197,8 @@ INT_PTR CALLBACK PhpMemoryListsDlgProc(
 
             PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), &ProcessesUpdatedRegistration);
 
-            UnregisterDialogFunction(hwndDlg);
+            if (UnregisterDialogFunction)
+                UnregisterDialogFunction(hwndDlg);
             PhMemoryListsWindowHandle = NULL;
         }
         break;

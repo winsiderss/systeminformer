@@ -836,14 +836,9 @@ static NTSTATUS NTAPI SearchHandleFunction(
         PPH_STRING upperBestObjectName;
         PPH_STRING upperTypeName;
 
-        upperObjectName = PhDuplicateString(objectName);
-        _wcsupr(upperObjectName->Buffer);
-
-        upperBestObjectName = PhDuplicateString(bestObjectName);
-        _wcsupr(upperBestObjectName->Buffer);
-
-        upperTypeName = PhDuplicateString(typeName);
-        _wcsupr(upperTypeName->Buffer);
+        upperObjectName = PhUpperString(objectName);
+        upperBestObjectName = PhUpperString(bestObjectName);
+        upperTypeName = PhUpperString(typeName);
 
         if (((MatchSearchString(context, &upperObjectName->sr) || MatchSearchString(context, &upperBestObjectName->sr)) && MatchTypeString(context, &upperTypeName->sr)) ||
             (context->UseSearchPointer && (handleContext->HandleInfo->Object == (PVOID)context->SearchPointer || handleContext->HandleInfo->HandleValue == context->SearchPointer)))
@@ -894,15 +889,17 @@ static BOOLEAN NTAPI EnumModulesCallback(
     )
 {
     PSEARCH_MODULE_CONTEXT moduleContext = Context;
-    PPH_HANDLE_SEARCH_CONTEXT context = moduleContext->WindowContext;
+    PPH_HANDLE_SEARCH_CONTEXT context;
     PPH_STRING upperFileName;
     PPH_STRING upperOriginalFileName;
 
-    upperFileName = PhDuplicateString(Module->FileName);
-    _wcsupr(upperFileName->Buffer);
+    if (!moduleContext)
+        return TRUE;
 
-    upperOriginalFileName = PhDuplicateString(Module->OriginalFileName);
-    _wcsupr(upperOriginalFileName->Buffer);
+    context = moduleContext->WindowContext;
+
+    upperFileName = PhUpperString(Module->FileName);
+    upperOriginalFileName = PhUpperString(Module->OriginalFileName);
 
     if ((MatchSearchString(context, &upperFileName->sr) || MatchSearchString(context, &upperOriginalFileName->sr)) ||
         (context->UseSearchPointer && Module->BaseAddress == (PVOID)context->SearchPointer))
@@ -963,7 +960,7 @@ NTSTATUS PhpFindObjectsThreadStart(
     // Try to get a search pointer from the search string.
     context->UseSearchPointer = PhStringToInteger64(&context->SearchString->sr, 0, &context->SearchPointer);
 
-    _wcsupr(context->SearchString->Buffer);
+    PhMoveReference(&context->SearchString, PhUpperString(context->SearchString));
 
     if (NT_SUCCESS(status = PhEnumHandlesEx(&handles)))
     {

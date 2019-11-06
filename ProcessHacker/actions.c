@@ -77,6 +77,7 @@ HRESULT CALLBACK PhpElevateActionCallbackProc(
     return S_OK;
 }
 
+_Success_(return)
 BOOLEAN PhpShowElevatePrompt(
     _In_ HWND hWnd,
     _In_ PWSTR Message,
@@ -140,6 +141,7 @@ BOOLEAN PhpShowElevatePrompt(
  * \return TRUE if the user was prompted for elevation, otherwise
  * FALSE, in which case you need to show your own error message.
  */
+_Success_(return)
 BOOLEAN PhpShowErrorAndElevateAction(
     _In_ HWND hWnd,
     _In_ PWSTR Message,

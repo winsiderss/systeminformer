@@ -285,6 +285,7 @@ PhShowConfirmMessage(
     );
 
 PHLIBAPI
+_Success_(return)
 BOOLEAN
 NTAPI
 PhFindIntegerSiKeyValuePairs(
@@ -295,6 +296,7 @@ PhFindIntegerSiKeyValuePairs(
     );
 
 PHLIBAPI
+_Success_(return)
 BOOLEAN
 NTAPI
 PhFindStringSiKeyValuePairs(
@@ -533,6 +535,7 @@ typedef struct _PH_IMAGE_VERSION_INFO
 } PH_IMAGE_VERSION_INFO, *PPH_IMAGE_VERSION_INFO;
 
 PHLIBAPI
+_Success_(return)
 BOOLEAN
 NTAPI
 PhInitializeImageVersionInfo(
@@ -558,6 +561,7 @@ PhFormatImageVersionInfo(
     );
 
 PHLIBAPI
+_Success_(return)
 BOOLEAN
 NTAPI
 PhInitializeImageVersionInfoCached(
@@ -808,6 +812,7 @@ PhShellExecute(
 #define PH_SHELL_EXECUTE_NOZONECHECKS 0x4
 
 PHLIBAPI
+_Success_(return)
 BOOLEAN
 NTAPI
 PhShellExecuteEx(

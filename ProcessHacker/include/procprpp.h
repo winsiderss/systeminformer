@@ -338,12 +338,14 @@ typedef struct _PH_ENVIRONMENT_CONTEXT
     PH_SORT_ORDER TreeNewSortOrder;
     PH_CM_MANAGER Cm;
 
+    BOOLEAN EnableStateHighlighting;
+
     union
     {
         ULONG Flags;
         struct
         {
-            ULONG EnableStateHighlighting : 1;
+            ULONG Reserved : 1;
             ULONG HideProcessEnvironment : 1;
             ULONG HideUserEnvironment : 1;
             ULONG HideSystemEnvironment : 1;
