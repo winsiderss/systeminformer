@@ -150,6 +150,7 @@ BOOLEAN PhpShowErrorAndElevateAction(
     _Out_opt_ PBOOLEAN Success
     )
 {
+    NTSTATUS status = STATUS_SUCCESS;
     PH_ACTION_ELEVATION_LEVEL elevationLevel;
     INT button = IDNO;
 
@@ -176,7 +177,6 @@ BOOLEAN PhpShowErrorAndElevateAction(
 
     if (elevationLevel == AlwaysElevateAction || button == IDYES)
     {
-        NTSTATUS status;
         HANDLE processHandle;
         LARGE_INTEGER timeout;
         PROCESS_BASIC_INFORMATION basicInfo;
@@ -203,25 +203,13 @@ BOOLEAN PhpShowErrorAndElevateAction(
             }
 
             NtClose(processHandle);
-
-            if (NT_SUCCESS(status))
-            {
-                if (Success)
-                {
-                    *Success = TRUE;
-                }
-            }
-            else
-            {
-                if (Success)
-                {
-                    *Success = FALSE;
-                }
-
-                PhShowStatus(hWnd, Message, status, 0);
-            }
         }
     }
+
+    if (Success)
+        *Success = NT_SUCCESS(status);
+    if (!NT_SUCCESS(status))
+        PhShowStatus(hWnd, Message, status, 0);
 
     return TRUE;
 }
