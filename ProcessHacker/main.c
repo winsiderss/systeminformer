@@ -111,8 +111,6 @@ INT WINAPI wWinMain(
     PHP_BASE_THREAD_DBG dbg;
 #endif
 
-    CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
-
     if (!NT_SUCCESS(PhInitializePhLibEx(L"Process Hacker", ULONG_MAX, Instance, 0, 0)))
         return 1;
     if (!PhInitializeExceptionPolicy())
@@ -126,6 +124,9 @@ INT WINAPI wWinMain(
 
     PhpProcessStartupParameters();
     PhpEnablePrivileges();
+
+    if (!SUCCEEDED(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE)))
+        return 1;
 
     if (PhStartupParameters.RunAsServiceMode)
     {
@@ -1213,7 +1214,7 @@ BOOLEAN NTAPI PhpCommandLineOptionCallback(
             PhStartupParameters.Debug = TRUE;
             break;
         case PH_ARG_HWND:
-            if (PhStringToInteger64(&Value->sr, 16, &integer))
+            if (Value && PhStringToInteger64(&Value->sr, 16, &integer))
                 PhStartupParameters.WindowHandle = (HWND)(ULONG_PTR)integer;
             break;
         case PH_ARG_POINT:
@@ -1221,7 +1222,7 @@ BOOLEAN NTAPI PhpCommandLineOptionCallback(
                 PH_STRINGREF xString;
                 PH_STRINGREF yString;
 
-                if (PhSplitStringRefAtChar(&Value->sr, ',', &xString, &yString))
+                if (Value && PhSplitStringRefAtChar(&Value->sr, ',', &xString, &yString))
                 {
                     LONG64 x;
                     LONG64 y;
@@ -1256,23 +1257,24 @@ BOOLEAN NTAPI PhpCommandLineOptionCallback(
             PhStartupParameters.Help = TRUE;
             break;
         case PH_ARG_SELECTPID:
-            if (PhStringToInteger64(&Value->sr, 0, &integer))
+            if (Value && PhStringToInteger64(&Value->sr, 0, &integer))
                 PhStartupParameters.SelectPid = (ULONG)integer;
             break;
         case PH_ARG_PRIORITY:
-            if (PhEqualString2(Value, L"r", TRUE))
+            if (Value && PhEqualString2(Value, L"r", TRUE))
                 PhStartupParameters.PriorityClass = PROCESS_PRIORITY_CLASS_REALTIME;
-            else if (PhEqualString2(Value, L"h", TRUE))
+            else if (Value && PhEqualString2(Value, L"h", TRUE))
                 PhStartupParameters.PriorityClass = PROCESS_PRIORITY_CLASS_HIGH;
-            else if (PhEqualString2(Value, L"n", TRUE))
+            else if (Value && PhEqualString2(Value, L"n", TRUE))
                 PhStartupParameters.PriorityClass = PROCESS_PRIORITY_CLASS_NORMAL;
-            else if (PhEqualString2(Value, L"l", TRUE))
+            else if (Value && PhEqualString2(Value, L"l", TRUE))
                 PhStartupParameters.PriorityClass = PROCESS_PRIORITY_CLASS_IDLE;
             break;
         case PH_ARG_PLUGIN:
             if (!PhStartupParameters.PluginParameters)
                 PhStartupParameters.PluginParameters = PhCreateList(3);
-            PhAddItemList(PhStartupParameters.PluginParameters, PhReferenceObject(Value));
+            if (Value)
+                PhAddItemList(PhStartupParameters.PluginParameters, PhReferenceObject(Value));
             break;
         case PH_ARG_SELECTTAB:
             PhSwapReference(&PhStartupParameters.SelectTab, Value);
@@ -1284,19 +1286,22 @@ BOOLEAN NTAPI PhpCommandLineOptionCallback(
     }
     else
     {
-        PPH_STRING upperValue;
+        PPH_STRING upperValue = NULL;
 
-        upperValue = PhDuplicateString(Value);
-        _wcsupr(upperValue->Buffer);
+        if (Value)
+            upperValue = PhUpperString(Value);
 
-        if (PhFindStringInString(upperValue, 0, L"TASKMGR.EXE") != -1)
+        if (upperValue)
         {
-            // User probably has Process Hacker replacing Task Manager. Force
-            // the main window to start visible.
-            PhStartupParameters.ShowVisible = TRUE;
-        }
+            if (PhFindStringInString(upperValue, 0, L"TASKMGR.EXE") != -1)
+            {
+                // User probably has Process Hacker replacing Task Manager. Force
+                // the main window to start visible.
+                PhStartupParameters.ShowVisible = TRUE;
+            }
 
-        PhDereferenceObject(upperValue);
+            PhDereferenceObject(upperValue);
+        }
     }
 
     return TRUE;
