@@ -107,6 +107,13 @@ typedef ULONG (WINAPI* _PssFreeSnapshot)(
     _In_ HANDLE SnapshotHandle
     );
 
+typedef ULONG (WINAPI* _PssQuerySnapshot)(
+    _In_ HANDLE SnapshotHandle,
+    _In_ ULONG InformationClass,
+    _Out_writes_bytes_(BufferLength) void* Buffer,
+    _In_ DWORD BufferLength
+    );
+
 typedef LONG (WINAPI* _DnsQuery)(
     _In_ PWSTR Name,
     _In_ USHORT Type,
@@ -179,6 +186,7 @@ PH_DECLARE_IMPORT(DnsWriteQuestionToBuffer_W);
 PH_DECLARE_IMPORT(DnsFree);
 
 PH_DECLARE_IMPORT(PssCaptureSnapshot);
+PH_DECLARE_IMPORT(PssQuerySnapshot);
 PH_DECLARE_IMPORT(PssFreeSnapshot);
 
 PH_DECLARE_IMPORT(CreateEnvironmentBlock);

@@ -1458,7 +1458,7 @@ NTSTATUS PhSvcApiWriteMiniDumpProcess(
         {
             PSS_VA_CLONE_INFORMATION processInfo;
 
-            if (PssQuerySnapshot(
+            if (PssQuerySnapshot_Import() && PssQuerySnapshot_Import()(
                 snapshotHandle,
                 PSS_QUERY_VA_CLONE_INFORMATION,
                 &processInfo,
