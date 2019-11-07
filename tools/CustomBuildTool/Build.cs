@@ -2,7 +2,7 @@
  * Process Hacker Toolchain - 
  *   Build script
  * 
- * Copyright (C) dmex
+ * Copyright (C) 2017-2018 dmex
  * 
  * This file is part of Process Hacker.
  * 
@@ -22,6 +22,7 @@
 
 using System;
 using System.IO;
+using System.Net;
 using System.Net.Http;
 using System.Text;
 
@@ -1277,6 +1278,49 @@ namespace CustomBuildTool
 
                     if (File.Exists(sourceFile))
                     {
+                        string filename = Path.GetFileName(sourceFile);
+                        FtpWebRequest request = (FtpWebRequest)WebRequest.Create(buildPostUrl + filename);
+                        request.Credentials = new NetworkCredential(buildPostKey, buildPostName);
+                        request.Method = WebRequestMethods.Ftp.UploadFile;
+                        request.Timeout = System.Threading.Timeout.Infinite;
+                        request.EnableSsl = true;
+                        request.UsePassive = true;
+                        request.UseBinary = true;
+
+                        Program.PrintColorMessage($"Uploading {filename}...", ConsoleColor.Cyan, true);
+
+                        using (FileStream stream = File.OpenRead(sourceFile))
+                        using (BufferedStream localStream = new BufferedStream(stream))
+                        using (BufferedStream remoteStream = new BufferedStream(request.GetRequestStream()))
+                        {
+                            localStream.CopyTo(remoteStream);
+                        }
+
+                        using (FtpWebResponse response = (FtpWebResponse)request.GetResponse())
+                        {
+                            if (response.StatusCode != FtpStatusCode.CommandOK && response.StatusCode != FtpStatusCode.ClosingData)
+                            {
+                                Program.PrintColorMessage($"[HttpWebResponse] {response.StatusDescription}", ConsoleColor.Red);
+                                return false;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Program.PrintColorMessage("[UploadBuildWebServiceAsync-Exception]" + ex.Message, ConsoleColor.Red);
+                return false;
+            }
+
+            try
+            {
+                foreach (string file in Build_Nightly_Files)
+                {
+                    string sourceFile = BuildOutputFolder + file;
+
+                    if (File.Exists(sourceFile))
+                    {
                         string fileName = Path.GetFileName(sourceFile);
 
                         using (HttpClient client = new HttpClient())
@@ -1288,8 +1332,6 @@ namespace CustomBuildTool
                             streamContent.Headers.Add("Content-Type", "application/octet-stream");
                             streamContent.Headers.Add("Content-Disposition", "form-data; name=\"file\"; filename=\"" + fileName + "\"");
                             content.Add(streamContent, "file", fileName);
-
-                            Program.PrintColorMessage($"Uploading {fileName}...", ConsoleColor.Cyan, true);
 
                             var httpTask = client.PostAsync(buildBuildUrl, content);
                             httpTask.Wait();
@@ -1334,49 +1376,6 @@ namespace CustomBuildTool
                 Program.PrintColorMessage("[WebServiceAppveyorPushArtifact] " + ex, ConsoleColor.Red);
                 return false;
             }
-
-            //try
-            //{
-            //    foreach (string file in Build_Release_Files)
-            //    {
-            //        string sourceFile = BuildOutputFolder + file;
-            //
-            //        if (File.Exists(sourceFile))
-            //        {
-            //            string filename = Path.GetFileName(sourceFile);
-            //            FtpWebRequest request = (FtpWebRequest)WebRequest.Create(buildPostUrl + filename);
-            //            request.Credentials = new NetworkCredential(buildPostKey, buildPostName);
-            //            request.Method = WebRequestMethods.Ftp.UploadFile;
-            //            request.Timeout = System.Threading.Timeout.Infinite;
-            //            request.EnableSsl = true;
-            //            request.UsePassive = true;
-            //            request.UseBinary = true;
-            //
-            //            Program.PrintColorMessage($"Uploading {filename}...", ConsoleColor.Cyan, true);
-            //
-            //            using (FileStream stream = File.OpenRead(sourceFile))
-            //            using (BufferedStream localStream = new BufferedStream(stream))
-            //            using (BufferedStream remoteStream = new BufferedStream(request.GetRequestStream()))
-            //            {
-            //                localStream.CopyTo(remoteStream);
-            //            }
-            //
-            //            using (FtpWebResponse response = (FtpWebResponse)request.GetResponse())
-            //            {
-            //                if (response.StatusCode != FtpStatusCode.CommandOK && response.StatusCode != FtpStatusCode.ClosingData)
-            //                {
-            //                    Program.PrintColorMessage($"[HttpWebResponse] {response.StatusDescription}", ConsoleColor.Red);
-            //                    return false;
-            //                }
-            //            }
-            //        }
-            //    }
-            //}
-            //catch (Exception ex)
-            //{
-            //    Program.PrintColorMessage("[UploadBuildWebServiceAsync-Exception]" + ex.Message, ConsoleColor.Red);
-            //    return false;
-            //}
 
             return true;
         }
