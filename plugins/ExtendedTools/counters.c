@@ -84,7 +84,7 @@ static ULONG NTAPI EtpDedicatedHashFunction(
 {
     PET_GPU_COUNTER entry = Entry;
 
-    return PhHashInt32(HandleToUlong(entry->ProcessId));
+    return PhHashIntPtr((ULONG_PTR)entry->ProcessId);
 }
 
 VOID EtGpuCountersInitialization(
