@@ -450,6 +450,7 @@ VOID ParseGpuProcessMemoryCommitUsageCounter(
     }
 }
 
+_Success_(return)
 BOOLEAN GetCounterArrayBuffer(
     _In_ PDH_HCOUNTER CounterHandle,
     _In_ ULONG Format,
