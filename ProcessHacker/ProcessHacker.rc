@@ -142,7 +142,7 @@ BEGIN
         MENUITEM "Start &Task Manager",         ID_TOOLS_STARTTASKMANAGER
         POPUP "&Permissions"
         BEGIN
-            MENUITEM "Service Control Manager", ID_TOOLS_SCM_PERMISSIONS
+            MENUITEM "Service Control Manager",     ID_TOOLS_SCM_PERMISSIONS
         END
     END
     POPUP "&Users"
@@ -405,20 +405,6 @@ BEGIN
             MENUITEM "H&ybrid shut down",           ID_COMPUTER_SHUTDOWNHYBRID
         END
         MENUITEM "E&xit",                       ID_ICON_EXIT
-    END
-END
-
-IDR_MEMORY MENU
-BEGIN
-    POPUP "Memory"
-    BEGIN
-        MENUITEM "&Read/Write memory",          ID_MEMORY_READWRITEMEMORY
-        MENUITEM "&Save...",                    ID_MEMORY_SAVE
-        MENUITEM "Change &protection...",       ID_MEMORY_CHANGEPROTECTION
-        MENUITEM "&Free",                       ID_MEMORY_FREE
-        MENUITEM "&Decommit",                   ID_MEMORY_DECOMMIT
-        MENUITEM SEPARATOR
-        MENUITEM "&Copy\aCtrl+C",               ID_MEMORY_COPY
     END
 END
 
@@ -2256,6 +2242,7 @@ BEGIN
         TOPMARGIN, 4
         BOTTOMMARGIN, 184
     END
+
     IDD_RUNFILEDLG, DIALOG
     BEGIN
     END
