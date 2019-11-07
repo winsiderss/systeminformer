@@ -651,10 +651,8 @@ namespace CustomBuildTool
             if (obj == null)
                 return 1;
 
-            VisualStudioPackage otherTemperature = obj as VisualStudioPackage;
-
-            if (otherTemperature != null)
-                return this.Id.CompareTo(otherTemperature.Id);
+            if (obj is VisualStudioPackage package)
+                return this.Id.CompareTo(package.Id);
             else
                 return 1;
         }
