@@ -307,8 +307,6 @@ PPH_STRING PhGetAppContainerName(
     if (!PhpKernelAppCoreInitialized())
         return NULL;
 
-    // NOTE: The AppContainerLookupMoniker function is not able to lookup the appcontainer names created using the 
-    // CreateAppContainerProfile function from Win32 desktop applications (e.g. Google Chrome). 
     result = AppContainerLookupMoniker_I(
         AppContainerSid, 
         &packageMonikerName
