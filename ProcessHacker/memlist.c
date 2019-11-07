@@ -640,11 +640,11 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
     _In_opt_ PVOID Context
     )
 {
-    PPH_MEMORY_LIST_CONTEXT context;
+    PPH_MEMORY_LIST_CONTEXT context = Context;
     PPH_MEMORY_NODE node;
 
-    context = Context;
-
+    if (!context)
+        return TRUE;
     if (PhCmForwardMessage(hwnd, Message, Parameter1, Parameter2, &context->Cm))
         return TRUE;
 
@@ -653,6 +653,9 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
     case TreeNewGetChildren:
         {
             PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
+
+            if (!getChildren)
+                break;
 
             node = (PPH_MEMORY_NODE)getChildren->Node;
 
@@ -723,6 +726,9 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
         {
             PPH_TREENEW_IS_LEAF isLeaf = Parameter1;
 
+            if (!isLeaf)
+                break;
+
             node = (PPH_MEMORY_NODE)isLeaf->Node;
 
             if (context->TreeNewSortOrder == NoSortOrder)
@@ -735,6 +741,9 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
         {
             PPH_TREENEW_GET_CELL_TEXT getCellText = Parameter1;
             PPH_MEMORY_ITEM memoryItem;
+
+            if (!getCellText)
+                break;
 
             node = (PPH_MEMORY_NODE)getCellText->Node;
             memoryItem = node->MemoryItem;
@@ -824,6 +833,9 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
             PPH_TREENEW_GET_NODE_COLOR getNodeColor = Parameter1;
             PPH_MEMORY_ITEM memoryItem;
 
+            if (!getNodeColor)
+                break;
+
             node = (PPH_MEMORY_NODE)getNodeColor->Node;
             memoryItem = node->MemoryItem;
 
@@ -885,6 +897,9 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
         {
             PPH_TREENEW_KEY_EVENT keyEvent = Parameter1;
 
+            if (!keyEvent)
+                break;
+
             switch (keyEvent->VirtualKey)
             {
             case 'C':
@@ -924,6 +939,9 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
         {
             PPH_TREENEW_MOUSE_EVENT mouseEvent = Parameter1;
 
+            if (!mouseEvent)
+                break;
+
             node = (PPH_MEMORY_NODE)mouseEvent->Node;
 
             if (node && node->IsAllocationBase)
@@ -935,6 +953,9 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
     case TreeNewContextMenu:
         {
             PPH_TREENEW_CONTEXT_MENU contextMenu = Parameter1;
+
+            if (!contextMenu)
+                break;
 
             SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_SHOWCONTEXTMENU, (LPARAM)contextMenu);
         }
