@@ -752,18 +752,21 @@ VOID PhpProcessQueryStage1(
 
     if (processItem->FileName && !processItem->IsSubsystemProcess)
     {
-        if (!PhExtractIcon(
-            processItem->FileName->Buffer,
-            &Data->LargeIcon,
-            &Data->SmallIcon
-            ))
+        if (PhDoesFileExistsWin32(PhGetString(processItem->FileName)))
         {
-            Data->LargeIcon = NULL;
-            Data->SmallIcon = NULL;
-        }
+            if (!PhExtractIcon(
+                PhGetString(processItem->FileName),
+                &Data->LargeIcon,
+                &Data->SmallIcon
+                ))
+            {
+                Data->LargeIcon = NULL;
+                Data->SmallIcon = NULL;
+            }
 
-        // Version info.
-        PhInitializeImageVersionInfoCached(&Data->VersionInfo, processItem->FileName, FALSE);
+            // Version info.
+            PhInitializeImageVersionInfoCached(&Data->VersionInfo, processItem->FileName, FALSE);
+        }
     }
 
     // Command line, .NET
