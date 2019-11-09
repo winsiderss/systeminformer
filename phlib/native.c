@@ -4236,12 +4236,12 @@ BOOLEAN NTAPI PhpEnumProcessModules32Callback(
 
                         if (PhStartsWithStringRef(&fullDllName, &system32String, TRUE))
                         {
-                            fullDllName.Buffer[1] = 'S';
-                            fullDllName.Buffer[4] = 'W';
-                            fullDllName.Buffer[5] = 'O';
-                            fullDllName.Buffer[6] = 'W';
-                            fullDllName.Buffer[7] = '6';
-                            fullDllName.Buffer[8] = '4';
+                            fullDllName.Buffer[1] = L'S';
+                            fullDllName.Buffer[4] = L'W';
+                            fullDllName.Buffer[5] = L'O';
+                            fullDllName.Buffer[6] = L'W';
+                            fullDllName.Buffer[7] = L'6';
+                            fullDllName.Buffer[8] = L'4';
                         }
                     }
                 }
@@ -4555,6 +4555,12 @@ NTSTATUS PhGetProcedureAddressRemote(
 
     if (!NT_SUCCESS(status))
         goto CleanupExit;
+
+    if (!context.DllBase)
+    {
+        status = STATUS_UNSUCCESSFUL;
+        goto CleanupExit;
+    }
 
     if (!NT_SUCCESS(status = PhGetMappedImageExports(&exports, &mappedImage)))
         goto CleanupExit;
