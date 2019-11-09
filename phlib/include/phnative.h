@@ -283,6 +283,7 @@ typedef struct _PH_ENVIRONMENT_VARIABLE
 } PH_ENVIRONMENT_VARIABLE, *PPH_ENVIRONMENT_VARIABLE;
 
 PHLIBAPI
+_Success_(return)
 BOOLEAN
 NTAPI
 PhEnumProcessEnvironmentVariables(
