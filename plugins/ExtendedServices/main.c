@@ -275,6 +275,9 @@ NTAPI ServicePropertiesInitializingCallback(
     PROPSHEETPAGE propSheetPage;
     PPH_SERVICE_ITEM serviceItem;
 
+    if (!objectProperties)
+        return;
+
     serviceItem = objectProperties->Parameter;
 
     // Recovery
@@ -367,6 +370,9 @@ VOID NTAPI ServiceMenuInitializingCallback(
     PPH_EMENU_ITEM menuItem;
     ULONG indexOfMenuItem;
 
+    if (!menuInfo)
+        return;
+
     if (
         menuInfo->u.Service.NumberOfServices == 1 &&
         (menuInfo->u.Service.Services[0]->State == SERVICE_RUNNING || menuInfo->u.Service.Services[0]->State == SERVICE_PAUSED)
@@ -374,17 +380,17 @@ VOID NTAPI ServiceMenuInitializingCallback(
     {
         // Insert our Restart menu item after the Stop menu item.
 
-        menuItem = PhFindEMenuItem(menuInfo->Menu, PH_EMENU_FIND_STARTSWITH, L"Stop", 0);
+        menuItem = PhFindEMenuItem(menuInfo->Menu, 0, NULL, PHAPP_ID_SERVICE_STOP);
 
         if (menuItem)
-            indexOfMenuItem = PhIndexOfEMenuItem(menuInfo->Menu, menuItem);
+            indexOfMenuItem = PhIndexOfEMenuItem(menuInfo->Menu, menuItem) + 1;
         else
-            indexOfMenuItem = -1;
+            indexOfMenuItem = ULONG_MAX;
 
         PhInsertEMenuItem(
             menuInfo->Menu,
             PhPluginCreateEMenuItem(PluginInstance, 0, ID_SERVICE_RESTART, L"R&estart", menuInfo->u.Service.Services[0]),
-            indexOfMenuItem + 1
+            indexOfMenuItem
             );
     }
 }

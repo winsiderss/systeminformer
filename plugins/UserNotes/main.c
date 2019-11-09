@@ -930,7 +930,7 @@ VOID AddSavePriorityMenuItemsAndHook(
     PPH_EMENU_ITEM saveForCommandLineMenuItem;
     PDB_OBJECT object;
 
-    if (affinityMenuItem = PhFindEMenuItem(MenuInfo->Menu, 0, L"Affinity", PHAPP_ID_PROCESS_AFFINITY))
+    if (affinityMenuItem = PhFindEMenuItem(MenuInfo->Menu, 0, NULL, PHAPP_ID_PROCESS_AFFINITY))
     {
         // HACK: Change default Affinity menu-item into a drop-down list
         PhInsertEMenuItem(affinityMenuItem, PhCreateEMenuItem(0, affinityMenuItem->Id, L"Set &affinity", NULL, NULL), ULONG_MAX);

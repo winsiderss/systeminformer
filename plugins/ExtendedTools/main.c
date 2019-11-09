@@ -245,10 +245,10 @@ VOID NTAPI ThreadMenuInitializingCallback(
     else
         threadItem = NULL;
 
-    if (menuItem = PhFindEMenuItem(menuInfo->Menu, 0, L"Resume", 0))
+    if (menuItem = PhFindEMenuItem(menuInfo->Menu, 0, NULL, PHAPP_ID_THREAD_RESUME))
         insertIndex = PhIndexOfEMenuItem(menuInfo->Menu, menuItem) + 1;
     else
-        insertIndex = 0;
+        insertIndex = ULONG_MAX;
 
     menuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_THREAD_CANCELIO, L"Ca&ncel I/O", threadItem);
     PhInsertEMenuItem(menuInfo->Menu, menuItem, insertIndex);
@@ -289,7 +289,7 @@ VOID NTAPI ModuleMenuInitializingCallback(
     else
         moduleItem = NULL;
 
-    if (menuItem = PhFindEMenuItem(menuInfo->Menu, PH_EMENU_FIND_STARTSWITH, L"Inspect", 0))
+    if (menuItem = PhFindEMenuItem(menuInfo->Menu, 0, NULL, PHAPP_ID_MODULE_INSPECT))
         insertIndex = PhIndexOfEMenuItem(menuInfo->Menu, menuItem) + 1;
     else
         insertIndex = 0;
