@@ -552,13 +552,14 @@ VOID PhDrawGraphDirect(
         if (DrawInfo->TextFont)
             oldFont = SelectFont(hdc, DrawInfo->TextFont);
 
+        SetBkMode(hdc, TRANSPARENT);
+
         // Fill in the text box.
         SetDCBrushColor(hdc, DrawInfo->TextBoxColor);
         FillRect(hdc, &DrawInfo->TextBoxRect, GetStockBrush(DC_BRUSH));
 
         // Draw the text.
         SetTextColor(hdc, DrawInfo->TextColor);
-        SetBkMode(hdc, TRANSPARENT);
         DrawText(hdc, DrawInfo->Text.Buffer, (ULONG)DrawInfo->Text.Length / sizeof(WCHAR), &DrawInfo->TextRect, DT_NOCLIP);
 
         if (oldFont)
@@ -713,13 +714,14 @@ VOID PhDrawTrayIconText( // dmex
     DrawInfo->TextRect = PhRectangleToRect(textRectangle);
     DrawInfo->TextBoxRect = PhRectangleToRect(boxRectangle);
 
+    SetBkMode(hdc, TRANSPARENT);
+
     // Fill in the text box.
     //SetDCBrushColor(hdc, DrawInfo->TextBoxColor);
     //FillRect(hdc, &DrawInfo->TextBoxRect, GetStockBrush(DC_BRUSH));
 
     // Draw the text.
     SetTextColor(hdc, DrawInfo->TextColor);
-    SetBkMode(hdc, TRANSPARENT);
 
     DrawText(hdc, DrawInfo->Text.Buffer, (ULONG)DrawInfo->Text.Length / sizeof(WCHAR), &DrawInfo->TextRect, DT_NOCLIP | DT_SINGLELINE);
 
