@@ -47,6 +47,11 @@ static VOID NTAPI ModuleAddedHandler(
 {
     PPH_MODULES_CONTEXT modulesContext = (PPH_MODULES_CONTEXT)Context;
 
+    if (!modulesContext)
+        return;
+    if (!Parameter)
+        return;
+
     // Parameter contains a pointer to the added module item.
     PhReferenceObject(Parameter);
     PhPushProviderEventQueue(&modulesContext->EventQueue, ProviderAddedEvent, Parameter, PhGetRunIdProvider(&modulesContext->ProviderRegistration));
@@ -59,6 +64,9 @@ static VOID NTAPI ModuleModifiedHandler(
 {
     PPH_MODULES_CONTEXT modulesContext = (PPH_MODULES_CONTEXT)Context;
 
+    if (!modulesContext)
+        return;
+
     PhPushProviderEventQueue(&modulesContext->EventQueue, ProviderModifiedEvent, Parameter, PhGetRunIdProvider(&modulesContext->ProviderRegistration));
 }
 
@@ -69,6 +77,9 @@ static VOID NTAPI ModuleRemovedHandler(
 {
     PPH_MODULES_CONTEXT modulesContext = (PPH_MODULES_CONTEXT)Context;
 
+    if (!modulesContext)
+        return;
+
     PhPushProviderEventQueue(&modulesContext->EventQueue, ProviderRemovedEvent, Parameter, PhGetRunIdProvider(&modulesContext->ProviderRegistration));
 }
 
@@ -78,6 +89,9 @@ static VOID NTAPI ModulesUpdatedHandler(
     )
 {
     PPH_MODULES_CONTEXT modulesContext = (PPH_MODULES_CONTEXT)Context;
+
+    if (!modulesContext)
+        return;
 
     PostMessage(modulesContext->WindowHandle, WM_PH_MODULES_UPDATED, PhGetRunIdProvider(&modulesContext->ProviderRegistration), 0);
 }
@@ -422,7 +436,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
     PPH_PROCESS_PROPPAGECONTEXT propPageContext;
     PPH_PROCESS_ITEM processItem;
     PPH_MODULES_CONTEXT modulesContext;
-    HWND tnHandle;
+    HWND tnHandle = NULL;
 
     if (PhPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext, &processItem))
     {
@@ -435,6 +449,9 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
     {
         return FALSE;
     }
+
+    if (!modulesContext)
+        return FALSE;
 
     switch (uMsg)
     {
