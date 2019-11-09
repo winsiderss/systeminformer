@@ -169,6 +169,10 @@ VOID PhMwpActivateWindow(
 
 // Main menu
 
+PPH_EMENU PhpCreateMainMenu(
+    _In_ ULONG SubMenuIndex
+    );
+
 VOID PhMwpInitializeMainMenu(
     _In_ HMENU Menu
     );
@@ -442,12 +446,6 @@ VOID PhMwpNetworkItemsUpdatedHandler(
 
 VOID PhMwpOnNetworkItemsUpdated(
     _In_ ULONG RunId
-    );
-
-// Users
-
-VOID PhMwpUpdateUsersMenu(
-    _In_ PPH_EMENU UsersMenu
     );
 
 #endif
