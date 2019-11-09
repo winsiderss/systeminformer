@@ -1703,6 +1703,7 @@ VOID PhMwpOnSetFocus(
         SetFocus(CurrentPage->WindowHandle);
 }
 
+_Success_(return)
 BOOLEAN PhMwpOnNotify(
     _In_ NMHDR *Header,
     _Out_ LRESULT *Result
