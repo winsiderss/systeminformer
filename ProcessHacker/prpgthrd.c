@@ -47,6 +47,11 @@ static VOID NTAPI ThreadAddedHandler(
 {
     PPH_THREADS_CONTEXT threadsContext = (PPH_THREADS_CONTEXT)Context;
 
+    if (!threadsContext)
+        return;
+    if (!Parameter)
+        return;
+
     // Parameter contains a pointer to the added thread item.
     PhReferenceObject(Parameter);
     PhPushProviderEventQueue(&threadsContext->EventQueue, ProviderAddedEvent, Parameter, (ULONG)threadsContext->Provider->RunId);
@@ -59,6 +64,9 @@ static VOID NTAPI ThreadModifiedHandler(
 {
     PPH_THREADS_CONTEXT threadsContext = (PPH_THREADS_CONTEXT)Context;
 
+    if (!threadsContext)
+        return;
+
     PhPushProviderEventQueue(&threadsContext->EventQueue, ProviderModifiedEvent, Parameter, (ULONG)threadsContext->Provider->RunId);
 }
 
@@ -69,6 +77,9 @@ static VOID NTAPI ThreadRemovedHandler(
 {
     PPH_THREADS_CONTEXT threadsContext = (PPH_THREADS_CONTEXT)Context;
 
+    if (!threadsContext)
+        return;
+
     PhPushProviderEventQueue(&threadsContext->EventQueue, ProviderRemovedEvent, Parameter, (ULONG)threadsContext->Provider->RunId);
 }
 
@@ -78,6 +89,9 @@ static VOID NTAPI ThreadsUpdatedHandler(
     )
 {
     PPH_THREADS_CONTEXT threadsContext = (PPH_THREADS_CONTEXT)Context;
+
+    if (!threadsContext)
+        return;
 
     PostMessage(threadsContext->WindowHandle, WM_PH_THREADS_UPDATED, (ULONG)threadsContext->Provider->RunId, threadsContext->Provider->RunId == 1);
 }
@@ -573,7 +587,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
     PPH_PROCESS_PROPPAGECONTEXT propPageContext;
     PPH_PROCESS_ITEM processItem;
     PPH_THREADS_CONTEXT threadsContext;
-    HWND tnHandle;
+    HWND tnHandle = NULL;
 
     if (PhPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext, &processItem))
     {
@@ -586,6 +600,9 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
     {
         return FALSE;
     }
+
+    if (!threadsContext)
+        return FALSE;
 
     switch (uMsg)
     {
@@ -1031,7 +1048,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
 
                     if (threadItem)
                     {
-                        IO_PRIORITY_HINT ioPriority;
+                        IO_PRIORITY_HINT ioPriority = ULONG_MAX;
 
                         switch (GET_WM_COMMAND_ID(wParam, lParam))
                         {
@@ -1049,9 +1066,12 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                             break;
                         }
 
-                        PhReferenceObject(threadItem);
-                        PhUiSetIoPriorityThread(hwndDlg, threadItem, ioPriority);
-                        PhDereferenceObject(threadItem);
+                        if (ioPriority != ULONG_MAX)
+                        {
+                            PhReferenceObject(threadItem);
+                            PhUiSetIoPriorityThread(hwndDlg, threadItem, ioPriority);
+                            PhDereferenceObject(threadItem);
+                        }
                     }
                 }
                 break;
@@ -1065,30 +1085,33 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
 
                     if (threadItem)
                     {
-                        ULONG pagePriority;
+                        ULONG pagePriority = ULONG_MAX;
 
                         switch (GET_WM_COMMAND_ID(wParam, lParam))
                         {
-                            case ID_PAGEPRIORITY_VERYLOW:
-                                pagePriority = MEMORY_PRIORITY_VERY_LOW;
-                                break;
-                            case ID_PAGEPRIORITY_LOW:
-                                pagePriority = MEMORY_PRIORITY_LOW;
-                                break;
-                            case ID_PAGEPRIORITY_MEDIUM:
-                                pagePriority = MEMORY_PRIORITY_MEDIUM;
-                                break;
-                            case ID_PAGEPRIORITY_BELOWNORMAL:
-                                pagePriority = MEMORY_PRIORITY_BELOW_NORMAL;
-                                break;
-                            case ID_PAGEPRIORITY_NORMAL:
-                                pagePriority = MEMORY_PRIORITY_NORMAL;
-                                break;
+                        case ID_PAGEPRIORITY_VERYLOW:
+                            pagePriority = MEMORY_PRIORITY_VERY_LOW;
+                            break;
+                        case ID_PAGEPRIORITY_LOW:
+                            pagePriority = MEMORY_PRIORITY_LOW;
+                            break;
+                        case ID_PAGEPRIORITY_MEDIUM:
+                            pagePriority = MEMORY_PRIORITY_MEDIUM;
+                            break;
+                        case ID_PAGEPRIORITY_BELOWNORMAL:
+                            pagePriority = MEMORY_PRIORITY_BELOW_NORMAL;
+                            break;
+                        case ID_PAGEPRIORITY_NORMAL:
+                            pagePriority = MEMORY_PRIORITY_NORMAL;
+                            break;
                         }
 
-                        PhReferenceObject(threadItem);
-                        PhUiSetPagePriorityThread(hwndDlg, threadItem, pagePriority);
-                        PhDereferenceObject(threadItem);
+                        if (pagePriority != ULONG_MAX)
+                        {
+                            PhReferenceObject(threadItem);
+                            PhUiSetPagePriorityThread(hwndDlg, threadItem, pagePriority);
+                            PhDereferenceObject(threadItem);
+                        }
                     }
                 }
                 break;
