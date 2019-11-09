@@ -49,6 +49,11 @@ static VOID NTAPI HandleAddedHandler(
 {
     PPH_HANDLES_CONTEXT handlesContext = (PPH_HANDLES_CONTEXT)Context;
 
+    if (!handlesContext)
+        return;
+    if (!Parameter)
+        return;
+
     // Parameter contains a pointer to the added handle item.
     PhReferenceObject(Parameter);
     PhPushProviderEventQueue(&handlesContext->EventQueue, ProviderAddedEvent, Parameter, PhGetRunIdProvider(&handlesContext->ProviderRegistration));
@@ -61,6 +66,9 @@ static VOID NTAPI HandleModifiedHandler(
 {
     PPH_HANDLES_CONTEXT handlesContext = (PPH_HANDLES_CONTEXT)Context;
 
+    if (!handlesContext)
+        return;
+
     PhPushProviderEventQueue(&handlesContext->EventQueue, ProviderModifiedEvent, Parameter, PhGetRunIdProvider(&handlesContext->ProviderRegistration));
 }
 
@@ -71,6 +79,9 @@ static VOID NTAPI HandleRemovedHandler(
 {
     PPH_HANDLES_CONTEXT handlesContext = (PPH_HANDLES_CONTEXT)Context;
 
+    if (!handlesContext)
+        return;
+
     PhPushProviderEventQueue(&handlesContext->EventQueue, ProviderRemovedEvent, Parameter, PhGetRunIdProvider(&handlesContext->ProviderRegistration));
 }
 
@@ -80,6 +91,9 @@ static VOID NTAPI HandlesUpdatedHandler(
     )
 {
     PPH_HANDLES_CONTEXT handlesContext = (PPH_HANDLES_CONTEXT)Context;
+
+    if (!handlesContext)
+        return;
 
     PostMessage(handlesContext->WindowHandle, WM_PH_HANDLES_UPDATED, PhGetRunIdProvider(&handlesContext->ProviderRegistration), 0);
 }
@@ -351,7 +365,7 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
     PPH_PROCESS_PROPPAGECONTEXT propPageContext;
     PPH_PROCESS_ITEM processItem;
     PPH_HANDLES_CONTEXT handlesContext;
-    HWND tnHandle;
+    HWND tnHandle = NULL;
 
     if (PhPropPageDlgProcHeader(hwndDlg, uMsg, lParam, NULL, &propPageContext, &processItem))
     {
@@ -365,6 +379,9 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
         return FALSE;
     }
 
+    if (!handlesContext)
+        return FALSE;
+        
     switch (uMsg)
     {
     case WM_INITDIALOG:
