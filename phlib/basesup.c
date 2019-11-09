@@ -4620,6 +4620,7 @@ HANDLE PhAddItemPointerList(
     return PhpPointerListIndexToHandle(index);
 }
 
+_Success_(return)
 BOOLEAN PhEnumPointerListEx(
     _In_ PPH_POINTER_LIST PointerList,
     _Inout_ PULONG EnumerationKey,
@@ -5702,7 +5703,7 @@ PPH_STRING PhBufferToHexStringEx(
     else
         table = PhIntegerToChar;
 
-    string = PhCreateStringEx(NULL, Length * 2 * sizeof(WCHAR));
+    string = PhCreateStringEx(NULL, Length * sizeof(WCHAR) * 2);
 
     for (i = 0; i < Length; i++)
     {
@@ -5771,6 +5772,7 @@ BOOLEAN PhpStringToInteger64(
  *
  * If there is no recognized prefix, base 10 is used.
  */
+_Success_(return)
 BOOLEAN PhStringToInteger64(
     _In_ PPH_STRINGREF String,
     _In_opt_ ULONG Base,
