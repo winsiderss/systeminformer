@@ -573,7 +573,7 @@ PVOID PhAllocatePage(
  * \param Memory A pointer to a block of memory.
  */
 VOID PhFreePage(
-    _Frees_ptr_opt_ PVOID Memory
+    _Post_invalid_ PVOID Memory
     )
 {
     SIZE_T size;
@@ -4988,6 +4988,7 @@ VOID PhClearHashtable(
  * this function). Otherwise, the function may behave unexpectedly. You may reset the
  * \a EnumerationKey variable to 0 if you wish to restart the enumeration.
  */
+_Success_(return)
 BOOLEAN PhEnumHashtable(
     _In_ PPH_HASHTABLE Hashtable,
     _Out_ PVOID *Entry,
