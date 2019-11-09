@@ -343,19 +343,6 @@ BEGIN
     END
 END
 
-IDR_USER MENU
-BEGIN
-    POPUP "User"
-    BEGIN
-        MENUITEM "&Connect",                    ID_USER_CONNECT
-        MENUITEM "&Disconnect",                 ID_USER_DISCONNECT
-        MENUITEM "&Logoff",                     ID_USER_LOGOFF
-        MENUITEM "Rem&ote control",             ID_USER_REMOTECONTROL
-        MENUITEM "Send &message...",            ID_USER_SENDMESSAGE
-        MENUITEM "P&roperties",                 ID_USER_PROPERTIES
-    END
-END
-
 IDR_NETWORK MENU
 BEGIN
     POPUP "Network"

@@ -3177,10 +3177,13 @@ VOID PhMwpUpdateUsersMenu(
         for (i = 0; i < numberOfSessions; i++)
         {
             PPH_EMENU_ITEM userMenu;
-            PPH_STRING menuText;
             PPH_STRING escapedMenuText;
             WINSTATIONINFORMATION winStationInfo;
             ULONG returnLength;
+            SIZE_T formatLength;
+            PH_FORMAT format[5];
+            PH_STRINGREF menuTextSr;
+            WCHAR formatBuffer[0x100];
 
             if (!WinStationQueryInformationW(
                 NULL,
@@ -3201,23 +3204,42 @@ VOID PhMwpUpdateUsersMenu(
                 continue;
             }
 
-            menuText = PhFormatString(
-                L"%lu: %s\\%s",
-                sessions[i].SessionId,
-                winStationInfo.Domain,
-                winStationInfo.UserName
-                );
-            escapedMenuText = PhEscapeStringForMenuPrefix(&menuText->sr);
-            PhDereferenceObject(menuText);
+            PhInitFormatU(&format[0], sessions[i].SessionId);
+            PhInitFormatS(&format[1], L": ");
+            PhInitFormatS(&format[2], winStationInfo.Domain);
+            PhInitFormatS(&format[3], L"\\"); // OBJ_NAME_PATH_SEPARATOR
+            PhInitFormatS(&format[4], winStationInfo.UserName);
 
+            if (!PhFormatToBuffer(
+                format,
+                RTL_NUMBER_OF(format),
+                formatBuffer,
+                sizeof(formatBuffer),
+                &formatLength
+                ))
+            {
+                continue;
+            }
+
+            menuTextSr.Length = formatLength - sizeof(UNICODE_NULL);
+            menuTextSr.Buffer = formatBuffer;
+
+            escapedMenuText = PhEscapeStringForMenuPrefix(&menuTextSr);
             userMenu = PhCreateEMenuItem(
-                PH_EMENU_TEXT_OWNED, 
-                IDR_USER, 
-                PhAllocateCopy(escapedMenuText->Buffer, escapedMenuText->Length + sizeof(WCHAR)), 
-                NULL, 
+                PH_EMENU_TEXT_OWNED,
+                IDR_USER,
+                PhAllocateCopy(escapedMenuText->Buffer, escapedMenuText->Length + sizeof(WCHAR)),
+                NULL,
                 UlongToPtr(sessions[i].SessionId)
                 );
-            PhLoadResourceEMenuItem(userMenu, PhInstanceHandle, MAKEINTRESOURCE(IDR_USER), 0);
+
+            PhInsertEMenuItem(userMenu, PhCreateEMenuItem(0, ID_USER_CONNECT, L"&Connect", NULL, NULL), ULONG_MAX);
+            PhInsertEMenuItem(userMenu, PhCreateEMenuItem(0, ID_USER_DISCONNECT, L"&Disconnect", NULL, NULL), ULONG_MAX);
+            PhInsertEMenuItem(userMenu, PhCreateEMenuItem(0, ID_USER_LOGOFF, L"&Logoff", NULL, NULL), ULONG_MAX);
+            PhInsertEMenuItem(userMenu, PhCreateEMenuItem(0, ID_USER_REMOTECONTROL, L"Rem&ote control", NULL, NULL), ULONG_MAX);
+            PhInsertEMenuItem(userMenu, PhCreateEMenuItem(0, ID_USER_SENDMESSAGE, L"Send &message...", NULL, NULL), ULONG_MAX);
+            PhInsertEMenuItem(userMenu, PhCreateEMenuSeparator(), ULONG_MAX);
+            PhInsertEMenuItem(userMenu, PhCreateEMenuItem(0, ID_USER_PROPERTIES, L"P&roperties", NULL, NULL), ULONG_MAX);
             PhInsertEMenuItem(UsersMenu, userMenu, ULONG_MAX);
 
             PhDereferenceObject(escapedMenuText);
