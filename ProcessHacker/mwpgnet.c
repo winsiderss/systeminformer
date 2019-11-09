@@ -94,7 +94,10 @@ BOOLEAN PhMwpNetworkPageCallback(
         break;
     case MainTabPageCreateWindow:
         {
-            *(HWND *)Parameter1 = PhMwpNetworkTreeNewHandle;
+            if (Parameter1)
+            {
+                *(HWND*)Parameter1 = PhMwpNetworkTreeNewHandle;
+            }
         }
         return TRUE;
     case MainTabPageSelected:
