@@ -177,7 +177,7 @@ PHLIBAPI
 VOID
 NTAPI
 PhFreePage(
-    _Frees_ptr_opt_ PVOID Memory
+    _Post_invalid_ PVOID Memory
     );
 
 FORCEINLINE
@@ -2912,6 +2912,7 @@ PhClearHashtable(
     );
 
 PHLIBAPI
+_Success_(return)
 BOOLEAN
 NTAPI
 PhEnumHashtable(
