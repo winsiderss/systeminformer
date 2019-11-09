@@ -3,6 +3,7 @@
  *   base support functions
  *
  * Copyright (C) 2009-2016 wj32
+ * Copyright (C) 2019 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -728,6 +729,7 @@ PWSTR PhDuplicateStringZ(
  * string. It will also stop copying when it reaches the character count specified in \a InputCount,
  * if \a InputCount is not -1.
  */
+_Success_(return)
 BOOLEAN PhCopyBytesZ(
     _In_ PSTR InputBuffer,
     _In_ SIZE_T InputCount,
@@ -790,6 +792,7 @@ BOOLEAN PhCopyBytesZ(
  * string. It will also stop copying when it reaches the character count specified in \a InputCount,
  * if \a InputCount is not -1.
  */
+_Success_(return)
 BOOLEAN PhCopyStringZ(
     _In_ PWSTR InputBuffer,
     _In_ SIZE_T InputCount,
@@ -852,6 +855,7 @@ BOOLEAN PhCopyStringZ(
  * string. It will also stop copying when it reaches the character count specified in \a InputCount,
  * if \a InputCount is not -1.
  */
+_Success_(return)
 BOOLEAN PhCopyStringZFromBytes(
     _In_ PSTR InputBuffer,
     _In_ SIZE_T InputCount,
@@ -914,6 +918,7 @@ BOOLEAN PhCopyStringZFromBytes(
  * string. It will also stop copying when it reaches the character count specified in \a InputCount,
  * if \a InputCount is not -1.
  */
+_Success_(return)
 BOOLEAN PhCopyStringZFromMultiByte(
     _In_ PSTR InputBuffer,
     _In_ SIZE_T InputCount,
@@ -2535,6 +2540,7 @@ BOOLEAN PhWriteUnicodeDecoder(
     }
 }
 
+_Success_(return)
 BOOLEAN PhpReadUnicodeDecoder(
     _Inout_ PPH_UNICODE_DECODER Decoder,
     _Out_ PULONG CodeUnit
@@ -2622,6 +2628,7 @@ BOOLEAN PhpDecodeUtf8Error(
     return TRUE;
 }
 
+_Success_(return)
 BOOLEAN PhDecodeUnicodeDecoder(
     _Inout_ PPH_UNICODE_DECODER Decoder,
     _Out_ PULONG CodePoint
@@ -2819,6 +2826,7 @@ BOOLEAN PhDecodeUnicodeDecoder(
     }
 }
 
+_Success_(return)
 BOOLEAN PhEncodeUnicode(
     _In_ UCHAR Encoding,
     _In_ ULONG CodePoint,
@@ -3132,12 +3140,14 @@ PPH_BYTES PhConvertUtf16ToMultiByteEx(
     return bytes;
 }
 
+_Success_(return)
 BOOLEAN PhConvertUtf8ToUtf16Size(
     _Out_ PSIZE_T BytesInUtf16String,
     _In_reads_bytes_(BytesInUtf8String) PCH Utf8String,
     _In_ SIZE_T BytesInUtf8String
     )
 {
+#ifdef PH_UTF_NATIVE
     BOOLEAN result;
     PH_UNICODE_DECODER decoder;
     PCH in;
@@ -3170,8 +3180,27 @@ BOOLEAN PhConvertUtf8ToUtf16Size(
     *BytesInUtf16String = bytesInUtf16String;
 
     return result;
+#else
+    ULONG bytesInUtf16String = 0;
+
+    if (NT_SUCCESS(RtlUTF8ToUnicodeN(
+        NULL,
+        0,
+        &bytesInUtf16String,
+        Utf8String,
+        (ULONG)BytesInUtf8String
+        )))
+    {
+        if (BytesInUtf16String)
+            *BytesInUtf16String = bytesInUtf16String;
+        return TRUE;
+    }
+
+    return FALSE;
+#endif
 }
 
+_Success_(return)
 BOOLEAN PhConvertUtf8ToUtf16Buffer(
     _Out_writes_bytes_to_(MaxBytesInUtf16String, *BytesInUtf16String) PWCH Utf16String,
     _In_ SIZE_T MaxBytesInUtf16String,
@@ -3180,6 +3209,7 @@ BOOLEAN PhConvertUtf8ToUtf16Buffer(
     _In_ SIZE_T BytesInUtf8String
     )
 {
+#ifdef PH_UTF_NATIVE
     BOOLEAN result;
     PH_UNICODE_DECODER decoder;
     PCH in;
@@ -3236,6 +3266,24 @@ BOOLEAN PhConvertUtf8ToUtf16Buffer(
         *BytesInUtf16String = bytesInUtf16String;
 
     return result;
+#else
+    ULONG bytesInUtf16String = 0;
+
+    if (NT_SUCCESS(RtlUTF8ToUnicodeN(
+        Utf16String,
+        (ULONG)MaxBytesInUtf16String,
+        &bytesInUtf16String,
+        Utf8String,
+        (ULONG)BytesInUtf8String
+        )))
+    {
+        if (BytesInUtf16String)
+            *BytesInUtf16String = bytesInUtf16String;
+        return TRUE;
+    }
+
+    return FALSE;
+#endif
 }
 
 PPH_STRING PhConvertUtf8ToUtf16(
@@ -3282,12 +3330,14 @@ PPH_STRING PhConvertUtf8ToUtf16Ex(
     return string;
 }
 
+_Success_(return)
 BOOLEAN PhConvertUtf16ToUtf8Size(
     _Out_ PSIZE_T BytesInUtf8String,
     _In_reads_bytes_(BytesInUtf16String) PWCH Utf16String,
     _In_ SIZE_T BytesInUtf16String
     )
 {
+#ifdef PH_UTF_NATIVE
     BOOLEAN result;
     PH_UNICODE_DECODER decoder;
     PWCH in;
@@ -3320,8 +3370,27 @@ BOOLEAN PhConvertUtf16ToUtf8Size(
     *BytesInUtf8String = bytesInUtf8String;
 
     return result;
+#else
+    ULONG bytesInUtf8String = 0;
+
+    if (NT_SUCCESS(RtlUnicodeToUTF8N(
+        NULL,
+        0,
+        &bytesInUtf8String,
+        Utf16String,
+        (ULONG)BytesInUtf16String
+        )))
+    {
+        if (BytesInUtf8String)
+            *BytesInUtf8String = bytesInUtf8String;
+        return TRUE;
+    }
+
+    return FALSE;
+#endif
 }
 
+_Success_(return)
 BOOLEAN PhConvertUtf16ToUtf8Buffer(
     _Out_writes_bytes_to_(MaxBytesInUtf8String, *BytesInUtf8String) PCH Utf8String,
     _In_ SIZE_T MaxBytesInUtf8String,
@@ -3330,6 +3399,7 @@ BOOLEAN PhConvertUtf16ToUtf8Buffer(
     _In_ SIZE_T BytesInUtf16String
     )
 {
+#ifdef PH_UTF_NATIVE
     BOOLEAN result;
     PH_UNICODE_DECODER decoder;
     PWCH in;
@@ -3390,6 +3460,24 @@ BOOLEAN PhConvertUtf16ToUtf8Buffer(
         *BytesInUtf8String = bytesInUtf8String;
 
     return result;
+#else
+    ULONG bytesInUtf8String = 0;
+
+    if (NT_SUCCESS(RtlUnicodeToUTF8N(
+        Utf8String,
+        (ULONG)MaxBytesInUtf8String,
+        &bytesInUtf8String,
+        Utf16String,
+        (ULONG)BytesInUtf16String
+        )))
+    {
+        if (BytesInUtf8String)
+            *BytesInUtf8String = bytesInUtf8String;
+        return TRUE;
+    }
+
+    return FALSE;
+#endif
 }
 
 PPH_BYTES PhConvertUtf16ToUtf8(

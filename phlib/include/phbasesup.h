@@ -574,6 +574,7 @@ PhDuplicateStringZ(
     );
 
 PHLIBAPI
+_Success_(return)
 BOOLEAN
 NTAPI
 PhCopyBytesZ(
@@ -585,6 +586,7 @@ PhCopyBytesZ(
     );
 
 PHLIBAPI
+_Success_(return)
 BOOLEAN
 NTAPI
 PhCopyStringZ(
@@ -596,6 +598,7 @@ PhCopyStringZ(
     );
 
 PHLIBAPI
+_Success_(return)
 BOOLEAN
 NTAPI
 PhCopyStringZFromBytes(
@@ -607,6 +610,7 @@ PhCopyStringZFromBytes(
     );
 
 PHLIBAPI
+_Success_(return)
 BOOLEAN
 NTAPI
 PhCopyStringZFromMultiByte(
@@ -1823,6 +1827,7 @@ PhWriteUnicodeDecoder(
     );
 
 PHLIBAPI
+_Success_(return)
 BOOLEAN
 NTAPI
 PhDecodeUnicodeDecoder(
@@ -1831,6 +1836,7 @@ PhDecodeUnicodeDecoder(
     );
 
 PHLIBAPI
+_Success_(return)
 BOOLEAN
 NTAPI
 PhEncodeUnicode(
@@ -1926,8 +1932,10 @@ PhConvertUtf16ToMultiByteEx(
     );
 
 // UTF-8 to UTF-16
+// In-place: RtlUTF8ToUnicodeN
 
 PHLIBAPI
+_Success_(return)
 BOOLEAN
 NTAPI
 PhConvertUtf8ToUtf16Size(
@@ -1937,6 +1945,7 @@ PhConvertUtf8ToUtf16Size(
     );
 
 PHLIBAPI
+_Success_(return)
 BOOLEAN
 NTAPI
 PhConvertUtf8ToUtf16Buffer(
@@ -1963,8 +1972,10 @@ PhConvertUtf8ToUtf16Ex(
     );
 
 // UTF-16 to UTF-8
+// In-place: RtlUnicodeToUTF8N
 
 PHLIBAPI
+_Success_(return)
 BOOLEAN
 NTAPI
 PhConvertUtf16ToUtf8Size(
@@ -1974,6 +1985,7 @@ PhConvertUtf16ToUtf8Size(
     );
 
 PHLIBAPI
+_Success_(return)
 BOOLEAN
 NTAPI
 PhConvertUtf16ToUtf8Buffer(
