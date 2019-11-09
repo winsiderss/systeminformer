@@ -78,7 +78,6 @@
 #define IDD_GDIHANDLES                  175
 #define IDD_LOG                         178
 #define IDD_MEMEDIT                     180
-#define IDR_MEMORY                      181
 #define IDD_MEMPROTECT                  182
 #define IDD_MEMRESULTS                  183
 #define IDR_MEMFILTER                   184
