@@ -216,13 +216,21 @@ VOID ProcessThreadStackControl(
     case PluginThreadStackBeginDefaultWalkStack:
         {
             PTHREAD_STACK_CONTEXT context = FindThreadStackContext(Control->UniqueKey);
-            BOOLEAN isDotNet;
+            BOOLEAN isDotNet = FALSE;
 
             if (!context)
                 return;
 
-            if (!NT_SUCCESS(PhGetProcessIsDotNet(context->ProcessId, &isDotNet)) || !isDotNet)
+            if (!NT_SUCCESS(PhGetProcessIsDotNetEx(
+                context->ProcessId,
+                NULL,
+                PH_CLR_USE_SECTION_CHECK,
+                &isDotNet,
+                NULL
+                )) || !isDotNet)
+            {
                 return;
+            }
 
             context->Support = CreateClrProcessSupport(context->ProcessId);
 
