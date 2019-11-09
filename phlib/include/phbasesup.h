@@ -2494,6 +2494,7 @@ PhAddItemPointerList(
     );
 
 PHLIBAPI
+_Success_(return)
 BOOLEAN
 NTAPI
 PhEnumPointerListEx(
@@ -3310,6 +3311,7 @@ PhBufferToHexStringEx(
     );
 
 PHLIBAPI
+_Success_(return)
 BOOLEAN
 NTAPI
 PhStringToInteger64(
