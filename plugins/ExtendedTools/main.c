@@ -218,7 +218,7 @@ VOID NTAPI ProcessMenuInitializingCallback(
     if (!processItem)
         flags = PH_EMENU_DISABLED;
 
-    miscMenu = PhFindEMenuItem(menuInfo->Menu, 0, L"Miscellaneous", 0);
+    miscMenu = PhFindEMenuItem(menuInfo->Menu, 0, NULL, PHAPP_ID_PROCESS_MISCELLANEOUS);
 
     if (miscMenu)
     {
