@@ -252,10 +252,10 @@ VOID NTAPI ProcessMenuInitializingCallback(
 
         // Insert our Services menu after the I/O Priority menu.
 
-        priorityMenuItem = PhFindEMenuItem(menuInfo->Menu, 0, L"I/O Priority", 0);
+        priorityMenuItem = PhFindEMenuItem(menuInfo->Menu, 0, NULL, PHAPP_ID_PROCESS_IOPRIORITY);
 
         if (!priorityMenuItem)
-            priorityMenuItem = PhFindEMenuItem(menuInfo->Menu, 0, L"Priority", 0);
+            priorityMenuItem = PhFindEMenuItem(menuInfo->Menu, 0, NULL, PHAPP_ID_PROCESS_PRIORITY);
 
         if (priorityMenuItem)
             insertIndex = PhIndexOfEMenuItem(menuInfo->Menu, priorityMenuItem) + 1;
