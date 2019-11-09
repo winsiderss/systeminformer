@@ -134,6 +134,7 @@ VOID NTAPI MainMenuInitializingCallback(
     _In_opt_ PVOID Context
     )
 {
+    PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
     ULONG insertIndex;
     PPH_EMENU_ITEM menuItem;
 
