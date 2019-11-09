@@ -436,7 +436,7 @@ NTSTATUS GeoIPUpdateThread(
                     {
                         INT bytes = gzread(gzfile, buffer, sizeof(buffer));
 
-                        if (bytes == -1)
+                        if (bytes == INT_MAX)
                         {
                             NtClose(mmdbFileHandle);
                             goto CleanupExit;
