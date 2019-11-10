@@ -127,7 +127,7 @@ BOOLEAN PhSipCpuSectionCallback(
 
             PhMoveReference(&Section->GraphState.TooltipText, PhFormatString(
                 L"%.2f%%%s\n%s",
-                (cpuKernel + cpuUser) * 100,
+                ((DOUBLE)cpuKernel + cpuUser) * 100,
                 PhGetStringOrEmpty(PhSipGetMaxCpuString(getTooltipText->Index)),
                 PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->Buffer
                 ));
@@ -142,7 +142,7 @@ BOOLEAN PhSipCpuSectionCallback(
                 break;
 
             drawPanel->Title = PhCreateString(L"CPU");
-            drawPanel->SubTitle = PhFormatString(L"%.2f%%", (PhCpuKernelUsage + PhCpuUserUsage) * 100);
+            drawPanel->SubTitle = PhFormatString(L"%.2f%%", ((DOUBLE)PhCpuKernelUsage + PhCpuUserUsage) * 100);
         }
         return TRUE;
     }
@@ -154,7 +154,7 @@ VOID PhSipInitializeCpuDialog(
     VOID
     )
 {
-    ULONG i;
+    ULONG PowerInformationLength;
 
     PhInitializeDelta(&ContextSwitchesDelta);
     PhInitializeDelta(&InterruptsDelta);
@@ -165,11 +165,12 @@ VOID PhSipInitializeCpuDialog(
     CpusGraphHandle = PhAllocate(sizeof(HWND) * NumberOfProcessors);
     CpusGraphState = PhAllocate(sizeof(PH_GRAPH_STATE) * NumberOfProcessors);
     InterruptInformation = PhAllocate(sizeof(SYSTEM_INTERRUPT_INFORMATION) * NumberOfProcessors);
-    PowerInformation = PhAllocate(sizeof(PROCESSOR_POWER_INFORMATION) * NumberOfProcessors);
+    PowerInformationLength = sizeof(PROCESSOR_POWER_INFORMATION) * NumberOfProcessors;
+    PowerInformation = PhAllocate(PowerInformationLength);
 
     PhInitializeGraphState(&CpuGraphState);
 
-    for (i = 0; i < NumberOfProcessors; i++)
+    for (ULONG i = 0; i < NumberOfProcessors; i++)
         PhInitializeGraphState(&CpusGraphState[i]);
 
     CpuTicked = 0;
@@ -179,10 +180,10 @@ VOID PhSipInitializeCpuDialog(
         NULL,
         0,
         PowerInformation,
-        sizeof(PROCESSOR_POWER_INFORMATION) * NumberOfProcessors
+        PowerInformationLength
         )))
     {
-        memset(PowerInformation, 0, sizeof(PROCESSOR_POWER_INFORMATION) * NumberOfProcessors);
+        memset(PowerInformation, 0, PowerInformationLength);
     }
 
     CurrentPerformanceDistribution = NULL;
@@ -606,7 +607,7 @@ VOID PhSipNotifyCpuGraph(
 
                         PhMoveReference(&CpuGraphState.TooltipText, PhFormatString(
                             L"%.2f%%%s\n%s",
-                            (cpuKernel + cpuUser) * 100,
+                            ((DOUBLE)cpuKernel + cpuUser) * 100,
                             PhGetStringOrEmpty(PhSipGetMaxCpuString(getTooltipText->Index)),
                             PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->Buffer
                             ));
@@ -626,9 +627,9 @@ VOID PhSipNotifyCpuGraph(
 
                         PhMoveReference(&CpusGraphState[Index].TooltipText, PhFormatString(
                             L"%.2f%% (K: %.2f%%, U: %.2f%%)%s\n%s",
-                            (cpuKernel + cpuUser) * 100,
-                            cpuKernel * 100,
-                            cpuUser * 100,
+                            ((DOUBLE)cpuKernel + cpuUser) * 100,
+                            (DOUBLE)cpuKernel * 100,
+                            (DOUBLE)cpuUser * 100,
                             PhGetStringOrEmpty(PhSipGetMaxCpuString(getTooltipText->Index)),
                             PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->Buffer
                             ));
@@ -694,9 +695,9 @@ VOID PhSipUpdateCpuPanel(
     DOUBLE cpuGhz;
     BOOLEAN distributionSucceeded;
     SYSTEM_TIMEOFDAY_INFORMATION timeOfDayInfo;
-    WCHAR uptimeString[PH_TIMESPAN_STR_LEN_1] = L"Unknown";
+    WCHAR uptimeString[PH_TIMESPAN_STR_LEN_1] = { L"Unknown" };
 
-    PhSetDialogItemText(hwnd, IDC_UTILIZATION, PhaFormatString(L"%.2f%%", (PhCpuUserUsage + PhCpuKernelUsage) * 100)->Buffer);
+    PhSetDialogItemText(hwnd, IDC_UTILIZATION, PhaFormatString(L"%.2f%%", ((DOUBLE)PhCpuUserUsage + PhCpuKernelUsage) * 100)->Buffer);
 
     cpuGhz = 0;
     distributionSucceeded = FALSE;
@@ -811,7 +812,7 @@ PPH_STRING PhSipGetMaxCpuString(
                 L"\n%s (%lu): %.2f%%",
                 maxProcessRecord->ProcessName->Buffer,
                 HandleToUlong(maxProcessRecord->ProcessId),
-                maxCpuUsage * 100
+                (DOUBLE)maxCpuUsage * 100
                 );
         }
         else
@@ -819,7 +820,7 @@ PPH_STRING PhSipGetMaxCpuString(
             maxUsageString = PhaFormatString(
                 L"\n%s: %.2f%%",
                 maxProcessRecord->ProcessName->Buffer,
-                maxCpuUsage * 100
+                (DOUBLE)maxCpuUsage * 100
                 );
         }
 #else
