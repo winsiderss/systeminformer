@@ -206,7 +206,7 @@ VOID PhDrawGraphDirect(
 
     if (DrawInfo->BackColor == 0)
     {
-        memset(bits, 0, numberOfPixels * 4);
+        memset(bits, 0, (size_t)numberOfPixels * 4);
     }
     else
     {
@@ -611,14 +611,14 @@ VOID PhSetGraphText(
     else if (Align & PH_ALIGN_RIGHT)
         boxRectangle.Left = DrawInfo->Width - boxRectangle.Width - Margin->right;
     else
-        boxRectangle.Left = (DrawInfo->Width - boxRectangle.Width) / sizeof(WCHAR);
+        boxRectangle.Left = (DrawInfo->Width - boxRectangle.Width) / (LONG)sizeof(WCHAR);
 
     if (Align & PH_ALIGN_TOP)
         boxRectangle.Top = Margin->top;
     else if (Align & PH_ALIGN_BOTTOM)
         boxRectangle.Top = DrawInfo->Height - boxRectangle.Height - Margin->bottom;
     else
-        boxRectangle.Top = (DrawInfo->Height - boxRectangle.Height) / sizeof(WCHAR);
+        boxRectangle.Top = (DrawInfo->Height - boxRectangle.Height) / (LONG)sizeof(WCHAR);
 
     // Calculate the text rectangle.
 
@@ -680,7 +680,7 @@ VOID PhDrawTrayIconText( // dmex
 
     if (DrawInfo->BackColor == 0)
     {
-        memset(bits, 0, numberOfPixels * 4);
+        memset(bits, 0, (size_t)numberOfPixels * 4);
     }
     else
     {
@@ -700,8 +700,8 @@ VOID PhDrawTrayIconText( // dmex
 
     boxRectangle.Width = textSize.cx;
     boxRectangle.Height = textSize.cy;
-    boxRectangle.Left = (DrawInfo->Width - boxRectangle.Width) / sizeof(WCHAR);
-    boxRectangle.Top = (DrawInfo->Height - boxRectangle.Height) / sizeof(WCHAR);
+    boxRectangle.Left = (DrawInfo->Width - boxRectangle.Width) / (LONG)sizeof(WCHAR);
+    boxRectangle.Top = (DrawInfo->Height - boxRectangle.Height) / (LONG)sizeof(WCHAR);
 
     // Calculate the text rectangle.
 
@@ -931,19 +931,23 @@ VOID PhpDrawGraphControl(
         blendFunction.BlendFlags = 0;
         blendFunction.SourceConstantAlpha = 255;
         blendFunction.AlphaFormat = AC_SRC_ALPHA;
-        GdiAlphaBlend(
-            Context->BufferedContext,
-            0,
-            0,
-            Context->Options.FadeOutWidth,
-            Context->FadeOutContextRect.bottom,
-            Context->FadeOutContext,
-            0,
-            0,
-            Context->Options.FadeOutWidth,
-            Context->FadeOutContextRect.bottom,
-            blendFunction
-            );
+
+        if (Context->FadeOutContext)
+        {
+            GdiAlphaBlend(
+                Context->BufferedContext,
+                0,
+                0,
+                Context->Options.FadeOutWidth,
+                Context->FadeOutContextRect.bottom,
+                Context->FadeOutContext,
+                0,
+                0,
+                Context->Options.FadeOutWidth,
+                Context->FadeOutContextRect.bottom,
+                blendFunction
+                );
+        }
     }
 
     if (Context->Style & GC_STYLE_DRAW_PANEL)
