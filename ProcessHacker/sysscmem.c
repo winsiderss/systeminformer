@@ -92,6 +92,9 @@ BOOLEAN PhSipMemorySectionCallback(
         {
             PPH_SYSINFO_CREATE_DIALOG createDialog = Parameter1;
 
+            if (!createDialog)
+                break;
+
             createDialog->Instance = PhInstanceHandle;
             createDialog->Template = MAKEINTRESOURCE(IDD_SYSINFO_MEM);
             createDialog->DialogProc = PhSipMemoryDialogProc;
@@ -101,6 +104,9 @@ BOOLEAN PhSipMemorySectionCallback(
         {
             PPH_GRAPH_DRAW_INFO drawInfo = Parameter1;
             ULONG i;
+
+            if (!drawInfo)
+                break;
 
             if (PhGetIntegerSetting(L"ShowCommitInSummary"))
             {
@@ -161,6 +167,9 @@ BOOLEAN PhSipMemorySectionCallback(
             PPH_SYSINFO_GRAPH_GET_TOOLTIP_TEXT getTooltipText = Parameter1;
             ULONG usedPages;
 
+            if (!getTooltipText)
+                break;
+
             if (PhGetIntegerSetting(L"ShowCommitInSummary"))
             {
                 usedPages = PhGetItemCircularBuffer_ULONG(&PhCommitHistory, getTooltipText->Index);
@@ -190,6 +199,9 @@ BOOLEAN PhSipMemorySectionCallback(
             PPH_SYSINFO_DRAW_PANEL drawPanel = Parameter1;
             ULONG totalPages;
             ULONG usedPages;
+
+            if (!drawPanel)
+                break;
 
             if (PhGetIntegerSetting(L"ShowCommitInSummary"))
             {
@@ -269,7 +281,7 @@ VOID PhSipTickMemoryDialog(
     PhUpdateDelta(&PagefileWritesDelta, PhPerfInformation.DirtyPagesWriteCount);
     PhUpdateDelta(&MappedWritesDelta, PhPerfInformation.MappedPagesWriteCount);
     PhUpdateDelta(&MappedIoReadDelta, UInt32x32To64(PhPerfInformation.PageReadCount, PAGE_SIZE));
-    PhUpdateDelta(&MappedIoWritesDelta, PhPerfInformation.MappedPagesWriteCount + PhPerfInformation.DirtyPagesWriteCount + PhPerfInformation.CcLazyWritePages * PAGE_SIZE);
+    PhUpdateDelta(&MappedIoWritesDelta, ((ULONG64)PhPerfInformation.MappedPagesWriteCount + PhPerfInformation.DirtyPagesWriteCount + PhPerfInformation.CcLazyWritePages) * PAGE_SIZE);
 
     if (MemoryTicked < 2)
         MemoryTicked++;
