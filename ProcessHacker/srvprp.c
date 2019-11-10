@@ -59,7 +59,8 @@ static NTSTATUS PhpOpenService(
     SC_HANDLE serviceHandle;
     PPH_SERVICE_ITEM serviceItem;
 
-    serviceItem = ((PPH_SERVICE_ITEM)Context);
+    if (!(serviceItem = ((PPH_SERVICE_ITEM)Context)))
+        return STATUS_UNSUCCESSFUL;
 
     if (serviceHandle = PhOpenService(
         serviceItem->Name->Buffer,
@@ -70,6 +71,7 @@ static NTSTATUS PhpOpenService(
         return STATUS_SUCCESS;
     }
 
+    *Handle = NULL;
     return PhGetLastWin32ErrorAsNtStatus();
 }
 
@@ -79,7 +81,9 @@ NTSTATUS PhpCloseServiceCallback(
 {
     PPH_SERVICE_ITEM serviceItem;
 
-    serviceItem = ((PPH_SERVICE_ITEM)Context);
+    if (!(serviceItem = ((PPH_SERVICE_ITEM)Context)))
+        return STATUS_UNSUCCESSFUL;
+
     PhDereferenceObject(serviceItem);
 
     return STATUS_SUCCESS;
@@ -94,7 +98,8 @@ static _Callback_ NTSTATUS PhpSetServiceSecurity(
     NTSTATUS status;
     PPH_STD_OBJECT_SECURITY stdObjectSecurity;
 
-    stdObjectSecurity = (PPH_STD_OBJECT_SECURITY)Context;
+    if (!(stdObjectSecurity = (PPH_STD_OBJECT_SECURITY)Context))
+        return STATUS_UNSUCCESSFUL;
 
     status = PhStdSetObjectSecurity(SecurityDescriptor, SecurityInformation, Context);
 
@@ -125,7 +130,8 @@ NTSTATUS PhpShowServicePropertiesThread(
     SERVICE_PROPERTIES_CONTEXT context;
     PPH_SERVICE_ITEM serviceItem;
 
-    serviceItem = ((PPH_SERVICE_ITEM)Context);
+    if (!(serviceItem = ((PPH_SERVICE_ITEM)Context)))
+        return STATUS_UNSUCCESSFUL;
 
     propSheetHeader.dwFlags =
         PSH_MODELESS |
