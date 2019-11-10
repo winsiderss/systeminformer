@@ -3,7 +3,7 @@
  *   Process properties: Threads page
  *
  * Copyright (C) 2009-2016 wj32
- * Copyright (C) 2018 dmex
+ * Copyright (C) 2018-2019 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -102,6 +102,9 @@ static VOID NTAPI ThreadsLoadingStateChangedHandler(
     )
 {
     PPH_THREADS_CONTEXT threadsContext = (PPH_THREADS_CONTEXT)Context;
+
+    if (!threadsContext)
+        return;
 
     PostMessage(
         threadsContext->ListContext.TreeNewHandle,
@@ -312,7 +315,10 @@ static NTSTATUS NTAPI PhpThreadPermissionsOpenThread(
     _In_opt_ PVOID Context
     )
 {
-    return PhOpenThread(Handle, DesiredAccess, (HANDLE)Context);
+    if (Context)
+        return PhOpenThread(Handle, DesiredAccess, (HANDLE)Context);
+
+    return STATUS_UNSUCCESSFUL;
 }
 
 static NTSTATUS NTAPI PhpOpenThreadTokenObject(
@@ -321,12 +327,10 @@ static NTSTATUS NTAPI PhpOpenThreadTokenObject(
     _In_opt_ PVOID Context
     )
 {
-    return NtOpenThreadToken(
-        (HANDLE)Context,
-        DesiredAccess,
-        TRUE,
-        Handle
-        );
+    if (Context)
+        return NtOpenThreadToken((HANDLE)Context, DesiredAccess, TRUE, Handle);
+
+    return STATUS_UNSUCCESSFUL;
 }
 
 static BOOLEAN PhpWordMatchThreadStringRef(
