@@ -109,9 +109,23 @@ VOID PhpSessionPropertiesQueryWinStationInfo(
 
     if (haveWinStationInfo)
     {
-        PhSetListViewSubItem(Context->ListViewHandle, 0, 1,
-            PhaFormatString(L"%s\\%s", winStationInfo.Domain, winStationInfo.UserName)->Buffer
-            );
+        PH_FORMAT format[3];
+        WCHAR formatBuffer[256];
+
+        PhInitFormatS(&format[0], winStationInfo.Domain);
+        PhInitFormatS(&format[1], L"\\"); // OBJ_NAME_PATH_SEPARATOR
+        PhInitFormatS(&format[2], winStationInfo.UserName);
+
+        if (PhFormatToBuffer(
+            format,
+            RTL_NUMBER_OF(format),
+            formatBuffer,
+            sizeof(formatBuffer),
+            NULL
+            ))
+        {
+            PhSetListViewSubItem(Context->ListViewHandle, 0, 1, formatBuffer);
+        }
     }
 
     PhSetListViewSubItem(Context->ListViewHandle, 1, 1, PhaFormatString(L"%lu", SessionId)->Buffer);
