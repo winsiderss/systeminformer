@@ -414,12 +414,24 @@ INT_PTR CALLBACK PhpSessionPropertiesDlgProc(
             //PhAddListViewGroupItem(context->ListViewHandle, 1, 12, L"Home directory", NULL);
             //PhAddListViewGroupItem(context->ListViewHandle, 1, 13, L"Profile directory", NULL);
 
+            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_LIST), NULL, PH_ANCHOR_ALL);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+
             PhpSessionPropertiesQueryWinStationInfo(context, context->SessionId);
             //PhpSessionPropertiesQuerySamAccountInfo(context, context->SessionId);
 
             PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDOK));
 
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+
+            PhDeleteLayoutManager(&context->LayoutManager);
+            PhFree(context);
         }
         break;
     case WM_COMMAND:
@@ -494,6 +506,11 @@ INT_PTR CALLBACK PhpSessionPropertiesDlgProc(
 
                 PhFree(listviewItems);
             }
+        }
+        break;
+    case WM_SIZE:
+        {
+            PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
     }
