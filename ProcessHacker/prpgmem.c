@@ -368,7 +368,7 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
     _In_ LPARAM lParam
     )
 {
-    PPH_MEMORY_CONTEXT memoryContext = NULL;
+    PPH_MEMORY_CONTEXT memoryContext;
     LPPROPSHEETPAGE propSheetPage;
     PPH_PROCESS_PROPPAGECONTEXT propPageContext;
     PPH_PROCESS_ITEM processItem;
