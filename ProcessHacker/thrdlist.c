@@ -554,11 +554,11 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
     _In_opt_ PVOID Context
     )
 {
-    PPH_THREAD_LIST_CONTEXT context;
+    PPH_THREAD_LIST_CONTEXT context = Context;
     PPH_THREAD_NODE node;
 
-    context = Context;
-
+    if (!context)
+        return FALSE;
     if (PhCmForwardMessage(hwnd, Message, Parameter1, Parameter2, &context->Cm))
         return TRUE;
 
@@ -567,6 +567,9 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
     case TreeNewGetChildren:
         {
             PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
+
+            if (!getChildren)
+                break;
 
             if (!getChildren->Node)
             {
@@ -628,6 +631,9 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
         {
             PPH_TREENEW_IS_LEAF isLeaf = Parameter1;
 
+            if (!isLeaf)
+                break;
+
             isLeaf->IsLeaf = TRUE;
         }
         return TRUE;
@@ -635,6 +641,9 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
         {
             PPH_TREENEW_GET_CELL_TEXT getCellText = Parameter1;
             PPH_THREAD_ITEM threadItem;
+
+            if (!getCellText)
+                break;
 
             node = (PPH_THREAD_NODE)getCellText->Node;
             threadItem = node->ThreadItem;
@@ -952,6 +961,9 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
         {
             PPH_TREENEW_GET_NODE_COLOR getNodeColor = Parameter1;
             PPH_THREAD_ITEM threadItem;
+
+            if (!getNodeColor)
+                break;
 
             node = (PPH_THREAD_NODE)getNodeColor->Node;
             threadItem = node->ThreadItem;
