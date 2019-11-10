@@ -1765,7 +1765,10 @@ static NTSTATUS PhpOpenLinkedToken(
     _In_opt_ PVOID Context
     )
 {
-    return PhGetTokenLinkedToken((HANDLE)Context, Handle);
+    if (Context)
+        return PhGetTokenLinkedToken((HANDLE)Context, Handle);
+
+    return STATUS_UNSUCCESSFUL;
 }
 
 INT_PTR CALLBACK PhpTokenGeneralPageProc(
@@ -1796,8 +1799,8 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
             BOOLEAN hasLinkedToken = FALSE;
             PWSTR tokenVirtualization = L"N/A";
             PWSTR tokenUIAccess = L"Unknown";
-            WCHAR tokenSourceName[TOKEN_SOURCE_LENGTH + 1] = L"Unknown";
-            WCHAR tokenSourceLuid[PH_PTR_STR_LEN_1] = L"Unknown";
+            WCHAR tokenSourceName[TOKEN_SOURCE_LENGTH + 1] = { L"Unknown" };
+            WCHAR tokenSourceLuid[PH_PTR_STR_LEN_1] = { L"Unknown" };
 
             // HACK
             PhCenterWindow(GetParent(hwndDlg), GetParent(GetParent(hwndDlg)));
@@ -2006,10 +2009,10 @@ INT_PTR CALLBACK PhpTokenAdvancedPageProc(
             ULONG listViewGroupIndex = 0;
             PWSTR tokenType = L"Unknown";
             PWSTR tokenImpersonationLevel = L"Unknown";
-            WCHAR tokenLuid[PH_PTR_STR_LEN_1] = L"Unknown";
-            WCHAR authenticationLuid[PH_PTR_STR_LEN_1] = L"Unknown";
-            WCHAR tokenModifiedLuid[PH_PTR_STR_LEN_1] = L"Unknown";
-            WCHAR tokenOriginLogonSession[PH_PTR_STR_LEN_1] = L"Unknown";
+            WCHAR tokenLuid[PH_PTR_STR_LEN_1] = { L"Unknown" };
+            WCHAR authenticationLuid[PH_PTR_STR_LEN_1] = { L"Unknown" };
+            WCHAR tokenModifiedLuid[PH_PTR_STR_LEN_1] = { L"Unknown" };
+            WCHAR tokenOriginLogonSession[PH_PTR_STR_LEN_1] = { L"Unknown" };
             PPH_STRING memoryUsed = NULL;
             PPH_STRING memoryAvailable = NULL;
             PPH_STRING tokenNamedObjectPathString = NULL;
@@ -2844,7 +2847,7 @@ PPH_STRING PhFormatTokenSecurityAttributeValue(
     case TOKEN_SECURITY_ATTRIBUTE_TYPE_FQBN:
         return PhFormatString(L"Version %I64u: %.*s",
             Attribute->Values.pFqbn[ValueIndex].Version,
-            Attribute->Values.pFqbn[ValueIndex].Name.Length / sizeof(WCHAR),
+            Attribute->Values.pFqbn[ValueIndex].Name.Length / (USHORT)sizeof(WCHAR),
             Attribute->Values.pFqbn[ValueIndex].Name.Buffer);
     case TOKEN_SECURITY_ATTRIBUTE_TYPE_SID:
         {
@@ -3312,14 +3315,14 @@ PPH_STRING PhpGetTokenAppContainerFolderPath(
     )
 {
     PPH_STRING appContainerFolderPath = NULL;
-    PPH_STRING appContainerSid;
-    PWSTR folderPath;
+    PPH_STRING appContainerSid = NULL;
+    PWSTR folderPath = NULL;
 
     appContainerSid = PhSidToStringSid(TokenAppContainerSid);
 
     if (GetAppContainerFolderPath_Import())
     {
-        if (SUCCEEDED(GetAppContainerFolderPath_Import()(appContainerSid->Buffer, &folderPath)))
+        if (SUCCEEDED(GetAppContainerFolderPath_Import()(appContainerSid->Buffer, &folderPath)) && folderPath)
         {
             appContainerFolderPath = PhCreateString(folderPath);
             CoTaskMemFree(folderPath);
