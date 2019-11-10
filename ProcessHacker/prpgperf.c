@@ -175,7 +175,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
 
                             PhMoveReference(&performanceContext->CpuGraphState.Text,
                                 PhFormatString(L"%.2f%%",
-                                (processItem->CpuKernelUsage + processItem->CpuUserUsage) * 100
+                                ((DOUBLE)processItem->CpuKernelUsage + processItem->CpuUserUsage) * 100
                                 ));
 
                             hdc = Graph_GetBufferedContext(performanceContext->CpuGraphHandle);
@@ -334,7 +334,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
 
                             PhMoveReference(&performanceContext->CpuGraphState.TooltipText, PhFormatString(
                                 L"%.2f%%\n%s",
-                                (cpuKernel + cpuUser) * 100,
+                                ((DOUBLE)cpuKernel + cpuUser) * 100,
                                 PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(processItem, getTooltipText->Index))->Buffer
                                 ));
                         }
@@ -414,7 +414,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
 
             GetClientRect(hwndDlg, &clientRect);
             width = clientRect.right - margin.left - margin.right;
-            height = (clientRect.bottom - margin.top - margin.bottom - between * sizeof(WCHAR)) / 3;
+            height = (clientRect.bottom - margin.top - margin.bottom - between * 2) / 3;
 
             deferHandle = BeginDeferWindowPos(6);
 
