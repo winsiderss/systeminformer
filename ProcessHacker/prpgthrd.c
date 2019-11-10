@@ -587,22 +587,15 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
     PPH_PROCESS_PROPPAGECONTEXT propPageContext;
     PPH_PROCESS_ITEM processItem;
     PPH_THREADS_CONTEXT threadsContext;
-    HWND tnHandle = NULL;
 
     if (PhPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext, &processItem))
     {
         threadsContext = (PPH_THREADS_CONTEXT)propPageContext->Context;
-
-        if (threadsContext)
-            tnHandle = threadsContext->ListContext.TreeNewHandle;
     }
     else
     {
         return FALSE;
     }
-
-    if (!threadsContext)
-        return FALSE;
 
     switch (uMsg)
     {
@@ -610,6 +603,10 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
         {
             threadsContext = propPageContext->Context = PhAllocate(PhEmGetObjectSize(EmThreadsContextType, sizeof(PH_THREADS_CONTEXT)));
             memset(threadsContext, 0, sizeof(PH_THREADS_CONTEXT));
+
+            threadsContext->WindowHandle = hwndDlg;
+            threadsContext->TreeNewHandle = GetDlgItem(hwndDlg, IDC_LIST);
+            threadsContext->SearchboxHandle = GetDlgItem(hwndDlg, IDC_SEARCH);
 
             // The thread provider has a special registration mechanism.
             threadsContext->Provider = PhCreateThreadProvider(
@@ -645,18 +642,16 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                 threadsContext,
                 &threadsContext->LoadingStateChangedEventRegistration
                 );
-            threadsContext->WindowHandle = hwndDlg;
-            threadsContext->SearchboxHandle = GetDlgItem(hwndDlg, IDC_SEARCH);
 
-            PhCreateSearchControl(hwndDlg, threadsContext->SearchboxHandle, L"Search Threads (Ctrl+K)");
-
-            // Initialize the list.
-            tnHandle = GetDlgItem(hwndDlg, IDC_LIST);
-            PhInitializeThreadList(hwndDlg, tnHandle, &threadsContext->ListContext);
-            TreeNew_SetEmptyText(tnHandle, &EmptyThreadsText, 0);
+            // Initialize the list. (wj32)
+            PhInitializeThreadList(hwndDlg, threadsContext->TreeNewHandle, &threadsContext->ListContext);
+            TreeNew_SetEmptyText(threadsContext->TreeNewHandle, &EmptyThreadsText, 0);
             PhInitializeProviderEventQueue(&threadsContext->EventQueue, 100);
             threadsContext->SearchboxText = PhReferenceEmptyString();
             threadsContext->FilterEntry = PhAddTreeNewFilter(&threadsContext->ListContext.TreeFilterSupport, PhpThreadTreeFilterCallback, threadsContext);
+
+            // Initialize the search box. (dmex)
+            PhCreateSearchControl(hwndDlg, threadsContext->SearchboxHandle, L"Search Threads (Ctrl+K)");
 
             // Use Cycles instead of Context Switches on Vista and above, but only when we can
             // open the process, since cycle time information requires sufficient access to the
@@ -700,7 +695,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             {
                 PH_PLUGIN_TREENEW_INFORMATION treeNewInfo;
 
-                treeNewInfo.TreeNewHandle = tnHandle;
+                treeNewInfo.TreeNewHandle = threadsContext->TreeNewHandle;
                 treeNewInfo.CmData = &threadsContext->ListContext.Cm;
                 treeNewInfo.SystemContext = threadsContext;
                 PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackThreadTreeNewInitializing), &treeNewInfo);
@@ -750,7 +745,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             {
                 PH_PLUGIN_TREENEW_INFORMATION treeNewInfo;
 
-                treeNewInfo.TreeNewHandle = tnHandle;
+                treeNewInfo.TreeNewHandle = threadsContext->TreeNewHandle;
                 treeNewInfo.CmData = &threadsContext->ListContext.Cm;
                 PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackThreadTreeNewUninitializing), &treeNewInfo);
             }
@@ -768,7 +763,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             if (dialogItem = PhBeginPropPageLayout(hwndDlg, propPageContext))
             {
                 PhAddPropPageLayoutItem(hwndDlg, threadsContext->SearchboxHandle, dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PhAddPropPageLayoutItem(hwndDlg, tnHandle, dialogItem, PH_ANCHOR_ALL);
+                PhAddPropPageLayoutItem(hwndDlg, threadsContext->TreeNewHandle, dialogItem, PH_ANCHOR_ALL);
                 PhEndPropPageLayout(hwndDlg, propPageContext);
             }
         }
@@ -1119,8 +1114,8 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                 {
                     PPH_STRING text;
 
-                    text = PhGetTreeNewText(tnHandle, 0);
-                    PhSetClipboardString(tnHandle, &text->sr);
+                    text = PhGetTreeNewText(threadsContext->TreeNewHandle, 0);
+                    PhSetClipboardString(threadsContext->TreeNewHandle, &text->sr);
                     PhDereferenceObject(text);
                 }
                 break;
@@ -1208,7 +1203,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                 // Can't disable, it screws up the deltas.
                 break;
             case PSN_QUERYINITIALFOCUS:
-                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LPARAM)tnHandle);
+                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LPARAM)threadsContext->TreeNewHandle);
                 return TRUE;
             }
         }
@@ -1237,7 +1232,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
 
             if (events)
             {
-                TreeNew_SetRedraw(tnHandle, FALSE);
+                TreeNew_SetRedraw(threadsContext->TreeNewHandle, FALSE);
 
                 for (i = 0; i < count; i++)
                 {
@@ -1265,7 +1260,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             PhTickThreadNodes(&threadsContext->ListContext);
 
             if (count != 0)
-                TreeNew_SetRedraw(tnHandle, TRUE);
+                TreeNew_SetRedraw(threadsContext->TreeNewHandle, TRUE);
 
             if (propPageContext->PropContext->SelectThreadId)
             {
@@ -1275,10 +1270,10 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                 {
                     if (threadNode->Node.Visible)
                     {
-                        TreeNew_SetFocusNode(tnHandle, &threadNode->Node);
-                        TreeNew_SetMarkNode(tnHandle, &threadNode->Node);
-                        TreeNew_SelectRange(tnHandle, threadNode->Node.Index, threadNode->Node.Index);
-                        TreeNew_EnsureVisible(tnHandle, &threadNode->Node);
+                        TreeNew_SetFocusNode(threadsContext->TreeNewHandle, &threadNode->Node);
+                        TreeNew_SetMarkNode(threadsContext->TreeNewHandle, &threadNode->Node);
+                        TreeNew_SelectRange(threadsContext->TreeNewHandle, threadNode->Node.Index, threadNode->Node.Index);
+                        TreeNew_EnsureVisible(threadsContext->TreeNewHandle, &threadNode->Node);
                     }
                 }
 
