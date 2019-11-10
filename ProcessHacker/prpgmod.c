@@ -436,22 +436,15 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
     PPH_PROCESS_PROPPAGECONTEXT propPageContext;
     PPH_PROCESS_ITEM processItem;
     PPH_MODULES_CONTEXT modulesContext;
-    HWND tnHandle = NULL;
 
     if (PhPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext, &processItem))
     {
         modulesContext = (PPH_MODULES_CONTEXT)propPageContext->Context;
-
-        if (modulesContext)
-            tnHandle = modulesContext->ListContext.TreeNewHandle;
     }
     else
     {
         return FALSE;
     }
-
-    if (!modulesContext)
-        return FALSE;
 
     switch (uMsg)
     {
@@ -459,6 +452,10 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
         {
             modulesContext = propPageContext->Context = PhAllocate(PhEmGetObjectSize(EmModulesContextType, sizeof(PH_MODULES_CONTEXT)));
             memset(modulesContext, 0, sizeof(PH_MODULES_CONTEXT));
+
+            modulesContext->WindowHandle = hwndDlg;
+            modulesContext->TreeNewHandle = GetDlgItem(hwndDlg, IDC_LIST);
+            modulesContext->SearchboxHandle = GetDlgItem(hwndDlg, IDC_SEARCH);
 
             modulesContext->Provider = PhCreateModuleProvider(
                 processItem->ProcessId
@@ -493,20 +490,18 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                 modulesContext,
                 &modulesContext->UpdatedEventRegistration
                 );
-            modulesContext->WindowHandle = hwndDlg;
-
-            modulesContext->SearchboxHandle = GetDlgItem(hwndDlg, IDC_SEARCH);
-            PhCreateSearchControl(hwndDlg, modulesContext->SearchboxHandle, L"Search Modules (Ctrl+K)");
 
             // Initialize the list.
-            tnHandle = GetDlgItem(hwndDlg, IDC_LIST);
-            PhInitializeModuleList(hwndDlg, tnHandle, &modulesContext->ListContext);
-            TreeNew_SetEmptyText(tnHandle, &PhpLoadingText, 0);
+            PhInitializeModuleList(hwndDlg, modulesContext->TreeNewHandle, &modulesContext->ListContext);
+            TreeNew_SetEmptyText(modulesContext->TreeNewHandle, &PhpLoadingText, 0);
             PhInitializeProviderEventQueue(&modulesContext->EventQueue, 100);
             modulesContext->LastRunStatus = -1;
             modulesContext->ErrorMessage = NULL;
             modulesContext->SearchboxText = PhReferenceEmptyString();
             modulesContext->FilterEntry = PhAddTreeNewFilter(&modulesContext->ListContext.TreeFilterSupport, PhpModulesTreeFilterCallback, modulesContext);
+
+            // Initialize the search box. (dmex)
+            PhCreateSearchControl(hwndDlg, modulesContext->SearchboxHandle, L"Search Modules (Ctrl+K)");
 
             PhEmCallObjectOperation(EmModulesContextType, modulesContext, EmObjectCreate);
 
@@ -514,7 +509,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             {
                 PH_PLUGIN_TREENEW_INFORMATION treeNewInfo;
 
-                treeNewInfo.TreeNewHandle = tnHandle;
+                treeNewInfo.TreeNewHandle = modulesContext->TreeNewHandle;
                 treeNewInfo.CmData = &modulesContext->ListContext.Cm;
                 treeNewInfo.SystemContext = modulesContext;
                 PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackModuleTreeNewInitializing), &treeNewInfo);
@@ -559,7 +554,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             {
                 PH_PLUGIN_TREENEW_INFORMATION treeNewInfo;
 
-                treeNewInfo.TreeNewHandle = tnHandle;
+                treeNewInfo.TreeNewHandle = modulesContext->TreeNewHandle;
                 treeNewInfo.CmData = &modulesContext->ListContext.Cm;
                 PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackModuleTreeNewUninitializing), &treeNewInfo);
             }
@@ -578,7 +573,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             if (dialogItem = PhBeginPropPageLayout(hwndDlg, propPageContext))
             {
                 PhAddPropPageLayoutItem(hwndDlg, modulesContext->SearchboxHandle, dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PhAddPropPageLayoutItem(hwndDlg, modulesContext->ListContext.TreeNewHandle, dialogItem, PH_ANCHOR_ALL);
+                PhAddPropPageLayoutItem(hwndDlg, modulesContext->TreeNewHandle, dialogItem, PH_ANCHOR_ALL);
                 PhEndPropPageLayout(hwndDlg, propPageContext);
             }
         }
@@ -688,8 +683,8 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                 {
                     PPH_STRING text;
 
-                    text = PhGetTreeNewText(tnHandle, 0);
-                    PhSetClipboardString(tnHandle, &text->sr);
+                    text = PhGetTreeNewText(modulesContext->TreeNewHandle, 0);
+                    PhSetClipboardString(modulesContext->TreeNewHandle, &text->sr);
                     PhDereferenceObject(text);
                 }
                 break;
@@ -836,7 +831,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
 
             if (events)
             {
-                TreeNew_SetRedraw(tnHandle, FALSE);
+                TreeNew_SetRedraw(modulesContext->TreeNewHandle, FALSE);
 
                 for (i = 0; i < count; i++)
                 {
@@ -876,24 +871,24 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
 
                 if (NT_SUCCESS(status))
                 {
-                    TreeNew_SetEmptyText(tnHandle, &EmptyModulesText, 0);
+                    TreeNew_SetEmptyText(modulesContext->TreeNewHandle, &EmptyModulesText, 0);
                 }
                 else
                 {
                     message = PhGetStatusMessage(status, 0);
                     PhMoveReference(&modulesContext->ErrorMessage, PhFormatString(L"Unable to query module information:\n%s", PhGetStringOrDefault(message, L"Unknown error.")));
                     PhClearReference(&message);
-                    TreeNew_SetEmptyText(tnHandle, &modulesContext->ErrorMessage->sr, 0);
+                    TreeNew_SetEmptyText(modulesContext->TreeNewHandle, &modulesContext->ErrorMessage->sr, 0);
                 }
 
-                InvalidateRect(tnHandle, NULL, FALSE);
+                InvalidateRect(modulesContext->TreeNewHandle, NULL, FALSE);
             }
 
             // Refresh the visible nodes.
             PhApplyTreeNewFilters(&modulesContext->ListContext.TreeFilterSupport);
 
             if (count != 0)
-                TreeNew_SetRedraw(tnHandle, TRUE);
+                TreeNew_SetRedraw(modulesContext->TreeNewHandle, TRUE);
         }
         break;
     }
