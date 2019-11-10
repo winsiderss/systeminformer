@@ -657,6 +657,7 @@ VOID PhSipOnCommand(
     }
 }
 
+_Success_(return)
 BOOLEAN PhSipOnNotify(
     _In_ NMHDR *Header,
     _Out_ LRESULT *Result
@@ -983,7 +984,7 @@ PPH_STRING PhSiSizeLabelYFunction(
 {
     ULONG64 size;
 
-    size = (ULONG64)(Value * Parameter);
+    size = (ULONG64)((DOUBLE)Value * Parameter);
 
     if (size != 0)
     {
