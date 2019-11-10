@@ -448,7 +448,7 @@ static VOID NTAPI PhpStatisticsUpdateHandler(
 {
     PPH_STATISTICS_CONTEXT statisticsContext = (PPH_STATISTICS_CONTEXT)Context;
 
-    if (statisticsContext->Enabled)
+    if (statisticsContext && statisticsContext->Enabled)
         PostMessage(statisticsContext->WindowHandle, WM_PH_STATISTICS_UPDATE, 0, 0);
 }
 
