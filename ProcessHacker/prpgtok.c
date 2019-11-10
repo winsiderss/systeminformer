@@ -36,6 +36,9 @@ NTSTATUS NTAPI PhpOpenProcessTokenForPage(
     NTSTATUS status;
     HANDLE processHandle;
 
+    if (!Context)
+        return STATUS_UNSUCCESSFUL;
+
     if (!NT_SUCCESS(status = PhOpenProcess(
         &processHandle,
         PROCESS_QUERY_LIMITED_INFORMATION,
