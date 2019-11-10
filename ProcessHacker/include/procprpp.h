@@ -303,6 +303,7 @@ typedef struct _PH_PERFORMANCE_CONTEXT
     PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
 
     HWND WindowHandle;
+    BOOLEAN Enabled;
 
     PH_GRAPH_STATE CpuGraphState;
     PH_GRAPH_STATE PrivateGraphState;
