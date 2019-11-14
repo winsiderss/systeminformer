@@ -120,11 +120,11 @@ HRESULT (WINAPI* DwmSetWindowAttribute_I)(
     _In_reads_bytes_(AttributeLength) PVOID Attribute,
     _In_ ULONG AttributeLength
     );
-
-HRESULT (WINAPI* DwmGetColorizationColor_I)(
-    _Out_ PULONG Colorization,
-    _Out_ PBOOL OpaqueBlend
-    );
+//
+//HRESULT (WINAPI* DwmGetColorizationColor_I)(
+//    _Out_ PULONG Colorization,
+//    _Out_ PBOOL OpaqueBlend
+//    );
 
 ULONG PhpThemeColorMode = 0;
 BOOLEAN PhpThemeEnable = FALSE;
@@ -157,7 +157,7 @@ VOID PhInitializeWindowTheme(
         if (dwmApiModuleHandle = LoadLibrary(L"dwmapi.dll"))
         {
             DwmSetWindowAttribute_I = PhGetDllBaseProcedureAddress(dwmApiModuleHandle, "DwmSetWindowAttribute", 0);
-            DwmGetColorizationColor_I = PhGetDllBaseProcedureAddress(dwmApiModuleHandle, "DwmGetColorizationColor", 0);
+            //DwmGetColorizationColor_I = PhGetDllBaseProcedureAddress(dwmApiModuleHandle, "DwmGetColorizationColor", 0);
         }
     }
 
