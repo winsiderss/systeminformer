@@ -321,4 +321,6 @@ VOID PhUpdateCachedSettings(
     PH_UPDATE_SETTING(ColorIoWrite);
     PH_UPDATE_SETTING(ColorPrivate);
     PH_UPDATE_SETTING(ColorPhysical);
+
+    PhEnableThemeSupport = !!PhGetIntegerSetting(L"EnableThemeSupport");
 }

@@ -165,10 +165,12 @@ BOOLEAN PhMainWndInitialization(
         SendMessage(PhMainWndHandle, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
     }
 
-    // Load the main menu
+    // Create the main menu. (dmex)
     PhMainWndMenuHandle = CreateMenu();
-    PhEMenuToHMenu2(PhMainWndMenuHandle, PhpCreateMainMenu(ULONG_MAX), 0, NULL);
     SetMenu(PhMainWndHandle, PhMainWndMenuHandle);
+    PPH_EMENU mainMenu = PhpCreateMainMenu(ULONG_MAX);
+    mainMenu->Flags |= PH_EMENU_MAINMENU;
+    PhEMenuToHMenu2(PhMainWndMenuHandle, mainMenu, 0, NULL);
     PhMwpInitializeMainMenu(PhMainWndMenuHandle);
 
     // Choose a more appropriate rectangle for the window.
@@ -193,6 +195,18 @@ BOOLEAN PhMainWndInitialization(
     PhLogInitialization();
 
     PhInitializeWindowTheme(PhMainWndHandle, PhEnableThemeSupport); // HACK
+
+    if (PhEnableThemeSupport)
+    {
+        MENUINFO menuInfo;
+
+        memset(&menuInfo, 0, sizeof(MENUINFO));
+        menuInfo.cbSize = sizeof(MENUINFO);
+        menuInfo.fMask = MIM_BACKGROUND | MIM_APPLYTOSUBMENUS;
+        menuInfo.hbrBack = CreateSolidBrush(RGB(43, 43, 43));
+
+        SetMenuInfo(PhMainWndMenuHandle, &menuInfo);
+    }
 
     // Initialize the main providers.
     PhMwpInitializeProviders();
@@ -352,7 +366,7 @@ RTL_ATOM PhMwpInitializeWindowClass(
 {
     WNDCLASSEX wcex;
     PPH_STRING className;
-    
+
     memset(&wcex, 0, sizeof(WNDCLASSEX));
     wcex.cbSize = sizeof(WNDCLASSEX);
     wcex.lpfnWndProc = PhMwpWndProc;
@@ -360,6 +374,11 @@ RTL_ATOM PhMwpInitializeWindowClass(
     className = PhaGetStringSetting(L"MainWindowClassName");
     wcex.lpszClassName = PhGetStringOrDefault(className, L"MainWindowClassName");
     wcex.hCursor = LoadCursor(NULL, IDC_ARROW);
+
+    if (PhGetIntegerSetting(L"EnableThemeSupport"))
+    {
+        wcex.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
+    }
 
     return RegisterClassEx(&wcex);
 }
@@ -512,6 +531,9 @@ NTSTATUS PhMwpLoadStage1Worker(
     DelayedLoadCompleted = TRUE;
     //PostMessage((HWND)Parameter, WM_PH_DELAYED_LOAD_COMPLETED, 0, 0);
 
+    //if (PhEnableThemeSupport)
+    DrawMenuBar(PhMainWndHandle);
+    
     return STATUS_SUCCESS;
 }
 
@@ -1973,7 +1995,6 @@ VOID PhMwpLoadSettings(
     PhEnableNetworkProviderResolve = !!PhGetIntegerSetting(L"EnableNetworkResolve");
     PhEnableProcessQueryStage2 = !!PhGetIntegerSetting(L"EnableStage2");
     PhEnableServiceQueryStage2 = !!PhGetIntegerSetting(L"EnableServiceStage2");
-    PhEnableThemeSupport = !!PhGetIntegerSetting(L"EnableThemeSupport");
     PhEnableTooltipSupport = !!PhGetIntegerSetting(L"EnableTooltipSupport");
     PhEnableLinuxSubsystemSupport = !!PhGetIntegerSetting(L"EnableLinuxSubsystemSupport");
     PhEnableNetworkResolveDoHSupport = !!PhGetIntegerSetting(L"EnableNetworkResolveDoH");
@@ -2368,19 +2389,21 @@ PPH_EMENU PhpCreateMainMenu(
         return PhpCreateHelpMenu(menu);
     }
 
-    menuItem = PhCreateEMenuItem(0, PH_MENU_ITEM_LOCATION_HACKER, L"&Hacker", NULL, NULL);
+    menu->Flags |= PH_EMENU_MAINMENU;
+
+    menuItem = PhCreateEMenuItem(PH_EMENU_MAINMENU, PH_MENU_ITEM_LOCATION_HACKER, L"&Hacker", NULL, NULL);
     PhInsertEMenuItem(menu, PhpCreateHackerMenu(menuItem), ULONG_MAX);
 
-    menuItem = PhCreateEMenuItem(0, PH_MENU_ITEM_LOCATION_VIEW, L"&View", NULL, NULL);
+    menuItem = PhCreateEMenuItem(PH_EMENU_MAINMENU, PH_MENU_ITEM_LOCATION_VIEW, L"&View", NULL, NULL);
     PhInsertEMenuItem(menu, PhpCreateViewMenu(menuItem), ULONG_MAX);
 
-    menuItem = PhCreateEMenuItem(0, PH_MENU_ITEM_LOCATION_TOOLS, L"&Tools", NULL, NULL);
+    menuItem = PhCreateEMenuItem(PH_EMENU_MAINMENU, PH_MENU_ITEM_LOCATION_TOOLS, L"&Tools", NULL, NULL);
     PhInsertEMenuItem(menu, PhpCreateToolsMenu(menuItem), ULONG_MAX);
 
-    menuItem = PhCreateEMenuItem(0, PH_MENU_ITEM_LOCATION_USERS, L"&Users", NULL, NULL);
+    menuItem = PhCreateEMenuItem(PH_EMENU_MAINMENU, PH_MENU_ITEM_LOCATION_USERS, L"&Users", NULL, NULL);
     PhInsertEMenuItem(menu, PhpCreateUsersMenu(menuItem), ULONG_MAX);
 
-    menuItem = PhCreateEMenuItem(0, PH_MENU_ITEM_LOCATION_HELP, L"H&elp", NULL, NULL);
+    menuItem = PhCreateEMenuItem(PH_EMENU_MAINMENU, PH_MENU_ITEM_LOCATION_HELP, L"H&elp", NULL, NULL);
     PhInsertEMenuItem(menu, PhpCreateHelpMenu(menuItem), ULONG_MAX);
 
     return menu;

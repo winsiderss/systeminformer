@@ -16,6 +16,7 @@ extern "C" {
 
 #define PH_EMENU_SEPARATECHECKSPACE 0x100000
 #define PH_EMENU_SEPARATOR 0x200000
+#define PH_EMENU_MAINMENU 0x400000
 
 #define PH_EMENU_TEXT_OWNED 0x80000000
 #define PH_EMENU_BITMAP_OWNED 0x40000000
@@ -76,8 +77,8 @@ PPH_EMENU_ITEM PhFindEMenuItemEx(
     _In_ ULONG Flags,
     _In_opt_ PWSTR Text,
     _In_opt_ ULONG Id,
-    _Out_opt_ PPH_EMENU_ITEM *FoundParent,
-    _Out_opt_ PULONG FoundIndex
+    _Inout_opt_ PPH_EMENU_ITEM *FoundParent,
+    _Inout_opt_ PULONG FoundIndex
     );
 
 PHLIBAPI
