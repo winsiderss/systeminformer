@@ -91,13 +91,24 @@ BOOLEAN EtpDiskPageCallback(
             HWND hwnd;
             ULONG thinRows;
             ULONG treelistBorder;
+            ULONG treelistCustomColors;
+            PH_TREENEW_CREATEPARAMS treelistCreateParams = { 0 };
 
             thinRows = PhGetIntegerSetting(L"ThinRows") ? TN_STYLE_THIN_ROWS : 0;
-            treelistBorder = PhGetIntegerSetting(L"TreeListBorderEnable") ? WS_BORDER : 0;
+            treelistBorder = (PhGetIntegerSetting(L"TreeListBorderEnable") && !!PhGetIntegerSetting(L"TreeListBorderEnable")) ? WS_BORDER : 0;
+            treelistCustomColors = TN_STYLE_CUSTOM_COLORS;// PhGetIntegerSetting(L"TreeListCustomColorsEnable") ? TN_STYLE_CUSTOM_COLORS : 0;
+
+            if (treelistCustomColors)
+            {
+                treelistCreateParams.TextColor = PhGetIntegerSetting(L"TreeListCustomColorText");
+                treelistCreateParams.FocusColor = PhGetIntegerSetting(L"TreeListCustomColorFocus");
+                treelistCreateParams.SelectionColor = PhGetIntegerSetting(L"TreeListCustomColorSelection");
+            }
+
             hwnd = CreateWindow(
                 PH_TREENEW_CLASSNAME,
                 NULL,
-                WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | thinRows | treelistBorder,
+                WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | thinRows | treelistBorder | treelistCustomColors,
                 0,
                 0,
                 3,
@@ -105,12 +116,17 @@ BOOLEAN EtpDiskPageCallback(
                 PhMainWndHandle,
                 NULL,
                 NULL,
-                NULL
+                &treelistCreateParams
                 );
 
             if (!hwnd)
                 return FALSE;
 
+            if (PhGetIntegerSetting(L"EnableThemeSupport")) // HACK (dmex)
+            {
+                PhInitializeWindowTheme(PhMainWndHandle, TRUE);
+            }
+            
             DiskTreeNewCreated = TRUE;
 
             DiskNodeHashtable = PhCreateHashtable(
