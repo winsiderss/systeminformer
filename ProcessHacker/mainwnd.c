@@ -867,6 +867,11 @@ VOID PhMwpOnCommand(
             PhShowPagefilesDialog(WindowHandle);
         }
         break;
+    case ID_TOOLS_LIVEDUMP:
+        {
+            PhShowLiveDumpDialog(WindowHandle);
+        }
+        break;
     case ID_TOOLS_STARTTASKMANAGER:
         {
             PPH_STRING systemDirectory;
@@ -2229,6 +2234,7 @@ PPH_EMENU PhpCreateToolsMenu(
     PPH_EMENU_ITEM menuItem;
 
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_CREATESERVICE, L"&Create service...", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_LIVEDUMP, L"&Create live dump...", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_INSPECTEXECUTABLEFILE, L"Inspect e&xecutable file...", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_HIDDENPROCESSES, L"&Hidden processes", NULL, NULL), ULONG_MAX);
     //PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_PAGEFILES, L"&Pagefiles", NULL, NULL), ULONG_MAX);

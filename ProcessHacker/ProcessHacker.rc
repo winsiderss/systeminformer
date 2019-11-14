@@ -1321,6 +1321,19 @@ BEGIN
     PUSHBUTTON      "&Browse...",IDC_BROWSE,170,82,50,14
 END
 
+IDD_LIVEDUMP DIALOGEX 0, 0, 191, 97
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Live kernel dump"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL         "Use dump storage stack",IDC_DUMPSTACK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,52,93,10
+    CONTROL         "Compress memory pages",IDC_COMPRESS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,7,96,10
+    CONTROL         "Include UserSpace memory pages",IDC_USERMODE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,22,124,10
+    CONTROL         "Include Hypervisor memory pages",IDC_HYPERVISOR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,37,125,10
+    DEFPUSHBUTTON   "Save",IDOK,80,76,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,134,76,50,14
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1871,6 +1884,14 @@ BEGIN
 
     IDD_RUNFILEDLG, DIALOG
     BEGIN
+    END
+
+    IDD_LIVEDUMP, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 184
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 90
     END
 END
 #endif    // APSTUDIO_INVOKED

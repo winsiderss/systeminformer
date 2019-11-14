@@ -113,6 +113,7 @@
 #define ID_VIEW_TRAYICONS               244
 #define IDD_OBJFILE                     249
 #define IDD_RUNFILEDLG                  253
+#define IDD_LIVEDUMP                    254
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -532,6 +533,10 @@
 #define IDC_FILETYPE                    1409
 #define IDC_FILEMODE                    1410
 #define IDC_DEFAULTPERM                 1410
+#define IDC_DUMPSTACK                   1411
+#define IDC_COMPRESS                    1412
+#define IDC_USERMODE                    1413
+#define IDC_HYPERVISOR                  1414
 #define ID_HACKER_EXIT                  40001
 #define ID_PROCESS_PROPERTIES           40006
 #define ID_PROCESS_TERMINATE            40007
@@ -741,6 +746,7 @@
 #define ID_TOOLS_SCM_PERMISSIONS        40300
 #define ID_TOOLS_RDP_PERMISSIONS        40301
 #define ID_UIACCESS_REMOVE              40302
+#define ID_TOOLS_LIVEDUMP               40303
 #define IDDYNAMIC                       50000
 #define IDPLUGINS                       55000
 
@@ -748,7 +754,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        254
+#define _APS_NEXT_RESOURCE_VALUE        256
 #define _APS_NEXT_COMMAND_VALUE         40298
 #define _APS_NEXT_CONTROL_VALUE         1410
 #define _APS_NEXT_SYMED_VALUE           170
