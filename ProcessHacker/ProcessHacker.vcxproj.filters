@@ -393,6 +393,9 @@
     <ClCompile Include="pcre\pcre2_script_run.c">
       <Filter>Process Hacker</Filter>
     </ClCompile>
+    <ClCompile Include="kdump.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\hidnproc.h">

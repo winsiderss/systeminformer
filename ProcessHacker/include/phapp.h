@@ -417,6 +417,12 @@ HPROPSHEETPAGE PhCreateJobPage(
     _In_opt_ DLGPROC HookProc
     );
 
+// kdump
+
+VOID PhShowLiveDumpDialog(
+    _In_ HWND ParentWindowHandle
+    );
+
 // logwnd
 
 VOID PhShowLogDialog(
