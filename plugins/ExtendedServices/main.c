@@ -266,7 +266,7 @@ VOID NTAPI ProcessMenuInitializingCallback(
     }
 }
 
-NTAPI ServicePropertiesInitializingCallback(
+VOID NTAPI ServicePropertiesInitializingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
