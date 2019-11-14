@@ -3195,7 +3195,7 @@ VOID PhShowIconContextMenu(
     )
 {
     PPH_EMENU menu;
-    PPH_EMENU_ITEM menuItem;
+    PPH_EMENU_ITEM item;
     PH_PLUGIN_MENU_INFORMATION menuInfo;
     ULONG numberOfProcesses;
     ULONG id;
@@ -3243,10 +3243,10 @@ VOID PhShowIconContextMenu(
     // Add processes to the menu.
 
     numberOfProcesses = PhGetIntegerSetting(L"IconProcesses");
-    menuItem = PhFindEMenuItem(menu, 0, 0, ID_PROCESSES_DUMMY);
+    item = PhFindEMenuItem(menu, 0, 0, ID_PROCESSES_DUMMY);
 
-    if (menuItem)
-        PhMwpAddIconProcesses(menuItem, numberOfProcesses);
+    if (item)
+        PhMwpAddIconProcesses(item, numberOfProcesses);
 
     // Fix up the Computer menu.
     PhMwpSetupComputerMenu(menu);
@@ -3260,7 +3260,7 @@ VOID PhShowIconContextMenu(
     }
 
     SetForegroundWindow(PhMainWndHandle); // window must be foregrounded so menu will disappear properly
-    menuItem = PhShowEMenu(
+    item = PhShowEMenu(
         menu,
         PhMainWndHandle,
         PH_EMENU_SHOW_LEFTRIGHT,
@@ -3269,22 +3269,22 @@ VOID PhShowIconContextMenu(
         Location.y
         );
 
-    if (menuItem)
+    if (item)
     {
         BOOLEAN handled = FALSE;
 
         if (PhPluginsEnabled && !handled)
-            handled = PhPluginTriggerEMenuItem(&menuInfo, menuItem);
+            handled = PhPluginTriggerEMenuItem(&menuInfo, item);
 
         if (!handled)
-            handled = PhHandleMiniProcessMenuItem(menuItem);
+            handled = PhHandleMiniProcessMenuItem(item);
 
         if (!handled)
-            handled = PhMwpExecuteComputerCommand(PhMainWndHandle, menuItem->Id);
+            handled = PhMwpExecuteComputerCommand(PhMainWndHandle, item->Id);
 
         if (!handled)
         {
-            switch (menuItem->Id)
+            switch (item->Id)
             {
             case ID_ICON_SHOWHIDEPROCESSHACKER:
                 SendMessage(PhMainWndHandle, WM_PH_TOGGLE_VISIBLE, 0, 0);
@@ -3307,7 +3307,7 @@ VOID PhShowIconContextMenu(
                 {
                     ULONG bit;
 
-                    switch (menuItem->Id)
+                    switch (item->Id)
                     {
                     case ID_NOTIFICATIONS_NEWPROCESSES:
                         bit = PH_NOTIFY_PROCESS_CREATE;
