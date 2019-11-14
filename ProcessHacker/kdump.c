@@ -271,6 +271,10 @@ INT_PTR CALLBACK PhpLiveDumpDlgProc(
         {
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
+            // L"The UserSpace memory option requires Kernel Debugging enabled.\r\n\r\nUncheck the 'Include UserSpace memory' option or run 'bcdedit /debug on' and reboot."
+            if (!USER_SHARED_DATA->KdDebuggerEnabled)
+                Button_Enable(GetDlgItem(hwndDlg, IDC_USERMODE), FALSE);
+
             PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDOK));
 
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
@@ -292,14 +296,6 @@ INT_PTR CALLBACK PhpLiveDumpDlgProc(
                     dumpConfig->IncludeUserSpaceMemory = Button_GetCheck(GetDlgItem(hwndDlg, IDC_USERMODE)) == BST_CHECKED;
                     dumpConfig->IncludeHypervisorPages = Button_GetCheck(GetDlgItem(hwndDlg, IDC_HYPERVISOR)) == BST_CHECKED;
                     dumpConfig->UseDumpStorageStack = Button_GetCheck(GetDlgItem(hwndDlg, IDC_DUMPSTACK)) == BST_CHECKED;
-
-                    if (dumpConfig->IncludeUserSpaceMemory && !USER_SHARED_DATA->KdDebuggerEnabled)
-                    {
-                        //PhShowError2(hwndDlg, L"Live dump configuration error",
-                        //    L"The UserSpace memory option requires Kernel Debugging enabled.\r\n\r\nUncheck the 'Include UserSpace memory' option or run 'bcdedit /debug on' and reboot.");
-                        PhFree(dumpConfig);
-                        break;
-                    }
 
                     dumpConfig->FileName = PhpLiveDumpFileDialogFileName(hwndDlg);
 
