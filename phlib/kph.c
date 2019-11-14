@@ -374,8 +374,8 @@ NTSTATUS KphResetParameters(
     _In_opt_ PWSTR DeviceName
     )
 {
-    NTSTATUS status;
-    HANDLE parametersKeyHandle;
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
+    HANDLE parametersKeyHandle = NULL;
     PH_STRINGREF parametersKeyNameSr;
     PH_FORMAT format[3];
     SIZE_T returnLength;
@@ -402,28 +402,28 @@ NTSTATUS KphResetParameters(
     status = KphUninstall(DeviceName);
     status = WIN32_FROM_NTSTATUS(status);
 
-    if (status == ERROR_SERVICE_DOES_NOT_EXIST) // NTSTATUS_FROM_WIN32
+    if (status == ERROR_SERVICE_DOES_NOT_EXIST)
         status = STATUS_SUCCESS;
-
-    status = PhOpenKey(
-        &parametersKeyHandle,
-        DELETE,
-        PH_KEY_LOCAL_MACHINE,
-        &parametersKeyNameSr,
-        0
-        );
 
     if (NT_SUCCESS(status))
     {
-        status = NtDeleteKey(parametersKeyHandle);
+        status = PhOpenKey(
+            &parametersKeyHandle,
+            DELETE,
+            PH_KEY_LOCAL_MACHINE,
+            &parametersKeyNameSr,
+            0
+            );
     }
+
+    if (NT_SUCCESS(status) && parametersKeyHandle)
+        status = NtDeleteKey(parametersKeyHandle);
 
     if (status == STATUS_OBJECT_NAME_NOT_FOUND)
-    {
         status = STATUS_SUCCESS;
-    }
 
-    NtClose(parametersKeyHandle);
+    if (parametersKeyHandle)
+        NtClose(parametersKeyHandle);
 
     return status;
 }

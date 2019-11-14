@@ -936,6 +936,15 @@ VOID PhInitializeKph(
     PPH_STRING processhackerSigFileName;
     KPH_PARAMETERS parameters;
 
+    if (PhGetIntegerSetting(L"KphBuildNumber") != PhOsVersion.dwBuildNumber)
+    {
+        // Reset KPH after a Windows build update. (dmex)
+        if (NT_SUCCESS(KphResetParameters(KPH_DEVICE_SHORT_NAME)))
+        {
+            PhSetIntegerSetting(L"KphBuildNumber", PhOsVersion.dwBuildNumber);
+        }
+    }
+
     if (!(applicationDirectory = PhGetApplicationDirectory()))
         return;
 
@@ -945,8 +954,8 @@ VOID PhInitializeKph(
 
     if (!RtlDoesFileExists_U(kprocesshackerFileName->Buffer))
     {
-        if (PhGetIntegerSetting(L"EnableKphWarnings") && !PhStartupParameters.PhSvc)
-            PhpShowKphError(L"The Process Hacker kernel driver 'kprocesshacker.sys' was not found in the application directory.", STATUS_NO_SUCH_FILE);
+        //if (PhGetIntegerSetting(L"EnableKphWarnings") && !PhStartupParameters.PhSvc)
+        //    PhpShowKphError(L"The Process Hacker kernel driver 'kprocesshacker.sys' was not found in the application directory.", STATUS_NO_SUCH_FILE);
         return;
     }
 
