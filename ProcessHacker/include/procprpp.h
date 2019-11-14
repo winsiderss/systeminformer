@@ -260,8 +260,9 @@ typedef struct _PH_MEMORY_CONTEXT
 {
     HANDLE ProcessId;
     HWND WindowHandle;
-    HWND SearchboxHandle;
 // end_phapppub
+    HWND TreeNewHandle;
+    HWND SearchboxHandle;
 
     union
     {
