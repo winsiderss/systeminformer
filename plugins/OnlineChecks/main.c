@@ -313,13 +313,14 @@ PPH_EMENU_ITEM CreateSendToMenu(
     if (ProcessesMenu && (menuItem = PhFindEMenuItem(Parent, 0, NULL, PHAPP_ID_PROCESS_SEARCHONLINE)))
     {
         insertIndex = PhIndexOfEMenuItem(Parent, menuItem);
-        PhInsertEMenuItem(Parent, sendToMenu, insertIndex + 1);
-        PhInsertEMenuItem(Parent, PhCreateEMenuSeparator(), insertIndex + 2);
+
+        PhInsertEMenuItem(Parent, PhCreateEMenuSeparator(), insertIndex + 1);
+        PhInsertEMenuItem(Parent, sendToMenu, insertIndex + 2);
     }
     else
     {
-        PhInsertEMenuItem(Parent, sendToMenu, ULONG_MAX);
         PhInsertEMenuItem(Parent, PhCreateEMenuSeparator(), ULONG_MAX);
+        PhInsertEMenuItem(Parent, sendToMenu, ULONG_MAX);
     }
 
     return sendToMenu;
