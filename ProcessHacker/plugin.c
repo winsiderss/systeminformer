@@ -62,7 +62,6 @@ VOID PhpExecuteCallbackForAllPlugins(
 
 PH_AVL_TREE PhPluginsByName = PH_AVL_TREE_INIT(PhpPluginsCompareFunction);
 static PH_CALLBACK GeneralCallbacks[GeneralCallbackMaximum];
-static PPH_STRING PluginsDirectory;
 static ULONG NextPluginId = IDPLUGINS + 1;
 
 INT NTAPI PhpPluginsCompareFunction(
@@ -76,6 +75,7 @@ INT NTAPI PhpPluginsCompareFunction(
     return PhCompareStringRef(&plugin1->Name, &plugin2->Name, FALSE);
 }
 
+_Success_(return)
 BOOLEAN PhpLocateDisabledPlugin(
     _In_ PPH_STRING List,
     _In_ PPH_STRINGREF BaseName,
@@ -182,12 +182,75 @@ VOID PhSetPluginDisabled(
     PhDereferenceObject(disabled);
 }
 
+PPH_STRING PhpGetPluginDirectoryPath(
+    VOID
+    )
+{
+    static PPH_STRING cachedPluginDirectory = NULL;
+    PPH_STRING pluginsDirectory;
+    SIZE_T returnLength;
+    WCHAR pluginsDirectoryName[MAX_PATH];
+    PH_FORMAT format[3];
+
+    if (pluginsDirectory = InterlockedCompareExchangePointer(
+        &cachedPluginDirectory,
+        NULL,
+        NULL
+        ))
+    {
+        return PhReferenceObject(pluginsDirectory);
+    }
+
+    pluginsDirectory = PhGetStringSetting(L"PluginsDirectory");
+
+    if (RtlDetermineDosPathNameType_U(pluginsDirectory->Buffer) == RtlPathTypeRelative)
+    {
+        PPH_STRING applicationDirectory;
+
+        if (applicationDirectory = PhGetApplicationDirectory())
+        {
+            PH_STRINGREF pluginsDirectoryNameSr;
+
+            // Not absolute. Make sure it is.
+            PhInitFormatS(&format[0], applicationDirectory->Buffer);
+            PhInitFormatS(&format[1], pluginsDirectory->Buffer);
+            PhInitFormatS(&format[2], L"\\");
+
+            if (PhFormatToBuffer(
+                format,
+                RTL_NUMBER_OF(format),
+                pluginsDirectoryName,
+                sizeof(pluginsDirectoryName),
+                &returnLength
+                ))
+            {
+                pluginsDirectoryNameSr.Buffer = pluginsDirectoryName;
+                pluginsDirectoryNameSr.Length = returnLength - sizeof(UNICODE_NULL);
+
+                PhMoveReference(&pluginsDirectory, PhCreateString2(&pluginsDirectoryNameSr));
+            }
+
+            PhDereferenceObject(applicationDirectory);
+        }
+    }
+
+    if (!InterlockedCompareExchangePointer(
+        &cachedPluginDirectory,
+        pluginsDirectory,
+        NULL
+        ))
+    {
+        PhReferenceObject(pluginsDirectory);
+    }
+
+    return pluginsDirectory;
+}
+
 static BOOLEAN EnumPluginsDirectoryCallback(
     _In_ PFILE_NAMES_INFORMATION Information,
     _In_opt_ PVOID Context
     )
 {
-    static PH_STRINGREF PhpPathSeperator = PH_STRINGREF_INIT(L"\\"); // OBJ_NAME_PATH_SEPARATOR
     static PH_STRINGREF PhpPluginExtension = PH_STRINGREF_INIT(L".dll");
     static PH_STRINGREF PhpPluginBlocklist[] =
     {
@@ -198,6 +261,7 @@ static BOOLEAN EnumPluginsDirectoryCallback(
     };
     BOOLEAN blocklistedPlugin = FALSE;
     PH_STRINGREF baseName;
+    PPH_STRING directoryName;
     PPH_STRING fileName;
 
     baseName.Buffer = Information->FileName;
@@ -216,7 +280,8 @@ static BOOLEAN EnumPluginsDirectoryCallback(
         }
     }
 
-    fileName = PhConcatStringRef3(&PluginsDirectory->sr, &PhpPathSeperator, &baseName);
+    directoryName = PhpGetPluginDirectoryPath();
+    fileName = PhConcatStringRef2(&directoryName->sr, &baseName);
 
     if (blocklistedPlugin)
     {
@@ -243,11 +308,15 @@ static BOOLEAN EnumPluginsDirectoryCallback(
                 PhDereferenceObject(errorMessage);
             }
 
-            PhAddItemList(pluginLoadErrors, loadError);
+            if (pluginLoadErrors)
+            {
+                PhAddItemList(pluginLoadErrors, loadError);
+            }
         }
     }
 
     PhDereferenceObject(fileName);
+    PhDereferenceObject(directoryName);
 
     return TRUE;
 }
@@ -264,35 +333,14 @@ VOID PhLoadPlugins(
     PPH_STRING pluginsDirectory;
     PPH_LIST pluginLoadErrors;
 
+    if (!(pluginsDirectory = PhpGetPluginDirectoryPath()))
+        return;
+
     pluginLoadErrors = PhCreateList(1);
-    pluginsDirectory = PhGetStringSetting(L"PluginsDirectory");
-
-    if (RtlDetermineDosPathNameType_U(pluginsDirectory->Buffer) == RtlPathTypeRelative)
-    {
-        PPH_STRING applicationDirectory;
-
-        if (applicationDirectory = PhGetApplicationDirectory())
-        {
-           PhMoveReference(&pluginsDirectory, PhConcatStrings( // Not absolute. Make sure it is.
-                4,
-                applicationDirectory->Buffer,
-                L"\\",
-                pluginsDirectory->Buffer,
-                L"\\"
-                ));
-
-            PhDereferenceObject(applicationDirectory);
-        }
-    }
-
-    if (PhIsNullOrEmptyString(PluginsDirectory))
-    {
-        PhMoveReference(&PluginsDirectory, pluginsDirectory);
-    }
 
     if (NT_SUCCESS(PhCreateFileWin32(
         &pluginsDirectoryHandle,
-        PhGetString(PluginsDirectory),
+        PhGetString(pluginsDirectory),
         FILE_LIST_DIRECTORY | SYNCHRONIZE,
         FILE_ATTRIBUTE_DIRECTORY,
         FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
@@ -432,6 +480,7 @@ VOID PhLoadPlugins(
     }
 
     PhDereferenceObject(pluginLoadErrors);
+    PhDereferenceObject(pluginsDirectory);
 }
 
 /**
@@ -502,7 +551,8 @@ VOID PhpExecuteCallbackForAllPlugins(
                     if (!parameters)
                         parameters = PhCreateList(3);
 
-                    PhAddItemList(parameters, PhCreateString2(&parameter));
+                    if (parameters)
+                        PhAddItemList(parameters, PhCreateString2(&parameter));
                 }
             }
         }
@@ -1019,6 +1069,7 @@ VOID PhPluginEnableTreeNewNotify(
     PhCmSetNotifyPlugin(CmData, Plugin);
 }
 
+_Success_(return)
 BOOLEAN PhPluginQueryPhSvc(
     _Out_ PPH_PLUGIN_PHSVC_CLIENT Client
     )
