@@ -65,9 +65,6 @@ PH_CIRCULAR_BUFFER_ULONG EtNetworkSendHistory;
 PH_CIRCULAR_BUFFER_ULONG EtMaxDiskHistory; // ID of max. disk usage process
 PH_CIRCULAR_BUFFER_ULONG EtMaxNetworkHistory; // ID of max. network usage process
 
-PVOID EtpProcessInformation;
-PH_QUEUED_LOCK EtpProcessInformationLock = PH_QUEUED_LOCK_INIT;
-
 VOID EtEtwStatisticsInitialization(
     VOID
     )
@@ -363,12 +360,9 @@ VOID NTAPI EtEtwProcessesUpdatedCallback(
 
         // Since Windows 8, we no longer get the correct process/thread IDs in the
         // event headers for disk events. We need to update our process information since
-        // etwmon uses our EtThreadIdToProcessId function.
-        if (WindowsVersion >= WINDOWS_8)
-            EtUpdateProcessInformation();
+        // etwmon uses our EtThreadIdToProcessId function. (wj32)
 
-        // ETW is extremely lazy when it comes to flushing buffers, so we must do it
-        // manually.
+        // ETW is extremely lazy when it comes to flushing buffers, so we must do it manually. (wj32)
         EtFlushEtwSession();
 
         // Update global statistics.
@@ -385,6 +379,7 @@ VOID NTAPI EtEtwProcessesUpdatedCallback(
 
         // Update per-process statistics.
         // Note: no lock is needed because we only ever modify the list on this same thread.
+        // Note: no lock is needed because we only ever modify the list on this same thread. (wj32)
 
         listEntry = EtProcessBlockListHead.Flink;
 
@@ -506,56 +501,43 @@ VOID NTAPI EtEtwNetworkItemsUpdatedCallback(
     }
 }
 
-VOID EtUpdateProcessInformation(
-    VOID
-    )
-{
-    PhAcquireQueuedLockExclusive(&EtpProcessInformationLock);
-
-    if (EtpProcessInformation)
-    {
-        PhFree(EtpProcessInformation);
-        EtpProcessInformation = NULL;
-    }
-
-    PhEnumProcesses(&EtpProcessInformation);
-
-    PhReleaseQueuedLockExclusive(&EtpProcessInformationLock);
-}
-
 HANDLE EtThreadIdToProcessId(
     _In_ HANDLE ThreadId
     )
 {
+    // Note: no lock is needed because we use the list on the same thread (EtpEtwMonitorThreadStart). (dmex)
+    static PVOID processInfo = NULL;
+    static ULONG64 lastTickTotal = 0;
     PSYSTEM_PROCESS_INFORMATION process;
-    ULONG i;
-    HANDLE processId;
+    ULONG64 tickCount;
 
-    PhAcquireQueuedLockShared(&EtpProcessInformationLock);
+    tickCount = NtGetTickCount64();
 
-    if (!EtpProcessInformation)
+    if (tickCount - lastTickTotal >= 2 * CLOCKS_PER_SEC)
     {
-        PhReleaseQueuedLockShared(&EtpProcessInformationLock);
-        return SYSTEM_PROCESS_ID;
+        lastTickTotal = tickCount;
+
+        if (processInfo)
+        {
+            PhFree(processInfo);
+            processInfo = NULL;
+        }
+
+        PhEnumProcesses(&processInfo);
     }
 
-    process = PH_FIRST_PROCESS(EtpProcessInformation);
+    process = PH_FIRST_PROCESS(processInfo);
 
     do
     {
-        for (i = 0; i < process->NumberOfThreads; i++)
+        for (ULONG i = 0; i < process->NumberOfThreads; i++)
         {
             if (process->Threads[i].ClientId.UniqueThread == ThreadId)
             {
-                processId = process->UniqueProcessId;
-                PhReleaseQueuedLockShared(&EtpProcessInformationLock);
-
-                return processId;
+                return process->UniqueProcessId;
             }
         }
     } while (process = PH_NEXT_PROCESS(process));
-
-    PhReleaseQueuedLockShared(&EtpProcessInformationLock);
 
     return SYSTEM_PROCESS_ID;
 }
