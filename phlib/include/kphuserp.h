@@ -45,7 +45,7 @@ NTSTATUS KphpGetL1KeyContinuation(
     );
 
 NTSTATUS KphpGetL1Key(
-    _Out_ PKPH_KEY Key
+    _Inout_ PKPH_KEY Key
     );
 
 // Open process
