@@ -74,6 +74,9 @@ BOOLEAN PhSipIoSectionCallback(
         {
             PPH_SYSINFO_CREATE_DIALOG createDialog = Parameter1;
 
+            if (!createDialog)
+                break;
+
             createDialog->Instance = PhInstanceHandle;
             createDialog->Template = MAKEINTRESOURCE(IDD_SYSINFO_IO);
             createDialog->DialogProc = PhSipIoDialogProc;
@@ -84,6 +87,9 @@ BOOLEAN PhSipIoSectionCallback(
             PPH_GRAPH_DRAW_INFO drawInfo = Parameter1;
             ULONG i;
             FLOAT max;
+
+            if (!drawInfo)
+                break;
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y | PH_GRAPH_USE_LINE_2;
             Section->Parameters->ColorSetupFunction(drawInfo, PhCsColorIoReadOther, PhCsColorIoWrite);
@@ -138,6 +144,9 @@ BOOLEAN PhSipIoSectionCallback(
             ULONG64 ioWrite;
             ULONG64 ioOther;
 
+            if (!getTooltipText)
+                break;
+
             ioRead = PhGetItemCircularBuffer_ULONG64(&PhIoReadHistory, getTooltipText->Index);
             ioWrite = PhGetItemCircularBuffer_ULONG64(&PhIoWriteHistory, getTooltipText->Index);
             ioOther = PhGetItemCircularBuffer_ULONG64(&PhIoOtherHistory, getTooltipText->Index);
@@ -156,6 +165,9 @@ BOOLEAN PhSipIoSectionCallback(
     case SysInfoGraphDrawPanel:
         {
             PPH_SYSINFO_DRAW_PANEL drawPanel = Parameter1;
+
+            if (!drawPanel)
+                break;
 
             drawPanel->Title = PhCreateString(L"I/O");
             drawPanel->SubTitle = PhFormatString(

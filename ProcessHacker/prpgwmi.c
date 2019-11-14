@@ -269,7 +269,7 @@ HRESULT PhpQueryWmiProviderFileName(
 
     // Lookup the GUID in the registry to determine the name and file name.
 
-    if (!PhIsNullOrEmptyString(clsidString))
+    if (clsidString)
     {
         HANDLE keyHandle;
         PPH_STRING keyPath;
@@ -330,7 +330,7 @@ PPH_LIST PhpQueryWmiProviderHostProcess(
     )
 {
     HRESULT status;
-    PPH_LIST providerList;
+    PPH_LIST providerList = NULL;
     PPH_STRING queryString = NULL;
     IWbemLocator* wbemLocator = NULL;
     IWbemServices* wbemServices = NULL;
@@ -484,7 +484,10 @@ static VOID NTAPI PhpWmiProviderUpdateHandler(
 {
     PPH_WMI_CONTEXT context = (PPH_WMI_CONTEXT)Context;
 
-    PostMessage(context->WindowHandle, WM_PH_WMI_UPDATE, 0, 0);
+    if (context && context->Enabled)
+    {
+        PostMessage(context->WindowHandle, WM_PH_WMI_UPDATE, 0, 0);
+    }
 }
 
 VOID PhpClearWmiProviderItems(

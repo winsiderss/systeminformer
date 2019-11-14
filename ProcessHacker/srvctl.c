@@ -108,11 +108,15 @@ static VOID NTAPI ServiceModifiedHandler(
 {
     PPH_SERVICE_MODIFIED_DATA serviceModifiedData = (PPH_SERVICE_MODIFIED_DATA)Parameter;
     PPH_SERVICES_CONTEXT servicesContext = (PPH_SERVICES_CONTEXT)Context;
-    PPH_SERVICE_MODIFIED_DATA copy;
 
-    copy = PhAllocateCopy(serviceModifiedData, sizeof(PH_SERVICE_MODIFIED_DATA));
+    if (serviceModifiedData && servicesContext)
+    {
+        PPH_SERVICE_MODIFIED_DATA copy;
 
-    PostMessage(servicesContext->WindowHandle, WM_PH_SERVICE_PAGE_MODIFIED, 0, (LPARAM)copy);
+        copy = PhAllocateCopy(serviceModifiedData, sizeof(PH_SERVICE_MODIFIED_DATA));
+
+        PostMessage(servicesContext->WindowHandle, WM_PH_SERVICE_PAGE_MODIFIED, 0, (LPARAM)copy);
+    }
 }
 
 VOID PhpFixProcessServicesControls(
@@ -213,11 +217,6 @@ INT_PTR CALLBACK PhpServicesPageProc(
     else
     {
         context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-
-        if (uMsg == WM_DESTROY)
-        {
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-        }
     }
 
     if (!context)
@@ -295,22 +294,22 @@ INT_PTR CALLBACK PhpServicesPageProc(
         break;
     case WM_DESTROY:
         {
-            ULONG i;
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
             PhUnregisterCallback(
                 PhGetGeneralCallback(GeneralCallbackServiceProviderModifiedEvent),
                 &context->ModifiedEventRegistration
                 );
 
-            for (i = 0; i < context->NumberOfServices; i++)
-                PhDereferenceObject(context->Services[i]);
-
-            PhFree(context->Services);
+            PhDeleteLayoutManager(&context->LayoutManager);
 
             if (context->ListViewSettingName)
                 PhSaveListViewColumnsToSetting(context->ListViewSettingName, context->ListViewHandle);
 
-            PhDeleteLayoutManager(&context->LayoutManager);
+            for (ULONG i = 0; i < context->NumberOfServices; i++)
+                PhDereferenceObject(context->Services[i]);
+
+            PhFree(context->Services);
 
             PhFree(context);
         }

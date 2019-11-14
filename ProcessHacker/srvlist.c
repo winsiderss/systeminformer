@@ -616,6 +616,9 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
         {
             PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
 
+            if (!getChildren)
+                break;
+
             if (!getChildren->Node)
             {
                 static PVOID sortFunctions[] =
@@ -665,6 +668,9 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
         {
             PPH_TREENEW_IS_LEAF isLeaf = Parameter1;
 
+            if (!isLeaf)
+                break;
+
             isLeaf->IsLeaf = TRUE;
         }
         return TRUE;
@@ -672,6 +678,9 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
         {
             PPH_TREENEW_GET_CELL_TEXT getCellText = Parameter1;
             PPH_SERVICE_ITEM serviceItem;
+
+            if (!getCellText)
+                break;
 
             node = (PPH_SERVICE_NODE)getCellText->Node;
             serviceItem = node->ServiceItem;
@@ -767,6 +776,9 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
         {
             PPH_TREENEW_GET_NODE_ICON getNodeIcon = Parameter1;
 
+            if (!getNodeIcon)
+                break;
+
             node = (PPH_SERVICE_NODE)getNodeIcon->Node;
 
             if (!ServiceIconsLoaded)
@@ -799,6 +811,9 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
             PPH_TREENEW_GET_NODE_COLOR getNodeColor = Parameter1;
             PPH_SERVICE_ITEM serviceItem;
 
+            if (!getNodeColor)
+                break;
+
             node = (PPH_SERVICE_NODE)getNodeColor->Node;
             serviceItem = node->ServiceItem;
 
@@ -827,6 +842,9 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
     case TreeNewGetCellTooltip:
         {
             PPH_TREENEW_GET_CELL_TOOLTIP getCellTooltip = Parameter1;
+
+            if (!getCellTooltip)
+                break;
 
             node = (PPH_SERVICE_NODE)getCellTooltip->Node;
 
@@ -858,6 +876,9 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
     case TreeNewKeyDown:
         {
             PPH_TREENEW_KEY_EVENT keyEvent = Parameter1;
+
+            if (!keyEvent)
+                break;
 
             switch (keyEvent->VirtualKey)
             {
@@ -905,6 +926,9 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
     case TreeNewContextMenu:
         {
             PPH_TREENEW_CONTEXT_MENU contextMenu = Parameter1;
+
+            if (!contextMenu)
+                break;
 
             PhShowServiceContextMenu(contextMenu);
         }

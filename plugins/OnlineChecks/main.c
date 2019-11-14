@@ -153,6 +153,9 @@ VOID NTAPI ShowOptionsCallback(
 {
     PPH_PLUGIN_OPTIONS_POINTERS optionsEntry = (PPH_PLUGIN_OPTIONS_POINTERS)Parameter;
 
+    if (!optionsEntry)
+        return;
+
     optionsEntry->CreateSection(
         L"OnlineChecks",
         PluginInstance->DllBase,
@@ -168,6 +171,9 @@ VOID NTAPI MenuItemCallback(
     )
 {
     PPH_PLUGIN_MENU_ITEM menuItem = Parameter;
+
+    if (!menuItem)
+        return;
 
     switch (menuItem->Id)
     {
@@ -267,9 +273,12 @@ VOID NTAPI MainMenuInitializingCallback(
     _In_opt_ PVOID Context
     )
 {
+    PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
     PPH_EMENU_ITEM onlineMenuItem;
     PPH_EMENU_ITEM enableMenuItem;
-    PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
+
+    if (!menuInfo)
+        return;
 
     if (menuInfo->u.MainMenu.SubMenuIndex != PH_MENU_ITEM_LOCATION_TOOLS)
         return;
@@ -301,7 +310,7 @@ PPH_EMENU_ITEM CreateSendToMenu(
     PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_UPLOAD, L"&virustotal.com", FileName), ULONG_MAX);
     PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_JOTTI_UPLOAD, L"virusscan.&jotti.org", FileName), ULONG_MAX);
 
-    if (ProcessesMenu && (menuItem = PhFindEMenuItem(Parent, PH_EMENU_FIND_STARTSWITH, L"Search online", 0)))
+    if (ProcessesMenu && (menuItem = PhFindEMenuItem(Parent, 0, NULL, PHAPP_ID_PROCESS_SEARCHONLINE)))
     {
         insertIndex = PhIndexOfEMenuItem(Parent, menuItem);
         PhInsertEMenuItem(Parent, sendToMenu, insertIndex + 1);
@@ -309,8 +318,8 @@ PPH_EMENU_ITEM CreateSendToMenu(
     }
     else
     {
-        PhInsertEMenuItem(Parent, PhCreateEMenuSeparator(), ULONG_MAX);
         PhInsertEMenuItem(Parent, sendToMenu, ULONG_MAX);
+        PhInsertEMenuItem(Parent, PhCreateEMenuSeparator(), ULONG_MAX);
     }
 
     return sendToMenu;
@@ -324,6 +333,9 @@ VOID NTAPI ProcessMenuInitializingCallback(
     PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
     PPH_PROCESS_ITEM processItem;
     PPH_EMENU_ITEM sendToMenu;
+
+    if (!menuInfo)
+        return;
 
     if (menuInfo->u.Process.NumberOfProcesses == 1)
         processItem = menuInfo->u.Process.Processes[0];
@@ -348,6 +360,9 @@ VOID NTAPI ModuleMenuInitializingCallback(
     PPH_MODULE_ITEM moduleItem;
     PPH_EMENU_ITEM sendToMenu;
 
+    if (!menuInfo)
+        return;
+
     if (menuInfo->u.Module.NumberOfModules == 1)
         moduleItem = menuInfo->u.Module.Modules[0];
     else
@@ -369,6 +384,9 @@ VOID NTAPI ServiceMenuInitializingCallback(
     PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
     PPH_SERVICE_ITEM serviceItem;
     PPH_EMENU_ITEM sendToMenu;
+
+    if (!menuInfo)
+        return;
 
     if (menuInfo->u.Service.NumberOfServices == 1)
         serviceItem = menuInfo->u.Service.Services[0];
@@ -474,6 +492,9 @@ VOID NTAPI ProcessTreeNewInitializingCallback(
     PPH_PLUGIN_TREENEW_INFORMATION info = Parameter;
     PH_TREENEW_COLUMN column;
 
+    if (!info)
+        return;
+
     memset(&column, 0, sizeof(PH_TREENEW_COLUMN));
     column.Text = L"VirusTotal";
     column.Width = 140;
@@ -491,6 +512,9 @@ VOID NTAPI ModuleTreeNewInitializingCallback(
 {
     PPH_PLUGIN_TREENEW_INFORMATION info = Parameter;
     PH_TREENEW_COLUMN column;
+
+    if (!info)
+        return;
 
     memset(&column, 0, sizeof(PH_TREENEW_COLUMN));
     column.Text = L"VirusTotal";
@@ -510,6 +534,9 @@ VOID NTAPI ServiceTreeNewInitializingCallback(
     PPH_PLUGIN_TREENEW_INFORMATION info = Parameter;
     PH_TREENEW_COLUMN column;
 
+    if (!info)
+        return;
+
     memset(&column, 0, sizeof(PH_TREENEW_COLUMN));
     column.Text = L"VirusTotal";
     column.Width = 140;
@@ -526,6 +553,9 @@ VOID NTAPI TreeNewMessageCallback(
     )
 {
     PPH_PLUGIN_TREENEW_MESSAGE message = Parameter;
+
+    if (!message)
+        return;
 
     switch (message->Message)
     {

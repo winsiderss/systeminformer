@@ -2482,7 +2482,7 @@ INT_PTR CALLBACK PhpRunFileWndProc(
 
                 if (SendMessage(context->ComboBoxHandle, CB_GETCOMBOBOXINFO, 0, (LPARAM)& info))
                 {
-                    if (SHAutoComplete)
+                    if (SHAutoComplete && info.hwndItem)
                         SHAutoComplete(info.hwndItem, SHACF_DEFAULT);
                 }
             }

@@ -628,6 +628,78 @@ VOID PhNfNotifyMiniInfoPinned(
     }
 }
 
+VOID PhpNfCreateTransparentHdc(
+    _Inout_ PRECT Rect,
+    _Out_ HDC *Hdc,
+    _Out_ HDC *MaskDc,
+    _Out_ HBITMAP *Bitmap,
+    _Out_ HBITMAP *MaskBitmap,
+    _Out_ HBITMAP *OldBitmap,
+    _Out_ HBITMAP *OldMaskBitmap
+    )
+{
+    HDC hdc;
+    HDC bufferDc;
+    HDC bufferMaskDc;
+    HBITMAP bufferBitmap;
+    HBITMAP bufferMaskBitmap;
+    HBITMAP oldBufferBitmap;
+    HBITMAP oldBufferMaskBitmap;
+
+    hdc = GetDC(NULL);
+    bufferDc = CreateCompatibleDC(hdc);
+    bufferBitmap = CreateCompatibleBitmap(hdc, Rect->right, Rect->bottom);
+    oldBufferBitmap = SelectBitmap(bufferDc, bufferBitmap);
+
+    bufferMaskDc = CreateCompatibleDC(hdc);
+    bufferMaskBitmap = CreateBitmap(Rect->right, Rect->bottom, 1, 1, NULL);
+    oldBufferMaskBitmap = SelectBitmap(bufferMaskDc, bufferMaskBitmap);
+
+    *Hdc = bufferDc;
+    *MaskDc = bufferMaskDc;
+    *Bitmap = bufferBitmap;
+    *MaskBitmap = bufferMaskBitmap;
+    *OldBitmap = oldBufferBitmap;
+    *OldMaskBitmap = oldBufferMaskBitmap;
+}
+
+HICON PhpNfTransparentHdcToIcon(
+    _Inout_ PRECT Rect,
+    _In_ HDC Hdc,
+    _In_ HDC MaskDc,
+    _In_ HBITMAP Bitmap,
+    _In_ HBITMAP MaskBitmap,
+    _In_ HBITMAP OldBitmap,
+    _In_ HBITMAP OldMaskBitmap
+    )
+{
+    HICON iconHandle;
+    ICONINFO iconInfo;
+
+    SetBkColor(Hdc, RGB(0, 0, 0)); // Set transparent color and draw the mask
+    BitBlt(MaskDc, 0, 0, Rect->right, Rect->bottom, Hdc, 0, 0, SRCCOPY);
+
+    SelectBitmap(Hdc, Bitmap);
+    SelectBitmap(MaskDc, MaskBitmap);
+
+    DeleteDC(Hdc);
+    DeleteDC(MaskDc);
+    ReleaseDC(NULL, Hdc);
+
+    iconInfo.fIcon = TRUE;
+    iconInfo.xHotspot = 0;
+    iconInfo.yHotspot = 0;
+    iconInfo.hbmMask = MaskBitmap;
+    iconInfo.hbmColor = Bitmap;
+
+    iconHandle = CreateIconIndirect(&iconInfo); // Create transparent icon
+
+    DeleteBitmap(MaskBitmap);
+    DeleteBitmap(Bitmap);
+
+    return iconHandle;
+}
+
 HICON PhNfpGetBlackIcon(
     VOID
     )

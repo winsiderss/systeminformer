@@ -1136,6 +1136,9 @@ VOID CALLBACK PhpServicePropertyChangeNotifyCallback(
     if (ServiceNotifyFlags == SERVICE_NOTIFY_DELETED)
         return;
 
+    if (!notifyContext)
+        return;
+
     if (notifyContext->JustAddedNotifyRegistration)
     {
         notifyContext->JustAddedNotifyRegistration = FALSE;

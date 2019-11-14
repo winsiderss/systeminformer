@@ -2,6 +2,7 @@
 #define ES_EXTSRV_H
 
 #include <phdk.h>
+#include <phappresource.h>
 #include <settings.h>
 
 #include "resource.h"

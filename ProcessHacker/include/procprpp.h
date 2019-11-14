@@ -164,8 +164,9 @@ typedef struct _PH_THREADS_CONTEXT
     PH_CALLBACK_REGISTRATION LoadingStateChangedEventRegistration;
 
     HWND WindowHandle;
-    HWND SearchboxHandle;
 // end_phapppub
+    HWND TreeNewHandle;
+    HWND SearchboxHandle;
     PPH_STRING SearchboxText;
     PPH_TN_FILTER_ENTRY FilterEntry;
     union
@@ -195,9 +196,9 @@ typedef struct _PH_MODULES_CONTEXT
     PH_CALLBACK_REGISTRATION UpdatedEventRegistration;
 
     HWND WindowHandle;
-    HWND SearchboxHandle;
 // end_phapppub
-
+    HWND SearchboxHandle;
+    HWND TreeNewHandle;
     union
     {
         PH_MODULE_LIST_CONTEXT ListContext;
@@ -229,8 +230,9 @@ typedef struct _PH_HANDLES_CONTEXT
     PH_CALLBACK_REGISTRATION UpdatedEventRegistration;
 
     HWND WindowHandle;
-    HWND SearchWindowHandle;
 // end_phapppub
+    HWND TreeNewHandle;
+    HWND SearchWindowHandle;
 
     union
     {
@@ -303,6 +305,7 @@ typedef struct _PH_PERFORMANCE_CONTEXT
     PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
 
     HWND WindowHandle;
+    BOOLEAN Enabled;
 
     PH_GRAPH_STATE CpuGraphState;
     PH_GRAPH_STATE PrivateGraphState;
