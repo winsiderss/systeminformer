@@ -1294,7 +1294,7 @@ HRESULT CALLBACK PhpThreadStackTaskDialogCallback(
             if ((INT)wParam == IDCANCEL)
             {
                 context->StopWalk = TRUE;
-                //context->SymbolProvider->Terminating = TRUE; // HACK: Cancel symbol load/download.
+                context->SymbolProvider->Terminating = TRUE;
             }
 
             //if (!context->EnableCloseDialog)
