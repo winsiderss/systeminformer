@@ -365,29 +365,26 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
     PPH_PROCESS_PROPPAGECONTEXT propPageContext;
     PPH_PROCESS_ITEM processItem;
     PPH_HANDLES_CONTEXT handlesContext;
-    HWND tnHandle = NULL;
 
     if (PhPropPageDlgProcHeader(hwndDlg, uMsg, lParam, NULL, &propPageContext, &processItem))
     {
         handlesContext = propPageContext->Context;
-
-        if (handlesContext)
-            tnHandle = handlesContext->ListContext.TreeNewHandle;
     }
     else
     {
         return FALSE;
     }
 
-    if (!handlesContext)
-        return FALSE;
-        
     switch (uMsg)
     {
     case WM_INITDIALOG:
         {
             handlesContext = propPageContext->Context = PhAllocate(PhEmGetObjectSize(EmHandlesContextType, sizeof(PH_HANDLES_CONTEXT)));
             memset(handlesContext, 0, sizeof(PH_HANDLES_CONTEXT));
+
+            handlesContext->WindowHandle = hwndDlg;
+            handlesContext->SearchWindowHandle = GetDlgItem(hwndDlg, IDC_HANDLESEARCH);
+            handlesContext->TreeNewHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
             handlesContext->Provider = PhCreateHandleProvider(
                 processItem->ProcessId
@@ -423,20 +420,16 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                 &handlesContext->UpdatedEventRegistration
                 );
 
-            handlesContext->WindowHandle = hwndDlg;
-            handlesContext->SearchWindowHandle = GetDlgItem(hwndDlg, IDC_HANDLESEARCH);
-
-            PhCreateSearchControl(hwndDlg, handlesContext->SearchWindowHandle, L"Search Handles (Ctrl+K)");
-
             // Initialize the list.
-            tnHandle = GetDlgItem(hwndDlg, IDC_LIST);
-            PhInitializeHandleList(hwndDlg, tnHandle, &handlesContext->ListContext);
-            TreeNew_SetEmptyText(tnHandle, &PhpLoadingText, 0);
+            PhInitializeHandleList(hwndDlg, handlesContext->TreeNewHandle, &handlesContext->ListContext);
+            TreeNew_SetEmptyText(handlesContext->TreeNewHandle, &PhpLoadingText, 0);
             PhInitializeProviderEventQueue(&handlesContext->EventQueue, 100);
             handlesContext->LastRunStatus = -1;
             handlesContext->ErrorMessage = NULL;
             handlesContext->SearchboxText = PhReferenceEmptyString();
             handlesContext->FilterEntry = PhAddTreeNewFilter(&handlesContext->ListContext.TreeFilterSupport, PhpHandleTreeFilterCallback, handlesContext);
+
+            PhCreateSearchControl(hwndDlg, handlesContext->SearchWindowHandle, L"Search Handles (Ctrl+K)");
 
             PhEmCallObjectOperation(EmHandlesContextType, handlesContext, EmObjectCreate);
 
@@ -444,7 +437,7 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
             {
                 PH_PLUGIN_TREENEW_INFORMATION treeNewInfo;
 
-                treeNewInfo.TreeNewHandle = tnHandle;
+                treeNewInfo.TreeNewHandle = handlesContext->TreeNewHandle;
                 treeNewInfo.CmData = &handlesContext->ListContext.Cm;
                 treeNewInfo.SystemContext = handlesContext;
                 PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackHandleTreeNewInitializing), &treeNewInfo);
@@ -489,7 +482,7 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
             {
                 PH_PLUGIN_TREENEW_INFORMATION treeNewInfo;
 
-                treeNewInfo.TreeNewHandle = tnHandle;
+                treeNewInfo.TreeNewHandle = handlesContext->TreeNewHandle;
                 treeNewInfo.CmData = &handlesContext->ListContext.Cm;
                 PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackHandleTreeNewUninitializing), &treeNewInfo);
             }
@@ -630,8 +623,8 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                 {
                     PPH_STRING text;
 
-                    text = PhGetTreeNewText(tnHandle, 0);
-                    PhSetClipboardString(tnHandle, &text->sr);
+                    text = PhGetTreeNewText(handlesContext->TreeNewHandle, 0);
+                    PhSetClipboardString(handlesContext->TreeNewHandle, &text->sr);
                     PhDereferenceObject(text);
                 }
                 break;
@@ -718,7 +711,7 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
 
             if (events)
             {
-                TreeNew_SetRedraw(tnHandle, FALSE);
+                TreeNew_SetRedraw(handlesContext->TreeNewHandle, FALSE);
 
                 for (i = 0; i < count; i++)
                 {
@@ -758,24 +751,24 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
 
                 if (NT_SUCCESS(status))
                 {
-                    TreeNew_SetEmptyText(tnHandle, &EmptyHandlesText, 0);
+                    TreeNew_SetEmptyText(handlesContext->TreeNewHandle, &EmptyHandlesText, 0);
                 }
                 else
                 {
                     message = PhGetStatusMessage(status, 0);
                     PhMoveReference(&handlesContext->ErrorMessage, PhFormatString(L"Unable to query handle information:\n%s", PhGetStringOrDefault(message, L"Unknown error.")));
                     PhClearReference(&message);
-                    TreeNew_SetEmptyText(tnHandle, &handlesContext->ErrorMessage->sr, 0);
+                    TreeNew_SetEmptyText(handlesContext->TreeNewHandle, &handlesContext->ErrorMessage->sr, 0);
                 }
 
-                InvalidateRect(tnHandle, NULL, FALSE);
+                InvalidateRect(handlesContext->TreeNewHandle, NULL, FALSE);
             }
 
             // Refresh the visible nodes.
             PhApplyTreeNewFilters(&handlesContext->ListContext.TreeFilterSupport);
 
             if (count != 0)
-                TreeNew_SetRedraw(tnHandle, TRUE);
+                TreeNew_SetRedraw(handlesContext->TreeNewHandle, TRUE);
         }
         break;
     }
