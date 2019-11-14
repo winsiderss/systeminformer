@@ -3243,7 +3243,7 @@ VOID PhShowIconContextMenu(
     // Add processes to the menu.
 
     numberOfProcesses = PhGetIntegerSetting(L"IconProcesses");
-    menuItem = PhFindEMenuItem(menu, 0, L"Processes", 0);
+    menuItem = PhFindEMenuItem(menu, 0, 0, ID_PROCESSES_DUMMY);
 
     if (menuItem)
         PhMwpAddIconProcesses(menuItem, numberOfProcesses);
