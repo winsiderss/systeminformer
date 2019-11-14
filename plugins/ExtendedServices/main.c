@@ -252,10 +252,10 @@ VOID NTAPI ProcessMenuInitializingCallback(
 
         // Insert our Services menu after the I/O Priority menu.
 
-        priorityMenuItem = PhFindEMenuItem(menuInfo->Menu, 0, L"I/O Priority", 0);
+        priorityMenuItem = PhFindEMenuItem(menuInfo->Menu, 0, NULL, PHAPP_ID_PROCESS_IOPRIORITY);
 
         if (!priorityMenuItem)
-            priorityMenuItem = PhFindEMenuItem(menuInfo->Menu, 0, L"Priority", 0);
+            priorityMenuItem = PhFindEMenuItem(menuInfo->Menu, 0, NULL, PHAPP_ID_PROCESS_PRIORITY);
 
         if (priorityMenuItem)
             insertIndex = PhIndexOfEMenuItem(menuInfo->Menu, priorityMenuItem) + 1;
@@ -266,7 +266,7 @@ VOID NTAPI ProcessMenuInitializingCallback(
     }
 }
 
-NTAPI ServicePropertiesInitializingCallback(
+VOID NTAPI ServicePropertiesInitializingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -274,6 +274,9 @@ NTAPI ServicePropertiesInitializingCallback(
     PPH_PLUGIN_OBJECT_PROPERTIES objectProperties = Parameter;
     PROPSHEETPAGE propSheetPage;
     PPH_SERVICE_ITEM serviceItem;
+
+    if (!objectProperties)
+        return;
 
     serviceItem = objectProperties->Parameter;
 
@@ -367,6 +370,9 @@ VOID NTAPI ServiceMenuInitializingCallback(
     PPH_EMENU_ITEM menuItem;
     ULONG indexOfMenuItem;
 
+    if (!menuInfo)
+        return;
+
     if (
         menuInfo->u.Service.NumberOfServices == 1 &&
         (menuInfo->u.Service.Services[0]->State == SERVICE_RUNNING || menuInfo->u.Service.Services[0]->State == SERVICE_PAUSED)
@@ -374,17 +380,17 @@ VOID NTAPI ServiceMenuInitializingCallback(
     {
         // Insert our Restart menu item after the Stop menu item.
 
-        menuItem = PhFindEMenuItem(menuInfo->Menu, PH_EMENU_FIND_STARTSWITH, L"Stop", 0);
+        menuItem = PhFindEMenuItem(menuInfo->Menu, 0, NULL, PHAPP_ID_SERVICE_STOP);
 
         if (menuItem)
-            indexOfMenuItem = PhIndexOfEMenuItem(menuInfo->Menu, menuItem);
+            indexOfMenuItem = PhIndexOfEMenuItem(menuInfo->Menu, menuItem) + 1;
         else
-            indexOfMenuItem = -1;
+            indexOfMenuItem = ULONG_MAX;
 
         PhInsertEMenuItem(
             menuInfo->Menu,
             PhPluginCreateEMenuItem(PluginInstance, 0, ID_SERVICE_RESTART, L"R&estart", menuInfo->u.Service.Services[0]),
-            indexOfMenuItem + 1
+            indexOfMenuItem
             );
     }
 }

@@ -109,9 +109,23 @@ VOID PhpSessionPropertiesQueryWinStationInfo(
 
     if (haveWinStationInfo)
     {
-        PhSetListViewSubItem(Context->ListViewHandle, 0, 1,
-            PhaFormatString(L"%s\\%s", winStationInfo.Domain, winStationInfo.UserName)->Buffer
-            );
+        PH_FORMAT format[3];
+        WCHAR formatBuffer[256];
+
+        PhInitFormatS(&format[0], winStationInfo.Domain);
+        PhInitFormatS(&format[1], L"\\"); // OBJ_NAME_PATH_SEPARATOR
+        PhInitFormatS(&format[2], winStationInfo.UserName);
+
+        if (PhFormatToBuffer(
+            format,
+            RTL_NUMBER_OF(format),
+            formatBuffer,
+            sizeof(formatBuffer),
+            NULL
+            ))
+        {
+            PhSetListViewSubItem(Context->ListViewHandle, 0, 1, formatBuffer);
+        }
     }
 
     PhSetListViewSubItem(Context->ListViewHandle, 1, 1, PhaFormatString(L"%lu", SessionId)->Buffer);
@@ -414,12 +428,24 @@ INT_PTR CALLBACK PhpSessionPropertiesDlgProc(
             //PhAddListViewGroupItem(context->ListViewHandle, 1, 12, L"Home directory", NULL);
             //PhAddListViewGroupItem(context->ListViewHandle, 1, 13, L"Profile directory", NULL);
 
+            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_LIST), NULL, PH_ANCHOR_ALL);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+
             PhpSessionPropertiesQueryWinStationInfo(context, context->SessionId);
             //PhpSessionPropertiesQuerySamAccountInfo(context, context->SessionId);
 
             PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDOK));
 
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+
+            PhDeleteLayoutManager(&context->LayoutManager);
+            PhFree(context);
         }
         break;
     case WM_COMMAND:
@@ -494,6 +520,11 @@ INT_PTR CALLBACK PhpSessionPropertiesDlgProc(
 
                 PhFree(listviewItems);
             }
+        }
+        break;
+    case WM_SIZE:
+        {
+            PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
     }

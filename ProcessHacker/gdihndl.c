@@ -52,7 +52,6 @@ VOID PhShowGdiHandlesDialog(
     )
 {
     GDI_HANDLES_CONTEXT context;
-    ULONG i;
 
     context.ProcessItem = ProcessItem;
     context.List = PhCreateList(20);
@@ -64,18 +63,6 @@ VOID PhShowGdiHandlesDialog(
         PhpGdiHandlesDlgProc,
         (LPARAM)&context
         );
-
-    for (i = 0; i < context.List->Count; i++)
-    {
-        PPH_GDI_HANDLE_ITEM gdiHandleItem = context.List->Items[i];
-
-        if (gdiHandleItem->Information)
-            PhDereferenceObject(gdiHandleItem->Information);
-
-        PhFree(context.List->Items[i]);
-    }
-
-    PhDereferenceObject(context.List);
 }
 
 PWSTR PhpGetGdiHandleTypeName(
@@ -364,6 +351,18 @@ INT_PTR CALLBACK PhpGdiHandlesDlgProc(
     case WM_DESTROY:
         {
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+
+            for (ULONG i = 0; i < context->List->Count; i++)
+            {
+                PPH_GDI_HANDLE_ITEM gdiHandleItem = context->List->Items[i];
+
+                if (gdiHandleItem->Information)
+                    PhDereferenceObject(gdiHandleItem->Information);
+
+                PhFree(context->List->Items[i]);
+            }
+
+            PhDereferenceObject(context->List);
         }
         break;
     case WM_COMMAND:

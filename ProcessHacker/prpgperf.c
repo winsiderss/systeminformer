@@ -3,6 +3,7 @@
  *   Process properties: Performance page
  *
  * Copyright (C) 2009-2016 wj32
+ * Copyright (C) 2019 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -40,7 +41,8 @@ static VOID NTAPI PerformanceUpdateHandler(
 {
     PPH_PERFORMANCE_CONTEXT performanceContext = (PPH_PERFORMANCE_CONTEXT)Context;
 
-    PostMessage(performanceContext->WindowHandle, WM_PH_PERFORMANCE_UPDATE, 0, 0);
+    if (performanceContext && performanceContext->Enabled)
+        PostMessage(performanceContext->WindowHandle, WM_PH_PERFORMANCE_UPDATE, 0, 0);
 }
 
 INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
@@ -68,10 +70,9 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
     {
     case WM_INITDIALOG:
         {
-            performanceContext = propPageContext->Context = PhAllocate(sizeof(PH_PERFORMANCE_CONTEXT));
-            memset(performanceContext, 0, sizeof(PH_PERFORMANCE_CONTEXT));
-
+            performanceContext = propPageContext->Context = PhAllocateZero(sizeof(PH_PERFORMANCE_CONTEXT));
             performanceContext->WindowHandle = hwndDlg;
+            performanceContext->Enabled = TRUE;
 
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
@@ -137,6 +138,12 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
 
             switch (header->code)
             {
+            case PSN_SETACTIVE:
+                performanceContext->Enabled = TRUE;
+                break;
+            case PSN_KILLACTIVE:
+                performanceContext->Enabled = FALSE;
+                break;
             case GCN_GETDRAWINFO:
                 {
                     PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)header;
@@ -168,7 +175,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
 
                             PhMoveReference(&performanceContext->CpuGraphState.Text,
                                 PhFormatString(L"%.2f%%",
-                                (processItem->CpuKernelUsage + processItem->CpuUserUsage) * 100
+                                ((DOUBLE)processItem->CpuKernelUsage + processItem->CpuUserUsage) * 100
                                 ));
 
                             hdc = Graph_GetBufferedContext(performanceContext->CpuGraphHandle);
@@ -327,7 +334,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
 
                             PhMoveReference(&performanceContext->CpuGraphState.TooltipText, PhFormatString(
                                 L"%.2f%%\n%s",
-                                (cpuKernel + cpuUser) * 100,
+                                ((DOUBLE)cpuKernel + cpuUser) * 100,
                                 PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(processItem, getTooltipText->Index))->Buffer
                                 ));
                         }
@@ -407,7 +414,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
 
             GetClientRect(hwndDlg, &clientRect);
             width = clientRect.right - margin.left - margin.right;
-            height = (clientRect.bottom - margin.top - margin.bottom - between * sizeof(WCHAR)) / 3;
+            height = (clientRect.bottom - margin.top - margin.bottom - between * 2) / 3;
 
             deferHandle = BeginDeferWindowPos(6);
 

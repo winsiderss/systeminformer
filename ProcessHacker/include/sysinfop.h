@@ -81,6 +81,7 @@ VOID PhSipOnCommand(
     _In_ ULONG Code
     );
 
+_Success_(return)
 BOOLEAN PhSipOnNotify(
     _In_ NMHDR *Header,
     _Out_ LRESULT *Result

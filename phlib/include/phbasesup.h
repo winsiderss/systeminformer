@@ -177,7 +177,7 @@ PHLIBAPI
 VOID
 NTAPI
 PhFreePage(
-    _Frees_ptr_opt_ PVOID Memory
+    _Post_invalid_ PVOID Memory
     );
 
 FORCEINLINE
@@ -2494,6 +2494,7 @@ PhAddItemPointerList(
     );
 
 PHLIBAPI
+_Success_(return)
 BOOLEAN
 NTAPI
 PhEnumPointerListEx(
@@ -2911,6 +2912,7 @@ PhClearHashtable(
     );
 
 PHLIBAPI
+_Success_(return)
 BOOLEAN
 NTAPI
 PhEnumHashtable(
@@ -3310,6 +3312,7 @@ PhBufferToHexStringEx(
     );
 
 PHLIBAPI
+_Success_(return)
 BOOLEAN
 NTAPI
 PhStringToInteger64(

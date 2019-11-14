@@ -359,11 +359,18 @@ BOOLEAN NTAPI ThreadStackTreeNewCallback(
     PPH_THREAD_STACK_CONTEXT context = Context;
     PPH_STACK_TREE_ROOT_NODE node;
 
+    if (!context)
+        return FALSE;
+
     switch (Message)
     {
     case TreeNewGetChildren:
         {
             PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
+
+            if (!getChildren)
+                break;
+
             node = (PPH_STACK_TREE_ROOT_NODE)getChildren->Node;
 
             if (!getChildren->Node)
@@ -401,6 +408,10 @@ BOOLEAN NTAPI ThreadStackTreeNewCallback(
     case TreeNewIsLeaf:
         {
             PPH_TREENEW_IS_LEAF isLeaf = (PPH_TREENEW_IS_LEAF)Parameter1;
+
+            if (!isLeaf)
+                break;
+
             node = (PPH_STACK_TREE_ROOT_NODE)isLeaf->Node;
 
             isLeaf->IsLeaf = TRUE;
@@ -409,6 +420,10 @@ BOOLEAN NTAPI ThreadStackTreeNewCallback(
     case TreeNewGetCellText:
         {
             PPH_TREENEW_GET_CELL_TEXT getCellText = (PPH_TREENEW_GET_CELL_TEXT)Parameter1;
+
+            if (!getCellText)
+                break;
+
             node = (PPH_STACK_TREE_ROOT_NODE)getCellText->Node;
 
             switch (getCellText->Id)
@@ -456,6 +471,10 @@ BOOLEAN NTAPI ThreadStackTreeNewCallback(
     case TreeNewGetNodeColor:
         {
             PPH_TREENEW_GET_NODE_COLOR getNodeColor = Parameter1;
+
+            if (!getNodeColor)
+                break;
+
             node = (PPH_STACK_TREE_ROOT_NODE)getNodeColor->Node;
 
             if (PhCsUseColorSystemThreadStack && (ULONG_PTR)node->StackFrame.PcAddress > PhSystemBasicInformation.MaximumUserModeAddress)
@@ -508,6 +527,10 @@ BOOLEAN NTAPI ThreadStackTreeNewCallback(
     case TreeNewGetCellTooltip:
         {
             PPH_TREENEW_GET_CELL_TOOLTIP getCellTooltip = Parameter1;
+
+            if (!getCellTooltip)
+                break;
+
             node = (PPH_STACK_TREE_ROOT_NODE)getCellTooltip->Node;
 
             if (getCellTooltip->Column->Id != 0)
@@ -978,6 +1001,8 @@ BOOLEAN NTAPI PhpWalkThreadStackCallback(
     PPH_STRING symbol;
     PTHREAD_STACK_ITEM item;
 
+    if (!threadStackContext)
+        return FALSE;
     if (threadStackContext->StopWalk)
         return FALSE;
 
@@ -1146,6 +1171,9 @@ VOID PhpSymbolProviderEventCallbackHandler(
     PPH_THREAD_STACK_CONTEXT context = Context;
     PPH_STRING statusMessage = NULL;
 
+    if (!event)
+        return;
+
     switch (event->ActionCode)
     {
     case CBA_DEFERRED_SYMBOL_LOAD_START:
@@ -1266,7 +1294,7 @@ HRESULT CALLBACK PhpThreadStackTaskDialogCallback(
             if ((INT)wParam == IDCANCEL)
             {
                 context->StopWalk = TRUE;
-                //context->SymbolProvider->Terminating = TRUE; // HACK: Cancel symbol load/download.
+                context->SymbolProvider->Terminating = TRUE;
             }
 
             //if (!context->EnableCloseDialog)

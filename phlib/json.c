@@ -137,7 +137,7 @@ PPH_STRING PhGetJsonArrayString(
 {
     PCSTR value;
 
-    if (value = json_object_to_json_string(Object))
+    if (value = json_object_get_string(Object)) // json_object_to_json_string_ext(Object, JSON_C_TO_STRING_PLAIN))
         return PhConvertUtf8ToUtf16((PSTR)value);
     else
         return NULL;
@@ -179,9 +179,7 @@ PPH_LIST PhGetJsonObjectAsArrayList(
     {
         PJSON_ARRAY_LIST_OBJECT object;
         
-        object = PhAllocate(sizeof(JSON_ARRAY_LIST_OBJECT));
-        memset(object, 0, sizeof(JSON_ARRAY_LIST_OBJECT));
-
+        object = PhAllocateZero(sizeof(JSON_ARRAY_LIST_OBJECT));
         object->Key = json_array_ptr.key;
         object->Entry = json_array_ptr.val;
 

@@ -84,7 +84,7 @@ typedef HRESULT (WINAPI* _GetAppContainerRegistryLocation)(
 
 typedef HRESULT (WINAPI* _GetAppContainerFolderPath)(
     _In_ PCWSTR pszAppContainerSid,
-    _Outptr_ PWSTR* ppszPath
+    _Out_ PWSTR* ppszPath
     );
 
 typedef BOOL (WINAPI* _ConvertSecurityDescriptorToStringSecurityDescriptorW)(
