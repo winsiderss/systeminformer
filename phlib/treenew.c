@@ -5335,7 +5335,15 @@ VOID PhTnpPaint(
         textRect.right = viewRect.right - 20;
         textRect.bottom = viewRect.bottom - 5;
 
-        SetTextColor(hdc, GetSysColor(COLOR_GRAYTEXT));
+        if (Context->Style & TN_STYLE_CUSTOM_COLORS)
+        {
+            SetTextColor(hdc, RGB(0xff, 0xff, 0xff));
+        }
+        else
+        {
+            SetTextColor(hdc, GetSysColor(COLOR_GRAYTEXT));
+        }
+
         DrawText(
             hdc,
             Context->EmptyText.Buffer,
