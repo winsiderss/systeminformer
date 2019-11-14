@@ -469,7 +469,7 @@ HMENU PhEMenuToHMenu(
         if (PhGetIntegerSetting(L"EnableThemeSupport"))
         {
             menuInfo.fMask |= MIM_BACKGROUND;
-            menuInfo.hbrBack = PhMenuBackgroundBrush;
+            menuInfo.hbrBack = CreateSolidBrush(RGB(28, 28, 28));
         }
 
         SetMenuInfo(menuHandle, &menuInfo);

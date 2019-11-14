@@ -120,7 +120,7 @@ HRESULT (WINAPI* DwmSetWindowAttribute_I)(
     _In_reads_bytes_(AttributeLength) PVOID Attribute,
     _In_ ULONG AttributeLength
     );
-//
+
 //HRESULT (WINAPI* DwmGetColorizationColor_I)(
 //    _Out_ PULONG Colorization,
 //    _Out_ PBOOL OpaqueBlend
@@ -773,8 +773,8 @@ BOOLEAN PhThemeWindowDrawItem(
                     break;
                 case 1: // Old colors
                     SetTextColor(DrawInfo->hDC, GetSysColor(COLOR_HIGHLIGHTTEXT));
-                    //SetDCBrushColor(DrawInfo->hDC, RGB(28, 28, 28));
-                    FillRect(DrawInfo->hDC, &DrawInfo->rcItem, PhMenuBackgroundBrush);
+                    SetDCBrushColor(DrawInfo->hDC, RGB(28, 28, 28));
+                    FillRect(DrawInfo->hDC, &DrawInfo->rcItem, GetStockBrush(DC_BRUSH));
                     break;
                 }
             }

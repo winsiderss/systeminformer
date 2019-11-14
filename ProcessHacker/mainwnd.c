@@ -203,7 +203,7 @@ BOOLEAN PhMainWndInitialization(
         memset(&menuInfo, 0, sizeof(MENUINFO));
         menuInfo.cbSize = sizeof(MENUINFO);
         menuInfo.fMask = MIM_BACKGROUND | MIM_APPLYTOSUBMENUS;
-        menuInfo.hbrBack = CreateSolidBrush(RGB(43, 43, 43));
+        menuInfo.hbrBack = CreateSolidBrush(RGB(28, 28, 28));
 
         SetMenuInfo(PhMainWndMenuHandle, &menuInfo);
     }
@@ -377,7 +377,9 @@ RTL_ATOM PhMwpInitializeWindowClass(
 
     if (PhGetIntegerSetting(L"EnableThemeSupport"))
     {
-        wcex.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
+        PhSetIntegerSetting(L"GraphColorMode", 1); // HACK switch to dark theme. (dmex)
+        PhUpdateCachedSettings();
+        wcex.hbrBackground = CreateSolidBrush(RGB(28, 28, 28));
     }
 
     return RegisterClassEx(&wcex);
