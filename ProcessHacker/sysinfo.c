@@ -1277,7 +1277,7 @@ VOID PhSipDrawRestoreSummaryPanel(
             break;
         case 1: // Old colors
             SetTextColor(bufferDc, RGB(0xff, 0xff, 0xff));
-            SetDCBrushColor(bufferDc, RGB(0x00, 0x00, 0x00));
+            SetDCBrushColor(bufferDc, RGB(43, 43, 43));
             FillRect(bufferDc, &bufferRect, GetStockBrush(DC_BRUSH));
             break;
         }
@@ -1368,8 +1368,8 @@ VOID PhSipDrawSeparator(
             break;
         case 1: // Old colors
             {
-                //SetDCBrushColor(bufferDc, RGB(0, 0, 0));
-                //FillRect(bufferDc, &bufferRect, GetStockBrush(DC_BRUSH));
+                SetDCBrushColor(bufferDc, RGB(43, 43, 43));
+                FillRect(bufferDc, &bufferRect, GetStockBrush(DC_BRUSH));
             }
             break;
         }
@@ -1414,32 +1414,6 @@ VOID PhSipDrawPanel(
 
     if (CurrentView == SysInfoSectionView)
     {
-        //switch (PhCsGraphColorMode)
-        //{
-        //case 0: // New colors
-        //    DrawInfo->BackColor = RGB(0xef, 0xef, 0xef);
-        //    DrawInfo->LineColor1 = PhHalveColorBrightness(Color1);
-        //    DrawInfo->LineBackColor1 = PhMakeColorBrighter(Color1, 125);
-        //    DrawInfo->LineColor2 = PhHalveColorBrightness(Color2);
-        //    DrawInfo->LineBackColor2 = PhMakeColorBrighter(Color2, 125);
-        //    DrawInfo->GridColor = RGB(0xc7, 0xc7, 0xc7);
-        //    DrawInfo->LabelYColor = RGB(0xa0, 0x60, 0x20);
-        //    DrawInfo->TextColor = RGB(0x00, 0x00, 0x00);
-        //    DrawInfo->TextBoxColor = RGB(0xe7, 0xe7, 0xe7);
-        //    break;
-        //case 1: // Old colors
-        //    DrawInfo->BackColor = RGB(0x00, 0x00, 0x00);
-        //    DrawInfo->LineColor1 = Color1;
-        //    DrawInfo->LineBackColor1 = PhHalveColorBrightness(Color1);
-        //    DrawInfo->LineColor2 = Color2;
-        //    DrawInfo->LineBackColor2 = PhHalveColorBrightness(Color2);
-        //    DrawInfo->GridColor = RGB(0x00, 0x57, 0x00);
-        //    DrawInfo->LabelYColor = RGB(0xd0, 0xa0, 0x70);
-        //    DrawInfo->TextColor = RGB(0x00, 0xff, 0x00);
-        //    DrawInfo->TextBoxColor = RGB(0x00, 0x22, 0x00);
-        //    break;
-        //}
-
         if (PhEnableThemeSupport)
         {
             switch (PhCsGraphColorMode)
@@ -1451,7 +1425,7 @@ VOID PhSipDrawPanel(
                 break;
             case 1: // Old colors
                 SetTextColor(hdc, RGB(0xff, 0xff, 0xff));
-                SetDCBrushColor(hdc, RGB(0x00, 0x00, 0x00));
+                SetDCBrushColor(hdc, RGB(43, 43, 43));
                 FillRect(hdc, Rect, GetStockBrush(DC_BRUSH));
                 break;
             }
