@@ -965,6 +965,7 @@ PHLIBAPI
 BOOLEAN
 NTAPI
 PhThemeWindowMeasureItem(
+    _In_ HWND WindowHandle,
     _In_ PMEASUREITEMSTRUCT DrawInfo
     );
 

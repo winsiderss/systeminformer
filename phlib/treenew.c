@@ -294,7 +294,7 @@ LRESULT CALLBACK PhTnpWndProc(
         }
         break;
     case WM_MEASUREITEM:
-        if (PhThemeWindowMeasureItem((LPMEASUREITEMSTRUCT)lParam))
+        if (PhThemeWindowMeasureItem(hwnd, (LPMEASUREITEMSTRUCT)lParam))
             return TRUE;
         break;
     case WM_DRAWITEM:

@@ -732,6 +732,7 @@ PhPluginEnableTreeNewNotify(
     );
 
 PHAPPAPI
+_Success_(return)
 BOOLEAN
 NTAPI
 PhPluginQueryPhSvc(

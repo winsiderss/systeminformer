@@ -146,7 +146,7 @@ VOID PhInitializeWindowTheme(
     _In_ BOOLEAN EnableThemeSupport
     )
 {
-    PhpThemeColorMode = PhGetIntegerSetting(L"GraphColorMode");
+    PhpThemeColorMode = 1;// PhGetIntegerSetting(L"GraphColorMode");
     PhpThemeEnable = !!PhGetIntegerSetting(L"EnableThemeSupport");
     PhpThemeBorderEnable = !!PhGetIntegerSetting(L"TreeListBorderEnable");
 
@@ -238,7 +238,7 @@ VOID PhReInitializeWindowTheme(
     HWND currentWindow = NULL;
 
     PhpThemeEnable = !!PhGetIntegerSetting(L"EnableThemeSupport");
-    PhpThemeColorMode = PhGetIntegerSetting(L"GraphColorMode");
+    PhpThemeColorMode = 1;// PhGetIntegerSetting(L"GraphColorMode");
     PhpThemeBorderEnable = !!PhGetIntegerSetting(L"TreeListBorderEnable");
 
     PhInitializeThemeWindowFrame(WindowHandle);
@@ -769,14 +769,14 @@ BOOLEAN PhThemeWindowDrawItem(
                 case 0: // New colors
                     SetTextColor(DrawInfo->hDC, GetSysColor(COLOR_WINDOWTEXT));
                     SetDCBrushColor(DrawInfo->hDC, RGB(0xff, 0xff, 0xff));
+                    FillRect(DrawInfo->hDC, &DrawInfo->rcItem, GetStockBrush(DC_BRUSH));
                     break;
                 case 1: // Old colors
                     SetTextColor(DrawInfo->hDC, GetSysColor(COLOR_HIGHLIGHTTEXT));
-                    SetDCBrushColor(DrawInfo->hDC, RGB(28, 28, 28));
+                    //SetDCBrushColor(DrawInfo->hDC, RGB(28, 28, 28));
+                    FillRect(DrawInfo->hDC, &DrawInfo->rcItem, PhMenuBackgroundBrush);
                     break;
                 }
-
-                FillRect(DrawInfo->hDC, &DrawInfo->rcItem, GetStockBrush(DC_BRUSH));
             }
 
             if (isChecked)
@@ -910,13 +910,27 @@ BOOLEAN PhThemeWindowDrawItem(
                 DrawInfo->rcItem.left += 25;
                 DrawInfo->rcItem.right -= 25;
 
-                DrawText(
-                    DrawInfo->hDC,
-                    firstPart.Buffer,
-                    (UINT)firstPart.Length / sizeof(WCHAR),
-                    &DrawInfo->rcItem,
-                    DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_HIDEPREFIX | DT_NOCLIP
-                    );
+                if ((menuItemInfo->Flags & PH_EMENU_MAINMENU) == PH_EMENU_MAINMENU)
+                {
+                    DrawText(
+                        DrawInfo->hDC,
+                        firstPart.Buffer,
+                        (UINT)firstPart.Length / sizeof(WCHAR),
+                        &DrawInfo->rcItem,
+                        DT_LEFT | DT_CENTER | DT_SINGLELINE | DT_HIDEPREFIX | DT_NOCLIP
+                        );
+                }
+                else
+                {
+                    DrawText(
+                        DrawInfo->hDC,
+                        firstPart.Buffer,
+                        (UINT)firstPart.Length / sizeof(WCHAR),
+                        &DrawInfo->rcItem,
+                        DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_HIDEPREFIX | DT_NOCLIP
+                        );
+                }
+ 
 
                 DrawText(
                     DrawInfo->hDC,
@@ -966,6 +980,7 @@ BOOLEAN PhThemeWindowDrawItem(
 }
 
 BOOLEAN PhThemeWindowMeasureItem(
+    _In_ HWND WindowHandle,
     _In_ PMEASUREITEMSTRUCT DrawInfo
     )
 {
@@ -994,25 +1009,44 @@ BOOLEAN PhThemeWindowMeasureItem(
                 }
             }
 
-            if (hdc = GetDC(NULL))
+            if (hdc = GetDC(WindowHandle))
             {
                 PWSTR text;
                 SIZE_T textCount;
                 SIZE textSize;
-                HFONT oldFont;
+                HFONT oldFont = NULL;
 
                 text = menuItemInfo->Text;
                 textCount = PhCountStringZ(text);
-                oldFont = SelectFont(hdc, PhpMenuFontHandle);
 
-                if (GetTextExtentPoint32(hdc, text, (ULONG)textCount, &textSize))
+                if (PhpMenuFontHandle)
                 {
-                    DrawInfo->itemWidth = textSize.cx + (GetSystemMetrics(SM_CYBORDER) * 2) + 90; // HACK
-                    DrawInfo->itemHeight = GetSystemMetrics(SM_CYMENU) + (GetSystemMetrics(SM_CYBORDER) * 2) + 1;
+                    oldFont = SelectFont(hdc, PhpMenuFontHandle);
                 }
 
-                SelectFont(hdc, oldFont);
-                ReleaseDC(NULL, hdc);
+                if ((menuItemInfo->Flags & PH_EMENU_MAINMENU) == PH_EMENU_MAINMENU)
+                {
+                    if (GetTextExtentPoint32(hdc, text, (ULONG)textCount, &textSize))
+                    {
+                        DrawInfo->itemWidth = textSize.cx + (GetSystemMetrics(SM_CYBORDER) * 2);
+                        DrawInfo->itemHeight = 1;
+                    }
+                }
+                else
+                {
+                    if (GetTextExtentPoint32(hdc, text, (ULONG)textCount, &textSize))
+                    {
+                        DrawInfo->itemWidth = textSize.cx + (GetSystemMetrics(SM_CYBORDER) * 2) + 90; // HACK
+                        DrawInfo->itemHeight = GetSystemMetrics(SM_CYMENU) + (GetSystemMetrics(SM_CYBORDER) * 2) + 1;
+                    }
+                }
+
+                if (oldFont)
+                {
+                    SelectFont(hdc, oldFont);
+                }
+
+                ReleaseDC(WindowHandle, hdc);
             }
         }
         
@@ -1665,7 +1699,7 @@ LRESULT CALLBACK PhpThemeWindowSubclassProc(
         }
         break;
     case WM_MEASUREITEM:
-        if (PhThemeWindowMeasureItem((LPMEASUREITEMSTRUCT)lParam))
+        if (PhThemeWindowMeasureItem(hWnd, (LPMEASUREITEMSTRUCT)lParam))
             return TRUE;
         break;
     case WM_DRAWITEM:
