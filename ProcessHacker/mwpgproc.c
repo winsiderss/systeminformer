@@ -604,18 +604,18 @@ VOID PhMwpInitializeProcessMenu(
         PhSetFlagsAllEMenuItems(Menu, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
 
         // Enable the Miscellaneous menu item but disable its children.
-        if (item = PhFindEMenuItem(Menu, 0, L"Miscellaneous", 0))
+        if (item = PhFindEMenuItem(Menu, 0, 0, ID_PROCESS_MISCELLANEOUS))
         {
             item->Flags &= ~PH_EMENU_DISABLED;
             PhSetFlagsAllEMenuItems(item, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
         }
 
         // Enable the Priority menu item.
-        if (item = PhFindEMenuItem(Menu, 0, L"Priority", 0))
+        if (item = PhFindEMenuItem(Menu, 0, 0, ID_PROCESS_PRIORITY))
             item->Flags &= ~PH_EMENU_DISABLED;
 
         // Enable the I/O Priority menu item.
-        if (item = PhFindEMenuItem(Menu, 0, L"I/O Priority", 0))
+        if (item = PhFindEMenuItem(Menu, 0, 0, ID_PROCESS_IOPRIORITY))
             item->Flags &= ~PH_EMENU_DISABLED;
 
         // These menu items are capable of manipulating
@@ -677,7 +677,7 @@ VOID PhMwpInitializeProcessMenu(
         PhMwpSetProcessMenuPriorityChecks(Menu, Processes[0]->ProcessId, TRUE, TRUE, TRUE);
     }
 
-    item = PhFindEMenuItem(Menu, 0, L"Window", 0);
+    item = PhFindEMenuItem(Menu, 0, 0, ID_PROCESS_WINDOW);
 
     if (item)
     {
@@ -761,7 +761,7 @@ PPH_EMENU PhpCreateProcessMenu(
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_MISCELLANEOUS_RUNASTHISUSER, L"Run &as this user...", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, menuItem, ULONG_MAX);
 
-    menuItem = PhCreateEMenuItem(0, 0, L"&Window", NULL, NULL);
+    menuItem = PhCreateEMenuItem(0, ID_PROCESS_WINDOW, L"&Window", NULL, NULL);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_WINDOW_BRINGTOFRONT, L"Bring to &front", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_WINDOW_RESTORE, L"&Restore", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_WINDOW_MINIMIZE, L"M&inimize", NULL, NULL), ULONG_MAX);
