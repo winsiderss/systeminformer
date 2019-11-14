@@ -2319,15 +2319,32 @@ PPH_STRING PhGetApplicationFileName(
     VOID
     )
 {
-    //PPH_STRING fileName;
-    //
-    //if (NT_SUCCESS(PhGetProcessImageFileNameWin32(NtCurrentProcess(), &fileName)))
-    //{
-    //    PhMoveReference(&fileName, PhGetFileName(fileName));
-    //    return fileName;
-    //}
+    static PPH_STRING cachedFileName = NULL;
+    PPH_STRING fileName;
 
-    return PhGetDllFileName(PhInstanceHandle, NULL);
+    if (fileName = InterlockedCompareExchangePointer(
+        &cachedFileName,
+        NULL,
+        NULL
+        ))
+    {
+        return PhReferenceObject(fileName);
+    }
+
+    fileName = PhGetDllFileName(PhInstanceHandle, NULL);
+    //if (NT_SUCCESS(PhGetProcessImageFileNameWin32(NtCurrentProcess(), &fileName)))
+    //    PhMoveReference(&fileName, PhGetFileName(fileName));
+
+    if (!InterlockedCompareExchangePointer(
+        &cachedFileName,
+        fileName,
+        NULL
+        ))
+    {
+        PhReferenceObject(fileName);
+    }
+
+    return fileName;
 }
 
 /**
@@ -2337,14 +2354,23 @@ PPH_STRING PhGetApplicationDirectory(
     VOID
     )
 {
+    static PPH_STRING cachedDirectoryPath = NULL;
+    PPH_STRING directoryPath;
     PPH_STRING fileName;
-    ULONG_PTR indexOfFileName;
-    PPH_STRING path = NULL;
 
-    fileName = PhGetApplicationFileName();
-
-    if (fileName)
+    if (directoryPath = InterlockedCompareExchangePointer(
+        &cachedDirectoryPath,
+        NULL,
+        NULL
+        ))
     {
+        return PhReferenceObject(directoryPath);
+    }
+
+    if (fileName = PhGetApplicationFileName())
+    {
+        ULONG_PTR indexOfFileName;
+
         indexOfFileName = PhFindLastCharInString(fileName, 0, OBJ_NAME_PATH_SEPARATOR);
 
         if (indexOfFileName != -1)
@@ -2354,14 +2380,22 @@ PPH_STRING PhGetApplicationDirectory(
 
         if (indexOfFileName != 0)
         {
-            // Remove the file name from the path.
-            path = PhSubstring(fileName, 0, indexOfFileName);
+            directoryPath = PhSubstring(fileName, 0, indexOfFileName);
         }
 
         PhDereferenceObject(fileName);
     }
 
-    return path;
+    if (InterlockedCompareExchangePointer(
+        &cachedDirectoryPath,
+        directoryPath,
+        NULL
+        ) == NULL)
+    {
+        PhReferenceObject(directoryPath);
+    }
+
+    return directoryPath;
 }
 
 /**
