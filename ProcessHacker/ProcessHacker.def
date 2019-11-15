@@ -542,6 +542,7 @@ EXPORTS
     PhInitializeWindowTheme
     PhReInitializeWindowTheme
     PhInitializeWindowThemeStatusBar
+    PhInitializeThemeWindowHeader
     PhGetGlobalTimerQueue
     PhThemeWindowDrawRebar
     PhThemeWindowDrawToolbar
