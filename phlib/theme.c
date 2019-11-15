@@ -161,7 +161,7 @@ VOID PhInitializeWindowTheme(
     PhpThemeEnable = !!PhGetIntegerSetting(L"EnableThemeSupport");
     PhpThemeBorderEnable = !!PhGetIntegerSetting(L"TreeListBorderEnable");
 
-    if (WindowsVersion >= WINDOWS_10_RS5)
+    if (EnableThemeSupport && WindowsVersion >= WINDOWS_10_RS5)
     {
         static PH_INITONCE initOnce = PH_INITONCE_INIT;
 
