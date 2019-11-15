@@ -438,6 +438,8 @@ INT_PTR CALLBACK PhpSessionPropertiesDlgProc(
             PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDOK));
 
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport); // HACK
         }
         break;
     case WM_DESTROY:
