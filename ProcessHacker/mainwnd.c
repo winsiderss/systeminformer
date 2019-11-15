@@ -739,6 +739,18 @@ VOID PhMwpOnCommand(
     case ID_VIEW_SYSTEMINFORMATION:
         PhShowSystemInformationDialog(NULL);
         break;
+    case ID_NOTIFICATIONS_ENABLEALL:
+    case ID_NOTIFICATIONS_DISABLEALL:
+    case ID_NOTIFICATIONS_NEWPROCESSES:
+    case ID_NOTIFICATIONS_TERMINATEDPROCESSES:
+    case ID_NOTIFICATIONS_NEWSERVICES:
+    case ID_NOTIFICATIONS_STARTEDSERVICES:
+    case ID_NOTIFICATIONS_STOPPEDSERVICES:
+    case ID_NOTIFICATIONS_DELETEDSERVICES:
+        {
+            PhMwpExecuteNotificationMenuCommand(WindowHandle, Id);
+        }
+        break;
     case ID_VIEW_HIDEPROCESSESFROMOTHERUSERS:
         {
             PhMwpToggleCurrentUserProcessTreeFilter();
@@ -2611,6 +2623,58 @@ PPH_EMENU PhpCreateNotificationMenu(
     return menuItem;
 }
 
+BOOLEAN PhMwpExecuteNotificationMenuCommand(
+    _In_ HWND WindowHandle,
+    _In_ ULONG Id
+    )
+{
+    switch (Id)
+    {
+    case ID_NOTIFICATIONS_ENABLEALL:
+        PhMwpNotifyIconNotifyMask |= PH_NOTIFY_VALID_MASK;
+        return TRUE;
+    case ID_NOTIFICATIONS_DISABLEALL:
+        PhMwpNotifyIconNotifyMask &= ~PH_NOTIFY_VALID_MASK;
+        return TRUE;
+    case ID_NOTIFICATIONS_NEWPROCESSES:
+    case ID_NOTIFICATIONS_TERMINATEDPROCESSES:
+    case ID_NOTIFICATIONS_NEWSERVICES:
+    case ID_NOTIFICATIONS_STARTEDSERVICES:
+    case ID_NOTIFICATIONS_STOPPEDSERVICES:
+    case ID_NOTIFICATIONS_DELETEDSERVICES:
+        {
+            ULONG bit;
+
+            switch (Id)
+            {
+            case ID_NOTIFICATIONS_NEWPROCESSES:
+                bit = PH_NOTIFY_PROCESS_CREATE;
+                break;
+            case ID_NOTIFICATIONS_TERMINATEDPROCESSES:
+                bit = PH_NOTIFY_PROCESS_DELETE;
+                break;
+            case ID_NOTIFICATIONS_NEWSERVICES:
+                bit = PH_NOTIFY_SERVICE_CREATE;
+                break;
+            case ID_NOTIFICATIONS_STARTEDSERVICES:
+                bit = PH_NOTIFY_SERVICE_START;
+                break;
+            case ID_NOTIFICATIONS_STOPPEDSERVICES:
+                bit = PH_NOTIFY_SERVICE_STOP;
+                break;
+            case ID_NOTIFICATIONS_DELETEDSERVICES:
+                bit = PH_NOTIFY_SERVICE_DELETE;
+                break;
+            }
+
+            PhMwpNotifyIconNotifyMask ^= bit;
+        }
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
 PPH_EMENU PhpCreateIconMenu(
     VOID
     )
@@ -3322,6 +3386,9 @@ VOID PhShowIconContextMenu(
             handled = PhMwpExecuteComputerCommand(PhMainWndHandle, item->Id);
 
         if (!handled)
+            handled = PhMwpExecuteNotificationMenuCommand(PhMainWndHandle, item->Id);
+
+        if (!handled)
         {
             switch (item->Id)
             {
@@ -3330,46 +3397,6 @@ VOID PhShowIconContextMenu(
                 break;
             case ID_ICON_SYSTEMINFORMATION:
                 SendMessage(PhMainWndHandle, WM_COMMAND, ID_VIEW_SYSTEMINFORMATION, 0);
-                break;
-            case ID_NOTIFICATIONS_ENABLEALL:
-                PhMwpNotifyIconNotifyMask |= PH_NOTIFY_VALID_MASK;
-                break;
-            case ID_NOTIFICATIONS_DISABLEALL:
-                PhMwpNotifyIconNotifyMask &= ~PH_NOTIFY_VALID_MASK;
-                break;
-            case ID_NOTIFICATIONS_NEWPROCESSES:
-            case ID_NOTIFICATIONS_TERMINATEDPROCESSES:
-            case ID_NOTIFICATIONS_NEWSERVICES:
-            case ID_NOTIFICATIONS_STARTEDSERVICES:
-            case ID_NOTIFICATIONS_STOPPEDSERVICES:
-            case ID_NOTIFICATIONS_DELETEDSERVICES:
-                {
-                    ULONG bit;
-
-                    switch (item->Id)
-                    {
-                    case ID_NOTIFICATIONS_NEWPROCESSES:
-                        bit = PH_NOTIFY_PROCESS_CREATE;
-                        break;
-                    case ID_NOTIFICATIONS_TERMINATEDPROCESSES:
-                        bit = PH_NOTIFY_PROCESS_DELETE;
-                        break;
-                    case ID_NOTIFICATIONS_NEWSERVICES:
-                        bit = PH_NOTIFY_SERVICE_CREATE;
-                        break;
-                    case ID_NOTIFICATIONS_STARTEDSERVICES:
-                        bit = PH_NOTIFY_SERVICE_START;
-                        break;
-                    case ID_NOTIFICATIONS_STOPPEDSERVICES:
-                        bit = PH_NOTIFY_SERVICE_STOP;
-                        break;
-                    case ID_NOTIFICATIONS_DELETEDSERVICES:
-                        bit = PH_NOTIFY_SERVICE_DELETE;
-                        break;
-                    }
-
-                    PhMwpNotifyIconNotifyMask ^= bit;
-                }
                 break;
             case ID_ICON_EXIT:
                 SendMessage(PhMainWndHandle, WM_COMMAND, ID_HACKER_EXIT, 0);
