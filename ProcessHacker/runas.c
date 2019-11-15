@@ -2446,18 +2446,16 @@ NTSTATUS RunAsCreateProcessThread(
     SERVICE_STATUS_PROCESS serviceStatus = { 0 };
     SC_HANDLE serviceHandle = NULL;
     HANDLE processHandle = NULL;
-    HANDLE newProcessHandle = NULL;
     STARTUPINFOEX startupInfo;
     SIZE_T attributeListLength;
     PPH_STRING commandLine = NULL;
     ULONG bytesNeeded = 0;
     PPH_STRING filePathString;
 
-    // The user typed a name without a path so attempt to locate the executable.
     if (filePathString = PhSearchFilePath(command->Buffer, L".exe"))
         PhMoveReference(&commandLine, filePathString);
     else
-        commandLine = command;
+        commandLine = command; // HACK (dmex)
 
     memset(&startupInfo, 0, sizeof(STARTUPINFOEX));
     startupInfo.StartupInfo.cb = sizeof(STARTUPINFOEX);
@@ -2516,7 +2514,7 @@ NTSTATUS RunAsCreateProcessThread(
 
     if (!NT_SUCCESS(status))
     {
-        status = STATUS_SERVICES_FAILED_AUTOSTART; // One or more services failed to start.
+        status = STATUS_SERVICES_FAILED_AUTOSTART;
         goto CleanupExit;
     }
 
@@ -2544,32 +2542,20 @@ NTSTATUS RunAsCreateProcessThread(
         goto CleanupExit;
     }
 
+    AllowSetForegroundWindow(ASFW_ANY);
+
     status = PhCreateProcessWin32Ex(
         NULL,
         PhGetString(commandLine),
         NULL,
         NULL,
         &startupInfo.StartupInfo,
-        PH_CREATE_PROCESS_SUSPENDED | PH_CREATE_PROCESS_NEW_CONSOLE | PH_CREATE_PROCESS_EXTENDED_STARTUPINFO,
+        PH_CREATE_PROCESS_NEW_CONSOLE | PH_CREATE_PROCESS_EXTENDED_STARTUPINFO,
         NULL,
         NULL,
-        &newProcessHandle,
+        NULL,
         NULL
         );
-
-    if (NT_SUCCESS(status))
-    {
-        PROCESS_BASIC_INFORMATION basicInfo;
-
-        if (NT_SUCCESS(PhGetProcessBasicInformation(newProcessHandle, &basicInfo)))
-        {
-            AllowSetForegroundWindow(HandleToUlong(basicInfo.UniqueProcessId)); // ASFW_ANY
-        }
-
-        NtResumeProcess(newProcessHandle);
-
-        NtClose(newProcessHandle);
-    }
 
 CleanupExit:
 
