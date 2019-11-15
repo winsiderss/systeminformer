@@ -62,7 +62,6 @@
 PHAPPAPI HWND PhMainWndHandle = NULL;
 BOOLEAN PhMainWndExiting = FALSE;
 BOOLEAN PhMainWndEarlyExit = FALSE;
-HMENU PhMainWndMenuHandle = NULL;
 
 PH_PROVIDER_REGISTRATION PhMwpProcessProviderRegistration;
 PH_PROVIDER_REGISTRATION PhMwpServiceProviderRegistration;
@@ -99,6 +98,7 @@ BOOLEAN PhMainWndInitialization(
     RTL_ATOM windowAtom;
     PPH_STRING windowName;
     PH_RECTANGLE windowRectangle;
+    HMENU windowMenuHandle = NULL;
 
     // Set FirstRun default settings.
 
@@ -165,10 +165,13 @@ BOOLEAN PhMainWndInitialization(
     }
 
     // Create the main menu. (dmex)
-    PhMainWndMenuHandle = CreateMenu();
-    SetMenu(PhMainWndHandle, PhMainWndMenuHandle);
-    PhEMenuToHMenu2(PhMainWndMenuHandle, PhpCreateMainMenu(ULONG_MAX), 0, NULL);
-    PhMwpInitializeMainMenu(PhMainWndMenuHandle);
+    if (windowMenuHandle = CreateMenu())
+    {
+        // Set the menu first so we're able to get WM_DRAWITEM/WM_MEASUREITEM messages.
+        SetMenu(PhMainWndHandle, windowMenuHandle);
+        PhEMenuToHMenu2(windowMenuHandle, PhpCreateMainMenu(ULONG_MAX), 0, NULL);
+        PhMwpInitializeMainMenu(windowMenuHandle);
+    }
 
     // Choose a more appropriate rectangle for the window.
     PhAdjustRectangleToWorkingArea(PhMainWndHandle, &windowRectangle);
@@ -180,8 +183,11 @@ BOOLEAN PhMainWndInitialization(
         );
     UpdateWindow(PhMainWndHandle);
 
-    // Allow WM_PH_ACTIVATE to pass through UIPI.
-    ChangeWindowMessageFilterEx(PhMainWndHandle, WM_PH_ACTIVATE, MSGFLT_ADD, NULL);
+    // Allow WM_PH_ACTIVATE to pass through UIPI. (wj32)
+    if (PhGetOwnTokenAttributes().Elevated)
+    {
+        ChangeWindowMessageFilterEx(PhMainWndHandle, WM_PH_ACTIVATE, MSGFLT_ADD, NULL);
+    }
 
     // Initialize child controls.
     PhMwpInitializeControls(PhMainWndHandle);
@@ -193,7 +199,7 @@ BOOLEAN PhMainWndInitialization(
 
     PhInitializeWindowTheme(PhMainWndHandle, PhEnableThemeSupport); // HACK
 
-    if (PhEnableThemeSupport)
+    if (PhEnableThemeSupport && windowMenuHandle)
     {
         MENUINFO menuInfo;
 
@@ -202,7 +208,7 @@ BOOLEAN PhMainWndInitialization(
         menuInfo.fMask = MIM_BACKGROUND | MIM_APPLYTOSUBMENUS;
         menuInfo.hbrBack = CreateSolidBrush(RGB(28, 28, 28));
 
-        SetMenuInfo(PhMainWndMenuHandle, &menuInfo);
+        SetMenuInfo(windowMenuHandle, &menuInfo);
     }
 
     // Initialize the main providers.

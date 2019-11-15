@@ -1379,7 +1379,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
 
                                     if (NT_SUCCESS(PhGetProcessBasicInformation(newProcessHandle, &basicInfo)))
                                     {
-                                        AllowSetForegroundWindow(HandleToUlong(basicInfo.UniqueProcessId));
+                                        AllowSetForegroundWindow(ASFW_ANY); // HandleToUlong(basicInfo.UniqueProcessId));
                                     }
 
                                     NtResumeProcess(newProcessHandle);
@@ -2379,7 +2379,7 @@ NTSTATUS PhpRunFileProgram(
 
             if (NT_SUCCESS(PhGetProcessBasicInformation(newProcessHandle, &basicInfo)))
             {
-                AllowSetForegroundWindow(HandleToUlong(basicInfo.UniqueProcessId));
+                AllowSetForegroundWindow(ASFW_ANY);// HandleToUlong(basicInfo.UniqueProcessId));
             }
 
             NtResumeProcess(newProcessHandle);
@@ -2447,7 +2447,7 @@ NTSTATUS RunAsCreateProcessThread(
     SC_HANDLE serviceHandle = NULL;
     HANDLE processHandle = NULL;
     STARTUPINFOEX startupInfo;
-    SIZE_T attributeListLength;
+    SIZE_T attributeListLength = 0;
     PPH_STRING commandLine = NULL;
     ULONG bytesNeeded = 0;
     PPH_STRING filePathString;

@@ -952,14 +952,14 @@ BOOLEAN PhThemeWindowDrawItem(
             case 0: // New colors
                 SetTextColor(DrawInfo->hDC, GetSysColor(COLOR_WINDOWTEXT));
                 SetDCBrushColor(DrawInfo->hDC, RGB(0xff, 0xff, 0xff));
+                FillRect(DrawInfo->hDC, &DrawInfo->rcItem, GetStockBrush(DC_BRUSH));
                 break;
             case 1: // Old colors
                 SetTextColor(DrawInfo->hDC, GetSysColor(COLOR_HIGHLIGHTTEXT));
                 SetDCBrushColor(DrawInfo->hDC, RGB(28, 28, 28));
+                FillRect(DrawInfo->hDC, &DrawInfo->rcItem, GetStockBrush(DC_BRUSH));
                 break;
             }
-
-            FillRect(DrawInfo->hDC, &DrawInfo->rcItem, GetStockBrush(DC_BRUSH));
 
             if (ComboBox_GetLBText(DrawInfo->hwndItem, DrawInfo->itemID, (LPARAM)comboText) != CB_ERR)
             {
@@ -989,7 +989,7 @@ BOOLEAN PhThemeWindowMeasureItem(
         PPH_EMENU_ITEM menuItemInfo = (PPH_EMENU_ITEM)DrawInfo->itemData;
 
         DrawInfo->itemWidth = 150;
-        DrawInfo->itemHeight = 26;
+        DrawInfo->itemHeight = 30;
 
         if ((menuItemInfo->Flags & PH_EMENU_SEPARATOR) == PH_EMENU_SEPARATOR)
         {
@@ -1029,7 +1029,7 @@ BOOLEAN PhThemeWindowMeasureItem(
                     if (GetTextExtentPoint32(hdc, text, (ULONG)textCount, &textSize))
                     {
                         DrawInfo->itemWidth = textSize.cx + (GetSystemMetrics(SM_CYBORDER) * 2);
-                        DrawInfo->itemHeight = 1;
+                        DrawInfo->itemHeight =  GetSystemMetrics(SM_CYMENU) + (GetSystemMetrics(SM_CYBORDER) * 2) + 1;
                     }
                 }
                 else

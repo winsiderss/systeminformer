@@ -3,6 +3,7 @@
  *   send message window
  *
  * Copyright (C) 2010-2013 wj32
+ * Copyright (C) 2019 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -21,6 +22,7 @@
  */
 
 #include <phapp.h>
+#include <phsettings.h>
 #include <lsasup.h>
 
 #include <winsta.h>
@@ -95,6 +97,8 @@ INT_PTR CALLBACK PhpSessionSendMessageDlgProc(
             }
 
             PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDC_TEXT));
+
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport); // HACK (dmex)
         }
         break;
     case WM_DESTROY:
