@@ -594,12 +594,21 @@ VOID PhEMenuToHMenu2(
         }
 
         // Themes
-
-        if (item->Flags & PH_EMENU_MAINMENU)
+        if (WindowsVersion < WINDOWS_10_19H2)
         {
             if (PhGetIntegerSetting(L"EnableThemeSupport"))
             {
                 menuItemInfo.fType |= MFT_OWNERDRAW;
+            }
+        }
+        else
+        {
+            if (item->Flags & PH_EMENU_MAINMENU)
+            {
+                if (PhGetIntegerSetting(L"EnableThemeSupport"))
+                {
+                    menuItemInfo.fType |= MFT_OWNERDRAW;
+                }
             }
         }
 
