@@ -3,6 +3,7 @@
  *   extended menus
  *
  * Copyright (C) 2010-2011 wj32
+ * Copyright (C) 2019 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -468,8 +469,8 @@ HMENU PhEMenuToHMenu(
 
         if (PhGetIntegerSetting(L"EnableThemeSupport"))
         {
-            menuInfo.fMask |= MIM_BACKGROUND;
-            menuInfo.hbrBack = CreateSolidBrush(RGB(28, 28, 28));
+            menuInfo.fMask |= MIM_BACKGROUND | MIM_APPLYTOSUBMENUS;
+            menuInfo.hbrBack = CreateSolidBrush(RGB(28, 28, 28)); // LEAK (dmex)
         }
 
         SetMenuInfo(menuHandle, &menuInfo);
@@ -585,19 +586,12 @@ VOID PhEMenuToHMenu2(
             menuItemInfo.hSubMenu = PhEMenuToHMenu(item, Flags, Data);
         }
 
-        // Theme
+        // Themes
 
         if (PhGetIntegerSetting(L"EnableThemeSupport")) // HACK
         {
-            //switch (PhGetIntegerSetting(L"GraphColorMode"))
-            //{
-            //case 0: // New colors
-            //    menuItemInfo.fType |= MFT_OWNERDRAW;
-            //    break;
-            //case 1: // Old colors
             menuItemInfo.fType |= MFT_OWNERDRAW;
             //    break;
-            //}
         }
 
         InsertMenuItem(MenuHandle, MAXINT, TRUE, &menuItemInfo);
