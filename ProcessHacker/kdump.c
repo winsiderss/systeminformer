@@ -27,6 +27,7 @@ typedef struct _LIVE_DUMP_CONFIG
     HWND WindowHandle;
     PPH_STRING FileName;
     NTSTATUS LastStatus;
+    HANDLE FileHandle;
 
     union
     {
@@ -44,43 +45,29 @@ typedef struct _LIVE_DUMP_CONFIG
 } LIVE_DUMP_CONFIG, * PLIVE_DUMP_CONFIG;
 
 NTSTATUS PhpCreateLiveKernelDump(
-    _In_ PLIVE_DUMP_CONFIG LiveDumpConfig
+    _In_ PLIVE_DUMP_CONFIG Context
     )
 {
     NTSTATUS status;
-    HANDLE fileHandle = NULL;
     SYSDBG_LIVEDUMP_CONTROL liveDumpControl;
     SYSDBG_LIVEDUMP_CONTROL_FLAGS flags;
     SYSDBG_LIVEDUMP_CONTROL_ADDPAGES pages;
-
-    status = PhCreateFileWin32(
-        &fileHandle,
-        PhGetString(LiveDumpConfig->FileName),
-        FILE_ALL_ACCESS,
-        FILE_ATTRIBUTE_NORMAL,
-        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-        FILE_OVERWRITE_IF,
-        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-        );
-
-    if (!NT_SUCCESS(status))
-        goto CleanupExit;
 
     memset(&liveDumpControl, 0, sizeof(SYSDBG_LIVEDUMP_CONTROL));
     memset(&flags, 0, sizeof(SYSDBG_LIVEDUMP_CONTROL_FLAGS));
     memset(&pages, 0, sizeof(SYSDBG_LIVEDUMP_CONTROL_ADDPAGES));
 
-    if (LiveDumpConfig->UseDumpStorageStack)
+    if (Context->UseDumpStorageStack)
         flags.UseDumpStorageStack = TRUE;
-    if (LiveDumpConfig->CompressMemoryPages)
+    if (Context->CompressMemoryPages)
         flags.CompressMemoryPagesData = TRUE;
-    if (LiveDumpConfig->IncludeUserSpaceMemory)
+    if (Context->IncludeUserSpaceMemory)
         flags.IncludeUserSpaceMemoryPages = TRUE;
-    if (LiveDumpConfig->IncludeHypervisorPages)
+    if (Context->IncludeHypervisorPages)
         pages.HypervisorPages = TRUE;
 
     liveDumpControl.Version = SYSDBG_LIVEDUMP_CONTROL_VERSION;
-    liveDumpControl.DumpFileHandle = fileHandle;
+    liveDumpControl.DumpFileHandle = Context->FileHandle;
     liveDumpControl.AddPagesControl = pages;
     liveDumpControl.Flags = flags;
 
@@ -93,20 +80,10 @@ NTSTATUS PhpCreateLiveKernelDump(
         NULL
         );
 
-CleanupExit:
+    Context->LastStatus = status;
+    Context->KernelDumpActive = FALSE;
 
-    if (fileHandle)
-    {
-        if (!NT_SUCCESS(status))
-            PhDeleteFile(fileHandle);
-
-        NtClose(fileHandle);
-    }
-
-    LiveDumpConfig->LastStatus = status;
-    LiveDumpConfig->KernelDumpActive = FALSE;
-
-    SendMessage(LiveDumpConfig->WindowHandle, TDM_CLICK_BUTTON, IDIGNORE, 0);
+    PostMessage(Context->WindowHandle, TDM_CLICK_BUTTON, IDIGNORE, 0);
 
     return status;
 }
@@ -141,6 +118,7 @@ HRESULT CALLBACK PhpLiveDumpProgressDialogCallbackProc(
 
             context->WindowHandle = hwndDlg;
             context->KernelDumpActive = TRUE;
+            context->LastStatus = STATUS_SUCCESS;
 
             PhCreateThread2(PhpCreateLiveKernelDump, context);
         }
@@ -191,7 +169,24 @@ NTSTATUS PhpLiveDumpTaskDialogThread(
     )
 {
     PLIVE_DUMP_CONFIG context = (PLIVE_DUMP_CONFIG)ThreadParameter;
+    NTSTATUS status;
     TASKDIALOGCONFIG config;
+
+    status = PhCreateFileWin32(
+        &context->FileHandle,
+        PhGetString(context->FileName),
+        FILE_ALL_ACCESS,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        FILE_OVERWRITE_IF,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        PhShowStatus(NULL, L"Unable to generate a live kernel dump.", status, 0);
+        return status;
+    }
 
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
     config.cbSize = sizeof(TASKDIALOGCONFIG);
@@ -204,6 +199,14 @@ NTSTATUS PhpLiveDumpTaskDialogThread(
     config.pszMainInstruction = L"Creating live kernel dump...";
 
     TaskDialogIndirect(&config, NULL, NULL, NULL);
+
+    if (context->FileHandle)
+    {
+        if (!NT_SUCCESS(context->LastStatus))
+            PhDeleteFile(context->FileHandle);
+
+        NtClose(context->FileHandle);
+    }
 
     if (context->FileName)
         PhDereferenceObject(context->FileName);
