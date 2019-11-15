@@ -122,9 +122,11 @@ BOOLEAN EtpDiskPageCallback(
             if (!hwnd)
                 return FALSE;
 
-            if (PhGetIntegerSetting(L"EnableThemeSupport")) // HACK (dmex)
+            if (PhGetIntegerSetting(L"EnableThemeSupport"))
             {
-                PhInitializeWindowTheme(PhMainWndHandle, TRUE);
+                // HACK (dmex)
+                PhInitializeThemeWindowHeader(TreeNew_GetHeader(hwnd));
+                TreeNew_ThemeSupport(hwnd, TRUE);
             }
             
             DiskTreeNewCreated = TRUE;
