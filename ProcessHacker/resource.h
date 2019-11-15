@@ -399,6 +399,7 @@
 #define IDC_CLEANUP                     1251
 #define IDC_TOGGLEELEVATION             1254
 #define IDC_TOGGLESUSPENDED             1255
+#define IDC_TRUSTEDINSTALLER            1255
 #define IDC_PARENT                      1263
 #define IDC_PROCESSNAME                 1264
 #define IDC_SERVICES_LAYOUT             1266

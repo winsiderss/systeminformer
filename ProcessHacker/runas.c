@@ -76,6 +76,7 @@
 #include <phsvccl.h>
 #include <phsettings.h>
 #include <settings.h>
+#include <svcsup.h>
 #include <mainwnd.h>
 
 typedef struct _RUNAS_DIALOG_CONTEXT
@@ -1989,6 +1990,7 @@ typedef struct _PHP_RUNFILEDLG
     HWND WindowHandle;
     HWND ComboBoxHandle;
     HWND RunAsCheckboxHandle;
+    HWND RunAsInstallerCheckboxHandle;
 } PHP_RUNFILEDLG, *PPHP_RUNFILEDLG;
 
 PPH_STRING PhpQueryRunFileParentDirectory(
@@ -2435,6 +2437,162 @@ NTSTATUS PhpRunFileProgram(
     return status;
 }
 
+NTSTATUS RunAsCreateProcessThread(
+    _In_ PVOID Parameter
+    )
+{
+    PPH_STRING command = Parameter;
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
+    SERVICE_STATUS_PROCESS serviceStatus = { 0 };
+    SC_HANDLE serviceHandle = NULL;
+    HANDLE processHandle = NULL;
+    HANDLE newProcessHandle = NULL;
+    STARTUPINFOEX startupInfo;
+    SIZE_T attributeListLength;
+    PPH_STRING commandLine = NULL;
+    ULONG bytesNeeded = 0;
+    PPH_STRING filePathString;
+
+    // The user typed a name without a path so attempt to locate the executable.
+    if (filePathString = PhSearchFilePath(command->Buffer, L".exe"))
+        PhMoveReference(&commandLine, filePathString);
+    else
+        commandLine = command;
+
+    memset(&startupInfo, 0, sizeof(STARTUPINFOEX));
+    startupInfo.StartupInfo.cb = sizeof(STARTUPINFOEX);
+    startupInfo.StartupInfo.dwFlags = STARTF_USESHOWWINDOW;
+    startupInfo.StartupInfo.wShowWindow = SW_SHOWNORMAL;
+
+    if (!(serviceHandle = PhOpenService(L"TrustedInstaller", SERVICE_QUERY_STATUS | SERVICE_START)))
+    {
+        status = PhGetLastWin32ErrorAsNtStatus();
+        goto CleanupExit;
+    }
+
+    if (!QueryServiceStatusEx(
+        serviceHandle,
+        SC_STATUS_PROCESS_INFO,
+        (PBYTE)&serviceStatus,
+        sizeof(SERVICE_STATUS_PROCESS),
+        &bytesNeeded
+        ))
+    {
+        status = PhGetLastWin32ErrorAsNtStatus();
+        goto CleanupExit;
+    }
+
+    if (serviceStatus.dwCurrentState == SERVICE_RUNNING)
+    {
+        status = STATUS_SUCCESS;
+    }
+    else
+    {
+        ULONG attempts = 10;
+
+        StartService(serviceHandle, 0, NULL);
+
+        do
+        {
+            if (QueryServiceStatusEx(
+                serviceHandle,
+                SC_STATUS_PROCESS_INFO,
+                (PBYTE)&serviceStatus,
+                sizeof(SERVICE_STATUS_PROCESS),
+                &bytesNeeded
+                ))
+            {
+                if (serviceStatus.dwCurrentState == SERVICE_RUNNING)
+                {
+                    status = STATUS_SUCCESS;
+                    break;
+                }
+            }
+
+            PhDelayExecution(1000);
+
+        } while (--attempts != 0);
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        status = STATUS_SERVICES_FAILED_AUTOSTART; // One or more services failed to start.
+        goto CleanupExit;
+    }
+
+    if (!NT_SUCCESS(status = PhOpenProcess(&processHandle, PROCESS_CREATE_PROCESS, UlongToHandle(serviceStatus.dwProcessId))))
+        goto CleanupExit;
+
+
+    if (!InitializeProcThreadAttributeList(NULL, 1, 0, &attributeListLength) && GetLastError() != ERROR_INSUFFICIENT_BUFFER)
+    {
+        status = PhGetLastWin32ErrorAsNtStatus();
+        goto CleanupExit;
+    }
+
+    startupInfo.lpAttributeList = PhAllocate(attributeListLength);
+
+    if (!InitializeProcThreadAttributeList(startupInfo.lpAttributeList, 1, 0, &attributeListLength))
+    {
+        status = PhGetLastWin32ErrorAsNtStatus();
+        goto CleanupExit;
+    }
+
+    if (!UpdateProcThreadAttribute(startupInfo.lpAttributeList, 0, PROC_THREAD_ATTRIBUTE_PARENT_PROCESS, &processHandle, sizeof(HANDLE), NULL, NULL))
+    {
+        status = PhGetLastWin32ErrorAsNtStatus();
+        goto CleanupExit;
+    }
+
+    status = PhCreateProcessWin32Ex(
+        NULL,
+        PhGetString(commandLine),
+        NULL,
+        NULL,
+        &startupInfo.StartupInfo,
+        PH_CREATE_PROCESS_SUSPENDED | PH_CREATE_PROCESS_NEW_CONSOLE | PH_CREATE_PROCESS_EXTENDED_STARTUPINFO,
+        NULL,
+        NULL,
+        &newProcessHandle,
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        PROCESS_BASIC_INFORMATION basicInfo;
+
+        if (NT_SUCCESS(PhGetProcessBasicInformation(newProcessHandle, &basicInfo)))
+        {
+            AllowSetForegroundWindow(HandleToUlong(basicInfo.UniqueProcessId)); // ASFW_ANY
+        }
+
+        NtResumeProcess(newProcessHandle);
+
+        NtClose(newProcessHandle);
+    }
+
+CleanupExit:
+
+    if (processHandle)
+        NtClose(processHandle);
+
+    if (serviceHandle)
+        CloseServiceHandle(serviceHandle);
+
+    if (startupInfo.lpAttributeList)
+    {
+        DeleteProcThreadAttributeList(startupInfo.lpAttributeList);
+        PhFree(startupInfo.lpAttributeList);
+    }
+
+    if (commandLine)
+    {
+        PhDereferenceObject(commandLine);
+    }
+
+    return status;
+}
+
 INT_PTR CALLBACK PhpRunFileWndProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -2473,6 +2631,7 @@ INT_PTR CALLBACK PhpRunFileWndProc(
             context->WindowHandle = hwndDlg;
             context->ComboBoxHandle = GetDlgItem(hwndDlg, IDC_PROGRAMCOMBO);
             context->RunAsCheckboxHandle = GetDlgItem(hwndDlg, IDC_TOGGLEELEVATION);
+            context->RunAsInstallerCheckboxHandle = GetDlgItem(hwndDlg, IDC_TRUSTEDINSTALLER);
 
             PhpAddProgramsToComboBox(context->ComboBoxHandle);
             ComboBox_SetCurSel(context->ComboBoxHandle, 0);
@@ -2487,7 +2646,12 @@ INT_PTR CALLBACK PhpRunFileWndProc(
                 }
             }
 
-            Button_SetCheck(context->RunAsCheckboxHandle, PhGetIntegerSetting(L"RunFileDlgState") ? TRUE : FALSE); 
+            Button_SetCheck(context->RunAsCheckboxHandle, PhGetIntegerSetting(L"RunFileDlgState") ? TRUE : FALSE);
+
+            if (!PhGetOwnTokenAttributes().Elevated)
+            {
+                Button_Enable(context->RunAsInstallerCheckboxHandle, FALSE);
+            }
         }
         break;
     case WM_DESTROY:
@@ -2540,15 +2704,23 @@ INT_PTR CALLBACK PhpRunFileWndProc(
 
                     if (commandString = PhGetWindowText(context->ComboBoxHandle))
                     {
-                        status = PhpRunFileProgram(
-                            context,
-                            commandString
-                            );
+                        if (Button_GetCheck(context->RunAsInstallerCheckboxHandle) == BST_CHECKED)
+                        {
+                            status = PhCreateThread2(RunAsCreateProcessThread, commandString);
+                        }
+                        else
+                        {
+                            status = PhpRunFileProgram(
+                                context,
+                                commandString
+                                );
+
+                            if (NT_SUCCESS(status))
+                                PhpAddRunMRUListEntry(commandString);
+                        }
 
                         if (NT_SUCCESS(status))
                         {
-                            PhpAddRunMRUListEntry(commandString);
-
                             EndDialog(hwndDlg, IDOK);
                         }
                         else
