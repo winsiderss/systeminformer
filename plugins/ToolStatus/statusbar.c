@@ -197,13 +197,15 @@ VOID StatusBarShowMenu(
     )
 {
     PPH_EMENU menu;
+    PPH_EMENU_ITEM menuItem;
     PPH_EMENU_ITEM selectedItem;
     POINT cursorPos;
 
     GetCursorPos(&cursorPos);
 
     menu = PhCreateEMenu();
-    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_ENABLE_SEARCHBOX, L"Customize...", NULL, NULL), ULONG_MAX);
+    menuItem = PhCreateEMenuItem(0, COMMAND_ID_ENABLE_SEARCHBOX, L"Customize...", NULL, NULL);
+    PhInsertEMenuItem(menu, menuItem, ULONG_MAX);
 
     selectedItem = PhShowEMenu(
         menu,
@@ -229,7 +231,6 @@ VOID StatusBarUpdate(
     )
 {
     static ULONG64 lastTickCount = 0;
-
     ULONG count;
     ULONG i;
     HDC hdc;
