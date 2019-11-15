@@ -315,14 +315,14 @@ VOID PhUpdateNetworkNode(
     PhClearReference(&NetworkNode->TooltipText);
 
     PhInvalidateTreeNewNode(&NetworkNode->Node, TN_CACHE_ICON);
-    TreeNew_NodesStructured(NetworkTreeListHandle);
+    TreeNew_InvalidateNode(NetworkTreeListHandle, &NetworkNode->Node);
 }
 
 VOID PhTickNetworkNodes(
     VOID
     )
 {
-    if (NetworkTreeListSortOrder != NoSortOrder && NetworkTreeListSortColumn >= PHNETLC_MAXIMUM)
+    if (NetworkTreeListSortOrder != NoSortOrder)
     {
         // Sorting is on, but it's not one of our columns. Force a rebuild. (If it was one of our
         // columns, the restructure would have been handled in PhUpdateNetworkNode.)
@@ -478,6 +478,9 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
         {
             PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
 
+            if (!getChildren)
+                break;
+
             if (!getChildren->Node)
             {
                 static PVOID sortFunctions[] =
@@ -525,6 +528,9 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
         {
             PPH_TREENEW_IS_LEAF isLeaf = Parameter1;
 
+            if (!isLeaf)
+                break;
+
             isLeaf->IsLeaf = TRUE;
         }
         return TRUE;
@@ -532,6 +538,9 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
         {
             PPH_TREENEW_GET_CELL_TEXT getCellText = Parameter1;
             PPH_NETWORK_ITEM networkItem;
+
+            if (!getCellText)
+                break;
 
             node = (PPH_NETWORK_NODE)getCellText->Node;
             networkItem = node->NetworkItem;
@@ -611,6 +620,9 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
         {
             PPH_TREENEW_GET_NODE_ICON getNodeIcon = Parameter1;
 
+            if (!getNodeIcon)
+                break;
+
             node = (PPH_NETWORK_NODE)getNodeIcon->Node;
 
             if (node->NetworkItem->ProcessIconValid && node->NetworkItem->ProcessIcon)
@@ -630,6 +642,9 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
             PPH_TREENEW_GET_CELL_TOOLTIP getCellTooltip = Parameter1;
             PPH_PROCESS_ITEM processItem;
 
+            if (!getCellTooltip)
+                break;
+
             node = (PPH_NETWORK_NODE)getCellTooltip->Node;
 
             if (getCellTooltip->Column->Id != 0)
@@ -646,9 +661,9 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
 
             if (!PhIsNullOrEmptyString(node->TooltipText))
             {
-                getCellTooltip->Text = node->TooltipText->sr;
+                getCellTooltip->Text = PhGetStringRef(node->TooltipText);
                 getCellTooltip->Unfolding = FALSE;
-                getCellTooltip->MaximumWidth = -1;
+                getCellTooltip->MaximumWidth = ULONG_MAX;
             }
             else
             {
@@ -666,6 +681,9 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
     case TreeNewKeyDown:
         {
             PPH_TREENEW_KEY_EVENT keyEvent = Parameter1;
+
+            if (!keyEvent)
+                break;
 
             switch (keyEvent->VirtualKey)
             {
@@ -708,12 +726,19 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
         {
             PPH_TREENEW_CONTEXT_MENU contextMenu = Parameter1;
 
+            if (!contextMenu)
+                break;
+
             PhShowNetworkContextMenu(contextMenu);
         }
         return TRUE;
     case TreeNewGetNodeColor:
         {
             PPH_TREENEW_GET_NODE_COLOR getNodeColor = Parameter1;
+
+            if (!getNodeColor)
+                break;
+
             node = (PPH_NETWORK_NODE)getNodeColor->Node;
 
             if (!node->NetworkItem)

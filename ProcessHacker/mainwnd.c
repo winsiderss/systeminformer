@@ -2559,6 +2559,88 @@ VOID PhMwpDispatchMenuCommand(
     SendMessage(WindowHandle, WM_COMMAND, ItemId, 0);
 }
 
+PPH_EMENU PhpCreateNotificationMenu(
+    VOID
+    )
+{
+    PPH_EMENU_ITEM menuItem;
+    ULONG i;
+    ULONG id = ULONG_MAX;
+
+    menuItem = PhCreateEMenuItem(0, 0, L"N&otifications", NULL, NULL);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_NOTIFICATIONS_ENABLEALL, L"&Enable all", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_NOTIFICATIONS_DISABLEALL, L"&Disable all", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuSeparator(), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_NOTIFICATIONS_NEWPROCESSES, L"New &processes", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_NOTIFICATIONS_TERMINATEDPROCESSES, L"T&erminated processes", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_NOTIFICATIONS_NEWSERVICES, L"New &services", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_NOTIFICATIONS_STARTEDSERVICES, L"St&arted services", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_NOTIFICATIONS_STOPPEDSERVICES, L"St&opped services", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_NOTIFICATIONS_DELETEDSERVICES, L"&Deleted services", NULL, NULL), ULONG_MAX);
+
+    for (i = PH_NOTIFY_MINIMUM; i != PH_NOTIFY_MAXIMUM; i <<= 1)
+    {
+        if (PhMwpNotifyIconNotifyMask & i)
+        {
+            switch (i)
+            {
+            case PH_NOTIFY_PROCESS_CREATE:
+                id = ID_NOTIFICATIONS_NEWPROCESSES;
+                break;
+            case PH_NOTIFY_PROCESS_DELETE:
+                id = ID_NOTIFICATIONS_TERMINATEDPROCESSES;
+                break;
+            case PH_NOTIFY_SERVICE_CREATE:
+                id = ID_NOTIFICATIONS_NEWSERVICES;
+                break;
+            case PH_NOTIFY_SERVICE_DELETE:
+                id = ID_NOTIFICATIONS_DELETEDSERVICES;
+                break;
+            case PH_NOTIFY_SERVICE_START:
+                id = ID_NOTIFICATIONS_STARTEDSERVICES;
+                break;
+            case PH_NOTIFY_SERVICE_STOP:
+                id = ID_NOTIFICATIONS_STOPPEDSERVICES;
+                break;
+            }
+
+            PhSetFlagsEMenuItem(menuItem, id, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
+        }
+    }
+
+    return menuItem;
+}
+
+PPH_EMENU PhpCreateIconMenu(
+    VOID
+    )
+{
+    PPH_EMENU menu;
+    PPH_EMENU_ITEM menuItem;
+
+    menu = PhCreateEMenu();
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_ICON_SHOWHIDEPROCESSHACKER, L"&Show/Hide Process Hacker", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_ICON_SYSTEMINFORMATION, L"System &information", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menu, PhpCreateNotificationMenu(), ULONG_MAX);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESSES_DUMMY, L"&Processes", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+    menuItem = PhCreateEMenuItem(0, 0, L"&Computer", NULL, NULL);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_LOCK, L"&Lock", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_LOGOFF, L"Log o&ff", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuSeparator(), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_SLEEP, L"&Sleep", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_HIBERNATE, L"&Hibernate", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuSeparator(), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_RESTART, L"R&estart", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_RESTARTBOOTOPTIONS, L"Restart to boot &options", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_SHUTDOWN, L"Shu&t down", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_SHUTDOWNHYBRID, L"H&ybrid shut down", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menu, menuItem, ULONG_MAX);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_ICON_EXIT, L"E&xit", NULL, NULL), ULONG_MAX);
+
+    return menu;
+}
+
 VOID PhMwpInitializeSubMenu(
     _In_ PPH_EMENU Menu,
     _In_ ULONG Index
@@ -2601,6 +2683,9 @@ VOID PhMwpInitializeSubMenu(
         if (trayIconsMenuItem = PhFindEMenuItem(Menu, PH_EMENU_FIND_DESCEND, NULL, ID_VIEW_TRAYICONS))
         {
             // Add menu items for the registered tray icons.
+
+            PhInsertEMenuItem(trayIconsMenuItem, PhpCreateNotificationMenu(), ULONG_MAX);
+            PhInsertEMenuItem(trayIconsMenuItem, PhCreateEMenuSeparator(), ULONG_MAX);
 
             for (i = 0; i < PhTrayIconItemList->Count; i++)
             {
@@ -3177,46 +3262,6 @@ VOID PhMwpAddIconProcesses(
     PhFree(processItems);
 }
 
-PPH_EMENU PhpCreateIconMenu(
-    VOID
-    )
-{
-    PPH_EMENU menu;
-    PPH_EMENU_ITEM menuItem;
-
-    menu = PhCreateEMenu();
-    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_ICON_SHOWHIDEPROCESSHACKER, L"&Show/Hide Process Hacker", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_ICON_SYSTEMINFORMATION, L"System &information", NULL, NULL), ULONG_MAX);
-    menuItem = PhCreateEMenuItem(0, 0, L"N&otifications", NULL, NULL);
-    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_NOTIFICATIONS_ENABLEALL, L"&Enable all", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_NOTIFICATIONS_DISABLEALL, L"&Disable all", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(menuItem, PhCreateEMenuSeparator(), ULONG_MAX);
-    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_NOTIFICATIONS_NEWPROCESSES, L"New &processes", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_NOTIFICATIONS_TERMINATEDPROCESSES, L"T&erminated processes", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_NOTIFICATIONS_NEWSERVICES, L"New &services", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_NOTIFICATIONS_STARTEDSERVICES, L"St&arted services", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_NOTIFICATIONS_STOPPEDSERVICES, L"St&opped services", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_NOTIFICATIONS_DELETEDSERVICES, L"&Deleted services", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(menu, menuItem, ULONG_MAX);
-    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESSES_DUMMY, L"&Processes", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
-    menuItem = PhCreateEMenuItem(0, 0, L"&Computer", NULL, NULL);
-    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_LOCK, L"&Lock", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_LOGOFF, L"Log o&ff", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(menuItem, PhCreateEMenuSeparator(), ULONG_MAX);
-    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_SLEEP, L"&Sleep", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_HIBERNATE, L"&Hibernate", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(menuItem, PhCreateEMenuSeparator(), ULONG_MAX);
-    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_RESTART, L"R&estart", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_RESTARTBOOTOPTIONS, L"Restart to boot &options", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_SHUTDOWN, L"Shu&t down", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_SHUTDOWNHYBRID, L"H&ybrid shut down", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(menu, menuItem, ULONG_MAX);
-    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_ICON_EXIT, L"E&xit", NULL, NULL), ULONG_MAX);
-
-    return menu;
-}
-
 VOID PhShowIconContextMenu(
     _In_ POINT Location
     )
@@ -3225,8 +3270,6 @@ VOID PhShowIconContextMenu(
     PPH_EMENU_ITEM item;
     PH_PLUGIN_MENU_INFORMATION menuInfo;
     ULONG numberOfProcesses;
-    ULONG id;
-    ULONG i;
 
     // This function seems to be called recursively under some circumstances.
     // To reproduce:
@@ -3235,37 +3278,6 @@ VOID PhShowIconContextMenu(
     // So, don't store any global state or bad things will happen.
 
     menu = PhpCreateIconMenu();
-
-    // Check the Notifications menu items.
-    for (i = PH_NOTIFY_MINIMUM; i != PH_NOTIFY_MAXIMUM; i <<= 1)
-    {
-        if (PhMwpNotifyIconNotifyMask & i)
-        {
-            switch (i)
-            {
-            case PH_NOTIFY_PROCESS_CREATE:
-                id = ID_NOTIFICATIONS_NEWPROCESSES;
-                break;
-            case PH_NOTIFY_PROCESS_DELETE:
-                id = ID_NOTIFICATIONS_TERMINATEDPROCESSES;
-                break;
-            case PH_NOTIFY_SERVICE_CREATE:
-                id = ID_NOTIFICATIONS_NEWSERVICES;
-                break;
-            case PH_NOTIFY_SERVICE_DELETE:
-                id = ID_NOTIFICATIONS_DELETEDSERVICES;
-                break;
-            case PH_NOTIFY_SERVICE_START:
-                id = ID_NOTIFICATIONS_STARTEDSERVICES;
-                break;
-            case PH_NOTIFY_SERVICE_STOP:
-                id = ID_NOTIFICATIONS_STOPPEDSERVICES;
-                break;
-            }
-
-            PhSetFlagsEMenuItem(menu, id, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
-        }
-    }
 
     // Add processes to the menu.
 
