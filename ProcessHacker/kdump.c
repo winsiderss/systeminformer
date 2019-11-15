@@ -123,7 +123,24 @@ HRESULT CALLBACK PhpLiveDumpProgressDialogCallbackProc(
             PhCreateThread2(PhpCreateLiveKernelDump, context);
         }
         break;
-    case TDN_DESTROYED:
+    case TDN_TIMER:
+        {
+            LARGE_INTEGER fileSize;
+
+            if (NT_SUCCESS(PhGetFileSize(context->FileHandle, &fileSize)))
+            {
+                PH_FORMAT format[2];
+                WCHAR string[MAX_PATH];
+
+                PhInitFormatS(&format[0], L"Size: ");
+                PhInitFormatSize(&format[1], fileSize.QuadPart);
+
+                if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), string, sizeof(string), NULL))
+                {
+                    SendMessage(context->WindowHandle, TDM_SET_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)string);
+                }
+            }
+        }
         break;
     case TDN_BUTTON_CLICKED:
         {
@@ -190,7 +207,7 @@ NTSTATUS PhpLiveDumpTaskDialogThread(
 
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
     config.cbSize = sizeof(TASKDIALOGCONFIG);
-    config.dwFlags = TDF_USE_HICON_MAIN | TDF_SHOW_MARQUEE_PROGRESS_BAR;
+    config.dwFlags = TDF_USE_HICON_MAIN | TDF_SHOW_MARQUEE_PROGRESS_BAR | TDF_CALLBACK_TIMER;
     config.hMainIcon = PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER));
     config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
     config.pfCallback = PhpLiveDumpProgressDialogCallbackProc;
@@ -277,7 +294,7 @@ INT_PTR CALLBACK PhpLiveDumpDlgProc(
         break;
     case WM_COMMAND:
         {
-            switch (LOWORD(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDCANCEL:
                 EndDialog(hwndDlg, IDCANCEL);
