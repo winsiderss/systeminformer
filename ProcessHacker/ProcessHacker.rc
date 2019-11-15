@@ -1317,7 +1317,7 @@ BEGIN
     DEFPUSHBUTTON   "OK",IDOK,62,82,50,14
     PUSHBUTTON      "Cancel",IDCANCEL,116,82,50,14
     PUSHBUTTON      "&Browse...",IDC_BROWSE,170,82,50,14
-    CONTROL         "Create this task with Trusted Installer privileges.",IDC_TRUSTEDINSTALLER,
+    CONTROL         "Create this task with TrustedInstaller privileges.",IDC_TRUSTEDINSTALLER,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,40,62,180,10
     CONTROL         "Create this task with administrative privileges.",IDC_TOGGLEELEVATION,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,40,51,180,10
