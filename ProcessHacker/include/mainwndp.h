@@ -195,6 +195,11 @@ VOID PhMwpInitializeSectionMenuItems(
     _In_ ULONG StartIndex
     );
 
+BOOLEAN PhMwpExecuteNotificationMenuCommand(
+    _In_ HWND WindowHandle,
+    _In_ ULONG Id
+    );
+
 // Tab control
 
 VOID PhMwpLayoutTabControl(
