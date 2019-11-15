@@ -432,6 +432,37 @@ VOID ToolbarGraphCreateMenu(
     }
 }
 
+VOID ToolbarGraphCreatePluginMenu(
+    _In_ PPH_EMENU ParentMenu,
+    _In_ ULONG MenuId
+    )
+{
+    for (ULONG i = 0; i < PhpToolbarGraphList->Count; i++)
+    {
+        PPH_TOOLBAR_GRAPH graph;
+        PPH_EMENU menuItem;
+
+        graph = PhpToolbarGraphList->Items[i];
+        menuItem = PhPluginCreateEMenuItem(PluginInstance, 0, MenuId, graph->Text, graph);
+
+        if (graph->Flags & TOOLSTATUS_GRAPH_ENABLED)
+        {
+            menuItem->Flags |= PH_EMENU_CHECKED;
+        }
+
+        if (graph->Flags & TOOLSTATUS_GRAPH_UNAVAILABLE)
+        {
+            PPH_STRING newText;
+
+            newText = PhaConcatStrings2(graph->Text, L" (Unavailable)");
+            PhModifyEMenuItem(menuItem, PH_EMENU_MODIFY_TEXT, PH_EMENU_TEXT_OWNED,
+                PhAllocateCopy(newText->Buffer, newText->Length + sizeof(UNICODE_NULL)), NULL);
+        }
+
+        PhInsertEMenuItem(ParentMenu, menuItem, ULONG_MAX);
+    }
+}
+
 //
 // BEGIN copied from ProcessHacker/sysinfo.c
 //

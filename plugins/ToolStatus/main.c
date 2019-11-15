@@ -79,6 +79,8 @@ static BOOLEAN TargetingCurrentWindowDraw = FALSE;
 static BOOLEAN TargetingCompleted = FALSE;
 static HWND TargetingCurrentWindow = NULL;
 static PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
+static PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
+static PH_CALLBACK_REGISTRATION MainMenuInitializingCallbackRegistration;
 static PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
 static PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
 static PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
@@ -205,33 +207,28 @@ VOID ShowCustomizeMenu(
 {
     POINT cursorPos;
     PPH_EMENU menu;
+    PPH_EMENU_ITEM mainMenuItem;
+    PPH_EMENU_ITEM searchMenuItem;
+    PPH_EMENU_ITEM lockMenuItem;
     PPH_EMENU_ITEM selectedItem;
 
     GetCursorPos(&cursorPos);
 
     menu = PhCreateEMenu();
-    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_ENABLE_MENU, L"Main menu (auto-hide)", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_ENABLE_SEARCHBOX, L"Search box", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menu, mainMenuItem = PhCreateEMenuItem(0, COMMAND_ID_ENABLE_MENU, L"Main menu (auto-hide)", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menu, searchMenuItem = PhCreateEMenuItem(0, COMMAND_ID_ENABLE_SEARCHBOX, L"Search box", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
     ToolbarGraphCreateMenu(menu, COMMAND_ID_GRAPHS_CUSTOMIZE);
     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
-    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_TOOLBAR_LOCKUNLOCK, L"Lock the toolbar", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menu, lockMenuItem = PhCreateEMenuItem(0, COMMAND_ID_TOOLBAR_LOCKUNLOCK, L"Lock the toolbar", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_TOOLBAR_CUSTOMIZE, L"Customize...", NULL, NULL), ULONG_MAX);
-    
+
     if (ToolStatusConfig.AutoHideMenu)
-    {
-        PhSetFlagsEMenuItem(menu, COMMAND_ID_ENABLE_MENU, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
-    }
-
+        mainMenuItem->Flags |= PH_EMENU_CHECKED;
     if (ToolStatusConfig.SearchBoxEnabled)
-    {
-        PhSetFlagsEMenuItem(menu, COMMAND_ID_ENABLE_SEARCHBOX, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
-    }
-
+        searchMenuItem->Flags |= PH_EMENU_CHECKED;
     if (ToolStatusConfig.ToolBarLocked)
-    {
-        PhSetFlagsEMenuItem(menu, COMMAND_ID_TOOLBAR_LOCKUNLOCK, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
-    }
+        lockMenuItem->Flags |= PH_EMENU_CHECKED;
 
     selectedItem = PhShowEMenu(
         menu,
@@ -1335,6 +1332,49 @@ VOID NTAPI MainWindowShowingCallback(
     }
 }
 
+VOID NTAPI MainMenuInitializingCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
+    ULONG insertIndex;
+    PPH_EMENU_ITEM menu;
+    PPH_EMENU_ITEM menuItem;
+    PPH_EMENU_ITEM mainMenuItem;
+    PPH_EMENU_ITEM searchMenuItem;
+    PPH_EMENU_ITEM lockMenuItem;
+
+    if (!menuInfo)
+        return;
+
+    if (menuInfo->u.MainMenu.SubMenuIndex != PH_MENU_ITEM_LOCATION_VIEW)
+        return;
+
+    if (menuItem = PhFindEMenuItem(menuInfo->Menu, 0, NULL, PHAPP_ID_VIEW_TRAYICONS))
+        insertIndex = PhIndexOfEMenuItem(menuInfo->Menu, menuItem) + 1;
+    else
+        insertIndex = ULONG_MAX;
+
+    menu = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"Toolbar", NULL);
+    PhInsertEMenuItem(menu, mainMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, COMMAND_ID_ENABLE_MENU, L"Main menu (auto-hide)", NULL), ULONG_MAX);
+    PhInsertEMenuItem(menu, searchMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, COMMAND_ID_ENABLE_SEARCHBOX, L"Search box", NULL), ULONG_MAX);
+    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+    ToolbarGraphCreatePluginMenu(menu, COMMAND_ID_GRAPHS_CUSTOMIZE);
+    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+    PhInsertEMenuItem(menu, lockMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, COMMAND_ID_TOOLBAR_LOCKUNLOCK, L"Lock the toolbar", NULL), ULONG_MAX);
+    PhInsertEMenuItem(menu, PhPluginCreateEMenuItem(PluginInstance, 0, COMMAND_ID_TOOLBAR_CUSTOMIZE, L"Customize...", NULL), ULONG_MAX);
+
+    if (ToolStatusConfig.AutoHideMenu)
+        mainMenuItem->Flags |= PH_EMENU_CHECKED;
+    if (ToolStatusConfig.SearchBoxEnabled)
+        searchMenuItem->Flags |= PH_EMENU_CHECKED;
+    if (ToolStatusConfig.ToolBarLocked)
+        lockMenuItem->Flags |= PH_EMENU_CHECKED;
+
+    PhInsertEMenuItem(menuInfo->Menu, menu, insertIndex);
+}
+
 VOID NTAPI LoadCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -1349,12 +1389,131 @@ VOID NTAPI LoadCallback(
     ToolbarGraphsInitialize();
 }
 
+VOID NTAPI MenuItemCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_PLUGIN_MENU_ITEM menuItem = (PPH_PLUGIN_MENU_ITEM)Parameter;
+
+    if (menuItem && menuItem->Id != ULONG_MAX)
+    {
+        switch (menuItem->Id)
+        {
+        case COMMAND_ID_ENABLE_MENU:
+            {
+                ToolStatusConfig.AutoHideMenu = !ToolStatusConfig.AutoHideMenu;
+
+                PhSetIntegerSetting(SETTING_NAME_TOOLSTATUS_CONFIG, ToolStatusConfig.Flags);
+
+                if (ToolStatusConfig.AutoHideMenu)
+                {
+                    SetMenu(PhMainWndHandle, NULL);
+                }
+                else
+                {
+                    SetMenu(PhMainWndHandle, MainMenu);
+                    DrawMenuBar(PhMainWndHandle);
+                }
+            }
+            break;
+        case COMMAND_ID_ENABLE_SEARCHBOX:
+            {
+                ToolStatusConfig.SearchBoxEnabled = !ToolStatusConfig.SearchBoxEnabled;
+
+                PhSetIntegerSetting(SETTING_NAME_TOOLSTATUS_CONFIG, ToolStatusConfig.Flags);
+
+                ToolbarLoadSettings();
+                ReBarSaveLayoutSettings();
+
+                if (ToolStatusConfig.SearchBoxEnabled)
+                {
+                    // Adding the Searchbox makes it focused,
+                    // reset the focus back to the main window.
+                    SetFocus(PhMainWndHandle);
+                }
+            }
+            break;
+        case COMMAND_ID_TOOLBAR_LOCKUNLOCK:
+            {
+                UINT bandCount;
+                UINT bandIndex;
+
+                bandCount = (UINT)SendMessage(RebarHandle, RB_GETBANDCOUNT, 0, 0);
+
+                for (bandIndex = 0; bandIndex < bandCount; bandIndex++)
+                {
+                    REBARBANDINFO rebarBandInfo =
+                    {
+                        sizeof(REBARBANDINFO),
+                        RBBIM_STYLE
+                    };
+
+                    SendMessage(RebarHandle, RB_GETBANDINFO, bandIndex, (LPARAM)&rebarBandInfo);
+
+                    if (!(rebarBandInfo.fStyle & RBBS_GRIPPERALWAYS))
+                    {
+                        // Removing the RBBS_NOGRIPPER style doesn't remove the gripper padding,
+                        // So we toggle the RBBS_GRIPPERALWAYS style to make the Toolbar remove the padding.
+
+                        rebarBandInfo.fStyle |= RBBS_GRIPPERALWAYS;
+
+                        SendMessage(RebarHandle, RB_SETBANDINFO, bandIndex, (LPARAM)&rebarBandInfo);
+
+                        rebarBandInfo.fStyle &= ~RBBS_GRIPPERALWAYS;
+                    }
+
+                    if (rebarBandInfo.fStyle & RBBS_NOGRIPPER)
+                    {
+                        rebarBandInfo.fStyle &= ~RBBS_NOGRIPPER;
+                    }
+                    else
+                    {
+                        rebarBandInfo.fStyle |= RBBS_NOGRIPPER;
+                    }
+
+                    SendMessage(RebarHandle, RB_SETBANDINFO, bandIndex, (LPARAM)&rebarBandInfo);
+                }
+
+                ToolStatusConfig.ToolBarLocked = !ToolStatusConfig.ToolBarLocked;
+
+                PhSetIntegerSetting(SETTING_NAME_TOOLSTATUS_CONFIG, ToolStatusConfig.Flags);
+
+                ToolbarLoadSettings();
+            }
+            break;
+        case COMMAND_ID_TOOLBAR_CUSTOMIZE:
+            {
+                ToolBarShowCustomizeDialog();
+            }
+            break;
+        case COMMAND_ID_GRAPHS_CUSTOMIZE:
+            {
+                PPH_TOOLBAR_GRAPH icon;
+
+                if (!menuItem->Context)
+                    break;
+
+                icon = menuItem->Context;
+                ToolbarSetVisibleGraph(icon, !(icon->Flags & PH_NF_ICON_ENABLED));
+
+                ToolbarGraphSaveSettings();
+                ReBarSaveLayoutSettings();
+            }
+            break;
+        }
+    }
+}
+
 VOID NTAPI ShowOptionsCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
 {
     PPH_PLUGIN_OPTIONS_POINTERS optionsEntry = (PPH_PLUGIN_OPTIONS_POINTERS)Parameter;
+
+    if (!optionsEntry)
+        return;
 
     optionsEntry->CreateSection(
         L"ToolStatus",
@@ -1406,16 +1565,28 @@ LOGICAL DllMain(
                 &PluginLoadCallbackRegistration
                 );
             PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackOptionsWindowInitializing),
-                ShowOptionsCallback,
+                PhGetPluginCallback(PluginInstance, PluginCallbackMenuItem),
+                MenuItemCallback,
                 NULL,
-                &PluginShowOptionsCallbackRegistration
+                &PluginMenuItemCallbackRegistration
                 );
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackMainWindowShowing),
                 MainWindowShowingCallback,
                 NULL,
                 &MainWindowShowingCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackMainMenuInitializing),
+                MainMenuInitializingCallback,
+                NULL,
+                &MainMenuInitializingCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackOptionsWindowInitializing),
+                ShowOptionsCallback,
+                NULL,
+                &PluginShowOptionsCallbackRegistration
                 );
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackProcessesUpdated),
