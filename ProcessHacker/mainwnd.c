@@ -378,13 +378,6 @@ RTL_ATOM PhMwpInitializeWindowClass(
     wcex.lpszClassName = PhGetStringOrDefault(className, L"MainWindowClassName");
     wcex.hCursor = LoadCursor(NULL, IDC_ARROW);
 
-    if (PhGetIntegerSetting(L"EnableThemeSupport"))
-    {
-        PhSetIntegerSetting(L"GraphColorMode", 1); // HACK switch to dark theme. (dmex)
-        PhUpdateCachedSettings();
-        wcex.hbrBackground = CreateSolidBrush(RGB(28, 28, 28));
-    }
-
     return RegisterClassEx(&wcex);
 }
 
