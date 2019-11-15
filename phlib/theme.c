@@ -105,10 +105,21 @@ BOOL (WINAPI *AllowDarkModeForWindow_I)(
     _In_ HWND WindowHandle,
     _In_ BOOL Enabled
     ) = NULL;
+
+typedef enum _PreferredAppMode
+{
+    PreferredAppModeDisabled,
+    PreferredAppModeDarkOnDark,
+    PreferredAppModeDarkAlways
+} PreferredAppMode;
+
 // Win10-RS5 (uxtheme.dll ordinal 135)
-BOOL (WINAPI* AllowDarkModeForApp_I)(
-    _In_ BOOL Enabled
+// Win10 build 17763: AllowDarkModeForApp(BOOL)
+// Win10 build 18334: SetPreferredAppMode(enum PreferredAppMode)
+BOOL (WINAPI* SetPreferredAppMode_I)(
+    _In_ PreferredAppMode AppMode
     ) = NULL;
+
 // Win10-RS5 (uxtheme.dll ordinal 137)
 BOOL (WINAPI *IsDarkModeAllowedForWindow_I)(
     _In_ HWND WindowHandle
@@ -152,12 +163,40 @@ VOID PhInitializeWindowTheme(
 
     if (WindowsVersion >= WINDOWS_10_RS5)
     {
-        PVOID dwmApiModuleHandle;
+        static PH_INITONCE initOnce = PH_INITONCE_INIT;
 
-        if (dwmApiModuleHandle = LoadLibrary(L"dwmapi.dll"))
+        if (PhBeginInitOnce(&initOnce))
         {
-            DwmSetWindowAttribute_I = PhGetDllBaseProcedureAddress(dwmApiModuleHandle, "DwmSetWindowAttribute", 0);
-            //DwmGetColorizationColor_I = PhGetDllBaseProcedureAddress(dwmApiModuleHandle, "DwmGetColorizationColor", 0);
+            PVOID module;
+
+            if (module = LoadLibrary(L"dwmapi.dll"))
+            {
+                DwmSetWindowAttribute_I = PhGetDllBaseProcedureAddress(module, "DwmSetWindowAttribute", 0);
+            }
+
+            if (WindowsVersion >= WINDOWS_10_19H2)
+            {
+                if (module = LoadLibrary(L"uxtheme.dll"))
+                {
+                    AllowDarkModeForWindow_I = PhGetDllBaseProcedureAddress(module, NULL, 133);
+                    SetPreferredAppMode_I = PhGetDllBaseProcedureAddress(module, NULL, 135);
+                }
+
+                if (SetPreferredAppMode_I)
+                {
+                    switch (PhpThemeColorMode)
+                    {
+                    case 0: // New colors
+                        SetPreferredAppMode_I(PreferredAppModeDisabled);
+                        break;
+                    case 1: // Old colors
+                        SetPreferredAppMode_I(PreferredAppModeDarkAlways);
+                        break;
+                    }
+                }
+            }
+
+            PhEndInitOnce(&initOnce);
         }
     }
 
