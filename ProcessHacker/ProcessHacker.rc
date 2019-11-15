@@ -1319,7 +1319,7 @@ BEGIN
     PUSHBUTTON      "&Browse...",IDC_BROWSE,170,82,50,14
     CONTROL         "Create this task with TrustedInstaller privileges.",IDC_TRUSTEDINSTALLER,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,40,62,180,10
-    CONTROL         "Create this task with administrative privileges.",IDC_TOGGLEELEVATION,
+    CONTROL         "Create this task with Administrative privileges.",IDC_TOGGLEELEVATION,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,40,51,180,10
 END
 
