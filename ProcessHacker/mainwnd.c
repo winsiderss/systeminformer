@@ -150,7 +150,7 @@ BOOLEAN PhMainWndInitialization(
         windowRectangle.Height,
         NULL,
         NULL,
-        PhInstanceHandle,
+        NULL,
         NULL
         );
     PhClearReference(&windowName);
@@ -585,7 +585,7 @@ VOID PhMwpOnSettingChange(
 }
 
 static NTSTATUS PhpOpenServiceControlManager(
-    _Out_ PHANDLE Handle,
+    _Inout_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ PVOID Context
     )
