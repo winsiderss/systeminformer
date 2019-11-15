@@ -323,6 +323,11 @@ VOID ToolbarGraphCreateMenu(
     _In_ ULONG MenuId
     );
 
+VOID ToolbarGraphCreatePluginMenu(
+    _In_ PPH_EMENU ParentMenu,
+    _In_ ULONG MenuId
+    );
+
 // statusbar.c
 
 extern ULONG ProcessesUpdatedCount;
