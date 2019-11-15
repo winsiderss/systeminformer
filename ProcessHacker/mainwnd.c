@@ -140,7 +140,6 @@ BOOLEAN PhMainWndInitialization(
     }
 
     // Create the window.
-
     PhMainWndHandle = CreateWindow(
         MAKEINTATOM(windowAtom),
         PhGetString(windowName),
@@ -168,9 +167,7 @@ BOOLEAN PhMainWndInitialization(
     // Create the main menu. (dmex)
     PhMainWndMenuHandle = CreateMenu();
     SetMenu(PhMainWndHandle, PhMainWndMenuHandle);
-    PPH_EMENU mainMenu = PhpCreateMainMenu(ULONG_MAX);
-    mainMenu->Flags |= PH_EMENU_MAINMENU;
-    PhEMenuToHMenu2(PhMainWndMenuHandle, mainMenu, 0, NULL);
+    PhEMenuToHMenu2(PhMainWndMenuHandle, PhpCreateMainMenu(ULONG_MAX), 0, NULL);
     PhMwpInitializeMainMenu(PhMainWndMenuHandle);
 
     // Choose a more appropriate rectangle for the window.
