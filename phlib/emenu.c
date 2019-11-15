@@ -591,7 +591,6 @@ VOID PhEMenuToHMenu2(
         if (PhGetIntegerSetting(L"EnableThemeSupport")) // HACK
         {
             menuItemInfo.fType |= MFT_OWNERDRAW;
-            //    break;
         }
 
         InsertMenuItem(MenuHandle, MAXINT, TRUE, &menuItemInfo);
