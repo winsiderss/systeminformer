@@ -1991,6 +1991,8 @@ typedef struct _PHP_RUNFILEDLG
     HWND ComboBoxHandle;
     HWND RunAsCheckboxHandle;
     HWND RunAsInstallerCheckboxHandle;
+    HIMAGELIST ImageListHandle;
+    BOOLEAN RunAsInstallerCheckboxDisabled;
 } PHP_RUNFILEDLG, *PPHP_RUNFILEDLG;
 
 PPH_STRING PhpQueryRunFileParentDirectory(
@@ -2636,13 +2638,39 @@ INT_PTR CALLBACK PhpRunFileWndProc(
 
             if (!PhGetOwnTokenAttributes().Elevated)
             {
+                HICON shieldIcon;
+
                 Button_Enable(context->RunAsInstallerCheckboxHandle, FALSE);
+                context->RunAsInstallerCheckboxDisabled = TRUE;
+
+                if (shieldIcon = PhLoadIcon(
+                    NULL,
+                    IDI_SHIELD,
+                    PH_LOAD_ICON_SIZE_SMALL,
+                    PhSmallIconSize.X,
+                    PhSmallIconSize.Y
+                    ))
+                {
+                    context->ImageListHandle = ImageList_Create(
+                        PhSmallIconSize.X,
+                        PhSmallIconSize.Y,
+                        ILC_COLOR32,
+                        1,
+                        1
+                        );
+
+                    ImageList_AddIcon(context->ImageListHandle, shieldIcon);
+                    DestroyIcon(shieldIcon);
+                }
             }
         }
         break;
     case WM_DESTROY:
         {
             PhSetIntegerSetting(L"RunFileDlgState", Button_GetCheck(context->RunAsCheckboxHandle) == BST_CHECKED);
+
+            if (context->ImageListHandle)
+                ImageList_Destroy(context->ImageListHandle);
 
             PhFree(context);
         }
@@ -2656,26 +2684,6 @@ INT_PTR CALLBACK PhpRunFileWndProc(
             return (INT_PTR)GetStockBrush(WHITE_BRUSH);
         }
         break;
-    case WM_ERASEBKGND:
-        {
-            HDC hdc = (HDC)wParam;
-            RECT clientRect;
-
-            if (!GetClientRect(hwndDlg, &clientRect))
-                break;
-
-            SetBkMode(hdc, TRANSPARENT);
-
-            clientRect.bottom -= PH_SCALE_DPI(60);
-            FillRect(hdc, &clientRect, GetSysColorBrush(COLOR_WINDOW));
-
-            clientRect.top = clientRect.bottom;
-            clientRect.bottom = clientRect.top + PH_SCALE_DPI(60);
-            FillRect(hdc, &clientRect, GetSysColorBrush(COLOR_3DFACE));
-
-            SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, TRUE);
-        }
-        return TRUE;
     case WM_COMMAND:
         {
             switch (GET_WM_COMMAND_ID(wParam, lParam))
@@ -2744,6 +2752,98 @@ INT_PTR CALLBACK PhpRunFileWndProc(
                     }
 
                     PhFreeFileDialog(fileDialog);
+                }
+                break;
+            }
+        }
+        break;
+    case WM_ERASEBKGND:
+        {
+            HDC hdc = (HDC)wParam;
+            RECT clientRect;
+
+            if (!GetClientRect(hwndDlg, &clientRect))
+                break;
+
+            SetBkMode(hdc, TRANSPARENT);
+
+            clientRect.bottom -= PH_SCALE_DPI(60);
+            FillRect(hdc, &clientRect, GetSysColorBrush(COLOR_WINDOW));
+
+            clientRect.top = clientRect.bottom;
+            clientRect.bottom = clientRect.top + PH_SCALE_DPI(60);
+            FillRect(hdc, &clientRect, GetSysColorBrush(COLOR_3DFACE));
+
+            SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, TRUE);
+        }
+        return TRUE;
+    case WM_NOTIFY:
+        {
+            LPNMHDR data = (LPNMHDR)lParam;
+
+            if (data->hwndFrom != context->RunAsInstallerCheckboxHandle || !context->RunAsInstallerCheckboxDisabled)
+                break;
+
+            switch (data->code)
+            {
+            case NM_CUSTOMDRAW:
+                {
+                    LPNMCUSTOMDRAW customDraw = (LPNMCUSTOMDRAW)lParam;
+                    WCHAR className[MAX_PATH];
+
+                    if (!GetClassName(customDraw->hdr.hwndFrom, className, RTL_NUMBER_OF(className)))
+                        className[0] = UNICODE_NULL;
+
+                    if (PhEqualStringZ(className, L"Button", FALSE))
+                    {
+                        ULONG_PTR buttonStyle = PhGetWindowStyle(customDraw->hdr.hwndFrom);
+
+                        if ((buttonStyle & BS_CHECKBOX) == BS_CHECKBOX)
+                        {
+                            switch (customDraw->dwDrawStage)
+                            {
+                            case CDDS_PREPAINT:
+                                {
+                                    PPH_STRING buttonText;
+
+                                    SetTextColor(customDraw->hdc, RGB(0, 0, 0));
+                                    SetDCBrushColor(customDraw->hdc, RGB(0xff, 0xff, 0xff));
+                                    FillRect(customDraw->hdc, &customDraw->rc, GetStockBrush(DC_BRUSH));
+
+                                    if (buttonText = PhGetWindowText(customDraw->hdr.hwndFrom))
+                                    {
+                                        customDraw->rc.left += PhSmallIconSize.X;
+                                        DrawText(
+                                            customDraw->hdc,
+                                            buttonText->Buffer,
+                                            (UINT)buttonText->Length / sizeof(WCHAR),
+                                            &customDraw->rc,
+                                            DT_LEFT | DT_SINGLELINE | DT_VCENTER | DT_HIDEPREFIX
+                                            );
+                                        customDraw->rc.left -= PhSmallIconSize.X;
+
+                                        PhDereferenceObject(buttonText);
+                                    }
+
+                                    ImageList_Draw(
+                                        context->ImageListHandle,
+                                        0,
+                                        customDraw->hdc,
+                                        customDraw->rc.left,
+                                        customDraw->rc.top + 1, // offset
+                                        ILD_TRANSPARENT
+                                        );
+
+                                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, CDRF_SKIPDEFAULT);
+                                    return TRUE;
+                                }
+                                break;
+                            }
+
+                            SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, CDRF_DODEFAULT);
+                            return TRUE;
+                        }
+                    }
                 }
                 break;
             }
