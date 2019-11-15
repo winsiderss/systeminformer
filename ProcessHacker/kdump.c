@@ -88,7 +88,7 @@ NTSTATUS PhpCreateLiveKernelDump(
     return status;
 }
 
-HRESULT CALLBACK PhpLiveDumpErrorPageCallbackProc(
+HRESULT CALLBACK PhpLiveDumpPageCallbackProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -140,27 +140,57 @@ HRESULT CALLBACK PhpLiveDumpProgressDialogCallbackProc(
                     SendMessage(context->WindowHandle, TDM_SET_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)string);
                 }
             }
+            else
+            {
+                SendMessage(context->WindowHandle, TDM_SET_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)L" ");
+            }
         }
         break;
     case TDN_BUTTON_CLICKED:
         {
             ULONG buttonId = (ULONG)wParam;
 
-            if (buttonId == IDIGNORE && !NT_SUCCESS(context->LastStatus))
+            if (buttonId == IDIGNORE)
             {
+                PPH_STRING statusMessage = NULL;
                 TASKDIALOGCONFIG config;
-                PPH_STRING statusMessage = PhGetStatusMessage(context->LastStatus, 0);
+
+                if (context->FileHandle)
+                {
+                    if (!NT_SUCCESS(context->LastStatus))
+                        PhDeleteFile(context->FileHandle);
+
+                    NtClose(context->FileHandle);
+                    context->FileHandle = NULL;
+                }
 
                 memset(&config, 0, sizeof(TASKDIALOGCONFIG));
                 config.cbSize = sizeof(TASKDIALOGCONFIG);
-                config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION;
-                config.hMainIcon = PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER));
-                config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
-                config.pfCallback = PhpLiveDumpErrorPageCallbackProc;
-                config.lpCallbackData = (LONG_PTR)context;
-                config.pszWindowTitle = PhApplicationName;
-                config.pszMainInstruction = L"Unable to generate a live kernel dump.";
-                config.pszContent = PhGetString(statusMessage);
+
+                if (NT_SUCCESS(context->LastStatus))
+                {
+                    config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION;
+                    config.hMainIcon = PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER));
+                    config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
+                    config.pfCallback = PhpLiveDumpPageCallbackProc;
+                    config.lpCallbackData = (LONG_PTR)context;
+                    config.pszWindowTitle = PhApplicationName;
+                    config.pszMainInstruction = L"Live kernel dump has been created.";
+                    config.pszContent = PhGetString(context->FileName);
+                }
+                else
+                {
+                    config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION;
+                    config.hMainIcon = PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER));
+                    config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
+                    config.pfCallback = PhpLiveDumpPageCallbackProc;
+                    config.lpCallbackData = (LONG_PTR)context;
+                    config.pszWindowTitle = PhApplicationName;
+                    config.pszMainInstruction = L"Unable to save the live kernel dump.";
+
+                    statusMessage = PhGetStatusMessage(context->LastStatus, 0);
+                    config.pszContent = PhGetString(statusMessage);
+                }
 
                 SendMessage(context->WindowHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
 
@@ -171,9 +201,7 @@ HRESULT CALLBACK PhpLiveDumpProgressDialogCallbackProc(
             }
 
             if (context->KernelDumpActive)
-            {
                 return S_FALSE;
-            }
         }
         break;
     }
@@ -201,7 +229,7 @@ NTSTATUS PhpLiveDumpTaskDialogThread(
 
     if (!NT_SUCCESS(status))
     {
-        PhShowStatus(NULL, L"Unable to generate a live kernel dump.", status, 0);
+        PhShowStatus(NULL, L"Unable to save the live kernel dump.", status, 0);
         return status;
     }
 
@@ -213,17 +241,10 @@ NTSTATUS PhpLiveDumpTaskDialogThread(
     config.pfCallback = PhpLiveDumpProgressDialogCallbackProc;
     config.lpCallbackData = (LONG_PTR)context;
     config.pszWindowTitle = PhApplicationName;
-    config.pszMainInstruction = L"Creating live kernel dump...";
+    config.pszMainInstruction = L"Processing live kernel dump...";
+    config.pszContent = L" ";
 
     TaskDialogIndirect(&config, NULL, NULL, NULL);
-
-    if (context->FileHandle)
-    {
-        if (!NT_SUCCESS(context->LastStatus))
-            PhDeleteFile(context->FileHandle);
-
-        NtClose(context->FileHandle);
-    }
 
     if (context->FileName)
         PhDereferenceObject(context->FileName);
