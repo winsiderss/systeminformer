@@ -449,9 +449,9 @@ PPH_STRING PhGetHostNameFromAddressEx(
                 );
         }
 
-        if (!dnsRecordList && DnsQuery_Import())
+        if (!dnsRecordList && DnsQuery_W_Import())
         {
-            DnsQuery_Import()(
+            DnsQuery_W_Import()(
                 dnsReverseNameString->Buffer,
                 DNS_TYPE_PTR,
                 DNS_QUERY_NO_HOSTS_FILE, // DNS_QUERY_BYPASS_CACHE
@@ -463,9 +463,9 @@ PPH_STRING PhGetHostNameFromAddressEx(
     }
     else
     {
-        if (DnsQuery_Import())
+        if (DnsQuery_W_Import())
         {
-            DnsQuery_Import()(
+            DnsQuery_W_Import()(
                 dnsReverseNameString->Buffer,
                 DNS_TYPE_PTR,
                 DNS_QUERY_NO_HOSTS_FILE, // DNS_QUERY_BYPASS_CACHE

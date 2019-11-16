@@ -114,7 +114,7 @@ typedef ULONG (WINAPI* _PssQuerySnapshot)(
     _In_ DWORD BufferLength
     );
 
-typedef LONG (WINAPI* _DnsQuery)(
+typedef LONG (WINAPI* _DnsQuery_W)(
     _In_ PWSTR Name,
     _In_ USHORT Type,
     _In_ ULONG Options,
@@ -180,7 +180,7 @@ PH_DECLARE_IMPORT(RtlDeriveCapabilitySidsFromName);
 
 PH_DECLARE_IMPORT(ConvertSecurityDescriptorToStringSecurityDescriptorW);
 
-PH_DECLARE_IMPORT(DnsQuery);
+PH_DECLARE_IMPORT(DnsQuery_W);
 PH_DECLARE_IMPORT(DnsExtractRecordsFromMessage_W);
 PH_DECLARE_IMPORT(DnsWriteQuestionToBuffer_W);
 PH_DECLARE_IMPORT(DnsFree);
