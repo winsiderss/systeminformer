@@ -27,7 +27,6 @@ typedef struct _LIVE_DUMP_CONFIG
     HWND WindowHandle;
     PPH_STRING FileName;
     NTSTATUS LastStatus;
-    HANDLE FileHandle;
 
     union
     {
@@ -42,6 +41,9 @@ typedef struct _LIVE_DUMP_CONFIG
             BOOLEAN Spare : 3;
         };
     };
+
+    HANDLE FileHandle;
+    HANDLE EventHandle;
 } LIVE_DUMP_CONFIG, * PLIVE_DUMP_CONFIG;
 
 NTSTATUS PhpCreateLiveKernelDump(
@@ -68,6 +70,7 @@ NTSTATUS PhpCreateLiveKernelDump(
 
     liveDumpControl.Version = SYSDBG_LIVEDUMP_CONTROL_VERSION;
     liveDumpControl.DumpFileHandle = Context->FileHandle;
+    liveDumpControl.CancelEventHandle = Context->EventHandle;
     liveDumpControl.AddPagesControl = pages;
     liveDumpControl.Flags = flags;
 
@@ -119,6 +122,14 @@ HRESULT CALLBACK PhpLiveDumpProgressDialogCallbackProc(
             context->WindowHandle = hwndDlg;
             context->KernelDumpActive = TRUE;
             context->LastStatus = STATUS_SUCCESS;
+
+            NtCreateEvent(
+                &context->EventHandle,
+                EVENT_ALL_ACCESS,
+                NULL,
+                SynchronizationEvent,
+                FALSE
+                );
 
             PhCreateThread2(PhpCreateLiveKernelDump, context);
         }
@@ -201,7 +212,12 @@ HRESULT CALLBACK PhpLiveDumpProgressDialogCallbackProc(
             }
 
             if (context->KernelDumpActive)
+            {
+                if (context->EventHandle)
+                    NtSetEvent(context->EventHandle, NULL);
+
                 return S_FALSE;
+            }
         }
         break;
     }
@@ -235,7 +251,7 @@ NTSTATUS PhpLiveDumpTaskDialogThread(
 
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
     config.cbSize = sizeof(TASKDIALOGCONFIG);
-    config.dwFlags = TDF_USE_HICON_MAIN | TDF_SHOW_MARQUEE_PROGRESS_BAR | TDF_CALLBACK_TIMER;
+    config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_SHOW_MARQUEE_PROGRESS_BAR | TDF_CALLBACK_TIMER;
     config.hMainIcon = PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER));
     config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
     config.pfCallback = PhpLiveDumpProgressDialogCallbackProc;
@@ -246,6 +262,8 @@ NTSTATUS PhpLiveDumpTaskDialogThread(
 
     TaskDialogIndirect(&config, NULL, NULL, NULL);
 
+    if (context->EventHandle)
+        NtClose(context->EventHandle);
     if (context->FileName)
         PhDereferenceObject(context->FileName);
 
