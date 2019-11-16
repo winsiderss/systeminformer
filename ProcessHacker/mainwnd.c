@@ -2820,6 +2820,12 @@ VOID PhMwpInitializeSubMenu(
     }
     else if (Index == PH_MENU_ITEM_LOCATION_TOOLS) // Tools
     {
+        if (WindowsVersion < WINDOWS_8_1)
+        {
+            if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_TOOLS_LIVEDUMP))
+                PhDestroyEMenuItem(menuItem);
+        }
+
         if (!PhGetIntegerSetting(L"HiddenProcessesMenuEnabled"))
         {
             if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_TOOLS_HIDDENPROCESSES))
