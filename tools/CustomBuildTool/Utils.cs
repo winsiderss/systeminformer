@@ -441,7 +441,15 @@ namespace CustomBuildTool
                 catch { }
             }
 
-            return VisualStudioInstanceList[0];
+            foreach (VisualStudioInstance instance in VisualStudioInstanceList)
+            {
+                if (instance.HasRequiredDependency())
+                {
+                    return instance;
+                }
+            }
+
+            return null;
         }
     }
 
