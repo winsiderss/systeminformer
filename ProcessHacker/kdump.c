@@ -55,6 +55,8 @@ NTSTATUS PhpCreateLiveKernelDump(
     SYSDBG_LIVEDUMP_CONTROL_FLAGS flags;
     SYSDBG_LIVEDUMP_CONTROL_ADDPAGES pages;
 
+    PhDelayExecution(2000);
+
     memset(&liveDumpControl, 0, sizeof(SYSDBG_LIVEDUMP_CONTROL));
     memset(&flags, 0, sizeof(SYSDBG_LIVEDUMP_CONTROL_FLAGS));
     memset(&pages, 0, sizeof(SYSDBG_LIVEDUMP_CONTROL_ADDPAGES));
