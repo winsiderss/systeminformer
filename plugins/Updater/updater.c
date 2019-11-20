@@ -419,15 +419,8 @@ NTSTATUS UpdateCheckSilentThread(
             // We have data we're going to cache and pass into the dialog
             context->HaveData = TRUE;
 
-            if (PhGetIntegerSetting(SETTING_NAME_UPDATE_ON_EXIT))
-            {
-                ShowUpdateOnExitDialog(context, FALSE);
-            }
-            else
-            {
-                // Show the dialog asynchronously on a new thread.
-                ShowUpdateDialog(context);
-            }
+            // Show the dialog asynchronously on a new thread.
+            ShowUpdateDialog(context);
         }
     }
 
@@ -963,42 +956,6 @@ VOID ShowUpdateDialog(
     }
 
     PostMessage(UpdateDialogHandle, PH_SHOWDIALOG, 0, 0);
-}
-
-VOID ShowUpdateOnExitDialog(
-    _In_opt_ PPH_UPDATER_CONTEXT Context,
-    _In_ BOOLEAN ShowUpdateWindow
-    )
-{
-    static PPH_UPDATER_CONTEXT context = NULL;
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-
-    if (PhBeginInitOnce(&initOnce))
-    {
-        context = Context;
-        PhEndInitOnce(&initOnce);
-    }
-
-    if (ShowUpdateWindow && context)
-    {
-        if (!UpdateDialogThreadHandle)
-        {
-            if (!NT_SUCCESS(PhCreateThreadEx(&UpdateDialogThreadHandle, ShowUpdateDialogThread, Context)))
-            {
-                PhShowError(PhMainWndHandle, L"Unable to create the window.");
-                return;
-            }
-
-            PhWaitForEvent(&InitializedEvent, NULL);
-        }
-
-        PostMessage(UpdateDialogHandle, PH_SHOWDIALOG, 0, 0);
-
-        if (UpdateDialogThreadHandle)
-        {
-            NtWaitForSingleObject(UpdateDialogThreadHandle, FALSE, NULL);
-        }
-    }
 }
 
 VOID StartInitialCheck(
