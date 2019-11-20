@@ -289,17 +289,16 @@ VOID NTAPI ModuleMenuInitializingCallback(
     else
         moduleItem = NULL;
 
-    if (menuItem = PhFindEMenuItem(menuInfo->Menu, 0, NULL, PHAPP_ID_MODULE_INSPECT))
+    if (menuItem = PhFindEMenuItem(menuInfo->Menu, 0, NULL, PHAPP_ID_MODULE_UNLOAD))
         insertIndex = PhIndexOfEMenuItem(menuInfo->Menu, menuItem) + 1;
     else
-        insertIndex = 0;
+        insertIndex = ULONG_MAX;
 
     ModuleProcessId = menuInfo->u.Module.ProcessId;
 
     menuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_MODULE_SERVICES, L"Ser&vices", moduleItem);
     PhInsertEMenuItem(menuInfo->Menu, PhCreateEMenuSeparator(), insertIndex);
     PhInsertEMenuItem(menuInfo->Menu, menuItem, insertIndex + 1);
-    PhInsertEMenuItem(menuInfo->Menu, PhCreateEMenuSeparator(), insertIndex + 2);
 
     if (!moduleItem) menuItem->Flags |= PH_EMENU_DISABLED;
 }
