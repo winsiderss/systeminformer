@@ -306,8 +306,8 @@ PPH_EMENU_ITEM CreateSendToMenu(
     ULONG insertIndex;
 
     sendToMenu = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"Sen&d to", NULL);
-    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_HYBRIDANALYSIS_UPLOAD, L"&hybrid-analysis.com", FileName), ULONG_MAX);
     PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_UPLOAD, L"&virustotal.com", FileName), ULONG_MAX);
+    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_HYBRIDANALYSIS_UPLOAD, L"&hybrid-analysis.com", FileName), ULONG_MAX);
     PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_JOTTI_UPLOAD, L"virusscan.&jotti.org", FileName), ULONG_MAX);
 
     if (ProcessesMenu && (menuItem = PhFindEMenuItem(Parent, 0, NULL, PHAPP_ID_PROCESS_SEARCHONLINE)))
@@ -395,8 +395,8 @@ VOID NTAPI ServiceMenuInitializingCallback(
         serviceItem = NULL;
 
     sendToMenu = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"Sen&d to", NULL);
-    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_HYBRIDANALYSIS_UPLOAD_SERVICE, L"&hybrid-analysis.com", serviceItem ? serviceItem : NULL), ULONG_MAX);
     PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_UPLOAD_SERVICE, L"&virustotal.com", serviceItem ? serviceItem : NULL), ULONG_MAX);
+    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_HYBRIDANALYSIS_UPLOAD_SERVICE, L"&hybrid-analysis.com", serviceItem ? serviceItem : NULL), ULONG_MAX);
     PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_JOTTI_UPLOAD_SERVICE, L"virusscan.&jotti.org", serviceItem ? serviceItem : NULL), ULONG_MAX);
     PhInsertEMenuItem(menuInfo->Menu, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(menuInfo->Menu, sendToMenu, ULONG_MAX);
