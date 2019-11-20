@@ -708,6 +708,8 @@ VOID NTAPI TreeNewMessageCallback(
                     getCellText->Text = PhGetStringRef(extension->LatencyText);
                     break;
                 }
+
+                getCellText->Flags = TN_CACHE;
             }
         }
         break;
