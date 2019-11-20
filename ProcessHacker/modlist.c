@@ -1106,16 +1106,12 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 if (GetKeyState(VK_CONTROL) < 0)
                     TreeNew_SelectRange(context->TreeNewHandle, 0, -1);
                 break;
-            case 'M':
-                if (GetKeyState(VK_CONTROL) < 0)
-                    SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_MODULE_SEARCHONLINE, 0);
-                break;
             case VK_DELETE:
                 SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_MODULE_UNLOAD, 0);
                 break;
             case VK_RETURN:
                 if (GetKeyState(VK_CONTROL) >= 0)
-                    SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_MODULE_INSPECT, 0);
+                    SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_MODULE_PROPERTIES, 0);
                 else
                     SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_MODULE_OPENFILELOCATION, 0);
                 break;
@@ -1140,7 +1136,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
         return TRUE;
     case TreeNewLeftDoubleClick:
         {
-            SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_MODULE_INSPECT, 0);
+            SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_MODULE_PROPERTIES, 0);
         }
         return TRUE;
     case TreeNewContextMenu:

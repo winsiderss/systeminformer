@@ -103,17 +103,6 @@ VOID PhpInitializeModuleMenu(
     _In_ ULONG NumberOfModules
     )
 {
-    PPH_EMENU_ITEM item;
-    PPH_STRING inspectExecutables;
-
-    inspectExecutables = PhaGetStringSetting(L"ProgramInspectExecutables");
-
-    if (inspectExecutables->Length == 0)
-    {
-        if (item = PhFindEMenuItem(Menu, 0, NULL, ID_MODULE_INSPECT))
-            PhDestroyEMenuItem(item);
-    }
-
     if (NumberOfModules == 0)
     {
         PhSetFlagsAllEMenuItems(Menu, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
@@ -150,14 +139,11 @@ VOID PhShowModuleContextMenu(
         menu = PhCreateEMenu();
         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_MODULE_UNLOAD, L"&Unload\bDel", NULL, NULL), ULONG_MAX);
         PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
-        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_MODULE_SEARCHONLINE, L"&Search online\bCtrl+M", NULL, NULL), ULONG_MAX);
-        PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
-        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_MODULE_INSPECT, L"&Inspect\bEnter", NULL, NULL), ULONG_MAX);
         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_MODULE_OPENFILELOCATION, L"Open &file location\bCtrl+Enter", NULL, NULL), ULONG_MAX);
         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_MODULE_PROPERTIES, L"P&roperties", NULL, NULL), ULONG_MAX);
         PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_MODULE_COPY, L"&Copy\bCtrl+C", NULL, NULL), ULONG_MAX);
-        PhSetFlagsEMenuItem(menu, ID_MODULE_INSPECT, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
+        PhSetFlagsEMenuItem(menu, ID_MODULE_PROPERTIES, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
         PhpInitializeModuleMenu(menu, ProcessItem->ProcessId, modules, numberOfModules);
         PhInsertCopyCellEMenuItem(menu, ID_MODULE_COPY, Context->ListContext.TreeNewHandle, ContextMenu->Column);
 
@@ -627,32 +613,6 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                     }
                 }
                 break;
-            case ID_MODULE_INSPECT:
-                {
-                    PPH_MODULE_ITEM moduleItem = PhGetSelectedModuleItem(&modulesContext->ListContext);
-
-                    if (moduleItem)
-                    {
-                        PhShellExecuteUserString(
-                            hwndDlg,
-                            L"ProgramInspectExecutables",
-                            moduleItem->FileName->Buffer,
-                            FALSE,
-                            L"Make sure the PE Viewer executable file is present."
-                            );
-                    }
-                }
-                break;
-            case ID_MODULE_SEARCHONLINE:
-                {
-                    PPH_MODULE_ITEM moduleItem = PhGetSelectedModuleItem(&modulesContext->ListContext);
-
-                    if (moduleItem)
-                    {
-                        PhSearchOnlineString(hwndDlg, moduleItem->Name->Buffer);
-                    }
-                }
-                break;
             case ID_MODULE_OPENFILELOCATION:
                 {
                     PPH_MODULE_ITEM moduleItem = PhGetSelectedModuleItem(&modulesContext->ListContext);
@@ -675,7 +635,13 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
 
                     if (moduleItem)
                     {
-                        PhShellProperties(hwndDlg, moduleItem->FileName->Buffer);
+                        PhShellExecuteUserString(
+                            hwndDlg,
+                            L"ProgramInspectExecutables",
+                            moduleItem->FileName->Buffer,
+                            FALSE,
+                            L"Make sure the PE Viewer executable file is present."
+                            );
                     }
                 }
                 break;

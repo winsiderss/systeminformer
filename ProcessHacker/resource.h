@@ -620,14 +620,12 @@
 #define ID_OBJECT_CLOSE                 40119
 #define ID_OBJECT_PROPERTIES            40120
 #define ID_HELP_DEBUGCONSOLE            40122
-#define ID_MODULE_SEARCHONLINE          40125
 #define ID_TOOLS_PAGEFILES              40126
 #define ID_USER_DISCONNECT              40127
 #define ID_USER_LOGOFF                  40128
 #define ID_USER_SENDMESSAGE             40129
 #define ID_USER_PROPERTIES              40130
 #define ID_USERS_DUMMY                  40131
-#define ID_MODULE_INSPECT               40132
 #define ID_PROCESS_DEBUG                40133
 #define ID_USER_CONNECT                 40138
 #define ID_NETWORK_GOTOPROCESS          40139
