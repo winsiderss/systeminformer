@@ -365,25 +365,26 @@ NTSTATUS GeoIPUpdateThread(
             // TODO: Update on timer callback.
             {
                 FLOAT percent = ((FLOAT)downloadedBytes / contentLength * 100);
-                PPH_STRING totalLength = PhFormatSize(contentLength, ULONG_MAX);
-                PPH_STRING totalDownloaded = PhFormatSize(downloadedBytes, ULONG_MAX);
-                PPH_STRING totalSpeed = PhFormatSize(timeBitsPerSecond, ULONG_MAX);
+                PH_FORMAT format[9];
+                WCHAR string[MAX_PATH];
 
-                PPH_STRING statusMessage = PhFormatString(
-                    L"Downloaded: %s of %s (%.0f%%)\r\nSpeed: %s/s",
-                    PhGetStringOrEmpty(totalDownloaded),
-                    PhGetStringOrEmpty(totalLength),
-                    percent,
-                    PhGetStringOrEmpty(totalSpeed)
-                    );
+                // L"Downloaded: %s of %s (%.0f%%)\r\nSpeed: %s/s"
+                PhInitFormatS(&format[0], L"Uploaded: ");
+                PhInitFormatSize(&format[1], downloadedBytes);
+                PhInitFormatS(&format[2], L" of ");
+                PhInitFormatSize(&format[3], contentLength);
+                PhInitFormatS(&format[4], L" (");
+                PhInitFormatF(&format[5], percent, 1);
+                PhInitFormatS(&format[6], L"%)\r\nSpeed: ");
+                PhInitFormatSize(&format[7], timeBitsPerSecond);
+                PhInitFormatS(&format[8], L"/s");
 
-                SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)statusMessage->Buffer);
+                if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), string, sizeof(string), NULL))
+                {
+                    SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)string);
+                }
+
                 SendMessage(context->DialogHandle, TDM_SET_PROGRESS_BAR_POS, (WPARAM)percent, 0);
-
-                PhDereferenceObject(statusMessage);
-                PhDereferenceObject(totalSpeed);
-                PhDereferenceObject(totalLength);
-                PhDereferenceObject(totalDownloaded);
             }
         }
 

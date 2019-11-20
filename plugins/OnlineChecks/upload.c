@@ -706,18 +706,25 @@ NTSTATUS UploadFileThreadStart(
 
         {
             FLOAT percent = ((FLOAT)totalUploadedLength / context->TotalFileLength * 100);
-            PPH_STRING totalLength = PhFormatSize(context->TotalFileLength, ULONG_MAX);
-            PPH_STRING totalUploaded = PhFormatSize(totalUploadedLength, ULONG_MAX);
-            PPH_STRING totalSpeed = PhFormatSize(timeBitsPerSecond, ULONG_MAX);
-            PPH_STRING statusMessage = PhFormatString(
-                L"Uploaded: %s of %s (%.0f%%)\r\nSpeed: %s/s",
-                PhGetStringOrEmpty(totalUploaded),
-                PhGetStringOrEmpty(totalLength),
-                percent,
-                PhGetStringOrEmpty(totalSpeed)
-                );
+            PH_FORMAT format[9];
+            WCHAR string[MAX_PATH];
 
-            SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)statusMessage->Buffer);
+            // L"Uploaded: %s of %s (%.0f%%)\r\nSpeed: %s/s"
+            PhInitFormatS(&format[0], L"Uploaded: ");
+            PhInitFormatSize(&format[1], totalUploadedLength);
+            PhInitFormatS(&format[2], L" of ");
+            PhInitFormatSize(&format[3], context->TotalFileLength);
+            PhInitFormatS(&format[4], L" (");
+            PhInitFormatF(&format[5], percent, 1);
+            PhInitFormatS(&format[6], L"%)\r\nSpeed: ");
+            PhInitFormatSize(&format[7], timeBitsPerSecond);
+            PhInitFormatS(&format[8], L"/s");
+
+            if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), string, sizeof(string), NULL))
+            {
+                SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)string);
+            }
+
             SendMessage(context->DialogHandle, TDM_SET_PROGRESS_BAR_POS, (WPARAM)percent, 0);
 
             if (context->TaskbarListClass)
@@ -729,11 +736,6 @@ NTSTATUS UploadFileThreadStart(
                     context->TotalFileLength
                     );
             }
-
-            PhDereferenceObject(statusMessage);
-            PhDereferenceObject(totalSpeed);
-            PhDereferenceObject(totalUploaded);
-            PhDereferenceObject(totalLength);
         }
     }
 
