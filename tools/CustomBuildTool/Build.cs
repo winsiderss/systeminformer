@@ -214,10 +214,10 @@ namespace CustomBuildTool
                 return false;
             }
 
-            if (!instance.HasRequiredDependency())
+            if (!instance.HasRequiredDependency)
             {
                 Program.PrintColorMessage("Visual Studio does not have required the packages: ", ConsoleColor.Red);
-                Program.PrintColorMessage(instance.MissingDependencyList(), ConsoleColor.Cyan);
+                Program.PrintColorMessage(instance.MissingDependencyList, ConsoleColor.Cyan);
                 return false;
             }
 
