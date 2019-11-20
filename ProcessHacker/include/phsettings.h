@@ -18,7 +18,6 @@ EXT BOOLEAN PhEnableTooltipSupport;
 EXT BOOLEAN PhEnableLinuxSubsystemSupport;
 EXT BOOLEAN PhEnableNetworkResolveDoHSupport;
 
-EXT ULONG PhCsCollapseServicesOnStart;
 EXT ULONG PhCsForceNoParent;
 EXT ULONG PhCsHighlightingDuration;
 EXT ULONG PhCsHideOtherUserProcesses;

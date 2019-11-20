@@ -35,7 +35,6 @@ VOID PhAddDefaultSettings(
 {
     PhpAddIntegerSetting(L"AllowOnlyOneInstance", L"1");
     PhpAddIntegerSetting(L"CloseOnEscape", L"0");
-    PhpAddIntegerSetting(L"CollapseServicesOnStart", L"0");
     PhpAddStringSetting(L"DbgHelpSearchPath", L"SRV*C:\\Symbols*https://msdl.microsoft.com/download/symbols");
     PhpAddIntegerSetting(L"DbgHelpUndecorate", L"1");
     PhpAddStringSetting(L"DisabledPlugins", L"");
@@ -256,7 +255,6 @@ VOID PhUpdateCachedSettings(
     VOID
     )
 {
-    PH_UPDATE_SETTING(CollapseServicesOnStart);
     PH_UPDATE_SETTING(ForceNoParent);
     PH_UPDATE_SETTING(HighlightingDuration);
     PH_UPDATE_SETTING(HideOtherUserProcesses);

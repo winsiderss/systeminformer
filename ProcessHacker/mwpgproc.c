@@ -238,6 +238,7 @@ VOID PhMwpToggleCurrentUserProcessTreeFilter(
     PhSetIntegerSetting(L"HideOtherUserProcesses", PhCsHideOtherUserProcesses);
 
     PhExpandAllProcessNodes(TRUE);
+
     PhApplyTreeNewFilters(PhGetFilterSupportProcessTreeList());
 }
 
@@ -255,32 +256,6 @@ BOOLEAN PhMwpCurrentUserProcessTreeFilter(
 
         if (!RtlEqualSid(processNode->ProcessItem->Sid, PhGetOwnTokenAttributes().TokenSid))
             return FALSE;
-    }
-
-    if (PhCsCollapseServicesOnStart)
-    {
-        static PH_STRINGREF servicesBaseName = PH_STRINGREF_INIT(L"\\services.exe");
-        static PPH_STRING servicesFileName = NULL;
-
-        if (!servicesFileName)
-        {
-            PPH_STRING systemDirectory;
-
-            systemDirectory = PhGetSystemDirectory();
-            servicesFileName = PhConcatStringRef2(&systemDirectory->sr, &servicesBaseName);
-            PhDereferenceObject(systemDirectory);
-        }
-
-        // If this process is services.exe, collapse the node and free the string.
-        if (
-            processNode->ProcessItem->FileName &&
-            PhEqualString(processNode->ProcessItem->FileName, servicesFileName, TRUE)
-            )
-        {
-            processNode->Node.Expanded = FALSE;
-            PhDereferenceObject(servicesFileName);
-            servicesFileName = NULL;
-        }
     }
 
     return TRUE;

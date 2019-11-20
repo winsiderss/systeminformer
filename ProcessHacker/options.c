@@ -996,13 +996,11 @@ typedef enum _PHP_OPTIONS_INDEX
     PHP_OPTIONS_INDEX_ENABLE_UNDECORATE_SYMBOLS,
     PHP_OPTIONS_INDEX_ENABLE_CYCLE_CPU_USAGE,
     PHP_OPTIONS_INDEX_ENABLE_THEME_SUPPORT,
-    //PHP_OPTIONS_INDEX_ENABLE_LINUX_SUPPORT,
     PHP_OPTIONS_INDEX_ENABLE_NETWORK_RESOLVE,
     PHP_OPTIONS_INDEX_ENABLE_NETWORK_RESOLVE_DOH,
     PHP_OPTIONS_INDEX_ENABLE_INSTANT_TOOLTIPS,
     PHP_OPTIONS_INDEX_ENABLE_STAGE2,
     PHP_OPTIONS_INDEX_ENABLE_SERVICE_STAGE2,
-    PHP_OPTIONS_INDEX_COLLAPSE_SERVICES_ON_START,
     PHP_OPTIONS_INDEX_ICON_SINGLE_CLICK,
     PHP_OPTIONS_INDEX_ICON_TOGGLE_VISIBILITY,
     PHP_OPTIONS_INDEX_PROPAGATE_CPU_USAGE,
@@ -1041,7 +1039,6 @@ static VOID PhpAdvancedPageLoad(
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_INSTANT_TOOLTIPS, L"Show tooltips instantly", NULL);  
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_STAGE2, L"Check images for digital signatures", NULL);
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_SERVICE_STAGE2, L"Check services for digital signatures", NULL);
-    PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_COLLAPSE_SERVICES_ON_START, L"Collapse services on start", NULL);
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ICON_SINGLE_CLICK, L"Single-click tray icons", NULL);
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ICON_TOGGLE_VISIBILITY, L"Icon click toggles visibility", NULL);
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_PROPAGATE_CPU_USAGE, L"Include usage of collapsed processes", NULL);
@@ -1064,7 +1061,6 @@ static VOID PhpAdvancedPageLoad(
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_INSTANT_TOOLTIPS, L"EnableInstantTooltips");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_STAGE2, L"EnableStage2");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_SERVICE_STAGE2, L"EnableServiceStage2");
-    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_COLLAPSE_SERVICES_ON_START, L"CollapseServicesOnStart");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ICON_SINGLE_CLICK, L"IconSingleClick");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ICON_TOGGLE_VISIBILITY, L"IconTogglesVisibility");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_PROPAGATE_CPU_USAGE, L"PropagateCpuUsage");
@@ -1157,7 +1153,6 @@ static VOID PhpAdvancedPageSave(
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_INSTANT_TOOLTIPS, L"EnableInstantTooltips");
     SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_STAGE2, L"EnableStage2");
     SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_SERVICE_STAGE2, L"EnableServiceStage2");
-    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_COLLAPSE_SERVICES_ON_START, L"CollapseServicesOnStart");
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ICON_SINGLE_CLICK, L"IconSingleClick");
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ICON_TOGGLE_VISIBILITY, L"IconTogglesVisibility");
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_PROPAGATE_CPU_USAGE, L"PropagateCpuUsage");
