@@ -931,17 +931,27 @@ VOID PhInitializeKph(
     )
 {
     NTSTATUS status;
+    ULONG latestBuildNumber;
     PPH_STRING applicationDirectory;
     PPH_STRING kprocesshackerFileName;
     PPH_STRING processhackerSigFileName;
     KPH_PARAMETERS parameters;
 
-    if (PhGetIntegerSetting(L"KphBuildNumber") != PhOsVersion.dwBuildNumber)
+    latestBuildNumber = PhGetIntegerSetting(L"KphBuildNumber");
+
+    if (latestBuildNumber == 0)
     {
-        // Reset KPH after a Windows build update. (dmex)
-        if (NT_SUCCESS(KphResetParameters(KPH_DEVICE_SHORT_NAME)))
+        PhSetIntegerSetting(L"KphBuildNumber", PhOsVersion.dwBuildNumber);
+    }
+    else
+    {
+        if (latestBuildNumber != PhOsVersion.dwBuildNumber)
         {
-            PhSetIntegerSetting(L"KphBuildNumber", PhOsVersion.dwBuildNumber);
+            // Reset KPH after a Windows build update. (dmex)
+            if (NT_SUCCESS(KphResetParameters(KPH_DEVICE_SHORT_NAME)))
+            {
+                PhSetIntegerSetting(L"KphBuildNumber", PhOsVersion.dwBuildNumber);
+            }
         }
     }
 
