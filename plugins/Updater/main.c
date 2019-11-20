@@ -23,22 +23,10 @@
 #include "updater.h"
 
 PPH_PLUGIN PluginInstance;
-PH_CALLBACK_REGISTRATION PluginUnloadCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
 PH_CALLBACK_REGISTRATION MainMenuInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
-
-VOID NTAPI UnloadCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    )
-{
-    if (PhGetIntegerSetting(SETTING_NAME_UPDATE_ON_EXIT))
-    {
-        ShowUpdateOnExitDialog(NULL, TRUE);
-    }
-}
 
 VOID NTAPI MainWindowShowingCallback(
     _In_opt_ PVOID Parameter,
@@ -59,9 +47,6 @@ VOID NTAPI MainMenuInitializingCallback(
     )
 {
     PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
-
-    if (!menuInfo)
-        return;
 
     // Check this menu is the Help menu
     if (menuInfo->u.MainMenu.SubMenuIndex != 4)
@@ -90,9 +75,6 @@ VOID NTAPI ShowOptionsCallback(
 {
     PPH_PLUGIN_OPTIONS_POINTERS optionsEntry = (PPH_PLUGIN_OPTIONS_POINTERS)Parameter;
 
-    if (!optionsEntry)
-        return;
-
     optionsEntry->CreateSection(
         L"Updater",
         PluginInstance->DllBase,
@@ -117,7 +99,6 @@ LOGICAL DllMain(
             {
                 { IntegerSettingType, SETTING_NAME_AUTO_CHECK, L"1" },
                 { StringSettingType, SETTING_NAME_LAST_CHECK, L"0" },
-                { IntegerSettingType, SETTING_NAME_UPDATE_ON_EXIT, L"0" },
                 { IntegerPairSettingType, SETTING_NAME_CHANGELOG_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_CHANGELOG_WINDOW_SIZE, L"@96|420,250" },
             };
@@ -127,16 +108,11 @@ LOGICAL DllMain(
             if (!PluginInstance)
                 return FALSE;
 
-            info->Author = L"dmex";
             info->DisplayName = L"Update Checker";
+            info->Author = L"dmex";
             info->Description = L"Plugin for checking new Process Hacker releases via the Help menu.";
+            info->Url = L"https://wj32.org/processhacker/forums/viewtopic.php?t=1121";
 
-            PhRegisterCallback(
-                PhGetPluginCallback(PluginInstance, PluginCallbackUnload),
-                UnloadCallback,
-                NULL,
-                &PluginUnloadCallbackRegistration
-                );
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackMainWindowShowing),
                 MainWindowShowingCallback,

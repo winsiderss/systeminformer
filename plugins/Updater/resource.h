@@ -6,7 +6,6 @@
 #define IDD_TEXT                        102
 #define IDC_AUTOCHECKBOX                1001
 #define IDC_TEXT                        1002
-#define IDC_AUTOCHECKBOX2               1002
 
 // Next default values for new objects
 // 
