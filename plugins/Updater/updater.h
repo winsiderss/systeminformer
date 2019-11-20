@@ -47,6 +47,7 @@
 #define PLUGIN_NAME L"ProcessHacker.UpdateChecker"
 #define SETTING_NAME_AUTO_CHECK (PLUGIN_NAME L".PromptStart")
 #define SETTING_NAME_LAST_CHECK (PLUGIN_NAME L".LastUpdateCheckTime")
+#define SETTING_NAME_UPDATE_ON_EXIT (PLUGIN_NAME L".PromptOnExit")
 #define SETTING_NAME_CHANGELOG_WINDOW_POSITION (PLUGIN_NAME L".ChangelogWindowPosition")
 #define SETTING_NAME_CHANGELOG_WINDOW_SIZE (PLUGIN_NAME L".ChangelogWindowSize")
 
@@ -57,9 +58,9 @@
     ((ULONGLONG)(revision) <<  0))
 
 #ifdef _DEBUG
-// Force update checks to succeed (most of the below flags require this to be defined).
-//#define FORCE_UPDATE_CHECK
-// Force update check to show the current version as the latest version.
+// Force update checks to succeed.
+#define FORCE_UPDATE_CHECK
+// Force update check as the latest version.
 //#define FORCE_LATEST_VERSION
 #endif
 
@@ -166,6 +167,11 @@ VOID ShowUpdateFailedDialog(
 
 VOID ShowUpdateDialog(
     _In_opt_ PPH_UPDATER_CONTEXT Context
+    );
+
+VOID ShowUpdateOnExitDialog(
+    _In_opt_ PPH_UPDATER_CONTEXT Context,
+    _In_ BOOLEAN ShowUpdateWindow
     );
 
 VOID StartInitialCheck(
