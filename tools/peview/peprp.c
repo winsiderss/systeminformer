@@ -265,6 +265,16 @@ VOID PvPeProperties(
             PvAddPropPage(propContext, newPage);
         }
 
+        // Text preview page
+        {
+            newPage = PvCreatePropPageContext(
+                MAKEINTRESOURCE(IDD_PEPREVIEW),
+                PvpPePreviewDlgProc,
+                NULL
+                );
+            PvAddPropPage(propContext, newPage);
+        }
+
         PhModalPropertySheet(&propContext->PropSheetHeader);
 
         PhDereferenceObject(propContext);

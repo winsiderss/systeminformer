@@ -241,6 +241,7 @@
     <ClCompile Include="pdb.c" />
     <ClCompile Include="pdbprp.c" />
     <ClCompile Include="peprp.c" />
+    <ClCompile Include="previewprp.c" />
     <ClCompile Include="processes.c" />
     <ClCompile Include="propstore.c" />
     <ClCompile Include="prpsh.c" />
