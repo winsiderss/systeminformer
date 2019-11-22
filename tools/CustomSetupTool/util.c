@@ -182,10 +182,7 @@ VOID SetupDeleteAppdataDirectory(
 
     if (uninstallFilePath = SetupFindAppdataDirectory())
     {
-        if (PhDoesFileExistsWin32(uninstallFilePath->Buffer))
-        {
-            PhDeleteDirectory(uninstallFilePath->Buffer);
-        }
+        PhDeleteDirectory(uninstallFilePath);
 
         PhDereferenceObject(uninstallFilePath);
     }
