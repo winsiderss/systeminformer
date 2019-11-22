@@ -95,12 +95,6 @@ VOID UploadContextDeleteProcedure(
         context->TaskbarListClass = NULL;
     }
 
-    if (context->UploadThreadHandle)
-    {
-        NtClose(context->UploadThreadHandle);
-        context->UploadThreadHandle = NULL;
-    }
-
     PhClearReference(&context->ErrorString);
     PhClearReference(&context->FileName);
     PhClearReference(&context->BaseFileName);
@@ -674,8 +668,11 @@ NTSTATUS UploadFileThreadStart(
     {
         BYTE buffer[PAGE_SIZE];
 
-        if (!context->UploadThreadHandle)
+        if (context->Cancel)
+        {
+            RaiseUploadError(context, L"Unable to complete the request.", STATUS_CANCELLED);
             goto CleanupExit;
+        }
 
         if (!NT_SUCCESS(status = NtReadFile(
             fileHandle,
@@ -928,8 +925,11 @@ NTSTATUS UploadFileThreadStart(
         goto CleanupExit;
     }
 
-    if (!context->UploadThreadHandle)
+    if (context->Cancel)
+    {
+        RaiseUploadError(context, L"Unable to complete the request.", STATUS_CANCELLED);
         goto CleanupExit;
+    }
 
     if (!PhIsNullOrEmptyString(context->LaunchCommand))
     {
