@@ -721,7 +721,7 @@ namespace CustomBuildTool
                     File.Delete(BuildOutputFolder + "\\processhacker-build-websetup.exe");
 
                 File.Move(
-                    "tools\\CustomSetupTool\\CustomSetupTool\\bin\\Release32\\CustomSetupTool.exe",
+                    "tools\\CustomSetupTool\\bin\\Release32\\CustomSetupTool.exe",
                     BuildOutputFolder + "\\processhacker-build-websetup.exe"
                     );
             }
@@ -777,9 +777,12 @@ namespace CustomBuildTool
                     File.Delete(BuildOutputFolder + "\\processhacker-build-setup.exe");
 
                 File.Move(
-                    "tools\\CustomSetupTool\\CustomSetupTool\\bin\\Release32\\CustomSetupTool.exe", 
+                    "tools\\CustomSetupTool\\bin\\Release32\\CustomSetupTool.exe", 
                     BuildOutputFolder + "\\processhacker-build-setup.exe"
                     );
+
+                if (File.Exists(BuildOutputFolder + "\\processhacker-build-bin.64"))
+                    File.Delete(BuildOutputFolder + "\\processhacker-build-bin.64");
 
                 Program.PrintColorMessage(new FileInfo(BuildOutputFolder + "\\processhacker-build-setup.exe").Length.ToPrettySize(), ConsoleColor.Green);
             }
