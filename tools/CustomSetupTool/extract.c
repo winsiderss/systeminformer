@@ -19,7 +19,6 @@
  */
 
 #include <setup.h>
-#include <setupsup.h>
 #include "miniz\miniz.h"
 
 BOOLEAN SetupExtractBuild(
@@ -102,40 +101,43 @@ BOOLEAN SetupExtractBuild(
 
         fileName = PhConvertUtf8ToUtf16(zipFileStat.m_filename);
 
-        if (info.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
-        {
-            if (PhStartsWithString2(fileName, L"x32\\", TRUE))
-                continue;
-        }
-        else
-        {
-            if (PhStartsWithString2(fileName, L"x64\\", TRUE))
-                continue;
-            if (PhStartsWithString2(fileName, L"x86\\", TRUE))
-                continue;
-        }
-
         if (PhFindStringInString(fileName, 0, L"ProcessHacker.exe.settings.xml") != -1)
             continue;
         if (PhFindStringInString(fileName, 0, L"usernotesdb.xml") != -1)
             continue;
 
+        if (info.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
+        {
+            if (PhStartsWithString2(fileName, L"32bit\\", TRUE) ||
+                PhStartsWithString2(fileName, L"x32\\", TRUE))
+                continue;
+        }
+        else
+        {
+            if (PhStartsWithString2(fileName, L"x86\\", TRUE) ||
+                PhStartsWithString2(fileName, L"x64\\", TRUE) ||
+                PhStartsWithString2(fileName, L"32bit\\", TRUE) ||
+                PhStartsWithString2(fileName, L"64bit\\", TRUE))
+                continue;
+        }
+
         totalLength += zipFileStat.m_uncomp_size;
     }
 
-    InterlockedExchange64(&ExtractTotalLength, totalLength);
-    SendMessage(Context->ExtractPageHandle, WM_START_SETUP, 0, 0);
+    //SendMessage(Context->ExtractPageHandle, WM_START_SETUP, 0, 0);
+    //SendMessage(context->ProgressHandle, PBM_SETRANGE32, 0, (LPARAM)ExtractTotalLength);
+    SendMessage(Context->DialogHandle, TDM_SET_MARQUEE_PROGRESS_BAR, FALSE, 0);
 
     for (mz_uint i = 0; i < mz_zip_reader_get_num_files(&zip_archive); i++)
     {
         IO_STATUS_BLOCK isb;
-        HANDLE fileHandle;
-        ULONG indexOfFileName = -1;
-        PPH_STRING fileName;
-        PPH_STRING fullSetupPath;
-        PVOID buffer;
-        mz_ulong zipFileCrc32 = 0;
+        HANDLE fileHandle = NULL;
+        PVOID buffer = NULL;
         ULONG bufferLength = 0;
+        PPH_STRING fileName = NULL;
+        PPH_STRING fullSetupPath = NULL;
+        mz_ulong zipFileCrc32 = 0;
+        ULONG indexOfFileName = ULONG_MAX;
         mz_zip_archive_file_stat zipFileStat;
 
         if (!mz_zip_reader_file_stat(&zip_archive, i, &zipFileStat))
@@ -192,7 +194,7 @@ BOOLEAN SetupExtractBuild(
 
         extractPath = PhConcatStrings(
             3, 
-            PhGetString(SetupInstallPath), 
+            PhGetString(Context->SetupInstallPath),
             L"\\", 
             PhGetString(fileName)
             );
@@ -201,7 +203,7 @@ BOOLEAN SetupExtractBuild(
         {
             PPH_STRING directoryPath;
 
-            if (indexOfFileName == -1)
+            if (indexOfFileName == ULONG_MAX)
             {
                 Context->ErrorCode = ERROR_FILE_CORRUPT;
                 goto CleanupExit;
@@ -278,11 +280,42 @@ BOOLEAN SetupExtractBuild(
 
         currentLength += bufferLength;
 
-        InterlockedExchange64(&ExtractCurrentLength, currentLength);
+        {
+            FLOAT percent = ((FLOAT)((double)currentLength / (double)totalLength) * 100);
+            PH_FORMAT format[7];
+            WCHAR string[MAX_PATH];
+            PPH_STRING baseName = PhGetBaseName(extractPath);
 
-        SendMessage(Context->ExtractPageHandle, WM_UPDATE_SETUP, 0, (LPARAM)PhGetBaseName(extractPath));
+            PhInitFormatS(&format[0], L"Extracting: ");
+            PhInitFormatS(&format[1], PhGetStringOrEmpty(baseName));
 
-        NtClose(fileHandle);
+            if (PhFormatToBuffer(format, 2, string, sizeof(string), NULL))
+            {
+                SendMessage(Context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)string);
+            }
+
+            PhInitFormatS(&format[0], L"Progress: ");
+            PhInitFormatSize(&format[1], currentLength);
+            PhInitFormatS(&format[2], L" of ");
+            PhInitFormatSize(&format[3], totalLength);
+            PhInitFormatS(&format[4], L" (");
+            PhInitFormatF(&format[5], percent, 1);
+            PhInitFormatS(&format[6], L"%)");
+
+            if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), string, sizeof(string), NULL))
+            {
+                SendMessage(Context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)string);
+            }
+
+            SendMessage(Context->DialogHandle, TDM_SET_PROGRESS_BAR_POS, (WPARAM)percent, 0);
+
+            if (baseName)
+                PhDereferenceObject(baseName);
+        }
+
+        if (fileHandle)
+            NtClose(fileHandle);
+
         mz_free(buffer);
     }
 

@@ -70,7 +70,7 @@
       <AdditionalLibraryDirectories>$(SolutionDir)..\..\phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <SubSystem>Windows</SubSystem>
       <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
-      <DelayLoadDLLs>advapi32.dll;comctl32.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;shell32.dll;user32.dll;uxtheme.dll;winhttp.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>advapi32.dll;comctl32.dll;crypt32.dll;gdi32.dll;ole32.dll;shell32.dll;user32.dll;uxtheme.dll;winhttp.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
     <ResourceCompile>
       <PreprocessorDefinitions>_UNICODE;UNICODE;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
@@ -103,7 +103,7 @@
       <SubSystem>Windows</SubSystem>
       <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
       <SetChecksum>true</SetChecksum>
-      <DelayLoadDLLs>advapi32.dll;comctl32.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;shell32.dll;user32.dll;uxtheme.dll;winhttp.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>advapi32.dll;comctl32.dll;crypt32.dll;gdi32.dll;ole32.dll;shell32.dll;user32.dll;uxtheme.dll;winhttp.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
     <ResourceCompile>
       <PreprocessorDefinitions>_UNICODE;UNICODE;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
@@ -112,42 +112,35 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="download.c" />
-    <ClCompile Include="errorpage.c" />
     <ClCompile Include="extract.c" />
-    <ClCompile Include="appsup.c" />
     <ClCompile Include="miniz\minizip.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="startpage.c" />
     <ClCompile Include="licencepage.c" />
     <ClCompile Include="configpage.c" />
-    <ClCompile Include="install.c" />
+    <ClCompile Include="extractpage.c" />
     <ClCompile Include="downloadpage.c" />
-    <ClCompile Include="setup.c" />
+    <ClCompile Include="util.c" />
     <ClCompile Include="uninstall.c" />
     <ClCompile Include="update.c" />
     <ClCompile Include="websetuppage.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\setup.h" />
-    <ClInclude Include="include\setupsup.h" />
     <ClInclude Include="miniz\miniz.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc" />
-    <ResourceCompile Include="resources\version.rc" />
+    <ResourceCompile Include="version.rc" />
   </ItemGroup>
   <ItemGroup>
-    <Manifest Include="resources\app.manifest">
+    <Manifest Include="app.manifest">
       <SubType>Designer</SubType>
     </Manifest>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="resources\ProcessHacker.ico" />
-    <Image Include="resources\ProcessHacker.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Text Include="resources\LICENSE.txt" />
+    <Image Include="ProcessHacker.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

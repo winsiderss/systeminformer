@@ -2,8 +2,6 @@
  * Process Hacker Toolchain -
  *   project setup
  *
- * Copyright (C) 2017 dmex
- *
  * This file is part of Process Hacker.
  *
  * Process Hacker is free software; you can redistribute it and/or modify
@@ -27,84 +25,68 @@
 #include <guisup.h>
 #include <prsht.h>
 #include <workqueue.h>
-#include <setupsup.h>
+#include <svcsup.h>
 #include <json.h>
 
 #include <aclapi.h>
-#include <wincodec.h>
-#include <wincrypt.h>
-#include <uxtheme.h>
+#include <io.h>
+#include <netlistmgr.h>
+#include <propvarutil.h>
+#include <propkey.h>
+#include <shellapi.h>
 #include <shlwapi.h>
 #include <shlobj.h>
 #include <sddl.h>
+#include <wincodec.h>
+#include <wincrypt.h>
+#include <winhttp.h>
+#include <uxtheme.h>
 
 #include "resource.h"
-
-// Version Information
 #include "..\..\ProcessHacker\include\phappres.h"
 
-// Win32 PropertySheet Control IDs
-#define IDD_PROPSHEET_ID            1006  // ID of the propsheet dialog template in comctl32.dll
-#define IDC_PROPSHEET_CANCEL        0x0002
-#define IDC_PROPSHEET_APPLYNOW      0x3021
-#define IDC_PROPSHEET_DLGFRAME      0x3022
-#define IDC_PROPSHEET_BACK          0x3023
-#define IDC_PROPSHEET_NEXT          0x3024
-#define IDC_PROPSHEET_FINISH        0x3025
-#define IDC_PROPSHEET_DIVIDER       0x3026
-#define IDC_PROPSHEET_TOPDIVIDER    0x3027
+#define SETUP_SHOWDIALOG (WM_APP + 1)
+#define SETUP_SHOWINSTALL (WM_APP + 2)
+#define SETUP_SHOWFINAL (WM_APP + 3)
+#define SETUP_SHOWERROR (WM_APP + 4)
+#define SETUP_SHOWUNINSTALL (WM_APP + 5)
+#define SETUP_SHOWUNINSTALLFINAL (WM_APP + 6)
+#define SETUP_SHOWUNINSTALLERROR (WM_APP + 7)
+#define SETUP_SHOWUPDATE (WM_APP + 8)
+#define SETUP_SHOWUPDATEFINAL (WM_APP + 9)
+#define SETUP_SHOWUPDATEERROR (WM_APP + 10)
 
-//
-#define WM_START_SETUP (WM_APP + 1)
-#define WM_UPDATE_SETUP (WM_APP + 2)
-#define WM_END_SETUP (WM_APP + 3)
+#define TaskDialogNavigatePage(WindowHandle, Config) \
+    assert(HandleToUlong(NtCurrentThreadId()) == GetWindowThreadProcessId(WindowHandle, NULL)); \
+    SendMessage(WindowHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)Config);
 
 typedef enum _SETUP_COMMAND_TYPE
 {
     SETUP_COMMAND_INSTALL,
     SETUP_COMMAND_UNINSTALL,
     SETUP_COMMAND_UPDATE,
-    SETUP_COMMAND_REPAIR,
-    SETUP_COMMAND_SILENTINSTALL,
 } SETUP_COMMAND_TYPE;
 
 typedef struct _PH_SETUP_CONTEXT
 {
     HWND DialogHandle;
-    HWND PropSheetBackHandle;
-    HWND PropSheetForwardHandle;
-    HWND PropSheetCancelHandle;
-
-    HWND WelcomePageHandle;
-    HWND EulaPageHandle;
-    HWND ConfigPageHandle;
-    HWND DownloadPageHandle;
-    HWND ExtractPageHandle;
-    HWND FinalPageHandle;
-    HWND ErrorPageHandle;
-
     HICON IconSmallHandle;
     HICON IconLargeHandle;
+    WNDPROC TaskDialogWndProc;
 
     union
     {
         ULONG Flags;
         struct
         {
-            ULONG SetupCreateDesktopShortcut : 1;
-            ULONG SetupCreateDesktopShortcutAllUsers : 1;
-            ULONG SetupCreateDefaultTaskManager : 1;
-            ULONG SetupCreateSystemStartup : 1;
-            ULONG SetupCreateMinimizedSystemStartup : 1;
-            ULONG SetupInstallDebuggingTools : 1;
-            ULONG SetupInstallPeViewAssociations : 1;
-            ULONG SetupInstallKphService : 1;
-            ULONG SetupResetSettings : 1;
-            ULONG SetupStartAppAfterExit : 1;
+            ULONG SetupRemoveAppData: 1;
             ULONG SetupKphInstallRequired : 1;
-            ULONG Spare : 21;
+            ULONG Spare : 30;
         };
     };
+
+    SETUP_COMMAND_TYPE SetupMode;
+    PPH_STRING SetupInstallPath;
 
     ULONG ErrorCode;
     PPH_STRING FilePath;
@@ -127,74 +109,80 @@ typedef struct _PH_SETUP_CONTEXT
     PPH_STRING WebSetupFileHash;
     PPH_STRING WebSetupFileSignature;
 
-    HWND MainHeaderHandle;
-    HWND StatusHandle;
-    HWND SubStatusHandle;
-    HWND ProgressHandle;
-
-    BOOLEAN SetupRunning;
     ULONG CurrentMajorVersion;
     ULONG CurrentMinorVersion;
     ULONG CurrentRevisionVersion;
-    WNDPROC TaskDialogWndProc;
 } PH_SETUP_CONTEXT, *PPH_SETUP_CONTEXT;
 
-extern SETUP_COMMAND_TYPE SetupMode;
-extern PPH_STRING SetupInstallPath;
-
-VOID SetupLoadImage(
-    _In_ HWND WindowHandle,
-    _In_ PWSTR Name
+VOID SetupParseCommandLine(
+    _In_ PPH_SETUP_CONTEXT Context
     );
 
-INT_PTR CALLBACK SetupPropPage1_WndProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _Inout_ WPARAM wParam,
-    _Inout_ LPARAM lParam
+VOID ShowWelcomePageDialog(
+    _In_ PPH_SETUP_CONTEXT Context
     );
 
-INT_PTR CALLBACK SetupPropPage2_WndProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _Inout_ WPARAM wParam,
-    _Inout_ LPARAM lParam
+VOID ShowConfigPageDialog(
+    _In_ PPH_SETUP_CONTEXT Context
     );
 
-INT_PTR CALLBACK SetupPropPage3_WndProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _Inout_ WPARAM wParam,
-    _Inout_ LPARAM lParam
+VOID ShowDownloadPageDialog(
+    _In_ PPH_SETUP_CONTEXT Context
     );
 
-INT_PTR CALLBACK SetupInstallPropPage_WndProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _Inout_ WPARAM wParam,
-    _Inout_ LPARAM lParam
+VOID ShowCompletedPageDialog(
+    _In_ PPH_SETUP_CONTEXT Context
     );
 
-INT_PTR CALLBACK SetupPropPage5_WndProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _Inout_ WPARAM wParam,
-    _Inout_ LPARAM lParam
+VOID ShowErrorPageDialog(
+    _In_ PPH_SETUP_CONTEXT Context
     );
 
-INT_PTR CALLBACK SetupErrorPage_WndProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _Inout_ WPARAM wParam,
-    _Inout_ LPARAM lParam
+VOID ShowInstallPageDialog(
+    _In_ PPH_SETUP_CONTEXT Context
     );
 
-// page4.c
+VOID ShowUninstallPageDialog(
+    _In_ PPH_SETUP_CONTEXT Context
+    );
 
-extern ULONG64 ExtractCurrentLength;
-extern ULONG64 ExtractTotalLength;
+VOID ShowUninstallingPageDialog(
+    _In_ PPH_SETUP_CONTEXT Context
+    );
 
-// setup.c
+VOID ShowUninstallCompletedPageDialog(
+    _In_ PPH_SETUP_CONTEXT Context
+    );
+
+VOID ShowUninstallErrorPageDialog(
+    _In_ PPH_SETUP_CONTEXT Context
+    );
+
+VOID ShowUpdatePageDialog(
+    _In_ PPH_SETUP_CONTEXT Context
+    );
+
+VOID ShowUpdateCompletedPageDialog(
+    _In_ PPH_SETUP_CONTEXT Context
+    );
+
+VOID ShowUpdateErrorPageDialog(
+    _In_ PPH_SETUP_CONTEXT Context
+    );
+
+// util.c
+
+PPH_STRING SetupFindInstallDirectory(
+    VOID
+    );
+
+PPH_STRING SetupFindAppdataDirectory(
+    VOID
+    );
+
+VOID SetupDeleteAppdataDirectory(
+    _In_ PPH_SETUP_CONTEXT Context
+    );
 
 VOID SetupStartKph(
     _In_ PPH_SETUP_CONTEXT Context,
@@ -241,6 +229,54 @@ VOID SetupCreateImageFileExecutionOptions(
     VOID
     );
 
+extern PH_STRINGREF UninstallKeyName;
+
+typedef struct _SETUP_EXTRACT_FILE
+{
+    PSTR FileName;
+    PWSTR ExtractFileName;
+} SETUP_EXTRACT_FILE, *PSETUP_EXTRACT_FILE;
+
+typedef struct _SETUP_REMOVE_FILE
+{
+    PWSTR FileName;
+} SETUP_REMOVE_FILE, *PSETUP_REMOVE_FILE;
+
+VOID SetupCreateLink(
+    _In_ PWSTR LinkFilePath,
+    _In_ PWSTR FilePath,
+    _In_ PWSTR FileParentDir
+    );
+
+BOOLEAN CheckProcessHackerInstalled(
+    VOID
+    );
+
+PPH_STRING GetProcessHackerInstallPath(
+    VOID
+    );
+
+BOOLEAN ShutdownProcessHacker(
+    VOID
+    );
+
+NTSTATUS QueryProcessesUsingVolumeOrFile(
+    _In_ HANDLE VolumeOrFileHandle,
+    _Out_ PFILE_PROCESS_IDS_USING_FILE_INFORMATION *Information
+    );
+
+PPH_STRING SetupCreateFullPath(
+    _In_ PPH_STRING Path,
+    _In_ PWSTR FileName
+    );
+
+BOOLEAN SetupBase64StringToBufferEx(
+    _In_ PVOID InputBuffer,
+    _In_ ULONG InputBufferLength,
+    _Out_opt_ PVOID* OutputBuffer,
+    _Out_opt_ ULONG* OutputBufferLength
+    );
+
 // download.c
 
 #define MAKE_VERSION_ULONGLONG(major, minor, build, revision) \
@@ -254,7 +290,7 @@ ULONG64 ParseVersionString(
     );
 
 BOOLEAN SetupQueryUpdateData(
-    _In_ PPH_SETUP_CONTEXT Context
+    _Inout_ PPH_SETUP_CONTEXT Context
     );
 
 BOOLEAN UpdateDownloadUpdateData(
@@ -265,24 +301,6 @@ BOOLEAN UpdateDownloadUpdateData(
 
 BOOLEAN SetupExtractBuild(
     _In_ PPH_SETUP_CONTEXT Context
-    );
-
- // update.c
-
-VOID SetupShowUpdateDialog(
-    VOID
-    );
-
-// updatesetup.c
-
-NTSTATUS SetupUpdateWebSetupBuild(
-    _In_ PPH_SETUP_CONTEXT Context
-    );
-
-// uninstall.c
-
-VOID SetupShowUninstallDialog(
-    VOID
     );
 
 #endif

@@ -19,33 +19,11 @@
  */
 
 #include <setup.h>
-#include <setupsup.h>
-#include <workqueue.h>
-
-#define WM_TASKDIALOGINIT (WM_APP + 550)
-HWND UninstallDialogHandle = NULL;
-HANDLE UninstallDialogThreadHandle = NULL;
-PH_EVENT UninstallInitializedEvent = PH_EVENT_INIT;
-
-VOID ShowUninstallConfirmDialog(
-    _In_ PPH_SETUP_CONTEXT Context
-    );
-VOID ShowUninstallDialog(
-    _In_ PPH_SETUP_CONTEXT Context
-    );
-VOID ShowUninstallCompleteDialog(
-    _In_ PPH_SETUP_CONTEXT Context
-    );
-VOID ShowUninstallErrorDialog(
-    _In_ PPH_SETUP_CONTEXT Context
-    );
 
 NTSTATUS SetupUninstallBuild(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
-    SetupInstallPath = SetupFindInstallDirectory();
-
     // Stop Process Hacker.
     if (!ShutdownProcessHacker())
         goto CleanupExit;
@@ -64,43 +42,18 @@ NTSTATUS SetupUninstallBuild(
     SetupDeleteUninstallKey();
 
     // Remove the previous installation.
-    PhDeleteDirectory(SetupInstallPath);
+    PhDeleteDirectory(Context->SetupInstallPath);
 
-    ShowUninstallCompleteDialog(Context);
+    // Remove the application data.
+    if (Context->SetupRemoveAppData)
+        SetupDeleteAppdataDirectory(Context);
+
+    PostMessage(Context->DialogHandle, SETUP_SHOWUNINSTALLFINAL, 0, 0);
     return STATUS_SUCCESS;
 
 CleanupExit:
-    ShowUninstallErrorDialog(Context);
-    return STATUS_SUCCESS;
-}
-
-static VOID TaskDialogCreateIcons(
-    _In_ PPH_SETUP_CONTEXT Context
-    )
-{
-    HICON largeIcon;
-    HICON smallIcon;
-
-    largeIcon = PhLoadIcon(
-        PhInstanceHandle,
-        MAKEINTRESOURCE(IDI_ICON1),
-        PH_LOAD_ICON_SIZE_LARGE,
-        GetSystemMetrics(SM_CXICON),
-        GetSystemMetrics(SM_CYICON)
-        );
-    smallIcon = PhLoadIcon(
-        PhInstanceHandle,
-        MAKEINTRESOURCE(IDI_ICON1),
-        PH_LOAD_ICON_SIZE_LARGE,
-        GetSystemMetrics(SM_CXSMICON),
-        GetSystemMetrics(SM_CYSMICON)
-        );
-
-    Context->IconLargeHandle = largeIcon;
-    Context->IconSmallHandle = smallIcon;
-
-    SendMessage(Context->DialogHandle, WM_SETICON, ICON_SMALL, (LPARAM)largeIcon);
-    SendMessage(Context->DialogHandle, WM_SETICON, ICON_BIG, (LPARAM)smallIcon);
+    PostMessage(Context->DialogHandle, SETUP_SHOWUNINSTALLERROR, 0, 0);
+    return STATUS_UNSUCCESSFUL;
 }
 
 HRESULT CALLBACK TaskDialogUninstallConfirmCallbackProc(
@@ -119,12 +72,38 @@ HRESULT CALLBACK TaskDialogUninstallConfirmCallbackProc(
         {
             if ((INT)wParam == IDYES)
             {
-                ShowUninstallDialog(context);
+                ShowUninstallingPageDialog(context);
                 return S_FALSE;
-            } 
-            else if ((INT)wParam == IDRETRY)
+            }
+        }
+        break;
+    case TDN_VERIFICATION_CLICKED:
+        {
+            context->SetupRemoveAppData = !!(BOOL)wParam;
+        }
+        break;
+    }
+
+    return S_OK;
+}
+
+HRESULT CALLBACK TaskDialogUninstallErrorCallbackProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam,
+    _In_ LONG_PTR dwRefData
+)
+{
+    PPH_SETUP_CONTEXT context = (PPH_SETUP_CONTEXT)dwRefData;
+
+    switch (uMsg)
+    {
+    case TDN_BUTTON_CLICKED:
+        {
+            if ((INT)wParam == IDRETRY)
             {
-                ShowUninstallCompleteDialog(context);
+                ShowUninstallingPageDialog(context);
                 return S_FALSE;
             }
         }
@@ -179,7 +158,7 @@ HRESULT CALLBACK TaskDialogUninstallCompleteCallbackProc(
     return S_OK;
 }
 
-VOID ShowUninstallCompleteDialog(
+VOID ShowUninstallCompletedPageDialog(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
@@ -192,37 +171,16 @@ VOID ShowUninstallCompleteDialog(
     config.hMainIcon = Context->IconLargeHandle;
     config.pfCallback = TaskDialogUninstallCompleteCallbackProc;
     config.lpCallbackData = (LONG_PTR)Context;
+
+    config.cxWidth = 200;
     config.pszWindowTitle = PhApplicationName;
     config.pszMainInstruction = L"Process Hacker has been uninstalled.";
     config.pszContent = L"Click close to exit setup.";
-    config.cxWidth = 200;
 
-    SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
+    TaskDialogNavigatePage(Context->DialogHandle, &config);
 }
 
-VOID ShowUninstallConfirmDialog(
-    _In_ PPH_SETUP_CONTEXT Context
-    )
-{
-    TASKDIALOGCONFIG config;
-
-    memset(&config, 0, sizeof(TASKDIALOGCONFIG));
-    config.cbSize = sizeof(TASKDIALOGCONFIG);
-    config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED;
-    config.dwCommonButtons = TDCBF_YES_BUTTON | TDCBF_NO_BUTTON;
-    config.nDefaultButton = IDNO;
-    config.hMainIcon = Context->IconLargeHandle;
-    config.pfCallback = TaskDialogUninstallConfirmCallbackProc;
-    config.lpCallbackData = (LONG_PTR)Context;
-    config.pszWindowTitle = PhApplicationName;
-    config.pszMainInstruction = L"Process Hacker - Setup";
-    config.pszContent = L"Are you sure you want to uninstall Process Hacker?";
-    config.cxWidth = 200;
-
-    SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
-}
-
-VOID ShowUninstallDialog(
+VOID ShowUninstallingPageDialog(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
@@ -235,14 +193,15 @@ VOID ShowUninstallDialog(
     config.hMainIcon = Context->IconLargeHandle;
     config.pfCallback = TaskDialogUninstallCallbackProc;
     config.lpCallbackData = (LONG_PTR)Context;
+
+    config.cxWidth = 200;
     config.pszWindowTitle = PhApplicationName;
     config.pszMainInstruction = L"Uninstalling Process Hacker...";
-    config.cxWidth = 200;
-
-    SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
+    
+    TaskDialogNavigatePage(Context->DialogHandle, &config);
 }
 
-VOID ShowUninstallErrorDialog(
+VOID ShowUninstallErrorPageDialog(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
@@ -253,68 +212,43 @@ VOID ShowUninstallErrorDialog(
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED;
     config.dwCommonButtons = TDCBF_RETRY_BUTTON | TDCBF_CLOSE_BUTTON;
     config.hMainIcon = Context->IconLargeHandle;
-    config.pfCallback = TaskDialogUninstallConfirmCallbackProc;
+    config.pfCallback = TaskDialogUninstallErrorCallbackProc;
     config.lpCallbackData = (LONG_PTR)Context;
+
+    config.cxWidth = 200;
     config.pszWindowTitle = PhApplicationName;
     config.pszMainInstruction = L"Process Hacker could not be uninstalled.";
     config.pszContent = L"Click retry to try again or close to exit setup.";
-    config.cxWidth = 200;
-
-    SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
+    
+    TaskDialogNavigatePage(Context->DialogHandle, &config);
 }
-HRESULT CALLBACK TaskDialogUninstallBootstrapCallback(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam,
-    _In_ LONG_PTR dwRefData
+
+VOID ShowUninstallPageDialog(
+    _In_ PPH_SETUP_CONTEXT Context
     )
 {
-    PPH_SETUP_CONTEXT context = (PPH_SETUP_CONTEXT)dwRefData;
-
-    switch (uMsg)
+    TASKDIALOG_BUTTON buttonArray[] =
     {
-    case TDN_CREATED:
-        {
-            context->DialogHandle = hwndDlg;
-
-            // Center the window on the desktop
-            PhCenterWindow(hwndDlg, NULL);
-            // Create the Taskdialog icons
-            TaskDialogCreateIcons(context);
-            // Navigate to the first page
-            ShowUninstallConfirmDialog(context);
-        }
-        break;
-    }
-
-    return S_OK;
-}
-
-VOID SetupShowUninstallDialog(
-    VOID
-    )
-{
-    PVOID context;
+        { IDYES, L"Uninstall" }
+    };
     TASKDIALOGCONFIG config;
-    PH_AUTO_POOL autoPool;
 
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
-
-    PhInitializeAutoPool(&autoPool);
-
-    context = (PPH_SETUP_CONTEXT)PhCreateAlloc(sizeof(PH_SETUP_CONTEXT));
-    memset(context, 0, sizeof(PH_SETUP_CONTEXT));
-
     config.cbSize = sizeof(TASKDIALOGCONFIG);
-    config.dwFlags = TDF_POSITION_RELATIVE_TO_WINDOW;
-    config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
+    config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED;
+    config.hMainIcon = Context->IconLargeHandle;
+    config.pButtons = buttonArray;
+    config.cButtons = RTL_NUMBER_OF(buttonArray);
+    config.pfCallback = TaskDialogUninstallConfirmCallbackProc;
+    config.lpCallbackData = (LONG_PTR)Context;
+
+    config.cxWidth = 200;
     config.pszWindowTitle = PhApplicationName;
-    config.pfCallback = TaskDialogUninstallBootstrapCallback;
-    config.lpCallbackData = (LONG_PTR)context;
+    config.pszMainInstruction = PhApplicationName;
+    config.pszContent = L"Are you sure you want to uninstall Process Hacker?";
+    config.pszVerificationText = L"Remove application settings";
+    config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
+    config.nDefaultButton = IDCANCEL;
 
-    TaskDialogIndirect(&config, NULL, NULL, NULL);
-
-    PhDereferenceObject(context);
-    PhDeleteAutoPool(&autoPool);
+    TaskDialogNavigatePage(Context->DialogHandle, &config);
 }

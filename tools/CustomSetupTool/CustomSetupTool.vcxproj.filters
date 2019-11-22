@@ -22,9 +22,6 @@
     <Filter Include="Header Files\zip">
       <UniqueIdentifier>{7a7dfb06-20d6-4ea2-8992-26ea6e6cf1d9}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\json">
-      <UniqueIdentifier>{0e40a0b6-7e1f-4ef2-9c13-14d083de096e}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Header Files\json">
       <UniqueIdentifier>{8d69960b-e11c-4029-b39e-dee698bb871b}</UniqueIdentifier>
     </Filter>
@@ -37,12 +34,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="extract.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="setup.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="appsup.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="miniz\minizip.c">
@@ -66,17 +57,17 @@
     <ClCompile Include="configpage.c">
       <Filter>Source Files\pages</Filter>
     </ClCompile>
-    <ClCompile Include="errorpage.c">
-      <Filter>Source Files\pages</Filter>
-    </ClCompile>
     <ClCompile Include="downloadpage.c">
       <Filter>Source Files\pages</Filter>
     </ClCompile>
-    <ClCompile Include="websetuppage.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="install.c">
+    <ClCompile Include="extractpage.c">
       <Filter>Source Files\pages</Filter>
+    </ClCompile>
+    <ClCompile Include="websetuppage.c">
+      <Filter>Source Files\pages</Filter>
+    </ClCompile>
+    <ClCompile Include="util.c">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -89,34 +80,23 @@
     <ClInclude Include="miniz\miniz.h">
       <Filter>Header Files\zip</Filter>
     </ClInclude>
-    <ClInclude Include="include\setupsup.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="resources\ProcessHacker.ico">
-      <Filter>Resource Files\Content</Filter>
-    </Image>
-    <Image Include="resources\ProcessHacker.png">
-      <Filter>Resource Files\Content</Filter>
-    </Image>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
-    <ResourceCompile Include="resources\version.rc">
+    <ResourceCompile Include="version.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="resources\LICENSE.txt">
-      <Filter>Resource Files\Content</Filter>
-    </Text>
-  </ItemGroup>
-  <ItemGroup>
-    <Manifest Include="resources\app.manifest">
+    <Manifest Include="app.manifest">
       <Filter>Resource Files\Content</Filter>
     </Manifest>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="ProcessHacker.ico">
+      <Filter>Resource Files\Content</Filter>
+    </Image>
   </ItemGroup>
 </Project>

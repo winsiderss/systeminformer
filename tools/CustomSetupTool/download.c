@@ -1,7 +1,24 @@
+/*
+ * Process Hacker Toolchain -
+ *   project setup
+ *
+ * This file is part of Process Hacker.
+ *
+ * Process Hacker is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Process Hacker is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #include <setup.h>
-#include <setupsup.h>
-#include <workqueue.h>
-#include <winhttp.h>
 
 PPH_STRING SetupGetVersion(
     VOID
@@ -352,7 +369,7 @@ BOOLEAN UpdateDownloadUpdateData(
     ULONG64 timeTicks = 0;
     ULONG64 timeBitsPerSecond = 0;
 
-    SetWindowText(Context->MainHeaderHandle, L"Initializing download request...");
+    SendMessage(Context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Initializing download request...");
 
     userAgentString = PhFormatString(
         L"PH_%lu.%lu_%lu",
@@ -413,7 +430,7 @@ BOOLEAN UpdateDownloadUpdateData(
         goto CleanupExit;
     }
 
-    SetWindowText(Context->MainHeaderHandle, PhFormatString(
+    SendMessage(Context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)PhFormatString(
         L"Downloading Process Hacker %s...", 
         PhGetString(Context->RelVersion)
         )->Buffer);
@@ -503,7 +520,6 @@ BOOLEAN UpdateDownloadUpdateData(
         ULONG downloadedBytes = 0;
         ULONG contentLengthSize = sizeof(ULONG);
         ULONG contentLength = 0;
-        //PPH_STRING status;
         IO_STATUS_BLOCK isb;
         BYTE buffer[PAGE_SIZE];
 
@@ -558,29 +574,26 @@ BOOLEAN UpdateDownloadUpdateData(
 
             {
                 FLOAT percent = ((FLOAT)downloadedBytes / contentLength * 100);
-                PPH_STRING totalLength = PhFormatSize(contentLength, -1);
-                PPH_STRING totalDownloaded = PhFormatSize(downloadedBytes, -1);
-                PPH_STRING totalSpeed = PhFormatSize(timeBitsPerSecond, -1);            
-                PPH_STRING statusMessage = PhFormatString(
-                    L"Downloaded: %s of %s (%.0f%%)",
-                    PhGetStringOrEmpty(totalDownloaded),
-                    PhGetStringOrEmpty(totalLength),
-                    percent
-                    );
-                PPH_STRING subMessage = PhFormatString(
-                    L"Speed: %s/s",
-                    PhGetStringOrEmpty(totalSpeed)
-                    );
+                PH_FORMAT format[9];
+                WCHAR string[MAX_PATH];
 
-                SetWindowText(Context->StatusHandle, statusMessage->Buffer);
-                SetWindowText(Context->SubStatusHandle, subMessage->Buffer);
-                SendMessage(Context->ProgressHandle, PBM_SETPOS, (WPARAM)percent, 0);
+                // L"Downloaded: %s of %s (%.0f%%)\r\nSpeed: %s/s"
+                PhInitFormatS(&format[0], L"Downloaded: ");
+                PhInitFormatSize(&format[1], downloadedBytes);
+                PhInitFormatS(&format[2], L" of ");
+                PhInitFormatSize(&format[3], contentLength);
+                PhInitFormatS(&format[4], L" (");
+                PhInitFormatF(&format[5], percent, 1);
+                PhInitFormatS(&format[6], L"%)\r\nSpeed: ");
+                PhInitFormatSize(&format[7], timeBitsPerSecond);
+                PhInitFormatS(&format[8], L"/s");
 
-                PhDereferenceObject(subMessage);
-                PhDereferenceObject(statusMessage);
-                PhDereferenceObject(totalSpeed);
-                PhDereferenceObject(totalDownloaded);
-                PhDereferenceObject(totalLength);
+                if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), string, sizeof(string), NULL))
+                {
+                    SendMessage(Context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)string);
+                }
+
+                SendMessage(Context->DialogHandle, TDM_SET_PROGRESS_BAR_POS, (WPARAM)percent, 0);
             }
         }
 
