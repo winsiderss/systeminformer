@@ -3,7 +3,7 @@
  *   .NET Assemblies property page
  *
  * Copyright (C) 2011-2015 wj32
- * Copyright (C) 2016-2018 dmex
+ * Copyright (C) 2016-2019 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -1307,10 +1307,7 @@ VOID CreateDotNetTraceQueryThread(
         &context->ClrVersions
         );
 
-    if (!NT_SUCCESS(PhCreateThread2(DotNetTraceQueryThreadStart, context)))
-    {
-        DestroyDotNetTraceQuery(context);
-    }
+    PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), DotNetTraceQueryThreadStart, context);
 }
 
 VOID DestroyDotNetTraceQuery(

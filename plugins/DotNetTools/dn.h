@@ -2,7 +2,7 @@
  * Process Hacker .NET Tools
  *
  * Copyright (C) 2011-2015 wj32
- * Copyright (C) 2015-2016 dmex
+ * Copyright (C) 2015-2019 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -24,6 +24,7 @@
 #define DN_H
 
 #include <phdk.h>
+#include <workqueue.h>
 #include <settings.h>
 
 #include "resource.h"
