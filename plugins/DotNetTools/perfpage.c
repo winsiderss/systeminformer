@@ -38,6 +38,8 @@ PWSTR DotNetCategoryStrings[] =
 
 typedef enum _DOTNET_CATEGORY
 {
+    // .NET CLR Memory (Counters for CLR Garbage Collected heap)
+    DOTNET_CATEGORY_MEMORY,
     // .NET CLR Exceptions (Runtime statistics on CLR exception handling)
     DOTNET_CATEGORY_EXCEPTIONS,
     // .NET CLR Interop (Stats for CLR interop)
@@ -48,8 +50,6 @@ typedef enum _DOTNET_CATEGORY
     DOTNET_CATEGORY_LOADING,
     // .NET CLR LocksAndThreads (Stats for CLR Locks and Threads)
     DOTNET_CATEGORY_LOCKSANDTHREADS,
-    // .NET CLR Memory (Counters for CLR Garbage Collected heap)
-    DOTNET_CATEGORY_MEMORY,
     // .NET CLR Remoting (Stats for CLR Remoting)
     DOTNET_CATEGORY_REMOTING,
     // .NET CLR Security (Stats for CLR Security)
@@ -58,6 +58,29 @@ typedef enum _DOTNET_CATEGORY
 
 typedef enum _DOTNET_INDEX
 {
+    DOTNET_INDEX_MEMORY_GENZEROCOLLECTIONS,
+    DOTNET_INDEX_MEMORY_GENONECOLLECTIONS,
+    DOTNET_INDEX_MEMORY_GENTWOCOLLECTIONS,
+    DOTNET_INDEX_MEMORY_PROMOTEDFROMGENZERO,
+    DOTNET_INDEX_MEMORY_PROMOTEDFROMGENONE,
+    DOTNET_INDEX_MEMORY_PROMOTEDFINALFROMGENZERO,
+    DOTNET_INDEX_MEMORY_PROCESSID,
+    DOTNET_INDEX_MEMORY_GENZEROHEAPSIZE,
+    DOTNET_INDEX_MEMORY_GENONEHEAPSIZE,
+    DOTNET_INDEX_MEMORY_GENTWOHEAPSIZE,
+    DOTNET_INDEX_MEMORY_LOHSIZE,
+    DOTNET_INDEX_MEMORY_FINALSURVIVORS,
+    DOTNET_INDEX_MEMORY_GCHANDLES,
+    DOTNET_INDEX_MEMORY_INDUCEDGC,
+    DOTNET_INDEX_MEMORY_TIMEINGC,
+    DOTNET_INDEX_MEMORY_BYTESINALLHEAPS,
+    DOTNET_INDEX_MEMORY_TOTALCOMMITTED,
+    DOTNET_INDEX_MEMORY_TOTALRESERVED,
+    DOTNET_INDEX_MEMORY_TOTALPINNED,
+    DOTNET_INDEX_MEMORY_TOTALSINKS,
+    DOTNET_INDEX_MEMORY_TOTALBYTESSINCESTART,
+    DOTNET_INDEX_MEMORY_TOTALLOHBYTESSINCESTART,
+
     DOTNET_INDEX_EXCEPTIONS_THROWNCOUNT,
     DOTNET_INDEX_EXCEPTIONS_FILTERSCOUNT,
     DOTNET_INDEX_EXCEPTIONS_FINALLYCOUNT,
@@ -92,29 +115,6 @@ typedef enum _DOTNET_INDEX
     DOTNET_INDEX_LOCKSANDTHREADS_CURRENTPHYSICAL,
     DOTNET_INDEX_LOCKSANDTHREADS_CURRENTRECOGNIZED,
     DOTNET_INDEX_LOCKSANDTHREADS_TOTALRECOGNIZED,
-
-    DOTNET_INDEX_MEMORY_GENZEROCOLLECTIONS,
-    DOTNET_INDEX_MEMORY_GENONECOLLECTIONS,
-    DOTNET_INDEX_MEMORY_GENTWOCOLLECTIONS,
-    DOTNET_INDEX_MEMORY_PROMOTEDFROMGENZERO,
-    DOTNET_INDEX_MEMORY_PROMOTEDFROMGENONE,
-    DOTNET_INDEX_MEMORY_PROMOTEDFINALFROMGENZERO,
-    DOTNET_INDEX_MEMORY_PROCESSID,
-    DOTNET_INDEX_MEMORY_GENZEROHEAPSIZE,
-    DOTNET_INDEX_MEMORY_GENONEHEAPSIZE,
-    DOTNET_INDEX_MEMORY_GENTWOHEAPSIZE,
-    DOTNET_INDEX_MEMORY_LOHSIZE,
-    DOTNET_INDEX_MEMORY_FINALSURVIVORS,
-    DOTNET_INDEX_MEMORY_GCHANDLES,
-    DOTNET_INDEX_MEMORY_INDUCEDGC,
-    DOTNET_INDEX_MEMORY_TIMEINGC,
-    DOTNET_INDEX_MEMORY_BYTESINALLHEAPS,
-    DOTNET_INDEX_MEMORY_TOTALCOMMITTED,
-    DOTNET_INDEX_MEMORY_TOTALRESERVED,
-    DOTNET_INDEX_MEMORY_TOTALPINNED,
-    DOTNET_INDEX_MEMORY_TOTALSINKS,
-    DOTNET_INDEX_MEMORY_TOTALBYTESSINCESTART,
-    DOTNET_INDEX_MEMORY_TOTALLOHBYTESSINCESTART,
 
     DOTNET_INDEX_REMOTING_TOTALREMOTECALLS,
     DOTNET_INDEX_REMOTING_CHANNELS,
@@ -181,14 +181,150 @@ VOID DotNetPerfAddListViewGroups(
     )
 {
     ListView_EnableGroupView(ListViewHandle, TRUE);
+    PhAddListViewGroup(ListViewHandle, DOTNET_CATEGORY_MEMORY, L".NET CLR Memory");
     PhAddListViewGroup(ListViewHandle, DOTNET_CATEGORY_EXCEPTIONS, L".NET CLR Exceptions");
     PhAddListViewGroup(ListViewHandle, DOTNET_CATEGORY_INTEROP, L".NET CLR Interop");
     PhAddListViewGroup(ListViewHandle, DOTNET_CATEGORY_JIT, L".NET CLR Jit");
     PhAddListViewGroup(ListViewHandle, DOTNET_CATEGORY_LOADING, L".NET CLR Loading");
     PhAddListViewGroup(ListViewHandle, DOTNET_CATEGORY_LOCKSANDTHREADS, L".NET CLR LocksAndThreads");
-    PhAddListViewGroup(ListViewHandle, DOTNET_CATEGORY_MEMORY, L".NET CLR Memory");
     PhAddListViewGroup(ListViewHandle, DOTNET_CATEGORY_REMOTING, L".NET CLR Remoting");
     PhAddListViewGroup(ListViewHandle, DOTNET_CATEGORY_SECURITY, L".NET CLR Security");
+
+     // This counter displays the number of times the generation 0 objects (youngest; most recently allocated) are garbage collected (Gen 0 GC) since the start of the application.
+    // Gen 0 GC occurs when the available memory in generation 0 is not sufficient to satisfy an allocation request.
+    // This counter is incremented at the end of a Gen 0 GC. Higher generation GCs include all lower generation GCs.
+    // This counter is explicitly incremented when a higher generation (Gen 1 or Gen 2) GC occurs. _Global_ counter value is not accurate and should be ignored.
+    // This counter displays the last observed value.
+    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_MEMORY, DOTNET_INDEX_MEMORY_GENZEROCOLLECTIONS, L"# Gen 0 Collections", UlongToPtr(DOTNET_INDEX_MEMORY_GENZEROCOLLECTIONS));
+
+    // This counter displays the number of times the generation 1 objects are garbage collected since the start of the application.
+    // The counter is incremented at the end of a Gen 1 GC. Higher generation GCs include all lower generation GCs.
+    // This counter is explicitly incremented when a higher generation (Gen 2) GC occurs. _Global_ counter value is not accurate and should be ignored.
+    // This counter displays the last observed value.
+    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_MEMORY, DOTNET_INDEX_MEMORY_GENONECOLLECTIONS, L"# Gen 1 Collections", UlongToPtr(DOTNET_INDEX_MEMORY_GENONECOLLECTIONS));
+
+    // This counter displays the number of times the generation 2 objects(older) are garbage collected since the start of the application.
+    // The counter is incremented at the end of a Gen 2 GC(also called full GC)._Global_ counter value is not accurate and should be ignored.
+    // This counter displays the last observed value.
+    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_MEMORY, DOTNET_INDEX_MEMORY_GENTWOCOLLECTIONS, L"# Gen 2 Collections", UlongToPtr(DOTNET_INDEX_MEMORY_GENTWOCOLLECTIONS));
+
+    // This counter displays the bytes of memory that survive garbage collection(GC) and are promoted from generation 0 to generation 1;
+    // objects that are promoted just because they are waiting to be finalized are not included in this counter.
+    // This counter displays the value observed at the end of the last GC; its not a cumulative counter.
+    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_MEMORY, DOTNET_INDEX_MEMORY_PROMOTEDFROMGENZERO, L"Promoted Memory from Gen 0", UlongToPtr(DOTNET_INDEX_MEMORY_PROMOTEDFROMGENZERO));
+
+    // This counter displays the bytes of memory that survive garbage collection(GC) and are promoted from generation 1 to generation 2;
+    // objects that are promoted just because they are waiting to be finalized are not included in this counter.
+    // This counter displays the value observed at the end of the last GC; its not a cumulative counter.
+    // This counter is reset to 0 if the last GC was a Gen 0 GC only.
+    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_MEMORY, DOTNET_INDEX_MEMORY_PROMOTEDFROMGENONE, L"Promoted Memory from Gen 1", UlongToPtr(DOTNET_INDEX_MEMORY_PROMOTEDFROMGENONE));
+
+    // This counter displays the bytes of memory that are promoted from generation 0 to generation 1 just because they are waiting to be finalized.
+    // This counter displays the value observed at the end of the last GC; its not a cumulative counter.
+    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_MEMORY, DOTNET_INDEX_MEMORY_PROMOTEDFINALFROMGENZERO, L"Promoted Finalization-Memory from Gen 0", UlongToPtr(DOTNET_INDEX_MEMORY_PROMOTEDFINALFROMGENZERO));
+
+    // Reserved for future use.
+    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_MEMORY, DOTNET_INDEX_MEMORY_PROCESSID, L"Process ID", UlongToPtr(DOTNET_INDEX_MEMORY_PROCESSID));
+
+    // This counter displays the maximum bytes that can be allocated in generation 0 (Gen 0);
+    // its does not indicate the current number of bytes allocated in Gen 0.
+    // A Gen 0 GC is triggered when the allocations since the last GC exceed this size.
+    // The Gen 0 size is tuned by the Garbage Collector and can change during the execution of the application.
+    // At the end of a Gen 0 collection the size of the Gen 0 heap is infact 0 bytes; this counter displays the size(in bytes) of allocations that would trigger
+    // the next Gen 0 GC.This counter is updated at the end of a GC; its not updated on every allocation.
+    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_MEMORY, DOTNET_INDEX_MEMORY_GENZEROHEAPSIZE, L"Gen 0 Heap Size", UlongToPtr(DOTNET_INDEX_MEMORY_GENZEROHEAPSIZE));
+
+    // This counter displays the current number of bytes in generation 1 (Gen 1);
+    // this counter does not display the maximum size of Gen 1. Objects are not directly allocated in this generation;
+    // they are promoted from previous Gen 0 GCs.This counter is updated at the end of a GC; its not updated on every allocation.
+    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_MEMORY, DOTNET_INDEX_MEMORY_GENONEHEAPSIZE, L"Gen 1 Heap Size", UlongToPtr(DOTNET_INDEX_MEMORY_GENONEHEAPSIZE));
+
+    // This counter displays the current number of bytes in generation 2 (Gen 2).
+    // Objects are not directly allocated in this generation; they are promoted from Gen 1 during previous Gen 1 GCs.
+    // This counter is updated at the end of a GC; its not updated on every allocation.
+    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_MEMORY, DOTNET_INDEX_MEMORY_GENTWOHEAPSIZE, L"Gen 2 Heap Size", UlongToPtr(DOTNET_INDEX_MEMORY_GENTWOHEAPSIZE));
+
+    // This counter displays the current size of the Large Object Heap in bytes.
+    // Objects greater than 20 KBytes are treated as large objects by the Garbage Collector and are directly allocated in a special heap; they are not promoted through the generations.
+    // This counter is updated at the end of a GC; its not updated on every allocation.
+    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_MEMORY, DOTNET_INDEX_MEMORY_LOHSIZE, L"Large Object Heap Size", UlongToPtr(DOTNET_INDEX_MEMORY_LOHSIZE));
+
+    // This counter displays the number of garbage collected objects that survive a collection because they are waiting to be finalized.
+    // If these objects hold references to other objects then those objects also survive but are not counted by this counter; the "Promoted Finalization-Memory from Gen 0"
+    // and "Promoted Finalization-Memory from Gen 1" counters represent all the memory that survived due to finalization.
+    // This counter is not a cumulative counter; its updated at the end of every GC with count of the survivors during that particular GC only.
+    // This counter was designed to indicate the extra overhead that the application might incur because of finalization.
+    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_MEMORY, DOTNET_INDEX_MEMORY_FINALSURVIVORS, L"Finalization Survivors", UlongToPtr(DOTNET_INDEX_MEMORY_FINALSURVIVORS));
+
+    // This counter displays the current number of GC Handles in-use.
+    // GCHandles are handles to resources external to the CLR and the managed environment.
+    // Handles occupy small amounts of memory in the GCHeap but potentially expensive unmanaged resources.
+    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_MEMORY, DOTNET_INDEX_MEMORY_GCHANDLES, L"# GC Handles", UlongToPtr(DOTNET_INDEX_MEMORY_GCHANDLES));
+
+    // This counter displays the peak number of times a garbage collection was performed because of an explicit call to GC.Collect.
+    // Its a good practice to let the GC tune the frequency of its collections.
+    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_MEMORY, DOTNET_INDEX_MEMORY_INDUCEDGC, L"# Induced GC", UlongToPtr(DOTNET_INDEX_MEMORY_INDUCEDGC));
+
+    // % Time in GC is the percentage of elapsed time that was spent in performing a garbage collection(GC) since the last GC cycle.
+    // This counter is usually an indicator of the work done by the Garbage Collector on behalf of the application to collect and compact memory.
+    // This counter is updated only at the end of every GC and the counter value reflects the last observed value; its not an average.
+    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_MEMORY, DOTNET_INDEX_MEMORY_TIMEINGC, L"% Time in GC", UlongToPtr(DOTNET_INDEX_MEMORY_TIMEINGC));
+
+    // This counter is the sum of four other counters; Gen 0 Heap Size; Gen 1 Heap Size; Gen 2 Heap Size and the Large Object Heap Size.
+    // This counter indicates the current memory allocated in bytes on the GC Heaps.
+    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_MEMORY, DOTNET_INDEX_MEMORY_BYTESINALLHEAPS, L"# Bytes in all Heaps", UlongToPtr(DOTNET_INDEX_MEMORY_BYTESINALLHEAPS));
+
+    // This counter displays the amount of virtual memory(in bytes) currently committed by the Garbage Collector.
+    // (Committed memory is the physical memory for which space has been reserved on the disk paging file).
+    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_MEMORY, DOTNET_INDEX_MEMORY_TOTALCOMMITTED, L"# Total Committed Bytes", UlongToPtr(DOTNET_INDEX_MEMORY_TOTALCOMMITTED));
+
+    // This counter displays the amount of virtual memory(in bytes) currently reserved by the Garbage Collector.
+    // (Reserved memory is the virtual memory space reserved for the application but no disk or main memory pages have been used.)
+    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_MEMORY, DOTNET_INDEX_MEMORY_TOTALRESERVED, L"# Total Reserved Bytes", UlongToPtr(DOTNET_INDEX_MEMORY_TOTALRESERVED));
+
+    // This counter displays the number of pinned objects encountered in the last GC.
+    // This counter tracks the pinned objects only in the heaps that were garbage collected e.g. A Gen 0 GC would cause enumeration of pinned objects in the generation 0 heap only.
+    // A pinned object is one that the Garbage Collector cannot move in memory.
+    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_MEMORY, DOTNET_INDEX_MEMORY_TOTALPINNED, L"# of Pinned Objects", UlongToPtr(DOTNET_INDEX_MEMORY_TOTALPINNED));
+
+    // This counter displays the current number of sync blocks in use. Sync blocks are per-object data structures allocated for storing synchronization information.
+    // Sync blocks hold weak references to managed objects and need to be scanned by the Garbage Collector.
+    // Sync blocks are not limited to storing synchronization information and can also store COM interop metadata.
+    // This counter was designed to indicate performance problems with heavy use of synchronization primitives.
+    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_MEMORY, DOTNET_INDEX_MEMORY_TOTALSINKS, L"# of Sink Blocks in use", UlongToPtr(DOTNET_INDEX_MEMORY_TOTALSINKS));
+
+    // Reserved for future use.
+    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_MEMORY, DOTNET_INDEX_MEMORY_TOTALBYTESSINCESTART, L"Total Bytes Allocated (since start)", UlongToPtr(DOTNET_INDEX_MEMORY_TOTALBYTESSINCESTART));
+
+    // Reserved for future use.
+    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_MEMORY, DOTNET_INDEX_MEMORY_TOTALLOHBYTESSINCESTART, L"Total Bytes Allocated for Large Objects (since start)", UlongToPtr(DOTNET_INDEX_MEMORY_TOTALLOHBYTESSINCESTART));
+
+    // Gen 0 Promoted Bytes / Sec
+    // This counter displays the bytes per second that are promoted from generation 0 (youngest)to generation 1;
+    // objects that are promoted just because they are waiting to be finalized are not included in this counter.
+    // Memory is promoted when it survives a garbage collection.This counter was designed as an indicator of relatively long-lived objects being created per sec.
+    // This counter displays the difference between the values observed in the last two samples divided by the duration of the sample interval.
+    // TODO: We need to count the delta.
+
+    // Gen 1 Promoted Bytes / Sec
+    // This counter displays the bytes per second that are promoted from generation 1 to generation 2 (oldest);
+    // objects that are promoted just because they are waiting to be finalized are not included in this counter.
+    // Memory is promoted when it survives a garbage collection.
+    // Nothing is promoted from generation 2 since it is the oldest.
+    // This counter was designed as an indicator of very long-lived objects being created per sec.
+    // This counter displays the difference between the values observed in the last two samples divided by the duration of the sample interval.
+    // TODO: We need to count the delta.
+
+    // Promoted Finalization - Memory from Gen 1
+    // This counter displays the bytes of memory that are promoted from generation 1 to generation 2 just because they are waiting to be finalized.
+    // This counter displays the value observed at the end of the last GC; its not a cumulative counter.This counter is reset to 0 if the last GC was a Gen 0 GC only.
+    // TODO: We need to count the delta.
+
+    // Allocated Bytes / sec
+    // This counter displays the rate of bytes per second allocated on the GC Heap.
+    // This counter is updated at the end of every GC; not at each allocation.
+    // This counter is not an average over time; it displays the difference between the values observed in the last two samples divided by the duration of the sample interval.
+    // TODO: We need to count the delta.
 
     // This counter displays the total number of exceptions thrown since the start of the application.
     // These include both .NET exceptions and unmanaged exceptions that get converted into .NET exceptions e.g. null pointer reference exception in unmanaged code
@@ -391,142 +527,6 @@ VOID DotNetPerfAddListViewGroups(
     // This counter displays the number of threads per second that have been recognized by the CLR; these threads have a corresponding .NET thread object associated with them.
     // These threads are not created by the CLR; they are created outside the CLR but have since run inside the CLR at least once.
     // Only unique threads are tracked; threads with same thread ID re-entering the CLR or recreated after thread exit are not counted twice.
-    // This counter is not an average over time; it displays the difference between the values observed in the last two samples divided by the duration of the sample interval.
-    // TODO: We need to count the delta.
-
-    // This counter displays the number of times the generation 0 objects (youngest; most recently allocated) are garbage collected (Gen 0 GC) since the start of the application.
-    // Gen 0 GC occurs when the available memory in generation 0 is not sufficient to satisfy an allocation request.
-    // This counter is incremented at the end of a Gen 0 GC. Higher generation GCs include all lower generation GCs.
-    // This counter is explicitly incremented when a higher generation (Gen 1 or Gen 2) GC occurs. _Global_ counter value is not accurate and should be ignored.
-    // This counter displays the last observed value.
-    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_MEMORY, DOTNET_INDEX_MEMORY_GENZEROCOLLECTIONS, L"# Gen 0 Collections", UlongToPtr(DOTNET_INDEX_MEMORY_GENZEROCOLLECTIONS));
-
-    // This counter displays the number of times the generation 1 objects are garbage collected since the start of the application.
-    // The counter is incremented at the end of a Gen 1 GC. Higher generation GCs include all lower generation GCs.
-    // This counter is explicitly incremented when a higher generation (Gen 2) GC occurs. _Global_ counter value is not accurate and should be ignored.
-    // This counter displays the last observed value.
-    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_MEMORY, DOTNET_INDEX_MEMORY_GENONECOLLECTIONS, L"# Gen 1 Collections", UlongToPtr(DOTNET_INDEX_MEMORY_GENONECOLLECTIONS));
-
-    // This counter displays the number of times the generation 2 objects(older) are garbage collected since the start of the application.
-    // The counter is incremented at the end of a Gen 2 GC(also called full GC)._Global_ counter value is not accurate and should be ignored.
-    // This counter displays the last observed value.
-    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_MEMORY, DOTNET_INDEX_MEMORY_GENTWOCOLLECTIONS, L"# Gen 2 Collections", UlongToPtr(DOTNET_INDEX_MEMORY_GENTWOCOLLECTIONS));
-
-    // This counter displays the bytes of memory that survive garbage collection(GC) and are promoted from generation 0 to generation 1;
-    // objects that are promoted just because they are waiting to be finalized are not included in this counter.
-    // This counter displays the value observed at the end of the last GC; its not a cumulative counter.
-    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_MEMORY, DOTNET_INDEX_MEMORY_PROMOTEDFROMGENZERO, L"Promoted Memory from Gen 0", UlongToPtr(DOTNET_INDEX_MEMORY_PROMOTEDFROMGENZERO));
-
-    // This counter displays the bytes of memory that survive garbage collection(GC) and are promoted from generation 1 to generation 2;
-    // objects that are promoted just because they are waiting to be finalized are not included in this counter.
-    // This counter displays the value observed at the end of the last GC; its not a cumulative counter.
-    // This counter is reset to 0 if the last GC was a Gen 0 GC only.
-    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_MEMORY, DOTNET_INDEX_MEMORY_PROMOTEDFROMGENONE, L"Promoted Memory from Gen 1", UlongToPtr(DOTNET_INDEX_MEMORY_PROMOTEDFROMGENONE));
-
-    // This counter displays the bytes of memory that are promoted from generation 0 to generation 1 just because they are waiting to be finalized.
-    // This counter displays the value observed at the end of the last GC; its not a cumulative counter.
-    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_MEMORY, DOTNET_INDEX_MEMORY_PROMOTEDFINALFROMGENZERO, L"Promoted Finalization-Memory from Gen 0", UlongToPtr(DOTNET_INDEX_MEMORY_PROMOTEDFINALFROMGENZERO));
-
-    // Reserved for future use.
-    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_MEMORY, DOTNET_INDEX_MEMORY_PROCESSID, L"Process ID", UlongToPtr(DOTNET_INDEX_MEMORY_PROCESSID));
-
-    // This counter displays the maximum bytes that can be allocated in generation 0 (Gen 0);
-    // its does not indicate the current number of bytes allocated in Gen 0.
-    // A Gen 0 GC is triggered when the allocations since the last GC exceed this size.
-    // The Gen 0 size is tuned by the Garbage Collector and can change during the execution of the application.
-    // At the end of a Gen 0 collection the size of the Gen 0 heap is infact 0 bytes; this counter displays the size(in bytes) of allocations that would trigger
-    // the next Gen 0 GC.This counter is updated at the end of a GC; its not updated on every allocation.
-    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_MEMORY, DOTNET_INDEX_MEMORY_GENZEROHEAPSIZE, L"Gen 0 Heap Size", UlongToPtr(DOTNET_INDEX_MEMORY_GENZEROHEAPSIZE));
-
-    // This counter displays the current number of bytes in generation 1 (Gen 1);
-    // this counter does not display the maximum size of Gen 1. Objects are not directly allocated in this generation;
-    // they are promoted from previous Gen 0 GCs.This counter is updated at the end of a GC; its not updated on every allocation.
-    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_MEMORY, DOTNET_INDEX_MEMORY_GENONEHEAPSIZE, L"Gen 1 Heap Size", UlongToPtr(DOTNET_INDEX_MEMORY_GENONEHEAPSIZE));
-
-    // This counter displays the current number of bytes in generation 2 (Gen 2).
-    // Objects are not directly allocated in this generation; they are promoted from Gen 1 during previous Gen 1 GCs.
-    // This counter is updated at the end of a GC; its not updated on every allocation.
-    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_MEMORY, DOTNET_INDEX_MEMORY_GENTWOHEAPSIZE, L"Gen 2 Heap Size", UlongToPtr(DOTNET_INDEX_MEMORY_GENTWOHEAPSIZE));
-
-    // This counter displays the current size of the Large Object Heap in bytes.
-    // Objects greater than 20 KBytes are treated as large objects by the Garbage Collector and are directly allocated in a special heap; they are not promoted through the generations.
-    // This counter is updated at the end of a GC; its not updated on every allocation.
-    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_MEMORY, DOTNET_INDEX_MEMORY_LOHSIZE, L"Large Object Heap Size", UlongToPtr(DOTNET_INDEX_MEMORY_LOHSIZE));
-
-    // This counter displays the number of garbage collected objects that survive a collection because they are waiting to be finalized.
-    // If these objects hold references to other objects then those objects also survive but are not counted by this counter; the "Promoted Finalization-Memory from Gen 0"
-    // and "Promoted Finalization-Memory from Gen 1" counters represent all the memory that survived due to finalization.
-    // This counter is not a cumulative counter; its updated at the end of every GC with count of the survivors during that particular GC only.
-    // This counter was designed to indicate the extra overhead that the application might incur because of finalization.
-    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_MEMORY, DOTNET_INDEX_MEMORY_FINALSURVIVORS, L"Finalization Survivors", UlongToPtr(DOTNET_INDEX_MEMORY_FINALSURVIVORS));
-
-    // This counter displays the current number of GC Handles in-use.
-    // GCHandles are handles to resources external to the CLR and the managed environment.
-    // Handles occupy small amounts of memory in the GCHeap but potentially expensive unmanaged resources.
-    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_MEMORY, DOTNET_INDEX_MEMORY_GCHANDLES, L"# GC Handles", UlongToPtr(DOTNET_INDEX_MEMORY_GCHANDLES));
-
-    // This counter displays the peak number of times a garbage collection was performed because of an explicit call to GC.Collect.
-    // Its a good practice to let the GC tune the frequency of its collections.
-    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_MEMORY, DOTNET_INDEX_MEMORY_INDUCEDGC, L"# Induced GC", UlongToPtr(DOTNET_INDEX_MEMORY_INDUCEDGC));
-
-    // % Time in GC is the percentage of elapsed time that was spent in performing a garbage collection(GC) since the last GC cycle.
-    // This counter is usually an indicator of the work done by the Garbage Collector on behalf of the application to collect and compact memory.
-    // This counter is updated only at the end of every GC and the counter value reflects the last observed value; its not an average.
-    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_MEMORY, DOTNET_INDEX_MEMORY_TIMEINGC, L"% Time in GC", UlongToPtr(DOTNET_INDEX_MEMORY_TIMEINGC));
-
-    // This counter is the sum of four other counters; Gen 0 Heap Size; Gen 1 Heap Size; Gen 2 Heap Size and the Large Object Heap Size.
-    // This counter indicates the current memory allocated in bytes on the GC Heaps.
-    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_MEMORY, DOTNET_INDEX_MEMORY_BYTESINALLHEAPS, L"# Bytes in all Heaps", UlongToPtr(DOTNET_INDEX_MEMORY_BYTESINALLHEAPS));
-
-    // This counter displays the amount of virtual memory(in bytes) currently committed by the Garbage Collector.
-    // (Committed memory is the physical memory for which space has been reserved on the disk paging file).
-    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_MEMORY, DOTNET_INDEX_MEMORY_TOTALCOMMITTED, L"# Total Committed Bytes", UlongToPtr(DOTNET_INDEX_MEMORY_TOTALCOMMITTED));
-
-    // This counter displays the amount of virtual memory(in bytes) currently reserved by the Garbage Collector.
-    // (Reserved memory is the virtual memory space reserved for the application but no disk or main memory pages have been used.)
-    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_MEMORY, DOTNET_INDEX_MEMORY_TOTALRESERVED, L"# Total Reserved Bytes", UlongToPtr(DOTNET_INDEX_MEMORY_TOTALRESERVED));
-
-    // This counter displays the number of pinned objects encountered in the last GC.
-    // This counter tracks the pinned objects only in the heaps that were garbage collected e.g. A Gen 0 GC would cause enumeration of pinned objects in the generation 0 heap only.
-    // A pinned object is one that the Garbage Collector cannot move in memory.
-    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_MEMORY, DOTNET_INDEX_MEMORY_TOTALPINNED, L"# of Pinned Objects", UlongToPtr(DOTNET_INDEX_MEMORY_TOTALPINNED));
-
-    // This counter displays the current number of sync blocks in use. Sync blocks are per-object data structures allocated for storing synchronization information.
-    // Sync blocks hold weak references to managed objects and need to be scanned by the Garbage Collector.
-    // Sync blocks are not limited to storing synchronization information and can also store COM interop metadata.
-    // This counter was designed to indicate performance problems with heavy use of synchronization primitives.
-    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_MEMORY, DOTNET_INDEX_MEMORY_TOTALSINKS, L"# of Sink Blocks in use", UlongToPtr(DOTNET_INDEX_MEMORY_TOTALSINKS));
-
-    // Reserved for future use.
-    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_MEMORY, DOTNET_INDEX_MEMORY_TOTALBYTESSINCESTART, L"Total Bytes Allocated (since start)", UlongToPtr(DOTNET_INDEX_MEMORY_TOTALBYTESSINCESTART));
-
-    // Reserved for future use.
-    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_MEMORY, DOTNET_INDEX_MEMORY_TOTALLOHBYTESSINCESTART, L"Total Bytes Allocated for Large Objects (since start)", UlongToPtr(DOTNET_INDEX_MEMORY_TOTALLOHBYTESSINCESTART));
-
-    // Gen 0 Promoted Bytes / Sec
-    // This counter displays the bytes per second that are promoted from generation 0 (youngest)to generation 1;
-    // objects that are promoted just because they are waiting to be finalized are not included in this counter.
-    // Memory is promoted when it survives a garbage collection.This counter was designed as an indicator of relatively long-lived objects being created per sec.
-    // This counter displays the difference between the values observed in the last two samples divided by the duration of the sample interval.
-    // TODO: We need to count the delta.
-
-    // Gen 1 Promoted Bytes / Sec
-    // This counter displays the bytes per second that are promoted from generation 1 to generation 2 (oldest);
-    // objects that are promoted just because they are waiting to be finalized are not included in this counter.
-    // Memory is promoted when it survives a garbage collection.
-    // Nothing is promoted from generation 2 since it is the oldest.
-    // This counter was designed as an indicator of very long-lived objects being created per sec.
-    // This counter displays the difference between the values observed in the last two samples divided by the duration of the sample interval.
-    // TODO: We need to count the delta.
-
-    // Promoted Finalization - Memory from Gen 1
-    // This counter displays the bytes of memory that are promoted from generation 1 to generation 2 just because they are waiting to be finalized.
-    // This counter displays the value observed at the end of the last GC; its not a cumulative counter.This counter is reset to 0 if the last GC was a Gen 0 GC only.
-    // TODO: We need to count the delta.
-
-    // Allocated Bytes / sec
-    // This counter displays the rate of bytes per second allocated on the GC Heap.
-    // This counter is updated at the end of every GC; not at each allocation.
     // This counter is not an average over time; it displays the difference between the values observed in the last two samples divided by the duration of the sample interval.
     // TODO: We need to count the delta.
 
@@ -744,6 +744,337 @@ VOID DotNetPerfUpdateCounterData(
     UpdateWindow(Context->CountersListViewHandle);
 }
 
+#include <pshpack1.h>
+typedef enum DiagnosticsServerCommandSet
+{
+    DiagnosticsServerCommand_Dump = 0x01,
+    DiagnosticsServerCommand_EventPipe = 0x02,
+    DiagnosticsServerCommand_Profiler = 0x03,
+    DiagnosticsServerCommand_Server = 0xFF,
+} DiagnosticsServerCommandSet;
+
+typedef enum DiagnosticsServerCommandId
+{
+    DiagnosticsServerCommandIdOK = 0x00,
+    DiagnosticsServerCommandIdError = 0xFF,
+} DiagnosticsServerCommandId;
+
+typedef enum EventPipeCommandId
+{
+    StopTracing = 0x01,
+    CollectTracing = 0x02,
+    CollectTracing2 = 0x03,
+} EventPipeCommandId;
+
+typedef enum DumpCommandId
+{
+    GenerateCoreDump = 0x01,
+} DumpCommandId;
+//
+//typedef enum DiagnosticsMessageType
+//{
+//    /// <summary>
+//    /// Initiates core dump generation 
+//    /// </summary>
+//    GenerateCoreDump = 1,
+//    /// <summary>
+//    /// Starts an EventPipe session that writes events to a file when the session is stopped or the application exits.
+//    /// </summary>
+//    StartEventPipeTracing = 1024,
+//    /// <summary>
+//    /// Stops an EventPipe session.
+//    /// </summary>
+//    StopEventPipeTracing,
+//    /// <summary>
+//    /// Starts an EventPipe session that sends events out-of-proc through IPC.
+//    /// </summary>
+//    CollectEventPipeTracing,
+//    /// <summary>
+//    /// Attaches a profiler to an existing process
+//    /// </summary>
+//    AttachProfiler = 2048,
+//} DiagnosticsMessageType;
+
+typedef enum ProfilerCommandId
+{
+    AttachProfiler = 0x01,
+} ProfilerCommandId;
+
+#define DOTNET_IPC_V1_MAGIC "DOTNET_IPC_V1"
+
+typedef struct _HDR
+{
+    UCHAR Magic[14]; // "DOTNET_IPC_V1"
+    USHORT Length; // sizeof(IpcHeader) == 20 // IpcHeader.size == sizeof(IpcHeader) + PayloadStruct.GetSize()
+    UCHAR CommandSet; // DiagnosticsServerCommand_EventPipe
+    UCHAR CommandId; // EventPipeCommandId
+    USHORT Reserved;
+} HDR, *PHDR;
+
+typedef struct _provider_config
+{
+    ULONG64 keywords;
+    UINT EventLevel;
+    INT ProviderNameLength;
+    WCHAR ProviderName[15];
+    INT FilterDataLength;
+    WCHAR FilterData[26];
+} provider_config;
+
+typedef struct _nettrace
+{
+    UINT circularBufferMB;
+    UINT Format;
+    UCHAR RequestRundown;
+    INT ProviderCount;
+    provider_config providers[1];
+} nettrace, *Pnettrace;
+
+typedef struct message
+{
+    HDR Header;
+    nettrace Payload;
+} message, * Pmessage;
+
+//// size = 14 + 2 + 1 + 1 + 2 = 20 bytes
+//struct IpcHeader
+//{
+//    uint8_t[14] magic = "DOTNET_IPC_V1";
+//    uint16_t size;        // size of packet = size of header + payload
+//    uint8_t command_set; // combined with command_id is the Command to invoke
+//    uint8_t command_id;  // combined with command_set is the Command to invoke
+//    uint16_t reserved;    // for potential future use
+//};
+
+typedef enum DiagnosticMessageType
+{
+    // EventPipe
+    StartEventPipeTracing = 1024, // To file
+    StopEventPipeTracing,
+    CollectEventPipeTracing, // To IPC
+} DiagnosticMessageType;
+
+typedef struct MessageHeader
+{
+    DiagnosticMessageType RequestType;
+    ULONG Pid;
+} MessageHeader, *PMessageHeader;
+
+typedef enum EventBlockFlags
+{
+    Uncompressed = 0,
+    HeaderCompression = 1
+} EventBlockFlags;
+
+typedef struct TraceEventHeader
+{
+    USHORT HeaderSize;
+    USHORT Flags; // EventBlockFlags
+} TraceEventHeader, *PTraceEventHeader;
+
+typedef struct TraceEventHeaderV4
+{
+    int EventSize;          // Size bytes of this header and the payload and stacks if any.  does NOT encode the size of the EventSize field itself. 
+    int MetaDataId;          // a number identifying the description of this event.  
+    int SequenceNumber;
+    long ThreadId;
+    long CaptureThreadId;
+    int CaptureProcNumber;
+    int StackId;
+    long TimeStamp;
+    GUID ActivityID;
+    GUID RelatedActivityID;
+    int PayloadSize;         // size in bytes of the user defined payload data. 
+    BYTE Payload[4];   // Actually of variable size.  4 is used to avoid potential alignment issues.   This 4 also appears in HeaderSize below. 
+} TraceEventHeaderV4, * PTraceEventHeaderV4;
+#include <poppack.h>
+
+NTSTATUS dotnet(HANDLE ProcessId)
+{
+    NTSTATUS status;
+    HANDLE sectionHandle;
+    SIZE_T returnLength;
+    IO_STATUS_BLOCK isb;
+    OBJECT_ATTRIBUTES objectAttributes;
+    UNICODE_STRING objectNameUs;
+    PH_STRINGREF objectNameSr;
+    PH_FORMAT format[2];
+    WCHAR formatBuffer[0x80];
+
+    ULONG sessionId;
+    ULONG bytesRead;
+    IO_STATUS_BLOCK iosb;
+    BYTE buffer[PAGE_SIZE];
+
+    PhInitFormatS(&format[0], DEVICE_NAMED_PIPE L"dotnet-diagnostic-");
+    PhInitFormatU(&format[1], HandleToUlong(ProcessId));
+
+    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), &returnLength))
+    {
+        objectNameSr.Length = returnLength - sizeof(UNICODE_NULL);
+        objectNameSr.Buffer = formatBuffer;
+
+        PhStringRefToUnicodeString(&objectNameSr, &objectNameUs);
+    }
+    else
+    {
+        RtlInitEmptyUnicodeString(&objectNameUs, NULL, 0);
+    }
+
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &objectNameUs,
+        OBJ_CASE_INSENSITIVE,
+        NULL,
+        NULL
+        );
+
+    status = NtCreateFile(
+        &sectionHandle,
+        FILE_GENERIC_READ | FILE_GENERIC_WRITE,
+        &objectAttributes,
+        &isb,
+        NULL,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+        NULL,
+        0
+        );
+
+    message trace;
+
+    memset(&trace, 0, sizeof(message));// +sizeof(nettrace));
+
+    memcpy(&trace.Header.Magic, "DOTNET_IPC_V1", sizeof("DOTNET_IPC_V1"));
+    trace.Header.CommandSet = DiagnosticsServerCommand_EventPipe;
+    trace.Header.CommandId = CollectTracing2;
+    trace.Header.Length = sizeof(message);
+    trace.Header.Reserved = 0;
+
+    trace.Payload.circularBufferMB = 1000;
+    trace.Payload.Format = 1;
+    trace.Payload.ProviderCount = 1;
+
+    trace.Payload.providers->keywords = ULONG_MAX;
+    trace.Payload.providers->EventLevel = 5;
+
+    trace.Payload.providers->ProviderNameLength = (ULONG)wcslen(L"System.Runtime") + 1;
+    trace.Payload.providers->FilterDataLength = (ULONG)wcslen(L"EventCounterIntervalSec=1") + 1;
+
+    wmemcpy(trace.Payload.providers->ProviderName, L"System.Runtime", wcslen(L"System.Runtime"));
+    wmemcpy(trace.Payload.providers->FilterData, L"EventCounterIntervalSec=1", wcslen(L"EventCounterIntervalSec=1"));
+
+    if (!WriteFile(sectionHandle, &trace, sizeof(trace), NULL, NULL))
+    {
+        dprintf("WriteFile\n", "");
+    }
+
+    //IpcMessage message = new IpcMessage();
+    //using (var reader = new BinaryReader(stream, Encoding.UTF8, true))
+    //{
+    //    message.Header = IpcHeader.TryParse(reader);
+    //    message.Payload = reader.ReadBytes(message.Header.Size - IpcHeader.HeaderSizeInBytes);
+    //    return message;
+    //}
+
+    //HDR buffer;
+    while (TRUE)
+    {
+        memset(buffer, 0, sizeof(buffer));
+
+        status = NtReadFile(
+            sectionHandle,
+            NULL,
+            NULL,
+            NULL,
+            &iosb,
+            buffer,
+            sizeof(buffer),
+            NULL,
+            NULL
+            );
+
+        if (!NT_SUCCESS(status))
+            break;
+
+        PHDR hdr = (PHDR)buffer;
+        sessionId = *(ULONG*)PTR_ADD_OFFSET(hdr, sizeof(HDR));
+        PTraceEventHeader head = PTR_ADD_OFFSET(hdr, sizeof(HDR));
+        PTraceEventHeaderV4 head2 = PTR_ADD_OFFSET(head, sizeof(PTraceEventHeader));
+
+        switch ((DiagnosticsServerCommandId)hdr->CommandId)
+        {
+        case DiagnosticsServerCommandIdOK:
+            {
+                dprintf("DiagnosticsServerCommandIdOK\n");
+            }
+            break;
+        case DiagnosticsServerCommandIdError:
+            {
+                //var hr = BitConverter.ToInt32(response.Payload, 0);
+                dprintf("DiagnosticsServerCommandIdError\n");
+            }
+            break;
+        }
+
+        bytesRead = (ULONG)iosb.Information;
+        dprintf("bytesRead: %lu  [%lu %lu]\n", bytesRead, hdr->CommandId, hdr->Length);
+    }
+
+    //PMessageHeader message = 0;
+
+    //switch ((DiagnosticsServerCommandId)buffer.CommandId)
+    //{
+    //case DiagnosticsServerCommandIdOK:
+    //    message = PTR_ADD_OFFSET(&buffer, sizeof(HDR));
+    //    break;
+    //case DiagnosticsServerCommandIdError:
+    //    // bad...
+    //    //var hr = BitConverter.ToInt32(response.Payload, 0);
+    //    //throw new Exception($"Session start FAILED 0x{hr:X8}");
+    //    break;
+    //}
+
+    dprintf("\n");
+
+    // the number of bytes for the DiagnosticsIpc::IpcHeader type in native code
+    //ULONG HeaderSizeInBytes = 20;
+    //public byte[] Magic = ASCIIEncoding.ASCII.GetBytes("DOTNET_IPC_V1" + '\0'); // byte[14] in native code
+    //public UInt16 Size = HeaderSizeInBytes;
+    //public byte CommandSet;
+    //public byte CommandId;
+    //public UInt16 Reserved = 0x0000;
+
+    // Helper expression to quickly get V1 magic string for comparison
+    // should be 14 bytes long
+    //public static byte[] DOTNET_IPC_V1 = > ASCIIEncoding.ASCII.GetBytes("DOTNET_IPC_V1" + '\0');
+
+   /*public byte[] Serialize()
+    {
+        using (var stream = new MemoryStream())
+        using (var writer = new BinaryWriter(stream))
+        {
+            writer.Write(Magic);
+            Debug.Assert(Magic.Length == 14);
+            writer.Write(Size);
+            writer.Write(CommandSet);
+            writer.Write(CommandId);
+            writer.Write((UInt16)0x0000);
+            writer.Flush();
+            return stream.ToArray();
+        }
+    }*/
+
+    if (NT_SUCCESS(status))
+    {
+        return STATUS_SUCCESS;
+    }
+
+    return STATUS_SUCCESS;
+}
+
 INT_PTR CALLBACK DotNetPerfPageDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -815,6 +1146,8 @@ INT_PTR CALLBACK DotNetPerfPageDlgProc(
                     }
                 }
             }
+
+            dotnet(context->ProcessItem->ProcessId);
 
             if (context->ClrV4)
             {
