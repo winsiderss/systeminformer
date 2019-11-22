@@ -2704,17 +2704,13 @@ INT_PTR CALLBACK PhpRunFileWndProc(
                         }
                         else
                         {
-                            status = PhpRunFileProgram(
-                                context,
-                                commandString
-                                );
-
-                            if (NT_SUCCESS(status))
-                                PhpAddRunMRUListEntry(commandString);
+                            status = PhpRunFileProgram(context, commandString);
                         }
 
                         if (NT_SUCCESS(status))
                         {
+                            PhpAddRunMRUListEntry(commandString);
+
                             EndDialog(hwndDlg, IDOK);
                         }
                         else
