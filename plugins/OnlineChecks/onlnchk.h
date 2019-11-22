@@ -114,13 +114,13 @@ typedef struct _UPLOAD_CONTEXT
 {
     BOOLEAN VtApiUpload;
     BOOLEAN FileExists;
+    BOOLEAN Cancel;
     ULONG Service;
     ULONG ErrorCode;
     ULONG TotalFileLength;
     
     HWND DialogHandle;
     WNDPROC DialogWindowProc;
-    HANDLE UploadThreadHandle;
     HICON IconLargeHandle;
     HICON IconSmallHandle;
 

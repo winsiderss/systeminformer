@@ -43,22 +43,15 @@ HRESULT CALLBACK TaskDialogProgressCallbackProc(
                 ITaskbarList3_SetProgressState(context->TaskbarListClass, PhMainWndHandle, TBPF_INDETERMINATE);
 
             PhReferenceObject(context);
-
-            if (!NT_SUCCESS(PhCreateThreadEx(&context->UploadThreadHandle, UploadFileThreadStart, context)))
-            {
-                PhDereferenceObject(context);
-            }
+            PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), UploadFileThreadStart, context);
         }
         break;
     case TDN_BUTTON_CLICKED:
         {
             if ((INT)wParam == IDCANCEL)
             {
-                if (context->UploadThreadHandle)
-                {
-                    NtClose(context->UploadThreadHandle);
-                    context->UploadThreadHandle = NULL;
-                }
+                context->Cancel = TRUE;
+                return S_FALSE;
             }
         }
         break;
@@ -85,22 +78,15 @@ HRESULT CALLBACK TaskDialogReScanProgressCallbackProc(
             SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
 
             PhReferenceObject(context);
-
-            if (!NT_SUCCESS(PhCreateThreadEx(&context->UploadThreadHandle, UploadRecheckThreadStart, context)))
-            {
-                PhDereferenceObject(context);
-            }
+            PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), UploadRecheckThreadStart, context);
         }
         break;
     case TDN_BUTTON_CLICKED:
         {
             if ((INT)wParam == IDCANCEL)
             {
-                if (context->UploadThreadHandle)
-                {
-                    NtClose(context->UploadThreadHandle);
-                    context->UploadThreadHandle = NULL;
-                }
+                context->Cancel = TRUE;
+                return S_FALSE;
             }
         }
         break;
@@ -127,22 +113,15 @@ HRESULT CALLBACK TaskDialogViewReportProgressCallbackProc(
             SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
 
             PhReferenceObject(context);
-
-            if (!NT_SUCCESS(PhCreateThreadEx(&context->UploadThreadHandle, ViewReportThreadStart, context)))
-            {
-                PhDereferenceObject(context);
-            }
+            PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), ViewReportThreadStart, context);
         }
         break;
     case TDN_BUTTON_CLICKED:
         {
             if ((INT)wParam == IDCANCEL)
             {
-                if (context->UploadThreadHandle)
-                {
-                    NtClose(context->UploadThreadHandle);
-                    context->UploadThreadHandle = NULL;
-                }
+                context->Cancel = TRUE;
+                return S_FALSE;
             }
         }
         break;
