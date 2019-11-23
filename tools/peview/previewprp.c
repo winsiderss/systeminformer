@@ -87,6 +87,8 @@ INT_PTR CALLBACK PvpPePreviewDlgProc(
     {
     case WM_INITDIALOG:
         {
+            SendMessage(GetDlgItem(hwndDlg, IDC_PREVIEW), EM_SETLIMITTEXT, ULONG_MAX, 0);
+
             PvpShowFilePreview(hwndDlg);
             
             EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
