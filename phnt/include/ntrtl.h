@@ -5879,6 +5879,14 @@ RtlReplaceSidInSd(
 NTSYSAPI
 NTSTATUS
 NTAPI
+RtlLengthSidAsUnicodeString(
+    _In_ PSID Sid,
+    _Out_ PULONG StringLength
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
 RtlConvertSidToUnicodeString(
     _Inout_ PUNICODE_STRING UnicodeString,
     _In_ PSID Sid,
