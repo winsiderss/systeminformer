@@ -7682,7 +7682,7 @@ RtlQueryTokenHostIdAsUlong64(
 
 // rev
 NTSYSAPI
-NTSTATUS
+BOOLEAN
 NTAPI
 RtlIsParentOfChildAppContainer(
     _In_ PSID ParentAppContainerSid,
