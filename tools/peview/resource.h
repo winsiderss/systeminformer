@@ -44,6 +44,7 @@
 #define IDC_IMAGEBASE                   1015
 #define IDC_MVIDSTRING                  1015
 #define IDC_ENTRYPOINT                  1016
+#define IDC_TOKENSTRING                 1016
 #define IDC_SYMSEARCH                   1017
 #define IDC_IMAGETYPE                   1017
 #define IDC_IMAGESIZE                   1017
@@ -60,7 +61,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        126
+#define _APS_NEXT_RESOURCE_VALUE        127
 #define _APS_NEXT_COMMAND_VALUE         40001
 #define _APS_NEXT_CONTROL_VALUE         1025
 #define _APS_NEXT_SYMED_VALUE           115
