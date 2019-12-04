@@ -300,13 +300,6 @@ VOID PvpGetClrStrongNameToken(
 
 CleanupExit:
 
-    if (clrStrongName)
-        ICLRStrongName_Release(clrStrongName);
-    if (clrRuntimInfo)
-        ICLRRuntimeInfo_Release(clrRuntimInfo);
-    if (clrMetaHost)
-        ICLRMetaHost_Release(clrMetaHost);
-
     if (clrTokenLength)
     {
         if (clrStrongNameString = PhBufferToHexStringEx(clrToken, clrTokenLength, FALSE))
@@ -315,6 +308,19 @@ CleanupExit:
             PhDereferenceObject(clrStrongNameString);
         }
     }
+
+    if (clrStrongName)
+    {
+        if (clrToken)
+            ICLRStrongName_StrongNameFreeBuffer(clrStrongName, clrToken);
+
+        ICLRStrongName_Release(clrStrongName);
+    }
+
+    if (clrRuntimInfo)
+        ICLRRuntimeInfo_Release(clrRuntimInfo);
+    if (clrMetaHost)
+        ICLRMetaHost_Release(clrMetaHost);
 }
 
 INT_PTR CALLBACK PvpPeClrDlgProc(
