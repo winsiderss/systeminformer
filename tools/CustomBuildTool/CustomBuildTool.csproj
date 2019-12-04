@@ -7,7 +7,7 @@
         <PublishReadyToRun>true</PublishReadyToRun>
         <PublishSingleFile>true</PublishSingleFile>
         <PublishReadyToRunShowWarnings>true</PublishReadyToRunShowWarnings>
-        <TargetFramework>netcoreapp3.0</TargetFramework>
+        <TargetFramework>netcoreapp3.1</TargetFramework>
         <RuntimeIdentifiers>win-x86;win-x64</RuntimeIdentifiers>
         <TrimUnusedDependencies>true</TrimUnusedDependencies>
     </PropertyGroup>
