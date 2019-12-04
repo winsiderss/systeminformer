@@ -103,6 +103,24 @@ PhAddJsonObject(
     );
 
 PHLIBAPI
+VOID
+NTAPI
+PhAddJsonObjectInt64(
+    _In_ PVOID Object,
+    _In_ PSTR Key,
+    _In_ ULONGLONG Value
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhAddJsonObjectDouble(
+    _In_ PVOID Object,
+    _In_ PSTR Key,
+    _In_ DOUBLE Value
+    );
+
+PHLIBAPI
 PVOID
 NTAPI
 PhCreateJsonArray(

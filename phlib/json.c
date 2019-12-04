@@ -116,6 +116,24 @@ VOID PhAddJsonObject(
     json_object_object_add(Object, Key, json_object_new_string(Value));
 }
 
+VOID PhAddJsonObjectInt64(
+    _In_ PVOID Object,
+    _In_ PSTR Key,
+    _In_ ULONGLONG Value
+    )
+{
+    json_object_object_add(Object, Key, json_object_new_int64(Value));
+}
+
+VOID PhAddJsonObjectDouble(
+    _In_ PVOID Object,
+    _In_ PSTR Key,
+    _In_ DOUBLE Value
+    )
+{
+    json_object_object_add(Object, Key, json_object_new_double(Value));
+}
+
 PVOID PhCreateJsonArray(
     VOID
     )
