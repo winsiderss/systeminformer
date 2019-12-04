@@ -3,7 +3,7 @@
  *   PE viewer
  *
  * Copyright (C) 2010-2011 wj32
- * Copyright (C) 2017 dmex
+ * Copyright (C) 2017-2019 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -22,6 +22,7 @@
  */
 
 #include <peview.h>
+#include <metahost.h>
 
 // CLR structure reference:
 // https://github.com/dotnet/coreclr/blob/master/src/md/inc/mdfileformat.h
@@ -205,6 +206,116 @@ VOID PvpPeClrEnumSections(
     }
 }
 
+VOID PvpGetClrStrongNameToken(
+    _In_ HWND WindowHandle
+    )
+{
+    PPH_STRING clrStrongNameString = NULL;
+    ICLRMetaHost* clrMetaHost = NULL;
+    ICLRRuntimeInfo* clrRuntimInfo = NULL;
+    ICLRStrongName* clrStrongName = NULL;
+    CLRCreateInstanceFnPtr CLRCreateInstance_I = NULL;
+    PVOID mscoreeHandle = NULL;
+    ULONG clrTokenLength = 0;
+    ULONG clrKeyLength = 0;
+    PBYTE clrToken = NULL;
+    PBYTE clrKey = NULL;
+    ULONG size = MAX_PATH;
+    WCHAR version[MAX_PATH] = L"";
+
+    if (mscoreeHandle = LoadLibrary(L"mscoree.dll"))
+    {
+        if (CLRCreateInstance_I = PhGetDllBaseProcedureAddress(mscoreeHandle, "CLRCreateInstance", 0))
+        {
+            if (!SUCCEEDED(CLRCreateInstance_I(
+                &CLSID_CLRMetaHost,
+                &IID_ICLRMetaHost,
+                &clrMetaHost
+                )))
+            {
+                goto CleanupExit;
+            }
+        }
+        else
+        {
+            goto CleanupExit;
+        }
+    }
+    else
+    {
+        goto CleanupExit;
+    }
+
+    if (!SUCCEEDED(ICLRMetaHost_GetVersionFromFile(
+        clrMetaHost,
+        PvFileName->Buffer,
+        version,
+        &size
+        )))
+    {
+        goto CleanupExit;
+    }
+
+    if (!SUCCEEDED(ICLRMetaHost_GetRuntime(
+        clrMetaHost,
+        version,
+        &IID_ICLRRuntimeInfo,
+        &clrRuntimInfo
+        )))
+    {
+        goto CleanupExit;
+    }
+
+    if (!SUCCEEDED(ICLRRuntimeInfo_GetInterface(
+        clrRuntimInfo,
+        &CLSID_CLRStrongName,
+        &IID_ICLRStrongName,
+        &clrStrongName
+        )))
+    {
+        goto CleanupExit;
+    }
+
+    if (!SUCCEEDED(ICLRStrongName_StrongNameTokenFromAssembly(
+        clrStrongName,
+        PvFileName->Buffer,
+        &clrToken,
+        &clrTokenLength
+        )))
+    {
+        goto CleanupExit;
+    }
+
+    //if (!SUCCEEDED(ICLRStrongName_StrongNameTokenFromAssemblyEx(
+    //    clrStrongName,
+    //    PvFileName->Buffer,
+    //    &clrToken,
+    //    &clrTokenLength,
+    //    &clrKey,
+    //    &clrKeyLength
+    //    )))
+    //{
+    //    __leave;
+    //}
+
+CleanupExit:
+
+    if (clrStrongName)
+        ICLRStrongName_Release(clrStrongName);
+    if (clrRuntimInfo)
+        ICLRRuntimeInfo_Release(clrRuntimInfo);
+    if (clrMetaHost)
+        ICLRMetaHost_Release(clrMetaHost);
+
+    if (clrTokenLength)
+    {
+        if (clrStrongNameString = PhBufferToHexStringEx(clrToken, clrTokenLength, FALSE))
+        {
+            PhSetDialogItemText(WindowHandle, IDC_TOKENSTRING, clrStrongNameString->Buffer);
+            PhDereferenceObject(clrStrongNameString);
+        }
+    }
+}
 
 INT_PTR CALLBACK PvpPeClrDlgProc(
     _In_ HWND hwndDlg,
@@ -240,6 +351,8 @@ INT_PTR CALLBACK PvpPeClrDlgProc(
             {
                 PhSetDialogItemText(hwndDlg, IDC_VERSIONSTRING, PH_AUTO_T(PH_STRING, PvpPeGetClrStorageVersionText(clrMetaData))->Buffer);
                 PhSetDialogItemText(hwndDlg, IDC_MVIDSTRING, PH_AUTO_T(PH_STRING, PvpPeClrGetMvid(clrMetaData))->Buffer);
+
+                PvpGetClrStrongNameToken(hwndDlg);
 
                 PvpPeClrEnumSections(clrMetaData, lvHandle);
             }
