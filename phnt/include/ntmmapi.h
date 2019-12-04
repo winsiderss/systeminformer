@@ -242,6 +242,18 @@ typedef struct _MEMORY_ENCLAVE_IMAGE_INFORMATION
 #define MMPFNLIST_ACTIVE 6
 #define MMPFNLIST_TRANSITION 7
 
+//typedef enum _MMLISTS
+//{
+//    ZeroedPageList = 0,
+//    FreePageList = 1,
+//    StandbyPageList = 2,
+//    ModifiedPageList = 3,
+//    ModifiedNoWritePageList = 4,
+//    BadPageList = 5,
+//    ActiveAndValid = 6,
+//    TransitionPage = 7
+//} MMLISTS;
+
 #define MMPFNUSE_PROCESSPRIVATE 0
 #define MMPFNUSE_FILE 1
 #define MMPFNUSE_PAGEFILEMAPPED 2
@@ -254,6 +266,22 @@ typedef struct _MEMORY_ENCLAVE_IMAGE_INFORMATION
 #define MMPFNUSE_AWEPAGE 9
 #define MMPFNUSE_DRIVERLOCKPAGE 10
 #define MMPFNUSE_KERNELSTACK 11
+
+//typedef enum _MMPFNUSE
+//{
+//    ProcessPrivatePage,
+//    MemoryMappedFilePage,
+//    PageFileMappedPage,
+//    PageTablePage,
+//    PagedPoolPage,
+//    NonPagedPoolPage,
+//    SystemPTEPage,
+//    SessionPrivatePage,
+//    MetafilePage,
+//    AWEPage,
+//    DriverLockedPage,
+//    KernelStackPage
+//} MMPFNUSE;
 
 // private
 typedef struct _MEMORY_FRAME_INFORMATION
