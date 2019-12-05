@@ -1178,7 +1178,7 @@ VOID PhpFillProcessItem(
                 status = PhGetProcessImageFileNameWin32(ProcessItem->QueryHandle, &fileName);
             }
 
-            if (!NT_SUCCESS(status))
+            if (!NT_SUCCESS(status) && PH_IS_REAL_PROCESS_ID(ProcessItem->ProcessId))
             {
                 status = PhGetProcessImageFileNameByProcessId(ProcessItem->ProcessId, &fileName);
             }
