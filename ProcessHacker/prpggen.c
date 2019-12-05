@@ -222,7 +222,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             }
 
             PhSetDialogItemText(hwndDlg, IDC_VERSION, PhpGetStringOrNa(processItem->VersionInfo.FileVersion));
-            PhSetDialogItemText(hwndDlg, IDC_FILENAME, PhpGetStringOrNa(processItem->FileName));
+            PhSetDialogItemText(hwndDlg, IDC_FILENAME, PhpGetStringOrNa(processItem->FileNameWin32));
 
             {
                 PPH_STRING inspectExecutables;
@@ -234,7 +234,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 }
                 else
                 {
-                    if (!PhDoesFileExistsWin32(PhGetString(processItem->FileName)))
+                    if (!PhDoesFileExists(PhGetString(processItem->FileName)))
                     {
                         EnableWindow(GetDlgItem(hwndDlg, IDC_OPENFILENAME), FALSE);
                         EnableWindow(GetDlgItem(hwndDlg, IDC_INSPECT), FALSE);
@@ -452,12 +452,12 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             {
             case IDC_INSPECT:
                 {
-                    if (processItem->FileName)
+                    if (processItem->FileNameWin32)
                     {
                         PhShellExecuteUserString(
                             hwndDlg,
                             L"ProgramInspectExecutables",
-                            processItem->FileName->Buffer,
+                            processItem->FileNameWin32->Buffer,
                             FALSE,
                             L"Make sure the PE Viewer executable file is present."
                             );
@@ -466,12 +466,12 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 break;
             case IDC_OPENFILENAME:
                 {
-                    if (processItem->FileName)
+                    if (processItem->FileNameWin32)
                     {
                         PhShellExecuteUserString(
                             hwndDlg,
                             L"FileBrowseExecutable",
-                            processItem->FileName->Buffer,
+                            processItem->FileNameWin32->Buffer,
                             FALSE,
                             L"Make sure the Explorer executable file is present."
                             );
@@ -570,12 +570,12 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                     {
                     case IDC_COMPANYNAME_LINK:
                         {
-                            if (processItem->FileName)
+                            if (processItem->FileNameWin32)
                             {
                                 PH_VERIFY_FILE_INFO info;
 
                                 memset(&info, 0, sizeof(PH_VERIFY_FILE_INFO));
-                                info.FileName = processItem->FileName->Buffer;
+                                info.FileName = processItem->FileNameWin32->Buffer;
                                 info.Flags = PH_VERIFY_VIEW_PROPERTIES;
                                 info.hWnd = hwndDlg;
                                 PhVerifyFileWithAdditionalCatalog(
