@@ -136,7 +136,7 @@ PPH_STRING PhGetProcessTooltipText(
     // File information
 
     tempString = PhFormatImageVersionInfo(
-        Process->FileName,
+        Process->FileNameWin32,
         &Process->VersionInfo,
         &StandardIndent,
         0
@@ -397,7 +397,7 @@ PPH_STRING PhGetProcessTooltipText(
 
         PhInitializeStringBuilder(&notes, 40);
 
-        if (Process->FileName)
+        if (Process->FileNameWin32)
         {
             if (Process->VerifyResult == VrTrusted)
             {
