@@ -53,6 +53,13 @@ typedef NTSTATUS (NTAPI *_NtTraceControl)(
     _Out_ PULONG ReturnLength
     );
 
+typedef NTSTATUS (NTAPI *_NtQueryOpenSubKeysEx)(
+    _In_ POBJECT_ATTRIBUTES TargetKey,
+    _In_ ULONG BufferLength,
+    _Out_writes_bytes_opt_(BufferLength) PVOID Buffer,
+    _Out_ PULONG RequiredSize
+    );
+
 typedef NTSTATUS (NTAPI* _RtlDefaultNpAcl)(
     _Out_ PACL* Acl
     );
@@ -180,6 +187,7 @@ PH_DECLARE_IMPORT(NtQueryInformationTransactionManager);
 PH_DECLARE_IMPORT(NtQueryDefaultLocale);
 PH_DECLARE_IMPORT(NtQueryDefaultUILanguage);
 PH_DECLARE_IMPORT(NtTraceControl);
+PH_DECLARE_IMPORT(NtQueryOpenSubKeysEx);
 
 PH_DECLARE_IMPORT(RtlDefaultNpAcl);
 PH_DECLARE_IMPORT(RtlGetTokenNamedObjectPath);
