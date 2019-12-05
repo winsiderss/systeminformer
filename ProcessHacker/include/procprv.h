@@ -109,6 +109,7 @@ typedef struct _PH_PROCESS_ITEM
 
     // Parameters
 
+    PPH_STRING FileNameWin32;
     PPH_STRING FileName;
     PPH_STRING CommandLine;
 

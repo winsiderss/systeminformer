@@ -468,6 +468,7 @@ VOID PhpProcessItemDeleteProcedure(
     }
 
     if (processItem->ProcessName) PhDereferenceObject(processItem->ProcessName);
+    if (processItem->FileNameWin32) PhDereferenceObject(processItem->FileNameWin32);
     if (processItem->FileName) PhDereferenceObject(processItem->FileName);
     if (processItem->CommandLine) PhDereferenceObject(processItem->CommandLine);
     if (processItem->SmallIcon) DestroyIcon(processItem->SmallIcon);
@@ -750,12 +751,12 @@ VOID PhpProcessQueryStage1(
     HANDLE processId = processItem->ProcessId;
     HANDLE processHandleLimited = processItem->QueryHandle;
 
-    if (processItem->FileName && !processItem->IsSubsystemProcess)
+    if (!PhIsNullOrEmptyString(processItem->FileName) && !processItem->IsSubsystemProcess)
     {
-        if (PhDoesFileExistsWin32(PhGetString(processItem->FileName)))
+        if (PhDoesFileExists(PhGetString(processItem->FileName)))
         {
             if (!PhExtractIcon(
-                PhGetString(processItem->FileName),
+                PhGetString(processItem->FileNameWin32),
                 &Data->LargeIcon,
                 &Data->SmallIcon
                 ))
@@ -765,7 +766,7 @@ VOID PhpProcessQueryStage1(
             }
 
             // Version info.
-            PhInitializeImageVersionInfoCached(&Data->VersionInfo, processItem->FileName, FALSE);
+            PhInitializeImageVersionInfoCached(&Data->VersionInfo, processItem->FileNameWin32, FALSE);
         }
     }
 
@@ -943,19 +944,19 @@ VOID PhpProcessQueryStage2(
 {
     PPH_PROCESS_ITEM processItem = Data->Header.ProcessItem;
 
-    if (PhEnableProcessQueryStage2 && processItem->FileName && !processItem->IsSubsystemProcess)
+    if (PhEnableProcessQueryStage2 && processItem->FileNameWin32 && !processItem->IsSubsystemProcess)
     {
         NTSTATUS status;
 
         Data->VerifyResult = PhVerifyFileCached(
-            processItem->FileName,
+            processItem->FileNameWin32,
             processItem->PackageFullName,
             &Data->VerifySignerName,
             FALSE
             );
 
         status = PhIsExecutablePacked(
-            processItem->FileName->Buffer,
+            processItem->FileNameWin32->Buffer,
             &Data->IsPacked,
             &Data->ImportModules,
             &Data->ImportFunctions
@@ -974,9 +975,9 @@ VOID PhpProcessQueryStage2(
         }
     }
 
-    if (PhEnableLinuxSubsystemSupport && processItem->FileName && processItem->IsSubsystemProcess)
+    if (PhEnableLinuxSubsystemSupport && processItem->FileNameWin32 && processItem->IsSubsystemProcess)
     {
-        PhInitializeImageVersionInfoCached(&Data->VersionInfo, processItem->FileName, TRUE);
+        PhInitializeImageVersionInfoCached(&Data->VersionInfo, processItem->FileNameWin32, TRUE);
     }
 }
 
@@ -1170,35 +1171,30 @@ VOID PhpFillProcessItem(
 
         if (ProcessItem->ProcessId != SYSTEM_PROCESS_ID)
         {
-            NTSTATUS status = STATUS_UNSUCCESSFUL;
-            PPH_STRING fileName;
-
-            if (ProcessItem->QueryHandle && !ProcessItem->IsSubsystemProcess)
+            if (PH_IS_REAL_PROCESS_ID(ProcessItem->ProcessId))
             {
-                status = PhGetProcessImageFileNameWin32(ProcessItem->QueryHandle, &fileName);
-            }
+                PPH_STRING fileName;
 
-            if (!NT_SUCCESS(status) && PH_IS_REAL_PROCESS_ID(ProcessItem->ProcessId))
-            {
-                status = PhGetProcessImageFileNameByProcessId(ProcessItem->ProcessId, &fileName);
-            }
+                //if (ProcessItem->QueryHandle && !ProcessItem->IsSubsystemProcess)
+                //{
+                //    status = PhGetProcessImageFileNameWin32(ProcessItem->QueryHandle, &fileName);
+                //}
 
-            if (NT_SUCCESS(status))
-            {
-                ProcessItem->FileName = PhGetFileName(fileName);
-                PhDereferenceObject(fileName);
+                if (NT_SUCCESS(PhGetProcessImageFileNameByProcessId(ProcessItem->ProcessId, &fileName)))
+                {
+                    ProcessItem->FileName = fileName;
+                    ProcessItem->FileNameWin32 = PhGetFileName(fileName);
+                }
             }
         }
         else
         {
             PPH_STRING fileName;
 
-            fileName = PhGetKernelFileName();
-
-            if (fileName)
+            if (fileName = PhGetKernelFileName())
             {
-                ProcessItem->FileName = PhGetFileName(fileName);
-                PhDereferenceObject(fileName);
+                ProcessItem->FileName = fileName;
+                ProcessItem->FileNameWin32 = PhGetFileName(fileName);
             }
         }
     }
@@ -1262,7 +1258,7 @@ VOID PhpFillProcessItem(
     {
         ProcessItem->KnownProcessType = PhGetProcessKnownTypeEx(
             ProcessItem->ProcessId,
-            ProcessItem->FileName
+            ProcessItem->FileNameWin32
             );
     }
 
