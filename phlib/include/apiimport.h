@@ -44,6 +44,15 @@ typedef NTSTATUS (NTAPI *_NtQueryDefaultUILanguage)(
     _Out_ LANGID* DefaultUILanguageId
     );
 
+typedef NTSTATUS (NTAPI *_NtTraceControl)(
+    _In_ TRACE_CONTROL_INFORMATION_CLASS TraceInformationClass,
+    _In_reads_bytes_opt_(InputBufferLength) PVOID InputBuffer,
+    _In_ ULONG InputBufferLength,
+    _Out_writes_bytes_opt_(TraceInformationLength) PVOID TraceInformation,
+    _In_ ULONG TraceInformationLength,
+    _Out_ PULONG ReturnLength
+    );
+
 typedef NTSTATUS (NTAPI* _RtlDefaultNpAcl)(
     _Out_ PACL* Acl
     );
@@ -170,6 +179,7 @@ PH_DECLARE_IMPORT(NtQueryInformationTransaction);
 PH_DECLARE_IMPORT(NtQueryInformationTransactionManager);
 PH_DECLARE_IMPORT(NtQueryDefaultLocale);
 PH_DECLARE_IMPORT(NtQueryDefaultUILanguage);
+PH_DECLARE_IMPORT(NtTraceControl);
 
 PH_DECLARE_IMPORT(RtlDefaultNpAcl);
 PH_DECLARE_IMPORT(RtlGetTokenNamedObjectPath);

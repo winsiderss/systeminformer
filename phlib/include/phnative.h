@@ -375,6 +375,17 @@ PhGetProcessUnloadedDlls(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhTraceControl(
+    _In_ TRACE_CONTROL_INFORMATION_CLASS TraceInformationClass,
+    _In_reads_bytes_opt_(InputBufferLength) PVOID InputBuffer,
+    _In_ ULONG InputBufferLength,
+    _Out_opt_ PVOID* TraceInformation,
+    _Out_opt_ PULONG TraceInformationLength
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhSetEnvironmentVariableRemote(
     _In_ HANDLE ProcessHandle,
     _In_ PPH_STRINGREF Name,
