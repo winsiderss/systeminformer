@@ -7789,6 +7789,26 @@ NTSTATUS PhQueryAttributesFileWin32(
     return status;
 }
 
+NTSTATUS PhQueryAttributesFile(
+    _In_ PWSTR FileName,
+    _Out_ PFILE_BASIC_INFORMATION FileInformation
+    )
+{
+    UNICODE_STRING fileName;
+    OBJECT_ATTRIBUTES oa;
+
+    RtlInitUnicodeString(&fileName, FileName);
+    InitializeObjectAttributes(
+        &oa,
+        &fileName,
+        OBJ_CASE_INSENSITIVE,
+        NULL,
+        NULL
+        );
+
+    return NtQueryAttributesFile(&oa, FileInformation);
+}
+
 BOOLEAN PhDoesFileExistsWin32(
     _In_ PWSTR FileName
     )
@@ -7797,6 +7817,27 @@ BOOLEAN PhDoesFileExistsWin32(
     FILE_BASIC_INFORMATION basicInfo;
 
     status = PhQueryAttributesFileWin32(FileName, &basicInfo);
+
+    if (
+        NT_SUCCESS(status) ||
+        status == STATUS_SHARING_VIOLATION ||
+        status == STATUS_ACCESS_DENIED
+        )
+    {
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+BOOLEAN PhDoesFileExists(
+    _In_ PWSTR FileName
+    )
+{
+    NTSTATUS status;
+    FILE_BASIC_INFORMATION basicInfo;
+
+    status = PhQueryAttributesFile(FileName, &basicInfo);
 
     if (
         NT_SUCCESS(status) ||

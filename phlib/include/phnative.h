@@ -1381,6 +1381,13 @@ PhDoesFileExistsWin32(
 PHLIBAPI
 BOOLEAN
 NTAPI
+PhDoesFileExists(
+    _In_ PWSTR FileName
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
 PhDoesDirectoryExistsWin32(
     _In_ PWSTR FileName
     );
