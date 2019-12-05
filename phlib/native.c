@@ -901,6 +901,15 @@ NTSTATUS PhGetProcessCommandLine(
     return PhGetProcessPebString(ProcessHandle, PhpoCommandLine, CommandLine);
 }
 
+NTSTATUS PhGetProcessCurrentDirectory(
+    _In_ HANDLE ProcessHandle,
+    _In_ BOOLEAN IsWow64,
+    _Out_ PPH_STRING *CurrentDirectory
+    )
+{
+    return PhGetProcessPebString(ProcessHandle, PhpoCurrentDirectory | (IsWow64 ? PhpoWow64 : 0), CurrentDirectory);
+}
+
 NTSTATUS PhGetProcessDesktopInfo(
     _In_ HANDLE ProcessHandle,
     _Out_ PPH_STRING *DesktopInfo
@@ -7536,6 +7545,52 @@ NTSTATUS PhCreateFileWin32Ex(
     return status;
 }
 
+NTSTATUS PhCreateFile(
+    _Out_ PHANDLE FileHandle,
+    _In_ PWSTR FileName,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ ULONG FileAttributes,
+    _In_ ULONG ShareAccess,
+    _In_ ULONG CreateDisposition,
+    _In_ ULONG CreateOptions
+    )
+{
+    NTSTATUS status;
+    HANDLE fileHandle;
+    UNICODE_STRING fileName;
+    OBJECT_ATTRIBUTES oa;
+    IO_STATUS_BLOCK isb;
+
+    RtlInitUnicodeString(&fileName, FileName);
+    InitializeObjectAttributes(
+        &oa,
+        &fileName,
+        OBJ_CASE_INSENSITIVE,
+        NULL,
+        NULL
+        );
+
+    status = NtCreateFile(
+        &fileHandle,
+        DesiredAccess,
+        &oa,
+        &isb,
+        NULL,
+        FileAttributes,
+        ShareAccess,
+        CreateDisposition,
+        CreateOptions,
+        NULL,
+        0
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *FileHandle = fileHandle;
+    }
+
+    return status;
+}
 NTSTATUS PhOpenFileWin32(
     _Out_ PHANDLE FileHandle,
     _In_ PWSTR FileName,
