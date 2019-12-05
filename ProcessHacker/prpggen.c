@@ -92,7 +92,7 @@ NTSTATUS PhpProcessGeneralOpenProcess(
 }
 
 FORCEINLINE PWSTR PhpGetStringOrNa(
-    _In_ _Maybenull_ PPH_STRING String
+    _In_opt_ _Maybenull_ PPH_STRING String
     )
 {
     if (String)
@@ -296,23 +296,15 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 processItem->ProcessId
                 )))
             {
-                PH_PEB_OFFSET pebOffset;
-
-                pebOffset = PhpoCurrentDirectory;
-
-#ifdef _WIN64
-                // Tell the function to get the WOW64 current directory, because that's the one that
-                // actually gets updated.
-                if (processItem->IsWow64)
-                    pebOffset |= PhpoWow64;
-#endif
-
-                PhGetProcessPebString(
+                // Tell the function to get the WOW64 current directory, because that's the one that actually gets updated.
+                if (NT_SUCCESS(PhGetProcessCurrentDirectory(
                     processHandle,
-                    pebOffset,
+                    !!processItem->IsWow64,
                     &curDir
-                    );
-                PH_AUTO(curDir);
+                    )))
+                {
+                    PH_AUTO(curDir);
+                }
 
                 NtClose(processHandle);
                 processHandle = NULL;
