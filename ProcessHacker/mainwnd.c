@@ -1198,9 +1198,9 @@ VOID PhMwpOnCommand(
         {
             PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
 
-            if (processItem && processItem->FileName)
+            if (processItem && processItem->FileNameWin32)
             {
-                PhSetStringSetting2(L"RunAsProgram", &processItem->FileName->sr);
+                PhSetStringSetting2(L"RunAsProgram", &processItem->FileNameWin32->sr);
                 PhShowRunAsDialog(WindowHandle, NULL);
             }
         }
