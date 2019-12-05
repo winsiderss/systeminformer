@@ -1463,7 +1463,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
                     wprintf(L"Process item at %Ix: %s (%u)\n", (ULONG_PTR)process, process->ProcessName->Buffer, HandleToUlong(process->ProcessId));
                     wprintf(L"\tRecord at %Ix\n", (ULONG_PTR)process->Record);
                     wprintf(L"\tQuery handle %Ix\n", (ULONG_PTR)process->QueryHandle);
-                    wprintf(L"\tFile name at %Ix: %s\n", (ULONG_PTR)process->FileName, PhGetStringOrDefault(process->FileName, L"(null)"));
+                    wprintf(L"\tFile name at %Ix: %s\n", (ULONG_PTR)process->FileNameWin32, PhGetStringOrDefault(process->FileNameWin32, L"(null)"));
                     wprintf(L"\tCommand line at %Ix: %s\n", (ULONG_PTR)process->CommandLine, PhGetStringOrDefault(process->CommandLine, L"(null)"));
                     wprintf(L"\tFlags: %u\n", process->Flags);
                     wprintf(L"\n");
