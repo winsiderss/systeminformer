@@ -88,7 +88,9 @@ NTSTATUS PhpProcessGeneralOpenProcess(
     _In_opt_ PVOID Context
     )
 {
-    return PhOpenProcess(Handle, DesiredAccess, (HANDLE)Context);
+    if (Context)
+        return PhOpenProcess(Handle, DesiredAccess, (HANDLE)Context);
+    return STATUS_UNSUCCESSFUL;
 }
 
 FORCEINLINE PWSTR PhpGetStringOrNa(
@@ -195,6 +197,8 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             SET_BUTTON_ICON(IDC_INSPECT, magnifier);
             SET_BUTTON_ICON(IDC_OPENFILENAME, folder);
+            SET_BUTTON_ICON(IDC_INSPECT2, magnifier);
+            SET_BUTTON_ICON(IDC_OPENFILENAME2, folder);
             SET_BUTTON_ICON(IDC_VIEWCOMMANDLINE, magnifier);
             SET_BUTTON_ICON(IDC_VIEWPARENTPROCESS, magnifier);
 
@@ -223,6 +227,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             PhSetDialogItemText(hwndDlg, IDC_VERSION, PhpGetStringOrNa(processItem->VersionInfo.FileVersion));
             PhSetDialogItemText(hwndDlg, IDC_FILENAME, PhpGetStringOrNa(processItem->FileNameWin32));
+            PhSetDialogItemText(hwndDlg, IDC_FILENAMEWIN32, PhpGetStringOrNa(processItem->FileName));
 
             {
                 PPH_STRING inspectExecutables;
@@ -375,15 +380,19 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 if (processItem->IsWow64)
                 {
                     PhGetProcessPeb32(processHandle, &peb32);
-                    PhSetDialogItemText(hwndDlg, IDC_PEBADDRESS,
-                        PhaFormatString(L"0x%Ix (32-bit: 0x%x)", basicInfo.PebBaseAddress, PtrToUlong(peb32))->Buffer);
+                    PhSetDialogItemText(hwndDlg, IDC_PEBADDRESS, PhaFormatString(
+                        L"0x%Ix (32-bit: 0x%x)",
+                        (ULONG_PTR)basicInfo.PebBaseAddress,
+                        PtrToUlong(peb32)
+                        )->Buffer);
                 }
                 else
                 {
 #endif
-
-                PhSetDialogItemText(hwndDlg, IDC_PEBADDRESS,
-                    PhaFormatString(L"0x%Ix", basicInfo.PebBaseAddress)->Buffer);
+                PhSetDialogItemText(hwndDlg, IDC_PEBADDRESS, PhaFormatString(
+                    L"0x%Ix",
+                    (ULONG_PTR)basicInfo.PebBaseAddress
+                    )->Buffer);
 #ifdef _WIN64
                 }
 #endif
@@ -430,6 +439,9 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_FILENAME), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_INSPECT), dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_OPENFILENAME), dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_FILENAMEWIN32), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_INSPECT2), dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_OPENFILENAME2), dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_CMDLINE), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_VIEWCOMMANDLINE), dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_CURDIR), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
