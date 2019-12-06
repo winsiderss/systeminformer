@@ -136,6 +136,7 @@
 #define IDC_PAUSE                       1027
 #define IDC_PROTECTION                  1027
 #define IDC_START                       1028
+#define IDC_FILENAMEWIN32               1028
 #define IDC_DESCRIPTION                 1029
 #define IDC_TYPE                        1032
 #define IDC_STARTTYPE                   1033
@@ -216,6 +217,7 @@
 #define IDC_VIEWPARENTPROCESS           1081
 #define IDC_OPENFILENAME                1082
 #define IDC_LIMITS                      1083
+#define IDC_OPENFILENAME2               1083
 #define IDC_SIGNALED                    1084
 #define IDC_SET                         1085
 #define IDC_RESET                       1086
@@ -499,6 +501,7 @@
 #define IDC_ZLISTSTANDBY7_V             1367
 #define IDC_INSPECT                     1367
 #define IDC_ZPAGINGPAGEFAULTSDELTA_V    1368
+#define IDC_INSPECT2                    1368
 #define IDC_ZPAGINGPAGEREADSDELTA_V     1369
 #define IDC_BYTESPERROW                 1369
 #define IDC_ZPAGINGPAGEFILEWRITESDELTA_V 1370
@@ -754,7 +757,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        256
+#define _APS_NEXT_RESOURCE_VALUE        257
 #define _APS_NEXT_COMMAND_VALUE         40298
 #define _APS_NEXT_CONTROL_VALUE         1410
 #define _APS_NEXT_SYMED_VALUE           170

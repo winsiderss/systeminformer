@@ -1173,18 +1173,23 @@ VOID PhpFillProcessItem(
         {
             if (PH_IS_REAL_PROCESS_ID(ProcessItem->ProcessId))
             {
-                PPH_STRING fileName;
-
-                //if (ProcessItem->QueryHandle && !ProcessItem->IsSubsystemProcess)
-                //{
-                //    status = PhGetProcessImageFileNameWin32(ProcessItem->QueryHandle, &fileName);
-                //}
+                PPH_STRING fileName = NULL;
+                PPH_STRING fileNameWin32 = NULL;
 
                 if (NT_SUCCESS(PhGetProcessImageFileNameByProcessId(ProcessItem->ProcessId, &fileName)))
                 {
                     ProcessItem->FileName = fileName;
-                    ProcessItem->FileNameWin32 = PhGetFileName(fileName);
                 }
+
+                if (ProcessItem->QueryHandle && !ProcessItem->IsSubsystemProcess)
+                {
+                    PhGetProcessImageFileNameWin32(ProcessItem->QueryHandle, &fileNameWin32); // PhGetProcessImageFileName (dmex)
+                }
+
+                if (fileNameWin32)
+                    ProcessItem->FileNameWin32 = fileNameWin32;
+                else if (ProcessItem->FileName)
+                    ProcessItem->FileNameWin32 = PhGetFileName(ProcessItem->FileName);
             }
         }
         else
