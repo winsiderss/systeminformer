@@ -256,7 +256,8 @@ ULONG64 ParseVersionString(
 }
 
 BOOLEAN QueryUpdateData(
-    _Inout_ PPH_UPDATER_CONTEXT Context
+    _Inout_ PPH_UPDATER_CONTEXT Context,
+    _In_ BOOLEAN UseSourceForge
     )
 {
     BOOLEAN success = FALSE;
@@ -270,27 +271,53 @@ BOOLEAN QueryUpdateData(
         goto CleanupExit;
     }
 
-    if (!PhHttpSocketConnect(
-        httpContext, 
-        L"wj32.org", 
-        PH_HTTP_DEFAULT_HTTPS_PORT
-        ))
+    if (UseSourceForge)
     {
-        Context->ErrorCode = GetLastError();
-        goto CleanupExit;
+        if (!PhHttpSocketConnect(
+            httpContext,
+            L"processhacker.sourceforge.io",
+            PH_HTTP_DEFAULT_HTTPS_PORT
+            ))
+        {
+            Context->ErrorCode = GetLastError();
+            goto CleanupExit;
+        }
+
+        if (!PhHttpSocketBeginRequest(
+            httpContext,
+            NULL,
+            L"/nightly.php?phupdater",
+            PH_HTTP_FLAG_REFRESH | PH_HTTP_FLAG_SECURE
+            ))
+        {
+            Context->ErrorCode = GetLastError();
+            goto CleanupExit;
+        }
+    }
+    else
+    {
+        if (!PhHttpSocketConnect(
+            httpContext,
+            L"wj32.org",
+            PH_HTTP_DEFAULT_HTTPS_PORT
+            ))
+        {
+            Context->ErrorCode = GetLastError();
+            goto CleanupExit;
+        }
+
+        if (!PhHttpSocketBeginRequest(
+            httpContext,
+            NULL,
+            L"/processhacker/nightly.php?phupdater",
+            PH_HTTP_FLAG_REFRESH | PH_HTTP_FLAG_SECURE
+            ))
+        {
+            Context->ErrorCode = GetLastError();
+            goto CleanupExit;
+        }
     }
 
-    if (!PhHttpSocketBeginRequest(
-        httpContext, 
-        NULL, 
-        L"/processhacker/nightly.php?phupdater", 
-        PH_HTTP_FLAG_REFRESH | PH_HTTP_FLAG_SECURE
-        ))
-    {
-        Context->ErrorCode = GetLastError();
-        goto CleanupExit;
-    }
-  
     {
         PPH_STRING versionHeader;
         PPH_STRING windowsHeader;
@@ -407,8 +434,11 @@ NTSTATUS UpdateCheckSilentThread(
     PhDelayExecution(5 * 1000);
 
     // Query latest update information from the server.
-    if (!QueryUpdateData(context))
-        goto CleanupExit;
+    if (!QueryUpdateData(context, FALSE))
+    {
+        if (!QueryUpdateData(context, TRUE))
+            goto CleanupExit;
+    }
 
     // Compare the current version against the latest available version
     if (context->CurrentVersion < context->LatestVersion)
@@ -449,7 +479,10 @@ NTSTATUS UpdateCheckThread(
     // Check if we have cached update data
     if (!context->HaveData)
     {
-        context->HaveData = QueryUpdateData(context);
+        context->HaveData = QueryUpdateData(context, FALSE);
+
+        if (!context->HaveData)
+            context->HaveData = QueryUpdateData(context, TRUE);
     }
 
     if (!context->HaveData)
