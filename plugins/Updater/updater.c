@@ -286,7 +286,7 @@ BOOLEAN QueryUpdateData(
         if (!PhHttpSocketBeginRequest(
             httpContext,
             NULL,
-            L"/nightly.php?phupdater",
+            L"/nightly.php",
             PH_HTTP_FLAG_REFRESH | PH_HTTP_FLAG_SECURE
             ))
         {
