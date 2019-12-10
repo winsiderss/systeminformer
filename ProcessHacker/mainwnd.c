@@ -1299,15 +1299,15 @@ VOID PhMwpOnCommand(
             PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
 
             if (processItem && 
-                !PhIsNullOrEmptyString(processItem->FileName) && 
-                PhDoesFileExistsWin32(PhGetString(processItem->FileName)
+                !PhIsNullOrEmptyString(processItem->FileNameWin32) &&
+                PhDoesFileExistsWin32(PhGetString(processItem->FileNameWin32)
                 ))
             {
                 PhReferenceObject(processItem);
                 PhShellExecuteUserString(
                     WindowHandle,
                     L"FileBrowseExecutable",
-                    processItem->FileName->Buffer,
+                    processItem->FileNameWin32->Buffer,
                     FALSE,
                     L"Make sure the Explorer executable file is present."
                     );
