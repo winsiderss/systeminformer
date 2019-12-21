@@ -198,36 +198,79 @@ PPH_STRING UpdateWindowsString(
     VOID
     )
 {
-    static PH_STRINGREF keyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion");
+    PPH_STRING buildString = NULL;
+    PPH_STRING fileName = NULL;
+    PPH_STRING fileVersion = NULL;
+    PVOID versionInfo;
+    VS_FIXEDFILEINFO* rootBlock;
+    ULONG rootBlockLength;
+    PH_FORMAT fileVersionFormat[3];
 
-    HANDLE keyHandle;
-    PPH_STRING buildLabHeader = NULL;
+    fileName = PhGetKernelFileName();
+    PhMoveReference(&fileName, PhGetFileName(fileName));
+    versionInfo = PhGetFileVersionInfo(fileName->Buffer);
+    PhDereferenceObject(fileName);
 
-    if (NT_SUCCESS(PhOpenKey(
-        &keyHandle,
-        KEY_READ,
-        PH_KEY_LOCAL_MACHINE,
-        &keyName,
-        0
-        )))
+    if (versionInfo)
     {
-        PPH_STRING buildLabString;
+        if (VerQueryValue(versionInfo, L"\\", &rootBlock, &rootBlockLength) && rootBlockLength != 0)
+        {
+            PhInitFormatU(&fileVersionFormat[0], HIWORD(rootBlock->dwFileVersionLS));
+            PhInitFormatC(&fileVersionFormat[1], '.');
+            PhInitFormatU(&fileVersionFormat[2], LOWORD(rootBlock->dwFileVersionLS));
 
-        if (buildLabString = PhQueryRegistryString(keyHandle, L"BuildLabEx"))
-        {
-            buildLabHeader = PhConcatStrings2(L"ProcessHacker-OsBuild: ", buildLabString->Buffer);
-            PhDereferenceObject(buildLabString);
-        }
-        else if (buildLabString = PhQueryRegistryString(keyHandle, L"BuildLab"))
-        {
-            buildLabHeader = PhConcatStrings2(L"ProcessHacker-OsBuild: ", buildLabString->Buffer);
-            PhDereferenceObject(buildLabString);
+            fileVersion = PhFormat(fileVersionFormat, 3, 30);
         }
 
-        NtClose(keyHandle);
+        PhFree(versionInfo);
     }
 
-    return buildLabHeader;
+    if (fileVersion)
+    {
+        if (PhIsExecutingInWow64())
+            buildString = PhFormatString(L"%s: %s.%s", L"ProcessHacker-OsBuild", fileVersion->Buffer, L"x86fre");
+        else
+            buildString = PhFormatString(L"%s: %s.%s", L"ProcessHacker-OsBuild", fileVersion->Buffer, L"amd64fre");
+
+        PhDereferenceObject(fileVersion);
+    }
+
+    return buildString;
+
+    //
+    // NOTE: Some security products have started randomizing the build string located in the registry
+    // breaking the version check that blocks updates that are not compatible with old and unsupported
+    // versions of Windows. (dmex)
+    //
+    //static PH_STRINGREF keyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion");
+    //HANDLE keyHandle;
+    //PPH_STRING buildLabHeader = NULL;
+    //
+    //if (NT_SUCCESS(PhOpenKey(
+    //    &keyHandle,
+    //    KEY_READ,
+    //    PH_KEY_LOCAL_MACHINE,
+    //    &keyName,
+    //    0
+    //    )))
+    //{
+    //    PPH_STRING buildLabString;
+    //
+    //    if (buildLabString = PhQueryRegistryString(keyHandle, L"BuildLabEx"))
+    //    {
+    //        buildLabHeader = PhConcatStrings2(L"ProcessHacker-OsBuild: ", buildLabString->Buffer);
+    //        PhDereferenceObject(buildLabString);
+    //    }
+    //    else if (buildLabString = PhQueryRegistryString(keyHandle, L"BuildLab"))
+    //    {
+    //        buildLabHeader = PhConcatStrings2(L"ProcessHacker-OsBuild: ", buildLabString->Buffer);
+    //        PhDereferenceObject(buildLabString);
+    //    }
+    //
+    //    NtClose(keyHandle);
+    //}
+    //
+    //return buildLabHeader;
 }
 
 ULONG64 ParseVersionString(
@@ -286,7 +329,7 @@ BOOLEAN QueryUpdateData(
         if (!PhHttpSocketBeginRequest(
             httpContext,
             NULL,
-            L"/nightly.php",
+            L"/nightly.php?phupdater",
             PH_HTTP_FLAG_REFRESH | PH_HTTP_FLAG_SECURE
             ))
         {
