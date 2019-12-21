@@ -35,7 +35,7 @@ VOID PvpProcessElfImports(
     {
         PPH_ELF_IMAGE_SYMBOL_ENTRY import = imports->Items[i];
         INT lvItemIndex;
-        WCHAR number[PH_INT32_STR_LEN_1];
+        WCHAR number[PH_INT64_STR_LEN_1];
 
         if (!import->ImportSymbol)
             continue;

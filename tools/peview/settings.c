@@ -42,6 +42,7 @@ VOID PhAddDefaultSettings(
     PhpAddScalableIntegerPairSetting(L"MainWindowSize", L"@96|550,580");
     PhpAddStringSetting(L"ImageGeneralListViewColumns", L"");
     PhpAddStringSetting(L"ImageGeneralListViewSort", L"");
+    PhpAddStringSetting(L"ImageDirectoryListViewColumns", L"");
     PhpAddStringSetting(L"ImageLoadCfgListViewColumns", L"");
     PhpAddStringSetting(L"ImageExportsListViewColumns", L"");
     PhpAddStringSetting(L"ImageImportsListViewColumns", L"");
