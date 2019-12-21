@@ -115,6 +115,14 @@ VOID PvPeProperties(
             PvAddPropPage(propContext, newPage);
         }
 
+        // Directories page
+        newPage = PvCreatePropPageContext(
+            MAKEINTRESOURCE(IDD_PEDIRECTORY),
+            PvpPeDirectoryDlgProc,
+            NULL
+            );
+        PvAddPropPage(propContext, newPage);
+
         // Imports page
         if ((NT_SUCCESS(PhGetMappedImageImports(&imports, &PvMappedImage)) && imports.NumberOfDlls != 0) ||
             (NT_SUCCESS(PhGetMappedImageDelayImports(&imports, &PvMappedImage)) && imports.NumberOfDlls != 0))
