@@ -424,8 +424,8 @@ VOID NTAPI NotifyEventCallback(
     case PH_NOTIFY_PROCESS_DELETE:
         processItem = notifyEvent->Parameter;
 
-        if (processItem->FileName)
-            found = MatchFilterList(ProcessFilterList, processItem->FileName, &filterType);
+        if (processItem->FileNameWin32)
+            found = MatchFilterList(ProcessFilterList, processItem->FileNameWin32, &filterType);
 
         if (!found)
             MatchFilterList(ProcessFilterList, processItem->ProcessName, &filterType);

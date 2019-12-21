@@ -893,7 +893,7 @@ ET_FIREWALL_STATUS EtQueryFirewallStatus(
     if (!processItem)
         return FirewallUnknownStatus;
 
-    if (!processItem->FileName)
+    if (!processItem->FileNameWin32)
     {
         PhDereferenceObject(processItem);
         return FirewallUnknownStatus;
@@ -901,7 +901,7 @@ ET_FIREWALL_STATUS EtQueryFirewallStatus(
 
     result = FirewallUnknownStatus;
 
-    if (imageFileNameBStr = SysAllocStringLen(processItem->FileName->Buffer, (ULONG)processItem->FileName->Length / sizeof(WCHAR)))
+    if (imageFileNameBStr = SysAllocStringLen(processItem->FileNameWin32->Buffer, (ULONG)processItem->FileNameWin32->Length / sizeof(WCHAR)))
     {
         localAddressBStr = NULL;
 
