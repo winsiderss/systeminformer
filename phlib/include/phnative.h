@@ -940,10 +940,29 @@ PhEnumHandlesEx2(
     NULL \
     )
 
+#define PH_FIRST_PAGEFILE_EX(Pagefiles) ( \
+    ((PSYSTEM_PAGEFILE_INFORMATION_EX)(Pagefiles))->TotalSize ? \
+    (PSYSTEM_PAGEFILE_INFORMATION_EX)(Pagefiles) : \
+    NULL \
+    )
+#define PH_NEXT_PAGEFILE_EX(Pagefile) ( \
+    ((PSYSTEM_PAGEFILE_INFORMATION_EX)(Pagefile))->NextEntryOffset ? \
+    (PSYSTEM_PAGEFILE_INFORMATION_EX)PTR_ADD_OFFSET((Pagefile), \
+    ((PSYSTEM_PAGEFILE_INFORMATION_EX)(Pagefile))->NextEntryOffset) : \
+    NULL \
+    )
+
 PHLIBAPI
 NTSTATUS
 NTAPI
 PhEnumPagefiles(
+    _Out_ PVOID *Pagefiles
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhEnumPagefilesEx(
     _Out_ PVOID *Pagefiles
     );
 
