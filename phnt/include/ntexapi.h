@@ -2878,7 +2878,19 @@ typedef struct _SYSTEM_SECUREBOOT_POLICY_INFORMATION
 // private
 typedef struct _SYSTEM_PAGEFILE_INFORMATION_EX
 {
-    SYSTEM_PAGEFILE_INFORMATION Info;
+    union // HACK union declaration for convenience (dmex)
+    {
+        SYSTEM_PAGEFILE_INFORMATION Info;
+        struct
+        {
+            ULONG NextEntryOffset;
+            ULONG TotalSize;
+            ULONG TotalInUse;
+            ULONG PeakUsage;
+            UNICODE_STRING PageFileName;
+        };
+    };
+
     ULONG MinimumSize;
     ULONG MaximumSize;
 } SYSTEM_PAGEFILE_INFORMATION_EX, *PSYSTEM_PAGEFILE_INFORMATION_EX;
