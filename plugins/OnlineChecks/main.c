@@ -72,7 +72,7 @@ VOID ProcessesUpdatedCallback(
 
         if (extension->ProcessItem)
         {
-            filePath = extension->ProcessItem->FileName;
+            filePath = extension->ProcessItem->FileNameWin32;
         }
         else if (extension->ModuleItem)
         {
@@ -343,7 +343,7 @@ VOID NTAPI ProcessMenuInitializingCallback(
     else
         processItem = NULL;
 
-    sendToMenu = CreateSendToMenu(TRUE, menuInfo->Menu, processItem ? processItem->FileName : NULL);
+    sendToMenu = CreateSendToMenu(TRUE, menuInfo->Menu, processItem ? processItem->FileNameWin32 : NULL);
 
     // Only enable the Send To menu if there is exactly one process selected and it has a file name.
     if (!processItem || !processItem->FileName)
@@ -424,10 +424,10 @@ VOID ProcessHighlightingColorCallback(
 
     //LockProcessDb();
 
-    //if (PhIsNullOrEmptyString(processItem->FileName))
+    //if (PhIsNullOrEmptyString(processItem->FileNameWin32))
     //    return;
 
-    //if ((object = FindProcessDbObject(&processItem->FileName->sr)) && object->Positives)
+    //if ((object = FindProcessDbObject(&processItem->FileNameWin32->sr)) && object->Positives)
     //{
     //    getHighlightingColor->BackColor = RGB(255, 0, 0);
     //    getHighlightingColor->Cache = TRUE;

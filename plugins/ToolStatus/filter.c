@@ -73,6 +73,12 @@ BOOLEAN ProcessTreeFilterCallback(
             return TRUE;
     }
 
+    if (!PhIsNullOrEmptyString(processNode->ProcessItem->FileNameWin32))
+    {
+        if (WordMatchStringRef(&processNode->ProcessItem->FileNameWin32->sr))
+            return TRUE;
+    }
+
     if (!PhIsNullOrEmptyString(processNode->ProcessItem->FileName))
     {
         if (WordMatchStringRef(&processNode->ProcessItem->FileName->sr))
