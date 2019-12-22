@@ -81,7 +81,9 @@ PPV_PROPPAGECONTEXT PvCreatePropPageContextEx(
     _In_opt_ PVOID Context
     );
 
-BOOLEAN PvPropPageDlgProcHeader(
+BOOLEAN
+_Success_(return)
+PvPropPageDlgProcHeader(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ LPARAM lParam,
@@ -102,7 +104,9 @@ VOID PvDoPropPageLayout(
     _In_ HWND hwnd
     );
 
-FORCEINLINE BOOLEAN PvPropPageDlgProcHeader(
+FORCEINLINE
+_Success_(return)
+BOOLEAN PvPropPageDlgProcHeader(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ LPARAM lParam,

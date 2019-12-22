@@ -272,7 +272,7 @@ NTSTATUS WepPropertiesThreadStart(
 
     PhInitializeAutoPool(&autoPool);
 
-    if (propContext = HdCreatePropContext(PhaFormatString(L"Window %Ix", context->WindowHandle)->Buffer))
+    if (propContext = HdCreatePropContext(PhaFormatString(L"Window %Ix", (ULONG_PTR)context->WindowHandle)->Buffer))
     {
         PPV_PROPPAGECONTEXT newPage;
 
@@ -314,6 +314,9 @@ BOOLEAN NTAPI EnumGenericModulesCallback(
     )
 {
     PWINDOW_PROPERTIES_CONTEXT context = Context;
+
+    if (!context)
+        return FALSE;
 
     PhLoadModuleSymbolProvider(context->SymbolProvider, Module->FileName->Buffer,
         (ULONG64)Module->BaseAddress, Module->Size);
@@ -513,7 +516,7 @@ VOID WepRefreshWindowGeneralInfo(
     {
         PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_INSTANCE, 1, PhaFormatString(
             L"0x%Ix (%s)", 
-            instanceHandle,
+            (ULONG_PTR)instanceHandle,
             PhGetStringOrEmpty(fileName)
             )->Buffer);
         PhDereferenceObject(fileName);
@@ -522,12 +525,12 @@ VOID WepRefreshWindowGeneralInfo(
     {
         PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_INSTANCE, 1, PhaFormatString(
             L"0x%Ix", 
-            instanceHandle
+            (ULONG_PTR)instanceHandle
             )->Buffer);
     }
 
-    PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_MENUHANDLE, 1, PhaFormatString(L"0x%Ix", menuHandle)->Buffer);
-    PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_USERDATA, 1, PhaFormatString(L"0x%Ix", userdataHandle)->Buffer);
+    PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_MENUHANDLE, 1, PhaFormatString(L"0x%Ix", (ULONG_PTR)menuHandle)->Buffer);
+    PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_USERDATA, 1, PhaFormatString(L"0x%Ix", (ULONG_PTR)userdataHandle)->Buffer);
     PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_UNICODE, 1, IsWindowUnicode(Context->WindowHandle) ? L"Yes" : L"No");
     PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_DLGCTLID, 1, PhaFormatString(L"%lu", windowId)->Buffer);
 
@@ -713,7 +716,7 @@ VOID WepRefreshClassModule(
     {
         PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_CLASS_INSTANCE, 1, PhaFormatString(
             L"0x%Ix (%s)",
-            instanceHandle,
+            (ULONG_PTR)instanceHandle,
             PhGetStringOrEmpty(fileName)
             )->Buffer);
         PhDereferenceObject(fileName);
@@ -722,7 +725,7 @@ VOID WepRefreshClassModule(
     {
         PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_CLASS_INSTANCE, 1, PhaFormatString(
             L"0x%Ix",
-            instanceHandle
+            (ULONG_PTR)instanceHandle
             )->Buffer);
     }
 }
@@ -736,14 +739,14 @@ VOID WepRefreshWindowClassInfoSymbols(
     {
         PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_CLASS_WNDPROC, 1, PhaFormatString(
             L"0x%Ix (resolving...)",
-            Context->ClassInfo.lpfnWndProc
+            (ULONG_PTR)Context->ClassInfo.lpfnWndProc
             )->Buffer);
     }
     else if (Context->ClassWndProcSymbol)
     {
         PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_CLASS_WNDPROC, 1, PhaFormatString(
             L"0x%Ix (%s)",
-            Context->ClassInfo.lpfnWndProc,
+            (ULONG_PTR)Context->ClassInfo.lpfnWndProc,
             Context->ClassWndProcSymbol->Buffer
             )->Buffer);
     }
@@ -751,7 +754,7 @@ VOID WepRefreshWindowClassInfoSymbols(
     {
         PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_CLASS_WNDPROC, 1, PhaFormatString(
             L"0x%Ix",
-            Context->ClassInfo.lpfnWndProc
+            (ULONG_PTR)Context->ClassInfo.lpfnWndProc
             )->Buffer);
     }
     else
@@ -776,11 +779,11 @@ VOID WepRefreshWindowClassInfo(
 
     PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_CLASS_NAME, 1, className);
     PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_CLASS_ATOM, 1, PhaFormatString(L"0x%x", GetClassWord(Context->WindowHandle, GCW_ATOM))->Buffer);
-    PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_CLASS_LARGEICON, 1, PhaFormatString(L"0x%Ix", Context->ClassInfo.hIcon)->Buffer);
-    PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_CLASS_SMALLICON, 1, PhaFormatString(L"0x%Ix", Context->ClassInfo.hIconSm)->Buffer);
-    PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_CLASS_MENUNAME, 1, PhaFormatString(L"0x%Ix", Context->ClassInfo.lpszMenuName)->Buffer);
-    PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_CLASS_CURSOR, 1, PhaFormatString(L"0x%Ix", Context->ClassInfo.hCursor)->Buffer);
-    PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_CLASS_BACKBRUSH, 1, PhaFormatString(L"0x%Ix", Context->ClassInfo.hbrBackground)->Buffer);
+    PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_CLASS_LARGEICON, 1, PhaFormatString(L"0x%Ix", (ULONG_PTR)Context->ClassInfo.hIcon)->Buffer);
+    PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_CLASS_SMALLICON, 1, PhaFormatString(L"0x%Ix", (ULONG_PTR)Context->ClassInfo.hIconSm)->Buffer);
+    PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_CLASS_MENUNAME, 1, PhaFormatString(L"0x%Ix", (ULONG_PTR)Context->ClassInfo.lpszMenuName)->Buffer);
+    PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_CLASS_CURSOR, 1, PhaFormatString(L"0x%Ix", (ULONG_PTR)Context->ClassInfo.hCursor)->Buffer);
+    PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_CLASS_BACKBRUSH, 1, PhaFormatString(L"0x%Ix", (ULONG_PTR)Context->ClassInfo.hbrBackground)->Buffer);
 
     WepRefreshClassStyles(ListViewHandle, Context);
     WepRefreshClassModule(ListViewHandle, Context);
@@ -1030,7 +1033,7 @@ BOOL CALLBACK EnumPropsExCallback(
     {
         PPH_STRING propName;
 
-        propName = PhFormatString(L"#%lu", (ULONG_PTR)lpszString);
+        propName = PhFormatString(L"#%hu", (USHORT)lpszString);
         lvItemIndex = PhAddListViewItem((HWND)dwData, MAXINT, propName->Buffer, NULL);
         PhDereferenceObject(propName);
     }
