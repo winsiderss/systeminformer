@@ -89,6 +89,9 @@ BOOLEAN WeWindowTreeFilterCallback(
     PWE_WINDOW_TREE_CONTEXT context = Context;
     PWE_WINDOW_NODE windowNode = (PWE_WINDOW_NODE)Node;
 
+    if (!context)
+        return FALSE;
+
     if (PhIsNullOrEmptyString(context->SearchboxText))
         return TRUE;
 
@@ -365,11 +368,17 @@ BOOLEAN NTAPI WepWindowTreeNewCallback(
 
     context = Context;
 
+    if (!context)
+        return FALSE;
+
     switch (Message)
     {
     case TreeNewGetChildren:
         {
             PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
+
+            if (!getChildren)
+                break;
 
             node = (PWE_WINDOW_NODE)getChildren->Node;
 
@@ -420,6 +429,9 @@ BOOLEAN NTAPI WepWindowTreeNewCallback(
         {
             PPH_TREENEW_IS_LEAF isLeaf = Parameter1;
 
+            if (!isLeaf)
+                break;
+
             node = (PWE_WINDOW_NODE)isLeaf->Node;
 
             if (context->TreeNewSortOrder == NoSortOrder)
@@ -431,6 +443,9 @@ BOOLEAN NTAPI WepWindowTreeNewCallback(
     case TreeNewGetCellText:
         {
             PPH_TREENEW_GET_CELL_TEXT getCellText = Parameter1;
+
+            if (!getCellText)
+                break;
 
             node = (PWE_WINDOW_NODE)getCellText->Node;
 
@@ -462,6 +477,9 @@ BOOLEAN NTAPI WepWindowTreeNewCallback(
         {
             PPH_TREENEW_GET_NODE_COLOR getNodeColor = Parameter1;
 
+            if (!getNodeColor)
+                break;
+
             node = (PWE_WINDOW_NODE)getNodeColor->Node;
 
             if (!node->WindowVisible)
@@ -480,6 +498,9 @@ BOOLEAN NTAPI WepWindowTreeNewCallback(
     case TreeNewKeyDown:
         {
             PPH_TREENEW_KEY_EVENT keyEvent = Parameter1;
+
+            if (!keyEvent)
+                break;
 
             switch (keyEvent->VirtualKey)
             {
