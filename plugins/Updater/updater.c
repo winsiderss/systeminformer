@@ -51,6 +51,8 @@ VOID UpdateContextDeleteProcedure(
         PhDereferenceObject(context->SetupFileSignature);
     if (context->BuildMessage)
         PhDereferenceObject(context->BuildMessage);
+    if (context->CommitHash)
+        PhDereferenceObject(context->CommitHash);
 }
 
 PPH_UPDATER_CONTEXT CreateUpdateContext(
@@ -406,6 +408,7 @@ BOOLEAN QueryUpdateData(
     Context->SetupFileHash = PhGetJsonValueAsString(jsonObject, "setup_hash");
     Context->SetupFileSignature = PhGetJsonValueAsString(jsonObject, "setup_sig");
     Context->BuildMessage = PhGetJsonValueAsString(jsonObject, "changelog");
+    Context->CommitHash = PhGetJsonValueAsString(jsonObject, "commit");
 
     Context->CurrentVersion = ParseVersionString(Context->CurrentVersionString);
 #ifdef FORCE_LATEST_VERSION
