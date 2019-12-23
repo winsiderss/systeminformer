@@ -7809,6 +7809,7 @@ NTSTATUS PhQueryAttributesFile(
     return NtQueryAttributesFile(&oa, FileInformation);
 }
 
+// rev from RtlDoesFileExists_U (dmex)
 BOOLEAN PhDoesFileExistsWin32(
     _In_ PWSTR FileName
     )
