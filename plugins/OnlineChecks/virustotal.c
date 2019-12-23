@@ -59,8 +59,9 @@ PPH_STRING VirusTotalStringToTime(
     PPH_STRING result = NULL;
     SYSTEMTIME time = { 0 };
     SYSTEMTIME localTime = { 0 };
+    INT count;
 
-    swscanf(
+    count = swscanf(
         PhGetString(Time),
         L"%hu-%hu-%hu %hu:%hu:%hu",
         &time.wYear,
@@ -71,9 +72,12 @@ PPH_STRING VirusTotalStringToTime(
         &time.wSecond
         );
 
-    if (SystemTimeToTzSpecificLocalTime(NULL, &time, &localTime))
+    if (count == 6)
     {
-        result = PhFormatDateTime(&localTime);
+        if (SystemTimeToTzSpecificLocalTime(NULL, &time, &localTime))
+        {
+            result = PhFormatDateTime(&localTime);
+        }
     }
 
     return result;

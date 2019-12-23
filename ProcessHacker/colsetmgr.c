@@ -471,7 +471,7 @@ INT_PTR CALLBACK PhpColumnSetEditorDlgProc(
                     {
                         index = PhFindItemList(context->ColumnSetList, entry);
 
-                        if (index != -1)
+                        if (index != ULONG_MAX)
                         {
                             PhRemoveItemList(context->ColumnSetList, index);
                             PhInsertItemList(context->ColumnSetList, lvItemIndex, entry);   
@@ -493,7 +493,7 @@ INT_PTR CALLBACK PhpColumnSetEditorDlgProc(
                     {
                         index = PhFindItemList(context->ColumnSetList, entry);
 
-                        if (index != -1)
+                        if (index != ULONG_MAX)
                         {
                             PhRemoveItemList(context->ColumnSetList, index);
                             PhInsertItemList(context->ColumnSetList, lvItemIndex, entry);
@@ -513,7 +513,7 @@ INT_PTR CALLBACK PhpColumnSetEditorDlgProc(
                     {
                         index = PhFindItemList(context->ColumnSetList, entry);
 
-                        if (index != -1)
+                        if (index != ULONG_MAX)
                         {
                             PhRemoveItemList(context->ColumnSetList, index);
                             PhRemoveListViewItem(context->ListViewHandle, lvItemIndex);

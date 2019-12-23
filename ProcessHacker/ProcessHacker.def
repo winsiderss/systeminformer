@@ -433,6 +433,7 @@ EXPORTS
 
 ; cpysave
     PhGetGenericTreeNewLines
+    PhGetListViewItemText
     PhGetTreeNewText
 
 ; emenu

@@ -54,7 +54,7 @@ PPH_LOG_ENTRY PhpCreateLogEntry(
 }
 
 VOID PhpFreeLogEntry(
-    _Inout_ PPH_LOG_ENTRY Entry
+    _In_ _Post_invalid_ PPH_LOG_ENTRY Entry
     )
 {
     if (Entry->Type >= PH_LOG_ENTRY_PROCESS_FIRST && Entry->Type <= PH_LOG_ENTRY_PROCESS_LAST)
