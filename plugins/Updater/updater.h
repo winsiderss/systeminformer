@@ -49,6 +49,8 @@
 #define SETTING_NAME_LAST_CHECK (PLUGIN_NAME L".LastUpdateCheckTime")
 #define SETTING_NAME_CHANGELOG_WINDOW_POSITION (PLUGIN_NAME L".ChangelogWindowPosition")
 #define SETTING_NAME_CHANGELOG_WINDOW_SIZE (PLUGIN_NAME L".ChangelogWindowSize")
+#define SETTING_NAME_CHANGELOG_COLUMNS (PLUGIN_NAME L".ChangelogListColumns")
+#define SETTING_NAME_CHANGELOG_SORTCOLUMN (PLUGIN_NAME L".ChangelogListSort")
 
 #define MAKE_VERSION_ULONGLONG(major, minor, build, revision) \
     (((ULONGLONG)(major) << 48) | \
@@ -102,6 +104,7 @@ typedef struct _PH_UPDATER_CONTEXT
     
     // Nightly builds only
     PPH_STRING BuildMessage;
+    PPH_STRING CommitHash;
 } PH_UPDATER_CONTEXT, *PPH_UPDATER_CONTEXT;
 
 // TDM_NAVIGATE_PAGE can not be called from other threads without comctl32.dll throwing access violations 
@@ -231,13 +234,7 @@ BOOLEAN UpdaterVerifySignature(
     );
 
 VOID UpdaterDestroyHash(
-    _Inout_ PUPDATER_HASH_CONTEXT Context
-    );
-
-// info.c
-
-VOID ShowLinkDialog(
-    _In_ PPH_UPDATER_CONTEXT Context
+    _Frees_ptr_opt_ PUPDATER_HASH_CONTEXT Context
     );
 
 #endif
