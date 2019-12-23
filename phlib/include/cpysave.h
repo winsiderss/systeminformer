@@ -54,7 +54,18 @@ VOID PhaMapDisplayIndexListView(
     );
 
 PHLIBAPI
-PPH_STRING PhaGetListViewItemText(
+PPH_STRING
+NTAPI
+PhGetListViewItemText(
+    _In_ HWND ListViewHandle,
+    _In_ INT Index,
+    _In_ INT SubItemIndex
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhaGetListViewItemText(
     _In_ HWND ListViewHandle,
     _In_ INT Index,
     _In_ INT SubItemIndex
