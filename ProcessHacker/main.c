@@ -962,7 +962,7 @@ VOID PhInitializeKph(
     processhackerSigFileName = PhConcatStringRefZ(&applicationDirectory->sr, L"ProcessHacker.sig");
     PhDereferenceObject(applicationDirectory);
 
-    if (!RtlDoesFileExists_U(kprocesshackerFileName->Buffer))
+    if (!PhDoesFileExistsWin32(kprocesshackerFileName->Buffer))
     {
         //if (PhGetIntegerSetting(L"EnableKphWarnings") && !PhStartupParameters.PhSvc)
         //    PhpShowKphError(L"The Process Hacker kernel driver 'kprocesshacker.sys' was not found in the application directory.", STATUS_NO_SUCH_FILE);
@@ -1065,7 +1065,7 @@ VOID PhpInitializeSettings(
             {
                 settingsFileName = PhConcatStringRef2(&applicationFileName->sr, &settingsSuffix);
 
-                if (RtlDoesFileExists_U(settingsFileName->Buffer))
+                if (PhDoesFileExistsWin32(settingsFileName->Buffer))
                 {
                     PhSettingsFileName = settingsFileName;
                 }

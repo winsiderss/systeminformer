@@ -94,7 +94,7 @@ VOID PeInitializeSettings(
     tempFileName = PhConcatStringRef2(&appFileName->sr, &settingsSuffix);
     PhDereferenceObject(appFileName);
 
-    if (RtlDoesFileExists_U(tempFileName->Buffer))
+    if (PhDoesFileExistsWin32(tempFileName->Buffer))
     {
         PeSettingsFileName = tempFileName;
     }
