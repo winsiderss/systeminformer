@@ -307,7 +307,7 @@ NTSTATUS GeoIPUpdateThread(
 
         memset(buffer, 0, PAGE_SIZE);
 
-        status = PhFormatString(L"Downloading GeoLite2-Country.mmdb...");
+        status = PhFormatString(L"Downloading GeoLite2-Country...");
         SendMessage(context->DialogHandle, TDM_SET_MARQUEE_PROGRESS_BAR, FALSE, 0);
         SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)status->Buffer);
         PhDereferenceObject(status);
