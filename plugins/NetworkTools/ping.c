@@ -241,6 +241,9 @@ VOID NTAPI NetworkPingUpdateHandler(
 {
     PNETWORK_PING_CONTEXT context = (PNETWORK_PING_CONTEXT)Context;
 
+    if (!context)
+        return;
+
     // Queue up the next ping request
     PhQueueItemWorkQueue(&context->PingWorkQueue, NetworkPingThreadStart, (PVOID)context);
 }

@@ -636,19 +636,6 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
     else
     {
         context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-
-        if (uMsg == WM_DESTROY)
-        {
-            PhDeleteLayoutManager(&context->LayoutManager);
-
-            if (context->OptionsChanged)
-                DiskDrivesSaveList();
-
-            FreeListViewDiskDriveEntries(context);
-
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-            PhFree(context);
-        }
     }
 
     if (context == NULL)
@@ -676,6 +663,19 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
             FindDiskDrives(context);
 
             context->OptionsChanged = FALSE;
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhDeleteLayoutManager(&context->LayoutManager);
+
+            if (context->OptionsChanged)
+                DiskDrivesSaveList();
+
+            FreeListViewDiskDriveEntries(context);
+
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+            PhFree(context);
         }
         break;
     case WM_SIZE:

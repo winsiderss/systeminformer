@@ -53,6 +53,9 @@ BOOLEAN EtpGpuListSectionCallback(
         {
             PPH_MINIINFO_LIST_SECTION_SORT_LIST sortList = Parameter1;
 
+            if (!sortList)
+                break;
+
             qsort(sortList->List->Items, sortList->List->Count,
                 sizeof(PPH_PROCESS_NODE), EtpGpuListSectionProcessCompareFunction);
         }
@@ -60,9 +63,15 @@ BOOLEAN EtpGpuListSectionCallback(
     case MiListSectionAssignSortData:
         {
             PPH_MINIINFO_LIST_SECTION_ASSIGN_SORT_DATA assignSortData = Parameter1;
-            PPH_LIST processes = assignSortData->ProcessGroup->Processes;
-            FLOAT gpuUsage = 0;
+            PPH_LIST processes;
+            FLOAT gpuUsage;
             ULONG i;
+
+            if (!assignSortData)
+                break;
+
+            processes = assignSortData->ProcessGroup->Processes;
+            gpuUsage = 0;
 
             for (i = 0; i < processes->Count; i++)
             {
@@ -78,6 +87,9 @@ BOOLEAN EtpGpuListSectionCallback(
         {
             PPH_MINIINFO_LIST_SECTION_SORT_LIST sortList = Parameter1;
 
+            if (!sortList)
+                break;
+
             qsort(sortList->List->Items, sortList->List->Count,
                 sizeof(PPH_MINIINFO_LIST_SECTION_SORT_DATA), EtpGpuListSectionNodeCompareFunction);
         }
@@ -85,8 +97,14 @@ BOOLEAN EtpGpuListSectionCallback(
     case MiListSectionGetUsageText:
         {
             PPH_MINIINFO_LIST_SECTION_GET_USAGE_TEXT getUsageText = Parameter1;
-            PPH_LIST processes = getUsageText->ProcessGroup->Processes;
-            FLOAT gpuUsage = *(PFLOAT)getUsageText->SortData->UserData;
+            PPH_LIST processes;
+            FLOAT gpuUsage;
+
+            if (!getUsageText)
+                break;
+
+            processes = getUsageText->ProcessGroup->Processes;
+            gpuUsage = *(PFLOAT)getUsageText->SortData->UserData;
 
             PhMoveReference(&getUsageText->Line1, PhFormatString(L"%.2f%%", gpuUsage * 100));
         }

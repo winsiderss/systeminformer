@@ -387,6 +387,9 @@ static BOOLEAN NTAPI EnumGenericModulesCallback(
 {
     PWS_WATCH_CONTEXT context = Context;
 
+    if (!context)
+        return TRUE;
+
     // If we're loading kernel module symbols for a process other than
     // System, ignore modules which are in user space. This may happen
     // in Windows 7.

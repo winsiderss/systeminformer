@@ -122,6 +122,7 @@ BOOLEAN NetworkAdapterQuerySupported(
     return ndisQuerySupported;
 }
 
+_Success_(return)
 BOOLEAN NetworkAdapterQueryNdisVersion(
     _In_ HANDLE DeviceHandle,
     _Out_opt_ PUINT MajorVersion,
@@ -293,6 +294,7 @@ NTSTATUS NetworkAdapterQueryLinkState(
     return status;
 }
 
+_Success_(return)
 BOOLEAN NetworkAdapterQueryMediaType(
     _In_ HANDLE DeviceHandle,
     _Out_ PNDIS_PHYSICAL_MEDIUM Medium
@@ -447,6 +449,7 @@ ULONG64 NetworkAdapterQueryValue(
     return 0;
 }
 
+_Success_(return)
 BOOLEAN QueryInterfaceRow(
     _In_ PDV_NETADAPTER_ID Id,
     _Out_ PMIB_IF_ROW2 InterfaceRow

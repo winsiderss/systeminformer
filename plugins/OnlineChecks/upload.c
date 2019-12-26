@@ -155,6 +155,7 @@ PPH_STRING UpdateVersionString(
     return versionHeader;
 }
 
+_Success_(return >= 0)
 NTSTATUS HashFileAndResetPosition(
     _In_ HANDLE FileHandle,
     _In_ PLARGE_INTEGER FileSize,
@@ -162,7 +163,7 @@ NTSTATUS HashFileAndResetPosition(
     _Out_ PPH_STRING *HashString
     )
 {
-    NTSTATUS status;
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
     IO_STATUS_BLOCK iosb;
     PH_HASH_CONTEXT hashContext;
     PPH_STRING hashString = NULL;

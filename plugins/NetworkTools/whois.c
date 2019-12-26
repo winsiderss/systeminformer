@@ -80,6 +80,7 @@ PPH_STRING TrimString2(
     return PhCreateString2(&sr);
 }
 
+_Success_(return)
 BOOLEAN ReadSocketString(
     _In_ SOCKET Handle,
     _Out_opt_ _Deref_post_z_cap_(*DataLength) PSTR* Data,
@@ -143,6 +144,7 @@ BOOLEAN ReadSocketString(
     return FALSE;
 }
 
+_Success_(return)
 BOOLEAN WhoisExtractServerUrl(
     _In_ PPH_STRING WhoisResponce,
     _Out_opt_ PPH_STRING *WhoisServerAddress
@@ -172,6 +174,7 @@ BOOLEAN WhoisExtractServerUrl(
     return TRUE;
 }
 
+_Success_(return)
 BOOLEAN WhoisExtractReferralServer(
     _In_ PPH_STRING WhoisResponce,
     _Out_opt_ PPH_STRING *WhoisServerAddress,
@@ -240,6 +243,7 @@ BOOLEAN WhoisExtractReferralServer(
     return FALSE;
 }
 
+_Success_(return)
 BOOLEAN WhoisQueryServer(
     _In_ PWSTR WhoisServerAddress,
     _In_ PWSTR WhoisServerPort,

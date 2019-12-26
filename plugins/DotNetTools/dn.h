@@ -67,11 +67,13 @@ PVOID GetPerfIpcBlock_V4(
     _In_ PVOID BlockTableAddress
     );
 
+_Success_(return)
 BOOLEAN OpenDotNetPublicControlBlock_V2(
     _In_ HANDLE ProcessId,
     _Out_ PVOID* BlockTableAddress
     );
 
+_Success_(return)
 BOOLEAN OpenDotNetPublicControlBlock_V4(
     _In_ BOOLEAN IsImmersive,
     _In_ HANDLE ProcessHandle,

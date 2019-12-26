@@ -554,12 +554,20 @@ BOOLEAN NTAPI DotNetAsmTreeNewCallback(
 {
     PASMPAGE_CONTEXT context = Context;
 
+    if (!context)
+        return FALSE;
+
     switch (Message)
     {
     case TreeNewGetChildren:
         {
             PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
-            PDNA_NODE node = (PDNA_NODE)getChildren->Node;
+            PDNA_NODE node;
+
+            if (!getChildren)
+                break;
+
+            node = (PDNA_NODE)getChildren->Node;
 
             if (!node)
             {
@@ -582,7 +590,12 @@ BOOLEAN NTAPI DotNetAsmTreeNewCallback(
     case TreeNewIsLeaf:
         {
             PPH_TREENEW_IS_LEAF isLeaf = Parameter1;
-            PDNA_NODE node = (PDNA_NODE)isLeaf->Node;
+            PDNA_NODE node;
+
+            if (!isLeaf)
+                break;
+
+            node = (PDNA_NODE)isLeaf->Node;
 
             isLeaf->IsLeaf = node->Children->Count == 0;
         }
@@ -590,7 +603,12 @@ BOOLEAN NTAPI DotNetAsmTreeNewCallback(
     case TreeNewGetCellText:
         {
             PPH_TREENEW_GET_CELL_TEXT getCellText = Parameter1;
-            PDNA_NODE node = (PDNA_NODE)getCellText->Node;
+            PDNA_NODE node;
+
+            if (!getCellText)
+                break;
+
+            node = (PDNA_NODE)getCellText->Node;
 
             switch (getCellText->Id)
             {
@@ -619,7 +637,12 @@ BOOLEAN NTAPI DotNetAsmTreeNewCallback(
     case TreeNewGetNodeColor:
         {
             PPH_TREENEW_GET_NODE_COLOR getNodeColor = Parameter1;
-            PDNA_NODE node = (PDNA_NODE)getNodeColor->Node;
+            PDNA_NODE node;
+
+            if (!getNodeColor)
+                break;
+
+            node = (PDNA_NODE)getNodeColor->Node;
 
             switch (node->Type)
             {
@@ -651,7 +674,12 @@ BOOLEAN NTAPI DotNetAsmTreeNewCallback(
     case TreeNewGetCellTooltip:
         {
             PPH_TREENEW_GET_CELL_TOOLTIP getCellTooltip = Parameter1;
-            PDNA_NODE node = (PDNA_NODE)getCellTooltip->Node;
+            PDNA_NODE node;
+
+            if (!getCellTooltip)
+                break;
+
+            node = (PDNA_NODE)getCellTooltip->Node;
 
             if (getCellTooltip->Column->Id != 0 || node->Type != DNA_TYPE_ASSEMBLY)
                 return FALSE;
@@ -670,6 +698,9 @@ BOOLEAN NTAPI DotNetAsmTreeNewCallback(
     case TreeNewKeyDown:
         {
             PPH_TREENEW_KEY_EVENT keyEvent = Parameter1;
+
+            if (!keyEvent)
+                break;
 
             switch (keyEvent->VirtualKey)
             {
@@ -718,6 +749,9 @@ BOOLEAN NTAPI DotNetAsmTreeNewCallback(
     case TreeNewContextMenu:
         {
             PPH_TREENEW_CONTEXT_MENU contextMenuEvent = Parameter1;
+
+            if (!contextMenuEvent)
+                break;
 
             DotNetAsmShowContextMenu(context, contextMenuEvent);
         }
@@ -789,6 +823,7 @@ VOID DotNetAsmSetOptionsTreeList(
     }
 }
 
+_Success_(return == ERROR_SUCCESS)
 static ULONG StartDotNetTrace(
     _Out_ PTRACEHANDLE SessionHandle,
     _Out_ PEVENT_TRACE_PROPERTIES *Properties
@@ -1418,6 +1453,8 @@ BOOLEAN DotNetAsmTreeFilterCallback(
     PASMPAGE_CONTEXT context = Context;
     PDNA_NODE node = (PDNA_NODE)Node;
 
+    if (!context)
+        return FALSE;
     if (context->HideDynamicModules && node->Type == DNA_TYPE_ASSEMBLY && (node->u.Assembly.AssemblyFlags & 0x2) == 0x2)
         return FALSE;
     if (context->HideNativeModules && node->Type == DNA_TYPE_ASSEMBLY && (node->u.Assembly.AssemblyFlags & 0x4) == 0x4)

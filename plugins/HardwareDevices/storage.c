@@ -425,6 +425,7 @@ BOOLEAN DiskDriveQueryTemperature(
     return TRUE;
 }
 
+_Success_(return)
 BOOLEAN DiskDriveQueryDeviceInformation(
     _In_ HANDLE DeviceHandle,
     _Out_opt_ PPH_STRING* DiskVendor,
@@ -795,6 +796,7 @@ BOOLEAN DiskDriveQueryAttributes(
     return FALSE;
 }
 
+_Success_(return)
 BOOLEAN DiskDriveQueryLength(
     _In_ HANDLE DeviceHandle,
     _Out_ ULONG64* Length
@@ -865,7 +867,7 @@ BOOLEAN DiskDriveQueryBcProperties(
     return TRUE;
 }
 
-
+_Success_(return)
 BOOLEAN DiskDriveQueryFileSystemInfo(
     _In_ HANDLE DosDeviceHandle,
     _Out_ USHORT* FileSystemType,
@@ -945,6 +947,7 @@ BOOLEAN DiskDriveQueryFileSystemInfo(
     return FALSE;
 }
 
+_Success_(return)
 BOOLEAN DiskDriveQueryNtfsVolumeInfo(
     _In_ HANDLE DosDeviceHandle,
     _Out_ PNTFS_VOLUME_INFO VolumeInfo
@@ -975,6 +978,7 @@ BOOLEAN DiskDriveQueryNtfsVolumeInfo(
     return FALSE;
 }
 
+_Success_(return)
 BOOLEAN DiskDriveQueryRefsVolumeInfo(
     _In_ HANDLE DosDeviceHandle,
     _Out_ PREFS_VOLUME_DATA_BUFFER VolumeInfo
@@ -1059,7 +1063,7 @@ BOOLEAN DiskDriveQueryTxfsVolumeInfo(
 
     for (ULONG i = 0; i < buffer->NumberOfTransactions; i++)
     {
-        PTXFS_LIST_TRANSACTIONS_ENTRY entry = (PTXFS_LIST_TRANSACTIONS_ENTRY)(buffer + i * sizeof(TXFS_LIST_TRANSACTIONS));
+        //PTXFS_LIST_TRANSACTIONS_ENTRY entry = (PTXFS_LIST_TRANSACTIONS_ENTRY)(buffer + i * sizeof(TXFS_LIST_TRANSACTIONS));
         //PPH_STRING txGuid = PhFormatGuid(&entry->TransactionId);
         //entry->TransactionState;
         //Resource Manager Identifier :     17DC1CDD-9C6C-11E5-BBC2-F5C37BC15998
@@ -1177,6 +1181,7 @@ BOOLEAN DiskDriveQueryBootSectorFsCount(
     return FALSE;
 }
 
+_Success_(return)
 BOOLEAN DiskDriveQueryVolumeDirty(
     _In_ HANDLE DosDeviceHandle,
     _Out_ PBOOLEAN IsDirty
@@ -1311,6 +1316,7 @@ NTSTATUS DiskDriveQueryVolumeAttributes(
     return status;
 }
 
+_Success_(return)
 BOOLEAN DiskDriveQueryVolumeFreeSpace(
     _In_ HANDLE DosDeviceHandle,
     _Out_ ULONG64* TotalLength,

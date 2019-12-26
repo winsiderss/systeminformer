@@ -175,7 +175,10 @@ BOOLEAN EtpDiskPageCallback(
             EtInitializeDiskInformation();
             SetCursor(LoadCursor(NULL, IDC_ARROW));
 
-            *(HWND *)Parameter1 = hwnd;
+            if (Parameter1)
+            {
+                *(HWND*)Parameter1 = hwnd;
+            }
         }
         return TRUE;
     case MainTabPageLoadSettings:
@@ -1036,6 +1039,9 @@ VOID NTAPI EtpDiskItemAddedHandler(
     )
 {
     PET_DISK_ITEM diskItem = (PET_DISK_ITEM)Parameter;
+
+    if (!diskItem)
+        return;
 
     PhReferenceObject(diskItem);
     PhPushProviderEventQueue(&EtpDiskEventQueue, ProviderAddedEvent, Parameter, EtRunCount);

@@ -264,19 +264,23 @@ typedef enum _NETWORK_COLUMN_ID
 PPH_STRING NetToolsGetGeoLiteDbPath(
     _In_ PWSTR SettingName
     );
+
 VOID LoadGeoLiteDb(
     VOID
     );
+
 VOID FreeGeoLiteDb(
     VOID
     );
 
+_Success_(return)
 BOOLEAN LookupCountryCode(
     _In_ PH_IP_ADDRESS RemoteAddress,
     _Out_ PPH_STRING *CountryCode,
     _Out_ PPH_STRING *CountryName
     );
 
+_Success_(return)
 BOOLEAN LookupSockInAddr4CountryCode(
     _In_ IN_ADDR RemoteAddress,
     _Out_ PPH_STRING *CountryCode,

@@ -168,7 +168,7 @@ INT_PTR CALLBACK EtpModuleServicesDlgProc(
     _In_ LPARAM lParam
     )
 {
-    PMODULE_SERVICES_CONTEXT context;
+    PMODULE_SERVICES_CONTEXT context = NULL;
 
     if (uMsg == WM_INITDIALOG)
     {
@@ -178,19 +178,6 @@ INT_PTR CALLBACK EtpModuleServicesDlgProc(
     else
     {
         context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-
-        if (uMsg == WM_DESTROY)
-        {
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-
-            if (context->LayoutManager.List) // HACK (dmex)
-                PhDeleteLayoutManager(&context->LayoutManager);
-
-            PhDereferenceObject(context->ModuleName);
-            PhFree(context);
-
-            PostQuitMessage(0);
-        }
     }
 
     if (!context)
@@ -263,6 +250,19 @@ INT_PTR CALLBACK EtpModuleServicesDlgProc(
                 PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+
+            if (context->LayoutManager.List) // HACK (dmex)
+                PhDeleteLayoutManager(&context->LayoutManager);
+
+            PhDereferenceObject(context->ModuleName);
+            PhFree(context);
+
+            PostQuitMessage(0);
         }
         break;
     case WM_SIZE:

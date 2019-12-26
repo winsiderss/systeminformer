@@ -187,6 +187,9 @@ VOID NTAPI ThreadStackControlCallback(
     _In_opt_ PVOID Context
     )
 {
+    if (!Parameter)
+        return;
+
     ProcessThreadStackControl(Parameter);
 }
 

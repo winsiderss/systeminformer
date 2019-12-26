@@ -668,13 +668,13 @@ INT_PTR CALLBACK RestartComputerDlgProc(
 
                     // Get the computer name.
 
-                    bufferSize = 64;
-                    computerName = PhAllocate((bufferSize + 1) * sizeof(WCHAR));
+                    bufferSize = MAX_COMPUTERNAME_LENGTH + sizeof(UNICODE_NULL);
+                    computerName = PhAllocate(bufferSize * sizeof(WCHAR));
 
                     if (!GetComputerName(computerName, &bufferSize))
                     {
                         PhFree(computerName);
-                        computerName = PhAllocate((bufferSize + 1) * sizeof(WCHAR));
+                        computerName = PhAllocate(bufferSize * sizeof(WCHAR));
 
                         if (!GetComputerName(computerName, &bufferSize))
                         {

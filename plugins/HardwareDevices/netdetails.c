@@ -30,7 +30,7 @@ VOID NTAPI NetAdapterProcessesUpdatedHandler(
 {
     PDV_NETADAPTER_DETAILS_CONTEXT context = Context;
 
-    if (context->WindowHandle)
+    if (context && context->WindowHandle)
     {
         PostMessage(context->WindowHandle, UPDATE_MSG, 0, 0);
     }
@@ -333,7 +333,7 @@ VOID NETIOAPI_API_ NetAdapterChangeCallback(
     }
     else if (NotificationType == MibParameterNotification)
     {
-        if (Row->InterfaceLuid.Value = context->AdapterId.InterfaceLuid.Value)
+        if (Row && (Row->InterfaceLuid.Value = context->AdapterId.InterfaceLuid.Value))
         {
             NetAdapterLookupConfig(context);
         }
