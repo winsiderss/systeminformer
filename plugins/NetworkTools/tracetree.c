@@ -316,11 +316,17 @@ BOOLEAN NTAPI TracertTreeNewCallback(
     PNETWORK_TRACERT_CONTEXT context = Context;
     PTRACERT_ROOT_NODE node;
 
+    if (!context)
+        return FALSE;
+
     switch (Message)
     {
     case TreeNewGetChildren:
         {
             PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
+
+            if (!getChildren)
+                break;
 
             node = (PTRACERT_ROOT_NODE)getChildren->Node;
 
@@ -357,6 +363,10 @@ BOOLEAN NTAPI TracertTreeNewCallback(
     case TreeNewIsLeaf:
         {
             PPH_TREENEW_IS_LEAF isLeaf = (PPH_TREENEW_IS_LEAF)Parameter1;
+
+            if (!isLeaf)
+                break;
+
             node = (PTRACERT_ROOT_NODE)isLeaf->Node;
 
             isLeaf->IsLeaf = TRUE;
@@ -365,6 +375,10 @@ BOOLEAN NTAPI TracertTreeNewCallback(
     case TreeNewGetCellText:
         {
             PPH_TREENEW_GET_CELL_TEXT getCellText = (PPH_TREENEW_GET_CELL_TEXT)Parameter1;
+
+            if (!getCellText)
+                break;
+
             node = (PTRACERT_ROOT_NODE)getCellText->Node;
 
             switch (getCellText->Id)
@@ -406,6 +420,10 @@ BOOLEAN NTAPI TracertTreeNewCallback(
     case TreeNewGetNodeColor:
         {
             PPH_TREENEW_GET_NODE_COLOR getNodeColor = Parameter1;
+
+            if (!getNodeColor)
+                break;
+
             node = (PTRACERT_ROOT_NODE)getNodeColor->Node;
 
             getNodeColor->Flags = TN_CACHE | TN_AUTO_FORECOLOR;
@@ -421,6 +439,9 @@ BOOLEAN NTAPI TracertTreeNewCallback(
     case TreeNewContextMenu:
         {
             PPH_TREENEW_CONTEXT_MENU contextMenuEvent = Parameter1;
+
+            if (!contextMenuEvent)
+                break;
 
             SendMessage(
                 context->WindowHandle,
@@ -449,9 +470,14 @@ BOOLEAN NTAPI TracertTreeNewCallback(
     case TreeNewCustomDraw:
         {
             PPH_TREENEW_CUSTOM_DRAW customDraw = Parameter1;  
-            HDC hdc = customDraw->Dc;
-            RECT rect = customDraw->CellRect;
+            HDC hdc;
+            RECT rect;
 
+            if (!customDraw)
+                break;
+
+            hdc = customDraw->Dc;
+            rect = customDraw->CellRect;
             node = (PTRACERT_ROOT_NODE)customDraw->Node;
 
             // Check if this is the country column

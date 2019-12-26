@@ -33,6 +33,9 @@ VOID NTAPI HardwareDevicesDeviceChangeCallback(
 {
     PMSG message = Parameter;
 
+    if (!message)
+        return;
+
     switch (message->wParam)
     {
     case DBT_DEVICEARRIVAL: // Drive letter added

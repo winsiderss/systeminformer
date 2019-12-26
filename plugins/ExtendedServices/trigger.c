@@ -539,6 +539,7 @@ BOOLEAN EspEnumerateEtwPublishers(
     return TRUE;
 }
 
+_Success_(return)
 BOOLEAN EspLookupEtwPublisherGuid(
     _In_ PPH_STRINGREF PublisherName,
     _Out_ PGUID Guid

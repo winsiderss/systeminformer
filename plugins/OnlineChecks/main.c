@@ -109,7 +109,7 @@ VOID ProcessesUpdatedCallback(
             {
                 PPROCESS_DB_OBJECT object;
 
-                if (object = FindProcessDbObject(&filePath->sr))
+                if (filePath && (object = FindProcessDbObject(&filePath->sr)))
                 {
                     extension->Stage1 = TRUE;
                     extension->ResultValid = TRUE;
@@ -121,7 +121,7 @@ VOID ProcessesUpdatedCallback(
 
             if (!extension->Stage1)
             {
-                if (!VirusTotalGetCachedResult(filePath))
+                if (filePath && !VirusTotalGetCachedResult(filePath))
                 {
                     VirusTotalAddCacheResult(filePath, extension);
                 }
@@ -412,12 +412,12 @@ VOID ProcessHighlightingColorCallback(
     _In_opt_ PVOID Context
     )
 {
-    PPH_PLUGIN_GET_HIGHLIGHTING_COLOR getHighlightingColor = Parameter;
-    PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)getHighlightingColor->Parameter;
+    //PPH_PLUGIN_GET_HIGHLIGHTING_COLOR getHighlightingColor = Parameter;
+    //PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)getHighlightingColor->Parameter;
     //PPROCESS_DB_OBJECT object;
 
-    if (getHighlightingColor->Handled)
-        return;
+    //if (getHighlightingColor->Handled)
+    //    return;
 
     //if (!PhGetIntegerSetting(SETTING_NAME_VIRUSTOTAL_HIGHLIGHT_DETECTIONS))
     //    return;

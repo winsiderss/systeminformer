@@ -32,6 +32,7 @@ PETP_GPU_ADAPTER EtpAllocateGpuAdapter(
     _In_ ULONG NumberOfSegments
     );
 
+_Success_(return)
 BOOLEAN EtQueryDeviceProperties(
     _In_ PWSTR DeviceInterface,
     _Out_opt_ PPH_STRING *Description,

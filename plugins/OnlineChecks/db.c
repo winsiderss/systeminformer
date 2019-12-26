@@ -126,7 +126,7 @@ PPROCESS_DB_OBJECT CreateProcessDbObject(
     PhReferenceObject(FileName);
     object->Positives = Positives;
     object->Hash = FileName;
-    object->Result = PhFormatString(L"%lu | %lu", Positives, Total);
+    object->Result = PhFormatString(L"%lu | %lu", (ULONG)Positives, (ULONG)Total);
 
     realObject = PhAddEntryHashtableEx(ProcessObjectDb, &object, &added);
 

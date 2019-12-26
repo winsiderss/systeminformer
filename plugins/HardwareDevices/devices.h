@@ -307,6 +307,7 @@ BOOLEAN NetworkAdapterQuerySupported(
     _In_ HANDLE DeviceHandle
     );
 
+_Success_(return)
 BOOLEAN NetworkAdapterQueryNdisVersion(
     _In_ HANDLE DeviceHandle,
     _Out_opt_ PUINT MajorVersion,
@@ -328,6 +329,7 @@ NTSTATUS NetworkAdapterQueryLinkState(
     _Out_ PNDIS_LINK_STATE State
     );
 
+_Success_(return)
 BOOLEAN NetworkAdapterQueryMediaType(
     _In_ HANDLE DeviceHandle,
     _Out_ PNDIS_PHYSICAL_MEDIUM Medium
@@ -343,6 +345,7 @@ ULONG64 NetworkAdapterQueryValue(
     _In_ NDIS_OID OpCode
     );
 
+_Success_(return)
 BOOLEAN QueryInterfaceRow(
     _In_ PDV_NETADAPTER_ID Id,
     _Out_ PMIB_IF_ROW2 InterfaceRow
@@ -634,6 +637,7 @@ PPH_LIST DiskDriveQueryMountPointHandles(
     _In_ ULONG DeviceNumber
     );
 
+_Success_(return)
 BOOLEAN DiskDriveQueryDeviceInformation(
     _In_ HANDLE DeviceHandle,
     _Out_opt_ PPH_STRING* DiskVendor,
@@ -680,6 +684,7 @@ typedef struct _EXFAT_FILESYSTEM_STATISTICS
     EXFAT_STATISTICS ExFatStatistics;
 } EXFAT_FILESYSTEM_STATISTICS, *PEXFAT_FILESYSTEM_STATISTICS;
 
+_Success_(return)
 BOOLEAN DiskDriveQueryFileSystemInfo(
     _In_ HANDLE DeviceHandle,
     _Out_ USHORT* FileSystemType,
@@ -692,11 +697,13 @@ typedef struct _NTFS_VOLUME_INFO
     NTFS_EXTENDED_VOLUME_DATA ExtendedVolumeData;
 } NTFS_VOLUME_INFO, *PNTFS_VOLUME_INFO;
 
+_Success_(return)
 BOOLEAN DiskDriveQueryNtfsVolumeInfo(
     _In_ HANDLE DosDeviceHandle,
     _Out_ PNTFS_VOLUME_INFO VolumeInfo
     );
 
+_Success_(return)
 BOOLEAN DiskDriveQueryRefsVolumeInfo(
     _In_ HANDLE DosDeviceHandle,
     _Out_ PREFS_VOLUME_DATA_BUFFER VolumeInfo

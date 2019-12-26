@@ -68,6 +68,9 @@ BOOLEAN EtpDiskListSectionCallback(
         {
             PPH_MINIINFO_LIST_SECTION_SORT_LIST sortList = Parameter1;
 
+            if (!sortList)
+                break;
+
             qsort(sortList->List->Items, sortList->List->Count,
                 sizeof(PPH_PROCESS_NODE), EtpDiskListSectionProcessCompareFunction);
         }
@@ -75,10 +78,17 @@ BOOLEAN EtpDiskListSectionCallback(
     case MiListSectionAssignSortData:
         {
             PPH_MINIINFO_LIST_SECTION_ASSIGN_SORT_DATA assignSortData = Parameter1;
-            PPH_LIST processes = assignSortData->ProcessGroup->Processes;
-            ULONG64 diskReadDelta = 0;
-            ULONG64 diskWriteDelta = 0;
+            PPH_LIST processes;
+            ULONG64 diskReadDelta;
+            ULONG64 diskWriteDelta;
             ULONG i;
+
+            if (!assignSortData)
+                break;
+
+            processes = assignSortData->ProcessGroup->Processes;
+            diskReadDelta = 0;
+            diskWriteDelta = 0;
 
             for (i = 0; i < processes->Count; i++)
             {
@@ -96,6 +106,9 @@ BOOLEAN EtpDiskListSectionCallback(
         {
             PPH_MINIINFO_LIST_SECTION_SORT_LIST sortList = Parameter1;
 
+            if (!sortList)
+                break;
+
             qsort(sortList->List->Items, sortList->List->Count,
                 sizeof(PPH_MINIINFO_LIST_SECTION_SORT_DATA), EtpDiskListSectionNodeCompareFunction);
         }
@@ -103,10 +116,17 @@ BOOLEAN EtpDiskListSectionCallback(
     case MiListSectionGetUsageText:
         {
             PPH_MINIINFO_LIST_SECTION_GET_USAGE_TEXT getUsageText = Parameter1;
-            PPH_LIST processes = getUsageText->ProcessGroup->Processes;
-            ULONG64 diskReadDelta = getUsageText->SortData->UserData[0];
-            ULONG64 diskWriteDelta = getUsageText->SortData->UserData[1];
+            PPH_LIST processes;
+            ULONG64 diskReadDelta;
+            ULONG64 diskWriteDelta;
             PH_FORMAT format[1];
+
+            if (!getUsageText)
+                break;
+
+            processes = getUsageText->ProcessGroup->Processes;
+            diskReadDelta = getUsageText->SortData->UserData[0];
+            diskWriteDelta = getUsageText->SortData->UserData[1];
 
             PhInitFormatSize(&format[0], diskReadDelta + diskWriteDelta);
             PhMoveReference(&getUsageText->Line1, PhFormat(format, 1, 16));
@@ -180,6 +200,9 @@ BOOLEAN EtpNetworkListSectionCallback(
         {
             PPH_MINIINFO_LIST_SECTION_SORT_LIST sortList = Parameter1;
 
+            if (!sortList)
+                break;
+
             qsort(sortList->List->Items, sortList->List->Count,
                 sizeof(PPH_PROCESS_NODE), EtpNetworkListSectionProcessCompareFunction);
         }
@@ -187,10 +210,17 @@ BOOLEAN EtpNetworkListSectionCallback(
     case MiListSectionAssignSortData:
         {
             PPH_MINIINFO_LIST_SECTION_ASSIGN_SORT_DATA assignSortData = Parameter1;
-            PPH_LIST processes = assignSortData->ProcessGroup->Processes;
-            ULONG64 networkReceiveDelta = 0;
-            ULONG64 networkSendDelta = 0;
+            PPH_LIST processes;
+            ULONG64 networkReceiveDelta;
+            ULONG64 networkSendDelta;
             ULONG i;
+
+            if (!assignSortData)
+                break;
+
+            processes = assignSortData->ProcessGroup->Processes;
+            networkReceiveDelta = 0;
+            networkSendDelta = 0;
 
             for (i = 0; i < processes->Count; i++)
             {
@@ -208,6 +238,9 @@ BOOLEAN EtpNetworkListSectionCallback(
         {
             PPH_MINIINFO_LIST_SECTION_SORT_LIST sortList = Parameter1;
 
+            if (!sortList)
+                break;
+
             qsort(sortList->List->Items, sortList->List->Count,
                 sizeof(PPH_MINIINFO_LIST_SECTION_SORT_DATA), EtpNetworkListSectionNodeCompareFunction);
         }
@@ -215,10 +248,17 @@ BOOLEAN EtpNetworkListSectionCallback(
     case MiListSectionGetUsageText:
         {
             PPH_MINIINFO_LIST_SECTION_GET_USAGE_TEXT getUsageText = Parameter1;
-            PPH_LIST processes = getUsageText->ProcessGroup->Processes;
-            ULONG64 networkReceiveDelta = getUsageText->SortData->UserData[0];
-            ULONG64 networkSendDelta = getUsageText->SortData->UserData[1];
+            PPH_LIST processes;
+            ULONG64 networkReceiveDelta;
+            ULONG64 networkSendDelta;
             PH_FORMAT format[1];
+
+            if (!getUsageText)
+                break;
+
+            processes = getUsageText->ProcessGroup->Processes;
+            networkReceiveDelta = getUsageText->SortData->UserData[0];
+            networkSendDelta = getUsageText->SortData->UserData[1];
 
             PhInitFormatSize(&format[0], networkReceiveDelta + networkSendDelta);
             PhMoveReference(&getUsageText->Line1, PhFormat(format, 1, 16));

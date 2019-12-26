@@ -60,6 +60,9 @@ VOID NTAPI ShowOptionsCallback(
 {
     PPH_PLUGIN_OPTIONS_POINTERS optionsEntry = (PPH_PLUGIN_OPTIONS_POINTERS)Parameter;
 
+    if (!optionsEntry)
+        return;
+
     optionsEntry->CreateSection(
         L"NetworkTools",
         PluginInstance->DllBase,
@@ -69,6 +72,7 @@ VOID NTAPI ShowOptionsCallback(
         );
 }
 
+_Success_(return)
 static BOOLEAN ParseNetworkAddress(
     _In_ PWSTR AddressString,
     _Out_ PPH_IP_ENDPOINT RemoteEndpoint  
@@ -163,7 +167,12 @@ VOID NTAPI MenuItemCallback(
     )
 {
     PPH_PLUGIN_MENU_ITEM menuItem = (PPH_PLUGIN_MENU_ITEM)Parameter;
-    PPH_NETWORK_ITEM networkItem = (PPH_NETWORK_ITEM)menuItem->Context;
+    PPH_NETWORK_ITEM networkItem;
+
+    if (!menuItem)
+        return;
+
+    networkItem = (PPH_NETWORK_ITEM)menuItem->Context;
 
     switch (menuItem->Id)
     {
@@ -268,6 +277,8 @@ VOID NTAPI MainMenuInitializingCallback(
     PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
     PPH_EMENU_ITEM networkToolsMenu;
 
+    if (!menuInfo)
+        return;
     if (menuInfo->u.MainMenu.SubMenuIndex != PH_MENU_ITEM_LOCATION_TOOLS)
         return;
   
@@ -290,6 +301,9 @@ VOID NTAPI NetworkMenuInitializingCallback(
     PPH_EMENU_ITEM whoisMenu;
     PPH_EMENU_ITEM traceMenu;
     PPH_EMENU_ITEM pingMenu;
+
+    if (!menuInfo)
+        return;
 
     if (menuInfo->u.Network.NumberOfNetworkItems == 1)
         networkItem = menuInfo->u.Network.NetworkItems[0];
@@ -389,7 +403,11 @@ VOID NTAPI NetworkTreeNewInitializingCallback(
     PPH_PLUGIN_TREENEW_INFORMATION info = Parameter;
     PH_TREENEW_COLUMN column;
 
-    *(HWND*)Context = info->TreeNewHandle;
+    if (!info)
+        return;
+
+    if (Context)
+        *(HWND*)Context = info->TreeNewHandle;
 
     memset(&column, 0, sizeof(PH_TREENEW_COLUMN));
     column.Text = L"Country";
@@ -671,6 +689,9 @@ VOID NTAPI TreeNewMessageCallback(
     )
 {
     PPH_PLUGIN_TREENEW_MESSAGE message = Parameter;
+
+    if (!message)
+        return;
 
     switch (message->Message)
     {

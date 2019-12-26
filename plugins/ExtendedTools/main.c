@@ -150,6 +150,9 @@ VOID NTAPI PhSvcRequestCallback(
     _In_opt_ PVOID Context
     )
 {
+    if (!Parameter)
+        return;
+
     DispatchPhSvcRequest(Parameter);
 }
 
@@ -336,6 +339,9 @@ VOID NTAPI SystemInformationInitializingCallback(
     _In_opt_ PVOID Context
     )
 {
+    if (!Parameter)
+        return;
+
     if (EtGpuEnabled)
         EtGpuSystemInformationInitializing(Parameter);
     if (EtEtwEnabled && !!PhGetIntegerSetting(SETTING_NAME_ENABLE_SYSINFO_GRAPHS))
@@ -347,6 +353,9 @@ VOID NTAPI MiniInformationInitializingCallback(
     _In_opt_ PVOID Context
     )
 {
+    if (!Parameter)
+        return;
+
     if (EtGpuEnabled)
         EtGpuMiniInformationInitializing(Parameter);
     if (EtEtwEnabled)
@@ -358,6 +367,9 @@ VOID NTAPI TrayIconsInitializingCallback(
     _In_opt_ PVOID Context
     )
 {
+    if (!Parameter)
+        return;
+
     EtLoadTrayIconGuids();
     EtRegisterNotifyIcons(Parameter);
 }
@@ -425,6 +437,8 @@ VOID NTAPI ProcessStatsEventCallback(
 {
     PPH_PLUGIN_PROCESS_STATS_EVENT event = Parameter;
 
+    if (!event)
+        return;
     if (event->Version)
         return;
 

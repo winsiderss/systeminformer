@@ -312,6 +312,9 @@ VOID EtpGpuIconUpdateCallback(
     maxDataCount = drawInfo.Width / 2 + 1;
     lineData1 = _malloca(maxDataCount * sizeof(FLOAT));
 
+    if (!lineData1)
+        return;
+
     lineDataCount = min(maxDataCount, EtGpuNodeHistory.Count);
     PhCopyCircularBuffer_FLOAT(&EtGpuNodeHistory, lineData1, lineDataCount);
 

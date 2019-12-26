@@ -122,7 +122,10 @@ VOID NTAPI TreeNewInitializingCallback(
     _In_opt_ PVOID Context
     )
 {
-    *(HWND *)Context = ((PPH_PLUGIN_TREENEW_INFORMATION)Parameter)->TreeNewHandle;
+    if (Context && Parameter)
+    {
+        *(HWND*)Context = ((PPH_PLUGIN_TREENEW_INFORMATION)Parameter)->TreeNewHandle;
+    }
 }
 
 VOID RegisterTabSearch(
