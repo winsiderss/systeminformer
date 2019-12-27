@@ -68,6 +68,9 @@ INT_PTR CALLBACK OptionsDlgProc(
                 SetMenu(PhMainWndHandle, MainMenu);
                 DrawMenuBar(PhMainWndHandle);
             }
+
+            if (ToolStatusConfig.SearchBoxEnabled && ToolStatusConfig.SearchAutoFocus)
+                SetFocus(SearchboxHandle);
         }
         break;
     }
