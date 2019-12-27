@@ -272,7 +272,7 @@ VOID ShowCustomizeMenu(
                 ToolbarLoadSettings();
                 ReBarSaveLayoutSettings();
 
-                if (ToolStatusConfig.SearchBoxEnabled)
+                if (ToolStatusConfig.SearchBoxEnabled && !ToolStatusConfig.SearchAutoFocus)
                 {
                     // Adding the Searchbox makes it focused,
                     // reset the focus back to the main window.
@@ -1337,7 +1337,7 @@ VOID NTAPI MainWindowShowingCallback(
         SetMenu(PhMainWndHandle, NULL);
     }
 
-    if (ToolStatusConfig.SearchAutoFocus)
+    if (ToolStatusConfig.SearchBoxEnabled && ToolStatusConfig.SearchAutoFocus)
         SetFocus(SearchboxHandle);
 }
 
