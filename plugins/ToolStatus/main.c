@@ -392,6 +392,9 @@ VOID NTAPI TabPageUpdatedCallback(
         }
         break;
     }
+
+    if (ToolStatusConfig.SearchAutoFocus)
+        SetFocus(SearchboxHandle);
 }
 
 VOID NTAPI LayoutPaddingCallback(
@@ -1333,6 +1336,9 @@ VOID NTAPI MainWindowShowingCallback(
     {
         SetMenu(PhMainWndHandle, NULL);
     }
+
+    if (ToolStatusConfig.SearchAutoFocus)
+        SetFocus(SearchboxHandle);
 }
 
 VOID NTAPI MainMenuInitializingCallback(
