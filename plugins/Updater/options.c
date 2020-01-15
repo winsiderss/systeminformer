@@ -325,8 +325,6 @@ INT_PTR CALLBACK TextDlgProc(
     if (uMsg == WM_INITDIALOG)
     {
         context = PhAllocateZero(sizeof(PH_UPDATER_COMMIT_CONTEXT));
-        context->WindowHandle = hwndDlg;
-        context->CommitHash = PhReferenceObject(((PPH_UPDATER_CONTEXT)lParam)->CommitHash); // HACK
 
         PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
@@ -371,6 +369,13 @@ INT_PTR CALLBACK TextDlgProc(
 
             PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDCANCEL));
 
+            {
+                context->CommitHash = PhGetPhVersionHash();
+
+                if (PhIsNullOrEmptyString(context->CommitHash) || PhEqualString2(context->CommitHash, L"\"\"", TRUE))
+                    PhMoveReference(&context->CommitHash, PhReferenceObject(((PPH_UPDATER_CONTEXT)lParam)->CommitHash)); // HACK
+            }
+
             //PhSetWindowText(GetDlgItem(hwndDlg, IDC_TEXT), PhGetString(context->BuildMessage));
             PhCreateThread2(PhpUpdaterQueryCommitHistoryThread, hwndDlg);
         }
@@ -383,7 +388,10 @@ INT_PTR CALLBACK TextDlgProc(
 
             PhDeleteLayoutManager(&context->LayoutManager);
 
-            DeleteFont(context->ListViewBoldFont);
+            if (context->CommitHash)
+                PhDereferenceObject(context->CommitHash);
+            if (context->ListViewBoldFont)
+                DeleteFont(context->ListViewBoldFont);
 
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
