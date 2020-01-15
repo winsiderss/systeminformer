@@ -2222,7 +2222,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 getCellText->Text = PhGetStringRef(processItem->VersionInfo.FileVersion);
                 break;
             case PHPRTLC_FILENAME:
-                getCellText->Text = PhGetStringRef(processItem->FileName);
+                getCellText->Text = PhGetStringRef(processItem->FileNameWin32);
                 break;
             case PHPRTLC_COMMANDLINE:
                 getCellText->Text = PhGetStringRef(processItem->CommandLine);
