@@ -1094,6 +1094,13 @@ VOID PhGetPhVersionNumbers(
         *RevisionNumber = PHAPP_VERSION_REVISION;
 }
 
+PPH_STRING PhGetPhVersionHash(
+    VOID
+    )
+{
+    return PhConvertUtf8ToUtf16(PHAPP_VERSION_COMMIT);
+}
+
 VOID PhWritePhTextHeader(
     _Inout_ PPH_FILE_STREAM FileStream
     )

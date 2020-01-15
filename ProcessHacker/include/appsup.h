@@ -215,6 +215,13 @@ PhGetPhVersionNumbers(
     );
 
 PHAPPAPI
+PPH_STRING
+NTAPI
+PhGetPhVersionHash(
+    VOID
+    );
+
+PHAPPAPI
 VOID
 NTAPI
 PhWritePhTextHeader(
