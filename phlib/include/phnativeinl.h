@@ -806,6 +806,51 @@ PhSetThreadPagePriority(
         );
 }
 
+FORCEINLINE
+NTSTATUS
+PhGetThreadPriorityBoost(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PBOOLEAN PriorityBoost
+    )
+{
+    NTSTATUS status;
+    ULONG priorityBoost;
+
+    status = NtQueryInformationThread(
+        ThreadHandle,
+        ThreadPriorityBoost,
+        &priorityBoost,
+        sizeof(ULONG),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *PriorityBoost = !!priorityBoost;
+    }
+
+    return status;
+}
+
+FORCEINLINE
+NTSTATUS
+PhSetThreadPriorityBoost(
+    _In_ HANDLE ThreadHandle,
+    _In_ BOOLEAN PriorityBoost
+    )
+{
+    ULONG priorityBoost;
+
+    priorityBoost = PriorityBoost ? 1 : 0;
+
+    return NtSetInformationThread(
+        ThreadHandle,
+        ThreadPriorityBoost,
+        &priorityBoost,
+        sizeof(ULONG)
+        );
+}
+
 /**
  * Gets a thread's cycle count.
  *
