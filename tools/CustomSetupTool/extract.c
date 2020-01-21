@@ -114,10 +114,8 @@ BOOLEAN SetupExtractBuild(
         }
         else
         {
-            if (PhStartsWithString2(fileName, L"x86\\", TRUE) ||
-                PhStartsWithString2(fileName, L"x64\\", TRUE) ||
-                PhStartsWithString2(fileName, L"32bit\\", TRUE) ||
-                PhStartsWithString2(fileName, L"64bit\\", TRUE))
+            if (PhStartsWithString2(fileName, L"64bit\\", TRUE) ||
+                PhStartsWithString2(fileName, L"x64\\", TRUE))
                 continue;
         }
 
@@ -156,22 +154,20 @@ BOOLEAN SetupExtractBuild(
                 PhStartsWithString2(fileName, L"x32\\", TRUE))
                 continue;
 
-            if (PhFindStringInString(fileName, 0, L"64bit\\") != -1)
+            if (PhStartsWithString2(fileName, L"64bit\\", TRUE))
                 PhMoveReference(&fileName, PhSubstring(fileName, 6, (fileName->Length / sizeof(WCHAR)) - 6));
-            if (PhFindStringInString(fileName, 0, L"x64\\") != -1)
+            if (PhStartsWithString2(fileName, L"x64\\", TRUE))
                 PhMoveReference(&fileName, PhSubstring(fileName, 4, (fileName->Length / sizeof(WCHAR)) - 4));
         }
         else
         {
-            if (PhStartsWithString2(fileName, L"x86\\", TRUE) ||
-                PhStartsWithString2(fileName, L"x64\\", TRUE) ||
-                PhStartsWithString2(fileName, L"32bit\\", TRUE) ||
-                PhStartsWithString2(fileName, L"64bit\\", TRUE))
+            if (PhStartsWithString2(fileName, L"64bit\\", TRUE) ||
+                PhStartsWithString2(fileName, L"x64\\", TRUE))
                 continue;
 
-            if (PhFindStringInString(fileName, 0, L"32bit\\") != -1)
-                PhMoveReference(&fileName, PhSubstring(fileName, 6, (fileName->Length / 2) - 6));
-            if (PhFindStringInString(fileName, 0, L"x32\\") != -1)
+            if (PhStartsWithString2(fileName, L"32bit\\", TRUE))
+                PhMoveReference(&fileName, PhSubstring(fileName, 6, (fileName->Length / sizeof(WCHAR)) - 6));
+            if (PhStartsWithString2(fileName, L"x32\\", TRUE))
                 PhMoveReference(&fileName, PhSubstring(fileName, 4, (fileName->Length / sizeof(WCHAR)) - 4));
         }
 
