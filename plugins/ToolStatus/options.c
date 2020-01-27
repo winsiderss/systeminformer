@@ -2,8 +2,8 @@
  * Process Hacker ToolStatus -
  *   Plugin Options
  *
- * Copyright (C) 2011-2016 dmex
  * Copyright (C) 2010-2013 wj32
+ * Copyright (C) 2011-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -69,7 +69,7 @@ INT_PTR CALLBACK OptionsDlgProc(
                 DrawMenuBar(PhMainWndHandle);
             }
 
-            if (ToolStatusConfig.SearchBoxEnabled && ToolStatusConfig.SearchAutoFocus)
+            if (ToolStatusConfig.SearchBoxEnabled && ToolStatusConfig.SearchAutoFocus && SearchboxHandle)
                 SetFocus(SearchboxHandle);
         }
         break;
