@@ -272,7 +272,7 @@ VOID ShowCustomizeMenu(
                 ToolbarLoadSettings();
                 ReBarSaveLayoutSettings();
 
-                if (ToolStatusConfig.SearchBoxEnabled)
+                if (ToolStatusConfig.SearchBoxEnabled && !ToolStatusConfig.SearchAutoFocus)
                 {
                     // Adding the Searchbox makes it focused,
                     // reset the focus back to the main window.
@@ -392,6 +392,9 @@ VOID NTAPI TabPageUpdatedCallback(
         }
         break;
     }
+
+    if (ToolStatusConfig.SearchAutoFocus)
+        SetFocus(SearchboxHandle);
 }
 
 VOID NTAPI LayoutPaddingCallback(
@@ -1333,6 +1336,9 @@ VOID NTAPI MainWindowShowingCallback(
     {
         SetMenu(PhMainWndHandle, NULL);
     }
+
+    if (ToolStatusConfig.SearchBoxEnabled && ToolStatusConfig.SearchAutoFocus)
+        SetFocus(SearchboxHandle);
 }
 
 VOID NTAPI MainMenuInitializingCallback(

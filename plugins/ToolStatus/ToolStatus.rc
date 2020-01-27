@@ -59,7 +59,8 @@ BEGIN
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,32,152,10
     CONTROL         "Auto-hide main menu (Alt or F10 key toggle)",IDC_ENABLE_AUTOHIDE_MENU,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,44,157,10
-    LTEXT           "Note: Right-click the toolbar on the main window to customize the icons and graphs.",IDC_STATIC,7,59,157,18
+    CONTROL         "Enable auto focus to search box",IDC_ENABLE_AUTOFOCUS_SEARCH,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,56,113,10
+    LTEXT           "Note: Right-click the toolbar on the main window to customize the icons and graphs.",IDC_STATIC,7,68,157,18
 END
 
 IDD_CUSTOMIZE_TB DIALOGEX 0, 0, 369, 188
