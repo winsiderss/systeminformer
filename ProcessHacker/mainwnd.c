@@ -2429,7 +2429,7 @@ VOID PhMwpInitializeMainMenu(
     memset(&menuInfo, 0, sizeof(MENUINFO));
     menuInfo.cbSize = sizeof(MENUINFO);
     menuInfo.fMask = MIM_STYLE;
-    menuInfo.dwStyle = MNS_NOTIFYBYPOS; //| MNS_AUTODISMISS; TODO: Add setting for autodismiss. Github #547 (dmex).
+    menuInfo.dwStyle = MNS_NOTIFYBYPOS; //| MNS_AUTODISMISS; Flag is unusable on Win10 - Github #547 (dmex).
 
     SetMenuInfo(Menu, &menuInfo);
 
