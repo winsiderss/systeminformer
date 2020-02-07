@@ -92,8 +92,6 @@ typedef struct _WOW64_PROCESS
 
 #include <ntpebteb.h>
 
-// source:http://www.microsoft.com/whdc/system/Sysinternals/MoreThan64proc.mspx
-
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 typedef enum _PROCESSINFOCLASS
 {
