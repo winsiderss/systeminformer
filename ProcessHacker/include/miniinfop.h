@@ -88,12 +88,16 @@ VOID PhMipOnCommand(
     _In_ ULONG Code
     );
 
-BOOLEAN PhMipOnNotify(
+_Success_(return)
+BOOLEAN
+PhMipOnNotify(
     _In_ NMHDR *Header,
     _Out_ LRESULT *Result
     );
 
-BOOLEAN PhMipOnCtlColorXxx(
+_Success_(return)
+BOOLEAN
+PhMipOnCtlColorXxx(
     _In_ ULONG Message,
     _In_ HWND hwnd,
     _In_ HDC hdc,
