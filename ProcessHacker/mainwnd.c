@@ -3129,6 +3129,8 @@ VOID PhAddMiniProcessMenuItems(
     if (isPartiallySuspended)
         PhInsertEMenuItem(Menu, PhCreateEMenuItem(0, ID_PROCESS_RESUME, L"Res&ume", NULL, ProcessId), ULONG_MAX);
 
+    PhInsertEMenuItem(Menu, PhCreateEMenuItem(0, ID_PROCESS_RESTART, L"Res&tart", NULL, ProcessId), ULONG_MAX);
+
     PhInsertEMenuItem(Menu, priorityMenu, ULONG_MAX);
 
     if (ioPriorityMenu)
@@ -3148,6 +3150,7 @@ BOOLEAN PhHandleMiniProcessMenuItem(
     case ID_PROCESS_TERMINATE:
     case ID_PROCESS_SUSPEND:
     case ID_PROCESS_RESUME:
+    case ID_PROCESS_RESTART:
     case ID_PROCESS_PROPERTIES:
         {
             HANDLE processId = MenuItem->Context;
@@ -3165,6 +3168,9 @@ BOOLEAN PhHandleMiniProcessMenuItem(
                     break;
                 case ID_PROCESS_RESUME:
                     PhUiResumeProcesses(PhMainWndHandle, &processItem, 1);
+                    break;
+                case ID_PROCESS_RESTART:
+                    PhUiRestartProcess(PhMainWndHandle, processItem);
                     break;
                 case ID_PROCESS_PROPERTIES:
                     ProcessHacker_ShowProcessProperties(PhMainWndHandle, processItem);
