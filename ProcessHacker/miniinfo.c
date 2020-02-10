@@ -1473,12 +1473,6 @@ PPH_MIP_GROUP_NODE PhMipAddGroupNode(
     _In_ PPH_PROCESS_GROUP ProcessGroup
     )
 {
-    // This is an undocumented function exported by user32.dll that
-    // retrieves the hung window represented by a ghost window.
-    static HWND (WINAPI *HungWindowFromGhostWindow_I)(
-        _In_ HWND hWnd
-        );
-
     PPH_MIP_GROUP_NODE node;
 
     node = PhAllocate(sizeof(PH_MIP_GROUP_NODE));
@@ -1492,11 +1486,8 @@ PPH_MIP_GROUP_NODE PhMipAddGroupNode(
 
     if (node->RepresentativeIsHung)
     {
-        if (!HungWindowFromGhostWindow_I)
-            HungWindowFromGhostWindow_I = PhGetDllProcedureAddress(L"user32.dll", "HungWindowFromGhostWindow", 0);
-
         // Make sure this is a real hung window, not a ghost window.
-        if (HungWindowFromGhostWindow_I && HungWindowFromGhostWindow_I(ProcessGroup->WindowHandle))
+        if (PhHungWindowFromGhostWindow(ProcessGroup->WindowHandle))
             node->RepresentativeIsHung = FALSE;
     }
 

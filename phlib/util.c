@@ -3,7 +3,7 @@
  *   general support functions
  *
  * Copyright (C) 2009-2016 wj32
- * Copyright (C) 2017-2019 dmex
+ * Copyright (C) 2017-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -5667,6 +5667,7 @@ BOOLEAN PhExtractIcon(
     return PhExtractIconEx(FileName, 0, IconLarge, IconSmall);
 }
 
+_Success_(return)
 BOOLEAN PhExtractIconEx(
     _In_ PWSTR FileName,
     _In_ INT IconIndex,
@@ -5693,6 +5694,30 @@ BOOLEAN PhExtractIconEx(
         return FALSE;
 
     return PrivateExtractIconExW(FileName, IconIndex, IconLarge, IconSmall, 1) > 0; // -1 on error or the number of icons.
+}
+
+HWND PhHungWindowFromGhostWindow(
+    _In_ HWND WindowHandle
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    // This is an undocumented function exported by user32.dll that
+    // retrieves the hung window represented by a ghost window. (wj32)
+    static HWND (WINAPI *HungWindowFromGhostWindow_I)(
+        _In_ HWND WindowHandle
+        );
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        HungWindowFromGhostWindow_I = PhGetDllProcedureAddress(L"user32.dll", "HungWindowFromGhostWindow", 0);
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!HungWindowFromGhostWindow_I)
+        return NULL;
+
+    // The call will return NULL if the window wasn't actually a ghost window. (wj32)
+    return HungWindowFromGhostWindow_I(WindowHandle);
 }
 
 /**

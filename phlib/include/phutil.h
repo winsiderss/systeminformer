@@ -1190,6 +1190,7 @@ PhExtractIcon(
     _Out_opt_ HICON *IconSmall
     );
 
+_Success_(return)
 PHLIBAPI
 BOOLEAN
 NTAPI
@@ -1198,6 +1199,13 @@ PhExtractIconEx(
     _In_ INT IconIndex,
     _Out_opt_ HICON *IconLarge,
     _Out_opt_ HICON *IconSmall
+    );
+
+PHLIBAPI
+HWND
+NTAPI
+PhHungWindowFromGhostWindow(
+    _In_ HWND WindowHandle
     );
 
 PHLIBAPI
