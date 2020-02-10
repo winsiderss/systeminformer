@@ -172,6 +172,7 @@ EXPORTS
     PhHashStringRef
     PhHexStringToBuffer
     PhHexStringToBufferEx
+    PhHungWindowFromGhostWindow
     PhInitializeArray
     PhInitializeAvlTree
     PhInitializeBytesBuilder
