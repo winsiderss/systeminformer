@@ -2,7 +2,7 @@
  * Process Hacker Plugins -
  *   Update Checker Plugin
  *
- * Copyright (C) 2011-2019 dmex
+ * Copyright (C) 2011-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -313,6 +313,38 @@ NTSTATUS NTAPI PhpUpdaterQueryCommitHistoryThread(
     return STATUS_SUCCESS;
 }
 
+VOID PhpUpdaterFreeListViewEntries(
+    _In_ PPH_UPDATER_COMMIT_CONTEXT Context
+    )
+{
+    ULONG index = ULONG_MAX;
+
+    while ((index = PhFindListViewItemByFlags(
+        Context->ListViewHandle,
+        index,
+        LVNI_ALL
+        )) != ULONG_MAX)
+    {
+        PPH_UPDATER_COMMIT_ENTRY entry;
+
+        if (PhGetListViewItemParam(Context->ListViewHandle, index, &entry))
+        {
+            if (entry->CommitHashString)
+                PhDereferenceObject(entry->CommitHashString);
+            if (entry->CommitUrlString)
+                PhDereferenceObject(entry->CommitUrlString);
+            if (entry->CommitMessageString)
+                PhDereferenceObject(entry->CommitMessageString);
+            if (entry->CommitAuthorString)
+                PhDereferenceObject(entry->CommitAuthorString);
+            if (entry->CommitDateString)
+                PhDereferenceObject(entry->CommitDateString);
+
+            PhFree(entry);
+        }
+    }
+}
+
 INT_PTR CALLBACK TextDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -392,6 +424,8 @@ INT_PTR CALLBACK TextDlgProc(
                 PhDereferenceObject(context->CommitHash);
             if (context->ListViewBoldFont)
                 DeleteFont(context->ListViewBoldFont);
+
+            PhpUpdaterFreeListViewEntries(context);
 
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
@@ -564,7 +598,7 @@ INT_PTR CALLBACK TextDlgProc(
                             {
                             case 1:
                                 {
-                                    PPH_STRING shortCommitHash;
+                                    PPH_UPDATER_COMMIT_ENTRY entry;
                                     PPH_STRING commitHashUrl;
                                     INT lvItemIndex;
 
@@ -572,18 +606,16 @@ INT_PTR CALLBACK TextDlgProc(
 
                                     if (lvItemIndex != -1)
                                     {
-                                        if (shortCommitHash = PhGetListViewItemText(context->ListViewHandle, lvItemIndex, 3))
+                                        if (PhGetListViewItemParam(context->ListViewHandle, lvItemIndex, &entry))
                                         {
                                             if (commitHashUrl = PhConcatStrings2(
                                                 L"https://github.com/processhacker/processhacker/commit/",
-                                                PhGetString(shortCommitHash)
+                                                PhGetString(entry->CommitHashString)
                                                 ))
                                             {
                                                 PhShellExecute(hwndDlg, PhGetString(commitHashUrl), NULL);
                                                 PhDereferenceObject(commitHashUrl);
                                             }
-
-                                            PhDereferenceObject(shortCommitHash);
                                         }
                                     }
                                 }
@@ -619,7 +651,7 @@ INT_PTR CALLBACK TextDlgProc(
                 PPH_STRING commitTimeString;
 
                 commitTimeString = PhpUpdaterCommitStringToTime(entry->CommitDateString);
-                lvItemIndex = PhAddListViewItem(context->ListViewHandle, MAXINT, PhGetStringOrEmpty(commitTimeString), NULL);
+                lvItemIndex = PhAddListViewItem(context->ListViewHandle, MAXINT, PhGetStringOrEmpty(commitTimeString), entry);
                 if (commitTimeString) PhDereferenceObject(commitTimeString);
 
                 PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 1, PhGetStringOrEmpty(entry->CommitAuthorString));
@@ -633,24 +665,6 @@ INT_PTR CALLBACK TextDlgProc(
             }
 
             ExtendedListView_SetRedraw(context->ListViewHandle, TRUE);
-
-            for (ULONG i = 0; i < commitList->Count; i++)
-            {
-                PPH_UPDATER_COMMIT_ENTRY entry = commitList->Items[i];
-
-                if (entry->CommitHashString)
-                    PhDereferenceObject(entry->CommitHashString);
-                if (entry->CommitUrlString)
-                    PhDereferenceObject(entry->CommitUrlString);
-                if (entry->CommitMessageString)
-                    PhDereferenceObject(entry->CommitMessageString);
-                if (entry->CommitAuthorString)
-                    PhDereferenceObject(entry->CommitAuthorString);
-                if (entry->CommitDateString)
-                    PhDereferenceObject(entry->CommitDateString);
-
-                PhFree(entry);
-            }
 
             PhDereferenceObject(commitList);
         }

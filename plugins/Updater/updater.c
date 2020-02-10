@@ -2,7 +2,7 @@
  * Process Hacker Plugins -
  *   Update Checker Plugin
  *
- * Copyright (C) 2011-2019 dmex
+ * Copyright (C) 2011-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -432,6 +432,8 @@ BOOLEAN QueryUpdateData(
     if (PhIsNullOrEmptyString(Context->SetupFileSignature))
         goto CleanupExit;
     if (PhIsNullOrEmptyString(Context->BuildMessage))
+        goto CleanupExit;
+    if (PhIsNullOrEmptyString(Context->CommitHash))
         goto CleanupExit;
 
     success = TRUE;
