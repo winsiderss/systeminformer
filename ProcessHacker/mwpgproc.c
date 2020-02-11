@@ -662,22 +662,25 @@ VOID PhMwpInitializeProcessMenu(
         // Window menu
         if (NumberOfProcesses == 1)
         {
-            WINDOWPLACEMENT placement = { sizeof(placement) };
-
             // Get a handle to the process' top-level window (if any).
             PhMwpSelectedProcessWindowHandle = PhGetProcessMainWindow(Processes[0]->ProcessId, Processes[0]->QueryHandle);
 
             if (!PhMwpSelectedProcessWindowHandle)
                 item->Flags |= PH_EMENU_DISABLED;
 
-            GetWindowPlacement(PhMwpSelectedProcessWindowHandle, &placement);
+            if (PhMwpSelectedProcessWindowHandle)
+            {
+                WINDOWPLACEMENT placement = { sizeof(placement) };
 
-            if (placement.showCmd == SW_MINIMIZE)
-                PhEnableEMenuItem(item, ID_WINDOW_MINIMIZE, FALSE);
-            else if (placement.showCmd == SW_MAXIMIZE)
-                PhEnableEMenuItem(item, ID_WINDOW_MAXIMIZE, FALSE);
-            else if (placement.showCmd == SW_NORMAL)
-                PhEnableEMenuItem(item, ID_WINDOW_RESTORE, FALSE);
+                GetWindowPlacement(PhMwpSelectedProcessWindowHandle, &placement);
+
+                if (placement.showCmd == SW_MINIMIZE)
+                    PhEnableEMenuItem(item, ID_WINDOW_MINIMIZE, FALSE);
+                else if (placement.showCmd == SW_MAXIMIZE)
+                    PhEnableEMenuItem(item, ID_WINDOW_MAXIMIZE, FALSE);
+                else if (placement.showCmd == SW_NORMAL)
+                    PhEnableEMenuItem(item, ID_WINDOW_RESTORE, FALSE);
+            }
         }
         else
         {
