@@ -65,7 +65,8 @@ VOID WeDeleteWindowTree(
     );
 
 PWE_WINDOW_NODE WeAddWindowNode(
-    _Inout_ PWE_WINDOW_TREE_CONTEXT Context
+    _Inout_ PWE_WINDOW_TREE_CONTEXT Context,
+    _In_ HWND WindowHandle
     );
 
 PWE_WINDOW_NODE WeFindWindowNode(
@@ -95,6 +96,16 @@ VOID WeGetSelectedWindowNodes(
 VOID WeExpandAllWindowNodes(
     _In_ PWE_WINDOW_TREE_CONTEXT Context,
     _In_ BOOLEAN Expand
+    );
+
+VOID WeDeselectAllWindowNodes(
+    _In_ PWE_WINDOW_TREE_CONTEXT Context
+    );
+
+VOID WeSelectAndEnsureVisibleWindowNodes(
+    _In_ PWE_WINDOW_TREE_CONTEXT Context,
+    _In_ PWE_WINDOW_NODE* WindowNodes,
+    _In_ ULONG NumberOfWindowNodes
     );
 
 #endif
