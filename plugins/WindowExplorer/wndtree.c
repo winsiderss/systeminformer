@@ -226,7 +226,8 @@ ULONG WepWindowNodeHashtableHashFunction(
 }
 
 PWE_WINDOW_NODE WeAddWindowNode(
-    _Inout_ PWE_WINDOW_TREE_CONTEXT Context
+    _Inout_ PWE_WINDOW_TREE_CONTEXT Context,
+    _In_ HWND WindowHandle
     )
 {
     PWE_WINDOW_NODE windowNode;
@@ -239,6 +240,7 @@ PWE_WINDOW_NODE WeAddWindowNode(
     windowNode->Node.TextCache = windowNode->TextCache;
     windowNode->Node.TextCacheSize = WEWNTLC_MAXIMUM;
 
+    windowNode->WindowHandle = WindowHandle;
     windowNode->Children = PhCreateList(1);
 
     PhAddEntryHashtable(Context->NodeHashtable, &windowNode);
@@ -624,4 +626,66 @@ VOID WeExpandAllWindowNodes(
 
     if (needsRestructure)
         TreeNew_NodesStructured(Context->TreeNewHandle);
+}
+
+VOID WeDeselectAllWindowNodes(
+    _In_ PWE_WINDOW_TREE_CONTEXT Context
+    )
+{
+    TreeNew_DeselectRange(Context->TreeNewHandle, 0, -1);
+}
+
+VOID WeSelectAndEnsureVisibleWindowNodes(
+    _In_ PWE_WINDOW_TREE_CONTEXT Context,
+    _In_ PWE_WINDOW_NODE* WindowNodes,
+    _In_ ULONG NumberOfWindowNodes
+    )
+{
+    ULONG i;
+    PWE_WINDOW_NODE leader = NULL;
+    PWE_WINDOW_NODE node;
+    BOOLEAN needsRestructure = FALSE;
+
+    WeDeselectAllWindowNodes(Context);
+
+    for (i = 0; i < NumberOfWindowNodes; i++)
+    {
+        if (WindowNodes[i]->Node.Visible)
+        {
+            leader = WindowNodes[i];
+            break;
+        }
+    }
+
+    if (!leader)
+        return;
+
+    // Expand recursively upwards, and select the nodes.
+
+    for (i = 0; i < NumberOfWindowNodes; i++)
+    {
+        if (!WindowNodes[i]->Node.Visible)
+            continue;
+
+        node = WindowNodes[i]->Parent;
+
+        while (node)
+        {
+            if (!node->Node.Expanded)
+                needsRestructure = TRUE;
+
+            node->Node.Expanded = TRUE;
+            node = node->Parent;
+        }
+
+        WindowNodes[i]->Node.Selected = TRUE;
+    }
+
+    if (needsRestructure)
+        TreeNew_NodesStructured(Context->TreeNewHandle);
+
+    TreeNew_SetFocusNode(Context->TreeNewHandle, &leader->Node);
+    TreeNew_SetMarkNode(Context->TreeNewHandle, &leader->Node);
+    TreeNew_EnsureVisible(Context->TreeNewHandle, &leader->Node);
+    TreeNew_InvalidateNode(Context->TreeNewHandle, &leader->Node);
 }

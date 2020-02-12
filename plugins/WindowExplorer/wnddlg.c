@@ -27,6 +27,10 @@ typedef struct _WINDOWS_CONTEXT
 {
     HWND TreeNewHandle;
     HWND SearchBoxHandle;
+
+    HWND FindWindowButtonHandle;
+    WNDPROC FindWindowButtonWindowProc;
+
     WE_WINDOW_TREE_CONTEXT TreeContext;
     WE_WINDOW_SELECTOR Selector;
 
@@ -34,7 +38,20 @@ typedef struct _WINDOWS_CONTEXT
 
     HWND HighlightingWindow;
     ULONG HighlightingWindowCount;
+
+    BOOLEAN TargetingWindow;
+    BOOLEAN TargetingCurrentWindowDraw;
+    BOOLEAN TargetingCompleted;
+    HWND TargetingCurrentWindow;
 } WINDOWS_CONTEXT, *PWINDOWS_CONTEXT;
+
+typedef struct _WE_WINDOW_ENUM_CONTEXT
+{
+    _In_ PWINDOWS_CONTEXT WindowContext;
+    _In_ PWE_WINDOW_NODE RootNode;
+    _In_opt_ HANDLE FilterProcessId;
+    _In_opt_ HANDLE FilterThreadId;
+} WE_WINDOW_ENUM_CONTEXT, *PWE_WINDOW_ENUM_CONTEXT;
 
 INT_PTR CALLBACK WepWindowsDlgProc(
     _In_ HWND hwndDlg,
@@ -50,11 +67,20 @@ INT_PTR CALLBACK WepWindowsPageProc(
     _In_ LPARAM lParam
     );
 
+VOID WepAddEnumChildWindows(
+    _In_ PWINDOWS_CONTEXT Context,
+    _In_opt_ PWE_WINDOW_NODE ParentNode,
+    _In_ HWND hwnd,
+    _In_opt_ HANDLE FilterProcessId,
+    _In_opt_ HANDLE FilterThreadId
+    );
+
 HWND WepWindowsDialogHandle = NULL;
 HANDLE WepWindowsDialogThreadHandle = NULL;
 PH_EVENT WepWindowsInitializedEvent = PH_EVENT_INIT;
 PH_STRINGREF WepEmptyWindowsText = PH_STRINGREF_INIT(L"There are no windows to display.");
 #define PH_SHOWDIALOG (WM_APP + 501)
+#define WE_WM_FINDWINDOW (WM_APP + 502)
 
 NTSTATUS WepShowWindowsDialogThread(
     _In_ PVOID Parameter
@@ -163,7 +189,7 @@ VOID WepFillWindowInfo(
     ULONG processId;
 
     PhPrintPointer(Node->WindowHandleString, Node->WindowHandle);
-    GetClassName(Node->WindowHandle, Node->WindowClass, sizeof(Node->WindowClass) / sizeof(WCHAR));
+    GetClassName(Node->WindowHandle, Node->WindowClass, RTL_NUMBER_OF(Node->WindowClass));
 
     if (PhGetWindowTextEx(Node->WindowHandle, PH_GET_WINDOW_TEXT_INTERNAL, &windowText) > 0)
         PhMoveReference(&Node->WindowText, windowText);
@@ -214,14 +240,18 @@ VOID WepFillWindowInfo(
 PWE_WINDOW_NODE WepAddChildWindowNode(
     _In_ PWE_WINDOW_TREE_CONTEXT Context,
     _In_opt_ PWE_WINDOW_NODE ParentNode,
-    _In_ HWND hwnd
+    _In_ HWND WindowHandle
     )
 {
     PWE_WINDOW_NODE childNode;
 
-    childNode = WeAddWindowNode(Context);
-    childNode->WindowHandle = hwnd;
+    if (PhGetIntegerSetting(SETTING_NAME_WINDOW_ENUM_ALTERNATE))
+    {
+        if (childNode = WeFindWindowNode(Context, WindowHandle))
+            return childNode;
+    }
 
+    childNode = WeAddWindowNode(Context, WindowHandle);
     WepFillWindowInfo(Context, childNode);
 
     if (ParentNode)
@@ -243,7 +273,48 @@ PWE_WINDOW_NODE WepAddChildWindowNode(
     return childNode;
 }
 
-VOID WepAddChildWindows(
+BOOLEAN CALLBACK WepEnumChildWindowsProc(
+    _In_ HWND WindowHandle,
+    _In_opt_ PVOID Context
+    )
+{
+    PWE_WINDOW_ENUM_CONTEXT context = (PWE_WINDOW_ENUM_CONTEXT)Context;
+    PWE_WINDOW_NODE childNode;
+    ULONG processId = 0;
+    ULONG threadId = 0;
+
+    if (!context)
+        return TRUE;
+
+    threadId = GetWindowThreadProcessId(WindowHandle, &processId);
+
+    if (
+        (!context->FilterProcessId || UlongToHandle(processId) == context->FilterProcessId) &&
+        (!context->FilterThreadId || UlongToHandle(threadId) == context->FilterThreadId)
+        )
+    {
+        childNode = WepAddChildWindowNode(
+            &context->WindowContext->TreeContext,
+            context->RootNode,
+            WindowHandle
+            );
+
+        if (childNode->HasChildren)
+        {
+            WepAddEnumChildWindows(
+                context->WindowContext,
+                childNode,
+                WindowHandle,
+                context->FilterProcessId,
+                context->FilterThreadId
+                );
+        }
+    }
+
+    return TRUE;
+}
+
+VOID WepAddEnumChildWindows(
     _In_ PWINDOWS_CONTEXT Context,
     _In_opt_ PWE_WINDOW_NODE ParentNode,
     _In_ HWND hwnd,
@@ -251,32 +322,47 @@ VOID WepAddChildWindows(
     _In_opt_ HANDLE FilterThreadId
     )
 {
-    HWND childWindow = NULL;
-    ULONG i = 0;
-
-    // We use FindWindowEx because EnumWindows doesn't return Metro app windows.
-    // Set a reasonable limit to prevent infinite loops.
-    while (i < 0x800 && (childWindow = FindWindowEx(hwnd, childWindow, NULL, NULL)))
+    if (PhGetIntegerSetting(SETTING_NAME_WINDOW_ENUM_ALTERNATE))
     {
-        ULONG processId;
-        ULONG threadId;
 
-        threadId = GetWindowThreadProcessId(childWindow, &processId);
+        WE_WINDOW_ENUM_CONTEXT enumContext;
 
-        if (
-            (!FilterProcessId || UlongToHandle(processId) == FilterProcessId) &&
-            (!FilterThreadId || UlongToHandle(threadId) == FilterThreadId)
-            )
+        enumContext.WindowContext = Context;
+        enumContext.RootNode = ParentNode;
+        enumContext.FilterProcessId = FilterProcessId;
+        enumContext.FilterThreadId = FilterThreadId;
+
+        PhEnumChildWindows(hwnd, ULONG_MAX, WepEnumChildWindowsProc, &enumContext);
+    }
+    else
+    {
+        HWND childWindow = NULL;
+        ULONG i = 0;
+
+        // We use FindWindowEx because EnumWindows doesn't return Metro app windows.
+        // Set a reasonable limit to prevent infinite loops.
+        while (i < 0x800 && (childWindow = FindWindowEx(hwnd, childWindow, NULL, NULL)))
         {
-            PWE_WINDOW_NODE childNode = WepAddChildWindowNode(&Context->TreeContext, ParentNode, childWindow);
+            ULONG processId;
+            ULONG threadId;
 
-            if (childNode->HasChildren)
+            threadId = GetWindowThreadProcessId(childWindow, &processId);
+
+            if (
+                (!FilterProcessId || UlongToHandle(processId) == FilterProcessId) &&
+                (!FilterThreadId || UlongToHandle(threadId) == FilterThreadId)
+                )
             {
-                WepAddChildWindows(Context, childNode, childWindow, NULL, NULL);
-            }
-        }
+                PWE_WINDOW_NODE childNode = WepAddChildWindowNode(&Context->TreeContext, ParentNode, childWindow);
 
-        i++;
+                if (childNode->HasChildren)
+                {
+                    WepAddEnumChildWindows(Context, childNode, childWindow, NULL, NULL);
+                }
+            }
+
+            i++;
+        }
     }
 }
 
@@ -319,30 +405,50 @@ VOID WepRefreshWindows(
         {
             PWE_WINDOW_NODE desktopNode;
 
-            desktopNode = WeAddWindowNode(&Context->TreeContext);
-            desktopNode->WindowHandle = GetDesktopWindow();
+            desktopNode = WeAddWindowNode(&Context->TreeContext, GetDesktopWindow());
             WepFillWindowInfo(&Context->TreeContext, desktopNode);
 
-            PhAddItemList(Context->TreeContext.NodeRootList, desktopNode);
+            PhAddItemList(Context->TreeContext.NodeRootList, desktopNode); // HACK
 
-            WepAddChildWindows(Context, desktopNode, desktopNode->WindowHandle, NULL, NULL);
+            WepAddEnumChildWindows(
+                Context,
+                desktopNode,
+                desktopNode->WindowHandle,
+                NULL,
+                NULL
+                );
 
             desktopNode->HasChildren = TRUE;
         }
         break;
     case WeWindowSelectorThread:
         {
-            WepAddChildWindows(Context, NULL, GetDesktopWindow(), NULL, Context->Selector.Thread.ThreadId);
+            WepAddEnumChildWindows(
+                Context,
+                NULL,
+                GetDesktopWindow(),
+                NULL,
+                Context->Selector.Thread.ThreadId
+                );
         }
         break;
     case WeWindowSelectorProcess:
         {
-            WepAddChildWindows(Context, NULL, GetDesktopWindow(), Context->Selector.Process.ProcessId, NULL);
+            WepAddEnumChildWindows(
+                Context,
+                NULL,
+                GetDesktopWindow(),
+                Context->Selector.Process.ProcessId,
+                NULL
+                );
         }
         break;
     case WeWindowSelectorDesktop:
         {
-            WepAddDesktopWindows(Context, Context->Selector.Desktop.DesktopName->Buffer);
+            WepAddDesktopWindows(
+                Context,
+                PhGetString(Context->Selector.Desktop.DesktopName)
+                );
         }
         break;
     }
@@ -387,6 +493,71 @@ PPH_STRING WepGetWindowTitleForSelector(
     }
 }
 
+VOID DrawWindowBorderForTargeting(
+    _In_ HWND hWnd
+    )
+{
+    RECT rect;
+    HDC hdc;
+
+    GetWindowRect(hWnd, &rect);
+    hdc = GetWindowDC(hWnd);
+
+    if (hdc)
+    {
+        INT penWidth;
+        INT oldDc;
+        HPEN pen;
+        HBRUSH brush;
+
+        penWidth = GetSystemMetrics(SM_CXBORDER) * 3;
+        oldDc = SaveDC(hdc);
+
+        // Get an inversion effect.
+        SetROP2(hdc, R2_NOT);
+
+        pen = CreatePen(PS_INSIDEFRAME, penWidth, RGB(0x00, 0x00, 0x00));
+        SelectPen(hdc, pen);
+
+        brush = GetStockBrush(NULL_BRUSH);
+        SelectBrush(hdc, brush);
+
+        // Draw the rectangle.
+        Rectangle(hdc, 0, 0, rect.right - rect.left, rect.bottom - rect.top);
+
+        // Cleanup.
+        DeletePen(pen);
+
+        RestoreDC(hdc, oldDc);
+        ReleaseDC(hWnd, hdc);
+    }
+}
+
+LRESULT CALLBACK WepFindWindowButtonSubclassProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+    WNDPROC oldWndProc;
+
+    if (!(oldWndProc = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT)))
+        return 0;
+
+    switch (uMsg)
+    {
+    case WM_DESTROY:
+        PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+        break;
+    case WM_LBUTTONDOWN:
+        PostMessage(GetParent(hwndDlg), WE_WM_FINDWINDOW, 0, 0);
+        break;
+    }
+
+    return CallWindowProc(oldWndProc, hwndDlg, uMsg, wParam, lParam);
+}
+
 INT_PTR CALLBACK WepWindowsDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -421,6 +592,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
 
             context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_LIST);
             context->SearchBoxHandle = GetDlgItem(hwndDlg, IDC_SEARCHEDIT);
+            context->FindWindowButtonHandle = GetDlgItem(hwndDlg, IDC_FINDWINDOW);
 
             PhSetWindowText(hwndDlg, PH_AUTO_T(PH_STRING, WepGetWindowTitleForSelector(&context->Selector))->Buffer);
 
@@ -438,6 +610,11 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                 PhLoadWindowPlacementFromSetting(SETTING_NAME_WINDOWS_WINDOW_POSITION, SETTING_NAME_WINDOWS_WINDOW_SIZE, hwndDlg);
             else
                 PhCenterWindow(hwndDlg, WE_PhMainWndHandle);
+
+            // Subclass the button.
+            context->FindWindowButtonWindowProc = (WNDPROC)GetWindowLongPtr(context->FindWindowButtonHandle, GWLP_WNDPROC);
+            PhSetWindowContext(context->FindWindowButtonHandle, PH_WINDOW_CONTEXT_DEFAULT, context->FindWindowButtonWindowProc);
+            SetWindowLongPtr(context->FindWindowButtonHandle, GWLP_WNDPROC, (LONG_PTR)WepFindWindowButtonSubclassProc);
 
             WepRefreshWindows(context);
 
@@ -821,7 +998,9 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                     PWE_WINDOW_NODE selectedNode;
 
                     if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
+                    {
                         WeShowWindowProperties(hwndDlg, selectedNode->WindowHandle);
+                    }
                 }
                 break;
             case ID_WINDOW_COPY:
@@ -856,6 +1035,161 @@ INT_PTR CALLBACK WepWindowsDlgProc(
             PhLayoutManagerLayout(&context->LayoutManager);  
         }
         break;
+    //case WM_PARENTNOTIFY:
+    //    {
+    //        PhSetWindowExStyle(context->FindWindowButtonHandle, WS_EX_NOPARENTNOTIFY, 0);
+    //
+    //        if (LOWORD(wParam) == WM_LBUTTONDOWN)
+    //        {
+    //            POINT point;
+    //
+    //            point.x = GET_X_LPARAM(lParam);
+    //            point.y = GET_Y_LPARAM(lParam);
+    //
+    //            if (ChildWindowFromPoint(hwndDlg, point) == context->FindWindowButtonHandle)
+    //            {
+    //                PostMessage(hwndDlg, WE_WM_FINDWINDOW, 0, 0);
+    //            }
+    //        }
+    //    }
+    //    break;
+    case WE_WM_FINDWINDOW:
+        {
+            // Direct all mouse events to this window.
+            SetCapture(hwndDlg);
+
+            // Set the cursor.
+            SetCursor(LoadCursor(NULL, IDC_CROSS));
+
+            // Send the window to the bottom.
+            SetWindowPos(hwndDlg, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
+
+            context->TargetingWindow = TRUE;
+            context->TargetingCurrentWindow = NULL;
+            context->TargetingCurrentWindowDraw = FALSE;
+            context->TargetingCompleted = FALSE;
+
+            SendMessage(hwndDlg, WM_MOUSEMOVE, 0, 0);
+        }
+        break;
+    case WM_MOUSEMOVE:
+        {
+            if (context->TargetingWindow)
+            {
+                POINT cursorPos;
+                HWND windowOverMouse;
+                ULONG processId;
+                ULONG threadId;
+
+                GetCursorPos(&cursorPos);
+                windowOverMouse = WindowFromPoint(cursorPos);
+
+                if (context->TargetingCurrentWindow != windowOverMouse)
+                {
+                    if (context->TargetingCurrentWindow && context->TargetingCurrentWindowDraw)
+                    {
+                        // Invert the old border (to remove it).
+                        DrawWindowBorderForTargeting(context->TargetingCurrentWindow);
+                    }
+
+                    if (windowOverMouse)
+                    {
+                        threadId = GetWindowThreadProcessId(windowOverMouse, &processId);
+
+                        // Draw a rectangle over the current window (but not if it's one of our own).
+                        if (UlongToHandle(processId) != NtCurrentProcessId())
+                        {
+                            DrawWindowBorderForTargeting(windowOverMouse);
+                            context->TargetingCurrentWindowDraw = TRUE;
+                        }
+                        else
+                        {
+                            context->TargetingCurrentWindowDraw = FALSE;
+                        }
+                    }
+
+                    context->TargetingCurrentWindow = windowOverMouse;
+                }
+            }
+        }
+        break;
+    case WM_LBUTTONUP:
+        {
+            if (context->TargetingWindow)
+            {
+                ULONG processId;
+                ULONG threadId;
+
+                context->TargetingCompleted = TRUE;
+
+                // Reset the original cursor.
+                SetCursor(LoadCursor(NULL, IDC_ARROW));
+
+                // Bring the window back to the top, and preserve the Always on Top setting.
+                SetWindowPos(hwndDlg, HWND_TOP, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
+
+                context->TargetingWindow = FALSE;
+                ReleaseCapture();
+
+                if (context->TargetingCurrentWindow)
+                {
+                    if (context->TargetingCurrentWindowDraw)
+                    {
+                        // Remove the border on the window we found.
+                        DrawWindowBorderForTargeting(context->TargetingCurrentWindow);
+                    }
+
+                    //if (ResolveGhostWindows)
+                    {
+                        HWND hungWindow = PhHungWindowFromGhostWindow(context->TargetingCurrentWindow);
+
+                        if (hungWindow)
+                            context->TargetingCurrentWindow = hungWindow;
+                    }
+
+                    threadId = GetWindowThreadProcessId(context->TargetingCurrentWindow, &processId);
+
+                    if (threadId && processId && UlongToHandle(processId) != NtCurrentProcessId())
+                    {
+                        PWE_WINDOW_NODE windowNode;
+
+                        if (windowNode = WeFindWindowNode(&context->TreeContext, context->TargetingCurrentWindow))
+                        {
+                            WeSelectAndEnsureVisibleWindowNodes(&context->TreeContext, &windowNode, 1);
+
+                            SetFocus(context->TreeNewHandle); // HACK (dmex)
+                        }
+                        else
+                        {
+                            WeDeselectAllWindowNodes(&context->TreeContext);
+                        }
+                    }
+                }
+            }
+        }
+        break;
+    case WM_CAPTURECHANGED:
+        {
+            if (!context->TargetingCompleted)
+            {
+                // The user cancelled the targeting, probably by pressing the Esc key.
+
+                // Remove the border on the currently selected window.
+                if (context->TargetingCurrentWindow)
+                {
+                    if (context->TargetingCurrentWindowDraw)
+                    {
+                        // Remove the border on the window we found.
+                        DrawWindowBorderForTargeting(context->TargetingCurrentWindow);
+                    }
+                }
+
+                SetWindowPos(hwndDlg, HWND_TOP, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
+
+                context->TargetingCompleted = TRUE;
+            }
+        }
+        break;
     }
 
     return FALSE;
@@ -887,6 +1221,7 @@ INT_PTR CALLBACK WepWindowsPageProc(
         {
             context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_LIST);
             context->SearchBoxHandle = GetDlgItem(hwndDlg, IDC_SEARCHEDIT);
+            context->FindWindowButtonHandle = GetDlgItem(hwndDlg, IDC_FINDWINDOW);
 
             PhCreateSearchControl(hwndDlg, context->SearchBoxHandle, L"Search Windows (Ctrl+K)");
             WeInitializeWindowTree(hwndDlg, context->TreeNewHandle, &context->TreeContext);
@@ -895,6 +1230,11 @@ INT_PTR CALLBACK WepWindowsPageProc(
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_SEARCHEDIT), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_LIST), NULL, PH_ANCHOR_ALL);
+
+            // Subclass the button.
+            context->FindWindowButtonWindowProc = (WNDPROC)GetWindowLongPtr(context->FindWindowButtonHandle, GWLP_WNDPROC);
+            PhSetWindowContext(context->FindWindowButtonHandle, PH_WINDOW_CONTEXT_DEFAULT, context->FindWindowButtonWindowProc);
+            SetWindowLongPtr(context->FindWindowButtonHandle, GWLP_WNDPROC, (LONG_PTR)WepFindWindowButtonSubclassProc);
 
             WepRefreshWindows(context);
 
@@ -1314,6 +1654,143 @@ INT_PTR CALLBACK WepWindowsPageProc(
                     SetFocus(context->SearchBoxHandle);
                     return TRUE;
                 }
+            }
+        }
+        break;
+    case WE_WM_FINDWINDOW:
+        {
+            // Direct all mouse events to this window.
+            SetCapture(hwndDlg);
+
+            // Set the cursor.
+            SetCursor(LoadCursor(NULL, IDC_CROSS));
+
+            // Send the window to the bottom.
+            SetWindowPos(GetParent(hwndDlg), HWND_BOTTOM, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
+
+            context->TargetingWindow = TRUE;
+            context->TargetingCurrentWindow = NULL;
+            context->TargetingCurrentWindowDraw = FALSE;
+            context->TargetingCompleted = FALSE;
+
+            SendMessage(hwndDlg, WM_MOUSEMOVE, 0, 0);
+        }
+        break;
+    case WM_MOUSEMOVE:
+        {
+            if (context->TargetingWindow)
+            {
+                POINT cursorPos;
+                HWND windowOverMouse;
+                ULONG processId;
+                ULONG threadId;
+
+                GetCursorPos(&cursorPos);
+                windowOverMouse = WindowFromPoint(cursorPos);
+
+                if (context->TargetingCurrentWindow != windowOverMouse)
+                {
+                    if (context->TargetingCurrentWindow && context->TargetingCurrentWindowDraw)
+                    {
+                        // Invert the old border (to remove it).
+                        DrawWindowBorderForTargeting(context->TargetingCurrentWindow);
+                    }
+
+                    if (windowOverMouse)
+                    {
+                        threadId = GetWindowThreadProcessId(windowOverMouse, &processId);
+
+                        // Draw a rectangle over the current window (but not if it's one of our own).
+                        if (UlongToHandle(processId) != NtCurrentProcessId())
+                        {
+                            DrawWindowBorderForTargeting(windowOverMouse);
+                            context->TargetingCurrentWindowDraw = TRUE;
+                        }
+                        else
+                        {
+                            context->TargetingCurrentWindowDraw = FALSE;
+                        }
+                    }
+
+                    context->TargetingCurrentWindow = windowOverMouse;
+                }
+            }
+        }
+        break;
+    case WM_LBUTTONUP:
+        {
+            if (context->TargetingWindow)
+            {
+                ULONG processId;
+                ULONG threadId;
+
+                context->TargetingCompleted = TRUE;
+
+                // Reset the original cursor.
+                SetCursor(LoadCursor(NULL, IDC_ARROW));
+
+                // Bring the window back to the top, and preserve the Always on Top setting.
+                SetWindowPos(GetParent(hwndDlg), HWND_TOP, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
+
+                context->TargetingWindow = FALSE;
+                ReleaseCapture();
+
+                if (context->TargetingCurrentWindow)
+                {
+                    if (context->TargetingCurrentWindowDraw)
+                    {
+                        // Remove the border on the window we found.
+                        DrawWindowBorderForTargeting(context->TargetingCurrentWindow);
+                    }
+
+                    //if (ResolveGhostWindows)
+                    {
+                        HWND hungWindow = PhHungWindowFromGhostWindow(context->TargetingCurrentWindow);
+
+                        if (hungWindow)
+                            context->TargetingCurrentWindow = hungWindow;
+                    }
+
+                    threadId = GetWindowThreadProcessId(context->TargetingCurrentWindow, &processId);
+
+                    if (threadId && processId && UlongToHandle(processId) != NtCurrentProcessId())
+                    {
+                        PWE_WINDOW_NODE windowNode;
+
+                        if (windowNode = WeFindWindowNode(&context->TreeContext, context->TargetingCurrentWindow))
+                        {
+                            WeSelectAndEnsureVisibleWindowNodes(&context->TreeContext, &windowNode, 1);
+
+                            SetFocus(context->TreeNewHandle);
+                        }
+                        else
+                        {
+                            WeDeselectAllWindowNodes(&context->TreeContext);
+                        }
+                    }
+                }
+            }
+        }
+        break;
+    case WM_CAPTURECHANGED:
+        {
+            if (!context->TargetingCompleted)
+            {
+                // The user cancelled the targeting, probably by pressing the Esc key.
+
+                // Remove the border on the currently selected window.
+                if (context->TargetingCurrentWindow)
+                {
+                    if (context->TargetingCurrentWindowDraw)
+                    {
+                        // Remove the border on the window we found.
+                        DrawWindowBorderForTargeting(context->TargetingCurrentWindow);
+                    }
+                }
+
+                SetWindowPos(GetParent(hwndDlg), HWND_TOP, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
+
+                context->TargetingCompleted = TRUE;
             }
         }
         break;

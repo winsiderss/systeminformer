@@ -14,6 +14,7 @@
 #define IDD_WNDPROPLIST                 105
 #define IDC_LIST                        1001
 #define IDC_REFRESH                     1002
+#define IDC_FINDWINDOW                  1003
 #define IDC_SEARCHEDIT                  1035
 #define IDC_WINDOWINFO                  1036
 #define ID_WINDOW_GOTOTHREAD            40001
@@ -43,7 +44,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        110
+#define _APS_NEXT_RESOURCE_VALUE        111
 #define _APS_NEXT_COMMAND_VALUE         40028
 #define _APS_NEXT_CONTROL_VALUE         1037
 #define _APS_NEXT_SYMED_VALUE           107

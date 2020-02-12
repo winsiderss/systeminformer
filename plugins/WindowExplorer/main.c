@@ -3,7 +3,7 @@
  *   main program
  *
  * Copyright (C) 2011 wj32
- * Copyright (C) 2017 dmex
+ * Copyright (C) 2017-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -233,6 +233,7 @@ LOGICAL DllMain(
                 { ScalableIntegerPairSettingType, SETTING_NAME_WINDOWS_PROPERTY_SIZE, L"@96|690,540" },
                 { StringSettingType, SETTING_NAME_WINDOWS_PROPLIST_COLUMNS, L"" },
                 { StringSettingType, SETTING_NAME_WINDOWS_PROPSTORAGE_COLUMNS, L"" },
+                { IntegerSettingType, SETTING_NAME_WINDOW_ENUM_ALTERNATE, L"0" }
             };
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
