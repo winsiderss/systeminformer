@@ -548,6 +548,7 @@ LRESULT CALLBACK WepFindWindowButtonSubclassProc(
     switch (uMsg)
     {
     case WM_DESTROY:
+        SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
         PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
         break;
     case WM_LBUTTONDOWN:
