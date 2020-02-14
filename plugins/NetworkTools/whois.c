@@ -97,8 +97,6 @@ BOOLEAN ReadSocketString(
     data = (PSTR)PhAllocate(allocatedLength);
     dataLength = 0;
 
-    memset(buffer, 0, PAGE_SIZE);
-
     while ((returnLength = recv(Handle, buffer, PAGE_SIZE, 0)) != SOCKET_ERROR)
     {
         if (returnLength == 0)
@@ -124,7 +122,7 @@ BOOLEAN ReadSocketString(
         data = (PSTR)PhReAllocate(data, allocatedLength);
     }
 
-    data[dataLength] = 0;
+    data[dataLength] = ANSI_NULL;
 
     if (dataLength)
     {
