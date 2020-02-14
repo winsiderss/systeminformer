@@ -98,6 +98,7 @@ typedef enum _NETADAPTER_DETAILS_INDEX
     WINDOW_PROPERTIES_INDEX_FONTNAME,
     WINDOW_PROPERTIES_INDEX_STYLES,
     WINDOW_PROPERTIES_INDEX_EXSTYLES,
+    WINDOW_PROPERTIES_INDEX_AUTOMATION,
 
     WINDOW_PROPERTIES_INDEX_CLASS_NAME,
     WINDOW_PROPERTIES_INDEX_CLASS_ATOM,
@@ -801,6 +802,43 @@ VOID WepRefreshWindowClassInfo(
     WepRefreshWindowClassInfoSymbols(ListViewHandle, Context);
 }
 
+static BOOLEAN WepWindowHasAutomationProvider(
+    _In_ HWND WindowHandle
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static BOOL (WINAPI *UiaHasServerSideProvider_I)(
+        _In_ HWND WindowHandle
+        );
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        HANDLE moduleHandle;
+
+        if (moduleHandle = LoadLibrary(L"uiautomationcore.dll"))
+        {
+            UiaHasServerSideProvider_I = PhGetProcedureAddress(moduleHandle, "UiaHasServerSideProvider", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!UiaHasServerSideProvider_I)
+        return FALSE;
+
+    return !!UiaHasServerSideProvider_I(WindowHandle);
+}
+
+VOID WepRefreshAutomationProvider(
+    _In_ PWINDOW_PROPERTIES_CONTEXT Context
+    )
+{
+    if (WepWindowHasAutomationProvider(Context->WindowHandle))
+        PhSetListViewSubItem(Context->ListViewHandle, WINDOW_PROPERTIES_INDEX_AUTOMATION, 1, L"Yes");
+    else
+        PhSetListViewSubItem(Context->ListViewHandle, WINDOW_PROPERTIES_INDEX_AUTOMATION, 1, L"No");
+}
+
 VOID WepGeneralAddListViewItemGroups(
     _In_ HWND ListViewHandle
     )
@@ -826,6 +864,8 @@ VOID WepGeneralAddListViewItemGroups(
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_FONTNAME, L"Font", NULL);
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_STYLES, L"Styles", NULL);
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_EXSTYLES, L"Extended styles", NULL);
+    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_AUTOMATION, L"Automation server", NULL);
+
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_CLASS, WINDOW_PROPERTIES_INDEX_CLASS_NAME, L"Name", NULL);
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_CLASS, WINDOW_PROPERTIES_INDEX_CLASS_ATOM, L"Atom", NULL);
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_CLASS, WINDOW_PROPERTIES_INDEX_CLASS_STYLES, L"Styles", NULL);
@@ -881,6 +921,7 @@ INT_PTR CALLBACK WepWindowGeneralDlgProc(
             WepRefreshWindowGeneralInfo(hwndDlg, context->ListViewHandle, context);
             WepRefreshWindowStyles(context->ListViewHandle, context);
             WepRefreshWindowClassInfo(hwndDlg, context->ListViewHandle, context);
+            WepRefreshAutomationProvider(context);
 
             if (!!PhGetIntegerSetting(L"EnableThemeSupport")) // TODO: Required for compat (dmex)
                 PhInitializeWindowTheme(GetParent(hwndDlg), !!PhGetIntegerSetting(L"EnableThemeSupport"));
