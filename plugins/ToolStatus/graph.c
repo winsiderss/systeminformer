@@ -2,7 +2,7 @@
  * Process Hacker ToolStatus -
  *   Toolbar Graph Bands
  *
- * Copyright (C) 2015-2019 dmex
+ * Copyright (C) 2015-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -620,7 +620,7 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(CpuHistoryGraphMessageCallback)
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_LINE_2;
             PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), PhGetIntegerSetting(L"ColorCpuUser"));
 
-            if (ProcessesUpdatedCount < 3)
+            if (ProcessesUpdatedCount != 3)
                 return;
 
             PhGraphStateGetDrawInfo(GraphState, getDrawInfo, SystemStatistics.CpuUserHistory->Count);
@@ -692,8 +692,8 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(PhysicalHistoryGraphMessageCallback)
             drawInfo->Flags = PH_GRAPH_USE_GRID_X;
             PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorPhysical"), 0);
 
-            if (ProcessesUpdatedCount < 3)
-                return;
+            if (ProcessesUpdatedCount != 3)
+                break;
 
             PhGraphStateGetDrawInfo(GraphState, getDrawInfo, SystemStatistics.PhysicalHistory->Count);
 
@@ -723,6 +723,9 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(PhysicalHistoryGraphMessageCallback)
                 if (GraphState->TooltipIndex != getTooltipText->Index)
                 {
                     ULONG physicalUsage;
+
+                    if (ProcessesUpdatedCount != 3)
+                        break;
 
                     physicalUsage = PhGetItemCircularBuffer_ULONG(SystemStatistics.PhysicalHistory, getTooltipText->Index);
 
@@ -757,8 +760,8 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(CommitHistoryGraphMessageCallback)
             drawInfo->Flags = PH_GRAPH_USE_GRID_X;
             PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorPrivate"), 0);
 
-            if (ProcessesUpdatedCount < 3)
-                return;
+            if (ProcessesUpdatedCount != 3)
+                break;
 
             PhGraphStateGetDrawInfo(GraphState, getDrawInfo, SystemStatistics.CommitHistory->Count);
 
@@ -788,6 +791,9 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(CommitHistoryGraphMessageCallback)
                 if (GraphState->TooltipIndex != getTooltipText->Index)
                 {
                     ULONG commitUsage;
+
+                    if (ProcessesUpdatedCount != 3)
+                        break;
 
                     commitUsage = PhGetItemCircularBuffer_ULONG(SystemStatistics.CommitHistory, getTooltipText->Index);
 
@@ -822,8 +828,8 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(IoHistoryGraphMessageCallback)
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_LINE_2;
             PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorIoReadOther"), PhGetIntegerSetting(L"ColorIoWrite"));
 
-            if (ProcessesUpdatedCount < 3)
-                return;
+            if (ProcessesUpdatedCount != 3)
+                break;
 
             PhGraphStateGetDrawInfo(GraphState, getDrawInfo, SystemStatistics.IoReadHistory->Count);
 
@@ -861,6 +867,9 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(IoHistoryGraphMessageCallback)
                     ULONG64 ioRead;
                     ULONG64 ioWrite;
                     ULONG64 ioOther;
+
+                    if (ProcessesUpdatedCount != 3)
+                        break;
 
                     ioRead = PhGetItemCircularBuffer_ULONG64(SystemStatistics.IoReadHistory, getTooltipText->Index);
                     ioWrite = PhGetItemCircularBuffer_ULONG64(SystemStatistics.IoWriteHistory, getTooltipText->Index);

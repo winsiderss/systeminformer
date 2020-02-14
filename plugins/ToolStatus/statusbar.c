@@ -3,7 +3,7 @@
  *   statusbar main
  *
  * Copyright (C) 2010-2013 wj32
- * Copyright (C) 2011-2018 dmex
+ * Copyright (C) 2011-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -238,7 +238,7 @@ VOID StatusBarUpdate(
     ULONG widths[MAX_STATUSBAR_ITEMS];
     WCHAR text[MAX_STATUSBAR_ITEMS][0x80];
 
-    if (ProcessesUpdatedCount <= 2)
+    if (ProcessesUpdatedCount != 3)
         return;
 
     if (ResetMaxWidths)
