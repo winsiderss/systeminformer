@@ -545,9 +545,25 @@ VOID PvpSetPeImageTimeStamp(
     RtlSecondsSince1970ToTime(PvMappedImage.NtHeaders->FileHeader.TimeDateStamp, &time);
     PhLargeIntegerToLocalSystemTime(&systemTime, &time);
 
-    string = PhFormatDateTime(&systemTime);
-    PhSetDialogItemText(WindowHandle, IDC_TIMESTAMP, string->Buffer);
-    PhDereferenceObject(string);
+    if (WindowsVersion >= WINDOWS_10)
+    {
+        // "the timestamp to be a hash of the resulting binary"
+        // https://devblogs.microsoft.com/oldnewthing/20180103-00/?p=97705
+        string = PhFormatDateTime(&systemTime);
+        PhSwapReference(&string, PhFormatString(
+            L"%s (%lx)",
+            string->Buffer,
+            PvMappedImage.NtHeaders->FileHeader.TimeDateStamp
+            ));
+        PhSetDialogItemText(WindowHandle, IDC_TIMESTAMP, string->Buffer);
+        PhDereferenceObject(string);
+    }
+    else
+    {
+        string = PhFormatDateTime(&systemTime);
+        PhSetDialogItemText(WindowHandle, IDC_TIMESTAMP, string->Buffer);
+        PhDereferenceObject(string);
+    }
 }
 
 VOID PvpSetPeImageBaseAddress(
