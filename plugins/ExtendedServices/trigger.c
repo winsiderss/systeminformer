@@ -3,6 +3,7 @@
  *   trigger editor
  *
  * Copyright (C) 2011-2015 wj32
+ * Copyright (C) 2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -21,6 +22,7 @@
  */
 
 #include "extsrv.h"
+#include <hndlinfo.h>
 
 typedef struct _ES_TRIGGER_DATA
 {
@@ -370,53 +372,6 @@ VOID EsDestroyServiceTriggerContext(
     PhFree(Context);
 }
 
-PPH_STRING EspLookupEtwPublisherName(
-    _In_ PGUID Guid
-    )
-{
-    PPH_STRING guidString;
-    PPH_STRING keyName;
-    HANDLE keyHandle;
-    PPH_STRING publisherName = NULL;
-
-    // Copied from ProcessHacker\hndlinfo.c.
-
-    guidString = PhFormatGuid(Guid);
-
-    keyName = PhConcatStringRef2(&PublishersKeyName, &guidString->sr);
-
-    if (NT_SUCCESS(PhOpenKey(
-        &keyHandle,
-        KEY_READ,
-        PH_KEY_LOCAL_MACHINE,
-        &keyName->sr,
-        0
-        )))
-    {
-        publisherName = PhQueryRegistryString(keyHandle, NULL);
-
-        if (publisherName && publisherName->Length == 0)
-        {
-            PhDereferenceObject(publisherName);
-            publisherName = NULL;
-        }
-
-        NtClose(keyHandle);
-    }
-
-    PhDereferenceObject(keyName);
-
-    if (publisherName)
-    {
-        PhDereferenceObject(guidString);
-        return publisherName;
-    }
-    else
-    {
-        return guidString;
-    }
-}
-
 BOOLEAN EspEnumerateEtwPublishers(
     _Out_ PETW_PUBLISHER_ENTRY *Entries,
     _Out_ PULONG NumberOfEntries
@@ -625,8 +580,8 @@ VOID EspFormatTriggerInfo(
             {
                 PPH_STRING publisherName;
 
-                // Try to lookup the publisher name from the GUID.
-                publisherName = EspLookupEtwPublisherName(Info->Subtype);
+                // Try to lookup the publisher name from the GUID. (wj32)
+                publisherName = PhGetEtwPublisherName(Info->Subtype);
                 stringUsed = PhConcatStrings2(L"Custom: ", publisherName->Buffer);
                 PhDereferenceObject(publisherName);
                 triggerString = stringUsed->Buffer;
@@ -1335,8 +1290,8 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
                 {
                     PPH_STRING publisherName;
 
-                    // Try to select the publisher name in the subtype list.
-                    publisherName = EspLookupEtwPublisherName(context->EditingInfo->Subtype);
+                    // Try to select the publisher name in the subtype list. (wj32)
+                    publisherName = PhGetEtwPublisherName(context->EditingInfo->Subtype);
                     PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_SUBTYPE), publisherName->Buffer, FALSE);
                     PhDereferenceObject(publisherName);
                 }
