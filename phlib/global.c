@@ -117,7 +117,7 @@ BOOLEAN PhIsExecutingInWow64(
 {
 #ifndef _WIN64
     static BOOLEAN valid = FALSE;
-    static BOOLEAN isWow64;
+    static BOOLEAN isWow64 = FALSE;
 
     if (!valid)
     {
