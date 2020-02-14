@@ -1162,7 +1162,7 @@ PPH_STRING EspConvertNewLinesToNulls(
     SIZE_T count;
     SIZE_T i;
 
-    text = PhCreateStringEx(NULL, String->Length + 2); // plus one character for an extra null terminator (see below)
+    text = PhCreateStringEx(NULL, String->Length + sizeof(UNICODE_NULL)); // plus one character for an extra null terminator (see below)
     text->Length = 0;
     count = 0;
 
@@ -1176,7 +1176,7 @@ PPH_STRING EspConvertNewLinesToNulls(
 
         if (String->Buffer[i] == '\n')
         {
-            text->Buffer[count++] = 0;
+            text->Buffer[count++] = UNICODE_NULL;
             continue;
         }
 
@@ -1186,11 +1186,11 @@ PPH_STRING EspConvertNewLinesToNulls(
     if (count != 0)
     {
         // Make sure we have an extra null terminator at the end, as required of multistrings.
-        if (text->Buffer[count - 1] != 0)
-            text->Buffer[count++] = 0;
+        if (text->Buffer[count - 1] != UNICODE_NULL)
+            text->Buffer[count++] = UNICODE_NULL;
     }
 
-    text->Length = count * 2;
+    text->Length = count * sizeof(WCHAR);
 
     return text;
 }
@@ -1204,9 +1204,9 @@ PPH_STRING EspConvertNullsToSpaces(
 
     text = PhDuplicateString(String);
 
-    for (j = 0; j < text->Length / 2; j++)
+    for (j = 0; j < text->Length / sizeof(WCHAR); j++)
     {
-        if (text->Buffer[j] == 0)
+        if (text->Buffer[j] == UNICODE_NULL)
             text->Buffer[j] = ' ';
     }
 
