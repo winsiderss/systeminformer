@@ -552,6 +552,7 @@ EXPORTS
 ; hndlinfo
     PhEnumObjectTypes
     PhFormatNativeKeyName
+    PhGetEtwPublisherName
     PhGetHandleInformation
     PhGetHandleInformationEx
     PhStdGetClientIdName
