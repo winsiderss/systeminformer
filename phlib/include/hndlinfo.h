@@ -21,6 +21,13 @@ PhSetHandleClientIdFunction(
 PHLIBAPI
 PPH_STRING
 NTAPI
+PhGetEtwPublisherName(
+    _In_ PGUID Guid
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
 PhFormatNativeKeyName(
     _In_ PPH_STRING Name
     );

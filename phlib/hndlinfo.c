@@ -3,7 +3,7 @@
  *   handle information
  *
  * Copyright (C) 2010-2015 wj32
- * Copyright (C) 2017-2018 dmex
+ * Copyright (C) 2017-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -186,7 +186,7 @@ NTSTATUS PhpGetObjectTypeName(
     NTSTATUS status = STATUS_SUCCESS;
     PPH_STRING typeName = NULL;
 
-    // dmex: Enumerate the available object types and pre-cache the object type name.
+    // Enumerate the available object types and pre-cache the object type name. (dmex)
     if (WindowsVersion >= WINDOWS_8_1)
     {
         static PH_INITONCE initOnce = PH_INITONCE_INIT;
@@ -217,7 +217,7 @@ NTSTATUS PhpGetObjectTypeName(
         }
     }
 
-    // If the cache contains the object type name, use it. Otherwise, query the type name.
+    // If the cache contains the object type name, use it. Otherwise, query the type name. (dmex)
 
     if (ObjectTypeNumber != ULONG_MAX && ObjectTypeNumber < MAX_OBJECT_TYPE_NUMBER)
         typeName = PhObjectTypeNames[ObjectTypeNumber];
@@ -330,7 +330,7 @@ NTSTATUS PhpGetObjectName(
     bufferSize = 0x200;
     buffer = PhAllocate(bufferSize);
 
-    // A loop is needed because the I/O subsystem likes to give us the wrong return lengths...
+    // A loop is needed because the I/O subsystem likes to give us the wrong return lengths... (wj32)
     do
     {
         if (KphIsConnected())
@@ -414,6 +414,55 @@ NTSTATUS PhpGetEtwObjectName(
     }
 
     return status;
+}
+
+PPH_STRING PhGetEtwPublisherName(
+    _In_ PGUID Guid
+    )
+{
+    static PH_STRINGREF publishersKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\WINEVT\\Publishers\\");
+    PPH_STRING guidString;
+    PPH_STRING keyName;
+    HANDLE keyHandle;
+    PPH_STRING publisherName = NULL;
+
+    guidString = PhFormatGuid(Guid);
+
+    // We should perform a lookup on the GUID to get the publisher name. (wj32)
+
+    keyName = PhConcatStringRef2(&publishersKeyName, &guidString->sr);
+
+    if (NT_SUCCESS(PhOpenKey(
+        &keyHandle,
+        KEY_READ,
+        PH_KEY_LOCAL_MACHINE,
+        &keyName->sr,
+        0
+        )))
+    {
+        publisherName = PhQueryRegistryString(keyHandle, NULL);
+
+        if (publisherName && publisherName->Length == 0)
+        {
+            PhDereferenceObject(publisherName);
+            publisherName = NULL;
+        }
+
+        NtClose(keyHandle);
+    }
+
+    PhDereferenceObject(keyName);
+
+    if (publisherName)
+    {
+        PhDereferenceObject(guidString);
+
+        return publisherName;
+    }
+    else
+    {
+        return guidString;
+    }
 }
 
 PPH_STRING PhFormatNativeKeyName(
@@ -661,49 +710,7 @@ NTSTATUS PhpGetBestObjectName(
 
             if (NT_SUCCESS(status))
             {
-                static PH_STRINGREF publishersKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\WINEVT\\Publishers\\");
-
-                PPH_STRING guidString;
-                PPH_STRING keyName;
-                HANDLE keyHandle;
-                PPH_STRING publisherName = NULL;
-
-                guidString = PhFormatGuid(&basicInfo.Guid);
-
-                // We should perform a lookup on the GUID to get the publisher name.
-
-                keyName = PhConcatStringRef2(&publishersKeyName, &guidString->sr);
-
-                if (NT_SUCCESS(PhOpenKey(
-                    &keyHandle,
-                    KEY_READ,
-                    PH_KEY_LOCAL_MACHINE,
-                    &keyName->sr,
-                    0
-                    )))
-                {
-                    publisherName = PhQueryRegistryString(keyHandle, NULL);
-
-                    if (publisherName && publisherName->Length == 0)
-                    {
-                        PhDereferenceObject(publisherName);
-                        publisherName = NULL;
-                    }
-
-                    NtClose(keyHandle);
-                }
-
-                PhDereferenceObject(keyName);
-
-                if (publisherName)
-                {
-                    bestObjectName = publisherName;
-                    PhDereferenceObject(guidString);
-                }
-                else
-                {
-                    bestObjectName = guidString;
-                }
+                bestObjectName = PhGetEtwPublisherName(&basicInfo.Guid);
             }
         }
     }
