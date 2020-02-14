@@ -632,32 +632,6 @@ PhGetSystemRoot(
 PHLIBAPI
 PPH_STRING
 NTAPI
-PhGetDllFileName(
-    _In_ PVOID DllBase,
-    _Out_opt_ PULONG IndexOfFileName
-    );
-
-PHLIBAPI
-PVOID
-NTAPI
-PhGetDllBaseProcedureAddress(
-    _In_ PVOID DllBase,
-    _In_opt_ PSTR ProcedureName,
-    _In_opt_ USHORT ProcedureNumber
-    );
-
-PHLIBAPI
-PVOID
-NTAPI
-PhGetDllProcedureAddress(
-    _In_ PWSTR DllEntryName,
-    _In_opt_ PSTR ProcedureName,
-    _In_opt_ USHORT ProcedureNumber
-    );
-
-PHLIBAPI
-PPH_STRING
-NTAPI
 PhGetApplicationFileName(
     VOID
     );
@@ -1218,6 +1192,21 @@ PhFindLoaderEntry(
     );
 
 PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetDllFileName(
+    _In_ PVOID DllBase,
+    _Out_opt_ PULONG IndexOfFileName
+    );
+
+PHLIBAPI
+PVOID
+NTAPI
+PhGetLoaderEntryDllBase(
+    _In_ PWSTR DllName
+    );
+
+PHLIBAPI
 PVOID
 NTAPI
 PhGetDllBaseProcedureAddress(
@@ -1233,13 +1222,6 @@ PhGetDllProcedureAddress(
     _In_ PWSTR DllName,
     _In_opt_ PSTR ProcedureName,
     _In_opt_ USHORT ProcedureNumber
-    );
-
-PHLIBAPI
-PVOID
-NTAPI
-PhGetLoaderEntryDllBase(
-    _In_ PWSTR DllName
     );
 
 PHLIBAPI

@@ -315,6 +315,7 @@ PhHttpSocketSetFeature(
     _In_ BOOLEAN Enable
     );
 
+_Success_(return)
 PHLIBAPI
 BOOLEAN
 NTAPI

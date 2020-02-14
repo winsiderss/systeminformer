@@ -563,7 +563,7 @@ BOOLEAN PhHttpSocketReadDataToBuffer(
         data = (PSTR)PhReAllocate(data, allocatedLength);
     }
 
-    data[dataLength] = 0;
+    data[dataLength] = ANSI_NULL;
 
     if (dataLength)
     {
@@ -636,6 +636,7 @@ BOOLEAN PhHttpSocketSetFeature(
         );
 }
 
+_Success_(return)
 BOOLEAN PhHttpSocketParseUrl(
     _In_ PPH_STRING Url,
     _Out_opt_ PPH_STRING *HostPart,
@@ -952,7 +953,6 @@ static BOOLEAN PhpParseDnsMessageBuffer(
 
     return FALSE;
 }
- 
 
 // Cloudflare DNS over HTTPs (DoH)
 // https://developers.cloudflare.com/1.1.1.1/dns-over-https/wireformat/
