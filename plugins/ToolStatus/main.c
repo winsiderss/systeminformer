@@ -102,7 +102,7 @@ VOID NTAPI ProcessesUpdatedCallback(
     _In_opt_ PVOID Context
     )
 {
-    if (ProcessesUpdatedCount <= 2)
+    if (ProcessesUpdatedCount != 3)
     {
         ProcessesUpdatedCount++;
         return;
@@ -1126,24 +1126,10 @@ LRESULT CALLBACK MainWndSubclassProc(
 
                     if (ToolStatusConfig.ResolveGhostWindows)
                     {
-                        // This is an undocumented function exported by user32.dll that
-                        // retrieves the hung window represented by a ghost window.
-                        static HWND (WINAPI *HungWindowFromGhostWindow_I)(
-                            _In_ HWND WindowHandle
-                            );
+                        HWND hungWindow = PhHungWindowFromGhostWindow(TargetingCurrentWindow);
 
-                        if (!HungWindowFromGhostWindow_I)
-                            HungWindowFromGhostWindow_I = PhGetModuleProcAddress(L"user32.dll", "HungWindowFromGhostWindow");
-
-                        if (HungWindowFromGhostWindow_I)
-                        {
-                            HWND hungWindow = HungWindowFromGhostWindow_I(TargetingCurrentWindow);
-
-                            // The call will have failed if the window wasn't actually a ghost
-                            // window.
-                            if (hungWindow)
-                                TargetingCurrentWindow = hungWindow;
-                        }
+                        if (hungWindow)
+                            TargetingCurrentWindow = hungWindow;
                     }
 
                     threadId = GetWindowThreadProcessId(TargetingCurrentWindow, &processId);
