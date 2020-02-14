@@ -1421,16 +1421,18 @@ VOID PhEnumChildWindows(
     _In_opt_ PVOID Context
     )
 {
-    HWND childWindow = NULL;
-    ULONG i = 0;
+    EnumChildWindows(WindowHandle, (WNDENUMPROC)Callback, (LPARAM)Context);
 
-    while (i < Limit && (childWindow = FindWindowEx(WindowHandle, childWindow, NULL, NULL)))
-    {
-        if (!Callback(childWindow, Context))
-            return;
-
-        i++;
-    }
+    //HWND childWindow = NULL;
+    //ULONG i = 0;
+    //
+    //while (i < Limit && (childWindow = FindWindowEx(WindowHandle, childWindow, NULL, NULL)))
+    //{
+    //    if (!Callback(childWindow, Context))
+    //        return;
+    //
+    //    i++;
+    //}
 }
 
 typedef struct _GET_PROCESS_MAIN_WINDOW_CONTEXT
