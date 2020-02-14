@@ -399,6 +399,7 @@ PWSTR PhGetProcessPriorityClassString(
         return L"Below normal";
     case PROCESS_PRIORITY_CLASS_IDLE:
         return L"Idle";
+    case PROCESS_PRIORITY_CLASS_UNKNOWN:
     default:
         return L"Unknown";
     }
