@@ -317,7 +317,7 @@ BOOLEAN CALLBACK WepEnumChildWindowsProc(
 VOID WepAddEnumChildWindows(
     _In_ PWINDOWS_CONTEXT Context,
     _In_opt_ PWE_WINDOW_NODE ParentNode,
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_opt_ HANDLE FilterProcessId,
     _In_opt_ HANDLE FilterThreadId
     )
@@ -332,7 +332,7 @@ VOID WepAddEnumChildWindows(
         enumContext.FilterProcessId = FilterProcessId;
         enumContext.FilterThreadId = FilterThreadId;
 
-        PhEnumChildWindows(hwnd, ULONG_MAX, WepEnumChildWindowsProc, &enumContext);
+        PhEnumChildWindows(WindowHandle, ULONG_MAX, WepEnumChildWindowsProc, &enumContext);
     }
     else
     {
@@ -341,7 +341,7 @@ VOID WepAddEnumChildWindows(
 
         // We use FindWindowEx because EnumWindows doesn't return Metro app windows.
         // Set a reasonable limit to prevent infinite loops.
-        while (i < 0x800 && (childWindow = FindWindowEx(hwnd, childWindow, NULL, NULL)))
+        while (i < 0x800 && (childWindow = FindWindowEx(WindowHandle, childWindow, NULL, NULL)))
         {
             ULONG processId;
             ULONG threadId;
