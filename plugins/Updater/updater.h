@@ -30,8 +30,6 @@
 #include <settings.h>
 #include <workqueue.h>
 
-#include <shlobj.h>
-
 #include <commonutil.h>
 
 #include "resource.h"
