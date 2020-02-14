@@ -412,27 +412,32 @@ PPH_STRING PhGetHostNameFromAddressEx(
     PPH_STRING dnsReverseNameString = NULL;
     PDNS_RECORD dnsRecordList = NULL;
 
-    if (Address->Type == PH_IPV4_NETWORK_TYPE)
+    switch (Address->Type)
     {
-        if (
-            IN4_IS_ADDR_UNSPECIFIED(&Address->InAddr) ||
-            IN4_IS_ADDR_LOOPBACK(&Address->InAddr) ||
-            IN4_IS_ADDR_RFC1918(&Address->InAddr)
-            )
+    case PH_IPV4_NETWORK_TYPE:
         {
-            dnsLocalQuery = TRUE;
+            if (IN4_IS_ADDR_UNSPECIFIED(&Address->InAddr))
+                return NULL;
+
+            if (IN4_IS_ADDR_LOOPBACK(&Address->InAddr) ||
+                IN4_IS_ADDR_RFC1918(&Address->InAddr))
+            {
+                dnsLocalQuery = TRUE;
+            }
         }
-    }
-    else if (Address->Type == PH_IPV6_NETWORK_TYPE)
-    {
-        if (
-            IN6_IS_ADDR_UNSPECIFIED(&Address->In6Addr) ||
-            IN6_IS_ADDR_LOOPBACK(&Address->In6Addr) ||
-            IN6_IS_ADDR_LINKLOCAL(&Address->In6Addr)
-            )
+        break;
+    case PH_IPV6_NETWORK_TYPE:
         {
-            dnsLocalQuery = TRUE;
+            if (IN6_IS_ADDR_UNSPECIFIED(&Address->In6Addr))
+                return NULL;
+
+            if (IN6_IS_ADDR_LOOPBACK(&Address->In6Addr) ||
+                IN6_IS_ADDR_LINKLOCAL(&Address->In6Addr))
+            {
+                dnsLocalQuery = TRUE;
+            }
         }
+        break;
     }
 
     if (!(dnsReverseNameString = PhpGetDnsReverseNameFromAddress(Address)))
