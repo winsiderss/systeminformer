@@ -440,6 +440,19 @@ HBITMAP PhGetShieldBitmap(
     VOID
     );
 
+HRESULT PhRunAsAdminTask(
+    _In_ PWSTR TaskName
+    );
+
+HRESULT PhDeleteAdminTask(
+    _In_ PWSTR TaskName
+    );
+
+HRESULT PhCreateAdminTask(
+    _In_ PWSTR TaskName,
+    _In_ PWSTR FileName
+    );
+
 #define PH_LOAD_SHARED_ICON_SMALL(BaseAddress, Name) PhLoadIcon(BaseAddress, (Name), PH_LOAD_ICON_SHARED | PH_LOAD_ICON_SIZE_SMALL, 0, 0) // phapppub
 #define PH_LOAD_SHARED_ICON_LARGE(BaseAddress, Name) PhLoadIcon(BaseAddress, (Name), PH_LOAD_ICON_SHARED | PH_LOAD_ICON_SIZE_LARGE, 0, 0) // phapppub
 
