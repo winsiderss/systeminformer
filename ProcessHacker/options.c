@@ -3,7 +3,7 @@
  *   options window
  *
  * Copyright (C) 2010-2016 wj32
- * Copyright (C) 2017-2019 dmex
+ * Copyright (C) 2017-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -703,6 +703,7 @@ VOID PhOptionsCreateSectionDialog(
     PhSetIntegerSetting(Name, __newValue); \
 }
 
+_Success_(return)
 static BOOLEAN GetCurrentFont(
     _Out_ PLOGFONT Font
     )
@@ -848,7 +849,7 @@ static BOOLEAN PathMatchesPh(
         PH_STRINGREF partInside;
 
         partInside.Buffer = &OldTaskMgrDebugger->Buffer[1];
-        partInside.Length = OldTaskMgrDebugger->Length - sizeof(WCHAR) * sizeof(WCHAR);
+        partInside.Length = OldTaskMgrDebugger->Length - 2 * sizeof(WCHAR);
 
         if (PhEqualStringRef(&partInside, &fileName->sr, TRUE))
             match = TRUE;
@@ -996,6 +997,7 @@ typedef enum _PHP_OPTIONS_INDEX
     PHP_OPTIONS_INDEX_ENABLE_UNDECORATE_SYMBOLS,
     PHP_OPTIONS_INDEX_ENABLE_CYCLE_CPU_USAGE,
     PHP_OPTIONS_INDEX_ENABLE_THEME_SUPPORT,
+    PHP_OPTIONS_INDEX_ENABLE_START_ASADMIN,
     PHP_OPTIONS_INDEX_ENABLE_NETWORK_RESOLVE,
     PHP_OPTIONS_INDEX_ENABLE_NETWORK_RESOLVE_DOH,
     PHP_OPTIONS_INDEX_ENABLE_INSTANT_TOOLTIPS,
@@ -1033,6 +1035,7 @@ static VOID PhpAdvancedPageLoad(
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_UNDECORATE_SYMBOLS, L"Enable undecorated symbols", NULL);
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_CYCLE_CPU_USAGE, L"Enable cycle-based CPU usage", NULL);
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_THEME_SUPPORT, L"Enable theme support (experimental)", NULL);
+    PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_START_ASADMIN, L"Enable start as admin (experimental)", NULL);
     //PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_LINUX_SUPPORT, L"Enable Windows subsystem for Linux support", NULL);
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_NETWORK_RESOLVE, L"Resolve network addresses", NULL);
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_NETWORK_RESOLVE_DOH, L"Resolve DNS over HTTPS (DoH)", NULL);
@@ -1055,6 +1058,7 @@ static VOID PhpAdvancedPageLoad(
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_UNDECORATE_SYMBOLS, L"DbgHelpUndecorate");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_CYCLE_CPU_USAGE, L"EnableCycleCpuUsage");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_THEME_SUPPORT, L"EnableThemeSupport");
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_START_ASADMIN, L"EnableStartAsAdmin");
     //SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_LINUX_SUPPORT, L"EnableLinuxSubsystemSupport");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_NETWORK_RESOLVE, L"EnableNetworkResolve");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_NETWORK_RESOLVE_DOH, L"EnableNetworkResolveDoH");
@@ -1147,6 +1151,7 @@ static VOID PhpAdvancedPageSave(
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_UNDECORATE_SYMBOLS, L"DbgHelpUndecorate");
     SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_CYCLE_CPU_USAGE, L"EnableCycleCpuUsage");
     SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_THEME_SUPPORT, L"EnableThemeSupport");
+    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_START_ASADMIN, L"EnableStartAsAdmin");
     //SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_LINUX_SUPPORT, L"EnableLinuxSubsystemSupport");
     SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_NETWORK_RESOLVE, L"EnableNetworkResolve");
     SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_NETWORK_RESOLVE_DOH, L"EnableNetworkResolveDoH");
@@ -1437,6 +1442,59 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                                 }
                             }
                             break;
+                        case INDEXTOSTATEIMAGEMASK(2): // checked
+                            {
+                                switch (listView->iItem)
+                                {
+                                case PHP_OPTIONS_INDEX_ENABLE_START_ASADMIN:
+                                    {
+                                        PPH_STRING applicationFileName;
+
+                                        if (!PhGetOwnTokenAttributes().Elevated)
+                                        {
+                                            PhShowInformation2(
+                                                PhOptionsWindowHandle,
+                                                L"Unable to enable option start as admin.",
+                                                L"You need to enable this option with administrative privileges."
+                                                );
+
+                                            SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, TRUE);
+                                            return TRUE;
+                                        }
+
+                                        if (applicationFileName = PhGetApplicationFileName())
+                                        {
+                                            HRESULT status;
+                                            PPH_STRING quotedFileName;
+
+                                            quotedFileName = PH_AUTO(PhConcatStrings(3, L"\"", PhGetStringOrEmpty(applicationFileName), L"\""));
+
+                                            status = PhCreateAdminTask(
+                                                L"ProcessHackerTaskAdmin",
+                                                quotedFileName->Buffer
+                                                );
+                                            
+                                            if (FAILED(status))
+                                            {
+                                                PhShowStatus(
+                                                    PhOptionsWindowHandle,
+                                                    L"Unable to enable start as admin.",
+                                                    0,
+                                                    HRESULT_CODE(status) // HACK
+                                                    );
+
+                                                PhDereferenceObject(applicationFileName);
+                                                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, TRUE);
+                                                return TRUE;
+                                            }
+
+                                            PhDereferenceObject(applicationFileName);
+                                        }
+                                    }
+                                    break;
+                                }
+                            }
+                            break;
                         }
                     }
                 }
@@ -1447,6 +1505,9 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
 
                     if (listView->uChanged & LVIF_STATE)
                     {
+                        if (GeneralListViewStateInitializing)
+                            break;
+
                         switch (listView->uNewState & LVIS_STATEIMAGEMASK)
                         {
                         case INDEXTOSTATEIMAGEMASK(2): // checked
@@ -1458,6 +1519,8 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                                         PhpOptionsShowHideTreeViewItem(FALSE);
                                     }
                                     break;
+                                case PHP_OPTIONS_INDEX_ENABLE_START_ASADMIN:
+                                    break;
                                 }
                             }
                             break;
@@ -1468,6 +1531,14 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                                 case PHP_OPTIONS_INDEX_SHOW_ADVANCED_OPTIONS:
                                     {
                                         PhpOptionsShowHideTreeViewItem(TRUE);
+                                    }
+                                    break;
+                                case PHP_OPTIONS_INDEX_ENABLE_START_ASADMIN:
+                                    {
+                                        if (!!PhGetIntegerSetting(L"EnableStartAsAdmin"))
+                                        {
+                                            PhDeleteAdminTask(L"ProcessHackerTaskAdmin");
+                                        }
                                     }
                                     break;
                                 }

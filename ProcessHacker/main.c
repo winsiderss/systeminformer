@@ -3,7 +3,7 @@
  *   main program
  *
  * Copyright (C) 2009-2016 wj32
- * Copyright (C) 2017-2019 dmex
+ * Copyright (C) 2017-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -150,6 +150,21 @@ INT WINAPI wWinMain(
         !PhStartupParameters.PhSvc)
     {
         PhActivatePreviousInstance();
+    }
+
+    if (PhGetIntegerSetting(L"EnableStartAsAdmin") &&
+        !PhStartupParameters.NewInstance &&
+        !PhStartupParameters.ShowOptions &&
+        !PhStartupParameters.CommandMode &&
+        !PhStartupParameters.PhSvc)
+    {
+        if (!PhGetOwnTokenAttributes().Elevated)
+        {
+            if (SUCCEEDED(PhRunAsAdminTask(L"ProcessHackerTaskAdmin")))
+            {
+                RtlExitUserProcess(STATUS_SUCCESS);
+            }
+        }
     }
 
     if (PhGetIntegerSetting(L"EnableKph") &&

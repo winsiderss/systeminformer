@@ -50,6 +50,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableServiceNonPoll", L"0");
     PhpAddIntegerSetting(L"EnableStage2", L"1");
     PhpAddIntegerSetting(L"EnableServiceStage2", L"0");
+    PhpAddIntegerSetting(L"EnableStartAsAdmin", L"0");
     PhpAddIntegerSetting(L"EnableWarnings", L"1");
     PhpAddIntegerSetting(L"EnableWindowText", L"1");
     PhpAddIntegerSetting(L"EnableThemeSupport", L"0");
