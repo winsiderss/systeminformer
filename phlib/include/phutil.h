@@ -1324,6 +1324,15 @@ PhFileReadAllText(
     _In_ PWSTR FileName
     );
 
+PHLIBAPI
+PVOID
+NTAPI
+PhGetClassObject(
+    _In_ PWSTR DllName,
+    _In_ REFCLSID Rclsid,
+    _In_ REFIID Riid
+    );
+
 #ifdef __cplusplus
 }
 #endif

@@ -6748,3 +6748,38 @@ PPH_STRING PhFileReadAllText(
 
     return string;
 }
+
+PVOID PhGetClassObject(
+    _In_ PWSTR DllName,
+    _In_ REFCLSID Rclsid,
+    _In_ REFIID Riid
+    )
+{
+    HRESULT (WINAPI *DllGetClassObject_I)(_In_ REFCLSID rclsid, _In_ REFIID riid, _Out_ PVOID* ppv) = NULL;
+    IClassFactory* classFactory;
+    PVOID moduleHandle = NULL;
+    PVOID classInterface = NULL;
+
+    if (!(moduleHandle = PhGetLoaderEntryDllBase(DllName)))
+        moduleHandle = LoadLibrary(DllName);
+
+    if (!moduleHandle)
+        return NULL;
+
+    if (!(DllGetClassObject_I = PhGetDllBaseProcedureAddress(moduleHandle, "DllGetClassObject", 0)))
+        return NULL;
+
+    if (FAILED(DllGetClassObject_I(Rclsid, &IID_IClassFactory, &classFactory)))
+        return NULL;
+
+    if (FAILED(IClassFactory_CreateInstance(classFactory, NULL, Riid, &classInterface)))
+    {
+        IClassFactory_Release(classFactory);
+        return NULL;
+    }
+    else
+    {
+        IClassFactory_Release(classFactory);
+        return classInterface;
+    }
+}
