@@ -384,7 +384,7 @@ ULONG PhCreateProcessLxss(
     NtClose(outputWriteHandle);
 
     // Read the pipe data. (dmex)
-    lxssOutputString = PhGetFileText(outputReadHandle);
+    lxssOutputString = PhGetFileText(outputReadHandle, TRUE);
 
     // Get the exit code after we finish reading the data from the pipe. (dmex)
     if (NT_SUCCESS(status = PhGetProcessBasicInformation(processHandle, &basicInfo)))
