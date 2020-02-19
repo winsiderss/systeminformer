@@ -723,6 +723,7 @@ EXPORTS
     PhHttpSocketReadDataToBuffer
     PhHttpSocketDownloadString
     PhHttpSocketSetFeature
+    PhHttpSocketSetSecurity
     PhHttpSocketParseUrl
     PhHttpSocketGetErrorMessage
     PhHttpSocketSetCredentials

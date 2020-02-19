@@ -157,6 +157,7 @@ typedef struct _PH_HTTP_CONTEXT
     PWSTR ServerName;
 } PH_HTTP_CONTEXT, *PPH_HTTP_CONTEXT;
 
+_Success_(return)
 PHLIBAPI
 BOOLEAN
 NTAPI
@@ -169,7 +170,7 @@ PHLIBAPI
 VOID
 NTAPI
 PhHttpSocketDestroy(
-    _Frees_ptr_ PPH_HTTP_CONTEXT HttpContext
+    _In_ _Frees_ptr_ PPH_HTTP_CONTEXT HttpContext
     );
 
 #define PH_HTTP_DEFAULT_PORT 0 // use the protocol-specific default port
@@ -268,6 +269,7 @@ PhHttpSocketQueryHeaderString(
 #define PH_HTTP_QUERY_CONTENT_LENGTH 0x1
 #define PH_HTTP_QUERY_STATUS_CODE 0x2
 
+_Success_(return)
 PHLIBAPI
 BOOLEAN
 NTAPI
@@ -286,6 +288,7 @@ PhHttpSocketQueryOptionString(
     _In_ ULONG QueryOption
     );
 
+_Success_(return)
 PHLIBAPI
 BOOLEAN
 NTAPI
@@ -313,6 +316,17 @@ PhHttpSocketSetFeature(
     _In_ PPH_HTTP_CONTEXT HttpContext,
     _In_ ULONG Feature,
     _In_ BOOLEAN Enable
+    );
+
+#define PH_HTTP_SECURITY_IGNORE_UNKNOWN_CA 0x1
+#define PH_HTTP_SECURITY_IGNORE_CERT_DATE_INVALID 0x2
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhHttpSocketSetSecurity(
+    _In_ PPH_HTTP_CONTEXT HttpContext,
+    _In_ ULONG Feature
     );
 
 _Success_(return)
