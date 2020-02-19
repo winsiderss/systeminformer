@@ -673,7 +673,7 @@ VOID PhInitializeCapabilitySidCache(
         capabilityListFileName = PhConcatStringRefZ(&applicationDirectory->sr, L"capslist.txt");
         PhDereferenceObject(applicationDirectory);
 
-        capabilityListString = PhFileReadAllText(capabilityListFileName->Buffer);
+        capabilityListString = PhFileReadAllText(capabilityListFileName->Buffer, TRUE);
         PhDereferenceObject(capabilityListFileName);      
     }
 

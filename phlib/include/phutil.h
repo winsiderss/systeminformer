@@ -1311,17 +1311,19 @@ PhLoadAllImportsForDll(
     );
 
 PHLIBAPI
-PPH_STRING
+PVOID
 NTAPI
 PhGetFileText(
-    _In_ HANDLE FileHandle
+    _In_ HANDLE FileHandle,
+    _In_ BOOLEAN Unicode
     );
 
 PHLIBAPI
-PPH_STRING
+PVOID
 NTAPI
 PhFileReadAllText(
-    _In_ PWSTR FileName
+    _In_ PWSTR FileName,
+    _In_ BOOLEAN Unicode
     );
 
 PHLIBAPI

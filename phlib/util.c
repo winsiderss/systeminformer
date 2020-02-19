@@ -6664,11 +6664,12 @@ PPH_STRING PhGetExportNameFromOrdinal(
     return NULL;
 }
 
-PPH_STRING PhGetFileText(
-    _In_ HANDLE FileHandle
+PVOID PhGetFileText(
+    _In_ HANDLE FileHandle,
+    _In_ BOOLEAN Unicode
     )
 {
-    PPH_STRING string = NULL;
+    PVOID string = NULL;
     PSTR data;
     ULONG allocatedLength;
     ULONG dataLength;
@@ -6717,7 +6718,11 @@ PPH_STRING PhGetFileText(
     if (dataLength > 0)
     {
         data[dataLength] = ANSI_NULL;
-        string = PhConvertUtf8ToUtf16Ex(data, dataLength);
+
+        if (Unicode)
+            string = PhConvertUtf8ToUtf16Ex(data, dataLength);
+        else
+            string = PhCreateBytesEx(data, dataLength);
     }
 
     PhFree(data);
@@ -6725,11 +6730,12 @@ PPH_STRING PhGetFileText(
     return string;
 }
 
-PPH_STRING PhFileReadAllText(
-    _In_ PWSTR FileName
+PVOID PhFileReadAllText(
+    _In_ PWSTR FileName,
+    _In_ BOOLEAN Unicode
     )
 {
-    PPH_STRING string = NULL;
+    PVOID string = NULL;
     HANDLE fileHandle;
 
     if (NT_SUCCESS(PhCreateFileWin32(
@@ -6742,7 +6748,7 @@ PPH_STRING PhFileReadAllText(
         FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
         )))
     {
-        string = PhGetFileText(fileHandle);
+        string = PhGetFileText(fileHandle, Unicode);
         NtClose(fileHandle);
     }
 
