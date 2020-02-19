@@ -43,6 +43,13 @@ static const PH_FLAG_MAPPING PhpHttpFeatureMappings[] =
     { PH_HTTP_FEATURE_KEEP_ALIVE, WINHTTP_DISABLE_KEEP_ALIVE },
 };
 
+static const PH_FLAG_MAPPING PhpHttpSecurityFlagsMappings[] =
+{
+    { PH_HTTP_SECURITY_IGNORE_UNKNOWN_CA, SECURITY_FLAG_IGNORE_UNKNOWN_CA },
+    { PH_HTTP_SECURITY_IGNORE_CERT_DATE_INVALID, SECURITY_FLAG_IGNORE_CERT_DATE_INVALID },
+};
+
+_Success_(return)
 BOOLEAN PhHttpSocketCreate(
     _Out_ PPH_HTTP_CONTEXT *HttpContext,
     _In_opt_ PWSTR HttpUserAgent
@@ -109,9 +116,12 @@ BOOLEAN PhHttpSocketCreate(
 }
 
 VOID PhHttpSocketDestroy(
-    _Frees_ptr_ PPH_HTTP_CONTEXT HttpContext
+    _In_ _Frees_ptr_ PPH_HTTP_CONTEXT HttpContext
     )
 {
+    if (!HttpContext)
+        return;
+
     if (HttpContext->RequestHandle)
         WinHttpCloseHandle(HttpContext->RequestHandle);
     if (HttpContext->ConnectionHandle)
@@ -402,6 +412,7 @@ PPH_STRING PhHttpSocketQueryHeaderString(
     return stringBuffer;
 }
 
+_Success_(return)
 BOOLEAN PhHttpSocketQueryHeaderUlong(
     _In_ PPH_HTTP_CONTEXT HttpContext,
     _In_ ULONG QueryValue,
@@ -524,6 +535,7 @@ PPH_STRING PhHttpSocketQueryOptionString(
     return stringBuffer;
 }
 
+_Success_(return)
 BOOLEAN PhHttpSocketReadDataToBuffer(
     _In_ PVOID RequestHandle,
     _Out_ PVOID *Buffer,
@@ -631,6 +643,28 @@ BOOLEAN PhHttpSocketSetFeature(
     return !!WinHttpSetOption(
         HttpContext->RequestHandle,
         Enable ? WINHTTP_OPTION_ENABLE_FEATURE : WINHTTP_OPTION_DISABLE_FEATURE,
+        &featureValue,
+        sizeof(ULONG)
+        );
+}
+
+BOOLEAN PhHttpSocketSetSecurity(
+    _In_ PPH_HTTP_CONTEXT HttpContext,
+    _In_ ULONG Feature
+    )
+{
+    ULONG featureValue = 0;
+
+    PhMapFlags1(
+        &featureValue,
+        Feature,
+        PhpHttpSecurityFlagsMappings,
+        RTL_NUMBER_OF(PhpHttpSecurityFlagsMappings)
+        );
+
+    return !!WinHttpSetOption(
+        HttpContext->RequestHandle,
+        WINHTTP_OPTION_SECURITY_FLAGS,
         &featureValue,
         sizeof(ULONG)
         );
