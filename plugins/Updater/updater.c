@@ -361,6 +361,9 @@ BOOLEAN QueryUpdateData(
             Context->ErrorCode = GetLastError();
             goto CleanupExit;
         }
+
+        // HACK workaround wj32.org certificate issues. (dmex)
+        PhHttpSocketSetSecurity(httpContext, PH_HTTP_SECURITY_IGNORE_CERT_DATE_INVALID);
     }
 
     {
