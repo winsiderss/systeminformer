@@ -1331,16 +1331,8 @@ namespace CustomBuildTool
                             httpClientHandler.AutomaticDecompression = DecompressionMethods.All;
                             httpClientHandler.ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) =>
                             {
-                                // Allow this client to communicate with authenticated servers.
-                                if (sslPolicyErrors == System.Net.Security.SslPolicyErrors.None)
-                                    return true;
-
-                                // Temporarily ignore wj32.org expired certificate.
-                                if (string.Equals(cert.GetCertHashString(), "b60cb3b6aac5f59075689fc3c7dfd561750ce100", StringComparison.OrdinalIgnoreCase))
-                                    return true;
-
-                                // Do not allow this client to communicate with unauthenticated servers.
-                                return false;
+                                // Ignore certificate issues.
+                                return true;
                             };
 
                             using (HttpClient client = new HttpClient(httpClientHandler))
