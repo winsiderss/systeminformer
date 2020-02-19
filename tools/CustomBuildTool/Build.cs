@@ -1326,23 +1326,41 @@ namespace CustomBuildTool
                     {
                         string fileName = Path.GetFileName(sourceFile);
 
-                        using (HttpClient client = new HttpClient())
-                        using (FileStream fileStream = File.OpenRead(sourceFile))
-                        using (StreamContent streamContent = new StreamContent(fileStream))
-                        using (MultipartFormDataContent content = new MultipartFormDataContent())
+                        using (HttpClientHandler httpClientHandler = new HttpClientHandler())
                         {
-                            client.DefaultRequestHeaders.Add("X-ApiKey", buildBuildUrlKey);
-                            streamContent.Headers.Add("Content-Type", "application/octet-stream");
-                            streamContent.Headers.Add("Content-Disposition", "form-data; name=\"file\"; filename=\"" + fileName + "\"");
-                            content.Add(streamContent, "file", fileName);
-
-                            var httpTask = client.PostAsync(buildBuildUrl, content);
-                            httpTask.Wait();
-
-                            if (!httpTask.Result.IsSuccessStatusCode)
+                            httpClientHandler.AutomaticDecompression = DecompressionMethods.All;
+                            httpClientHandler.ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) =>
                             {
-                                Program.PrintColorMessage("[HttpClient PostAsync] " + httpTask.Result, ConsoleColor.Red);
+                                // Allow this client to communicate with authenticated servers.
+                                if (sslPolicyErrors == System.Net.Security.SslPolicyErrors.None)
+                                    return true;
+
+                                // Temporarily ignore wj32.org expired certificate.
+                                if (string.Equals(cert.GetCertHashString(), "b60cb3b6aac5f59075689fc3c7dfd561750ce100", StringComparison.OrdinalIgnoreCase))
+                                    return true;
+
+                                // Do not allow this client to communicate with unauthenticated servers.
                                 return false;
+                            };
+
+                            using (HttpClient client = new HttpClient(httpClientHandler))
+                            using (FileStream fileStream = File.OpenRead(sourceFile))
+                            using (StreamContent streamContent = new StreamContent(fileStream))
+                            using (MultipartFormDataContent content = new MultipartFormDataContent())
+                            {
+                                client.DefaultRequestHeaders.Add("X-ApiKey", buildBuildUrlKey);
+                                streamContent.Headers.Add("Content-Type", "application/octet-stream");
+                                streamContent.Headers.Add("Content-Disposition", "form-data; name=\"file\"; filename=\"" + fileName + "\"");
+                                content.Add(streamContent, "file", fileName);
+
+                                var httpTask = client.PostAsync(buildBuildUrl, content);
+                                httpTask.Wait();
+
+                                if (!httpTask.Result.IsSuccessStatusCode)
+                                {
+                                    Program.PrintColorMessage("[HttpClient PostAsync] " + httpTask.Result, ConsoleColor.Red);
+                                    return false;
+                                }
                             }
                         }
                     }
