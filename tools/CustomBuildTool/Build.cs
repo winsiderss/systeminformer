@@ -1217,17 +1217,35 @@ namespace CustomBuildTool
 
             try
             {
-                using (HttpClient client = new HttpClient())
+                using (HttpClientHandler httpClientHandler = new HttpClientHandler())
                 {
-                    client.DefaultRequestHeaders.Add("X-ApiKey", buildPostApiKey);
-
-                    var httpTask = client.PostAsync(buildPostUrl, new StringContent(buildPostString, Encoding.UTF8, "application/json"));
-                    httpTask.Wait();
-
-                    if (!httpTask.Result.IsSuccessStatusCode)
+                    httpClientHandler.AutomaticDecompression = DecompressionMethods.All;
+                    httpClientHandler.ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) =>
                     {
-                        Program.PrintColorMessage("[UpdateBuildWebService] " + httpTask.Result, ConsoleColor.Red);
+                        // Allow this client to communicate with authenticated servers.
+                        if (sslPolicyErrors == System.Net.Security.SslPolicyErrors.None)
+                            return true;
+
+                        // Temporarily ignore wj32.org expired certificate.
+                        if (string.Equals(cert.GetCertHashString(System.Security.Cryptography.HashAlgorithmName.SHA1), "b60cb3b6aac5f59075689fc3c7dfd561750ce100", StringComparison.OrdinalIgnoreCase))
+                            return true;
+
+                        // Do not allow this client to communicate with unauthenticated servers.
                         return false;
+                    };
+
+                    using (HttpClient client = new HttpClient(httpClientHandler))
+                    {
+                        client.DefaultRequestHeaders.Add("X-ApiKey", buildPostApiKey);
+
+                        var httpTask = client.PostAsync(buildPostUrl, new StringContent(buildPostString, Encoding.UTF8, "application/json"));
+                        httpTask.Wait();
+
+                        if (!httpTask.Result.IsSuccessStatusCode)
+                        {
+                            Program.PrintColorMessage("[UpdateBuildWebService] " + httpTask.Result, ConsoleColor.Red);
+                            return false;
+                        }
                     }
                 }
             }
@@ -1331,8 +1349,16 @@ namespace CustomBuildTool
                             httpClientHandler.AutomaticDecompression = DecompressionMethods.All;
                             httpClientHandler.ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) =>
                             {
-                                // Ignore certificate issues.
-                                return true;
+                                // Allow this client to communicate with authenticated servers.
+                                if (sslPolicyErrors == System.Net.Security.SslPolicyErrors.None)
+                                    return true;
+
+                                // Temporarily ignore wj32.org expired certificate.
+                                if (string.Equals(cert.GetCertHashString(System.Security.Cryptography.HashAlgorithmName.SHA1), "b60cb3b6aac5f59075689fc3c7dfd561750ce100", StringComparison.OrdinalIgnoreCase))
+                                    return true;
+
+                                // Do not allow this client to communicate with unauthenticated servers.
+                                return false;
                             };
 
                             using (HttpClient client = new HttpClient(httpClientHandler))
