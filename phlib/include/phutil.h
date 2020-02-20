@@ -1326,13 +1326,15 @@ PhFileReadAllText(
     _In_ BOOLEAN Unicode
     );
 
+_Success_(return == S_OK)
 PHLIBAPI
-PVOID
+HRESULT
 NTAPI
 PhGetClassObject(
     _In_ PWSTR DllName,
     _In_ REFCLSID Rclsid,
-    _In_ REFIID Riid
+    _In_ REFIID Riid,
+    _Out_ PVOID* Ppv
     );
 
 #ifdef __cplusplus
