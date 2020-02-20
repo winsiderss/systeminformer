@@ -3,7 +3,7 @@
  *   handle properties
  *
  * Copyright (C) 2010-2013 wj32
- * Copyright (C) 2018-2019 dmex
+ * Copyright (C) 2018-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -44,6 +44,7 @@ typedef enum _PHP_HANDLE_GENERAL_CATEGORY
     PH_HANDLE_GENERAL_CATEGORY_SECTION,
     PH_HANDLE_GENERAL_CATEGORY_MUTANT,
     PH_HANDLE_GENERAL_CATEGORY_PROCESSTHREAD,
+    PH_HANDLE_GENERAL_CATEGORY_ETW,
 
     PH_HANDLE_GENERAL_CATEGORY_MAXIMUM
 } PHP_HANDLE_GENERAL_CATEGORY;
@@ -81,6 +82,9 @@ typedef enum _PHP_HANDLE_GENERAL_INDEX
     PH_HANDLE_GENERAL_INDEX_PROCESSTHREADCREATETIME,
     PH_HANDLE_GENERAL_INDEX_PROCESSTHREADEXITTIME,
     PH_HANDLE_GENERAL_INDEX_PROCESSTHREADEXITCODE,
+
+    PH_HANDLE_GENERAL_INDEX_ETWORIGINALNAME,
+    PH_HANDLE_GENERAL_INDEX_ETWGROUPNAME,
 
     PH_HANDLE_GENERAL_INDEX_MAXIMUM
 } PHP_PROCESS_STATISTICS_INDEX;
@@ -386,6 +390,24 @@ VOID PhpUpdateHandleGeneralListViewGroups(
             NULL
             );
     }
+    else if (PhEqualString2(Context->HandleItem->TypeName, L"EtwRegistration", TRUE))
+    {
+        PhAddListViewGroup(Context->ListViewHandle, PH_HANDLE_GENERAL_CATEGORY_ETW, L"Event trace information");
+        Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_ETWORIGINALNAME] = PhAddListViewGroupItem(
+            Context->ListViewHandle,
+            PH_HANDLE_GENERAL_CATEGORY_ETW,
+            PH_HANDLE_GENERAL_INDEX_ETWORIGINALNAME,
+            L"GUID",
+            NULL
+            );
+        //Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_ETWGROUPNAME] = PhAddListViewGroupItem(
+        //    Context->ListViewHandle,
+        //    PH_HANDLE_GENERAL_CATEGORY_ETW,
+        //    PH_HANDLE_GENERAL_INDEX_ETWGROUPNAME,
+        //    L"Group GUID",
+        //    NULL
+        //    );
+    }
     else if (PhEqualStringRef2(&Context->HandleItem->TypeName->sr, L"File", TRUE))
     {
         PhAddListViewGroup(Context->ListViewHandle, PH_HANDLE_GENERAL_CATEGORY_FILE, L"File information");
@@ -678,6 +700,10 @@ VOID PhpUpdateHandleGeneral(
 
             NtClose(alpcPortHandle);
         }
+    }
+    else if (PhEqualString2(Context->HandleItem->TypeName, L"EtwRegistration", TRUE))
+    {
+        PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_ETWORIGINALNAME], 1, PhGetString(Context->HandleItem->ObjectName));
     }
     else if (PhEqualString2(Context->HandleItem->TypeName, L"File", TRUE))
     {

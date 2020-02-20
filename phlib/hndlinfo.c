@@ -23,6 +23,7 @@
 
 #include <ph.h>
 #include <hndlinfo.h>
+#include <json.h>
 
 #include <kphuser.h>
 #include <lsasup.h>
@@ -416,6 +417,122 @@ NTSTATUS PhpGetEtwObjectName(
     return status;
 }
 
+typedef struct _PH_ETW_TRACEGUID_ENTRY
+{
+    PPH_STRING Name;
+    PGUID Guid;
+} PH_ETW_TRACEGUID_ENTRY, *PPH_ETW_TRACEGUID_ENTRY;
+
+VOID PhInitializeEtwTraceGuidCache(
+    _Inout_ PPH_ARRAY EtwTraceGuidArrayList
+    )
+{
+    PPH_STRING applicationDirectory;
+    PPH_BYTES capabilityListString = NULL;
+    PVOID jsonObject;
+    ULONG arrayLength;
+
+    if (applicationDirectory = PhGetApplicationDirectory())
+    {
+        PPH_STRING capabilityListFileName;
+
+        capabilityListFileName = PhConcatStringRefZ(&applicationDirectory->sr, L"etwguids.txt");
+        PhDereferenceObject(applicationDirectory);
+
+        capabilityListString = PhFileReadAllText(capabilityListFileName->Buffer, FALSE);
+        PhDereferenceObject(capabilityListFileName);      
+    }
+
+    if (!capabilityListString)
+        return;
+
+    PhInitializeArray(EtwTraceGuidArrayList, sizeof(PH_ETW_TRACEGUID_ENTRY), 2000);
+
+    if (!(jsonObject = PhCreateJsonParser(capabilityListString->Buffer)))
+        return;
+
+    if (!(arrayLength = PhGetJsonArrayLength(jsonObject)))
+    {
+        PhFreeJsonParser(jsonObject);
+        return;
+    }
+
+    for (ULONG i = 0; i < arrayLength; i++)
+    {
+        PVOID jsonArrayObject;
+        PPH_STRING guidString;
+        PPH_STRING guidName;
+        UNICODE_STRING guidStringUs;
+        GUID guid;
+        PH_ETW_TRACEGUID_ENTRY result;
+
+        if (!(jsonArrayObject = PhGetJsonArrayIndexObject(jsonObject, i)))
+            continue;
+
+        guidString = PhGetJsonValueAsString(jsonArrayObject, "guid");
+        guidName = PhGetJsonValueAsString(jsonArrayObject, "name");
+        //guidGroup = PhGetJsonValueAsString(jsonArrayObject, "group");
+
+        if (!PhStringRefToUnicodeString(&guidString->sr, &guidStringUs))
+        {
+            PhDereferenceObject(guidName);
+            PhDereferenceObject(guidString);
+            continue;
+        }
+
+        if (!NT_SUCCESS(RtlGUIDFromString(
+            &guidStringUs,
+            &guid
+            )))
+        {
+            PhDereferenceObject(guidName);
+            PhDereferenceObject(guidString);
+            continue;
+        }
+
+        result.Name = guidName;
+        result.Guid = PhAllocateCopy(&guid, sizeof(GUID));
+
+        PhAddItemArray(EtwTraceGuidArrayList, &result);
+
+        PhDereferenceObject(guidString);
+    }
+
+    PhDereferenceObject(capabilityListString);
+    PhFreeJsonParser(jsonObject);
+}
+
+PPH_STRING PhGetEtwTraceGuidName(
+    _In_ PGUID Guid
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static PH_ARRAY etwTraceGuidArrayList;
+    PPH_ETW_TRACEGUID_ENTRY entry;
+    SIZE_T i;
+
+    if (WindowsVersion < WINDOWS_8)
+        return NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PhInitializeEtwTraceGuidCache(&etwTraceGuidArrayList);
+        PhEndInitOnce(&initOnce);
+    }
+
+    for (i = 0; i < etwTraceGuidArrayList.Count; i++)
+    {
+        entry = PhItemArray(&etwTraceGuidArrayList, i);
+
+        if (IsEqualGUID(entry->Guid, Guid))
+        {
+            return PhReferenceObject(entry->Name);
+        }
+    }
+
+    return NULL;
+}
+
 PPH_STRING PhGetEtwPublisherName(
     _In_ PGUID Guid
     )
@@ -456,11 +573,16 @@ PPH_STRING PhGetEtwPublisherName(
     if (publisherName)
     {
         PhDereferenceObject(guidString);
-
         return publisherName;
     }
     else
     {
+        if (publisherName = PhGetEtwTraceGuidName(Guid))
+        {
+            PhDereferenceObject(guidString);
+            return publisherName;
+        }
+
         return guidString;
     }
 }
