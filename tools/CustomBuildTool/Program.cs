@@ -103,6 +103,8 @@ namespace CustomBuildTool
                     return;
                 if (!Build.CopySidCapsFile(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
                     return;
+                if (!Build.CopyEtwTraceGuidsFile(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
+                    return;
 
                 if (!Build.BuildBinZip())
                     return;
@@ -148,6 +150,10 @@ namespace CustomBuildTool
                     BuildFlags.Build32bit | BuildFlags.Build64bit |
                     BuildFlags.BuildDebug | BuildFlags.BuildVerbose))
                     return;
+                if (!Build.CopyEtwTraceGuidsFile(
+                    BuildFlags.Build32bit | BuildFlags.Build64bit |
+                    BuildFlags.BuildDebug | BuildFlags.BuildVerbose))
+                    return;
 
                 Build.ShowBuildStats();
             }
@@ -176,6 +182,8 @@ namespace CustomBuildTool
                 if (!Build.CopyWow64Files(BuildFlags.None))
                     Environment.Exit(1);
                 if (!Build.CopySidCapsFile(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
+                    Environment.Exit(1);
+                if (!Build.CopyEtwTraceGuidsFile(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
                     Environment.Exit(1);
 
                 if (!Build.BuildBinZip())
@@ -222,6 +230,8 @@ namespace CustomBuildTool
                 if (!Build.CopyWow64Files(BuildFlags.None))
                     return;
                 if (!Build.CopySidCapsFile(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
+                    return;
+                if (!Build.CopyEtwTraceGuidsFile(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
                     return;
 
                 if (!Build.BuildBinZip())

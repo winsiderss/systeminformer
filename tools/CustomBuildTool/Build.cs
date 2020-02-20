@@ -577,6 +577,58 @@ namespace CustomBuildTool
             return true;
         }
 
+        public static bool CopyEtwTraceGuidsFile(BuildFlags Flags)
+        {
+            //Program.PrintColorMessage("Copying ETW tracelog guids file...", ConsoleColor.Cyan);
+
+            try
+            {
+                if (Flags.HasFlag(BuildFlags.BuildDebug))
+                {
+                    if (Flags.HasFlag(BuildFlags.Build32bit))
+                    {
+                        Win32.CopyIfNewer(
+                            "ProcessHacker\\resources\\etwguids.txt",
+                            "bin\\Debug32\\etwguids.txt"
+                            );
+                    }
+
+                    if (Flags.HasFlag(BuildFlags.Build64bit))
+                    {
+                        Win32.CopyIfNewer(
+                            "ProcessHacker\\resources\\etwguids.txt",
+                            "bin\\Debug64\\etwguids.txt"
+                            );
+                    }
+                }
+                else
+                {
+                    if (Flags.HasFlag(BuildFlags.Build32bit))
+                    {
+                        Win32.CopyIfNewer(
+                            "ProcessHacker\\resources\\etwguids.txt",
+                            "bin\\Release32\\etwguids.txt"
+                            );
+                    }
+
+                    if (Flags.HasFlag(BuildFlags.Build64bit))
+                    {
+                        Win32.CopyIfNewer(
+                            "ProcessHacker\\resources\\etwguids.txt",
+                            "bin\\Release64\\etwguids.txt"
+                            );
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Program.PrintColorMessage("[ERROR] " + ex, ConsoleColor.Red);
+                return false;
+            }
+
+            return true;
+        }
+
         public static bool FixupResourceHeader()
         {
             try
