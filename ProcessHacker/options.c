@@ -1467,6 +1467,30 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                                             HRESULT status;
                                             PPH_STRING quotedFileName;
 
+                                            if (USER_SHARED_DATA->DbgElevationEnabled) // RtlQueryElevationFlags (dmex)
+                                            {
+                                                PH_STRINGREF programFilesPathSr = PH_STRINGREF_INIT(L"%ProgramFiles%\\");
+                                                PPH_STRING programFilesPath;
+
+                                                if (programFilesPath = PhExpandEnvironmentStrings(&programFilesPathSr))
+                                                {
+                                                    if (!PhStartsWithString(applicationFileName, programFilesPath, TRUE))
+                                                    {
+                                                        if (PhShowMessage2(
+                                                            PhOptionsWindowHandle,
+                                                            TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
+                                                            TD_WARNING_ICON,
+                                                            L"WARNING: You have not installed Process Hacker into a secure location.",
+                                                            L"Enabling the 'start as admin' option is not recommended when running Process Hacker from outside a secure location (e.g. Program Files).\r\n\r\nAre you sure you want to continue?"
+                                                            ) == IDNO)
+                                                        {
+                                                            SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, TRUE);
+                                                            return TRUE;
+                                                        }
+                                                    }
+                                                }
+                                            }
+
                                             quotedFileName = PH_AUTO(PhConcatStrings(3, L"\"", PhGetStringOrEmpty(applicationFileName), L"\""));
 
                                             status = PhCreateAdminTask(
