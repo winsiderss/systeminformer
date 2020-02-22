@@ -498,8 +498,8 @@ VOID PhInitializeEtwTraceGuidCache(
         PhDereferenceObject(guidString);
     }
 
-    PhDereferenceObject(capabilityListString);
     PhFreeJsonParser(jsonObject);
+    PhDereferenceObject(capabilityListString);
 }
 
 PPH_STRING PhGetEtwTraceGuidName(
