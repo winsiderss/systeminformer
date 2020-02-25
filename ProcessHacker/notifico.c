@@ -36,6 +36,7 @@
 
 #include <mainwndp.h>
 #include <notificop.h>
+#include <malloc.h>
 
 BOOLEAN PhNfMiniInfoEnabled = FALSE;
 BOOLEAN PhNfMiniInfoPinned = FALSE;
