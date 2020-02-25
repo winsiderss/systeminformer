@@ -940,7 +940,7 @@ VOID PhCopyListViewInfoTip(
     memcpy(
         &GetInfoTip->pszText[copyIndex],
         Tip->Buffer,
-        copyLength * 2
+        copyLength * sizeof(WCHAR)
         );
     GetInfoTip->pszText[copyIndex + copyLength] = UNICODE_NULL;
 }
@@ -1730,8 +1730,8 @@ BOOLEAN PhInsertCopyCellEMenuItem(
     _In_ PPH_TREENEW_COLUMN Column
     )
 {
-    PPH_EMENU_ITEM parentItem;
-    ULONG indexInParent;
+    PPH_EMENU_ITEM parentItem = NULL;
+    ULONG indexInParent = 0;
     PPH_COPY_CELL_CONTEXT context;
     PH_STRINGREF columnText;
     PPH_STRING escapedText;
@@ -1834,8 +1834,8 @@ BOOLEAN PhInsertCopyListViewEMenuItem(
     _In_ HWND ListViewHandle
     )
 {
-    PPH_EMENU_ITEM parentItem;
-    ULONG indexInParent;
+    PPH_EMENU_ITEM parentItem = NULL;
+    ULONG indexInParent = 0;
     PPH_COPY_ITEM_CONTEXT context;
     PPH_STRING columnText = NULL;
     PPH_STRING escapedText;
@@ -2168,10 +2168,9 @@ HRESULT PhRunAsAdminTask(
     IRegisteredTask* taskRegisteredTask = NULL;
     IRunningTask* taskRunningTask = NULL;
 
-    status = CoCreateInstance(
+    status = PhGetClassObject(
+        L"taskschd.dll",
         &CLSID_TaskScheduler,
-        NULL,
-        CLSCTX_INPROC_SERVER,
         &IID_ITaskService,
         &taskService
         );
@@ -2240,10 +2239,9 @@ HRESULT PhDeleteAdminTask(
     ITaskService* taskService = NULL;
     ITaskFolder* taskFolder = NULL;
 
-    status = CoCreateInstance(
+    status = PhGetClassObject(
+        L"taskschd.dll",
         &CLSID_TaskScheduler,
-        NULL,
-        CLSCTX_INPROC_SERVER,
         &IID_ITaskService,
         &taskService
         );
@@ -2308,10 +2306,9 @@ HRESULT PhCreateAdminTask(
     IAction* taskAction = NULL;
     IExecAction* taskExecAction = NULL;
 
-    status = CoCreateInstance(
+    status = PhGetClassObject(
+        L"taskschd.dll",
         &CLSID_TaskScheduler,
-        NULL,
-        CLSCTX_INPROC_SERVER,
         &IID_ITaskService,
         &taskService
         );

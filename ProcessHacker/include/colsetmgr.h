@@ -16,6 +16,7 @@ VOID PhDeleteColumnSetList(
     _In_ PPH_LIST ColumnSetList
     );
 
+_Success_(return)
 BOOLEAN PhLoadSettingsColumnSet(
     _In_ PWSTR SettingName,
     _In_ PPH_STRING ColumnSetName,

@@ -27,11 +27,13 @@
 extern "C" {
 #endif
 
+_Success_(return)
 BOOLEAN PhAppResolverGetAppIdForProcess(
     _In_ HANDLE ProcessId,
     _Out_ PPH_STRING *ApplicationUserModelId
     );
 
+_Success_(return)
 BOOLEAN PhAppResolverGetAppIdForWindow(
     _In_ HWND WindowHandle,
     _Out_ PPH_STRING *ApplicationUserModelId

@@ -42,9 +42,9 @@ static PVOID PhpQueryAppResolverInterface(
     if (PhBeginInitOnce(&initOnce))
     {
         if (WindowsVersion < WINDOWS_8)
-            CoCreateInstance(&CLSID_StartMenuCacheAndAppResolver_I, NULL, CLSCTX_INPROC_SERVER, &IID_IApplicationResolver61_I, &resolverInterface);
+            PhGetClassObject(L"appresolver.dll", &CLSID_StartMenuCacheAndAppResolver_I, &IID_IApplicationResolver61_I, &resolverInterface);
         else
-            CoCreateInstance(&CLSID_StartMenuCacheAndAppResolver_I, NULL, CLSCTX_INPROC_SERVER, &IID_IApplicationResolver62_I, &resolverInterface);
+            PhGetClassObject(L"appresolver.dll", &CLSID_StartMenuCacheAndAppResolver_I, &IID_IApplicationResolver62_I, &resolverInterface);
 
         PhEndInitOnce(&initOnce);
     }
@@ -62,9 +62,9 @@ static PVOID PhpQueryStartMenuCacheInterface(
     if (PhBeginInitOnce(&initOnce))
     {
         if (WindowsVersion < WINDOWS_8)
-            CoCreateInstance(&CLSID_StartMenuCacheAndAppResolver_I, NULL, CLSCTX_INPROC_SERVER, &IID_IStartMenuAppItems61_I, &startMenuInterface);
+            PhGetClassObject(L"appresolver.dll", &CLSID_StartMenuCacheAndAppResolver_I, &IID_IStartMenuAppItems61_I, &startMenuInterface);
         else
-            CoCreateInstance(&CLSID_StartMenuCacheAndAppResolver_I, NULL, CLSCTX_INPROC_SERVER, &IID_IStartMenuAppItems62_I, &startMenuInterface);
+            PhGetClassObject(L"appresolver.dll", &CLSID_StartMenuCacheAndAppResolver_I, &IID_IStartMenuAppItems62_I, &startMenuInterface);
 
         PhEndInitOnce(&initOnce);
     }
@@ -113,6 +113,7 @@ static BOOLEAN PhpKernelAppCoreInitialized(
     return kernelAppCoreInitialized;
 }
 
+_Success_(return)
 BOOLEAN PhAppResolverGetAppIdForProcess(
     _In_ HANDLE ProcessId,
     _Out_ PPH_STRING *ApplicationUserModelId
@@ -156,6 +157,7 @@ BOOLEAN PhAppResolverGetAppIdForProcess(
     return FALSE;
 }
 
+_Success_(return)
 BOOLEAN PhAppResolverGetAppIdForWindow(
     _In_ HWND WindowHandle,
     _Out_ PPH_STRING *ApplicationUserModelId
@@ -209,10 +211,9 @@ HRESULT PhAppResolverActivateAppId(
     ULONG processId = 0;
     IApplicationActivationManager* applicationActivationManager;
 
-    status = CoCreateInstance(
+    status = PhGetClassObject(
+        L"twinui.appcore.dll",
         &CLSID_ApplicationActivationManager,
-        NULL,
-        CLSCTX_LOCAL_SERVER,
         &IID_IApplicationActivationManager,
         &applicationActivationManager
         );
@@ -248,10 +249,9 @@ PPH_LIST PhAppResolverEnumeratePackageBackgroundTasks(
     PPH_LIST packageTasks = NULL;
     IPackageDebugSettings* packageDebugSettings;
 
-    status = CoCreateInstance(
+    status = PhGetClassObject(
+        L"twinui.appcore.dll",
         &CLSID_PackageDebugSettings,
-        NULL,
-        CLSCTX_INPROC_SERVER,
         &IID_IPackageDebugSettings,
         &packageDebugSettings
         );
@@ -272,16 +272,19 @@ PPH_LIST PhAppResolverEnumeratePackageBackgroundTasks(
 
         if (SUCCEEDED(status))
         {
+            if (!packageTasks && taskCount > 0)
+                packageTasks = PhCreateList(taskCount);
+
             for (ULONG i = 0; i < taskCount; i++)
             {
                 PPH_PACKAGE_TASK_ENTRY entry;
 
+                if (!packageTasks)
+                    break;
+
                 entry = PhAllocateZero(sizeof(PH_PACKAGE_TASK_ENTRY));
                 entry->TaskGuid = taskIds[i];
                 entry->TaskName = PhCreateString(taskNames[i]);
-
-                if (!packageTasks)
-                    packageTasks = PhCreateList(taskCount);
 
                 PhAddItemList(packageTasks, entry);
             }
@@ -528,6 +531,7 @@ BOOLEAN PhIsPackageCapabilitySid(
     return isPackageCapability;
 }
 
+_Success_(return)
 BOOLEAN PhGetAppWindowingModel(
     _In_ HANDLE ProcessTokenHandle,
     _Out_ AppPolicyWindowingModel *ProcessWindowingModelPolicy
@@ -548,10 +552,9 @@ PPH_LIST PhGetPackageAssetsFromResourceFile(
     PPH_LIST resourceList = NULL;
     ULONG resourceCount = 0;
 
-    if (FAILED(CoCreateInstance(
+    if (FAILED(PhGetClassObject(
+        L"mrmcorer.dll",
         &CLSID_MrtResourceManager_I,
-        NULL,
-        CLSCTX_INPROC_SERVER,
         &IID_IMrtResourceManager_I,
         &resourceManager
         )))

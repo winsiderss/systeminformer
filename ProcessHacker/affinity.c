@@ -68,6 +68,7 @@ VOID PhShowProcessAffinityDialog(
         );
 }
 
+_Success_(return)
 BOOLEAN PhShowProcessAffinityDialog2(
     _In_ HWND ParentWindowHandle,
     _In_ ULONG_PTR AffinityMask,
