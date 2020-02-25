@@ -610,10 +610,9 @@ VOID PhpFillRunningTasks(
 
     ITaskService *taskService;
 
-    if (SUCCEEDED(CoCreateInstance(
-        &CLSID_TaskScheduler_I,
-        NULL,
-        CLSCTX_INPROC_SERVER,
+    if (SUCCEEDED(PhGetClassObject(
+        L"taskschd.dll",
+        &CLSID_TaskScheduler,
         &IID_ITaskService_I,
         &taskService
         )))

@@ -193,6 +193,7 @@ VOID PhEmCallObjectOperation(
  * \param AppName A variable which receives the application name.
  * \param SubId A variable which receives the sub-ID.
  */
+_Success_(return)
 BOOLEAN PhEmParseCompoundId(
     _In_ PPH_STRINGREF CompoundId,
     _Out_ PPH_STRINGREF AppName,

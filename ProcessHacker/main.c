@@ -76,6 +76,10 @@ VOID PhpEnablePrivileges(
     VOID
     );
 
+BOOLEAN PhInitializeApplicationDirectory(
+    VOID
+    );
+
 BOOLEAN PhInitializeExceptionPolicy(
     VOID
     );
@@ -112,6 +116,8 @@ INT WINAPI wWinMain(
 #endif
 
     if (!NT_SUCCESS(PhInitializePhLibEx(L"Process Hacker", ULONG_MAX, Instance, 0, 0)))
+        return 1;
+    if (!PhInitializeApplicationDirectory())
         return 1;
     if (!PhInitializeExceptionPolicy())
         return 1;
@@ -541,6 +547,32 @@ VOID PhInitializeFont(
         else
             PhApplicationFont = NULL;
     }
+}
+
+BOOLEAN PhInitializeApplicationDirectory(
+    VOID
+    )
+{
+    PPH_STRING applicationDirectory;
+    UNICODE_STRING applicationDirectoryUs;
+
+    if (!(applicationDirectory = PhGetApplicationDirectory()))
+        return FALSE;
+
+    if (!PhStringRefToUnicodeString(&applicationDirectory->sr, &applicationDirectoryUs))
+    {
+        PhDereferenceObject(applicationDirectory);
+        return FALSE;
+    }
+
+    if (!NT_SUCCESS(RtlSetCurrentDirectory_U(&applicationDirectoryUs)))
+    {
+        PhDereferenceObject(applicationDirectory);
+        return FALSE;
+    }
+
+    PhDereferenceObject(applicationDirectory);
+    return TRUE;
 }
 
 BOOLEAN PhInitializeRestartPolicy(

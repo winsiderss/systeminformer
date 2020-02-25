@@ -275,6 +275,9 @@ static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
     PANALYZE_WAIT_CONTEXT context = (PANALYZE_WAIT_CONTEXT)Context;
     PPH_STRING name;
 
+    if (!context)
+        return TRUE;
+
     name = PhGetSymbolFromAddress(
         context->SymbolProvider,
         (ULONG64)StackFrame->PcAddress,
@@ -688,7 +691,8 @@ static BOOLEAN PhpWaitUntilThreadIsWaiting(
     return isWaiting;
 }
 
-static VOID PhpGetThreadLastSystemCallNumber(
+_Success_(return)
+static BOOLEAN PhpGetThreadLastSystemCallNumber(
     _In_ HANDLE ThreadHandle,
     _Out_ PUSHORT LastSystemCallNumber
     )
@@ -698,7 +702,10 @@ static VOID PhpGetThreadLastSystemCallNumber(
     if (NT_SUCCESS(PhGetThreadLastSystemCall(ThreadHandle, &lastSystemCall)))
     {
         *LastSystemCallNumber = lastSystemCall.SystemCallNumber;
+        return TRUE;
     }
+
+    return FALSE;
 }
 
 static NTSTATUS PhpWfsoThreadStart(
@@ -844,20 +851,18 @@ static PPH_STRING PhpaGetHandleString(
     PhGetHandleInformation(
         ProcessHandle,
         Handle,
-        -1,
+        ULONG_MAX,
         NULL,
         &typeName,
         NULL,
         &name
         );
-    PH_AUTO(typeName);
-    PH_AUTO(name);
 
     if (typeName && name)
     {
         result = PhaFormatString(
-            L"Handle 0x%Ix (%s): %s",
-            Handle,
+            L"Handle 0x%lx (%s): %s",
+            HandleToUlong(Handle),
             typeName->Buffer,
             !PhIsNullOrEmptyString(name) ? name->Buffer : L"(unnamed object)"
             );
@@ -865,10 +870,15 @@ static PPH_STRING PhpaGetHandleString(
     else
     {
         result = PhaFormatString(
-            L"Handle 0x%Ix: (error querying handle)",
-            Handle
+            L"Handle 0x%lx: (error querying handle)",
+            HandleToUlong(Handle)
             );
     }
+
+    if (typeName)
+        PhDereferenceObject(typeName);
+    if (name)
+        PhDereferenceObject(name);
 
     return result;
 }

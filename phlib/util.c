@@ -4006,10 +4006,9 @@ PVOID PhCreateOpenFileDialog(
 {
     IFileDialog *fileDialog;
 
-    if (SUCCEEDED(CoCreateInstance(
+    if (SUCCEEDED(PhGetClassObject(
+        L"comdlg32.dll",
         &CLSID_FileOpenDialog,
-        NULL,
-        CLSCTX_INPROC_SERVER,
         &IID_IFileDialog,
         &fileDialog
         )))
@@ -4033,10 +4032,9 @@ PVOID PhCreateSaveFileDialog(
 {
     IFileDialog *fileDialog;
 
-    if (SUCCEEDED(CoCreateInstance(
+    if (SUCCEEDED(PhGetClassObject(
+        L"comdlg32.dll",
         &CLSID_FileSaveDialog,
-        NULL,
-        CLSCTX_INPROC_SERVER,
         &IID_IFileDialog,
         &fileDialog
         )))

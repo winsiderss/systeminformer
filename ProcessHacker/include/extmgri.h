@@ -52,6 +52,7 @@ VOID PhEmCallObjectOperation(
     _In_ PH_EM_OBJECT_OPERATION Operation
     );
 
+_Success_(return)
 BOOLEAN PhEmParseCompoundId(
     _In_ PPH_STRINGREF CompoundId,
     _Out_ PPH_STRINGREF AppName,

@@ -172,6 +172,9 @@ BOOLEAN PhCmForwardMessage(
             PH_TREENEW_COLUMN tnColumn;
             PPH_CM_COLUMN column;
 
+            if (!getCellText)
+                return FALSE;
+
             if (getCellText->Id < Manager->MinId)
                 return FALSE;
 

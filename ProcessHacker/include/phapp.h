@@ -300,6 +300,7 @@ VOID PhShowProcessAffinityDialog(
     );
 
 // begin_phapppub
+_Success_(return)
 PHAPPAPI
 BOOLEAN
 NTAPI
@@ -350,6 +351,7 @@ PhaChoiceDialog(
 // chproc
 
 // begin_phapppub
+_Success_(return)
 PHAPPAPI
 BOOLEAN
 NTAPI

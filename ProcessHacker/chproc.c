@@ -42,6 +42,7 @@ INT_PTR CALLBACK PhpChooseProcessDlgProc(
     _In_ LPARAM lParam
     );
 
+_Success_(return)
 BOOLEAN PhShowChooseProcessDialog(
     _In_ HWND ParentWindowHandle,
     _In_ PWSTR Message,

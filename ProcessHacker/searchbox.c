@@ -704,12 +704,12 @@ HBITMAP PhLoadPngImageFromResource(
     WICPixelFormatGUID pixelFormat;
     WICRect rect = { 0, 0, Width, Height };
 
-    // Create the ImagingFactory
-    if (FAILED(CoCreateInstance(&CLSID_WICImagingFactory1, NULL, CLSCTX_INPROC_SERVER, &IID_IWICImagingFactory, &wicFactory)))
-        goto CleanupExit;
-
     // Load the resource
     if (!PhLoadResource(DllBase, Name, L"PNG", &resourceLength, &resourceBuffer))
+        goto CleanupExit;
+
+    // Create the ImagingFactory
+    if (FAILED(PhGetClassObject(L"windowscodecs.dll", &CLSID_WICImagingFactory1, &IID_IWICImagingFactory, &wicFactory)))
         goto CleanupExit;
 
     // Create the Stream
@@ -853,7 +853,7 @@ HBITMAP PhLoadPngImageFromFile(
     WICRect rect = { 0, 0, Width, Height };
 
     // Create the ImagingFactory
-    if (FAILED(CoCreateInstance(&CLSID_WICImagingFactory1, NULL, CLSCTX_INPROC_SERVER, &IID_IWICImagingFactory, &wicFactory)))
+    if (FAILED(PhGetClassObject(L"windowscodecs.dll", &CLSID_WICImagingFactory1, &IID_IWICImagingFactory, &wicFactory)))
         goto CleanupExit;
 
     // Create the Stream

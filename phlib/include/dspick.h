@@ -29,6 +29,7 @@ PVOID PhCreateDsObjectPickerDialog(
     _In_ ULONG Flags
     );
 
+_Success_(return)
 PHLIBAPI
 BOOLEAN PhShowDsObjectPickerDialog(
     _In_ HWND hWnd,

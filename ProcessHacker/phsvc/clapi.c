@@ -81,6 +81,7 @@ NTSTATUS PhSvcConnectToServer(
     securityQos.EffectiveOnly = TRUE;
 
     connectInfoLength = sizeof(PHSVC_API_CONNECTINFO);
+    connectInfo.ServerProcessId = ULONG_MAX;
 
     status = NtConnectPort(
         &PhSvcClPortHandle,

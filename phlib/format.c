@@ -265,9 +265,9 @@ BOOLEAN PhFormatToBuffer(
     // Write the null-terminator.
     ENSURE_BUFFER(sizeof(WCHAR));
     if (OK_BUFFER)
-        *buffer = 0;
+        *buffer = UNICODE_NULL;
     else if (Buffer && BufferLength != 0) // try to null-terminate even if this function fails
-        *Buffer = 0;
+        *Buffer = UNICODE_NULL;
     ADVANCE_BUFFER(sizeof(WCHAR));
 
     if (ReturnLength)

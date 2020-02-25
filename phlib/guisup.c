@@ -1453,6 +1453,8 @@ BOOL CALLBACK PhpGetProcessMainWindowEnumWindowsProc(
     ULONG processId;
     WINDOWINFO windowInfo;
 
+    if (!context)
+        return TRUE;
     if (context->SkipInvisible && !IsWindowVisible(WindowHandle))
         return TRUE;
 
