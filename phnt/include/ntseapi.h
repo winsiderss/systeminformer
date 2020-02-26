@@ -263,7 +263,7 @@ NTAPI
 NtDuplicateToken(
     _In_ HANDLE ExistingTokenHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
     _In_ BOOLEAN EffectiveOnly,
     _In_ TOKEN_TYPE TokenType,
     _Out_ PHANDLE NewTokenHandle
@@ -275,7 +275,7 @@ NTAPI
 NtQueryInformationToken(
     _In_ HANDLE TokenHandle,
     _In_ TOKEN_INFORMATION_CLASS TokenInformationClass,
-    _Out_writes_bytes_(TokenInformationLength) PVOID TokenInformation,
+    _Out_writes_bytes_to_opt_(TokenInformationLength, *ReturnLength) PVOID TokenInformation,
     _In_ ULONG TokenInformationLength,
     _Out_ PULONG ReturnLength
     );
