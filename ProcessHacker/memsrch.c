@@ -645,16 +645,15 @@ INT_PTR CALLBACK PhpMemoryStringDlgProc(
     return FALSE;
 }
 
-static BOOL NTAPI PhpMemoryStringResultCallback(
+static VOID NTAPI PhpMemoryStringResultCallback(
     _In_ _Assume_refs_(1) PPH_MEMORY_RESULT Result,
     _In_opt_ PVOID Context
     )
 {
     PMEMORY_STRING_CONTEXT context = Context;
 
-    PhAddItemList(context->Results, Result);
-
-    return TRUE;
+    if (context)
+        PhAddItemList(context->Results, Result);
 }
 
 NTSTATUS PhpMemoryStringThreadStart(

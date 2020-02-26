@@ -144,6 +144,9 @@ static BOOLEAN NTAPI PhpLoadCurrentProcessSymbolsCallback(
     _In_opt_ PVOID Context
     )
 {
+    if (!Context)
+        return TRUE;
+
     PhLoadModuleSymbolProvider((PPH_SYMBOL_PROVIDER)Context, Module->FileName->Buffer,
         (ULONG64)Module->BaseAddress, Module->Size);
 
@@ -433,11 +436,14 @@ static NTSTATUS PhpLeakEnumerationRoutine(
             symbol = PhGetSymbolFromAddress(DebugConsoleSymbolProvider, (ULONG64)StackTrace[i], NULL, NULL, NULL, NULL);
 
             if (symbol)
+            {
                 wprintf(L"\t%s\n", symbol->Buffer);
+                PhDereferenceObject(symbol);
+            }
             else
+            {
                 wprintf(L"\t?\n");
-
-            PhDereferenceObject(symbol);
+            }
         }
 
         NumberOfLeaksShown++;

@@ -21,6 +21,7 @@ PhGetLookupPolicyHandle(
     VOID
     );
 
+_Success_(return)
 PHLIBAPI
 BOOLEAN
 NTAPI
@@ -29,6 +30,7 @@ PhLookupPrivilegeName(
     _Out_ PPH_STRING *PrivilegeName
     );
 
+_Success_(return)
 PHLIBAPI
 BOOLEAN
 NTAPI
@@ -37,6 +39,7 @@ PhLookupPrivilegeDisplayName(
     _Out_ PPH_STRING *PrivilegeDisplayName
     );
 
+_Success_(return)
 PHLIBAPI
 BOOLEAN
 NTAPI

@@ -357,6 +357,9 @@ static BOOLEAN PhpGetDllBaseRemoteCallback(
     PGET_DLL_BASE_REMOTE_CONTEXT context = Context;
     PH_STRINGREF baseDllName;
 
+    if (!context)
+        return TRUE;
+
     PhUnicodeStringToStringRef(&Module->BaseDllName, &baseDllName);
 
     if (PhEqualStringRef(&baseDllName, &context->BaseDllName, TRUE))

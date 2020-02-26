@@ -191,7 +191,7 @@ INT_PTR CALLBACK PhpHandleStatisticsDlgProc(
                 unknownType = NULL;
 
                 if (!entry->Name)
-                    unknownType = PhFormatString(L"(unknown: %lu)", i);
+                    unknownType = PhFormatString(L"(unknown: %lu)", (ULONG)i);
 
                 countString = PhFormatUInt64(entry->Count, TRUE);
 
