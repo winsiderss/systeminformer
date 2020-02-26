@@ -125,7 +125,7 @@ VOID KphUnlockHandleTableEntry(
 
     // Set the unlocked bit.
 
-#ifdef _M_X64
+#if (defined _M_X64) || (defined _M_ARM64)
     InterlockedExchangeAdd64(&HandleTableEntry->Value, 1);
 #else
     InterlockedExchangeAdd(&HandleTableEntry->Value, 1);

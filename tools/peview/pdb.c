@@ -25,6 +25,7 @@
 #include <symprv.h>
 #include <pdb.h>
 #include <uxtheme.h>
+#include <malloc.h>
 
 typedef BOOL (WINAPI *_SymInitializeW)(
     _In_ HANDLE hProcess,
