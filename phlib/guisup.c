@@ -169,6 +169,7 @@ INT PhFindListViewItemByParam(
     return ListView_FindItem(ListViewHandle, StartIndex, &findInfo);
 }
 
+_Success_(return)
 BOOLEAN PhGetListViewItemImageIndex(
     _In_ HWND ListViewHandle,
     _In_ INT Index,
@@ -189,6 +190,7 @@ BOOLEAN PhGetListViewItemImageIndex(
     return TRUE;
 }
 
+_Success_(return)
 BOOLEAN PhGetListViewItemParam(
     _In_ HWND ListViewHandle,
     _In_ INT Index,
@@ -873,6 +875,7 @@ HICON PhGetFileShellIcon(
 
     iconFlag = LargeIcon ? SHGFI_LARGEICON : SHGFI_SMALLICON;
     icon = NULL;
+    memset(&fileInfo, 0, sizeof(SHFILEINFO));
 
     if (FileName && SHGetFileInfo(
         FileName,
@@ -887,6 +890,8 @@ HICON PhGetFileShellIcon(
 
     if (!icon && DefaultExtension)
     {
+        memset(&fileInfo, 0, sizeof(SHFILEINFO));
+
         if (SHGetFileInfo(
             DefaultExtension,
             FILE_ATTRIBUTE_NORMAL,

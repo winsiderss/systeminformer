@@ -538,6 +538,7 @@ PVOID PhReAllocateSafe(
  */
 _Check_return_
 _Ret_maybenull_
+_Success_(return != NULL)
 PVOID PhAllocatePage(
     _In_ SIZE_T Size,
     _Out_opt_ PSIZE_T NewSize

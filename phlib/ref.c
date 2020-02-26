@@ -705,20 +705,12 @@ VOID PhDrainAutoPool(
     _In_ PPH_AUTO_POOL AutoPool
     )
 {
-    ULONG i;
-
-    for (i = 0; i < AutoPool->StaticCount; i++)
-        PhDereferenceObject(AutoPool->StaticObjects[i]);
-
+    PhDereferenceObjects(AutoPool->StaticObjects, AutoPool->StaticCount);
     AutoPool->StaticCount = 0;
 
     if (AutoPool->DynamicObjects)
     {
-        for (i = 0; i < AutoPool->DynamicCount; i++)
-        {
-            PhDereferenceObject(AutoPool->DynamicObjects[i]);
-        }
-
+        PhDereferenceObjects(AutoPool->DynamicObjects, AutoPool->DynamicCount);
         AutoPool->DynamicCount = 0;
 
         if (AutoPool->DynamicAllocated > PH_AUTO_POOL_DYNAMIC_BIG_SIZE)

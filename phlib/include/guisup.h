@@ -188,6 +188,7 @@ PhFindListViewItemByParam(
     _In_opt_ PVOID Param
     );
 
+_Success_(return)
 PHLIBAPI
 BOOLEAN
 NTAPI
@@ -197,6 +198,7 @@ PhGetListViewItemImageIndex(
     _Out_ PINT ImageIndex
     );
 
+_Success_(return)
 PHLIBAPI
 BOOLEAN
 NTAPI

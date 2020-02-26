@@ -174,8 +174,8 @@ PPH_EMENU_ITEM PhFindEMenuItemEx(
     _In_ ULONG Flags,
     _In_opt_ PWSTR Text,
     _In_opt_ ULONG Id,
-    _Inout_opt_ PPH_EMENU_ITEM *FoundParent,
-    _Inout_opt_ PULONG FoundIndex
+    _Out_opt_ PPH_EMENU_ITEM *FoundParent,
+    _Out_opt_ PULONG FoundIndex
     )
 {
     PH_STRINGREF searchText;

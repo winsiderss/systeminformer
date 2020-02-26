@@ -165,6 +165,7 @@ PhReAllocateSafe(
 
 _Check_return_
 _Ret_maybenull_
+_Success_(return != NULL)
 PHLIBAPI
 PVOID
 NTAPI
