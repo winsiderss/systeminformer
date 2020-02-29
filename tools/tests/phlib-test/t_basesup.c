@@ -37,7 +37,7 @@ static VOID Test_stringz(
     CHAR outputA[16];
     WCHAR inputW[16] = L"test";
     WCHAR outputW[16];
-    ULONG returnCount;
+    SIZE_T returnCount;
     PWSTR zero = L"\0\0\0\0\0\0\0\0";
     PWSTR asdf = L"asdfasdfasdfasdf";
     ULONG i;
