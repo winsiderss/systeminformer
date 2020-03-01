@@ -24,8 +24,6 @@
 #include <ph.h>
 #include <kphuser.h>
 
-#ifdef _WIN64
-
 ULONG KphpGetKernelRevisionNumber(
     VOID
     )
@@ -49,6 +47,8 @@ ULONG KphpGetKernelRevisionNumber(
 
     return result;
 }
+
+#ifdef _WIN64
 
 NTSTATUS KphInitializeDynamicPackage(
     _Out_ PKPH_DYN_PACKAGE Package
