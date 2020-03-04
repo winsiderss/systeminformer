@@ -136,7 +136,7 @@ BOOLEAN PvInsertCopyListViewEMenuItem(
     POINT location;
     LVHITTESTINFO lvHitInfo;
     HDITEM headerItem;
-    WCHAR headerText[MAX_PATH];
+    WCHAR headerText[MAX_PATH] = L"";
 
     if (!GetCursorPos(&location))
         return FALSE;
