@@ -1444,6 +1444,10 @@ ULONG_PTR PhFindCharInStringRef(
                 } while (--length16 != 0);
             }
         }
+        else
+        {
+            wcschr(buffer, Character);
+        }
 
         if (length != 0)
         {
@@ -1532,6 +1536,10 @@ ULONG_PTR PhFindLastCharInStringRef(
 
                 buffer += 16 / sizeof(WCHAR);
             }
+        }
+        else
+        {
+            wcsrchr(buffer, Character);
         }
 
         if (length != 0)
