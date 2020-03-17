@@ -851,6 +851,15 @@ PPH_STRING PhSipGetCpuBrandString(
         brandLength = sizeof(brandString) - sizeof(ANSI_NULL);
         brand = PhZeroExtendToUtf16Ex(brandString, brandLength);
     }
+#ifdef _ARM64_
+    else
+    {
+        // TODO: ntoskrnl writes this string in ProcessorNameString registry
+        char cpubrand[sizeof(brandString)] = "Not Available";
+        brandLength = sizeof(brandString) - sizeof(ANSI_NULL);
+        brand = PhZeroExtendToUtf16Ex(cpubrand, brandLength);
+    }
+#else
     else
     {
         ULONG cpubrand[4 * 3];
@@ -862,6 +871,7 @@ PPH_STRING PhSipGetCpuBrandString(
         brandLength = sizeof(brandString) - sizeof(ANSI_NULL);
         brand = PhZeroExtendToUtf16Ex((PSTR)cpubrand, brandLength);
     }
+#endif
 
     PhTrimToNullTerminatorString(brand);
 
