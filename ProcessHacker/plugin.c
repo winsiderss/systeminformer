@@ -89,7 +89,7 @@ BOOLEAN PhpLocateDisabledPlugin(
 
     while (remainingPart.Length != 0)
     {
-        PhSplitStringRefAtChar(&remainingPart, '|', &namePart, &remainingPart);
+        PhSplitStringRefAtChar(&remainingPart, L'|', &namePart, &remainingPart);
 
         if (PhEqualStringRef(&namePart, BaseName, TRUE))
         {
@@ -140,7 +140,7 @@ VOID PhSetPluginDisabled(
             // We have other disabled plugins. Append a pipe character followed by the plugin name.
             newDisabled = PhCreateStringEx(NULL, disabled->Length + sizeof(WCHAR) + BaseName->Length);
             memcpy(newDisabled->Buffer, disabled->Buffer, disabled->Length);
-            newDisabled->Buffer[disabled->Length / sizeof(WCHAR)] = '|';
+            newDisabled->Buffer[disabled->Length / sizeof(WCHAR)] = L'|';
             memcpy(&newDisabled->Buffer[disabled->Length / sizeof(WCHAR) + 1], BaseName->Buffer, BaseName->Length);
             PhSetStringSetting2(L"DisabledPlugins", &newDisabled->sr);
             PhDereferenceObject(newDisabled);
@@ -544,7 +544,7 @@ VOID PhpExecuteCallbackForAllPlugins(
                 PH_STRINGREF pluginName;
                 PH_STRINGREF parameter;
 
-                if (PhSplitStringRefAtChar(&string->sr, ':', &pluginName, &parameter) &&
+                if (PhSplitStringRefAtChar(&string->sr, L':', &pluginName, &parameter) &&
                     PhEqualStringRef(&pluginName, &plugin->Name, FALSE) &&
                     parameter.Length != 0)
                 {
@@ -580,7 +580,7 @@ BOOLEAN PhpValidatePluginName(
 
     for (i = 0; i < count; i++)
     {
-        if (!iswalnum(buffer[i]) && buffer[i] != ' ' && buffer[i] != '.' && buffer[i] != '_')
+        if (!iswalnum(buffer[i]) && buffer[i] != L' ' && buffer[i] != L'.' && buffer[i] != L'_')
         {
             return FALSE;
         }
@@ -1097,9 +1097,9 @@ NTSTATUS PhPluginCallPhSvc(
     PPH_STRING apiId;
     PH_FORMAT format[4];
 
-    PhInitFormatC(&format[0], '+');
+    PhInitFormatC(&format[0], L'+');
     PhInitFormatSR(&format[1], Plugin->Name);
-    PhInitFormatC(&format[2], '+');
+    PhInitFormatC(&format[2], L'+');
     PhInitFormatU(&format[3], SubId);
     apiId = PhFormat(format, 4, 50);
 

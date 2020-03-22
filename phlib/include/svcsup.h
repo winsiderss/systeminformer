@@ -59,6 +59,7 @@ PhGetServiceDescription(
     _In_ SC_HANDLE ServiceHandle
     );
 
+_Success_(return)
 PHLIBAPI
 BOOLEAN
 NTAPI

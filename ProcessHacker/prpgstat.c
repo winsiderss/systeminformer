@@ -202,11 +202,11 @@ VOID PhpUpdateProcessStatisticDelta(
 
         if (delta > 0)
         {
-            PhInitFormatC(&format[0], '+');
+            PhInitFormatC(&format[0], L'+');
         }
         else
         {
-            PhInitFormatC(&format[0], '-');
+            PhInitFormatC(&format[0], L'-');
             delta = -delta;
         }
 

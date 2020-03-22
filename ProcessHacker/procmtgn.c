@@ -180,7 +180,7 @@ BOOLEAN PhDescribeProcessMitigationPolicy(
                         if (data->EnableForceRelocateImages) PhAppendStringBuilder2(&sb, L"force relocate, ");
                         if (data->DisallowStrippedImages) PhAppendStringBuilder2(&sb, L"disallow stripped, ");
                         if (PhEndsWithStringRef2(&sb.String->sr, L", ", FALSE)) PhRemoveEndStringBuilder(&sb, 2);
-                        PhAppendCharStringBuilder(&sb, ')');
+                        PhAppendCharStringBuilder(&sb, L')');
                     }
 
                     *ShortDescription = PhFinalStringBuilderString(&sb);
@@ -337,7 +337,7 @@ BOOLEAN PhDescribeProcessMitigationPolicy(
                     if (data->MicrosoftSignedOnly) PhAppendStringBuilder2(&sb, L"Microsoft only, ");
                     if (data->StoreSignedOnly) PhAppendStringBuilder2(&sb, L"Store only, ");
                     if (PhEndsWithStringRef2(&sb.String->sr, L", ", FALSE)) PhRemoveEndStringBuilder(&sb, 2);
-                    PhAppendCharStringBuilder(&sb, ')');
+                    PhAppendCharStringBuilder(&sb, L')');
 
                     *ShortDescription = PhFinalStringBuilderString(&sb);
                 }
@@ -390,7 +390,7 @@ BOOLEAN PhDescribeProcessMitigationPolicy(
                     if (data->NoRemoteImages) PhAppendStringBuilder2(&sb, L"remote images, ");
                     if (data->NoLowMandatoryLabelImages) PhAppendStringBuilder2(&sb, L"low mandatory label images, ");
                     if (PhEndsWithStringRef2(&sb.String->sr, L", ", FALSE)) PhRemoveEndStringBuilder(&sb, 2);
-                    PhAppendCharStringBuilder(&sb, ')');
+                    PhAppendCharStringBuilder(&sb, L')');
 
                     *ShortDescription = PhFinalStringBuilderString(&sb);
                 }

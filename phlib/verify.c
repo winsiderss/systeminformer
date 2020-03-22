@@ -108,6 +108,7 @@ VERIFY_RESULT PhpStatusToVerifyResult(
     }
 }
 
+_Success_(return)
 BOOLEAN PhpGetSignaturesFromStateData(
     _In_ HANDLE StateData,
     _Out_ PCERT_CONTEXT **Signatures,
@@ -176,9 +177,13 @@ VOID PhpViewSignerInfo(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        HMODULE cryptui = LoadLibrary(L"cryptui.dll");
+        HMODULE cryptui;
 
-        cryptUIDlgViewSignerInfo = PhGetDllBaseProcedureAddress(cryptui, "CryptUIDlgViewSignerInfoW", 0);
+        if (cryptui = LoadLibrary(L"cryptui.dll"))
+        {
+            cryptUIDlgViewSignerInfo = PhGetDllBaseProcedureAddress(cryptui, "CryptUIDlgViewSignerInfoW", 0);
+        }
+
         PhEndInitOnce(&initOnce);
     }
 
@@ -246,6 +251,7 @@ VERIFY_RESULT PhpVerifyFile(
     return PhpStatusToVerifyResult(status);
 }
 
+_Success_(return)
 BOOLEAN PhpCalculateFileHash(
     _In_ HANDLE FileHandle,
     _In_ PWSTR HashAlgorithm,
@@ -573,7 +579,7 @@ PPH_STRING PhpGetX500Value(
     keyNamePlusEquals.Length = (keyNameLength + 1) * sizeof(WCHAR);
 
     memcpy(keyNamePlusEquals.Buffer, KeyName->Buffer, KeyName->Length);
-    keyNamePlusEquals.Buffer[keyNameLength] = '=';
+    keyNamePlusEquals.Buffer[keyNameLength] = L'=';
 
     // Find "Key=".
 
@@ -583,18 +589,18 @@ PPH_STRING PhpGetX500Value(
         return NULL;
 
     // Is the value quoted? If so, return the part inside the quotes.
-    if (remainingPart.Buffer[0] == '"')
+    if (remainingPart.Buffer[0] == L'"')
     {
         PhSkipStringRef(&remainingPart, sizeof(WCHAR));
 
-        if (!PhSplitStringRefAtChar(&remainingPart, '"', &firstPart, &remainingPart))
+        if (!PhSplitStringRefAtChar(&remainingPart, L'"', &firstPart, &remainingPart))
             return NULL;
 
         return PhCreateString2(&firstPart);
     }
     else
     {
-        PhSplitStringRefAtChar(&remainingPart, ',', &firstPart, &remainingPart);
+        PhSplitStringRefAtChar(&remainingPart, L',', &firstPart, &remainingPart);
 
         return PhCreateString2(&firstPart);
     }

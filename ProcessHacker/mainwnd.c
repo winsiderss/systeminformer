@@ -56,9 +56,6 @@
 
 #include <mainwndp.h>
 
-#define RUNAS_MODE_ADMIN 1
-#define RUNAS_MODE_LIMITED 2
-
 PHAPPAPI HWND PhMainWndHandle = NULL;
 BOOLEAN PhMainWndExiting = FALSE;
 BOOLEAN PhMainWndEarlyExit = FALSE;
@@ -128,8 +125,8 @@ BOOLEAN PhMainWndInitialization(
         {
             PhAppendStringBuilder2(&stringBuilder, L" [");
             PhAppendStringBuilder(&stringBuilder, &currentUserName->sr);
-            PhAppendCharStringBuilder(&stringBuilder, ']');
-            if (KphIsConnected()) PhAppendCharStringBuilder(&stringBuilder, '+');
+            PhAppendCharStringBuilder(&stringBuilder, L']');
+            if (KphIsConnected()) PhAppendCharStringBuilder(&stringBuilder, L'+');
             PhDereferenceObject(currentUserName);
         }
 
@@ -137,6 +134,10 @@ BOOLEAN PhMainWndInitialization(
             PhAppendStringBuilder2(&stringBuilder, L" (Administrator)");
 
         windowName = PhFinalStringBuilderString(&stringBuilder);
+    }
+    else
+    {
+        PhApplicationName = L" "; // Remove dialog window title when disabled (dmex)
     }
 
     // Create the window.
@@ -2739,10 +2740,9 @@ VOID PhMwpInitializeSubMenu(
     else if (Index == PH_MENU_ITEM_LOCATION_VIEW) // View
     {
         PPH_EMENU_ITEM trayIconsMenuItem;
-        ULONG i;
         PPH_EMENU_ITEM menuItem;
-        ULONG id;
-        ULONG placeholderIndex;
+        ULONG id = ULONG_MAX;
+        ULONG placeholderIndex = ULONG_MAX;
 
         if (trayIconsMenuItem = PhFindEMenuItem(Menu, PH_EMENU_FIND_DESCEND, NULL, ID_VIEW_TRAYICONS))
         {
@@ -2751,7 +2751,7 @@ VOID PhMwpInitializeSubMenu(
             PhInsertEMenuItem(trayIconsMenuItem, PhpCreateNotificationMenu(), ULONG_MAX);
             PhInsertEMenuItem(trayIconsMenuItem, PhCreateEMenuSeparator(), ULONG_MAX);
 
-            for (i = 0; i < PhTrayIconItemList->Count; i++)
+            for (ULONG i = 0; i < PhTrayIconItemList->Count; i++)
             {
                 PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
 

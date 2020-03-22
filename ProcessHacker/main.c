@@ -76,7 +76,7 @@ VOID PhpEnablePrivileges(
     VOID
     );
 
-BOOLEAN PhInitializeApplicationDirectory(
+BOOLEAN PhInitializeDirectoryPolicy(
     VOID
     );
 
@@ -117,7 +117,7 @@ INT WINAPI wWinMain(
 
     if (!NT_SUCCESS(PhInitializePhLibEx(L"Process Hacker", ULONG_MAX, Instance, 0, 0)))
         return 1;
-    if (!PhInitializeApplicationDirectory())
+    if (!PhInitializeDirectoryPolicy())
         return 1;
     if (!PhInitializeExceptionPolicy())
         return 1;
@@ -549,7 +549,7 @@ VOID PhInitializeFont(
     }
 }
 
-BOOLEAN PhInitializeApplicationDirectory(
+BOOLEAN PhInitializeDirectoryPolicy(
     VOID
     )
 {

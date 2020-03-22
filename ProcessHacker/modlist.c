@@ -662,10 +662,8 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
     _In_opt_ PVOID Context
     )
 {
-    PPH_MODULE_LIST_CONTEXT context;
+    PPH_MODULE_LIST_CONTEXT context = Context;
     PPH_MODULE_NODE node;
-
-    context = Context;
 
     if (PhCmForwardMessage(hwnd, Message, Parameter1, Parameter2, &context->Cm))
         return TRUE;
@@ -675,6 +673,10 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
     case TreeNewGetChildren:
         {
             PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
+
+            if (!getChildren)
+                break;
+
             node = (PPH_MODULE_NODE)getChildren->Node;
 
             if (context->TreeNewSortOrder == NoSortOrder)
@@ -757,6 +759,10 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
     case TreeNewIsLeaf:
         {
             PPH_TREENEW_IS_LEAF isLeaf = Parameter1;
+
+            if (!isLeaf)
+                break;
+
             node = (PPH_MODULE_NODE)isLeaf->Node;
 
             if (context->TreeNewSortOrder == NoSortOrder)
@@ -769,6 +775,9 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
         {
             PPH_TREENEW_GET_CELL_TEXT getCellText = Parameter1;
             PPH_MODULE_ITEM moduleItem;
+
+            if (!getCellText)
+                break;
 
             node = (PPH_MODULE_NODE)getCellText->Node;
             moduleItem = node->ModuleItem;
@@ -1000,6 +1009,9 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
             PPH_TREENEW_GET_NODE_COLOR getNodeColor = Parameter1;
             PPH_MODULE_ITEM moduleItem;
 
+            if (!getNodeColor)
+                break;
+
             node = (PPH_MODULE_NODE)getNodeColor->Node;
             moduleItem = node->ModuleItem;
 
@@ -1035,6 +1047,9 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
         {
             PPH_TREENEW_GET_NODE_FONT getNodeFont = Parameter1;
 
+            if (!getNodeFont)
+                break;
+
             node = (PPH_MODULE_NODE)getNodeFont->Node;
 
             // Make the executable file module item bold.
@@ -1052,6 +1067,9 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
     case TreeNewGetCellTooltip:
         {
             PPH_TREENEW_GET_CELL_TOOLTIP getCellTooltip = Parameter1;
+
+            if (!getCellTooltip)
+                break;
 
             node = (PPH_MODULE_NODE)getCellTooltip->Node;
 
@@ -1095,6 +1113,9 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
     case TreeNewKeyDown:
         {
             PPH_TREENEW_KEY_EVENT keyEvent = Parameter1;
+
+            if (!keyEvent)
+                break;
 
             switch (keyEvent->VirtualKey)
             {

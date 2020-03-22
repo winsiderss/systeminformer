@@ -364,7 +364,7 @@ PPH_STRING PhGetClientIdNameEx(
             PhInitFormatSR(&format[0], ProcessName->sr);
             PhInitFormatS(&format[1], L" (");
             PhInitFormatIU(&format[2], (ULONG_PTR)ClientId->UniqueProcess);
-            PhInitFormatC(&format[3], ')');
+            PhInitFormatC(&format[3], L')');
 
             name = PhFormat(format, 4, 0);
         }
@@ -372,7 +372,7 @@ PPH_STRING PhGetClientIdNameEx(
         {
             PhInitFormatS(&format[0], L"Non-existent process (");
             PhInitFormatIU(&format[1], (ULONG_PTR)ClientId->UniqueProcess);
-            PhInitFormatC(&format[2], ')');
+            PhInitFormatC(&format[2], L')');
 
             name = PhFormat(format, 3, 0);
         }
@@ -804,7 +804,7 @@ VOID PhpProcessQueryStage1(
                 for (ULONG i = 0; i < (ULONG)commandLine->Length / sizeof(WCHAR); i++)
                 {
                     if (commandLine->Buffer[i] == UNICODE_NULL)
-                        commandLine->Buffer[i] = ' ';
+                        commandLine->Buffer[i] = L' ';
                 }
 
                 Data->CommandLine = commandLine;

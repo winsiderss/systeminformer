@@ -37,7 +37,7 @@ PH_STRINGREF PhpLoadingText = PH_STRINGREF_INIT(L"Loading...");
 static RECT MinimumSize = { -1, -1, -1, -1 };
 
 PPH_PROCESS_PROPCONTEXT PhCreateProcessPropContext(
-    _In_ HWND ParentWindowHandle,
+    _In_opt_ HWND ParentWindowHandle,
     _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
@@ -482,6 +482,7 @@ INT CALLBACK PhpStandardPropPageProc(
     return 1;
 }
 
+_Success_(return)
 BOOLEAN PhPropPageDlgProcHeader(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,

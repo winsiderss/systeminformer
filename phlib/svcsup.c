@@ -337,6 +337,7 @@ PPH_STRING PhGetServiceDescription(
     }
 }
 
+_Success_(return)
 BOOLEAN PhGetServiceDelayedAutoStart(
     _In_ SC_HANDLE ServiceHandle,
     _Out_ PBOOLEAN DelayedAutoStart

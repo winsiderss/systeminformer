@@ -125,9 +125,15 @@ BOOLEAN PhMwpNetworkPageCallback(
     case MainTabPageInitializeSectionMenuItems:
         {
             PPH_MAIN_TAB_PAGE_MENU_INFORMATION menuInfo = Parameter1;
-            PPH_EMENU menu = menuInfo->Menu;
-            ULONG startIndex = menuInfo->StartIndex;
+            PPH_EMENU menu;
+            ULONG startIndex;
             PPH_EMENU_ITEM menuItem;
+
+            if (!menuInfo)
+                break;
+
+            menu = menuInfo->Menu;
+            startIndex = menuInfo->StartIndex;
 
             PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_HIDEWAITINGCONNECTIONS, L"&Hide waiting connections", NULL, NULL), startIndex);
 
@@ -150,6 +156,9 @@ BOOLEAN PhMwpNetworkPageCallback(
     case MainTabPageExportContent:
         {
             PPH_MAIN_TAB_PAGE_EXPORT_CONTENT exportContent = Parameter1;
+
+            if (!exportContent)
+                break;
 
             PhWriteNetworkList(exportContent->FileStream, exportContent->Mode);
         }
@@ -343,6 +352,9 @@ VOID NTAPI PhMwpNetworkItemAddedHandler(
     )
 {
     PPH_NETWORK_ITEM networkItem = (PPH_NETWORK_ITEM)Parameter;
+
+    if (!networkItem)
+        return;
 
     PhReferenceObject(networkItem);
     PhPushProviderEventQueue(&PhMwpNetworkEventQueue, ProviderAddedEvent, Parameter, PhGetRunIdProvider(&PhMwpNetworkProviderRegistration));

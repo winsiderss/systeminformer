@@ -27,6 +27,7 @@
 extern "C" {
 #endif
 
+_Success_(return)
 BOOLEAN PhInitializeLxssImageVersionInfo(
     _Inout_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
     _In_ PPH_STRING FileName

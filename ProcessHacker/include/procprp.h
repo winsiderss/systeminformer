@@ -29,7 +29,7 @@ PHAPPAPI
 PPH_PROCESS_PROPCONTEXT
 NTAPI
 PhCreateProcessPropContext(
-    _In_ HWND ParentWindowHandle,
+    _In_opt_ HWND ParentWindowHandle,
     _In_ PPH_PROCESS_ITEM ProcessItem
     );
 // end_phapppub
@@ -82,6 +82,7 @@ PhCreateProcessPropPageContextEx(
     _In_opt_ PVOID Context
     );
 
+_Success_(return)
 PHAPPAPI
 BOOLEAN
 NTAPI

@@ -489,7 +489,7 @@ BOOLEAN PhaGetProcessKnownCommandLine(
 
             // Get the DLL name part.
 
-            while (i < CommandLine->Length / sizeof(WCHAR) && CommandLine->Buffer[i] == ' ')
+            while (i < CommandLine->Length / sizeof(WCHAR) && CommandLine->Buffer[i] == L' ')
                 i++;
 
             dllName = PhParseCommandLinePart(&CommandLine->sr, &i);
@@ -501,7 +501,7 @@ BOOLEAN PhaGetProcessKnownCommandLine(
 
             // The procedure name begins after the last comma.
 
-            if (!PhSplitStringRefAtLastChar(&dllName->sr, ',', &dllNamePart, &procedureNamePart))
+            if (!PhSplitStringRefAtLastChar(&dllName->sr, L',', &dllNamePart, &procedureNamePart))
                 return FALSE;
 
             dllName = PH_AUTO(PhCreateString2(&dllNamePart));
@@ -553,7 +553,7 @@ BOOLEAN PhaGetProcessKnownCommandLine(
 
             // Get the argument part.
 
-            while (i < (ULONG)CommandLine->Length / sizeof(WCHAR) && CommandLine->Buffer[i] == ' ')
+            while (i < (ULONG)CommandLine->Length / sizeof(WCHAR) && CommandLine->Buffer[i] == L' ')
                 i++;
 
             argPart = PhParseCommandLinePart(&CommandLine->sr, &i);
@@ -703,11 +703,11 @@ PPH_STRING PhEscapeStringForDelimiter(
     length = String->Length / sizeof(WCHAR);
     PhInitializeStringBuilder(&stringBuilder, String->Length / sizeof(WCHAR) * 3);
 
-    temp[0] = '\\';
+    temp[0] = L'\\';
 
     for (i = 0; i < length; i++)
     {
-        if (String->Buffer[i] == '\\' || String->Buffer[i] == Delimiter)
+        if (String->Buffer[i] == L'\\' || String->Buffer[i] == Delimiter)
         {
             temp[1] = String->Buffer[i];
             PhAppendStringBuilderEx(&stringBuilder, temp, 4);
@@ -735,7 +735,7 @@ PPH_STRING PhUnescapeStringForDelimiter(
 
     for (i = 0; i < length; i++)
     {
-        if (String->Buffer[i] == '\\')
+        if (String->Buffer[i] == L'\\')
         {
             if (i != length - 1)
             {
@@ -786,20 +786,20 @@ VOID PhShellExecuteUserString(
         return;
     }
 
-    // Get the execute command.
+    // Get the execute command. (dmex) 
     executeString = PhGetStringSetting(Setting);
 
-    // Expand environment strings.
+    // Expand environment strings. (dmex) 
     PhMoveReference(&executeString, PhExpandEnvironmentStrings(&executeString->sr));
 
     // Make sure the user executable string is absolute. We can't use RtlDetermineDosPathNameType_U
-    // here because the string may be a URL.
-    if (PhFindCharInString(executeString, 0, ':') == -1)
+    // here because the string may be a URL. (dmex)
+    if (PhFindCharInString(executeString, 0, L':') == -1)
     {
         INT stringArgCount;
         PWSTR* stringArgList;
 
-        // (dmex) HACK: Escape the individual executeString components.
+        // HACK: Escape the individual executeString components. (dmex) 
         if ((stringArgList = CommandLineToArgvW(executeString->Buffer, &stringArgCount)) && stringArgCount == 2)
         {
             PPH_STRING fileName = PhCreateString(stringArgList[0]);
@@ -1069,9 +1069,9 @@ PPH_STRING PhGetPhVersion(
     PH_FORMAT format[5];
 
     PhInitFormatU(&format[0], PHAPP_VERSION_MAJOR);
-    PhInitFormatC(&format[1], '.');
+    PhInitFormatC(&format[1], L'.');
     PhInitFormatU(&format[2], PHAPP_VERSION_MINOR);
-    PhInitFormatC(&format[3], '.');
+    PhInitFormatC(&format[3], L'.');
     PhInitFormatU(&format[4], PHAPP_VERSION_REVISION);
 
     return PhFormat(format, 5, 16);
@@ -1173,7 +1173,7 @@ VOID PhpAppendCommandLineArgument(
     temp = PhEscapeCommandLinePart(Value);
     PhAppendStringBuilder(StringBuilder, &temp->sr);
     PhDereferenceObject(temp);
-    PhAppendCharStringBuilder(StringBuilder, '\"');
+    PhAppendCharStringBuilder(StringBuilder, L'\"');
 }
 
 BOOLEAN PhShellProcessHackerEx(
@@ -1285,11 +1285,11 @@ BOOLEAN PhShellProcessHackerEx(
         // Add user-specified parameters last so they can override the propagated parameters.
         if (Parameters)
         {
-            PhAppendCharStringBuilder(&sb, ' ');
+            PhAppendCharStringBuilder(&sb, L' ');
             PhAppendStringBuilder2(&sb, Parameters);
         }
 
-        if (sb.String->Length != 0 && sb.String->Buffer[0] == ' ')
+        if (sb.String->Length != 0 && sb.String->Buffer[0] == L' ')
             parameters = sb.String->Buffer + 1;
         else
             parameters = sb.String->Buffer;

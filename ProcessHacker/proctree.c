@@ -2757,11 +2757,11 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 
                         if (delta > 0)
                         {
-                            PhInitFormatC(&format[0], '+');
+                            PhInitFormatC(&format[0], L'+');
                         }
                         else
                         {
-                            PhInitFormatC(&format[0], '-');
+                            PhInitFormatC(&format[0], L'-');
                             delta = -delta;
                         }
 
@@ -3544,7 +3544,7 @@ VOID PhpPopulateTableWithProcessNodes(
                 NULL,
                 getCellText.Text.Length + Level * sizeof(WCHAR) * sizeof(WCHAR)
                 );
-            wmemset(text->Buffer, ' ', Level * sizeof(WCHAR));
+            wmemset(text->Buffer, L' ', Level * sizeof(WCHAR));
             memcpy(&text->Buffer[Level * sizeof(WCHAR)], getCellText.Text.Buffer, getCellText.Text.Length);
         }
 

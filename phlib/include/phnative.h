@@ -614,6 +614,7 @@ PhGetProcessIdsUsingFile(
     _Out_ PFILE_PROCESS_IDS_USING_FILE_INFORMATION *ProcessIdsUsingFile
     );
 
+_Success_(return == STATUS_SUCCESS)
 PHLIBAPI
 NTSTATUS
 NTAPI

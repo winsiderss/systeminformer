@@ -1215,7 +1215,7 @@ BOOLEAN PhEnumProcessEnvironmentVariables(
     {
         if (currentIndex >= length)
             return FALSE;
-        if ((*currentChar == '=') && (startIndex != currentIndex))
+        if ((*currentChar == L'=') && (startIndex != currentIndex))
             break; // equality sign is considered as a delimiter unless it is the first character (diversenok)
         if (*currentChar == 0)
             return FALSE; // no more variables
@@ -3055,6 +3055,7 @@ NTSTATUS PhpQueryTransactionManagerVariableSize(
     return status;
 }
 
+_Success_(return == STATUS_SUCCESS)
 NTSTATUS PhGetTransactionManagerBasicInformation(
     _In_ HANDLE TransactionManagerHandle,
     _Out_ PTRANSACTIONMANAGER_BASIC_INFORMATION BasicInformation
@@ -5345,18 +5346,18 @@ BOOLEAN NTAPI PhpIsDotNetEnumProcessModulesCallback(
 
                 if (fileName.Length >= 4 * sizeof(WCHAR)) // vx.x
                 {
-                    if (fileName.Buffer[1] == '1')
+                    if (fileName.Buffer[1] == L'1')
                     {
-                        if (fileName.Buffer[3] == '0')
+                        if (fileName.Buffer[3] == L'0')
                             *(PULONG)Context |= PH_CLR_VERSION_1_0;
-                        else if (fileName.Buffer[3] == '1')
+                        else if (fileName.Buffer[3] == L'1')
                             *(PULONG)Context |= PH_CLR_VERSION_1_1;
                     }
-                    else if (fileName.Buffer[1] == '2')
+                    else if (fileName.Buffer[1] == L'2')
                     {
                         *(PULONG)Context |= PH_CLR_VERSION_2_0;
                     }
-                    else if (fileName.Buffer[1] >= '4' && fileName.Buffer[1] <= '9')
+                    else if (fileName.Buffer[1] >= L'4' && fileName.Buffer[1] <= L'9')
                     {
                         *(PULONG)Context |= PH_CLR_VERSION_4_ABOVE;
                     }
@@ -6082,7 +6083,7 @@ VOID PhUpdateMupDevicePrefixes(
         if (PhDeviceMupPrefixesCount == PH_DEVICE_MUP_PREFIX_MAX_COUNT)
             break;
 
-        PhSplitStringRefAtChar(&remainingPart, ',', &part, &remainingPart);
+        PhSplitStringRefAtChar(&remainingPart, L',', &part, &remainingPart);
 
         if (part.Length != 0)
         {
@@ -6243,7 +6244,7 @@ PPH_STRING PhResolveDevicePrefix(
             // <letter>:path
             newName = PhCreateStringEx(NULL, 2 * sizeof(WCHAR) + Name->Length - prefix.Length);
             newName->Buffer[0] = (WCHAR)('A' + i);
-            newName->Buffer[1] = ':';
+            newName->Buffer[1] = L':';
             memcpy(
                 &newName->Buffer[2],
                 &Name->Buffer[prefix.Length / sizeof(WCHAR)],
@@ -6369,7 +6370,7 @@ PPH_STRING PhGetFileName(
             {
                 newFileName = PhCreateStringEx(NULL, FileName->Length + 2 * sizeof(WCHAR));
                 newFileName->Buffer[0] = USER_SHARED_DATA->NtSystemRoot[0];
-                newFileName->Buffer[1] = ':';
+                newFileName->Buffer[1] = L':';
                 memcpy(&newFileName->Buffer[2], FileName->Buffer, FileName->Length);
             }
             else

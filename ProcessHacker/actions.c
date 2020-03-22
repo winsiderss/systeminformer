@@ -1513,8 +1513,8 @@ BOOLEAN PhUiDebugProcess(
     {
         if (debugger = PH_AUTO(PhQueryRegistryString(keyHandle, L"Debugger")))
         {
-            if (PhSplitStringRefAtChar(&debugger->sr, '"', &dummy, &commandPart) &&
-                PhSplitStringRefAtChar(&commandPart, '"', &commandPart, &dummy))
+            if (PhSplitStringRefAtChar(&debugger->sr, L'"', &dummy, &commandPart) &&
+                PhSplitStringRefAtChar(&commandPart, L'"', &commandPart, &dummy))
             {
                 DebuggerCommand = PhCreateString2(&commandPart);
             }
@@ -1531,9 +1531,9 @@ BOOLEAN PhUiDebugProcess(
 
     PhInitializeStringBuilder(&commandLineBuilder, DebuggerCommand->Length + 30);
 
-    PhAppendCharStringBuilder(&commandLineBuilder, '"');
+    PhAppendCharStringBuilder(&commandLineBuilder, L'"');
     PhAppendStringBuilder(&commandLineBuilder, &DebuggerCommand->sr);
-    PhAppendCharStringBuilder(&commandLineBuilder, '"');
+    PhAppendCharStringBuilder(&commandLineBuilder, L'"');
     PhAppendFormatStringBuilder(&commandLineBuilder, L" -p %lu", HandleToUlong(Process->ProcessId));
 
     status = PhCreateProcessWin32(

@@ -42,7 +42,7 @@ PPH_LIST PhInitializeColumnSetList(
 
     if (remaining.Length == 0)
         goto CleanupExit;
-    if (!PhSplitStringRefAtChar(&remaining, '-', &part, &remaining))
+    if (!PhSplitStringRefAtChar(&remaining, L'-', &part, &remaining))
         goto CleanupExit;
     if (!PhStringToInteger64(&part, 10, &count))
         goto CleanupExit;
@@ -56,9 +56,9 @@ PPH_LIST PhInitializeColumnSetList(
         if (remaining.Length == 0)
             break;
 
-        PhSplitStringRefAtChar(&remaining, '-', &columnSetNamePart, &remaining);
-        PhSplitStringRefAtChar(&remaining, '-', &columnSetSettingPart, &remaining);
-        PhSplitStringRefAtChar(&remaining, '-', &columnSetSortPart, &remaining);
+        PhSplitStringRefAtChar(&remaining, L'-', &columnSetNamePart, &remaining);
+        PhSplitStringRefAtChar(&remaining, L'-', &columnSetSettingPart, &remaining);
+        PhSplitStringRefAtChar(&remaining, L'-', &columnSetSortPart, &remaining);
 
         {
             PPH_COLUMN_SET_ENTRY entry;
@@ -157,7 +157,7 @@ BOOLEAN PhLoadSettingsColumnSet(
     if (remaining.Length == 0)
         return FALSE;
 
-    if (!PhSplitStringRefAtChar(&remaining, '-', &part, &remaining))
+    if (!PhSplitStringRefAtChar(&remaining, L'-', &part, &remaining))
         return FALSE;
     if (!PhStringToInteger64(&part, 10, &count))
         return FALSE;
@@ -171,9 +171,9 @@ BOOLEAN PhLoadSettingsColumnSet(
         if (remaining.Length == 0)
             break;
 
-        PhSplitStringRefAtChar(&remaining, '-', &columnSetNamePart, &remaining);
-        PhSplitStringRefAtChar(&remaining, '-', &columnSetSettingPart, &remaining);
-        PhSplitStringRefAtChar(&remaining, '-', &columnSetSortPart, &remaining);
+        PhSplitStringRefAtChar(&remaining, L'-', &columnSetNamePart, &remaining);
+        PhSplitStringRefAtChar(&remaining, L'-', &columnSetSettingPart, &remaining);
+        PhSplitStringRefAtChar(&remaining, L'-', &columnSetSortPart, &remaining);
 
         if (PhEqualStringRef(&columnSetNamePart, &ColumnSetName->sr, FALSE))
         {

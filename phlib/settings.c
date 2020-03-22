@@ -213,7 +213,7 @@ BOOLEAN PhSettingFromString(
             PH_STRINGREF xString;
             PH_STRINGREF yString;
 
-            if (!PhSplitStringRefAtChar(StringRef, ',', &xString, &yString))
+            if (!PhSplitStringRefAtChar(StringRef, L',', &xString, &yString))
                 return FALSE;
 
             if (PhStringToInteger64(&xString, 10, &x) && PhStringToInteger64(&yString, 10, &y))
@@ -239,11 +239,11 @@ BOOLEAN PhSettingFromString(
 
             stringRef = *StringRef;
 
-            if (stringRef.Length != 0 && stringRef.Buffer[0] == '@')
+            if (stringRef.Length != 0 && stringRef.Buffer[0] == L'@')
             {
                 PhSkipStringRef(&stringRef, sizeof(WCHAR));
 
-                if (!PhSplitStringRefAtChar(&stringRef, '|', &firstPart, &stringRef))
+                if (!PhSplitStringRefAtChar(&stringRef, L'|', &firstPart, &stringRef))
                     return FALSE;
                 if (!PhStringToInteger64(&firstPart, 10, &scale))
                     return FALSE;
@@ -253,7 +253,7 @@ BOOLEAN PhSettingFromString(
                 scale = PhpGetCurrentScale();
             }
 
-            if (!PhSplitStringRefAtChar(&stringRef, ',', &firstPart, &secondPart))
+            if (!PhSplitStringRefAtChar(&stringRef, L',', &firstPart, &secondPart))
                 return FALSE;
 
             if (PhStringToInteger64(&firstPart, 10, &x) && PhStringToInteger64(&secondPart, 10, &y))
@@ -1162,13 +1162,13 @@ BOOLEAN PhLoadListViewColumnSettings(
     memset(orderArray, 0, sizeof(orderArray));
     maxOrder = 0;
 
-    if (remainingPart.Length != 0 && remainingPart.Buffer[0] == '@')
+    if (remainingPart.Length != 0 && remainingPart.Buffer[0] == L'@')
     {
         PH_STRINGREF scalePart;
         ULONG64 integer;
 
         PhSkipStringRef(&remainingPart, sizeof(WCHAR));
-        PhSplitStringRefAtChar(&remainingPart, '|', &scalePart, &remainingPart);
+        PhSplitStringRefAtChar(&remainingPart, L'|', &scalePart, &remainingPart);
 
         if (scalePart.Length == 0 || !PhStringToInteger64(&scalePart, 10, &integer))
             return FALSE;
@@ -1190,12 +1190,12 @@ BOOLEAN PhLoadListViewColumnSettings(
         ULONG width;
         LVCOLUMN lvColumn;
 
-        PhSplitStringRefAtChar(&remainingPart, '|', &columnPart, &remainingPart);
+        PhSplitStringRefAtChar(&remainingPart, L'|', &columnPart, &remainingPart);
 
         if (columnPart.Length == 0)
             return FALSE;
 
-        PhSplitStringRefAtChar(&columnPart, ',', &orderPart, &widthPart);
+        PhSplitStringRefAtChar(&columnPart, L',', &orderPart, &widthPart);
 
         if (orderPart.Length == 0 || widthPart.Length == 0)
             return FALSE;
@@ -1315,7 +1315,7 @@ VOID PhLoadListViewSortColumnsFromSetting(
         PH_STRINGREF orderPart;
         ULONG64 integer;
 
-        if (!PhSplitStringRefAtChar(&remainingPart, ',', &columnPart, &orderPart))
+        if (!PhSplitStringRefAtChar(&remainingPart, L',', &columnPart, &orderPart))
             return;
 
         if (!PhStringToInteger64(&columnPart, 10, &integer))
@@ -1368,7 +1368,7 @@ VOID PhLoadListViewGroupStatesFromSetting(
     if (remaining.Length == 0)
         return;
 
-    if (!PhSplitStringRefAtChar(&remaining, '|', &part, &remaining))
+    if (!PhSplitStringRefAtChar(&remaining, L'|', &part, &remaining))
         return;
 
     if (!PhStringToInteger64(&part, 10, &countInteger))
@@ -1384,12 +1384,12 @@ VOID PhLoadListViewGroupStatesFromSetting(
         if (remaining.Length == 0)
             break;
 
-        PhSplitStringRefAtChar(&remaining, '|', &groupIdPart, &remaining);
+        PhSplitStringRefAtChar(&remaining, L'|', &groupIdPart, &remaining);
 
         if (groupIdPart.Length == 0)
             break;
 
-        PhSplitStringRefAtChar(&remaining, '|', &stateMaskPart, &remaining);
+        PhSplitStringRefAtChar(&remaining, L'|', &stateMaskPart, &remaining);
 
         if (stateMaskPart.Length == 0)
             break;

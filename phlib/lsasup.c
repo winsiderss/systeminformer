@@ -688,7 +688,7 @@ VOID PhInitializeCapabilitySidCache(
 
     while (remainingPart.Length != 0)
     {
-        PhSplitStringRefAtChar(&remainingPart, '\n', &namePart, &remainingPart);
+        PhSplitStringRefAtChar(&remainingPart, L'\n', &namePart, &remainingPart);
 
         if (namePart.Length != 0)
         {
