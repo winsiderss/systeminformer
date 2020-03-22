@@ -252,7 +252,7 @@ HANDLE PhCreateThread(
         &threadHandle,
         NULL
         );
-    
+
     // NOTE: PhCreateThread previously used CreateThread with callers using GetLastError()
     // for checking errors. We need to preserve this behavior for compatibility -dmex
     // TODO: Migrate code over to PhCreateThreadEx and remove this function.
@@ -1452,7 +1452,7 @@ ULONG_PTR PhFindCharInStringRef(
         else
 #endif
         {
-            if(buffer)
+            if (buffer)
                 wcschr(buffer, Character);
         }
 
@@ -1548,7 +1548,7 @@ ULONG_PTR PhFindLastCharInStringRef(
         else
 #endif
         {
-            if(buffer)
+            if (buffer)
                 wcsrchr(buffer, Character);
         }
 

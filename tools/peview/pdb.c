@@ -1037,7 +1037,7 @@ BOOLEAN PdbGetSymbolUdtFunctions(
     )
 {
     ULONG childrenLength = 0;
-    TI_FINDCHILDREN_PARAMS* symbolParams;
+    TI_FINDCHILDREN_PARAMS* symbolParams = NULL;
 
     if (!PdbCheckTagType(BaseAddress, Index, SymTagUDT))
         return FALSE;

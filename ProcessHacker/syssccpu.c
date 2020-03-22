@@ -851,27 +851,21 @@ PPH_STRING PhSipGetCpuBrandString(
         brandLength = sizeof(brandString) - sizeof(ANSI_NULL);
         brand = PhZeroExtendToUtf16Ex(brandString, brandLength);
     }
-#ifdef _ARM64_
     else
     {
-        // TODO: ntoskrnl writes this string in ProcessorNameString registry
-        char cpubrand[sizeof(brandString)] = "Not Available";
-        brandLength = sizeof(brandString) - sizeof(ANSI_NULL);
-        brand = PhZeroExtendToUtf16Ex(cpubrand, brandLength);
-    }
-#else
-    else
-    {
+#ifndef _ARM64_
         ULONG cpubrand[4 * 3];
 
         __cpuid(&cpubrand[0], 0x80000002);
         __cpuid(&cpubrand[4], 0x80000003);
         __cpuid(&cpubrand[8], 0x80000004);
-
+#else
+        // TODO: ntoskrnl writes this string in ProcessorNameString registry
+        char cpubrand[sizeof(brandString)] = "Not Available";
+#endif
         brandLength = sizeof(brandString) - sizeof(ANSI_NULL);
         brand = PhZeroExtendToUtf16Ex((PSTR)cpubrand, brandLength);
     }
-#endif
 
     PhTrimToNullTerminatorString(brand);
 
