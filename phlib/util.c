@@ -5496,6 +5496,7 @@ NTSTATUS PhAccessResource(
     return STATUS_SUCCESS;
 }
 
+_Success_(return)
 BOOLEAN PhLoadResource(
     _In_ PVOID DllBase,
     _In_ PCWSTR Name,
@@ -6241,6 +6242,12 @@ static NTSTATUS PhpFixupLoaderEntryImageImports(
         if (!NT_SUCCESS(status))
             goto CleanupExit;
 
+        if (!importBaseAddress)
+        {
+            status = STATUS_UNSUCCESSFUL;
+            goto CleanupExit;
+        }
+
         for (
             originalThunk = originalThunk, importThunk = importThunk;
             originalThunk->u1.AddressOfData;
@@ -6438,6 +6445,12 @@ static NTSTATUS PhpFixupLoaderEntryImageDelayImports(
             if (!NT_SUCCESS(status))
                 break;
 
+            if (!importBaseAddress)
+            {
+                status = STATUS_UNSUCCESSFUL;
+                break;
+            }
+
             for (
                 originalThunk = originalThunk, importThunk = importThunk;
                 originalThunk->u1.AddressOfData;
@@ -6472,6 +6485,9 @@ static NTSTATUS PhpFixupLoaderEntryImageDelayImports(
             }
         }
     }
+
+    //if (!NT_SUCCESS(status))
+    //    goto CleanupExit;
 
     status = NtProtectVirtualMemory(
         NtCurrentProcess(),
