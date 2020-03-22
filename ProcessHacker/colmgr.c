@@ -101,7 +101,7 @@ PPH_CM_COLUMN PhCmCreateColumn(
     tnColumn.Text = Column->Text;
     tnColumn.Width = Column->Width;
     tnColumn.Alignment = Column->Alignment;
-    tnColumn.DisplayIndex = Column->Visible ? Column->DisplayIndex : -1;
+    tnColumn.DisplayIndex = Column->Visible ? Column->DisplayIndex : ULONG_MAX;
     tnColumn.TextFlags = Column->TextFlags;
     TreeNew_AddColumn(Manager->Handle, &tnColumn);
 
@@ -143,7 +143,7 @@ VOID PhCmSetNotifyPlugin(
     }
     else
     {
-        if (PhFindItemList(Manager->NotifyList, Plugin) != -1)
+        if (PhFindItemList(Manager->NotifyList, Plugin) != ULONG_MAX)
             return;
     }
 
@@ -339,10 +339,10 @@ BOOLEAN PhCmLoadSettingsEx(
 
         remainingColumnPart = *Settings;
 
-        if (remainingColumnPart.Length != 0 && remainingColumnPart.Buffer[0] == '@')
+        if (remainingColumnPart.Length != 0 && remainingColumnPart.Buffer[0] == L'@')
         {
             PhSkipStringRef(&remainingColumnPart, sizeof(WCHAR));
-            PhSplitStringRefAtChar(&remainingColumnPart, '|', &scalePart, &remainingColumnPart);
+            PhSplitStringRefAtChar(&remainingColumnPart, L'|', &scalePart, &remainingColumnPart);
 
             if (scalePart.Length == 0 || !PhStringToInteger64(&scalePart, 10, &integer))
                 goto CleanupExit;
@@ -361,18 +361,18 @@ BOOLEAN PhCmLoadSettingsEx(
             ULONG displayIndex;
             ULONG width;
 
-            PhSplitStringRefAtChar(&remainingColumnPart, '|', &columnPart, &remainingColumnPart);
+            PhSplitStringRefAtChar(&remainingColumnPart, L'|', &columnPart, &remainingColumnPart);
 
             if (columnPart.Length != 0)
             {
                 // Id
 
-                PhSplitStringRefAtChar(&columnPart, ',', &valuePart, &columnPart);
+                PhSplitStringRefAtChar(&columnPart, L',', &valuePart, &columnPart);
 
                 if (valuePart.Length == 0)
                     goto CleanupExit;
 
-                if (valuePart.Buffer[0] == '+')
+                if (valuePart.Buffer[0] == L'+')
                 {
                     PH_STRINGREF pluginName;
                     ULONG subId;
@@ -402,7 +402,7 @@ BOOLEAN PhCmLoadSettingsEx(
 
                 // Display Index
 
-                PhSplitStringRefAtChar(&columnPart, ',', &valuePart, &columnPart);
+                PhSplitStringRefAtChar(&columnPart, L',', &valuePart, &columnPart);
 
                 if (!(Flags & PH_CM_COLUMN_WIDTHS_ONLY))
                 {
@@ -416,7 +416,7 @@ BOOLEAN PhCmLoadSettingsEx(
                     if (valuePart.Length != 0)
                         goto CleanupExit;
 
-                    displayIndex = -1;
+                    displayIndex = ULONG_MAX;
                 }
 
                 // Width
@@ -525,16 +525,16 @@ CleanupExit:
 
     if (SortSettings && SortSettings->Length != 0)
     {
-        PhSplitStringRefAtChar(SortSettings, ',', &valuePart, &subPart);
+        PhSplitStringRefAtChar(SortSettings, L',', &valuePart, &subPart);
 
         if (valuePart.Length != 0 && subPart.Length != 0)
         {
             ULONG sortColumn;
             PH_SORT_ORDER sortOrder;
 
-            sortColumn = -1;
+            sortColumn = ULONG_MAX;
 
-            if (valuePart.Buffer[0] == '+')
+            if (valuePart.Buffer[0] == L'+')
             {
                 PH_STRINGREF pluginName;
                 ULONG subId;
@@ -558,7 +558,7 @@ CleanupExit:
             PhStringToInteger64(&subPart, 10, &integer);
             sortOrder = (PH_SORT_ORDER)integer;
 
-            if (sortColumn != -1 && sortOrder <= DescendingSortOrder)
+            if (sortColumn != ULONG_MAX && sortOrder <= DescendingSortOrder)
             {
                 TreeNew_SetSort(TreeNewHandle, sortColumn, sortOrder);
             }

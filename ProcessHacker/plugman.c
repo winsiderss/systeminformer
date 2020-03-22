@@ -292,11 +292,18 @@ BOOLEAN NTAPI PluginsTreeNewCallback(
     PPH_PLUGMAN_CONTEXT context = Context;
     PPH_PLUGIN_TREE_ROOT_NODE node;
 
+    if (!context)
+        return FALSE;
+
     switch (Message)
     {
     case TreeNewGetChildren:
         {
             PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
+
+            if (!getChildren)
+                break;
+
             node = (PPH_PLUGIN_TREE_ROOT_NODE)getChildren->Node;
 
             if (!getChildren->Node)
@@ -327,6 +334,10 @@ BOOLEAN NTAPI PluginsTreeNewCallback(
     case TreeNewIsLeaf:
         {
             PPH_TREENEW_IS_LEAF isLeaf = (PPH_TREENEW_IS_LEAF)Parameter1;
+
+            if (!isLeaf)
+                break;
+
             node = (PPH_PLUGIN_TREE_ROOT_NODE)isLeaf->Node;
 
             isLeaf->IsLeaf = TRUE;
@@ -335,6 +346,10 @@ BOOLEAN NTAPI PluginsTreeNewCallback(
     case TreeNewGetCellText:
         {
             PPH_TREENEW_GET_CELL_TEXT getCellText = (PPH_TREENEW_GET_CELL_TEXT)Parameter1;
+
+            if (!getCellText)
+                break;
+
             node = (PPH_PLUGIN_TREE_ROOT_NODE)getCellText->Node;
 
             switch (getCellText->Id)
@@ -358,6 +373,10 @@ BOOLEAN NTAPI PluginsTreeNewCallback(
     case TreeNewGetNodeColor:
         {
             PPH_TREENEW_GET_NODE_COLOR getNodeColor = Parameter1;
+
+            if (!getNodeColor)
+                break;
+
             node = (PPH_PLUGIN_TREE_ROOT_NODE)getNodeColor->Node;
 
             getNodeColor->Flags = TN_CACHE | TN_AUTO_FORECOLOR;
@@ -373,6 +392,9 @@ BOOLEAN NTAPI PluginsTreeNewCallback(
     case TreeNewKeyDown:
         {
             PPH_TREENEW_KEY_EVENT keyEvent = Parameter1;
+
+            if (!keyEvent)
+                break;
 
             switch (keyEvent->VirtualKey)
             {
@@ -423,7 +445,12 @@ BOOLEAN NTAPI PluginsTreeNewCallback(
     case TreeNewCustomDraw:
         {
             PPH_TREENEW_CUSTOM_DRAW customDraw = Parameter1;
-            RECT rect = customDraw->CellRect;
+            RECT rect;
+
+            if (!customDraw)
+                break;
+
+            rect = customDraw->CellRect;
             node = (PPH_PLUGIN_TREE_ROOT_NODE)customDraw->Node;
 
             switch (customDraw->Column->Id)
@@ -1055,7 +1082,7 @@ VOID PhpAddDisabledPlugins(
 
     while (remainingPart.Length)
     {
-        PhSplitStringRefAtChar(&remainingPart, '|', &part, &remainingPart);
+        PhSplitStringRefAtChar(&remainingPart, L'|', &part, &remainingPart);
 
         if (part.Length)
         {
@@ -1086,7 +1113,7 @@ ULONG PhpDisabledPluginsCount(
 
     while (remainingPart.Length)
     {
-        PhSplitStringRefAtChar(&remainingPart, '|', &part, &remainingPart);
+        PhSplitStringRefAtChar(&remainingPart, L'|', &part, &remainingPart);
 
         if (part.Length)
             count++;

@@ -1682,14 +1682,14 @@ VOID PhSipDefaultDrawPanel(
                 // dmex: Multiline text doesn't fit; split the string and draw the first line.
                 if (DrawPanel->SubTitleOverflow)
                 {
-                    if (PhSplitStringRefAtChar(&DrawPanel->SubTitleOverflow->sr, '\n', &titlePart, &remainingPart))
+                    if (PhSplitStringRefAtChar(&DrawPanel->SubTitleOverflow->sr, L'\n', &titlePart, &remainingPart))
                         DrawText(hdc, titlePart.Buffer, (ULONG)titlePart.Length / sizeof(WCHAR), &rect, flags);
                     else
                         DrawText(hdc, DrawPanel->SubTitleOverflow->Buffer, (ULONG)DrawPanel->SubTitleOverflow->Length / sizeof(WCHAR), &rect, flags);
                 }
                 else
                 {
-                    if (PhSplitStringRefAtChar(&DrawPanel->SubTitle->sr, '\n', &titlePart, &remainingPart))
+                    if (PhSplitStringRefAtChar(&DrawPanel->SubTitle->sr, L'\n', &titlePart, &remainingPart))
                         DrawText(hdc, titlePart.Buffer, (ULONG)titlePart.Length / sizeof(WCHAR), &rect, flags);
                     else
                         DrawText(hdc, DrawPanel->SubTitle->Buffer, (ULONG)DrawPanel->SubTitle->Length / sizeof(WCHAR), &rect, flags);

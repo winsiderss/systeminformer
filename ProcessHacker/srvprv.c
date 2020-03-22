@@ -1067,7 +1067,7 @@ VOID CALLBACK PhpServiceNonPollScNotifyCallback(
                 if (nameLength == 0)
                     break;
 
-                if (name[0] == '/')
+                if (name[0] == L'/')
                 {
                     PPHP_SERVICE_NOTIFY_CONTEXT newNotifyContext;
 

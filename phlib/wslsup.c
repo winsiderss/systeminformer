@@ -29,10 +29,12 @@ BOOLEAN NTAPI PhpWslDistributionNamesCallback(
     _In_opt_ PVOID Context
     )
 {
-    PhAddItemList(Context, PhCreateStringEx(Information->Name, Information->NameLength));
+    if (Context)
+        PhAddItemList(Context, PhCreateStringEx(Information->Name, Information->NameLength));
     return TRUE;
 }
 
+_Success_(return)
 BOOLEAN PhGetWslDistributionFromPath(
     _In_ PPH_STRING FileName,
     _Out_opt_ PPH_STRING *LxssDistroName,
@@ -139,8 +141,9 @@ BOOLEAN PhGetWslDistributionFromPath(
     return FALSE;
 }
 
+_Success_(return)
 BOOLEAN PhInitializeLxssImageVersionInfo(
-    _Out_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
+    _Inout_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
     _In_ PPH_STRING FileName
     )
 {
@@ -217,7 +220,7 @@ BOOLEAN PhInitializeLxssImageVersionInfo(
         PH_STRINGREF remainingPart;
         PH_STRINGREF packagePart;
 
-        if (PhSplitStringRefAtChar(&result->sr, ':', &packagePart, &remainingPart))
+        if (PhSplitStringRefAtChar(&result->sr, L':', &packagePart, &remainingPart))
         {
             lxssPackageName = PhCreateString2(&packagePart);
         }
@@ -268,9 +271,9 @@ ParseResult:
         PH_STRINGREF versionPart;
 
         remainingPart = PhGetStringRef(result);
-        PhSplitStringRefAtChar(&remainingPart, '|', &versionPart, &remainingPart);
-        PhSplitStringRefAtChar(&remainingPart, '|', &companyPart, &remainingPart);
-        PhSplitStringRefAtChar(&remainingPart, '|', &descriptionPart, &remainingPart);
+        PhSplitStringRefAtChar(&remainingPart, L'|', &versionPart, &remainingPart);
+        PhSplitStringRefAtChar(&remainingPart, L'|', &companyPart, &remainingPart);
+        PhSplitStringRefAtChar(&remainingPart, L'|', &descriptionPart, &remainingPart);
 
         if (versionPart.Length != 0)
             ImageVersionInfo->FileVersion = PhCreateString2(&versionPart);
@@ -393,7 +396,7 @@ ULONG PhCreateProcessLxss(
     }
 
     // Note: Don't use NTSTATUS now that we have the lxss exit code. (dmex)
-    if (status == 0)
+    if (Result && status == 0)
     {
         *Result = lxssOutputString;
     }

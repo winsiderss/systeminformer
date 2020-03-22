@@ -445,8 +445,8 @@ FORCEINLINE VOID PhPrintPointer(
     _In_ PVOID Pointer
     )
 {
-    Destination[0] = '0';
-    Destination[1] = 'x';
+    Destination[0] = L'0';
+    Destination[1] = L'x';
 #ifdef _WIN64
     _ui64tow((ULONG64)Pointer, &Destination[2], 16);
 #else

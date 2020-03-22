@@ -966,7 +966,7 @@ BOOLEAN PhThemeWindowDrawItem(
                 PH_STRINGREF secondPart;
 
                 PhInitializeStringRef(&part, menuItemInfo->Text);
-                PhSplitStringRefAtLastChar(&part, '\b', &firstPart, &secondPart);
+                PhSplitStringRefAtLastChar(&part, L'\b', &firstPart, &secondPart);
 
                 //SetDCBrushColor(DrawInfo->hDC, RGB(28, 28, 28));
                 //FillRect(DrawInfo->hDC, &DrawInfo->rcItem, GetStockBrush(DC_BRUSH));

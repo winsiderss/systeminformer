@@ -124,6 +124,7 @@ VOID PhNfpPhysicalUsageTextIconUpdateCallback(
     _In_opt_ PVOID Context
     );
 
+_Success_(return)
 BOOLEAN PhNfpGetShowMiniInfoSectionData(
     _In_ ULONG IconIndex,
     _In_ PPH_NF_ICON RegisteredIcon,

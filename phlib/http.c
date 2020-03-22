@@ -724,8 +724,8 @@ PPH_STRING PhHttpSocketGetErrorMessage(
 
     // Remove any trailing newline
     if (message && message->Length >= 2 * sizeof(WCHAR) &&
-        message->Buffer[message->Length / sizeof(WCHAR) - 2] == '\r' &&
-        message->Buffer[message->Length / sizeof(WCHAR) - 1] == '\n')
+        message->Buffer[message->Length / sizeof(WCHAR) - 2] == L'\r' &&
+        message->Buffer[message->Length / sizeof(WCHAR) - 1] == L'\n')
     {
         PhMoveReference(&message, PhCreateStringEx(message->Buffer, message->Length - 2 * sizeof(WCHAR)));
     }

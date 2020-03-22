@@ -69,6 +69,7 @@ PhCreateSymbolProvider(
     _In_opt_ HANDLE ProcessId
     );
 
+_Success_(return)
 PHLIBAPI
 BOOLEAN
 NTAPI
@@ -101,6 +102,7 @@ PhGetSymbolFromAddress(
     _Out_opt_ PULONG64 Displacement
     );
 
+_Success_(return)
 PHLIBAPI
 BOOLEAN
 NTAPI

@@ -910,7 +910,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                         if (NT_SUCCESS(PhGetThreadIdealProcessor(threadItem->ThreadHandle, &idealProcessorNumber)))
                         {
                             PhInitFormatU(&format[0], idealProcessorNumber.Group);
-                            PhInitFormatC(&format[1], ':');
+                            PhInitFormatC(&format[1], L':');
                             PhInitFormatU(&format[2], idealProcessorNumber.Number);
 
                             if (PhFormatToBuffer(format, 3, node->IdealProcessorText, sizeof(node->IdealProcessorText), &returnLength))

@@ -45,7 +45,7 @@ VOID PhpEscapeStringForCsv(
     {
         switch (String->Buffer[i])
         {
-        case '\"':
+        case L'\"':
             if (runStart)
             {
                 PhAppendStringBuilderEx(StringBuilder, runStart, runLength * sizeof(WCHAR));
@@ -183,7 +183,7 @@ PPH_LIST PhaFormatTextTable(
                         k = tabCount[j] + 1;
                     }
 
-                    PhAppendCharStringBuilder2(&stringBuilder, '\t', k);
+                    PhAppendCharStringBuilder2(&stringBuilder, L'\t', k);
                 }
             }
             break;
@@ -205,7 +205,7 @@ PPH_LIST PhaFormatTextTable(
                         k = (tabCount[j] + 1) * TAB_SIZE;
                     }
 
-                    PhAppendCharStringBuilder2(&stringBuilder, ' ', k);
+                    PhAppendCharStringBuilder2(&stringBuilder, L' ', k);
                 }
             }
             break;
@@ -213,17 +213,17 @@ PPH_LIST PhaFormatTextTable(
             {
                 for (j = 0; j < Columns; j++)
                 {
-                    PhAppendCharStringBuilder(&stringBuilder, '\"');
+                    PhAppendCharStringBuilder(&stringBuilder, L'\"');
 
                     if (Table[i][j])
                     {
                         PhpEscapeStringForCsv(&stringBuilder, Table[i][j]);
                     }
 
-                    PhAppendCharStringBuilder(&stringBuilder, '\"');
+                    PhAppendCharStringBuilder(&stringBuilder, L'\"');
 
                     if (j != Columns - 1)
-                        PhAppendCharStringBuilder(&stringBuilder, ',');
+                        PhAppendCharStringBuilder(&stringBuilder, L',');
                 }
             }
             break;

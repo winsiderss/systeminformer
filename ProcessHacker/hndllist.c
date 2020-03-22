@@ -603,17 +603,17 @@ BOOLEAN NTAPI PhpHandleTreeNewCallback(
             case PHHNTLC_FILESHAREACCESS:
                 if (handleItem->FileFlags & PH_HANDLE_FILE_SHARED_MASK)
                 {
-                    node->FileShareAccessText[0] = '-';
-                    node->FileShareAccessText[1] = '-';
-                    node->FileShareAccessText[2] = '-';
+                    node->FileShareAccessText[0] = L'-';
+                    node->FileShareAccessText[1] = L'-';
+                    node->FileShareAccessText[2] = L'-';
                     node->FileShareAccessText[3] = UNICODE_NULL;
 
                     if (handleItem->FileFlags & PH_HANDLE_FILE_SHARED_READ)
-                        node->FileShareAccessText[0] = 'R';
+                        node->FileShareAccessText[0] = L'R';
                     if (handleItem->FileFlags & PH_HANDLE_FILE_SHARED_WRITE)
-                        node->FileShareAccessText[1] = 'W';
+                        node->FileShareAccessText[1] = L'W';
                     if (handleItem->FileFlags & PH_HANDLE_FILE_SHARED_DELETE)
-                        node->FileShareAccessText[2] = 'D';
+                        node->FileShareAccessText[2] = L'D';
 
                     PhInitializeStringRef(&getCellText->Text, node->FileShareAccessText);
                 }

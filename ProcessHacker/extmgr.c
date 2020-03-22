@@ -208,11 +208,11 @@ BOOLEAN PhEmParseCompoundId(
 
     if (firstPart.Length == 0)
         return FALSE;
-    if (firstPart.Buffer[0] != '+')
+    if (firstPart.Buffer[0] != L'+')
         return FALSE;
 
     PhSkipStringRef(&firstPart, sizeof(WCHAR));
-    PhSplitStringRefAtChar(&firstPart, '+', &firstPart, &secondPart);
+    PhSplitStringRefAtChar(&firstPart, L'+', &firstPart, &secondPart);
 
     if (firstPart.Length == 0 || secondPart.Length == 0)
         return FALSE;

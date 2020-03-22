@@ -385,6 +385,7 @@ static LONG NTAPI PhpSymbolModuleCompareFunction(
     return uint64cmp(symbolModule1->BaseAddress, symbolModule2->BaseAddress);
 }
 
+_Success_(return)
 BOOLEAN PhGetLineFromAddress(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
     _In_ ULONG64 Address,
@@ -665,7 +666,7 @@ PPH_STRING PhGetSymbolFromAddress(
         PH_FORMAT format[3];
 
         PhInitFormatSR(&format[0], modBaseName->sr);
-        PhInitFormatC(&format[1], '!');
+        PhInitFormatC(&format[1], L'!');
         PhInitFormatSR(&format[2], symbolName->sr);
 
         symbol = PhFormat(format, 3, modBaseName->Length + 2 + symbolName->Length);
@@ -675,7 +676,7 @@ PPH_STRING PhGetSymbolFromAddress(
         PH_FORMAT format[5];
 
         PhInitFormatSR(&format[0], modBaseName->sr);
-        PhInitFormatC(&format[1], '!');
+        PhInitFormatC(&format[1], L'!');
         PhInitFormatSR(&format[2], symbolName->sr);
         PhInitFormatS(&format[3], L"+0x");
         PhInitFormatIX(&format[4], (ULONG_PTR)displacement);
@@ -702,6 +703,7 @@ CleanupExit:
     return symbol;
 }
 
+_Success_(return)
 BOOLEAN PhGetSymbolFromName(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
     _In_ PWSTR Name,
@@ -1491,7 +1493,7 @@ NTSTATUS PhWalkThreadStack(
     if ((Flags & PH_WALK_KERNEL_STACK) && KphIsConnected())
     {
         PVOID stack[256 - 2]; // See MAX_STACK_DEPTH
-        ULONG capturedFrames;
+        ULONG capturedFrames = 0;
         ULONG i;
 
         if (NT_SUCCESS(KphCaptureStackBackTraceThread(

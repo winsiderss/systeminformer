@@ -73,10 +73,11 @@ VOID PhNfLoadSettings(
     PH_STRINGREF remaining;
 
     settingsString = PhGetStringSetting(L"IconSettings");
-    remaining = PhGetStringRef(settingsString);
 
-    if (remaining.Length == 0)
+    if (PhIsNullOrEmptyString(settingsString))
         return;
+
+    remaining = PhGetStringRef(settingsString);
 
     while (remaining.Length != 0)
     {
@@ -86,9 +87,9 @@ VOID PhNfLoadSettings(
         ULONG64 idInteger;
         ULONG64 flagsInteger;
 
-        PhSplitStringRefAtChar(&remaining, '|', &idPart, &remaining);
-        PhSplitStringRefAtChar(&remaining, '|', &flagsPart, &remaining);
-        PhSplitStringRefAtChar(&remaining, '|', &pluginNamePart, &remaining);
+        PhSplitStringRefAtChar(&remaining, L'|', &idPart, &remaining);
+        PhSplitStringRefAtChar(&remaining, L'|', &flagsPart, &remaining);
+        PhSplitStringRefAtChar(&remaining, L'|', &pluginNamePart, &remaining);
 
         if (!PhStringToInteger64(&idPart, 10, &idInteger))
             break;
@@ -200,7 +201,7 @@ VOID PhNfLoadGuids(
             if (remaining.Length == 0)
                 continue;
 
-            PhSplitStringRefAtChar(&remaining, '|', &guidPart, &remaining);
+            PhSplitStringRefAtChar(&remaining, L'|', &guidPart, &remaining);
 
             if (guidPart.Length == 0)
                 continue;
@@ -745,7 +746,7 @@ BOOLEAN PhNfpAddNotifyIcon(
     notifyIcon.uCallbackMessage = WM_PH_NOTIFY_ICON_MESSAGE;
     notifyIcon.guidItem = Icon->IconGuid;
     wcsncpy_s(
-        notifyIcon.szTip, sizeof(notifyIcon.szTip) / sizeof(WCHAR),
+        notifyIcon.szTip, RTL_NUMBER_OF(notifyIcon.szTip),
         PhGetStringOrDefault(Icon->TextCache, PhApplicationName),
         _TRUNCATE
         );
@@ -805,8 +806,7 @@ BOOLEAN PhNfpModifyNotifyIcon(
     {
         PhSwapReference(&Icon->TextCache, Text);
         wcsncpy_s(
-            notifyIcon.szTip,
-            ARRAYSIZE(notifyIcon.szTip),
+            notifyIcon.szTip, RTL_NUMBER_OF(notifyIcon.szTip),
             PhGetStringOrDefault(Text, PhApplicationName),
             _TRUNCATE
             );
@@ -1730,6 +1730,7 @@ VOID PhNfpPhysicalUsageTextIconUpdateCallback(
     *NewText = PhFormat(format, 5, 96);
 }
 
+_Success_(return)
 BOOLEAN PhNfpGetShowMiniInfoSectionData(
     _In_ ULONG IconIndex,
     _In_ PPH_NF_ICON RegisteredIcon,
