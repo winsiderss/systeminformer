@@ -642,7 +642,7 @@ VOID ToolbarLoadButtonSettings(
     }
 
     // Query the number of buttons to insert
-    if (!PhSplitStringRefAtChar(&remaining, '|', &part, &remaining))
+    if (!PhSplitStringRefAtChar(&remaining, L'|', &part, &remaining))
     {
         // Load default settings
         SendMessage(ToolBarHandle, TB_ADDBUTTONS, MAX_DEFAULT_TOOLBAR_ITEMS, (LPARAM)ToolbarButtons);
@@ -670,7 +670,7 @@ VOID ToolbarLoadButtonSettings(
         if (remaining.Length == 0)
             break;
 
-        PhSplitStringRefAtChar(&remaining, '|', &commandIdPart, &remaining);
+        PhSplitStringRefAtChar(&remaining, L'|', &commandIdPart, &remaining);
         PhStringToInteger64(&commandIdPart, 10, &commandInteger);
 
         buttonArray[index].idCommand = (INT)commandInteger;
@@ -796,9 +796,9 @@ VOID ReBarLoadLayoutSettings(
         if (remaining.Length == 0)
             break;
 
-        PhSplitStringRefAtChar(&remaining, '|', &idPart, &remaining);
-        PhSplitStringRefAtChar(&remaining, '|', &cxPart, &remaining);
-        PhSplitStringRefAtChar(&remaining, '|', &stylePart, &remaining);
+        PhSplitStringRefAtChar(&remaining, L'|', &idPart, &remaining);
+        PhSplitStringRefAtChar(&remaining, L'|', &cxPart, &remaining);
+        PhSplitStringRefAtChar(&remaining, L'|', &stylePart, &remaining);
 
         PhStringToInteger64(&idPart, 10, &idInteger);
         PhStringToInteger64(&cxPart, 10, &cxInteger);

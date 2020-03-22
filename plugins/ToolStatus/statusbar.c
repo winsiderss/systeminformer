@@ -70,17 +70,18 @@ VOID StatusBarLoadSettings(
     PH_STRINGREF part;
 
     settingsString = PhaGetStringSetting(SETTING_NAME_STATUSBAR_CONFIG);
-    remaining = settingsString->sr;
 
-    if (remaining.Length == 0)
+    if (PhIsNullOrEmptyString(settingsString))
     {
         // Load default settings
         StatusBarLoadDefault();
         return;
     }
 
+    remaining = PhGetStringRef(settingsString);
+
     // Query the number of buttons to insert
-    if (!PhSplitStringRefAtChar(&remaining, '|', &part, &remaining))
+    if (!PhSplitStringRefAtChar(&remaining, L'|', &part, &remaining))
     {
         // Load default settings
         StatusBarLoadDefault();
@@ -104,7 +105,7 @@ VOID StatusBarLoadSettings(
         if (remaining.Length == 0)
             break;
 
-        PhSplitStringRefAtChar(&remaining, '|', &idPart, &remaining);
+        PhSplitStringRefAtChar(&remaining, L'|', &idPart, &remaining);
 
         if (PhStringToInteger64(&idPart, 10, &idInteger))
         {

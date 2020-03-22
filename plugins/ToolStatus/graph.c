@@ -38,10 +38,11 @@ VOID ToolbarGraphLoadSettings(
     PH_STRINGREF remaining;
 
     settingsString = PhGetStringSetting(SETTING_NAME_TOOLBAR_GRAPH_CONFIG);
-    remaining = settingsString->sr;
 
-    if (remaining.Length == 0)
+    if (PhIsNullOrEmptyString(settingsString))
         return;
+
+    remaining = PhGetStringRef(settingsString);
 
     while (remaining.Length != 0)
     {
@@ -51,9 +52,9 @@ VOID ToolbarGraphLoadSettings(
         ULONG64 idInteger;
         ULONG64 flagsInteger;
 
-        PhSplitStringRefAtChar(&remaining, '|', &idPart, &remaining);
-        PhSplitStringRefAtChar(&remaining, '|', &flagsPart, &remaining);
-        PhSplitStringRefAtChar(&remaining, '|', &pluginNamePart, &remaining);
+        PhSplitStringRefAtChar(&remaining, L'|', &idPart, &remaining);
+        PhSplitStringRefAtChar(&remaining, L'|', &flagsPart, &remaining);
+        PhSplitStringRefAtChar(&remaining, L'|', &pluginNamePart, &remaining);
 
         if (!PhStringToInteger64(&idPart, 10, &idInteger))
             break;
@@ -289,7 +290,7 @@ VOID ToolbarUpdateGraphs(
         graph->GraphState.TooltipIndex = ULONG_MAX;
         Graph_MoveGrid(graph->GraphHandle, 1);
         Graph_Draw(graph->GraphHandle);
-        //Graph_UpdateTooltip(graph->GraphHandle);
+        Graph_UpdateTooltip(graph->GraphHandle);
         InvalidateRect(graph->GraphHandle, NULL, FALSE);
     }
 }
@@ -475,6 +476,9 @@ static PPH_PROCESS_RECORD PhSipReferenceMaxCpuRecord(
     LONG maxProcessIdLong;
     HANDLE maxProcessId;
 
+    if (!SystemStatistics.MaxCpuHistory)
+        return NULL;
+
     // Find the process record for the max. CPU process for the particular time.
 
     maxProcessIdLong = PhGetItemCircularBuffer_ULONG(SystemStatistics.MaxCpuHistory, Index);
@@ -510,6 +514,9 @@ static PPH_STRING PhSipGetMaxCpuString(
     PPH_PROCESS_RECORD maxProcessRecord;
     FLOAT maxCpuUsage;
     PPH_STRING maxUsageString = NULL;
+
+    if (!SystemStatistics.MaxCpuUsageHistory)
+        return NULL;
 
     if (maxProcessRecord = PhSipReferenceMaxCpuRecord(Index))
     {
@@ -548,6 +555,9 @@ static PPH_PROCESS_RECORD PhSipReferenceMaxIoRecord(
     LARGE_INTEGER time;
     ULONG maxProcessId;
 
+    if (!SystemStatistics.MaxIoHistory)
+        return NULL;
+
     // Find the process record for the max. I/O process for the particular time.
 
     maxProcessId = PhGetItemCircularBuffer_ULONG(SystemStatistics.MaxIoHistory, Index);
@@ -566,11 +576,13 @@ static PPH_STRING PhSipGetMaxIoString(
     _In_ LONG Index
     )
 {
+    PPH_STRING maxUsageString = NULL;
     PPH_PROCESS_RECORD maxProcessRecord;
     ULONG64 maxIoReadOther;
     ULONG64 maxIoWrite;
 
-    PPH_STRING maxUsageString = NULL;
+    if (!(SystemStatistics.MaxIoReadOtherHistory && SystemStatistics.MaxIoWriteHistory))
+        return NULL;
 
     if (maxProcessRecord = PhSipReferenceMaxIoRecord(Index))
     {
@@ -620,8 +632,8 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(CpuHistoryGraphMessageCallback)
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_LINE_2;
             PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), PhGetIntegerSetting(L"ColorCpuUser"));
 
-            if (ProcessesUpdatedCount != 3)
-                return;
+            if (!(SystemStatistics.CpuKernelHistory && SystemStatistics.CpuUserHistory))
+                break;
 
             PhGraphStateGetDrawInfo(GraphState, getDrawInfo, SystemStatistics.CpuUserHistory->Count);
 
@@ -692,7 +704,7 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(PhysicalHistoryGraphMessageCallback)
             drawInfo->Flags = PH_GRAPH_USE_GRID_X;
             PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorPhysical"), 0);
 
-            if (ProcessesUpdatedCount != 3)
+            if (!SystemStatistics.PhysicalHistory)
                 break;
 
             PhGraphStateGetDrawInfo(GraphState, getDrawInfo, SystemStatistics.PhysicalHistory->Count);
@@ -724,7 +736,7 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(PhysicalHistoryGraphMessageCallback)
                 {
                     ULONG physicalUsage;
 
-                    if (ProcessesUpdatedCount != 3)
+                    if (!SystemStatistics.PhysicalHistory)
                         break;
 
                     physicalUsage = PhGetItemCircularBuffer_ULONG(SystemStatistics.PhysicalHistory, getTooltipText->Index);
@@ -760,7 +772,7 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(CommitHistoryGraphMessageCallback)
             drawInfo->Flags = PH_GRAPH_USE_GRID_X;
             PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorPrivate"), 0);
 
-            if (ProcessesUpdatedCount != 3)
+            if (!(SystemStatistics.CommitHistory && SystemStatistics.Performance))
                 break;
 
             PhGraphStateGetDrawInfo(GraphState, getDrawInfo, SystemStatistics.CommitHistory->Count);
@@ -792,7 +804,7 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(CommitHistoryGraphMessageCallback)
                 {
                     ULONG commitUsage;
 
-                    if (ProcessesUpdatedCount != 3)
+                    if (!SystemStatistics.CommitHistory)
                         break;
 
                     commitUsage = PhGetItemCircularBuffer_ULONG(SystemStatistics.CommitHistory, getTooltipText->Index);
@@ -828,7 +840,7 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(IoHistoryGraphMessageCallback)
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_LINE_2;
             PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorIoReadOther"), PhGetIntegerSetting(L"ColorIoWrite"));
 
-            if (ProcessesUpdatedCount != 3)
+            if (!(SystemStatistics.IoReadHistory && SystemStatistics.IoOtherHistory && SystemStatistics.IoWriteHistory))
                 break;
 
             PhGraphStateGetDrawInfo(GraphState, getDrawInfo, SystemStatistics.IoReadHistory->Count);
@@ -868,7 +880,7 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(IoHistoryGraphMessageCallback)
                     ULONG64 ioWrite;
                     ULONG64 ioOther;
 
-                    if (ProcessesUpdatedCount != 3)
+                    if (!(SystemStatistics.IoReadHistory && SystemStatistics.IoOtherHistory && SystemStatistics.IoWriteHistory))
                         break;
 
                     ioRead = PhGetItemCircularBuffer_ULONG64(SystemStatistics.IoReadHistory, getTooltipText->Index);
