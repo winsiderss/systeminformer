@@ -1129,6 +1129,7 @@ PhGetNamespaceHandle(
     VOID
     );
 
+_Success_(return)
 PHLIBAPI
 BOOLEAN
 NTAPI
