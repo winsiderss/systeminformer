@@ -41,6 +41,7 @@ typedef struct _PH_CM_SORT_CONTEXT
  * \param AppName A variable which receives the application name.
  * \param SubId A variable which receives the sub-ID.
  */
+_Success_(return)
 BOOLEAN PhEmParseCompoundId(
     _In_ PPH_STRINGREF CompoundId,
     _Out_ PPH_STRINGREF AppName,
@@ -55,11 +56,11 @@ BOOLEAN PhEmParseCompoundId(
 
     if (firstPart.Length == 0)
         return FALSE;
-    if (firstPart.Buffer[0] != '+')
+    if (firstPart.Buffer[0] != L'+')
         return FALSE;
 
     PhSkipStringRef(&firstPart, sizeof(WCHAR));
-    PhSplitStringRefAtChar(&firstPart, '+', &firstPart, &secondPart);
+    PhSplitStringRefAtChar(&firstPart, L'+', &firstPart, &secondPart);
 
     if (firstPart.Length == 0 || secondPart.Length == 0)
         return FALSE;
@@ -220,10 +221,10 @@ BOOLEAN PhCmLoadSettingsEx(
 
         remainingColumnPart = *Settings;
 
-        if (remainingColumnPart.Length != 0 && remainingColumnPart.Buffer[0] == '@')
+        if (remainingColumnPart.Length != 0 && remainingColumnPart.Buffer[0] == L'@')
         {
             PhSkipStringRef(&remainingColumnPart, sizeof(WCHAR));
-            PhSplitStringRefAtChar(&remainingColumnPart, '|', &scalePart, &remainingColumnPart);
+            PhSplitStringRefAtChar(&remainingColumnPart, L'|', &scalePart, &remainingColumnPart);
 
             if (scalePart.Length == 0 || !PhStringToInteger64(&scalePart, 10, &integer))
                 goto CleanupExit;
@@ -242,18 +243,18 @@ BOOLEAN PhCmLoadSettingsEx(
             ULONG displayIndex;
             ULONG width;
 
-            PhSplitStringRefAtChar(&remainingColumnPart, '|', &columnPart, &remainingColumnPart);
+            PhSplitStringRefAtChar(&remainingColumnPart, L'|', &columnPart, &remainingColumnPart);
 
             if (columnPart.Length != 0)
             {
                 // Id
 
-                PhSplitStringRefAtChar(&columnPart, ',', &valuePart, &columnPart);
+                PhSplitStringRefAtChar(&columnPart, L',', &valuePart, &columnPart);
 
                 if (valuePart.Length == 0)
                     goto CleanupExit;
 
-                if (valuePart.Buffer[0] == '+')
+                if (valuePart.Buffer[0] == L'+')
                 {
                     PH_STRINGREF pluginName;
                     ULONG subId;
@@ -283,7 +284,7 @@ BOOLEAN PhCmLoadSettingsEx(
 
                 // Display Index
 
-                PhSplitStringRefAtChar(&columnPart, ',', &valuePart, &columnPart);
+                PhSplitStringRefAtChar(&columnPart, L',', &valuePart, &columnPart);
 
                 if (!(Flags & PH_CM_COLUMN_WIDTHS_ONLY))
                 {
@@ -406,7 +407,7 @@ CleanupExit:
 
     if (SortSettings && SortSettings->Length != 0)
     {
-        PhSplitStringRefAtChar(SortSettings, ',', &valuePart, &subPart);
+        PhSplitStringRefAtChar(SortSettings, L',', &valuePart, &subPart);
 
         if (valuePart.Length != 0 && subPart.Length != 0)
         {
@@ -415,7 +416,7 @@ CleanupExit:
 
             sortColumn = ULONG_MAX;
 
-            if (valuePart.Buffer[0] == '+')
+            if (valuePart.Buffer[0] == L'+')
             {
                 PH_STRINGREF pluginName;
                 ULONG subId;

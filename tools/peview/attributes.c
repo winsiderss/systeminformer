@@ -38,6 +38,8 @@ BOOLEAN NTAPI PvpEnumFileAttributesCallback(
     INT lvItemIndex;
     WCHAR number[PH_INT32_STR_LEN_1];
 
+    if (!context)
+        return TRUE;
     if (Information->EaNameLength == 0)
         return TRUE;
 
