@@ -172,7 +172,7 @@ VOID EtLoadTrayIconGuids(
             if (remaining.Length == 0)
                 continue;
 
-            PhSplitStringRefAtChar(&remaining, '|', &guidPart, &remaining);
+            PhSplitStringRefAtChar(&remaining, L'|', &guidPart, &remaining);
 
             if (guidPart.Length == 0)
                 continue;
@@ -882,8 +882,8 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(EtpToolbarGpuHistoryGraphMessageCallba
             drawInfo->Flags = PH_GRAPH_USE_GRID_X;
             PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), 0);
 
-            if (ProcessesUpdatedCount <= 2)
-                return;
+            if (ProcessesUpdatedCount != 3)
+                break;
 
             PhGraphStateGetDrawInfo(GraphState, getDrawInfo, EtGpuNodeHistory.Count);
 
@@ -953,8 +953,8 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(EtpToolbarDiskHistoryGraphMessageCallb
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_LINE_2;
             PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorIoReadOther"), PhGetIntegerSetting(L"ColorIoWrite"));
 
-            if (ProcessesUpdatedCount <= 2)
-                return;
+            if (ProcessesUpdatedCount != 3)
+                break;
 
             PhGraphStateGetDrawInfo(
                 GraphState,
@@ -1062,8 +1062,8 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(EtpToolbarNetworkHistoryGraphMessageCa
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_LINE_2;
             PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorIoReadOther"), PhGetIntegerSetting(L"ColorIoWrite"));
 
-            if (ProcessesUpdatedCount <= 2)
-                return;
+            if (ProcessesUpdatedCount != 3)
+                break;
 
             PhGraphStateGetDrawInfo(
                 GraphState,

@@ -57,7 +57,7 @@ VOID EtGpuMonitorInitialization(
     VOID
     )
 {
-    EtD3DEnabled = !!PhGetIntegerSetting(SETTING_NAME_ENABLE_D3DKMT);
+    EtD3DEnabled = !!PhGetIntegerSetting(SETTING_NAME_ENABLE_GPUPERFCOUNTERS);
   
     if (PhGetIntegerSetting(SETTING_NAME_ENABLE_GPU_MONITOR))
     {

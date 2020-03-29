@@ -257,6 +257,10 @@ VOID ParseGpuEngineUtilizationCounter(
 
     // pid_12704_luid_0x00000000_0x0000D503_phys_0_eng_3_engtype_VideoDecode
     PhInitializeStringRefLongHint(&remainingPart, InstanceName);
+
+    if (remainingPart.Length == 0)
+        return;
+
     PhSplitStringRefAtChar(&remainingPart, L'_', &partSr, &remainingPart);
     PhSplitStringRefAtChar(&remainingPart, L'_', &pidPartSr, &remainingPart);
     PhSplitStringRefAtChar(&remainingPart, L'_', &partSr, &remainingPart);
