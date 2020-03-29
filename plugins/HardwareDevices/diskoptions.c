@@ -51,7 +51,11 @@ VOID DiskDrivesLoadList(
     PH_STRINGREF remaining;
 
     settingsString = PhaGetStringSetting(SETTING_NAME_DISK_LIST);
-    remaining = settingsString->sr;
+
+    if (PhIsNullOrEmptyString(settingsString))
+        return;
+
+    remaining = PhGetStringRef(settingsString);
 
     while (remaining.Length != 0)
     {
@@ -62,7 +66,7 @@ VOID DiskDrivesLoadList(
         if (remaining.Length == 0)
             break;
 
-        PhSplitStringRefAtChar(&remaining, ',', &part, &remaining);
+        PhSplitStringRefAtChar(&remaining, L',', &part, &remaining);
 
         InitializeDiskId(&id, PhCreateString2(&part));
         entry = CreateDiskEntry(&id);
@@ -596,7 +600,7 @@ VOID LoadDiskDriveImages(
     }
 
     // %SystemRoot%\System32\setupapi.dll,-53
-    PhSplitStringRefAtChar(&deviceDescription->sr, ',', &dllPartSr, &indexPartSr);
+    PhSplitStringRefAtChar(&deviceDescription->sr, L',', &dllPartSr, &indexPartSr);
     PhStringToInteger64(&indexPartSr, 10, &index);
     PhMoveReference(&deviceDescription, PhExpandEnvironmentStrings(&dllPartSr));
 

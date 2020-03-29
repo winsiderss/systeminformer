@@ -53,7 +53,11 @@ VOID NetAdaptersLoadList(
     PH_STRINGREF remaining;
 
     settingsString = PhaGetStringSetting(SETTING_NAME_INTERFACE_LIST);
-    remaining = settingsString->sr;
+
+    if (PhIsNullOrEmptyString(settingsString))
+        return;
+
+    remaining = PhGetStringRef(settingsString);
 
     while (remaining.Length != 0)
     {
@@ -69,9 +73,9 @@ VOID NetAdaptersLoadList(
         if (remaining.Length == 0)
             break;
 
-        PhSplitStringRefAtChar(&remaining, ',', &part1, &remaining);
-        PhSplitStringRefAtChar(&remaining, ',', &part2, &remaining);
-        PhSplitStringRefAtChar(&remaining, ',', &part3, &remaining);
+        PhSplitStringRefAtChar(&remaining, L',', &part1, &remaining);
+        PhSplitStringRefAtChar(&remaining, L',', &part2, &remaining);
+        PhSplitStringRefAtChar(&remaining, L',', &part3, &remaining);
 
         PhStringToInteger64(&part1, 10, &ifindex);
         PhStringToInteger64(&part2, 10, &luid64);
@@ -720,7 +724,7 @@ VOID LoadNetworkAdapterImages(
         ULONG64 index = 0;
 
         if (
-            PhSplitStringRefAtChar(&deviceIconPath->sr, ',', &dllPartSr, &indexPartSr) && 
+            PhSplitStringRefAtChar(&deviceIconPath->sr, L',', &dllPartSr, &indexPartSr) && 
             PhStringToInteger64(&indexPartSr, 10, &index)
             )
         {
