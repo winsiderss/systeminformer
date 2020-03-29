@@ -287,6 +287,7 @@ BOOLEAN LookupSockInAddr4CountryCode(
     _Out_ PPH_STRING *CountryName
     );
 
+_Success_(return)
 BOOLEAN LookupSockInAddr6CountryCode(
     _In_ IN6_ADDR RemoteAddress,
     _Out_ PPH_STRING *CountryCode,

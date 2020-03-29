@@ -284,9 +284,9 @@ ULONG64 ParseVersionString(
 
     PhInitializeStringRef(&remaining, PhGetStringOrEmpty(VersionString));
 
-    PhSplitStringRefAtChar(&remaining, '.', &majorPart, &remaining);
-    PhSplitStringRefAtChar(&remaining, '.', &minorPart, &remaining);
-    PhSplitStringRefAtChar(&remaining, '.', &revisionPart, &remaining);
+    PhSplitStringRefAtChar(&remaining, L'.', &majorPart, &remaining);
+    PhSplitStringRefAtChar(&remaining, L'.', &minorPart, &remaining);
+    PhSplitStringRefAtChar(&remaining, L'.', &revisionPart, &remaining);
 
     PhStringToInteger64(&majorPart, 10, &majorInteger);
     PhStringToInteger64(&minorPart, 10, &minorInteger);

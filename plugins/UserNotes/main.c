@@ -127,10 +127,11 @@ VOID LoadCustomColors(
     PH_STRINGREF part;
 
     settingsString = PhaGetStringSetting(SETTING_NAME_CUSTOM_COLOR_LIST);
-    remaining = settingsString->sr;
 
-    if (remaining.Length == 0)
+    if (PhIsNullOrEmptyString(settingsString))
         return;
+
+    remaining = PhGetStringRef(settingsString);
 
     for (ULONG i = 0; i < ARRAYSIZE(ProcessCustomColors); i++)
     {
@@ -139,7 +140,7 @@ VOID LoadCustomColors(
         if (remaining.Length == 0)
             break;
 
-        PhSplitStringRefAtChar(&remaining, ',', &part, &remaining);
+        PhSplitStringRefAtChar(&remaining, L',', &part, &remaining);
 
         if (PhStringToInteger64(&part, 10, &integer))
         {

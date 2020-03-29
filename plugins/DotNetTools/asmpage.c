@@ -1009,7 +1009,7 @@ static VOID NTAPI DotNetEventCallback(
                     node->u.Assembly.FullyQualifiedAssemblyName = PhCreateStringEx(data->FullyQualifiedAssemblyName, fullyQualifiedAssemblyNameLength);
 
                     // Display only the assembly name, not the whole fully qualified name.
-                    if (!PhSplitStringRefAtChar(&node->u.Assembly.FullyQualifiedAssemblyName->sr, ',', &node->StructureText, &remainingPart))
+                    if (!PhSplitStringRefAtChar(&node->u.Assembly.FullyQualifiedAssemblyName->sr, L',', &node->StructureText, &remainingPart))
                         node->StructureText = node->u.Assembly.FullyQualifiedAssemblyName->sr;
 
                     node->IdText = PhFormatUInt64(data->AssemblyID, FALSE);
@@ -1421,7 +1421,7 @@ BOOLEAN WordMatchStringRef(
 
     while (remainingPart.Length != 0)
     {
-        PhSplitStringRefAtChar(&remainingPart, '|', &part, &remainingPart);
+        PhSplitStringRefAtChar(&remainingPart, L'|', &part, &remainingPart);
 
         if (part.Length != 0)
         {

@@ -1452,9 +1452,9 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
             // Create the Taskdialog icons
             TaskDialogCreateIcons(context);
 
-            if (SUCCEEDED(CoCreateInstance(&CLSID_TaskbarList, NULL, CLSCTX_INPROC_SERVER, &IID_ITaskbarList3, &context->TaskbarListClass)))
+            if (SUCCEEDED(PhGetClassObject(L"explorerframe.dll", &CLSID_TaskbarList, &IID_ITaskbarList3, &context->TaskbarListClass)))
             {
-                if (!SUCCEEDED(ITaskbarList3_HrInit(context->TaskbarListClass)))
+                if (FAILED(ITaskbarList3_HrInit(context->TaskbarListClass)))
                 {
                     ITaskbarList3_Release(context->TaskbarListClass);
                     context->TaskbarListClass = NULL;
