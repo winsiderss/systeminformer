@@ -161,6 +161,11 @@ namespace CustomBuildTool
         //        dst.Save(OutName, System.Drawing.Imaging.ImageFormat.Png);
         //    }
         //}
+
+        public static string GetEnvironmentVariable(string Name)
+        {
+            return Environment.ExpandEnvironmentVariables(Name).Replace(Name, string.Empty, StringComparison.OrdinalIgnoreCase);
+        }
     }
 
     public static class Json<T> where T : class

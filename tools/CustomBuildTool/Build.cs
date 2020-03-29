@@ -198,7 +198,7 @@ namespace CustomBuildTool
             MSBuildExePath = VisualStudio.GetMsbuildFilePath();
             CustomSignToolPath = VisualStudio.GetCustomSignToolFilePath();
             GitExePath = VisualStudio.GetGitFilePath();
-            BuildNightly = !string.Equals(Environment.ExpandEnvironmentVariables("%APPVEYOR_BUILD_API%"), "%APPVEYOR_BUILD_API%", StringComparison.OrdinalIgnoreCase);
+            BuildNightly = !string.IsNullOrEmpty(Win32.GetEnvironmentVariable("%APPVEYOR_BUILD_API%"));
             
             if (!File.Exists(MSBuildExePath))
             {
@@ -709,7 +709,7 @@ namespace CustomBuildTool
 
             if (BuildNightly && !File.Exists("build\\kph.key"))
             {
-                string kphKey = Environment.ExpandEnvironmentVariables("%KPH_BUILD_KEY%").Replace("%KPH_BUILD_KEY%", string.Empty, StringComparison.OrdinalIgnoreCase);
+                string kphKey = Win32.GetEnvironmentVariable("%KPH_BUILD_KEY%");
 
                 if (!string.IsNullOrEmpty(kphKey))
                 {
@@ -1062,7 +1062,7 @@ namespace CustomBuildTool
 
             if (BuildNightly && !File.Exists("build\\nightly.key"))
             {
-                string buildKey = Environment.ExpandEnvironmentVariables("%NIGHTLY_BUILD_KEY%").Replace("%NIGHTLY_BUILD_KEY%", string.Empty, StringComparison.OrdinalIgnoreCase);
+                string buildKey = Win32.GetEnvironmentVariable("%NIGHTLY_BUILD_KEY%");
 
                 if (!string.IsNullOrEmpty(buildKey))
                 {
@@ -1203,6 +1203,8 @@ namespace CustomBuildTool
             string buildJobId;
             string buildPostUrl;
             string buildPostApiKey;
+            string buildPostSfUrl;
+            string buildPostSfApiKey;
             string buildChangelog;
             string buildSummary;
             string buildMessage;
@@ -1211,15 +1213,21 @@ namespace CustomBuildTool
             if (!BuildNightly)
                 return true;
 
-            buildJobId = Environment.ExpandEnvironmentVariables("%APPVEYOR_JOB_ID%").Replace("%APPVEYOR_JOB_ID%", string.Empty, StringComparison.OrdinalIgnoreCase);
-            buildPostUrl = Environment.ExpandEnvironmentVariables("%APPVEYOR_BUILD_API%").Replace("%APPVEYOR_BUILD_API%", string.Empty, StringComparison.OrdinalIgnoreCase);
-            buildPostApiKey = Environment.ExpandEnvironmentVariables("%APPVEYOR_BUILD_KEY%").Replace("%APPVEYOR_BUILD_KEY%", string.Empty, StringComparison.OrdinalIgnoreCase);
+            buildJobId = Win32.GetEnvironmentVariable("%APPVEYOR_JOB_ID%");
+            buildPostUrl = Win32.GetEnvironmentVariable("%APPVEYOR_BUILD_API%");
+            buildPostApiKey = Win32.GetEnvironmentVariable("%APPVEYOR_BUILD_KEY%");
+            buildPostSfUrl = Win32.GetEnvironmentVariable("%APPVEYOR_BUILD_SF_API%");
+            buildPostSfApiKey = Win32.GetEnvironmentVariable("%APPVEYOR_BUILD_SF_KEY%");
 
             if (string.IsNullOrEmpty(buildJobId))
                 return false;
             if (string.IsNullOrEmpty(buildPostUrl))
                 return false;
             if (string.IsNullOrEmpty(buildPostApiKey))
+                return false;
+            if (string.IsNullOrEmpty(buildPostSfUrl))
+                return false;
+            if (string.IsNullOrEmpty(buildPostSfApiKey))
                 return false;
             if (string.IsNullOrEmpty(BuildVersion))
                 return false;
@@ -1272,19 +1280,6 @@ namespace CustomBuildTool
                 using (HttpClientHandler httpClientHandler = new HttpClientHandler())
                 {
                     httpClientHandler.AutomaticDecompression = DecompressionMethods.All;
-                    httpClientHandler.ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) =>
-                    {
-                        // Allow this client to communicate with authenticated servers.
-                        if (sslPolicyErrors == System.Net.Security.SslPolicyErrors.None)
-                            return true;
-
-                        // Temporarily ignore wj32.org expired certificate.
-                        if (string.Equals(cert.GetCertHashString(System.Security.Cryptography.HashAlgorithmName.SHA1), "b60cb3b6aac5f59075689fc3c7dfd561750ce100", StringComparison.OrdinalIgnoreCase))
-                            return true;
-
-                        // Do not allow this client to communicate with unauthenticated servers.
-                        return false;
-                    };
 
                     using (HttpClient client = new HttpClient(httpClientHandler))
                     {
@@ -1307,6 +1302,33 @@ namespace CustomBuildTool
                 return false;
             }
 
+            try
+            {
+                using (HttpClientHandler httpClientHandler = new HttpClientHandler())
+                {
+                    httpClientHandler.AutomaticDecompression = DecompressionMethods.All;
+
+                    using (HttpClient client = new HttpClient(httpClientHandler))
+                    {
+                        client.DefaultRequestHeaders.Add("X-ApiKey", buildPostSfApiKey);
+
+                        var httpTask = client.PostAsync(buildPostSfUrl, new StringContent(buildPostString, Encoding.UTF8, "application/json"));
+                        httpTask.Wait();
+
+                        if (!httpTask.Result.IsSuccessStatusCode)
+                        {
+                            Program.PrintColorMessage("[UpdateBuildWebService-SF] " + httpTask.Result, ConsoleColor.Red);
+                            return false;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Program.PrintColorMessage("[UpdateBuildWebService-SF] " + ex, ConsoleColor.Red);
+                return false;
+            }
+
             if (!AppVeyor.UpdateBuildVersion(BuildVersion)) // Update Appveyor build version string.
             {
                 return false;
@@ -1326,11 +1348,11 @@ namespace CustomBuildTool
             if (!BuildNightly)
                 return true;
 
-            buildPostUrl = Environment.ExpandEnvironmentVariables("%APPVEYOR_NIGHTLY_URL%").Replace("%APPVEYOR_NIGHTLY_URL%", string.Empty, StringComparison.OrdinalIgnoreCase);
-            buildPostKey = Environment.ExpandEnvironmentVariables("%APPVEYOR_NIGHTLY_KEY%").Replace("%APPVEYOR_NIGHTLY_KEY%", string.Empty, StringComparison.OrdinalIgnoreCase);
-            buildPostName = Environment.ExpandEnvironmentVariables("%APPVEYOR_NIGHTLY_NAME%").Replace("%APPVEYOR_NIGHTLY_NAME%", string.Empty, StringComparison.OrdinalIgnoreCase);
-            buildBuildUrl = Environment.ExpandEnvironmentVariables("%APPVEYOR_BUILD_URL%").Replace("%APPVEYOR_BUILD_URL%", string.Empty, StringComparison.OrdinalIgnoreCase);
-            buildBuildUrlKey = Environment.ExpandEnvironmentVariables("%APPVEYOR_BUILD_URL_KEY%").Replace("%APPVEYOR_BUILD_URL_KEY%", string.Empty, StringComparison.OrdinalIgnoreCase);
+            buildPostUrl = Win32.GetEnvironmentVariable("%APPVEYOR_NIGHTLY_URL%");
+            buildPostKey = Win32.GetEnvironmentVariable("%APPVEYOR_NIGHTLY_KEY%");
+            buildPostName = Win32.GetEnvironmentVariable("%APPVEYOR_NIGHTLY_NAME%");
+            buildBuildUrl = Win32.GetEnvironmentVariable("%APPVEYOR_BUILD_URL%");
+            buildBuildUrlKey = Win32.GetEnvironmentVariable("%APPVEYOR_BUILD_URL_KEY%");
 
             if (string.IsNullOrEmpty(buildPostUrl))
                 return false;
@@ -1399,19 +1421,6 @@ namespace CustomBuildTool
                         using (HttpClientHandler httpClientHandler = new HttpClientHandler())
                         {
                             httpClientHandler.AutomaticDecompression = DecompressionMethods.All;
-                            httpClientHandler.ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) =>
-                            {
-                                // Allow this client to communicate with authenticated servers.
-                                if (sslPolicyErrors == System.Net.Security.SslPolicyErrors.None)
-                                    return true;
-
-                                // Temporarily ignore wj32.org expired certificate.
-                                if (string.Equals(cert.GetCertHashString(System.Security.Cryptography.HashAlgorithmName.SHA1), "b60cb3b6aac5f59075689fc3c7dfd561750ce100", StringComparison.OrdinalIgnoreCase))
-                                    return true;
-
-                                // Do not allow this client to communicate with unauthenticated servers.
-                                return false;
-                            };
 
                             using (HttpClient client = new HttpClient(httpClientHandler))
                             using (FileStream fileStream = File.OpenRead(sourceFile))
