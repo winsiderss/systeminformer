@@ -3,7 +3,7 @@
  *   ETW disk monitoring
  *
  * Copyright (C) 2011-2015 wj32
- * Copyright (C) 2018-2019 dmex
+ * Copyright (C) 2018-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -32,6 +32,7 @@ static HWND DiskTreeNewHandle = NULL;
 static ULONG DiskTreeNewSortColumn = 0;
 static PH_SORT_ORDER DiskTreeNewSortOrder = NoSortOrder;
 static PH_STRINGREF DiskTreeEmptyText = PH_STRINGREF_INIT(L"Disk monitoring requires Process Hacker to be restarted with administrative privileges.");
+static PPH_STRING DiskTreeErrorText = NULL;
 
 static PPH_HASHTABLE DiskNodeHashtable = NULL; // hashtable of all nodes
 static PPH_LIST DiskNodeList = NULL; // list of all nodes
@@ -124,8 +125,7 @@ BOOLEAN EtpDiskPageCallback(
 
             if (PhGetIntegerSetting(L"EnableThemeSupport"))
             {
-                // HACK (dmex)
-                PhInitializeThemeWindowHeader(TreeNew_GetHeader(hwnd));
+                PhInitializeThemeWindowHeader(TreeNew_GetHeader(hwnd)); // HACK (dmex)
                 TreeNew_ThemeSupport(hwnd, TRUE);
             }
             
@@ -142,7 +142,37 @@ BOOLEAN EtpDiskPageCallback(
             EtInitializeDiskTreeList(hwnd);
 
             if (!EtEtwEnabled)
-                TreeNew_SetEmptyText(hwnd, &DiskTreeEmptyText, 0);
+            {
+                if (EtEtwStatus != ERROR_SUCCESS)
+                {
+                    PPH_STRING statusMessage;
+
+                    if (statusMessage = PhGetStatusMessage(0, EtEtwStatus))
+                    {
+                        DiskTreeErrorText = PhFormatString(
+                            L"%s %s (%lu)",
+                            L"Unable to start the kernel event tracing session: ",
+                            statusMessage->Buffer,
+                            EtEtwStatus
+                            );
+                        PhDereferenceObject(statusMessage);
+                    }
+                    else
+                    {
+                        DiskTreeErrorText = PhFormatString(
+                            L"%s (%lu)",
+                            L"Unable to start the kernel event tracing session: ",
+                            EtEtwStatus
+                            );
+                    }
+
+                    TreeNew_SetEmptyText(hwnd, &DiskTreeErrorText->sr, 0);
+                }
+                else
+                {
+                    TreeNew_SetEmptyText(hwnd, &DiskTreeEmptyText, 0);
+                }
+            }
 
             PhInitializeProviderEventQueue(&EtpDiskEventQueue, 100);
 

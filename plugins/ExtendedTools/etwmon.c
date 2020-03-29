@@ -3,7 +3,7 @@
  *   ETW monitoring
  *
  * Copyright (C) 2010-2015 wj32
- * Copyright (C) 2019 dmex
+ * Copyright (C) 2019-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -62,23 +62,24 @@ static GUID UdpIpGuid_I = { 0xbf3a50c5, 0xa9c9, 0x4988, { 0xa0, 0x05, 0x2d, 0xf0
 
 // ETW tracing layer
 
-BOOLEAN EtEtwEnabled;
+BOOLEAN EtEtwEnabled = FALSE;
+ULONG EtEtwStatus = ERROR_SUCCESS;
 static UNICODE_STRING EtpSharedKernelLoggerName = RTL_CONSTANT_STRING(KERNEL_LOGGER_NAME);
 static UNICODE_STRING EtpPrivateKernelLoggerName = RTL_CONSTANT_STRING(L"PhEtKernelLogger");
-static TRACEHANDLE EtpSessionHandle;
-static PUNICODE_STRING EtpActualKernelLoggerName;
-static PGUID EtpActualSessionGuid;
-static PEVENT_TRACE_PROPERTIES EtpTraceProperties;
-static BOOLEAN EtpEtwActive;
-static BOOLEAN EtpStartedSession;
-static BOOLEAN EtpEtwExiting;
+static TRACEHANDLE EtpSessionHandle = 0;
+static PUNICODE_STRING EtpActualKernelLoggerName = NULL;
+static PGUID EtpActualSessionGuid = NULL;
+static PEVENT_TRACE_PROPERTIES EtpTraceProperties = NULL;
+static BOOLEAN EtpEtwActive = FALSE;
+static BOOLEAN EtpStartedSession = FALSE;
+static BOOLEAN EtpEtwExiting = FALSE;
 
 // ETW rundown layer
 
 static UNICODE_STRING EtpRundownLoggerName = RTL_CONSTANT_STRING(L"PhEtRundownLogger");
-static TRACEHANDLE EtpRundownSessionHandle;
-static PEVENT_TRACE_PROPERTIES EtpRundownTraceProperties;
-static BOOLEAN EtpRundownActive;
+static TRACEHANDLE EtpRundownSessionHandle = 0;
+static PEVENT_TRACE_PROPERTIES EtpRundownTraceProperties = NULL;
+static BOOLEAN EtpRundownActive = FALSE;
 
 VOID EtEtwMonitorInitialization(
     VOID
@@ -115,7 +116,6 @@ VOID EtStartEtwSession(
     VOID
     )
 {
-    ULONG result;
     ULONG bufferSize;
 
     if (WindowsVersion >= WINDOWS_8)
@@ -150,21 +150,21 @@ VOID EtStartEtwSession(
     if (WindowsVersion >= WINDOWS_8)
         EtpTraceProperties->LogFileMode |= EVENT_TRACE_SYSTEM_LOGGER_MODE;
 
-    result = StartTrace(&EtpSessionHandle, EtpActualKernelLoggerName->Buffer, EtpTraceProperties);
+    EtEtwStatus = StartTrace(&EtpSessionHandle, EtpActualKernelLoggerName->Buffer, EtpTraceProperties);
 
-    if (result == ERROR_SUCCESS)
+    if (EtEtwStatus == ERROR_SUCCESS)
     {
         EtEtwEnabled = TRUE;
         EtpEtwActive = TRUE;
         EtpStartedSession = TRUE;
     }
-    else if (result == ERROR_ALREADY_EXISTS)
+    else if (EtEtwStatus == ERROR_ALREADY_EXISTS)
     {
         EtEtwEnabled = TRUE;
         EtpEtwActive = TRUE;
         EtpStartedSession = FALSE;
         // The session already exists.
-        //result = ControlTrace(0, EtpActualKernelLoggerName->Buffer, EtpTraceProperties, EVENT_TRACE_CONTROL_UPDATE);
+        //EtEtwStatus = ControlTrace(0, EtpActualKernelLoggerName->Buffer, EtpTraceProperties, EVENT_TRACE_CONTROL_UPDATE);
     }
     else
     {

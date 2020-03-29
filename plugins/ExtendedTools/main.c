@@ -170,7 +170,7 @@ VOID NTAPI ProcessesUpdatedCallback(
     _In_opt_ PVOID Context
     )
 {
-    if (ProcessesUpdatedCount <= 2)
+    if (ProcessesUpdatedCount != 3)
     {
         ProcessesUpdatedCount++;
         return;
@@ -694,7 +694,7 @@ LOGICAL DllMain(
             {
                 { StringSettingType, SETTING_NAME_DISK_TREE_LIST_COLUMNS, L"" },
                 { IntegerPairSettingType, SETTING_NAME_DISK_TREE_LIST_SORT, L"4,2" }, // 4, DescendingSortOrder
-                { IntegerSettingType, SETTING_NAME_ENABLE_D3DKMT, L"1" },
+                { IntegerSettingType, SETTING_NAME_ENABLE_GPUPERFCOUNTERS, L"0" },
                 { IntegerSettingType, SETTING_NAME_ENABLE_DISKEXT, L"1" },
                 { IntegerSettingType, SETTING_NAME_ENABLE_ETW_MONITOR, L"1" },
                 { IntegerSettingType, SETTING_NAME_ENABLE_GPU_MONITOR, L"1" },

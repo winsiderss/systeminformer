@@ -881,7 +881,7 @@ ET_FIREWALL_STATUS EtQueryFirewallStatus(
 
     if (!manager)
     {
-        if (!SUCCEEDED(CoCreateInstance(&CLSID_NetFwMgr_I, NULL, CLSCTX_INPROC_SERVER, &IID_INetFwMgr_I, &manager)))
+        if (!SUCCEEDED(PhGetClassObject(L"firewallapi.dll", &CLSID_NetFwMgr_I, &IID_INetFwMgr_I, &manager)))
             return FirewallUnknownStatus;
 
         if (!manager)
