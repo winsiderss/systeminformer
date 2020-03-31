@@ -1314,7 +1314,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemWatchdogTimerInformation, // q (kernel-mode only); s (kernel-mode only)
     SystemLogicalProcessorInformation, // q: SYSTEM_LOGICAL_PROCESSOR_INFORMATION
     SystemWow64SharedInformationObsolete, // not implemented
-    SystemRegisterFirmwareTableInformationHandler, // s (kernel-mode only)
+    SystemRegisterFirmwareTableInformationHandler, // s: SYSTEM_FIRMWARE_TABLE_HANDLER // (kernel-mode only)
     SystemFirmwareTableInformation, // SYSTEM_FIRMWARE_TABLE_INFORMATION
     SystemModuleInformationEx, // q: RTL_PROCESS_MODULE_INFORMATION_EX
     SystemVerifierTriageInformation, // not implemented
@@ -1449,6 +1449,10 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemFlags2Information, // q: SYSTEM_FLAGS_INFORMATION
     SystemSecurityModelInformation, // SYSTEM_SECURITY_MODEL_INFORMATION // since 19H1
     SystemCodeIntegritySyntheticCacheInformation,
+    SystemFeatureConfigurationInformation, // SYSTEM_FEATURE_CONFIGURATION_INFORMATION // since 20H1
+    SystemFeatureConfigurationSectionInformation,
+    SystemFeatureUsageSubscriptionInformation,
+    SystemSecureSpeculationControlInformation,
     MaxSystemInfoClass
 } SYSTEM_INFORMATION_CLASS;
 
@@ -2308,6 +2312,20 @@ typedef struct _SYSTEM_SESSION_MAPPED_VIEW_INFORMATION
     SIZE_T NumberOfBytesAvailable;
     SIZE_T NumberOfBytesAvailableContiguous;
 } SYSTEM_SESSION_MAPPED_VIEW_INFORMATION, *PSYSTEM_SESSION_MAPPED_VIEW_INFORMATION;
+
+// private
+typedef NTSTATUS (__cdecl* PFNFTH)(
+    _Inout_ PSYSTEM_FIRMWARE_TABLE_INFORMATION SystemFirmwareTableInfo
+    );
+
+// private
+typedef struct _SYSTEM_FIRMWARE_TABLE_HANDLER
+{
+    ULONG ProviderSignature;
+    BOOLEAN Register;
+    PFNFTH FirmwareTableHandler;
+    PVOID DriverObject;
+} SYSTEM_FIRMWARE_TABLE_HANDLER, *PSYSTEM_FIRMWARE_TABLE_HANDLER;
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 // private
@@ -3437,6 +3455,26 @@ typedef struct _SYSTEM_SECURITY_MODEL_INFORMATION
         };
     };
 } SYSTEM_SECURITY_MODEL_INFORMATION, *PSYSTEM_SECURITY_MODEL_INFORMATION;
+
+// private
+typedef struct _RTL_FEATURE_CONFIGURATION
+{
+    ULONG FeatureId;
+    ULONG Priority : 4;
+    ULONG EnabledState : 2;
+    ULONG IsWexpConfiguration : 1;
+    ULONG HasSubscriptions : 1;
+    ULONG Variant : 6;
+    ULONG VariantPayloadKind : 2;
+    ULONG VariantPayload;
+} RTL_FEATURE_CONFIGURATION, *PRTL_FEATURE_CONFIGURATION;
+
+// private
+typedef struct _SYSTEM_FEATURE_CONFIGURATION_INFORMATION
+{
+    ULONGLONG ChangeStamp;
+    RTL_FEATURE_CONFIGURATION Configuration;
+} SYSTEM_FEATURE_CONFIGURATION_INFORMATION, *PSYSTEM_FEATURE_CONFIGURATION_INFORMATION;
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
