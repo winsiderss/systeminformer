@@ -78,13 +78,13 @@ VOID PeInitializeSettings(
     )
 {
     static PH_STRINGREF settingsPath = PH_STRINGREF_INIT(L"%APPDATA%\\Process Hacker\\peview.xml");
-    static PH_STRINGREF settingsSuffix = PH_STRINGREF_INIT(L".peview.xml");
+    static PH_STRINGREF settingsSuffix = PH_STRINGREF_INIT(L".settings.xml");
     NTSTATUS status;
     PPH_STRING appFileName;
     PPH_STRING tempFileName;  
 
     // There are three possible locations for the settings file:
-    // 1. A file named peview.exe.peview.xml in the program directory. (This changes
+    // 1. A file named peview.exe.settings.xml in the program directory. (This changes
     //    based on the executable file name.)
     // 2. The default location.
 
