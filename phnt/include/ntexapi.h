@@ -2313,20 +2313,6 @@ typedef struct _SYSTEM_SESSION_MAPPED_VIEW_INFORMATION
     SIZE_T NumberOfBytesAvailableContiguous;
 } SYSTEM_SESSION_MAPPED_VIEW_INFORMATION, *PSYSTEM_SESSION_MAPPED_VIEW_INFORMATION;
 
-// private
-typedef NTSTATUS (__cdecl* PFNFTH)(
-    _Inout_ PSYSTEM_FIRMWARE_TABLE_INFORMATION SystemFirmwareTableInfo
-    );
-
-// private
-typedef struct _SYSTEM_FIRMWARE_TABLE_HANDLER
-{
-    ULONG ProviderSignature;
-    BOOLEAN Register;
-    PFNFTH FirmwareTableHandler;
-    PVOID DriverObject;
-} SYSTEM_FIRMWARE_TABLE_HANDLER, *PSYSTEM_FIRMWARE_TABLE_HANDLER;
-
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 // private
 typedef enum _SYSTEM_FIRMWARE_TABLE_ACTION
@@ -2346,6 +2332,20 @@ typedef struct _SYSTEM_FIRMWARE_TABLE_INFORMATION
     UCHAR TableBuffer[1];
 } SYSTEM_FIRMWARE_TABLE_INFORMATION, *PSYSTEM_FIRMWARE_TABLE_INFORMATION;
 #endif
+
+// private
+typedef NTSTATUS (__cdecl* PFNFTH)(
+    _Inout_ PSYSTEM_FIRMWARE_TABLE_INFORMATION SystemFirmwareTableInfo
+    );
+
+// private
+typedef struct _SYSTEM_FIRMWARE_TABLE_HANDLER
+{
+    ULONG ProviderSignature;
+    BOOLEAN Register;
+    PFNFTH FirmwareTableHandler;
+    PVOID DriverObject;
+} SYSTEM_FIRMWARE_TABLE_HANDLER, *PSYSTEM_FIRMWARE_TABLE_HANDLER;
 
 // private
 typedef struct _SYSTEM_MEMORY_LIST_INFORMATION
