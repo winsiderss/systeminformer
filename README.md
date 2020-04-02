@@ -4,14 +4,14 @@
 [![Github stats](https://img.shields.io/github/downloads/processhacker/processhacker/total.svg?style=for-the-badge&color=red)](https://github.com/processhacker/processhacker/releases)
 [![SourceForge stats](https://img.shields.io/sourceforge/dt/processhacker.svg?style=for-the-badge&color=red)](https://sourceforge.net/projects/processhacker/)
 
-![Logo](https://raw.githubusercontent.com/processhacker2/processhacker/master/ProcessHacker/resources/ProcessHacker.png)
+![Logo](https://raw.githubusercontent.com/processhacker/processhacker/master/ProcessHacker/resources/ProcessHacker.png)
 
 ## Process Hacker
 
 A free, powerful, multi-purpose tool that helps you monitor system resources, debug software and detect malware.
 
 * [Official Website](https://processhacker.sourceforge.io/)
-* [Nightly Builds](https://wj32.org/processhacker/nightly.php)
+* [Nightly Builds](https://processhacker.sourceforge.io/nightly.php)
 
 ## System requirements
 
