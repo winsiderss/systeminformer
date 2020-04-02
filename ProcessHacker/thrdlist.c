@@ -369,6 +369,24 @@ VOID PhTickThreadNodes(
     _In_ PPH_THREAD_LIST_CONTEXT Context
     )
 {
+    // Text invalidation, node updates
+
+    for (ULONG i = 0; i < Context->NodeList->Count; i++)
+    {
+        PPH_THREAD_NODE node = Context->NodeList->Items[i];
+
+        // The TID never changes, so we don't invalidate that.
+        memset(&node->TextCache[1], 0, sizeof(PH_STRINGREF) * (PH_THREAD_TREELIST_COLUMN_MAXIMUM - 1));
+        node->ValidMask = 0; // Items that always remain valid
+    }
+
+    if (Context->TreeNewSortOrder != NoSortOrder)
+    {
+        // Force a rebuild to sort the items.
+        TreeNew_NodesStructured(Context->TreeNewHandle);
+    }
+
+    // State highlighting
     PH_TICK_SH_STATE_TN(PH_THREAD_NODE, ShState, Context->NodeStateList, PhpRemoveThreadNode, PhCsHighlightingDuration, Context->TreeNewHandle, TRUE, NULL, Context);
 }
 
