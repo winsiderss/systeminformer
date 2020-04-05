@@ -314,6 +314,15 @@ PhQueryEnvironmentVariable(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhSetEnvironmentVariable(
+    _In_opt_ PVOID Environment,
+    _In_ PPH_STRINGREF Name,
+    _In_opt_ PPH_STRINGREF Value
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhGetProcessMappedFileName(
     _In_ HANDLE ProcessHandle,
     _In_ PVOID BaseAddress,
