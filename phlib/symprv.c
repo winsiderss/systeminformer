@@ -1019,7 +1019,11 @@ PRUNTIME_FUNCTION PhpLookupFunctionEntry(
 
             if (RelativeControlPc < Functions[i].BeginAddress)
                 high = i - 1;
+#ifdef _ARM64_
+            else if (RelativeControlPc >= (Functions[i].BeginAddress + Functions[i].FunctionLength))
+#else
             else if (RelativeControlPc >= Functions[i].EndAddress)
+#endif
                 low = i + 1;
             else
                 return &Functions[i];
@@ -1029,7 +1033,13 @@ PRUNTIME_FUNCTION PhpLookupFunctionEntry(
     {
         for (i = 0; i < NumberOfFunctions; i++)
         {
-            if (RelativeControlPc >= Functions[i].BeginAddress && RelativeControlPc < Functions[i].EndAddress)
+#ifdef _ARM64_
+            if (RelativeControlPc >= Functions[i].BeginAddress &&
+                RelativeControlPc < (Functions[i].BeginAddress + Functions[i].FunctionLength))
+#else
+            if (RelativeControlPc >= Functions[i].BeginAddress &&
+                RelativeControlPc < Functions[i].EndAddress)
+#endif
                 return &Functions[i];
         }
     }
@@ -1535,12 +1545,23 @@ NTSTATUS PhWalkThreadStack(
             goto SkipAmd64Stack;
 
         memset(&stackFrame, 0, sizeof(STACKFRAME64));
+
+        // Program counter, Stack pointer, Frame pointer
+#ifdef _ARM64_
+        stackFrame.AddrPC.Mode = AddrModeFlat;
+        stackFrame.AddrPC.Offset = context.Pc;
+        stackFrame.AddrStack.Mode = AddrModeFlat;
+        stackFrame.AddrStack.Offset = context.Sp;
+        stackFrame.AddrFrame.Mode = AddrModeFlat;
+        stackFrame.AddrFrame.Offset = context.Fp;
+#else
         stackFrame.AddrPC.Mode = AddrModeFlat;
         stackFrame.AddrPC.Offset = context.Rip;
         stackFrame.AddrStack.Mode = AddrModeFlat;
         stackFrame.AddrStack.Offset = context.Rsp;
         stackFrame.AddrFrame.Mode = AddrModeFlat;
         stackFrame.AddrFrame.Offset = context.Rbp;
+#endif
 
         while (TRUE)
         {
