@@ -1315,6 +1315,32 @@ NTSTATUS PhQueryEnvironmentVariable(
     return status;
 }
 
+NTSTATUS PhSetEnvironmentVariable(
+    _In_opt_ PVOID Environment,
+    _In_ PPH_STRINGREF Name,
+    _In_opt_ PPH_STRINGREF Value
+    )
+{
+    NTSTATUS status;
+    UNICODE_STRING variableNameUs;
+    UNICODE_STRING variableValueUs;
+
+    PhStringRefToUnicodeString(Name, &variableNameUs);
+
+    if (Value)
+        PhStringRefToUnicodeString(Value, &variableValueUs);
+    else
+        RtlInitEmptyUnicodeString(&variableValueUs, NULL, 0);
+
+    status = RtlSetEnvironmentVariable(
+        Environment,
+        &variableNameUs,
+        &variableValueUs
+        );
+
+    return status;
+}
+
 /**
  * Gets the file name of a mapped section.
  *
