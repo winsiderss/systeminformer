@@ -252,7 +252,7 @@ HANDLE PhCreateThread(
         &threadHandle,
         NULL
         );
-    
+
     // NOTE: PhCreateThread previously used CreateThread with callers using GetLastError()
     // for checking errors. We need to preserve this behavior for compatibility -dmex
     // TODO: Migrate code over to PhCreateThreadEx and remove this function.
@@ -598,6 +598,7 @@ SIZE_T PhCountStringZ(
     _In_ PWSTR String
     )
 {
+#ifndef _ARM64_
     if (PhpVectorLevel >= PH_VECTOR_LEVEL_SSE2)
     {
         PWSTR p;
@@ -636,6 +637,7 @@ SIZE_T PhCountStringZ(
         }
     }
     else
+#endif
     {
         return wcslen(String);
     }
@@ -1279,6 +1281,7 @@ BOOLEAN PhEqualStringRef(
     s1 = String1->Buffer;
     s2 = String2->Buffer;
 
+#ifndef _ARM64_
     if (PhpVectorLevel >= PH_VECTOR_LEVEL_SSE2)
     {
         length = l1 / 16;
@@ -1318,6 +1321,7 @@ BOOLEAN PhEqualStringRef(
         l1 = (l1 & 15) / sizeof(WCHAR);
     }
     else
+#endif
     {
         length = l1 / sizeof(ULONG_PTR);
 
@@ -1415,6 +1419,7 @@ ULONG_PTR PhFindCharInStringRef(
 
     if (!IgnoreCase)
     {
+#ifndef _ARM64_
         if (PhpVectorLevel >= PH_VECTOR_LEVEL_SSE2)
         {
             SIZE_T length16;
@@ -1445,8 +1450,10 @@ ULONG_PTR PhFindCharInStringRef(
             }
         }
         else
+#endif
         {
-            wcschr(buffer, Character);
+            if (buffer)
+                wcschr(buffer, Character);
         }
 
         if (length != 0)
@@ -1505,6 +1512,7 @@ ULONG_PTR PhFindLastCharInStringRef(
 
     if (!IgnoreCase)
     {
+#ifndef _ARM64_
         if (PhpVectorLevel >= PH_VECTOR_LEVEL_SSE2)
         {
             SIZE_T length16;
@@ -1538,8 +1546,10 @@ ULONG_PTR PhFindLastCharInStringRef(
             }
         }
         else
+#endif
         {
-            wcsrchr(buffer, Character);
+            if (buffer)
+                wcsrchr(buffer, Character);
         }
 
         if (length != 0)
@@ -6053,6 +6063,15 @@ VOID PhFillMemoryUlong(
     _In_ SIZE_T Count
     )
 {
+#ifdef _ARM64_
+    if (Count != 0)
+    {
+        do
+        {
+            *Memory++ = Value;
+        } while (--Count != 0);
+    }
+#else
     __m128i pattern;
     SIZE_T count;
 
@@ -6121,6 +6140,7 @@ VOID PhFillMemoryUlong(
         *Memory++ = Value;
         break;
     }
+#endif
 }
 
 /**
@@ -6136,6 +6156,10 @@ VOID PhDivideSinglesBySingle(
     _In_ SIZE_T Count
     )
 {
+#ifdef _ARM64_
+    while (Count--)
+        *A++ /= B;
+#else
     PFLOAT endA;
     __m128 b;
 
@@ -6205,4 +6229,5 @@ VOID PhDivideSinglesBySingle(
         *A++ /= B;
         break;
     }
+#endif
 }
