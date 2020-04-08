@@ -587,6 +587,22 @@ PhSetFileSize(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhGetFilePosition(
+    _In_ HANDLE FileHandle,
+    _Out_ PLARGE_INTEGER Position
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhSetFilePosition(
+    _In_ HANDLE FileHandle,
+    _In_ PLARGE_INTEGER Position
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhDeleteFile(
     _In_ HANDLE FileHandle
     );

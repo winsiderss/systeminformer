@@ -2908,6 +2908,50 @@ NTSTATUS PhSetFileSize(
         );
 }
 
+NTSTATUS PhGetFilePosition(
+    _In_ HANDLE FileHandle,
+    _Out_ PLARGE_INTEGER Position
+    )
+{
+    NTSTATUS status;
+    FILE_POSITION_INFORMATION positionInfo;
+    IO_STATUS_BLOCK isb;
+
+    status = NtQueryInformationFile(
+        FileHandle,
+        &isb,
+        &positionInfo,
+        sizeof(FILE_POSITION_INFORMATION),
+        FilePositionInformation
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    *Position = positionInfo.CurrentByteOffset;
+
+    return status;
+}
+
+NTSTATUS PhSetFilePosition(
+    _In_ HANDLE FileHandle,
+    _In_ PLARGE_INTEGER Position
+    )
+{
+    FILE_POSITION_INFORMATION positionInfo;
+    IO_STATUS_BLOCK isb;
+
+    positionInfo.CurrentByteOffset = *Position;
+
+    return NtSetInformationFile(
+        FileHandle,
+        &isb,
+        &positionInfo,
+        sizeof(FILE_POSITION_INFORMATION),
+        FilePositionInformation
+        );
+}
+
 NTSTATUS PhDeleteFile(
     _In_ HANDLE FileHandle
     )
@@ -6167,7 +6211,7 @@ VOID PhUpdateDosDevicePrefixes(
     for (ULONG i = 0; i < 0x1A; i++)
     {
         HANDLE linkHandle;
-        OBJECT_ATTRIBUTES oa;
+        OBJECT_ATTRIBUTES objectAttributes;
         UNICODE_STRING deviceName;
 
         if (deviceMapInfo.Query.DriveMap)
@@ -6181,7 +6225,7 @@ VOID PhUpdateDosDevicePrefixes(
         deviceName.Length = 6 * sizeof(WCHAR);
 
         InitializeObjectAttributes(
-            &oa,
+            &objectAttributes,
             &deviceName,
             OBJ_CASE_INSENSITIVE,
             NULL,
@@ -6191,7 +6235,7 @@ VOID PhUpdateDosDevicePrefixes(
         if (NT_SUCCESS(NtOpenSymbolicLinkObject(
             &linkHandle,
             SYMBOLIC_LINK_QUERY,
-            &oa
+            &objectAttributes
             )))
         {
             PhAcquireQueuedLockExclusive(&PhDevicePrefixesLock);
@@ -7580,7 +7624,7 @@ NTSTATUS PhCreateFileWin32Ex(
     NTSTATUS status;
     HANDLE fileHandle;
     UNICODE_STRING fileName;
-    OBJECT_ATTRIBUTES oa;
+    OBJECT_ATTRIBUTES objectAttributes;
     IO_STATUS_BLOCK isb;
 
     if (!FileAttributes)
@@ -7595,7 +7639,7 @@ NTSTATUS PhCreateFileWin32Ex(
         return status;
 
     InitializeObjectAttributes(
-        &oa,
+        &objectAttributes,
         &fileName,
         OBJ_CASE_INSENSITIVE,
         NULL,
@@ -7605,7 +7649,7 @@ NTSTATUS PhCreateFileWin32Ex(
     status = NtCreateFile(
         &fileHandle,
         DesiredAccess,
-        &oa,
+        &objectAttributes,
         &isb,
         NULL,
         FileAttributes,
@@ -7642,12 +7686,12 @@ NTSTATUS PhCreateFile(
     NTSTATUS status;
     HANDLE fileHandle;
     UNICODE_STRING fileName;
-    OBJECT_ATTRIBUTES oa;
+    OBJECT_ATTRIBUTES objectAttributes;
     IO_STATUS_BLOCK isb;
 
     RtlInitUnicodeString(&fileName, FileName);
     InitializeObjectAttributes(
-        &oa,
+        &objectAttributes,
         &fileName,
         OBJ_CASE_INSENSITIVE,
         NULL,
@@ -7657,7 +7701,7 @@ NTSTATUS PhCreateFile(
     status = NtCreateFile(
         &fileHandle,
         DesiredAccess,
-        &oa,
+        &objectAttributes,
         &isb,
         NULL,
         FileAttributes,
@@ -7759,7 +7803,7 @@ NTSTATUS PhQueryFullAttributesFileWin32(
 {
     NTSTATUS status;
     UNICODE_STRING fileName;
-    OBJECT_ATTRIBUTES oa;
+    OBJECT_ATTRIBUTES objectAttributes;
 
     if (!NT_SUCCESS(status = RtlDosPathNameToNtPathName_U_WithStatus(
         FileName,
@@ -7770,14 +7814,14 @@ NTSTATUS PhQueryFullAttributesFileWin32(
         return status;
 
     InitializeObjectAttributes(
-        &oa,
+        &objectAttributes,
         &fileName,
         OBJ_CASE_INSENSITIVE,
         NULL,
         NULL
         );
 
-    status = NtQueryFullAttributesFile(&oa, FileInformation);
+    status = NtQueryFullAttributesFile(&objectAttributes, FileInformation);
 
     RtlFreeUnicodeString(&fileName);
 
@@ -7791,7 +7835,7 @@ NTSTATUS PhQueryAttributesFileWin32(
 {
     NTSTATUS status;
     UNICODE_STRING fileName;
-    OBJECT_ATTRIBUTES oa;
+    OBJECT_ATTRIBUTES objectAttributes;
 
     if (!NT_SUCCESS(status = RtlDosPathNameToNtPathName_U_WithStatus(
         FileName,
@@ -7802,14 +7846,14 @@ NTSTATUS PhQueryAttributesFileWin32(
         return status;
 
     InitializeObjectAttributes(
-        &oa,
+        &objectAttributes,
         &fileName,
         OBJ_CASE_INSENSITIVE,
         NULL,
         NULL
         );
 
-    status = NtQueryAttributesFile(&oa, FileInformation);
+    status = NtQueryAttributesFile(&objectAttributes, FileInformation);
 
     RtlFreeUnicodeString(&fileName);
 
@@ -7822,18 +7866,18 @@ NTSTATUS PhQueryAttributesFile(
     )
 {
     UNICODE_STRING fileName;
-    OBJECT_ATTRIBUTES oa;
+    OBJECT_ATTRIBUTES objectAttributes;
 
     RtlInitUnicodeString(&fileName, FileName);
     InitializeObjectAttributes(
-        &oa,
+        &objectAttributes,
         &fileName,
         OBJ_CASE_INSENSITIVE,
         NULL,
         NULL
         );
 
-    return NtQueryAttributesFile(&oa, FileInformation);
+    return NtQueryAttributesFile(&objectAttributes, FileInformation);
 }
 
 // rev from RtlDoesFileExists_U (dmex)
@@ -8209,7 +8253,7 @@ NTSTATUS PhCreatePipeEx(
     }
     else
     {
-        if (NT_SUCCESS(RtlDefaultNpAcl(&pipeAcl)))
+        if (NT_SUCCESS(RtlDefaultNpAcl_Import()(&pipeAcl)))
         {
             SECURITY_DESCRIPTOR securityDescriptor;
 
@@ -8294,7 +8338,7 @@ NTSTATUS PhCreateNamedPipe(
     PPH_STRING pipeName;
     LARGE_INTEGER pipeTimeout;
     UNICODE_STRING pipeNameUs;
-    OBJECT_ATTRIBUTES oa;
+    OBJECT_ATTRIBUTES objectAttributes;
     IO_STATUS_BLOCK isb;
 
     pipeName = PhConcatStrings2(DEVICE_NAMED_PIPE, PipeName);
@@ -8302,27 +8346,27 @@ NTSTATUS PhCreateNamedPipe(
     PhTimeoutFromMilliseconds(&pipeTimeout, 500);
 
     InitializeObjectAttributes(
-        &oa,
+        &objectAttributes,
         &pipeNameUs,
         OBJ_CASE_INSENSITIVE,
         NULL,
         NULL
         );
 
-    if (NT_SUCCESS(RtlDefaultNpAcl(&pipeAcl)))
+    if (NT_SUCCESS(RtlDefaultNpAcl_Import()(&pipeAcl)))
     {
         SECURITY_DESCRIPTOR securityDescriptor;
 
         RtlCreateSecurityDescriptor(&securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
         RtlSetDaclSecurityDescriptor(&securityDescriptor, TRUE, pipeAcl, FALSE);
 
-        oa.SecurityDescriptor = &securityDescriptor;
+        objectAttributes.SecurityDescriptor = &securityDescriptor;
     }
 
     status = NtCreateNamedPipeFile(
         &pipeHandle,
         FILE_GENERIC_READ | FILE_GENERIC_WRITE,
-        &oa,
+        &objectAttributes,
         &isb,
         FILE_SHARE_READ | FILE_SHARE_WRITE,
         FILE_OPEN_IF,
@@ -8357,14 +8401,14 @@ NTSTATUS PhConnectPipe(
     HANDLE pipeHandle;
     PPH_STRING pipeName;
     UNICODE_STRING pipeNameUs;
-    OBJECT_ATTRIBUTES oa;
+    OBJECT_ATTRIBUTES objectAttributes;
     IO_STATUS_BLOCK isb;
 
     pipeName = PhConcatStrings2(DEVICE_NAMED_PIPE, PipeName);
     PhStringRefToUnicodeString(&pipeName->sr, &pipeNameUs);
 
     InitializeObjectAttributes(
-        &oa,
+        &objectAttributes,
         &pipeNameUs,
         OBJ_CASE_INSENSITIVE,
         NULL,
@@ -8374,7 +8418,7 @@ NTSTATUS PhConnectPipe(
     status = NtCreateFile(
         &pipeHandle,
         FILE_GENERIC_READ | FILE_GENERIC_WRITE,
-        &oa,
+        &objectAttributes,
         &isb,
         NULL,
         FILE_ATTRIBUTE_NORMAL,
@@ -8568,13 +8612,13 @@ NTSTATUS PhWaitForNamedPipe(
     PH_STRINGREF localNpfsNameSr;
     UNICODE_STRING localNpfsName;
     HANDLE fileSystemHandle;
-    OBJECT_ATTRIBUTES oa;
+    OBJECT_ATTRIBUTES objectAttributes;
     PFILE_PIPE_WAIT_FOR_BUFFER waitForBuffer;
     ULONG waitForBufferLength;
 
     RtlInitUnicodeString(&localNpfsName, DEVICE_NAMED_PIPE);
     InitializeObjectAttributes(
-        &oa,
+        &objectAttributes,
         &localNpfsName,
         OBJ_CASE_INSENSITIVE,
         NULL,
@@ -8584,7 +8628,7 @@ NTSTATUS PhWaitForNamedPipe(
     status = NtOpenFile(
         &fileSystemHandle,
         FILE_READ_ATTRIBUTES | SYNCHRONIZE,
-        &oa,
+        &objectAttributes,
         &isb,
         FILE_SHARE_READ | FILE_SHARE_WRITE,
         FILE_SYNCHRONOUS_IO_NONALERT
