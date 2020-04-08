@@ -266,6 +266,7 @@ EXPORTS
     PhFindProcessInformation
     PhFindProcessInformationByImageName
     PhGetFileName
+    PhGetFilePosition
     PhGetFileSize
     PhGetJobProcessIdList
     PhGetKernelFileName
@@ -310,6 +311,7 @@ EXPORTS
     PhQueryValueKey
     PhQueryTokenVariableSize
     PhResolveDevicePrefix
+    PhSetFilePosition
     PhSetFileSize
     PhSetObjectSecurity
     PhSetTokenIsVirtualizationEnabled
