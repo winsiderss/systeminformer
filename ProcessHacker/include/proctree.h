@@ -183,12 +183,12 @@ typedef struct _PH_PROCESS_NODE
 
     // Text buffers
     WCHAR CpuUsageText[PH_INT32_STR_LEN_1 + 3];
-    WCHAR IoTotalRateText[PH_INT32_STR_LEN_1 + 3];
-    WCHAR PrivateBytesText[PH_INT32_STR_LEN_1];
+    WCHAR IoTotalRateText[PH_INT64_STR_LEN_1 + 3];
+    WCHAR PrivateBytesText[PH_INT64_STR_LEN_1];
     PPH_STRING PeakPrivateBytesText;
     PPH_STRING WorkingSetText;
     PPH_STRING PeakWorkingSetText;
-    WCHAR PrivateWsText[PH_INT32_STR_LEN_1];
+    WCHAR PrivateWsText[PH_INT64_STR_LEN_1];
     PPH_STRING SharedWsText;
     PPH_STRING ShareableWsText;
     PPH_STRING VirtualSizeText;
