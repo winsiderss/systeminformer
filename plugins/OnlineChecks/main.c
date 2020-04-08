@@ -55,7 +55,7 @@ VOID ProcessesUpdatedCallback(
     if (!VirusTotalScanningEnabled)
         return;
 
-    if (ProcessesUpdatedCount < 2)
+    if (ProcessesUpdatedCount != 3)
     {
         ProcessesUpdatedCount++;
         return;
