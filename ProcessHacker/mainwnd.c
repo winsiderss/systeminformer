@@ -165,15 +165,6 @@ BOOLEAN PhMainWndInitialization(
         SendMessage(PhMainWndHandle, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
     }
 
-    // Create the main menu. (dmex)
-    if (windowMenuHandle = CreateMenu())
-    {
-        // Set the menu first so we're able to get WM_DRAWITEM/WM_MEASUREITEM messages.
-        SetMenu(PhMainWndHandle, windowMenuHandle);
-        PhEMenuToHMenu2(windowMenuHandle, PhpCreateMainMenu(ULONG_MAX), 0, NULL);
-        PhMwpInitializeMainMenu(windowMenuHandle);
-    }
-
     // Choose a more appropriate rectangle for the window.
     PhAdjustRectangleToWorkingArea(PhMainWndHandle, &windowRectangle);
     MoveWindow(
@@ -199,6 +190,17 @@ BOOLEAN PhMainWndInitialization(
     PhLogInitialization();
 
     PhInitializeWindowTheme(PhMainWndHandle, PhEnableThemeSupport); // HACK
+
+    // Create the main menu. This has to be done after initializing the window theme
+    // (subclassing the main window) because Windows 10 doesn't forward WM_MEASUREITEM
+    // messages to window subclasses for menus created with CreateMenu and set with SetMenu
+    // unlike previous versions of Windows. (dmex)
+    if (windowMenuHandle = CreateMenu())
+    {
+        SetMenu(PhMainWndHandle, windowMenuHandle);
+        PhEMenuToHMenu2(windowMenuHandle, PhpCreateMainMenu(ULONG_MAX), 0, NULL);
+        PhMwpInitializeMainMenu(windowMenuHandle);
+    }
 
     if (PhEnableThemeSupport && windowMenuHandle)
     {
