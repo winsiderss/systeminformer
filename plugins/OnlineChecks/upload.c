@@ -168,7 +168,7 @@ NTSTATUS HashFileAndResetPosition(
     PH_HASH_CONTEXT hashContext;
     PPH_STRING hashString = NULL;
     ULONG64 bytesRemaining;
-    FILE_POSITION_INFORMATION positionInfo;
+    LARGE_INTEGER position;
     LONG priority;
     IO_PRIORITY_HINT ioPriority;
     BYTE buffer[PAGE_SIZE];
@@ -226,14 +226,8 @@ NTSTATUS HashFileAndResetPosition(
             break;
         }
 
-        positionInfo.CurrentByteOffset.QuadPart = 0;
-        status = NtSetInformationFile(
-            FileHandle,
-            &iosb,
-            &positionInfo,
-            sizeof(FILE_POSITION_INFORMATION),
-            FilePositionInformation
-            );
+        position.QuadPart = 0;
+        status = PhSetFilePosition(FileHandle, &position);
     }
 
     PhSetThreadBasePriority(NtCurrentThread(), priority);
