@@ -25,6 +25,7 @@ using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Text;
+using System.Text.Json;
 
 namespace CustomBuildTool
 {
@@ -1249,7 +1250,7 @@ namespace CustomBuildTool
             // log -n 1 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %an: %<(65,trunc)%s (%h)\" --abbrev-commi
             // log -n 1800 --graph --pretty=format:\"%C(yellow)%h%Creset %C(bold blue)%an%Creset %s %C(dim green)(%cr)\" --abbrev-commit
 
-            buildPostString = Json<BuildUpdateRequest>.Serialize(new BuildUpdateRequest
+            buildPostString = JsonSerializer.Serialize(new BuildUpdateRequest
             {
                 BuildUpdated = TimeStart.ToString("o"),
                 BuildVersion = BuildVersion,
@@ -1268,7 +1269,7 @@ namespace CustomBuildTool
 
                 Message = buildSummary,
                 Changelog = buildChangelog
-            });
+            }, new JsonSerializerOptions { IgnoreNullValues = true, PropertyNameCaseInsensitive = true });
 
             if (string.IsNullOrEmpty(buildPostString))
                 return false;
@@ -1342,8 +1343,8 @@ namespace CustomBuildTool
             string buildPostUrl;
             string buildPostKey;
             string buildPostName;
-            string buildBuildUrl;
-            string buildBuildUrlKey;
+            //string buildBuildUrl;
+            //string buildBuildUrlKey;
 
             if (!BuildNightly)
                 return true;
@@ -1351,8 +1352,8 @@ namespace CustomBuildTool
             buildPostUrl = Win32.GetEnvironmentVariable("%APPVEYOR_NIGHTLY_URL%");
             buildPostKey = Win32.GetEnvironmentVariable("%APPVEYOR_NIGHTLY_KEY%");
             buildPostName = Win32.GetEnvironmentVariable("%APPVEYOR_NIGHTLY_NAME%");
-            buildBuildUrl = Win32.GetEnvironmentVariable("%APPVEYOR_BUILD_URL%");
-            buildBuildUrlKey = Win32.GetEnvironmentVariable("%APPVEYOR_BUILD_URL_KEY%");
+            //buildBuildUrl = Win32.GetEnvironmentVariable("%APPVEYOR_BUILD_URL%");
+            //buildBuildUrlKey = Win32.GetEnvironmentVariable("%APPVEYOR_BUILD_URL_KEY%");
 
             if (string.IsNullOrEmpty(buildPostUrl))
                 return false;
@@ -1360,10 +1361,10 @@ namespace CustomBuildTool
                 return false;
             if (string.IsNullOrEmpty(buildPostName))
                 return false;
-            if (string.IsNullOrEmpty(buildBuildUrl))
-                return false;
-            if (string.IsNullOrEmpty(buildBuildUrlKey))
-                return false;
+            //if (string.IsNullOrEmpty(buildBuildUrl))
+            //    return false;
+            //if (string.IsNullOrEmpty(buildBuildUrlKey))
+            //    return false;
 
             try
             {
@@ -1408,48 +1409,48 @@ namespace CustomBuildTool
                 return false;
             }
 
-            try
-            {
-                foreach (string file in Build_Nightly_Files)
-                {
-                    string sourceFile = BuildOutputFolder + file;
-
-                    if (File.Exists(sourceFile))
-                    {
-                        string fileName = Path.GetFileName(sourceFile);
-
-                        using (HttpClientHandler httpClientHandler = new HttpClientHandler())
-                        {
-                            httpClientHandler.AutomaticDecompression = DecompressionMethods.All;
-
-                            using (HttpClient client = new HttpClient(httpClientHandler))
-                            using (FileStream fileStream = File.OpenRead(sourceFile))
-                            using (StreamContent streamContent = new StreamContent(fileStream))
-                            using (MultipartFormDataContent content = new MultipartFormDataContent())
-                            {
-                                client.DefaultRequestHeaders.Add("X-ApiKey", buildBuildUrlKey);
-                                streamContent.Headers.Add("Content-Type", "application/octet-stream");
-                                streamContent.Headers.Add("Content-Disposition", "form-data; name=\"file\"; filename=\"" + fileName + "\"");
-                                content.Add(streamContent, "file", fileName);
-
-                                var httpTask = client.PostAsync(buildBuildUrl, content);
-                                httpTask.Wait();
-
-                                if (!httpTask.Result.IsSuccessStatusCode)
-                                {
-                                    Program.PrintColorMessage("[HttpClient PostAsync] " + httpTask.Result, ConsoleColor.Red);
-                                    return false;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Program.PrintColorMessage("[HttpClient PostAsync] " + ex.Message, ConsoleColor.Red);
-                return false;
-            }
+            //try
+            //{
+            //    foreach (string file in Build_Nightly_Files)
+            //    {
+            //        string sourceFile = BuildOutputFolder + file;
+            //
+            //        if (File.Exists(sourceFile))
+            //        {
+            //            string fileName = Path.GetFileName(sourceFile);
+            //
+            //            using (HttpClientHandler httpClientHandler = new HttpClientHandler())
+            //            {
+            //                httpClientHandler.AutomaticDecompression = DecompressionMethods.All;
+            //
+            //                using (HttpClient client = new HttpClient(httpClientHandler))
+            //                using (FileStream fileStream = File.OpenRead(sourceFile))
+            //                using (StreamContent streamContent = new StreamContent(fileStream))
+            //                using (MultipartFormDataContent content = new MultipartFormDataContent())
+            //                {
+            //                    client.DefaultRequestHeaders.Add("X-ApiKey", buildBuildUrlKey);
+            //                    streamContent.Headers.Add("Content-Type", "application/octet-stream");
+            //                    streamContent.Headers.Add("Content-Disposition", "form-data; name=\"file\"; filename=\"" + fileName + "\"");
+            //                    content.Add(streamContent, "file", fileName);
+            //
+            //                    var httpTask = client.PostAsync(buildBuildUrl, content);
+            //                    httpTask.Wait();
+            //
+            //                    if (!httpTask.Result.IsSuccessStatusCode)
+            //                    {
+            //                        Program.PrintColorMessage("[HttpClient PostAsync] " + httpTask.Result, ConsoleColor.Red);
+            //                        return false;
+            //                    }
+            //                }
+            //            }
+            //        }
+            //    }
+            //}
+            //catch (Exception ex)
+            //{
+            //    Program.PrintColorMessage("[HttpClient PostAsync] " + ex.Message, ConsoleColor.Red);
+            //    return false;
+            //}
 
             try
             {

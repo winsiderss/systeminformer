@@ -25,10 +25,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
-using System.Runtime.Serialization;
-using System.Runtime.Serialization.Json;
 using System.Security.Cryptography;
-using System.Text;
+using System.Text.Json.Serialization;
 
 namespace CustomBuildTool
 {
@@ -165,31 +163,6 @@ namespace CustomBuildTool
         public static string GetEnvironmentVariable(string Name)
         {
             return Environment.ExpandEnvironmentVariables(Name).Replace(Name, string.Empty, StringComparison.OrdinalIgnoreCase);
-        }
-    }
-
-    public static class Json<T> where T : class
-    {
-        public static string Serialize(T instance)
-        {
-            DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(T));
-
-            using (MemoryStream stream = new MemoryStream())
-            {
-                serializer.WriteObject(stream, instance);
-
-                return Encoding.Default.GetString(stream.ToArray());
-            }
-        }
-
-        public static T DeSerialize(string json)
-        {
-            using (MemoryStream stream = new MemoryStream(Encoding.Default.GetBytes(json)))
-            {
-                DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(T));
-
-                return (T)serializer.ReadObject(stream);
-            }
         }
     }
 
@@ -555,7 +528,7 @@ namespace CustomBuildTool
 
             found.Sort((p1, p2) => string.Compare(p1.Id, p2.Id, StringComparison.OrdinalIgnoreCase));
 
-            return found[found.Count - 1];
+            return found[^1];
         }
 
         public string GetWindowsSdkVersion()
@@ -600,9 +573,9 @@ namespace CustomBuildTool
                 // Microsoft.VisualStudio.Component.VC.Redist.14.Latest
                 // Microsoft.VisualStudio.Component.VC.Tools.x86.x64
 
-                hasbuild = this.Packages.Find(p => p.Id.StartsWith("Microsoft.Component.MSBuild", StringComparison.OrdinalIgnoreCase)) != null;
-                hasruntimes = this.Packages.Find(p => p.Id.StartsWith("Microsoft.VisualStudio.Component.VC", StringComparison.OrdinalIgnoreCase)) != null;
-                haswindowssdk = this.Packages.Find(p => p.Id.StartsWith("Microsoft.VisualStudio.Component.Windows10SDK", StringComparison.OrdinalIgnoreCase)) != null;
+                hasbuild = this.Packages.Exists(p => p.Id.StartsWith("Microsoft.Component.MSBuild", StringComparison.OrdinalIgnoreCase));
+                hasruntimes = this.Packages.Exists(p => p.Id.StartsWith("Microsoft.VisualStudio.Component.VC", StringComparison.OrdinalIgnoreCase));
+                haswindowssdk = this.Packages.Exists(p => p.Id.StartsWith("Microsoft.VisualStudio.Component.Windows10SDK", StringComparison.OrdinalIgnoreCase));
 
                 return hasbuild && hasruntimes && haswindowssdk;
             }
@@ -625,17 +598,17 @@ namespace CustomBuildTool
                 //    "Microsoft.VisualStudio.Component.VC.14.22.x86.x64",
                 //};
 
-                if (this.Packages.Find(p => p.Id.StartsWith("Microsoft.Component.MSBuild", StringComparison.OrdinalIgnoreCase)) == null)
+                if (!this.Packages.Exists(p => p.Id.StartsWith("Microsoft.Component.MSBuild", StringComparison.OrdinalIgnoreCase)))
                 {
                     list += "MSBuild" + Environment.NewLine;
                 }
 
-                if (this.Packages.Find(p => p.Id.StartsWith("Microsoft.VisualStudio.Component.VC", StringComparison.OrdinalIgnoreCase)) == null)
+                if (!this.Packages.Exists(p => p.Id.StartsWith("Microsoft.VisualStudio.Component.VC", StringComparison.OrdinalIgnoreCase)))
                 {
                     list += "VC.14.Redist" + Environment.NewLine;
                 }
 
-                if (this.Packages.Find(p => p.Id.StartsWith("Microsoft.VisualStudio.Component.Windows10SDK", StringComparison.OrdinalIgnoreCase)) == null)
+                if (!this.Packages.Exists(p => p.Id.StartsWith("Microsoft.VisualStudio.Component.Windows10SDK", StringComparison.OrdinalIgnoreCase)))
                 {
                     list += "Windows10SDK" + Environment.NewLine;
                 }
@@ -709,32 +682,31 @@ namespace CustomBuildTool
         }
     }
 
-    [DataContract]
     public class BuildUpdateRequest
     {
-        [DataMember(Name = "build_version")] public string BuildVersion { get; set; }
-        [DataMember(Name = "build_commit")] public string BuildCommit { get; set; }
-        [DataMember(Name = "build_updated")] public string BuildUpdated { get; set; }
-        [DataMember(Name = "build_message")] public string BuildMessage { get; set; }
+        [JsonPropertyName("build_version")] public string BuildVersion { get; set; }
+        [JsonPropertyName("build_commit")] public string BuildCommit { get; set; }
+        [JsonPropertyName("build_updated")] public string BuildUpdated { get; set; }
+        [JsonPropertyName("build_message")] public string BuildMessage { get; set; }
 
-        [DataMember(Name = "bin_url")] public string BinUrl { get; set; }
-        [DataMember(Name = "bin_length")] public string BinLength { get; set; }
-        [DataMember(Name = "bin_hash")] public string BinHash { get; set; }
-        [DataMember(Name = "bin_sig")] public string BinSig { get; set; }
+        [JsonPropertyName("bin_url")] public string BinUrl { get; set; }
+        [JsonPropertyName("bin_length")] public string BinLength { get; set; }
+        [JsonPropertyName("bin_hash")] public string BinHash { get; set; }
+        [JsonPropertyName("bin_sig")] public string BinSig { get; set; }
 
-        [DataMember(Name = "setup_url")] public string SetupUrl { get; set; }
-        [DataMember(Name = "setup_length")] public string SetupLength { get; set; }
-        [DataMember(Name = "setup_hash")] public string SetupHash { get; set; }
-        [DataMember(Name = "setup_sig")] public string SetupSig { get; set; }
+        [JsonPropertyName("setup_url")] public string SetupUrl { get; set; }
+        [JsonPropertyName("setup_length")] public string SetupLength { get; set; }
+        [JsonPropertyName("setup_hash")] public string SetupHash { get; set; }
+        [JsonPropertyName("setup_sig")] public string SetupSig { get; set; }
 
-        [DataMember(Name = "websetup_url")] public string WebSetupUrl { get; set; }
-        [DataMember(Name = "websetup_version")] public string WebSetupVersion { get; set; }
-        [DataMember(Name = "websetup_length")] public string WebSetupLength { get; set; }
-        [DataMember(Name = "websetup_hash")] public string WebSetupHash { get; set; }
-        [DataMember(Name = "websetup_sig")] public string WebSetupSig { get; set; }
+        [JsonPropertyName("websetup_url")] public string WebSetupUrl { get; set; }
+        [JsonPropertyName("websetup_version")] public string WebSetupVersion { get; set; }
+        [JsonPropertyName("websetup_length")] public string WebSetupLength { get; set; }
+        [JsonPropertyName("websetup_hash")] public string WebSetupHash { get; set; }
+        [JsonPropertyName("websetup_sig")] public string WebSetupSig { get; set; }
 
-        [DataMember(Name = "message")] public string Message { get; set; }
-        [DataMember(Name = "changelog")] public string Changelog { get; set; }
+        [JsonPropertyName("message")] public string Message { get; set; }
+        [JsonPropertyName("changelog")] public string Changelog { get; set; }
     }
 
     public static class Extextensions
