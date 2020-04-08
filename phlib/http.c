@@ -1019,7 +1019,9 @@ PDNS_RECORD PhHttpDnsQuery(
     PDNS_RECORD dnsRecordList = NULL;
     ULONG dnsSendBufferLength;
     ULONG dnsReceiveBufferLength;
-    USHORT dnsQueryId = seed++;
+    USHORT dnsQueryId;
+
+    dnsQueryId = _InterlockedIncrement16(&seed);
 
     if (!PhpCreateDnsMessageBuffer(
         DnsQueryMessage,
