@@ -230,6 +230,18 @@ VOID PhSetDisabledEMenuItem(
     Item->Flags |= PH_EMENU_DISABLED;
 }
 
+FORCEINLINE
+VOID PhSetEnabledEMenuItem(
+    _In_ PPH_EMENU_ITEM Item,
+    _In_ BOOLEAN Enable
+    )
+{
+    if (Enable)
+        Item->Flags &= ~PH_EMENU_DISABLED;
+    else
+        Item->Flags |= PH_EMENU_DISABLED;
+}
+
 #ifdef __cplusplus
 }
 #endif
