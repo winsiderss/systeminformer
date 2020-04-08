@@ -45,8 +45,6 @@ VOID NTAPI LoadCallback(
     _In_opt_ PVOID Context
     )
 {
-    HdPropInitialization();
-
     DiskDrivesInitialize();
     NetAdaptersInitialize();
 

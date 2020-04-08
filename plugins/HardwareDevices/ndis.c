@@ -629,7 +629,7 @@ PWSTR MediumTypeToString(
 //                SOCKADDR_IN6 remoteAddr = { 0 };
 //                remoteAddr.sin6_family = AF_INET6;
 //                remoteAddr.sin6_port = htons(80);
-//                memcpy(&remoteAddr.sin6_addr.u.Byte, i->Data.AAAA.Ip6Address.IP6Byte, sizeof(i->Data.AAAA.Ip6Address.IP6Byte));
+//                memcpy(&remoteAddr.sin6_addr.s6_addr, i->Data.AAAA.Ip6Address.IP6Byte, sizeof(i->Data.AAAA.Ip6Address.IP6Byte));
 //
 //                if (WSAConnect(socketHandle, (PSOCKADDR)&remoteAddr, sizeof(SOCKADDR_IN6), NULL, NULL, NULL, NULL) != SOCKET_ERROR)
 //                {
