@@ -2,7 +2,7 @@
  * Process Hacker -
  *   property sheet 
  *
- * Copyright (C) 2017 dmex
+ * Copyright (C) 2017-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -22,9 +22,8 @@
 
 #include "devices.h"
 
-BOOLEAN HdPropContextInit = FALSE;
-PPH_OBJECT_TYPE PvpPropContextType;
-PPH_OBJECT_TYPE PvpPropPageContextType;
+static PPH_OBJECT_TYPE PvpPropContextType = NULL;
+static PPH_OBJECT_TYPE PvpPropPageContextType = NULL;
 static RECT MinimumSize = { -1, -1, -1, -1 };
 
 VOID NTAPI PvpPropContextDeleteProcedure(
@@ -56,20 +55,15 @@ INT CALLBACK PvpStandardPropPageProc(
     _In_ LPPROPSHEETPAGE ppsp
     );
 
-VOID HdPropInitialization(
-    VOID
-    )
-{
-    PvpPropContextType = PhCreateObjectType(L"HdPropContext", 0, PvpPropContextDeleteProcedure);
-    PvpPropPageContextType = PhCreateObjectType(L"HdPropPageContext", 0, PvpPropPageContextDeleteProcedure);
-}
-
 PPV_PROPCONTEXT HdCreatePropContext(
     _In_ PWSTR Caption
     )
 {
     PPV_PROPCONTEXT propContext;
     PROPSHEETHEADER propSheetHeader;
+
+    if (!PvpPropContextType)
+        PvpPropContextType = PhCreateObjectType(L"HdPropContext", 0, PvpPropContextDeleteProcedure);
 
     propContext = PhCreateObject(sizeof(PV_PROPCONTEXT), PvpPropContextType);
     memset(propContext, 0, sizeof(PV_PROPCONTEXT));
@@ -325,6 +319,9 @@ PPV_PROPPAGECONTEXT PvCreatePropPageContextEx(
     )
 {
     PPV_PROPPAGECONTEXT propPageContext;
+
+    if (!PvpPropPageContextType)
+        PvpPropPageContextType = PhCreateObjectType(L"HdPropPageContext", 0, PvpPropPageContextDeleteProcedure);
 
     propPageContext = PhCreateObject(sizeof(PV_PROPPAGECONTEXT), PvpPropPageContextType);
     memset(propPageContext, 0, sizeof(PV_PROPPAGECONTEXT));

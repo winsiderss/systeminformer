@@ -50,10 +50,6 @@ typedef struct _PV_PROPPAGECONTEXT
     BOOLEAN LayoutInitialized;
 } PV_PROPPAGECONTEXT, *PPV_PROPPAGECONTEXT;
 
-VOID HdPropInitialization(
-    VOID
-    );
-
 PPV_PROPCONTEXT HdCreatePropContext(
     _In_ PWSTR Caption
     );
