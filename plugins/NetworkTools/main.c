@@ -527,10 +527,10 @@ FORCEINLINE VOID PhpNetworkItemToRow6(
     )
 {
     Row->State = NetworkItem->State;
-    memcpy(Row->LocalAddr.u.Byte, NetworkItem->LocalEndpoint.Address.Ipv6, 16);
+    memcpy_s(Row->LocalAddr.s6_addr, sizeof(Row->LocalAddr.s6_addr), NetworkItem->LocalEndpoint.Address.Ipv6, sizeof(NetworkItem->LocalEndpoint.Address.Ipv6));
     Row->dwLocalScopeId = NetworkItem->LocalScopeId;
     Row->dwLocalPort = _byteswap_ushort((USHORT)NetworkItem->LocalEndpoint.Port);
-    memcpy(Row->RemoteAddr.u.Byte, NetworkItem->RemoteEndpoint.Address.Ipv6, 16);
+    memcpy_s(Row->RemoteAddr.s6_addr, sizeof(Row->RemoteAddr.s6_addr), NetworkItem->RemoteEndpoint.Address.Ipv6, sizeof(NetworkItem->RemoteEndpoint.Address.Ipv6));
     Row->dwRemoteScopeId = NetworkItem->RemoteScopeId;
     Row->dwRemotePort = _byteswap_ushort((USHORT)NetworkItem->RemoteEndpoint.Port);
 }
@@ -802,7 +802,7 @@ VOID ProcessesUpdatedCallback(
     if (!NetworkExtensionEnabled)
         return;
 
-    if (ProcessesUpdatedCount < 2)
+    if (ProcessesUpdatedCount != 3)
     {
         ProcessesUpdatedCount++;
         return;
