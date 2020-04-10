@@ -953,7 +953,20 @@ VOID EtHandleDiskCommand(
 
             if (diskItem)
             {
-                PhShellExploreFile(PhMainWndHandle, diskItem->FileNameWin32->Buffer);
+                ULONG_PTR streamIndex;
+                PPH_STRING fileName;
+
+                // Strip ADS from path (dmex)
+                fileName = PhReferenceObject(diskItem->FileNameWin32);
+                streamIndex = PhFindLastCharInStringRef(&fileName->sr, L':', FALSE);
+
+                if (streamIndex != -1 && streamIndex != 1)
+                {
+                    PhMoveReference(&fileName, PhSubstring(fileName, 0, streamIndex));
+                }
+
+                PhShellExploreFile(PhMainWndHandle, fileName->Buffer);
+                PhDereferenceObject(fileName);
             }
         }
         break;
