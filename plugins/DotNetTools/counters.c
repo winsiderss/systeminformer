@@ -169,7 +169,7 @@ PPH_LIST EnumerateAppDomainIpcBlock(
     // If we get here, then hMutex is held by this process.
 
     // Make a copy of the IPC block so that we can gaurantee that it's not changing on us.
-    memcpy(&tempBlock, AppDomainIpcBlock, sizeof(AppDomainEnumerationIPCBlock));
+    memcpy_s(&tempBlock, sizeof(tempBlock), AppDomainIpcBlock, sizeof(AppDomainEnumerationIPCBlock));
 
     // It's possible the process will not have any appdomains.
     if ((tempBlock.ListOfAppDomains == NULL) != (tempBlock.SizeInBytes == 0))
@@ -330,7 +330,7 @@ PPH_LIST EnumerateAppDomainIpcBlockWow64(
     // If we get here, then hMutex is held by this process.
 
     // Make a copy of the IPC block so that we can gaurantee that it's not changing on us.
-    memcpy(&tempBlock, AppDomainIpcBlock, sizeof(AppDomainEnumerationIPCBlock_Wow64));
+    memcpy_s(&tempBlock, sizeof(tempBlock), AppDomainIpcBlock, sizeof(AppDomainEnumerationIPCBlock_Wow64));
 
     // It's possible the process will not have any appdomains.
     if ((tempBlock.ListOfAppDomains == 0) != (tempBlock.SizeInBytes == 0))
