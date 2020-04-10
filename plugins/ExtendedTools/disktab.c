@@ -703,7 +703,7 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
 
             if (!PhIsNullOrEmptyString(node->TooltipText))
             {
-                getCellTooltip->Text = node->TooltipText->sr;
+                getCellTooltip->Text = PhGetStringRef(node->TooltipText);
                 getCellTooltip->Unfolding = FALSE;
                 getCellTooltip->MaximumWidth = ULONG_MAX;
             }
@@ -975,13 +975,59 @@ VOID EtHandleDiskCommand(
             EtCopyDiskList();
         }
         break;
+    case ID_DISK_INSPECT:
+        {
+            PET_DISK_ITEM diskItem = EtGetSelectedDiskItem();
+
+            if (diskItem)
+            {
+                ULONG_PTR streamIndex;
+                PPH_STRING fileName;
+
+                // Strip ADS from path (dmex)
+                fileName = PhReferenceObject(diskItem->FileNameWin32);
+                streamIndex = PhFindLastCharInStringRef(&fileName->sr, L':', FALSE);
+
+                if (streamIndex != -1 && streamIndex != 1)
+                {
+                    PhMoveReference(&fileName, PhSubstring(fileName, 0, streamIndex));
+                }
+
+                if (PhDoesFileExistsWin32(PhGetString(fileName)))
+                {
+                    PhShellExecuteUserString(
+                        PhMainWndHandle,
+                        L"ProgramInspectExecutables",
+                        fileName->Buffer,
+                        FALSE,
+                        L"Make sure the PE Viewer executable file is present."
+                        );
+                }
+
+                PhDereferenceObject(fileName);
+            }
+        }
+        break;
     case ID_DISK_PROPERTIES:
         {
             PET_DISK_ITEM diskItem = EtGetSelectedDiskItem();
 
             if (diskItem)
             {
-                PhShellProperties(PhMainWndHandle, diskItem->FileNameWin32->Buffer);
+                ULONG_PTR streamIndex;
+                PPH_STRING fileName;
+
+                // Strip ADS from path (dmex)
+                fileName = PhReferenceObject(diskItem->FileNameWin32);
+                streamIndex = PhFindLastCharInStringRef(&fileName->sr, L':', FALSE);
+
+                if (streamIndex != -1 && streamIndex != 1)
+                {
+                    PhMoveReference(&fileName, PhSubstring(fileName, 0, streamIndex));
+                }
+
+                PhShellProperties(PhMainWndHandle, fileName->Buffer);
+                PhDereferenceObject(fileName);
             }
         }
         break;
@@ -1045,7 +1091,14 @@ VOID EtShowDiskContextMenu(
         PPH_EMENU_ITEM item;
 
         menu = PhCreateEMenu();
-        PhLoadResourceEMenuItem(menu, PluginInstance->DllBase, MAKEINTRESOURCE(IDR_DISK), 0);
+        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_DISK_GOTOPROCESS, L"&Go to process", NULL, NULL), ULONG_MAX);
+        PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_DISK_OPENFILELOCATION, L"Open &file location\bEnter", NULL, NULL), ULONG_MAX);
+        PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_DISK_INSPECT, L"&Inspect", NULL, NULL), ULONG_MAX);
+        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_DISK_PROPERTIES, L"P&roperties", NULL, NULL), ULONG_MAX);
+        PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_DISK_COPY, L"&Copy\bCtrl+C", NULL, NULL), ULONG_MAX);
         PhInsertCopyCellEMenuItem(menu, ID_DISK_COPY, TreeWindowHandle, ContextMenuEvent->Column);
         PhSetFlagsEMenuItem(menu, ID_DISK_OPENFILELOCATION, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
 

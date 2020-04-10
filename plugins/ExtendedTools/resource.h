@@ -81,6 +81,7 @@
 #define ID_DISK_COPY                    40006
 #define ID_DISK_PROPERTIES              40007
 #define ID_DISK_OPENFILELOCATION        40008
+#define ID_DISK_INSPECT                 40009
 
 // Next default values for new objects
 // 
@@ -89,6 +90,6 @@
 #define _APS_NEXT_RESOURCE_VALUE        145
 #define _APS_NEXT_COMMAND_VALUE         40009
 #define _APS_NEXT_CONTROL_VALUE         1094
-#define _APS_NEXT_SYMED_VALUE           134
+#define _APS_NEXT_SYMED_VALUE           135
 #endif
 #endif
