@@ -545,7 +545,7 @@ HRESULT STDMETHODCALLTYPE DnCLRDataTarget_GetThreadContext(
 
     if (NT_SUCCESS(status))
     {
-        memcpy(context, &buffer, sizeof(CONTEXT));
+        memcpy_s(context, contextSize, &buffer, sizeof(CONTEXT));
 
         return S_OK;
     }
