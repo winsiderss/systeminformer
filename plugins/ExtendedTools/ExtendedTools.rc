@@ -363,24 +363,6 @@ BEGIN
 END
 #endif    // APSTUDIO_INVOKED
 
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// Menu
-//
-
-IDR_DISK MENU
-BEGIN
-    POPUP "Disk"
-    BEGIN
-        MENUITEM "&Go to process",              ID_DISK_GOTOPROCESS
-        MENUITEM SEPARATOR
-        MENUITEM "Open &file location\aEnter",  ID_DISK_OPENFILELOCATION
-        MENUITEM "P&roperties",                 ID_DISK_PROPERTIES
-        MENUITEM "&Copy\aCtrl+C",               ID_DISK_COPY
-    END
-END
-
 #endif    // English (Australia) resources
 /////////////////////////////////////////////////////////////////////////////
 
