@@ -194,7 +194,7 @@ BOOLEAN PhMainWndInitialization(
     // Create the main menu. This has to be done after initializing the window theme
     // (subclassing the main window) because Windows 10 doesn't forward WM_MEASUREITEM
     // messages to window subclasses for menus created with CreateMenu and set with SetMenu
-    // unlike previous versions of Windows. (dmex)
+    // (and only when the DPI is above 100%) unlike previous versions of Windows. (dmex)
     if (windowMenuHandle = CreateMenu())
     {
         SetMenu(PhMainWndHandle, windowMenuHandle);
