@@ -298,7 +298,7 @@ BOOLEAN WhoisConnectServer(
         DnsQuery(
             WhoisServerAddress,
             DnsQueryMessageType,
-            DNS_QUERY_NO_HOSTS_FILE,
+            DNS_QUERY_BYPASS_CACHE | DNS_QUERY_NO_HOSTS_FILE,
             NULL,
             &dnsRecordList,
             NULL

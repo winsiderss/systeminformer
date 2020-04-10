@@ -120,11 +120,14 @@ NTSTATUS TracertHostnameLookupCallback(
         {
             IN_ADDR inAddr4 = ((PSOCKADDR_IN)&workitem->SocketAddress)->sin_addr;
 
-            if (
-                IN4_IS_ADDR_UNSPECIFIED(&inAddr4) ||
-                IN4_IS_ADDR_LOOPBACK(&inAddr4) ||
-                IN4_IS_ADDR_RFC1918(&inAddr4)
-                )
+            if (IN4_IS_ADDR_UNSPECIFIED(&inAddr4))
+            {
+                PhFree(workitem);
+                return STATUS_SUCCESS;
+            }
+
+            if (IN4_IS_ADDR_LOOPBACK(&inAddr4) ||
+                IN4_IS_ADDR_RFC1918(&inAddr4))
             {
                 dnsLocalQuery = TRUE;
             }
@@ -133,11 +136,14 @@ NTSTATUS TracertHostnameLookupCallback(
         {
             IN6_ADDR inAddr6 = ((PSOCKADDR_IN6)&workitem->SocketAddress)->sin6_addr;
 
-            if (
-                IN6_IS_ADDR_UNSPECIFIED(&inAddr6) ||
-                IN6_IS_ADDR_LOOPBACK(&inAddr6) ||
-                IN6_IS_ADDR_LINKLOCAL(&inAddr6)
-                )
+            if (IN6_IS_ADDR_UNSPECIFIED(&inAddr6))
+            {
+                PhFree(workitem);
+                return STATUS_SUCCESS;
+            }
+
+            if (IN6_IS_ADDR_LOOPBACK(&inAddr6) ||
+                IN6_IS_ADDR_LINKLOCAL(&inAddr6))
             {
                 dnsLocalQuery = TRUE;
             }
@@ -173,14 +179,22 @@ NTSTATUS TracertHostnameLookupCallback(
 
     if (dnsRecordList)
     {
+        PH_STRING_BUILDER stringBuilder;
+
+        PhInitializeStringBuilder(&stringBuilder, 0x80);
+
         for (PDNS_RECORD dnsRecord = dnsRecordList; dnsRecord; dnsRecord = dnsRecord->pNext)
         {
             if (dnsRecord->wType == DNS_TYPE_PTR)
             {
-                dnsHostNameString = PhCreateString(dnsRecord->Data.PTR.pNameHost); // Return the first result (dmex)
-                break;
+                PhAppendFormatStringBuilder(&stringBuilder, L"%s, ", dnsRecord->Data.PTR.pNameHost);
             }
         }
+
+        if (stringBuilder.String->Length != 0)
+            PhRemoveEndStringBuilder(&stringBuilder, 2);
+
+        dnsHostNameString = PhFinalStringBuilderString(&stringBuilder);
 
         DnsFree(dnsRecordList, DnsFreeRecordList);
     }
@@ -351,6 +365,9 @@ NTSTATUS NetworkTracertThreadStart(
         icmpEchoBuffer = PhConvertUtf16ToMultiByte(icmpRandString->Buffer);
         PhDereferenceObject(icmpRandString);
     }
+
+    if (!icmpEchoBuffer)
+        goto CleanupExit;
 
     switch (context->RemoteEndpoint.Address.Type)
     {
