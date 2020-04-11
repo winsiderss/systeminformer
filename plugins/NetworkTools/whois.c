@@ -2,7 +2,7 @@
  * Process Hacker Network Tools -
  *   Whois dialog
  *
- * Copyright (C) 2013-2019 dmex
+ * Copyright (C) 2013-2020 dmex
  *
  * This file is part of Process Hacker.
  *

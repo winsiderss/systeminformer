@@ -2,7 +2,7 @@
  * Process Hacker -
  *   PE viewer
  *
- * Copyright (C) 2019 dmex
+ * Copyright (C) 2019-2020 dmex
  *
  * This file is part of Process Hacker.
  *

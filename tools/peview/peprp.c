@@ -3,7 +3,7 @@
  *   PE viewer
  *
  * Copyright (C) 2010-2011 wj32
- * Copyright (C) 2017-2019 dmex
+ * Copyright (C) 2017-2020 dmex
  *
  * This file is part of Process Hacker.
  *
