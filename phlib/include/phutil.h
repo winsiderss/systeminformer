@@ -142,6 +142,8 @@ PhCenterWindow(
     _In_opt_ HWND ParentWindowHandle
     );
 
+// NLS
+
 PHLIBAPI
 LANGID
 NTAPI
@@ -149,44 +151,36 @@ PhGetUserDefaultLangID(
     VOID
     );
 
-FORCEINLINE
-VOID
-PhLargeIntegerToSystemTime(
-    _Out_ PSYSTEMTIME SystemTime,
-    _In_ PLARGE_INTEGER LargeInteger
-    )
-{
-    FILETIME fileTime;
-
-    fileTime.dwLowDateTime = LargeInteger->LowPart;
-    fileTime.dwHighDateTime = LargeInteger->HighPart;
-    FileTimeToSystemTime(&fileTime, SystemTime);
-}
-
-FORCEINLINE
-VOID
-PhLargeIntegerToLocalSystemTime(
-    _Out_ PSYSTEMTIME SystemTime,
-    _In_ PLARGE_INTEGER LargeInteger
-    )
-{
-    FILETIME fileTime;
-    FILETIME newFileTime;
-
-    fileTime.dwLowDateTime = LargeInteger->LowPart;
-    fileTime.dwHighDateTime = LargeInteger->HighPart;
-    FileTimeToLocalFileTime(&fileTime, &newFileTime);
-    FileTimeToSystemTime(&newFileTime, SystemTime);
-}
-
-// NLS
-
-LCID PhGetSystemDefaultLCID(
+PHLIBAPI
+LCID
+NTAPI
+PhGetSystemDefaultLCID(
     VOID
     );
 
-LCID PhGetUserDefaultLCID(
+PHLIBAPI
+LCID
+NTAPI
+PhGetUserDefaultLCID(
     VOID
+    );
+
+// Time
+
+PHLIBAPI
+VOID
+NTAPI
+PhLargeIntegerToSystemTime(
+    _Out_ PSYSTEMTIME SystemTime,
+    _In_ PLARGE_INTEGER LargeInteger
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhLargeIntegerToLocalSystemTime(
+    _Out_ PSYSTEMTIME SystemTime,
+    _In_ PLARGE_INTEGER LargeInteger
     );
 
 // Error messages
