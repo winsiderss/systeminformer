@@ -2,7 +2,7 @@
  * Process Hacker Network Tools -
  *   Tracert dialog
  *
- * Copyright (C) 2015-2019 dmex
+ * Copyright (C) 2015-2020 dmex
  *
  * This file is part of Process Hacker.
  *
