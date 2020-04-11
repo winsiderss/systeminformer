@@ -387,6 +387,8 @@ EXPORTS
     PhInitializeHash
     PhInitializeImageVersionInfo
     PhIsExecutablePacked
+    PhLargeIntegerToLocalSystemTime
+    PhLargeIntegerToSystemTime
     PhMapFlags1
     PhMapFlags2
     PhMatchWildcards
