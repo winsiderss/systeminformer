@@ -192,20 +192,32 @@ INT_PTR CALLBACK PvpPeResourcesDlgProc(
 
                     if (entry.Data && entry.Size)
                     {
-                        PH_HASH_CONTEXT hashContext;
-                        PPH_STRING hashString;
-                        UCHAR hash[32];
-                    
-                        PhInitializeHash(&hashContext, Sha256HashAlgorithm);
-                        PhUpdateHash(&hashContext, entry.Data, entry.Size);
-
-                        if (PhFinalHash(&hashContext, hash, 32, NULL))
+                        __try
                         {
-                            if (hashString = PhBufferToHexString(hash, 32))
+                            PH_HASH_CONTEXT hashContext;
+                            PPH_STRING hashString;
+                            UCHAR hash[32];
+
+                            PhInitializeHash(&hashContext, Md5HashAlgorithm);
+                            PhUpdateHash(&hashContext, entry.Data, entry.Size);
+
+                            if (PhFinalHash(&hashContext, hash, 16, NULL))
                             {
-                                PhSetListViewSubItem(lvHandle, lvItemIndex, PVE_RESOURCES_COLUMN_INDEX_HASH, hashString->Buffer);
-                                PhDereferenceObject(hashString);
+                                if (hashString = PhBufferToHexString(hash, 16))
+                                {
+                                    PhSetListViewSubItem(lvHandle, lvItemIndex, PVE_RESOURCES_COLUMN_INDEX_HASH, hashString->Buffer);
+                                    PhDereferenceObject(hashString);
+                                }
                             }
+                        }
+                        __except (EXCEPTION_EXECUTE_HANDLER)
+                        {
+                            PPH_STRING message;
+
+                            //message = PH_AUTO(PhGetNtMessage(GetExceptionCode()));
+                            message = PH_AUTO(PhGetWin32Message(RtlNtStatusToDosError(GetExceptionCode()))); // WIN32_FROM_NTSTATUS
+
+                            PhSetListViewSubItem(lvHandle, lvItemIndex, PVE_RESOURCES_COLUMN_INDEX_HASH, PhGetStringOrEmpty(message));
                         }
                     }
                 }

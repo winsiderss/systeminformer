@@ -119,7 +119,7 @@ INT_PTR CALLBACK PvpPeCgfDlgProc(
                                     lvHandle, 
                                     lvItemIndex, 
                                     2,
-                                    PhaFormatString(L"%s+0x%x", symbolName->Buffer, displacement)->Buffer
+                                    PhaFormatString(L"%s+0x%llx", symbolName->Buffer, displacement)->Buffer
                                     );
                             }
                             else
