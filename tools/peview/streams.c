@@ -46,23 +46,99 @@ VOID PvpPeEnumerateFileStreams(
         {
             for (i = PH_FIRST_STREAM(buffer); i; i = PH_NEXT_STREAM(i))
             {
+                FILE_NETWORK_OPEN_INFORMATION streamInfo;
                 INT lvItemIndex;
                 PPH_STRING attributeName;
+                PPH_STRING attributeFileName;
                 WCHAR number[PH_INT32_STR_LEN_1];
+
+                attributeName = PhCreateStringEx(i->StreamName, i->StreamNameLength);
+                attributeFileName = PhConcatStringRef2(&PvFileName->sr, &attributeName->sr);
 
                 PhPrintUInt32(number, ++count);
                 lvItemIndex = PhAddListViewItem(ListViewHandle, MAXINT, number, NULL);
-
-                attributeName = PhCreateStringEx(i->StreamName, i->StreamNameLength);
                 PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, attributeName->Buffer);
-                PhDereferenceObject(attributeName);
-
                 PhSetListViewSubItem(
                     ListViewHandle,
                     lvItemIndex,
                     2,
                     PhaFormatSize(i->StreamSize.QuadPart, ULONG_MAX)->Buffer
                     );
+                //PhSetListViewSubItem(
+                //    ListViewHandle,
+                //    lvItemIndex,
+                //    3,
+                //    PhaFormatSize(i->StreamAllocationSize.QuadPart, ULONG_MAX)->Buffer
+                //    );
+
+                // Each stream associated with a file has its own allocation size, actual size, valid data length
+                // and also maintains its own attributes for compression, encryption, and sparseness. (dmex)
+                if (NT_SUCCESS(PhQueryFullAttributesFileWin32(
+                    PhGetString(attributeFileName),
+                    &streamInfo
+                    )))
+                {
+                    PH_STRING_BUILDER stringBuilder;
+                    WCHAR pointer[PH_PTR_STR_LEN_1];
+
+                    PhInitializeStringBuilder(&stringBuilder, 0x100);
+
+                    if (streamInfo.FileAttributes & FILE_ATTRIBUTE_READONLY)
+                        PhAppendStringBuilder2(&stringBuilder, L"Readonly, ");
+                    if (streamInfo.FileAttributes & FILE_ATTRIBUTE_HIDDEN)
+                        PhAppendStringBuilder2(&stringBuilder, L"Hidden, ");
+                    if (streamInfo.FileAttributes & FILE_ATTRIBUTE_SYSTEM)
+                        PhAppendStringBuilder2(&stringBuilder, L"System, ");
+                    if (streamInfo.FileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+                        PhAppendStringBuilder2(&stringBuilder, L"Directory, ");
+                    if (streamInfo.FileAttributes & FILE_ATTRIBUTE_ARCHIVE)
+                        PhAppendStringBuilder2(&stringBuilder, L"Archive, ");
+                    if (streamInfo.FileAttributes & FILE_ATTRIBUTE_DEVICE)
+                        PhAppendStringBuilder2(&stringBuilder, L"Device, ");
+                    if (streamInfo.FileAttributes & FILE_ATTRIBUTE_NORMAL)
+                        PhAppendStringBuilder2(&stringBuilder, L"Normal, ");
+                    if (streamInfo.FileAttributes & FILE_ATTRIBUTE_TEMPORARY)
+                        PhAppendStringBuilder2(&stringBuilder, L"Temporary, ");
+                    if (streamInfo.FileAttributes & FILE_ATTRIBUTE_SPARSE_FILE)
+                        PhAppendStringBuilder2(&stringBuilder, L"Sparse, ");
+                    if (streamInfo.FileAttributes & FILE_ATTRIBUTE_REPARSE_POINT)
+                        PhAppendStringBuilder2(&stringBuilder, L"Reparse point, ");
+                    if (streamInfo.FileAttributes & FILE_ATTRIBUTE_COMPRESSED)
+                        PhAppendStringBuilder2(&stringBuilder, L"Compressed, ");
+                    if (streamInfo.FileAttributes & FILE_ATTRIBUTE_OFFLINE)
+                        PhAppendStringBuilder2(&stringBuilder, L"Offline, ");
+                    if (streamInfo.FileAttributes & FILE_ATTRIBUTE_NOT_CONTENT_INDEXED)
+                        PhAppendStringBuilder2(&stringBuilder, L"Not indexed, ");
+                    if (streamInfo.FileAttributes & FILE_ATTRIBUTE_ENCRYPTED)
+                        PhAppendStringBuilder2(&stringBuilder, L"Encrypted, ");
+                    if (streamInfo.FileAttributes & FILE_ATTRIBUTE_INTEGRITY_STREAM)
+                        PhAppendStringBuilder2(&stringBuilder, L"Integiry, ");
+                    if (streamInfo.FileAttributes & FILE_ATTRIBUTE_VIRTUAL)
+                        PhAppendStringBuilder2(&stringBuilder, L"Vitual, ");
+                    if (streamInfo.FileAttributes & FILE_ATTRIBUTE_NO_SCRUB_DATA)
+                        PhAppendStringBuilder2(&stringBuilder, L"No scrub, ");
+                    if (streamInfo.FileAttributes & FILE_ATTRIBUTE_EA)
+                        PhAppendStringBuilder2(&stringBuilder, L"Extended attributes, ");
+                    if (streamInfo.FileAttributes & FILE_ATTRIBUTE_PINNED)
+                        PhAppendStringBuilder2(&stringBuilder, L"Pinned, ");
+                    if (streamInfo.FileAttributes & FILE_ATTRIBUTE_UNPINNED)
+                        PhAppendStringBuilder2(&stringBuilder, L"Unpinned, ");
+                    if (streamInfo.FileAttributes & FILE_ATTRIBUTE_RECALL_ON_OPEN)
+                        PhAppendStringBuilder2(&stringBuilder, L"Recall on opened, ");
+                    if (streamInfo.FileAttributes & FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS)
+                        PhAppendStringBuilder2(&stringBuilder, L"Recall on data, ");
+                    if (PhEndsWithString2(stringBuilder.String, L", ", FALSE))
+                        PhRemoveEndStringBuilder(&stringBuilder, 2);
+
+                    PhPrintPointer(pointer, UlongToPtr(streamInfo.FileAttributes));
+                    PhAppendFormatStringBuilder(&stringBuilder, L" (%s)", pointer);
+
+                    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, PhFinalStringBuilderString(&stringBuilder)->Buffer);
+                    PhDeleteStringBuilder(&stringBuilder);
+                }
+
+                PhDereferenceObject(attributeFileName);
+                PhDereferenceObject(attributeName);
             }
 
             PhFree(buffer);
@@ -97,6 +173,7 @@ INT_PTR CALLBACK PvpPeStreamsDlgProc(
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"#");
             PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 150, L"Name");
             PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 150, L"Size");
+            PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 100, L"Attributes");
             PhSetExtendedListView(lvHandle);
             PhLoadListViewColumnsFromSetting(L"ImageStreamsListViewColumns", lvHandle);
 
