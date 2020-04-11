@@ -301,6 +301,53 @@ PPH_STRING PhLCIDToLocaleName(
     return NULL;
 }
 
+VOID PhLargeIntegerToSystemTime(
+    _Out_ PSYSTEMTIME SystemTime,
+    _In_ PLARGE_INTEGER LargeInteger
+    )
+{
+    TIME_FIELDS timeFields;
+
+    RtlTimeToTimeFields(LargeInteger, &timeFields);
+    SystemTime->wYear = timeFields.Year;
+    SystemTime->wMonth = timeFields.Month;
+    SystemTime->wDay = timeFields.Day;
+    SystemTime->wHour = timeFields.Hour;
+    SystemTime->wMinute = timeFields.Minute;
+    SystemTime->wSecond = timeFields.Second;
+    SystemTime->wMilliseconds = timeFields.Milliseconds;
+    SystemTime->wDayOfWeek = timeFields.Weekday;
+
+    //FILETIME fileTime;
+    //
+    //fileTime.dwLowDateTime = LargeInteger->LowPart;
+    //fileTime.dwHighDateTime = LargeInteger->HighPart;
+    //FileTimeToSystemTime(&fileTime, SystemTime);
+}
+
+VOID PhLargeIntegerToLocalSystemTime(
+    _Out_ PSYSTEMTIME SystemTime,
+    _In_ PLARGE_INTEGER LargeInteger
+    )
+{
+    LARGE_INTEGER timeZoneBias;
+    LARGE_INTEGER fileTime;
+
+    PhQueryTimeZoneBias(&timeZoneBias);
+
+    fileTime.LowPart = LargeInteger->LowPart;
+    fileTime.HighPart = LargeInteger->HighPart;
+    fileTime.QuadPart -= timeZoneBias.QuadPart;
+    PhLargeIntegerToSystemTime(SystemTime, &fileTime);
+
+    //FILETIME fileTime;
+    //FILETIME newFileTime;
+    //fileTime.dwLowDateTime = LargeInteger->LowPart;
+    //fileTime.dwHighDateTime = LargeInteger->HighPart;
+    //FileTimeToLocalFileTime(&fileTime, &newFileTime);
+    //FileTimeToSystemTime(&newFileTime, SystemTime);
+}
+
 /**
  * Gets a string stored in a DLL's message table.
  *
