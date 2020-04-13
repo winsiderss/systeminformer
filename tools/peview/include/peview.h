@@ -407,6 +407,13 @@ INT_PTR CALLBACK PvpPePreviewDlgProc(
     _In_ LPARAM lParam
     );
 
+INT_PTR CALLBACK PvpPeProdIdDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
 // ELF
 
 PWSTR PvpGetSymbolTypeName(

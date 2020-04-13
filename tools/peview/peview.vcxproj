@@ -332,6 +332,7 @@
     <ClCompile Include="exlfexports.c" />
     <ClCompile Include="exlfimports.c" />
     <ClCompile Include="exlfprp.c" />
+    <ClCompile Include="richprp.c" />
     <ClCompile Include="ldprp.c" />
     <ClCompile Include="expprp.c" />
     <ClCompile Include="impprp.c" />

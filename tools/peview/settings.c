@@ -54,6 +54,7 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"ImageHardLinksListViewColumns", L"");
     PhpAddStringSetting(L"ImagePidsListViewColumns", L"");
     PhpAddStringSetting(L"ImageTlsListViewColumns", L"");
+    PhpAddStringSetting(L"ImageProdIdListViewColumns", L"");
     PhpAddStringSetting(L"LibListViewColumns", L"");
     PhpAddStringSetting(L"PdbTreeListColumns", L"");
 
