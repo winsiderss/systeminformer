@@ -26,7 +26,9 @@ PWSTR PvpGetProductIdName(
     _In_ ULONG ProductId
     )
 {
-    if (ProductId >= prodidAliasObj1400)
+    if (ProductId == 1)
+        return L"Linker (Import Table)";
+    else if (ProductId >= prodidAliasObj1400)
         return L"Visual Studio 2015 (14.00)";
     else if (ProductId >= prodidAliasObj1210)
         return L"Visual Studio 2013 (12.10)";
@@ -39,7 +41,7 @@ PWSTR PvpGetProductIdName(
     else if (ProductId >= prodidAliasObj1000)
         return L"Visual Studio 2010 (10.00)";
     else if (ProductId >= prodidLinker900) // prodidAliasObj900
-        return L"Visual Studio 2008 (9.00)";
+        return L"Visual Studio 2008 (9.0)";
     else if (ProductId >= prodidLinker800) // prodidAliasObj710
         return L"Visual Studio 2003 (7.1)";
     else if (ProductId >= prodidLinker800) // prodidAliasObj710
@@ -58,6 +60,11 @@ PWSTR PvpGetProductIdComponent(
 {
     switch (ProductId)
     {
+    case prodidImport0:
+        return L"Linker generated import object";
+    case prodidResource:
+        return L"Resource compiler object";
+
     case prodidCvtpgd1400:
         return L"Profile Guided Optimization (PGO) (14.00)";
     case prodidCvtpgd1500:
@@ -97,6 +104,8 @@ PWSTR PvpGetProductIdComponent(
     case prodidExport1400:
         return L"Export (14.00)";
 
+    case prodidImplib900:
+        return L"Import library tool (LIB) (9.0)";
     case prodidImplib1010:
         return L"Import library tool (LIB) (10.10)";
     case prodidImplib1100:
@@ -285,7 +294,7 @@ INT_PTR CALLBACK PvpPeProdIdDlgProc(
 
                     entry = prodids.ProdIdEntries[i];
 
-                    if (!(entry.ProductId && entry.ProductBuild && entry.ProductCount))
+                    if (!entry.ProductCount)
                         continue;
 
                     PhPrintUInt32(number, ++count);
