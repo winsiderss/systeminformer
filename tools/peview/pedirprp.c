@@ -144,7 +144,7 @@ INT_PTR CALLBACK PvpPeDirectoryDlgProc(
         {
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
-            PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
+            PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"#");
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 130, L"Name");
@@ -156,8 +156,8 @@ INT_PTR CALLBACK PvpPeDirectoryDlgProc(
             PhSetExtendedListView(context->ListViewHandle);
             PhLoadListViewColumnsFromSetting(L"ImageDirectoryListViewColumns", context->ListViewHandle);
 
-            //if (context->ListViewImageList = ImageList_Create(2, 20, ILC_COLOR, 1, 1))
-            //    ListView_SetImageList(context->ListViewHandle, context->ListViewImageList, LVSIL_SMALL);
+            if (context->ListViewImageList = ImageList_Create(2, 20, ILC_COLOR, 1, 1))
+                ListView_SetImageList(context->ListViewHandle, context->ListViewImageList, LVSIL_SMALL);
 
             // for (ULONG i = 0; i < IMAGE_NUMBEROF_DIRECTORY_ENTRIES; i++)
             PvpPeEnumerateHeaderDirectory(context->ListViewHandle, IMAGE_DIRECTORY_ENTRY_EXPORT, L"Export");

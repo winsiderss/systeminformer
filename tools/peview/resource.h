@@ -28,6 +28,8 @@
 #define IDD_PEPREVIEW                   124
 #define IDD_OPTIONS                     126
 #define IDD_PEDIRECTORY                 127
+#define IDD_EXCEPTION                   128
+#define IDD_PEPRODID                    129
 #define IDC_TARGETMACHINE               1003
 #define IDC_CHECKSUM                    1004
 #define IDC_SUBSYSTEM                   1005
@@ -52,6 +54,8 @@
 #define IDC_NAME                        1019
 #define IDC_COMPANYNAME_LINK            1020
 #define IDC_PREVIEW                     1023
+#define IDC_PRODCHECKSUM                1025
+#define IDC_PRODHASH                    1026
 #define IDC_FONT                        1079
 #define IDC_SEARCHENGINE                1143
 #define IDC_MAXSIZEUNIT                 1144
@@ -62,9 +66,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        128
+#define _APS_NEXT_RESOURCE_VALUE        129
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1025
+#define _APS_NEXT_CONTROL_VALUE         1027
 #define _APS_NEXT_SYMED_VALUE           115
 #endif
 #endif
