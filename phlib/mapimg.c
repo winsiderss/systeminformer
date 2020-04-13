@@ -2083,7 +2083,7 @@ NTSTATUS PhGetMappedImageProdIdHeader(
         return GetExceptionCode();
     }
 
-    richHeaderEnd = PTR_SUB_OFFSET(imageNtHeader, sizeof(PRODITEM));
+    richHeaderEnd = PTR_ADD_OFFSET(MappedImage->ViewBase, richHeaderEndOffset + sizeof(PRODITEM));
 
     __try
     {
@@ -2105,8 +2105,8 @@ NTSTATUS PhGetMappedImageProdIdHeader(
         PBYTE currentEnd;
         PBYTE offset;
 
-        currentAddress = PTR_ADD_OFFSET(richHeaderStart, sizeof(PRODITEM)); // skip first entry
-        currentEnd = PTR_SUB_OFFSET(richHeaderEnd, sizeof(PRODITEM)); // skip last entry
+        currentAddress = PTR_ADD_OFFSET(richHeaderStart, 0);
+        currentEnd = PTR_SUB_OFFSET(richHeaderEnd, 0);
 
         __try
         {
@@ -2114,7 +2114,7 @@ NTSTATUS PhGetMappedImageProdIdHeader(
             UCHAR hash[32];
 
             PhInitializeHash(&hashContext, Md5HashAlgorithm);
-            PhUpdateHash(&hashContext, richHeaderStart, richHeaderLength); // TODO: More testing (dmex)
+            PhUpdateHash(&hashContext, richHeaderStart, richHeaderLength);
 
             if (PhFinalHash(&hashContext, hash, 16, NULL))
             {
