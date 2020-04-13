@@ -520,5 +520,8 @@
     <ClInclude Include="include\wslsup.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\exprodid.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -6,6 +6,7 @@ extern "C" {
 #endif
 
 #include <exlf.h>
+#include <exprodid.h>
 
 typedef struct _PH_MAPPED_IMAGE
 {
@@ -466,6 +467,27 @@ NTAPI
 PhGetMappedImageTlsCallbacks(
     _Out_ PPH_MAPPED_IMAGE_TLS_CALLBACKS TlsCallbacks,
     _In_ PPH_MAPPED_IMAGE MappedImage
+    );
+
+typedef struct _PH_MAPPED_IMAGE_PRODID_ENTRY
+{
+    ULONG ProductId;
+    ULONG ProductBuild;
+    ULONG ProductCount;
+} PH_MAPPED_IMAGE_PRODID_ENTRY, *PPH_MAPPED_IMAGE_PRODID_ENTRY;
+
+typedef struct _PH_MAPPED_IMAGE_PRODID
+{
+    //WCHAR Key[PH_PTR_STR_LEN_1];
+    PPH_STRING Key;
+    PPH_STRING Hash;
+    ULONG NumberOfEntries;
+    PPH_MAPPED_IMAGE_PRODID_ENTRY ProdIdEntries;
+} PH_MAPPED_IMAGE_PRODID, *PPH_MAPPED_IMAGE_PRODID;
+
+NTSTATUS PhGetMappedImageProdIdHeader(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _Out_ PPH_MAPPED_IMAGE_PRODID ProdIdHeader
     );
 
 // maplib
