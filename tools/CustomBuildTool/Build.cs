@@ -129,6 +129,7 @@ namespace CustomBuildTool
             "dspick.h",
             "emenu.h",
             "exlf.h",
+            "exprodid.h",
             "fastlock.h",
             "filestream.h",
             "graph.h",
