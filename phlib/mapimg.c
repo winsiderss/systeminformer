@@ -1977,3 +1977,205 @@ NTSTATUS PhGetMappedImageTlsCallbacks(
 
     return status;
 }
+
+NTSTATUS PhGetMappedImageProdIdHeader(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _Out_ PPH_MAPPED_IMAGE_PRODID ProdIdHeader
+    )
+{
+    PIMAGE_DOS_HEADER imageDosHeader = NULL;
+    PIMAGE_NT_HEADERS imageNtHeader = NULL;
+    PPRODITEM richHeaderStart = NULL; // PTR_ADD_OFFSET(imageDosHeader, 0x80)
+    PPRODITEM richHeaderEnd = NULL; // PTR_SUB_OFFSET(imageNtHeader, 0x0);
+    PPRODITEM richHeaderChecksum = NULL; // PTR_SUB_OFFSET(imageNtHeader, 0x10);
+    ULONG ntHeadersOffset = ULONG_MAX;
+    ULONG richHeaderKey = ULONG_MAX;
+    ULONG richStartSignature = ULONG_MAX;
+    ULONG richEndSignature = ULONG_MAX;
+    ULONG richHeaderStartOffset = ULONG_MAX;
+    ULONG richHeaderEndOffset = ULONG_MAX;
+    ULONG richHeaderLength = ULONG_MAX;
+
+    imageDosHeader = (PIMAGE_DOS_HEADER)MappedImage->ViewBase;
+
+    if (imageDosHeader->e_magic != IMAGE_DOS_SIGNATURE)
+        return STATUS_INVALID_IMAGE_NOT_MZ;
+
+    ntHeadersOffset = (ULONG)imageDosHeader->e_lfanew;
+
+    if (ntHeadersOffset == 0 || ntHeadersOffset >= LONG_MAX)
+        return STATUS_INVALID_IMAGE_FORMAT;
+
+    imageNtHeader = PTR_ADD_OFFSET(MappedImage->ViewBase, ntHeadersOffset);
+
+    if (imageNtHeader->Signature == IMAGE_NT_SIGNATURE)
+    {
+        PBYTE startHeaderAddress = PTR_ADD_OFFSET(MappedImage->ViewBase, ntHeadersOffset);
+        PBYTE endHeaderAddress = PTR_ADD_OFFSET(MappedImage->ViewBase, sizeof(IMAGE_DOS_HEADER));
+
+        for (PBYTE i = startHeaderAddress; i >= endHeaderAddress; i -= sizeof(ULONG))
+        {
+            __try
+            {
+                if (*(PULONG)i == ProdIdTagStart)
+                {
+                    richHeaderEndOffset = PtrToUlong(PTR_SUB_OFFSET(i, MappedImage->ViewBase));
+                    break;
+                }
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                return GetExceptionCode();
+            }
+        }
+    }
+
+    if (richHeaderEndOffset == ULONG_MAX)
+        return STATUS_FAIL_CHECK;
+
+    richHeaderChecksum = PTR_ADD_OFFSET(MappedImage->ViewBase, richHeaderEndOffset);
+
+    __try
+    {
+        PhpMappedImageProbe(MappedImage, richHeaderChecksum, sizeof(PRODITEM));
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        return GetExceptionCode();
+    }
+
+    richHeaderKey = richHeaderChecksum->dwCount;
+    richStartSignature = richHeaderChecksum->dwProdid;
+
+    if (richHeaderKey && richStartSignature)
+    {
+        PBYTE startHeaderAddress = PTR_ADD_OFFSET(MappedImage->ViewBase, ntHeadersOffset);
+        PBYTE endHeaderAddress = PTR_ADD_OFFSET(MappedImage->ViewBase, sizeof(IMAGE_DOS_HEADER));
+
+        for (PBYTE i = startHeaderAddress; i >= endHeaderAddress; i -= sizeof(ULONG))
+        {
+            __try
+            {
+                if ((*(PULONG)i ^ richHeaderKey) == ProdIdTagEnd)
+                {
+                    richHeaderStartOffset = PtrToUlong(PTR_SUB_OFFSET(i, MappedImage->ViewBase));
+                    break;
+                }
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                return GetExceptionCode();
+            }
+        }
+    }
+
+    if (richHeaderStartOffset == ULONG_MAX)
+        return STATUS_FAIL_CHECK;
+
+    richHeaderStart = PTR_ADD_OFFSET(MappedImage->ViewBase, richHeaderStartOffset);
+
+    __try
+    {
+        PhpMappedImageProbe(MappedImage, richHeaderStart, sizeof(PRODITEM));
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        return GetExceptionCode();
+    }
+
+    richHeaderEnd = PTR_SUB_OFFSET(imageNtHeader, sizeof(PRODITEM));
+
+    __try
+    {
+        PhpMappedImageProbe(MappedImage, richHeaderEnd, sizeof(PRODITEM));
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        return GetExceptionCode();
+    }
+
+    richHeaderLength = PtrToUlong(PTR_SUB_OFFSET(richHeaderEnd, richHeaderStart));
+    richEndSignature = richHeaderStart->dwProdid ^ richHeaderKey;
+
+    if (richStartSignature == ProdIdTagStart && richEndSignature == ProdIdTagEnd)
+    {
+        PPH_STRING hashString = NULL;
+        ULONG currentCount = 0;
+        PBYTE currentAddress;
+        PBYTE currentEnd;
+        PBYTE offset;
+
+        currentAddress = PTR_ADD_OFFSET(richHeaderStart, sizeof(PRODITEM)); // skip first entry
+        currentEnd = PTR_SUB_OFFSET(richHeaderEnd, sizeof(PRODITEM)); // skip last entry
+
+        __try
+        {
+            PH_HASH_CONTEXT hashContext;
+            UCHAR hash[32];
+
+            PhInitializeHash(&hashContext, Md5HashAlgorithm);
+            PhUpdateHash(&hashContext, richHeaderStart, richHeaderLength); // TODO: More testing (dmex)
+
+            if (PhFinalHash(&hashContext, hash, 16, NULL))
+            {
+                hashString = PhBufferToHexString(hash, 16);
+            }
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            return GetExceptionCode();
+        }
+
+        if (PhIsNullOrEmptyString(hashString))
+            return STATUS_FAIL_CHECK;
+        
+        // Do a scan to determine how many enries there are.
+        for (offset = currentAddress; offset < currentEnd; offset += sizeof(PRODITEM))
+        {
+            currentCount++;
+        }
+
+        //PhPrintPointer(ProdIdHeader->Key, UlongToPtr(richHeaderKey));
+        ProdIdHeader->Key = PhFormatString(L"%lx", richHeaderKey);
+        ProdIdHeader->Hash = hashString;
+        ProdIdHeader->NumberOfEntries = currentCount;
+        ProdIdHeader->ProdIdEntries = PhAllocate(sizeof(PH_MAPPED_IMAGE_PRODID_ENTRY) * currentCount);
+        memset(ProdIdHeader->ProdIdEntries, 0, sizeof(PH_MAPPED_IMAGE_PRODID_ENTRY) * currentCount);
+
+        for (ULONG i = 0; i < currentCount; i++)
+        {
+            PPRODITEM entry = PTR_ADD_OFFSET(currentAddress, i * sizeof(PRODITEM));
+
+            __try
+            {
+                PhpMappedImageProbe(MappedImage, entry, sizeof(PRODITEM));
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                //return GetExceptionCode();
+                continue;
+            }
+
+            // The prodid header can include 3 extra checksum values. Ignore these for now (dmex) 
+            if ((entry->dwCount ^ richHeaderKey) != richHeaderKey)
+            {
+                ProdIdHeader->ProdIdEntries[i].ProductId = ProdidFromDwProdid(entry->dwProdid ^ richHeaderKey);
+                ProdIdHeader->ProdIdEntries[i].ProductBuild = WBuildFromDwProdid(entry->dwProdid ^ richHeaderKey);
+                ProdIdHeader->ProdIdEntries[i].ProductCount = entry->dwCount ^ richHeaderKey;
+            }
+        }
+
+        //for (offset = currentAddress; offset < currentEnd; offset += sizeof(PRODITEM))
+        //{
+        //    PPRODITEM entry = (PPRODITEM)offset;
+        //    ULONG prodid = ProdidFromDwProdid(entry->dwProdid ^ richHeaderKey);
+        //    ULONG build = WBuildFromDwProdid(entry->dwProdid ^ richHeaderKey);
+        //    ULONG count = entry->dwCount ^ richHeaderKey;
+        //    dprintf("%x %x %x\n", prodid, build, count);
+        //}
+
+        return STATUS_SUCCESS;
+    }
+
+    return STATUS_FAIL_CHECK;
+}
