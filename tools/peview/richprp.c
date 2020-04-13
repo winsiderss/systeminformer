@@ -302,8 +302,11 @@ INT_PTR CALLBACK PvpPeProdIdDlgProc(
                     PhSetListViewSubItem(lvHandle, lvItemIndex, 1, PvpGetProductIdName(entry.ProductId));
                     PhSetListViewSubItem(lvHandle, lvItemIndex, 2, PvpGetProductIdComponent(entry.ProductId));
 
-                    PhPrintUInt32(number, entry.ProductBuild);
-                    PhSetListViewSubItem(lvHandle, lvItemIndex, 3, number);
+                    if (entry.ProductBuild)
+                    {
+                        PhPrintUInt32(number, entry.ProductBuild);
+                        PhSetListViewSubItem(lvHandle, lvItemIndex, 3, number);
+                    }
 
                     PhPrintUInt32(number, entry.ProductCount);
                     PhSetListViewSubItem(lvHandle, lvItemIndex, 4, number);
