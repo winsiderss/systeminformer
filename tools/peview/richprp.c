@@ -26,20 +26,18 @@ PWSTR PvpGetProductIdName(
     _In_ ULONG ProductId
     )
 {
-    if (ProductId == 1)
-        return L"Linker (Import Table)";
-    else if (ProductId >= prodidAliasObj1400)
-        return L"Visual Studio 2015 (14.00)";
+    if (ProductId >= prodidAliasObj1400)
+        return L"Visual Studio 2015 (14.0)";
     else if (ProductId >= prodidAliasObj1210)
-        return L"Visual Studio 2013 (12.10)";
+        return L"Visual Studio 2013 (12.1)";
     else if (ProductId >= prodidAliasObj1200)
-        return L"Visual Studio 2013 (12.00)";
+        return L"Visual Studio 2013 (12.0)";
     else if (ProductId >= prodidAliasObj1100)
-        return L"Visual Studio 2012 (11.00)";
+        return L"Visual Studio 2012 (11.0)";
     else if (ProductId >= prodidAliasObj1010)
-        return L"Visual Studio 2010 (10.10)";
+        return L"Visual Studio 2010 (10.1)";
     else if (ProductId >= prodidAliasObj1000)
-        return L"Visual Studio 2010 (10.00)";
+        return L"Visual Studio 2010 (10.0)";
     else if (ProductId >= prodidLinker900) // prodidAliasObj900
         return L"Visual Studio 2008 (9.0)";
     else if (ProductId >= prodidLinker800) // prodidAliasObj710
@@ -50,6 +48,8 @@ PWSTR PvpGetProductIdName(
         return L"Visual Studio 2002 (7.0)";
     else if (ProductId >= prodidAliasObj60)
         return L"Visual Studio 1998 (6.0)";
+    else if (ProductId == 1)
+        return L"Linker (Import Table)";
 
     return PhaFormatString(L"Report error (%lu)", ProductId)->Buffer;
 }
@@ -65,163 +65,191 @@ PWSTR PvpGetProductIdComponent(
     case prodidResource:
         return L"Resource compiler object";
 
+    case prodidAliasObj60:
+        return L"ALIASOBJ (6.0)";
+    case prodidAliasObj70:
+        return L"ALIASOBJ (7.0)";
+    case prodidAliasObj710:
+    case prodidAliasObj710p:
+        return L"ALIASOBJ (7.1)";
+    case prodidAliasObj800:
+        return L"ALIASOBJ (8.0)";
+    case prodidAliasObj900:
+        return L"ALIASOBJ (9.0)";
+    case prodidAliasObj1000:
+        return L"ALIASOBJ (10.0)";
+    case prodidAliasObj1010:
+        return L"ALIASOBJ (10.1)";
+    case prodidAliasObj1100:
+        return L"ALIASOBJ (11.0)";
+    case prodidAliasObj1200:
+        return L"ALIASOBJ (12.0)";
+    case prodidAliasObj1210:
+        return L"ALIASOBJ (12.1)";
+    case prodidAliasObj1400:
+        return L"ALIASOBJ (14.0)";
+
     case prodidCvtpgd1400:
-        return L"Profile Guided Optimization (PGO) (14.00)";
+        return L"Profile Guided Optimization (PGO) (14.0)";
     case prodidCvtpgd1500:
-        return L"Profile Guided Optimization (PGO) (15.00)";
+        return L"Profile Guided Optimization (PGO) (15.0)";
     case prodidCvtpgd1600:
-        return L"Profile Guided Optimization (PGO) (16.00)";
+        return L"Profile Guided Optimization (PGO) (16.0)";
     case prodidCvtpgd1610:
-        return L"Profile Guided Optimization (PGO) (16.10)";
+        return L"Profile Guided Optimization (PGO) (16.1)";
     case prodidCvtpgd1700:
-        return L"Profile Guided Optimization (PGO) (17.00)";
+        return L"Profile Guided Optimization (PGO) (17.0)";
     case prodidCvtpgd1800:
-        return L"Profile Guided Optimization (PGO) (18.00)";
+        return L"Profile Guided Optimization (PGO) (18.0)";
     case prodidCvtpgd1810:
-        return L"Profile Guided Optimization (PGO) (18.10)";
+        return L"Profile Guided Optimization (PGO) (18.1)";
     case prodidCvtpgd1900:
-        return L"Profile Guided Optimization (PGO) (19.00)";
+        return L"Profile Guided Optimization (PGO) (19.0)";
 
     case prodidCvtres1010:
-        return L"Resource File To COFF Object (10.10)";
+        return L"Resource File To COFF Object (10.1)";
     case prodidCvtres1100:
-        return L"Resource File To COFF Object (11.00)";
+        return L"Resource File To COFF Object (11.0)";
     case prodidCvtres1200:
-        return L"Resource File To COFF Object (12.00)";
+        return L"Resource File To COFF Object (12.0)";
     case prodidCvtres1210:
-        return L"Resource File To COFF Object (12.10)";
+        return L"Resource File To COFF Object (12.1)";
     case prodidCvtres1400:
-        return L"Resource File To COFF Object (14.00)";
+        return L"Resource File To COFF Object (14.0)";
 
     case prodidExport1010:
-        return L"Export (10.10)";
+        return L"Export (10.1)";
     case prodidExport1100:
-        return L"Export (11.00)";
+        return L"Export (11.0)";
     case prodidExport1200:
-        return L"Export (12.00)";
+        return L"Export (12.0)";
     case prodidExport1210:
-        return L"Export (12.10)";
+        return L"Export (12.1)";
     case prodidExport1400:
-        return L"Export (14.00)";
+        return L"Export (14.0)";
 
     case prodidImplib900:
         return L"Import library tool (LIB) (9.0)";
     case prodidImplib1010:
-        return L"Import library tool (LIB) (10.10)";
+        return L"Import library tool (LIB) (10.1)";
     case prodidImplib1100:
-        return L"Import library tool (LIB) (11.00)";
+        return L"Import library tool (LIB) (11.0)";
     case prodidImplib1200:
-        return L"Import library tool (LIB) (12.00)";
+        return L"Import library tool (LIB) (12.0)";
     case prodidImplib1210:
-        return L"Import library tool (LIB) (12.10)";
+        return L"Import library tool (LIB) (12.1)";
     case prodidImplib1400:
-        return L"Import library tool (LIB) (14.00)";
+        return L"Import library tool (LIB) (14.0)";
 
     case prodidLinker1010:
-        return L"Linker (10.10)";
+        return L"Linker (10.1)";
     case prodidLinker1100:
-        return L"Linker (11.00)";
+        return L"Linker (11.0)";
     case prodidLinker1200:
-        return L"Linker (12.00)";
+        return L"Linker (12.0)";
     case prodidLinker1210:
-        return L"Linker (12.10)";
+        return L"Linker (12.1)";
     case prodidLinker1400:
-        return L"Linker (14.00)";
+        return L"Linker (14.0)";
 
     case prodidMasm1010:
-        return L"MASM (10.00)";
+        return L"MASM (10.0)";
     case prodidMasm1100:
-        return L"MASM (11.00)";
+        return L"MASM (11.0)";
     case prodidMasm1200:
-        return L"MASM (12.00)";
+        return L"MASM (12.0)";
     case prodidMasm1210:
-        return L"MASM (12.10)";
+        return L"MASM (12.1)";
     case prodidMasm1400:
-        return L"MASM (14.00)";
+        return L"MASM (14.0)";
 
     case prodidUtc1610_C:
-        return L"C files (16.10)";
+        return L"C files (16.1)";
     case prodidUtc1700_C:
-        return L"C files (17.00)";
+        return L"C files (17.0)";
     case prodidUtc1800_C:
-        return L"C files (18.00)";
+        return L"C files (18.0)";
     case prodidUtc1810_C:
-        return L"C files (18.10)";
+        return L"C files (18.1)";
     case prodidUtc1900_C:
-        return L"C files (19.00)";
+        return L"C files (19.0)";
 
     case prodidUtc1610_CPP:
-        return L"CPP files (16.10)";
+        return L"CPP files (16.1)";
     case prodidUtc1700_CPP:
-        return L"CPP files (17.00)";
+        return L"CPP files (17.0)";
     case prodidUtc1800_CPP:
-        return L"CPP files (18.00)";
+        return L"CPP files (18.0)";
     case prodidUtc1810_CPP:
-        return L"CPP files (18.10)";
+        return L"CPP files (18.1)";
     case prodidUtc1900_CPP:
-        return L"CPP files (19.00)";
+        return L"CPP files (19.0)";
 
     case prodidUtc1610_CVTCIL_C:
-        return L"CIL to Native Converter (C99) (16.10)";
+        return L"CIL to Native Converter (C99) (16.1)";
     case prodidUtc1700_CVTCIL_C:
-        return L"CIL to Native Converter (C99) (17.00)";
+        return L"CIL to Native Converter (C99) (17.0)";
     case prodidUtc1800_CVTCIL_C:
-        return L"CIL to Native Converter (C11) (18.00)";
+        return L"CIL to Native Converter (C11) (18.0)";
     case prodidUtc1810_CVTCIL_C:
-        return L"CIL to Native Converter (C11) (18.10)";
+        return L"CIL to Native Converter (C11) (18.1)";
     case prodidUtc1900_CVTCIL_C:
-        return L"CIL to Native Converter (C11) (19.00)";
+        return L"CIL to Native Converter (C11) (19.0)";
 
     case prodidUtc1610_CVTCIL_CPP:
-        return L"CIL to Native Converter (CPP) (16.10)";
+        return L"CIL to Native Converter (CPP) (16.1)";
     case prodidUtc1700_CVTCIL_CPP:
-        return L"CIL to Native Converter (CPP) (17.00)";
+        return L"CIL to Native Converter (CPP) (17.0)";
     case prodidUtc1800_CVTCIL_CPP:
-        return L"CIL to Native Converter (CPP) (18.00)";
+        return L"CIL to Native Converter (CPP) (18.0)";
     case prodidUtc1810_CVTCIL_CPP:
-        return L"CIL to Native Converter (CPP) (18.10)";
+        return L"CIL to Native Converter (CPP) (18.1)";
     case prodidUtc1900_CVTCIL_CPP:
-        return L"CIL to Native Converter (CPP) (19.00)";
+        return L"CIL to Native Converter (CPP) (19.0)";
 
     case prodidUtc1610_LTCG_C:
-        return L"Link-time Code Generation (C11) (16.10)";
+        return L"Link-time Code Generation (C99) (16.1)";
     case prodidUtc1700_LTCG_C:
-        return L"Link-time Code Generation (C11) (17.00)";
+        return L"Link-time Code Generation (C99) (17.0)";
     case prodidUtc1800_LTCG_C:
-        return L"Link-time Code Generation (C11) (18.00)";
+        return L"Link-time Code Generation (C11) (18.0)";
     case prodidUtc1810_LTCG_C:
-        return L"Link-time Code Generation (C11) (18.10)";
+        return L"Link-time Code Generation (C11) (18.1)";
     case prodidUtc1900_LTCG_C:
-        return L"Link-time Code Generation (C11) (19.00)";
+        return L"Link-time Code Generation (C11) (19.0)";
 
     case prodidUtc1610_LTCG_CPP:
-        return L"Link-time Code Generation (CPP) (16.10)";
+        return L"Link-time Code Generation (CPP) (16.1)";
     case prodidUtc1700_LTCG_CPP:
-        return L"Link-time Code Generation (CPP) (17.00)";
+        return L"Link-time Code Generation (CPP) (17.0)";
     case prodidUtc1800_LTCG_CPP:
-        return L"Link-time Code Generation (CPP) (18.00)";
+        return L"Link-time Code Generation (CPP) (18.0)";
     case prodidUtc1810_LTCG_CPP:
-        return L"Link-time Code Generation (CPP) (18.10)";
+        return L"Link-time Code Generation (CPP) (18.1)";
     case prodidUtc1900_LTCG_CPP:
-        return L"Link-time Code Generation (CPP) (19.00)";
+        return L"Link-time Code Generation (CPP) (19.0)";
 
     case prodidUtc1610_LTCG_MSIL:
-        return L"Link-time Code Generation (MSIL) (16.10)";
+        return L"Link-time Code Generation (MSIL) (16.1)";
     case prodidUtc1700_LTCG_MSIL:
-        return L"Link-time Code Generation (MSIL) (17.00)";
+        return L"Link-time Code Generation (MSIL) (17.0)";
     case prodidUtc1800_LTCG_MSIL:
-        return L"Link-time Code Generation (MSIL) (18.00)";
+        return L"Link-time Code Generation (MSIL) (18.0)";
     case prodidUtc1810_LTCG_MSIL:
-        return L"Link-time Code Generation (MSIL) (18.10)";
+        return L"Link-time Code Generation (MSIL) (18.1)";
     case prodidUtc1900_LTCG_MSIL:
-        return L"Link-time Code Generation (MSIL) (19.00)";
+        return L"Link-time Code Generation (MSIL) (19.0)";
 
     case prodidUtc1610_POGO_I_C:
+        return L"Profile Guided Optimization (Imput) (C11) (16.1)";
     case prodidUtc1700_POGO_I_C:
+        return L"Profile Guided Optimization (Imput) (C11) (17.0)";
     case prodidUtc1800_POGO_I_C:
+        return L"Profile Guided Optimization (Imput) (C11) (18.0)";
     case prodidUtc1810_POGO_I_C:
+        return L"Profile Guided Optimization (Imput) (C11) (18.1)";
     case prodidUtc1900_POGO_I_C:
-        return L"Profile Guided Optimization (Imput) (C11)";
+        return L"Profile Guided Optimization (Imput) (C11) (19.0)";
 
     case prodidUtc1610_POGO_O_C:
     case prodidUtc1700_POGO_O_C:
@@ -285,7 +313,14 @@ INT_PTR CALLBACK PvpPeProdIdDlgProc(
 
             if (NT_SUCCESS(PhGetMappedImageProdIdHeader(&PvMappedImage, &prodids)))
             {
-                PhSetDialogItemText(hwndDlg, IDC_PRODCHECKSUM, PhGetStringOrEmpty(prodids.Key));
+                PPH_STRING text;
+
+                if (prodids.Valid)
+                    text = PhaConcatStrings2(PhGetStringOrEmpty(prodids.Key), L" (correct)");
+                else
+                    text = PhaConcatStrings2(PhGetStringOrEmpty(prodids.Key), L" (incorrect)");
+
+                PhSetDialogItemText(hwndDlg, IDC_PRODCHECKSUM, PhGetStringOrEmpty(text));
                 PhSetDialogItemText(hwndDlg, IDC_PRODHASH, PhGetStringOrEmpty(prodids.Hash));
 
                 for (i = 0; i < prodids.NumberOfEntries; i++)

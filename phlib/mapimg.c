@@ -1990,6 +1990,7 @@ NTSTATUS PhGetMappedImageProdIdHeader(
     PPRODITEM richHeaderChecksum = NULL; // PTR_SUB_OFFSET(imageNtHeader, 0x10);
     ULONG ntHeadersOffset = ULONG_MAX;
     ULONG richHeaderKey = ULONG_MAX;
+    ULONG richHeaderValue = ULONG_MAX;
     ULONG richStartSignature = ULONG_MAX;
     ULONG richEndSignature = ULONG_MAX;
     ULONG richHeaderStartOffset = ULONG_MAX;
@@ -2072,6 +2073,7 @@ NTSTATUS PhGetMappedImageProdIdHeader(
     if (richHeaderStartOffset == ULONG_MAX)
         return STATUS_FAIL_CHECK;
 
+    richHeaderValue = richHeaderStartOffset;
     richHeaderStart = PTR_ADD_OFFSET(MappedImage->ViewBase, richHeaderStartOffset);
 
     __try
@@ -2135,7 +2137,56 @@ NTSTATUS PhGetMappedImageProdIdHeader(
             currentCount++;
         }
 
+        for (ULONG i = 0; i < richHeaderStartOffset; i++)
+        {
+            BYTE value;
+
+            if (i >= UFIELD_OFFSET(IMAGE_DOS_HEADER, e_lfanew) &&
+                i <= UFIELD_OFFSET(IMAGE_DOS_HEADER, e_lfanew) + RTL_FIELD_SIZE(IMAGE_DOS_HEADER, e_lfanew) - sizeof(BYTE))
+            {
+                continue;
+            }
+
+            __try
+            {
+                value = *(PBYTE)PTR_ADD_OFFSET(imageDosHeader, i * sizeof(BYTE));
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                continue;
+            }
+
+            richHeaderValue += _rotl(value, i);
+        }
+
+        for (ULONG i = 0; i < currentCount; i++)
+        {
+            PPRODITEM entry;
+            ULONG prodid;
+            ULONG count;
+
+            entry = PTR_ADD_OFFSET(currentAddress, i * sizeof(PRODITEM));
+
+            __try
+            {
+                PhpMappedImageProbe(MappedImage, entry, sizeof(PRODITEM));
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                continue;
+            }
+
+            prodid = entry->dwProdid ^ richHeaderKey;
+            count = entry->dwCount ^ richHeaderKey;
+
+            if (count > 0 && count != richHeaderKey)
+            {
+                richHeaderValue += _rotl((ProdidFromDwProdid(prodid) << 16 | WBuildFromDwProdid(prodid)), count & 0x1F);
+            }
+        }
+
         //PhPrintPointer(ProdIdHeader->Key, UlongToPtr(richHeaderKey));
+        ProdIdHeader->Valid = richHeaderKey == richHeaderValue;
         ProdIdHeader->Key = PhFormatString(L"%lx", richHeaderKey);
         ProdIdHeader->Hash = hashString;
         ProdIdHeader->NumberOfEntries = currentCount;
