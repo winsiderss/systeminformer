@@ -471,14 +471,15 @@ PhGetMappedImageTlsCallbacks(
 
 typedef struct _PH_MAPPED_IMAGE_PRODID_ENTRY
 {
-    ULONG ProductId;
-    ULONG ProductBuild;
+    USHORT ProductId;
+    USHORT ProductBuild;
     ULONG ProductCount;
 } PH_MAPPED_IMAGE_PRODID_ENTRY, *PPH_MAPPED_IMAGE_PRODID_ENTRY;
 
 typedef struct _PH_MAPPED_IMAGE_PRODID
 {
     //WCHAR Key[PH_PTR_STR_LEN_1];
+    BOOLEAN Valid;
     PPH_STRING Key;
     PPH_STRING Hash;
     ULONG NumberOfEntries;
