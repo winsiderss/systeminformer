@@ -3,7 +3,7 @@
  *   GPU monitoring
  *
  * Copyright (C) 2011-2015 wj32
- * Copyright (C) 2016-2018 dmex
+ * Copyright (C) 2016-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -259,13 +259,25 @@ PPH_STRING EtpQueryDeviceProperty(
     case DEVPROP_TYPE_FILETIME:
         {
             PPH_STRING string;
-            FILETIME newFileTime;
+            PFILETIME fileTime;
+            LARGE_INTEGER time;
             SYSTEMTIME systemTime;
 
-            FileTimeToLocalFileTime((PFILETIME)buffer, &newFileTime);
-            FileTimeToSystemTime(&newFileTime, &systemTime);
+            fileTime = (PFILETIME)buffer;
+            time.HighPart = fileTime->dwHighDateTime;
+            time.LowPart = fileTime->dwLowDateTime;
+
+            PhLargeIntegerToLocalSystemTime(&systemTime, &time);
 
             string = PhFormatDate(&systemTime, NULL);
+
+            //FILETIME newFileTime;
+            //SYSTEMTIME systemTime;
+            //
+            //FileTimeToLocalFileTime((PFILETIME)buffer, &newFileTime);
+            //FileTimeToSystemTime(&newFileTime, &systemTime);
+            //
+            //string = PhFormatDate(&systemTime, NULL);
 
             PhFree(buffer);
             return string;
