@@ -167,12 +167,6 @@ BOOLEAN PhServiceProviderInitialization(
 
     RtlInitializeSListHead(&PhpServiceQueryDataListHead);
 
-    if (WindowsVersion >= WINDOWS_8)
-    {
-        SubscribeServiceChangeNotifications_I = PhGetDllProcedureAddress(L"sechost.dll", "SubscribeServiceChangeNotifications", 0);
-        UnsubscribeServiceChangeNotifications_I = PhGetDllProcedureAddress(L"sechost.dll", "UnsubscribeServiceChangeNotifications", 0);
-    }
-
     return TRUE;
 }
 
@@ -1369,6 +1363,17 @@ VOID PhpInitializeServiceNonPoll(
 {
     PhpNonPollActive = TRUE;
     PhpNonPollGate = 1; // initially the gate should be open since we only just initialized everything (wj32)
+
+    if (WindowsVersion >= WINDOWS_8)
+    {
+        PVOID sechostHandle;
+
+        if (sechostHandle = LoadLibrary(L"sechost.dll"))
+        {
+            SubscribeServiceChangeNotifications_I = PhGetDllBaseProcedureAddress(sechostHandle, "SubscribeServiceChangeNotifications", 0);
+            UnsubscribeServiceChangeNotifications_I = PhGetDllBaseProcedureAddress(sechostHandle, "UnsubscribeServiceChangeNotifications", 0);
+        }
+    }
 
     PhCreateThread2(PhpServiceNonPollThreadStart, NULL);
 }
