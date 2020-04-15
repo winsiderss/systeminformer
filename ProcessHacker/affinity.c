@@ -99,7 +99,7 @@ BOOLEAN PhShowProcessAffinityDialog2(
     }
 }
 
-static INT_PTR CALLBACK PhpProcessAffinityDlgProc(
+INT_PTR CALLBACK PhpProcessAffinityDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,

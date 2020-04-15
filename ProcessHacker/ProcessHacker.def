@@ -116,6 +116,7 @@ EXPORTS
     PhCreateThread2
     PhCreateThreadEx
     PhDecodeUnicodeDecoder
+    PhDelayExecution
     PhDeleteArray
     PhDeleteBytesBuilder
     PhDeleteCallback
@@ -242,6 +243,7 @@ EXPORTS
     PhConnectPipe
     PhDeleteDirectory
     PhDeleteFileWin32
+    PhDetermineDosPathNameType
     PhDoesFileExistsWin32
     PhDisconnectNamedPipe
     PhEnumerateKey

@@ -2141,6 +2141,7 @@ NTSTATUS PhGetMappedImageProdIdHeader(
         {
             BYTE value;
 
+            // Skip the e_lfanew field.
             if (i >= UFIELD_OFFSET(IMAGE_DOS_HEADER, e_lfanew) &&
                 i <= UFIELD_OFFSET(IMAGE_DOS_HEADER, e_lfanew) + RTL_FIELD_SIZE(IMAGE_DOS_HEADER, e_lfanew) - sizeof(BYTE))
             {
@@ -2159,6 +2160,7 @@ NTSTATUS PhGetMappedImageProdIdHeader(
             richHeaderValue += _rotl(value, i);
         }
 
+        // Compute each of the RICH entry value checksums.
         for (ULONG i = 0; i < currentCount; i++)
         {
             PPRODITEM entry;

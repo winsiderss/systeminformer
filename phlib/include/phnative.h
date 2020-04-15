@@ -1438,6 +1438,13 @@ PhDoesDirectoryExistsWin32(
     );
 
 PHLIBAPI
+RTL_PATH_TYPE
+NTAPI
+PhDetermineDosPathNameType(
+    _In_ PWSTR FileName
+    );
+
+PHLIBAPI
 NTSTATUS
 NTAPI
 PhDeleteFileWin32(
