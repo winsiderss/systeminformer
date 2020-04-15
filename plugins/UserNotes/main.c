@@ -133,7 +133,7 @@ VOID LoadCustomColors(
 
     remaining = PhGetStringRef(settingsString);
 
-    for (ULONG i = 0; i < ARRAYSIZE(ProcessCustomColors); i++)
+    for (ULONG i = 0; i < RTL_NUMBER_OF(ProcessCustomColors); i++)
     {
         ULONG64 integer = 0;
 
@@ -157,7 +157,7 @@ PPH_STRING SaveCustomColors(
 
     PhInitializeStringBuilder(&stringBuilder, 100);
 
-    for (ULONG i = 0; i < ARRAYSIZE(ProcessCustomColors); i++)
+    for (ULONG i = 0; i < RTL_NUMBER_OF(ProcessCustomColors); i++)
     {
         PhAppendFormatStringBuilder(
             &stringBuilder,
@@ -304,7 +304,7 @@ VOID NTAPI LoadCallback(
         path = PhaGetStringSetting(SETTING_NAME_DATABASE_PATH);
         path = PH_AUTO(PhExpandEnvironmentStrings(&path->sr));
 
-        if (RtlDetermineDosPathNameType_U(path->Buffer) == RtlPathTypeRelative)
+        if (PhDetermineDosPathNameType(path->Buffer) == RtlPathTypeRelative)
         {
             directory = PH_AUTO(PhGetApplicationDirectory());
             path = PH_AUTO(PhConcatStringRef2(&directory->sr, &path->sr));
@@ -1578,7 +1578,7 @@ LOGICAL DllMain(
             ServiceItemDeleteCallback
             );
 
-        PhAddSettings(settings, ARRAYSIZE(settings));
+        PhAddSettings(settings, RTL_NUMBER_OF(settings));
     }
 
     return TRUE;

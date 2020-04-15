@@ -372,126 +372,92 @@ VOID EsDestroyServiceTriggerContext(
     PhFree(Context);
 }
 
-BOOLEAN EspEnumerateEtwPublishers(
+BOOLEAN NTAPI EspEtwPublishersEnumerateKeyCallback(
+    _In_ HANDLE RootDirectory,
+    _In_ PKEY_BASIC_INFORMATION Information,
+    _In_opt_ PVOID Context
+    )
+{
+    UNICODE_STRING nameUs;
+    PH_STRINGREF keyName;
+    HANDLE keyHandle;
+    GUID guid;
+    PPH_STRING publisherName;
+
+    keyName.Buffer = Information->Name;
+    keyName.Length = Information->NameLength;
+    PhStringRefToUnicodeString(&keyName, &nameUs);
+
+    // Make sure this is a valid publisher key. (wj32)
+    if (NT_SUCCESS(RtlGUIDFromString(&nameUs, &guid)))
+    {
+        if (NT_SUCCESS(PhOpenKey(
+            &keyHandle,
+            KEY_READ,
+            RootDirectory,
+            &keyName,
+            0
+            )))
+        {
+            publisherName = PhQueryRegistryString(keyHandle, NULL);
+
+            if (publisherName)
+            {
+                if (publisherName->Length != 0)
+                {
+                    ETW_PUBLISHER_ENTRY entry;
+
+                    PhSetReference(&entry.PublisherName, publisherName);
+                    memcpy_s(&entry.Guid, sizeof(entry.Guid), &guid, sizeof(GUID));
+
+                    PhAddItemArray(Context, &entry);
+                }
+                else
+                {
+                    PhDereferenceObject(publisherName);
+                }
+            }
+
+            NtClose(keyHandle);
+        }
+    }
+
+    return TRUE;
+}
+
+NTSTATUS EspEnumerateEtwPublishers(
     _Out_ PETW_PUBLISHER_ENTRY *Entries,
     _Out_ PULONG NumberOfEntries
     )
 {
     NTSTATUS status;
     HANDLE publishersKeyHandle;
-    ULONG index;
-    PKEY_BASIC_INFORMATION buffer;
-    ULONG bufferSize;
-    PETW_PUBLISHER_ENTRY entries;
-    ULONG numberOfEntries;
-    ULONG allocatedEntries;
+    PH_ARRAY publishersArrayList;
 
-    if (!NT_SUCCESS(PhOpenKey(
+    status = PhOpenKey(
         &publishersKeyHandle,
         KEY_READ,
         PH_KEY_LOCAL_MACHINE,
         &PublishersKeyName,
         0
-        )))
-    {
-        return FALSE;
-    }
+        );
 
-    numberOfEntries = 0;
-    allocatedEntries = 256;
-    entries = PhAllocate(allocatedEntries * sizeof(ETW_PUBLISHER_ENTRY));
+    if (!NT_SUCCESS(status))
+        return status;
 
-    index = 0;
-    bufferSize = 0x100;
-    buffer = PhAllocate(0x100);
-
-    while (TRUE)
-    {
-        status = NtEnumerateKey(
-            publishersKeyHandle,
-            index,
-            KeyBasicInformation,
-            buffer,
-            bufferSize,
-            &bufferSize
-            );
-
-        if (NT_SUCCESS(status))
-        {
-            UNICODE_STRING nameUs;
-            PH_STRINGREF name;
-            HANDLE keyHandle;
-            GUID guid;
-            PPH_STRING publisherName;
-
-            nameUs.Buffer = buffer->Name;
-            nameUs.Length = (USHORT)buffer->NameLength;
-            name.Buffer = buffer->Name;
-            name.Length = buffer->NameLength;
-
-            // Make sure this is a valid publisher key.
-            if (NT_SUCCESS(RtlGUIDFromString(&nameUs, &guid)))
-            {
-                if (NT_SUCCESS(PhOpenKey(
-                    &keyHandle,
-                    KEY_READ,
-                    publishersKeyHandle,
-                    &name,
-                    0
-                    )))
-                {
-                    publisherName = PhQueryRegistryString(keyHandle, NULL);
-
-                    if (publisherName)
-                    {
-                        if (publisherName->Length != 0)
-                        {
-                            PETW_PUBLISHER_ENTRY entry;
-
-                            if (numberOfEntries == allocatedEntries)
-                            {
-                                allocatedEntries *= 2;
-                                entries = PhReAllocate(entries, allocatedEntries * sizeof(ETW_PUBLISHER_ENTRY));
-                            }
-
-                            entry = &entries[numberOfEntries++];
-                            entry->PublisherName = publisherName;
-                            entry->Guid = guid;
-                        }
-                        else
-                        {
-                            PhDereferenceObject(publisherName);
-                        }
-                    }
-
-                    NtClose(keyHandle);
-                }
-            }
-
-            index++;
-        }
-        else if (status == STATUS_NO_MORE_ENTRIES)
-        {
-            break;
-        }
-        else if (status == STATUS_BUFFER_OVERFLOW || status == STATUS_BUFFER_TOO_SMALL)
-        {
-            PhFree(buffer);
-            buffer = PhAllocate(bufferSize);
-        }
-        else
-        {
-            break;
-        }
-    }
-
-    PhFree(buffer);
+    PhInitializeArray(&publishersArrayList, sizeof(ETW_PUBLISHER_ENTRY), 100);
+    PhEnumerateKey(
+        publishersKeyHandle,
+        KeyBasicInformation,
+        EspEtwPublishersEnumerateKeyCallback,
+        &publishersArrayList
+        );
     NtClose(publishersKeyHandle);
 
-    *Entries = entries;
-    *NumberOfEntries = numberOfEntries;
+    *Entries = PhFinalArrayItems(&publishersArrayList);
+    *NumberOfEntries = (ULONG)publishersArrayList.Count;
 
-    return TRUE;
+    return STATUS_SUCCESS;
 }
 
 _Success_(return)
@@ -505,7 +471,7 @@ BOOLEAN EspLookupEtwPublisherGuid(
     ULONG numberOfEntries;
     ULONG i;
 
-    if (!EspEnumerateEtwPublishers(&entries, &numberOfEntries))
+    if (!NT_SUCCESS(EspEnumerateEtwPublishers(&entries, &numberOfEntries)))
         return FALSE;
 
     result = FALSE;
@@ -1035,7 +1001,7 @@ VOID EspFixServiceTriggerControls(
                 ComboBox_AddString(subTypeComboBox, L"Custom");
 
                 // Display a list of publishers.
-                if (EspEnumerateEtwPublishers(&entries, &numberOfEntries))
+                if (NT_SUCCESS(EspEnumerateEtwPublishers(&entries, &numberOfEntries)))
                 {
                     // Sort the list by name.
                     qsort(entries, numberOfEntries, sizeof(ETW_PUBLISHER_ENTRY), EtwPublisherByNameCompareFunction);
@@ -1514,15 +1480,15 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
 
                         // Trim whitespace.
 
-                        while (guidString.Length != 0 && *guidString.Buffer == ' ')
+                        while (guidString.Length != 0 && *guidString.Buffer == L' ')
                         {
                             guidString.Buffer++;
-                            guidString.Length -= 2;
+                            guidString.Length -= sizeof(WCHAR);
                         }
 
-                        while (guidString.Length != 0 && guidString.Buffer[guidString.Length / 2 - 1] == ' ')
+                        while (guidString.Length != 0 && guidString.Buffer[guidString.Length / sizeof(WCHAR) - 1] == L' ')
                         {
-                            guidString.Length -= 2;
+                            guidString.Length -= sizeof(WCHAR);
                         }
 
                         if (NT_SUCCESS(RtlGUIDFromString(&guidString, &context->EditingInfo->SubtypeBuffer)))
