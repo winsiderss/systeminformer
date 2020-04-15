@@ -326,7 +326,7 @@ INT_PTR CALLBACK PhOptionsDialogProc(
             if (PhGetIntegerPairSetting(L"OptionsWindowPosition").X)
                 PhLoadWindowPlacementFromSetting(L"OptionsWindowPosition", L"OptionsWindowSize", hwndDlg);
             else
-                PhCenterWindow(hwndDlg, PhMainWndHandle);  
+                PhCenterWindow(hwndDlg, PhMainWndHandle);
         }
         break;
     case WM_DESTROY:

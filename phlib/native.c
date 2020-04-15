@@ -7932,19 +7932,20 @@ BOOLEAN PhDoesDirectoryExistsWin32(
 
     status = PhQueryAttributesFileWin32(FileName, &basicInfo);
 
-    if (basicInfo.FileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+    if (NT_SUCCESS(status))
     {
-        if (
-            NT_SUCCESS(status) ||
-            status == STATUS_SHARING_VIOLATION ||
-            status == STATUS_ACCESS_DENIED
-            )
-        {
+        if (basicInfo.FileAttributes & FILE_ATTRIBUTE_DIRECTORY)
             return TRUE;
-        }
     }
 
     return FALSE;
+}
+
+RTL_PATH_TYPE PhDetermineDosPathNameType(
+    _In_ PWSTR FileName
+    )
+{
+    return RtlDetermineDosPathNameType_U(FileName);
 }
 
 /**

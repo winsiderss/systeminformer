@@ -425,6 +425,24 @@ VOID PhLocalTimeToSystemTime(
     SystemTime->QuadPart = LocalTime->QuadPart + timeZoneBias.QuadPart;
 }
 
+NTSTATUS PhDelayExecution(
+    _In_ LONGLONG Interval
+    )
+{
+    if (Interval == INFINITE) // HACK (dmex)
+    {
+        return NtDelayExecution(FALSE, NULL);
+    }
+    else
+    {
+        LARGE_INTEGER interval;
+
+        interval.QuadPart = -(LONGLONG)UInt32x32To64(Interval, PH_TIMEOUT_MS);
+
+        return NtDelayExecution(FALSE, &interval);
+    }
+}
+
 /**
  * Allocates a block of memory.
  *

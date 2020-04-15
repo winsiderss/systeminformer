@@ -62,8 +62,8 @@ static PH_STRINGREF PhpSizeUnitNamesCounted[7] =
 };
 
 static PH_INITONCE PhpFormatInitOnce = PH_INITONCE_INIT;
-static WCHAR PhpFormatDecimalSeparator = '.';
-static WCHAR PhpFormatThousandSeparator = ',';
+static WCHAR PhpFormatDecimalSeparator = L'.';
+static WCHAR PhpFormatThousandSeparator = L',';
 static _locale_t PhpFormatUserLocale = NULL;
 
 #if (_MSC_VER >= 1900)

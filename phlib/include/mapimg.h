@@ -486,7 +486,10 @@ typedef struct _PH_MAPPED_IMAGE_PRODID
     PPH_MAPPED_IMAGE_PRODID_ENTRY ProdIdEntries;
 } PH_MAPPED_IMAGE_PRODID, *PPH_MAPPED_IMAGE_PRODID;
 
-NTSTATUS PhGetMappedImageProdIdHeader(
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetMappedImageProdIdHeader(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _Out_ PPH_MAPPED_IMAGE_PRODID ProdIdHeader
     );

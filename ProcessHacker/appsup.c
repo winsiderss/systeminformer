@@ -928,7 +928,7 @@ VOID PhCopyListViewInfoTip(
             return;
 
         bufferRemaining = GetInfoTip->cchTextMax - copyIndex - 1;
-        GetInfoTip->pszText[copyIndex - 1] = '\n';
+        GetInfoTip->pszText[copyIndex - 1] = L'\n';
     }
     else
     {
