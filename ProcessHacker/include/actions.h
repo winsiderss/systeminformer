@@ -313,6 +313,16 @@ PhUiResumeThreads(
 PHAPPAPI
 BOOLEAN
 NTAPI
+PhUiSetPriorityThreads(
+    _In_ HWND WindowHandle,
+    _In_ PPH_THREAD_ITEM* Threads,
+    _In_ ULONG NumberOfThreads,
+    _In_ LONG Increment
+    );
+
+PHAPPAPI
+BOOLEAN
+NTAPI
 PhUiSetPriorityThread(
     _In_ HWND hWnd,
     _In_ PPH_THREAD_ITEM Thread,
