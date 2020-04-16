@@ -41,7 +41,7 @@ PVOID PhpImportProcedure(
     {
         ULONG newcookie = NtGetTickCount();
 
-        if (!InterlockedCompareExchange(Cookie, newcookie, 0))
+        if (!(cookie = InterlockedCompareExchange(Cookie, newcookie, 0)))
             cookie = newcookie;
     }
 
