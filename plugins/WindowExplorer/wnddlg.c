@@ -324,7 +324,6 @@ VOID WepAddEnumChildWindows(
 {
     if (PhGetIntegerSetting(SETTING_NAME_WINDOW_ENUM_ALTERNATE))
     {
-
         WE_WINDOW_ENUM_CONTEXT enumContext;
 
         enumContext.WindowContext = Context;
