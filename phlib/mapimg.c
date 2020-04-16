@@ -2137,6 +2137,7 @@ NTSTATUS PhGetMappedImageProdIdHeader(
             currentCount++;
         }
 
+        // Compute the DOS header and DOS stub checksums.
         for (ULONG i = 0; i < richHeaderStartOffset; i++)
         {
             BYTE value;
