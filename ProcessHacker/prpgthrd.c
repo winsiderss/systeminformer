@@ -137,9 +137,10 @@ VOID PhpInitializeThreadMenu(
             ID_THREAD_TERMINATE,
             ID_THREAD_SUSPEND,
             ID_THREAD_RESUME,
-            ID_THREAD_COPY
+            ID_THREAD_COPY,
         };
         ULONG i;
+        PPH_EMENU_ITEM menuItem;
 
         PhSetFlagsAllEMenuItems(Menu, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
 
@@ -148,6 +149,11 @@ VOID PhpInitializeThreadMenu(
         for (i = 0; i < sizeof(menuItemsMultiEnabled) / sizeof(ULONG); i++)
         {
             PhEnableEMenuItem(Menu, menuItemsMultiEnabled[i], TRUE);
+        }
+
+        if (menuItem = PhFindEMenuItem(Menu, PH_EMENU_FIND_DESCEND, L"&Priority", 0))
+        {
+            PhSetEnabledEMenuItem(menuItem, TRUE);
         }
     }
 
@@ -1001,40 +1007,43 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             case ID_PRIORITY_LOWEST:
             case ID_PRIORITY_IDLE:
                 {
-                    PPH_THREAD_ITEM threadItem = PhGetSelectedThreadItem(&threadsContext->ListContext);
+                    ULONG threadPriorityWin32 = ULONG_MAX;
 
-                    if (threadItem)
+                    switch (GET_WM_COMMAND_ID(wParam, lParam))
                     {
-                        ULONG threadPriorityWin32 = threadItem->Priority;
+                    case ID_PRIORITY_TIMECRITICAL:
+                        threadPriorityWin32 = THREAD_PRIORITY_TIME_CRITICAL;
+                        break;
+                    case ID_PRIORITY_HIGHEST:
+                        threadPriorityWin32 = THREAD_PRIORITY_HIGHEST;
+                        break;
+                    case ID_PRIORITY_ABOVENORMAL:
+                        threadPriorityWin32 = THREAD_PRIORITY_ABOVE_NORMAL;
+                        break;
+                    case ID_PRIORITY_NORMAL:
+                        threadPriorityWin32 = THREAD_PRIORITY_NORMAL;
+                        break;
+                    case ID_PRIORITY_BELOWNORMAL:
+                        threadPriorityWin32 = THREAD_PRIORITY_BELOW_NORMAL;
+                        break;
+                    case ID_PRIORITY_LOWEST:
+                        threadPriorityWin32 = THREAD_PRIORITY_LOWEST;
+                        break;
+                    case ID_PRIORITY_IDLE:
+                        threadPriorityWin32 = THREAD_PRIORITY_IDLE;
+                        break;
+                    }
 
-                        switch (GET_WM_COMMAND_ID(wParam, lParam))
-                        {
-                        case ID_PRIORITY_TIMECRITICAL:
-                            threadPriorityWin32 = THREAD_PRIORITY_TIME_CRITICAL;
-                            break;
-                        case ID_PRIORITY_HIGHEST:
-                            threadPriorityWin32 = THREAD_PRIORITY_HIGHEST;
-                            break;
-                        case ID_PRIORITY_ABOVENORMAL:
-                            threadPriorityWin32 = THREAD_PRIORITY_ABOVE_NORMAL;
-                            break;
-                        case ID_PRIORITY_NORMAL:
-                            threadPriorityWin32 = THREAD_PRIORITY_NORMAL;
-                            break;
-                        case ID_PRIORITY_BELOWNORMAL:
-                            threadPriorityWin32 = THREAD_PRIORITY_BELOW_NORMAL;
-                            break;
-                        case ID_PRIORITY_LOWEST:
-                            threadPriorityWin32 = THREAD_PRIORITY_LOWEST;
-                            break;
-                        case ID_PRIORITY_IDLE:
-                            threadPriorityWin32 = THREAD_PRIORITY_IDLE;
-                            break;
-                        }
+                    if (threadPriorityWin32 != ULONG_MAX)
+                    {
+                        ULONG numberOfThreads;
+                        PPH_THREAD_ITEM* threads;
 
-                        PhReferenceObject(threadItem);
-                        PhUiSetPriorityThread(hwndDlg, threadItem, threadPriorityWin32);
-                        PhDereferenceObject(threadItem);
+                        PhGetSelectedThreadItems(&threadsContext->ListContext, &threads, &numberOfThreads);
+                        PhReferenceObjects(threads, numberOfThreads);
+                        PhUiSetPriorityThreads(hwndDlg, threads, numberOfThreads, threadPriorityWin32);
+                        PhDereferenceObjects(threads, numberOfThreads);
+                        PhFree(threads);
                     }
                 }
                 break;
