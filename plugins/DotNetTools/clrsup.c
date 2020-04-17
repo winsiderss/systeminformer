@@ -402,15 +402,20 @@ BOOLEAN NTAPI PhpGetImageBaseCallback(
     )
 {
     PPHP_GET_IMAGE_BASE_CONTEXT context = Context;
+    PH_STRINGREF fullDllName;
+    PH_STRINGREF baseDllName;
 
-    if (context)
+    if (!context)
+        return TRUE;
+
+    PhUnicodeStringToStringRef(&Module->FullDllName, &fullDllName);
+    PhUnicodeStringToStringRef(&Module->BaseDllName, &baseDllName);
+
+    if (PhEqualStringRef(&fullDllName, &context->ImagePath, TRUE) ||
+        PhEqualStringRef(&baseDllName, &context->ImagePath, TRUE))
     {
-        if (RtlEqualUnicodeString(&Module->FullDllName, &context->ImagePath, TRUE) ||
-            RtlEqualUnicodeString(&Module->BaseDllName, &context->ImagePath, TRUE))
-        {
-            context->BaseAddress = Module->DllBase;
-            return FALSE;
-        }
+        context->BaseAddress = Module->DllBase;
+        return FALSE;
     }
 
     return TRUE;
@@ -425,7 +430,7 @@ HRESULT STDMETHODCALLTYPE DnCLRDataTarget_GetImageBase(
     DnCLRDataTarget *this = (DnCLRDataTarget *)This;
     PHP_GET_IMAGE_BASE_CONTEXT context;
 
-    RtlInitUnicodeString(&context.ImagePath, (PWSTR)imagePath);
+    PhInitializeStringRefLongHint(&context.ImagePath, (PWSTR)imagePath);
     context.BaseAddress = NULL;
     PhEnumProcessModules(this->ProcessHandle, PhpGetImageBaseCallback, &context);
 
