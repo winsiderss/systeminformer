@@ -891,23 +891,6 @@ NtFreeUserPhysicalPages(
 
 #endif
 
-// Sessions
-
-#if (PHNT_MODE != PHNT_MODE_KERNEL)
-
-#if (PHNT_VERSION >= PHNT_VISTA)
-NTSYSCALLAPI
-NTSTATUS
-NTAPI
-NtOpenSession(
-    _Out_ PHANDLE SessionHandle,
-    _In_ ACCESS_MASK DesiredAccess,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes
-    );
-#endif
-
-#endif
-
 // Misc.
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)

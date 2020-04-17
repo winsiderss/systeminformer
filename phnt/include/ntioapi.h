@@ -1763,6 +1763,24 @@ typedef enum _IO_SESSION_STATE
     IoSessionStateMax
 } IO_SESSION_STATE;
 
+
+// Sessions
+
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtOpenSession(
+    _Out_ PHANDLE SessionHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes
+    );
+#endif
+
+#endif
+
 #if (PHNT_VERSION >= PHNT_WIN7)
 NTSYSCALLAPI
 NTSTATUS
