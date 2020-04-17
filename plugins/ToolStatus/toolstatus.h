@@ -417,6 +417,7 @@ typedef struct _CUSTOMIZE_CONTEXT
     HBRUSH BrushNormal;
     HBRUSH BrushPushed;
     HBRUSH BrushHot;
+    COLORREF TextColor;
     INT CXWidth;
     INT ImageWidth;
     INT ImageHeight;
