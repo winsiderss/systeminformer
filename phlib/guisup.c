@@ -590,7 +590,7 @@ VOID PhGetSelectedListViewItemParams(
     )
 {
     PH_ARRAY array;
-    ULONG index;
+    INT index;
     PVOID param;
 
     PhInitializeArray(&array, sizeof(PVOID), 2);
