@@ -330,7 +330,7 @@ VOID PhpMoveSelectedListViewItemUp(
 {
     INT lvItemIndex;
 
-    lvItemIndex = ListView_GetNextItem(ListViewHandle, -1, LVNI_SELECTED);
+    lvItemIndex = PhFindListViewItemByFlags(ListViewHandle, -1, LVNI_SELECTED);
 
     if (lvItemIndex != -1)
     {
@@ -348,7 +348,7 @@ VOID PhpMoveSelectedListViewItemDown(
 {
     INT lvItemIndex;
 
-    lvItemIndex = ListView_GetNextItem(ListViewHandle, -1, LVNI_SELECTED);
+    lvItemIndex = PhFindListViewItemByFlags(ListViewHandle, -1, LVNI_SELECTED);
 
     if (lvItemIndex != -1)
     {
@@ -448,7 +448,7 @@ INT_PTR CALLBACK PhpColumnSetEditorDlgProc(
                 {
                     INT lvItemIndex;
 
-                    lvItemIndex = ListView_GetNextItem(context->ListViewHandle, -1, LVNI_SELECTED);
+                    lvItemIndex = PhFindListViewItemByFlags(context->ListViewHandle, -1, LVNI_SELECTED);
 
                     if (lvItemIndex != -1)
                     {
@@ -465,7 +465,7 @@ INT_PTR CALLBACK PhpColumnSetEditorDlgProc(
 
                     PhpMoveSelectedListViewItemUp(context->ListViewHandle);
 
-                    lvItemIndex = ListView_GetNextItem(context->ListViewHandle, -1, LVNI_SELECTED);
+                    lvItemIndex = PhFindListViewItemByFlags(context->ListViewHandle, -1, LVNI_SELECTED);
 
                     if (lvItemIndex != -1 && PhGetListViewItemParam(context->ListViewHandle, lvItemIndex, (PVOID *)&entry))
                     {
@@ -487,7 +487,7 @@ INT_PTR CALLBACK PhpColumnSetEditorDlgProc(
 
                     PhpMoveSelectedListViewItemDown(context->ListViewHandle);
 
-                    lvItemIndex = ListView_GetNextItem(context->ListViewHandle, -1, LVNI_SELECTED);
+                    lvItemIndex = PhFindListViewItemByFlags(context->ListViewHandle, -1, LVNI_SELECTED);
 
                     if (lvItemIndex != -1 && PhGetListViewItemParam(context->ListViewHandle, lvItemIndex, (PVOID *)&entry))
                     {
@@ -507,7 +507,7 @@ INT_PTR CALLBACK PhpColumnSetEditorDlgProc(
                     PPH_COLUMN_SET_ENTRY entry;
                     ULONG index;
 
-                    lvItemIndex = ListView_GetNextItem(context->ListViewHandle, -1, LVNI_SELECTED);
+                    lvItemIndex = PhFindListViewItemByFlags(context->ListViewHandle, -1, LVNI_SELECTED);
 
                     if (lvItemIndex != -1 && PhGetListViewItemParam(context->ListViewHandle, lvItemIndex, (PVOID *)&entry))
                     {
@@ -543,7 +543,7 @@ INT_PTR CALLBACK PhpColumnSetEditorDlgProc(
                 {
                     INT lvItemIndex;
 
-                    lvItemIndex = ListView_GetNextItem(context->ListViewHandle, -1, LVNI_SELECTED);
+                    lvItemIndex = PhFindListViewItemByFlags(context->ListViewHandle, -1, LVNI_SELECTED);
 
                     if (lvItemIndex != -1)
                     {
@@ -560,7 +560,7 @@ INT_PTR CALLBACK PhpColumnSetEditorDlgProc(
                     INT count;
 
                     index = listview->iItem;
-                    lvItemIndex = ListView_GetNextItem(context->ListViewHandle, -1, LVNI_SELECTED);
+                    lvItemIndex = PhFindListViewItemByFlags(context->ListViewHandle, -1, LVNI_SELECTED);
                     count = ListView_GetItemCount(context->ListViewHandle);
 
                     if (count == 0 || index == -1 || lvItemIndex == -1)

@@ -848,7 +848,7 @@ VOID EsHandleEventServiceTrigger(
             PES_TRIGGER_INFO info;
             ULONG index;
 
-            lvItemIndex = ListView_GetNextItem(Context->TriggersLv, -1, LVNI_SELECTED);
+            lvItemIndex = PhFindListViewItemByFlags(Context->TriggersLv, -1, LVNI_SELECTED);
 
             if (lvItemIndex != -1 && PhGetListViewItemParam(Context->TriggersLv, lvItemIndex, (PVOID *)&info))
             {
@@ -899,7 +899,7 @@ VOID EsHandleEventServiceTrigger(
             PES_TRIGGER_INFO info;
             ULONG index;
 
-            lvItemIndex = ListView_GetNextItem(Context->TriggersLv, -1, LVNI_SELECTED);
+            lvItemIndex = PhFindListViewItemByFlags(Context->TriggersLv, -1, LVNI_SELECTED);
 
             if (lvItemIndex != -1 && PhGetListViewItemParam(Context->TriggersLv, lvItemIndex, (PVOID *)&info))
             {
@@ -1358,7 +1358,7 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
                     ULONG index;
 
                     lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
-                    lvItemIndex = ListView_GetNextItem(lvHandle, -1, LVNI_SELECTED);
+                    lvItemIndex = PhFindListViewItemByFlags(lvHandle, -1, LVNI_SELECTED);
 
                     if (
                         lvItemIndex != -1 && PhGetListViewItemParam(lvHandle, lvItemIndex, (PVOID *)&data) &&
@@ -1367,7 +1367,7 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
                     {
                         index = PhFindItemList(context->EditingInfo->DataList, data);
 
-                        if (index != -1)
+                        if (index != ULONG_MAX)
                         {
                             context->EditingValue = EspConvertNullsToNewLines(data->String);
 
@@ -1401,13 +1401,13 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
                     ULONG index;
 
                     lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
-                    lvItemIndex = ListView_GetNextItem(lvHandle, -1, LVNI_SELECTED);
+                    lvItemIndex = PhFindListViewItemByFlags(lvHandle, -1, LVNI_SELECTED);
 
                     if (lvItemIndex != -1 && PhGetListViewItemParam(lvHandle, lvItemIndex, (PVOID *)&data))
                     {
                         index = PhFindItemList(context->EditingInfo->DataList, data);
 
-                        if (index != -1)
+                        if (index != ULONG_MAX)
                         {
                             EspDestroyTriggerData(data);
                             PhRemoveItemList(context->EditingInfo->DataList, index);
