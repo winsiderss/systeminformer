@@ -1006,7 +1006,7 @@ BOOLEAN PhGetListViewContextMenuPoint(
     // The user pressed a key to display the context menu.
     // Suggest where the context menu should display.
 
-    if ((selectedIndex = ListView_GetNextItem(ListViewHandle, -1, LVNI_SELECTED)) != -1)
+    if ((selectedIndex = PhFindListViewItemByFlags(ListViewHandle, -1, LVNI_SELECTED)) != -1)
     {
         if (ListView_GetItemRect(ListViewHandle, selectedIndex, &bounds, LVIR_BOUNDS))
         {

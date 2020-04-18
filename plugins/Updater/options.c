@@ -602,7 +602,7 @@ INT_PTR CALLBACK TextDlgProc(
                                     PPH_STRING commitHashUrl;
                                     INT lvItemIndex;
 
-                                    lvItemIndex = ListView_GetNextItem(context->ListViewHandle, -1, LVNI_SELECTED);
+                                    lvItemIndex = PhFindListViewItemByFlags(context->ListViewHandle, -1, LVNI_SELECTED);
 
                                     if (lvItemIndex != -1)
                                     {

@@ -583,11 +583,7 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                     {
                         INT index;
 
-                        if ((index = ListView_GetNextItem(
-                            lvHandle,
-                            -1,
-                            LVNI_SELECTED
-                            )) != -1)
+                        if ((index = PhFindListViewItemByFlags(lvHandle, -1, LVNI_SELECTED)) != -1)
                         {
                             NTSTATUS status;
                             PPH_MEMORY_RESULT result = context->Results->Items[index];
@@ -662,11 +658,7 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                                 {
                                     INT index;
 
-                                    if ((index = ListView_GetNextItem(
-                                        lvHandle,
-                                        -1,
-                                        LVNI_SELECTED
-                                        )) != -1)
+                                    if ((index = PhFindListViewItemByFlags(lvHandle, -1, LVNI_SELECTED)) != -1)
                                     {
                                         NTSTATUS status;
                                         PPH_MEMORY_RESULT result = context->Results->Items[index];
