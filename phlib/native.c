@@ -5984,6 +5984,48 @@ NTSTATUS PhEnumFileExtendedAttributes(
     return status;
 }
 
+NTSTATUS PhSetFileExtendedAttributes(
+    _In_ HANDLE FileHandle,
+    _In_ PPH_BYTESREF Name,
+    _In_opt_ PPH_BYTESREF Value
+    )
+{
+    NTSTATUS status;
+    ULONG infoLength;
+    PFILE_FULL_EA_INFORMATION info;
+    IO_STATUS_BLOCK isb;
+
+    infoLength = sizeof(FILE_FULL_EA_INFORMATION) + (ULONG)Name->Length + sizeof(ANSI_NULL);
+
+    if (Value)
+        infoLength += (ULONG)Value->Length + sizeof(ANSI_NULL);
+
+    info = PhAllocateZero(infoLength);
+    info->EaNameLength = (UCHAR)Name->Length;
+    memcpy(info->EaName, Name->Buffer, Name->Length);
+
+    if (Value)
+    {
+        info->EaValueLength = (USHORT)Value->Length;
+        memcpy(
+            PTR_ADD_OFFSET(info->EaName, info->EaNameLength + sizeof(ANSI_NULL)),
+            Value->Buffer,
+            Value->Length
+            );
+    }
+
+    status = NtSetEaFile(
+        FileHandle,
+        &isb,
+        info,
+        infoLength
+        );
+
+    PhFree(info);
+
+    return status;
+}
+
 NTSTATUS PhEnumFileStreams(
     _In_ HANDLE FileHandle,
     _Out_ PVOID *Streams

@@ -1118,6 +1118,15 @@ PhEnumFileExtendedAttributes(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhSetFileExtendedAttributes(
+    _In_ HANDLE FileHandle,
+    _In_ PPH_BYTESREF Name,
+    _In_opt_ PPH_BYTESREF Value
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhEnumFileStreams(
     _In_ HANDLE FileHandle,
     _Out_ PVOID *Streams
