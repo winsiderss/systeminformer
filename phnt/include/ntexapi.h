@@ -1376,7 +1376,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemPolicyInformation, // SYSTEM_POLICY_INFORMATION
     SystemHypervisorProcessorCountInformation, // q: SYSTEM_HYPERVISOR_PROCESSOR_COUNT_INFORMATION
     SystemDeviceDataInformation, // q: SYSTEM_DEVICE_DATA_INFORMATION
-    SystemDeviceDataEnumerationInformation,
+    SystemDeviceDataEnumerationInformation, // q: SYSTEM_DEVICE_DATA_INFORMATION
     SystemMemoryTopologyInformation, // q: SYSTEM_MEMORY_TOPOLOGY_INFORMATION
     SystemMemoryChannelInformation, // q: SYSTEM_MEMORY_CHANNEL_INFORMATION
     SystemBootLogoInformation, // q: SYSTEM_BOOT_LOGO_INFORMATION // 140
@@ -1394,7 +1394,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemElamCertificateInformation, // s: SYSTEM_ELAM_CERTIFICATE_INFORMATION
     SystemOfflineDumpConfigInformation,
     SystemProcessorFeaturesInformation, // q: SYSTEM_PROCESSOR_FEATURES_INFORMATION
-    SystemRegistryReconciliationInformation,
+    SystemRegistryReconciliationInformation, // s: NULL (requires admin) (flushes registry hives)
     SystemEdidInformation,
     SystemManufacturingInformation, // q: SYSTEM_MANUFACTURING_INFORMATION // since THRESHOLD
     SystemEnergyEstimationConfigInformation, // q: SYSTEM_ENERGY_ESTIMATION_CONFIG_INFORMATION
