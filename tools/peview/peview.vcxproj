@@ -328,6 +328,7 @@
     <ClCompile Include="clrprp.c" />
     <ClCompile Include="colmgr.c" />
     <ClCompile Include="attributes.c" />
+    <ClCompile Include="debugprp.c" />
     <ClCompile Include="exlfdynamic.c" />
     <ClCompile Include="exlfexports.c" />
     <ClCompile Include="exlfimports.c" />

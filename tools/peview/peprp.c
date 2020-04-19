@@ -262,22 +262,26 @@ VOID PvPeProperties(
             PvAddPropPage(propContext, newPage);
         }
 
-        // Rich header page
+        // RICH header page
         {
-            newPage = PvCreatePropPageContext(
-                MAKEINTRESOURCE(IDD_PEPRODID),
-                PvpPeProdIdDlgProc,
-                NULL
-                );
-            PvAddPropPage(propContext, newPage);
+            // .NET executables don't include a RICH header.
+            if (!(NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR, &entry)) && entry->VirtualAddress))
+            {
+                newPage = PvCreatePropPageContext(
+                    MAKEINTRESOURCE(IDD_PEPRODID),
+                    PvpPeProdIdDlgProc,
+                    NULL
+                    );
+                PvAddPropPage(propContext, newPage);
+            }
         }
 
-        // Symbols page
+        // Debug page
         if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_DEBUG, &entry)) && entry->VirtualAddress)
         {
             newPage = PvCreatePropPageContext(
-                MAKEINTRESOURCE(IDD_PESYMBOLS),
-                PvpSymbolsDlgProc,
+                MAKEINTRESOURCE(IDD_PEDEBUG),
+                PvpPeDebugDlgProc,
                 NULL
                 );
             PvAddPropPage(propContext, newPage);
@@ -288,6 +292,16 @@ VOID PvPeProperties(
             newPage = PvCreatePropPageContext(
                 MAKEINTRESOURCE(IDD_PEPREVIEW),
                 PvpPePreviewDlgProc,
+                NULL
+                );
+            PvAddPropPage(propContext, newPage);
+        }
+
+        // Symbols page
+        {
+            newPage = PvCreatePropPageContext(
+                MAKEINTRESOURCE(IDD_PESYMBOLS),
+                PvpSymbolsDlgProc,
                 NULL
                 );
             PvAddPropPage(propContext, newPage);
@@ -926,7 +940,7 @@ NTSTATUS PhpOpenFileSecurity(
     return status;
 }
 
-static COLORREF NTAPI PhpTokenGroupColorFunction(
+static COLORREF NTAPI PvpPeCharacteristicsColorFunction(
     _In_ INT Index,
     _In_ PVOID Param,
     _In_opt_ PVOID Context
@@ -1007,44 +1021,43 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
     LPPROPSHEETPAGE propSheetPage;
     PPV_PROPPAGECONTEXT propPageContext;
     PPVP_PE_GENERAL_CONTEXT context;
-    HWND lvHandle;
 
-    if (PvPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext))
+    if (!PvPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext))
+        return FALSE;
+
+    if (uMsg == WM_INITDIALOG)
     {
-        if (context = propPageContext->Context)
-            lvHandle = context->ListViewHandle;
-        else
-            lvHandle = NULL;
+        context = propPageContext->Context = PhAllocate(sizeof(PVP_PE_GENERAL_CONTEXT));
+        memset(context, 0, sizeof(PVP_PE_GENERAL_CONTEXT));
     }
     else
     {
-        return FALSE;
+        context = propPageContext->Context;
     }
 
     switch (uMsg)
     {
     case WM_INITDIALOG:
         {
-            context = propPageContext->Context = PhAllocateZero(sizeof(PVP_PE_GENERAL_CONTEXT));
-            lvHandle = context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
+            context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
-            PhSetExtendedListView(lvHandle);
-            PhSetListViewStyle(lvHandle, FALSE, TRUE);
-            PhSetControlTheme(lvHandle, L"explorer");
-            PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 80, L"Name");
-            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 80, L"VA");
-            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 80, L"Size");
-            PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 250, L"Characteristics");
-            PhAddListViewColumn(lvHandle, 4, 4, 4, LVCFMT_LEFT, 80, L"Hash");
-            //ExtendedListView_SetItemColorFunction(lvHandle, PhpTokenGroupColorFunction);
-            ExtendedListView_SetCompareFunction(lvHandle, 1, PvpPeVirtualAddressCompareFunction);
-            ExtendedListView_SetCompareFunction(lvHandle, 2, PvpPeSizeOfRawDataCompareFunction);
-            ExtendedListView_SetCompareFunction(lvHandle, 3, PvpPeCharacteristicsCompareFunction);
-            PhLoadListViewColumnsFromSetting(L"ImageGeneralListViewColumns", lvHandle);
-            PhLoadListViewSortColumnsFromSetting(L"ImageGeneralListViewSort", lvHandle);
+            PhSetExtendedListView(context->ListViewHandle);
+            PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
+            PhSetControlTheme(context->ListViewHandle, L"explorer");
+            PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 80, L"Name");
+            PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 80, L"VA");
+            PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 80, L"Size");
+            PhAddListViewColumn(context->ListViewHandle, 3, 3, 3, LVCFMT_LEFT, 250, L"Characteristics");
+            PhAddListViewColumn(context->ListViewHandle, 4, 4, 4, LVCFMT_LEFT, 80, L"Hash");
+            //ExtendedListView_SetItemColorFunction(context->ListViewHandle, PvpPeCharacteristicsColorFunction);
+            ExtendedListView_SetCompareFunction(context->ListViewHandle, 1, PvpPeVirtualAddressCompareFunction);
+            ExtendedListView_SetCompareFunction(context->ListViewHandle, 2, PvpPeSizeOfRawDataCompareFunction);
+            ExtendedListView_SetCompareFunction(context->ListViewHandle, 3, PvpPeCharacteristicsCompareFunction);
+            PhLoadListViewColumnsFromSetting(L"ImageGeneralListViewColumns", context->ListViewHandle);
+            PhLoadListViewSortColumnsFromSetting(L"ImageGeneralListViewSort", context->ListViewHandle);
 
             if (context->ListViewImageList = ImageList_Create(2, 20, ILC_COLOR, 1, 1))
-                ListView_SetImageList(lvHandle, context->ListViewImageList, LVSIL_SMALL);
+                ListView_SetImageList(context->ListViewHandle, context->ListViewImageList, LVSIL_SMALL);
 
             // File version information
             PvpSetPeImageVersionInfo(hwndDlg);
@@ -1059,13 +1072,13 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
             PvpSetPeImageSubsystem(hwndDlg);
             PvpSetPeImageCharacteristics(hwndDlg);
 
-            PvpSetPeImageSections(lvHandle);
+            PvpSetPeImageSections(context->ListViewHandle);
         }
         break;
     case WM_DESTROY:
         {
-            PhSaveListViewSortColumnsToSetting(L"ImageGeneralListViewSort", lvHandle);
-            PhSaveListViewColumnsToSetting(L"ImageGeneralListViewColumns", lvHandle);
+            PhSaveListViewSortColumnsToSetting(L"ImageGeneralListViewSort", context->ListViewHandle);
+            PhSaveListViewColumnsToSetting(L"ImageGeneralListViewColumns", context->ListViewHandle);
 
             if (context->ListViewImageList)
                 ImageList_Destroy(context->ListViewImageList);
@@ -1178,17 +1191,17 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
                 break;
             }
 
-            PvHandleListViewNotifyForCopy(lParam, lvHandle);
+            PvHandleListViewNotifyForCopy(lParam, context->ListViewHandle);
         }
         break;
     case WM_CONTEXTMENU:
         {
-            PvHandleListViewCommandCopy(hwndDlg, lParam, wParam, lvHandle);
+            PvHandleListViewCommandCopy(hwndDlg, lParam, wParam, context->ListViewHandle);
         }
         break;
     }
 
-    REFLECT_MESSAGE_DLG(hwndDlg, lvHandle, uMsg, wParam, lParam);
+    REFLECT_MESSAGE_DLG(hwndDlg, context->ListViewHandle, uMsg, wParam, lParam);
 
     return FALSE;
 }

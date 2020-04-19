@@ -2,7 +2,7 @@
  * Process Hacker -
  *   PE viewer
  *
- * Copyright (C) 2018 dmex
+ * Copyright (C) 2018-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -65,6 +65,38 @@ BOOLEAN NTAPI PvpEnumFileAttributesCallback(
     return TRUE;
 }
 
+VOID PvEnumerateFileExtendedAttributes(
+    _In_ HWND ListViewHandle
+    )
+{
+    HANDLE fileHandle;
+
+    ExtendedListView_SetRedraw(ListViewHandle, FALSE);
+    ListView_DeleteAllItems(ListViewHandle);
+
+    if (NT_SUCCESS(PhCreateFileWin32(
+        &fileHandle,
+        PhGetString(PvFileName),
+        FILE_READ_ATTRIBUTES | FILE_READ_EA | SYNCHRONIZE,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        )))
+    {
+        PV_EA_CALLBACK context;
+
+        context.ListViewHandle = ListViewHandle;
+        context.Count = 0;
+
+        PhEnumFileExtendedAttributes(fileHandle, PvpEnumFileAttributesCallback, &context);
+
+        NtClose(fileHandle);
+    }
+
+    ExtendedListView_SetRedraw(ListViewHandle, TRUE);
+}
+
 INT_PTR CALLBACK PvpPeExtendedAttributesDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -82,7 +114,6 @@ INT_PTR CALLBACK PvpPeExtendedAttributesDlgProc(
     {
     case WM_INITDIALOG:
         {
-            HANDLE fileHandle;
             HWND lvHandle;
 
             lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
@@ -94,25 +125,7 @@ INT_PTR CALLBACK PvpPeExtendedAttributesDlgProc(
             PhSetExtendedListView(lvHandle);
             PhLoadListViewColumnsFromSetting(L"ImageAttributesListViewColumns", lvHandle);
 
-            if (NT_SUCCESS(PhCreateFileWin32(
-                &fileHandle,
-                PhGetString(PvFileName),
-                FILE_READ_ATTRIBUTES | FILE_READ_DATA | FILE_READ_EA | SYNCHRONIZE,
-                FILE_ATTRIBUTE_NORMAL,
-                FILE_SHARE_READ,
-                FILE_OPEN,
-                FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-                )))
-            {
-                PV_EA_CALLBACK context;
-
-                context.ListViewHandle = lvHandle;
-                context.Count = 0;
-
-                PhEnumFileExtendedAttributes(fileHandle, PvpEnumFileAttributesCallback, &context);
-
-                NtClose(fileHandle);
-            }
+            PvEnumerateFileExtendedAttributes(lvHandle);
 
             EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
         }
@@ -144,7 +157,107 @@ INT_PTR CALLBACK PvpPeExtendedAttributesDlgProc(
         break;
     case WM_CONTEXTMENU:
         {
-            PvHandleListViewCommandCopy(hwndDlg, lParam, wParam, GetDlgItem(hwndDlg, IDC_LIST));
+            if ((HWND)wParam == GetDlgItem(hwndDlg, IDC_LIST))
+            {
+                POINT point;
+                PPH_EMENU menu;
+                PPH_EMENU item;
+                PVOID* listviewItems;
+                ULONG numberOfItems;
+
+                point.x = GET_X_LPARAM(lParam);
+                point.y = GET_Y_LPARAM(lParam);
+
+                if (point.x == -1 && point.y == -1)
+                    PvGetListViewContextMenuPoint((HWND)wParam, &point);
+
+                PhGetSelectedListViewItemParams((HWND)wParam, &listviewItems, &numberOfItems);
+
+                if (numberOfItems != 0)
+                {
+                    menu = PhCreateEMenu();
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 1, L"Delete", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, USHRT_MAX, L"&Copy", NULL, NULL), ULONG_MAX);
+                    PvInsertCopyListViewEMenuItem(menu, USHRT_MAX, (HWND)wParam);
+
+                    item = PhShowEMenu(
+                        menu,
+                        hwndDlg,
+                        PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT,
+                        PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                        point.x,
+                        point.y
+                        );
+
+                    if (item)
+                    {
+                        if (!PvHandleCopyListViewEMenuItem(item))
+                        {
+                            switch (item->Id)
+                            {
+                            case 0:
+                                //PhShowInformationDialog();
+                                break;
+                            case 1:
+                                {
+                                    NTSTATUS status;
+                                    HANDLE fileHandle;
+                                    PPH_STRING nameUtf = NULL;
+                                    PPH_BYTES nameAnsi = NULL;
+                                    INT index;
+
+                                    if ((index = PhFindListViewItemByFlags((HWND)wParam, -1, LVNI_SELECTED)) != -1)
+                                    {
+                                        nameUtf = PhGetListViewItemText((HWND)wParam, index, 1);
+                                    }
+
+                                    if (PhIsNullOrEmptyString(nameUtf))
+                                        break;
+
+                                    nameAnsi = PhConvertUtf16ToUtf8Ex(nameUtf->Buffer, nameUtf->Length);
+
+                                    if (NT_SUCCESS(status = PhCreateFileWin32(
+                                        &fileHandle,
+                                        PhGetString(PvFileName),
+                                        FILE_WRITE_ATTRIBUTES | FILE_WRITE_EA | SYNCHRONIZE,
+                                        FILE_ATTRIBUTE_NORMAL,
+                                        FILE_SHARE_WRITE,
+                                        FILE_OPEN,
+                                        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+                                        )))
+                                    {
+                                        status = PhSetFileExtendedAttributes(fileHandle, &nameAnsi->br, NULL);
+                                        NtClose(fileHandle);
+                                    }
+
+                                    if (NT_SUCCESS(status))
+                                    {
+                                        PvEnumerateFileExtendedAttributes((HWND)wParam);
+                                    }
+                                    else
+                                    {
+                                        PhShowStatus(hwndDlg, L"Unable to remove attribute.", status, 0);
+                                    }
+
+                                    PhClearReference(&nameUtf);
+                                    PhClearReference(&nameAnsi);
+                                }
+                                break;
+                            case USHRT_MAX:
+                                {
+                                    PvCopyListView((HWND)wParam);
+                                }
+                                break;
+                            }
+                        }
+                    }
+
+                    PhDestroyEMenu(menu);
+                }
+
+                PhFree(listviewItems);
+            }
         }
         break;
     }
