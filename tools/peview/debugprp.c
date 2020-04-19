@@ -22,6 +22,18 @@
 
 #include <peview.h>
 
+#ifndef IMAGE_DEBUG_TYPE_EMBEDDEDPORTABLEPDB
+#define IMAGE_DEBUG_TYPE_EMBEDDEDPORTABLEPDB 17
+#endif
+
+#ifndef IMAGE_DEBUG_TYPE_EX_PDBCHECKSUM
+#define IMAGE_DEBUG_TYPE_EX_PDBCHECKSUM 19
+#endif
+
+#ifndef IMAGE_DEBUG_TYPE_EX_DLLCHARACTERISTICS
+#define IMAGE_DEBUG_TYPE_EX_DLLCHARACTERISTICS 20
+#endif
+
 PWSTR PvpGetDebugTypeString(
     _In_ ULONG Type
     )
@@ -60,6 +72,13 @@ PWSTR PvpGetDebugTypeString(
         return L"MPX";
     case IMAGE_DEBUG_TYPE_REPRO:
         return L"REPRO";
+    case IMAGE_DEBUG_TYPE_EMBEDDEDPORTABLEPDB:
+        return L"EMBEDDED_PDB";
+    // Note: missing 18.
+    case IMAGE_DEBUG_TYPE_EX_PDBCHECKSUM:
+        return L"PDB_CHECKSUM";
+    case IMAGE_DEBUG_TYPE_EX_DLLCHARACTERISTICS:
+        return L"EX_DLLCHARACTERISTICS";
     }
 
     return PhaFormatString(L"%lu", Type)->Buffer;
