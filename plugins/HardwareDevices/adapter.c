@@ -149,7 +149,11 @@ VOID NetAdaptersUpdate(
                     entry->AdapterName = PhCreateString(interfaceRow.Description);
                 }
 
-                entry->DevicePresent = TRUE;
+                // HACK: Hide the device when it's not operational. (dmex)
+                if (interfaceRow.OperStatus == IfOperStatusUp)
+                    entry->DevicePresent = TRUE;
+                else
+                    entry->DevicePresent = FALSE;
             }
             else
             {

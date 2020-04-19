@@ -463,7 +463,7 @@ BOOLEAN QueryInterfaceRow(
     interfaceRow.InterfaceLuid = Id->InterfaceLuid;
     interfaceRow.InterfaceIndex = Id->InterfaceIndex;
 
-    if (GetIfEntry2(&interfaceRow) == NO_ERROR)
+    if (NETIO_SUCCESS(GetIfEntry2(&interfaceRow)))
     {
         result = TRUE;
         *InterfaceRow = interfaceRow;
