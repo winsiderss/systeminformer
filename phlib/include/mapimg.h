@@ -454,7 +454,7 @@ typedef struct _PH_MAPPED_IMAGE_TLS_CALLBACKS
         PIMAGE_TLS_DIRECTORY64 TlsDirectory64;
     };
 
-    PVOID CallbackIndexes;
+    //PVOID CallbackIndexes;
     PVOID CallbackAddress;
 
     ULONG NumberOfEntries;

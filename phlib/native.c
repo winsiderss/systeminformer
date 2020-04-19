@@ -1206,7 +1206,7 @@ BOOLEAN PhEnumProcessEnvironmentVariables(
     length = EnvironmentLength / sizeof(WCHAR);
 
     currentIndex = *EnumerationKey;
-    currentChar = (PWCHAR)Environment + currentIndex;
+    currentChar = PTR_ADD_OFFSET(Environment, currentIndex * sizeof(WCHAR));
     startIndex = currentIndex;
     name = currentChar;
 
@@ -1215,9 +1215,9 @@ BOOLEAN PhEnumProcessEnvironmentVariables(
     {
         if (currentIndex >= length)
             return FALSE;
-        if ((*currentChar == L'=') && (startIndex != currentIndex))
+        if (*currentChar == L'=' && startIndex != currentIndex)
             break; // equality sign is considered as a delimiter unless it is the first character (diversenok)
-        if (*currentChar == 0)
+        if (*currentChar == UNICODE_NULL)
             return FALSE; // no more variables
 
         currentIndex++;
@@ -1236,7 +1236,7 @@ BOOLEAN PhEnumProcessEnvironmentVariables(
     {
         if (currentIndex >= length)
             return FALSE;
-        if (*currentChar == 0)
+        if (*currentChar == UNICODE_NULL)
             break;
 
         currentIndex++;
@@ -5996,13 +5996,15 @@ NTSTATUS PhSetFileExtendedAttributes(
     IO_STATUS_BLOCK isb;
 
     infoLength = sizeof(FILE_FULL_EA_INFORMATION) + (ULONG)Name->Length + sizeof(ANSI_NULL);
-
-    if (Value)
-        infoLength += (ULONG)Value->Length + sizeof(ANSI_NULL);
+    if (Value) infoLength += (ULONG)Value->Length + sizeof(ANSI_NULL);
 
     info = PhAllocateZero(infoLength);
     info->EaNameLength = (UCHAR)Name->Length;
-    memcpy(info->EaName, Name->Buffer, Name->Length);
+    memcpy(
+        info->EaName,
+        Name->Buffer,
+        Name->Length
+        );
 
     if (Value)
     {
