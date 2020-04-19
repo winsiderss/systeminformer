@@ -2233,3 +2233,72 @@ NTSTATUS PhGetMappedImageProdIdHeader(
 
     return STATUS_FAIL_CHECK;
 }
+
+NTSTATUS PhGetMappedImageDebug(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _Out_ PPH_MAPPED_IMAGE_DEBUG Debug
+    )
+{
+    NTSTATUS status;
+    PIMAGE_DEBUG_DIRECTORY debugDirectory;
+    ULONG currentCount;
+
+    status = PhGetMappedImageDataEntry(
+        MappedImage,
+        IMAGE_DIRECTORY_ENTRY_DEBUG,
+        &Debug->DataDirectory
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    debugDirectory = PhMappedImageRvaToVa(
+        MappedImage,
+        Debug->DataDirectory->VirtualAddress,
+        NULL
+        );
+
+    if (!debugDirectory)
+        return STATUS_INVALID_PARAMETER;
+
+    __try
+    {
+        PhpMappedImageProbe(MappedImage, debugDirectory, sizeof(IMAGE_DEBUG_DIRECTORY));
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {   
+        return GetExceptionCode();
+    }
+
+    currentCount = Debug->DataDirectory->Size / sizeof(IMAGE_DEBUG_DIRECTORY);
+
+    Debug->DebugDirectory = debugDirectory;
+    Debug->NumberOfEntries = currentCount;
+    Debug->DebugEntries = PhAllocate(sizeof(PH_IMAGE_DEBUG_ENTRY) * currentCount);
+    memset(Debug->DebugEntries, 0, sizeof(PH_IMAGE_DEBUG_ENTRY) * currentCount);
+
+    for (ULONG i = 0; i < currentCount; i++)
+    {
+        PIMAGE_DEBUG_DIRECTORY entry = PTR_ADD_OFFSET(debugDirectory, i * sizeof(IMAGE_DEBUG_DIRECTORY));
+
+        __try
+        {
+            PhpMappedImageProbe(MappedImage, entry, sizeof(IMAGE_DEBUG_DIRECTORY));
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            break;
+        }
+
+        Debug->DebugEntries[i].Characteristics = entry->Characteristics;
+        Debug->DebugEntries[i].TimeDateStamp = entry->TimeDateStamp;
+        Debug->DebugEntries[i].MajorVersion = entry->MajorVersion;
+        Debug->DebugEntries[i].MinorVersion = entry->MinorVersion;
+        Debug->DebugEntries[i].Type = entry->Type;
+        Debug->DebugEntries[i].SizeOfData = entry->SizeOfData;
+        Debug->DebugEntries[i].AddressOfRawData = entry->AddressOfRawData;
+        Debug->DebugEntries[i].PointerToRawData = entry->PointerToRawData;
+    }
+
+    return status;
+}
