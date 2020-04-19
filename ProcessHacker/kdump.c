@@ -1,7 +1,8 @@
 /*
- * Process Hacker - Live dump window
+ * Process Hacker -
+ *   Live kernel dump
  *
- * Copyright (C) 2019 dmex
+ * Copyright (C) 2019-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -55,6 +56,7 @@ NTSTATUS PhpCreateLiveKernelDump(
     SYSDBG_LIVEDUMP_CONTROL_FLAGS flags;
     SYSDBG_LIVEDUMP_CONTROL_ADDPAGES pages;
 
+     // HACK: Give some time for the progress window to become visible. (dmex)
     PhDelayExecution(2000);
 
     memset(&liveDumpControl, 0, sizeof(SYSDBG_LIVEDUMP_CONTROL));
@@ -313,14 +315,25 @@ INT_PTR CALLBACK PhpLiveDumpDlgProc(
     {
     case WM_INITDIALOG:
         {
+            SYSTEM_KERNEL_DEBUGGER_INFORMATION debugInfo;
+
             SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
             SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
 
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
-            if (!USER_SHARED_DATA->KdDebuggerEnabled)
+            if (NT_SUCCESS(NtQuerySystemInformation(
+                SystemKernelDebuggerInformation,
+                &debugInfo,
+                sizeof(SYSTEM_KERNEL_DEBUGGER_INFORMATION),
+                NULL
+                )))
             {
-                Button_Enable(GetDlgItem(hwndDlg, IDC_USERMODE), FALSE);
+                if (!debugInfo.KernelDebuggerEnabled)
+                {
+                    Button_Enable(GetDlgItem(hwndDlg, IDC_USERMODE), FALSE);
+                    //Button_SetText(GetDlgItem(hwndDlg, IDC_USERMODE), L"Include UserSpace memory pages (requires kernel debugger)");
+                }
             }
 
             if (!PhGetOwnTokenAttributes().Elevated)
