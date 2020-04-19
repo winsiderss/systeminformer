@@ -89,6 +89,7 @@ _MiniDumpWriteDump MiniDumpWriteDump_I = NULL;
 _SymbolServerGetOptions SymbolServerGetOptions = NULL;
 _SymbolServerSetOptions SymbolServerSetOptions = NULL;
 _UnDecorateSymbolNameW UnDecorateSymbolNameW_I = NULL;
+_SymGetDiaSession SymGetDiaSession_I = NULL;
 
 PPH_SYMBOL_PROVIDER PhCreateSymbolProvider(
     _In_opt_ HANDLE ProcessId
@@ -308,6 +309,7 @@ VOID PhpSymbolProviderCompleteInitialization(
         StackWalk64_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "StackWalk64", 0);
         MiniDumpWriteDump_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "MiniDumpWriteDump", 0);
         UnDecorateSymbolNameW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "UnDecorateSymbolNameW", 0);
+        SymGetDiaSession_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymGetDiaSession", 0);
     }
 
     if (symsrvHandle)
