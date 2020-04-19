@@ -551,7 +551,7 @@ VOID FindNetworkAdapters(
             interfaceRow.InterfaceIndex = entry->AdapterId.InterfaceIndex;
 
             // HACK: Try query the description from the interface entry (if it exists).
-            if (GetIfEntry2(&interfaceRow) == NO_ERROR)
+            if (NETIO_SUCCESS(GetIfEntry2(&interfaceRow)))
                 description = PhCreateString(interfaceRow.Description);
             else
                 description = PhCreateString(L"Unknown network adapter");
