@@ -26,6 +26,7 @@
 
 #include <ph.h>
 #include <cpysave.h>
+#include <emenu.h>
 #include <guisup.h>
 #include <mapimg.h>
 #include <prsht.h>
@@ -90,6 +91,21 @@ PPH_STRING PvResolveShortcutTarget(
 
 VOID PvCopyListView(
     _In_ HWND ListViewHandle
+    );
+
+BOOLEAN PvHandleCopyListViewEMenuItem(
+    _In_ struct _PH_EMENU_ITEM* SelectedItem
+    );
+
+BOOLEAN PvInsertCopyListViewEMenuItem(
+    _In_ struct _PH_EMENU_ITEM* Menu,
+    _In_ ULONG InsertAfterId,
+    _In_ HWND ListViewHandle
+    );
+
+BOOLEAN PvGetListViewContextMenuPoint(
+    _In_ HWND ListViewHandle,
+    _Out_ PPOINT Point
     );
 
 VOID PvHandleListViewNotifyForCopy(
@@ -408,6 +424,13 @@ INT_PTR CALLBACK PvpPePreviewDlgProc(
     );
 
 INT_PTR CALLBACK PvpPeProdIdDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
+INT_PTR CALLBACK PvpPeDebugDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
