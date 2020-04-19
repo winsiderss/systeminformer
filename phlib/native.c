@@ -6482,8 +6482,11 @@ PPH_STRING PhGetFileName(
             // If the file name starts with "\Windows", prepend the system drive.
             if (PhStartsWithString2(newFileName, L"\\Windows", TRUE))
             {
+                PH_STRINGREF systemRoot;
+
+                PhGetSystemRoot(&systemRoot);
                 newFileName = PhCreateStringEx(NULL, FileName->Length + 2 * sizeof(WCHAR));
-                newFileName->Buffer[0] = USER_SHARED_DATA->NtSystemRoot[0];
+                newFileName->Buffer[0] = systemRoot.Buffer[0];
                 newFileName->Buffer[1] = L':';
                 memcpy(&newFileName->Buffer[2], FileName->Buffer, FileName->Length);
             }

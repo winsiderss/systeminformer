@@ -1466,8 +1466,9 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                                         {
                                             HRESULT status;
                                             PPH_STRING quotedFileName;
+                                            RTL_ELEVATION_FLAGS flags;
 
-                                            if (USER_SHARED_DATA->DbgElevationEnabled) // RtlQueryElevationFlags (dmex)
+                                            if (NT_SUCCESS(RtlQueryElevationFlags(&flags)) && flags.ElevationEnabled)
                                             {
                                                 PH_STRINGREF programFilesPathSr = PH_STRINGREF_INIT(L"%ProgramFiles%\\");
                                                 PPH_STRING programFilesPath;
