@@ -649,6 +649,7 @@ cellularMessaging
 chat
 chatSystem
 childWebContent
+chromeInstallFiles
 cloudExperienceHost
 cloudStore
 codeGeneration
@@ -748,6 +749,7 @@ lockScreenCreatives
 lowLevel
 lowLevelDevices
 lpacAppExperience
+lpacChromeInstallFiles
 lpacClipboard
 lpacCom
 lpacCryptoServices
@@ -785,6 +787,7 @@ oemPublicDirectory
 offlineMapsManagement
 oneProcessVoIP
 optical
+pacJsWorker
 packageContents
 packageManagement
 packagePolicySystem
@@ -798,6 +801,7 @@ phoneCallHistory
 phoneCallHistoryPublic
 phoneCallHistorySystem
 phoneCallSystem
+phoneLineTransportManagement
 picturesLibrary
 pointOfService
 powerDeviceSettings
@@ -823,6 +827,7 @@ removableStorage
 resetPhone
 runFullTrust
 screenDuplication
+searchSettings
 secondaryAuthenticationFactor
 secureAssessment
 sensors.custom
@@ -846,6 +851,7 @@ storeAppInstallation
 storeConfiguration
 storeLicenseManagement
 storeOptionalPackageInstallManagement
+systemAllocWindowID
 systemDialog
 systemDialogEmergency
 systemManagement
@@ -858,6 +864,7 @@ terminalPowerManagement
 thumbnailCache
 timezone
 uiAutomationSystem
+unvirtualizedResources
 unzipFile
 updateAndSecurityDeviceSettings
 usb
