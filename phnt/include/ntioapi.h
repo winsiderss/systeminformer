@@ -549,7 +549,7 @@ typedef struct _FILE_REPARSE_POINT_INFORMATION
 typedef struct _FILE_LINK_ENTRY_INFORMATION
 {
     ULONG NextEntryOffset;
-    LONGLONG ParentFileId;
+    LONGLONG ParentFileId; // LARGE_INTEGER
     ULONG FileNameLength;
     WCHAR FileName[1];
 } FILE_LINK_ENTRY_INFORMATION, *PFILE_LINK_ENTRY_INFORMATION;
@@ -940,7 +940,7 @@ typedef struct _FILE_ID_GLOBAL_TX_DIR_INFORMATION
 typedef struct _FILE_OBJECTID_INFORMATION
 {
     LONGLONG FileReference;
-    UCHAR ObjectId[16];
+    UCHAR ObjectId[16]; // GUID
     union
     {
         struct
