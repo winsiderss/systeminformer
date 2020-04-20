@@ -153,4 +153,8 @@ typedef BOOL (WINAPI* _SymGetDiaSession)(
     _Out_ PVOID* IDiaSession
     );
 
+typedef VOID (WINAPI* _SymFreeDiaString)(
+    _In_ PWSTR DiaString
+    );
+
 #endif
