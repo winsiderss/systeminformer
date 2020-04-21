@@ -86,10 +86,9 @@ _SymGetModuleBase64 SymGetModuleBase64_I = NULL;
 _SymRegisterCallbackW64 SymRegisterCallbackW64_I = NULL;
 _StackWalk64 StackWalk64_I = NULL;
 _MiniDumpWriteDump MiniDumpWriteDump_I = NULL;
-_SymbolServerGetOptions SymbolServerGetOptions = NULL;
-_SymbolServerSetOptions SymbolServerSetOptions = NULL;
 _UnDecorateSymbolNameW UnDecorateSymbolNameW_I = NULL;
 _SymGetDiaSession SymGetDiaSession_I = NULL;
+_SymFreeDiaString SymFreeDiaString_I = NULL;
 
 PPH_SYMBOL_PROVIDER PhCreateSymbolProvider(
     _In_opt_ HANDLE ProcessId
@@ -310,12 +309,7 @@ VOID PhpSymbolProviderCompleteInitialization(
         MiniDumpWriteDump_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "MiniDumpWriteDump", 0);
         UnDecorateSymbolNameW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "UnDecorateSymbolNameW", 0);
         SymGetDiaSession_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymGetDiaSession", 0);
-    }
-
-    if (symsrvHandle)
-    {
-        SymbolServerGetOptions = PhGetDllBaseProcedureAddress(symsrvHandle, "SymbolServerGetOptions", 0);
-        SymbolServerSetOptions = PhGetDllBaseProcedureAddress(symsrvHandle, "SymbolServerSetOptions", 0);
+        SymFreeDiaString_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymFreeDiaString", 0);
     }
 }
 
@@ -1808,7 +1802,6 @@ BOOLEAN PhEnumerateSymbols(
 
 BOOLEAN PhGetSymbolProviderDiaSession(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
-    _In_ HANDLE ProcessHandle,
     _In_ ULONG64 BaseOfDll,
     _Out_ PVOID* DiaSession
     )
@@ -1824,7 +1817,7 @@ BOOLEAN PhGetSymbolProviderDiaSession(
     PH_LOCK_SYMBOLS();
 
     result = SymGetDiaSession_I(
-        ProcessHandle,
+        SymbolProvider->ProcessHandle,
         BaseOfDll,
         &session
         );
@@ -1840,3 +1833,13 @@ BOOLEAN PhGetSymbolProviderDiaSession(
 
     return FALSE;
 }
+
+VOID PhSymbolProviderFreeDiaString(
+    _In_ PWSTR DiaString
+    )
+{
+    //PhpRegisterSymbolProvider(SymbolProvider);
+
+    if (!SymFreeDiaString_I)
+        return;
+

@@ -327,9 +327,15 @@ BOOLEAN
 NTAPI
 PhGetSymbolProviderDiaSession(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
-    _In_ HANDLE ProcessHandle,
     _In_ ULONG64 BaseOfDll,
     _Out_ PVOID* DiaSession
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhSymbolProviderFreeDiaString(
+    _In_ PWSTR DiaString
     );
 
 #ifdef __cplusplus
