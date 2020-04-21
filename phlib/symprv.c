@@ -1843,3 +1843,5 @@ VOID PhSymbolProviderFreeDiaString(
     if (!SymFreeDiaString_I)
         return;
 
+    SymFreeDiaString_I(DiaString);
+}
