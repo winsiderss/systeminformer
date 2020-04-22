@@ -2,8 +2,8 @@
  * Process Hacker Plugins -
  *   Hardware Devices Plugin
  *
- * Copyright (C) 2015-2019 dmex
  * Copyright (C) 2016 wj32
+ * Copyright (C) 2015-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -118,7 +118,7 @@ VOID NetAdapterUpdatePanel(
     {
         MIB_IF_ROW2 interfaceRow;
 
-        if (QueryInterfaceRow(&Context->AdapterEntry->AdapterId, &interfaceRow))
+        if (NetworkAdapterQueryInterfaceRow(&Context->AdapterEntry->AdapterId, MibIfEntryNormal, &interfaceRow))
         {
             inOctetsValue = interfaceRow.InOctets;
             outOctetsValue = interfaceRow.OutOctets;
@@ -181,7 +181,7 @@ VOID UpdateNetAdapterDialog(
     else
         PhSetDialogItemText(Context->WindowHandle, IDC_ADAPTERNAME, L"Unknown network adapter");
 
-    if (QueryInterfaceRow(&Context->AdapterEntry->AdapterId, &interfaceRow))
+    if (NetworkAdapterQueryInterfaceRow(&Context->AdapterEntry->AdapterId, MibIfEntryNormalWithoutStatistics, &interfaceRow))
     {
         PhSetDialogItemText(Context->WindowHandle, IDC_ADAPTERTEXT, interfaceRow.Alias);
     }
@@ -286,7 +286,7 @@ INT_PTR CALLBACK NetAdapterDialogProc(
             SetWindowFont(GetDlgItem(hwndDlg, IDC_ADAPTERTEXT), context->SysinfoSection->Parameters->LargeFont, FALSE);
             SetWindowFont(GetDlgItem(hwndDlg, IDC_ADAPTERNAME), context->SysinfoSection->Parameters->MediumFont, FALSE);
 
-            if (QueryInterfaceRow(&context->AdapterEntry->AdapterId, &interfaceRow))
+            if (NetworkAdapterQueryInterfaceRow(&context->AdapterEntry->AdapterId, MibIfEntryNormalWithoutStatistics, &interfaceRow))
             {
                 PhSetDialogItemText(hwndDlg, IDC_ADAPTERTEXT, interfaceRow.Alias);
             }

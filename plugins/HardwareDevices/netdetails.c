@@ -3,7 +3,7 @@
  *   Hardware Devices Plugin
  *
  * Copyright (C) 2016 wj32
- * Copyright (C) 2015-2019 dmex
+ * Copyright (C) 2015-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -405,7 +405,7 @@ VOID NetAdapterUpdateDetails(
     {
         MIB_IF_ROW2 interfaceRow;
 
-        if (QueryInterfaceRow(&Context->AdapterId, &interfaceRow))
+        if (NetworkAdapterQueryInterfaceRow(&Context->AdapterId, MibIfEntryNormal, &interfaceRow))
         {
             interfaceStats.ifInDiscards = interfaceRow.InDiscards;
             interfaceStats.ifInErrors = interfaceRow.InErrors;
