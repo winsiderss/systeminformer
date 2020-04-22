@@ -8074,22 +8074,24 @@ RtlIsMultiUsersInSessionSku(
 // private
 typedef enum _RTL_BSD_ITEM_TYPE
 {
-    RtlBsdItemVersionNumber,
-    RtlBsdItemProductType,
-    RtlBsdItemAabEnabled,
-    RtlBsdItemAabTimeout,
-    RtlBsdItemBootGood,
-    RtlBsdItemBootShutdown,
-    RtlBsdSleepInProgress,
+    RtlBsdItemVersionNumber, // q; s: ULONG
+    RtlBsdItemProductType, // q; s: NT_PRODUCT_TYPE (ULONG)
+    RtlBsdItemAabEnabled, // q: s: BOOLEAN
+    RtlBsdItemAabTimeout, // q: s: UCHAR
+    RtlBsdItemBootGood, // q: s: BOOLEAN
+    RtlBsdItemBootShutdown, // q: s: BOOLEAN
+    RtlBsdSleepInProgress, // q: s: BOOLEAN
     RtlBsdPowerTransition,
-    RtlBsdItemBootAttemptCount,
-    RtlBsdItemBootCheckpoint,
-    RtlBsdItemBootId,
-    RtlBsdItemShutdownBootId,
-    RtlBsdItemReportedAbnormalShutdownBootId,
+    RtlBsdItemBootAttemptCount, // q: s: UCHAR
+    RtlBsdItemBootCheckpoint, // q: s: UCHAR
+    RtlBsdItemBootId, // q; s: ULONG (USER_SHARED_DATA->BootId)
+    RtlBsdItemShutdownBootId, // q; s: ULONG
+    RtlBsdItemReportedAbnormalShutdownBootId, // q; s: ULONG
     RtlBsdItemErrorInfo,
     RtlBsdItemPowerButtonPressInfo,
-    RtlBsdItemChecksum,
+    RtlBsdItemChecksum, // q: s: UCHAR
+    RtlBsdPowerTransitionExtension,
+    RtlBsdItemFeatureConfigurationState, // q; s: ULONG
     RtlBsdItemMax
 } RTL_BSD_ITEM_TYPE;
 
@@ -8146,6 +8148,30 @@ RtlCheckBootStatusIntegrity(
     _In_ HANDLE FileHandle, 
     _Out_ PBOOLEAN Verified
     );
+
+#if (PHNT_VERSION >= PHNT_REDSTONE3)
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlGetSystemBootStatus(
+    _In_ RTL_BSD_ITEM_TYPE BootStatusInformationClass,
+    _Out_ PVOID DataBuffer,
+    _In_ ULONG DataLength,
+    _Out_opt_ PULONG ReturnLength
+    );
+
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlSetSystemBootStatus(
+    _In_ RTL_BSD_ITEM_TYPE BootStatusInformationClass,
+    _In_ PVOID DataBuffer,
+    _In_ ULONG DataLength,
+    _Out_opt_ PULONG ReturnLength
+    );
+#endif
 
 // rev
 NTSYSAPI
@@ -8216,5 +8242,144 @@ RtlFlushSecureMemoryCache(
     _In_ PVOID MemoryCache,
     _In_opt_ SIZE_T MemoryLength
     );
+
+#if (PHNT_VERSION >= PHNT_REDSTONE3)
+
+// Feature configuration
+
+typedef struct __RTL_FEATURE_USAGE_REPORT
+{
+    ULONG FeatureId;
+    USHORT ReportingKind;
+    USHORT ReportingOptions;
+} RTL_FEATURE_USAGE_REPORT, *PRTL_FEATURE_USAGE_REPORT;
+
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlNotifyFeatureUsage(
+    _In_ PRTL_FEATURE_USAGE_REPORT FeatureUsageReport
+    );
+
+typedef enum _RTL_FEATURE_CONFIGURATION_TYPE
+{
+    RtlFeatureConfigurationBoot,
+    RtlFeatureConfigurationRuntime,
+    RtlFeatureConfigurationCount
+} RTL_FEATURE_CONFIGURATION_TYPE;
+
+// rev
+typedef struct _RTL_FEATURE_CONFIGURATION
+{
+    ULONG FeatureId;
+    union
+    {
+        ULONG Flags;
+        struct
+        {
+            ULONG Priority : 4;
+            ULONG EnabledState : 2;
+            ULONG IsWexpConfiguration : 1;
+            ULONG HasSubscriptions : 1;
+            ULONG Variant : 6;
+            ULONG VariantPayloadKind : 2;
+            ULONG Reserved : 16;
+        };
+    };
+    ULONG VariantPayload;
+} RTL_FEATURE_CONFIGURATION, *PRTL_FEATURE_CONFIGURATION;
+
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlQueryFeatureConfiguration(
+    _In_ ULONG FeatureId,
+    _In_ RTL_FEATURE_CONFIGURATION_TYPE FeatureType,
+    _Inout_ PULONGLONG ChangeStamp,
+    _In_ PRTL_FEATURE_CONFIGURATION FeatureConfiguration
+    );
+
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlSetFeatureConfigurations(
+    _Inout_ PULONGLONG ChangeStamp,
+    _In_ RTL_FEATURE_CONFIGURATION_TYPE FeatureType,
+    _In_ PRTL_FEATURE_CONFIGURATION FeatureConfiguration,
+    _In_ ULONG FeatureConfigurationCount
+    );
+
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlQueryAllFeatureConfigurations(
+    _In_ RTL_FEATURE_CONFIGURATION_TYPE FeatureType,
+    _Inout_ PULONGLONG ChangeStamp,
+    _Out_ PRTL_FEATURE_CONFIGURATION FeatureConfigurations,
+    _Inout_ PULONG FeatureConfigurationCount
+    );
+
+// rev
+NTSYSAPI
+ULONGLONG
+NTAPI
+RtlQueryFeatureConfigurationChangeStamp(
+    VOID
+    );
+
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlQueryFeatureUsageNotificationSubscriptions(
+    _Out_ PRTL_FEATURE_CONFIGURATION FeatureConfiguration,
+    _Inout_ PULONG FeatureConfigurationCount
+    );
+
+typedef VOID (NTAPI *PRTL_FEATURE_CONFIGURATION_CHANGE_NOTIFICAION)(
+    _In_opt_ PVOID Context
+    );
+
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlRegisterFeatureConfigurationChangeNotification(
+    _In_ PRTL_FEATURE_CONFIGURATION_CHANGE_NOTIFICAION Callback,
+    _In_opt_ PVOID Context,
+    _Inout_opt_ PULONGLONG ChangeStamp,
+    _Out_ PHANDLE NotificationHandle
+    );
+
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlUnregisterFeatureConfigurationChangeNotification(
+    _In_ HANDLE NotificationHandle
+    );
+
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlSubscribeForFeatureUsageNotification(
+    _In_ PRTL_FEATURE_CONFIGURATION FeatureConfiguration,
+    _In_ ULONG FeatureConfigurationCount
+    );
+
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlUnsubscribeFromFeatureUsageNotifications(
+    _In_ PRTL_FEATURE_CONFIGURATION FeatureConfiguration,
+    _In_ ULONG FeatureConfigurationCount
+    );
+#endif
 
 #endif
