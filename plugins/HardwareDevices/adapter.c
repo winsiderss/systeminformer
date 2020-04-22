@@ -2,8 +2,8 @@
  * Process Hacker Plugins -
  *   Hardware Devices Plugin
  *
- * Copyright (C) 2015-2016 dmex
  * Copyright (C) 2016 wj32
+ * Copyright (C) 2015-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -138,12 +138,12 @@ VOID NetAdaptersUpdate(
         {
             MIB_IF_ROW2 interfaceRow;
 
-            if (QueryInterfaceRow(&entry->AdapterId, &interfaceRow))
+            if (NetworkAdapterQueryInterfaceRow(&entry->AdapterId, MibIfEntryNormal, &interfaceRow))
             {
                 networkInOctets = interfaceRow.InOctets;
                 networkOutOctets = interfaceRow.OutOctets;
 
-                // HACK: Pull the Adapter name from the current query.
+                // HACK: Pull the Adapter name from the current query. (dmex)
                 if (!entry->AdapterName && PhCountStringZ(interfaceRow.Description) > 0)
                 {
                     entry->AdapterName = PhCreateString(interfaceRow.Description);

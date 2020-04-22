@@ -2,7 +2,7 @@
  * Process Hacker Plugins -
  *   Hardware Devices Plugin
  *
- * Copyright (C) 2015-2016 dmex
+ * Copyright (C) 2015-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -450,23 +450,31 @@ ULONG64 NetworkAdapterQueryValue(
 }
 
 _Success_(return)
-BOOLEAN QueryInterfaceRow(
+BOOLEAN NetworkAdapterQueryInterfaceRow(
     _In_ PDV_NETADAPTER_ID Id,
+    _In_ MIB_IF_ENTRY_LEVEL Level,
     _Out_ PMIB_IF_ROW2 InterfaceRow
     )
 {
-    BOOLEAN result = FALSE;
     MIB_IF_ROW2 interfaceRow;
 
     memset(&interfaceRow, 0, sizeof(MIB_IF_ROW2));
-
     interfaceRow.InterfaceLuid = Id->InterfaceLuid;
     interfaceRow.InterfaceIndex = Id->InterfaceIndex;
 
+    if (WindowsVersion >= WINDOWS_10_RS2 && GetIfEntry2Ex)
+    {
+        if (NETIO_SUCCESS(GetIfEntry2Ex(Level, &interfaceRow)))
+        {
+            *InterfaceRow = interfaceRow;
+            return TRUE;
+        }
+    }
+
     if (NETIO_SUCCESS(GetIfEntry2(&interfaceRow)))
     {
-        result = TRUE;
         *InterfaceRow = interfaceRow;
+        return TRUE;
     }
 
     //MIB_IPINTERFACE_ROW interfaceTable;
@@ -476,7 +484,7 @@ BOOLEAN QueryInterfaceRow(
     //interfaceTable.InterfaceIndex = Context->AdapterEntry->InterfaceIndex;
     //GetIpInterfaceEntry(&interfaceTable);
 
-    return result;
+    return FALSE;
 }
 
 PWSTR MediumTypeToString(
@@ -528,6 +536,24 @@ PWSTR MediumTypeToString(
     }
 
     return L"N/A";
+}
+
+PPH_STRING NetworkAdapterLuidToAlias(
+    _In_ PDV_NETADAPTER_ID Id
+    )
+{
+    WCHAR aliasBuffer[IF_MAX_STRING_SIZE + 1];
+
+    if (NETIO_SUCCESS(ConvertInterfaceLuidToAlias(
+        &Id->InterfaceLuid,
+        aliasBuffer,
+        IF_MAX_STRING_SIZE
+        )))
+    {
+        return PhCreateString(aliasBuffer);
+    }
+
+    return NULL;
 }
 
 //BOOLEAN NetworkAdapterQueryInternet(

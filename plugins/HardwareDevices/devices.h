@@ -3,7 +3,7 @@
  *   Hardware Devices Plugin
  *
  * Copyright (C) 2016 wj32
- * Copyright (C) 2015-2019 dmex
+ * Copyright (C) 2015-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -346,8 +346,9 @@ ULONG64 NetworkAdapterQueryValue(
     );
 
 _Success_(return)
-BOOLEAN QueryInterfaceRow(
+BOOLEAN NetworkAdapterQueryInterfaceRow(
     _In_ PDV_NETADAPTER_ID Id,
+    _In_ MIB_IF_ENTRY_LEVEL Level,
     _Out_ PMIB_IF_ROW2 InterfaceRow
     );
 
