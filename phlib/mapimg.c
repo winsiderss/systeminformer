@@ -2302,3 +2302,72 @@ NTSTATUS PhGetMappedImageDebug(
 
     return status;
 }
+
+BOOLEAN PhGetMappedImageDebugEntryByType(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ ULONG Type,
+    _Out_opt_ ULONG* DataLength,
+    _Out_ PVOID* DataBuffer
+    )
+{
+    NTSTATUS status;
+    PIMAGE_DATA_DIRECTORY dataDirectory;
+    PIMAGE_DEBUG_DIRECTORY debugDirectory;
+    PIMAGE_DEBUG_DIRECTORY debugEntry;
+    ULONG currentCount;
+    ULONG i;
+
+    status = PhGetMappedImageDataEntry(
+        MappedImage,
+        IMAGE_DIRECTORY_ENTRY_DEBUG,
+        &dataDirectory
+        );
+
+    if (!NT_SUCCESS(status))
+        return FALSE;
+
+    debugDirectory = PhMappedImageRvaToVa(
+        MappedImage,
+        dataDirectory->VirtualAddress,
+        NULL
+        );
+
+    if (!debugDirectory)
+        return FALSE;
+
+    __try
+    {
+        PhpMappedImageProbe(MappedImage, debugDirectory, sizeof(IMAGE_DEBUG_DIRECTORY));
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {   
+        return FALSE;
+    }
+
+    currentCount = dataDirectory->Size / sizeof(IMAGE_DEBUG_DIRECTORY);
+
+    for (i = 0; i < currentCount; i++)
+    {
+        debugEntry = PTR_ADD_OFFSET(debugDirectory, i * sizeof(IMAGE_DEBUG_DIRECTORY));
+
+        __try
+        {
+            PhpMappedImageProbe(MappedImage, debugEntry, sizeof(IMAGE_DEBUG_DIRECTORY));
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            break;
+        }
+
+        if (debugEntry->Type == Type)
+        {
+            if (DataLength)
+                *DataLength = debugEntry->SizeOfData;
+            if (DataBuffer)
+                *DataBuffer = PTR_ADD_OFFSET(MappedImage->ViewBase, debugEntry->PointerToRawData);
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
