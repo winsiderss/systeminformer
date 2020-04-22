@@ -1450,9 +1450,18 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemSecurityModelInformation, // SYSTEM_SECURITY_MODEL_INFORMATION // since 19H1
     SystemCodeIntegritySyntheticCacheInformation,
     SystemFeatureConfigurationInformation, // SYSTEM_FEATURE_CONFIGURATION_INFORMATION // since 20H1 // 210
-    SystemFeatureConfigurationSectionInformation,
+    SystemFeatureConfigurationSectionInformation, // SYSTEM_FEATURE_CONFIGURATION_SECTIONS_INFORMATION
     SystemFeatureUsageSubscriptionInformation,
-    SystemSecureSpeculationControlInformation,
+    SystemSecureSpeculationControlInformation, // SECURE_SPECULATION_CONTROL_INFORMATION
+    // SystemSpacesBootInformation = 214,
+    // SystemFwRamdiskInformation = 215,
+    // SystemWheaIpmiHardwareInformation = 216,
+    // SystemDifSetRuleClassInformation = 217,
+    // SystemDifClearRuleClassInformation = 218,
+    // SystemDifApplyPluginVerificationOnDriver = 219,
+    // SystemDifRemovePluginVerificationOnDriver = 220,
+    // SystemShadowStackInformation = 221, // SYSTEM_SHADOW_STACK_INFORMATION
+    // SystemBuildVersionInformation = 222, // SYSTEM_BUILD_VERSION_INFORMATION
     MaxSystemInfoClass
 } SYSTEM_INFORMATION_CLASS;
 
@@ -3471,7 +3480,7 @@ typedef struct _SYSTEM_KERNEL_VA_SHADOW_INFORMATION
 {
     union
     {
-        ULONG Flags;
+        ULONG KvaShadowFlags;
         struct
         {
             ULONG KvaShadowEnabled : 1;
@@ -3583,24 +3592,37 @@ typedef struct _SYSTEM_SECURITY_MODEL_INFORMATION
 } SYSTEM_SECURITY_MODEL_INFORMATION, *PSYSTEM_SECURITY_MODEL_INFORMATION;
 
 // private
-typedef struct _RTL_FEATURE_CONFIGURATION
-{
-    ULONG FeatureId;
-    ULONG Priority : 4;
-    ULONG EnabledState : 2;
-    ULONG IsWexpConfiguration : 1;
-    ULONG HasSubscriptions : 1;
-    ULONG Variant : 6;
-    ULONG VariantPayloadKind : 2;
-    ULONG VariantPayload;
-} RTL_FEATURE_CONFIGURATION, *PRTL_FEATURE_CONFIGURATION;
-
-// private
 typedef struct _SYSTEM_FEATURE_CONFIGURATION_INFORMATION
 {
     ULONGLONG ChangeStamp;
-    RTL_FEATURE_CONFIGURATION Configuration;
+    struct _RTL_FEATURE_CONFIGURATION* Configuration; // see ntrtl.h for types
 } SYSTEM_FEATURE_CONFIGURATION_INFORMATION, *PSYSTEM_FEATURE_CONFIGURATION_INFORMATION;
+
+// private
+typedef struct _SYSTEM_FEATURE_CONFIGURATION_SECTIONS_INFORMATION_ENTRY
+{
+    ULONGLONG ChangeStamp;
+    PVOID Section;
+    ULONGLONG Size;
+} SYSTEM_FEATURE_CONFIGURATION_SECTIONS_INFORMATION_ENTRY, *PSYSTEM_FEATURE_CONFIGURATION_SECTIONS_INFORMATION_ENTRY;
+
+// private
+typedef struct _SYSTEM_FEATURE_CONFIGURATION_SECTIONS_INFORMATION
+{
+    ULONGLONG OverallChangeStamp;
+    SYSTEM_FEATURE_CONFIGURATION_SECTIONS_INFORMATION_ENTRY Descriptors[3];
+} SYSTEM_FEATURE_CONFIGURATION_SECTIONS_INFORMATION, *PSYSTEM_FEATURE_CONFIGURATION_SECTIONS_INFORMATION;
+
+// private
+typedef union _SECURE_SPECULATION_CONTROL_INFORMATION
+{
+    ULONG KvaShadowSupported : 1;
+    ULONG KvaShadowEnabled : 1;
+    ULONG KvaShadowUserGlobal : 1;
+    ULONG KvaShadowPcid : 1;
+    ULONG MbClearEnabled : 1;
+    ULONG Reserved : 27;
+} SECURE_SPECULATION_CONTROL_INFORMATION, * PSECURE_SPECULATION_CONTROL_INFORMATION;
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
