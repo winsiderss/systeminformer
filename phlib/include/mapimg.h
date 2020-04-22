@@ -516,12 +516,39 @@ typedef struct _PH_MAPPED_IMAGE_DEBUG
     PPH_IMAGE_DEBUG_ENTRY DebugEntries;
 } PH_MAPPED_IMAGE_DEBUG, *PPH_MAPPED_IMAGE_DEBUG;
 
+// Note: Remove once they've been added to the Windows SDK. (dmex)
+#ifndef IMAGE_DEBUG_TYPE_EMBEDDEDPORTABLEPDB
+#define IMAGE_DEBUG_TYPE_EMBEDDEDPORTABLEPDB 17
+#endif
+
+#ifndef IMAGE_DEBUG_TYPE_PDBCHECKSUM
+#define IMAGE_DEBUG_TYPE_PDBCHECKSUM 19
+#endif
+
+#ifndef IMAGE_DEBUG_TYPE_EX_DLLCHARACTERISTICS
+#define IMAGE_DEBUG_TYPE_EX_DLLCHARACTERISTICS 20
+#endif
+
+#ifndef IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT
+#define IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT 0x0001 // Image is CET compatible.
+#endif
+
 PHLIBAPI
 NTSTATUS
 NTAPI
 PhGetMappedImageDebug(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _Out_ PPH_MAPPED_IMAGE_DEBUG Debug
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetMappedImageDebugEntryByType(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ ULONG Type,
+    _Out_opt_ ULONG* EntryLength,
+    _Out_ PVOID* EntryBuffer
     );
 
 // maplib
