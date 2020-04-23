@@ -311,6 +311,15 @@ PhShowProcessAffinityDialog2(
     );
 // end_phapppub
 
+PHAPPAPI
+VOID
+NTAPI
+PhShowThreadAffinityDialog(
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_THREAD_ITEM *Threads,
+    _In_ ULONG NumberOfThreads
+    );
+
 // chcol
 
 #define PH_CONTROL_TYPE_TREE_NEW 1
