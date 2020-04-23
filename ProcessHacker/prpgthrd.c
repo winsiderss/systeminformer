@@ -138,6 +138,7 @@ VOID PhpInitializeThreadMenu(
             ID_THREAD_SUSPEND,
             ID_THREAD_RESUME,
             ID_THREAD_COPY,
+            ID_THREAD_AFFINITY,
         };
         ULONG i;
         PPH_EMENU_ITEM menuItem;
@@ -867,14 +868,23 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                 break;
             case ID_THREAD_AFFINITY:
                 {
-                    PPH_THREAD_ITEM threadItem = PhGetSelectedThreadItem(&threadsContext->ListContext);
+                    ULONG numberOfThreads;
+                    PPH_THREAD_ITEM* threads;
 
-                    if (threadItem)
+                    PhGetSelectedThreadItems(&threadsContext->ListContext, &threads, &numberOfThreads);
+                    PhReferenceObjects(threads, numberOfThreads);
+
+                    if (numberOfThreads == 1) // HACK
                     {
-                        PhReferenceObject(threadItem);
-                        PhShowProcessAffinityDialog(hwndDlg, NULL, threadItem);
-                        PhDereferenceObject(threadItem);
+                        PhShowProcessAffinityDialog(hwndDlg, NULL, threads[0]);
                     }
+                    else
+                    {
+                        PhShowThreadAffinityDialog(hwndDlg, threads, numberOfThreads);
+                    }
+
+                    PhDereferenceObjects(threads, numberOfThreads);
+                    PhFree(threads);
                 }
                 break;
             case ID_THREAD_CRITICAL:
