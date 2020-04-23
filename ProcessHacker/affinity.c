@@ -121,7 +121,7 @@ VOID PhShowThreadAffinityDialog(
     context.ThreadHandles = PhAllocateZero(NumberOfThreads * sizeof(HANDLE));
 
     // Cache handles to each thread since the ThreadId gets 
-    // reassigned to a different processs after it exits. (dmex)
+    // reassigned to a different processs after the thread exits. (dmex)
     for (ULONG i = 0; i < NumberOfThreads; i++)
     {
         PhOpenThread(
@@ -174,6 +174,9 @@ BOOLEAN PhpCheckThreadsHaveSameAffinity(
 
     for (ULONG i = 0; i < Context->NumberOfThreads; i++)
     {
+        if (!Context->ThreadHandles[i])
+            continue;
+
         if (NT_SUCCESS(PhGetThreadBasicInformation(Context->ThreadHandles[i], &basicInfo)))
         {
             affinityMask = basicInfo.AffinityMask;
@@ -445,6 +448,9 @@ INT_PTR CALLBACK PhpProcessAffinityDlgProc(
                     {
                         for (ULONG i = 0; i < context->NumberOfThreads; i++)
                         {
+                            if (!context->ThreadHandles[i])
+                                continue;
+
                             status = PhSetThreadAffinityMask(context->ThreadHandles[i], affinityMask);
                        
                             //if (!NT_SUCCESS(status))
