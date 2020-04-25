@@ -878,13 +878,6 @@ INT_PTR CALLBACK PhpThreadStackDlgProc(
         {
             context->StopWalk = TRUE;
 
-            // HACK HACK HACK
-            // PhWalkThreadStack will suspend the thread before walking the stack and download symbols but
-            // we don't wait for the stack walk / symbol downloading to complete when the user closes the progress dialog
-            // and so the thread can remain suspended for a long time (in some cases)... For now just resume the thread
-            // when closing the dialog since those results will be discarded and PhWalkThreadStack will cleanup whenever it completes. (dmex)
-            NtResumeThread(context->ThreadHandle, NULL);
-
             DeleteThreadStackTree(context);
 
             PhDeleteLayoutManager(&context->LayoutManager);
