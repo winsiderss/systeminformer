@@ -387,9 +387,9 @@ BOOLEAN WhoisQueryServer(
     if (WhoisServerPort == 0)
         return FALSE;
 
-    if (!WhoisConnectServer(WhoisServerAddress, WhoisServerPort, DNS_TYPE_A, &whoisSocketHandle))
+    if (!WhoisConnectServer(WhoisServerAddress, WhoisServerPort, DNS_TYPE_AAAA, &whoisSocketHandle))
     {
-        if (!WhoisConnectServer(WhoisServerAddress, WhoisServerPort, DNS_TYPE_AAAA, &whoisSocketHandle))
+        if (!WhoisConnectServer(WhoisServerAddress, WhoisServerPort, DNS_TYPE_A, &whoisSocketHandle))
             return FALSE;
     }
 
@@ -667,6 +667,57 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
                 PhDereferenceObject(windowText);
 
             }
+        }
+        break;
+    case WM_CONTEXTMENU:
+        {
+            POINT point;
+            PPH_EMENU menu;
+            PPH_EMENU item;
+            CHARRANGE range;
+
+            point.x = GET_X_LPARAM(lParam);
+            point.y = GET_Y_LPARAM(lParam);
+
+            menu = PhCreateEMenu();
+            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 10, L"&Copy", NULL, NULL), ULONG_MAX);
+            PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 11, L"&Select all", NULL, NULL), ULONG_MAX);
+
+            memset(&range, 0, sizeof(CHARRANGE));
+            SendMessage(context->RichEditHandle, EM_EXGETSEL, 0, (LPARAM)&range);
+
+            if (range.cpMin == range.cpMax)
+            {
+                if (item = PhFindEMenuItem(menu, PH_EMENU_FIND_DESCEND, NULL, 10))
+                {
+                    PhSetEnabledEMenuItem(item, FALSE);
+                }
+            }
+
+            item = PhShowEMenu(
+                menu,
+                hwndDlg,
+                PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT,
+                PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                point.x,
+                point.y
+                );
+
+            if (item)
+            {
+                switch (item->Id)
+                {
+                case 10:
+                    SendMessage(context->RichEditHandle, WM_COPY, 0, 0);
+                    break;
+                case 11:
+                    SendMessage(context->RichEditHandle, EM_SETSEL, 0, -1);
+                    break;
+                }
+            }
+
+            PhDestroyEMenu(menu);
         }
         break;
     }
