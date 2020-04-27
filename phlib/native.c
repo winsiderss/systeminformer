@@ -3687,7 +3687,6 @@ NTSTATUS PhpUnloadDriver(
         if (disposition == REG_CREATED_NEW_KEY)
         {
             static UNICODE_STRING imagePath = RTL_CONSTANT_STRING(L"\\SystemRoot\\system32\\drivers\\ntfs.sys");
-
             UNICODE_STRING valueName;
             ULONG dword;
 
@@ -3702,7 +3701,7 @@ NTSTATUS PhpUnloadDriver(
 
             // Use a bogus name.
             RtlInitUnicodeString(&valueName, L"ImagePath");
-            NtSetValueKey(serviceKeyHandle, &valueName, 0, REG_SZ, imagePath.Buffer, imagePath.Length + sizeof(WCHAR));
+            NtSetValueKey(serviceKeyHandle, &valueName, 0, REG_SZ, imagePath.Buffer, imagePath.Length + sizeof(UNICODE_NULL));
         }
 
         status = NtUnloadDriver(&fullServiceKeyNameUs);
