@@ -3,7 +3,7 @@
  *   application support functions
  *
  * Copyright (C) 2010-2016 wj32
- * Copyright (C) 2017-2019 dmex
+ * Copyright (C) 2017-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -2038,13 +2038,11 @@ BOOLEAN PhShellOpenKey2(
     )
 {
     static PH_STRINGREF favoritesKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Applets\\Regedit\\Favorites");
-
     BOOLEAN result = FALSE;
     HWND regeditWindow;
     HANDLE favoritesKeyHandle;
     WCHAR favoriteName[32];
-    UNICODE_STRING valueName;
-    PH_STRINGREF valueNameSr;
+    PH_STRINGREF valueName;
     PPH_STRING expandedKeyName;
 
     regeditWindow = FindWindow(L"RegEdit_RegEdit", NULL);
@@ -2076,17 +2074,16 @@ BOOLEAN PhShellOpenKey2(
 
     memcpy(favoriteName, L"A_ProcessHacker", 15 * sizeof(WCHAR));
     PhGenerateRandomAlphaString(&favoriteName[15], 16);
-    RtlInitUnicodeString(&valueName, favoriteName);
-    PhUnicodeStringToStringRef(&valueName, &valueNameSr);
+    PhInitializeStringRefLongHint(&valueName, favoriteName);
 
     expandedKeyName = PhExpandKeyName(KeyName, FALSE);
-    NtSetValueKey(favoritesKeyHandle, &valueName, 0, REG_SZ, expandedKeyName->Buffer, (ULONG)expandedKeyName->Length + sizeof(UNICODE_NULL));
+    PhSetValueKey(favoritesKeyHandle, &valueName, REG_SZ, expandedKeyName->Buffer, (ULONG)expandedKeyName->Length + sizeof(UNICODE_NULL));
     PhDereferenceObject(expandedKeyName);
 
     // Select our entry in regedit.
-    result = PhpSelectFavoriteInRegedit(regeditWindow, &valueNameSr, !PhGetOwnTokenAttributes().Elevated);
+    result = PhpSelectFavoriteInRegedit(regeditWindow, &valueName, !PhGetOwnTokenAttributes().Elevated);
 
-    NtDeleteValueKey(favoritesKeyHandle, &valueName);
+    PhDeleteValueKey(favoritesKeyHandle, &valueName);
     NtClose(favoritesKeyHandle);
 
 CleanupExit:

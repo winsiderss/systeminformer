@@ -1321,6 +1321,25 @@ PhQueryValueKey(
     _Out_ PVOID *Buffer
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhSetValueKey(
+    _In_ HANDLE KeyHandle,
+    _In_opt_ PPH_STRINGREF ValueName,
+    _In_ ULONG ValueType,
+    _In_ PVOID Buffer,
+    _In_ ULONG BufferLength
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhDeleteValueKey(
+    _In_ HANDLE KeyHandle,
+    _In_opt_ PPH_STRINGREF ValueName
+    );
+
 typedef BOOLEAN (NTAPI *PPH_ENUM_KEY_CALLBACK)(
     _In_ HANDLE RootDirectory,
     _In_ PVOID Information,
