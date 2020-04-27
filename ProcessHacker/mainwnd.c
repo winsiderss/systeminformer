@@ -3,7 +3,7 @@
  *   Main window
  *
  * Copyright (C) 2009-2016 wj32
- * Copyright (C) 2017-2018 dmex
+ * Copyright (C) 2017-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -2284,12 +2284,20 @@ PPH_EMENU PhpCreateToolsMenu(
 }
 
 PPH_EMENU PhpCreateUsersMenu(
-    _In_ PPH_EMENU UsersMenu
+    _In_ PPH_EMENU UsersMenu,
+    _In_ BOOLEAN DelayLoadMenu
     )
 {
     PSESSIONIDW sessions;
     ULONG numberOfSessions;
     ULONG i;
+
+    if (DelayLoadMenu)
+    {
+        // Insert a dummy menu so we're able to recieve menu events and delay load winsta.dll functions. (dmex)
+        PhInsertEMenuItem(UsersMenu, PhCreateEMenuItem(0, USHRT_MAX, L" ", NULL, NULL), ULONG_MAX);
+        return UsersMenu;
+    }
 
     if (WinStationEnumerateW(NULL, &sessions, &numberOfSessions))
     {
@@ -2397,7 +2405,7 @@ PPH_EMENU PhpCreateMainMenu(
     case PH_MENU_ITEM_LOCATION_TOOLS:
         return PhpCreateToolsMenu(menu);
     case PH_MENU_ITEM_LOCATION_USERS:
-        return PhpCreateUsersMenu(menu);
+        return PhpCreateUsersMenu(menu, FALSE);
     case PH_MENU_ITEM_LOCATION_HELP:
         return PhpCreateHelpMenu(menu);
     }
@@ -2414,7 +2422,7 @@ PPH_EMENU PhpCreateMainMenu(
     PhInsertEMenuItem(menu, PhpCreateToolsMenu(menuItem), ULONG_MAX);
 
     menuItem = PhCreateEMenuItem(PH_EMENU_MAINMENU, PH_MENU_ITEM_LOCATION_USERS, L"&Users", NULL, NULL);
-    PhInsertEMenuItem(menu, PhpCreateUsersMenu(menuItem), ULONG_MAX);
+    PhInsertEMenuItem(menu, PhpCreateUsersMenu(menuItem, TRUE), ULONG_MAX);
 
     menuItem = PhCreateEMenuItem(PH_EMENU_MAINMENU, PH_MENU_ITEM_LOCATION_HELP, L"H&elp", NULL, NULL);
     PhInsertEMenuItem(menu, PhpCreateHelpMenu(menuItem), ULONG_MAX);
