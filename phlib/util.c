@@ -3701,11 +3701,12 @@ VOID PhShellOpenKey(
     )
 {
     static PH_STRINGREF regeditKeyNameSr = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Applets\\Regedit");
-    static PH_STRINGREF regeditFileNameSr = PH_STRINGREF_INIT(L"%SystemRoot%\\regedit.exe");
-    PPH_STRING lastKey;
+    static PH_STRINGREF regeditFileNameSr = PH_STRINGREF_INIT(L"\\regedit.exe");
     HANDLE regeditKeyHandle;
     UNICODE_STRING valueName;
+    PPH_STRING lastKey;
     PPH_STRING regeditFileName;
+    PH_STRINGREF systemRootString;
 
     if (!NT_SUCCESS(PhCreateKey(
         &regeditKeyHandle,
@@ -3718,28 +3719,25 @@ VOID PhShellOpenKey(
         )))
         return;
 
-    RtlInitUnicodeString(&valueName, L"LastKey");
     lastKey = PhExpandKeyName(KeyName, FALSE);
+    RtlInitUnicodeString(&valueName, L"LastKey");
     NtSetValueKey(regeditKeyHandle, &valueName, 0, REG_SZ, lastKey->Buffer, (ULONG)lastKey->Length + sizeof(UNICODE_NULL));
+    NtClose(regeditKeyHandle);
     PhDereferenceObject(lastKey);
 
-    NtClose(regeditKeyHandle); 
-
     // Start regedit. If we aren't elevated, request that regedit be elevated. This is so we can get
-    // the consent dialog in the center of the specified window.
+    // the consent dialog in the center of the specified window. (wj32)
 
-    regeditFileName = PhExpandEnvironmentStrings(&regeditFileNameSr);
-
-    if (PhIsNullOrEmptyString(regeditFileName))
-        PhMoveReference(&regeditFileName, PhCreateString(L"regedit.exe"));
+    PhGetSystemRoot(&systemRootString);
+    regeditFileName = PhConcatStringRef2(&systemRootString, &regeditFileNameSr);
 
     if (PhGetOwnTokenAttributes().Elevated)
     {
-        PhShellExecute(hWnd, regeditFileName->Buffer, L"");
+        PhShellExecute(hWnd, regeditFileName->Buffer, NULL);
     }
     else
     {
-        PhShellExecuteEx(hWnd, regeditFileName->Buffer, L"", SW_NORMAL, PH_SHELL_EXECUTE_ADMIN, 0, NULL);
+        PhShellExecuteEx(hWnd, regeditFileName->Buffer, NULL, SW_NORMAL, PH_SHELL_EXECUTE_ADMIN, 0, NULL);
     }
 
     PhDereferenceObject(regeditFileName);
