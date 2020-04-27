@@ -788,9 +788,7 @@ static VOID WriteCurrentUserRun(
         0
         )))
     {
-        UNICODE_STRING valueName;
-
-        RtlInitUnicodeString(&valueName, L"Process Hacker");
+        static PH_STRINGREF valueName = PH_STRINGREF_INIT(L"Process Hacker");
 
         if (Present)
         {
@@ -804,13 +802,12 @@ static VOID WriteCurrentUserRun(
                 if (StartHidden)
                     value = PhaConcatStrings2(value->Buffer, L" -hide");
 
-                NtSetValueKey(
+                PhSetValueKey(
                     keyHandle,
                     &valueName,
-                    0,
                     REG_SZ,
                     value->Buffer,
-                    (ULONG)value->Length + sizeof(WCHAR)
+                    (ULONG)value->Length + sizeof(UNICODE_NULL)
                     );
 
                 PhDereferenceObject(fileName);
@@ -818,7 +815,7 @@ static VOID WriteCurrentUserRun(
         }
         else
         {
-            NtDeleteValueKey(keyHandle, &valueName);
+            PhDeleteValueKey(keyHandle, &valueName);
         }
 
         NtClose(keyHandle);
@@ -909,7 +906,6 @@ VOID PhpSetDefaultTaskManager(
     {
         NTSTATUS status;
         HANDLE taskmgrKeyHandle;
-        UNICODE_STRING valueName;
 
         status = PhCreateKey(
             &taskmgrKeyHandle,
@@ -923,11 +919,11 @@ VOID PhpSetDefaultTaskManager(
 
         if (NT_SUCCESS(status))
         {
-            RtlInitUnicodeString(&valueName, L"Debugger");
+            static PH_STRINGREF valueName = PH_STRINGREF_INIT(L"Debugger");
 
             if (PhpIsDefaultTaskManager())
             {
-                status = NtDeleteValueKey(taskmgrKeyHandle, &valueName);
+                status = PhDeleteValueKey(taskmgrKeyHandle, &valueName);
             }
             else
             {
@@ -938,10 +934,9 @@ VOID PhpSetDefaultTaskManager(
                 {
                     quotedFileName = PH_AUTO(PhConcatStrings(3, L"\"", PhGetStringOrEmpty(applicationFileName), L"\""));
 
-                    status = NtSetValueKey(
+                    status = PhSetValueKey(
                         taskmgrKeyHandle, 
                         &valueName, 
-                        0, 
                         REG_SZ, 
                         quotedFileName->Buffer, 
                         (ULONG)quotedFileName->Length + sizeof(UNICODE_NULL)

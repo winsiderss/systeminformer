@@ -3702,8 +3702,8 @@ VOID PhShellOpenKey(
 {
     static PH_STRINGREF regeditKeyNameSr = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Applets\\Regedit");
     static PH_STRINGREF regeditFileNameSr = PH_STRINGREF_INIT(L"\\regedit.exe");
+    static PH_STRINGREF valueNameSr = PH_STRINGREF_INIT(L"LastKey");
     HANDLE regeditKeyHandle;
-    UNICODE_STRING valueName;
     PPH_STRING lastKey;
     PPH_STRING regeditFileName;
     PH_STRINGREF systemRootString;
@@ -3720,8 +3720,7 @@ VOID PhShellOpenKey(
         return;
 
     lastKey = PhExpandKeyName(KeyName, FALSE);
-    RtlInitUnicodeString(&valueName, L"LastKey");
-    NtSetValueKey(regeditKeyHandle, &valueName, 0, REG_SZ, lastKey->Buffer, (ULONG)lastKey->Length + sizeof(UNICODE_NULL));
+    PhSetValueKey(regeditKeyHandle, &valueNameSr, REG_SZ, lastKey->Buffer, (ULONG)lastKey->Length + sizeof(UNICODE_NULL));
     NtClose(regeditKeyHandle);
     PhDereferenceObject(lastKey);
 

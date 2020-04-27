@@ -3,7 +3,7 @@
  *   native wrapper and support functions
  *
  * Copyright (C) 2009-2016 wj32
- * Copyright (C) 2017-2019 dmex
+ * Copyright (C) 2017-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -3659,7 +3659,6 @@ NTSTATUS PhpUnloadDriver(
     )
 {
     static PH_STRINGREF fullServicesKeyName = PH_STRINGREF_INIT(L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\");
-
     NTSTATUS status;
     PPH_STRING fullServiceKeyName;
     UNICODE_STRING fullServiceKeyNameUs;
@@ -3686,22 +3685,22 @@ NTSTATUS PhpUnloadDriver(
     {
         if (disposition == REG_CREATED_NEW_KEY)
         {
-            static UNICODE_STRING imagePath = RTL_CONSTANT_STRING(L"\\SystemRoot\\system32\\drivers\\ntfs.sys");
-            UNICODE_STRING valueName;
+            static PH_STRINGREF imagePath = PH_STRINGREF_INIT(L"\\SystemRoot\\system32\\drivers\\ntfs.sys");
+            PH_STRINGREF valueName;
             ULONG dword;
 
             // Set up the required values.
             dword = 1;
-            RtlInitUnicodeString(&valueName, L"ErrorControl");
-            NtSetValueKey(serviceKeyHandle, &valueName, 0, REG_DWORD, &dword, sizeof(ULONG));
-            RtlInitUnicodeString(&valueName, L"Start");
-            NtSetValueKey(serviceKeyHandle, &valueName, 0, REG_DWORD, &dword, sizeof(ULONG));
-            RtlInitUnicodeString(&valueName, L"Type");
-            NtSetValueKey(serviceKeyHandle, &valueName, 0, REG_DWORD, &dword, sizeof(ULONG));
+            PhInitializeStringRef(&valueName, L"ErrorControl");
+            PhSetValueKey(serviceKeyHandle, &valueName, REG_DWORD, &dword, sizeof(ULONG));
+            PhInitializeStringRef(&valueName, L"Start");
+            PhSetValueKey(serviceKeyHandle, &valueName, REG_DWORD, &dword, sizeof(ULONG));
+            PhInitializeStringRef(&valueName, L"Type");
+            PhSetValueKey(serviceKeyHandle, &valueName, REG_DWORD, &dword, sizeof(ULONG));
 
             // Use a bogus name.
-            RtlInitUnicodeString(&valueName, L"ImagePath");
-            NtSetValueKey(serviceKeyHandle, &valueName, 0, REG_SZ, imagePath.Buffer, imagePath.Length + sizeof(UNICODE_NULL));
+            PhInitializeStringRef(&valueName, L"ImagePath");
+            PhSetValueKey(serviceKeyHandle, &valueName, REG_SZ, imagePath.Buffer, (ULONG)imagePath.Length + sizeof(UNICODE_NULL));
         }
 
         status = NtUnloadDriver(&fullServiceKeyNameUs);
@@ -7456,6 +7455,65 @@ NTSTATUS PhQueryValueKey(
     } while (--attempts);
 
     *Buffer = buffer;
+
+    return status;
+}
+
+NTSTATUS PhSetValueKey(
+    _In_ HANDLE KeyHandle,
+    _In_opt_ PPH_STRINGREF ValueName,
+    _In_ ULONG ValueType,
+    _In_ PVOID Buffer,
+    _In_ ULONG BufferLength
+    )
+{
+    NTSTATUS status;
+    UNICODE_STRING valueNameUs;
+
+    if (ValueName)
+    {
+        if (!PhStringRefToUnicodeString(ValueName, &valueNameUs))
+            return STATUS_NAME_TOO_LONG;
+    }
+    else
+    {
+        RtlInitEmptyUnicodeString(&valueNameUs, NULL, 0);
+    }
+
+    status = NtSetValueKey(
+        KeyHandle,
+        &valueNameUs,
+        0,
+        ValueType,
+        Buffer,
+        BufferLength
+        );
+
+    return status;
+}
+
+NTSTATUS PhDeleteValueKey(
+    _In_ HANDLE KeyHandle,
+    _In_opt_ PPH_STRINGREF ValueName
+    )
+{
+    NTSTATUS status;
+    UNICODE_STRING valueNameUs;
+
+    if (ValueName)
+    {
+        if (!PhStringRefToUnicodeString(ValueName, &valueNameUs))
+            return STATUS_NAME_TOO_LONG;
+    }
+    else
+    {
+        RtlInitEmptyUnicodeString(&valueNameUs, NULL, 0);
+    }
+
+    status = NtDeleteValueKey(
+        KeyHandle,
+        &valueNameUs
+        );
 
     return status;
 }

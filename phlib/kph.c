@@ -3,6 +3,7 @@
  *   KProcessHacker API
  *
  * Copyright (C) 2009-2016 wj32
+ * Copyright (C) 2018-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -281,7 +282,7 @@ NTSTATUS KphSetParameters(
     NTSTATUS status;
     HANDLE parametersKeyHandle = NULL;
     ULONG disposition;
-    UNICODE_STRING valueName;
+    PH_STRINGREF valueNameSr;
     SIZE_T returnLength;
     PH_STRINGREF parametersKeyNameSr;
     PH_FORMAT format[3];
@@ -318,11 +319,10 @@ NTSTATUS KphSetParameters(
     if (!NT_SUCCESS(status))
         return status;
 
-    RtlInitUnicodeString(&valueName, L"SecurityLevel");
-    status = NtSetValueKey(
+    PhInitializeStringRef(&valueNameSr, L"SecurityLevel");
+    status = PhSetValueKey(
         parametersKeyHandle,
-        &valueName,
-        0,
+        &valueNameSr,
         REG_DWORD,
         &Parameters->SecurityLevel,
         sizeof(ULONG)
@@ -340,11 +340,10 @@ NTSTATUS KphSetParameters(
 
         if (NT_SUCCESS(KphInitializeDynamicPackage(&configuration.Packages[0])))
         {
-            RtlInitUnicodeString(&valueName, L"DynamicConfiguration");
-            status = NtSetValueKey(
+            PhInitializeStringRef(&valueNameSr, L"DynamicConfiguration");
+            status = PhSetValueKey(
                 parametersKeyHandle,
-                &valueName,
-                0,
+                &valueNameSr,
                 REG_BINARY,
                 &configuration,
                 sizeof(KPH_DYN_CONFIGURATION)
