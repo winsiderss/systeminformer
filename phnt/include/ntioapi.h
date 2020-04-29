@@ -1916,6 +1916,10 @@ typedef struct _REPARSE_DATA_BUFFER
 #define FSCTL_PIPE_GET_HANDLE_ATTRIBUTE     CTL_CODE(FILE_DEVICE_NAMED_PIPE, 14, METHOD_BUFFERED, FILE_ANY_ACCESS)
 #define FSCTL_PIPE_SET_HANDLE_ATTRIBUTE     CTL_CODE(FILE_DEVICE_NAMED_PIPE, 15, METHOD_BUFFERED, FILE_ANY_ACCESS)
 #define FSCTL_PIPE_FLUSH                    CTL_CODE(FILE_DEVICE_NAMED_PIPE, 16, METHOD_BUFFERED, FILE_WRITE_DATA)
+#define FSCTL_PIPE_DISABLE_IMPERSONATE      CTL_CODE(FILE_DEVICE_NAMED_PIPE, 17, METHOD_BUFFERED, FILE_ANY_ACCESS)
+#define FSCTL_PIPE_SILO_ARRIVAL             CTL_CODE(FILE_DEVICE_NAMED_PIPE, 18, METHOD_BUFFERED, FILE_WRITE_DATA)
+#define FSCTL_PIPE_CREATE_SYMLINK           CTL_CODE(FILE_DEVICE_NAMED_PIPE, 19, METHOD_BUFFERED, FILE_SPECIAL_ACCESS)
+#define FSCTL_PIPE_DELETE_SYMLINK           CTL_CODE(FILE_DEVICE_NAMED_PIPE, 20, METHOD_BUFFERED, FILE_SPECIAL_ACCESS)
 
 #define FSCTL_PIPE_INTERNAL_READ            CTL_CODE(FILE_DEVICE_NAMED_PIPE, 2045, METHOD_BUFFERED, FILE_READ_DATA)
 #define FSCTL_PIPE_INTERNAL_WRITE           CTL_CODE(FILE_DEVICE_NAMED_PIPE, 2046, METHOD_BUFFERED, FILE_WRITE_DATA)
@@ -1990,6 +1994,55 @@ typedef struct _FILE_PIPE_CLIENT_PROCESS_BUFFER_EX
     USHORT ClientComputerNameLength; // in bytes
     WCHAR ClientComputerBuffer[FILE_PIPE_COMPUTER_NAME_LENGTH + 1]; // null-terminated
 } FILE_PIPE_CLIENT_PROCESS_BUFFER_EX, *PFILE_PIPE_CLIENT_PROCESS_BUFFER_EX;
+
+// Control structure for FSCTL_PIPE_SILO_ARRIVAL
+
+typedef struct _FILE_PIPE_SILO_ARRIVAL_INPUT
+{
+    HANDLE JobHandle;
+} FILE_PIPE_SILO_ARRIVAL_INPUT, *PFILE_PIPE_SILO_ARRIVAL_INPUT;
+
+//
+// Flags for create symlink
+//
+
+//
+// A global symlink will cause resolution of the symlink's target to occur in
+// the host silo (i.e. not in any current silo).  For example, if there is a
+// symlink at \Device\Silos\37\Device\NamedPipe\symlink then the target will be
+// resolved as \Device\NamedPipe\target instead of \Device\Silos\37\Device\NamedPipe\target
+//
+#define FILE_PIPE_SYMLINK_FLAG_GLOBAL   0x1
+
+//
+// A relative symlink will cause resolution of the symlink's target to occur relative
+// to the root of the named pipe file system.  For example, if there is a symlink at
+// \Device\NamedPipe\symlink that has a target called "target", then the target will
+// be resolved as \Device\NamedPipe\target
+//
+#define FILE_PIPE_SYMLINK_FLAG_RELATIVE 0x2
+
+#define FILE_PIPE_SYMLINK_VALID_FLAGS \
+    (FILE_PIPE_SYMLINK_FLAG_GLOBAL | FILE_PIPE_SYMLINK_FLAG_RELATIVE)
+
+// Control structure for FSCTL_PIPE_CREATE_SYMLINK
+
+typedef struct _FILE_PIPE_CREATE_SYMLINK_INPUT
+{
+    USHORT NameOffset;
+    USHORT NameLength;
+    USHORT SubstituteNameOffset;
+    USHORT SubstituteNameLength;
+    ULONG Flags;
+} FILE_PIPE_CREATE_SYMLINK_INPUT, *PFILE_PIPE_CREATE_SYMLINK_INPUT;
+
+// Control structure for FSCTL_PIPE_DELETE_SYMLINK
+
+typedef struct _FILE_PIPE_DELETE_SYMLINK_INPUT
+{
+    USHORT NameOffset;
+    USHORT NameLength;
+} FILE_PIPE_DELETE_SYMLINK_INPUT, *PFILE_PIPE_DELETE_SYMLINK_INPUT;
 
 // Mailslot FS control definitions
 
