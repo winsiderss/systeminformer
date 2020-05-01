@@ -2228,8 +2228,8 @@ NTSTATUS PhpRunFileProgram(
     {
         status = PhpCustomShellExecute(
             Context->WindowHandle,
-            commandString->Buffer,
-            NULL,
+            fullFileName->Buffer,
+            PhGetString(argumentsString),
             TRUE
             );
     }
