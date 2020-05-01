@@ -144,7 +144,7 @@ INT_PTR CALLBACK PvpPeDirectoryDlgProc(
         {
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
-            PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
+            PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"#");
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 130, L"Name");
