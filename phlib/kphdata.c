@@ -169,11 +169,21 @@ NTSTATUS KphInitializeDynamicPackage(
             Package->BuildNumber = 18363;
             Package->ResultingNtVersion = PHNT_19H2;
             break;
+        case 19041:
+            Package->BuildNumber = 19041;
+            Package->ResultingNtVersion = PHNT_20H1;
+            break;
         default:
             return STATUS_NOT_SUPPORTED;
         }
 
-        Package->StructData.EgeGuid = revisionNumber >= 693 ? 0x28 : 0x18;
+        if (buildNumber >= 19041)
+            Package->StructData.EgeGuid = 0x28;
+        else if (buildNumber >= 18363)
+            Package->StructData.EgeGuid = revisionNumber >= 693 ? 0x28 : 0x18;
+        else
+            Package->StructData.EgeGuid = 0x18;
+
         Package->StructData.EpObjectTable = 0x418;
         Package->StructData.EreGuidEntry = 0x20;
         Package->StructData.HtHandleContentionEvent = 0x30;
@@ -317,11 +327,21 @@ NTSTATUS KphInitializeDynamicPackage(
             Package->BuildNumber = 18363;
             Package->ResultingNtVersion = PHNT_19H2;
             break;
+        case 19041:
+            Package->BuildNumber = 19041;
+            Package->ResultingNtVersion = PHNT_20H1;
+            break;
         default:
             return STATUS_NOT_SUPPORTED;
         }
 
-        Package->StructData.EgeGuid = revisionNumber >= 693 ? 0x14 : 0xc;
+        if (buildNumber >= 19041)
+            Package->StructData.EgeGuid = 0x14;
+        else if (buildNumber >= 18363)
+            Package->StructData.EgeGuid = revisionNumber >= 693 ? 0x14 : 0xC;
+        else
+            Package->StructData.EgeGuid = 0xC;
+
         Package->StructData.EpObjectTable = 0x154;
         Package->StructData.EreGuidEntry = 0x10;
         Package->StructData.OtName = 0x8;
