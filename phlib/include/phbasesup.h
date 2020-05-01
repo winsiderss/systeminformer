@@ -3627,6 +3627,18 @@ PhFormatToBuffer(
     _Out_opt_ PSIZE_T ReturnLength
     );
 
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhFormatDoubleToUtf8(
+    _In_ DOUBLE Value,
+    _In_ ULONG Type,
+    _In_ ULONG Precision,
+    _Out_writes_bytes_opt_(BufferLength) PSTR Buffer,
+    _In_opt_ SIZE_T BufferLength,
+    _Out_opt_ PSIZE_T ReturnLength
+    );
+
 // error
 
 PHLIBAPI

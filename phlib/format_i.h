@@ -32,8 +32,8 @@
             PhpFormatThousandSeparator = localeBuffer[0];
         }
 
-        if (PhpFormatDecimalSeparator != '.')
-            PhpFormatUserLocale = _create_locale(LC_ALL, "");
+        if (PhpFormatDecimalSeparator != L'.')
+            PhpFormatUserLocale = _wcreate_locale(LC_ALL, L"");
 
         PhEndInitOnce(&PhpFormatInitOnce);
     }
@@ -179,7 +179,7 @@
         } \
         else \
         { \
-            *temp-- = '0'; \
+            *temp-- = L'0'; \
             tempCount++; \
         } \
         \
@@ -205,13 +205,13 @@
         if (OK_BUFFER) \
         { \
             if (flags & PHP_FORMAT_NEGATIVE) \
-                *buffer++ = '-'; \
+                *buffer++ = L'-'; \
             else if ((Format)->Type & FormatPrefixSign) \
-                *buffer++ = '+'; \
+                *buffer++ = L'+'; \
             \
             if (flags & PHP_FORMAT_PAD) \
             { \
-                wmemset(buffer, '0', padCount); \
+                wmemset(buffer, L'0', padCount); \
                 buffer += padCount; \
             } \
             \
@@ -284,7 +284,6 @@ CommonInt64Format:
     do { \
         ULONG precision; \
         DOUBLE value; \
-        CHAR c; \
         PSTR temp; \
         ULONG length; \
         \
@@ -300,25 +299,15 @@ CommonInt64Format:
             precision = 6; \
         } \
         \
-        c = 'f'; \
-        \
-        if ((Format)->Type & FormatStandardForm) \
-            c = 'e'; \
-        else if ((Format)->Type & FormatHexadecimalForm) \
-            c = 'a'; \
-        \
-        /* Use MS CRT routines to do the work. */ \
-        \
         value = (Format)->u.Double; \
         temp = (PSTR)tempBuffer + 1; /* leave one character so we can insert a prefix if needed */ \
-        _cfltcvt_l( \
-            &value, \
+        PhpFormatDoubleToUtf8Locale( \
+            value, \
+            (Format)->Type, \
+            precision, \
             temp, \
             sizeof(tempBuffer) - 1, \
-            c, \
-            precision, \
-            !!((Format)->Type & FormatUpperCase), \
-            PhpFormatUserLocale \
+            NULL \
             ); \
         \
         /* if (((Format)->Type & FormatForceDecimalPoint) && precision == 0) */ \
@@ -379,9 +368,9 @@ CommonInt64Format:
             if (OK_BUFFER) \
             { \
                 if (flags & PHP_FORMAT_NEGATIVE) \
-                    *buffer++ = '-'; \
+                    *buffer++ = L'-'; \
                 else if (flags & PHP_FORMAT_POSITIVE) \
-                    *buffer++ = '+'; \
+                    *buffer++ = L'+'; \
                 \
                 while (copyCount--) \
                 { \
@@ -437,13 +426,13 @@ CommonInt64Format:
             if (OK_BUFFER) \
             { \
                 if (flags & PHP_FORMAT_NEGATIVE) \
-                    *buffer++ = '-'; \
+                    *buffer++ = L'-'; \
                 else if (flags & PHP_FORMAT_POSITIVE) \
-                    *buffer++ = '+'; \
+                    *buffer++ = L'+'; \
                 \
                 if (flags & PHP_FORMAT_PAD) \
                 { \
-                    wmemset(buffer, '0', padLength); \
+                    wmemset(buffer, L'0', padLength); \
                     buffer += padLength; \
                 } \
             } \
@@ -478,7 +467,7 @@ CommonInt64Format:
                 {
                     ENSURE_BUFFER(sizeof(WCHAR));
                     if (OK_BUFFER)
-                        *buffer = '0';
+                        *buffer = L'0';
                     ADVANCE_BUFFER(sizeof(WCHAR));
                     goto ContinueLoop;
                 }
@@ -510,7 +499,7 @@ CommonInt64Format:
                 ENSURE_BUFFER(sizeof(WCHAR) + PhpSizeUnitNamesCounted[i].Length);
                 if (OK_BUFFER)
                 {
-                    *buffer = ' ';
+                    *buffer = L' ';
                     memcpy(buffer + 1, PhpSizeUnitNamesCounted[i].Buffer, PhpSizeUnitNamesCounted[i].Length);
                 }
                 ADVANCE_BUFFER(sizeof(WCHAR) + PhpSizeUnitNamesCounted[i].Length);
@@ -541,7 +530,7 @@ ContinueLoop:
                     if (format->Type & FormatUsePad)
                         pad = format->Pad;
                     else
-                        pad = ' ';
+                        pad = L' ';
 
                     if (format->Type & FormatLeftAlign)
                     {
