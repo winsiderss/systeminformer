@@ -40,6 +40,7 @@
 #define PHNT_REDSTONE5 106
 #define PHNT_19H1 107
 #define PHNT_19H2 108
+#define PHNT_20H1 109
 
 #ifndef PHNT_MODE
 #define PHNT_MODE PHNT_MODE_USER
