@@ -1042,7 +1042,7 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
             PhSetExtendedListView(context->ListViewHandle);
-            PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
+            PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 80, L"Name");
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 80, L"VA");

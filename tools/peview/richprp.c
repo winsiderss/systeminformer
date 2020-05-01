@@ -301,13 +301,13 @@ INT_PTR CALLBACK PvpPeProdIdDlgProc(
             INT lvItemIndex;
 
             lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
-            PhSetListViewStyle(lvHandle, FALSE, TRUE);
+            PhSetListViewStyle(lvHandle, TRUE, TRUE);
             PhSetControlTheme(lvHandle, L"explorer");
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"#");
-            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 100, L"Product");
-            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 100, L"Component");
-            PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 100, L"Version");
-            PhAddListViewColumn(lvHandle, 4, 4, 4, LVCFMT_LEFT, 100, L"Count");
+            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 100, L"Component");
+            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 100, L"Version");
+            PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 100, L"Count");
+            //PhAddListViewColumn(lvHandle, 4, 4, 4, LVCFMT_LEFT, 100, L"Product");
             PhSetExtendedListView(lvHandle);
             PhLoadListViewColumnsFromSetting(L"ImageProdIdListViewColumns", lvHandle);
 
@@ -334,17 +334,17 @@ INT_PTR CALLBACK PvpPeProdIdDlgProc(
 
                     PhPrintUInt32(number, ++count);
                     lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, number, NULL);
-                    PhSetListViewSubItem(lvHandle, lvItemIndex, 1, PvpGetProductIdName(entry.ProductId));
-                    PhSetListViewSubItem(lvHandle, lvItemIndex, 2, PvpGetProductIdComponent(entry.ProductId));
+                    //PhSetListViewSubItem(lvHandle, lvItemIndex, 4, PvpGetProductIdName(entry.ProductId));
+                    PhSetListViewSubItem(lvHandle, lvItemIndex, 1, PvpGetProductIdComponent(entry.ProductId));
 
                     if (entry.ProductBuild)
                     {
                         PhPrintUInt32(number, entry.ProductBuild);
-                        PhSetListViewSubItem(lvHandle, lvItemIndex, 3, number);
+                        PhSetListViewSubItem(lvHandle, lvItemIndex, 2, number);
                     }
 
                     PhPrintUInt32(number, entry.ProductCount);
-                    PhSetListViewSubItem(lvHandle, lvItemIndex, 4, number);
+                    PhSetListViewSubItem(lvHandle, lvItemIndex, 3, number);
                 }
 
                 PhFree(prodids.ProdIdEntries);
