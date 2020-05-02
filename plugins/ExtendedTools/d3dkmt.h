@@ -74,6 +74,11 @@ typedef enum _KMTQUERYADAPTERINFOTYPE
     KMTQAITYPE_DRIVER_DESCRIPTION = 65, // D3DKMT_DRIVER_DESCRIPTION // since WDDM2_6
     KMTQAITYPE_DRIVER_DESCRIPTION_RENDER = 66, // D3DKMT_DRIVER_DESCRIPTION
     KMTQAITYPE_SCANOUT_CAPS = 67, // D3DKMT_QUERY_SCANOUT_CAPS
+    KMTQAITYPE_DISPLAY_UMDRIVERNAME,
+    KMTQAITYPE_PARAVIRTUALIZATION_RENDER,
+    KMTQAITYPE_SERVICENAME,
+    KMTQAITYPE_WDDM_2_7_CAPS, // D3DKMT_WDDM_2_7_CAPS
+    KMTQAITYPE_TRACKEDWORKLOAD_SUPPORT
 } KMTQUERYADAPTERINFOTYPE;
 
 typedef enum _KMTUMDVERSION
@@ -408,7 +413,7 @@ typedef struct _D3DKMT_VIRTUALADDRESSINFO
 } D3DKMT_VIRTUALADDRESSINFO;
 
 // The D3DKMT_DRIVERVERSION enumeration type contains values that indicate the version of the display driver model that the display miniport driver supports.
-typedef enum D3DKMT_DRIVERVERSION
+typedef enum D3DKMT_DRIVERVERSION // QAI_DRIVERVERSION
 {
     KMT_DRIVERVERSION_WDDM_1_0 = 1000, // The display miniport driver supports the Windows Vista display driver model (WDDM) without Windows 7 features.
     KMT_DRIVERVERSION_WDDM_1_1_PRERELEASE = 1102, // The display miniport driver supports the Windows Vista display driver model with prereleased Windows 7 features.
@@ -422,6 +427,7 @@ typedef enum D3DKMT_DRIVERVERSION
     KMT_DRIVERVERSION_WDDM_2_4 = 2400, // 1803
     KMT_DRIVERVERSION_WDDM_2_5 = 2500, // 1809
     KMT_DRIVERVERSION_WDDM_2_6 = 2600, // 19H1
+    KMT_DRIVERVERSION_WDDM_2_7 = 2700 // 20H1
 } D3DKMT_DRIVERVERSION;
 
 // Specifies the type of display device that the graphics adapter supports.
@@ -442,7 +448,9 @@ typedef struct _D3DKMT_ADAPTERTYPE
             UINT32 ACGSupported : 1;
             UINT32 SupportSetTimingsFromVidPn : 1;
             UINT32 Detachable : 1;
-            UINT32 Reserved : 21;
+            UINT32 ComputeOnly : 1; // since WDDM2_7
+            UINT32 Prototype : 1;
+            UINT32 Reserved : 19;
         };
         UINT32 Value;
     };
@@ -563,7 +571,8 @@ typedef struct _D3DKMT_WDDM_2_0_CAPS
             UINT32 IoMmuSupported : 1;
             UINT32 FlipOverwriteSupported : 1; // since WDDM2_4
             UINT32 SupportContextlessPresent : 1;
-            UINT32 Reserved : 27;
+            UINT32 SupportSurpriseRemoval : 1; // since WDDM2_7
+            UINT32 Reserved : 26;
         };
         UINT32 Value;
     };
@@ -587,24 +596,64 @@ typedef enum _DXGK_ENGINE_TYPE
 #define DXGK_MAX_METADATA_NAME_LENGTH 32
 
 #include <pshpack1.h>
+typedef struct _DXGK_NODEMETADATA_FLAGS
+{
+    union
+    {
+        struct
+        {
+            UINT32 ContextSchedulingSupported : 1;
+            UINT32 RingBufferFenceRelease : 1;
+            UINT32 SupportTrackedWorkload : 1;
+            UINT32 Reserved : 13;
+            UINT32 MaxInFlightHwQueueBuffers : 16;
+        };
+        UINT32 Value;
+    };
+} DXGK_NODEMETADATA_FLAGS, *PDXGK_NODEMETADATA_FLAGS;
+
+typedef struct _DXGK_NODEMETADATA
+{
+    DXGK_ENGINE_TYPE EngineType;
+    WCHAR FriendlyName[DXGK_MAX_METADATA_NAME_LENGTH];
+    DXGK_NODEMETADATA_FLAGS Flags;
+    BOOLEAN GpuMmuSupported;
+    BOOLEAN IoMmuSupported;
+} DXGK_NODEMETADATA, *PDXGK_NODEMETADATA;
+
 typedef struct _D3DKMT_NODEMETADATA
 {
     union
     {
-        _In_ UINT32 NodeOrdinalAndAdapterIndex;
+        UINT32 NodeOrdinalAndAdapterIndex;
         struct
         {
             UINT32 NodeOrdinal : 16;
             UINT32 AdapterIndex : 16;
         };
     };
-    _Out_ DXGK_ENGINE_TYPE EngineType;
-    _Out_ WCHAR FriendlyName[DXGK_MAX_METADATA_NAME_LENGTH];
-    _Out_ UINT32 Reserved;
-    _Out_ BOOLEAN GpuMmuSupported; // Indicates whether the graphics engines of the node support the GpuMmu model. // since WDDM2_0
-    _Out_ BOOLEAN IoMmuSupported; // Indicates whether the graphics engines of the node support the SVM model.
-} D3DKMT_NODEMETADATA;
+    DXGK_NODEMETADATA NodeData;
+} D3DKMT_NODEMETADATA, *PD3DKMT_NODEMETADATA;
 #include <poppack.h>
+
+//typedef struct _D3DKMT_NODEMETADATA
+//{
+//    union
+//    {
+//        _In_ UINT32 NodeOrdinalAndAdapterIndex;
+//        struct
+//        {
+//            UINT32 NodeOrdinal : 16;
+//            UINT32 AdapterIndex : 16;
+//        };
+//    };
+//    _Out_ DXGK_ENGINE_TYPE EngineType;
+//    _Out_ WCHAR FriendlyName[DXGK_MAX_METADATA_NAME_LENGTH];
+//    _Out_ UINT32 Reserved;
+//    _Out_ BOOLEAN GpuMmuSupported; // Indicates whether the graphics engines of the node support the GpuMmu model. // since WDDM2_0
+//    _Out_ BOOLEAN IoMmuSupported; // Indicates whether the graphics engines of the node support the SVM model.
+//} D3DKMT_NODEMETADATA;
+//#include <poppack.h>
 
 typedef struct _D3DKMT_CPDRIVERNAME
 {
@@ -905,6 +954,22 @@ typedef struct _D3DKMT_QUERY_SCANOUT_CAPS
     UINT Caps;
 } D3DKMT_QUERY_SCANOUT_CAPS;
 
+typedef struct _D3DKMT_WDDM_2_7_CAPS
+{
+    union
+    {
+        struct
+        {
+            UINT32 HwSchSupported : 1;
+            UINT32 HwSchEnabled : 1;
+            UINT32 HwSchEnabledByDefault : 1;
+            UINT32 ReseIndependentVidPnVSyncControlrved : 1;
+            UINT32 Reserved : 28;
+        };
+        UINT32 Value;
+    };
+} D3DKMT_WDDM_2_7_CAPS;
+
 // Describes the mapping of the given name of a device to a graphics adapter handle and monitor output.
 typedef struct _D3DKMT_OPENADAPTERFROMDEVICENAME
 {
@@ -962,6 +1027,20 @@ typedef struct _D3DKMT_ENUMADAPTERS2
     _Inout_ ULONG NumAdapters; // On input, the count of the pAdapters array buffer. On output, the number of adapters enumerated.
     _Out_ D3DKMT_ADAPTERINFO* Adapters; // Array of enumerated adapters containing NumAdapters elements.
 } D3DKMT_ENUMADAPTERS2;
+
+typedef union _D3DKMT_ENUMADAPTERS_FILTER
+{
+    ULONG64 IncludeComputeOnly : 1;
+    ULONG64 IncludeDisplayOnly : 1;
+    ULONG64 Reserved : 62;
+} D3DKMT_ENUMADAPTERS_FILTER;
+
+typedef struct _D3DKMT_ENUMADAPTERS3
+{
+    _In_ D3DKMT_ENUMADAPTERS_FILTER Filter;
+    _Inout_ ULONG NumAdapters;
+    _Out_ D3DKMT_ADAPTERINFO* Adapters;
+} D3DKMT_ENUMADAPTERS3;
 
 // The D3DKMT_CLOSEADAPTER structure specifies the graphics adapter to close.
 typedef struct _D3DKMT_CLOSEADAPTER
@@ -1992,6 +2071,13 @@ NTSTATUS
 NTAPI
 D3DKMTEnumAdapters2(
     _Inout_ CONST D3DKMT_ENUMADAPTERS2 *pData
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+D3DKMTEnumAdapters3(
+    _Inout_ CONST D3DKMT_ENUMADAPTERS2* pData
     );
 
 NTSYSAPI
