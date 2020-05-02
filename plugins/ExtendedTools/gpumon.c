@@ -176,10 +176,10 @@ PPH_STRING EtpGetNodeEngineTypeString(
     _In_ D3DKMT_NODEMETADATA NodeMetaData
     )
 {
-    switch (NodeMetaData.EngineType)
+    switch (NodeMetaData.NodeData.EngineType)
     {
     case DXGK_ENGINE_TYPE_OTHER:
-        return PhCreateString(NodeMetaData.FriendlyName);
+        return PhCreateString(NodeMetaData.NodeData.FriendlyName);
     case DXGK_ENGINE_TYPE_3D:
         return PhCreateString(L"3D");
     case DXGK_ENGINE_TYPE_VIDEO_DECODE:
@@ -198,7 +198,7 @@ PPH_STRING EtpGetNodeEngineTypeString(
         return PhCreateString(L"Crypto");
     }
 
-    return PhFormatString(L"ERROR (%lu)", NodeMetaData.EngineType);
+    return PhFormatString(L"ERROR (%lu)", NodeMetaData.NodeData.EngineType);
 }
 
 PPH_STRING EtpQueryDeviceProperty(
