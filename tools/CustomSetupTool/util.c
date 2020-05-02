@@ -31,8 +31,8 @@ NTSTATUS SetupCreateUninstallKey(
 {
     NTSTATUS status;
     HANDLE keyHandle;
-    UNICODE_STRING name;
-    UNICODE_STRING value;
+    PH_STRINGREF name;
+    PH_STRINGREF value;
     ULONG ulong = 1;
 
     status = PhCreateKey(
@@ -48,47 +48,44 @@ NTSTATUS SetupCreateUninstallKey(
     if (NT_SUCCESS(status))
     {
         PPH_STRING tempString;
-        
+
+        PhInitializeStringRef(&name, L"DisplayIcon");
         tempString = SetupCreateFullPath(Context->SetupInstallPath, L"\\processhacker.exe,0");
-        PhStringRefToUnicodeString(&tempString->sr, &value);
-        RtlInitUnicodeString(&name, L"DisplayIcon");
-        PhStringRefToUnicodeString(&tempString->sr, &value);
-        NtSetValueKey(keyHandle, &name, 0, REG_SZ, value.Buffer, (ULONG)value.MaximumLength);
+        PhSetValueKey(keyHandle, &name, REG_SZ, tempString->Buffer, (ULONG)tempString->Length + sizeof(UNICODE_NULL));
         PhDereferenceObject(tempString);
 
-        RtlInitUnicodeString(&name, L"DisplayName");
-        RtlInitUnicodeString(&value, L"Process Hacker");
-        NtSetValueKey(keyHandle, &name, 0, REG_SZ, value.Buffer, (ULONG)value.MaximumLength);
+        PhInitializeStringRef(&name, L"DisplayName");
+        PhInitializeStringRef(&value, L"Process Hacker");
+        PhSetValueKey(keyHandle, &name, REG_SZ, value.Buffer, (ULONG)value.Length + sizeof(UNICODE_NULL));
 
-        RtlInitUnicodeString(&name, L"DisplayVersion");
-        RtlInitUnicodeString(&value, L"3.x");
-        NtSetValueKey(keyHandle, &name, 0, REG_SZ, value.Buffer, (ULONG)value.MaximumLength);
+        PhInitializeStringRef(&name, L"DisplayVersion");
+        PhInitializeStringRef(&value, L"3.x");
+        PhSetValueKey(keyHandle, &name, REG_SZ, value.Buffer, (ULONG)value.Length + sizeof(UNICODE_NULL));
 
-        RtlInitUnicodeString(&name, L"HelpLink");
-        RtlInitUnicodeString(&value, L"http://wj32.org/processhacker/forums/");
-        NtSetValueKey(keyHandle, &name, 0, REG_SZ, value.Buffer, (ULONG)value.MaximumLength);
+        PhInitializeStringRef(&name, L"HelpLink");
+        PhInitializeStringRef(&value, L"https://processhacker.sourceforge.io/");
+        PhSetValueKey(keyHandle, &name, REG_SZ, value.Buffer, (ULONG)value.Length + sizeof(UNICODE_NULL));
 
-        RtlInitUnicodeString(&name, L"InstallLocation");
-        RtlInitUnicodeString(&value, PhGetString(Context->SetupInstallPath));
-        NtSetValueKey(keyHandle, &name, 0, REG_SZ, value.Buffer, (ULONG)value.MaximumLength);
+        PhInitializeStringRef(&name, L"InstallLocation");
+        PhInitializeStringRef(&value, PhGetString(Context->SetupInstallPath));
+        PhSetValueKey(keyHandle, &name, REG_SZ, value.Buffer, (ULONG)value.Length + sizeof(UNICODE_NULL));
 
-        RtlInitUnicodeString(&name, L"Publisher");
-        RtlInitUnicodeString(&value, L"Process Hacker");
-        NtSetValueKey(keyHandle, &name, 0, REG_SZ, value.Buffer, (ULONG)value.MaximumLength);
+        PhInitializeStringRef(&name, L"Publisher");
+        PhInitializeStringRef(&value, L"Process Hacker");
+        PhSetValueKey(keyHandle, &name, REG_SZ, value.Buffer, (ULONG)value.Length + sizeof(UNICODE_NULL));
 
-        RtlInitUnicodeString(&name, L"UninstallString");
+        PhInitializeStringRef(&name, L"UninstallString");
         tempString = PhFormatString(L"\"%s\\processhacker-setup.exe\" -uninstall", PhGetString(Context->SetupInstallPath));
-        PhStringRefToUnicodeString(&tempString->sr, &value);
-        NtSetValueKey(keyHandle, &name, 0, REG_SZ, value.Buffer, (ULONG)value.MaximumLength);
+        PhSetValueKey(keyHandle, &name, REG_SZ, tempString->Buffer, (ULONG)tempString->Length + sizeof(UNICODE_NULL));
         PhDereferenceObject(tempString);
 
-        RtlInitUnicodeString(&value, L"NoModify");
+        PhInitializeStringRef(&name, L"NoModify");
         ulong = TRUE;
-        NtSetValueKey(keyHandle, &value, 0, REG_DWORD, &ulong, sizeof(ULONG));
+        PhSetValueKey(keyHandle, &name, REG_DWORD, &ulong, sizeof(ULONG));
 
-        RtlInitUnicodeString(&value, L"NoRepair");
+        PhInitializeStringRef(&name, L"NoRepair");
         ulong = TRUE;
-        NtSetValueKey(keyHandle, &value, 0, REG_DWORD, &ulong, sizeof(ULONG));
+        PhSetValueKey(keyHandle, &name, REG_DWORD, &ulong, sizeof(ULONG));
 
         NtClose(keyHandle);
     }
@@ -546,7 +543,8 @@ VOID SetupSetWindowsOptions(
         SetupCreateLink(
             PhGetString(string),
             PhGetString(clientPathString),
-            PhGetString(Context->SetupInstallPath)
+            PhGetString(Context->SetupInstallPath),
+            L"ProcessHacker3.0.0"
             );
 
         PhDereferenceObject(clientPathString);
@@ -560,7 +558,8 @@ VOID SetupSetWindowsOptions(
         SetupCreateLink(
             PhGetString(string),
             PhGetString(clientPathString),
-            PhGetString(Context->SetupInstallPath)
+            PhGetString(Context->SetupInstallPath),
+            L"ProcessHacker3.0.0"
             );
 
         PhDereferenceObject(clientPathString);
@@ -574,7 +573,8 @@ VOID SetupSetWindowsOptions(
         SetupCreateLink(
             PhGetString(string),
             PhGetString(clientPathString),
-            PhGetString(Context->SetupInstallPath)
+            PhGetString(Context->SetupInstallPath),
+            L"ProcessHacker3.0.0"
             );
 
         PhDereferenceObject(clientPathString);
@@ -819,9 +819,9 @@ VOID SetupCreateImageFileExecutionOptions(
         NULL
         )))
     {
-        static UNICODE_STRING valueName = RTL_CONSTANT_STRING(L"MitigationOptions");
+        static PH_STRINGREF valueName = PH_STRINGREF_INIT(L"MitigationOptions");
 
-        NtSetValueKey(keyHandle, &valueName, 0, REG_QWORD, &(ULONG64)
+        PhSetValueKey(keyHandle, &valueName, REG_QWORD, &(ULONG64)
         {
             PROCESS_CREATION_MITIGATION_POLICY_HEAP_TERMINATE_ALWAYS_ON |
             PROCESS_CREATION_MITIGATION_POLICY_BOTTOM_UP_ASLR_ALWAYS_ON |
@@ -848,9 +848,9 @@ VOID SetupCreateImageFileExecutionOptions(
             NULL
             )))
         {
-            static UNICODE_STRING valueName = RTL_CONSTANT_STRING(L"MitigationOptions");
+            static PH_STRINGREF valueName = PH_STRINGREF_INIT(L"MitigationOptions");
 
-            NtSetValueKey(keyHandle, &valueName, 0, REG_QWORD, &(ULONG64)
+            PhSetValueKey(keyHandle, &valueName, REG_QWORD, &(ULONG64)
             {
                 PROCESS_CREATION_MITIGATION_POLICY_HEAP_TERMINATE_ALWAYS_ON |
                 PROCESS_CREATION_MITIGATION_POLICY_BOTTOM_UP_ASLR_ALWAYS_ON |
@@ -961,12 +961,13 @@ BOOLEAN ConnectionAvailable(VOID)
 VOID SetupCreateLink(
     _In_ PWSTR LinkFilePath,
     _In_ PWSTR FilePath,
-    _In_ PWSTR FileParentDir
+    _In_ PWSTR FileParentDir,
+    _In_ PWSTR AppId
     )
 {
     IShellLink* shellLinkPtr = NULL;
     IPersistFile* persistFilePtr = NULL;
-    //IPropertyStore* propertyStorePtr;
+    IPropertyStore* propertyStorePtr;
 
     if (FAILED(CoCreateInstance(&CLSID_ShellLink, NULL, CLSCTX_INPROC_SERVER, &IID_IShellLinkW, &shellLinkPtr)))
         goto CleanupExit;
@@ -974,23 +975,23 @@ VOID SetupCreateLink(
     if (FAILED(IShellLinkW_QueryInterface(shellLinkPtr, &IID_IPersistFile, &persistFilePtr)))
         goto CleanupExit;
 
-    //if (SUCCEEDED(IShellLinkW_QueryInterface(shellLinkPtr, &IID_IPropertyStore, &propertyStorePtr)))
-    //{
-    //    PROPVARIANT appIdPropVar;
-    //
-    //    PropVariantInit(&appIdPropVar);
-    //
-    //    appIdPropVar.vt = VT_BSTR;
-    //    appIdPropVar.bstrVal = SysAllocString(AppUserModelId);
-    //
-    //    if (SUCCEEDED(IPropertyStore_SetValue(propertyStorePtr, &PKEY_AppUserModel_ID, &appIdPropVar)))
-    //    {
-    //        IPropertyStore_Commit(propertyStorePtr);
-    //    }
-    //
-    //    PropVariantClear(&appIdPropVar);
-    //    IPropertyStore_Release(propertyStorePtr);
-    //}
+    if (SUCCEEDED(IShellLinkW_QueryInterface(shellLinkPtr, &IID_IPropertyStore, &propertyStorePtr)))
+    {
+        PROPVARIANT appIdPropVar;
+    
+        PropVariantInit(&appIdPropVar);
+    
+        appIdPropVar.vt = VT_BSTR;
+        appIdPropVar.bstrVal = SysAllocString(AppId);
+    
+        if (SUCCEEDED(IPropertyStore_SetValue(propertyStorePtr, &PKEY_AppUserModel_ID, &appIdPropVar)))
+        {
+            IPropertyStore_Commit(propertyStorePtr);
+        }
+    
+        PropVariantClear(&appIdPropVar);
+        IPropertyStore_Release(propertyStorePtr);
+    }
 
     // Load existing shell item if it exists...
     //IPersistFile_Load(persistFilePtr, LinkFilePath, STGM_READWRITE);
@@ -1034,7 +1035,7 @@ BOOLEAN CheckProcessHackerInstalled(
         exePath = SetupCreateFullPath(installPath, L"\\ProcessHacker.exe");
 
         // Check if the value has a valid file path.
-        installed = GetFileAttributes(PhGetString(exePath)) != INVALID_FILE_ATTRIBUTES;
+        installed = PhDoesFileExistsWin32(PhGetString(exePath));
 
         PhDereferenceObject(exePath);
     }
