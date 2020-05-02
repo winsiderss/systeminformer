@@ -320,6 +320,7 @@ EXPORTS
     PhSetTokenPrivilege
     PhSetTokenPrivilege2
     PhSetTokenSessionId
+    PhSetValueKey
     PhTerminateProcess = PhTerminateProcessPublic
     PhTransceiveNamedPipe
     PhUnloadDllProcess
