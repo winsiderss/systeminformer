@@ -315,6 +315,10 @@ typedef struct _PH_PERFORMANCE_CONTEXT
     HWND CpuGraphHandle;
     HWND PrivateGraphHandle;
     HWND IoGraphHandle;
+
+    HWND CpuGroupBox;
+    HWND PrivateBytesGroupBox;
+    HWND IoGroupBox;
 } PH_PERFORMANCE_CONTEXT, *PPH_PERFORMANCE_CONTEXT;
 
 typedef struct _PH_ENVIRONMENT_ITEM
