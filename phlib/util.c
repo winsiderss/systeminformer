@@ -1839,7 +1839,7 @@ BOOLEAN PhInitializeImageVersionInfo(
         PhInitFormatC(&fileVersionFormat[5], L'.');
         PhInitFormatU(&fileVersionFormat[6], LOWORD(rootBlock->dwFileVersionLS));
 
-        ImageVersionInfo->FileVersion = PhFormat(fileVersionFormat, 7, 30);
+        ImageVersionInfo->FileVersion = PhFormat(fileVersionFormat, 7, 64);
     }
     else
     {
