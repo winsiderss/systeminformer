@@ -235,6 +235,7 @@ EXPORTS
 
 ; phnative
     PhCreateDirectory
+    PhCreateFile
     PhCreateFileWin32
     PhCreateFileWin32Ex
     PhCreateKey
