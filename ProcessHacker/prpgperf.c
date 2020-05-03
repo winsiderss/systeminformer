@@ -178,6 +178,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                             HDC hdc;
                             PH_FORMAT format[2];
 
+                            // %.2f%%
                             PhInitFormatF(&format[0], ((DOUBLE)processItem->CpuKernelUsage + processItem->CpuUserUsage) * 100, 2);
                             PhInitFormatC(&format[1], L'%');
 
@@ -206,9 +207,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
 
                         if (!performanceContext->PrivateGraphState.Valid)
                         {
-                            ULONG i;
-
-                            for (i = 0; i < drawInfo->LineDataCount; i++)
+                            for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
                             {
                                 performanceContext->PrivateGraphState.Data1[i] =
                                     (FLOAT)PhGetItemCircularBuffer_SIZE_T(&processItem->PrivateBytesHistory, i);
@@ -235,7 +234,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                             PhInitFormatSize(&format[0], processItem->VmCounters.PagefileUsage);
 
                             PhMoveReference(&performanceContext->PrivateGraphState.Text,
-                                PhFormat(format, RTL_NUMBER_OF(format), 32));
+                                PhFormat(format, RTL_NUMBER_OF(format), 0));
 
                             hdc = Graph_GetBufferedContext(performanceContext->PrivateGraphHandle);
                             PhSetGraphText(hdc, drawInfo, &performanceContext->PrivateGraphState.Text->sr,
@@ -304,6 +303,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                             HDC hdc;
                             PH_FORMAT format[4];
 
+                            // R+O: %s, W: %s
                             PhInitFormatS(&format[0], L"R+O: ");
                             PhInitFormatSize(&format[1], processItem->IoReadDelta.Delta + processItem->IoOtherDelta.Delta);
                             PhInitFormatS(&format[2], L", W: ");
@@ -341,9 +341,10 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                             cpuKernel = PhGetItemCircularBuffer_FLOAT(&processItem->CpuKernelHistory, getTooltipText->Index);
                             cpuUser = PhGetItemCircularBuffer_FLOAT(&processItem->CpuUserHistory, getTooltipText->Index);
 
+                            // %.2f%%\n%s
                             PhInitFormatF(&format[0], ((DOUBLE)cpuKernel + cpuUser) * 100, 2);
                             PhInitFormatS(&format[1], L"%\n");
-                            PhInitFormatS(&format[2], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(processItem, getTooltipText->Index))->Buffer);
+                            PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(processItem, getTooltipText->Index))->sr);
 
                             PhMoveReference(&performanceContext->CpuGraphState.TooltipText,
                                 PhFormat(format, RTL_NUMBER_OF(format), 64));
@@ -363,9 +364,10 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
 
                             privateBytes = PhGetItemCircularBuffer_SIZE_T(&processItem->PrivateBytesHistory, getTooltipText->Index);
 
+                            // %s\n%s
                             PhInitFormatSize(&format[0], privateBytes);
                             PhInitFormatC(&format[1], L'\n');
-                            PhInitFormatS(&format[2], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(processItem, getTooltipText->Index))->Buffer);
+                            PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(processItem, getTooltipText->Index))->sr);
 
                             PhMoveReference(&performanceContext->PrivateGraphState.TooltipText,
                                 PhFormat(format, RTL_NUMBER_OF(format), 64));
@@ -389,6 +391,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                             ioWrite = PhGetItemCircularBuffer_ULONG64(&processItem->IoWriteHistory, getTooltipText->Index);
                             ioOther = PhGetItemCircularBuffer_ULONG64(&processItem->IoOtherHistory, getTooltipText->Index);
 
+                            // R: %s\nW: %s\nO: %s\n%s
                             PhInitFormatS(&format[0], L"R: ");
                             PhInitFormatSize(&format[1], ioRead);
                             PhInitFormatS(&format[2], L"\nW: ");
@@ -396,7 +399,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                             PhInitFormatS(&format[4], L"\nO: ");
                             PhInitFormatSize(&format[5], ioOther);
                             PhInitFormatC(&format[6], L'\n');
-                            PhInitFormatS(&format[7], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(processItem, getTooltipText->Index))->Buffer);
+                            PhInitFormatSR(&format[7], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(processItem, getTooltipText->Index))->sr);
 
                             PhMoveReference(&performanceContext->IoGraphState.TooltipText,
                                 PhFormat(format, RTL_NUMBER_OF(format), 64));
