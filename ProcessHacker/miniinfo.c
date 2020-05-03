@@ -3,7 +3,7 @@
  *   mini information window
  *
  * Copyright (C) 2015-2016 wj32
- * Copyright (C) 2017 dmex
+ * Copyright (C) 2017-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -81,13 +81,13 @@ VOID PhPinMiniInformation(
     if (PinDelayMs && PinCount < 0)
     {
         PhMipDelayedPinAdjustments[PinType] = PinCount;
-        SetTimer(PhMipContainerWindow, MIP_TIMER_PIN_FIRST + PinType, PinDelayMs, NULL);
+        SetTimer(PhMipContainerWindow, (UINT_PTR)MIP_TIMER_PIN_FIRST + PinType, PinDelayMs, NULL);
         return;
     }
     else
     {
         PhMipDelayedPinAdjustments[PinType] = 0;
-        KillTimer(PhMipContainerWindow, MIP_TIMER_PIN_FIRST + PinType);
+        KillTimer(PhMipContainerWindow, (UINT_PTR)MIP_TIMER_PIN_FIRST + PinType);
     }
 
     adjustPinResult = PhMipAdjustPin(PinType, PinCount);
@@ -807,9 +807,7 @@ PPH_MINIINFO_SECTION PhMipCreateSection(
 {
     PPH_MINIINFO_SECTION section;
 
-    section = PhAllocate(sizeof(PH_MINIINFO_SECTION));
-    memset(section, 0, sizeof(PH_MINIINFO_SECTION));
-
+    section = PhAllocateZero(sizeof(PH_MINIINFO_SECTION));
     section->Name = Template->Name;
     section->Flags = Template->Flags;
     section->Callback = Template->Callback;
@@ -1223,9 +1221,7 @@ PPH_MINIINFO_LIST_SECTION PhMipCreateListSection(
     PPH_MINIINFO_LIST_SECTION listSection;
     PH_MINIINFO_SECTION section;
 
-    listSection = PhAllocate(sizeof(PH_MINIINFO_LIST_SECTION));
-    memset(listSection, 0, sizeof(PH_MINIINFO_LIST_SECTION));
-
+    listSection = PhAllocateZero(sizeof(PH_MINIINFO_LIST_SECTION));
     listSection->Context = Template->Context;
     listSection->Callback = Template->Callback;
 
@@ -1440,15 +1436,13 @@ VOID PhMipClearListSection(
     _In_ PPH_MINIINFO_LIST_SECTION ListSection
     )
 {
-    ULONG i;
-
     if (ListSection->ProcessGroupList)
     {
         PhFreeProcessGroupList(ListSection->ProcessGroupList);
         ListSection->ProcessGroupList = NULL;
     }
 
-    for (i = 0; i < ListSection->NodeList->Count; i++)
+    for (ULONG i = 0; i < ListSection->NodeList->Count; i++)
         PhMipDestroyGroupNode(ListSection->NodeList->Items[i]);
 
     PhClearList(ListSection->NodeList);
@@ -1958,8 +1952,17 @@ BOOLEAN PhMipCpuListSectionCallback(
     switch (Message)
     {
     case MiListSectionTick:
-        ListSection->Section->Parameters->SetSectionText(ListSection->Section,
-            PhaFormatString(L"CPU    %.2f%%", (PhCpuUserUsage + PhCpuKernelUsage) * 100));
+        {
+            PH_FORMAT format[3];
+
+            // CPU    %.2f%%
+            PhInitFormatS(&format[0], L"CPU    ");
+            PhInitFormatF(&format[1], ((DOUBLE)PhCpuUserUsage + PhCpuKernelUsage) * 100, 2);
+            PhInitFormatC(&format[2], L'%');
+
+            ListSection->Section->Parameters->SetSectionText(ListSection->Section,
+                PH_AUTO(PhFormat(format, RTL_NUMBER_OF(format), 16)));
+        }
         break;
     case MiListSectionSortProcessList:
         {
@@ -2016,7 +2019,15 @@ BOOLEAN PhMipCpuListSectionCallback(
             cpuUsage = *(PFLOAT)getUsageText->SortData->UserData * 100;
 
             if (cpuUsage >= 0.01)
-                cpuUsageText = PhFormatString(L"%.2f%%", cpuUsage);
+            {
+                PH_FORMAT format[2];
+
+                // %.2f%%
+                PhInitFormatF(&format[0], cpuUsage, 2);
+                PhInitFormatC(&format[1], L'%');
+
+                cpuUsageText = PhFormat(format, RTL_NUMBER_OF(format), 16);
+            }
             else if (cpuUsage != 0)
                 cpuUsageText = PhCreateString(L"< 0.01%");
             else
@@ -2069,16 +2080,17 @@ BOOLEAN PhMipCommitListSectionCallback(
     {
     case MiListSectionTick:
         {
-            PH_FORMAT format[5];
             DOUBLE commitFraction = (DOUBLE)PhPerfInformation.CommittedPages / PhPerfInformation.CommitLimit;
+            PH_FORMAT format[5];
 
             PhInitFormatS(&format[0], L"Commit    ");
             PhInitFormatSize(&format[1], UInt32x32To64(PhPerfInformation.CommittedPages, PAGE_SIZE));
             PhInitFormatS(&format[2], L" (");
             PhInitFormatF(&format[3], commitFraction * 100, 2);
             PhInitFormatS(&format[4], L"%)");
+
             ListSection->Section->Parameters->SetSectionText(ListSection->Section,
-                PH_AUTO(PhFormat(format, 5, 96)));
+                PH_AUTO(PhFormat(format, RTL_NUMBER_OF(format), 96)));
         }
         break;
     case MiListSectionSortProcessList:
@@ -2177,17 +2189,19 @@ BOOLEAN PhMipPhysicalListSectionCallback(
     {
     case MiListSectionTick:
         {
-            PH_FORMAT format[5];
             ULONG physicalUsage = PhSystemBasicInformation.NumberOfPhysicalPages - PhPerfInformation.AvailablePages;
             FLOAT physicalFraction = (FLOAT)physicalUsage / PhSystemBasicInformation.NumberOfPhysicalPages;
+            FLOAT physicalPercent = physicalFraction * 100;
+            PH_FORMAT format[5];
 
             PhInitFormatS(&format[0], L"Physical    ");
             PhInitFormatSize(&format[1], UInt32x32To64(physicalUsage, PAGE_SIZE));
             PhInitFormatS(&format[2], L" (");
-            PhInitFormatF(&format[3], physicalFraction * 100, 2);
+            PhInitFormatF(&format[3], physicalPercent, 2);
             PhInitFormatS(&format[4], L"%)");
+
             ListSection->Section->Parameters->SetSectionText(ListSection->Section,
-                PH_AUTO(PhFormat(format, 5, 96)));
+                PH_AUTO(PhFormat(format, RTL_NUMBER_OF(format), 96)));
         }
         break;
     case MiListSectionSortProcessList:
@@ -2289,19 +2303,14 @@ BOOLEAN PhMipIoListSectionCallback(
             PH_FORMAT format[6];
 
             PhInitFormatS(&format[0], L"I/O    R: ");
-            PhInitFormatSize(&format[1], PhIoReadDelta.Delta);
-            format[1].Type |= FormatUsePrecision;
-            format[1].Precision = 0;
+            PhInitFormatSizeWithPrecision(&format[1], PhIoReadDelta.Delta, 0);
             PhInitFormatS(&format[2], L"  W: ");
-            PhInitFormatSize(&format[3], PhIoWriteDelta.Delta);
-            format[3].Type |= FormatUsePrecision;
-            format[3].Precision = 0;
+            PhInitFormatSizeWithPrecision(&format[3], PhIoWriteDelta.Delta, 0);
             PhInitFormatS(&format[4], L"  O: ");
-            PhInitFormatSize(&format[5], PhIoOtherDelta.Delta);
-            format[5].Type |= FormatUsePrecision;
-            format[5].Precision = 0;
+            PhInitFormatSizeWithPrecision(&format[5], PhIoOtherDelta.Delta, 0);
+
             ListSection->Section->Parameters->SetSectionText(ListSection->Section,
-                PH_AUTO(PhFormat(format, 6, 80)));
+                PH_AUTO(PhFormat(format, RTL_NUMBER_OF(format), 80)));
         }
         break;
     case MiListSectionSortProcessList:
