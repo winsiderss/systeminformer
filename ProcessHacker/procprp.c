@@ -3,6 +3,7 @@
  *   Process properties
  *
  * Copyright (C) 2009-2016 wj32
+ * Copyright (C) 2016-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -57,11 +58,14 @@ PPH_PROCESS_PROPCONTEXT PhCreateProcessPropContext(
 
     if (!PH_IS_FAKE_PROCESS_ID(ProcessItem->ProcessId))
     {
-        propContext->Title = PhFormatString(
-            L"%s (%u)",
-            ProcessItem->ProcessName->Buffer,
-            HandleToUlong(ProcessItem->ProcessId)
-            );
+        PH_FORMAT format[4];
+
+        PhInitFormatSR(&format[0], ProcessItem->ProcessName->sr);
+        PhInitFormatS(&format[1], L" (");
+        PhInitFormatU(&format[2], HandleToUlong(ProcessItem->ProcessId));
+        PhInitFormatC(&format[3], L')');
+
+        propContext->Title = PhFormat(format, RTL_NUMBER_OF(format), 64);
     }
     else
     {
@@ -80,7 +84,7 @@ PPH_PROCESS_PROPCONTEXT PhCreateProcessPropContext(
     propSheetHeader.hInstance = PhInstanceHandle;
     propSheetHeader.hwndParent = ParentWindowHandle;
     propSheetHeader.hIcon = ProcessItem->SmallIcon;
-    propSheetHeader.pszCaption = propContext->Title->Buffer;
+    propSheetHeader.pszCaption = PhGetString(propContext->Title);
     propSheetHeader.pfnCallback = PhpPropSheetProc;
 
     propSheetHeader.nPages = 0;
