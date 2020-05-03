@@ -977,19 +977,24 @@ VOID SetupCreateLink(
 
     if (SUCCEEDED(IShellLinkW_QueryInterface(shellLinkPtr, &IID_IPropertyStore, &propertyStorePtr)))
     {
-        PROPVARIANT appIdPropVar;
+        PROPVARIANT propValue;
     
-        PropVariantInit(&appIdPropVar);
+        PropVariantInit(&propValue);
+        propValue.vt = VT_LPWSTR;
+        propValue.pwszVal = AppId;
     
-        appIdPropVar.vt = VT_BSTR;
-        appIdPropVar.bstrVal = SysAllocString(AppId);
-    
-        if (SUCCEEDED(IPropertyStore_SetValue(propertyStorePtr, &PKEY_AppUserModel_ID, &appIdPropVar)))
-        {
-            IPropertyStore_Commit(propertyStorePtr);
-        }
-    
-        PropVariantClear(&appIdPropVar);
+        IPropertyStore_SetValue(propertyStorePtr, &PKEY_AppUserModel_ID, &propValue);
+
+        PropVariantClear(&propValue);
+        //PropVariantInit(&propValue);
+        //propValue.vt = VT_CLSID;
+        //propValue.puuid = GUID;
+        //
+        //IPropertyStore_SetValue(propertyStorePtr, &PKEY_AppUserModel_ToastActivatorCLSID, &propValue);
+        //
+        //PropVariantClear(&propValue);
+
+        IPropertyStore_Commit(propertyStorePtr);
         IPropertyStore_Release(propertyStorePtr);
     }
 
