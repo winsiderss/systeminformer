@@ -3606,6 +3606,7 @@ typedef struct _PH_FORMAT
 #define PhInitFormatE(f, v, p) do { (f)->Type = DoubleFormatType | FormatStandardForm | FormatUsePrecision; (f)->u.Double = (v); (f)->Precision = (p); } while (0)
 #define PhInitFormatA(f, v, p) do { (f)->Type = DoubleFormatType | FormatHexadecimalForm | FormatUsePrecision; (f)->u.Double = (v); (f)->Precision = (p); } while (0)
 #define PhInitFormatSize(f, v) do { (f)->Type = SizeFormatType; (f)->u.Size = (v); } while (0)
+#define PhInitFormatSizeWithPrecision(f, v, p) do { (f)->Type = SizeFormatType | FormatUsePrecision; (f)->u.Size = (v); (f)->Precision = (p); } while (0)
 
 PHLIBAPI
 PPH_STRING
