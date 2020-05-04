@@ -2324,17 +2324,3 @@ VOID NTAPI PhSipSysInfoUpdateHandler(
 {
     PostMessage(PhSipWindow, SI_MSG_SYSINFO_UPDATE, 0, 0);
 }
-
-PPH_STRING PhSipFormatSizeWithPrecision(
-    _In_ ULONG64 Size,
-    _In_ USHORT Precision
-    )
-{
-    PH_FORMAT format;
-
-    format.Type = SizeFormatType | FormatUsePrecision;
-    format.Precision = Precision;
-    format.u.Size = Size;
-
-    return PH_AUTO(PhFormat(&format, 1, 0));
-}
