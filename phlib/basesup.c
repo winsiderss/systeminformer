@@ -2492,7 +2492,7 @@ PPH_STRING PhFormatString_V(
     )
 {
     PPH_STRING string;
-    int length;
+    INT length;
 
     length = _vscwprintf(Format, ArgPtr);
 
@@ -5829,9 +5829,9 @@ BOOLEAN PhStringToInteger64(
     string = *String;
     negative = FALSE;
 
-    if (string.Length != 0 && (string.Buffer[0] == '-' || string.Buffer[0] == '+'))
+    if (string.Length != 0 && (string.Buffer[0] == L'-' || string.Buffer[0] == L'+'))
     {
-        if (string.Buffer[0] == '-')
+        if (string.Buffer[0] == L'-')
             negative = TRUE;
 
         PhSkipStringRef(&string, sizeof(WCHAR));
@@ -5847,36 +5847,36 @@ BOOLEAN PhStringToInteger64(
     {
         base = 10;
 
-        if (string.Length >= 2 * sizeof(WCHAR) && string.Buffer[0] == '0')
+        if (string.Length >= 2 * sizeof(WCHAR) && string.Buffer[0] == L'0')
         {
             switch (string.Buffer[1])
             {
-            case 'x':
-            case 'X':
+            case L'x':
+            case L'X':
                 base = 16;
                 break;
-            case 'o':
-            case 'O':
+            case L'o':
+            case L'O':
                 base = 8;
                 break;
-            case 'b':
-            case 'B':
+            case L'b':
+            case L'B':
                 base = 2;
                 break;
-            case 't': // ternary
-            case 'T':
+            case L't': // ternary
+            case L'T':
                 base = 3;
                 break;
-            case 'q': // quaternary
-            case 'Q':
+            case L'q': // quaternary
+            case L'Q':
                 base = 4;
                 break;
-            case 'w': // base 12
-            case 'W':
+            case L'w': // base 12
+            case L'W':
                 base = 12;
                 break;
-            case 'r': // base 32
-            case 'R':
+            case L'r': // base 32
+            case L'R':
                 base = 32;
                 break;
             }
@@ -5913,7 +5913,7 @@ BOOLEAN PhpStringToDouble(
 
     for (i = 0; i < length; i++)
     {
-        if (String->Buffer[i] == '.')
+        if (String->Buffer[i] == L'.')
         {
             if (!dotSeen)
                 dotSeen = TRUE;
@@ -5971,9 +5971,9 @@ BOOLEAN PhStringToDouble(
     string = *String;
     negative = FALSE;
 
-    if (string.Length != 0 && (string.Buffer[0] == '-' || string.Buffer[0] == '+'))
+    if (string.Length != 0 && (string.Buffer[0] == L'-' || string.Buffer[0] == L'+'))
     {
-        if (string.Buffer[0] == '-')
+        if (string.Buffer[0] == L'-')
             negative = TRUE;
 
         PhSkipStringRef(&string, sizeof(WCHAR));
@@ -6052,13 +6052,13 @@ BOOLEAN PhPrintTimeSpanToBuffer(
             PH_FORMAT format[7];
 
             // %02I64u:%02I64u:%02I64u.%03I64u
-            PhInitFormatI64UWithWidthPrecision(&format[0], PH_TICKS_PARTIAL_HOURS(Ticks), 2);
+            PhInitFormatI64UWithWidth(&format[0], PH_TICKS_PARTIAL_HOURS(Ticks), 2);
             PhInitFormatC(&format[1], L':');
-            PhInitFormatI64UWithWidthPrecision(&format[2], PH_TICKS_PARTIAL_MIN(Ticks), 2);
+            PhInitFormatI64UWithWidth(&format[2], PH_TICKS_PARTIAL_MIN(Ticks), 2);
             PhInitFormatC(&format[3], L':');
-            PhInitFormatI64UWithWidthPrecision(&format[4], PH_TICKS_PARTIAL_SEC(Ticks), 2);
+            PhInitFormatI64UWithWidth(&format[4], PH_TICKS_PARTIAL_SEC(Ticks), 2);
             PhInitFormatC(&format[5], L'.');
-            PhInitFormatI64UWithWidthPrecision(&format[6], PH_TICKS_PARTIAL_MS(Ticks), 3);
+            PhInitFormatI64UWithWidth(&format[6], PH_TICKS_PARTIAL_MS(Ticks), 3);
 
             return PhFormatToBuffer(format, RTL_NUMBER_OF(format), Buffer, BufferLength, ReturnLength);
         }
@@ -6070,11 +6070,11 @@ BOOLEAN PhPrintTimeSpanToBuffer(
             // %I64u:%02I64u:%02I64u:%02I64u
             PhInitFormatI64U(&format[0], PH_TICKS_PARTIAL_DAYS(Ticks));
             PhInitFormatC(&format[1], L':');
-            PhInitFormatI64UWithWidthPrecision(&format[2], PH_TICKS_PARTIAL_HOURS(Ticks), 2);
+            PhInitFormatI64UWithWidth(&format[2], PH_TICKS_PARTIAL_HOURS(Ticks), 2);
             PhInitFormatC(&format[3], L':');
-            PhInitFormatI64UWithWidthPrecision(&format[4], PH_TICKS_PARTIAL_MIN(Ticks), 2);
+            PhInitFormatI64UWithWidth(&format[4], PH_TICKS_PARTIAL_MIN(Ticks), 2);
             PhInitFormatC(&format[5], L':');
-            PhInitFormatI64UWithWidthPrecision(&format[6], PH_TICKS_PARTIAL_SEC(Ticks), 2);
+            PhInitFormatI64UWithWidth(&format[6], PH_TICKS_PARTIAL_SEC(Ticks), 2);
 
             return PhFormatToBuffer(format, RTL_NUMBER_OF(format), Buffer, BufferLength, ReturnLength);
         }
@@ -6084,11 +6084,11 @@ BOOLEAN PhPrintTimeSpanToBuffer(
             PH_FORMAT format[5];
 
             // %02I64u:%02I64u:%02I64u
-            PhInitFormatI64UWithWidthPrecision(&format[0], PH_TICKS_PARTIAL_HOURS(Ticks), 2);
+            PhInitFormatI64UWithWidth(&format[0], PH_TICKS_PARTIAL_HOURS(Ticks), 2);
             PhInitFormatC(&format[1], L':');
-            PhInitFormatI64UWithWidthPrecision(&format[2], PH_TICKS_PARTIAL_MIN(Ticks), 2);
+            PhInitFormatI64UWithWidth(&format[2], PH_TICKS_PARTIAL_MIN(Ticks), 2);
             PhInitFormatC(&format[3], L'.');
-            PhInitFormatI64UWithWidthPrecision(&format[4], PH_TICKS_PARTIAL_SEC(Ticks), 2);
+            PhInitFormatI64UWithWidth(&format[4], PH_TICKS_PARTIAL_SEC(Ticks), 2);
 
             return PhFormatToBuffer(format, RTL_NUMBER_OF(format), Buffer, BufferLength, ReturnLength);
         }
