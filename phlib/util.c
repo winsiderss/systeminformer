@@ -1359,7 +1359,7 @@ PPH_STRING PhFormatDateTime(
     }
 
     count = (ULONG)PhCountStringZ(string->Buffer);
-    string->Buffer[count] = L' '; // BAD?
+    string->Buffer[count] = L' ';
 
     if (!GetDateFormat(LOCALE_USER_DEFAULT, 0, DateTime, NULL, &string->Buffer[count + 1], dateBufferSize))
     {
@@ -1384,6 +1384,33 @@ PPH_STRING PhFormatTimeSpan(
     PhTrimToNullTerminatorString(string);
 
     return string;
+}
+
+PPH_STRING PhFormatTimeSpanEx(
+    _In_ ULONG64 Ticks,
+    _In_opt_ ULONG Mode
+    )
+{
+    SIZE_T returnLength;
+    WCHAR buffer[PH_TIMESPAN_STR_LEN_1];
+    
+    if (PhPrintTimeSpanEx(
+        Ticks,
+        Mode,
+        buffer,
+        PH_TIMESPAN_STR_LEN,
+        &returnLength
+        ))
+    {
+        PH_STRINGREF string;
+
+        string.Length = returnLength - sizeof(UNICODE_NULL);
+        string.Buffer = buffer;
+
+        return PhCreateString2(&string);
+    }
+
+    return PhReferenceEmptyString();
 }
 
 /**
