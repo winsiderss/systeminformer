@@ -3610,7 +3610,7 @@ typedef struct _PH_FORMAT
 #define PhInitFormatI64D(f, v) do { (f)->Type = Int64FormatType; (f)->u.Int64 = (v); } while (0)
 #define PhInitFormatI64U(f, v) do { (f)->Type = UInt64FormatType; (f)->u.UInt64 = (v); } while (0)
 #define PhInitFormatI64UGroupDigits(f, v) do { (f)->Type = UInt64FormatType | FormatGroupDigits; (f)->u.UInt64 = (v); } while (0)
-#define PhInitFormatI64UWithWidthPrecision(f, v, p) do { (f)->Type = UInt64FormatType | FormatUsePrecision | FormatPadZeros; (f)->u.UInt64 = (v); (f)->Precision = (p); (f)->Width = (p); } while (0)
+#define PhInitFormatI64UWithWidth(f, v, w) do { (f)->Type = UInt64FormatType | FormatPadZeros; (f)->u.UInt64 = (v); (f)->Width = (w); } while (0)
 #define PhInitFormatI64X(f, v) do { (f)->Type = UInt64FormatType | FormatUseRadix; (f)->u.UInt64 = (v); (f)->Radix = 16; } while (0)
 #define PhInitFormatIU(f, v) do { (f)->Type = UIntPtrFormatType; (f)->u.UIntPtr = (v); } while (0)
 #define PhInitFormatIX(f, v) do { (f)->Type = UIntPtrFormatType | FormatUseRadix; (f)->u.UIntPtr = (v); (f)->Radix = 16; } while (0)
