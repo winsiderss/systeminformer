@@ -6028,44 +6028,74 @@ VOID PhPrintTimeSpan(
     _In_opt_ ULONG Mode
     )
 {
+    PhPrintTimeSpanEx(
+        Ticks,
+        Mode,
+        Destination,
+        PH_TIMESPAN_STR_LEN,
+        NULL
+        );
+}
+
+BOOLEAN PhPrintTimeSpanEx(
+    _In_ ULONG64 Ticks,
+    _In_opt_ ULONG Mode,
+    _Out_writes_bytes_(BufferLength) PWSTR Buffer,
+    _In_ SIZE_T BufferLength,
+    _Out_opt_ PSIZE_T ReturnLength
+    )
+{
     switch (Mode)
     {
     case PH_TIMESPAN_HMSM:
-        _snwprintf_s(
-            Destination,
-            PH_TIMESPAN_STR_LEN,
-            _TRUNCATE,
-            L"%02I64u:%02I64u:%02I64u.%03I64u",
-            PH_TICKS_PARTIAL_HOURS(Ticks),
-            PH_TICKS_PARTIAL_MIN(Ticks),
-            PH_TICKS_PARTIAL_SEC(Ticks),
-            PH_TICKS_PARTIAL_MS(Ticks)
-            );
+        {
+            PH_FORMAT format[7];
+
+            // %02I64u:%02I64u:%02I64u.%03I64u
+            PhInitFormatI64UWithWidthPrecision(&format[0], PH_TICKS_PARTIAL_HOURS(Ticks), 2);
+            PhInitFormatC(&format[1], L':');
+            PhInitFormatI64UWithWidthPrecision(&format[2], PH_TICKS_PARTIAL_MIN(Ticks), 2);
+            PhInitFormatC(&format[3], L':');
+            PhInitFormatI64UWithWidthPrecision(&format[4], PH_TICKS_PARTIAL_SEC(Ticks), 2);
+            PhInitFormatC(&format[5], L'.');
+            PhInitFormatI64UWithWidthPrecision(&format[6], PH_TICKS_PARTIAL_MS(Ticks), 3);
+
+            return PhFormatToBuffer(format, RTL_NUMBER_OF(format), Buffer, BufferLength, ReturnLength);
+        }
         break;
     case PH_TIMESPAN_DHMS:
-        _snwprintf_s(
-            Destination,
-            PH_TIMESPAN_STR_LEN,
-            _TRUNCATE,
-            L"%I64u:%02I64u:%02I64u:%02I64u",
-            PH_TICKS_PARTIAL_DAYS(Ticks),
-            PH_TICKS_PARTIAL_HOURS(Ticks),
-            PH_TICKS_PARTIAL_MIN(Ticks),
-            PH_TICKS_PARTIAL_SEC(Ticks)
-            );
+        {
+            PH_FORMAT format[7];
+
+            // %I64u:%02I64u:%02I64u:%02I64u
+            PhInitFormatI64U(&format[0], PH_TICKS_PARTIAL_DAYS(Ticks));
+            PhInitFormatC(&format[1], L':');
+            PhInitFormatI64UWithWidthPrecision(&format[2], PH_TICKS_PARTIAL_HOURS(Ticks), 2);
+            PhInitFormatC(&format[3], L':');
+            PhInitFormatI64UWithWidthPrecision(&format[4], PH_TICKS_PARTIAL_MIN(Ticks), 2);
+            PhInitFormatC(&format[5], L':');
+            PhInitFormatI64UWithWidthPrecision(&format[6], PH_TICKS_PARTIAL_SEC(Ticks), 2);
+
+            return PhFormatToBuffer(format, RTL_NUMBER_OF(format), Buffer, BufferLength, ReturnLength);
+        }
         break;
     default:
-        _snwprintf_s(
-            Destination,
-            PH_TIMESPAN_STR_LEN,
-            _TRUNCATE,
-            L"%02I64u:%02I64u:%02I64u",
-            PH_TICKS_PARTIAL_HOURS(Ticks),
-            PH_TICKS_PARTIAL_MIN(Ticks),
-            PH_TICKS_PARTIAL_SEC(Ticks)
-            );
+        {
+            PH_FORMAT format[5];
+
+            // %02I64u:%02I64u:%02I64u
+            PhInitFormatI64UWithWidthPrecision(&format[0], PH_TICKS_PARTIAL_HOURS(Ticks), 2);
+            PhInitFormatC(&format[1], L':');
+            PhInitFormatI64UWithWidthPrecision(&format[2], PH_TICKS_PARTIAL_MIN(Ticks), 2);
+            PhInitFormatC(&format[3], L'.');
+            PhInitFormatI64UWithWidthPrecision(&format[4], PH_TICKS_PARTIAL_SEC(Ticks), 2);
+
+            return PhFormatToBuffer(format, RTL_NUMBER_OF(format), Buffer, BufferLength, ReturnLength);
+        }
         break;
     }
+
+    return FALSE;
 }
 
 /**
