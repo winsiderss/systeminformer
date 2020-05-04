@@ -1394,7 +1394,7 @@ PPH_STRING PhFormatTimeSpanEx(
     SIZE_T returnLength;
     WCHAR buffer[PH_TIMESPAN_STR_LEN_1];
     
-    if (PhPrintTimeSpanEx(
+    if (PhPrintTimeSpanToBuffer(
         Ticks,
         Mode,
         buffer,
