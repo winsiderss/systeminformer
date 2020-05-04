@@ -144,7 +144,7 @@ BOOLEAN PhSipCpuSectionCallback(
             PhInitFormatC(&format[3], L'\n');
             PhInitFormatSR(&format[4], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
 
-            PhMoveReference(&Section->GraphState.TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 128));
+            PhMoveReference(&Section->GraphState.TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 160));
             getTooltipText->Text = Section->GraphState.TooltipText->sr;
         }
         return TRUE;
@@ -278,10 +278,8 @@ VOID PhSipTickCpuDialog(
     CurrentPerformanceDistribution = NULL;
     PhSipQueryProcessorPerformanceDistribution(&CurrentPerformanceDistribution);
 
-    CpuTicked++;
-
-    if (CpuTicked > 2)
-        CpuTicked = 2;
+    if (CpuTicked < 2)
+        CpuTicked++;
 
     PhSipUpdateCpuGraphs();
     PhSipUpdateCpuPanel();
