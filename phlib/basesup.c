@@ -6028,7 +6028,7 @@ VOID PhPrintTimeSpan(
     _In_opt_ ULONG Mode
     )
 {
-    PhPrintTimeSpanEx(
+    PhPrintTimeSpanToBuffer(
         Ticks,
         Mode,
         Destination,
@@ -6037,7 +6037,7 @@ VOID PhPrintTimeSpan(
         );
 }
 
-BOOLEAN PhPrintTimeSpanEx(
+BOOLEAN PhPrintTimeSpanToBuffer(
     _In_ ULONG64 Ticks,
     _In_opt_ ULONG Mode,
     _Out_writes_bytes_(BufferLength) PWSTR Buffer,
