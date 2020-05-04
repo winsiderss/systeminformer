@@ -3345,7 +3345,7 @@ PhPrintTimeSpan(
 PHLIBAPI
 BOOLEAN
 NTAPI
-PhPrintTimeSpanEx(
+PhPrintTimeSpanToBuffer(
     _In_ ULONG64 Ticks,
     _In_opt_ ULONG Mode,
     _Out_writes_bytes_(BufferLength) PWSTR Buffer,
