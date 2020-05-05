@@ -513,39 +513,53 @@ static PPH_STRING PhSipGetMaxCpuString(
 {
     PPH_PROCESS_RECORD maxProcessRecord;
     FLOAT maxCpuUsage;
-    PPH_STRING maxUsageString = NULL;
 
     if (!SystemStatistics.MaxCpuUsageHistory)
-        return NULL;
+        return PhReferenceEmptyString();
 
     if (maxProcessRecord = PhSipReferenceMaxCpuRecord(Index))
     {
+        PPH_STRING maxUsageString;
+
         // We found the process record, so now we construct the max. usage string.
         maxCpuUsage = PhGetItemCircularBuffer_FLOAT(SystemStatistics.MaxCpuUsageHistory, Index);
 
         // Make sure we don't try to display the PID of DPCs or Interrupts.
         if (!PH_IS_FAKE_PROCESS_ID(maxProcessRecord->ProcessId))
         {
-            maxUsageString = PhaFormatString(
-                L"\n%s (%u): %.2f%%",
-                maxProcessRecord->ProcessName->Buffer,
-                HandleToUlong(maxProcessRecord->ProcessId),
-                maxCpuUsage * 100
-                );
+            PH_FORMAT format[7];
+
+            // \n%s (%u): %.2f%%
+            PhInitFormatC(&format[0], L'\n');
+            PhInitFormatSR(&format[1], maxProcessRecord->ProcessName->sr);
+            PhInitFormatS(&format[2], L" (");
+            PhInitFormatU(&format[3], HandleToUlong(maxProcessRecord->ProcessId));
+            PhInitFormatS(&format[4], L"): ");
+            PhInitFormatF(&format[5], (DOUBLE)maxCpuUsage * 100, 2);
+            PhInitFormatC(&format[6], L'%');
+
+            maxUsageString = PhFormat(format, RTL_NUMBER_OF(format), 128);
         }
         else
         {
-            maxUsageString = PhaFormatString(
-                L"\n%s: %.2f%%",
-                maxProcessRecord->ProcessName->Buffer,
-                maxCpuUsage * 100
-                );
+            PH_FORMAT format[5];
+
+            // \n%s: %.2f%%
+            PhInitFormatC(&format[0], L'\n');
+            PhInitFormatSR(&format[1], maxProcessRecord->ProcessName->sr);
+            PhInitFormatS(&format[2], L": ");
+            PhInitFormatF(&format[3], (DOUBLE)maxCpuUsage * 100, 2);
+            PhInitFormatC(&format[4], L'%');
+
+            maxUsageString = PhFormat(format, RTL_NUMBER_OF(format), 128);
         }
 
         PhDereferenceProcessRecord(maxProcessRecord);
+
+        return maxUsageString;
     }
 
-    return maxUsageString;
+    return PhReferenceEmptyString();
 }
 
 static PPH_PROCESS_RECORD PhSipReferenceMaxIoRecord(
@@ -576,44 +590,58 @@ static PPH_STRING PhSipGetMaxIoString(
     _In_ LONG Index
     )
 {
-    PPH_STRING maxUsageString = NULL;
     PPH_PROCESS_RECORD maxProcessRecord;
     ULONG64 maxIoReadOther;
     ULONG64 maxIoWrite;
 
     if (!(SystemStatistics.MaxIoReadOtherHistory && SystemStatistics.MaxIoWriteHistory))
-        return NULL;
+        return PhReferenceEmptyString();
 
     if (maxProcessRecord = PhSipReferenceMaxIoRecord(Index))
     {
+        PPH_STRING maxUsageString;
+
         // We found the process record, so now we construct the max. usage string.
         maxIoReadOther = PhGetItemCircularBuffer_ULONG64(SystemStatistics.MaxIoReadOtherHistory, Index);
         maxIoWrite = PhGetItemCircularBuffer_ULONG64(SystemStatistics.MaxIoWriteHistory, Index);
 
         if (!PH_IS_FAKE_PROCESS_ID(maxProcessRecord->ProcessId))
         {
-            maxUsageString = PhaFormatString(
-                L"\n%s (%u): R+O: %s, W: %s",
-                maxProcessRecord->ProcessName->Buffer,
-                HandleToUlong(maxProcessRecord->ProcessId),
-                PhaFormatSize(maxIoReadOther, ULONG_MAX)->Buffer,
-                PhaFormatSize(maxIoWrite, ULONG_MAX)->Buffer
-                );
+            PH_FORMAT format[8];
+
+            // \n%s (%u): R+O: %s, W: %s
+            PhInitFormatC(&format[0], L'\n');
+            PhInitFormatSR(&format[1], maxProcessRecord->ProcessName->sr);
+            PhInitFormatS(&format[2], L" (");
+            PhInitFormatU(&format[3], HandleToUlong(maxProcessRecord->ProcessId));
+            PhInitFormatS(&format[4], L"): R+O: ");
+            PhInitFormatSize(&format[5], maxIoReadOther);
+            PhInitFormatS(&format[6], L", W: ");
+            PhInitFormatSize(&format[7], maxIoWrite);
+
+            maxUsageString = PhFormat(format, RTL_NUMBER_OF(format), 128);
         }
         else
         {
-            maxUsageString = PhaFormatString(
-                L"\n%s: R+O: %s, W: %s",
-                maxProcessRecord->ProcessName->Buffer,
-                PhaFormatSize(maxIoReadOther, ULONG_MAX)->Buffer,
-                PhaFormatSize(maxIoWrite, ULONG_MAX)->Buffer
-                );
+            PH_FORMAT format[6];
+
+            // \n%s: R+O: %s, W: %s
+            PhInitFormatC(&format[0], L'\n');
+            PhInitFormatSR(&format[1], maxProcessRecord->ProcessName->sr);
+            PhInitFormatS(&format[2], L": R+O: ");
+            PhInitFormatSize(&format[3], maxIoReadOther);
+            PhInitFormatS(&format[4], L", W: ");
+            PhInitFormatSize(&format[5], maxIoWrite);
+
+            maxUsageString = PhFormat(format, RTL_NUMBER_OF(format), 128);
         }
 
         PhDereferenceProcessRecord(maxProcessRecord);
+
+        return maxUsageString;
     }
 
-    return maxUsageString;
+    return PhReferenceEmptyString();
 }
 
 //
@@ -656,16 +684,19 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(CpuHistoryGraphMessageCallback)
                 {
                     FLOAT cpuKernel;
                     FLOAT cpuUser;
+                    PH_FORMAT format[5];
 
                     cpuKernel = PhGetItemCircularBuffer_FLOAT(SystemStatistics.CpuKernelHistory, getTooltipText->Index);
                     cpuUser = PhGetItemCircularBuffer_FLOAT(SystemStatistics.CpuUserHistory, getTooltipText->Index);
 
-                    PhMoveReference(&GraphState->TooltipText, PhFormatString(
-                        L"%.2f%%%s\n%s",
-                        (cpuKernel + cpuUser) * 100,
-                        PhGetStringOrEmpty(PhSipGetMaxCpuString(getTooltipText->Index)),
-                        PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->Buffer
-                        ));
+                    // %.2f%%%s\n%s
+                    PhInitFormatF(&format[0], ((DOUBLE)cpuKernel + cpuUser) * 100, 2);
+                    PhInitFormatC(&format[1], L'%');
+                    PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, PhSipGetMaxCpuString(getTooltipText->Index))->sr);
+                    PhInitFormatC(&format[3], L'\n');
+                    PhInitFormatSR(&format[4], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
+
+                    PhMoveReference(&GraphState->TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 128));
                 }
 
                 getTooltipText->Text = PhGetStringRef(GraphState->TooltipText);
@@ -735,17 +766,20 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(PhysicalHistoryGraphMessageCallback)
                 if (GraphState->TooltipIndex != getTooltipText->Index)
                 {
                     ULONG physicalUsage;
+                    PH_FORMAT format[4];
 
                     if (!SystemStatistics.PhysicalHistory)
                         break;
 
                     physicalUsage = PhGetItemCircularBuffer_ULONG(SystemStatistics.PhysicalHistory, getTooltipText->Index);
 
-                    PhMoveReference(&GraphState->TooltipText, PhFormatString(
-                        L"Physical memory: %s\n%s",
-                        PhaFormatSize(UInt32x32To64(physicalUsage, PAGE_SIZE), ULONG_MAX)->Buffer,
-                        PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->Buffer
-                        ));
+                    // Physical memory: %s\n%s
+                    PhInitFormatS(&format[0], L"Physical memory: ");
+                    PhInitFormatSize(&format[1], UInt32x32To64(physicalUsage, PAGE_SIZE));
+                    PhInitFormatC(&format[2], L'\n');
+                    PhInitFormatSR(&format[3], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
+
+                    PhMoveReference(&GraphState->TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 128));
                 }
 
                 getTooltipText->Text = PhGetStringRef(GraphState->TooltipText);
@@ -803,17 +837,20 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(CommitHistoryGraphMessageCallback)
                 if (GraphState->TooltipIndex != getTooltipText->Index)
                 {
                     ULONG commitUsage;
+                    PH_FORMAT format[4];
 
                     if (!SystemStatistics.CommitHistory)
                         break;
 
                     commitUsage = PhGetItemCircularBuffer_ULONG(SystemStatistics.CommitHistory, getTooltipText->Index);
 
-                    PhMoveReference(&GraphState->TooltipText, PhFormatString(
-                        L"Commit charge: %s\n%s",
-                        PhaFormatSize(UInt32x32To64(commitUsage, PAGE_SIZE), ULONG_MAX)->Buffer,
-                        PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->Buffer
-                        ));
+                    // Commit charge: %s\n%s
+                    PhInitFormatS(&format[0], L"Commit charge: ");
+                    PhInitFormatSize(&format[1], UInt32x32To64(commitUsage, PAGE_SIZE));
+                    PhInitFormatC(&format[2], L'\n');
+                    PhInitFormatSR(&format[3], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
+
+                    PhMoveReference(&GraphState->TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 128));
                 }
 
                 getTooltipText->Text = PhGetStringRef(GraphState->TooltipText);
@@ -879,6 +916,7 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(IoHistoryGraphMessageCallback)
                     ULONG64 ioRead;
                     ULONG64 ioWrite;
                     ULONG64 ioOther;
+                    PH_FORMAT format[9];
 
                     if (!(SystemStatistics.IoReadHistory && SystemStatistics.IoOtherHistory && SystemStatistics.IoWriteHistory))
                         break;
@@ -887,14 +925,18 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(IoHistoryGraphMessageCallback)
                     ioWrite = PhGetItemCircularBuffer_ULONG64(SystemStatistics.IoWriteHistory, getTooltipText->Index);
                     ioOther = PhGetItemCircularBuffer_ULONG64(SystemStatistics.IoOtherHistory, getTooltipText->Index);
 
-                    PhMoveReference(&GraphState->TooltipText, PhFormatString(
-                        L"R: %s\nW: %s\nO: %s%s\n%s",
-                        PhaFormatSize(ioRead, ULONG_MAX)->Buffer,
-                        PhaFormatSize(ioWrite, ULONG_MAX)->Buffer,
-                        PhaFormatSize(ioOther, ULONG_MAX)->Buffer,
-                        PhGetStringOrEmpty(PhSipGetMaxIoString(getTooltipText->Index)),
-                        PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->Buffer
-                        ));
+                    // R: %s\nW: %s\nO: %s%s\n%s
+                    PhInitFormatS(&format[0], L"R: ");
+                    PhInitFormatSize(&format[1], ioRead);
+                    PhInitFormatS(&format[2], L"\nW: ");
+                    PhInitFormatSize(&format[3], ioWrite);
+                    PhInitFormatS(&format[4], L"\nO: ");
+                    PhInitFormatSize(&format[5], ioOther);
+                    PhInitFormatSR(&format[6], PH_AUTO_T(PH_STRING, PhSipGetMaxIoString(getTooltipText->Index))->sr);
+                    PhInitFormatC(&format[7], L'\n');
+                    PhInitFormatSR(&format[8], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
+
+                    PhMoveReference(&GraphState->TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 128));
                 }
 
                 getTooltipText->Text = PhGetStringRef(GraphState->TooltipText);
