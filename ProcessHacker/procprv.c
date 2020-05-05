@@ -2556,7 +2556,7 @@ PPH_PROCESS_RECORD PhpCreateProcessRecord(
     processRecord->CreateTime = ProcessItem->CreateTime;
 
     PhSetReference(&processRecord->ProcessName, ProcessItem->ProcessName);
-    PhSetReference(&processRecord->FileName, ProcessItem->FileName);
+    PhSetReference(&processRecord->FileName, ProcessItem->FileNameWin32);
     PhSetReference(&processRecord->CommandLine, ProcessItem->CommandLine);
     //PhSetReference(&processRecord->UserName, ProcessItem->UserName);
 
