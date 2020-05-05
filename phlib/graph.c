@@ -3,7 +3,7 @@
  *   graph control
  *
  * Copyright (C) 2010-2016 wj32
- * Copyright (C) 2017-2018 dmex
+ * Copyright (C) 2017-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -26,6 +26,7 @@
 
 #include <graph.h>
 #include <guisup.h>
+#include <settings.h>
 
 #define COLORREF_TO_BITS(Color) (_byteswap_ulong(Color) >> 8)
 
@@ -1302,6 +1303,12 @@ LRESULT CALLBACK PhpGraphWndProc(
                 SendMessage(context->TooltipHandle, TTM_SETDELAYTIME, TTDT_AUTOPOP, MAXSHORT);
                 // Allow newlines (-1 doesn't work)
                 SendMessage(context->TooltipHandle, TTM_SETMAXTIPWIDTH, 0, MAXSHORT);
+
+                if (PhGetIntegerSetting(L"EnableThemeSupport")) // HACK (dmex)
+                {
+                    PhSetControlTheme(context->TooltipHandle, L"DarkMode_Explorer");
+                    //SendMessage(context->TooltipHandle, TTM_SETWINDOWTHEME, 0, (LPARAM)L"DarkMode_Explorer");
+                }
             }
             else
             {
