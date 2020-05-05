@@ -314,28 +314,31 @@ INT_PTR CALLBACK PhSipMemoryDialogProc(
         {
             PPH_LAYOUT_ITEM graphItem;
             PPH_LAYOUT_ITEM panelItem;
+            HWND totalPhysicalLabel;
 
             PhSipInitializeMemoryDialog();
 
             MemoryDialog = hwndDlg;
+            totalPhysicalLabel = GetDlgItem(hwndDlg, IDC_TOTALPHYSICAL);
+
             PhInitializeLayoutManager(&MemoryLayoutManager, hwndDlg);
-            PhAddLayoutItem(&MemoryLayoutManager, GetDlgItem(hwndDlg, IDC_TOTALPHYSICAL), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT | PH_LAYOUT_FORCE_INVALIDATE);
+            PhAddLayoutItem(&MemoryLayoutManager, totalPhysicalLabel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT | PH_LAYOUT_FORCE_INVALIDATE);
             graphItem = PhAddLayoutItem(&MemoryLayoutManager, GetDlgItem(hwndDlg, IDC_GRAPH_LAYOUT), NULL, PH_ANCHOR_ALL);
             panelItem = PhAddLayoutItem(&MemoryLayoutManager, GetDlgItem(hwndDlg, IDC_LAYOUT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             MemoryGraphMargin = graphItem->Margin;
 
             SetWindowFont(GetDlgItem(hwndDlg, IDC_TITLE), MemorySection->Parameters->LargeFont, FALSE);
-            SetWindowFont(GetDlgItem(hwndDlg, IDC_TOTALPHYSICAL), MemorySection->Parameters->MediumFont, FALSE);
+            SetWindowFont(totalPhysicalLabel, MemorySection->Parameters->MediumFont, FALSE);
 
             if (PhSipGetMemoryLimits(&InstalledMemory, &ReservedMemory))
             {
-                PhSetDialogItemText(hwndDlg, IDC_TOTALPHYSICAL,
-                    PhaConcatStrings2(PhaFormatSize(InstalledMemory, ULONG_MAX)->Buffer, L" installed")->Buffer);
+                PhSetWindowText(totalPhysicalLabel, PhaConcatStrings2(
+                    PhaFormatSize(InstalledMemory, ULONG_MAX)->Buffer, L" installed")->Buffer);
             }
             else
             {
-                PhSetDialogItemText(hwndDlg, IDC_TOTALPHYSICAL,
-                    PhaConcatStrings2(PhaFormatSize(UInt32x32To64(PhSystemBasicInformation.NumberOfPhysicalPages, PAGE_SIZE), ULONG_MAX)->Buffer, L" total")->Buffer);
+                PhSetWindowText(totalPhysicalLabel, PhaConcatStrings2(
+                    PhaFormatSize(UInt32x32To64(PhSystemBasicInformation.NumberOfPhysicalPages, PAGE_SIZE), ULONG_MAX)->Buffer, L" total")->Buffer);
             }
 
             MemoryPanel = CreateDialog(PhInstanceHandle, MAKEINTRESOURCE(IDD_SYSINFO_MEMPANEL), hwndDlg, PhSipMemoryPanelDialogProc);
