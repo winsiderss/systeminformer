@@ -3,7 +3,7 @@
  *   GPU nodes window
  *
  * Copyright (C) 2011-2015 wj32
- * Copyright (C) 2018 dmex
+ * Copyright (C) 2018-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -307,6 +307,18 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
                     {
                         if (header->hwndFrom == GraphHandle[i])
                         {
+                            PhGraphStateGetDrawInfo(
+                                &GraphState[i],
+                                getDrawInfo,
+                                EtGpuNodesHistory[i].Count
+                                );
+
+                            if (!GraphState[i].Valid)
+                            {
+                                PhCopyCircularBuffer_FLOAT(&EtGpuNodesHistory[i], GraphState[i].Data1, drawInfo->LineDataCount);
+                                GraphState[i].Valid = TRUE;
+                            }
+                            
                             if (PhGetIntegerSetting(L"GraphShowText"))
                             {
                                 HDC hdc;
@@ -321,41 +333,42 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
 
                                 if (!PhIsNullOrEmptyString(engineName))
                                 {
-                                    PhMoveReference(&GraphState[i].Text, PhFormatString(
-                                        L"%.2f%% (%s)",
-                                        gpu * 100,
-                                        engineName->Buffer
-                                        ));
+                                    PH_FORMAT format[4];
+
+                                    // %.2f%% (%s)
+                                    PhInitFormatF(&format[0], (DOUBLE)gpu * 100, 2);
+                                    PhInitFormatS(&format[1], L"% (");
+                                    PhInitFormatSR(&format[2], engineName->sr);
+                                    PhInitFormatC(&format[3], L')');
+
+                                    PhMoveReference(&GraphState[i].Text, PhFormat(format, RTL_NUMBER_OF(format), 0));
                                 }
                                 else
                                 {
-                                    PhMoveReference(&GraphState[i].Text, PhFormatString(
-                                        L"%.2f%% (Node %lu)",
-                                        gpu * 100,
-                                        i
-                                        ));
+                                    PH_FORMAT format[4];
+
+                                    // %.2f%% (Node %lu)
+                                    PhInitFormatF(&format[0], (DOUBLE)gpu * 100, 2);
+                                    PhInitFormatS(&format[1], L"% (Node ");
+                                    PhInitFormatU(&format[2], i);
+                                    PhInitFormatC(&format[3], L')');
+
+                                    PhMoveReference(&GraphState[i].Text, PhFormat(format, RTL_NUMBER_OF(format), 0));
                                 }
 
                                 hdc = Graph_GetBufferedContext(GraphHandle[i]);
-                                SelectFont(hdc, PhApplicationFont);
-                                PhSetGraphText(hdc, drawInfo, &GraphState[i].Text->sr,
-                                    &NormalGraphTextMargin, &NormalGraphTextPadding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
+                                PhSetGraphText(
+                                    hdc,
+                                    drawInfo,
+                                    &GraphState[i].Text->sr,
+                                    &NormalGraphTextMargin,
+                                    &NormalGraphTextPadding,
+                                    PH_ALIGN_TOP | PH_ALIGN_LEFT
+                                    );
                             }
                             else
                             {
                                 drawInfo->Text.Buffer = NULL;
-                            }
-
-                            PhGraphStateGetDrawInfo(
-                                &GraphState[i],
-                                getDrawInfo,
-                                EtGpuNodesHistory[i].Count
-                                );
-
-                            if (!GraphState[i].Valid)
-                            {
-                                PhCopyCircularBuffer_FLOAT(&EtGpuNodesHistory[i], GraphState[i].Data1, drawInfo->LineDataCount);
-                                GraphState[i].Valid = TRUE;
                             }
 
                             break;
@@ -392,7 +405,15 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
                                             PhClearReference(&adapterDescription);
 
                                         if (!adapterDescription)
-                                            adapterDescription = PhFormatString(L"Adapter %lu", adapterIndex);
+                                        {
+                                            PH_FORMAT format[2];
+
+                                            // Adapter %lu
+                                            PhInitFormatS(&format[0], L"Adapter ");
+                                            PhInitFormatU(&format[1], adapterIndex);
+
+                                            adapterDescription = PhFormat(format, RTL_NUMBER_OF(format), 0);
+                                        }
                                     }
                                     else
                                     {
@@ -401,31 +422,41 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
 
                                     if (!PhIsNullOrEmptyString(adapterEngineName))
                                     {
-                                        PhMoveReference(&GraphState[i].TooltipText, PhFormatString(
-                                            L"Node %lu (%s) on %s\n%.2f%%\n%s",
-                                            i,
-                                            adapterEngineName->Buffer,
-                                            adapterDescription->Buffer,
-                                            gpu * 100,
-                                            ((PPH_STRING)PH_AUTO(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
-                                            ));
+                                        PH_FORMAT format[9];
+
+                                        // %.2f%%\nNode %lu (%s) on %s\n%s
+                                        PhInitFormatF(&format[0], (DOUBLE)gpu * 100, 2);
+                                        PhInitFormatS(&format[1], L"%\nNode ");
+                                        PhInitFormatU(&format[2], i);
+                                        PhInitFormatS(&format[3], L" (");
+                                        PhInitFormatSR(&format[4], adapterEngineName->sr);
+                                        PhInitFormatS(&format[5], L") on ");
+                                        PhInitFormatSR(&format[6], adapterDescription->sr);
+                                        PhInitFormatC(&format[7], L'\n');
+                                        PhInitFormatSR(&format[8], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
+
+                                        PhMoveReference(&GraphState[i].TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 0));
                                     }
                                     else
                                     {
-                                        PhMoveReference(&GraphState[i].TooltipText, PhFormatString(
-                                            L"Node %lu on %s\n%.2f%%\n%s",
-                                            i,
-                                            adapterDescription->Buffer,
-                                            gpu * 100,
-                                            ((PPH_STRING)PH_AUTO(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
-                                            ));
+                                        PH_FORMAT format[7];
+
+                                        // %.2f%%\nNode %lu on %s\n%s
+                                        PhInitFormatF(&format[0], (DOUBLE)gpu * 100, 2);
+                                        PhInitFormatS(&format[1], L"%\nNode ");
+                                        PhInitFormatU(&format[2], i);
+                                        PhInitFormatS(&format[3], L" on ");
+                                        PhInitFormatSR(&format[4], adapterDescription->sr);
+                                        PhInitFormatC(&format[5], L'\n');
+                                        PhInitFormatSR(&format[6], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
+
+                                        PhMoveReference(&GraphState[i].TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 0));
                                     }
 
-               
                                     PhDereferenceObject(adapterDescription);
                                 }
 
-                                getTooltipText->Text = GraphState[i].TooltipText->sr;
+                                getTooltipText->Text = PhGetStringRef(GraphState[i].TooltipText);
 
                                 break;
                             }

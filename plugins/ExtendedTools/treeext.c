@@ -3,6 +3,7 @@
  *   process and network tree support
  *
  * Copyright (C) 2011 wj32
+ * Copyright (C) 2011-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -142,7 +143,7 @@ VOID EtProcessTreeNewInitializing(
     PPH_PLUGIN_TREENEW_INFORMATION treeNewInfo = Parameter;
     ULONG i;
 
-    for (i = 0; i < sizeof(columns) / sizeof(COLUMN_INFO); i++)
+    for (i = 0; i < RTL_NUMBER_OF(columns); i++)
     {
         EtpAddTreeNewColumn(treeNewInfo, columns[i].SubId, columns[i].Text, columns[i].Width, columns[i].Alignment,
             columns[i].TextFlags, columns[i].SortDescending, EtpProcessTreeNewSortFunction);
@@ -208,11 +209,9 @@ static VOID PhpAggregateField(
     _Inout_ PVOID AggregatedValue
     )
 {
-    ULONG i;
-
     PhpAccumulateField(AggregatedValue, PhpFieldForAggregate(ProcessNode, Location, FieldOffset), Type);
 
-    for (i = 0; i < ProcessNode->Children->Count; i++)
+    for (ULONG i = 0; i < ProcessNode->Children->Count; i++)
     {
         PhpAggregateField(ProcessNode->Children->Items[i], Type, Location, FieldOffset, AggregatedValue);
     }

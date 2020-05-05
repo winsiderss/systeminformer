@@ -2,7 +2,7 @@
  * Process Hacker Extended Tools -
  *   GPU details window
  *
- * Copyright (C) 2018-2019 dmex
+ * Copyright (C) 2018-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -159,6 +159,9 @@ VOID EtpQueryAdapterDriverModel(
             break;
         case KMT_DRIVERVERSION_WDDM_2_6:
             PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_WDDMVERSION, 1, L"WDDM 2.6");
+            break;
+        case KMT_DRIVERVERSION_WDDM_2_7:
+            PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_WDDMVERSION, 1, L"WDDM 2.7");
             break;
         default:
             PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_WDDMVERSION, 1, L"ERROR");

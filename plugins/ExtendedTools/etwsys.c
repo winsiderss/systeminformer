@@ -3,6 +3,7 @@
  *   ETW system information section
  *
  * Copyright (C) 2010-2011 wj32
+ * Copyright (C) 2015-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -26,16 +27,26 @@
 static PPH_SYSINFO_SECTION DiskSection;
 static HWND DiskDialog;
 static PH_LAYOUT_MANAGER DiskLayoutManager;
+static RECT DiskGraphMargin;
 static HWND DiskGraphHandle;
 static PH_GRAPH_STATE DiskGraphState;
 static HWND DiskPanel;
+static HWND DiskPanelReadsDeltaLabel;
+static HWND DiskPanelReadBytesDeltaLabel;
+static HWND DiskPanelWritesDeltaLabel;
+static HWND DiskPanelWriteBytesDeltaLabel;
 
 static PPH_SYSINFO_SECTION NetworkSection;
 static HWND NetworkDialog;
 static PH_LAYOUT_MANAGER NetworkLayoutManager;
+static RECT NetworkGraphMargin;
 static HWND NetworkGraphHandle;
 static PH_GRAPH_STATE NetworkGraphState;
 static HWND NetworkPanel;
+static HWND NetworkPanelReceiveDeltaLabel;
+static HWND NetworkPanelReceiveBytesDeltaLabel;
+static HWND NetworkPanelSendsDeltaLabel;
+static HWND NetworkPanelSendBytesDeltaLabel;
 
 VOID EtEtwSystemInformationInitializing(
     _In_ PPH_PLUGIN_SYSINFO_POINTERS Pointers
@@ -149,35 +160,65 @@ BOOLEAN EtpDiskSysInfoSectionCallback(
             PPH_SYSINFO_GRAPH_GET_TOOLTIP_TEXT getTooltipText = Parameter1;
             ULONG64 diskRead;
             ULONG64 diskWrite;
+            PH_FORMAT format[7];
 
             diskRead = PhGetItemCircularBuffer_ULONG(&EtDiskReadHistory, getTooltipText->Index);
             diskWrite = PhGetItemCircularBuffer_ULONG(&EtDiskWriteHistory, getTooltipText->Index);
 
-            PhMoveReference(&Section->GraphState.TooltipText, PhFormatString(
-                L"R: %s\nW: %s%s\n%s",
-                PhaFormatSize(diskRead, ULONG_MAX)->Buffer,
-                PhaFormatSize(diskWrite, ULONG_MAX)->Buffer,
-                PhGetStringOrEmpty(EtpGetMaxDiskString(getTooltipText->Index)),
-                ((PPH_STRING)PH_AUTO(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
-                ));
-            getTooltipText->Text = Section->GraphState.TooltipText->sr;
+            // R: %s\nW: %s%s\n%s
+            PhInitFormatS(&format[0], L"R: ");
+            PhInitFormatSize(&format[1], diskRead);
+            PhInitFormatS(&format[2], L"\nW: ");
+            PhInitFormatSize(&format[3], diskWrite);
+            PhInitFormatSR(&format[4], PH_AUTO_T(PH_STRING, EtpGetMaxDiskString(getTooltipText->Index))->sr);
+            PhInitFormatC(&format[5], L'\n');
+            PhInitFormatSR(&format[6], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
+
+            PhMoveReference(&Section->GraphState.TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 128));
+            getTooltipText->Text = PhGetStringRef(Section->GraphState.TooltipText);
         }
         return TRUE;
     case SysInfoGraphDrawPanel:
         {
             PPH_SYSINFO_DRAW_PANEL drawPanel = Parameter1;
+            PH_FORMAT format[4];
 
             drawPanel->Title = PhCreateString(L"Disk");
-            drawPanel->SubTitle = PhFormatString(
-                L"R: %s\nW: %s",
-                PhaFormatSize(EtDiskReadDelta.Delta, ULONG_MAX)->Buffer,
-                PhaFormatSize(EtDiskWriteDelta.Delta, ULONG_MAX)->Buffer
-                );
+
+            // R: %s\nW: %s
+            PhInitFormatS(&format[0], L"R: ");
+            PhInitFormatSize(&format[1], EtDiskReadDelta.Delta);
+            PhInitFormatS(&format[2], L"\nW: ");
+            PhInitFormatSize(&format[3], EtDiskWriteDelta.Delta);
+
+            drawPanel->SubTitle = PhFormat(format, RTL_NUMBER_OF(format), 0);
         }
         return TRUE;
     }
 
     return FALSE;
+}
+
+VOID EtpCreateDiskGraph(
+    VOID
+    )
+{
+    DiskGraphHandle = CreateWindow(
+        PH_GRAPH_CLASSNAME,
+        NULL,
+        WS_VISIBLE | WS_CHILD | WS_BORDER,
+        0,
+        0,
+        3,
+        3,
+        DiskDialog,
+        NULL,
+        NULL,
+        NULL
+        );
+    Graph_SetTooltip(DiskGraphHandle, TRUE);
+
+    PhAddLayoutItemEx(&DiskLayoutManager, DiskGraphHandle, NULL, PH_ANCHOR_ALL, DiskGraphMargin);
 }
 
 INT_PTR CALLBACK EtpDiskDialogProc(
@@ -200,6 +241,7 @@ INT_PTR CALLBACK EtpDiskDialogProc(
             PhInitializeLayoutManager(&DiskLayoutManager, hwndDlg);
             graphItem = PhAddLayoutItem(&DiskLayoutManager, GetDlgItem(hwndDlg, IDC_GRAPH_LAYOUT), NULL, PH_ANCHOR_ALL);
             panelItem = PhAddLayoutItem(&DiskLayoutManager, GetDlgItem(hwndDlg, IDC_PANEL_LAYOUT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            DiskGraphMargin = graphItem->Margin;
 
             SetWindowFont(GetDlgItem(hwndDlg, IDC_TITLE), DiskSection->Parameters->LargeFont, FALSE);
 
@@ -207,23 +249,7 @@ INT_PTR CALLBACK EtpDiskDialogProc(
             ShowWindow(DiskPanel, SW_SHOW);
             PhAddLayoutItemEx(&DiskLayoutManager, DiskPanel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, panelItem->Margin);
 
-            DiskGraphHandle = CreateWindow(
-                PH_GRAPH_CLASSNAME,
-                NULL,
-                WS_VISIBLE | WS_CHILD | WS_BORDER,
-                0,
-                0,
-                3,
-                3,
-                hwndDlg,
-                NULL,
-                NULL,
-                NULL
-                );
-            Graph_SetTooltip(DiskGraphHandle, TRUE);
-
-            PhAddLayoutItemEx(&DiskLayoutManager, DiskGraphHandle, NULL, PH_ANCHOR_ALL, graphItem->Margin);
-
+            EtpCreateDiskGraph();
             EtpUpdateDiskGraph();
             EtpUpdateDiskPanel();
         }
@@ -260,6 +286,18 @@ INT_PTR CALLBACK EtpDiskPanelDialogProc(
     _In_ LPARAM lParam
     )
 {
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            DiskPanelReadsDeltaLabel = GetDlgItem(hwndDlg, IDC_ZREADSDELTA_V);
+            DiskPanelReadBytesDeltaLabel = GetDlgItem(hwndDlg, IDC_ZREADBYTESDELTA_V);
+            DiskPanelWritesDeltaLabel = GetDlgItem(hwndDlg, IDC_ZWRITESDELTA_V);
+            DiskPanelWriteBytesDeltaLabel = GetDlgItem(hwndDlg, IDC_ZWRITEBYTESDELTA_V);
+        }
+        break;
+    }
+
     return FALSE;
 }
 
@@ -335,20 +373,24 @@ VOID EtpNotifyDiskGraph(
                 {
                     ULONG64 diskRead;
                     ULONG64 diskWrite;
+                    PH_FORMAT format[7];
 
                     diskRead = PhGetItemCircularBuffer_ULONG(&EtDiskReadHistory, getTooltipText->Index);
                     diskWrite = PhGetItemCircularBuffer_ULONG(&EtDiskWriteHistory, getTooltipText->Index);
 
-                    PhMoveReference(&DiskGraphState.TooltipText, PhFormatString(
-                        L"R: %s\nW: %s%s\n%s",
-                        PhaFormatSize(diskRead, ULONG_MAX)->Buffer,
-                        PhaFormatSize(diskWrite, ULONG_MAX)->Buffer,
-                        PhGetStringOrEmpty(EtpGetMaxDiskString(getTooltipText->Index)),
-                        ((PPH_STRING)PH_AUTO(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
-                        ));
+                    // R: %s\nW: %s%s\n%s
+                    PhInitFormatS(&format[0], L"R: ");
+                    PhInitFormatSize(&format[1], diskRead);
+                    PhInitFormatS(&format[2], L"\nW: ");
+                    PhInitFormatSize(&format[3], diskWrite);
+                    PhInitFormatSR(&format[4], PH_AUTO_T(PH_STRING, EtpGetMaxDiskString(getTooltipText->Index))->sr);
+                    PhInitFormatC(&format[5], L'\n');
+                    PhInitFormatSR(&format[6], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
+
+                    PhMoveReference(&DiskGraphState.TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 128));
                 }
 
-                getTooltipText->Text = DiskGraphState.TooltipText->sr;
+                getTooltipText->Text = PhGetStringRef(DiskGraphState.TooltipText);
             }
         }
         break;
@@ -390,10 +432,36 @@ VOID EtpUpdateDiskPanel(
     VOID
     )
 {
-    PhSetDialogItemText(DiskPanel, IDC_ZREADSDELTA_V, PhaFormatUInt64(EtDiskReadCountDelta.Delta, TRUE)->Buffer);
-    PhSetDialogItemText(DiskPanel, IDC_ZREADBYTESDELTA_V, PhaFormatSize(EtDiskReadDelta.Delta, ULONG_MAX)->Buffer);
-    PhSetDialogItemText(DiskPanel, IDC_ZWRITESDELTA_V, PhaFormatUInt64(EtDiskWriteCountDelta.Delta, TRUE)->Buffer);
-    PhSetDialogItemText(DiskPanel, IDC_ZWRITEBYTESDELTA_V, PhaFormatSize(EtDiskWriteDelta.Delta, ULONG_MAX)->Buffer);
+    PH_FORMAT format[1];
+    WCHAR formatBuffer[256];
+
+    PhInitFormatI64UGroupDigits(&format[0], EtDiskReadCountDelta.Delta);
+
+    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
+        PhSetWindowText(DiskPanelReadsDeltaLabel, formatBuffer);
+    else
+        PhSetWindowText(DiskPanelReadsDeltaLabel, PhaFormatUInt64(EtDiskReadCountDelta.Delta, TRUE)->Buffer);
+
+    PhInitFormatSize(&format[0], EtDiskReadDelta.Delta);
+
+    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
+        PhSetWindowText(DiskPanelReadBytesDeltaLabel, formatBuffer);
+    else
+        PhSetWindowText(DiskPanelReadBytesDeltaLabel, PhaFormatSize(EtDiskReadDelta.Delta, ULONG_MAX)->Buffer);
+
+    PhInitFormatI64UGroupDigits(&format[0], EtDiskWriteCountDelta.Delta);
+
+    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
+        PhSetWindowText(DiskPanelWritesDeltaLabel, formatBuffer);
+    else
+        PhSetWindowText(DiskPanelWritesDeltaLabel, PhaFormatUInt64(EtDiskWriteCountDelta.Delta, TRUE)->Buffer);
+
+    PhInitFormatSize(&format[0], EtDiskWriteDelta.Delta);
+
+    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
+        PhSetWindowText(DiskPanelWriteBytesDeltaLabel, formatBuffer);
+    else
+        PhSetWindowText(DiskPanelWriteBytesDeltaLabel, PhaFormatSize(EtDiskWriteDelta.Delta, ULONG_MAX)->Buffer);
 }
 
 PPH_PROCESS_RECORD EtpReferenceMaxDiskRecord(
@@ -419,19 +487,44 @@ PPH_STRING EtpGetMaxDiskString(
     )
 {
     PPH_PROCESS_RECORD maxProcessRecord;
-    PPH_STRING maxUsageString = NULL;
+#ifdef PH_RECORD_MAX_USAGE
+    ULONG64 maxDiskUsage;
+#endif
 
     if (maxProcessRecord = EtpReferenceMaxDiskRecord(Index))
     {
-        maxUsageString = PhaFormatString(
-            L"\n%s (%lu)",
-            maxProcessRecord->ProcessName->Buffer,
-            HandleToUlong(maxProcessRecord->ProcessId)
-            );
+        PPH_STRING maxUsageString;
+#ifdef PH_RECORD_MAX_USAGE
+        PH_FORMAT format[6];
+
+        maxDiskUsage = PhGetItemCircularBuffer_ULONG64(&PhMaxDiskUsageHistory, Index);
+
+        // \n%s (%lu): %s
+        PhInitFormatC(&format[0], L'\n');
+        PhInitFormatSR(&format[1], maxProcessRecord->ProcessName->sr);
+        PhInitFormatS(&format[2], L" (");
+        PhInitFormatU(&format[3], HandleToUlong(maxProcessRecord->ProcessId));
+        PhInitFormatS(&format[4], L"): ");
+        PhInitFormatSize(&format[5], maxDiskUsage);
+#else
+        PH_FORMAT format[5];
+
+        // \n%s (%lu)
+        PhInitFormatC(&format[0], L'\n');
+        PhInitFormatSR(&format[1], maxProcessRecord->ProcessName->sr);
+        PhInitFormatS(&format[2], L" (");
+        PhInitFormatU(&format[3], HandleToUlong(maxProcessRecord->ProcessId));
+        PhInitFormatC(&format[4], L')');
+#endif
+
+        maxUsageString = PhFormat(format, RTL_NUMBER_OF(format), 128);
+
         PhDereferenceProcessRecord(maxProcessRecord);
+
+        return maxUsageString;
     }
 
-    return maxUsageString;
+    return PhReferenceEmptyString();
 }
 
 BOOLEAN EtpNetworkSysInfoSectionCallback(
@@ -525,35 +618,65 @@ BOOLEAN EtpNetworkSysInfoSectionCallback(
             PPH_SYSINFO_GRAPH_GET_TOOLTIP_TEXT getTooltipText = Parameter1;
             ULONG64 networkReceive;
             ULONG64 networkSend;
+            PH_FORMAT format[7];
 
             networkReceive = PhGetItemCircularBuffer_ULONG(&EtNetworkReceiveHistory, getTooltipText->Index);
             networkSend = PhGetItemCircularBuffer_ULONG(&EtNetworkSendHistory, getTooltipText->Index);
 
-            PhMoveReference(&Section->GraphState.TooltipText, PhFormatString(
-                L"R: %s\nS: %s%s\n%s",
-                PhaFormatSize(networkReceive, ULONG_MAX)->Buffer,
-                PhaFormatSize(networkSend, ULONG_MAX)->Buffer,
-                PhGetStringOrEmpty(EtpGetMaxNetworkString(getTooltipText->Index)),
-                ((PPH_STRING)PH_AUTO(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
-                ));
-            getTooltipText->Text = Section->GraphState.TooltipText->sr;
+            // R: %s\nS: %s%s\n%s
+            PhInitFormatS(&format[0], L"R: ");
+            PhInitFormatSize(&format[1], networkReceive);
+            PhInitFormatS(&format[2], L"\nS: ");
+            PhInitFormatSize(&format[3], networkSend);
+            PhInitFormatSR(&format[4], PH_AUTO_T(PH_STRING, EtpGetMaxNetworkString(getTooltipText->Index))->sr);
+            PhInitFormatC(&format[5], L'\n');
+            PhInitFormatSR(&format[6], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
+
+            PhMoveReference(&Section->GraphState.TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 128));
+            getTooltipText->Text = PhGetStringRef(Section->GraphState.TooltipText);
         }
         return TRUE;
     case SysInfoGraphDrawPanel:
         {
             PPH_SYSINFO_DRAW_PANEL drawPanel = Parameter1;
+            PH_FORMAT format[4];
 
             drawPanel->Title = PhCreateString(L"Network");
-            drawPanel->SubTitle = PhFormatString(
-                L"R: %s\nS: %s",
-                PhaFormatSize(EtNetworkReceiveDelta.Delta, ULONG_MAX)->Buffer,
-                PhaFormatSize(EtNetworkSendDelta.Delta, ULONG_MAX)->Buffer
-                );
+
+            // R: %s\nS: %s
+            PhInitFormatS(&format[0], L"R: ");
+            PhInitFormatSize(&format[1], EtNetworkReceiveDelta.Delta);
+            PhInitFormatS(&format[2], L"\nS: ");
+            PhInitFormatSize(&format[3], EtNetworkSendDelta.Delta);
+
+            drawPanel->SubTitle = PhFormat(format, RTL_NUMBER_OF(format), 0);
         }
         return TRUE;
     }
 
     return FALSE;
+}
+
+VOID EtpCreateNetworkGraph(
+    VOID
+    )
+{
+    NetworkGraphHandle = CreateWindow(
+        PH_GRAPH_CLASSNAME,
+        NULL,
+        WS_VISIBLE | WS_CHILD | WS_BORDER,
+        0,
+        0,
+        3,
+        3,
+        NetworkDialog,
+        NULL,
+        NULL,
+        NULL
+        );
+    Graph_SetTooltip(NetworkGraphHandle, TRUE);
+
+    PhAddLayoutItemEx(&NetworkLayoutManager, NetworkGraphHandle, NULL, PH_ANCHOR_ALL, NetworkGraphMargin);
 }
 
 INT_PTR CALLBACK EtpNetworkDialogProc(
@@ -576,6 +699,7 @@ INT_PTR CALLBACK EtpNetworkDialogProc(
             PhInitializeLayoutManager(&NetworkLayoutManager, hwndDlg);
             graphItem = PhAddLayoutItem(&NetworkLayoutManager, GetDlgItem(hwndDlg, IDC_GRAPH_LAYOUT), NULL, PH_ANCHOR_ALL);
             panelItem = PhAddLayoutItem(&NetworkLayoutManager, GetDlgItem(hwndDlg, IDC_PANEL_LAYOUT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            NetworkGraphMargin = graphItem->Margin;
 
             SetWindowFont(GetDlgItem(hwndDlg, IDC_TITLE), NetworkSection->Parameters->LargeFont, FALSE);
 
@@ -583,23 +707,7 @@ INT_PTR CALLBACK EtpNetworkDialogProc(
             ShowWindow(NetworkPanel, SW_SHOW);
             PhAddLayoutItemEx(&NetworkLayoutManager, NetworkPanel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, panelItem->Margin);
 
-            NetworkGraphHandle = CreateWindow(
-                PH_GRAPH_CLASSNAME,
-                NULL,
-                WS_VISIBLE | WS_CHILD | WS_BORDER,
-                0,
-                0,
-                3,
-                3,
-                hwndDlg,
-                NULL,
-                NULL,
-                NULL
-                );
-            Graph_SetTooltip(NetworkGraphHandle, TRUE);
-
-            PhAddLayoutItemEx(&NetworkLayoutManager, NetworkGraphHandle, NULL, PH_ANCHOR_ALL, graphItem->Margin);
-
+            EtpCreateNetworkGraph();
             EtpUpdateNetworkGraph();
             EtpUpdateNetworkPanel();
         }
@@ -636,6 +744,18 @@ INT_PTR CALLBACK EtpNetworkPanelDialogProc(
     _In_ LPARAM lParam
     )
 {
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            NetworkPanelReceiveDeltaLabel = GetDlgItem(hwndDlg, IDC_ZRECEIVESDELTA_V);
+            NetworkPanelReceiveBytesDeltaLabel = GetDlgItem(hwndDlg, IDC_ZRECEIVEBYTESDELTA_V);
+            NetworkPanelSendsDeltaLabel = GetDlgItem(hwndDlg, IDC_ZSENDSDELTA_V);
+            NetworkPanelSendBytesDeltaLabel = GetDlgItem(hwndDlg, IDC_ZSENDBYTESDELTA_V);
+        }
+        break;
+    }
+
     return FALSE;
 }
 
@@ -711,20 +831,24 @@ VOID EtpNotifyNetworkGraph(
                 {
                     ULONG64 networkReceive;
                     ULONG64 networkSend;
+                    PH_FORMAT format[7];
 
                     networkReceive = PhGetItemCircularBuffer_ULONG(&EtNetworkReceiveHistory, getTooltipText->Index);
                     networkSend = PhGetItemCircularBuffer_ULONG(&EtNetworkSendHistory, getTooltipText->Index);
 
-                    PhMoveReference(&NetworkGraphState.TooltipText, PhFormatString(
-                        L"R: %s\nS: %s%s\n%s",
-                        PhaFormatSize(networkReceive, ULONG_MAX)->Buffer,
-                        PhaFormatSize(networkSend, ULONG_MAX)->Buffer,
-                        PhGetStringOrEmpty(EtpGetMaxNetworkString(getTooltipText->Index)),
-                        ((PPH_STRING)PH_AUTO(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
-                        ));
+                    // R: %s\nS: %s%s\n%s
+                    PhInitFormatS(&format[0], L"R: ");
+                    PhInitFormatSize(&format[1], networkReceive);
+                    PhInitFormatS(&format[2], L"\nS: ");
+                    PhInitFormatSize(&format[3], networkSend);
+                    PhInitFormatSR(&format[4], PH_AUTO_T(PH_STRING, EtpGetMaxNetworkString(getTooltipText->Index))->sr);
+                    PhInitFormatC(&format[5], L'\n');
+                    PhInitFormatSR(&format[6], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
+
+                    PhMoveReference(&NetworkGraphState.TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 128));
                 }
 
-                getTooltipText->Text = NetworkGraphState.TooltipText->sr;
+                getTooltipText->Text = PhGetStringRef(NetworkGraphState.TooltipText);
             }
         }
         break;
@@ -766,10 +890,36 @@ VOID EtpUpdateNetworkPanel(
     VOID
     )
 {
-    PhSetDialogItemText(NetworkPanel, IDC_ZRECEIVESDELTA_V, PhaFormatUInt64(EtNetworkReceiveCountDelta.Delta, TRUE)->Buffer);
-    PhSetDialogItemText(NetworkPanel, IDC_ZRECEIVEBYTESDELTA_V, PhaFormatSize(EtNetworkReceiveDelta.Delta, ULONG_MAX)->Buffer);
-    PhSetDialogItemText(NetworkPanel, IDC_ZSENDSDELTA_V, PhaFormatUInt64(EtNetworkSendCountDelta.Delta, TRUE)->Buffer);
-    PhSetDialogItemText(NetworkPanel, IDC_ZSENDBYTESDELTA_V, PhaFormatSize(EtNetworkSendDelta.Delta, ULONG_MAX)->Buffer);
+    PH_FORMAT format[1];
+    WCHAR formatBuffer[256];
+
+    PhInitFormatI64UGroupDigits(&format[0], EtNetworkReceiveCountDelta.Delta);
+
+    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
+        PhSetWindowText(NetworkPanelReceiveDeltaLabel, formatBuffer);
+    else
+        PhSetWindowText(NetworkPanelReceiveDeltaLabel, PhaFormatUInt64(EtNetworkReceiveCountDelta.Delta, TRUE)->Buffer);
+
+    PhInitFormatSize(&format[0], EtNetworkReceiveDelta.Delta);
+
+    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
+        PhSetWindowText(NetworkPanelReceiveBytesDeltaLabel, formatBuffer);
+    else
+        PhSetWindowText(NetworkPanelReceiveBytesDeltaLabel, PhaFormatSize(EtNetworkReceiveDelta.Delta, ULONG_MAX)->Buffer);
+
+    PhInitFormatI64UGroupDigits(&format[0], EtNetworkSendCountDelta.Delta);
+
+    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
+        PhSetWindowText(NetworkPanelSendsDeltaLabel, formatBuffer);
+    else
+        PhSetWindowText(NetworkPanelSendsDeltaLabel, PhaFormatUInt64(EtNetworkSendCountDelta.Delta, TRUE)->Buffer);
+
+    PhInitFormatSize(&format[0], EtNetworkSendDelta.Delta);
+
+    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
+        PhSetWindowText(NetworkPanelSendBytesDeltaLabel, formatBuffer);
+    else
+        PhSetWindowText(NetworkPanelSendBytesDeltaLabel, PhaFormatSize(EtNetworkSendDelta.Delta, ULONG_MAX)->Buffer);
 }
 
 PPH_PROCESS_RECORD EtpReferenceMaxNetworkRecord(
@@ -795,17 +945,43 @@ PPH_STRING EtpGetMaxNetworkString(
     )
 {
     PPH_PROCESS_RECORD maxProcessRecord;
-    PPH_STRING maxUsageString = NULL;
+#ifdef PH_RECORD_MAX_USAGE
+    ULONG64 maxNetworkUsage;
+#endif
 
     if (maxProcessRecord = EtpReferenceMaxNetworkRecord(Index))
     {
-        maxUsageString = PhaFormatString(
-            L"\n%s (%lu)",
-            maxProcessRecord->ProcessName->Buffer,
-            HandleToUlong(maxProcessRecord->ProcessId)
-            );
+        PPH_STRING maxUsageString;
+
+#ifdef PH_RECORD_MAX_USAGE
+        PH_FORMAT format[6];
+
+        maxNetworkUsage = PhGetItemCircularBuffer_ULONG64(&PhMaxNetworkUsageHistory, Index);
+
+        // \n%s (%lu): %s
+        PhInitFormatC(&format[0], L'\n');
+        PhInitFormatSR(&format[1], maxProcessRecord->ProcessName->sr);
+        PhInitFormatS(&format[2], L" (");
+        PhInitFormatU(&format[3], HandleToUlong(maxProcessRecord->ProcessId));
+        PhInitFormatS(&format[4], L"): ");
+        PhInitFormatSize(&format[5], maxNetworkUsage);
+#else
+        PH_FORMAT format[5];
+
+        // \n%s (%lu)
+        PhInitFormatC(&format[0], L'\n');
+        PhInitFormatSR(&format[1], maxProcessRecord->ProcessName->sr);
+        PhInitFormatS(&format[2], L" (");
+        PhInitFormatU(&format[3], HandleToUlong(maxProcessRecord->ProcessId));
+        PhInitFormatC(&format[4], L')');
+#endif
+
+        maxUsageString = PhFormat(format, RTL_NUMBER_OF(format), 128);
+
         PhDereferenceProcessRecord(maxProcessRecord);
+
+        return maxUsageString;
     }
 
-    return maxUsageString;
+    return PhReferenceEmptyString();
 }

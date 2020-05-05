@@ -3,6 +3,7 @@
  *   GPU mini information section
  *
  * Copyright (C) 2015 wj32
+ * Copyright (C) 2016-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -45,8 +46,15 @@ BOOLEAN EtpGpuListSectionCallback(
     {
     case MiListSectionTick:
         {
-        ListSection->Section->Parameters->SetSectionText(ListSection->Section,
-            PhaFormatString(L"GPU    %.2f%%", EtGpuNodeUsage * 100));
+            PH_FORMAT format[2];
+
+            // GPU    %.2f%%
+            PhInitFormatS(&format[0], L"GPU    ");
+            PhInitFormatF(&format[1], (DOUBLE)EtGpuNodeUsage * 100, 2);
+            PhInitFormatC(&format[0], L'%');
+
+            ListSection->Section->Parameters->SetSectionText(ListSection->Section,
+                PH_AUTO_T(PH_STRING, PhFormat(format, RTL_NUMBER_OF(format), 0)));
         }
         break;
     case MiListSectionSortProcessList:
@@ -99,6 +107,7 @@ BOOLEAN EtpGpuListSectionCallback(
             PPH_MINIINFO_LIST_SECTION_GET_USAGE_TEXT getUsageText = Parameter1;
             PPH_LIST processes;
             FLOAT gpuUsage;
+            PH_FORMAT format[2];
 
             if (!getUsageText)
                 break;
@@ -106,7 +115,11 @@ BOOLEAN EtpGpuListSectionCallback(
             processes = getUsageText->ProcessGroup->Processes;
             gpuUsage = *(PFLOAT)getUsageText->SortData->UserData;
 
-            PhMoveReference(&getUsageText->Line1, PhFormatString(L"%.2f%%", gpuUsage * 100));
+            // %.2f%%
+            PhInitFormatF(&format[0], (DOUBLE)gpuUsage * 100, 2);
+            PhInitFormatC(&format[1], L'%');
+
+            PhMoveReference(&getUsageText->Line1, PhFormat(format, RTL_NUMBER_OF(format), 0));
         }
         return TRUE;
     }

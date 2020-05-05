@@ -623,7 +623,7 @@ typedef struct _DXGK_NODEMETADATA
 
 typedef struct _D3DKMT_NODEMETADATA
 {
-    union
+    union // HACK union declaration for convenience (dmex)
     {
         UINT32 NodeOrdinalAndAdapterIndex;
         struct
