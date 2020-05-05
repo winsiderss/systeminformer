@@ -2,7 +2,7 @@
  * Process Hacker Plugins -
  *   Hardware Devices Plugin
  *
- * Copyright (C) 2016-2019 dmex
+ * Copyright (C) 2016-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -106,7 +106,7 @@ VOID DiskDriveQuerySmart(
     PPH_LIST attributes;
     HANDLE deviceHandle;
 
-    if (NT_SUCCESS(PhCreateFileWin32(
+    if (NT_SUCCESS(PhCreateFile(
         &deviceHandle,
         PhGetString(Context->PageContext->DiskId.DevicePath),
         FILE_READ_ATTRIBUTES | SYNCHRONIZE,

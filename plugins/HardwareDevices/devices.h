@@ -77,9 +77,9 @@ VOID ShowDeviceMenu(
 typedef struct _DV_NETADAPTER_ID
 {
     NET_IFINDEX InterfaceIndex;
-    IF_LUID InterfaceLuid;
+    IF_LUID InterfaceLuid; // NET_LUID
     PPH_STRING InterfaceGuid;
-    PPH_STRING InterfaceDevice;
+    PPH_STRING InterfacePath;
 } DV_NETADAPTER_ID, *PDV_NETADAPTER_ID;
 
 typedef struct _DV_NETADAPTER_ENTRY
@@ -125,24 +125,16 @@ typedef struct _DV_NETADAPTER_SYSINFO_CONTEXT
     PPH_SYSINFO_SECTION SysinfoSection;
     PH_GRAPH_STATE GraphState;
     PH_LAYOUT_MANAGER LayoutManager;
+    RECT GraphMargin;
 
-    union
-    {
-        BOOLEAN Flags;
-        struct
-        {
-            BOOLEAN HaveFirstSample : 1;
-            BOOLEAN Spare : 7;
-        };
-    };
-
-    ULONG64 NetworkReceiveRaw;
-    ULONG64 NetworkSendRaw;
-    ULONG64 CurrentNetworkReceive;
-    ULONG64 CurrentNetworkSend;
-
-    PH_UINT64_DELTA NetworkReceiveDelta;
-    PH_UINT64_DELTA NetworkSendDelta;
+    HWND AdapterNameLabel;
+    HWND AdapterTextLabel;
+    HWND NetAdapterPanelSentLabel;
+    HWND NetAdapterPanelReceivedLabel;
+    HWND NetAdapterPanelTotalLabel;
+    HWND NetAdapterPanelStateLabel;
+    HWND NetAdapterPanelSpeedLabel;
+    HWND NetAdapterPanelBytesLabel;
 } DV_NETADAPTER_SYSINFO_CONTEXT, *PDV_NETADAPTER_SYSINFO_CONTEXT;
 
 typedef struct _DV_NETADAPTER_DETAILS_CONTEXT
@@ -196,6 +188,11 @@ VOID NetAdaptersInitialize(
 
 VOID NetAdaptersUpdate(
     VOID
+    );
+
+VOID NetAdapterUpdateDeviceInfo(
+    _In_opt_ HANDLE DeviceHandle,
+    _In_ PDV_NETADAPTER_ENTRY AdapterEntry
     );
 
 VOID InitializeNetAdapterId(
@@ -294,15 +291,6 @@ VOID ShowNetAdapterDetailsDialog(
 #define BITS_IN_ONE_BYTE 8
 #define NDIS_UNIT_OF_MEASUREMENT 100
 
-// dmex: rev
-typedef ULONG (WINAPI* _GetInterfaceDescriptionFromGuid)(
-    _Inout_ PGUID InterfaceGuid,
-    _Out_opt_ PWSTR InterfaceDescription,
-    _Inout_ PSIZE_T LengthAddress,
-    PVOID Unknown1,
-    PVOID Unknown2
-    );
-
 BOOLEAN NetworkAdapterQuerySupported(
     _In_ HANDLE DeviceHandle
     );
@@ -314,9 +302,16 @@ BOOLEAN NetworkAdapterQueryNdisVersion(
     _Out_opt_ PUINT MinorVersion
     );
 
-PPH_STRING NetworkAdapterQueryName(
-    _In_ HANDLE DeviceHandle,
+PPH_STRING NetworkAdapterQueryNameFromGuid(
     _In_ PPH_STRING InterfaceGuid
+    );
+
+PPH_STRING NetworkAdapterGetInterfaceAliasFromLuid(
+    _In_ PDV_NETADAPTER_ID Id
+    );
+
+PPH_STRING NetworkAdapterQueryName(
+    _In_ HANDLE DeviceHandle
     );
 
 NTSTATUS NetworkAdapterQueryStatistics(
@@ -431,6 +426,16 @@ typedef struct _DV_DISK_SYSINFO_CONTEXT
     PPH_SYSINFO_SECTION SysinfoSection;
     PH_GRAPH_STATE GraphState;
     PH_LAYOUT_MANAGER LayoutManager;
+    RECT GraphMargin;
+
+    HWND DiskPathLabel;
+    HWND DiskNameLabel;
+    HWND DiskDrivePanelReadLabel;
+    HWND DiskDrivePanelWriteLabel;
+    HWND DiskDrivePanelTotalLabel;
+    HWND DiskDrivePanelActiveLabel;
+    HWND DiskDrivePanelTimeLabel;
+    HWND DiskDrivePanelBytesLabel;
 } DV_DISK_SYSINFO_CONTEXT, *PDV_DISK_SYSINFO_CONTEXT;
 
 typedef struct _DV_DISK_OPTIONS_CONTEXT

@@ -2,8 +2,8 @@
  * Process Hacker Plugins -
  *   Hardware Devices Plugin
  *
- * Copyright (C) 2015-2016 dmex
  * Copyright (C) 2016 wj32
+ * Copyright (C) 2015-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -69,7 +69,7 @@ VOID DiskDrivesUpdate(
         if (!entry)
             continue;
 
-        if (NT_SUCCESS(PhCreateFileWin32(
+        if (NT_SUCCESS(PhCreateFile(
             &deviceHandle,
             PhGetString(entry->Id.DevicePath),
             FILE_READ_ATTRIBUTES | SYNCHRONIZE,
@@ -219,7 +219,7 @@ VOID DiskDriveUpdateDeviceInfo(
         }
         else
         {
-            PhCreateFileWin32(
+            PhCreateFile(
                 &deviceHandle,
                 PhGetString(DiskEntry->Id.DevicePath),
                 FILE_READ_ATTRIBUTES | SYNCHRONIZE,

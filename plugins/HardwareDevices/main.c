@@ -2,8 +2,8 @@
  * Process Hacker Plugins -
  *   Hardware Devices Plugin
  *
- * Copyright (C) 2015-2016 dmex
  * Copyright (C) 2016 wj32
+ * Copyright (C) 2015-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -22,6 +22,7 @@
  */
 
 #include "devices.h"
+#include <hndlinfo.h>
 
 PPH_PLUGIN PluginInstance = NULL;
 
@@ -246,6 +247,79 @@ BOOLEAN HardwareDeviceRestart(
     return TRUE;
 }
 
+BOOLEAN HardwareDeviceOpenKey(
+    _In_ HWND ParentWindow,
+    _In_ PPH_STRING DeviceInstance,
+    _In_ ULONG KeyIndex
+    )
+{
+    CONFIGRET result;
+    DEVINST deviceInstanceHandle;
+    ULONG keyIndex;
+    HKEY keyHandle;
+
+    result = CM_Locate_DevNode(
+        &deviceInstanceHandle,
+        DeviceInstance->Buffer,
+        CM_LOCATE_DEVNODE_PHANTOM
+        );
+
+    if (result != CR_SUCCESS)
+    {
+        PhShowStatus(ParentWindow, L"Failed to locate the device.", 0, CM_MapCrToWin32Err(result, ERROR_UNKNOWN_PROPERTY));
+        return FALSE;
+    }
+
+    switch (KeyIndex)
+    {
+    case 4:
+    default:
+        keyIndex = CM_REGISTRY_HARDWARE;
+        break;
+    case 5:
+        keyIndex = CM_REGISTRY_SOFTWARE;
+        break;
+    case 6:
+        keyIndex = CM_REGISTRY_USER;
+        break;
+    case 7:
+        keyIndex = CM_REGISTRY_CONFIG;
+        break;
+    }
+
+    if (CM_Open_DevInst_Key(
+        deviceInstanceHandle,
+        KEY_READ,
+        0,
+        RegDisposition_OpenExisting,
+        &keyHandle,
+        keyIndex
+        ) == CR_SUCCESS)
+    {
+        PPH_STRING bestObjectName = NULL;
+
+        PhGetHandleInformation(
+            NtCurrentProcess(),
+            keyHandle,
+            ULONG_MAX,
+            NULL,
+            NULL,
+            NULL,
+            &bestObjectName
+            );
+
+        if (bestObjectName)
+        {
+            PhShellOpenKey(ParentWindow, bestObjectName);
+            PhDereferenceObject(bestObjectName);
+        }
+
+        NtClose(keyHandle);
+    }
+
+    return TRUE;
+}
+
 VOID ShowDeviceMenu(
     _In_ HWND ParentWindow,
     _In_ PPH_STRING DeviceInstance
@@ -253,6 +327,7 @@ VOID ShowDeviceMenu(
 {
     POINT cursorPos;
     PPH_EMENU menu;
+    PPH_EMENU subMenu;
     PPH_EMENU_ITEM selectedItem;
 
     GetCursorPos(&cursorPos);
@@ -261,6 +336,13 @@ VOID ShowDeviceMenu(
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 0, L"Enable", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 1, L"Disable", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 2, L"Restart", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+    subMenu = PhCreateEMenuItem(0, 0, L"Open key", NULL, NULL);
+    PhInsertEMenuItem(subMenu, PhCreateEMenuItem(0, 4, L"Hardware", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(subMenu, PhCreateEMenuItem(0, 5, L"Software", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(subMenu, PhCreateEMenuItem(0, 6, L"User", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(subMenu, PhCreateEMenuItem(0, 7, L"Config", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menu, subMenu, ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 3, L"Properties", NULL, NULL), ULONG_MAX);
 
@@ -300,18 +382,44 @@ VOID ShowDeviceMenu(
                 {
                     if (DeviceProperties_RunDLL_I = PhGetProcedureAddress(devMgrHandle, "DeviceProperties_RunDLLW", 0))
                     {
-                        // This will sometimes re-throw an RPC error while debugging and can safely be ignored.
-                        DeviceProperties_RunDLL_I(
-                            GetParent(ParentWindow),
-                            NULL,
-                            PhaFormatString(L"/DeviceID %s", DeviceInstance->Buffer)->Buffer,
-                            0
-                            );
+                        PH_FORMAT format[2];
+                        WCHAR formatBuffer[512];
+
+                        // /DeviceID %s
+                        PhInitFormatS(&format[0], L"/DeviceID ");
+                        PhInitFormatSR(&format[1], DeviceInstance->sr);
+
+                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
+                        {
+                            // This will sometimes re-throw an RPC error while debugging and can safely be ignored. (dmex)
+                            DeviceProperties_RunDLL_I(
+                                GetParent(ParentWindow),
+                                NULL,
+                                formatBuffer,
+                                0
+                                );
+                        }
+                        else
+                        {
+                            // This will sometimes re-throw an RPC error while debugging and can safely be ignored. (dmex)
+                            DeviceProperties_RunDLL_I(
+                                GetParent(ParentWindow),
+                                NULL,
+                                PhaFormatString(L"/DeviceID %s", DeviceInstance->Buffer)->Buffer,
+                                0
+                                );
+                        }
                     }
 
                     FreeLibrary(devMgrHandle);
                 }
             }
+            break;
+        case 4:
+        case 5:
+        case 6:
+        case 7:
+            HardwareDeviceOpenKey(ParentWindow, DeviceInstance, selectedItem->Id);
             break;
         }
     }
