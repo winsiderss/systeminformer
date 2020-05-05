@@ -29,17 +29,17 @@
 #define IDC_ADAPTERNAME                 1021
 #define IDC_ADAPTERTEXT                 1022
 #define IDC_STAT_ACTIVE                 1023
-#define IDC_STAT_RESPONSETIME           1024
-#define IDC_STAT_QUEUELENGTH            1025
+#define IDC_STAT_BYTESDELTA             1024
+#define IDC_STAT_RESPONSETIME           1025
 #define IDC_DISKNAME                    1076
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        117
+#define _APS_NEXT_RESOURCE_VALUE        118
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1023
+#define _APS_NEXT_CONTROL_VALUE         1024
 #define _APS_NEXT_SYMED_VALUE           106
 #endif
 #endif

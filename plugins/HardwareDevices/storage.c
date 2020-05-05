@@ -2,7 +2,7 @@
  * Process Hacker Plugins -
  *   Hardware Devices Plugin
  *
- * Copyright (C) 2015-2016 dmex
+ * Copyright (C) 2015-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -51,7 +51,7 @@ PPH_STRING DiskDriveQueryDosMountPoints(
     )
 {
     ULONG driveMask;
-    WCHAR deviceNameBuffer[7] = L"\\\\.\\?:";
+    WCHAR deviceNameBuffer[7] = L"\\??\\?:";
     PH_STRING_BUILDER stringBuilder;
 
     PhInitializeStringBuilder(&stringBuilder, DOS_MAX_PATH_LENGTH);
@@ -67,7 +67,7 @@ PPH_STRING DiskDriveQueryDosMountPoints(
 
             deviceNameBuffer[4] = (WCHAR)('A' + i);
 
-            if (NT_SUCCESS(PhCreateFileWin32(
+            if (NT_SUCCESS(PhCreateFile(
                 &deviceHandle,
                 deviceNameBuffer,
                 FILE_READ_ATTRIBUTES | SYNCHRONIZE,
@@ -113,7 +113,7 @@ PPH_LIST DiskDriveQueryMountPointHandles(
 {
     ULONG driveMask;
     PPH_LIST deviceList;
-    WCHAR deviceNameBuffer[7] = L"\\\\.\\?:";
+    WCHAR deviceNameBuffer[7] = L"\\??\\?:";
 
     driveMask = DiskDriveQueryDeviceMap();
     deviceList = PhCreateList(2);
@@ -126,7 +126,7 @@ PPH_LIST DiskDriveQueryMountPointHandles(
 
             deviceNameBuffer[4] = (WCHAR)('A' + i);
 
-            if (NT_SUCCESS(PhCreateFileWin32(
+            if (NT_SUCCESS(PhCreateFile(
                 &deviceHandle,
                 deviceNameBuffer,
                 PhGetOwnTokenAttributes().Elevated ? FILE_GENERIC_READ : FILE_READ_ATTRIBUTES | FILE_TRAVERSE | SYNCHRONIZE,
@@ -153,9 +153,7 @@ PPH_LIST DiskDriveQueryMountPointHandles(
                     {
                         PDISK_HANDLE_ENTRY entry;
                         
-                        entry = PhAllocate(sizeof(DISK_HANDLE_ENTRY));
-                        memset(entry, 0, sizeof(DISK_HANDLE_ENTRY));
-
+                        entry = PhAllocateZero(sizeof(DISK_HANDLE_ENTRY));
                         entry->DeviceLetter = deviceNameBuffer[4];
                         entry->DeviceHandle = deviceHandle;
 

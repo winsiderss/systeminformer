@@ -24,9 +24,6 @@
 #include <cguid.h>
 #include <objbase.h>
 
-PVOID IphlpHandle = NULL;
-_GetInterfaceDescriptionFromGuid GetInterfaceDescriptionFromGuid_I = NULL;
-
 BOOLEAN NetworkAdapterQuerySupported(
     _In_ HANDLE DeviceHandle
     )
@@ -164,9 +161,144 @@ BOOLEAN NetworkAdapterQueryNdisVersion(
     return FALSE;
 }
 
-PPH_STRING NetworkAdapterQueryName(
-    _In_ HANDLE DeviceHandle,
+PPH_STRING NetworkAdapterQueryNameFromGuid(
     _In_ PPH_STRING InterfaceGuid
+    )
+{
+    // Query adapter description using undocumented function. (dmex)
+    static ULONG (WINAPI* NhGetInterfaceDescriptionFromGuid_I)(
+        _In_ PGUID InterfaceGuid,
+        _Out_opt_ PWSTR InterfaceDescription,
+        _Inout_ PSIZE_T InterfaceDescriptionLength,
+        PVOID Unknown1,
+        PVOID Unknown2
+        ) = NULL;
+    GUID deviceGuid = GUID_NULL;
+    UNICODE_STRING guidStringUs;
+
+    if (!NhGetInterfaceDescriptionFromGuid_I)
+    {
+        PVOID iphlpHandle;
+
+        if (iphlpHandle = LoadLibrary(L"iphlpapi.dll"))
+        {
+            NhGetInterfaceDescriptionFromGuid_I = PhGetProcedureAddress(iphlpHandle, "NhGetInterfaceDescriptionFromGuid", 0);
+        }
+    }
+
+    if (!NhGetInterfaceDescriptionFromGuid_I)
+        return NULL;
+
+    PhStringRefToUnicodeString(&InterfaceGuid->sr, &guidStringUs);
+
+    if (NT_SUCCESS(RtlGUIDFromString(&guidStringUs, &deviceGuid)))
+    {
+        WCHAR adapterDescription[NDIS_IF_MAX_STRING_SIZE + 1] = L"";
+        SIZE_T adapterDescriptionLength = sizeof(adapterDescription);
+
+        if (SUCCEEDED(NhGetInterfaceDescriptionFromGuid_I(
+            &deviceGuid,
+            adapterDescription,
+            &adapterDescriptionLength,
+            NULL,
+            NULL
+            )))
+        {
+            return PhCreateString(adapterDescription);
+        }
+    }
+
+    return NULL;
+}
+
+PPH_STRING NetworkAdapterGetInterfaceAliasFromLuid(
+    _In_ PDV_NETADAPTER_ID Id
+    )
+{
+    WCHAR aliasBuffer[IF_MAX_STRING_SIZE + 1];
+
+    if (NETIO_SUCCESS(ConvertInterfaceLuidToAlias(
+        &Id->InterfaceLuid,
+        aliasBuffer,
+        IF_MAX_STRING_SIZE
+        )))
+    {
+        return PhCreateString(aliasBuffer);
+    }
+
+    return NULL;
+}
+
+PPH_STRING NetworkAdapterGetInterfaceNameFromLuid(
+    _In_ PDV_NETADAPTER_ID Id
+    )
+{
+    WCHAR interfaceName[IF_MAX_STRING_SIZE + 1];
+
+    if (NETIO_SUCCESS(ConvertInterfaceLuidToNameW(
+        &Id->InterfaceLuid,
+        interfaceName,
+        IF_MAX_STRING_SIZE
+        )))
+    {
+        return PhCreateString(interfaceName);
+    }
+
+    return NULL;
+}
+
+PPH_STRING NetworkAdapterGetInterfaceAliasFromGuid(
+    _In_ PPH_STRING InterfaceGuid
+    )
+{
+   static ULONG (WINAPI* NhGetInterfaceNameFromGuid_I)(
+       _In_ PGUID InterfaceGuid,
+       _Out_writes_(InterfaceAliasLength) PWSTR InterfaceAlias,
+       _Inout_ PSIZE_T InterfaceAliasLength,
+       PVOID Unknown1,
+       PVOID Unknown2
+       ) = NULL;
+
+    if (!NhGetInterfaceNameFromGuid_I)
+    {
+        PVOID iphlpHandle;
+
+        if (iphlpHandle = LoadLibrary(L"iphlpapi.dll"))
+        {
+            NhGetInterfaceNameFromGuid_I = PhGetProcedureAddress(iphlpHandle, "NhGetInterfaceDescriptionFromGuid", 0);
+        }
+    }
+
+    if (!NhGetInterfaceNameFromGuid_I)
+        return NULL;
+
+    GUID deviceGuid = GUID_NULL;
+    UNICODE_STRING guidStringUs;
+
+    PhStringRefToUnicodeString(&InterfaceGuid->sr, &guidStringUs);
+
+    if (NT_SUCCESS(RtlGUIDFromString(&guidStringUs, &deviceGuid)))
+    {
+        WCHAR adapterAlias[NDIS_IF_MAX_STRING_SIZE + 1] = L"";
+        SIZE_T adapterAliasLength = sizeof(adapterAlias);
+
+        if (SUCCEEDED(NhGetInterfaceNameFromGuid_I(
+            &deviceGuid,
+            adapterAlias,
+            &adapterAliasLength,
+            NULL,
+            NULL
+            )))
+        {
+            return PhCreateString(adapterAlias);
+        }
+    }
+
+    return NULL;
+}
+
+PPH_STRING NetworkAdapterQueryName(
+    _In_ HANDLE DeviceHandle
     )
 {
     NDIS_OID opcode;
@@ -191,35 +323,7 @@ PPH_STRING NetworkAdapterQueryName(
         return PhCreateString(adapterName);
     }
 
-    if (!GetInterfaceDescriptionFromGuid_I)
-    {
-        if (IphlpHandle = LoadLibrary(L"iphlpapi.dll"))
-        {
-            GetInterfaceDescriptionFromGuid_I = PhGetProcedureAddress(IphlpHandle, "NhGetInterfaceDescriptionFromGuid", 0);
-        }
-    }
-
-    // HACK: Query adapter description using undocumented function.
-    if (GetInterfaceDescriptionFromGuid_I)
-    {
-        GUID deviceGuid = GUID_NULL;
-        UNICODE_STRING guidStringUs;
-
-        PhStringRefToUnicodeString(&InterfaceGuid->sr, &guidStringUs);
-
-        if (NT_SUCCESS(RtlGUIDFromString(&guidStringUs, &deviceGuid)))
-        {
-            WCHAR adapterDescription[NDIS_IF_MAX_STRING_SIZE + 1] = L"";
-            SIZE_T adapterDescriptionLength = sizeof(adapterDescription);
-
-            if (SUCCEEDED(GetInterfaceDescriptionFromGuid_I(&deviceGuid, adapterDescription, &adapterDescriptionLength, NULL, NULL)))
-            {
-                return PhCreateString(adapterDescription);
-            }
-        }
-    }
-
-    return PhCreateString(L"Unknown Network Adapter");
+    return NULL;
 }
 
 NTSTATUS NetworkAdapterQueryStatistics(
@@ -536,24 +640,6 @@ PWSTR MediumTypeToString(
     }
 
     return L"N/A";
-}
-
-PPH_STRING NetworkAdapterLuidToAlias(
-    _In_ PDV_NETADAPTER_ID Id
-    )
-{
-    WCHAR aliasBuffer[IF_MAX_STRING_SIZE + 1];
-
-    if (NETIO_SUCCESS(ConvertInterfaceLuidToAlias(
-        &Id->InterfaceLuid,
-        aliasBuffer,
-        IF_MAX_STRING_SIZE
-        )))
-    {
-        return PhCreateString(aliasBuffer);
-    }
-
-    return NULL;
 }
 
 //BOOLEAN NetworkAdapterQueryInternet(
