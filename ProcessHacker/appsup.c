@@ -1737,6 +1737,7 @@ BOOLEAN PhInsertCopyCellEMenuItem(
     PPH_STRING escapedText;
     PPH_STRING menuItemText;
     PPH_EMENU_ITEM copyCellItem;
+    PH_FORMAT format[3];
 
     if (!Column)
         return FALSE;
@@ -1752,8 +1753,12 @@ BOOLEAN PhInsertCopyCellEMenuItem(
 
     PhInitializeStringRef(&columnText, Column->Text);
     escapedText = PhEscapeStringForMenuPrefix(&columnText);
-    menuItemText = PhFormatString(L"Copy \"%s\"", escapedText->Buffer);
+    PhInitFormatS(&format[0], L"Copy \""); // Copy \"%s\"
+    PhInitFormatSR(&format[1], escapedText->sr);
+    PhInitFormatS(&format[2], L"\"");
+    menuItemText = PhFormat(format, RTL_NUMBER_OF(format), 0);
     PhDereferenceObject(escapedText);
+
     copyCellItem = PhCreateEMenuItem(0, ID_COPY_CELL, menuItemText->Buffer, NULL, context);
     copyCellItem->DeleteFunction = PhpCopyCellEMenuItemDeleteFunction;
     context->MenuItemText = menuItemText;
@@ -1844,7 +1849,8 @@ BOOLEAN PhInsertCopyListViewEMenuItem(
     POINT location;
     LVHITTESTINFO lvHitInfo;
     HDITEM headerItem;
-    WCHAR headerText[MAX_PATH] = L"";
+    PH_FORMAT format[3];
+    WCHAR headerText[MAX_PATH];
 
     if (!GetCursorPos(&location))
         return FALSE;
@@ -1882,7 +1888,10 @@ BOOLEAN PhInsertCopyListViewEMenuItem(
     context->SubId = lvHitInfo.iSubItem;
 
     escapedText = PhEscapeStringForMenuPrefix(&columnText->sr);
-    menuItemText = PhFormatString(L"Copy \"%s\"", escapedText->Buffer);
+    PhInitFormatS(&format[0], L"Copy \""); // Copy \"%s\"
+    PhInitFormatSR(&format[1], escapedText->sr);
+    PhInitFormatS(&format[2], L"\"");
+    menuItemText = PhFormat(format, RTL_NUMBER_OF(format), 0);
     PhDereferenceObject(escapedText);
 
     copyMenuItem = PhCreateEMenuItem(0, ID_COPY_CELL, menuItemText->Buffer, NULL, context);
