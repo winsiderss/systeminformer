@@ -3,6 +3,7 @@
  *   GPU system information section
  *
  * Copyright (C) 2011 wj32
+ * Copyright (C) 2015-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -34,6 +35,10 @@ static PH_GRAPH_STATE DedicatedGraphState;
 static HWND SharedGraphHandle;
 static PH_GRAPH_STATE SharedGraphState;
 static HWND GpuPanel;
+static HWND GpuPanelDedicatedUsageLabel;
+static HWND GpuPanelDedicatedLimitLabel;
+static HWND GpuPanelSharedUsageLabel;
+static HWND GpuPanelSharedLimitLabel;
 
 VOID EtGpuSystemInformationInitializing(
     _In_ PPH_PLUGIN_SYSINFO_POINTERS Pointers
@@ -109,19 +114,23 @@ BOOLEAN EtpGpuSysInfoSectionCallback(
         {
             PPH_SYSINFO_GRAPH_GET_TOOLTIP_TEXT getTooltipText = Parameter1;
             FLOAT gpu;
+            PH_FORMAT format[5];
 
             if (!getTooltipText)
                 break;
 
             gpu = PhGetItemCircularBuffer_FLOAT(&EtGpuNodeHistory, getTooltipText->Index);
 
-            PhMoveReference(&Section->GraphState.TooltipText, PhFormatString(
-                L"%.2f%%%s\n%s",
-                gpu * 100,
-                PhGetStringOrEmpty(EtpGetMaxNodeString(getTooltipText->Index)),
-                ((PPH_STRING)PH_AUTO(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
-                ));
-            getTooltipText->Text = Section->GraphState.TooltipText->sr;
+            // %.2f%%%s\n%s
+            PhInitFormatF(&format[0], (DOUBLE)gpu * 100, 2);
+            PhInitFormatC(&format[1], L'%');
+            PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, EtpGetMaxNodeString(getTooltipText->Index))->sr);
+            PhInitFormatC(&format[3], L'\n');
+            PhInitFormatSR(&format[4], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
+
+            PhMoveReference(&Section->GraphState.TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 0));
+
+            getTooltipText->Text = PhGetStringRef(Section->GraphState.TooltipText);
         }
         return TRUE;
     case SysInfoGraphDrawPanel:
@@ -133,26 +142,56 @@ BOOLEAN EtpGpuSysInfoSectionCallback(
 
             drawPanel->Title = PhCreateString(L"GPU");
 
-            if (EtGpuDedicatedUsage && EtGpuDedicatedLimit) // Required for Intel IGP devices -dmex
+            // Note: Intel IGP devices don't have dedicated usage/limit values. (dmex)
+            if (EtGpuDedicatedUsage && EtGpuDedicatedLimit)
             {
-                drawPanel->SubTitle = PhFormatString(
-                    L"%.2f%%\n%s / %s",
-                    EtGpuNodeUsage * 100,
-                    PhaFormatSize(EtGpuDedicatedUsage, ULONG_MAX)->Buffer,
-                    PhaFormatSize(EtGpuDedicatedLimit, ULONG_MAX)->Buffer
-                    );
-                drawPanel->SubTitleOverflow = PhFormatString(
-                    L"%.2f%%\n%s",
-                    EtGpuNodeUsage * 100,
-                    PhaFormatSize(EtGpuDedicatedUsage, ULONG_MAX)->Buffer
-                    );
+                PH_FORMAT format[5];
+
+                // %.2f%%\n%s / %s
+                PhInitFormatF(&format[0], (DOUBLE)EtGpuNodeUsage * 100, 2);
+                PhInitFormatS(&format[1], L"%\n");
+                PhInitFormatSize(&format[2], EtGpuDedicatedUsage);
+                PhInitFormatS(&format[3], L" / ");
+                PhInitFormatSize(&format[4], EtGpuDedicatedLimit);
+
+                drawPanel->SubTitle = PhFormat(format, 5, 64);
+
+                // %.2f%%\n%s
+                PhInitFormatF(&format[0], (DOUBLE)EtGpuNodeUsage * 100, 2);
+                PhInitFormatS(&format[1], L"%\n");
+                PhInitFormatSize(&format[2], EtGpuDedicatedUsage);
+
+                drawPanel->SubTitleOverflow = PhFormat(format, 3, 64);
+            }
+            else if (EtGpuSharedUsage && EtGpuSharedLimit)
+            {
+                PH_FORMAT format[5];
+
+                // %.2f%%\n%s / %s
+                PhInitFormatF(&format[0], (DOUBLE)EtGpuNodeUsage * 100, 2);
+                PhInitFormatS(&format[1], L"%\n");
+                PhInitFormatSize(&format[2], EtGpuSharedUsage);
+                PhInitFormatS(&format[3], L" / ");
+                PhInitFormatSize(&format[4], EtGpuSharedLimit);
+
+                drawPanel->SubTitle = PhFormat(format, 5, 64);
+
+                // %.2f%%\n%s
+                PhInitFormatF(&format[0], (DOUBLE)EtGpuNodeUsage * 100, 2);
+                PhInitFormatS(&format[1], L"%\n");
+                PhInitFormatSize(&format[2], EtGpuSharedUsage);
+
+                drawPanel->SubTitleOverflow = PhFormat(format, 3, 64);
             }
             else
             {
-                drawPanel->SubTitle = PhFormatString(
-                    L"%.2f%%\n",
-                    EtGpuNodeUsage * 100
-                    );
+                PH_FORMAT format[2];
+
+                // %.2f%%\n
+                PhInitFormatF(&format[0], (DOUBLE)EtGpuNodeUsage * 100, 2);
+                PhInitFormatS(&format[1], L"%\n");
+
+                drawPanel->SubTitle = PhFormat(format, RTL_NUMBER_OF(format), 0);
             }
         }
         return TRUE;
@@ -207,13 +246,13 @@ INT_PTR CALLBACK EtpGpuDialogProc(
             PhInitializeLayoutManager(&GpuLayoutManager, hwndDlg);
             PhAddLayoutItem(&GpuLayoutManager, GetDlgItem(hwndDlg, IDC_GPUNAME), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT | PH_LAYOUT_FORCE_INVALIDATE);
             graphItem = PhAddLayoutItem(&GpuLayoutManager, GetDlgItem(hwndDlg, IDC_GRAPH_LAYOUT), NULL, PH_ANCHOR_ALL);
-            GpuGraphMargin = graphItem->Margin;
             panelItem = PhAddLayoutItem(&GpuLayoutManager, GetDlgItem(hwndDlg, IDC_PANEL_LAYOUT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            GpuGraphMargin = graphItem->Margin;
 
             SetWindowFont(GetDlgItem(hwndDlg, IDC_TITLE), GpuSection->Parameters->LargeFont, FALSE);
             SetWindowFont(GetDlgItem(hwndDlg, IDC_GPUNAME), GpuSection->Parameters->MediumFont, FALSE);
 
-            PhSetDialogItemText(hwndDlg, IDC_GPUNAME, ((PPH_STRING)PH_AUTO(EtpGetGpuNameString()))->Buffer);
+            PhSetDialogItemText(hwndDlg, IDC_GPUNAME, PH_AUTO_T(PH_STRING, EtpGetGpuNameString())->Buffer);
 
             GpuPanel = CreateDialog(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_SYSINFO_GPUPANEL), hwndDlg, EtpGpuPanelDialogProc);
             ShowWindow(GpuPanel, SW_SHOW);
@@ -267,6 +306,14 @@ INT_PTR CALLBACK EtpGpuPanelDialogProc(
 {
     switch (uMsg)
     {
+    case WM_INITDIALOG:
+        {
+            GpuPanelDedicatedUsageLabel = GetDlgItem(hwndDlg, IDC_ZDEDICATEDCURRENT_V);
+            GpuPanelDedicatedLimitLabel = GetDlgItem(hwndDlg, IDC_ZDEDICATEDLIMIT_V);
+            GpuPanelSharedUsageLabel = GetDlgItem(hwndDlg, IDC_ZSHAREDCURRENT_V);
+            GpuPanelSharedLimitLabel = GetDlgItem(hwndDlg, IDC_ZSHAREDLIMIT_V);
+        }
+        break;
     case WM_COMMAND:
         {
             switch (GET_WM_COMMAND_ID(wParam, lParam))
@@ -464,18 +511,21 @@ VOID EtpNotifyGpuGraph(
                 if (GpuGraphState.TooltipIndex != getTooltipText->Index)
                 {
                     FLOAT gpu;
+                    PH_FORMAT format[5];
 
                     gpu = PhGetItemCircularBuffer_FLOAT(&EtGpuNodeHistory, getTooltipText->Index);
 
-                    PhMoveReference(&GpuGraphState.TooltipText, PhFormatString(
-                        L"%.2f%%%s\n%s",
-                        gpu * 100,
-                        PhGetStringOrEmpty(EtpGetMaxNodeString(getTooltipText->Index)),
-                        ((PPH_STRING)PH_AUTO(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
-                        ));
+                    // %.2f%%%s\n%s
+                    PhInitFormatF(&format[0], (DOUBLE)gpu * 100, 2);
+                    PhInitFormatC(&format[1], L'%');
+                    PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, EtpGetMaxNodeString(getTooltipText->Index))->sr);
+                    PhInitFormatC(&format[3], L'\n');
+                    PhInitFormatSR(&format[4], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
+
+                    PhMoveReference(&GpuGraphState.TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 0));
                 }
 
-                getTooltipText->Text = GpuGraphState.TooltipText->sr;
+                getTooltipText->Text = PhGetStringRef(GpuGraphState.TooltipText);
             }
         }
         break;
@@ -552,17 +602,19 @@ VOID EtpNotifyDedicatedGraph(
                 if (DedicatedGraphState.TooltipIndex != getTooltipText->Index)
                 {
                     ULONG64 usedPages;
+                    PH_FORMAT format[3];
 
                     usedPages = PhGetItemCircularBuffer_ULONG64(&EtGpuDedicatedHistory, getTooltipText->Index);
 
-                    PhMoveReference(&DedicatedGraphState.TooltipText, PhFormatString(
-                        L"Dedicated Memory: %s\n%s",
-                        PhaFormatSize(usedPages, ULONG_MAX)->Buffer,
-                        ((PPH_STRING)PH_AUTO(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
-                        ));
+                    // Dedicated Memory: %s\n%s
+                    PhInitFormatSize(&format[0], usedPages);
+                    PhInitFormatC(&format[1], L'\n');
+                    PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
+
+                    PhMoveReference(&DedicatedGraphState.TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 0));
                 }
 
-                getTooltipText->Text = DedicatedGraphState.TooltipText->sr;
+                getTooltipText->Text = PhGetStringRef(DedicatedGraphState.TooltipText);
             }
         }
         break;
@@ -620,17 +672,19 @@ VOID EtpNotifySharedGraph(
                 if (SharedGraphState.TooltipIndex != getTooltipText->Index)
                 {
                     ULONG64 usedPages;
+                    PH_FORMAT format[3];
 
                     usedPages = PhGetItemCircularBuffer_ULONG64(&EtGpuSharedHistory, getTooltipText->Index);
 
-                    PhMoveReference(&SharedGraphState.TooltipText, PhFormatString(
-                        L"Shared Memory: %s\n%s",
-                        PhaFormatSize(usedPages, ULONG_MAX)->Buffer,
-                        ((PPH_STRING)PH_AUTO(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
-                        ));
+                    // Shared Memory: %s\n%s
+                    PhInitFormatSize(&format[0], usedPages);
+                    PhInitFormatC(&format[1], L'\n');
+                    PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
+
+                    PhMoveReference(&SharedGraphState.TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 0));
                 }
 
-                getTooltipText->Text = SharedGraphState.TooltipText->sr;
+                getTooltipText->Text = PhGetStringRef(SharedGraphState.TooltipText);
             }
         }
         break;
@@ -667,10 +721,36 @@ VOID EtpUpdateGpuPanel(
     VOID
     )
 {
-    PhSetDialogItemText(GpuPanel, IDC_ZDEDICATEDCURRENT_V, PhaFormatSize(EtGpuDedicatedUsage, ULONG_MAX)->Buffer);
-    PhSetDialogItemText(GpuPanel, IDC_ZDEDICATEDLIMIT_V, PhaFormatSize(EtGpuDedicatedLimit, ULONG_MAX)->Buffer);
-    PhSetDialogItemText(GpuPanel, IDC_ZSHAREDCURRENT_V, PhaFormatSize(EtGpuSharedUsage, ULONG_MAX)->Buffer);
-    PhSetDialogItemText(GpuPanel, IDC_ZSHAREDLIMIT_V, PhaFormatSize(EtGpuSharedLimit, ULONG_MAX)->Buffer);
+    PH_FORMAT format[1];
+    WCHAR formatBuffer[512];
+
+    PhInitFormatSize(&format[0], EtGpuDedicatedUsage);
+
+    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
+        PhSetWindowText(GpuPanelDedicatedUsageLabel, formatBuffer);
+    else
+        PhSetWindowText(GpuPanelDedicatedUsageLabel, PhaFormatSize(EtGpuDedicatedUsage, ULONG_MAX)->Buffer);
+
+    PhInitFormatSize(&format[0], EtGpuDedicatedLimit);
+
+    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
+        PhSetWindowText(GpuPanelDedicatedLimitLabel, formatBuffer);
+    else
+        PhSetWindowText(GpuPanelDedicatedLimitLabel, PhaFormatSize(EtGpuDedicatedLimit, ULONG_MAX)->Buffer);
+
+    PhInitFormatSize(&format[0], EtGpuSharedUsage);
+
+    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
+        PhSetWindowText(GpuPanelSharedUsageLabel, formatBuffer);
+    else
+        PhSetWindowText(GpuPanelSharedUsageLabel, PhaFormatSize(EtGpuSharedUsage, ULONG_MAX)->Buffer);
+
+    PhInitFormatSize(&format[0], EtGpuSharedLimit);
+
+    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
+        PhSetWindowText(GpuPanelSharedLimitLabel, formatBuffer);
+    else
+        PhSetWindowText(GpuPanelSharedLimitLabel, PhaFormatSize(EtGpuSharedLimit, ULONG_MAX)->Buffer);
 }
 
 PPH_PROCESS_RECORD EtpReferenceMaxNodeRecord(
@@ -696,24 +776,32 @@ PPH_STRING EtpGetMaxNodeString(
     )
 {
     PPH_PROCESS_RECORD maxProcessRecord;
-    FLOAT maxGpuUsage;
-    PPH_STRING maxUsageString = NULL;
 
     if (maxProcessRecord = EtpReferenceMaxNodeRecord(Index))
     {
+        PPH_STRING maxUsageString;
+        FLOAT maxGpuUsage;
+        PH_FORMAT format[7];
+
         maxGpuUsage = PhGetItemCircularBuffer_FLOAT(&EtMaxGpuNodeUsageHistory, Index);
 
-        maxUsageString = PhaFormatString(
-            L"\n%s (%lu): %.2f%%",
-            maxProcessRecord->ProcessName->Buffer,
-            HandleToUlong(maxProcessRecord->ProcessId),
-            maxGpuUsage * 100
-            );
+        // \n%s (%lu): %.2f%%
+        PhInitFormatC(&format[0], L'\n');
+        PhInitFormatSR(&format[1], maxProcessRecord->ProcessName->sr);
+        PhInitFormatS(&format[2],L" (");
+        PhInitFormatU(&format[3], HandleToUlong(maxProcessRecord->ProcessId));
+        PhInitFormatS(&format[4], L"): ");
+        PhInitFormatF(&format[5], (DOUBLE)maxGpuUsage * 100, 2);
+        PhInitFormatC(&format[6], L'%');
+
+        maxUsageString = PhFormat(format, RTL_NUMBER_OF(format), 0);
 
         PhDereferenceProcessRecord(maxProcessRecord);
+
+        return maxUsageString;
     }
 
-    return maxUsageString;
+    return PhReferenceEmptyString();
 }
 
 PPH_STRING EtpGetGpuNameString(

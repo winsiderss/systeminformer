@@ -3,7 +3,7 @@
  *   ETW statistics collection
  *
  * Copyright (C) 2010-2011 wj32
- * Copyright (C) 2019 dmex
+ * Copyright (C) 2019-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -64,6 +64,10 @@ PH_CIRCULAR_BUFFER_ULONG EtNetworkReceiveHistory;
 PH_CIRCULAR_BUFFER_ULONG EtNetworkSendHistory;
 PH_CIRCULAR_BUFFER_ULONG EtMaxDiskHistory; // ID of max. disk usage process
 PH_CIRCULAR_BUFFER_ULONG EtMaxNetworkHistory; // ID of max. network usage process
+#ifdef PH_RECORD_MAX_USAGE
+PH_CIRCULAR_BUFFER_ULONG64 PhMaxDiskUsageHistory;
+PH_CIRCULAR_BUFFER_ULONG64 PhMaxNetworkUsageHistory;
+#endif
 
 VOID EtEtwStatisticsInitialization(
     VOID
@@ -79,6 +83,10 @@ VOID EtEtwStatisticsInitialization(
     PhInitializeCircularBuffer_ULONG(&EtNetworkSendHistory, sampleCount);
     PhInitializeCircularBuffer_ULONG(&EtMaxDiskHistory, sampleCount);
     PhInitializeCircularBuffer_ULONG(&EtMaxNetworkHistory, sampleCount);
+#ifdef PH_RECORD_MAX_USAGE
+    PhInitializeCircularBuffer_ULONG64(&PhMaxDiskUsageHistory, sampleCount);
+    PhInitializeCircularBuffer_ULONG64(&PhMaxNetworkUsageHistory, sampleCount);
+#endif
 
     EtEtwMonitorInitialization();
 
@@ -337,21 +345,33 @@ VOID NTAPI EtEtwProcessesUpdatedCallback(
         if (maxDiskBlock)
         {
             PhAddItemCircularBuffer_ULONG(&EtMaxDiskHistory, HandleToUlong(maxDiskBlock->ProcessItem->ProcessId));
+#ifdef PH_RECORD_MAX_USAGE
+            PhAddItemCircularBuffer_ULONG64(&PhMaxDiskUsageHistory, maxDiskValue);
+#endif
             PhReferenceProcessRecordForStatistics(maxDiskBlock->ProcessItem->Record);
         }
         else
         {
             PhAddItemCircularBuffer_ULONG(&EtMaxDiskHistory, 0);
+#ifdef PH_RECORD_MAX_USAGE
+            PhAddItemCircularBuffer_ULONG64(&PhMaxDiskUsageHistory, 0);
+#endif
         }
 
         if (maxNetworkBlock)
         {
             PhAddItemCircularBuffer_ULONG(&EtMaxNetworkHistory, HandleToUlong(maxNetworkBlock->ProcessItem->ProcessId));
+#ifdef PH_RECORD_MAX_USAGE
+            PhAddItemCircularBuffer_ULONG64(&PhMaxNetworkUsageHistory, maxNetworkValue);
+#endif
             PhReferenceProcessRecordForStatistics(maxNetworkBlock->ProcessItem->Record);
         }
         else
         {
             PhAddItemCircularBuffer_ULONG(&EtMaxNetworkHistory, 0);
+#ifdef PH_RECORD_MAX_USAGE
+            PhAddItemCircularBuffer_ULONG64(&PhMaxNetworkUsageHistory, 0);
+#endif
         }
     }
     else
@@ -438,21 +458,33 @@ VOID NTAPI EtEtwProcessesUpdatedCallback(
             if (maxDiskBlock)
             {
                 PhAddItemCircularBuffer_ULONG(&EtMaxDiskHistory, HandleToUlong(maxDiskBlock->ProcessItem->ProcessId));
+#ifdef PH_RECORD_MAX_USAGE
+                PhAddItemCircularBuffer_ULONG64(&PhMaxDiskUsageHistory, maxDiskValue);
+#endif
                 PhReferenceProcessRecordForStatistics(maxDiskBlock->ProcessItem->Record);
             }
             else
             {
                 PhAddItemCircularBuffer_ULONG(&EtMaxDiskHistory, 0);
+#ifdef PH_RECORD_MAX_USAGE
+                PhAddItemCircularBuffer_ULONG64(&PhMaxDiskUsageHistory, 0);
+#endif
             }
 
             if (maxNetworkBlock)
             {
                 PhAddItemCircularBuffer_ULONG(&EtMaxNetworkHistory, HandleToUlong(maxNetworkBlock->ProcessItem->ProcessId));
+#ifdef PH_RECORD_MAX_USAGE
+                PhAddItemCircularBuffer_ULONG64(&PhMaxNetworkUsageHistory, maxNetworkValue);
+#endif
                 PhReferenceProcessRecordForStatistics(maxNetworkBlock->ProcessItem->Record);
             }
             else
             {
                 PhAddItemCircularBuffer_ULONG(&EtMaxNetworkHistory, 0);
+#ifdef PH_RECORD_MAX_USAGE
+                PhAddItemCircularBuffer_ULONG64(&PhMaxNetworkUsageHistory, 0);
+#endif
             }
         }
     }

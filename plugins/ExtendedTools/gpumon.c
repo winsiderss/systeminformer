@@ -127,27 +127,6 @@ BOOLEAN EtCloseAdapterHandle(
     return NT_SUCCESS(D3DKMTCloseAdapter(&closeAdapter));
 }
 
-D3DKMT_DRIVERVERSION EtpGetGpuWddmVersion(
-    _In_ D3DKMT_HANDLE AdapterHandle
-    )
-{
-    D3DKMT_DRIVERVERSION driverVersion;
-
-    memset(&driverVersion, 0, sizeof(D3DKMT_DRIVERVERSION));
-
-    if (NT_SUCCESS(EtQueryAdapterInformation(
-        AdapterHandle,
-        KMTQAITYPE_DRIVERVERSION,
-        &driverVersion,
-        sizeof(D3DKMT_ADAPTERTYPE)
-        )))
-    {
-        return driverVersion;
-    }
-
-    return KMT_DRIVERVERSION_WDDM_1_0;
-}
-
 BOOLEAN EtpIsGpuSoftwareDevice(
     _In_ D3DKMT_HANDLE AdapterHandle
     )

@@ -11,6 +11,8 @@
 #include <d3d11.h>
 #include "d3dkmt.h"
 
+#define PH_RECORD_MAX_USAGE 1
+
 extern PPH_PLUGIN PluginInstance;
 extern LIST_ENTRY EtProcessBlockListHead;
 extern LIST_ENTRY EtNetworkBlockListHead;
@@ -387,6 +389,10 @@ extern PH_CIRCULAR_BUFFER_ULONG EtNetworkReceiveHistory;
 extern PH_CIRCULAR_BUFFER_ULONG EtNetworkSendHistory;
 extern PH_CIRCULAR_BUFFER_ULONG EtMaxDiskHistory;
 extern PH_CIRCULAR_BUFFER_ULONG EtMaxNetworkHistory;
+#ifdef PH_RECORD_MAX_USAGE
+extern PH_CIRCULAR_BUFFER_ULONG64 PhMaxDiskUsageHistory;
+extern PH_CIRCULAR_BUFFER_ULONG64 PhMaxNetworkUsageHistory;
+#endif
 
 VOID EtEtwStatisticsInitialization(
     VOID
