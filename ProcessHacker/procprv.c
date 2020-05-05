@@ -366,7 +366,7 @@ PPH_STRING PhGetClientIdNameEx(
             PhInitFormatIU(&format[2], (ULONG_PTR)ClientId->UniqueProcess);
             PhInitFormatC(&format[3], L')');
 
-            name = PhFormat(format, 4, 0);
+            name = PhFormat(format, 4, ProcessName->Length + 8 * sizeof(WCHAR));
         }
         else
         {

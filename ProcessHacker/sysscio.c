@@ -3,6 +3,7 @@
  *   System Information I/O section
  *
  * Copyright (C) 2011-2016 wj32
+ * Copyright (C) 2017-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -31,6 +32,7 @@
 static PPH_SYSINFO_SECTION IoSection;
 static HWND IoDialog;
 static PH_LAYOUT_MANAGER IoLayoutManager;
+static RECT IoGraphMargin;
 static HWND IoGraphHandle;
 static PH_GRAPH_STATE IoGraphState;
 static HWND IoPanel;
@@ -38,6 +40,18 @@ static ULONG IoTicked;
 static PH_UINT64_DELTA IoReadDelta;
 static PH_UINT64_DELTA IoWriteDelta;
 static PH_UINT64_DELTA IoOtherDelta;
+static HWND IoPanelReadsDeltaLabel;
+static HWND IoPanelWritesDeltaLabel;
+static HWND IoPanelOtherDeltaLabel;
+static HWND IoPanelReadBytesDeltaLabel;
+static HWND IoPanelWriteBytesDeltaLabel;
+static HWND IoPanelOtherBytesDeltaLabel;
+static HWND IoPanelReadsLabel;
+static HWND IoPanelReadBytesLabel;
+static HWND IoPanelWritesLabel;
+static HWND IoPanelWriteBytesLabel;
+static HWND IoPanelOtherLabel;
+static HWND IoPanelOtherBytesLabel;
 
 BOOLEAN PhSipIoSectionCallback(
     _In_ PPH_SYSINFO_SECTION Section,
@@ -143,6 +157,7 @@ BOOLEAN PhSipIoSectionCallback(
             ULONG64 ioRead;
             ULONG64 ioWrite;
             ULONG64 ioOther;
+            PH_FORMAT format[9];
 
             if (!getTooltipText)
                 break;
@@ -151,30 +166,38 @@ BOOLEAN PhSipIoSectionCallback(
             ioWrite = PhGetItemCircularBuffer_ULONG64(&PhIoWriteHistory, getTooltipText->Index);
             ioOther = PhGetItemCircularBuffer_ULONG64(&PhIoOtherHistory, getTooltipText->Index);
 
-            PhMoveReference(&Section->GraphState.TooltipText, PhFormatString(
-                L"R: %s\nW: %s\nO: %s%s\n%s",
-                PhaFormatSize(ioRead, ULONG_MAX)->Buffer,
-                PhaFormatSize(ioWrite, ULONG_MAX)->Buffer,
-                PhaFormatSize(ioOther, ULONG_MAX)->Buffer,
-                PhGetStringOrEmpty(PhSipGetMaxIoString(getTooltipText->Index)),
-                PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->Buffer
-                ));
+            // R: %s\nW: %s\nO: %s%s\n%s
+            PhInitFormatS(&format[0], L"R: ");
+            PhInitFormatSize(&format[1], ioRead);
+            PhInitFormatS(&format[2], L"\nW: ");
+            PhInitFormatSize(&format[3], ioWrite);
+            PhInitFormatS(&format[4], L"\nO: ");
+            PhInitFormatSize(&format[5], ioOther);
+            PhInitFormatSR(&format[6], PH_AUTO_T(PH_STRING, PhSipGetMaxIoString(getTooltipText->Index))->sr);
+            PhInitFormatC(&format[7], L'\n');
+            PhInitFormatSR(&format[8], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
+
+            PhMoveReference(&Section->GraphState.TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 160));
             getTooltipText->Text = Section->GraphState.TooltipText->sr;
         }
         return TRUE;
     case SysInfoGraphDrawPanel:
         {
             PPH_SYSINFO_DRAW_PANEL drawPanel = Parameter1;
+            PH_FORMAT format[4];
 
             if (!drawPanel)
                 break;
 
             drawPanel->Title = PhCreateString(L"I/O");
-            drawPanel->SubTitle = PhFormatString(
-                L"R+O: %s\nW: %s",
-                PhSipFormatSizeWithPrecision(PhIoReadDelta.Delta + PhIoOtherDelta.Delta, 1)->Buffer,
-                PhSipFormatSizeWithPrecision(PhIoWriteDelta.Delta, 1)->Buffer
-                );
+
+            // R+O: %s\nW: %s
+            PhInitFormatS(&format[0], L"R+O: ");
+            PhInitFormatSizeWithPrecision(&format[1], PhIoReadDelta.Delta + PhIoOtherDelta.Delta, 1);
+            PhInitFormatS(&format[2], L"\nW: ");
+            PhInitFormatSizeWithPrecision(&format[3], PhIoWriteDelta.Delta, 1);
+
+            drawPanel->SubTitle = PhFormat(format, RTL_NUMBER_OF(format), 64);
         }
         return TRUE;
     }
@@ -210,10 +233,8 @@ VOID PhSipTickIoDialog(
     PhUpdateDelta(&IoWriteDelta, PhPerfInformation.IoWriteOperationCount);
     PhUpdateDelta(&IoOtherDelta, PhPerfInformation.IoOtherOperationCount);
 
-    IoTicked++;
-
-    if (IoTicked > 2)
-        IoTicked = 2;
+    if (IoTicked < 2)
+        IoTicked++;
 
     PhSipUpdateIoGraph();
     PhSipUpdateIoPanel();
@@ -239,6 +260,7 @@ INT_PTR CALLBACK PhSipIoDialogProc(
             PhInitializeLayoutManager(&IoLayoutManager, hwndDlg);
             graphItem = PhAddLayoutItem(&IoLayoutManager, GetDlgItem(hwndDlg, IDC_GRAPH_LAYOUT), NULL, PH_ANCHOR_ALL);
             panelItem = PhAddLayoutItem(&IoLayoutManager, GetDlgItem(hwndDlg, IDC_LAYOUT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            IoGraphMargin = graphItem->Margin;
 
             SetWindowFont(GetDlgItem(hwndDlg, IDC_TITLE), IoSection->Parameters->LargeFont, FALSE);
 
@@ -246,23 +268,7 @@ INT_PTR CALLBACK PhSipIoDialogProc(
             ShowWindow(IoPanel, SW_SHOW);
             PhAddLayoutItemEx(&IoLayoutManager, IoPanel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, panelItem->Margin);
 
-            IoGraphHandle = CreateWindow(
-                PH_GRAPH_CLASSNAME,
-                NULL,
-                WS_VISIBLE | WS_CHILD | WS_BORDER,
-                0,
-                0,
-                3,
-                3,
-                IoDialog,
-                NULL,
-                PhInstanceHandle,
-                NULL
-                );
-            Graph_SetTooltip(IoGraphHandle, TRUE);
-
-            PhAddLayoutItemEx(&IoLayoutManager, IoGraphHandle, NULL, PH_ANCHOR_ALL, graphItem->Margin);
-
+            PhSipCreateIoGraph();
             PhSipUpdateIoGraph();
             PhSipUpdateIoPanel();
         }
@@ -303,12 +309,45 @@ INT_PTR CALLBACK PhSipIoPanelDialogProc(
     {
     case WM_INITDIALOG:
         {
-            NOTHING;
+            IoPanelReadsDeltaLabel = GetDlgItem(hwndDlg, IDC_ZREADSDELTA_V);
+            IoPanelWritesDeltaLabel = GetDlgItem(hwndDlg, IDC_ZWRITESDELTA_V);
+            IoPanelOtherDeltaLabel = GetDlgItem(hwndDlg, IDC_ZOTHERDELTA_V);
+            IoPanelReadBytesDeltaLabel = GetDlgItem(hwndDlg, IDC_ZREADBYTESDELTA_V);
+            IoPanelWriteBytesDeltaLabel = GetDlgItem(hwndDlg, IDC_ZWRITEBYTESDELTA_V);
+            IoPanelOtherBytesDeltaLabel = GetDlgItem(hwndDlg, IDC_ZOTHERBYTESDELTA_V);
+            IoPanelReadsLabel = GetDlgItem(hwndDlg, IDC_ZREADS_V);
+            IoPanelReadBytesLabel = GetDlgItem(hwndDlg, IDC_ZREADBYTES_V);
+            IoPanelWritesLabel = GetDlgItem(hwndDlg, IDC_ZWRITES_V);
+            IoPanelWriteBytesLabel = GetDlgItem(hwndDlg, IDC_ZWRITEBYTES_V);
+            IoPanelOtherLabel = GetDlgItem(hwndDlg, IDC_ZOTHER_V);
+            IoPanelOtherBytesLabel = GetDlgItem(hwndDlg, IDC_ZOTHERBYTES_V);
         }
         break;
     }
 
     return FALSE;
+}
+
+VOID PhSipCreateIoGraph(
+    VOID
+    )
+{
+    IoGraphHandle = CreateWindow(
+        PH_GRAPH_CLASSNAME,
+        NULL,
+        WS_VISIBLE | WS_CHILD | WS_BORDER,
+        0,
+        0,
+        3,
+        3,
+        IoDialog,
+        NULL,
+        PhInstanceHandle,
+        NULL
+        );
+    Graph_SetTooltip(IoGraphHandle, TRUE);
+
+    PhAddLayoutItemEx(&IoLayoutManager, IoGraphHandle, NULL, PH_ANCHOR_ALL, IoGraphMargin);
 }
 
 VOID PhSipNotifyIoGraph(
@@ -385,19 +424,24 @@ VOID PhSipNotifyIoGraph(
                     ULONG64 ioRead;
                     ULONG64 ioWrite;
                     ULONG64 ioOther;
+                    PH_FORMAT format[9];
 
                     ioRead = PhGetItemCircularBuffer_ULONG64(&PhIoReadHistory, getTooltipText->Index);
                     ioWrite = PhGetItemCircularBuffer_ULONG64(&PhIoWriteHistory, getTooltipText->Index);
                     ioOther = PhGetItemCircularBuffer_ULONG64(&PhIoOtherHistory, getTooltipText->Index);
 
-                    PhMoveReference(&IoGraphState.TooltipText, PhFormatString(
-                        L"R: %s\nW: %s\nO: %s%s\n%s",
-                        PhaFormatSize(ioRead, ULONG_MAX)->Buffer,
-                        PhaFormatSize(ioWrite, ULONG_MAX)->Buffer,
-                        PhaFormatSize(ioOther, ULONG_MAX)->Buffer,
-                        PhGetStringOrEmpty(PhSipGetMaxIoString(getTooltipText->Index)),
-                        PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->Buffer
-                        ));
+                    // R: %s\nW: %s\nO: %s%s\n%s
+                    PhInitFormatS(&format[0], L"R: ");
+                    PhInitFormatSize(&format[1], ioRead);
+                    PhInitFormatS(&format[2], L"\nW: ");
+                    PhInitFormatSize(&format[3], ioWrite);
+                    PhInitFormatS(&format[4], L"\nO: ");
+                    PhInitFormatSize(&format[5], ioOther);
+                    PhInitFormatSR(&format[6], PH_AUTO_T(PH_STRING, PhSipGetMaxIoString(getTooltipText->Index))->sr);
+                    PhInitFormatC(&format[7], L'\n');
+                    PhInitFormatSR(&format[8], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
+
+                    PhMoveReference(&IoGraphState.TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 160));
                 }
 
                 getTooltipText->Text = IoGraphState.TooltipText->sr;
@@ -442,42 +486,114 @@ VOID PhSipUpdateIoPanel(
     VOID
     )
 {
+    PH_FORMAT format[1];
+    WCHAR formatBuffer[256];
+
     // I/O Deltas
 
     if (IoTicked > 1)
     {
-        PhSetDialogItemText(IoPanel, IDC_ZREADSDELTA_V, PhaFormatUInt64(IoReadDelta.Delta, TRUE)->Buffer);
-        PhSetDialogItemText(IoPanel, IDC_ZWRITESDELTA_V, PhaFormatUInt64(IoWriteDelta.Delta, TRUE)->Buffer);
-        PhSetDialogItemText(IoPanel, IDC_ZOTHERDELTA_V, PhaFormatUInt64(IoOtherDelta.Delta, TRUE)->Buffer);
+        PhInitFormatI64UGroupDigits(&format[0], IoReadDelta.Delta);
+
+        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
+            PhSetWindowText(IoPanelReadsDeltaLabel, formatBuffer);
+        else
+            PhSetWindowText(IoPanelReadsDeltaLabel, PhaFormatUInt64(IoReadDelta.Delta, TRUE)->Buffer);
+
+        PhInitFormatI64UGroupDigits(&format[0], IoWriteDelta.Delta);
+
+        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
+            PhSetWindowText(IoPanelWritesDeltaLabel, formatBuffer);
+        else
+            PhSetWindowText(IoPanelWritesDeltaLabel, PhaFormatUInt64(IoWriteDelta.Delta, TRUE)->Buffer);
+
+        PhInitFormatI64UGroupDigits(&format[0], IoOtherDelta.Delta);
+
+        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
+            PhSetWindowText(IoPanelOtherDeltaLabel, formatBuffer);
+        else
+            PhSetWindowText(IoPanelOtherDeltaLabel, PhaFormatUInt64(IoOtherDelta.Delta, TRUE)->Buffer);
     }
     else
     {
-        PhSetDialogItemText(IoPanel, IDC_ZREADSDELTA_V, L"-");
-        PhSetDialogItemText(IoPanel, IDC_ZWRITESDELTA_V, L"-");
-        PhSetDialogItemText(IoPanel, IDC_ZOTHERDELTA_V, L"-");
+        PhSetWindowText(IoPanelReadsDeltaLabel, L"-");
+        PhSetWindowText(IoPanelWritesDeltaLabel, L"-");
+        PhSetWindowText(IoPanelOtherDeltaLabel, L"-");
     }
 
     if (PhIoReadHistory.Count != 0)
     {
-        PhSetDialogItemText(IoPanel, IDC_ZREADBYTESDELTA_V, PhaFormatSize(PhIoReadDelta.Delta, ULONG_MAX)->Buffer);
-        PhSetDialogItemText(IoPanel, IDC_ZWRITEBYTESDELTA_V, PhaFormatSize(PhIoWriteDelta.Delta, ULONG_MAX)->Buffer);
-        PhSetDialogItemText(IoPanel, IDC_ZOTHERBYTESDELTA_V, PhaFormatSize(PhIoOtherDelta.Delta, ULONG_MAX)->Buffer);
+        PhInitFormatSize(&format[0], PhIoReadDelta.Delta);
+
+        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
+            PhSetWindowText(IoPanelReadBytesDeltaLabel, formatBuffer);
+        else
+            PhSetWindowText(IoPanelReadBytesDeltaLabel, PhaFormatSize(PhIoReadDelta.Delta, ULONG_MAX)->Buffer);
+
+        PhInitFormatSize(&format[0], PhIoWriteDelta.Delta);
+
+        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
+            PhSetWindowText(IoPanelWriteBytesDeltaLabel, formatBuffer);
+        else
+            PhSetWindowText(IoPanelWriteBytesDeltaLabel, PhaFormatSize(PhIoWriteDelta.Delta, ULONG_MAX)->Buffer);
+
+        PhInitFormatSize(&format[0], PhIoOtherDelta.Delta);
+
+        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
+            PhSetWindowText(IoPanelOtherBytesDeltaLabel, formatBuffer);
+        else
+            PhSetWindowText(IoPanelOtherBytesDeltaLabel, PhaFormatSize(PhIoOtherDelta.Delta, ULONG_MAX)->Buffer);
     }
     else
     {
-        PhSetDialogItemText(IoPanel, IDC_ZREADBYTESDELTA_V, L"-");
-        PhSetDialogItemText(IoPanel, IDC_ZWRITEBYTESDELTA_V, L"-");
-        PhSetDialogItemText(IoPanel, IDC_ZOTHERBYTESDELTA_V, L"-");
+        PhSetWindowText(IoPanelReadBytesDeltaLabel, L"-");
+        PhSetWindowText(IoPanelWriteBytesDeltaLabel, L"-");
+        PhSetWindowText(IoPanelOtherBytesDeltaLabel, L"-");
     }
 
     // I/O Totals
 
-    PhSetDialogItemText(IoPanel, IDC_ZREADS_V, PhaFormatUInt64(PhPerfInformation.IoReadOperationCount, TRUE)->Buffer);
-    PhSetDialogItemText(IoPanel, IDC_ZREADBYTES_V, PhaFormatSize(PhPerfInformation.IoReadTransferCount.QuadPart, ULONG_MAX)->Buffer);
-    PhSetDialogItemText(IoPanel, IDC_ZWRITES_V, PhaFormatUInt64(PhPerfInformation.IoWriteOperationCount, TRUE)->Buffer);
-    PhSetDialogItemText(IoPanel, IDC_ZWRITEBYTES_V, PhaFormatSize(PhPerfInformation.IoWriteTransferCount.QuadPart, ULONG_MAX)->Buffer);
-    PhSetDialogItemText(IoPanel, IDC_ZOTHER_V, PhaFormatUInt64(PhPerfInformation.IoOtherOperationCount, TRUE)->Buffer);
-    PhSetDialogItemText(IoPanel, IDC_ZOTHERBYTES_V, PhaFormatSize(PhPerfInformation.IoOtherTransferCount.QuadPart, ULONG_MAX)->Buffer);
+    PhInitFormatI64UGroupDigits(&format[0], PhPerfInformation.IoReadOperationCount);
+
+    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
+        PhSetWindowText(IoPanelReadsLabel, formatBuffer);
+    else
+        PhSetWindowText(IoPanelReadsLabel, PhaFormatUInt64(PhPerfInformation.IoReadOperationCount, TRUE)->Buffer);
+
+    PhInitFormatSize(&format[0], PhPerfInformation.IoReadTransferCount.QuadPart);
+
+    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
+        PhSetWindowText(IoPanelReadBytesLabel, formatBuffer);
+    else
+        PhSetWindowText(IoPanelReadBytesLabel, PhaFormatSize(PhPerfInformation.IoReadTransferCount.QuadPart, ULONG_MAX)->Buffer);
+
+    PhInitFormatI64UGroupDigits(&format[0], PhPerfInformation.IoWriteOperationCount);
+
+    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
+        PhSetWindowText(IoPanelWritesLabel, formatBuffer);
+    else
+        PhSetWindowText(IoPanelWritesLabel, PhaFormatUInt64(PhPerfInformation.IoWriteOperationCount, TRUE)->Buffer);
+
+    PhInitFormatSize(&format[0], PhPerfInformation.IoWriteTransferCount.QuadPart);
+
+    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
+        PhSetWindowText(IoPanelWriteBytesLabel, formatBuffer);
+    else
+        PhSetWindowText(IoPanelWriteBytesLabel, PhaFormatSize(PhPerfInformation.IoWriteTransferCount.QuadPart, ULONG_MAX)->Buffer);
+
+    PhInitFormatI64UGroupDigits(&format[0], PhPerfInformation.IoOtherOperationCount);
+
+    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
+        PhSetWindowText(IoPanelOtherLabel, formatBuffer);
+    else
+        PhSetWindowText(IoPanelOtherLabel, PhaFormatUInt64(PhPerfInformation.IoOtherOperationCount, TRUE)->Buffer);
+
+    PhInitFormatSize(&format[0], PhPerfInformation.IoOtherTransferCount.QuadPart);
+
+    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
+        PhSetWindowText(IoPanelOtherBytesLabel, formatBuffer);
+    else
+        PhSetWindowText(IoPanelOtherBytesLabel, PhaFormatSize(PhPerfInformation.IoOtherTransferCount.QuadPart, ULONG_MAX)->Buffer);
 }
 
 PPH_PROCESS_RECORD PhSipReferenceMaxIoRecord(
@@ -510,10 +626,11 @@ PPH_STRING PhSipGetMaxIoString(
     ULONG64 maxIoReadOther;
     ULONG64 maxIoWrite;
 #endif
-    PPH_STRING maxUsageString = NULL;
 
     if (maxProcessRecord = PhSipReferenceMaxIoRecord(Index))
     {
+        PPH_STRING maxUsageString;
+
         // We found the process record, so now we construct the max. usage string.
 #ifdef PH_RECORD_MAX_USAGE
         maxIoReadOther = PhGetItemCircularBuffer_ULONG64(&PhMaxIoReadOtherHistory, Index);
@@ -521,29 +638,47 @@ PPH_STRING PhSipGetMaxIoString(
 
         if (!PH_IS_FAKE_PROCESS_ID(maxProcessRecord->ProcessId))
         {
-            maxUsageString = PhaFormatString(
-                L"\n%s (%u): R+O: %s, W: %s",
-                maxProcessRecord->ProcessName->Buffer,
-                HandleToUlong(maxProcessRecord->ProcessId),
-                PhaFormatSize(maxIoReadOther, ULONG_MAX)->Buffer,
-                PhaFormatSize(maxIoWrite, ULONG_MAX)->Buffer
-                );
+            PH_FORMAT format[8];
+
+            // \n%s (%u): R+O: %s, W: %s
+            PhInitFormatC(&format[0], L'\n');
+            PhInitFormatSR(&format[1], maxProcessRecord->ProcessName->sr);
+            PhInitFormatS(&format[2], L" (");
+            PhInitFormatU(&format[3], HandleToUlong(maxProcessRecord->ProcessId));
+            PhInitFormatS(&format[4], L"): R+O: ");
+            PhInitFormatSize(&format[5], maxIoReadOther);
+            PhInitFormatS(&format[6], L", W: ");
+            PhInitFormatSize(&format[7], maxIoWrite);
+
+            maxUsageString = PhFormat(format, RTL_NUMBER_OF(format), 128);
         }
         else
         {
-            maxUsageString = PhaFormatString(
-                L"\n%s: R+O: %s, W: %s",
-                maxProcessRecord->ProcessName->Buffer,
-                PhaFormatSize(maxIoReadOther, ULONG_MAX)->Buffer,
-                PhaFormatSize(maxIoWrite, ULONG_MAX)->Buffer
-                );
+            PH_FORMAT format[6];
+
+            // \n%s: R+O: %s, W: %s
+            PhInitFormatC(&format[0], L'\n');
+            PhInitFormatSR(&format[1], maxProcessRecord->ProcessName->sr);
+            PhInitFormatS(&format[2], L": R+O: ");
+            PhInitFormatSize(&format[3], maxIoReadOther);
+            PhInitFormatS(&format[4], L", W: ");
+            PhInitFormatSize(&format[5], maxIoWrite);
+
+            maxUsageString = PhFormat(format, RTL_NUMBER_OF(format), 128);
         }
 #else
-        maxUsageString = PhaConcatStrings2(L"\n", maxProcessRecord->ProcessName->Buffer);
+        PH_FORMAT format[2];
+
+        PhInitFormatC(&format[0], L'\n');
+        PhInitFormatSR(&format[1], maxProcessRecord->ProcessName->sr);
+
+        maxUsageString = PhFormat(format, RTL_NUMBER_OF(format), 128);
 #endif
 
         PhDereferenceProcessRecord(maxProcessRecord);
+
+        return maxUsageString;
     }
 
-    return maxUsageString;
+    return PhReferenceEmptyString();
 }

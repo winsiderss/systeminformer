@@ -3,6 +3,7 @@
  *   tree new column manager
  *
  * Copyright (C) 2011-2016 wj32
+ * Copyright (C) 2017-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -83,8 +84,7 @@ PPH_CM_COLUMN PhCmCreateColumn(
     PPH_CM_COLUMN column;
     PH_TREENEW_COLUMN tnColumn;
 
-    column = PhAllocate(sizeof(PH_CM_COLUMN));
-    memset(column, 0, sizeof(PH_CM_COLUMN));
+    column = PhAllocateZero(sizeof(PH_CM_COLUMN));
     column->Id = Manager->NextId++;
     column->Plugin = Plugin;
     column->SubId = SubId;
@@ -220,9 +220,7 @@ BOOLEAN PhCmForwardMessage(
             // Some plugins want to be notified about all messages.
             if (Manager->NotifyList)
             {
-                ULONG i;
-
-                for (i = 0; i < Manager->NotifyList->Count; i++)
+                for (ULONG i = 0; i < Manager->NotifyList->Count; i++)
                 {
                     plugin = Manager->NotifyList->Items[i];
 
@@ -680,17 +678,35 @@ PPH_STRING PhCmSaveSettingsEx(
             {
                 if (!Manager || sortColumn < Manager->MinId)
                 {
-                    *SortSettings = PhFormatString(L"%lu,%lu", sortColumn, sortOrder);
+                    PH_FORMAT format[3];
+
+                    // %lu,%lu
+                    PhInitFormatU(&format[0], sortColumn);
+                    PhInitFormatC(&format[1], L',');
+                    PhInitFormatU(&format[2], sortOrder);
+
+                    *SortSettings = PhFormat(format, RTL_NUMBER_OF(format), 32);
                 }
                 else
                 {
                     PH_TREENEW_COLUMN column;
-                    PPH_CM_COLUMN cmColumn;
 
                     if (TreeNew_GetColumn(TreeNewHandle, sortColumn, &column))
                     {
+                        PPH_CM_COLUMN cmColumn;
+                        PH_FORMAT format[6];
+
                         cmColumn = column.Context;
-                        *SortSettings = PhFormatString(L"+%s+%lu,%lu", cmColumn->Plugin->Name.Buffer, cmColumn->SubId, sortOrder);
+
+                        // +%s+%lu,%lu
+                        PhInitFormatC(&format[0], L'+');
+                        PhInitFormatSR(&format[1], cmColumn->Plugin->Name);
+                        PhInitFormatC(&format[2], L'+');
+                        PhInitFormatU(&format[3], cmColumn->SubId);
+                        PhInitFormatC(&format[4], L',');
+                        PhInitFormatU(&format[5], sortOrder);
+
+                        *SortSettings = PhFormat(format, RTL_NUMBER_OF(format), 64);
                     }
                     else
                     {

@@ -3,7 +3,7 @@
  *   settings
  *
  * Copyright (C) 2010-2016 wj32
- * Copyright (C) 2017-2018 dmex
+ * Copyright (C) 2017-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -148,22 +148,42 @@ PPH_STRING PhSettingToString(
         }
     case IntegerSettingType:
         {
-            return PhFormatString(L"%x", Setting->u.Integer);
+            PH_FORMAT format[1];
+
+            // %x
+            PhInitFormatX(&format[0], Setting->u.Integer);
+
+            return PhFormat(format, RTL_NUMBER_OF(format), 0);  
         }
     case IntegerPairSettingType:
         {
             PPH_INTEGER_PAIR integerPair = &Setting->u.IntegerPair;
+            PH_FORMAT format[3];
 
-            return PhFormatString(L"%ld,%ld", integerPair->X, integerPair->Y);
+            // %ld,%ld
+            PhInitFormatD(&format[0], integerPair->X);
+            PhInitFormatC(&format[1], L',');
+            PhInitFormatD(&format[2], integerPair->Y);
+
+            return PhFormat(format, RTL_NUMBER_OF(format), 0);
         }
     case ScalableIntegerPairSettingType:
         {
             PPH_SCALABLE_INTEGER_PAIR scalableIntegerPair = Setting->u.Pointer;
+            PH_FORMAT format[6];
 
             if (!scalableIntegerPair)
                 return PhReferenceEmptyString();
 
-            return PhFormatString(L"@%lu|%ld,%ld", scalableIntegerPair->Scale, scalableIntegerPair->X, scalableIntegerPair->Y);
+            // @%lu|%ld,%ld
+            PhInitFormatC(&format[0], L'@');
+            PhInitFormatU(&format[1], scalableIntegerPair->Scale);
+            PhInitFormatC(&format[2], L'|');
+            PhInitFormatD(&format[3], scalableIntegerPair->X);
+            PhInitFormatC(&format[4], L',');
+            PhInitFormatD(&format[5], scalableIntegerPair->Y);
+
+            return PhFormat(format, RTL_NUMBER_OF(format), 0);
         }
     }
 
@@ -1344,9 +1364,20 @@ VOID PhSaveListViewSortColumnsToSetting(
     PH_SORT_ORDER sortOrder = AscendingSortOrder;
 
     if (ExtendedListView_GetSort(ListViewHandle, &sortColumn, &sortOrder))
-        string = PhFormatString(L"%lu,%lu", sortColumn, sortOrder);
+    {
+        PH_FORMAT format[3];
+
+        // %lu,%lu
+        PhInitFormatU(&format[0], sortColumn);
+        PhInitFormatC(&format[1], L',');
+        PhInitFormatU(&format[2], sortOrder);
+
+        string = PhFormat(format, RTL_NUMBER_OF(format), 16);
+    }
     else
+    {
         string = PhCreateString(L"0,0");
+    }
 
     PhSetStringSetting2(Name, &string->sr);
     PhDereferenceObject(string);

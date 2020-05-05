@@ -3,7 +3,7 @@
  *   plugin support
  *
  * Copyright (C) 2010-2015 wj32
- * Copyright (C) 2017-2019 dmex
+ * Copyright (C) 2017-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -212,9 +212,9 @@ PPH_STRING PhpGetPluginDirectoryPath(
             PH_STRINGREF pluginsDirectoryNameSr;
 
             // Not absolute. Make sure it is.
-            PhInitFormatS(&format[0], applicationDirectory->Buffer);
-            PhInitFormatS(&format[1], pluginsDirectory->Buffer);
-            PhInitFormatS(&format[2], L"\\");
+            PhInitFormatSR(&format[0], applicationDirectory->sr);
+            PhInitFormatSR(&format[1], pluginsDirectory->sr);
+            PhInitFormatC(&format[2], OBJ_NAME_PATH_SEPARATOR);
 
             if (PhFormatToBuffer(
                 format,
