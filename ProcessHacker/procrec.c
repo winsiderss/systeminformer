@@ -3,6 +3,7 @@
  *   process record properties
  *
  * Copyright (C) 2010 wj32
+ * Copyright (C) 2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -21,7 +22,7 @@
  */
 
 #include <phapp.h>
-
+#include <phsettings.h>
 #include <mainwnd.h>
 #include <procprv.h>
 
@@ -74,16 +75,6 @@ PPH_STRING PhpaGetRelativeTimeString(
     timeString = PhaFormatDateTime(&timeFields);
 
     return PhaFormatString(L"%s ago (%s)", timeRelativeString->Buffer, timeString->Buffer);
-}
-
-FORCEINLINE PWSTR PhpGetStringOrNa(
-    _In_ _Maybenull_ PPH_STRING String
-    )
-{
-    if (String)
-        return String->Buffer;
-    else
-        return L"N/A";
 }
 
 INT_PTR CALLBACK PhpProcessRecordDlgProc(
@@ -200,10 +191,10 @@ INT_PTR CALLBACK PhpProcessRecordDlgProc(
             SendMessage(GetDlgItem(hwndDlg, IDC_OPENFILENAME), BM_SETIMAGE, IMAGE_ICON,
                 (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_FOLDER)));
   
-            PhSetDialogItemText(hwndDlg, IDC_NAME, PhpGetStringOrNa(versionInfo.FileDescription));
-            PhSetDialogItemText(hwndDlg, IDC_COMPANYNAME, PhpGetStringOrNa(versionInfo.CompanyName));
-            PhSetDialogItemText(hwndDlg, IDC_VERSION, PhpGetStringOrNa(versionInfo.FileVersion));
-            PhSetDialogItemText(hwndDlg, IDC_FILENAME, PhpGetStringOrNa(context->Record->FileName));
+            PhSetDialogItemText(hwndDlg, IDC_NAME, PhGetStringOrDefault(versionInfo.FileDescription, L"N/A"));
+            PhSetDialogItemText(hwndDlg, IDC_COMPANYNAME, PhGetStringOrDefault(versionInfo.CompanyName, L"N/A"));
+            PhSetDialogItemText(hwndDlg, IDC_VERSION, PhGetStringOrDefault(versionInfo.FileVersion, L"N/A"));
+            PhSetDialogItemText(hwndDlg, IDC_FILENAME, PhGetStringOrDefault(context->Record->FileName, L"N/A"));
 
             if (versionInfoInitialized)
                 PhDeleteImageVersionInfo(&versionInfo);
@@ -211,7 +202,7 @@ INT_PTR CALLBACK PhpProcessRecordDlgProc(
             if (!context->Record->FileName)
                 EnableWindow(GetDlgItem(hwndDlg, IDC_OPENFILENAME), FALSE);
 
-            PhSetDialogItemText(hwndDlg, IDC_CMDLINE, PhpGetStringOrNa(context->Record->CommandLine));
+            PhSetDialogItemText(hwndDlg, IDC_CMDLINE, PhGetStringOrDefault(context->Record->CommandLine, L"N/A"));
 
             if (context->Record->CreateTime.QuadPart != 0)
                 PhSetDialogItemText(hwndDlg, IDC_STARTED, PhpaGetRelativeTimeString(&context->Record->CreateTime)->Buffer);
@@ -224,6 +215,8 @@ INT_PTR CALLBACK PhpProcessRecordDlgProc(
                 PhSetDialogItemText(hwndDlg, IDC_TERMINATED, L"N/A");
 
             PhSetDialogItemValue(hwndDlg, IDC_SESSIONID, context->Record->SessionId, FALSE);
+
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
@@ -234,7 +227,7 @@ INT_PTR CALLBACK PhpProcessRecordDlgProc(
         break;
     case WM_COMMAND:
         {
-            switch (LOWORD(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDCANCEL:
             case IDOK:
