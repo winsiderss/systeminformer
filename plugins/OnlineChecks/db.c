@@ -117,16 +117,20 @@ PPROCESS_DB_OBJECT CreateProcessDbObject(
     PPROCESS_DB_OBJECT object;
     BOOLEAN added;
     PPROCESS_DB_OBJECT *realObject;
-
-    object = PhAllocate(sizeof(PROCESS_DB_OBJECT));
-    memset(object, 0, sizeof(PROCESS_DB_OBJECT));
-
-    PhInitializeStringRefLongHint(&object->FileName, FileName->Buffer);
+    PH_FORMAT format[3];
 
     PhReferenceObject(FileName);
+
+    object = PhAllocateZero(sizeof(PROCESS_DB_OBJECT));
+    object->FileName = PhGetStringRef(FileName);
     object->Positives = Positives;
     object->Hash = FileName;
-    object->Result = PhFormatString(L"%lu | %lu", (ULONG)Positives, (ULONG)Total);
+
+    // %lu | %lu
+    PhInitFormatU(&format[0], (ULONG)Positives);
+    PhInitFormatS(&format[1], L" | ");
+    PhInitFormatU(&format[2], (ULONG)Total);
+    object->Result = PhFormat(format, RTL_NUMBER_OF(format), 0);
 
     realObject = PhAddEntryHashtableEx(ProcessObjectDb, &object, &added);
 
