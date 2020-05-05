@@ -613,6 +613,41 @@ VOID PhSipNotifyCpuGraph(
                     PhCopyCircularBuffer_FLOAT(&PhCpusUserHistory[Index], CpusGraphState[Index].Data2, drawInfo->LineDataCount);
                     CpusGraphState[Index].Valid = TRUE;
                 }
+
+                if (PhCsGraphShowText)
+                {
+                    HDC hdc;
+                    FLOAT cpuKernel;
+                    FLOAT cpuUser;
+                    PH_FORMAT format[6];
+
+                    cpuKernel = PhGetItemCircularBuffer_FLOAT(&PhCpusKernelHistory[Index], 0);
+                    cpuUser = PhGetItemCircularBuffer_FLOAT(&PhCpusUserHistory[Index], 0);
+
+                    // %.2f%% (K: %.2f%%, U: %.2f%%)
+                    PhInitFormatF(&format[0], ((DOUBLE)cpuKernel + cpuUser) * 100, 2);
+                    PhInitFormatS(&format[1], L"% (K: ");
+                    PhInitFormatF(&format[2], (DOUBLE)cpuKernel * 100, 2);
+                    PhInitFormatS(&format[3], L"%, U: ");
+                    PhInitFormatF(&format[4], (DOUBLE)cpuUser * 100, 2);
+                    PhInitFormatS(&format[5], L"%)");
+
+                    PhMoveReference(&CpusGraphState[Index].Text, PhFormat(format, RTL_NUMBER_OF(format), 64));
+
+                    hdc = Graph_GetBufferedContext(CpusGraphHandle[Index]);
+                    PhSetGraphText(
+                        hdc,
+                        drawInfo,
+                        &CpusGraphState[Index].Text->sr,
+                        &PhNormalGraphTextMargin,
+                        &PhNormalGraphTextPadding,
+                        PH_ALIGN_TOP | PH_ALIGN_LEFT
+                        );
+                }
+                else
+                {
+                    drawInfo->Text.Buffer = NULL;
+                }
             }
         }
         break;
