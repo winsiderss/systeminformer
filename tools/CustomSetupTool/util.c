@@ -574,7 +574,7 @@ VOID SetupSetWindowsOptions(
             PhGetString(string),
             PhGetString(clientPathString),
             PhGetString(Context->SetupInstallPath),
-            L"ProcessHacker3.0.0"
+            L"PeViewer3.0.0"
             );
 
         PhDereferenceObject(clientPathString);
@@ -990,8 +990,6 @@ VOID SetupCreateLink(
         //propValue.puuid = GUID;
         //
         //IPropertyStore_SetValue(propertyStorePtr, &PKEY_AppUserModel_ToastActivatorCLSID, &propValue);
-        //
-        //PropVariantClear(&propValue);
 
         IPropertyStore_Commit(propertyStorePtr);
         IPropertyStore_Release(propertyStorePtr);

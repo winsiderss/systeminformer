@@ -30,7 +30,7 @@ NTSTATUS SetupDownloadProgressThread(
     if (!UpdateDownloadUpdateData(Context))
         goto CleanupExit;
 
-    PostMessage(Context->DialogHandle, SETUP_SHOWFINAL, 0, 0);
+    PostMessage(Context->DialogHandle, SETUP_SHOWINSTALL, 0, 0);
     return STATUS_SUCCESS;
 
 CleanupExit:
