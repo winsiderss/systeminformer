@@ -978,12 +978,18 @@ VOID SetupCreateLink(
     if (SUCCEEDED(IShellLinkW_QueryInterface(shellLinkPtr, &IID_IPropertyStore, &propertyStorePtr)))
     {
         PROPVARIANT propValue;
-    
+        SIZE_T propValueLength;
+
         PropVariantInit(&propValue);
         propValue.vt = VT_LPWSTR;
-        propValue.pwszVal = AppId;
+        propValueLength = PhCountStringZ(AppId) * sizeof(WCHAR);
+        propValue.pwszVal = (PWSTR)CoTaskMemAlloc(propValueLength + sizeof(UNICODE_NULL));
+        memset(propValue.pwszVal, 0, propValueLength + sizeof(UNICODE_NULL));
+        memcpy(propValue.pwszVal, AppId, propValueLength);
     
         IPropertyStore_SetValue(propertyStorePtr, &PKEY_AppUserModel_ID, &propValue);
+
+        PropVariantClear(&propValue);
 
         //PropVariantInit(&propValue);
         //propValue.vt = VT_CLSID;
