@@ -985,7 +985,6 @@ VOID SetupCreateLink(
     
         IPropertyStore_SetValue(propertyStorePtr, &PKEY_AppUserModel_ID, &propValue);
 
-        PropVariantClear(&propValue);
         //PropVariantInit(&propValue);
         //propValue.vt = VT_CLSID;
         //propValue.puuid = GUID;
@@ -1016,7 +1015,7 @@ VOID SetupCreateLink(
     // Save the shortcut to the file system...
     IPersistFile_Save(persistFilePtr, LinkFilePath, TRUE);
 
-    //SHChangeNotify(SHCNE_UPDATEITEM, SHCNF_PATH | SHCNF_FLUSHNOWAIT, LinkFilePath, NULL);
+    SHChangeNotify(SHCNE_UPDATEITEM, SHCNF_PATH, LinkFilePath, NULL);
 
 CleanupExit:
     if (persistFilePtr)
