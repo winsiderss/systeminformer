@@ -342,36 +342,39 @@ VOID NTAPI EtEtwProcessesUpdatedCallback(
             listEntry = listEntry->Flink;
         }
 
-        if (maxDiskBlock)
+        if (runCount != 0)
         {
-            PhAddItemCircularBuffer_ULONG(&EtMaxDiskHistory, HandleToUlong(maxDiskBlock->ProcessItem->ProcessId));
+            if (maxDiskBlock)
+            {
+                PhAddItemCircularBuffer_ULONG(&EtMaxDiskHistory, HandleToUlong(maxDiskBlock->ProcessItem->ProcessId));
 #ifdef PH_RECORD_MAX_USAGE
-            PhAddItemCircularBuffer_ULONG64(&PhMaxDiskUsageHistory, maxDiskValue);
+                PhAddItemCircularBuffer_ULONG64(&PhMaxDiskUsageHistory, maxDiskValue);
 #endif
-            PhReferenceProcessRecordForStatistics(maxDiskBlock->ProcessItem->Record);
-        }
-        else
-        {
-            PhAddItemCircularBuffer_ULONG(&EtMaxDiskHistory, 0);
+                PhReferenceProcessRecordForStatistics(maxDiskBlock->ProcessItem->Record);
+            }
+            else
+            {
+                PhAddItemCircularBuffer_ULONG(&EtMaxDiskHistory, 0);
 #ifdef PH_RECORD_MAX_USAGE
-            PhAddItemCircularBuffer_ULONG64(&PhMaxDiskUsageHistory, 0);
+                PhAddItemCircularBuffer_ULONG64(&PhMaxDiskUsageHistory, 0);
 #endif
-        }
+            }
 
-        if (maxNetworkBlock)
-        {
-            PhAddItemCircularBuffer_ULONG(&EtMaxNetworkHistory, HandleToUlong(maxNetworkBlock->ProcessItem->ProcessId));
+            if (maxNetworkBlock)
+            {
+                PhAddItemCircularBuffer_ULONG(&EtMaxNetworkHistory, HandleToUlong(maxNetworkBlock->ProcessItem->ProcessId));
 #ifdef PH_RECORD_MAX_USAGE
-            PhAddItemCircularBuffer_ULONG64(&PhMaxNetworkUsageHistory, maxNetworkValue);
+                PhAddItemCircularBuffer_ULONG64(&PhMaxNetworkUsageHistory, maxNetworkValue);
 #endif
-            PhReferenceProcessRecordForStatistics(maxNetworkBlock->ProcessItem->Record);
-        }
-        else
-        {
-            PhAddItemCircularBuffer_ULONG(&EtMaxNetworkHistory, 0);
+                PhReferenceProcessRecordForStatistics(maxNetworkBlock->ProcessItem->Record);
+            }
+            else
+            {
+                PhAddItemCircularBuffer_ULONG(&EtMaxNetworkHistory, 0);
 #ifdef PH_RECORD_MAX_USAGE
-            PhAddItemCircularBuffer_ULONG64(&PhMaxNetworkUsageHistory, 0);
+                PhAddItemCircularBuffer_ULONG64(&PhMaxNetworkUsageHistory, 0);
 #endif
+            }
         }
     }
     else

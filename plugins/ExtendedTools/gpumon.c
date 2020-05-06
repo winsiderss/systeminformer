@@ -333,9 +333,6 @@ PPH_STRING EtpQueryDeviceRegistryProperty(
     return string;
 }
 
-// Note: MSDN states this value must be created by video devices BUT Task Manager 
-// doesn't query this value and I currently don't know where it's getting the gpu memory information.
-// https://docs.microsoft.com/en-us/windows-hardware/drivers/display/registering-hardware-information
 ULONG64 EtpQueryGpuInstalledMemory(
     _In_ DEVINST DeviceHandle
     )
@@ -359,6 +356,26 @@ ULONG64 EtpQueryGpuInstalledMemory(
 
         if (installedMemory == ULONG_MAX) // HACK
             installedMemory = ULLONG_MAX;
+
+        // Intel GPU devices incorrectly create the key with type REG_BINARY.
+        if (installedMemory == ULLONG_MAX)
+        {
+            PH_STRINGREF valueName;
+            PKEY_VALUE_PARTIAL_INFORMATION buffer;
+
+            PhInitializeStringRef(&valueName, L"HardwareInformation.MemorySize");
+
+            if (NT_SUCCESS(PhQueryValueKey(keyHandle, &valueName, KeyValuePartialInformation, &buffer)))
+            {
+                if (buffer->Type == REG_BINARY)
+                {
+                    if (buffer->DataLength == sizeof(ULONG))
+                        installedMemory = *(PULONG)buffer->Data;
+                }
+
+                PhFree(buffer);
+            }
+        }
 
         NtClose(keyHandle);
     }
