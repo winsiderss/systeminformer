@@ -139,7 +139,6 @@
     <ClCompile Include="wswatch.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="d3dkmt.h" />
     <ClInclude Include="disktabp.h" />
     <ClInclude Include="etwmini.h" />
     <ClInclude Include="etwmon.h" />

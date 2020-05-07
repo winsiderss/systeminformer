@@ -107,9 +107,6 @@
     <ClInclude Include="disktabp.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="d3dkmt.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="gpumon.h">
       <Filter>Header Files</Filter>
     </ClInclude>
