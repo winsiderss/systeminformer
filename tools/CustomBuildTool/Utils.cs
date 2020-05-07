@@ -396,25 +396,29 @@ namespace CustomBuildTool
 
                 try
                 {
-                    var setupConfiguration = new SetupConfigurationClass() as ISetupConfiguration2;
-                    var instanceEnumerator = setupConfiguration.EnumAllInstances();
-                    var instances = new ISetupInstance2[3];
+                    ISetupConfiguration2 setupConfiguration = new SetupConfigurationClass() as ISetupConfiguration2;
 
-                    instanceEnumerator.Next(instances.Length, instances, out var instancesFetched);
-
-                    if (instancesFetched == 0)
-                        return null;
-
-                    do
+                    if (setupConfiguration != null)
                     {
-                        for (int i = 0; i < instancesFetched; i++)
-                        {
-                            VisualStudioInstanceList.Add(new VisualStudioInstance(instances[i]));
-                        }
+                        IEnumSetupInstances instanceEnumerator = setupConfiguration.EnumAllInstances();
+                        ISetupInstance2[] instances = new ISetupInstance2[3];
 
-                        instanceEnumerator.Next(instances.Length, instances, out instancesFetched);
+                        instanceEnumerator.Next(instances.Length, instances, out var instancesFetched);
+
+                        if (instancesFetched == 0)
+                            return null;
+
+                        do
+                        {
+                            for (int i = 0; i < instancesFetched; i++)
+                            {
+                                VisualStudioInstanceList.Add(new VisualStudioInstance(instances[i]));
+                            }
+
+                            instanceEnumerator.Next(instances.Length, instances, out instancesFetched);
+                        }
+                        while (instancesFetched != 0);
                     }
-                    while (instancesFetched != 0);
                 }
                 catch { }
             }

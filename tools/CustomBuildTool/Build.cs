@@ -886,7 +886,10 @@ namespace CustomBuildTool
                 if (Directory.Exists("bin\\Release64"))
                     File.Create("bin\\Release64\\ProcessHacker.exe.settings.xml").Dispose();
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Program.PrintColorMessage("[WARN] " + ex, ConsoleColor.Yellow);
+            }
 
             try
             {
@@ -900,7 +903,10 @@ namespace CustomBuildTool
                 if (Directory.Exists("bin\\Release64"))
                     File.Create("bin\\Release64\\usernotesdb.xml").Dispose();
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Program.PrintColorMessage("[WARN] " + ex, ConsoleColor.Yellow);
+            }
 
             try
             {
@@ -1283,11 +1289,12 @@ namespace CustomBuildTool
                 {
                     httpClientHandler.AutomaticDecompression = DecompressionMethods.All;
 
-                    using (HttpClient client = new HttpClient(httpClientHandler))
+                    using (HttpClient httpClient = new HttpClient(httpClientHandler))
+                    using (StringContent httpContent = new StringContent(buildPostString, Encoding.UTF8, "application/json"))
                     {
-                        client.DefaultRequestHeaders.Add("X-ApiKey", buildPostApiKey);
+                        httpClient.DefaultRequestHeaders.Add("X-ApiKey", buildPostApiKey);
 
-                        var httpTask = client.PostAsync(buildPostUrl, new StringContent(buildPostString, Encoding.UTF8, "application/json"));
+                        var httpTask = httpClient.PostAsync(buildPostUrl, httpContent);
                         httpTask.Wait();
 
                         if (!httpTask.Result.IsSuccessStatusCode)
@@ -1310,11 +1317,12 @@ namespace CustomBuildTool
                 {
                     httpClientHandler.AutomaticDecompression = DecompressionMethods.All;
 
-                    using (HttpClient client = new HttpClient(httpClientHandler))
+                    using (HttpClient httpClient = new HttpClient(httpClientHandler))
+                    using (StringContent httpContent = new StringContent(buildPostString, Encoding.UTF8, "application/json"))
                     {
-                        client.DefaultRequestHeaders.Add("X-ApiKey", buildPostSfApiKey);
+                        httpClient.DefaultRequestHeaders.Add("X-ApiKey", buildPostSfApiKey);
 
-                        var httpTask = client.PostAsync(buildPostSfUrl, new StringContent(buildPostString, Encoding.UTF8, "application/json"));
+                        var httpTask = httpClient.PostAsync(buildPostSfUrl, httpContent);
                         httpTask.Wait();
 
                         if (!httpTask.Result.IsSuccessStatusCode)
