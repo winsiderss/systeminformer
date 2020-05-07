@@ -1001,7 +1001,9 @@ PPH_STRING PhSipGetCpuBrandString(
     VOID
     )
 {
+    static PH_STRINGREF whitespace = PH_STRINGREF_INIT(L" ");
     PPH_STRING brand;
+    PH_STRINGREF brandSr;
     ULONG brandLength;
     CHAR brandString[49];
 
@@ -1032,6 +1034,11 @@ PPH_STRING PhSipGetCpuBrandString(
     }
 
     PhTrimToNullTerminatorString(brand);
+
+    // Trim empty space (#611) (dmex)
+    brandSr = brand->sr;
+    PhTrimStringRef(&brandSr, &whitespace, PH_TRIM_END_ONLY);
+    PhMoveReference(&brand, PhCreateString2(&brandSr));
 
     return brand;
 }
