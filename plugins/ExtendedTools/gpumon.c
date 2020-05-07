@@ -555,7 +555,7 @@ PETP_GPU_ADAPTER EtpAddDisplayAdapter(
             D3DKMT_NODEMETADATA metaDataInfo;
 
             memset(&metaDataInfo, 0, sizeof(D3DKMT_NODEMETADATA));
-            metaDataInfo.NodeOrdinal = i;
+            metaDataInfo.NodeOrdinalAndAdapterIndex = MAKEWORD(i, 0);
 
             if (NT_SUCCESS(EtQueryAdapterInformation(
                 AdapterHandle,
