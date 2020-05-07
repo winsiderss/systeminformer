@@ -87,6 +87,7 @@ namespace CustomBuildTool
 
         private static readonly string[] phnt_headers =
         {
+            "ntd3dkmt.h",
             "ntdbg.h",
             "ntexapi.h",
             "ntgdi.h",
