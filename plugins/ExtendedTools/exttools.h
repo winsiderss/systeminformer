@@ -9,7 +9,6 @@
 #include "resource.h"
 
 #include <d3d11.h>
-#include "d3dkmt.h"
 
 #define PH_RECORD_MAX_USAGE 1
 
