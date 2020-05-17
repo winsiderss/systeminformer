@@ -92,30 +92,30 @@ typedef struct _PLUGPLAY_EVENT_BLOCK
 
 typedef enum _PLUGPLAY_CONTROL_CLASS
 {
-    PlugPlayControlEnumerateDevice,
-    PlugPlayControlRegisterNewDevice,
-    PlugPlayControlDeregisterDevice,
-    PlugPlayControlInitializeDevice,
-    PlugPlayControlStartDevice,
-    PlugPlayControlUnlockDevice,
-    PlugPlayControlQueryAndRemoveDevice,
-    PlugPlayControlUserResponse,
-    PlugPlayControlGenerateLegacyDevice,
-    PlugPlayControlGetInterfaceDeviceList,
-    PlugPlayControlProperty,
-    PlugPlayControlDeviceClassAssociation,
-    PlugPlayControlGetRelatedDevice,
-    PlugPlayControlGetInterfaceDeviceAlias,
-    PlugPlayControlDeviceStatus,
-    PlugPlayControlGetDeviceDepth,
-    PlugPlayControlQueryDeviceRelations,
-    PlugPlayControlTargetDeviceRelation,
-    PlugPlayControlQueryConflictList,
-    PlugPlayControlRetrieveDock,
-    PlugPlayControlResetDevice,
-    PlugPlayControlHaltDevice,
-    PlugPlayControlGetBlockedDriverList,
-    PlugPlayControlGetDeviceInterfaceEnabled,
+    PlugPlayControlEnumerateDevice, // PLUGPLAY_CONTROL_ENUMERATE_DEVICE_DATA
+    PlugPlayControlRegisterNewDevice, // PLUGPLAY_CONTROL_DEVICE_CONTROL_DATA
+    PlugPlayControlDeregisterDevice, // PLUGPLAY_CONTROL_DEVICE_CONTROL_DATA
+    PlugPlayControlInitializeDevice, // PLUGPLAY_CONTROL_DEVICE_CONTROL_DATA
+    PlugPlayControlStartDevice, // PLUGPLAY_CONTROL_DEVICE_CONTROL_DATA
+    PlugPlayControlUnlockDevice, // PLUGPLAY_CONTROL_DEVICE_CONTROL_DATA
+    PlugPlayControlQueryAndRemoveDevice, // PLUGPLAY_CONTROL_QUERY_AND_REMOVE_DATA
+    PlugPlayControlUserResponse, // PLUGPLAY_CONTROL_USER_RESPONSE_DATA
+    PlugPlayControlGenerateLegacyDevice, // PLUGPLAY_CONTROL_LEGACY_DEVGEN_DATA
+    PlugPlayControlGetInterfaceDeviceList, // PLUGPLAY_CONTROL_INTERFACE_LIST_DATA
+    PlugPlayControlProperty, // PLUGPLAY_CONTROL_PROPERTY_DATA
+    PlugPlayControlDeviceClassAssociation, // PLUGPLAY_CONTROL_CLASS_ASSOCIATION_DATA
+    PlugPlayControlGetRelatedDevice, // PLUGPLAY_CONTROL_RELATED_DEVICE_DATA
+    PlugPlayControlGetInterfaceDeviceAlias, // PLUGPLAY_CONTROL_INTERFACE_ALIAS_DATA
+    PlugPlayControlDeviceStatus, // PLUGPLAY_CONTROL_STATUS_DATA
+    PlugPlayControlGetDeviceDepth, // PLUGPLAY_CONTROL_DEPTH_DATA
+    PlugPlayControlQueryDeviceRelations, // PLUGPLAY_CONTROL_DEVICE_RELATIONS_DATA
+    PlugPlayControlTargetDeviceRelation, // PLUGPLAY_CONTROL_TARGET_RELATION_DATA
+    PlugPlayControlQueryConflictList, // PLUGPLAY_CONTROL_CONFLICT_LIST
+    PlugPlayControlRetrieveDock, // PLUGPLAY_CONTROL_RETRIEVE_DOCK_DATA
+    PlugPlayControlResetDevice, // PLUGPLAY_CONTROL_DEVICE_CONTROL_DATA
+    PlugPlayControlHaltDevice, // PLUGPLAY_CONTROL_DEVICE_CONTROL_DATA
+    PlugPlayControlGetBlockedDriverList, // PLUGPLAY_CONTROL_BLOCKED_DRIVER_DATA
+    PlugPlayControlGetDeviceInterfaceEnabled, // PLUGPLAY_CONTROL_DEVICE_INTERFACE_ENABLED
     MaxPlugPlayControl
 } PLUGPLAY_CONTROL_CLASS, *PPLUGPLAY_CONTROL_CLASS;
 
