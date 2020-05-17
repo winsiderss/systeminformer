@@ -2505,6 +2505,7 @@ typedef struct _SYSTEM_BOOT_ENVIRONMENT_INFORMATION
             ULONGLONG DbgMeasuredLaunchCapable : 1; // 19H1
             ULONGLONG DbgSystemHiveReplace : 1;
             ULONGLONG DbgMeasuredLaunchSmmProtections : 1;
+            ULONGLONG DbgMeasuredLaunchSmmLevel : 7; // 20H1
         };
     };
 } SYSTEM_BOOT_ENVIRONMENT_INFORMATION, *PSYSTEM_BOOT_ENVIRONMENT_INFORMATION;
@@ -3070,7 +3071,7 @@ typedef union _ENERGY_STATE_DURATION
 
 typedef struct _PROCESS_ENERGY_VALUES
 {
-    ULONGLONG Cycles[4][2];
+    ULONGLONG Cycles[2][4];
     ULONGLONG DiskEnergy;
     ULONGLONG NetworkTailEnergy;
     ULONGLONG MBBTailEnergy;
@@ -3246,7 +3247,7 @@ typedef struct _SYSTEM_HYPERVISOR_DETAIL_INFORMATION
 // private
 typedef struct _SYSTEM_PROCESSOR_CYCLE_STATS_INFORMATION
 {
-    ULONGLONG Cycles[4][2];
+    ULONGLONG Cycles[2][4];
 } SYSTEM_PROCESSOR_CYCLE_STATS_INFORMATION, *PSYSTEM_PROCESSOR_CYCLE_STATS_INFORMATION;
 
 // private
@@ -3261,12 +3262,13 @@ typedef struct _SYSTEM_VSM_PROTECTION_INFORMATION
     BOOLEAN DmaProtectionsAvailable;
     BOOLEAN DmaProtectionsInUse;
     BOOLEAN HardwareMbecAvailable; // REDSTONE4 (CVE-2018-3639)
+    BOOLEAN ApicVirtualizationAvailable; // 20H1
 } SYSTEM_VSM_PROTECTION_INFORMATION, *PSYSTEM_VSM_PROTECTION_INFORMATION;
 
 // private
 typedef struct _SYSTEM_KERNEL_DEBUGGER_FLAGS
 {
-    UCHAR KernelDebuggerIgnoreUmExceptions;
+    BOOLEAN KernelDebuggerIgnoreUmExceptions;
 } SYSTEM_KERNEL_DEBUGGER_FLAGS, *PSYSTEM_KERNEL_DEBUGGER_FLAGS;
 
 // private
