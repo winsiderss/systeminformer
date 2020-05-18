@@ -93,10 +93,12 @@ typedef enum _MEMORY_INFORMATION_CLASS
     MemoryWorkingSetExInformation, // MEMORY_WORKING_SET_EX_INFORMATION
     MemorySharedCommitInformation, // MEMORY_SHARED_COMMIT_INFORMATION
     MemoryImageInformation, // MEMORY_IMAGE_INFORMATION
-    MemoryRegionInformationEx,
+    MemoryRegionInformationEx, // MEMORY_REGION_INFORMATION
     MemoryPrivilegedBasicInformation,
     MemoryEnclaveImageInformation, // MEMORY_ENCLAVE_IMAGE_INFORMATION // since REDSTONE3
-    MemoryBasicInformationCapped
+    MemoryBasicInformationCapped, // 10
+    MemoryPhysicalContiguityInformation, // MEMORY_PHYSICAL_CONTIGUITY_INFORMATION // since 20H1
+    MaxMemoryInfoClass
 } MEMORY_INFORMATION_CLASS;
 #else
 #define MemoryBasicInformation 0x0
@@ -110,6 +112,7 @@ typedef enum _MEMORY_INFORMATION_CLASS
 #define MemoryPrivilegedBasicInformation 0x8
 #define MemoryEnclaveImageInformation 0x9
 #define MemoryBasicInformationCapped 0xA
+#define MemoryPhysicalContiguityInformation 0xB
 #endif
 
 typedef struct _MEMORY_WORKING_SET_BLOCK
@@ -156,6 +159,7 @@ typedef struct _MEMORY_REGION_INFORMATION
     SIZE_T RegionSize;
     SIZE_T CommitSize;
     ULONG_PTR PartitionId; // 19H1
+    ULONG_PTR NodePreference; // 20H1
 } MEMORY_REGION_INFORMATION, *PMEMORY_REGION_INFORMATION;
 
 // private 
@@ -252,6 +256,40 @@ typedef struct _MEMORY_ENCLAVE_IMAGE_INFORMATION
     UCHAR UniqueID[32];
     UCHAR AuthorID[32];
 } MEMORY_ENCLAVE_IMAGE_INFORMATION, *PMEMORY_ENCLAVE_IMAGE_INFORMATION;
+
+// private
+typedef enum _MEMORY_PHYSICAL_CONTIGUITY_UNIT_STATE
+{
+    MemoryNotContiguous,
+    MemoryAlignedAndContiguous,
+    MemoryNotResident,
+    MemoryNotEligibleToMakeContiguous,
+    MemoryContiguityStateMax,
+} MEMORY_PHYSICAL_CONTIGUITY_UNIT_STATE;
+
+// private
+typedef struct _MEMORY_PHYSICAL_CONTIGUITY_UNIT_INFORMATION
+{
+    union
+    {
+        ULONG AllInformation;
+        struct
+        {
+            ULONG State : 2;
+            ULONG Reserved : 30;
+        };
+    };
+} MEMORY_PHYSICAL_CONTIGUITY_UNIT_INFORMATION, *PMEMORY_PHYSICAL_CONTIGUITY_UNIT_INFORMATION;
+
+// private
+typedef struct _MEMORY_PHYSICAL_CONTIGUITY_INFORMATION
+{
+    PVOID VirtualAddress;
+    ULONG_PTR Size;
+    ULONG_PTR ContiguityUnitSize;
+    ULONG Flags;
+    PMEMORY_PHYSICAL_CONTIGUITY_UNIT_INFORMATION ContiguityUnitInformation;
+} MEMORY_PHYSICAL_CONTIGUITY_INFORMATION, *PMEMORY_PHYSICAL_CONTIGUITY_INFORMATION;
 
 #define MMPFNLIST_ZERO 0
 #define MMPFNLIST_FREE 1
@@ -450,7 +488,8 @@ typedef struct _SECTION_INTERNAL_IMAGE_INFORMATION
         struct
         {
             ULONG ImageExportSuppressionEnabled : 1;
-            ULONG Reserved : 31;
+            ULONG ImageCetShadowStacksReady : 1; // 20H1
+            ULONG Reserved : 30;
         };
     };
 } SECTION_INTERNAL_IMAGE_INFORMATION, *PSECTION_INTERNAL_IMAGE_INFORMATION;
@@ -556,7 +595,10 @@ typedef enum _VIRTUAL_MEMORY_INFORMATION_CLASS
     VmPagePriorityInformation,
     VmCfgCallTargetInformation, // CFG_CALL_TARGET_LIST_INFORMATION // REDSTONE2
     VmPageDirtyStateInformation, // REDSTONE3
-    VmImageHotPatchInformation // 19H1
+    VmImageHotPatchInformation, // 19H1
+    VmPhysicalContiguityInformation, // 20H1
+    VmVirtualMachinePrepopulateInformation,
+    MaxVmInfoClass
 } VIRTUAL_MEMORY_INFORMATION_CLASS;
 
 typedef struct _MEMORY_RANGE_ENTRY
