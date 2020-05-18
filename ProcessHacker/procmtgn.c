@@ -3,7 +3,7 @@
  *   process mitigation information
  *
  * Copyright (C) 2016 wj32
- * Copyright (C) 2017 dmex
+ * Copyright (C) 2017-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -119,7 +119,8 @@ NTSTATUS PhGetProcessMitigationPolicy(
     COPY_PROCESS_MITIGATION_POLICY(SystemCallFilter, PROCESS_MITIGATION_SYSTEM_CALL_FILTER_POLICY); // REDSTONE3
     COPY_PROCESS_MITIGATION_POLICY(PayloadRestriction, PROCESS_MITIGATION_PAYLOAD_RESTRICTION_POLICY);
     COPY_PROCESS_MITIGATION_POLICY(ChildProcess, PROCESS_MITIGATION_CHILD_PROCESS_POLICY);
-    COPY_PROCESS_MITIGATION_POLICY(SideChannelIsolation, PROCESS_MITIGATION_SIDE_CHANNEL_ISOLATION_POLICY);
+    COPY_PROCESS_MITIGATION_POLICY(SideChannelIsolation, PROCESS_MITIGATION_SIDE_CHANNEL_ISOLATION_POLICY); // 19H1
+    COPY_PROCESS_MITIGATION_POLICY(UserShadowStack, PROCESS_MITIGATION_USER_SHADOW_STACK_POLICY); // 20H1
 
     return status;
 }
@@ -523,6 +524,22 @@ BOOLEAN PhDescribeProcessMitigationPolicy(
 
                 if (LongDescription)
                     *LongDescription = PhCreateString(L"Memory Disambiguation is enabled for this process.\r\n");
+
+                result = TRUE;
+            }
+        }
+        break;
+    case ProcessUserShadowStackPolicy:
+        {
+            PPROCESS_MITIGATION_USER_SHADOW_STACK_POLICY data = Data;
+
+            if (data->EnableUserShadowStack)
+            {
+                if (ShortDescription)
+                    *ShortDescription = PhCreateString(L"Stack protection is enabled");
+
+                if (LongDescription)
+                    *LongDescription = PhCreateString(L"The CPU verifies function return addresses at runtime by employing a hardware-enforced shadow stack.\r\n");
 
                 result = TRUE;
             }
