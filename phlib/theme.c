@@ -100,6 +100,10 @@ LRESULT CALLBACK PhpThemeWindowStatusbarWndSubclassProc(
 BOOL (WINAPI *ShouldAppsUseDarkMode_I)(
     VOID
     ) = NULL;
+// Win10-RS5 (uxtheme.dll ordinal 138)
+BOOL (WINAPI *ShouldSystemUseDarkMode_I)(
+    VOID
+    ) = NULL;
 // Win10-RS5 (uxtheme.dll ordinal 133)
 BOOL (WINAPI *AllowDarkModeForWindow_I)(
     _In_ HWND WindowHandle,
@@ -122,6 +126,11 @@ BOOL (WINAPI* SetPreferredAppMode_I)(
 
 // Win10-RS5 (uxtheme.dll ordinal 137)
 BOOL (WINAPI *IsDarkModeAllowedForWindow_I)(
+    _In_ HWND WindowHandle
+    ) = NULL;
+
+// Win10-RS5 (uxtheme.dll ordinal 139)
+BOOL (WINAPI *IsDarkModeAllowedForApp_I)(
     _In_ HWND WindowHandle
     ) = NULL;
 
