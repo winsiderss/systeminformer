@@ -626,8 +626,10 @@ applicationViewActivation
 appointments
 appointmentsSystem
 audioDeviceConfiguration
+automatedAppLaunch
 backgroundMediaPlayback
 backgroundMediaRecording
+backgroundSpatialPerception
 backgroundVoIP
 biometricSystem
 blockedChatMessages
@@ -668,6 +670,7 @@ cortanaSpeechAccessory
 cortanaSurface
 curatedTileCollections
 dateAndTimeDeviceSettings
+dependencyTarget
 developerSettings
 developmentModeNetwork
 deviceEncryptionManagement
@@ -709,6 +712,7 @@ gameBarServices
 gameConfigStoreManagement
 gameList
 gameMonitor
+gamingContainerResources
 gazeInput
 globalMediaControl
 graphicsCapture
@@ -792,6 +796,7 @@ packageContents
 packageManagement
 packagePolicySystem
 packageQuery
+packageWriteRedirectionCompatibilityShim
 perceptionMonitoring
 perceptionSensorsExperimental
 perceptionSystem
@@ -834,6 +839,7 @@ sensors.custom
 serialCommunication
 sessionImpersonation
 settingSyncConfiguration
+sharedMachineKeysCapability
 sharedUserCertificates
 shellDisplayManagement
 shellExperience
@@ -858,11 +864,14 @@ systemManagement
 systemRegistrar
 targetedContent
 targetedContentSubscription
+teamEditionDeviceCredential
 teamEditionExperience
+teamEditionView
 telemetryData
 terminalPowerManagement
 thumbnailCache
 timezone
+uiAccess
 uiAutomationSystem
 unvirtualizedResources
 unzipFile
@@ -889,6 +898,7 @@ walletSystem
 webPlatformMediaExtension
 webcam
 wiFiControl
+wifiData
 wiFiDirect
 windowManagement
 windowManagementSystem
