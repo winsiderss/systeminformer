@@ -603,8 +603,6 @@ ID_CAP_WPN_PLATFORM_REG_KEY
 ID_CAP_WPTOOLS_INSTALL_FOLDER
 ID_CAP_ZMFSERVICES
 ID_CAP_ZTRACE
-Microsoft.firmwareRead_cw5n1h2txyewy
-Microsoft.firmwareWrite_cw5n1h2txyewy
 accessoryManager
 activateAsUser
 activity
@@ -619,10 +617,10 @@ appBroadcastSettings
 appCaptureServices
 appCaptureSettings
 appDiagnostics
-appLicensing
-appManagementSystem
 applicationDefaults
 applicationViewActivation
+appLicensing
+appManagementSystem
 appointments
 appointmentsSystem
 audioDeviceConfiguration
@@ -655,8 +653,8 @@ chromeInstallFiles
 cloudExperienceHost
 cloudStore
 codeGeneration
-comPort
 componentUiInWebContent
+comPort
 confirmAppClose
 constrainedImpersonation
 contacts
@@ -723,8 +721,8 @@ holographicCompositor
 holographicCompositorSystem
 humanInterfaceDevice
 imeSystem
-inProcessMediaExtension
 indexedContent
+inProcessMediaExtension
 inputForegroundObservation
 inputInjection
 inputInjectionBrokered
@@ -758,8 +756,8 @@ lpacClipboard
 lpacCom
 lpacCryptoServices
 lpacEnterprisePolicyChangeNotifications
-lpacIME
 lpacIdentityServices
+lpacIME
 lpacInstrumentation
 lpacMedia
 lpacPackageManagerOperation
@@ -770,8 +768,10 @@ lpacServicesManagement
 lpacSessionManagement
 lpacWebPlatform
 microphone
-microsoftEdgeRemoteDebugging
 microsoft.eSIMManagement_8wekyb3d8bbwe
+Microsoft.firmwareRead_cw5n1h2txyewy
+Microsoft.firmwareWrite_cw5n1h2txyewy
+microsoftEdgeRemoteDebugging
 mixedRealityEnvironmentInternal
 mmsTransportSystem
 multiplaneOverlay
@@ -895,8 +895,8 @@ visualVoiceMail
 vmWorkerProcess
 voipCall
 walletSystem
-webPlatformMediaExtension
 webcam
+webPlatformMediaExtension
 wiFiControl
 wifiData
 wiFiDirect
