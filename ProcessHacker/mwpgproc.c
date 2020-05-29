@@ -886,27 +886,43 @@ VOID PhMwpOnProcessAdded(
         PhLogProcessEntry(
             PH_LOG_ENTRY_PROCESS_CREATE,
             ProcessItem->ProcessId,
-            NULL,
             ProcessItem->ProcessName,
             parentProcessId,
-            parentName
+            parentName,
+            0
             );
 
         if (PhMwpNotifyIconNotifyMask & PH_NOTIFY_PROCESS_CREATE)
         {
             if (!PhPluginsEnabled || !PhMwpPluginNotifyEvent(PH_NOTIFY_PROCESS_CREATE, ProcessItem))
             {
+                PH_FORMAT format[9];
+                WCHAR formatBuffer[260];
+
                 PhMwpClearLastNotificationDetails();
                 PhMwpLastNotificationType = PH_NOTIFY_PROCESS_CREATE;
                 PhMwpLastNotificationDetails.ProcessId = ProcessItem->ProcessId;
 
-                PhShowIconNotification(L"Process Created", PhaFormatString(
-                    L"The process %s (%lu) was created by %s (%lu)",
-                    ProcessItem->ProcessName->Buffer,
-                    HandleToUlong(ProcessItem->ProcessId),
-                    PhGetStringOrDefault(parentName, L"Unknown process"),
-                    HandleToUlong(ProcessItem->ParentProcessId)
-                    )->Buffer, NIIF_INFO);
+                // The process %s (%lu) was created by %s (%lu)
+                PhInitFormatS(&format[0], L"The process ");
+                PhInitFormatSR(&format[1], ProcessItem->ProcessName->sr);
+                PhInitFormatS(&format[2], L" (");
+                PhInitFormatU(&format[3], HandleToUlong(ProcessItem->ProcessId));
+                PhInitFormatS(&format[4], L") was created by ");
+                PhInitFormatS(&format[5], PhGetStringOrDefault(parentName, L"Unknown process")); // todo: SR type (dmex)
+                PhInitFormatS(&format[6], L" (");
+                PhInitFormatU(&format[7], HandleToUlong(ProcessItem->ParentProcessId));
+                PhInitFormatC(&format[8], L')');
+
+                if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
+                {
+                    PhShowIconNotification(L"Process Created", formatBuffer);
+                }
+                else
+                {
+                    PhShowIconNotification(L"Process Created",
+                        PH_AUTO_T(PH_STRING, PhFormat(format, RTL_NUMBER_OF(format), 0))->Buffer);
+                }
             }
         }
 
@@ -944,22 +960,48 @@ VOID PhMwpOnProcessRemoved(
     )
 {
     PPH_PROCESS_NODE processNode;
+    ULONG exitStatus = 0;
 
-    PhLogProcessEntry(PH_LOG_ENTRY_PROCESS_DELETE, ProcessItem->ProcessId, ProcessItem->QueryHandle, ProcessItem->ProcessName, NULL, NULL);
+    if (ProcessItem->QueryHandle)
+    {
+        PROCESS_BASIC_INFORMATION basicInfo;
+
+        if (NT_SUCCESS(PhGetProcessBasicInformation(ProcessItem->QueryHandle, &basicInfo)))
+        {
+            exitStatus = basicInfo.ExitStatus;
+        }
+    }
+
+    PhLogProcessEntry(PH_LOG_ENTRY_PROCESS_DELETE, ProcessItem->ProcessId, ProcessItem->ProcessName, NULL, NULL, exitStatus);
 
     if (PhMwpNotifyIconNotifyMask & PH_NOTIFY_PROCESS_DELETE)
     {
         if (!PhPluginsEnabled || !PhMwpPluginNotifyEvent(PH_NOTIFY_PROCESS_DELETE, ProcessItem))
         {
+            PH_FORMAT format[6];
+            WCHAR formatBuffer[260];
+
             PhMwpClearLastNotificationDetails();
             PhMwpLastNotificationType = PH_NOTIFY_PROCESS_DELETE;
             PhMwpLastNotificationDetails.ProcessId = ProcessItem->ProcessId;
 
-            PhShowIconNotification(L"Process Terminated", PhaFormatString(
-                L"The process %s (%lu) was terminated.",
-                ProcessItem->ProcessName->Buffer,
-                HandleToUlong(ProcessItem->ProcessId)
-                )->Buffer, NIIF_INFO);
+            // The process %s (%lu) was terminated with status 0x%x
+            PhInitFormatS(&format[0], L"The process ");
+            PhInitFormatSR(&format[1], ProcessItem->ProcessName->sr);
+            PhInitFormatS(&format[2], L" (");
+            PhInitFormatU(&format[3], HandleToUlong(ProcessItem->ProcessId));
+            PhInitFormatS(&format[4], L") was terminated with status 0x");
+            PhInitFormatX(&format[5], exitStatus);
+
+            if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
+            {
+                PhShowIconNotification(L"Process Terminated", formatBuffer);
+            }
+            else
+            {
+                PhShowIconNotification(L"Process Terminated",
+                    PH_AUTO_T(PH_STRING, PhFormat(format, RTL_NUMBER_OF(format), 0))->Buffer);
+            }
         }
     }
 

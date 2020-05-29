@@ -3432,11 +3432,10 @@ VOID PhShowIconContextMenu(
 
 VOID PhShowIconNotification(
     _In_ PWSTR Title,
-    _In_ PWSTR Text,
-    _In_ ULONG Flags
+    _In_ PWSTR Text
     )
 {
-    PhNfShowBalloonTip(Title, Text, 10, Flags);
+    PhNfShowBalloonTip(Title, Text, 10);
 }
 
 VOID PhShowDetailsForIconNotification(

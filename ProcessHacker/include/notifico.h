@@ -146,8 +146,7 @@ VOID PhNfSetVisibleIcon(
 BOOLEAN PhNfShowBalloonTip(
     _In_ PWSTR Title,
     _In_ PWSTR Text,
-    _In_ ULONG Timeout,
-    _In_ ULONG Flags
+    _In_ ULONG Timeout
     );
 
 HICON PhNfBitmapToIcon(
