@@ -2,7 +2,7 @@
  * Process Hacker -
  *   Appmodel support functions
  *
- * Copyright (C) 2017-2018 dmex
+ * Copyright (C) 2017-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -90,17 +90,12 @@ static BOOLEAN PhpKernelAppCoreInitialized(
                 AppContainerDeriveSidFromMoniker_I = PhGetDllBaseProcedureAddress(kernelBaseModuleHandle, "AppContainerDeriveSidFromMoniker", 0);
                 AppContainerLookupMoniker_I = PhGetDllBaseProcedureAddress(kernelBaseModuleHandle, "AppContainerLookupMoniker", 0);
                 AppContainerFreeMemory_I = PhGetDllBaseProcedureAddress(kernelBaseModuleHandle, "AppContainerFreeMemory", 0);
-                AppContainerRegisterSid_I = PhGetDllBaseProcedureAddress(kernelBaseModuleHandle, "AppContainerRegisterSid", 0);
-                AppContainerUnregisterSid_I = PhGetDllBaseProcedureAddress(kernelBaseModuleHandle, "AppContainerUnregisterSid", 0);
-                AppPolicyGetWindowingModel_I = PhGetDllBaseProcedureAddress(kernelBaseModuleHandle, "AppPolicyGetWindowingModel", 0);
             }
 
             if (
                 AppContainerDeriveSidFromMoniker_I &&
                 AppContainerLookupMoniker_I && 
-                AppContainerFreeMemory_I && 
-                AppContainerRegisterSid_I && 
-                AppContainerUnregisterSid_I
+                AppContainerFreeMemory_I
                 )
             {
                 kernelAppCoreInitialized = TRUE;
