@@ -3,7 +3,7 @@
  *   System Information window
  *
  * Copyright (C) 2011-2016 wj32
- * Copyright (C) 2017-2019 dmex
+ * Copyright (C) 2017-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -694,7 +694,7 @@ BOOLEAN PhSipOnNotify(
                         if (badWidth < drawInfo->Width)
                             drawInfo->LabelMaxYIndexLimit = (drawInfo->Width - badWidth) / 2;
                         else
-                            drawInfo->LabelMaxYIndexLimit = -1;
+                            drawInfo->LabelMaxYIndexLimit = ULONG_MAX;
                     }
 
                     break;
@@ -860,7 +860,7 @@ VOID PhSipOnUserMessage(
                     section->Callback(section, SysInfoTick, NULL, NULL);
 
                     section->GraphState.Valid = FALSE;
-                    section->GraphState.TooltipIndex = -1;
+                    section->GraphState.TooltipIndex = ULONG_MAX;
                     Graph_MoveGrid(section->GraphHandle, 1);
                     Graph_Draw(section->GraphHandle);
                     Graph_UpdateTooltip(section->GraphHandle);
@@ -993,7 +993,7 @@ PPH_STRING PhSiSizeLabelYFunction(
 
         format.Type = SizeFormatType | FormatUsePrecision | FormatUseRadix;
         format.Precision = 0;
-        format.Radix = -1;
+        format.Radix = UCHAR_MAX;
         format.u.Size = size;
 
         return PhFormat(&format, 1, 0);
@@ -1020,7 +1020,7 @@ VOID PhSipUnregisterDialog(
 {
     ULONG index;
 
-    if ((index = PhFindItemList(PhSipDialogList, DialogWindowHandle)) != -1)
+    if ((index = PhFindItemList(PhSipDialogList, DialogWindowHandle)) != ULONG_MAX)
         PhRemoveItemList(PhSipDialogList, index);
 }
 
