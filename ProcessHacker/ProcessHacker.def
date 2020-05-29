@@ -417,6 +417,7 @@ EXPORTS
     PhShowMessage
     PhShowMessage2
     PhShowStatus
+    PhStringToGuid
     PhUpdateHash
 
 ; circbuf

@@ -462,7 +462,6 @@ VOID PhInitializeEtwTraceGuidCache(
         PVOID jsonArrayObject;
         PPH_STRING guidString;
         PPH_STRING guidName;
-        UNICODE_STRING guidStringUs;
         GUID guid;
         PH_ETW_TRACEGUID_ENTRY result;
 
@@ -473,17 +472,7 @@ VOID PhInitializeEtwTraceGuidCache(
         guidName = PhGetJsonValueAsString(jsonArrayObject, "name");
         //guidGroup = PhGetJsonValueAsString(jsonArrayObject, "group");
 
-        if (!PhStringRefToUnicodeString(&guidString->sr, &guidStringUs))
-        {
-            PhDereferenceObject(guidName);
-            PhDereferenceObject(guidString);
-            continue;
-        }
-
-        if (!NT_SUCCESS(RtlGUIDFromString(
-            &guidStringUs,
-            &guid
-            )))
+        if (!NT_SUCCESS(PhStringToGuid(&guidString->sr, &guid)))
         {
             PhDereferenceObject(guidName);
             PhDereferenceObject(guidString);

@@ -173,8 +173,7 @@ PPH_STRING NetworkAdapterQueryNameFromGuid(
         PVOID Unknown1,
         PVOID Unknown2
         ) = NULL;
-    GUID deviceGuid = GUID_NULL;
-    UNICODE_STRING guidStringUs;
+    GUID interfaceGuid = GUID_NULL;
 
     if (!NhGetInterfaceDescriptionFromGuid_I)
     {
@@ -189,15 +188,13 @@ PPH_STRING NetworkAdapterQueryNameFromGuid(
     if (!NhGetInterfaceDescriptionFromGuid_I)
         return NULL;
 
-    PhStringRefToUnicodeString(&InterfaceGuid->sr, &guidStringUs);
-
-    if (NT_SUCCESS(RtlGUIDFromString(&guidStringUs, &deviceGuid)))
+    if (NT_SUCCESS(PhStringToGuid(&InterfaceGuid->sr, &interfaceGuid)))
     {
         WCHAR adapterDescription[NDIS_IF_MAX_STRING_SIZE + 1] = L"";
         SIZE_T adapterDescriptionLength = sizeof(adapterDescription);
 
         if (SUCCEEDED(NhGetInterfaceDescriptionFromGuid_I(
-            &deviceGuid,
+            &interfaceGuid,
             adapterDescription,
             &adapterDescriptionLength,
             NULL,
@@ -258,6 +255,7 @@ PPH_STRING NetworkAdapterGetInterfaceAliasFromGuid(
        PVOID Unknown1,
        PVOID Unknown2
        ) = NULL;
+   GUID interfaceGuid = GUID_NULL;
 
     if (!NhGetInterfaceNameFromGuid_I)
     {
@@ -272,18 +270,13 @@ PPH_STRING NetworkAdapterGetInterfaceAliasFromGuid(
     if (!NhGetInterfaceNameFromGuid_I)
         return NULL;
 
-    GUID deviceGuid = GUID_NULL;
-    UNICODE_STRING guidStringUs;
-
-    PhStringRefToUnicodeString(&InterfaceGuid->sr, &guidStringUs);
-
-    if (NT_SUCCESS(RtlGUIDFromString(&guidStringUs, &deviceGuid)))
+    if (NT_SUCCESS(PhStringToGuid(&InterfaceGuid->sr, &interfaceGuid)))
     {
         WCHAR adapterAlias[NDIS_IF_MAX_STRING_SIZE + 1] = L"";
         SIZE_T adapterAliasLength = sizeof(adapterAlias);
 
         if (SUCCEEDED(NhGetInterfaceNameFromGuid_I(
-            &deviceGuid,
+            &interfaceGuid,
             adapterAlias,
             &adapterAliasLength,
             NULL,

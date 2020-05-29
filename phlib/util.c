@@ -1677,6 +1677,19 @@ PPH_STRING PhFormatGuid(
     return string;
 }
 
+NTSTATUS PhStringToGuid(
+    _In_ PPH_STRINGREF GuidString,
+    _Out_ PGUID Guid
+    )
+{
+    UNICODE_STRING unicodeString;
+
+    if (!PhStringRefToUnicodeString(GuidString, &unicodeString))
+        return STATUS_BUFFER_OVERFLOW;
+
+    return RtlGUIDFromString(&unicodeString, Guid);
+}
+
 /**
  * Retrieves image version information for a file.
  *

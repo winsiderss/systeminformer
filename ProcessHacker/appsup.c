@@ -534,7 +534,6 @@ BOOLEAN PhaGetProcessKnownCommandLine(
             ULONG_PTR indexOfProcessId;
             PPH_STRING argPart;
             PPH_STRING guidString;
-            UNICODE_STRING guidStringUs;
             GUID guid;
             HANDLE rootKeyHandle;
             HANDLE inprocServer32KeyHandle;
@@ -576,12 +575,8 @@ BOOLEAN PhaGetProcessKnownCommandLine(
                 indexOfProcessId + 11,
                 (ULONG)argPart->Length / sizeof(WCHAR) - indexOfProcessId - 11
                 );
-            PhStringRefToUnicodeString(&guidString->sr, &guidStringUs);
 
-            if (!NT_SUCCESS(RtlGUIDFromString(
-                &guidStringUs,
-                &guid
-                )))
+            if (!NT_SUCCESS(PhStringToGuid(&guidString->sr, &guid)))
                 return FALSE;
 
             KnownCommandLine->ComSurrogate.Guid = guid;
