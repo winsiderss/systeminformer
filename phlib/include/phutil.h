@@ -490,6 +490,14 @@ PhFormatGuid(
     );
 
 PHLIBAPI
+NTSTATUS
+NTAPI
+PhStringToGuid(
+    _In_ PPH_STRINGREF GuidString,
+    _Out_ PGUID Guid
+    );
+
+PHLIBAPI
 PVOID
 NTAPI
 PhGetFileVersionInfo(

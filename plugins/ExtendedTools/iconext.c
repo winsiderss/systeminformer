@@ -167,7 +167,6 @@ VOID EtLoadTrayIconGuids(
         for (i = 0; i < RTL_NUMBER_OF(EtpTrayIconGuids); i++)
         {
             PH_STRINGREF guidPart;
-            UNICODE_STRING guidStringUs;
             GUID guid;
 
             if (remaining.Length == 0)
@@ -178,10 +177,7 @@ VOID EtLoadTrayIconGuids(
             if (guidPart.Length == 0)
                 continue;
 
-            if (!PhStringRefToUnicodeString(&guidPart, &guidStringUs))
-                continue;
-
-            if (!NT_SUCCESS(RtlGUIDFromString(&guidStringUs, &guid)))
+            if (!NT_SUCCESS(PhStringToGuid(&guidPart, &guid)))
                 PhGenerateGuid(&EtpTrayIconGuids[i]);
             else
                 EtpTrayIconGuids[i] = guid;

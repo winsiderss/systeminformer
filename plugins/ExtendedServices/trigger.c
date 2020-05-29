@@ -378,7 +378,6 @@ BOOLEAN NTAPI EspEtwPublishersEnumerateKeyCallback(
     _In_opt_ PVOID Context
     )
 {
-    UNICODE_STRING nameUs;
     PH_STRINGREF keyName;
     HANDLE keyHandle;
     GUID guid;
@@ -386,10 +385,9 @@ BOOLEAN NTAPI EspEtwPublishersEnumerateKeyCallback(
 
     keyName.Buffer = Information->Name;
     keyName.Length = Information->NameLength;
-    PhStringRefToUnicodeString(&keyName, &nameUs);
 
     // Make sure this is a valid publisher key. (wj32)
-    if (NT_SUCCESS(RtlGUIDFromString(&nameUs, &guid)))
+    if (NT_SUCCESS(PhStringToGuid(&keyName, &guid)))
     {
         if (NT_SUCCESS(PhOpenKey(
             &keyHandle,

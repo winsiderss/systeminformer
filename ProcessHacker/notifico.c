@@ -195,7 +195,6 @@ VOID PhNfLoadGuids(
         for (i = 0; i < RTL_NUMBER_OF(PhNfpTrayIconItemGuids); i++)
         {
             PH_STRINGREF guidPart;
-            UNICODE_STRING guidStringUs;
             GUID guid;
 
             if (remaining.Length == 0)
@@ -206,10 +205,7 @@ VOID PhNfLoadGuids(
             if (guidPart.Length == 0)
                 continue;
 
-            if (!PhStringRefToUnicodeString(&guidPart, &guidStringUs))
-                continue;
-
-            if (!NT_SUCCESS(RtlGUIDFromString(&guidStringUs, &guid)))
+            if (!NT_SUCCESS(PhStringToGuid(&guidPart, &guid)))
                 PhGenerateGuid(&PhNfpTrayIconItemGuids[i]);
             else
                 PhNfpTrayIconItemGuids[i] = guid;
