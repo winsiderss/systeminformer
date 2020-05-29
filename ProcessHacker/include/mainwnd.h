@@ -211,8 +211,7 @@ VOID
 NTAPI
 PhShowIconNotification(
     _In_ PWSTR Title,
-    _In_ PWSTR Text,
-    _In_ ULONG Flags
+    _In_ PWSTR Text
     );
 // end_phapppub
 

@@ -3,6 +3,7 @@
  *   logging system
  *
  * Copyright (C) 2010-2016 wj32
+ * Copyright (C) 2016-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -78,10 +79,10 @@ VOID PhpFreeLogEntry(
 PPH_LOG_ENTRY PhpCreateProcessLogEntry(
     _In_ UCHAR Type,
     _In_ HANDLE ProcessId,
-    _In_opt_ HANDLE QueryHandle,
     _In_ PPH_STRING Name,
     _In_opt_ HANDLE ParentProcessId,
-    _In_opt_ PPH_STRING ParentName
+    _In_opt_ PPH_STRING ParentName,
+    _In_opt_ ULONG Status
     )
 {
     PPH_LOG_ENTRY entry;
@@ -99,15 +100,7 @@ PPH_LOG_ENTRY PhpCreateProcessLogEntry(
         entry->Process.ParentName = ParentName;
     }
 
-    if (QueryHandle && entry->Type == PH_LOG_ENTRY_PROCESS_DELETE)
-    {
-        PROCESS_BASIC_INFORMATION basicInfo;
-
-        if (NT_SUCCESS(PhGetProcessBasicInformation(QueryHandle, &basicInfo)))
-        {
-            entry->Process.ExitStatus = basicInfo.ExitStatus;
-        }
-    }
+    entry->Process.ExitStatus = Status;
 
     return entry;
 }
@@ -176,13 +169,13 @@ VOID PhClearLogEntries(
 VOID PhLogProcessEntry(
     _In_ UCHAR Type,
     _In_ HANDLE ProcessId,
-    _In_opt_ HANDLE QueryHandle,
     _In_ PPH_STRING Name,
     _In_opt_ HANDLE ParentProcessId,
-    _In_opt_ PPH_STRING ParentName
+    _In_opt_ PPH_STRING ParentName,
+    _In_opt_ ULONG Status
     )
 {
-    PhpLogEntry(PhpCreateProcessLogEntry(Type, ProcessId, QueryHandle, Name, ParentProcessId, ParentName));
+    PhpLogEntry(PhpCreateProcessLogEntry(Type, ProcessId, Name, ParentProcessId, ParentName, Status));
 }
 
 VOID PhLogServiceEntry(
