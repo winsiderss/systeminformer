@@ -937,6 +937,7 @@ VOID PhpShowKphError(
     _In_opt_ NTSTATUS Status
     )
 {
+#ifndef DEBUG
     if (Status == STATUS_NO_SUCH_FILE)
     {
         PhShowError2(
@@ -971,6 +972,7 @@ VOID PhpShowKphError(
                 );
         }
     }
+#endif
 }
 
 VOID PhInitializeKph(
