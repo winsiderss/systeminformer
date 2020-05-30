@@ -394,12 +394,12 @@ BOOLEAN PhpInitializeNetApi(VOID)
         {
             NetUserEnum_I = PhGetDllBaseProcedureAddress(netapiModuleHandle, "NetUserEnum", 0);
             NetApiBufferFree_I = PhGetDllBaseProcedureAddress(netapiModuleHandle, "NetApiBufferFree", 0);
-        }
 
-        if (netapiModuleHandle && !NetUserEnum_I && !NetApiBufferFree_I)
-        {
-            FreeLibrary(netapiModuleHandle);
-            netapiModuleHandle = NULL;
+            if (!(NetUserEnum_I && NetApiBufferFree_I))
+            {
+                FreeLibrary(netapiModuleHandle);
+                netapiModuleHandle = NULL;
+            }
         }
 
         PhEndInitOnce(&initOnce);
@@ -424,12 +424,12 @@ BOOLEAN PhpInitializeMRUList(VOID)
             AddMRUString_I = PhGetDllBaseProcedureAddress(comctl32ModuleHandle, "AddMRUStringW", 0);
             EnumMRUList_I = PhGetDllBaseProcedureAddress(comctl32ModuleHandle, "EnumMRUListW", 0);
             FreeMRUList_I = PhGetDllBaseProcedureAddress(comctl32ModuleHandle, "FreeMRUList", 0);
-        }
 
-        if (!CreateMRUList_I && !AddMRUString_I && !EnumMRUList_I && !FreeMRUList_I && comctl32ModuleHandle)
-        {
-            FreeLibrary(comctl32ModuleHandle);
-            comctl32ModuleHandle = NULL;
+            if (!(CreateMRUList_I && AddMRUString_I && EnumMRUList_I && FreeMRUList_I))
+            {
+                FreeLibrary(comctl32ModuleHandle);
+                comctl32ModuleHandle = NULL;
+            }
         }
 
         PhEndInitOnce(&initOnce);
