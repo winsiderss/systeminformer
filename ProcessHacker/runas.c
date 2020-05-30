@@ -2228,7 +2228,7 @@ NTSTATUS PhpRunFileProgram(
     {
         status = PhpCustomShellExecute(
             Context->WindowHandle,
-            fullFileName->Buffer,
+            PhGetString(fullFileName),
             PhGetString(argumentsString),
             TRUE
             );
@@ -2392,8 +2392,8 @@ NTSTATUS PhpRunFileProgram(
         {
             status = PhpCustomShellExecute(
                 Context->WindowHandle,
-                commandString->Buffer,
-                NULL,
+                PhGetString(fullFileName),
+                PhGetString(argumentsString),
                 TRUE
                 );
         }
