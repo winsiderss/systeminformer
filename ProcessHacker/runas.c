@@ -2033,7 +2033,7 @@ PPH_STRING PhpQueryRunFileParentDirectory(
     }
 }
 
-NTSTATUS PhpCustomShellExecute(
+NTSTATUS PhpRunAsShellExecute(
     _In_ HWND hWnd,
     _In_ PWSTR FileName,
     _In_opt_ PWSTR Parameters,
@@ -2214,7 +2214,7 @@ NTSTATUS PhpRunFileProgram(
     // If the file doesn't exist its probably a URL with http, https, www (dmex)
     if (isDirectory || !PhDoesFileExistsWin32(fullFileName->Buffer))
     {
-        status = PhpCustomShellExecute(
+        status = PhpRunAsShellExecute(
             Context->WindowHandle,
             commandString->Buffer,
             NULL,
@@ -2226,7 +2226,7 @@ NTSTATUS PhpRunFileProgram(
         // and clicking the OK button, so we'll implement the same functionality. (dmex)
         (!!(GetKeyState(VK_CONTROL) < 0 && !!(GetKeyState(VK_SHIFT) < 0))))
     {
-        status = PhpCustomShellExecute(
+        status = PhpRunAsShellExecute(
             Context->WindowHandle,
             PhGetString(fullFileName),
             PhGetString(argumentsString),
@@ -2388,9 +2388,9 @@ NTSTATUS PhpRunFileProgram(
 
             NtClose(newProcessHandle);
         }
-        else if (WIN32_FROM_NTSTATUS(status) == ERROR_ELEVATION_REQUIRED)
+        else if (NT_NTWIN32(status) && WIN32_FROM_NTSTATUS(status) == ERROR_ELEVATION_REQUIRED)
         {
-            status = PhpCustomShellExecute(
+            status = PhpRunAsShellExecute(
                 Context->WindowHandle,
                 PhGetString(fullFileName),
                 PhGetString(argumentsString),
