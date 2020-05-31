@@ -89,6 +89,10 @@ PPH_STRING PvResolveShortcutTarget(
     _In_ PPH_STRING ShortcutFileName
     );
 
+PPH_STRING PvResolveReparsePointTarget(
+    _In_ PPH_STRING FileName
+    );
+
 VOID PvCopyListView(
     _In_ HWND ListViewHandle
     );

@@ -190,7 +190,7 @@ INT WINAPI wWinMain(
 
         status = PhCreateFileWin32(
             &fileHandle,
-            PvFileName->Buffer,
+            PhGetString(PvFileName),
             FILE_READ_ATTRIBUTES | FILE_READ_DATA | SYNCHRONIZE,
             FILE_ATTRIBUTE_NORMAL,
             FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
@@ -198,10 +198,30 @@ INT WINAPI wWinMain(
             FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
             );
 
+        if (status == STATUS_IO_REPARSE_TAG_NOT_HANDLED)
+        {
+            PPH_STRING targetFileName;
+
+            if (targetFileName = PvResolveReparsePointTarget(PvFileName))
+            {
+                PhMoveReference(&PvFileName, targetFileName);
+            }
+
+            status = PhCreateFileWin32(
+                &fileHandle,
+                PhGetString(PvFileName),
+                FILE_READ_ATTRIBUTES | FILE_READ_DATA | SYNCHRONIZE,
+                FILE_ATTRIBUTE_NORMAL,
+                FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                FILE_OPEN,
+                FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+                );
+        }
+
         if (NT_SUCCESS(status))
         {
             status = PhLoadMappedImageEx(
-                PvFileName->Buffer,
+                PhGetString(PvFileName),
                 fileHandle,
                 TRUE,
                 &PvMappedImage

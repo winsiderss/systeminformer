@@ -3,7 +3,7 @@
  *   PE viewer
  *
  * Copyright (C) 2011 wj32
- * Copyright (C) 2019 dmex
+ * Copyright (C) 2019-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -61,6 +61,81 @@ PPH_STRING PvResolveShortcutTarget(
 
         IShellLinkW_Release(shellLink);
     }
+
+    return targetFileName;
+}
+
+PPH_STRING PvResolveReparsePointTarget(
+    _In_ PPH_STRING FileName
+    )
+{
+    PPH_STRING targetFileName = NULL;
+    PREPARSE_DATA_BUFFER reparseBuffer;
+    ULONG reparseLength;
+    HANDLE fileHandle;
+    IO_STATUS_BLOCK isb;
+
+    if (PhIsNullOrEmptyString(FileName))
+        return NULL;
+
+    if (!NT_SUCCESS(PhCreateFileWin32(
+        &fileHandle,
+        PhGetString(FileName),
+        FILE_READ_ATTRIBUTES | FILE_READ_DATA | SYNCHRONIZE,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_REPARSE_POINT
+        )))
+    {
+        return NULL;
+    }
+
+    reparseLength = MAXIMUM_REPARSE_DATA_BUFFER_SIZE;
+    reparseBuffer = PhAllocateZero(reparseLength);
+
+    if (NT_SUCCESS(NtFsControlFile(
+        fileHandle,
+        NULL,
+        NULL,
+        NULL,
+        &isb,
+        FSCTL_GET_REPARSE_POINT,
+        NULL,
+        0,
+        reparseBuffer,
+        reparseLength
+        )))
+    {
+        if (reparseBuffer->ReparseTag == IO_REPARSE_TAG_APPEXECLINK)
+        {
+            typedef struct _AppExecLinkReparseBuffer
+            {
+                ULONG StringCount;
+                WCHAR StringList[1];
+            } AppExecLinkReparseBuffer, *PAppExecLinkReparseBuffer;
+
+            PAppExecLinkReparseBuffer appexeclink;
+            PWSTR string;
+
+            appexeclink = (PAppExecLinkReparseBuffer)reparseBuffer->GenericReparseBuffer.DataBuffer;
+            string = (PWSTR)appexeclink->StringList;
+
+            for (ULONG i = 0; i < appexeclink->StringCount; i++)
+            {
+                if (i == 2 && PhDoesFileExistsWin32(string))
+                {
+                    targetFileName = PhCreateString(string);
+                    break;
+                }
+
+                string += PhCountStringZ(string) + 1;
+            }
+        }
+    }
+
+    PhFree(reparseBuffer);
+    NtClose(fileHandle);
 
     return targetFileName;
 }
