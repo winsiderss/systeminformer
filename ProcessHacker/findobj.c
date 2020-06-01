@@ -3,7 +3,7 @@
  *   object search
  *
  * Copyright (C) 2010-2016 wj32
- * Copyright (C) 2017-2019 dmex
+ * Copyright (C) 2017-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -1452,6 +1452,66 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
                     
                             if (handleObjectNodes[i]->ResultType != HandleSearchResult)
                                 continue;
+
+                            if (WindowsVersion >= WINDOWS_10)
+                            {
+                                if (NT_SUCCESS(PhOpenProcess(
+                                    &processHandle,
+                                    PROCESS_QUERY_INFORMATION,
+                                    handleObjectNodes[i]->ProcessId
+                                    )))
+                                {
+                                    BOOLEAN critical = FALSE;
+                                    BOOLEAN strict = FALSE;
+                                    BOOLEAN breakOnTermination;
+                                    PROCESS_MITIGATION_POLICY_INFORMATION policyInfo;
+
+                                    if (NT_SUCCESS(PhGetProcessBreakOnTermination(
+                                        processHandle,
+                                        &breakOnTermination
+                                        )))
+                                    {
+                                        if (breakOnTermination)
+                                        {
+                                            critical = TRUE;
+                                        }
+                                    }
+
+                                    policyInfo.Policy = ProcessStrictHandleCheckPolicy;
+                                    policyInfo.StrictHandleCheckPolicy.Flags = 0;
+
+                                    if (NT_SUCCESS(NtQueryInformationProcess(
+                                        processHandle,
+                                        ProcessMitigationPolicy,
+                                        &policyInfo,
+                                        sizeof(PROCESS_MITIGATION_POLICY_INFORMATION),
+                                        NULL
+                                        )))
+                                    {
+                                        if (policyInfo.StrictHandleCheckPolicy.Flags != 0)
+                                        {
+                                            strict = TRUE;
+                                        }
+                                    }
+
+                                    if (critical && strict)
+                                    {
+                                        if (!PhShowConfirmMessage(
+                                            hwndDlg,
+                                            L"close",
+                                            L"critical handle(s)",
+                                            L"You are about to close one or more handles for a critical process with strict handle checks enabled. This will shut down the operating system immediately.\r\n\r\n",
+                                            TRUE
+                                            ))
+                                        {
+                                            NtClose(processHandle);
+                                            continue;
+                                        }
+                                    }
+
+                                    NtClose(processHandle);
+                                }
+                            }
                     
                             if (NT_SUCCESS(status = PhOpenProcess(
                                 &processHandle,
