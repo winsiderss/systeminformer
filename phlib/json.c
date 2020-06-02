@@ -96,9 +96,7 @@ PH_JSON_OBJECT_TYPE PhGetJsonObjectType(
     _In_ PVOID Object
     )
 {
-    json_type objectType = json_object_get_type(Object);
-
-    switch (objectType)
+    switch (json_object_get_type(Object))
     {
     case json_type_null:
         return PH_JSON_OBJECT_TYPE_NULL;
