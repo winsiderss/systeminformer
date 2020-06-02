@@ -520,10 +520,10 @@ BOOLEAN PhDescribeProcessMitigationPolicy(
             if (data->SpeculativeStoreBypassDisable)
             {
                 if (ShortDescription)
-                    *ShortDescription = PhCreateString(L"Restricted page combining");
+                    *ShortDescription = PhCreateString(L"Memory disambiguation (SSBD)");
 
                 if (LongDescription)
-                    *LongDescription = PhCreateString(L"Memory Disambiguation is enabled for this process.\r\n");
+                    *LongDescription = PhCreateString(L"Memory disambiguation is enabled for this process.\r\n");
 
                 result = TRUE;
             }
