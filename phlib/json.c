@@ -92,6 +92,33 @@ PVOID PhGetJsonObject(
     return json_get_object(Object, Key);
 }
 
+PH_JSON_OBJECT_TYPE PhGetJsonObjectType(
+    _In_ PVOID Object
+    )
+{
+    json_type objectType = json_object_get_type(Object);
+
+    switch (objectType)
+    {
+    case json_type_null:
+        return PH_JSON_OBJECT_TYPE_NULL;
+    case json_type_boolean:
+        return PH_JSON_OBJECT_TYPE_BOOLEAN;
+    case json_type_double:
+        return PH_JSON_OBJECT_TYPE_DOUBLE;
+    case json_type_int:
+        return PH_JSON_OBJECT_TYPE_INT;
+    case json_type_object:
+        return PH_JSON_OBJECT_TYPE_OBJECT;
+    case json_type_array:
+        return PH_JSON_OBJECT_TYPE_ARRAY;
+    case json_type_string:
+        return PH_JSON_OBJECT_TYPE_STRING;
+    }
+
+    return PH_JSON_OBJECT_TYPE_UNKNOWN;
+}
+
 INT PhGetJsonObjectLength(
     _In_ PVOID Object
     )

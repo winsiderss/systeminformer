@@ -697,6 +697,7 @@ EXPORTS
     PhGetJsonValueAsLong64
     PhCreateJsonObject
     PhGetJsonObject
+    PhGetJsonObjectType
     PhGetJsonObjectLength
     PhGetJsonObjectBool
     PhAddJsonObject
