@@ -151,6 +151,9 @@ PPH_LIST PhpUpdaterQueryCommitHistory(
     if (!(jsonRootObject = PhCreateJsonParser(jsonString->Buffer)))
         goto CleanupExit;
 
+    if (PhGetJsonObjectType(jsonRootObject) != PH_JSON_OBJECT_TYPE_ARRAY)
+        goto CleanupExit;
+
     if (!(arrayLength = PhGetJsonArrayLength(jsonRootObject)))
         goto CleanupExit;
 
