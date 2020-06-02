@@ -137,6 +137,13 @@ INT_PTR CALLBACK WepWindowPropStoreDlgProc(
     _In_ LPARAM lParam
     );
 
+INT_PTR CALLBACK WepWindowPreviewDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
 #define DEFINE_PAIR(Symbol) { L#Symbol, Symbol }
 
 static STRING_INTEGER_PAIR WepStylePairs[] =
@@ -296,6 +303,13 @@ NTSTATUS WepPropertiesThreadStart(
         newPage = PvCreatePropPageContext(
             MAKEINTRESOURCE(IDD_WNDPROPSTORAGE),
             WepWindowPropStoreDlgProc,
+            context);
+        PvAddPropPage(propContext, newPage);
+
+        // Preview page
+        newPage = PvCreatePropPageContext(
+            MAKEINTRESOURCE(IDD_WNDPREVIEW),
+            WepWindowPreviewDlgProc,
             context);
         PvAddPropPage(propContext, newPage);
 
@@ -1433,6 +1447,232 @@ INT_PTR CALLBACK WepWindowPropStoreDlgProc(
 
                 PhFree(listviewItems);
             }
+        }
+        break;
+    }
+
+    return FALSE;
+}
+
+// https://docs.microsoft.com/en-us/windows/win32/dwm/dwmdxgetwindowsharedsurface
+HRESULT (WINAPI* DwmDxGetWindowSharedSurface_I)(
+    _In_ HWND WindowHandle,
+    _In_ LUID luidAdapter,
+    _In_opt_ HMONITOR hmonitorAssociation,
+    _In_ ULONG Flags,
+    _Inout_ ULONG* pfmtWindow, // DXGI_FORMAT
+    _Out_ HANDLE* phDxSurface,
+    _Out_ UINT64* puiUpdateId
+    );
+
+// https://docs.microsoft.com/en-us/windows/win32/dwm/dwmdxupdatewindowsharedsurface
+HRESULT (WINAPI* DwmDxUpdateWindowSharedSurface_I)(
+    _In_ HWND WindowHandle,
+    _In_ UINT64 uiUpdateId,
+    _In_ ULONG dwFlags,
+    _In_opt_ HMONITOR hmonitorAssociation,
+    _In_ RECT* prc
+    );
+
+// rev
+BOOL (WINAPI* DwmGetDxSharedSurface_I)(
+    _In_ HWND WindowHandle,
+    _Out_ HANDLE* phDxSurface,
+    _Out_ LUID* pluidAdapter,
+    _Out_ ULONG* pfmtWindow, // DXGI_FORMAT
+    _Out_ ULONG* pPresentFlags,
+    _Out_ UINT64* puiUpdateId
+    );
+
+// rev
+HBITMAP (WINAPI* CreateBitmapFromDxSurface_I)(
+    _In_ HDC hdc,
+    _In_ UINT32 Width,
+    _In_ UINT32 Height,
+    _In_ ULONG pfmtWindow, // DXGI_FORMAT
+    _In_opt_ HANDLE phDxSurface
+    );
+
+HBITMAP WepGetWindowSharedSurface(
+    _In_ HWND WindowHandle,
+    _In_ HDC WindowHdc
+    )
+{
+    HBITMAP bitmapHandle = NULL;
+    HANDLE surfaceHandle = NULL;
+    LUID adapterLuid;
+    ULONG bitmapFormat = 0;
+    ULONG presentFlags = 0;
+    UINT64 updateId = 0;
+
+    if (!DwmGetDxSharedSurface_I)
+        DwmGetDxSharedSurface_I = PhGetModuleProcAddress(L"user32.dll", "DwmGetDxSharedSurface");
+    if (!CreateBitmapFromDxSurface_I)
+        CreateBitmapFromDxSurface_I = PhGetModuleProcAddress(L"gdi32.dll", "CreateBitmapFromDxSurface");
+
+    if (!DwmGetDxSharedSurface_I)
+        return NULL;
+    if (!CreateBitmapFromDxSurface_I)
+        return NULL;
+
+    if (DwmGetDxSharedSurface_I(
+        WindowHandle,
+        &surfaceHandle,
+        &adapterLuid,
+        &bitmapFormat,
+        &presentFlags,
+        &updateId
+        ))
+    {
+        RECT windowRect;
+
+        GetWindowRect(WindowHandle, &windowRect); // TODO: Include dwm window borders.
+
+        bitmapHandle = CreateBitmapFromDxSurface_I(
+            WindowHdc,
+            windowRect.right,
+            windowRect.bottom,
+            bitmapFormat,
+            surfaceHandle
+            );
+    }
+
+    return bitmapHandle;
+}
+
+INT_PTR CALLBACK WepWindowPreviewDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+    PWINDOW_PROPERTIES_CONTEXT context;
+    LPPROPSHEETPAGE propSheetPage;
+    PPV_PROPPAGECONTEXT propPageContext;
+
+    if (!PvPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext))
+        return FALSE;
+
+    context = (PWINDOW_PROPERTIES_CONTEXT)propPageContext->Context;
+
+    if (!context)
+        return FALSE;
+
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            HWND lvHandle;
+
+            lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
+            PhSetListViewStyle(lvHandle, FALSE, TRUE);
+            PhSetControlTheme(lvHandle, L"explorer");
+
+            PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 160, L"Name");
+            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 100, L"Value");
+            PhSetExtendedListView(lvHandle);
+
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+
+            SetTimer(hwndDlg, 1, 1000, NULL);
+        }
+        break;
+    case WM_DESTROY:
+        {
+            NOTHING;
+        }
+        break;
+    case WM_SHOWWINDOW:
+        {
+            if (!propPageContext->LayoutInitialized)
+            {
+                PPH_LAYOUT_ITEM dialogItem;
+
+                dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
+                PvAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST), dialogItem, PH_ANCHOR_ALL);
+                PvDoPropPageLayout(hwndDlg);
+
+                propPageContext->LayoutInitialized = TRUE;
+            }
+        }
+        break;
+    case WM_ERASEBKGND:
+        return TRUE;
+    case WM_PAINT:
+        {
+            PAINTSTRUCT paint;
+            HDC hdc;
+            HDC bufferDc;
+            RECT clientRect;
+            RECT windowClientRect;
+            HBITMAP bitmap;
+
+            GetClientRect(hwndDlg, &clientRect);
+            GetClientRect(context->WindowHandle, &windowClientRect);
+
+            hdc = BeginPaint(hwndDlg, &paint);
+            bufferDc = CreateCompatibleDC(hdc);
+
+            SetBkMode(hdc, TRANSPARENT);
+            FillRect(hdc, &clientRect, GetStockBrush(BLACK_BRUSH));
+
+            if (bitmap = WepGetWindowSharedSurface(context->WindowHandle, hdc))
+            {
+                HBITMAP oldbitmap;
+                INT width;
+                INT height;
+
+                oldbitmap = SelectBitmap(bufferDc, bitmap);
+
+                if (clientRect.right > windowClientRect.right)
+                    width = windowClientRect.right;
+                else
+                    width = clientRect.right;
+
+                if (clientRect.bottom > windowClientRect.bottom)
+                    height = windowClientRect.bottom;
+                else
+                    height = clientRect.bottom;
+
+                StretchBlt(
+                    hdc,
+                    0, 0,
+                    width,
+                    height,
+                    bufferDc,
+                    0, 0,
+                    windowClientRect.right,
+                    windowClientRect.bottom,
+                    SRCCOPY
+                    );
+
+                SelectBitmap(bufferDc, oldbitmap);
+                DeleteBitmap(bitmap);
+            }
+            else
+            {
+                PH_STRINGREF errorText = PH_STRINGREF_INIT(L"No preview available for this window.");
+
+                SetTextColor(hdc, RGB(0x0, 0x0, 0xFF));
+                //SelectFont(hdc, PhApplicationFont);
+                DrawText(
+                    hdc,
+                    errorText.Buffer,
+                    (INT)errorText.Length / sizeof(WCHAR),
+                    &clientRect,
+                    DT_CENTER | DT_VCENTER | DT_NOPREFIX | DT_SINGLELINE
+                    );
+            }
+
+            DeleteDC(bufferDc);
+
+            EndPaint(hwndDlg, &paint);
+        }
+        return TRUE;
+    case WM_TIMER:
+        {
+            InvalidateRect(hwndDlg, NULL, TRUE);
         }
         break;
     }

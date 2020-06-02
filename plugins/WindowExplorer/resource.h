@@ -12,6 +12,7 @@
 #define IDD_WNDGENERAL                  104
 #define ID_VIEW_DESKTOPWINDOWS          105
 #define IDD_WNDPROPLIST                 105
+#define IDD_WNDPREVIEW                  106
 #define IDC_LIST                        1001
 #define IDC_REFRESH                     1002
 #define IDC_FINDWINDOW                  1003
