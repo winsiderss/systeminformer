@@ -881,7 +881,8 @@ VOID PhMwpOnCommand(
             };
             PVOID fileDialog = PhCreateOpenFileDialog();
 
-            PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
+            PhSetFileDialogFilter(fileDialog, filters, RTL_NUMBER_OF(filters));
+            PhSetFileDialogOptions(fileDialog, PH_FILEDIALOG_NOPATHVALIDATE);
 
             if (PhShowFileDialog(WindowHandle, fileDialog))
             {
