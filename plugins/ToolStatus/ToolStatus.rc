@@ -48,7 +48,7 @@ END
 // Dialog
 //
 
-IDD_OPTIONS DIALOGEX 0, 0, 191, 84
+IDD_OPTIONS DIALOGEX 0, 0, 191, 86
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Options"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
@@ -56,11 +56,12 @@ BEGIN
     CONTROL         "Enable toolbar",IDC_ENABLE_TOOLBAR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,7,62,10
     CONTROL         "Enable status bar",IDC_ENABLE_STATUSBAR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,19,72,10
     CONTROL         "Resolve ghost windows to hung windows",IDC_RESOLVEGHOSTWINDOWS,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,32,152,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,31,152,10
     CONTROL         "Auto-hide main menu (Alt or F10 key toggle)",IDC_ENABLE_AUTOHIDE_MENU,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,44,157,10
-    CONTROL         "Enable auto focus to search box",IDC_ENABLE_AUTOFOCUS_SEARCH,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,56,113,10
-    LTEXT           "Note: Right-click the toolbar on the main window to customize the icons and graphs.",IDC_STATIC,7,68,157,18
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,43,157,10
+    CONTROL         "Enable auto focus to search box",IDC_ENABLE_AUTOFOCUS_SEARCH,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,55,113,10
+    LTEXT           "Note: Right-click the toolbar on the main window to customize the icons and graphs.",IDC_STATIC,7,70,157,18
 END
 
 IDD_CUSTOMIZE_TB DIALOGEX 0, 0, 369, 188
@@ -118,7 +119,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 184
         TOPMARGIN, 7
-        BOTTOMMARGIN, 77
+        BOTTOMMARGIN, 79
     END
 
     IDD_CUSTOMIZE_TB, DIALOG
