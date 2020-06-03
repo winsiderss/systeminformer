@@ -12,6 +12,7 @@
 #define IDC_REVERT                      1004
 #define IDC_CHECK1                      1005
 #define IDC_MATCHCOMMANDLINE            1005
+#define IDC_COLLAPSE_SERVICES_CHECK     1005
 
 // Next default values for new objects
 // 

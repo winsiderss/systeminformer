@@ -3,7 +3,7 @@
  *   database functions
  *
  * Copyright (C) 2011-2015 wj32
- * Copyright (C) 2016 dmex
+ * Copyright (C) 2016-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -27,6 +27,7 @@
 #define PLUGIN_NAME L"ProcessHacker.UserNotes"
 #define SETTING_NAME_DATABASE_PATH (PLUGIN_NAME L".DatabasePath")
 #define SETTING_NAME_CUSTOM_COLOR_LIST (PLUGIN_NAME L".ColorCustomList")
+#define SETTING_NAME_COLLAPSE_SERVICES_AT_START (PLUGIN_NAME L".CollapseServicesOnStart")
 
 #define FILE_TAG 1
 #define SERVICE_TAG 2
