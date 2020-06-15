@@ -4062,7 +4062,7 @@ C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, SafeBootMode) == 0x2ec);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TickCount) == 0x320);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TickCountQuad) == 0x320);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, XState) == 0x3d8);
-//C_ASSERT(sizeof(KUSER_SHARED_DATA) == 0x70C); // VS2017 has some weird issue with this.
+//C_ASSERT(sizeof(KUSER_SHARED_DATA) == 0x70C); // VS2019 has some weird issue with this.
 
 #define USER_SHARED_DATA ((KUSER_SHARED_DATA * const)0x7ffe0000)
 
