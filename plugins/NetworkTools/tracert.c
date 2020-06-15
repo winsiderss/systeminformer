@@ -567,7 +567,7 @@ VOID TracertMenuActionCallback(
     case MAINMENU_ACTION_PING:
         {
             PH_IP_ENDPOINT RemoteEndpoint;
-            PWSTR terminator = NULL;
+            PWSTR terminator = UNICODE_NULL;
             PTRACERT_ROOT_NODE node;
 
             if ((node = GetSelectedTracertNode(Context)) && !PhIsNullOrEmptyString(node->IpAddressString))
@@ -600,7 +600,7 @@ VOID TracertMenuActionCallback(
     case NETWORK_ACTION_TRACEROUTE:
         {
             PH_IP_ENDPOINT RemoteEndpoint;
-            PWSTR terminator = NULL;
+            PWSTR terminator = UNICODE_NULL;
             PTRACERT_ROOT_NODE node;
 
             if ((node = GetSelectedTracertNode(Context)) && !PhIsNullOrEmptyString(node->IpAddressString))
@@ -633,7 +633,7 @@ VOID TracertMenuActionCallback(
     case NETWORK_ACTION_WHOIS:
         {
             PH_IP_ENDPOINT RemoteEndpoint;
-            PWSTR terminator = NULL;
+            PWSTR terminator = UNICODE_NULL;
             PTRACERT_ROOT_NODE node;
 
             if ((node = GetSelectedTracertNode(Context)) && !PhIsNullOrEmptyString(node->IpAddressString))
