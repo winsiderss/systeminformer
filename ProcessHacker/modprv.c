@@ -340,9 +340,9 @@ NTSTATUS PhpModuleQueryWorker(
         // This is needed to detect standard .NET images loaded by .NET core, Mono and other CLR runtimes.
         if (NT_SUCCESS(PhLoadMappedImageEx(PhGetString(data->ModuleItem->FileName), NULL, TRUE, &mappedImage)))
         {
-            if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+            if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC && mappedImage.NtHeaders32)
             {
-                PIMAGE_OPTIONAL_HEADER32 optionalHeader = (PIMAGE_OPTIONAL_HEADER32)&mappedImage.NtHeaders->OptionalHeader;
+                PIMAGE_OPTIONAL_HEADER32 optionalHeader = &mappedImage.NtHeaders32->OptionalHeader;
 
                 if (optionalHeader->NumberOfRvaAndSizes >= IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR)
                 {
@@ -352,9 +352,10 @@ NTSTATUS PhpModuleQueryWorker(
                     }
                 }
             }
-            else if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+#ifdef _WIN64
+            else if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC && mappedImage.NtHeaders)
             {
-                PIMAGE_OPTIONAL_HEADER64 optionalHeader = (PIMAGE_OPTIONAL_HEADER64)&mappedImage.NtHeaders->OptionalHeader;
+                PIMAGE_OPTIONAL_HEADER64 optionalHeader = &mappedImage.NtHeaders->OptionalHeader;
 
                 if (optionalHeader->NumberOfRvaAndSizes >= IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR)
                 {
@@ -364,7 +365,7 @@ NTSTATUS PhpModuleQueryWorker(
                     }
                 }
             }
-
+#endif
             PhUnloadMappedImage(&mappedImage);
         }
     }
