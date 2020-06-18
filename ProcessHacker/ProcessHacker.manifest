@@ -1,22 +1,10 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
-  <assemblyIdentity
-    name="Process Hacker"
-    processorArchitecture="*"
-    version="2.0.0.0"
-    type="win32"
-  />
+  <assemblyIdentity name="Process Hacker" processorArchitecture="*" version="2.0.0.0" type="win32"/>
   <description>Process Hacker</description>
   <dependency>
     <dependentAssembly>
-      <assemblyIdentity
-        type="win32"
-        name="Microsoft.Windows.Common-Controls"
-        version="6.0.0.0"
-        processorArchitecture="*"
-        publicKeyToken="6595b64144ccf1df"
-        language="*"
-      />
+      <assemblyIdentity type="win32" name="Microsoft.Windows.Common-Controls" version="6.0.0.0" processorArchitecture="*" publicKeyToken="6595b64144ccf1df" language="*"/>
     </dependentAssembly>
   </dependency>
   <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
@@ -45,6 +33,9 @@
     </asmv3:windowsSettings>
     <asmv3:windowsSettings xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">
       <longPathAware>true</longPathAware>
+    </asmv3:windowsSettings>
+    <asmv3:windowsSettings xmlns="http://schemas.microsoft.com/SMI/2020/WindowsSettings">
+      <heapType>SegmentHeap</heapType>
     </asmv3:windowsSettings>
   </asmv3:application>
 </assembly>
