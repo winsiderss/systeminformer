@@ -3,7 +3,7 @@
  *   global variables and initialization functions
  *
  * Copyright (C) 2010-2013 wj32
- * Copyright (C) 2017-2018 dmex
+ * Copyright (C) 2017-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -32,6 +32,11 @@ VOID PhInitializeSystemInformation(
 
 VOID PhInitializeWindowsVersion(
     VOID
+    );
+
+BOOLEAN PhHeapInitialization(
+    _In_opt_ SIZE_T HeapReserveSize,
+    _In_opt_ SIZE_T HeapCommitSize
     );
 
 PHLIBAPI PVOID PhInstanceHandle = NULL;
@@ -77,27 +82,11 @@ NTSTATUS PhInitializePhLibEx(
     PhApplicationName = ApplicationName;
     PhInstanceHandle = ImageBaseAddress;
 
-    PhHeapHandle = RtlCreateHeap(
-        HEAP_GROWABLE | HEAP_CLASS_1,
-        NULL,
-        HeapReserveSize ? HeapReserveSize : 2 * 1024 * 1024, // 2 MB
-        HeapCommitSize ? HeapCommitSize : 1024 * 1024, // 1 MB
-        NULL,
-        NULL
-        );
-
-    if (!PhHeapHandle)
-        return STATUS_INSUFFICIENT_RESOURCES;
-
-    RtlSetHeapInformation(
-        PhHeapHandle,
-        HeapCompatibilityInformation,
-        &(ULONG){ HEAP_COMPATIBILITY_LFH },
-        sizeof(ULONG)
-        );
-
     PhInitializeWindowsVersion();
     PhInitializeSystemInformation();
+
+    if (!PhHeapInitialization(HeapReserveSize, HeapCommitSize))
+        return STATUS_UNSUCCESSFUL;
 
     if (!PhQueuedLockInitialization())
         return STATUS_UNSUCCESSFUL;
@@ -230,4 +219,46 @@ VOID PhInitializeWindowsVersion(
     {
         WindowsVersion = WINDOWS_NEW;
     }
+}
+
+BOOLEAN PhHeapInitialization(
+    _In_opt_ SIZE_T HeapReserveSize,
+    _In_opt_ SIZE_T HeapCommitSize
+    )
+{
+    if (WindowsVersion >= WINDOWS_8)
+    {
+        PhHeapHandle = RtlCreateHeap(
+            HEAP_GROWABLE | HEAP_CREATE_SEGMENT_HEAP | HEAP_CLASS_1,
+            NULL,
+            0,
+            0,
+            NULL,
+            NULL
+            );
+    }
+
+    if (!PhHeapHandle)
+    {
+        PhHeapHandle = RtlCreateHeap(
+            HEAP_GROWABLE | HEAP_CLASS_1,
+            NULL,
+            HeapReserveSize ? HeapReserveSize : 2 * 1024 * 1024, // 2 MB
+            HeapCommitSize ? HeapCommitSize : 1024 * 1024, // 1 MB
+            NULL,
+            NULL
+            );
+
+        if (!PhHeapHandle)
+            return FALSE;
+
+        RtlSetHeapInformation(
+            PhHeapHandle,
+            HeapCompatibilityInformation,
+            &(ULONG){ HEAP_COMPATIBILITY_LFH },
+            sizeof(ULONG)
+            );
+    }
+
+    return TRUE;
 }
