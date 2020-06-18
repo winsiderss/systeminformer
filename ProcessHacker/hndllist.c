@@ -30,7 +30,6 @@
 
 #include <extmgri.h>
 #include <hndlprv.h>
-#include <phplug.h>
 #include <phsettings.h>
 
 BOOLEAN PhpHandleNodeHashtableEqualFunction(

@@ -28,7 +28,6 @@
 
 #include <emenu.h>
 #include <settings.h>
-#include <kphuser.h>
 #include <hndlinfo.h>
 #include <secedit.h>
 

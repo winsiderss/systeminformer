@@ -30,7 +30,6 @@
 
 #include <actions.h>
 #include <extmgri.h>
-#include <modlist.h>
 #include <modprv.h>
 #include <phplug.h>
 #include <phsettings.h>

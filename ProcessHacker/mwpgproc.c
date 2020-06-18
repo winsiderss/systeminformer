@@ -24,9 +24,6 @@
 #include <phapp.h>
 #include <mainwnd.h>
 
-#include <shellapi.h>
-
-#include <cpysave.h>
 #include <emenu.h>
 #include <verify.h>
 #include <phsettings.h>

@@ -23,7 +23,6 @@
 #include <phapp.h>
 #include <hexedit.h>
 
-#include <mainwnd.h>
 #include <procprv.h>
 #include <settings.h>
 

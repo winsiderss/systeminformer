@@ -24,7 +24,6 @@
 #include <phplug.h>
 #include <phsettings.h>
 #include <procprp.h>
-#include <procprpp.h>
 #include <procprv.h>
 #include <settings.h>
 #include <emenu.h>

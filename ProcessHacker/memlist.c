@@ -28,7 +28,6 @@
 
 #include <extmgri.h>
 #include <memprv.h>
-#include <phplug.h>
 #include <settings.h>
 #include <phsettings.h>
 

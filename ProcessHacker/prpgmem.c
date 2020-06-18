@@ -31,12 +31,9 @@
 #include <actions.h>
 #include <extmgri.h>
 #include <mainwnd.h>
-#include <memlist.h>
-#include <memprv.h>
 #include <phplug.h>
 #include <phsettings.h>
 #include <procprv.h>
-#include <settings.h>
 
 static PPH_OBJECT_TYPE PhMemoryContextType = NULL;
 static PH_STRINGREF EmptyMemoryText = PH_STRINGREF_INIT(L"There are no memory regions to display.");

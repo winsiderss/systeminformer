@@ -56,13 +56,9 @@
 #include <procprv.h>
 #include <appresolver.h>
 
-#include <shellapi.h>
-#include <winsta.h>
-
 #include <hndlinfo.h>
 #include <kphuser.h>
 #include <lsasup.h>
-#include <verify.h>
 #include <workqueue.h>
 
 #include <extmgri.h>

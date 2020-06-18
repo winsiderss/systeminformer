@@ -28,8 +28,6 @@
 
 #include <colmgr.h>
 #include <extmgri.h>
-#include <mainwnd.h>
-#include <notifico.h>
 #include <phsvccl.h>
 #include <procprv.h>
 #include <settings.h>

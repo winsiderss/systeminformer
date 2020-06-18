@@ -24,7 +24,6 @@
 #include <ph.h>
 #include <hndlinfo.h>
 #include <json.h>
-
 #include <kphuser.h>
 #include <lsasup.h>
 

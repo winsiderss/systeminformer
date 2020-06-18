@@ -25,15 +25,10 @@
 #include <phplug.h>
 #include <mainwnd.h>
 
-#include <iphlpapi.h>
-
-#include <cpysave.h>
 #include <emenu.h>
 
 #include <netlist.h>
 #include <netprv.h>
-#include <phplug.h>
-#include <proctree.h>
 #include <settings.h>
 
 #include <mainwndp.h>

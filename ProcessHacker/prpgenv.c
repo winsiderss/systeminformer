@@ -31,8 +31,6 @@
 #include <procprp.h>
 #include <procprpp.h>
 #include <procprv.h>
-#include <lsasup.h>
-#include <userenv.h>
 
 typedef enum _ENVIRONMENT_TREE_MENU_ITEM
 {

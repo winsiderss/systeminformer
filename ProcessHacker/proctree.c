@@ -30,7 +30,6 @@
 
 #include <phapp.h>
 #include <proctree.h>
-#include <lsasup.h>
 
 #include <appresolver.h>
 #include <cpysave.h>

@@ -28,7 +28,6 @@
 #include <actions.h>
 #include <phsvccl.h>
 #include <procprv.h>
-#include <settings.h>
 
 #define WM_PH_MINIDUMP_STATUS_UPDATE (WM_APP + 301)
 

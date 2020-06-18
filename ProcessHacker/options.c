@@ -24,7 +24,6 @@
 #include <phapp.h>
 
 #include <commdlg.h>
-#include <vssym32.h>
 
 #include <colorbox.h>
 #include <settings.h>

@@ -27,16 +27,13 @@
 
 #include <shellapi.h>
 
-#include <extmgri.h>
 #include <mainwnd.h>
-#include <miniinfo.h>
 #include <phplug.h>
 #include <procprv.h>
 #include <settings.h>
 
 #include <mainwndp.h>
 #include <notificop.h>
-#include <malloc.h>
 
 BOOLEAN PhNfMiniInfoEnabled = FALSE;
 BOOLEAN PhNfMiniInfoPinned = FALSE;

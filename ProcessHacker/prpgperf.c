@@ -25,13 +25,7 @@
 #include <phplug.h>
 #include <procprp.h>
 #include <procprpp.h>
-
-#include <graph.h>
-#include <settings.h>
-
 #include <procprv.h>
-#include <settings.h>
-#include <sysinfo.h>
 #include <phsettings.h>
 
 static VOID NTAPI PerformanceUpdateHandler(

@@ -36,12 +36,8 @@
  */
 
 #include <ph.h>
-#include <phbasesup.h>
-#include <phutil.h>
 #include <guisup.h>
 #include <settings.h>
-
-#include <commctrl.h>
 
 #include "mxml/mxml.h"
 

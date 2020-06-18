@@ -22,7 +22,6 @@
  */
 
 #include <ph.h>
-
 #include <apiimport.h>
 #include <kphuser.h>
 #include <lsasup.h>

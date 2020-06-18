@@ -29,7 +29,6 @@
 #include <emenu.h>
 
 #include <actions.h>
-#include <mainwnd.h>
 #include <srvprv.h>
 
 typedef struct _PH_SERVICES_CONTEXT

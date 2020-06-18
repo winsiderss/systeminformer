@@ -28,10 +28,8 @@
 
 #include <phapp.h>
 #include <phplug.h>
-#include <phsettings.h>
 #include <thrdprv.h>
 
-#include <kphuser.h>
 #include <svcsup.h>
 #include <symprv.h>
 #include <workqueue.h>

@@ -23,10 +23,7 @@
 #include <ph.h>
 #include <lsasup.h>
 
-#include <minappmodel.h>
 #include <appmodel.h>
-#include <combaseapi.h>
-#include <propsys.h>
 #include <shobjidl.h>
 
 #include <appresolverp.h>

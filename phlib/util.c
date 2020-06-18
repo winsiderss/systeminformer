@@ -23,18 +23,14 @@
 
 #include <ph.h>
 
-#include <commctrl.h>
 #include <commdlg.h>
 #include <shellapi.h>
 #include <shlobj.h>
-#include <userenv.h>
 #include <winsta.h>
 
 #include <apiimport.h>
 #include <lsasup.h>
 #include <mapimg.h>
-#include <settings.h>
-
 #include <wslsup.h>
 
 #include "md5.h"

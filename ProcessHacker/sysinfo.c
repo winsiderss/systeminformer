@@ -56,7 +56,6 @@
 #include <mainwnd.h>
 #include <phplug.h>
 #include <phsettings.h>
-#include <procprv.h>
 
 static HANDLE PhSipThread = NULL;
 HWND PhSipWindow = NULL;

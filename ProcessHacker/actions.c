@@ -30,10 +30,8 @@
 #include <phapp.h>
 #include <actions.h>
 
-#include <iphlpapi.h>
 #include <winsta.h>
 
-#include <apiimport.h>
 #include <kphuser.h>
 #include <svcsup.h>
 #include <settings.h>
@@ -44,7 +42,6 @@
 #include <netprv.h>
 #include <phsvccl.h>
 #include <procprv.h>
-#include <phsettings.h>
 #include <srvprv.h>
 #include <thrdprv.h>
 
