@@ -24,7 +24,6 @@
 #include <phapp.h>
 #include <mainwnd.h>
 
-#include <userenv.h>
 #include <winsta.h>
 
 #include <cpysave.h>
@@ -32,27 +31,23 @@
 #include <kphuser.h>
 #include <lsasup.h>
 #include <svcsup.h>
-#include <verify.h>
 #include <workqueue.h>
 #include <phsettings.h>
 
 #include <actions.h>
 #include <colsetmgr.h>
 #include <memsrch.h>
-#include <miniinfo.h>
 #include <netlist.h>
 #include <netprv.h>
 #include <notifico.h>
 #include <phplug.h>
 #include <phsvccl.h>
-#include <procprp.h>
 #include <procprv.h>
 #include <proctree.h>
 #include <secedit.h>
 #include <settings.h>
 #include <srvlist.h>
 #include <srvprv.h>
-#include <sysinfo.h>
 
 #include <mainwndp.h>
 

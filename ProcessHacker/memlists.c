@@ -27,7 +27,6 @@
 #include <settings.h>
 #include <actions.h>
 #include <phsvccl.h>
-#include <procprv.h>
 
 #define MSG_UPDATE (WM_APP + 1)
 

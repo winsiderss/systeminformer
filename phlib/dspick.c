@@ -22,12 +22,10 @@
 
 #include <ph.h>
 #include <dspick.h>
+#include <lsasup.h>
 
 #include <ole2.h>
 #include <objsel.h>
-
-#include <guisup.h>
-#include <lsasup.h>
 
 //#define IDataObject_AddRef(This) ((This)->lpVtbl->AddRef(This))
 //#define IDataObject_Release(This) ((This)->lpVtbl->Release(This))

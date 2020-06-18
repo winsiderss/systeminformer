@@ -22,10 +22,6 @@
 
 #include <phapp.h>
 
-#include <hndlinfo.h>
-#include <procprv.h>
-#include <secedit.h>
-
 typedef struct _COMMON_PAGE_CONTEXT
 {
     PPH_OPEN_OBJECT OpenObject;

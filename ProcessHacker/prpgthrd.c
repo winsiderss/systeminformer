@@ -35,7 +35,6 @@
 #include <phplug.h>
 #include <phsettings.h>
 #include <procprv.h>
-#include <thrdlist.h>
 #include <thrdprv.h>
 
 static PH_STRINGREF EmptyThreadsText = PH_STRINGREF_INIT(L"There are no threads to display.");

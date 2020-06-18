@@ -22,7 +22,6 @@
  */
 
 #include <phapp.h>
-#include <settings.h>
 
 #include <phsettings.h>
 

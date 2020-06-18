@@ -23,11 +23,9 @@
 
 #include <phapp.h>
 #include <emenu.h>
-#include <secedit.h>
 #include <phsettings.h>
 
 #include <winsta.h>
-#include <ws2tcpip.h>
 
 INT_PTR CALLBACK PhpSessionPropertiesDlgProc(
     _In_ HWND hwndDlg,

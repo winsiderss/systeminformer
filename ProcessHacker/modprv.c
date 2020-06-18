@@ -27,7 +27,6 @@
 
 #include <mapimg.h>
 #include <kphuser.h>
-#include <verify.h>
 #include <workqueue.h>
 
 #include <extmgri.h>

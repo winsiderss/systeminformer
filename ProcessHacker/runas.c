@@ -63,15 +63,12 @@
 
 #include <shellapi.h>
 #include <shlwapi.h>
-#include <userenv.h>
 #include <winsta.h>
 #include <lm.h>
 
-#include <emenu.h>
-#include <lsasup.h>
-
 #include <apiimport.h>
 #include <actions.h>
+#include <lsasup.h>
 #include <phsvc.h>
 #include <phsvccl.h>
 #include <phsettings.h>

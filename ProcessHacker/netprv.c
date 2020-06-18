@@ -24,7 +24,6 @@
 
 #include <phapp.h>
 #include <phplug.h>
-#include <phsettings.h>
 #include <netprv.h>
 #include <svcsup.h>
 #include <workqueue.h>

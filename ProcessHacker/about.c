@@ -35,8 +35,6 @@
 #include <srvprv.h>
 #include <thrdprv.h>
 
-#include <uxtheme.h>
-
 static HWND PhAboutWindowHandle = NULL;
 
 static INT_PTR CALLBACK PhpAboutDlgProc(

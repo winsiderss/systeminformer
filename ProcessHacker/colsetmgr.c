@@ -23,7 +23,6 @@
 #include <phapp.h>
 #include <colsetmgr.h>
 #include <settings.h>
-#include <extmgri.h>
 
 PPH_LIST PhInitializeColumnSetList(
     _In_ PWSTR SettingName

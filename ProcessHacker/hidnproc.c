@@ -45,7 +45,6 @@
 #include <hidnproc.h>
 
 #include <evntcons.h>
-#include <shellapi.h>
 
 #include <kphuser.h>
 

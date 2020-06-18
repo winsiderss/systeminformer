@@ -32,13 +32,11 @@
 
 #include <actions.h>
 #include <extmgri.h>
-#include <hndllist.h>
 #include <hndlmenu.h>
 #include <hndlprv.h>
 #include <phplug.h>
 #include <phsettings.h>
 #include <procprv.h>
-#include <settings.h>
 
 static PH_STRINGREF EmptyHandlesText = PH_STRINGREF_INIT(L"There are no handles to display.");
 

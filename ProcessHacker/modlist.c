@@ -29,7 +29,6 @@
 
 #include <extmgri.h>
 #include <modprv.h>
-#include <phplug.h>
 #include <phsettings.h>
 
 BOOLEAN PhpModuleNodeHashtableEqualFunction(

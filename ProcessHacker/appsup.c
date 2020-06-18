@@ -23,9 +23,7 @@
 
 #include <phapp.h>
 
-#include <winsta.h>
 #include <dbghelp.h>
-#include <appmodel.h>
 #include <shellapi.h>
 
 #include <cpysave.h>
@@ -37,7 +35,6 @@
 #include <actions.h>
 #include <phappres.h>
 #include <phsvccl.h>
-#include <phsettings.h>
 
 #include "pcre/pcre2.h"
 

@@ -22,7 +22,6 @@
  */
 
 #include <phapp.h>
-#include <settings.h>
 #include <sysinfo.h>
 #include <sysinfop.h>
 

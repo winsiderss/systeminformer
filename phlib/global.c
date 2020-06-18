@@ -22,9 +22,7 @@
  */
 
 #include <ph.h>
-#include <filestream.h>
 #include <phintrnl.h>
-#include <symprv.h>
 
 VOID PhInitializeSystemInformation(
     VOID

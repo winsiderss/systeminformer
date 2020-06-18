@@ -22,16 +22,13 @@
  */
 
 #include <ph.h>
-#include <symprv.h>
 
 #include <dbghelp.h>
-#include <shlobj.h>
 
+#include <symprv.h>
+#include <symprvp.h>
 #include <fastlock.h>
 #include <kphuser.h>
-#include <workqueue.h>
-
-#include <symprvp.h>
 
 typedef struct _PH_SYMBOL_MODULE
 {
