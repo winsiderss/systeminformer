@@ -89,7 +89,7 @@ NTSTATUS PhInitializePhLibEx(
     if (!PhQueuedLockInitialization())
         return STATUS_UNSUCCESSFUL;
 
-    if (!NT_SUCCESS(PhRefInitialization()))
+    if (!PhRefInitialization())
         return STATUS_UNSUCCESSFUL;
 
     if (!PhBaseInitialization())
