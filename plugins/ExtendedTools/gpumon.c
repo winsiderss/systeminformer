@@ -525,12 +525,8 @@ PETP_GPU_ADAPTER EtpAddDisplayAdapter(
     )
 {
     PETP_GPU_ADAPTER adapter;
-    SIZE_T sizeNeeded;
 
-    sizeNeeded = FIELD_OFFSET(ETP_GPU_ADAPTER, ApertureBitMapBuffer);
-    sizeNeeded += BYTES_NEEDED_FOR_BITS(NumberOfSegments);
-
-    adapter = PhAllocateZero(sizeNeeded);
+    adapter = EtpAllocateGpuAdapter(NumberOfSegments);
     adapter->DeviceInterface = PhCreateString(DeviceInterface);
     adapter->AdapterLuid = AdapterLuid;
     adapter->NodeCount = NumberOfNodes;
@@ -842,13 +838,20 @@ VOID EtpUpdateSystemSegmentInformation(
             if (NT_SUCCESS(D3DKMTQueryStatistics(&queryStatistics)))
             {
                 ULONG64 bytesCommitted;
+                ULONG aperture;
 
                 if (WindowsVersion >= WINDOWS_8)
+                {
                     bytesCommitted = queryStatistics.QueryResult.SegmentInformation.BytesResident;
+                    aperture = queryStatistics.QueryResult.SegmentInformation.Aperture;
+                }
                 else
+                {
                     bytesCommitted = queryStatistics.QueryResult.SegmentInformationV1.BytesResident;
+                    aperture = queryStatistics.QueryResult.SegmentInformationV1.Aperture;
+                }
 
-                if (RtlCheckBit(&gpuAdapter->ApertureBitMap, j))
+                if (aperture)
                     sharedUsage += bytesCommitted;
                 else
                     dedicatedUsage += bytesCommitted;
