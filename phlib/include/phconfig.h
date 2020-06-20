@@ -36,6 +36,7 @@ PHLIBAPI extern ACCESS_MASK ThreadAllAccess;
 #define WINDOWS_10_RS5 106
 #define WINDOWS_10_19H1 107
 #define WINDOWS_10_19H2 108
+#define WINDOWS_10_20H1 109
 #define WINDOWS_NEW ULONG_MAX
 
 // Debugging
