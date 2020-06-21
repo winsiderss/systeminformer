@@ -412,7 +412,7 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                 &handlesContext->RemovedEventRegistration
                 );
             PhRegisterCallback(
-                &handlesContext->Provider->UpdatedEvent,
+                &handlesContext->Provider->HandleUpdatedEvent,
                 HandlesUpdatedHandler,
                 handlesContext,
                 &handlesContext->UpdatedEventRegistration
@@ -469,7 +469,7 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                 &handlesContext->RemovedEventRegistration
                 );
             PhUnregisterCallback(
-                &handlesContext->Provider->UpdatedEvent,
+                &handlesContext->Provider->HandleUpdatedEvent,
                 &handlesContext->UpdatedEventRegistration
                 );
             PhUnregisterProvider(&handlesContext->ProviderRegistration);
