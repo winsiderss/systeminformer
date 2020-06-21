@@ -42,6 +42,7 @@ static PPH_GRAPH_STATE CpusGraphState;
 static BOOLEAN OneGraphPerCpu;
 static HWND CpuPanel;
 static ULONG CpuTicked;
+static ULONG CpuMaxMhz;
 static ULONG NumberOfProcessors;
 static PSYSTEM_INTERRUPT_INFORMATION InterruptInformation;
 static PPROCESSOR_POWER_INFORMATION PowerInformation;
@@ -203,6 +204,14 @@ VOID PhSipInitializeCpuDialog(
         )))
     {
         memset(PowerInformation, 0, PowerInformationLength);
+    }
+
+    CpuMaxMhz = 0;
+
+    for (ULONG i = 0; i < NumberOfProcessors; i++)
+    {
+        if (CpuMaxMhz < PowerInformation[i].MaxMhz)
+            CpuMaxMhz = PowerInformation[i].MaxMhz;
     }
 
     CurrentPerformanceDistribution = NULL;
@@ -758,7 +767,7 @@ VOID PhSipUpdateCpuPanel(
     VOID
     )
 {
-    DOUBLE cpuFraction;
+    DOUBLE cpuFrequency;
     DOUBLE cpuGhz = 0;
     BOOLEAN distributionSucceeded = FALSE;
     SYSTEM_TIMEOFDAY_INFORMATION timeOfDayInfo;
@@ -768,9 +777,9 @@ VOID PhSipUpdateCpuPanel(
 
     if (CurrentPerformanceDistribution && PreviousPerformanceDistribution)
     {
-        if (PhSipGetCpuFrequencyFromDistribution(&cpuFraction))
+        if (PhSipGetCpuFrequencyFromDistribution(&cpuFrequency))
         {
-            cpuGhz = (DOUBLE)PowerInformation[0].MaxMhz * cpuFraction / 1000;
+            cpuGhz = cpuFrequency / 1000;
             distributionSucceeded = TRUE;
         }
     }
@@ -794,7 +803,7 @@ VOID PhSipUpdateCpuPanel(
 
     PhInitFormatF(&format[0], cpuGhz, 2);
     PhInitFormatS(&format[1], L" / ");
-    PhInitFormatF(&format[2], (DOUBLE)PowerInformation[0].MaxMhz / 1000, 2);
+    PhInitFormatF(&format[2], (DOUBLE)CpuMaxMhz / 1000, 2);
     PhInitFormatS(&format[3], L" GHz");
 
     // %.2f / %.2f GHz
@@ -805,7 +814,7 @@ VOID PhSipUpdateCpuPanel(
         PhSetWindowText(CpuPanelSpeedLabel, PhaFormatString(
             L"%.2f / %.2f GHz",
             cpuGhz,
-            (DOUBLE)PowerInformation[0].MaxMhz / 1000)->Buffer
+            (DOUBLE)CpuMaxMhz / 1000)->Buffer
             );
     }
 
@@ -1055,7 +1064,7 @@ PPH_STRING PhSipGetCpuBrandString(
 
 _Success_(return)
 BOOLEAN PhSipGetCpuFrequencyFromDistribution(
-    _Out_ DOUBLE *Fraction
+    _Out_ DOUBLE *Frequency
     )
 {
     ULONG stateSize;
@@ -1139,7 +1148,7 @@ BOOLEAN PhSipGetCpuFrequencyFromDistribution(
         for (j = 0; j < 2; j++)
         {
             count += stateDifference->States[j].Hits;
-            total += stateDifference->States[j].Hits * stateDifference->States[j].PercentFrequency;
+            total += stateDifference->States[j].Hits * stateDifference->States[j].PercentFrequency * PowerInformation[i].MaxMhz;
         }
     }
 
@@ -1150,7 +1159,7 @@ BOOLEAN PhSipGetCpuFrequencyFromDistribution(
 
     total /= count;
     total /= 100;
-    *Fraction = total;
+    *Frequency = total;
 
     return TRUE;
 }
