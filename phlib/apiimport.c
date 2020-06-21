@@ -24,58 +24,51 @@
 #include <ph.h>
 #include <apiimport.h>
 
+FORCEINLINE
 PVOID PhpImportProcedure(
+    _Inout_ PPH_INITONCE InitOnce,
     _Inout_ PVOID *Cache,
     _Inout_ PULONG Cookie,
     _In_ PWSTR ModuleName,
     _In_ PSTR ProcedureName
     )
 {
-    PVOID module;
-    PVOID procedure;
-    ULONG cookie;
-
-    cookie = InterlockedCompareExchange(Cookie, 0, 0);
-
-    if (!cookie)
+    if (PhBeginInitOnce(InitOnce))
     {
-        ULONG newcookie = NtGetTickCount();
+        PVOID module;
+        PVOID procedure;
 
-        if (!(cookie = InterlockedCompareExchange(Cookie, newcookie, 0)))
-            cookie = newcookie;
-    }
+        module = PhGetLoaderEntryDllBase(ModuleName);
 
-    procedure = InterlockedCompareExchangePointer(Cache, NULL, NULL);
- 
-    if (!procedure)
-    {
-        if (!(module = LoadLibrary(ModuleName)))
-            return NULL;
+        if (!module)
+            module = LoadLibrary(ModuleName);
 
-        if (!(procedure = PhGetDllBaseProcedureAddress(module, ProcedureName, 0)))
+        if (module)
         {
-            FreeLibrary(module);
-            return NULL;
+            if (procedure = PhGetDllBaseProcedureAddress(module, ProcedureName, 0))
+            {
+                *Cookie = NtGetTickCount();
+                *Cache = (PVOID)((ULONG_PTR)procedure ^ (ULONG_PTR)*Cookie);
+            }
         }
 
-        procedure = (PVOID)((ULONG_PTR)procedure ^ (ULONG_PTR)cookie);
-
-        if (InterlockedCompareExchangePointer(Cache, procedure, NULL))
-        {
-            FreeLibrary(module);
-        }
+        PhEndInitOnce(InitOnce);
     }
 
-    return (PVOID)((ULONG_PTR)procedure ^ (ULONG_PTR)cookie);
+    if (*Cache && *Cookie)
+        return (PVOID)((ULONG_PTR)*Cache ^ (ULONG_PTR)*Cookie);
+
+    return NULL;
 }
 
 #define PH_DEFINE_IMPORT(Module, Name) \
 _##Name Name##_Import(VOID) \
 { \
+    static PH_INITONCE initOnce = PH_INITONCE_INIT; \
     static PVOID cache = NULL; \
     static ULONG cookie = 0; \
 \
-    return (_##Name)PhpImportProcedure(&cache, &cookie, Module, #Name); \
+    return (_##Name)PhpImportProcedure(&initOnce, &cache, &cookie, Module, #Name); \
 }
 
 PH_DEFINE_IMPORT(L"ntdll.dll", NtQueryInformationEnlistment);
