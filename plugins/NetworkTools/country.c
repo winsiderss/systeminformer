@@ -326,9 +326,14 @@ BOOLEAN LookupSockInAddr4CountryCode(
     if (!GeoDbLoaded)
         return FALSE;
 
-    if (IN4_IS_ADDR_UNSPECIFIED(&RemoteAddress) ||
-        IN4_IS_ADDR_LOOPBACK(&RemoteAddress))
+    if (
+        IN4_IS_ADDR_UNSPECIFIED(&RemoteAddress) ||
+        IN4_IS_ADDR_LOOPBACK(&RemoteAddress) ||
+        IN4_IS_ADDR_RFC1918(&RemoteAddress)
+        )
+    {
         return FALSE;
+    }
 
     memset(&ipv4SockAddr, 0, sizeof(SOCKADDR_IN));
     memset(&mmdb_result, 0, sizeof(MMDB_lookup_result_s));
@@ -367,9 +372,14 @@ BOOLEAN LookupSockInAddr6CountryCode(
     if (!GeoDbLoaded)
         return FALSE;
 
-    if (IN6_IS_ADDR_UNSPECIFIED(&RemoteAddress) ||
-        IN6_IS_ADDR_LOOPBACK(&RemoteAddress))
+    if (
+        IN6_IS_ADDR_UNSPECIFIED(&RemoteAddress) ||
+        IN6_IS_ADDR_LOOPBACK(&RemoteAddress) ||
+        IN6_IS_ADDR_LINKLOCAL(&RemoteAddress)
+        )
+    {
         return FALSE;
+    }
 
     memset(&ipv6SockAddr, 0, sizeof(SOCKADDR_IN6));
     memset(&mmdb_result, 0, sizeof(MMDB_lookup_result_s));
