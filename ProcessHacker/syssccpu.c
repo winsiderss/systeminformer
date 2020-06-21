@@ -1002,7 +1002,7 @@ PPH_STRING PhSipGetCpuBrandString(
     )
 {
     static PH_STRINGREF whitespace = PH_STRINGREF_INIT(L" ");
-    PPH_STRING brand;
+    PPH_STRING brand = NULL;
     PH_STRINGREF brandSr;
     ULONG brandLength;
     CHAR brandString[49];
@@ -1025,12 +1025,22 @@ PPH_STRING PhSipGetCpuBrandString(
         __cpuid(&cpubrand[0], 0x80000002);
         __cpuid(&cpubrand[4], 0x80000003);
         __cpuid(&cpubrand[8], 0x80000004);
-#else
-        // TODO: ntoskrnl writes this string in ProcessorNameString registry
-        char cpubrand[sizeof(brandString)] = "Not Available";
-#endif
+
         brandLength = sizeof(brandString) - sizeof(ANSI_NULL);
         brand = PhZeroExtendToUtf16Ex((PSTR)cpubrand, brandLength);
+#else
+        static PH_STRINGREF processorKeyName = PH_STRINGREF_INIT(L"HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0");
+
+        HANDLE keyHandle;
+        if (NT_SUCCESS(PhOpenKey(&keyHandle, KEY_READ, PH_KEY_LOCAL_MACHINE, &processorKeyName, 0)))
+        {
+            brand = PhQueryRegistryString(keyHandle, L"ProcessorNameString");
+            NtClose(keyHandle);
+        }
+
+        if (PhIsNullOrEmptyString(brand))
+            brand = PhCreateString(L"Not Available");
+#endif
     }
 
     PhTrimToNullTerminatorString(brand);
