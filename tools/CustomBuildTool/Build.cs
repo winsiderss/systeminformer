@@ -78,8 +78,10 @@ namespace CustomBuildTool
             "sdk",
             "sdk\\include",
             "sdk\\dbg\\amd64",
+            "sdk\\dbg\\arm64",
             "sdk\\dbg\\i386",
             "sdk\\lib\\amd64",
+            "sdk\\lib\\arm64",
             "sdk\\lib\\i386",
             "sdk\\samples\\SamplePlugin",
             "sdk\\samples\\SamplePlugin\\bin\\Release32"
@@ -367,27 +369,15 @@ namespace CustomBuildTool
             {
                 if (Flags.HasFlag(BuildFlags.BuildDebug))
                 {
-                    if (Flags.HasFlag(BuildFlags.Build32bit))
-                    {
-                        Win32.CopyIfNewer("bin\\Debug32\\ProcessHacker.lib", "sdk\\lib\\i386\\ProcessHacker.lib");
-                    }
-
-                    if (Flags.HasFlag(BuildFlags.Build64bit))
-                    {
-                        Win32.CopyIfNewer("bin\\Debug64\\ProcessHacker.lib", "sdk\\lib\\amd64\\ProcessHacker.lib");
-                    }
+                    Win32.CopyIfNewer("bin\\Debug32\\ProcessHacker.lib", "sdk\\lib\\i386\\ProcessHacker.lib");
+                    Win32.CopyIfNewer("bin\\Debug64\\ProcessHacker.lib", "sdk\\lib\\amd64\\ProcessHacker.lib");
+                    Win32.CopyIfNewer("bin\\DebugARM64\\ProcessHacker.lib", "sdk\\lib\\arm64\\ProcessHacker.lib");
                 }
                 else
                 {
-                    if (Flags.HasFlag(BuildFlags.Build32bit))
-                    {
-                        Win32.CopyIfNewer("bin\\Release32\\ProcessHacker.lib", "sdk\\lib\\i386\\ProcessHacker.lib");
-                    }
-
-                    if (Flags.HasFlag(BuildFlags.Build64bit))
-                    {
-                        Win32.CopyIfNewer("bin\\Release64\\ProcessHacker.lib", "sdk\\lib\\amd64\\ProcessHacker.lib");
-                    }
+                    Win32.CopyIfNewer("bin\\Release32\\ProcessHacker.lib", "sdk\\lib\\i386\\ProcessHacker.lib");
+                    Win32.CopyIfNewer("bin\\Release64\\ProcessHacker.lib", "sdk\\lib\\amd64\\ProcessHacker.lib");
+                    Win32.CopyIfNewer("bin\\ReleaseARM64\\ProcessHacker.lib", "sdk\\lib\\arm64\\ProcessHacker.lib");
                 }
             }
             catch (Exception ex)
@@ -486,11 +476,14 @@ namespace CustomBuildTool
                 // Copy symbols
                 Win32.CopyIfNewer("bin\\Release32\\ProcessHacker.pdb", "sdk\\dbg\\i386\\ProcessHacker.pdb");
                 Win32.CopyIfNewer("bin\\Release64\\ProcessHacker.pdb", "sdk\\dbg\\amd64\\ProcessHacker.pdb");
+                Win32.CopyIfNewer("bin\\ReleaseARM64\\ProcessHacker.pdb", "sdk\\dbg\\arm64\\ProcessHacker.pdb");
                 Win32.CopyIfNewer("KProcessHacker\\bin\\i386\\kprocesshacker.pdb", "sdk\\dbg\\i386\\kprocesshacker.pdb");
                 Win32.CopyIfNewer("KProcessHacker\\bin\\amd64\\kprocesshacker.pdb", "sdk\\dbg\\amd64\\kprocesshacker.pdb");
+                Win32.CopyIfNewer("KProcessHacker\\bin\\arm64\\kprocesshacker.pdb", "sdk\\dbg\\arm64\\kprocesshacker.pdb");
                 // Copy libs
                 Win32.CopyIfNewer("bin\\Release32\\ProcessHacker.lib", "sdk\\lib\\i386\\ProcessHacker.lib");
                 Win32.CopyIfNewer("bin\\Release64\\ProcessHacker.lib", "sdk\\lib\\amd64\\ProcessHacker.lib");
+                Win32.CopyIfNewer("bin\\ReleaseARM64\\ProcessHacker.lib", "sdk\\lib\\arm64\\ProcessHacker.lib");
                 // Copy sample plugin
                 //Win32.CopyIfNewer("plugins\\SamplePlugin\\main.c", "sdk\\samples\\SamplePlugin\\main.c");
                 //Win32.CopyIfNewer("plugins\\SamplePlugin\\SamplePlugin.sln", "sdk\\samples\\SamplePlugin\\SamplePlugin.sln");
@@ -726,7 +719,7 @@ namespace CustomBuildTool
                 }
             }
 
-            if ((Flags & BuildFlags.Build32bit) == BuildFlags.Build32bit)
+            if (Flags.HasFlag(BuildFlags.BuildDebug))
             {
                 if (File.Exists("bin\\Debug32\\ProcessHacker.exe"))
                 {
@@ -739,9 +732,14 @@ namespace CustomBuildTool
                     File.WriteAllText("bin\\Debug64\\ProcessHacker.sig", string.Empty);
                     Win32.ShellExecute(CustomSignToolPath, "sign -k build\\kph.key bin\\Debug64\\ProcessHacker.exe -s bin\\Debug64\\ProcessHacker.sig");
                 }
-            }
 
-            if ((Flags & BuildFlags.Build64bit) == BuildFlags.Build64bit)
+                if (File.Exists("bin\\DebugARM64\\ProcessHacker.exe"))
+                {
+                    File.WriteAllText("bin\\DebugARM64\\ProcessHacker.sig", string.Empty);
+                    Win32.ShellExecute(CustomSignToolPath, "sign -k build\\kph.key bin\\DebugARM64\\ProcessHacker.exe -s bin\\DebugARM64\\ProcessHacker.sig");
+                }
+            }
+            else
             {
                 if (File.Exists("bin\\Release32\\ProcessHacker.exe"))
                 {
@@ -753,6 +751,12 @@ namespace CustomBuildTool
                 {
                     File.WriteAllText("bin\\Release64\\ProcessHacker.sig", string.Empty);
                     Win32.ShellExecute(CustomSignToolPath, "sign -k build\\kph.key bin\\Release64\\ProcessHacker.exe -s bin\\Release64\\ProcessHacker.sig");
+                }
+
+                if (File.Exists("bin\\ReleaseARM64\\ProcessHacker.exe"))
+                {
+                    File.WriteAllText("bin\\ReleaseARM64\\ProcessHacker.sig", string.Empty);
+                    Win32.ShellExecute(CustomSignToolPath, "sign -k build\\kph.key bin\\ReleaseARM64\\ProcessHacker.exe -s bin\\ReleaseARM64\\ProcessHacker.sig");
                 }
             }
 
