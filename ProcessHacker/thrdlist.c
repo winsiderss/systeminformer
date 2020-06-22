@@ -674,7 +674,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     if (PhFormatToBuffer(&format, 1, node->ThreadIdText, sizeof(node->ThreadIdText), &returnLength))
                     {
                         getCellText->Text.Buffer = node->ThreadIdText;
-                        getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL); // minus null terminator
+                        getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
                     }
                 }
                 break;
