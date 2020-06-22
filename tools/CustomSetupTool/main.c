@@ -227,8 +227,12 @@ BOOLEAN NTAPI MainPropSheetCommandLineCallback(
         {
             PPH_STRING directory;
             PPH_STRING string;
+            ULONG stringLength;
 
-            if (Value && (string = PhHexStringToBufferEx(&Value->sr)))
+            stringLength = (ULONG)Value->Length / sizeof(WCHAR) / 2;
+            string = PhCreateStringEx(NULL, stringLength);
+
+            if (Value && PhHexStringToBufferEx(&Value->sr, stringLength, string))
             {
                 if (directory = PhGetFullPath(string->Buffer, NULL))
                 {
@@ -241,9 +245,9 @@ BOOLEAN NTAPI MainPropSheetCommandLineCallback(
 
                     PhDereferenceObject(directory);
                 }
-
-                PhDereferenceObject(string);
             }
+
+            PhDereferenceObject(string);
         }
     }
     else
