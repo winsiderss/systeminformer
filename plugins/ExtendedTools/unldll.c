@@ -61,7 +61,6 @@ NTSTATUS EtpRefreshUnloadedDlls(
     NTSTATUS status;
     ULONG capturedElementSize;
     ULONG capturedElementCount;
-    ULONG capturedEventTraceLength;
     PVOID capturedEventTrace = NULL;
     PVOID currentEvent;
     ULONG i;
@@ -75,6 +74,7 @@ NTSTATUS EtpRefreshUnloadedDlls(
     if (Context->IsWow64)
     {
         PPH_STRING eventTraceString;
+        ULONG capturedEventTraceLength;
 
         if (!PhUiConnectToPhSvcEx(hwndDlg, Wow64PhSvcMode, FALSE))
             return STATUS_FAIL_CHECK;
