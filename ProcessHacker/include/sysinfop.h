@@ -287,7 +287,7 @@ PPH_STRING PhSipGetCpuBrandString(
 
 _Success_(return)
 BOOLEAN PhSipGetCpuFrequencyFromDistribution(
-    _Out_ DOUBLE *Fraction
+    _Out_ DOUBLE *Frequency
     );
 
 NTSTATUS PhSipQueryProcessorPerformanceDistribution(
