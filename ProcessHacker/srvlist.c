@@ -721,7 +721,7 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
                         sizeof(node->StartTypeText), &returnLength))
                     {
                         getCellText->Text.Buffer = node->StartTypeText;
-                        getCellText->Text.Length = returnLength - sizeof(WCHAR); // minus null terminator
+                        getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
                     }
                 }
                 break;

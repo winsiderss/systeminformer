@@ -777,7 +777,7 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
                     if (PhFormatToBuffer(format, 3, node->TypeText, sizeof(node->TypeText), &returnLength))
                     {
                         getCellText->Text.Buffer = node->TypeText;
-                        getCellText->Text.Length = returnLength - sizeof(WCHAR);
+                        getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
                     }
                 }
                 break;
