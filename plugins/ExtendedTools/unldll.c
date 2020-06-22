@@ -59,25 +59,20 @@ NTSTATUS EtpRefreshUnloadedDlls(
     )
 {
     NTSTATUS status;
-#ifdef _WIN64
-    BOOLEAN isWow64;
-#endif
     ULONG capturedElementSize;
     ULONG capturedElementCount;
+    ULONG capturedEventTraceLength;
     PVOID capturedEventTrace = NULL;
-    ULONG i;
     PVOID currentEvent;
+    ULONG i;
 
 #ifdef _WIN64
     if (!Context->ProcessItem->QueryHandle)
         return STATUS_FAIL_CHECK;
 
-    if (!NT_SUCCESS(status = PhGetProcessIsWow64(Context->ProcessItem->QueryHandle, &isWow64)))
-        return status;
+    Context->IsWow64 = !!Context->ProcessItem->IsWow64;
 
-    Context->IsWow64 = isWow64;
-
-    if (isWow64)
+    if (Context->IsWow64)
     {
         PPH_STRING eventTraceString;
 
@@ -90,10 +85,14 @@ NTSTATUS EtpRefreshUnloadedDlls(
             return status;
         }
 
-        capturedEventTrace = PhAllocate(sizeof(RTL_UNLOAD_EVENT_TRACE32) * RTL_UNLOAD_EVENT_TRACE_NUMBER);
-        memset(capturedEventTrace, 0, sizeof(RTL_UNLOAD_EVENT_TRACE32) * RTL_UNLOAD_EVENT_TRACE_NUMBER);
+        capturedEventTraceLength = sizeof(RTL_UNLOAD_EVENT_TRACE32) * RTL_UNLOAD_EVENT_TRACE_NUMBER;
+        capturedEventTrace = PhAllocateZero(capturedEventTraceLength);
 
-        if (!PhHexStringToBuffer(&eventTraceString->sr, (PUCHAR)capturedEventTrace))
+        if (!PhHexStringToBufferEx(
+            &eventTraceString->sr,
+            capturedEventTraceLength,
+            capturedEventTrace
+            ))
         {
             PhUiDisconnectFromPhSvc();
 
