@@ -226,15 +226,15 @@ BOOLEAN NTAPI MainPropSheetCommandLineCallback(
         if (context->SetupMode == SETUP_COMMAND_UPDATE)
         {
             PPH_STRING directory;
-            PPH_STRING string;
+            PWSTR string;
             ULONG stringLength;
 
             stringLength = (ULONG)Value->Length / sizeof(WCHAR) / 2;
-            string = PhCreateStringEx(NULL, stringLength);
+            string = PhAllocateZero(stringLength + sizeof(UNICODE_NULL));
 
             if (Value && PhHexStringToBufferEx(&Value->sr, stringLength, string))
             {
-                if (directory = PhGetFullPath(string->Buffer, NULL))
+                if (directory = PhGetFullPath(string, NULL))
                 {
                     PhSwapReference(&context->SetupInstallPath, directory);
 
@@ -247,7 +247,7 @@ BOOLEAN NTAPI MainPropSheetCommandLineCallback(
                 }
             }
 
-            PhDereferenceObject(string);
+            PhFree(string);
         }
     }
     else
