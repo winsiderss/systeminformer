@@ -3276,10 +3276,12 @@ PhHexStringToBuffer(
     );
 
 PHLIBAPI
-PPH_STRING
+BOOLEAN
 NTAPI
 PhHexStringToBufferEx(
-    _In_ PPH_STRINGREF String
+    _In_ PPH_STRINGREF String,
+    _In_ ULONG BufferLength,
+    _Out_ PVOID Buffer
     );
 
 PHLIBAPI

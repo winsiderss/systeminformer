@@ -5677,11 +5677,12 @@ BOOLEAN PhHexStringToBuffer(
     return TRUE;
 }
 
-PPH_STRING PhHexStringToBufferEx(
-    _In_ PPH_STRINGREF String
+BOOLEAN PhHexStringToBufferEx(
+    _In_ PPH_STRINGREF String,
+    _In_ ULONG BufferLength,
+    _Out_writes_bytes_(BufferLength) PVOID Buffer
     )
 {
-    PPH_STRING string;
     SIZE_T length;
     SIZE_T i;
 
@@ -5689,16 +5690,18 @@ PPH_STRING PhHexStringToBufferEx(
         return FALSE;
 
     length = String->Length / sizeof(WCHAR) / 2;
-    string = PhCreateStringEx(NULL, length);
+
+    if (length > BufferLength)
+        return FALSE;
 
     for (i = 0; i < length; i++)
     {
-        ((PUCHAR)string->Buffer)[i] =
-            (UCHAR)(PhCharToInteger[(UCHAR)String->Buffer[i * sizeof(WCHAR)]] << 4) +
-            (UCHAR)PhCharToInteger[(UCHAR)String->Buffer[i * sizeof(WCHAR) + 1]];
+        ((PBYTE)Buffer)[i] =
+            (BYTE)(PhCharToInteger[(BYTE)String->Buffer[i * sizeof(WCHAR)]] << 4) +
+            (BYTE)PhCharToInteger[(BYTE)String->Buffer[i * sizeof(WCHAR) + 1]];
     }
 
-    return string;
+    return TRUE;
 }
 
 /**
