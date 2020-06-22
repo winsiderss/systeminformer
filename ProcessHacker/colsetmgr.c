@@ -101,7 +101,7 @@ VOID PhSaveSettingsColumnList(
         PhAppendFormatStringBuilder(
             &stringBuilder,
             L"%s-%s-%s-",
-            entry->Name->Buffer,
+            PhGetStringOrEmpty(entry->Name),
             PhGetStringOrEmpty(entry->Setting),
             PhGetStringOrEmpty(entry->Sorting)
             );
