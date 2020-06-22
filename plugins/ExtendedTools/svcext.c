@@ -58,7 +58,8 @@ NTSTATUS CallGetProcessUnloadedDlls(
 
     if (NT_SUCCESS(status))
     {
-        *UnloadedDlls = PhCreateStringEx(buffer, out.o.DataLength);
+        if (UnloadedDlls)
+            *UnloadedDlls = PhCreateStringEx(buffer, out.o.DataLength);
     }
 
     client.FreeHeap(buffer);
@@ -103,11 +104,14 @@ NTSTATUS DispatchGetProcessUnloadedDlls(
         goto CleanupExit;
     }
 
+    if (In->i.Data.Length < eventHexBufferText->Length)
+    {
+        status = STATUS_BUFFER_OVERFLOW;
+        goto CleanupExit;
+    }
+
     memcpy(dataBuffer, eventHexBufferText->Buffer, min(eventHexBufferText->Length, In->i.Data.Length));
     Out->o.DataLength = (ULONG)eventHexBufferText->Length;
-
-    if (In->i.Data.Length < eventHexBufferText->Length)
-        status = STATUS_BUFFER_OVERFLOW;
 
 CleanupExit:
     if (eventHexBufferText)
