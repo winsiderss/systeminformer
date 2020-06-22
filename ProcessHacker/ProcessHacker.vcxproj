@@ -372,6 +372,7 @@
     <ClCompile Include="extmgr.c" />
     <ClCompile Include="findobj.c" />
     <ClCompile Include="gdihndl.c" />
+    <ClCompile Include="heapinfo.c" />
     <ClCompile Include="hidnproc.c" />
     <ClCompile Include="hndllist.c" />
     <ClCompile Include="hndlmenu.c" />

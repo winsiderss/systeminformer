@@ -24,6 +24,7 @@ typedef enum _PHSVC_API_NUMBER
     PhSvcCreateProcessIgnoreIfeoDebuggerApiNumber = 16,
     PhSvcSetServiceSecurityApiNumber = 17,
     PhSvcWriteMiniDumpProcessApiNumber = 18, // WOW64 compatible
+    PhSvcQueryProcessDebugInformationApiNumber = 19, // WOW64 compatible
     PhSvcMaximumApiNumber
 } PHSVC_API_NUMBER, *PPHSVC_API_NUMBER;
 
@@ -252,6 +253,19 @@ typedef union _PHSVC_API_WRITEMINIDUMPPROCESS
     } i;
 } PHSVC_API_WRITEMINIDUMPPROCESS, *PPHSVC_API_WRITEMINIDUMPPROCESS;
 
+typedef union _PHSVC_API_PROCESSHEAPINFORMATION
+{
+    struct
+    {
+        ULONG ProcessId;
+        PH_RELATIVE_STRINGREF Data; // out
+    } i;
+    struct
+    {
+        ULONG DataLength;
+    } o;
+} PHSVC_API_PROCESSHEAPINFORMATION, *PPHSVC_API_PROCESSHEAPINFORMATION;
+
 typedef union _PHSVC_API_PAYLOAD
 {
     PHSVC_API_CONNECTINFO ConnectInfo;
@@ -278,6 +292,7 @@ typedef union _PHSVC_API_PAYLOAD
             PHSVC_API_CREATEPROCESSIGNOREIFEODEBUGGER CreateProcessIgnoreIfeoDebugger;
             PHSVC_API_SETSERVICESECURITY SetServiceSecurity;
             PHSVC_API_WRITEMINIDUMPPROCESS WriteMiniDumpProcess;
+            PHSVC_API_PROCESSHEAPINFORMATION QueryProcessHeap;
         } u;
     };
 } PHSVC_API_PAYLOAD, *PPHSVC_API_PAYLOAD;

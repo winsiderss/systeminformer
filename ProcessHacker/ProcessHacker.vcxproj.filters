@@ -396,6 +396,9 @@
     <ClCompile Include="pcre\pcre2_script_run.c">
       <Filter>PCRE</Filter>
     </ClCompile>
+    <ClCompile Include="heapinfo.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\hidnproc.h">

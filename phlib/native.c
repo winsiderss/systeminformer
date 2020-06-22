@@ -8906,3 +8906,112 @@ NTSTATUS PhRevertImpersonationToken(
         sizeof(HANDLE)
         );
 }
+
+NTSTATUS PhGetProcessHeapSignature(
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID HeapAddress,
+    _In_ ULONG IsWow64,
+    _Out_ ULONG *HeapSignature
+    )
+{
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
+    ULONG heapSignature = ULONG_MAX;
+
+    if (WindowsVersion >= WINDOWS_7)
+    {
+        status = NtReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(HeapAddress, IsWow64 ? 0x8 : 0x10),
+            &heapSignature,
+            sizeof(ULONG),
+            NULL
+            );
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        if (HeapSignature)
+            *HeapSignature = heapSignature;
+    }
+
+    return status;
+}
+
+NTSTATUS PhQueryProcessHeapInformation(
+    _In_ HANDLE ProcessId,
+    _Out_ PPH_PROCESS_DEBUG_HEAP_INFORMATION* HeapInformation
+    )
+{
+    NTSTATUS status;
+    PRTL_DEBUG_INFORMATION debugBuffer;
+    PPH_PROCESS_DEBUG_HEAP_INFORMATION heapDebugInfo;
+
+    if (!(debugBuffer = RtlCreateQueryDebugBuffer(0, FALSE)))
+        return STATUS_UNSUCCESSFUL;
+
+    status = RtlQueryProcessDebugInformation(
+        ProcessId,
+        RTL_QUERY_PROCESS_HEAP_SUMMARY | RTL_QUERY_PROCESS_HEAP_ENTRIES_EX,
+        debugBuffer
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        RtlDestroyQueryDebugBuffer(debugBuffer);
+        return status;
+    }
+
+    heapDebugInfo = PhAllocateZero(sizeof(PH_PROCESS_DEBUG_HEAP_INFORMATION) + debugBuffer->Heaps->NumberOfHeaps * sizeof(PH_PROCESS_DEBUG_HEAP_ENTRY));
+    heapDebugInfo->NumberOfHeaps = debugBuffer->Heaps->NumberOfHeaps;
+    heapDebugInfo->DefaultHeap = debugBuffer->ProcessHeap;
+
+    for (ULONG i = 0; i < heapDebugInfo->NumberOfHeaps; i++)
+    {
+        PRTL_HEAP_INFORMATION heapInfo = &debugBuffer->Heaps->Heaps[i];
+        HANDLE processHandle;
+
+        heapDebugInfo->Heaps[i].Flags = heapInfo->Flags;
+        heapDebugInfo->Heaps[i].Signature = ULONG_MAX;
+        heapDebugInfo->Heaps[i].NumberOfEntries = heapInfo->NumberOfEntries;
+        heapDebugInfo->Heaps[i].BaseAddress = heapInfo->BaseAddress;
+        heapDebugInfo->Heaps[i].BytesAllocated = heapInfo->BytesAllocated;
+        heapDebugInfo->Heaps[i].BytesCommitted = heapInfo->BytesCommitted;
+
+        if (NT_SUCCESS(PhOpenProcess(
+            &processHandle,
+            PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ,
+            ProcessId
+            )))
+        {
+            ULONG signature = ULONG_MAX;
+#ifndef _WIN64
+            BOOLEAN isWow64 = TRUE;
+#else
+            BOOLEAN isWow64 = FALSE;
+
+            PhGetProcessIsWow64(processHandle, &isWow64);
+#endif
+            if (NT_SUCCESS(PhGetProcessHeapSignature(
+                processHandle,
+                heapInfo->BaseAddress,
+                isWow64,
+                &signature
+                )))
+            {
+                heapDebugInfo->Heaps[i].Signature = signature;
+            }
+
+            NtClose(processHandle);
+        }
+    }
+
+    if (HeapInformation)
+        *HeapInformation = heapDebugInfo;
+    else
+        PhFree(heapDebugInfo);
+
+    if (debugBuffer)
+        RtlDestroyQueryDebugBuffer(debugBuffer);
+
+    return STATUS_SUCCESS;
+}

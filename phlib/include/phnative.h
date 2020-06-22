@@ -1602,6 +1602,48 @@ PhRevertImpersonationToken(
     _In_ HANDLE ThreadHandle
     );
 
+typedef struct _PH_PROCESS_DEBUG_HEAP_ENTRY
+{
+    ULONG Flags;
+    ULONG Signature;
+    ULONG NumberOfEntries;
+    PVOID BaseAddress;
+    SIZE_T BytesAllocated;
+    SIZE_T BytesCommitted;
+} PH_PROCESS_DEBUG_HEAP_ENTRY, *PPH_PROCESS_DEBUG_HEAP_ENTRY;
+
+typedef struct _PH_PROCESS_DEBUG_HEAP_ENTRY32
+{
+    ULONG Flags;
+    ULONG Signature;
+    ULONG NumberOfEntries;
+    ULONG BaseAddress;
+    ULONG BytesAllocated;
+    ULONG BytesCommitted;
+} PH_PROCESS_DEBUG_HEAP_ENTRY32, *PPH_PROCESS_DEBUG_HEAP_ENTRY32;
+
+typedef struct _PH_PROCESS_DEBUG_HEAP_INFORMATION
+{
+    ULONG NumberOfHeaps;
+    PVOID DefaultHeap;
+    PH_PROCESS_DEBUG_HEAP_ENTRY Heaps[1];
+} PH_PROCESS_DEBUG_HEAP_INFORMATION, *PPH_PROCESS_DEBUG_HEAP_INFORMATION;
+
+typedef struct _PH_PROCESS_DEBUG_HEAP_INFORMATION32
+{
+    ULONG NumberOfHeaps;
+    ULONG DefaultHeap;
+    PH_PROCESS_DEBUG_HEAP_ENTRY32 Heaps[1];
+} PH_PROCESS_DEBUG_HEAP_INFORMATION32, *PPH_PROCESS_DEBUG_HEAP_INFORMATION32;
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhQueryProcessHeapInformation(
+    _In_ HANDLE ProcessId,
+    _Out_ PPH_PROCESS_DEBUG_HEAP_INFORMATION* HeapInformation
+    );
+
 #ifdef __cplusplus
 }
 #endif

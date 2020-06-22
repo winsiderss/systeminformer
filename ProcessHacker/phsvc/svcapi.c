@@ -65,7 +65,8 @@ PPHSVC_API_PROCEDURE PhSvcApiCallTable[] =
     PhSvcApiSendMessage,
     PhSvcApiCreateProcessIgnoreIfeoDebugger,
     PhSvcApiSetServiceSecurity,
-    PhSvcApiWriteMiniDumpProcess
+    PhSvcApiWriteMiniDumpProcess,
+    PhSvcApiQueryProcessHeapInformation
 };
 C_ASSERT(sizeof(PhSvcApiCallTable) / sizeof(PPHSVC_API_PROCEDURE) == PhSvcMaximumApiNumber - 1);
 
@@ -1505,4 +1506,43 @@ NTSTATUS PhSvcApiWriteMiniDumpProcess(
         else
             return STATUS_UNSUCCESSFUL;
     }
+}
+
+NTSTATUS PhSvcApiQueryProcessHeapInformation(
+    _In_ PPHSVC_CLIENT Client,
+    _Inout_ PPHSVC_API_PAYLOAD Payload
+    )
+{
+    NTSTATUS status;
+    PVOID dataBuffer;
+    PPH_PROCESS_DEBUG_HEAP_INFORMATION heapInfo;
+    PPH_STRING heapInfoHexBuffer;
+
+    if (!NT_SUCCESS(status = PhSvcProbeBuffer(&Payload->u.QueryProcessHeap.i.Data, sizeof(WCHAR), FALSE, &dataBuffer)))
+        return status;
+
+    if (!NT_SUCCESS(status = PhQueryProcessHeapInformation(UlongToHandle(Payload->u.QueryProcessHeap.i.ProcessId), &heapInfo)))
+        return status;
+
+    heapInfoHexBuffer = PhBufferToHexString(
+        (PUCHAR)heapInfo,
+        sizeof(PH_PROCESS_DEBUG_HEAP_INFORMATION) + heapInfo->NumberOfHeaps * sizeof(PH_PROCESS_DEBUG_HEAP_ENTRY)
+        );
+
+    if (Payload->u.QueryProcessHeap.i.Data.Length < heapInfoHexBuffer->Length)
+    {
+        status = STATUS_BUFFER_OVERFLOW;
+        goto CleanupExit;
+    }
+
+    memcpy(dataBuffer, heapInfoHexBuffer->Buffer, min(heapInfoHexBuffer->Length, Payload->u.QueryProcessHeap.i.Data.Length));
+    Payload->u.QueryProcessHeap.o.DataLength = (ULONG)heapInfoHexBuffer->Length;
+
+CleanupExit:
+    if (heapInfoHexBuffer)
+        PhDereferenceObject(heapInfoHexBuffer);
+    if (heapInfo)
+        PhFree(heapInfo);
+
+    return status;
 }

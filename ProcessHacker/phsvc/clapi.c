@@ -1215,3 +1215,49 @@ CleanupExit:
 
     return status;
 }
+
+NTSTATUS PhSvcCallQueryProcessHeapInformation(
+    _In_ HANDLE ProcessId,
+    _Out_ PPH_STRING* HeapInformation
+    )
+{
+    NTSTATUS status;
+    PHSVC_API_MSG m;
+    ULONG bufferSize;
+    PVOID buffer;
+
+    if (!PhSvcClPortHandle)
+        return STATUS_PORT_DISCONNECTED;
+
+    memset(&m, 0, sizeof(PHSVC_API_MSG));
+    m.p.ApiNumber = PhSvcQueryProcessDebugInformationApiNumber;
+    m.p.u.QueryProcessHeap.i.ProcessId = HandleToUlong(ProcessId);
+
+    bufferSize = 0x1000;
+
+    if (!(buffer = PhSvcpCreateString(NULL, bufferSize, &m.p.u.QueryProcessHeap.i.Data)))
+        return STATUS_FAIL_CHECK;
+
+    status = PhSvcpCallServer(&m);
+
+    if (status == STATUS_BUFFER_OVERFLOW)
+    {
+        PhSvcpFreeHeap(buffer);
+        bufferSize = m.p.u.QueryProcessHeap.o.DataLength;
+
+        if (!(buffer = PhSvcpCreateString(NULL, bufferSize, &m.p.u.QueryProcessHeap.i.Data)))
+            return STATUS_FAIL_CHECK;
+
+        status = PhSvcpCallServer(&m);
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        if (HeapInformation)
+            *HeapInformation = PhCreateStringEx(buffer, m.p.u.QueryProcessHeap.o.DataLength);
+    }
+
+    PhSvcpFreeHeap(buffer);
+
+    return status;
+}

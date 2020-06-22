@@ -148,4 +148,9 @@ NTSTATUS PhSvcCallWriteMiniDumpProcess(
     _In_ ULONG DumpType
     );
 
+NTSTATUS PhSvcCallQueryProcessHeapInformation(
+    _In_ HANDLE ProcessId,
+    _Out_ PPH_STRING* HeapInformation
+    );
+
 #endif

@@ -159,6 +159,10 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"SampleCountAutomatic", L"1");
     PhpAddIntegerSetting(L"ScrollToNewProcesses", L"0");
     PhpAddStringSetting(L"SearchEngine", L"https://www.google.com/search?q=\"%s\"");
+    PhpAddStringSetting(L"SegmentHeapListViewColumns", L"");
+    PhpAddStringSetting(L"SegmentHeapListViewSort", L"0,1");
+    PhpAddIntegerPairSetting(L"SegmentHeapWindowPosition", L"0,0");
+    PhpAddScalableIntegerPairSetting(L"SegmentHeapWindowSize", L"@96|450,500");
     PhpAddIntegerPairSetting(L"ServiceWindowPosition", L"0,0");
     PhpAddStringSetting(L"ServiceListViewColumns", L"");
     PhpAddStringSetting(L"ServiceTreeListColumns", L"");
