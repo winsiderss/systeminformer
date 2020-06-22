@@ -650,6 +650,7 @@ INT_PTR CALLBACK PhpProcessHeapsDlgProc(
             if (context->BoldFont)
             {
                 DeleteFont(context->BoldFont);
+                context->BoldFont = NULL;
             }
  
             if (context->DebugBuffer)
@@ -661,6 +662,7 @@ INT_PTR CALLBACK PhpProcessHeapsDlgProc(
             if (context->ProcessItem)
             {
                 PhDereferenceObject(context->ProcessItem);
+                context->ProcessItem = NULL;
             }
 
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
