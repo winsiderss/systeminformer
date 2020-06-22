@@ -114,6 +114,7 @@
 #define IDD_OBJFILE                     249
 #define IDD_RUNFILEDLG                  253
 #define IDD_LIVEDUMP                    254
+#define IDD_HEAPS                       255
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -541,6 +542,7 @@
 #define IDC_COMPRESS                    1412
 #define IDC_USERMODE                    1413
 #define IDC_HYPERVISOR                  1414
+#define IDC_SIZESINBYTES                1415
 #define ID_HACKER_EXIT                  40001
 #define ID_PROCESS_PROPERTIES           40006
 #define ID_PROCESS_TERMINATE            40007
@@ -669,6 +671,7 @@
 #define ID_NOTIFICATIONS_STOPPEDSERVICES 40184
 #define ID_NOTIFICATIONS_DELETEDSERVICES 40185
 #define ID_MISCELLANEOUS_GDIHANDLES     40188
+#define ID_MISCELLANEOUS_HEAPS          40189
 #define ID_ESC_EXIT                     40190
 #define ID_PROCESS_COPY                 40194
 #define ID_THREAD_COPY                  40195
