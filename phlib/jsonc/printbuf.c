@@ -97,9 +97,9 @@ int printbuf_memappend(struct printbuf *p, const char *buf, int size)
 // modified by dmex
 void printbuf_memappend_fast(struct printbuf* p, const char* bufptr, size_t bufsize)
 {
-    if ((p->size - p->bpos) > bufsize)
+    if ((p->size - p->bpos) > (int)bufsize)
     {
-        memcpy(p->buf + p->bpos, (bufptr), bufsize);
+        memcpy(p->buf + p->bpos, (bufptr), (int)bufsize);
         p->bpos += (int)bufsize;
         p->buf[p->bpos] = '\0';
     }

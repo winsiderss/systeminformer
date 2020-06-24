@@ -30,10 +30,10 @@ typedef void(array_list_free_fn)(void *data);
 
 struct array_list
 {
-	void **array;
-	size_t length;
-	size_t size;
-	array_list_free_fn *free_fn;
+    void **array;
+    size_t length;
+    size_t size;
+    array_list_free_fn *free_fn;
 };
 typedef struct array_list array_list;
 
@@ -49,10 +49,10 @@ extern int array_list_add(struct array_list *al, void *data);
 
 extern size_t array_list_length(struct array_list *al);
 
-extern void array_list_sort(struct array_list *arr, int (*compar)(const void *, const void *));
+extern void array_list_sort(struct array_list *arr, int (__cdecl* compar)(const void *, const void *));
 
 extern void *array_list_bsearch(const void **key, struct array_list *arr,
-                                int (*compar)(const void *, const void *));
+                                int (__cdecl* compar)(const void *, const void *));
 
 extern int array_list_del_idx(struct array_list *arr, size_t idx, size_t count);
 
