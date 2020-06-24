@@ -7,7 +7,7 @@ and semantics are as close as possible to those of the Perl 5 language.
 
                        Written by Philip Hazel
      Original API code Copyright (c) 1997-2012 University of Cambridge
-          New API code Copyright (c) 2016-2018 University of Cambridge
+          New API code Copyright (c) 2016-2020 University of Cambridge
 
 -----------------------------------------------------------------------------
 Redistribution and use in source and binary forms, with or without
@@ -40,9 +40,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 
 /* This is a freestanding support program to generate a file containing
-character tables for PCRE2. The tables are built according to the current
-locale using the pcre2_maketables() function, which is part of the PCRE2 API.
-*/
+character tables for PCRE2. The tables are built using the pcre2_maketables()
+function, which is part of the PCRE2 API. By default, the system's "C" locale
+is used rather than what the building user happens to have set, but the -L
+option can be used to select the current locale from the LC_ALL environment
+variable. By default, the tables are written in source form, but if -b is
+given, they are written in binary. */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -56,31 +59,88 @@ locale using the pcre2_maketables() function, which is part of the PCRE2 API.
 #define PCRE2_CODE_UNIT_WIDTH 0   /* Must be set, but not relevant here */
 #include "pcre2_internal.h"
 
-#define DFTABLES     /* pcre2_maketables.c notices this */
+#define PCRE2_DFTABLES            /* pcre2_maketables.c notices this */
 #include "pcre2_maketables.c"
+
+
+static char *classlist[] =
+  {
+  "space", "xdigit", "digit", "upper", "lower",
+  "word", "graph", "print", "punct", "cntrl"
+  };
+
+
+
+/*************************************************
+*                  Usage                         *
+*************************************************/
+
+static void
+usage(void)
+{
+(void)fprintf(stderr,
+  "Usage: pcre2_dftables [options] <output file>\n"
+  "  -b    Write output in binary (default is source code)\n"
+  "  -L    Use locale from LC_ALL (default is \"C\" locale)\n"
+  );
+}
+
+
+
+/*************************************************
+*                Entry point                     *
+*************************************************/
 
 int main(int argc, char **argv)
 {
 FILE *f;
-int i = 1;
+int i;
+int nclass = 0;
+BOOL binary = FALSE;
+char *env = "C";
 const unsigned char *tables;
 const unsigned char *base_of_tables;
 
-/* By default, the default C locale is used rather than what the building user
-happens to have set. However, if the -L option is given, set the locale from
-the LC_xxx environment variables. */
+/* Process options */
 
-if (argc > 1 && strcmp(argv[1], "-L") == 0)
+for (i = 1; i < argc; i++)
   {
-  setlocale(LC_ALL, "");        /* Set from environment variables */
-  i++;
+  unsigned char *arg = (unsigned char *)argv[i];
+  if (*arg != '-') break;
+
+  if (strcmp(arg, "-help") == 0 || strcmp(arg, "--help") == 0)
+    {
+    usage();
+    return 0;
+    }
+
+  else if (strcmp(arg, "-L") == 0)
+    {
+    if (setlocale(LC_ALL, "") == NULL)
+      {
+      (void)fprintf(stderr, "pcre2_dftables: setlocale() failed\n");
+      return 1;
+      }
+    env = getenv("LC_ALL");
+    }
+
+  else if (strcmp(arg, "-b") == 0)
+    binary = TRUE;
+
+  else
+    {
+    (void)fprintf(stderr, "pcre2_dftables: unrecognized option %s\n", arg);
+    return 1;
+    }
   }
 
-if (argc < i + 1)
+if (i != argc - 1)
   {
-  fprintf(stderr, "dftables: one filename argument is required\n");
+  (void)fprintf(stderr, "pcre2_dftables: one filename argument is required\n");
   return 1;
   }
+
+/* Make the tables */
 
 tables = maketables();
 base_of_tables = tables;
@@ -88,41 +148,64 @@ base_of_tables = tables;
 f = fopen(argv[i], "wb");
 if (f == NULL)
   {
-  fprintf(stderr, "dftables: failed to open %s for writing\n", argv[1]);
+  fprintf(stderr, "pcre2_dftables: failed to open %s for writing\n", argv[1]);
   return 1;
   }
 
-/* There are several fprintf() calls here, because gcc in pedantic mode
-complains about the very long string otherwise. */
+/* If -b was specified, we write the tables in binary. */
 
-fprintf(f,
+if (binary)
+  {
+  int yield = 0;
+  size_t len = fwrite(tables, 1, TABLES_LENGTH, f);
+  if (len != TABLES_LENGTH)
+    {
+    (void)fprintf(stderr, "pcre2_dftables: fwrite() returned wrong length %d "
+     "instead of %d\n", (int)len, TABLES_LENGTH);
+    yield = 1;
+    }
+  fclose(f);
+  free((void *)base_of_tables);
+  return yield;
+  }
+
+/* Write the tables as source code for inclusion in the PCRE2 library. There
+are several fprintf() calls here, because gcc in pedantic mode complains about
+the very long string otherwise. */
+
+(void)fprintf(f,
   "/*************************************************\n"
   "*      Perl-Compatible Regular Expressions       *\n"
   "*************************************************/\n\n"
-  "/* This file was automatically written by the dftables auxiliary\n"
+  "/* This file was automatically written by the pcre2_dftables auxiliary\n"
   "program. It contains character tables that are used when no external\n"
   "tables are passed to PCRE2 by the application that calls it. The tables\n"
   "are used only for characters whose code values are less than 256. */\n\n");
 
-fprintf(f,
-  "/*The dftables program (which is distributed with PCRE2) can be used to\n"
-  "build alternative versions of this file. This is necessary if you are\n"
+(void)fprintf(f,
+  "/* This set of tables was written in the %s locale. */\n\n", env);
+
+(void)fprintf(f,
+  "/* The pcre2_ftables program (which is distributed with PCRE2) can be used\n"
+  "to build alternative versions of this file. This is necessary if you are\n"
   "running in an EBCDIC environment, or if you want to default to a different\n"
-  "encoding, for example ISO-8859-1. When dftables is run, it creates these\n"
-  "tables in the current locale. This happens automatically if PCRE2 is\n"
-  "configured with --enable-rebuild-chartables. */\n\n");
+  "encoding, for example ISO-8859-1. When pcre2_dftables is run, it creates\n"
+  "these tables in the \"C\" locale by default. This happens automatically if\n"
+  "PCRE2 is configured with --enable-rebuild-chartables. However, you can run\n"
+  "pcre2_dftables manually with the -L option to build tables using the LC_ALL\n"
+  "locale. */\n\n");
 
 /* Force config.h in z/OS */
 
 #if defined NATIVE_ZOS
-fprintf(f,
+(void)fprintf(f,
   "/* For z/OS, config.h is forced */\n"
   "#ifndef HAVE_CONFIG_H\n"
   "#define HAVE_CONFIG_H 1\n"
   "#endif\n\n");
 #endif
 
-fprintf(f,
+(void)fprintf(f,
   "/* The following #include is present because without it gcc 4.x may remove\n"
   "the array definition from the final binary if PCRE2 is built into a static\n"
   "library and dead code stripping is activated. This leads to link errors.\n"
@@ -130,56 +213,57 @@ fprintf(f,
   "outside this compilation unit might reference this\" and so it will always\n"
   "be supplied to the linker. */\n\n");
 
-fprintf(f,
+(void)fprintf(f,
   "#ifdef HAVE_CONFIG_H\n"
   "#include \"config.h\"\n"
   "#endif\n\n"
   "#include \"pcre2_internal.h\"\n\n");
 
-fprintf(f,
+(void)fprintf(f,
   "const uint8_t PRIV(default_tables)[] = {\n\n"
   "/* This table is a lower casing table. */\n\n");
 
-fprintf(f, "  ");
+(void)fprintf(f, "  ");
 for (i = 0; i < 256; i++)
   {
   if ((i & 7) == 0 && i != 0) fprintf(f, "\n  ");
   fprintf(f, "%3d", *tables++);
   if (i != 255) fprintf(f, ",");
   }
-fprintf(f, ",\n\n");
+(void)fprintf(f, ",\n\n");
 
-fprintf(f, "/* This table is a case flipping table. */\n\n");
+(void)fprintf(f, "/* This table is a case flipping table. */\n\n");
 
-fprintf(f, "  ");
+(void)fprintf(f, "  ");
 for (i = 0; i < 256; i++)
   {
   if ((i & 7) == 0 && i != 0) fprintf(f, "\n  ");
   fprintf(f, "%3d", *tables++);
   if (i != 255) fprintf(f, ",");
   }
-fprintf(f, ",\n\n");
+(void)fprintf(f, ",\n\n");
 
-fprintf(f,
+(void)fprintf(f,
   "/* This table contains bit maps for various character classes. Each map is 32\n"
   "bytes long and the bits run from the least significant end of each byte. The\n"
   "classes that have their own maps are: space, xdigit, digit, upper, lower, word,\n"
-  "graph print, punct, and cntrl. Other classes are built from combinations. */\n\n");
+  "graph, print, punct, and cntrl. Other classes are built from combinations. */\n\n");
 
-fprintf(f, "  ");
+(void)fprintf(f, "  ");
 for (i = 0; i < cbit_length; i++)
   {
   if ((i & 7) == 0 && i != 0)
     {
-    if ((i & 31) == 0) fprintf(f, "\n");
-    fprintf(f, "\n  ");
+    if ((i & 31) == 0) (void)fprintf(f, "\n");
+    if ((i & 24) == 8) (void)fprintf(f, "  /* %s */", classlist[nclass++]);
+    (void)fprintf(f, "\n  ");
     }
-  fprintf(f, "0x%02x", *tables++);
-  if (i != cbit_length - 1) fprintf(f, ",");
+  (void)fprintf(f, "0x%02x", *tables++);
+  if (i != cbit_length - 1) (void)fprintf(f, ",");
   }
-fprintf(f, ",\n\n");
+(void)fprintf(f, ",\n\n");
 
-fprintf(f,
+(void)fprintf(f,
   "/* This table identifies various classes of character by individual bits:\n"
   "  0x%02x   white space character\n"
   "  0x%02x   letter\n"
@@ -188,32 +272,32 @@ fprintf(f,
   "  0x%02x   alphanumeric or '_'\n*/\n\n",
   ctype_space, ctype_letter, ctype_lcletter, ctype_digit, ctype_word);
 
-fprintf(f, "  ");
+(void)fprintf(f, "  ");
 for (i = 0; i < 256; i++)
   {
   if ((i & 7) == 0 && i != 0)
     {
-    fprintf(f, " /* ");
-    if (isprint(i-8)) fprintf(f, " %c -", i-8);
-      else fprintf(f, "%3d-", i-8);
-    if (isprint(i-1)) fprintf(f, " %c ", i-1);
-      else fprintf(f, "%3d", i-1);
-    fprintf(f, " */\n  ");
+    (void)fprintf(f, " /* ");
+    if (isprint(i-8)) (void)fprintf(f, " %c -", i-8);
+      else (void)fprintf(f, "%3d-", i-8);
+    if (isprint(i-1)) (void)fprintf(f, " %c ", i-1);
+      else (void)fprintf(f, "%3d", i-1);
+    (void)fprintf(f, " */\n  ");
     }
-  fprintf(f, "0x%02x", *tables++);
-  if (i != 255) fprintf(f, ",");
+  (void)fprintf(f, "0x%02x", *tables++);
+  if (i != 255) (void)fprintf(f, ",");
   }
 
-fprintf(f, "};/* ");
-if (isprint(i-8)) fprintf(f, " %c -", i-8);
-  else fprintf(f, "%3d-", i-8);
-if (isprint(i-1)) fprintf(f, " %c ", i-1);
-  else fprintf(f, "%3d", i-1);
-fprintf(f, " */\n\n/* End of pcre2_chartables.c */\n");
+(void)fprintf(f, "};/* ");
+if (isprint(i-8)) (void)fprintf(f, " %c -", i-8);
+  else (void)fprintf(f, "%3d-", i-8);
+if (isprint(i-1)) (void)fprintf(f, " %c ", i-1);
+  else (void)fprintf(f, "%3d", i-1);
+(void)fprintf(f, " */\n\n/* End of pcre2_chartables.c */\n");
 
 fclose(f);
 free((void *)base_of_tables);
 return 0;
 }
 
-/* End of dftables.c */
+/* End of pcre2_dftables.c */

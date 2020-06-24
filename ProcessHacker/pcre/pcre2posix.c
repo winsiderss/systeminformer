@@ -323,6 +323,7 @@ if (preg->re_pcre2_code == NULL)
   PCRE2_INFO_CAPTURECOUNT, &re_nsub);
 preg->re_nsub = (size_t)re_nsub;
 preg->re_match_data = pcre2_match_data_create(re_nsub + 1, NULL);
+preg->re_erroffset = (size_t)(-1);  /* No meaning after successful compile */
 
 if (preg->re_match_data == NULL)
   {
@@ -355,8 +356,6 @@ pcre2_match_data *md = (pcre2_match_data *)preg->re_match_data;
 if ((eflags & REG_NOTBOL) != 0) options |= PCRE2_NOTBOL;
 if ((eflags & REG_NOTEOL) != 0) options |= PCRE2_NOTEOL;
 if ((eflags & REG_NOTEMPTY) != 0) options |= PCRE2_NOTEMPTY;
-
-((regex_t *)preg)->re_erroffset = (size_t)(-1);  /* Only has meaning after compile */
 
 /* When REG_NOSUB was specified, or if no vector has been passed in which to
 put captured strings, ensure that nmatch is zero. This will stop any attempt to
