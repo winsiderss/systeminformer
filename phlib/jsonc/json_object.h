@@ -525,7 +525,7 @@ JSON_EXPORT size_t json_object_array_length(const struct json_object *obj);
 * @param sort_fn a sorting function
 */
 JSON_EXPORT void json_object_array_sort(struct json_object *jso,
-                                        int (*sort_fn)(const void *, const void *));
+                                        int (__cdecl* sort_fn)(const void *, const void *));
 
 /** Binary search a sorted array for a specified key object.
  *
@@ -543,7 +543,7 @@ JSON_EXPORT void json_object_array_sort(struct json_object *jso,
  */
 JSON_EXPORT struct json_object *
 json_object_array_bsearch(const struct json_object *key, const struct json_object *jso,
-                          int (*sort_fn)(const void *, const void *));
+                          int (__cdecl* sort_fn)(const void *, const void *));
 
 /** Add an element to the end of a json_object of type json_type_array
  *
