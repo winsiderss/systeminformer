@@ -150,6 +150,13 @@ typedef struct json_tokener json_tokener;
  */
 #define JSON_TOKENER_STRICT 0x01
 
+/**
+ * Cause json_tokener_parse_ex() to validate that input is UTF8.
+ * If this flag is specified and validation fails, then
+ * json_tokener_get_error(tok) will return
+ * json_tokener_error_parse_utf8_string
+ *
+ * This flag is not set by default.
  *
  * @see json_tokener_set_flags()
  */
