@@ -40,12 +40,12 @@ extern "C" {
 /**
  * sentinel pointer value for empty slots
  */
-#define LH_EMPTY (void*)-1
+#define LH_EMPTY (void *)-1
 
 /**
  * sentinel pointer value for freed slots
  */
-#define LH_FREED (void*)-2
+#define LH_FREED (void *)-2
 
 /**
  * default string hash function
@@ -69,20 +69,21 @@ struct lh_entry;
 /**
  * callback function prototypes
  */
-typedef void (lh_entry_free_fn) (struct lh_entry *e);
+typedef void(lh_entry_free_fn)(struct lh_entry *e);
 /**
  * callback function prototypes
  */
-typedef unsigned long (lh_hash_fn) (const void *k);
+typedef unsigned long(lh_hash_fn)(const void *k);
 /**
  * callback function prototypes
  */
-typedef int (lh_equal_fn) (const void *k1, const void *k2);
+typedef int(lh_equal_fn)(const void *k1, const void *k2);
 
 /**
  * An entry in the hash table
  */
-struct lh_entry {
+struct lh_entry
+{
 	/**
 	 * The key.  Use lh_entry_k() instead of accessing this directly.
 	 */
@@ -106,11 +107,11 @@ struct lh_entry {
 	struct lh_entry *prev;
 };
 
-
 /**
  * The hash table structure.
  */
-struct lh_table {
+struct lh_table
+{
 	/**
 	 * Size of our hash.
 	 */
@@ -141,12 +142,10 @@ struct lh_table {
 };
 typedef struct lh_table lh_table;
 
-
 /**
  * Convenience list iterator.
  */
-#define lh_foreach(table, entry) \
-for(entry = table->head; entry; entry = entry->next)
+#define lh_foreach(table, entry) for (entry = table->head; entry; entry = entry->next)
 
 /**
  * lh_foreach_safe allows calling of deletion routine while iterating.
@@ -156,9 +155,7 @@ for(entry = table->head; entry; entry = entry->next)
  * @param tmp a struct lh_entry * variable to hold a temporary pointer to the next element
  */
 #define lh_foreach_safe(table, entry, tmp) \
-for(entry = table->head; entry && ((tmp = entry->next) || 1); entry = tmp)
-
-
+	for (entry = table->head; entry && ((tmp = entry->next) || 1); entry = tmp)
 
 /**
  * Create a new linkhash table.
@@ -178,10 +175,8 @@ for(entry = table->head; entry && ((tmp = entry->next) || 1); entry = tmp)
  * @return On success, a pointer to the new linkhash table is returned.
  * 	On error, a null pointer is returned.
  */
-extern struct lh_table* lh_table_new(int size,
-				     lh_entry_free_fn *free_fn,
-				     lh_hash_fn *hash_fn,
-				     lh_equal_fn *equal_fn);
+extern struct lh_table *lh_table_new(int size, lh_entry_free_fn *free_fn, lh_hash_fn *hash_fn,
+                                     lh_equal_fn *equal_fn);
 
 /**
  * Convenience function to create a new linkhash table with char keys.
@@ -191,9 +186,7 @@ extern struct lh_table* lh_table_new(int size,
  * @return On success, a pointer to the new linkhash table is returned.
  * 	On error, a null pointer is returned.
  */
-extern struct lh_table* lh_kchar_table_new(int size,
-					   lh_entry_free_fn *free_fn);
-
+extern struct lh_table *lh_kchar_table_new(int size, lh_entry_free_fn *free_fn);
 
 /**
  * Convenience function to create a new linkhash table with ptr keys.
@@ -203,9 +196,7 @@ extern struct lh_table* lh_kchar_table_new(int size,
  * @return On success, a pointer to the new linkhash table is returned.
  * 	On error, a null pointer is returned.
  */
-extern struct lh_table* lh_kptr_table_new(int size,
-					  lh_entry_free_fn *free_fn);
-
+extern struct lh_table *lh_kptr_table_new(int size, lh_entry_free_fn *free_fn);
 
 /**
  * Free a linkhash table.
@@ -216,7 +207,6 @@ extern struct lh_table* lh_kptr_table_new(int size,
  * @param t table to free.
  */
 extern void lh_table_free(struct lh_table *t);
-
 
 /**
  * Insert a record into the table.
@@ -229,7 +219,6 @@ extern void lh_table_free(struct lh_table *t);
  * 	On error, a negative value is returned.
  */
 extern int lh_table_insert(struct lh_table *t, const void *k, const void *v);
-
 
 /**
  * Insert a record into the table using a precalculated key hash.
@@ -245,8 +234,8 @@ extern int lh_table_insert(struct lh_table *t, const void *k, const void *v);
  * @param opts if set to JSON_C_OBJECT_KEY_IS_CONSTANT, sets lh_entry.k_is_constant
  *             so t's free function knows to avoid freeing the key.
  */
-extern int lh_table_insert_w_hash(struct lh_table *t, const void *k, const void *v, const unsigned long h, const unsigned opts);
-
+extern int lh_table_insert_w_hash(struct lh_table *t, const void *k, const void *v,
+                                  const unsigned long h, const unsigned opts);
 
 /**
  * Lookup a record in the table.
@@ -255,7 +244,7 @@ extern int lh_table_insert_w_hash(struct lh_table *t, const void *k, const void 
  * @param k a pointer to the key to lookup
  * @return a pointer to the record structure of the value or NULL if it does not exist.
  */
-extern struct lh_entry* lh_table_lookup_entry(struct lh_table *t, const void *k);
+extern struct lh_entry *lh_table_lookup_entry(struct lh_table *t, const void *k);
 
 /**
  * Lookup a record in the table using a precalculated key hash.
@@ -269,17 +258,8 @@ extern struct lh_entry* lh_table_lookup_entry(struct lh_table *t, const void *k)
  * @param h hash value of the key to lookup
  * @return a pointer to the record structure of the value or NULL if it does not exist.
  */
-extern struct lh_entry* lh_table_lookup_entry_w_hash(struct lh_table *t, const void *k, const unsigned long h);
-
-/**
- * Lookup a record into the table.
- *
- * @param t the table to lookup
- * @param k a pointer to the key to lookup
- * @return a pointer to the found value or NULL if it does not exist.
- * @deprecated Use lh_table_lookup_ex() instead.
- */
-THIS_FUNCTION_IS_DEPRECATED(extern const void* lh_table_lookup(struct lh_table *t, const void *k));
+extern struct lh_entry *lh_table_lookup_entry_w_hash(struct lh_table *t, const void *k,
+                                                     const unsigned long h);
 
 /**
  * Lookup a record in the table.
@@ -303,7 +283,6 @@ extern json_bool lh_table_lookup_ex(struct lh_table *t, const void *k, void **v)
  */
 extern int lh_table_delete_entry(struct lh_table *t, struct lh_entry *e);
 
-
 /**
  * Delete a record from the table.
  *
@@ -319,21 +298,6 @@ extern int lh_table_delete(struct lh_table *t, const void *k);
 extern int lh_table_length(struct lh_table *t);
 
 /**
- * Prints a message to <code>stdout</code>,
- * then exits the program with an exit code of <code>1</code>.
- *
- * @param msg Message format string, like for <code>printf</code>.
- * @param ... Format args.
- *
- * @deprecated Since it is not a good idea to exit the entire program
- * 	because of an internal library failure, json-c will no longer
- * 	use this function internally.
- * 	However, because its interface is public, it will remain part of
- * 	the API on the off chance of legacy software using it externally.
- */
-THIS_FUNCTION_IS_DEPRECATED(void lh_abort(const char *msg, ...));
-
-/**
  * Resizes the specified table.
  *
  * @param t Pointer to table to resize.
@@ -343,7 +307,6 @@ THIS_FUNCTION_IS_DEPRECATED(void lh_abort(const char *msg, ...));
  * 	On error, a negative value is returned.
  */
 int lh_table_resize(struct lh_table *t, int new_size);
-
 
 /**
  * @deprecated Don't use this outside of linkhash.h:

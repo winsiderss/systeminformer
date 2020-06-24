@@ -198,7 +198,7 @@ INT PhGetJsonArrayLength(
     _In_ PVOID Object
     )
 {
-    return json_object_array_length(Object);
+    return (INT)json_object_array_length(Object);
 }
 
 PVOID PhGetJsonArrayIndexObject(

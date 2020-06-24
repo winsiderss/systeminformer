@@ -439,9 +439,6 @@
     <ClInclude Include="jsonc\arraylist.h">
       <Filter>Json-C\Headers</Filter>
     </ClInclude>
-    <ClInclude Include="jsonc\bits.h">
-      <Filter>Json-C\Headers</Filter>
-    </ClInclude>
     <ClInclude Include="jsonc\config.h">
       <Filter>Json-C\Headers</Filter>
     </ClInclude>
@@ -524,6 +521,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\exprodid.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="jsonc\json_types.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

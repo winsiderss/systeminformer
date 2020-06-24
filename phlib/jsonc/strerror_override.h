@@ -20,11 +20,11 @@ extern "C" {
 JSON_EXPORT char *_json_c_strerror(int errno_in);
 
 #ifndef STRERROR_OVERRIDE_IMPL
-#define strerror	_json_c_strerror
+#define strerror _json_c_strerror
 #endif
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* _json_strerror_override_h_ */ 
+#endif /* _json_strerror_override_h_ */

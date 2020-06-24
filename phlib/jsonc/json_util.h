@@ -12,20 +12,19 @@
 /**
  * @file
  * @brief Miscllaneous utility functions and macros.
- */ 
+ */
 #ifndef _json_util_h_
 #define _json_util_h_
 
 #include "json_object.h"
 
 #ifndef json_min
-#define json_min(a,b) ((a) < (b) ? (a) : (b))
+#define json_min(a, b) ((a) < (b) ? (a) : (b))
 #endif
 
 #ifndef json_max
-#define json_max(a,b) ((a) > (b) ? (a) : (b))
+#define json_max(a, b) ((a) > (b) ? (a) : (b))
 #endif
-
 
 #ifdef __cplusplus
 extern "C" {
@@ -38,9 +37,9 @@ extern "C" {
  * Read the full contents of the given file, then convert it to a
  * json_object using json_tokener_parse().
  *
- * Returns -1 if something fails.  See json_util_get_last_err() for details.
+ * Returns NULL on failure.  See json_util_get_last_err() for details.
  */
-extern struct json_object* json_object_from_file(wchar_t * filename);
+JSON_EXPORT struct json_object *json_object_from_file(wchar_t *filename);
 
 /**
  * Create a JSON object from already opened file descriptor.
@@ -50,9 +49,21 @@ extern struct json_object* json_object_from_file(wchar_t * filename);
  * Note, that the fd must be readable at the actual position, i.e.
  * use lseek(fd, 0, SEEK_SET) before.
  *
- * Returns -1 if something fails.  See json_util_get_last_err() for details.
+ * The depth argument specifies the maximum object depth to pass to
+ * json_tokener_new_ex().  When depth == -1, JSON_TOKENER_DEFAULT_DEPTH
+ * is used instead.
+ *
+ * Returns NULL on failure.  See json_util_get_last_err() for details.
  */
-extern struct json_object* json_object_from_fd(int fd);
+JSON_EXPORT struct json_object *json_object_from_fd_ex(int fd, int depth);
+
+/**
+ * Create a JSON object from an already opened file descriptor, using
+ * the default maximum object depth. (JSON_TOKENER_DEFAULT_DEPTH)
+ *
+ * See json_object_from_fd_ex() for details.
+ */
+JSON_EXPORT struct json_object *json_object_from_fd(int fd);
 
 /**
  * Equivalent to:
@@ -60,7 +71,7 @@ extern struct json_object* json_object_from_fd(int fd);
  *
  * Returns -1 if something fails.  See json_util_get_last_err() for details.
  */
-extern int json_object_to_file(wchar_t *filename, struct json_object *obj);
+JSON_EXPORT int json_object_to_file(wchar_t *filename, struct json_object *obj);
 
 /**
  * Open and truncate the given file, creating it if necessary, then
@@ -68,7 +79,7 @@ extern int json_object_to_file(wchar_t *filename, struct json_object *obj);
  *
  * Returns -1 if something fails.  See json_util_get_last_err() for details.
  */
-extern int json_object_to_file_ext(wchar_t *filename, struct json_object *obj, int flags);
+JSON_EXPORT int json_object_to_file_ext(wchar_t *filename, struct json_object *obj, int flags);
 
 /**
  * Convert the json_object to a string and write it to the file descriptor.
@@ -80,24 +91,24 @@ extern int json_object_to_file_ext(wchar_t *filename, struct json_object *obj, i
  * @param flags flags to pass to json_object_to_json_string_ext()
  * @return -1 if something fails.  See json_util_get_last_err() for details.
  */
-extern int json_object_to_fd(int fd, struct json_object *obj, int flags);
+JSON_EXPORT int json_object_to_fd(int fd, struct json_object *obj, int flags);
 
 /**
  * Return the last error from various json-c functions, including:
  * json_object_to_file{,_ext}, json_object_to_fd() or
  * json_object_from_{file,fd}, or NULL if there is none.
  */
-const char *json_util_get_last_err(void);
+JSON_EXPORT const char *json_util_get_last_err(void);
 
-
-extern int json_parse_int64(const char *buf, int64_t *retval);
-extern int json_parse_double(const char *buf, double *retval);
+JSON_EXPORT int json_parse_int64(const char *buf, int64_t *retval);
+JSON_EXPORT int json_parse_uint64(const char *buf, uint64_t *retval);
+JSON_EXPORT int json_parse_double(const char *buf, double *retval);
 
 /**
  * Return a string describing the type of the object.
  * e.g. "int", or "object", etc...
  */
-extern const char *json_type_to_name(enum json_type o_type);
+JSON_EXPORT const char *json_type_to_name(enum json_type o_type);
 
 #ifdef __cplusplus
 }

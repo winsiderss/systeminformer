@@ -6,7 +6,9 @@
  * @brief Do not use, json-c internal, may be changed or removed at any time.
  */
 
+#include "json_types.h"
+
 /* Used by tests to get consistent output */
-extern int _json_c_strerror_enable;
+JSON_EXPORT int _json_c_strerror_enable;
 
 #endif
