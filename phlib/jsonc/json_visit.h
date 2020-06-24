@@ -8,9 +8,8 @@
  */
 #include "json_object.h"
 
-typedef int (json_c_visit_userfunc)(json_object *jso, int flags,
-                                     json_object *parent_jso,                                                        const char *jso_key,
-                                     size_t *jso_index, void *userarg);
+typedef int(json_c_visit_userfunc)(json_object *jso, int flags, json_object *parent_jso,
+                                   const char *jso_key, size_t *jso_index, void *userarg);
 
 /**
  * Visit each object in the JSON hierarchy starting at jso.
@@ -26,27 +25,26 @@ typedef int (json_c_visit_userfunc)(json_object *jso, int flags,
  * userfunc must return one of the defined return values, to indicate
  * whether and how to continue visiting nodes, or one of various ways to stop.
  *
- * Returns 0 if nodes were visited successfully, even if some were 
+ * Returns 0 if nodes were visited successfully, even if some were
  *  intentionally skipped due to what userfunc returned.
  * Returns <0 if an error occurred during iteration, including if
  *  userfunc returned JSON_C_VISIT_RETURN_ERROR.
  */
-int json_c_visit(json_object *jso, int future_flags,
-                 json_c_visit_userfunc *userfunc, void *userarg);
+JSON_EXPORT int json_c_visit(json_object *jso, int future_flags, json_c_visit_userfunc *userfunc,
+                             void *userarg);
 
 /**
  * Passed to json_c_visit_userfunc as one of the flags values to indicate
  * that this is the second time a container (array or object) is being
  * called, after all of it's members have been iterated over.
  */
-#define JSON_C_VISIT_SECOND  0x02
+#define JSON_C_VISIT_SECOND 0x02
 
 /**
  * This json_c_visit_userfunc return value indicates that iteration
  * should proceed normally.
  */
 #define JSON_C_VISIT_RETURN_CONTINUE 0
-
 
 /**
  * This json_c_visit_userfunc return value indicates that iteration
@@ -60,7 +58,7 @@ int json_c_visit(json_object *jso, int future_flags,
  * This json_c_visit_userfunc return value indicates that iteration
  * of the fields/elements of the <b>containing</b> object should stop
  * and continue "popped up" a level of the object hierarchy.
- * For example, returning this when handling arg will result in 
+ * For example, returning this when handling arg will result in
  * arg3 and any other fields being skipped.   The next call to userfunc
  * will be the JSON_C_VISIT_SECOND call on "foo", followed by a userfunc
  * call on "bar".

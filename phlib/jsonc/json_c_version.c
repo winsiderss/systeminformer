@@ -17,4 +17,3 @@ int json_c_version_num(void)
 {
 	return JSON_C_VERSION_NUM;
 }
-

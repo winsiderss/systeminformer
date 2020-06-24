@@ -21,15 +21,15 @@
 extern "C" {
 #endif
 
-#include "debug.h"
-#include "linkhash.h"
 #include "arraylist.h"
-#include "json_util.h"
+#include "debug.h"
+#include "json_c_version.h"
 #include "json_object.h"
+#include "json_object_iterator.h"
 #include "json_pointer.h"
 #include "json_tokener.h"
-#include "json_object_iterator.h"
-#include "json_c_version.h"
+#include "json_util.h"
+#include "linkhash.h"
 
 #ifdef __cplusplus
 }

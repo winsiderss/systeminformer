@@ -7,13 +7,13 @@
 
 #ifndef __warn_references
 
-#if defined(__GNUC__)  && defined (HAS_GNU_WARNING_LONG)
+#if defined(__GNUC__) && defined(HAS_GNU_WARNING_LONG)
 
-#define __warn_references(sym,msg)                  \
-  __asm__(".section .gnu" #sym ",\n\t.ascii \"" msg "\"\n\t.text");
+#define __warn_references(sym, msg) \
+	__asm__(".section .gnu" #sym ",\n\t.ascii \"" msg "\"\n\t.text");
 
 #else
-#define __warn_references(sym,msg)    /* nothing */
+#define __warn_references(sym, msg) /* nothing */
 #endif
 
 #endif

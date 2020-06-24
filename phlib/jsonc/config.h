@@ -1,3 +1,5 @@
+/* config.h.in.  Generated from configure.ac by autoheader.  */
+
 /* Enable RDRANR Hardware RNG Hash Seed */
 #undef ENABLE_RDRAND
 
@@ -5,19 +7,19 @@
 #undef HAS_GNU_WARNING_LONG
 
 /* Define to 1 if you have the declaration of `INFINITY', and to 0 if you
-don't. */
+   don't. */
 #if (defined(_MSC_VER) && _MSC_VER >= 1800) || defined(__MINGW32__)
 #define HAVE_DECL_INFINITY 1
 #endif
 
 /* Define to 1 if you have the declaration of `isinf', and to 0 if you don't.
-*/
+   */
 #if (defined(_MSC_VER) && _MSC_VER >= 1800) || defined(__MINGW32__)
 #define HAVE_DECL_ISINF 1
 #endif
 
 /* Define to 1 if you have the declaration of `isnan', and to 0 if you don't.
-*/
+   */
 #if (defined(_MSC_VER) && _MSC_VER >= 1800) || defined(__MINGW32__)
 #define HAVE_DECL_ISNAN 1
 #endif
@@ -28,11 +30,11 @@ don't. */
 #endif
 
 /* Define to 1 if you have the declaration of `_finite', and to 0 if you
-don't. */
+   don't. */
 #define HAVE_DECL__FINITE 1
 
 /* Define to 1 if you have the declaration of `_isnan', and to 0 if you don't.
-*/
+   */
 #define HAVE_DECL__ISNAN 1
 
 /* Define to 1 if you have the <dlfcn.h> header file. */
@@ -57,7 +59,7 @@ don't. */
 #define HAVE_LOCALE_H 1
 
 /* Define to 1 if your system has a GNU libc compatible `malloc' function, and
-to 0 otherwise. */
+   to 0 otherwise. */
 #define HAVE_MALLOC 1
 
 /* Define to 1 if you have the <memory.h> header file. */
@@ -67,14 +69,18 @@ to 0 otherwise. */
 #define HAVE_OPEN 1
 
 /* Define to 1 if your system has a GNU libc compatible `realloc' function,
-and to 0 otherwise. */
+   and to 0 otherwise. */
 #define HAVE_REALLOC 1
 
 /* Define to 1 if you have the `setlocale' function. */
 #define HAVE_SETLOCALE 1
 
 /* Define to 1 if you have the `snprintf' function. */
+#if defined(__MINGW32__)
 #define HAVE_SNPRINTF 1
+#else
+#define HAVE_SNPRINTF 1
+#endif
 
 /* Define to 1 if you have the <stdarg.h> header file. */
 #define HAVE_STDARG_H 1
@@ -89,7 +95,7 @@ and to 0 otherwise. */
 #define HAVE_STRCASECMP 1
 
 /* Define to 1 if you have the `strdup' function. */
-//#define HAVE_STRDUP 1
+//#define HAVE_STRDUP 0
 
 /* Define to 1 if you have the `strerror' function. */
 #define HAVE_STRERROR 1
@@ -107,9 +113,8 @@ and to 0 otherwise. */
 #undef HAVE_STRNCASECMP
 #endif
 
-//#cmakedefine HAVE_STRTOLL
-//#cmakedefine strtoll @cmake_strtoll@
 #define HAVE_STRTOLL 1
+#define HAVE_STRTOULL 1
 
 /* Define to 1 if you have the <syslog.h> header file. */
 #undef HAVE_SYSLOG_H
@@ -154,7 +159,7 @@ and to 0 otherwise. */
 #undef HAVE_VSYSLOG
 
 /* Define to the sub-directory in which libtool stores uninstalled libraries.
-*/
+   */
 #undef LT_OBJDIR
 
 /* Define to 1 if your C compiler doesn't accept -c and -o together. */
@@ -170,7 +175,7 @@ and to 0 otherwise. */
 #define PACKAGE_NAME "JSON C Library"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "JSON C Library 0.13.1"
+#define PACKAGE_STRING "JSON C Library 0.14"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "json-c"
@@ -179,13 +184,13 @@ and to 0 otherwise. */
 #define PACKAGE_URL "https://github.com/json-c/json-c"
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "0.13.1"
+#define PACKAGE_VERSION "0.14"
 
 /* Define to 1 if you have the ANSI C header files. */
 #define STDC_HEADERS 1
 
 /* Version number of package */
-#define VERSION "0.13.1"
+#define VERSION "0.14"
 
 /* Define to empty if `const' does not conform to ANSI C. */
 /* #undef const */

@@ -358,7 +358,6 @@
     <ClInclude Include="include\kphuser.h" />
     <ClInclude Include="include\wslsup.h" />
     <ClInclude Include="jsonc\arraylist.h" />
-    <ClInclude Include="jsonc\bits.h" />
     <ClInclude Include="jsonc\config.h" />
     <ClInclude Include="jsonc\debug.h" />
     <ClInclude Include="jsonc\json.h" />
@@ -370,6 +369,7 @@
     <ClInclude Include="jsonc\json_object_private.h" />
     <ClInclude Include="jsonc\json_pointer.h" />
     <ClInclude Include="jsonc\json_tokener.h" />
+    <ClInclude Include="jsonc\json_types.h" />
     <ClInclude Include="jsonc\json_util.h" />
     <ClInclude Include="jsonc\json_visit.h" />
     <ClInclude Include="jsonc\linkhash.h" />
