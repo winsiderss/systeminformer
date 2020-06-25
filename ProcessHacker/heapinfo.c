@@ -35,7 +35,16 @@ typedef struct _PROCESS_HEAPS_CONTEXT
     HWND WindowHandle;
     HWND ListViewHandle;
     HFONT BoldFont;
-    ULONG IsWow64;
+    union
+    {
+        BOOLEAN Flags;
+        struct
+        {
+            BOOLEAN Initialized : 1;
+            BOOLEAN IsWow64 : 1;
+            BOOLEAN Spare : 6;
+        };
+    };
     PPH_PROCESS_ITEM ProcessItem;
     PVOID ProcessHeap;
     PVOID DebugBuffer;
@@ -140,13 +149,6 @@ NTSTATUS PhGetProcessHeapSignature(
     _Out_ ULONG* HeapSignature
     );
 
-NTSTATUS PhGetProcessHeapCounters(
-    _In_ HANDLE ProcessHandle,
-    _In_ PVOID HeapAddress,
-    _In_ ULONG IsWow64,
-    _Out_ PVOID* HeapCounters
-    );
-
 INT_PTR CALLBACK PhpProcessHeapsDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -163,7 +165,7 @@ VOID PhShowProcessHeapsDialog(
 
     context = PhAllocateZero(sizeof(PROCESS_HEAPS_CONTEXT));
     context->ProcessItem = PhReferenceObject(ProcessItem);
-    context->IsWow64 = ProcessItem->IsWow64;
+    context->IsWow64 = !!ProcessItem->IsWow64;
 
     DialogBoxParam(
         PhInstanceHandle,
@@ -433,6 +435,8 @@ VOID PhpEnumerateProcessHeaps(
             if (!NT_SUCCESS(status))
             {
                 PhUiDisconnectFromPhSvc();
+
+                PhShowStatus(Context->WindowHandle, L"Unable to query heap information.", status, 0);
                 goto CleanupExit;
             }
 
@@ -503,7 +507,10 @@ VOID PhpEnumerateProcessHeaps(
             );
 
         if (!NT_SUCCESS(status))
+        {
+            PhShowStatus(Context->WindowHandle, L"Unable to query heap information.", status, 0);
             goto CleanupExit;
+        }
 
         Context->DebugBuffer = heapDebugInfo;
         Context->ProcessHeap = heapDebugInfo->DefaultHeap;
@@ -635,8 +642,6 @@ INT_PTR CALLBACK PhpProcessHeapsDlgProc(
                 PhLoadWindowPlacementFromSetting(L"SegmentHeapWindowPosition", L"SegmentHeapWindowSize", hwndDlg);
             else
                 PhCenterWindow(hwndDlg, PhMainWndHandle);
-
-            PhpEnumerateProcessHeaps(context);
         }
         break;
     case WM_DESTROY:
@@ -667,6 +672,15 @@ INT_PTR CALLBACK PhpProcessHeapsDlgProc(
 
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
+        }
+        break;
+    case WM_SHOWWINDOW:
+        {
+            if (!context->Initialized)
+            {
+                PostMessage(context->WindowHandle, WM_COMMAND, MAKEWPARAM(IDC_REFRESH, 0), 0);
+                context->Initialized = TRUE;
+            }
         }
         break;
     case WM_COMMAND:
