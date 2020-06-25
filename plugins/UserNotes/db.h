@@ -27,7 +27,6 @@
 #define PLUGIN_NAME L"ProcessHacker.UserNotes"
 #define SETTING_NAME_DATABASE_PATH (PLUGIN_NAME L".DatabasePath")
 #define SETTING_NAME_CUSTOM_COLOR_LIST (PLUGIN_NAME L".ColorCustomList")
-#define SETTING_NAME_COLLAPSE_SERVICES_AT_START (PLUGIN_NAME L".CollapseServicesOnStart")
 
 #define FILE_TAG 1
 #define SERVICE_TAG 2
