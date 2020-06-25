@@ -172,44 +172,6 @@ PPH_STRING SaveCustomColors(
     return PhFinalStringBuilderString(&stringBuilder);
 }
 
-VOID LoadCollapseServicesOnStart(
-    VOID
-    )
-{
-    // This is for backwards compat with PhCsCollapseServicesOnStart (dmex)
-    // https://github.com/processhacker/processhacker/issues/519
-
-    if (PhGetIntegerSetting(SETTING_NAME_COLLAPSE_SERVICES_AT_START))
-    {
-        static PH_STRINGREF servicesBaseName = PH_STRINGREF_INIT(L"services.exe");
-        PDB_OBJECT object;
-
-        if (object = FindDbObject(FILE_TAG, &servicesBaseName))
-        {
-            object->Collapse = TRUE;
-        }
-        else
-        {
-            object = CreateDbObject(FILE_TAG, &servicesBaseName, NULL);
-            object->Collapse = TRUE;
-        }
-    }
-    else
-    {
-        static PH_STRINGREF servicesBaseName = PH_STRINGREF_INIT(L"services.exe");
-        PDB_OBJECT object;
-
-        object = FindDbObject(FILE_TAG, &servicesBaseName);
-
-        if (object && object->Collapse)
-        {
-            object->Collapse = FALSE;
-            DeleteDbObjectForProcessIfUnused(object);
-        }
-    }
-}
-
-
 NTSTATUS GetProcessAffinity(
     _In_ HANDLE ProcessId,
     _Out_ ULONG_PTR *Affinity
@@ -353,7 +315,6 @@ VOID NTAPI LoadCallback(
 
     LoadDb();
     LoadCustomColors();
-    LoadCollapseServicesOnStart();
 }
 
 VOID NTAPI UnloadCallback(
@@ -1483,8 +1444,7 @@ LOGICAL DllMain(
         PH_SETTING_CREATE settings[] =
         {
             { StringSettingType, SETTING_NAME_DATABASE_PATH, L"%APPDATA%\\Process Hacker\\usernotesdb.xml" },
-            { StringSettingType, SETTING_NAME_CUSTOM_COLOR_LIST, L"" },
-            { IntegerSettingType, SETTING_NAME_COLLAPSE_SERVICES_AT_START, L"0" }
+            { StringSettingType, SETTING_NAME_CUSTOM_COLOR_LIST, L"" }
         };
 
         PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
@@ -1624,6 +1584,60 @@ LOGICAL DllMain(
     return TRUE;
 }
 
+BOOLEAN IsCollapseServicesOnStartEnabled(
+    VOID
+    )
+{
+    static PH_STRINGREF servicesBaseName = PH_STRINGREF_INIT(L"services.exe");
+    PDB_OBJECT object;
+
+    object = FindDbObject(FILE_TAG, &servicesBaseName);
+
+    if (object && object->Collapse)
+    {
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+VOID AddOrRemoveCollapseServicesOnStart(
+    _In_ BOOLEAN CollapseServicesOnStart
+    )
+{
+    // This is for backwards compat with PhCsCollapseServicesOnStart (dmex)
+    // https://github.com/processhacker/processhacker/issues/519
+
+    if (CollapseServicesOnStart)
+    {
+        static PH_STRINGREF servicesBaseName = PH_STRINGREF_INIT(L"services.exe");
+        PDB_OBJECT object;
+
+        if (object = FindDbObject(FILE_TAG, &servicesBaseName))
+        {
+            object->Collapse = TRUE;
+        }
+        else
+        {
+            object = CreateDbObject(FILE_TAG, &servicesBaseName, NULL);
+            object->Collapse = TRUE;
+        }
+    }
+    else
+    {
+        static PH_STRINGREF servicesBaseName = PH_STRINGREF_INIT(L"services.exe");
+        PDB_OBJECT object;
+
+        object = FindDbObject(FILE_TAG, &servicesBaseName);
+
+        if (object && object->Collapse)
+        {
+            object->Collapse = FALSE;
+            DeleteDbObjectForProcessIfUnused(object);
+        }
+    }
+}
+
 INT_PTR CALLBACK OptionsDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -1644,7 +1658,7 @@ INT_PTR CALLBACK OptionsDlgProc(
             PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_BROWSE), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
 
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_COLLAPSE_SERVICES_CHECK),
-                !!PhGetIntegerSetting(SETTING_NAME_COLLAPSE_SERVICES_AT_START));
+                IsCollapseServicesOnStartEnabled());
 
             PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDCANCEL));
         }
@@ -1692,7 +1706,7 @@ INT_PTR CALLBACK OptionsDlgProc(
                 break;
             case IDC_COLLAPSE_SERVICES_CHECK:
                 {
-                    PhSetIntegerSetting(SETTING_NAME_COLLAPSE_SERVICES_AT_START,
+                    AddOrRemoveCollapseServicesOnStart(
                         Button_GetCheck(GET_WM_COMMAND_HWND(wParam, lParam)) == BST_CHECKED);
 
                     // uncomment for realtime toggle
