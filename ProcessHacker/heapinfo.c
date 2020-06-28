@@ -347,7 +347,7 @@ PPH_STRING PhGetProcessHeapFlagsText(
     if (Flags & HEAP_CREATE_ENABLE_TRACING)
         PhAppendStringBuilder2(&stringBuilder, L"Tracing enabled, ");
     if (Flags & HEAP_CREATE_ENABLE_EXECUTE)
-        PhAppendStringBuilder2(&stringBuilder, L"Execute enabled, ");
+        PhAppendStringBuilder2(&stringBuilder, L"Executable, ");
     if (Flags & HEAP_CREATE_SEGMENT_HEAP)
         PhAppendStringBuilder2(&stringBuilder, L"Segment heap, ");
     if (Flags & HEAP_CREATE_HARDENED)
@@ -408,6 +408,19 @@ VOID PhpEnumerateProcessHeaps(
     BOOLEAN sizesInBytes;
 
     sizesInBytes = Button_GetCheck(GetDlgItem(Context->WindowHandle, IDC_SIZESINBYTES)) == BST_CHECKED;
+
+    if (Context->ProcessItem->IsImmersive)
+    {
+        // TODO: Even if the immersive process is active we can still deadlock when the
+        // RtlQueryProcessDebugInformation thread hasn't completed and
+        // the UWP process is automatically suspended by the shell. (dmex)
+        PhShowError2(
+            Context->WindowHandle,
+            L"Unable to query heap information.",
+            L"Please activate the UWP immersive process before refreshing heap information."
+            );
+        return;
+    }
 
     ExtendedListView_SetRedraw(Context->ListViewHandle, FALSE);
     ListView_DeleteAllItems(Context->ListViewHandle);
