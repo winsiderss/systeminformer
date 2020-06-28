@@ -120,22 +120,22 @@ BOOLEAN PhAppResolverGetAppIdForProcess(
     if (WindowsVersion < WINDOWS_8)
     {
         IApplicationResolver_GetAppIDForProcess(
-            (IApplicationResolver61*)resolverInterface, 
-            HandleToUlong(ProcessId), 
-            &appIdText, 
-            NULL, 
-            NULL, 
+            (IApplicationResolver61*)resolverInterface,
+            HandleToUlong(ProcessId),
+            &appIdText,
+            NULL,
+            NULL,
             NULL
             );
     }
     else
     {
         IApplicationResolver2_GetAppIDForProcess(
-            (IApplicationResolver62*)resolverInterface, 
-            HandleToUlong(ProcessId), 
-            &appIdText, 
-            NULL, 
-            NULL, 
+            (IApplicationResolver62*)resolverInterface,
+            HandleToUlong(ProcessId),
+            &appIdText,
+            NULL,
+            NULL,
             NULL
             );
     }
@@ -200,7 +200,7 @@ HRESULT PhAppResolverActivateAppId(
     )
 {
     HRESULT status;
-    ULONG processId = 0;
+    ULONG processId = ULONG_MAX;
     IApplicationActivationManager* applicationActivationManager;
 
     status = PhGetClassObject(
@@ -233,6 +233,118 @@ HRESULT PhAppResolverActivateAppId(
     return status;
 }
 
+HRESULT PhAppResolverEnablePackageDebug(
+    _In_ PPH_STRING PackageFullName
+    )
+{
+    HRESULT status;
+    PPH_LIST packageTasks = NULL;
+    IPackageDebugSettings* packageDebugSettings;
+
+    status = PhGetClassObject(
+        L"twinapi.appcore.dll",
+        &CLSID_PackageDebugSettings,
+        &IID_IPackageDebugSettings,
+        &packageDebugSettings
+        );
+
+    if (SUCCEEDED(status))
+    {
+        status = IPackageDebugSettings_EnableDebugging(
+            packageDebugSettings,
+            PhGetString(PackageFullName),
+            NULL,
+            NULL
+            );
+
+        IPackageDebugSettings_Release(packageDebugSettings);
+    }
+
+    return status;
+}
+
+HRESULT PhAppResolverDisablePackageDebug(
+    _In_ PPH_STRING PackageFullName
+    )
+{
+    HRESULT status;
+    PPH_LIST packageTasks = NULL;
+    IPackageDebugSettings* packageDebugSettings;
+
+    status = PhGetClassObject(
+        L"twinapi.appcore.dll",
+        &CLSID_PackageDebugSettings,
+        &IID_IPackageDebugSettings,
+        &packageDebugSettings
+        );
+
+    if (SUCCEEDED(status))
+    {
+        status = IPackageDebugSettings_DisableDebugging(
+            packageDebugSettings,
+            PhGetString(PackageFullName)
+            );
+
+        IPackageDebugSettings_Release(packageDebugSettings);
+    }
+
+    return status;
+}
+
+HRESULT PhAppResolverPackageSuspend(
+    _In_ PPH_STRING PackageFullName
+    )
+{
+    HRESULT status;
+    IPackageDebugSettings* packageDebugSettings;
+
+    status = PhGetClassObject(
+        L"twinapi.appcore.dll",
+        &CLSID_PackageDebugSettings,
+        &IID_IPackageDebugSettings,
+        &packageDebugSettings
+        );
+
+    if (SUCCEEDED(status))
+    {
+        status = IPackageDebugSettings_Suspend(
+            packageDebugSettings,
+            PhGetString(PackageFullName)
+            );
+
+        IPackageDebugSettings_Release(packageDebugSettings);
+    }
+
+    return status;
+}
+
+HRESULT PhAppResolverPackageResume(
+    _In_ PPH_STRING PackageFullName
+    )
+{
+    HRESULT status;
+    IPackageDebugSettings* packageDebugSettings;
+
+    status = PhGetClassObject(
+        L"twinapi.appcore.dll",
+        &CLSID_PackageDebugSettings,
+        &IID_IPackageDebugSettings,
+        &packageDebugSettings
+        );
+
+    if (SUCCEEDED(status))
+    {
+        status = IPackageDebugSettings_Resume(
+            packageDebugSettings,
+            PhGetString(PackageFullName)
+            );
+
+        IPackageDebugSettings_Release(packageDebugSettings);
+    }
+
+    return status;
+}
+
 PPH_LIST PhAppResolverEnumeratePackageBackgroundTasks(
     _In_ PPH_STRING PackageFullName
     )
@@ -242,7 +354,7 @@ PPH_LIST PhAppResolverEnumeratePackageBackgroundTasks(
     IPackageDebugSettings* packageDebugSettings;
 
     status = PhGetClassObject(
-        L"twinui.appcore.dll",
+        L"twinapi.appcore.dll",
         &CLSID_PackageDebugSettings,
         &IID_IPackageDebugSettings,
         &packageDebugSettings
