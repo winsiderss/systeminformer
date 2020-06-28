@@ -2274,7 +2274,7 @@ RtlDecompressBufferEx(
     );
 #endif
 
-#if (PHNT_VERSION >= PHNT_WIN8_1)
+#if (PHNT_VERSION >= PHNT_WINBLUE)
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -2304,7 +2304,7 @@ RtlDecompressFragment(
     _In_ PVOID WorkSpace
     );
 
-#if (PHNT_VERSION >= PHNT_WIN8_1)
+#if (PHNT_VERSION >= PHNT_WINBLUE)
 NTSYSAPI
 NTSTATUS
 NTAPI
