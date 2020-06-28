@@ -3496,7 +3496,7 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
 
                 // TODO: TokenIsLessPrivilegedAppContainer
                 {
-                    static UNICODE_STRING attributeNameUs = RTL_CONSTANT_STRING(L"WIN://NOALLAPPPKG");
+                    static PH_STRINGREF attributeName = PH_STRINGREF_INIT(L"WIN://NOALLAPPPKG");
                     PTOKEN_SECURITY_ATTRIBUTES_INFORMATION info;
 
                     if (NT_SUCCESS(PhQueryTokenVariableSize(tokenHandle, TokenSecurityAttributes, &info)))
@@ -3504,8 +3504,11 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
                         for (ULONG i = 0; i < info->AttributeCount; i++)
                         {
                             PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = &info->Attribute.pAttributeV1[i];
+                            PH_STRINGREF attributeNameSr;
 
-                            if (RtlEqualUnicodeString(&attribute->Name, &attributeNameUs, FALSE))
+                            PhUnicodeStringToStringRef(&attribute->Name, &attributeNameSr);
+
+                            if (PhEqualStringRef(&attributeNameSr, &attributeName, FALSE))
                             {
                                 if (attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_UINT64)
                                 {

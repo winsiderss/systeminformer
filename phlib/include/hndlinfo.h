@@ -94,7 +94,7 @@ PHLIBAPI
 ULONG
 NTAPI
 PhGetObjectTypeNumber(
-    _In_ PUNICODE_STRING TypeName
+    _In_ PPH_STRINGREF TypeName
     );
 
 PHLIBAPI

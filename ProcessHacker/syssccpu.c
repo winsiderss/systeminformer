@@ -1038,9 +1038,9 @@ PPH_STRING PhSipGetCpuBrandString(
         brandLength = sizeof(brandString) - sizeof(ANSI_NULL);
         brand = PhZeroExtendToUtf16Ex((PSTR)cpubrand, brandLength);
 #else
-        static PH_STRINGREF processorKeyName = PH_STRINGREF_INIT(L"HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0");
-
+        static PH_STRINGREF processorKeyName = PH_STRINGREF_INIT(L"Hardware\\Description\\System\\CentralProcessor\\0");
         HANDLE keyHandle;
+
         if (NT_SUCCESS(PhOpenKey(&keyHandle, KEY_READ, PH_KEY_LOCAL_MACHINE, &processorKeyName, 0)))
         {
             brand = PhQueryRegistryString(keyHandle, L"ProcessorNameString");
@@ -1048,7 +1048,7 @@ PPH_STRING PhSipGetCpuBrandString(
         }
 
         if (PhIsNullOrEmptyString(brand))
-            brand = PhCreateString(L"Not Available");
+            PhMoveReference(&brand, PhCreateString(L"Not Available"));
 #endif
     }
 

@@ -1000,7 +1000,7 @@ NTSTATUS PhpFindObjectsThreadStart(
 
             if (PhBeginInitOnce(&initOnce))
             {
-                UNICODE_STRING fileTypeName = RTL_CONSTANT_STRING(L"File");
+                static PH_STRINGREF fileTypeName = PH_STRINGREF_INIT(L"File");
 
                 fileObjectTypeIndex = PhGetObjectTypeNumber(&fileTypeName);
 

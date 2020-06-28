@@ -1606,7 +1606,7 @@ NTSTATUS PhEnumObjectTypes(
 }
 
 ULONG PhGetObjectTypeNumber(
-    _In_ PUNICODE_STRING TypeName
+    _In_ PPH_STRINGREF TypeName
     )
 {
     POBJECT_TYPES_INFORMATION objectTypes;
@@ -1620,7 +1620,11 @@ ULONG PhGetObjectTypeNumber(
 
         for (i = 0; i < objectTypes->NumberOfTypes; i++)
         {
-            if (RtlEqualUnicodeString(&objectType->TypeName, TypeName, TRUE))
+            PH_STRINGREF typeNameSr;
+
+            PhUnicodeStringToStringRef(&objectType->TypeName, &typeNameSr);
+
+            if (PhEqualStringRef(&typeNameSr, TypeName, TRUE))
             {
                 if (WindowsVersion >= WINDOWS_8_1)
                 {

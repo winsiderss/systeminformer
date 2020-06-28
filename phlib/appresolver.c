@@ -410,7 +410,7 @@ PPH_STRING PhGetPackageAppDataPath(
     _In_ HANDLE ProcessHandle
     )
 {
-    static UNICODE_STRING attributeNameUs = RTL_CONSTANT_STRING(L"WIN://SYSAPPID");
+    static PH_STRINGREF attributeName = PH_STRINGREF_INIT(L"WIN://SYSAPPID");
     static PH_STRINGREF appdataPackages = PH_STRINGREF_INIT(L"%APPDATALOCAL%\\Packages\\");
     HANDLE tokenHandle;
     PTOKEN_SECURITY_ATTRIBUTES_INFORMATION info;
@@ -430,7 +430,11 @@ PPH_STRING PhGetPackageAppDataPath(
 
                 if (attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_STRING)
                 {
-                    if (RtlEqualUnicodeString(&attribute->Name, &attributeNameUs, FALSE))
+                    PH_STRINGREF attributeNameSr;
+
+                    PhUnicodeStringToStringRef(&attribute->Name, &attributeNameSr);
+
+                    if (PhEqualStringRef(&attributeNameSr, &attributeName, FALSE))
                     {
                         PPH_STRING attributeValue;
                         PPH_STRING attributePath;
@@ -464,7 +468,7 @@ PPH_STRING PhGetProcessPackageFullName(
     _In_ HANDLE ProcessHandle
     )
 {
-    static UNICODE_STRING attributeNameUs = RTL_CONSTANT_STRING(L"WIN://SYSAPPID");
+    static PH_STRINGREF attributeName = PH_STRINGREF_INIT(L"WIN://SYSAPPID");
     HANDLE tokenHandle;
     PTOKEN_SECURITY_ATTRIBUTES_INFORMATION info;
     PPH_STRING packageName = NULL;
@@ -484,7 +488,11 @@ PPH_STRING PhGetProcessPackageFullName(
 
                 if (attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_STRING)
                 {
-                    if (RtlEqualUnicodeString(&attribute->Name, &attributeNameUs, FALSE))
+                    PH_STRINGREF attributeNameSr;
+
+                    PhUnicodeStringToStringRef(&attribute->Name, &attributeNameSr);
+
+                    if (PhEqualStringRef(&attributeNameSr, &attributeName, FALSE))
                     {
                         packageName = PhCreateStringFromUnicodeString(&attribute->Values.pString[0]);
                         break;
