@@ -21,7 +21,6 @@
  */
 
 #include <peview.h>
-#include <shlobj.h>
 
 static PPH_STRING PeSettingsFileName = NULL;
 

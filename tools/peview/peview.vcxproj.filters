@@ -125,10 +125,13 @@
     <ClInclude Include="include\prpsh.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\pdb.h">
+    <ClInclude Include="colmgr.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="colmgr.h">
+    <ClInclude Include="include\cvconst.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\dia2.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

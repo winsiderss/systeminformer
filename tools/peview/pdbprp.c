@@ -2,7 +2,7 @@
  * PE viewer -
  *   pdb support
  *
- * Copyright (C) 2017 dmex
+ * Copyright (C) 2017-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -641,7 +641,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Size)
 {
-    sortResult = uintcmp(node1->Size, node2->Size);
+    sortResult = uint64cmp(node1->Size, node2->Size);
 }
 END_SORT_FUNCTION
 
@@ -908,9 +908,9 @@ VOID PvInitializeSymbolTree(
 
     TreeNew_SetSort(TreeNewHandle, TREE_COLUMN_ITEM_VA, AscendingSortOrder);
 
-    PPH_STRING settings = PhGetStringSetting(L"PdbTreeListColumns");
-    PhCmLoadSettings(TreeNewHandle, &settings->sr);
-    PhDereferenceObject(settings);
+    //PPH_STRING settings = PhGetStringSetting(L"PdbTreeListColumns");
+    //PhCmLoadSettings(TreeNewHandle, &settings->sr);
+    //PhDereferenceObject(settings);
 
     PhInitializeTreeNewFilterSupport(&Context->FilterSupport, TreeNewHandle, Context->NodeList);
 }
@@ -1039,6 +1039,7 @@ VOID CALLBACK PvSymbolTreeUpdateCallback(
     )
 {
     ULONG i;
+    BOOLEAN needsFullUpdate = FALSE;
 
     if (!Context->UpdateTimerHandle)
         return;
@@ -1050,12 +1051,14 @@ VOID CALLBACK PvSymbolTreeUpdateCallback(
     for (i = SearchResultsAddIndex; i < SearchResults->Count; i++)
     {
         PvSymbolAddTreeNode(Context, SearchResults->Items[i]);
+        needsFullUpdate = TRUE;
     }
     SearchResultsAddIndex = i;
 
     PhReleaseQueuedLockExclusive(&SearchResultsLock);
 
-    TreeNew_NodesStructured(Context->TreeNewHandle);
+    if (needsFullUpdate)
+        TreeNew_NodesStructured(Context->TreeNewHandle);
     TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
 
     RtlUpdateTimer(PhGetGlobalTimerQueue(), Context->UpdateTimerHandle, 1000, INFINITE);

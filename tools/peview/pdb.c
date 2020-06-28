@@ -2,7 +2,7 @@
  * PE viewer -
  *   pdb support
  *
- * Copyright (C) 2017 dmex
+ * Copyright (C) 2017-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -23,2493 +23,1346 @@
 #include <peview.h>
 #include <cpysave.h>
 #include <symprv.h>
-#include <pdb.h>
 #include <uxtheme.h>
-#include <malloc.h>
-
-typedef BOOL (WINAPI *_SymInitializeW)(
-    _In_ HANDLE hProcess,
-    _In_opt_ PCWSTR UserSearchPath,
-    _In_ BOOL fInvadeProcess
-    );
-
-typedef BOOL (WINAPI *_SymCleanup)(
-    _In_ HANDLE hProcess
-    );
-
-typedef BOOL (CALLBACK *_SymGetTypeInfo)(
-    _In_ HANDLE hProcess,
-    _In_ ULONG64 ModBase,
-    _In_ ULONG TypeId,
-    _In_ IMAGEHLP_SYMBOL_TYPE_INFO GetType,
-    _Out_ PVOID pInfo
-    );
-
-typedef BOOL (WINAPI *_SymEnumSymbolsW)(
-    _In_ HANDLE hProcess,
-    _In_ ULONG64 BaseOfDll,
-    _In_opt_ PCWSTR Mask,
-    _In_ PSYM_ENUMERATESYMBOLS_CALLBACKW EnumSymbolsCallback,
-    _In_opt_ const PVOID UserContext
-    );
-
-typedef BOOL (WINAPI *_SymEnumTypesW)(
-    _In_ HANDLE hProcess,
-    _In_ ULONG64 BaseOfDll,
-    _In_ PSYM_ENUMERATESYMBOLS_CALLBACKW EnumSymbolsCallback,
-    _In_opt_ PVOID UserContext
-    );
-
-typedef BOOL (WINAPI *_SymSearchW)(
-    _In_ HANDLE hProcess,
-    _In_ ULONG64 BaseOfDll,
-    _In_opt_ DWORD Index,
-    _In_opt_ DWORD SymTag,
-    _In_opt_ PCWSTR Mask,
-    _In_opt_ DWORD64 Address,
-    _In_ PSYM_ENUMERATESYMBOLS_CALLBACKW EnumSymbolsCallback,
-    _In_opt_ PVOID UserContext,
-    _In_ DWORD Options
-    );
-
-typedef BOOL (WINAPI *_SymSetSearchPathW)(
-    _In_ HANDLE hProcess,
-    _In_opt_ PCWSTR SearchPath
-    );
-
-typedef ULONG (WINAPI *_SymGetOptions)();
-
-typedef ULONG (WINAPI *_SymSetOptions)(
-    _In_ ULONG SymOptions
-    );
-
-typedef ULONG64 (WINAPI *_SymLoadModuleExW)(
-    _In_ HANDLE hProcess,
-    _In_ HANDLE hFile,
-    _In_ PCWSTR ImageName,
-    _In_ PCWSTR ModuleName,
-    _In_ ULONG64 BaseOfDll,
-    _In_ ULONG DllSize,
-    _In_ PMODLOAD_DATA Data,
-    _In_ ULONG Flags
-    );
-
-typedef BOOL (WINAPI *_SymGetModuleInfoW64)(
-    _In_ HANDLE hProcess,
-    _In_ ULONG64 qwAddr,
-    _Out_ PIMAGEHLP_MODULEW64 ModuleInfo
-    );
-
-typedef BOOL (WINAPI *_SymGetTypeFromNameW)(
-    _In_ HANDLE hProcess,
-    _In_ ULONG64 BaseOfDll,
-    _In_ PCTSTR Name,
-    _Inout_ PSYMBOL_INFO Symbol
-    );
-
-typedef BOOL (WINAPI *_SymSetContext)(
-    _In_ HANDLE hProcess,
-    _In_ PIMAGEHLP_STACK_FRAME StackFrame,
-    _In_opt_ PIMAGEHLP_CONTEXT Context
-    );
-
-static _SymInitializeW SymInitializeW_I = NULL;
-static _SymCleanup SymCleanup_I = NULL;
-static _SymEnumSymbolsW SymEnumSymbolsW_I = NULL;
-static _SymEnumTypesW SymEnumTypesW_I = NULL;
-static _SymSetSearchPathW SymSetSearchPathW_I = NULL;
-static _SymGetOptions SymGetOptions_I = NULL;
-static _SymSetOptions SymSetOptions_I = NULL;
-static _SymLoadModuleExW SymLoadModuleExW_I = NULL;
-static _SymGetModuleInfoW64 SymGetModuleInfoW64_I = NULL;
-static _SymGetTypeFromNameW SymGetTypeFromNameW_I = NULL;
-static _SymGetTypeInfo SymGetTypeInfo_I = NULL;
-static _SymSetContext SymSetContext_I = NULL;
-static _SymSearchW SymSearchW_I = NULL;
+#include "dia2.h"
 
 ULONG SearchResultsAddIndex = 0;
 PPH_LIST SearchResults = NULL;
 PH_QUEUED_LOCK SearchResultsLock = PH_QUEUED_LOCK_INIT;
 
-BOOLEAN PdbGetSymbolBasicType(
-    _In_ ULONG64 BaseAddress,
-    _In_ ULONG Index,
-    _Inout_ BaseTypeInfo *Info
+PWSTR rgBaseType[] =
+{
+    L"<NoType>",                         // btNoType = 0,
+    L"void",                             // btVoid = 1,
+    L"char",                             // btChar = 2,
+    L"wchar_t",                          // btWChar = 3,
+    L"signed char",
+    L"unsigned char",
+    L"int",                              // btInt = 6,
+    L"unsigned int",                     // btUInt = 7,
+    L"float",                            // btFloat = 8,
+    L"<BCD>",                            // btBCD = 9,
+    L"bool",                             // btBool = 10,
+    L"short",
+    L"unsigned short",
+    L"long",                             // btLong = 13,
+    L"unsigned long",                    // btULong = 14,
+    L"__int8",
+    L"__int16",
+    L"__int32",
+    L"__int64",
+    L"__int128",
+    L"unsigned __int8",
+    L"unsigned __int16",
+    L"unsigned __int32",
+    L"unsigned __int64",
+    L"unsigned __int128",
+    L"<currency>",                       // btCurrency = 25,
+    L"<date>",                           // btDate = 26,
+    L"VARIANT",                          // btVariant = 27,
+    L"<complex>",                        // btComplex = 28,
+    L"<bit>",                            // btBit = 29,
+    L"BSTR",                             // btBSTR = 30,
+    L"HRESULT",                          // btHresult = 31
+    L"char16_t",                         // btChar16 = 32
+    L"char32_t"                          // btChar32 = 33
+    L"char8_t",                          // btChar8  = 34
+};
+
+PWSTR rgTags[] =
+{
+    L"(SymTagNull)",                     // SymTagNull
+    L"Executable (Global)",              // SymTagExe
+    L"Compiland",                        // SymTagCompiland
+    L"CompilandDetails",                 // SymTagCompilandDetails
+    L"CompilandEnv",                     // SymTagCompilandEnv
+    L"Function",                         // SymTagFunction
+    L"Block",                            // SymTagBlock
+    L"Data",                             // SymTagData
+    L"Annotation",                       // SymTagAnnotation
+    L"Label",                            // SymTagLabel
+    L"PublicSymbol",                     // SymTagPublicSymbol
+    L"UserDefinedType",                  // SymTagUDT
+    L"Enum",                             // SymTagEnum
+    L"FunctionType",                     // SymTagFunctionType
+    L"PointerType",                      // SymTagPointerType
+    L"ArrayType",                        // SymTagArrayType
+    L"BaseType",                         // SymTagBaseType
+    L"Typedef",                          // SymTagTypedef
+    L"BaseClass",                        // SymTagBaseClass
+    L"Friend",                           // SymTagFriend
+    L"FunctionArgType",                  // SymTagFunctionArgType
+    L"FuncDebugStart",                   // SymTagFuncDebugStart
+    L"FuncDebugEnd",                     // SymTagFuncDebugEnd
+    L"UsingNamespace",                   // SymTagUsingNamespace
+    L"VTableShape",                      // SymTagVTableShape
+    L"VTable",                           // SymTagVTable
+    L"Custom",                           // SymTagCustom
+    L"Thunk",                            // SymTagThunk
+    L"CustomType",                       // SymTagCustomType
+    L"ManagedType",                      // SymTagManagedType
+    L"Dimension",                        // SymTagDimension
+    L"CallSite",                         // SymTagCallSite
+    L"InlineSite",                       // SymTagInlineSite
+    L"BaseInterface",                    // SymTagBaseInterface
+    L"VectorType",                       // SymTagVectorType
+    L"MatrixType",                       // SymTagMatrixType
+    L"HLSLType",                         // SymTagHLSLType
+    L"Caller",                           // SymTagCaller,
+    L"Callee",                           // SymTagCallee,
+    L"Export",                           // SymTagExport,
+    L"HeapAllocationSite",               // SymTagHeapAllocationSite
+    L"CoffGroup",                        // SymTagCoffGroup
+    L"Inlinee",                          // SymTagInlinee
+};
+
+PWSTR rgLocationTypeString[] =
+{
+    L"NULL",
+    L"static",
+    L"TLS",
+    L"RegRel",
+    L"ThisRel",
+    L"Enregistered",
+    L"BitField",
+    L"Slot",
+    L"IL Relative",
+    L"In MetaData",
+    L"Constant",
+    L"RegRelAliasIndir"
+};
+
+PWSTR rgUdtKind[] =
+{
+    L"struct",
+    L"class",
+    L"union",
+    L"interface",
+};
+
+PWSTR rgDataKind[] =
+{
+    L"Unknown",
+    L"Local",
+    L"Static Local",
+    L"Param",
+    L"Object Ptr",
+    L"File Static",
+    L"Global",
+    L"Member",
+    L"Static Member",
+    L"Constant",
+};
+
+VOID PrintSymbolType(
+    _In_ PPH_STRING_BUILDER StringBuilder,
+    _In_ IDiaSymbol* Symbol
+    );
+
+VOID PrintSymTag(
+    _In_ PPH_STRING_BUILDER StringBuilder,
+    _In_ ULONG SymbolTag
     )
 {
-    ULONG baseType = btNoType;
-    ULONG64 length = 0;
-
-    if (!PdbCheckTagType(BaseAddress, Index, SymTagBaseType))
-        return FALSE;
-
-    // Basic type ("basicType" in DIA)
-    if (!SymGetTypeInfo_I(NtCurrentProcess(), BaseAddress, Index, TI_GET_BASETYPE, &baseType))
-        return FALSE;
-
-    // Length ("length" in DIA)     
-    if (!SymGetTypeInfo_I(NtCurrentProcess(), BaseAddress, Index, TI_GET_LENGTH, &length))
-        return FALSE;
-
-    Info->BaseType = (BasicType)baseType;
-    Info->Length = length;
-
-    return TRUE;
+    PhAppendFormatStringBuilder(StringBuilder, L"%s: ", rgTags[SymbolTag]);
 }
 
-BOOLEAN PdbGetSymbolPointerType(
-    _In_ ULONG64 BaseAddress,
-    _In_ ULONG Index,
-    _Inout_ PointerTypeInfo* Info
-    )
+VOID PrintVariant(
+    _In_ PPH_STRING_BUILDER StringBuilder,
+    _In_ VARIANT var)
 {
-    ULONG typeIndex = 0;
-    ULONG64 length = 0;
-    BOOL reference = FALSE;
-
-    if (!PdbCheckTagType(BaseAddress, Index, SymTagPointerType))
-        return FALSE;
-
-    // Type index ("typeId" in DIA)
-    if (!SymGetTypeInfo_I(NtCurrentProcess(), BaseAddress, Index, TI_GET_TYPEID, &typeIndex))
-        return FALSE;
-
-    // Length ("length" in DIA) 
-    if (!SymGetTypeInfo_I(NtCurrentProcess(), BaseAddress, Index, TI_GET_LENGTH, &length))
-        return FALSE;
-
-    // Reference ("reference" in DIA) 
-    if (!SymGetTypeInfo_I(NtCurrentProcess(), BaseAddress, Index, TI_GET_IS_REFERENCE, &reference))
-        return FALSE;
-
-    Info->TypeIndex = typeIndex;
-    Info->Length = length;
-    Info->TypeReference = reference;
-
-    return TRUE;
-}
-
-BOOLEAN PdbGetSymbolTypedefType(
-    _In_ ULONG64 BaseAddress,
-    _In_ ULONG Index,
-    _Inout_ TypedefInfo* Info
-    )
-{
-    ULONG typeIndex = 0;
-    PWSTR symbolName = NULL;
-
-    if (!PdbCheckTagType(BaseAddress, Index, SymTagTypedef))
-        return FALSE;
-       
-    // Type index ("typeId" in DIA)
-    if (!SymGetTypeInfo_I(NtCurrentProcess(), BaseAddress, Index, TI_GET_TYPEID, &typeIndex))
-        return FALSE;
-
-    // Name ("name" in DIA) 
-    if (!SymGetTypeInfo_I(NtCurrentProcess(), BaseAddress, Index, TI_GET_SYMNAME, &symbolName) || !symbolName)
-        return FALSE;
-
-    Info->TypeIndex = typeIndex;
-
-    wcsncpy(Info->Name, symbolName, ARRAYSIZE(Info->Name));
-    Info->Name[ARRAYSIZE(Info->Name) - 1] = UNICODE_NULL;
-    LocalFree(symbolName);
-
-    return TRUE;
-}
-
-BOOLEAN PdbGetSymbolEnumType(
-    _In_ ULONG64 BaseAddress,
-    _In_ ULONG Index,
-    _Inout_ EnumInfo* Info
-    )
-{
-    ULONG TypeIndex = 0;
-    ULONG Nested = 0;
-    PWSTR symbolName = NULL;
-
-    if (!PdbCheckTagType(BaseAddress, Index, SymTagEnum))
-        return FALSE;
-
-    // Name ("name" in DIA) 
-    if (!SymGetTypeInfo_I(NtCurrentProcess(), BaseAddress, Index, TI_GET_SYMNAME, &symbolName) || !symbolName)
-        return FALSE;
-
-    wcsncpy(Info->Name, symbolName, ARRAYSIZE(Info->Name));
-    Info->Name[ARRAYSIZE(Info->Name) - 1] = UNICODE_NULL;
-    LocalFree(symbolName);
-
-    // Type index ("typeId" in DIA)
-    if (!SymGetTypeInfo_I(NtCurrentProcess(), BaseAddress, Index, TI_GET_TYPEID, &TypeIndex))
-        return FALSE;
-
-    // Nested ("nested" in DIA) 
-    if (!SymGetTypeInfo_I(NtCurrentProcess(), BaseAddress, Index, TI_GET_NESTED, &Nested))
-        return FALSE;
-
-    // Enumerators 
-    if (!PdbGetSymbolEnumerations(BaseAddress, Index, Info->Enums, &Info->NumEnums, ARRAYSIZE(Info->Enums)))
-        return FALSE;
-
-    Info->TypeIndex = TypeIndex;
-    Info->Nested = (Nested != 0);
-
-    return TRUE;
-}
-
-BOOLEAN PdbGetSymbolArrayType(
-    _In_ ULONG64 BaseAddress,
-    _In_ ULONG Index,
-    _Inout_ ArrayTypeInfo* Info
-    )
-{
-    ULONG elementTypeIndex = 0;
-    ULONG64 length = 0;
-    ULONG indexTypeIndex = 0;
-
-    // Check if it is really SymTagArrayType 
-    if (!PdbCheckTagType(BaseAddress, Index, SymTagArrayType))
-        return FALSE;
-
-    // Element type index 
-    if (!PdbGetSymbolArrayElementTypeIndex(BaseAddress, Index, &elementTypeIndex))
-        return FALSE;
-
-    // Length ("length" in DIA) 
-    if (!SymGetTypeInfo_I(NtCurrentProcess(), BaseAddress, Index, TI_GET_LENGTH, &length))
-        return FALSE;
-
-    // Type index of the array index element 
-    if (!SymGetTypeInfo_I(NtCurrentProcess(), BaseAddress, Index, TI_GET_ARRAYINDEXTYPEID, &indexTypeIndex))
-        return FALSE;
-
-    Info->ElementTypeIndex = elementTypeIndex;
-    Info->Length = length;
-    Info->IndexTypeIndex = indexTypeIndex;
-
-    if (length > 0)
+    switch (var.vt)
     {
-        if (!PdbGetSymbolArrayDimensions(
-            BaseAddress,
-            Index, 
-            Info->Dimensions,
-            &Info->NumDimensions, 
-            ARRAYSIZE(Info->Dimensions)
-            ) || (Info->NumDimensions == 0))
+    case VT_UI1:
+    case VT_I1:
+        PhAppendFormatStringBuilder(StringBuilder, L" 0x%X", var.bVal);
+        break;
+    case VT_I2:
+    case VT_UI2:
+    case VT_BOOL:
+        PhAppendFormatStringBuilder(StringBuilder, L" 0x%X", var.iVal);
+        break;
+    case VT_I4:
+    case VT_UI4:
+    case VT_INT:
+    case VT_UINT:
+    case VT_ERROR:
+        PhAppendFormatStringBuilder(StringBuilder, L" 0x%X", var.lVal);
+        break;
+    case VT_R4:
+        PhAppendFormatStringBuilder(StringBuilder, L" %g", var.fltVal);
+        break;
+    case VT_R8:
+        PhAppendFormatStringBuilder(StringBuilder, L" %g", var.dblVal);
+        break;
+    case VT_BSTR:
+        PhAppendFormatStringBuilder(StringBuilder, L" \"%s\"", var.bstrVal);
+        break;
+    default:
+        PhAppendStringBuilder2(StringBuilder, L" ??");
+    }
+}
+
+VOID PrintLocation(
+    _In_ PPH_STRING_BUILDER StringBuilder,
+    _In_ IDiaSymbol* IDiaSymbol)
+{
+    ULONG dwLocType;
+    ULONG dwRVA;
+    ULONG dwSect;
+    ULONG dwOff;
+    ULONG dwReg;
+    ULONG dwBitPos;
+    ULONG dwSlot;
+    LONG lOffset;
+    ULONGLONG ulLen;
+    VARIANT vt = { VT_EMPTY };
+
+    if (IDiaSymbol_get_locationType(IDiaSymbol, &dwLocType) != S_OK)
+    {
+        PhAppendFormatStringBuilder(StringBuilder, L"symbol in optmized code");
+        return;
+    }
+
+    switch (dwLocType)
+    {
+    case LocIsStatic:
+        if ((IDiaSymbol_get_relativeVirtualAddress(IDiaSymbol, &dwRVA) == S_OK) &&
+            (IDiaSymbol_get_addressSection(IDiaSymbol, &dwSect) == S_OK) &&
+            (IDiaSymbol_get_addressOffset(IDiaSymbol, &dwOff) == S_OK))
         {
-            return FALSE;
+            PhAppendFormatStringBuilder(StringBuilder, L"%s, [%08X][%04X:%08X]", rgLocationTypeString[dwLocType], dwRVA, dwSect, dwOff);
         }
+        break;
+
+    case LocIsTLS:
+    case LocInMetaData:
+    case LocIsIlRel:
+        if ((IDiaSymbol_get_relativeVirtualAddress(IDiaSymbol, &dwRVA) == S_OK) &&
+            (IDiaSymbol_get_addressSection(IDiaSymbol, &dwSect) == S_OK) &&
+            (IDiaSymbol_get_addressOffset(IDiaSymbol, &dwOff) == S_OK))
+        {
+            PhAppendFormatStringBuilder(StringBuilder, L"%s, [%08X][%04X:%08X]", rgLocationTypeString[dwLocType], dwRVA, dwSect, dwOff);
+        }
+        break;
+
+    case LocIsRegRel:
+        if ((IDiaSymbol_get_registerId(IDiaSymbol, &dwReg) == S_OK) &&
+            (IDiaSymbol_get_offset(IDiaSymbol, &lOffset) == S_OK))
+        {
+            //PhAppendFormatStringBuilder(StringBuilder, L"%s Relative, [%08X]", SzNameC7Reg((USHORT)dwReg), lOffset);
+        }
+        break;
+
+    case LocIsThisRel:
+        if (IDiaSymbol_get_offset(IDiaSymbol, &lOffset) == S_OK) {
+            PhAppendFormatStringBuilder(StringBuilder, L"this+0x%X", lOffset);
+        }
+        break;
+
+    case LocIsBitField:
+        if ((IDiaSymbol_get_offset(IDiaSymbol, &lOffset) == S_OK) &&
+            (IDiaSymbol_get_bitPosition(IDiaSymbol, &dwBitPos) == S_OK) &&
+            (IDiaSymbol_get_length(IDiaSymbol, &ulLen) == S_OK)) {
+            PhAppendFormatStringBuilder(StringBuilder, L"this(bf)+0x%X:0x%X len(0x%X)", lOffset, dwBitPos, (ULONG)ulLen);
+        }
+        break;
+
+    case LocIsEnregistered:
+        {
+            if (IDiaSymbol_get_registerId(IDiaSymbol, &dwReg) == S_OK)
+            {
+                //PhAppendFormatStringBuilder(StringBuilder, L"enregistered %s", SzNameC7Reg((USHORT)dwReg));
+            }
+        }
+        break;
+    case LocIsSlot:
+        {
+            if (IDiaSymbol_get_slot(IDiaSymbol, &dwSlot) == S_OK)
+            {
+                PhAppendFormatStringBuilder(StringBuilder, L"%s, [%08X]", rgLocationTypeString[dwLocType], dwSlot);
+            }
+        }
+        break;
+    case LocIsConstant:
+        {
+            //PhAppendStringBuilder2(StringBuilder, L"constant");
+
+            if (IDiaSymbol_get_value(IDiaSymbol, &vt) == S_OK)
+            {
+                PrintVariant(StringBuilder, vt);
+
+                VariantClear((VARIANTARG*)&vt);
+            }
+        }
+        break;
+    case LocIsNull:
+        break;
+    default:
+        PhAppendFormatStringBuilder(StringBuilder, L"Error - invalid location type: 0x%X", dwLocType);
+        break;
+    }
+}
+
+VOID PrintName(
+    _In_ PPH_STRING_BUILDER StringBuilder,
+    _In_ IDiaSymbol* pSymbol
+    )
+{
+    BSTR bstrName;
+    BSTR bstrUndName;
+
+    if (IDiaSymbol_get_name(pSymbol, &bstrName) != S_OK)
+    {
+        PhAppendFormatStringBuilder(StringBuilder, L"(none)");
+        return;
+    }
+
+    if (IDiaSymbol_get_undecoratedName(pSymbol, &bstrUndName) == S_OK)
+    {
+        if (wcscmp(bstrName, bstrUndName) == 0)
+        {
+            PhAppendFormatStringBuilder(StringBuilder, L"%s", bstrName);
+        }
+        else
+        {
+            PhAppendFormatStringBuilder(StringBuilder, L"%s(%s)", bstrUndName, bstrName);
+        }
+
+        PhSymbolProviderFreeDiaString(bstrUndName);
     }
     else
     {
-        Info->NumDimensions = 0; // No dimensions 
+        PhAppendFormatStringBuilder(StringBuilder, L"%s", bstrName);
     }
 
-    return TRUE;
+    PhSymbolProviderFreeDiaString(bstrName);
 }
 
-_Success_(return)
-BOOLEAN SymbolInfo_DumpUDT(
-    _In_ ULONG64 BaseAddress,
-    _In_ ULONG Index,
-    _Inout_ TypeInfo* Info
+VOID PrintData(
+    _In_ PPH_STRING_BUILDER StringBuilder,
+    _In_ IDiaSymbol* IDiaSymbol
     )
 {
-    ULONG UDTKind = 0;
-    BOOLEAN result = FALSE;
+    ULONG dwDataKind;
 
-    if (!PdbCheckTagType(BaseAddress, Index, SymTagUDT))
-        return FALSE;
+    //PrintLocation(StringBuilder, IDiaSymbol);
 
-    if (!SymGetTypeInfo_I(NtCurrentProcess(), BaseAddress, Index, TI_GET_UDTKIND, &UDTKind))
-        return FALSE;
-
-    switch (UDTKind)
+    if (IDiaSymbol_get_dataKind(IDiaSymbol, &dwDataKind) != S_OK)
     {
-    case UdtStruct:
-        Info->UdtKind = TRUE;
-        result = PdbGetSymbolUDTClass(BaseAddress, Index, &Info->UdtClassInfo);
-        break;
-    case UdtClass:
-        Info->UdtKind = TRUE;
-        result = PdbGetSymbolUDTClass(BaseAddress, Index, &Info->UdtClassInfo);
-        break;
-    case UdtUnion:
-        Info->UdtKind = FALSE;
-        result = PdbGetSymbolUDTUnion(BaseAddress, Index, &Info->UdtUnionInfo);
-        break;
+        PhAppendFormatStringBuilder(StringBuilder, L"ERROR - PrintData() get_dataKind");
+        return;
     }
 
-    return result;
+    PhAppendFormatStringBuilder(StringBuilder, L"%s", rgDataKind[dwDataKind]);
+    PrintSymbolType(StringBuilder, IDiaSymbol);
+
+    PhAppendFormatStringBuilder(StringBuilder, L", ");
+    PrintName(StringBuilder, IDiaSymbol);
+
+    PhAppendFormatStringBuilder(StringBuilder, L" = ");
+    PrintLocation(StringBuilder, IDiaSymbol);
 }
 
-BOOLEAN PdbGetSymbolUDTClass(
-    _In_ ULONG64 BaseAddress,
-    _In_ ULONG Index,
-    _Inout_ UdtClassInfo* Info
+VOID PrintUdtKind(
+    _In_ PPH_STRING_BUILDER StringBuilder,
+    _In_ IDiaSymbol* pSymbol
     )
 {
-    ULONG UDTKind = 0;
-    PWSTR symbolName = NULL;
-    ULONG64 Length = 0;
-    ULONG Nested = 0;
+    ULONG dwKind = 0;
 
-    if (!PdbCheckTagType(BaseAddress, Index, SymTagUDT))
-        return FALSE;
-
-    // Check if it is really a class or structure UDT ? 
-    if (!SymGetTypeInfo_I(NtCurrentProcess(), BaseAddress, Index, TI_GET_UDTKIND, &UDTKind))
-        return FALSE;
-
-    if ((UDTKind != UdtStruct) && (UDTKind != UdtClass))
-        return FALSE;
-
-    // Name ("name" in DIA) 
-    if (!SymGetTypeInfo_I(NtCurrentProcess(), BaseAddress, Index, TI_GET_SYMNAME, &symbolName) || !symbolName)
-        return FALSE;
-
-    wcsncpy(Info->Name, symbolName, ARRAYSIZE(Info->Name));
-    Info->Name[ARRAYSIZE(Info->Name) - 1] = UNICODE_NULL;
-    LocalFree(symbolName);
-
-    // Length ("length" in DIA) 
-    if (!SymGetTypeInfo_I(NtCurrentProcess(), BaseAddress, Index, TI_GET_LENGTH, &Length))
-        return FALSE;
-
-    // Nested ("nested" in DIA) 
-    if (!SymGetTypeInfo_I(NtCurrentProcess(), BaseAddress, Index, TI_GET_NESTED, &Nested))
-        return FALSE;
-
-    // Member variables 
-    if (!PdbGetSymbolUdtVariables(BaseAddress, Index, Info->Variables, &Info->NumVariables, ARRAYSIZE(Info->Variables)))
-        return FALSE;
-
-    // Member functions 
-    if (!PdbGetSymbolUdtFunctions(BaseAddress, Index, Info->Functions, &Info->NumFunctions, ARRAYSIZE(Info->Functions)))
-        return FALSE;
-
-    // Base classes 
-    if (!PdbGetSymbolUdtBaseClasses(BaseAddress, Index, Info->BaseClasses, &Info->NumBaseClasses, ARRAYSIZE(Info->BaseClasses)))
-        return FALSE;
-
-    Info->UDTKind = (UdtKind)UDTKind;
-    Info->Length = Length;
-    Info->Nested = (Nested != 0);
-
-    return TRUE;
+    if (IDiaSymbol_get_udtKind(pSymbol, &dwKind) == S_OK)
+    {
+        PhAppendFormatStringBuilder(StringBuilder, L"%s ", rgUdtKind[dwKind]);
+    }
 }
 
-BOOLEAN PdbGetSymbolUDTUnion(
-    _In_ ULONG64 BaseAddress,
-    _In_ ULONG Index,
-    _Inout_ UdtUnionInfo *Info
-    )
+VOID PrintType(
+    _In_ PPH_STRING_BUILDER StringBuilder,
+    _In_ IDiaSymbol* pSymbol)
 {
-    ULONG UDTKind = 0;
-    PWSTR symbolName = 0;
-    ULONG64 Length = 0;
-    ULONG Nested = 0;
+    //IDiaSymbol* pBaseType;
+    //IDiaEnumSymbols* pEnumSym;
+    //IDiaSymbol* pSym;
+    ULONG dwTag;
+    BSTR bstrName;
+    ULONG dwInfo;
+    BOOL bSet;
+    //ULONG dwRank;
+    //LONG lCount = 0;
+    //ULONG celt = 1;
+    ULONGLONG ulLen;
 
-    if (!PdbCheckTagType(BaseAddress, Index, SymTagUDT))
-        return FALSE;
-
-    // Check if it is really a union UDT ? 
-    if (!SymGetTypeInfo_I(NtCurrentProcess(), BaseAddress, Index, TI_GET_UDTKIND, &UDTKind))
-        return FALSE;
-
-    if (UDTKind != UdtUnion)
-        return FALSE;
-
-    // Name ("name" in DIA) 
-    if (!SymGetTypeInfo_I(NtCurrentProcess(), BaseAddress, Index, TI_GET_SYMNAME, &symbolName) || !symbolName)
-        return FALSE;
-
-    wcsncpy(Info->Name, symbolName, ARRAYSIZE(Info->Name));
-    Info->Name[ARRAYSIZE(Info->Name) - 1] = UNICODE_NULL;
-    LocalFree(symbolName);
-
-    // Length ("length" in DIA) 
-    if (!SymGetTypeInfo_I(NtCurrentProcess(), BaseAddress, Index, TI_GET_LENGTH, &Length))
-        return FALSE;
-
-    // Nested ("nested" in DIA) 
-    if (!SymGetTypeInfo_I(NtCurrentProcess(), BaseAddress, Index, TI_GET_NESTED, &Nested))
-        return FALSE;
-
-    // Union members 
-    if (!PdbGetSymbolUdtUnionMembers(BaseAddress, Index, Info->Members, &Info->NumMembers, ARRAYSIZE(Info->Members)))
-        return FALSE;
-
-    Info->UDTKind = (UdtKind)UDTKind;
-    Info->Length = Length;
-    Info->Nested = (Nested != 0);
-
-    return TRUE;
-}
-
-BOOLEAN PdbGetSymbolFunctionType(
-    _In_ ULONG64 BaseAddress,
-    _In_ ULONG Index,
-    _Inout_ FunctionTypeInfo *Info
-    )
-{
-    ULONG RetTypeIndex = 0;
-    ULONG NumArgs = 0;
-    ULONG CallConv = 0;
-    ULONG ClassIndex = 0;
-
-    if (!PdbCheckTagType(BaseAddress, Index, SymTagFunctionType))
-        return FALSE;
-
-    // Index of the return type symbol ("typeId" in DIA)
-    if (!SymGetTypeInfo_I(NtCurrentProcess(), BaseAddress, Index, TI_GET_TYPEID, &RetTypeIndex))
-        return FALSE;
-
-    // Number of arguments ("count" in DIA) 
-    // Note: For non-static member functions, it includes "this" 
-    if (!SymGetTypeInfo_I(NtCurrentProcess(), BaseAddress, Index, TI_GET_COUNT, &NumArgs))
-        return FALSE;
-
-    // Do not save it in the data structure, since we obtain the number of arguments 
-    // again using FunctionArguments() (see below). 
-    // But later we will use this value to determine whether the function 
-    // is static or not (if it is a member function) 
-
-    // Calling convention ("callingConvention" in DIA) 
-    if (!SymGetTypeInfo_I(NtCurrentProcess(), BaseAddress, Index, TI_GET_CALLING_CONVENTION, &CallConv))
-        return FALSE;
-
-    // Parent class type index ("classParent" in DIA) 
-    if (!SymGetTypeInfo_I(NtCurrentProcess(), BaseAddress, Index, TI_GET_CLASSPARENTID, &ClassIndex))
+    if (IDiaSymbol_get_symTag(pSymbol, &dwTag) != S_OK)
     {
-        // The function is not a member function 
-        Info->ClassIndex = 0;
-        Info->MemberFunction = FALSE;
+        PhAppendStringBuilder2(StringBuilder, L"ERROR - can't retrieve the symbol's SymTag\n");
+        return;
     }
-    else
+    IDiaSymbol_get_length(pSymbol, &ulLen);
+
+    if (IDiaSymbol_get_name(pSymbol, &bstrName) != S_OK)
     {
-        // This is a member function of a class 
-        Info->ClassIndex = ClassIndex;
-        Info->MemberFunction = TRUE;
+        bstrName = NULL;
     }
 
-    // If this is a member function, obtain additional data 
-    if (Info->MemberFunction)
+    if (dwTag != SymTagPointerType)
     {
-        LONG ThisAdjust = 0;
-
-        // "this" adjustment ("thisAdjust" in DIA) 
-        if (!SymGetTypeInfo_I(NtCurrentProcess(), BaseAddress, Index, TI_GET_THISADJUST, &ThisAdjust))
-            return FALSE;
-
-        Info->ThisAdjust = ThisAdjust;
-    }
-
-    // Test for GetChildren()
-    /*
-        ULONG cMaxChildren = 4;
-        ULONG Children[cMaxChildren];
-        ULONG NumChildren = 0;
-
-        GetChildren( m_hProcess, BaseAddress, Index, Children, NumChildren, cMaxChildren)
-    */
-
-    // Dump function arguments 
-    if (!PdbGetSymbolFunctionArguments(BaseAddress, Index, Info->Args, &Info->NumArgs, ARRAYSIZE(Info->Args)))
-        return FALSE;
-
-    // Is the function static ? (If it is a member function) 
-    if (Info->MemberFunction)
-    {
-        // The function is static if the value of Count property 
-        // it the same as the number of child FunctionArgType symbols 
-        Info->StaticFunction = (NumArgs == Info->NumArgs);
-    }
-
-    Info->RetTypeIndex = RetTypeIndex;
-    Info->CallConv = (CV_call_e)CallConv;
-
-    return TRUE;
-}
-
-BOOLEAN PdbGetSymbolFunctionArgType(
-    _In_ ULONG64 BaseAddress,
-    _In_ ULONG Index,
-    _Inout_ FunctionArgTypeInfo *Info
-    )
-{
-    ULONG typeIndex = 0;
-
-    if (!PdbCheckTagType(BaseAddress, Index, SymTagFunctionArgType))
-        return FALSE;
-
-    // Index of the argument type ("typeId" in DIA)
-    if (!SymGetTypeInfo_I(NtCurrentProcess(), BaseAddress, Index, TI_GET_TYPEID, &typeIndex))
-        return FALSE;
-
-    Info->TypeIndex = typeIndex;
-
-    return TRUE;
-}
-
-BOOLEAN PdbGetSymbolBaseClass(
-    _In_ ULONG64 BaseAddress,
-    _In_ ULONG Index,
-    _Inout_ BaseClassInfo *Info
-    )
-{
-    ULONG typeIndex = 0;
-    ULONG virtualBase = 0;
-
-    if (!PdbCheckTagType(BaseAddress, Index, SymTagBaseClass))
-        return FALSE;
-
-    // Base class UDT 
-    if (!SymGetTypeInfo_I(
-        NtCurrentProcess(),
-        BaseAddress,
-        Index,
-        TI_GET_TYPEID,
-        &typeIndex
-        ))
-    {
-        return FALSE;
-    }
-
-    // Is this base class virtual ? 
-    if (!SymGetTypeInfo_I(
-        NtCurrentProcess(),
-        BaseAddress,
-        Index,
-        TI_GET_VIRTUALBASECLASS,
-        &virtualBase
-        ))
-    {
-        return FALSE;
-    }
-
-    Info->TypeIndex = typeIndex;
-    Info->Virtual = (virtualBase != 0);
-
-    if (virtualBase)
-    {
-        ULONG virtualBasePtrOffset = 0;
-
-        // Virtual base pointer offset
-        if (!SymGetTypeInfo_I(
-            NtCurrentProcess(),
-            BaseAddress,
-            Index,
-            TI_GET_VIRTUALBASEPOINTEROFFSET,
-            &virtualBasePtrOffset
-            ))
+        if ((IDiaSymbol_get_constType(pSymbol, &bSet) == S_OK) && bSet)
         {
-            return FALSE;
+            PhAppendStringBuilder2(StringBuilder, L"const ");
         }
 
-        Info->Offset = 0;
-        Info->VirtualBasePointerOffset = virtualBasePtrOffset;
-    }
-    else
-    {
-        ULONG offset = 0;
-
-        // Offset in the parent UDT 
-        if (!SymGetTypeInfo_I(
-            NtCurrentProcess(),
-            BaseAddress,
-            Index,
-            TI_GET_OFFSET,
-            &offset
-            ))
+        if ((IDiaSymbol_get_volatileType(pSymbol, &bSet) == S_OK) && bSet)
         {
-            return FALSE;
+            PhAppendStringBuilder2(StringBuilder, L"volatile ");
         }
 
-        Info->Offset = offset;
-        Info->VirtualBasePointerOffset = 0;
+        if ((IDiaSymbol_get_unalignedType(pSymbol, &bSet) == S_OK) && bSet)
+        {
+            PhAppendStringBuilder2(StringBuilder, L"__unaligned ");
+        }
     }
 
-    return TRUE;
-}
-
-BOOLEAN PdbGetSymbolData(
-    _In_ ULONG64 BaseAddress,
-    _In_ ULONG Index,
-    _Inout_ DataInfo *Info
-    )
-{
-    PWSTR symbolName = NULL;
-    ULONG TypeIndex = 0;
-    ULONG dataKind = 0;
-
-    if (!PdbCheckTagType(BaseAddress, Index, SymTagData))
-        return FALSE;
-
-    // Name ("name" in DIA) 
-    if (!SymGetTypeInfo_I(NtCurrentProcess(), BaseAddress, Index, TI_GET_SYMNAME, &symbolName) || !symbolName)
-        return FALSE;
-
-    wcsncpy(Info->Name, symbolName, ARRAYSIZE(Info->Name));
-    Info->Name[ARRAYSIZE(Info->Name) - 1] = UNICODE_NULL;
-    LocalFree(symbolName);
-
-    // Index of type symbol ("typeId" in DIA)
-    if (!SymGetTypeInfo_I(NtCurrentProcess(), BaseAddress, Index, TI_GET_TYPEID, &TypeIndex))
-        return FALSE;
-
-    // Data kind ("dataKind" in DIA)
-    if (!SymGetTypeInfo_I(NtCurrentProcess(), BaseAddress, Index, TI_GET_DATAKIND, &dataKind))
-        return FALSE;
-
-    Info->TypeIndex = TypeIndex;
-    Info->dataKind = (DataKind)dataKind;
-
-    switch (dataKind)
+    switch (dwTag)
     {
-    case DataIsGlobal:
-    case DataIsStaticLocal:
-    case DataIsFileStatic:
-    case DataIsStaticMember:
+    case SymTagUDT:
+        //PrintUdtKind(pSymbol);
+        PrintName(StringBuilder, pSymbol);
+        break;
+
+    case SymTagEnum:
+        PhAppendStringBuilder2(StringBuilder, L"enum ");
+        PrintName(StringBuilder, pSymbol);
+        break;
+
+    case SymTagFunctionType:
+        PhAppendStringBuilder2(StringBuilder, L"function ");
+        break;
+
+    case SymTagPointerType:
+        //if (pSymbol->get_type(&pBaseType) != S_OK) {
+        //    wprintf(L"ERROR - SymTagPointerType get_type");
+        //    if (bstrName != NULL) {
+        //        SysFreeString(bstrName);
+        //    }
+        //    return;
+        //}
+        //PrintType(StringBuilder, pBaseType);
+        ////pBaseType->Release();
+        //if ((pSymbol->get_reference(&bSet) == S_OK) && bSet) {
+        //    PhAppendStringBuilder2(StringBuilder, L" &");
+        //}
+        //else {
+        //    PhAppendStringBuilder2(StringBuilder, L" *");
+        //}
+        //if ((pSymbol->get_constType(&bSet) == S_OK) && bSet) {
+        //    wprintf(L" const");
+        //}
+        //if ((pSymbol->get_volatileType(&bSet) == S_OK) && bSet) {
+        //    wprintf(L" volatile");
+        //}
+        //if ((pSymbol->get_unalignedType(&bSet) == S_OK) && bSet) {
+        //    wprintf(L" __unaligned");
+        //}
+        break;
+
+    case SymTagArrayType:
+   /*     if (pSymbol->get_type(&pBaseType) == S_OK) {
+            PrintType(pBaseType);
+
+            if (pSymbol->get_rank(&dwRank) == S_OK) {
+                if (SUCCEEDED(pSymbol->findChildren(SymTagDimension, NULL, nsNone, &pEnumSym)) && (pEnumSym != NULL)) {
+                    while (SUCCEEDED(pEnumSym->Next(1, &pSym, &celt)) && (celt == 1)) {
+                        IDiaSymbol* pBound;
+
+                        wprintf(L"[");
+
+                        if (pSym->get_lowerBound(&pBound) == S_OK) {
+                            PrintBound(pBound);
+
+                            wprintf(L"..");
+
+                            pBound->Release();
+                        }
+
+                        pBound = NULL;
+
+                        if (pSym->get_upperBound(&pBound) == S_OK) {
+                            PrintBound(pBound);
+
+                            pBound->Release();
+                        }
+
+                        pSym->Release();
+                        pSym = NULL;
+
+                        wprintf(L"]");
+                    }
+
+                    pEnumSym->Release();
+                }
+            }
+
+            else if (SUCCEEDED(pSymbol->findChildren(SymTagCustomType, NULL, nsNone, &pEnumSym)) &&
+                     (pEnumSym != NULL) &&
+                     (pEnumSym->get_Count(&lCount) == S_OK) &&
+                     (lCount > 0)) {
+                while (SUCCEEDED(pEnumSym->Next(1, &pSym, &celt)) && (celt == 1)) {
+                    wprintf(L"[");
+                    PrintType(pSym);
+                    wprintf(L"]");
+
+                    pSym->Release();
+                }
+
+                pEnumSym->Release();
+            }
+
+            else {
+                DWORD dwCountElems;
+                ULONGLONG ulLenArray;
+                ULONGLONG ulLenElem;
+
+                if (pSymbol->get_count(&dwCountElems) == S_OK) {
+                    wprintf(L"[0x%X]", dwCountElems);
+                }
+
+                else if ((pSymbol->get_length(&ulLenArray) == S_OK) &&
+                         (pBaseType->get_length(&ulLenElem) == S_OK)) {
+                    if (ulLenElem == 0) {
+                        wprintf(L"[0x%lX]", (ULONG)ulLenArray);
+                    }
+
+                    else {
+                        wprintf(L"[0x%lX]", (ULONG)ulLenArray / (ULONG)ulLenElem);
+                    }
+                }
+            }
+
+            pBaseType->Release();
+        }
+
+        else {
+            wprintf(L"ERROR - SymTagArrayType get_type\n");
+            if (bstrName != NULL) {
+                SysFreeString(bstrName);
+            }
+            return;
+        }*/
+        break;
+
+    case SymTagBaseType:
         {
-            ULONG64 address = 0;
+            if (IDiaSymbol_get_baseType(pSymbol, &dwInfo) != S_OK)
+            {
+                PhAppendStringBuilder2(StringBuilder, L"SymTagBaseType get_baseType\n");
 
-            // Use Address; Offset is not defined
-            // Note: If it is DataIsStaticMember, then this is a static member of a class defined in another module 
-            // (it does not have an address in this module) 
+                if (bstrName)
+                {
+                    PhSymbolProviderFreeDiaString(bstrName);
+                }
+                return;
+            }
 
-            if (!SymGetTypeInfo_I(NtCurrentProcess(), BaseAddress, Index, TI_GET_ADDRESS, &address))
-                return FALSE;
+            switch (dwInfo)
+            {
+            case btUInt:
+                PhAppendStringBuilder2(StringBuilder, L"unsigned ");
+                __fallthrough;
+            case btInt:
+                {
+                    switch (ulLen)
+                    {
+                    case 1:
+                        {
+                            if (dwInfo == btInt)
+                            {
+                                PhAppendStringBuilder2(StringBuilder, L"signed ");
+                            }
 
-            Info->Address = address;
-            Info->Offset = 0;
+                            PhAppendStringBuilder2(StringBuilder, L"char");
+                        }
+                        break;
+                    case 2:
+                        PhAppendStringBuilder2(StringBuilder, L"short");
+                        break;
+                    case 4:
+                        PhAppendStringBuilder2(StringBuilder, L"int");
+                        break;
+                    case 8:
+                        PhAppendStringBuilder2(StringBuilder, L"__int64");
+                        break;
+                    }
+
+                    dwInfo = ULONG_MAX;
+                }
+                break;
+
+            case btFloat:
+                {
+                    switch (ulLen)
+                    {
+                    case 4:
+                        PhAppendStringBuilder2(StringBuilder, L"float");
+                        break;
+
+                    case 8:
+                        PhAppendStringBuilder2(StringBuilder, L"double");
+                        break;
+                    }
+
+                    dwInfo = ULONG_MAX;
+                }
+                break;
+            }
+
+            if (dwInfo == ULONG_MAX)
+                break;
+
+            PhAppendFormatStringBuilder(StringBuilder, L"%s", rgBaseType[dwInfo]);
+        }
+        break;
+    case SymTagTypedef:
+        {
+            PrintName(StringBuilder, pSymbol);
+        }
+        break;
+    case SymTagCustomType:
+        {
+            ULONG idOEM, idOEMSym;
+            ULONG cbData = 0;
+            ULONG count;
+
+            if (IDiaSymbol_get_oemId(pSymbol, &idOEM) == S_OK)
+            {
+                PhAppendFormatStringBuilder(StringBuilder, L"OEMId = %X, ", idOEM);
+            }
+
+            if (IDiaSymbol_get_oemSymbolId(pSymbol, &idOEMSym) == S_OK)
+            {
+                PhAppendFormatStringBuilder(StringBuilder, L"SymbolId = %X, ", idOEMSym);
+            }
+
+            if (IDiaSymbol_get_types(pSymbol, 0, &count, NULL) == S_OK)
+            {
+                IDiaSymbol** rgpDiaSymbols = PhAllocate(sizeof(IDiaSymbol*) * count);
+
+                if (IDiaSymbol_get_types(pSymbol, count, &count, rgpDiaSymbols) == S_OK)
+                {
+                    for (ULONG i = 0; i < count; i++)
+                    {
+                        PrintType(StringBuilder, rgpDiaSymbols[i]);
+
+                        IDiaSymbol_Release(rgpDiaSymbols[i]);
+                    }
+                }
+
+                PhFree(rgpDiaSymbols);
+            }
+
+            // print custom data
+
+            if ((IDiaSymbol_get_dataBytes(pSymbol, cbData, &cbData, NULL) == S_OK) && (cbData != 0))
+            {
+                PhAppendFormatStringBuilder(StringBuilder, L", Data: ");
+
+                BYTE* pbData = PhAllocate(cbData);
+
+                IDiaSymbol_get_dataBytes(pSymbol, cbData, &cbData, pbData);
+
+                for (ULONG i = 0; i < cbData; i++)
+                {
+                    PhAppendFormatStringBuilder(StringBuilder, L"0x%02X ", pbData[i]);
+                }
+
+                PhFree(pbData);
+            }
         }
         break;
 
-    case DataIsLocal:
-    case DataIsParam:
-    case DataIsObjectPtr:
-    case DataIsMember:
+    case SymTagData: // This really is member data, just print its location
+        PrintLocation(StringBuilder, pSymbol);
+        break;
+    }
+
+    if (bstrName)
+    {
+        PhSymbolProviderFreeDiaString(bstrName);
+    }
+}
+
+VOID PrintSymbolType(
+    _In_ PPH_STRING_BUILDER StringBuilder,
+    _In_ IDiaSymbol* Symbol
+    )
+{
+    IDiaSymbol* idiaSymbolType;
+
+    if (IDiaSymbol_get_type(Symbol, &idiaSymbolType) == S_OK)
+    {
+        PhAppendFormatStringBuilder(StringBuilder, L", Type: ");
+
+        PrintType(StringBuilder, idiaSymbolType);
+
+        IDiaSymbol_Release(idiaSymbolType);
+    }
+}
+
+VOID PrintUDT(
+    _In_ PPH_STRING_BUILDER StringBuilder,
+    _In_ IDiaSymbol* Symbol)
+{
+    PrintName(StringBuilder, Symbol);
+    PrintSymbolType(StringBuilder, Symbol);
+}
+
+VOID PrintTypeInDetail(
+    _In_ PPH_STRING_BUILDER StringBuilder,
+    _In_ IDiaSymbol* IDiaSymbolDetail,
+    _In_ ULONG dwIndent)
+{
+    IDiaSymbol* pType;
+    //IDiaSymbol* idiaSymbol;
+    ULONG dwSymTag;
+    ULONG dwSymTagType;
+    ULONG celt = 0;
+    //BOOL bFlag;
+
+    //if (dwIndent > MAX_TYPE_IN_DETAIL) {
+    //    return;
+    //}
+
+    if (IDiaSymbol_get_symTag(IDiaSymbolDetail, &dwSymTag) != S_OK)
+        return;
+
+    PrintSymTag(StringBuilder, dwSymTag);
+
+    for (ULONG i = 0; i < dwIndent; i++)
+        PhAppendCharStringBuilder(StringBuilder, L' ');
+
+    switch (dwSymTag)
+    {
+    case SymTagData:
         {
-            ULONG offset = 0;
+            PrintData(StringBuilder, IDiaSymbolDetail);
 
-            // Use Offset; Address is not defined
-            if (!SymGetTypeInfo_I(NtCurrentProcess(), BaseAddress, Index, TI_GET_OFFSET, &offset))
-                return FALSE;
+            if (IDiaSymbol_get_type(IDiaSymbolDetail, &pType) == S_OK)
+            {
+                if (IDiaSymbol_get_symTag(pType, &dwSymTagType) == S_OK)
+                {
+                    if (dwSymTagType == SymTagUDT)
+                    {
+                        PhAppendCharStringBuilder(StringBuilder, L'\n');
 
-            Info->Offset = offset;
-            Info->Address = 0;
+                        PrintTypeInDetail(StringBuilder, pType, dwIndent + 2);
+                    }
+                }
+
+                IDiaSymbol_Release(pType);
+            }
         }
+        break;
+
+    case SymTagTypedef:
+    case SymTagVTable:
+        PrintSymbolType(StringBuilder, IDiaSymbolDetail);
+        break;
+    case SymTagEnum:
+    case SymTagUDT:
+        {
+            IDiaEnumSymbols* idiaEnumSymbols;
+            IDiaSymbol* idiaSymbol;
+
+            PrintUDT(StringBuilder, IDiaSymbolDetail);
+
+            PhAppendCharStringBuilder(StringBuilder, L'\n');
+
+            if (IDiaSymbol_findChildren(IDiaSymbolDetail, SymTagNull, NULL, nsNone, &idiaEnumSymbols) == S_OK)
+            {
+                while (IDiaEnumSymbols_Next(idiaEnumSymbols, 1, &idiaSymbol, &celt) == S_OK && celt == 1)
+                {
+                    PrintTypeInDetail(StringBuilder, idiaSymbol, dwIndent + 2);
+
+                    IDiaSymbol_Release(idiaSymbol);
+                }
+
+                IDiaEnumSymbols_Release(idiaEnumSymbols);
+            }
+        }
+        break;
+    case SymTagFunction:
+        {
+            PrintName(StringBuilder, IDiaSymbolDetail);
+            //PrintFunctionType(pSymbol);
+        }
+        break;
+    case SymTagPointerType:
+        {
+            PrintName(StringBuilder, IDiaSymbolDetail);
+            //wprintf(L" has type ");
+            //PrintType(pSymbol);
+        }
+        break;
+    case SymTagArrayType:
+    case SymTagBaseType:
+    case SymTagFunctionArgType:
+    case SymTagUsingNamespace:
+    case SymTagCustom:
+    case SymTagFriend:
+        {
+            PrintName(StringBuilder, IDiaSymbolDetail);
+            //PrintSymbolType(pSymbol);
+        }
+        break;
+
+    case SymTagVTableShape:
+    case SymTagBaseClass:
+        {
+            PrintName(StringBuilder, IDiaSymbolDetail);
+
+            //if ((pSymbol->get_virtualBaseClass(&bFlag) == S_OK) && bFlag) {
+            //    IDiaSymbol* pVBTableType;
+            //    LONG ptrOffset;
+            //    DWORD dispIndex;
+
+            //    if ((pSymbol->get_virtualBaseDispIndex(&dispIndex) == S_OK) &&
+            //        (pSymbol->get_virtualBasePointerOffset(&ptrOffset) == S_OK)) {
+            //        wprintf(L" virtual, offset = 0x%X, pointer offset = %ld, virtual base pointer type = ", dispIndex, ptrOffset);
+
+            //        if (pSymbol->get_virtualBaseTableType(&pVBTableType) == S_OK) {
+            //            PrintType(pVBTableType);
+            //            pVBTableType->Release();
+            //        }
+
+            //        else {
+            //            wprintf(L"(unknown)");
+            //        }
+            //    }
+            //}
+
+            //else {
+            //    LONG offset;
+
+            //    if (pSymbol->get_offset(&offset) == S_OK) {
+            //        wprintf(L", offset = 0x%X", offset);
+            //    }
+            //}
+
+            //putwchar(L'\n');
+
+            //if (SUCCEEDED(pSymbol->findChildren(SymTagNull, NULL, nsNone, &idiaEnumSymbols))) {
+            //    while (SUCCEEDED(idiaEnumSymbols->Next(1, &idiaSymbol, &celt)) && (celt == 1)) {
+            //        PrintTypeInDetail(idiaSymbol, dwIndent + 2);
+            //        idiaSymbol->Release();
+            //    }
+
+            //    idiaEnumSymbols->Release();
+            //}
+        }
+        break;
+
+    case SymTagFunctionType:
+        {
+            if (IDiaSymbol_get_type(IDiaSymbolDetail , &pType) == S_OK)
+            {
+                PrintType(StringBuilder, pType);
+
+                IDiaSymbol_Release(pType);
+            }
+        }
+        break;
+
+    case SymTagThunk:
+      // Happens for functions which only have S_PROCREF
+        //PrintThunk(pSymbol);
         break;
 
     default:
-        Info->Address = 0;
-        Info->Offset = 0;
-        break;
+        PhAppendFormatStringBuilder(StringBuilder, L"ERROR - PrintTypeInDetail() invalid SymTag\n");
     }
 
-    return TRUE;
+    PhAppendCharStringBuilder(StringBuilder, L'\n');
 }
 
-_Success_(return)
-BOOLEAN SymbolInfo_DumpType(
-    _In_ ULONG64 BaseAddress,
-    _In_ ULONG Index,
-    _Inout_ TypeInfo *Info
+VOID PePdbPrintDiaSymbol(
+    _In_ PPDB_SYMBOL_CONTEXT Context,
+    _In_ IDiaSymbol* IDiaSymbol
     )
 {
-    ULONG tag = SymTagNull;
+    ULONG symbolTag = SymTagNull;
+    ULONG dwDataKind = DataIsUnknown;
+    ULONG symbolId = 0;
+    ULONG symbolRva = 0;
+    ULONG dwSeg = 0;
+    ULONG dwOff = 0;
+    ULONGLONG symbolLength = 0;
+    BSTR bstrName = NULL;
+    BSTR bstrUndname = NULL;
 
-    if (!SymGetTypeInfo_I(
-        NtCurrentProcess(),
-        BaseAddress,
-        Index,
-        TI_GET_SYMTAG,
-        &tag
-        ))
+    if (IDiaSymbol_get_symTag(IDiaSymbol, &symbolTag) != S_OK)
+        return;
+
+    IDiaSymbol_get_dataKind(IDiaSymbol, &dwDataKind);
+    IDiaSymbol_get_typeId(IDiaSymbol, &symbolId);
+    IDiaSymbol_get_relativeVirtualAddress(IDiaSymbol, &symbolRva);
+    IDiaSymbol_get_addressSection(IDiaSymbol, &dwSeg);
+    IDiaSymbol_get_addressOffset(IDiaSymbol, &dwOff);
+    IDiaSymbol_get_length(IDiaSymbol, &symbolLength);
+    IDiaSymbol_get_name(IDiaSymbol, &bstrName);
+
+    if (IDiaSymbol_get_undecoratedNameEx(IDiaSymbol, UNDNAME_COMPLETE, &bstrUndname) != S_OK)
     {
-        return FALSE;
+        IDiaSymbol_get_undecoratedName(IDiaSymbol, &bstrUndname);
     }
 
-    Info->Tag = (enum SymTagEnum)tag;
-
-    switch (tag)
+    switch (symbolTag)
     {
-    case SymTagBaseType:
-        return PdbGetSymbolBasicType(BaseAddress, Index, &Info->BaseTypeInfo);
-    case SymTagPointerType:
-        return PdbGetSymbolPointerType(BaseAddress, Index, &Info->PointerTypeInfo);
-    case SymTagTypedef:
-        return PdbGetSymbolTypedefType(BaseAddress, Index, &Info->TypedefInfo);
-    case SymTagEnum:
-        return PdbGetSymbolEnumType(BaseAddress, Index, &Info->EnumInfo);
-    case SymTagArrayType:
-        return PdbGetSymbolArrayType(BaseAddress, Index, &Info->ArrayTypeInfo);
-    case SymTagUDT:
-        return SymbolInfo_DumpUDT(BaseAddress, Index, Info);
-    case SymTagFunctionType:
-        return PdbGetSymbolFunctionType(BaseAddress, Index, &Info->FunctionTypeInfo);
-    case SymTagFunctionArgType:
-        return PdbGetSymbolFunctionArgType(BaseAddress, Index, &Info->FunctionArgTypeInfo);
-    case SymTagBaseClass:
-        return PdbGetSymbolBaseClass(BaseAddress, Index, &Info->BaseClassInfo);
-    case SymTagData:
-        return PdbGetSymbolData(BaseAddress, Index, &Info->DataInfo);
-    }
-
-    return FALSE;
-}
-
-BOOLEAN SymbolInfo_DumpSymbolType(
-    _Inout_ PPDB_SYMBOL_CONTEXT Context,
-    _In_ ULONG Index,
-    _Inout_ TypeInfo *Info,
-    _Inout_ ULONG *TypeIndex
-    )
-{
-    // Obtain the index of the symbol's type symbol
-    if (!SymGetTypeInfo_I(NtCurrentProcess(), Context->BaseAddress, Index, TI_GET_TYPEID, &TypeIndex))
-        return FALSE;
-
-    // Dump the type symbol 
-    return SymbolInfo_DumpType(Context->BaseAddress, *TypeIndex, Info);
-}
-
-BOOLEAN PdbCheckTagType(
-    _In_ ULONG64 BaseAddress,
-    _In_ ULONG Index,
-    _In_ ULONG Tag
-    )
-{
-    ULONG symTag = SymTagNull;
-
-    if (!SymGetTypeInfo_I(NtCurrentProcess(), BaseAddress, Index, TI_GET_SYMTAG, &symTag))
-        return FALSE;
-
-    return symTag == Tag;
-}
-
-BOOLEAN PdbGetSymbolSize(
-    _In_ ULONG64 BaseAddress,
-    _In_ ULONG Index,
-    _Inout_ ULONG64* Size
-    )
-{
-    ULONG index;
-    ULONG64 length = 0;
-
-    // Does the symbol support "length" property ? 
-    if (SymGetTypeInfo_I(NtCurrentProcess(), BaseAddress, Index, TI_GET_LENGTH, &length))
-    {
-        *Size = length;
-        return TRUE;
-    }
-    else
-    {
-        // No, it does not - it can be SymTagTypedef 
-        if (!PdbCheckTagType(BaseAddress, Index, SymTagTypedef))
-        {
-            // No, this symbol does not have length 
-            return FALSE;
-        }
-        else
-        {
-            // Yes, it is a SymTagTypedef - skip to its underlying type 
-            index = Index;
-
-            do
-            {
-                ULONG tempIndex = 0;
-
-                if (!SymGetTypeInfo_I(NtCurrentProcess(), BaseAddress, index, TI_GET_TYPEID, &tempIndex))
-                    return FALSE;
-
-                index = tempIndex;
-
-            } while (PdbCheckTagType(BaseAddress, index, SymTagTypedef));
-
-            // And get the length 
-            if (SymGetTypeInfo_I(NtCurrentProcess(), BaseAddress, index, TI_GET_LENGTH, &length))
-            {
-                *Size = length;
-                return TRUE;
-            }
-        }
-    }
-
-    return FALSE;
-}
-
-BOOLEAN PdbGetSymbolArrayElementTypeIndex(
-    _In_ ULONG64 BaseAddress,
-    _In_ ULONG ArrayIndex,
-    _Inout_ ULONG* ElementTypeIndex
-    )
-{
-    ULONG index;
-    ULONG elementIndex = 0;
-
-    if (!PdbCheckTagType(BaseAddress, ArrayIndex, SymTagArrayType))
-        return FALSE;
-
-    // Get the array element type 
-    if (!SymGetTypeInfo_I(NtCurrentProcess(), BaseAddress, ArrayIndex, TI_GET_TYPEID, &elementIndex))
-        return FALSE;
-
-    // If the array element type is SymTagArrayType, skip to its type 
-    index = elementIndex;
-
-    while (PdbCheckTagType(BaseAddress, elementIndex, SymTagArrayType))
-    {
-        if (!SymGetTypeInfo_I(NtCurrentProcess(), BaseAddress, index, TI_GET_TYPEID, &elementIndex))
-            return FALSE;
-
-        index = elementIndex;
-    }
-
-    // We have found the ultimate type of the array element 
-    *ElementTypeIndex = elementIndex;
-
-    return TRUE;
-}
-
-BOOLEAN PdbGetSymbolArrayDimensions(
-    _In_ ULONG64 BaseAddress,
-    _In_ ULONG Index,
-    _Inout_ ULONG64* pDims,
-    _Inout_ ULONG* Dims,
-    _In_ ULONG MaxDims
-    )
-{
-    ULONG index;
-    ULONG dimCount;
-
-    if (!PdbCheckTagType(BaseAddress, Index, SymTagArrayType))
-        return FALSE;
-
-    if (MaxDims <= 0)
-        return FALSE;
-
-    index = Index;
-    dimCount = 0;
-
-    for (ULONG i = 0; i < MaxDims; i++)
-    {
-        ULONG typeIndex = 0;
-        ULONG64 length = 0;
-        ULONG64 typeSize = 0;
-
-        // Length ("length" in DIA) 
-        if (!SymGetTypeInfo_I(NtCurrentProcess(), BaseAddress, index, TI_GET_LENGTH, &length) || (length == 0))
-            return FALSE;
-
-        // Size of the current dimension 
-        // (it is the size of its SymTagArrayType symbol divided by the size of its 
-        // type symbol, which can be another SymTagArrayType symbol or the array element symbol) 
-
-        // Its type 
-        if (!SymGetTypeInfo_I(NtCurrentProcess(), BaseAddress, index, TI_GET_TYPEID, &typeIndex))
-        {
-            // No type - we are done 
-            break;
-        }
-
-        // Size of its type 
-        if (!PdbGetSymbolSize(BaseAddress, typeIndex, &typeSize) || (typeSize == 0))
-            return FALSE;
-
-        // Size of the dimension 
-        pDims[i] = length / typeSize;
-        dimCount++;
-
-        /*
-        ULONG ElemCount = 0;
-        if( !SymGetTypeInfo_I(NtCurrentProcess(), BaseAddress, CurIndex, TI_GET_COUNT, &ElemCount))
-        {
-            // and continue ...
-        }
-        else if( ElemCount != pDims[i] )
-        {
-            _ASSERTE( !_T("TI_GET_COUNT does not match.") );
-        }*/
-
-        // If the type symbol is not SymTagArrayType, we are done 
-        if (!PdbCheckTagType(BaseAddress, typeIndex, SymTagArrayType))
-            break;
-
-        index = typeIndex;
-    }
-
-    if (dimCount == 0)
-        return FALSE;
-
-    *Dims = dimCount;
-
-    return TRUE;
-}
-
-BOOLEAN PdbGetSymbolChildren(
-    _In_ ULONG64 BaseAddress,
-    _In_ ULONG Index,
-    _Inout_ ULONG* Count,
-    _Inout_ TI_FINDCHILDREN_PARAMS **Params
-    )
-{
-    ULONG length;
-    ULONG symbolCount = 0;
-    TI_FINDCHILDREN_PARAMS* symbols;
-    
-    if (!SymGetTypeInfo_I(
-        NtCurrentProcess(),
-        BaseAddress,
-        Index,
-        TI_GET_CHILDRENCOUNT,
-        &symbolCount
-        ))
-    {
-        return FALSE;
-    }
-
-    if (symbolCount == 0)
-        return TRUE;
-
-    length = sizeof(TI_FINDCHILDREN_PARAMS) + symbolCount * sizeof(ULONG);
-    symbols = _malloca(length);
-    memset(symbols, 0, length);
-
-    symbols->Count = symbolCount;
-
-    if (!SymGetTypeInfo_I(NtCurrentProcess(), BaseAddress, Index, TI_FINDCHILDREN, symbols))
-        return FALSE;
-
-    *Count = symbolCount;
-    *Params = symbols;
-
-    return TRUE;
-}
-
-BOOLEAN PdbGetSymbolUdtVariables(
-    _In_ ULONG64 BaseAddress,
-    _In_ ULONG Index,
-    _Inout_ ULONG* pVars,
-    _Inout_ ULONG* Vars,
-    _In_ ULONG MaxVars
-    )
-{
-    ULONG childrenLength = 0;
-    TI_FINDCHILDREN_PARAMS* symbolParams = NULL;
-
-    if (!PdbCheckTagType(BaseAddress, Index, SymTagUDT))
-        return FALSE;
-
-    if (MaxVars <= 0)
-        return FALSE;
-
-    if (!PdbGetSymbolChildren(BaseAddress, Index, &childrenLength, &symbolParams))
-        return FALSE;
-
-    *Vars = 0;
-
-    for (ULONG i = 0; i < childrenLength; i++)
-    {
-        if (PdbCheckTagType(BaseAddress, symbolParams->ChildId[i], SymTagData))
-        {
-            pVars[*Vars] = symbolParams->ChildId[i];
-
-            (*Vars)++;
-
-            if (*Vars == MaxVars)
-                break;
-        }
-    }
-
-    _freea(symbolParams);
-
-    return TRUE;
-}
-
-BOOLEAN PdbGetSymbolUdtFunctions(
-    _In_ ULONG64 BaseAddress,
-    _In_ ULONG Index,
-    _Inout_ ULONG* pFuncs,
-    _Inout_ ULONG* Funcs,
-    _In_ ULONG MaxFuncs
-    )
-{
-    ULONG childrenLength = 0;
-    TI_FINDCHILDREN_PARAMS* symbolParams = NULL;
-
-    if (!PdbCheckTagType(BaseAddress, Index, SymTagUDT))
-        return FALSE;
-
-    if (MaxFuncs <= 0)
-        return FALSE;
-
-    if (!PdbGetSymbolChildren(BaseAddress, Index, &childrenLength, &symbolParams))
-        return FALSE;
-
-    *Funcs = 0;
-
-    for (ULONG i = 0; i < childrenLength; i++)
-    {
-        if (PdbCheckTagType(BaseAddress, symbolParams->ChildId[i], SymTagFunction))
-        {
-            pFuncs[*Funcs] = symbolParams->ChildId[i];
-
-            (*Funcs)++;
-
-            if (*Funcs == MaxFuncs)
-                break;
-        }
-    }
-
-    return TRUE;
-}
-
-BOOLEAN PdbGetSymbolUdtBaseClasses(
-    _In_ ULONG64 BaseAddress,
-    _In_ ULONG Index,
-    _Inout_ ULONG* pBases,
-    _Inout_ ULONG* Bases,
-    _In_ ULONG MaxBases
-    )
-{
-    ULONG childrenLength = 0;
-    TI_FINDCHILDREN_PARAMS* symbolParams = NULL;
-
-    if (!PdbCheckTagType(BaseAddress, Index, SymTagUDT))
-        return FALSE;
-
-    if (MaxBases <= 0)
-        return FALSE;
-
-    if (!PdbGetSymbolChildren(BaseAddress, Index, &childrenLength, &symbolParams))
-        return FALSE;
-
-    *Bases = 0;
-
-    for (ULONG i = 0; i < childrenLength; i++)
-    {
-        if (PdbCheckTagType(BaseAddress, symbolParams->ChildId[i], SymTagBaseClass))
-        {
-            pBases[*Bases] = symbolParams->ChildId[i];
-
-            (*Bases)++;
-
-            if (*Bases == MaxBases)
-                break;
-        }
-    }
-
-    _freea(symbolParams);
-
-    return TRUE;
-}
-
-BOOLEAN PdbGetSymbolUdtUnionMembers(
-    _In_ ULONG64 BaseAddress,
-    _In_ ULONG Index,
-    _Inout_ ULONG* pMembers,
-    _Inout_ ULONG* Members,
-    _In_ ULONG MaxMembers
-    )
-{
-    ULONG childrenLength = 0;
-    TI_FINDCHILDREN_PARAMS* symbolParams = NULL;
-
-    if (!PdbCheckTagType(BaseAddress, Index, SymTagUDT))
-        return FALSE;
-
-    if (MaxMembers <= 0)
-        return FALSE;
-
-    if (!PdbGetSymbolChildren(BaseAddress, Index, &childrenLength, &symbolParams))
-        return FALSE;
-
-    *Members = 0;
-
-    for (ULONG i = 0; i < childrenLength; i++)
-    {
-        if (PdbCheckTagType(BaseAddress, symbolParams->ChildId[i], SymTagData))
-        {
-            pMembers[*Members] = symbolParams->ChildId[i];
-
-            (*Members)++;
-
-            if (*Members == MaxMembers)
-                break;
-        }
-    }
-
-    _freea(symbolParams);
-
-    return TRUE;
-}
-
-BOOLEAN PdbGetSymbolFunctionArguments(
-    _In_ ULONG64 BaseAddress,
-    _In_ ULONG Index,
-    _Inout_ ULONG* pArgs,
-    _Inout_ ULONG* Args,
-    _In_ ULONG MaxArgs
-    )
-{
-    ULONG childrenLength = 0;
-    TI_FINDCHILDREN_PARAMS* symbolParams = NULL;
-
-    if (!PdbCheckTagType(BaseAddress, Index, SymTagFunctionType))
-        return FALSE;
-
-    if (MaxArgs <= 0)
-        return FALSE;
-
-    if (!PdbGetSymbolChildren(BaseAddress, Index, &childrenLength, &symbolParams))
-        return FALSE;
-
-    *Args = 0;
-
-    for (ULONG i = 0; i < childrenLength; i++)
-    {
-        if (PdbCheckTagType(BaseAddress, symbolParams->ChildId[i], SymTagFunctionArgType))
-        {
-            pArgs[*Args] = symbolParams->ChildId[i];
-
-            (*Args)++;
-
-            if (*Args == MaxArgs)
-                break;
-        }
-    }
-
-    _freea(symbolParams);
-
-    return TRUE;
-}
-
-BOOLEAN PdbGetSymbolEnumerations(
-    _In_ ULONG64 BaseAddress,
-    _In_ ULONG Index,
-    _Inout_ ULONG *pEnums,
-    _Inout_ ULONG *Enums,
-    _In_ ULONG MaxEnums
-    )
-{
-    ULONG childrenLength = 0;
-    TI_FINDCHILDREN_PARAMS* symbolParams = NULL;
-
-    if (!PdbCheckTagType(BaseAddress, Index, SymTagEnum))
-        return FALSE;
-
-    if (MaxEnums <= 0)
-        return FALSE;
-
-    if (!PdbGetSymbolChildren(BaseAddress, Index, &childrenLength, &symbolParams))
-        return FALSE;
-
-    *Enums = 0;
-
-    for (ULONG i = 0; i < childrenLength; i++)
-    {
-        if (PdbCheckTagType(BaseAddress, symbolParams->ChildId[i], SymTagData))
-        {
-            pEnums[*Enums] = symbolParams->ChildId[i];
-
-            (*Enums)++;
-
-            if (*Enums == MaxEnums)
-                break;
-        }
-    }
-
-    _freea(symbolParams);
-
-    return TRUE;
-}
-
-BOOLEAN PdbGetSymbolTypeDefTypeIndex(
-    _In_ ULONG64 BaseAddress,
-    _In_ ULONG Index,
-    _Inout_ ULONG *UndTypeIndex
-    )
-{
-    ULONG index;
-
-    if (!PdbCheckTagType(BaseAddress, Index, SymTagTypedef))
-        return FALSE;
-
-    // Skip to the type behind the type definition 
-    index = Index;
-
-    while (PdbCheckTagType(BaseAddress, index, SymTagTypedef))
-    {
-        if (!SymGetTypeInfo_I(NtCurrentProcess(), BaseAddress, index, TI_GET_TYPEID, UndTypeIndex))
-            return FALSE;
-
-        index = *UndTypeIndex;
-    }
-
-    return TRUE;
-}
-
-BOOLEAN PdbGetSymbolPointers(
-    _In_ ULONG64 BaseAddress,
-    _In_ ULONG Index,
-    _Inout_ ULONG *UndTypeIndex,
-    _Inout_ ULONG *NumPointers
-    )
-{
-    ULONG index;
-
-    if (!PdbCheckTagType(BaseAddress, Index, SymTagPointerType))
-        return FALSE;
-
-    // Skip to the type pointer points to 
-    *NumPointers = 0;
-    index = Index;
-
-    while (PdbCheckTagType(BaseAddress, index, SymTagPointerType))
-    {
-        if (!SymGetTypeInfo_I(NtCurrentProcess(), BaseAddress, index, TI_GET_TYPEID, UndTypeIndex))
-            return FALSE;
-
-        (*NumPointers)++;
-
-        index = *UndTypeIndex;
-    }
-
-    return TRUE;
-}
-
-BOOLEAN SymbolInfo_GetTypeNameHelper(
-    _In_ ULONG Index,
-    _Inout_ PPDB_SYMBOL_CONTEXT Obj,
-    _Out_ PWSTR *VarName,
-    _Inout_ PPH_STRING_BUILDER TypeName
-    )
-{
-    TypeInfo Info;
-
-    if (!SymbolInfo_DumpType(Obj->BaseAddress, Index, &Info))
-    {
-        return FALSE;
-    }
-    else
-    {
-        ULONG numPointers = 0;
-
-        if (Info.Tag == SymTagPointerType)
-        {
-            ULONG typeIndex = 0;
-
-            // Yes, get the number of * to show 
-            if (!PdbGetSymbolPointers(Obj->BaseAddress, Index, &typeIndex, &numPointers))
-                return FALSE;
-
-            // Get more information about the type the pointer points to                
-            if (!SymbolInfo_DumpType(Obj->BaseAddress, typeIndex, &Info))
-                return FALSE;
-
-            // Save the index of the type the pointer points to 
-            Index = typeIndex;
-
-            // ... and proceed with that type 
-        }
-
-        switch (Info.Tag)
-        {
-        case SymTagBaseType:
-            {
-                if (Info.BaseTypeInfo.Length == 0)
-                    break;
-
-                PhAppendStringBuilder2(TypeName, SymbolInfo_BaseTypeStr(Info.BaseTypeInfo.BaseType, Info.BaseTypeInfo.Length));
-                PhAppendStringBuilder2(TypeName, L" ");
-            }
-            break;
-        case SymTagTypedef:
-            PhAppendStringBuilder2(TypeName, Info.TypedefInfo.Name);
-            PhAppendStringBuilder2(TypeName, L" ");
-            break;
-        case SymTagUDT:
-            {
-                if (Info.UdtKind)
-                {
-                    // A class/structure 
-                    PhAppendStringBuilder2(TypeName, Info.UdtClassInfo.Name);
-                    PhAppendStringBuilder2(TypeName, L" ");
-
-                    // Add the UDT and its base classes to the collection of UDT indexes 
-                    PhAddItemList(Obj->UdtList, UlongToPtr(Index));
-                }
-                else
-                {
-                    // A union 
-                    PhAppendStringBuilder2(TypeName, Info.UdtUnionInfo.Name);
-                    PhAppendStringBuilder2(TypeName, L" ");
-                }
-            }
-            break;
-        case SymTagEnum:
-            PhAppendStringBuilder2(TypeName, Info.EnumInfo.Name);
-            break;
-        case SymTagFunctionType:
-            {
-                if (Info.FunctionTypeInfo.MemberFunction && Info.FunctionTypeInfo.StaticFunction)
-                    PhAppendStringBuilder2(TypeName, L"static ");
-
-                // return value 
-                if (!SymbolInfo_GetTypeNameHelper(Info.FunctionTypeInfo.RetTypeIndex, Obj, VarName, TypeName))
-                    return FALSE;
-
-                // calling convention
-                PhAppendStringBuilder2(TypeName, SymbolInfo_CallConvStr(Info.FunctionTypeInfo.CallConv));
-                PhAppendStringBuilder2(TypeName, L" ");
-
-                // If member function, save the class type index 
-                if (Info.FunctionTypeInfo.MemberFunction)
-                {
-                    PhAddItemList(Obj->UdtList, UlongToPtr(Info.FunctionTypeInfo.ClassIndex));
-
-                    /* 
-                      // It is not needed to print the class name here, because it is contained in the function name
-                      if (!SymbolInfo_GetTypeNameHelper(Info.sFunctionTypeInfo.ClassIndex, Obj, VarName, TypeName))
-                          return false;
-                      TypeName += "::");
-                    */
-                }
-
-                // Print name
-                PhAppendStringBuilder2(TypeName, *VarName);
-
-                // Print parameters 
-                PhAppendStringBuilder2(TypeName, L"(");
-
-                for (ULONG i = 0; i < Info.FunctionTypeInfo.NumArgs; i++)
-                {
-                    if (!SymbolInfo_GetTypeNameHelper(Info.FunctionTypeInfo.Args[i], Obj, VarName, TypeName))
-                        return FALSE;
-
-                    if (i < (Info.FunctionTypeInfo.NumArgs - 1))
-                        PhAppendStringBuilder2(TypeName, L", ");
-                }
-
-                PhAppendStringBuilder2(TypeName, L") ");
-
-                // Print "this" adjustment value 
-                if (Info.FunctionTypeInfo.MemberFunction && Info.FunctionTypeInfo.ThisAdjust != 0)
-                    PhAppendFormatStringBuilder(TypeName, L": this+%u ", Info.FunctionTypeInfo.ThisAdjust);
-            }
-            break;
-
-        case SymTagFunctionArgType:
-            {   
-                if (!SymbolInfo_GetTypeNameHelper(Info.FunctionArgTypeInfo.TypeIndex, Obj, VarName, TypeName))
-                    return FALSE;
-            }
-            break;
-        case SymTagArrayType:
-            {
-                // Print element type name 
-                if (!SymbolInfo_GetTypeNameHelper(Info.ArrayTypeInfo.ElementTypeIndex, Obj, VarName, TypeName))
-                    return FALSE;
-
-                PhAppendStringBuilder2(TypeName, L" ");
-
-                // Print dimensions 
-                for (ULONG i = 0; i < Info.ArrayTypeInfo.NumDimensions; i++)
-                    PhAppendFormatStringBuilder(TypeName, L"[%I64u]", Info.ArrayTypeInfo.Dimensions[i]);
-            }
-            break;
-        default:
-            {
-                PhAppendFormatStringBuilder(TypeName, L"Unknown+%lu", Info.Tag);
-            }
-            break;
-        }
-
-        // If it is a pointer, display * characters 
-        if (numPointers != 0)
-        {
-            for (ULONG i = 0; i < numPointers; i++)
-                PhAppendStringBuilder2(TypeName, L"*");
-        }
-    }
-
-    return TRUE;
-}
-
-PPH_STRING SymbolInfo_GetTypeName(
-    _Inout_ PPDB_SYMBOL_CONTEXT Context,
-    _In_ ULONG Index,
-    _In_ PWSTR VarName
-    )
-{
-    PWSTR typeVarName = NULL;
-    PH_STRING_BUILDER typeNamesb;
-
-    PhInitializeStringBuilder(&typeNamesb, 0x100);
-
-    if (VarName)
-        typeVarName = VarName;
-
-    if (!SymbolInfo_GetTypeNameHelper(Index, Context, &typeVarName, &typeNamesb))
-    {
-        PhDeleteStringBuilder(&typeNamesb);
-        return NULL;
-    }
-
-    return PhFinalStringBuilderString(&typeNamesb);
-}
-
-PWSTR SymbolInfo_TagStr(
-    _In_ enum SymTagEnum Tag
-    )
-{
-    switch (Tag)
-    {
-    case SymTagNull:
-        return L"Null";
-    case SymTagExe:
-        return L"Exe";
-    case SymTagCompiland:
-        return L"Compiland";
-    case SymTagCompilandDetails:
-        return L"CompilandDetails";
-    case SymTagCompilandEnv:
-        return L"CompilandEnv";
     case SymTagFunction:
-        return L"Function";
-    case SymTagBlock:
-        return L"Block";
-    case SymTagData:
-        return L"Data";
-    case SymTagAnnotation:
-        return L"Annotation";
-    case SymTagLabel:
-        return L"Label";
-    case SymTagPublicSymbol:
-        return L"PublicSymbol";
-    case SymTagUDT:
-        return L"UDT";
-    case SymTagEnum:
-        return L"Enum";
-    case SymTagFunctionType:
-        return L"FunctionType";
-    case SymTagPointerType:
-        return L"PointerType";
-    case SymTagArrayType:
-        return L"ArrayType";
-    case SymTagBaseType:
-        return L"BaseType";
-    case SymTagTypedef:
-        return L"Typedef";
-    case SymTagBaseClass:
-        return L"BaseClass";
-    case SymTagFriend:
-        return L"Friend";
-    case SymTagFunctionArgType:
-        return L"FunctionArgType";
-    case SymTagFuncDebugStart:
-        return L"FuncDebugStart";
-    case SymTagFuncDebugEnd:
-        return L"FuncDebugEnd";
-    case SymTagUsingNamespace:
-        return L"UsingNamespace";
-    case SymTagVTableShape:
-        return L"VTableShape";
-    case SymTagVTable:
-        return L"VTable";
-    case SymTagCustom:
-        return L"Custom";
-    case SymTagThunk:
-        return L"Thunk";
-    case SymTagCustomType:
-        return L"CustomType";
-    case SymTagManagedType:
-        return L"ManagedType";
-    case SymTagDimension:
-        return L"Dimension";
-    }
-
-    return L"UNKNOWN";
-
-}
-
-PWSTR SymbolInfo_BaseTypeStr(
-    _In_ BasicType Type, 
-    _In_ ULONG64 Length
-    )
-{
-    switch (Type)
-    {
-    case btNoType:
-        return L"";
-    case btVoid:
-        return L"void";
-    case btChar:
-        return L"char";
-    case btWChar:
-        return L"wchar_t";
-    case btInt:
         {
-            if (Length == 0)
-            {
-                return L"int";
-            }
-            else
-            {
-                if (Length == 1)
-                    return L"char";
-                else if (Length == 2)
-                    return L"short";
-                else
-                    return L"int";
-            }
-        }
-    case btUInt:
-        {
-            if (Length == 0)
-            {
-                return L"unsigned int";
-            }
-            else
-            {
-                if (Length == 1)
-                    return L"unsigned char";
-                else if (Length == 2)
-                    return L"unsigned short";
-                else
-                    return L"unsigned int";
-            }
-        }
-        break;
-    case btFloat:
-        {
-            if (Length == 0)
-            {
-                return L"float";
-            }
-            else
-            {
-                if (Length == 4)
-                    return L"float";
-                else
-                    return L"double";
-            }
-        }
-        break;
-    case btBCD:
-        return L"BCD";
-    case btBool:
-        return L"bool";
-    case btLong:
-        return L"long";
-    case btULong:
-        return L"unsigned long";
-    case btCurrency:
-        return L"Currency";
-    case btDate:
-        return L"Date";
-    case btVariant:
-        return L"Variant";
-    case btComplex:
-        return L"Complex";
-    case btBit:
-        return L"Bit";
-    case btBSTR:
-        return L"BSTR";
-    case btHresult:
-        return L"HRESULT";
-    }
-
-    return L"UNKNOWN";
-
-}
-
-PWSTR SymbolInfo_CallConvStr(
-    _In_ CV_call_e CallConv
-    )
-{
-    switch (CallConv)
-    {
-    case CV_CALL_NEAR_C:
-        return L"__cdecl";
-    case CV_CALL_FAR_C:
-        return L"FAR_C";
-    case CV_CALL_NEAR_PASCAL:
-        return L"NEAR_PASCAL";
-    case CV_CALL_FAR_PASCAL:
-        return L"FAR_PASCAL";
-    case CV_CALL_NEAR_FAST:
-        return L"__fastcall";
-    case CV_CALL_FAR_FAST:
-        return L"FAR_FAST";
-    case CV_CALL_SKIPPED:
-        return L"SKIPPED";
-    case CV_CALL_NEAR_STD:
-        return L"__stdcall";
-    case CV_CALL_FAR_STD:
-        return L"FAR_STD";
-    case CV_CALL_NEAR_SYS:
-        return L"__syscall";
-    case CV_CALL_FAR_SYS:
-        return L"FAR_SYS";
-    case CV_CALL_THISCALL:
-        return L"__thiscall";
-    case CV_CALL_MIPSCALL:
-        return L"MIPSCALL";
-    case CV_CALL_GENERIC:
-        return L"GENERIC";
-    case CV_CALL_ALPHACALL:
-        return L"ALPHACALL";
-    case CV_CALL_PPCCALL:
-        return L"PPCCALL";
-    case CV_CALL_SHCALL:
-        return L"SHCALL";
-    case CV_CALL_ARMCALL:
-        return L"ARMCALL";
-    case CV_CALL_AM33CALL:
-        return L"AM33CALL";
-    case CV_CALL_TRICALL:
-        return L"TRICALL";
-    case CV_CALL_SH5CALL:
-        return L"SH5CALL";
-    case CV_CALL_M32RCALL:
-        return L"M32RCALL";
-    case CV_CALL_RESERVED:
-        return L"RESERVED";
-    }
-
-    return L"UNKNOWN";
-
-}
-
-PWSTR SymbolInfo_DataKindFromSymbolInfo(
-    _In_ PSYMBOL_INFOW SymbolInfo
-    )
-{
-    ULONG dataKindType = 0;
-
-    if (!SymGetTypeInfo_I(NtCurrentProcess(), SymbolInfo->ModBase, SymbolInfo->Index, TI_GET_DATAKIND, &dataKindType))
-        return L"UNKNOWN";
-
-    return SymbolInfo_DataKindStr(dataKindType);
-}
-
-PWSTR SymbolInfo_DataKindStr(
-    _In_ DataKind SymDataKind
-    )
-{
-    switch (SymDataKind)
-    {
-    case DataIsLocal:
-        return L"LOCAL_VAR";
-    case DataIsStaticLocal:
-        return L"STATIC_LOCAL_VAR";
-    case DataIsParam:
-        return L"PARAMETER";
-    case DataIsObjectPtr:
-        return L"OBJECT_PTR";
-    case DataIsFileStatic:
-        return L"STATIC_VAR";
-    case DataIsGlobal:
-        return L"GLOBAL_VAR";
-    case DataIsMember:
-        return L"MEMBER";
-    case DataIsStaticMember:
-        return L"STATIC_MEMBER";
-    case DataIsConstant:
-        return L"CONSTANT";
-    }
-
-    return L"UNKNOWN";
-}
-
-VOID SymbolInfo_SymbolLocationStr(
-    _In_ PSYMBOL_INFOW SymbolInfo, 
-    _In_ PWSTR Buffer
-    )
-{
-    if (SymbolInfo->Flags & SYMFLAG_REGISTER)
-    {
-        PWSTR regString = SymbolInfo_RegisterStr(SymbolInfo->Register);
-
-        if (regString)
-            wcscpy(Buffer, regString);
-        else
-            _swprintf(Buffer, L"Reg+%u", SymbolInfo->Register);
-    }
-    else if (SymbolInfo->Flags & SYMFLAG_REGREL)
-    {
-        WCHAR szReg[32];
-        PWSTR regString = SymbolInfo_RegisterStr(SymbolInfo->Register);
-
-        if (regString)
-            wcscpy(szReg, regString);
-        else
-            _swprintf(szReg, L"Reg+%u", SymbolInfo->Register);
-
-        _swprintf(Buffer, L"%s+%I64u", szReg, SymbolInfo->Address);
-        //PhPrintPointer(Buffer, PTR_ADD_OFFSET(SymbolInfo->ModBase, SymbolInfo->Address));
-    }
-    else if (SymbolInfo->Flags & SYMFLAG_FRAMEREL)
-    {
-        wcscpy(Buffer, L"N/A");
-    }
-    else
-    {
-        if (SymbolInfo->Address)
-            PhPrintPointer(Buffer, PTR_SUB_OFFSET(SymbolInfo->Address, SymbolInfo->ModBase));
-    }
-}
-
-PWSTR SymbolInfo_RegisterStr(
-    _In_ CV_HREG_e RegCode
-    )
-{
-    switch (RegCode)
-    {
-    case CV_REG_EAX:
-        return L"EAX";
-    case CV_REG_ECX:
-        return L"ECX";
-    case CV_REG_EDX:
-        return L"EDX";
-    case CV_REG_EBX:
-        return L"EBX";
-    case CV_REG_ESP:
-        return L"ESP";
-    case CV_REG_EBP:
-        return L"EBP";
-    case CV_REG_ESI:
-        return L"ESI";
-    case CV_REG_EDI:
-        return L"EDI";
-    }
-
-    return L"Unknown";
-}
-
-PWSTR SymbolInfo_UdtKindStr(
-    _In_ UdtKind KindType
-    )
-{
-    switch (KindType)
-    {
-    case UdtStruct:
-        return L"STRUCT";
-    case UdtClass:
-        return L"CLASS";
-    case UdtUnion:
-        return L"UNION";
-    }
-
-    return L"UNKNOWN";
-}
-
-PWSTR SymbolInfo_LocationTypeStr(
-    _In_ LocationType LocType
-    )
-{
-    switch (LocType)
-    {
-    case LocIsNull:
-        return L"Null";
-    case LocIsStatic:
-        return L"Static";
-    case LocIsTLS:
-        return L"TLS";
-    case LocIsRegRel:
-        return L"RegRel";
-    case LocIsThisRel:
-        return L"ThisRel";
-    case LocIsEnregistered:
-        return L"Enregistered";
-    case LocIsBitField:
-        return L"BitField";
-    case LocIsSlot:
-        return L"Slot";
-    case LocIsIlRel:
-        return L"IlRel";
-    case LocInMetaData:
-        return L"MetaData";
-    case LocIsConstant:
-        return L"Constant";
-    }
-
-    return L"Unknown";
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-BOOL CALLBACK EnumCallbackProc(
-    _In_ PSYMBOL_INFOW SymbolInfo,
-    _In_ ULONG SymbolSize, 
-    _In_ PVOID Context
-    )
-{
-    if (SymbolInfo)
-    {
-        switch (SymbolInfo->Tag)
-        {
-        case SymTagFunction:
-            {
-                PPDB_SYMBOL_CONTEXT context = Context;
-                PPV_SYMBOL_NODE symbol;
-
-                symbol = PhAllocate(sizeof(PV_SYMBOL_NODE));
-                memset(symbol, 0, sizeof(PV_SYMBOL_NODE));
-
-                symbol->Type = PV_SYMBOL_TYPE_FUNCTION;
-                symbol->Address = SymbolInfo->Address;
-                symbol->Size = SymbolInfo->Size;
-                symbol->Name = PhCreateStringEx(SymbolInfo->Name, SymbolInfo->NameLen * sizeof(WCHAR));
-                symbol->Data = SymbolInfo_GetTypeName(
-                    context,
-                    SymbolInfo->TypeIndex, 
-                    SymbolInfo->Name
-                    );
-                SymbolInfo_SymbolLocationStr(SymbolInfo, symbol->Pointer);
-
-                PhAcquireQueuedLockExclusive(&SearchResultsLock);
-                PhAddItemList(SearchResults, symbol);
-                PhReleaseQueuedLockExclusive(&SearchResultsLock);
-
-                // Enumerate parameters and variables...
-                PdbDumpAddress(context, SymbolInfo->Address);
-            }
-            break;
-        case SymTagData:
-            {
-                PPDB_SYMBOL_CONTEXT context = Context;
-                PPV_SYMBOL_NODE symbol;
-                PWSTR symDataKind;
-                ULONG dataKindType = 0;
-
-                if (SymbolInfo->Address == 0)
-                    break;
-
-                if (!SymGetTypeInfo_I(
-                    NtCurrentProcess(),
-                    SymbolInfo->ModBase,
-                    SymbolInfo->Index,
-                    TI_GET_DATAKIND,
-                    &dataKindType
-                    ))
-                {
-                    break;
-                }
-
-                symDataKind = SymbolInfo_DataKindStr(dataKindType);
-
-                if (
-                    dataKindType == DataIsLocal ||
-                    dataKindType == DataIsParam ||
-                    dataKindType == DataIsObjectPtr
-                    )
-                {
-                    break;
-                }
-
-                symbol = PhAllocate(sizeof(PV_SYMBOL_NODE));
-                memset(symbol, 0, sizeof(PV_SYMBOL_NODE));
-
-                switch (dataKindType)
-                {
-                case DataIsLocal:
-                    {
-                        // TODO: The address variable is FUNCTION+OFFSET
-                        //SymbolInfo->Address = SymbolInfo->Address;
-                        symbol->Type = PV_SYMBOL_TYPE_LOCAL_VAR;
-                    }
-                    break;
-                case DataIsStaticLocal:
-                    symbol->Type = PV_SYMBOL_TYPE_STATIC_LOCAL_VAR;
-                    break;
-                case DataIsParam:
-                    symbol->Type = PV_SYMBOL_TYPE_PARAMETER;
-                    break;
-                case DataIsObjectPtr:
-                    symbol->Type = PV_SYMBOL_TYPE_OBJECT_PTR;
-                    break;
-                case DataIsFileStatic:
-                    symbol->Type = PV_SYMBOL_TYPE_STATIC_VAR;
-                    break;
-                case DataIsGlobal:
-                    symbol->Type = PV_SYMBOL_TYPE_GLOBAL_VAR;
-                    break;
-                case DataIsMember:
-                    symbol->Type = PV_SYMBOL_TYPE_STRUCT;
-                    break;
-                case DataIsStaticMember:
-                    symbol->Type = PV_SYMBOL_TYPE_STATIC_MEMBER;
-                    break;
-                case DataIsConstant:
-                    symbol->Type = PV_SYMBOL_TYPE_CONSTANT;
-                    break;
-                default:
-                    symbol->Type = PV_SYMBOL_TYPE_UNKNOWN;
-                    break;
-                }
-
-                symbol->Address = SymbolInfo->Address;
-                symbol->Size = SymbolInfo->Size;
-                symbol->Name = PhCreateStringEx(SymbolInfo->Name, SymbolInfo->NameLen * sizeof(WCHAR));
-                symbol->Data = SymbolInfo_GetTypeName(context, SymbolInfo->TypeIndex, SymbolInfo->Name);
-                SymbolInfo_SymbolLocationStr(SymbolInfo, symbol->Pointer);
-
-                PhAcquireQueuedLockExclusive(&SearchResultsLock);
-                PhAddItemList(SearchResults, symbol);
-                PhReleaseQueuedLockExclusive(&SearchResultsLock);
-            }
-            break;
-        default:
-            {
-                PPDB_SYMBOL_CONTEXT context = Context;
-                PPV_SYMBOL_NODE symbol;
-
-                if (SymbolInfo->Address == 0)
-                    break;
-
-                symbol = PhAllocate(sizeof(PV_SYMBOL_NODE));
-                memset(symbol, 0, sizeof(PV_SYMBOL_NODE));
-
-                symbol->Type = PV_SYMBOL_TYPE_SYMBOL;
-                symbol->Address = SymbolInfo->Address;
-                symbol->Size = SymbolInfo->Size;
-                symbol->Data = SymbolInfo_GetTypeName(context, SymbolInfo->TypeIndex, SymbolInfo->Name);
-                SymbolInfo_SymbolLocationStr(SymbolInfo, symbol->Pointer);
-
-                if (SymbolInfo->Name[0]) // HACK
-                {
-                    if (SymbolInfo->NameLen)
-                        symbol->Name = PhCreateStringEx(SymbolInfo->Name, SymbolInfo->NameLen * sizeof(WCHAR));
-                    else
-                        symbol->Name = PhCreateString(SymbolInfo->Name);
-                }
-
-                PhAcquireQueuedLockExclusive(&SearchResultsLock);
-                PhAddItemList(SearchResults, symbol);
-                PhReleaseQueuedLockExclusive(&SearchResultsLock);
-            }
-            break;
-        }
-    }
-
-    return TRUE;
-}
-
-VOID PrintClassInfo(
-    _In_ PPDB_SYMBOL_CONTEXT Context, 
-    _In_ ULONG Index, 
-    _In_ UdtClassInfo* Info
-    )
-{
-    //PPV_SYMBOL_NODE symbol;
-    //symbol = PhAllocate(sizeof(PV_SYMBOL_NODE));
-    //memset(symbol, 0, sizeof(PV_SYMBOL_NODE));
-    //symbol->Type = PV_SYMBOL_TYPE_CLASS;
-    //symbol->Address = VarInfo.sDataInfo.Address;
-    //symbol->Size = (ULONG)Info->Offset;
-    //symbol->Name = SymbolInfo_GetTypeName(Context, Index, Info->Name);// PhCreateString(SymbolInfo_UdtKindStr(Info->UDTKind));
-    //symbol->Data = SymbolInfo_GetTypeName(Context, Index, Info->Name);
-    //SymbolInfo_SymbolLocationStr(SymbolInfo, symbol->Pointer);
-    //Info.Nested
-    //if (PhEqualString2(symbol->Name, L"STRUCT", TRUE))
-    //    symbol->Type = PV_SYMBOL_TYPE_STRUCT;
-    //PhAcquireQueuedLockExclusive(&SearchResultsLock);
-    //PhAddItemList(SearchResults, symbol);
-    //PhReleaseQueuedLockExclusive(&SearchResultsLock);
-
-    for (ULONG i = 0; i < Info->NumVariables; i++)
-    {
-        TypeInfo VarInfo;
-
-        if (!SymbolInfo_DumpType(Context->BaseAddress, Info->Variables[i], &VarInfo))
-        {
-            // Continue
-        }
-        else if (VarInfo.Tag != SymTagData)
-        {
-            // Unexpected symbol tag.
-        }
-        else
-        {
-            //PPV_SYMBOL_NODE symbol;
-            //
-            //symbol = PhAllocate(sizeof(PV_SYMBOL_NODE));
-            //memset(symbol, 0, sizeof(PV_SYMBOL_NODE));
-            //
-            //symbol->Type = PV_SYMBOL_TYPE_MEMBER;
-            //
-            // Location 
-            switch (VarInfo.DataInfo.dataKind)
-            {
-            case DataIsGlobal:
-            case DataIsStaticLocal:
-            case DataIsFileStatic:
-            case DataIsStaticMember:
-                {
-                    //symbol->Address = VarInfo.sDataInfo.Address;
-                }
-                break;
-            case DataIsLocal:
-            case DataIsParam:
-            case DataIsObjectPtr:
-            case DataIsMember:
-                {
-                    //symbol->Address = VarInfo.sDataInfo.Offset;
-                }
-                break;
-            default:
-                break; // TODO Add support for constants
-            }
-          
-            //symbol->Size = (ULONG)VarInfo.sDataInfo.Offset;
-            //symbol->Name = PhCreateString(VarInfo.sDataInfo.Name);
-            //symbol->Data = SymbolInfo_GetTypeName(Context, VarInfo.sDataInfo.TypeIndex, VarInfo.sDataInfo.Name);
-            //SymbolInfo_SymbolLocationStr(SymbolInfo, symbol->Pointer);
-            //Info.Info.sUdtClassInfo.Nested  
-            //Info.Info.sUdtClassInfo.NumVariables
-            //PhAcquireQueuedLockExclusive(&SearchResultsLock);
-            //PhAddItemList(SearchResults, symbol);
-            //PhReleaseQueuedLockExclusive(&SearchResultsLock);
-        }
-    }
-
-    for (ULONG i = 0; i < Info->NumFunctions; i++)
-    {
-        TypeInfo VarInfo;
-
-        if (!SymbolInfo_DumpType(Context->BaseAddress, Info->Variables[i], &VarInfo))
-        {
-            // Continue
-        }
-        else if (VarInfo.Tag != SymTagFunction)
-        {
-            // Unexpected symbol tag.
-        }
-        else
-        {
+            PPDB_SYMBOL_CONTEXT context = Context;
             PPV_SYMBOL_NODE symbol;
 
-            symbol = PhAllocate(sizeof(PV_SYMBOL_NODE));
-            memset(symbol, 0, sizeof(PV_SYMBOL_NODE));
-
+            symbol = PhAllocateZero(sizeof(PV_SYMBOL_NODE));
+            symbol->UniqueId = symbolId;
             symbol->Type = PV_SYMBOL_TYPE_FUNCTION;
-            symbol->Address = VarInfo.DataInfo.Address;
-            symbol->Size = (ULONG)VarInfo.DataInfo.Offset;
-            symbol->Name = PhCreateString(VarInfo.DataInfo.Name);
-            symbol->Data = SymbolInfo_GetTypeName(Context, VarInfo.DataInfo.TypeIndex, VarInfo.DataInfo.Name);
-            //SymbolInfo_SymbolLocationStr(SymbolInfo, symbol->Pointer); 
-            // Info.Info.sUdtClassInfo.Nested
-            // Info.Info.sUdtClassInfo.NumVariables
+            symbol->Address = symbolRva;
+            symbol->Size = symbolLength;
+            symbol->Name = PhCreateString(bstrUndname ? bstrUndname : bstrName);
+
+            symbol->Data = PhCreateString(rgTags[symbolTag]);
+            //symbol->Data = SymbolInfo_GetTypeName(
+            //    context,
+            //    SymbolInfo->TypeIndex,
+            //    SymbolInfo->Name
+            //);
+            //SymbolInfo_SymbolLocationStr(SymbolInfo, symbol->Pointer);
+            PhPrintPointer(symbol->Pointer, UlongToPtr(symbolRva));
 
             PhAcquireQueuedLockExclusive(&SearchResultsLock);
             PhAddItemList(SearchResults, symbol);
             PhReleaseQueuedLockExclusive(&SearchResultsLock);
 
-            // Enumerate function parameters and local variables...
-            PdbDumpAddress(Context, VarInfo.DataInfo.Address);
+            // Enumerate parameters and variables...
+            PdbDumpAddress(context, symbolRva);
         }
-    }
-
-    for (ULONG i = 0; i < Info->NumBaseClasses; i++)
-    {
-        TypeInfo baseInfo;
-
-        if (!SymbolInfo_DumpType(Context->BaseAddress, Info->BaseClasses[i], &baseInfo))
+        break;
+    case SymTagData:
         {
-            // Continue
-        }
-        else if (baseInfo.Tag != SymTagBaseClass)
-        {
-            // Unexpected symbol tag
-        }
-        else
-        {
-            TypeInfo BaseUdtInfo;
+            PPDB_SYMBOL_CONTEXT context = Context;
+            PPV_SYMBOL_NODE symbol;
+            //PWSTR symDataKind;
+            //ULONG dataKindType = 0;
 
-            // Obtain the next base class 
-            if (!SymbolInfo_DumpType(Context->BaseAddress, baseInfo.BaseClassInfo.TypeIndex, &BaseUdtInfo))
+            //if (symbolRva == 0)
+            //    break;
+
+           /*
+            if (!SymGetTypeInfo_I(
+                NtCurrentProcess(),
+                SymbolInfo->ModBase,
+                SymbolInfo->Index,
+                TI_GET_DATAKIND,
+                &dataKindType
+                ))
             {
-                // Continue
+                break;
             }
-            else if (BaseUdtInfo.Tag != SymTagUDT)
+
+            symDataKind = SymbolInfo_DataKindStr(dataKindType);
+
+            if (
+                dataKindType == DataIsLocal ||
+                dataKindType == DataIsParam ||
+                dataKindType == DataIsObjectPtr
+                )
             {
-                // Unexpected symbol tag
-            }
-            else
+                break;
+            }*/
+
+            symbol = PhAllocate(sizeof(PV_SYMBOL_NODE));
+            memset(symbol, 0, sizeof(PV_SYMBOL_NODE));
+
+            switch (dwDataKind)
             {
-                if (baseInfo.BaseClassInfo.Virtual)
+            case DataIsLocal:
                 {
-                    //PhAddItemList(L"VIRTUAL_BASE_CLASS", BaseUdtInfo.sUdtClassInfo.Name)
+                    // TODO: The address variable is FUNCTION+OFFSET
+                    //SymbolInfo->Address = SymbolInfo->Address;
+                    symbol->Type = PV_SYMBOL_TYPE_LOCAL_VAR;
                 }
-                else
-                {
-                    //PhAddItemList(L"BASE_CLASS", BaseUdtInfo.sUdtClassInfo.Name)
-                }
+                break;
+            case DataIsStaticLocal:
+                symbol->Type = PV_SYMBOL_TYPE_STATIC_LOCAL_VAR;
+                break;
+            case DataIsParam:
+                symbol->Type = PV_SYMBOL_TYPE_PARAMETER;
+                break;
+            case DataIsObjectPtr:
+                symbol->Type = PV_SYMBOL_TYPE_OBJECT_PTR;
+                break;
+            case DataIsFileStatic:
+                symbol->Type = PV_SYMBOL_TYPE_STATIC_VAR;
+                break;
+            case DataIsGlobal:
+                symbol->Type = PV_SYMBOL_TYPE_GLOBAL_VAR;
+                break;
+            case DataIsMember:
+                symbol->Type = PV_SYMBOL_TYPE_STRUCT;
+                break;
+            case DataIsStaticMember:
+                symbol->Type = PV_SYMBOL_TYPE_STATIC_MEMBER;
+                break;
+            case DataIsConstant:
+                symbol->Type = PV_SYMBOL_TYPE_CONSTANT;
+                break;
+            default:
+                symbol->Type = PV_SYMBOL_TYPE_UNKNOWN;
+                break;
             }
+
+            symbol->UniqueId = symbolId;
+            symbol->Address = symbolRva;
+            symbol->Size = symbolLength;
+            symbol->Name = PhCreateString(bstrUndname ? bstrUndname : bstrName);
+            //PhCreateStringEx(SymbolInfo->Name, SymbolInfo->NameLen * sizeof(WCHAR));
+            symbol->Data = PhCreateString(rgTags[symbolTag]);
+            //symbol->Data = SymbolInfo_GetTypeName(context, SymbolInfo->TypeIndex, SymbolInfo->Name);
+            //SymbolInfo_SymbolLocationStr(SymbolInfo, symbol->Pointer);
+            PhPrintPointer(symbol->Pointer, UlongToPtr(symbolRva));
+
+            PhAcquireQueuedLockExclusive(&SearchResultsLock);
+            PhAddItemList(SearchResults, symbol);
+            PhReleaseQueuedLockExclusive(&SearchResultsLock);
         }
-    }
-}
-
-VOID PrintUserDefinedTypes(
-    _In_ PPDB_SYMBOL_CONTEXT Context
-    )
-{
-    ULONG i;
-    ULONG index;
-    TypeInfo info;
-
-    for (i = 0; i < Context->UdtList->Count; i++)
-    {
-        index = PtrToUlong(Context->UdtList->Items[i]);
-
-        if (SymbolInfo_DumpType(Context->BaseAddress, index, &info))
-        {
-            if (info.Tag == SymTagUDT)
-            {
-                if (info.UdtKind)
-                {
-                    // Print information about the class 
-                    PrintClassInfo(Context, index, &info.UdtClassInfo);
-
-                    // Print information about its base classes 
-                    for (ULONG i = 0; i < info.UdtClassInfo.NumBaseClasses; i++)
-                    {
-                        TypeInfo baseInfo;
-
-                        if (!SymbolInfo_DumpType(Context->BaseAddress, info.UdtClassInfo.BaseClasses[i], &baseInfo))
-                        {
-                            // Continue
-                        }
-                        else if (baseInfo.Tag != SymTagBaseClass)
-                        {
-                            // Continue
-                        }
-                        else
-                        {
-                            // Obtain information about the base class 
-                            TypeInfo baseUdtInfo;
-
-                            if (!SymbolInfo_DumpType(Context->BaseAddress, baseInfo.BaseClassInfo.TypeIndex, &baseUdtInfo))
-                            {
-                                // Continue
-                            }
-                            else if (baseUdtInfo.Tag != SymTagUDT)
-                            {
-                                // Continue
-                            }
-                            else
-                            {
-                                // Print information about the base class 
-                                PrintClassInfo(Context, baseInfo.BaseClassInfo.TypeIndex, &baseUdtInfo.UdtClassInfo);
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    //info.sUdtUnionInfo.Name
-                    //PhCreateString(SymbolInfo_UdtKindStr(Info->UDTKind));                                                               
-                    //SymbolInfo_GetTypeName(Context, index, info.sUdtUnionInfo.Name);
-                }
-            }
-        }
-    }
-}
-
-VOID ShowModuleSymbolInfo(
-    _In_ ULONG64 BaseAddress
-    )
-{
-    IMAGEHLP_MODULE64 info = { sizeof(IMAGEHLP_MODULE64) };
-
-    if (!SymGetModuleInfoW64_I(NtCurrentProcess(), BaseAddress, &info))
-        return;
-
-    switch (info.SymType)
-    {
-    case SymNone:
-        //PhCreateString(L"No symbols available for the module.");
-        break;
-    case SymExport:
-        //PhFormatString(L"Loaded Exports symbols, Type information: %s", info.TypeInfo ? L"Available" : L"Not available");
-        break;
-    case SymCoff:
-        //PhFormatString(L"Loaded COFF symbols, Type information: %s", info.TypeInfo ? L"Available" : L"Not available");
-        break;
-    case SymCv:
-        //PhFormatString(L"Loaded CodeView symbols, Type information: %s", info.TypeInfo ? L"Available" : L"Not available");
-        break;
-    case SymSym:
-        //PhFormatString(L"Loaded SYM symbols, Type information: %s", info.TypeInfo ? L"Available" : L"Not available");
-        break;
-    case SymVirtual:
-        //PhFormatString(L"Loaded Virtual symbols, Type information: %s", info.TypeInfo ? L"Available" : L"Not available");
-        break;
-    case SymPdb:
-        //PhFormatString(L"Loaded PDB symbols, Type information: %s", info.TypeInfo ? L"Available" : L"Not available");
-        break;
-    case SymDia:
-        //PhFormatString(L"Loaded DIA symbols, Type information: %s", info.TypeInfo ? L"Available" : L"Not available");
-        break;
-    case SymDeferred:
-        //PhCreateString(L"Loaded Deferred symbols"); // not actually loaded 
         break;
     default:
-        //PhCreateString(L"Error: Unknown symbol format.");
+        {
+            PPDB_SYMBOL_CONTEXT context = Context;
+            PPV_SYMBOL_NODE symbol;
+
+            //if (symbolRva == 0)
+            //    break;
+
+            symbol = PhAllocateZero(sizeof(PV_SYMBOL_NODE));
+            symbol->UniqueId = symbolId;
+            symbol->Type = PV_SYMBOL_TYPE_SYMBOL;
+            symbol->Address = symbolRva;
+            symbol->Size = symbolLength;
+            symbol->Name = PhCreateString(bstrUndname ? bstrUndname : bstrName);
+            symbol->Data = PhCreateString(rgTags[symbolTag]);
+            //symbol->Data = SymbolInfo_GetTypeName(context, SymbolInfo->TypeIndex, SymbolInfo->Name);
+            //SymbolInfo_SymbolLocationStr(SymbolInfo, symbol->Pointer);
+            PhPrintPointer(symbol->Pointer, UlongToPtr(symbolRva));
+
+            //if (SymbolInfo->Name[0]) // HACK
+            //{
+            //    if (SymbolInfo->NameLen)
+            //        symbol->Name = PhCreateStringEx(SymbolInfo->Name, SymbolInfo->NameLen * sizeof(WCHAR));
+            //    else
+            //        symbol->Name = PhCreateString(SymbolInfo->Name);
+            //}
+
+            PhAcquireQueuedLockExclusive(&SearchResultsLock);
+            PhAddItemList(SearchResults, symbol);
+            PhReleaseQueuedLockExclusive(&SearchResultsLock);
+        }
         break;
     }
 
-    //if (wcslen(info.ImageName) > 0)
-    //L"Image name: %s\n" info.ImageName
-    //if (wcslen(info.LoadedImageName) > 0)
-    //L"Loaded image name: %s\n" info.LoadedImageName
-    //if (wcslen(info.LoadedPdbName) > 0)
-    //L"PDB file name: %s\n" info.LoadedPdbName
-    // (It can only happen if the debug information is contained in a separate file (.DBG or .PDB) 
-    //if (info.PdbUnmatched || info.DbgUnmatched)
-    //    L"Warning: Unmatched symbols.
-
-    //PhaFormatString(L"Line numbers: %s\n", info.LineNumbers ? L"Available" : L"Not available")->Buffer
-    //PhaFormatString(L"Global symbols: %s\n", info.GlobalSymbols ? L"Available" : L"Not available")->Buffer
-    //PhaFormatString(L"Type information: %s\n", info.TypeInfo ? L"Available" : L"Not available")->Buffer
-    //PhaFormatString(L"Source indexing: %s\n", info.SourceIndexed ? L"Yes" : L"No")->Buffer
-    //PhaFormatString(L"Public symbols: %s\n", info.Publics ? L"Available" : L"Not available")->Buffer
+    if (bstrUndname)
+        PhSymbolProviderFreeDiaString(bstrUndname);
+    if (bstrName)
+        PhSymbolProviderFreeDiaString(bstrName);
 }
 
-BOOLEAN PepSymbolProviderInitialization(
-    VOID
+BOOLEAN DumpAllGlobals(
+    _In_ PPDB_SYMBOL_CONTEXT Context,
+    _In_ IDiaSymbol* IDiaGlobalSymbol
     )
 {
-#ifdef _WIN64
-    static PH_STRINGREF windowsKitsRootKeyName = PH_STRINGREF_INIT(L"Software\\Wow6432Node\\Microsoft\\Windows Kits\\Installed Roots");
-#else
-    static PH_STRINGREF windowsKitsRootKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows Kits\\Installed Roots");
-#endif
-    static PH_STRINGREF dbghelpFileName = PH_STRINGREF_INIT(L"dbghelp.dll");
-    static PH_STRINGREF symsrvFileName = PH_STRINGREF_INIT(L"symsrv.dll");
-    PVOID dbghelpHandle;
-    PVOID symsrvHandle;
-    HANDLE keyHandle;
+    IDiaEnumSymbols* idiaEnumSymbols;
+    IDiaSymbol* idiaSymbol;
+    enum SymTagEnum diaSymTags[] = { SymTagFunction, SymTagThunk, SymTagData };
+    ULONG count = 0;
 
-    if (PhFindLoaderEntry(NULL, NULL, &dbghelpFileName) &&
-        PhFindLoaderEntry(NULL, NULL, &symsrvFileName))
+    for (ULONG i = 0; i < RTL_NUMBER_OF(diaSymTags); i++)
     {
-        dbghelpHandle = PhGetLoaderEntryDllBase(L"dbghelp.dll");
-        SymInitializeW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymInitializeW", 0);
-        SymCleanup_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymCleanup", 0);
-        SymEnumSymbolsW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymEnumSymbolsW", 0);
-        SymEnumTypesW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymEnumTypesW", 0);
-        SymSetSearchPathW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymSetSearchPathW", 0);
-        SymGetOptions_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymGetOptions", 0);
-        SymSetOptions_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymSetOptions", 0);
-        SymLoadModuleExW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymLoadModuleExW", 0);
-        SymGetModuleInfoW64_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymGetModuleInfoW64", 0);
-        SymGetTypeFromNameW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymGetTypeFromNameW", 0);
-        SymGetTypeInfo_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymGetTypeInfo", 0);
-        SymSetContext_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymSetContext", 0);
-        SymSearchW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymSearchW", 0);
+        if (IDiaSymbol_findChildrenEx(IDiaGlobalSymbol, diaSymTags[i], NULL, nsNone, &idiaEnumSymbols) != S_OK)
+            continue;
 
-        if (SymInitializeW_I && SymCleanup_I && SymEnumSymbolsW_I && SymEnumTypesW_I && SymSetSearchPathW_I &&
-            SymGetOptions_I && SymSetOptions_I && SymLoadModuleExW_I && SymGetModuleInfoW64_I &&
-            SymGetTypeFromNameW_I && SymGetTypeInfo_I && SymSetContext_I && SymSearchW_I)
+        while (IDiaEnumSymbols_Next(idiaEnumSymbols, 1, &idiaSymbol, &count) == S_OK && count == 1)
         {
-            return TRUE;
-        }
-    }
+            PePdbPrintDiaSymbol(Context, idiaSymbol);
 
-    dbghelpHandle = NULL;
-    symsrvHandle = NULL;
-
-    if (NT_SUCCESS(PhOpenKey(
-        &keyHandle,
-        KEY_READ,
-        PH_KEY_LOCAL_MACHINE,
-        &windowsKitsRootKeyName,
-        0
-        )))
-    {
-        PPH_STRING winsdkPath;
-        PPH_STRING dbghelpName;
-        PPH_STRING symsrvName;
-
-        winsdkPath = PhQueryRegistryString(keyHandle, L"KitsRoot10"); // Windows 10 SDK
-
-        if (PhIsNullOrEmptyString(winsdkPath))
-            PhMoveReference(&winsdkPath, PhQueryRegistryString(keyHandle, L"KitsRoot81")); // Windows 8.1 SDK
-
-        if (PhIsNullOrEmptyString(winsdkPath))
-            PhMoveReference(&winsdkPath, PhQueryRegistryString(keyHandle, L"KitsRoot")); // Windows 8 SDK
-
-        if (!PhIsNullOrEmptyString(winsdkPath))
-        {
-#ifdef _WIN64
-            PhMoveReference(&winsdkPath, PhConcatStringRefZ(&winsdkPath->sr, L"\\Debuggers\\x64\\"));
-#else
-            PhMoveReference(&winsdkPath, PhConcatStringRefZ(&winsdkPath->sr, L"\\Debuggers\\x86\\"));
-#endif
+            IDiaSymbol_Release(idiaSymbol);
         }
 
-        if (winsdkPath)
-        {
-            if (dbghelpName = PhConcatStringRef2(&winsdkPath->sr, &dbghelpFileName))
-            {
-                dbghelpHandle = LoadLibrary(dbghelpName->Buffer);
-                PhDereferenceObject(dbghelpName);
-            }
-
-            if (symsrvName = PhConcatStringRef2(&winsdkPath->sr, &symsrvFileName))
-            {
-                symsrvHandle = LoadLibrary(symsrvName->Buffer);
-                PhDereferenceObject(symsrvName);
-            }
-
-            PhDereferenceObject(winsdkPath);
-        }
-
-        NtClose(keyHandle);
+        IDiaEnumSymbols_Release(idiaEnumSymbols);
     }
 
-    if (!dbghelpHandle)
-        dbghelpHandle = LoadLibrary(L"dbghelp.dll");
+    return TRUE;
+}
 
-    if (!symsrvHandle)
-        symsrvHandle = LoadLibrary(L"symsrv.dll");
+BOOLEAN DumpAllPublics(
+    _In_ PPDB_SYMBOL_CONTEXT Context,
+    _In_ IDiaSymbol* IDiaGlobalSymbol
+    )
+{
+    IDiaEnumSymbols* idiaEnumSymbols;
+    IDiaSymbol* idiaSymbol;
+    ULONG count = 0;
 
-    if (dbghelpHandle)
+    if (IDiaSymbol_findChildrenEx(IDiaGlobalSymbol, SymTagPublicSymbol, NULL, nsNone, &idiaEnumSymbols) != S_OK)
+        return FALSE;
+
+    while (IDiaEnumSymbols_Next(idiaEnumSymbols, 1, &idiaSymbol, &count) == S_OK && count == 1)
     {
-        SymInitializeW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymInitializeW", 0);
-        SymCleanup_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymCleanup", 0);
-        SymEnumSymbolsW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymEnumSymbolsW", 0);
-        SymEnumTypesW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymEnumTypesW", 0);
-        SymSetSearchPathW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymSetSearchPathW", 0);
-        SymGetOptions_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymGetOptions", 0);
-        SymSetOptions_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymSetOptions", 0);
-        SymLoadModuleExW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymLoadModuleExW", 0);
-        SymGetModuleInfoW64_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymGetModuleInfoW64", 0);
-        SymGetTypeFromNameW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymGetTypeFromNameW", 0);
-        SymGetTypeInfo_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymGetTypeInfo", 0);
-        SymSetContext_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymSetContext", 0);
-        SymSearchW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymSearchW", 0);
+        PePdbPrintDiaSymbol(Context, idiaSymbol);
+
+        IDiaSymbol_Release(idiaSymbol);
     }
 
-    if (SymInitializeW_I && SymCleanup_I && SymEnumSymbolsW_I && SymEnumTypesW_I && SymSetSearchPathW_I &&
-        SymGetOptions_I && SymSetOptions_I && SymLoadModuleExW_I && SymGetModuleInfoW64_I &&
-        SymGetTypeFromNameW_I && SymGetTypeInfo_I && SymSetContext_I && SymSearchW_I)
+    IDiaEnumSymbols_Release(idiaEnumSymbols);
+
+    return TRUE;
+}
+
+BOOLEAN DumpAllUDTs(
+    _In_ PPDB_SYMBOL_CONTEXT Context,
+    _In_ IDiaSymbol* IDiaGlobalSymbol
+    )
+{
+    IDiaEnumSymbols* idiaEnumSymbols;
+    IDiaSymbol* idiaSymbol;
+    ULONG count = 0;
+
+    if (IDiaSymbol_findChildrenEx(IDiaGlobalSymbol, SymTagUDT, NULL, nsNone, &idiaEnumSymbols) != S_OK)
+        return FALSE;
+
+    while (IDiaEnumSymbols_Next(idiaEnumSymbols, 1, &idiaSymbol, &count) == S_OK && count == 1)
     {
-        return TRUE;
+        PePdbPrintDiaSymbol(Context, idiaSymbol);
+        //PrintTypeInDetail(Context, idiaSymbol);
+
+        IDiaSymbol_Release(idiaSymbol);
     }
 
-    return FALSE;
+    IDiaEnumSymbols_Release(idiaEnumSymbols);
+
+    return TRUE;
+}
+
+BOOLEAN DumpAllEnums(
+    _In_ PPDB_SYMBOL_CONTEXT Context,
+    _In_ IDiaSymbol* IDiaGlobalSymbol
+    )
+{
+    IDiaEnumSymbols* idiaEnumSymbols;
+    IDiaSymbol* idiaSymbol;
+    ULONG count = 0;
+
+    if (IDiaSymbol_findChildrenEx(IDiaGlobalSymbol, SymTagEnum, NULL, nsNone, &idiaEnumSymbols) != S_OK)
+        return FALSE;
+
+    while (IDiaEnumSymbols_Next(idiaEnumSymbols, 1, &idiaSymbol, &count) == S_OK && count == 1)
+    {
+        PePdbPrintDiaSymbol(Context, idiaSymbol);
+        //PrintTypeInDetail(Context, idiaSymbol);
+
+        IDiaSymbol_Release(idiaSymbol);
+    }
+
+    IDiaEnumSymbols_Release(idiaEnumSymbols);
+
+    return TRUE;
+}
+
+BOOLEAN DumpAllTypedefs(
+    _In_ PPDB_SYMBOL_CONTEXT Context,
+    _In_ IDiaSymbol* IDiaGlobalSymbol
+    )
+{
+    IDiaEnumSymbols* idiaEnumSymbols;
+    IDiaSymbol* idiaSymbol;
+    ULONG count = 0;
+
+    if (IDiaSymbol_findChildrenEx(IDiaGlobalSymbol, SymTagTypedef, NULL, nsNone, &idiaEnumSymbols) != S_OK)
+        return FALSE;
+
+    while (IDiaEnumSymbols_Next(idiaEnumSymbols, 1, &idiaSymbol, &count) == S_OK && count == 1)
+    {
+        PePdbPrintDiaSymbol(Context, idiaSymbol);
+        //PrintTypeInDetail(Context, idiaSymbol);
+
+        IDiaSymbol_Release(idiaSymbol);
+    }
+
+    IDiaEnumSymbols_Release(idiaEnumSymbols);
+
+    return TRUE;
 }
 
 NTSTATUS PeDumpFileSymbols(
     _In_ PPDB_SYMBOL_CONTEXT Context
     )
 {
-    NTSTATUS status;
-    HANDLE fileHandle = NULL;
-    ULONG64 baseAddress = 0;
-    LARGE_INTEGER fileSize;
+    ULONG64 baseOfDll;
+    IDiaSession* idiaSession;
+    IDiaSymbol* idiaSymbol;
 
-    if (!PepSymbolProviderInitialization())
-        return STATUS_FAIL_CHECK;
+    if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+        baseOfDll = (ULONG64)PvMappedImage.NtHeaders32->OptionalHeader.ImageBase;
+    else
+        baseOfDll = (ULONG64)PvMappedImage.NtHeaders->OptionalHeader.ImageBase;
 
-    SymSetOptions_I(
-        SymGetOptions_I() |
-        SYMOPT_AUTO_PUBLICS | SYMOPT_CASE_INSENSITIVE |
-        SYMOPT_DEFERRED_LOADS | SYMOPT_FAIL_CRITICAL_ERRORS | SYMOPT_INCLUDE_32BIT_MODULES |
-        SYMOPT_LOAD_LINES | SYMOPT_OMAP_FIND_NEAREST | SYMOPT_UNDNAME // SYMOPT_DEBUG
-        );
-
-    if (!SymInitializeW_I(NtCurrentProcess(), NULL, FALSE))
-        return 1;
-
-    if (!SymSetSearchPathW_I(NtCurrentProcess(), L"SRV*C:\\symbols*https://msdl.microsoft.com/download/symbols"))
-        goto CleanupExit;
-
-    if (!NT_SUCCESS(status = PhCreateFileWin32(
-        &fileHandle,
-        PhGetString(PvFileName),
-        FILE_GENERIC_READ,
-        0,
-        FILE_SHARE_READ | FILE_SHARE_DELETE,
-        FILE_OPEN,
-        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-        )))
-        goto CleanupExit;
-
-    if (NT_SUCCESS(PhGetFileSize(fileHandle, &fileSize)) && fileSize.QuadPart == 0)
-        goto CleanupExit;
-
-    if (PhEndsWithString2(PvFileName, L".pdb", TRUE))
-        baseAddress = 0x10000000;
-
-    if (Context->BaseAddress = SymLoadModuleExW_I(
-        NtCurrentProcess(),
-        fileHandle,
-        PhGetString(PvFileName),
-        NULL,
-        baseAddress,
-        (ULONG)fileSize.QuadPart,
-        NULL,
-        0
+    if (!PhGetSymbolProviderDiaSession(
+        PvSymbolProvider,
+        baseOfDll,
+        &idiaSession
         ))
     {
-        //ShowModuleSymbolInfo(symbolBaseAddress);
-        SymEnumSymbolsW_I(NtCurrentProcess(), Context->BaseAddress, NULL, EnumCallbackProc, Context);
-
-        // Enumerate user defined types.
-        SymEnumTypesW_I(NtCurrentProcess(), Context->BaseAddress, EnumCallbackProc, Context);
-        //PrintUserDefinedTypes(Context); // Commented out due to verbosity.
-
-        if (
-            PhFindStringInString(PvFileName, 0, L"ntkrnlmp.pdb") != -1 || 
-            PhFindStringInString(PvFileName, 0, L"ntoskrnl.exe") != -1 // HACK: SymSearchW crashes for ole32.dll
-            )
-        {
-            // NOTE: The SymEnumSymbolsW and SymEnumTypesW functions don't enumerate exported DATA symbols such as 
-            // as PsActiveProcessHead and PsLoadedModuleList from ntoskrnl.exe??
-            // TODO: SymSearchW does enumerate those symbols but we'll need to filter out duplicate symbol entries properly or
-            // find out why the SymEnumSymbolsW and SymEnumTypesW functions can't enumerate those symbols.
-            SymSearchW_I(
-                NtCurrentProcess(),
-                Context->BaseAddress,
-                0,
-                0,
-                NULL,
-                0,
-                EnumCallbackProc,
-                Context,
-                SYMSEARCH_RECURSE | SYMSEARCH_ALLITEMS
-                );
-        }
+        return STATUS_UNSUCCESSFUL;
     }
 
-CleanupExit:
+    if (IDiaSession_get_globalScope(idiaSession, &idiaSymbol) == S_OK)
+    {
+        Context->IDiaSession = idiaSession; // HACK
 
-    SymCleanup_I(NtCurrentProcess());
+        DumpAllPublics(Context, idiaSymbol);
+        DumpAllGlobals(Context, idiaSymbol);
 
-    if (fileHandle)
-        NtClose(fileHandle);
+        DumpAllUDTs(Context, idiaSymbol);
+        DumpAllEnums(Context, idiaSymbol);
+        DumpAllTypedefs(Context, idiaSymbol);
+
+        IDiaSymbol_Release(idiaSymbol);
+    }
+
+    IDiaSession_Release(idiaSession);
 
     PostMessage(Context->DialogHandle, WM_PV_SEARCH_FINISHED, 0, 0);
-
-    return 0;
+    return STATUS_SUCCESS;
 }
 
 VOID PdbDumpAddress(
     _In_ PPDB_SYMBOL_CONTEXT Context, 
-    _In_ ULONG64 Address
+    _In_ ULONG Rva
     )
 {
-    IMAGEHLP_STACK_FRAME sf;
+    IDiaSymbol* idiaSymbol;
+    LONG displacement;
 
-    sf.InstructionOffset = Address;
+    if (IDiaSession_findSymbolByRVAEx(
+        (IDiaSession*)Context->IDiaSession,
+        Rva,
+        SymTagNull,
+        &idiaSymbol,
+        &displacement
+        ) == S_OK)
+    {
+        DumpAllPublics(Context, idiaSymbol);
+        DumpAllGlobals(Context, idiaSymbol);
 
-    SymSetContext_I(NtCurrentProcess(), &sf, 0);
-    SymEnumSymbolsW_I(NtCurrentProcess(), 0, NULL, EnumCallbackProc, Context);
+        DumpAllUDTs(Context, idiaSymbol);
+        DumpAllEnums(Context, idiaSymbol);
+        DumpAllTypedefs(Context, idiaSymbol);
+
+        IDiaSymbol_Release(idiaSymbol);
+    }
+}
+
+//VOID EnumPrintTags(IDiaSession* IDiaSession, IDiaSymbol* Symbol, PWSTR Name)
+//{
+//    IDiaEnumSymbols* idiaEnumSymbols;
+//    IDiaSymbol* idiaSymbol;
+//    ULONG count = 0;
+//
+//    if (IDiaSession_findChildrenEx(
+//        IDiaSession,
+//        Symbol,
+//        SymTagNull,
+//        Name,
+//        nsNone,
+//        &idiaEnumSymbols
+//        ) == S_OK)
+//    {
+//        while (IDiaEnumSymbols_Next(idiaEnumSymbols, 1, &idiaSymbol, &count) == S_OK && count == 1)
+//        {
+//            PrintTypeInDetail(&sb, idiaSymbol, 0);
+//
+//            EnumPrintTags(
+//            IDiaSymbol_Release(idiaSymbol);
+//        }
+//    }
+//
+//    IDiaEnumSymbols_Release(idiaEnumSymbols);
+//}
+
+PPH_STRING PdbGetSymbolDetails(
+    _In_ PPDB_SYMBOL_CONTEXT Context,
+    _In_opt_ PPH_STRING Name,
+    _In_opt_ ULONG Rva
+    )
+{
+    IDiaSymbol* idiaSymbol;
+    LONG displacement;
+    PH_STRING_BUILDER sb;
+
+    PhInitializeStringBuilder(&sb, 0x100);
+
+    if (Name)
+    {
+        IDiaEnumSymbols* idiaEnumSymbols;
+        IDiaSymbol* idiaGlobalSymbol;
+        IDiaSymbol* idiaSymbol;
+        ULONG count;
+
+        if (IDiaSession_get_globalScope(
+            (IDiaSession*)Context->IDiaSession,
+            &idiaGlobalSymbol
+            ) == S_OK)
+        {
+            //IDiaSession_symbolById(
+            //    (IDiaSession*)Context->IDiaSession,
+            //    0,
+            //    &idiaSymbol
+            //    );
+
+            if (IDiaSession_findChildrenEx(
+                (IDiaSession*)Context->IDiaSession,
+                idiaGlobalSymbol, // needs parent
+                SymTagNull,
+                Name->Buffer,
+                nsNone,
+                &idiaEnumSymbols
+                ) == S_OK)
+            {
+                while (IDiaEnumSymbols_Next(idiaEnumSymbols, 1, &idiaSymbol, &count) == S_OK && count == 1)
+                {
+                    PrintTypeInDetail(&sb, idiaSymbol, 0);
+
+                    IDiaSymbol_Release(idiaSymbol);
+                }
+            }
+
+            IDiaEnumSymbols_Release(idiaEnumSymbols);
+        }
+    }
+    else
+    {
+        if (IDiaSession_findSymbolByRVAEx(
+            (IDiaSession*)Context->IDiaSession,
+            Rva,
+            SymTagNull,
+            &idiaSymbol,
+            &displacement
+            ) == S_OK)
+        {
+            PrintTypeInDetail(&sb, idiaSymbol, 0);
+
+            IDiaSymbol_Release(idiaSymbol);
+        }
+    }
+
+    return PhFinalStringBuilderString(&sb);
 }
