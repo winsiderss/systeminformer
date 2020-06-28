@@ -8965,6 +8965,18 @@ NTSTATUS PhQueryProcessHeapInformation(
         return status;
     }
 
+    if (!debugBuffer->Heaps)
+    {
+        // The RtlQueryProcessDebugInformation function has two bugs when querying the ProcessId
+        // for a frozen (suspended) immersive process. (dmex)
+        //
+        // 1) It'll deadlock the current thread for 30 seconds.
+        // 2) It'll return STATUS_SUCCESS but with a NULL buffer.
+
+        RtlDestroyQueryDebugBuffer(debugBuffer);
+        return STATUS_UNSUCCESSFUL;
+    }
+
     heapDebugInfo = PhAllocateZero(sizeof(PH_PROCESS_DEBUG_HEAP_INFORMATION) + debugBuffer->Heaps->NumberOfHeaps * sizeof(PH_PROCESS_DEBUG_HEAP_ENTRY));
     heapDebugInfo->NumberOfHeaps = debugBuffer->Heaps->NumberOfHeaps;
     heapDebugInfo->DefaultHeap = debugBuffer->ProcessHeap;
