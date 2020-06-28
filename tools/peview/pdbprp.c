@@ -21,7 +21,6 @@
  */
 
 #include <peview.h>
-#include <pdb.h>
 #include <emenu.h>
 #include "colmgr.h"
 
