@@ -46,12 +46,12 @@ BOOLEAN EtpGpuListSectionCallback(
     {
     case MiListSectionTick:
         {
-            PH_FORMAT format[2];
+            PH_FORMAT format[3];
 
             // GPU    %.2f%%
             PhInitFormatS(&format[0], L"GPU    ");
             PhInitFormatF(&format[1], (DOUBLE)EtGpuNodeUsage * 100, 2);
-            PhInitFormatC(&format[0], L'%');
+            PhInitFormatC(&format[2], L'%');
 
             ListSection->Section->Parameters->SetSectionText(ListSection->Section,
                 PH_AUTO_T(PH_STRING, PhFormat(format, RTL_NUMBER_OF(format), 0)));
