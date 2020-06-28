@@ -3,7 +3,7 @@
  *   notification icon manager
  *
  * Copyright (C) 2011-2016 wj32
- * Copyright (C) 2017-2019 dmex
+ * Copyright (C) 2017-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -53,6 +53,7 @@ static POINT IconClickLocation;
 static PH_NF_MSG_SHOWMINIINFOSECTION_DATA IconClickShowMiniInfoSectionData;
 static BOOLEAN IconClickUpDueToDown = FALSE;
 static BOOLEAN IconDisableHover = FALSE;
+static HANDLE PhpTrayIconEventHandle = NULL;
 
 VOID PhNfLoadStage1(
     VOID
@@ -242,14 +243,25 @@ VOID PhNfLoadStage2(
     // Load tray icon settings.
     PhNfLoadSettings();
 
-    for (ULONG i = 0; i < PhTrayIconItemList->Count; i++)
+    //for (ULONG i = 0; i < PhTrayIconItemList->Count; i++)
+    //{
+    //    PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
+    //
+    //    if (!(icon->Flags & PH_NF_ICON_ENABLED))
+    //        continue;
+    //
+    //    PhNfpAddNotifyIcon(icon);
+    //}
+
+    if (NT_SUCCESS(NtCreateEvent(
+        &PhpTrayIconEventHandle,
+        EVENT_ALL_ACCESS,
+        NULL,
+        SynchronizationEvent,
+        FALSE
+        )))
     {
-        PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
-
-        if (!(icon->Flags & PH_NF_ICON_ENABLED))
-            continue;
-
-        PhNfpAddNotifyIcon(icon);
+        PhCreateThread2(PhNfpTrayIconUpdateThread, NULL);
     }
 
     PhRegisterCallback(
@@ -841,22 +853,74 @@ BOOLEAN PhNfpModifyNotifyIcon(
 //    return FALSE;
 //}
 
+NTSTATUS PhNfpTrayIconUpdateThread(
+    _In_opt_ PVOID Context
+    )
+{
+    //LARGE_INTEGER timeout;
+    //
+    //timeout.QuadPart = -(LONGLONG)UInt32x32To64(500, PH_TIMEOUT_MS);
+
+    for (ULONG i = 0; i < PhTrayIconItemList->Count; i++)
+    {
+        PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
+    
+        if (!(icon->Flags & PH_NF_ICON_ENABLED))
+            continue;
+    
+        PhNfpAddNotifyIcon(icon);
+    }
+
+    while (TRUE)
+    {
+        if (PhMainWndExiting)
+            break;
+
+        if (!(PhpTrayIconEventHandle && PhNfIconsEnabled()))
+        {
+            PhDelayExecution(1000);
+            continue;
+        }
+
+        if (NT_SUCCESS(NtWaitForSingleObject(PhpTrayIconEventHandle, FALSE, NULL))) // &timeout
+        {
+            for (ULONG i = 0; i < PhTrayIconItemList->Count; i++)
+            {
+                PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
+
+                if (!(icon->Flags & PH_NF_ICON_ENABLED))
+                    continue;
+
+                if (PhMainWndExiting)
+                    break;
+
+                PhNfpUpdateRegisteredIcon(icon);
+            }
+        }
+    }
+
+    return STATUS_SUCCESS;
+}
+
 VOID PhNfpProcessesUpdatedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
 {
-    // We do icon updating on the provider thread so we don't block the main GUI when
-    // explorer is not responding.
+    static ULONG processesUpdatedCount = 0;
 
-    for (ULONG i = 0; i < PhTrayIconItemList->Count; i++)
+    // Update the tray icons on a seperate thread so we don't block the main GUI or
+    // the provider threads when explorer is not responding.
+
+    if (processesUpdatedCount != 3)
     {
-        PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
+        processesUpdatedCount++;
+        return;
+    }
 
-        if (!(icon->Flags & PH_NF_ICON_ENABLED))
-            continue;
-
-        PhNfpUpdateRegisteredIcon(icon);
+    if (PhpTrayIconEventHandle && PhNfIconsEnabled())
+    {
+        NtSetEvent(PhpTrayIconEventHandle, NULL);
     }
 }
 

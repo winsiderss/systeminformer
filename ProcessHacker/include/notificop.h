@@ -29,6 +29,10 @@ BOOLEAN PhNfpModifyNotifyIcon(
     _In_opt_ HICON IconHandle
     );
 
+NTSTATUS PhNfpTrayIconUpdateThread(
+    _In_opt_ PVOID Context
+    );
+
 VOID PhNfpProcessesUpdatedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
