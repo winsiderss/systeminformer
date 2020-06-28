@@ -24,6 +24,8 @@
 #include <cpysave.h>
 #include <symprv.h>
 #include <uxtheme.h>
+
+#include <dbghelp.h>
 #include "dia2.h"
 
 ULONG SearchResultsAddIndex = 0;
