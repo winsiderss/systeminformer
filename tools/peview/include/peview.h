@@ -53,10 +53,7 @@ FORCEINLINE PWSTR PvpGetStringOrNa(
     _In_ PPH_STRING String
     )
 {
-    if (!PhIsNullOrEmptyString(String))
-        return String->Buffer;
-    else
-        return L"N/A";
+    return PhGetStringOrDefault(String, L"N/A");
 }
 
 // peprp
@@ -180,8 +177,9 @@ typedef struct _PV_SYMBOL_NODE
 {
     PH_TREENEW_NODE Node;
 
+    ULONG UniqueId;
     PV_SYMBOL_TYPE Type;
-    ULONG Size;
+    ULONG64 Size;
     ULONG64 Address;    
     PPH_STRING Name;
     PPH_STRING Data;
@@ -300,6 +298,8 @@ typedef struct _PDB_SYMBOL_CONTEXT
     PH_TN_FILTER_SUPPORT FilterSupport;
     PPH_HASHTABLE NodeHashtable;
     PPH_LIST NodeList;
+
+    PVOID IDiaSession;
 } PDB_SYMBOL_CONTEXT, *PPDB_SYMBOL_CONTEXT;
 
 INT_PTR CALLBACK PvpSymbolsDlgProc(
@@ -315,7 +315,13 @@ NTSTATUS PeDumpFileSymbols(
 
 VOID PdbDumpAddress(
     _In_ PPDB_SYMBOL_CONTEXT Context,
-    _In_ ULONG64 Address
+    _In_ ULONG Rva
+    );
+
+PPH_STRING PdbGetSymbolDetails(
+    _In_ PPDB_SYMBOL_CONTEXT Context,
+    _In_opt_ PPH_STRING Name,
+    _In_opt_ ULONG Rva
     );
 
 VOID PvPdbProperties(
