@@ -2706,6 +2706,9 @@ NTSTATUS PhGetTokenIntegrityLevel(
         case SECURITY_MANDATORY_MEDIUM_RID:
             integrityLevel = MandatoryLevelMedium;
             break;
+        //case SECURITY_MANDATORY_MEDIUM_PLUS_RID:
+        //    integrityLevel = MandatoryLevelMedium;
+        //    break;
         case SECURITY_MANDATORY_HIGH_RID:
             integrityLevel = MandatoryLevelHigh;
             break;
@@ -5361,28 +5364,30 @@ BOOLEAN NTAPI PhpIsDotNetEnumProcessModulesCallback(
     _In_opt_ PVOID Context
     )
 {
-    static UNICODE_STRING clrString = RTL_CONSTANT_STRING(L"clr.dll");
-    static UNICODE_STRING mscorwksString = RTL_CONSTANT_STRING(L"mscorwks.dll");
-    static UNICODE_STRING mscorsvrString = RTL_CONSTANT_STRING(L"mscorsvr.dll");
-    static UNICODE_STRING mscorlibString = RTL_CONSTANT_STRING(L"mscorlib.dll");
-    static UNICODE_STRING mscorlibNiString = RTL_CONSTANT_STRING(L"mscorlib.ni.dll");
-    static UNICODE_STRING clrjitString = RTL_CONSTANT_STRING(L"clrjit.dll");
-    static UNICODE_STRING frameworkString = RTL_CONSTANT_STRING(L"\\Microsoft.NET\\Framework\\");
-    static UNICODE_STRING framework64String = RTL_CONSTANT_STRING(L"\\Microsoft.NET\\Framework64\\");
+    static PH_STRINGREF clrString = PH_STRINGREF_INIT(L"clr.dll");
+    static PH_STRINGREF mscorwksString = PH_STRINGREF_INIT(L"mscorwks.dll");
+    static PH_STRINGREF mscorsvrString = PH_STRINGREF_INIT(L"mscorsvr.dll");
+    static PH_STRINGREF mscorlibString = PH_STRINGREF_INIT(L"mscorlib.dll");
+    static PH_STRINGREF mscorlibNiString = PH_STRINGREF_INIT(L"mscorlib.ni.dll");
+    static PH_STRINGREF clrjitString = PH_STRINGREF_INIT(L"clrjit.dll");
+    static PH_STRINGREF frameworkString = PH_STRINGREF_INIT(L"\\Microsoft.NET\\Framework\\");
+    static PH_STRINGREF framework64String = PH_STRINGREF_INIT(L"\\Microsoft.NET\\Framework64\\");
+    PH_STRINGREF baseDllName;
 
     if (!Context)
         return TRUE;
 
+    PhUnicodeStringToStringRef(&Module->BaseDllName, &baseDllName);
+
     if (
-        RtlEqualUnicodeString(&Module->BaseDllName, &clrString, TRUE) ||
-        RtlEqualUnicodeString(&Module->BaseDllName, &mscorwksString, TRUE) ||
-        RtlEqualUnicodeString(&Module->BaseDllName, &mscorsvrString, TRUE)
+        PhEqualStringRef(&baseDllName, &clrString, TRUE) ||
+        PhEqualStringRef(&baseDllName, &mscorwksString, TRUE) ||
+        PhEqualStringRef(&baseDllName, &mscorsvrString, TRUE)
         )
     {
-        UNICODE_STRING fileName;
-        PH_STRINGREF systemRootSr;
-        UNICODE_STRING systemRoot;
-        PUNICODE_STRING frameworkPart;
+        PH_STRINGREF fileName;
+        PH_STRINGREF systemRoot;
+        PPH_STRINGREF frameworkPart;
 
 #ifdef _WIN64
         if (*(PULONG)Context & PH_CLR_PROCESS_IS_WOW64)
@@ -5397,18 +5402,17 @@ BOOLEAN NTAPI PhpIsDotNetEnumProcessModulesCallback(
         }
 #endif
 
-        fileName = Module->FullDllName;
-        PhGetSystemRoot(&systemRootSr);
-        PhStringRefToUnicodeString(&systemRootSr, &systemRoot);
+        PhUnicodeStringToStringRef(&Module->FullDllName, &fileName);
+        PhGetSystemRoot(&systemRoot);
 
-        if (RtlPrefixUnicodeString(&systemRoot, &fileName, TRUE))
+        if (PhStartsWithStringRef(&fileName, &systemRoot, TRUE))
         {
-            fileName.Buffer = (PWCHAR)PTR_ADD_OFFSET(fileName.Buffer, systemRoot.Length);
+            fileName.Buffer = PTR_ADD_OFFSET(fileName.Buffer, systemRoot.Length);
             fileName.Length -= systemRoot.Length;
 
-            if (RtlPrefixUnicodeString(frameworkPart, &fileName, TRUE))
+            if (PhStartsWithStringRef(&fileName, frameworkPart, TRUE))
             {
-                fileName.Buffer = (PWCHAR)PTR_ADD_OFFSET(fileName.Buffer, frameworkPart->Length);
+                fileName.Buffer = PTR_ADD_OFFSET(fileName.Buffer, frameworkPart->Length);
                 fileName.Length -= frameworkPart->Length;
 
                 if (fileName.Length >= 4 * sizeof(WCHAR)) // vx.x
@@ -5433,13 +5437,13 @@ BOOLEAN NTAPI PhpIsDotNetEnumProcessModulesCallback(
         }
     }
     else if (
-        RtlEqualUnicodeString(&Module->BaseDllName, &mscorlibString, TRUE) ||
-        RtlEqualUnicodeString(&Module->BaseDllName, &mscorlibNiString, TRUE)
+        PhEqualStringRef(&baseDllName, &mscorlibString, TRUE) ||
+        PhEqualStringRef(&baseDllName, &mscorlibNiString, TRUE)
         )
     {
         *(PULONG)Context |= PH_CLR_MSCORLIB_PRESENT;
     }
-    else if (RtlEqualUnicodeString(&Module->BaseDllName, &clrjitString, TRUE))
+    else if (PhEqualStringRef(&baseDllName, &clrjitString, TRUE))
     {
         *(PULONG)Context |= PH_CLR_JIT_PRESENT;
     }
@@ -7048,7 +7052,7 @@ VOID PhpInitializePredefineKeys(
     {
         currentUserKeyName = &PhPredefineKeyNames[PH_KEY_CURRENT_USER_NUMBER];
         currentUserKeyName->Length = currentUserPrefix.Length + stringSid.Length;
-        currentUserKeyName->Buffer = PhAllocate(currentUserKeyName->Length + sizeof(WCHAR));
+        currentUserKeyName->Buffer = PhAllocate(currentUserKeyName->Length + sizeof(UNICODE_NULL));
         memcpy(currentUserKeyName->Buffer, currentUserPrefix.Buffer, currentUserPrefix.Length);
         memcpy(&currentUserKeyName->Buffer[currentUserPrefix.Length / sizeof(WCHAR)], stringSid.Buffer, stringSid.Length);
     }
@@ -8109,7 +8113,7 @@ NTSTATUS PhCreateDirectory(
 
         if (part.Length != 0)
         {
-            if (PhIsNullOrEmptyString(directoryPath))
+            if (!directoryPath) // PhIsNullOrEmptyString(directoryPath)
                 directoryPath = PhCreateString2(&part);
             else
             {

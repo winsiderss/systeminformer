@@ -802,7 +802,7 @@ VOID PhServiceProviderUpdate(
                 {
                     PPH_PROCESS_ITEM processItem;
 
-                    processItem = PhReferenceProcessItem((HANDLE)(*serviceItem)->ProcessId);
+                    processItem = PhReferenceProcessItem((*serviceItem)->ProcessId);
 
                     if (processItem)
                     {
