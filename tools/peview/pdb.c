@@ -1208,14 +1208,73 @@ NTSTATUS PeDumpFileSymbols(
     _In_ PPDB_SYMBOL_CONTEXT Context
     )
 {
-    ULONG64 baseOfDll;
+    ULONG64 baseOfDll = ULLONG_MAX;
     IDiaSession* idiaSession;
     IDiaSymbol* idiaSymbol;
 
-    if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
-        baseOfDll = (ULONG64)PvMappedImage.NtHeaders32->OptionalHeader.ImageBase;
+    if (PvMappedImage.Signature) // HACK: Null when opening a pdb file.
+    {
+        if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+            baseOfDll = (ULONG64)PvMappedImage.NtHeaders32->OptionalHeader.ImageBase;
+        else
+            baseOfDll = (ULONG64)PvMappedImage.NtHeaders->OptionalHeader.ImageBase;
+    }
     else
-        baseOfDll = (ULONG64)PvMappedImage.NtHeaders->OptionalHeader.ImageBase;
+    {
+        NTSTATUS status;
+        HANDLE fileHandle;
+
+        status = PhCreateFileWin32(
+            &fileHandle,
+            PhGetString(PvFileName),
+            FILE_READ_ATTRIBUTES | FILE_READ_DATA | SYNCHRONIZE,
+            FILE_ATTRIBUTE_NORMAL,
+            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+            FILE_OPEN,
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            PVOID viewBase;
+            SIZE_T size;
+
+            status = PhMapViewOfEntireFile(
+                PhGetString(PvFileName),
+                fileHandle,
+                TRUE,
+                &viewBase,
+                &size
+                );
+
+            if (PvpLoadDbgHelp(&PvSymbolProvider))
+            {
+                if (PhLoadModuleSymbolProvider(
+                    PvSymbolProvider,
+                    PvFileName->Buffer,
+                    (ULONG64)viewBase,
+                    (ULONG)size
+                    ))
+                {
+                    baseOfDll = (ULONG64)viewBase;
+                }
+            }
+
+            NtClose(fileHandle);
+        }
+
+        if (!NT_SUCCESS(status))
+        {
+            PhShowStatus(NULL, L"Unable to load the file.", status, 0);
+            return status;
+        }
+    }
+
+    if (baseOfDll == ULLONG_MAX)
+    {
+        PhShowStatus(NULL, L"Unable to load the file.", STATUS_UNSUCCESSFUL, 0);
+        return STATUS_UNSUCCESSFUL;
+    }
 
     if (!PhGetSymbolProviderDiaSession(
         PvSymbolProvider,

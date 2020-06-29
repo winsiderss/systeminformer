@@ -1032,16 +1032,12 @@ BOOLEAN PvSymbolTreeFilterCallback(
     return FALSE;
 }
 
-VOID CALLBACK PvSymbolTreeUpdateCallback(
-    _In_ PPDB_SYMBOL_CONTEXT Context,
-    _In_ BOOLEAN TimerOrWaitFired
+VOID PvAddPendingSymbolNodes(
+    _In_ PPDB_SYMBOL_CONTEXT Context
     )
 {
     ULONG i;
     BOOLEAN needsFullUpdate = FALSE;
-
-    if (!Context->UpdateTimerHandle)
-        return;
 
     TreeNew_SetRedraw(Context->TreeNewHandle, FALSE);
 
@@ -1059,6 +1055,17 @@ VOID CALLBACK PvSymbolTreeUpdateCallback(
     if (needsFullUpdate)
         TreeNew_NodesStructured(Context->TreeNewHandle);
     TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
+}
+
+VOID CALLBACK PvSymbolTreeUpdateCallback(
+    _In_ PPDB_SYMBOL_CONTEXT Context,
+    _In_ BOOLEAN TimerOrWaitFired
+    )
+{
+    if (!Context->UpdateTimerHandle)
+        return;
+
+    PvAddPendingSymbolNodes(Context);
 
     RtlUpdateTimer(PhGetGlobalTimerQueue(), Context->UpdateTimerHandle, 1000, INFINITE);
 }
@@ -1089,9 +1096,7 @@ INT_PTR CALLBACK PvpSymbolsDlgProc(
         {
             HANDLE treeNewTimer = NULL;
 
-            context = propPageContext->Context = PhAllocate(sizeof(PDB_SYMBOL_CONTEXT));
-            memset(context, 0, sizeof(PDB_SYMBOL_CONTEXT));
-
+            context = propPageContext->Context = PhAllocateZero(sizeof(PDB_SYMBOL_CONTEXT));
             context->DialogHandle = hwndDlg;
             context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_SYMBOLTREE);
             context->SearchHandle = GetDlgItem(hwndDlg, IDC_SYMSEARCH);
@@ -1178,17 +1183,13 @@ INT_PTR CALLBACK PvpSymbolsDlgProc(
         break;
     case WM_PV_SEARCH_FINISHED:
         {
-            // Add any un-added items.
-            //SendMessage(hwndDlg, WM_PV_SEARCH_UPDATE, 0, 0);
+            if (context->UpdateTimerHandle)
+            {
+                RtlDeleteTimer(PhGetGlobalTimerQueue(), context->UpdateTimerHandle, NULL);
+                context->UpdateTimerHandle = NULL;
+            }
 
-            //NtWaitForSingleObject(context->SearchThreadHandle, FALSE, NULL);
-            //SearchStop = FALSE;
-
-            //if (context->UpdateTimerHandle)
-            //{
-            //    RtlDeleteTimer(PhGetGlobalTimerQueue(), context->UpdateTimerHandle, NULL);
-            //    context->UpdateTimerHandle = NULL;
-            //}
+            PvAddPendingSymbolNodes(context);
         }
         break;
     case WM_PV_SEARCH_SHOWMENU:

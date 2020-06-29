@@ -56,6 +56,10 @@ FORCEINLINE PWSTR PvpGetStringOrNa(
     return PhGetStringOrDefault(String, L"N/A");
 }
 
+BOOLEAN PvpLoadDbgHelp(
+    _Inout_ PPH_SYMBOL_PROVIDER* SymbolProvider
+    );
+
 // peprp
 
 VOID PvPeProperties(
