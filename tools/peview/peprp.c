@@ -25,17 +25,12 @@
 #include <workqueue.h>
 #include <cpysave.h>
 #include <verify.h>
-#include <shlobj.h>
 #include <shellapi.h>
 
 #include <secedit.h>
 
 #define PVM_CHECKSUM_DONE (WM_APP + 1)
 #define PVM_VERIFY_DONE (WM_APP + 2)
-
-BOOLEAN PvpLoadDbgHelp(
-    _Inout_ PPH_SYMBOL_PROVIDER *SymbolProvider
-    );
 
 INT_PTR CALLBACK PvpPeGeneralDlgProc(
     _In_ HWND hwndDlg,
