@@ -281,6 +281,7 @@ EXPORTS
     PhGetProcedureAddressRemote
     PhGetProcessCommandLine
     PhGetProcessDepStatus
+    PhGetProcessDeviceMap
     PhGetProcessEnvironment
     PhGetProcessImageFileName
     PhGetProcessImageFileNameByProcessId

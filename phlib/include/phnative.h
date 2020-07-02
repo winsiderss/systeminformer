@@ -203,6 +203,14 @@ PhGetProcessIsBeingDebugged(
     _Out_ PBOOLEAN IsBeingDebugged
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetProcessDeviceMap(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PULONG DeviceMap
+    );
+
 /** Specifies a PEB string. */
 typedef enum _PH_PEB_OFFSET
 {
