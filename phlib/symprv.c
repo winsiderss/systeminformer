@@ -816,6 +816,68 @@ BOOLEAN PhLoadModuleSymbolProvider(
     return TRUE;
 }
 
+typedef struct _PHP_LOAD_PROCESS_SYMBOLS_CONTEXT
+{
+    HANDLE LoadingSymbolsForProcessId;
+    PPH_SYMBOL_PROVIDER SymbolProvider;
+} PHP_LOAD_PROCESS_SYMBOLS_CONTEXT, *PPHP_LOAD_PROCESS_SYMBOLS_CONTEXT;
+
+static BOOLEAN NTAPI PhpSymbolProviderEnumModulesCallback(
+    _In_ PPH_MODULE_INFO Module,
+    _In_opt_ PVOID Context
+    )
+{
+    PPHP_LOAD_PROCESS_SYMBOLS_CONTEXT context = Context;
+
+    if (!context)
+        return TRUE;
+
+    // If we're loading kernel module symbols for a process other than
+    // System, ignore modules which are in user space. This may happen
+    // in Windows 7. (wj32)
+    if (
+        context->LoadingSymbolsForProcessId == SYSTEM_PROCESS_ID &&
+        (ULONG_PTR)Module->BaseAddress <= PhSystemBasicInformation.MaximumUserModeAddress
+        )
+        return TRUE;
+
+    PhLoadModuleSymbolProvider(context->SymbolProvider, Module->FileName->Buffer,
+        (ULONG64)Module->BaseAddress, Module->Size);
+
+    return TRUE;
+}
+
+VOID PhLoadModulesForProcessSymbolProvider(
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
+    _In_ HANDLE ProcessId
+    )
+{
+    PHP_LOAD_PROCESS_SYMBOLS_CONTEXT context;
+
+    memset(&context, 0, sizeof(PHP_LOAD_PROCESS_SYMBOLS_CONTEXT));
+    context.SymbolProvider = SymbolProvider;
+
+    // Load symbols for the process.
+    context.LoadingSymbolsForProcessId = ProcessId;
+    PhEnumGenericModules(
+        ProcessId,
+        SymbolProvider->ProcessHandle,
+        0,
+        PhpSymbolProviderEnumModulesCallback,
+        &context
+        );
+
+    // Load symbols for kernel modules.
+    context.LoadingSymbolsForProcessId = SYSTEM_PROCESS_ID;
+    PhEnumGenericModules(
+        SYSTEM_PROCESS_ID,
+        NULL,
+        0,
+        PhpSymbolProviderEnumModulesCallback,
+        &context
+        );
+}
+
 VOID PhSetOptionsSymbolProvider(
     _In_ ULONG Mask,
     _In_ ULONG Value
