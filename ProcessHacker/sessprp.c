@@ -395,10 +395,9 @@ INT_PTR CALLBACK PhpSessionPropertiesDlgProc(
     {
     case WM_INITDIALOG:
         {
-            SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
-            SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
-
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
+
+            PhSetApplicationWindowIcon(hwndDlg);
 
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");

@@ -205,7 +205,7 @@ BOOLEAN UpdaterVerifySignature(
     signatureLength = (ULONG)HexSignature->Length / sizeof(WCHAR) / 2;
     signatureBuffer = PhAllocate(signatureLength);
 
-    if (!PhHexStringToBuffer(&HexSignature->sr, signatureBuffer))
+    if (!PhHexStringToBufferEx(&HexSignature->sr, signatureLength, signatureBuffer))
     {
         PhFree(signatureBuffer);
         return FALSE;

@@ -185,7 +185,7 @@ HRESULT CALLBACK PhpLiveDumpProgressDialogCallbackProc(
                 if (NT_SUCCESS(context->LastStatus))
                 {
                     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION;
-                    config.hMainIcon = PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER));
+                    config.hMainIcon = PhGetApplicationIcon(FALSE);
                     config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
                     config.pfCallback = PhpLiveDumpPageCallbackProc;
                     config.lpCallbackData = (LONG_PTR)context;
@@ -196,7 +196,7 @@ HRESULT CALLBACK PhpLiveDumpProgressDialogCallbackProc(
                 else
                 {
                     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION;
-                    config.hMainIcon = PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER));
+                    config.hMainIcon = PhGetApplicationIcon(FALSE);
                     config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
                     config.pfCallback = PhpLiveDumpPageCallbackProc;
                     config.lpCallbackData = (LONG_PTR)context;
@@ -256,7 +256,7 @@ NTSTATUS PhpLiveDumpTaskDialogThread(
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
     config.cbSize = sizeof(TASKDIALOGCONFIG);
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_SHOW_MARQUEE_PROGRESS_BAR | TDF_CALLBACK_TIMER;
-    config.hMainIcon = PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER));
+    config.hMainIcon = PhGetApplicationIcon(FALSE);
     config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
     config.pfCallback = PhpLiveDumpProgressDialogCallbackProc;
     config.lpCallbackData = (LONG_PTR)context;
@@ -317,8 +317,7 @@ INT_PTR CALLBACK PhpLiveDumpDlgProc(
         {
             SYSTEM_KERNEL_DEBUGGER_INFORMATION debugInfo;
 
-            SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
-            SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
+            PhSetApplicationWindowIcon(hwndDlg);
 
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 

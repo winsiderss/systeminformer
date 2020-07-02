@@ -81,9 +81,6 @@ typedef struct _PH_UPDATER_CONTEXT
         };
     };
 
-    HICON IconSmallHandle;
-    HICON IconLargeHandle;
-
     HWND DialogHandle;
     WNDPROC DefaultWindowProc;
 

@@ -76,17 +76,6 @@ PPH_UPDATER_CONTEXT CreateUpdateContext(
     return context;
 }
 
-VOID TaskDialogCreateIcons(
-    _In_ PPH_UPDATER_CONTEXT Context
-    )
-{
-    Context->IconSmallHandle = PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER));
-    Context->IconLargeHandle = PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER));
-
-    SendMessage(Context->DialogHandle, WM_SETICON, ICON_SMALL, (LPARAM)Context->IconSmallHandle);
-    SendMessage(Context->DialogHandle, WM_SETICON, ICON_BIG, (LPARAM)Context->IconLargeHandle);
-}
-
 VOID TaskDialogLinkClicked(
     _In_ PPH_UPDATER_CONTEXT Context
     )
@@ -179,21 +168,47 @@ PPH_STRING UpdateVersionString(
     VOID
     )
 {
+    static PH_STRINGREF postHeader = PH_STRINGREF_INIT(L"ProcessHacker-Build: ");
     ULONG majorVersion;
     ULONG minorVersion;
+    ULONG buildVersion;
     ULONG revisionVersion;
-    PPH_STRING currentVersion;
-    PPH_STRING versionHeader = NULL;
+    SIZE_T returnLength;
+    PH_FORMAT format[7];
+    WCHAR formatBuffer[260];
 
-    PhGetPhVersionNumbers(&majorVersion, &minorVersion, NULL, &revisionVersion);
+    PhGetPhVersionNumbers(&majorVersion, &minorVersion, &buildVersion, &revisionVersion);
 
-    if (currentVersion = PhFormatString(L"%lu.%lu.%lu", majorVersion, minorVersion, revisionVersion))
+    PhInitFormatU(&format[0], majorVersion);
+    PhInitFormatC(&format[1], L'.');
+    PhInitFormatU(&format[2], minorVersion);
+    PhInitFormatC(&format[3], L'.');
+    PhInitFormatU(&format[4], buildVersion);
+    PhInitFormatC(&format[5], L'.');
+    PhInitFormatU(&format[6], revisionVersion);
+
+    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), &returnLength))
     {
-        versionHeader = PhConcatStrings2(L"ProcessHacker-Build: ", currentVersion->Buffer);
-        PhDereferenceObject(currentVersion);
-    }
+        PH_STRINGREF stringFormat;
 
-    return versionHeader;
+        stringFormat.Buffer = formatBuffer;
+        stringFormat.Length = returnLength - sizeof(UNICODE_NULL);
+
+        return PhConcatStringRef2(&postHeader, &stringFormat);
+    }
+    else
+    {
+        PPH_STRING currentVersion;
+        PPH_STRING versionHeader = NULL;
+
+        if (currentVersion = PhFormatString(L"%lu.%lu.%lu", majorVersion, minorVersion, revisionVersion))
+        {
+            versionHeader = PhConcatStringRef2(&postHeader, &currentVersion->sr);
+            PhDereferenceObject(currentVersion);
+        }
+
+        return versionHeader;
+    }
 }
 
 PPH_STRING UpdateWindowsString(
@@ -361,9 +376,6 @@ BOOLEAN QueryUpdateData(
             Context->ErrorCode = GetLastError();
             goto CleanupExit;
         }
-
-        // HACK workaround wj32.org certificate issues. (dmex)
-        PhHttpSocketSetSecurity(httpContext, PH_HTTP_SECURITY_IGNORE_CERT_DATE_INVALID);
     }
 
     {
@@ -967,7 +979,7 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
             PhCenterWindow(hwndDlg, PhMainWndHandle);
 
             // Create the Taskdialog icons.
-            TaskDialogCreateIcons(context);
+            PhSetApplicationWindowIcon(hwndDlg);
 
             PhRegisterWindowCallback(hwndDlg, PH_PLUGIN_WINDOW_EVENT_TYPE_TOPMOST, NULL);
 

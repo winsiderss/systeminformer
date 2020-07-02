@@ -720,9 +720,6 @@ INT_PTR CALLBACK TracertDlgProc(
     {
     case WM_INITDIALOG:
         {
-            SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
-            SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
-
             Static_SetText(hwndDlg,
                 PhaFormatString(L"Tracing %s...", context->IpAddressString)->Buffer
                 );
@@ -733,6 +730,8 @@ INT_PTR CALLBACK TracertDlgProc(
             context->WindowHandle = hwndDlg;
             context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_LIST_TRACERT);
             context->FontHandle = PhCreateCommonFont(-15, FW_MEDIUM, GetDlgItem(hwndDlg, IDC_STATUS));
+
+            PhSetApplicationWindowIcon(hwndDlg);
 
             InitializeTracertTree(context);
 

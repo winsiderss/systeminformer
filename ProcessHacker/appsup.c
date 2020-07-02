@@ -2136,7 +2136,7 @@ HBITMAP PhGetShieldBitmap(
     {
         HICON shieldIcon;
 
-        if (shieldIcon = PhLoadIcon(NULL, IDI_SHIELD, PH_LOAD_ICON_SHARED | PH_LOAD_ICON_SIZE_SMALL | PH_LOAD_ICON_STRICT, 0, 0))
+        if (shieldIcon = PhLoadIcon(NULL, IDI_SHIELD, PH_LOAD_ICON_SIZE_SMALL | PH_LOAD_ICON_STRICT, 0, 0))
         {
             shieldBitmap = PhIconToBitmap(shieldIcon, PhSmallIconSize.X, PhSmallIconSize.Y);
             DestroyIcon(shieldIcon);
@@ -2144,6 +2144,39 @@ HBITMAP PhGetShieldBitmap(
     }
 
     return shieldBitmap;
+}
+
+HICON PhGetApplicationIcon(
+    _In_ BOOLEAN SmallIcon
+    )
+{
+    static HICON smallIcon = NULL;
+    static HICON largeIcon = NULL;
+
+    if (!smallIcon)
+        smallIcon = PhLoadIcon(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER), PH_LOAD_ICON_SIZE_SMALL, 0, 0);
+    if (!largeIcon)
+        largeIcon = PhLoadIcon(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER), PH_LOAD_ICON_SIZE_LARGE, 0, 0);
+
+    return SmallIcon ? smallIcon : largeIcon;
+}
+
+VOID PhSetApplicationWindowIcon(
+    _In_ HWND WindowHandle
+    )
+{
+    HICON smallIcon;
+    HICON largeIcon;
+
+    if (smallIcon = PhGetApplicationIcon(TRUE))
+    {
+        SendMessage(WindowHandle, WM_SETICON, ICON_SMALL, (LPARAM)smallIcon);
+    }
+
+    if (largeIcon = PhGetApplicationIcon(FALSE))
+    {
+        SendMessage(WindowHandle, WM_SETICON, ICON_BIG, (LPARAM)largeIcon);
+    }
 }
 
 // HACK - nightly build feature testing (dmex)

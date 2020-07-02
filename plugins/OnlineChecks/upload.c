@@ -123,17 +123,6 @@ VOID TaskDialogFreeContext(
     PhDereferenceObject(Context);
 }
 
-VOID TaskDialogCreateIcons(
-    _In_ PUPLOAD_CONTEXT Context
-    )
-{
-    Context->IconLargeHandle = PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER));
-    Context->IconSmallHandle = PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER));
-
-    SendMessage(Context->DialogHandle, WM_SETICON, ICON_SMALL, (LPARAM)Context->IconSmallHandle);
-    SendMessage(Context->DialogHandle, WM_SETICON, ICON_BIG, (LPARAM)Context->IconLargeHandle);
-}
-
 PPH_STRING UpdateVersionString(
     VOID
     )
@@ -1444,7 +1433,7 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
             PhCenterWindow(hwndDlg, (IsWindowVisible(PhMainWndHandle) && !IsMinimized(PhMainWndHandle)) ? PhMainWndHandle : NULL);
 
             // Create the Taskdialog icons
-            TaskDialogCreateIcons(context);
+            PhSetApplicationWindowIcon(hwndDlg);
 
             if (SUCCEEDED(PhGetClassObject(L"explorerframe.dll", &CLSID_TaskbarList, &IID_ITaskbarList3, &context->TaskbarListClass)))
             {
