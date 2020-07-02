@@ -58,7 +58,7 @@ VOID ShowCheckingForUpdatesDialog(
     config.cbSize = sizeof(TASKDIALOGCONFIG);
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_SHOW_MARQUEE_PROGRESS_BAR;
     config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
-    config.hMainIcon = Context->IconLargeHandle;
+    config.hMainIcon = PhGetApplicationIcon(FALSE);
     config.cxWidth = 200;
     config.pfCallback = CheckingForUpdatesCallbackProc;
     config.lpCallbackData = (LONG_PTR)Context;

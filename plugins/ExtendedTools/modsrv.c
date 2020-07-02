@@ -202,8 +202,7 @@ INT_PTR CALLBACK EtpModuleServicesDlgProc(
                 return FALSE;
             }
 
-            SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
-            SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
+            PhSetApplicationWindowIcon(hwndDlg);
 
             serviceItems = PhAllocateCopy(serviceList->Items, serviceList->Count * sizeof(PPH_SERVICE_ITEM));
             context->ServiceListHandle = PhCreateServiceListControl(hwndDlg, serviceItems, serviceList->Count);

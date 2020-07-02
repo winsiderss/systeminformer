@@ -267,12 +267,11 @@ INT_PTR CALLBACK PhOptionsDialogProc(
     {
     case WM_INITDIALOG:
         {
-            SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
-            SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
-
             OptionsTreeImageList = ImageList_Create(2, PH_SCALE_DPI(22), ILC_COLOR, 1, 1);
             OptionsTreeControl = GetDlgItem(hwndDlg, IDC_SECTIONTREE);
             ContainerControl = GetDlgItem(hwndDlg, IDD_CONTAINER);
+
+            PhSetApplicationWindowIcon(hwndDlg);
 
             PhSetWindowStyle(GetDlgItem(hwndDlg, IDC_SEPARATOR), SS_OWNERDRAW, SS_OWNERDRAW);
 
@@ -1641,8 +1640,7 @@ static INT_PTR CALLBACK PhpOptionsAdvancedEditDlgProc(
         {
             PPH_SETTING setting = (PPH_SETTING)lParam;
 
-            SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
-            SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
+            PhSetApplicationWindowIcon(hwndDlg);
 
             PhSetWindowText(hwndDlg, L"Setting Editor");
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));

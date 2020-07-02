@@ -193,7 +193,7 @@ VOID NTAPI MenuItemCallback(
                 config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION;
                 config.dwCommonButtons = TDCBF_YES_BUTTON | TDCBF_NO_BUTTON;
                 config.hwndParent = menuItem->OwnerWindow;
-                config.hMainIcon = PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER));
+                config.hMainIcon = PhGetApplicationIcon(FALSE);
                 config.cxWidth = 180;
                 config.pszWindowTitle = L"Process Hacker - VirusTotal";
                 config.pszMainInstruction = L"VirusTotal scanning requires a restart of Process Hacker.";

@@ -72,7 +72,7 @@ VOID ShowAvailableDialog(
     config.cbSize = sizeof(TASKDIALOGCONFIG);
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_ENABLE_HYPERLINKS;
     config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
-    config.hMainIcon = Context->IconLargeHandle;
+    config.hMainIcon = PhGetApplicationIcon(FALSE);
     config.cxWidth = 200;
     config.pButtons = TaskDialogButtonArray;
     config.cButtons = RTL_NUMBER_OF(TaskDialogButtonArray);

@@ -149,15 +149,14 @@ BOOLEAN PhMainWndInitialization(
         NULL,
         NULL
         );
-    PhClearReference(&windowName);
 
     if (!PhMainWndHandle)
         return FALSE;
 
-    if (PhGetIntegerSetting(L"EnableWindowText")) // HACK
+    if (windowName)
     {
-        SendMessage(PhMainWndHandle, WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
-        SendMessage(PhMainWndHandle, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
+        PhSetApplicationWindowIcon(PhMainWndHandle);
+        PhDereferenceObject(windowName);
     }
 
     // Choose a more appropriate rectangle for the window.

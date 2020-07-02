@@ -742,17 +742,11 @@ HRESULT CALLBACK PhpMemoryStringTaskDialogCallback(
     {
     case TDN_CREATED:
         {
-            HICON iconSmall;
-            HICON iconLarge;
-
             context->WindowHandle = hwndDlg;
 
             // Create the Taskdialog icons.
-            iconSmall = PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER));
-            iconLarge = PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER));
-            SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)iconSmall);
-            SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)iconLarge);
-            SendMessage(hwndDlg, TDM_UPDATE_ICON, TDIE_ICON_MAIN, (LPARAM)iconLarge);
+            PhSetApplicationWindowIcon(hwndDlg);
+            SendMessage(hwndDlg, TDM_UPDATE_ICON, TDIE_ICON_MAIN, (LPARAM)PhGetApplicationIcon(FALSE));
 
             // Set the progress state.
             SendMessage(hwndDlg, TDM_SET_MARQUEE_PROGRESS_BAR, TRUE, 0);

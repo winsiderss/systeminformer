@@ -172,7 +172,7 @@ VOID ShowDbCheckForUpdatesDialog(
     config.cbSize = sizeof(TASKDIALOGCONFIG);
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_ENABLE_HYPERLINKS;
     config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
-    config.hMainIcon = Context->IconLargeHandle;
+    config.hMainIcon = PhGetApplicationIcon(FALSE);
     config.cxWidth = 200;
     config.pButtons = DownloadButtonArray;
     config.cButtons = ARRAYSIZE(DownloadButtonArray);
@@ -196,7 +196,7 @@ VOID ShowDbCheckingForUpdatesDialog(
     config.cbSize = sizeof(TASKDIALOGCONFIG);
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_SHOW_MARQUEE_PROGRESS_BAR;
     config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
-    config.hMainIcon = Context->IconLargeHandle;
+    config.hMainIcon = PhGetApplicationIcon(FALSE);
     config.cxWidth = 200;
     config.pfCallback = CheckingForUpdatesDbCallbackProc;
     config.lpCallbackData = (LONG_PTR)Context;
@@ -218,7 +218,7 @@ VOID ShowDbInstallRestartDialog(
     config.cbSize = sizeof(TASKDIALOGCONFIG);
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED;
     config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
-    config.hMainIcon = Context->IconLargeHandle;
+    config.hMainIcon = PhGetApplicationIcon(FALSE);
     config.cxWidth = 200;
     config.pfCallback = RestartDbTaskDialogCallbackProc;
     config.lpCallbackData = (LONG_PTR)Context;
@@ -243,7 +243,7 @@ VOID ShowDbUpdateFailedDialog(
     //config.pszMainIcon = MAKEINTRESOURCE(65529);
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED;
     config.dwCommonButtons = TDCBF_CLOSE_BUTTON | TDCBF_RETRY_BUTTON;
-    config.hMainIcon = Context->IconLargeHandle;
+    config.hMainIcon = PhGetApplicationIcon(FALSE);
     config.cxWidth = 200;
     config.pfCallback = FinalDbTaskDialogCallbackProc;
     config.lpCallbackData = (LONG_PTR)Context;

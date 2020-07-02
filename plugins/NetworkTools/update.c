@@ -61,17 +61,6 @@ PPH_UPDATER_CONTEXT CreateUpdateContext(
     return context;
 }
 
-VOID TaskDialogCreateIcons(
-    _In_ PPH_UPDATER_CONTEXT Context
-    )
-{
-    Context->IconSmallHandle = PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER));
-    Context->IconLargeHandle = PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER));
-
-    SendMessage(Context->DialogHandle, WM_SETICON, ICON_SMALL, (LPARAM)Context->IconSmallHandle);
-    SendMessage(Context->DialogHandle, WM_SETICON, ICON_BIG, (LPARAM)Context->IconLargeHandle);
-}
-
 VOID TaskDialogLinkClicked(
     _In_ PPH_UPDATER_CONTEXT Context
     )
@@ -577,7 +566,7 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
             PhCenterWindow(hwndDlg, PhMainWndHandle);
 
             // Create the Taskdialog icons
-            TaskDialogCreateIcons(context);
+            PhSetApplicationWindowIcon(hwndDlg);
 
             PhRegisterWindowCallback(hwndDlg, PH_PLUGIN_WINDOW_EVENT_TYPE_TOPMOST, NULL);
 

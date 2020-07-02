@@ -121,8 +121,6 @@ typedef struct _UPLOAD_CONTEXT
     
     HWND DialogHandle;
     WNDPROC DialogWindowProc;
-    HICON IconLargeHandle;
-    HICON IconSmallHandle;
 
     ITaskbarList3* TaskbarListClass;
 

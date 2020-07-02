@@ -440,6 +440,22 @@ HBITMAP PhGetShieldBitmap(
     VOID
     );
 
+// begin_phapppub
+PHAPPAPI
+HICON
+NTAPI
+PhGetApplicationIcon(
+    _In_ BOOLEAN SmallIcon
+    );
+
+PHAPPAPI
+VOID
+NTAPI
+PhSetApplicationWindowIcon(
+    _In_ HWND WindowHandle
+    );
+// end_phapppub
+
 HRESULT PhRunAsAdminTask(
     _In_ PWSTR TaskName
     );

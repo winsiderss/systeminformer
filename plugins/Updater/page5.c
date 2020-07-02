@@ -191,7 +191,7 @@ VOID ShowUpdateInstallDialog(
     config.cbSize = sizeof(TASKDIALOGCONFIG);
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED;
     config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
-    config.hMainIcon = Context->IconLargeHandle;
+    config.hMainIcon = PhGetApplicationIcon(FALSE);
     config.cxWidth = 200;
     config.pfCallback = FinalTaskDialogCallbackProc;
     config.lpCallbackData = (LONG_PTR)Context;
@@ -219,7 +219,7 @@ VOID ShowLatestVersionDialog(
     config.cbSize = sizeof(TASKDIALOGCONFIG);
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_ENABLE_HYPERLINKS;
     config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
-    config.hMainIcon = Context->IconLargeHandle;
+    config.hMainIcon = PhGetApplicationIcon(FALSE);
     config.cxWidth = 200;
     config.pfCallback = FinalTaskDialogCallbackProc;
     config.lpCallbackData = (LONG_PTR)Context;
@@ -251,7 +251,7 @@ VOID ShowNewerVersionDialog(
     config.cbSize = sizeof(TASKDIALOGCONFIG);
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED;
     config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
-    config.hMainIcon = Context->IconLargeHandle;
+    config.hMainIcon = PhGetApplicationIcon(FALSE);
     config.cxWidth = 200;
     config.pfCallback = FinalTaskDialogCallbackProc;
     config.lpCallbackData = (LONG_PTR)Context;
@@ -279,7 +279,7 @@ VOID ShowUpdateFailedDialog(
     //config.pszMainIcon = MAKEINTRESOURCE(65529);
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED;
     config.dwCommonButtons = TDCBF_CLOSE_BUTTON | TDCBF_RETRY_BUTTON;
-    config.hMainIcon = Context->IconLargeHandle;
+    config.hMainIcon = PhGetApplicationIcon(FALSE);
 
     config.pszWindowTitle = L"Process Hacker - Updater";
     config.pszMainInstruction = L"Error downloading the update.";

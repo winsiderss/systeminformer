@@ -397,10 +397,9 @@ INT_PTR CALLBACK EtpUnloadedDllsDlgProc(
             NTSTATUS status;
             HWND lvHandle;
 
-            SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
-            SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
-
             context->ListViewHandle = lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
+
+            PhSetApplicationWindowIcon(hwndDlg);
 
             PhSetListViewStyle(lvHandle, FALSE, TRUE);
             PhSetControlTheme(lvHandle, L"explorer");

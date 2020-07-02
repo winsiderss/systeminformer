@@ -561,8 +561,7 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
             context->WindowHandle = hwndDlg;
             context->RichEditHandle = GetDlgItem(hwndDlg, IDC_NETOUTPUTEDIT);
 
-            SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
-            SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
+            PhSetApplicationWindowIcon(hwndDlg);
 
             if (context->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
             {

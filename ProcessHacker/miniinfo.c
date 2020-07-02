@@ -108,17 +108,11 @@ VOID PhPinMiniInformation(
 
             memset(&wcex, 0, sizeof(WNDCLASSEX));
             wcex.cbSize = sizeof(WNDCLASSEX);
-            wcex.style = 0;
             wcex.lpfnWndProc = PhMipContainerWndProc;
-            wcex.cbClsExtra = 0;
-            wcex.cbWndExtra = 0;
             wcex.hInstance = PhInstanceHandle;
-            wcex.hIcon = PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER));
-            wcex.hCursor = LoadCursor(NULL, IDC_ARROW);
-            wcex.hbrBackground = (HBRUSH)(COLOR_BTNFACE + 1);
             className = PhaGetStringSetting(L"MiniInfoWindowClassName");
             wcex.lpszClassName = PhGetStringOrDefault(className, L"MiniInfoWindowClassName");
-            wcex.hIconSm = PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER));
+            wcex.hCursor = LoadCursor(NULL, IDC_ARROW);
             windowAtom = RegisterClassEx(&wcex);
 
             PhMipContainerWindow = CreateWindow(
@@ -131,7 +125,7 @@ VOID PhPinMiniInformation(
                 400,
                 NULL,
                 NULL,
-                PhInstanceHandle,
+                NULL,
                 NULL
                 );
             PhSetWindowExStyle(PhMipContainerWindow, WS_EX_TOOLWINDOW, WS_EX_TOOLWINDOW);
