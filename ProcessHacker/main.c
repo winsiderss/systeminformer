@@ -160,8 +160,12 @@ INT WINAPI wWinMain(
     {
         if (!PhGetOwnTokenAttributes().Elevated)
         {
+            AllowSetForegroundWindow(ASFW_ANY); // TODO: This rarely works. (dmex)
+
             if (SUCCEEDED(PhRunAsAdminTask(L"ProcessHackerTaskAdmin")))
             {
+                PhActivatePreviousInstance(); // TODO: This rarely works. (dmex)
+
                 RtlExitUserProcess(STATUS_SUCCESS);
             }
         }
