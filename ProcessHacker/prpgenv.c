@@ -3,7 +3,7 @@
  *   Process properties: Environment page
  *
  * Copyright (C) 2009-2016 wj32
- * Copyright (C) 2018-2019 dmex
+ * Copyright (C) 2018-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -159,12 +159,29 @@ VOID PhpClearEnvironmentItems(
     PhClearArray(&Context->Items);
 }
 
+VOID PhpSetEnvironmentListStatusMessage(
+    _Inout_ PPH_ENVIRONMENT_CONTEXT Context,
+    _In_ ULONG Status
+    )
+{
+    PPH_STRING statusMessage;
+
+    statusMessage = PhGetStatusMessage(Status, 0);
+    PhMoveReference(&Context->StatusMessage, PhConcatStrings2(
+        L"Unable to query environment information:\n",
+        PhGetStringOrDefault(statusMessage, L"Unknown error.")
+        ));
+    TreeNew_SetEmptyText(Context->TreeNewHandle, &Context->StatusMessage->sr, 0);
+    PhClearReference(&statusMessage);
+}
+
 VOID PhpRefreshEnvironmentList(
     _In_ HWND hwndDlg,
     _Inout_ PPH_ENVIRONMENT_CONTEXT Context,
     _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
+    NTSTATUS status;
     HANDLE processHandle;
     PVOID environment;
     ULONG environmentLength;
@@ -196,11 +213,19 @@ VOID PhpRefreshEnvironmentList(
         }
     }
 
-    if (NT_SUCCESS(PhOpenProcess(
+    status = PhOpenProcess(
         &processHandle,
         PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
         ProcessItem->ProcessId
-        )))
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        PhpSetEnvironmentListStatusMessage(Context, status);
+        return;
+    }
+
+    if (NT_SUCCESS(status))
     {
         HANDLE tokenHandle;
         ULONG flags = 0;
@@ -258,6 +283,9 @@ VOID PhpRefreshEnvironmentList(
         PPH_STRING variableValue;
 
         item = PhItemArray(&Context->Items, i);
+
+        if (!item->Name)
+            continue;
 
         if (Context->SystemDefaultEnvironment && PhQueryEnvironmentVariable(
             Context->SystemDefaultEnvironment,
@@ -321,7 +349,7 @@ VOID PhpRefreshEnvironmentList(
             item->Value
             );
 
-        if (item->Name && item->Name->Buffer[0] == L'=')
+        if (item->Name && item->Name->Buffer[0] == L'=') // HACK (dmex)
         {
             node->IsCmdVariable = TRUE;
         }
@@ -347,11 +375,6 @@ INT_PTR CALLBACK PhpEditEnvDlgProc(
     else
     {
         context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-
-        if (uMsg == WM_DESTROY)
-        {
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-        }
     }
 
     if (!context)
@@ -390,6 +413,8 @@ INT_PTR CALLBACK PhpEditEnvDlgProc(
     case WM_DESTROY:
         {
             PhDeleteLayoutManager(&context->LayoutManager);
+
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
         }
         break;
     case WM_COMMAND:
