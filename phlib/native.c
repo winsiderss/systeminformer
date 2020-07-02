@@ -719,6 +719,38 @@ NTSTATUS PhGetProcessIsBeingDebugged(
     return status;
 }
 
+NTSTATUS PhGetProcessDeviceMap(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PULONG DeviceMap
+    )
+{
+    NTSTATUS status;
+#ifndef _WIN64
+    PROCESS_DEVICEMAP_INFORMATION deviceMapInfo;
+#else
+    PROCESS_DEVICEMAP_INFORMATION_EX deviceMapInfo;
+#endif
+    memset(&deviceMapInfo, 0, sizeof(deviceMapInfo));
+
+    status = NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessDeviceMap,
+        &deviceMapInfo,
+        sizeof(deviceMapInfo),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        if (DeviceMap)
+        {
+            *DeviceMap = deviceMapInfo.Query.DriveMap;
+        }
+    }
+
+    return status;
+}
+
 /**
  * Gets a string stored in a process' parameters structure.
  *
@@ -6237,21 +6269,10 @@ VOID PhUpdateDosDevicePrefixes(
     VOID
     )
 {
+    ULONG deviceMap = 0;
     WCHAR deviceNameBuffer[7] = L"\\??\\ :";
-#ifndef _WIN64
-    PROCESS_DEVICEMAP_INFORMATION deviceMapInfo;
-#else
-    PROCESS_DEVICEMAP_INFORMATION_EX deviceMapInfo;
-#endif
-    memset(&deviceMapInfo, 0, sizeof(deviceMapInfo));
 
-    NtQueryInformationProcess(
-        NtCurrentProcess(), 
-        ProcessDeviceMap, 
-        &deviceMapInfo, 
-        sizeof(deviceMapInfo), 
-        NULL
-        );
+    PhGetProcessDeviceMap(NtCurrentProcess(), &deviceMap);
 
     for (ULONG i = 0; i < 0x1A; i++)
     {
@@ -6259,9 +6280,9 @@ VOID PhUpdateDosDevicePrefixes(
         OBJECT_ATTRIBUTES objectAttributes;
         UNICODE_STRING deviceName;
 
-        if (deviceMapInfo.Query.DriveMap)
+        if (deviceMap)
         {
-            if (!(deviceMapInfo.Query.DriveMap & (0x1 << i)))
+            if (!(deviceMap & (0x1 << i)))
                 continue;
         }
 
