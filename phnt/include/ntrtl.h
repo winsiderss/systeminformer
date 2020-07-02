@@ -4705,6 +4705,16 @@ RtlQueryProcessDebugInformation(
     _Inout_ PRTL_DEBUG_INFORMATION Buffer
     );
 
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlSetProcessDebugInformation(
+    _In_ HANDLE UniqueProcessId,
+    _In_ ULONG Flags,
+    _Inout_ PRTL_DEBUG_INFORMATION Buffer
+    );
+
 // Messages
 
 NTSYSAPI
