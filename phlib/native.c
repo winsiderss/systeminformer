@@ -1115,7 +1115,7 @@ NTSTATUS PhGetProcessEnvironment(
     PVOID environmentRemote;
     MEMORY_BASIC_INFORMATION mbi;
     PVOID environment;
-    ULONG environmentLength;
+    SIZE_T environmentLength;
 
     if (!(Flags & PH_GET_PROCESS_ENVIRONMENT_WOW64))
     {
@@ -1129,7 +1129,7 @@ NTSTATUS PhGetProcessEnvironment(
 
         if (!NT_SUCCESS(status = NtReadVirtualMemory(
             ProcessHandle,
-            PTR_ADD_OFFSET(basicInfo.PebBaseAddress, FIELD_OFFSET(PEB, ProcessParameters)),
+            PTR_ADD_OFFSET(basicInfo.PebBaseAddress, UFIELD_OFFSET(PEB, ProcessParameters)),
             &processParameters,
             sizeof(PVOID),
             NULL
@@ -1138,7 +1138,7 @@ NTSTATUS PhGetProcessEnvironment(
 
         if (!NT_SUCCESS(status = NtReadVirtualMemory(
             ProcessHandle,
-            PTR_ADD_OFFSET(processParameters, FIELD_OFFSET(RTL_USER_PROCESS_PARAMETERS, Environment)),
+            PTR_ADD_OFFSET(processParameters, UFIELD_OFFSET(RTL_USER_PROCESS_PARAMETERS, Environment)),
             &environmentRemote,
             sizeof(PVOID),
             NULL
@@ -1158,7 +1158,7 @@ NTSTATUS PhGetProcessEnvironment(
 
         if (!NT_SUCCESS(status = NtReadVirtualMemory(
             ProcessHandle,
-            PTR_ADD_OFFSET(peb32, FIELD_OFFSET(PEB32, ProcessParameters)),
+            PTR_ADD_OFFSET(peb32, UFIELD_OFFSET(PEB32, ProcessParameters)),
             &processParameters32,
             sizeof(ULONG),
             NULL
@@ -1167,7 +1167,7 @@ NTSTATUS PhGetProcessEnvironment(
 
         if (!NT_SUCCESS(status = NtReadVirtualMemory(
             ProcessHandle,
-            PTR_ADD_OFFSET(processParameters32, FIELD_OFFSET(RTL_USER_PROCESS_PARAMETERS32, Environment)),
+            PTR_ADD_OFFSET(processParameters32, UFIELD_OFFSET(RTL_USER_PROCESS_PARAMETERS32, Environment)),
             &environmentRemote32,
             sizeof(ULONG),
             NULL
@@ -1187,10 +1187,10 @@ NTSTATUS PhGetProcessEnvironment(
         )))
         return status;
 
-    environmentLength = (ULONG)(mbi.RegionSize -
-        ((ULONG_PTR)environmentRemote - (ULONG_PTR)mbi.BaseAddress));
-
     // Read in the entire region of memory.
+
+    environmentLength = (SIZE_T)PTR_SUB_OFFSET(mbi.RegionSize,
+        PTR_SUB_OFFSET(environmentRemote, mbi.BaseAddress));
 
     environment = PhAllocatePage(environmentLength, NULL);
 
@@ -1212,7 +1212,7 @@ NTSTATUS PhGetProcessEnvironment(
     *Environment = environment;
 
     if (EnvironmentLength)
-        *EnvironmentLength = environmentLength;
+        *EnvironmentLength = (ULONG)environmentLength;
 
     return status;
 }
