@@ -23,81 +23,61 @@
 #include "devices.h"
 #include <ntdddisk.h>
 
-ULONG DiskDriveQueryDeviceMap(
-    VOID
-    )
-{
-#ifndef _WIN64
-    PROCESS_DEVICEMAP_INFORMATION deviceMapInfo;
-#else
-    PROCESS_DEVICEMAP_INFORMATION_EX deviceMapInfo;
-#endif
-
-    memset(&deviceMapInfo, 0, sizeof(deviceMapInfo));
-
-    NtQueryInformationProcess(
-        NtCurrentProcess(),
-        ProcessDeviceMap,
-        &deviceMapInfo,
-        sizeof(deviceMapInfo),
-        NULL
-        );
-    
-    return deviceMapInfo.Query.DriveMap;
-}
-
 PPH_STRING DiskDriveQueryDosMountPoints(
     _In_ ULONG DeviceNumber
     )
 {
-    ULONG driveMask;
+    ULONG deviceMap = 0;
     WCHAR deviceNameBuffer[7] = L"\\??\\?:";
     PH_STRING_BUILDER stringBuilder;
 
     PhInitializeStringBuilder(&stringBuilder, DOS_MAX_PATH_LENGTH);
 
-    driveMask = DiskDriveQueryDeviceMap();
+    PhGetProcessDeviceMap(NtCurrentProcess(), &deviceMap);
 
-    // NOTE: This isn't the best way of doing this but it works.
+    // This isn't the best way of doing this but it works. (dmex)
     for (INT i = 0; i < 0x1A; i++)
     {
-        if (driveMask & (0x1 << i))
+        HANDLE deviceHandle;
+
+        if (deviceMap)
         {
-            HANDLE deviceHandle;
+            if (!(deviceMap & (0x1 << i)))
+                continue;
+        }
 
-            deviceNameBuffer[4] = (WCHAR)('A' + i);
+        deviceNameBuffer[4] = (WCHAR)('A' + i);
 
-            if (NT_SUCCESS(PhCreateFile(
-                &deviceHandle,
-                deviceNameBuffer,
-                FILE_READ_ATTRIBUTES | SYNCHRONIZE,
-                FILE_ATTRIBUTE_NORMAL,
-                FILE_SHARE_READ | FILE_SHARE_WRITE,
-                FILE_OPEN,
-                FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        if (NT_SUCCESS(PhCreateFile(
+            &deviceHandle,
+            deviceNameBuffer,
+            FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+            FILE_ATTRIBUTE_NORMAL,
+            FILE_SHARE_READ | FILE_SHARE_WRITE,
+            FILE_OPEN,
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+            )))
+        {
+            ULONG deviceNumber = ULONG_MAX; // Note: Do not initialize to zero.
+            DEVICE_TYPE deviceType = 0;
+
+            if (NT_SUCCESS(DiskDriveQueryDeviceTypeAndNumber(
+                deviceHandle,
+                &deviceNumber,
+                &deviceType
                 )))
             {
-                ULONG deviceNumber = ULONG_MAX; // Note: Do not initialize to zero.
-                DEVICE_TYPE deviceType = 0;
-
-                if (NT_SUCCESS(DiskDriveQueryDeviceTypeAndNumber(
-                    deviceHandle,
-                    &deviceNumber,
-                    &deviceType
-                    )))
+                // BUG: Device numbers are re-used on seperate device controllers and this
+                // causes drive letters to be assigned to disks at those same indexes.
+                // For now, just filter CD_ROM devices but we may need to be a lot more strict and
+                // only allow devices of type FILE_DEVICE_DISK to be scanned for mount points.
+                if (deviceNumber == DeviceNumber && deviceType != FILE_DEVICE_CD_ROM)
                 {
-                    // BUG: Device numbers are re-used on seperate device controllers and this
-                    // causes drive letters to be assigned to disks at those same indexes.
-                    // For now, just filter CD_ROM devices but we may need to be a lot more strict and
-                    // only allow devices of type FILE_DEVICE_DISK to be scanned for mount points.
-                    if (deviceNumber == DeviceNumber && deviceType != FILE_DEVICE_CD_ROM)
-                    {
-                        PhAppendFormatStringBuilder(&stringBuilder, L"%c: ", deviceNameBuffer[4]);
-                    }
+                    PhAppendFormatStringBuilder(&stringBuilder, L"%c: ", deviceNameBuffer[4]);
                 }
-
-                NtClose(deviceHandle);
             }
+
+            NtClose(deviceHandle);
         }
     }
 
@@ -111,54 +91,61 @@ PPH_LIST DiskDriveQueryMountPointHandles(
     _In_ ULONG DeviceNumber
     )
 {
-    ULONG driveMask;
+    ULONG deviceMap = 0;
     PPH_LIST deviceList;
     WCHAR deviceNameBuffer[7] = L"\\??\\?:";
 
-    driveMask = DiskDriveQueryDeviceMap();
+    PhGetProcessDeviceMap(NtCurrentProcess(), &deviceMap);
+
     deviceList = PhCreateList(2);
 
     for (INT i = 0; i < 26; i++)
     {
-        if (driveMask & (1 << i))
+        HANDLE deviceHandle;
+
+        if (deviceMap)
         {
-            HANDLE deviceHandle;
+            if (!(deviceMap & (0x1 << i)))
+                continue;
+        }
 
-            deviceNameBuffer[4] = (WCHAR)('A' + i);
+        deviceNameBuffer[4] = (WCHAR)('A' + i);
 
-            if (NT_SUCCESS(PhCreateFile(
-                &deviceHandle,
-                deviceNameBuffer,
-                PhGetOwnTokenAttributes().Elevated ? FILE_GENERIC_READ : FILE_READ_ATTRIBUTES | FILE_TRAVERSE | SYNCHRONIZE,
-                FILE_ATTRIBUTE_NORMAL,
-                FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                FILE_OPEN,
-                FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        if (NT_SUCCESS(PhCreateFile(
+            &deviceHandle,
+            deviceNameBuffer,
+            PhGetOwnTokenAttributes().Elevated ? FILE_GENERIC_READ : FILE_READ_ATTRIBUTES | FILE_TRAVERSE | SYNCHRONIZE,
+            FILE_ATTRIBUTE_NORMAL,
+            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+            FILE_OPEN,
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+            )))
+        {
+            ULONG deviceNumber = ULONG_MAX; // Note: Do not initialize to zero.
+            DEVICE_TYPE deviceType = 0;
+
+            DiskDriveQueryDeviceInformation(
+                deviceHandle, NULL, NULL, NULL, NULL);
+
+            if (NT_SUCCESS(DiskDriveQueryDeviceTypeAndNumber(
+                deviceHandle,
+                &deviceNumber,
+                &deviceType
                 )))
             {
-                ULONG deviceNumber = ULONG_MAX; // Note: Do not initialize to zero.
-                DEVICE_TYPE deviceType = 0;
-
-                if (NT_SUCCESS(DiskDriveQueryDeviceTypeAndNumber(
-                    deviceHandle,
-                    &deviceNumber,
-                    &deviceType
-                    )))
+                // BUG: Device numbers are re-used on seperate device controllers and this
+                // causes drive letters to be assigned to disks at those same indexes.
+                // For now, just filter CD_ROM devices but we may need to be a lot more strict and 
+                // only allow devices of type FILE_DEVICE_DISK to be scanned for mount points.
+                if (deviceNumber == DeviceNumber && deviceType != FILE_DEVICE_CD_ROM)
                 {
-                    // BUG: Device numbers are re-used on seperate device controllers and this
-                    // causes drive letters to be assigned to disks at those same indexes.
-                    // For now, just filter CD_ROM devices but we may need to be a lot more strict and 
-                    // only allow devices of type FILE_DEVICE_DISK to be scanned for mount points.
-                    if (deviceNumber == DeviceNumber && deviceType != FILE_DEVICE_CD_ROM)
-                    {
-                        PDISK_HANDLE_ENTRY entry;
-                        
-                        entry = PhAllocateZero(sizeof(DISK_HANDLE_ENTRY));
-                        entry->DeviceLetter = deviceNameBuffer[4];
-                        entry->DeviceHandle = deviceHandle;
+                    PDISK_HANDLE_ENTRY entry;
 
-                        PhAddItemList(deviceList, entry);
-                    }
+                    entry = PhAllocateZero(sizeof(DISK_HANDLE_ENTRY));
+                    entry->DeviceLetter = deviceNameBuffer[4];
+                    entry->DeviceHandle = deviceHandle;
+
+                    PhAddItemList(deviceList, entry);
                 }
             }
         }
