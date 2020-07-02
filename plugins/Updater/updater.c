@@ -168,7 +168,7 @@ PPH_STRING UpdateVersionString(
     VOID
     )
 {
-    static PH_STRINGREF postHeader = PH_STRINGREF_INIT(L"ProcessHacker-Build: ");
+    static PH_STRINGREF versionHeader = PH_STRINGREF_INIT(L"ProcessHacker-Build: ");
     ULONG majorVersion;
     ULONG minorVersion;
     ULONG buildVersion;
@@ -194,20 +194,20 @@ PPH_STRING UpdateVersionString(
         stringFormat.Buffer = formatBuffer;
         stringFormat.Length = returnLength - sizeof(UNICODE_NULL);
 
-        return PhConcatStringRef2(&postHeader, &stringFormat);
+        return PhConcatStringRef2(&versionHeader, &stringFormat);
     }
     else
     {
-        PPH_STRING currentVersion;
-        PPH_STRING versionHeader = NULL;
+        PPH_STRING currentVersion = NULL;
+        PPH_STRING stringFormat;
 
-        if (currentVersion = PhFormatString(L"%lu.%lu.%lu", majorVersion, minorVersion, revisionVersion))
+        if (stringFormat = PhFormatString(L"%lu.%lu.%lu.%lu", majorVersion, minorVersion, buildVersion, revisionVersion))
         {
-            versionHeader = PhConcatStringRef2(&postHeader, &currentVersion->sr);
+            currentVersion = PhConcatStringRef2(&versionHeader, &stringFormat->sr);
             PhDereferenceObject(currentVersion);
         }
 
-        return versionHeader;
+        return currentVersion;
     }
 }
 
