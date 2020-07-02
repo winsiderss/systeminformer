@@ -332,7 +332,7 @@ INT_PTR CALLBACK PhpGdiHandlesDlgProc(
 
             lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
-            PhSetListViewStyle(lvHandle, FALSE, TRUE);
+            PhSetListViewStyle(lvHandle, TRUE, TRUE);
             PhSetControlTheme(lvHandle, L"explorer");
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 100, L"Type");
             PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 80, L"Handle");
