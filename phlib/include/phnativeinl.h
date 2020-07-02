@@ -1,8 +1,6 @@
 #ifndef _PH_PHNATINL_H
 #define _PH_PHNATINL_H
 
-#pragma once
-
 // This file contains inlined native API wrapper functions. These functions were previously
 // exported, but are now inlined because they are extremely simple wrappers around equivalent native
 // API functions.
