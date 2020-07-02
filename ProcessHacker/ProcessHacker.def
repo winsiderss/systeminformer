@@ -658,6 +658,7 @@ EXPORTS
     PhGetSymbolFromAddress
     PhGetSymbolFromName
     PhLoadModuleSymbolProvider
+    PhLoadModulesForProcessSymbolProvider
     PhSetOptionsSymbolProvider
     PhSetSearchPathSymbolProvider
     PhStackWalk

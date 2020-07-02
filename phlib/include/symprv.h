@@ -125,6 +125,14 @@ PhLoadModuleSymbolProvider(
 PHLIBAPI
 VOID
 NTAPI
+PhLoadModulesForProcessSymbolProvider(
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
+    _In_ HANDLE ProcessId
+    );
+
+PHLIBAPI
+VOID
+NTAPI
 PhSetOptionsSymbolProvider(
     _In_ ULONG Mask,
     _In_ ULONG Value
