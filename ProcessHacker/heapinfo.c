@@ -25,6 +25,7 @@
 #include <phsettings.h>
 #include <phsvccl.h>
 #include <actions.h>
+#include <appresolver.h>
 #include <emenu.h>
 #include <mainwnd.h>
 #include <procprv.h>
@@ -345,7 +346,7 @@ PPH_STRING PhGetProcessHeapFlagsText(
     if (Flags & HEAP_CREATE_ALIGN_16)
         PhAppendStringBuilder2(&stringBuilder, L"Align 16, ");
     if (Flags & HEAP_CREATE_ENABLE_TRACING)
-        PhAppendStringBuilder2(&stringBuilder, L"Tracing enabled, ");
+        PhAppendStringBuilder2(&stringBuilder, L"Traceable, ");
     if (Flags & HEAP_CREATE_ENABLE_EXECUTE)
         PhAppendStringBuilder2(&stringBuilder, L"Executable, ");
     if (Flags & HEAP_CREATE_SEGMENT_HEAP)
@@ -411,15 +412,29 @@ VOID PhpEnumerateProcessHeaps(
 
     if (Context->ProcessItem->IsImmersive)
     {
-        // TODO: Even if the immersive process is active we can still deadlock when the
-        // RtlQueryProcessDebugInformation thread hasn't completed and
-        // the UWP process is automatically suspended by the shell. (dmex)
-        PhShowError2(
-            Context->WindowHandle,
-            L"Unable to query heap information.",
-            L"Please activate the UWP immersive process before refreshing heap information."
-            );
-        return;
+        PPH_STRING appUserModelId;
+
+        if (PhAppResolverGetAppIdForProcess(Context->ProcessItem->ProcessId, &appUserModelId))
+        {
+            PhAppResolverActivateAppId(appUserModelId, NULL, NULL);
+            PhDereferenceObject(appUserModelId);
+        }
+
+        if (PhIsProcessSuspended(Context->ProcessItem->ProcessId))
+        {
+            // NOTE: Even if the immersive process is active we can still deadlock when the
+            // RtlQueryProcessDebugInformation thread hasn't completed and
+            // the UWP process is automatically suspended by the shell. (dmex)
+            //
+            // TODO: Duplicate the job object and use the JobObjectFreezeInformation class
+            // to suspend and resume the UWP process or KPH with PsFreeze.
+            PhShowError2(
+                Context->WindowHandle,
+                L"Unable to query heap information.",
+                L"Please activate the UWP immersive process before refreshing heap information."
+                );
+            return;
+        }
     }
 
     ExtendedListView_SetRedraw(Context->ListViewHandle, FALSE);
@@ -507,6 +522,7 @@ VOID PhpEnumerateProcessHeaps(
                 L"Unable to query 32bit heap information.",
                 L"The 32-bit version of Process Hacker could not be located."
                 );
+            goto CleanupExit;
         }
     }
     else
