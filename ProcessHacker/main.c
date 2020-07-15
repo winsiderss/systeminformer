@@ -815,50 +815,65 @@ BOOLEAN PhInitializeMitigationPolicy(
      PROCESS_CREATION_MITIGATION_POLICY_CONTROL_FLOW_GUARD_ALWAYS_ON | \
      PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_REMOTE_ALWAYS_ON | \
      PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_LOW_LABEL_ALWAYS_ON)
-
+#define DEFAULT_MITIGATION_POLICY_FLAGS2 \
+    (PROCESS_CREATION_MITIGATION_POLICY2_LOADER_INTEGRITY_CONTINUITY_ALWAYS_ON | \
+     PROCESS_CREATION_MITIGATION_POLICY2_STRICT_CONTROL_FLOW_GUARD_ALWAYS_ON | \
+     PROCESS_CREATION_MITIGATION_POLICY2_MODULE_TAMPERING_PROTECTION_ALWAYS_ON | \
+     PROCESS_CREATION_MITIGATION_POLICY2_RESTRICT_INDIRECT_BRANCH_PREDICTION_ALWAYS_ON | \
+     PROCESS_CREATION_MITIGATION_POLICY2_SPECULATIVE_STORE_BYPASS_DISABLE_ALWAYS_ON | \
+     PROCESS_CREATION_MITIGATION_POLICY2_CET_USER_SHADOW_STACKS_ALWAYS_ON)
     static PH_STRINGREF nompCommandlinePart = PH_STRINGREF_INIT(L" -nomp");
     static PH_STRINGREF rasCommandlinePart = PH_STRINGREF_INIT(L" -ras");
     BOOLEAN success = TRUE;
-    PH_STRINGREF commandlineSr;
+    HANDLE jobObjectHandle = NULL;
     PPH_STRING commandline = NULL;
-    PS_SYSTEM_DLL_INIT_BLOCK (*LdrSystemDllInitBlock_I) = NULL;
+    ULONG64 options[2] = { 0 };
+    PS_SYSTEM_DLL_INIT_BLOCK(*LdrSystemDllInitBlock_I) = NULL;
     STARTUPINFOEX startupInfo = { sizeof(STARTUPINFOEX) };
     SIZE_T attributeListLength;
 
     if (WindowsVersion < WINDOWS_10_RS3)
         return TRUE;
+    if (!NT_SUCCESS(PhGetProcessCommandLine(NtCurrentProcess(), &commandline)))
+        goto CleanupExit;
+    if (PhFindStringInStringRef(&commandline->sr, &rasCommandlinePart, FALSE) != -1)
+        goto CleanupExit;
+    if (PhEndsWithStringRef(&commandline->sr, &nompCommandlinePart, FALSE))
+        goto CleanupExit;
 
-    PhUnicodeStringToStringRef(&NtCurrentPeb()->ProcessParameters->CommandLine, &commandlineSr);
-
-    // NOTE: The SCM has a bug where calling CreateProcess with PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY to restart the service with mitigations
-    // causes the SCM to spew EVENT_SERVICE_DIFFERENT_PID_CONNECTED in the system eventlog and terminate the service. (dmex)
-    // WARN: This bug makes it impossible to start services with mitigation polices when the service doesn't have an IFEO key...
-    if (PhFindStringInStringRef(&commandlineSr, &rasCommandlinePart, FALSE) != -1)
-        return TRUE;
-    if (PhEndsWithStringRef(&commandlineSr, &nompCommandlinePart, FALSE))
-        return TRUE;
+    PhMoveReference(&commandline, PhConcatStringRef2(&commandline->sr, &nompCommandlinePart));
 
     if (!(LdrSystemDllInitBlock_I = PhGetDllProcedureAddress(L"ntdll.dll", "LdrSystemDllInitBlock", 0)))
         goto CleanupExit;
-
     if (!RTL_CONTAINS_FIELD(LdrSystemDllInitBlock_I, LdrSystemDllInitBlock_I->Size, MitigationOptionsMap))
         goto CleanupExit;
-
     if ((LdrSystemDllInitBlock_I->MitigationOptionsMap.Map[0] & DEFAULT_MITIGATION_POLICY_FLAGS) == DEFAULT_MITIGATION_POLICY_FLAGS)
         goto CleanupExit;
 
-    if (!InitializeProcThreadAttributeList(NULL, 1, 0, &attributeListLength) && GetLastError() != ERROR_INSUFFICIENT_BUFFER)
+    if (NT_SUCCESS(NtCreateJobObject(&jobObjectHandle, JOB_OBJECT_ALL_ACCESS, NULL)))
+    {
+        JOBOBJECT_BASIC_UI_RESTRICTIONS basicJobRestrictions;
+
+        basicJobRestrictions.UIRestrictionsClass = JOB_OBJECT_UILIMIT_GLOBALATOMS | JOB_OBJECT_UILIMIT_HANDLES;
+        NtSetInformationJobObject(
+            jobObjectHandle,
+            JobObjectBasicUIRestrictions,
+            &basicJobRestrictions,
+            sizeof(JOBOBJECT_BASIC_UI_RESTRICTIONS)
+            );
+    }
+
+    if (!InitializeProcThreadAttributeList(NULL, 2, 0, &attributeListLength) && GetLastError() != ERROR_INSUFFICIENT_BUFFER)
         goto CleanupExit;
 
     startupInfo.lpAttributeList = PhAllocate(attributeListLength);
 
-    if (!InitializeProcThreadAttributeList(startupInfo.lpAttributeList, 1, 0, &attributeListLength))
+    if (!InitializeProcThreadAttributeList(startupInfo.lpAttributeList, 2, 0, &attributeListLength))
         goto CleanupExit;
-
-    if (!UpdateProcThreadAttribute(startupInfo.lpAttributeList, 0, PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY, &(ULONG64){ DEFAULT_MITIGATION_POLICY_FLAGS }, sizeof(ULONG64), NULL, NULL))
+    if (!UpdateProcThreadAttribute(startupInfo.lpAttributeList, 0, PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY, &(ULONG64[]){ DEFAULT_MITIGATION_POLICY_FLAGS, DEFAULT_MITIGATION_POLICY_FLAGS2  }, sizeof(ULONG64[2]), NULL, NULL))
         goto CleanupExit;
-
-    commandline = PhConcatStringRef2(&commandlineSr, &nompCommandlinePart);
+    if (!UpdateProcThreadAttribute(startupInfo.lpAttributeList, 0, PROC_THREAD_ATTRIBUTE_JOB_LIST, &jobObjectHandle, sizeof(HANDLE), NULL, NULL))
+        goto CleanupExit;
 
     if (NT_SUCCESS(PhCreateProcessWin32Ex(
         NULL,
@@ -885,6 +900,11 @@ CleanupExit:
     {
         DeleteProcThreadAttributeList(startupInfo.lpAttributeList);
         PhFree(startupInfo.lpAttributeList);
+    }
+
+    if (jobObjectHandle)
+    {
+        NtClose(jobObjectHandle);
     }
 
     return success;
