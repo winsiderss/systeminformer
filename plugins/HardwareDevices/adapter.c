@@ -35,7 +35,8 @@ VOID AdapterEntryDeleteProcedure(
     PhReleaseQueuedLockExclusive(&NetworkAdaptersListLock);
 
     DeleteNetAdapterId(&entry->AdapterId);
-    PhClearReference(&entry->AdapterName);
+    PhDereferenceObject(entry->AdapterName);
+    PhDereferenceObject(entry->AdapterAlias);
 
     PhDeleteCircularBuffer_ULONG64(&entry->InboundBuffer);
     PhDeleteCircularBuffer_ULONG64(&entry->OutboundBuffer);
@@ -126,7 +127,16 @@ VOID NetAdaptersUpdate(
                 networkOutOctets = NetworkAdapterQueryValue(deviceHandle, OID_GEN_BYTES_XMIT);
             }
 
-            entry->DevicePresent = TRUE;
+            NDIS_LINK_STATE interfaceState;
+
+            if (NT_SUCCESS(NetworkAdapterQueryLinkState(deviceHandle, &interfaceState)))
+            {
+                entry->DevicePresent = interfaceState.MediaConnectState == MediaConnectStateConnected;
+            }
+            else
+            {
+                entry->DevicePresent = FALSE;
+            }
 
             NtClose(deviceHandle);
         }
@@ -153,6 +163,14 @@ VOID NetAdaptersUpdate(
             {
                 entry->DevicePresent = FALSE;
             }
+        }
+
+        if (!entry->DevicePresent)
+        {
+            entry->NetworkReceiveRaw = 0;
+            entry->NetworkSendRaw = 0;
+            PhInitializeDelta(&entry->NetworkSendDelta);
+            PhInitializeDelta(&entry->NetworkReceiveDelta);
         }
 
         if (entry->NetworkReceiveRaw < networkInOctets)
@@ -192,6 +210,11 @@ VOID NetAdapterUpdateDeviceInfo(
     _In_ PDV_NETADAPTER_ENTRY AdapterEntry
     )
 {
+    if (PhIsNullOrEmptyString(AdapterEntry->AdapterAlias))
+    {
+        AdapterEntry->AdapterAlias = NetworkAdapterGetInterfaceAliasFromLuid(&AdapterEntry->AdapterId);
+    }
+
     if (PhIsNullOrEmptyString(AdapterEntry->AdapterName))
     {
         HANDLE deviceHandle = NULL;

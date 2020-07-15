@@ -86,6 +86,7 @@ typedef struct _DV_NETADAPTER_ENTRY
 {
     DV_NETADAPTER_ID AdapterId;
     PPH_STRING AdapterName;
+    PPH_STRING AdapterAlias;
 
     union
     {

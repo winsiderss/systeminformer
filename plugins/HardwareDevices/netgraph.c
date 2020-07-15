@@ -169,15 +169,9 @@ VOID NetAdapterUpdateTitle(
     _Inout_ PDV_NETADAPTER_SYSINFO_CONTEXT Context
     )
 {
-    PPH_STRING interfaceAlias;
-
-    interfaceAlias = NetworkAdapterGetInterfaceAliasFromLuid(&Context->AdapterEntry->AdapterId);
-
     // The interface alias can change so update the value. 
-    PhSetWindowText(Context->AdapterTextLabel, PhGetStringOrEmpty(interfaceAlias));
+    PhSetWindowText(Context->AdapterTextLabel, PhGetStringOrEmpty(Context->AdapterEntry->AdapterAlias));
     PhSetWindowText(Context->AdapterNameLabel, PhGetStringOrDefault(Context->AdapterEntry->AdapterName, L"Unknown network adapter")); // TODO: We only need to set the name once. (dmex)
-
-    PhClearReference(&interfaceAlias);
 }
 
 INT_PTR CALLBACK NetAdapterPanelDialogProc(
@@ -584,7 +578,11 @@ BOOLEAN NetAdapterSectionCallback(
             if (!drawPanel)
                 break;
 
-            PhSetReference(&drawPanel->Title, context->AdapterEntry->AdapterName);
+            if (context->AdapterEntry->AdapterAlias)
+                PhSetReference(&drawPanel->Title, context->AdapterEntry->AdapterAlias);
+            else
+                PhSetReference(&drawPanel->Title, context->AdapterEntry->AdapterName);
+
             if (!drawPanel->Title) drawPanel->Title = PhCreateString(L"Unknown network adapter");
 
             // R: %s\nS: %s
