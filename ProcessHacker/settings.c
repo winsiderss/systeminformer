@@ -42,7 +42,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableCycleCpuUsage", L"1");
     PhpAddIntegerSetting(L"EnableInstantTooltips", L"0");
     PhpAddIntegerSetting(L"EnableKph", L"1");
-    PhpAddIntegerSetting(L"EnableKphWarnings", L"1");
+    PhpAddIntegerSetting(L"EnableKphWarnings", L"0");
     PhpAddIntegerSetting(L"EnableHandleSnapshot", L"1");
     PhpAddIntegerSetting(L"EnableNetworkResolve", L"1");
     PhpAddIntegerSetting(L"EnableNetworkResolveDoH", L"0");
@@ -313,11 +313,6 @@ VOID PhUpdateCachedSettings(
     PH_UPDATE_SETTING(ColorServiceStop);
     PH_UPDATE_SETTING(UseColorUnknown);
     PH_UPDATE_SETTING(ColorUnknown);
-
-    PH_UPDATE_SETTING(UseColorSystemThreadStack);
-    PH_UPDATE_SETTING(ColorSystemThreadStack);
-    PH_UPDATE_SETTING(UseColorUserThreadStack);
-    PH_UPDATE_SETTING(ColorUserThreadStack);
 
     PH_UPDATE_SETTING(GraphShowText);
     PH_UPDATE_SETTING(GraphColorMode);

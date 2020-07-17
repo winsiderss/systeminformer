@@ -3,7 +3,7 @@
  *   thread stack viewer
  *
  * Copyright (C) 2010-2016 wj32
- * Copyright (C) 2017-2019 dmex
+ * Copyright (C) 2017-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -52,12 +52,26 @@ typedef struct _PH_THREAD_STACK_CONTEXT
     PPH_THREAD_PROVIDER ThreadProvider;
     PPH_SYMBOL_PROVIDER SymbolProvider;
 
-    BOOLEAN CustomWalk;
-    BOOLEAN StopWalk;
-    BOOLEAN EnableCloseDialog;
+    union
+    {
+        ULONG Flags;
+        struct
+        {
+            ULONG CustomWalk : 1;
+            ULONG StopWalk : 1;
+            ULONG EnableCloseDialog : 1;
+            ULONG HighlightSystemPages : 1;
+            ULONG HighlightUserPages : 1;
+            ULONG HideSystemPages : 1;
+            ULONG HideUserPages : 1;
+            ULONG Spare : 25;
+        };
+    };
 
     PPH_LIST List;
     PPH_LIST NewList;
+    PH_TN_FILTER_SUPPORT TreeFilterSupport;
+    PPH_TN_FILTER_ENTRY TreeFilterEntry;
 
     HWND TaskDialogHandle;
 
@@ -477,16 +491,16 @@ BOOLEAN NTAPI ThreadStackTreeNewCallback(
 
             node = (PPH_STACK_TREE_ROOT_NODE)getNodeColor->Node;
 
-            if (PhCsUseColorSystemThreadStack && (ULONG_PTR)node->StackFrame.PcAddress > PhSystemBasicInformation.MaximumUserModeAddress)
+            if (context->HighlightSystemPages && (ULONG_PTR)node->StackFrame.PcAddress > PhSystemBasicInformation.MaximumUserModeAddress)
             {
-                getNodeColor->BackColor = PhCsColorSystemThreadStack;
+                getNodeColor->BackColor = PhGetIntegerSetting(L"ColorSystemThreadStack");
             }
-            else if (PhCsUseColorUserThreadStack && (ULONG_PTR)node->StackFrame.PcAddress <= PhSystemBasicInformation.MaximumUserModeAddress)
+            else if (context->HighlightUserPages && (ULONG_PTR)node->StackFrame.PcAddress <= PhSystemBasicInformation.MaximumUserModeAddress)
             {
-                getNodeColor->BackColor = PhCsColorUserThreadStack;
+                getNodeColor->BackColor = PhGetIntegerSetting(L"ColorUserThreadStack");
             }
 
-            getNodeColor->Flags = TN_CACHE | TN_AUTO_FORECOLOR;
+            getNodeColor->Flags = TN_AUTO_FORECOLOR;
         }
         return TRUE;
     case TreeNewSortChanged:
@@ -650,6 +664,22 @@ VOID GetSelectedThreadStackNodes(
     PhDereferenceObject(list);
 }
 
+BOOLEAN PhpThreadStackTreeFilterCallback(
+    _In_ PPH_TREENEW_NODE Node,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_THREAD_STACK_CONTEXT stackContext = Context;
+    PPH_STACK_TREE_ROOT_NODE stackNode = (PPH_STACK_TREE_ROOT_NODE)Node;
+
+    if (stackContext->HideSystemPages && (ULONG_PTR)stackNode->StackFrame.PcAddress > PhSystemBasicInformation.MaximumUserModeAddress)
+        return FALSE;
+    if (stackContext->HideUserPages && (ULONG_PTR)stackNode->StackFrame.PcAddress <= PhSystemBasicInformation.MaximumUserModeAddress)
+        return FALSE;
+
+    return TRUE;
+}
+
 VOID InitializeThreadStackTree(
     _Inout_ PPH_THREAD_STACK_CONTEXT Context
     )
@@ -681,12 +711,18 @@ VOID InitializeThreadStackTree(
     TreeNew_SetSort(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_INDEX, AscendingSortOrder);
 
     ThreadStackLoadSettingsTreeList(Context);
+
+    PhInitializeTreeNewFilterSupport(&Context->TreeFilterSupport, Context->TreeNewHandle, Context->NodeList);
+    Context->TreeFilterEntry = PhAddTreeNewFilter(&Context->TreeFilterSupport, PhpThreadStackTreeFilterCallback, Context);
 }
 
 VOID DeleteThreadStackTree(
     _In_ PPH_THREAD_STACK_CONTEXT Context
     )
 {
+    PhRemoveTreeNewFilter(&Context->TreeFilterSupport, Context->TreeFilterEntry);
+    PhDeleteTreeNewFilterSupport(&Context->TreeFilterSupport);
+
     ThreadStackSaveSettingsTreeList(Context);
 
     for (ULONG i = 0; i < Context->NodeList->Count; i++)
@@ -814,6 +850,8 @@ INT_PTR CALLBACK PhpThreadStackDlgProc(
             
             context->WindowHandle = hwndDlg;
             context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_TREELIST);
+            context->HighlightUserPages = !!PhGetIntegerSetting(L"UseColorUserThreadStack");
+            context->HighlightSystemPages = !!PhGetIntegerSetting(L"UseColorSystemThreadStack");
 
             PhSetApplicationWindowIcon(hwndDlg);
 
@@ -823,6 +861,7 @@ INT_PTR CALLBACK PhpThreadStackDlgProc(
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->TreeNewHandle, NULL, PH_ANCHOR_ALL);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_OPTIONS), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_COPY), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_REFRESH), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
@@ -956,6 +995,70 @@ INT_PTR CALLBACK PhpThreadStackDlgProc(
 
                         PhDestroyEMenu(menu);
                     }
+                }
+                break;
+            case IDC_OPTIONS:
+                {
+                    RECT rect;
+                    PPH_EMENU menu;
+                    PPH_EMENU_ITEM hideUserItem;
+                    PPH_EMENU_ITEM hideSystemItem;
+                    PPH_EMENU_ITEM userItem;
+                    PPH_EMENU_ITEM systemItem;
+                    PPH_EMENU_ITEM selectedItem;
+
+                    GetWindowRect(GET_WM_COMMAND_HWND(wParam, lParam), &rect);
+
+                    menu = PhCreateEMenu();
+                    PhInsertEMenuItem(menu, hideUserItem = PhCreateEMenuItem(0, 1, L"Hide user frames", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, hideSystemItem = PhCreateEMenuItem(0, 2, L"Hide system frames", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+                    PhInsertEMenuItem(menu, userItem = PhCreateEMenuItem(0, 3, L"Highlight user frames", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, systemItem = PhCreateEMenuItem(0, 4, L"Highlight system frames", NULL, NULL), ULONG_MAX);
+
+                    if (context->HideUserPages)
+                        hideUserItem->Flags |= PH_EMENU_CHECKED;
+                    if (context->HideSystemPages)
+                        hideSystemItem->Flags |= PH_EMENU_CHECKED;
+                    if (context->HighlightUserPages)
+                        userItem->Flags |= PH_EMENU_CHECKED;
+                    if (context->HighlightSystemPages)
+                        systemItem->Flags |= PH_EMENU_CHECKED;
+
+                    selectedItem = PhShowEMenu(
+                        menu,
+                        GET_WM_COMMAND_HWND(wParam, lParam),
+                        PH_EMENU_SHOW_LEFTRIGHT,
+                        PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                        rect.left,
+                        rect.bottom
+                        );
+
+                    if (selectedItem && selectedItem->Id)
+                    {
+                        if (selectedItem->Id == 1)
+                        {
+                            context->HideUserPages = !context->HideUserPages;
+                        }
+                        else if (selectedItem->Id == 2)
+                        {
+                            context->HideSystemPages = !context->HideSystemPages;
+                        }
+                        else if (selectedItem->Id == 3)
+                        {
+                            context->HighlightUserPages = !context->HighlightUserPages;
+                            PhSetIntegerSetting(L"UseColorUserThreadStack", context->HighlightUserPages);
+                        }
+                        else if (selectedItem->Id == 4)
+                        {
+                            context->HighlightSystemPages = !context->HighlightSystemPages;
+                            PhSetIntegerSetting(L"UseColorSystemThreadStack", context->HighlightSystemPages);
+                        }
+
+                        PhApplyTreeNewFilters(&context->TreeFilterSupport);
+                    }
+
+                    PhDestroyEMenu(menu);
                 }
                 break;
             }
