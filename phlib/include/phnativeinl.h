@@ -453,10 +453,10 @@ PhGetProcessCycleTime(
         NULL
         );
 
-    if (!NT_SUCCESS(status))
-        return status;
-
-    *CycleTime = cycleTimeInfo.AccumulatedCycles;
+    if (NT_SUCCESS(status))
+    {
+        *CycleTime = cycleTimeInfo.AccumulatedCycles;
+    }
 
     return status;
 }
@@ -479,10 +479,10 @@ PhGetProcessUptime(
         NULL
         );
 
-    if (!NT_SUCCESS(status))
-        return status;
-
-    *Uptime = uptimeInfo;
+    if (NT_SUCCESS(status))
+    {
+        *Uptime = uptimeInfo;
+    }
 
     return status;
 }
@@ -505,10 +505,10 @@ PhGetProcessConsoleHostProcessId(
         NULL
         );
 
-    if (!NT_SUCCESS(status))
-        return status;
-
-    *ConsoleHostProcessId = (HANDLE)consoleHostProcess;
+    if (NT_SUCCESS(status))
+    {
+        *ConsoleHostProcessId = (HANDLE)consoleHostProcess;
+    }
 
     return status;
 }
@@ -601,10 +601,10 @@ PhGetProcessIsCFGuardEnabled(
         NULL
         );
 
-    if (!NT_SUCCESS(status))
-        return status;
-
-    *IsControlFlowGuardEnabled = !!policyInfo.ControlFlowGuardPolicy.EnableControlFlowGuard;
+    if (NT_SUCCESS(status))
+    {
+        *IsControlFlowGuardEnabled = !!policyInfo.ControlFlowGuardPolicy.EnableControlFlowGuard;
+    }
 
     return status;
 }
@@ -919,10 +919,10 @@ PhGetThreadCycleTime(
         NULL
         );
 
-    if (!NT_SUCCESS(status))
-        return status;
-
-    *CycleTime = cycleTimeInfo.AccumulatedCycles;
+    if (NT_SUCCESS(status))
+    {
+        *CycleTime = cycleTimeInfo.AccumulatedCycles;
+    }
 
     return status;
 }
@@ -1352,10 +1352,10 @@ PhGetTokenLinkedToken(
         &returnLength
         );
 
-    if (!NT_SUCCESS(status))
-        return status;
-
-    *LinkedTokenHandle = linkedToken.LinkedToken;
+    if (NT_SUCCESS(status))
+    {
+        *LinkedTokenHandle = linkedToken.LinkedToken;
+    }
 
     return status;
 }
@@ -1379,10 +1379,10 @@ PhGetTokenIsRestricted(
         &returnLength
         );
 
-    if (!NT_SUCCESS(status))
-        return status;
-
-    *IsRestricted = !!restricted;
+    if (NT_SUCCESS(status))
+    {
+        *IsRestricted = !!restricted;
+    }
 
     return status;
 }
@@ -1413,10 +1413,10 @@ PhGetTokenIsVirtualizationAllowed(
         &returnLength
         );
 
-    if (!NT_SUCCESS(status))
-        return status;
-
-    *IsVirtualizationAllowed = !!virtualizationAllowed;
+    if (NT_SUCCESS(status))
+    {
+        *IsVirtualizationAllowed = !!virtualizationAllowed;
+    }
 
     return status;
 }
