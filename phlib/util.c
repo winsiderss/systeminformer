@@ -38,7 +38,7 @@
 #include "sha256.h"
 
 DECLSPEC_SELECTANY WCHAR *PhSizeUnitNames[7] = { L"B", L"kB", L"MB", L"GB", L"TB", L"PB", L"EB" };
-DECLSPEC_SELECTANY ULONG PhMaxSizeUnit = MAXULONG32;
+DECLSPEC_SELECTANY ULONG PhMaxSizeUnit = ULONG_MAX;
 
 /**
  * Ensures a rectangle is positioned within the specified bounds.
@@ -1912,7 +1912,7 @@ PPH_STRING PhFormatImageVersionInfo(
     PH_STRING_BUILDER stringBuilder;
 
     if (LineLimit == 0)
-        LineLimit = MAXULONG32;
+        LineLimit = ULONG_MAX;
 
     PhInitializeStringBuilder(&stringBuilder, 40);
 
@@ -1942,15 +1942,15 @@ PPH_STRING PhFormatImageVersionInfo(
         ULONG limitForDescription;
         ULONG limitForVersion;
 
-        if (LineLimit != MAXULONG32)
+        if (LineLimit != ULONG_MAX)
         {
             limitForVersion = (LineLimit - 1) / 4; // 1/4 space for version (and space character)
             limitForDescription = LineLimit - limitForVersion;
         }
         else
         {
-            limitForDescription = MAXULONG32;
-            limitForVersion = MAXULONG32;
+            limitForDescription = ULONG_MAX;
+            limitForVersion = ULONG_MAX;
         }
 
         if (!PhIsNullOrEmptyString(ImageVersionInfo->FileDescription))
@@ -3489,7 +3489,7 @@ NTSTATUS PhFilterTokenForLimitedUser(
                 for (i = 0; i < currentDacl->AceCount; i++)
                 {
                     if (NT_SUCCESS(RtlGetAce(currentDacl, i, &currentAce)))
-                        RtlAddAce(newDacl, ACL_REVISION, MAXULONG32, currentAce, currentAce->AceSize);
+                        RtlAddAce(newDacl, ACL_REVISION, ULONG_MAX, currentAce, currentAce->AceSize);
                 }
             }
 
