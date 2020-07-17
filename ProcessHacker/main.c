@@ -760,9 +760,11 @@ BOOLEAN PhInitializeNamespacePolicy(
     )
 {
     HANDLE mutantHandle;
-    WCHAR objectName[PH_INT64_STR_LEN_1];
+    SIZE_T returnLength;
+    WCHAR formatBuffer[PH_INT64_STR_LEN_1];
     OBJECT_ATTRIBUTES objectAttributes;
     UNICODE_STRING objectNameUs;
+    PH_STRINGREF objectNameSr;
     PH_FORMAT format[2];
 
     PhInitFormatS(&format[0], L"PhMutant_");
@@ -771,15 +773,20 @@ BOOLEAN PhInitializeNamespacePolicy(
     if (!PhFormatToBuffer(
         format,
         RTL_NUMBER_OF(format),
-        objectName,
-        sizeof(objectName),
-        NULL
+        formatBuffer,
+        sizeof(formatBuffer),
+        &returnLength
         ))
     {
         return FALSE;
     }
 
-    RtlInitUnicodeString(&objectNameUs, objectName);
+    objectNameSr.Length = returnLength - sizeof(UNICODE_NULL);
+    objectNameSr.Buffer = formatBuffer;
+
+    if (!PhStringRefToUnicodeString(&objectNameSr, &objectNameUs))
+        return FALSE;
+
     InitializeObjectAttributes(
         &objectAttributes,
         &objectNameUs,
