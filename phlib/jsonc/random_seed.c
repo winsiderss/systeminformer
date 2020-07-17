@@ -182,44 +182,44 @@ static int get_dev_random_seed(void)
 
 /* get_cryptgenrandom_seed */
 
-#ifdef _WIN32
-
-#define HAVE_CRYPTGENRANDOM 1
-
-/* clang-format off */
-#include <windows.h>
-#include <wincrypt.h>
-/* clang-format on */
-#ifndef __GNUC__
-#pragma comment(lib, "advapi32.lib")
-#endif
-
-static int get_cryptgenrandom_seed(void)
-{
-    HCRYPTPROV hProvider = 0;
-    int r;
-
-    DEBUG_SEED("get_cryptgenrandom_seed");
-
-    if (!CryptAcquireContextW(&hProvider, 0, 0, PROV_RSA_FULL,
-                              CRYPT_VERIFYCONTEXT | CRYPT_SILENT))
-    {
-        fprintf(stderr, "error CryptAcquireContextW");
-        exit(1);
-    }
-
-    if (!CryptGenRandom(hProvider, sizeof(r), (BYTE *)&r))
-    {
-        fprintf(stderr, "error CryptGenRandom");
-        exit(1);
-    }
-
-    CryptReleaseContext(hProvider, 0);
-
-    return r;
-}
-
-#endif
+//#ifdef _WIN32
+//
+//#define HAVE_CRYPTGENRANDOM 1
+//
+///* clang-format off */
+//#include <windows.h>
+//#include <wincrypt.h>
+///* clang-format on */
+//#ifndef __GNUC__
+//#pragma comment(lib, "advapi32.lib")
+//#endif
+//
+//static int get_cryptgenrandom_seed(void)
+//{
+//    HCRYPTPROV hProvider = 0;
+//    int r;
+//
+//    DEBUG_SEED("get_cryptgenrandom_seed");
+//
+//    if (!CryptAcquireContextW(&hProvider, 0, 0, PROV_RSA_FULL,
+//                              CRYPT_VERIFYCONTEXT | CRYPT_SILENT))
+//    {
+//        fprintf(stderr, "error CryptAcquireContextW");
+//        exit(1);
+//    }
+//
+//    if (!CryptGenRandom(hProvider, sizeof(r), (BYTE *)&r))
+//    {
+//        fprintf(stderr, "error CryptGenRandom");
+//        exit(1);
+//    }
+//
+//    CryptReleaseContext(hProvider, 0);
+//
+//    return r;
+//}
+//
+//#endif
 
 /* get_time_seed */
 
