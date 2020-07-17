@@ -832,7 +832,7 @@ BOOLEAN PhInitializeMitigationPolicy(
     static PH_STRINGREF nompCommandlinePart = PH_STRINGREF_INIT(L" -nomp");
     static PH_STRINGREF rasCommandlinePart = PH_STRINGREF_INIT(L" -ras");
     BOOLEAN success = TRUE;
-    HANDLE jobObjectHandle = NULL;
+    //HANDLE jobObjectHandle = NULL;
     PPH_STRING commandline = NULL;
     ULONG64 options[2] = { 0 };
     PS_SYSTEM_DLL_INIT_BLOCK(*LdrSystemDllInitBlock_I) = NULL;
@@ -857,30 +857,30 @@ BOOLEAN PhInitializeMitigationPolicy(
     if ((LdrSystemDllInitBlock_I->MitigationOptionsMap.Map[0] & DEFAULT_MITIGATION_POLICY_FLAGS) == DEFAULT_MITIGATION_POLICY_FLAGS)
         goto CleanupExit;
 
-    if (NT_SUCCESS(NtCreateJobObject(&jobObjectHandle, JOB_OBJECT_ALL_ACCESS, NULL)))
-    {
-        JOBOBJECT_BASIC_UI_RESTRICTIONS basicJobRestrictions;
+    //if (NT_SUCCESS(NtCreateJobObject(&jobObjectHandle, JOB_OBJECT_ALL_ACCESS, NULL)))
+    //{
+    //    JOBOBJECT_BASIC_UI_RESTRICTIONS basicJobRestrictions;
+    //
+    //    basicJobRestrictions.UIRestrictionsClass = JOB_OBJECT_UILIMIT_GLOBALATOMS | JOB_OBJECT_UILIMIT_HANDLES;
+    //    NtSetInformationJobObject(
+    //        jobObjectHandle,
+    //        JobObjectBasicUIRestrictions,
+    //        &basicJobRestrictions,
+    //        sizeof(JOBOBJECT_BASIC_UI_RESTRICTIONS)
+    //        );
+    //}
 
-        basicJobRestrictions.UIRestrictionsClass = JOB_OBJECT_UILIMIT_GLOBALATOMS | JOB_OBJECT_UILIMIT_HANDLES;
-        NtSetInformationJobObject(
-            jobObjectHandle,
-            JobObjectBasicUIRestrictions,
-            &basicJobRestrictions,
-            sizeof(JOBOBJECT_BASIC_UI_RESTRICTIONS)
-            );
-    }
-
-    if (!InitializeProcThreadAttributeList(NULL, 2, 0, &attributeListLength) && GetLastError() != ERROR_INSUFFICIENT_BUFFER)
+    if (!InitializeProcThreadAttributeList(NULL, 1, 0, &attributeListLength) && GetLastError() != ERROR_INSUFFICIENT_BUFFER)
         goto CleanupExit;
 
     startupInfo.lpAttributeList = PhAllocate(attributeListLength);
 
-    if (!InitializeProcThreadAttributeList(startupInfo.lpAttributeList, 2, 0, &attributeListLength))
+    if (!InitializeProcThreadAttributeList(startupInfo.lpAttributeList, 1, 0, &attributeListLength))
         goto CleanupExit;
     if (!UpdateProcThreadAttribute(startupInfo.lpAttributeList, 0, PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY, &(ULONG64[]){ DEFAULT_MITIGATION_POLICY_FLAGS, DEFAULT_MITIGATION_POLICY_FLAGS2  }, sizeof(ULONG64[2]), NULL, NULL))
         goto CleanupExit;
-    if (!UpdateProcThreadAttribute(startupInfo.lpAttributeList, 0, PROC_THREAD_ATTRIBUTE_JOB_LIST, &jobObjectHandle, sizeof(HANDLE), NULL, NULL))
-        goto CleanupExit;
+    //if (!UpdateProcThreadAttribute(startupInfo.lpAttributeList, 0, PROC_THREAD_ATTRIBUTE_JOB_LIST, &jobObjectHandle, sizeof(HANDLE), NULL, NULL))
+    //    goto CleanupExit;
 
     if (NT_SUCCESS(PhCreateProcessWin32Ex(
         NULL,
@@ -909,10 +909,8 @@ CleanupExit:
         PhFree(startupInfo.lpAttributeList);
     }
 
-    if (jobObjectHandle)
-    {
-        NtClose(jobObjectHandle);
-    }
+    //if (jobObjectHandle)
+    //    NtClose(jobObjectHandle);
 
     return success;
 #else
