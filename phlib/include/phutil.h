@@ -1340,7 +1340,7 @@ _Success_(return == S_OK)
 PHLIBAPI
 HRESULT
 NTAPI
-PhGetDllBaseClassObject(
+PhGetClassObjectDllBase(
     _In_ PVOID DllBase,
     _In_ REFCLSID Rclsid,
     _In_ REFIID Riid,
