@@ -6879,8 +6879,8 @@ HRESULT PhGetDllBaseClassObject(
     _Out_ PVOID* Ppv
     )
 {
-    HRESULT status = S_FALSE;
     HRESULT (WINAPI* DllGetClassObject_I)(_In_ REFCLSID rclsid, _In_ REFIID riid, _COM_Outptr_ PVOID * ppv);
+    HRESULT status;
     IClassFactory* classFactory;
 
     if (!(DllGetClassObject_I = PhGetDllBaseProcedureAddress(DllBase, "DllGetClassObject", 0)))
@@ -6914,36 +6914,13 @@ HRESULT PhGetClassObject(
     _Out_ PVOID* Ppv
     )
 {
-    HRESULT status = S_FALSE;
-    HRESULT (WINAPI* DllGetClassObject_I)(_In_ REFCLSID rclsid, _In_ REFIID riid, _COM_Outptr_ PVOID* ppv);
-    IClassFactory* classFactory;
-    PVOID moduleHandle;
+    PVOID baseAddress;
 
-    if (!(moduleHandle = PhGetLoaderEntryDllBase(DllName)))
+    if (!(baseAddress = PhGetLoaderEntryDllBase(DllName)))
     {
-        if (!(moduleHandle = LoadLibrary(DllName)))
+        if (!(baseAddress = LoadLibrary(DllName)))
             return ERROR_MOD_NOT_FOUND;
     }
 
-    if (!(DllGetClassObject_I = PhGetDllBaseProcedureAddress(moduleHandle, "DllGetClassObject", 0)))
-        return ERROR_PROC_NOT_FOUND;
-
-    status = DllGetClassObject_I(
-        Rclsid,
-        &IID_IClassFactory,
-        &classFactory
-        );
-
-    if (FAILED(status))
-        return status;
-
-    status = IClassFactory_CreateInstance(
-        classFactory,
-        NULL,
-        Riid,
-        Ppv
-        );
-
-    IClassFactory_Release(classFactory);
-    return status;
+    return PhGetDllBaseClassObject(baseAddress, Rclsid, Riid, Ppv);
 }
