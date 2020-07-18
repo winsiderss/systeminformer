@@ -307,8 +307,6 @@ VOID DrawCountryIcon(
 typedef struct _PH_UPDATER_CONTEXT
 {
     HWND DialogHandle;
-    HICON IconSmallHandle;
-    HICON IconLargeHandle;
     WNDPROC DefaultWindowProc;
 
     PPH_STRING FileDownloadUrl;
