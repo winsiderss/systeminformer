@@ -111,6 +111,22 @@ typedef BOOL (WINAPI* _ConvertSecurityDescriptorToStringSecurityDescriptorW)(
     _Out_opt_ PULONG StringSecurityDescriptorLen
     );
 
+typedef HRESULT (WINAPI* _SHGetFolderPathW)(
+    _Reserved_ HWND hwnd,
+    _In_ INT csidl,
+    _In_opt_ HANDLE hToken,
+    _In_ ULONG dwFlags,
+    _Out_writes_(MAX_PATH) LPWSTR pszPath
+    );
+
+typedef ULONG_PTR (WINAPI* _SHGetFileInfoW)(
+    _In_ LPCWSTR pszPath,
+    _In_ ULONG dwFileAttributes,
+    _Inout_updates_bytes_opt_(cbFileInfo) PVOID psfi,
+    _In_ UINT cbFileInfo,
+    _In_ UINT uFlags
+    );
+
 typedef ULONG (WINAPI* _PssCaptureSnapshot)(
     _In_ HANDLE ProcessHandle,
     _In_ ULONG CaptureFlags,
@@ -202,6 +218,9 @@ PH_DECLARE_IMPORT(DnsQuery_W);
 PH_DECLARE_IMPORT(DnsExtractRecordsFromMessage_W);
 PH_DECLARE_IMPORT(DnsWriteQuestionToBuffer_W);
 PH_DECLARE_IMPORT(DnsFree);
+
+PH_DECLARE_IMPORT(SHGetFolderPathW);
+PH_DECLARE_IMPORT(SHGetFileInfoW);
 
 PH_DECLARE_IMPORT(PssCaptureSnapshot);
 PH_DECLARE_IMPORT(PssQuerySnapshot);
