@@ -749,12 +749,7 @@ VOID EtpUpdateProcessSegmentInformation(
     ULONG64 commitUsage;
 
     if (EtD3DEnabled && WindowsVersion >= WINDOWS_10_RS5)
-    {
-        Block->GpuDedicatedUsage = EtLookupProcessGpuDedicated(Block->ProcessItem->ProcessId);
-        Block->GpuSharedUsage = EtLookupProcessGpuSharedUsage(Block->ProcessItem->ProcessId);
-        Block->GpuCommitUsage = EtLookupProcessGpuCommitUsage(Block->ProcessItem->ProcessId);
         return;
-    }
 
     if (!Block->ProcessItem->QueryHandle)
         return;
@@ -958,23 +953,33 @@ VOID NTAPI EtGpuProcessesUpdatedCallback(
     FLOAT maxNodeValue = 0;
     PET_PROCESS_BLOCK maxNodeBlock = NULL;
 
-    // Update global statistics.
-    EtpUpdateSystemSegmentInformation();
-    EtpUpdateSystemNodeInformation();
-
-    // Update global gpu usage.
-
     if (EtD3DEnabled)
     {
-        FLOAT usage = EtLookupTotalGpuEngineUtilization();
+        FLOAT gpuTotal;
+        ULONG64 sharedTotal;
+        ULONG64 dedicatedTotal;
+        //ULONG64 commitTotal;
 
-        if (usage > tempGpuUsage)
-            tempGpuUsage = usage;
+        gpuTotal = EtLookupTotalGpuUtilization();
+        sharedTotal = EtLookupTotalGpuShared();
+        dedicatedTotal = EtLookupTotalGpuDedicated();
+        //commitTotal = EtLookupTotalGpuCommit();
+
+        if (gpuTotal > 1)
+            gpuTotal = 1;
+
+        if (gpuTotal > tempGpuUsage)
+            tempGpuUsage = gpuTotal;
 
         EtGpuNodeUsage = tempGpuUsage;
+        EtGpuDedicatedUsage = dedicatedTotal;
+        EtGpuSharedUsage = sharedTotal;
     }
     else
     {
+        EtpUpdateSystemSegmentInformation();
+        EtpUpdateSystemNodeInformation();
+
         elapsedTime = (DOUBLE)(EtClockTotalRunningTimeDelta.Delta * 10000000ULL / EtClockTotalRunningTimeFrequency.QuadPart);
 
         if (elapsedTime != 0)
@@ -1005,11 +1010,12 @@ VOID NTAPI EtGpuProcessesUpdatedCallback(
 
         block = CONTAINING_RECORD(listEntry, ET_PROCESS_BLOCK, ListEntry);
 
-        EtpUpdateProcessSegmentInformation(block);
-
         if (EtD3DEnabled)
         {
-            block->GpuNodeUsage = EtLookupProcessGpuEngineUtilization(block->ProcessItem->ProcessId);
+            block->GpuDedicatedUsage = EtLookupProcessGpuDedicated(block->ProcessItem->ProcessId);
+            block->GpuSharedUsage = EtLookupProcessGpuSharedUsage(block->ProcessItem->ProcessId);
+            block->GpuCommitUsage = EtLookupProcessGpuCommitUsage(block->ProcessItem->ProcessId);
+            block->GpuNodeUsage = EtLookupProcessGpuUtilization(block->ProcessItem->ProcessId);
 
             if (runCount != 0)
             {
@@ -1026,6 +1032,7 @@ VOID NTAPI EtGpuProcessesUpdatedCallback(
         }
         else
         {
+            EtpUpdateProcessSegmentInformation(block);
             EtpUpdateProcessNodeInformation(block);
 
             if (elapsedTime != 0)

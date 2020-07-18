@@ -126,7 +126,7 @@ VOID EtGpuCountersInitialization(
     }
 }
 
-FLOAT EtLookupProcessGpuEngineUtilization(
+FLOAT EtLookupProcessGpuUtilization(
     _In_opt_ HANDLE ProcessId
     )
 {
@@ -148,8 +148,6 @@ FLOAT EtLookupProcessGpuEngineUtilization(
     {
         FLOAT usage = (FLOAT)entry->Value;
 
-        if (usage > 100)
-            usage = 100;
         if (usage > value)
             value = usage;
     }
@@ -162,7 +160,7 @@ FLOAT EtLookupProcessGpuEngineUtilization(
     return value;
 }
 
-FLOAT EtLookupTotalGpuEngineUtilization(
+FLOAT EtLookupTotalGpuUtilization(
     VOID
     )
 {
@@ -184,8 +182,6 @@ FLOAT EtLookupTotalGpuEngineUtilization(
     {
         FLOAT usage = (FLOAT)entry->Value;
 
-        if (usage > 100)
-            usage = 100;
         if (usage > value)
             value = usage;
     }
@@ -226,6 +222,34 @@ ULONG64 EtLookupProcessGpuDedicated(
     return value;
 }
 
+ULONG64 EtLookupTotalGpuDedicated(
+    VOID
+    )
+{
+    ULONG64 value = 0;
+    ULONG enumerationKey;
+    PET_GPU_COUNTER entry;
+
+    if (!EtGpuDedicatedHashTable)
+    {
+        EtGpuCountersInitialization();
+        return 0;
+    }
+
+    PhAcquireQueuedLockShared(&EtGpuDedicatedHashTableLock);
+
+    enumerationKey = 0;
+
+    while (PhEnumHashtable(EtGpuDedicatedHashTable, (PVOID*)&entry, &enumerationKey))
+    {
+        value += entry->Value64;
+    }
+
+    PhReleaseQueuedLockShared(&EtGpuDedicatedHashTableLock);
+
+    return value;
+}
+
 ULONG64 EtLookupProcessGpuSharedUsage(
     _In_opt_ HANDLE ProcessId
     )
@@ -254,6 +278,34 @@ ULONG64 EtLookupProcessGpuSharedUsage(
     return value;
 }
 
+ULONG64 EtLookupTotalGpuShared(
+    VOID
+    )
+{
+    ULONG64 value = 0;
+    ULONG enumerationKey;
+    PET_GPU_COUNTER entry;
+
+    if (!EtGpuSharedHashTable)
+    {
+        EtGpuCountersInitialization();
+        return 0;
+    }
+
+    PhAcquireQueuedLockShared(&EtGpuSharedHashTableLock);
+
+    enumerationKey = 0;
+
+    while (PhEnumHashtable(EtGpuSharedHashTable, (PVOID*)&entry, &enumerationKey))
+    {
+        value += entry->Value64;
+    }
+
+    PhReleaseQueuedLockShared(&EtGpuSharedHashTableLock);
+
+    return value;
+}
+
 ULONG64 EtLookupProcessGpuCommitUsage(
     _In_opt_ HANDLE ProcessId
     )
@@ -275,6 +327,34 @@ ULONG64 EtLookupProcessGpuCommitUsage(
     if (entry = PhFindEntryHashtable(EtGpuCommitHashTable, &lookupEntry))
     {
         value = entry->Value64;
+    }
+
+    PhReleaseQueuedLockShared(&EtGpuCommitHashTableLock);
+
+    return value;
+}
+
+ULONG64 EtLookupTotalGpuCommit(
+    VOID
+    )
+{
+    ULONG64 value = 0;
+    ULONG enumerationKey;
+    PET_GPU_COUNTER entry;
+
+    if (!EtGpuCommitHashTable)
+    {
+        EtGpuCountersInitialization();
+        return 0;
+    }
+
+    PhAcquireQueuedLockShared(&EtGpuCommitHashTableLock);
+
+    enumerationKey = 0;
+
+    while (PhEnumHashtable(EtGpuCommitHashTable, (PVOID*)&entry, &enumerationKey))
+    {
+        value += entry->Value64;
     }
 
     PhReleaseQueuedLockShared(&EtGpuCommitHashTableLock);
