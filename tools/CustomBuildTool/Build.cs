@@ -1359,8 +1359,13 @@ namespace CustomBuildTool
 
                     if (File.Exists(sourceFile))
                     {
-                        string filename = Path.GetFileName(sourceFile).Replace("-build-", $"-{BuildVersion}-");
-                        FtpWebRequest request = (FtpWebRequest)WebRequest.Create(buildPostUrl + filename);
+                        string filename;
+                        FtpWebRequest request;
+
+                        filename = Path.GetFileName(sourceFile);
+                        filename = filename.Replace("-build-", $"-{BuildVersion}-", StringComparison.OrdinalIgnoreCase);
+
+                        request = (FtpWebRequest)WebRequest.Create(buildPostUrl + filename);
                         request.Credentials = new NetworkCredential(buildPostKey, buildPostName);
                         request.Method = WebRequestMethods.Ftp.UploadFile;
                         request.Timeout = System.Threading.Timeout.Infinite;
