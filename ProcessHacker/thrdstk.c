@@ -852,6 +852,7 @@ INT_PTR CALLBACK PhpThreadStackDlgProc(
             context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_TREELIST);
             context->HighlightUserPages = !!PhGetIntegerSetting(L"UseColorUserThreadStack");
             context->HighlightSystemPages = !!PhGetIntegerSetting(L"UseColorSystemThreadStack");
+            PhSetWindowExStyle(context->TreeNewHandle, WS_EX_CLIENTEDGE, 0);
 
             PhSetApplicationWindowIcon(hwndDlg);
 
