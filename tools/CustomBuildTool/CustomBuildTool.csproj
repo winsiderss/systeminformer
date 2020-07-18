@@ -10,6 +10,7 @@
         <TargetFramework>netcoreapp3.1</TargetFramework>
         <RuntimeIdentifiers>win-x86;win-x64</RuntimeIdentifiers>
         <TrimUnusedDependencies>true</TrimUnusedDependencies>
+        <ApplicationManifest>app.manifest</ApplicationManifest>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Platform)'=='x86'">
