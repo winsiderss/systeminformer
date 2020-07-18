@@ -660,8 +660,12 @@ VOID EtShowWsWatchDialog(
 
 // counters
 
-ULONG64 EtLookupProcessGpuEngineUtilization(
+FLOAT EtLookupProcessGpuEngineUtilization(
     _In_opt_ HANDLE ProcessId
+    );
+
+FLOAT EtLookupTotalGpuEngineUtilization(
+    VOID
     );
 
 ULONG64 EtLookupProcessGpuDedicated(
