@@ -1445,7 +1445,16 @@ namespace CustomBuildTool
 
                     if (File.Exists(sourceFile))
                     {
-                        if (!AppVeyor.UploadFile(sourceFile))
+                        bool uploaded;
+                        string fileName;
+
+                        fileName = sourceFile.Replace("-build-", $"-{BuildVersion}-", StringComparison.OrdinalIgnoreCase);
+
+                        File.Move(sourceFile, fileName, true);
+                        uploaded = AppVeyor.UploadFile(fileName);
+                        File.Move(fileName, sourceFile, true);
+
+                        if (!uploaded)
                         {
                             Program.PrintColorMessage("[WebServiceAppveyorUploadFile]", ConsoleColor.Red);
                             return false;
