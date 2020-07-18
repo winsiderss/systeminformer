@@ -22,6 +22,7 @@
  */
 
 #include <ph.h>
+#include <apiimport.h>
 #include <guisup.h>
 #include <settings.h>
 #include <shellapi.h>
@@ -877,7 +878,7 @@ HICON PhGetFileShellIcon(
     icon = NULL;
     memset(&fileInfo, 0, sizeof(SHFILEINFO));
 
-    if (FileName && SHGetFileInfo(
+    if (FileName && SHGetFileInfoW_Import() && SHGetFileInfoW_Import()(
         FileName,
         0,
         &fileInfo,
@@ -892,7 +893,7 @@ HICON PhGetFileShellIcon(
     {
         memset(&fileInfo, 0, sizeof(SHFILEINFO));
 
-        if (SHGetFileInfo(
+        if (SHGetFileInfoW_Import() && SHGetFileInfoW_Import()(
             DefaultExtension,
             FILE_ATTRIBUTE_NORMAL,
             &fileInfo,

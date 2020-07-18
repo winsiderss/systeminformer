@@ -2495,6 +2495,9 @@ PPH_STRING PhGetKnownLocation(
     PPH_STRING path;
     SIZE_T appendPathLength;
 
+    if (!SHGetFolderPathW_Import())
+        return NULL;
+
     if (AppendPath)
         appendPathLength = PhCountStringZ(AppendPath) * sizeof(WCHAR);
     else
@@ -2502,7 +2505,7 @@ PPH_STRING PhGetKnownLocation(
 
     path = PhCreateStringEx(NULL, MAX_PATH * sizeof(WCHAR) + appendPathLength);
 
-    if (SUCCEEDED(SHGetFolderPath(
+    if (SUCCEEDED(SHGetFolderPathW_Import()(
         NULL,
         Folder,
         NULL,
