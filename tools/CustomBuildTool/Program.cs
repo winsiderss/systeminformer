@@ -299,8 +299,9 @@ namespace CustomBuildTool
         None,
         Build32bit = 1,
         Build64bit = 2,
-        BuildDebug = 4,
-        BuildVerbose = 8,
-        BuildApi = 16,
+        BuildArm64bit = 4,
+        BuildDebug = 8,
+        BuildVerbose = 16,
+        BuildApi = 32,
     }
 }

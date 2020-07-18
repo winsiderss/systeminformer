@@ -35,11 +35,12 @@ namespace CustomBuildTool
     {
         public static int CreateProcess(string FileName, string args)
         {
+            int exitcode = int.MaxValue;
+
             using (Process process = Process.Start(new ProcessStartInfo
             {
                 UseShellExecute = false,
-                FileName = FileName,
-                CreateNoWindow = true
+                FileName = FileName
             }))
             {
                 process.StartInfo.Arguments = args;
@@ -47,13 +48,17 @@ namespace CustomBuildTool
 
                 process.WaitForExit();
 
-                return process.ExitCode;
+                exitcode = process.ExitCode;
             }
+
+            return exitcode;
         }
 
         public static string ShellExecute(string FileName, string args)
         {
             string output = string.Empty;
+            int code = int.MaxValue;
+
             using (Process process = Process.Start(new ProcessStartInfo
             {
                 UseShellExecute = false,
@@ -69,6 +74,8 @@ namespace CustomBuildTool
                 output = output.Replace("\n\n", "\r\n", StringComparison.OrdinalIgnoreCase).Trim();
 
                 process.WaitForExit();
+
+                code = process.ExitCode;
             }
 
             return output;
@@ -96,69 +103,39 @@ namespace CustomBuildTool
             return null;
         }
 
-        public static void CopyIfNewer(string CurrentFile, string NewFile)
+        public static void CopyIfNewer(string SourceFile, string DestinationFile)
         {
-            if (!File.Exists(CurrentFile))
+            if (!File.Exists(SourceFile))
                 return;
 
-            if (CurrentFile.EndsWith(".sys", StringComparison.OrdinalIgnoreCase))
+            if (SourceFile.EndsWith(".sys", StringComparison.OrdinalIgnoreCase))
             {
-                if (!File.Exists(NewFile))
+                if (!File.Exists(DestinationFile))
                 {
-                    File.Copy(CurrentFile, NewFile, true);
+                    File.Copy(SourceFile, DestinationFile, true);
                 }
                 else
                 {
-                    FileVersionInfo currentInfo = FileVersionInfo.GetVersionInfo(CurrentFile);
-                    FileVersionInfo newInfo = FileVersionInfo.GetVersionInfo(NewFile);
+                    FileVersionInfo currentInfo = FileVersionInfo.GetVersionInfo(SourceFile);
+                    FileVersionInfo newInfo = FileVersionInfo.GetVersionInfo(DestinationFile);
                     var currentInfoVersion = new Version(currentInfo.FileVersion);
                     var newInfoVersion = new Version(newInfo.FileVersion);
 
                     if (
                         currentInfoVersion > newInfoVersion ||
-                        File.GetLastWriteTime(CurrentFile) > File.GetLastWriteTime(NewFile)
+                        File.GetLastWriteTime(SourceFile) > File.GetLastWriteTime(DestinationFile)
                         )
                     {
-                        File.Copy(CurrentFile, NewFile, true);
+                        File.Copy(SourceFile, DestinationFile, true);
                     }
                 }
             }
             else
             {
-                if (File.GetLastWriteTime(CurrentFile) > File.GetLastWriteTime(NewFile))
-                    File.Copy(CurrentFile, NewFile, true);
+                if (File.GetLastWriteTime(SourceFile) > File.GetLastWriteTime(DestinationFile))
+                    File.Copy(SourceFile, DestinationFile, true);
             }
         }
-
-        //public static string SearchFile(string FileName)
-        //{
-        //    string where = Environment.ExpandEnvironmentVariables("%SystemRoot%\\System32\\where.exe");
-        //
-        //    if (File.Exists(where))
-        //    {
-        //        string whereResult = ShellExecute(where, FileName);
-        //
-        //        if (!string.IsNullOrEmpty(whereResult))
-        //            return whereResult;
-        //    }
-        //
-        //    return null;
-        //}
-        //
-        //public static void ImageResizeFile(int size, string FileName, string OutName)
-        //{
-        //    using (var src = System.Drawing.Image.FromFile(FileName))
-        //    using (var dst = new System.Drawing.Bitmap(size, size))
-        //    using (var g = System.Drawing.Graphics.FromImage(dst))
-        //    {
-        //        g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-        //        g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
-        //
-        //        g.DrawImage(src, 0, 0, dst.Width, dst.Height);
-        //
-        //        dst.Save(OutName, System.Drawing.Imaging.ImageFormat.Png);
-        //    }
-        //}
 
         public static string GetEnvironmentVariable(string Name)
         {
@@ -227,7 +204,7 @@ namespace CustomBuildTool
             {
                 byte[] checksum = sha.ComputeHash(bufferedStream);
 
-                return BitConverter.ToString(checksum).Replace("-", string.Empty);
+                return BitConverter.ToString(checksum).Replace("-", string.Empty, StringComparison.OrdinalIgnoreCase);
             }
         }
     }
@@ -236,10 +213,10 @@ namespace CustomBuildTool
     {
         private static readonly string[] CustomSignToolPathArray =
         {
-            "\\tools\\CustomSignTool\\bin\\Release32\\CustomSignTool.exe",
             "\\tools\\CustomSignTool\\bin\\Release64\\CustomSignTool.exe",
+            "\\tools\\CustomSignTool\\bin\\Release32\\CustomSignTool.exe",
+            //"\\tools\\CustomSignTool\\bin\\Debug64\\CustomSignTool.exe",
             //"\\tools\\CustomSignTool\\bin\\Debug32\\CustomSignTool.exe",
-            //"\\tools\\CustomSignTool\\bin\\RDebug64\\CustomSignTool.exe",
         };
 
         private static readonly string[] MsBuildPathArray =
@@ -267,9 +244,7 @@ namespace CustomBuildTool
             string folder = Environment.CurrentDirectory + "\\build\\output";
 
             if (File.Exists(folder))
-            {
                 return folder;
-            }
 
             try
             {
@@ -396,9 +371,7 @@ namespace CustomBuildTool
 
                 try
                 {
-                    ISetupConfiguration2 setupConfiguration = new SetupConfigurationClass() as ISetupConfiguration2;
-
-                    if (setupConfiguration != null)
+                    if (new SetupConfigurationClass() is ISetupConfiguration2 setupConfiguration)
                     {
                         IEnumSetupInstances instanceEnumerator = setupConfiguration.EnumAllInstances();
                         ISetupInstance2[] instances = new ISetupInstance2[3];
@@ -411,9 +384,7 @@ namespace CustomBuildTool
                         do
                         {
                             for (int i = 0; i < instancesFetched; i++)
-                            {
                                 VisualStudioInstanceList.Add(new VisualStudioInstance(instances[i]));
-                            }
 
                             instanceEnumerator.Next(instances.Length, instances, out instancesFetched);
                         }
@@ -425,13 +396,8 @@ namespace CustomBuildTool
 
             foreach (VisualStudioInstance instance in VisualStudioInstanceList)
             {
-                if (
-                    instance.HasRequiredDependency &&
-                    instance.DisplayName.EndsWith("2019", StringComparison.OrdinalIgnoreCase) // HACK
-                    )
-                {
+                if (instance.HasRequiredDependency)
                     return instance;
-                }
             }
 
             return null;
@@ -565,9 +531,7 @@ namespace CustomBuildTool
                 //string[] vctoolsPackageArray =
                 //{
                 //    "Microsoft.Component.MSBuild",
-                //    "Microsoft.VisualStudio.Component.Windows10SDK.17134",
-                //    "Microsoft.VisualStudio.Component.Windows10SDK.17763",
-                //    "Microsoft.VisualStudio.Component.Windows10SDK.18362",
+                //    "Microsoft.VisualStudio.Component.Windows10SDK.19041",
                 //    "Microsoft.VisualStudio.Component.VC.Tools.x86.x64",
                 //    "Microsoft.VisualStudio.Component.VC.14.20.x86.x64",
                 //    "Microsoft.VisualStudio.Component.VC.14.21.x86.x64",
@@ -579,7 +543,7 @@ namespace CustomBuildTool
 
                 hasbuild = this.Packages.Exists(p => p.Id.StartsWith("Microsoft.Component.MSBuild", StringComparison.OrdinalIgnoreCase));
                 hasruntimes = this.Packages.Exists(p => p.Id.StartsWith("Microsoft.VisualStudio.Component.VC", StringComparison.OrdinalIgnoreCase));
-                haswindowssdk = this.Packages.Exists(p => p.Id.StartsWith("Microsoft.VisualStudio.Component.Windows10SDK", StringComparison.OrdinalIgnoreCase));
+                haswindowssdk = this.Packages.Exists(p => p.Id.StartsWith("Microsoft.VisualStudio.Component.Windows10SDK.19041", StringComparison.OrdinalIgnoreCase));
 
                 return hasbuild && hasruntimes && haswindowssdk;
             }
@@ -593,9 +557,7 @@ namespace CustomBuildTool
                 //string[] vctoolsPackageArray =
                 //{
                 //    "Microsoft.Component.MSBuild",
-                //    "Microsoft.VisualStudio.Component.Windows10SDK.17134",
-                //    "Microsoft.VisualStudio.Component.Windows10SDK.17763",
-                //    "Microsoft.VisualStudio.Component.Windows10SDK.18362",
+                //    "Microsoft.VisualStudio.Component.Windows10SDK.19041",
                 //    "Microsoft.VisualStudio.Component.VC.Tools.x86.x64",
                 //    "Microsoft.VisualStudio.Component.VC.14.20.x86.x64",
                 //    "Microsoft.VisualStudio.Component.VC.14.21.x86.x64",
@@ -612,9 +574,9 @@ namespace CustomBuildTool
                     list += "VC.14.Redist" + Environment.NewLine;
                 }
 
-                if (!this.Packages.Exists(p => p.Id.StartsWith("Microsoft.VisualStudio.Component.Windows10SDK", StringComparison.OrdinalIgnoreCase)))
+                if (!this.Packages.Exists(p => p.Id.StartsWith("Microsoft.VisualStudio.Component.Windows10SDK.19041", StringComparison.OrdinalIgnoreCase)))
                 {
-                    list += "Windows10SDK" + Environment.NewLine;
+                    list += "Windows SDK [19041]" + Environment.NewLine;
                 }
 
                 return list;
