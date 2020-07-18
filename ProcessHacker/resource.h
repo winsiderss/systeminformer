@@ -589,6 +589,7 @@
 #define ID_HANDLE_PROTECTED             40062
 #define ID_HANDLE_INHERIT               40063
 #define ID_HANDLE_PROPERTIES            40064
+#define ID_HANDLE_SECURITY              40065
 #define ID_MODULE_UNLOAD                40066
 #define ID_MODULE_PROPERTIES            40068
 #define ID_PROCESS_TERMINATETREE        40069
