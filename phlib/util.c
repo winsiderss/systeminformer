@@ -5922,6 +5922,25 @@ PVOID PhGetLoaderEntryDllBase(
         return NULL;
 }
 
+PVOID PhGetLoaderEntryFullDllBase(
+    _In_ PWSTR FullDllName
+    )
+{
+    PH_STRINGREF entryNameSr;
+    PLDR_DATA_TABLE_ENTRY ldrEntry;
+
+    PhInitializeStringRefLongHint(&entryNameSr, FullDllName);
+
+    RtlEnterCriticalSection(NtCurrentPeb()->LoaderLock);
+    ldrEntry = PhFindLoaderEntry(NULL, &entryNameSr, NULL);
+    RtlLeaveCriticalSection(NtCurrentPeb()->LoaderLock);
+
+    if (ldrEntry)
+        return ldrEntry->DllBase;
+    else
+        return NULL;
+}
+
 PVOID PhGetDllBaseProcedureAddress(
     _In_ PVOID DllBase,
     _In_opt_ PSTR ProcedureName,
@@ -6847,6 +6866,41 @@ PVOID PhFileReadAllText(
     }
 
     return string;
+}
+
+_Success_(return == S_OK)
+HRESULT PhGetDllBaseClassObject(
+    _In_ PVOID DllBase,
+    _In_ REFCLSID Rclsid,
+    _In_ REFIID Riid,
+    _Out_ PVOID* Ppv
+    )
+{
+    HRESULT status = S_FALSE;
+    HRESULT (WINAPI* DllGetClassObject_I)(_In_ REFCLSID rclsid, _In_ REFIID riid, _COM_Outptr_ PVOID * ppv);
+    IClassFactory* classFactory;
+
+    if (!(DllGetClassObject_I = PhGetDllBaseProcedureAddress(DllBase, "DllGetClassObject", 0)))
+        return ERROR_PROC_NOT_FOUND;
+
+    status = DllGetClassObject_I(
+        Rclsid,
+        &IID_IClassFactory,
+        &classFactory
+        );
+
+    if (SUCCEEDED(status))
+    {
+        status = IClassFactory_CreateInstance(
+            classFactory,
+            NULL,
+            Riid,
+            Ppv
+            );
+        IClassFactory_Release(classFactory);
+    }
+
+    return status;
 }
 
 _Success_(return == S_OK)

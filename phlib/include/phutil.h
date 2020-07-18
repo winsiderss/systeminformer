@@ -1212,6 +1212,13 @@ PhGetLoaderEntryDllBase(
 PHLIBAPI
 PVOID
 NTAPI
+PhGetLoaderEntryFullDllBase(
+    _In_ PWSTR FullDllName
+    );
+
+PHLIBAPI
+PVOID
+NTAPI
 PhGetDllBaseProcedureAddress(
     _In_ PVOID DllBase,
     _In_opt_ PSTR ProcedureName,
@@ -1327,6 +1334,17 @@ NTAPI
 PhFileReadAllText(
     _In_ PWSTR FileName,
     _In_ BOOLEAN Unicode
+    );
+
+_Success_(return == S_OK)
+PHLIBAPI
+HRESULT
+NTAPI
+PhGetDllBaseClassObject(
+    _In_ PVOID DllBase,
+    _In_ REFCLSID Rclsid,
+    _In_ REFIID Riid,
+    _Out_ PVOID * Ppv
     );
 
 _Success_(return == S_OK)
