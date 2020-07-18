@@ -66,9 +66,7 @@ PVOID PhpGetWmiProviderDllBase(
             if (systemFileName = PhConcatStringRefZ(&systemDirectory->sr, L"\\wbem\\wbemprox.dll"))
             {
                 if (!(dllBase = PhGetLoaderEntryFullDllBase(systemFileName->Buffer)))
-                {
                     dllBase = LoadLibrary(systemFileName->Buffer);
-                }
 
                 PhDereferenceObject(systemFileName);
             }
@@ -89,21 +87,18 @@ HRESULT PhpWmiProviderExecMethod(
     )
 {
     HRESULT status;
-    PVOID wbemClassDllBase = NULL;
+    PVOID wbemproxDllBase = NULL;
     PPH_STRING queryString = NULL;
     IWbemLocator* wbemLocator = NULL;
     IWbemServices* wbemServices = NULL;
     IEnumWbemClassObject* wbemEnumerator = NULL;
     IWbemClassObject* wbemClassObject;
 
-    if (!(wbemClassDllBase = PhpGetWmiProviderDllBase()))
-    {
-        status = ERROR_MOD_NOT_FOUND;
-        goto CleanupExit;
-    }
+    if (!(wbemproxDllBase = PhpGetWmiProviderDllBase()))
+        return ERROR_MOD_NOT_FOUND;
 
-    status = PhGetDllBaseClassObject(
-        wbemClassDllBase,
+    status = PhGetClassObjectDllBase(
+        wbemproxDllBase,
         &CLSID_WbemLocator,
         &IID_IWbemLocator,
         &wbemLocator
@@ -233,7 +228,7 @@ HRESULT PhpQueryWmiProviderFileName(
     )
 {
     HRESULT status;
-    PVOID wbemClassDllBase = NULL;
+    PVOID wbemproxDllBase = NULL;
     PPH_STRING fileName = NULL;
     PPH_STRING queryString = NULL;
     PPH_STRING clsidString = NULL;
@@ -243,14 +238,11 @@ HRESULT PhpQueryWmiProviderFileName(
     IWbemClassObject *wbemClassObject = NULL;
     ULONG count = 0;
 
-    if (!(wbemClassDllBase = PhpGetWmiProviderDllBase()))
-    {
-        status = ERROR_MOD_NOT_FOUND;
-        goto CleanupExit;
-    }
+    if (!(wbemproxDllBase = PhpGetWmiProviderDllBase()))
+        return ERROR_MOD_NOT_FOUND;
 
-    status = PhGetDllBaseClassObject(
-        wbemClassDllBase,
+    status = PhGetClassObjectDllBase(
+        wbemproxDllBase,
         &CLSID_WbemLocator,
         &IID_IWbemLocator,
         &wbemLocator
@@ -374,7 +366,7 @@ PPH_LIST PhpQueryWmiProviderHostProcess(
     )
 {
     HRESULT status;
-    PVOID wbemClassDllBase = NULL;
+    PVOID wbemproxDllBase = NULL;
     PPH_LIST providerList = NULL;
     PPH_STRING queryString = NULL;
     IWbemLocator* wbemLocator = NULL;
@@ -382,14 +374,11 @@ PPH_LIST PhpQueryWmiProviderHostProcess(
     IEnumWbemClassObject* wbemEnumerator = NULL;
     IWbemClassObject *wbemClassObject;
 
-    if (!(wbemClassDllBase = PhpGetWmiProviderDllBase()))
-    {
-        status = ERROR_MOD_NOT_FOUND;
-        goto CleanupExit;
-    }
+    if (!(wbemproxDllBase = PhpGetWmiProviderDllBase()))
+        return NULL;
 
-    status = PhGetDllBaseClassObject(
-        wbemClassDllBase,
+    status = PhGetClassObjectDllBase(
+        wbemproxDllBase,
         &CLSID_WbemLocator,
         &IID_IWbemLocator,
         &wbemLocator

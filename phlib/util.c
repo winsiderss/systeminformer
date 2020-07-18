@@ -6872,7 +6872,7 @@ PVOID PhFileReadAllText(
 }
 
 _Success_(return == S_OK)
-HRESULT PhGetDllBaseClassObject(
+HRESULT PhGetClassObjectDllBase(
     _In_ PVOID DllBase,
     _In_ REFCLSID Rclsid,
     _In_ REFIID Riid,
@@ -6922,5 +6922,5 @@ HRESULT PhGetClassObject(
             return ERROR_MOD_NOT_FOUND;
     }
 
-    return PhGetDllBaseClassObject(baseAddress, Rclsid, Riid, Ppv);
+    return PhGetClassObjectDllBase(baseAddress, Rclsid, Riid, Ppv);
 }
