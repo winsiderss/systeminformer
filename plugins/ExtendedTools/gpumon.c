@@ -748,9 +748,6 @@ VOID EtpUpdateProcessSegmentInformation(
     ULONG64 sharedUsage;
     ULONG64 commitUsage;
 
-    if (EtD3DEnabled && WindowsVersion >= WINDOWS_10_RS5)
-        return;
-
     if (!Block->ProcessItem->QueryHandle)
         return;
 
@@ -866,9 +863,6 @@ VOID EtpUpdateProcessNodeInformation(
     D3DKMT_QUERYSTATISTICS queryStatistics;
     ULONG64 totalRunningTime;
     ULONG64 totalContextSwitches;
-
-    if (EtD3DEnabled && WindowsVersion >= WINDOWS_10_RS5)
-        return;
 
     if (!Block->ProcessItem->QueryHandle)
         return;
@@ -1088,13 +1082,14 @@ VOID NTAPI EtGpuProcessesUpdatedCallback(
         PhAddItemCircularBuffer_ULONG64(&EtGpuDedicatedHistory, EtGpuDedicatedUsage);
         PhAddItemCircularBuffer_ULONG64(&EtGpuSharedHistory, EtGpuSharedUsage);
 
-        if (elapsedTime != 0)
+
+        if (EtD3DEnabled)
         {
             for (i = 0; i < EtGpuTotalNodeCount; i++)
             {
                 FLOAT usage;
 
-                usage = (FLOAT)(EtGpuNodesTotalRunningTimeDelta[i].Delta / elapsedTime);
+                usage = EtLookupTotalGpuEngineUtilization(i);
 
                 if (usage > 1)
                     usage = 1;
@@ -1104,8 +1099,25 @@ VOID NTAPI EtGpuProcessesUpdatedCallback(
         }
         else
         {
-            for (i = 0; i < EtGpuTotalNodeCount; i++)
-                PhAddItemCircularBuffer_FLOAT(&EtGpuNodesHistory[i], 0);
+            if (elapsedTime != 0)
+            {
+                for (i = 0; i < EtGpuTotalNodeCount; i++)
+                {
+                    FLOAT usage;
+
+                    usage = (FLOAT)(EtGpuNodesTotalRunningTimeDelta[i].Delta / elapsedTime);
+
+                    if (usage > 1)
+                        usage = 1;
+
+                    PhAddItemCircularBuffer_FLOAT(&EtGpuNodesHistory[i], usage);
+                }
+            }
+            else
+            {
+                for (i = 0; i < EtGpuTotalNodeCount; i++)
+                    PhAddItemCircularBuffer_FLOAT(&EtGpuNodesHistory[i], 0);
+            }
         }
 
         if (maxNodeBlock)

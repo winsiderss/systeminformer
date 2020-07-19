@@ -668,6 +668,10 @@ FLOAT EtLookupTotalGpuUtilization(
     VOID
     );
 
+FLOAT EtLookupTotalGpuEngineUtilization(
+    _In_ ULONG64 EngineId
+    );
+
 ULONG64 EtLookupProcessGpuDedicated(
     _In_opt_ HANDLE ProcessId
     );

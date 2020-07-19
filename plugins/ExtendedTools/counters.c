@@ -42,6 +42,7 @@ typedef struct _ET_GPU_COUNTER
 {
     ULONG64 Node;
     HANDLE ProcessId;
+    ULONG64 EngineId;
 
     union
     {
@@ -180,6 +181,43 @@ FLOAT EtLookupTotalGpuUtilization(
 
     while (PhEnumHashtable(EtGpuRunningTimeHashTable, (PVOID*)&entry, &enumerationKey))
     {
+        FLOAT usage = (FLOAT)entry->Value;
+
+        if (usage > value)
+            value = usage;
+    }
+
+    PhReleaseQueuedLockShared(&EtGpuRunningTimeHashTableLock);
+
+    if (value > 0)
+        value = value / 100;
+
+    return value;
+}
+
+FLOAT EtLookupTotalGpuEngineUtilization(
+    _In_ ULONG64 EngineId
+    )
+{
+    FLOAT value = 0;
+    ULONG enumerationKey;
+    PET_GPU_COUNTER entry;
+
+    if (!EtGpuRunningTimeHashTable)
+    {
+        EtGpuCountersInitialization();
+        return 0;
+    }
+
+    PhAcquireQueuedLockShared(&EtGpuRunningTimeHashTableLock);
+
+    enumerationKey = 0;
+
+    while (PhEnumHashtable(EtGpuRunningTimeHashTable, (PVOID*)&entry, &enumerationKey))
+    {
+        if (entry->EngineId != EngineId)
+            continue;
+
         FLOAT usage = (FLOAT)entry->Value;
 
         if (usage > value)
@@ -400,12 +438,17 @@ VOID ParseGpuEngineUtilizationCounter(
     if (pidPartSr.Length)
     {
         ULONG64 processId;
+        ULONG64 engineId;
         PET_GPU_COUNTER entry;
         ET_GPU_COUNTER lookupEntry;
 
-        if (PhStringToInteger64(&pidPartSr, 10, &processId))
+        if (
+            PhStringToInteger64(&pidPartSr, 10, &processId) &&
+            PhStringToInteger64(&engPartSr, 10, &engineId)
+            )
         {
             lookupEntry.ProcessId = (HANDLE)processId;
+            lookupEntry.EngineId = engineId;
 
             if (entry = PhFindEntryHashtable(EtGpuRunningTimeHashTable, &lookupEntry))
             {
@@ -414,6 +457,7 @@ VOID ParseGpuEngineUtilizationCounter(
             else
             {
                 lookupEntry.ProcessId = (HANDLE)processId;
+                lookupEntry.EngineId = engineId;
                 lookupEntry.Value = InstanceValue;
 
                 PhAddEntryHashtable(EtGpuRunningTimeHashTable, &lookupEntry);
