@@ -543,7 +543,7 @@ namespace CustomBuildTool
 
                 hasbuild = this.Packages.Exists(p => p.Id.StartsWith("Microsoft.Component.MSBuild", StringComparison.OrdinalIgnoreCase));
                 hasruntimes = this.Packages.Exists(p => p.Id.StartsWith("Microsoft.VisualStudio.Component.VC", StringComparison.OrdinalIgnoreCase));
-                haswindowssdk = this.Packages.Exists(p => p.Id.StartsWith("Microsoft.VisualStudio.Component.Windows10SDK.19041", StringComparison.OrdinalIgnoreCase));
+                haswindowssdk = this.Packages.Exists(p => p.Id.StartsWith("Microsoft.VisualStudio.Component.Windows10SDK", StringComparison.OrdinalIgnoreCase));
 
                 return hasbuild && hasruntimes && haswindowssdk;
             }
