@@ -574,9 +574,9 @@ namespace CustomBuildTool
                     list += "VC.14.Redist" + Environment.NewLine;
                 }
 
-                if (!this.Packages.Exists(p => p.Id.StartsWith("Microsoft.VisualStudio.Component.Windows10SDK.19041", StringComparison.OrdinalIgnoreCase)))
+                if (!this.Packages.Exists(p => p.Id.StartsWith("Microsoft.VisualStudio.Component.Windows10SDK", StringComparison.OrdinalIgnoreCase)))
                 {
-                    list += "Windows SDK [19041]" + Environment.NewLine;
+                    list += "Windows SDK" + Environment.NewLine;
                 }
 
                 return list;
