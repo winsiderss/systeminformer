@@ -1046,6 +1046,7 @@ VOID PhInitializeKph(
 
     if (NT_SUCCESS(status = KphConnect2Ex(
         KPH_DEVICE_SHORT_NAME,
+        KPH_DEVICE_SHORT_NAME,
         kprocesshackerFileName->Buffer,
         &parameters
         )))

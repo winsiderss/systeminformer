@@ -39,12 +39,23 @@ NTSTATUS KphConnect(
     OBJECT_ATTRIBUTES objectAttributes;
     IO_STATUS_BLOCK isb;
     OBJECT_HANDLE_FLAG_INFORMATION handleFlagInfo;
+    WCHAR fullObjectName[256];
 
     if (PhKphHandle)
         return STATUS_ADDRESS_ALREADY_EXISTS;
 
     if (DeviceName)
-        RtlInitUnicodeString(&objectName, DeviceName);
+    {
+        PH_FORMAT format[2];
+
+        PhInitFormatS(&format[0], L"\\Device\\");
+        PhInitFormatS(&format[1], DeviceName);
+
+        if (!PhFormatToBuffer(format, 2, fullObjectName, sizeof(fullObjectName), NULL))
+            return STATUS_NAME_TOO_LONG;
+
+        RtlInitUnicodeString(&objectName, fullObjectName);
+    }
     else
         RtlInitUnicodeString(&objectName, KPH_DEVICE_NAME);
 
@@ -87,39 +98,26 @@ NTSTATUS KphConnect(
     return status;
 }
 
-NTSTATUS KphConnect2(
-    _In_opt_ PWSTR DeviceName,
-    _In_ PWSTR FileName
-    )
-{
-    return KphConnect2Ex(DeviceName, FileName, NULL);
-}
-
 NTSTATUS KphConnect2Ex(
+    _In_opt_ PWSTR ServiceName,
     _In_opt_ PWSTR DeviceName,
     _In_ PWSTR FileName,
     _In_opt_ PKPH_PARAMETERS Parameters
     )
 {
     NTSTATUS status;
-    WCHAR fullDeviceName[256];
-    PH_FORMAT format[2];
     SC_HANDLE scmHandle;
     SC_HANDLE serviceHandle;
     BOOLEAN started = FALSE;
     BOOLEAN created = FALSE;
 
+    if (!ServiceName)
+        ServiceName = KPH_DEVICE_SHORT_NAME;
     if (!DeviceName)
         DeviceName = KPH_DEVICE_SHORT_NAME;
 
-    PhInitFormatS(&format[0], L"\\Device\\");
-    PhInitFormatS(&format[1], DeviceName);
-
-    if (!PhFormatToBuffer(format, 2, fullDeviceName, sizeof(fullDeviceName), NULL))
-        return STATUS_NAME_TOO_LONG;
-
     // Try to open the device.
-    status = KphConnect(fullDeviceName);
+    status = KphConnect(DeviceName);
 
     if (NT_SUCCESS(status) || status == STATUS_ADDRESS_ALREADY_EXISTS)
         return status;
@@ -140,7 +138,7 @@ NTSTATUS KphConnect2Ex(
 
     if (scmHandle)
     {
-        serviceHandle = OpenService(scmHandle, DeviceName, SERVICE_START);
+        serviceHandle = OpenService(scmHandle, ServiceName, SERVICE_START);
 
         if (serviceHandle)
         {
@@ -163,8 +161,8 @@ NTSTATUS KphConnect2Ex(
         {
             serviceHandle = CreateService(
                 scmHandle,
-                DeviceName,
-                DeviceName,
+                ServiceName,
+                ServiceName,
                 SERVICE_ALL_ACCESS,
                 SERVICE_KERNEL_DRIVER,
                 SERVICE_DEMAND_START,
@@ -188,7 +186,7 @@ NTSTATUS KphConnect2Ex(
                 // security vulnerabilities.
                 if (Parameters)
                 {
-                    status = KphSetParameters(DeviceName, Parameters);
+                    status = KphSetParameters(ServiceName, Parameters);
 
                     if (!NT_SUCCESS(status))
                     {
@@ -214,7 +212,7 @@ NTSTATUS KphConnect2Ex(
     if (started)
     {
         // Try to open the device again.
-        status = KphConnect(fullDeviceName);
+        status = KphConnect(DeviceName);
     }
 
 CreateAndConnectEnd:
@@ -275,7 +273,7 @@ BOOLEAN KphIsVerified(
 }
 
 NTSTATUS KphSetParameters(
-    _In_opt_ PWSTR DeviceName,
+    _In_opt_ PWSTR ServiceName,
     _In_ PKPH_PARAMETERS Parameters
     )
 {
@@ -289,7 +287,7 @@ NTSTATUS KphSetParameters(
     WCHAR parametersKeyName[MAX_PATH];
 
     PhInitFormatS(&format[0], L"System\\CurrentControlSet\\Services\\");
-    PhInitFormatS(&format[1], DeviceName ? DeviceName : KPH_DEVICE_SHORT_NAME);
+    PhInitFormatS(&format[1], ServiceName ? ServiceName : KPH_DEVICE_SHORT_NAME);
     PhInitFormatS(&format[2], L"\\Parameters");
 
     if (!PhFormatToBuffer(
@@ -319,7 +317,7 @@ NTSTATUS KphSetParameters(
     if (!NT_SUCCESS(status))
         return status;
 
-    PhInitializeStringRef(&valueNameSr, L"SecurityLevel");
+    PhInitializeStringRefLongHint(&valueNameSr, L"SecurityLevel");
     status = PhSetValueKey(
         parametersKeyHandle,
         &valueNameSr,
@@ -340,7 +338,7 @@ NTSTATUS KphSetParameters(
 
         if (NT_SUCCESS(KphInitializeDynamicPackage(&configuration.Packages[0])))
         {
-            PhInitializeStringRef(&valueNameSr, L"DynamicConfiguration");
+            PhInitializeStringRefLongHint(&valueNameSr, L"DynamicConfiguration");
             status = PhSetValueKey(
                 parametersKeyHandle,
                 &valueNameSr,
@@ -370,7 +368,7 @@ SetValuesEnd:
 }
 
 NTSTATUS KphResetParameters(
-    _In_opt_ PWSTR DeviceName
+    _In_opt_ PWSTR ServiceName
     )
 {
     NTSTATUS status = STATUS_UNSUCCESSFUL;
@@ -381,7 +379,7 @@ NTSTATUS KphResetParameters(
     WCHAR parametersKeyName[MAX_PATH];
 
     PhInitFormatS(&format[0], L"System\\CurrentControlSet\\Services\\");
-    PhInitFormatS(&format[1], DeviceName ? DeviceName : KPH_DEVICE_SHORT_NAME);
+    PhInitFormatS(&format[1], ServiceName ? ServiceName : KPH_DEVICE_SHORT_NAME);
     PhInitFormatS(&format[2], L"\\Parameters");
 
     if (!PhFormatToBuffer(
@@ -398,7 +396,7 @@ NTSTATUS KphResetParameters(
     parametersKeyNameSr.Buffer = parametersKeyName;
     parametersKeyNameSr.Length = returnLength - sizeof(UNICODE_NULL);
 
-    status = KphUninstall(DeviceName);
+    status = KphUninstall(ServiceName);
     status = WIN32_FROM_NTSTATUS(status);
 
     if (status == ERROR_SERVICE_DOES_NOT_EXIST)
@@ -476,15 +474,15 @@ VOID KphSetServiceSecurity(
 }
 
 NTSTATUS KphInstall(
-    _In_opt_ PWSTR DeviceName,
+    _In_opt_ PWSTR ServiceName,
     _In_ PWSTR FileName
     )
 {
-    return KphInstallEx(DeviceName, FileName, NULL);
+    return KphInstallEx(ServiceName, FileName, NULL);
 }
 
 NTSTATUS KphInstallEx(
-    _In_opt_ PWSTR DeviceName,
+    _In_opt_ PWSTR ServiceName,
     _In_ PWSTR FileName,
     _In_opt_ PKPH_PARAMETERS Parameters
     )
@@ -493,8 +491,8 @@ NTSTATUS KphInstallEx(
     SC_HANDLE scmHandle;
     SC_HANDLE serviceHandle;
 
-    if (!DeviceName)
-        DeviceName = KPH_DEVICE_SHORT_NAME;
+    if (!ServiceName)
+        ServiceName = KPH_DEVICE_SHORT_NAME;
 
     scmHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CREATE_SERVICE);
 
@@ -503,8 +501,8 @@ NTSTATUS KphInstallEx(
 
     serviceHandle = CreateService(
         scmHandle,
-        DeviceName,
-        DeviceName,
+        ServiceName,
+        ServiceName,
         SERVICE_ALL_ACCESS,
         SERVICE_KERNEL_DRIVER,
         SERVICE_SYSTEM_START,
@@ -524,7 +522,7 @@ NTSTATUS KphInstallEx(
         // See KphConnect2Ex for more details.
         if (Parameters)
         {
-            status = KphSetParameters(DeviceName, Parameters);
+            status = KphSetParameters(ServiceName, Parameters);
 
             if (!NT_SUCCESS(status))
             {
@@ -550,7 +548,7 @@ CreateEnd:
 }
 
 NTSTATUS KphUninstall(
-    _In_opt_ PWSTR DeviceName
+    _In_opt_ PWSTR ServiceName
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -562,7 +560,7 @@ NTSTATUS KphUninstall(
     if (!scmHandle)
         return PhGetLastWin32ErrorAsNtStatus();
 
-    serviceHandle = OpenService(scmHandle, DeviceName ? DeviceName : KPH_DEVICE_SHORT_NAME, SERVICE_STOP | DELETE);
+    serviceHandle = OpenService(scmHandle, ServiceName ? ServiceName : KPH_DEVICE_SHORT_NAME, SERVICE_STOP | DELETE);
 
     if (serviceHandle)
     {

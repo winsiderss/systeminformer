@@ -23,15 +23,8 @@ KphConnect(
 PHLIBAPI
 NTSTATUS
 NTAPI
-KphConnect2(
-    _In_opt_ PWSTR DeviceName,
-    _In_ PWSTR FileName
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
 KphConnect2Ex(
+    _In_opt_ PWSTR ServiceName,
     _In_opt_ PWSTR DeviceName,
     _In_ PWSTR FileName,
     _In_opt_ PKPH_PARAMETERS Parameters
@@ -62,7 +55,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 KphSetParameters(
-    _In_opt_ PWSTR DeviceName,
+    _In_opt_ PWSTR ServiceName,
     _In_ PKPH_PARAMETERS Parameters
     );
 
@@ -70,7 +63,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 KphResetParameters(
-    _In_opt_ PWSTR DeviceName
+    _In_opt_ PWSTR ServiceName
     );
 
 PHLIBAPI
@@ -84,7 +77,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 KphInstall(
-    _In_opt_ PWSTR DeviceName,
+    _In_opt_ PWSTR ServiceName,
     _In_ PWSTR FileName
     );
 
@@ -92,7 +85,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 KphInstallEx(
-    _In_opt_ PWSTR DeviceName,
+    _In_opt_ PWSTR ServiceName,
     _In_ PWSTR FileName,
     _In_opt_ PKPH_PARAMETERS Parameters
     );
@@ -101,7 +94,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 KphUninstall(
-    _In_opt_ PWSTR DeviceName
+    _In_opt_ PWSTR ServiceName
     );
 
 PHLIBAPI
