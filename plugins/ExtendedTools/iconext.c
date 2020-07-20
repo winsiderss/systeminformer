@@ -348,7 +348,7 @@ VOID EtpGpuIconUpdateCallback(
         PhInitFormatC(&format[3], '\n');
         PhInitFormatSR(&format[4], maxGpuProcessItem->ProcessName->sr);
         PhInitFormatS(&format[5], L": ");
-        PhInitFormatF(&format[6], (DOUBLE)EtGetProcessBlock(maxGpuProcessItem)->GpuNodeUsage * 100, 2);
+        PhInitFormatF(&format[6], (DOUBLE)EtGetProcessBlock(maxGpuProcessItem)->GpuNodeUtilization * 100, 2);
         PhInitFormatC(&format[7], '%');
     }
 
@@ -701,7 +701,7 @@ VOID EtpGpuTextIconUpdateCallback(
         PhInitFormatC(&format[3], '\n');
         PhInitFormatSR(&format[4], maxGpuProcessItem->ProcessName->sr);
         PhInitFormatS(&format[5], L": ");
-        PhInitFormatF(&format[6], (DOUBLE)EtGetProcessBlock(maxGpuProcessItem)->GpuNodeUsage * 100, 2);
+        PhInitFormatF(&format[6], (DOUBLE)EtGetProcessBlock(maxGpuProcessItem)->GpuNodeUtilization * 100, 2);
         PhInitFormatC(&format[7], '%');
     }
 
