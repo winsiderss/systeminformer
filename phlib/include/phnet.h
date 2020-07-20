@@ -376,6 +376,13 @@ PhDnsQuery(
     _In_ USHORT DnsQueryMessageType
     );
 
+PHLIBAPI
+VOID
+NTAPI
+PhDnsFree(
+    _In_ PDNS_RECORD DnsRecordList
+    );
+
 #ifdef __cplusplus
 }
 #endif
