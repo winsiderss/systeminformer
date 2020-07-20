@@ -1006,14 +1006,14 @@ VOID NTAPI EtGpuProcessesUpdatedCallback(
 
         if (EtD3DEnabled)
         {
+            block->GpuNodeUtilization = EtLookupProcessGpuUtilization(block->ProcessItem->ProcessId);
             block->GpuDedicatedUsage = EtLookupProcessGpuDedicated(block->ProcessItem->ProcessId);
             block->GpuSharedUsage = EtLookupProcessGpuSharedUsage(block->ProcessItem->ProcessId);
             block->GpuCommitUsage = EtLookupProcessGpuCommitUsage(block->ProcessItem->ProcessId);
-            block->GpuNodeUsage = EtLookupProcessGpuUtilization(block->ProcessItem->ProcessId);
 
             if (runCount != 0)
             {
-                block->CurrentGpuUsage = block->GpuNodeUsage;
+                block->CurrentGpuUsage = block->GpuNodeUtilization;
                 block->CurrentMemUsage = (ULONG)(block->GpuDedicatedUsage / PAGE_SIZE);
                 block->CurrentMemSharedUsage = (ULONG)(block->GpuSharedUsage / PAGE_SIZE);
                 block->CurrentCommitUsage = (ULONG)(block->GpuCommitUsage / PAGE_SIZE);
@@ -1031,28 +1031,28 @@ VOID NTAPI EtGpuProcessesUpdatedCallback(
 
             if (elapsedTime != 0)
             {
-                block->GpuNodeUsage = (FLOAT)(block->GpuRunningTimeDelta.Delta / elapsedTime);
+                block->GpuNodeUtilization = (FLOAT)(block->GpuRunningTimeDelta.Delta / elapsedTime);
 
                 // HACK
-                if (block->GpuNodeUsage > EtGpuNodeUsage)
-                    block->GpuNodeUsage = EtGpuNodeUsage;
+                if (block->GpuNodeUtilization > EtGpuNodeUsage)
+                    block->GpuNodeUtilization = EtGpuNodeUsage;
 
                 //for (i = 0; i < EtGpuTotalNodeCount; i++)
                 //{
                 //    FLOAT usage = (FLOAT)(block->GpuTotalRunningTimeDelta[i].Delta / elapsedTime);
                 //
-                //    if (usage > block->GpuNodeUsage)
+                //    if (usage > block->GpuNodeUtilization)
                 //    {
-                //        block->GpuNodeUsage = usage;
+                //        block->GpuNodeUtilization = usage;
                 //    }
                 //}
 
-                if (block->GpuNodeUsage > 1)
-                    block->GpuNodeUsage = 1;
+                if (block->GpuNodeUtilization > 1)
+                    block->GpuNodeUtilization = 1;
 
                 if (runCount != 0)
                 {
-                    block->CurrentGpuUsage = block->GpuNodeUsage;
+                    block->CurrentGpuUsage = block->GpuNodeUtilization;
                     block->CurrentMemUsage = (ULONG)(block->GpuDedicatedUsage / PAGE_SIZE);
                     block->CurrentMemSharedUsage = (ULONG)(block->GpuSharedUsage / PAGE_SIZE);
                     block->CurrentCommitUsage = (ULONG)(block->GpuCommitUsage / PAGE_SIZE);
@@ -1065,9 +1065,9 @@ VOID NTAPI EtGpuProcessesUpdatedCallback(
             }
         }
 
-        if (maxNodeValue < block->GpuNodeUsage)
+        if (maxNodeValue < block->GpuNodeUtilization)
         {
-            maxNodeValue = block->GpuNodeUsage;
+            maxNodeValue = block->GpuNodeUtilization;
             maxNodeBlock = block;
         }
 
@@ -1123,7 +1123,7 @@ VOID NTAPI EtGpuProcessesUpdatedCallback(
         if (maxNodeBlock)
         {
             PhAddItemCircularBuffer_ULONG(&EtMaxGpuNodeHistory, HandleToUlong(maxNodeBlock->ProcessItem->ProcessId));
-            PhAddItemCircularBuffer_FLOAT(&EtMaxGpuNodeUsageHistory, maxNodeBlock->GpuNodeUsage);
+            PhAddItemCircularBuffer_FLOAT(&EtMaxGpuNodeUsageHistory, maxNodeBlock->GpuNodeUtilization);
             PhReferenceProcessRecordForStatistics(maxNodeBlock->ProcessItem->Record);
         }
         else

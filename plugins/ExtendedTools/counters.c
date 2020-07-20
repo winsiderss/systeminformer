@@ -128,7 +128,7 @@ VOID EtGpuCountersInitialization(
 }
 
 FLOAT EtLookupProcessGpuUtilization(
-    _In_opt_ HANDLE ProcessId
+    _In_ HANDLE ProcessId
     )
 {
     ET_GPU_COUNTER lookupEntry;
@@ -448,11 +448,13 @@ VOID ParseGpuEngineUtilizationCounter(
             )
         {
             lookupEntry.ProcessId = (HANDLE)processId;
-            lookupEntry.EngineId = engineId;
 
             if (entry = PhFindEntryHashtable(EtGpuRunningTimeHashTable, &lookupEntry))
             {
-                entry->Value = entry->Value + InstanceValue;
+                if (entry->Value < InstanceValue)
+                    entry->Value = InstanceValue;
+
+                entry->EngineId = engineId;
             }
             else
             {
@@ -503,7 +505,8 @@ VOID ParseGpuProcessMemoryDedicatedUsageCounter(
 
             if (entry = PhFindEntryHashtable(EtGpuDedicatedHashTable, &lookupEntry))
             {
-                entry->Value64 = entry->Value64 + InstanceValue;
+                if (entry->Value64 < InstanceValue)
+                    entry->Value64 = InstanceValue;
             }
             else
             {
@@ -553,10 +556,8 @@ VOID ParseGpuProcessMemorySharedUsageCounter(
 
             if (entry = PhFindEntryHashtable(EtGpuSharedHashTable, &lookupEntry))
             {
-                if (entry->Value < InstanceValue)
-                {
+                if (entry->Value64 < InstanceValue)
                     entry->Value64 = InstanceValue;
-                }
             }
             else
             {
@@ -607,9 +608,7 @@ VOID ParseGpuProcessMemoryCommitUsageCounter(
             if (entry = PhFindEntryHashtable(EtGpuCommitHashTable, &lookupEntry))
             {
                 if (entry->Value64 < InstanceValue)
-                {
                     entry->Value64 = InstanceValue;
-                }
             }
             else
             {
@@ -767,7 +766,19 @@ NTSTATUS NTAPI EtGpuCounterQueryThread(
             {
                 PhAcquireFastLockExclusive(&EtGpuDedicatedHashTableLock);
 
-                PhClearHashtable(EtGpuDedicatedHashTable);
+                // Reset hashtable once in a while.
+                {
+                    static ULONG64 lastTickCount = 0;
+                    ULONG64 tickCount;
+
+                    tickCount = NtGetTickCount64();
+
+                    if (tickCount - lastTickCount >= 10 * CLOCKS_PER_SEC)
+                    {
+                        PhClearHashtable(EtGpuDedicatedHashTable);
+                        lastTickCount = tickCount;
+                    }
+                }
 
                 for (ULONG i = 0; i < bufferCount; i++)
                 {
@@ -798,7 +809,19 @@ NTSTATUS NTAPI EtGpuCounterQueryThread(
             {
                 PhAcquireFastLockExclusive(&EtGpuSharedHashTableLock);
 
-                PhClearHashtable(EtGpuSharedHashTable);
+                // Reset hashtable once in a while.
+                {
+                    static ULONG64 lastTickCount = 0;
+                    ULONG64 tickCount;
+
+                    tickCount = NtGetTickCount64();
+
+                    if (tickCount - lastTickCount >= 10 * CLOCKS_PER_SEC)
+                    {
+                        PhClearHashtable(EtGpuSharedHashTable);
+                        lastTickCount = tickCount;
+                    }
+                }
 
                 for (ULONG i = 0; i < bufferCount; i++)
                 {
@@ -829,7 +852,19 @@ NTSTATUS NTAPI EtGpuCounterQueryThread(
             {
                 PhAcquireFastLockExclusive(&EtGpuCommitHashTableLock);
 
-                PhClearHashtable(EtGpuCommitHashTable);
+                // Reset hashtable once in a while.
+                {
+                    static ULONG64 lastTickCount = 0;
+                    ULONG64 tickCount;
+
+                    tickCount = NtGetTickCount64();
+
+                    if (tickCount - lastTickCount >= 10 * 1000)
+                    {
+                        PhClearHashtable(EtGpuCommitHashTable);
+                        lastTickCount = tickCount;
+                    }
+                }
 
                 for (ULONG i = 0; i < bufferCount; i++)
                 {

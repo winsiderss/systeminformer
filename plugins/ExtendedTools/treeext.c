@@ -391,7 +391,7 @@ VOID EtProcessTreeNewMessage(
                         processNode,
                         AggregateTypeFloat,
                         AggregateLocationProcessItem,
-                        FIELD_OFFSET(ET_PROCESS_BLOCK, GpuNodeUsage),
+                        FIELD_OFFSET(ET_PROCESS_BLOCK, GpuNodeUtilization),
                         &gpuUsage
                         );
                     gpuUsage *= 100;
@@ -606,7 +606,7 @@ LONG EtpProcessTreeNewSortFunction(
         result = uintcmp(block1->ProcessItem->PeakNumberOfThreads, block2->ProcessItem->PeakNumberOfThreads);
         break;
     case ETPRTNC_GPU:
-        result = singlecmp(block1->GpuNodeUsage, block2->GpuNodeUsage);
+        result = singlecmp(block1->GpuNodeUtilization, block2->GpuNodeUtilization);
         break;
     case ETPRTNC_GPUDEDICATEDBYTES:
         result = uint64cmp(block1->GpuDedicatedUsage, block2->GpuDedicatedUsage);

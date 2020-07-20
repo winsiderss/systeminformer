@@ -85,7 +85,7 @@ BOOLEAN EtpGpuListSectionCallback(
             {
                 PPH_PROCESS_ITEM processItem = processes->Items[i];
                 PET_PROCESS_BLOCK block = EtGetProcessBlock(processItem);
-                gpuUsage += block->GpuNodeUsage;
+                gpuUsage += block->GpuNodeUtilization;
             }
 
             *(PFLOAT)assignSortData->SortData->UserData = gpuUsage;
@@ -138,7 +138,7 @@ int __cdecl EtpGpuListSectionProcessCompareFunction(
     PET_PROCESS_BLOCK block1 = EtGetProcessBlock(node1->ProcessItem);
     PET_PROCESS_BLOCK block2 = EtGetProcessBlock(node2->ProcessItem);
 
-    result = singlecmp(block2->GpuNodeUsage, block1->GpuNodeUsage);
+    result = singlecmp(block2->GpuNodeUtilization, block1->GpuNodeUtilization);
 
     if (result == 0)
         result = uint64cmp(block2->GpuRunningTimeDelta.Value, block1->GpuRunningTimeDelta.Value);
