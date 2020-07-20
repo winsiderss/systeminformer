@@ -317,18 +317,20 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
             // HACK: Windows 10 RS2 and above 'added TEB/PEB sub-VAD segments' and we need to tag individual sections. (dmex)
             PhpSetMemoryRegionType(List, basicInfo.PebBaseAddress, WindowsVersion < WINDOWS_10_RS2 ? TRUE : FALSE, PebRegion);
 
-            if (NT_SUCCESS(NtReadVirtualMemory(ProcessHandle,
-                PTR_ADD_OFFSET(basicInfo.PebBaseAddress, FIELD_OFFSET(PEB, NumberOfHeaps)),
-                &numberOfHeaps, sizeof(ULONG), NULL)) && numberOfHeaps < MAX_HEAPS)
+            if (NT_SUCCESS(NtReadVirtualMemory(
+                ProcessHandle,
+                PTR_ADD_OFFSET(basicInfo.PebBaseAddress, UFIELD_OFFSET(PEB, NumberOfHeaps)),
+                &numberOfHeaps,
+                sizeof(ULONG),
+                NULL
+                )) && numberOfHeaps < MAX_HEAPS)
             {
                 processHeaps = PhAllocate(numberOfHeaps * sizeof(PVOID));
 
-                if (NT_SUCCESS(NtReadVirtualMemory(ProcessHandle,
-                    PTR_ADD_OFFSET(basicInfo.PebBaseAddress, FIELD_OFFSET(PEB, ProcessHeaps)),
-                    &processHeapsPtr, sizeof(PVOID), NULL)) &&
-                    NT_SUCCESS(NtReadVirtualMemory(ProcessHandle,
-                    processHeapsPtr,
-                    processHeaps, numberOfHeaps * sizeof(PVOID), NULL)))
+                if (
+                    NT_SUCCESS(NtReadVirtualMemory(ProcessHandle, PTR_ADD_OFFSET(basicInfo.PebBaseAddress, UFIELD_OFFSET(PEB, ProcessHeaps)), &processHeapsPtr, sizeof(PVOID), NULL)) &&
+                    NT_SUCCESS(NtReadVirtualMemory(ProcessHandle, processHeapsPtr, processHeaps, numberOfHeaps * sizeof(PVOID), NULL))
+                    )
                 {
                     for (i = 0; i < numberOfHeaps; i++)
                     {
@@ -359,18 +361,20 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
             isWow64 = TRUE;
             PhpSetMemoryRegionType(List, peb32, TRUE, Peb32Region);
 
-            if (NT_SUCCESS(NtReadVirtualMemory(ProcessHandle,
-                PTR_ADD_OFFSET(peb32, FIELD_OFFSET(PEB32, NumberOfHeaps)),
-                &numberOfHeaps, sizeof(ULONG), NULL)) && numberOfHeaps < MAX_HEAPS)
+            if (NT_SUCCESS(NtReadVirtualMemory(
+                ProcessHandle,
+                PTR_ADD_OFFSET(peb32, UFIELD_OFFSET(PEB32, NumberOfHeaps)),
+                &numberOfHeaps,
+                sizeof(ULONG),
+                NULL
+                )) && numberOfHeaps < MAX_HEAPS)
             {
                 processHeaps32 = PhAllocate(numberOfHeaps * sizeof(ULONG));
 
-                if (NT_SUCCESS(NtReadVirtualMemory(ProcessHandle,
-                    PTR_ADD_OFFSET(peb32, FIELD_OFFSET(PEB32, ProcessHeaps)),
-                    &processHeapsPtr32, sizeof(ULONG), NULL)) &&
-                    NT_SUCCESS(NtReadVirtualMemory(ProcessHandle,
-                    UlongToPtr(processHeapsPtr32),
-                    processHeaps32, numberOfHeaps * sizeof(ULONG), NULL)))
+                if (
+                    NT_SUCCESS(NtReadVirtualMemory(ProcessHandle, PTR_ADD_OFFSET(peb32, UFIELD_OFFSET(PEB32, ProcessHeaps)), &processHeapsPtr32, sizeof(ULONG), NULL)) &&
+                    NT_SUCCESS(NtReadVirtualMemory(ProcessHandle, UlongToPtr(processHeapsPtr32), processHeaps32, numberOfHeaps * sizeof(ULONG), NULL))
+                    )
                 {
                     for (i = 0; i < numberOfHeaps; i++)
                     {
@@ -385,7 +389,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
             // ApiSet schema map
             if (NT_SUCCESS(NtReadVirtualMemory(
                 ProcessHandle,
-                PTR_ADD_OFFSET(peb32, FIELD_OFFSET(PEB32, ApiSetMap)),
+                PTR_ADD_OFFSET(peb32, UFIELD_OFFSET(PEB32, ApiSetMap)),
                 &apiSetMap32,
                 sizeof(ULONG),
                 NULL
