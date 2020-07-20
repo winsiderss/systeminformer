@@ -290,75 +290,69 @@ BOOLEAN WhoisConnectServer(
     _Out_ SOCKET* WhoisServerSocketHandle
     )
 {
-    PDNS_RECORD dnsRecordList = NULL;
     SOCKET whoisSocketHandle = INVALID_SOCKET;
+    PDNS_RECORD dnsRecordList;
 
-    if (!(dnsRecordList = PhHttpDnsQuery(NULL, WhoisServerAddress, DnsQueryMessageType)))
-    {
-        DnsQuery(
-            WhoisServerAddress,
-            DnsQueryMessageType,
-            DNS_QUERY_BYPASS_CACHE | DNS_QUERY_NO_HOSTS_FILE,
-            NULL,
-            &dnsRecordList,
-            NULL
-            );
-    }
+    dnsRecordList = PhDnsQuery(
+        NULL,
+        WhoisServerAddress,
+        DnsQueryMessageType
+        );
 
-    if (dnsRecordList)
+    if (!dnsRecordList)
+        return FALSE;
+
+    for (PDNS_RECORD dnsRecord = dnsRecordList; dnsRecord; dnsRecord = dnsRecord->pNext)
     {
-        for (PDNS_RECORD dnsRecord = dnsRecordList; dnsRecord; dnsRecord = dnsRecord->pNext)
+        if (dnsRecord->wType == DNS_TYPE_A)
         {
-            if (dnsRecord->wType == DNS_TYPE_A)
+            SOCKADDR_IN remoteAddr;
+
+            memset(&remoteAddr, 0, sizeof(SOCKADDR_IN));
+            remoteAddr.sin_family = AF_INET;
+            remoteAddr.sin_port = _byteswap_ushort(WhoisServerPort);
+            memcpy_s(
+                &remoteAddr.sin_addr.s_addr,
+                sizeof(remoteAddr.sin_addr.s_addr),
+                &dnsRecord->Data.A.IpAddress,
+                sizeof(dnsRecord->Data.A.IpAddress)
+                );
+
+            if ((whoisSocketHandle = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, 0)) != INVALID_SOCKET)
             {
-                SOCKADDR_IN remoteAddr;
+                if (WSAConnect(whoisSocketHandle, (PSOCKADDR)&remoteAddr, sizeof(SOCKADDR_IN), NULL, NULL, NULL, NULL) != SOCKET_ERROR)
+                    break;
 
-                memset(&remoteAddr, 0, sizeof(SOCKADDR_IN));
-                remoteAddr.sin_family = AF_INET;
-                remoteAddr.sin_port = _byteswap_ushort(WhoisServerPort);
-                memcpy_s(
-                    &remoteAddr.sin_addr.s_addr,
-                    sizeof(remoteAddr.sin_addr.s_addr),
-                    &dnsRecord->Data.A.IpAddress,
-                    sizeof(dnsRecord->Data.A.IpAddress)
-                    );
-
-                if ((whoisSocketHandle = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, 0)) != INVALID_SOCKET)
-                {
-                    if (WSAConnect(whoisSocketHandle, (PSOCKADDR)&remoteAddr, sizeof(SOCKADDR_IN), NULL, NULL, NULL, NULL) != SOCKET_ERROR)
-                        break;
-
-                    closesocket(whoisSocketHandle);
-                    whoisSocketHandle = INVALID_SOCKET;
-                }
-            }
-            else if (dnsRecord->wType == DNS_TYPE_AAAA)
-            {
-                SOCKADDR_IN6 remoteAddr;
-
-                memset(&remoteAddr, 0, sizeof(SOCKADDR_IN6));
-                remoteAddr.sin6_family = AF_INET6;
-                remoteAddr.sin6_port = _byteswap_ushort(WhoisServerPort);
-                memcpy_s(
-                    remoteAddr.sin6_addr.s6_addr,
-                    sizeof(remoteAddr.sin6_addr.s6_addr),
-                    dnsRecord->Data.AAAA.Ip6Address.IP6Byte,
-                    sizeof(dnsRecord->Data.AAAA.Ip6Address.IP6Byte)
-                    );
-
-                if ((whoisSocketHandle = WSASocket(AF_INET6, SOCK_STREAM, IPPROTO_TCP, NULL, 0, 0)) != INVALID_SOCKET)
-                {
-                    if (WSAConnect(whoisSocketHandle, (PSOCKADDR)&remoteAddr, sizeof(SOCKADDR_IN6), NULL, NULL, NULL, NULL) != SOCKET_ERROR)
-                        break;
-
-                    closesocket(whoisSocketHandle);
-                    whoisSocketHandle = INVALID_SOCKET;
-                }
+                closesocket(whoisSocketHandle);
+                whoisSocketHandle = INVALID_SOCKET;
             }
         }
-    
-        DnsFree(dnsRecordList, DnsFreeRecordList);
+        else if (dnsRecord->wType == DNS_TYPE_AAAA)
+        {
+            SOCKADDR_IN6 remoteAddr;
+
+            memset(&remoteAddr, 0, sizeof(SOCKADDR_IN6));
+            remoteAddr.sin6_family = AF_INET6;
+            remoteAddr.sin6_port = _byteswap_ushort(WhoisServerPort);
+            memcpy_s(
+                remoteAddr.sin6_addr.s6_addr,
+                sizeof(remoteAddr.sin6_addr.s6_addr),
+                dnsRecord->Data.AAAA.Ip6Address.IP6Byte,
+                sizeof(dnsRecord->Data.AAAA.Ip6Address.IP6Byte)
+                );
+
+            if ((whoisSocketHandle = WSASocket(AF_INET6, SOCK_STREAM, IPPROTO_TCP, NULL, 0, 0)) != INVALID_SOCKET)
+            {
+                if (WSAConnect(whoisSocketHandle, (PSOCKADDR)&remoteAddr, sizeof(SOCKADDR_IN6), NULL, NULL, NULL, NULL) != SOCKET_ERROR)
+                    break;
+
+                closesocket(whoisSocketHandle);
+                whoisSocketHandle = INVALID_SOCKET;
+            }
+        }
     }
+
+    DnsFree(dnsRecordList, DnsFreeRecordList);
 
     if (whoisSocketHandle != INVALID_SOCKET)
     {
@@ -366,7 +360,7 @@ BOOLEAN WhoisConnectServer(
         return TRUE;
     }
 
-    return FALSE;  
+    return FALSE;
 }
 
 _Success_(return)

@@ -367,6 +367,15 @@ PhHttpDnsQuery(
     _In_ USHORT DnsQueryMessageType
     );
 
+PHLIBAPI
+PDNS_RECORD
+NTAPI
+PhDnsQuery(
+    _In_opt_ PWSTR DnsServerAddress,
+    _In_ PWSTR DnsQueryMessage,
+    _In_ USHORT DnsQueryMessageType
+    );
+
 #ifdef __cplusplus
 }
 #endif

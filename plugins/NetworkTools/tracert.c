@@ -156,28 +156,11 @@ NTSTATUS TracertHostnameLookupCallback(
         return STATUS_FAIL_CHECK;
     }
 
-    if (!dnsLocalQuery)
-    {
-        dnsRecordList = PhHttpDnsQuery(
-            NULL,
-            dnsReverseNameString->Buffer,
-            DNS_TYPE_PTR
-            );
-    }
-
-    if (!dnsRecordList)
-    {
-        DnsQuery(
-            dnsReverseNameString->Buffer,
-            DNS_TYPE_PTR,
-            DNS_QUERY_BYPASS_CACHE | DNS_QUERY_NO_HOSTS_FILE,
-            NULL,
-            &dnsRecordList,
-            NULL
-            );
-    }
-
-    if (dnsRecordList)
+    if (dnsRecordList = PhDnsQuery(
+        NULL,
+        dnsReverseNameString->Buffer,
+        DNS_TYPE_PTR
+        ))
     {
         PH_STRING_BUILDER stringBuilder;
 

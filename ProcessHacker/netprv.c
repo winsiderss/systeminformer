@@ -442,43 +442,12 @@ PPH_STRING PhGetHostNameFromAddressEx(
     if (!(dnsReverseNameString = PhpGetDnsReverseNameFromAddress(Address)))
         return NULL;
 
-    if (PhEnableNetworkResolveDoHSupport)
-    {
-        if (!dnsLocalQuery)
-        {
-            dnsRecordList = PhHttpDnsQuery(
-                NULL,
-                dnsReverseNameString->Buffer,
-                DNS_TYPE_PTR
-                );
-        }
 
-        if (!dnsRecordList && DnsQuery_W_Import())
-        {
-            DnsQuery_W_Import()(
-                dnsReverseNameString->Buffer,
-                DNS_TYPE_PTR,
-                DNS_QUERY_NO_HOSTS_FILE, // DNS_QUERY_BYPASS_CACHE
-                NULL,
-                &dnsRecordList,
-                NULL
-                );
-        }
-    }
-    else
-    {
-        if (DnsQuery_W_Import())
-        {
-            DnsQuery_W_Import()(
-                dnsReverseNameString->Buffer,
-                DNS_TYPE_PTR,
-                DNS_QUERY_NO_HOSTS_FILE, // DNS_QUERY_BYPASS_CACHE
-                NULL,
-                &dnsRecordList,
-                NULL
-                );
-        }
-    }
+    dnsRecordList = PhDnsQuery(
+        NULL,
+        dnsReverseNameString->Buffer,
+        DNS_TYPE_PTR
+        );
 
     if (dnsRecordList)
     {

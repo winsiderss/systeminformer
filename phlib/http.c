@@ -138,19 +138,7 @@ BOOLEAN PhHttpSocketConnect(
     _In_ USHORT ServerPort
     )
 {
-    //PDNS_RECORD dnsRecordList = NULL;
-    //
-    //if (!(dnsRecordList = PhHttpDnsQuery(ServerName, DNS_TYPE_A)))
-    //{
-    //    DnsQuery(
-    //        ServerName,
-    //        DNS_TYPE_A,
-    //        DNS_QUERY_NO_HOSTS_FILE,
-    //        NULL,
-    //        &dnsRecordList,
-    //        NULL
-    //        );
-    //}
+    //PDNS_RECORD dnsRecordList = PhDnsQuery(ServerName, DNS_TYPE_A);
     //
     //if (dnsRecordList)
     //{
@@ -1100,6 +1088,35 @@ CleanupExit:
         PhFree(dnsReceiveBuffer);
     if (dnsSendBuffer)
         PhFree(dnsSendBuffer);
+
+    return dnsRecordList;
+}
+
+PDNS_RECORD PhDnsQuery(
+    _In_opt_ PWSTR DnsServerAddress,
+    _In_ PWSTR DnsQueryMessage,
+    _In_ USHORT DnsQueryMessageType
+    )
+{
+    PDNS_RECORD dnsRecordList;
+
+    dnsRecordList = PhHttpDnsQuery(
+        DnsServerAddress,
+        DnsQueryMessage,
+        DnsQueryMessageType
+        );
+
+    if (!dnsRecordList && DnsQuery_W_Import())
+    {
+        DnsQuery_W_Import()(
+            DnsQueryMessage,
+            DnsQueryMessageType,
+            DNS_QUERY_BYPASS_CACHE | DNS_QUERY_NO_HOSTS_FILE,
+            NULL,
+            &dnsRecordList,
+            NULL
+            );
+    }
 
     return dnsRecordList;
 }
