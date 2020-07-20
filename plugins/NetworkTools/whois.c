@@ -352,7 +352,7 @@ BOOLEAN WhoisConnectServer(
         }
     }
 
-    DnsFree(dnsRecordList, DnsFreeRecordList);
+    PhDnsFree(dnsRecordList);
 
     if (whoisSocketHandle != INVALID_SOCKET)
     {
