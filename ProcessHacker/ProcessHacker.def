@@ -591,6 +591,18 @@ EXPORTS
     PhLoadMappedImageEx
     PhUnloadMappedImage
 
+; provider
+    PhInitializeProviderThread
+    PhDeleteProviderThread
+    PhStartProviderThread
+    PhStopProviderThread
+    PhSetIntervalProviderThread
+    PhRegisterProvider
+    PhUnregisterProvider
+    PhBoostProvider
+    PhGetEnabledProvider
+    PhSetEnabledProvider
+
 ; settings
     PhAddSetting
     PhAddSettings
@@ -742,3 +754,4 @@ EXPORTS
     PhHttpSocketSetCredentials
     PhHttpDnsQuery
     PhDnsQuery
+    PhDnsFree
