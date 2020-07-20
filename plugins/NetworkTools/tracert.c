@@ -131,6 +131,7 @@ NTSTATUS TracertHostnameLookupCallback(
         {
             PhFree(workitem);
             return STATUS_SUCCESS;
+        }
     }
 
     if (!(dnsReverseNameString = PhpGetDnsReverseNameFromAddress(workitem)))
