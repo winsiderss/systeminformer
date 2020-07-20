@@ -179,7 +179,7 @@ NTSTATUS TracertHostnameLookupCallback(
 
         dnsHostNameString = PhFinalStringBuilderString(&stringBuilder);
 
-        DnsFree(dnsRecordList, DnsFreeRecordList);
+        PhDnsFree(dnsRecordList);
     }
 
     if (dnsHostNameString)

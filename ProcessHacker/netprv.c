@@ -442,28 +442,26 @@ PPH_STRING PhGetHostNameFromAddressEx(
     if (!(dnsReverseNameString = PhpGetDnsReverseNameFromAddress(Address)))
         return NULL;
 
-
-    dnsRecordList = PhDnsQuery(
+    if (!(dnsRecordList = PhDnsQuery(
         NULL,
         dnsReverseNameString->Buffer,
         DNS_TYPE_PTR
-        );
-
-    if (dnsRecordList)
+        )))
     {
-        for (PDNS_RECORD dnsRecord = dnsRecordList; dnsRecord; dnsRecord = dnsRecord->pNext)
-        {
-            if (dnsRecord->wType == DNS_TYPE_PTR)
-            {
-                dnsHostNameString = PhCreateString(dnsRecord->Data.PTR.pNameHost); // Return the first result (dmex)
-                break;
-            }
-        }
-
-        if (DnsFree_Import())
-            DnsFree_Import()(dnsRecordList, DnsFreeRecordList);
+        PhDereferenceObject(dnsReverseNameString);
+        return NULL;
     }
 
+    for (PDNS_RECORD dnsRecord = dnsRecordList; dnsRecord; dnsRecord = dnsRecord->pNext)
+    {
+        if (dnsRecord->wType == DNS_TYPE_PTR)
+        {
+            dnsHostNameString = PhCreateString(dnsRecord->Data.PTR.pNameHost); // Return the first result (dmex)
+            break;
+        }
+    }
+
+    PhDnsFree(dnsRecordList);
     PhDereferenceObject(dnsReverseNameString);
 
     return dnsHostNameString;

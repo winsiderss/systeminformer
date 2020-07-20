@@ -1120,3 +1120,13 @@ PDNS_RECORD PhDnsQuery(
 
     return dnsRecordList;
 }
+
+VOID PhDnsFree(
+    _In_ PDNS_RECORD DnsRecordList
+    )
+{
+    if (DnsFree_Import())
+    {
+        DnsFree_Import()(DnsRecordList, DnsFreeRecordList);
+    }
+}
