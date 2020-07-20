@@ -396,8 +396,13 @@ namespace CustomBuildTool
 
             foreach (VisualStudioInstance instance in VisualStudioInstanceList)
             {
-                if (instance.HasRequiredDependency)
+                if (
+                    instance.HasRequiredDependency &&
+                    instance.DisplayName.EndsWith("2019", StringComparison.OrdinalIgnoreCase) // HACK
+                    )
+                {
                     return instance;
+                }
             }
 
             return null;
