@@ -834,7 +834,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                 if (!PH_IS_REAL_PROCESS_ID(processItem->ProcessId))
                     status = STATUS_SUCCESS;
 
-                if (NT_SUCCESS(status))
+                if (NT_SUCCESS(status) || status == STATUS_PARTIAL_COPY) // partial when process exits (dmex)
                 {
                     TreeNew_SetEmptyText(modulesContext->TreeNewHandle, &EmptyModulesText, 0);
                 }
