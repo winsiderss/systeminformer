@@ -741,12 +741,13 @@ VOID PhpThreadProviderUpdate(
     numberOfThreads = process->NumberOfThreads;
 
     // System Idle Process has one thread per CPU. They all have a TID of 0. We can't have duplicate
-    // TIDs, so we'll assign unique TIDs.
+    // TIDs, so we'll assign unique TIDs. (wj32)
     if (threadProvider->ProcessId == SYSTEM_IDLE_PROCESS_ID)
     {
         for (i = 0; i < numberOfThreads; i++)
         {
-            threads[i].ClientId.UniqueThread = UlongToHandle(i);
+            // Assign max TID since some handles have low IDs on windows 10 (dmex)
+            threads[i].ClientId.UniqueThread = UlongToHandle(-(LONG)i - 2);
         }
     }
 

@@ -230,6 +230,7 @@ typedef struct _PH_PROCESS_NODE
     PPH_STRING ProtectionText;
     PPH_STRING DesktopInfoText;
     WCHAR PidHexText[PH_PTR_STR_LEN_1];
+    WCHAR CpuCoreUsageText[PH_PTR_STR_LEN_1 + 3];
 
     // Graph buffers
     PH_GRAPH_BUFFERS CpuGraphBuffers;
