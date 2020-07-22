@@ -684,6 +684,11 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
 
                     cpuUsage = threadItem->CpuUsage * 100;
 
+                    if (PhEnableRelativeCpuUsage)
+                    {
+                        cpuUsage = cpuUsage * (ULONG)PhSystemBasicInformation.NumberOfProcessors; // * 2; // linux style (dmex)
+                    }
+
                     if (cpuUsage >= 0.01)
                     {
                         PH_FORMAT format;
