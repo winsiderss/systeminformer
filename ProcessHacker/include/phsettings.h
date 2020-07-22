@@ -16,7 +16,6 @@ EXT BOOLEAN PhEnableServiceQueryStage2;
 EXT BOOLEAN PhEnableThemeSupport;
 EXT BOOLEAN PhEnableTooltipSupport;
 EXT BOOLEAN PhEnableLinuxSubsystemSupport;
-EXT BOOLEAN PhEnableRelativeCpuUsage;
 
 EXT ULONG PhCsForceNoParent;
 EXT ULONG PhCsHighlightingDuration;

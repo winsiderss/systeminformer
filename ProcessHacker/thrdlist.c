@@ -111,6 +111,7 @@ VOID PhInitializeThreadList(
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_IDEALPROCESSOR, FALSE, L"Ideal processor", 80, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_CRITICAL, FALSE, L"Critical", 80, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_TIDHEX, FALSE, L"TID (Hex)", 50, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT);
+    PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_CPUCORECYCLES, FALSE, L"CPU (relative)", 50, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT);
 
     TreeNew_SetRedraw(TreeNewHandle, TRUE);
     TreeNew_SetTriState(TreeNewHandle, TRUE);
@@ -560,6 +561,20 @@ BEGIN_SORT_FUNCTION(TidHex)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(CpuCore)
+{
+    sortResult = singlecmp(threadItem1->CpuUsage, threadItem2->CpuUsage); // TODO * core
+
+    if (sortResult == 0)
+    {
+        if (context->UseCycleTime)
+            sortResult = uint64cmp(threadItem1->CyclesDelta.Delta, threadItem2->CyclesDelta.Delta);
+        else
+            sortResult = uintcmp(threadItem1->ContextSwitchesDelta.Delta, threadItem2->ContextSwitchesDelta.Delta);
+    }
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpThreadTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -610,6 +625,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     SORT_FUNCTION(IdealProcessor),
                     SORT_FUNCTION(Critical),
                     SORT_FUNCTION(TidHex),
+                    SORT_FUNCTION(CpuCore),
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
@@ -683,11 +699,6 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     FLOAT cpuUsage;
 
                     cpuUsage = threadItem->CpuUsage * 100;
-
-                    if (PhEnableRelativeCpuUsage)
-                    {
-                        cpuUsage = cpuUsage * (ULONG)PhSystemBasicInformation.NumberOfProcessors; // * 2; // linux style (dmex)
-                    }
 
                     if (cpuUsage >= 0.01)
                     {
@@ -966,6 +977,42 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     {
                         getCellText->Text.Buffer = node->ThreadIdHexText;
                         getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
+                    }
+                }
+                break;
+            case PH_THREAD_TREELIST_COLUMN_CPUCORECYCLES:
+                {
+                    FLOAT cpuUsage;
+
+                    cpuUsage = threadItem->CpuUsage * 100;
+                    cpuUsage = cpuUsage * (ULONG)PhSystemBasicInformation.NumberOfProcessors; // * 2; // linux style (dmex)
+
+                    if (cpuUsage >= 0.01)
+                    {
+                        PH_FORMAT format;
+                        SIZE_T returnLength;
+
+                        PhInitFormatF(&format, cpuUsage, 2);
+
+                        if (PhFormatToBuffer(&format, 1, node->CpuCoreUsageText, sizeof(node->CpuCoreUsageText), &returnLength))
+                        {
+                            getCellText->Text.Buffer = node->CpuCoreUsageText;
+                            getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
+                        }
+                    }
+                    else if (cpuUsage != 0 && PhCsShowCpuBelow001)
+                    {
+                        PH_FORMAT format[2];
+                        SIZE_T returnLength;
+
+                        PhInitFormatS(&format[0], L"< ");
+                        PhInitFormatF(&format[1], 0.01, 2);
+
+                        if (PhFormatToBuffer(format, 2, node->CpuCoreUsageText, sizeof(node->CpuCoreUsageText), &returnLength))
+                        {
+                            getCellText->Text.Buffer = node->CpuCoreUsageText;
+                            getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
+                        }
                     }
                 }
                 break;

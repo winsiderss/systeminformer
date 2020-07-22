@@ -2017,7 +2017,6 @@ VOID PhMwpLoadSettings(
     PhEnableServiceQueryStage2 = !!PhGetIntegerSetting(L"EnableServiceStage2");
     PhEnableTooltipSupport = !!PhGetIntegerSetting(L"EnableTooltipSupport");
     PhEnableLinuxSubsystemSupport = !!PhGetIntegerSetting(L"EnableLinuxSubsystemSupport");
-    PhEnableRelativeCpuUsage = !!PhGetIntegerSetting(L"EnableRelativeCpuUsage");
     PhMwpNotifyIconNotifyMask = PhGetIntegerSetting(L"IconNotifyMask");
     
     if (PhGetIntegerSetting(L"MainWindowAlwaysOnTop"))
