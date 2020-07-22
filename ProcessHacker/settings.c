@@ -55,6 +55,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableWindowText", L"1");
     PhpAddIntegerSetting(L"EnableThemeSupport", L"0");
     PhpAddIntegerSetting(L"EnableTooltipSupport", L"1");
+    PhpAddIntegerSetting(L"EnableRelativeCpuUsage", L"0");  
     PhpAddIntegerSetting(L"EnableSecurityAdvancedDialog", L"1");
     PhpAddIntegerSetting(L"EnableLinuxSubsystemSupport", L"0");
     PhpAddStringSetting(L"EnvironmentTreeListColumns", L"");
