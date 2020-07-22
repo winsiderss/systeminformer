@@ -2944,9 +2944,9 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 
                         PhInitFormatF(&format, cpuUsage, 2);
 
-                        if (PhFormatToBuffer(&format, 1, node->CpuUsageText, sizeof(node->CpuUsageText), &returnLength))
+                        if (PhFormatToBuffer(&format, 1, node->CpuCoreUsageText, sizeof(node->CpuCoreUsageText), &returnLength))
                         {
-                            getCellText->Text.Buffer = node->CpuUsageText;
+                            getCellText->Text.Buffer = node->CpuCoreUsageText;
                             getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL); // minus null terminator
                         }
                     }
@@ -2958,9 +2958,9 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         PhInitFormatS(&format[0], L"< ");
                         PhInitFormatF(&format[1], 0.01, 2);
 
-                        if (PhFormatToBuffer(format, 2, node->CpuUsageText, sizeof(node->CpuUsageText), &returnLength))
+                        if (PhFormatToBuffer(format, 2, node->CpuCoreUsageText, sizeof(node->CpuCoreUsageText), &returnLength))
                         {
-                            getCellText->Text.Buffer = node->CpuUsageText;
+                            getCellText->Text.Buffer = node->CpuCoreUsageText;
                             getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
                         }
                     }
