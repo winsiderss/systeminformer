@@ -215,6 +215,7 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_DESKTOP, FALSE, L"Desktop", 80, PH_ALIGN_LEFT, ULONG_MAX, 0, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_CRITICAL, FALSE, L"Critical", 80, PH_ALIGN_LEFT, ULONG_MAX, 0, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_PIDHEX, FALSE, L"PID (Hex)", 50, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHPRTLC_CPUCORECYCLES, FALSE, L"CPU (relative)", 45, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -1943,6 +1944,12 @@ BEGIN_SORT_FUNCTION(HexPid)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(CpuCore)
+{
+    sortResult = singlecmp(processItem1->CpuUsage, processItem2->CpuUsage);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpProcessTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -2068,6 +2075,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         SORT_FUNCTION(DesktopInfo),
                         SORT_FUNCTION(Critical),
                         SORT_FUNCTION(HexPid),
+                        SORT_FUNCTION(CpuCore),
                     };
                     int (__cdecl *sortFunction)(const void *, const void *);
 
@@ -2130,11 +2138,6 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 
                     PhpAggregateFieldIfNeeded(node, AggregateTypeFloat, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, CpuUsage), &cpuUsage);
                     cpuUsage *= 100;
-
-                    if (PhEnableRelativeCpuUsage)
-                    {
-                        cpuUsage = cpuUsage * (ULONG)PhSystemBasicInformation.NumberOfProcessors;
-                    }
 
                     if (cpuUsage >= 0.01)
                     {
@@ -2920,6 +2923,44 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         if (PhFormatToBuffer(&format, 1, node->PidHexText, sizeof(node->PidHexText), &returnLength))
                         {
                             getCellText->Text.Buffer = node->PidHexText;
+                            getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
+                        }
+                    }
+                }
+                break;
+            case PHPRTLC_CPUCORECYCLES:
+                {
+                    FLOAT cpuUsage = 0;
+
+                    PhpAggregateFieldIfNeeded(node, AggregateTypeFloat, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, CpuUsage), &cpuUsage);
+
+                    cpuUsage *= 100;
+                    cpuUsage = cpuUsage * (ULONG)PhSystemBasicInformation.NumberOfProcessors;
+
+                    if (cpuUsage >= 0.01)
+                    {
+                        PH_FORMAT format;
+                        SIZE_T returnLength;
+
+                        PhInitFormatF(&format, cpuUsage, 2);
+
+                        if (PhFormatToBuffer(&format, 1, node->CpuUsageText, sizeof(node->CpuUsageText), &returnLength))
+                        {
+                            getCellText->Text.Buffer = node->CpuUsageText;
+                            getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL); // minus null terminator
+                        }
+                    }
+                    else if (cpuUsage != 0 && PhCsShowCpuBelow001)
+                    {
+                        PH_FORMAT format[2];
+                        SIZE_T returnLength;
+
+                        PhInitFormatS(&format[0], L"< ");
+                        PhInitFormatF(&format[1], 0.01, 2);
+
+                        if (PhFormatToBuffer(format, 2, node->CpuUsageText, sizeof(node->CpuUsageText), &returnLength))
+                        {
+                            getCellText->Text.Buffer = node->CpuUsageText;
                             getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
                         }
                     }
