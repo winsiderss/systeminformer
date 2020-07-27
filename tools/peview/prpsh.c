@@ -125,53 +125,6 @@ static HWND SecurityButton = NULL;
 static WNDPROC OldOptionsWndProc = NULL;
 static WNDPROC OldSecurityWndProc = NULL;
 
-INT_PTR CALLBACK PvpOptionsWndProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    )
-{
-    switch (uMsg)
-    {
-    case WM_INITDIALOG:
-        {
-            HWND comboBoxHandle;
-
-            SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)PvImageSmallIcon);
-            SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PvImageLargeIcon);
-
-            comboBoxHandle = GetDlgItem(hwndDlg, IDC_MAXSIZEUNIT);
-
-            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
-
-            //PhSetDialogItemText(hwndDlg, IDC_DBGHELPSEARCHPATH, PhaGetStringSetting(L"DbgHelpSearchPath")->Buffer);
-
-            for (ULONG i = 0; i < RTL_NUMBER_OF(PhSizeUnitNames); i++)
-                ComboBox_AddString(comboBoxHandle, PhSizeUnitNames[i]);
-
-            if (PhMaxSizeUnit != ULONG_MAX)
-                ComboBox_SetCurSel(comboBoxHandle, PhMaxSizeUnit);
-            else
-                ComboBox_SetCurSel(comboBoxHandle, RTL_NUMBER_OF(PhSizeUnitNames) - 1);
-
-            //PhInitializeWindowThemeEx(hwndDlg);
-        }
-        break;
-    case WM_COMMAND:
-        {
-            switch (GET_WM_COMMAND_ID(wParam, lParam))
-            {
-            case IDCANCEL:
-                EndDialog(hwndDlg, IDCANCEL);
-                break;
-            }
-        }
-        break;
-    }
-
-    return FALSE;
-}
 LRESULT CALLBACK PvpButtonWndProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -189,7 +142,7 @@ LRESULT CALLBACK PvpButtonWndProc(
                     PhInstanceHandle,
                     MAKEINTRESOURCE(IDD_OPTIONS),
                     hwndDlg,
-                    PvpOptionsWndProc
+                    PvOptionsWndProc
                     );
             }
             else if (GET_WM_COMMAND_HWND(wParam, lParam) == SecurityButton)
@@ -232,7 +185,7 @@ static HWND PvpCreateOptionsButton(
             WS_EX_NOPARENTNOTIFY,
             WC_BUTTON,
             L"Options",
-            WS_CHILD | WS_VISIBLE | WS_TABSTOP | WS_DISABLED, // TODO: Remove disabled flag
+            WS_CHILD | WS_VISIBLE | WS_TABSTOP,
             clientRect.right - rect.right,
             rect.top,
             rect.right - rect.left,
@@ -289,6 +242,50 @@ static HWND PvpCreateSecurityButton(
 }
 
 
+static HFONT PvpCreateFont(
+    _In_ PWSTR Name,
+    _In_ ULONG Size,
+    _In_ ULONG Weight
+    )
+{
+    return CreateFont(
+        -(LONG)PhMultiplyDivide(Size, PhGlobalDpi, 72),
+        0,
+        0,
+        0,
+        Weight,
+        FALSE,
+        FALSE,
+        FALSE,
+        ANSI_CHARSET,
+        OUT_DEFAULT_PRECIS,
+        CLIP_DEFAULT_PRECIS,
+        DEFAULT_QUALITY,
+        DEFAULT_PITCH,
+        Name
+        );
+}
+
+VOID PvpInitializeFont(
+    VOID
+)
+{
+    NONCLIENTMETRICS metrics = { sizeof(metrics) };
+
+    if (PhApplicationFont)
+        DeleteObject(PhApplicationFont);
+
+    if (
+        !(PhApplicationFont = PvpCreateFont(L"Microsoft Sans Serif", 8, FW_NORMAL)) &&
+        !(PhApplicationFont = PvpCreateFont(L"Tahoma", 8, FW_NORMAL))
+        )
+    {
+        if (SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &metrics, 0))
+            PhApplicationFont = CreateFontIndirect(&metrics.lfMessageFont);
+        else
+            PhApplicationFont = NULL;
+    }
+}
 
 INT CALLBACK PvpPropSheetProc(
     _In_ HWND hwndDlg,
@@ -321,8 +318,9 @@ INT CALLBACK PvpPropSheetProc(
             HICON smallIcon;
             HICON largeIcon;
 
-            PhGetStockApplicationIcon(&smallIcon, &largeIcon);
+            PvpInitializeFont();
 
+            PhGetStockApplicationIcon(&smallIcon, &largeIcon);
             SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)smallIcon);
             SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)largeIcon);
 
