@@ -326,7 +326,7 @@ INT_PTR CALLBACK PvpPeLoadConfigDlgProc(
                 }
             }
 
-            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
+            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
         }
         break;
     case WM_DESTROY:

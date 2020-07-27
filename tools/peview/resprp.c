@@ -227,7 +227,7 @@ INT_PTR CALLBACK PvpPeResourcesDlgProc(
 
             ExtendedListView_SortItems(lvHandle);
             
-            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
+            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
         }
         break;
     case WM_DESTROY:

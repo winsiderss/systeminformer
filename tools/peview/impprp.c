@@ -367,7 +367,7 @@ INT_PTR CALLBACK PvpPeImportsDlgProc(
             ExtendedListView_SortItems(lvHandle);
             ExtendedListView_SetRedraw(lvHandle, TRUE);
 
-            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
+            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
         }
         break;
     case WM_DESTROY:

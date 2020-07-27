@@ -23,6 +23,7 @@
 #include <peview.h>
 
 static PPH_STRING PeSettingsFileName = NULL;
+BOOLEAN PeEnableThemeSupport = FALSE;
 
 VOID PhAddDefaultSettings(
     VOID
@@ -71,7 +72,7 @@ VOID PhUpdateCachedSettings(
     VOID
     )
 {
-    NOTHING;
+    PeEnableThemeSupport = !!PhGetIntegerSetting(L"EnableThemeSupport");
 }
 
 VOID PeInitializeSettings(

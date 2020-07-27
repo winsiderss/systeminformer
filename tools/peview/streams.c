@@ -180,7 +180,7 @@ INT_PTR CALLBACK PvpPeStreamsDlgProc(
             PvpPeEnumerateFileStreams(lvHandle);
             //ExtendedListView_SortItems(lvHandle);
             
-            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
+            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
         }
         break;
     case WM_DESTROY:

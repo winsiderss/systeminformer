@@ -160,7 +160,7 @@ INT_PTR CALLBACK PvpPePropStoreDlgProc(
             PvpPeEnumerateFilePropStore(lvHandle);
             //ExtendedListView_SortItems(lvHandle);
             
-            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
+            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
         }
         break;
     case WM_DESTROY:

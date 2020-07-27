@@ -345,6 +345,8 @@ INT CALLBACK PvpPropSheetProc(
                 MinimumSize = rect;
                 MinimumSize.left = 0;
             }
+
+            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
         }
         break;
     }

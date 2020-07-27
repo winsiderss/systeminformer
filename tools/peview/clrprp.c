@@ -362,6 +362,8 @@ INT_PTR CALLBACK PvpPeClrDlgProc(
 
                 PvpPeClrEnumSections(clrMetaData, lvHandle);
             }
+
+            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
         }
         break;
     case WM_SHOWWINDOW:

@@ -127,6 +127,8 @@ VOID PvHandleListViewCommandCopy(
 
 // settings
 
+extern BOOLEAN PeEnableThemeSupport;
+
 VOID PeInitializeSettings(
     VOID
     );
