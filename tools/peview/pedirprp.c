@@ -176,7 +176,7 @@ INT_PTR CALLBACK PvpPeDirectoryDlgProc(
             PvpPeEnumerateHeaderDirectory(context->ListViewHandle, IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT, L"Delay load imports");
             PvpPeEnumerateHeaderDirectory(context->ListViewHandle, IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR, L"CLR");
 
-            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
+            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
         }
         break;
     case WM_DESTROY:

@@ -127,7 +127,7 @@ INT_PTR CALLBACK PvpPeExtendedAttributesDlgProc(
 
             PvEnumerateFileExtendedAttributes(lvHandle);
 
-            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
+            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
