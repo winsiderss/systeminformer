@@ -151,8 +151,11 @@ PhGetMappedImageLoadConfig64(
 typedef struct _PH_REMOTE_MAPPED_IMAGE
 {
     PVOID ViewBase;
-
-    PIMAGE_NT_HEADERS NtHeaders;
+    union
+    {
+        PIMAGE_NT_HEADERS32 NtHeaders32;
+        PIMAGE_NT_HEADERS NtHeaders;
+    };
     ULONG NumberOfSections;
     PIMAGE_SECTION_HEADER Sections;
     USHORT Magic;
@@ -531,6 +534,16 @@ typedef struct _PH_MAPPED_IMAGE_DEBUG
 
 #ifndef IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT
 #define IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT 0x0001 // Image is CET compatible.
+#endif
+
+#ifndef _IMAGE_DEBUG_DIRECTORY_CODEVIEW
+typedef struct _IMAGE_DEBUG_DIRECTORY_CODEVIEW
+{
+    ULONG format;
+    GUID PdbSignature;
+    ULONG PdbDbiAge;
+    CHAR ImageName[256];
+} IMAGE_DEBUG_DIRECTORY_CODEVIEW, *PIMAGE_DEBUG_DIRECTORY_CODEVIEW;
 #endif
 
 PHLIBAPI
