@@ -31,6 +31,7 @@
 #define IDD_EXCEPTION                   128
 #define IDD_PEPRODID                    129
 #define IDD_PEDEBUG                     131
+#define IDD_PESECTIONS                  132
 #define IDC_TARGETMACHINE               1003
 #define IDC_CHECKSUM                    1004
 #define IDC_SUBSYSTEM                   1005
