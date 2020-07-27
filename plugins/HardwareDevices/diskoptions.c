@@ -355,12 +355,22 @@ VOID FindDiskDrives(
     for (deviceInterface = deviceInterfaceList; *deviceInterface; deviceInterface += PhCountStringZ(deviceInterface) + 1)
     {
         DEVINST deviceInstanceHandle;
-        PPH_STRING deviceDescription = NULL;
+        PPH_STRING deviceDescription;
         HANDLE deviceHandle;
         PDISK_ENUM_ENTRY diskEntry;
 
         if (!QueryDiskDeviceInterfaceDescription(deviceInterface, &deviceInstanceHandle, &deviceDescription))
             continue;
+
+        // Ignore Windows Store DRM installer spam (dmex)
+        if (
+            PhEndsWithStringRef2(&deviceDescription->sr, L"Xvd", TRUE) ||
+            PhEndsWithStringRef2(&deviceDescription->sr, L"Microsoft Virtual Disk", TRUE)
+            )
+        {
+            PhDereferenceObject(deviceDescription);
+            continue;
+        }
 
         // Convert path now to avoid conversion during every interval update. (dmex)
         if (deviceInterface[1] == OBJ_NAME_PATH_SEPARATOR)
@@ -370,6 +380,17 @@ VOID FindDiskDrives(
         diskEntry->DeviceIndex = ULONG_MAX;
         diskEntry->DeviceName = PhCreateString2(&deviceDescription->sr);
         diskEntry->DevicePath = PhCreateString(deviceInterface);
+
+        //if (
+        //    PhFindStringInString(diskEntry->DevicePath, 0, L"Ven_MSFT&Prod_XVDD") != -1 ||
+        //    PhFindStringInString(diskEntry->DevicePath, 0, L"Ven_Msft&Prod_Virtual_Disk") != -1
+        //    )
+        //{
+        //    PhDereferenceObject(diskEntry->DevicePath);
+        //    PhDereferenceObject(diskEntry->DeviceName);
+        //    PhFree(diskEntry);
+        //    continue;
+        //}
 
         if (NT_SUCCESS(PhCreateFile(
             &deviceHandle,
