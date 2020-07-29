@@ -620,7 +620,11 @@ PPH_PLUGIN PhRegisterPlugin(
     if (!PhpValidatePluginName(&pluginName))
         return NULL;
 
-    fileName = PhGetDllFileName(DllBase, NULL);
+    if (!NT_SUCCESS(PhGetProcessMappedFileName(NtCurrentProcess(), DllBase, &fileName)))
+        return NULL;
+
+    PhMoveReference(&fileName, PhGetFileName(fileName));
+    //fileName = PhGetDllFileName(DllBase, NULL);
 
     if (!fileName)
         return NULL;
