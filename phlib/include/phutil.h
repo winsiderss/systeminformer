@@ -1315,6 +1315,14 @@ PhGetExportNameFromOrdinal(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhLoaderEntryLoadDll(
+    _In_ PWSTR FileName,
+    _Out_ PVOID* BaseAddress
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhLoadAllImportsForDll(
     _In_ PWSTR TargetDllName,
     _In_ PSTR ImportDllName

@@ -5977,6 +5977,17 @@ PVOID PhGetDllBaseProcedureAddress(
         );
 }
 
+PVOID PhGetDllBaseProcAddress(
+    _In_ PVOID BaseAddress,
+    _In_opt_ PSTR ProcedureName
+    )
+{
+    if (IS_INTRESOURCE(ProcedureName))
+        return PhGetDllBaseProcedureAddress(BaseAddress, NULL, PtrToUshort(ProcedureName));
+
+    return PhGetDllBaseProcedureAddress(BaseAddress, ProcedureName, 0);
+}
+
 PVOID PhGetDllProcedureAddress(
     _In_ PWSTR DllName,
     _In_opt_ PSTR ProcedureName,
@@ -6801,7 +6812,7 @@ NTSTATUS PhLoadPluginImage(
 {
     NTSTATUS status;
     PVOID imageBaseAddress;
-    PIMAGE_NT_HEADERS imageHeaders;
+    PIMAGE_NT_HEADERS imageNtHeaders;
     PLDR_INIT_ROUTINE imageEntryRoutine;
 
     status = PhLoaderEntryLoadDll(
@@ -6814,7 +6825,7 @@ NTSTATUS PhLoadPluginImage(
 
     status = PhGetLoaderEntryImageNtHeaders(
         imageBaseAddress, 
-        &imageHeaders
+        &imageNtHeaders
         );
 
     if (!NT_SUCCESS(status))
@@ -6822,7 +6833,7 @@ NTSTATUS PhLoadPluginImage(
 
     status = PhpFixupLoaderEntryImageImports(
         imageBaseAddress, 
-        imageHeaders
+        imageNtHeaders
         );
 
     if (!NT_SUCCESS(status))
@@ -6831,7 +6842,7 @@ NTSTATUS PhLoadPluginImage(
     //status = PhLoaderEntryLoadAllImportsForDll(imageBaseAddress, "ProcessHacker.exe");
     status = PhpFixupLoaderEntryImageDelayImports(
         imageBaseAddress,
-        imageHeaders,
+        imageNtHeaders,
         "ProcessHacker.exe"
         );
     if (!NT_SUCCESS(status))
@@ -6839,7 +6850,7 @@ NTSTATUS PhLoadPluginImage(
 
     status = PhGetLoaderEntryImageEntryPoint(
         imageBaseAddress, 
-        imageHeaders, 
+        imageNtHeaders,
         &imageEntryRoutine
         );
 
