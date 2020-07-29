@@ -526,7 +526,7 @@ typedef struct _PH_PLUGIN
 
     // Private
 
-    PPH_STRING FileName;
+    //PPH_STRING FileName;
     ULONG Flags;
     PH_STRINGREF Name;
     PH_PLUGIN_INFORMATION Information;
@@ -755,6 +755,13 @@ PHAPPAPI
 PPH_STRING
 NTAPI
 PhGetPluginName(
+    _In_ PPH_PLUGIN Plugin
+    );
+
+PHAPPAPI
+PPH_STRING
+NTAPI
+PhGetPluginFileName(
     _In_ PPH_PLUGIN Plugin
     );
 

@@ -613,26 +613,15 @@ PPH_PLUGIN PhRegisterPlugin(
     PH_STRINGREF pluginName;
     PPH_AVL_LINKS existingLinks;
     ULONG i;
-    PPH_STRING fileName;
 
     PhInitializeStringRefLongHint(&pluginName, Name);
 
     if (!PhpValidatePluginName(&pluginName))
         return NULL;
 
-    if (!NT_SUCCESS(PhGetProcessMappedFileName(NtCurrentProcess(), DllBase, &fileName)))
-        return NULL;
-
-    PhMoveReference(&fileName, PhGetFileName(fileName));
-    //fileName = PhGetDllFileName(DllBase, NULL);
-
-    if (!fileName)
-        return NULL;
-
     plugin = PhAllocateZero(sizeof(PH_PLUGIN));
     plugin->Name = pluginName;
     plugin->DllBase = DllBase;
-    plugin->FileName = fileName;
 
     existingLinks = PhAddElementAvlTree(&PhPluginsByName, &plugin->Links);
 
@@ -1116,4 +1105,19 @@ PPH_STRING PhGetPluginName(
     )
 {
     return PhCreateString2(&Plugin->Name);
+}
+
+PPH_STRING PhGetPluginFileName(
+    _In_ PPH_PLUGIN Plugin
+    )
+{
+    PPH_STRING fileName = NULL;
+
+    if (!NT_SUCCESS(PhGetProcessMappedFileName(NtCurrentProcess(), Plugin->DllBase, &fileName)))
+        return NULL;
+
+    PhMoveReference(&fileName, PhGetFileName(fileName));
+    //fileName = PhGetDllFileName(DllBase, NULL);
+
+    return fileName;
 }

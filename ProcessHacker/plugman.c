@@ -199,6 +199,7 @@ PPH_PLUGIN_TREE_ROOT_NODE AddPluginsNode(
 {
     PPH_PLUGIN_TREE_ROOT_NODE pluginNode;
     PH_IMAGE_VERSION_INFO versionInfo;
+    PPH_STRING fileName;
 
     pluginNode = PhAllocate(sizeof(PH_PLUGIN_TREE_ROOT_NODE));
     memset(pluginNode, 0, sizeof(PH_PLUGIN_TREE_ROOT_NODE));
@@ -216,10 +217,15 @@ PPH_PLUGIN_TREE_ROOT_NODE AddPluginsNode(
     pluginNode->Author = PhCreateString(Plugin->Information.Author);
     pluginNode->Description = PhCreateString(Plugin->Information.Description);
 
-    if (PhInitializeImageVersionInfo(&versionInfo, Plugin->FileName->Buffer))
+    if (fileName = PhGetPluginFileName(Plugin))
     {
-        pluginNode->Version = PhReferenceObject(versionInfo.FileVersion);
-        PhDeleteImageVersionInfo(&versionInfo);
+        if (PhInitializeImageVersionInfo(&versionInfo, fileName->Buffer))
+        {
+            pluginNode->Version = PhReferenceObject(versionInfo.FileVersion);
+            PhDeleteImageVersionInfo(&versionInfo);
+        }
+
+        PhDereferenceObject(fileName);
     }
 
     PhAddEntryHashtable(Context->NodeHashtable, &pluginNode);
@@ -612,15 +618,21 @@ PWSTR PhpGetPluginBaseName(
     _In_ PPH_PLUGIN Plugin
     )
 {
-    if (Plugin->FileName)
+    PPH_STRING fileName;
+
+    if (fileName = PhGetPluginFileName(Plugin))
     {
         PH_STRINGREF pathNamePart;
         PH_STRINGREF baseNamePart;
 
-        if (PhSplitStringRefAtLastChar(&Plugin->FileName->sr, OBJ_NAME_PATH_SEPARATOR, &pathNamePart, &baseNamePart))
+        if (PhSplitStringRefAtLastChar(&fileName->sr, OBJ_NAME_PATH_SEPARATOR, &pathNamePart, &baseNamePart))
+        {
+            PhDereferenceObject(fileName);
             return baseNamePart.Buffer;
-        else
-            return Plugin->FileName->Buffer;
+        }
+
+        PhDereferenceObject(fileName);
+        return Plugin->Name.Buffer;
     }
     else
     {
@@ -958,7 +970,7 @@ VOID PhpRefreshPluginDetails(
     PPH_STRING fileName;
     PH_IMAGE_VERSION_INFO versionInfo;
 
-    fileName = SelectedPlugin->FileName;
+    fileName = PhGetPluginFileName(SelectedPlugin);
 
     PhSetDialogItemText(hwndDlg, IDC_NAME, SelectedPlugin->Information.DisplayName ? SelectedPlugin->Information.DisplayName : L"(unnamed)");
     PhSetDialogItemText(hwndDlg, IDC_INTERNALNAME, SelectedPlugin->Name.Buffer);
@@ -979,6 +991,8 @@ VOID PhpRefreshPluginDetails(
 
     ShowWindow(GetDlgItem(hwndDlg, IDC_OPENURL), SelectedPlugin->Information.Url ? SW_SHOW : SW_HIDE);
     EnableWindow(GetDlgItem(hwndDlg, IDC_OPTIONS), SelectedPlugin->Information.HasOptions);
+
+    PhDereferenceObject(fileName);
 }
 
 INT_PTR CALLBACK PhpPluginPropertiesDlgProc(
