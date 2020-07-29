@@ -211,7 +211,6 @@ VOID PvSetPeImageSections(
     ExtendedListView_SetRedraw(ListViewHandle, TRUE);
 }
 
-
 INT_PTR CALLBACK PvPeSectionsDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
