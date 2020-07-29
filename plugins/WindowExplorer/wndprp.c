@@ -1078,30 +1078,31 @@ INT_PTR CALLBACK WepWindowGeneralDlgProc(
 }
 
 BOOL CALLBACK EnumPropsExCallback(
-    _In_ HWND hwnd,
-    _In_ PWSTR lpszString,
-    _In_ HANDLE hData,
-    _In_ ULONG_PTR dwData
+    _In_ HWND WindowHandle,
+    _In_ PWSTR Name,
+    _In_ HANDLE Value,
+    _In_ ULONG_PTR Context
     )
 {
+    HWND listViewHandle = (HWND)Context;
     INT lvItemIndex;
     WCHAR value[PH_PTR_STR_LEN_1];
-
-    if ((ULONG_PTR)lpszString < USHRT_MAX) // This is an integer atom.
+    
+    if (IS_INTRESOURCE(Name)) // This is an integer atom.
     {
         PPH_STRING propName;
 
-        propName = PhFormatString(L"#%hu", (USHORT)lpszString);
-        lvItemIndex = PhAddListViewItem((HWND)dwData, MAXINT, propName->Buffer, NULL);
+        propName = PhFormatString(L"#%hu", PtrToUshort(Name));
+        lvItemIndex = PhAddListViewItem(listViewHandle, MAXINT, propName->Buffer, NULL);
         PhDereferenceObject(propName);
     }
     else
     {
-        lvItemIndex = PhAddListViewItem((HWND)dwData, MAXINT, lpszString, NULL);
+        lvItemIndex = PhAddListViewItem(listViewHandle, MAXINT, Name, NULL);
     }
 
-    PhPrintPointer(value, (PVOID)hData);
-    PhSetListViewSubItem((HWND)dwData, lvItemIndex, 1, value);
+    PhPrintPointer(value, (PVOID)Value);
+    PhSetListViewSubItem(listViewHandle, lvItemIndex, 1, value);
 
     return TRUE;
 }
