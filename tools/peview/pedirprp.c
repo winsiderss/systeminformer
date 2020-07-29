@@ -33,7 +33,7 @@ VOID PvpPeEnumerateHeaderDirectory(
     PIMAGE_SECTION_HEADER section = NULL;
     WCHAR value[PH_INT64_STR_LEN_1];
 
-    PhPrintUInt32(value, Index);
+    PhPrintUInt32(value, Index + 1);
     lvItemIndex = PhAddListViewItem(ListViewHandle, MAXINT, value, NULL);
     PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, Name);
 

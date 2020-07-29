@@ -42,7 +42,7 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
 typedef enum _PVP_IMAGE_GENERAL_CATEGORY
 {
     PVP_IMAGE_GENERAL_CATEGORY_BASICINFO,
-    PVP_IMAGE_GENERAL_CATEGORY_REFERENCES,
+    PVP_IMAGE_GENERAL_CATEGORY_FILEINFO,
     PVP_IMAGE_GENERAL_CATEGORY_PDB,
     PVP_IMAGE_GENERAL_CATEGORY_MAXIMUM
 } PVP_IMAGE_GENERAL_CATEGORY;
@@ -60,6 +60,11 @@ typedef enum _PVP_IMAGE_GENERAL_INDEX
     PVP_IMAGE_GENERAL_INDEX_SUBSYSTEMVERSION,
     PVP_IMAGE_GENERAL_INDEX_CHARACTERISTICS,
     PVP_IMAGE_GENERAL_INDEX_CHARACTERISTICSEX,
+
+    PVP_IMAGE_GENERAL_INDEX_FILECREATEDTIME,
+    PVP_IMAGE_GENERAL_INDEX_FILEMODIFIEDTIME,
+    PVP_IMAGE_GENERAL_INDEX_FILELASTWRITETIME,
+
     PVP_IMAGE_GENERAL_INDEX_PDB,
     PVP_IMAGE_GENERAL_INDEX_MAXIMUM
 } PVP_IMAGE_GENERAL_INDEX;
@@ -593,27 +598,46 @@ VOID PvpSetPeImageMachineType(
     PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_NAME, 1, type);
 }
 
+typedef struct _IMAGE_DEBUG_REPRO_ENTRY
+{
+    ULONG Length;
+    BYTE Buffer[1];
+} IMAGE_DEBUG_REPRO_ENTRY, *PIMAGE_DEBUG_REPRO_ENTRY;
+
 VOID PvpSetPeImageTimeStamp(
     _In_ HWND ListViewHandle
     )
 {
+    PIMAGE_DEBUG_REPRO_ENTRY debugEntry;
+    ULONG debugEntryLength;
     LARGE_INTEGER time;
     SYSTEMTIME systemTime;
-    PPH_STRING string;
+    PPH_STRING string = NULL;
 
     RtlSecondsSince1970ToTime(PvMappedImage.NtHeaders->FileHeader.TimeDateStamp, &time);
     PhLargeIntegerToLocalSystemTime(&systemTime, &time);
 
-    if (WindowsVersion >= WINDOWS_10)
+    if (PhGetMappedImageDebugEntryByType(
+        &PvMappedImage,
+        IMAGE_DEBUG_TYPE_REPRO,
+        &debugEntryLength,
+        &debugEntry
+        ))
     {
-        // "the timestamp to be a hash of the resulting binary"
-        // https://devblogs.microsoft.com/oldnewthing/20180103-00/?p=97705
-        string = PhFormatDateTime(&systemTime);
-        PhSwapReference(&string, PhFormatString(
-            L"%s (%lx)",
-            string->Buffer,
-            PvMappedImage.NtHeaders->FileHeader.TimeDateStamp
-            ));
+        //PPH_STRING timeStamp;
+
+        string = PhBufferToHexStringEx(debugEntry->Buffer, debugEntry->Length, FALSE);
+        //timeStamp = PhBufferToHexStringEx((PBYTE)&PvMappedImage.NtHeaders->FileHeader.TimeDateStamp, sizeof(ULONG), FALSE);
+        //if (PhEndsWithString(string, timeStamp, TRUE))
+        //    PhMoveReference(&string, PhFormatString(L"%s (correct)", string->Buffer));
+        //PhDereferenceObject(timeStamp);
+
+        //PhFormatString(L"%lx", PvMappedImage.NtHeaders->FileHeader.TimeDateStamp);
+        PhMoveReference(&string, PhConcatStringRefZ(&string->sr, L" (deterministic)"));
+    }
+
+    if (string)
+    {
         PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_TIMESTAMP, 1, string->Buffer);
         PhDereferenceObject(string);
     }
@@ -901,6 +925,51 @@ VOID PvpSetPeImageCharacteristicsEx(
     PhDeleteStringBuilder(&stringBuilder);
 }
 
+PPH_STRING PvGetRelativeTimeString(
+    _In_ PLARGE_INTEGER Time
+    )
+{
+    LARGE_INTEGER time;
+    LARGE_INTEGER currentTime;
+    SYSTEMTIME timeFields;
+    PPH_STRING timeRelativeString;
+    PPH_STRING timeString;
+
+    time = *Time;
+    PhQuerySystemTime(&currentTime);
+    timeRelativeString = PH_AUTO(PhFormatTimeSpanRelative(currentTime.QuadPart - time.QuadPart));
+
+    PhLargeIntegerToLocalSystemTime(&timeFields, &time);
+    timeString = PhaFormatDateTime(&timeFields);
+
+    return PhaFormatString(L"%s ago (%s)", timeRelativeString->Buffer, timeString->Buffer);
+}
+
+VOID PvpSetPeImageFileProperties(
+    _In_ HWND ListViewHandle
+    )
+{
+    FILE_NETWORK_OPEN_INFORMATION fileInfo;
+
+    if (NT_SUCCESS(PhQueryFullAttributesFileWin32(PhGetString(PvFileName), &fileInfo)))
+    {
+        if (fileInfo.CreationTime.QuadPart != 0)
+        {
+            PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_FILECREATEDTIME, 1, PvGetRelativeTimeString(&fileInfo.CreationTime)->Buffer);
+        }
+
+        if (fileInfo.LastWriteTime.QuadPart != 0)
+        {
+            PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_FILEMODIFIEDTIME, 1, PvGetRelativeTimeString(&fileInfo.LastWriteTime)->Buffer);
+        }
+
+        if (fileInfo.ChangeTime.QuadPart != 0)
+        {
+            PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_FILELASTWRITETIME, 1, PvGetRelativeTimeString(&fileInfo.ChangeTime)->Buffer);
+        }
+    }
+}
+
 VOID PvpSetPeImageDebugPdb(
     _In_ HWND ListViewHandle
     )
@@ -929,7 +998,7 @@ VOID PvpSetPeImageProperties(
 
     ListView_EnableGroupView(Context->ListViewHandle, TRUE);
     PhAddListViewGroup(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_BASICINFO, L"Image information");
-    PhAddListViewGroup(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_REFERENCES, L"Image load config");
+    PhAddListViewGroup(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_FILEINFO, L"File information");
 
     PhAddListViewGroupItem(
         Context->ListViewHandle,
@@ -1009,6 +1078,28 @@ VOID PvpSetPeImageProperties(
         NULL
         );
 
+    PhAddListViewGroupItem(
+        Context->ListViewHandle,
+        PVP_IMAGE_GENERAL_CATEGORY_FILEINFO,
+        PVP_IMAGE_GENERAL_INDEX_FILECREATEDTIME,
+        L"Created time",
+        NULL
+        );
+    PhAddListViewGroupItem(
+        Context->ListViewHandle,
+        PVP_IMAGE_GENERAL_CATEGORY_FILEINFO,
+        PVP_IMAGE_GENERAL_INDEX_FILEMODIFIEDTIME,
+        L"Modified time",
+        NULL
+        );
+    PhAddListViewGroupItem(
+        Context->ListViewHandle,
+        PVP_IMAGE_GENERAL_CATEGORY_FILEINFO,
+        PVP_IMAGE_GENERAL_INDEX_FILELASTWRITETIME,
+        L"Updated time",
+        NULL
+        );
+
     PvpSetPeImageMachineType(Context->ListViewHandle);
     PvpSetPeImageTimeStamp(Context->ListViewHandle);
     PvpSetPeImageBaseAddress(Context->ListViewHandle);
@@ -1018,6 +1109,8 @@ VOID PvpSetPeImageProperties(
     PvpSetPeImageSubsystem(Context->ListViewHandle);
     PvpSetPeImageCharacteristics(Context->ListViewHandle);
     PvpSetPeImageCharacteristicsEx(Context->ListViewHandle);
+
+    PvpSetPeImageFileProperties(Context->ListViewHandle);
 
     //PhAddListViewGroup(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_PDB, L"PDB debug information");
     //PhAddListViewGroupItem(
