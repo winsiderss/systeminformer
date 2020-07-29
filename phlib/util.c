@@ -6606,6 +6606,153 @@ CleanupExit:
     return status;
 }
 
+NTSTATUS PhpLoaderEntryQuerySectionInformation(
+    _In_ HANDLE SectionHandle
+    )
+{
+    SECTION_IMAGE_INFORMATION section;
+    NTSTATUS status;
+
+    memset(&section, 0, sizeof(SECTION_IMAGE_INFORMATION));
+
+    status = NtQuerySection(
+        SectionHandle,
+        SectionImageInformation,
+        &section,
+        sizeof(SECTION_IMAGE_INFORMATION),
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (section.SubSystemType != IMAGE_SUBSYSTEM_WINDOWS_GUI)
+        return STATUS_INVALID_IMPORT_OF_NON_DLL;
+    if (!(section.ImageCharacteristics & IMAGE_FILE_DLL | IMAGE_FILE_EXECUTABLE_IMAGE))
+        return STATUS_INVALID_IMPORT_OF_NON_DLL;
+
+#ifdef _WIN64
+    if (section.Machine != IMAGE_FILE_MACHINE_AMD64 && section.Machine != IMAGE_FILE_MACHINE_ARM64)
+        return STATUS_IMAGE_MACHINE_TYPE_MISMATCH;
+#else
+    if (section.Machine != IMAGE_FILE_MACHINE_I386)
+        return STATUS_IMAGE_MACHINE_TYPE_MISMATCH;
+#endif
+
+    return status;
+}
+
+NTSTATUS PhLoaderEntryLoadDll(
+    _In_ PWSTR FileName,
+    _Out_ PVOID* BaseAddress
+    )
+{
+    NTSTATUS status;
+    HANDLE fileHandle;
+    HANDLE sectionHandle;
+    PVOID imageBaseAddress;
+    SIZE_T imageBaseOffset;
+
+    status = PhCreateFileWin32(
+        &fileHandle,
+        FileName,
+        FILE_READ_DATA | FILE_EXECUTE | SYNCHRONIZE,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ | FILE_SHARE_DELETE,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = NtCreateSection(
+        &sectionHandle,
+        SECTION_QUERY | SECTION_MAP_EXECUTE,
+        NULL,
+        NULL,
+        PAGE_READONLY,
+        SEC_IMAGE,
+        fileHandle
+        );
+
+    NtClose(fileHandle);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = PhpLoaderEntryQuerySectionInformation(
+        sectionHandle
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        NtClose(sectionHandle);
+        return status;
+    }
+
+    imageBaseAddress = NULL;
+    imageBaseOffset = 0;
+
+    status = NtMapViewOfSection(
+        sectionHandle,
+        NtCurrentProcess(),
+        &imageBaseAddress,
+        0,
+        0,
+        NULL,
+        &imageBaseOffset,
+        ViewUnmap,
+        0,
+        PAGE_EXECUTE
+        );
+
+    NtClose(sectionHandle);
+
+    if (NT_SUCCESS(status))
+    {
+        if (BaseAddress)
+        {
+            *BaseAddress = imageBaseAddress;
+        }
+    }
+
+    return status;
+}
+
+NTSTATUS PhLoaderEntryUnloadDll(
+    _In_ PVOID BaseAddress
+    )
+{
+    NTSTATUS status;
+    PIMAGE_NT_HEADERS imageNtHeaders;
+    PLDR_INIT_ROUTINE imageEntryRoutine;
+
+    status = PhGetLoaderEntryImageNtHeaders(
+        BaseAddress,
+        &imageNtHeaders
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = PhGetLoaderEntryImageEntryPoint(
+        BaseAddress,
+        imageNtHeaders,
+        &imageEntryRoutine
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (!imageEntryRoutine(BaseAddress, DLL_PROCESS_DETACH, NULL))
+        status = STATUS_DLL_INIT_FAILED;
+
+    NtUnmapViewOfSection(NtCurrentProcess(), BaseAddress);
+
+    return status;
+}
+
 NTSTATUS PhLoaderEntryLoadAllImportsForDll(
     _In_ PVOID BaseAddress,
     _In_ PSTR ImportDllName
@@ -6647,27 +6794,18 @@ NTSTATUS PhLoadAllImportsForDll(
         );
 }
 
-// dmex: This function and the other LoaderEntryImage functions don't belong in this file
-// and should be moved into mapimg.c at some stage.
 NTSTATUS PhLoadPluginImage(
     _In_ PPH_STRING FileName,
     _Out_opt_ PVOID *BaseAddress
     )
 {
     NTSTATUS status;
-    ULONG imageType;
     PVOID imageBaseAddress;
     PIMAGE_NT_HEADERS imageHeaders;
     PLDR_INIT_ROUTINE imageEntryRoutine;
-    UNICODE_STRING imageFileNameUs;
 
-    imageType = IMAGE_FILE_EXECUTABLE_IMAGE;
-    PhStringRefToUnicodeString(&FileName->sr, &imageFileNameUs);
-
-    status = LdrLoadDll(
-        NULL, 
-        &imageType, 
-        &imageFileNameUs,
+    status = PhLoaderEntryLoadDll(
+        FileName->Buffer,
         &imageBaseAddress
         );
 
@@ -6720,7 +6858,7 @@ CleanupExit:
     }
     else
     {
-        LdrUnloadDll(imageBaseAddress);
+        PhLoaderEntryUnloadDll(imageBaseAddress);
     }
 
     return status;
