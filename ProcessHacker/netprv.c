@@ -442,26 +442,40 @@ PPH_STRING PhGetHostNameFromAddressEx(
     if (!(dnsReverseNameString = PhpGetDnsReverseNameFromAddress(Address)))
         return NULL;
 
-    if (!(dnsRecordList = PhDnsQuery(
-        NULL,
-        dnsReverseNameString->Buffer,
-        DNS_TYPE_PTR
-        )))
+    if (PhEnableNetworkResolveDoHSupport)
     {
-        PhDereferenceObject(dnsReverseNameString);
-        return NULL;
+        dnsRecordList = PhDnsQuery(
+            NULL,
+            dnsReverseNameString->Buffer,
+            DNS_TYPE_PTR
+            );
     }
-
-    for (PDNS_RECORD dnsRecord = dnsRecordList; dnsRecord; dnsRecord = dnsRecord->pNext)
+    else if (DnsQuery_W_Import())
     {
-        if (dnsRecord->wType == DNS_TYPE_PTR)
+        DnsQuery_W_Import()(
+            dnsReverseNameString->Buffer,
+            DNS_TYPE_PTR,
+            DNS_QUERY_BYPASS_CACHE | DNS_QUERY_NO_HOSTS_FILE,
+            NULL,
+            &dnsRecordList,
+            NULL
+            );
+    }
+    
+    if (dnsRecordList)
+    {
+        for (PDNS_RECORD dnsRecord = dnsRecordList; dnsRecord; dnsRecord = dnsRecord->pNext)
         {
-            dnsHostNameString = PhCreateString(dnsRecord->Data.PTR.pNameHost); // Return the first result (dmex)
-            break;
+            if (dnsRecord->wType == DNS_TYPE_PTR)
+            {
+                dnsHostNameString = PhCreateString(dnsRecord->Data.PTR.pNameHost); // Return the first result (dmex)
+                break;
+            }
         }
+
+        PhDnsFree(dnsRecordList);
     }
 
-    PhDnsFree(dnsRecordList);
     PhDereferenceObject(dnsReverseNameString);
 
     return dnsHostNameString;
