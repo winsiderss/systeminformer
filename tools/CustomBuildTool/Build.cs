@@ -1363,7 +1363,7 @@ namespace CustomBuildTool
                         FtpWebRequest request;
 
                         filename = Path.GetFileName(sourceFile);
-                        filename = filename.Replace("-build-", $"-{BuildVersion}-", StringComparison.OrdinalIgnoreCase);
+                        //filename = filename.Replace("-build-", $"-{BuildVersion}-", StringComparison.OrdinalIgnoreCase);
 
                         request = (FtpWebRequest)WebRequest.Create(buildPostUrl + filename);
                         request.Credentials = new NetworkCredential(buildPostKey, buildPostName);
