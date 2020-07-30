@@ -139,7 +139,7 @@
       <SDLCheck>true</SDLCheck>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>aclui.lib;propsys.lib;phlib.lib;ntdll.lib;uxtheme.lib;userenv.lib;windowscodecs.lib;winsta.lib;noarg.obj;noenv.obj;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>aclui.lib;cryptui.lib;crypt32.lib;propsys.lib;phlib.lib;ntdll.lib;uxtheme.lib;userenv.lib;windowscodecs.lib;winsta.lib;noarg.obj;noenv.obj;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\..\phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalManifestDependencies>
       </AdditionalManifestDependencies>
@@ -147,7 +147,7 @@
       <SubSystem>Windows</SubSystem>
       <TargetMachine>MachineX86</TargetMachine>
       <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
-      <DelayLoadDLLs>aclui.dll;advapi32.dll;comctl32.dll;comdlg32.dll;gdi32.dll;ole32.dll;propsys.dll;shell32.dll;user32.dll;uxtheme.dll;version.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>aclui.dll;advapi32.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;uxtheme.dll;version.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
     <ResourceCompile>
       <AdditionalIncludeDirectories>..\..\phnt\include;..\..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -170,7 +170,7 @@
       <SDLCheck>true</SDLCheck>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>aclui.lib;propsys.lib;phlib.lib;ntdll.lib;uxtheme.lib;userenv.lib;windowscodecs.lib;winsta.lib;noarg.obj;noenv.obj;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>aclui.lib;cryptui.lib;crypt32.lib;propsys.lib;phlib.lib;ntdll.lib;uxtheme.lib;userenv.lib;windowscodecs.lib;winhttp.lib;winsta.lib;noarg.obj;noenv.obj;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\..\phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalManifestDependencies>
       </AdditionalManifestDependencies>
@@ -178,7 +178,7 @@
       <SubSystem>Windows</SubSystem>
       <TargetMachine>MachineX64</TargetMachine>
       <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
-      <DelayLoadDLLs>aclui.dll;advapi32.dll;comctl32.dll;comdlg32.dll;gdi32.dll;ole32.dll;propsys.dll;shell32.dll;user32.dll;uxtheme.dll;version.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>aclui.dll;advapi32.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;uxtheme.dll;version.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
     <ResourceCompile>
       <AdditionalIncludeDirectories>..\..\phnt\include;..\..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -200,7 +200,7 @@
       <SDLCheck>true</SDLCheck>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>aclui.lib;propsys.lib;phlib.lib;ntdll.lib;uxtheme.lib;userenv.lib;windowscodecs.lib;winsta.lib;noarg.obj;noenv.obj;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>aclui.lib;cryptui.lib;crypt32.lib;propsys.lib;phlib.lib;ntdll.lib;uxtheme.lib;userenv.lib;windowscodecs.lib;winsta.lib;noarg.obj;noenv.obj;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\..\phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalManifestDependencies>
       </AdditionalManifestDependencies>
@@ -208,7 +208,7 @@
       <SubSystem>Windows</SubSystem>
       <TargetMachine>MachineARM64</TargetMachine>
       <MinimumRequiredVersion>10</MinimumRequiredVersion>
-      <DelayLoadDLLs>aclui.dll;advapi32.dll;comctl32.dll;comdlg32.dll;gdi32.dll;ole32.dll;propsys.dll;shell32.dll;user32.dll;uxtheme.dll;version.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>aclui.dll;advapi32.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;uxtheme.dll;version.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
     <ResourceCompile>
       <AdditionalIncludeDirectories>..\..\phnt\include;..\..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -234,7 +234,7 @@
       <ControlFlowGuard>Guard</ControlFlowGuard>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>aclui.lib;propsys.lib;phlib.lib;ntdll.lib;uxtheme.lib;userenv.lib;windowscodecs.lib;winsta.lib;noarg.obj;noenv.obj;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>aclui.lib;cryptui.lib;crypt32.lib;propsys.lib;phlib.lib;ntdll.lib;uxtheme.lib;userenv.lib;windowscodecs.lib;winsta.lib;noarg.obj;noenv.obj;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\..\phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalManifestDependencies>
       </AdditionalManifestDependencies>
@@ -245,7 +245,7 @@
       <TargetMachine>MachineX86</TargetMachine>
       <SetChecksum>true</SetChecksum>
       <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
-      <DelayLoadDLLs>aclui.dll;advapi32.dll;comctl32.dll;comdlg32.dll;gdi32.dll;ole32.dll;propsys.dll;shell32.dll;user32.dll;uxtheme.dll;version.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>aclui.dll;advapi32.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;uxtheme.dll;version.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
     <ResourceCompile>
       <AdditionalIncludeDirectories>..\..\phnt\include;..\..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -270,7 +270,7 @@
       <ControlFlowGuard>Guard</ControlFlowGuard>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>aclui.lib;propsys.lib;phlib.lib;ntdll.lib;uxtheme.lib;userenv.lib;windowscodecs.lib;winsta.lib;noarg.obj;noenv.obj;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>aclui.lib;cryptui.lib;crypt32.lib;propsys.lib;phlib.lib;ntdll.lib;uxtheme.lib;userenv.lib;windowscodecs.lib;winsta.lib;noarg.obj;noenv.obj;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\..\phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalManifestDependencies>
       </AdditionalManifestDependencies>
@@ -281,7 +281,7 @@
       <TargetMachine>MachineX64</TargetMachine>
       <SetChecksum>true</SetChecksum>
       <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
-      <DelayLoadDLLs>aclui.dll;advapi32.dll;comctl32.dll;comdlg32.dll;gdi32.dll;ole32.dll;propsys.dll;shell32.dll;user32.dll;uxtheme.dll;version.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>aclui.dll;advapi32.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;uxtheme.dll;version.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
     <ResourceCompile>
       <AdditionalIncludeDirectories>..\..\phnt\include;..\..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -305,7 +305,7 @@
       <ControlFlowGuard>Guard</ControlFlowGuard>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>aclui.lib;propsys.lib;phlib.lib;ntdll.lib;uxtheme.lib;userenv.lib;windowscodecs.lib;winsta.lib;noarg.obj;noenv.obj;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>aclui.lib;cryptui.lib;crypt32.lib;propsys.lib;phlib.lib;ntdll.lib;uxtheme.lib;userenv.lib;windowscodecs.lib;winsta.lib;noarg.obj;noenv.obj;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\..\phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalManifestDependencies>
       </AdditionalManifestDependencies>
@@ -316,7 +316,7 @@
       <TargetMachine>MachineARM64</TargetMachine>
       <SetChecksum>true</SetChecksum>
       <MinimumRequiredVersion>10</MinimumRequiredVersion>
-      <DelayLoadDLLs>aclui.dll;advapi32.dll;comctl32.dll;comdlg32.dll;gdi32.dll;ole32.dll;propsys.dll;shell32.dll;user32.dll;uxtheme.dll;version.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>aclui.dll;advapi32.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;uxtheme.dll;version.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
     <ResourceCompile>
       <AdditionalIncludeDirectories>..\..\phnt\include;..\..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -336,6 +336,7 @@
     <ClCompile Include="options.c" />
     <ClCompile Include="pesectionprp.c" />
     <ClCompile Include="richprp.c" />
+    <ClCompile Include="secprp.c" />
     <ClCompile Include="ldprp.c" />
     <ClCompile Include="expprp.c" />
     <ClCompile Include="impprp.c" />

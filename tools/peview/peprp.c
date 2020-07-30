@@ -328,6 +328,17 @@ VOID PvPeProperties(
             PvAddPropPage(propContext, newPage);
         }
 
+        // Certificates page
+        if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_SECURITY, &entry)) && entry->VirtualAddress)
+        {
+            newPage = PvCreatePropPageContext(
+                MAKEINTRESOURCE(IDD_PESECURITY),
+                PvpPeSecurityDlgProc,
+                NULL
+                );
+            PvAddPropPage(propContext, newPage);
+        }
+
         // Text preview page
         {
             newPage = PvCreatePropPageContext(
