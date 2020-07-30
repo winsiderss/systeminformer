@@ -24,11 +24,11 @@
 #define _printbuf_h_
 
 #ifndef JSON_EXPORT
-#if defined(_MSC_VER)
-#define JSON_EXPORT __declspec(dllexport)
-#else
+//#if defined(_MSC_VER)
+//#define JSON_EXPORT __declspec(dllexport)
+//#else
 #define JSON_EXPORT extern
-#endif
+//#endif
 #endif
 
 #ifdef __cplusplus
