@@ -120,6 +120,9 @@
     <ClCompile Include="pesectionprp.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="secprp.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\peview.h">

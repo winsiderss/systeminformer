@@ -50,6 +50,8 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"ImageResourcesListViewColumns", L"");
     PhpAddStringSetting(L"ImageAttributesListViewColumns", L"");
     PhpAddStringSetting(L"ImagePropertiesListViewColumns", L"");
+    PhpAddStringSetting(L"ImageSecurityListViewColumns", L"");
+    PhpAddStringSetting(L"ImageSecurityListViewSort", L"");
     PhpAddStringSetting(L"ImageStreamsListViewColumns", L"");
     PhpAddStringSetting(L"ImageHardLinksListViewColumns", L"");
     PhpAddStringSetting(L"ImagePidsListViewColumns", L"");
