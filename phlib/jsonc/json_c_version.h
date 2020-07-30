@@ -20,11 +20,11 @@
 #define JSON_C_VERSION "0.14"
 
 #ifndef JSON_EXPORT
-#if defined(_MSC_VER)
-#define JSON_EXPORT __declspec(dllexport)
-#else
+//#if defined(_MSC_VER)
+//#define JSON_EXPORT __declspec(dllexport)
+//#else
 #define JSON_EXPORT extern
-#endif
+//#endif
 #endif
 
 /**
