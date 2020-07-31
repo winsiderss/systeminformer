@@ -166,11 +166,13 @@ VOID PvSetPeImageSections(
         {
             PhPrintUInt32(value, i + 1);
             lvItemIndex = PhAddListViewItem(ListViewHandle, MAXINT, value, &PvMappedImage.Sections[i]);
-            PhPrintPointer(value, UlongToPtr(PvMappedImage.Sections[i].VirtualAddress));
             PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, sectionName);
+            PhPrintPointer(value, UlongToPtr(PvMappedImage.Sections[i].VirtualAddress));
             PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, value);
-            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, PhaFormatSize(PvMappedImage.Sections[i].SizeOfRawData, ULONG_MAX)->Buffer);
-            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 4, PH_AUTO_T(PH_STRING, PvGetSectionCharacteristics(PvMappedImage.Sections[i].Characteristics))->Buffer);
+            PhPrintPointer(value, PTR_ADD_OFFSET(PvMappedImage.Sections[i].VirtualAddress, PvMappedImage.Sections[i].SizeOfRawData));
+            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, value);
+            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 4, PhaFormatSize(PvMappedImage.Sections[i].SizeOfRawData, ULONG_MAX)->Buffer);
+            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 5, PH_AUTO_T(PH_STRING, PvGetSectionCharacteristics(PvMappedImage.Sections[i].Characteristics))->Buffer);
 
             if (PvMappedImage.Sections[i].VirtualAddress && PvMappedImage.Sections[i].SizeOfRawData)
             {
@@ -189,7 +191,7 @@ VOID PvSetPeImageSections(
                         if (PhFinalHash(&hashContext, hash, 16, NULL))
                         {
                             hashString = PhBufferToHexString(hash, 16);
-                            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 5, hashString->Buffer);
+                            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 6, hashString->Buffer);
                             PhDereferenceObject(hashString);
                         }
                     }
@@ -201,7 +203,7 @@ VOID PvSetPeImageSections(
                     //message = PH_AUTO(PhGetNtMessage(GetExceptionCode()));
                     message = PH_AUTO(PhGetWin32Message(RtlNtStatusToDosError(GetExceptionCode()))); // WIN32_FROM_NTSTATUS
 
-                    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 5, PhGetStringOrEmpty(message));
+                    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 6, PhGetStringOrEmpty(message));
                 }
             }
         }
@@ -246,10 +248,11 @@ INT_PTR CALLBACK PvPeSectionsDlgProc(
             PhSetControlTheme(context->ListViewHandle, L"explorer");
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"#");
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 80, L"Name");
-            PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 80, L"VA");
-            PhAddListViewColumn(context->ListViewHandle, 3, 3, 3, LVCFMT_LEFT, 80, L"Size");
-            PhAddListViewColumn(context->ListViewHandle, 4, 4, 4, LVCFMT_LEFT, 250, L"Characteristics");
-            PhAddListViewColumn(context->ListViewHandle, 5, 5, 5, LVCFMT_LEFT, 80, L"Hash");
+            PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 100, L"RVA (start)");
+            PhAddListViewColumn(context->ListViewHandle, 3, 3, 3, LVCFMT_LEFT, 100, L"RVA (end)");
+            PhAddListViewColumn(context->ListViewHandle, 4, 4, 4, LVCFMT_LEFT, 80, L"Size");
+            PhAddListViewColumn(context->ListViewHandle, 5, 5, 5, LVCFMT_LEFT, 250, L"Characteristics");
+            PhAddListViewColumn(context->ListViewHandle, 6, 6, 6, LVCFMT_LEFT, 80, L"Hash");
             //ExtendedListView_SetItemColorFunction(context->ListViewHandle, PvPeCharacteristicsColorFunction);
             ExtendedListView_SetCompareFunction(context->ListViewHandle, 1, PvPeVirtualAddressCompareFunction);
             ExtendedListView_SetCompareFunction(context->ListViewHandle, 2, PvPeSizeOfRawDataCompareFunction);
