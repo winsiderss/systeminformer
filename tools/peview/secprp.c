@@ -124,108 +124,26 @@ BOOLEAN PvpPeAddCertificateInfo(
     return TRUE;
 }
 
-PCMSG_SIGNER_INFO PvpPeGetSignerInfo(
-    _In_ HCRYPTMSG CryptMessageHandle
+VOID PvpPeViewCertificateContext(
+    _In_ HWND WindowHandle,
+    _In_ PCCERT_CONTEXT CertContext
     )
 {
-    ULONG signerInfoLength;
-    PCMSG_SIGNER_INFO signerInfo;
+    CRYPTUI_VIEWCERTIFICATE_STRUCT cryptViewCertInfo;
 
-    if (!CryptMsgGetParam(
-        CryptMessageHandle,
-        CMSG_SIGNER_INFO_PARAM,
-        0,
-        NULL,
-        &signerInfoLength
-        ))
+    memset(&cryptViewCertInfo, 0, sizeof(CRYPTUI_VIEWCERTIFICATE_STRUCT));
+    cryptViewCertInfo.dwSize = sizeof(CRYPTUI_VIEWCERTIFICATE_STRUCT);
+    cryptViewCertInfo.dwFlags = CRYPTUI_ENABLE_REVOCATION_CHECKING | CRYPTUI_ENABLE_REVOCATION_CHECK_END_CERT;
+    cryptViewCertInfo.hwndParent = WindowHandle;
+    cryptViewCertInfo.pCertContext = CertContext;
+
+    HCERTSTORE certStoreHandle = CertContext->hCertStore;
+    cryptViewCertInfo.cStores = 1;
+    cryptViewCertInfo.rghStores = &certStoreHandle;
+
+    if (CryptUIDlgViewCertificate)
     {
-        return NULL;
-    }
-
-    signerInfo = PhAllocateZero(signerInfoLength);
-
-    if (!CryptMsgGetParam(
-        CryptMessageHandle,
-        CMSG_SIGNER_INFO_PARAM,
-        0,
-        signerInfo,
-        &signerInfoLength
-        ))
-    {
-        PhFree(signerInfo);
-        return NULL;
-    }
-
-    return signerInfo;
-}
-
-VOID PvpPeEnumerateNestedSignatures(
-    _In_ HWND ListViewHandle,
-    _In_ PULONG Count,
-    _In_ PCMSG_SIGNER_INFO SignerInfo
-    )
-{
-    HCERTSTORE cryptStoreHandle = NULL;
-    HCRYPTMSG cryptMessageHandle = NULL;
-    PCCERT_CONTEXT certificateContext = NULL;
-    PCMSG_SIGNER_INFO cryptMessageSignerInfo = NULL;
-    ULONG certificateEncoding;
-    ULONG certificateContentType;
-    ULONG certificateFormatType;
-    ULONG index = ULONG_MAX;
-
-    for (ULONG i = 0; i < SignerInfo->UnauthAttrs.cAttr; i++)
-    {
-        if (PhEqualBytesZ(SignerInfo->UnauthAttrs.rgAttr[i].pszObjId, szOID_NESTED_SIGNATURE, FALSE))
-        {
-            index = i;
-            break;
-        }
-    }
-
-    if (index == ULONG_MAX)
-        return;
-
-    if (CryptQueryObject(
-        CERT_QUERY_OBJECT_BLOB,
-        SignerInfo->UnauthAttrs.rgAttr[index].rgValue,
-        CERT_QUERY_CONTENT_FLAG_PKCS7_SIGNED,
-        CERT_QUERY_FORMAT_FLAG_BINARY,
-        0,
-        &certificateEncoding,
-        &certificateContentType,
-        &certificateFormatType,
-        &cryptStoreHandle,
-        &cryptMessageHandle,
-        NULL
-        ))
-    {
-        while (certificateContext = CertEnumCertificatesInStore(cryptStoreHandle, certificateContext))
-        {
-            INT lvItemIndex;
-            WCHAR number[PH_INT32_STR_LEN_1];
-
-            PhPrintUInt32(number, ++(*Count));
-            lvItemIndex = PhAddListViewItem(
-                ListViewHandle,
-                MAXINT,
-                number,
-                (PVOID)certificateContext
-                );
-
-            PvpPeAddCertificateInfo(ListViewHandle, lvItemIndex, certificateContext);
-        }
-
-        if (cryptMessageSignerInfo = PvpPeGetSignerInfo(cryptMessageHandle))
-        {
-            PvpPeEnumerateNestedSignatures(ListViewHandle, Count, cryptMessageSignerInfo);
-
-            PhFree(cryptMessageSignerInfo);
-        }
-
-        //if (certificateContext) CertFreeCertificateContext(certificateContext);
-        //if (cryptStoreHandle) CertCloseStore(cryptStoreHandle, 0);
-        //if (cryptMessageHandle) CryptMsgClose(cryptMessageHandle);
+        CryptUIDlgViewCertificate(&cryptViewCertInfo, NULL);
     }
 }
 
@@ -236,7 +154,6 @@ VOID PvpPeEnumerateFileCertificates(
     HCERTSTORE cryptStoreHandle = NULL;
     PCCERT_CONTEXT certificateContext = NULL;
     HCRYPTMSG cryptMessageHandle = NULL;
-    PCMSG_SIGNER_INFO cryptMessageSignerInfo = NULL;
     ULONG certificateEncoding;
     ULONG certificateContentType;
     ULONG certificateFormatType;
@@ -271,41 +188,11 @@ VOID PvpPeEnumerateFileCertificates(
 
             PvpPeAddCertificateInfo(ListViewHandle, lvItemIndex, certificateContext);
         }
-
-        if (cryptMessageSignerInfo = PvpPeGetSignerInfo(cryptMessageHandle))
-        {
-            PvpPeEnumerateNestedSignatures(ListViewHandle, &count, cryptMessageSignerInfo);
-
-            PhFree(cryptMessageSignerInfo);
-        }
-
-        //if (certificateContext) CertFreeCertificateContext(certificateContext);
-        //if (cryptStoreHandle) CertCloseStore(cryptStoreHandle, 0);
-        //if (cryptMessageHandle) CryptMsgClose(cryptMessageHandle);
     }
-}
 
-VOID PvpPeViewCertificateContext(
-    _In_ HWND WindowHandle,
-    _In_ PCCERT_CONTEXT CertContext
-    )
-{
-    CRYPTUI_VIEWCERTIFICATE_STRUCT cryptViewCertInfo;
-
-    memset(&cryptViewCertInfo, 0, sizeof(CRYPTUI_VIEWCERTIFICATE_STRUCT));
-    cryptViewCertInfo.dwSize = sizeof(CRYPTUI_VIEWCERTIFICATE_STRUCT);
-    cryptViewCertInfo.dwFlags = CRYPTUI_ENABLE_REVOCATION_CHECKING | CRYPTUI_ENABLE_REVOCATION_CHECK_END_CERT;
-    cryptViewCertInfo.hwndParent = WindowHandle;
-    cryptViewCertInfo.pCertContext = CertContext;
-
-    HCERTSTORE certStoreHandle = CertContext->hCertStore;
-    cryptViewCertInfo.cStores = 1;
-    cryptViewCertInfo.rghStores = &certStoreHandle;
-
-    if (CryptUIDlgViewCertificate)
-    {
-        CryptUIDlgViewCertificate(&cryptViewCertInfo, NULL);
-    }
+    //if (certificateContext) CertFreeCertificateContext(certificateContext);
+    //if (cryptStoreHandle) CertCloseStore(cryptStoreHandle, 0);
+    //if (cryptMessageHandle) CryptMsgClose(cryptMessageHandle);
 }
 
 typedef struct _PV_PE_CERTIFICATE_CONTEXT
