@@ -75,7 +75,22 @@ typedef struct _PVP_PE_GENERAL_CONTEXT
     HWND ListViewHandle;
     HIMAGELIST ListViewImageList;
     ULONG ListViewRowCache[PVP_IMAGE_GENERAL_INDEX_MAXIMUM];
-} PVP_PE_GENERAL_CONTEXT, * PPVP_PE_GENERAL_CONTEXT;
+} PVP_PE_GENERAL_CONTEXT, *PPVP_PE_GENERAL_CONTEXT;
+
+typedef struct _IMAGE_DEBUG_REPRO_ENTRY
+{
+    ULONG Length;
+    BYTE Buffer[1];
+} IMAGE_DEBUG_REPRO_ENTRY, *PIMAGE_DEBUG_REPRO_ENTRY;
+
+typedef struct _IMAGE_DEBUG_VC_FEATURE_ENTRY
+{
+    ULONG PreVCPlusPlusCount;
+    ULONG CAndCPlusPlusCount;
+    ULONG GuardStackCount;
+    ULONG SdlCount;
+    ULONG GuardCount;
+} IMAGE_DEBUG_VC_FEATURE_ENTRY, *PIMAGE_DEBUG_VC_FEATURE_ENTRY;
 
 PH_MAPPED_IMAGE PvMappedImage;
 PIMAGE_COR20_HEADER PvImageCor20Header = NULL;
@@ -579,9 +594,15 @@ VOID PvpSetPeImageMachineType(
     _In_ HWND ListViewHandle
     )
 {
+    ULONG machine;
     PWSTR type;
 
-    switch (PvMappedImage.NtHeaders->FileHeader.Machine)
+    if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+        machine = PvMappedImage.NtHeaders32->FileHeader.Machine;
+    else
+        machine = PvMappedImage.NtHeaders->FileHeader.Machine;
+
+    switch (machine)
     {
     case IMAGE_FILE_MACHINE_I386:
         type = L"i386";
@@ -608,12 +629,6 @@ VOID PvpSetPeImageMachineType(
 
     PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_NAME, 1, type);
 }
-
-typedef struct _IMAGE_DEBUG_REPRO_ENTRY
-{
-    ULONG Length;
-    BYTE Buffer[1];
-} IMAGE_DEBUG_REPRO_ENTRY, *PIMAGE_DEBUG_REPRO_ENTRY;
 
 VOID PvpSetPeImageTimeStamp(
     _In_ HWND ListViewHandle
@@ -664,13 +679,15 @@ VOID PvpSetPeImageBaseAddress(
     _In_ HWND ListViewHandle
     )
 {
+    ULONGLONG imagebase;
     PPH_STRING string;
 
     if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
-        string = PhFormatString(L"0x%I32x", ((PIMAGE_OPTIONAL_HEADER32)&PvMappedImage.NtHeaders->OptionalHeader)->ImageBase);
+        imagebase = PvMappedImage.NtHeaders32->OptionalHeader.ImageBase;
     else
-        string = PhFormatString(L"0x%I64x", ((PIMAGE_OPTIONAL_HEADER64)&PvMappedImage.NtHeaders->OptionalHeader)->ImageBase);
+        imagebase = PvMappedImage.NtHeaders->OptionalHeader.ImageBase;
 
+    string = PhFormatString(L"0x%I64x", imagebase);
     PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_IMAGEBASE, 1, string->Buffer);
     PhDereferenceObject(string);
 }
@@ -748,13 +765,15 @@ VOID PvpSetPeImageEntryPoint(
     _In_ HWND ListViewHandle
     )
 {
+    ULONG addressOfEntryPoint;
     PPH_STRING string;
 
     if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
-        string = PhFormatString(L"0x%I32x", ((PIMAGE_OPTIONAL_HEADER32)&PvMappedImage.NtHeaders->OptionalHeader)->AddressOfEntryPoint);
+        addressOfEntryPoint = PvMappedImage.NtHeaders32->OptionalHeader.AddressOfEntryPoint;
     else
-        string = PhFormatString(L"0x%I32x", ((PIMAGE_OPTIONAL_HEADER64)&PvMappedImage.NtHeaders->OptionalHeader)->AddressOfEntryPoint);
+        addressOfEntryPoint = PvMappedImage.NtHeaders->OptionalHeader.AddressOfEntryPoint;
 
+    string = PhFormatString(L"0x%I32x", addressOfEntryPoint);
     PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_ENTRYPOINT, 1, string->Buffer);
     PhDereferenceObject(string);
 }
@@ -780,9 +799,15 @@ VOID PvpSetPeImageSubsystem(
     _In_ HWND ListViewHandle
     )
 {
+    ULONG subsystem;
     PWSTR type;
 
-    switch (PvMappedImage.NtHeaders->OptionalHeader.Subsystem)
+    if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+        subsystem = PvMappedImage.NtHeaders32->OptionalHeader.Subsystem;
+    else
+        subsystem = PvMappedImage.NtHeaders->OptionalHeader.Subsystem;
+
+    switch (subsystem)
     {
     case IMAGE_SUBSYSTEM_NATIVE:
         type = L"Native";
@@ -921,6 +946,35 @@ VOID PvpSetPeImageCharacteristics(
 
     PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_CHARACTERISTICS, 1, PhFinalStringBuilderString(&stringBuilder)->Buffer);
     PhDeleteStringBuilder(&stringBuilder);
+}
+
+VOID PvpSetPeImageDebugVCFeatures(
+    _In_ HWND ListViewHandle
+    )
+{
+    PIMAGE_DEBUG_VC_FEATURE_ENTRY debugEntry;
+    ULONG debugEntryLength;
+
+    if (PhGetMappedImageDebugEntryByType(
+        &PvMappedImage,
+        IMAGE_DEBUG_TYPE_VC_FEATURE,
+        &debugEntryLength,
+        &debugEntry
+        ))
+    {
+        if (debugEntryLength != sizeof(IMAGE_DEBUG_VC_FEATURE_ENTRY))
+            return;
+
+        // Use the same format as dumpbin
+        PhFormatString(
+            L"Pre-VC++ 11.00=%lu, C/C++=%lu, /GS=%lu, /sdl=%lu, guardN=%lu",
+            debugEntry->PreVCPlusPlusCount,
+            debugEntry->CAndCPlusPlusCount,
+            debugEntry->GuardStackCount,
+            debugEntry->SdlCount,
+            debugEntry->GuardCount
+            );
+    }
 }
 
 PPH_STRING PvGetRelativeTimeString(
