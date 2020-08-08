@@ -782,6 +782,9 @@ BOOLEAN NTAPI PhpAccessManagerEnumerateKeyCallback(
     PPH_STRING guidString;
     PH_STRINGREF keyName;
 
+    if (!Context)
+        return FALSE;
+
     keyName.Buffer = Information->Name;
     keyName.Length = Information->NameLength;
 
@@ -819,6 +822,9 @@ BOOLEAN NTAPI PhpDeviceAccessSubKeyEnumerateKeyCallback(
     PPH_CAPABILITY_KEY_CALLBACK context = Context;
     HANDLE keyHandle;
     PH_STRINGREF keyName;
+
+    if (!Context)
+        return FALSE;
 
     keyName.Buffer = Information->Name;
     keyName.Length = Information->NameLength;
