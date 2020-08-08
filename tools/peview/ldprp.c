@@ -65,6 +65,53 @@ PPH_STRING PvpGetPeGuardFlagsText(
     return PhFinalStringBuilderString(&stringBuilder);
 }
 
+PPH_STRING PvpGetPeDependentLoadFlagsText(
+    _In_ ULONG DependentLoadFlags
+    )
+{
+    PH_STRING_BUILDER stringBuilder;
+
+    PhInitializeStringBuilder(&stringBuilder, 10);
+
+    if (DependentLoadFlags & DONT_RESOLVE_DLL_REFERENCES)
+        PhAppendStringBuilder2(&stringBuilder, L"Ignore dll references, ");
+    if (DependentLoadFlags & LOAD_LIBRARY_AS_DATAFILE)
+        PhAppendStringBuilder2(&stringBuilder, L"Datafile, ");
+    if (DependentLoadFlags & 0x00000004) // LOAD_PACKAGED_LIBRARY
+        PhAppendStringBuilder2(&stringBuilder, L"Packaged_library, ");
+    if (DependentLoadFlags & LOAD_WITH_ALTERED_SEARCH_PATH)
+        PhAppendStringBuilder2(&stringBuilder, L"Altered search path, ");
+    if (DependentLoadFlags & LOAD_IGNORE_CODE_AUTHZ_LEVEL)
+        PhAppendStringBuilder2(&stringBuilder, L"Ignore authz level, ");
+    if (DependentLoadFlags & LOAD_LIBRARY_AS_IMAGE_RESOURCE)
+        PhAppendStringBuilder2(&stringBuilder, L"Image resource, ");
+    if (DependentLoadFlags & LOAD_LIBRARY_AS_DATAFILE_EXCLUSIVE)
+        PhAppendStringBuilder2(&stringBuilder, L"Datafile (Exclusive), ");
+    if (DependentLoadFlags & LOAD_LIBRARY_REQUIRE_SIGNED_TARGET)
+        PhAppendStringBuilder2(&stringBuilder, L"Signed target required, ");
+    if (DependentLoadFlags & LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR)
+        PhAppendStringBuilder2(&stringBuilder, L"Search DLL load directory, ");
+    if (DependentLoadFlags & LOAD_LIBRARY_SEARCH_APPLICATION_DIR)
+        PhAppendStringBuilder2(&stringBuilder, L"Search application directory, ");
+    if (DependentLoadFlags & LOAD_LIBRARY_SEARCH_USER_DIRS)
+        PhAppendStringBuilder2(&stringBuilder, L"Search user directory, ");
+    if (DependentLoadFlags & LOAD_LIBRARY_SEARCH_SYSTEM32)
+        PhAppendStringBuilder2(&stringBuilder, L"Search system32, ");
+    if (DependentLoadFlags & LOAD_LIBRARY_SEARCH_DEFAULT_DIRS)
+        PhAppendStringBuilder2(&stringBuilder, L"Search default directory, ");
+    if (DependentLoadFlags & LOAD_LIBRARY_SAFE_CURRENT_DIRS)
+        PhAppendStringBuilder2(&stringBuilder, L"Search safe current directory, ");
+    if (DependentLoadFlags & LOAD_LIBRARY_SEARCH_SYSTEM32_NO_FORWARDER)
+        PhAppendStringBuilder2(&stringBuilder, L"Search system32 (No forwarders), ");
+    if (DependentLoadFlags & LOAD_LIBRARY_OS_INTEGRITY_CONTINUITY)
+        PhAppendStringBuilder2(&stringBuilder, L"OS integrity continuity, ");
+
+    if (PhEndsWithString2(stringBuilder.String, L", ", FALSE))
+        PhRemoveEndStringBuilder(&stringBuilder, 2);
+
+    return PhFinalStringBuilderString(&stringBuilder);
+}
+
 PPH_STRING PvpGetPeEnclaveImportsText(
     _In_ PVOID EnclaveConfig
     )
@@ -254,7 +301,7 @@ INT_PTR CALLBACK PvpPeLoadConfigDlgProc(
                 ADD_VALUE(L"Process affinity mask", PhaFormatString(L"0x%Ix", (Config)->ProcessAffinityMask)->Buffer); \
                 ADD_VALUE(L"Process heap flags", PhaFormatString(L"0x%Ix", (Config)->ProcessHeapFlags)->Buffer); \
                 ADD_VALUE(L"CSD version", PhaFormatString(L"%u", (Config)->CSDVersion)->Buffer); \
-                ADD_VALUE(L"Dependent load flags", PhaFormatString(L"0x%x", (Config)->DependentLoadFlags)->Buffer); \
+                ADD_VALUE(L"Dependent load flags", PhaFormatString(L"%s (0x%x)", PH_AUTO_T(PH_STRING, PvpGetPeDependentLoadFlagsText((Config)->DependentLoadFlags))->Buffer, (Config)->DependentLoadFlags)->Buffer); \
                 ADD_VALUE(L"Edit list", PhaFormatString(L"0x%Ix", (Config)->EditList)->Buffer); \
                 ADD_VALUE(L"Security cookie", PhaFormatString(L"0x%Ix", (Config)->SecurityCookie)->Buffer); \
                 ADD_VALUE(L"SEH handler table", PhaFormatString(L"0x%Ix", (Config)->SEHandlerTable)->Buffer); \

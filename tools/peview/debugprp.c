@@ -46,7 +46,7 @@ PWSTR PvpGetDebugTypeString(
         return L"OMAP_FROM_SRC";
     case IMAGE_DEBUG_TYPE_BORLAND:
         return L"BORLAND";
-    case IMAGE_DEBUG_TYPE_RESERVED10:
+    case IMAGE_DEBUG_TYPE_RESERVED10: // coreclr
         return L"RESERVED10";
     case IMAGE_DEBUG_TYPE_CLSID:
         return L"CLSID";
@@ -101,8 +101,9 @@ INT_PTR CALLBACK PvpPeDebugDlgProc(
             PhSetControlTheme(lvHandle, L"explorer");
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"#");
             PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 100, L"Type");
-            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 100, L"RVA");
-            PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 100, L"Size");
+            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 100, L"RVA (start)");
+            PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 100, L"RVA (end)");
+            PhAddListViewColumn(lvHandle, 4, 4, 4, LVCFMT_LEFT, 100, L"Size");
             PhSetExtendedListView(lvHandle);
             PhLoadListViewColumnsFromSetting(L"ImageDebugListViewColumns", lvHandle);
 
@@ -122,7 +123,10 @@ INT_PTR CALLBACK PvpPeDebugDlgProc(
                     PhPrintPointer(value, UlongToPtr(entry.AddressOfRawData));
                     PhSetListViewSubItem(lvHandle, lvItemIndex, 2, value);
 
-                    PhSetListViewSubItem(lvHandle, lvItemIndex, 3, PhaFormatSize(entry.SizeOfData, ULONG_MAX)->Buffer);
+                    PhPrintPointer(value, PTR_ADD_OFFSET(entry.AddressOfRawData, entry.SizeOfData));
+                    PhSetListViewSubItem(lvHandle, lvItemIndex, 3, value);
+
+                    PhSetListViewSubItem(lvHandle, lvItemIndex, 4, PhaFormatSize(entry.SizeOfData, ULONG_MAX)->Buffer);
                 }
 
                 PhFree(debug.DebugEntries);
