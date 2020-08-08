@@ -123,7 +123,7 @@ HPROPSHEETPAGE PhCreateSecurityPage(
 }
 
 static NTSTATUS PhpEditSecurityInformationThread(
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PhSecurityInformation *this = (PhSecurityInformation *)Context;
