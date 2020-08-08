@@ -650,16 +650,29 @@ VOID PvpSetPeImageTimeStamp(
         &debugEntry
         ))
     {
-        //PPH_STRING timeStamp;
+        if (debugEntryLength > 0)
+        {
+            //PPH_STRING timeStamp;
 
-        string = PhBufferToHexStringEx(debugEntry->Buffer, debugEntry->Length, FALSE);
-        //timeStamp = PhBufferToHexStringEx((PBYTE)&PvMappedImage.NtHeaders->FileHeader.TimeDateStamp, sizeof(ULONG), FALSE);
-        //if (PhEndsWithString(string, timeStamp, TRUE))
-        //    PhMoveReference(&string, PhFormatString(L"%s (correct)", string->Buffer));
-        //PhDereferenceObject(timeStamp);
+            string = PhBufferToHexStringEx(debugEntry->Buffer, debugEntry->Length, FALSE);
+            //timeStamp = PhBufferToHexStringEx((PBYTE)&PvMappedImage.NtHeaders->FileHeader.TimeDateStamp, sizeof(ULONG), FALSE);
+            //if (PhEndsWithString(string, timeStamp, TRUE))
+            //    PhMoveReference(&string, PhFormatString(L"%s (correct)", string->Buffer));
+            //PhDereferenceObject(timeStamp);
 
-        //PhFormatString(L"%lx", PvMappedImage.NtHeaders->FileHeader.TimeDateStamp);
-        PhMoveReference(&string, PhConcatStringRefZ(&string->sr, L" (deterministic)"));
+            //PhFormatString(L"%lx", PvMappedImage.NtHeaders->FileHeader.TimeDateStamp);
+            PhMoveReference(&string, PhConcatStringRefZ(&string->sr, L" (deterministic)"));
+        }
+        else
+        {
+            // This is needed for CLR images with invalid REPRO debug entires.
+            string = PhFormatDateTime(&systemTime);
+            PhSwapReference(&string, PhFormatString(
+                L"%s (%lx) (deterministic) (legacy)",
+                string->Buffer,
+                PvMappedImage.NtHeaders->FileHeader.TimeDateStamp
+                ));
+        }
     }
 
     if (string)
