@@ -71,6 +71,9 @@ PPH_STRING PvpGetPeDependentLoadFlagsText(
 {
     PH_STRING_BUILDER stringBuilder;
 
+    if (DependentLoadFlags == 0)
+        return PhCreateString(L"0x0");
+
     PhInitializeStringBuilder(&stringBuilder, 10);
 
     if (DependentLoadFlags & DONT_RESOLVE_DLL_REFERENCES)
@@ -301,7 +304,7 @@ INT_PTR CALLBACK PvpPeLoadConfigDlgProc(
                 ADD_VALUE(L"Process affinity mask", PhaFormatString(L"0x%Ix", (Config)->ProcessAffinityMask)->Buffer); \
                 ADD_VALUE(L"Process heap flags", PhaFormatString(L"0x%Ix", (Config)->ProcessHeapFlags)->Buffer); \
                 ADD_VALUE(L"CSD version", PhaFormatString(L"%u", (Config)->CSDVersion)->Buffer); \
-                ADD_VALUE(L"Dependent load flags", PhaFormatString(L"%s (0x%x)", PH_AUTO_T(PH_STRING, PvpGetPeDependentLoadFlagsText((Config)->DependentLoadFlags))->Buffer, (Config)->DependentLoadFlags)->Buffer); \
+                ADD_VALUE(L"Dependent load flags", PH_AUTO_T(PH_STRING, PvpGetPeDependentLoadFlagsText((Config)->DependentLoadFlags))->Buffer); \
                 ADD_VALUE(L"Edit list", PhaFormatString(L"0x%Ix", (Config)->EditList)->Buffer); \
                 ADD_VALUE(L"Security cookie", PhaFormatString(L"0x%Ix", (Config)->SecurityCookie)->Buffer); \
                 ADD_VALUE(L"SEH handler table", PhaFormatString(L"0x%Ix", (Config)->SEHandlerTable)->Buffer); \

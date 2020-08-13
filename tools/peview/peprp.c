@@ -403,7 +403,7 @@ static NTSTATUS CheckSumImageThreadStart(
     {
         BYTE importTableMd5Hash[16];
 
-        if (NT_SUCCESS(RtlComputeImportTableHash(fileHandle, importTableMd5Hash, 1)))
+        if (NT_SUCCESS(RtlComputeImportTableHash(fileHandle, importTableMd5Hash, RTL_IMPORT_TABLE_HASH_REVISION)))
         {
             importHash = PhBufferToHexString(importTableMd5Hash, 16);
         }
