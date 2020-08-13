@@ -3281,7 +3281,7 @@ NTAPI
 PhHexStringToBufferEx(
     _In_ PPH_STRINGREF String,
     _In_ ULONG BufferLength,
-    _Out_ PVOID Buffer
+    _Out_writes_bytes_(BufferLength) PVOID Buffer
     );
 
 PHLIBAPI
