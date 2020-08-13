@@ -3003,7 +3003,7 @@ NTSYSAPI
 VOID
 NTAPI
 RtlSetExtendedFeaturesMask(
-    __out PCONTEXT_EX ContextEx,
+    _Out_ PCONTEXT_EX ContextEx,
     _Out_ ULONG64 FeatureMask
     );
 
@@ -4951,6 +4951,8 @@ NTAPI
 RtlRandomEx(
     _Inout_ PULONG Seed
     );
+
+#define RTL_IMPORT_TABLE_HASH_REVISION 1
 
 NTSYSAPI
 NTSTATUS
