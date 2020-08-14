@@ -35,6 +35,10 @@ PPH_STRING PvpGetPeGuardFlagsText(
     )
 {
     PH_STRING_BUILDER stringBuilder;
+    WCHAR pointer[PH_PTR_STR_LEN_1];
+
+    if (GuardFlags == 0)
+        return PhCreateString(L"0x0");
 
     PhInitializeStringBuilder(&stringBuilder, 10);
 
@@ -62,6 +66,9 @@ PPH_STRING PvpGetPeGuardFlagsText(
     if (PhEndsWithString2(stringBuilder.String, L", ", FALSE))
         PhRemoveEndStringBuilder(&stringBuilder, 2);
 
+    PhPrintPointer(pointer, UlongToPtr(GuardFlags));
+    PhAppendFormatStringBuilder(&stringBuilder, L" (%s)", pointer);
+
     return PhFinalStringBuilderString(&stringBuilder);
 }
 
@@ -70,6 +77,7 @@ PPH_STRING PvpGetPeDependentLoadFlagsText(
     )
 {
     PH_STRING_BUILDER stringBuilder;
+    WCHAR pointer[PH_PTR_STR_LEN_1];
 
     if (DependentLoadFlags == 0)
         return PhCreateString(L"0x0");
@@ -111,6 +119,9 @@ PPH_STRING PvpGetPeDependentLoadFlagsText(
 
     if (PhEndsWithString2(stringBuilder.String, L", ", FALSE))
         PhRemoveEndStringBuilder(&stringBuilder, 2);
+
+    PhPrintPointer(pointer, UlongToPtr(DependentLoadFlags));
+    PhAppendFormatStringBuilder(&stringBuilder, L" (%s)", pointer);
 
     return PhFinalStringBuilderString(&stringBuilder);
 }
@@ -312,7 +323,7 @@ INT_PTR CALLBACK PvpPeLoadConfigDlgProc(
                 \
                 if (RTL_CONTAINS_FIELD((Config), (Config)->Size, GuardCFCheckFunctionPointer)) \
                 { \
-                    ADD_VALUE(L"CFG GuardFlags", PhaFormatString(L"%s (0x%x)", PH_AUTO_T(PH_STRING, PvpGetPeGuardFlagsText((Config)->GuardFlags))->Buffer, (Config)->GuardFlags)->Buffer); \
+                    ADD_VALUE(L"CFG GuardFlags", PH_AUTO_T(PH_STRING, PvpGetPeGuardFlagsText((Config)->GuardFlags))->Buffer); \
                     ADD_VALUE(L"CFG Check Function pointer", PhaFormatString(L"0x%Ix", (Config)->GuardCFCheckFunctionPointer)->Buffer); \
                     ADD_VALUE(L"CFG Check Dispatch pointer", PhaFormatString(L"0x%Ix", (Config)->GuardCFDispatchFunctionPointer)->Buffer); \
                     ADD_VALUE(L"CFG Function table", PhaFormatString(L"0x%Ix", (Config)->GuardCFFunctionTable)->Buffer); \
