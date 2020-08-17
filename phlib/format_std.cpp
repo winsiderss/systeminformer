@@ -25,6 +25,7 @@
 
 using namespace std;
 
+_Success_(return)
 BOOLEAN PhFormatDoubleToUtf8(
     _In_ DOUBLE Value,
     _In_ ULONG Type,
@@ -60,6 +61,8 @@ BOOLEAN PhFormatDoubleToUtf8(
     if (returnLength == 0)
         return FALSE;
 
+    // This could be removed in favor of directly passing the input buffer to std:to_chars but
+    // for now use memcpy so that failures writing a value don't touch the input buffer (dmex)
     memcpy_s(Buffer, BufferLength, buffer, returnLength);
     Buffer[returnLength] = ANSI_NULL;
 
