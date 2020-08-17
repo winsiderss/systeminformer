@@ -749,12 +749,18 @@ HRESULT STDMETHODCALLTYPE PhSecurityDataObject_GetData(
 {
     PhSecurityIDataObject *this = (PhSecurityIDataObject *)This;
     PSID_INFO_LIST sidInfoList;
-    ULONG i;
 
     sidInfoList = (PSID_INFO_LIST)GlobalAlloc(GMEM_ZEROINIT, sizeof(SID_INFO_LIST) + (sizeof(SID_INFO) * this->SidCount));
+
+    if (!sidInfoList)
+    {
+        pmedium = NULL;
+        return S_FALSE;
+    }
+
     sidInfoList->cItems = this->SidCount;
 
-    for (i = 0; i < this->SidCount; i++)
+    for (ULONG i = 0; i < this->SidCount; i++)
     {
         SID_INFO sidInfo;
         PPH_STRING sidString;
@@ -947,12 +953,17 @@ HRESULT STDMETHODCALLTYPE PhSecurityObjectTypeInfo_GetInheritSource(
         FILE_GENERIC_EXECUTE,
         FILE_ALL_ACCESS
     };
-
     PhSecurityObjectTypeInfo* this = (PhSecurityObjectTypeInfo*)This;
     PINHERITED_FROM result;
     ULONG status;
 
+    if (!PhEqualString2(this->Context->ObjectType, L"FileObject", TRUE)) // TODO: Remove PhEqualString2 (dmex)
+        return S_FALSE;
+
     result = (PINHERITED_FROM)LocalAlloc(LPTR, ((ULONGLONG)Acl->AceCount + 1) * sizeof(INHERITED_FROM));
+
+    if (!result)
+        return S_FALSE;
 
     if ((status = GetInheritanceSource(
         PhGetString(this->Context->ObjectName),
