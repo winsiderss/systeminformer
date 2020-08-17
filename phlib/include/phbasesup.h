@@ -3643,6 +3643,7 @@ PhFormatToBuffer(
     );
 
 PHLIBAPI
+_Success_(return)
 BOOLEAN
 NTAPI
 PhFormatDoubleToUtf8(
