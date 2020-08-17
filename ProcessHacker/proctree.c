@@ -159,7 +159,7 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_IOPRIORITY, FALSE, L"I/O priority", 70, PH_ALIGN_LEFT, ULONG_MAX, 0, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_PAGEPRIORITY, FALSE, L"Page priority", 45, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_STARTTIME, FALSE, L"Start time", 100, PH_ALIGN_LEFT, ULONG_MAX, 0, TRUE);
-    PhAddTreeNewColumnEx(hwnd, PHPRTLC_TOTALCPUTIME, FALSE, L"Total CPU time", 90, PH_ALIGN_LEFT, ULONG_MAX, 0, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHPRTLC_TOTALCPUTIME, FALSE, L"Total CPU time", 90, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_KERNELCPUTIME, FALSE, L"Kernel CPU time", 90, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_USERCPUTIME, FALSE, L"User CPU time", 90, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
     PhAddTreeNewColumn(hwnd, PHPRTLC_VERIFICATIONSTATUS, FALSE, L"Verification status", 70, PH_ALIGN_LEFT, ULONG_MAX, 0);
@@ -546,9 +546,6 @@ VOID PhpRemoveProcessNode(
     PhClearReference(&ProcessNode->IoRoRateText);
     PhClearReference(&ProcessNode->IoWRateText);
     PhClearReference(&ProcessNode->StartTimeText);
-    PhClearReference(&ProcessNode->TotalCpuTimeText);
-    PhClearReference(&ProcessNode->KernelCpuTimeText);
-    PhClearReference(&ProcessNode->UserCpuTimeText);
     PhClearReference(&ProcessNode->RelativeStartTimeText);
     PhClearReference(&ProcessNode->WindowTitleText);
     PhClearReference(&ProcessNode->CyclesText);
@@ -2408,25 +2405,55 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 }
                 break;
             case PHPRTLC_TOTALCPUTIME:
-                PhMoveReference(&node->TotalCpuTimeText, PhFormatTimeSpan(
-                    processItem->KernelTime.QuadPart + processItem->UserTime.QuadPart,
-                    PH_TIMESPAN_HMSM
-                    ));
-                getCellText->Text = node->TotalCpuTimeText->sr;
+                {
+                    SIZE_T returnLength;
+
+                    if (PhPrintTimeSpanToBuffer(
+                        processItem->KernelTime.QuadPart + processItem->UserTime.QuadPart,
+                        PH_TIMESPAN_DHMSM,
+                        node->TotalCpuTimeText,
+                        sizeof(node->TotalCpuTimeText),
+                        &returnLength
+                        ))
+                    {
+                        getCellText->Text.Buffer = node->TotalCpuTimeText;
+                        getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
+                    }
+                }
                 break;
             case PHPRTLC_KERNELCPUTIME:
-                PhMoveReference(&node->KernelCpuTimeText, PhFormatTimeSpan(
-                    processItem->KernelTime.QuadPart,
-                    PH_TIMESPAN_HMSM
-                    ));
-                getCellText->Text = node->KernelCpuTimeText->sr;
+                {
+                    SIZE_T returnLength;
+
+                    if (PhPrintTimeSpanToBuffer(
+                        processItem->KernelTime.QuadPart,
+                        PH_TIMESPAN_DHMSM,
+                        node->KernelCpuTimeText,
+                        sizeof(node->KernelCpuTimeText),
+                        &returnLength
+                        ))
+                    {
+                        getCellText->Text.Buffer = node->KernelCpuTimeText;
+                        getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
+                    }
+                }
                 break;
             case PHPRTLC_USERCPUTIME:
-                PhMoveReference(&node->UserCpuTimeText, PhFormatTimeSpan(
-                    processItem->UserTime.QuadPart,
-                    PH_TIMESPAN_HMSM
-                    ));
-                getCellText->Text = node->UserCpuTimeText->sr;
+                {
+                    SIZE_T returnLength;
+
+                    if (PhPrintTimeSpanToBuffer(
+                        processItem->UserTime.QuadPart,
+                        PH_TIMESPAN_DHMSM,
+                        node->UserCpuTimeText,
+                        sizeof(node->UserCpuTimeText),
+                        &returnLength
+                        ))
+                    {
+                        getCellText->Text.Buffer = node->UserCpuTimeText;
+                        getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
+                    }
+                }
                 break;
             case PHPRTLC_VERIFICATIONSTATUS:
                 if (processItem->VerifyResult == VrTrusted)

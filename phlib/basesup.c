@@ -6035,7 +6035,7 @@ VOID PhPrintTimeSpan(
         Ticks,
         Mode,
         Destination,
-        PH_TIMESPAN_STR_LEN,
+        PH_TIMESPAN_STR_LEN_1 * sizeof(WCHAR),
         NULL
         );
 }
@@ -6078,6 +6078,24 @@ BOOLEAN PhPrintTimeSpanToBuffer(
             PhInitFormatI64UWithWidth(&format[4], PH_TICKS_PARTIAL_MIN(Ticks), 2);
             PhInitFormatC(&format[5], L':');
             PhInitFormatI64UWithWidth(&format[6], PH_TICKS_PARTIAL_SEC(Ticks), 2);
+
+            return PhFormatToBuffer(format, RTL_NUMBER_OF(format), Buffer, BufferLength, ReturnLength);
+        }
+        break;
+    case PH_TIMESPAN_DHMSM:
+        {
+            PH_FORMAT format[9];
+
+            // %I64u:%02I64u:%02I64u:%02I64u
+            PhInitFormatI64U(&format[0], PH_TICKS_PARTIAL_DAYS(Ticks));
+            PhInitFormatC(&format[1], L':');
+            PhInitFormatI64UWithWidth(&format[2], PH_TICKS_PARTIAL_HOURS(Ticks), 2);
+            PhInitFormatC(&format[3], L':');
+            PhInitFormatI64UWithWidth(&format[4], PH_TICKS_PARTIAL_MIN(Ticks), 2);
+            PhInitFormatC(&format[5], L':');
+            PhInitFormatI64UWithWidth(&format[6], PH_TICKS_PARTIAL_SEC(Ticks), 2);
+            PhInitFormatC(&format[7], L':');
+            PhInitFormatI64UWithWidth(&format[8], PH_TICKS_PARTIAL_MS(Ticks), 3);
 
             return PhFormatToBuffer(format, RTL_NUMBER_OF(format), Buffer, BufferLength, ReturnLength);
         }
