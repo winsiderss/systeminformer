@@ -92,6 +92,9 @@ PPH_STRING PvGetSectionCharacteristics(
     PH_STRING_BUILDER stringBuilder;
     WCHAR pointer[PH_PTR_STR_LEN_1];
 
+    if (Characteristics == 0)
+        return PhCreateString(L"Associative (0x0)");
+
     PhInitializeStringBuilder(&stringBuilder, 10);
 
     if (Characteristics & IMAGE_SCN_TYPE_NO_PAD)

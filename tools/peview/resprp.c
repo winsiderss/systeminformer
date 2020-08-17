@@ -125,7 +125,7 @@ VOID PvpPeResourceSaveToFile(
                     FILE_GENERIC_READ | FILE_GENERIC_WRITE,
                     FILE_ATTRIBUTE_NORMAL,
                     FILE_SHARE_READ | FILE_SHARE_WRITE,
-                    FILE_CREATE,
+                    FILE_OVERWRITE_IF,
                     FILE_SYNCHRONOUS_IO_NONALERT | FILE_NON_DIRECTORY_FILE
                     );
 

@@ -128,7 +128,7 @@ PCMSG_SIGNER_INFO PvpPeGetSignerInfo(
     _In_ HCRYPTMSG CryptMessageHandle
     )
 {
-    ULONG signerInfoLength;
+    ULONG signerInfoLength = 0;
     PCMSG_SIGNER_INFO signerInfo;
 
     if (!CryptMsgGetParam(
