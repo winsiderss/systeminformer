@@ -204,9 +204,9 @@ typedef struct _PH_PROCESS_NODE
     PPH_STRING IoWRateText;
     WCHAR PagePriorityText[PH_INT32_STR_LEN_1];
     PPH_STRING StartTimeText;
-    PPH_STRING TotalCpuTimeText;
-    PPH_STRING KernelCpuTimeText;
-    PPH_STRING UserCpuTimeText;
+    WCHAR TotalCpuTimeText[PH_TIMESPAN_STR_LEN_1];
+    WCHAR KernelCpuTimeText[PH_TIMESPAN_STR_LEN_1];
+    WCHAR UserCpuTimeText[PH_TIMESPAN_STR_LEN_1];
     PPH_STRING RelativeStartTimeText;
     PPH_STRING WindowTitleText;
     PPH_STRING CyclesText;
