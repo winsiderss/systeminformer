@@ -505,6 +505,17 @@ PhGetFileVersionInfo(
     );
 
 PHLIBAPI
+_Success_(return)
+BOOLEAN
+NTAPI
+PhGetFileVersionInfoValue(
+    _In_ PVOID VersionInfo,
+    _In_ PWSTR VersionInfoKey,
+    _Out_opt_ PVOID* Buffer,
+    _Out_opt_ PULONG BufferLength
+    );
+
+PHLIBAPI
 ULONG
 NTAPI
 PhGetFileVersionInfoLangCodePage(

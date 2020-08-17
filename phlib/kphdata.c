@@ -40,7 +40,7 @@ ULONG KphpGetKernelRevisionNumber(
     versionInfo = PhGetFileVersionInfo(kernelFileName->Buffer);
     PhDereferenceObject(kernelFileName);
 
-    if (versionInfo && VerQueryValue(versionInfo, L"\\", &rootBlock, &rootBlockLength) && rootBlockLength != 0)
+    if (versionInfo && PhGetFileVersionInfoValue(versionInfo, L"\\", &rootBlock, &rootBlockLength) && rootBlockLength != 0)
         result = LOWORD(rootBlock->dwFileVersionLS);
 
     PhFree(versionInfo);
