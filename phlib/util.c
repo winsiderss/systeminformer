@@ -1726,6 +1726,146 @@ PVOID PhGetFileVersionInfo(
     return NULL;
 }
 
+typedef struct _VS_VERSION_INFO_STRUCT16
+{
+    USHORT Length;
+    USHORT ValueLength;
+    CHAR Key[1];
+} VS_VERSION_INFO_STRUCT16, *PVS_VERSION_INFO_STRUCT16;
+
+typedef struct _VS_VERSION_INFO_STRUCT32
+{
+    USHORT Length;
+    USHORT ValueLength;
+    USHORT Type;
+    WCHAR Key[1];
+} VS_VERSION_INFO_STRUCT32, *PVS_VERSION_INFO_STRUCT32;
+
+// Note: Based on VersionInfoIs16 from ReactOS with modifications (dmex)
+BOOLEAN PhpVersionInfo_IsVersion16(
+    _In_ PVS_VERSION_INFO_STRUCT32 VersionInfo
+    )
+{
+    return ((PVS_VERSION_INFO_STRUCT16)VersionInfo)->Key[0] >= 32;
+}
+
+// Note: Based on VersionInfo32_Value from ReactOS with modifications (dmex)
+PVOID PhpVersionInfo_GetValue32(
+    _In_ PVS_VERSION_INFO_STRUCT32 VersionInfo
+    )
+{
+    PWSTR offset = VersionInfo->Key + PhCountStringZ(VersionInfo->Key) + 1;
+
+    return PTR_ADD_OFFSET(VersionInfo, ALIGN_UP(PTR_SUB_OFFSET(offset, VersionInfo), ULONG));
+}
+
+// Note: Based on VersionInfo32_Children from ReactOS with modifications (dmex)
+PVOID PhpVersionInfo_GetChildren32(
+    _In_ PVS_VERSION_INFO_STRUCT32 VersionInfo
+    )
+{
+    USHORT offset = VersionInfo->ValueLength * (VersionInfo->Type ? sizeof(WCHAR) : sizeof(BYTE));
+
+    return PTR_ADD_OFFSET(PhpVersionInfo_GetValue32(VersionInfo), ALIGN_UP(offset, ULONG));
+}
+
+// Note: Based on VersionInfo32_Next from ReactOS with modifications (dmex)
+PVOID PhpVersionInfo_GetNext32(
+    _In_ PVS_VERSION_INFO_STRUCT32 VersionInfo
+    )
+{
+    return PTR_ADD_OFFSET(VersionInfo, ALIGN_UP(VersionInfo->Length, ULONG));
+}
+
+// Note: Based on VersionInfo32_FindChild from ReactOS with modifications (dmex)
+PVOID PhpVersionInfo_FindChild32(
+    _In_ PVS_VERSION_INFO_STRUCT32 VersionInfo,
+    _In_ PWSTR Key,
+    _In_ ULONG KeyLength
+    )
+{
+    PVS_VERSION_INFO_STRUCT32 child = PhpVersionInfo_GetChildren32(VersionInfo);
+
+    while ((ULONG_PTR)child < (ULONG_PTR)VersionInfo + VersionInfo->Length)
+    {
+        if (_wcsnicmp(child->Key, Key, KeyLength) == 0 && !child->Key[KeyLength])
+            return child;
+
+        if (child->Length == 0)
+            return NULL;
+
+        child = PhpVersionInfo_GetNext32(child);
+    }
+
+    return NULL;
+}
+
+// Note: Based on VersionInfo32_QueryValue from ReactOS with modifications (dmex)
+_Success_(return)
+BOOLEAN PhpVersionInfo_QueryInfo32(
+    _In_ PVOID VersionInfo,
+    _In_ PWSTR VersionInfoKey,
+    _Out_opt_ PVOID* Buffer,
+    _Out_opt_ PULONG BufferLength
+    )
+{
+    PVS_VERSION_INFO_STRUCT32 blockInfo = VersionInfo;
+    PWSTR blockKeyName = VersionInfoKey;
+    PWSTR blockKeySlash;
+    ULONG blockKeyLength;
+
+    while (*blockKeyName)
+    {
+        for (blockKeySlash = blockKeyName; *blockKeySlash; blockKeySlash++)
+        {
+            if (*blockKeySlash == OBJ_NAME_PATH_SEPARATOR)
+                break;
+        }
+
+        if (blockKeySlash == blockKeyName)
+        {
+            blockKeyName++;
+            continue;
+        }
+
+        blockKeyLength = PtrToUlong(PTR_SUB_OFFSET(blockKeySlash, blockKeyName)) / sizeof(WCHAR);
+        blockInfo = PhpVersionInfo_FindChild32(blockInfo, blockKeyName, blockKeyLength);
+
+        if (!blockInfo)
+            return FALSE;
+
+        blockKeyName = blockKeySlash;
+    }
+
+    if (Buffer)
+        *Buffer = PhpVersionInfo_GetValue32(blockInfo);
+    if (BufferLength)
+        *BufferLength = blockInfo->ValueLength;
+
+    return TRUE;
+}
+
+_Success_(return)
+BOOLEAN PhGetFileVersionInfoValue(
+    _In_ PVOID VersionInfo,
+    _In_ PWSTR VersionInfoKey,
+    _Out_opt_ PVOID* Buffer,
+    _Out_opt_ PULONG BufferLength
+    )
+{
+    if (PhpVersionInfo_IsVersion16(VersionInfo))
+        return FALSE;
+
+    __try
+    {
+        return PhpVersionInfo_QueryInfo32(VersionInfo, VersionInfoKey, Buffer, BufferLength);
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        return FALSE;
+    }
+}
+
 /**
  * Retrieves the language ID and code page used by a version information block.
  *
@@ -1738,7 +1878,7 @@ ULONG PhGetFileVersionInfoLangCodePage(
     PVOID buffer;
     ULONG length;
 
-    if (VerQueryValue(VersionInfo, L"\\VarFileInfo\\Translation", &buffer, &length))
+    if (PhGetFileVersionInfoValue(VersionInfo, L"\\VarFileInfo\\Translation", &buffer, &length))
     {
         // Combine the language ID and code page.
         return (*(PUSHORT)buffer << 16) + *((PUSHORT)buffer + 1);
@@ -1763,7 +1903,7 @@ PPH_STRING PhGetFileVersionInfoString(
     PVOID buffer;
     ULONG length;
 
-    if (VerQueryValue(VersionInfo, SubBlock, &buffer, &length))
+    if (PhGetFileVersionInfoValue(VersionInfo, SubBlock, &buffer, &length))
     {
         PPH_STRING string;
 
@@ -1865,7 +2005,7 @@ BOOLEAN PhInitializeImageVersionInfo(
     }
 
     // The version information is language-independent and must be read from the root block.
-    if (VerQueryValue(versionInfo, L"\\", &rootBlock, &rootBlockLength) && rootBlockLength != 0)
+    if (PhGetFileVersionInfoValue(versionInfo, L"\\", &rootBlock, &rootBlockLength) && rootBlockLength != 0)
     {
         PhInitFormatU(&fileVersionFormat[0], HIWORD(rootBlock->dwFileVersionMS));
         PhInitFormatC(&fileVersionFormat[1], L'.');
