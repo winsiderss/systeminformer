@@ -115,6 +115,7 @@ VOID PhInitializeModuleList(
     PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_FILESIZE, FALSE, L"File size", 70, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_ENTRYPOINT, FALSE, L"Entry point", 70, PH_ALIGN_LEFT, ULONG_MAX, 0, TRUE);
     PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_PARENTBASEADDRESS, FALSE, L"Parent base address", 70, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
+    PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_CET, FALSE, L"CET", 50, PH_ALIGN_LEFT, ULONG_MAX, 0, TRUE);
 
     TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
 
@@ -995,6 +996,10 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                     PhPrintPointer(moduleItem->ParentBaseAddressString, moduleItem->ParentBaseAddress);
                     PhInitializeStringRefLongHint(&getCellText->Text, moduleItem->ParentBaseAddressString);
                 }
+                break;
+            case PHMOTLC_CET:
+                if (moduleItem->ImageDllCharaceristicsEx & IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT)
+                    PhInitializeStringRef(&getCellText->Text, L"CET");
                 break;
             default:
                 return FALSE;

@@ -28,8 +28,9 @@
 #define PHMOTLC_FILESIZE 17
 #define PHMOTLC_ENTRYPOINT 18
 #define PHMOTLC_PARENTBASEADDRESS 19
+#define PHMOTLC_CET 20
 
-#define PHMOTLC_MAXIMUM 20
+#define PHMOTLC_MAXIMUM 21
 
 // begin_phapppub
 typedef struct _PH_MODULE_NODE
