@@ -688,6 +688,20 @@ PhGetMappedArchiveImportEntry(
     _Out_ PPH_MAPPED_ARCHIVE_IMPORT_ENTRY Entry
     );
 
+typedef struct _PH_MAPPED_IMAGE_EH_CONT {
+    PULONGLONG EhContTable;
+    ULONGLONG NumberOfEhContEntries;
+    ULONG EntrySize;
+} PH_MAPPED_IMAGE_EH_CONT, * PPH_MAPPED_IMAGE_EH_CONT;
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetMappedImageEhCont(
+    _Out_ PPH_MAPPED_IMAGE_EH_CONT EhContConfig,
+    _In_ PPH_MAPPED_IMAGE MappedImage
+);
+
 // ELF binary support
 
 NTSTATUS PhInitializeMappedWslImage(

@@ -2471,3 +2471,98 @@ BOOLEAN PhGetMappedImageDebugEntryByType(
 
     return FALSE;
 }
+
+NTSTATUS PhGetMappedImageEhCont32(
+    _Out_ PPH_MAPPED_IMAGE_EH_CONT EhContConfig,
+    _In_ PPH_MAPPED_IMAGE MappedImage
+)
+{
+    NTSTATUS status;
+    PIMAGE_LOAD_CONFIG_DIRECTORY32 config32;
+
+    if (!NT_SUCCESS(status = PhGetMappedImageLoadConfig32(MappedImage, &config32)))
+        return status;
+
+    // Not every load configuration contains eh continuation
+    if (!RTL_CONTAINS_FIELD(config32, config32->Size, GuardEHContinuationCount))
+        return STATUS_INVALID_VIEW_SIZE;
+
+    EhContConfig->EhContTable = PhMappedImageRvaToVa(MappedImage, (ULONG)(config32->GuardEHContinuationTable - MappedImage->NtHeaders32->OptionalHeader.ImageBase), NULL);
+    EhContConfig->NumberOfEhContEntries = config32->GuardEHContinuationCount;
+
+    // taken from from nt!RtlGuardRestoreContext
+    EhContConfig->EntrySize = ((config32->GuardFlags & IMAGE_GUARD_CF_FUNCTION_TABLE_SIZE_MASK) >> IMAGE_GUARD_CF_FUNCTION_TABLE_SIZE_SHIFT) + sizeof(ULONG);
+
+    if (EhContConfig->EhContTable && EhContConfig->NumberOfEhContEntries)
+    {
+        __try
+        {
+            PhpMappedImageProbe(
+                MappedImage,
+                EhContConfig->EhContTable,
+                (SIZE_T)(EhContConfig->NumberOfEhContEntries * EhContConfig->EntrySize)
+            );
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            return GetExceptionCode();
+        }
+    }
+
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS PhGetMappedImageEhCont64(
+    _Out_ PPH_MAPPED_IMAGE_EH_CONT EhContConfig,
+    _In_ PPH_MAPPED_IMAGE MappedImage
+)
+{
+    NTSTATUS status;
+    PIMAGE_LOAD_CONFIG_DIRECTORY64 config64;
+
+    if (!NT_SUCCESS(status = PhGetMappedImageLoadConfig64(MappedImage, &config64)))
+        return status;
+
+    // Not every load configuration contains eh continuation
+    if (!RTL_CONTAINS_FIELD(config64, config64->Size, GuardEHContinuationCount))
+        return STATUS_INVALID_VIEW_SIZE;
+
+    EhContConfig->EhContTable = PhMappedImageRvaToVa(MappedImage, (ULONG)(config64->GuardEHContinuationTable - MappedImage->NtHeaders->OptionalHeader.ImageBase), NULL);
+    EhContConfig->NumberOfEhContEntries = config64->GuardEHContinuationCount;
+
+    // taken from from nt!RtlGuardRestoreContext
+    EhContConfig->EntrySize = ((config64->GuardFlags & IMAGE_GUARD_CF_FUNCTION_TABLE_SIZE_MASK) >> IMAGE_GUARD_CF_FUNCTION_TABLE_SIZE_SHIFT) + sizeof(ULONG);
+
+    if (EhContConfig->EhContTable && EhContConfig->NumberOfEhContEntries)
+    {
+        __try
+        {
+            PhpMappedImageProbe(
+                MappedImage,
+                EhContConfig->EhContTable,
+                (SIZE_T)(EhContConfig->NumberOfEhContEntries * EhContConfig->EntrySize)
+            );
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            return GetExceptionCode();
+        }
+    }
+
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS PhGetMappedImageEhCont(
+    _Out_ PPH_MAPPED_IMAGE_EH_CONT EhContConfig,
+    _In_ PPH_MAPPED_IMAGE MappedImage
+)
+{
+    if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+    {
+        return PhGetMappedImageEhCont32(EhContConfig, MappedImage);
+    }
+    else
+    {
+        return PhGetMappedImageEhCont64(EhContConfig, MappedImage);
+    }
+}
