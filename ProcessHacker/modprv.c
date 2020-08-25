@@ -154,6 +154,16 @@ PPH_MODULE_PROVIDER PhCreateModuleProvider(
         {
             moduleProvider->IsSubsystemProcess = !!basicInfo.IsSubsystemProcess;
         }
+
+        if (WindowsVersion >= WINDOWS_10_20H1)
+        {
+            BOOLEAN cetEnabled;
+
+            if (NT_SUCCESS(PhGetProcessIsCetEnabled(moduleProvider->ProcessHandle, &cetEnabled)))
+            {
+                moduleProvider->CetEnabled = cetEnabled;
+            }
+        }
     }
 
     RtlInitializeSListHead(&moduleProvider->QueryListHead);
@@ -632,6 +642,26 @@ VOID PhModuleProviderUpdate(
                     if (entryPoint != 0)
                         moduleItem->EntryPoint = PTR_ADD_OFFSET(moduleItem->BaseAddress, entryPoint);
 
+                    ULONG debugEntryLength;
+                    PVOID debugEntry;
+                    if (PhGetRemoteMappedImageDebugEntryByTypeEx(moduleProvider->ProcessHandle,
+                        &remoteMappedImage,
+                        IMAGE_DEBUG_TYPE_EX_DLLCHARACTERISTICS,
+                        readVirtualMemoryCallback,
+                        &debugEntryLength,
+                        &debugEntry))
+                    {
+                        ULONG characteristics = ULONG_MAX;
+
+                        if (debugEntryLength == sizeof(ULONG))
+                            characteristics = *(ULONG*)debugEntry;
+
+                        if (characteristics != ULONG_MAX)
+                            moduleItem->ImageDllCharaceristicsEx = characteristics;
+
+                        PhFree(debugEntry);
+                    }
+
                     PhUnloadRemoteMappedImage(&remoteMappedImage);
                 }
             }
@@ -639,6 +669,10 @@ VOID PhModuleProviderUpdate(
             // remove CF Guard flag if CFG mitigation is not enabled for the process
             if (!moduleProvider->ControlFlowGuardEnabled)
                 moduleItem->ImageDllCharacteristics &= ~IMAGE_DLLCHARACTERISTICS_GUARD_CF;
+
+            // remove CET flag if CET is not enabled for the process
+            if (!moduleProvider->CetEnabled)
+                moduleItem->ImageDllCharaceristicsEx &= ~IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT;
 
             if (NT_SUCCESS(PhQueryFullAttributesFileWin32(moduleItem->FileName->Buffer, &networkOpenInfo)))
             {

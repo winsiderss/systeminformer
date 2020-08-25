@@ -108,7 +108,10 @@ VOID PvPeProperties(
     PPV_PROPCONTEXT propContext;
     PH_MAPPED_IMAGE_IMPORTS imports;
     PH_MAPPED_IMAGE_EXPORTS exports;
+    PIMAGE_LOAD_CONFIG_DIRECTORY32 config32;
+    PIMAGE_LOAD_CONFIG_DIRECTORY64 config64;
     PIMAGE_DATA_DIRECTORY entry;
+    BOOLEAN hasEhContTable = FALSE;
 
     if (!PhExtractIcon(PvFileName->Buffer, &PvImageLargeIcon, &PvImageSmallIcon))
     {
@@ -372,6 +375,39 @@ VOID PvPeProperties(
                 NULL
                 );
             PvAddPropPage(propContext, newPage);
+        }
+
+        // EH continuation page
+        {
+            BOOLEAN has_ehcont = FALSE;
+            if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+            {
+                if (NT_SUCCESS(PhGetMappedImageLoadConfig32(&PvMappedImage, &config32)) &&
+                    RTL_CONTAINS_FIELD(config32, config32->Size, GuardEHContinuationCount))
+                {
+                    if (config32->GuardEHContinuationCount && config32->GuardEHContinuationCount)
+                        has_ehcont = TRUE;
+                }
+            }
+            else
+            {
+                if (NT_SUCCESS(PhGetMappedImageLoadConfig64(&PvMappedImage, &config64)) &&
+                    RTL_CONTAINS_FIELD(config64, config64->Size, GuardEHContinuationCount))
+                {
+                    if (config64->GuardEHContinuationCount && config64->GuardEHContinuationCount)
+                        has_ehcont = TRUE;
+                }
+            }
+
+            if (has_ehcont)
+            {
+                newPage = PvCreatePropPageContext(
+                    MAKEINTRESOURCE(IDD_PEEHCONT),
+                    PvpPeEhContDlgProc,
+                    NULL
+                );
+                PvAddPropPage(propContext, newPage);
+            }
         }
 
         PhModalPropertySheet(&propContext->PropSheetHeader);
