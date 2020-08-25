@@ -1301,6 +1301,17 @@ VOID PhpFillProcessItem(
         }
     }
 
+    // CET
+    if (WindowsVersion >= WINDOWS_10_20H1 && ProcessItem->QueryHandle)
+    {
+        BOOLEAN cetEnabled;
+
+        if (NT_SUCCESS(PhGetProcessIsCetEnabled(ProcessItem->QueryHandle, &cetEnabled)))
+        {
+            ProcessItem->IsCetEnabled = cetEnabled;
+        }
+    }
+
     // On Windows 8.1 and above, processes without threads are reflected processes 
     // which will not terminate if we have a handle open. (wj32)
     if (Process->NumberOfThreads == 0 && ProcessItem->QueryHandle)

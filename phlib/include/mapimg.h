@@ -192,6 +192,29 @@ PhUnloadRemoteMappedImage(
     _Inout_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage
     );
 
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetRemoteMappedImageDebugEntryByType(
+    _In_ HANDLE ProcessHandle,
+    _In_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage,
+    _In_ ULONG Type,
+    _Out_opt_ ULONG* EntryLength,
+    _Out_ PVOID* EntryBuffer
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetRemoteMappedImageDebugEntryByTypeEx(
+    _In_ HANDLE ProcessHandle,
+    _In_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage,
+    _In_ ULONG Type,
+    _In_ PPH_READ_VIRTUAL_MEMORY_CALLBACK ReadVirtualMemoryCallback,
+    _Out_opt_ ULONG* EntryLength,
+    _Out_ PVOID* EntryBuffer
+    );
+
 typedef struct _PH_MAPPED_IMAGE_EXPORTS
 {
     PPH_MAPPED_IMAGE MappedImage;
@@ -664,6 +687,20 @@ PhGetMappedArchiveImportEntry(
     _In_ PPH_MAPPED_ARCHIVE_MEMBER Member,
     _Out_ PPH_MAPPED_ARCHIVE_IMPORT_ENTRY Entry
     );
+
+typedef struct _PH_MAPPED_IMAGE_EH_CONT {
+    PULONGLONG EhContTable;
+    ULONGLONG NumberOfEhContEntries;
+    ULONG EntrySize;
+} PH_MAPPED_IMAGE_EH_CONT, * PPH_MAPPED_IMAGE_EH_CONT;
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetMappedImageEhCont(
+    _Out_ PPH_MAPPED_IMAGE_EH_CONT EhContConfig,
+    _In_ PPH_MAPPED_IMAGE MappedImage
+);
 
 // ELF binary support
 

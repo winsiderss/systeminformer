@@ -123,6 +123,9 @@
     <ClCompile Include="secprp.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ehcontprp.c">
+      <Filter>Source Files\Pages\Windows</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\peview.h">

@@ -36,6 +36,7 @@ typedef struct _PH_MODULE_ITEM
     ULONG ImageTimeDateStamp;
     USHORT ImageCharacteristics;
     USHORT ImageDllCharacteristics;
+    ULONG ImageDllCharaceristicsEx;
 
     LARGE_INTEGER LoadTime;
     LARGE_INTEGER FileLastWriteTime;
@@ -70,7 +71,8 @@ typedef struct _PH_MODULE_PROVIDER
             BOOLEAN HaveFirst : 1;
             BOOLEAN ControlFlowGuardEnabled : 1;
             BOOLEAN IsSubsystemProcess : 1;
-            BOOLEAN Spare : 5;
+            BOOLEAN CetEnabled : 1;
+            BOOLEAN Spare : 4;
         };
     };
 } PH_MODULE_PROVIDER, *PPH_MODULE_PROVIDER;
