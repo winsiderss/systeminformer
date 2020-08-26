@@ -998,7 +998,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 }
                 break;
             case PHMOTLC_CET:
-                if (moduleItem->ImageDllCharaceristicsEx & IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT)
+                if (moduleItem->ImageDllCharacteristicsEx & IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT)
                     PhInitializeStringRef(&getCellText->Text, L"CET");
                 break;
             default:
