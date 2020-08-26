@@ -1948,6 +1948,12 @@ BEGIN_SORT_FUNCTION(CpuCore)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(Cet)
+{
+    sortResult = uintcmp(node1->ProcessItem->IsCetEnabled, node2->ProcessItem->IsCetEnabled);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpProcessTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -2074,6 +2080,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         SORT_FUNCTION(Critical),
                         SORT_FUNCTION(HexPid),
                         SORT_FUNCTION(CpuCore),
+                        SORT_FUNCTION(Cet),
                     };
                     int (__cdecl *sortFunction)(const void *, const void *);
 
