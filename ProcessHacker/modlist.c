@@ -31,6 +31,9 @@
 #include <modprv.h>
 #include <phsettings.h>
 
+// remove once IMAGE_GUARD_XFG_ENABLED is defined (TheEragon)
+#include <mapimg.h>
+
 BOOLEAN PhpModuleNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -611,10 +614,19 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(CfGuard)
 {
+    // prefer XFG over CFG
     sortResult = intcmp(
-        moduleItem1->ImageDllCharacteristics & IMAGE_DLLCHARACTERISTICS_GUARD_CF,
-        moduleItem2->ImageDllCharacteristics & IMAGE_DLLCHARACTERISTICS_GUARD_CF
+        moduleItem1->GuardFlags & IMAGE_GUARD_XFG_ENABLED,
+        moduleItem2->GuardFlags & IMAGE_GUARD_XFG_ENABLED
+    );
+
+    if (sortResult == 0)
+    {
+        sortResult = intcmp(
+            moduleItem1->ImageDllCharacteristics & IMAGE_DLLCHARACTERISTICS_GUARD_CF,
+            moduleItem2->ImageDllCharacteristics & IMAGE_DLLCHARACTERISTICS_GUARD_CF
         );
+    }
 }
 END_SORT_FUNCTION
 
@@ -907,7 +919,12 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 break;
             case PHMOTLC_CFGUARD:
                 if (moduleItem->ImageDllCharacteristics & IMAGE_DLLCHARACTERISTICS_GUARD_CF)
-                    PhInitializeStringRef(&getCellText->Text, L"CF Guard");
+                {
+                    if (moduleItem->GuardFlags & IMAGE_GUARD_XFG_ENABLED)
+                        PhInitializeStringRef(&getCellText->Text, L"XF Guard");
+                    else
+                        PhInitializeStringRef(&getCellText->Text, L"CF Guard");
+                }
                 break;
             case PHMOTLC_LOADTIME:
                 {
