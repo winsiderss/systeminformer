@@ -654,6 +654,15 @@ BEGIN_SORT_FUNCTION(ParentBaseAddress)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(Cet)
+{
+    sortResult = intcmp(
+        moduleItem1->ImageDllCharacteristicsEx & IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT,
+        moduleItem2->ImageDllCharacteristicsEx & IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT
+    );
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpModuleTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -717,7 +726,8 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                     SORT_FUNCTION(FileModifiedTime),
                     SORT_FUNCTION(FileSize),
                     SORT_FUNCTION(EntryPoint),
-                    SORT_FUNCTION(ParentBaseAddress)
+                    SORT_FUNCTION(ParentBaseAddress),
+                    SORT_FUNCTION(Cet),
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
@@ -998,7 +1008,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 }
                 break;
             case PHMOTLC_CET:
-                if (moduleItem->ImageDllCharaceristicsEx & IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT)
+                if (moduleItem->ImageDllCharacteristicsEx & IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT)
                     PhInitializeStringRef(&getCellText->Text, L"CET");
                 break;
             default:

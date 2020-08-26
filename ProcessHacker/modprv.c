@@ -657,7 +657,7 @@ VOID PhModuleProviderUpdate(
                             characteristics = *(ULONG*)debugEntry;
 
                         if (characteristics != ULONG_MAX)
-                            moduleItem->ImageDllCharaceristicsEx = characteristics;
+                            moduleItem->ImageDllCharacteristicsEx = characteristics;
 
                         PhFree(debugEntry);
                     }
@@ -672,7 +672,7 @@ VOID PhModuleProviderUpdate(
 
             // remove CET flag if CET is not enabled for the process
             if (!moduleProvider->CetEnabled)
-                moduleItem->ImageDllCharaceristicsEx &= ~IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT;
+                moduleItem->ImageDllCharacteristicsEx &= ~IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT;
 
             if (NT_SUCCESS(PhQueryFullAttributesFileWin32(moduleItem->FileName->Buffer, &networkOpenInfo)))
             {
