@@ -180,7 +180,7 @@ VOID PhShowProcessHeapsDialog(
 static INT NTAPI PhpHeapAddressCompareFunction(
     _In_ PVOID Item1,
     _In_ PVOID Item2,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PPROCESS_HEAPS_CONTEXT context = Context;
@@ -204,7 +204,7 @@ static INT NTAPI PhpHeapAddressCompareFunction(
 static INT NTAPI PhpHeapUsedCompareFunction(
     _In_ PVOID Item1,
     _In_ PVOID Item2,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PPROCESS_HEAPS_CONTEXT context = Context;
@@ -228,7 +228,7 @@ static INT NTAPI PhpHeapUsedCompareFunction(
 static INT NTAPI PhpHeapCommittedCompareFunction(
     _In_ PVOID Item1,
     _In_ PVOID Item2,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PPROCESS_HEAPS_CONTEXT context = Context;
@@ -252,7 +252,7 @@ static INT NTAPI PhpHeapCommittedCompareFunction(
 static INT NTAPI PhpHeapEntriesCompareFunction(
     _In_ PVOID Item1,
     _In_ PVOID Item2,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PPROCESS_HEAPS_CONTEXT context = Context;
@@ -276,7 +276,7 @@ static INT NTAPI PhpHeapEntriesCompareFunction(
 static HFONT NTAPI PhpHeapFontFunction(
     _In_ INT Index,
     _In_ PVOID Param,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PVOID heapBaseAddress = Param;

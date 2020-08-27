@@ -3,7 +3,7 @@
  *   hidden processes detection
  *
  * Copyright (C) 2010-2013 wj32
- * Copyright (C) 2019 dmex
+ * Copyright (C) 2019-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -150,6 +150,7 @@ INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
             ComboBox_AddString(methodHandle, L"ETW handles");
             ComboBox_AddString(methodHandle, L"Process handles");
             ComboBox_AddString(methodHandle, L"Registry handles");
+            ComboBox_AddString(methodHandle, L"Ntdll handles");
             PhSelectComboBoxString(methodHandle, L"Process handles", FALSE);
 
             MinimumSize.left = 0;
@@ -217,6 +218,8 @@ INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
                         ProcessesMethod = RegistryScanMethod;
                     else if (PhEqualString2(method, L"ETW handles", TRUE))
                         ProcessesMethod = EtwGuidScanMethod;
+                    else if (PhEqualString2(method, L"Ntdll handles", TRUE))
+                        ProcessesMethod = NtdllScanMethod;
 
                     NumberOfHiddenProcesses = 0;
                     NumberOfTerminatedProcesses = 0;
@@ -1123,7 +1126,7 @@ NTSTATUS PhpEnumHiddenSubKeyHandles(
 
                 process.ProcessId = entry.ProcessId;
 
-                if (NT_SUCCESS(PhGetProcessImageFileName(processHandle, &fileName)))
+                if (NT_SUCCESS(PhGetProcessImageFileNameByProcessId(process.ProcessId, &fileName)))
                 {
                     process.FileName = PhGetFileName(fileName);
                     PhDereferenceObject(fileName);
@@ -1259,7 +1262,7 @@ NTSTATUS PhpEnumEtwGuidHandles(
 
                         process.ProcessId = UlongToHandle(instance->Pid);
 
-                        if (NT_SUCCESS(PhGetProcessImageFileName(processHandle, &fileName)))
+                        if (NT_SUCCESS(PhGetProcessImageFileNameByProcessId(process.ProcessId, &fileName)))
                         {
                             process.FileName = PhGetFileName(fileName);
                             PhDereferenceObject(fileName);
@@ -1291,6 +1294,133 @@ NTSTATUS PhpEnumEtwGuidHandles(
     return status;
 }
 
+
+NTSTATUS PhpEnumNtdllHandles(
+    _In_ PPH_ENUM_HIDDEN_PROCESSES_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    NTSTATUS status;
+    HANDLE fileHandle;
+    PH_STRINGREF systemRootString;
+    PPH_STRING ntdllFileName;
+
+    PhGetSystemRoot(&systemRootString);
+    ntdllFileName = PhConcatStringRefZ(&systemRootString, L"\\System32\\ntdll.dll");
+
+    status = PhCreateFileWin32(
+        &fileHandle,
+        PhGetString(ntdllFileName),
+        FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        PFILE_PROCESS_IDS_USING_FILE_INFORMATION processIds;
+
+        status = PhGetProcessIdsUsingFile(
+            fileHandle,
+            &processIds
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            for (ULONG i = 0; i < processIds->NumberOfProcessIdsInList; i++)
+            {
+                HANDLE processId;
+                HANDLE processHandle;
+
+                processId = (HANDLE)processIds->ProcessIdList[i];
+
+                if (NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, processId)))
+                {
+                    PVOID processes;
+
+                    if (NT_SUCCESS(PhEnumProcesses(&processes)))
+                    {
+                        if (!PhFindProcessInformation(processes, processId))
+                        {
+                            PH_HIDDEN_PROCESS_ENTRY process;
+                            PPH_STRING fileName;
+
+                            process.ProcessId = processId;
+
+                            if (NT_SUCCESS(PhGetProcessImageFileName(processHandle, &fileName)))
+                            {
+                                PROCESS_EXTENDED_BASIC_INFORMATION basicInfo;
+
+                                process.FileName = PhGetFileName(fileName);
+                                PhDereferenceObject(fileName);
+                                process.Type = HiddenProcess;
+
+                                if (NT_SUCCESS(PhGetProcessExtendedBasicInformation(processHandle, &basicInfo)))
+                                {
+                                    if (basicInfo.IsProcessDeleting)
+                                        process.Type = TerminatedProcess;
+                                }
+
+                                if (!Callback(&process, Context))
+                                    break;
+
+                                PhDereferenceObject(process.FileName);
+                            }
+                            else
+                            {
+                                process.FileName = NULL;
+                                process.Type = UnknownProcess;
+
+                                if (!Callback(&process, Context))
+                                    break;
+                            }
+                        }
+
+                        PhFree(processes);
+                    }
+
+                    NtClose(processHandle);
+                }
+                else
+                {
+                    PH_HIDDEN_PROCESS_ENTRY process;
+                    PPH_STRING fileName;
+
+                    process.ProcessId = processId;
+
+                    if (NT_SUCCESS(PhGetProcessImageFileNameByProcessId(process.ProcessId, &fileName)))
+                    {
+                        process.FileName = PhGetFileName(fileName);
+                        PhDereferenceObject(fileName);
+                        process.Type = HiddenProcess;
+
+                        if (!Callback(&process, Context))
+                            break;
+
+                        PhDereferenceObject(process.FileName);
+                    }
+                    else
+                    {
+                        process.FileName = NULL;
+                        process.Type = UnknownProcess;
+
+                        if (!Callback(&process, Context))
+                            break;
+                    }
+                }
+            }
+
+            PhFree(processIds);
+        }
+
+        NtClose(fileHandle);
+    }
+
+    return status;
+}
+
 NTSTATUS PhEnumHiddenProcesses(
     _In_ PH_HIDDEN_PROCESS_METHOD Method,
     _In_ PPH_ENUM_HIDDEN_PROCESSES_CALLBACK Callback,
@@ -1309,6 +1439,8 @@ NTSTATUS PhEnumHiddenProcesses(
         return PhpEnumHiddenSubKeyHandles(Callback, Context);
     case EtwGuidScanMethod:
         return PhpEnumEtwGuidHandles(Callback, Context);
+    case NtdllScanMethod:
+        return PhpEnumNtdllHandles(Callback, Context);
     }
 
     return STATUS_FAIL_CHECK;
