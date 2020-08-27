@@ -62,11 +62,8 @@ PPH_STRING PvpGetPeGuardFlagsText(
         PhAppendStringBuilder2(&stringBuilder, L"Longjump table, ");
     if (GuardFlags & IMAGE_GUARD_RETPOLINE_PRESENT)
         PhAppendStringBuilder2(&stringBuilder, L"Retpoline present, ");
-
-    // IMAGE_GUARD_EH_CONTINUATION_TABLE_PRESENT, Windows 20H1 and 21H1 have both different values
-    if (GuardFlags & 0x00200000 || GuardFlags & 0x00400000)
+    if (GuardFlags & IMAGE_GUARD_EH_CONTINUATION_TABLE_PRESENT_V1 || GuardFlags & IMAGE_GUARD_EH_CONTINUATION_TABLE_PRESENT_V2)
         PhAppendStringBuilder2(&stringBuilder, L"EH continuation table, ");
-
     if (GuardFlags & IMAGE_GUARD_XFG_ENABLED)
         PhAppendStringBuilder2(&stringBuilder, L"XFG, ");
 
