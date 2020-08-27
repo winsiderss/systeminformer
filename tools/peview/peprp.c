@@ -398,7 +398,7 @@ VOID PvPeProperties(
                 if (NT_SUCCESS(PhGetMappedImageLoadConfig64(&PvMappedImage, &config64)) &&
                     RTL_CONTAINS_FIELD(config64, config64->Size, GuardEHContinuationCount))
                 {
-                    if (config64->GuardEHContinuationTable && config32->GuardEHContinuationCount)
+                    if (config64->GuardEHContinuationTable && config64->GuardEHContinuationCount)
                         has_ehcont = TRUE;
                 }
             }
