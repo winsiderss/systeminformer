@@ -389,7 +389,7 @@ VOID PvPeProperties(
                 if (NT_SUCCESS(PhGetMappedImageLoadConfig32(&PvMappedImage, &config32)) &&
                     RTL_CONTAINS_FIELD(config32, config32->Size, GuardEHContinuationCount))
                 {
-                    if (config32->GuardEHContinuationCount)
+                    if (config32->GuardEHContinuationTable && config32->GuardEHContinuationCount)
                         has_ehcont = TRUE;
                 }
             }
@@ -398,7 +398,7 @@ VOID PvPeProperties(
                 if (NT_SUCCESS(PhGetMappedImageLoadConfig64(&PvMappedImage, &config64)) &&
                     RTL_CONTAINS_FIELD(config64, config64->Size, GuardEHContinuationCount))
                 {
-                    if (config64->GuardEHContinuationCount)
+                    if (config64->GuardEHContinuationTable && config32->GuardEHContinuationCount)
                         has_ehcont = TRUE;
                 }
             }
@@ -409,7 +409,7 @@ VOID PvPeProperties(
                     MAKEINTRESOURCE(IDD_PEEHCONT),
                     PvpPeEhContDlgProc,
                     NULL
-                );
+                    );
                 PvAddPropPage(propContext, newPage);
             }
         }
