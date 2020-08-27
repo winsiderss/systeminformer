@@ -455,7 +455,7 @@ PPH_LIST PhpQueryWmiProviderHostProcess(
 
         if (entry->NamespacePath && entry->ProviderName)
         {
-            PPH_STRING fileName;
+            PPH_STRING fileName = NULL;
 
             if (SUCCEEDED(PhpQueryWmiProviderFileName(entry->NamespacePath, entry->ProviderName, &fileName)))
             {
