@@ -19,7 +19,7 @@ typedef struct _PH_PROCESS_MITIGATION_POLICY_ALL_INFORMATION
     PROCESS_MITIGATION_PAYLOAD_RESTRICTION_POLICY PayloadRestrictionPolicy; // ProcessPayloadRestrictionPolicy
     PROCESS_MITIGATION_CHILD_PROCESS_POLICY ChildProcessPolicy; // ProcessChildProcessPolicy
     PROCESS_MITIGATION_SIDE_CHANNEL_ISOLATION_POLICY SideChannelIsolationPolicy; // ProcessSideChannelIsolationPolicy
-    PROCESS_MITIGATION_USER_SHADOW_STACK_POLICY UserShadowStackPolicy; // ProcessUserShadowStackPolicy
+    PROCESS_MITIGATION_USER_SHADOW_STACK_POLICY_INT UserShadowStackPolicy; // ProcessUserShadowStackPolicy
 } PH_PROCESS_MITIGATION_POLICY_ALL_INFORMATION, *PPH_PROCESS_MITIGATION_POLICY_ALL_INFORMATION;
 
 NTSTATUS PhGetProcessMitigationPolicy(
