@@ -100,25 +100,29 @@ BOOLEAN PvpPeAddCertificateInfo(
         //PhSetListViewSubItem(ListViewHandle, ListViewItemIndex, 4, PvpGetRelativeTimeString(&fileTime)->Buffer);
     }
 
+    dataLength = 0;
+
+    if (CertGetCertificateContextProperty(
+        CertificateContext,
+        CERT_HASH_PROP_ID,
+        NULL,
+        &dataLength
+        ) && dataLength > 0)
     {
-        dataLength = 0;
+        PBYTE hash;
 
-        CertGetCertificateContextProperty(CertificateContext, CERT_HASH_PROP_ID, NULL, &dataLength);
+        hash = PhAllocateZero(dataLength);
 
-        if (dataLength)
+        if (CertGetCertificateContextProperty(CertificateContext, CERT_HASH_PROP_ID, hash, &dataLength))
         {
-            PUCHAR hash;
             PPH_STRING string;
-
-            hash = PhAllocateZero(dataLength);
-            CertGetCertificateContextProperty(CertificateContext, CERT_HASH_PROP_ID, hash, &dataLength);
 
             string = PhBufferToHexString(hash, dataLength);
             PhSetListViewSubItem(ListViewHandle, ListViewItemIndex, 4, string->Buffer);
-
             PhDereferenceObject(string);
-            PhFree(hash);
         }
+
+        PhFree(hash);
     }
 
     return TRUE;
@@ -291,20 +295,45 @@ VOID PvpPeViewCertificateContext(
     )
 {
     CRYPTUI_VIEWCERTIFICATE_STRUCT cryptViewCertInfo;
+    HCERTSTORE certStore = CertContext->hCertStore;
 
     memset(&cryptViewCertInfo, 0, sizeof(CRYPTUI_VIEWCERTIFICATE_STRUCT));
     cryptViewCertInfo.dwSize = sizeof(CRYPTUI_VIEWCERTIFICATE_STRUCT);
-    cryptViewCertInfo.dwFlags = CRYPTUI_ENABLE_REVOCATION_CHECKING | CRYPTUI_ENABLE_REVOCATION_CHECK_END_CERT;
+    //cryptViewCertInfo.dwFlags = CRYPTUI_ENABLE_REVOCATION_CHECKING | CRYPTUI_ENABLE_REVOCATION_CHECK_END_CERT;
     cryptViewCertInfo.hwndParent = WindowHandle;
     cryptViewCertInfo.pCertContext = CertContext;
-
-    HCERTSTORE certStoreHandle = CertContext->hCertStore;
     cryptViewCertInfo.cStores = 1;
-    cryptViewCertInfo.rghStores = &certStoreHandle;
+    cryptViewCertInfo.rghStores = &certStore;
 
     if (CryptUIDlgViewCertificate)
     {
         CryptUIDlgViewCertificate(&cryptViewCertInfo, NULL);
+    }
+
+    //if (CryptUIDlgViewContext)
+    //{
+    //    CryptUIDlgViewContext(CERT_STORE_CERTIFICATE_CONTEXT, CertContext, WindowHandle, NULL, 0, NULL);
+    //}
+}
+
+VOID PvpPeSaveCertificateContext(
+    _In_ HWND WindowHandle,
+    _In_ PCCERT_CONTEXT CertContext
+    )
+{
+    CRYPTUI_WIZ_EXPORT_INFO cryptExportCertInfo;
+    HCERTSTORE certStore = CertContext->hCertStore;
+
+    memset(&cryptExportCertInfo, 0, sizeof(CRYPTUI_WIZ_EXPORT_INFO));
+    cryptExportCertInfo.dwSize = sizeof(CRYPTUI_WIZ_EXPORT_INFO);
+    cryptExportCertInfo.dwSubjectChoice = CRYPTUI_WIZ_EXPORT_CERT_CONTEXT;
+    cryptExportCertInfo.pCertContext = CertContext;
+    cryptExportCertInfo.cStores = 1;
+    cryptExportCertInfo.rghStores = &certStore;
+
+    if (CryptUIWizExport)
+    {
+        CryptUIWizExport(0, WindowHandle, NULL, &cryptExportCertInfo, NULL);
     }
 }
 
@@ -439,7 +468,8 @@ INT_PTR CALLBACK PvpPeSecurityDlgProc(
                 if (numberOfItems != 0)
                 {
                     menu = PhCreateEMenu();
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 1, L"View certificate", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 1, L"View certificate...", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 2, L"Save certificate...", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, USHRT_MAX, L"&Copy", NULL, NULL), ULONG_MAX);
                     PvInsertCopyListViewEMenuItem(menu, USHRT_MAX, (HWND)wParam);
@@ -461,6 +491,9 @@ INT_PTR CALLBACK PvpPeSecurityDlgProc(
                             {
                             case 1:
                                 PvpPeViewCertificateContext(hwndDlg, listviewItems[0]);                   
+                                break;
+                            case 2:
+                                PvpPeSaveCertificateContext(hwndDlg, listviewItems[0]);
                                 break;
                             case USHRT_MAX:
                                 PvCopyListView((HWND)wParam);
