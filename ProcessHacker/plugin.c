@@ -254,6 +254,7 @@ static BOOLEAN EnumPluginsDirectoryCallback(
     {
         PH_STRINGREF_INIT(L"CommonUtil.dll"),
         PH_STRINGREF_INIT(L"ExtraPlugins.dll"),
+        PH_STRINGREF_INIT(L"NetAdapters.dll"),
         PH_STRINGREF_INIT(L"SbieSupport.dll"),
         PH_STRINGREF_INIT(L"HexPidPlugin.dll")
     };
