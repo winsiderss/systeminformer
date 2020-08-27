@@ -662,6 +662,12 @@ VOID PhModuleProviderUpdate(
                         PhFree(debugEntry);
                     }
 
+                    if (!PhGetRemoteMappedImageGuardFlagsEx(moduleProvider->ProcessHandle,
+                        &remoteMappedImage,
+                        readVirtualMemoryCallback,
+                        &moduleItem->GuardFlags))
+                        moduleItem->GuardFlags = 0;
+
                     PhUnloadRemoteMappedImage(&remoteMappedImage);
                 }
             }

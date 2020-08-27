@@ -646,6 +646,71 @@ NTSTATUS PhUnloadRemoteMappedImage(
     return STATUS_SUCCESS;
 }
 
+BOOLEAN PhGetRemoteMappedImageDirectoryEntry(
+    _In_ HANDLE ProcessHandle,
+    _In_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage,
+    _In_ PPH_READ_VIRTUAL_MEMORY_CALLBACK ReadVirtualMemoryCallback,
+    _In_ ULONG Index,
+    _Out_ PVOID* DataBuffer,
+    _Out_opt_ ULONG* DataLength
+)
+{
+    if (!DataBuffer)
+        return FALSE;
+
+    PIMAGE_DATA_DIRECTORY dataDirectory;
+    if (RemoteMappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+    {
+        PIMAGE_OPTIONAL_HEADER32 optionalHeader;
+
+        optionalHeader = (PIMAGE_OPTIONAL_HEADER32)&RemoteMappedImage->NtHeaders->OptionalHeader;
+
+        if (Index >= optionalHeader->NumberOfRvaAndSizes)
+            return FALSE;
+
+        dataDirectory = &optionalHeader->DataDirectory[Index];
+    }
+    else if (RemoteMappedImage->Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+    {
+        PIMAGE_OPTIONAL_HEADER64 optionalHeader;
+
+        optionalHeader = (PIMAGE_OPTIONAL_HEADER64)&RemoteMappedImage->NtHeaders->OptionalHeader;
+
+        if (Index >= optionalHeader->NumberOfRvaAndSizes)
+            return FALSE;
+
+        dataDirectory = &optionalHeader->DataDirectory[Index];
+    }
+    else
+    {
+        return FALSE;
+    }
+
+    PVOID dataBuffer = PhAllocate(dataDirectory->Size);
+    PVOID directory = PTR_ADD_OFFSET(RemoteMappedImage->ViewBase, dataDirectory->VirtualAddress);
+
+    NTSTATUS status = ReadVirtualMemoryCallback(
+        ProcessHandle,
+        directory,
+        dataBuffer,
+        dataDirectory->Size,
+        NULL
+    );
+
+    if (!NT_SUCCESS(status))
+    {
+        PhFree(dataBuffer);
+        return FALSE;
+    }
+
+    *DataBuffer = dataBuffer;
+
+    if (DataLength)
+        *DataLength = dataDirectory->Size;
+
+    return TRUE;
+}
+
 BOOLEAN PhGetRemoteMappedImageDebugEntryByType(
     _In_ HANDLE ProcessHandle,
     _In_ PPH_REMOTE_MAPPED_IMAGE RemotedMappedImage,
@@ -669,81 +734,116 @@ BOOLEAN PhGetRemoteMappedImageDebugEntryByTypeEx(
     if (!DataBuffer)
         return FALSE;
 
-    PIMAGE_DATA_DIRECTORY dataDirectory;
-    if (RemoteMappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
-    {
-        PIMAGE_OPTIONAL_HEADER32 optionalHeader;
-
-        optionalHeader = (PIMAGE_OPTIONAL_HEADER32)&RemoteMappedImage->NtHeaders->OptionalHeader;
-
-        if (IMAGE_DIRECTORY_ENTRY_DEBUG >= optionalHeader->NumberOfRvaAndSizes)
-            return FALSE;
-
-        dataDirectory = &optionalHeader->DataDirectory[IMAGE_DIRECTORY_ENTRY_DEBUG];
-    }
-    else if (RemoteMappedImage->Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
-    {
-        PIMAGE_OPTIONAL_HEADER64 optionalHeader;
-
-        optionalHeader = (PIMAGE_OPTIONAL_HEADER64)&RemoteMappedImage->NtHeaders->OptionalHeader;
-
-        if (IMAGE_DIRECTORY_ENTRY_DEBUG >= optionalHeader->NumberOfRvaAndSizes)
-            return FALSE;
-
-        dataDirectory = &optionalHeader->DataDirectory[IMAGE_DIRECTORY_ENTRY_DEBUG];
-    }
-    else
-    {
+    PIMAGE_DEBUG_DIRECTORY debugDirectory;
+    ULONG debugDirectoryLength;
+    if (!PhGetRemoteMappedImageDirectoryEntry(ProcessHandle,
+        RemoteMappedImage,
+        ReadVirtualMemoryCallback,
+        IMAGE_DIRECTORY_ENTRY_DEBUG,
+        &debugDirectory,
+        &debugDirectoryLength))
         return FALSE;
-    }
 
-    ULONG currentCount = dataDirectory->Size / sizeof(IMAGE_DEBUG_DIRECTORY);
-    PIMAGE_DEBUG_DIRECTORY debugDirectory = PTR_ADD_OFFSET(RemoteMappedImage->ViewBase, dataDirectory->VirtualAddress);
-
-    for (ULONG i = 0; i < currentCount; i++)
+    BOOLEAN result = FALSE;
+    for (ULONG i = 0; i < debugDirectoryLength / sizeof(IMAGE_DEBUG_DIRECTORY); i++)
     {
-        PIMAGE_DEBUG_DIRECTORY entry = PTR_ADD_OFFSET(debugDirectory, i * sizeof(IMAGE_DEBUG_DIRECTORY));
-        IMAGE_DEBUG_DIRECTORY currentDebugEntry;
-
-        NTSTATUS status = ReadVirtualMemoryCallback(
-            ProcessHandle,
-            entry,
-            &currentDebugEntry,
-            sizeof(IMAGE_DEBUG_DIRECTORY),
-            NULL
-        );
-
-        if (!NT_SUCCESS(status))
-            return FALSE;
-
-        if (currentDebugEntry.Type == Type)
+        PIMAGE_DEBUG_DIRECTORY entry = debugDirectory + i;
+        if (entry->Type == Type)
         {
-            PVOID dataBuffer = PhAllocate(currentDebugEntry.SizeOfData);
+            PVOID dataBuffer = PhAllocate(entry->SizeOfData);
 
-            status = ReadVirtualMemoryCallback(
+            if (NT_SUCCESS(ReadVirtualMemoryCallback(
                 ProcessHandle,
-                PTR_ADD_OFFSET(RemoteMappedImage->ViewBase, currentDebugEntry.AddressOfRawData),
+                PTR_ADD_OFFSET(RemoteMappedImage->ViewBase, entry->AddressOfRawData),
                 dataBuffer,
-                currentDebugEntry.SizeOfData,
-                NULL
-            );
+                entry->SizeOfData,
+                NULL)))
+            {
+                if (DataLength)
+                    *DataLength = entry->SizeOfData;
 
-            if (!NT_SUCCESS(status))
+                *DataBuffer = dataBuffer;
+
+                result = TRUE;
+            }
+            else
             {
                 PhFree(dataBuffer);
-                return FALSE;
             }
 
-            if (DataLength)
-                *DataLength = currentDebugEntry.SizeOfData;
-
-            *DataBuffer = dataBuffer;
-
-            return TRUE;
+            break;
         }
     }
 
-    return FALSE;
+    PhFree(debugDirectory);
+
+    return result;
+}
+
+BOOLEAN PhGetRemoteMappedImageGuardFlags(
+    _In_ HANDLE ProcessHandle,
+    _In_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage,
+    _Out_ PULONG GuardFlags
+)
+{
+    return PhGetRemoteMappedImageGuardFlagsEx(ProcessHandle, RemoteMappedImage, NtReadVirtualMemory, GuardFlags);
+}
+
+BOOLEAN PhGetRemoteMappedImageGuardFlagsEx(
+    _In_ HANDLE ProcessHandle,
+    _In_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage,
+    _In_ PPH_READ_VIRTUAL_MEMORY_CALLBACK ReadVirtualMemoryCallback,
+    _Out_ PULONG GuardFlags
+)
+{
+    if (!GuardFlags)
+        return FALSE;
+
+    BOOLEAN result = FALSE;
+    if (RemoteMappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+    {
+        PIMAGE_LOAD_CONFIG_DIRECTORY32 config32;
+
+        if (!PhGetRemoteMappedImageDirectoryEntry(
+            ProcessHandle,
+            RemoteMappedImage,
+            ReadVirtualMemoryCallback,
+            IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG,
+            &config32,
+            NULL))
+            return FALSE;
+
+        if (RTL_CONTAINS_FIELD((config32), (config32)->Size, GuardFlags))
+        {
+            *GuardFlags = config32->GuardFlags;
+            result = TRUE;
+        }
+
+        PhFree(config32);
+    }
+    else
+    {
+        PIMAGE_LOAD_CONFIG_DIRECTORY64 config64;
+
+        if (!PhGetRemoteMappedImageDirectoryEntry(
+            ProcessHandle,
+            RemoteMappedImage,
+            ReadVirtualMemoryCallback,
+            IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG,
+            &config64,
+            NULL))
+            return FALSE;
+
+        if (RTL_CONTAINS_FIELD((config64), (config64)->Size, GuardFlags))
+        {
+            *GuardFlags = config64->GuardFlags;
+            result = TRUE;
+        }
+
+        PhFree(config64);
+    }
+
+    return result;
 }
 
 NTSTATUS PhGetMappedImageExports(
@@ -1754,6 +1854,9 @@ NTSTATUS PhGetMappedImageCfgEntry(
     if (CfgConfig->EntrySize > RTL_FIELD_SIZE(IMAGE_CFG_ENTRY, Rva))
     {
         Entry->SuppressedCall = cfgMappedEntry->SuppressedCall;
+        Entry->ExportSuppressed = cfgMappedEntry->ExportSuppressed;
+        Entry->LangExcptHandler = cfgMappedEntry->LangExcptHandler;
+        Entry->Xfg = cfgMappedEntry->Xfg;
         Entry->Reserved = cfgMappedEntry->Reserved;
     }
 

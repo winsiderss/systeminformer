@@ -215,6 +215,25 @@ PhGetRemoteMappedImageDebugEntryByTypeEx(
     _Out_ PVOID* EntryBuffer
     );
 
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetRemoteMappedImageGuardFlags(
+    _In_ HANDLE ProcessHandle,
+    _In_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage,
+    _Out_ PULONG GuardFlags
+);
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetRemoteMappedImageGuardFlagsEx(
+    _In_ HANDLE ProcessHandle,
+    _In_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage,
+    _In_ PPH_READ_VIRTUAL_MEMORY_CALLBACK ReadVirtualMemoryCallback,
+    _Out_ PULONG GuardFlags
+);
+
 typedef struct _PH_MAPPED_IMAGE_EXPORTS
 {
     PPH_MAPPED_IMAGE MappedImage;
@@ -374,7 +393,10 @@ typedef struct _IMAGE_CFG_ENTRY
     struct
     {
         BOOLEAN SuppressedCall : 1;
-        BOOLEAN Reserved : 7;
+        BOOLEAN ExportSuppressed : 1;
+        BOOLEAN LangExcptHandler : 1;
+        BOOLEAN Xfg : 1;
+        BOOLEAN Reserved : 4;
     };
 } IMAGE_CFG_ENTRY, *PIMAGE_CFG_ENTRY;
 
@@ -559,6 +581,10 @@ typedef struct _IMAGE_DEBUG_DIRECTORY_CODEVIEW
     ULONG PdbDbiAge;
     CHAR ImageName[256];
 } IMAGE_DEBUG_DIRECTORY_CODEVIEW, *PIMAGE_DEBUG_DIRECTORY_CODEVIEW;
+#endif
+
+#ifndef IMAGE_GUARD_XFG_ENABLED
+#define IMAGE_GUARD_XFG_ENABLED 0x00800000 // Module was built with xfg
 #endif
 
 PHLIBAPI
