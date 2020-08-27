@@ -142,15 +142,27 @@ INT_PTR CALLBACK PvpPeCgfDlgProc(
                         break;
                     }
 
-                    // Add additional flags
-                    if (cfgFunctionEntry.SuppressedCall)
-                        PhSetListViewSubItem(lvHandle, lvItemIndex, 3, L"SuppressedCall");
-                    else
-                        PhSetListViewSubItem(lvHandle, lvItemIndex, 3, L"");
-
                     if (symbolName)
                         PhDereferenceObject(symbolName);
                     PhDereferenceObject(symbol);
+
+                    // Add additional flags
+                    PH_STRING_BUILDER stringBuilder;
+                    PhInitializeStringBuilder(&stringBuilder, 16);
+
+                    if (cfgFunctionEntry.SuppressedCall)
+                        PhAppendStringBuilder2(&stringBuilder, L"SuppressedCall, ");
+                    if (cfgFunctionEntry.ExportSuppressed)
+                        PhAppendStringBuilder2(&stringBuilder, L"ExportSuppressed, ");
+                    if (cfgFunctionEntry.LangExcptHandler)
+                        PhAppendStringBuilder2(&stringBuilder, L"LangExcptHandler, ");
+                    if (cfgFunctionEntry.Xfg)
+                        PhAppendStringBuilder2(&stringBuilder, L"XFG, ");
+
+                    if (PhEndsWithString2(stringBuilder.String, L", ", FALSE))
+                        PhRemoveEndStringBuilder(&stringBuilder, 2);
+
+                    PhSetListViewSubItem(lvHandle, lvItemIndex, 3, PH_AUTO_T(PH_STRING, PhFinalStringBuilderString(&stringBuilder))->Buffer);
                 }
             }
 

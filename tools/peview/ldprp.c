@@ -67,6 +67,9 @@ PPH_STRING PvpGetPeGuardFlagsText(
     if (GuardFlags & 0x00200000 || GuardFlags & 0x00400000)
         PhAppendStringBuilder2(&stringBuilder, L"EH continuation table, ");
 
+    if (GuardFlags & IMAGE_GUARD_XFG_ENABLED)
+        PhAppendStringBuilder2(&stringBuilder, L"XFG, ");
+
     if (PhEndsWithString2(stringBuilder.String, L", ", FALSE))
         PhRemoveEndStringBuilder(&stringBuilder, 2);
 
