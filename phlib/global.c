@@ -37,7 +37,7 @@ BOOLEAN PhHeapInitialization(
     _In_opt_ SIZE_T HeapCommitSize
     );
 
-PHLIBAPI PVOID PhInstanceHandle = NULL;
+PVOID PhInstanceHandle = NULL;
 PHLIBAPI PWSTR PhApplicationName = NULL;
 PHLIBAPI ULONG PhGlobalDpi = 96;
 PVOID PhHeapHandle = NULL;

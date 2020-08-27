@@ -7,7 +7,7 @@ extern "C" {
 
 #define _User_set_
 
-PHLIBAPI extern _User_set_ PVOID PhInstanceHandle;
+extern _User_set_ PVOID PhInstanceHandle;
 PHLIBAPI extern _User_set_ PWSTR PhApplicationName;
 PHLIBAPI extern _User_set_ ULONG PhGlobalDpi;
 extern PVOID PhHeapHandle;
