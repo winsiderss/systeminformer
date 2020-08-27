@@ -70,6 +70,9 @@
 
     <!-- ARM64 Builds -->
     <ItemDefinitionGroup Condition="'$(Platform)'=='ARM64'">
+        <ClCompile>
+            <CallingConvention>StdCall</CallingConvention>
+        </ClCompile>
         <Link>
             <AdditionalLibraryDirectories>$(SolutionDir)..\sdk\lib\arm64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
             <TargetMachine>MachineARM64</TargetMachine>
