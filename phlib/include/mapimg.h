@@ -193,6 +193,7 @@ PhUnloadRemoteMappedImage(
     );
 
 PHLIBAPI
+_Success_(return)
 BOOLEAN
 NTAPI
 PhGetRemoteMappedImageDebugEntryByType(
@@ -204,6 +205,7 @@ PhGetRemoteMappedImageDebugEntryByType(
     );
 
 PHLIBAPI
+_Success_(return)
 BOOLEAN
 NTAPI
 PhGetRemoteMappedImageDebugEntryByTypeEx(
@@ -216,15 +218,17 @@ PhGetRemoteMappedImageDebugEntryByTypeEx(
     );
 
 PHLIBAPI
+_Success_(return)
 BOOLEAN
 NTAPI
 PhGetRemoteMappedImageGuardFlags(
     _In_ HANDLE ProcessHandle,
     _In_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage,
     _Out_ PULONG GuardFlags
-);
+    );
 
 PHLIBAPI
+_Success_(return)
 BOOLEAN
 NTAPI
 PhGetRemoteMappedImageGuardFlagsEx(
@@ -232,7 +236,7 @@ PhGetRemoteMappedImageGuardFlagsEx(
     _In_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage,
     _In_ PPH_READ_VIRTUAL_MEMORY_CALLBACK ReadVirtualMemoryCallback,
     _Out_ PULONG GuardFlags
-);
+    );
 
 typedef struct _PH_MAPPED_IMAGE_EXPORTS
 {
@@ -600,6 +604,7 @@ PhGetMappedImageDebug(
     );
 
 PHLIBAPI
+_Success_(return)
 BOOLEAN
 NTAPI
 PhGetMappedImageDebugEntryByType(
@@ -710,7 +715,8 @@ PhGetMappedArchiveImportEntry(
     _Out_ PPH_MAPPED_ARCHIVE_IMPORT_ENTRY Entry
     );
 
-typedef struct _PH_MAPPED_IMAGE_EH_CONT {
+typedef struct _PH_MAPPED_IMAGE_EH_CONT
+{
     PULONGLONG EhContTable;
     ULONGLONG NumberOfEhContEntries;
     ULONG EntrySize;
@@ -722,7 +728,7 @@ NTAPI
 PhGetMappedImageEhCont(
     _Out_ PPH_MAPPED_IMAGE_EH_CONT EhContConfig,
     _In_ PPH_MAPPED_IMAGE MappedImage
-);
+    );
 
 // ELF binary support
 

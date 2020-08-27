@@ -1762,7 +1762,7 @@ NTSTATUS
 PhGetProcessIsCetEnabled(
     _In_ HANDLE ProcessHandle,
     _Out_ PBOOLEAN IsCetEnabled
-)
+    )
 {
     NTSTATUS status;
     PROCESS_MITIGATION_POLICY_INFORMATION policyInfo;
@@ -1775,7 +1775,7 @@ PhGetProcessIsCetEnabled(
         &policyInfo,
         sizeof(PROCESS_MITIGATION_POLICY_INFORMATION),
         NULL
-    );
+        );
 
     if (NT_SUCCESS(status))
     {
