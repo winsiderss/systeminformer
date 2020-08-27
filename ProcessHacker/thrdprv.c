@@ -746,8 +746,7 @@ VOID PhpThreadProviderUpdate(
     {
         for (i = 0; i < numberOfThreads; i++)
         {
-            // Assign max TID since some handles have low IDs on windows 10 (dmex)
-            threads[i].ClientId.UniqueThread = UlongToHandle(-(LONG)i - 2);
+            threads[i].ClientId.UniqueThread = UlongToHandle(i);
         }
     }
 
