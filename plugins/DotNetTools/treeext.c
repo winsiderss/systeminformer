@@ -178,10 +178,12 @@ VOID NTAPI ThreadsContextCreateCallback(
     context->Type = THREAD_TREE_CONTEXT_TYPE;
     context->ProcessId = threadsContext->Provider->ProcessId;
 
+#if _WIN64
     if (threadsContext->Provider->ProcessHandle)
     {
         PhGetProcessIsWow64(threadsContext->Provider->ProcessHandle, &context->IsWow64);
     }
+#endif
 
     PhRegisterCallback(
         &threadsContext->Provider->ThreadAddedEvent,
