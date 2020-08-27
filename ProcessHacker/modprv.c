@@ -615,6 +615,8 @@ VOID PhModuleProviderUpdate(
                 {
                     ULONG_PTR imageBase = 0;
                     ULONG entryPoint = 0;
+                    ULONG debugEntryLength;
+                    PVOID debugEntry;
 
                     moduleItem->ImageTimeDateStamp = remoteMappedImage.NtHeaders->FileHeader.TimeDateStamp;
                     moduleItem->ImageCharacteristics = remoteMappedImage.NtHeaders->FileHeader.Characteristics;
@@ -642,14 +644,14 @@ VOID PhModuleProviderUpdate(
                     if (entryPoint != 0)
                         moduleItem->EntryPoint = PTR_ADD_OFFSET(moduleItem->BaseAddress, entryPoint);
 
-                    ULONG debugEntryLength;
-                    PVOID debugEntry;
-                    if (PhGetRemoteMappedImageDebugEntryByTypeEx(moduleProvider->ProcessHandle,
+                    if (moduleProvider->CetEnabled && PhGetRemoteMappedImageDebugEntryByTypeEx(
+                        moduleProvider->ProcessHandle,
                         &remoteMappedImage,
                         IMAGE_DEBUG_TYPE_EX_DLLCHARACTERISTICS,
                         readVirtualMemoryCallback,
                         &debugEntryLength,
-                        &debugEntry))
+                        &debugEntry
+                        ))
                     {
                         ULONG characteristics = ULONG_MAX;
 
