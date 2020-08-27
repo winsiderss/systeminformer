@@ -5600,12 +5600,10 @@ VOID PhTnpDrawCell(
             textRect.left += SmallIconWidth + TNP_ICON_RIGHT_PADDING;
         }
 
-        if (needsClip)
+        if (needsClip && oldClipRegion)
         {
             SelectClipRgn(hdc, oldClipRegion);
-
-            if (oldClipRegion)
-                DeleteRgn(oldClipRegion);
+            DeleteRgn(oldClipRegion);
         }
 
         if (textRect.left > textRect.right)

@@ -3936,9 +3936,9 @@ BOOLEAN NTAPI PhpEnumProcessModulesCallback(
     BOOLEAN cont = FALSE;
     PPH_STRING mappedFileName = NULL;
     PWSTR fullDllNameOriginal;
-    PWSTR fullDllNameBuffer;
+    PWSTR fullDllNameBuffer = NULL;
     PWSTR baseDllNameOriginal;
-    PWSTR baseDllNameBuffer;
+    PWSTR baseDllNameBuffer = NULL;
 
     if (!parameters)
         return TRUE;
@@ -4057,8 +4057,8 @@ BOOLEAN NTAPI PhpEnumProcessModulesCallback(
     }
     else
     {
-        PhFree(fullDllNameBuffer);
-
+        if (fullDllNameBuffer)
+            PhFree(fullDllNameBuffer);
         if (baseDllNameBuffer)
             PhFree(baseDllNameBuffer);
     }
@@ -4298,8 +4298,8 @@ BOOLEAN NTAPI PhpEnumProcessModules32Callback(
     BOOLEAN cont;
     LDR_DATA_TABLE_ENTRY nativeEntry;
     PPH_STRING mappedFileName;
-    PWSTR baseDllNameBuffer;
-    PWSTR fullDllNameBuffer;
+    PWSTR baseDllNameBuffer = NULL;
+    PWSTR fullDllNameBuffer = NULL;
     PH_STRINGREF fullDllName;
     PH_STRINGREF systemRootString;
 
@@ -4451,8 +4451,10 @@ BOOLEAN NTAPI PhpEnumProcessModules32Callback(
     }
     else
     {
-        PhFree(baseDllNameBuffer);
-        PhFree(fullDllNameBuffer);
+        if (baseDllNameBuffer)
+            PhFree(baseDllNameBuffer);
+        if (fullDllNameBuffer)
+            PhFree(fullDllNameBuffer);
     }
 
     return cont;

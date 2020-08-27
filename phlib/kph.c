@@ -107,7 +107,7 @@ NTSTATUS KphConnect2Ex(
 {
     NTSTATUS status;
     SC_HANDLE scmHandle;
-    SC_HANDLE serviceHandle;
+    SC_HANDLE serviceHandle = NULL;
     BOOLEAN started = FALSE;
     BOOLEAN created = FALSE;
 

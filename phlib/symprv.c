@@ -429,8 +429,7 @@ BOOLEAN PhGetLineFromAddress(
 
     if (result)
         fileName = PhCreateString(line.FileName);
-
-    if (!result)
+    else
         return FALSE;
 
     *FileName = fileName;
