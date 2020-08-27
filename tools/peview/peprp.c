@@ -383,12 +383,13 @@ VOID PvPeProperties(
         // EH continuation page
         {
             BOOLEAN has_ehcont = FALSE;
+
             if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
             {
                 if (NT_SUCCESS(PhGetMappedImageLoadConfig32(&PvMappedImage, &config32)) &&
                     RTL_CONTAINS_FIELD(config32, config32->Size, GuardEHContinuationCount))
                 {
-                    if (config32->GuardEHContinuationCount && config32->GuardEHContinuationCount)
+                    if (config32->GuardEHContinuationCount)
                         has_ehcont = TRUE;
                 }
             }
@@ -397,7 +398,7 @@ VOID PvPeProperties(
                 if (NT_SUCCESS(PhGetMappedImageLoadConfig64(&PvMappedImage, &config64)) &&
                     RTL_CONTAINS_FIELD(config64, config64->Size, GuardEHContinuationCount))
                 {
-                    if (config64->GuardEHContinuationCount && config64->GuardEHContinuationCount)
+                    if (config64->GuardEHContinuationCount)
                         has_ehcont = TRUE;
                 }
             }
