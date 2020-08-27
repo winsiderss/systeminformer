@@ -1388,8 +1388,8 @@ VOID PhInitializeTreeNewColumnMenuEx(
     PPH_EMENU_ITEM resetSortMenuItem = NULL;
     PPH_EMENU_ITEM sizeColumnToFitMenuItem;
     PPH_EMENU_ITEM sizeAllColumnsToFitMenuItem;
-    PPH_EMENU_ITEM hideColumnMenuItem;
-    PPH_EMENU_ITEM chooseColumnsMenuItem;
+    PPH_EMENU_ITEM hideColumnMenuItem = NULL;
+    PPH_EMENU_ITEM chooseColumnsMenuItem = NULL;
     ULONG minimumNumberOfColumns;
 
     Data->Menu = PhCreateEMenu();
@@ -1421,13 +1421,10 @@ VOID PhInitializeTreeNewColumnMenuEx(
 
     if (!(Flags & PH_TN_COLUMN_MENU_NO_VISIBILITY))
     {
-        PhInsertEMenuItem(Data->Menu, hideColumnMenuItem, ULONG_MAX);
-
-        if (resetSortMenuItem)
-            PhInsertEMenuItem(Data->Menu, resetSortMenuItem, ULONG_MAX);
-
+        if (hideColumnMenuItem) PhInsertEMenuItem(Data->Menu, hideColumnMenuItem, ULONG_MAX);
+        if (resetSortMenuItem) PhInsertEMenuItem(Data->Menu, resetSortMenuItem, ULONG_MAX);
         PhInsertEMenuItem(Data->Menu, PhCreateEMenuSeparator(), ULONG_MAX);
-        PhInsertEMenuItem(Data->Menu, chooseColumnsMenuItem, ULONG_MAX);
+        if (chooseColumnsMenuItem) PhInsertEMenuItem(Data->Menu, chooseColumnsMenuItem, ULONG_MAX);
 
         if (TreeNew_GetFixedColumn(Data->TreeNewHandle))
             minimumNumberOfColumns = 2; // don't allow user to remove all normal columns (the fixed column can never be removed)
@@ -1439,7 +1436,8 @@ VOID PhInitializeTreeNewColumnMenuEx(
             TreeNew_GetVisibleColumnCount(Data->TreeNewHandle) < minimumNumberOfColumns + 1
             )
         {
-            hideColumnMenuItem->Flags |= PH_EMENU_DISABLED;
+            if (hideColumnMenuItem)
+                PhSetDisabledEMenuItem(hideColumnMenuItem);
         }
     }
     else
@@ -1450,7 +1448,7 @@ VOID PhInitializeTreeNewColumnMenuEx(
 
     if (!Data->MouseEvent || !Data->MouseEvent->Column)
     {
-        sizeColumnToFitMenuItem->Flags |= PH_EMENU_DISABLED;
+        PhSetDisabledEMenuItem(sizeColumnToFitMenuItem);
     }
 }
 
