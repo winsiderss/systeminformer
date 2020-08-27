@@ -43,7 +43,7 @@ typedef enum _PVP_IMAGE_GENERAL_CATEGORY
 {
     PVP_IMAGE_GENERAL_CATEGORY_BASICINFO,
     PVP_IMAGE_GENERAL_CATEGORY_FILEINFO,
-    PVP_IMAGE_GENERAL_CATEGORY_PDB,
+    PVP_IMAGE_GENERAL_CATEGORY_DEBUGINFO,
     PVP_IMAGE_GENERAL_CATEGORY_MAXIMUM
 } PVP_IMAGE_GENERAL_CATEGORY;
 
@@ -65,7 +65,10 @@ typedef enum _PVP_IMAGE_GENERAL_INDEX
     PVP_IMAGE_GENERAL_INDEX_FILEMODIFIEDTIME,
     PVP_IMAGE_GENERAL_INDEX_FILELASTWRITETIME,
 
-    PVP_IMAGE_GENERAL_INDEX_PDB,
+    PVP_IMAGE_GENERAL_INDEX_DEBUGPDB,
+    PVP_IMAGE_GENERAL_INDEX_DEBUGIMAGE,
+    PVP_IMAGE_GENERAL_INDEX_DEBUGVCFEATURE,
+
     PVP_IMAGE_GENERAL_INDEX_MAXIMUM
 } PVP_IMAGE_GENERAL_INDEX;
 
@@ -688,16 +691,18 @@ VOID PvpSetPeImageTimeStamp(
     {
         if (debugEntryLength > 0)
         {
-            //PPH_STRING timeStamp;
+            PPH_STRING timeStamp;
 
             string = PhBufferToHexStringEx(debugEntry->Buffer, debugEntry->Length, FALSE);
-            //timeStamp = PhBufferToHexStringEx((PBYTE)&PvMappedImage.NtHeaders->FileHeader.TimeDateStamp, sizeof(ULONG), FALSE);
-            //if (PhEndsWithString(string, timeStamp, TRUE))
-            //    PhMoveReference(&string, PhFormatString(L"%s (correct)", string->Buffer));
-            //PhDereferenceObject(timeStamp);
-
+            timeStamp = PhBufferToHexStringEx((PBYTE)&PvMappedImage.NtHeaders->FileHeader.TimeDateStamp, sizeof(ULONG), FALSE);
             //PhFormatString(L"%lx", PvMappedImage.NtHeaders->FileHeader.TimeDateStamp);
-            PhMoveReference(&string, PhConcatStringRefZ(&string->sr, L" (deterministic)"));
+
+            if (PhEndsWithString(string, timeStamp, TRUE))
+                PhMoveReference(&string, PhConcatStringRefZ(&string->sr, L" (deterministic) (correct)"));
+            else
+                PhMoveReference(&string, PhConcatStringRefZ(&string->sr, L" (deterministic) (incorrect)"));
+
+            PhDereferenceObject(timeStamp);
         }
         else
         {
@@ -997,35 +1002,6 @@ VOID PvpSetPeImageCharacteristics(
     PhDeleteStringBuilder(&stringBuilder);
 }
 
-VOID PvpSetPeImageDebugVCFeatures(
-    _In_ HWND ListViewHandle
-    )
-{
-    PIMAGE_DEBUG_VC_FEATURE_ENTRY debugEntry;
-    ULONG debugEntryLength;
-
-    if (PhGetMappedImageDebugEntryByType(
-        &PvMappedImage,
-        IMAGE_DEBUG_TYPE_VC_FEATURE,
-        &debugEntryLength,
-        &debugEntry
-        ))
-    {
-        if (debugEntryLength != sizeof(IMAGE_DEBUG_VC_FEATURE_ENTRY))
-            return;
-
-        // Use the same format as dumpbin
-        PhFormatString(
-            L"Pre-VC++ 11.00=%lu, C/C++=%lu, /GS=%lu, /sdl=%lu, guardN=%lu",
-            debugEntry->PreVCPlusPlusCount,
-            debugEntry->CAndCPlusPlusCount,
-            debugEntry->GuardStackCount,
-            debugEntry->SdlCount,
-            debugEntry->GuardCount
-            );
-    }
-}
-
 PPH_STRING PvGetRelativeTimeString(
     _In_ PLARGE_INTEGER Time
     )
@@ -1146,8 +1122,51 @@ VOID PvpSetPeImageDebugPdb(
         &debugEntry
         ))
     {
+        PPH_STRING string;
+
         //if (debugEntryLength == sizeof(IMAGE_DEBUG_DIRECTORY_CODEVIEW))
-        PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_PDB, 1, PhFormatGuid(&debugEntry->PdbSignature)->Buffer);
+
+        string = PhFormatGuid(&debugEntry->PdbSignature);
+        PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_DEBUGPDB, 1, string->Buffer);
+        PhDereferenceObject(string);
+
+        string = PhConvertUtf8ToUtf16(debugEntry->ImageName);
+        PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_DEBUGIMAGE, 1, string->Buffer);
+        PhDereferenceObject(string);
+    }
+}
+
+VOID PvpSetPeImageDebugVCFeatures(
+    _In_ HWND ListViewHandle
+    )
+{
+    PIMAGE_DEBUG_VC_FEATURE_ENTRY debugEntry;
+    ULONG debugEntryLength;
+
+    if (PhGetMappedImageDebugEntryByType(
+        &PvMappedImage,
+        IMAGE_DEBUG_TYPE_VC_FEATURE,
+        &debugEntryLength,
+        &debugEntry
+        ))
+    {
+        PPH_STRING vcfeatures;
+
+        if (debugEntryLength != sizeof(IMAGE_DEBUG_VC_FEATURE_ENTRY))
+            return;
+
+        // Use the same format as dumpbin (dmex)
+        vcfeatures = PhFormatString(
+            L"C/C++ (%lu), GS (%lu), sdl (%lu), guardN (%lu), Pre-VC++ 11.00 (%lu)",
+            debugEntry->CAndCPlusPlusCount,
+            debugEntry->GuardStackCount,
+            debugEntry->SdlCount,
+            debugEntry->GuardCount,
+            debugEntry->PreVCPlusPlusCount
+            );
+
+        PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_DEBUGVCFEATURE, 1, vcfeatures->Buffer);
+        PhDereferenceObject(vcfeatures);
     }
 }
 
@@ -1161,106 +1180,25 @@ VOID PvpSetPeImageProperties(
     ListView_EnableGroupView(Context->ListViewHandle, TRUE);
     PhAddListViewGroup(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_BASICINFO, L"Image information");
     PhAddListViewGroup(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_FILEINFO, L"File information");
+    PhAddListViewGroup(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_DEBUGINFO, L"Debug information");
 
-    PhAddListViewGroupItem(
-        Context->ListViewHandle,
-        PVP_IMAGE_GENERAL_CATEGORY_BASICINFO,
-        PVP_IMAGE_GENERAL_INDEX_NAME,
-        L"Target machine",
-        NULL
-        );  
-    PhAddListViewGroupItem(
-        Context->ListViewHandle,
-        PVP_IMAGE_GENERAL_CATEGORY_BASICINFO,
-        PVP_IMAGE_GENERAL_INDEX_TIMESTAMP,
-        L"Time stamp",
-        NULL
-        );
-    PhAddListViewGroupItem(
-        Context->ListViewHandle,
-        PVP_IMAGE_GENERAL_CATEGORY_BASICINFO,
-        PVP_IMAGE_GENERAL_INDEX_IMAGEBASE,
-        L"Image base",
-        NULL
-        );
-    PhAddListViewGroupItem(
-        Context->ListViewHandle,
-        PVP_IMAGE_GENERAL_CATEGORY_BASICINFO,
-        PVP_IMAGE_GENERAL_INDEX_IMAGESIZE,
-        L"Image size",
-        NULL
-        );
-    PhAddListViewGroupItem(
-        Context->ListViewHandle,
-        PVP_IMAGE_GENERAL_CATEGORY_BASICINFO,
-        PVP_IMAGE_GENERAL_INDEX_ENTRYPOINT,
-        L"Entry point",
-        NULL
-        );
-    PhAddListViewGroupItem(
-        Context->ListViewHandle,
-        PVP_IMAGE_GENERAL_CATEGORY_BASICINFO,
-        PVP_IMAGE_GENERAL_INDEX_CHECKSUM,
-        L"Header checksum",
-        NULL
-        );
-    PhAddListViewGroupItem(
-        Context->ListViewHandle,
-        PVP_IMAGE_GENERAL_CATEGORY_BASICINFO,
-        PVP_IMAGE_GENERAL_INDEX_CHECKSUMIAT,
-        L"Import checksum",
-        NULL
-        );
-    PhAddListViewGroupItem(
-        Context->ListViewHandle,
-        PVP_IMAGE_GENERAL_CATEGORY_BASICINFO,
-        PVP_IMAGE_GENERAL_INDEX_SUBSYSTEM,
-        L"Subsystem",
-        NULL
-        );
-    PhAddListViewGroupItem(
-        Context->ListViewHandle,
-        PVP_IMAGE_GENERAL_CATEGORY_BASICINFO,
-        PVP_IMAGE_GENERAL_INDEX_SUBSYSTEMVERSION,
-        L"Subsystem version",
-        NULL
-        );
-    PhAddListViewGroupItem(
-        Context->ListViewHandle,
-        PVP_IMAGE_GENERAL_CATEGORY_BASICINFO,
-        PVP_IMAGE_GENERAL_INDEX_CHARACTERISTICS,
-        L"Characteristics",
-        NULL
-        );
-
-    //PhAddListViewGroupItem(
-    //    Context->ListViewHandle,
-    //    PVP_IMAGE_GENERAL_CATEGORY_FILEINFO,
-    //    PVP_IMAGE_GENERAL_INDEX_FILEATTRIBUTES,
-    //    L"Attributes",
-    //    NULL
-    //    );
-    PhAddListViewGroupItem(
-        Context->ListViewHandle,
-        PVP_IMAGE_GENERAL_CATEGORY_FILEINFO,
-        PVP_IMAGE_GENERAL_INDEX_FILECREATEDTIME,
-        L"Created time",
-        NULL
-        );
-    PhAddListViewGroupItem(
-        Context->ListViewHandle,
-        PVP_IMAGE_GENERAL_CATEGORY_FILEINFO,
-        PVP_IMAGE_GENERAL_INDEX_FILEMODIFIEDTIME,
-        L"Modified time",
-        NULL
-        );
-    PhAddListViewGroupItem(
-        Context->ListViewHandle,
-        PVP_IMAGE_GENERAL_CATEGORY_FILEINFO,
-        PVP_IMAGE_GENERAL_INDEX_FILELASTWRITETIME,
-        L"Updated time",
-        NULL
-        );
+    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_BASICINFO, PVP_IMAGE_GENERAL_INDEX_NAME, L"Target machine", NULL);  
+    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_BASICINFO, PVP_IMAGE_GENERAL_INDEX_TIMESTAMP, L"Time stamp", NULL);
+    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_BASICINFO, PVP_IMAGE_GENERAL_INDEX_IMAGEBASE, L"Image base", NULL);
+    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_BASICINFO, PVP_IMAGE_GENERAL_INDEX_IMAGESIZE, L"Image size", NULL);
+    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_BASICINFO, PVP_IMAGE_GENERAL_INDEX_ENTRYPOINT, L"Entry point", NULL);
+    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_BASICINFO, PVP_IMAGE_GENERAL_INDEX_CHECKSUM, L"Header checksum", NULL);
+    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_BASICINFO, PVP_IMAGE_GENERAL_INDEX_CHECKSUMIAT, L"Import checksum", NULL);
+    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_BASICINFO, PVP_IMAGE_GENERAL_INDEX_SUBSYSTEM, L"Subsystem", NULL);
+    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_BASICINFO, PVP_IMAGE_GENERAL_INDEX_SUBSYSTEMVERSION, L"Subsystem version", NULL);
+    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_BASICINFO, PVP_IMAGE_GENERAL_INDEX_CHARACTERISTICS, L"Characteristics", NULL);
+    //PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_FILEINFO, PVP_IMAGE_GENERAL_INDEX_FILEATTRIBUTES, L"Attributes", NULL);
+    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_FILEINFO, PVP_IMAGE_GENERAL_INDEX_FILECREATEDTIME, L"Created time", NULL);
+    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_FILEINFO, PVP_IMAGE_GENERAL_INDEX_FILEMODIFIEDTIME, L"Modified time", NULL);
+    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_FILEINFO, PVP_IMAGE_GENERAL_INDEX_FILELASTWRITETIME, L"Updated time", NULL);
+    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_DEBUGINFO, PVP_IMAGE_GENERAL_INDEX_DEBUGPDB, L"Guid", NULL);
+    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_DEBUGINFO, PVP_IMAGE_GENERAL_INDEX_DEBUGIMAGE, L"Image name", NULL);
+    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_DEBUGINFO, PVP_IMAGE_GENERAL_INDEX_DEBUGVCFEATURE, L"Feature count", NULL);
 
     PvpSetPeImageMachineType(Context->ListViewHandle);
     PvpSetPeImageTimeStamp(Context->ListViewHandle);
@@ -1270,18 +1208,11 @@ VOID PvpSetPeImageProperties(
     PvpSetPeImageCheckSum(Context->WindowHandle, Context->ListViewHandle);
     PvpSetPeImageSubsystem(Context->ListViewHandle);
     PvpSetPeImageCharacteristics(Context->ListViewHandle);
-
+    // File information
     PvpSetPeImageFileProperties(Context->ListViewHandle);
-
-    //PhAddListViewGroup(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_PDB, L"PDB debug information");
-    //PhAddListViewGroupItem(
-    //    Context->ListViewHandle,
-    //    PVP_IMAGE_GENERAL_CATEGORY_PDB,
-    //    PVP_IMAGE_GENERAL_INDEX_PDB,
-    //    L"PDB guid",
-    //    NULL
-    //    );
-    //PvpSetPeImageDebugPdb(Context->ListViewHandle);
+    // Debug information
+    PvpSetPeImageDebugPdb(Context->ListViewHandle);
+    PvpSetPeImageDebugVCFeatures(Context->ListViewHandle);
 
     //ExtendedListView_SortItems(Context->ListViewHandle);
     ExtendedListView_SetRedraw(Context->ListViewHandle, TRUE);
@@ -1598,18 +1529,12 @@ BOOLEAN PvpLoadDbgHelp(
     _Inout_ PPH_SYMBOL_PROVIDER *SymbolProvider
     )
 {
-    static PH_STRINGREF symbolPathVarName = PH_STRINGREF_INIT(L"_NT_SYMBOL_PATH");
-    PPH_STRING symbolSearchPath = NULL;
+    PPH_STRING symbolSearchPath;
     PPH_SYMBOL_PROVIDER symbolProvider;
-
-    if (!NT_SUCCESS(PhQueryEnvironmentVariable(NULL, &symbolPathVarName, &symbolSearchPath)))
-    {
-        symbolSearchPath = PhCreateString(L"SRV*C:\\Symbols*https://msdl.microsoft.com/download/symbols");
-    }
 
     symbolProvider = PhCreateSymbolProvider(NULL);
 
-    if (symbolSearchPath)
+    if (symbolSearchPath = PhGetStringSetting(L"DbgHelpSearchPath"))
     {
         PhSetSearchPathSymbolProvider(symbolProvider, symbolSearchPath->Buffer);
         PhDereferenceObject(symbolSearchPath);
