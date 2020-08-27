@@ -35,32 +35,35 @@ VOID NTAPI MenuItemCallback(
 {
     PPH_PLUGIN_MENU_ITEM menuItem = Parameter;
 
+    if (!menuItem)
+        return;
+
     switch (menuItem->Id)
     {
     case ID_SERVICE_GOTOSERVICE:
         {
-            ProcessHacker_SelectTabPage(PhMainWndHandle, 1);
-            ProcessHacker_SelectServiceItem(PhMainWndHandle, (PPH_SERVICE_ITEM)menuItem->Context);
+            ProcessHacker_SelectTabPage(menuItem->OwnerWindow, 1);
+            ProcessHacker_SelectServiceItem(menuItem->OwnerWindow, (PPH_SERVICE_ITEM)menuItem->Context);
         }
         break;
     case ID_SERVICE_START:
         {
-            PhUiStartService(PhMainWndHandle, (PPH_SERVICE_ITEM)menuItem->Context);
+            PhUiStartService(menuItem->OwnerWindow, (PPH_SERVICE_ITEM)menuItem->Context);
         }
         break;
     case ID_SERVICE_CONTINUE:
         {
-            PhUiContinueService(PhMainWndHandle, (PPH_SERVICE_ITEM)menuItem->Context);
+            PhUiContinueService(menuItem->OwnerWindow, (PPH_SERVICE_ITEM)menuItem->Context);
         }
         break;
     case ID_SERVICE_PAUSE:
         {
-            PhUiPauseService(PhMainWndHandle, (PPH_SERVICE_ITEM)menuItem->Context);
+            PhUiPauseService(menuItem->OwnerWindow, (PPH_SERVICE_ITEM)menuItem->Context);
         }
         break;
     case ID_SERVICE_STOP:
         {
-            PhUiStopService(PhMainWndHandle, (PPH_SERVICE_ITEM)menuItem->Context);
+            PhUiStopService(menuItem->OwnerWindow, (PPH_SERVICE_ITEM)menuItem->Context);
         }
         break;
     case ID_SERVICE_RESTART:
@@ -71,7 +74,7 @@ VOID NTAPI MenuItemCallback(
 
             if (serviceHandle = PhOpenService(serviceItem->Name->Buffer, SERVICE_QUERY_STATUS))
             {
-                EsRestartServiceWithProgress(PhMainWndHandle, serviceItem, serviceHandle);
+                EsRestartServiceWithProgress(menuItem->OwnerWindow, serviceItem, serviceHandle);
                 CloseServiceHandle(serviceHandle);
             }
             else
@@ -82,7 +85,7 @@ VOID NTAPI MenuItemCallback(
             if (win32Result != ERROR_SUCCESS)
             {
                 PhShowStatus(
-                    PhMainWndHandle,
+                    menuItem->OwnerWindow,
                     PhaFormatString(L"Unable to restart %s", serviceItem->Name->Buffer)->Buffer,
                     0,
                     win32Result
