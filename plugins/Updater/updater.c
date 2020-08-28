@@ -230,7 +230,7 @@ PPH_STRING UpdateWindowsString(
 
     if (versionInfo)
     {
-        if (VerQueryValue(versionInfo, L"\\", &rootBlock, &rootBlockLength) && rootBlockLength != 0)
+        if (PhGetFileVersionInfoValue(versionInfo, L"\\", &rootBlock, &rootBlockLength) && rootBlockLength != 0)
         {
             PhInitFormatU(&fileVersionFormat[0], HIWORD(rootBlock->dwFileVersionLS));
             PhInitFormatC(&fileVersionFormat[1], '.');
