@@ -1470,6 +1470,10 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     // SystemDifRemovePluginVerificationOnDriver = 220,
     // SystemShadowStackInformation = 221, // SYSTEM_SHADOW_STACK_INFORMATION
     // SystemBuildVersionInformation = 222, // SYSTEM_BUILD_VERSION_INFORMATION
+    // SystemPoolLimitInformation = 233,
+    // SystemCodeIntegrityAddDynamicStore = 234,
+    // SystemCodeIntegrityClearDynamicStores = 235.
+    // SystemDifPoolTrackingInformation = 236
     MaxSystemInfoClass
 } SYSTEM_INFORMATION_CLASS;
 
