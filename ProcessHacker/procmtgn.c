@@ -120,7 +120,7 @@ NTSTATUS PhGetProcessMitigationPolicy(
     COPY_PROCESS_MITIGATION_POLICY(PayloadRestriction, PROCESS_MITIGATION_PAYLOAD_RESTRICTION_POLICY);
     COPY_PROCESS_MITIGATION_POLICY(ChildProcess, PROCESS_MITIGATION_CHILD_PROCESS_POLICY);
     COPY_PROCESS_MITIGATION_POLICY(SideChannelIsolation, PROCESS_MITIGATION_SIDE_CHANNEL_ISOLATION_POLICY); // 19H1
-    COPY_PROCESS_MITIGATION_POLICY(UserShadowStack, PROCESS_MITIGATION_USER_SHADOW_STACK_POLICY); // 20H1
+    COPY_PROCESS_MITIGATION_POLICY(UserShadowStack, PROCESS_MITIGATION_USER_SHADOW_STACK_POLICY_INT); // 20H1
 
     return status;
 }
@@ -531,15 +531,54 @@ BOOLEAN PhDescribeProcessMitigationPolicy(
         break;
     case ProcessUserShadowStackPolicy:
         {
-            PPROCESS_MITIGATION_USER_SHADOW_STACK_POLICY data = Data;
+            PPROCESS_MITIGATION_USER_SHADOW_STACK_POLICY_INT data = Data;
 
-            if (data->EnableUserShadowStack)
+            if (data->EnableUserShadowStack || data->AuditUserShadowStack)
             {
                 if (ShortDescription)
-                    *ShortDescription = PhCreateString(L"Stack protection is enabled");
+                {
+                    PhInitializeStringBuilder(&sb, 50);
+
+                    if (data->AuditUserShadowStack)
+                        PhAppendStringBuilder2(&sb, L"Audit ");
+
+                    if (data->EnableUserShadowStackStrictMode)
+                        PhAppendStringBuilder2(&sb, L"Strict ");
+
+                    PhAppendStringBuilder2(&sb, L"Stack protection");
+
+                    *ShortDescription = PhFinalStringBuilderString(&sb);
+                }
 
                 if (LongDescription)
-                    *LongDescription = PhCreateString(L"The CPU verifies function return addresses at runtime by employing a hardware-enforced shadow stack.\r\n");
+                {
+                    PhInitializeStringBuilder(&sb, 100);
+
+                    PhAppendStringBuilder2(&sb, L"The CPU verifies function return addresses at runtime by employing a hardware-enforced shadow stack.\r\n");
+
+                    if (data->AuditUserShadowStack)
+                        PhAppendStringBuilder2(&sb, L"Audit Stack protection : log ROP failures to event log.\r\n");
+
+                    if (data->EnableUserShadowStackStrictMode)
+                        PhAppendStringBuilder2(&sb, L"Strict Stack protection : any detected ROP will cause the process to terminate.\r\n");
+
+                    if (data->AuditSetContextIpValidation)
+                        PhAppendStringBuilder2(&sb, L"Audit Set Context IP validation : log modifications of context IP to event log.\r\n");
+
+                    if (data->SetContextIpValidation)
+                        PhAppendStringBuilder2(&sb, L"Set Context IP validation : any detected modification of context IP will cause the process to terminate.\r\n");
+
+                    if (data->AuditBlockNonCetBinaries)
+                        PhAppendStringBuilder2(&sb, L"Audit Block non CET binaries : log attempts to load binaries without CET support.\r\n");
+
+                    if (data->BlockNonCetBinaries)
+                        PhAppendStringBuilder2(&sb, L"Block binaries without CET support\r\n");
+
+                    if (data->BlockNonCetBinariesNonEhcont)
+                        PhAppendStringBuilder2(&sb, L"Block binaries without CET support or without EH continuation metadata.\r\n");
+
+                    *LongDescription = PhFinalStringBuilderString(&sb);
+                }
 
                 result = TRUE;
             }

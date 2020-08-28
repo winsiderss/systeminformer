@@ -650,6 +650,26 @@ typedef struct _PROCESS_HANDLE_SNAPSHOT_INFORMATION
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
+// TODO: remove after switch to 21H1 SDK
+typedef struct _PROCESS_MITIGATION_USER_SHADOW_STACK_POLICY_INT {
+    union {
+        DWORD Flags;
+        struct {
+            DWORD EnableUserShadowStack : 1;
+            DWORD AuditUserShadowStack : 1;
+            DWORD SetContextIpValidation : 1;
+            DWORD AuditSetContextIpValidation : 1;
+            DWORD EnableUserShadowStackStrictMode : 1;
+            DWORD BlockNonCetBinaries : 1;
+            DWORD BlockNonCetBinariesNonEhcont : 1;
+            DWORD AuditBlockNonCetBinaries : 1;
+            DWORD CetDynamicApisOutOfProcOnly : 1;
+            DWORD ReservedFlags : 23;
+
+        } DUMMYSTRUCTNAME;
+    } DUMMYUNIONNAME;
+} PROCESS_MITIGATION_USER_SHADOW_STACK_POLICY_INT, * PPROCESS_MITIGATION_USER_SHADOW_STACK_POLICY_INT;
+
 // private
 typedef struct _PROCESS_MITIGATION_POLICY_INFORMATION
 {
@@ -669,7 +689,7 @@ typedef struct _PROCESS_MITIGATION_POLICY_INFORMATION
         PROCESS_MITIGATION_PAYLOAD_RESTRICTION_POLICY PayloadRestrictionPolicy;
         PROCESS_MITIGATION_CHILD_PROCESS_POLICY ChildProcessPolicy;
         PROCESS_MITIGATION_SIDE_CHANNEL_ISOLATION_POLICY SideChannelIsolationPolicy;
-        PROCESS_MITIGATION_USER_SHADOW_STACK_POLICY UserShadowStackPolicy;
+        PROCESS_MITIGATION_USER_SHADOW_STACK_POLICY_INT UserShadowStackPolicy;
     };
 } PROCESS_MITIGATION_POLICY_INFORMATION, *PPROCESS_MITIGATION_POLICY_INFORMATION;
 
