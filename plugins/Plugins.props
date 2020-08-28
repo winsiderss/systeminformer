@@ -23,16 +23,17 @@
             <TreatWarningAsError>true</TreatWarningAsError>
             <WarningLevel>Level3</WarningLevel>
             <SDLCheck>true</SDLCheck>
-            <ControlFlowGuard>Guard</ControlFlowGuard>
             <MinimalRebuild>false</MinimalRebuild>
             <MultiProcessorCompilation>true</MultiProcessorCompilation>
             <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+            <LanguageStandard>stdcpplatest</LanguageStandard>
             <StringPooling>true</StringPooling>
         </ClCompile>
         <Link>
             <AdditionalDependencies>ProcessHacker.lib;ntdll.lib;noenv.obj;noarg.obj;%(AdditionalDependencies)</AdditionalDependencies>
             <GenerateDebugInformation>true</GenerateDebugInformation>
             <SubSystem>Windows</SubSystem>
+            <AdditionalOptions>/DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% %(AdditionalOptions)</AdditionalOptions>
         </Link>
         <BuildLog>
             <Path>$(IntDir)$(MSBuildProjectName).log</Path>
@@ -46,7 +47,6 @@
             <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
             <FunctionLevelLinking>false</FunctionLevelLinking>
             <IntrinsicFunctions>false</IntrinsicFunctions>
-            <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
         </ClCompile>
     </ItemDefinitionGroup>
 
@@ -59,6 +59,7 @@
             <IntrinsicFunctions>true</IntrinsicFunctions>
             <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
             <WholeProgramOptimization>true</WholeProgramOptimization>
+            <ControlFlowGuard>Guard</ControlFlowGuard>
         </ClCompile>
         <Link>
             <OptimizeReferences>true</OptimizeReferences>
@@ -134,14 +135,24 @@
     <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
         <ClCompile>
             <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
+            <SpectreMitigation>Spectre</SpectreMitigation>
+            <IntelJCCErratum>true</IntelJCCErratum>
         </ClCompile>
+        <Link>
+            <CETCompat>true</CETCompat>
+        </Link>
     </ItemDefinitionGroup>
 
     <!-- Release|x64 Builds -->
     <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
         <ClCompile>
             <PreprocessorDefinitions>WIN64;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
+            <SpectreMitigation>Spectre</SpectreMitigation>
+            <IntelJCCErratum>true</IntelJCCErratum>
         </ClCompile>
+        <Link>
+            <CETCompat>true</CETCompat>
+        </Link>
     </ItemDefinitionGroup>
 
 </Project>
