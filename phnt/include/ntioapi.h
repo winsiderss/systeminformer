@@ -1763,7 +1763,6 @@ typedef enum _IO_SESSION_STATE
     IoSessionStateMax
 } IO_SESSION_STATE;
 
-
 // Sessions
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
