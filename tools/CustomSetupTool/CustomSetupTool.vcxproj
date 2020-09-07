@@ -72,6 +72,7 @@
       <SubSystem>Windows</SubSystem>
       <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
       <DelayLoadDLLs>advapi32.dll;comctl32.dll;crypt32.dll;gdi32.dll;ole32.dll;shell32.dll;user32.dll;uxtheme.dll;winhttp.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <ResourceCompile>
       <PreprocessorDefinitions>_UNICODE;UNICODE;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
@@ -107,6 +108,7 @@
       <SetChecksum>true</SetChecksum>
       <DelayLoadDLLs>advapi32.dll;comctl32.dll;crypt32.dll;gdi32.dll;ole32.dll;shell32.dll;user32.dll;uxtheme.dll;winhttp.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+      <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <ResourceCompile>
       <PreprocessorDefinitions>_UNICODE;UNICODE;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
