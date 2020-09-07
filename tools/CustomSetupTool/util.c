@@ -1127,7 +1127,7 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
 
         PhOpenProcess(
             &processHandle, 
-            ProcessQueryAccess | PROCESS_TERMINATE,
+            PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_TERMINATE,
             objectInfo.ClientId.UniqueProcess
             );
         
