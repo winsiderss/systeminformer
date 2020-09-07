@@ -89,7 +89,6 @@ typedef struct _PH_SERVICE_QUERY_S1_DATA
 {
     PH_SERVICE_QUERY_DATA Header;
 
-    PPH_STRING FileName;
     HICON SmallIcon;
     HICON LargeIcon;
 } PH_SERVICE_QUERY_S1_DATA, *PPH_SERVICE_QUERY_S1_DATA;
@@ -442,12 +441,43 @@ VOID PhpUpdateServiceItemConfig(
         ULONG returnLength;
         PSERVICE_TRIGGER_INFO triggerInfo;
 
-        config = PhGetServiceConfig(serviceHandle);
-
-        if (config)
+        if (config = PhGetServiceConfig(serviceHandle))
         {
+            PPH_STRING fileName = NULL;
+
             ServiceItem->StartType = config->dwStartType;
             ServiceItem->ErrorControl = config->dwErrorControl;
+
+            PhGetServiceDllParameter(config->dwServiceType, &ServiceItem->Name->sr, &fileName);
+
+            if (!fileName)
+            {
+                PPH_STRING commandLine;
+
+                if (config->lpBinaryPathName[0])
+                {
+                    commandLine = PhCreateString(config->lpBinaryPathName);
+
+                    if (config->dwServiceType & SERVICE_WIN32)
+                    {
+                        PH_STRINGREF dummyFileName;
+                        PH_STRINGREF dummyArguments;
+
+                        PhParseCommandLineFuzzy(&commandLine->sr, &dummyFileName, &dummyArguments, &fileName);
+
+                        if (!fileName)
+                            PhSwapReference(&fileName, commandLine);
+                    }
+                    else
+                    {
+                        fileName = PhGetFileName(commandLine);
+                    }
+
+                    PhDereferenceObject(commandLine);
+                }
+            }
+
+            ServiceItem->FileName = fileName;
 
             PhFree(config);
         }
@@ -501,25 +531,20 @@ VOID PhpServiceQueryStage1(
     )
 {
     PPH_SERVICE_ITEM serviceItem = Data->Header.ServiceItem;
-    SC_HANDLE serviceManagerHandle = Data->Header.ServiceManagerHandle;
-    SC_HANDLE serviceHandle;
+    //SC_HANDLE serviceManagerHandle = Data->Header.ServiceManagerHandle;
 
-    if (serviceHandle = OpenService(
-        serviceManagerHandle,
-        serviceItem->Name->Buffer,
-        SERVICE_QUERY_CONFIG
-        ))
+    if (serviceItem->FileName)
     {
-        Data->FileName = PhGetServiceRelevantFileName(&serviceItem->Name->sr, serviceHandle);
-        CloseServiceHandle(serviceHandle);
-    }
-
-    if (Data->FileName)
-    {
-        if (!PhExtractIcon(Data->FileName->Buffer, &Data->LargeIcon, &Data->SmallIcon))
+        if (!(serviceItem->Type & SERVICE_DRIVER)) // Skip icons for driver services (dmex)
         {
-            Data->LargeIcon = NULL;
-            Data->SmallIcon = NULL;
+            HICON largeIcon;
+            HICON smallIcon;
+
+            if (PhExtractIcon(serviceItem->FileName->Buffer, &largeIcon, &smallIcon))
+            {
+                Data->LargeIcon = largeIcon;
+                Data->SmallIcon = smallIcon;
+            }
         }
 
         // Version info.
@@ -621,7 +646,6 @@ VOID PhpFillServiceItemStage1(
 {
     PPH_SERVICE_ITEM serviceItem = Data->Header.ServiceItem;
 
-    serviceItem->FileName = Data->FileName;
     serviceItem->SmallIcon = Data->SmallIcon;
     serviceItem->LargeIcon = Data->LargeIcon;
     //memcpy(&processItem->VersionInfo, &Data->VersionInfo, sizeof(PH_IMAGE_VERSION_INFO));
