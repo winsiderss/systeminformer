@@ -390,6 +390,8 @@ INT_PTR CALLBACK PvpPeSecurityDlgProc(
                 ListView_SetImageList(context->ListViewHandle, context->ListViewImageList, LVSIL_SMALL);
 
             PvpPeEnumerateFileCertificates(context->ListViewHandle);
+
+            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
