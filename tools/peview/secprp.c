@@ -210,8 +210,9 @@ VOID PvpPeEnumerateNestedSignatures(
             WCHAR number[PH_INT32_STR_LEN_1];
 
             PhPrintUInt32(number, ++(*Count));
-            lvItemIndex = PhAddListViewItem(
+            lvItemIndex = PhAddListViewGroupItem(
                 ListViewHandle,
+                1,
                 MAXINT,
                 number,
                 (PVOID)certificateContext
@@ -266,8 +267,9 @@ VOID PvpPeEnumerateFileCertificates(
             WCHAR number[PH_INT32_STR_LEN_1];
 
             PhPrintUInt32(number, ++count);
-            lvItemIndex = PhAddListViewItem(
+            lvItemIndex = PhAddListViewGroupItem(
                 ListViewHandle,
+                0,
                 MAXINT,
                 number,
                 (PVOID)certificateContext
@@ -389,6 +391,9 @@ INT_PTR CALLBACK PvpPeSecurityDlgProc(
             if (context->ListViewImageList = ImageList_Create(2, 20, ILC_COLOR, 1, 1))
                 ListView_SetImageList(context->ListViewHandle, context->ListViewImageList, LVSIL_SMALL);
 
+            ListView_EnableGroupView(context->ListViewHandle, TRUE);
+            PhAddListViewGroup(context->ListViewHandle, 0, L"Image certificates");
+            PhAddListViewGroup(context->ListViewHandle, 1, L"Nested certificates");
             PvpPeEnumerateFileCertificates(context->ListViewHandle);
 
             PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
