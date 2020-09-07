@@ -977,13 +977,14 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
 
             PhCenterWindow(hwndDlg, PhMainWndHandle);
 
+            if (PhGetIntegerSetting(L"RunAsEnableAutoComplete"))
             {
                 COMBOBOXINFO info = { sizeof(COMBOBOXINFO) };
 
                 if (SendMessage(context->ProgramComboBoxWindowHandle, CB_GETCOMBOBOXINFO, 0, (LPARAM)&info))
                 {
-                    if (SHAutoComplete)
-                        SHAutoComplete(info.hwndItem, SHACF_DEFAULT);
+                    if (SHAutoComplete_Import())
+                        SHAutoComplete_Import()(info.hwndItem, SHACF_DEFAULT);
                 }
             }
 
@@ -2619,13 +2620,14 @@ INT_PTR CALLBACK PhpRunFileWndProc(
             PhpAddProgramsToComboBox(context->ComboBoxHandle);
             ComboBox_SetCurSel(context->ComboBoxHandle, 0);
 
+            if (PhGetIntegerSetting(L"RunAsEnableAutoComplete"))
             {
                 COMBOBOXINFO info = { sizeof(COMBOBOXINFO) };
 
                 if (SendMessage(context->ComboBoxHandle, CB_GETCOMBOBOXINFO, 0, (LPARAM)& info))
                 {
-                    if (SHAutoComplete && info.hwndItem)
-                        SHAutoComplete(info.hwndItem, SHACF_DEFAULT);
+                    if (SHAutoComplete_Import() && info.hwndItem)
+                        SHAutoComplete_Import()(info.hwndItem, SHACF_DEFAULT);
                 }
             }
 
