@@ -41,14 +41,14 @@
 
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
         <DefineConstants />
-        <DebugType>portable</DebugType>
-        <DebugSymbols>false</DebugSymbols>
+        <DebugType>embedded</DebugType>
+        <DebugSymbols>true</DebugSymbols>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
         <DefineConstants />
-        <DebugType>portable</DebugType>
-        <DebugSymbols>false</DebugSymbols>
+        <DebugType>embedded</DebugType>
+        <DebugSymbols>true</DebugSymbols>
     </PropertyGroup>
 
     <ItemGroup>
