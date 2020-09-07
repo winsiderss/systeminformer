@@ -746,12 +746,8 @@ static VOID ReadCurrentUserRun(
             PPH_STRING fullFileName;
             PPH_STRING applicationFileName;
 
-            PH_AUTO(value);
-
             if (PhParseCommandLineFuzzy(&value->sr, &fileName, &arguments, &fullFileName))
             {
-                PH_AUTO(fullFileName);
-
                 if (applicationFileName = PhGetApplicationFileName())
                 {
                     if (fullFileName && PhEqualString(fullFileName, applicationFileName, TRUE))
@@ -761,7 +757,11 @@ static VOID ReadCurrentUserRun(
 
                     PhDereferenceObject(applicationFileName);
                 }
+
+                if (fullFileName) PhDereferenceObject(fullFileName);
             }
+
+            PhDereferenceObject(value);
         }
 
         NtClose(keyHandle);
