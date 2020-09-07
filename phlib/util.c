@@ -1698,31 +1698,19 @@ PVOID PhGetFileVersionInfo(
     _In_ PWSTR FileName
     )
 {
-    PVOID libraryModule;
-    PVOID versionInfo;
+    PVOID imageBaseAddress;
+    PVOID imageVersionInfo;
 
-    libraryModule = LoadLibraryEx(
-        FileName,
-        NULL, 
-        LOAD_LIBRARY_AS_DATAFILE | LOAD_LIBRARY_AS_IMAGE_RESOURCE
-        );
-
-    if (!libraryModule)
+    if (!NT_SUCCESS(PhLoadLibraryAsImageResource(FileName, &imageBaseAddress)))
         return NULL;
 
-    if (PhLoadResource(
-        libraryModule, 
-        MAKEINTRESOURCE(VS_VERSION_INFO), 
-        VS_FILE_INFO, 
-        NULL, 
-        &versionInfo
-        ))
+    if (PhLoadResource(imageBaseAddress, MAKEINTRESOURCE(VS_VERSION_INFO), VS_FILE_INFO, NULL, &imageVersionInfo))
     {
-        FreeLibrary(libraryModule);
-        return versionInfo;
+        PhFreeLibraryAsImageResource(imageBaseAddress);
+        return imageVersionInfo;
     }
 
-    FreeLibrary(libraryModule);
+    PhFreeLibraryAsImageResource(imageBaseAddress);
     return NULL;
 }
 
@@ -5717,6 +5705,81 @@ NTSTATUS PhAccessResource(
     }
 
     return STATUS_SUCCESS;
+}
+
+NTSTATUS PhLoadLibraryAsImageResource(
+    _In_ PWSTR FileName,
+    _Out_ PVOID* DllBase
+    )
+{
+    NTSTATUS status;
+    HANDLE fileHandle;
+    HANDLE sectionHandle;
+    PVOID imageBaseAddress;
+    SIZE_T imageBaseLength;
+
+    status = PhCreateFileWin32(
+        &fileHandle,
+        FileName,
+        FILE_READ_DATA | SYNCHRONIZE,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ | FILE_SHARE_DELETE,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = NtCreateSection(
+        &sectionHandle,
+        SECTION_QUERY | SECTION_MAP_READ,
+        NULL,
+        NULL,
+        PAGE_READONLY,
+        SEC_IMAGE | SEC_NOCACHE,
+        fileHandle
+        );
+
+    NtClose(fileHandle);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    imageBaseAddress = NULL;
+    imageBaseLength = 0;
+
+    status = NtMapViewOfSection(
+        sectionHandle,
+        NtCurrentProcess(),
+        &imageBaseAddress,
+        0,
+        0,
+        NULL,
+        &imageBaseLength,
+        ViewShare,
+        0,
+        PAGE_READONLY
+        );
+
+    NtClose(sectionHandle);
+
+    if (NT_SUCCESS(status))
+    {
+        if (DllBase)
+        {
+            *DllBase = imageBaseAddress;
+        }
+    }
+
+    return status;
+}
+
+VOID PhFreeLibraryAsImageResource(
+    _In_ PVOID DllBase
+    )
+{
+    NtUnmapViewOfSection(NtCurrentProcess(), DllBase);
 }
 
 _Success_(return)
