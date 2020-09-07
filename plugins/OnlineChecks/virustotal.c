@@ -2,7 +2,7 @@
  * Process Hacker Online Checks -
  *   VirusTotal functions
  *
- * Copyright (C) 2016 dmex
+ * Copyright (C) 2016-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -36,15 +36,10 @@ PPH_BYTES VirusTotalTimeString(
     PPH_BYTES result;
 
     PhLargeIntegerToLocalSystemTime(&systemTime, LargeInteger);
-
     dateString = PhFormatDate(&systemTime, L"yyyy-MM-dd");
     timeString = PhFormatTime(&systemTime, L"HH:mm:ss");
 
-    result = FormatAnsiString(
-        "%S %S", 
-        dateString->Buffer,
-        timeString->Buffer
-        );
+    result = PhFormatBytes("%S %S", dateString->Buffer, timeString->Buffer);
 
     PhDereferenceObject(timeString);
     PhDereferenceObject(dateString);
