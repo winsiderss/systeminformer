@@ -43,8 +43,6 @@ VOID NTAPI LoadCallback(
     _In_opt_ PVOID Context
     )
 {
-    // HACK: The GetPerTcpConnectionEStats function requires administrative privileges 
-    // but returns success instead of access denied.
     if (PhGetOwnTokenAttributes().Elevated)
     {
         NetworkExtensionEnabled = !!PhGetIntegerSetting(SETTING_NAME_EXTENDED_TCP_STATS);
@@ -757,7 +755,7 @@ VOID NTAPI TreeNewMessageCallback(
             rect.left += 5;
 
             // Draw the column data
-            if (GeoDbLoaded && !GeoDbExpired && extension->RemoteCountryCode && extension->RemoteCountryName)
+            if (GeoDbLoaded && extension->RemoteCountryCode && extension->RemoteCountryName)
             {
                 if (extension->CountryIconIndex == INT_MAX)
                     extension->CountryIconIndex = LookupCountryIcon(extension->RemoteCountryCode);
@@ -775,11 +773,6 @@ VOID NTAPI TreeNewMessageCallback(
                     &rect,
                     DT_LEFT | DT_VCENTER | DT_END_ELLIPSIS | DT_SINGLELINE
                     );
-            }
-
-            if (GeoDbExpired)
-            {
-                DrawText(hdc, L"Geoip database expired.", -1, &rect, DT_LEFT | DT_VCENTER | DT_END_ELLIPSIS | DT_SINGLELINE);
             }
 
             if (!GeoDbLoaded)
