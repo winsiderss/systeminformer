@@ -1951,6 +1951,25 @@ VOID PhpGetImageVersionInfoFields(
     ImageVersionInfo->ProductName = PhGetFileVersionInfoString2(VersionInfo, LangCodePage, L"ProductName");
 }
 
+PPH_STRING PhpGetImageVersionVersionString(
+    _In_ PVOID VersionInfo,
+    _In_ ULONG LangCodePage
+    )
+{
+    PPH_STRING versionString;
+
+    if (versionString = PhGetFileVersionInfoString2(VersionInfo, LangCodePage, L"FileVersion"))
+        return versionString;
+    if (versionString = PhGetFileVersionInfoString2(VersionInfo, (LangCodePage & 0xffff0000) + 1252, L"FileVersion"))
+        return versionString;
+    if (versionString = PhGetFileVersionInfoString2(VersionInfo, (MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US) << 16) + 1252, L"FileVersion"))
+        return versionString;
+    if (versionString = PhGetFileVersionInfoString2(VersionInfo, (MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US) << 16) + 0, L"FileVersion"))
+        return versionString;
+
+    return NULL;
+}
+
 /**
  * Initializes a structure with version information.
  *
@@ -1964,6 +1983,7 @@ BOOLEAN PhInitializeImageVersionInfo(
     )
 {
     PVOID versionInfo;
+    PPH_STRING versionString;
     ULONG langCodePage;
     VS_FIXEDFILEINFO *rootBlock;
     ULONG rootBlockLength;
@@ -1992,22 +2012,29 @@ BOOLEAN PhInitializeImageVersionInfo(
         }
     }
 
-    // The version information is language-independent and must be read from the root block.
-    if (PhGetFileVersionInfoValue(versionInfo, L"\\", &rootBlock, &rootBlockLength) && rootBlockLength != 0)
+    if (versionString = PhpGetImageVersionVersionString(versionInfo, langCodePage))
     {
-        PhInitFormatU(&fileVersionFormat[0], HIWORD(rootBlock->dwFileVersionMS));
-        PhInitFormatC(&fileVersionFormat[1], L'.');
-        PhInitFormatU(&fileVersionFormat[2], LOWORD(rootBlock->dwFileVersionMS));
-        PhInitFormatC(&fileVersionFormat[3], L'.');
-        PhInitFormatU(&fileVersionFormat[4], HIWORD(rootBlock->dwFileVersionLS));
-        PhInitFormatC(&fileVersionFormat[5], L'.');
-        PhInitFormatU(&fileVersionFormat[6], LOWORD(rootBlock->dwFileVersionLS));
-
-        ImageVersionInfo->FileVersion = PhFormat(fileVersionFormat, 7, 64);
+        ImageVersionInfo->FileVersion = versionString;
     }
     else
     {
-        ImageVersionInfo->FileVersion = NULL;
+        // The version information is language-independent and must be read from the root block.
+        if (PhGetFileVersionInfoValue(versionInfo, L"\\", &rootBlock, &rootBlockLength) && rootBlockLength != 0)
+        {
+            PhInitFormatU(&fileVersionFormat[0], HIWORD(rootBlock->dwFileVersionMS));
+            PhInitFormatC(&fileVersionFormat[1], L'.');
+            PhInitFormatU(&fileVersionFormat[2], LOWORD(rootBlock->dwFileVersionMS));
+            PhInitFormatC(&fileVersionFormat[3], L'.');
+            PhInitFormatU(&fileVersionFormat[4], HIWORD(rootBlock->dwFileVersionLS));
+            PhInitFormatC(&fileVersionFormat[5], L'.');
+            PhInitFormatU(&fileVersionFormat[6], LOWORD(rootBlock->dwFileVersionLS));
+
+            ImageVersionInfo->FileVersion = PhFormat(fileVersionFormat, RTL_NUMBER_OF(fileVersionFormat), 64);
+        }
+        else
+        {
+            ImageVersionInfo->FileVersion = NULL;
+        }
     }
 
     PhFree(versionInfo);
