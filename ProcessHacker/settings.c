@@ -152,6 +152,7 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"ProcStatPropPageGroupStates", L"");
     PhpAddStringSetting(L"ProgramInspectExecutables", L"peview.exe \"%s\"");
     PhpAddIntegerSetting(L"PropagateCpuUsage", L"0");
+    PhpAddIntegerSetting(L"RunAsEnableAutoComplete", L"0");
     PhpAddStringSetting(L"RunAsProgram", L"");
     PhpAddStringSetting(L"RunAsUserName", L"");
     PhpAddIntegerSetting(L"RunFileDlgState", L"0");
