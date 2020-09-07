@@ -119,6 +119,11 @@ typedef HRESULT (WINAPI* _SHGetFolderPathW)(
     _Out_writes_(MAX_PATH) LPWSTR pszPath
     );
 
+typedef HRESULT (WINAPI* _SHAutoComplete)(
+    _In_ HWND hwndEdit,
+    _In_ ULONG Flags
+    );
+
 typedef ULONG_PTR (WINAPI* _SHGetFileInfoW)(
     _In_ LPCWSTR pszPath,
     _In_ ULONG dwFileAttributes,
@@ -219,6 +224,7 @@ PH_DECLARE_IMPORT(DnsExtractRecordsFromMessage_W);
 PH_DECLARE_IMPORT(DnsWriteQuestionToBuffer_W);
 PH_DECLARE_IMPORT(DnsFree);
 
+PH_DECLARE_IMPORT(SHAutoComplete);
 PH_DECLARE_IMPORT(SHGetFolderPathW);
 PH_DECLARE_IMPORT(SHGetFileInfoW);
 

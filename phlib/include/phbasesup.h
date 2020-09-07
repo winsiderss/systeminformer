@@ -99,8 +99,6 @@ PhDelayExecution(
 // Heap
 
 _May_raise_
-_Check_return_
-_Ret_notnull_
 _Post_writable_byte_size_(Size)
 PHLIBAPI
 PVOID
@@ -109,6 +107,9 @@ PhAllocate(
     _In_ SIZE_T Size
     );
 
+_Must_inspect_result_
+_Ret_maybenull_
+_Post_writable_byte_size_(Size)
 PHLIBAPI
 PVOID
 NTAPI
@@ -116,6 +117,9 @@ PhAllocateSafe(
     _In_ SIZE_T Size
     );
 
+_Must_inspect_result_
+_Ret_maybenull_
+_Post_writable_byte_size_(Size)
 PHLIBAPI
 PVOID
 NTAPI
@@ -164,7 +168,7 @@ PHLIBAPI
 VOID
 NTAPI
 PhFreePage(
-    _Post_invalid_ PVOID Memory
+    _In_ _Post_invalid_ PVOID Memory
     );
 
 FORCEINLINE
@@ -1744,6 +1748,16 @@ PhCreateBytes2(
 {
     return PhCreateBytesEx(Bytes->Buffer, Bytes->Length);
 }
+
+PPH_BYTES PhFormatBytes_V(
+    _In_ _Printf_format_string_ PSTR Format,
+    _In_ va_list ArgPtr
+    );
+
+PPH_BYTES PhFormatBytes(
+    _In_ _Printf_format_string_ PSTR Format,
+    ...
+    );
 
 // Unicode
 

@@ -96,6 +96,7 @@ PhMappedImageRvaToSection(
     );
 
 PHLIBAPI
+_Success_(return != NULL)
 PVOID
 NTAPI
 PhMappedImageRvaToVa(
@@ -105,6 +106,7 @@ PhMappedImageRvaToVa(
     );
 
 PHLIBAPI
+_Success_(return != NULL)
 PVOID
 NTAPI
 PhMappedImageVaToVa(

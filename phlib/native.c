@@ -384,7 +384,7 @@ NTSTATUS PhGetObjectSecurity(
     bufferSize = 0x100;
     buffer = PhAllocate(bufferSize);
     // This is required (especially for File objects) because some drivers don't seem to handle
-    // QuerySecurity properly.
+    // QuerySecurity properly. (wj32)
     memset(buffer, 0, bufferSize);
 
     status = NtQuerySecurityObject(
@@ -464,6 +464,7 @@ PPH_STRING PhGetSecurityDescriptorAsString(
     return securityDescriptorString;
 }
 
+_Success_(return)
 BOOLEAN PhGetObjectSecurityDescriptorAsString(
     _In_ HANDLE Handle,
     _Out_ PPH_STRING* SecurityDescriptorString
@@ -4293,8 +4294,7 @@ BOOLEAN NTAPI PhpEnumProcessModules32Callback(
     )
 {
     static PH_STRINGREF system32String = PH_STRINGREF_INIT(L"\\system32\\");
-
-    PPH_ENUM_PROCESS_MODULES_PARAMETERS parameters;
+    PPH_ENUM_PROCESS_MODULES_PARAMETERS parameters = Context1;
     BOOLEAN cont;
     LDR_DATA_TABLE_ENTRY nativeEntry;
     PPH_STRING mappedFileName;
@@ -4302,8 +4302,6 @@ BOOLEAN NTAPI PhpEnumProcessModules32Callback(
     PWSTR fullDllNameBuffer = NULL;
     PH_STRINGREF fullDllName;
     PH_STRINGREF systemRootString;
-
-    parameters = Context1;
 
     if (!parameters)
         return TRUE;
@@ -5198,7 +5196,6 @@ NTSTATUS PhEnumHandlesEx2(
 
     bufferSize = 0x8000;
     buffer = PhAllocate(bufferSize);
-    memset(buffer, 0, bufferSize);
 
     status = NtQueryInformationProcess(
         ProcessHandle,
@@ -5213,7 +5210,6 @@ NTSTATUS PhEnumHandlesEx2(
         PhFree(buffer);
         bufferSize = returnLength;
         buffer = PhAllocate(bufferSize);
-        memset(buffer, 0, bufferSize);
 
         status = NtQueryInformationProcess(
             ProcessHandle,
@@ -5222,6 +5218,7 @@ NTSTATUS PhEnumHandlesEx2(
             bufferSize,
             &returnLength
             );
+
         attempts++;
     }
 

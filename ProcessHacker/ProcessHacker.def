@@ -39,14 +39,8 @@ EXPORTS
 ; phconfig
     PhGlobalDpi DATA
     PhIsExecutingInWow64
-    PhInstanceHandle DATA
     PhOsVersion DATA
     PhSystemBasicInformation DATA
-    ProcessAllAccess DATA
-    ProcessQueryAccess DATA
-    ThreadAllAccess DATA
-    ThreadQueryAccess DATA
-    ThreadSetAccess DATA
     WindowsVersion DATA
 
 ; phbasesup
@@ -156,6 +150,8 @@ EXPORTS
     PhfInitializeInitOnce
     PhfInitializeRundownProtection
     PhFormat
+    PhFormatBytes
+    PhFormatBytes_V
     PhFormatString
     PhFormatString_V
     PhFormatToBuffer
