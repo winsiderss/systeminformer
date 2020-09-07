@@ -93,37 +93,40 @@
     <ClCompile Include="links.c">
       <Filter>Source Files\Pages\Windows</Filter>
     </ClCompile>
-    <ClCompile Include="processes.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="exlfdynamic.c">
       <Filter>Source Files\Pages\Linux</Filter>
-    </ClCompile>
-    <ClCompile Include="tlsprp.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="previewprp.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="pedirprp.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="richprp.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="debugprp.c">
-      <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="options.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ehcontprp.c">
+      <Filter>Source Files\Pages\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="debugprp.c">
+      <Filter>Source Files\Pages\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="pedirprp.c">
+      <Filter>Source Files\Pages\Windows</Filter>
+    </ClCompile>
     <ClCompile Include="pesectionprp.c">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Pages\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="pepogoprp.c">
+      <Filter>Source Files\Pages\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="richprp.c">
+      <Filter>Source Files\Pages\Windows</Filter>
     </ClCompile>
     <ClCompile Include="secprp.c">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Pages\Windows</Filter>
     </ClCompile>
-    <ClCompile Include="ehcontprp.c">
+    <ClCompile Include="tlsprp.c">
+      <Filter>Source Files\Pages\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="previewprp.c">
+      <Filter>Source Files\Pages\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="processes.c">
       <Filter>Source Files\Pages\Windows</Filter>
     </ClCompile>
   </ItemGroup>

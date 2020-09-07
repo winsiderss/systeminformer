@@ -34,6 +34,7 @@
 #define IDD_PESECTIONS                  132
 #define IDD_PESECURITY                  133
 #define IDD_PEEHCONT                    134
+#define IDD_PEDEBUGPOGO                 135
 #define IDC_TARGETMACHINE               1003
 #define IDC_CHECKSUM                    1004
 #define IDC_SUBSYSTEM                   1005

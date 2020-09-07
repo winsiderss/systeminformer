@@ -60,6 +60,7 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"ImageTlsListViewColumns", L"");
     PhpAddStringSetting(L"ImageProdIdListViewColumns", L"");
     PhpAddStringSetting(L"ImageDebugListViewColumns", L"");
+    PhpAddStringSetting(L"ImageDebugPogoListViewColumns", L"");
     PhpAddStringSetting(L"ImageEhContListViewColumns", L"");
     PhpAddStringSetting(L"LibListViewColumns", L"");
     PhpAddStringSetting(L"PdbTreeListColumns", L"");

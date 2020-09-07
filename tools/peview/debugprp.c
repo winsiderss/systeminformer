@@ -104,6 +104,7 @@ INT_PTR CALLBACK PvpPeDebugDlgProc(
             PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 100, L"RVA (start)");
             PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 100, L"RVA (end)");
             PhAddListViewColumn(lvHandle, 4, 4, 4, LVCFMT_LEFT, 100, L"Size");
+            PhAddListViewColumn(lvHandle, 5, 5, 5, LVCFMT_LEFT, 80, L"Hash");
             PhSetExtendedListView(lvHandle);
             PhLoadListViewColumnsFromSetting(L"ImageDebugListViewColumns", lvHandle);
 
@@ -117,22 +118,51 @@ INT_PTR CALLBACK PvpPeDebugDlgProc(
 
                     PhPrintUInt32(value, ++count);
                     lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, value, NULL);
-
                     PhSetListViewSubItem(lvHandle, lvItemIndex, 1, PvpGetDebugTypeString(entry.Type));
-
                     PhPrintPointer(value, UlongToPtr(entry.AddressOfRawData));
                     PhSetListViewSubItem(lvHandle, lvItemIndex, 2, value);
-
                     PhPrintPointer(value, PTR_ADD_OFFSET(entry.AddressOfRawData, entry.SizeOfData));
                     PhSetListViewSubItem(lvHandle, lvItemIndex, 3, value);
-
                     PhSetListViewSubItem(lvHandle, lvItemIndex, 4, PhaFormatSize(entry.SizeOfData, ULONG_MAX)->Buffer);
+
+                    if (entry.AddressOfRawData && entry.SizeOfData)
+                    {
+                        __try
+                        {
+                            PVOID imageSectionData;
+                            PH_HASH_CONTEXT hashContext;
+                            PPH_STRING hashString;
+                            UCHAR hash[32];
+
+                            if (imageSectionData = PhMappedImageRvaToVa(&PvMappedImage, entry.AddressOfRawData, NULL))
+                            {
+                                PhInitializeHash(&hashContext, Md5HashAlgorithm); // PhGetIntegerSetting(L"HashAlgorithm")
+                                PhUpdateHash(&hashContext, imageSectionData, entry.SizeOfData);
+
+                                if (PhFinalHash(&hashContext, hash, 16, NULL))
+                                {
+                                    hashString = PhBufferToHexString(hash, 16);
+                                    PhSetListViewSubItem(lvHandle, lvItemIndex, 5, hashString->Buffer);
+                                    PhDereferenceObject(hashString);
+                                }
+                            }
+                        }
+                        __except (EXCEPTION_EXECUTE_HANDLER)
+                        {
+                            PPH_STRING message;
+
+                            //message = PH_AUTO(PhGetNtMessage(GetExceptionCode()));
+                            message = PH_AUTO(PhGetWin32Message(RtlNtStatusToDosError(GetExceptionCode()))); // WIN32_FROM_NTSTATUS
+
+                            PhSetListViewSubItem(lvHandle, lvItemIndex, 5, PhGetStringOrEmpty(message));
+                        }
+                    }
                 }
 
                 PhFree(debug.DebugEntries);
             }
 
-            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
+            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
         }
         break;
     case WM_DESTROY:

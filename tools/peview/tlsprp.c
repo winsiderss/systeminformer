@@ -38,16 +38,15 @@ VOID PvpPeEnumerateTlsCallbacks(
             INT lvItemIndex;
             PPH_STRING symbol;
             PPH_STRING symbolName = NULL;
-            WCHAR number[PH_INT32_STR_LEN_1];
-            WCHAR pointer[PH_PTR_STR_LEN_1];
+            WCHAR value[PH_PTR_STR_LEN_1];
 
             entry = callbacks.Entries[i];
 
-            PhPrintUInt32(number, ++count);
-            lvItemIndex = PhAddListViewItem(ListViewHandle, MAXINT, number, NULL);
+            PhPrintUInt32(value, ++count);
+            lvItemIndex = PhAddListViewItem(ListViewHandle, MAXINT, value, NULL);
 
-            PhPrintPointer(pointer, (PVOID)(ULONG_PTR)entry.Address);
-            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, pointer);
+            PhPrintPointer(value, (PVOID)entry.Address);
+            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, value);
 
             symbol = PhGetSymbolFromAddress(
                 PvSymbolProvider,
@@ -102,7 +101,7 @@ INT_PTR CALLBACK PvpPeTlsDlgProc(
             PvpPeEnumerateTlsCallbacks(lvHandle);
             //ExtendedListView_SortItems(lvHandle);
             
-            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
+            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
@@ -118,7 +117,6 @@ INT_PTR CALLBACK PvpPeTlsDlgProc(
 
                 dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
                 PvAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST), dialogItem, PH_ANCHOR_ALL);
-
                 PvDoPropPageLayout(hwndDlg);
 
                 propPageContext->LayoutInitialized = TRUE;
