@@ -155,6 +155,7 @@ PhGetSecurityDescriptorAsString(
     _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
     );
 
+_Success_(return)
 PHLIBAPI
 BOOLEAN
 NTAPI

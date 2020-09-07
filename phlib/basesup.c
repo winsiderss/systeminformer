@@ -454,8 +454,6 @@ NTSTATUS PhDelayExecution(
  * is guaranteed to be aligned at MEMORY_ALLOCATION_ALIGNMENT bytes.
  */
 _May_raise_
-_Check_return_
-_Ret_notnull_
 _Post_writable_byte_size_(Size)
 PVOID PhAllocate(
     _In_ SIZE_T Size
@@ -471,6 +469,9 @@ PVOID PhAllocate(
  *
  * \return A pointer to the allocated block of memory, or NULL if the block could not be allocated.
  */
+_Must_inspect_result_
+_Ret_maybenull_
+_Post_writable_byte_size_(Size)
 PVOID PhAllocateSafe(
     _In_ SIZE_T Size
     )
@@ -486,6 +487,9 @@ PVOID PhAllocateSafe(
  *
  * \return A pointer to the allocated block of memory, or NULL if the block could not be allocated.
  */
+_Must_inspect_result_
+_Ret_maybenull_
+_Post_writable_byte_size_(Size)
 PVOID PhAllocateExSafe(
     _In_ SIZE_T Size,
     _In_ ULONG Flags
@@ -592,7 +596,7 @@ PVOID PhAllocatePage(
  * \param Memory A pointer to a block of memory.
  */
 VOID PhFreePage(
-    _Post_invalid_ PVOID Memory
+    _In_ _Post_invalid_ PVOID Memory
     )
 {
     SIZE_T size;
@@ -763,7 +767,7 @@ BOOLEAN PhCopyBytesZ(
     BOOLEAN copied;
 
     // Determine the length of the input string.
-
+    
     if (InputCount != -1)
     {
         i = 0;
@@ -2545,6 +2549,37 @@ PPH_BYTES PhCreateBytesEx(
     }
 
     return bytes;
+}
+
+PPH_BYTES PhFormatBytes_V(
+    _In_ _Printf_format_string_ PSTR Format,
+    _In_ va_list ArgPtr
+    )
+{
+    PPH_BYTES string;
+    INT length;
+
+    length = _vscprintf(Format, ArgPtr);
+
+    if (length == -1)
+        return NULL;
+
+    string = PhCreateBytesEx(NULL, length * sizeof(CHAR));
+    _vsnprintf(string->Buffer, length, Format, ArgPtr);
+
+    return string;
+}
+
+PPH_BYTES PhFormatBytes(
+    _In_ _Printf_format_string_ PSTR Format,
+    ...
+    )
+{
+    va_list argptr;
+
+    va_start(argptr, Format);
+
+    return PhFormatBytes_V(Format, argptr);
 }
 
 BOOLEAN PhWriteUnicodeDecoder(
