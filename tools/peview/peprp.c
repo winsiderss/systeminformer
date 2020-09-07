@@ -1407,7 +1407,7 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
             PvpSetPeImageVersionInfo(hwndDlg);
             PvpSetPeImageProperties(context);
 
-            //PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
