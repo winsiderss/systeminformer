@@ -48,7 +48,7 @@ INT_PTR CALLBACK PvpPeCgfDlgProc(
             PhSetControlTheme(lvHandle, L"explorer");
 
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"#");
-            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_RIGHT, 80, L"VA");
+            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_RIGHT, 80, L"RVA");
             PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 250, L"Name");
             PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 100, L"Flags");
             PhSetExtendedListView(lvHandle);
@@ -65,18 +65,17 @@ INT_PTR CALLBACK PvpPeCgfDlgProc(
                     PPH_STRING symbolName = NULL;
                     PH_SYMBOL_RESOLVE_LEVEL symbolResolveLevel = PhsrlInvalid;
                     IMAGE_CFG_ENTRY cfgFunctionEntry = { 0 };
-                    WCHAR number[PH_INT64_STR_LEN_1];
-                    WCHAR pointer[PH_PTR_STR_LEN_1];
+                    WCHAR value[PH_INT64_STR_LEN_1];
 
                     // Parse cfg entry : if it fails, just skip it ?
                     if (!NT_SUCCESS(PhGetMappedImageCfgEntry(&cfgConfig, i, ControlFlowGuardFunction, &cfgFunctionEntry)))
                         continue;
 
-                    PhPrintUInt64(number, i + 1);
-                    lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, number, NULL);
+                    PhPrintUInt64(value, i + 1);
+                    lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, value, NULL);
 
-                    PhPrintPointer(pointer, UlongToPtr(cfgFunctionEntry.Rva));
-                    PhSetListViewSubItem(lvHandle, lvItemIndex, 1, pointer);
+                    PhPrintPointer(value, UlongToPtr(cfgFunctionEntry.Rva));
+                    PhSetListViewSubItem(lvHandle, lvItemIndex, 1, value);
 
                     // Resolve name based on public symbols
 
@@ -182,11 +181,8 @@ INT_PTR CALLBACK PvpPeCgfDlgProc(
             {
                 PPH_LAYOUT_ITEM dialogItem;
 
-                dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg,
-                    PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
-                PvAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST),
-                    dialogItem, PH_ANCHOR_ALL);
-
+                dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
+                PvAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST), dialogItem, PH_ANCHOR_ALL);
                 PvDoPropPageLayout(hwndDlg);
 
                 propPageContext->LayoutInitialized = TRUE;

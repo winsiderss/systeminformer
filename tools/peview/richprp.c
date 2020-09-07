@@ -352,7 +352,7 @@ INT_PTR CALLBACK PvpPeProdIdDlgProc(
                 PhClearReference(&prodids.Key);
             }
 
-            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
+            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
@@ -368,7 +368,6 @@ INT_PTR CALLBACK PvpPeProdIdDlgProc(
 
                 dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
                 PvAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST), dialogItem, PH_ANCHOR_ALL);
-
                 PvDoPropPageLayout(hwndDlg);
 
                 propPageContext->LayoutInitialized = TRUE;

@@ -67,11 +67,10 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
                         )
                     {
                         INT lvItemIndex;
-                        WCHAR number[PH_INT32_STR_LEN_1];
-                        WCHAR pointer[PH_PTR_STR_LEN_1];
+                        WCHAR value[PH_PTR_STR_LEN_1];
 
-                        PhPrintUInt32(number, i + 1);
-                        lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, number, NULL);
+                        PhPrintUInt32(value, i + 1);
+                        lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, value, NULL);
 
                         if (exportFunction.ForwardedName)
                         {
@@ -92,8 +91,8 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
                         }
                         else
                         {
-                            PhPrintPointer(pointer, exportFunction.Function);
-                            PhSetListViewSubItem(lvHandle, lvItemIndex, 1, pointer);
+                            PhPrintPointer(value, exportFunction.Function);
+                            PhSetListViewSubItem(lvHandle, lvItemIndex, 1, value);
                         }
 
                         if (exportEntry.Name)
@@ -163,13 +162,13 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
                             }
                         }
 
-                        PhPrintUInt32(number, exportEntry.Ordinal);
-                        PhSetListViewSubItem(lvHandle, lvItemIndex, 3, number);
+                        PhPrintUInt32(value, exportEntry.Ordinal);
+                        PhSetListViewSubItem(lvHandle, lvItemIndex, 3, value);
 
                         if (exportEntry.Name) // Note: The 'Hint' is only valid for named exports. (dmex)
                         {
-                            PhPrintUInt32(number, exportEntry.Hint);
-                            PhSetListViewSubItem(lvHandle, lvItemIndex, 4, number);
+                            PhPrintUInt32(value, exportEntry.Hint);
+                            PhSetListViewSubItem(lvHandle, lvItemIndex, 4, value);
                         }
                     }
                 }
@@ -193,7 +192,6 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
 
                 dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
                 PvAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST), dialogItem, PH_ANCHOR_ALL);
-
                 PvDoPropPageLayout(hwndDlg);
 
                 propPageContext->LayoutInitialized = TRUE;

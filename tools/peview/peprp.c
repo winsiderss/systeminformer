@@ -263,6 +263,113 @@ VOID PvPeProperties(
             PvAddPropPage(propContext, newPage);
         }
 
+        // TLS page
+        if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_TLS, &entry)) && entry->VirtualAddress)
+        {
+            newPage = PvCreatePropPageContext(
+                MAKEINTRESOURCE(IDD_TLS),
+                PvpPeTlsDlgProc,
+                NULL
+                );
+            PvAddPropPage(propContext, newPage);
+        }
+
+        // RICH header page
+        {
+            // .NET executables don't include a RICH header.
+            if (!(NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR, &entry)) && entry->VirtualAddress))
+            {
+                newPage = PvCreatePropPageContext(
+                    MAKEINTRESOURCE(IDD_PEPRODID),
+                    PvpPeProdIdDlgProc,
+                    NULL
+                    );
+                PvAddPropPage(propContext, newPage);
+            }
+        }
+
+        // Debug page
+        if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_DEBUG, &entry)) && entry->VirtualAddress)
+        {
+            newPage = PvCreatePropPageContext(
+                MAKEINTRESOURCE(IDD_PEDEBUG),
+                PvpPeDebugDlgProc,
+                NULL
+                );
+            PvAddPropPage(propContext, newPage);
+        }
+
+        // Certificates page
+        if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_SECURITY, &entry)) && entry->VirtualAddress)
+        {
+            newPage = PvCreatePropPageContext(
+                MAKEINTRESOURCE(IDD_PESECURITY),
+                PvpPeSecurityDlgProc,
+                NULL
+                );
+            PvAddPropPage(propContext, newPage);
+        }
+
+        // EH continuation page
+        {
+            BOOLEAN has_ehcont = FALSE;
+
+            if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+            {
+                if (NT_SUCCESS(PhGetMappedImageLoadConfig32(&PvMappedImage, &config32)) &&
+                    RTL_CONTAINS_FIELD(config32, config32->Size, GuardEHContinuationCount))
+                {
+                    if (config32->GuardEHContinuationTable && config32->GuardEHContinuationCount)
+                        has_ehcont = TRUE;
+                }
+            }
+            else
+            {
+                if (NT_SUCCESS(PhGetMappedImageLoadConfig64(&PvMappedImage, &config64)) &&
+                    RTL_CONTAINS_FIELD(config64, config64->Size, GuardEHContinuationCount))
+                {
+                    if (config64->GuardEHContinuationTable && config64->GuardEHContinuationCount)
+                        has_ehcont = TRUE;
+                }
+            }
+
+            if (has_ehcont)
+            {
+                newPage = PvCreatePropPageContext(
+                    MAKEINTRESOURCE(IDD_PEEHCONT),
+                    PvpPeEhContDlgProc,
+                    NULL
+                    );
+                PvAddPropPage(propContext, newPage);
+            }
+        }
+
+        // Debug POGO page
+        {
+            BOOLEAN debugPogoValid = FALSE;
+            PVOID debugEntry;
+
+            if (PhGetMappedImageDebugEntryByType(
+                &PvMappedImage,
+                IMAGE_DEBUG_TYPE_POGO,
+                NULL,
+                &debugEntry
+                ))
+            {
+                debugPogoValid = TRUE;
+            }
+
+            if (debugPogoValid)
+            {
+                newPage = PvCreatePropPageContext(
+                    MAKEINTRESOURCE(IDD_PEDEBUGPOGO),
+                    PvpPeDebugPogoDlgProc,
+                    NULL
+                    );
+                PvAddPropPage(propContext, newPage);
+            }
+        }
+
         // Properties page
         {
             newPage = PvCreatePropPageContext(
@@ -313,53 +420,6 @@ VOID PvPeProperties(
             PvAddPropPage(propContext, newPage);
         }
 
-        // TLS page
-        if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_TLS, &entry)) && entry->VirtualAddress)
-        {
-            newPage = PvCreatePropPageContext(
-                MAKEINTRESOURCE(IDD_TLS),
-                PvpPeTlsDlgProc,
-                NULL
-                );
-            PvAddPropPage(propContext, newPage);
-        }
-
-        // RICH header page
-        {
-            // .NET executables don't include a RICH header.
-            if (!(NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR, &entry)) && entry->VirtualAddress))
-            {
-                newPage = PvCreatePropPageContext(
-                    MAKEINTRESOURCE(IDD_PEPRODID),
-                    PvpPeProdIdDlgProc,
-                    NULL
-                    );
-                PvAddPropPage(propContext, newPage);
-            }
-        }
-
-        // Debug page
-        if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_DEBUG, &entry)) && entry->VirtualAddress)
-        {
-            newPage = PvCreatePropPageContext(
-                MAKEINTRESOURCE(IDD_PEDEBUG),
-                PvpPeDebugDlgProc,
-                NULL
-                );
-            PvAddPropPage(propContext, newPage);
-        }
-
-        // Certificates page
-        if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_SECURITY, &entry)) && entry->VirtualAddress)
-        {
-            newPage = PvCreatePropPageContext(
-                MAKEINTRESOURCE(IDD_PESECURITY),
-                PvpPeSecurityDlgProc,
-                NULL
-                );
-            PvAddPropPage(propContext, newPage);
-        }
-
         // Text preview page
         {
             newPage = PvCreatePropPageContext(
@@ -378,40 +438,6 @@ VOID PvPeProperties(
                 NULL
                 );
             PvAddPropPage(propContext, newPage);
-        }
-
-        // EH continuation page
-        {
-            BOOLEAN has_ehcont = FALSE;
-
-            if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
-            {
-                if (NT_SUCCESS(PhGetMappedImageLoadConfig32(&PvMappedImage, &config32)) &&
-                    RTL_CONTAINS_FIELD(config32, config32->Size, GuardEHContinuationCount))
-                {
-                    if (config32->GuardEHContinuationTable && config32->GuardEHContinuationCount)
-                        has_ehcont = TRUE;
-                }
-            }
-            else
-            {
-                if (NT_SUCCESS(PhGetMappedImageLoadConfig64(&PvMappedImage, &config64)) &&
-                    RTL_CONTAINS_FIELD(config64, config64->Size, GuardEHContinuationCount))
-                {
-                    if (config64->GuardEHContinuationTable && config64->GuardEHContinuationCount)
-                        has_ehcont = TRUE;
-                }
-            }
-
-            if (has_ehcont)
-            {
-                newPage = PvCreatePropPageContext(
-                    MAKEINTRESOURCE(IDD_PEEHCONT),
-                    PvpPeEhContDlgProc,
-                    NULL
-                    );
-                PvAddPropPage(propContext, newPage);
-            }
         }
 
         PhModalPropertySheet(&propContext->PropSheetHeader);
@@ -696,21 +722,19 @@ VOID PvpSetPeImageTimeStamp(
 
             string = PhBufferToHexStringEx(debugEntry->Buffer, debugEntry->Length, FALSE);
             timeStamp = PhBufferToHexStringEx((PBYTE)&PvMappedImage.NtHeaders->FileHeader.TimeDateStamp, sizeof(ULONG), FALSE);
-            //PhFormatString(L"%lx", PvMappedImage.NtHeaders->FileHeader.TimeDateStamp);
 
             if (PhEndsWithString(string, timeStamp, TRUE))
-                PhMoveReference(&string, PhConcatStringRefZ(&string->sr, L" (deterministic) (correct)"));
+                PhMoveReference(&string, PhConcatStringRefZ(&string->sr, L" (deterministic)"));
             else
                 PhMoveReference(&string, PhConcatStringRefZ(&string->sr, L" (deterministic) (incorrect)"));
 
             PhDereferenceObject(timeStamp);
         }
-        else
+        else // CLR images
         {
-            // This is needed for CLR images with invalid REPRO debug entires.
             string = PhFormatDateTime(&systemTime);
             PhSwapReference(&string, PhFormatString(
-                L"%s (%lx) (deterministic) (legacy)",
+                L"%s (%lx) (deterministic)",
                 string->Buffer,
                 PvMappedImage.NtHeaders->FileHeader.TimeDateStamp
                 ));
@@ -790,7 +814,7 @@ VOID PvpSetPeImageSize(
 
         if (success)
         {
-            string = PhFormatString(L"%s (correct)", PhaFormatSize(PvMappedImage.Size, ULONG_MAX)->Buffer);
+            string = PhFormatString(L"%s", PhaFormatSize(PvMappedImage.Size, ULONG_MAX)->Buffer);
         }
         else
         {
@@ -809,7 +833,7 @@ VOID PvpSetPeImageSize(
     }
     else
     {
-        string = PhFormatString(L"%s (correct)", PhaFormatSize(PvMappedImage.Size, ULONG_MAX)->Buffer);
+        string = PhFormatString(L"%s", PhaFormatSize(PvMappedImage.Size, ULONG_MAX)->Buffer);
     }
 
     PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_IMAGESIZE, 1, string->Buffer);
@@ -1383,7 +1407,7 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
             PvpSetPeImageVersionInfo(hwndDlg);
             PvpSetPeImageProperties(context);
 
-            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
+            //PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
@@ -1440,7 +1464,7 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
             }
             else if (headerCheckSum == realCheckSum)
             {
-                string = PhFormatString(L"0x%I32x (correct)", headerCheckSum);
+                string = PhFormatString(L"0x%I32x", headerCheckSum);
                 PhSetListViewSubItem(context->ListViewHandle, PVP_IMAGE_GENERAL_INDEX_CHECKSUM, 1, string->Buffer);
                 PhDereferenceObject(string);
             }

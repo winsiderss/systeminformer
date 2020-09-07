@@ -1122,7 +1122,7 @@ INT_PTR CALLBACK PvpSymbolsDlgProc(
                 0
                 );
 
-            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
+            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
@@ -1142,12 +1142,9 @@ INT_PTR CALLBACK PvpSymbolsDlgProc(
             {
                 PPH_LAYOUT_ITEM dialogItem;
 
-                dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg,
-                    PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
-                PvAddPropPageLayoutItem(hwndDlg, context->SearchHandle,
-                    dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+                dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
+                PvAddPropPageLayoutItem(hwndDlg, context->SearchHandle, dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PvAddPropPageLayoutItem(hwndDlg, context->TreeNewHandle, dialogItem, PH_ANCHOR_ALL);
-
                 PvDoPropPageLayout(hwndDlg);
 
                 propPageContext->LayoutInitialized = TRUE;

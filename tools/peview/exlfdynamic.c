@@ -146,14 +146,13 @@ VOID PvpProcessElfDynamic(
     {
         PPH_ELF_IMAGE_DYNAMIC_ENTRY dynamic = dynamics->Items[i];
         INT lvItemIndex;
-        WCHAR number[PH_INT32_STR_LEN_1];
-        WCHAR pointer[PH_PTR_STR_LEN_1];
+        WCHAR value[PH_PTR_STR_LEN_1];
 
-        PhPrintUInt32(number, ++count);
-        lvItemIndex = PhAddListViewItem(ListViewHandle, MAXINT, number, NULL);
+        PhPrintUInt32(value, ++count);
+        lvItemIndex = PhAddListViewItem(ListViewHandle, MAXINT, value, NULL);
 
-        PhPrintPointer(pointer, (PVOID)dynamic->Tag);
-        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, pointer);
+        PhPrintPointer(value, (PVOID)dynamic->Tag);
+        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, value);
         //PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, PhaFormatString(L"0x%016llx", (PVOID)dynamic->Tag)->Buffer);
         PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, PvpGetDynamicTagName(dynamic->Tag));
         PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, PhGetStringOrEmpty(dynamic->Value));
@@ -194,7 +193,7 @@ INT_PTR CALLBACK PvpExlfDynamicDlgProc(
             PvpProcessElfDynamic(lvHandle);
             ExtendedListView_SortItems(lvHandle);
             
-            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
+            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
@@ -210,7 +209,6 @@ INT_PTR CALLBACK PvpExlfDynamicDlgProc(
 
                 dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
                 PvAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST), dialogItem, PH_ANCHOR_ALL);
-
                 PvDoPropPageLayout(hwndDlg);
 
                 propPageContext->LayoutInitialized = TRUE;

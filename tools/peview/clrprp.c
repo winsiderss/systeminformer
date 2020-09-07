@@ -162,7 +162,7 @@ PPH_STRING PvpPeClrGetMvid(
             break;
         }
 
-        streamHeader = PTR_ADD_OFFSET(streamHeader, ALIGN_UP(UFIELD_OFFSET(STORAGESTREAM, Name) + strlen(streamHeader->Name) + 1, ULONG));
+        streamHeader = PTR_ADD_OFFSET(streamHeader, ALIGN_UP(UFIELD_OFFSET(STORAGESTREAM, Name) + strlen(streamHeader->Name) + sizeof(ANSI_NULL), ULONG));
     }
 
     return guidMvidString;
@@ -190,7 +190,7 @@ VOID PvpPeClrEnumSections(
             streamHeader->Name,
             sizeof(streamHeader->Name),
             sectionName,
-            ARRAYSIZE(sectionName),
+            RTL_NUMBER_OF(sectionName),
             NULL
             ))
         {
@@ -374,7 +374,6 @@ INT_PTR CALLBACK PvpPeClrDlgProc(
 
                 dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
                 PvAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST), dialogItem, PH_ANCHOR_ALL);
-
                 PvDoPropPageLayout(hwndDlg);
 
                 propPageContext->LayoutInitialized = TRUE;

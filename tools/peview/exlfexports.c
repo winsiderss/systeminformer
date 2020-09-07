@@ -35,18 +35,16 @@ VOID PvpProcessElfExports(
     {
         PPH_ELF_IMAGE_SYMBOL_ENTRY export = exports->Items[i];
         INT lvItemIndex;
-        WCHAR number[PH_INT32_STR_LEN_1];
-        WCHAR pointer[PH_PTR_STR_LEN_1];
+        WCHAR value[PH_PTR_STR_LEN_1];
 
         if (!export->ExportSymbol)
             continue;
 
-        PhPrintUInt32(number, ++count);
-        lvItemIndex = PhAddListViewItem(ListViewHandle, MAXINT, number, NULL);
+        PhPrintUInt32(value, ++count);
+        lvItemIndex = PhAddListViewItem(ListViewHandle, MAXINT, value, NULL);
 
-        PhPrintPointer(pointer, (PVOID)export->Address);
-
-        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, pointer);
+        PhPrintPointer(value, (PVOID)export->Address);
+        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, value);
         PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, export->Name);
         PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, PhaFormatSize(export->Size, ULONG_MAX)->Buffer);
         PhSetListViewSubItem(ListViewHandle, lvItemIndex, 4, PvpGetSymbolTypeName(export->TypeInfo));
@@ -94,7 +92,7 @@ INT_PTR CALLBACK PvpExlfExportsDlgProc(
             PvpProcessElfExports(lvHandle);
             ExtendedListView_SortItems(lvHandle);
             
-            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
+            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
         }
         break;
     case WM_DESTROY:

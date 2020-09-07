@@ -235,7 +235,6 @@ INT_PTR CALLBACK PvpPeResourcesDlgProc(
                         PIMAGE_RESOURCE_DIR_STRING_U resourceString = (PIMAGE_RESOURCE_DIR_STRING_U)entry.Type;
 
                         string = PhCreateStringEx(resourceString->NameString, resourceString->Length * sizeof(WCHAR));
-
                         PhSetListViewSubItem(lvHandle, lvItemIndex, PVE_RESOURCES_COLUMN_INDEX_TYPE, string->Buffer);
                         PhDereferenceObject(string);
                     }
@@ -250,34 +249,33 @@ INT_PTR CALLBACK PvpPeResourcesDlgProc(
                         PIMAGE_RESOURCE_DIR_STRING_U resourceString = (PIMAGE_RESOURCE_DIR_STRING_U)entry.Name;
 
                         string = PhCreateStringEx(resourceString->NameString, resourceString->Length * sizeof(WCHAR));
-
                         PhSetListViewSubItem(lvHandle, lvItemIndex, PVE_RESOURCES_COLUMN_INDEX_NAME, string->Buffer);
                         PhDereferenceObject(string);
                     }
 
                     if (IS_INTRESOURCE(entry.Language))
                     {
-                        NTSTATUS status;
-                        UNICODE_STRING localeNameUs;
-                        WCHAR localeName[LOCALE_NAME_MAX_LENGTH];
-
-                        RtlInitEmptyUnicodeString(&localeNameUs, localeName, sizeof(localeName));
-
-                        // Note: Win32 defaults to the current user locale when zero is specified (e.g. LCIDToLocaleName).
                         if ((ULONG)entry.Language)
-                            status = RtlLcidToLocaleName((ULONG)entry.Language, &localeNameUs, 0, FALSE);
-                        else
-                            status = RtlLcidToLocaleName(PhGetUserDefaultLCID(), &localeNameUs, 0, FALSE);
+                        {
+                            UNICODE_STRING localeNameUs;
+                            WCHAR localeName[LOCALE_NAME_MAX_LENGTH];
 
-                        if (NT_SUCCESS(status))
-                        {
-                            PhPrintUInt32(number, (ULONG)entry.Language);
-                            PhSetListViewSubItem(lvHandle, lvItemIndex, PVE_RESOURCES_COLUMN_INDEX_LCID, PhaFormatString(L"%s (%s)", number, localeName)->Buffer);
+                            RtlInitEmptyUnicodeString(&localeNameUs, localeName, sizeof(localeName));
+
+                            if (NT_SUCCESS(RtlLcidToLocaleName((ULONG)entry.Language, &localeNameUs, 0, FALSE)))
+                            {
+                                PhPrintUInt32(number, (ULONG)entry.Language);
+                                PhSetListViewSubItem(lvHandle, lvItemIndex, PVE_RESOURCES_COLUMN_INDEX_LCID, PhaFormatString(L"%s (%s)", number, localeName)->Buffer);
+                            }
+                            else
+                            {
+                                PhPrintUInt32(number, (ULONG)entry.Language);
+                                PhSetListViewSubItem(lvHandle, lvItemIndex, PVE_RESOURCES_COLUMN_INDEX_LCID, number);
+                            }
                         }
-                        else
+                        else // LOCALE_NEUTRAL
                         {
-                            PhPrintUInt32(number, (ULONG)entry.Language);
-                            PhSetListViewSubItem(lvHandle, lvItemIndex, PVE_RESOURCES_COLUMN_INDEX_LCID, number);
+                            PhSetListViewSubItem(lvHandle, lvItemIndex, PVE_RESOURCES_COLUMN_INDEX_LCID, L"Neutral");
                         }
                     }
                     else
@@ -285,7 +283,6 @@ INT_PTR CALLBACK PvpPeResourcesDlgProc(
                         PIMAGE_RESOURCE_DIR_STRING_U resourceString = (PIMAGE_RESOURCE_DIR_STRING_U)entry.Language;
 
                         string = PhCreateStringEx(resourceString->NameString, resourceString->Length * sizeof(WCHAR));
-
                         PhSetListViewSubItem(lvHandle, lvItemIndex, PVE_RESOURCES_COLUMN_INDEX_LCID, string->Buffer);
                         PhDereferenceObject(string);
                     }
@@ -345,7 +342,6 @@ INT_PTR CALLBACK PvpPeResourcesDlgProc(
 
                 dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
                 PvAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST), dialogItem, PH_ANCHOR_ALL);
-
                 PvDoPropPageLayout(hwndDlg);
 
                 propPageContext->LayoutInitialized = TRUE;
