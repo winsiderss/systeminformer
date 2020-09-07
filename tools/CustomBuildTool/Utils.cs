@@ -458,7 +458,7 @@ namespace CustomBuildTool
         public bool IsComplete { get; }
         public string Name { get; }
         public string Path { get; }
-        public string Version { get; }
+        public string InstallationVersion { get; }
         public string DisplayName { get; }
         public string ResolvePath { get; }
         public string ProductPath { get; }
@@ -478,7 +478,7 @@ namespace CustomBuildTool
             this.IsComplete = FromInstance.IsComplete();
             this.Name = FromInstance.GetInstallationName();
             this.Path = FromInstance.GetInstallationPath();
-            this.Version = FromInstance.GetInstallationVersion();
+            this.InstallationVersion = FromInstance.GetInstallationVersion();
             this.DisplayName = FromInstance.GetDisplayName();
             this.ResolvePath = FromInstance.ResolvePath();
             this.InstanceId = FromInstance.GetInstanceId();
@@ -501,7 +501,14 @@ namespace CustomBuildTool
             if (found.Count == 0)
                 return null;
 
-            found.Sort((p1, p2) => string.Compare(p1.Id, p2.Id, StringComparison.OrdinalIgnoreCase));
+            // found.Sort((p1, p2) => string.Compare(p1.Id, p2.Id, StringComparison.OrdinalIgnoreCase));
+            found.Sort((p1, p2) =>
+            {
+                if (Version.TryParse(p1.Version, out Version v1) && Version.TryParse(p2.Version, out Version v2))
+                    return v1.CompareTo(v2);
+                else
+                    return 1;
+            });
 
             return found[^1];
         }
