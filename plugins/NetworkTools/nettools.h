@@ -53,7 +53,6 @@
 
 extern PPH_PLUGIN PluginInstance;
 extern BOOLEAN GeoDbLoaded;
-extern BOOLEAN GeoDbExpired;
 extern PPH_STRING SearchboxText;
 
 // ICMP Packet Length: (msdn: IcmpSendEcho2/Icmp6SendEcho2)

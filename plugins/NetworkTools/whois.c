@@ -388,9 +388,9 @@ BOOLEAN WhoisQueryServer(
     }
 
     if (PhEqualStringZ(WhoisServerAddress, L"whois.arin.net", TRUE))
-        whoisServerQuery = FormatAnsiString("n %S\r\n", WhoisQueryAddress);
+        whoisServerQuery = PhFormatBytes("n %S\r\n", WhoisQueryAddress);
     else
-        whoisServerQuery = FormatAnsiString("%S\r\n", WhoisQueryAddress);
+        whoisServerQuery = PhFormatBytes("%S\r\n", WhoisQueryAddress);
 
     if (!WriteSocketString(whoisSocketHandle, whoisServerQuery->Buffer, (ULONG)whoisServerQuery->Length))
     {

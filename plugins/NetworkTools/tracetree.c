@@ -461,8 +461,15 @@ BOOLEAN NTAPI TracertTreeNewCallback(
             data.DefaultSortOrder = AscendingSortOrder;
             PhInitializeTreeNewColumnMenu(&data);
 
-            data.Selection = PhShowEMenu(data.Menu, hwnd, PH_EMENU_SHOW_LEFTRIGHT,
-                PH_ALIGN_LEFT | PH_ALIGN_TOP, data.MouseEvent->ScreenLocation.x, data.MouseEvent->ScreenLocation.y);
+            data.Selection = PhShowEMenu(
+                data.Menu,
+                hwnd,
+                PH_EMENU_SHOW_LEFTRIGHT,
+                PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                data.MouseEvent->ScreenLocation.x,
+                data.MouseEvent->ScreenLocation.y
+                );
+
             PhHandleTreeNewColumnMenu(&data);
             PhDeleteTreeNewColumnMenu(&data);
         }
@@ -494,8 +501,7 @@ BOOLEAN NTAPI TracertTreeNewCallback(
             // Padding
             rect.left += 5;
 
-            // Draw the column data
-            if (GeoDbLoaded && !GeoDbExpired && node->RemoteCountryCode && node->RemoteCountryName)
+            if (GeoDbLoaded && node->RemoteCountryCode && node->RemoteCountryName)
             {
                 if (node->CountryIconIndex == INT_MAX)
                     node->CountryIconIndex = LookupCountryIcon(node->RemoteCountryCode);
@@ -513,11 +519,6 @@ BOOLEAN NTAPI TracertTreeNewCallback(
                     &rect,
                     DT_LEFT | DT_VCENTER | DT_END_ELLIPSIS | DT_SINGLELINE
                     );
-            }
-
-            if (GeoDbExpired)
-            {
-                DrawText(hdc, L"Geoip database expired.", -1, &rect, DT_LEFT | DT_VCENTER | DT_END_ELLIPSIS | DT_SINGLELINE);
             }
 
             if (!GeoDbLoaded)
