@@ -82,6 +82,20 @@ PhIsExecutingInWow64(
     VOID
     );
 
+DECLSPEC_NORETURN
+FORCEINLINE
+VOID
+PhExitApplication(
+    _In_opt_ NTSTATUS Status
+    )
+{
+#if (PHNT_VERSION >= PHNT_WIN7)
+    RtlExitUserProcess(Status);
+#else
+    PhTerminateProcess(NtCurrentProcess(), Status);
+#endif
+}
+
 #ifdef __cplusplus
 }
 #endif

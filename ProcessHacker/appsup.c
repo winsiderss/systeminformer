@@ -1840,7 +1840,7 @@ BOOLEAN PhInsertCopyListViewEMenuItem(
     LVHITTESTINFO lvHitInfo;
     HDITEM headerItem;
     PH_FORMAT format[3];
-    WCHAR headerText[MAX_PATH];
+    WCHAR headerText[MAX_PATH] = L"";
 
     if (!GetCursorPos(&location))
         return FALSE;
@@ -1853,7 +1853,6 @@ BOOLEAN PhInsertCopyListViewEMenuItem(
     if (ListView_SubItemHitTest(ListViewHandle, &lvHitInfo) == -1)
         return FALSE;
 
-    memset(headerText, 0, sizeof(headerText));
     memset(&headerItem, 0, sizeof(HDITEM));
     headerItem.mask = HDI_TEXT;
     headerItem.cchTextMax = RTL_NUMBER_OF(headerText);

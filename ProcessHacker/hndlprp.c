@@ -656,6 +656,7 @@ VOID PhpUpdateHandleGeneral(
     }
     else if (PhEqualString2(Context->HandleItem->TypeName, L"ALPC Port", TRUE))
     {
+#if (PHNT_VERSION >= PHNT_WIN7)
         NTSTATUS status;
         HANDLE processHandle;
         HANDLE alpcPortHandle = NULL;
@@ -699,6 +700,7 @@ VOID PhpUpdateHandleGeneral(
 
             NtClose(alpcPortHandle);
         }
+#endif
     }
     else if (PhEqualString2(Context->HandleItem->TypeName, L"EtwRegistration", TRUE))
     {
