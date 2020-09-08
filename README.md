@@ -11,7 +11,6 @@
 A free, powerful, multi-purpose tool that helps you monitor system resources, debug software and detect malware.
 
 [Official Website](https://processhacker.sourceforge.io/)
-
 [Nightly Builds](https://processhacker.sourceforge.io/nightly.php)
 
 ## System requirements
