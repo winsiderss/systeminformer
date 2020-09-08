@@ -256,6 +256,7 @@ PPH_STRING PhGetUserDefaultLocaleName(
     VOID
     )
 {
+#if (PHNT_VERSION >= PHNT_WIN7)
     UNICODE_STRING localeNameUs;
     WCHAR localeName[LOCALE_NAME_MAX_LENGTH] = { UNICODE_NULL };
 
@@ -265,7 +266,7 @@ PPH_STRING PhGetUserDefaultLocaleName(
     {
         return PhCreateStringFromUnicodeString(&localeNameUs);
     }
-
+#endif
     return NULL;
 }
 
@@ -274,6 +275,7 @@ PPH_STRING PhLCIDToLocaleName(
     _In_ LCID lcid
     )
 {
+#if (PHNT_VERSION >= PHNT_WIN7)
     UNICODE_STRING localeNameUs;
     WCHAR localeName[LOCALE_NAME_MAX_LENGTH] = { UNICODE_NULL };
 
@@ -293,7 +295,7 @@ PPH_STRING PhLCIDToLocaleName(
             return PhCreateStringFromUnicodeString(&localeNameUs);
         }
     }
-
+#endif
     return NULL;
 }
 
@@ -2317,9 +2319,45 @@ PPH_STRING PhGetFullPath(
     )
 {
     PPH_STRING fullPath;
+    ULONG bufferSize;
+    ULONG returnLength;
+    PWSTR filePart;
 
-    if (!NT_SUCCESS(PhGetFullPathEx(FileName, IndexOfFileName, &fullPath)))
+    bufferSize = 0x80;
+    fullPath = PhCreateStringEx(NULL, bufferSize * 2);
+
+    returnLength = RtlGetFullPathName_U(FileName, bufferSize, fullPath->Buffer, &filePart);
+
+    if (returnLength > bufferSize)
+    {
+        PhDereferenceObject(fullPath);
+        bufferSize = returnLength;
+        fullPath = PhCreateStringEx(NULL, bufferSize * 2);
+
+        returnLength = RtlGetFullPathName_U(FileName, bufferSize, fullPath->Buffer, &filePart);
+    }
+
+    if (returnLength == 0)
+    {
+        PhDereferenceObject(fullPath);
         return NULL;
+    }
+
+    PhTrimToNullTerminatorString(fullPath);
+
+    if (IndexOfFileName)
+    {
+        if (filePart)
+        {
+            // The path points to a file.
+            *IndexOfFileName = (ULONG)(filePart - fullPath->Buffer);
+        }
+        else
+        {
+            // The path points to a directory.
+            *IndexOfFileName = -1;
+        }
+    }
 
     return fullPath;
 }
@@ -2330,10 +2368,11 @@ NTSTATUS PhGetFullPathEx(
     _Out_ PPH_STRING *FullPath
     )
 {
+#if (PHNT_VERSION >= PHNT_WIN7)
     NTSTATUS status;
     PPH_STRING fullPath;
     ULONG bufferSize;
-    ULONG returnLength;
+    ULONG returnLength = 0;
     PWSTR filePart;
 
     bufferSize = 0x80;
@@ -2387,6 +2426,17 @@ NTSTATUS PhGetFullPathEx(
     *FullPath = fullPath;
 
     return status;
+#else
+    PPH_STRING fullPath;
+
+    if (fullPath = PhGetFullPath(FileName, IndexOfFileName))
+    {
+        *FullPath = fullPath;
+        return STATUS_SUCCESS;
+    }
+
+    return STATUS_UNSUCCESSFUL;
+#endif
 }
 
 /**
@@ -2708,7 +2758,11 @@ NTSTATUS PhWaitForMultipleObjectsAndPump(
     ULONG64 currentTickCount;
     ULONG64 currentTimeout;
 
+#if (PHNT_VERSION >= PHNT_WIN7)
     startTickCount = NtGetTickCount64();
+#else
+    startTickCount = GetTickCount();
+#endif
     currentTimeout = Timeout;
 
     while (TRUE)
@@ -2749,7 +2803,11 @@ NTSTATUS PhWaitForMultipleObjectsAndPump(
 
         if (Timeout != INFINITE)
         {
+#if (PHNT_VERSION >= PHNT_WIN7)
             currentTickCount = NtGetTickCount64();
+#else
+            currentTickCount = GetTickCount();
+#endif
             currentTimeout = Timeout - (currentTickCount - startTickCount);
 
             if ((LONG64)currentTimeout < 0)
@@ -2804,6 +2862,7 @@ NTSTATUS PhCreateProcess(
     PUNICODE_STRING windowTitle;
     PUNICODE_STRING desktopInfo;
 
+#if (PHNT_VERSION >= PHNT_WIN7)
     if (!NT_SUCCESS(status = RtlDosPathNameToNtPathName_U_WithStatus(
         FileName,
         &fileName,
@@ -2811,6 +2870,10 @@ NTSTATUS PhCreateProcess(
         NULL
         )))
         return status;
+#else
+    if (!RtlDosPathNameToNtPathName_U(FileName, &fileName, NULL, NULL))
+        return STATUS_UNSUCCESSFUL;
+#endif
 
     if (CommandLine)
     {
@@ -3635,14 +3698,14 @@ NTSTATUS PhFilterTokenForLimitedUser(
 
             newDaclLength = sizeof(ACL) + FIELD_OFFSET(ACCESS_ALLOWED_ACE, SidStart) + RtlLengthSid(currentUser->User.Sid);
 
-            if (currentDaclPresent)
+            if (currentDaclPresent && currentDacl)
                 newDaclLength += currentDacl->AclSize - sizeof(ACL);
 
             newDacl = PhAllocate(newDaclLength);
             RtlCreateAcl(newDacl, newDaclLength, ACL_REVISION);
 
             // Add the existing DACL entries.
-            if (currentDaclPresent)
+            if (currentDaclPresent && currentDacl)
             {
                 for (i = 0; i < currentDacl->AceCount; i++)
                 {

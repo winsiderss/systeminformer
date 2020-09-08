@@ -127,7 +127,7 @@ PH_TOKEN_ATTRIBUTES PhGetOwnTokenAttributes(
 NTSTATUS PhOpenProcess(
     _Out_ PHANDLE ProcessHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ HANDLE ProcessId
+    _In_opt_ HANDLE ProcessId
     )
 {
     NTSTATUS status;
@@ -1534,6 +1534,7 @@ NTSTATUS PhGetProcessUnloadedDlls(
     _Out_ ULONG *EventTraceCount
     )
 {
+#if (PHNT_VERSION >= PHNT_WIN7)
     NTSTATUS status;
     PULONG elementSize;
     PULONG elementCount;
@@ -1621,6 +1622,9 @@ CleanupExit:
     }
 
     return status;
+#else
+    return STATUS_UNSUCCESSFUL;
+#endif
 }
 
 NTSTATUS PhTraceControl(
@@ -1961,6 +1965,7 @@ NTSTATUS PhSetEnvironmentVariableRemote(
     _In_opt_ PLARGE_INTEGER Timeout
     )
 {
+#if (PHNT_VERSION >= PHNT_WIN7)
     NTSTATUS status;
 #ifdef _WIN64
     BOOLEAN isWow64;
@@ -2165,6 +2170,9 @@ CleanupExit:
     PhClearReference(&kernel32FileName);
 
     return status;
+#else
+    return STATUS_UNSUCCESSFUL;
+#endif
 }
 
 NTSTATUS PhGetJobProcessIdList(
@@ -5325,7 +5333,7 @@ NTSTATUS PhEnumPagefilesEx(
  * access checking performed by the kernel for this.
  */
 NTSTATUS PhGetProcessImageFileNameByProcessId(
-    _In_ HANDLE ProcessId,
+    _In_opt_ HANDLE ProcessId,
     _Out_ PPH_STRING *FileName
     )
 {
@@ -7297,6 +7305,7 @@ NTSTATUS PhLoadAppKey(
     _In_opt_ ULONG Flags
     )
 {
+#if (PHNT_VERSION >= PHNT_WIN7)
     NTSTATUS status;
     GUID guid;
     UNICODE_STRING fileName;
@@ -7325,9 +7334,7 @@ NTSTATUS PhLoadAppKey(
         NULL,
         NULL
         )))
-    {
-        goto CleanupExit;
-    }
+        return status;
 
     InitializeObjectAttributes(
         &targetAttributes,
@@ -7362,6 +7369,9 @@ CleanupExit:
     RtlFreeUnicodeString(&guidStringUs);
 
     return status;
+#else
+    return STATUS_UNSUCCESSFUL;
+#endif
 }
 
 /**
@@ -7757,6 +7767,7 @@ NTSTATUS PhCreateFileWin32Ex(
     if (!FileAttributes)
         FileAttributes = FILE_ATTRIBUTE_NORMAL;
 
+#if (PHNT_VERSION >= PHNT_WIN7)
     if (!NT_SUCCESS(status = RtlDosPathNameToNtPathName_U_WithStatus(
         FileName,
         &fileName,
@@ -7764,6 +7775,10 @@ NTSTATUS PhCreateFileWin32Ex(
         NULL
         )))
         return status;
+#else
+    if (!RtlDosPathNameToNtPathName_U(FileName, &fileName, NULL, NULL))
+        return STATUS_UNSUCCESSFUL;
+#endif
 
     InitializeObjectAttributes(
         &objectAttributes,
@@ -7879,6 +7894,7 @@ NTSTATUS PhOpenFileWin32Ex(
     OBJECT_ATTRIBUTES objectAttributes;
     IO_STATUS_BLOCK isb;
 
+#if (PHNT_VERSION >= PHNT_WIN7)
     if (!NT_SUCCESS(status = RtlDosPathNameToNtPathName_U_WithStatus(
         FileName,
         &fileNameUs,
@@ -7886,6 +7902,10 @@ NTSTATUS PhOpenFileWin32Ex(
         NULL
         )))
         return status;
+#else
+    if (!RtlDosPathNameToNtPathName_U(FileName, &fileNameUs, NULL, NULL))
+        return STATUS_UNSUCCESSFUL;
+#endif
 
     InitializeObjectAttributes(
         &objectAttributes,
@@ -7932,6 +7952,7 @@ NTSTATUS PhQueryFullAttributesFileWin32(
     UNICODE_STRING fileName;
     OBJECT_ATTRIBUTES objectAttributes;
 
+#if (PHNT_VERSION >= PHNT_WIN7)
     if (!NT_SUCCESS(status = RtlDosPathNameToNtPathName_U_WithStatus(
         FileName,
         &fileName,
@@ -7939,6 +7960,10 @@ NTSTATUS PhQueryFullAttributesFileWin32(
         NULL
         )))
         return status;
+#else
+    if (!RtlDosPathNameToNtPathName_U(FileName, &fileName, NULL, NULL))
+        return STATUS_UNSUCCESSFUL;
+#endif
 
     InitializeObjectAttributes(
         &objectAttributes,
@@ -7964,6 +7989,7 @@ NTSTATUS PhQueryAttributesFileWin32(
     UNICODE_STRING fileName;
     OBJECT_ATTRIBUTES objectAttributes;
 
+#if (PHNT_VERSION >= PHNT_WIN7)
     if (!NT_SUCCESS(status = RtlDosPathNameToNtPathName_U_WithStatus(
         FileName,
         &fileName,
@@ -7971,6 +7997,10 @@ NTSTATUS PhQueryAttributesFileWin32(
         NULL
         )))
         return status;
+#else
+    if (!RtlDosPathNameToNtPathName_U(FileName, &fileName, NULL, NULL))
+        return STATUS_UNSUCCESSFUL;
+#endif
 
     InitializeObjectAttributes(
         &objectAttributes,
