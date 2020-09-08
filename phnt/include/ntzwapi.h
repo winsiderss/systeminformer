@@ -1556,7 +1556,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 ZwFilterBootOption(
-    _In_ FILTER_BOOT_OPTION_OPERATION FilterOperation,
+    _In_ ULONG FilterOperation,
     _In_ ULONG ObjectType,
     _In_ ULONG ElementType,
     _In_reads_bytes_opt_(DataSize) PVOID Data,

@@ -1282,14 +1282,19 @@ PhGetStringOrDefault(
  *
  * \param String A pointer to a string object.
  */
-FORCEINLINE
-BOOLEAN
-PhIsNullOrEmptyString(
-    _In_opt_ PPH_STRING String
-    )
-{
-    return !String || String->Length == 0;
-}
+//FORCEINLINE
+//BOOLEAN
+//PhIsNullOrEmptyString(
+//    _In_opt_ PPH_STRING String
+//    )
+//{
+//    return !String || String->Length == 0;
+//}
+
+// VS2019 can't parse the inline bool check for the above PhIsNullOrEmptyString
+// inline function creating invalid C6387 warnings using the input string (dmex)
+#define PhIsNullOrEmptyString(string) \
+    (!(string) || (string)->Length == 0)
 
 /**
  * Duplicates a string.

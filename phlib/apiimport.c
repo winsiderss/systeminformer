@@ -28,7 +28,7 @@ FORCEINLINE
 PVOID PhpImportProcedure(
     _Inout_ PPH_INITONCE InitOnce,
     _Inout_ PVOID *Cache,
-    _Inout_ PULONG Cookie,
+    _Inout_ PULONG64 Cookie,
     _In_ PWSTR ModuleName,
     _In_ PSTR ProcedureName
     )
@@ -47,7 +47,11 @@ PVOID PhpImportProcedure(
         {
             if (procedure = PhGetDllBaseProcedureAddress(module, ProcedureName, 0))
             {
-                *Cookie = NtGetTickCount();
+#if (PHNT_VERSION >= PHNT_WIN7)
+                *Cookie = NtGetTickCount64();
+#else
+                *Cookie = GetTickCount();
+#endif
                 *Cache = (PVOID)((ULONG_PTR)procedure ^ (ULONG_PTR)*Cookie);
             }
         }
@@ -66,7 +70,7 @@ _##Name Name##_Import(VOID) \
 { \
     static PH_INITONCE initOnce = PH_INITONCE_INIT; \
     static PVOID cache = NULL; \
-    static ULONG cookie = 0; \
+    static ULONG64 cookie = 0; \
 \
     return (_##Name)PhpImportProcedure(&initOnce, &cache, &cookie, Module, #Name); \
 }
