@@ -35,8 +35,8 @@ VOID AdapterEntryDeleteProcedure(
     PhReleaseQueuedLockExclusive(&NetworkAdaptersListLock);
 
     DeleteNetAdapterId(&entry->AdapterId);
-    PhDereferenceObject(entry->AdapterName);
-    PhDereferenceObject(entry->AdapterAlias);
+    PhClearReference(&entry->AdapterName);
+    PhClearReference(&entry->AdapterAlias);
 
     PhDeleteCircularBuffer_ULONG64(&entry->InboundBuffer);
     PhDeleteCircularBuffer_ULONG64(&entry->OutboundBuffer);
