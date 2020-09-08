@@ -1459,6 +1459,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                                         {
                                             HRESULT status;
                                             PPH_STRING quotedFileName;
+#if (PHNT_VERSION >= PHNT_WIN7)
                                             RTL_ELEVATION_FLAGS flags;
 
                                             if (NT_SUCCESS(RtlQueryElevationFlags(&flags)) && flags.ElevationEnabled)
@@ -1484,7 +1485,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                                                     }
                                                 }
                                             }
-
+#endif
                                             quotedFileName = PH_AUTO(PhConcatStrings(3, L"\"", PhGetStringOrEmpty(applicationFileName), L"\""));
 
                                             status = PhCreateAdminTask(

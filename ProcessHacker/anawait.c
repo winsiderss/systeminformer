@@ -1013,6 +1013,7 @@ PPH_STRING PhpaGetAlpcInformation(
     _In_ HANDLE ThreadId
     )
 {
+#if (PHNT_VERSION >= PHNT_WIN7)
     NTSTATUS status;
     PPH_STRING string = NULL;
     HANDLE threadHandle;
@@ -1053,4 +1054,7 @@ PPH_STRING PhpaGetAlpcInformation(
     NtClose(threadHandle);
 
     return string;
+#else
+    return NULL;
+#endif
 }

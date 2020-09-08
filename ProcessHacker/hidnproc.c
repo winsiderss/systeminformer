@@ -937,6 +937,7 @@ NTSTATUS PhpEnumHiddenProcessHandles(
     _In_opt_ PVOID Context
     )
 {
+#if (PHNT_VERSION >= PHNT_WIN7)
     NTSTATUS status;
     HANDLE processHandle;
 
@@ -1016,6 +1017,9 @@ NTSTATUS PhpEnumHiddenProcessHandles(
         status = STATUS_SUCCESS; // HACK
 
     return status;
+#else
+    return STATUS_UNSUCCESSFUL;
+#endif
 }
 
 NTSTATUS PhpEnumHiddenSubKeyHandles(

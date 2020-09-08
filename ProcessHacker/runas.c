@@ -1274,6 +1274,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                                 if (!NT_SUCCESS(status))
                                     goto CleanupExit;
 
+#if (PHNT_VERSION >= PHNT_WIN7)
                                 if (!InitializeProcThreadAttributeList(NULL, 1, 0, &attributeListLength) && GetLastError() != ERROR_INSUFFICIENT_BUFFER)
                                 {
                                     status = PhGetLastWin32ErrorAsNtStatus();
@@ -1293,7 +1294,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                                     status = PhGetLastWin32ErrorAsNtStatus();
                                     goto CleanupExit;
                                 }
-
+#endif
                                 if (PhGetOwnTokenAttributes().Elevated)
                                 {
                                     PhGetObjectSecurity(
@@ -1399,13 +1400,13 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                                 {
                                     PhFree(processSecurityDescriptor);
                                 }
-
+#if (PHNT_VERSION >= PHNT_WIN7)
                                 if (startupInfo.lpAttributeList)
                                 {
                                     DeleteProcThreadAttributeList(startupInfo.lpAttributeList);
                                     PhFree(startupInfo.lpAttributeList);
                                 }
-
+#endif
                                 if (processHandle)
                                 {
                                     NtClose(processHandle);
@@ -2276,6 +2277,7 @@ NTSTATUS PhpRunFileProgram(
         if (!NT_SUCCESS(status))
             goto CleanupExit;
 
+#if (PHNT_VERSION >= PHNT_WIN7)
         if (!InitializeProcThreadAttributeList(NULL, 1, 0, &attributeListLength) && GetLastError() != ERROR_INSUFFICIENT_BUFFER)
         {
             status = PhGetLastWin32ErrorAsNtStatus();
@@ -2295,7 +2297,7 @@ NTSTATUS PhpRunFileProgram(
             status = PhGetLastWin32ErrorAsNtStatus();
             goto CleanupExit;
         }
-
+#endif
         if (PhGetOwnTokenAttributes().Elevated)
         {
             PhGetObjectSecurity(
@@ -2412,12 +2414,13 @@ NTSTATUS PhpRunFileProgram(
             PhFree(processSecurityDescriptor);
         }
 
+#if (PHNT_VERSION >= PHNT_WIN7)
         if (startupInfo.lpAttributeList)
         {
             DeleteProcThreadAttributeList(startupInfo.lpAttributeList);
             PhFree(startupInfo.lpAttributeList);
         }
-
+#endif
         if (processHandle)
         {
             NtClose(processHandle);
@@ -2520,7 +2523,7 @@ NTSTATUS RunAsCreateProcessThread(
     if (!NT_SUCCESS(status = PhOpenProcess(&processHandle, PROCESS_CREATE_PROCESS, UlongToHandle(serviceStatus.dwProcessId))))
         goto CleanupExit;
 
-
+#if (PHNT_VERSION >= PHNT_WIN7)
     if (!InitializeProcThreadAttributeList(NULL, 1, 0, &attributeListLength) && GetLastError() != ERROR_INSUFFICIENT_BUFFER)
     {
         status = PhGetLastWin32ErrorAsNtStatus();
@@ -2540,6 +2543,7 @@ NTSTATUS RunAsCreateProcessThread(
         status = PhGetLastWin32ErrorAsNtStatus();
         goto CleanupExit;
     }
+#endif
 
     AllowSetForegroundWindow(ASFW_ANY);
 
@@ -2564,11 +2568,13 @@ CleanupExit:
     if (serviceHandle)
         CloseServiceHandle(serviceHandle);
 
+#if (PHNT_VERSION >= PHNT_WIN7)
     if (startupInfo.lpAttributeList)
     {
         DeleteProcThreadAttributeList(startupInfo.lpAttributeList);
         PhFree(startupInfo.lpAttributeList);
     }
+#endif
 
     if (commandLine)
     {
