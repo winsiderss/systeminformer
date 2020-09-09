@@ -910,6 +910,14 @@ NTSTATUS PhGetProcessCommandLine(
     _Out_ PPH_STRING *CommandLine
     )
 {
+#ifdef _DEBUG
+    if (ProcessHandle == NtCurrentProcess())
+    {
+        *CommandLine = PhCreateStringFromUnicodeString(&NtCurrentPeb()->ProcessParameters->CommandLine);
+        return STATUS_SUCCESS;
+    }
+#endif
+
     if (WindowsVersion >= WINDOWS_8_1)
     {
         NTSTATUS status;

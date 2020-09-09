@@ -2770,11 +2770,7 @@ NTSTATUS PhWaitForMultipleObjectsAndPump(
     ULONG64 currentTickCount;
     ULONG64 currentTimeout;
 
-#if (PHNT_VERSION >= PHNT_WIN7)
     startTickCount = NtGetTickCount64();
-#else
-    startTickCount = GetTickCount();
-#endif
     currentTimeout = Timeout;
 
     while (TRUE)
@@ -2815,11 +2811,7 @@ NTSTATUS PhWaitForMultipleObjectsAndPump(
 
         if (Timeout != INFINITE)
         {
-#if (PHNT_VERSION >= PHNT_WIN7)
             currentTickCount = NtGetTickCount64();
-#else
-            currentTickCount = GetTickCount();
-#endif
             currentTimeout = Timeout - (currentTickCount - startTickCount);
 
             if ((LONG64)currentTimeout < 0)
