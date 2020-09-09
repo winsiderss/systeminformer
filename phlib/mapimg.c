@@ -656,6 +656,7 @@ BOOLEAN PhGetRemoteMappedImageDirectoryEntry(
     NTSTATUS status;
     PIMAGE_DATA_DIRECTORY dataDirectory;
     PVOID dataBuffer;
+    PVOID dataLength;
 
     if (RemoteMappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
     {
@@ -684,13 +685,17 @@ BOOLEAN PhGetRemoteMappedImageDirectoryEntry(
         return FALSE;
     }
 
-    dataBuffer = PhAllocate(dataDirectory->Size);
+    if (!(dataDirectory->VirtualAddress && dataDirectory->Size))
+        return FALSE;
+
+    dataLength = dataDirectory->Size;
+    dataBuffer = PhAllocate(dataLength);
 
     status = ReadVirtualMemoryCallback(
         ProcessHandle,
         PTR_ADD_OFFSET(RemoteMappedImage->ViewBase, dataDirectory->VirtualAddress),
         dataBuffer,
-        dataDirectory->Size,
+        dataLength,
         NULL
         );
 
@@ -700,10 +705,10 @@ BOOLEAN PhGetRemoteMappedImageDirectoryEntry(
         return FALSE;
     }
 
-    *DataBuffer = dataBuffer;
-
+    if (DataBuffer)
+        *DataBuffer = dataBuffer;
     if (DataLength)
-        *DataLength = dataDirectory->Size;
+        *DataLength = dataLength;
 
     return TRUE;
 }
