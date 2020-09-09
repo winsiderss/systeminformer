@@ -1393,6 +1393,7 @@ NTSTATUS PhGetProcessMappedFileName(
     SIZE_T returnLength;
     PUNICODE_STRING buffer;
 
+    returnLength = 0;
     bufferSize = 0x100;
     buffer = PhAllocate(bufferSize);
 
@@ -1405,7 +1406,7 @@ NTSTATUS PhGetProcessMappedFileName(
         &returnLength
         );
 
-    if (status == STATUS_BUFFER_OVERFLOW)
+    if (status == STATUS_BUFFER_OVERFLOW && returnLength > 0) // returnLength > 0 required for MemoryMappedFilename on Windows 7 SP1 (dmex)
     {
         PhFree(buffer);
         bufferSize = returnLength;
