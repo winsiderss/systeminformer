@@ -604,12 +604,12 @@ BOOLEAN PhInitializeRestartPolicy(
     return TRUE;
 }
 
-#ifdef DEBUG
+#ifndef DEBUG
 #include <symprv.h>
 #include <minidumpapiset.h>
 
-LONG CALLBACK PhpUnhandledExceptionCallback(
-    _In_ struct _EXCEPTION_POINTERS* ExceptionInfo
+ULONG CALLBACK PhpUnhandledExceptionCallback(
+    _In_ PEXCEPTION_POINTERS ExceptionInfo
     )
 {
     PPH_STRING errorMessage;
@@ -807,6 +807,7 @@ BOOLEAN PhInitializeMitigationPolicy(
     VOID
     )
 {
+#if (PHNT_VERSION >= PHNT_WIN7)
 #ifndef DEBUG
 #define DEFAULT_MITIGATION_POLICY_FLAGS \
     (PROCESS_CREATION_MITIGATION_POLICY_HEAP_TERMINATE_ALWAYS_ON | \
@@ -908,6 +909,10 @@ CleanupExit:
     //    NtClose(jobObjectHandle);
 
     return success;
+#else
+    return TRUE;
+#endif
+
 #else
     return TRUE;
 #endif
