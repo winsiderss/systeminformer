@@ -130,8 +130,8 @@
 #define IDC_CURDIR                      1022
 #define IDC_STARTED                     1023
 #define IDC_ABOUT_NAME                  1024
-#define IDC_PEBADDRESS                  1024
 #define IDC_TERMINATED                  1024
+#define IDC_PARENTCONSOLE               1024
 #define IDC_PARENTPROCESS               1025
 #define IDC_MITIGATION                  1026
 #define IDC_PAUSE                       1027
