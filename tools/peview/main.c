@@ -94,7 +94,7 @@ INT WINAPI wWinMain(
             L"Most features will not work correctly.\n\n"
             L"Please run the 64-bit version of PE Viewer instead."
             );
-        RtlExitUserProcess(STATUS_IMAGE_SUBSYSTEM_NOT_PRESENT);
+        PhExitApplication(STATUS_IMAGE_SUBSYSTEM_NOT_PRESENT);
     }
 #endif
 
@@ -154,7 +154,7 @@ INT WINAPI wWinMain(
                         NULL
                         ))
                     {
-                        RtlExitUserProcess(STATUS_SUCCESS);
+                        PhExitApplication(STATUS_SUCCESS);
                     }
 
                     PhDereferenceObject(applicationFileName);

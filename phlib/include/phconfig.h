@@ -82,6 +82,7 @@ PhIsExecutingInWow64(
     VOID
     );
 
+// 
 DECLSPEC_NORETURN
 FORCEINLINE
 VOID
@@ -92,7 +93,7 @@ PhExitApplication(
 #if (PHNT_VERSION >= PHNT_WIN7)
     RtlExitUserProcess(Status);
 #else
-    PhTerminateProcess(NtCurrentProcess(), Status);
+    ExitProcess(Status);
 #endif
 }
 
