@@ -367,24 +367,27 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             if (parentProcess = PhReferenceProcessItem((HANDLE)((ULONG_PTR)processItem->ConsoleHostProcessId & ~3)))
             {
-                clientId.UniqueProcess = parentProcess->ProcessId;
-                clientId.UniqueThread = NULL;
+                if (parentProcess->ProcessId == 0)
+                {
+                    PhSetDialogItemText(hwndDlg, IDC_PARENTCONSOLE, L"N/A");
+                }
+                else
+                {
+                    clientId.UniqueProcess = parentProcess->ProcessId;
+                    clientId.UniqueThread = NULL;
 
-                PhSetDialogItemText(
-                    hwndDlg,
-                    IDC_PARENTCONSOLE,
-                    PH_AUTO_T(PH_STRING, PhGetClientIdNameEx(&clientId, parentProcess->ProcessName))->Buffer
-                    );
+                    PhSetDialogItemText(
+                        hwndDlg,
+                        IDC_PARENTCONSOLE,
+                        PH_AUTO_T(PH_STRING, PhGetClientIdNameEx(&clientId, parentProcess->ProcessName))->Buffer
+                        );
+                }
 
                 PhDereferenceObject(parentProcess);
             }
             else
             {
-                PhSetDialogItemText(
-                    hwndDlg,
-                    IDC_PARENTCONSOLE,
-                    PhaFormatString(L"Non-existent process (%u)", HandleToUlong((HANDLE)((ULONG_PTR)processItem->ConsoleHostProcessId & ~3)))->Buffer
-                    );
+                PhSetDialogItemText(hwndDlg, IDC_PARENTCONSOLE, L"N/A");
             }
 
             // Mitigation policies
