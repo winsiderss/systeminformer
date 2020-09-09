@@ -459,6 +459,7 @@ PVOID PhAllocate(
     _In_ SIZE_T Size
     )
 {
+    assert(Size);
     return RtlAllocateHeap(PhHeapHandle, HEAP_GENERATE_EXCEPTIONS, Size);
 }
 
@@ -476,6 +477,7 @@ PVOID PhAllocateSafe(
     _In_ SIZE_T Size
     )
 {
+    assert(Size);
     return RtlAllocateHeap(PhHeapHandle, 0, Size);
 }
 
