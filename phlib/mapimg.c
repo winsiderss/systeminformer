@@ -656,7 +656,7 @@ BOOLEAN PhGetRemoteMappedImageDirectoryEntry(
     NTSTATUS status;
     PIMAGE_DATA_DIRECTORY dataDirectory;
     PVOID dataBuffer;
-    PVOID dataLength;
+    ULONG dataLength;
 
     if (RemoteMappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
     {
