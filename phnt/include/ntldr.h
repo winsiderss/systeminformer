@@ -397,7 +397,7 @@ NTSTATUS
 NTAPI
 LdrRelocateImage(
     _In_ PVOID NewBase,
-    _In_ PSTR LoaderName,
+    _In_opt_ PSTR LoaderName,
     _In_ NTSTATUS Success,
     _In_ NTSTATUS Conflict,
     _In_ NTSTATUS Invalid
@@ -408,8 +408,8 @@ NTSTATUS
 NTAPI
 LdrRelocateImageWithBias(
     _In_ PVOID NewBase,
-    _In_ LONGLONG Bias,
-    _In_ PSTR LoaderName,
+    _In_opt_ LONGLONG Bias,
+    _In_opt_ PSTR LoaderName,
     _In_ NTSTATUS Success,
     _In_ NTSTATUS Conflict,
     _In_ NTSTATUS Invalid
