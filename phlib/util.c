@@ -1700,19 +1700,31 @@ PVOID PhGetFileVersionInfo(
     _In_ PWSTR FileName
     )
 {
-    PVOID imageBaseAddress;
-    PVOID imageVersionInfo;
+    PVOID libraryModule;
+    PVOID versionInfo;
 
-    if (!NT_SUCCESS(PhLoadLibraryAsImageResource(FileName, &imageBaseAddress)))
+    libraryModule = LoadLibraryEx(
+        FileName,
+        NULL,
+        LOAD_LIBRARY_AS_DATAFILE | LOAD_LIBRARY_AS_IMAGE_RESOURCE
+        );
+
+    if (!libraryModule)
         return NULL;
 
-    if (PhLoadResource(imageBaseAddress, MAKEINTRESOURCE(VS_VERSION_INFO), VS_FILE_INFO, NULL, &imageVersionInfo))
+    if (PhLoadResource(
+        libraryModule,
+        MAKEINTRESOURCE(VS_VERSION_INFO),
+        VS_FILE_INFO,
+        NULL,
+        &versionInfo
+        ))
     {
-        PhFreeLibraryAsImageResource(imageBaseAddress);
-        return imageVersionInfo;
+        FreeLibrary(libraryModule);
+        return versionInfo;
     }
 
-    PhFreeLibraryAsImageResource(imageBaseAddress);
+    FreeLibrary(libraryModule);
     return NULL;
 }
 
