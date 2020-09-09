@@ -7116,14 +7116,31 @@ NTSTATUS PhLoadPluginImage(
     )
 {
     NTSTATUS status;
+    ULONG imageType;
     PVOID imageBaseAddress;
     PIMAGE_NT_HEADERS imageNtHeaders;
     PLDR_INIT_ROUTINE imageEntryRoutine;
+    UNICODE_STRING imageFileNameUs;
 
-    status = PhLoaderEntryLoadDll(
-        FileName->Buffer,
+    imageType = IMAGE_FILE_EXECUTABLE_IMAGE;
+    PhStringRefToUnicodeString(&FileName->sr, &imageFileNameUs);
+
+    status = LdrLoadDll(
+        NULL,
+        &imageType,
+        &imageFileNameUs,
         &imageBaseAddress
         );
+
+    //NTSTATUS status;
+    //PVOID imageBaseAddress;
+    //PIMAGE_NT_HEADERS imageNtHeaders;
+    //PLDR_INIT_ROUTINE imageEntryRoutine;
+
+    //status = PhLoaderEntryLoadDll(
+    //    FileName->Buffer,
+    //    &imageBaseAddress
+    //    );
 
     if (!NT_SUCCESS(status))
         goto CleanupExit;
@@ -7174,7 +7191,8 @@ CleanupExit:
     }
     else
     {
-        PhLoaderEntryUnloadDll(imageBaseAddress);
+        LdrUnloadDll(imageBaseAddress);
+        //PhLoaderEntryUnloadDll(imageBaseAddress);
     }
 
     return status;
