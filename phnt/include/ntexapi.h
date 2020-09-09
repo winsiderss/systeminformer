@@ -1381,7 +1381,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemEntropyInterruptTimingInformation,
     SystemConsoleInformation, // q: SYSTEM_CONSOLE_INFORMATION
     SystemPlatformBinaryInformation, // q: SYSTEM_PLATFORM_BINARY_INFORMATION
-    SystemPolicyInformation, // SYSTEM_POLICY_INFORMATION
+    SystemPolicyInformation, // q: SYSTEM_POLICY_INFORMATION
     SystemHypervisorProcessorCountInformation, // q: SYSTEM_HYPERVISOR_PROCESSOR_COUNT_INFORMATION
     SystemDeviceDataInformation, // q: SYSTEM_DEVICE_DATA_INFORMATION
     SystemDeviceDataEnumerationInformation, // q: SYSTEM_DEVICE_DATA_INFORMATION
@@ -1428,7 +1428,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemSecureKernelProfileInformation, // q: SYSTEM_SECURE_KERNEL_HYPERGUARD_PROFILE_INFORMATION
     SystemCodeIntegrityPlatformManifestInformation, // q: SYSTEM_SECUREBOOT_PLATFORM_MANIFEST_INFORMATION // since REDSTONE
     SystemInterruptSteeringInformation, // SYSTEM_INTERRUPT_STEERING_INFORMATION_INPUT // 180
-    SystemSupportedProcessorArchitectures,
+    SystemSupportedProcessorArchitectures, // in: HANDLE, out: ULONG[3] // NtQuerySystemInformationEx
     SystemMemoryUsageInformation, // q: SYSTEM_MEMORY_USAGE_INFORMATION
     SystemCodeIntegrityCertificateInformation, // q: SYSTEM_CODEINTEGRITY_CERTIFICATE_INFORMATION
     SystemPhysicalMemoryInformation, // q: SYSTEM_PHYSICAL_MEMORY_INFORMATION // since REDSTONE2
@@ -4132,6 +4132,18 @@ FORCEINLINE ULONG NtGetTickCount()
         UInt32x32To64((tickCount.HighPart << 8) & 0xffffffff, USER_SHARED_DATA->TickCountMultiplier));
 
 #endif
+}
+
+#else
+
+FORCEINLINE ULONGLONG NtGetTickCount64()
+{
+    return GetTickCount(); // pre PHNT_WS03 (dmex)
+}
+
+FORCEINLINE ULONG NtGetTickCount()
+{
+    return GetTickCount();
 }
 
 #endif
