@@ -442,7 +442,7 @@ PPH_STRING PhGetHostNameFromAddressEx(
     if (!(dnsReverseNameString = PhpGetDnsReverseNameFromAddress(Address)))
         return NULL;
 
-    if (PhEnableNetworkResolveDoHSupport)
+    if (PhEnableNetworkResolveDoHSupport && !dnsLocalQuery)
     {
         dnsRecordList = PhDnsQuery(
             NULL,
