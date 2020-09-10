@@ -333,19 +333,6 @@ typedef struct _PH_ENVIRONMENT_CONTEXT
     HWND TreeNewHandle;
     HWND SearchWindowHandle;
 
-    PPH_PROCESS_ITEM ProcessItem;   
-    PPH_STRING SearchboxText;
-    PPH_STRING StatusMessage;
-
-    PPH_LIST NodeList;
-    PPH_LIST NodeRootList;
-    PPH_HASHTABLE NodeHashtable;
-    PPH_TN_FILTER_ENTRY TreeFilterEntry;
-    ULONG TreeNewSortColumn;
-    PH_TN_FILTER_SUPPORT TreeFilterSupport;
-    PH_SORT_ORDER TreeNewSortOrder;
-    PH_CM_MANAGER Cm;
-
     BOOLEAN EnableStateHighlighting;
 
     union
@@ -366,8 +353,19 @@ typedef struct _PH_ENVIRONMENT_CONTEXT
         };
     };
 
-    PVOID SystemDefaultEnvironment;
-    PVOID UserDefaultEnvironment;
+    PPH_PROCESS_ITEM ProcessItem;   
+    PPH_STRING SearchboxText;
+    PPH_STRING StatusMessage;
+
+    PPH_LIST NodeList;
+    PPH_LIST NodeRootList;
+    PPH_HASHTABLE NodeHashtable;
+    PPH_TN_FILTER_ENTRY TreeFilterEntry;
+    ULONG TreeNewSortColumn;
+    PH_TN_FILTER_SUPPORT TreeFilterSupport;
+    PH_SORT_ORDER TreeNewSortOrder;
+    PH_CM_MANAGER Cm;
+
     PH_ARRAY Items;
 } PH_ENVIRONMENT_CONTEXT, *PPH_ENVIRONMENT_CONTEXT;
 

@@ -191,27 +191,14 @@ VOID PhpRefreshEnvironmentList(
     PPHP_PROCESS_ENVIRONMENT_TREENODE processRootNode;
     PPHP_PROCESS_ENVIRONMENT_TREENODE userRootNode;
     PPHP_PROCESS_ENVIRONMENT_TREENODE systemRootNode;
+    PVOID systemDefaultEnvironment = NULL;
+    PVOID userDefaultEnvironment = NULL;
     ULONG i;
 
     PhpClearEnvironmentTree(Context);
     processRootNode = PhpAddEnvironmentNode(Context, NULL, PROCESS_ENVIRONMENT_TREENODE_TYPE_GROUP, PhaCreateString(L"Process"), NULL);
     userRootNode = PhpAddEnvironmentNode(Context, NULL, PROCESS_ENVIRONMENT_TREENODE_TYPE_GROUP, PhaCreateString(L"User"), NULL);
     systemRootNode = PhpAddEnvironmentNode(Context, NULL, PROCESS_ENVIRONMENT_TREENODE_TYPE_GROUP, PhaCreateString(L"System"), NULL);
-
-    if (DestroyEnvironmentBlock_Import())
-    {
-        if (Context->SystemDefaultEnvironment)
-        {
-            DestroyEnvironmentBlock_Import()(Context->SystemDefaultEnvironment);
-            Context->SystemDefaultEnvironment = NULL;
-        }
-
-        if (Context->UserDefaultEnvironment)
-        {
-            DestroyEnvironmentBlock_Import()(Context->UserDefaultEnvironment);
-            Context->UserDefaultEnvironment = NULL;
-        }
-    }
 
     status = PhOpenProcess(
         &processHandle,
@@ -232,7 +219,7 @@ VOID PhpRefreshEnvironmentList(
 
         if (CreateEnvironmentBlock_Import())
         {
-            CreateEnvironmentBlock_Import()(&Context->SystemDefaultEnvironment, NULL, FALSE);
+            CreateEnvironmentBlock_Import()(&systemDefaultEnvironment, NULL, FALSE);
 
             if (NT_SUCCESS(PhOpenProcessToken(
                 processHandle,
@@ -240,7 +227,7 @@ VOID PhpRefreshEnvironmentList(
                 &tokenHandle
                 )))
             {
-                CreateEnvironmentBlock_Import()(&Context->UserDefaultEnvironment, tokenHandle, FALSE);
+                CreateEnvironmentBlock_Import()(&userDefaultEnvironment, tokenHandle, FALSE);
                 NtClose(tokenHandle);
             }
         }
@@ -287,8 +274,8 @@ VOID PhpRefreshEnvironmentList(
         if (!item->Name)
             continue;
 
-        if (Context->SystemDefaultEnvironment && PhQueryEnvironmentVariable(
-            Context->SystemDefaultEnvironment,
+        if (systemDefaultEnvironment && PhQueryEnvironmentVariable(
+            systemDefaultEnvironment,
             &item->Name->sr,
             NULL
             ) == STATUS_BUFFER_TOO_SMALL)
@@ -297,7 +284,7 @@ VOID PhpRefreshEnvironmentList(
             parentNode = systemRootNode;
 
             if (NT_SUCCESS(PhQueryEnvironmentVariable(
-                Context->SystemDefaultEnvironment,
+                systemDefaultEnvironment,
                 &item->Name->sr,
                 &variableValue
                 )))
@@ -311,8 +298,8 @@ VOID PhpRefreshEnvironmentList(
                 PhDereferenceObject(variableValue);
             }
         }
-        else if (Context->UserDefaultEnvironment && PhQueryEnvironmentVariable(
-            Context->UserDefaultEnvironment,
+        else if (userDefaultEnvironment && PhQueryEnvironmentVariable(
+            userDefaultEnvironment,
             &item->Name->sr,
             NULL
             ) == STATUS_BUFFER_TOO_SMALL)
@@ -321,7 +308,7 @@ VOID PhpRefreshEnvironmentList(
             parentNode = userRootNode;
 
             if (NT_SUCCESS(PhQueryEnvironmentVariable(
-                Context->UserDefaultEnvironment,
+                userDefaultEnvironment,
                 &item->Name->sr,
                 &variableValue
                 )))
@@ -356,6 +343,14 @@ VOID PhpRefreshEnvironmentList(
     }
 
     PhApplyTreeNewFilters(&Context->TreeFilterSupport);
+
+    if (DestroyEnvironmentBlock_Import())
+    {
+        if (systemDefaultEnvironment)
+            DestroyEnvironmentBlock_Import()(systemDefaultEnvironment);
+        if (userDefaultEnvironment)
+            DestroyEnvironmentBlock_Import()(userDefaultEnvironment);
+    }
 }
 
 INT_PTR CALLBACK PhpEditEnvDlgProc(
@@ -1382,14 +1377,6 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
             PhpClearEnvironmentItems(context);
             PhDeleteArray(&context->Items);
             PhClearReference(&context->StatusMessage);
-
-            if (DestroyEnvironmentBlock_Import())
-            {
-                if (context->SystemDefaultEnvironment)
-                    DestroyEnvironmentBlock_Import()(context->SystemDefaultEnvironment);
-                if (context->UserDefaultEnvironment)
-                    DestroyEnvironmentBlock_Import()(context->UserDefaultEnvironment);
-            }
 
             PhFree(context);
         }
