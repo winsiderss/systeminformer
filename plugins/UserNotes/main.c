@@ -1397,7 +1397,25 @@ VOID ProcessNodeCreateCallback(
     LockDb();
 
     if ((object = FindDbObjectForProcess(processNode->ProcessItem, INTENT_PROCESS_COLLAPSE)) && object->Collapse)
-        processNode->Node.Expanded = FALSE;
+    {
+        BOOLEAN visible = TRUE;
+
+        for (PPH_PROCESS_NODE parent = processNode->Parent; parent; parent = parent->Parent)
+        {
+            if (!parent->Node.Visible)
+            {
+                // Don't change the Expanded state when the node is already hidden by
+                // main window -> View -> Hide Processes from other users menu (dmex)
+                visible = FALSE;
+                break;
+            }
+        }
+
+        if (visible)
+        {
+            processNode->Node.Expanded = FALSE;
+        }
+    }
 
     UnlockDb();
 }
