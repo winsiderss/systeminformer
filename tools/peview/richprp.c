@@ -106,6 +106,12 @@ PWSTR PvpGetProductIdComponent(
     case prodidCvtpgd1900:
         return L"Profile Guided Optimization (PGO) (19.0)";
 
+    case prodidCvtres800:
+        return L"Resource File To COFF Object (8.0)";
+    case prodidCvtres900:
+        return L"Resource File To COFF Object (9.0)";
+    case prodidCvtres1000:
+        return L"Resource File To COFF Object (10.0)";
     case prodidCvtres1010:
         return L"Resource File To COFF Object (10.1)";
     case prodidCvtres1100:
@@ -117,6 +123,12 @@ PWSTR PvpGetProductIdComponent(
     case prodidCvtres1400:
         return L"Resource File To COFF Object (14.0)";
 
+    case prodidExport800:
+        return L"Export (8.0)";
+    case prodidExport900:
+        return L"Export (9.0)";
+    case prodidExport1000:
+        return L"Export (10.0)";
     case prodidExport1010:
         return L"Export (10.1)";
     case prodidExport1100:
@@ -128,8 +140,12 @@ PWSTR PvpGetProductIdComponent(
     case prodidExport1400:
         return L"Export (14.0)";
 
+    case prodidImplib800:
+        return L"Import library tool (LIB) (8.0)";
     case prodidImplib900:
         return L"Import library tool (LIB) (9.0)";
+    case prodidImplib1000:
+        return L"Import library tool (LIB) (10.0)";
     case prodidImplib1010:
         return L"Import library tool (LIB) (10.1)";
     case prodidImplib1100:
@@ -141,6 +157,12 @@ PWSTR PvpGetProductIdComponent(
     case prodidImplib1400:
         return L"Import library tool (LIB) (14.0)";
 
+    case prodidLinker800:
+        return L"Linker (8.0)";
+    case prodidLinker900:
+        return L"Linker (9.0)";
+    case prodidLinker1000:
+        return L"Linker (10.0)";
     case prodidLinker1010:
         return L"Linker (10.1)";
     case prodidLinker1100:
@@ -152,8 +174,14 @@ PWSTR PvpGetProductIdComponent(
     case prodidLinker1400:
         return L"Linker (14.0)";
 
-    case prodidMasm1010:
+    case prodidMasm800:
+        return L"MASM (8.0)";
+    case prodidMasm900:
+        return L"MASM (9.0)";
+    case prodidMasm1000:
         return L"MASM (10.0)";
+    case prodidMasm1010:
+        return L"MASM (10.1)";
     case prodidMasm1100:
         return L"MASM (11.0)";
     case prodidMasm1200:
@@ -267,6 +295,7 @@ PWSTR PvpGetProductIdComponent(
     case prodidUtc1900_POGO_I_C:
         return L"Profile Guided Optimization (Imput) (C11) (19.0)";
 
+    case prodidUtc1400_POGO_O_C:
     case prodidUtc1500_POGO_O_C:
     case prodidUtc1610_POGO_O_C:
     case prodidUtc1700_POGO_O_C:
@@ -275,14 +304,16 @@ PWSTR PvpGetProductIdComponent(
     case prodidUtc1900_POGO_O_C:
         return L"Profile Guided Optimization (Output) (C11)";
 
+    case prodidUtc1400_POGO_I_CPP:
     case prodidUtc1500_POGO_I_CPP:
     case prodidUtc1610_POGO_I_CPP:
     case prodidUtc1700_POGO_I_CPP:
     case prodidUtc1800_POGO_I_CPP:
     case prodidUtc1810_POGO_I_CPP:
     case prodidUtc1900_POGO_I_CPP:
-        return L"Profile Guided Optimization (Imput) (C11)";
+        return L"Profile Guided Optimization (Imput) (CPP)";
 
+    case prodidUtc1400_POGO_O_CPP:
     case prodidUtc1500_POGO_O_CPP:
     case prodidUtc1610_POGO_O_CPP:
     case prodidUtc1700_POGO_O_CPP:
