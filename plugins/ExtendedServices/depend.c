@@ -29,32 +29,32 @@ typedef struct _SERVICE_LIST_CONTEXT
     PH_LAYOUT_MANAGER LayoutManager;
 } SERVICE_LIST_CONTEXT, *PSERVICE_LIST_CONTEXT;
 
-LPENUM_SERVICE_STATUS EsEnumDependentServices(
+_Success_(return)
+BOOLEAN EsEnumDependentServices(
     _In_ SC_HANDLE ServiceHandle,
-    _In_opt_ ULONG State,
-    _Out_ PULONG Count
+    _Out_ PULONG Count,
+    _Out_ LPENUM_SERVICE_STATUS* Services
     )
 {
-    LOGICAL result;
+    BOOLEAN result;
     PVOID buffer;
     ULONG bufferSize;
     ULONG returnLength;
     ULONG servicesReturned;
 
-    if (!State)
-        State = SERVICE_STATE_ALL;
-
     bufferSize = 0x800;
     buffer = PhAllocate(bufferSize);
 
-    if (!(result = EnumDependentServices(
+    result = !!EnumDependentServices(
         ServiceHandle,
-        State,
+        SERVICE_STATE_ALL,
         buffer,
         bufferSize,
         &returnLength,
         &servicesReturned
-        )))
+        );
+
+    if (!result)
     {
         if (GetLastError() == ERROR_MORE_DATA)
         {
@@ -62,9 +62,9 @@ LPENUM_SERVICE_STATUS EsEnumDependentServices(
             bufferSize = returnLength;
             buffer = PhAllocate(bufferSize);
 
-            result = EnumDependentServices(
+            result = !!EnumDependentServices(
                 ServiceHandle,
-                State,
+                SERVICE_STATE_ALL,
                 buffer,
                 bufferSize,
                 &returnLength,
@@ -75,13 +75,20 @@ LPENUM_SERVICE_STATUS EsEnumDependentServices(
         if (!result)
         {
             PhFree(buffer);
-            return NULL;
+            return FALSE;
         }
     }
 
-    *Count = servicesReturned;
+    if (Count)
+    {
+        *Count = servicesReturned;
+    }
+    if (Services)
+    {
+        *Services = buffer;
+    }
 
-    return buffer;
+    return result;
 }
 
 VOID EspLayoutServiceListControl(
@@ -279,10 +286,14 @@ INT_PTR CALLBACK EspServiceDependentsDlgProc(
 
             if (serviceHandle = PhOpenService(serviceItem->Name->Buffer, SERVICE_ENUMERATE_DEPENDENTS))
             {
-                LPENUM_SERVICE_STATUS dependentServices;
                 ULONG numberOfDependentServices;
+                LPENUM_SERVICE_STATUS dependentServices;
 
-                if (dependentServices = EsEnumDependentServices(serviceHandle, 0, &numberOfDependentServices))
+                if (EsEnumDependentServices(
+                    serviceHandle,
+                    &numberOfDependentServices,
+                    &dependentServices
+                    ))
                 {
                     PPH_SERVICE_ITEM dependentService;
                     PPH_LIST serviceList;
