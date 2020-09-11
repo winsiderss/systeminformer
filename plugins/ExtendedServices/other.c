@@ -3,6 +3,7 @@
  *   other information
  *
  * Copyright (C) 2010-2015 wj32
+ * Copyright (C) 2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -169,16 +170,14 @@ NTSTATUS EspLoadOtherInfo(
         PPH_STRING privilegeString;
         PPH_STRING displayName;
 
-        privilege = requiredPrivilegesInfo->pmszRequiredPrivileges;
-
-        if (privilege)
+        if (requiredPrivilegesInfo->pmszRequiredPrivileges)
         {
-            while (TRUE)
+            for (privilege = requiredPrivilegesInfo->pmszRequiredPrivileges; *privilege; privilege += PhCountStringZ(privilege) + 1)
             {
                 privilegeLength = (ULONG)PhCountStringZ(privilege);
 
                 if (privilegeLength == 0)
-                    break;
+                    continue;
 
                 privilegeString = PhCreateStringEx(privilege, privilegeLength * sizeof(WCHAR));
                 PhAddItemList(Context->PrivilegeList, privilegeString);
@@ -192,12 +191,10 @@ NTSTATUS EspLoadOtherInfo(
                     PhSetListViewSubItem(Context->PrivilegesLv, lvItemIndex, 1, displayName->Buffer);
                     PhDereferenceObject(displayName);
                 }
-
-                privilege += privilegeLength + 1;
             }
-        }
 
-        ExtendedListView_SortItems(Context->PrivilegesLv);
+            ExtendedListView_SortItems(Context->PrivilegesLv);
+        }
 
         PhFree(requiredPrivilegesInfo);
         Context->RequiredPrivilegesValid = TRUE;
