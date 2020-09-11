@@ -40,33 +40,6 @@ typedef struct _ES_TRIGGER_DATA
     };
 } ES_TRIGGER_DATA, *PES_TRIGGER_DATA;
 
-typedef struct _ES_TRIGGER_INFO
-{
-    ULONG Type;
-    PGUID Subtype;
-    ULONG Action;
-    PPH_LIST DataList;
-    GUID SubtypeBuffer;
-} ES_TRIGGER_INFO, *PES_TRIGGER_INFO;
-
-typedef struct _ES_TRIGGER_CONTEXT
-{
-    PPH_SERVICE_ITEM ServiceItem;
-    HWND WindowHandle;
-    HWND TriggersLv;
-    BOOLEAN Dirty;
-    ULONG InitialNumberOfTriggers;
-    PPH_LIST InfoList;
-
-    // Trigger dialog box
-    PES_TRIGGER_INFO EditingInfo;
-    ULONG LastSelectedType;
-    PPH_STRING LastCustomSubType;
-
-    // Value dialog box
-    PPH_STRING EditingValue;
-} ES_TRIGGER_CONTEXT, *PES_TRIGGER_CONTEXT;
-
 typedef struct _TYPE_ENTRY
 {
     ULONG Type;
@@ -330,7 +303,7 @@ VOID EspClearTriggerInfoList(
     PhClearList(List);
 }
 
-struct _ES_TRIGGER_CONTEXT *EsCreateServiceTriggerContext(
+PES_TRIGGER_CONTEXT EsCreateServiceTriggerContext(
     _In_ PPH_SERVICE_ITEM ServiceItem,
     _In_ HWND WindowHandle,
     _In_ HWND TriggersLv
@@ -338,8 +311,7 @@ struct _ES_TRIGGER_CONTEXT *EsCreateServiceTriggerContext(
 {
     PES_TRIGGER_CONTEXT context;
 
-    context = PhAllocate(sizeof(ES_TRIGGER_CONTEXT));
-    memset(context, 0, sizeof(ES_TRIGGER_CONTEXT));
+    context = PhAllocateZero(sizeof(ES_TRIGGER_CONTEXT));
     context->ServiceItem = ServiceItem;
     context->WindowHandle = WindowHandle;
     context->TriggersLv = TriggersLv;
@@ -358,7 +330,7 @@ struct _ES_TRIGGER_CONTEXT *EsCreateServiceTriggerContext(
 }
 
 VOID EsDestroyServiceTriggerContext(
-    _In_ struct _ES_TRIGGER_CONTEXT *Context
+    _In_ PES_TRIGGER_CONTEXT Context
     )
 {
     ULONG i;
@@ -382,6 +354,9 @@ BOOLEAN NTAPI EspEtwPublishersEnumerateKeyCallback(
     HANDLE keyHandle;
     GUID guid;
     PPH_STRING publisherName;
+
+    if (!Context)
+        return TRUE;
 
     keyName.Buffer = Information->Name;
     keyName.Length = Information->NameLength;
@@ -614,7 +589,7 @@ VOID EspFormatTriggerInfo(
 }
 
 VOID EsLoadServiceTriggerInfo(
-    _In_ struct _ES_TRIGGER_CONTEXT *Context,
+    _In_ PES_TRIGGER_CONTEXT Context,
     _In_ SC_HANDLE ServiceHandle
     )
 {
@@ -654,12 +629,14 @@ VOID EsLoadServiceTriggerInfo(
     }
 }
 
+_Success_(return)
 BOOLEAN EsSaveServiceTriggerInfo(
-    _In_ struct _ES_TRIGGER_CONTEXT *Context,
-    _Out_ PULONG Win32Result
+    _In_ PES_TRIGGER_CONTEXT Context,
+    _Out_opt_ PULONG Win32Result
     )
 {
     BOOLEAN result = TRUE;
+    ULONG status = ERROR_SUCCESS;
     PH_AUTO_POOL autoPool;
     SC_HANDLE serviceHandle;
     SERVICE_TRIGGER_INFO triggerInfo;
@@ -736,7 +713,7 @@ BOOLEAN EsSaveServiceTriggerInfo(
         if (!ChangeServiceConfig2(serviceHandle, SERVICE_CONFIG_TRIGGER_INFO, &triggerInfo))
         {
             result = FALSE;
-            *Win32Result = GetLastError();
+            status = GetLastError();
         }
 
         CloseServiceHandle(serviceHandle);
@@ -744,22 +721,25 @@ BOOLEAN EsSaveServiceTriggerInfo(
     else
     {
         result = FALSE;
-        *Win32Result = GetLastError();
+        status = GetLastError();
 
-        if (*Win32Result == ERROR_ACCESS_DENIED && !PhGetOwnTokenAttributes().Elevated)
+        if (status == ERROR_ACCESS_DENIED && !PhGetOwnTokenAttributes().Elevated)
         {
             // Elevate using phsvc.
             if (PhUiConnectToPhSvc(Context->WindowHandle, FALSE))
             {
-                NTSTATUS status;
+                NTSTATUS statusconfig;
 
                 result = TRUE;
 
-                if (!NT_SUCCESS(status = PhSvcCallChangeServiceConfig2(Context->ServiceItem->Name->Buffer,
-                    SERVICE_CONFIG_TRIGGER_INFO, &triggerInfo)))
+                if (!NT_SUCCESS(statusconfig = PhSvcCallChangeServiceConfig2(
+                    Context->ServiceItem->Name->Buffer,
+                    SERVICE_CONFIG_TRIGGER_INFO,
+                    &triggerInfo
+                    )))
                 {
                     result = FALSE;
-                    *Win32Result = PhNtStatusToDosError(status);
+                    status = PhNtStatusToDosError(statusconfig);
                 }
 
                 PhUiDisconnectFromPhSvc();
@@ -767,12 +747,15 @@ BOOLEAN EsSaveServiceTriggerInfo(
             else
             {
                 // User cancelled elevation.
-                *Win32Result = ERROR_CANCELLED;
+                status = ERROR_CANCELLED;
             }
         }
     }
 
     PhDeleteAutoPool(&autoPool);
+
+    if (Win32Result)
+        *Win32Result = status;
 
     return result;
 }
@@ -794,7 +777,7 @@ LOGICAL EspSetListViewItemParam(
 }
 
 VOID EsHandleEventServiceTrigger(
-    _In_ struct _ES_TRIGGER_CONTEXT *Context,
+    _In_ PES_TRIGGER_CONTEXT Context,
     _In_ ULONG Event
     )
 {

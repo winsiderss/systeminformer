@@ -50,7 +50,9 @@ static PH_KEY_VALUE_PAIR PhpServiceTypePairs[] =
     SIP(L"User own process", SERVICE_USER_OWN_PROCESS),
     SIP(L"User own process (instance)", SERVICE_USER_OWN_PROCESS | SERVICE_USERSERVICE_INSTANCE),
     SIP(L"User share process", SERVICE_USER_SHARE_PROCESS),
-    SIP(L"User share process (instance)", SERVICE_USER_SHARE_PROCESS | SERVICE_USERSERVICE_INSTANCE)
+    SIP(L"User share process (instance)", SERVICE_USER_SHARE_PROCESS | SERVICE_USERSERVICE_INSTANCE),
+    SIP(L"Package own process", SERVICE_PKG_SERVICE | SERVICE_WIN32_OWN_PROCESS),
+    SIP(L"Package share process", SERVICE_PKG_SERVICE | SERVICE_WIN32_SHARE_PROCESS),
 };
 
 static PH_KEY_VALUE_PAIR PhpServiceStartTypePairs[] =
@@ -70,7 +72,7 @@ static PH_KEY_VALUE_PAIR PhpServiceErrorControlPairs[] =
     SIP(L"Critical", SERVICE_ERROR_CRITICAL)
 };
 
-PWSTR PhServiceTypeStrings[10] =
+PWSTR PhServiceTypeStrings[] =
 {
     L"Driver",
     L"FS driver",
@@ -81,7 +83,9 @@ PWSTR PhServiceTypeStrings[10] =
     L"User own process",
     L"User own process (instance)",
     L"User share process",
-    L"User share process (instance)"
+    L"User share process (instance)",
+    L"Package own process",
+    L"Package share process",
 };
 
 PWSTR PhServiceStartTypeStrings[5] =

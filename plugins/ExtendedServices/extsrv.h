@@ -18,12 +18,6 @@ extern PPH_PLUGIN PluginInstance;
 
 // depend
 
-LPENUM_SERVICE_STATUS EsEnumDependentServices(
-    _In_ SC_HANDLE ServiceHandle,
-    _In_opt_ ULONG State,
-    _Out_ PULONG Count
-    );
-
 INT_PTR CALLBACK EspServiceDependenciesDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -79,26 +73,52 @@ VOID EsRestartServiceWithProgress(
 
 // trigger
 
-struct _ES_TRIGGER_CONTEXT;
+typedef struct _ES_TRIGGER_INFO
+{
+    ULONG Type;
+    PGUID Subtype;
+    ULONG Action;
+    PPH_LIST DataList;
+    GUID SubtypeBuffer;
+} ES_TRIGGER_INFO, * PES_TRIGGER_INFO;
 
-struct _ES_TRIGGER_CONTEXT *EsCreateServiceTriggerContext(
+typedef struct _ES_TRIGGER_CONTEXT
+{
+    PPH_SERVICE_ITEM ServiceItem;
+    HWND WindowHandle;
+    HWND TriggersLv;
+    BOOLEAN Dirty;
+    ULONG InitialNumberOfTriggers;
+    PPH_LIST InfoList;
+
+    // Trigger dialog box
+    PES_TRIGGER_INFO EditingInfo;
+    ULONG LastSelectedType;
+    PPH_STRING LastCustomSubType;
+
+    // Value dialog box
+    PPH_STRING EditingValue;
+} ES_TRIGGER_CONTEXT, *PES_TRIGGER_CONTEXT;
+
+PES_TRIGGER_CONTEXT EsCreateServiceTriggerContext(
     _In_ PPH_SERVICE_ITEM ServiceItem,
     _In_ HWND WindowHandle,
     _In_ HWND TriggersLv
     );
 
 VOID EsDestroyServiceTriggerContext(
-    _In_ struct _ES_TRIGGER_CONTEXT *Context
+    _In_ PES_TRIGGER_CONTEXT Context
     );
 
 VOID EsLoadServiceTriggerInfo(
-    _In_ struct _ES_TRIGGER_CONTEXT *Context,
+    _In_ PES_TRIGGER_CONTEXT Context,
     _In_ SC_HANDLE ServiceHandle
     );
 
+_Success_(return)
 BOOLEAN EsSaveServiceTriggerInfo(
-    _In_ struct _ES_TRIGGER_CONTEXT *Context,
-    _Out_ PULONG Win32Result
+    _In_ PES_TRIGGER_CONTEXT Context,
+    _Out_opt_ PULONG Win32Result
     );
 
 #define ES_TRIGGER_EVENT_NEW 1
@@ -107,7 +127,7 @@ BOOLEAN EsSaveServiceTriggerInfo(
 #define ES_TRIGGER_EVENT_SELECTIONCHANGED 4
 
 VOID EsHandleEventServiceTrigger(
-    _In_ struct _ES_TRIGGER_CONTEXT *Context,
+    _In_ PES_TRIGGER_CONTEXT Context,
     _In_ ULONG Event
     );
 
