@@ -163,6 +163,8 @@ PWSTR PvpGetProductIdComponent(
     case prodidMasm1400:
         return L"MASM (14.0)";
 
+    case prodidUtc1500_C:
+        return L"C files (15.0)";
     case prodidUtc1610_C:
         return L"C files (16.1)";
     case prodidUtc1700_C:
@@ -174,6 +176,8 @@ PWSTR PvpGetProductIdComponent(
     case prodidUtc1900_C:
         return L"C files (19.0)";
 
+    case prodidUtc1500_CPP:
+        return L"CPP files (15.0)";
     case prodidUtc1610_CPP:
         return L"CPP files (16.1)";
     case prodidUtc1700_CPP:
@@ -185,6 +189,8 @@ PWSTR PvpGetProductIdComponent(
     case prodidUtc1900_CPP:
         return L"CPP files (19.0)";
 
+    case prodidUtc1500_CVTCIL_C:
+        return L"CIL to Native Converter (C99) (15.0)";
     case prodidUtc1610_CVTCIL_C:
         return L"CIL to Native Converter (C99) (16.1)";
     case prodidUtc1700_CVTCIL_C:
@@ -196,6 +202,8 @@ PWSTR PvpGetProductIdComponent(
     case prodidUtc1900_CVTCIL_C:
         return L"CIL to Native Converter (C11) (19.0)";
 
+    case prodidUtc1500_CVTCIL_CPP:
+        return L"CIL to Native Converter (CPP) (15.0)";
     case prodidUtc1610_CVTCIL_CPP:
         return L"CIL to Native Converter (CPP) (16.1)";
     case prodidUtc1700_CVTCIL_CPP:
@@ -207,6 +215,8 @@ PWSTR PvpGetProductIdComponent(
     case prodidUtc1900_CVTCIL_CPP:
         return L"CIL to Native Converter (CPP) (19.0)";
 
+    case prodidUtc1500_LTCG_C:
+        return L"Link-time Code Generation (C99) (15.0)";
     case prodidUtc1610_LTCG_C:
         return L"Link-time Code Generation (C99) (16.1)";
     case prodidUtc1700_LTCG_C:
@@ -218,6 +228,8 @@ PWSTR PvpGetProductIdComponent(
     case prodidUtc1900_LTCG_C:
         return L"Link-time Code Generation (C11) (19.0)";
 
+    case prodidUtc1500_LTCG_CPP:
+        return L"Link-time Code Generation (CPP) (15.0)";
     case prodidUtc1610_LTCG_CPP:
         return L"Link-time Code Generation (CPP) (16.1)";
     case prodidUtc1700_LTCG_CPP:
@@ -229,6 +241,8 @@ PWSTR PvpGetProductIdComponent(
     case prodidUtc1900_LTCG_CPP:
         return L"Link-time Code Generation (CPP) (19.0)";
 
+    case prodidUtc1500_LTCG_MSIL:
+        return L"Link-time Code Generation (MSIL) (15.0)";
     case prodidUtc1610_LTCG_MSIL:
         return L"Link-time Code Generation (MSIL) (16.1)";
     case prodidUtc1700_LTCG_MSIL:
@@ -240,6 +254,8 @@ PWSTR PvpGetProductIdComponent(
     case prodidUtc1900_LTCG_MSIL:
         return L"Link-time Code Generation (MSIL) (19.0)";
 
+    case prodidUtc1500_POGO_I_C:
+        return L"Profile Guided Optimization (Imput) (C11) (15.0)";
     case prodidUtc1610_POGO_I_C:
         return L"Profile Guided Optimization (Imput) (C11) (16.1)";
     case prodidUtc1700_POGO_I_C:
@@ -251,6 +267,7 @@ PWSTR PvpGetProductIdComponent(
     case prodidUtc1900_POGO_I_C:
         return L"Profile Guided Optimization (Imput) (C11) (19.0)";
 
+    case prodidUtc1500_POGO_O_C:
     case prodidUtc1610_POGO_O_C:
     case prodidUtc1700_POGO_O_C:
     case prodidUtc1800_POGO_O_C:
@@ -258,6 +275,7 @@ PWSTR PvpGetProductIdComponent(
     case prodidUtc1900_POGO_O_C:
         return L"Profile Guided Optimization (Output) (C11)";
 
+    case prodidUtc1500_POGO_I_CPP:
     case prodidUtc1610_POGO_I_CPP:
     case prodidUtc1700_POGO_I_CPP:
     case prodidUtc1800_POGO_I_CPP:
@@ -265,6 +283,7 @@ PWSTR PvpGetProductIdComponent(
     case prodidUtc1900_POGO_I_CPP:
         return L"Profile Guided Optimization (Imput) (C11)";
 
+    case prodidUtc1500_POGO_O_CPP:
     case prodidUtc1610_POGO_O_CPP:
     case prodidUtc1700_POGO_O_CPP:
     case prodidUtc1800_POGO_O_CPP:

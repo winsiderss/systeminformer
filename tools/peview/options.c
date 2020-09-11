@@ -62,6 +62,19 @@ INT_PTR CALLBACK PvOptionsWndProc(
             case IDCANCEL:
                 EndDialog(hwndDlg, IDCANCEL);
                 break;
+            case IDOK:
+                {
+                    BOOLEAN restartRequired = FALSE;
+
+                    if (!PhEqualString(PhaGetDlgItemText(hwndDlg, IDC_DBGHELPSEARCHPATH), PhaGetStringSetting(L"DbgHelpSearchPath"), TRUE))
+                    {
+                        PhSetStringSetting2(L"DbgHelpSearchPath", &(PhaGetDlgItemText(hwndDlg, IDC_DBGHELPSEARCHPATH)->sr));
+                        restartRequired = TRUE;
+                    }
+
+                    EndDialog(hwndDlg, IDOK);
+                }
+                break;
             }
         }
         break;

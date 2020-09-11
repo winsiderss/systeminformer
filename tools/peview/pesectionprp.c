@@ -225,7 +225,7 @@ INT_PTR CALLBACK PvPeSectionsDlgProc(
 {
     LPPROPSHEETPAGE propSheetPage;
     PPV_PROPPAGECONTEXT propPageContext;
-    PPV_PE_SECTION_CONTEXT context;
+    PPV_PE_SECTION_CONTEXT context = NULL;
 
     if (!PvPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext))
         return FALSE;
@@ -280,6 +280,7 @@ INT_PTR CALLBACK PvPeSectionsDlgProc(
                 ImageList_Destroy(context->ListViewImageList);
 
             PhFree(context);
+            context = NULL;
         }
         break;
     case WM_SHOWWINDOW:
@@ -309,7 +310,10 @@ INT_PTR CALLBACK PvPeSectionsDlgProc(
         break;
     }
 
-    REFLECT_MESSAGE_DLG(hwndDlg, context->ListViewHandle, uMsg, wParam, lParam);
+    if (context)
+    {
+        REFLECT_MESSAGE_DLG(hwndDlg, context->ListViewHandle, uMsg, wParam, lParam);
+    }
 
     return FALSE;
 }

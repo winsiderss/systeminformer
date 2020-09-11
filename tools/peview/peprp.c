@@ -288,23 +288,23 @@ VOID PvPeProperties(
             }
         }
 
-        // Debug page
-        if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_DEBUG, &entry)) && entry->VirtualAddress)
-        {
-            newPage = PvCreatePropPageContext(
-                MAKEINTRESOURCE(IDD_PEDEBUG),
-                PvpPeDebugDlgProc,
-                NULL
-                );
-            PvAddPropPage(propContext, newPage);
-        }
-
         // Certificates page
         if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_SECURITY, &entry)) && entry->VirtualAddress)
         {
             newPage = PvCreatePropPageContext(
                 MAKEINTRESOURCE(IDD_PESECURITY),
                 PvpPeSecurityDlgProc,
+                NULL
+                );
+            PvAddPropPage(propContext, newPage);
+        }
+
+        // Debug page
+        if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_DEBUG, &entry)) && entry->VirtualAddress)
+        {
+            newPage = PvCreatePropPageContext(
+                MAKEINTRESOURCE(IDD_PEDEBUG),
+                PvpPeDebugDlgProc,
                 NULL
                 );
             PvAddPropPage(propContext, newPage);
@@ -1371,7 +1371,7 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
 {
     LPPROPSHEETPAGE propSheetPage;
     PPV_PROPPAGECONTEXT propPageContext;
-    PPVP_PE_GENERAL_CONTEXT context;
+    PPVP_PE_GENERAL_CONTEXT context = NULL;
 
     if (!PvPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext))
         return FALSE;
@@ -1419,6 +1419,7 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
                 ImageList_Destroy(context->ListViewImageList);
 
             PhFree(context);
+            context = NULL;
         }
         break;
     case WM_SHOWWINDOW:
@@ -1545,7 +1546,10 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
         break;
     }
 
-    REFLECT_MESSAGE_DLG(hwndDlg, context->ListViewHandle, uMsg, wParam, lParam);
+    if (context)
+    {
+        REFLECT_MESSAGE_DLG(hwndDlg, context->ListViewHandle, uMsg, wParam, lParam);
+    }
 
     return FALSE;
 }

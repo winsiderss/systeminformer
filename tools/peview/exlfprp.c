@@ -266,7 +266,7 @@ VOID PvpSetWslImageBase(
 
     if (PvMappedImage.Header->e_ident[EI_CLASS] == ELFCLASS32)
     {
-        string = PhFormatString(L"0x%I32x", PhGetMappedWslImageBaseAddress(&PvMappedImage));
+        string = PhFormatString(L"0x%I32x", (ULONG)PhGetMappedWslImageBaseAddress(&PvMappedImage));
         PhSetDialogItemText(hwndDlg, IDC_IMAGEBASE, string->Buffer);
         PhDereferenceObject(string);
     }
@@ -410,8 +410,11 @@ VOID PvpLoadWslSections(
             lvItemIndex = PhAddListViewItem(LvHandle, MAXINT, imageSections[i].Name, NULL);
             PhSetListViewSubItem(LvHandle, lvItemIndex, 1, PvpGetWslImageSectionTypeName(imageSections[i].Type));
 
-            PhPrintPointer(pointer, (PVOID)imageSections[i].Address);
-            PhSetListViewSubItem(LvHandle, lvItemIndex, 2, pointer);
+            if (imageSections[i].Address)
+            {
+                PhPrintPointer(pointer, (PVOID)imageSections[i].Address);
+                PhSetListViewSubItem(LvHandle, lvItemIndex, 2, pointer);
+            }
 
             PhPrintPointer(pointer, (PVOID)imageSections[i].Offset);
             PhSetListViewSubItem(LvHandle, lvItemIndex, 3, pointer);

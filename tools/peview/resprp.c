@@ -257,6 +257,7 @@ INT_PTR CALLBACK PvpPeResourcesDlgProc(
                     {
                         if ((ULONG)entry.Language)
                         {
+#if (PHNT_VERSION >= PHNT_WIN7)
                             UNICODE_STRING localeNameUs;
                             WCHAR localeName[LOCALE_NAME_MAX_LENGTH];
 
@@ -272,6 +273,10 @@ INT_PTR CALLBACK PvpPeResourcesDlgProc(
                                 PhPrintUInt32(number, (ULONG)entry.Language);
                                 PhSetListViewSubItem(lvHandle, lvItemIndex, PVE_RESOURCES_COLUMN_INDEX_LCID, number);
                             }
+#else
+                            PhPrintUInt32(number, (ULONG)entry.Language);
+                            PhSetListViewSubItem(lvHandle, lvItemIndex, PVE_RESOURCES_COLUMN_INDEX_LCID, number);
+#endif
                         }
                         else // LOCALE_NEUTRAL
                         {
