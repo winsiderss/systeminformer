@@ -154,7 +154,7 @@ PPH_STRING PvpGetPeEnclaveImportsText(
         {
             PSTR importName;
 
-            if (enclaveImports->ImportName == USHRT_MAX)
+            if (!enclaveImports || enclaveImports->ImportName == USHRT_MAX)
                 break;
 
             if (importName = PhMappedImageRvaToVa(
@@ -184,7 +184,7 @@ PPH_STRING PvpGetPeEnclaveImportsText(
         {
             PSTR importName;
 
-            if (enclaveImports->ImportName == USHRT_MAX)
+            if (!enclaveImports || enclaveImports->ImportName == USHRT_MAX)
                 break;
 
             if (importName = PhMappedImageRvaToVa(
@@ -313,7 +313,7 @@ INT_PTR CALLBACK PvpPeLoadConfigDlgProc(
                 ADD_VALUE(L"Critical section default timeout", PhaFormatUInt64((Config)->CriticalSectionDefaultTimeout, TRUE)->Buffer); \
                 ADD_VALUE(L"De-commit free block threshold", PhaFormatUInt64((Config)->DeCommitFreeBlockThreshold, TRUE)->Buffer); \
                 ADD_VALUE(L"De-commit total free threshold", PhaFormatUInt64((Config)->DeCommitTotalFreeThreshold, TRUE)->Buffer); \
-                ADD_VALUE(L"Lock prefix table", PhaFormatString(L"0x%Ix", (Config)->LockPrefixTable)->Buffer); \
+                ADD_VALUE(L"Lock prefix table", PhaFormatString(L"0x%x", (Config)->LockPrefixTable)->Buffer); \
                 ADD_VALUE(L"Maximum allocation size", PhaFormatString(L"0x%Ix", (Config)->MaximumAllocationSize)->Buffer); \
                 ADD_VALUE(L"Virtual memory threshold", PhaFormatString(L"0x%Ix", (Config)->VirtualMemoryThreshold)->Buffer); \
                 ADD_VALUE(L"Process heap flags", PhaFormatString(L"0x%Ix", (Config)->ProcessHeapFlags)->Buffer); \

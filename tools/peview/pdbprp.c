@@ -652,16 +652,21 @@ BOOLEAN NTAPI PvSymbolTreeNewCallback(
     _In_opt_ PVOID Context
     )
 {
-    PPDB_SYMBOL_CONTEXT context;
+    PPDB_SYMBOL_CONTEXT context = Context;
     PPV_SYMBOL_NODE node;
 
-    context = Context;
+    if (!context)
+        return FALSE;
 
     switch (Message)
     {
     case TreeNewGetChildren:
         {
             PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
+
+            if (!getChildren)
+                break;
+
             node = (PPV_SYMBOL_NODE)getChildren->Node;
 
             if (!getChildren->Node)
@@ -694,6 +699,10 @@ BOOLEAN NTAPI PvSymbolTreeNewCallback(
     case TreeNewIsLeaf:
         {
             PPH_TREENEW_IS_LEAF isLeaf = (PPH_TREENEW_IS_LEAF)Parameter1;
+
+            if (!isLeaf)
+                break;
+
             node = (PPV_SYMBOL_NODE)isLeaf->Node;
 
             isLeaf->IsLeaf = TRUE;
@@ -702,6 +711,10 @@ BOOLEAN NTAPI PvSymbolTreeNewCallback(
     case TreeNewGetCellText:
         {
             PPH_TREENEW_GET_CELL_TEXT getCellText = (PPH_TREENEW_GET_CELL_TEXT)Parameter1;
+
+            if (!getCellText)
+                break;
+
             node = (PPV_SYMBOL_NODE)getCellText->Node;
 
             switch (getCellText->Id)
@@ -784,6 +797,10 @@ BOOLEAN NTAPI PvSymbolTreeNewCallback(
     case TreeNewGetNodeColor:
         {
             PPH_TREENEW_GET_NODE_COLOR getNodeColor = (PPH_TREENEW_GET_NODE_COLOR)Parameter1;
+
+            if (!getNodeColor)
+                break;
+
             node = (PPV_SYMBOL_NODE)getNodeColor->Node;
 
             getNodeColor->Flags = TN_CACHE | TN_AUTO_FORECOLOR;

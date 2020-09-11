@@ -309,7 +309,10 @@ VOID PvpPeViewCertificateContext(
 
     if (CryptUIDlgViewCertificate)
     {
+#pragma warning(push)
+#pragma warning(disable:6387)
         CryptUIDlgViewCertificate(&cryptViewCertInfo, NULL);
+#pragma warning(pop)
     }
 
     //if (CryptUIDlgViewContext)

@@ -381,7 +381,7 @@ LRESULT CALLBACK PvpPropSheetWndProc(
         {
             HWND tabControl;
             TCITEM tabItem;
-            WCHAR text[128];
+            WCHAR text[128] = L"";
 
             // Save the window position and size.
 
@@ -393,7 +393,7 @@ LRESULT CALLBACK PvpPropSheetWndProc(
 
             tabItem.mask = TCIF_TEXT;
             tabItem.pszText = text;
-            tabItem.cchTextMax = RTL_NUMBER_OF(text) - 1;
+            tabItem.cchTextMax = RTL_NUMBER_OF(text) - sizeof(UNICODE_NULL);
 
             if (TabCtrl_GetItem(tabControl, TabCtrl_GetCurSel(tabControl), &tabItem))
             {

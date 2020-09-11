@@ -296,7 +296,11 @@ CleanupExit:
         return bitmapHandle;
     }
 
-    DeleteBitmap(bitmapHandle);
+    if (bitmapHandle)
+    {
+        DeleteBitmap(bitmapHandle);
+    }
+
     return NULL;
 }
 
