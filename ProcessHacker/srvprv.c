@@ -189,8 +189,6 @@ PPH_SERVICE_ITEM PhCreateServiceItem(
         serviceItem->Flags = Information->ServiceStatusProcess.dwServiceFlags;
         serviceItem->ProcessId = UlongToHandle(Information->ServiceStatusProcess.dwProcessId);
 
-        if (serviceItem->ProcessId)
-            PhPrintUInt32(serviceItem->ProcessIdString, HandleToUlong(serviceItem->ProcessId));
     }
 
     PhEmCallObjectOperation(EmServiceItemType, serviceItem, EmObjectCreate);

@@ -144,6 +144,7 @@ VOID PhInitializeServiceTreeList(
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
+    TreeNew_SetTriState(hwnd, TRUE);
     TreeNew_SetSort(hwnd, 0, AscendingSortOrder);
 
     PhCmInitializeManager(&ServiceTreeListCm, hwnd, PHSVTLC_MAXIMUM, PhpServiceTreeNewPostSortFunction);
@@ -726,7 +727,14 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
                 }
                 break;
             case PHSVTLC_PID:
-                PhInitializeStringRefLongHint(&getCellText->Text, serviceItem->ProcessIdString);
+                {
+                    if (serviceItem->ProcessId)
+                        PhPrintUInt32(serviceItem->ProcessIdString, HandleToUlong(serviceItem->ProcessId));
+                    else
+                        serviceItem->ProcessIdString[0] = UNICODE_NULL;
+
+                    PhInitializeStringRefLongHint(&getCellText->Text, serviceItem->ProcessIdString);
+                }
                 break;
             case PHSVTLC_BINARYPATH:
                 PhpUpdateServiceNodeConfig(node);
