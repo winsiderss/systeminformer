@@ -1426,7 +1426,7 @@ VOID ServiceItemCreateCallback(
     _In_ PVOID Extension
     )
 {
-    PPH_SERVICE_ITEM processItem = Object;
+    PPH_SERVICE_ITEM serviceItem = Object;
     PSERVICE_EXTENSION extension = Extension;
 
     memset(extension, 0, sizeof(SERVICE_EXTENSION));
@@ -1441,7 +1441,7 @@ VOID ServiceItemDeleteCallback(
     _In_ PVOID Extension
     )
 {
-    PPH_SERVICE_ITEM processItem = Object;
+    PPH_SERVICE_ITEM serviceItem = Object;
     PSERVICE_EXTENSION extension = Extension;
 
     PhClearReference(&extension->Comment);
