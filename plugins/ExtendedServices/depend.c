@@ -3,6 +3,7 @@
  *   dependencies and dependents
  *
  * Copyright (C) 2010 wj32
+ * Copyright (C) 2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -137,11 +138,9 @@ INT_PTR CALLBACK EspServiceDependenciesDlgProc(
             LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
             PPH_SERVICE_ITEM serviceItem = (PPH_SERVICE_ITEM)propSheetPage->lParam;
             HWND serviceListHandle;
-            PPH_LIST serviceList;
             SC_HANDLE serviceHandle;
             ULONG win32Result = ERROR_SUCCESS;
             BOOLEAN success = FALSE;
-            PPH_SERVICE_ITEM *services;
 
             PhSetDialogItemText(hwndDlg, IDC_MESSAGE, L"This service depends on the following services:");
 
@@ -155,40 +154,36 @@ INT_PTR CALLBACK EspServiceDependenciesDlgProc(
                 if (serviceConfig = PhGetServiceConfig(serviceHandle))
                 {
                     PWSTR dependency;
-                    PPH_SERVICE_ITEM dependencyService;
+                    PPH_LIST serviceList;
 
-                    dependency = serviceConfig->lpDependencies;
                     serviceList = PH_AUTO(PhCreateList(8));
                     success = TRUE;
 
-                    if (dependency)
+                    if (serviceConfig->lpDependencies)
                     {
-                        ULONG dependencyLength;
-
-                        while (TRUE)
+                        for (dependency = serviceConfig->lpDependencies; *dependency; dependency += PhCountStringZ(dependency) + 1)
                         {
-                            dependencyLength = (ULONG)PhCountStringZ(dependency);
-
-                            if (dependencyLength == 0)
-                                break;
+                            PPH_SERVICE_ITEM dependencyService;
 
                             if (dependency[0] == SC_GROUP_IDENTIFIER)
-                                goto ContinueLoop;
+                                continue;
 
                             if (dependencyService = PhReferenceServiceItem(dependency))
                                 PhAddItemList(serviceList, dependencyService);
-
-ContinueLoop:
-                            dependency += dependencyLength + 1;
                         }
                     }
 
-                    services = PhAllocateCopy(serviceList->Items, sizeof(PPH_SERVICE_ITEM) * serviceList->Count);
+                    if (serviceList->Count)
+                    {
+                        PPH_SERVICE_ITEM* services;
 
-                    serviceListHandle = PhCreateServiceListControl(hwndDlg, services, serviceList->Count);
-                    context->ServiceListHandle = serviceListHandle;
-                    EspLayoutServiceListControl(hwndDlg, serviceListHandle);
-                    ShowWindow(serviceListHandle, SW_SHOW);
+                        services = PhAllocateCopy(serviceList->Items, sizeof(PPH_SERVICE_ITEM) * serviceList->Count);
+
+                        serviceListHandle = PhCreateServiceListControl(hwndDlg, services, serviceList->Count);
+                        context->ServiceListHandle = serviceListHandle;
+                        EspLayoutServiceListControl(hwndDlg, serviceListHandle);
+                        ShowWindow(serviceListHandle, SW_SHOW);
+                    }
 
                     PhFree(serviceConfig);
                 }
@@ -273,11 +268,9 @@ INT_PTR CALLBACK EspServiceDependentsDlgProc(
             LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
             PPH_SERVICE_ITEM serviceItem = (PPH_SERVICE_ITEM)propSheetPage->lParam;
             HWND serviceListHandle;
-            PPH_LIST serviceList;
             SC_HANDLE serviceHandle;
             ULONG win32Result = ERROR_SUCCESS;
             BOOLEAN success = FALSE;
-            PPH_SERVICE_ITEM *services;
 
             PhSetDialogItemText(hwndDlg, IDC_MESSAGE, L"The following services depend on this service:");
 
@@ -291,24 +284,29 @@ INT_PTR CALLBACK EspServiceDependentsDlgProc(
 
                 if (dependentServices = EsEnumDependentServices(serviceHandle, 0, &numberOfDependentServices))
                 {
-                    ULONG i;
                     PPH_SERVICE_ITEM dependentService;
+                    PPH_LIST serviceList;
 
                     serviceList = PH_AUTO(PhCreateList(8));
                     success = TRUE;
 
-                    for (i = 0; i < numberOfDependentServices; i++)
+                    for (ULONG i = 0; i < numberOfDependentServices; i++)
                     {
                         if (dependentService = PhReferenceServiceItem(dependentServices[i].lpServiceName))
                             PhAddItemList(serviceList, dependentService);
                     }
 
-                    services = PhAllocateCopy(serviceList->Items, sizeof(PPH_SERVICE_ITEM) * serviceList->Count);
+                    if (serviceList->Count)
+                    {
+                        PPH_SERVICE_ITEM* services;
 
-                    serviceListHandle = PhCreateServiceListControl(hwndDlg, services, serviceList->Count);
-                    context->ServiceListHandle = serviceListHandle;
-                    EspLayoutServiceListControl(hwndDlg, serviceListHandle);
-                    ShowWindow(serviceListHandle, SW_SHOW);
+                        services = PhAllocateCopy(serviceList->Items, sizeof(PPH_SERVICE_ITEM) * serviceList->Count);
+
+                        serviceListHandle = PhCreateServiceListControl(hwndDlg, services, serviceList->Count);
+                        context->ServiceListHandle = serviceListHandle;
+                        EspLayoutServiceListControl(hwndDlg, serviceListHandle);
+                        ShowWindow(serviceListHandle, SW_SHOW);
+                    }
 
                     PhFree(dependentServices);
                 }
