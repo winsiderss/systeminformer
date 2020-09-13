@@ -640,7 +640,7 @@ VOID PvpSetPeImageVersionInfo(
 
     Static_SetIcon(GetDlgItem(WindowHandle, IDC_FILEICON), PvImageLargeIcon);
 
-    if (PhGetIntegerSetting(L"EnableVersionText"))
+    if (PhGetIntegerSetting(L"EnableVersionSupport"))
         PhInitializeImageVersionInfo2(&PvImageVersionInfo, PvFileName->Buffer);
     else
         PhInitializeImageVersionInfo(&PvImageVersionInfo, PvFileName->Buffer);
