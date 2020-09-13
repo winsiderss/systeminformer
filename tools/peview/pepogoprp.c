@@ -22,21 +22,6 @@
 
 #include <peview.h>
 
-typedef struct _IMAGE_DEBUG_POGO_ENTRY
-{
-    ULONG Rva;
-    ULONG Size;
-    CHAR Name[1];
-} IMAGE_DEBUG_POGO_ENTRY, *PIMAGE_DEBUG_POGO_ENTRY;
-
-typedef struct _IMAGE_DEBUG_POGO_SIGNATURE
-{
-    ULONG Signature;
-} IMAGE_DEBUG_POGO_SIGNATURE, *PIMAGE_DEBUG_POGO_SIGNATURE;
-
-#define IMAGE_DEBUG_POGO_SIGNATURE_LTCG 'LTCG' // coffgrp LTCG (0x4C544347)
-#define IMAGE_DEBUG_POGO_SIGNATURE_PGU 'PGU\0' // coffgrp PGU (0x50475500)
-
 VOID PvEnumeratePogoDebugEntries(
     _In_ HWND WindowHandle,
     _In_ HWND ListViewHandle

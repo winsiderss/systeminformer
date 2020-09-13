@@ -2684,3 +2684,79 @@ NTSTATUS PhGetMappedImageEhCont(
         return PhGetMappedImageEhCont64(EhContConfig, MappedImage);
     }
 }
+
+_Success_(return)
+BOOLEAN PhGetMappedImagePogoEntryByName(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ PSTR Name,
+    _Out_opt_ ULONG* DataLength,
+    _Out_opt_ PVOID* DataBuffer
+    )
+{
+    ULONG debugEntryLength;
+    PIMAGE_DEBUG_POGO_SIGNATURE debugEntry;
+
+    if (PhGetMappedImageDebugEntryByType(
+        MappedImage,
+        IMAGE_DEBUG_TYPE_POGO,
+        &debugEntryLength,
+        &debugEntry
+        ))
+    {
+        PIMAGE_DEBUG_POGO_ENTRY debugPogoEntry;
+
+        __try
+        {
+            PhpMappedImageProbe(MappedImage, debugEntry, sizeof(IMAGE_DEBUG_POGO_SIGNATURE));
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            return FALSE;
+        }
+
+        if (debugEntry->Signature != IMAGE_DEBUG_POGO_SIGNATURE_LTCG && debugEntry->Signature != IMAGE_DEBUG_POGO_SIGNATURE_PGU)
+        {
+            // The signature can sometimes be zero but still contain valid entries.
+            if (!(debugEntry->Signature == 0 && debugEntryLength > sizeof(IMAGE_DEBUG_POGO_SIGNATURE)))
+                return FALSE;
+        }
+
+        debugPogoEntry = PTR_ADD_OFFSET(debugEntry, sizeof(IMAGE_DEBUG_POGO_SIGNATURE));
+
+        while ((ULONG_PTR)debugPogoEntry < (ULONG_PTR)PTR_ADD_OFFSET(debugEntry, debugEntryLength))
+        {
+            __try
+            {
+                PhpMappedImageProbe(MappedImage, debugPogoEntry, sizeof(IMAGE_DEBUG_POGO_ENTRY));
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                return FALSE;
+            }
+
+            if (!(debugPogoEntry->Rva && debugPogoEntry->Size))
+                break;
+
+            if (PhEqualBytesZ(debugPogoEntry->Name, Name, TRUE))
+            {
+                if (DataLength)
+                {
+                    *DataLength = debugPogoEntry->Size;
+                }
+
+                if (DataBuffer)
+                {
+                    *DataBuffer = PTR_ADD_OFFSET(MappedImage->ViewBase, debugPogoEntry->Rva);
+                    //*DataBuffer = PhMappedImageRvaToVa(MappedImage, debugPogoEntry->Rva, NULL);
+                    //*DataBuffer = PTR_ADD_OFFSET(PvMappedImage.NtHeaders->OptionalHeader.ImageBase, debugPogoEntry->Rva);
+                }
+
+                return TRUE;
+            }
+
+            debugPogoEntry = PTR_ADD_OFFSET(debugPogoEntry, ALIGN_UP(UFIELD_OFFSET(IMAGE_DEBUG_POGO_ENTRY, Name) + strlen(debugPogoEntry->Name) + sizeof(ANSI_NULL), ULONG));
+        }
+    }
+
+    return FALSE;
+}
