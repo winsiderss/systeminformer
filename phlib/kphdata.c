@@ -3,7 +3,7 @@
  *   KProcessHacker dynamic data definitions
  *
  * Copyright (C) 2011-2016 wj32
- * Copyright (C) 2017 dmex
+ * Copyright (C) 2017-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -28,22 +28,28 @@ ULONG KphpGetKernelRevisionNumber(
     VOID
     )
 {
-    ULONG result;
+    ULONG result = 0;
     PPH_STRING kernelFileName;
     PVOID versionInfo;
-    VS_FIXEDFILEINFO *rootBlock;
-    ULONG rootBlockLength;
 
-    result = 0;
-    kernelFileName = PhGetKernelFileName();
-    PhMoveReference(&kernelFileName, PhGetFileName(kernelFileName));
-    versionInfo = PhGetFileVersionInfo(kernelFileName->Buffer);
-    PhDereferenceObject(kernelFileName);
+    if (kernelFileName = PhGetKernelFileName())
+    {
+        PhMoveReference(&kernelFileName, PhGetFileName(kernelFileName));
 
-    if (versionInfo && PhGetFileVersionInfoValue(versionInfo, L"\\", &rootBlock, &rootBlockLength) && rootBlockLength != 0)
-        result = LOWORD(rootBlock->dwFileVersionLS);
+        if (versionInfo = PhGetFileVersionInfo(kernelFileName->Buffer))
+        {
+            VS_FIXEDFILEINFO* rootBlock;
 
-    PhFree(versionInfo);
+            if (rootBlock = PhGetFileVersionFixedInfo(versionInfo))
+            {
+                result = LOWORD(rootBlock->dwFileVersionLS);
+            }
+
+            PhFree(versionInfo);
+        }
+
+        PhDereferenceObject(kernelFileName);
+    }
 
     return result;
 }
