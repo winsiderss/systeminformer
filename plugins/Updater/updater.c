@@ -220,7 +220,6 @@ PPH_STRING UpdateWindowsString(
     PPH_STRING fileVersion = NULL;
     PVOID versionInfo;
     VS_FIXEDFILEINFO* rootBlock;
-    ULONG rootBlockLength;
     PH_FORMAT fileVersionFormat[3];
 
     fileName = PhGetKernelFileName();
@@ -230,7 +229,7 @@ PPH_STRING UpdateWindowsString(
 
     if (versionInfo)
     {
-        if (PhGetFileVersionInfoValue(versionInfo, L"\\", &rootBlock, &rootBlockLength) && rootBlockLength != 0)
+        if (rootBlock = PhGetFileVersionFixedInfo(versionInfo))
         {
             PhInitFormatU(&fileVersionFormat[0], HIWORD(rootBlock->dwFileVersionLS));
             PhInitFormatC(&fileVersionFormat[1], '.');
@@ -587,7 +586,7 @@ static PPH_STRING UpdaterParseDownloadFileName(
     PPH_STRING filePath;
     PPH_STRING downloadFileName;
 
-    if (!PhSplitStringRefAtLastChar(&DownloadUrlPath->sr, '/', &pathPart, &baseNamePart))
+    if (!PhSplitStringRefAtLastChar(&DownloadUrlPath->sr, L'/', &pathPart, &baseNamePart))
         return NULL;
 
     downloadFileName = PhCreateString2(&baseNamePart);
