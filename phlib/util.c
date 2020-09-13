@@ -1751,10 +1751,11 @@ PVOID PhGetFileVersionInfoValue(
     return PTR_ADD_OFFSET(VersionInfo, ALIGN_UP(PTR_SUB_OFFSET(keyOffset, VersionInfo), ULONG));
 }
 
-PVOID PhGetFileVersionInfoKey(
+BOOLEAN PhGetFileVersionInfoKey(
     _In_ PVS_VERSION_INFO_STRUCT32 VersionInfo,
+    _In_ ULONG KeyLength,
     _In_ PWSTR Key,
-    _In_ ULONG KeyLength
+    _Out_opt_ PVOID* Buffer
     )
 {
     PVOID value;
@@ -1762,7 +1763,7 @@ PVOID PhGetFileVersionInfoKey(
     PVS_VERSION_INFO_STRUCT32 child;
 
     if (!(value = PhGetFileVersionInfoValue(VersionInfo)))
-        return NULL;
+        return FALSE;
 
     valueOffset = VersionInfo->ValueLength * (VersionInfo->Type ? sizeof(WCHAR) : sizeof(BYTE));
     child = PTR_ADD_OFFSET(value, ALIGN_UP(valueOffset, ULONG));
@@ -1770,15 +1771,20 @@ PVOID PhGetFileVersionInfoKey(
     while ((ULONG_PTR)child < (ULONG_PTR)VersionInfo + VersionInfo->Length)
     {
         if (_wcsnicmp(child->Key, Key, KeyLength) == 0 && !child->Key[KeyLength])
-            return child;
+        {
+            if (Buffer)
+                *Buffer = child;
+
+            return TRUE;
+        }
 
         if (child->Length == 0)
-            return NULL;
+            break;
 
         child = PTR_ADD_OFFSET(child, ALIGN_UP(child->Length, ULONG));
     }
 
-    return NULL;
+    return FALSE;
 }
 
 _Success_(return)
@@ -1794,29 +1800,28 @@ BOOLEAN PhGetFileVersionVarFileInfoValue(
     PVS_VERSION_INFO_STRUCT32 varfileBlockValue;
     ULONG varfileBlockLength;
 
-    varfileBlockInfo = PhGetFileVersionInfoKey(
+    if (PhGetFileVersionInfoKey(
         VersionInfo,
+        (ULONG)varfileBlockName.Length / sizeof(WCHAR),
         varfileBlockName.Buffer,
-        (ULONG)varfileBlockName.Length / sizeof(WCHAR)
-        );
-
-    if (!varfileBlockInfo)
-        return FALSE;
-
-    varfileBlockLength = (ULONG)KeyName->Length / sizeof(WCHAR);
-    varfileBlockValue = PhGetFileVersionInfoKey(
-        varfileBlockInfo,
-        KeyName->Buffer,
-        varfileBlockLength
-        );
-
-    if (varfileBlockValue)
+        &varfileBlockInfo
+        ))
     {
-        if (BufferLength)
-            *BufferLength = varfileBlockValue->ValueLength;
-        if (Buffer)
-            *Buffer = PhGetFileVersionInfoValue(varfileBlockValue);
-        return TRUE;
+        varfileBlockLength = (ULONG)KeyName->Length / sizeof(WCHAR);
+
+        if (PhGetFileVersionInfoKey(
+            varfileBlockInfo,
+            varfileBlockLength,
+            KeyName->Buffer,
+            &varfileBlockValue
+            ))
+        {
+            if (BufferLength)
+                *BufferLength = varfileBlockValue->ValueLength;
+            if (Buffer)
+                *Buffer = PhGetFileVersionInfoValue(varfileBlockValue);
+            return TRUE;
+        }
     }
 
     return FALSE;
@@ -1924,20 +1929,21 @@ PPH_STRING PhGetFileVersionInfoString2(
     PVS_VERSION_INFO_STRUCT32 blockLangInfo;
     PVS_VERSION_INFO_STRUCT32 stringNameBlockInfo;
     ULONG stringNameInfoLength;
-    PVOID stringNameBlockValue;
+    PWSTR stringNameBlockValue;
     PPH_STRING string;
     SIZE_T returnLength;
     PH_FORMAT format[3];
     WCHAR langNameString[65];
 
-    blockStringInfo = PhGetFileVersionInfoKey(
+    if (!PhGetFileVersionInfoKey(
         VersionInfo,
+        (ULONG)blockInfoName.Length / sizeof(WCHAR),
         blockInfoName.Buffer,
-        (ULONG)blockInfoName.Length / sizeof(WCHAR)
-        );
-
-    if (!blockStringInfo)
+        &blockStringInfo
+        ))
+    {
         return NULL;
+    }
 
     PhInitFormatX(&format[0], LangCodePage);
     format[0].Type |= FormatPadZeros | FormatUpperCase;
@@ -1946,30 +1952,31 @@ PPH_STRING PhGetFileVersionInfoString2(
     if (!PhFormatToBuffer(format, 1, langNameString, sizeof(langNameString), &returnLength))
         return NULL;
 
-    blockLangInfo = PhGetFileVersionInfoKey(
+    if (!PhGetFileVersionInfoKey(
         blockStringInfo,
+        (ULONG)returnLength / sizeof(WCHAR) - sizeof(ANSI_NULL),
         langNameString,
-        (ULONG)returnLength / sizeof(WCHAR) - sizeof(ANSI_NULL)
-        );
-
-    if (!blockLangInfo)
+        &blockLangInfo
+        ))
+    {
         return NULL;
+    }
 
     stringNameInfoLength = (ULONG)KeyName->Length / sizeof(WCHAR);
-    stringNameBlockInfo = PhGetFileVersionInfoKey(
-        blockLangInfo,
-        KeyName->Buffer,
-        stringNameInfoLength
-        );
 
-    if (!stringNameBlockInfo)
+    if (!PhGetFileVersionInfoKey(
+        blockLangInfo,
+        stringNameInfoLength,
+        KeyName->Buffer,
+        &stringNameBlockInfo
+        ))
+    {
         return NULL;
+    }
+
     if (stringNameBlockInfo->ValueLength <= sizeof(UNICODE_NULL)) // Check if the string has a valid length.
         return NULL;
-
-    stringNameBlockValue = PhGetFileVersionInfoValue(stringNameBlockInfo);
-
-    if (!stringNameBlockValue)
+    if (!(stringNameBlockValue = PhGetFileVersionInfoValue(stringNameBlockInfo)))
         return NULL;
 
     string = PhCreateStringEx(
