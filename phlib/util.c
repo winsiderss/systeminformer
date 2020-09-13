@@ -2109,19 +2109,39 @@ BOOLEAN PhInitializeImageVersionInfo(
     PVOID versionInfo;
     ULONG langCodePage;
 
+    if (versionInfo = PhGetFileVersionInfo(FileName))
+    {
+        langCodePage = PhGetFileVersionInfoLangCodePage(versionInfo);
+
+        PhpGetImageVersionVersionString(ImageVersionInfo, versionInfo);
+        PhpGetImageVersionInfoFields(ImageVersionInfo, versionInfo, langCodePage);
+
+        PhFree(versionInfo);
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+_Success_(return)
+BOOLEAN PhInitializeImageVersionInfo2(
+    _Out_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
+    _In_ PWSTR FileName
+    )
+{
+    PVOID versionInfo;
+    ULONG langCodePage;
+
     versionInfo = PhGetFileVersionInfo(FileName);
 
     if (!versionInfo)
         return FALSE;
 
     langCodePage = PhGetFileVersionInfoLangCodePage(versionInfo);
-
-    PhpGetImageVersionVersionString(ImageVersionInfo, versionInfo);
-    //PhpGetImageVersionVersionStringEx(ImageVersionInfo, versionInfo, langCodePage);
+    PhpGetImageVersionVersionStringEx(ImageVersionInfo, versionInfo, langCodePage);
     PhpGetImageVersionInfoFields(ImageVersionInfo, versionInfo, langCodePage);
 
     PhFree(versionInfo);
-
     return TRUE;
 }
 
@@ -2285,7 +2305,8 @@ _Success_(return)
 BOOLEAN PhInitializeImageVersionInfoCached(
     _Out_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
     _In_ PPH_STRING FileName,
-    _In_ BOOLEAN IsSubsystemProcess
+    _In_ BOOLEAN IsSubsystemProcess,
+    _In_ BOOLEAN ExtendedVersion
     )
 {
     PH_IMAGE_VERSION_INFO versionInfo = { 0 };
@@ -2320,8 +2341,16 @@ BOOLEAN PhInitializeImageVersionInfoCached(
     }
     else
     {
-        if (!PhInitializeImageVersionInfo(&versionInfo, FileName->Buffer))
-            return FALSE;
+        if (ExtendedVersion)
+        {
+            if (!PhInitializeImageVersionInfo2(&versionInfo, FileName->Buffer))
+                return FALSE;
+        }
+        else
+        {
+            if (!PhInitializeImageVersionInfo(&versionInfo, FileName->Buffer))
+                return FALSE;
+        }
     }
 
     if (!PhpImageVersionInfoCacheHashtable)
