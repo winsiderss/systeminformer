@@ -113,7 +113,7 @@ PVOID PhEnumServices(
     )
 {
     static ULONG initialBufferSize = 0x8000;
-    LOGICAL result;
+    BOOL result;
     PVOID buffer;
     ULONG bufferSize;
     ULONG returnLength;
