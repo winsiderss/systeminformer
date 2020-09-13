@@ -640,7 +640,10 @@ VOID PvpSetPeImageVersionInfo(
 
     Static_SetIcon(GetDlgItem(WindowHandle, IDC_FILEICON), PvImageLargeIcon);
 
-    PhInitializeImageVersionInfo(&PvImageVersionInfo, PvFileName->Buffer);
+    if (PhGetIntegerSetting(L"EnableVersionText"))
+        PhInitializeImageVersionInfo2(&PvImageVersionInfo, PvFileName->Buffer);
+    else
+        PhInitializeImageVersionInfo(&PvImageVersionInfo, PvFileName->Buffer);
 
     string = PhConcatStrings2(L"(Verifying...) ", PvpGetStringOrNa(PvImageVersionInfo.CompanyName));
     PhSetDialogItemText(WindowHandle, IDC_NAME, PvpGetStringOrNa(PvImageVersionInfo.FileDescription));

@@ -583,6 +583,15 @@ PhInitializeImageVersionInfo(
     );
 
 PHLIBAPI
+_Success_(return)
+BOOLEAN
+NTAPI
+PhInitializeImageVersionInfo2(
+    _Out_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
+    _In_ PWSTR FileName
+    );
+
+PHLIBAPI
 VOID
 NTAPI
 PhDeleteImageVersionInfo(
@@ -606,7 +615,8 @@ NTAPI
 PhInitializeImageVersionInfoCached(
     _Out_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
     _In_ PPH_STRING FileName,
-    _In_ BOOLEAN IsSubsystemProcess
+    _In_ BOOLEAN IsSubsystemProcess,
+    _In_ BOOLEAN ExtendedVersion
     );
 
 PHLIBAPI

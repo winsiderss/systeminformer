@@ -57,6 +57,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableTooltipSupport", L"1");
     PhpAddIntegerSetting(L"EnableSecurityAdvancedDialog", L"1");
     PhpAddIntegerSetting(L"EnableLinuxSubsystemSupport", L"0");
+    PhpAddIntegerSetting(L"EnableVersionSupport", L"1");
     PhpAddStringSetting(L"EnvironmentTreeListColumns", L"");
     PhpAddStringSetting(L"EnvironmentTreeListSort", L"0,0"); // 0, NoSortOrder
     PhpAddIntegerSetting(L"EnvironmentTreeListFlags", L"0");
@@ -325,4 +326,5 @@ VOID PhUpdateCachedSettings(
     PH_UPDATE_SETTING(ColorPhysical);
 
     PhEnableNetworkResolveDoHSupport = !!PhGetIntegerSetting(L"EnableNetworkResolveDoH");
+    PhEnableVersionShortText = !!PhGetIntegerSetting(L"EnableVersionSupport");
 }

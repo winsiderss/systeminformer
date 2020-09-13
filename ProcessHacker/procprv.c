@@ -763,7 +763,7 @@ VOID PhpProcessQueryStage1(
             }
 
             // Version info.
-            PhInitializeImageVersionInfoCached(&Data->VersionInfo, processItem->FileNameWin32, FALSE);
+            PhInitializeImageVersionInfoCached(&Data->VersionInfo, processItem->FileNameWin32, FALSE, PhEnableVersionShortText);
         }
     }
 
@@ -974,7 +974,7 @@ VOID PhpProcessQueryStage2(
 
     if (PhEnableLinuxSubsystemSupport && processItem->FileNameWin32 && processItem->IsSubsystemProcess)
     {
-        PhInitializeImageVersionInfoCached(&Data->VersionInfo, processItem->FileNameWin32, TRUE);
+        PhInitializeImageVersionInfoCached(&Data->VersionInfo, processItem->FileNameWin32, TRUE, PhEnableVersionShortText);
     }
 }
 
