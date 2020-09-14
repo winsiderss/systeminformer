@@ -80,16 +80,13 @@ VOID TaskDialogLinkClicked(
     _In_ PPH_UPDATER_CONTEXT Context
     )
 {
-    if (!PhIsNullOrEmptyString(Context->BuildMessage))
-    {
-        DialogBoxParam(
-            PluginInstance->DllBase, 
-            MAKEINTRESOURCE(IDD_TEXT),
-            Context->DialogHandle,
-            TextDlgProc, 
-            (LPARAM)Context
-            );
-    }
+    DialogBoxParam(
+        PluginInstance->DllBase,
+        MAKEINTRESOURCE(IDD_TEXT),
+        Context->DialogHandle,
+        TextDlgProc,
+        (LPARAM)Context
+        );
 }
 
 BOOLEAN UpdaterInstalledUsingSetup(
