@@ -47,7 +47,7 @@ PVOID PhpImportProcedure(
         {
             if (procedure = PhGetDllBaseProcedureAddress(module, ProcedureName, 0))
             {
-                *Cookie = NtGetTickCount64();
+                *Cookie = (ULONG_PTR)NtGetTickCount64();
                 *Cache = (PVOID)((ULONG_PTR)procedure ^ (ULONG_PTR)*Cookie);
             }
         }
