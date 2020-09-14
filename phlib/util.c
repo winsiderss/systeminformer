@@ -6035,7 +6035,7 @@ PPH_STRING PhLoadString(
 
     for (ULONG i = 0; i < stringIndex; i++)
     {
-        stringBuffer = PTR_ADD_OFFSET(stringBuffer, ((ULONG_PTR)stringBuffer->Length + 1) * sizeof(WCHAR));
+        stringBuffer = PTR_ADD_OFFSET(stringBuffer, (stringBuffer->Length + sizeof(BYTE)) * sizeof(WCHAR));
     }
 
     if (
