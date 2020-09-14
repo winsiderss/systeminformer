@@ -407,7 +407,14 @@ INT_PTR CALLBACK TextDlgProc(
                 context->CommitHash = PhGetPhVersionHash();
 
                 if (PhIsNullOrEmptyString(context->CommitHash) || PhEqualString2(context->CommitHash, L"\"\"", TRUE))
-                    PhMoveReference(&context->CommitHash, PhReferenceObject(((PPH_UPDATER_CONTEXT)lParam)->CommitHash)); // HACK
+                {
+                    PPH_UPDATER_CONTEXT updater = ((PPH_UPDATER_CONTEXT)lParam);
+
+                    if (!PhIsNullOrEmptyString(updater->CommitHash))
+                    {
+                        PhMoveReference(&context->CommitHash, PhReferenceObject(updater->CommitHash)); // HACK
+                    }
+                }
             }
 
             //PhSetWindowText(GetDlgItem(hwndDlg, IDC_TEXT), PhGetString(context->BuildMessage));
