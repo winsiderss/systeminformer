@@ -608,8 +608,8 @@ PhFormatImageVersionInfo(
     _In_opt_ ULONG LineLimit
     );
 
-PHLIBAPI
 _Success_(return)
+PHLIBAPI
 BOOLEAN
 NTAPI
 PhInitializeImageVersionInfoCached(
