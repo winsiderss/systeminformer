@@ -1359,7 +1359,7 @@ PPH_STRING PhFormatDateTime(
     timeBufferSize = GetTimeFormat(LOCALE_USER_DEFAULT, 0, DateTime, NULL, NULL, 0);
     dateBufferSize = GetDateFormat(LOCALE_USER_DEFAULT, 0, DateTime, NULL, NULL, 0);
 
-    string = PhCreateStringEx(NULL, (timeBufferSize + 1 + dateBufferSize) * sizeof(WCHAR));
+    string = PhCreateStringEx(NULL, ((SIZE_T)timeBufferSize + 1 + dateBufferSize) * sizeof(WCHAR));
 
     if (!GetTimeFormat(LOCALE_USER_DEFAULT, 0, DateTime, NULL, &string->Buffer[0], timeBufferSize))
     {
@@ -1751,6 +1751,7 @@ PVOID PhGetFileVersionInfoValue(
     return PTR_ADD_OFFSET(VersionInfo, ALIGN_UP(PTR_SUB_OFFSET(keyOffset, VersionInfo), ULONG));
 }
 
+_Success_(return)
 BOOLEAN PhGetFileVersionInfoKey(
     _In_ PVS_VERSION_INFO_STRUCT32 VersionInfo,
     _In_ ULONG KeyLength,
@@ -6011,16 +6012,16 @@ PPH_STRING PhLoadString(
     _In_ ULONG ResourceId
     )
 {
+    ULONG resourceId = (LOWORD(ResourceId) >> 4) + 1;
+    PIMAGE_RESOURCE_DIR_STRING_U stringBuffer;
     PPH_STRING string = NULL;
     ULONG resourceLength;
     PVOID resourceBuffer;
     ULONG stringIndex;
-    PWSTR stringBuffer;
-    ULONG i;
 
     if (!PhLoadResource(
         DllBase,
-        MAKEINTRESOURCE((LOWORD(ResourceId) >> 4) + 1),
+        MAKEINTRESOURCE(resourceId),
         RT_STRING,
         &resourceLength,
         &resourceBuffer
@@ -6032,16 +6033,20 @@ PPH_STRING PhLoadString(
     stringBuffer = resourceBuffer;
     stringIndex = ResourceId & 0x000F;
 
-    for (i = 0; i < stringIndex; i++) // dmex: Copied from ReactOS.
+    for (ULONG i = 0; i < stringIndex; i++)
     {
-        stringBuffer += *stringBuffer + 1;
+        stringBuffer = PTR_ADD_OFFSET(stringBuffer, ((ULONG_PTR)stringBuffer->Length + 1) * sizeof(WCHAR));
     }
 
-    i = min(resourceLength - 1, *stringBuffer);
-
-    if (i > 0)
+    if (
+        stringBuffer->Length > 0 && // sizeof(UNICODE_NULL) || resourceLength
+        stringBuffer->Length < UNICODE_STRING_MAX_BYTES
+        )
     {
-        string = PhCreateStringEx(stringBuffer + 1, i * sizeof(WCHAR));
+        string = PhCreateStringEx(
+            stringBuffer->NameString,
+            stringBuffer->Length * sizeof(WCHAR)
+            );
     }
 
     PhFree(resourceBuffer);

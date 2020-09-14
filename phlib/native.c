@@ -2124,9 +2124,8 @@ NTSTATUS PhSetEnvironmentVariableRemote(
     else
     {
 #endif
-        if (!NT_SUCCESS(status = NtQueueApcThreadEx(
+        if (!NT_SUCCESS(status = NtQueueApcThread(
             threadHandle,
-            NULL,
             setEnvironmentVariableW,
             nameBaseAddress,
             valueBaseAddress,
