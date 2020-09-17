@@ -8204,17 +8204,6 @@ RtlSetPortableOperatingSystem(
     _In_ BOOLEAN IsPortable
     );
 
-#if (PHNT_VERSION >= PHNT_THRESHOLD)
-
-NTSYSAPI
-OS_DEPLOYEMENT_STATE_VALUES
-NTAPI
-RtlOsDeploymentState(
-    _Reserved_ _In_ ULONG Flags
-    );
-
-#endif
-
 #if (PHNT_VERSION >= PHNT_VISTA)
 
 NTSYSAPI
