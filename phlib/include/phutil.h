@@ -1179,21 +1179,6 @@ PhGetNamespaceHandle(
     VOID
     );
 
-PHLIBAPI
-NTSTATUS
-NTAPI
-PhLoadLibraryAsImageResource(
-    _In_ PWSTR FileName,
-    _Out_ PVOID* DllBase
-    );
-
-PHLIBAPI
-VOID
-NTAPI
-PhFreeLibraryAsImageResource(
-    _In_ PVOID DllBase
-    );
-
 _Success_(return)
 PHLIBAPI
 BOOLEAN
