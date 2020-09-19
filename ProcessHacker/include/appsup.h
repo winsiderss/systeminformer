@@ -121,7 +121,7 @@ PHAPPAPI
 VOID
 NTAPI
 PhSearchOnlineString(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PWSTR String
     );
 
@@ -129,7 +129,7 @@ PHAPPAPI
 VOID
 NTAPI
 PhShellExecuteUserString(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PWSTR Setting,
     _In_ PWSTR String,
     _In_ BOOLEAN UseShellExecute,
@@ -236,7 +236,7 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhShellProcessHacker(
-    _In_opt_ HWND hWnd,
+    _In_opt_ HWND WindowHandle,
     _In_opt_ PWSTR Parameters,
     _In_ ULONG ShowWindowType,
     _In_ ULONG Flags,
@@ -247,7 +247,7 @@ PhShellProcessHacker(
 // end_phapppub
 
 BOOLEAN PhShellProcessHackerEx(
-    _In_opt_ HWND hWnd,
+    _In_opt_ HWND WindowHandle,
     _In_opt_ PWSTR FileName,
     _In_opt_ PWSTR Parameters,
     _In_ ULONG ShowWindowType,
@@ -428,7 +428,7 @@ PhHandleCopyListViewEMenuItem(
 // end_phapppub
 
 BOOLEAN PhShellOpenKey2(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_STRING KeyName
     );
 

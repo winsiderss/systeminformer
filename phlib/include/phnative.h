@@ -581,6 +581,22 @@ PhGetTokenProcessTrustLevelRID(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhGetFileBasicInformation(
+    _In_ HANDLE FileHandle,
+    _Out_ PFILE_BASIC_INFORMATION BasicInfo
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetFileStandardInformation(
+    _In_ HANDLE FileHandle,
+    _Out_ PFILE_STANDARD_INFORMATION StandardInfo
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhGetFileSize(
     _In_ HANDLE FileHandle,
     _Out_ PLARGE_INTEGER Size
@@ -649,7 +665,6 @@ PhGetProcessIdsUsingFile(
     _Out_ PFILE_PROCESS_IDS_USING_FILE_INFORMATION *ProcessIdsUsingFile
     );
 
-_Success_(return == STATUS_SUCCESS)
 PHLIBAPI
 NTSTATUS
 NTAPI

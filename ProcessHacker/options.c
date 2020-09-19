@@ -404,7 +404,7 @@ INT_PTR CALLBACK PhOptionsDialogProc(
                         hwndDlg,
                         TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
                         TD_INFORMATION_ICON,
-                        L"Do you want to clean up unused plugin settings?",
+                        L"Do you want to clean up unused settings?",
                         L""
                         ) == IDYES)
                     {

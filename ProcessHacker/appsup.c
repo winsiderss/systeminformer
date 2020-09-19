@@ -750,15 +750,15 @@ PPH_STRING PhUnescapeStringForDelimiter(
 }
 
 VOID PhSearchOnlineString(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PWSTR String
     )
 {
-    PhShellExecuteUserString(hWnd, L"SearchEngine", String, TRUE, NULL);
+    PhShellExecuteUserString(WindowHandle, L"SearchEngine", String, TRUE, NULL);
 }
 
 VOID PhShellExecuteUserString(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PWSTR Setting,
     _In_ PWSTR String,
     _In_ BOOLEAN UseShellExecute,
@@ -774,7 +774,7 @@ VOID PhShellExecuteUserString(
 
     if (!(applicationDirectory = PhGetApplicationDirectory()))
     {
-        PhShowStatus(hWnd, L"Unable to locate the application directory.", STATUS_NOT_FOUND, 0);
+        PhShowStatus(WindowHandle, L"Unable to locate the application directory.", STATUS_NOT_FOUND, 0);
         return;
     }
 
@@ -843,7 +843,7 @@ VOID PhShellExecuteUserString(
 
     if (UseShellExecute)
     {
-        PhShellExecute(hWnd, executeString->Buffer, NULL);
+        PhShellExecute(WindowHandle, executeString->Buffer, NULL);
     }
     else
     {
@@ -857,7 +857,7 @@ VOID PhShellExecuteUserString(
             {
                 ntMessage = PhGetNtMessage(status);
                 PhShowError2(
-                    hWnd,
+                    WindowHandle,
                     L"Unable to execute the command.",
                     L"%s\n%s",
                     PhGetStringOrDefault(ntMessage, L"An unknown error occurred."),
@@ -867,7 +867,7 @@ VOID PhShellExecuteUserString(
             }
             else
             {
-                PhShowStatus(hWnd, L"Unable to execute the command.", status, 0);
+                PhShowStatus(WindowHandle, L"Unable to execute the command.", status, 0);
             }
         }
     }
@@ -1130,7 +1130,7 @@ VOID PhWritePhTextHeader(
 }
 
 BOOLEAN PhShellProcessHacker(
-    _In_opt_ HWND hWnd,
+    _In_opt_ HWND WindowHandle,
     _In_opt_ PWSTR Parameters,
     _In_ ULONG ShowWindowType,
     _In_ ULONG Flags,
@@ -1140,7 +1140,7 @@ BOOLEAN PhShellProcessHacker(
     )
 {
     return PhShellProcessHackerEx(
-        hWnd,
+        WindowHandle,
         NULL,
         Parameters,
         ShowWindowType,
@@ -1169,7 +1169,7 @@ VOID PhpAppendCommandLineArgument(
 }
 
 BOOLEAN PhShellProcessHackerEx(
-    _In_opt_ HWND hWnd,
+    _In_opt_ HWND WindowHandle,
     _In_opt_ PWSTR FileName,
     _In_opt_ PWSTR Parameters,
     _In_ ULONG ShowWindowType,
@@ -1292,7 +1292,7 @@ BOOLEAN PhShellProcessHackerEx(
     }
 
     result = PhShellExecuteEx(
-        hWnd,
+        WindowHandle,
         FileName ? FileName : PhGetString(applicationFileName),
         parameters,
         ShowWindowType,
@@ -2027,11 +2027,11 @@ BOOLEAN PhpSelectFavoriteInRegedit(
  * Opens a key in the Registry Editor. If the Registry Editor is already open,
  * the specified key is selected in the Registry Editor.
  *
- * \param hWnd A handle to the parent window.
+ * \param WindowHandle A handle to the parent window.
  * \param KeyName The key name to open.
  */
 BOOLEAN PhShellOpenKey2(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_STRING KeyName
     )
 {
@@ -2047,13 +2047,13 @@ BOOLEAN PhShellOpenKey2(
 
     if (!regeditWindow)
     {
-        PhShellOpenKey(hWnd, KeyName);
+        PhShellOpenKey(WindowHandle, KeyName);
         return TRUE;
     }
 
     if (!PhGetOwnTokenAttributes().Elevated)
     {
-        if (!PhUiConnectToPhSvc(hWnd, FALSE))
+        if (!PhUiConnectToPhSvc(WindowHandle, FALSE))
             return FALSE;
     }
 
