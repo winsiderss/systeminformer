@@ -149,9 +149,7 @@ VOID CustomizeAddToolbarItem(
     }
     else
     {
-        button = PhAllocate(sizeof(BUTTON_CONTEXT));
-        memset(button, 0, sizeof(BUTTON_CONTEXT));
-
+        button = PhAllocateZero(sizeof(BUTTON_CONTEXT));
         button->IsSeparator = TRUE;
         button->IsRemovable = TRUE;
     }
@@ -300,9 +298,7 @@ VOID CustomizeLoadToolbarItems(
 
         if (SendMessage(ToolBarHandle, TB_GETBUTTON, index, (LPARAM)&button))
         {
-            context = PhAllocate(sizeof(BUTTON_CONTEXT));
-            memset(context, 0, sizeof(BUTTON_CONTEXT));
-
+            context = PhAllocateZero(sizeof(BUTTON_CONTEXT));
             context->IsVirtual = FALSE;
             context->IsRemovable = TRUE;
             context->IdCommand = button.idCommand;
@@ -330,9 +326,7 @@ VOID CustomizeLoadToolbarItems(
         if (CustomizeToolbarItemExists(Context, button.idCommand))
             continue;
 
-        context = PhAllocate(sizeof(BUTTON_CONTEXT));
-        memset(context, 0, sizeof(BUTTON_CONTEXT));
-
+        context = PhAllocateZero(sizeof(BUTTON_CONTEXT));
         context->IsRemovable = TRUE;
         context->IdCommand = button.idCommand;
         context->IconHandle = CustomizeGetToolbarIcon(Context, button.idCommand);
@@ -341,8 +335,7 @@ VOID CustomizeLoadToolbarItems(
     }
 
     // Append separator to the last 'current list'  position
-    context = PhAllocate(sizeof(BUTTON_CONTEXT));
-    memset(context, 0, sizeof(BUTTON_CONTEXT));
+    context = PhAllocateZero(sizeof(BUTTON_CONTEXT));
     context->IsSeparator = TRUE;
     context->IsVirtual = TRUE;
     context->IsRemovable = FALSE;
@@ -352,8 +345,7 @@ VOID CustomizeLoadToolbarItems(
     ListBox_SetTopIndex(Context->CurrentListHandle, index);
 
     // Insert separator into first 'available list' position
-    context = PhAllocate(sizeof(BUTTON_CONTEXT));
-    memset(context, 0, sizeof(BUTTON_CONTEXT));
+    context = PhAllocateZero(sizeof(BUTTON_CONTEXT));
     context->IsSeparator = TRUE;
     context->IsVirtual = FALSE;
     context->IsRemovable = FALSE;

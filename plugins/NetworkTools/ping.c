@@ -423,7 +423,7 @@ INT_PTR CALLBACK NetworkPingWndProc(
                 L"Pings sent: %lu", context->PingSentCount)->Buffer);
             PhSetDialogItemText(hwndDlg, IDC_PINGS_LOST, PhaFormatString(
                 L"Pings lost: %lu (%.0f%%)", context->PingLossCount,
-                ((FLOAT)context->PingLossCount / context->PingSentCount * 100))->Buffer);
+                ((DOUBLE)context->PingLossCount / context->PingSentCount * 100))->Buffer);
 
             //PhSetDialogItemText(hwndDlg, IDC_BAD_HASH, PhaFormatString(
             //    L"Bad hashes: %lu", context->HashFailCount)->Buffer);

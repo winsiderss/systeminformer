@@ -217,9 +217,7 @@ VOID CustomizeLoadStatusBarItems(
 
     for (index = 0; index < StatusBarItemList->Count; index++)
     {
-        button = PhAllocate(sizeof(BUTTON_CONTEXT));
-        memset(button, 0, sizeof(BUTTON_CONTEXT));
-
+        button = PhAllocateZero(sizeof(BUTTON_CONTEXT));
         button->IdCommand = PtrToUlong(StatusBarItemList->Items[index]);
 
         ListBox_AddItemData(Context->CurrentListHandle, button);
@@ -232,17 +230,14 @@ VOID CustomizeLoadStatusBarItems(
         if (CustomizeStatusBarItemExists(Context, buttonId))
             continue;
 
-        button = PhAllocate(sizeof(BUTTON_CONTEXT));
-        memset(button, 0, sizeof(BUTTON_CONTEXT));
-
+        button = PhAllocateZero(sizeof(BUTTON_CONTEXT));
         button->IdCommand = buttonId;
 
         ListBox_AddItemData(Context->AvailableListHandle, button);
     }
 
     // Append separator to the last 'current list' position
-    button = PhAllocate(sizeof(BUTTON_CONTEXT));
-    memset(button, 0, sizeof(BUTTON_CONTEXT));
+    button = PhAllocateZero(sizeof(BUTTON_CONTEXT));
     button->IsVirtual = TRUE;
 
     index = ListBox_AddItemData(Context->CurrentListHandle, button);
@@ -250,8 +245,7 @@ VOID CustomizeLoadStatusBarItems(
     ListBox_SetTopIndex(Context->CurrentListHandle, index);
 
     // Append separator to the last 'available list' position
-    button = PhAllocate(sizeof(BUTTON_CONTEXT));
-    memset(button, 0, sizeof(BUTTON_CONTEXT));
+    button = PhAllocateZero(sizeof(BUTTON_CONTEXT));
     button->IsVirtual = TRUE;
 
     index = ListBox_AddItemData(Context->AvailableListHandle, button);

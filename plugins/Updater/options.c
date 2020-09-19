@@ -437,7 +437,9 @@ INT_PTR CALLBACK TextDlgProc(
             PhpUpdaterFreeListViewEntries(context);
 
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+
             PhFree(context);
+            context = NULL;
         }
         break;
     case WM_SIZE:
@@ -680,7 +682,10 @@ INT_PTR CALLBACK TextDlgProc(
         break;
     }
 
-    REFLECT_MESSAGE_DLG(hwndDlg, context->ListViewHandle, uMsg, wParam, lParam);
+    if (context)
+    {
+        REFLECT_MESSAGE_DLG(hwndDlg, context->ListViewHandle, uMsg, wParam, lParam);
+    }
 
     return FALSE;
 }

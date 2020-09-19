@@ -6352,7 +6352,7 @@ NTSTATUS PhGetLoaderEntryImageNtHeaders(
     if (imageNtHeadersOffset == 0 || imageNtHeadersOffset >= LONG_MAX)
         return STATUS_INVALID_IMAGE_FORMAT;
 
-    ntHeader = PTR_ADD_OFFSET(BaseAddress, ntHeadersOffset);
+    imageNtHeaders = PTR_ADD_OFFSET(BaseAddress, imageNtHeadersOffset);
 
     if (imageNtHeaders->Signature != IMAGE_NT_SIGNATURE)
         return STATUS_INVALID_IMAGE_FORMAT;
