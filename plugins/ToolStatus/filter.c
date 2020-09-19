@@ -364,7 +364,7 @@ BOOLEAN ProcessTreeFilterCallback(
                 }
             }
 
-            if (NT_SUCCESS(QueryServiceFileName(
+            if (!PhIsNullOrEmptyString(serviceItem->Name) && NT_SUCCESS(QueryServiceFileName(
                 &serviceItem->Name->sr,
                 &serviceFileName,
                 &serviceBinaryPath

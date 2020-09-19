@@ -97,7 +97,8 @@ static BOOLEAN ParseNetworkAddress(
         PADDRINFOT result;
         WSADATA wsaData;
 
-        WSAStartup(WINSOCK_VERSION, &wsaData);
+        if (WSAStartup(WINSOCK_VERSION, &wsaData))
+            return FALSE;
 
         if (GetAddrInfo(addressInfo.NamedAddress.Address, addressInfo.NamedAddress.Port, NULL, &result) == ERROR_SUCCESS)
         {

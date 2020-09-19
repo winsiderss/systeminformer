@@ -232,12 +232,9 @@ BOOLEAN UpdaterVerifySignature(
 }
 
 VOID UpdaterDestroyHash(
-    _Frees_ptr_opt_ PUPDATER_HASH_CONTEXT Context
+    _In_ PUPDATER_HASH_CONTEXT Context
     )
 {
-    if (!Context)
-        return;
-
     if (Context->HashAlgHandle)
         BCryptCloseAlgorithmProvider(Context->HashAlgHandle, 0);
 

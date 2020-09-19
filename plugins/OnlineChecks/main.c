@@ -298,7 +298,7 @@ VOID NTAPI MainMenuInitializingCallback(
 PPH_EMENU_ITEM CreateSendToMenu(
     _In_ BOOLEAN ProcessesMenu,
     _In_ PPH_EMENU_ITEM Parent,
-    _In_ PPH_STRING FileName
+    _In_opt_ PPH_STRING FileName
     )
 {
     PPH_EMENU_ITEM sendToMenu;
