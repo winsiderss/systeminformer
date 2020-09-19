@@ -170,10 +170,20 @@ static BOOLEAN NTAPI EnumGenericModulesCallback(
     _In_opt_ PVOID Context
     )
 {
-    if (Module->Type == PH_MODULE_TYPE_MODULE || Module->Type == PH_MODULE_TYPE_WOW64_MODULE)
+    if (!Context)
+        return TRUE;
+
+    if (
+        Module->Type == PH_MODULE_TYPE_MODULE ||
+        Module->Type == PH_MODULE_TYPE_WOW64_MODULE
+        )
     {
-        PhLoadModuleSymbolProvider(Context, Module->FileName->Buffer,
-            (ULONG64)Module->BaseAddress, Module->Size);
+        PhLoadModuleSymbolProvider(
+            Context,
+            Module->FileName->Buffer,
+            (ULONG64)Module->BaseAddress,
+            Module->Size
+            );
     }
 
     return TRUE;
@@ -210,14 +220,13 @@ INT_PTR CALLBACK EtpTpWorkerFactoryPageDlgProc(
                     PPH_STRING symbol = NULL;
                     WCHAR value[PH_PTR_STR_LEN_1];
 
-                    symbolProvider = PhCreateSymbolProvider(basicInfo.ProcessId);
-                    PhLoadSymbolProviderOptions(symbolProvider);
-
-                    if (symbolProvider->IsRealHandle)
+                    if (symbolProvider = PhCreateSymbolProvider(basicInfo.ProcessId))
                     {
+                        PhLoadSymbolProviderOptions(symbolProvider);
+
                         PhEnumGenericModules(
                             basicInfo.ProcessId,
-                            symbolProvider->ProcessHandle,
+                            NULL,
                             0,
                             EnumGenericModulesCallback,
                             symbolProvider
@@ -231,9 +240,9 @@ INT_PTR CALLBACK EtpTpWorkerFactoryPageDlgProc(
                             NULL,
                             NULL
                             );
-                    }
 
-                    PhDereferenceObject(symbolProvider);
+                        PhDereferenceObject(symbolProvider);
+                    }
 
                     if (symbol)
                     {

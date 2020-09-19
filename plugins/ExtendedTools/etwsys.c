@@ -100,6 +100,9 @@ BOOLEAN EtpDiskSysInfoSectionCallback(
         {
             PPH_SYSINFO_CREATE_DIALOG createDialog = Parameter1;
 
+            if (!createDialog)
+                break;
+
             createDialog->Instance = PluginInstance->DllBase;
             createDialog->Template = MAKEINTRESOURCE(IDD_SYSINFO_DISK);
             createDialog->DialogProc = EtpDiskDialogProc;
@@ -108,6 +111,9 @@ BOOLEAN EtpDiskSysInfoSectionCallback(
     case SysInfoGraphGetDrawInfo:
         {
             PPH_GRAPH_DRAW_INFO drawInfo = Parameter1;
+
+            if (!drawInfo)
+                break;
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y | PH_GRAPH_USE_LINE_2;
             Section->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorIoReadOther"), PhGetIntegerSetting(L"ColorIoWrite"));
@@ -162,6 +168,9 @@ BOOLEAN EtpDiskSysInfoSectionCallback(
             ULONG64 diskWrite;
             PH_FORMAT format[7];
 
+            if (!getTooltipText)
+                break;
+
             diskRead = PhGetItemCircularBuffer_ULONG(&EtDiskReadHistory, getTooltipText->Index);
             diskWrite = PhGetItemCircularBuffer_ULONG(&EtDiskWriteHistory, getTooltipText->Index);
 
@@ -182,6 +191,9 @@ BOOLEAN EtpDiskSysInfoSectionCallback(
         {
             PPH_SYSINFO_DRAW_PANEL drawPanel = Parameter1;
             PH_FORMAT format[4];
+
+            if (!drawPanel)
+                break;
 
             drawPanel->Title = PhCreateString(L"Disk");
 
@@ -558,6 +570,9 @@ BOOLEAN EtpNetworkSysInfoSectionCallback(
         {
             PPH_SYSINFO_CREATE_DIALOG createDialog = Parameter1;
 
+            if (!createDialog)
+                break;
+
             createDialog->Instance = PluginInstance->DllBase;
             createDialog->Template = MAKEINTRESOURCE(IDD_SYSINFO_NET);
             createDialog->DialogProc = EtpNetworkDialogProc;
@@ -566,6 +581,9 @@ BOOLEAN EtpNetworkSysInfoSectionCallback(
     case SysInfoGraphGetDrawInfo:
         {
             PPH_GRAPH_DRAW_INFO drawInfo = Parameter1;
+
+            if (!drawInfo)
+                break;
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y | PH_GRAPH_USE_LINE_2;
             Section->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorIoReadOther"), PhGetIntegerSetting(L"ColorIoWrite"));
@@ -620,6 +638,9 @@ BOOLEAN EtpNetworkSysInfoSectionCallback(
             ULONG64 networkSend;
             PH_FORMAT format[7];
 
+            if (!getTooltipText)
+                break;
+
             networkReceive = PhGetItemCircularBuffer_ULONG(&EtNetworkReceiveHistory, getTooltipText->Index);
             networkSend = PhGetItemCircularBuffer_ULONG(&EtNetworkSendHistory, getTooltipText->Index);
 
@@ -640,6 +661,9 @@ BOOLEAN EtpNetworkSysInfoSectionCallback(
         {
             PPH_SYSINFO_DRAW_PANEL drawPanel = Parameter1;
             PH_FORMAT format[4];
+
+            if (!drawPanel)
+                break;
 
             drawPanel->Title = PhCreateString(L"Network");
 

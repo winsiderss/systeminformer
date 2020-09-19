@@ -532,6 +532,9 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
         {
             PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
 
+            if (!getChildren)
+                break;
+
             if (!getChildren->Node)
             {
                 static PVOID sortFunctions[] =
