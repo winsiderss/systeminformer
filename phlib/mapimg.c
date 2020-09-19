@@ -2044,7 +2044,7 @@ NTSTATUS PhGetMappedImageTlsCallbackDirectory32(
     status = PhGetMappedImageDataEntry(
         MappedImage,
         IMAGE_DIRECTORY_ENTRY_TLS,
-        &TlsCallbacks->DataDirectory
+        &dataDirectory
         );
 
     if (!NT_SUCCESS(status))
@@ -2052,7 +2052,7 @@ NTSTATUS PhGetMappedImageTlsCallbackDirectory32(
 
     tlsDirectory = PhMappedImageRvaToVa(
         MappedImage,
-        TlsCallbacks->DataDirectory->VirtualAddress,
+        dataDirectory->VirtualAddress,
         NULL
         );
 
@@ -2091,6 +2091,7 @@ NTSTATUS PhGetMappedImageTlsCallbackDirectory64(
     )
 {
     NTSTATUS status;
+    PIMAGE_DATA_DIRECTORY dataDirectory;
     PIMAGE_TLS_DIRECTORY64 tlsDirectory;
     ULONG_PTR tlsCallbacksOffset;
 
@@ -2123,6 +2124,7 @@ NTSTATUS PhGetMappedImageTlsCallbackDirectory64(
         return GetExceptionCode();
     }
 
+    TlsCallbacks->DataDirectory = dataDirectory;
     TlsCallbacks->TlsDirectory64 = tlsDirectory;
 
     if (tlsDirectory->StartAddressOfRawData > MappedImage->NtHeaders->OptionalHeader.ImageBase)

@@ -747,14 +747,6 @@ typedef struct _IMAGE_DEBUG_POGO_SIGNATURE
 #define IMAGE_DEBUG_POGO_SIGNATURE_LTCG 'LTCG' // coffgrp LTCG (0x4C544347)
 #define IMAGE_DEBUG_POGO_SIGNATURE_PGU 'PGU\0' // coffgrp PGU (0x50475500)
 
-_Success_(return)
-BOOLEAN PhGetMappedImagePogoEntryByName(
-    _In_ PPH_MAPPED_IMAGE MappedImage,
-    _In_ PSTR Name,
-    _Out_opt_ ULONG* DataLength,
-    _Out_opt_ PVOID* DataBuffer
-    );
-
 typedef struct _PH_IMAGE_DEBUG_POGO_ENTRY
 {
     ULONG Rva;
