@@ -259,7 +259,7 @@ INT_PTR CALLBACK PvpPeResourcesDlgProc(
                         {
 #if (PHNT_VERSION >= PHNT_WIN7)
                             UNICODE_STRING localeNameUs;
-                            WCHAR localeName[LOCALE_NAME_MAX_LENGTH];
+                            WCHAR localeName[LOCALE_NAME_MAX_LENGTH] = { UNICODE_NULL };
 
                             RtlInitEmptyUnicodeString(&localeNameUs, localeName, sizeof(localeName));
 

@@ -25,7 +25,7 @@
 #ifndef PV_PRP_H
 #define PV_PRP_H
 
-#define PV_PROPCONTEXT_MAXPAGES 20
+#define PV_PROPCONTEXT_MAXPAGES 40
 
 typedef struct _PV_PROPSHEETCONTEXT
 {
