@@ -114,7 +114,7 @@ INT_PTR CALLBACK PvpPeEhContDlgProc(
                                     lvItemIndex,
                                     2,
                                     PhaFormatString(L"%s+0x%llx", symbolName->Buffer, displacement)->Buffer
-                                );
+                                    );
                             }
                             else
                             {

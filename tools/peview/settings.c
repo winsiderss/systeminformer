@@ -34,7 +34,7 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"DbgHelpSearchPath", L"SRV*C:\\Symbols*https://msdl.microsoft.com/download/symbols");
     PhpAddIntegerSetting(L"EnableSecurityAdvancedDialog", L"1");
     PhpAddIntegerSetting(L"EnableThemeSupport", L"0");
-    PhpAddIntegerSetting(L"EnableVersionSupport", L"1");
+    PhpAddIntegerSetting(L"EnableVersionSupport", L"0");
     PhpAddIntegerSetting(L"GraphColorMode", L"1");
     PhpAddIntegerSetting(L"HashAlgorithm", L"0");
     PhpAddIntegerSetting(L"MaxSizeUnit", L"6");
@@ -61,6 +61,7 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"ImageTlsListViewColumns", L"");
     PhpAddStringSetting(L"ImageProdIdListViewColumns", L"");
     PhpAddStringSetting(L"ImageDebugListViewColumns", L"");
+    PhpAddStringSetting(L"ImageDebugCrtListViewColumns", L"");
     PhpAddStringSetting(L"ImageDebugPogoListViewColumns", L"");
     PhpAddStringSetting(L"ImageEhContListViewColumns", L"");
     PhpAddStringSetting(L"LibListViewColumns", L"");
