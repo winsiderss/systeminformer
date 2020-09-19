@@ -242,7 +242,7 @@ static INT NTAPI EtpNumberCompareFunction(
 #ifdef _WIN64
     PUNLOADED_DLLS_CONTEXT context = Context;
 
-    if (context->IsWow64)
+    if (context && context->IsWow64)
     {
         PRTL_UNLOAD_EVENT_TRACE32 item1 = Item1;
         PRTL_UNLOAD_EVENT_TRACE32 item2 = Item2;
@@ -268,7 +268,7 @@ static INT NTAPI EtpBaseAddressCompareFunction(
 #ifdef _WIN64
     PUNLOADED_DLLS_CONTEXT context = Context;
 
-    if (context->IsWow64)
+    if (context && context->IsWow64)
     {
         PRTL_UNLOAD_EVENT_TRACE32 item1 = Item1;
         PRTL_UNLOAD_EVENT_TRACE32 item2 = Item2;
@@ -294,7 +294,7 @@ static INT NTAPI EtpSizeCompareFunction(
 #ifdef _WIN64
     PUNLOADED_DLLS_CONTEXT context = Context;
 
-    if (context->IsWow64)
+    if (context && context->IsWow64)
     {
         PRTL_UNLOAD_EVENT_TRACE32 item1 = Item1;
         PRTL_UNLOAD_EVENT_TRACE32 item2 = Item2;
@@ -320,7 +320,7 @@ static INT NTAPI EtpTimeStampCompareFunction(
 #ifdef _WIN64
     PUNLOADED_DLLS_CONTEXT context = Context;
 
-    if (context->IsWow64)
+    if (context && context->IsWow64)
     {
         PRTL_UNLOAD_EVENT_TRACE32 item1 = Item1;
         PRTL_UNLOAD_EVENT_TRACE32 item2 = Item2;
@@ -346,7 +346,7 @@ static INT NTAPI EtpCheckSumCompareFunction(
 #ifdef _WIN64
     PUNLOADED_DLLS_CONTEXT context = Context;
 
-    if (context->IsWow64)
+    if (context && context->IsWow64)
     {
         PRTL_UNLOAD_EVENT_TRACE32 item1 = Item1;
         PRTL_UNLOAD_EVENT_TRACE32 item2 = Item2;

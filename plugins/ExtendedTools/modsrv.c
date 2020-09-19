@@ -109,7 +109,7 @@ ULONG PhpQueryModuleServiceReferences(
     PPH_LIST serviceList;
 
     if (!(I_QueryTagInformation = PhGetModuleProcAddress(L"advapi32.dll", "I_QueryTagInformation")))
-        return ERROR_SUCCESS;
+        return ERROR_PROC_NOT_FOUND;
 
     memset(&namesReferencingModule, 0, sizeof(TAG_INFO_NAMES_REFERENCING_MODULE));
     namesReferencingModule.InParams.dwPid = HandleToUlong(Context->ProcessId);
@@ -127,29 +127,22 @@ ULONG PhpQueryModuleServiceReferences(
 
     if (namesReferencingModule.OutParams.pmszNames)
     {
-        PPH_SERVICE_ITEM serviceItem;
         PWSTR serviceName;
-        ULONG nameLength;
+        PPH_SERVICE_ITEM serviceItem;
 
-        serviceName = namesReferencingModule.OutParams.pmszNames;
-
-        while (TRUE)
+        for (serviceName = namesReferencingModule.OutParams.pmszNames; *serviceName; serviceName += PhCountStringZ(serviceName) + 1)
         {
-            nameLength = (ULONG)PhCountStringZ(serviceName);
-
-            if (nameLength == 0)
-                break;
-
             if (serviceItem = PhReferenceServiceItem(serviceName))
                 PhAddItemList(serviceList, serviceItem);
-
-            serviceName += nameLength + 1;
         }
 
         LocalFree(namesReferencingModule.OutParams.pmszNames);
     }
 
-    *ServiceList = serviceList;
+    if (ServiceList)
+    {
+        *ServiceList = serviceList;
+    }
 
     //if (serviceList->Count == 0)
     //{
@@ -158,7 +151,7 @@ ULONG PhpQueryModuleServiceReferences(
     //    return NULL;
     //}
 
-    return win32Result;
+    return ERROR_SUCCESS;
 }
 
 INT_PTR CALLBACK EtpModuleServicesDlgProc(
