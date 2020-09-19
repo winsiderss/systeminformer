@@ -866,16 +866,15 @@ NTSTATUS PhGetMappedImageExports(
     )
 {
     NTSTATUS status;
+    PIMAGE_DATA_DIRECTORY dataDirectory;
     PIMAGE_EXPORT_DIRECTORY exportDirectory;
-
-    Exports->MappedImage = MappedImage;
 
     // Get a pointer to the export directory.
 
     status = PhGetMappedImageDataEntry(
         MappedImage,
         IMAGE_DIRECTORY_ENTRY_EXPORT,
-        &Exports->DataDirectory
+        &dataDirectory
         );
 
     if (!NT_SUCCESS(status))
@@ -883,7 +882,7 @@ NTSTATUS PhGetMappedImageExports(
 
     exportDirectory = PhMappedImageRvaToVa(
         MappedImage,
-        Exports->DataDirectory->VirtualAddress,
+        dataDirectory->VirtualAddress,
         NULL
         );
 
@@ -899,6 +898,8 @@ NTSTATUS PhGetMappedImageExports(
         return GetExceptionCode();
     }
 
+    Exports->MappedImage = MappedImage;
+    Exports->DataDirectory = dataDirectory;
     Exports->ExportDirectory = exportDirectory;
     Exports->NumberOfEntries = exportDirectory->NumberOfFunctions;
 
@@ -1167,9 +1168,6 @@ NTSTATUS PhGetMappedImageImports(
     PIMAGE_IMPORT_DESCRIPTOR descriptor;
     ULONG i;
 
-    Imports->MappedImage = MappedImage;
-    Imports->Flags = 0;
-
     status = PhGetMappedImageDataEntry(
         MappedImage,
         IMAGE_DIRECTORY_ENTRY_IMPORT,
@@ -1188,6 +1186,8 @@ NTSTATUS PhGetMappedImageImports(
     if (!descriptor)
         return STATUS_INVALID_PARAMETER;
 
+    Imports->MappedImage = MappedImage;
+    Imports->Flags = 0;
     Imports->DescriptorTable = descriptor;
 
     // Do a scan to determine how many import descriptors there are.
@@ -1396,6 +1396,7 @@ NTSTATUS PhGetMappedImageImportEntry(
         entry = ((PIMAGE_THUNK_DATA32)ImportDll->LookupTable)[Index];
 
         // Is this entry using an ordinal?
+
         if (IMAGE_SNAP_BY_ORDINAL32(entry.u1.Ordinal))
         {
             Entry->Name = NULL;
@@ -1430,6 +1431,7 @@ NTSTATUS PhGetMappedImageImportEntry(
         entry = ((PIMAGE_THUNK_DATA64)ImportDll->LookupTable)[Index];
 
         // Is this entry using an ordinal?
+
         if (IMAGE_SNAP_BY_ORDINAL64(entry.u1.Ordinal))
         {
             Entry->Name = NULL;
@@ -1883,6 +1885,7 @@ NTSTATUS PhGetMappedImageResources(
     )
 {
     NTSTATUS status;
+    PIMAGE_DATA_DIRECTORY dataDirectory;
     PIMAGE_RESOURCE_DIRECTORY resourceDirectory;
     PIMAGE_RESOURCE_DIRECTORY nameDirectory;
     PIMAGE_RESOURCE_DIRECTORY languageDirectory;
@@ -1894,13 +1897,14 @@ NTSTATUS PhGetMappedImageResources(
     ULONG resourceTypeCount;
     ULONG resourceNameCount;
     ULONG resourceLanguageCount;
+    PH_ARRAY resourceArray;
 
     // Get a pointer to the resource directory.
 
     status = PhGetMappedImageDataEntry(
         MappedImage,
         IMAGE_DIRECTORY_ENTRY_RESOURCE,
-        &Resources->DataDirectory
+        &dataDirectory
         );
 
     if (!NT_SUCCESS(status))
@@ -1908,7 +1912,7 @@ NTSTATUS PhGetMappedImageResources(
 
     resourceDirectory = PhMappedImageRvaToVa(
         MappedImage,
-        Resources->DataDirectory->VirtualAddress,
+        dataDirectory->VirtualAddress,
         NULL
         );
 
@@ -1923,8 +1927,6 @@ NTSTATUS PhGetMappedImageResources(
     {
         return GetExceptionCode();
     }
-
-    Resources->ResourceDirectory = resourceDirectory;
 
     // NOTE: We can't use LdrEnumResources here because we're using an image mapped with SEC_COMMIT.
 
@@ -1966,9 +1968,7 @@ NTSTATUS PhGetMappedImageResources(
 
     // Allocate the number of resources.
 
-    Resources->NumberOfEntries = resourceCount;
-    Resources->ResourceEntries = PhAllocate(sizeof(PH_IMAGE_RESOURCE_ENTRY) * resourceCount);
-    memset(Resources->ResourceEntries, 0, sizeof(PH_IMAGE_RESOURCE_ENTRY) * resourceCount);
+    PhInitializeArray(&resourceArray, sizeof(PH_IMAGE_RESOURCE_ENTRY), resourceCount);
 
     // Enumerate the resources adding them into our buffer.
 
@@ -2002,14 +2002,28 @@ NTSTATUS PhGetMappedImageResources(
 
                 resourceData = PTR_ADD_OFFSET(resourceDirectory, resourceLanguage->OffsetToData);
 
-                Resources->ResourceEntries[resourceIndex].Type = NAME_FROM_RESOURCE_ENTRY(resourceDirectory, resourceType);
-                Resources->ResourceEntries[resourceIndex].Name = NAME_FROM_RESOURCE_ENTRY(resourceDirectory, resourceName);
-                Resources->ResourceEntries[resourceIndex].Language = NAME_FROM_RESOURCE_ENTRY(resourceDirectory, resourceLanguage);
-                Resources->ResourceEntries[resourceIndex].Data = PhMappedImageRvaToVa(MappedImage, resourceData->OffsetToData, NULL);
-                Resources->ResourceEntries[resourceIndex++].Size = resourceData->Size;
+                {
+                    PH_IMAGE_RESOURCE_ENTRY entry;
+
+                    entry.Type = NAME_FROM_RESOURCE_ENTRY(resourceDirectory, resourceType);
+                    entry.Name = NAME_FROM_RESOURCE_ENTRY(resourceDirectory, resourceName);
+                    entry.Language = NAME_FROM_RESOURCE_ENTRY(resourceDirectory, resourceLanguage);
+                    entry.Data = PhMappedImageRvaToVa(MappedImage, resourceData->OffsetToData, NULL);
+                    entry.Size = resourceData->Size;
+
+                    PhAddItemArray(&resourceArray, &entry);
+                }
+
+                resourceIndex++;
             }
         }
     }
+
+    Resources->MappedImage = MappedImage;
+    Resources->DataDirectory = dataDirectory;
+    Resources->ResourceDirectory = resourceDirectory;
+    Resources->NumberOfEntries = resourceCount;
+    Resources->ResourceEntries = PhFinalArrayItems(&resourceArray);
 
 CleanupExit:
     return status;
@@ -2021,6 +2035,7 @@ NTSTATUS PhGetMappedImageTlsCallbackDirectory32(
     )
 {
     NTSTATUS status;
+    PIMAGE_DATA_DIRECTORY dataDirectory;
     PIMAGE_TLS_DIRECTORY32 tlsDirectory;
     ULONG_PTR tlsCallbacksOffset;
 
@@ -2053,6 +2068,7 @@ NTSTATUS PhGetMappedImageTlsCallbackDirectory32(
         return GetExceptionCode();
     }
 
+    TlsCallbacks->DataDirectory = dataDirectory;
     TlsCallbacks->TlsDirectory32 = tlsDirectory;
 
     if (tlsDirectory->StartAddressOfRawData > MappedImage->NtHeaders32->OptionalHeader.ImageBase)
@@ -2083,7 +2099,7 @@ NTSTATUS PhGetMappedImageTlsCallbackDirectory64(
     status = PhGetMappedImageDataEntry(
         MappedImage,
         IMAGE_DIRECTORY_ENTRY_TLS,
-        &TlsCallbacks->DataDirectory
+        &dataDirectory
         );
 
     if (!NT_SUCCESS(status))
@@ -2091,7 +2107,7 @@ NTSTATUS PhGetMappedImageTlsCallbackDirectory64(
 
     tlsDirectory = PhMappedImageRvaToVa(
         MappedImage,
-        TlsCallbacks->DataDirectory->VirtualAddress,
+        dataDirectory->VirtualAddress,
         NULL
         );
 
@@ -2130,7 +2146,7 @@ NTSTATUS PhGetMappedImageTlsCallbacks(
 {
     NTSTATUS status;
     ULONG count = 0;
-    ULONG i;
+    PH_ARRAY entryArray;
 
     // Get a pointer to the TLS directory.
 
@@ -2150,14 +2166,14 @@ NTSTATUS PhGetMappedImageTlsCallbacks(
         {
             PULONG array = (PULONG)(PULONG_PTR)TlsCallbacks->CallbackAddress;
 
-            for (i = 0; array[i]; i++)
+            for (ULONG i = 0; array[i]; i++)
                 count++;
         }
         else
         {
             PULONGLONG array = (PULONGLONG)(PULONG_PTR)TlsCallbacks->CallbackAddress;
 
-            for (i = 0; array[i]; i++)
+            for (ULONG i = 0; array[i]; i++)
                 count++;
         }
     }
@@ -2165,32 +2181,43 @@ NTSTATUS PhGetMappedImageTlsCallbacks(
     if (count == 0)
         return STATUS_INVALID_IMAGE_FORMAT;
 
-    // Allocate the number of callbacks.
+    // Allocate the number of TLS callbacks.
 
-    TlsCallbacks->NumberOfEntries = count;
-    TlsCallbacks->Entries = PhAllocate(sizeof(PH_IMAGE_TLS_CALLBACK_ENTRY) * count);
-    memset(TlsCallbacks->Entries, 0, sizeof(PH_IMAGE_TLS_CALLBACK_ENTRY) * count);
+    PhInitializeArray(&entryArray, sizeof(PH_IMAGE_TLS_CALLBACK_ENTRY), count);
 
-    // Add the callbacks into our buffer.
+    // Add the TLS callbacks into our buffer.
 
     if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
     {
         PULONG array = (PULONG)(PULONG_PTR)TlsCallbacks->CallbackAddress;
 
-        for (i = 0; i < count; i++)
+        for (ULONG i = 0; i < count; i++)
         {
-            TlsCallbacks->Entries[i].Address = array[i];
+            PH_IMAGE_TLS_CALLBACK_ENTRY entry;
+
+            entry.Address = array[i];
+            entry.Index = 0; // CallbackIndexes
+
+            PhAddItemArray(&entryArray, &entry);
         }
     }
     else
     {
         PULONGLONG array = (PULONGLONG)(PULONG_PTR)TlsCallbacks->CallbackAddress;
 
-        for (i = 0; i < count; i++)
+        for (ULONG i = 0; i < count; i++)
         {
-            TlsCallbacks->Entries[i].Address = array[i];
+            PH_IMAGE_TLS_CALLBACK_ENTRY entry;
+
+            entry.Address = array[i];
+            entry.Index = 0; // CallbackIndexes
+
+            PhAddItemArray(&entryArray, &entry);
         }
     }
+
+    TlsCallbacks->NumberOfEntries = count;
+    TlsCallbacks->Entries = PhFinalArrayItems(&entryArray);
 
     return status;
 }
@@ -2213,6 +2240,7 @@ NTSTATUS PhGetMappedImageProdIdHeader(
     ULONG richHeaderStartOffset = ULONG_MAX;
     ULONG richHeaderEndOffset = ULONG_MAX;
     ULONG richHeaderLength = ULONG_MAX;
+    PH_ARRAY richHeaderEntryArray;
 
     imageDosHeader = (PIMAGE_DOS_HEADER)MappedImage->ViewBase;
 
@@ -2405,21 +2433,19 @@ NTSTATUS PhGetMappedImageProdIdHeader(
             }
         }
 
-        //PhPrintPointer(ProdIdHeader->Key, UlongToPtr(richHeaderKey));
-        ProdIdHeader->Valid = richHeaderKey == richHeaderValue;
-        ProdIdHeader->Key = PhFormatString(L"%lx", richHeaderKey);
-        ProdIdHeader->Hash = hashString;
-        ProdIdHeader->NumberOfEntries = currentCount;
-        ProdIdHeader->ProdIdEntries = PhAllocate(sizeof(PH_MAPPED_IMAGE_PRODID_ENTRY) * currentCount);
-        memset(ProdIdHeader->ProdIdEntries, 0, sizeof(PH_MAPPED_IMAGE_PRODID_ENTRY) * currentCount);
+        // Allocate the number of product entries.
+
+        PhInitializeArray(&richHeaderEntryArray, sizeof(PH_MAPPED_IMAGE_PRODID_ENTRY), currentCount);
+
+        // Add the product entries into our buffer.
 
         for (ULONG i = 0; i < currentCount; i++)
         {
-            PPRODITEM entry = PTR_ADD_OFFSET(currentAddress, i * sizeof(PRODITEM));
+            PPRODITEM item = PTR_ADD_OFFSET(currentAddress, i * sizeof(PRODITEM));
 
             __try
             {
-                PhpMappedImageProbe(MappedImage, entry, sizeof(PRODITEM));
+                PhpMappedImageProbe(MappedImage, item, sizeof(PRODITEM));
             }
             __except (EXCEPTION_EXECUTE_HANDLER)
             {
@@ -2428,13 +2454,24 @@ NTSTATUS PhGetMappedImageProdIdHeader(
             }
 
             // The prodid header can include 3 extra checksum values. Ignore these for now (dmex) 
-            if ((entry->dwCount ^ richHeaderKey) != richHeaderKey)
+            if ((item->dwCount ^ richHeaderKey) != richHeaderKey)
             {
-                ProdIdHeader->ProdIdEntries[i].ProductId = ProdidFromDwProdid(entry->dwProdid ^ richHeaderKey);
-                ProdIdHeader->ProdIdEntries[i].ProductBuild = WBuildFromDwProdid(entry->dwProdid ^ richHeaderKey);
-                ProdIdHeader->ProdIdEntries[i].ProductCount = entry->dwCount ^ richHeaderKey;
+                PH_MAPPED_IMAGE_PRODID_ENTRY entry;
+
+                entry.ProductId = ProdidFromDwProdid(item->dwProdid ^ richHeaderKey);
+                entry.ProductBuild = WBuildFromDwProdid(item->dwProdid ^ richHeaderKey);
+                entry.ProductCount = item->dwCount ^ richHeaderKey;
+
+                PhAddItemArray(&richHeaderEntryArray, &entry);
             }
         }
+
+        //PhPrintPointer(ProdIdHeader->Key, UlongToPtr(richHeaderKey));
+        ProdIdHeader->Valid = richHeaderKey == richHeaderValue;
+        ProdIdHeader->Key = PhFormatString(L"%lx", richHeaderKey);
+        ProdIdHeader->Hash = hashString;
+        ProdIdHeader->NumberOfEntries = currentCount;
+        ProdIdHeader->ProdIdEntries = PhFinalArrayItems(&richHeaderEntryArray);
 
         //for (offset = currentAddress; offset < currentEnd; offset += sizeof(PRODITEM))
         //{
@@ -2457,13 +2494,15 @@ NTSTATUS PhGetMappedImageDebug(
     )
 {
     NTSTATUS status;
-    PIMAGE_DEBUG_DIRECTORY debugDirectory;
     ULONG currentCount;
+    PIMAGE_DATA_DIRECTORY dataDirectory;
+    PIMAGE_DEBUG_DIRECTORY debugDirectory;
+    PH_ARRAY debugEntryArray;
 
     status = PhGetMappedImageDataEntry(
         MappedImage,
         IMAGE_DIRECTORY_ENTRY_DEBUG,
-        &Debug->DataDirectory
+        &dataDirectory
         );
 
     if (!NT_SUCCESS(status))
@@ -2471,7 +2510,7 @@ NTSTATUS PhGetMappedImageDebug(
 
     debugDirectory = PhMappedImageRvaToVa(
         MappedImage,
-        Debug->DataDirectory->VirtualAddress,
+        dataDirectory->VirtualAddress,
         NULL
         );
 
@@ -2487,35 +2526,46 @@ NTSTATUS PhGetMappedImageDebug(
         return GetExceptionCode();
     }
 
-    currentCount = Debug->DataDirectory->Size / sizeof(IMAGE_DEBUG_DIRECTORY);
+    currentCount = dataDirectory->Size / sizeof(IMAGE_DEBUG_DIRECTORY);
 
-    Debug->DebugDirectory = debugDirectory;
-    Debug->NumberOfEntries = currentCount;
-    Debug->DebugEntries = PhAllocate(sizeof(PH_IMAGE_DEBUG_ENTRY) * currentCount);
-    memset(Debug->DebugEntries, 0, sizeof(PH_IMAGE_DEBUG_ENTRY) * currentCount);
+    // Allocate the number of debug entries.
+
+    PhInitializeArray(&debugEntryArray, sizeof(PH_IMAGE_DEBUG_ENTRY), currentCount);
+
+    // Add the debug entries into our buffer.
 
     for (ULONG i = 0; i < currentCount; i++)
     {
-        PIMAGE_DEBUG_DIRECTORY entry = PTR_ADD_OFFSET(debugDirectory, i * sizeof(IMAGE_DEBUG_DIRECTORY));
+        PIMAGE_DEBUG_DIRECTORY item = PTR_ADD_OFFSET(debugDirectory, i * sizeof(IMAGE_DEBUG_DIRECTORY));
 
         __try
         {
-            PhpMappedImageProbe(MappedImage, entry, sizeof(IMAGE_DEBUG_DIRECTORY));
+            PhpMappedImageProbe(MappedImage, item, sizeof(IMAGE_DEBUG_DIRECTORY));
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
             break;
         }
 
-        Debug->DebugEntries[i].Characteristics = entry->Characteristics;
-        Debug->DebugEntries[i].TimeDateStamp = entry->TimeDateStamp;
-        Debug->DebugEntries[i].MajorVersion = entry->MajorVersion;
-        Debug->DebugEntries[i].MinorVersion = entry->MinorVersion;
-        Debug->DebugEntries[i].Type = entry->Type;
-        Debug->DebugEntries[i].SizeOfData = entry->SizeOfData;
-        Debug->DebugEntries[i].AddressOfRawData = entry->AddressOfRawData;
-        Debug->DebugEntries[i].PointerToRawData = entry->PointerToRawData;
+        PH_IMAGE_DEBUG_ENTRY entry;
+
+        entry.Characteristics = item->Characteristics;
+        entry.TimeDateStamp = item->TimeDateStamp;
+        entry.MajorVersion = item->MajorVersion;
+        entry.MinorVersion = item->MinorVersion;
+        entry.Type = item->Type;
+        entry.SizeOfData = item->SizeOfData;
+        entry.AddressOfRawData = item->AddressOfRawData;
+        entry.PointerToRawData = item->PointerToRawData;
+
+        PhAddItemArray(&debugEntryArray, &entry);
     }
+
+    Debug->MappedImage = MappedImage;
+    Debug->DataDirectory = dataDirectory;
+    Debug->DebugDirectory = debugDirectory;
+    Debug->NumberOfEntries = currentCount;
+    Debug->DebugEntries = PhFinalArrayItems(&debugEntryArray);
 
     return status;
 }
@@ -2759,4 +2809,204 @@ BOOLEAN PhGetMappedImagePogoEntryByName(
     }
 
     return FALSE;
+}
+
+NTSTATUS PhGetMappedImagePogo(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _Out_ PPH_MAPPED_IMAGE_DEBUG_POGO PogoDebug
+    )
+{
+    ULONG debugEntryCount = 0;
+    ULONG debugEntryLength = 0;
+    PIMAGE_DEBUG_POGO_SIGNATURE debugEntry;
+    PIMAGE_DEBUG_POGO_ENTRY debugPogoEntry;
+    PH_ARRAY pogoArray;
+
+    if (!PhGetMappedImageDebugEntryByType(
+        MappedImage,
+        IMAGE_DEBUG_TYPE_POGO,
+        &debugEntryLength,
+        &debugEntry
+        ))
+    {
+        return STATUS_UNSUCCESSFUL;
+    }
+
+    __try
+    {
+        PhpMappedImageProbe(MappedImage, debugEntry, sizeof(IMAGE_DEBUG_POGO_SIGNATURE));
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        return GetExceptionCode();
+    }
+
+    if (debugEntry->Signature != IMAGE_DEBUG_POGO_SIGNATURE_LTCG && debugEntry->Signature != IMAGE_DEBUG_POGO_SIGNATURE_PGU)
+    {
+        if (!(debugEntry->Signature == 0 && debugEntryLength > sizeof(IMAGE_DEBUG_POGO_SIGNATURE)))
+            return STATUS_UNSUCCESSFUL;
+    }
+
+    // Skip the signature.
+
+    debugPogoEntry = PTR_ADD_OFFSET(debugEntry, sizeof(IMAGE_DEBUG_POGO_SIGNATURE));
+
+    // Do a scan to determine how many enries there are.
+
+    while ((ULONG_PTR)debugPogoEntry < (ULONG_PTR)PTR_ADD_OFFSET(debugEntry, debugEntryLength))
+    {
+        __try
+        {
+            PhpMappedImageProbe(MappedImage, debugPogoEntry, sizeof(IMAGE_DEBUG_POGO_ENTRY));
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            return GetExceptionCode();
+        }
+
+        debugEntryCount++;
+
+        debugPogoEntry = PTR_ADD_OFFSET(debugPogoEntry, ALIGN_UP(UFIELD_OFFSET(IMAGE_DEBUG_POGO_ENTRY, Name) + strlen(debugPogoEntry->Name) + sizeof(ANSI_NULL), ULONG));
+    }
+
+    // Allocate the number of pogo entries.
+
+    PhInitializeArray(&pogoArray, sizeof(PH_IMAGE_DEBUG_POGO_ENTRY), debugEntryCount);
+
+    // Add the debug entries into our buffer.
+
+    debugPogoEntry = PTR_ADD_OFFSET(debugEntry, sizeof(IMAGE_DEBUG_POGO_SIGNATURE));
+
+    while ((ULONG_PTR)debugPogoEntry < (ULONG_PTR)PTR_ADD_OFFSET(debugEntry, debugEntryLength))
+    {
+        if (!(debugPogoEntry->Rva && debugPogoEntry->Size))
+            break;
+
+        {
+            PH_IMAGE_DEBUG_POGO_ENTRY entry;
+
+            memset(entry.Name, ANSI_NULL, sizeof(entry.Name));
+            entry.Rva = debugPogoEntry->Rva;
+            entry.Size = debugPogoEntry->Size;
+            entry.Data = PhMappedImageRvaToVa(MappedImage, debugPogoEntry->Rva, NULL);
+
+            PhCopyStringZFromBytes(
+                debugPogoEntry->Name,
+                -1,
+                entry.Name,
+                RTL_NUMBER_OF(entry.Name),
+                NULL
+                );
+
+            PhAddItemArray(&pogoArray, &entry);
+        }
+
+        debugPogoEntry = PTR_ADD_OFFSET(debugPogoEntry, ALIGN_UP(UFIELD_OFFSET(IMAGE_DEBUG_POGO_ENTRY, Name) + strlen(debugPogoEntry->Name) + sizeof(ANSI_NULL), ULONG));
+    }
+
+    PogoDebug->PogoDirectory = debugEntry;
+    PogoDebug->NumberOfEntries = debugEntryCount;
+    PogoDebug->PogoEntries = PhFinalArrayItems(&pogoArray);
+
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS PhGetMappedImageRelocations(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _Out_ PPH_MAPPED_IMAGE_RELOC Relocations
+    )
+{
+    NTSTATUS status;
+    PIMAGE_DATA_DIRECTORY dataDirectory;
+    PIMAGE_BASE_RELOCATION relocationDirectory;
+    PH_ARRAY relocationArray;
+    ULONG currentCount = 0;
+    ULONG index = 0;
+
+    status = PhGetMappedImageDataEntry(
+        MappedImage,
+        IMAGE_DIRECTORY_ENTRY_BASERELOC,
+        &dataDirectory
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    relocationDirectory = PhMappedImageRvaToVa(
+        MappedImage,
+        dataDirectory->VirtualAddress,
+        NULL
+        );
+
+    if (!relocationDirectory)
+        return STATUS_INVALID_PARAMETER;
+
+    __try
+    {
+        PhpMappedImageProbe(MappedImage, relocationDirectory, sizeof(IMAGE_BASE_RELOCATION));
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {   
+        return GetExceptionCode();
+    }
+
+    Relocations->MappedImage = MappedImage;
+    Relocations->DataDirectory = dataDirectory;
+    Relocations->RelocationDirectory = relocationDirectory;
+
+    // Allocate the number of relocation entries.
+
+    PhInitializeArray(&relocationArray, sizeof(PH_IMAGE_RELOC_ENTRY), 0x1000);
+
+    // Add the debug entries into our buffer.
+
+    relocationDirectory = Relocations->RelocationDirectory;
+
+    while ((ULONG_PTR)relocationDirectory < (ULONG_PTR)PTR_ADD_OFFSET(relocationDirectory, dataDirectory->Size) && relocationDirectory->SizeOfBlock)
+    {
+        ULONG relocationCount;
+        PVOID relocationAddress;
+        PIMAGE_BASE_RELOCATION_ENTRY relocationEntry;
+
+        __try
+        {
+            PhpMappedImageProbe(MappedImage, relocationDirectory, sizeof(IMAGE_BASE_RELOCATION));
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            return GetExceptionCode();
+        }
+
+        relocationCount = (relocationDirectory->SizeOfBlock - sizeof(IMAGE_BASE_RELOCATION)) / sizeof(IMAGE_BASE_RELOCATION_ENTRY);
+        relocationAddress = PTR_ADD_OFFSET(MappedImage->ViewBase, relocationDirectory->VirtualAddress);
+        relocationEntry = PTR_ADD_OFFSET(relocationDirectory, RTL_SIZEOF_THROUGH_FIELD(IMAGE_BASE_RELOCATION, SizeOfBlock));
+
+        for (ULONG i = 0; i < relocationCount; i++)
+        {
+            if (relocationEntry->Type && relocationEntry->Offset)
+            {
+                PH_IMAGE_RELOC_ENTRY entry;
+
+                entry.BlockIndex = index;
+                entry.Type = relocationEntry->Type;
+                entry.Offset = relocationEntry->Offset;
+                entry.Value = PTR_ADD_OFFSET(relocationAddress, relocationEntry->Offset);
+                entry.BlockRva = relocationDirectory->VirtualAddress;
+                //entry.Size = relocationDirectory->SizeOfBlock;
+
+                PhAddItemArray(&relocationArray, &entry);
+            }
+
+            relocationEntry = PTR_ADD_OFFSET(relocationEntry, sizeof(IMAGE_BASE_RELOCATION_ENTRY));
+        }
+
+        relocationDirectory = (PIMAGE_BASE_RELOCATION)relocationEntry;
+        currentCount += relocationCount; currentCount++;
+        index++;
+    }
+
+    Relocations->NumberOfEntries = (ULONG)relocationArray.Count;// currentCount;
+    Relocations->RelocationEntries = PhFinalArrayItems(&relocationArray);
+
+    return status;
 }
