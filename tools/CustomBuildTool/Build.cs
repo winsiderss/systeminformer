@@ -1301,7 +1301,7 @@ namespace CustomBuildTool
                     if (!file.UploadNightly)
                         continue;
 
-                    string sourceFile = BuildOutputFolder + file;
+                    string sourceFile = BuildOutputFolder + file.FileName;
 
                     if (File.Exists(sourceFile))
                     {
