@@ -323,8 +323,8 @@ typedef struct _PH_MAPPED_IMAGE_IMPORT_DLL
 {
     PPH_MAPPED_IMAGE MappedImage;
     ULONG Flags;
-    PSTR Name;
     ULONG NumberOfEntries;
+    PSTR Name;
 
     union
     {
@@ -753,6 +753,58 @@ BOOLEAN PhGetMappedImagePogoEntryByName(
     _In_ PSTR Name,
     _Out_opt_ ULONG* DataLength,
     _Out_opt_ PVOID* DataBuffer
+    );
+
+typedef struct _PH_IMAGE_DEBUG_POGO_ENTRY
+{
+    ULONG Rva;
+    ULONG Size;
+    PVOID Data;
+    WCHAR Name[0x100];
+} PH_IMAGE_DEBUG_POGO_ENTRY, *PPH_IMAGE_DEBUG_POGO_ENTRY;
+
+typedef struct _PH_MAPPED_IMAGE_DEBUG_POGO
+{
+    PPH_MAPPED_IMAGE MappedImage;
+    PIMAGE_DEBUG_POGO_SIGNATURE PogoDirectory;
+
+    ULONG NumberOfEntries;
+    PPH_IMAGE_DEBUG_POGO_ENTRY PogoEntries;
+} PH_MAPPED_IMAGE_DEBUG_POGO, *PPH_MAPPED_IMAGE_DEBUG_POGO;
+
+NTSTATUS PhGetMappedImagePogo(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _Out_ PPH_MAPPED_IMAGE_DEBUG_POGO PogoDebug
+    );
+
+typedef struct _IMAGE_BASE_RELOCATION_ENTRY
+{
+    USHORT Offset : 12;
+    USHORT Type : 4;
+} IMAGE_BASE_RELOCATION_ENTRY, *PIMAGE_BASE_RELOCATION_ENTRY;
+
+typedef struct _PH_IMAGE_RELOC_ENTRY
+{
+    ULONG BlockIndex;
+    ULONG BlockRva;
+    ULONG Type;
+    ULONG Offset;
+    PVOID Value;
+} PH_IMAGE_RELOC_ENTRY, *PPH_IMAGE_RELOC_ENTRY;
+
+typedef struct _PH_MAPPED_IMAGE_RELOC
+{
+    PPH_MAPPED_IMAGE MappedImage;
+    PIMAGE_DATA_DIRECTORY DataDirectory;
+    PIMAGE_BASE_RELOCATION RelocationDirectory;
+
+    ULONG NumberOfEntries;
+    PPH_IMAGE_RELOC_ENTRY RelocationEntries;
+} PH_MAPPED_IMAGE_RELOC, *PPH_MAPPED_IMAGE_RELOC;
+
+NTSTATUS PhGetMappedImageRelocations(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _Out_ PPH_MAPPED_IMAGE_RELOC Relocations
     );
 
 // ELF binary support
