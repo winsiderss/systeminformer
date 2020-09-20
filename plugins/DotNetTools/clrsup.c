@@ -78,6 +78,7 @@ VOID FreeClrProcessSupport(
     PhFree(Support);
 }
 
+_Success_(return != NULL)
 PPH_STRING GetRuntimeNameByAddressClrProcess(
     _In_ PCLR_PROCESS_SUPPORT Support,
     _In_ ULONG64 Address,

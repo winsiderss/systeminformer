@@ -47,7 +47,8 @@ ULONG PhpServiceNodeHashtableHashFunction(
     );
 
 VOID PhpRemoveServiceNode(
-    _In_ PPH_SERVICE_NODE ServiceNode
+    _In_ PPH_SERVICE_NODE ServiceNode,
+    _In_opt_ PVOID Context
     );
 
 LONG PhpServiceTreeNewPostSortFunction(
@@ -280,12 +281,13 @@ VOID PhRemoveServiceNode(
     }
     else
     {
-        PhpRemoveServiceNode(ServiceNode);
+        PhpRemoveServiceNode(ServiceNode, NULL);
     }
 }
 
 VOID PhpRemoveServiceNode(
-    _In_ PPH_SERVICE_NODE ServiceNode
+    _In_ PPH_SERVICE_NODE ServiceNode,
+    _In_opt_ PVOID Context
     )
 {
     ULONG index;
@@ -333,7 +335,7 @@ VOID PhTickServiceNodes(
         TreeNew_NodesStructured(ServiceTreeListHandle);
     }
 
-    PH_TICK_SH_STATE_TN(PH_SERVICE_NODE, ShState, ServiceNodeStateList, PhpRemoveServiceNode, PhCsHighlightingDuration, ServiceTreeListHandle, TRUE, NULL);
+    PH_TICK_SH_STATE_TN(PH_SERVICE_NODE, ShState, ServiceNodeStateList, PhpRemoveServiceNode, PhCsHighlightingDuration, ServiceTreeListHandle, TRUE, NULL, NULL);
 }
 
 static VOID PhpUpdateServiceNodeConfig(

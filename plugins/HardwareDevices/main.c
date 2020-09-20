@@ -72,7 +72,7 @@ VOID NTAPI ShowOptionsCallback(
         return;
 
     optionsEntry->CreateSection(
-        L"Disk Drives",
+        L"Disk Devices",
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_DISKDRIVE_OPTIONS),
         DiskDriveOptionsDlgProc,
@@ -80,7 +80,7 @@ VOID NTAPI ShowOptionsCallback(
         );
 
     optionsEntry->CreateSection(
-        L"Network Adapters",
+        L"Network Devices",
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_NETADAPTER_OPTIONS),
         NetworkAdapterOptionsDlgProc,
