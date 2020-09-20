@@ -22,30 +22,32 @@
     <ProjectGuid>{E8CD0A41-1537-4EA6-98AC-E80CD59C478E}</ProjectGuid>
     <RootNamespace>CustomSignTool</RootNamespace>
     <Keyword>Win32Proj</Keyword>
-    <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
+    <UseDebugLibraries>true</UseDebugLibraries>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
+    <UseDebugLibraries>true</UseDebugLibraries>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -93,6 +95,9 @@
       <CallingConvention>StdCall</CallingConvention>
       <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <StringPooling>true</StringPooling>
     </ClCompile>
     <Link>
       <AdditionalDependencies>noenv.obj;phlib.lib;ntdll.lib;bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -103,6 +108,7 @@
       <SubSystem>Console</SubSystem>
       <TargetMachine>MachineX86</TargetMachine>
       <MinimumRequiredVersion>5.01</MinimumRequiredVersion>
+      <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -117,6 +123,9 @@
       <CallingConvention>StdCall</CallingConvention>
       <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <StringPooling>true</StringPooling>
     </ClCompile>
     <Link>
       <AdditionalDependencies>noenv.obj;phlib.lib;ntdll.lib;bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -127,6 +136,7 @@
       <SubSystem>Console</SubSystem>
       <TargetMachine>MachineX64</TargetMachine>
       <MinimumRequiredVersion>5.02</MinimumRequiredVersion>
+      <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -143,6 +153,9 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
       <TreatWarningAsError>true</TreatWarningAsError>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <StringPooling>true</StringPooling>
     </ClCompile>
     <Link>
       <AdditionalDependencies>noenv.obj;phlib.lib;ntdll.lib;bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -156,6 +169,7 @@
       <TargetMachine>MachineX86</TargetMachine>
       <SetChecksum>true</SetChecksum>
       <MinimumRequiredVersion>5.01</MinimumRequiredVersion>
+      <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -171,6 +185,9 @@
       <CallingConvention>StdCall</CallingConvention>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <TreatWarningAsError>true</TreatWarningAsError>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <StringPooling>true</StringPooling>
     </ClCompile>
     <Link>
       <AdditionalDependencies>noenv.obj;phlib.lib;ntdll.lib;bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -184,6 +201,7 @@
       <TargetMachine>MachineX64</TargetMachine>
       <SetChecksum>true</SetChecksum>
       <MinimumRequiredVersion>5.02</MinimumRequiredVersion>
+      <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

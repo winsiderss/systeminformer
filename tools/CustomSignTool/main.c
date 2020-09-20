@@ -191,23 +191,37 @@ static PVOID CstHashFile(
     if (!NT_SUCCESS(status = PhCreateFileWin32(&fileHandle, FileName, FILE_GENERIC_READ, FILE_ATTRIBUTE_NORMAL, FILE_SHARE_READ, FILE_OPEN, FILE_SYNCHRONOUS_IO_NONALERT | FILE_NON_DIRECTORY_FILE)))
         CstFailWithStatus(PhFormatString(L"Unable to open '%s'", FileName)->Buffer, status, 0);
 
-    buffer = PhAllocatePage(FILE_BUFFER_SIZE, NULL);
-
-    while (TRUE)
+    if (buffer = PhAllocatePage(FILE_BUFFER_SIZE, NULL))
     {
-        if (!NT_SUCCESS(status = NtReadFile(fileHandle, NULL, NULL, NULL, &iosb, buffer, FILE_BUFFER_SIZE, NULL, NULL)))
+        while (TRUE)
         {
-            if (status == STATUS_END_OF_FILE)
-                break;
+            status = NtReadFile(
+                fileHandle,
+                NULL,
+                NULL,
+                NULL,
+                &iosb,
+                buffer,
+                FILE_BUFFER_SIZE,
+                NULL,
+                NULL
+                );
 
-            CstFailWithStatus(PhFormatString(L"Unable to read '%s'", FileName)->Buffer, status, 0);
+            if (!NT_SUCCESS(status))
+            {
+                if (status == STATUS_END_OF_FILE)
+                    break;
+
+                CstFailWithStatus(PhFormatString(L"Unable to read '%s'", FileName)->Buffer, status, 0);
+            }
+
+            if (!NT_SUCCESS(status = BCryptHashData(hashHandle, buffer, (ULONG)iosb.Information, 0)))
+                CstFailWithStatus(L"Unable to hash file", status, 0);
         }
 
-        if (!NT_SUCCESS(status = BCryptHashData(hashHandle, buffer, (ULONG)iosb.Information, 0)))
-            CstFailWithStatus(L"Unable to hash file", status, 0);
+        PhFreePage(buffer);
     }
 
-    PhFreePage(buffer);
     NtClose(fileHandle);
 
     hash = PhAllocate(hashSize);
@@ -294,7 +308,7 @@ int __cdecl wmain(int argc, wchar_t *argv[])
             CstFailWithStatus(L"Unable to open the signing algorithm provider", status, 0);
         buffer = CstReadFile(CstKeyFileName->Buffer, 1024 * 1024, &bufferSize);
         if (!NT_SUCCESS(status = BCryptImportKeyPair(signAlgHandle, NULL, CST_BLOB_PRIVATE, &keyHandle, buffer, bufferSize, 0)))
-            CstFailWithStatus(PhFormatString(L"Unable to import the private key", CstKeyFileName->Buffer)->Buffer, status, 0);
+            CstFailWithStatus(PhFormatString(L"Unable to import the private key: %s", CstKeyFileName->Buffer)->Buffer, status, 0);
         PhFree(buffer);
 
         // Hash the file.
@@ -308,6 +322,7 @@ int __cdecl wmain(int argc, wchar_t *argv[])
         signature = PhAllocate(signatureSize);
         if (!NT_SUCCESS(status = BCryptSignHash(keyHandle, NULL, hash, hashSize, signature, signatureSize, &signatureSize, 0)))
             CstFailWithStatus(L"Unable to create the signature", status, 0);
+
         PhFree(hash);
         BCryptDestroyKey(keyHandle);
         BCryptCloseAlgorithmProvider(signAlgHandle, 0);
@@ -356,7 +371,7 @@ int __cdecl wmain(int argc, wchar_t *argv[])
             CstFailWithStatus(L"Unable to open the signing algorithm provider", status, 0);
         buffer = CstReadFile(CstKeyFileName->Buffer, 1024 * 1024, &bufferSize);
         if (!NT_SUCCESS(status = BCryptImportKeyPair(signAlgHandle, NULL, CST_BLOB_PUBLIC, &keyHandle, buffer, bufferSize, 0)))
-            CstFailWithStatus(PhFormatString(L"Unable to import the public key", CstKeyFileName->Buffer)->Buffer, status, 0);
+            CstFailWithStatus(PhFormatString(L"Unable to import the public key: %s", CstKeyFileName->Buffer)->Buffer, status, 0);
         PhFree(buffer);
 
         // Read the signature.
@@ -370,7 +385,8 @@ int __cdecl wmain(int argc, wchar_t *argv[])
         // Verify the hash.
 
         if (!NT_SUCCESS(status = BCryptVerifySignature(keyHandle, NULL, hash, hashSize, signature, signatureSize, 0)))
-            CstFailWithStatus(PhFormatString(L"Signature verification failed", CstKeyFileName->Buffer)->Buffer, status, 0);
+            CstFailWithStatus(PhFormatString(L"Signature verification failed: %s", CstKeyFileName->Buffer)->Buffer, status, 0);
+
         PhFree(signature);
         PhFree(hash);
 
