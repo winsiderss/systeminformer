@@ -336,7 +336,7 @@ DECLARE_INTERFACE_IID(IStartMenuAppItems61, IUnknown)
 
 #define IStartMenuAppItems_QueryInterface(This, riid, ppvObject) \
     ((This)->lpVtbl->QueryInterface(This, riid, ppvObject))
-#define IStartMenuAppItems_AddRef(This)	\
+#define IStartMenuAppItems_AddRef(This) \
     ((This)->lpVtbl->AddRef(This))
 #define IStartMenuAppItems_Release(This) \
     ((This)->lpVtbl->Release(This))
@@ -538,32 +538,32 @@ DEFINE_PROPERTYKEY(PKEY_AppUserModel_PackageFamilyName, 0x9F4C2855, 0x9F79, 0x4B
 DEFINE_PROPERTYKEY(PKEY_AppUserModel_ParentID, 0x9F4C2855, 0x9F79, 0x4B39, 0xA8, 0xD0, 0xE1, 0xD4, 0x2D, 0xE1, 0xD5, 0xF3, 19);
 DEFINE_PROPERTYKEY(PKEY_AppUserModel_PackageFullName, 0x9F4C2855, 0x9F79, 0x4B39, 0xA8, 0xD0, 0xE1, 0xD4, 0x2D, 0xE1, 0xD5, 0xF3, 21);
 // PKEY_AppUserModel_ExcludeFromShowInNewInstall {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 8
-//2	PKEY_AppUserModel_ID {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 5
-//3	PKEY_AppUserModel_IsDestListSeparator {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 6
-//4	PKEY_AppUserModel_IsDualMode {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 11
-//5	PKEY_AppUserModel_PreventPinning {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 9
-//6	PKEY_AppUserModel_RelaunchCommand {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 2
-//7	PKEY_AppUserModel_RelaunchDisplayNameResource {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 4
-//8	PKEY_AppUserModel_RelaunchIconResource {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 3
-//9	PKEY_AppUserModel_StartPinOption {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 12
+//2 PKEY_AppUserModel_ID {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 5
+//3 PKEY_AppUserModel_IsDestListSeparator {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 6
+//4 PKEY_AppUserModel_IsDualMode {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 11
+//5 PKEY_AppUserModel_PreventPinning {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 9
+//6 PKEY_AppUserModel_RelaunchCommand {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 2
+//7 PKEY_AppUserModel_RelaunchDisplayNameResource {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 4
+//8 PKEY_AppUserModel_RelaunchIconResource {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 3
+//9 PKEY_AppUserModel_StartPinOption {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 12
 //10 PKEY_AppUserModel_ToastActivatorCLSID {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 26
 //11 PKEY_AppUserModel_PackageInstallPath {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 15
 //12 PKEY_AppUserModel_RecordState {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 16
 //13 PKEY_AppUserModel_PackageFullName {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 21
 //14 PKEY_AppUserModel_DestListProvidedTitle {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 27
 //15 PKEY_AppUserModel_DestListProvidedDescription {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 28
-//16 PKEY_AppUserModel_ParentID	{9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 19
+//16 PKEY_AppUserModel_ParentID {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 19
 //17 PKEY_AppUserModel_HostEnvironment {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 14
 //18 PKEY_AppUserModel_Relevance {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 13
-//19 PKEY_AppUserModel_PackageRelativeApplicationID	{9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 22
+//19 PKEY_AppUserModel_PackageRelativeApplicationID {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 22
 //20 PKEY_AppUserModel_ExcludedFromLauncher {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 23
 //21 PKEY_AppUserModel_DestListLogoUri {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 29
 //22 PKEY_AppUserModel_ActivationContext {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 20
 //23 PKEY_AppUserModel_PackageFamilyName {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 17
-//24 PKEY_AppUserModel_BestShortcut	{9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 10
+//24 PKEY_AppUserModel_BestShortcut {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 10
 //25 PKEY_AppUserModel_IsDestListLink {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 7
 //26 PKEY_AppUserModel_InstalledBy {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 18
-//27 PKEY_AppUserModel_RunFlags	{9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 25
+//27 PKEY_AppUserModel_RunFlags {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 25
 //28 PKEY_AppUserModel_DestListProvidedGroupName {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 30
 DEFINE_PROPERTYKEY(PKEY_Tile_SmallLogoPath, 0x86D40B4D, 0x9069, 0x443C, 0x81, 0x9A, 0x2A, 0x54, 0x09, 0x0D, 0xCC, 0xEC, 2);
 DEFINE_PROPERTYKEY(PKEY_Tile_Background, 0x86D40B4D, 0x9069, 0x443C, 0x81, 0x9A, 0x2A, 0x54, 0x09, 0x0D, 0xCC, 0xEC, 4);
