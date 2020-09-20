@@ -59,7 +59,7 @@ FORCEINLINE VOID PhChangeShStateTn(
         TreeNew_InvalidateNode(TreeNewHandleForUpdate, Node);
 }
 
-#define PH_TICK_SH_STATE_TN(NodeType, ShStateFieldName, StateList, RemoveFunction, HighlightingDuration, TreeNewHandleForUpdate, Invalidate, FullyInvalidated, ...) \
+#define PH_TICK_SH_STATE_TN(NodeType, ShStateFieldName, StateList, RemoveFunction, HighlightingDuration, TreeNewHandleForUpdate, Invalidate, FullyInvalidated, Context) \
     do { \
         NodeType *node; \
         ULONG enumerationKey = 0; \
@@ -100,7 +100,7 @@ FORCEINLINE VOID PhChangeShStateTn(
             } \
             else if (node->ShStateFieldName.State == RemovingItemState) \
             { \
-                RemoveFunction(node, __VA_ARGS__); \
+                RemoveFunction(node, Context); \
                 needsFullInvalidate = TRUE; \
             } \
 \

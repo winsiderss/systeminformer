@@ -60,7 +60,8 @@ typedef enum _PHP_AGGREGATE_LOCATION
 } PHP_AGGREGATE_LOCATION;
 
 VOID PhpRemoveProcessNode(
-    _In_ PPH_PROCESS_NODE ProcessNode
+    _In_ PPH_PROCESS_NODE ProcessNode,
+    _In_opt_ PVOID Context
     );
 
 LONG PhpProcessTreeNewPostSortFunction(
@@ -487,12 +488,13 @@ VOID PhRemoveProcessNode(
     }
     else
     {
-        PhpRemoveProcessNode(ProcessNode);
+        PhpRemoveProcessNode(ProcessNode, NULL);
     }
 }
 
 VOID PhpRemoveProcessNode(
-    _In_ PPH_PROCESS_NODE ProcessNode
+    _In_ PPH_PROCESS_NODE ProcessNode,
+    _In_opt_ PVOID Context
     )
 {
     ULONG index;
@@ -636,9 +638,9 @@ VOID PhTickProcessNodes(
     }
 
     // State highlighting
-    PH_TICK_SH_STATE_TN(PH_PROCESS_NODE, ShState, ProcessNodeStateList, PhpRemoveProcessNode, PhCsHighlightingDuration, ProcessTreeListHandle, TRUE, &fullyInvalidated);
+    PH_TICK_SH_STATE_TN(PH_PROCESS_NODE, ShState, ProcessNodeStateList, PhpRemoveProcessNode, PhCsHighlightingDuration, ProcessTreeListHandle, TRUE, &fullyInvalidated, NULL);
 
-    if (!fullyInvalidated)
+    if (ProcessTreeListHandle && !fullyInvalidated)
     {
         // The first column doesn't need to be invalidated because the process name never changes, and
         // icon changes are handled by the modified event. This small optimization can save more than
@@ -685,8 +687,11 @@ static VOID PhpNeedGraphContext(
     header.biHeight = Height;
     header.biPlanes = 1;
     header.biBitCount = 32;
-    GraphBitmap = CreateDIBSection(hdc, (BITMAPINFO *)&header, DIB_RGB_COLORS, &GraphBits, NULL, 0);
-    GraphOldBitmap = SelectBitmap(GraphContext, GraphBitmap);
+
+    if (GraphBitmap = CreateDIBSection(hdc, (BITMAPINFO*)&header, DIB_RGB_COLORS, &GraphBits, NULL, 0))
+    {
+        GraphOldBitmap = SelectBitmap(GraphContext, GraphBitmap);
+    }
 }
 
 _Success_(return)
@@ -2394,7 +2399,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 break;
             case PHPRTLC_IOPRIORITY:
                 PhpUpdateProcessNodeIoPagePriority(node);
-                if (node->IoPriority != ULONG_MAX && node->IoPriority < MaxIoPriorityTypes)
+                if (node->IoPriority != ULONG_MAX && node->IoPriority >= IoPriorityVeryLow && node->IoPriority < MaxIoPriorityTypes)
                     PhInitializeStringRefLongHint(&getCellText->Text, PhIoPriorityHintNames[node->IoPriority]);
                 break;
             case PHPRTLC_PAGEPRIORITY:

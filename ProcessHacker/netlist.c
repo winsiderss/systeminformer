@@ -45,7 +45,8 @@ ULONG PhpNetworkNodeHashtableHashFunction(
     );
 
 VOID PhpRemoveNetworkNode(
-    _In_ PPH_NETWORK_NODE NetworkNode
+    _In_ PPH_NETWORK_NODE NetworkNode,
+    _In_opt_ PVOID Context
     );
 
 LONG PhpNetworkTreeNewPostSortFunction(
@@ -278,12 +279,13 @@ VOID PhRemoveNetworkNode(
     }
     else
     {
-        PhpRemoveNetworkNode(NetworkNode);
+        PhpRemoveNetworkNode(NetworkNode, NULL);
     }
 }
 
 VOID PhpRemoveNetworkNode(
-    _In_ PPH_NETWORK_NODE NetworkNode
+    _In_ PPH_NETWORK_NODE NetworkNode,
+    _In_opt_ PVOID Context
     )
 {
     ULONG index;
@@ -329,7 +331,7 @@ VOID PhTickNetworkNodes(
         TreeNew_NodesStructured(NetworkTreeListHandle);
     }
 
-    PH_TICK_SH_STATE_TN(PH_NETWORK_NODE, ShState, NetworkNodeStateList, PhpRemoveNetworkNode, PhCsHighlightingDuration, NetworkTreeListHandle, TRUE, NULL);
+    PH_TICK_SH_STATE_TN(PH_NETWORK_NODE, ShState, NetworkNodeStateList, PhpRemoveNetworkNode, PhCsHighlightingDuration, NetworkTreeListHandle, TRUE, NULL, NULL);
 }
 
 #define SORT_FUNCTION(Column) PhpNetworkTreeNewCompare##Column

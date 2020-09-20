@@ -350,7 +350,7 @@ PH_SERVICE_CHANGE PhGetServiceChange(
         return ServiceStopped;
     }
 
-    return -1;
+    return ULONG_MAX;
 }
 
 VOID PhUpdateProcessItemServices(

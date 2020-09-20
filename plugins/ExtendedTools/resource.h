@@ -11,7 +11,6 @@
 #define ID_VIEW_MEMORYLISTS             108
 #define IDD_PROCDISKNET                 110
 #define ID_VIEW_DISKANDNETWORK          111
-#define ID_PROCESS_WSWATCH              112
 #define IDD_SYSINFO_DISKPANEL           113
 #define IDD_OPTIONS                     114
 #define IDD_WSWATCH                     115

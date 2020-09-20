@@ -71,10 +71,13 @@ VOID NTAPI LoggedCallback(
 {
     PPH_LOG_ENTRY logEntry = Parameter;
 
-    PhWriteStringFormatAsUtf8FileStream(
-        LogFileStream,
-        L"%s: %s\r\n",
-        PhaFormatDateTime(NULL)->Buffer,
-        PH_AUTO_T(PH_STRING, PhFormatLogEntry(logEntry))->Buffer
-        );
+    if (logEntry)
+    {
+        PhWriteStringFormatAsUtf8FileStream(
+            LogFileStream,
+            L"%s: %s\r\n",
+            PhaFormatDateTime(NULL)->Buffer,
+            PH_AUTO_T(PH_STRING, PhFormatLogEntry(logEntry))->Buffer
+            );
+    }
 }
