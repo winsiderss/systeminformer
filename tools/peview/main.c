@@ -251,7 +251,7 @@ INT WINAPI wWinMain(
         if (!NT_SUCCESS(status))
         {
             if (status == STATUS_IMAGE_SUBSYSTEM_NOT_PRESENT)
-                PhShowError2(NULL, L"Unable to load the file.", L"PE Viewer does not support this image type.");
+                PhShowError2(NULL, L"Unable to load the file.", L"%s", L"PE Viewer does not support this image type.");
             else
                 PhShowStatus(NULL, L"Unable to load the file.", status, 0);
         }
