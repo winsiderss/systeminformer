@@ -263,7 +263,7 @@ INT WINAPI wWinMain(
 
     if (!PhMainWndInitialization(CmdShow))
     {
-        PhShowError(NULL, L"Unable to initialize the main window.");
+        PhShowError(NULL, L"%s", L"Unable to initialize the main window.");
         return 1;
     }
 
@@ -735,6 +735,7 @@ BOOLEAN PhInitializeExceptionPolicy(
     VOID
     )
 {
+#if (PHNT_VERSION >= PHNT_WIN7)
 #ifndef DEBUG
     ULONG errorMode;
 
@@ -744,7 +745,8 @@ BOOLEAN PhInitializeExceptionPolicy(
         PhSetProcessErrorMode(NtCurrentProcess(), errorMode);
     }
 
-    SetUnhandledExceptionFilter(PhpUnhandledExceptionCallback);
+    RtlSetUnhandledExceptionFilter(PhpUnhandledExceptionCallback);
+#endif
 #endif
 
     return TRUE;
@@ -1469,6 +1471,7 @@ VOID PhpProcessStartupParameters(
     {
         PhShowInformation(
             NULL,
+            L"%s",
             L"Command line options:\n\n"
             L"-c\n"
             L"-ctype command-type\n"

@@ -662,7 +662,7 @@ VOID ShowGeoIPUpdateDialog(
     {
         if (!NT_SUCCESS(PhCreateThreadEx(&UpdateDialogThreadHandle, GeoIPUpdateDialogThread, NULL)))
         {
-            PhShowError(PhMainWndHandle, L"Unable to create the window.");
+            PhShowError(PhMainWndHandle, L"%s", L"Unable to create the window.");
             return;
         }
 

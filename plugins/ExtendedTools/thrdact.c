@@ -51,7 +51,7 @@ BOOLEAN EtUiCancelIoThread(
 
     if (status == STATUS_NOT_FOUND)
     {
-        PhShowInformation(hWnd, L"There is no synchronous I/O to cancel.");
+        PhShowInformation(hWnd, L"%s", L"There is no synchronous I/O to cancel.");
         return FALSE;
     }
     else if (!NT_SUCCESS(status))

@@ -1040,7 +1040,7 @@ VOID ShowUpdateDialog(
     {
         if (!NT_SUCCESS(PhCreateThreadEx(&UpdateDialogThreadHandle, ShowUpdateDialogThread, Context)))
         {
-            PhShowError(PhMainWndHandle, L"Unable to create the window.");
+            PhShowError(PhMainWndHandle, L"%s", L"Unable to create the window.");
             return;
         }
 

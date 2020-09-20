@@ -3198,7 +3198,7 @@ BOOLEAN PhHandleMiniProcessMenuItem(
             }
             else
             {
-                PhShowError(PhMainWndHandle, L"The process does not exist.");
+                PhShowError(PhMainWndHandle, L"%s", L"The process does not exist.");
             }
         }
         break;
@@ -3219,7 +3219,7 @@ BOOLEAN PhHandleMiniProcessMenuItem(
             }
             else
             {
-                PhShowError(PhMainWndHandle, L"The process does not exist.");
+                PhShowError(PhMainWndHandle, L"%s", L"The process does not exist.");
             }
         }
         break;
@@ -3238,7 +3238,7 @@ BOOLEAN PhHandleMiniProcessMenuItem(
             }
             else
             {
-                PhShowError(PhMainWndHandle, L"The process does not exist.");
+                PhShowError(PhMainWndHandle, L"%s", L"The process does not exist.");
             }
         }
         break;

@@ -144,7 +144,7 @@ INT_PTR CALLBACK WepWindowPreviewDlgProc(
     _In_ LPARAM lParam
     );
 
-#define DEFINE_PAIR(Symbol) { L#Symbol, Symbol }
+#define DEFINE_PAIR(Symbol) { TEXT(#Symbol), Symbol }
 
 static STRING_INTEGER_PAIR WepStylePairs[] =
 {

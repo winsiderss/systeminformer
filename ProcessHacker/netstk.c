@@ -104,7 +104,7 @@ VOID PhShowNetworkStackDialog(
     else
     {
         PhDereferenceObject(networkStackContext.SymbolProvider);
-        PhShowError(ParentWindowHandle, L"Unable to open the process.");
+        PhShowError(ParentWindowHandle, L"%s", L"Unable to open the process.");
         return;
     }
 

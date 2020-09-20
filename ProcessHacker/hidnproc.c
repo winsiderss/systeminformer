@@ -439,7 +439,7 @@ INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
                             }
                             else
                             {
-                                PhShowError(hwndDlg, L"Unable to create a process structure for the selected process.");
+                                PhShowError(hwndDlg, L"%s", L"Unable to create a process structure for the selected process.");
                             }
                         }
                     }

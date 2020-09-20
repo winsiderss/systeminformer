@@ -913,7 +913,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
 #ifdef DEBUG
             wprintf(L"Object small free list count: %u\n", PhObjectSmallFreeList.Count);
             wprintf(L"Statistics:\n");
-#define PRINT_STATISTIC(Name) wprintf(L#Name L": %u\n", PhLibStatisticsBlock.Name);
+#define PRINT_STATISTIC(Name) wprintf(TEXT(#Name) L": %u\n", PhLibStatisticsBlock.Name);
 
             PRINT_STATISTIC(BaseThreadsCreated);
             PRINT_STATISTIC(BaseThreadsCreateFailed);
