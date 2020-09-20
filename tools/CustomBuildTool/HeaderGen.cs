@@ -49,7 +49,7 @@ namespace CustomBuildTool
             if (obj == null)
                 return false;
 
-            if (!(obj is HeaderFile file))
+            if (obj is not HeaderFile file)
                 return false;
 
             return this.Name.Equals(file.Name, StringComparison.OrdinalIgnoreCase);
