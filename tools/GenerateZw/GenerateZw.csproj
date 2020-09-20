@@ -8,7 +8,7 @@
         <PublishReadyToRun>true</PublishReadyToRun>
         <PublishSingleFile>true</PublishSingleFile>
         <PublishReadyToRunShowWarnings>true</PublishReadyToRunShowWarnings>
-        <TargetFramework>netcoreapp3.0</TargetFramework>
+        <TargetFramework>net5.0</TargetFramework>
         <RuntimeIdentifier>win-x86</RuntimeIdentifier>
         <TrimUnusedDependencies>true</TrimUnusedDependencies>
         <IntDir>$(ProjectDir)obj\$(Configuration)\$(TargetFramework)-$(PlatformTarget)\</IntDir>
@@ -23,8 +23,8 @@
 
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
       <DefineConstants />
-      <DebugType>portable</DebugType>
-      <DebugSymbols>false</DebugSymbols>
+      <DebugType>embedded</DebugType>
+      <DebugSymbols>true</DebugSymbols>
     </PropertyGroup>
     
 </Project>

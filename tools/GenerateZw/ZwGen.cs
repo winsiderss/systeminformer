@@ -27,7 +27,7 @@ namespace GenerateZw
             if (obj == null)
                 return false;
 
-            if (!(obj is ServiceDefinition service))
+            if (obj is not ServiceDefinition service)
                 return false;
 
             return this.Name.Equals(service.Name, StringComparison.OrdinalIgnoreCase);
@@ -169,7 +169,7 @@ namespace GenerateZw
             {
                 // Remove duplicates and sort.
 
-                var _defs = definitions.Distinct().ToList();
+                List<ServiceDefinition> _defs = definitions.Distinct().ToList();
                 _defs.Sort((x, y) => string.Compare(x.Name, y.Name, StringComparison.OrdinalIgnoreCase));
 
                 // Header
