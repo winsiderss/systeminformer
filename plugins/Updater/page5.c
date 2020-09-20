@@ -222,16 +222,15 @@ PPH_STRING UpdaterGetLatestVersionText(
     if (commit && commit->Length > 4)
     {
         version = PhFormatString(
-            L"Process Hacker %lu.%lu.%lu (%s)",
+            L"%lu.%lu.%lu (%s)",
             majorVersion,
             minorVersion,
             revisionVersion,
             PhGetString(commit)
             );
         PhMoveReference(&version, PhFormatString(
-            L"%s\r\nCompiled: %s\r\n\r\n<A HREF=\"changelog.txt\">View changelog</A>",
-            PhGetStringOrEmpty(version),
-            PhGetStringOrEmpty(commit)
+            L"%s\r\n\r\n<A HREF=\"changelog.txt\">View changelog</A>",
+            PhGetStringOrEmpty(version)
             ));
     }
     else
