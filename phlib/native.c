@@ -1810,12 +1810,12 @@ NTSTATUS PhLoadDllProcess(
         )))
         goto FreeExit;
     
-    // Wait for the thread to finish.	
+    // Wait for the thread to finish.   
     status = NtWaitForSingleObject(threadHandle, FALSE, Timeout);
     NtClose(threadHandle);
 
 FreeExit:
-    // Size needs to be zero if we're freeing.	
+    // Size needs to be zero if we're freeing.  
     allocSize = 0;
     NtFreeVirtualMemory(
         ProcessHandle,
