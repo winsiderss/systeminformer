@@ -28,7 +28,7 @@
 
 #define ACCESS_ENTRIES(Type) static PH_ACCESS_ENTRY Ph##Type##AccessEntries[] =
 #define ACCESS_ENTRY(Type, HasSynchronize) \
-    { L#Type, Ph##Type##AccessEntries, sizeof(Ph##Type##AccessEntries), HasSynchronize }
+   { TEXT(#Type), Ph##Type##AccessEntries, sizeof(Ph##Type##AccessEntries), HasSynchronize }
 
 typedef struct _PH_SPECIFIC_TYPE
 {

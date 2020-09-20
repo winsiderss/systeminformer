@@ -943,7 +943,7 @@ VOID EtHandleDiskCommand(
                 }
                 else
                 {
-                    PhShowError2(PhMainWndHandle, L"Unable to select the process.", L"The process does not exist.");
+                    PhShowError2(PhMainWndHandle, L"Unable to select the process.", L"%s", L"The process does not exist.");
                 }
 
                 PhDereferenceObject(diskItem);

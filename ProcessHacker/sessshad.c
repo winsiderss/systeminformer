@@ -114,7 +114,7 @@ VOID PhShowSessionShadowDialog(
 
     if (SessionId == sessionId)
     {
-        PhShowError2(ParentWindowHandle, L"Unable to shadow session.", L"You cannot remote control the current session.");
+        PhShowError2(ParentWindowHandle, L"Unable to shadow session.", L"%s", L"You cannot remote control the current session.");
         return;
     }
 
@@ -229,7 +229,7 @@ INT_PTR CALLBACK PhpSessionShadowDlgProc(
                     }
                     else
                     {
-                        PhShowError(hwndDlg, L"The computer name is too long.");
+                        PhShowError(hwndDlg, L"%s", L"The computer name is too long.");
                     }
                 }
                 break;

@@ -79,6 +79,6 @@ EXT ULONG PhCsColorServiceDisabled;
 EXT ULONG PhCsUseColorServiceStop;
 EXT ULONG PhCsColorServiceStop;
 
-#define PH_SET_INTEGER_CACHED_SETTING(Name, Value) (PhSetIntegerSetting(L#Name, PhCs##Name = (Value)))
+#define PH_SET_INTEGER_CACHED_SETTING(Name, Value) (PhSetIntegerSetting(TEXT(#Name), PhCs##Name = (Value)))
 
 #endif

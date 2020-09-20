@@ -1667,7 +1667,7 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
             {
                 PhShowWarning(
                     hwndDlg,
-                    L"Unable to search for handles because the total number of handles on the system is too large. "
+                    L"Unable to search for handles because the total number of handles on the system is too large.\r\n%s",
                     L"Please check if there are any processes with an extremely large number of handles open."
                     );
             }
@@ -1731,7 +1731,7 @@ VOID PhShowFindObjectsDialog(
     {
         if (!NT_SUCCESS(PhCreateThreadEx(&PhFindObjectsThreadHandle, PhpFindObjectsDialogThreadStart, NULL)))
         {
-            PhShowError(PhMainWndHandle, L"Unable to create the window.");
+            PhShowError(PhMainWndHandle, L"%s", L"Unable to create the window.");
             return;
         }
 

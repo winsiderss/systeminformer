@@ -141,7 +141,7 @@ VOID WeShowWindowsDialog(
         if (!NT_SUCCESS(PhCreateThreadEx(&WepWindowsDialogThreadHandle, WepShowWindowsDialogThread, context)))
         {
             PhFree(context);
-            PhShowError(ParentWindowHandle, L"Unable to create the window.");
+            PhShowError(ParentWindowHandle, L"%s", L"Unable to create the window.");
             return;
         }
 
@@ -986,7 +986,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                         }
                         else
                         {
-                            PhShowError(hwndDlg, L"The process does not exist.");
+                            PhShowError(hwndDlg, L"%s", L"The process does not exist.");
                         }
                     }
                 }
@@ -1588,7 +1588,7 @@ INT_PTR CALLBACK WepWindowsPageProc(
                         }
                         else
                         {
-                            PhShowError(hwndDlg, L"The process does not exist.");
+                            PhShowError(hwndDlg, L"%s", L"The process does not exist.");
                         }
                     }
                 }

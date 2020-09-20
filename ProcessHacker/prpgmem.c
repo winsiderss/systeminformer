@@ -797,7 +797,7 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                                     }
                                     else
                                     {
-                                        PhShowError(hwndDlg, L"Unable to find the memory region for the selected address.");
+                                        PhShowError(hwndDlg, L"%s", L"Unable to find the memory region for the selected address.");
                                     }
                                 }
                             }

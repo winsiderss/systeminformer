@@ -1522,7 +1522,7 @@ BOOLEAN PhUiDebugProcess(
 
     if (PhIsNullOrEmptyString(DebuggerCommand))
     {
-        PhShowError(hWnd, L"Unable to locate the debugger.");
+        PhShowError(hWnd, L"%s", L"Unable to locate the debugger.");
         return FALSE;
     }
 
@@ -1751,7 +1751,7 @@ BOOLEAN PhUiDetachFromDebuggerProcess(
 
     if (status == STATUS_PORT_NOT_SET)
     {
-        PhShowInformation2(hWnd, L"The process is not being debugged.", L"");
+        PhShowInformation2(hWnd, L"The process is not being debugged.", L"%s", L"");
         return FALSE;
     }
 
@@ -2873,7 +2873,7 @@ BOOLEAN PhUiUnloadModule(
 
         if (status == STATUS_DLL_NOT_FOUND)
         {
-            PhShowError(hWnd, L"Unable to find the module to unload.");
+            PhShowError(hWnd, L"%s", L"Unable to find the module to unload.");
             return FALSE;
         }
 
@@ -3264,7 +3264,7 @@ BOOLEAN PhUiSetAttributesHandle(
 
     if (!KphIsConnected())
     {
-        PhShowError2(hWnd, PH_KPH_ERROR_TITLE, PH_KPH_ERROR_MESSAGE);
+        PhShowError2(hWnd, PH_KPH_ERROR_TITLE, L"%s", PH_KPH_ERROR_MESSAGE);
         return FALSE;
     }
 

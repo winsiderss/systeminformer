@@ -431,6 +431,7 @@ VOID PhpEnumerateProcessHeaps(
             PhShowError2(
                 Context->WindowHandle,
                 L"Unable to query heap information.",
+                L"%s",
                 L"Please activate the UWP immersive process before refreshing heap information."
                 );
             return;
@@ -520,6 +521,7 @@ VOID PhpEnumerateProcessHeaps(
             PhShowError2(
                 Context->WindowHandle,
                 L"Unable to query 32bit heap information.",
+                L"%s",
                 L"The 32-bit version of Process Hacker could not be located."
                 );
             goto CleanupExit;

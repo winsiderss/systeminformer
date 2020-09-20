@@ -362,6 +362,7 @@ VOID PhSipGetPoolLimits(
     _Out_ PSIZE_T NonPaged
     );
 
+_Success_(return)
 BOOLEAN PhSipGetMemoryLimits(
     _Out_ PULONGLONG TotalMemory,
     _Out_ PULONGLONG ReservedMemory

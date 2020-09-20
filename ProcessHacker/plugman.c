@@ -943,7 +943,7 @@ VOID PhShowPluginsDialog(
         {
             if (!NT_SUCCESS(PhCreateThreadEx(&PhPluginsThreadHandle, PhpPluginsDialogThreadStart, NULL)))
             {
-                PhShowError(PhMainWndHandle, L"Unable to create the window.");
+                PhShowError(PhMainWndHandle, L"%s", L"Unable to create the window.");
                 return;
             }
 
@@ -956,7 +956,8 @@ VOID PhShowPluginsDialog(
     {
         PhShowInformation2(
             ParentWindowHandle, 
-            L"Plugins are not enabled.", 
+            L"Plugins are not enabled.",
+            L"%s",
             L"To use plugins enable them in Options and restart Process Hacker."
             );
     }

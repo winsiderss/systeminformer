@@ -1448,6 +1448,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                                             PhShowInformation2(
                                                 PhOptionsWindowHandle,
                                                 L"Unable to enable option start as admin.",
+                                                L"%s",
                                                 L"You need to enable this option with administrative privileges."
                                                 );
 

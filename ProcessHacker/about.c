@@ -222,7 +222,7 @@ PPH_STRING PhGetDiagnosticsString(
     PhAppendFormatStringBuilder(&stringBuilder, L"OBJECT INFORMATION\r\n");
 
 #define OBJECT_TYPE_COUNT(Type) PhAppendFormatStringBuilder(&stringBuilder, \
-    L#Type L": %lu objects\r\n", PhpGetObjectTypeObjectCount(Type))
+    TEXT(#Type) L": %lu objects\r\n", PhpGetObjectTypeObjectCount(Type))
 
     // ref
     OBJECT_TYPE_COUNT(PhObjectTypeObject);

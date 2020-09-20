@@ -293,7 +293,7 @@ PhSaveListViewGroupStatesToSetting(
     );
 // end_phapppub
 
-#define PH_SET_INTEGER_CACHED_SETTING(Name, Value) (PhSetIntegerSetting(L#Name, PhCs##Name = (Value)))
+#define PH_SET_INTEGER_CACHED_SETTING(Name, Value) (PhSetIntegerSetting(TEXT(#Name), PhCs##Name = (Value)))
 
 #ifdef __cplusplus
 }

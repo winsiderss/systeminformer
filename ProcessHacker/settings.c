@@ -27,7 +27,7 @@
 #include <phsettings.h>
 
 #define PH_UPDATE_SETTING(Name) \
-    (PhCs##Name = PhGetIntegerSetting(L#Name))
+    (PhCs##Name = PhGetIntegerSetting(TEXT(#Name)))
 
 VOID PhAddDefaultSettings(
     VOID

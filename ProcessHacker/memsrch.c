@@ -610,7 +610,7 @@ INT_PTR CALLBACK PhpMemoryStringDlgProc(
 
                     if (minimumLength < 4)
                     {
-                        PhShowError(hwndDlg, L"The minimum length must be at least 4.");
+                        PhShowError(hwndDlg, L"%s", L"The minimum length must be at least 4.");
                         break;
                     }
 

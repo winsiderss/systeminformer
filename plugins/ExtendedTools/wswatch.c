@@ -466,7 +466,7 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
 
             if (!context->SymbolProvider || !context->SymbolProvider->IsRealHandle)
             {
-                PhShowError(hwndDlg, L"Unable to open the process.");
+                PhShowError(hwndDlg, L"%s", L"Unable to open the process.");
                 EndDialog(hwndDlg, IDCANCEL);
                 break;
             }
