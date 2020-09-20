@@ -27,7 +27,7 @@ namespace CustomBuildTool
 {
     public static class Program
     {
-        public static Dictionary<string, string> ProgramArgs;
+        private static Dictionary<string, string> ProgramArgs;
 
         public static void Main(string[] args)
         {

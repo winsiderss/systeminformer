@@ -57,7 +57,7 @@ namespace CustomBuildTool
         public static string ShellExecute(string FileName, string args)
         {
             string output = string.Empty;
-            int code = int.MaxValue;
+            //int code = int.MaxValue;
 
             using (Process process = Process.Start(new ProcessStartInfo
             {
@@ -75,7 +75,7 @@ namespace CustomBuildTool
 
                 process.WaitForExit();
 
-                code = process.ExitCode;
+                //code = process.ExitCode;
             }
 
             return output;
@@ -393,6 +393,21 @@ namespace CustomBuildTool
                 }
                 catch { }
             }
+
+            VisualStudioInstanceList.Sort((p1, p2) =>
+            {
+                if (Version.TryParse(p1.InstallationVersion, out Version version1) && Version.TryParse(p2.InstallationVersion, out Version version2))
+                {
+                    if (version1 < version2)
+                        return 1;
+                    else if (version1 > version2)
+                        return -1;
+
+                    return version1.CompareTo(version2);
+                }
+
+                return 1;
+            });
 
             foreach (VisualStudioInstance instance in VisualStudioInstanceList)
             {
