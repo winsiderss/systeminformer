@@ -223,7 +223,7 @@ namespace CustomBuildTool
             Program.PrintColorMessage(buildTime.Minutes.ToString(), ConsoleColor.Green, false);
             Program.PrintColorMessage(" minute(s), ", ConsoleColor.DarkGray, false);
             Program.PrintColorMessage(buildTime.Seconds.ToString(), ConsoleColor.Green, false);
-            Program.PrintColorMessage(" second(s) " + Environment.NewLine, ConsoleColor.DarkGray, false);
+            Program.PrintColorMessage(" second(s) " + Environment.NewLine + Environment.NewLine, ConsoleColor.DarkGray, false);
         }
 
         public static bool CopyTextFiles()
@@ -1150,7 +1150,7 @@ namespace CustomBuildTool
             if (string.IsNullOrEmpty(buildPostString))
                 return false;
 
-            Program.PrintColorMessage(Environment.NewLine + "Uploading build artifacts... " + BuildVersion, ConsoleColor.Cyan);
+            Program.PrintColorMessage("Uploading build artifacts... " + BuildVersion, ConsoleColor.Cyan);
 
             try
             {
@@ -1244,7 +1244,7 @@ namespace CustomBuildTool
             //if (string.IsNullOrEmpty(buildBuildUrlKey))
             //    return false;
 
-            Console.WriteLine();
+            Program.PrintColorMessage(string.Empty, ConsoleColor.Black);
 
             try
             {
