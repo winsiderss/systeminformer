@@ -697,7 +697,7 @@ NTSTATUS UpdateDownloadThread(
         IO_STATUS_BLOCK isb;
         BYTE buffer[PAGE_SIZE];
 
-        status = PhFormatString(L"Downloading update %s...", PhGetStringOrEmpty(context->Version));
+        status = PhFormatString(L"Downloading release %s...", PhGetStringOrEmpty(context->Version));
 
         SendMessage(context->DialogHandle, TDM_SET_MARQUEE_PROGRESS_BAR, FALSE, 0);
         SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)status->Buffer);
@@ -772,15 +772,15 @@ NTSTATUS UpdateDownloadThread(
                 PH_FORMAT format[9];
                 WCHAR string[MAX_PATH];
 
-                // L"Downloaded: %s of %s (%.0f%%)\r\nSpeed: %s/s"
+                // L"Downloaded: %s / %s (%.0f%%)\r\nSpeed: %s/s"
                 PhInitFormatS(&format[0], L"Downloaded: ");
-                PhInitFormatSize(&format[1], downloadedBytes);
-                PhInitFormatS(&format[2], L" of ");
-                PhInitFormatSize(&format[3], contentLength);
+                PhInitFormatSize(&format[1], downloadedBytes / 1024);
+                PhInitFormatS(&format[2], L" / ");
+                PhInitFormatSize(&format[3], contentLength / 1024);
                 PhInitFormatS(&format[4], L" (");
                 PhInitFormatF(&format[5], percent, 1);
                 PhInitFormatS(&format[6], L"%)\r\nSpeed: ");
-                PhInitFormatSize(&format[7], timeBitsPerSecond);
+                PhInitFormatSize(&format[7], timeBitsPerSecond / 1024);
                 PhInitFormatS(&format[8], L"/s");
 
                 if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), string, sizeof(string), NULL))
