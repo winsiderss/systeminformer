@@ -245,6 +245,8 @@ namespace CustomBuildTool
 
                 Build.ShowBuildStats();
             }
+
+            Environment.Exit(Environment.ExitCode);
         }
 
         private static Dictionary<string, string> ParseArgs(string[] args)
