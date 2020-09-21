@@ -1025,7 +1025,7 @@ namespace CustomBuildTool
 
                 string error32 = Win32.ShellExecute(
                     MSBuildExePath,
-                    "/m /nologo /verbosity:quiet " +
+                    "/m /nologo /nodereuse:false /verbosity:quiet " +
                     "/p:Configuration=" + (Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug " : "Release ") +
                     "/p:Platform=Win32 " +
                     "/p:ExternalCompilerOptions=\"" + compilerOptions.ToString() + "\" " +
@@ -1058,7 +1058,7 @@ namespace CustomBuildTool
 
                 string error64 = Win32.ShellExecute(
                     MSBuildExePath,
-                    "/m /nologo /verbosity:quiet " +
+                    "/m /nologo /nodereuse:false /verbosity:quiet " +
                     "/p:Configuration=" + (Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug " : "Release ") +
                     "/p:Platform=x64 " +
                     "/p:ExternalCompilerOptions=\"" + compilerOptions.ToString() + "\" " +
@@ -1244,7 +1244,7 @@ namespace CustomBuildTool
             //if (string.IsNullOrEmpty(buildBuildUrlKey))
             //    return false;
 
-            Program.PrintColorMessage(Environment.NewLine, ConsoleColor.Black, false);
+            Console.WriteLine();
 
             try
             {
