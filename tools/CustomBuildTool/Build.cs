@@ -52,8 +52,6 @@ namespace CustomBuildTool
 
         public static bool InitializeBuildEnvironment()
         {
-            Console.OutputEncoding = Encoding.UTF8;
-
             try
             {
                 DirectoryInfo info = new DirectoryInfo(".");
