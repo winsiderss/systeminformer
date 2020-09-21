@@ -24,7 +24,7 @@
 
 static TASKDIALOG_BUTTON TaskDialogButtonArray[] =
 {
-    { IDOK, L"Check for updates" }
+    { IDOK, L"Check" }
 };
 
 HRESULT CALLBACK CheckForUpdatesCallbackProc(
@@ -74,9 +74,9 @@ VOID ShowCheckForUpdatesDialog(
     config.lpCallbackData = (LONG_PTR)Context;
 
     config.pszWindowTitle = L"Process Hacker - Updater";
-    config.pszMainInstruction = L"Check for new Process Hacker releases?";
-    //config.pszContent = L"The updater will check for new Process Hacker releases and optionally download and install the update.\r\n\r\nClick the check for updates button to continue.";
-    config.pszContent = L"Select \"check for updates\" to continue.\r\n";
+    config.pszMainInstruction = L"Check for an updated Process Hacker release?";
+    //config.pszContent = L"The updater will check for an updated Process Hacker release which then can be optionally downloaded and installed.\r\n\r\nClick Check to continue.";
+    config.pszContent = L"Click Check to continue.\r\n";
 
     TaskDialogNavigatePage(Context->DialogHandle, &config);
 }

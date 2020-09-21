@@ -64,7 +64,7 @@ VOID ShowCheckingForUpdatesDialog(
     config.lpCallbackData = (LONG_PTR)Context;
 
     config.pszWindowTitle = L"Process Hacker - Updater";
-    config.pszMainInstruction = L"Checking for new releases...";
+    config.pszMainInstruction = L"Checking for an updated release...";
 
     TaskDialogNavigatePage(Context->DialogHandle, &config);
 }
