@@ -10,6 +10,7 @@ extern WCHAR *PhServiceStartTypeStrings[5];
 extern WCHAR *PhServiceErrorControlStrings[4];
 
 PHLIBAPI
+_Success_(return != NULL)
 PVOID
 NTAPI
 PhEnumServices(
