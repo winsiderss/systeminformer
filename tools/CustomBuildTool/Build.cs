@@ -1244,7 +1244,7 @@ namespace CustomBuildTool
             //if (string.IsNullOrEmpty(buildBuildUrlKey))
             //    return false;
 
-            Program.PrintColorMessage(Environment.NewLine, ConsoleColor.Black);
+            Program.PrintColorMessage(Environment.NewLine, ConsoleColor.Black, false);
 
             try
             {
