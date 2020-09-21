@@ -147,6 +147,7 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"ProcessTreeColumnSetConfig", L"");
     PhpAddStringSetting(L"ProcessTreeListColumns", L"");
     PhpAddStringSetting(L"ProcessTreeListSort", L"0,0"); // 0, NoSortOrder
+    PhpAddIntegerSetting(L"ProcessTreeListNameDefault", L"1");
     PhpAddStringSetting(L"ProcPropPage", L"General");
     PhpAddIntegerPairSetting(L"ProcPropPosition", L"200,200");
     PhpAddScalableIntegerPairSetting(L"ProcPropSize", L"@96|460,580");
