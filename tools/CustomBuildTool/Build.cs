@@ -1244,6 +1244,8 @@ namespace CustomBuildTool
             //if (string.IsNullOrEmpty(buildBuildUrlKey))
             //    return false;
 
+            Program.PrintColorMessage(Environment.NewLine, ConsoleColor.Black);
+
             try
             {
                 foreach (var file in BuildConfig.Build_Release_Files)
