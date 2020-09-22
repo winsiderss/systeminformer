@@ -41,6 +41,8 @@ VOID UpdateContextDeleteProcedure(
         PhDereferenceObject(context->Version);
     if (context->RelDate)
         PhDereferenceObject(context->RelDate);
+    if (context->CommitHash)
+        PhDereferenceObject(context->CommitHash);
     if (context->SetupFileDownloadUrl)
         PhDereferenceObject(context->SetupFileDownloadUrl);
     if (context->SetupFileLength)
@@ -49,10 +51,6 @@ VOID UpdateContextDeleteProcedure(
         PhDereferenceObject(context->SetupFileHash);
     if (context->SetupFileSignature)
         PhDereferenceObject(context->SetupFileSignature);
-    if (context->BuildMessage)
-        PhDereferenceObject(context->BuildMessage);
-    if (context->CommitHash)
-        PhDereferenceObject(context->CommitHash);
 }
 
 PPH_UPDATER_CONTEXT CreateUpdateContext(
