@@ -97,11 +97,8 @@ plugins/OnlineChecks/virustotal.h
 !tools/CustomBuildTool/bin/
 tools/CustomBuildTool/bin/Debug*/
 tools/CustomBuildTool/bin/Release*/*
-!tools/CustomBuildTool/bin/Release/CustomBuildTool.exe
-!tools/CustomBuildTool/bin/Release/clrcompression.dll
-!tools/CustomBuildTool/bin/Release/clrjit.dll
-!tools/CustomBuildTool/bin/Release/coreclr.dll
-!tools/CustomBuildTool/bin/Release/mscordaccore.dll
+!tools/CustomBuildTool/bin/Release/*.exe
+!tools/CustomBuildTool/bin/Release/*.dll
 
 !tools/CustomSignTool/bin/
 tools/CustomSignTool/bin/Debug*/
