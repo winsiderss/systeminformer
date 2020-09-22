@@ -147,7 +147,6 @@ BOOLEAN PhInitializeLxssImageVersionInfo(
     _In_ PPH_STRING FileName
     )
 {
-    ULONG status;
     PPH_STRING lxssCommandLine = NULL;
     PPH_STRING lxssPackageName = NULL;
     PPH_STRING lxssDistroName;
@@ -165,7 +164,11 @@ BOOLEAN PhInitializeLxssImageVersionInfo(
         return FALSE;
     }
 
-    if (PhIsNullOrEmptyString(lxssDistroName) || PhIsNullOrEmptyString(lxssDistroPath) || PhIsNullOrEmptyString(lxssFileName))
+    if (
+        PhIsNullOrEmptyString(lxssDistroName) ||
+        PhIsNullOrEmptyString(lxssDistroPath) ||
+        PhIsNullOrEmptyString(lxssFileName)
+        )
     {
         if (lxssDistroName) PhDereferenceObject(lxssDistroName);
         if (lxssDistroPath) PhDereferenceObject(lxssDistroPath);
@@ -173,24 +176,17 @@ BOOLEAN PhInitializeLxssImageVersionInfo(
         return FALSE;
     }
 
-    if (PhEqualString2(lxssFileName, L"/init", FALSE))
-    {
-        PhMoveReference(&lxssFileName, PhCreateString(L"init"));
-    }
-
     PhMoveReference(&lxssCommandLine, PhFormatString(
         L"rpm -qf %s --queryformat \"%%{VERSION}|%%{VENDOR}|%%{SUMMARY}\"",
         lxssFileName->Buffer
         ));
 
-    status = PhCreateProcessLxss(
+    if (PhCreateProcessLxss(
         lxssDistroName->Buffer,
         lxssCommandLine->Buffer,
         NULL,
         &result
-        );
-
-    if (status == 0)
+        ))
     {
         goto ParseResult;
     }
@@ -200,14 +196,12 @@ BOOLEAN PhInitializeLxssImageVersionInfo(
         lxssFileName->Buffer
         ));
 
-    status = PhCreateProcessLxss(
+    if (!PhCreateProcessLxss(
         lxssDistroName->Buffer,
         lxssCommandLine->Buffer,
         NULL,
         &result
-        );
-
-    if (status != 0)
+        ))
     {
         PhDereferenceObject(lxssCommandLine);
         PhDereferenceObject(lxssDistroName);
@@ -242,14 +236,12 @@ BOOLEAN PhInitializeLxssImageVersionInfo(
         lxssPackageName->Buffer
         ));
 
-    status = PhCreateProcessLxss(
+    if (!PhCreateProcessLxss(
         lxssDistroName->Buffer,
         lxssCommandLine->Buffer,
         NULL,
         &result
-        );
-
-    if (status != 0)
+        ))
     {
         PhDereferenceObject(lxssCommandLine);
         PhDereferenceObject(lxssDistroName);
@@ -293,7 +285,8 @@ ParseResult:
     return TRUE;
 }
 
-ULONG PhCreateProcessLxss(
+_Success_(return)
+BOOLEAN PhCreateProcessLxss(
     _In_ PWSTR LxssDistribution,
     _In_ PWSTR LxssCommandLine,
     _In_opt_ PWSTR LxssCurrentDirectory,
@@ -335,7 +328,7 @@ ULONG PhCreateProcessLxss(
         );
 
     if (!NT_SUCCESS(status))
-        return status;
+        return FALSE;
 
     status = PhCreatePipeEx(
         &inputReadHandle,
@@ -348,7 +341,7 @@ ULONG PhCreateProcessLxss(
     {
         NtClose(outputWriteHandle);
         NtClose(outputReadHandle);
-        return status;
+        return FALSE;
     }
 
     memset(&startupInfo, 0, sizeof(STARTUPINFO));
@@ -378,7 +371,7 @@ ULONG PhCreateProcessLxss(
         NtClose(outputReadHandle);
         NtClose(inputReadHandle);
         NtClose(inputWriteHandle);
-        return status;
+        return FALSE;
     }
 
     // Note: Close the write handles or the child process
@@ -396,18 +389,22 @@ ULONG PhCreateProcessLxss(
     }
 
     // Note: Don't use NTSTATUS now that we have the lxss exit code. (dmex)
-    if (Result && status == 0)
+    if (status == 0)
     {
-        *Result = lxssOutputString;
+        if (Result) *Result = lxssOutputString;
+        if (processHandle) NtClose(processHandle);
+        if (outputReadHandle) NtClose(outputReadHandle);
+        if (inputWriteHandle) NtClose(inputWriteHandle);
+
+        return TRUE;
     }
     else
     {
-        PhSetReference(&lxssOutputString, NULL);
+        if (lxssOutputString) PhDereferenceObject(lxssOutputString);
+        if (processHandle) NtClose(processHandle);
+        if (outputReadHandle) NtClose(outputReadHandle);
+        if (inputWriteHandle) NtClose(inputWriteHandle);
+
+        return FALSE;
     }
-
-    NtClose(processHandle);
-    NtClose(outputReadHandle);
-    NtClose(inputWriteHandle);
-
-    return status;
 }
