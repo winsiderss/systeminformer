@@ -77,7 +77,7 @@ namespace CustomBuildTool
             }
             else if (ProgramArgs.ContainsKey("-bin"))
             {
-                Build.ShowBuildEnvironment(false);
+                Build.SetupBuildEnvironment(false);
 
                 if (!Build.BuildSolution("ProcessHacker.sln",
                     BuildFlags.Build32bit | BuildFlags.Build64bit |
@@ -113,7 +113,7 @@ namespace CustomBuildTool
             }
             else if (ProgramArgs.ContainsKey("-debug"))
             {
-                Build.ShowBuildEnvironment(true);
+                Build.SetupBuildEnvironment(true);
 
                 if (!Build.BuildSolution("ProcessHacker.sln",
                     BuildFlags.Build32bit | BuildFlags.Build64bit |
@@ -159,7 +159,7 @@ namespace CustomBuildTool
             }
             else if (ProgramArgs.ContainsKey("-appveyor"))
             {
-                Build.ShowBuildEnvironment(true);
+                Build.SetupBuildEnvironment(true);
 
                 if (!Build.BuildSolution("ProcessHacker.sln",
                     BuildFlags.Build32bit | BuildFlags.Build64bit |
@@ -196,11 +196,8 @@ namespace CustomBuildTool
                 //    Environment.Exit(1);
                 //if (!Build.BuildSrcZip())
                 //    Environment.Exit(1);
-                if (!Build.BuildChecksumsFile())
-                    Environment.Exit(1);
-                if (!Build.BuildUpdateSignature())
-                    Environment.Exit(1);
-
+                //if (!Build.BuildChecksumsFile())
+                //    Environment.Exit(1);
                 if (!Build.BuildDeployUploadArtifacts())
                     Environment.Exit(1);
                 if (!Build.BuildDeployUpdateConfig())
@@ -208,7 +205,7 @@ namespace CustomBuildTool
             }
             else
             {
-                Build.ShowBuildEnvironment(true);
+                Build.SetupBuildEnvironment(true);
 
                 if (!Build.BuildSolution("ProcessHacker.sln",
                     BuildFlags.Build32bit | BuildFlags.Build64bit |
@@ -240,9 +237,8 @@ namespace CustomBuildTool
                     return;
                 Build.BuildPdbZip();
                 Build.BuildSdkZip();
-                Build.BuildSrcZip();
+                //Build.BuildSrcZip();
                 Build.BuildChecksumsFile();
-
                 Build.ShowBuildStats();
             }
 

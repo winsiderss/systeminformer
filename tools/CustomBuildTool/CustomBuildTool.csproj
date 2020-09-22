@@ -10,11 +10,8 @@
     <RuntimeIdentifiers>win-x86;win-x64</RuntimeIdentifiers>
     <TrimUnusedDependencies>true</TrimUnusedDependencies>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <FileUpgradeFlags>
-    </FileUpgradeFlags>
-    <UpgradeBackupLocation>
-    </UpgradeBackupLocation>
     <OldToolsVersion>Current</OldToolsVersion>
+    <Version>1.0</Version>
     <ProjectGuid>{CD644DF2-A658-4CBC-9497-CA5DD13CFEC3}</ProjectGuid>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Platform)'=='x86'">
@@ -40,24 +37,19 @@
     <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <DefineConstants />
     <DebugType>embedded</DebugType>
     <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
-    <DefineConstants />
     <DebugType>embedded</DebugType>
     <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
   <ItemGroup>
     <None Include="app.manifest" />
     <None Include="Properties\PublishProfiles\32bit.pubxml" />
-    <None Include="Properties\PublishProfiles\64bit.pubxml" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Properties\PublishProfiles\32bit.pubxml.user" />
-  </ItemGroup>
-  <ItemGroup>
+    <PackageReference Include="LibGit2Sharp" Version="0.26.2" />
     <PackageReference Include="Microsoft.Win32.Registry" Version="4.7.0" />
   </ItemGroup>
 </Project>
