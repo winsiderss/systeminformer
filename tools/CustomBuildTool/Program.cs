@@ -85,12 +85,9 @@ namespace CustomBuildTool
                     ))
                     return;
 
-                if (!Build.CopyKProcessHacker(
-                    BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
+                if (!Build.CopyKProcessHacker(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
                     return;
-
-                if (!Build.BuildSdk(
-                    BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
+                if (!Build.BuildSdk(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
                     return;
 
                 if (!Build.BuildSolution("plugins\\Plugins.sln",
@@ -99,6 +96,8 @@ namespace CustomBuildTool
                     ))
                     return;
 
+                if (!Build.CopyTextFiles())
+                    return;
                 if (!Build.CopyWow64Files(BuildFlags.None))
                     return;
                 if (!Build.CopySidCapsFile(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
@@ -179,6 +178,8 @@ namespace CustomBuildTool
                     ))
                     Environment.Exit(1);
 
+                if (!Build.CopyTextFiles())
+                    Environment.Exit(1);
                 if (!Build.CopyWow64Files(BuildFlags.None))
                     Environment.Exit(1);
                 if (!Build.CopySidCapsFile(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
@@ -224,6 +225,8 @@ namespace CustomBuildTool
                     ))
                     return;
 
+                if (!Build.CopyTextFiles())
+                    return;
                 if (!Build.CopyWow64Files(BuildFlags.None))
                     return;
                 if (!Build.CopySidCapsFile(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
