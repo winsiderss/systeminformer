@@ -99,6 +99,7 @@ tools/CustomBuildTool/bin/Debug*/
 tools/CustomBuildTool/bin/Release*/*
 !tools/CustomBuildTool/bin/Release/*.exe
 !tools/CustomBuildTool/bin/Release/*.dll
+!tools/CustomBuildTool/bin/Release/*.pdb
 
 !tools/CustomSignTool/bin/
 tools/CustomSignTool/bin/Debug*/
