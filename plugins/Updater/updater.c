@@ -414,12 +414,11 @@ BOOLEAN QueryUpdateData(
 
     Context->Version = PhGetJsonValueAsString(jsonObject, "version");
     Context->RelDate = PhGetJsonValueAsString(jsonObject, "updated");
+    Context->CommitHash = PhGetJsonValueAsString(jsonObject, "commit");
     Context->SetupFileDownloadUrl = PhGetJsonValueAsString(jsonObject, "setup_url");
     Context->SetupFileLength = PhFormatSize(PhGetJsonValueAsLong64(jsonObject, "setup_length"), 2);
     Context->SetupFileHash = PhGetJsonValueAsString(jsonObject, "setup_hash");
     Context->SetupFileSignature = PhGetJsonValueAsString(jsonObject, "setup_sig");
-    Context->BuildMessage = PhGetJsonValueAsString(jsonObject, "changelog");
-    Context->CommitHash = PhGetJsonValueAsString(jsonObject, "commit");
 
     Context->CurrentVersion = ParseVersionString(Context->CurrentVersionString);
 #ifdef FORCE_LATEST_VERSION
@@ -442,8 +441,6 @@ BOOLEAN QueryUpdateData(
         goto CleanupExit;
     if (PhIsNullOrEmptyString(Context->SetupFileSignature))
         goto CleanupExit;
-    if (PhIsNullOrEmptyString(Context->BuildMessage))
-        goto CleanupExit;
     if (PhIsNullOrEmptyString(Context->CommitHash))
         goto CleanupExit;
 
@@ -453,26 +450,8 @@ CleanupExit:
 
     if (httpContext)
         PhHttpSocketDestroy(httpContext);
-
     if (jsonString)
         PhDereferenceObject(jsonString);
-
-    if (success && !PhIsNullOrEmptyString(Context->BuildMessage))
-    {
-        PH_STRING_BUILDER sb;
-
-        PhInitializeStringBuilder(&sb, 0x100);
-
-        for (SIZE_T i = 0; i < Context->BuildMessage->Length / sizeof(WCHAR); i++)
-        {
-            if (Context->BuildMessage->Data[i] == L'\n')
-                PhAppendStringBuilder2(&sb, L"\r\n");
-            else
-                PhAppendCharStringBuilder(&sb, Context->BuildMessage->Data[i]);
-        }
-
-        PhMoveReference(&Context->BuildMessage, PhFinalStringBuilderString(&sb));
-    }
 
     return success;
 }
