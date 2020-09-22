@@ -22,7 +22,7 @@
  */
 
 #include <peview.h>
-#include <metahost.h>
+#include "metahost.h"
 
 // CLR structure reference:
 // https://github.com/dotnet/coreclr/blob/master/src/md/inc/mdfileformat.h
