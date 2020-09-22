@@ -49,7 +49,6 @@
     <None Include="Properties\PublishProfiles\32bit.pubxml" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="LibGit2Sharp" Version="0.26.2" />
     <PackageReference Include="Microsoft.Win32.Registry" Version="4.7.0" />
   </ItemGroup>
 </Project>
