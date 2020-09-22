@@ -91,14 +91,11 @@ typedef struct _PH_UPDATER_CONTEXT
     PPH_STRING CurrentVersionString;
     PPH_STRING Version;
     PPH_STRING RelDate;
-
     PPH_STRING SetupFileLength;
     PPH_STRING SetupFileDownloadUrl;
     PPH_STRING SetupFileHash;
     PPH_STRING SetupFileSignature;
-    
     // Nightly builds only
-    PPH_STRING BuildMessage;
     PPH_STRING CommitHash;
 } PH_UPDATER_CONTEXT, *PPH_UPDATER_CONTEXT;
 
