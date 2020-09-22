@@ -61,86 +61,78 @@ namespace CustomBuildTool
         }
     }
 
-    public class HeaderGen
+    public static class HeaderGen
     {
-        private readonly string BaseDirectory;
-        private readonly string[] Modes;
-        private readonly string[] Files;
-        private readonly string OutputFile;
-        private readonly string Header;
-        private readonly string Footer;
+        private static readonly string Header = "#ifndef _PH_PHAPPPUB_H\r\n#define _PH_PHAPPPUB_H\r\n\r\n// This file was automatically generated. Do not edit.\r\n\r\n#ifdef __cplusplus\r\nextern \"C\" {\r\n#endif\r\n";
+        private static readonly string Footer = "\r\n#ifdef __cplusplus\r\n}\r\n#endif\r\n\r\n#endif\r\n";
 
-        public HeaderGen()
+        private static readonly string BaseDirectory = "ProcessHacker\\include";
+        private static readonly string OutputFile = "..\\sdk\\phapppub.h";
+
+        private static readonly string[] Modes = new[] { "phapppub" };
+        private static readonly string[] Files = new[]
         {
-            this.OutputFile = "..\\sdk\\phapppub.h";
-            this.BaseDirectory = "ProcessHacker\\include";
-            this.Modes = new[] { "phapppub" };
-            this.Files = new[]
-            {
-                "phapp.h",
-                "appsup.h",
-                "phfwddef.h",
-                "procprv.h",
-                "srvprv.h",
-                "netprv.h",
-                "modprv.h",
-                "thrdprv.h",
-                "hndlprv.h",
-                "memprv.h",
-                "phuisup.h",
-                "colmgr.h",
-                "proctree.h",
-                "srvlist.h",
-                "netlist.h",
-                "thrdlist.h",
-                "modlist.h",
-                "hndllist.h",
-                "memlist.h",
-                "extmgr.h",
-                "mainwnd.h",
-                "notifico.h",
-                "phplug.h",
-                "actions.h",
-                "procprp.h",
-                "procprpp.h",
-                "phsvccl.h",
-                "sysinfo.h",
-                "procgrp.h",
-                "miniinfo.h"
-            };
-            this.Header = "#ifndef _PH_PHAPPPUB_H\r\n#define _PH_PHAPPPUB_H\r\n\r\n// This file was automatically generated. Do not edit.\r\n\r\n#ifdef __cplusplus\r\nextern \"C\" {\r\n#endif\r\n";
-            this.Footer = "\r\n#ifdef __cplusplus\r\n}\r\n#endif\r\n\r\n#endif\r\n";
-        }
+            "phapp.h",
+            "appsup.h",
+            "phfwddef.h",
+            "procprv.h",
+            "srvprv.h",
+            "netprv.h",
+            "modprv.h",
+            "thrdprv.h",
+            "hndlprv.h",
+            "memprv.h",
+            "phuisup.h",
+            "colmgr.h",
+            "proctree.h",
+            "srvlist.h",
+            "netlist.h",
+            "thrdlist.h",
+            "modlist.h",
+            "hndllist.h",
+            "memlist.h",
+            "extmgr.h",
+            "mainwnd.h",
+            "notifico.h",
+            "phplug.h",
+            "actions.h",
+            "procprp.h",
+            "procprpp.h",
+            "phsvccl.h",
+            "sysinfo.h",
+            "procgrp.h",
+            "miniinfo.h"
+        };
 
-        private List<HeaderFile> OrderHeaderFiles(List<HeaderFile> headerFiles)
+        private static List<HeaderFile> OrderHeaderFiles(List<HeaderFile> headerFiles)
         {
-            var result = new List<HeaderFile>();
-            var done = new List<HeaderFile>();
+            List<HeaderFile> result = new List<HeaderFile>();
+            List<HeaderFile> done = new List<HeaderFile>();
 
-            foreach (var h in headerFiles)
+            foreach (HeaderFile h in headerFiles)
                 OrderHeaderFiles(result, done, h);
 
             return result;
         }
 
-        private void OrderHeaderFiles(List<HeaderFile> result, List<HeaderFile> done, HeaderFile headerFile)
+        private static void OrderHeaderFiles(List<HeaderFile> result, List<HeaderFile> done, HeaderFile headerFile)
         {
             if (done.Contains(headerFile))
                 return;
 
             done.Add(headerFile);
 
-            foreach (var h in headerFile.Dependencies)
+            foreach (HeaderFile h in headerFile.Dependencies)
                 OrderHeaderFiles(result, done, h);
 
             result.Add(headerFile);
         }
 
-        private List<string> ProcessHeaderLines(List<string> lines)
+        private static List<string> ProcessHeaderLines(List<string> lines)
         {
-            var result = new List<string>();
-            var modes = new List<string>();
-            var blankLine = false;
+            List<string> result = new List<string>();
+            List<string> modes = new List<string>();
+            bool blankLine = false;
 
             foreach (string line in lines)
             {
@@ -156,8 +148,8 @@ namespace CustomBuildTool
                 }
                 else
                 {
-                    bool blockMode = this.Modes.Any(mode => modes.Contains(mode, StringComparer.OrdinalIgnoreCase));
-                    bool lineMode = this.Modes.Any(mode =>
+                    bool blockMode = Modes.Any(mode => modes.Contains(mode, StringComparer.OrdinalIgnoreCase));
+                    bool lineMode = Modes.Any(mode =>
                     {
                         int indexOfMarker = text.LastIndexOf("// " + mode, StringComparison.OrdinalIgnoreCase);
                         if (indexOfMarker == -1)
@@ -184,16 +176,15 @@ namespace CustomBuildTool
             return result;
         }
 
-        public void Execute()
+        public static void Execute()
         {
             // Read in all header files.
+            Dictionary<string, HeaderFile> headerFiles = new Dictionary<string, HeaderFile>(StringComparer.OrdinalIgnoreCase);
 
-            var headerFiles = new Dictionary<string, HeaderFile>(StringComparer.OrdinalIgnoreCase);
-
-            foreach (string name in this.Files)
+            foreach (string name in Files)
             {
-                var file = this.BaseDirectory + Path.DirectorySeparatorChar + name;
-                var lines = File.ReadAllLines(file).ToList();
+                string file = BaseDirectory + Path.DirectorySeparatorChar + name;
+                List<string> lines = File.ReadAllLines(file).ToList();
 
                 headerFiles.Add(name, new HeaderFile
                 {
@@ -204,9 +195,9 @@ namespace CustomBuildTool
 
             foreach (HeaderFile h in headerFiles.Values)
             {
-                var partitions = h.Lines.Select(s =>
+                ILookup<bool, Tuple<string, HeaderFile>> partitions = h.Lines.Select(s =>
                 {
-                    var trimmed = s.Trim();
+                    string trimmed = s.Trim();
 
                     if (trimmed.StartsWith("#include <", StringComparison.OrdinalIgnoreCase) && trimmed.EndsWith(">", StringComparison.OrdinalIgnoreCase))
                     {
@@ -228,9 +219,9 @@ namespace CustomBuildTool
 
             // Generate the ordering.
 
-            var orderedHeaderFilesList = new List<HeaderFile>();
+            List<HeaderFile> orderedHeaderFilesList = new List<HeaderFile>();
 
-            foreach (string file in this.Files)
+            foreach (string file in Files)
             {
                 string name = Path.GetFileName(file);
 
@@ -240,17 +231,17 @@ namespace CustomBuildTool
                 }
             }
 
-            var orderedHeaderFiles = OrderHeaderFiles(orderedHeaderFilesList);
+            List<HeaderFile> orderedHeaderFiles = OrderHeaderFiles(orderedHeaderFilesList);
 
             // Process each header file and remove irrelevant content.
             foreach (HeaderFile h in orderedHeaderFiles)
                 h.Lines = ProcessHeaderLines(h.Lines);
 
             // Write out the result.
-            using (StreamWriter sw = new StreamWriter(this.BaseDirectory + Path.DirectorySeparatorChar + this.OutputFile))
+            using (StreamWriter sw = new StreamWriter(BaseDirectory + Path.DirectorySeparatorChar + OutputFile))
             {
                 // Header
-                sw.Write(this.Header);
+                sw.Write(Header);
 
                 // Header files
                 foreach (HeaderFile h in orderedHeaderFiles)
@@ -267,8 +258,7 @@ namespace CustomBuildTool
                 }
 
                 // Footer
-
-                sw.Write(this.Footer);
+                sw.Write(Footer);
             }
         }
     }
