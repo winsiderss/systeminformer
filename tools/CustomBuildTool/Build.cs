@@ -150,7 +150,7 @@ namespace CustomBuildTool
 
             try
             {
-                using (var repo = new LibGit2Sharp.Repository(Environment.CurrentDirectory))
+                using (var repo = new LibGit2Sharp.Repository(Environment.CurrentDirectory + "\\.git"))
                 {
                     BuildBranch = repo.Head.FriendlyName;
                     BuildCommit = repo.Head.Commits.First().Sha;
@@ -166,8 +166,10 @@ namespace CustomBuildTool
                     BuildLongVersion = "3.0." + BuildCount + "." + BuildRevision;
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Program.PrintColorMessage("[Build] " + ex, ConsoleColor.Yellow);
+
                 BuildBranch = string.Empty;
                 BuildCommit = string.Empty;
                 BuildCount = string.Empty;
