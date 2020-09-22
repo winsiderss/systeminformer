@@ -249,23 +249,24 @@ namespace CustomBuildTool
 
         public static string GetOutputDirectoryPath()
         {
-            string folder = Environment.CurrentDirectory + "\\build\\output";
+            return Environment.CurrentDirectory + "\\build\\output";
+        }
+
+        public static void CreateOutputDirectory()
+        {
+            string folder = GetOutputDirectoryPath();
 
             if (File.Exists(folder))
-                return folder;
+                return;
 
             try
             {
                 Directory.CreateDirectory(folder);
-
-                return folder;
             }
             catch (Exception ex)
             {
-                Program.PrintColorMessage("Error creating output directory. " + ex, ConsoleColor.Red);
+                Program.PrintColorMessage("Error creating output directory: " + ex, ConsoleColor.Red);
             }
-
-            return null;
         }
 
         public static VisualStudioInstance GetVisualStudioInstance()

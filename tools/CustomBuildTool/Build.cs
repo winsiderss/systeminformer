@@ -516,6 +516,8 @@ namespace CustomBuildTool
 
             try
             {
+                VisualStudio.CreateOutputDirectory();
+
                 if (File.Exists(BuildOutputFolder + "\\processhacker-build-websetup.exe"))
                     File.Delete(BuildOutputFolder + "\\processhacker-build-websetup.exe");
 
@@ -619,6 +621,8 @@ namespace CustomBuildTool
 
             try
             {
+                VisualStudio.CreateOutputDirectory();
+
                 if (File.Exists(BuildOutputFolder + "\\processhacker-build-setup.exe"))
                     File.Delete(BuildOutputFolder + "\\processhacker-build-setup.exe");
 
@@ -648,6 +652,8 @@ namespace CustomBuildTool
 
             try
             {
+                VisualStudio.CreateOutputDirectory();
+
                 Zip.CreateCompressedSdkFromFolder("sdk", BuildOutputFolder + "\\processhacker-build-sdk.zip");
 
                 Program.PrintColorMessage(new FileInfo(BuildOutputFolder + "\\processhacker-build-sdk.zip").Length.ToPrettySize(), ConsoleColor.Green);
@@ -702,6 +708,8 @@ namespace CustomBuildTool
 
             try
             {
+                VisualStudio.CreateOutputDirectory();
+
                 if (File.Exists(BuildOutputFolder + "\\processhacker-build-bin.zip"))
                     File.Delete(BuildOutputFolder + "\\processhacker-build-bin.zip");
 
@@ -720,6 +728,8 @@ namespace CustomBuildTool
 
             try
             {
+                VisualStudio.CreateOutputDirectory();
+
                 if (File.Exists(BuildOutputFolder + "\\processhacker-build-bin.64"))
                     File.Delete(BuildOutputFolder + "\\processhacker-build-bin.64");
 
@@ -743,6 +753,8 @@ namespace CustomBuildTool
 
             try
             {
+                VisualStudio.CreateOutputDirectory();
+
                 Zip.CreateCompressedPdbFromFolder(
                     ".\\",
                     BuildOutputFolder + "\\processhacker-build-pdb.zip"
@@ -784,6 +796,8 @@ namespace CustomBuildTool
                         sb.AppendLine("SHA256: " + hash + Environment.NewLine);
                     }
                 }
+
+                VisualStudio.CreateOutputDirectory();
 
                 if (File.Exists(BuildOutputFolder + "\\processhacker-build-checksums.txt"))
                     File.Delete(BuildOutputFolder + "\\processhacker-build-checksums.txt");
