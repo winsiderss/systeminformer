@@ -934,9 +934,8 @@ namespace CustomBuildTool
                 return false;
             if (string.IsNullOrEmpty(BuildVersion))
                 return false;
-  
-            Program.PrintColorMessage(BuildTimeStamp(), ConsoleColor.DarkGray, false);
-            Program.PrintColorMessage("Building release signatures...", ConsoleColor.Cyan);
+
+            Program.PrintColorMessage(Environment.NewLine + "Uploading build artifacts... " + BuildVersion, ConsoleColor.Cyan);
 
             if (BuildNightly && !File.Exists(Verify.GetPath("nightly.key")))
             {
@@ -994,7 +993,6 @@ namespace CustomBuildTool
             if (string.IsNullOrEmpty(BuildSetupSig))
                 return false;
 
-            Program.PrintColorMessage("Uploading build artifacts... " + BuildVersion, ConsoleColor.Cyan);
             buildFilename = BuildOutputFolder + "\\processhacker-build-bin.zip";
 
             if (File.Exists(buildFilename))
