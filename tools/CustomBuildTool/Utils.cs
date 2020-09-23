@@ -218,7 +218,7 @@ namespace CustomBuildTool
 
         public static string GetPath(string FileName)
         {
-            return "\\tools\\CustomSignTool\\Resources\\" + FileName;
+            return "tools\\CustomSignTool\\Resources\\" + FileName;
         }
 
         public static string GetCustomSignToolFilePath()
