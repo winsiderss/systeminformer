@@ -953,20 +953,6 @@ namespace CustomBuildTool
                 }
             }
 
-            foreach (BuildFile file in BuildConfig.Build_Release_Files)
-            {
-                if (!file.UploadNightly)
-                    continue;
-
-                string name = BuildOutputFolder + file.FileName;
-
-                if (!File.Exists(name))
-                {
-                    Program.PrintColorMessage("[SKIPPED] " + name + " not found.", ConsoleColor.Yellow);
-                    return false;
-                }
-            }
-
             string customSignToolPath = Verify.GetCustomSignToolFilePath();
 
             if (File.Exists(customSignToolPath))
@@ -983,15 +969,22 @@ namespace CustomBuildTool
             else
             {
                 Program.PrintColorMessage("[SKIPPED] CustomSignTool not found.", ConsoleColor.Yellow);
+                return true;
             }
 
             if (BuildNightly && File.Exists(Verify.GetPath("nightly.key")))
                 File.Delete(Verify.GetPath("nightly.key"));
 
             if (string.IsNullOrEmpty(BuildBinSig))
+            {
+                Program.PrintColorMessage("build-bin.sig not found.", ConsoleColor.Red);
                 return false;
+            }
             if (string.IsNullOrEmpty(BuildSetupSig))
+            {
+                Program.PrintColorMessage("build-setup.sig not found.", ConsoleColor.Red);
                 return false;
+            }
 
             buildFilename = BuildOutputFolder + "\\processhacker-build-bin.zip";
 
@@ -1002,7 +995,10 @@ namespace CustomBuildTool
             }
 
             if (string.IsNullOrEmpty(buildBinHash))
+            {
+                Program.PrintColorMessage("build-bin hash not found.", ConsoleColor.Red);
                 return false;
+            }
 
             buildFilename = BuildOutputFolder + "\\processhacker-build-setup.exe";
 
@@ -1013,7 +1009,10 @@ namespace CustomBuildTool
             }
 
             if (string.IsNullOrEmpty(buildSetupHash))
+            {
+                Program.PrintColorMessage("build-setup hash not found.", ConsoleColor.Red);
                 return false;
+            }
 
             try
             {
