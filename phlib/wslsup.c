@@ -147,38 +147,23 @@ BOOLEAN PhInitializeLxssImageVersionInfo(
     _In_ PPH_STRING FileName
     )
 {
+    BOOLEAN success = FALSE;
     PPH_STRING lxssCommandLine = NULL;
     PPH_STRING lxssPackageName = NULL;
     PPH_STRING lxssDistroName;
-    PPH_STRING lxssDistroPath;
     PPH_STRING lxssFileName;
-    PPH_STRING result;
+    PPH_STRING result = NULL;
 
-    if (!PhGetWslDistributionFromPath(
-        FileName,
-        &lxssDistroName,
-        &lxssDistroPath,
-        &lxssFileName
-        ))
-    {
+    if (!PhGetWslDistributionFromPath(FileName, &lxssDistroName, NULL, &lxssFileName))
         return FALSE;
-    }
-
-    if (
-        PhIsNullOrEmptyString(lxssDistroName) ||
-        PhIsNullOrEmptyString(lxssDistroPath) ||
-        PhIsNullOrEmptyString(lxssFileName)
-        )
-    {
-        if (lxssDistroName) PhDereferenceObject(lxssDistroName);
-        if (lxssDistroPath) PhDereferenceObject(lxssDistroPath);
-        if (lxssFileName) PhDereferenceObject(lxssFileName);
-        return FALSE;
-    }
+    if (PhIsNullOrEmptyString(lxssDistroName) || PhIsNullOrEmptyString(lxssFileName))
+        goto CleanupExit;
+    if (PhEqualString2(lxssFileName, L"/init", FALSE))
+        goto CleanupExit;
 
     PhMoveReference(&lxssCommandLine, PhFormatString(
         L"rpm -qf %s --queryformat \"%%{VERSION}|%%{VENDOR}|%%{SUMMARY}\"",
-        lxssFileName->Buffer
+        PhGetString(lxssFileName)
         ));
 
     if (PhCreateProcessLxss(
@@ -193,23 +178,15 @@ BOOLEAN PhInitializeLxssImageVersionInfo(
 
     PhMoveReference(&lxssCommandLine, PhConcatStrings2(
         L"dpkg -S ",
-        lxssFileName->Buffer
+        PhGetString(lxssFileName)
         ));
 
-    if (!PhCreateProcessLxss(
+    if (PhCreateProcessLxss(
         lxssDistroName->Buffer,
         lxssCommandLine->Buffer,
         NULL,
         &result
         ))
-    {
-        PhDereferenceObject(lxssCommandLine);
-        PhDereferenceObject(lxssDistroName);
-        PhDereferenceObject(lxssDistroPath);
-        PhDereferenceObject(lxssFileName);
-        return FALSE;
-    }
-    else
     {
         PH_STRINGREF remainingPart;
         PH_STRINGREF packagePart;
@@ -223,17 +200,11 @@ BOOLEAN PhInitializeLxssImageVersionInfo(
     }
 
     if (PhIsNullOrEmptyString(lxssPackageName))
-    {
-        PhDereferenceObject(lxssCommandLine);
-        PhDereferenceObject(lxssDistroName);
-        PhDereferenceObject(lxssDistroPath);
-        PhDereferenceObject(lxssFileName);
-        return FALSE;
-    }
+        goto CleanupExit;
 
     PhMoveReference(&lxssCommandLine, PhConcatStrings2(
         L"dpkg-query -W -f=${Version}|${Maintainer}|${binary:Summary} ",
-        lxssPackageName->Buffer
+        PhGetString(lxssPackageName)
         ));
 
     if (!PhCreateProcessLxss(
@@ -243,11 +214,7 @@ BOOLEAN PhInitializeLxssImageVersionInfo(
         &result
         ))
     {
-        PhDereferenceObject(lxssCommandLine);
-        PhDereferenceObject(lxssDistroName);
-        PhDereferenceObject(lxssDistroPath);
-        PhDereferenceObject(lxssFileName);
-        return FALSE;
+        goto CleanupExit;
     }
 
 ParseResult:
@@ -275,14 +242,17 @@ ParseResult:
             ImageVersionInfo->FileDescription = PhCreateString2(&descriptionPart);
     }
 
+    success = TRUE;
+
+CleanupExit:
+
     if (result) PhDereferenceObject(result);
     if (lxssCommandLine) PhDereferenceObject(lxssCommandLine);
     if (lxssPackageName) PhDereferenceObject(lxssPackageName);
     if (lxssDistroName) PhDereferenceObject(lxssDistroName);
-    if (lxssDistroPath) PhDereferenceObject(lxssDistroPath);
     if (lxssFileName) PhDereferenceObject(lxssFileName);
 
-    return TRUE;
+    return success;
 }
 
 _Success_(return)
