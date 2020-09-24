@@ -808,7 +808,7 @@ namespace CustomBuildTool
                 Program.PrintColorMessage("[ERROR] " + ex, ConsoleColor.Red);
                 return false;
             }
-            
+
             return true;
         }
 
@@ -839,18 +839,19 @@ namespace CustomBuildTool
                 if (!string.IsNullOrEmpty(BuildCount))
                     compilerOptions.Append($"PHAPP_VERSION_BUILD=\"{BuildCount}\"");
 
-                string error32 = Win32.ShellExecute(
+                int errorcode = Win32.CreateProcess(
                     msbuildExePath,
                     "/m /nologo /nodereuse:false /verbosity:quiet " +
                     "/p:Configuration=" + (Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug " : "Release ") +
                     "/p:Platform=Win32 " +
                     "/p:ExternalCompilerOptions=\"" + compilerOptions.ToString() + "\" " +
-                    Solution
+                    Solution,
+                    out string errorstring
                     );
-                
-                if (!string.IsNullOrEmpty(error32))
+
+                if (errorcode != 0)
                 {
-                    Program.PrintColorMessage("[ERROR] " + error32, ConsoleColor.Red, true, Flags | BuildFlags.BuildVerbose);
+                    Program.PrintColorMessage("[ERROR] (" + errorcode + ") " + errorstring, ConsoleColor.Red, true, Flags | BuildFlags.BuildVerbose);
                     return false;
                 }
             }
@@ -872,18 +873,19 @@ namespace CustomBuildTool
                 if (!string.IsNullOrEmpty(BuildCount))
                     compilerOptions.Append($"PHAPP_VERSION_BUILD=\"{BuildCount}\"");
 
-                string error64 = Win32.ShellExecute(
+                int errorcode = Win32.CreateProcess(
                     msbuildExePath,
                     "/m /nologo /nodereuse:false /verbosity:quiet " +
                     "/p:Configuration=" + (Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug " : "Release ") +
                     "/p:Platform=x64 " +
                     "/p:ExternalCompilerOptions=\"" + compilerOptions.ToString() + "\" " +
-                    Solution
+                    Solution,
+                    out string errorstring
                     );
 
-                if (!string.IsNullOrEmpty(error64))
+                if (errorcode != 0)
                 {
-                    Program.PrintColorMessage("[ERROR] " + error64, ConsoleColor.Red, true, Flags | BuildFlags.BuildVerbose);
+                    Program.PrintColorMessage("[ERROR] (" + errorcode + ") " + errorstring, ConsoleColor.Red, true, Flags | BuildFlags.BuildVerbose);
                     return false;
                 }
             }
