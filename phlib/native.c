@@ -5448,6 +5448,7 @@ BOOLEAN NTAPI PhpIsDotNetEnumProcessModulesCallback(
     )
 {
     static PH_STRINGREF clrString = PH_STRINGREF_INIT(L"clr.dll");
+    static PH_STRINGREF clrcoreString = PH_STRINGREF_INIT(L"coreclr.dll");
     static PH_STRINGREF mscorwksString = PH_STRINGREF_INIT(L"mscorwks.dll");
     static PH_STRINGREF mscorsvrString = PH_STRINGREF_INIT(L"mscorsvr.dll");
     static PH_STRINGREF mscorlibString = PH_STRINGREF_INIT(L"mscorlib.dll");
@@ -5527,6 +5528,10 @@ BOOLEAN NTAPI PhpIsDotNetEnumProcessModulesCallback(
         *(PULONG)Context |= PH_CLR_MSCORLIB_PRESENT;
     }
     else if (PhEqualStringRef(&baseDllName, &clrjitString, TRUE))
+    {
+        *(PULONG)Context |= PH_CLR_JIT_PRESENT;
+    }
+    else if (PhEqualStringRef(&baseDllName, &clrcoreString, TRUE))
     {
         *(PULONG)Context |= PH_CLR_JIT_PRESENT;
     }
