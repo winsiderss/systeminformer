@@ -26,59 +26,75 @@ using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json.Serialization;
+using System.Threading;
 
 namespace CustomBuildTool
 {
     [System.Security.SuppressUnmanagedCodeSecurity]
     public static class Win32
     {
-        public static int CreateProcess(string FileName, string args)
+        public static int CreateProcess(string FileName, string Arguments, out string outputstring)
         {
             int exitcode = int.MaxValue;
-
-            using (Process process = Process.Start(new ProcessStartInfo
+            StringBuilder output = new StringBuilder();
+            StringBuilder error = new StringBuilder();
+            ProcessStartInfo config = new ProcessStartInfo
             {
+                FileName = FileName,
+                Arguments = Arguments,
                 UseShellExecute = false,
-                FileName = FileName
-            }))
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+
+            try
             {
-                process.StartInfo.Arguments = args;
-                process.Start();
+                using (Process process = Process.Start(config))
+                using (AutoResetEvent outputWaitHandle = new AutoResetEvent(false))
+                using (AutoResetEvent errorWaitHandle = new AutoResetEvent(false))
+                {
+                    process.OutputDataReceived += (sender, e) =>
+                    {
+                        if (e.Data == null)
+                            outputWaitHandle.Set();
+                        else
+                            output.AppendLine(e.Data);
+                    };
+                    process.ErrorDataReceived += (sender, e) =>
+                    {
+                        if (e.Data == null)
+                            errorWaitHandle.Set();
+                        else
+                            error.AppendLine(e.Data);
+                    };
 
-                process.WaitForExit();
+                    process.Start();
+                    process.BeginOutputReadLine();
+                    process.BeginErrorReadLine();
+                    process.WaitForExit();
 
-                exitcode = process.ExitCode;
+                    if (outputWaitHandle.WaitOne() && errorWaitHandle.WaitOne())
+                    {
+                        exitcode = process.ExitCode;
+                    }
+                }
+            }
+            catch (Exception)
+            {
+
             }
 
+            outputstring = output.ToString() + error.ToString();
             return exitcode;
         }
 
-        public static string ShellExecute(string FileName, string args)
+        public static string ShellExecute(string FileName, string Arguments)
         {
-            string output = string.Empty;
-            //int code = int.MaxValue;
+            Win32.CreateProcess(FileName, Arguments, out string outputstring);
 
-            using (Process process = Process.Start(new ProcessStartInfo
-            {
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                FileName = FileName,
-                CreateNoWindow = true
-            }))
-            {
-                process.StartInfo.Arguments = args;
-                process.Start();
-
-                output = process.StandardOutput.ReadToEnd();
-                output = output.Replace("\n\n", "\r\n", StringComparison.OrdinalIgnoreCase).Trim();
-
-                process.WaitForExit();
-
-                //code = process.ExitCode;
-            }
-
-            return output;
+            return outputstring;
         }
 
         public static string SearchFile(string FileName)
