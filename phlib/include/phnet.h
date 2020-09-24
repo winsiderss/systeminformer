@@ -5,6 +5,8 @@
 extern "C" {
 #endif
 
+#define __WINDOT11_H__ // temporary preprocessor workaround (dmex)
+
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <ws2ipdef.h>
