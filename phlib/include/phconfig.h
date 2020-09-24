@@ -31,6 +31,7 @@ PHLIBAPI extern ULONG WindowsVersion;
 #define WINDOWS_10_19H1 107
 #define WINDOWS_10_19H2 108
 #define WINDOWS_10_20H1 109
+#define WINDOWS_10_20H2 110
 #define WINDOWS_NEW ULONG_MAX
 
 // Debugging
