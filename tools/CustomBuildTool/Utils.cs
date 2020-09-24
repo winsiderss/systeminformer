@@ -95,6 +95,9 @@ namespace CustomBuildTool
             }
 
             outputstring = output.ToString() + error.ToString();
+            outputstring = outputstring.Replace("\n\n", "\r\n", StringComparison.OrdinalIgnoreCase).Trim();
+            outputstring = outputstring.Replace("\r\n", string.Empty, StringComparison.OrdinalIgnoreCase).Trim();
+
             return exitcode;
         }
 
