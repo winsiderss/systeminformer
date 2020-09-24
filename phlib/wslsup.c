@@ -111,8 +111,11 @@ BOOLEAN PhGetWslDistributionFromPath(
     }
 
     if (LxssDistroPath)
-    {
         *LxssDistroPath = lxssDistroPath;
+    else
+    {
+        if (lxssDistroPath)
+            PhDereferenceObject(lxssDistroPath);
     }
 
     if (LxssFileName)
@@ -128,14 +131,21 @@ BOOLEAN PhGetWslDistributionFromPath(
 
         *LxssFileName = lxssFileName;
     }
+    else
+    {
+        if (lxssFileName)
+            PhDereferenceObject(lxssFileName);
+    }
 
     if (LxssDistroName)
     {
+        *LxssDistroName = lxssDistributionName;
+        return TRUE;
+    }
+    else
+    {
         if (lxssDistributionName)
-        {
-            *LxssDistroName = lxssDistributionName;
-            return TRUE;
-        }
+            PhDereferenceObject(lxssDistributionName);
     }
 
     return FALSE;
