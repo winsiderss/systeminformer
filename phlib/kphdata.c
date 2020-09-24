@@ -60,15 +60,12 @@ NTSTATUS KphInitializeDynamicPackage(
     _Out_ PKPH_DYN_PACKAGE Package
     )
 {
-    ULONG majorVersion, minorVersion, servicePack, buildNumber;
-
-    majorVersion = PhOsVersion.dwMajorVersion;
-    minorVersion = PhOsVersion.dwMinorVersion;
-    servicePack = PhOsVersion.wServicePackMajor;
-    buildNumber = PhOsVersion.dwBuildNumber;
+    ULONG majorVersion = PhOsVersion.dwMajorVersion;
+    ULONG minorVersion = PhOsVersion.dwMinorVersion;
+    ULONG servicePack = PhOsVersion.wServicePackMajor;
+    ULONG buildNumber = PhOsVersion.dwBuildNumber;
 
     memset(&Package->StructData, -1, sizeof(KPH_DYN_STRUCT_DATA));
-
     Package->MajorVersion = (USHORT)majorVersion;
     Package->MinorVersion = (USHORT)minorVersion;
     Package->ServicePackMajor = (USHORT)servicePack;
@@ -178,6 +175,10 @@ NTSTATUS KphInitializeDynamicPackage(
         case 19041:
             Package->BuildNumber = 19041;
             Package->ResultingNtVersion = PHNT_20H1;
+            break;
+        case 19042:
+            Package->BuildNumber = 19042;
+            Package->ResultingNtVersion = PHNT_20H2;
             break;
         default:
             return STATUS_NOT_SUPPORTED;
@@ -336,6 +337,10 @@ NTSTATUS KphInitializeDynamicPackage(
         case 19041:
             Package->BuildNumber = 19041;
             Package->ResultingNtVersion = PHNT_20H1;
+            break;
+        case 19042:
+            Package->BuildNumber = 19042;
+            Package->ResultingNtVersion = PHNT_20H2;
             break;
         default:
             return STATUS_NOT_SUPPORTED;

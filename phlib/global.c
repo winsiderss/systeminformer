@@ -167,7 +167,11 @@ VOID PhInitializeWindowsVersion(
     // Windows 10, Windows Server 2016
     else if (majorVersion == 10 && minorVersion == 0)
     {
-        if (buildVersion >= 19041)
+        if (buildVersion >= 19042)
+        {
+            WindowsVersion = WINDOWS_10_20H2;
+        }
+        else if (buildVersion >= 19041)
         {
             WindowsVersion = WINDOWS_10_20H1;
         }
@@ -249,12 +253,15 @@ BOOLEAN PhHeapInitialization(
         if (!PhHeapHandle)
             return FALSE;
 
-        RtlSetHeapInformation(
-            PhHeapHandle,
-            HeapCompatibilityInformation,
-            &(ULONG){ HEAP_COMPATIBILITY_LFH },
-            sizeof(ULONG)
-            );
+        if (WindowsVersion >= WINDOWS_VISTA)
+        {
+            RtlSetHeapInformation(
+                PhHeapHandle,
+                HeapCompatibilityInformation,
+                &(ULONG){ HEAP_COMPATIBILITY_LFH },
+                sizeof(ULONG)
+                );
+        }
     }
 
     return TRUE;
