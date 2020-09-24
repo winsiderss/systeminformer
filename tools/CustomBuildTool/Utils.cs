@@ -40,44 +40,52 @@ namespace CustomBuildTool
             int exitcode = int.MaxValue;
             StringBuilder output = new StringBuilder();
             StringBuilder error = new StringBuilder();
-            ProcessStartInfo config = new ProcessStartInfo
-            {
-                FileName = FileName,
-                Arguments = Arguments,
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true
-            };
 
             try
             {
-                using (Process process = Process.Start(config))
-                using (AutoResetEvent outputWaitHandle = new AutoResetEvent(false))
-                using (AutoResetEvent errorWaitHandle = new AutoResetEvent(false))
+                using (Process process = new Process())
                 {
-                    process.OutputDataReceived += (sender, e) =>
-                    {
-                        if (e.Data == null)
-                            outputWaitHandle.Set();
-                        else
-                            output.AppendLine(e.Data);
-                    };
-                    process.ErrorDataReceived += (sender, e) =>
-                    {
-                        if (e.Data == null)
-                            errorWaitHandle.Set();
-                        else
-                            error.AppendLine(e.Data);
-                    };
+                    process.StartInfo.FileName = FileName;
+                    process.StartInfo.Arguments = Arguments;
+                    process.StartInfo.UseShellExecute = false;
+                    process.StartInfo.RedirectStandardOutput = true;
+                    process.StartInfo.RedirectStandardError = true;
 
-                    process.Start();
-                    process.BeginOutputReadLine();
-                    process.BeginErrorReadLine();
-                    process.WaitForExit();
-
-                    if (outputWaitHandle.WaitOne() && errorWaitHandle.WaitOne())
+                    using (AutoResetEvent outputWaitHandle = new AutoResetEvent(false))
+                    using (AutoResetEvent errorWaitHandle = new AutoResetEvent(false))
                     {
-                        exitcode = process.ExitCode;
+                        process.OutputDataReceived += (sender, e) =>
+                        {
+                            if (e.Data == null)
+                            {
+                                outputWaitHandle.Set();
+                            }
+                            else
+                            {
+                                output.AppendLine(e.Data);
+                            }
+                        };
+                        process.ErrorDataReceived += (sender, e) =>
+                        {
+                            if (e.Data == null)
+                            {
+                                errorWaitHandle.Set();
+                            }
+                            else
+                            {
+                                error.AppendLine(e.Data);
+                            }
+                        };
+
+                        process.Start();
+                        process.BeginOutputReadLine();
+                        process.BeginErrorReadLine();
+                        process.WaitForExit();
+
+                        if (outputWaitHandle.WaitOne() && errorWaitHandle.WaitOne())
+                        {
+                            exitcode = process.ExitCode;
+                        }
                     }
                 }
             }
