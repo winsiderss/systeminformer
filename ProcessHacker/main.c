@@ -987,6 +987,7 @@ VOID PhpShowKphError(
         PhShowError2(
             NULL,
             Message,
+            L"%s",
             L"You will be unable to use more advanced features, view details about system processes or terminate malicious software."
             );
     }
@@ -1003,7 +1004,7 @@ VOID PhpShowKphError(
                 L"\r\n\r\n",
                 L"You will be unable to use more advanced features, view details about system processes or terminate malicious software."
                 );
-            PhShowError2(NULL, Message, statusMessage->Buffer);
+            PhShowError2(NULL, Message, L"%s", statusMessage->Buffer);
             PhDereferenceObject(statusMessage);
             PhDereferenceObject(errorMessage);
         }
@@ -1011,7 +1012,8 @@ VOID PhpShowKphError(
         {
             PhShowError2(
                 NULL, 
-                Message, 
+                Message,
+                L"%s",
                 L"You will be unable to use more advanced features, view details about system processes or terminate malicious software."
                 );
         }
