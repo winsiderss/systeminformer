@@ -5710,16 +5710,40 @@ PPH_STRING PhCreateCacheFile(
     _In_ PPH_STRING FileName
     )
 {
-    static PH_STRINGREF cacheDirectorySr = PH_STRINGREF_INIT(L"%APPDATA%\\Process Hacker\\Cache");
-    PPH_STRING cacheDirectory;
+    static PH_STRINGREF settingsPath = PH_STRINGREF_INIT(L"%APPDATA%\\Process Hacker\\");
+    static PH_STRINGREF settingsSuffix = PH_STRINGREF_INIT(L".settings.xml");
+    static PH_STRINGREF settingsDir = PH_STRINGREF_INIT(L"\\cache");
+    PPH_STRING fileName;
+    PPH_STRING settingsFileName;
+    PPH_STRING cacheDirectory = NULL;
     PPH_STRING cacheFilePath;
     PPH_STRING cacheFullFilePath = NULL;
     ULONG indexOfFileName = ULONG_MAX;
     WCHAR alphastring[16] = L"";
 
-    cacheDirectory = PhExpandEnvironmentStrings(&cacheDirectorySr);
-    PhGenerateRandomAlphaString(alphastring, ARRAYSIZE(alphastring));
+    fileName = PhGetApplicationFileName();
+    settingsFileName = PhConcatStringRef2(&fileName->sr, &settingsSuffix);
+    
+    if (!PhDoesFileExistsWin32(settingsFileName->Buffer))
+    {
+        PPH_STRING directory = PhGetApplicationDirectory();
+        cacheDirectory = PhConcatStringRef2(&directory->sr, &settingsDir);
+        PhDereferenceObject(directory);
+    }
+    else
+    {
+        cacheDirectory = PhConcatStringRef2(&settingsPath, &settingsDir);
+        PhMoveReference(&cacheDirectory, PhExpandEnvironmentStrings(&cacheDirectory->sr));
+    }
 
+    if (PhIsNullOrEmptyString(cacheDirectory))
+    {
+        PhDereferenceObject(settingsFileName);
+        PhDereferenceObject(fileName);
+        return FileName;
+    }
+
+    PhGenerateRandomAlphaString(alphastring, RTL_NUMBER_OF(alphastring));
     cacheFilePath = PhConcatStrings(
         5,
         PhGetStringOrEmpty(cacheDirectory),
@@ -5736,12 +5760,15 @@ PPH_STRING PhCreateCacheFile(
         if (indexOfFileName != ULONG_MAX && (directoryPath = PhSubstring(cacheFullFilePath, 0, indexOfFileName)))
         {
             PhCreateDirectory(directoryPath);
+
             PhDereferenceObject(directoryPath);
         }
     }
 
     PhDereferenceObject(cacheFilePath);
     PhDereferenceObject(cacheDirectory);
+    PhDereferenceObject(settingsFileName);
+    PhDereferenceObject(fileName);
 
     return cacheFullFilePath;
 }
@@ -6054,7 +6081,7 @@ PPH_STRING PhLoadIndirectString(
         }
 
         if (libraryModule = LoadLibraryEx(libraryString->Buffer, NULL, LOAD_LIBRARY_AS_DATAFILE | LOAD_LIBRARY_AS_IMAGE_RESOURCE))
-        { 
+        {
             indirectString = PhLoadString(libraryModule, -index);
             FreeLibrary(libraryModule);
         }
@@ -6606,11 +6633,11 @@ static NTSTATUS PhpFixupLoaderEntryImageImports(
     )
 {
     NTSTATUS status;
-    SIZE_T importDirectorySize;
-    ULONG importDirectoryProtect;
     PIMAGE_DATA_DIRECTORY dataDirectory;
     PIMAGE_IMPORT_DESCRIPTOR importDirectory;
     PVOID importDirectorySectionAddress;
+    SIZE_T importDirectorySectionSize;
+    ULONG importDirectoryProtect;
 
     status = PhGetLoaderEntryImageDirectory(
         BaseAddress,
@@ -6629,7 +6656,7 @@ static NTSTATUS PhpFixupLoaderEntryImageImports(
         ImageNtHeader,
         importDirectory,
         &importDirectorySectionAddress,
-        &importDirectorySize
+        &importDirectorySectionSize
         );
 
     if (!NT_SUCCESS(status))
@@ -6638,7 +6665,7 @@ static NTSTATUS PhpFixupLoaderEntryImageImports(
     status = NtProtectVirtualMemory(
         NtCurrentProcess(),
         &importDirectorySectionAddress,
-        &importDirectorySize,
+        &importDirectorySectionSize,
         PAGE_READWRITE,
         &importDirectoryProtect
         );
@@ -6770,7 +6797,7 @@ static NTSTATUS PhpFixupLoaderEntryImageImports(
     status = NtProtectVirtualMemory(
         NtCurrentProcess(),
         &importDirectorySectionAddress,
-        &importDirectorySize,
+        &importDirectorySectionSize,
         importDirectoryProtect,
         &importDirectoryProtect
         );
