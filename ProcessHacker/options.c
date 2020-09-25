@@ -1897,8 +1897,6 @@ PPH_OPTIONS_ADVANCED_ROOT_NODE AddOptionsAdvancedNode(
     if (Context->TreeFilterSupport.FilterList)
         node->Node.Visible = PhApplyTreeNewFiltersToNode(&Context->TreeFilterSupport, &node->Node);
 
-    TreeNew_NodesStructured(Context->TreeNewHandle);
-
     return node;
 }
 
@@ -2140,14 +2138,11 @@ BOOLEAN NTAPI OptionsAdvancedTreeNewCallback(
             {
             case 'C':
                 if (GetKeyState(VK_CONTROL) < 0)
-                    SendMessage(context->WindowHandle, WM_COMMAND, ID_OBJECT_COPY, 0);
+                    SendMessage(context->WindowHandle, WM_COMMAND, IDC_COPY, 0);
                 break;
             case 'A':
                 if (GetKeyState(VK_CONTROL) < 0)
                     TreeNew_SelectRange(context->TreeNewHandle, 0, -1);
-                break;
-            case VK_DELETE:
-                SendMessage(context->WindowHandle, WM_COMMAND, ID_OBJECT_CLOSE, 0);
                 break;
             }
         }
@@ -2191,8 +2186,6 @@ VOID ClearOptionsAdvancedTree(
     _In_ PPH_OPTIONS_ADVANCED_CONTEXT Context
     )
 {
-    PhDeleteTreeNewFilterSupport(&Context->TreeFilterSupport);
-
     for (ULONG i = 0; i < Context->NodeList->Count; i++)
         DestroyOptionsAdvancedNode(Context->NodeList->Items[i]);
 
@@ -2277,6 +2270,8 @@ VOID DeleteOptionsAdvancedTree(
     _In_ PPH_OPTIONS_ADVANCED_CONTEXT Context
     )
 {
+    PhDeleteTreeNewFilterSupport(&Context->TreeFilterSupport);
+
     OptionsAdvancedSaveSettingsTreeList(Context);
 
     for (ULONG i = 0; i < Context->NodeList->Count; i++)
@@ -2296,7 +2291,6 @@ static BOOLEAN PhpOptionsSettingsCallback(
     PPH_OPTIONS_ADVANCED_CONTEXT context = Context;
 
     AddOptionsAdvancedNode(context, Setting);
-
     return TRUE;
 }
 
@@ -2397,6 +2391,7 @@ INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
             PhAddLayoutItem(&context->LayoutManager, context->TreeNewHandle, NULL, PH_ANCHOR_ALL);
 
             PhEnumSettings(PhpOptionsSettingsCallback, context);
+            TreeNew_NodesStructured(context->TreeNewHandle);
         }
         break;
     case WM_DESTROY:
@@ -2470,6 +2465,15 @@ INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
                     }
 
                     PhDestroyEMenu(menu);
+                }
+                break;
+            case IDC_REFRESH:
+                {
+                    ClearOptionsAdvancedTree(context);
+                    PhEnumSettings(PhpOptionsSettingsCallback, context);
+                    TreeNew_NodesStructured(context->TreeNewHandle);
+
+                    PhApplyTreeNewFilters(&context->TreeFilterSupport);
                 }
                 break;
             case WM_PH_OPTIONS_ADVANCED:
