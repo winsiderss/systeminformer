@@ -24,9 +24,10 @@
 #include <phapp.h>
 
 #include <commdlg.h>
-
+#include <colmgr.h>
 #include <colorbox.h>
 #include <settings.h>
+#include <emenu.h>
 
 #include <mainwnd.h>
 #include <proctree.h>
@@ -1061,9 +1062,12 @@ static VOID PhpAdvancedPageLoad(
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ICON_SINGLE_CLICK, L"IconSingleClick");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ICON_TOGGLE_VISIBILITY, L"IconTogglesVisibility");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_PROPAGATE_CPU_USAGE, L"PropagateCpuUsage");
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_SHOW_ADVANCED_OPTIONS, L"EnableAdvancedOptions");
 
     if (CurrentUserRunPresent)
         ListView_SetCheckState(listViewHandle, PHP_OPTIONS_INDEX_START_ATLOGON, TRUE);
+    if (PhGetIntegerSetting(L"EnableAdvancedOptions"))
+        PhpOptionsShowHideTreeViewItem(FALSE);
 }
 
 static VOID PhpOptionsNotifyChangeCallback(
@@ -1154,6 +1158,7 @@ static VOID PhpAdvancedPageSave(
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ICON_SINGLE_CLICK, L"IconSingleClick");
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ICON_TOGGLE_VISIBILITY, L"IconTogglesVisibility");
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_PROPAGATE_CPU_USAGE, L"PropagateCpuUsage");
+    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_SHOW_ADVANCED_OPTIONS, L"EnableAdvancedOptions");
 
     if (PhGetIntegerSetting(L"EnableThemeSupport"))
     {
@@ -1596,37 +1601,6 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
     return FALSE;
 }
 
-static BOOLEAN PhpOptionsSettingsCallback(
-    _In_ PPH_SETTING Setting,
-    _In_ PVOID Context
-    )
-{
-    INT lvItemIndex;
-
-    lvItemIndex = PhAddListViewItem(Context, MAXINT, Setting->Name.Buffer, Setting);
-
-    switch (Setting->Type)
-    {
-    case StringSettingType:
-        PhSetListViewSubItem(Context, lvItemIndex, 1, L"String");
-        break;
-    case IntegerSettingType:
-        PhSetListViewSubItem(Context, lvItemIndex, 1, L"Integer");
-        break;
-    case IntegerPairSettingType:
-        PhSetListViewSubItem(Context, lvItemIndex, 1, L"IntegerPair");
-        break;
-    case ScalableIntegerPairSettingType:
-        PhSetListViewSubItem(Context, lvItemIndex, 1, L"ScalableIntegerPair");
-        break;
-    }
-
-    PhSetListViewSubItem(Context, lvItemIndex, 2, PH_AUTO_T(PH_STRING, PhSettingToString(Setting->Type, Setting))->Buffer);
-    PhSetListViewSubItem(Context, lvItemIndex, 3, Setting->DefaultValue.Buffer);
-
-    return TRUE;
-}
-
 static INT_PTR CALLBACK PhpOptionsAdvancedEditDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -1713,6 +1687,676 @@ static INT_PTR CALLBACK PhpOptionsAdvancedEditDlgProc(
     return FALSE;
 }
 
+#pragma region Plugin TreeList
+
+#define WM_PH_OPTIONS_ADVANCED (WM_APP + 451)
+
+typedef struct _PH_OPTIONS_ADVANCED_CONTEXT
+{
+    PH_LAYOUT_MANAGER LayoutManager;
+
+    HWND WindowHandle;
+    HWND TreeNewHandle;
+    HWND SearchBoxHandle;
+
+    union
+    {
+        ULONG Flags;
+        struct
+        {
+            ULONG HideModified : 1;
+            ULONG HideDefault : 1;
+            ULONG HighlightModified : 1;
+            ULONG HighlightDefault : 1;
+            ULONG Spare : 28;
+        };
+    };
+
+    ULONG TreeNewSortColumn;
+    PH_SORT_ORDER TreeNewSortOrder;
+    PH_TN_FILTER_SUPPORT TreeFilterSupport;
+    PPH_TN_FILTER_ENTRY TreeFilterEntry;
+    PPH_HASHTABLE NodeHashtable;
+    PPH_LIST NodeList;
+    PPH_STRING SearchBoxText;
+} PH_OPTIONS_ADVANCED_CONTEXT, *PPH_OPTIONS_ADVANCED_CONTEXT;
+
+typedef enum _PH_OPTIONS_ADVANCED_TREE_ITEM_MENU
+{
+    PH_OPTIONS_ADVANCED_TREE_ITEM_MENU_HIDE_MODIFIED,
+    PH_OPTIONS_ADVANCED_TREE_ITEM_MENU_HIDE_DEFAULT,
+    PH_OPTIONS_ADVANCED_TREE_ITEM_MENU_HIGHLIGHT_MODIFIED,
+    PH_OPTIONS_ADVANCED_TREE_ITEM_MENU_HIGHLIGHT_DEFAULT,
+} PH_OPTIONS_ADVANCED_ITEM_MENU;
+
+typedef enum _PH_OPTIONS_ADVANCED_COLUMN_ITEM
+{
+    PH_OPTIONS_ADVANCED_COLUMN_ITEM_NAME,
+    PH_OPTIONS_ADVANCED_COLUMN_ITEM_TYPE,
+    PH_OPTIONS_ADVANCED_COLUMN_ITEM_VALUE,
+    PH_OPTIONS_ADVANCED_COLUMN_ITEM_DEFAULT,
+    PH_OPTIONS_ADVANCED_COLUMN_ITEM_MAXIMUM
+} PH_OPTIONS_ADVANCED_COLUMN_ITEM;
+
+typedef struct _PH_OPTIONS_ADVANCED_ROOT_NODE
+{
+    PH_TREENEW_NODE Node;
+
+    PH_SETTING_TYPE Type;
+    PPH_SETTING Setting;
+    PPH_STRING Name;
+    PPH_STRING ValueString;
+    PPH_STRING DefaultString;
+
+    PH_STRINGREF TextCache[PH_OPTIONS_ADVANCED_COLUMN_ITEM_MAXIMUM];
+} PH_OPTIONS_ADVANCED_ROOT_NODE, *PPH_OPTIONS_ADVANCED_ROOT_NODE;
+
+
+#define SORT_FUNCTION(Column) OptionsAdvancedTreeNewCompare##Column
+#define BEGIN_SORT_FUNCTION(Column) static int __cdecl OptionsAdvancedTreeNewCompare##Column( \
+    _In_ void *_context, \
+    _In_ const void *_elem1, \
+    _In_ const void *_elem2 \
+    ) \
+{ \
+    PPH_OPTIONS_ADVANCED_ROOT_NODE node1 = *(PPH_OPTIONS_ADVANCED_ROOT_NODE*)_elem1; \
+    PPH_OPTIONS_ADVANCED_ROOT_NODE node2 = *(PPH_OPTIONS_ADVANCED_ROOT_NODE*)_elem2; \
+    int sortResult = 0;
+
+#define END_SORT_FUNCTION \
+    if (sortResult == 0) \
+        sortResult = uintptrcmp((ULONG_PTR)node1->Node.Index, (ULONG_PTR)node2->Node.Index); \
+    \
+    return PhModifySort(sortResult, ((PPH_OPTIONS_ADVANCED_CONTEXT)_context)->TreeNewSortOrder); \
+}
+
+BEGIN_SORT_FUNCTION(Name)
+{
+    sortResult = PhCompareString(node1->Name, node2->Name, TRUE);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(Type)
+{
+    sortResult = uintcmp(node1->Type, node2->Type);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(Value)
+{
+    sortResult = PhCompareString(node1->ValueString, node2->ValueString, TRUE);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(Default)
+{
+    sortResult = PhCompareString(node1->DefaultString, node2->DefaultString, TRUE);
+}
+END_SORT_FUNCTION
+
+VOID OptionsAdvancedLoadSettingsTreeList(
+    _Inout_ PPH_OPTIONS_ADVANCED_CONTEXT Context
+    )
+{
+    PPH_STRING settings;
+
+    settings = PhGetStringSetting(L"OptionsWindowAdvancedColumns");
+    Context->Flags = PhGetIntegerSetting(L"OptionsWindowAdvancedFlags");
+    PhCmLoadSettings(Context->TreeNewHandle, &settings->sr);
+    PhDereferenceObject(settings);
+}
+
+VOID OptionsAdvancedSaveSettingsTreeList(
+    _Inout_ PPH_OPTIONS_ADVANCED_CONTEXT Context
+    )
+{
+    PPH_STRING settings;
+
+    settings = PhCmSaveSettings(Context->TreeNewHandle);
+    PhSetStringSetting2(L"OptionsWindowAdvancedColumns", &settings->sr);
+    PhSetIntegerSetting(L"OptionsWindowAdvancedFlags", Context->Flags);
+    PhDereferenceObject(settings);
+}
+
+VOID OptionsAdvancedSetOptionsTreeList(
+    _Inout_ PPH_OPTIONS_ADVANCED_CONTEXT Context,
+    _In_ ULONG Options
+    )
+{
+    switch (Options)
+    {
+    case PH_OPTIONS_ADVANCED_TREE_ITEM_MENU_HIDE_MODIFIED:
+        Context->HideModified = !Context->HideModified;
+        break;
+    case PH_OPTIONS_ADVANCED_TREE_ITEM_MENU_HIDE_DEFAULT:
+        Context->HideDefault = !Context->HideDefault;
+        break;
+    case PH_OPTIONS_ADVANCED_TREE_ITEM_MENU_HIGHLIGHT_MODIFIED:
+        Context->HighlightModified = !Context->HighlightModified;
+        break;
+    case PH_OPTIONS_ADVANCED_TREE_ITEM_MENU_HIGHLIGHT_DEFAULT:
+        Context->HighlightDefault = !Context->HighlightDefault;
+        break;
+    }
+}
+
+BOOLEAN OptionsAdvancedNodeHashtableEqualFunction(
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
+    )
+{
+    PPH_OPTIONS_ADVANCED_ROOT_NODE node1 = *(PPH_OPTIONS_ADVANCED_ROOT_NODE*)Entry1;
+    PPH_OPTIONS_ADVANCED_ROOT_NODE node2 = *(PPH_OPTIONS_ADVANCED_ROOT_NODE*)Entry2;
+
+    return PhEqualString(node1->Name, node2->Name, TRUE);
+}
+
+ULONG OptionsAdvancedNodeHashtableHashFunction(
+    _In_ PVOID Entry
+    )
+{
+    return PhHashStringRef(&(*(PPH_OPTIONS_ADVANCED_ROOT_NODE*)Entry)->Name->sr, TRUE);
+}
+
+VOID DestroyOptionsAdvancedNode(
+    _In_ PPH_OPTIONS_ADVANCED_ROOT_NODE Node
+    )
+{
+    PhClearReference(&Node->Name);
+    PhClearReference(&Node->ValueString);
+    PhClearReference(&Node->DefaultString);
+
+    PhFree(Node);
+}
+
+PPH_OPTIONS_ADVANCED_ROOT_NODE AddOptionsAdvancedNode(
+    _Inout_ PPH_OPTIONS_ADVANCED_CONTEXT Context,
+    _In_ PPH_SETTING Setting
+    )
+{
+    PPH_OPTIONS_ADVANCED_ROOT_NODE node;
+
+    node = PhAllocate(sizeof(PH_OPTIONS_ADVANCED_ROOT_NODE));
+    memset(node, 0, sizeof(PH_OPTIONS_ADVANCED_ROOT_NODE));
+
+    PhInitializeTreeNewNode(&node->Node);
+
+    memset(node->TextCache, 0, sizeof(PH_STRINGREF) * PH_OPTIONS_ADVANCED_COLUMN_ITEM_MAXIMUM);
+    node->Node.TextCache = node->TextCache;
+    node->Node.TextCacheSize = PH_OPTIONS_ADVANCED_COLUMN_ITEM_MAXIMUM;
+
+    node->Setting = Setting;
+    node->Type = Setting->Type;
+    node->Name = PhCreateString2(&Setting->Name);
+    node->ValueString = PhSettingToString(Setting->Type, Setting);
+    node->DefaultString = PhCreateString2(&Setting->DefaultValue);
+
+    PhAddEntryHashtable(Context->NodeHashtable, &node);
+    PhAddItemList(Context->NodeList, node);
+
+    if (Context->TreeFilterSupport.FilterList)
+        node->Node.Visible = PhApplyTreeNewFiltersToNode(&Context->TreeFilterSupport, &node->Node);
+
+    TreeNew_NodesStructured(Context->TreeNewHandle);
+
+    return node;
+}
+
+PPH_OPTIONS_ADVANCED_ROOT_NODE FindOptionsAdvancedNode(
+    _In_ PPH_OPTIONS_ADVANCED_CONTEXT Context,
+    _In_ PPH_STRING Name
+    )
+{
+    PH_OPTIONS_ADVANCED_ROOT_NODE lookupPluginsNode;
+    PPH_OPTIONS_ADVANCED_ROOT_NODE lookupPluginsNodePtr = &lookupPluginsNode;
+    PPH_OPTIONS_ADVANCED_ROOT_NODE* pluginsNode;
+
+    lookupPluginsNode.Name = Name;
+
+    pluginsNode = (PPH_OPTIONS_ADVANCED_ROOT_NODE*)PhFindEntryHashtable(
+        Context->NodeHashtable,
+        &lookupPluginsNodePtr
+        );
+
+    if (pluginsNode)
+        return *pluginsNode;
+    else
+        return NULL;
+}
+
+VOID RemoveOptionsAdvancedNode(
+    _In_ PPH_OPTIONS_ADVANCED_CONTEXT Context,
+    _In_ PPH_OPTIONS_ADVANCED_ROOT_NODE Node
+    )
+{
+    ULONG index = 0;
+
+    PhRemoveEntryHashtable(Context->NodeHashtable, &Node);
+
+    if ((index = PhFindItemList(Context->NodeList, Node)) != ULONG_MAX)
+    {
+        PhRemoveItemList(Context->NodeList, index);
+    }
+
+    DestroyOptionsAdvancedNode(Node);
+    TreeNew_NodesStructured(Context->TreeNewHandle);
+}
+
+VOID UpdateOptionsAdvancedNode(
+    _In_ PPH_OPTIONS_ADVANCED_CONTEXT Context,
+    _In_ PPH_OPTIONS_ADVANCED_ROOT_NODE Node
+    )
+{
+    memset(Node->TextCache, 0, sizeof(PH_STRINGREF) * PH_OPTIONS_ADVANCED_COLUMN_ITEM_MAXIMUM);
+
+    PhInvalidateTreeNewNode(&Node->Node, TN_CACHE_COLOR);
+    TreeNew_NodesStructured(Context->TreeNewHandle);
+}
+
+BOOLEAN NTAPI OptionsAdvancedTreeNewCallback(
+    _In_ HWND hwnd,
+    _In_ PH_TREENEW_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_OPTIONS_ADVANCED_CONTEXT context = Context;
+    PPH_OPTIONS_ADVANCED_ROOT_NODE node;
+
+    if (!context)
+        return FALSE;
+
+    switch (Message)
+    {
+    case TreeNewGetChildren:
+        {
+            PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
+
+            if (!getChildren)
+                break;
+
+            node = (PPH_OPTIONS_ADVANCED_ROOT_NODE)getChildren->Node;
+
+            if (!getChildren->Node)
+            {
+                static PVOID sortFunctions[] =
+                {
+                    SORT_FUNCTION(Name),
+                    SORT_FUNCTION(Type),
+                    SORT_FUNCTION(Value),
+                    SORT_FUNCTION(Default),
+                };
+                int(__cdecl * sortFunction)(void*, const void*, const void*);
+
+                if (context->TreeNewSortColumn < PH_OPTIONS_ADVANCED_COLUMN_ITEM_MAXIMUM)
+                    sortFunction = sortFunctions[context->TreeNewSortColumn];
+                else
+                    sortFunction = NULL;
+
+                if (sortFunction)
+                {
+                    qsort_s(context->NodeList->Items, context->NodeList->Count, sizeof(PVOID), sortFunction, context);
+                }
+
+                getChildren->Children = (PPH_TREENEW_NODE*)context->NodeList->Items;
+                getChildren->NumberOfChildren = context->NodeList->Count;
+            }
+        }
+        return TRUE;
+    case TreeNewIsLeaf:
+        {
+            PPH_TREENEW_IS_LEAF isLeaf = (PPH_TREENEW_IS_LEAF)Parameter1;
+
+            if (!isLeaf)
+                break;
+
+            node = (PPH_OPTIONS_ADVANCED_ROOT_NODE)isLeaf->Node;
+
+            isLeaf->IsLeaf = TRUE;
+        }
+        return TRUE;
+    case TreeNewGetCellText:
+        {
+            PPH_TREENEW_GET_CELL_TEXT getCellText = (PPH_TREENEW_GET_CELL_TEXT)Parameter1;
+
+            if (!getCellText)
+                break;
+
+            node = (PPH_OPTIONS_ADVANCED_ROOT_NODE)getCellText->Node;
+
+            switch (getCellText->Id)
+            {
+            case PH_OPTIONS_ADVANCED_COLUMN_ITEM_NAME:
+                getCellText->Text = PhGetStringRef(node->Name);
+                break;
+            case PH_OPTIONS_ADVANCED_COLUMN_ITEM_TYPE:
+                {
+                    switch (node->Type)
+                    {
+                    case StringSettingType:
+                        PhInitializeStringRef(&getCellText->Text, L"String");
+                        break;
+                    case IntegerSettingType:
+                        PhInitializeStringRef(&getCellText->Text, L"Integer");
+                        break;
+                    case IntegerPairSettingType:
+                        PhInitializeStringRef(&getCellText->Text, L"IntegerPair");
+                        break;
+                    case ScalableIntegerPairSettingType:
+                        PhInitializeStringRef(&getCellText->Text, L"ScalableIntegerPair");
+                        break;
+                    }
+                }
+                break;
+            case PH_OPTIONS_ADVANCED_COLUMN_ITEM_VALUE:
+                getCellText->Text = PhGetStringRef(node->ValueString);
+                break;
+            case PH_OPTIONS_ADVANCED_COLUMN_ITEM_DEFAULT:
+                getCellText->Text = PhGetStringRef(node->DefaultString);
+                break;
+            default:
+                return FALSE;
+            }
+
+            getCellText->Flags = TN_CACHE;
+        }
+        return TRUE;
+    case TreeNewGetNodeColor:
+        {
+            PPH_TREENEW_GET_NODE_COLOR getNodeColor = Parameter1;
+
+            if (!getNodeColor)
+                break;
+
+            node = (PPH_OPTIONS_ADVANCED_ROOT_NODE)getNodeColor->Node;
+
+            switch (node->Type)
+            {
+            case StringSettingType:
+            case IntegerPairSettingType:
+            case ScalableIntegerPairSettingType:
+                {
+                    if (PhEqualString(node->DefaultString, node->ValueString, TRUE))
+                    {
+                        if (context->HighlightDefault)
+                        {
+                            getNodeColor->BackColor = PhCsColorServiceProcesses;
+                        }
+                    }
+                    else
+                    {
+                        if (context->HighlightModified)
+                        {
+                            getNodeColor->BackColor = PhCsColorSystemProcesses;
+                        }
+                    }
+                }
+                break;
+            case IntegerSettingType:
+                {
+                    ULONG64 integer;
+
+                    if (PhStringToInteger64(&node->DefaultString->sr, 16, &integer))
+                    {
+                        if (node->Setting->u.Integer == (ULONG)integer)
+                        {
+                            if (context->HighlightDefault)
+                            {
+                                getNodeColor->BackColor = PhCsColorServiceProcesses;
+                            }
+                        }
+                        else
+                        {
+                            if (context->HighlightModified)
+                            {
+                                getNodeColor->BackColor = PhCsColorSystemProcesses;
+                            }
+                        }
+                    }
+
+                }
+                break;
+            }
+
+            getNodeColor->Flags = TN_AUTO_FORECOLOR;
+        }
+        return TRUE;
+    case TreeNewSortChanged:
+        {
+            TreeNew_GetSort(hwnd, &context->TreeNewSortColumn, &context->TreeNewSortOrder);
+            // Force a rebuild to sort the items.
+            TreeNew_NodesStructured(hwnd);
+        }
+        return TRUE;
+    case TreeNewKeyDown:
+        {
+            PPH_TREENEW_KEY_EVENT keyEvent = Parameter1;
+
+            if (!keyEvent)
+                break;
+
+            switch (keyEvent->VirtualKey)
+            {
+            case 'C':
+                if (GetKeyState(VK_CONTROL) < 0)
+                    SendMessage(context->WindowHandle, WM_COMMAND, ID_OBJECT_COPY, 0);
+                break;
+            case 'A':
+                if (GetKeyState(VK_CONTROL) < 0)
+                    TreeNew_SelectRange(context->TreeNewHandle, 0, -1);
+                break;
+            case VK_DELETE:
+                SendMessage(context->WindowHandle, WM_COMMAND, ID_OBJECT_CLOSE, 0);
+                break;
+            }
+        }
+        return TRUE;
+    case TreeNewLeftDoubleClick:
+        {
+            PPH_TREENEW_MOUSE_EVENT mouseEvent = Parameter1;
+
+            SendMessage(context->WindowHandle, WM_COMMAND, WM_PH_OPTIONS_ADVANCED, (LPARAM)mouseEvent);
+        }
+        return TRUE;
+    case TreeNewContextMenu:
+        {
+            PPH_TREENEW_CONTEXT_MENU contextMenuEvent = Parameter1;
+
+            SendMessage(context->WindowHandle, WM_COMMAND, WM_CONTEXTMENU, (LPARAM)contextMenuEvent);
+        }
+        return TRUE;
+    case TreeNewHeaderRightClick:
+        {
+            PH_TN_COLUMN_MENU_DATA data;
+
+            data.TreeNewHandle = hwnd;
+            data.MouseEvent = Parameter1;
+            data.DefaultSortColumn = 0;
+            data.DefaultSortOrder = AscendingSortOrder;
+            PhInitializeTreeNewColumnMenu(&data);
+
+            data.Selection = PhShowEMenu(data.Menu, hwnd, PH_EMENU_SHOW_LEFTRIGHT,
+                PH_ALIGN_LEFT | PH_ALIGN_TOP, data.MouseEvent->ScreenLocation.x, data.MouseEvent->ScreenLocation.y);
+            PhHandleTreeNewColumnMenu(&data);
+            PhDeleteTreeNewColumnMenu(&data);
+        }
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+VOID ClearOptionsAdvancedTree(
+    _In_ PPH_OPTIONS_ADVANCED_CONTEXT Context
+    )
+{
+    PhDeleteTreeNewFilterSupport(&Context->TreeFilterSupport);
+
+    for (ULONG i = 0; i < Context->NodeList->Count; i++)
+        DestroyOptionsAdvancedNode(Context->NodeList->Items[i]);
+
+    PhClearHashtable(Context->NodeHashtable);
+    PhClearList(Context->NodeList);
+
+    TreeNew_NodesStructured(Context->TreeNewHandle);
+}
+
+PPH_OPTIONS_ADVANCED_ROOT_NODE GetSelectedOptionsAdvancedNode(
+    _In_ PPH_OPTIONS_ADVANCED_CONTEXT Context
+    )
+{
+    PPH_OPTIONS_ADVANCED_ROOT_NODE windowNode = NULL;
+
+    for (ULONG i = 0; i < Context->NodeList->Count; i++)
+    {
+        windowNode = Context->NodeList->Items[i];
+
+        if (windowNode->Node.Selected)
+            return windowNode;
+    }
+
+    return NULL;
+}
+
+VOID GetSelectedOptionsAdvancedNodes(
+    _In_ PPH_OPTIONS_ADVANCED_CONTEXT Context,
+    _Out_ PPH_OPTIONS_ADVANCED_ROOT_NODE** PluginsNodes,
+    _Out_ PULONG NumberOfPluginsNodes
+    )
+{
+    PPH_LIST list;
+
+    list = PhCreateList(2);
+
+    for (ULONG i = 0; i < Context->NodeList->Count; i++)
+    {
+        PPH_OPTIONS_ADVANCED_ROOT_NODE node = Context->NodeList->Items[i];
+
+        if (node->Node.Selected)
+        {
+            PhAddItemList(list, node);
+        }
+    }
+
+    *PluginsNodes = PhAllocateCopy(list->Items, sizeof(PVOID) * list->Count);
+    *NumberOfPluginsNodes = list->Count;
+
+    PhDereferenceObject(list);
+}
+
+VOID InitializeOptionsAdvancedTree(
+    _Inout_ PPH_OPTIONS_ADVANCED_CONTEXT Context
+    )
+{
+    Context->NodeList = PhCreateList(100);
+    Context->NodeHashtable = PhCreateHashtable(
+        sizeof(PPH_OPTIONS_ADVANCED_ROOT_NODE),
+        OptionsAdvancedNodeHashtableEqualFunction,
+        OptionsAdvancedNodeHashtableHashFunction,
+        100
+        );
+
+    PhSetControlTheme(Context->TreeNewHandle, L"explorer");
+
+    TreeNew_SetCallback(Context->TreeNewHandle, OptionsAdvancedTreeNewCallback, Context);
+
+    PhAddTreeNewColumnEx(Context->TreeNewHandle, PH_OPTIONS_ADVANCED_COLUMN_ITEM_NAME, TRUE, L"Name", 200, PH_ALIGN_LEFT, 0, 0, TRUE);
+    PhAddTreeNewColumnEx(Context->TreeNewHandle, PH_OPTIONS_ADVANCED_COLUMN_ITEM_TYPE, TRUE, L"Type", 100, PH_ALIGN_LEFT, 1, 0, TRUE);
+    PhAddTreeNewColumnEx(Context->TreeNewHandle, PH_OPTIONS_ADVANCED_COLUMN_ITEM_VALUE, TRUE, L"Value", 200, PH_ALIGN_LEFT, 2, 0, TRUE);
+    PhAddTreeNewColumnEx(Context->TreeNewHandle, PH_OPTIONS_ADVANCED_COLUMN_ITEM_DEFAULT, TRUE, L"Default", 200, PH_ALIGN_LEFT, 3, 0, TRUE);
+
+    TreeNew_SetTriState(Context->TreeNewHandle, TRUE);
+
+    PhInitializeTreeNewFilterSupport(&Context->TreeFilterSupport, Context->TreeNewHandle, Context->NodeList);
+
+    OptionsAdvancedLoadSettingsTreeList(Context);
+}
+
+VOID DeleteOptionsAdvancedTree(
+    _In_ PPH_OPTIONS_ADVANCED_CONTEXT Context
+    )
+{
+    OptionsAdvancedSaveSettingsTreeList(Context);
+
+    for (ULONG i = 0; i < Context->NodeList->Count; i++)
+        DestroyOptionsAdvancedNode(Context->NodeList->Items[i]);
+
+    PhDereferenceObject(Context->NodeHashtable);
+    PhDereferenceObject(Context->NodeList);
+}
+
+#pragma endregion
+
+static BOOLEAN PhpOptionsSettingsCallback(
+    _In_ PPH_SETTING Setting,
+    _In_ PVOID Context
+    )
+{
+    PPH_OPTIONS_ADVANCED_CONTEXT context = Context;
+
+    AddOptionsAdvancedNode(context, Setting);
+
+    return TRUE;
+}
+
+static BOOLEAN PhpWordMatchHandleStringRef(
+    _In_ PPH_STRING SearchText,
+    _In_ PPH_STRINGREF Text
+    )
+{
+    PH_STRINGREF part;
+    PH_STRINGREF remainingPart;
+
+    remainingPart = SearchText->sr;
+
+    while (remainingPart.Length)
+    {
+        PhSplitStringRefAtChar(&remainingPart, L'|', &part, &remainingPart);
+
+        if (part.Length)
+        {
+            if (PhFindStringInStringRef(Text, &part, TRUE) != -1)
+                return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
+static BOOLEAN PhpWordMatchHandleStringZ(
+    _In_ PPH_STRING SearchText,
+    _In_ PWSTR Text
+    )
+{
+    PH_STRINGREF text;
+
+    PhInitializeStringRef(&text, Text);
+
+    return PhpWordMatchHandleStringRef(SearchText, &text);
+}
+
+BOOLEAN PhpOptionsAdvancedTreeFilterCallback(
+    _In_ PPH_TREENEW_NODE Node,
+    _In_ PVOID Context
+    )
+{
+    PPH_OPTIONS_ADVANCED_ROOT_NODE node = (PPH_OPTIONS_ADVANCED_ROOT_NODE)Node;
+    PPH_OPTIONS_ADVANCED_CONTEXT context = Context;
+
+    if (PhIsNullOrEmptyString(context->SearchBoxText))
+        return TRUE;
+
+    if (PhpWordMatchHandleStringRef(context->SearchBoxText, &node->Name->sr))
+        return TRUE;  
+    if (PhpWordMatchHandleStringRef(context->SearchBoxText, &node->DefaultString->sr))
+        return TRUE;
+    if (PhpWordMatchHandleStringRef(context->SearchBoxText, &node->ValueString->sr))
+        return TRUE;
+
+    return FALSE;
+}
+
 INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -1720,69 +2364,158 @@ INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
     _In_ LPARAM lParam
     )
 {
-    static PH_LAYOUT_MANAGER LayoutManager;
+    PPH_OPTIONS_ADVANCED_CONTEXT context;
+
+    if (uMsg == WM_INITDIALOG)
+    {
+        context = PhAllocateZero(sizeof(PH_OPTIONS_ADVANCED_CONTEXT));
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+    }
+    else
+    {
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+    }
+
+    if (!context)
+        return FALSE;
 
     switch (uMsg)
     {
     case WM_INITDIALOG:
         {
-            HWND listviewHandle;
+            context->WindowHandle = hwndDlg;
+            context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_SETTINGS);
+            context->SearchBoxHandle = GetDlgItem(hwndDlg, IDC_SEARCH);
 
-            listviewHandle = GetDlgItem(hwndDlg, IDC_SETTINGS);
+            PhCreateSearchControl(hwndDlg, context->SearchBoxHandle, L"Search settings...");
+            InitializeOptionsAdvancedTree(context);
+            context->SearchBoxText = PhReferenceEmptyString();
+            context->TreeFilterEntry = PhAddTreeNewFilter(&context->TreeFilterSupport, PhpOptionsAdvancedTreeFilterCallback, context);
 
-            PhInitializeLayoutManager(&LayoutManager, hwndDlg);
-            PhAddLayoutItem(&LayoutManager, listviewHandle, NULL, PH_ANCHOR_ALL);
+            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhAddLayoutItem(&context->LayoutManager, context->SearchBoxHandle, NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&context->LayoutManager, context->TreeNewHandle, NULL, PH_ANCHOR_ALL);
 
-            PhSetListViewStyle(listviewHandle, FALSE, TRUE);
-            PhSetControlTheme(listviewHandle, L"explorer");
-            PhAddListViewColumn(listviewHandle, 0, 0, 0, LVCFMT_LEFT, 180, L"Name");
-            PhAddListViewColumn(listviewHandle, 1, 1, 1, LVCFMT_LEFT, 80, L"Type");
-            PhAddListViewColumn(listviewHandle, 2, 2, 2, LVCFMT_LEFT, 80, L"Value");
-            PhAddListViewColumn(listviewHandle, 3, 3, 3, LVCFMT_LEFT, 80, L"Default");
-            PhSetExtendedListView(listviewHandle);
-
-            PhEnumSettings(PhpOptionsSettingsCallback, listviewHandle);
-            ExtendedListView_SortItems(listviewHandle);
+            PhEnumSettings(PhpOptionsSettingsCallback, context);
         }
         break;
     case WM_DESTROY:
         {
-            PhDeleteLayoutManager(&LayoutManager);
+            if (context->SearchBoxText)
+                PhDereferenceObject(context->SearchBoxText);
+
+            PhDeleteLayoutManager(&context->LayoutManager);
+
+            PhRemoveTreeNewFilter(&context->TreeFilterSupport, context->TreeFilterEntry);
+            DeleteOptionsAdvancedTree(context);
         }
         break;
     case WM_SIZE:
         {
-            PhLayoutManagerLayout(&LayoutManager);
+            PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
-    case WM_NOTIFY:
+    case WM_COMMAND:
         {
-            LPNMHDR header = (LPNMHDR)lParam;
-
-            switch (header->code)
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
-            case NM_DBLCLK:
+            case IDOK:
+            case IDCANCEL:
                 {
-                    if (header->idFrom == IDC_SETTINGS)
+                    DestroyWindow(hwndDlg);
+                }
+                break;
+            case IDC_FILTEROPTIONS:
+                {
+                    RECT rect;
+                    PPH_EMENU menu;
+                    PPH_EMENU_ITEM hidemodifiedMenuItem;
+                    PPH_EMENU_ITEM hidedefaultMenuItem;
+                    PPH_EMENU_ITEM highlightmodifiedMenuItem;
+                    PPH_EMENU_ITEM highlightdefaultMenuItem;
+                    PPH_EMENU_ITEM selectedItem;
+
+                    GetWindowRect(GetDlgItem(hwndDlg, IDC_FILTEROPTIONS), &rect);
+
+                    menu = PhCreateEMenu();
+                    PhInsertEMenuItem(menu, hidemodifiedMenuItem = PhCreateEMenuItem(0, PH_OPTIONS_ADVANCED_TREE_ITEM_MENU_HIDE_MODIFIED, L"Hide modified", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, hidedefaultMenuItem = PhCreateEMenuItem(0, PH_OPTIONS_ADVANCED_TREE_ITEM_MENU_HIDE_DEFAULT, L"Hide default", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+                    PhInsertEMenuItem(menu, highlightmodifiedMenuItem = PhCreateEMenuItem(0, PH_OPTIONS_ADVANCED_TREE_ITEM_MENU_HIGHLIGHT_MODIFIED, L"Highlight modified", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, highlightdefaultMenuItem = PhCreateEMenuItem(0, PH_OPTIONS_ADVANCED_TREE_ITEM_MENU_HIGHLIGHT_DEFAULT, L"Highlight default", NULL, NULL), ULONG_MAX);
+
+                    if (context->HideModified)
+                        hidemodifiedMenuItem->Flags |= PH_EMENU_CHECKED;
+                    if (context->HideDefault)
+                        hidedefaultMenuItem->Flags |= PH_EMENU_CHECKED;
+                    if (context->HighlightModified)
+                        highlightmodifiedMenuItem->Flags |= PH_EMENU_CHECKED;
+                    if (context->HighlightDefault)
+                        highlightdefaultMenuItem->Flags |= PH_EMENU_CHECKED;
+
+                    selectedItem = PhShowEMenu(
+                        menu,
+                        hwndDlg,
+                        PH_EMENU_SHOW_LEFTRIGHT,
+                        PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                        rect.left,
+                        rect.bottom
+                        );
+
+                    if (selectedItem && selectedItem->Id)
                     {
-                        PPH_SETTING setting;
-                        INT index;
+                        OptionsAdvancedSetOptionsTreeList(context, selectedItem->Id);
 
-                        if (setting = PhGetSelectedListViewItemParam(header->hwndFrom))
+                        PhApplyTreeNewFilters(&context->TreeFilterSupport);
+                    }
+
+                    PhDestroyEMenu(menu);
+                }
+                break;
+            case WM_PH_OPTIONS_ADVANCED:
+                {
+                    PPH_OPTIONS_ADVANCED_ROOT_NODE node;
+
+                    if (node = GetSelectedOptionsAdvancedNode(context))
+                    {
+                        DialogBoxParam(
+                            PhInstanceHandle,
+                            MAKEINTRESOURCE(IDD_EDITENV),
+                            hwndDlg,
+                            PhpOptionsAdvancedEditDlgProc,
+                            (LPARAM)node->Setting
+                            );
+
+                        TreeNew_NodesStructured(context->TreeNewHandle);
+                    }
+                }
+                break;
+            }
+
+            switch (GET_WM_COMMAND_CMD(wParam, lParam))
+            {
+            case EN_CHANGE:
+                {
+                    PPH_STRING newSearchboxText;
+
+                    if (!context->SearchBoxHandle)
+                        break;
+
+                    if (GET_WM_COMMAND_HWND(wParam, lParam) != context->SearchBoxHandle)
+                        break;
+
+                    newSearchboxText = PH_AUTO(PhGetWindowText(context->SearchBoxHandle));
+
+                    if (!PhEqualString(context->SearchBoxText, newSearchboxText, FALSE))
+                    {
+                        PhSwapReference(&context->SearchBoxText, newSearchboxText);
+
+                        if (!PhIsNullOrEmptyString(context->SearchBoxText))
                         {
-                            DialogBoxParam(
-                                PhInstanceHandle,
-                                MAKEINTRESOURCE(IDD_EDITENV),
-                                hwndDlg,
-                                PhpOptionsAdvancedEditDlgProc,
-                                (LPARAM)setting
-                                );
-
-                            if ((index = PhFindListViewItemByFlags(header->hwndFrom, -1, LVNI_SELECTED)) != -1)
-                            {
-                                PhSetListViewSubItem(header->hwndFrom, index, 2, PH_AUTO_T(PH_STRING, PhSettingToString(setting->Type, setting))->Buffer);
-                            }
+                            // Expand the nodes?
                         }
+
+                        PhApplyTreeNewFilters(&context->TreeFilterSupport);
                     }
                 }
                 break;
@@ -1790,6 +2523,8 @@ INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
         }
         break;
     }
+
+    REFLECT_MESSAGE_DLG(hwndDlg, context->TreeNewHandle, uMsg, wParam, lParam);
 
     return FALSE;
 }
