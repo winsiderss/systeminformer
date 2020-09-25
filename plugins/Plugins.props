@@ -29,6 +29,7 @@
             <LanguageStandard>stdcpplatest</LanguageStandard>
             <LanguageStandard_C>stdc17</LanguageStandard_C>
             <StringPooling>true</StringPooling>
+            <ControlFlowGuard>Guard</ControlFlowGuard>
         </ClCompile>
         <Link>
             <AdditionalDependencies>ProcessHacker.lib;ntdll.lib;noenv.obj;noarg.obj;%(AdditionalDependencies)</AdditionalDependencies>
@@ -60,7 +61,6 @@
             <IntrinsicFunctions>true</IntrinsicFunctions>
             <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
             <WholeProgramOptimization>true</WholeProgramOptimization>
-            <ControlFlowGuard>Guard</ControlFlowGuard>
         </ClCompile>
         <Link>
             <OptimizeReferences>true</OptimizeReferences>
