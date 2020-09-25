@@ -39,6 +39,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"DbgHelpUndecorate", L"1");
     PhpAddStringSetting(L"DisabledPlugins", L"");
     PhpAddIntegerSetting(L"ElevationLevel", L"1"); // PromptElevateAction
+    PhpAddIntegerSetting(L"EnableAdvancedOptions", L"0");
     PhpAddIntegerSetting(L"EnableCycleCpuUsage", L"1");
     PhpAddIntegerSetting(L"EnableInstantTooltips", L"0");
     PhpAddIntegerSetting(L"EnableKph", L"0");
@@ -134,6 +135,8 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"NetworkTreeListColumns", L"");
     PhpAddStringSetting(L"NetworkTreeListSort", L"0,1"); // 0, AscendingSortOrder
     PhpAddIntegerSetting(L"NoPurgeProcessRecords", L"0");
+    PhpAddStringSetting(L"OptionsWindowAdvancedColumns", L"");
+    PhpAddIntegerSetting(L"OptionsWindowAdvancedFlags", L"0");
     PhpAddIntegerPairSetting(L"OptionsWindowPosition", L"0,0");
     PhpAddScalableIntegerPairSetting(L"OptionsWindowSize", L"@96|900,590");
     PhpAddIntegerPairSetting(L"PageFileWindowPosition", L"0,0");
