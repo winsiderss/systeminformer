@@ -91,7 +91,7 @@ NTSTATUS PhInitializeMappedImage(
         PhpMappedImageProbe(
             MappedImage,
             MappedImage->NtHeaders,
-            UFIELD_OFFSET(IMAGE_NT_HEADERS, OptionalHeader) +
+            (SIZE_T)UFIELD_OFFSET(IMAGE_NT_HEADERS, OptionalHeader) +
             MappedImage->NtHeaders->FileHeader.SizeOfOptionalHeader +
             MappedImage->NtHeaders->FileHeader.NumberOfSections * sizeof(IMAGE_SECTION_HEADER)
             );
@@ -552,7 +552,7 @@ NTSTATUS PhLoadRemoteMappedImageEx(
     IMAGE_DOS_HEADER dosHeader;
     ULONG ntHeadersOffset;
     IMAGE_NT_HEADERS32 ntHeaders;
-    ULONG ntHeadersSize;
+    SIZE_T ntHeadersSize;
 
     RemoteMappedImage->ViewBase = ViewBase;
 
@@ -606,7 +606,7 @@ NTSTATUS PhLoadRemoteMappedImageEx(
     // Get the real size and read in the whole thing.
 
     RemoteMappedImage->NumberOfSections = ntHeaders.FileHeader.NumberOfSections;
-    ntHeadersSize = FIELD_OFFSET(IMAGE_NT_HEADERS, OptionalHeader) +
+    ntHeadersSize = (SIZE_T)UFIELD_OFFSET(IMAGE_NT_HEADERS, OptionalHeader) +
         ntHeaders.FileHeader.SizeOfOptionalHeader +
         RemoteMappedImage->NumberOfSections * sizeof(IMAGE_SECTION_HEADER);
 
@@ -2768,7 +2768,7 @@ BOOLEAN PhGetMappedImagePogoEntryByName(
 
         if (debugEntry->Signature != IMAGE_DEBUG_POGO_SIGNATURE_LTCG && debugEntry->Signature != IMAGE_DEBUG_POGO_SIGNATURE_PGU)
         {
-            // The signature can sometimes be zero but still contain valid entries.
+            // The signature can be zero but still contain valid entries.
             if (!(debugEntry->Signature == 0 && debugEntryLength > sizeof(IMAGE_DEBUG_POGO_SIGNATURE)))
                 return FALSE;
         }
@@ -2799,8 +2799,6 @@ BOOLEAN PhGetMappedImagePogoEntryByName(
                 if (DataBuffer)
                 {
                     *DataBuffer = PTR_ADD_OFFSET(MappedImage->ViewBase, debugPogoEntry->Rva);
-                    //*DataBuffer = PhMappedImageRvaToVa(MappedImage, debugPogoEntry->Rva, NULL);
-                    //*DataBuffer = PTR_ADD_OFFSET(PvMappedImage.NtHeaders->OptionalHeader.ImageBase, debugPogoEntry->Rva);
                 }
 
                 return TRUE;
@@ -2845,6 +2843,7 @@ NTSTATUS PhGetMappedImagePogo(
 
     if (debugEntry->Signature != IMAGE_DEBUG_POGO_SIGNATURE_LTCG && debugEntry->Signature != IMAGE_DEBUG_POGO_SIGNATURE_PGU)
     {
+        // The signature can be zero but still contain valid entries.
         if (!(debugEntry->Signature == 0 && debugEntryLength > sizeof(IMAGE_DEBUG_POGO_SIGNATURE)))
             return STATUS_UNSUCCESSFUL;
     }
