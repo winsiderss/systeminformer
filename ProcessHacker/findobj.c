@@ -43,6 +43,7 @@
 #define WM_PH_SEARCH_FINISHED (WM_APP + 802)
 #define WM_PH_SEARCH_SHOWMENU (WM_APP + 803)
 
+static PPH_OBJECT_TYPE PhFindObjectsItemType = NULL;
 static HANDLE PhFindObjectsThreadHandle = NULL;
 static HWND PhFindObjectsWindowHandle = NULL;
 static PH_EVENT PhFindObjectsInitializedEvent = PH_EVENT_INIT;
@@ -232,7 +233,7 @@ VOID PhpDestroyHandleObjectNode(
     PhClearReference(&Node->ObjectNameString);
     PhClearReference(&Node->BestObjectName);
 
-    PhDereferenceObject(Node);
+    PhFree(Node);
 }
 
 PPH_HANDLE_OBJECT_TREE_ROOT_NODE PhpAddHandleObjectNode(
@@ -243,7 +244,7 @@ PPH_HANDLE_OBJECT_TREE_ROOT_NODE PhpAddHandleObjectNode(
     static ULONG64 NextUniqueId = 0;
     PPH_HANDLE_OBJECT_TREE_ROOT_NODE handleObjectNode;
 
-    handleObjectNode = PhCreateAlloc(sizeof(PH_HANDLE_OBJECT_TREE_ROOT_NODE));
+    handleObjectNode = PhAllocate(sizeof(PH_HANDLE_OBJECT_TREE_ROOT_NODE));
     memset(handleObjectNode, 0, sizeof(PH_HANDLE_OBJECT_TREE_ROOT_NODE));
     PhInitializeTreeNewNode(&handleObjectNode->Node);
 
@@ -1133,6 +1134,36 @@ Exit:
     return STATUS_SUCCESS;
 }
 
+VOID PhpFindObjectsDeleteProcedure(
+    _In_ PVOID Object,
+    _In_ ULONG Flags
+    )
+{
+    PPH_HANDLE_SEARCH_CONTEXT context = Object;
+
+    PhClearReference(&context->SearchString);
+    PhClearReference(&context->SearchTypeString);
+}
+
+PPH_HANDLE_SEARCH_CONTEXT PhCreateFindObjectContext(
+    VOID
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    PPH_HANDLE_SEARCH_CONTEXT context;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PhFindObjectsItemType = PhCreateObjectType(L"FindObjectsItem", 0, PhpFindObjectsDeleteProcedure);
+        PhEndInitOnce(&initOnce);
+    }
+
+    context = PhCreateObject(sizeof(PH_HANDLE_SEARCH_CONTEXT), PhFindObjectsItemType);
+    memset(context, 0, sizeof(PH_HANDLE_SEARCH_CONTEXT));
+
+    return context;
+}
+
 INT_PTR CALLBACK PhpFindObjectsDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -1144,8 +1175,7 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
 
     if (uMsg == WM_INITDIALOG)
     {
-        context = PhCreateAlloc(sizeof(PH_HANDLE_SEARCH_CONTEXT));
-        memset(context, 0, sizeof(PH_HANDLE_SEARCH_CONTEXT));
+        context = PhCreateFindObjectContext();
 
         PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
@@ -1228,9 +1258,6 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
                 NtClose(context->SearchThreadHandle);
                 context->SearchThreadHandle = NULL;
             }
-
-            PhClearReference(&context->SearchString);
-            PhClearReference(&context->SearchTypeString);
 
             if (context->SearchRegexCompiledExpression)
             {
