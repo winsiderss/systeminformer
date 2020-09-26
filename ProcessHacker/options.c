@@ -2057,7 +2057,7 @@ BOOLEAN NTAPI OptionsAdvancedTreeNewCallback(
                 return FALSE;
             }
 
-            getCellText->Flags = TN_CACHE;
+            //getCellText->Flags = TN_CACHE;
         }
         return TRUE;
     case TreeNewGetNodeColor:
@@ -2158,7 +2158,7 @@ BOOLEAN NTAPI OptionsAdvancedTreeNewCallback(
         {
             PPH_TREENEW_CONTEXT_MENU contextMenuEvent = Parameter1;
 
-            SendMessage(context->WindowHandle, WM_COMMAND, WM_CONTEXTMENU, (LPARAM)contextMenuEvent);
+            SendMessage(context->WindowHandle, WM_CONTEXTMENU, (WPARAM)hwnd, (LPARAM)contextMenuEvent);
         }
         return TRUE;
     case TreeNewHeaderRightClick:
@@ -2490,8 +2490,22 @@ INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
                             (LPARAM)node->Setting
                             );
 
+                        PhMoveReference(
+                            &node->ValueString,
+                            PhSettingToString(node->Setting->Type, node->Setting)
+                            );
+
                         TreeNew_NodesStructured(context->TreeNewHandle);
                     }
+                }
+                break;
+            case IDC_COPY:
+                {
+                    PPH_STRING text;
+
+                    text = PhGetTreeNewText(context->TreeNewHandle, 0);
+                    PhSetClipboardString(context->TreeNewHandle, &text->sr);
+                    PhDereferenceObject(text);
                 }
                 break;
             }
@@ -2523,6 +2537,49 @@ INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
                     }
                 }
                 break;
+            }
+        }
+        break;
+    case WM_CONTEXTMENU:
+        {
+            if ((HWND)wParam == context->TreeNewHandle)
+            {
+                PPH_TREENEW_CONTEXT_MENU contextMenuEvent = (PPH_TREENEW_CONTEXT_MENU)lParam;
+                PPH_OPTIONS_ADVANCED_ROOT_NODE* nodes;
+                ULONG numberOfNodes;
+
+                GetSelectedOptionsAdvancedNodes(context, &nodes, &numberOfNodes);
+
+                if (numberOfNodes != 0)
+                {
+                    PPH_EMENU menu;
+                    PPH_EMENU_ITEM item;
+
+                    menu = PhCreateEMenu();
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy\bCtrl+C", NULL, NULL), ULONG_MAX);
+                    PhInsertCopyCellEMenuItem(menu, IDC_COPY, context->TreeNewHandle, contextMenuEvent->Column);
+
+                    item = PhShowEMenu(
+                        menu,
+                        hwndDlg,
+                        PH_EMENU_SHOW_LEFTRIGHT,
+                        PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                        contextMenuEvent->Location.x,
+                        contextMenuEvent->Location.y
+                        );
+
+                    if (item)
+                    {
+                        if (!PhHandleCopyCellEMenuItem(item))
+                        {
+                            SendMessage(hwndDlg, WM_COMMAND, item->Id, 0);
+                        }
+                    }
+
+                    PhDestroyEMenu(menu);
+                }
+
+                PhFree(nodes);
             }
         }
         break;
