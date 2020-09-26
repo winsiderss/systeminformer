@@ -255,7 +255,7 @@ INT_PTR CALLBACK PhpProcessRecordDlgProc(
 
                     if (processItem = PhReferenceProcessItemForRecord(context->Record))
                     {
-                        ProcessHacker_ShowProcessProperties(processItem);
+                        ProcessHacker_ShowProcessProperties(PhMainWndHandle, processItem);
                         PhDereferenceObject(processItem);
                     }
                     else
