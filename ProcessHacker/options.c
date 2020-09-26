@@ -26,6 +26,7 @@
 #include <commdlg.h>
 #include <colmgr.h>
 #include <colorbox.h>
+#include <cpysave.h>
 #include <settings.h>
 #include <emenu.h>
 
