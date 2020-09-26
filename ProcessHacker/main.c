@@ -609,6 +609,60 @@ BOOLEAN PhInitializeRestartPolicy(
 #include <symprv.h>
 #include <minidumpapiset.h>
 
+VOID PhpCreateUnhandledExceptionCrashDump(
+    _In_ PEXCEPTION_POINTERS ExceptionInfo
+    )
+{
+    static PH_STRINGREF dumpFilePath = PH_STRINGREF_INIT(L"%USERPROFILE%\\Desktop\\");
+    HANDLE fileHandle;
+    PPH_STRING dumpDirectory;
+    PPH_STRING dumpFileName;
+    WCHAR alphastring[16] = L"";
+
+    dumpDirectory = PhExpandEnvironmentStrings(&dumpFilePath);
+    PhGenerateRandomAlphaString(alphastring, RTL_NUMBER_OF(alphastring));
+
+    dumpFileName = PhConcatStrings(
+        4,
+        PhGetString(dumpDirectory),
+        L"\\ProcessHacker_",
+        alphastring,
+        L"_DumpFile.dmp"
+        );
+
+    if (NT_SUCCESS(PhCreateFileWin32(
+        &fileHandle,
+        dumpFileName->Buffer,
+        FILE_GENERIC_WRITE,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ | FILE_SHARE_DELETE,
+        FILE_OVERWRITE_IF,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        )))
+    {
+        MINIDUMP_EXCEPTION_INFORMATION exceptionInfo;
+
+        exceptionInfo.ThreadId = HandleToUlong(NtCurrentThreadId());
+        exceptionInfo.ExceptionPointers = ExceptionInfo;
+        exceptionInfo.ClientPointers = FALSE;
+
+        PhWriteMiniDumpProcess(
+            NtCurrentProcess(),
+            NtCurrentProcessId(),
+            fileHandle,
+            MiniDumpNormal,
+            &exceptionInfo,
+            NULL,
+            NULL
+            );
+
+        NtClose(fileHandle);
+    }
+
+    PhDereferenceObject(dumpFileName);
+    PhDereferenceObject(dumpDirectory);
+}
+
 ULONG CALLBACK PhpUnhandledExceptionCallback(
     _In_ PEXCEPTION_POINTERS ExceptionInfo
     )
@@ -669,7 +723,6 @@ ULONG CALLBACK PhpUnhandledExceptionCallback(
                 PhpCreateUnhandledExceptionCrashDump(ExceptionInfo); 
                 break;
             }
-            break;
         }
     }
     else
