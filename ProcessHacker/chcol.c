@@ -80,21 +80,19 @@ static int __cdecl PhpColumnsCompareDisplayIndexTn(
     return uintcmp(column1->DisplayIndex, column2->DisplayIndex);
 }
 
-_Success_(return != -1)
+_Success_(return != ULONG_MAX)
 static ULONG IndexOfStringInList(
     _In_ PPH_LIST List,
     _In_ PWSTR String
     )
 {
-    ULONG i;
-
-    for (i = 0; i < List->Count; i++)
+    for (ULONG i = 0; i < List->Count; i++)
     {
         if (PhEqualString2(List->Items[i], String, FALSE))
             return i;
     }
 
-    return -1;
+    return ULONG_MAX;
 }
 
 INT_PTR CALLBACK PhpColumnsDlgProc(

@@ -962,6 +962,8 @@ VOID PhHandleListViewNotifyBehaviors(
     _In_ ULONG Behaviors
     )
 {
+#pragma warning(push)
+#pragma warning(disable:26454) // disable Windows SDK warning (dmex)
     if (((LPNMHDR)lParam)->hwndFrom == ListViewHandle && ((LPNMHDR)lParam)->code == LVN_KEYDOWN)
     {
         LPNMLVKEYDOWN keyDown = (LPNMLVKEYDOWN)lParam;
@@ -984,6 +986,7 @@ VOID PhHandleListViewNotifyBehaviors(
             break;
         }
     }
+#pragma warning(pop)
 }
 
 BOOLEAN PhGetListViewContextMenuPoint(
@@ -1358,6 +1361,7 @@ BOOLEAN PhCreateProcessIgnoreIfeoDebugger(
             NtClose(debugObjectHandle);
         }
 
+        // Ignore the debug object status.
         result = TRUE;
 
         NtClose(processHandle);

@@ -1177,7 +1177,7 @@ BOOLEAN NTAPI PhpEnvironmentTreeNewCallback(
 
 VOID PhpClearEnvironmentTree(
     _In_ PPH_ENVIRONMENT_CONTEXT Context
-)
+    )
 {
     ULONG i;
 
