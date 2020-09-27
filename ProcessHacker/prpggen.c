@@ -526,7 +526,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
                     if (parentProcessItem = PhReferenceProcessItem(processItem->ParentProcessId))
                     {
-                        ProcessHacker_ShowProcessProperties(PhMainWndHandle, parentProcessItem);
+                        ProcessHacker_ShowProcessProperties(parentProcessItem);
                         PhDereferenceObject(parentProcessItem);
                     }
                     else
