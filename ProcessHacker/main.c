@@ -1069,89 +1069,103 @@ VOID PhInitializeKph(
     )
 {
     NTSTATUS status;
-    ULONG latestBuildNumber;
-    PPH_STRING applicationDirectory;
-    PPH_STRING kprocesshackerFileName;
-    PPH_STRING processhackerSigFileName;
-    KPH_PARAMETERS parameters;
+    PPH_STRING kphDirectory = NULL;
+    PPH_STRING kphFileName = NULL;
+    PPH_STRING kphSigFileName = NULL;
+    PPH_STRING kphServiceName = NULL;
 
-    latestBuildNumber = PhGetIntegerSetting(L"KphBuildNumber");
+    {
+        ULONG latestBuildNumber = PhGetIntegerSetting(L"KphBuildNumber");
 
-    if (latestBuildNumber == 0)
-    {
-        PhSetIntegerSetting(L"KphBuildNumber", PhOsVersion.dwBuildNumber);
-    }
-    else
-    {
-        if (latestBuildNumber != PhOsVersion.dwBuildNumber)
+        if (latestBuildNumber == 0)
         {
-            // Reset KPH after a Windows build update. (dmex)
-            if (NT_SUCCESS(KphResetParameters(KPH_DEVICE_SHORT_NAME)))
-            {
-                PhSetIntegerSetting(L"KphBuildNumber", PhOsVersion.dwBuildNumber);
-            }
-        }
-    }
-
-    if (!(applicationDirectory = PhGetApplicationDirectory()))
-        return;
-
-    kprocesshackerFileName = PhConcatStringRefZ(&applicationDirectory->sr, L"kprocesshacker.sys");
-    processhackerSigFileName = PhConcatStringRefZ(&applicationDirectory->sr, L"ProcessHacker.sig");
-    PhDereferenceObject(applicationDirectory);
-
-    if (!PhDoesFileExistsWin32(kprocesshackerFileName->Buffer))
-    {
-        //if (PhGetIntegerSetting(L"EnableKphWarnings") && !PhStartupParameters.PhSvc)
-        //    PhpShowKphError(L"The Process Hacker kernel driver 'kprocesshacker.sys' was not found in the application directory.", STATUS_NO_SUCH_FILE);
-        return;
-    }
-
-    parameters.SecurityLevel = KphSecuritySignatureAndPrivilegeCheck;
-    parameters.CreateDynamicConfiguration = TRUE;
-
-    if (NT_SUCCESS(status = KphConnect2Ex(
-        KPH_DEVICE_SHORT_NAME,
-        KPH_DEVICE_SHORT_NAME,
-        kprocesshackerFileName->Buffer,
-        &parameters
-        )))
-    {
-        PUCHAR signature;
-        ULONG signatureSize;
-
-        status = PhpReadSignature(
-            processhackerSigFileName->Buffer, 
-            &signature, 
-            &signatureSize
-            );
-
-        if (NT_SUCCESS(status))
-        {
-            status = KphVerifyClient(signature, signatureSize);
-
-            if (!NT_SUCCESS(status))
-            {
-                if (PhGetIntegerSetting(L"EnableKphWarnings") && !PhStartupParameters.PhSvc)
-                    PhpShowKphError(L"Unable to verify the kernel driver signature.", status);
-            }
-
-            PhFree(signature);
+            PhSetIntegerSetting(L"KphBuildNumber", PhOsVersion.dwBuildNumber);
         }
         else
         {
-            if (PhGetIntegerSetting(L"EnableKphWarnings") && !PhStartupParameters.PhSvc)
-                PhpShowKphError(L"Unable to load the kernel driver signature.", status);
+            if (latestBuildNumber != PhOsVersion.dwBuildNumber)
+            {
+                // Reset KPH after a Windows build update. (dmex)
+                if (NT_SUCCESS(KphResetParameters(KPH_DEVICE_SHORT_NAME)))
+                {
+                    PhSetIntegerSetting(L"KphBuildNumber", PhOsVersion.dwBuildNumber);
+                }
+            }
+        }
+    }
+
+    if (!(kphDirectory = PhGetApplicationDirectory()))
+        return;
+
+    kphServiceName = PhGetStringSetting(L"KphServiceName");
+
+    if (kphServiceName && PhIsNullOrEmptyString(kphServiceName))
+        PhClearReference(&kphServiceName);
+
+    kphFileName = PhConcatStringRefZ(&kphDirectory->sr, L"kprocesshacker.sys");
+    kphSigFileName = PhConcatStringRefZ(&kphDirectory->sr, L"processhacker.sig");
+
+    if (PhDoesFileExistsWin32(kphFileName->Buffer))
+    {
+        KPH_PARAMETERS parameters;
+
+        parameters.SecurityLevel = KphSecuritySignatureAndPrivilegeCheck;
+        parameters.CreateDynamicConfiguration = TRUE;
+
+        if (NT_SUCCESS(status = KphConnect2Ex(
+            PhGetStringOrDefault(kphServiceName, KPH_DEVICE_SHORT_NAME),
+            KPH_DEVICE_SHORT_NAME,
+            kphFileName->Buffer,
+            &parameters
+            )))
+        {
+            PUCHAR signature;
+            ULONG signatureSize;
+
+            status = PhpReadSignature(
+                kphSigFileName->Buffer,
+                &signature,
+                &signatureSize
+                );
+
+            if (NT_SUCCESS(status))
+            {
+                status = KphVerifyClient(signature, signatureSize);
+
+                if (!NT_SUCCESS(status))
+                {
+                    if (PhGetIntegerSetting(L"EnableKphWarnings") && !PhStartupParameters.PhSvc)
+                        PhpShowKphError(L"Unable to verify the kernel driver signature.", status);
+                }
+
+                PhFree(signature);
+            }
+            else
+            {
+                if (PhGetIntegerSetting(L"EnableKphWarnings") && !PhStartupParameters.PhSvc)
+                    PhpShowKphError(L"Unable to read the kernel driver signature.", status);
+            }
+        }
+        else
+        {
+            if (PhGetIntegerSetting(L"EnableKphWarnings") && PhGetOwnTokenAttributes().Elevated && !PhStartupParameters.PhSvc)
+                PhpShowKphError(L"Unable to load the kernel driver service.", status);
         }
     }
     else
     {
-        if (PhGetIntegerSetting(L"EnableKphWarnings") && PhGetOwnTokenAttributes().Elevated && !PhStartupParameters.PhSvc)
-            PhpShowKphError(L"Unable to load the kernel driver.", status);
+        if (PhGetIntegerSetting(L"EnableKphWarnings") && !PhStartupParameters.PhSvc)
+            PhpShowKphError(L"The kernel driver was not found.", STATUS_NO_SUCH_FILE);
     }
 
-    PhDereferenceObject(kprocesshackerFileName);
-    PhDereferenceObject(processhackerSigFileName);
+    if (kphServiceName)
+        PhDereferenceObject(kphServiceName);
+    if (kphSigFileName)
+        PhDereferenceObject(kphSigFileName);
+    if (kphFileName)
+        PhDereferenceObject(kphFileName);
+    if (kphDirectory)
+        PhDereferenceObject(kphDirectory);
 }
 
 BOOLEAN PhInitializeAppSystem(
