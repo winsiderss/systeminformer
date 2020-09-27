@@ -41,7 +41,7 @@
 #define SETTING_NAME_TOOLBAR_CONFIG (PLUGIN_NAME L".ToolbarButtonConfig")
 #define SETTING_NAME_TOOLBAR_GRAPH_CONFIG (PLUGIN_NAME L".ToolbarGraphConfig")
 #define SETTING_NAME_STATUSBAR_CONFIG (PLUGIN_NAME L".StatusbarConfig")
-#define SETTING_NAME_TOOLBAR_THEME (PLUGIN_NAME L".ToolbarTheme")
+//#define SETTING_NAME_TOOLBAR_THEME (PLUGIN_NAME L".ToolbarTheme")
 #define SETTING_NAME_TOOLBARDISPLAYSTYLE (PLUGIN_NAME L".ToolbarDisplayStyle")
 #define SETTING_NAME_SEARCHBOXDISPLAYMODE (PLUGIN_NAME L".SearchBoxDisplayMode")
 
@@ -143,6 +143,7 @@ extern PH_PLUGIN_SYSTEM_STATISTICS SystemStatistics;
 
 extern HIMAGELIST ToolBarImageList;
 extern TBBUTTON ToolbarButtons[MAX_TOOLBAR_ITEMS];
+extern HFONT ToolbarWindowFont;
 
 extern PPH_PLUGIN PluginInstance;
 extern PPH_TN_FILTER_ENTRY ProcessTreeFilterEntry;
@@ -441,7 +442,5 @@ HICON CustomizeGetToolbarIcon(
 BOOLEAN CreateSearchboxControl(
     VOID
     );
-
-extern HFONT ToolStatusWindowFont;
 
 #endif

@@ -65,7 +65,7 @@ VOID EtInitializeDiskTab(
     memset(&page, 0, sizeof(PH_MAIN_TAB_PAGE));
     PhInitializeStringRef(&page.Name, L"Disk");
     page.Callback = EtpDiskPageCallback;
-    DiskPage = ProcessHacker_CreateTabPage(PhMainWndHandle, &page);
+    DiskPage = ProcessHacker_CreateTabPage(&page);
 
     if (ToolStatusInterface)
     {
@@ -933,7 +933,7 @@ VOID EtHandleDiskCommand(
                     if ((processNode = PhFindProcessNode(diskItem->ProcessId)) &&
                         processNode->ProcessItem->CreateTime.QuadPart == diskItem->ProcessRecord->CreateTime.QuadPart)
                     {
-                        ProcessHacker_SelectTabPage(PhMainWndHandle, 0);
+                        ProcessHacker_SelectTabPage(0);
                         PhSelectAndEnsureVisibleProcessNode(processNode);
                     }
                     else
@@ -943,7 +943,7 @@ VOID EtHandleDiskCommand(
                 }
                 else
                 {
-                    PhShowError2(PhMainWndHandle, L"Unable to select the process.", L"%s", L"The process does not exist.");
+                    PhShowError2(WindowHandle, L"Unable to select the process.", L"%s", L"The process does not exist.");
                 }
 
                 PhDereferenceObject(diskItem);
@@ -968,7 +968,7 @@ VOID EtHandleDiskCommand(
                     PhMoveReference(&fileName, PhSubstring(fileName, 0, streamIndex));
                 }
 
-                PhShellExploreFile(PhMainWndHandle, fileName->Buffer);
+                PhShellExploreFile(WindowHandle, fileName->Buffer);
                 PhDereferenceObject(fileName);
             }
         }
@@ -999,7 +999,7 @@ VOID EtHandleDiskCommand(
                 if (PhDoesFileExistsWin32(PhGetString(fileName)))
                 {
                     PhShellExecuteUserString(
-                        PhMainWndHandle,
+                        WindowHandle,
                         L"ProgramInspectExecutables",
                         fileName->Buffer,
                         FALSE,
@@ -1029,7 +1029,7 @@ VOID EtHandleDiskCommand(
                     PhMoveReference(&fileName, PhSubstring(fileName, 0, streamIndex));
                 }
 
-                PhShellProperties(PhMainWndHandle, fileName->Buffer);
+                PhShellProperties(WindowHandle, fileName->Buffer);
                 PhDereferenceObject(fileName);
             }
         }
@@ -1167,7 +1167,7 @@ VOID NTAPI EtpDiskItemsUpdatedHandler(
     _In_opt_ PVOID Context
     )
 {
-    ProcessHacker_Invoke(PhMainWndHandle, EtpOnDiskItemsUpdated, EtRunCount);
+    ProcessHacker_Invoke(EtpOnDiskItemsUpdated, EtRunCount);
 }
 
 VOID NTAPI EtpOnDiskItemsUpdated(

@@ -64,10 +64,9 @@ ULONG PhMwpNotifyIconNotifyMask = 0;
 ULONG PhMwpLastNotificationType = 0;
 PH_MWP_NOTIFICATION_DETAILS PhMwpLastNotificationDetails;
 
-static BOOLEAN NeedsMaximize = FALSE;
 static BOOLEAN AlwaysOnTop = FALSE;
+static BOOLEAN NeedsMaximize = FALSE;
 static BOOLEAN DelayedLoadCompleted = FALSE;
-
 static PH_CALLBACK_DECLARE(LayoutPaddingCallback);
 static RECT LayoutPadding = { 0, 0, 0, 0 };
 static BOOLEAN LayoutPaddingValid = TRUE;
@@ -607,7 +606,7 @@ VOID PhMwpOnCommand(
             }
             else if (PhGetIntegerSetting(L"CloseOnEscape"))
             {
-                ProcessHacker_Destroy(WindowHandle);
+                ProcessHacker_Destroy();
             }
         }
         break;
@@ -623,7 +622,7 @@ VOID PhMwpOnCommand(
         break;
     case ID_HACKER_SHOWDETAILSFORALLPROCESSES:
         {
-            ProcessHacker_PrepareForEarlyShutdown(WindowHandle);
+            ProcessHacker_PrepareForEarlyShutdown();
 
             if (PhShellProcessHacker(
                 WindowHandle,
@@ -635,11 +634,11 @@ VOID PhMwpOnCommand(
                 NULL
                 ))
             {
-                ProcessHacker_Destroy(WindowHandle);
+                ProcessHacker_Destroy();
             }
             else
             {
-                ProcessHacker_CancelEarlyShutdown(WindowHandle);
+                ProcessHacker_CancelEarlyShutdown();
             }
         }
         break;
@@ -731,7 +730,7 @@ VOID PhMwpOnCommand(
         PhMwpExecuteComputerCommand(WindowHandle, Id);
         break;
     case ID_HACKER_EXIT:
-        ProcessHacker_Destroy(WindowHandle);
+        ProcessHacker_Destroy();
         break;
     case ID_VIEW_SYSTEMINFORMATION:
         PhShowSystemInformationDialog(NULL);
@@ -1530,7 +1529,7 @@ VOID PhMwpOnCommand(
                 {
                     PhMwpSelectPage(PhMwpServicesPage->Index);
                     SetFocus(PhMwpServiceTreeNewHandle);
-                    ProcessHacker_SelectServiceItem(WindowHandle, serviceItem);
+                    ProcessHacker_SelectServiceItem(serviceItem);
 
                     PhDereferenceObject(serviceItem);
                 }
@@ -1803,161 +1802,11 @@ ULONG_PTR PhMwpOnUserMessage(
             }
         }
         break;
-    case WM_PH_SHOW_PROCESS_PROPERTIES:
-        {
-            PhMwpShowProcessProperties((PPH_PROCESS_ITEM)LParam);
-        }
-        break;
-    case WM_PH_DESTROY:
-        {
-            DestroyWindow(WindowHandle);
-        }
-        break;
-    case WM_PH_SAVE_ALL_SETTINGS:
-        {
-            PhMwpSaveSettings(WindowHandle);
-        }
-        break;
-    case WM_PH_PREPARE_FOR_EARLY_SHUTDOWN:
-        {
-            PhMwpSaveSettings(WindowHandle);
-            PhMainWndEarlyExit = TRUE;
-        }
-        break;
-    case WM_PH_CANCEL_EARLY_SHUTDOWN:
-        {
-            PhMainWndEarlyExit = FALSE;
-        }
-        break;
-    case WM_PH_DELAYED_LOAD_COMPLETED:
-        {
-            // Nothing
-        }
-        break;
     case WM_PH_NOTIFY_ICON_MESSAGE:
         {
             PhNfForwardMessage(WindowHandle, WParam, LParam);
         }
         break;
-    case WM_PH_TOGGLE_VISIBLE:
-        {
-            PhMwpActivateWindow(WindowHandle, !WParam);
-        }
-        break;
-    case WM_PH_SHOW_MEMORY_EDITOR:
-        {
-            PPH_SHOW_MEMORY_EDITOR showMemoryEditor = (PPH_SHOW_MEMORY_EDITOR)LParam;
-
-            PhShowMemoryEditorDialog(
-                showMemoryEditor->OwnerWindow,
-                showMemoryEditor->ProcessId,
-                showMemoryEditor->BaseAddress,
-                showMemoryEditor->RegionSize,
-                showMemoryEditor->SelectOffset,
-                showMemoryEditor->SelectLength,
-                showMemoryEditor->Title,
-                showMemoryEditor->Flags
-                );
-            PhClearReference(&showMemoryEditor->Title);
-            PhFree(showMemoryEditor);
-        }
-        break;
-    case WM_PH_SHOW_MEMORY_RESULTS:
-        {
-            PPH_SHOW_MEMORY_RESULTS showMemoryResults = (PPH_SHOW_MEMORY_RESULTS)LParam;
-
-            PhShowMemoryResultsDialog(
-                showMemoryResults->ProcessId,
-                showMemoryResults->Results
-                );
-            PhDereferenceMemoryResults(
-                (PPH_MEMORY_RESULT *)showMemoryResults->Results->Items,
-                showMemoryResults->Results->Count
-                );
-            PhDereferenceObject(showMemoryResults->Results);
-            PhFree(showMemoryResults);
-        }
-        break;
-    case WM_PH_SELECT_TAB_PAGE:
-        {
-            ULONG index = (ULONG)WParam;
-
-            PhMwpSelectPage(index);
-
-            if (CurrentPage->WindowHandle)
-                SetFocus(CurrentPage->WindowHandle);
-        }
-        break;
-    case WM_PH_GET_CALLBACK_LAYOUT_PADDING:
-        {
-            return (ULONG_PTR)&LayoutPaddingCallback;
-        }
-        break;
-    case WM_PH_INVALIDATE_LAYOUT_PADDING:
-        {
-            LayoutPaddingValid = FALSE;
-        }
-        break;
-    case WM_PH_SELECT_PROCESS_NODE:
-        {
-            PhSelectAndEnsureVisibleProcessNode((PPH_PROCESS_NODE)LParam);
-        }
-        break;
-    case WM_PH_SELECT_SERVICE_ITEM:
-        {
-            PPH_SERVICE_NODE serviceNode;
-
-            PhMwpNeedServiceTreeList();
-
-            // For compatibility, LParam is a service item, not node.
-            if (serviceNode = PhFindServiceNode((PPH_SERVICE_ITEM)LParam))
-            {
-                PhSelectAndEnsureVisibleServiceNode(serviceNode);
-            }
-        }
-        break;
-    case WM_PH_SELECT_NETWORK_ITEM:
-        {
-            PPH_NETWORK_NODE networkNode;
-
-            PhMwpNeedNetworkTreeList();
-
-            // For compatibility, LParam is a network item, not node.
-            if (networkNode = PhFindNetworkNode((PPH_NETWORK_ITEM)LParam))
-            {
-                PhSelectAndEnsureVisibleNetworkNode(networkNode);
-            }
-        }
-        break;
-    case WM_PH_UPDATE_FONT:
-        {
-            PPH_STRING fontHexString;
-            LOGFONT font;
-
-            fontHexString = PhaGetStringSetting(L"Font");
-
-            if (
-                fontHexString->Length / sizeof(WCHAR) / 2 == sizeof(LOGFONT) &&
-                PhHexStringToBuffer(&fontHexString->sr, (PUCHAR)&font)
-                )
-            {
-                HFONT newFont;
-
-                newFont = CreateFontIndirect(&font);
-
-                if (newFont)
-                {
-                    if (PhTreeWindowFont)
-                        DeleteFont(PhTreeWindowFont);
-                    PhTreeWindowFont = newFont;
-
-                    PhMwpNotifyAllPages(MainTabPageFontChanged, newFont, NULL);
-                }
-            }
-        }
-        break;
-    case WM_PH_GET_FONT:
-        return (ULONG_PTR)GetWindowFont(PhMwpProcessTreeNewHandle);
     case WM_PH_INVOKE:
         {
             VOID (NTAPI *function)(PVOID);
@@ -1966,32 +1815,13 @@ ULONG_PTR PhMwpOnUserMessage(
             function((PVOID)WParam);
         }
         break;
-    case WM_PH_CREATE_TAB_PAGE:
+    case WM_PH_CALLBACK:
         {
-            return (ULONG_PTR)PhMwpCreatePage((PPH_MAIN_TAB_PAGE)LParam);
-        }
-        break;
-    case WM_PH_REFRESH:
-        {
-            SendMessage(WindowHandle, WM_COMMAND, ID_VIEW_REFRESH, 0);
-        }
-        break;
-    case WM_PH_GET_UPDATE_AUTOMATICALLY:
-        {
-            return PhMwpUpdateAutomatically;
-        }
-        break;
-    case WM_PH_SET_UPDATE_AUTOMATICALLY:
-        {
-            if (!!WParam != PhMwpUpdateAutomatically)
-            {
-                SendMessage(WindowHandle, WM_COMMAND, ID_VIEW_UPDATEAUTOMATICALLY, 0);
-            }
-        }
-        break;
-    case WM_PH_ICON_CLICK:
-        {
-            PhMwpActivateWindow(WindowHandle, !!PhGetIntegerSetting(L"IconTogglesVisibility"));
+            PVOID (NTAPI *function)(PVOID);
+
+            function = (PVOID)LParam;
+
+            return (ULONG_PTR)function((PVOID)WParam);
         }
         break;
     }
@@ -2033,7 +1863,7 @@ VOID PhMwpLoadSettings(
     PhNfLoadStage1();
 
     if (customFont->Length / sizeof(WCHAR) / 2 == sizeof(LOGFONT))
-        SendMessage(WindowHandle, WM_PH_UPDATE_FONT, 0, 0);
+        ProcessHacker_UpdateFont();
 
     PhMwpNotifyAllPages(MainTabPageLoadSettings, NULL, NULL);
 }
@@ -2911,6 +2741,8 @@ VOID PhMwpNotifyTabControl(
     _In_ NMHDR *Header
     )
 {
+#pragma warning(push)
+#pragma warning(disable:26454) // disable Windows SDK warning (dmex)
     if (Header->code == TCN_SELCHANGING)
     {
         OldTabIndex = TabCtrl_GetCurSel(TabControlHandle);
@@ -2919,6 +2751,7 @@ VOID PhMwpNotifyTabControl(
     {
         PhMwpSelectionChangedTabControl(OldTabIndex);
     }
+#pragma warning(pop)
 }
 
 VOID PhMwpSelectionChangedTabControl(
@@ -2993,9 +2826,7 @@ PPH_MAIN_TAB_PAGE PhMwpCreatePage(
     PPH_STRING name;
     HDWP deferHandle;
 
-    page = PhAllocate(sizeof(PH_MAIN_TAB_PAGE));
-    memset(page, 0, sizeof(PH_MAIN_TAB_PAGE));
-
+    page = PhAllocateZero(sizeof(PH_MAIN_TAB_PAGE));
     page->Name = Template->Name;
     page->Flags = Template->Flags;
     page->Callback = Template->Callback;
@@ -3190,7 +3021,7 @@ BOOLEAN PhHandleMiniProcessMenuItem(
                     PhUiRestartProcess(PhMainWndHandle, processItem);
                     break;
                 case ID_PROCESS_PROPERTIES:
-                    ProcessHacker_ShowProcessProperties(PhMainWndHandle, processItem);
+                    ProcessHacker_ShowProcessProperties(processItem);
                     break;
                 }
 
@@ -3422,7 +3253,7 @@ VOID PhShowIconContextMenu(
             switch (item->Id)
             {
             case ID_ICON_SHOWHIDEPROCESSHACKER:
-                SendMessage(PhMainWndHandle, WM_PH_TOGGLE_VISIBLE, 0, 0);
+                ProcessHacker_ToggleVisible(FALSE);
                 break;
             case ID_ICON_SYSTEMINFORMATION:
                 SendMessage(PhMainWndHandle, WM_COMMAND, ID_VIEW_SYSTEMINFORMATION, 0);
@@ -3457,9 +3288,9 @@ VOID PhShowDetailsForIconNotification(
 
             if (processNode = PhFindProcessNode(PhMwpLastNotificationDetails.ProcessId))
             {
-                ProcessHacker_SelectTabPage(PhMainWndHandle, PhMwpProcessesPage->Index);
-                ProcessHacker_SelectProcessNode(PhMainWndHandle, processNode);
-                ProcessHacker_ToggleVisible(PhMainWndHandle, TRUE);
+                ProcessHacker_SelectTabPage(PhMwpProcessesPage->Index);
+                ProcessHacker_SelectProcessNode(processNode);
+                ProcessHacker_ToggleVisible(TRUE);
             }
         }
         break;
@@ -3472,9 +3303,9 @@ VOID PhShowDetailsForIconNotification(
             if (PhMwpLastNotificationDetails.ServiceName &&
                 (serviceItem = PhReferenceServiceItem(PhMwpLastNotificationDetails.ServiceName->Buffer)))
             {
-                ProcessHacker_SelectTabPage(PhMainWndHandle, PhMwpServicesPage->Index);
-                ProcessHacker_SelectServiceItem(PhMainWndHandle, serviceItem);
-                ProcessHacker_ToggleVisible(PhMainWndHandle, TRUE);
+                ProcessHacker_SelectTabPage(PhMwpServicesPage->Index);
+                ProcessHacker_SelectServiceItem(serviceItem);
+                ProcessHacker_ToggleVisible(TRUE);
 
                 PhDereferenceObject(serviceItem);
             }
@@ -3497,6 +3328,134 @@ VOID PhMwpClearLastNotificationDetails(
     memset(&PhMwpLastNotificationDetails, 0, sizeof(PhMwpLastNotificationDetails));
 }
 
+// Window plugin extensions (dmex)
+
+VOID PhMwpInvokeShowMemoryEditorDialog(
+    _In_ PVOID Parameter
+    )
+{
+    PPH_SHOW_MEMORY_EDITOR showMemoryEditor = (PPH_SHOW_MEMORY_EDITOR)Parameter;
+
+    PhShowMemoryEditorDialog(
+        showMemoryEditor->OwnerWindow,
+        showMemoryEditor->ProcessId,
+        showMemoryEditor->BaseAddress,
+        showMemoryEditor->RegionSize,
+        showMemoryEditor->SelectOffset,
+        showMemoryEditor->SelectLength,
+        showMemoryEditor->Title,
+        showMemoryEditor->Flags
+        );
+    PhClearReference(&showMemoryEditor->Title);
+    PhFree(showMemoryEditor);
+}
+
+VOID PhMwpInvokeShowMemoryResultsDialog(
+    _In_ PVOID Parameter
+    )
+{
+    PPH_SHOW_MEMORY_RESULTS showMemoryResults = (PPH_SHOW_MEMORY_RESULTS)Parameter;
+
+    PhShowMemoryResultsDialog(
+        showMemoryResults->ProcessId,
+        showMemoryResults->Results
+        );
+    PhDereferenceMemoryResults(
+        (PPH_MEMORY_RESULT*)showMemoryResults->Results->Items,
+        showMemoryResults->Results->Count
+        );
+    PhDereferenceObject(showMemoryResults->Results);
+    PhFree(showMemoryResults);
+}
+
+VOID PhMwpInvokeUpdateWindowFont(
+    _In_ PVOID Parameter
+    )
+{
+    PPH_STRING fontHexString;
+    LOGFONT font;
+
+    fontHexString = PhaGetStringSetting(L"Font");
+
+    if (
+        fontHexString->Length / sizeof(WCHAR) / 2 == sizeof(LOGFONT) &&
+        PhHexStringToBuffer(&fontHexString->sr, (PUCHAR)&font)
+        )
+    {
+        HFONT newFont;
+
+        newFont = CreateFontIndirect(&font);
+
+        if (newFont)
+        {
+            if (PhTreeWindowFont)
+                DeleteFont(PhTreeWindowFont);
+            PhTreeWindowFont = newFont;
+
+            PhMwpNotifyAllPages(MainTabPageFontChanged, newFont, NULL);
+        }
+    }
+
+    SendMessage(PhMainWndHandle, WM_PH_UPDATE_FONT, 0, 0);
+}
+
+VOID PhMwpInvokePrepareEarlyExit(
+    _In_ PVOID Parameter
+    )
+{
+    PhMwpSaveSettings(PhMainWndHandle);
+    PhMainWndEarlyExit = TRUE;
+}
+
+VOID PhMwpInvokeActivateWindow(
+    _In_ BOOLEAN Toggle
+    )
+{
+    PhMwpActivateWindow(PhMainWndHandle, Toggle);
+}
+
+VOID PhMwpInvokeSelectTabPage(
+    _In_ PVOID Parameter
+    )
+{
+    ULONG index = PtrToUlong(Parameter);
+
+    PhMwpSelectPage(index);
+
+    if (CurrentPage->WindowHandle)
+        SetFocus(CurrentPage->WindowHandle);
+}
+
+VOID PhMwpInvokeSelectServiceItem(
+    _In_ PPH_SERVICE_ITEM ServiceItem
+    )
+{
+    PPH_SERVICE_NODE serviceNode;
+
+    PhMwpNeedServiceTreeList();
+
+    // For compatibility, LParam is a service item, not node.
+    if (serviceNode = PhFindServiceNode(ServiceItem))
+    {
+        PhSelectAndEnsureVisibleServiceNode(serviceNode);
+    }
+}
+
+VOID PhMwpInvokeSelectNetworkItem(
+    _In_ PPH_NETWORK_ITEM NetworkItem
+    )
+{
+    PPH_NETWORK_NODE networkNode;
+
+    PhMwpNeedNetworkTreeList();
+
+    // For compatibility, LParam is a service item, not node.
+    if (networkNode = PhFindNetworkNode(NetworkItem))
+    {
+        PhSelectAndEnsureVisibleNetworkNode(networkNode);
+    }
+}
+
 BOOLEAN PhMwpPluginNotifyEvent(
     _In_ ULONG Type,
     _In_ PVOID Parameter
@@ -3511,4 +3470,136 @@ BOOLEAN PhMwpPluginNotifyEvent(
     PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackNotifyEvent), &notifyEvent);
 
     return notifyEvent.Handled;
+}
+
+PVOID PhPluginInvokeWindowCallback(
+    _In_ PH_MAINWINDOW_CALLBACK_TYPE Event,
+    _In_opt_ PVOID wparam,
+    _In_opt_ PVOID lparam
+    )
+{
+    switch (Event)
+    {
+    case PH_MAINWINDOW_CALLBACK_TYPE_DESTROY:
+        {
+            SendMessage(PhMainWndHandle, WM_PH_INVOKE, (WPARAM)PhMainWndHandle, (LPARAM)DestroyWindow);
+        }
+        break;
+    case PH_MAINWINDOW_CALLBACK_TYPE_SHOW_PROPERTIES:
+        {
+            SendMessage(PhMainWndHandle, WM_PH_INVOKE, (WPARAM)lparam, (LPARAM)PhMwpShowProcessProperties);
+        }
+        break;
+    case PH_MAINWINDOW_CALLBACK_TYPE_SAVE_ALL_SETTINGS:
+        {
+            SendMessage(PhMainWndHandle, WM_PH_INVOKE, (WPARAM)PhMainWndHandle, (LPARAM)PhMwpSaveSettings);
+        }
+        break;
+    case PH_MAINWINDOW_CALLBACK_TYPE_PREPARE_FOR_EARLY_SHUTDOWN:
+        {
+            SendMessage(PhMainWndHandle, WM_PH_INVOKE, 0, (LPARAM)PhMwpInvokePrepareEarlyExit);
+        }
+        break;
+    case PH_MAINWINDOW_CALLBACK_TYPE_CANCEL_EARLY_SHUTDOWN:
+        {
+            PhMainWndEarlyExit = FALSE;
+        }
+        break;
+    case PH_MAINWINDOW_CALLBACK_TYPE_TOGGLE_VISIBLE:
+        {
+            SendMessage(PhMainWndHandle, WM_PH_INVOKE, (WPARAM)!(BOOLEAN)wparam, (LPARAM)PhMwpInvokeActivateWindow);
+        }
+        break;
+    case PH_MAINWINDOW_CALLBACK_TYPE_ICON_CLICK:
+        {
+            BOOLEAN visibility = !!PhGetIntegerSetting(L"IconTogglesVisibility");
+
+            SendMessage(PhMainWndHandle, WM_PH_INVOKE, (WPARAM)visibility, (LPARAM)PhMwpInvokeActivateWindow);
+        }
+        break;
+    case PH_MAINWINDOW_CALLBACK_TYPE_SHOW_MEMORY_EDITOR:
+        {
+            PPH_SHOW_MEMORY_EDITOR showMemoryEditor = (PPH_SHOW_MEMORY_EDITOR)lparam;
+
+            PostMessage(PhMainWndHandle, WM_PH_INVOKE, (WPARAM)showMemoryEditor, (LPARAM)PhMwpInvokeShowMemoryEditorDialog);
+        }
+        break;
+    case PH_MAINWINDOW_CALLBACK_TYPE_SHOW_MEMORY_RESULTS:
+        {
+            PPH_SHOW_MEMORY_RESULTS showMemoryResults = (PPH_SHOW_MEMORY_RESULTS)lparam;
+
+            PostMessage(PhMainWndHandle, WM_PH_INVOKE, (WPARAM)showMemoryResults, (LPARAM)PhMwpInvokeShowMemoryResultsDialog);
+        }
+        break;
+    case PH_MAINWINDOW_CALLBACK_TYPE_SELECT_TAB_PAGE:
+        {
+            SendMessage(PhMainWndHandle, WM_PH_INVOKE, (WPARAM)wparam, (LPARAM)PhMwpInvokeSelectTabPage);
+        }
+        break;
+    case PH_MAINWINDOW_CALLBACK_TYPE_GET_CALLBACK_LAYOUT_PADDING:
+        {
+            return (PVOID)&LayoutPaddingCallback;
+        }
+        break;
+    case PH_MAINWINDOW_CALLBACK_TYPE_INVALIDATE_LAYOUT_PADDING:
+        {
+            LayoutPaddingValid = FALSE;
+        }
+        break;
+    case PH_MAINWINDOW_CALLBACK_TYPE_SELECT_PROCESS_NODE:
+        {
+            SendMessage(PhMainWndHandle, WM_PH_INVOKE, (WPARAM)lparam, (LPARAM)PhSelectAndEnsureVisibleProcessNode);
+        }
+        break;
+    case PH_MAINWINDOW_CALLBACK_TYPE_SELECT_SERVICE_ITEM:
+        {
+            SendMessage(PhMainWndHandle, WM_PH_INVOKE, (WPARAM)lparam, (LPARAM)PhMwpInvokeSelectServiceItem);
+        }
+        break;
+    case PH_MAINWINDOW_CALLBACK_TYPE_SELECT_NETWORK_ITEM:
+        {
+            SendMessage(PhMainWndHandle, WM_PH_INVOKE, (WPARAM)lparam, (LPARAM)PhMwpInvokeSelectNetworkItem);
+        }
+        break;
+    case PH_MAINWINDOW_CALLBACK_TYPE_UPDATE_FONT:
+        {
+            SendMessage(PhMainWndHandle, WM_PH_INVOKE, (WPARAM)lparam, (LPARAM)PhMwpInvokeUpdateWindowFont);
+        }
+        break;
+    case PH_MAINWINDOW_CALLBACK_TYPE_GET_FONT:
+        {
+            return (PVOID)GetWindowFont(PhMwpProcessTreeNewHandle);
+        }
+        break;
+    case PH_MAINWINDOW_CALLBACK_TYPE_INVOKE:
+        {
+            PostMessage(PhMainWndHandle, WM_PH_INVOKE, (WPARAM)wparam, (LPARAM)lparam);
+        }
+        break;
+    case PH_MAINWINDOW_CALLBACK_TYPE_REFRESH:
+        {
+            SendMessage(PhMainWndHandle, WM_COMMAND, ID_VIEW_REFRESH, 0);
+        }
+        break;
+    case PH_MAINWINDOW_CALLBACK_TYPE_CREATE_TAB_PAGE:
+        {
+            return (PVOID)SendMessage(PhMainWndHandle, WM_PH_CALLBACK, (WPARAM)lparam, (LPARAM)PhMwpCreatePage);
+        }
+        break;
+    case PH_MAINWINDOW_CALLBACK_TYPE_GET_UPDATE_AUTOMATICALLY:
+        {
+            return (PVOID)PhMwpUpdateAutomatically;
+        }
+        break;
+    case PH_MAINWINDOW_CALLBACK_TYPE_SET_UPDATE_AUTOMATICALLY:
+        {
+            if (!!((BOOLEAN)wparam) != PhMwpUpdateAutomatically)
+            {
+                SendMessage(PhMainWndHandle, WM_COMMAND, ID_VIEW_UPDATEAUTOMATICALLY, 0);
+            }
+        }
+        break;
+    }
+
+    return NULL;
 }

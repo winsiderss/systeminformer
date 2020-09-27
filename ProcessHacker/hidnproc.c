@@ -434,7 +434,7 @@ INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
 
                             if (processItem = PhpCreateProcessItemForHiddenProcess(entry))
                             {
-                                ProcessHacker_ShowProcessProperties(PhMainWndHandle, processItem);
+                                ProcessHacker_ShowProcessProperties(processItem);
                                 PhDereferenceObject(processItem);
                             }
                             else

@@ -42,8 +42,8 @@ VOID NTAPI MenuItemCallback(
     {
     case ID_SERVICE_GOTOSERVICE:
         {
-            ProcessHacker_SelectTabPage(menuItem->OwnerWindow, 1);
-            ProcessHacker_SelectServiceItem(menuItem->OwnerWindow, (PPH_SERVICE_ITEM)menuItem->Context);
+            ProcessHacker_SelectTabPage(1);
+            ProcessHacker_SelectServiceItem((PPH_SERVICE_ITEM)menuItem->Context);
         }
         break;
     case ID_SERVICE_START:

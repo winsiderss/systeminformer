@@ -508,7 +508,7 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                         showMemoryEditor->SelectOffset = ULONG_MAX;
                         showMemoryEditor->SelectLength = 0;
 
-                        ProcessHacker_ShowMemoryEditor(PhMainWndHandle, showMemoryEditor);
+                        ProcessHacker_ShowMemoryEditor(showMemoryEditor);
                     }
                 }
                 break;
@@ -790,7 +790,8 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                                         showMemoryEditor->RegionSize = memoryItem->RegionSize;
                                         showMemoryEditor->SelectOffset = (ULONG)((ULONG_PTR)address - (ULONG_PTR)memoryItem->BaseAddress);
                                         showMemoryEditor->SelectLength = 0;
-                                        ProcessHacker_ShowMemoryEditor(PhMainWndHandle, showMemoryEditor);
+
+                                        ProcessHacker_ShowMemoryEditor(showMemoryEditor);
                                         break;
                                     }
                                     else

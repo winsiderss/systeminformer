@@ -109,7 +109,7 @@ HRESULT CALLBACK RestartDbTaskDialogCallbackProc(
         {
             if ((INT)wParam == IDYES)
             {
-                ProcessHacker_PrepareForEarlyShutdown(PhMainWndHandle);
+                ProcessHacker_PrepareForEarlyShutdown();
                 PhShellProcessHacker(
                     PhMainWndHandle,
                     NULL,
@@ -119,7 +119,7 @@ HRESULT CALLBACK RestartDbTaskDialogCallbackProc(
                     0,
                     NULL
                     );
-                ProcessHacker_Destroy(PhMainWndHandle);
+                ProcessHacker_Destroy();
             }
         }
         break;

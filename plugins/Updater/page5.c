@@ -141,18 +141,18 @@ HRESULT CALLBACK FinalTaskDialogCallbackProc(
                 info.hwnd = hwndDlg;
                 info.fMask = SEE_MASK_NOASYNC | SEE_MASK_FLAG_NO_UI | SEE_MASK_NOZONECHECKS;
 
-                ProcessHacker_PrepareForEarlyShutdown(PhMainWndHandle);
+                ProcessHacker_PrepareForEarlyShutdown();
 
                 if (ShellExecuteEx(&info))
                 {
-                    ProcessHacker_Destroy(PhMainWndHandle);
+                    ProcessHacker_Destroy();
                 }
                 else
                 {
                     ULONG errorCode = GetLastError();
 
                     // Install failed, cancel the shutdown.
-                    ProcessHacker_CancelEarlyShutdown(PhMainWndHandle);
+                    ProcessHacker_CancelEarlyShutdown();
 
                     // Show error dialog.
                     if (errorCode != ERROR_CANCELLED) // Ignore UAC decline.

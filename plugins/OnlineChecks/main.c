@@ -201,9 +201,9 @@ VOID NTAPI MenuItemCallback(
 
                 if (SUCCEEDED(TaskDialogIndirect(&config, &result, NULL, NULL)) && result == IDYES)
                 {
-                    ProcessHacker_PrepareForEarlyShutdown(PhMainWndHandle);
+                    ProcessHacker_PrepareForEarlyShutdown();
                     PhShellProcessHacker(
-                        PhMainWndHandle,
+                        menuItem->OwnerWindow,
                         L"-v",
                         SW_SHOW,
                         0,
@@ -211,7 +211,7 @@ VOID NTAPI MenuItemCallback(
                         0,
                         NULL
                         );
-                    ProcessHacker_Destroy(PhMainWndHandle);
+                    ProcessHacker_Destroy();
                 }
             }
         }

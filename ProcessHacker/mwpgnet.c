@@ -380,7 +380,7 @@ VOID NTAPI PhMwpNetworkItemsUpdatedHandler(
     _In_opt_ PVOID Context
     )
 {
-    ProcessHacker_Invoke(PhMainWndHandle, PhMwpOnNetworkItemsUpdated, PhGetRunIdProvider(&PhMwpNetworkProviderRegistration));
+    ProcessHacker_Invoke(PhMwpOnNetworkItemsUpdated, PhGetRunIdProvider(&PhMwpNetworkProviderRegistration));
 }
 
 VOID PhMwpOnNetworkItemsUpdated(

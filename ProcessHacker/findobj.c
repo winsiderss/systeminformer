@@ -1607,9 +1607,9 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
 
                         if (processNode = PhFindProcessNode(handleObjectNode->ProcessId))
                         {
-                            ProcessHacker_SelectTabPage(PhMainWndHandle, 0);
-                            ProcessHacker_SelectProcessNode(PhMainWndHandle, processNode);
-                            ProcessHacker_ToggleVisible(PhMainWndHandle, TRUE);
+                            ProcessHacker_SelectTabPage(0);
+                            ProcessHacker_SelectProcessNode(processNode);
+                            ProcessHacker_ToggleVisible(TRUE);
                         }
                     }
                 }
