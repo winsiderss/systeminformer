@@ -543,10 +543,7 @@ VOID PhShowMemoryStringDialog(
         showMemoryResults->Results = context.Results;
 
         PhReferenceObject(context.Results);
-        ProcessHacker_ShowMemoryResults(
-            PhMainWndHandle,
-            showMemoryResults
-            );
+        ProcessHacker_ShowMemoryResults(showMemoryResults);
     }
 
     PhDereferenceObject(context.Results);

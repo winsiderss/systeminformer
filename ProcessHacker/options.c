@@ -380,7 +380,7 @@ INT_PTR CALLBACK PhOptionsDialogProc(
                         L""
                         ) == IDYES)
                     {
-                        ProcessHacker_PrepareForEarlyShutdown(PhMainWndHandle);
+                        ProcessHacker_PrepareForEarlyShutdown();
 
                         PhResetSettings();
 
@@ -396,7 +396,7 @@ INT_PTR CALLBACK PhOptionsDialogProc(
                             0,
                             NULL
                             );
-                        ProcessHacker_Destroy(PhMainWndHandle);
+                        ProcessHacker_Destroy();
                     }
                 }
                 break;
@@ -1076,7 +1076,7 @@ static VOID PhpOptionsNotifyChangeCallback(
     )
 {
     PhUpdateCachedSettings();
-    ProcessHacker_SaveAllSettings(PhMainWndHandle);
+    ProcessHacker_SaveAllSettings();
     PhInvalidateAllProcessNodes();
     PhReloadSettingsProcessTreeList();
     PhSiNotifyChangeSettings();
@@ -1093,7 +1093,7 @@ static VOID PhpOptionsNotifyChangeCallback(
             L"Do you want to restart Process Hacker now?"
             ) == IDYES)
         {
-            ProcessHacker_PrepareForEarlyShutdown(PhMainWndHandle);
+            ProcessHacker_PrepareForEarlyShutdown();
             PhShellProcessHacker(
                 PhMainWndHandle,
                 L"-v",
@@ -1103,7 +1103,7 @@ static VOID PhpOptionsNotifyChangeCallback(
                 0,
                 NULL
                 );
-            ProcessHacker_Destroy(PhMainWndHandle);
+            ProcessHacker_Destroy();
         }
     }
 }
@@ -1171,7 +1171,7 @@ static VOID PhpAdvancedPageSave(
         ListView_GetCheckState(listViewHandle, PHP_OPTIONS_INDEX_START_HIDDEN) == BST_CHECKED
         );
 
-    ProcessHacker_Invoke(PhMainWndHandle, PhpOptionsNotifyChangeCallback, NULL);
+    ProcessHacker_Invoke(PhpOptionsNotifyChangeCallback, NULL);
 }
 
 static NTSTATUS PhpElevateAdvancedThreadStart(
@@ -1293,7 +1293,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
             if (NewFontSelection)
             {
                 PhSetStringSetting2(L"Font", &NewFontSelection->sr);
-                PostMessage(PhMainWndHandle, WM_PH_UPDATE_FONT, 0, 0);
+                ProcessHacker_UpdateFont();
             }
 
             PhpAdvancedPageSave(hwndDlg);
@@ -1324,7 +1324,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                         // Can't get LOGFONT from the existing setting, probably
                         // because the user hasn't ever chosen a font before.
                         // Set the font to something familiar.
-                        GetObject((HFONT)SendMessage(PhMainWndHandle, WM_PH_GET_FONT, 0, 0), sizeof(LOGFONT), &font);
+                        GetObject(ProcessHacker_GetFont(), sizeof(LOGFONT), &font);
                     }
 
                     memset(&chooseFont, 0, sizeof(CHOOSEFONT));

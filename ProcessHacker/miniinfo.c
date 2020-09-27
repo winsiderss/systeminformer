@@ -1018,7 +1018,7 @@ VOID PhMipRefresh(
     )
 {
     if (PhMipPinned)
-        ProcessHacker_Refresh(PhMainWndHandle);
+        ProcessHacker_Refresh();
 
     PostMessage(PhMipWindow, MIP_MSG_UPDATE, 0, 0);
 }
@@ -1927,8 +1927,8 @@ VOID PhMipHandleListSectionCommand(
             PhPinMiniInformation(MiniInfoActivePinType, -1, 0, 0, NULL, NULL);
             PhPinMiniInformation(MiniInfoHoverPinType, -1, 0, 0, NULL, NULL);
 
-            ProcessHacker_ToggleVisible(PhMainWndHandle, TRUE);
-            ProcessHacker_SelectTabPage(PhMainWndHandle, 0);
+            ProcessHacker_ToggleVisible(TRUE);
+            ProcessHacker_SelectTabPage(0);
             PhSelectAndEnsureVisibleProcessNodes((PPH_PROCESS_NODE*)nodes->Items, nodes->Count);
             PhDereferenceObject(nodes);
         }

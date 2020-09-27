@@ -619,7 +619,7 @@ NTSTATUS GeoIPUpdateDialogThread(
     //info.hwnd = Parameter;
     //info.lpVerb = L"runas";
     //
-    //ProcessHacker_PrepareForEarlyShutdown(PhMainWndHandle);
+    //ProcessHacker_PrepareForEarlyShutdown();
     //
     //if (ShellExecuteEx(&info))
     //{
@@ -642,7 +642,7 @@ NTSTATUS GeoIPUpdateDialogThread(
     //                NULL
     //                );
     //
-    //            ProcessHacker_Destroy(PhMainWndHandle);
+    //            ProcessHacker_Destroy();
     //        }
     //    }
     //
@@ -650,19 +650,19 @@ NTSTATUS GeoIPUpdateDialogThread(
     //}
     //else
     //{
-    //    ProcessHacker_CancelEarlyShutdown(PhMainWndHandle);
+    //    ProcessHacker_CancelEarlyShutdown();
     //}
 }
 
 VOID ShowGeoIPUpdateDialog(
-    _In_opt_ HWND Parent
+    VOID
     )
 {
     if (!UpdateDialogThreadHandle)
     {
         if (!NT_SUCCESS(PhCreateThreadEx(&UpdateDialogThreadHandle, GeoIPUpdateDialogThread, NULL)))
         {
-            PhShowError(PhMainWndHandle, L"%s", L"Unable to create the window.");
+            PhShowError(NULL, L"%s", L"Unable to create the window.");
             return;
         }
 

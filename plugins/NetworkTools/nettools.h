@@ -320,7 +320,7 @@ NTSTATUS GeoIPUpdateThread(
     );
 
 VOID ShowGeoIPUpdateDialog(
-    _In_opt_ HWND Parent
+    VOID
     );
 
 // pages.c

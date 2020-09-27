@@ -263,7 +263,7 @@ VOID NTAPI MenuItemCallback(
         }
         break;
     case MAINMENU_ACTION_GEOIP_UPDATE:
-        ShowGeoIPUpdateDialog(NULL);
+        ShowGeoIPUpdateDialog();
         break;
     }
 }

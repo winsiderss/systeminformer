@@ -611,7 +611,8 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                                     showMemoryEditor->RegionSize = basicInfo.RegionSize;
                                     showMemoryEditor->SelectOffset = (ULONG)((ULONG_PTR)result->Address - (ULONG_PTR)basicInfo.BaseAddress);
                                     showMemoryEditor->SelectLength = (ULONG)result->Length;
-                                    ProcessHacker_ShowMemoryEditor(PhMainWndHandle, showMemoryEditor);
+
+                                    ProcessHacker_ShowMemoryEditor(showMemoryEditor);
                                 }
 
                                 NtClose(processHandle);
@@ -685,7 +686,8 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                                                 showMemoryEditor->RegionSize = basicInfo.RegionSize;
                                                 showMemoryEditor->SelectOffset = (ULONG)((ULONG_PTR)result->Address - (ULONG_PTR)basicInfo.BaseAddress);
                                                 showMemoryEditor->SelectLength = (ULONG)result->Length;
-                                                ProcessHacker_ShowMemoryEditor(PhMainWndHandle, showMemoryEditor);
+
+                                                ProcessHacker_ShowMemoryEditor(showMemoryEditor);
                                             }
 
                                             NtClose(processHandle);

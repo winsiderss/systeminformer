@@ -7,82 +7,96 @@ extern BOOLEAN PhMainWndExiting;
 #define WM_PH_FIRST (WM_APP + 99)
 #define WM_PH_ACTIVATE (WM_APP + 99)
 #define PH_ACTIVATE_REPLY 0x1119
-
-// begin_phapppub
-#define WM_PH_SHOW_PROCESS_PROPERTIES (WM_APP + 120)
-#define WM_PH_DESTROY (WM_APP + 121)
-#define WM_PH_SAVE_ALL_SETTINGS (WM_APP + 122)
-#define WM_PH_PREPARE_FOR_EARLY_SHUTDOWN (WM_APP + 123)
-#define WM_PH_CANCEL_EARLY_SHUTDOWN (WM_APP + 124)
-// end_phapppub
-#define WM_PH_DELAYED_LOAD_COMPLETED (WM_APP + 125)
 #define WM_PH_NOTIFY_ICON_MESSAGE (WM_APP + 126)
 // begin_phapppub
-#define WM_PH_TOGGLE_VISIBLE (WM_APP + 127)
-#define WM_PH_SHOW_MEMORY_EDITOR (WM_APP + 128)
-#define WM_PH_SHOW_MEMORY_RESULTS (WM_APP + 129)
-#define WM_PH_SELECT_TAB_PAGE (WM_APP + 130)
-#define WM_PH_GET_CALLBACK_LAYOUT_PADDING (WM_APP + 131)
-#define WM_PH_INVALIDATE_LAYOUT_PADDING (WM_APP + 132)
-#define WM_PH_SELECT_PROCESS_NODE (WM_APP + 133)
-#define WM_PH_SELECT_SERVICE_ITEM (WM_APP + 134)
-#define WM_PH_SELECT_NETWORK_ITEM (WM_APP + 135)
 #define WM_PH_UPDATE_FONT (WM_APP + 136)
-#define WM_PH_GET_FONT (WM_APP + 137)
 // end_phapppub
-// begin_phapppub
-#define WM_PH_INVOKE (WM_APP + 138)
-// WM_PH_DEPRECATED (WM_APP + 139)
-#define WM_PH_CREATE_TAB_PAGE (WM_APP + 140)
-#define WM_PH_REFRESH (WM_APP + 141)
-#define WM_PH_GET_UPDATE_AUTOMATICALLY (WM_APP + 142)
-#define WM_PH_SET_UPDATE_AUTOMATICALLY (WM_APP + 143)
-// end_phapppub
-#define WM_PH_ICON_CLICK (WM_APP + 144)
-#define WM_PH_LAST (WM_APP + 144)
+#define WM_PH_INVOKE (WM_APP + 145)
+#define WM_PH_CALLBACK (WM_APP + 146)
+#define WM_PH_LAST (WM_APP + 146)
 
 // begin_phapppub
-#define ProcessHacker_ShowProcessProperties(hWnd, ProcessItem) \
-    SendMessage(hWnd, WM_PH_SHOW_PROCESS_PROPERTIES, 0, (LPARAM)(ProcessItem))
-#define ProcessHacker_Destroy(hWnd) \
-    SendMessage(hWnd, WM_PH_DESTROY, 0, 0)
-#define ProcessHacker_SaveAllSettings(hWnd) \
-    SendMessage(hWnd, WM_PH_SAVE_ALL_SETTINGS, 0, 0)
-#define ProcessHacker_PrepareForEarlyShutdown(hWnd) \
-    SendMessage(hWnd, WM_PH_PREPARE_FOR_EARLY_SHUTDOWN, 0, 0)
-#define ProcessHacker_CancelEarlyShutdown(hWnd) \
-    SendMessage(hWnd, WM_PH_CANCEL_EARLY_SHUTDOWN, 0, 0)
-#define ProcessHacker_ToggleVisible(hWnd, AlwaysShow) \
-    SendMessage(hWnd, WM_PH_TOGGLE_VISIBLE, (WPARAM)(AlwaysShow), 0)
-#define ProcessHacker_ShowMemoryEditor(hWnd, ShowMemoryEditor) \
-    PostMessage(hWnd, WM_PH_SHOW_MEMORY_EDITOR, 0, (LPARAM)(ShowMemoryEditor))
-#define ProcessHacker_ShowMemoryResults(hWnd, ShowMemoryResults) \
-    PostMessage(hWnd, WM_PH_SHOW_MEMORY_RESULTS, 0, (LPARAM)(ShowMemoryResults))
-#define ProcessHacker_SelectTabPage(hWnd, Index) \
-    SendMessage(hWnd, WM_PH_SELECT_TAB_PAGE, (WPARAM)(Index), 0)
-#define ProcessHacker_GetCallbackLayoutPadding(hWnd) \
-    ((PPH_CALLBACK)SendMessage(hWnd, WM_PH_GET_CALLBACK_LAYOUT_PADDING, 0, 0))
-#define ProcessHacker_InvalidateLayoutPadding(hWnd) \
-    SendMessage(hWnd, WM_PH_INVALIDATE_LAYOUT_PADDING, 0, 0)
-#define ProcessHacker_SelectProcessNode(hWnd, ProcessNode) \
-    SendMessage(hWnd, WM_PH_SELECT_PROCESS_NODE, 0, (LPARAM)(ProcessNode))
-#define ProcessHacker_SelectServiceItem(hWnd, ServiceItem) \
-    SendMessage(hWnd, WM_PH_SELECT_SERVICE_ITEM, 0, (LPARAM)(ServiceItem))
-#define ProcessHacker_SelectNetworkItem(hWnd, NetworkItem) \
-    SendMessage(hWnd, WM_PH_SELECT_NETWORK_ITEM, 0, (LPARAM)(NetworkItem))
-#define ProcessHacker_Invoke(hWnd, Function, Parameter) \
-    PostMessage(hWnd, WM_PH_INVOKE, (WPARAM)(Parameter), (LPARAM)(Function))
-#define ProcessHacker_CreateTabPage(hWnd, Template) \
-    ((struct _PH_MAIN_TAB_PAGE *)SendMessage(hWnd, WM_PH_CREATE_TAB_PAGE, 0, (LPARAM)(Template)))
-#define ProcessHacker_Refresh(hWnd) \
-    SendMessage(hWnd, WM_PH_REFRESH, 0, 0)
-#define ProcessHacker_GetUpdateAutomatically(hWnd) \
-    ((BOOLEAN)SendMessage(hWnd, WM_PH_GET_UPDATE_AUTOMATICALLY, 0, 0))
-#define ProcessHacker_SetUpdateAutomatically(hWnd, Value) \
-    SendMessage(hWnd, WM_PH_SET_UPDATE_AUTOMATICALLY, (WPARAM)(Value), 0)
+
+typedef enum _PH_MAINWINDOW_CALLBACK_TYPE
+{
+    PH_MAINWINDOW_CALLBACK_TYPE_DESTROY,
+    PH_MAINWINDOW_CALLBACK_TYPE_SHOW_PROPERTIES,
+    PH_MAINWINDOW_CALLBACK_TYPE_SAVE_ALL_SETTINGS,
+    PH_MAINWINDOW_CALLBACK_TYPE_PREPARE_FOR_EARLY_SHUTDOWN,
+    PH_MAINWINDOW_CALLBACK_TYPE_CANCEL_EARLY_SHUTDOWN,
+    PH_MAINWINDOW_CALLBACK_TYPE_TOGGLE_VISIBLE,
+    PH_MAINWINDOW_CALLBACK_TYPE_SHOW_MEMORY_EDITOR,
+    PH_MAINWINDOW_CALLBACK_TYPE_SHOW_MEMORY_RESULTS,
+    PH_MAINWINDOW_CALLBACK_TYPE_SELECT_TAB_PAGE,
+    PH_MAINWINDOW_CALLBACK_TYPE_GET_CALLBACK_LAYOUT_PADDING,
+    PH_MAINWINDOW_CALLBACK_TYPE_INVALIDATE_LAYOUT_PADDING,
+    PH_MAINWINDOW_CALLBACK_TYPE_SELECT_PROCESS_NODE,
+    PH_MAINWINDOW_CALLBACK_TYPE_SELECT_SERVICE_ITEM,
+    PH_MAINWINDOW_CALLBACK_TYPE_SELECT_NETWORK_ITEM,
+    PH_MAINWINDOW_CALLBACK_TYPE_UPDATE_FONT,
+    PH_MAINWINDOW_CALLBACK_TYPE_GET_FONT,
+    PH_MAINWINDOW_CALLBACK_TYPE_INVOKE,
+    PH_MAINWINDOW_CALLBACK_TYPE_REFRESH,
+    PH_MAINWINDOW_CALLBACK_TYPE_CREATE_TAB_PAGE,
+    PH_MAINWINDOW_CALLBACK_TYPE_GET_UPDATE_AUTOMATICALLY,
+    PH_MAINWINDOW_CALLBACK_TYPE_SET_UPDATE_AUTOMATICALLY,
+    PH_MAINWINDOW_CALLBACK_TYPE_ICON_CLICK,
+} PH_MAINWINDOW_CALLBACK_TYPE;
+
+PHAPPAPI
+PVOID
+NTAPI
+PhPluginInvokeWindowCallback(
+    _In_ PH_MAINWINDOW_CALLBACK_TYPE Event,
+    _In_opt_ PVOID wparam,
+    _In_opt_ PVOID lparam
+    );
+
+#define ProcessHacker_Destroy() \
+    PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_DESTROY, 0, 0)
+#define ProcessHacker_ShowProcessProperties(ProcessItem) \
+    PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_SHOW_PROPERTIES, 0, (PVOID)(ULONG_PTR)(ProcessItem))
+#define ProcessHacker_SaveAllSettings() \
+    PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_SAVE_ALL_SETTINGS, 0, 0)
+#define ProcessHacker_PrepareForEarlyShutdown() \
+    PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_PREPARE_FOR_EARLY_SHUTDOWN, 0, 0)
+#define ProcessHacker_CancelEarlyShutdown() \
+    PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_CANCEL_EARLY_SHUTDOWN, 0, 0)
+#define ProcessHacker_ToggleVisible(AlwaysShow) \
+    PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_TOGGLE_VISIBLE, (PVOID)(ULONG_PTR)(AlwaysShow), 0)
+#define ProcessHacker_ShowMemoryEditor(ShowMemoryEditor) \
+    PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_SHOW_MEMORY_EDITOR, 0, (PVOID)(ULONG_PTR)(ShowMemoryEditor))
+#define ProcessHacker_ShowMemoryResults(ShowMemoryResults) \
+    PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_SHOW_MEMORY_RESULTS, 0, (PVOID)(ULONG_PTR)(ShowMemoryResults))
+#define ProcessHacker_SelectTabPage(Index) \
+    PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_SELECT_TAB_PAGE, (PVOID)(ULONG_PTR)(Index), 0)
+#define ProcessHacker_GetCallbackLayoutPadding() \
+    ((PPH_CALLBACK)PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_GET_CALLBACK_LAYOUT_PADDING, 0, 0))
+#define ProcessHacker_InvalidateLayoutPadding() \
+    PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_INVALIDATE_LAYOUT_PADDING, 0, 0)
+#define ProcessHacker_SelectProcessNode(ProcessNode) \
+    PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_SELECT_PROCESS_NODE, 0, (PVOID)(ULONG_PTR)(ProcessNode))
+#define ProcessHacker_SelectServiceItem(ServiceItem) \
+    PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_SELECT_SERVICE_ITEM, 0, (PVOID)(ULONG_PTR)(ServiceItem))
+#define ProcessHacker_SelectNetworkItem(NetworkItem) \
+    PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_SELECT_NETWORK_ITEM, 0, (PVOID)(ULONG_PTR)(NetworkItem))
+#define ProcessHacker_UpdateFont() \
+    PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_UPDATE_FONT, 0, 0)
+#define ProcessHacker_GetFont() \
+    ((HFONT)PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_GET_FONT, 0, 0))
+#define ProcessHacker_Invoke(Function, Parameter) \
+    PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_INVOKE, (PVOID)(ULONG_PTR)(Parameter), (PVOID)(ULONG_PTR)(Function))
+#define ProcessHacker_CreateTabPage(Template) \
+    PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_CREATE_TAB_PAGE, 0, (PVOID)(ULONG_PTR)(Template))
+#define ProcessHacker_Refresh() \
+    PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_REFRESH, 0, 0)
+#define ProcessHacker_GetUpdateAutomatically() \
+    ((BOOLEAN)PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_GET_UPDATE_AUTOMATICALLY, 0, 0))
+#define ProcessHacker_SetUpdateAutomatically(Value) \
+    PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_SET_UPDATE_AUTOMATICALLY, (PVOID)(ULONG_PTR)(Value), 0)
 // end_phapppub
-#define ProcessHacker_IconClick(hWnd) \
-    SendMessage(hWnd, WM_PH_ICON_CLICK, 0, 0)
+#define ProcessHacker_IconClick() \
+    PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_ICON_CLICK, 0, 0)
 
 typedef struct _PH_SHOW_MEMORY_EDITOR
 {

@@ -577,12 +577,12 @@ VOID PhSipOnCommand(
         break;
     case IDC_REFRESH:
         {
-            ProcessHacker_Refresh(PhMainWndHandle);
+            ProcessHacker_Refresh();
         }
         break;
     case IDC_PAUSE:
         {
-            ProcessHacker_SetUpdateAutomatically(PhMainWndHandle, !ProcessHacker_GetUpdateAutomatically(PhMainWndHandle));
+            ProcessHacker_SetUpdateAutomatically(!ProcessHacker_GetUpdateAutomatically());
         }
         break;
     case IDC_MAXSCREEN:
