@@ -20,9 +20,7 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <phapp.h>
-
-#include <svcsup.h>
+#include "main.h"
 
 NTSTATUS PhpGetDllBaseRemote(
     _In_ HANDLE ProcessHandle,
@@ -40,15 +38,17 @@ BOOLEAN NTAPI PhpCommandModeOptionCallback(
     _In_opt_ PVOID Context
     )
 {
-    ULONG64 integer;
-
     if (Option)
     {
         switch (Option->Id)
         {
         case PH_COMMAND_OPTION_HWND:
-            if (PhStringToInteger64(&Value->sr, 10, &integer))
-                CommandModeWindowHandle = (HWND)integer;
+            {
+                ULONG64 integer;
+
+                if (Value && PhStringToInteger64(&Value->sr, 10, &integer))
+                    CommandModeWindowHandle = (HWND)integer;
+            }
             break;
         }
     }
@@ -64,37 +64,34 @@ NTSTATUS PhCommandModeStart(
     {
         { PH_COMMAND_OPTION_HWND, L"hwnd", MandatoryArgumentType }
     };
-    NTSTATUS status;
-    PPH_STRING commandLine;
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
+    PH_STRINGREF commandLine;
 
-    if (!NT_SUCCESS(status = PhGetProcessCommandLine(NtCurrentProcess(), &commandLine)))
-        return status;
-
+    PhUnicodeStringToStringRef(&NtCurrentPeb()->ProcessParameters->CommandLine, &commandLine);
     PhParseCommandLine(
-        &commandLine->sr,
+        &commandLine,
         options,
         RTL_NUMBER_OF(options),
         PH_COMMAND_LINE_IGNORE_UNKNOWN_OPTIONS,
         PhpCommandModeOptionCallback,
         NULL
         );
-    PhDereferenceObject(commandLine);
 
-    if (PhEqualString2(PhStartupParameters.CommandType, L"process", TRUE))
+    if (PhEqualString2(CommandType, L"process", TRUE))
     {
         SIZE_T i;
         SIZE_T processIdLength;
         HANDLE processId;
         HANDLE processHandle;
 
-        if (!PhStartupParameters.CommandObject)
+        if (!CommandObject)
             return STATUS_INVALID_PARAMETER;
 
-        processIdLength = PhStartupParameters.CommandObject->Length / sizeof(WCHAR);
+        processIdLength = CommandObject->Length / sizeof(WCHAR);
 
         for (i = 0; i < processIdLength; i++)
         {
-            if (!PhIsDigitCharacter(PhStartupParameters.CommandObject->Buffer[i]))
+            if (!PhIsDigitCharacter(CommandObject->Buffer[i]))
                 break;
         }
 
@@ -102,7 +99,7 @@ NTSTATUS PhCommandModeStart(
         {
             ULONG64 processId64;
 
-            if (!PhStringToInteger64(&PhStartupParameters.CommandObject->sr, 10, &processId64))
+            if (!PhStringToInteger64(&CommandObject->sr, 10, &processId64))
                 return STATUS_INVALID_PARAMETER;
 
             processId = (HANDLE)processId64;
@@ -115,7 +112,7 @@ NTSTATUS PhCommandModeStart(
             if (!NT_SUCCESS(status = PhEnumProcesses(&processes)))
                 return status;
 
-            if (!(process = PhFindProcessInformationByImageName(processes, &PhStartupParameters.CommandObject->sr)))
+            if (!(process = PhFindProcessInformationByImageName(processes, &CommandObject->sr)))
             {
                 PhFree(processes);
                 return STATUS_NOT_FOUND;
@@ -125,53 +122,53 @@ NTSTATUS PhCommandModeStart(
             PhFree(processes);
         }
 
-        if (PhEqualString2(PhStartupParameters.CommandAction, L"terminate", TRUE))
+        if (PhEqualString2(CommandAction, L"terminate", TRUE))
         {
-            if (NT_SUCCESS(status = PhOpenProcessPublic(&processHandle, PROCESS_TERMINATE, processId)))
+            if (NT_SUCCESS(status = PhOpenProcess(&processHandle, PROCESS_TERMINATE, processId)))
             {
                 status = NtTerminateProcess(processHandle, STATUS_SUCCESS);
                 NtClose(processHandle);
             }
         }
-        else if (PhEqualString2(PhStartupParameters.CommandAction, L"suspend", TRUE))
+        else if (PhEqualString2(CommandAction, L"suspend", TRUE))
         {
-            if (NT_SUCCESS(status = PhOpenProcessPublic(&processHandle, PROCESS_SUSPEND_RESUME, processId)))
+            if (NT_SUCCESS(status = PhOpenProcess(&processHandle, PROCESS_SUSPEND_RESUME, processId)))
             {
                 status = NtSuspendProcess(processHandle);
                 NtClose(processHandle);
             }
         }
-        else if (PhEqualString2(PhStartupParameters.CommandAction, L"resume", TRUE))
+        else if (PhEqualString2(CommandAction, L"resume", TRUE))
         {
-            if (NT_SUCCESS(status = PhOpenProcessPublic(&processHandle, PROCESS_SUSPEND_RESUME, processId)))
+            if (NT_SUCCESS(status = PhOpenProcess(&processHandle, PROCESS_SUSPEND_RESUME, processId)))
             {
                 status = NtResumeProcess(processHandle);
                 NtClose(processHandle);
             }
         }
-        else if (PhEqualString2(PhStartupParameters.CommandAction, L"priority", TRUE))
+        else if (PhEqualString2(CommandAction, L"priority", TRUE))
         {
             UCHAR priority;
 
-            if (!PhStartupParameters.CommandValue)
+            if (!CommandValue)
                 return STATUS_INVALID_PARAMETER;
 
-            if (PhEqualString2(PhStartupParameters.CommandValue, L"idle", TRUE))
+            if (PhEqualString2(CommandValue, L"idle", TRUE))
                 priority = PROCESS_PRIORITY_CLASS_IDLE;
-            else if (PhEqualString2(PhStartupParameters.CommandValue, L"normal", TRUE))
+            else if (PhEqualString2(CommandValue, L"normal", TRUE))
                 priority = PROCESS_PRIORITY_CLASS_NORMAL;
-            else if (PhEqualString2(PhStartupParameters.CommandValue, L"high", TRUE))
+            else if (PhEqualString2(CommandValue, L"high", TRUE))
                 priority = PROCESS_PRIORITY_CLASS_HIGH;
-            else if (PhEqualString2(PhStartupParameters.CommandValue, L"realtime", TRUE))
+            else if (PhEqualString2(CommandValue, L"realtime", TRUE))
                 priority = PROCESS_PRIORITY_CLASS_REALTIME;
-            else if (PhEqualString2(PhStartupParameters.CommandValue, L"abovenormal", TRUE))
+            else if (PhEqualString2(CommandValue, L"abovenormal", TRUE))
                 priority = PROCESS_PRIORITY_CLASS_ABOVE_NORMAL;
-            else if (PhEqualString2(PhStartupParameters.CommandValue, L"belownormal", TRUE))
+            else if (PhEqualString2(CommandValue, L"belownormal", TRUE))
                 priority = PROCESS_PRIORITY_CLASS_BELOW_NORMAL;
             else
                 return STATUS_INVALID_PARAMETER;
 
-            if (NT_SUCCESS(status = PhOpenProcessPublic(&processHandle, PROCESS_SET_INFORMATION, processId)))
+            if (NT_SUCCESS(status = PhOpenProcess(&processHandle, PROCESS_SET_INFORMATION, processId)))
             {
                 PROCESS_PRIORITY_CLASS priorityClass;
 
@@ -183,42 +180,42 @@ NTSTATUS PhCommandModeStart(
                 NtClose(processHandle);
             }
         }
-        else if (PhEqualString2(PhStartupParameters.CommandAction, L"iopriority", TRUE))
+        else if (PhEqualString2(CommandAction, L"iopriority", TRUE))
         {
             ULONG ioPriority;
 
-            if (!PhStartupParameters.CommandValue)
+            if (!CommandValue)
                 return STATUS_INVALID_PARAMETER;
 
-            if (PhEqualString2(PhStartupParameters.CommandValue, L"verylow", TRUE))
+            if (PhEqualString2(CommandValue, L"verylow", TRUE))
                 ioPriority = 0;
-            else if (PhEqualString2(PhStartupParameters.CommandValue, L"low", TRUE))
+            else if (PhEqualString2(CommandValue, L"low", TRUE))
                 ioPriority = 1;
-            else if (PhEqualString2(PhStartupParameters.CommandValue, L"normal", TRUE))
+            else if (PhEqualString2(CommandValue, L"normal", TRUE))
                 ioPriority = 2;
-            else if (PhEqualString2(PhStartupParameters.CommandValue, L"high", TRUE))
+            else if (PhEqualString2(CommandValue, L"high", TRUE))
                 ioPriority = 3;
             else
                 return STATUS_INVALID_PARAMETER;
 
-            if (NT_SUCCESS(status = PhOpenProcessPublic(&processHandle, PROCESS_SET_INFORMATION, processId)))
+            if (NT_SUCCESS(status = PhOpenProcess(&processHandle, PROCESS_SET_INFORMATION, processId)))
             {
                 status = PhSetProcessIoPriority(processHandle, ioPriority);
                 NtClose(processHandle);
             }
         }
-        else if (PhEqualString2(PhStartupParameters.CommandAction, L"pagepriority", TRUE))
+        else if (PhEqualString2(CommandAction, L"pagepriority", TRUE))
         {
             ULONG64 pagePriority64;
             ULONG pagePriority;
 
-            if (!PhStartupParameters.CommandValue)
+            if (!CommandValue)
                 return STATUS_INVALID_PARAMETER;
 
-            PhStringToInteger64(&PhStartupParameters.CommandValue->sr, 10, &pagePriority64);
+            PhStringToInteger64(&CommandValue->sr, 10, &pagePriority64);
             pagePriority = (ULONG)pagePriority64;
 
-            if (NT_SUCCESS(status = PhOpenProcessPublic(&processHandle, PROCESS_SET_INFORMATION, processId)))
+            if (NT_SUCCESS(status = PhOpenProcess(&processHandle, PROCESS_SET_INFORMATION, processId)))
             {
                 status = PhSetProcessPagePriority(processHandle, pagePriority);
 
@@ -226,18 +223,18 @@ NTSTATUS PhCommandModeStart(
             }
         }
     }
-    else if (PhEqualString2(PhStartupParameters.CommandType, L"service", TRUE))
+    else if (PhEqualString2(CommandType, L"service", TRUE))
     {
         SC_HANDLE serviceHandle;
         SERVICE_STATUS serviceStatus;
 
-        if (!PhStartupParameters.CommandObject)
+        if (!CommandObject)
             return STATUS_INVALID_PARAMETER;
 
-        if (PhEqualString2(PhStartupParameters.CommandAction, L"start", TRUE))
+        if (PhEqualString2(CommandAction, L"start", TRUE))
         {
             if (!(serviceHandle = PhOpenService(
-                PhStartupParameters.CommandObject->Buffer,
+                CommandObject->Buffer,
                 SERVICE_START
                 )))
                 return PhGetLastWin32ErrorAsNtStatus();
@@ -247,10 +244,10 @@ NTSTATUS PhCommandModeStart(
 
             CloseServiceHandle(serviceHandle);
         }
-        else if (PhEqualString2(PhStartupParameters.CommandAction, L"continue", TRUE))
+        else if (PhEqualString2(CommandAction, L"continue", TRUE))
         {
             if (!(serviceHandle = PhOpenService(
-                PhStartupParameters.CommandObject->Buffer,
+                CommandObject->Buffer,
                 SERVICE_PAUSE_CONTINUE
                 )))
                 return PhGetLastWin32ErrorAsNtStatus();
@@ -260,10 +257,10 @@ NTSTATUS PhCommandModeStart(
 
             CloseServiceHandle(serviceHandle);
         }
-        else if (PhEqualString2(PhStartupParameters.CommandAction, L"pause", TRUE))
+        else if (PhEqualString2(CommandAction, L"pause", TRUE))
         {
             if (!(serviceHandle = PhOpenService(
-                PhStartupParameters.CommandObject->Buffer,
+                CommandObject->Buffer,
                 SERVICE_PAUSE_CONTINUE
                 )))
                 return PhGetLastWin32ErrorAsNtStatus();
@@ -273,10 +270,10 @@ NTSTATUS PhCommandModeStart(
 
             CloseServiceHandle(serviceHandle);
         }
-        else if (PhEqualString2(PhStartupParameters.CommandAction, L"stop", TRUE))
+        else if (PhEqualString2(CommandAction, L"stop", TRUE))
         {
             if (!(serviceHandle = PhOpenService(
-                PhStartupParameters.CommandObject->Buffer,
+                CommandObject->Buffer,
                 SERVICE_STOP
                 )))
                 return PhGetLastWin32ErrorAsNtStatus();
@@ -286,10 +283,10 @@ NTSTATUS PhCommandModeStart(
 
             CloseServiceHandle(serviceHandle);
         }
-        else if (PhEqualString2(PhStartupParameters.CommandAction, L"delete", TRUE))
+        else if (PhEqualString2(CommandAction, L"delete", TRUE))
         {
             if (!(serviceHandle = PhOpenService(
-                PhStartupParameters.CommandObject->Buffer,
+                CommandObject->Buffer,
                 DELETE
                 )))
                 return PhGetLastWin32ErrorAsNtStatus();
@@ -300,39 +297,39 @@ NTSTATUS PhCommandModeStart(
             CloseServiceHandle(serviceHandle);
         }
     }
-    else if (PhEqualString2(PhStartupParameters.CommandType, L"thread", TRUE))
+    else if (PhEqualString2(CommandType, L"thread", TRUE))
     {
         ULONG64 threadId64;
         HANDLE threadId;
         HANDLE threadHandle;
 
-        if (!PhStartupParameters.CommandObject)
+        if (!CommandObject)
             return STATUS_INVALID_PARAMETER;
 
-        if (!PhStringToInteger64(&PhStartupParameters.CommandObject->sr, 10, &threadId64))
+        if (!PhStringToInteger64(&CommandObject->sr, 10, &threadId64))
             return STATUS_INVALID_PARAMETER;
 
         threadId = (HANDLE)threadId64;
 
-        if (PhEqualString2(PhStartupParameters.CommandAction, L"terminate", TRUE))
+        if (PhEqualString2(CommandAction, L"terminate", TRUE))
         {
-            if (NT_SUCCESS(status = PhOpenThreadPublic(&threadHandle, THREAD_TERMINATE, threadId)))
+            if (NT_SUCCESS(status = PhOpenThread(&threadHandle, THREAD_TERMINATE, threadId)))
             {
                 status = NtTerminateThread(threadHandle, STATUS_SUCCESS);
                 NtClose(threadHandle);
             }
         }
-        else if (PhEqualString2(PhStartupParameters.CommandAction, L"suspend", TRUE))
+        else if (PhEqualString2(CommandAction, L"suspend", TRUE))
         {
-            if (NT_SUCCESS(status = PhOpenThreadPublic(&threadHandle, THREAD_SUSPEND_RESUME, threadId)))
+            if (NT_SUCCESS(status = PhOpenThread(&threadHandle, THREAD_SUSPEND_RESUME, threadId)))
             {
                 status = NtSuspendThread(threadHandle, NULL);
                 NtClose(threadHandle);
             }
         }
-        else if (PhEqualString2(PhStartupParameters.CommandAction, L"resume", TRUE))
+        else if (PhEqualString2(CommandAction, L"resume", TRUE))
         {
-            if (NT_SUCCESS(status = PhOpenThreadPublic(&threadHandle, THREAD_SUSPEND_RESUME, threadId)))
+            if (NT_SUCCESS(status = PhOpenThread(&threadHandle, THREAD_SUSPEND_RESUME, threadId)))
             {
                 status = NtResumeThread(threadHandle, NULL);
                 NtClose(threadHandle);
@@ -357,12 +354,9 @@ static BOOLEAN PhpGetDllBaseRemoteCallback(
     PGET_DLL_BASE_REMOTE_CONTEXT context = Context;
     PH_STRINGREF baseDllName;
 
-    if (!context)
-        return TRUE;
-
     PhUnicodeStringToStringRef(&Module->BaseDllName, &baseDllName);
 
-    if (PhEqualStringRef(&baseDllName, &context->BaseDllName, TRUE))
+    if (context && PhEqualStringRef(&baseDllName, &context->BaseDllName, TRUE))
     {
         context->DllBase = Module->DllBase;
         return FALSE;

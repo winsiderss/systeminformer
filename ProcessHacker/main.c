@@ -133,20 +133,12 @@ INT WINAPI wWinMain(
         PhExitApplication(PhRunAsServiceStart(PhStartupParameters.RunAsServiceMode));
     }
 
-    if (PhStartupParameters.CommandMode &&
-        PhStartupParameters.CommandType &&
-        PhStartupParameters.CommandAction)
-    {
-        PhExitApplication(PhCommandModeStart());
-    }
-
     PhSettingsInitialization();
     PhpInitializeSettings();
 
     if (PhGetIntegerSetting(L"AllowOnlyOneInstance") &&
         !PhStartupParameters.NewInstance &&
         !PhStartupParameters.ShowOptions &&
-        !PhStartupParameters.CommandMode &&
         !PhStartupParameters.PhSvc)
     {
         PhActivatePreviousInstance();
@@ -155,7 +147,6 @@ INT WINAPI wWinMain(
     if (PhGetIntegerSetting(L"EnableStartAsAdmin") &&
         !PhStartupParameters.NewInstance &&
         !PhStartupParameters.ShowOptions &&
-        !PhStartupParameters.CommandMode &&
         !PhStartupParameters.PhSvc)
     {
         if (!PhGetOwnTokenAttributes().Elevated)
@@ -172,7 +163,6 @@ INT WINAPI wWinMain(
 
     if (PhGetIntegerSetting(L"EnableKph") &&
         !PhStartupParameters.NoKph &&
-        !PhStartupParameters.CommandMode &&
         !PhIsExecutingInWow64()
         )
     {
@@ -876,6 +866,7 @@ BOOLEAN PhInitializeMitigationPolicy(
     BOOLEAN success = TRUE;
     //HANDLE jobObjectHandle = NULL;
     PPH_STRING commandline = NULL;
+    PH_STRINGREF commandlineSr;
     ULONG64 options[2] = { 0 };
     PS_SYSTEM_DLL_INIT_BLOCK(*LdrSystemDllInitBlock_I) = NULL;
     STARTUPINFOEX startupInfo = { sizeof(STARTUPINFOEX) };
@@ -883,14 +874,16 @@ BOOLEAN PhInitializeMitigationPolicy(
 
     if (WindowsVersion < WINDOWS_10_RS3)
         return TRUE;
-    if (!NT_SUCCESS(PhGetProcessCommandLine(NtCurrentProcess(), &commandline)))
+
+    PhUnicodeStringToStringRef(&NtCurrentPeb()->ProcessParameters->CommandLine, &commandlineSr);
+    //if (!NT_SUCCESS(PhGetProcessCommandLine(NtCurrentProcess(), &commandline)))
+    //    goto CleanupExit;
+    if (PhFindStringInStringRef(&commandlineSr, &rasCommandlinePart, FALSE) != -1)
         goto CleanupExit;
-    if (PhFindStringInStringRef(&commandline->sr, &rasCommandlinePart, FALSE) != -1)
-        goto CleanupExit;
-    if (PhEndsWithStringRef(&commandline->sr, &nompCommandlinePart, FALSE))
+    if (PhEndsWithStringRef(&commandlineSr, &nompCommandlinePart, FALSE))
         goto CleanupExit;
 
-    PhMoveReference(&commandline, PhConcatStringRef2(&commandline->sr, &nompCommandlinePart));
+    PhMoveReference(&commandline, PhConcatStringRef2(&commandlineSr, &nompCommandlinePart));
 
     if (!(LdrSystemDllInitBlock_I = PhGetDllProcedureAddress(L"ntdll.dll", "LdrSystemDllInitBlock", 0)))
         goto CleanupExit;
@@ -1302,34 +1295,33 @@ VOID PhpInitializeSettings(
     }
 }
 
-#define PH_ARG_SETTINGS 1
-#define PH_ARG_NOSETTINGS 2
-#define PH_ARG_SHOWVISIBLE 3
-#define PH_ARG_SHOWHIDDEN 4
-#define PH_ARG_COMMANDMODE 5
-#define PH_ARG_COMMANDTYPE 6
-#define PH_ARG_COMMANDOBJECT 7
-#define PH_ARG_COMMANDACTION 8
-#define PH_ARG_COMMANDVALUE 9
-#define PH_ARG_RUNASSERVICEMODE 10
-#define PH_ARG_NOKPH 11
-#define PH_ARG_INSTALLKPH 12
-#define PH_ARG_UNINSTALLKPH 13
-#define PH_ARG_DEBUG 14
-#define PH_ARG_HWND 15
-#define PH_ARG_POINT 16
-#define PH_ARG_SHOWOPTIONS 17
-#define PH_ARG_PHSVC 18
-#define PH_ARG_NOPLUGINS 19
-#define PH_ARG_NEWINSTANCE 20
-#define PH_ARG_ELEVATE 21
-#define PH_ARG_SILENT 22
-#define PH_ARG_HELP 23
-#define PH_ARG_SELECTPID 24
-#define PH_ARG_PRIORITY 25
-#define PH_ARG_PLUGIN 26
-#define PH_ARG_SELECTTAB 27
-#define PH_ARG_SYSINFO 28
+typedef enum _PH_COMMAND_ARG
+{
+    PH_ARG_NONE,
+    PH_ARG_SETTINGS,
+    PH_ARG_NOSETTINGS,
+    PH_ARG_SHOWVISIBLE,
+    PH_ARG_SHOWHIDDEN,
+    PH_ARG_RUNASSERVICEMODE,
+    PH_ARG_NOKPH,
+    PH_ARG_INSTALLKPH,
+    PH_ARG_UNINSTALLKPH,
+    PH_ARG_DEBUG,
+    PH_ARG_HWND,
+    PH_ARG_POINT,
+    PH_ARG_SHOWOPTIONS,
+    PH_ARG_PHSVC,
+    PH_ARG_NOPLUGINS,
+    PH_ARG_NEWINSTANCE,
+    PH_ARG_ELEVATE,
+    PH_ARG_SILENT,
+    PH_ARG_HELP,
+    PH_ARG_SELECTPID,
+    PH_ARG_PRIORITY,
+    PH_ARG_PLUGIN,
+    PH_ARG_SELECTTAB,
+    PH_ARG_SYSINFO
+} PH_COMMAND_ARG;
 
 BOOLEAN NTAPI PhpCommandLineOptionCallback(
     _In_opt_ PPH_COMMAND_LINE_OPTION Option,
@@ -1354,21 +1346,6 @@ BOOLEAN NTAPI PhpCommandLineOptionCallback(
             break;
         case PH_ARG_SHOWHIDDEN:
             PhStartupParameters.ShowHidden = TRUE;
-            break;
-        case PH_ARG_COMMANDMODE:
-            PhStartupParameters.CommandMode = TRUE;
-            break;
-        case PH_ARG_COMMANDTYPE:
-            PhSwapReference(&PhStartupParameters.CommandType, Value);
-            break;
-        case PH_ARG_COMMANDOBJECT:
-            PhSwapReference(&PhStartupParameters.CommandObject, Value);
-            break;
-        case PH_ARG_COMMANDACTION:
-            PhSwapReference(&PhStartupParameters.CommandAction, Value);
-            break;
-        case PH_ARG_COMMANDVALUE:
-            PhSwapReference(&PhStartupParameters.CommandValue, Value);
             break;
         case PH_ARG_RUNASSERVICEMODE:
             PhSwapReference(&PhStartupParameters.RunAsServiceMode, Value);
@@ -1483,17 +1460,12 @@ VOID PhpProcessStartupParameters(
     VOID
     )
 {
-    static PH_COMMAND_LINE_OPTION options[] =
+    PH_COMMAND_LINE_OPTION options[] =
     {
         { PH_ARG_SETTINGS, L"settings", MandatoryArgumentType },
         { PH_ARG_NOSETTINGS, L"nosettings", NoArgumentType },
         { PH_ARG_SHOWVISIBLE, L"v", NoArgumentType },
         { PH_ARG_SHOWHIDDEN, L"hide", NoArgumentType },
-        { PH_ARG_COMMANDMODE, L"c", NoArgumentType },
-        { PH_ARG_COMMANDTYPE, L"ctype", MandatoryArgumentType },
-        { PH_ARG_COMMANDOBJECT, L"cobject", MandatoryArgumentType },
-        { PH_ARG_COMMANDACTION, L"caction", MandatoryArgumentType },
-        { PH_ARG_COMMANDVALUE, L"cvalue", MandatoryArgumentType },
         { PH_ARG_RUNASSERVICEMODE, L"ras", MandatoryArgumentType },
         { PH_ARG_NOKPH, L"nokph", NoArgumentType },
         { PH_ARG_INSTALLKPH, L"installkph", NoArgumentType },
@@ -1523,7 +1495,7 @@ VOID PhpProcessStartupParameters(
     if (!PhParseCommandLine(
         &commandLine,
         options,
-        sizeof(options) / sizeof(PH_COMMAND_LINE_OPTION),
+        RTL_NUMBER_OF(options),
         PH_COMMAND_LINE_IGNORE_UNKNOWN_OPTIONS | PH_COMMAND_LINE_IGNORE_FIRST_PART,
         PhpCommandLineOptionCallback,
         NULL
