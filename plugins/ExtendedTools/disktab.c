@@ -594,13 +594,64 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
                 getCellText->Text = PhGetStringRef(diskItem->FileNameWin32);
                 break;
             case ETDSTNC_READRATEAVERAGE:
-                EtFormatRate(diskItem->ReadAverage, &node->ReadRateAverageText, &getCellText->Text);
+                {
+                    ULONG64 number;
+
+                    number = diskItem->ReadAverage;
+                    number *= 1000;
+                    number /= PhGetIntegerSetting(L"UpdateInterval");
+
+                    if (number != 0)
+                    {
+                        PH_FORMAT format[2];
+
+                        PhInitFormatSize(&format[0], number);
+                        PhInitFormatS(&format[1], L"/s");
+
+                        PhMoveReference(&node->ReadRateAverageText, PhFormat(format, 2, 0));
+                        getCellText->Text = node->ReadRateAverageText->sr;
+                    }
+                }
                 break;
             case ETDSTNC_WRITERATEAVERAGE:
-                EtFormatRate(diskItem->WriteAverage, &node->WriteRateAverageText, &getCellText->Text);
+                {
+                    ULONG64 number;
+
+                    number = diskItem->WriteAverage;
+                    number *= 1000;
+                    number /= PhGetIntegerSetting(L"UpdateInterval");
+
+                    if (number != 0)
+                    {
+                        PH_FORMAT format[2];
+
+                        PhInitFormatSize(&format[0], number);
+                        PhInitFormatS(&format[1], L"/s");
+
+                        PhMoveReference(&node->WriteRateAverageText, PhFormat(format, 2, 0));
+                        getCellText->Text = node->WriteRateAverageText->sr;
+                    }
+                }
                 break;
             case ETDSTNC_TOTALRATEAVERAGE:
-                EtFormatRate(diskItem->ReadAverage + diskItem->WriteAverage, &node->TotalRateAverageText, &getCellText->Text);
+                {
+                    ULONG64 number;
+
+                    number = diskItem->ReadAverage + diskItem->WriteAverage;
+                    number *= 1000;
+                    number /= PhGetIntegerSetting(L"UpdateInterval");
+
+                    if (number != 0)
+                    {
+                        PH_FORMAT format[2];
+
+                        PhInitFormatSize(&format[0], number);
+                        PhInitFormatS(&format[1], L"/s");
+
+                        PhMoveReference(&node->TotalRateAverageText, PhFormat(format, 2, 0));
+                        getCellText->Text = node->TotalRateAverageText->sr;
+                    }
+                }
                 break;
             case ETDSTNC_IOPRIORITY:
                 switch (diskItem->IoPriority)

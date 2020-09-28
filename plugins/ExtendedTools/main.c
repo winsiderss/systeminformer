@@ -596,11 +596,6 @@ VOID EtDeleteProcessBlock(
     _In_ PET_PROCESS_BLOCK Block
     )
 {
-    for (ULONG i = 1; i <= ETPRTNC_MAXIMUM; i++)
-    {
-        PhClearReference(&Block->TextCache[i]);
-    }
-
     PhDeleteCircularBuffer_ULONG64(&Block->DiskReadHistory);
     PhDeleteCircularBuffer_ULONG64(&Block->DiskWriteHistory);
     PhDeleteCircularBuffer_ULONG64(&Block->NetworkSendHistory);
@@ -629,11 +624,6 @@ VOID EtDeleteNetworkBlock(
     _In_ PET_NETWORK_BLOCK Block
     )
 {
-    for (ULONG i = 1; i <= ETNETNC_MAXIMUM; i++)
-    {
-        PhClearReference(&Block->TextCache[i]);
-    }
-
     RemoveEntryList(&Block->ListEntry);
 }
 
