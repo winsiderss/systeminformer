@@ -90,8 +90,8 @@ typedef VOID (NTAPI *PKNORMAL_ROUTINE)(
 
 typedef VOID KKERNEL_ROUTINE(
     _In_ PRKAPC Apc,
-    _Inout_ PKNORMAL_ROUTINE *NormalRoutine,
-    _Inout_ PVOID *NormalContext,
+    _Inout_opt_ PKNORMAL_ROUTINE *NormalRoutine,
+    _Inout_opt_ PVOID *NormalContext,
     _Inout_ PVOID *SystemArgument1,
     _Inout_ PVOID *SystemArgument2
     );

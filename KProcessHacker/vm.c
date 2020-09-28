@@ -21,12 +21,6 @@
 
 #include <kph.h>
 
-ULONG KphpGetCopyExceptionInfo(
-    _In_ PEXCEPTION_POINTERS ExceptionInfo,
-    _Out_ PBOOLEAN HaveBadAddress,
-    _Out_ PULONG_PTR BadAddress
-    );
-
 #ifdef ALLOC_PRAGMA
 #pragma alloc_text(PAGE, KphCopyVirtualMemory)
 #pragma alloc_text(PAGE, KpiReadVirtualMemoryUnsafe)
@@ -46,6 +40,7 @@ ULONG KphpGetCopyExceptionInfo(
     PEXCEPTION_RECORD exceptionRecord;
 
     *HaveBadAddress = FALSE;
+    *BadAddress = 0;
     exceptionRecord = ExceptionInfo->ExceptionRecord;
 
     if ((exceptionRecord->ExceptionCode == STATUS_ACCESS_VIOLATION) ||
@@ -153,7 +148,7 @@ NTSTATUS KphCopyVirtualMemory(
 
                     while (TRUE)
                     {
-                        buffer = ExAllocatePoolWithTag(NonPagedPool, blockSize, 'ChpK');
+                        buffer = ExAllocatePoolZero(NonPagedPool, blockSize, 'ChpK');
 
                         // Stop trying if we got a buffer.
                         if (buffer)
@@ -266,7 +261,7 @@ NTSTATUS KphCopyVirtualMemory(
             // Determine which copy failed.
             if (copyingToTarget && haveBadAddress)
             {
-                *ReturnLength = (ULONG)(badAddress - (ULONG_PTR)sourceAddress);
+                *ReturnLength = (SIZE_T)PTR_SUB_OFFSET(badAddress, sourceAddress);
             }
             else
             {

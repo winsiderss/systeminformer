@@ -233,6 +233,7 @@ NTSTATUS KpiOpenThreadProcess(
     _In_ KPROCESSOR_MODE AccessMode
     );
 
+_Success_(return != 0)
 ULONG KphCaptureStackBackTrace(
     _In_ ULONG FramesToSkip,
     _In_ ULONG FramesToCapture,

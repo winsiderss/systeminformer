@@ -95,8 +95,8 @@ NTSTATUS KpiQueryInformationDriver(
     {
         switch (DriverInformationClass)
         {
-            // Basic information such as flags, driver base and driver size.
-            case DriverBasicInformation:
+        // Basic information such as flags, driver base and driver size.
+        case DriverBasicInformation:
             {
                 if (DriverInformationLength == sizeof(DRIVER_BASIC_INFORMATION))
                 {
@@ -117,8 +117,8 @@ NTSTATUS KpiQueryInformationDriver(
             }
             break;
 
-            // The name of the driver - e.g. \Driver\Null.
-            case DriverNameInformation:
+        // The name of the driver - e.g. \Driver\Null.
+        case DriverNameInformation:
             {
                 if (DriverInformation)
                 {
@@ -142,8 +142,8 @@ NTSTATUS KpiQueryInformationDriver(
             }
             break;
 
-            // The name of the driver's service key - e.g. \REGISTRY\...
-            case DriverServiceKeyNameInformation:
+        // The name of the driver's service key - e.g. \REGISTRY\...
+        case DriverServiceKeyNameInformation:
             {
                 if (driverObject->DriverExtension)
                 {
@@ -194,7 +194,7 @@ NTSTATUS KpiQueryInformationDriver(
             }
             break;
 
-            default:
+        default:
             {
                 status = STATUS_INVALID_INFO_CLASS;
             }
@@ -222,7 +222,7 @@ VOID KphpCopyInfoUnicodeString(
 
     if (UnicodeString)
     {
-        targetBuffer = (PWCHAR)PTR_ADD_OFFSET(Information, sizeof(UNICODE_STRING));
+        targetBuffer = PTR_ADD_OFFSET(Information, sizeof(UNICODE_STRING));
 
         targetUnicodeString->Length = UnicodeString->Length;
         targetUnicodeString->MaximumLength = UnicodeString->Length;
