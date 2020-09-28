@@ -33,7 +33,6 @@ typedef struct _PH_STARTUP_PARAMETERS
             ULONG NoSettings : 1;
             ULONG ShowVisible : 1;
             ULONG ShowHidden : 1;
-            ULONG CommandMode : 1;
             ULONG NoKph : 1;
             ULONG InstallKph : 1;
             ULONG UninstallKph : 1;
@@ -45,22 +44,16 @@ typedef struct _PH_STARTUP_PARAMETERS
             ULONG Elevate : 1;
             ULONG Silent : 1;
             ULONG Help : 1;
-            ULONG Spare : 17;
+            ULONG Spare : 18;
         };
         ULONG Flags;
     };
 
     PPH_STRING SettingsFileName;
+    PPH_STRING RunAsServiceMode;
 
     HWND WindowHandle;
     POINT Point;
-
-    PPH_STRING CommandType;
-    PPH_STRING CommandObject;
-    PPH_STRING CommandAction;
-    PPH_STRING CommandValue;
-
-    PPH_STRING RunAsServiceMode;
 
     ULONG SelectPid;
     ULONG PriorityClass;

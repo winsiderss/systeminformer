@@ -51,9 +51,6 @@
     <ClCompile Include="chproc.c">
       <Filter>Process Hacker</Filter>
     </ClCompile>
-    <ClCompile Include="cmdmode.c">
-      <Filter>Process Hacker</Filter>
-    </ClCompile>
     <ClCompile Include="dbgcon.c">
       <Filter>Process Hacker</Filter>
     </ClCompile>

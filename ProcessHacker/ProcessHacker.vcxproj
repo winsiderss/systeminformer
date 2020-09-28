@@ -369,7 +369,6 @@
     <ClCompile Include="chcol.c" />
     <ClCompile Include="chdlg.c" />
     <ClCompile Include="chproc.c" />
-    <ClCompile Include="cmdmode.c" />
     <ClCompile Include="colmgr.c" />
     <ClCompile Include="colsetmgr.c" />
     <ClCompile Include="dbgcon.c" />
