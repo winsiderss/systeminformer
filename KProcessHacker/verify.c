@@ -87,12 +87,13 @@ NTSTATUS KphHashFile(
         goto CleanupExit;
     }
 
-    if (!(hashObject = ExAllocatePoolWithTag(PagedPool, hashObjectSize, 'vhpK')))
+    if (!(hashObject = ExAllocatePoolZero(PagedPool, hashObjectSize, 'vhpK')))
     {
         status = STATUS_INSUFFICIENT_RESOURCES;
         goto CleanupExit;
     }
-    if (!(hash = ExAllocatePoolWithTag(PagedPool, hashSize, 'vhpK')))
+
+    if (!(hash = ExAllocatePoolZero(PagedPool, hashSize, 'vhpK')))
     {
         status = STATUS_INSUFFICIENT_RESOURCES;
         goto CleanupExit;
@@ -132,7 +133,7 @@ NTSTATUS KphHashFile(
         goto CleanupExit;
     }
 
-    if (!(buffer = ExAllocatePoolWithTag(PagedPool, FILE_BUFFER_SIZE, 'vhpK')))
+    if (!(buffer = ExAllocatePoolZero(PagedPool, FILE_BUFFER_SIZE, 'vhpK')))
     {
         status = STATUS_INSUFFICIENT_RESOURCES;
         goto CleanupExit;
@@ -333,7 +334,8 @@ NTSTATUS KpiVerifyClient(
     if (SignatureSize > KPH_SIGNATURE_MAX_SIZE)
         return STATUS_INVALID_PARAMETER_3;
 
-    signature = ExAllocatePoolWithTag(PagedPool, SignatureSize, 'ThpK');
+    signature = ExAllocatePoolZero(PagedPool, SignatureSize, 'ThpK');
+
     if (!signature)
         return STATUS_INSUFFICIENT_RESOURCES;
 
@@ -348,6 +350,7 @@ NTSTATUS KpiVerifyClient(
     }
 
     KphVerifyClient(Client, CodeAddress, signature, SignatureSize);
+
     ExFreePoolWithTag(signature, 'ThpK');
 
     return Client->VerificationStatus;

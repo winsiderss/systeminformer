@@ -162,12 +162,10 @@ NTSTATUS KphDispatchCreate(
 
     if (NT_SUCCESS(status))
     {
-        client = ExAllocatePoolWithTag(PagedPool, sizeof(KPH_CLIENT), 'ChpK');
+        client = ExAllocatePoolZero(PagedPool, sizeof(KPH_CLIENT), 'ChpK');
 
         if (client)
         {
-            memset(client, 0, sizeof(KPH_CLIENT));
-
             ExInitializeFastMutex(&client->StateMutex);
             ExInitializeFastMutex(&client->KeyBackoffMutex);
 
@@ -256,7 +254,7 @@ ULONG KphpReadIntegerParameter(
 
     if (!NT_SUCCESS(status))
     {
-        dprintf("Unable to query parameter %.*S: 0x%x\n", ValueName->Length / sizeof(WCHAR), ValueName->Buffer, status);
+        dprintf("Unable to query parameter %.*S: 0x%x\n", ValueName->Length / (USHORT)sizeof(WCHAR), ValueName->Buffer, status);
         return DefaultValue;
     }
 
@@ -287,7 +285,7 @@ NTSTATUS KphpReadDriverParameters(
 
     parametersKeyName.Length = RegistryPath->Length + parametersString.Length;
     parametersKeyName.MaximumLength = parametersKeyName.Length;
-    parametersKeyName.Buffer = ExAllocatePoolWithTag(PagedPool, parametersKeyName.MaximumLength, 'ThpK');
+    parametersKeyName.Buffer = ExAllocatePoolZero(PagedPool, parametersKeyName.MaximumLength, 'ThpK');
 
     if (!parametersKeyName.Buffer)
         return STATUS_INSUFFICIENT_RESOURCES;

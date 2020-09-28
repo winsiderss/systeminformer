@@ -412,7 +412,7 @@ NTSTATUS KphQueryNameObject(
         status = STATUS_BUFFER_TOO_SMALL;
 
     if (NT_SUCCESS(status))
-        dprintf("KphQueryNameObject: %.*S\n", Buffer->Name.Length / sizeof(WCHAR), Buffer->Name.Buffer);
+        dprintf("KphQueryNameObject: %.*S\n", Buffer->Name.Length / (USHORT)sizeof(WCHAR), Buffer->Name.Buffer);
     else
         dprintf("KphQueryNameObject: status 0x%x\n", status);
 
@@ -698,21 +698,19 @@ NTSTATUS KpiQueryInformationObject(
                 if (allocateSize < sizeof(OBJECT_NAME_INFORMATION)) // make sure we never try to allocate 0 bytes
                     allocateSize = sizeof(OBJECT_NAME_INFORMATION);
 
-                nameInfo = ExAllocatePoolWithQuotaTag(PagedPool, allocateSize, 'QhpK');
+                nameInfo = ExAllocatePoolQuotaZero(PagedPool, allocateSize, 'QhpK');
 
                 if (nameInfo)
                 {
-                    // Make sure we don't leak any data.
-                    memset(nameInfo, 0, ObjectInformationLength);
-
                     status = KphQueryNameObject(
                         object,
                         nameInfo,
                         ObjectInformationLength,
                         &returnLength
                         );
+
                     dprintf("KpiQueryInformationObject: called KphQueryNameObject: Handle: 0x%Ix, ObjectInformationLength: %u, returnLength: %u\n",
-                        Handle, ObjectInformationLength, returnLength);
+                        (ULONG_PTR)Handle, ObjectInformationLength, returnLength);
 
                     if (NT_SUCCESS(status))
                     {
@@ -759,12 +757,10 @@ NTSTATUS KpiQueryInformationObject(
             // around this bug, we add some (generous) padding to our allocation.
             allocateSize += sizeof(ULONGLONG);
 
-            typeInfo = ExAllocatePoolWithQuotaTag(PagedPool, allocateSize, 'QhpK');
+            typeInfo = ExAllocatePoolQuotaZero(PagedPool, allocateSize, 'QhpK');
 
             if (typeInfo)
             {
-                memset(typeInfo, 0, ObjectInformationLength);
-
                 KeStackAttachProcess(process, &apcState);
                 status = ZwQueryObject(
                     Handle,
@@ -1102,6 +1098,8 @@ NTSTATUS KpiQueryInformationObject(
             {
                 status = STATUS_INFO_LENGTH_MISMATCH;
             }
+
+            returnLength = sizeof(KPH_FILE_OBJECT_DRIVER);
         }
         break;
     default:

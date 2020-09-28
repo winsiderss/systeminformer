@@ -81,7 +81,7 @@ NTSTATUS KphReadDynamicDataParameters(
         return STATUS_UNSUCCESSFUL;
     }
 
-    info = ExAllocatePoolWithTag(PagedPool, resultLength, 'ThpK');
+    info = ExAllocatePoolZero(PagedPool, resultLength, 'ThpK');
 
     if (!info)
         return STATUS_INSUFFICIENT_RESOURCES;

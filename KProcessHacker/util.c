@@ -71,7 +71,7 @@ NTSTATUS KphCaptureUnicodeString(
 
     if (unicodeString.Length != 0)
     {
-        unicodeString.Buffer = ExAllocatePoolWithTag(
+        unicodeString.Buffer = ExAllocatePoolZero(
             PagedPool,
             unicodeString.Length,
             'UhpK'
@@ -122,7 +122,7 @@ NTSTATUS KphEnumerateSystemModules(
 
     do
     {
-        buffer = ExAllocatePoolWithTag(PagedPool, bufferSize, 'ThpK');
+        buffer = ExAllocatePoolZero(PagedPool, bufferSize, 'ThpK');
 
         if (!buffer)
         {
@@ -227,7 +227,7 @@ NTSTATUS KphGetProcessMappedFileName(
     PAGED_CODE();
 
     bufferSize = 0x100;
-    buffer = ExAllocatePoolWithTag(PagedPool, bufferSize, 'ThpK');
+    buffer = ExAllocatePoolZero(PagedPool, bufferSize, 'ThpK');
 
     if (!buffer)
         return STATUS_INSUFFICIENT_RESOURCES;
@@ -245,7 +245,7 @@ NTSTATUS KphGetProcessMappedFileName(
     {
         ExFreePoolWithTag(buffer, 'ThpK');
         bufferSize = returnLength;
-        buffer = ExAllocatePoolWithTag(PagedPool, bufferSize, 'ThpK');
+        buffer = ExAllocatePoolZero(PagedPool, bufferSize, 'ThpK');
 
         if (!buffer)
             return STATUS_INSUFFICIENT_RESOURCES;

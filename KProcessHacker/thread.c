@@ -256,6 +256,7 @@ NTSTATUS KpiOpenThreadProcess(
  *
  * \return The number of frames captured.
  */
+_Success_(return != 0)
 ULONG KphCaptureStackBackTrace(
     _In_ ULONG FramesToSkip,
     _In_ ULONG FramesToCapture,
@@ -389,7 +390,7 @@ NTSTATUS KphCaptureStackBackTraceThread(
     }
 
     // Allocate storage for the stack trace.
-    backTrace = ExAllocatePoolWithTag(NonPagedPool, backTraceSize, 'bhpK');
+    backTrace = ExAllocatePoolZero(NonPagedPool, backTraceSize, 'bhpK');
 
     if (!backTrace)
         return STATUS_INSUFFICIENT_RESOURCES;
