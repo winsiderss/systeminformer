@@ -305,11 +305,13 @@ typedef struct _ET_PROCESS_BLOCK
 
     PH_UINT32_DELTA HardFaultsDelta;
 
-    PH_QUEUED_LOCK TextCacheLock;
-    PPH_STRING TextCache[ETPRTNC_MAXIMUM + 1];
-    BOOLEAN TextCacheValid[ETPRTNC_MAXIMUM + 1];
     ULONG ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_MAX + 1];
     ULONG ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_MAX + 1];
+
+    PH_QUEUED_LOCK TextCacheLock;
+    SIZE_T TextCacheLength[ETPRTNC_MAXIMUM + 1];
+    BOOLEAN TextCacheValid[ETPRTNC_MAXIMUM + 1];
+    WCHAR TextCache[ETPRTNC_MAXIMUM + 1][64];
 } ET_PROCESS_BLOCK, *PET_PROCESS_BLOCK;
 
 typedef struct _ET_NETWORK_BLOCK
@@ -338,8 +340,9 @@ typedef struct _ET_NETWORK_BLOCK
     BOOLEAN FirewallStatusValid;
 
     PH_QUEUED_LOCK TextCacheLock;
-    PPH_STRING TextCache[ETNETNC_MAXIMUM + 1];
+    SIZE_T TextCacheLength[ETNETNC_MAXIMUM + 1];
     BOOLEAN TextCacheValid[ETNETNC_MAXIMUM + 1];
+    WCHAR TextCache[ETNETNC_MAXIMUM + 1][64];
 } ET_NETWORK_BLOCK, *PET_NETWORK_BLOCK;
 
 // main
@@ -354,10 +357,46 @@ PET_NETWORK_BLOCK EtGetNetworkBlock(
 
 // utils
 
+VOID EtFormatInt64(
+    _In_ ULONG64 Value,
+    _In_ PET_PROCESS_BLOCK Block,
+    _In_ PPH_PLUGIN_TREENEW_MESSAGE Message
+    );
+
+VOID EtFormatNetworkInt64(
+    _In_ ULONG64 Value,
+    _In_ PET_NETWORK_BLOCK Block,
+    _In_ PPH_PLUGIN_TREENEW_MESSAGE Message
+    );
+
+VOID EtFormatSize(
+    _In_ ULONG64 Value,
+    _In_ PET_PROCESS_BLOCK Block,
+    _In_ PPH_PLUGIN_TREENEW_MESSAGE Message
+    );
+
+VOID EtFormatNetworkSize(
+    _In_ ULONG64 Value,
+    _In_ PET_NETWORK_BLOCK Block,
+    _In_ PPH_PLUGIN_TREENEW_MESSAGE Message
+    );
+
+VOID EtFormatDouble(
+    _In_ DOUBLE Value,
+    _In_ PET_PROCESS_BLOCK Block,
+    _In_ PPH_PLUGIN_TREENEW_MESSAGE Message
+    );
+
 VOID EtFormatRate(
     _In_ ULONG64 ValuePerPeriod,
-    _Inout_ PPH_STRING *Buffer,
-    _Out_opt_ PPH_STRINGREF String
+    _In_ PET_PROCESS_BLOCK Block,
+    _In_ PPH_PLUGIN_TREENEW_MESSAGE Message
+    );
+
+VOID EtFormatNetworkRate(
+    _In_ ULONG64 ValuePerPeriod,
+    _In_ PET_NETWORK_BLOCK Block,
+    _In_ PPH_PLUGIN_TREENEW_MESSAGE Message
     );
 
 // etwmon
