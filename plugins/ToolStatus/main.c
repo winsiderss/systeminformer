@@ -1309,7 +1309,9 @@ VOID NTAPI MainWindowShowingCallback(
     _In_opt_ PVOID Context
     )
 {
+    AcceleratorTable = LoadAccelerators(PluginInstance->DllBase, MAKEINTRESOURCE(IDR_MAINWND_ACCEL));
     PhRegisterMessageLoopFilter(MessageLoopFilter, NULL);
+
     PhRegisterCallback(
         ProcessHacker_GetCallbackLayoutPadding(),
         LayoutPaddingCallback,
