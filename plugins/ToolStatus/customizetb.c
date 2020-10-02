@@ -551,7 +551,7 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
                 DeleteBrush(context->BrushPushed);
 
             if (context->FontHandle)
-                DeleteBrush(context->FontHandle);
+                DeleteFont(context->FontHandle);
         }
         break;
     case WM_NCDESTROY:
