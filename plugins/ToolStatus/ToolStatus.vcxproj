@@ -113,6 +113,7 @@
     <ClCompile Include="options.c" />
     <ClCompile Include="filter.c" />
     <ClCompile Include="statusbar.c" />
+    <ClCompile Include="taskbar.c" />
     <ClCompile Include="toolbar.c" />
   </ItemGroup>
   <ItemGroup>

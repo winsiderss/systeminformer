@@ -115,6 +115,8 @@ VOID NTAPI ProcessesUpdatedCallback(
 
     if (ToolStatusConfig.StatusBarEnabled)
         StatusBarUpdate(FALSE);
+
+    TaskbarUpdateGraphs();
 }
 
 VOID NTAPI TreeNewInitializingCallback(
@@ -1388,6 +1390,7 @@ VOID NTAPI LoadCallback(
     ToolStatusConfig.Flags = PhGetIntegerSetting(SETTING_NAME_TOOLSTATUS_CONFIG);
     DisplayStyle = PhGetIntegerSetting(SETTING_NAME_TOOLBARDISPLAYSTYLE);
     SearchBoxDisplayMode = PhGetIntegerSetting(SETTING_NAME_SEARCHBOXDISPLAYMODE);
+    TaskbarListIconType = PhGetIntegerSetting(SETTING_NAME_TASKBARDISPLAYSTYLE);
     EnableThemeSupport = !!PhGetIntegerSetting(L"EnableThemeSupport");
     UpdateGraphs = !PhGetIntegerSetting(L"StartHidden");
     TabInfoHashtable = PhCreateSimpleHashtable(3);
@@ -1546,10 +1549,11 @@ LOGICAL DllMain(
                 { IntegerSettingType, SETTING_NAME_TOOLSTATUS_CONFIG, L"1F" },
                 { IntegerSettingType, SETTING_NAME_TOOLBARDISPLAYSTYLE, L"1" },
                 { IntegerSettingType, SETTING_NAME_SEARCHBOXDISPLAYMODE, L"0" },
+                { IntegerSettingType, SETTING_NAME_TASKBARDISPLAYSTYLE, L"0" },
                 { StringSettingType, SETTING_NAME_REBAR_CONFIG, L"" },
                 { StringSettingType, SETTING_NAME_TOOLBAR_CONFIG, L"" },
                 { StringSettingType, SETTING_NAME_STATUSBAR_CONFIG, L"" },
-                { StringSettingType, SETTING_NAME_TOOLBAR_GRAPH_CONFIG, L"" }
+                { StringSettingType, SETTING_NAME_TOOLBAR_GRAPH_CONFIG, L"" },
             };
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
