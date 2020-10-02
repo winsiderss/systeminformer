@@ -1371,7 +1371,7 @@ BOOLEAN NTAPI PhpCommandLineOptionCallback(
                 PH_STRINGREF xString;
                 PH_STRINGREF yString;
 
-                if (Value && PhSplitStringRefAtChar(&Value->sr, ',', &xString, &yString))
+                if (Value && PhSplitStringRefAtChar(&Value->sr, L',', &xString, &yString))
                 {
                     LONG64 x;
                     LONG64 y;
@@ -1505,11 +1505,6 @@ VOID PhpProcessStartupParameters(
             NULL,
             L"%s",
             L"Command line options:\n\n"
-            L"-c\n"
-            L"-ctype command-type\n"
-            L"-cobject command-object\n"
-            L"-caction command-action\n"
-            L"-cvalue command-value\n"
             L"-debug\n"
             L"-elevate\n"
             L"-help\n"
