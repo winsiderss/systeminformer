@@ -297,7 +297,7 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                         PPH_TREENEW_COLUMN copy = displayOrderList->Items[i];
 
                         PhAddItemList(context->ActiveListArray, copy->Text);
-                        ListBox_AddItemData(context->ActiveWindowHandle, copy->Text);
+                        ListBox_InsertItemData(context->ActiveWindowHandle, i, copy->Text);
                     }
                 }
 
@@ -359,10 +359,12 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                             if (PhIsNullOrEmptyString(context->InactiveSearchboxText))
                             {
                                 for (ULONG i = 0; i < context->InactiveListArray->Count; i++)
-                                    ListBox_AddItemData(context->InactiveWindowHandle, context->InactiveListArray->Items[i]);
+                                    ListBox_InsertItemData(context->InactiveWindowHandle, i, context->InactiveListArray->Items[i]);
                             }
                             else
                             {
+                                ULONG index = 0;
+
                                 for (ULONG i = 0; i < context->InactiveListArray->Count; i++)
                                 {
                                     PH_STRINGREF text;
@@ -370,7 +372,10 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                                     PhInitializeStringRefLongHint(&text, context->InactiveListArray->Items[i]);
 
                                     if (PhpColumnsWordMatchStringRef(context->InactiveSearchboxText, &text))
-                                        ListBox_AddItemData(context->InactiveWindowHandle, context->InactiveListArray->Items[i]);
+                                    {
+                                        ListBox_InsertItemData(context->InactiveWindowHandle, index, context->InactiveListArray->Items[i]);
+                                        index++;
+                                    }
                                 }
                             }
                         }
@@ -390,10 +395,12 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                             if (PhIsNullOrEmptyString(context->ActiveSearchboxText))
                             {
                                 for (ULONG i = 0; i < context->ActiveListArray->Count; i++)
-                                    ListBox_AddItemData(context->ActiveWindowHandle, context->ActiveListArray->Items[i]);
+                                    ListBox_InsertItemData(context->ActiveWindowHandle, i, context->ActiveListArray->Items[i]);
                             }
                             else
                             {
+                                ULONG index = 0;
+
                                 for (ULONG i = 0; i < context->ActiveListArray->Count; i++)
                                 {
                                     PH_STRINGREF text;
@@ -401,7 +408,10 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                                     PhInitializeStringRefLongHint(&text, context->ActiveListArray->Items[i]);
 
                                     if (PhpColumnsWordMatchStringRef(context->ActiveSearchboxText, &text))
-                                        ListBox_AddItemData(context->ActiveWindowHandle, context->ActiveListArray->Items[i]);
+                                    {
+                                        ListBox_InsertItemData(context->ActiveWindowHandle, index, context->ActiveListArray->Items[i]);
+                                        index++;
+                                    }
                                 }
                             }
                         }
