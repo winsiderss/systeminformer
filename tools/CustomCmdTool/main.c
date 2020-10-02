@@ -91,8 +91,19 @@ int __cdecl wmain(int argc, wchar_t *argv[])
         NULL
         );
 
-    if (CommandMode)
-        return PhCommandModeStart();
-    else
-        return EXIT_SUCCESS;
+    if (!CommandMode)
+    {
+        wprintf(
+            L"%s",
+            L"Command line options:\n\n"
+            L"-c\n"
+            L"-ctype command-type\n"
+            L"-cobject command-object\n"
+            L"-caction command-action\n"
+            L"-cvalue command-value\n"
+            );
+        return 1;
+    }
+
+    return PhCommandModeStart();
 }
