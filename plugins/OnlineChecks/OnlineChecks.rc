@@ -57,11 +57,6 @@ BEGIN
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,7,101,10
     CONTROL         "Enable VirusTotal detection highlighting",IDC_ENABLE_IDC_ENABLE_VIRUSTOTAL_HIGHLIGHT,
                     "Button",BS_AUTOCHECKBOX | WS_DISABLED | WS_TABSTOP,7,20,141,10
-    CONTROL         "Enable detection actions",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_DISABLED | WS_TABSTOP,7,34,94,10
-    EDITTEXT        IDC_EDIT1,91,47,37,14,ES_AUTOHSCROLL | WS_DISABLED
-    LTEXT           "Minimum detection ratio:",IDC_STATIC,8,50,79,8
-    COMBOBOX        IDC_COMBO1,91,65,88,14,CBS_DROPDOWN | CBS_SORT | WS_DISABLED | WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Minimum detection action:",IDC_STATIC,7,67,84,8
 END
 
 IDD_VIRUSTOTAL DIALOGEX 0, 0, 259, 261
