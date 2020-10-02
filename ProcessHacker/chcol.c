@@ -219,6 +219,11 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                 SetWindowFont(context->ActiveWindowHandle, context->ControlFont, TRUE);
             }
 
+            Button_Enable(GetDlgItem(hwndDlg, IDC_HIDE), FALSE);
+            Button_Enable(GetDlgItem(hwndDlg, IDC_SHOW), FALSE);
+            Button_Enable(GetDlgItem(hwndDlg, IDC_MOVEUP), FALSE);
+            Button_Enable(GetDlgItem(hwndDlg, IDC_MOVEDOWN), FALSE);
+
             if (PhGetIntegerSetting(L"EnableThemeSupport"))
             {
                 context->CXWidth = PH_SCALE_DPI(16);
@@ -281,7 +286,7 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                 qsort(displayOrderList->Items, displayOrderList->Count, sizeof(PVOID), PhpColumnsCompareDisplayIndexTn);
             }
 
-            qsort(context->InactiveListArray->Items, context->InactiveListArray->Count, sizeof(PVOID), PhpInactiveColumnsCompareNameTn);
+            qsort(context->InactiveListArray->Items, context->InactiveListArray->Count, sizeof(ULONG_PTR), PhpInactiveColumnsCompareNameTn);
 
             for (i = 0; i < context->InactiveListArray->Count; i++)
             {
@@ -487,7 +492,7 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                         {
                             INT sel = ListBox_GetCurSel(context->InactiveWindowHandle);
 
-                            EnableWindow(GetDlgItem(hwndDlg, IDC_SHOW), sel != -1);
+                            EnableWindow(GetDlgItem(hwndDlg, IDC_SHOW), sel != LB_ERR);
                         }
                         break;
                     }
@@ -506,11 +511,13 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                         {
                             INT sel = ListBox_GetCurSel(context->ActiveWindowHandle);
                             INT count = ListBox_GetCount(context->ActiveWindowHandle);
-                            INT total = context->ActiveListArray->Count;
 
-                            EnableWindow(GetDlgItem(hwndDlg, IDC_HIDE), sel != -1 && total != 1);
-                            EnableWindow(GetDlgItem(hwndDlg, IDC_MOVEUP), sel != 0 && sel != -1);
-                            EnableWindow(GetDlgItem(hwndDlg, IDC_MOVEDOWN), sel != count - 1 && sel != -1);
+                            if (sel != LB_ERR)
+                            {
+                                EnableWindow(GetDlgItem(hwndDlg, IDC_HIDE), sel != 0);
+                                EnableWindow(GetDlgItem(hwndDlg, IDC_MOVEUP), sel != 0);
+                                EnableWindow(GetDlgItem(hwndDlg, IDC_MOVEDOWN), sel != count - 1);
+                            }
                         }
                         break;
                     }
@@ -525,45 +532,46 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                     sel = ListBox_GetCurSel(context->InactiveWindowHandle);
                     count = ListBox_GetCount(context->InactiveWindowHandle);
 
-                    if (string = (PWSTR)ListBox_GetItemData(context->InactiveWindowHandle, sel))
+                    if (sel != LB_ERR)
                     {
-                        ULONG index = IndexOfStringInList(context->InactiveListArray, string);
-
-                        if (index != ULONG_MAX)
+                        if (string = (PWSTR)ListBox_GetItemData(context->InactiveWindowHandle, sel))
                         {
-                            PVOID item = context->InactiveListArray->Items[index];
+                            ULONG index = IndexOfStringInList(context->InactiveListArray, string);
 
-                            PhRemoveItemsList(context->InactiveListArray, index, 1);
-                            PhAddItemList(context->ActiveListArray, item);
+                            if (index != ULONG_MAX)
+                            {
+                                PVOID item = context->InactiveListArray->Items[index];
 
-                            ListBox_DeleteString(context->InactiveWindowHandle, sel);
-                            ListBox_AddItemData(context->ActiveWindowHandle, item);
+                                PhRemoveItemsList(context->InactiveListArray, index, 1);
+                                PhAddItemList(context->ActiveListArray, item);
+
+                                ListBox_DeleteString(context->InactiveWindowHandle, sel);
+                                ListBox_InsertItemData(context->ActiveWindowHandle, -1, item);
+                            }
+
+                            count--;
+
+                            if (sel >= count - 1)
+                                sel = count - 1;
+
+                            ListBox_SetCurSel(context->InactiveWindowHandle, sel);
                         }
-
-                        count--;
-
-                        if (sel >= count - 1)
-                            sel = count - 1;
-
-                        ListBox_SetCurSel(context->InactiveWindowHandle, sel);
-
-                        SendMessage(hwndDlg, WM_COMMAND, MAKEWPARAM(IDC_INACTIVE, LBN_SELCHANGE), (LPARAM)context->InactiveWindowHandle);
-                        SendMessage(hwndDlg, WM_COMMAND, MAKEWPARAM(IDC_ACTIVE, LBN_SELCHANGE), (LPARAM)context->ActiveWindowHandle);
                     }
+
+                    SendMessage(hwndDlg, WM_COMMAND, MAKEWPARAM(IDC_INACTIVE, LBN_SELCHANGE), (LPARAM)context->InactiveWindowHandle);
+                    SendMessage(hwndDlg, WM_COMMAND, MAKEWPARAM(IDC_ACTIVE, LBN_SELCHANGE), (LPARAM)context->ActiveWindowHandle);
                 }
                 break;
             case IDC_HIDE:
                 {
                     INT sel;
                     INT count;
-                    INT total;
                     PWSTR string;
 
                     sel = ListBox_GetCurSel(context->ActiveWindowHandle);
                     count = ListBox_GetCount(context->ActiveWindowHandle);
-                    total = context->ActiveListArray->Count;
 
-                    if (total != 1)
+                    if (sel != LB_ERR)
                     {
                         if (string = (PWSTR)ListBox_GetItemData(context->ActiveWindowHandle, sel))
                         {
@@ -577,14 +585,14 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                                 PhAddItemList(context->InactiveListArray, item);
 
                                 ListBox_DeleteString(context->ActiveWindowHandle, sel);
-                                ListBox_AddItemData(context->InactiveWindowHandle, item);
+                                ListBox_InsertItemData(context->InactiveWindowHandle, -1, item);
                                 ListBox_SetCurSel(context->ActiveWindowHandle, sel);
                             }
-
-                            SendMessage(hwndDlg, WM_COMMAND, MAKEWPARAM(IDC_INACTIVE, LBN_SELCHANGE), (LPARAM)context->InactiveWindowHandle);
-                            SendMessage(hwndDlg, WM_COMMAND, MAKEWPARAM(IDC_ACTIVE, LBN_SELCHANGE), (LPARAM)context->ActiveWindowHandle);
                         }
                     }
+
+                    SendMessage(hwndDlg, WM_COMMAND, MAKEWPARAM(IDC_INACTIVE, LBN_SELCHANGE), (LPARAM)context->InactiveWindowHandle);
+                    SendMessage(hwndDlg, WM_COMMAND, MAKEWPARAM(IDC_ACTIVE, LBN_SELCHANGE), (LPARAM)context->ActiveWindowHandle);
                 }
                 break;
             case IDC_MOVEUP:
@@ -596,7 +604,7 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                     sel = ListBox_GetCurSel(context->ActiveWindowHandle);
                     count = ListBox_GetCount(context->ActiveWindowHandle);
 
-                    if (sel != 0)
+                    if (sel != LB_ERR)
                     {
                         if (string = (PWSTR)ListBox_GetItemData(context->ActiveWindowHandle, sel))
                         {
@@ -696,7 +704,7 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                  SelectFont(bufferDc, context->ControlFont);
                  SetBkMode(bufferDc, TRANSPARENT);
 
-                 if (isFocused)
+                 if (isSelected || isFocused)
                  {
                      FillRect(bufferDc, &bufferRect, context->BrushHot);
                      //FrameRect(bufferDc, &bufferRect, GetStockBrush(BLACK_BRUSH));
@@ -716,7 +724,7 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                      -1,
                      &bufferRect,
                      DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS | DT_NOCLIP
-                    );
+                     );
                  bufferRect.left -= 5;
 
                  BitBlt(
@@ -729,7 +737,7 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                      0,
                      0,
                      SRCCOPY
-                    );
+                     );
 
                  SelectBitmap(bufferDc, oldBufferBitmap);
                  DeleteBitmap(bufferBitmap);
