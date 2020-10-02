@@ -287,6 +287,8 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
     {
     case WM_INITDIALOG:
         {
+            PhSetApplicationWindowIcon(hwndDlg);
+
             PhCenterWindow(hwndDlg, PhMainWndHandle);
 
             context->DialogHandle = hwndDlg;
@@ -302,6 +304,8 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
             ListBox_SetItemHeight(context->CurrentListHandle, 0, PH_SCALE_DPI(22)); // BitmapHeight
 
             CustomizeLoadStatusBarItems(context);
+
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
 
             PhSetDialogFocus(context->DialogHandle, context->CurrentListHandle);
         }
