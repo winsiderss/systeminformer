@@ -177,6 +177,11 @@ VOID RebarLoadSettings(
         ServiceTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), ServiceTreeFilterCallback, NULL);
         NetworkTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportNetworkTreeList(), NetworkTreeFilterCallback, NULL);
 
+        if (RebarHandle && PhGetIntegerSetting(L"EnableThemeSupport"))
+        {
+            PhInitializeWindowThemeRebar(RebarHandle);
+        }
+
         if (SearchboxHandle = CreateWindowEx(
             WS_EX_CLIENTEDGE,
             WC_EDIT,

@@ -986,6 +986,13 @@ PhInitializeWindowThemeStatusBar(
     );
 
 PHLIBAPI
+VOID
+NTAPI
+PhInitializeWindowThemeRebar(
+    _In_ HWND HeaderWindow
+    );
+
+PHLIBAPI
 LRESULT
 CALLBACK
 PhThemeWindowDrawRebar(
