@@ -143,7 +143,7 @@ VOID PhpClearEnvironmentItems(
     _Inout_ PPH_ENVIRONMENT_CONTEXT Context
     )
 {
-    ULONG i;
+    SIZE_T i;
     PPH_ENVIRONMENT_ITEM item;
 
     for (i = 0; i < Context->Items.Count; i++)
@@ -193,7 +193,7 @@ VOID PhpRefreshEnvironmentList(
     PPHP_PROCESS_ENVIRONMENT_TREENODE systemRootNode;
     PVOID systemDefaultEnvironment = NULL;
     PVOID userDefaultEnvironment = NULL;
-    ULONG i;
+    SIZE_T i;
 
     PhpClearEnvironmentTree(Context);
     processRootNode = PhpAddEnvironmentNode(Context, NULL, PROCESS_ENVIRONMENT_TREENODE_TYPE_GROUP, PhaCreateString(L"Process"), NULL);
