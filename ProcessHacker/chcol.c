@@ -632,36 +632,31 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                 {
                     INT sel;
                     INT count;
-                    PPH_STRING string;
+                    PWSTR string;
 
                     sel = ListBox_GetCurSel(context->ActiveWindowHandle);
                     count = ListBox_GetCount(context->ActiveWindowHandle);
 
-                    if (sel != count - 1)
+                    if (sel != LB_ERR && sel != count - 1)
                     {
-                        PWSTR temp;
-
-                        if (!(temp = (PWSTR)ListBox_GetItemData(context->ActiveWindowHandle, sel)))
-                            break;
-
-                        if (string = PhCreateString(temp))
+                        if (string = (PWSTR)ListBox_GetItemData(context->ActiveWindowHandle, sel))
                         {
-                            ULONG index = IndexOfStringInList(context->ActiveListArray, PhGetString(string));
+                            ULONG index = IndexOfStringInList(context->ActiveListArray, string);
 
                             if (index != ULONG_MAX)
                             {
                                 PVOID item = context->ActiveListArray->Items[index];
                                 PhRemoveItemsList(context->ActiveListArray, index, 1);
                                 PhInsertItemList(context->ActiveListArray, index + 1, item);
-                            }
 
-                            ListBox_DeleteString(context->ActiveWindowHandle, sel);
-                            sel += 1;
-                            ListBox_InsertItemData(context->ActiveWindowHandle, sel, PhGetString(string));
-                            ListBox_SetCurSel(context->ActiveWindowHandle, sel);
-                            EnableWindow(GetDlgItem(hwndDlg, IDC_MOVEUP), sel != 0);
-                            EnableWindow(GetDlgItem(hwndDlg, IDC_MOVEDOWN), sel != count - 1);
-                            PhClearReference(&string);
+                                ListBox_DeleteString(context->ActiveWindowHandle, sel);
+                                sel += 1;
+                                ListBox_InsertItemData(context->ActiveWindowHandle, sel, item);
+                                ListBox_SetCurSel(context->ActiveWindowHandle, sel);
+
+                                EnableWindow(GetDlgItem(hwndDlg, IDC_MOVEUP), sel != 0);
+                                EnableWindow(GetDlgItem(hwndDlg, IDC_MOVEDOWN), sel != count - 1);
+                            }
                         }
                     }
                 }
