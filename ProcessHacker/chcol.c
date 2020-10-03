@@ -85,6 +85,7 @@ VOID PhShowChooseColumnsDialog(
 }
 
 static int __cdecl PhpColumnsCompareDisplayIndexTn(
+    _In_ const void* Context,
     _In_ const void *elem1,
     _In_ const void *elem2
     )
@@ -96,6 +97,7 @@ static int __cdecl PhpColumnsCompareDisplayIndexTn(
 }
 
 static int __cdecl PhpInactiveColumnsCompareNameTn(
+    _In_ const void* Context,
     _In_ const void *elem1,
     _In_ const void *elem2
     )
@@ -164,6 +166,48 @@ BOOLEAN PhpColumnsWordMatchStringRef(
     }
 
     return FALSE;
+}
+
+VOID PhpColumnsResetListBox(
+    _In_ HWND ListBoxHandle,
+    _In_ PPH_STRING SearchboxText,
+    _In_ PPH_LIST Array,
+    _In_ PVOID CompareFunction
+    )
+{
+    SendMessage(ListBoxHandle, WM_SETREDRAW, FALSE, 0);
+
+    ListBox_ResetContent(ListBoxHandle);
+
+    if (CompareFunction)
+        qsort_s(Array->Items, Array->Count, sizeof(ULONG_PTR), CompareFunction, NULL);
+
+    if (PhIsNullOrEmptyString(SearchboxText))
+    {
+        for (ULONG i = 0; i < Array->Count; i++)
+        {
+            ListBox_InsertString(ListBoxHandle, i, Array->Items[i]);
+        }
+    }
+    else
+    {
+        ULONG index = 0;
+
+        for (ULONG i = 0; i < Array->Count; i++)
+        {
+            PH_STRINGREF text;
+
+            PhInitializeStringRefLongHint(&text, Array->Items[i]);
+
+            if (PhpColumnsWordMatchStringRef(SearchboxText, &text))
+            {
+                ListBox_InsertString(ListBoxHandle, index, Array->Items[i]);
+                index++;
+            }
+        }
+    }
+
+    SendMessage(ListBoxHandle, WM_SETREDRAW, TRUE, 0);
 }
 
 INT_PTR CALLBACK PhpColumnsDlgProc(
@@ -283,15 +327,15 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                     i++;
                 }
 
-                qsort(displayOrderList->Items, displayOrderList->Count, sizeof(PVOID), PhpColumnsCompareDisplayIndexTn);
+                qsort_s(displayOrderList->Items, displayOrderList->Count, sizeof(PVOID), PhpColumnsCompareDisplayIndexTn, NULL);
             }
 
-            qsort(context->InactiveListArray->Items, context->InactiveListArray->Count, sizeof(ULONG_PTR), PhpInactiveColumnsCompareNameTn);
-
-            for (i = 0; i < context->InactiveListArray->Count; i++)
-            {
-                ListBox_InsertItemData(context->InactiveWindowHandle, i, context->InactiveListArray->Items[i]);
-            }
+            PhpColumnsResetListBox(
+                context->InactiveWindowHandle,
+                NULL,
+                context->InactiveListArray,
+                PhpInactiveColumnsCompareNameTn
+                );
 
             if (displayOrderList)
             {
@@ -346,84 +390,32 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
             {
             case EN_CHANGE:
                 {
-                    SendMessage(context->InactiveWindowHandle, WM_SETREDRAW, FALSE, 0);
-                    SendMessage(context->ActiveWindowHandle, WM_SETREDRAW, FALSE, 0);
-
                     if (GET_WM_COMMAND_HWND(wParam, lParam) == context->SearchInactiveHandle)
                     {
-                        PPH_STRING newSearchboxText;
-
-                        newSearchboxText = PH_AUTO(PhGetWindowText(context->SearchInactiveHandle));
+                        PPH_STRING newSearchboxText = PH_AUTO(PhGetWindowText(context->SearchInactiveHandle));
 
                         if (!PhEqualString(context->InactiveSearchboxText, newSearchboxText, FALSE))
                         {
                             PhSwapReference(&context->InactiveSearchboxText, newSearchboxText);
 
-                            ListBox_ResetContent(context->InactiveWindowHandle);
-
-                            if (PhIsNullOrEmptyString(context->InactiveSearchboxText))
-                            {
-                                for (ULONG i = 0; i < context->InactiveListArray->Count; i++)
-                                    ListBox_InsertItemData(context->InactiveWindowHandle, i, context->InactiveListArray->Items[i]);
-                            }
-                            else
-                            {
-                                ULONG index = 0;
-
-                                for (ULONG i = 0; i < context->InactiveListArray->Count; i++)
-                                {
-                                    PH_STRINGREF text;
-
-                                    PhInitializeStringRefLongHint(&text, context->InactiveListArray->Items[i]);
-
-                                    if (PhpColumnsWordMatchStringRef(context->InactiveSearchboxText, &text))
-                                    {
-                                        ListBox_InsertItemData(context->InactiveWindowHandle, index, context->InactiveListArray->Items[i]);
-                                        index++;
-                                    }
-                                }
-                            }
+                            PhpColumnsResetListBox(
+                                context->InactiveWindowHandle, context->InactiveSearchboxText,
+                                context->InactiveListArray, PhpInactiveColumnsCompareNameTn);
                         }
                     }
                     else if (GET_WM_COMMAND_HWND(wParam, lParam) == context->SearchActiveHandle)
                     {
-                        PPH_STRING newSearchboxText;
-
-                        newSearchboxText = PH_AUTO(PhGetWindowText(context->SearchActiveHandle));
+                        PPH_STRING newSearchboxText = PH_AUTO(PhGetWindowText(context->SearchActiveHandle));
 
                         if (!PhEqualString(context->ActiveSearchboxText, newSearchboxText, FALSE))
                         {
                             PhSwapReference(&context->ActiveSearchboxText, newSearchboxText);
 
-                            ListBox_ResetContent(context->ActiveWindowHandle);
-
-                            if (PhIsNullOrEmptyString(context->ActiveSearchboxText))
-                            {
-                                for (ULONG i = 0; i < context->ActiveListArray->Count; i++)
-                                    ListBox_InsertItemData(context->ActiveWindowHandle, i, context->ActiveListArray->Items[i]);
-                            }
-                            else
-                            {
-                                ULONG index = 0;
-
-                                for (ULONG i = 0; i < context->ActiveListArray->Count; i++)
-                                {
-                                    PH_STRINGREF text;
-
-                                    PhInitializeStringRefLongHint(&text, context->ActiveListArray->Items[i]);
-
-                                    if (PhpColumnsWordMatchStringRef(context->ActiveSearchboxText, &text))
-                                    {
-                                        ListBox_InsertItemData(context->ActiveWindowHandle, index, context->ActiveListArray->Items[i]);
-                                        index++;
-                                    }
-                                }
-                            }
+                            PhpColumnsResetListBox(
+                                context->ActiveWindowHandle, context->ActiveSearchboxText,
+                                context->ActiveListArray, NULL);
                         }
                     }
-
-                    SendMessage(context->InactiveWindowHandle, WM_SETREDRAW, TRUE, 0);
-                    SendMessage(context->ActiveWindowHandle, WM_SETREDRAW, TRUE, 0);
                 }
                 break;
             }
@@ -546,7 +538,7 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                                 PhAddItemList(context->ActiveListArray, item);
 
                                 ListBox_DeleteString(context->InactiveWindowHandle, sel);
-                                ListBox_InsertItemData(context->ActiveWindowHandle, -1, item);
+                                ListBox_AddItemData(context->ActiveWindowHandle, item);
                             }
 
                             count--;
@@ -589,15 +581,25 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                                 PhAddItemList(context->InactiveListArray, item);
 
                                 // Sort inactive list with new entry
-                                qsort(context->InactiveListArray->Items, context->InactiveListArray->Count, sizeof(ULONG_PTR), PhpInactiveColumnsCompareNameTn);
+                                qsort_s(context->InactiveListArray->Items, context->InactiveListArray->Count, sizeof(ULONG_PTR), PhpInactiveColumnsCompareNameTn, NULL);
                                 // Find index of new entry in inactive list
                                 ULONG lb_index = IndexOfStringInList(context->InactiveListArray, item);
 
                                 // Delete from active list
                                 ListBox_DeleteString(context->ActiveWindowHandle, sel);
                                 // Add to list in the same position as the inactive list
-                                ListBox_InsertItemData(context->InactiveWindowHandle, lb_index, item);
-                                // Updatet the selection
+                                ListBox_InsertString(context->InactiveWindowHandle, lb_index, item);
+
+                                PhpColumnsResetListBox(context->InactiveWindowHandle, context->InactiveSearchboxText, context->InactiveListArray, PhpInactiveColumnsCompareNameTn);
+                            }
+
+                            count--;
+
+                            if (sel >= count - 1)
+                                sel = count - 1;
+
+                            if (sel != LB_ERR)
+                            {
                                 ListBox_SetCurSel(context->ActiveWindowHandle, sel);
                             }
                         }
