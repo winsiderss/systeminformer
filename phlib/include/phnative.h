@@ -1386,6 +1386,7 @@ NTSTATUS
 NTAPI
 PhEnumerateValueKey(
     _In_ HANDLE KeyHandle,
+    _In_ KEY_VALUE_INFORMATION_CLASS InformationClass,
     _In_ PPH_ENUM_KEY_CALLBACK Callback,
     _In_opt_ PVOID Context
     );
