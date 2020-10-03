@@ -179,7 +179,7 @@
         } \
         else \
         { \
-            *temp-- = L'0'; \
+            *temp-- = '0'; \
             tempCount++; \
         } \
         \
@@ -211,7 +211,7 @@
             \
             if (flags & PHP_FORMAT_PAD) \
             { \
-                wmemset(buffer, L'0', padCount); \
+                wmemset(buffer, '0', padCount); \
                 buffer += padCount; \
             } \
             \
@@ -306,8 +306,7 @@ CommonInt64Format:
             (Format)->Type, \
             precision, \
             temp, \
-            sizeof(tempBuffer) - 1, \
-            NULL \
+            sizeof(tempBuffer) - 1 \
             ); \
         \
         /* if (((Format)->Type & FormatForceDecimalPoint) && precision == 0) */ \
@@ -432,7 +431,7 @@ CommonInt64Format:
                 \
                 if (flags & PHP_FORMAT_PAD) \
                 { \
-                    wmemset(buffer, L'0', padLength); \
+                    wmemset(buffer, '0', padLength); \
                     buffer += padLength; \
                 } \
             } \
@@ -467,7 +466,7 @@ CommonInt64Format:
                 {
                     ENSURE_BUFFER(sizeof(WCHAR));
                     if (OK_BUFFER)
-                        *buffer = L'0';
+                        *buffer = '0';
                     ADVANCE_BUFFER(sizeof(WCHAR));
                     goto ContinueLoop;
                 }
