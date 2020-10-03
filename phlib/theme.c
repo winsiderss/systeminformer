@@ -503,6 +503,20 @@ VOID PhInitializeWindowThemeRebar(
     InvalidateRect(HeaderWindow, NULL, FALSE);
 }
 
+VOID PhInitializeWindowThemeMainMenu(
+    _In_ HMENU MenuHandle
+    )
+{
+    MENUINFO menuInfo;
+
+    memset(&menuInfo, 0, sizeof(MENUINFO));
+    menuInfo.cbSize = sizeof(MENUINFO);
+    menuInfo.fMask = MIM_BACKGROUND | MIM_APPLYTOSUBMENUS;
+    menuInfo.hbrBack = CreateSolidBrush(PhpThemeWindowForegroundColor);
+
+    SetMenuInfo(MenuHandle, &menuInfo);
+}
+
 BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
     _In_ HWND WindowHandle,
     _In_opt_ PVOID Context

@@ -193,18 +193,7 @@ BOOLEAN PhMainWndInitialization(
         SetMenu(PhMainWndHandle, windowMenuHandle);
         PhEMenuToHMenu2(windowMenuHandle, PhpCreateMainMenu(ULONG_MAX), 0, NULL);
         PhMwpInitializeMainMenu(windowMenuHandle);
-    }
-
-    if (PhEnableThemeSupport && windowMenuHandle)
-    {
-        MENUINFO menuInfo;
-
-        memset(&menuInfo, 0, sizeof(MENUINFO));
-        menuInfo.cbSize = sizeof(MENUINFO);
-        menuInfo.fMask = MIM_BACKGROUND | MIM_APPLYTOSUBMENUS;
-        menuInfo.hbrBack = CreateSolidBrush(RGB(28, 28, 28));
-
-        SetMenuInfo(windowMenuHandle, &menuInfo);
+        if (PhEnableThemeSupport) PhInitializeWindowThemeMainMenu(windowMenuHandle);
     }
 
     // Initialize the main providers.
