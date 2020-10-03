@@ -511,7 +511,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                     PH_STRINGREF secondPart;
                     ULONG64 bytesPerRow64;
 
-                    if (PhSplitStringRefAtChar(&bytesPerRowString->sr, ' ', &firstPart, &secondPart))
+                    if (PhSplitStringRefAtChar(&bytesPerRowString->sr, L' ', &firstPart, &secondPart))
                     {
                         if (PhStringToInteger64(&firstPart, 10, &bytesPerRow64))
                         {
