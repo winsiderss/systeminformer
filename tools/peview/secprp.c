@@ -23,33 +23,41 @@
 #include <peview.h>
 #include <cryptuiapi.h>
 
+PPH_STRING PvpPeGetRelativeTimeString(
+    _In_ PLARGE_INTEGER Time
+    )
+{
+    LARGE_INTEGER time;
+    LARGE_INTEGER currentTime;
+    SYSTEMTIME timeFields;
+    PPH_STRING timeRelativeString;
+    PPH_STRING timeString;
+
+    time = *Time;
+    PhQuerySystemTime(&currentTime);
+    timeRelativeString = PH_AUTO(PhFormatTimeSpanRelative(currentTime.QuadPart - time.QuadPart));
+
+    PhLargeIntegerToLocalSystemTime(&timeFields, &time);
+    timeString = PhaFormatDateTime(&timeFields);
+
+    return PhaFormatString(L"%s ago (%s)", timeRelativeString->Buffer, timeString->Buffer);
+}
+
 BOOLEAN PvpPeAddCertificateInfo(
     _In_ HWND ListViewHandle,
     _In_ INT ListViewItemIndex,
     _In_ PCCERT_CONTEXT CertificateContext
     )
 {
-    ULONG dataLength = 0;
+    ULONG dataLength;
+    LARGE_INTEGER fileTime;
+    SYSTEMTIME systemTime;
 
-    if (dataLength = CertGetNameString(
-        CertificateContext,
-        CERT_NAME_FRIENDLY_DISPLAY_TYPE,
-        0,
-        NULL,
-        NULL,
-        0
-        ))
+    if (dataLength = CertGetNameString(CertificateContext, CERT_NAME_FRIENDLY_DISPLAY_TYPE, 0, NULL, NULL, 0))
     {
-        PWSTR data = PhAllocateZero(dataLength * sizeof(TCHAR));
+        PWSTR data = PhAllocateZero(dataLength * sizeof(WCHAR));
 
-        if (CertGetNameString(
-            CertificateContext,
-            CERT_NAME_FRIENDLY_DISPLAY_TYPE,
-            0,
-            NULL,
-            data,
-            dataLength
-            ))
+        if (CertGetNameString(CertificateContext, CERT_NAME_FRIENDLY_DISPLAY_TYPE, 0, NULL, data, dataLength))
         {
             PhSetListViewSubItem(ListViewHandle, ListViewItemIndex, 1, data);
         }
@@ -57,25 +65,11 @@ BOOLEAN PvpPeAddCertificateInfo(
         PhFree(data);
     }
 
-    if (dataLength = CertGetNameString(
-        CertificateContext,
-        CERT_NAME_SIMPLE_DISPLAY_TYPE,
-        CERT_NAME_ISSUER_FLAG,
-        NULL,
-        NULL,
-        0
-        ))
+    if (dataLength = CertGetNameString(CertificateContext, CERT_NAME_SIMPLE_DISPLAY_TYPE, CERT_NAME_ISSUER_FLAG, NULL, NULL, 0))
     {
-        PWSTR data = PhAllocateZero(dataLength * sizeof(TCHAR));
+        PWSTR data = PhAllocateZero(dataLength * sizeof(WCHAR));
 
-        if (CertGetNameString(
-            CertificateContext,
-            CERT_NAME_SIMPLE_DISPLAY_TYPE,
-            CERT_NAME_ISSUER_FLAG,
-            NULL,
-            data,
-            dataLength
-            ))
+        if (CertGetNameString(CertificateContext, CERT_NAME_SIMPLE_DISPLAY_TYPE, CERT_NAME_ISSUER_FLAG, NULL, data, dataLength))
         {
             PhSetListViewSubItem(ListViewHandle, ListViewItemIndex, 2, data);
         }
@@ -83,22 +77,16 @@ BOOLEAN PvpPeAddCertificateInfo(
         PhFree(data);
     }
 
-    {
-        LARGE_INTEGER fileTime;
-        SYSTEMTIME systemTime;
+    fileTime.QuadPart = 0;
+    fileTime.LowPart = CertificateContext->pCertInfo->NotBefore.dwLowDateTime;
+    fileTime.HighPart = CertificateContext->pCertInfo->NotBefore.dwHighDateTime;
+    PhSetListViewSubItem(ListViewHandle, ListViewItemIndex, 3, PvpPeGetRelativeTimeString(&fileTime)->Buffer);
 
-        fileTime.QuadPart = 0;
-        fileTime.LowPart = CertificateContext->pCertInfo->NotAfter.dwLowDateTime;
-        fileTime.HighPart = CertificateContext->pCertInfo->NotAfter.dwHighDateTime;
-
-        PhLargeIntegerToLocalSystemTime(&systemTime, &fileTime);
-        PhSetListViewSubItem(ListViewHandle, ListViewItemIndex, 3, PhaFormatDateTime(&systemTime)->Buffer);
-
-        //fileTime.QuadPart = 0;
-        //fileTime.LowPart = CertificateContext->pCertInfo->NotBefore.dwLowDateTime;
-        //fileTime.HighPart = CertificateContext->pCertInfo->NotBefore.dwHighDateTime;
-        //PhSetListViewSubItem(ListViewHandle, ListViewItemIndex, 4, PvpGetRelativeTimeString(&fileTime)->Buffer);
-    }
+    fileTime.QuadPart = 0;
+    fileTime.LowPart = CertificateContext->pCertInfo->NotAfter.dwLowDateTime;
+    fileTime.HighPart = CertificateContext->pCertInfo->NotAfter.dwHighDateTime;
+    PhLargeIntegerToLocalSystemTime(&systemTime, &fileTime);
+    PhSetListViewSubItem(ListViewHandle, ListViewItemIndex, 4, PhaFormatDateTime(&systemTime)->Buffer);
 
     dataLength = 0;
 
@@ -109,16 +97,14 @@ BOOLEAN PvpPeAddCertificateInfo(
         &dataLength
         ) && dataLength > 0)
     {
-        PBYTE hash;
-
-        hash = PhAllocateZero(dataLength);
+        PBYTE hash = PhAllocateZero(dataLength);
 
         if (CertGetCertificateContextProperty(CertificateContext, CERT_HASH_PROP_ID, hash, &dataLength))
         {
             PPH_STRING string;
 
             string = PhBufferToHexString(hash, dataLength);
-            PhSetListViewSubItem(ListViewHandle, ListViewItemIndex, 4, string->Buffer);
+            PhSetListViewSubItem(ListViewHandle, ListViewItemIndex, 5, string->Buffer);
             PhDereferenceObject(string);
         }
 
@@ -128,8 +114,9 @@ BOOLEAN PvpPeAddCertificateInfo(
     return TRUE;
 }
 
-PCMSG_SIGNER_INFO PvpPeGetSignerInfo(
-    _In_ HCRYPTMSG CryptMessageHandle
+PCMSG_SIGNER_INFO PvpPeGetSignerInfoIndex(
+    _In_ HCRYPTMSG CryptMessageHandle,
+    _In_ ULONG Index
     )
 {
     ULONG signerInfoLength = 0;
@@ -138,7 +125,7 @@ PCMSG_SIGNER_INFO PvpPeGetSignerInfo(
     if (!CryptMsgGetParam(
         CryptMessageHandle,
         CMSG_SIGNER_INFO_PARAM,
-        0,
+        Index,
         NULL,
         &signerInfoLength
         ))
@@ -151,7 +138,7 @@ PCMSG_SIGNER_INFO PvpPeGetSignerInfo(
     if (!CryptMsgGetParam(
         CryptMessageHandle,
         CMSG_SIGNER_INFO_PARAM,
-        0,
+        Index,
         signerInfo,
         &signerInfoLength
         ))
@@ -193,8 +180,8 @@ VOID PvpPeEnumerateNestedSignatures(
     if (CryptQueryObject(
         CERT_QUERY_OBJECT_BLOB,
         SignerInfo->UnauthAttrs.rgAttr[index].rgValue,
-        CERT_QUERY_CONTENT_FLAG_PKCS7_SIGNED,
-        CERT_QUERY_FORMAT_FLAG_BINARY,
+        CERT_QUERY_CONTENT_FLAG_ALL,
+        CERT_QUERY_FORMAT_FLAG_ALL,
         0,
         &certificateEncoding,
         &certificateContentType,
@@ -204,6 +191,9 @@ VOID PvpPeEnumerateNestedSignatures(
         NULL
         ))
     {
+        ULONG signerCount = 0;
+        ULONG signerLength = sizeof(ULONG);
+
         while (certificateContext = CertEnumCertificatesInStore(cryptStoreHandle, certificateContext))
         {
             INT lvItemIndex;
@@ -221,11 +211,17 @@ VOID PvpPeEnumerateNestedSignatures(
             PvpPeAddCertificateInfo(ListViewHandle, lvItemIndex, certificateContext);
         }
 
-        if (cryptMessageSignerInfo = PvpPeGetSignerInfo(cryptMessageHandle))
+        if (CryptMsgGetParam(cryptMessageHandle, CMSG_SIGNER_COUNT_PARAM, 0, &signerCount, &signerLength))
         {
-            PvpPeEnumerateNestedSignatures(ListViewHandle, Count, cryptMessageSignerInfo);
+            for (ULONG i = 0; i < signerCount; i++)
+            {
+                if (cryptMessageSignerInfo = PvpPeGetSignerInfoIndex(cryptMessageHandle, i))
+                {
+                    PvpPeEnumerateNestedSignatures(ListViewHandle, Count, cryptMessageSignerInfo);
 
-            PhFree(cryptMessageSignerInfo);
+                    PhFree(cryptMessageSignerInfo);
+                }
+            }
         }
 
         //if (certificateContext) CertFreeCertificateContext(certificateContext);
@@ -238,6 +234,7 @@ VOID PvpPeEnumerateFileCertificates(
     _In_ HWND ListViewHandle
     )
 {
+    PIMAGE_DATA_DIRECTORY dataDirectory;
     HCERTSTORE cryptStoreHandle = NULL;
     PCCERT_CONTEXT certificateContext = NULL;
     HCRYPTMSG cryptMessageHandle = NULL;
@@ -247,19 +244,44 @@ VOID PvpPeEnumerateFileCertificates(
     ULONG certificateFormatType;
     ULONG count = 0;
 
-    if (CryptQueryObject(
-        CERT_QUERY_OBJECT_FILE,
-        PhGetString(PvFileName),
-        CERT_QUERY_CONTENT_FLAG_PKCS7_SIGNED_EMBED,
-        CERT_QUERY_FORMAT_FLAG_BINARY,
-        0,
-        &certificateEncoding,
-        &certificateContentType,
-        &certificateFormatType,
-        &cryptStoreHandle,
-        &cryptMessageHandle,
-        NULL
-        ))
+    if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_SECURITY, &dataDirectory)))
+    {
+        LPWIN_CERTIFICATE certificateDirectory = PTR_ADD_OFFSET(PvMappedImage.ViewBase, dataDirectory->VirtualAddress);
+        CERT_BLOB certificateBlob = { certificateDirectory->dwLength, certificateDirectory->bCertificate };
+
+        CryptQueryObject(
+            CERT_QUERY_OBJECT_BLOB,
+            &certificateBlob,
+            CERT_QUERY_CONTENT_FLAG_PKCS7_SIGNED,
+            CERT_QUERY_FORMAT_FLAG_BINARY,
+            0,
+            &certificateEncoding,
+            &certificateContentType,
+            &certificateFormatType,
+            &cryptStoreHandle,
+            &cryptMessageHandle,
+            NULL
+            );
+    }
+
+    if (!(cryptStoreHandle && cryptMessageHandle))
+    {
+        CryptQueryObject(
+            CERT_QUERY_OBJECT_FILE,
+            PhGetString(PvFileName),
+            CERT_QUERY_CONTENT_FLAG_PKCS7_SIGNED_EMBED,
+            CERT_QUERY_FORMAT_FLAG_BINARY,
+            0,
+            &certificateEncoding,
+            &certificateContentType,
+            &certificateFormatType,
+            &cryptStoreHandle,
+            &cryptMessageHandle,
+            NULL
+            );
+    }
+
+    if (cryptStoreHandle)
     {
         while (certificateContext = CertEnumCertificatesInStore(cryptStoreHandle, certificateContext))
         {
@@ -278,15 +300,28 @@ VOID PvpPeEnumerateFileCertificates(
             PvpPeAddCertificateInfo(ListViewHandle, lvItemIndex, certificateContext);
         }
 
-        if (cryptMessageSignerInfo = PvpPeGetSignerInfo(cryptMessageHandle))
-        {
-            PvpPeEnumerateNestedSignatures(ListViewHandle, &count, cryptMessageSignerInfo);
-
-            PhFree(cryptMessageSignerInfo);
-        }
-
         //if (certificateContext) CertFreeCertificateContext(certificateContext);
         //if (cryptStoreHandle) CertCloseStore(cryptStoreHandle, 0);
+    }
+
+    if (cryptMessageHandle)
+    {
+        ULONG signerCount = 0;
+        ULONG signerLength = sizeof(ULONG);
+
+        if (CryptMsgGetParam(cryptMessageHandle, CMSG_SIGNER_COUNT_PARAM, 0, &signerCount, &signerLength))
+        {
+            for (ULONG i = 0; i < signerCount; i++)
+            {
+                if (cryptMessageSignerInfo = PvpPeGetSignerInfoIndex(cryptMessageHandle, i))
+                {
+                    PvpPeEnumerateNestedSignatures(ListViewHandle, &count, cryptMessageSignerInfo);
+
+                    PhFree(cryptMessageSignerInfo);
+                }
+            }
+        }
+
         //if (cryptMessageHandle) CryptMsgClose(cryptMessageHandle);
     }
 }
@@ -385,8 +420,9 @@ INT_PTR CALLBACK PvpPeSecurityDlgProc(
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"#");
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 100, L"Issued to");
             PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 100, L"Issued by");
-            PhAddListViewColumn(context->ListViewHandle, 3, 3, 3, LVCFMT_LEFT, 100, L"Expires");
-            PhAddListViewColumn(context->ListViewHandle, 4, 4, 4, LVCFMT_LEFT, 100, L"Thumbprint");
+            PhAddListViewColumn(context->ListViewHandle, 3, 3, 3, LVCFMT_LEFT, 100, L"From");
+            PhAddListViewColumn(context->ListViewHandle, 4, 4, 4, LVCFMT_LEFT, 100, L"To");
+            PhAddListViewColumn(context->ListViewHandle, 5, 5, 5, LVCFMT_LEFT, 100, L"Thumbprint");
             PhSetExtendedListView(context->ListViewHandle);
             PhLoadListViewColumnsFromSetting(L"ImageSecurityListViewColumns", context->ListViewHandle);
             PhLoadListViewSortColumnsFromSetting(L"ImageSecurityListViewSort", context->ListViewHandle);
