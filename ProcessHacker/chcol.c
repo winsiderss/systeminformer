@@ -46,7 +46,6 @@ typedef struct _COLUMNS_DIALOG_CONTEXT
     PPH_LIST ActiveListArray;
     PPH_STRING InactiveSearchboxText;
     PPH_STRING ActiveSearchboxText;
-
 } COLUMNS_DIALOG_CONTEXT, *PCOLUMNS_DIALOG_CONTEXT;
 
 INT_PTR CALLBACK PhpColumnsDlgProc(
@@ -127,21 +126,15 @@ static HFONT PhpColumnsGetCurrentFont(
     VOID
     )
 {
-    HFONT result = NULL;
-    LOGFONT font;
-    PPH_STRING fontHexString;
+    NONCLIENTMETRICS metrics = { sizeof(NONCLIENTMETRICS) };
+    HFONT font;
 
-    fontHexString = PhGetStringSetting(L"Font");
+    if (SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &metrics, 0))
+        font = CreateFontIndirect(&metrics.lfMessageFont);
+    else
+        font = NULL;
 
-    if (fontHexString->Length / sizeof(WCHAR) / 2 == sizeof(LOGFONT))
-    {
-        if (PhHexStringToBuffer(&fontHexString->sr, (PUCHAR)&font))
-        {
-            result = CreateFontIndirect(&font);
-        }
-    }
-
-    return result;
+    return font;
 }
 
 BOOLEAN PhpColumnsWordMatchStringRef(
@@ -256,12 +249,6 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
 
             PhCreateSearchControl(hwndDlg, context->SearchInactiveHandle, L"Inactive columns...");
             PhCreateSearchControl(hwndDlg, context->SearchActiveHandle, L"Active columns...");
-
-            if (context->ControlFont)
-            {
-                SetWindowFont(context->InactiveWindowHandle, context->ControlFont, TRUE);
-                SetWindowFont(context->ActiveWindowHandle, context->ControlFont, TRUE);
-            }
 
             Button_Enable(GetDlgItem(hwndDlg, IDC_HIDE), FALSE);
             Button_Enable(GetDlgItem(hwndDlg, IDC_SHOW), FALSE);
