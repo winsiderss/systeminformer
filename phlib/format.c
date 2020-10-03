@@ -71,20 +71,24 @@ VOID PhpFormatDoubleToUtf8Locale(
     _In_ ULONG Type,
     _In_ INT32 Precision,
     _Out_writes_bytes_opt_(BufferLength) PSTR Buffer,
-    _In_opt_ SIZE_T BufferLength,
-    _Out_opt_ PSIZE_T ReturnLength
+    _In_opt_ SIZE_T BufferLength
     )
 {
-    PhFormatDoubleToUtf8(
+    if (!PhFormatDoubleToUtf8(
         Value,
         Type,
         Precision,
         Buffer,
         BufferLength,
         NULL
-        );
+        ))
+    {
+        if (Buffer)
+            *Buffer = ANSI_NULL;
+        return;
+    }
 
-    if (PhpFormatUserLocale)
+    if (PhpFormatUserLocale && Buffer)
     {
         for (PCH c = Buffer; *c; ++c)
         {
@@ -132,7 +136,7 @@ VOID PhpCropZeros(
         if (*Buffer == decimalSeparator)
             --Buffer;
 
-        while ((*++Buffer = *stop++) != '\0')
+        while ((*++Buffer = *stop++) != ANSI_NULL)
             NOTHING;
     }
 }
