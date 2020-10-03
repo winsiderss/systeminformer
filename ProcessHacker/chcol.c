@@ -554,7 +554,10 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                             if (sel >= count - 1)
                                 sel = count - 1;
 
-                            ListBox_SetCurSel(context->InactiveWindowHandle, sel);
+                            if (sel != LB_ERR)
+                            {
+                                ListBox_SetCurSel(context->InactiveWindowHandle, sel);
+                            }
                         }
                     }
 
@@ -581,11 +584,20 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                             {
                                 PVOID item = context->ActiveListArray->Items[index];
 
+                                // Remove from active array, insert into inactive
                                 PhRemoveItemsList(context->ActiveListArray, index, 1);
                                 PhAddItemList(context->InactiveListArray, item);
 
+                                // Sort inactive list with new entry
+                                qsort(context->InactiveListArray->Items, context->InactiveListArray->Count, sizeof(ULONG_PTR), PhpInactiveColumnsCompareNameTn);
+                                // Find index of new entry in inactive list
+                                ULONG lb_index = IndexOfStringInList(context->InactiveListArray, item);
+
+                                // Delete from active list
                                 ListBox_DeleteString(context->ActiveWindowHandle, sel);
-                                ListBox_InsertItemData(context->InactiveWindowHandle, -1, item);
+                                // Add to list in the same position as the inactive list
+                                ListBox_InsertItemData(context->InactiveWindowHandle, lb_index, item);
+                                // Updatet the selection
                                 ListBox_SetCurSel(context->ActiveWindowHandle, sel);
                             }
                         }
