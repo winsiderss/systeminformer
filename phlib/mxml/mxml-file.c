@@ -2151,8 +2151,9 @@ mxml_parse_element(
     * Read the attribute name...
     */
 
-    name[0] = ch;
-    ptr     = name + 1;
+    ptr = name;
+    if (mxml_add_char(ch, &ptr, &name, &namesize))
+        goto error;
 
     if (ch == '\"' || ch == '\'')
     {
