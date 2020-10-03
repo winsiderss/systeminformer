@@ -909,7 +909,7 @@ NTSTATUS PhSvcpUnpackStringZ(
     {
         SIZE_T validatedLength = 0;
 
-        while (PhSplitStringRefAtChar(&remainingPart, 0, &firstPart, &remainingPart))
+        while (PhSplitStringRefAtChar(&remainingPart, UNICODE_NULL, &firstPart, &remainingPart))
         {
             validatedLength += firstPart.Length + sizeof(WCHAR);
 
@@ -923,7 +923,7 @@ NTSTATUS PhSvcpUnpackStringZ(
     }
     else
     {
-        if (PhSplitStringRefAtChar(&remainingPart, 0, &firstPart, &remainingPart))
+        if (PhSplitStringRefAtChar(&remainingPart, UNICODE_NULL, &firstPart, &remainingPart))
         {
             *OffsetInBuffer = start;
 
