@@ -993,6 +993,13 @@ PhInitializeWindowThemeRebar(
     );
 
 PHLIBAPI
+VOID
+NTAPI
+PhInitializeWindowThemeMainMenu(
+    _In_ HMENU MenuHandle
+    );
+
+PHLIBAPI
 LRESULT
 CALLBACK
 PhThemeWindowDrawRebar(
