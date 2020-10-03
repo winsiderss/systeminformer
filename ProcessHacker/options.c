@@ -724,12 +724,40 @@ static BOOLEAN GetCurrentFont(
     return result;
 }
 
+typedef struct _PHP_HKURUN_ENTRY
+{
+    PPH_STRING Value;
+    //PPH_STRING Name;
+} PHP_HKURUN_ENTRY, *PPHP_HKURUN_ENTRY;
+
+BOOLEAN NTAPI PhpReadCurrentRunCallback(
+    _In_ HANDLE RootDirectory,
+    _In_ PKEY_VALUE_FULL_INFORMATION Information,
+    _In_opt_ PVOID Context
+    )
+{
+    if (Context && Information->Type == REG_SZ)
+    {
+        PHP_HKURUN_ENTRY entry;
+
+        if (Information->DataLength > sizeof(UNICODE_NULL))
+            entry.Value = PhCreateStringEx(PTR_ADD_OFFSET(Information, Information->DataOffset), Information->DataLength);
+        else
+            entry.Value = PhReferenceEmptyString();
+
+        //entry.Name = PhCreateStringEx(Information->Name, Information->NameLength);
+
+        PhAddItemArray(Context, &entry);
+    }
+
+    return TRUE;
+}
+
 static VOID ReadCurrentUserRun(
     VOID
     )
 {
     HANDLE keyHandle;
-    PPH_STRING value;
 
     CurrentUserRunPresent = FALSE;
 
@@ -741,18 +769,26 @@ static VOID ReadCurrentUserRun(
         0
         )))
     {
-        if (value = PhQueryRegistryString(keyHandle, L"Process Hacker"))
+        PH_ARRAY keyEntryArray;
+
+        PhInitializeArray(&keyEntryArray, sizeof(PHP_HKURUN_ENTRY), 20);
+        PhEnumerateValueKey(keyHandle, KeyValueFullInformation, PhpReadCurrentRunCallback, &keyEntryArray);
+
+        for (SIZE_T i = 0; i < keyEntryArray.Count; i++)
         {
+            PPHP_HKURUN_ENTRY entry = PhItemArray(&keyEntryArray, i);
             PH_STRINGREF fileName;
             PH_STRINGREF arguments;
             PPH_STRING fullFileName;
             PPH_STRING applicationFileName;
 
-            if (PhParseCommandLineFuzzy(&value->sr, &fileName, &arguments, &fullFileName))
+            if (PhParseCommandLineFuzzy(&entry->Value->sr, &fileName, &arguments, &fullFileName))
             {
                 if (applicationFileName = PhGetApplicationFileName())
                 {
-                    if (fullFileName && PhEqualString(fullFileName, applicationFileName, TRUE))
+                    PhMoveReference(&applicationFileName, PhGetBaseName(applicationFileName));
+
+                    if (fullFileName && PhEndsWithString(fullFileName, applicationFileName, TRUE))
                     {
                         CurrentUserRunPresent = TRUE;
                     }
@@ -763,8 +799,10 @@ static VOID ReadCurrentUserRun(
                 if (fullFileName) PhDereferenceObject(fullFileName);
             }
 
-            PhDereferenceObject(value);
+            PhDereferenceObject(entry->Value);
         }
+
+        PhDeleteArray(&keyEntryArray);
 
         NtClose(keyHandle);
     }
