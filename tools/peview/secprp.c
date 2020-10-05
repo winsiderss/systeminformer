@@ -37,7 +37,6 @@ typedef struct _PV_PE_CERTIFICATE_CONTEXT
     HWND ListViewHandle;
     HIMAGELIST ListViewImageList;
     ULONG Count;
-    ULONG ChainCount;
 } PV_PE_CERTIFICATE_CONTEXT, * PPV_PE_CERTIFICATE_CONTEXT;
 
 PPH_STRING PvpPeGetRelativeTimeString(
@@ -164,7 +163,7 @@ BOOLEAN PvpPeAddCertificateInfo(
                     INT lvItemIndex;
                     WCHAR number[PH_INT32_STR_LEN_1];
 
-                    PhPrintUInt32(number, ++Context->ChainCount);
+                    PhPrintUInt32(number, ++Context->Count);
                     lvItemIndex = PhAddListViewGroupItem(
                         Context->ListViewHandle,
                         PV_IMAGE_CERT_CATEGORY_ARRAY,
