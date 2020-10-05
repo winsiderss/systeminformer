@@ -163,6 +163,9 @@ BOOLEAN PvpPeAddCertificateInfo(
                     INT lvItemIndex;
                     WCHAR number[PH_INT32_STR_LEN_1];
 
+                    if (element->pCertContext == CertificateContext) // skip parent
+                        continue;
+
                     PhPrintUInt32(number, ++Context->Count);
                     lvItemIndex = PhAddListViewGroupItem(
                         Context->ListViewHandle,
@@ -175,6 +178,8 @@ BOOLEAN PvpPeAddCertificateInfo(
                     PvpPeAddCertificateInfo(Context, lvItemIndex, TRUE, element->pCertContext);
                 }
             }
+
+            //CertFreeCertificateChain(chainContext);
         }
     }
 
