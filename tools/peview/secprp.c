@@ -26,8 +26,8 @@
 typedef enum _PV_IMAGE_CERT_CATEGORY
 {
     PV_IMAGE_CERT_CATEGORY_IMAGE,
-    PV_IMAGE_CERT_CATEGORY_EMBEDDED,
     PV_IMAGE_CERT_CATEGORY_ARRAY,
+    PV_IMAGE_CERT_CATEGORY_EMBEDDED,
     PV_IMAGE_CERT_CATEGORY_MAXIMUM
 } PV_IMAGE_CERT_CATEGORY;
 
@@ -495,8 +495,8 @@ INT_PTR CALLBACK PvpPeSecurityDlgProc(
 
             ListView_EnableGroupView(context->ListViewHandle, TRUE);
             PhAddListViewGroup(context->ListViewHandle, PV_IMAGE_CERT_CATEGORY_IMAGE, L"Image certificates");
-            PhAddListViewGroup(context->ListViewHandle, PV_IMAGE_CERT_CATEGORY_EMBEDDED, L"Nested certificates");
             PhAddListViewGroup(context->ListViewHandle, PV_IMAGE_CERT_CATEGORY_ARRAY, L"Chained certificates");
+            PhAddListViewGroup(context->ListViewHandle, PV_IMAGE_CERT_CATEGORY_EMBEDDED, L"Nested certificates");
 
             PvpPeEnumerateFileCertificates(context);
 
