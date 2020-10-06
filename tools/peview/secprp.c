@@ -70,11 +70,11 @@ BOOLEAN PvpPeAddCertificateInfo(
     LARGE_INTEGER fileTime;
     SYSTEMTIME systemTime;
 
-    if (dataLength = CertGetNameString(CertificateContext, CERT_NAME_FRIENDLY_DISPLAY_TYPE, 0, NULL, NULL, 0))
+    if (dataLength = CertGetNameString(CertificateContext, CERT_NAME_SIMPLE_DISPLAY_TYPE, 0, NULL, NULL, 0)) // CERT_NAME_FRIENDLY_DISPLAY_TYPE
     {
         PWSTR data = PhAllocateZero(dataLength * sizeof(WCHAR));
 
-        if (CertGetNameString(CertificateContext, CERT_NAME_FRIENDLY_DISPLAY_TYPE, 0, NULL, data, dataLength))
+        if (CertGetNameString(CertificateContext, CERT_NAME_SIMPLE_DISPLAY_TYPE, 0, NULL, data, dataLength)) // CERT_NAME_FRIENDLY_DISPLAY_TYPE
         {
             PhSetListViewSubItem(Context->ListViewHandle, ListViewItemIndex, 1, data);
         }
