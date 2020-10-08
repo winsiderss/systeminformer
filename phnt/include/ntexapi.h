@@ -1293,7 +1293,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemLegacyDriverInformation, // q: SYSTEM_LEGACY_DRIVER_INFORMATION
     SystemCurrentTimeZoneInformation, // q; s: RTL_TIME_ZONE_INFORMATION
     SystemLookasideInformation, // q: SYSTEM_LOOKASIDE_INFORMATION
-    SystemTimeSlipNotification, // s (requires SeSystemtimePrivilege)
+    SystemTimeSlipNotification, // s: HANDLE (NtCreateEvent) (requires SeSystemtimePrivilege)
     SystemSessionCreate, // not implemented
     SystemSessionDetach, // not implemented
     SystemSessionInformation, // not implemented (SYSTEM_SESSION_INFORMATION)
@@ -4002,17 +4002,33 @@ typedef struct _KUSER_SHARED_DATA
 
     ULONGLONG TestRetInstruction;
     LONGLONG QpcFrequency;
+
     ULONG SystemCall;
-    ULONG SystemCallPad0;
+
+    union
+    {
+        ULONG AllFlags;
+        struct
+        {
+            ULONG Win32Process : 1;
+            ULONG Sgx2Enclave : 1;
+            ULONG VbsBasicEnclave : 1;
+            ULONG SpareBits : 29;
+        };
+    } UserCetAvailableEnvironments;
+
     ULONGLONG SystemCallPad[2];
 
     union
     {
         volatile KSYSTEM_TIME TickCount;
         volatile ULONG64 TickCountQuad;
-        ULONG ReservedTickCountOverlay[3];
+        struct
+        {
+            ULONG ReservedTickCountOverlay[3];
+            ULONG TickCountPad[1];
+        };
     };
-    ULONG TickCountPad[1];
 
     ULONG Cookie;
     ULONG CookiePad[1];
@@ -4047,7 +4063,7 @@ typedef struct _KUSER_SHARED_DATA
         USHORT QpcData;
         struct
         {
-            UCHAR QpcBypassEnabled : 1;
+            volatile UCHAR QpcBypassEnabled : 1;
             UCHAR QpcShift : 1;
         };
     };
@@ -4055,6 +4071,8 @@ typedef struct _KUSER_SHARED_DATA
     LARGE_INTEGER TimeZoneBiasEffectiveStart;
     LARGE_INTEGER TimeZoneBiasEffectiveEnd;
     XSTATE_CONFIGURATION XState;
+    KSYSTEM_TIME FeatureConfigurationChangeStamp;
+    ULONG Spare;
 } KUSER_SHARED_DATA, *PKUSER_SHARED_DATA;
 #include <poppack.h>
 
