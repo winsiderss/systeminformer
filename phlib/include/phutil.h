@@ -176,6 +176,14 @@ PhLargeIntegerToSystemTime(
     );
 
 PHLIBAPI
+BOOLEAN
+NTAPI
+PhSystemTimeToLargeInteger(
+    _Out_ PLARGE_INTEGER LargeInteger,
+    _In_ PSYSTEMTIME SystemTime
+    );
+
+PHLIBAPI
 VOID
 NTAPI
 PhLargeIntegerToLocalSystemTime(
