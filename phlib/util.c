@@ -323,6 +323,25 @@ VOID PhLargeIntegerToSystemTime(
     //FileTimeToSystemTime(&fileTime, SystemTime);
 }
 
+BOOLEAN PhSystemTimeToLargeInteger(
+    _Out_ PLARGE_INTEGER LargeInteger,
+    _In_ PSYSTEMTIME SystemTime
+    )
+{
+    TIME_FIELDS timeFields;
+
+    timeFields.Year = SystemTime->wYear;
+    timeFields.Month = SystemTime->wMonth;
+    timeFields.Day = SystemTime->wDay;
+    timeFields.Hour = SystemTime->wHour;
+    timeFields.Minute = SystemTime->wMinute;
+    timeFields.Second = SystemTime->wSecond;
+    timeFields.Milliseconds = SystemTime->wMilliseconds;
+    timeFields.Weekday = SystemTime->wDayOfWeek;
+
+    return RtlTimeFieldsToTime(&timeFields, LargeInteger);
+}
+
 VOID PhLargeIntegerToLocalSystemTime(
     _Out_ PSYSTEMTIME SystemTime,
     _In_ PLARGE_INTEGER LargeInteger
