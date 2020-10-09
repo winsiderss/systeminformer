@@ -458,7 +458,7 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
             LPNCCALCSIZE_PARAMS ncCalcSize = (NCCALCSIZE_PARAMS*)lParam;
 
             // Let Windows handle the non-client defaults.
-            DefSubclassProc(hWnd, uMsg, wParam, lParam);
+            CallWindowProc(oldWndProc, hWnd, uMsg, wParam, lParam);
 
             // Deflate the client area to accommodate the custom button.
             ncCalcSize->rgrc[0].right -= context->CXWidth;
@@ -469,7 +469,7 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
             RECT windowRect;
 
             // Let Windows handle the non-client defaults.
-            DefSubclassProc(hWnd, uMsg, wParam, lParam);
+            CallWindowProc(oldWndProc, hWnd, uMsg, wParam, lParam);
 
             // Get the screen coordinates of the window.
             GetWindowRect(hWnd, &windowRect);

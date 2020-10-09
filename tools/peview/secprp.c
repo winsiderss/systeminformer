@@ -22,22 +22,852 @@
 
 #include <peview.h>
 #include <cryptuiapi.h>
+#include "colmgr.h"
 
-typedef enum _PV_IMAGE_CERT_CATEGORY
-{
-    PV_IMAGE_CERT_CATEGORY_IMAGE,
-    PV_IMAGE_CERT_CATEGORY_ARRAY,
-    PV_IMAGE_CERT_CATEGORY_EMBEDDED,
-    PV_IMAGE_CERT_CATEGORY_MAXIMUM
-} PV_IMAGE_CERT_CATEGORY;
+#define WM_PV_CERTIFICATE_PROPERTIES (WM_APP + 801)
+#define WM_PV_CERTIFICATE_CONTEXTMENU (WM_APP + 802)
 
 typedef struct _PV_PE_CERTIFICATE_CONTEXT
 {
     HWND WindowHandle;
-    HWND ListViewHandle;
-    HIMAGELIST ListViewImageList;
-    ULONG Count;
-} PV_PE_CERTIFICATE_CONTEXT, * PPV_PE_CERTIFICATE_CONTEXT;
+    HWND TreeNewHandle;
+    HWND SearchHandle;
+    PPH_STRING SearchText;
+    PPH_TN_FILTER_ENTRY TreeFilterEntry;
+    ULONG TreeNewSortColumn;
+    PH_SORT_ORDER TreeNewSortOrder;
+    PH_TN_FILTER_SUPPORT FilterSupport;
+    PPH_HASHTABLE NodeHashtable;
+    PPH_LIST NodeRootList;
+    PPH_LIST NodeList;
+} PV_PE_CERTIFICATE_CONTEXT, *PPV_PE_CERTIFICATE_CONTEXT;
+
+typedef enum _PV_CERTIFICATE_TREE_COLUMN_NAME
+{
+    PV_CERTIFICATE_TREE_COLUMN_NAME_NAME,
+    PV_CERTIFICATE_TREE_COLUMN_NAME_INDEX,
+    PV_CERTIFICATE_TREE_COLUMN_NAME_TYPE,
+    PV_CERTIFICATE_TREE_COLUMN_NAME_ISSUER,
+    PV_CERTIFICATE_TREE_COLUMN_NAME_DATEFROM,
+    PV_CERTIFICATE_TREE_COLUMN_NAME_DATETO,
+    PV_CERTIFICATE_TREE_COLUMN_NAME_THUMBPRINT,
+    PV_CERTIFICATE_TREE_COLUMN_NAME_SIZE,
+    PV_CERTIFICATE_TREE_COLUMN_NAME_ALG,
+    PV_CERTIFICATE_TREE_COLUMN_NAME_MAXIMUM
+} PV_CERTIFICATE_TREE_COLUMN_NAME;
+
+typedef enum _PV_CERTIFICATE_NODE_TYPE
+{
+    PV_CERTIFICATE_NODE_TYPE_IMAGE,
+    PV_CERTIFICATE_NODE_TYPE_IMAGEARRAY,
+    PV_CERTIFICATE_NODE_TYPE_NESTED,
+    PV_CERTIFICATE_NODE_TYPE_NESTEDARRAY,
+    PV_CERTIFICATE_NODE_TYPE_MAXIMUM
+} PV_CERTIFICATE_NODE_TYPE;
+
+typedef struct _PV_CERTIFICATE_NODE
+{
+    PH_TREENEW_NODE Node;
+
+    PCCERT_CONTEXT CertContext;
+    PV_CERTIFICATE_NODE_TYPE Type;
+    //ULONG64 UniqueId;
+    ULONG64 Size;
+    LARGE_INTEGER TimeFrom;
+    LARGE_INTEGER TimeTo;
+
+    PPH_STRING Name;
+    PPH_STRING Issuer;
+    PPH_STRING DateFrom;
+    PPH_STRING DateTo;
+    PPH_STRING Thumbprint;
+    PPH_STRING Algorithm;
+
+    PPH_STRING IndexString;
+    PPH_STRING SizeString;
+    WCHAR Pointer[PH_PTR_STR_LEN_1];
+
+    struct _PV_CERTIFICATE_NODE* Parent;
+    PPH_LIST Children;
+
+    PH_STRINGREF TextCache[PV_CERTIFICATE_TREE_COLUMN_NAME_MAXIMUM];
+} PV_CERTIFICATE_NODE, *PPV_CERTIFICATE_NODE;
+
+BOOLEAN PvCertificateNodeHashtableEqualFunction(
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
+    );
+ULONG PvCertificateNodeHashtableHashFunction(
+    _In_ PVOID Entry
+    );
+VOID PvDestroyCertificateNode(
+    _In_ PPV_CERTIFICATE_NODE CertificateNode
+    );
+BOOLEAN NTAPI PvCertificateTreeNewCallback(
+    _In_ HWND hwnd,
+    _In_ PH_TREENEW_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2,
+    _In_opt_ PVOID Context
+    );
+BOOLEAN PvpPeFillNodeCertificateInfo(
+    _Inout_ PPV_PE_CERTIFICATE_CONTEXT Context,
+    _In_ PV_CERTIFICATE_NODE_TYPE CertType,
+    _In_ PCCERT_CONTEXT CertificateContext,
+    _In_ PPV_CERTIFICATE_NODE CertificateNode
+    );
+BOOLEAN PhInsertCopyCellEMenuItem(
+    _In_ struct _PH_EMENU_ITEM* Menu,
+    _In_ ULONG InsertAfterId,
+    _In_ HWND TreeNewHandle,
+    _In_ PPH_TREENEW_COLUMN Column
+    );
+BOOLEAN PhHandleCopyCellEMenuItem(
+    _In_ struct _PH_EMENU_ITEM* SelectedItem
+    );
+
+static BOOLEAN WordMatchStringRef(
+    _In_ PPV_PE_CERTIFICATE_CONTEXT Context,
+    _In_ PPH_STRINGREF Text
+    )
+{
+    PH_STRINGREF part;
+    PH_STRINGREF remainingPart;
+
+    remainingPart = PhGetStringRef(Context->SearchText);
+
+    while (remainingPart.Length)
+    {
+        PhSplitStringRefAtChar(&remainingPart, '|', &part, &remainingPart);
+
+        if (part.Length)
+        {
+            if (PhFindStringInStringRef(Text, &part, TRUE) != -1)
+                return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
+static BOOLEAN WordMatchStringZ(
+    _In_ PPV_PE_CERTIFICATE_CONTEXT Context,
+    _In_ PWSTR Text
+    )
+{
+    PH_STRINGREF text;
+
+    PhInitializeStringRef(&text, Text);
+    return WordMatchStringRef(Context, &text);
+}
+
+BOOLEAN PvCertificateTreeFilterCallback(
+    _In_ PPH_TREENEW_NODE Node,
+    _In_opt_ PVOID Context
+    )
+{
+    PPV_CERTIFICATE_NODE certificateNode = (PPV_CERTIFICATE_NODE)Node;
+    PPV_PE_CERTIFICATE_CONTEXT context = Context;
+
+    if (!context)
+        return TRUE;
+    if (PhIsNullOrEmptyString(context->SearchText))
+        return TRUE;
+
+    if (!PhIsNullOrEmptyString(certificateNode->Name))
+    {
+        if (WordMatchStringRef(context, &certificateNode->Name->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(certificateNode->Issuer))
+    {
+        if (WordMatchStringRef(context, &certificateNode->Issuer->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(certificateNode->DateFrom))
+    {
+        if (WordMatchStringRef(context, &certificateNode->DateFrom->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(certificateNode->DateTo))
+    {
+        if (WordMatchStringRef(context, &certificateNode->DateTo->sr))
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
+VOID PvInitializeCertificateTree(
+    _In_ PPV_PE_CERTIFICATE_CONTEXT Context
+    )
+{
+    PPH_STRING settings;
+
+    Context->NodeHashtable = PhCreateHashtable(
+        sizeof(PV_CERTIFICATE_NODE),
+        PvCertificateNodeHashtableEqualFunction,
+        PvCertificateNodeHashtableHashFunction,
+        100
+        );
+    Context->NodeList = PhCreateList(100);
+    Context->NodeRootList = PhCreateList(30);
+
+    PhSetControlTheme(Context->TreeNewHandle, L"explorer");
+    TreeNew_SetCallback(Context->TreeNewHandle, PvCertificateTreeNewCallback, Context);
+
+    PhAddTreeNewColumn(Context->TreeNewHandle, PV_CERTIFICATE_TREE_COLUMN_NAME_NAME, TRUE, L"Name", 200, PH_ALIGN_LEFT, 0, 0);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PV_CERTIFICATE_TREE_COLUMN_NAME_INDEX, TRUE, L"#", 25, PH_ALIGN_LEFT, 1, 0);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PV_CERTIFICATE_TREE_COLUMN_NAME_TYPE, TRUE, L"Type", 50, PH_ALIGN_LEFT, 2, 0);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PV_CERTIFICATE_TREE_COLUMN_NAME_ISSUER, TRUE, L"Issuer", 100, PH_ALIGN_LEFT, 3, 0);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PV_CERTIFICATE_TREE_COLUMN_NAME_DATEFROM, TRUE, L"From", 100, PH_ALIGN_LEFT, 4, 0);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PV_CERTIFICATE_TREE_COLUMN_NAME_DATETO, TRUE, L"To", 100, PH_ALIGN_LEFT, 5, 0);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PV_CERTIFICATE_TREE_COLUMN_NAME_THUMBPRINT, TRUE, L"Thumbprint", 100, PH_ALIGN_LEFT, 6, 0);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PV_CERTIFICATE_TREE_COLUMN_NAME_SIZE, TRUE, L"Size", 50, PH_ALIGN_LEFT, 7, 0);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PV_CERTIFICATE_TREE_COLUMN_NAME_ALG, TRUE, L"Algorithm", 50, PH_ALIGN_LEFT, 8, 0);
+
+    TreeNew_SetTriState(Context->TreeNewHandle, TRUE);
+    TreeNew_SetSort(Context->TreeNewHandle, PV_CERTIFICATE_TREE_COLUMN_NAME_INDEX, NoSortOrder);
+    TreeNew_SetRowHeight(Context->TreeNewHandle, 22);
+
+    settings = PhGetStringSetting(L"ImageSecurityTreeColumns");
+    PhCmLoadSettings(Context->TreeNewHandle, &settings->sr);
+    PhDereferenceObject(settings);
+
+    Context->SearchText = PhReferenceEmptyString();
+    PhInitializeTreeNewFilterSupport(&Context->FilterSupport, Context->TreeNewHandle, Context->NodeList);
+    Context->TreeFilterEntry = PhAddTreeNewFilter(&Context->FilterSupport, PvCertificateTreeFilterCallback, Context);
+}
+
+VOID PvDeleteCertificateTree(
+    _In_ PPV_PE_CERTIFICATE_CONTEXT Context
+    )
+{
+    PPH_STRING settings;
+    ULONG i;
+
+    PhRemoveTreeNewFilter(&Context->FilterSupport, Context->TreeFilterEntry);
+    if (Context->SearchText) PhDereferenceObject(Context->SearchText);
+
+    PhDeleteTreeNewFilterSupport(&Context->FilterSupport);
+
+    settings = PhCmSaveSettings(Context->TreeNewHandle);
+    PhSetStringSetting2(L"ImageSecurityTreeColumns", &settings->sr);
+    PhDereferenceObject(settings);
+
+    for (i = 0; i < Context->NodeList->Count; i++)
+        PvDestroyCertificateNode(Context->NodeList->Items[i]);
+
+    PhDereferenceObject(Context->NodeHashtable);
+    PhDereferenceObject(Context->NodeList);
+    PhDereferenceObject(Context->NodeRootList);
+}
+
+BOOLEAN PvCertificateNodeHashtableEqualFunction(
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
+    )
+{
+    PPV_CERTIFICATE_NODE windowNode1 = *(PPV_CERTIFICATE_NODE*)Entry1;
+    PPV_CERTIFICATE_NODE windowNode2 = *(PPV_CERTIFICATE_NODE*)Entry2;
+
+    return windowNode1->Node.Index == windowNode2->Node.Index;
+}
+
+ULONG PvCertificateNodeHashtableHashFunction(
+    _In_ PVOID Entry
+    )
+{
+    return PhHashIntPtr((ULONG_PTR)(*(PPV_CERTIFICATE_NODE*)Entry)->Node.Index);
+}
+
+PPV_CERTIFICATE_NODE PvAddCertificateNode(
+    _Inout_ PPV_PE_CERTIFICATE_CONTEXT Context,
+    _In_ PV_CERTIFICATE_NODE_TYPE CertType,
+    _In_ PCCERT_CONTEXT CertContext
+    )
+{
+    //static ULONG64 index = 0;
+    PPV_CERTIFICATE_NODE windowNode;
+
+    windowNode = PhAllocateZero(sizeof(PV_CERTIFICATE_NODE));
+    //windowNode->UniqueId = ++index;
+    PhInitializeTreeNewNode(&windowNode->Node);
+
+    memset(windowNode->TextCache, 0, sizeof(PH_STRINGREF) * PV_CERTIFICATE_TREE_COLUMN_NAME_MAXIMUM);
+    windowNode->Node.TextCache = windowNode->TextCache;
+    windowNode->Node.TextCacheSize = PV_CERTIFICATE_TREE_COLUMN_NAME_MAXIMUM;
+
+    windowNode->Type = CertType;
+    windowNode->CertContext = CertContext;
+    windowNode->Children = PhCreateList(1);
+    PvpPeFillNodeCertificateInfo(Context, CertType, CertContext, windowNode);
+
+    PhAddEntryHashtable(Context->NodeHashtable, &windowNode);
+    PhAddItemList(Context->NodeList, windowNode);
+
+    if (Context->FilterSupport.FilterList)
+       windowNode->Node.Visible = PhApplyTreeNewFiltersToNode(&Context->FilterSupport, &windowNode->Node);
+
+    return windowNode;
+}
+
+PPV_CERTIFICATE_NODE PvAddChildCertificateNode(
+    _In_ PPV_PE_CERTIFICATE_CONTEXT Context,
+    _In_opt_ PPV_CERTIFICATE_NODE ParentNode,
+    _In_ PV_CERTIFICATE_NODE_TYPE CertType,
+    _In_ PCCERT_CONTEXT CertContext
+    )
+{
+    PPV_CERTIFICATE_NODE childNode;
+
+    childNode = PvAddCertificateNode(Context, CertType, CertContext);
+    //PvFillCertificateInfo(Context, childNode);
+
+    if (ParentNode)
+    {
+        // This is a child node.
+        childNode->Node.Expanded = TRUE;
+        childNode->Parent = ParentNode;
+
+        PhAddItemList(ParentNode->Children, childNode);
+    }
+    else
+    {
+        // This is a root node.
+        childNode->Node.Expanded = TRUE;
+
+        PhAddItemList(Context->NodeRootList, childNode);
+    }
+
+    return childNode;
+}
+
+PPV_CERTIFICATE_NODE PvFindCertificateNode(
+    _In_ PPV_PE_CERTIFICATE_CONTEXT Context,
+    _In_ ULONG UniqueId
+    )
+{
+    PV_CERTIFICATE_NODE lookupWindowNode;
+    PPV_CERTIFICATE_NODE lookupWindowNodePtr = &lookupWindowNode;
+    PPV_CERTIFICATE_NODE* windowNode;
+
+    lookupWindowNode.Node.Index = UniqueId;
+
+    windowNode = (PPV_CERTIFICATE_NODE*)PhFindEntryHashtable(
+        Context->NodeHashtable,
+        &lookupWindowNodePtr
+        );
+
+    if (windowNode)
+        return *windowNode;
+    else
+        return NULL;
+}
+
+VOID PvRemoveCertificateNode(
+    _In_ PPV_PE_CERTIFICATE_CONTEXT Context,
+    _In_ PPV_CERTIFICATE_NODE WindowNode
+    )
+{
+    ULONG index;
+
+    // Remove from hashtable/list and cleanup.
+
+    PhRemoveEntryHashtable(Context->NodeHashtable, &WindowNode);
+
+    if ((index = PhFindItemList(Context->NodeList, WindowNode)) != ULONG_MAX)
+        PhRemoveItemList(Context->NodeList, index);
+
+    PvDestroyCertificateNode(WindowNode);
+
+    TreeNew_NodesStructured(Context->TreeNewHandle);
+}
+
+VOID PvDestroyCertificateNode(
+    _In_ PPV_CERTIFICATE_NODE WindowNode
+    )
+{
+    PhDereferenceObject(WindowNode->Children);
+
+    if (WindowNode->Name) PhDereferenceObject(WindowNode->Name);
+    if (WindowNode->Issuer) PhDereferenceObject(WindowNode->Issuer);
+    if (WindowNode->DateFrom) PhDereferenceObject(WindowNode->DateFrom);
+    if (WindowNode->DateTo) PhDereferenceObject(WindowNode->DateTo);
+    if (WindowNode->Thumbprint) PhDereferenceObject(WindowNode->Thumbprint);
+    if (WindowNode->IndexString) PhDereferenceObject(WindowNode->IndexString);
+    if (WindowNode->SizeString) PhDereferenceObject(WindowNode->SizeString);
+
+    //if (WindowNode->WindowText) PhDereferenceObject(WindowNode->WindowText);
+    //if (WindowNode->ThreadString) PhDereferenceObject(WindowNode->ThreadString);
+    //if (WindowNode->ModuleString) PhDereferenceObject(WindowNode->ModuleString);
+
+    PhFree(WindowNode);
+}
+
+#define SORT_FUNCTION(Column) PvCertificateTreeNewCompare##Column
+#define BEGIN_SORT_FUNCTION(Column) static int __cdecl PvCertificateTreeNewCompare##Column( \
+    _In_ void *_context, \
+    _In_ const void *_elem1, \
+    _In_ const void *_elem2 \
+    ) \
+{ \
+    PPV_CERTIFICATE_NODE node1 = *(PPV_CERTIFICATE_NODE *)_elem1; \
+    PPV_CERTIFICATE_NODE node2 = *(PPV_CERTIFICATE_NODE *)_elem2; \
+    int sortResult = 0;
+
+#define END_SORT_FUNCTION \
+    return PhModifySort(sortResult, ((PPV_PE_CERTIFICATE_CONTEXT)_context)->TreeNewSortOrder); \
+}
+
+BEGIN_SORT_FUNCTION(Name)
+{
+    sortResult = PhCompareString(node1->Name, node2->Name, TRUE);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(Index)
+{
+    sortResult = uintptrcmp((ULONG_PTR)node1->Node.Index, (ULONG_PTR)node2->Node.Index);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(Type)
+{
+    sortResult = uintptrcmp((ULONG_PTR)node1->Type, (ULONG_PTR)node2->Type);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(Issuer)
+{
+    sortResult = PhCompareString(node1->Issuer, node2->Issuer, TRUE);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(DateFrom)
+{
+    sortResult = uintptrcmp((ULONG_PTR)node1->TimeFrom.QuadPart, (ULONG_PTR)node2->TimeFrom.QuadPart);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(DateTo)
+{
+    sortResult = uintptrcmp((ULONG_PTR)node1->TimeTo.QuadPart, (ULONG_PTR)node2->TimeTo.QuadPart);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(Thumbprint)
+{
+    sortResult = PhCompareString(node1->Thumbprint, node2->Thumbprint, TRUE);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(Size)
+{
+    sortResult = uintptrcmp((ULONG_PTR)node1->Size, (ULONG_PTR)node2->Size);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(Alg)
+{
+    sortResult = PhCompareString(node1->Algorithm, node2->Algorithm, TRUE);
+}
+END_SORT_FUNCTION
+
+BOOLEAN NTAPI PvCertificateTreeNewCallback(
+    _In_ HWND hwnd,
+    _In_ PH_TREENEW_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2,
+    _In_opt_ PVOID Context
+    )
+{
+    PPV_PE_CERTIFICATE_CONTEXT context = Context;
+    PPV_CERTIFICATE_NODE node;
+
+    if (!context)
+        return FALSE;
+
+    switch (Message)
+    {
+    case TreeNewGetChildren:
+        {
+            PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
+
+            if (!getChildren)
+                break;
+
+            node = (PPV_CERTIFICATE_NODE)getChildren->Node;
+
+            if (context->TreeNewSortOrder == NoSortOrder)
+            {
+                if (!node)
+                {
+                    getChildren->Children = (PPH_TREENEW_NODE *)context->NodeRootList->Items;
+                    getChildren->NumberOfChildren = context->NodeRootList->Count;
+                }
+                else
+                {
+                    getChildren->Children = (PPH_TREENEW_NODE *)node->Children->Items;
+                    getChildren->NumberOfChildren = node->Children->Count;
+                }
+            }
+            else
+            {
+                if (!node)
+                {
+                    static PVOID sortFunctions[] =
+                    {
+                        SORT_FUNCTION(Name),
+                        SORT_FUNCTION(Index),
+                        SORT_FUNCTION(Type),
+                        SORT_FUNCTION(Issuer),
+                        SORT_FUNCTION(DateFrom),
+                        SORT_FUNCTION(DateTo),
+                        SORT_FUNCTION(Thumbprint),
+                        SORT_FUNCTION(Size),
+                        SORT_FUNCTION(Alg)
+                    };
+                    int (__cdecl *sortFunction)(void *, const void *, const void *);
+
+                    if (context->TreeNewSortColumn < PV_CERTIFICATE_TREE_COLUMN_NAME_MAXIMUM)
+                        sortFunction = sortFunctions[context->TreeNewSortColumn];
+                    else
+                        sortFunction = NULL;
+
+                    if (sortFunction)
+                    {
+                        qsort_s(context->NodeList->Items, context->NodeList->Count, sizeof(PVOID), sortFunction, context);
+                    }
+
+                    getChildren->Children = (PPH_TREENEW_NODE *)context->NodeList->Items;
+                    getChildren->NumberOfChildren = context->NodeList->Count;
+                }
+            }
+        }
+        return TRUE;
+    case TreeNewIsLeaf:
+        {
+            PPH_TREENEW_IS_LEAF isLeaf = Parameter1;
+
+            if (!isLeaf)
+                break;
+
+            node = (PPV_CERTIFICATE_NODE)isLeaf->Node;
+
+            if (context->TreeNewSortOrder == NoSortOrder)
+                isLeaf->IsLeaf = !(node->Children && node->Children->Count);
+            else
+                isLeaf->IsLeaf = TRUE;
+        }
+        return TRUE;
+    case TreeNewGetCellText:
+        {
+            PPH_TREENEW_GET_CELL_TEXT getCellText = Parameter1;
+
+            if (!getCellText)
+                break;
+
+            node = (PPV_CERTIFICATE_NODE)getCellText->Node;
+
+            switch (getCellText->Id)
+            {
+            case PV_CERTIFICATE_TREE_COLUMN_NAME_NAME:
+                {
+                    getCellText->Text = PhGetStringRef(node->Name);
+                }
+                break;
+            case PV_CERTIFICATE_TREE_COLUMN_NAME_INDEX:
+                {
+                    PhMoveReference(&node->IndexString, PhFormatUInt64(node->Node.Index + 1, TRUE));
+                    getCellText->Text = node->IndexString->sr;
+                }
+                break;
+            case PV_CERTIFICATE_TREE_COLUMN_NAME_TYPE:
+                {
+                    switch (node->Type)
+                    {
+                    case PV_CERTIFICATE_NODE_TYPE_IMAGE:
+                    case PV_CERTIFICATE_NODE_TYPE_IMAGEARRAY:
+                        PhInitializeStringRef(&getCellText->Text, L"Image");
+                        break;
+                    //case PV_CERTIFICATE_NODE_TYPE_IMAGEARRAY:
+                    //    PhInitializeStringRef(&getCellText->Text, L"Chained");
+                    //    break;
+                    case PV_CERTIFICATE_NODE_TYPE_NESTED:
+                    case PV_CERTIFICATE_NODE_TYPE_NESTEDARRAY:
+                        PhInitializeStringRef(&getCellText->Text, L"Nested");
+                        break;
+                    //case PV_CERTIFICATE_NODE_TYPE_NESTEDARRAY:
+                    //    PhInitializeStringRef(&getCellText->Text, L"Chained");
+                    //    break;
+                    }
+                }
+                break;
+            case PV_CERTIFICATE_TREE_COLUMN_NAME_ISSUER:
+                {
+                    getCellText->Text = PhGetStringRef(node->Issuer);
+                }
+                break;
+            case PV_CERTIFICATE_TREE_COLUMN_NAME_DATEFROM:
+                {
+                    getCellText->Text = PhGetStringRef(node->DateFrom);
+                }
+                break;
+            case PV_CERTIFICATE_TREE_COLUMN_NAME_DATETO:
+                {
+                    getCellText->Text = PhGetStringRef(node->DateTo);
+                }
+                break;
+            case PV_CERTIFICATE_TREE_COLUMN_NAME_THUMBPRINT:
+                {
+                    getCellText->Text = PhGetStringRef(node->Thumbprint);
+                }
+                break;
+            case PV_CERTIFICATE_TREE_COLUMN_NAME_SIZE:
+                {
+                    PhMoveReference(&node->SizeString, PhFormatSize(node->Size, ULONG_MAX));
+                    getCellText->Text = node->SizeString->sr;
+                }
+                break;
+            case PV_CERTIFICATE_TREE_COLUMN_NAME_ALG:
+                {
+                    getCellText->Text = PhGetStringRef(node->Algorithm);
+                }
+                break;
+            default:
+                return FALSE;
+            }
+
+            getCellText->Flags = TN_CACHE;
+        }
+        return TRUE;
+    case TreeNewGetNodeColor:
+        {
+            PPH_TREENEW_GET_NODE_COLOR getNodeColor = Parameter1;
+
+            if (!getNodeColor)
+                break;
+
+            node = (PPV_CERTIFICATE_NODE)getNodeColor->Node;
+
+            //if (!node->WindowVisible)
+            //    getNodeColor->ForeColor = RGB(0x55, 0x55, 0x55);
+
+            getNodeColor->Flags = TN_AUTO_FORECOLOR | TN_CACHE;
+        }
+        return TRUE;
+    case TreeNewSortChanged:
+        {
+            TreeNew_GetSort(hwnd, &context->TreeNewSortColumn, &context->TreeNewSortOrder);
+            // Force a rebuild to sort the items.
+            TreeNew_NodesStructured(hwnd);
+        }
+        return TRUE;
+    case TreeNewKeyDown:
+        {
+            PPH_TREENEW_KEY_EVENT keyEvent = Parameter1;
+
+            if (!keyEvent)
+                break;
+
+            switch (keyEvent->VirtualKey)
+            {
+            case 'C':
+                //if (GetKeyState(VK_CONTROL) < 0)
+                    //SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_WINDOW_COPY, 0);
+                break;
+            }
+        }
+        return TRUE;
+    case TreeNewLeftDoubleClick:
+        {
+            SendMessage(context->WindowHandle, WM_COMMAND, WM_PV_CERTIFICATE_PROPERTIES, 0);
+        }
+        return TRUE;
+    case TreeNewContextMenu:
+        {
+            PPH_TREENEW_CONTEXT_MENU contextMenuEvent = Parameter1;
+
+            SendMessage(context->WindowHandle, WM_COMMAND, WM_PV_CERTIFICATE_CONTEXTMENU, (LPARAM)contextMenuEvent);
+        }
+        return TRUE;
+    case TreeNewHeaderRightClick:
+        {
+            PH_TN_COLUMN_MENU_DATA data;
+
+            data.TreeNewHandle = hwnd;
+            data.MouseEvent = Parameter1;
+            data.DefaultSortColumn = 0;
+            data.DefaultSortOrder = AscendingSortOrder;
+            PhInitializeTreeNewColumnMenu(&data);
+
+            data.Selection = PhShowEMenu(data.Menu, hwnd, PH_EMENU_SHOW_LEFTRIGHT,
+                PH_ALIGN_LEFT | PH_ALIGN_TOP, data.MouseEvent->ScreenLocation.x, data.MouseEvent->ScreenLocation.y);
+            PhHandleTreeNewColumnMenu(&data);
+            PhDeleteTreeNewColumnMenu(&data);
+        }
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+VOID PvClearCertificateTree(
+    _In_ PPV_PE_CERTIFICATE_CONTEXT Context
+    )
+{
+    for (ULONG i = 0; i < Context->NodeList->Count; i++)
+        PvDestroyCertificateNode(Context->NodeList->Items[i]);
+
+    PhClearHashtable(Context->NodeHashtable);
+    PhClearList(Context->NodeList);
+    PhClearList(Context->NodeRootList);
+}
+
+PPV_CERTIFICATE_NODE PvGetSelectedCertificateNode(
+    _In_ PPV_PE_CERTIFICATE_CONTEXT Context
+    )
+{
+    PPV_CERTIFICATE_NODE windowNode = NULL;
+    ULONG i;
+
+    for (i = 0; i < Context->NodeList->Count; i++)
+    {
+        windowNode = Context->NodeList->Items[i];
+
+        if (windowNode->Node.Selected)
+            return windowNode;
+    }
+
+    return NULL;
+}
+
+VOID PvGetSelectedCertificateNodes(
+    _In_ PPV_PE_CERTIFICATE_CONTEXT Context,
+    _Out_ PPV_CERTIFICATE_NODE**Windows,
+    _Out_ PULONG NumberOfWindows
+    )
+{
+    PPH_LIST list;
+    ULONG i;
+
+    list = PhCreateList(2);
+
+    for (i = 0; i < Context->NodeList->Count; i++)
+    {
+        PPV_CERTIFICATE_NODE node = Context->NodeList->Items[i];
+
+        if (node->Node.Selected)
+        {
+            PhAddItemList(list, node);
+        }
+    }
+
+    *Windows = PhAllocateCopy(list->Items, sizeof(PVOID) * list->Count);
+    *NumberOfWindows = list->Count;
+
+    PhDereferenceObject(list);
+}
+
+VOID PvExpandAllCertificateNodes(
+    _In_ PPV_PE_CERTIFICATE_CONTEXT Context,
+    _In_ BOOLEAN Expand
+    )
+{
+    ULONG i;
+    BOOLEAN needsRestructure = FALSE;
+
+    for (i = 0; i < Context->NodeList->Count; i++)
+    {
+        PPV_CERTIFICATE_NODE node = Context->NodeList->Items[i];
+
+        if (node->Children->Count != 0 && node->Node.Expanded != Expand)
+        {
+            node->Node.Expanded = Expand;
+            needsRestructure = TRUE;
+        }
+    }
+
+    if (needsRestructure)
+        TreeNew_NodesStructured(Context->TreeNewHandle);
+}
+
+VOID PvDeselectAllCertificateNodes(
+    _In_ PPV_PE_CERTIFICATE_CONTEXT Context
+    )
+{
+    TreeNew_DeselectRange(Context->TreeNewHandle, 0, -1);
+}
+
+VOID PvSelectAndEnsureVisibleCertificateNodes(
+    _In_ PPV_PE_CERTIFICATE_CONTEXT Context,
+    _In_ PPV_CERTIFICATE_NODE* CertificateNodes,
+    _In_ ULONG NumberOfCertificateNodes
+    )
+{
+    ULONG i;
+    PPV_CERTIFICATE_NODE leader = NULL;
+    PPV_CERTIFICATE_NODE node;
+    BOOLEAN needsRestructure = FALSE;
+
+    PvDeselectAllCertificateNodes(Context);
+
+    for (i = 0; i < NumberOfCertificateNodes; i++)
+    {
+        if (CertificateNodes[i]->Node.Visible)
+        {
+            leader = CertificateNodes[i];
+            break;
+        }
+    }
+
+    if (!leader)
+        return;
+
+    // Expand recursively upwards, and select the nodes.
+
+    for (i = 0; i < NumberOfCertificateNodes; i++)
+    {
+        if (!CertificateNodes[i]->Node.Visible)
+            continue;
+
+        node = CertificateNodes[i]->Parent;
+
+        while (node)
+        {
+            if (!node->Node.Expanded)
+                needsRestructure = TRUE;
+
+            node->Node.Expanded = TRUE;
+            node = node->Parent;
+        }
+
+        CertificateNodes[i]->Node.Selected = TRUE;
+    }
+
+    if (needsRestructure)
+        TreeNew_NodesStructured(Context->TreeNewHandle);
+
+    TreeNew_SetFocusNode(Context->TreeNewHandle, &leader->Node);
+    TreeNew_SetMarkNode(Context->TreeNewHandle, &leader->Node);
+    TreeNew_EnsureVisible(Context->TreeNewHandle, &leader->Node);
+    TreeNew_InvalidateNode(Context->TreeNewHandle, &leader->Node);
+}
+
+PPH_STRING PvpPeFormatDateTime(
+    _In_ PSYSTEMTIME SystemTime
+    )
+{
+    return PhFormatString(
+        L"%s, %s\n",
+        PH_AUTO_T(PH_STRING, PhFormatDate(SystemTime, L"dddd, MMMM d, yyyy"))->Buffer,
+        PH_AUTO_T(PH_STRING, PhFormatTime(SystemTime, L"hh:mm:ss tt"))->Buffer
+        );
+}
 
 PPH_STRING PvpPeGetRelativeTimeString(
     _In_ PLARGE_INTEGER Time
@@ -54,56 +884,124 @@ PPH_STRING PvpPeGetRelativeTimeString(
     timeRelativeString = PH_AUTO(PhFormatTimeSpanRelative(currentTime.QuadPart - time.QuadPart));
 
     PhLargeIntegerToLocalSystemTime(&timeFields, &time);
-    timeString = PhaFormatDateTime(&timeFields);
+    timeString = PH_AUTO(PvpPeFormatDateTime(&timeFields));
 
-    return PhaFormatString(L"%s ago (%s)", timeRelativeString->Buffer, timeString->Buffer);
+    return PhFormatString(L"%s ago (%s)", timeRelativeString->Buffer, timeString->Buffer);
 }
 
-BOOLEAN PvpPeAddCertificateInfo(
+typedef BOOLEAN (CALLBACK* PH_CERT_ENUM_CALLBACK)(
+    _In_ PCCERT_CONTEXT CertContext,
+    _In_opt_ PVOID Context
+    );
+
+VOID PhEnumImageCertificates(
     _In_ PPV_PE_CERTIFICATE_CONTEXT Context,
-    _In_ INT ListViewItemIndex,
-    _In_ BOOLEAN NestedCertificate,
-    _In_ PCCERT_CONTEXT CertificateContext
+    _In_ PH_CERT_ENUM_CALLBACK Callback,
+    _In_ PCCERT_CONTEXT CertificateContext,
+    _In_opt_ PVOID CallbackContext
+    )
+{
+    CERT_ENHKEY_USAGE enhkeyUsage;
+    CERT_USAGE_MATCH certUsage;
+    CERT_CHAIN_PARA chainPara;
+    PCCERT_CHAIN_CONTEXT chainContext;
+
+    enhkeyUsage.cUsageIdentifier = 0;
+    enhkeyUsage.rgpszUsageIdentifier = NULL;
+    certUsage.dwType = USAGE_MATCH_TYPE_AND;
+    certUsage.Usage = enhkeyUsage;
+    chainPara.cbSize = sizeof(CERT_CHAIN_PARA);
+    chainPara.RequestedUsage = certUsage;
+
+    if (CertGetCertificateChain(
+        NULL,
+        CertificateContext,
+        NULL,
+        NULL,
+        &chainPara,
+        0,
+        NULL,
+        &chainContext
+        ))
+    {
+        for (ULONG i = 0; i < chainContext->cChain; i++)
+        {
+            PCERT_SIMPLE_CHAIN chain = chainContext->rgpChain[i];
+
+            for (ULONG ii = 0; ii < chain->cElement; ii++)
+            {
+                PCERT_CHAIN_ELEMENT element = chain->rgpElement[ii];
+
+                if (element->pCertContext == CertificateContext) // skip parent
+                    continue;
+
+                Callback(element->pCertContext, CallbackContext);
+            }
+        }
+
+        //CertFreeCertificateChain(chainContext);
+    }
+}
+
+BOOLEAN PvpPeFillNodeCertificateInfo(
+    _Inout_ PPV_PE_CERTIFICATE_CONTEXT Context,
+    _In_ PV_CERTIFICATE_NODE_TYPE CertType,
+    _In_ PCCERT_CONTEXT CertificateContext,
+    _In_ PPV_CERTIFICATE_NODE CertificateNode
     )
 {
     ULONG dataLength;
-    LARGE_INTEGER fileTime;
     SYSTEMTIME systemTime;
 
-    if (dataLength = CertGetNameString(CertificateContext, CERT_NAME_SIMPLE_DISPLAY_TYPE, 0, NULL, NULL, 0)) // CERT_NAME_FRIENDLY_DISPLAY_TYPE
+    CertificateNode->TimeFrom.LowPart = CertificateContext->pCertInfo->NotBefore.dwLowDateTime;
+    CertificateNode->TimeFrom.HighPart = CertificateContext->pCertInfo->NotBefore.dwHighDateTime;
+    CertificateNode->TimeTo.LowPart = CertificateContext->pCertInfo->NotAfter.dwLowDateTime;
+    CertificateNode->TimeTo.HighPart = CertificateContext->pCertInfo->NotAfter.dwHighDateTime;
+    PhLargeIntegerToLocalSystemTime(&systemTime, &CertificateNode->TimeTo);
+    CertificateNode->DateFrom = PvpPeGetRelativeTimeString(&CertificateNode->TimeFrom);
+    CertificateNode->DateTo = PvpPeFormatDateTime(&systemTime);
+    CertificateNode->Size = CertificateContext->cbCertEncoded;
+
+    if (dataLength = CertGetNameString(CertificateContext, CERT_NAME_SIMPLE_DISPLAY_TYPE, 0, NULL, NULL, 0))
     {
-        PWSTR data = PhAllocateZero(dataLength * sizeof(WCHAR));
+        PPH_STRING data = PhCreateStringEx(NULL, dataLength * sizeof(WCHAR));
 
-        if (CertGetNameString(CertificateContext, CERT_NAME_SIMPLE_DISPLAY_TYPE, 0, NULL, data, dataLength)) // CERT_NAME_FRIENDLY_DISPLAY_TYPE
+        if (CertGetNameString(
+            CertificateContext,
+            CERT_NAME_SIMPLE_DISPLAY_TYPE,
+            0,
+            NULL,
+            data->Buffer,
+            (ULONG)data->Length / sizeof(WCHAR)
+            ))
         {
-            PhSetListViewSubItem(Context->ListViewHandle, ListViewItemIndex, 1, data);
+            CertificateNode->Name = data;
         }
-
-        PhFree(data);
+        else
+        {
+            PhDereferenceObject(data);
+        }
     }
 
     if (dataLength = CertGetNameString(CertificateContext, CERT_NAME_SIMPLE_DISPLAY_TYPE, CERT_NAME_ISSUER_FLAG, NULL, NULL, 0))
     {
-        PWSTR data = PhAllocateZero(dataLength * sizeof(WCHAR));
+        PPH_STRING data = PhCreateStringEx(NULL, dataLength * sizeof(WCHAR));
 
-        if (CertGetNameString(CertificateContext, CERT_NAME_SIMPLE_DISPLAY_TYPE, CERT_NAME_ISSUER_FLAG, NULL, data, dataLength))
+        if (CertGetNameString(
+            CertificateContext,
+            CERT_NAME_SIMPLE_DISPLAY_TYPE,
+            CERT_NAME_ISSUER_FLAG, NULL,
+            data->Buffer,
+            (ULONG)data->Length / sizeof(WCHAR)
+            ))
         {
-            PhSetListViewSubItem(Context->ListViewHandle, ListViewItemIndex, 2, data);
+            CertificateNode->Issuer = data;
         }
-
-        PhFree(data);
+        else
+        {
+            PhDereferenceObject(data);
+        }
     }
-
-    fileTime.QuadPart = 0;
-    fileTime.LowPart = CertificateContext->pCertInfo->NotBefore.dwLowDateTime;
-    fileTime.HighPart = CertificateContext->pCertInfo->NotBefore.dwHighDateTime;
-    PhSetListViewSubItem(Context->ListViewHandle, ListViewItemIndex, 3, PvpPeGetRelativeTimeString(&fileTime)->Buffer);
-
-    fileTime.QuadPart = 0;
-    fileTime.LowPart = CertificateContext->pCertInfo->NotAfter.dwLowDateTime;
-    fileTime.HighPart = CertificateContext->pCertInfo->NotAfter.dwHighDateTime;
-    PhLargeIntegerToLocalSystemTime(&systemTime, &fileTime);
-    PhSetListViewSubItem(Context->ListViewHandle, ListViewItemIndex, 4, PhaFormatDateTime(&systemTime)->Buffer);
 
     dataLength = 0;
 
@@ -118,68 +1016,39 @@ BOOLEAN PvpPeAddCertificateInfo(
 
         if (CertGetCertificateContextProperty(CertificateContext, CERT_HASH_PROP_ID, hash, &dataLength))
         {
-            PPH_STRING string;
-
-            string = PhBufferToHexString(hash, dataLength);
-            PhSetListViewSubItem(Context->ListViewHandle, ListViewItemIndex, 5, string->Buffer);
-            PhDereferenceObject(string);
+            CertificateNode->Thumbprint = PhBufferToHexString(hash, dataLength);
         }
 
         PhFree(hash);
     }
 
-    if (!NestedCertificate) // TODO: Enable
+    //if (CertificateContext->pCertInfo && CertificateContext->pCertInfo->SignatureAlgorithm.pszObjId)
+    //{
+    //    PCCRYPT_OID_INFO oidinfo = CryptFindOIDInfo(CRYPT_OID_INFO_OID_KEY, CertificateContext->pCertInfo->SignatureAlgorithm.pszObjId, 0);
+    //
+    //    if (oidinfo && oidinfo->pwszName)
+    //    {
+    //        CertificateNode->Algorithm = PhCreateString((PWSTR)oidinfo->pwszName);
+    //    }
+    //}
+    //
+    //if (PhIsNullOrEmptyString(CertificateNode->Algorithm))
     {
-        CERT_ENHKEY_USAGE enhkeyUsage;
-        CERT_USAGE_MATCH certUsage;
-        CERT_CHAIN_PARA chainPara;
-        PCCERT_CHAIN_CONTEXT chainContext;
+        dataLength = 0;
 
-        enhkeyUsage.cUsageIdentifier = 0;
-        enhkeyUsage.rgpszUsageIdentifier = NULL;
-        certUsage.dwType = USAGE_MATCH_TYPE_AND;
-        certUsage.Usage = enhkeyUsage;
-        chainPara.cbSize = sizeof(CERT_CHAIN_PARA);
-        chainPara.RequestedUsage = certUsage;
-
-        if (CertGetCertificateChain(
-            NULL,
+        if (CertGetCertificateContextProperty(
             CertificateContext,
+            CERT_SIGN_HASH_CNG_ALG_PROP_ID,
             NULL,
-            NULL,
-            &chainPara,
-            0,
-            NULL,
-            &chainContext
-            ))
+            &dataLength
+            ) && dataLength > 0)
         {
-            for (ULONG i = 0; i < chainContext->cChain; i++)
-            {
-                PCERT_SIMPLE_CHAIN chain = chainContext->rgpChain[i];
+            PPH_STRING data = PhCreateStringEx(NULL, dataLength);
 
-                for (ULONG ii = 0; ii < chain->cElement; ii++)
-                {
-                    PCERT_CHAIN_ELEMENT element = chain->rgpElement[ii];
-                    INT lvItemIndex;
-                    WCHAR number[PH_INT32_STR_LEN_1];
-
-                    if (element->pCertContext == CertificateContext) // skip parent
-                        continue;
-
-                    PhPrintUInt32(number, ++Context->Count);
-                    lvItemIndex = PhAddListViewGroupItem(
-                        Context->ListViewHandle,
-                        PV_IMAGE_CERT_CATEGORY_ARRAY,
-                        MAXINT,
-                        number,
-                        (PVOID)element->pCertContext
-                        );
-
-                    PvpPeAddCertificateInfo(Context, lvItemIndex, TRUE, element->pCertContext);
-                }
-            }
-
-            //CertFreeCertificateChain(chainContext);
+            if (CertGetCertificateContextProperty(CertificateContext, CERT_SIGN_HASH_CNG_ALG_PROP_ID, data->Buffer, &dataLength))
+                CertificateNode->Algorithm = data;
+            else
+                PhDereferenceObject(data);
         }
     }
 
@@ -220,6 +1089,35 @@ PCMSG_SIGNER_INFO PvpPeGetSignerInfoIndex(
     }
 
     return signerInfo;
+}
+
+typedef struct _PV_CERT_ENUM_CONTEXT
+{
+    PPV_PE_CERTIFICATE_CONTEXT WindowContext;
+    PPV_CERTIFICATE_NODE RootNode;
+    PV_CERTIFICATE_NODE_TYPE RootNodeType;
+} PV_CERT_ENUM_CONTEXT, *PPV_CERT_ENUM_CONTEXT;
+
+BOOLEAN CALLBACK PvpPeEnumSecurityCallback(
+    _In_ PCCERT_CONTEXT CertContext,
+    _In_ PVOID Context
+    )
+{
+    PPV_CERT_ENUM_CONTEXT context = Context;
+    PV_CERT_ENUM_CONTEXT enumContext;
+
+    enumContext.RootNodeType = context->RootNodeType;
+    enumContext.WindowContext = context->WindowContext;
+    enumContext.RootNode = PvAddChildCertificateNode(
+        context->WindowContext,
+        context->RootNode,
+        context->RootNodeType,
+        CertContext
+        );
+
+    PhEnumImageCertificates(Context, PvpPeEnumSecurityCallback, CertContext, &enumContext);
+
+    return FALSE;
 }
 
 VOID PvpPeEnumerateNestedSignatures(
@@ -267,19 +1165,13 @@ VOID PvpPeEnumerateNestedSignatures(
 
         while (certificateContext = CertEnumCertificatesInStore(cryptStoreHandle, certificateContext))
         {
-            INT lvItemIndex;
-            WCHAR number[PH_INT32_STR_LEN_1];
+            PV_CERT_ENUM_CONTEXT enumContext;
 
-            PhPrintUInt32(number, ++Context->Count);
-            lvItemIndex = PhAddListViewGroupItem(
-                Context->ListViewHandle,
-                PV_IMAGE_CERT_CATEGORY_EMBEDDED,
-                MAXINT,
-                number,
-                (PVOID)certificateContext
-                );
+            enumContext.RootNode = PvAddChildCertificateNode(Context, NULL, PV_CERTIFICATE_NODE_TYPE_NESTED, certificateContext);
+            enumContext.RootNodeType = PV_CERTIFICATE_NODE_TYPE_NESTEDARRAY;
+            enumContext.WindowContext = Context;
 
-            PvpPeAddCertificateInfo(Context, lvItemIndex, TRUE, certificateContext);
+            PhEnumImageCertificates(Context, PvpPeEnumSecurityCallback, certificateContext, &enumContext);
         }
 
         if (CryptMsgGetParam(cryptMessageHandle, CMSG_SIGNER_COUNT_PARAM, 0, &signerCount, &signerLength))
@@ -319,19 +1211,22 @@ VOID PvpPeEnumerateFileCertificates(
         LPWIN_CERTIFICATE certificateDirectory = PTR_ADD_OFFSET(PvMappedImage.ViewBase, dataDirectory->VirtualAddress);
         CERT_BLOB certificateBlob = { certificateDirectory->dwLength, certificateDirectory->bCertificate };
 
-        CryptQueryObject(
-            CERT_QUERY_OBJECT_BLOB,
-            &certificateBlob,
-            CERT_QUERY_CONTENT_FLAG_PKCS7_SIGNED,
-            CERT_QUERY_FORMAT_FLAG_BINARY,
-            0,
-            &certificateEncoding,
-            &certificateContentType,
-            &certificateFormatType,
-            &cryptStoreHandle,
-            &cryptMessageHandle,
-            NULL
-            );
+        if (certificateDirectory->wCertificateType == WIN_CERT_TYPE_PKCS_SIGNED_DATA)
+        {
+            CryptQueryObject(
+                CERT_QUERY_OBJECT_BLOB,
+                &certificateBlob,
+                CERT_QUERY_CONTENT_FLAG_PKCS7_SIGNED,
+                CERT_QUERY_FORMAT_FLAG_BINARY,
+                0,
+                &certificateEncoding,
+                &certificateContentType,
+                &certificateFormatType,
+                &cryptStoreHandle,
+                &cryptMessageHandle,
+                NULL
+                );
+        }
     }
 
     if (!(cryptStoreHandle && cryptMessageHandle))
@@ -355,19 +1250,13 @@ VOID PvpPeEnumerateFileCertificates(
     {
         while (certificateContext = CertEnumCertificatesInStore(cryptStoreHandle, certificateContext))
         {
-            INT lvItemIndex;
-            WCHAR number[PH_INT32_STR_LEN_1];
+            PV_CERT_ENUM_CONTEXT enumContext;
 
-            PhPrintUInt32(number, ++Context->Count);
-            lvItemIndex = PhAddListViewGroupItem(
-                Context->ListViewHandle,
-                PV_IMAGE_CERT_CATEGORY_IMAGE,
-                MAXINT,
-                number,
-                (PVOID)certificateContext
-                );
+            enumContext.RootNode = PvAddChildCertificateNode(Context, NULL, PV_CERTIFICATE_NODE_TYPE_IMAGE, certificateContext);
+            enumContext.RootNodeType = PV_CERTIFICATE_NODE_TYPE_IMAGEARRAY;
+            enumContext.WindowContext = Context;
 
-            PvpPeAddCertificateInfo(Context, lvItemIndex, FALSE, certificateContext);
+            PhEnumImageCertificates(Context, PvpPeEnumSecurityCallback, certificateContext, &enumContext);
         }
 
         //if (certificateContext) CertFreeCertificateContext(certificateContext);
@@ -394,6 +1283,8 @@ VOID PvpPeEnumerateFileCertificates(
 
         //if (cryptMessageHandle) CryptMsgClose(cryptMessageHandle);
     }
+
+    TreeNew_NodesStructured(Context->TreeNewHandle);
 }
 
 VOID PvpPeViewCertificateContext(
@@ -476,27 +1367,12 @@ INT_PTR CALLBACK PvpPeSecurityDlgProc(
     case WM_INITDIALOG:
         {
             context->WindowHandle = hwndDlg;
-            context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
-            
-            PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
-            PhSetControlTheme(context->ListViewHandle, L"explorer");
-            PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"#");
-            PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 100, L"Issued to");
-            PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 100, L"Issued by");
-            PhAddListViewColumn(context->ListViewHandle, 3, 3, 3, LVCFMT_LEFT, 100, L"From");
-            PhAddListViewColumn(context->ListViewHandle, 4, 4, 4, LVCFMT_LEFT, 100, L"To");
-            PhAddListViewColumn(context->ListViewHandle, 5, 5, 5, LVCFMT_LEFT, 100, L"Thumbprint");
-            PhSetExtendedListView(context->ListViewHandle);
-            PhLoadListViewColumnsFromSetting(L"ImageSecurityListViewColumns", context->ListViewHandle);
-            PhLoadListViewSortColumnsFromSetting(L"ImageSecurityListViewSort", context->ListViewHandle);
+            context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_SYMBOLTREE);
+            context->SearchHandle = GetDlgItem(hwndDlg, IDC_SYMSEARCH);
+            context->SearchText = PhReferenceEmptyString();
 
-            if (context->ListViewImageList = ImageList_Create(2, 20, ILC_COLOR, 1, 1))
-                ListView_SetImageList(context->ListViewHandle, context->ListViewImageList, LVSIL_SMALL);
-
-            ListView_EnableGroupView(context->ListViewHandle, TRUE);
-            PhAddListViewGroup(context->ListViewHandle, PV_IMAGE_CERT_CATEGORY_IMAGE, L"Image certificates");
-            PhAddListViewGroup(context->ListViewHandle, PV_IMAGE_CERT_CATEGORY_ARRAY, L"Chained certificates");
-            PhAddListViewGroup(context->ListViewHandle, PV_IMAGE_CERT_CATEGORY_EMBEDDED, L"Nested certificates");
+            PvCreateSearchControl(context->SearchHandle, L"Search Certificates (Ctrl+K)");
+            PvInitializeCertificateTree(context);
 
             PvpPeEnumerateFileCertificates(context);
 
@@ -505,11 +1381,7 @@ INT_PTR CALLBACK PvpPeSecurityDlgProc(
         break;
     case WM_DESTROY:
         {
-            PhSaveListViewSortColumnsToSetting(L"ImageSecurityListViewSort", context->ListViewHandle);
-            PhSaveListViewColumnsToSetting(L"ImageSecurityListViewColumns", context->ListViewHandle);
-
-            if (context->ListViewImageList)
-                ImageList_Destroy(context->ListViewImageList);
+            PvDeleteCertificateTree(context);
 
             PhFree(context);
         }
@@ -521,105 +1393,159 @@ INT_PTR CALLBACK PvpPeSecurityDlgProc(
                 PPH_LAYOUT_ITEM dialogItem;
 
                 dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
-                PvAddPropPageLayoutItem(hwndDlg, context->ListViewHandle, dialogItem, PH_ANCHOR_ALL);
-
+                PvAddPropPageLayoutItem(hwndDlg, context->SearchHandle, dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+                PvAddPropPageLayoutItem(hwndDlg, context->TreeNewHandle, dialogItem, PH_ANCHOR_ALL);
                 PvDoPropPageLayout(hwndDlg);
 
                 propPageContext->LayoutInitialized = TRUE;
             }
         }
         break;
-    case WM_NOTIFY:
+    case WM_COMMAND:
         {
-            LPNMHDR header = (LPNMHDR)lParam;
-
-            PvHandleListViewNotifyForCopy(lParam, context->ListViewHandle);
-
-            switch (header->code)
+            switch (GET_WM_COMMAND_CMD(wParam, lParam))
             {
-            case NM_DBLCLK:
+            case EN_CHANGE:
                 {
-                    if (header->hwndFrom == context->ListViewHandle)
+                    PPH_STRING newSearchboxText;
+
+                    newSearchboxText = PH_AUTO(PhGetWindowText(context->SearchHandle));
+
+                    if (!PhEqualString(context->SearchText, newSearchboxText, FALSE))
                     {
-                        PVOID* listviewItems;
-                        ULONG numberOfItems;
+                        PhSwapReference(&context->SearchText, newSearchboxText);
 
-                        PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
-
-                        if (numberOfItems != 0)
+                        if (!PhIsNullOrEmptyString(context->SearchText))
                         {
-                            PvpPeViewCertificateContext(hwndDlg, listviewItems[0]);
+                            PvExpandAllCertificateNodes(context, TRUE);
+                            PvDeselectAllCertificateNodes(context);
                         }
 
-                        PhFree(listviewItems);
+                        PhApplyTreeNewFilters(&context->FilterSupport);
                     }
+                }
+                break;
+            }
+
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
+            {
+            case WM_PV_CERTIFICATE_PROPERTIES:
+                {
+                    PPV_CERTIFICATE_NODE node;
+
+                    if (node = PvGetSelectedCertificateNode(context))
+                    {
+                        PvpPeViewCertificateContext(hwndDlg, node->CertContext);
+                    }
+                }
+                break;
+            case WM_PV_CERTIFICATE_CONTEXTMENU:
+                {
+                    PPH_TREENEW_CONTEXT_MENU contextMenuEvent = (PPH_TREENEW_CONTEXT_MENU)lParam;
+                    PPH_EMENU menu;
+                    PPH_EMENU_ITEM selectedItem;
+                    PPV_CERTIFICATE_NODE* nodes = NULL;
+                    ULONG numberOfNodes = 0;
+
+                    PvGetSelectedCertificateNodes(context, &nodes, &numberOfNodes);
+
+                    if (numberOfNodes != 0)
+                    {
+                        menu = PhCreateEMenu();
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 1, L"View certificate...", NULL, NULL), ULONG_MAX);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 2, L"Save certificate...", NULL, NULL), ULONG_MAX);
+                        PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, USHRT_MAX, L"Copy", NULL, NULL), ULONG_MAX);
+                        PhInsertCopyCellEMenuItem(menu, USHRT_MAX, context->TreeNewHandle, contextMenuEvent->Column);
+
+                        selectedItem = PhShowEMenu(
+                            menu,
+                            hwndDlg,
+                            PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT,
+                            PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                            contextMenuEvent->Location.x,
+                            contextMenuEvent->Location.y
+                            );
+
+                        if (selectedItem && selectedItem->Id != ULONG_MAX)
+                        {
+                            if (!PhHandleCopyCellEMenuItem(selectedItem))
+                            {
+                                switch (selectedItem->Id)
+                                {
+                                case 1:
+                                    PvpPeViewCertificateContext(hwndDlg, nodes[0]->CertContext);
+                                    break;
+                                case 2:
+                                    PvpPeSaveCertificateContext(hwndDlg, nodes[0]->CertContext);
+                                    break;
+                                case USHRT_MAX:
+                                    {
+                                        PPH_STRING text;
+
+                                        text = PhGetTreeNewText(context->TreeNewHandle, 0);
+                                        PhSetClipboardString(context->TreeNewHandle, &text->sr);
+                                        PhDereferenceObject(text);
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+
+                        PhDestroyEMenu(menu);
+                    }
+
+                    PhFree(nodes);
+                }
+                break;
+            case IDC_GOTO:
+                {
+                    RECT rect;
+                    PPH_EMENU menu;
+                    PPH_EMENU_ITEM selectedItem;
+
+                    GetWindowRect(GetDlgItem(hwndDlg, IDC_GOTO), &rect);
+
+                    menu = PhCreateEMenu();
+                    selectedItem = PhShowEMenu(
+                        menu,
+                        hwndDlg,
+                        PH_EMENU_SHOW_LEFTRIGHT,
+                        PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                        rect.left,
+                        rect.bottom
+                        );
+
+                    if (selectedItem && selectedItem->Id)
+                    {
+
+                    }
+
+                    PhDestroyEMenu(menu);
+                }
+                break;
+            case IDC_RESET:
+                {
+                    PvClearCertificateTree(context);
+                    PvpPeEnumerateFileCertificates(context);
                 }
                 break;
             }
         }
         break;
-    case WM_CONTEXTMENU:
-        {
-            if ((HWND)wParam == context->ListViewHandle)
-            {
-                POINT point;
-                PPH_EMENU menu;
-                PPH_EMENU item;
-                PVOID* listviewItems;
-                ULONG numberOfItems;
+     case WM_NOTIFY:
+         {
+             LPNMHDR header = (LPNMHDR)lParam;
+             LPPSHNOTIFY pageNotify = (LPPSHNOTIFY)header;
 
-                point.x = GET_X_LPARAM(lParam);
-                point.y = GET_Y_LPARAM(lParam);
-
-                if (point.x == -1 && point.y == -1)
-                    PvGetListViewContextMenuPoint((HWND)wParam, &point);
-
-                PhGetSelectedListViewItemParams((HWND)wParam, &listviewItems, &numberOfItems);
-
-                if (numberOfItems != 0)
-                {
-                    menu = PhCreateEMenu();
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 1, L"View certificate...", NULL, NULL), ULONG_MAX);
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 2, L"Save certificate...", NULL, NULL), ULONG_MAX);
-                    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, USHRT_MAX, L"&Copy", NULL, NULL), ULONG_MAX);
-                    PvInsertCopyListViewEMenuItem(menu, USHRT_MAX, (HWND)wParam);
-
-                    item = PhShowEMenu(
-                        menu,
-                        hwndDlg,
-                        PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT,
-                        PH_ALIGN_LEFT | PH_ALIGN_TOP,
-                        point.x,
-                        point.y
-                        );
-
-                    if (item)
-                    {
-                        if (!PvHandleCopyListViewEMenuItem(item))
-                        {
-                            switch (item->Id)
-                            {
-                            case 1:
-                                PvpPeViewCertificateContext(hwndDlg, listviewItems[0]);                   
-                                break;
-                            case 2:
-                                PvpPeSaveCertificateContext(hwndDlg, listviewItems[0]);
-                                break;
-                            case USHRT_MAX:
-                                PvCopyListView((HWND)wParam);
-                                break;
-                            }
-                        }
-                    }
-
-                    PhDestroyEMenu(menu);
-                }
-
-                PhFree(listviewItems);
-            }
-        }
-        break;
+             switch (pageNotify->hdr.code)
+             {
+             case PSN_QUERYINITIALFOCUS:
+                 SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LPARAM)GetDlgItem(hwndDlg, IDC_GOTO));
+                 return TRUE;
+             }
+         }
+         break;
     }
 
     return FALSE;

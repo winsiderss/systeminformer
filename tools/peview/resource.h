@@ -63,6 +63,8 @@
 #define IDC_PRODCHECKSUM                1025
 #define IDC_PRODHASH                    1026
 #define IDC_FONT                        1079
+#define IDC_GOTO                        1079
+#define IDC_RESET                       1086
 #define IDC_SEARCHENGINE                1143
 #define IDC_MAXSIZEUNIT                 1144
 #define IDC_DBGHELPSEARCHPATH           1218
