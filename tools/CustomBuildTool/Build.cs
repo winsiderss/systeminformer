@@ -547,7 +547,7 @@ namespace CustomBuildTool
                     }
                 }
 
-                Win32.CopyIfNewer("phlib\\mxml\\mxml.h", "sdk\\include\\mxml.h");
+                Win32.CopyIfNewer("tools\\thirdparty\\mxml\\mxml.h", "sdk\\include\\mxml.h");
 
                 // Copy the plugin SDK headers
                 foreach (string file in BuildConfig.Build_Phnt_Headers)
