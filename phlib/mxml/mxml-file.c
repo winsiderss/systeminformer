@@ -3,7 +3,7 @@
  *
  * https://www.msweet.org/mxml
  *
- * Copyright © 2003-2019 by Michael R Sweet.
+ * Copyright © 2003-2020 by Michael R Sweet.
  *
  * Licensed under Apache License v2.0.  See the file "LICENSE" for more
  * information.
@@ -988,7 +988,7 @@ mxml_fd_read(_mxml_fdbuf_t *buf)		/* I - File descriptor buffer */
     if (!buf)
         return -1;
 
-    if (!NT_SUCCESS(NtReadFile(buf->fd, NULL, NULL, NULL, &isb, buf->buffer, sizeof(buf->buffer), NULL, NULL)))
+    if (!NT_SUCCESS(NtReadFile(buf->fd, NULL, NULL, NULL, &isb, buf->buffer, sizeof(buf->buffer), NULL, NULL))) // dmex
         return -1;
 
     if (isb.Information == 0) // check bytes read
@@ -1016,7 +1016,7 @@ mxml_fd_write(_mxml_fdbuf_t *buf)	/* I - File descriptor buffer */
     if (buf->current == buf->buffer)
         return 0;
 
-    if (!NT_SUCCESS(NtWriteFile(buf->fd, NULL, NULL, NULL, &isb, buf->buffer, (ULONG)(buf->current - buf->buffer), NULL, NULL)))
+    if (!NT_SUCCESS(NtWriteFile(buf->fd, NULL, NULL, NULL, &isb, buf->buffer, (ULONG)(buf->current - buf->buffer), NULL, NULL))) // dmex
         return -1;
 
     buf->current = buf->buffer;
@@ -2153,7 +2153,7 @@ mxml_parse_element(
 
     ptr = name;
     if (mxml_add_char(ch, &ptr, &name, &namesize))
-        goto error;
+      goto error;
 
     if (ch == '\"' || ch == '\'')
     {
@@ -2213,7 +2213,7 @@ mxml_parse_element(
 
     if (mxmlElementGetAttr(node, name))
     {
-      mxml_error("Duplicate attribute '%s' in element %s on line %d.", name, node->value.element.name, name, *line);
+      mxml_error("Duplicate attribute '%s' in element %s on line %d.", name, node->value.element.name, *line);
       goto error;
     }
 
@@ -2281,8 +2281,9 @@ mxml_parse_element(
         * Read unquoted value...
     */
 
-    value[0] = ch;
-    ptr      = value + 1;
+    ptr      = value;
+    if (mxml_add_char(ch, &ptr, &value, &valsize))
+      goto error;
 
     while ((ch = (*getc_cb)(p, encoding)) != EOF)
     {
@@ -2487,9 +2488,9 @@ mxml_string_getc(void *p,		/* I  - Pointer to file */
         if (ch == 0xfeff)
           return (mxml_string_getc(p, encoding));
 
-#if DEBUG > 1
+#if MXML_DEBUG > 1
             printf("mxml_string_getc: %c (0x%04x)\n", ch < ' ' ? '.' : ch, ch);
-#endif /* DEBUG > 1 */
+#endif /* MXML_DEBUG > 1 */
 
         return (ch);
       }
@@ -2515,9 +2516,9 @@ mxml_string_getc(void *p,		/* I  - Pointer to file */
           return (EOF);
         }
 
-#if DEBUG > 1
+#if MXML_DEBUG > 1
             printf("mxml_string_getc: %c (0x%04x)\n", ch < ' ' ? '.' : ch, ch);
-#endif /* DEBUG > 1 */
+#endif /* MXML_DEBUG > 1 */
 
         return (ch);
       }
@@ -2559,9 +2560,9 @@ mxml_string_getc(void *p,		/* I  - Pointer to file */
             ch = (((ch & 0x3ff) << 10) | (lch & 0x3ff)) + 0x10000;
       }
 
-#if DEBUG > 1
+#if MXML_DEBUG > 1
           printf("mxml_string_getc: %c (0x%04x)\n", ch < ' ' ? '.' : ch, ch);
-#endif /* DEBUG > 1 */
+#endif /* MXML_DEBUG > 1 */
 
       return (ch);
 
@@ -2607,9 +2608,9 @@ mxml_string_getc(void *p,		/* I  - Pointer to file */
             ch = (((ch & 0x3ff) << 10) | (lch & 0x3ff)) + 0x10000;
       }
 
-#if DEBUG > 1
+#if MXML_DEBUG > 1
           printf("mxml_string_getc: %c (0x%04x)\n", ch < ' ' ? '.' : ch, ch);
-#endif /* DEBUG > 1 */
+#endif /* MXML_DEBUG > 1 */
 
       return (ch);
     }
