@@ -147,16 +147,36 @@
     <ClCompile Include="pcre\pcre2posix.c">
       <Filter>PCRE</Filter>
     </ClCompile>
-    <ClCompile Include="mxml\mxml-attr.c" />
-    <ClCompile Include="mxml\mxml-entity.c" />
-    <ClCompile Include="mxml\mxml-file.c" />
-    <ClCompile Include="mxml\mxml-get.c" />
-    <ClCompile Include="mxml\mxml-index.c" />
-    <ClCompile Include="mxml\mxml-node.c" />
-    <ClCompile Include="mxml\mxml-private.c" />
-    <ClCompile Include="mxml\mxml-search.c" />
-    <ClCompile Include="mxml\mxml-set.c" />
-    <ClCompile Include="mxml\mxml-string.c" />
+    <ClCompile Include="mxml\mxml-string.c">
+      <Filter>Mini-XML</Filter>
+    </ClCompile>
+    <ClCompile Include="mxml\mxml-attr.c">
+      <Filter>Mini-XML</Filter>
+    </ClCompile>
+    <ClCompile Include="mxml\mxml-entity.c">
+      <Filter>Mini-XML</Filter>
+    </ClCompile>
+    <ClCompile Include="mxml\mxml-file.c">
+      <Filter>Mini-XML</Filter>
+    </ClCompile>
+    <ClCompile Include="mxml\mxml-get.c">
+      <Filter>Mini-XML</Filter>
+    </ClCompile>
+    <ClCompile Include="mxml\mxml-index.c">
+      <Filter>Mini-XML</Filter>
+    </ClCompile>
+    <ClCompile Include="mxml\mxml-node.c">
+      <Filter>Mini-XML</Filter>
+    </ClCompile>
+    <ClCompile Include="mxml\mxml-private.c">
+      <Filter>Mini-XML</Filter>
+    </ClCompile>
+    <ClCompile Include="mxml\mxml-search.c">
+      <Filter>Mini-XML</Filter>
+    </ClCompile>
+    <ClCompile Include="mxml\mxml-set.c">
+      <Filter>Mini-XML</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="mxml\config.h">
@@ -255,6 +275,8 @@
     <ClInclude Include="pcre\pcre2posix.h">
       <Filter>PCRE\Headers</Filter>
     </ClInclude>
-    <ClInclude Include="mxml\mxml-private.h" />
+    <ClInclude Include="mxml\mxml-private.h">
+      <Filter>Mini-XML</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
