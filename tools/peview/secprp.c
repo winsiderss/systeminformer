@@ -30,10 +30,13 @@
 typedef struct _PV_PE_CERTIFICATE_CONTEXT
 {
     HWND WindowHandle;
-    HWND TreeNewHandle;
+    HWND LabelHandle;
     HWND SearchHandle;
+    HWND TreeNewHandle;
     PPH_STRING SearchText;
     PPH_TN_FILTER_ENTRY TreeFilterEntry;
+    ULONG TotalSize;
+    ULONG TotalCount;
     ULONG TreeNewSortColumn;
     PH_SORT_ORDER TreeNewSortOrder;
     PH_TN_FILTER_SUPPORT FilterSupport;
@@ -110,18 +113,21 @@ BOOLEAN NTAPI PvCertificateTreeNewCallback(
     _In_opt_ PVOID Parameter2,
     _In_opt_ PVOID Context
     );
+
 BOOLEAN PvpPeFillNodeCertificateInfo(
     _Inout_ PPV_PE_CERTIFICATE_CONTEXT Context,
     _In_ PV_CERTIFICATE_NODE_TYPE CertType,
     _In_ PCCERT_CONTEXT CertificateContext,
     _In_ PPV_CERTIFICATE_NODE CertificateNode
     );
+
 BOOLEAN PhInsertCopyCellEMenuItem(
     _In_ struct _PH_EMENU_ITEM* Menu,
     _In_ ULONG InsertAfterId,
     _In_ HWND TreeNewHandle,
     _In_ PPH_TREENEW_COLUMN Column
     );
+
 BOOLEAN PhHandleCopyCellEMenuItem(
     _In_ struct _PH_EMENU_ITEM* SelectedItem
     );
@@ -962,6 +968,10 @@ BOOLEAN PvpPeFillNodeCertificateInfo(
     CertificateNode->DateTo = PvpPeFormatDateTime(&systemTime);
     CertificateNode->Size = CertificateContext->cbCertEncoded;
 
+    if (CertType != PV_CERTIFICATE_NODE_TYPE_IMAGE)
+        Context->TotalSize += CertificateContext->cbCertEncoded;
+    Context->TotalCount++;
+
     if (dataLength = CertGetNameString(CertificateContext, CERT_NAME_SIMPLE_DISPLAY_TYPE, 0, NULL, NULL, 0))
     {
         PPH_STRING data = PhCreateStringEx(NULL, dataLength * sizeof(WCHAR));
@@ -1202,6 +1212,7 @@ VOID PvpPeEnumerateFileCertificates(
     PCCERT_CONTEXT certificateContext = NULL;
     HCRYPTMSG cryptMessageHandle = NULL;
     PCMSG_SIGNER_INFO cryptMessageSignerInfo = NULL;
+    ULONG certificateDirectoryLength = 0;
     ULONG certificateEncoding;
     ULONG certificateContentType;
     ULONG certificateFormatType;
@@ -1227,6 +1238,8 @@ VOID PvpPeEnumerateFileCertificates(
                 NULL
                 );
         }
+
+        certificateDirectoryLength = certificateDirectory->dwLength;
     }
 
     if (!(cryptStoreHandle && cryptMessageHandle))
@@ -1285,6 +1298,16 @@ VOID PvpPeEnumerateFileCertificates(
     }
 
     TreeNew_NodesStructured(Context->TreeNewHandle);
+
+    if (certificateDirectoryLength)
+    {
+        PhSetWindowText(Context->LabelHandle, PhaFormatString(
+            L"Size: %s (Certs: %s)",
+            PhaFormatSize(certificateDirectoryLength, ULONG_MAX)->Buffer,
+            PhaFormatSize(Context->TotalSize, ULONG_MAX)->Buffer
+            )->Buffer);
+        ShowWindow(Context->LabelHandle, SW_SHOW);
+    }
 }
 
 VOID PvpPeViewCertificateContext(
@@ -1367,8 +1390,9 @@ INT_PTR CALLBACK PvpPeSecurityDlgProc(
     case WM_INITDIALOG:
         {
             context->WindowHandle = hwndDlg;
-            context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_SYMBOLTREE);
+            context->LabelHandle = GetDlgItem(hwndDlg, IDC_NAME);
             context->SearchHandle = GetDlgItem(hwndDlg, IDC_SYMSEARCH);
+            context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_SYMBOLTREE);
             context->SearchText = PhReferenceEmptyString();
 
             PvCreateSearchControl(context->SearchHandle, L"Search Certificates (Ctrl+K)");
@@ -1393,6 +1417,7 @@ INT_PTR CALLBACK PvpPeSecurityDlgProc(
                 PPH_LAYOUT_ITEM dialogItem;
 
                 dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
+                PvAddPropPageLayoutItem(hwndDlg, context->LabelHandle, dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT);
                 PvAddPropPageLayoutItem(hwndDlg, context->SearchHandle, dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PvAddPropPageLayoutItem(hwndDlg, context->TreeNewHandle, dialogItem, PH_ANCHOR_ALL);
                 PvDoPropPageLayout(hwndDlg);
