@@ -143,8 +143,6 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerPairSetting(L"PageFileWindowPosition", L"0,0");
     PhpAddScalableIntegerPairSetting(L"PageFileWindowSize", L"@96|500,300");
     PhpAddStringSetting(L"PageFileListViewColumns", L"");
-    PhpAddIntegerPairSetting(L"PluginManagerWindowPosition", L"0,0");
-    PhpAddScalableIntegerPairSetting(L"PluginManagerWindowSize", L"@96|900,590");
     PhpAddStringSetting(L"PluginManagerTreeListColumns", L"");
     PhpAddStringSetting(L"PluginsDirectory", L"plugins");
     PhpAddStringSetting(L"ProcessServiceListViewColumns", L"");
