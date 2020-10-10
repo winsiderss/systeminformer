@@ -703,11 +703,6 @@ VOID PhMwpOnCommand(
             PhShowOptionsDialog(WindowHandle);
         }
         break;
-    case ID_HACKER_PLUGINS:
-        {
-            PhShowPluginsDialog(WindowHandle);
-        }
-        break;
     case ID_COMPUTER_LOCK:
     case ID_COMPUTER_LOGOFF:
     case ID_COMPUTER_SLEEP:
@@ -2024,7 +2019,6 @@ PPH_EMENU PhpCreateHackerMenu(
     PhInsertEMenuItem(HackerMenu, PhCreateEMenuItem(0, ID_HACKER_SAVE, L"&Save...\bCtrl+S", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(HackerMenu, PhCreateEMenuItem(0, ID_HACKER_FINDHANDLESORDLLS, L"&Find handles or DLLs...\bCtrl+F", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(HackerMenu, PhCreateEMenuItem(0, ID_HACKER_OPTIONS, L"&Options...", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(HackerMenu, PhCreateEMenuItem(0, ID_HACKER_PLUGINS, L"&Plugins...", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(HackerMenu, PhCreateEMenuSeparator(), ULONG_MAX);
 
     menuItem = PhCreateEMenuItem(0, 0, L"&Computer", NULL, NULL);

@@ -535,8 +535,11 @@ VOID PhShowPagefilesDialog(
 
 // plugman
 
-VOID PhShowPluginsDialog(
-    _In_ HWND ParentWindowHandle
+INT_PTR CALLBACK PhPluginsDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 // procrec

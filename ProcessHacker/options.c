@@ -319,6 +319,9 @@ INT_PTR CALLBACK PhOptionsDialogProc(
                     PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackOptionsWindowInitializing), &pointers);
                 }
 
+                // Add plugin options after initializing plugin callbacks (dmex)
+                PhOptionsCreateSection(L"Plugins", PhInstanceHandle, MAKEINTRESOURCE(IDD_PLUGINS), PhPluginsDlgProc, NULL);
+
                 PhOptionsEnterSectionView(section);
                 PhOptionsOnSize();
             }
