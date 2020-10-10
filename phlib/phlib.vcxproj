@@ -127,6 +127,9 @@
     </ClCompile>
     <Lib>
       <TargetMachine>MachineX86</TargetMachine>
+      <AdditionalLibraryDirectories>..\tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>thirdparty.lib</AdditionalDependencies>
+      <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -147,6 +150,9 @@
     </ClCompile>
     <Lib>
       <TargetMachine>MachineX64</TargetMachine>
+      <AdditionalLibraryDirectories>..\tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>thirdparty.lib</AdditionalDependencies>
+      <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
@@ -165,6 +171,9 @@
     </ClCompile>
     <Lib>
       <TargetMachine>MachineARM64</TargetMachine>
+      <AdditionalLibraryDirectories>..\tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>thirdparty.lib</AdditionalDependencies>
+      <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -189,6 +198,9 @@
     </ClCompile>
     <Lib>
       <TargetMachine>MachineX86</TargetMachine>
+      <AdditionalLibraryDirectories>..\tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>thirdparty.lib</AdditionalDependencies>
+      <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -212,6 +224,9 @@
     </ClCompile>
     <Lib>
       <TargetMachine>MachineX64</TargetMachine>
+      <AdditionalLibraryDirectories>..\tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>thirdparty.lib</AdditionalDependencies>
+      <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
@@ -233,6 +248,9 @@
     </ClCompile>
     <Lib>
       <TargetMachine>MachineARM64</TargetMachine>
+      <AdditionalLibraryDirectories>..\tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>thirdparty.lib</AdditionalDependencies>
+      <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -262,20 +280,6 @@
     <ClCompile Include="icotobmp.c" />
     <ClCompile Include="filestream.c" />
     <ClCompile Include="json.c" />
-    <ClCompile Include="jsonc\arraylist.c" />
-    <ClCompile Include="jsonc\debug.c" />
-    <ClCompile Include="jsonc\json_c_version.c" />
-    <ClCompile Include="jsonc\json_object.c" />
-    <ClCompile Include="jsonc\json_object_iterator.c" />
-    <ClCompile Include="jsonc\json_pointer.c" />
-    <ClCompile Include="jsonc\json_tokener.c" />
-    <ClCompile Include="jsonc\json_util.c" />
-    <ClCompile Include="jsonc\json_visit.c" />
-    <ClCompile Include="jsonc\libjson.c" />
-    <ClCompile Include="jsonc\linkhash.c" />
-    <ClCompile Include="jsonc\printbuf.c" />
-    <ClCompile Include="jsonc\random_seed.c" />
-    <ClCompile Include="jsonc\strerror_override.c" />
     <ClCompile Include="kph.c" />
     <ClCompile Include="kphdata.c" />
     <ClCompile Include="lsasup.c" />
@@ -283,16 +287,6 @@
     <ClCompile Include="mapimg.c" />
     <ClCompile Include="maplib.c" />
     <ClCompile Include="md5.c" />
-    <ClCompile Include="mxml\mxml-attr.c" />
-    <ClCompile Include="mxml\mxml-entity.c" />
-    <ClCompile Include="mxml\mxml-file.c" />
-    <ClCompile Include="mxml\mxml-get.c" />
-    <ClCompile Include="mxml\mxml-index.c" />
-    <ClCompile Include="mxml\mxml-node.c" />
-    <ClCompile Include="mxml\mxml-private.c" />
-    <ClCompile Include="mxml\mxml-search.c" />
-    <ClCompile Include="mxml\mxml-set.c" />
-    <ClCompile Include="mxml\mxml-string.c" />
     <ClCompile Include="native.c" />
     <ClCompile Include="provider.c" />
     <ClCompile Include="queuedlock.c" />
@@ -361,30 +355,6 @@
     <ClInclude Include="include\filestreamp.h" />
     <ClInclude Include="include\kphuser.h" />
     <ClInclude Include="include\wslsup.h" />
-    <ClInclude Include="jsonc\arraylist.h" />
-    <ClInclude Include="jsonc\config.h" />
-    <ClInclude Include="jsonc\debug.h" />
-    <ClInclude Include="jsonc\json.h" />
-    <ClInclude Include="jsonc\json_config.h" />
-    <ClInclude Include="jsonc\json_c_version.h" />
-    <ClInclude Include="jsonc\json_inttypes.h" />
-    <ClInclude Include="jsonc\json_object.h" />
-    <ClInclude Include="jsonc\json_object_iterator.h" />
-    <ClInclude Include="jsonc\json_object_private.h" />
-    <ClInclude Include="jsonc\json_pointer.h" />
-    <ClInclude Include="jsonc\json_tokener.h" />
-    <ClInclude Include="jsonc\json_types.h" />
-    <ClInclude Include="jsonc\json_util.h" />
-    <ClInclude Include="jsonc\json_visit.h" />
-    <ClInclude Include="jsonc\linkhash.h" />
-    <ClInclude Include="jsonc\math_compat.h" />
-    <ClInclude Include="jsonc\printbuf.h" />
-    <ClInclude Include="jsonc\random_seed.h" />
-    <ClInclude Include="jsonc\snprintf_compat.h" />
-    <ClInclude Include="jsonc\strdup_compat.h" />
-    <ClInclude Include="jsonc\strerror_override.h" />
-    <ClInclude Include="jsonc\strerror_override_private.h" />
-    <ClInclude Include="jsonc\vasprintf_compat.h" />
     <ClInclude Include="md5.h" />
     <ClInclude Include="include\ph.h" />
     <ClInclude Include="include\phbase.h" />
@@ -395,9 +365,6 @@
     <ClInclude Include="include\ref.h" />
     <ClInclude Include="include\refp.h" />
     <ClInclude Include="include\seceditp.h" />
-    <ClInclude Include="mxml\config.h" />
-    <ClInclude Include="mxml\mxml-private.h" />
-    <ClInclude Include="mxml\mxml.h" />
     <ClInclude Include="sha.h" />
     <ClInclude Include="include\symprv.h" />
     <ClInclude Include="include\templ.h" />

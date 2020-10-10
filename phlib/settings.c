@@ -39,7 +39,7 @@
 #include <guisup.h>
 #include <settings.h>
 
-#include "mxml/mxml.h"
+#include "..\tools\thirdparty\mxml\mxml.h"
 
 BOOLEAN NTAPI PhpSettingsHashtableEqualFunction(
     _In_ PVOID Entry1,
