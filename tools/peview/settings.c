@@ -54,6 +54,9 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"ImageSecurityListViewColumns", L"");
     PhpAddStringSetting(L"ImageSecurityListViewSort", L"");
     PhpAddStringSetting(L"ImageSecurityTreeColumns", L"");
+    PhpAddStringSetting(L"ImageSecurityCertColumns", L"");
+    PhpAddIntegerPairSetting(L"ImageSecurityCertWindowPosition", L"0,0");
+    PhpAddScalableIntegerPairSetting(L"ImageSecurityCertWindowSize", L"@96|0,0");
     PhpAddStringSetting(L"ImageStreamsListViewColumns", L"");
     PhpAddStringSetting(L"ImageHardLinksListViewColumns", L"");
     PhpAddStringSetting(L"ImagePidsListViewColumns", L"");
