@@ -24,7 +24,9 @@
 #include <phbasesup.h>
 #include <phutil.h>
 
-#include "jsonc\json.h"
+#include "..\tools\thirdparty\jsonc\json.h"
+#include "..\tools\thirdparty\mxml\mxml.h"
+
 #include <json.h>
 
 static json_object_ptr json_get_object(
