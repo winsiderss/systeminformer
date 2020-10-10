@@ -1,0 +1,260 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Mini-XML">
+      <UniqueIdentifier>{7d0c2da2-811d-4844-9704-0c87067c7be1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Mini-XML\Headers">
+      <UniqueIdentifier>{874b89c3-fb60-46f3-a62c-49ac88e3026d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Json-C">
+      <UniqueIdentifier>{fd6c74dc-d93e-4dd1-9a8b-5bdf525e0709}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Json-C\Headers">
+      <UniqueIdentifier>{4f0e2a3e-3009-4e13-8d38-e33c46d00044}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="PCRE">
+      <UniqueIdentifier>{597a8e50-ac82-4413-9e95-d4d391a684ee}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="PCRE\Headers">
+      <UniqueIdentifier>{a5b41e83-52d6-4ac9-b07c-b701a8e3d7f0}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="jsonc\arraylist.c">
+      <Filter>Json-C</Filter>
+    </ClCompile>
+    <ClCompile Include="jsonc\debug.c">
+      <Filter>Json-C</Filter>
+    </ClCompile>
+    <ClCompile Include="jsonc\json_c_version.c">
+      <Filter>Json-C</Filter>
+    </ClCompile>
+    <ClCompile Include="jsonc\json_object.c">
+      <Filter>Json-C</Filter>
+    </ClCompile>
+    <ClCompile Include="jsonc\json_object_iterator.c">
+      <Filter>Json-C</Filter>
+    </ClCompile>
+    <ClCompile Include="jsonc\json_tokener.c">
+      <Filter>Json-C</Filter>
+    </ClCompile>
+    <ClCompile Include="jsonc\json_util.c">
+      <Filter>Json-C</Filter>
+    </ClCompile>
+    <ClCompile Include="jsonc\libjson.c">
+      <Filter>Json-C</Filter>
+    </ClCompile>
+    <ClCompile Include="jsonc\linkhash.c">
+      <Filter>Json-C</Filter>
+    </ClCompile>
+    <ClCompile Include="jsonc\random_seed.c">
+      <Filter>Json-C</Filter>
+    </ClCompile>
+    <ClCompile Include="jsonc\printbuf.c">
+      <Filter>Json-C</Filter>
+    </ClCompile>
+    <ClCompile Include="jsonc\json_pointer.c">
+      <Filter>Json-C</Filter>
+    </ClCompile>
+    <ClCompile Include="jsonc\json_visit.c">
+      <Filter>Json-C</Filter>
+    </ClCompile>
+    <ClCompile Include="jsonc\strerror_override.c">
+      <Filter>Json-C</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_auto_possess.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_chartables.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_compile.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_config.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_context.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_convert.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_dfa_match.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_error.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_extuni.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_find_bracket.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_jit_compile.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_maketables.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_match.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_match_data.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_newline.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_ord2utf.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_pattern_info.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_script_run.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_serialize.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_string_utils.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_study.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_substitute.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_substring.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_tables.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_ucd.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_valid_utf.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_xclass.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2posix.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="mxml\mxml-attr.c" />
+    <ClCompile Include="mxml\mxml-entity.c" />
+    <ClCompile Include="mxml\mxml-file.c" />
+    <ClCompile Include="mxml\mxml-get.c" />
+    <ClCompile Include="mxml\mxml-index.c" />
+    <ClCompile Include="mxml\mxml-node.c" />
+    <ClCompile Include="mxml\mxml-private.c" />
+    <ClCompile Include="mxml\mxml-search.c" />
+    <ClCompile Include="mxml\mxml-set.c" />
+    <ClCompile Include="mxml\mxml-string.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="mxml\config.h">
+      <Filter>Mini-XML\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="mxml\mxml.h">
+      <Filter>Mini-XML\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="jsonc\arraylist.h">
+      <Filter>Json-C\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="jsonc\config.h">
+      <Filter>Json-C\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="jsonc\debug.h">
+      <Filter>Json-C\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="jsonc\json_c_version.h">
+      <Filter>Json-C\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="jsonc\json_config.h">
+      <Filter>Json-C\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="jsonc\json_inttypes.h">
+      <Filter>Json-C\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="jsonc\json_object.h">
+      <Filter>Json-C\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="jsonc\json_object_iterator.h">
+      <Filter>Json-C\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="jsonc\json_object_private.h">
+      <Filter>Json-C\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="jsonc\json_tokener.h">
+      <Filter>Json-C\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="jsonc\json_util.h">
+      <Filter>Json-C\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="jsonc\linkhash.h">
+      <Filter>Json-C\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="jsonc\math_compat.h">
+      <Filter>Json-C\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="jsonc\printbuf.h">
+      <Filter>Json-C\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="jsonc\random_seed.h">
+      <Filter>Json-C\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="jsonc\json.h">
+      <Filter>Json-C\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="jsonc\json_pointer.h">
+      <Filter>Json-C\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="jsonc\json_visit.h">
+      <Filter>Json-C\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="jsonc\vasprintf_compat.h">
+      <Filter>Json-C\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="jsonc\snprintf_compat.h">
+      <Filter>Json-C\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="jsonc\strdup_compat.h">
+      <Filter>Json-C\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="jsonc\strerror_override.h">
+      <Filter>Json-C\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="jsonc\strerror_override_private.h">
+      <Filter>Json-C\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="jsonc\json_types.h">
+      <Filter>Json-C\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="pcre\config.h">
+      <Filter>PCRE\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="pcre\pcre2.h">
+      <Filter>PCRE\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="pcre\pcre2_internal.h">
+      <Filter>PCRE\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="pcre\pcre2_intmodedep.h">
+      <Filter>PCRE\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="pcre\pcre2_ucp.h">
+      <Filter>PCRE\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="pcre\pcre2posix.h">
+      <Filter>PCRE\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="mxml\mxml-private.h" />
+  </ItemGroup>
+</Project>
