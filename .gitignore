@@ -118,3 +118,5 @@ tools/GenerateZw/GenerateZw/bin/Release/*
 !tools/GenerateZw/GenerateZw/bin/Release/GenerateZw.exe
 
 !tools/delaylib/bin/
+
+!tools/thirdparty/bin/
