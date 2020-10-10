@@ -9,12 +9,15 @@
  * information.
  */
 
+#ifndef _mxml_private_h_
+#  define _mxml_private_h_
+
 /*
  * Include necessary headers...
  */
 
-#include "config.h"
-#include "mxml.h"
+#  include "config.h"
+#  include "mxml.h"
 
 
 /*
@@ -96,3 +99,5 @@ typedef struct _mxml_global_s		/**** Global, per-thread data ****/
 
 extern _mxml_global_t	*_mxml_global(void);
 extern int		_mxml_entity_cb(const char *name);
+
+#endif /* !_mxml_private_h_ */
