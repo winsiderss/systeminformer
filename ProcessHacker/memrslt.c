@@ -29,7 +29,7 @@
 #include <procprv.h>
 #include <settings.h>
 
-#include "pcre/pcre2.h"
+#include "..\tools\thirdparty\pcre\pcre2.h"
 
 #define FILTER_CONTAINS 1
 #define FILTER_CONTAINS_IGNORECASE 2

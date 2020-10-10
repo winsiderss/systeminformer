@@ -37,7 +37,7 @@
 #include <proctree.h>
 #include <settings.h>
 
-#include "pcre/pcre2.h"
+#include "..\tools\thirdparty\pcre\pcre2.h"
 
 #define WM_PH_SEARCH_SHOWDIALOG (WM_APP + 801)
 #define WM_PH_SEARCH_FINISHED (WM_APP + 802)
