@@ -471,6 +471,27 @@ INT_PTR CALLBACK TextDlgProc(
             //        PhCopyListViewInfoTip(getInfoTip, &tip);
             //    }
             //    break;
+            case NM_DBLCLK:
+                {
+                    if (header->hwndFrom == context->ListViewHandle)
+                    {
+                        PPH_UPDATER_COMMIT_ENTRY entry;
+                        PPH_STRING commitHashUrl;
+
+                        if (entry = PhGetSelectedListViewItemParam(context->ListViewHandle))
+                        {
+                            if (commitHashUrl = PhConcatStrings2(
+                                L"https://github.com/processhacker/processhacker/commit/",
+                                PhGetString(entry->CommitHashString)
+                                ))
+                            {
+                                PhShellExecute(hwndDlg, PhGetString(commitHashUrl), NULL);
+                                PhDereferenceObject(commitHashUrl);
+                            }
+                        }
+                    }
+                }
+                break;
             case NM_CUSTOMDRAW:
                 {
                     if (header->hwndFrom == context->ListViewHandle)
