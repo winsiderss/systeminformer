@@ -751,13 +751,13 @@ NTSTATUS UpdateDownloadThread(
 
                 // L"Downloaded: %s / %s (%.0f%%)\r\nSpeed: %s/s"
                 PhInitFormatS(&format[0], L"Downloaded: ");
-                PhInitFormatSize(&format[1], downloadedBytes / 1024);
+                PhInitFormatSize(&format[1], downloadedBytes);
                 PhInitFormatS(&format[2], L" / ");
-                PhInitFormatSize(&format[3], contentLength / 1024);
+                PhInitFormatSize(&format[3], contentLength);
                 PhInitFormatS(&format[4], L" (");
                 PhInitFormatF(&format[5], percent, 1);
                 PhInitFormatS(&format[6], L"%)\r\nSpeed: ");
-                PhInitFormatSize(&format[7], timeBitsPerSecond / 1024);
+                PhInitFormatSize(&format[7], timeBitsPerSecond);
                 PhInitFormatS(&format[8], L"/s");
 
                 if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), string, sizeof(string), NULL))
