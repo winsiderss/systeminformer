@@ -292,7 +292,7 @@ BOOLEAN PhDescribeProcessMitigationPolicy(
                     *ShortDescription = PhCreateString(L"Extension points disabled");
 
                 if (LongDescription)
-                    *LongDescription = PhCreateString(L"Legacy extension point DLLs cannot be loaded into the process.\r\n");
+                    *LongDescription = PhCreateString(L"Legacy extension point DLLs cannot be loaded into the process. NOTE: Processes with uiAccess=true will automatically bypass this policy and inject legacy extension point DLLs regardless.\r\n");
 
                 result = TRUE;
             }
