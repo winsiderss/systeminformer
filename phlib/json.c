@@ -211,7 +211,7 @@ PVOID PhGetJsonArrayIndexObject(
     return json_object_array_get_idx(Object, Index);
 }
 
-PPH_LIST PhGetJsonObjectAsArrayList(
+PVOID PhGetJsonObjectAsArrayList(
     _In_ PVOID Object
     )
 {

@@ -185,7 +185,7 @@ PhGetJsonArrayIndexObject(
     );
 
 PHLIBAPI
-PPH_LIST
+PVOID
 NTAPI
 PhGetJsonObjectAsArrayList(
     _In_ PVOID Object
