@@ -1059,6 +1059,9 @@ _Callback_ NTSTATUS PhStdGetObjectSecurity(
     NTSTATUS status;
     HANDLE handle;
 
+    if (!this)
+        return STATUS_UNSUCCESSFUL;
+
     status = this->OpenObject(
         &handle,
         PhGetAccessForGetSecurity(SecurityInformation),
@@ -1203,6 +1206,9 @@ _Callback_ NTSTATUS PhStdSetObjectSecurity(
     PhSecurityInformation *this = (PhSecurityInformation *)Context;
     NTSTATUS status;
     HANDLE handle;
+
+    if (!this)
+        return STATUS_UNSUCCESSFUL;
 
     status = this->OpenObject(
         &handle,

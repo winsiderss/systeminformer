@@ -666,7 +666,7 @@ VOID GetSelectedThreadStackNodes(
 
 BOOLEAN PhpThreadStackTreeFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PPH_THREAD_STACK_CONTEXT stackContext = Context;
@@ -1333,7 +1333,7 @@ VOID PhpSymbolProviderEventCallbackHandler(
         break;
     }
 
-    if (statusMessage)
+    if (context && statusMessage)
     {
         //dprintf("%S\r\n", statusMessage->Buffer);
         PhAcquireQueuedLockExclusive(&context->StatusLock);
