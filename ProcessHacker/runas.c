@@ -1237,7 +1237,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
 
                             status = PhCreateProcessAsUser(
                                 &createInfo,
-                                PH_CREATE_PROCESS_WITH_PROFILE | (createSuspended ? PH_CREATE_PROCESS_SUSPENDED : 0),
+                                PH_CREATE_PROCESS_WITH_PROFILE | PH_CREATE_PROCESS_DEFAULT_ERROR_MODE | (createSuspended ? PH_CREATE_PROCESS_SUSPENDED : 0),
                                 NULL,
                                 NULL,
                                 NULL
@@ -1333,7 +1333,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                                     environment,
                                     NULL,
                                     &startupInfo.StartupInfo,
-                                    PH_CREATE_PROCESS_SUSPENDED | PH_CREATE_PROCESS_NEW_CONSOLE | PH_CREATE_PROCESS_EXTENDED_STARTUPINFO | flags,
+                                    PH_CREATE_PROCESS_SUSPENDED | PH_CREATE_PROCESS_NEW_CONSOLE | PH_CREATE_PROCESS_EXTENDED_STARTUPINFO | PH_CREATE_PROCESS_DEFAULT_ERROR_MODE | flags,
                                     NULL,
                                     NULL,
                                     &newProcessHandle,
@@ -1956,7 +1956,7 @@ NTSTATUS PhInvokeRunAsService(
     createInfo.SessionId = Parameters->SessionId;
     createInfo.DesktopName = Parameters->DesktopName;
 
-    flags = PH_CREATE_PROCESS_SET_SESSION_ID;
+    flags = PH_CREATE_PROCESS_SET_SESSION_ID | PH_CREATE_PROCESS_DEFAULT_ERROR_MODE;
 
     if (Parameters->ProcessId)
     {
@@ -2336,7 +2336,7 @@ NTSTATUS PhpRunFileProgram(
             environment,
             PhGetString(parentDirectory),
             &startupInfo.StartupInfo,
-            PH_CREATE_PROCESS_SUSPENDED | PH_CREATE_PROCESS_NEW_CONSOLE | PH_CREATE_PROCESS_EXTENDED_STARTUPINFO | flags,
+            PH_CREATE_PROCESS_SUSPENDED | PH_CREATE_PROCESS_NEW_CONSOLE | PH_CREATE_PROCESS_EXTENDED_STARTUPINFO | PH_CREATE_PROCESS_DEFAULT_ERROR_MODE | flags,
             NULL,
             NULL,
             &newProcessHandle,
@@ -2553,7 +2553,7 @@ NTSTATUS RunAsCreateProcessThread(
         NULL,
         NULL,
         &startupInfo.StartupInfo,
-        PH_CREATE_PROCESS_NEW_CONSOLE | PH_CREATE_PROCESS_EXTENDED_STARTUPINFO,
+        PH_CREATE_PROCESS_NEW_CONSOLE | PH_CREATE_PROCESS_EXTENDED_STARTUPINFO | PH_CREATE_PROCESS_DEFAULT_ERROR_MODE,
         NULL,
         NULL,
         NULL,
