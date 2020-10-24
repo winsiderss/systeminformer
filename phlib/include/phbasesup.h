@@ -2358,6 +2358,17 @@ typedef struct _PH_LIST
     PVOID *Items;
 } PH_LIST, *PPH_LIST;
 
+
+FORCEINLINE
+PVOID
+PhItemList(
+    _In_ PPH_LIST List,
+    _In_ ULONG Index
+    )
+{
+    return List->Items[Index];
+}
+
 PHLIBAPI
 PPH_LIST
 NTAPI
