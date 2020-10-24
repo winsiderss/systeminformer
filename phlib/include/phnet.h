@@ -109,16 +109,18 @@ FORCEINLINE BOOLEAN PhIsNullIpAddress(
     }
     else if (Address->Type == PH_IPV4_NETWORK_TYPE)
     {
-        return Address->Ipv4 == 0;
+        return IN4_IS_ADDR_UNSPECIFIED(&Address->InAddr);
+        //return Address->Ipv4 == 0;
     }
     else if (Address->Type == PH_IPV6_NETWORK_TYPE)
     {
-#ifdef _WIN64
-        return (*(PULONG64)(Address->Ipv6) | *(PULONG64)(Address->Ipv6 + 8)) == 0;
-#else
-        return (*(PULONG)(Address->Ipv6) | *(PULONG)(Address->Ipv6 + 4) |
-            *(PULONG)(Address->Ipv6 + 8) | *(PULONG)(Address->Ipv6 + 12)) == 0;
-#endif
+        return IN6_IS_ADDR_UNSPECIFIED(&Address->In6Addr);
+//#ifdef _WIN64
+//        return (*(PULONG64)(Address->Ipv6) | *(PULONG64)(Address->Ipv6 + 8)) == 0;
+//#else
+//        return (*(PULONG)(Address->Ipv6) | *(PULONG)(Address->Ipv6 + 4) |
+//            *(PULONG)(Address->Ipv6 + 8) | *(PULONG)(Address->Ipv6 + 12)) == 0;
+//#endif
     }
     else
     {
