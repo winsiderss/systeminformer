@@ -410,19 +410,19 @@ VOID PhUnregisterMessageLoopFilter(
     PhFree(FilterEntry);
 }
 
-typedef struct _PH_PROCESS_MAIN_WINDOW_CONTEXT
+typedef struct _PHP_PREVIOUS_MAIN_WINDOW_CONTEXT
 {
     HANDLE ProcessId;
     PPH_STRING WindowName;
     PPH_LIST WindowList;
-} PH_PROCESS_MAIN_WINDOW_CONTEXT, *PPH_PROCESS_MAIN_WINDOW_CONTEXT;
+} PHP_PREVIOUS_MAIN_WINDOW_CONTEXT, *PPHP_PREVIOUS_MAIN_WINDOW_CONTEXT;
 
 static BOOL CALLBACK PhpPreviousInstanceWindowEnumProc(
     _In_ HWND WindowHandle,
     _In_opt_ PVOID Context
     )
 {
-    PPH_PROCESS_MAIN_WINDOW_CONTEXT context = (PPH_PROCESS_MAIN_WINDOW_CONTEXT)Context;
+    PPHP_PREVIOUS_MAIN_WINDOW_CONTEXT context = (PPHP_PREVIOUS_MAIN_WINDOW_CONTEXT)Context;
     ULONG processId = ULONG_MAX;
 
     if (!context)
@@ -504,9 +504,9 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
         // Try to locate the window a few times because some users reported that it might not yet have been created. (dmex)
         do
         {
-            PH_PROCESS_MAIN_WINDOW_CONTEXT context;
+            PHP_PREVIOUS_MAIN_WINDOW_CONTEXT context;
 
-            memset(&context, 0, sizeof(PH_PROCESS_MAIN_WINDOW_CONTEXT));
+            memset(&context, 0, sizeof(PHP_PREVIOUS_MAIN_WINDOW_CONTEXT));
             context.ProcessId = objectInfo.ClientId.UniqueProcess;
             context.WindowName = PhGetStringSetting(L"MainWindowClassName");
             context.WindowList = PhCreateList(2);
