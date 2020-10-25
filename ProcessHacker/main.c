@@ -410,6 +410,42 @@ VOID PhUnregisterMessageLoopFilter(
     PhFree(FilterEntry);
 }
 
+typedef struct _PH_PROCESS_MAIN_WINDOW_CONTEXT
+{
+    HANDLE ProcessId;
+    PPH_STRING WindowName;
+    PPH_LIST WindowList;
+} PH_PROCESS_MAIN_WINDOW_CONTEXT, *PPH_PROCESS_MAIN_WINDOW_CONTEXT;
+
+static BOOL CALLBACK PhpPreviousInstanceWindowEnumProc(
+    _In_ HWND WindowHandle,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_PROCESS_MAIN_WINDOW_CONTEXT context = (PPH_PROCESS_MAIN_WINDOW_CONTEXT)Context;
+    ULONG processId = ULONG_MAX;
+
+    if (!context)
+        return TRUE;
+
+    GetWindowThreadProcessId(WindowHandle, &processId);
+
+    if (UlongToHandle(processId) == context->ProcessId && context->WindowName)
+    {
+        WCHAR className[256];
+
+        if (GetClassName(WindowHandle, className, RTL_NUMBER_OF(className)))
+        {
+            if (PhEqualStringZ(className, PhGetString(context->WindowName), FALSE))
+            {
+                PhAddItemList(context->WindowList, WindowHandle);
+            }
+        }
+    }
+
+    return TRUE;
+}
+
 static BOOLEAN NTAPI PhpPreviousInstancesCallback(
     _In_ PPH_STRINGREF Name,
     _In_ PPH_STRINGREF TypeName,
@@ -449,7 +485,6 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
         &objectInfo
         )))
     {
-        HWND hwnd;
         HANDLE processHandle = NULL;
         HANDLE tokenHandle = NULL;
         PTOKEN_USER tokenUser = NULL;
@@ -469,30 +504,33 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
         // Try to locate the window a few times because some users reported that it might not yet have been created. (dmex)
         do
         {
-            if (hwnd = PhGetProcessMainWindowEx(
-                objectInfo.ClientId.UniqueProcess,
-                processHandle,
-                FALSE
-                ))
+            PH_PROCESS_MAIN_WINDOW_CONTEXT context;
+
+            memset(&context, 0, sizeof(PH_PROCESS_MAIN_WINDOW_CONTEXT));
+            context.ProcessId = objectInfo.ClientId.UniqueProcess;
+            context.WindowName = PhGetStringSetting(L"MainWindowClassName");
+            context.WindowList = PhCreateList(2);
+
+            PhEnumWindows(PhpPreviousInstanceWindowEnumProc, &context);
+
+            for (ULONG i = 0; i < context.WindowList->Count; i++)
             {
-                break;
+                HWND windowHandle = context.WindowList->Items[i];
+                ULONG_PTR result;
+
+                SendMessageTimeout(windowHandle, WM_PH_ACTIVATE, PhStartupParameters.SelectPid, 0, SMTO_BLOCK, 5000, &result);
+
+                if (result == PH_ACTIVATE_REPLY)
+                {
+                    SetForegroundWindow(windowHandle);
+                    PhExitApplication(STATUS_SUCCESS);
+                }
             }
 
+            PhDereferenceObject(context.WindowList);
+            PhDereferenceObject(context.WindowName);
             PhDelayExecution(100);
         } while (--attempts != 0);
-
-        if (hwnd)
-        {
-            ULONG_PTR result;
-
-            SendMessageTimeout(hwnd, WM_PH_ACTIVATE, PhStartupParameters.SelectPid, 0, SMTO_BLOCK, 5000, &result);
-
-            if (result == PH_ACTIVATE_REPLY)
-            {
-                SetForegroundWindow(hwnd);
-                PhExitApplication(STATUS_SUCCESS);
-            }
-        }
 
     CleanupExit:
         if (tokenUser) PhFree(tokenUser);
