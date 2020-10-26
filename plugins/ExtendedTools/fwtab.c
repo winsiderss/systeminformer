@@ -332,6 +332,7 @@ VOID FwTickNodes(
 
             oldList = FwNodeList;
             FwNodeList = newList;
+            EtFwFilterSupport.NodeList = newList; // HACK 
             PhDereferenceObject(oldList);
             lastTickCount = tickCount;
         }
@@ -1299,7 +1300,7 @@ BOOLEAN NTAPI FwSearchFilterCallback(
 
     if (PhIsNullOrEmptyString(EtFwToolStatusInterface->GetSearchboxText()))
         return TRUE;
-    
+ 
     if (fwNode->ProcessFileName)
     {
         if (wordMatch(&fwNode->ProcessFileName->sr))
