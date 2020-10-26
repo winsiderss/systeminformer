@@ -409,10 +409,6 @@ VOID EtRemoveDiskNode(
         PhRemoveItemList(DiskNodeList, index);
 
     if (DiskNode->ProcessNameText) PhDereferenceObject(DiskNode->ProcessNameText);
-    if (DiskNode->ReadRateAverageText) PhDereferenceObject(DiskNode->ReadRateAverageText);
-    if (DiskNode->WriteRateAverageText) PhDereferenceObject(DiskNode->WriteRateAverageText);
-    if (DiskNode->TotalRateAverageText) PhDereferenceObject(DiskNode->TotalRateAverageText);
-    if (DiskNode->ResponseTimeText) PhDereferenceObject(DiskNode->ResponseTimeText);
     if (DiskNode->TooltipText) PhDereferenceObject(DiskNode->TooltipText);
 
     PhDereferenceObject(DiskNode->DiskItem);
@@ -603,13 +599,17 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
 
                     if (number != 0)
                     {
+                        SIZE_T returnLength;
                         PH_FORMAT format[2];
 
                         PhInitFormatSize(&format[0], number);
                         PhInitFormatS(&format[1], L"/s");
 
-                        PhMoveReference(&node->ReadRateAverageText, PhFormat(format, 2, 0));
-                        getCellText->Text = node->ReadRateAverageText->sr;
+                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), node->ReadRateAverageText, sizeof(node->ReadRateAverageText), &returnLength))
+                        {
+                            getCellText->Text.Buffer = node->ReadRateAverageText;
+                            getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
+                        }
                     }
                 }
                 break;
@@ -623,13 +623,17 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
 
                     if (number != 0)
                     {
+                        SIZE_T returnLength;
                         PH_FORMAT format[2];
 
                         PhInitFormatSize(&format[0], number);
                         PhInitFormatS(&format[1], L"/s");
 
-                        PhMoveReference(&node->WriteRateAverageText, PhFormat(format, 2, 0));
-                        getCellText->Text = node->WriteRateAverageText->sr;
+                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), node->WriteRateAverageText, sizeof(node->WriteRateAverageText), &returnLength))
+                        {
+                            getCellText->Text.Buffer = node->WriteRateAverageText;
+                            getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
+                        }
                     }
                 }
                 break;
@@ -643,13 +647,17 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
 
                     if (number != 0)
                     {
+                        SIZE_T returnLength;
                         PH_FORMAT format[2];
 
                         PhInitFormatSize(&format[0], number);
                         PhInitFormatS(&format[1], L"/s");
 
-                        PhMoveReference(&node->TotalRateAverageText, PhFormat(format, 2, 0));
-                        getCellText->Text = node->TotalRateAverageText->sr;
+                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), node->TotalRateAverageText, sizeof(node->TotalRateAverageText), &returnLength))
+                        {
+                            getCellText->Text.Buffer = node->TotalRateAverageText;
+                            getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
+                        }
                     }
                 }
                 break;
@@ -678,11 +686,16 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
                 break;
             case ETDSTNC_RESPONSETIME:
                 {
+                    SIZE_T returnLength;
                     PH_FORMAT format;
 
                     PhInitFormatF(&format, diskItem->ResponseTimeAverage, 0);
-                    PhMoveReference(&node->ResponseTimeText, PhFormat(&format, 1, 0));
-                    getCellText->Text = node->ResponseTimeText->sr;
+
+                    if (PhFormatToBuffer(&format, 1, node->ResponseTimeText, sizeof(node->ResponseTimeText), &returnLength))
+                    {
+                        getCellText->Text.Buffer = node->ResponseTimeText;
+                        getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
+                    }
                 }
                 break;
             default:

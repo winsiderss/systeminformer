@@ -1097,7 +1097,7 @@ static VOID NTAPI DotNetEventCallback(
                         // (E.g. C:\...\AcmeSoft.BigLib.dll -> AcmeSoft.BigLib)
 
                         indexOfBackslash = PhFindLastCharInString(node->PathText, 0, OBJ_NAME_PATH_SEPARATOR);
-                        indexOfLastDot = PhFindLastCharInString(node->PathText, 0, '.');
+                        indexOfLastDot = PhFindLastCharInString(node->PathText, 0, L'.');
 
                         if (indexOfBackslash != -1)
                         {

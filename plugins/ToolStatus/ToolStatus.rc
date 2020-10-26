@@ -53,16 +53,16 @@ STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSM
 CAPTION "Options"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    CONTROL         "Enable toolbar",IDC_ENABLE_TOOLBAR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,29,62,10
-    CONTROL         "Enable status bar",IDC_ENABLE_STATUSBAR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,41,72,10
+    CONTROL         "Enable toolbar",IDC_ENABLE_TOOLBAR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,33,62,10
+    CONTROL         "Enable status bar",IDC_ENABLE_STATUSBAR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,45,72,10
     CONTROL         "Resolve ghost windows to hung windows",IDC_RESOLVEGHOSTWINDOWS,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,53,152,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,57,152,10
     CONTROL         "Auto-hide main menu (Alt or F10 key toggle)",IDC_ENABLE_AUTOHIDE_MENU,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,65,157,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,69,157,10
     CONTROL         "Enable auto focus to search box",IDC_ENABLE_AUTOFOCUS_SEARCH,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,77,113,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,81,113,10
     LTEXT           "Note: Right-click the toolbar on the main window to customize the icons and graphs.",IDC_STATIC,7,7,157,18
-    COMBOBOX        IDC_CURRENT,7,115,119,30,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_CURRENT,7,115,119,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     LTEXT           "Select the graph for the taskbar window icon:",IDC_STATIC,7,104,147,8
 END
 
@@ -202,6 +202,17 @@ IDI_CROSS               ICON                    "resources\\cross.ico"
 IDI_APPLICATION_GET     ICON                    "resources\\application_get.ico"
 
 IDI_LIGHTBULB_OFF       ICON                    "resources\\lightbulb_off.ico"
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_OPTIONS AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
 
 #endif    // English (Australia) resources
 /////////////////////////////////////////////////////////////////////////////

@@ -51,9 +51,19 @@ typedef struct _PH_THREAD_PROVIDER
 
     HANDLE ProcessId;
     HANDLE ProcessHandle;
-    BOOLEAN HasServices;
-    BOOLEAN HasServicesKnown;
-    BOOLEAN Terminating;
+
+    union
+    {
+        BOOLEAN Flags;
+        struct
+        {
+            BOOLEAN HasServices : 1;
+            BOOLEAN HasServicesKnown : 1;
+            BOOLEAN Terminating : 1;
+            BOOLEAN Spare : 5;
+        };
+    };
+
     struct _PH_SYMBOL_PROVIDER *SymbolProvider;
 
     SLIST_HEADER QueryListHead;

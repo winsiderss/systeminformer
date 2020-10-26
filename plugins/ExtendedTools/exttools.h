@@ -132,15 +132,14 @@ typedef struct _ET_DISK_NODE
 
     PET_DISK_ITEM DiskItem;
 
+    PPH_STRING TooltipText;
+    PPH_STRING ProcessNameText;
     PH_STRINGREF TextCache[ETDSTNC_MAXIMUM];
 
-    PPH_STRING ProcessNameText;
-    PPH_STRING ReadRateAverageText;
-    PPH_STRING WriteRateAverageText;
-    PPH_STRING TotalRateAverageText;
-    PPH_STRING ResponseTimeText;
-
-    PPH_STRING TooltipText;
+    WCHAR ReadRateAverageText[PH_INT64_STR_LEN_1 + 5];
+    WCHAR WriteRateAverageText[PH_INT64_STR_LEN_1 + 5];
+    WCHAR TotalRateAverageText[PH_INT64_STR_LEN_1 + 5];
+    WCHAR ResponseTimeText[PH_INT64_STR_LEN_1 + 5];
 } ET_DISK_NODE, *PET_DISK_NODE;
 
 // Process tree columns
