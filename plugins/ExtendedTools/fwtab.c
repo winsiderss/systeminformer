@@ -634,7 +634,7 @@ BOOLEAN NTAPI FwTreeNewCallback(
                 getCellText->Text = PhGetStringRef(node->RuleDescription);
                 break;
             case FW_COLUMN_PROCESSFILENAME:
-                getCellText->Text = PhGetStringRef(node->ProcessFileNameWin32);
+                getCellText->Text = PhGetStringRef(node->ProcessFileName);
                 break;
             case FW_COLUMN_LOCALADDRESS:
                 getCellText->Text = PhGetStringRef(node->LocalAddressString);

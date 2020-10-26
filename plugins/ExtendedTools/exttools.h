@@ -809,7 +809,6 @@ typedef struct _FW_EVENT_ITEM
     BOOLEAN ProcessIconValid;
 
     PPH_STRING ProcessFileName;
-    PPH_STRING ProcessFileNameWin32;
     PPH_STRING ProcessBaseString;
     PPH_STRING LocalAddressString;
     PPH_STRING RemoteAddressString;
