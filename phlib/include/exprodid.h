@@ -296,7 +296,6 @@ typedef enum _PRODID
     prodidUtc1900_POGO_O_CPP = 0x010e
 } PRODID;
 
-// private
 #define DwProdidFromProdidWBuild(Prodid, Build) ((((ULONG)(Prodid)) << 16) | (Build))
 #define ProdidFromDwProdid(Prodid) ((PRODID)((Prodid) >> 16))
 #define WBuildFromDwProdid(Prodid) ((Prodid) & 0xFFFF)
