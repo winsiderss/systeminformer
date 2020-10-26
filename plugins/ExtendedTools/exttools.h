@@ -904,7 +904,8 @@ PFW_EVENT_ITEM GetSelectedFwItem(
     VOID
     );
 
-VOID GetSelectedFwItems(
+_Success_(return)
+BOOLEAN EtFwGetSelectedFwItems(
     _Out_ PFW_EVENT_ITEM **FwItems,
     _Out_ PULONG NumberOfFwItems
     );
@@ -926,7 +927,8 @@ VOID WriteFwList(
     _In_ ULONG Mode
     );
 
-VOID HandleFwCommand(
+VOID EtFwHandleFwCommand(
+    _In_ HWND TreeWindowHandle,
     _In_ ULONG Id
     );
 
