@@ -151,11 +151,15 @@ HRESULT PhpWmiProviderExecMethod(
         if (count == 0)
             break;
 
+        VariantInit(&variant);
+
         if (SUCCEEDED(IWbemClassObject_Get(wbemClassObject, L"Namespace", 0, &variant, 0, 0)))
         {
             namespacePath = PhCreateString(variant.bstrVal);
             VariantClear(&variant);
         }
+
+        VariantInit(&variant);
 
         if (SUCCEEDED(IWbemClassObject_Get(wbemClassObject, L"Provider", 0, &variant, 0, 0)))
         {
@@ -163,11 +167,15 @@ HRESULT PhpWmiProviderExecMethod(
             VariantClear(&variant);
         }
 
+        VariantInit(&variant);
+
         if (SUCCEEDED(IWbemClassObject_Get(wbemClassObject, L"User", 0, &variant, 0, 0)))
         {
             userName = PhCreateString(variant.bstrVal);
             VariantClear(&variant);
         }
+
+        VariantInit(&variant);
 
         if (SUCCEEDED(IWbemClassObject_Get(wbemClassObject, L"__PATH", 0, &variant, 0, 0)))
         {
