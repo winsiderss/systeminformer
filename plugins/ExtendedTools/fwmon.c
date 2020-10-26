@@ -26,9 +26,8 @@
 
 PH_CALLBACK_REGISTRATION EtFwProcessesUpdatedCallbackRegistration;
 PPH_OBJECT_TYPE FwObjectType = NULL;
-HANDLE FwEngineHandle = NULL;
+HANDLE EtFwEngineHandle = NULL;
 HANDLE FwEventHandle = NULL;
-HANDLE FwEnumHandle = NULL;
 ULONG FwRunCount = 0;
 ULONG FwMaxEventAge = 60;
 SLIST_HEADER FwPacketListHead;
@@ -44,7 +43,7 @@ PH_CALLBACK_DECLARE(FwItemsUpdatedEvent);
 typedef struct _FW_EVENT
 {
     FWPM_NET_EVENT_TYPE Type;
-    BOOL IsLoopback;
+    ULONG IsLoopback;
     ULONG Direction;
     ULONG ProcessId;
     ULONG IpProtocol;
@@ -274,7 +273,7 @@ BOOLEAN FwProcessEventType(
                 return FALSE;
             }
 
-            if (fwDropEvent->layerId && FwpmLayerGetById(FwEngineHandle, fwDropEvent->layerId, &fwLayerItem) == ERROR_SUCCESS)
+            if (fwDropEvent->layerId && FwpmLayerGetById(EtFwEngineHandle, fwDropEvent->layerId, &fwLayerItem) == ERROR_SUCCESS)
             {
                 if (
                     IsEqualGUID(&fwLayerItem->layerKey, &FWPM_LAYER_ALE_FLOW_ESTABLISHED_V4) ||
@@ -295,7 +294,7 @@ BOOLEAN FwProcessEventType(
                 FwpmFreeMemory(&fwLayerItem);
             }
 
-            if (fwDropEvent->filterId && FwpmFilterGetById(FwEngineHandle, fwDropEvent->filterId, &fwFilterItem) == ERROR_SUCCESS)
+            if (fwDropEvent->filterId && FwpmFilterGetById(EtFwEngineHandle, fwDropEvent->filterId, &fwFilterItem) == ERROR_SUCCESS)
             {
                 if (RuleName && fwFilterItem->displayData.name)
                     *RuleName = PhCreateString(fwFilterItem->displayData.name);
@@ -329,7 +328,7 @@ BOOLEAN FwProcessEventType(
                 return FALSE;
             }
 
-            if (fwAllowEvent->layerId && FwpmLayerGetById(FwEngineHandle, fwAllowEvent->layerId, &fwLayerItem) == ERROR_SUCCESS)
+            if (fwAllowEvent->layerId && FwpmLayerGetById(EtFwEngineHandle, fwAllowEvent->layerId, &fwLayerItem) == ERROR_SUCCESS)
             {
                 if (
                     IsEqualGUID(&fwLayerItem->layerKey, &FWPM_LAYER_ALE_FLOW_ESTABLISHED_V4) ||
@@ -350,7 +349,7 @@ BOOLEAN FwProcessEventType(
                 FwpmFreeMemory(&fwLayerItem);
             }
 
-            if (fwAllowEvent->filterId && FwpmFilterGetById(FwEngineHandle, fwAllowEvent->filterId, &fwFilterItem) == ERROR_SUCCESS)
+            if (fwAllowEvent->filterId && FwpmFilterGetById(EtFwEngineHandle, fwAllowEvent->filterId, &fwFilterItem) == ERROR_SUCCESS)
             {
                 if (RuleName && fwFilterItem->displayData.name)
                     *RuleName = PhCreateString(fwFilterItem->displayData.name);
@@ -360,7 +359,6 @@ BOOLEAN FwProcessEventType(
                 FwpmFreeMemory(&fwFilterItem);
             }
         }
-
         return TRUE;
     }
 
@@ -938,11 +936,11 @@ VOID EtFwStopMonitor(
 {
     if (FwEventHandle)
     {
-        FwpmNetEventUnsubscribe(FwEngineHandle, FwEventHandle);
+        FwpmNetEventUnsubscribe(EtFwEngineHandle, FwEventHandle);
         FwEventHandle = NULL;
     }
 
-    if (FwEngineHandle)
+    if (EtFwEngineHandle)
     {
         FWP_VALUE value = { FWP_EMPTY };
 
@@ -951,9 +949,9 @@ VOID EtFwStopMonitor(
         value.type = FWP_UINT32;
         value.uint32 = 0;
 
-        FwpmEngineSetOption(FwEngineHandle, FWPM_ENGINE_COLLECT_NET_EVENTS, &value);
+        FwpmEngineSetOption(EtFwEngineHandle, FWPM_ENGINE_COLLECT_NET_EVENTS, &value);
 
-        FwpmEngineClose(FwEngineHandle);
-        FwEngineHandle = NULL;
+        FwpmEngineClose(EtFwEngineHandle);
+        EtFwEngineHandle = NULL;
     }
 }
