@@ -71,38 +71,38 @@
   </ImportGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Link>
-      <AdditionalDependencies>cfgmgr32.lib;pdh.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>advapi32.dll;comctl32.dll;cfgmgr32.dll;gdi32.dll;pdh.dll;oleaut32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>cfgmgr32.lib;fwpuclnt.lib;pdh.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>advapi32.dll;comctl32.dll;cfgmgr32.dll;fwpuclnt.dll;gdi32.dll;pdh.dll;oleaut32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Link>
-      <AdditionalDependencies>cfgmgr32.lib;pdh.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>advapi32.dll;comctl32.dll;cfgmgr32.dll;gdi32.dll;pdh.dll;oleaut32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>cfgmgr32.lib;fwpuclnt.lib;pdh.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>advapi32.dll;comctl32.dll;cfgmgr32.dll;fwpuclnt.dll;gdi32.dll;pdh.dll;oleaut32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
     <Link>
-      <AdditionalDependencies>cfgmgr32.lib;pdh.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>advapi32.dll;comctl32.dll;cfgmgr32.dll;gdi32.dll;pdh.dll;oleaut32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>cfgmgr32.lib;fwpuclnt.lib;pdh.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>advapi32.dll;comctl32.dll;cfgmgr32.dll;fwpuclnt.dll;gdi32.dll;pdh.dll;oleaut32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Link>
-      <AdditionalDependencies>cfgmgr32.lib;pdh.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>advapi32.dll;comctl32.dll;cfgmgr32.dll;gdi32.dll;pdh.dll;oleaut32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>cfgmgr32.lib;fwpuclnt.lib;pdh.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>advapi32.dll;comctl32.dll;cfgmgr32.dll;fwpuclnt.dll;gdi32.dll;pdh.dll;oleaut32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Link>
-      <AdditionalDependencies>cfgmgr32.lib;pdh.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>advapi32.dll;comctl32.dll;cfgmgr32.dll;gdi32.dll;pdh.dll;oleaut32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>cfgmgr32.lib;fwpuclnt.lib;pdh.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>advapi32.dll;comctl32.dll;cfgmgr32.dll;fwpuclnt.dll;gdi32.dll;pdh.dll;oleaut32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
     <Link>
-      <AdditionalDependencies>cfgmgr32.lib;pdh.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>advapi32.dll;comctl32.dll;cfgmgr32.dll;gdi32.dll;pdh.dll;oleaut32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>cfgmgr32.lib;fwpuclnt.lib;pdh.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>advapi32.dll;comctl32.dll;cfgmgr32.dll;fwpuclnt.dll;gdi32.dll;pdh.dll;oleaut32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -111,6 +111,8 @@
     <ClCompile Include="etwdisk.c" />
     <ClCompile Include="etwmini.c" />
     <ClCompile Include="etwmon.c" />
+    <ClCompile Include="fwmon.c" />
+    <ClCompile Include="fwtab.c" />
     <ClCompile Include="gpudetails.c" />
     <ClCompile Include="gpumini.c" />
     <ClCompile Include="gpumon.c" />

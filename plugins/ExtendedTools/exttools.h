@@ -42,6 +42,9 @@ extern ULONG ProcessesUpdatedCount;
 #define SETTING_NAME_WSWATCH_COLUMNS (PLUGIN_NAME L".WsWatchListColumns")
 #define SETTING_NAME_TRAYICON_GUIDS (PLUGIN_NAME L".TrayIconGuids")
 #define SETTING_NAME_ENABLE_FAHRENHEIT (PLUGIN_NAME L".EnableFahrenheit")
+#define SETTING_NAME_ENABLE_FW_MONITOR (PLUGIN_NAME L".EnableFwMonitor")
+#define SETTING_NAME_FW_TREE_LIST_COLUMNS (PLUGIN_NAME L".FwTreeColumns")
+#define SETTING_NAME_FW_TREE_LIST_SORT (PLUGIN_NAME L".FwTreeSort")
 
 // Window messages
 #define ET_WM_SHOWDIALOG (WM_APP + 1)
@@ -724,6 +727,259 @@ ULONG64 EtLookupProcessGpuCommitUsage(
     );
 
 ULONG64 EtLookupTotalGpuCommit(
+    VOID
+    );
+
+// Firewall
+
+extern BOOLEAN EtFwEnabled;
+extern ULONG FwRunCount;
+
+typedef enum _FW_COLUMN_TYPE
+{
+    FW_COLUMN_NAME,
+    FW_COLUMN_ACTION,
+    FW_COLUMN_DIRECTION,
+    FW_COLUMN_RULENAME,
+    FW_COLUMN_RULEDESCRIPTION,
+    FW_COLUMN_LOCALADDRESS,
+    FW_COLUMN_LOCALPORT,
+    FW_COLUMN_LOCALHOSTNAME,
+    FW_COLUMN_REMOTEADDRESS,
+    FW_COLUMN_REMOTEPORT,
+    FW_COLUMN_REMOTEHOSTNAME,
+    FW_COLUMN_PROTOCOL,
+    FW_COLUMN_TIMESTAMP,
+    FW_COLUMN_PROCESSFILENAME,
+    FW_COLUMN_MAXIMUM
+} FW_COLUMN_TYPE;
+
+typedef struct _BOOT_WINDOW_CONTEXT
+{
+    HWND ListViewHandle;
+    HWND SearchHandle;
+
+    PH_LAYOUT_MANAGER LayoutManager;
+
+    HFONT NormalFontHandle;
+    HFONT BoldFontHandle;
+
+    HWND PluginMenuActive;
+    UINT PluginMenuActiveId;
+} BOOT_WINDOW_CONTEXT, *PBOOT_WINDOW_CONTEXT;
+
+typedef struct _FW_EVENT_ITEM
+{
+    PH_TREENEW_NODE Node;
+
+    LIST_ENTRY AgeListEntry;
+    ULONG AddTime;
+    ULONG FreshTime;
+
+    ULONG64 Index;
+    LARGE_INTEGER AddedTime;
+    BOOLEAN Loopback;
+    BOOLEAN JustResolved;
+
+    ULONG Direction;
+    ULONG Type; // FWPM_NET_EVENT_TYPE
+    ULONG IpProtocol;
+    PH_IP_ENDPOINT LocalEndpoint;
+    PH_IP_ENDPOINT RemoteEndpoint;
+
+    PPH_PROCESS_ITEM ProcessItem;
+    HICON ProcessIcon;
+    BOOLEAN ProcessIconValid;
+
+    PPH_STRING ProcessFileName;
+    PPH_STRING ProcessFileNameWin32;
+    PPH_STRING ProcessBaseString;
+    PPH_STRING LocalAddressString;
+    PPH_STRING RemoteAddressString;
+    PPH_STRING LocalHostnameString;
+    PPH_STRING RemoteHostnameString;
+    WCHAR LocalPortString[PH_INT32_STR_LEN_1];
+    WCHAR RemotePortString[PH_INT32_STR_LEN_1];
+
+    PPH_STRING RuleName;
+    PPH_STRING RuleDescription;
+    PPH_STRING FwRuleLayerNameString;
+    PPH_STRING FwRuleLayerDescriptionString;
+    PPH_STRING TimeString;
+
+    PPH_STRING TooltipText;
+    PH_STRINGREF TextCache[FW_COLUMN_MAXIMUM];
+} FW_EVENT_ITEM, *PFW_EVENT_ITEM;
+
+extern PH_CALLBACK FwItemAddedEvent;
+extern PH_CALLBACK FwItemModifiedEvent;
+extern PH_CALLBACK FwItemRemovedEvent;
+extern PH_CALLBACK FwItemsUpdatedEvent;
+
+BOOLEAN EtFwStartMonitor(
+    VOID
+    );
+VOID EtFwStopMonitor(
+    VOID
+    );
+VOID EtFwInitializeTab(
+    VOID
+    );
+VOID LoadSettingsFwTreeList(
+    VOID);
+VOID SaveSettingsFwTreeList(
+    VOID);
+
+typedef ULONG(WINAPI* _FwpmNetEventSubscribe)(
+    _In_ HANDLE engineHandle,
+    _In_ PVOID subscription,
+    _In_ PVOID callback,
+    _In_opt_ PVOID context,
+    _Out_ HANDLE* eventsHandle
+    );
+
+#define FWP_DIRECTION_IN 0x00003900L
+#define FWP_DIRECTION_OUT 0x00003901L
+#define FWP_DIRECTION_FORWARD 0x00003902L
+
+HWND NTAPI FwTabCreateFunction(
+    _In_ PVOID Context
+    );
+
+VOID NTAPI FwTabSelectionChangedCallback(
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Parameter3,
+    _In_ PVOID Context
+    );
+
+VOID NTAPI FwTabSaveContentCallback(
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Parameter3,
+    _In_ PVOID Context
+    );
+
+VOID NTAPI FwTabFontChangedCallback(
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Parameter3,
+    _In_ PVOID Context
+    );
+
+BOOLEAN FwNodeHashtableCompareFunction(
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
+    );
+
+ULONG FwNodeHashtableHashFunction(
+    _In_ PVOID Entry
+    );
+
+VOID InitializeFwTreeList(
+    _In_ HWND hwnd
+    );
+
+PFW_EVENT_ITEM AddFwNode(
+    _In_ PFW_EVENT_ITEM FwItem
+    );
+
+VOID RemoveFwNode(
+    _In_ PFW_EVENT_ITEM FwNode
+    );
+
+VOID UpdateFwNode(
+    _In_ PFW_EVENT_ITEM FwNode
+    );
+
+BOOLEAN NTAPI FwTreeNewCallback(
+    _In_ HWND hwnd,
+    _In_ PH_TREENEW_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2,
+    _In_opt_ PVOID Context
+    );
+
+PFW_EVENT_ITEM GetSelectedFwItem(
+    VOID
+    );
+
+VOID GetSelectedFwItems(
+    _Out_ PFW_EVENT_ITEM **FwItems,
+    _Out_ PULONG NumberOfFwItems
+    );
+
+VOID DeselectAllFwNodes(
+    VOID
+    );
+
+VOID SelectAndEnsureVisibleFwNode(
+    _In_ PFW_EVENT_ITEM FwNode
+    );
+
+VOID CopyFwList(
+    VOID
+    );
+
+VOID WriteFwList(
+    __inout PPH_FILE_STREAM FileStream,
+    _In_ ULONG Mode
+    );
+
+VOID HandleFwCommand(
+    _In_ ULONG Id
+    );
+
+VOID InitializeFwMenu(
+    _In_ PPH_EMENU Menu,
+    _In_ PFW_EVENT_ITEM *FwItems,
+    _In_ ULONG NumberOfFwItems
+    );
+
+VOID ShowFwContextMenu(
+    _In_ HWND TreeWindowHandle,
+    _In_ PPH_TREENEW_CONTEXT_MENU TreeMouseEvent
+    );
+
+VOID NTAPI FwItemAddedHandler(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    );
+
+VOID NTAPI FwItemModifiedHandler(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    );
+
+VOID NTAPI FwItemRemovedHandler(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    );
+
+VOID NTAPI FwItemsUpdatedHandler(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    );
+
+VOID NTAPI OnFwItemsUpdated(
+    _In_ ULONG RunId
+    );
+
+BOOLEAN NTAPI FwSearchFilterCallback(
+    _In_ PPH_TREENEW_NODE Node,
+    _In_opt_ PVOID Context
+    );
+
+VOID NTAPI FwSearchChangedHandler(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    );
+
+VOID NTAPI FwToolStatusActivateContent(
+    _In_ BOOLEAN Select
+    );
+
+HWND NTAPI FwToolStatusGetTreeNewHandle(
     VOID
     );
 
