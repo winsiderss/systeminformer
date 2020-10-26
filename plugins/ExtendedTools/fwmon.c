@@ -24,16 +24,17 @@
 #include <fwpmu.h>
 #include <fwpsu.h>
 
-#define AGE_TIME 60
 PH_CALLBACK_REGISTRATION EtFwProcessesUpdatedCallbackRegistration;
 PPH_OBJECT_TYPE FwObjectType = NULL;
 HANDLE FwEngineHandle = NULL;
 HANDLE FwEventHandle = NULL;
 HANDLE FwEnumHandle = NULL;
-_FwpmNetEventSubscribe FwpmNetEventSubscribe_I = NULL;
 ULONG FwRunCount = 0;
+ULONG FwMaxEventAge = 60;
 SLIST_HEADER FwPacketListHead;
 LIST_ENTRY FwAgeListHead = { &FwAgeListHead, &FwAgeListHead };
+_FwpmNetEventSubscribe FwpmNetEventSubscribe_I = NULL;
+PPH_HASHTABLE EtFwResolveCacheHashtable = NULL;
 
 PH_CALLBACK_DECLARE(FwItemAddedEvent);
 PH_CALLBACK_DECLARE(FwItemModifiedEvent);
@@ -73,6 +74,54 @@ typedef struct _FW_EVENT_PACKET
     SLIST_ENTRY ListEntry;
     FW_EVENT Event;
 } FW_EVENT_PACKET, *PFW_EVENT_PACKET;
+
+typedef struct _FW_RESOLVE_CACHE_ITEM
+{
+    PH_IP_ADDRESS Address;
+    PPH_STRING HostString;
+} FW_RESOLVE_CACHE_ITEM, *PFW_RESOLVE_CACHE_ITEM;
+
+BOOLEAN EtFwResolveCacheHashtableEqualFunction(
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
+    )
+{
+    PFW_RESOLVE_CACHE_ITEM cacheItem1 = *(PFW_RESOLVE_CACHE_ITEM*)Entry1;
+    PFW_RESOLVE_CACHE_ITEM cacheItem2 = *(PFW_RESOLVE_CACHE_ITEM*)Entry2;
+
+    return PhEqualIpAddress(&cacheItem1->Address, &cacheItem2->Address);
+}
+
+ULONG NTAPI EtFwResolveCacheHashtableHashFunction(
+    _In_ PVOID Entry
+    )
+{
+    PFW_RESOLVE_CACHE_ITEM cacheItem = *(PFW_RESOLVE_CACHE_ITEM*)Entry;
+
+    return PhHashIpAddress(&cacheItem->Address);
+}
+
+PFW_RESOLVE_CACHE_ITEM EtFwLookupResolveCacheItem(
+    _In_ PPH_IP_ADDRESS Address
+    )
+{
+    FW_RESOLVE_CACHE_ITEM lookupCacheItem;
+    PFW_RESOLVE_CACHE_ITEM lookupCacheItemPtr = &lookupCacheItem;
+    PFW_RESOLVE_CACHE_ITEM* cacheItemPtr;
+
+    // Construct a temporary cache item for the lookup.
+    lookupCacheItem.Address = *Address;
+
+    cacheItemPtr = (PFW_RESOLVE_CACHE_ITEM*)PhFindEntryHashtable(
+        EtFwResolveCacheHashtable,
+        &lookupCacheItemPtr
+        );
+
+    if (cacheItemPtr)
+        return *cacheItemPtr;
+    else
+        return NULL;
+}
 
 VOID NTAPI FwObjectTypeDeleteProcedure(
     _In_ PVOID Object,
@@ -308,7 +357,7 @@ BOOLEAN FwProcessEventType(
     return FALSE;
 }
 
-PPH_STRING PhpGetDnsReverseNameFromAddress(
+PPH_STRING EtFwGetDnsReverseNameFromAddress(
     _In_ PPH_IP_ADDRESS Address
     )
 {
@@ -358,50 +407,186 @@ PPH_STRING PhpGetDnsReverseNameFromAddress(
     }
 }
 
+PPH_STRING EtFwGetNameFromAddress(
+    _In_ PPH_IP_ADDRESS Address
+    )
+{
+    PPH_STRING addressEndpointString = NULL;
+    PPH_STRING dnsEndpointReverseString;
+    PDNS_RECORD dnsRecordList;
+
+    if (dnsEndpointReverseString = EtFwGetDnsReverseNameFromAddress(Address))
+    {
+        if (dnsRecordList = PhDnsQuery2(NULL, dnsEndpointReverseString->Buffer, DNS_TYPE_PTR, DNS_QUERY_NO_WIRE_QUERY))
+        {
+            for (PDNS_RECORD dnsRecord = dnsRecordList; dnsRecord; dnsRecord = dnsRecord->pNext)
+            {
+                if (dnsRecord->wType == DNS_TYPE_PTR)
+                {
+                    addressEndpointString = PhCreateString(dnsRecord->Data.PTR.pNameHost);
+
+                    PhReferenceObject(addressEndpointString);
+                    break;
+                }
+            }
+
+            PhDnsFree(dnsRecordList);
+        }
+
+        PhDereferenceObject(dnsEndpointReverseString);
+    }
+
+    return addressEndpointString;
+}
+
 VOID PhpQueryHostnameForEntry(
     _In_ PFW_EVENT Entry
     )
 {
-    PPH_STRING dnsLocalEndpointReverseString;
-    PPH_STRING dnsRemoteEndpointReverseString;
-    PDNS_RECORD dnsRecordList;
+    PFW_RESOLVE_CACHE_ITEM cacheItem;
 
-    if (!PhIsNullIpAddress(&Entry->LocalEndpoint.Address) && (dnsLocalEndpointReverseString = PhpGetDnsReverseNameFromAddress(&Entry->LocalEndpoint.Address)))
+    // Reset hashtable once in a while.
     {
-        if (dnsRecordList = PhDnsQuery2(NULL, dnsLocalEndpointReverseString->Buffer, DNS_TYPE_PTR, DNS_QUERY_NO_WIRE_QUERY))
+        static ULONG64 lastTickCount = 0;
+        ULONG64 tickCount = NtGetTickCount64();
+
+        if (tickCount - lastTickCount >= 120 * CLOCKS_PER_SEC)
         {
-            for (PDNS_RECORD dnsRecord = dnsRecordList; dnsRecord; dnsRecord = dnsRecord->pNext)
+            PFW_RESOLVE_CACHE_ITEM* entry;
+            ULONG i = 0;
+
+            while (PhEnumHashtable(EtFwResolveCacheHashtable, (PVOID*)&entry, &i))
             {
-                if (dnsRecord->wType == DNS_TYPE_PTR)
-                {
-                    Entry->LocalHostnameString = PhCreateString(dnsRecord->Data.PTR.pNameHost);
-                    break;
-                }
+                if ((*entry)->HostString)
+                    PhReferenceObject((*entry)->HostString);
+                PhFree(*entry);
             }
 
-            PhDnsFree(dnsRecordList);
+            PhClearHashtable(EtFwResolveCacheHashtable);
+            lastTickCount = tickCount;
         }
-
-        PhDereferenceObject(dnsLocalEndpointReverseString);
     }
 
-    if (!PhIsNullIpAddress(&Entry->RemoteEndpoint.Address) && (dnsRemoteEndpointReverseString = PhpGetDnsReverseNameFromAddress(&Entry->RemoteEndpoint.Address)))
+    // Local
+    if (!PhIsNullIpAddress(&Entry->LocalEndpoint.Address))
     {
-        if (dnsRecordList = PhDnsQuery2(NULL, dnsRemoteEndpointReverseString->Buffer, DNS_TYPE_PTR, DNS_QUERY_NO_WIRE_QUERY))
+        if (cacheItem = EtFwLookupResolveCacheItem(&Entry->LocalEndpoint.Address))
         {
-            for (PDNS_RECORD dnsRecord = dnsRecordList; dnsRecord; dnsRecord = dnsRecord->pNext)
+            PhReferenceObject(cacheItem->HostString);
+            Entry->LocalHostnameString = cacheItem->HostString;
+        }
+        else
+        {
+            cacheItem = PhAllocateZero(sizeof(FW_RESOLVE_CACHE_ITEM));
+            cacheItem->Address = Entry->LocalEndpoint.Address;
+
+            switch (Entry->LocalEndpoint.Address.Type)
             {
-                if (dnsRecord->wType == DNS_TYPE_PTR)
+            case PH_IPV4_NETWORK_TYPE:
                 {
-                    Entry->RemoteHostnameString = PhCreateString(dnsRecord->Data.PTR.pNameHost);
-                    break;
+                    if (IN4_IS_ADDR_UNSPECIFIED(&Entry->LocalEndpoint.Address.InAddr))
+                    {
+                        cacheItem->HostString = PhCreateString(L"UNSPECIFIED");
+                    }
+                    else if (IN4_IS_ADDR_LOOPBACK(&Entry->LocalEndpoint.Address.InAddr))
+                    {
+                        cacheItem->HostString = PhCreateString(L"LOOPBACK");
+                    }
+                    else if (IN4_IS_ADDR_BROADCAST(&Entry->LocalEndpoint.Address.InAddr))
+                    {
+                        cacheItem->HostString = PhCreateString(L"BROADCAST");
+                    }
                 }
+                break;
+            case PH_IPV6_NETWORK_TYPE:
+                {
+                    if (IN6_IS_ADDR_UNSPECIFIED(&Entry->LocalEndpoint.Address.In6Addr))
+                    {
+                        cacheItem->HostString = PhCreateString(L"UNSPECIFIED");
+                    }
+                    else if (IN6_IS_ADDR_LOOPBACK(&Entry->LocalEndpoint.Address.In6Addr))
+                    {
+                        cacheItem->HostString = PhCreateString(L"LOOPBACK");
+                    }
+                }
+                break;
             }
 
-            PhDnsFree(dnsRecordList);
-        }
+            if (!cacheItem->HostString)
+            {
+                cacheItem->HostString = EtFwGetNameFromAddress(&Entry->LocalEndpoint.Address);
+            }
 
-        PhDereferenceObject(dnsRemoteEndpointReverseString);
+            if (!cacheItem->HostString)
+            {
+                cacheItem->HostString = PhReferenceEmptyString();
+                PhReferenceObject(cacheItem->HostString);
+            }
+
+            PhAddEntryHashtable(EtFwResolveCacheHashtable, &cacheItem);
+            Entry->LocalHostnameString = cacheItem->HostString;
+        }
+    }
+
+    // Remote
+    if (!PhIsNullIpAddress(&Entry->RemoteEndpoint.Address))
+    {
+        if (cacheItem = EtFwLookupResolveCacheItem(&Entry->RemoteEndpoint.Address))
+        {
+            PhReferenceObject(cacheItem->HostString);
+            Entry->RemoteHostnameString = cacheItem->HostString;
+        }
+        else
+        {
+            cacheItem = PhAllocateZero(sizeof(FW_RESOLVE_CACHE_ITEM));
+            cacheItem->Address = Entry->RemoteEndpoint.Address;
+
+            switch (Entry->RemoteEndpoint.Address.Type)
+            {
+            case PH_IPV4_NETWORK_TYPE:
+                {
+                    if (IN4_IS_ADDR_UNSPECIFIED(&Entry->RemoteEndpoint.Address.InAddr))
+                    {
+                        cacheItem->HostString = PhCreateString(L"UNSPECIFIED");
+                    }
+                    else if (IN4_IS_ADDR_LOOPBACK(&Entry->RemoteEndpoint.Address.InAddr))
+                    {
+                        cacheItem->HostString = PhCreateString(L"LOOPBACK");
+                    }
+                    else if (IN4_IS_ADDR_BROADCAST(&Entry->RemoteEndpoint.Address.InAddr))
+                    {
+                        cacheItem->HostString = PhCreateString(L"BROADCAST");
+                    }
+                }
+                break;
+            case PH_IPV6_NETWORK_TYPE:
+                {
+                    if (IN6_IS_ADDR_UNSPECIFIED(&Entry->RemoteEndpoint.Address.In6Addr))
+                    {
+                        cacheItem->HostString = PhCreateString(L"UNSPECIFIED");
+                    }
+                    else if (IN6_IS_ADDR_LOOPBACK(&Entry->RemoteEndpoint.Address.In6Addr))
+                    {
+                        cacheItem->HostString = PhCreateString(L"LOOPBACK");
+                    }
+                }
+                break;
+            }
+
+            if (!cacheItem->HostString)
+            {
+                cacheItem->HostString = EtFwGetNameFromAddress(&Entry->RemoteEndpoint.Address);
+            }
+
+            if (!cacheItem->HostString)
+            {
+                cacheItem->HostString = PhReferenceEmptyString();
+                PhReferenceObject(cacheItem->HostString);
+            }
+
+            PhAddEntryHashtable(EtFwResolveCacheHashtable, &cacheItem);
+            Entry->RemoteHostnameString = cacheItem->HostString;
+        }
     }
 }
 
@@ -441,36 +626,38 @@ VOID CALLBACK FwEventCallback(
     entry.RuleLayerDescription = ruleLayerDescription;
     entry.IpProtocol = FwEvent->header.ipProtocol;
 
+
     if (FwEvent->header.flags & FWPM_NET_EVENT_FLAG_IP_VERSION_SET)
     {
         if (FwEvent->header.ipVersion == FWP_IP_VERSION_V4)
         {
-            ULONG ipv4AddressStringLength = INET_ADDRSTRLEN;
-            WCHAR ipv4AddressString[INET_ADDRSTRLEN] = L"";
-
             if (FwEvent->header.flags & FWPM_NET_EVENT_FLAG_LOCAL_ADDR_SET)
             {
+                ULONG ipvAddressStringLength = INET6_ADDRSTRLEN;
+                WCHAR ipvAddressString[INET6_ADDRSTRLEN] = L"";
                 ULONG localAddrV4 = _byteswap_ulong(FwEvent->header.localAddrV4);
                 entry.LocalEndpoint.Address.Type = PH_IPV4_NETWORK_TYPE;
                 entry.LocalEndpoint.Address.Ipv4 = localAddrV4;
                 entry.LocalEndpoint.Port = FwEvent->header.localPort;
 
-                if (NT_SUCCESS(RtlIpv4AddressToStringEx((PIN_ADDR)&localAddrV4, 0, ipv4AddressString, &ipv4AddressStringLength)))
+                if (NT_SUCCESS(RtlIpv4AddressToStringEx((PIN_ADDR)&localAddrV4, 0, ipvAddressString, &ipvAddressStringLength)))
                 {
-                    entry.LocalAddressString = PhCreateStringEx(ipv4AddressString, ipv4AddressStringLength * sizeof(WCHAR));
+                    entry.LocalAddressString = PhCreateStringEx(ipvAddressString, ipvAddressStringLength * sizeof(WCHAR));
                 }
             }
 
             if (FwEvent->header.flags & FWPM_NET_EVENT_FLAG_REMOTE_ADDR_SET)
             {
+                ULONG ipvAddressStringLength = INET6_ADDRSTRLEN;
+                WCHAR ipvAddressString[INET6_ADDRSTRLEN] = L"";
                 ULONG remoteAddrV4 = _byteswap_ulong(FwEvent->header.remoteAddrV4);
                 entry.RemoteEndpoint.Address.Type = PH_IPV4_NETWORK_TYPE;
                 entry.RemoteEndpoint.Address.Ipv4 = remoteAddrV4;
                 entry.RemoteEndpoint.Port = FwEvent->header.remotePort;
 
-                if (NT_SUCCESS(RtlIpv4AddressToStringEx((PIN_ADDR)&remoteAddrV4, 0, ipv4AddressString, &ipv4AddressStringLength)))
+                if (NT_SUCCESS(RtlIpv4AddressToStringEx((PIN_ADDR)&remoteAddrV4, 0, ipvAddressString, &ipvAddressStringLength)))
                 {
-                    entry.RemoteAddressString = PhCreateStringEx(ipv4AddressString, ipv4AddressStringLength * sizeof(WCHAR));
+                    entry.RemoteAddressString = PhCreateStringEx(ipvAddressString, ipvAddressStringLength * sizeof(WCHAR));
                 }
             }
 
@@ -478,9 +665,6 @@ VOID CALLBACK FwEventCallback(
         }
         else if (FwEvent->header.ipVersion == FWP_IP_VERSION_V6)
         {
-            ULONG ipv6AddressStringLength = INET6_ADDRSTRLEN;
-            WCHAR ipv6AddressString[INET6_ADDRSTRLEN] = L"";
-
             entry.LocalEndpoint.Address.Type = PH_IPV6_NETWORK_TYPE;
             memcpy(entry.LocalEndpoint.Address.Ipv6, FwEvent->header.localAddrV6.byteArray16, 16);
             entry.LocalEndpoint.Port = FwEvent->header.localPort;
@@ -490,17 +674,23 @@ VOID CALLBACK FwEventCallback(
 
             if (FwEvent->header.flags & FWPM_NET_EVENT_FLAG_LOCAL_ADDR_SET)
             {
-                if (NT_SUCCESS(RtlIpv6AddressToStringEx((PIN6_ADDR)&FwEvent->header.localAddrV6, 0, 0, ipv6AddressString, &ipv6AddressStringLength)))
+                ULONG ipvAddressStringLength = INET6_ADDRSTRLEN;
+                WCHAR ipvAddressString[INET6_ADDRSTRLEN] = L"";
+
+                if (NT_SUCCESS(RtlIpv6AddressToStringEx((PIN6_ADDR)&FwEvent->header.localAddrV6, 0, 0, ipvAddressString, &ipvAddressStringLength)))
                 {
-                    entry.LocalAddressString = PhCreateStringEx(ipv6AddressString, ipv6AddressStringLength * sizeof(WCHAR));
+                    entry.LocalAddressString = PhCreateStringEx(ipvAddressString, ipvAddressStringLength * sizeof(WCHAR));
                 }
             }
 
             if (FwEvent->header.flags & FWPM_NET_EVENT_FLAG_REMOTE_ADDR_SET)
             {
-                if (NT_SUCCESS(RtlIpv6AddressToStringEx((PIN6_ADDR)&FwEvent->header.remoteAddrV6, 0, 0, ipv6AddressString, &ipv6AddressStringLength)))
+                ULONG ipvAddressStringLength = INET6_ADDRSTRLEN;
+                WCHAR ipvAddressString[INET6_ADDRSTRLEN] = L"";
+
+                if (NT_SUCCESS(RtlIpv6AddressToStringEx((PIN6_ADDR)&FwEvent->header.remoteAddrV6, 0, 0, ipvAddressString, &ipvAddressStringLength)))
                 {
-                    entry.LocalAddressString = PhCreateStringEx(ipv6AddressString, ipv6AddressStringLength * sizeof(WCHAR));
+                    entry.RemoteAddressString = PhCreateStringEx(ipvAddressString, ipvAddressStringLength * sizeof(WCHAR));
                 }
             }
 
@@ -614,7 +804,7 @@ VOID NTAPI EtFwProcessesUpdatedCallback(
         item = CONTAINING_RECORD(ageListEntry, FW_EVENT_ITEM, AgeListEntry);
         ageListEntry = ageListEntry->Blink;
 
-        if (FwRunCount - item->FreshTime < AGE_TIME)
+        if (FwRunCount - item->FreshTime < FwMaxEventAge)
             break;
 
         PhInvokeCallback(&FwItemRemovedEvent, item);
@@ -635,8 +825,14 @@ BOOLEAN EtFwStartMonitor(
     FWPM_NET_EVENT_SUBSCRIPTION subscription = { 0 };
     FWPM_NET_EVENT_ENUM_TEMPLATE eventTemplate = { 0 };
 
-    FwObjectType = PhCreateObjectType(L"FwObject", 0, FwObjectTypeDeleteProcedure);
     RtlInitializeSListHead(&FwPacketListHead);
+    FwObjectType = PhCreateObjectType(L"FwObject", 0, FwObjectTypeDeleteProcedure);
+    EtFwResolveCacheHashtable = PhCreateHashtable(
+        sizeof(FW_RESOLVE_CACHE_ITEM),
+        EtFwResolveCacheHashtableEqualFunction,
+        EtFwResolveCacheHashtableHashFunction,
+        20
+        );
 
     if (!(moduleHandle = LoadLibrary(L"fwpuclnt.dll")))
         return FALSE;

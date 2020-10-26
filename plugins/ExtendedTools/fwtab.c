@@ -31,7 +31,7 @@ ULONG FwTreeNewSortColumn = FW_COLUMN_NAME;
 PH_SORT_ORDER FwTreeNewSortOrder = DescendingSortOrder;
 PH_STRINGREF FwTreeEmptyText = PH_STRINGREF_INIT(L"Firewall monitoring requires Process Hacker to be restarted with administrative privileges.");
 PPH_STRING FwTreeErrorText = NULL;
-PPH_MAIN_TAB_PAGE addedTabPage;
+PPH_MAIN_TAB_PAGE EtFwAddedTabPage;
 PH_PROVIDER_EVENT_QUEUE FwNetworkEventQueue;
 PH_CALLBACK_REGISTRATION FwItemAddedRegistration;
 PH_CALLBACK_REGISTRATION FwItemModifiedRegistration;
@@ -42,8 +42,7 @@ PH_TN_FILTER_SUPPORT EtFwFilterSupport;
 PTOOLSTATUS_INTERFACE EtFwToolStatusInterface;
 PH_CALLBACK_REGISTRATION EtFwSearchChangedRegistration;
 BOOLEAN EtFwEnabled = FALSE;
-PPH_HASHTABLE FwNodeHashtable = NULL;
-PPH_LIST FwNodeList;
+PPH_LIST FwNodeList = NULL;
 
 HWND NTAPI EtpToolStatusGetTreeNewHandle(
     VOID
@@ -173,7 +172,8 @@ VOID EtFwInitializeTab(
     memset(&page, 0, sizeof(PH_MAIN_TAB_PAGE));
     PhInitializeStringRef(&page.Name, L"Firewall");
     page.Callback = FwTabPageCallback;
-    addedTabPage = ProcessHacker_CreateTabPage(&page);
+
+    EtFwAddedTabPage = ProcessHacker_CreateTabPage(&page);
 
     if (toolStatusPlugin = PhFindPlugin(TOOLSTATUS_PLUGIN_NAME))
     {
@@ -183,7 +183,7 @@ VOID EtFwInitializeTab(
         {
             PTOOLSTATUS_TAB_INFO tabInfo;
 
-            tabInfo = EtFwToolStatusInterface->RegisterTabInfo(addedTabPage->Index);
+            tabInfo = EtFwToolStatusInterface->RegisterTabInfo(EtFwAddedTabPage->Index);
             tabInfo->BannerText = L"Search Firewall";
             tabInfo->ActivateContent = FwToolStatusActivateContent;
             tabInfo->GetTreeNewHandle = FwToolStatusGetTreeNewHandle;
@@ -317,8 +317,27 @@ VOID FwTickNodes(
     VOID
     )
 {
-    // Text invalidation
+    // Reset list once in a while.
+    {
+        static ULONG64 lastTickCount = 0;
+        ULONG64 tickCount = NtGetTickCount64();
 
+        if (tickCount - lastTickCount >= 120 * CLOCKS_PER_SEC)
+        {
+            PPH_LIST newList;
+            PPH_LIST oldList;
+
+            newList = PhCreateList(FwNodeList->Count);
+            PhAddItemsList(newList, FwNodeList->Items, FwNodeList->Count);
+
+            oldList = FwNodeList;
+            FwNodeList = newList;
+            PhDereferenceObject(oldList);
+            lastTickCount = tickCount;
+        }
+    }
+
+    // Text invalidation
     for (ULONG i = 0; i < FwNodeList->Count; i++)
     {
         PFW_EVENT_ITEM node = (PFW_EVENT_ITEM)FwNodeList->Items[i];
@@ -331,19 +350,6 @@ VOID FwTickNodes(
 
     InvalidateRect(FwTreeNewHandle, NULL, FALSE);
 }
-
-//static int __cdecl FwTreeNewCompareIndex(
-//    _In_ const void *_elem1,
-//    _In_ const void *_elem2
-//    ) 
-//{
-//    PFW_EVENT_ITEM node1 = *(PFW_EVENT_ITEM*)_elem1;
-//    PFW_EVENT_ITEM node2 = *(PFW_EVENT_ITEM*)_elem2;
-//
-//    int sortResult = !uint64cmp(node1->Index, node2->Index);
-//
-//    return PhModifySort(sortResult, DescendingSortOrder);
-//}
 
 #define SORT_FUNCTION(Column) FwTreeNewCompare##Column
 #define BEGIN_SORT_FUNCTION(Column) static int __cdecl FwTreeNewCompare##Column( \
@@ -446,9 +452,8 @@ BEGIN_SORT_FUNCTION(Filename)
 }
 END_SORT_FUNCTION
 
-
 BOOLEAN NTAPI FwTreeNewCallback(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PH_TREENEW_MESSAGE Message,
     _In_opt_ PVOID Parameter1,
     _In_opt_ PVOID Parameter2,
@@ -807,9 +812,9 @@ BOOLEAN NTAPI FwTreeNewCallback(
         return TRUE;
     case TreeNewSortChanged:
         {
-            TreeNew_GetSort(hwnd, &FwTreeNewSortColumn, &FwTreeNewSortOrder);
+            TreeNew_GetSort(WindowHandle, &FwTreeNewSortColumn, &FwTreeNewSortOrder);
             // Force a rebuild to sort the items.
-            TreeNew_NodesStructured(hwnd);
+            TreeNew_NodesStructured(WindowHandle);
         }
         return TRUE;
     case TreeNewKeyDown:
@@ -823,7 +828,7 @@ BOOLEAN NTAPI FwTreeNewCallback(
             {
             case 'C':
                 if (GetKeyState(VK_CONTROL) < 0)
-                    HandleFwCommand(PHAPP_IDC_COPY);
+                    EtFwHandleFwCommand(WindowHandle, ID_DISK_COPY);
                 break;
             case 'A':
                 TreeNew_SelectRange(FwTreeNewHandle, 0, -1);
@@ -835,16 +840,21 @@ BOOLEAN NTAPI FwTreeNewCallback(
         {
             PH_TN_COLUMN_MENU_DATA data;
 
-            data.TreeNewHandle = hwnd;
+            data.TreeNewHandle = WindowHandle;
             data.MouseEvent = Parameter1;
             data.DefaultSortColumn = 0;
             data.DefaultSortOrder = AscendingSortOrder;
             PhInitializeTreeNewColumnMenu(&data);
 
-            data.Selection = PhShowEMenu(data.Menu, hwnd, PH_EMENU_SHOW_LEFTRIGHT,
+            data.Selection = PhShowEMenu(data.Menu, WindowHandle, PH_EMENU_SHOW_LEFTRIGHT,
                 PH_ALIGN_LEFT | PH_ALIGN_TOP, data.MouseEvent->ScreenLocation.x, data.MouseEvent->ScreenLocation.y);
             PhHandleTreeNewColumnMenu(&data);
             PhDeleteTreeNewColumnMenu(&data);
+        }
+        return TRUE;
+    case TreeNewLeftDoubleClick:
+        {
+            EtFwHandleFwCommand(WindowHandle, ID_DISK_OPENFILELOCATION);
         }
         return TRUE;
     case TreeNewContextMenu:
@@ -854,7 +864,7 @@ BOOLEAN NTAPI FwTreeNewCallback(
             if (!contextMenuEvent)
                 break;
 
-            ShowFwContextMenu(hwnd, contextMenuEvent);
+            ShowFwContextMenu(WindowHandle, contextMenuEvent);
         }
         return TRUE;
     case TreeNewDestroying:
@@ -940,6 +950,8 @@ BOOLEAN NTAPI FwTreeNewCallback(
                     DT_LEFT | DT_VCENTER | DT_END_ELLIPSIS | DT_SINGLELINE
                     );
             }
+
+            rect.left -= 16 + 2;
         }
         return TRUE;
     }
@@ -967,7 +979,8 @@ PFW_EVENT_ITEM GetSelectedFwItem(
     return FwItem;
 }
 
-VOID GetSelectedFwItems(
+_Success_(return)
+BOOLEAN EtFwGetSelectedFwItems(
     _Out_ PFW_EVENT_ITEM **FwItems,
     _Out_ PULONG NumberOfFwItems
     )
@@ -984,10 +997,16 @@ VOID GetSelectedFwItems(
         }
     }
 
-    *FwItems = PhAllocateCopy(list->Items, sizeof(PVOID) * list->Count);
-    *NumberOfFwItems = list->Count;
+    if (list->Count)
+    {
+        *FwItems = PhAllocateCopy(list->Items, sizeof(PVOID) * list->Count);
+        *NumberOfFwItems = list->Count;
 
-    PhDereferenceObject(list);
+        PhDereferenceObject(list);
+        return TRUE;
+    }
+
+    return FALSE;
 }
 
 VOID DeselectAllFwNodes(
@@ -1044,19 +1063,55 @@ VOID WriteFwList(
     PhDereferenceObject(lines);
 }
 
-VOID HandleFwCommand(
+VOID EtFwHandleFwCommand(
+    _In_ HWND TreeWindowHandle,
     _In_ ULONG Id
     )
 {
     switch (Id)
     {
-    //case ID_FW_PROPERTIES:
-    //    {
-    //        //PFW_EVENT_ITEM fwItem = GetSelectedFwItem();
-    //        //PhCreateThread2(ShowFwRuleProperties, fwItem);
-    //    }
-    //    break;
-    case PHAPP_IDC_COPY:
+    case ID_DISK_OPENFILELOCATION:
+        {
+            PFW_EVENT_ITEM* fwItems;
+            ULONG numberOfFwItems;
+
+            if (EtFwGetSelectedFwItems(&fwItems, &numberOfFwItems))
+            {
+                if (numberOfFwItems != 0 && !PhIsNullOrEmptyString(fwItems[0]->ProcessFileName))
+                {
+                    PhShellExploreFile(TreeWindowHandle, PhGetString(fwItems[0]->ProcessFileName));
+                }
+
+                PhFree(fwItems);
+            }
+        }
+        break;
+    case ID_DISK_INSPECT:
+        {
+            PFW_EVENT_ITEM* fwItems;
+            ULONG numberOfFwItems;
+
+            if (EtFwGetSelectedFwItems(&fwItems, &numberOfFwItems))
+            {
+                if (numberOfFwItems != 0 && !PhIsNullOrEmptyString(fwItems[0]->ProcessFileName))
+                {
+                    if (PhDoesFileExistsWin32(PhGetString(fwItems[0]->ProcessFileName)))
+                    {
+                        PhShellExecuteUserString(
+                            TreeWindowHandle,
+                            L"ProgramInspectExecutables",
+                            PhGetString(fwItems[0]->ProcessFileName),
+                            FALSE,
+                            L"Make sure the PE Viewer executable file is present."
+                            );
+                    }
+                }
+
+                PhFree(fwItems);
+            }
+        }
+        break;
+    case ID_DISK_COPY:
         {
             CopyFwList();
         }
@@ -1074,10 +1129,26 @@ VOID InitializeFwMenu(
     {
         PhSetFlagsAllEMenuItems(Menu, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
     }
+    else if (NumberOfFwItems == 1)
+    {
+        if (PhIsNullOrEmptyString(FwItems[0]->ProcessFileName))
+        {
+            PhEnableEMenuItem(Menu, ID_DISK_OPENFILELOCATION, FALSE);
+            PhEnableEMenuItem(Menu, ID_DISK_INSPECT, FALSE);
+        }
+        else
+        {
+            if (!PhDoesFileExistsWin32(PhGetString(FwItems[0]->ProcessFileName)))
+            {
+                PhEnableEMenuItem(Menu, ID_DISK_OPENFILELOCATION, FALSE);
+                PhEnableEMenuItem(Menu, ID_DISK_INSPECT, FALSE);
+            }
+        }
+    }
     else
     {
         PhSetFlagsAllEMenuItems(Menu, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
-        PhEnableEMenuItem(Menu, PHAPP_IDC_COPY, TRUE);
+        PhEnableEMenuItem(Menu, ID_DISK_COPY, TRUE);
     }
 }
 
@@ -1089,7 +1160,8 @@ VOID ShowFwContextMenu(
     PFW_EVENT_ITEM *fwItems;
     ULONG numberOfFwItems;
 
-    GetSelectedFwItems(&fwItems, &numberOfFwItems);
+    if (!EtFwGetSelectedFwItems(&fwItems, &numberOfFwItems))
+        return;
 
     if (numberOfFwItems != 0)
     {
@@ -1097,9 +1169,14 @@ VOID ShowFwContextMenu(
         PPH_EMENU_ITEM item;
 
         menu = PhCreateEMenu();
-        //PhLoadResourceEMenuItem(menu, PluginInstance->DllBase, MAKEINTRESOURCE(IDR_FW_MENU), 0);
+        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_DISK_OPENFILELOCATION, L"Open &file location\bEnter", NULL, NULL), ULONG_MAX);
+        PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_DISK_INSPECT, L"&Inspect", NULL, NULL), ULONG_MAX);
+        PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_DISK_COPY, L"&Copy\bCtrl+C", NULL, NULL), ULONG_MAX);
         InitializeFwMenu(menu, fwItems, numberOfFwItems);
-        PhInsertCopyCellEMenuItem(menu, PHAPP_IDC_COPY, TreeWindowHandle, ContextMenuEvent->Column);
+        PhInsertCopyCellEMenuItem(menu, ID_DISK_COPY, TreeWindowHandle, ContextMenuEvent->Column);
+        PhSetFlagsEMenuItem(menu, ID_DISK_OPENFILELOCATION, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
 
         if (item = PhShowEMenu(
             menu,
@@ -1110,12 +1187,8 @@ VOID ShowFwContextMenu(
             ContextMenuEvent->Location.y
             ))
         {
-            BOOLEAN handled = FALSE;
-
-            handled = PhHandleCopyCellEMenuItem(item);
-
-            if (!handled)
-                HandleFwCommand(item->Id);
+            if (!PhHandleCopyCellEMenuItem(item))
+                EtFwHandleFwCommand(TreeWindowHandle, item->Id);
         }
 
         PhDestroyEMenu(menu);
