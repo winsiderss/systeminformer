@@ -613,6 +613,9 @@ VOID CALLBACK FwEventCallback(
     PPH_STRING ruleLayerName = NULL;
     PPH_STRING ruleLayerDescription = NULL;
 
+    if (!EtFwEnabled)
+        return;
+
     if (!FwProcessEventType(
         FwEvent,
         &isLoopback,
@@ -635,7 +638,6 @@ VOID CALLBACK FwEventCallback(
     entry.RuleLayerName = ruleLayerName;
     entry.RuleLayerDescription = ruleLayerDescription;
     entry.IpProtocol = FwEvent->header.ipProtocol;
-
 
     if (FwEvent->header.flags & FWPM_NET_EVENT_FLAG_IP_VERSION_SET)
     {
@@ -825,11 +827,12 @@ VOID NTAPI EtFwProcessesUpdatedCallback(
     FwRunCount++;
 }
 
-BOOLEAN EtFwStartMonitor(
+ULONG EtFwStartMonitor(
     VOID
     )
 {
     PVOID moduleHandle;
+    ULONG status;
     FWP_VALUE value = { FWP_EMPTY };
     FWPM_SESSION session = { 0 };
     FWPM_NET_EVENT_SUBSCRIPTION subscription = { 0 };
@@ -845,7 +848,7 @@ BOOLEAN EtFwStartMonitor(
         );
 
     if (!(moduleHandle = LoadLibrary(L"fwpuclnt.dll")))
-        return FALSE;
+        return GetLastError();
     if (!FwpmNetEventSubscribe_I)
         FwpmNetEventSubscribe_I = PhGetProcedureAddress(moduleHandle, "FwpmNetEventSubscribe4", 0);
     if (!FwpmNetEventSubscribe_I)
@@ -855,63 +858,51 @@ BOOLEAN EtFwStartMonitor(
     if (!FwpmNetEventSubscribe_I)
         FwpmNetEventSubscribe_I = PhGetProcedureAddress(moduleHandle, "FwpmNetEventSubscribe1", 0);
     if (!FwpmNetEventSubscribe_I)
-        return FALSE;
+        return ERROR_PROC_NOT_FOUND;
 
     session.flags = 0;// FWPM_SESSION_FLAG_DYNAMIC;
     session.displayData.name  = L"PhFwSession";
     session.displayData.description = L"";
 
     // Create a non-dynamic BFE session
+    status = FwpmEngineOpen(
+        NULL,
+        RPC_C_AUTHN_WINNT,
+        NULL,
+        &session,
+        &EtFwEngineHandle
+        );
 
-    if (FwpmEngineOpen(
-        NULL, 
-        RPC_C_AUTHN_WINNT, 
-        NULL, 
-        &session, 
-        &FwEngineHandle
-        ) != ERROR_SUCCESS)
-    {
-        return FALSE;
-    }
+    if (status != ERROR_SUCCESS)
+        return status;
 
     // Enable collection of NetEvents
 
     value.type = FWP_UINT32;
     value.uint32 = 1;
 
-    if (FwpmEngineSetOption(
-        FwEngineHandle,
-        FWPM_ENGINE_COLLECT_NET_EVENTS,
-        &value
-        ) != ERROR_SUCCESS)
-    {
-        return FALSE;
-    }
+    status = FwpmEngineSetOption(EtFwEngineHandle, FWPM_ENGINE_COLLECT_NET_EVENTS, &value);
+
+    if (status != ERROR_SUCCESS)
+        return status;
 
     if (WindowsVersion >= WINDOWS_8)
     {
         value.type = FWP_UINT32;
         value.uint32 =
-            FWPM_NET_EVENT_KEYWORD_CAPABILITY_DROP |
-            FWPM_NET_EVENT_KEYWORD_CAPABILITY_ALLOW |
-            FWPM_NET_EVENT_KEYWORD_CLASSIFY_ALLOW |
-            FWPM_NET_EVENT_KEYWORD_INBOUND_MCAST |
-            FWPM_NET_EVENT_KEYWORD_INBOUND_BCAST |
-            FWPM_NET_EVENT_KEYWORD_PORT_SCANNING_DROP;
+            FWPM_NET_EVENT_KEYWORD_CAPABILITY_DROP | FWPM_NET_EVENT_KEYWORD_CAPABILITY_ALLOW |
+            FWPM_NET_EVENT_KEYWORD_CLASSIFY_ALLOW | FWPM_NET_EVENT_KEYWORD_INBOUND_MCAST |
+            FWPM_NET_EVENT_KEYWORD_INBOUND_BCAST;
 
-        if (FwpmEngineSetOption(
-            FwEngineHandle,
-            FWPM_ENGINE_NET_EVENT_MATCH_ANY_KEYWORDS,
-            &value
-            ) != ERROR_SUCCESS)
-        {
-            return FALSE;
-        }
+        if (WindowsVersion >= WINDOWS_10_19H1)
+            value.uint32 |= FWPM_NET_EVENT_KEYWORD_PORT_SCANNING_DROP;
+
+        FwpmEngineSetOption(EtFwEngineHandle, FWPM_ENGINE_NET_EVENT_MATCH_ANY_KEYWORDS, &value);
 
         value.type = FWP_UINT32;
         value.uint32 = 1;
 
-        FwpmEngineSetOption(FwEngineHandle, FWPM_ENGINE_MONITOR_IPSEC_CONNECTIONS, &value);
+        FwpmEngineSetOption(EtFwEngineHandle, FWPM_ENGINE_MONITOR_IPSEC_CONNECTIONS, &value);
     }
 
     eventTemplate.numFilterConditions = 0; // get events for all conditions
@@ -920,16 +911,16 @@ BOOLEAN EtFwStartMonitor(
 
     // Subscribe to the events
 
-    if (FwpmNetEventSubscribe_I(
-        FwEngineHandle,
+    status = FwpmNetEventSubscribe_I(
+        EtFwEngineHandle,
         &subscription,
         FwEventCallback,
         NULL,
         &FwEventHandle
-        ) != ERROR_SUCCESS)
-    {
-        return FALSE;
-    }
+        );
+
+    if (status != ERROR_SUCCESS)
+        return status;
 
     PhRegisterCallback(
         PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
@@ -938,7 +929,7 @@ BOOLEAN EtFwStartMonitor(
         &EtFwProcessesUpdatedCallbackRegistration
         );
 
-    return TRUE;
+    return ERROR_SUCCESS;
 }
 
 VOID EtFwStopMonitor(
