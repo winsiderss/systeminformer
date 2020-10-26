@@ -536,46 +536,25 @@ BOOLEAN ServiceTreeFilterCallback(
     return FALSE;
 }
 
-// copied from ProcessHacker\netlist.c..
-static PPH_STRING PhpNetworkTreeGetNetworkItemProcessName(
-    _In_ PPH_NETWORK_ITEM NetworkItem
-    )
-{
-    PH_FORMAT format[4];
-
-    if (!NetworkItem->ProcessId)
-        return PhaCreateString(L"Waiting connections");
-
-    PhInitFormatS(&format[1], L" (");
-    PhInitFormatU(&format[2], HandleToUlong(NetworkItem->ProcessId));
-    PhInitFormatC(&format[3], ')');
-
-    if (NetworkItem->ProcessName)
-        PhInitFormatSR(&format[0], NetworkItem->ProcessName->sr);
-    else
-        PhInitFormatS(&format[0], L"Unknown process");
-
-    return PH_AUTO(PhFormat(format, 4, 96));
-}
-
 BOOLEAN NetworkTreeFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
     )
 {
     PPH_NETWORK_NODE networkNode = (PPH_NETWORK_NODE)Node;
-    PPH_STRING processNameText;
 
     if (PhIsNullOrEmptyString(SearchboxText))
         return TRUE;
 
-    // TODO: We need export the PPH_NETWORK_NODE->ProcessNameText field to search 
-    // waiting/unknown network connections... For now just replicate the data here.
-    processNameText = PhpNetworkTreeGetNetworkItemProcessName(networkNode->NetworkItem);
-
-    if (!PhIsNullOrEmptyString(processNameText))
+    if (!PhIsNullOrEmptyString(networkNode->ProcessNameText))
     {
-        if (WordMatchStringRef(&processNameText->sr))
+        if (WordMatchStringRef(&networkNode->ProcessNameText->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(networkNode->TimeStampText))
+    {
+        if (WordMatchStringRef(&networkNode->TimeStampText->sr))
             return TRUE;
     }
 
@@ -634,14 +613,11 @@ BOOLEAN NetworkTreeFilterCallback(
         WordMatchStringZ(PhGetTcpStateName(networkNode->NetworkItem->State)))
         return TRUE;
 
-    if (networkNode->NetworkItem->ProcessId)
+    if (networkNode->PidText)
     {
         PPH_PROCESS_NODE processNode;
-        WCHAR processIdString[PH_INT32_STR_LEN_1];
 
-        PhPrintUInt32(processIdString, HandleToUlong(networkNode->NetworkItem->ProcessId));
-
-        if (WordMatchStringZ(processIdString))
+        if (WordMatchStringRef(&networkNode->PidText->sr))
             return TRUE;
 
         // Search the process node
@@ -655,9 +631,7 @@ BOOLEAN NetworkTreeFilterCallback(
     return FALSE;
 }
 
-// NOTE: This function does not use the SCM due to major performance issues.
-// For now just query this information from the registry but it might be out-of-sync 
-// with any recent services changes until the SCM flushes its cache.
+// Note: This information might be out-of-sync with the SCM. (dmex)
 NTSTATUS QueryServiceFileName(
     _In_ PPH_STRINGREF ServiceName,
     _Out_ PPH_STRING *ServiceFileName,
@@ -665,60 +639,39 @@ NTSTATUS QueryServiceFileName(
     )
 {   
     static PH_STRINGREF servicesKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services\\");
-    static PH_STRINGREF typeKeyName = PH_STRINGREF_INIT(L"Type");
-
     NTSTATUS status;
     HANDLE keyHandle;
     ULONG serviceType = 0;
+    PPH_STRING binaryPath = NULL;
+    PPH_STRING fileName = NULL;
     PPH_STRING keyName;
-    PPH_STRING binaryPath;
-    PPH_STRING fileName;
 
     keyName = PhConcatStringRef2(&servicesKeyName, ServiceName);
-    binaryPath = NULL;
-    fileName = NULL;
-
-    if (NT_SUCCESS(status = PhOpenKey(
+    status = PhOpenKey(
         &keyHandle,
         KEY_READ,
         PH_KEY_LOCAL_MACHINE,
         &keyName->sr,
         0
-        )))
+        );
+
+    if (NT_SUCCESS(status))
     {
         PPH_STRING serviceImagePath;
-        PKEY_VALUE_PARTIAL_INFORMATION buffer;
+        PPH_STRING expandedString;
 
-        if (NT_SUCCESS(status = PhQueryValueKey(
-            keyHandle,
-            &typeKeyName,
-            KeyValuePartialInformation,
-            &buffer
-            )))
-        {
-            if (
-                buffer->Type == REG_DWORD &&
-                buffer->DataLength == sizeof(ULONG)
-                )
-            {
-                serviceType = *(PULONG)buffer->Data;
-            }
-
-            PhFree(buffer);
-        }
+        serviceType = PhQueryRegistryUlong(keyHandle, L"Type");
 
         if (serviceImagePath = PhQueryRegistryString(keyHandle, L"ImagePath"))
         {
-            PPH_STRING expandedString;
-
             if (expandedString = PhExpandEnvironmentStrings(&serviceImagePath->sr))
             {
-                binaryPath = expandedString;
+                PhMoveReference(&binaryPath, expandedString);
                 PhDereferenceObject(serviceImagePath);
             }
             else
             {
-                binaryPath = serviceImagePath;
+                PhMoveReference(&binaryPath, serviceImagePath);
             }
         }
         else

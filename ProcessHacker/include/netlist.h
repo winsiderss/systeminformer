@@ -27,16 +27,17 @@ typedef struct _PH_NETWORK_NODE
     PH_SH_STATE ShState;
 
     PPH_NETWORK_ITEM NetworkItem;
-// end_phapppub
 
-    PH_STRINGREF TextCache[PHNETLC_MAXIMUM];
-
-    ULONG64 UniqueId;
     PPH_STRING ProcessNameText;
     PPH_STRING TimeStampText;
     PPH_STRING PidText;
+// end_phapppub
 
     PPH_STRING TooltipText;
+
+    ULONG64 UniqueId;
+
+    PH_STRINGREF TextCache[PHNETLC_MAXIMUM];
 // begin_phapppub
 } PH_NETWORK_NODE, *PPH_NETWORK_NODE;
 // end_phapppub
