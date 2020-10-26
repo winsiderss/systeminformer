@@ -1121,6 +1121,30 @@ PDNS_RECORD PhDnsQuery(
     return dnsRecordList;
 }
 
+PDNS_RECORD PhDnsQuery2(
+    _In_opt_ PWSTR DnsServerAddress,
+    _In_ PWSTR DnsQueryMessage,
+    _In_ USHORT DnsQueryMessageType,
+    _In_ USHORT DnsQueryMessageOptions
+    )
+{
+    PDNS_RECORD dnsQueryRecords = NULL;
+
+    if (DnsQuery_W_Import())
+    {
+        DnsQuery_W_Import()(
+            DnsQueryMessage,
+            DnsQueryMessageType,
+            DnsQueryMessageOptions,
+            NULL,
+            &dnsQueryRecords,
+            NULL
+            );
+    }
+
+    return dnsQueryRecords;
+}
+
 VOID PhDnsFree(
     _In_ PDNS_RECORD DnsRecordList
     )
