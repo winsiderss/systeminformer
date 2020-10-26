@@ -686,6 +686,7 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                         PH_MEMORY_FILTER_MENU_HIDE_GUARD,
                         // Non-standard PH_MEMORY_FLAG options.
                         PH_MEMORY_FILTER_MENU_READ_ADDRESS,
+                        PH_MEMORY_FILTER_MENU_HEAPS,
                         PH_MEMORY_FILTER_MENU_STRINGS,
                     } PH_MEMORY_FILTER_MENU_ITEM;
 
@@ -700,7 +701,7 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                     PhInsertEMenuItem(menu, typeItem = PhCreateEMenuItem(0, PH_MEMORY_FILTER_MENU_HIGHLIGHT_EXECUTE, L"Highlight executable pages", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PH_MEMORY_FILTER_MENU_READ_ADDRESS, L"Read/Write &address...", NULL, NULL), ULONG_MAX);
-                    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PH_MEMORY_FILTER_MENU_HEAPS, L"Heaps...", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PH_MEMORY_FILTER_MENU_STRINGS, L"Strings...", NULL, NULL), ULONG_MAX);
 
                     if (memoryContext->ListContext.HideFreeRegions)
@@ -746,6 +747,10 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                         else if (selectedItem->Id == PH_MEMORY_FILTER_MENU_STRINGS)
                         {
                             PhShowMemoryStringDialog(hwndDlg, processItem);
+                        }
+                        else if (selectedItem->Id == PH_MEMORY_FILTER_MENU_HEAPS)
+                        {
+                            PhShowProcessHeapsDialog(hwndDlg, processItem);
                         }
                         else if (selectedItem->Id == PH_MEMORY_FILTER_MENU_READ_ADDRESS)
                         {
