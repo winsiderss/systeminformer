@@ -735,6 +735,7 @@ ULONG64 EtLookupTotalGpuCommit(
 extern BOOLEAN EtFwEnabled;
 extern ULONG EtFwStatus;
 extern ULONG FwRunCount;
+extern HANDLE EtFwEngineHandle;
 extern PH_CALLBACK FwItemAddedEvent;
 extern PH_CALLBACK FwItemModifiedEvent;
 extern PH_CALLBACK FwItemRemovedEvent;
