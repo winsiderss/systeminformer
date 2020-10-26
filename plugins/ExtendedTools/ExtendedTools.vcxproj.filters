@@ -90,6 +90,12 @@
     <ClCompile Include="counters.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="fwmon.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="fwtab.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">
