@@ -254,10 +254,11 @@ static BOOLEAN EnumPluginsDirectoryCallback(
     {
         PH_STRINGREF_INIT(L"CommonUtil.dll"),
         PH_STRINGREF_INIT(L"ExtraPlugins.dll"),
+        PH_STRINGREF_INIT(L"FirewallMonitorPlugin.dll"),
+        PH_STRINGREF_INIT(L"HexPidPlugin.dll"),
         PH_STRINGREF_INIT(L"NetAdapters.dll"),
         PH_STRINGREF_INIT(L"NetExtrasPlugin.dll"),
         PH_STRINGREF_INIT(L"SbieSupport.dll"),
-        PH_STRINGREF_INIT(L"HexPidPlugin.dll")
     };
     BOOLEAN blocklistedPlugin = FALSE;
     PH_STRINGREF baseName;
@@ -321,6 +322,56 @@ static BOOLEAN EnumPluginsDirectoryCallback(
     return TRUE;
 }
 
+VOID PhLoadDefaultPlugins(
+    _In_ PPH_STRING PluginsDirectory,
+    _Inout_ PPH_LIST PluginLoadErrors
+    )
+{
+    static PH_STRINGREF PhpDefaultPluginName[] =
+    {
+        PH_STRINGREF_INIT(L"DotNetTools.dll"),
+        PH_STRINGREF_INIT(L"ExtendedNotifications.dll"),
+        PH_STRINGREF_INIT(L"ExtendedServices.dll"),
+        PH_STRINGREF_INIT(L"ExtendedTools.dll"),
+        PH_STRINGREF_INIT(L"HardwareDevices.dll"),
+        PH_STRINGREF_INIT(L"NetworkTools.dll"),
+        PH_STRINGREF_INIT(L"OnlineChecks.dll"),
+        PH_STRINGREF_INIT(L"ToolStatus.dll"),
+        PH_STRINGREF_INIT(L"Updater.dll"),
+        PH_STRINGREF_INIT(L"UserNotes.dll"),
+        PH_STRINGREF_INIT(L"WindowExplorer.dll"),
+    };
+    PPH_STRING fileName;
+    NTSTATUS status;
+
+    for (ULONG i = 0; i < RTL_NUMBER_OF(PhpDefaultPluginName); i++)
+    {
+        if (fileName = PhConcatStringRef2(&PluginsDirectory->sr, &PhpDefaultPluginName[i]))
+        {
+            status = PhLoadPlugin(fileName);
+
+            if (!NT_SUCCESS(status))
+            {
+                PPHP_PLUGIN_LOAD_ERROR loadError;
+                PPH_STRING errorMessage;
+
+                loadError = PhAllocateZero(sizeof(PHP_PLUGIN_LOAD_ERROR));
+                PhSetReference(&loadError->FileName, fileName);
+
+                if (errorMessage = PhGetNtMessage(status))
+                {
+                    PhSetReference(&loadError->ErrorMessage, errorMessage);
+                    PhDereferenceObject(errorMessage);
+                }
+
+                PhAddItemList(PluginLoadErrors, loadError);
+            }
+
+            PhDereferenceObject(fileName);
+        }
+    }
+}
+
 /**
  * Loads plugins from the default plugins directory.
  */
@@ -329,7 +380,6 @@ VOID PhLoadPlugins(
     )
 {
     ULONG i;
-    HANDLE pluginsDirectoryHandle;
     PPH_STRING pluginsDirectory;
     PPH_LIST pluginLoadErrors;
 
@@ -338,41 +388,50 @@ VOID PhLoadPlugins(
 
     pluginLoadErrors = PhCreateList(1);
 
-    if (NT_SUCCESS(PhCreateFileWin32(
-        &pluginsDirectoryHandle,
-        PhGetString(pluginsDirectory),
-        FILE_LIST_DIRECTORY | SYNCHRONIZE,
-        FILE_ATTRIBUTE_DIRECTORY,
-        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-        FILE_OPEN,
-        FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-        )))
+    if (PhGetIntegerSetting(L"EnableSafeDefaultPlugins"))
     {
-        UNICODE_STRING pattern = RTL_CONSTANT_STRING(L"*.dll");
+        PhLoadDefaultPlugins(pluginsDirectory, pluginLoadErrors);
+    }
+    else
+    {
+        HANDLE pluginsDirectoryHandle;
 
-        if (!NT_SUCCESS(PhEnumDirectoryFileEx(
-            pluginsDirectoryHandle,
-            FileNamesInformation,
-            FALSE,
-            &pattern,
-            EnumPluginsDirectoryCallback,
-            pluginLoadErrors
+        if (NT_SUCCESS(PhCreateFileWin32(
+            &pluginsDirectoryHandle,
+            PhGetString(pluginsDirectory),
+            FILE_LIST_DIRECTORY | SYNCHRONIZE,
+            FILE_ATTRIBUTE_DIRECTORY,
+            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+            FILE_OPEN,
+            FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
             )))
         {
-            // Note: The MUP devices for Virtualbox and VMware improperly truncate
-            // data returned by NtQueryDirectoryFile when ReturnSingleEntry=FALSE and also have
-            // various other bugs and issues for information classes other than FileNamesInformation. (dmex)  
-            PhEnumDirectoryFileEx(
+            UNICODE_STRING pattern = RTL_CONSTANT_STRING(L"*.dll");
+
+            if (!NT_SUCCESS(PhEnumDirectoryFileEx(
                 pluginsDirectoryHandle,
                 FileNamesInformation,
-                TRUE,
+                FALSE,
                 &pattern,
                 EnumPluginsDirectoryCallback,
                 pluginLoadErrors
-                );
-        }
+                )))
+            {
+                // Note: The MUP devices for Virtualbox and VMware improperly truncate
+                // data returned by NtQueryDirectoryFile when ReturnSingleEntry=FALSE and also have
+                // various other bugs and issues for information classes other than FileNamesInformation. (dmex)  
+                PhEnumDirectoryFileEx(
+                    pluginsDirectoryHandle,
+                    FileNamesInformation,
+                    TRUE,
+                    &pattern,
+                    EnumPluginsDirectoryCallback,
+                    pluginLoadErrors
+                    );
+            }
 
-        NtClose(pluginsDirectoryHandle);
+            NtClose(pluginsDirectoryHandle);
+        }
     }
 
     // Handle load errors.
