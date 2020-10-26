@@ -381,6 +381,16 @@ PhDnsQuery(
     );
 
 PHLIBAPI
+PDNS_RECORD
+NTAPI
+PhDnsQuery2(
+    _In_opt_ PWSTR DnsServerAddress,
+    _In_ PWSTR DnsQueryMessage,
+    _In_ USHORT DnsQueryMessageType,
+    _In_ USHORT DnsQueryMessageOptions
+    );
+
+PHLIBAPI
 VOID
 NTAPI
 PhDnsFree(
