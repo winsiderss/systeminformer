@@ -284,7 +284,7 @@ PFW_EVENT_ITEM AddFwNode(
     if (EtFwFilterSupport.NodeList)
         FwItem->Node.Visible = PhApplyTreeNewFiltersToNode(&EtFwFilterSupport, &FwItem->Node);
 
-    TreeNew_NodesStructured(FwTreeNewHandle);
+    //TreeNew_NodesStructured(FwTreeNewHandle);
 
     return FwItem;
 }
@@ -300,7 +300,7 @@ VOID RemoveFwNode(
 
     PhDereferenceObject(FwNode);
 
-    TreeNew_NodesStructured(FwTreeNewHandle);
+    //TreeNew_NodesStructured(FwTreeNewHandle);
 }
 
 VOID UpdateFwNode(
@@ -310,7 +310,7 @@ VOID UpdateFwNode(
     memset(FwNode->TextCache, 0, sizeof(PH_STRINGREF) * FW_COLUMN_MAXIMUM);
 
     PhInvalidateTreeNewNode(&FwNode->Node, TN_CACHE_ICON);
-    TreeNew_NodesStructured(FwTreeNewHandle);
+    //TreeNew_NodesStructured(FwTreeNewHandle);
 }
 
 VOID FwTickNodes(
@@ -349,7 +349,8 @@ VOID FwTickNodes(
         PhSwapReference(&node->TooltipText, NULL);
     }
 
-    InvalidateRect(FwTreeNewHandle, NULL, FALSE);
+    //InvalidateRect(FwTreeNewHandle, NULL, FALSE);
+    TreeNew_NodesStructured(FwTreeNewHandle);
 }
 
 #define SORT_FUNCTION(Column) FwTreeNewCompare##Column
@@ -763,7 +764,7 @@ BOOLEAN NTAPI FwTreeNewCallback(
                 return FALSE;
             }
 
-            getCellText->Flags = TN_CACHE;
+            //getCellText->Flags = TN_CACHE;
         }
         return TRUE;
     case TreeNewGetNodeIcon:
@@ -1300,7 +1301,90 @@ BOOLEAN NTAPI FwSearchFilterCallback(
 
     if (PhIsNullOrEmptyString(EtFwToolStatusInterface->GetSearchboxText()))
         return TRUE;
- 
+
+    if (fwNode->ProcessBaseString)
+    {
+        if (wordMatch(&fwNode->ProcessBaseString->sr))
+            return TRUE;
+    }
+    else
+    {
+        static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"System");
+
+        if (wordMatch(&stringSr))
+            return TRUE;
+    }
+
+    switch (fwNode->Type)
+    {
+    case FWPM_NET_EVENT_TYPE_CLASSIFY_DROP:
+    case FWPM_NET_EVENT_TYPE_CAPABILITY_DROP:
+        {
+            static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"DROP");
+
+            if (wordMatch(&stringSr))
+                return TRUE;
+        }
+        break;
+    case FWPM_NET_EVENT_TYPE_CLASSIFY_ALLOW:
+    case FWPM_NET_EVENT_TYPE_CAPABILITY_ALLOW:
+        {
+            static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"ALLOW");
+
+            if (wordMatch(&stringSr))
+                return TRUE;
+        }
+        break;
+    case FWPM_NET_EVENT_TYPE_CLASSIFY_DROP_MAC:
+        {
+            static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"DROP_MAC");
+
+            if (wordMatch(&stringSr))
+                return TRUE;
+        }
+        break;
+    case FWPM_NET_EVENT_TYPE_IPSEC_KERNEL_DROP:
+        {
+            static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"IPSEC_KERNEL_DROP");
+
+            if (wordMatch(&stringSr))
+                return TRUE;
+        }
+        break;
+    case FWPM_NET_EVENT_TYPE_IPSEC_DOSP_DROP:
+        {
+            static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"IPSEC_DOSP_DROP");
+
+            if (wordMatch(&stringSr))
+                return TRUE;
+        }
+        break;
+    case FWPM_NET_EVENT_TYPE_IKEEXT_MM_FAILURE:
+        {
+            static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"IKEEXT_MM_FAILURE");
+
+            if (wordMatch(&stringSr))
+                return TRUE;
+        }
+        break;
+    case FWPM_NET_EVENT_TYPE_IKEEXT_QM_FAILURE:
+        {
+            static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"QM_FAILURE");
+
+            if (wordMatch(&stringSr))
+                return TRUE;
+        }
+        break;
+    case FWPM_NET_EVENT_TYPE_IKEEXT_EM_FAILURE:
+        {
+            static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"EM_FAILURE");
+
+            if (wordMatch(&stringSr))
+                return TRUE;
+        }
+        break;
+    }
+
     if (fwNode->ProcessFileName)
     {
         if (wordMatch(&fwNode->ProcessFileName->sr))
@@ -1313,9 +1397,21 @@ BOOLEAN NTAPI FwSearchFilterCallback(
             return TRUE;
     }
 
+    if (fwNode->LocalHostnameString)
+    {
+        if (wordMatch(&fwNode->LocalHostnameString->sr))
+            return TRUE;
+    }
+
     if (fwNode->RemoteAddressString)
     {
         if (wordMatch(&fwNode->RemoteAddressString->sr))
+            return TRUE;
+    }
+
+    if (fwNode->RemoteHostnameString)
+    {
+        if (wordMatch(&fwNode->RemoteHostnameString->sr))
             return TRUE;
     }
 
