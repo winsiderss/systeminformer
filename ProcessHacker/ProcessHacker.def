@@ -752,4 +752,5 @@ EXPORTS
     PhHttpSocketSetCredentials
     PhHttpDnsQuery
     PhDnsQuery
+    PhDnsQuery2
     PhDnsFree
