@@ -63,7 +63,10 @@ VOID NTAPI LoadCallback(
 
     if (PhGetIntegerSetting(SETTING_NAME_ENABLE_FW_MONITOR) && PhGetOwnTokenAttributes().Elevated)
     {
-        EtFwEnabled = EtFwStartMonitor();
+        if ((EtFwStatus = EtFwStartMonitor()) == ERROR_SUCCESS)
+        {
+            EtFwEnabled = TRUE;
+        }
     }
 }
 
