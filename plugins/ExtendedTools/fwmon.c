@@ -138,6 +138,14 @@ VOID NTAPI FwObjectTypeDeleteProcedure(
         PhDereferenceObject(event->ProcessFileNameWin32);
     if (event->ProcessBaseString)
         PhDereferenceObject(event->ProcessBaseString);
+    if (event->LocalAddressString)
+        PhDereferenceObject(event->LocalAddressString);
+    if (event->RemoteAddressString)
+        PhDereferenceObject(event->RemoteAddressString);
+    if (event->LocalHostnameString)
+        PhDereferenceObject(event->LocalHostnameString);
+    if (event->RemoteHostnameString)
+        PhDereferenceObject(event->RemoteHostnameString);
     if (event->RuleName)
         PhDereferenceObject(event->RuleName);
     if (event->RuleDescription)
@@ -146,6 +154,8 @@ VOID NTAPI FwObjectTypeDeleteProcedure(
         PhDereferenceObject(event->FwRuleLayerNameString);
     if (event->FwRuleLayerDescriptionString)
         PhDereferenceObject(event->FwRuleLayerDescriptionString);
+    if (event->TimeString)
+        PhDereferenceObject(event->TimeString);
     if (event->TooltipText)
         PhDereferenceObject(event->TooltipText);
 
@@ -849,7 +859,7 @@ BOOLEAN EtFwStartMonitor(
 
     session.flags = 0;// FWPM_SESSION_FLAG_DYNAMIC;
     session.displayData.name  = L"PhFwSession";
-    session.displayData.description = L"PhFwSession";
+    session.displayData.description = L"";
 
     // Create a non-dynamic BFE session
 
