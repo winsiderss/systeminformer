@@ -220,7 +220,7 @@ VOID InitializeFwTreeList(
     LoadSettingsFwTreeList();
 
     TreeNew_SetRedraw(FwTreeNewHandle, TRUE);
-    TreeNew_SetSort(FwTreeNewHandle, 0, DescendingSortOrder);
+    TreeNew_SetSort(FwTreeNewHandle, FW_COLUMN_TIMESTAMP, DescendingSortOrder);
     TreeNew_SetTriState(FwTreeNewHandle, TRUE);
 
     PhInitializeTreeNewFilterSupport(&EtFwFilterSupport, hwnd, FwNodeList);
@@ -237,14 +237,14 @@ VOID LoadSettingsFwTreeList(
     )
 {
     PPH_STRING settings;
-    //PH_INTEGER_PAIR sortSettings;
+    PH_INTEGER_PAIR sortSettings;
 
     settings = PhGetStringSetting(SETTING_NAME_FW_TREE_LIST_COLUMNS);
     PhCmLoadSettings(FwTreeNewHandle, &settings->sr);
     PhDereferenceObject(settings);
 
-    //sortSettings = PhGetIntegerPairSetting(SETTING_NAME_FW_TREE_LIST_SORT);
-    //TreeNew_SetSort(FwTreeNewHandle, (ULONG)sortSettings.X, (PH_SORT_ORDER)sortSettings.Y);
+    sortSettings = PhGetIntegerPairSetting(SETTING_NAME_FW_TREE_LIST_SORT);
+    TreeNew_SetSort(FwTreeNewHandle, (ULONG)sortSettings.X, (PH_SORT_ORDER)sortSettings.Y);
 }
 
 VOID SaveSettingsFwTreeList(
@@ -252,9 +252,9 @@ VOID SaveSettingsFwTreeList(
     )
 {
     PPH_STRING settings;
-    //PH_INTEGER_PAIR sortSettings;
-    //ULONG sortColumn;
-    //PH_SORT_ORDER sortOrder;
+    PH_INTEGER_PAIR sortSettings;
+    ULONG sortColumn;
+    PH_SORT_ORDER sortOrder;
         
     if (!FwTreeNewCreated)  
         return;
@@ -263,10 +263,10 @@ VOID SaveSettingsFwTreeList(
     PhSetStringSetting2(SETTING_NAME_FW_TREE_LIST_COLUMNS, &settings->sr);
     PhDereferenceObject(settings);
 
-    //TreeNew_GetSort(FwTreeNewHandle, &sortColumn, &sortOrder);
-    //sortSettings.X = sortColumn;
-    //sortSettings.Y = sortOrder;
-    //PhSetIntegerPairSetting(SETTING_NAME_FW_TREE_LIST_SORT, sortSettings);
+    TreeNew_GetSort(FwTreeNewHandle, &sortColumn, &sortOrder);
+    sortSettings.X = sortColumn;
+    sortSettings.Y = sortOrder;
+    PhSetIntegerPairSetting(SETTING_NAME_FW_TREE_LIST_SORT, sortSettings);
 }
 
 PFW_EVENT_ITEM AddFwNode(
@@ -436,7 +436,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Timestamp)
 {
-    sortResult = uint64cmp(node1->AddedTime.QuadPart, node2->AddedTime.QuadPart);
+    //sortResult = uint64cmp(node1->AddedTime.QuadPart, node2->AddedTime.QuadPart);
 }
 END_SORT_FUNCTION
 
