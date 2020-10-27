@@ -56,11 +56,14 @@ typedef struct _FW_EVENT
     ULONG ProcessId;
     ULONG IpProtocol;
 
+    ULONG64 FilterId;
+    ULONG LayerId;
+    ULONG OriginalProfile;
+    ULONG CurrentProfile;
+
     PH_IP_ENDPOINT LocalEndpoint;
     PH_IP_ENDPOINT RemoteEndpoint;
 
-    PPH_STRING LocalAddressString;
-    PPH_STRING RemoteAddressString;
     PPH_STRING LocalHostnameString;
     PPH_STRING RemoteHostnameString;
 
@@ -71,6 +74,9 @@ typedef struct _FW_EVENT
 
     PPH_STRING ProcessFileName;
     PPH_STRING ProcessBaseString;
+
+    INT CountryIconIndex;
+    PPH_STRING RemoteCountryName;
 
     PPH_PROCESS_ITEM ProcessItem;
 } FW_EVENT, *PFW_EVENT;
@@ -154,10 +160,6 @@ VOID NTAPI FwObjectTypeDeleteProcedure(
         PhDereferenceObject(event->ProcessFileName);
     if (event->ProcessBaseString)
         PhDereferenceObject(event->ProcessBaseString);
-    if (event->LocalAddressString)
-        PhDereferenceObject(event->LocalAddressString);
-    if (event->RemoteAddressString)
-        PhDereferenceObject(event->RemoteAddressString);
     if (event->LocalHostnameString)
         PhDereferenceObject(event->LocalHostnameString);
     if (event->RemoteHostnameString)
@@ -170,6 +172,9 @@ VOID NTAPI FwObjectTypeDeleteProcedure(
         PhDereferenceObject(event->FwRuleLayerNameString);
     if (event->FwRuleLayerDescriptionString)
         PhDereferenceObject(event->FwRuleLayerDescriptionString);
+    if (event->RemoteCountryName)
+        PhDereferenceObject(event->RemoteCountryName);
+
     if (event->TimeString)
         PhDereferenceObject(event->TimeString);
     if (event->TooltipText)
@@ -210,23 +215,16 @@ VOID FwProcessFirewallEvent(
 {
     PFW_EVENT diskEvent = &Packet->Event;
     PFW_EVENT_ITEM entry;
-    SYSTEMTIME systemTime;
 
     entry = FwCreateEventItem();
     PhQuerySystemTime(&entry->AddedTime);
-    PhLargeIntegerToLocalSystemTime(&systemTime, &entry->AddedTime);
-    entry->TimeString = PhFormatDateTime(&systemTime);
     entry->Direction = diskEvent->Direction;
     entry->Type = diskEvent->Type;
     entry->IpProtocol = diskEvent->IpProtocol;
-
     entry->LocalEndpoint = diskEvent->LocalEndpoint;
-    entry->LocalAddressString = diskEvent->LocalAddressString;
     entry->LocalHostnameString = diskEvent->LocalHostnameString;
     entry->RemoteEndpoint = diskEvent->RemoteEndpoint;
-    entry->RemoteAddressString = diskEvent->RemoteAddressString;
     entry->RemoteHostnameString = diskEvent->RemoteHostnameString;
-
     entry->ProcessFileName = diskEvent->ProcessFileName;
     entry->ProcessBaseString = diskEvent->ProcessBaseString;
     entry->ProcessItem = diskEvent->ProcessItem;
@@ -241,6 +239,8 @@ VOID FwProcessFirewallEvent(
     entry->RuleDescription = diskEvent->RuleDescription;
     entry->FwRuleLayerNameString = diskEvent->RuleLayerName;
     entry->FwRuleLayerDescriptionString = diskEvent->RuleLayerDescription;
+    entry->CountryIconIndex = diskEvent->CountryIconIndex;
+    entry->RemoteCountryName = diskEvent->RemoteCountryName;
 
     // Add the item to the age list.
     entry->AddTime = RunId;
@@ -258,22 +258,18 @@ BOOLEAN FwProcessEventType(
     _In_ const FWPM_NET_EVENT* FwEvent,
     _Out_ PBOOLEAN IsLoopback,
     _Out_ PULONG Direction,
-    _Out_opt_ PPH_STRING* RuleName,
-    _Out_opt_ PPH_STRING* RuleDescription,
-    _Out_opt_ PPH_STRING* RuleLayerName,
-    _Out_opt_ PPH_STRING* RuleLayerDescription
+    _Out_ PULONG64 filterId,
+    _Out_ PUSHORT layerId,
+    _Out_ PULONG reauthReason,
+    _Out_ PULONG originalProfile,
+    _Out_ PULONG currentProfile
     )
 {
     switch (FwEvent->type)
     {
     case FWPM_NET_EVENT_TYPE_CLASSIFY_DROP:
         {
-            FWPM_FILTER* fwFilterItem = NULL;
-            FWPM_LAYER* fwLayerItem = NULL;
             FWPM_NET_EVENT_CLASSIFY_DROP* fwDropEvent = FwEvent->classifyDrop;
-
-            if (IsLoopback)
-                *IsLoopback = fwDropEvent->isLoopback;
 
             switch (fwDropEvent->msFwpDirection)
             {
@@ -286,49 +282,27 @@ BOOLEAN FwProcessEventType(
                 *Direction = FWP_DIRECTION_OUTBOUND;
                 break;
             default:
-                return FALSE;
+                *Direction = FWP_DIRECTION_MAX;
+                break;
             }
 
-            if (fwDropEvent->layerId && FwpmLayerGetById(EtFwEngineHandle, fwDropEvent->layerId, &fwLayerItem) == ERROR_SUCCESS)
-            {
-                if (
-                    IsEqualGUID(&fwLayerItem->layerKey, &FWPM_LAYER_ALE_FLOW_ESTABLISHED_V4) ||
-                    IsEqualGUID(&fwLayerItem->layerKey, &FWPM_LAYER_ALE_FLOW_ESTABLISHED_V6) ||
-                    IsEqualGUID(&fwLayerItem->layerKey, &FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V4) ||
-                    IsEqualGUID(&fwLayerItem->layerKey, &FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V6)
-                    )
-                {
-                    FwpmFreeMemory(&fwLayerItem);
-                    return FALSE;
-                }
-
-                if (RuleLayerName && fwLayerItem->displayData.name)
-                    *RuleLayerName = PhCreateString(fwLayerItem->displayData.name);
-                if (RuleLayerDescription && fwLayerItem->displayData.description)
-                    *RuleLayerDescription = PhCreateString(fwLayerItem->displayData.description);
-
-                FwpmFreeMemory(&fwLayerItem);
-            }
-
-            if (fwDropEvent->filterId && FwpmFilterGetById(EtFwEngineHandle, fwDropEvent->filterId, &fwFilterItem) == ERROR_SUCCESS)
-            {
-                if (RuleName && fwFilterItem->displayData.name)
-                    *RuleName = PhCreateString(fwFilterItem->displayData.name);
-                if (RuleDescription && fwFilterItem->displayData.description)
-                    *RuleDescription = PhCreateString(fwFilterItem->displayData.description);
-
-                FwpmFreeMemory(&fwFilterItem);
-            }
+            if (filterId)
+                *filterId = fwDropEvent->filterId;
+            if (layerId)
+                *layerId = fwDropEvent->layerId;
+            if (reauthReason)
+                *reauthReason = fwDropEvent->reauthReason;
+            if (originalProfile)
+                *originalProfile = fwDropEvent->originalProfile;
+            if (currentProfile)
+                *currentProfile = fwDropEvent->currentProfile;
+            if (IsLoopback)
+                *IsLoopback = !!fwDropEvent->isLoopback;
         }
         return TRUE;
     case FWPM_NET_EVENT_TYPE_CLASSIFY_ALLOW:
         {
-            FWPM_FILTER* fwFilterItem = NULL;
-            FWPM_LAYER* fwLayerItem = NULL;
             FWPM_NET_EVENT_CLASSIFY_ALLOW* fwAllowEvent = FwEvent->classifyAllow;
-
-            if (IsLoopback)
-                *IsLoopback = fwAllowEvent->isLoopback;
 
             switch (fwAllowEvent->msFwpDirection)
             {
@@ -341,39 +315,22 @@ BOOLEAN FwProcessEventType(
                 *Direction = FWP_DIRECTION_OUTBOUND;
                 break;
             default:
-                return FALSE;
+                *Direction = FWP_DIRECTION_MAX;
+                break;
             }
 
-            if (fwAllowEvent->layerId && FwpmLayerGetById(EtFwEngineHandle, fwAllowEvent->layerId, &fwLayerItem) == ERROR_SUCCESS)
-            {
-                if (
-                    IsEqualGUID(&fwLayerItem->layerKey, &FWPM_LAYER_ALE_FLOW_ESTABLISHED_V4) ||
-                    IsEqualGUID(&fwLayerItem->layerKey, &FWPM_LAYER_ALE_FLOW_ESTABLISHED_V6) ||
-                    IsEqualGUID(&fwLayerItem->layerKey, &FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V4) ||
-                    IsEqualGUID(&fwLayerItem->layerKey, &FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V6)
-                    )
-                {
-                    FwpmFreeMemory(&fwLayerItem);
-                    return FALSE;
-                }
-
-                if (RuleLayerName && fwLayerItem->displayData.name)
-                    *RuleLayerName = PhCreateString(fwLayerItem->displayData.name);
-                if (RuleLayerDescription && fwLayerItem->displayData.description)
-                    *RuleLayerDescription = PhCreateString(fwLayerItem->displayData.description);
-
-                FwpmFreeMemory(&fwLayerItem);
-            }
-
-            if (fwAllowEvent->filterId && FwpmFilterGetById(EtFwEngineHandle, fwAllowEvent->filterId, &fwFilterItem) == ERROR_SUCCESS)
-            {
-                if (RuleName && fwFilterItem->displayData.name)
-                    *RuleName = PhCreateString(fwFilterItem->displayData.name);
-                if (RuleDescription && fwFilterItem->displayData.description)
-                    *RuleDescription = PhCreateString(fwFilterItem->displayData.description);
-
-                FwpmFreeMemory(&fwFilterItem);
-            }
+            if (filterId)
+                *filterId = fwAllowEvent->filterId;
+            if (layerId)
+                *layerId = fwAllowEvent->layerId;
+            if (reauthReason)
+                *reauthReason = fwAllowEvent->reauthReason;
+            if (originalProfile)
+                *originalProfile = fwAllowEvent->originalProfile;
+            if (currentProfile)
+                *currentProfile = fwAllowEvent->currentProfile;
+            if (IsLoopback)
+                *IsLoopback = !!fwAllowEvent->isLoopback;
         }
         return TRUE;
     }
@@ -437,11 +394,93 @@ PPH_STRING EtFwGetNameFromAddress(
 {
     PPH_STRING addressEndpointString = NULL;
     PPH_STRING dnsEndpointReverseString;
-    PDNS_RECORD dnsRecordList;
+
+    switch (Address->Type)
+    {
+    case PH_IPV4_NETWORK_TYPE:
+        {
+            if (IN4_IS_ADDR_UNSPECIFIED(&Address->InAddr))
+            {
+                static PPH_STRING string = NULL;
+                if (!string) string = PhCreateString(L"[Unspecified]");
+
+                return PhReferenceObject(string);
+            }
+            else if (IN4_IS_ADDR_LOOPBACK(&Address->InAddr))
+            {
+                static PPH_STRING string = NULL;
+                if (!string) string = PhCreateString(L"[Loopback]");
+
+                return PhReferenceObject(string);
+            }
+            else if (IN4_IS_ADDR_BROADCAST(&Address->InAddr))
+            {
+                static PPH_STRING string = NULL;
+                if (!string) string = PhCreateString(L"[Broadcast]");
+
+                return PhReferenceObject(string);
+            }
+            else if (IN4_IS_ADDR_MULTICAST(&Address->InAddr))
+            {
+                static PPH_STRING string = NULL;
+                if (!string) string = PhCreateString(L"[Multicast]");
+
+                return PhReferenceObject(string);
+            }
+            else if (IN4_IS_ADDR_LINKLOCAL(&Address->InAddr))
+            {
+                static PPH_STRING string = NULL;
+                if (!string) string = PhCreateString(L"[Linklocal]");
+
+                return PhReferenceObject(string);
+            }
+            //else if (IN4_IS_ADDR_RFC1918(&Address->InAddr))
+            //{
+            //    static PPH_STRING string = NULL;
+            //    if (!string) string = PhCreateString(L"RFC1918");
+            //    return PhReferenceObject(string);
+            //}
+        }
+        break;
+    case PH_IPV6_NETWORK_TYPE:
+        {
+            if (IN6_IS_ADDR_UNSPECIFIED(&Address->In6Addr))
+            {
+                static PPH_STRING string = NULL;
+                if (!string) string = PhCreateString(L"[Unspecified]");
+
+                return PhReferenceObject(string);
+            }
+            else if (IN6_IS_ADDR_LOOPBACK(&Address->In6Addr))
+            {
+                static PPH_STRING string = NULL;
+                if (!string) string = PhCreateString(L"[Loopback]");
+
+                return PhReferenceObject(string);
+            }
+            else if (IN6_IS_ADDR_MULTICAST(&Address->In6Addr))
+            {
+                static PPH_STRING string = NULL;
+                if (!string) string = PhCreateString(L"[Multicast]");
+
+                return PhReferenceObject(string);
+            }
+            else if (IN6_IS_ADDR_LINKLOCAL(&Address->In6Addr))
+            {
+                static PPH_STRING string = NULL;
+                if (!string) string = PhCreateString(L"[Linklocal]");
+
+                return PhReferenceObject(string);
+            }
+        }
+        break;
+    }
 
     if (dnsEndpointReverseString = EtFwGetDnsReverseNameFromAddress(Address))
     {
-        if (dnsRecordList = PhDnsQuery2(NULL, dnsEndpointReverseString->Buffer, DNS_TYPE_PTR, 0)) // DNS_QUERY_NO_WIRE_QUERY
+        PDNS_RECORD dnsRecordList;
+
+        if (dnsRecordList = PhDnsQuery(NULL, dnsEndpointReverseString->Buffer, DNS_TYPE_PTR)) // DNS_QUERY_NO_WIRE_QUERY
         {
             for (PDNS_RECORD dnsRecord = dnsRecordList; dnsRecord; dnsRecord = dnsRecord->pNext)
             {
@@ -617,11 +656,7 @@ VOID PhpQueryHostnameForEntry(
         }
         else
         {
-            if (!Entry->HostNameLocalQuery)
-            {
-                EtFwQueueNetworkItemQuery(Entry, FALSE);
-                Entry->HostNameLocalQuery = TRUE;
-            }
+            EtFwQueueNetworkItemQuery(Entry, FALSE);
         }
     }
 
@@ -639,16 +674,112 @@ VOID PhpQueryHostnameForEntry(
         }
         else
         {
-            if (!Entry->HostNameRemoteQuery)
-            {
-                EtFwQueueNetworkItemQuery(Entry, TRUE);
-                Entry->HostNameRemoteQuery = TRUE;
-            }
+            EtFwQueueNetworkItemQuery(Entry, TRUE);
         }
     }
 }
 
-VOID CALLBACK FwEventCallback(
+PPH_PROCESS_ITEM EtFwFileNameToProcess(
+    _In_ PPH_STRING ProcessBaseString
+)
+{
+    static PVOID processInfo = NULL;
+    static ULONG64 lastTickTotal = 0;
+    PSYSTEM_PROCESS_INFORMATION process;
+    ULONG64 tickCount = NtGetTickCount64();
+
+    if (tickCount - lastTickTotal >= 2 * CLOCKS_PER_SEC)
+    {
+        lastTickTotal = tickCount;
+
+        if (processInfo)
+        {
+            PhFree(processInfo);
+            processInfo = NULL;
+        }
+
+        PhEnumProcesses(&processInfo);
+    }
+
+    if (process = PhFindProcessInformationByImageName(processInfo, &ProcessBaseString->sr))
+    {
+        return PhReferenceProcessItem(process->UniqueProcessId);
+    }
+
+    lastTickTotal = tickCount;
+
+    if (processInfo)
+    {
+        PhFree(processInfo);
+        processInfo = NULL;
+    }
+
+    PhEnumProcesses(&processInfo);
+
+    if (process = PhFindProcessInformationByImageName(processInfo, &ProcessBaseString->sr))
+    {
+        return PhReferenceProcessItem(process->UniqueProcessId);
+    }
+
+    return NULL;
+}
+
+#define NETWORKTOOLS_PLUGIN_NAME L"ProcessHacker.NetworkTools"
+#define NETWORKTOOLS_INTERFACE_VERSION 1
+
+typedef BOOLEAN (NTAPI* PNETWORKTOOLS_GET_COUNTRYCODE)(
+    _In_ PH_IP_ADDRESS RemoteAddress,
+    _Out_ PPH_STRING* CountryCode,
+    _Out_ PPH_STRING* CountryName
+    );
+
+typedef INT (NTAPI* PNETWORKTOOLS_GET_COUNTRYICON)(
+    _In_ PPH_STRING Name
+    );
+
+typedef VOID (NTAPI* PNETWORKTOOLS_DRAW_COUNTRYICON)(
+    _In_ HDC hdc,
+    _In_ RECT rect,
+    _In_ INT Index
+    );
+
+typedef struct _NETWORKTOOLS_INTERFACE
+{
+    ULONG Version;
+    PNETWORKTOOLS_GET_COUNTRYCODE LookupCountryCode;
+    PNETWORKTOOLS_GET_COUNTRYICON LookupCountryIcon;
+    PNETWORKTOOLS_DRAW_COUNTRYICON DrawCountryIcon;
+} NETWORKTOOLS_INTERFACE, *PNETWORKTOOLS_INTERFACE;
+
+PNETWORKTOOLS_INTERFACE EtFwGetPluginInterface(
+    VOID
+    )
+{
+    static PNETWORKTOOLS_INTERFACE pluginInterface = NULL;
+    PPH_PLUGIN toolStatusPlugin;
+
+    if (!pluginInterface && (toolStatusPlugin = PhFindPlugin(NETWORKTOOLS_PLUGIN_NAME)))
+    {
+        pluginInterface = PhGetPluginInformation(toolStatusPlugin)->Interface;
+
+        if (pluginInterface->Version < NETWORKTOOLS_INTERFACE_VERSION)
+            pluginInterface = NULL;
+    }
+
+    return pluginInterface;
+}
+
+VOID EtFwDrawCountryIcon(
+    _In_ HDC hdc,
+    _In_ RECT rect,
+    _In_ INT Index
+    )
+{
+    if (EtFwGetPluginInterface())
+        EtFwGetPluginInterface()->DrawCountryIcon(hdc, rect, Index);
+}
+
+VOID CALLBACK EtFwEventCallback(
     _Inout_ PVOID FwContext,
     _In_ const FWPM_NET_EVENT* FwEvent
     )
@@ -656,10 +787,17 @@ VOID CALLBACK FwEventCallback(
     FW_EVENT entry;
     BOOLEAN isLoopback = FALSE;
     ULONG direction = ULONG_MAX;
+    ULONG64 filterId;
+    USHORT layerId;
+    ULONG reauthReason;
+    ULONG originalProfile;
+    ULONG currentProfile;
     PPH_STRING ruleName = NULL;
     PPH_STRING ruleDescription = NULL;
     PPH_STRING ruleLayerName = NULL;
     PPH_STRING ruleLayerDescription = NULL;
+    FWPM_LAYER* layer = NULL;
+    FWPM_FILTER* filter = NULL;
 
     if (!EtFwEnabled)
         return;
@@ -668,13 +806,45 @@ VOID CALLBACK FwEventCallback(
         FwEvent,
         &isLoopback,
         &direction,
-        &ruleName,
-        &ruleDescription,
-        &ruleLayerName,
-        &ruleLayerDescription
+        &filterId,
+        &layerId,
+        &reauthReason,
+        &originalProfile,
+        &currentProfile
         ))
     {
         return;
+    }
+
+    if (FwpmLayerGetById(EtFwEngineHandle, layerId, &layer) == ERROR_SUCCESS)
+    {
+        if (
+            IsEqualGUID(&layer->layerKey, &FWPM_LAYER_ALE_FLOW_ESTABLISHED_V4) ||
+            IsEqualGUID(&layer->layerKey, &FWPM_LAYER_ALE_FLOW_ESTABLISHED_V6) ||
+            IsEqualGUID(&layer->layerKey, &FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V4) ||
+            IsEqualGUID(&layer->layerKey, &FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V6)
+            )
+        {
+            FwpmFreeMemory(&layer);
+            return;
+        }
+
+        if (layer->displayData.name)
+            ruleLayerName = PhCreateString(layer->displayData.name);
+        if (layer->displayData.description)
+            ruleLayerDescription = PhCreateString(layer->displayData.description);
+
+        FwpmFreeMemory(&layer);
+    }
+
+    if (FwpmFilterGetById(EtFwEngineHandle, filterId, &filter) == ERROR_SUCCESS)
+    {
+        if (filter->displayData.name)
+            ruleName = PhCreateString(filter->displayData.name);
+        if (filter->displayData.description)
+            ruleDescription = PhCreateString(filter->displayData.description);
+
+        FwpmFreeMemory(&filter);
     }
 
     memset(&entry, 0, sizeof(FW_EVENT));
@@ -685,7 +855,11 @@ VOID CALLBACK FwEventCallback(
     entry.RuleDescription = ruleDescription;
     entry.RuleLayerName = ruleLayerName;
     entry.RuleLayerDescription = ruleLayerDescription;
-    entry.IpProtocol = FwEvent->header.ipProtocol;
+
+    if (FwEvent->header.flags & FWPM_NET_EVENT_FLAG_IP_PROTOCOL_SET)
+    {
+        entry.IpProtocol = FwEvent->header.ipProtocol;
+    }
 
     if (FwEvent->header.flags & FWPM_NET_EVENT_FLAG_IP_VERSION_SET)
     {
@@ -693,63 +867,48 @@ VOID CALLBACK FwEventCallback(
         {
             if (FwEvent->header.flags & FWPM_NET_EVENT_FLAG_LOCAL_ADDR_SET)
             {
-                ULONG ipvAddressStringLength = INET6_ADDRSTRLEN;
-                WCHAR ipvAddressString[INET6_ADDRSTRLEN] = L"";
-                ULONG localAddrV4 = _byteswap_ulong(FwEvent->header.localAddrV4);
                 entry.LocalEndpoint.Address.Type = PH_IPV4_NETWORK_TYPE;
-                entry.LocalEndpoint.Address.Ipv4 = localAddrV4;
-                entry.LocalEndpoint.Port = FwEvent->header.localPort;
+                entry.LocalEndpoint.Address.Ipv4 = _byteswap_ulong(FwEvent->header.localAddrV4);
+            }
 
-                if (NT_SUCCESS(RtlIpv4AddressToStringEx((PIN_ADDR)&localAddrV4, 0, ipvAddressString, &ipvAddressStringLength)))
-                {
-                    entry.LocalAddressString = PhCreateStringEx(ipvAddressString, ipvAddressStringLength * sizeof(WCHAR));
-                }
+            if (FwEvent->header.flags & FWPM_NET_EVENT_FLAG_LOCAL_PORT_SET)
+            {
+                entry.LocalEndpoint.Port = FwEvent->header.localPort;
             }
 
             if (FwEvent->header.flags & FWPM_NET_EVENT_FLAG_REMOTE_ADDR_SET)
             {
-                ULONG ipvAddressStringLength = INET6_ADDRSTRLEN;
-                WCHAR ipvAddressString[INET6_ADDRSTRLEN] = L"";
-                ULONG remoteAddrV4 = _byteswap_ulong(FwEvent->header.remoteAddrV4);
                 entry.RemoteEndpoint.Address.Type = PH_IPV4_NETWORK_TYPE;
-                entry.RemoteEndpoint.Address.Ipv4 = remoteAddrV4;
-                entry.RemoteEndpoint.Port = FwEvent->header.remotePort;
+                entry.RemoteEndpoint.Address.Ipv4 = _byteswap_ulong(FwEvent->header.remoteAddrV4);
+            }
 
-                if (NT_SUCCESS(RtlIpv4AddressToStringEx((PIN_ADDR)&remoteAddrV4, 0, ipvAddressString, &ipvAddressStringLength)))
-                {
-                    entry.RemoteAddressString = PhCreateStringEx(ipvAddressString, ipvAddressStringLength * sizeof(WCHAR));
-                }
+            if (FwEvent->header.flags & FWPM_NET_EVENT_FLAG_REMOTE_PORT_SET)
+            {
+                entry.RemoteEndpoint.Port = FwEvent->header.remotePort;
             }
         }
         else if (FwEvent->header.ipVersion == FWP_IP_VERSION_V6)
         {
-            entry.LocalEndpoint.Address.Type = PH_IPV6_NETWORK_TYPE;
-            memcpy(entry.LocalEndpoint.Address.Ipv6, FwEvent->header.localAddrV6.byteArray16, 16);
-            entry.LocalEndpoint.Port = FwEvent->header.localPort;
-            entry.RemoteEndpoint.Address.Type = PH_IPV6_NETWORK_TYPE;
-            memcpy(entry.RemoteEndpoint.Address.Ipv6, FwEvent->header.remoteAddrV6.byteArray16, 16);
-            entry.RemoteEndpoint.Port = FwEvent->header.remotePort;
-
             if (FwEvent->header.flags & FWPM_NET_EVENT_FLAG_LOCAL_ADDR_SET)
             {
-                ULONG ipvAddressStringLength = INET6_ADDRSTRLEN;
-                WCHAR ipvAddressString[INET6_ADDRSTRLEN] = L"";
+                entry.LocalEndpoint.Address.Type = PH_IPV6_NETWORK_TYPE;
+                memcpy(entry.LocalEndpoint.Address.Ipv6, FwEvent->header.localAddrV6.byteArray16, 16);
+            }
 
-                if (NT_SUCCESS(RtlIpv6AddressToStringEx((PIN6_ADDR)&FwEvent->header.localAddrV6, 0, 0, ipvAddressString, &ipvAddressStringLength)))
-                {
-                    entry.LocalAddressString = PhCreateStringEx(ipvAddressString, ipvAddressStringLength * sizeof(WCHAR));
-                }
+            if (FwEvent->header.flags & FWPM_NET_EVENT_FLAG_LOCAL_PORT_SET)
+            {
+                entry.LocalEndpoint.Port = FwEvent->header.localPort;
             }
 
             if (FwEvent->header.flags & FWPM_NET_EVENT_FLAG_REMOTE_ADDR_SET)
             {
-                ULONG ipvAddressStringLength = INET6_ADDRSTRLEN;
-                WCHAR ipvAddressString[INET6_ADDRSTRLEN] = L"";
+                entry.RemoteEndpoint.Address.Type = PH_IPV6_NETWORK_TYPE;
+                memcpy(entry.RemoteEndpoint.Address.Ipv6, FwEvent->header.remoteAddrV6.byteArray16, 16);
+            }
 
-                if (NT_SUCCESS(RtlIpv6AddressToStringEx((PIN6_ADDR)&FwEvent->header.remoteAddrV6, 0, 0, ipvAddressString, &ipvAddressStringLength)))
-                {
-                    entry.RemoteAddressString = PhCreateStringEx(ipvAddressString, ipvAddressStringLength * sizeof(WCHAR));
-                }
+            if (FwEvent->header.flags & FWPM_NET_EVENT_FLAG_REMOTE_PORT_SET)
+            {
+                entry.RemoteEndpoint.Port = FwEvent->header.remotePort;
             }
         }
     }
@@ -758,66 +917,38 @@ VOID CALLBACK FwEventCallback(
     {
         if (FwEvent->header.appId.data && FwEvent->header.appId.size)
         {
-            PPH_STRING fileName = PhCreateStringEx((PWSTR)FwEvent->header.appId.data, (SIZE_T)FwEvent->header.appId.size);
+            PPH_STRING fileName;
+
+            fileName = PhCreateStringEx((PWSTR)FwEvent->header.appId.data, (SIZE_T)FwEvent->header.appId.size);
             entry.ProcessFileName = PhGetFileName(fileName);
+
             PhDereferenceObject(fileName);
         }
 
         if (entry.ProcessFileName)
         {
-            PVOID processes;
-            PSYSTEM_PROCESS_INFORMATION processInfo;
-
-            entry.ProcessBaseString = PhGetBaseName(entry.ProcessFileName);
-
-            if (entry.ProcessBaseString && NT_SUCCESS(PhEnumProcesses(&processes)))
+            if (entry.ProcessBaseString = PhGetBaseName(entry.ProcessFileName))
             {
-                if (processInfo = PhFindProcessInformationByImageName(processes, &entry.ProcessBaseString->sr))
-                {
-                    entry.ProcessItem = PhReferenceProcessItem(processInfo->UniqueProcessId);
-                }
-
-                PhFree(processes);
+                entry.ProcessItem = EtFwFileNameToProcess(entry.ProcessBaseString);
             }
+        }
+    }
 
-            //if (node->ProcessIconValid && node->ProcessIcon)
-            //{
-            //    getNodeIcon->Icon = node->ProcessIcon;
-            //}
-            //else
-            //{
-            //    if (!node->ProcessIconValid && node->ProcessFileName)
-            //    {
-            //        PPH_PROCESS_ITEM* processes;
-            //        ULONG numberOfProcesses;
-            //        ULONG i;
-            //
-            //        PhEnumProcessItems(&processes, &numberOfProcesses);
-            //
-            //        for (i = 0; i < numberOfProcesses; i++)
-            //        {
-            //            PPH_PROCESS_ITEM process = processes[i];
-            //
-            //            if (process->FileName && PhEqualString(process->FileName, node->ProcessFileName, TRUE))
-            //            {
-            //                if (PhTestEvent(&process->Stage1Event))
-            //                {
-            //                    PhSetReference(&node->ProcessItem, process);
-            //                    node->ProcessIcon = process->SmallIcon;
-            //                    node->ProcessIconValid = TRUE;
-            //                    break;
-            //                }
-            //            }
-            //        }
-            //
-            //        PhDereferenceObjects(processes, numberOfProcesses);
-            //    }
-            //}
+    if (EtFwGetPluginInterface())
+    {
+        PPH_STRING remoteCountryCode;
+        PPH_STRING remoteCountryName;
 
-            //FWP_BYTE_BLOB* fwpApplicationByteBlob = NULL;
-            //if (FwpmGetAppIdFromFileName(fileNameString->Buffer, &fwpApplicationByteBlob) == ERROR_SUCCESS)
-            //fwEventItem->ProcessBaseString = PhCreateStringEx(fwpApplicationByteBlob->data, fwpApplicationByteBlob->size);        
-            //fwEventItem->Icon = PhGetFileShellIcon(PhGetString(fwEventItem->ProcessFileName), L".exe", FALSE);
+        if (EtFwGetPluginInterface()->LookupCountryCode(
+            entry.RemoteEndpoint.Address,
+            &remoteCountryCode,
+            &remoteCountryName
+            ))
+        {
+            PhMoveReference(&entry.RemoteCountryName, remoteCountryName);
+            entry.CountryIconIndex = EtFwGetPluginInterface()->LookupCountryIcon(remoteCountryCode);
+
+            PhDereferenceObject(remoteCountryCode);
         }
     }
 
@@ -981,7 +1112,7 @@ ULONG EtFwStartMonitor(
     status = FwpmNetEventSubscribe_I(
         EtFwEngineHandle,
         &subscription,
-        FwEventCallback,
+        EtFwEventCallback,
         NULL,
         &FwEventHandle
         );

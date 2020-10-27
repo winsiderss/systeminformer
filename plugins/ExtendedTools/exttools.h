@@ -757,6 +757,7 @@ typedef enum _FW_COLUMN_TYPE
     FW_COLUMN_PROTOCOL,
     FW_COLUMN_TIMESTAMP,
     FW_COLUMN_PROCESSFILENAME,
+    FW_COLUMN_COUNTRY,
     FW_COLUMN_MAXIMUM
 } FW_COLUMN_TYPE;
 
@@ -790,9 +791,7 @@ typedef struct _FW_EVENT_ITEM
         struct
         {
             BOOLEAN Loopback : 1;
-            BOOLEAN HostNameLocalQuery : 1;
-            BOOLEAN HostNameRemoteQuery : 1;
-            BOOLEAN Spare : 5;
+            BOOLEAN Spare : 7;
         };
     };
 
@@ -810,10 +809,11 @@ typedef struct _FW_EVENT_ITEM
 
     PPH_STRING ProcessFileName;
     PPH_STRING ProcessBaseString;
-    PPH_STRING LocalAddressString;
-    PPH_STRING RemoteAddressString;
+
     PPH_STRING LocalHostnameString;
     PPH_STRING RemoteHostnameString;
+    WCHAR LocalAddressString[INET6_ADDRSTRLEN];
+    WCHAR RemoteAddressString[INET6_ADDRSTRLEN];
     WCHAR LocalPortString[PH_INT32_STR_LEN_1];
     WCHAR RemotePortString[PH_INT32_STR_LEN_1];
 
@@ -823,6 +823,9 @@ typedef struct _FW_EVENT_ITEM
     PPH_STRING FwRuleLayerDescriptionString;
     PPH_STRING TimeString;
 
+    PPH_STRING RemoteCountryName;
+    INT CountryIconIndex;
+
     PPH_STRING TooltipText;
     PH_STRINGREF TextCache[FW_COLUMN_MAXIMUM];
 } FW_EVENT_ITEM, *PFW_EVENT_ITEM;
@@ -830,16 +833,28 @@ typedef struct _FW_EVENT_ITEM
 ULONG EtFwStartMonitor(
     VOID
     );
+
 VOID EtFwStopMonitor(
     VOID
     );
+
 VOID EtFwInitializeTab(
     VOID
     );
+
 VOID LoadSettingsFwTreeList(
-    VOID);
+    VOID
+    );
+
 VOID SaveSettingsFwTreeList(
-    VOID);
+    VOID
+    );
+
+VOID EtFwDrawCountryIcon(
+    _In_ HDC hdc,
+    _In_ RECT rect,
+    _In_ INT Index
+    );
 
 typedef ULONG(WINAPI* _FwpmNetEventSubscribe)(
     _In_ HANDLE engineHandle,
@@ -911,7 +926,7 @@ BOOLEAN NTAPI FwTreeNewCallback(
     _In_opt_ PVOID Context
     );
 
-PFW_EVENT_ITEM GetSelectedFwItem(
+PFW_EVENT_ITEM EtFwGetSelectedFwItem(
     VOID
     );
 
