@@ -23,6 +23,9 @@
 
 #include "nettools.h"
 
+#define NETWORKTOOLS_PLUGIN_NAME L"ProcessHacker.NetworkTools"
+#define NETWORKTOOLS_INTERFACE_VERSION 1
+
 PPH_PLUGIN PluginInstance;
 PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
@@ -37,6 +40,38 @@ HWND NetworkTreeNewHandle = NULL;
 BOOLEAN NetworkExtensionEnabled = FALSE;
 LIST_ENTRY NetworkExtensionListHead = { &NetworkExtensionListHead, &NetworkExtensionListHead };
 PH_QUEUED_LOCK NetworkExtensionListLock = PH_QUEUED_LOCK_INIT;
+
+typedef BOOLEAN (NTAPI* PNETWORKTOOLS_GET_COUNTRYCODE)(
+    _In_ PH_IP_ADDRESS RemoteAddress,
+    _Out_ PPH_STRING* CountryCode,
+    _Out_ PPH_STRING* CountryName
+    );
+
+typedef INT (NTAPI* PNETWORKTOOLS_GET_COUNTRYICON)(
+    _In_ PPH_STRING Name
+    );
+
+typedef VOID (NTAPI* PNETWORKTOOLS_DRAW_COUNTRYICON)(
+    _In_ HDC hdc,
+    _In_ RECT rect,
+    _In_ INT Index
+    );
+
+typedef struct _NETWORKTOOLS_INTERFACE
+{
+    ULONG Version;
+    PNETWORKTOOLS_GET_COUNTRYCODE LookupCountryCode;
+    PNETWORKTOOLS_GET_COUNTRYICON LookupCountryIcon;
+    PNETWORKTOOLS_DRAW_COUNTRYICON DrawCountryIcon;
+} NETWORKTOOLS_INTERFACE, *PNETWORKTOOLS_INTERFACE;
+
+NETWORKTOOLS_INTERFACE PluginInterface =
+{
+    NETWORKTOOLS_INTERFACE_VERSION,
+    LookupCountryCode,
+    LookupCountryIcon,
+    DrawCountryIcon
+};
 
 VOID NTAPI LoadCallback(
     _In_opt_ PVOID Parameter,
@@ -376,7 +411,7 @@ LONG NTAPI NetworkServiceSortFunction(
     switch (SubId)
     {
     case NETWORK_COLUMN_ID_REMOTE_COUNTRY:
-        return PhCompareStringWithNullSortOrder(extension1->RemoteCountryCode, extension2->RemoteCountryCode, SortOrder, TRUE);
+        return PhCompareStringWithNullSortOrder(extension1->RemoteCountryName, extension2->RemoteCountryName, SortOrder, TRUE);
     case NETWORK_COLUMN_ID_LOCAL_SERVICE:
         return PhCompareStringWithNullSortOrder(extension1->LocalServiceName, extension2->LocalServiceName, SortOrder, TRUE);
     case NETWORK_COLUMN_ID_REMOTE_SERVICE:
@@ -494,8 +529,6 @@ VOID NTAPI NetworkItemDeleteCallback(
         PhDereferenceObject(extension->LocalServiceName);
     if (extension->RemoteServiceName)
         PhDereferenceObject(extension->RemoteServiceName);
-    if (extension->RemoteCountryCode)
-        PhDereferenceObject(extension->RemoteCountryCode);
     if (extension->RemoteCountryName)
         PhDereferenceObject(extension->RemoteCountryName);
     if (extension->BytesIn)
@@ -549,13 +582,14 @@ VOID NTAPI NetworkNodeCreateCallback(
         PPH_STRING remoteCountryName;
 
         if (LookupCountryCode(
-            networkNode->NetworkItem->RemoteEndpoint.Address, 
-            &remoteCountryCode, 
+            networkNode->NetworkItem->RemoteEndpoint.Address,
+            &remoteCountryCode,
             &remoteCountryName
             ))
         {
-            PhMoveReference(&extension->RemoteCountryCode, remoteCountryCode);
             PhMoveReference(&extension->RemoteCountryName, remoteCountryName);
+            extension->CountryIconIndex = LookupCountryIcon(remoteCountryCode);
+            PhDereferenceObject(remoteCountryCode);
         }
 
         extension->CountryValid = TRUE;
@@ -756,11 +790,8 @@ VOID NTAPI TreeNewMessageCallback(
             rect.left += 5;
 
             // Draw the column data
-            if (GeoDbLoaded && extension->RemoteCountryCode && extension->RemoteCountryName)
+            if (GeoDbLoaded && extension->RemoteCountryName)
             {
-                if (extension->CountryIconIndex == INT_MAX)
-                    extension->CountryIconIndex = LookupCountryIcon(extension->RemoteCountryCode);
-
                 if (extension->CountryIconIndex != INT_MAX)
                 {
                     DrawCountryIcon(hdc, rect, extension->CountryIconIndex);
@@ -948,7 +979,8 @@ LOGICAL DllMain(
             info->Author = L"dmex, wj32";
             info->Description = L"Provides ping, traceroute and whois for network connections.";
             info->Url = L"https://wj32.org/processhacker/forums/viewtopic.php?t=1117";
-  
+            info->Interface = &PluginInterface;
+
             PhRegisterCallback(
                 PhGetPluginCallback(PluginInstance, PluginCallbackLoad),
                 LoadCallback,
