@@ -1217,7 +1217,9 @@ VOID EtFwHandleFwCommand(
             {
                 if (!PhIsNullOrEmptyString(entry->ProcessFileName))
                 {
-                    PhShellExploreFile(TreeWindowHandle, PhGetString(entry->ProcessFileName));
+                    PPH_STRING filenameWin32 = PhGetFileName(entry->ProcessFileName);
+                    PhShellExploreFile(TreeWindowHandle, PhGetStringOrEmpty(filenameWin32));
+                    PhClearReference(&filenameWin32);
                 }
             }
         }
@@ -1230,7 +1232,7 @@ VOID EtFwHandleFwCommand(
             {
                 if (
                     !PhIsNullOrEmptyString(entry->ProcessFileName) &&
-                    PhDoesFileExistsWin32(PhGetString(entry->ProcessFileName))
+                    PhDoesFileExists(PhGetString(entry->ProcessFileName))
                     )
                 {
                     PhShellExecuteUserString(
@@ -1271,7 +1273,7 @@ VOID InitializeFwMenu(
         }
         else
         {
-            if (!PhDoesFileExistsWin32(PhGetString(FwItems[0]->ProcessFileName)))
+            if (!PhDoesFileExists(PhGetString(FwItems[0]->ProcessFileName)))
             {
                 PhEnableEMenuItem(Menu, ID_DISK_OPENFILELOCATION, FALSE);
                 PhEnableEMenuItem(Menu, ID_DISK_INSPECT, FALSE);
