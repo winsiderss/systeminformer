@@ -441,7 +441,7 @@ PPH_STRING EtFwGetNameFromAddress(
 
     if (dnsEndpointReverseString = EtFwGetDnsReverseNameFromAddress(Address))
     {
-        if (dnsRecordList = PhDnsQuery2(NULL, dnsEndpointReverseString->Buffer, DNS_TYPE_PTR, DNS_QUERY_NO_WIRE_QUERY))
+        if (dnsRecordList = PhDnsQuery2(NULL, dnsEndpointReverseString->Buffer, DNS_TYPE_PTR, 0)) // DNS_QUERY_NO_WIRE_QUERY
         {
             for (PDNS_RECORD dnsRecord = dnsRecordList; dnsRecord; dnsRecord = dnsRecord->pNext)
             {
@@ -459,6 +459,9 @@ PPH_STRING EtFwGetNameFromAddress(
 
         PhDereferenceObject(dnsEndpointReverseString);
     }
+
+    if (!addressEndpointString) // DNS_QUERY_NO_WIRE_QUERY
+        addressEndpointString = PhReferenceEmptyString();
 
     return addressEndpointString;
 }
