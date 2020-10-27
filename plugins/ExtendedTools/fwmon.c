@@ -50,6 +50,7 @@ PH_CALLBACK_DECLARE(FwItemsUpdatedEvent);
 
 typedef struct _FW_EVENT
 {
+    LARGE_INTEGER TimeStamp;
     FWPM_NET_EVENT_TYPE Type;
     ULONG IsLoopback;
     ULONG Direction;
@@ -61,6 +62,7 @@ typedef struct _FW_EVENT
     ULONG OriginalProfile;
     ULONG CurrentProfile;
 
+    ULONG ScopeId;
     PH_IP_ENDPOINT LocalEndpoint;
     PH_IP_ENDPOINT RemoteEndpoint;
 
@@ -74,7 +76,8 @@ typedef struct _FW_EVENT
     PPH_STRING RemoteCountryName;
     UINT CountryIconIndex;
 
-    PPH_STRING UserName;
+    PSID UserSid;
+    //PSID PackageSid;
     PPH_PROCESS_ITEM ProcessItem;
 } FW_EVENT, *PFW_EVENT;
 
@@ -171,6 +174,10 @@ VOID NTAPI FwObjectTypeDeleteProcedure(
         PhDereferenceObject(event->TimeString);
     if (event->UserName)
         PhDereferenceObject(event->UserName);
+    if (event->UserSid)
+        PhFree(event->UserSid);
+    //if (event->PackageSid)
+    //    PhFree(event->PackageSid);
     if (event->TooltipText)
         PhDereferenceObject(event->TooltipText);
 
@@ -211,9 +218,11 @@ VOID FwProcessFirewallEvent(
     PFW_EVENT_ITEM entry;
 
     entry = FwCreateEventItem();
-    PhQuerySystemTime(&entry->AddedTime);
+    //PhQuerySystemTime(&entry->AddedTime);
+    entry->TimeStamp = firewallEvent->TimeStamp;
     entry->Direction = firewallEvent->Direction;
     entry->Type = firewallEvent->Type;
+    entry->ScopeId = firewallEvent->ScopeId;
     entry->IpProtocol = firewallEvent->IpProtocol;
     entry->LocalEndpoint = firewallEvent->LocalEndpoint;
     entry->LocalHostnameString = firewallEvent->LocalHostnameString;
@@ -229,7 +238,8 @@ VOID FwProcessFirewallEvent(
         entry->ProcessIconValid = TRUE;
     }
 
-    entry->UserName = firewallEvent->UserName;
+    entry->UserSid = firewallEvent->UserSid;
+    //entry->PackageSid = firewallEvent->PackageSid;
     entry->RuleName = firewallEvent->RuleName;
     entry->RuleDescription = firewallEvent->RuleDescription;
     entry->CountryIconIndex = firewallEvent->CountryIconIndex;
@@ -991,7 +1001,6 @@ PPH_STRING EtFwGetSidFullNameCachedSlow(
     PPH_STRING fullName;
     ETFW_SID_FULL_NAME_CACHE_ENTRY newEntry;
 
-
     // Reset hashtable once in a while.
     {
         static ULONG64 lastTickCount = 0;
@@ -1110,13 +1119,14 @@ VOID CALLBACK EtFwEventCallback(
             return;
         }
 
-
         FwpmFreeMemory(&layer);
     }
 
     EtFwGetFilterDisplayData(filterId, &ruleName, &ruleDescription);
 
     memset(&entry, 0, sizeof(FW_EVENT));
+    entry.TimeStamp.HighPart = FwEvent->header.timeStamp.dwHighDateTime;
+    entry.TimeStamp.LowPart = FwEvent->header.timeStamp.dwLowDateTime;
     entry.Type = FwEvent->type;
     entry.IsLoopback = isLoopback;
     entry.Direction = direction;
@@ -1126,6 +1136,11 @@ VOID CALLBACK EtFwEventCallback(
     if (FwEvent->header.flags & FWPM_NET_EVENT_FLAG_IP_PROTOCOL_SET)
     {
         entry.IpProtocol = FwEvent->header.ipProtocol;
+    }
+
+    if (FwEvent->header.flags & FWPM_NET_EVENT_FLAG_SCOPE_ID_SET)
+    {
+        entry.ScopeId = FwEvent->header.scopeId;
     }
 
     if (FwEvent->header.flags & FWPM_NET_EVENT_FLAG_IP_VERSION_SET)
@@ -1210,11 +1225,21 @@ VOID CALLBACK EtFwEventCallback(
 
     if (FwEvent->header.flags & FWPM_NET_EVENT_FLAG_USER_ID_SET)
     {
+        //if (entry.ProcessItem && RtlEqualSid(FwEvent->header.userId, entry.ProcessItem->Sid))
         if (FwEvent->header.userId)
         {
-            PhMoveReference(&entry.UserName, EtFwGetSidFullNameCachedSlow(FwEvent->header.userId));
+            entry.UserSid = PhAllocateCopy(FwEvent->header.userId, RtlLengthSid(FwEvent->header.userId));
         }
     }
+
+    //if (FwEvent->header.flags & FWPM_NET_EVENT_FLAG_PACKAGE_ID_SET)
+    //{
+    //    SID PhSeNobodySid = { SID_REVISION, 1, SECURITY_NULL_SID_AUTHORITY, { SECURITY_NULL_RID } };
+    //    if (FwEvent->header.packageSid && !RtlEqualSid(FwEvent->header.packageSid, &PhSeNobodySid))
+    //    {
+    //        entry.PackageSid = PhAllocateCopy(FwEvent->header.packageSid, RtlLengthSid(FwEvent->header.packageSid));
+    //    }
+    //}
 
     if (EtFwGetPluginInterface())
     {
