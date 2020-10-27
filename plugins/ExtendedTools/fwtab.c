@@ -96,6 +96,12 @@ BOOLEAN FwTabPageCallback(
 
             FwTreeNewCreated = TRUE;
 
+            if (PhGetIntegerSetting(L"EnableThemeSupport"))
+            {
+                PhInitializeThemeWindowHeader(TreeNew_GetHeader(hwnd)); // HACK (dmex)
+                TreeNew_ThemeSupport(hwnd, TRUE);
+            }
+
             PhInitializeProviderEventQueue(&FwNetworkEventQueue, 100);
 
             InitializeFwTreeList(hwnd);
