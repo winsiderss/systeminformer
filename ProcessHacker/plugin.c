@@ -372,6 +372,77 @@ VOID PhLoadDefaultPlugins(
     }
 }
 
+VOID PhpShowPluginErrorMessage(
+    _Inout_ PPH_LIST PluginLoadErrors
+    )
+{
+    TASKDIALOGCONFIG config;
+    PH_STRING_BUILDER stringBuilder;
+    PPHP_PLUGIN_LOAD_ERROR loadError;
+    PPH_STRING baseName;
+    INT result;
+
+    PhInitializeStringBuilder(&stringBuilder, 100);
+
+    for (ULONG i = 0; i < PluginLoadErrors->Count; i++)
+    {
+        loadError = PluginLoadErrors->Items[i];
+        baseName = PhGetBaseName(loadError->FileName);
+
+        PhAppendFormatStringBuilder(
+            &stringBuilder,
+            L"%s: %s\n",
+            baseName->Buffer,
+            PhGetStringOrDefault(loadError->ErrorMessage, L"An unknown error occurred.")
+            );
+
+        PhDereferenceObject(baseName);
+    }
+
+    if (PhEndsWithStringRef2(&stringBuilder.String->sr, L"\n", FALSE))
+        PhRemoveEndStringBuilder(&stringBuilder, 2);
+
+    memset(&config, 0, sizeof(TASKDIALOGCONFIG));
+    config.cbSize = sizeof(TASKDIALOGCONFIG);
+    config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION;
+    config.dwCommonButtons = TDCBF_OK_BUTTON;
+    config.pszWindowTitle = PhApplicationName;
+    config.pszMainIcon = TD_INFORMATION_ICON;
+    config.pszMainInstruction = L"Unable to load the following plugin(s)";
+    config.pszContent = PhGetString(PhFinalStringBuilderString(&stringBuilder));
+    config.nDefaultButton = IDOK;
+
+    if (TaskDialogIndirect(
+        &config,
+        &result,
+        NULL,
+        NULL
+        ) == S_OK)
+    {
+        //switch (result)
+        //{
+        //case IDNO:
+        //    for (i = 0; i < pluginLoadErrors->Count; i++)
+        //    {
+        //        loadError = pluginLoadErrors->Items[i];
+        //        baseName = PhGetBaseName(loadError->FileName);
+        //        PhSetPluginDisabled(&baseName->sr, TRUE);
+        //        PhDereferenceObject(baseName);
+        //    }
+        //    break;
+        //case IDYES:
+        //    for (i = 0; i < pluginLoadErrors->Count; i++)
+        //    {
+        //        loadError = pluginLoadErrors->Items[i];
+        //        PhDeleteFileWin32(loadError->FileName->Buffer);
+        //    }
+        //    break;
+        //}
+    }
+
+    PhDeleteStringBuilder(&stringBuilder);
+}
+
 /**
  * Loads plugins from the default plugins directory.
  */
@@ -391,6 +462,11 @@ VOID PhLoadPlugins(
     if (PhGetIntegerSetting(L"EnableSafeDefaultPlugins"))
     {
         PhLoadDefaultPlugins(pluginsDirectory, pluginLoadErrors);
+
+        if (pluginLoadErrors->Count != 0 && !PhStartupParameters.PhSvc)
+        {
+            PhpShowPluginErrorMessage(pluginLoadErrors);
+        }
     }
     else
     {
@@ -432,77 +508,13 @@ VOID PhLoadPlugins(
 
             NtClose(pluginsDirectoryHandle);
         }
-    }
 
-    // Handle load errors.
-    // In certain startup modes we want to ignore all plugin load errors.
-    if (PhGetIntegerSetting(L"ShowPluginLoadErrors") && pluginLoadErrors->Count != 0 && !PhStartupParameters.PhSvc)
-    {
-        TASKDIALOGCONFIG config;
-        PH_STRING_BUILDER stringBuilder;
-        PPHP_PLUGIN_LOAD_ERROR loadError;
-        PPH_STRING baseName;
-        INT result;
-
-        PhInitializeStringBuilder(&stringBuilder, 100);
-
-        for (i = 0; i < pluginLoadErrors->Count; i++)
+        // Handle load errors.
+        // In certain startup modes we want to ignore all plugin load errors.
+        if (PhGetIntegerSetting(L"ShowPluginLoadErrors") && pluginLoadErrors->Count != 0 && !PhStartupParameters.PhSvc)
         {
-            loadError = pluginLoadErrors->Items[i];
-            baseName = PhGetBaseName(loadError->FileName);
-
-            PhAppendFormatStringBuilder(
-                &stringBuilder,
-                L"%s: %s\n",
-                baseName->Buffer, 
-                PhGetStringOrDefault(loadError->ErrorMessage, L"An unknown error occurred.")
-                );
-
-            PhDereferenceObject(baseName);
+            PhpShowPluginErrorMessage(pluginLoadErrors);
         }
-
-        if (PhEndsWithStringRef2(&stringBuilder.String->sr, L"\n", FALSE)) 
-            PhRemoveEndStringBuilder(&stringBuilder, 2);
-
-        memset(&config, 0, sizeof(TASKDIALOGCONFIG));
-        config.cbSize = sizeof(TASKDIALOGCONFIG);
-        config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION;
-        config.dwCommonButtons = TDCBF_OK_BUTTON;
-        config.pszWindowTitle = PhApplicationName;
-        config.pszMainIcon = TD_INFORMATION_ICON;
-        config.pszMainInstruction = L"Unable to load the following plugin(s)";
-        config.pszContent = PhGetString(PhFinalStringBuilderString(&stringBuilder));
-        config.nDefaultButton = IDOK;
-
-        if (TaskDialogIndirect(
-            &config,
-            &result,
-            NULL,
-            NULL
-            ) == S_OK)
-        {
-            //switch (result)
-            //{
-            //case IDNO:
-            //    for (i = 0; i < pluginLoadErrors->Count; i++)
-            //    {
-            //        loadError = pluginLoadErrors->Items[i];
-            //        baseName = PhGetBaseName(loadError->FileName);
-            //        PhSetPluginDisabled(&baseName->sr, TRUE);
-            //        PhDereferenceObject(baseName);
-            //    }
-            //    break;
-            //case IDYES:
-            //    for (i = 0; i < pluginLoadErrors->Count; i++)
-            //    {
-            //        loadError = pluginLoadErrors->Items[i];
-            //        PhDeleteFileWin32(loadError->FileName->Buffer);
-            //    }
-            //    break;
-            //}
-        }
-
-        PhDeleteStringBuilder(&stringBuilder);
     }
 
     // When we loaded settings before, we didn't know about plugin settings, so they
