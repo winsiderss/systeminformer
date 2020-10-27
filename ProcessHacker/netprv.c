@@ -416,7 +416,7 @@ PPH_STRING PhGetHostNameFromAddressEx(
     case PH_IPV4_NETWORK_TYPE:
         {
             if (IN4_IS_ADDR_UNSPECIFIED(&Address->InAddr))
-                return NULL;
+                return PhReferenceEmptyString();
 
             if (IN4_IS_ADDR_LOOPBACK(&Address->InAddr) ||
                 IN4_IS_ADDR_RFC1918(&Address->InAddr))
@@ -428,7 +428,7 @@ PPH_STRING PhGetHostNameFromAddressEx(
     case PH_IPV6_NETWORK_TYPE:
         {
             if (IN6_IS_ADDR_UNSPECIFIED(&Address->In6Addr))
-                return NULL;
+                return PhReferenceEmptyString();
 
             if (IN6_IS_ADDR_LOOPBACK(&Address->In6Addr) ||
                 IN6_IS_ADDR_LINKLOCAL(&Address->In6Addr))
@@ -440,7 +440,7 @@ PPH_STRING PhGetHostNameFromAddressEx(
     }
 
     if (!(dnsReverseNameString = PhpGetDnsReverseNameFromAddress(Address)))
-        return NULL;
+        return PhReferenceEmptyString();
 
     if (PhEnableNetworkResolveDoHSupport && !dnsLocalQuery)
     {
@@ -477,6 +477,9 @@ PPH_STRING PhGetHostNameFromAddressEx(
     }
 
     PhDereferenceObject(dnsReverseNameString);
+
+    if (!dnsHostNameString)
+        dnsHostNameString = PhReferenceEmptyString();
 
     return dnsHostNameString;
 }
@@ -543,8 +546,7 @@ VOID PhpQueueNetworkItemQuery(
     if (!PhEnableNetworkProviderResolve)
         return;
 
-    data = PhAllocate(sizeof(PH_NETWORK_ITEM_QUERY_DATA));
-    memset(data, 0, sizeof(PH_NETWORK_ITEM_QUERY_DATA));
+    data = PhAllocateZero(sizeof(PH_NETWORK_ITEM_QUERY_DATA));
     data->NetworkItem = NetworkItem;
     data->Remote = Remote;
 
@@ -765,7 +767,7 @@ VOID PhNetworkProviderUpdate(
             }
 
             // Remote
-            if (!PhIsNullIpAddress(&networkItem->RemoteEndpoint.Address))
+            //if (!PhIsNullIpAddress(&networkItem->RemoteEndpoint.Address))
             {
                 PhAcquireQueuedLockShared(&PhpResolveCacheHashtableLock);
                 cacheItem = PhpLookupResolveCacheItem(&networkItem->RemoteEndpoint.Address);
