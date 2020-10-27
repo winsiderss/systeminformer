@@ -715,7 +715,16 @@ BOOLEAN NTAPI FwTreeNewCallback(
                 }
                 break;
             case FW_COLUMN_LOCALHOSTNAME:
-                getCellText->Text = PhGetStringRef(node->LocalHostnameString);
+                {
+                    if (node->LocalHostnameString)
+                    {
+                        getCellText->Text = PhGetStringRef(node->LocalHostnameString);
+                    }
+                    else
+                    {
+                        PhInitializeStringRef(&getCellText->Text, L"Resolving....");
+                    }
+                }
                 break;
             case FW_COLUMN_REMOTEADDRESS:
                 {
@@ -764,7 +773,16 @@ BOOLEAN NTAPI FwTreeNewCallback(
                 }
                 break;
             case FW_COLUMN_REMOTEHOSTNAME:
-                getCellText->Text = PhGetStringRef(node->RemoteHostnameString);
+                {
+                    if (node->RemoteHostnameString)
+                    {
+                        getCellText->Text = PhGetStringRef(node->RemoteHostnameString);
+                    }
+                    else
+                    {
+                        PhInitializeStringRef(&getCellText->Text, L"Resolving....");
+                    }
+                }
                 break;
             case FW_COLUMN_PROTOCOL:
                 {
