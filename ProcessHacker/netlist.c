@@ -556,7 +556,16 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
                 PhInitializeStringRefLongHint(&getCellText->Text, networkItem->LocalAddressString);
                 break;
             case PHNETLC_LOCALHOSTNAME:
-                getCellText->Text = PhGetStringRef(networkItem->LocalHostString);
+                {
+                    if (networkItem->LocalHostString)
+                    {
+                        getCellText->Text = PhGetStringRef(networkItem->LocalHostString);
+                    }
+                    else
+                    {
+                        PhInitializeStringRef(&getCellText->Text, L"Resolving....");
+                    }
+                }
                 break;
             case PHNETLC_LOCALPORT:
                 PhInitializeStringRefLongHint(&getCellText->Text, networkItem->LocalPortString);
@@ -565,7 +574,16 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
                 PhInitializeStringRefLongHint(&getCellText->Text, networkItem->RemoteAddressString);
                 break;
             case PHNETLC_REMOTEHOSTNAME:
-                getCellText->Text = PhGetStringRef(networkItem->RemoteHostString);
+                {
+                    if (networkItem->RemoteHostString)
+                    {
+                        getCellText->Text = PhGetStringRef(networkItem->RemoteHostString);
+                    }
+                    else
+                    {
+                        PhInitializeStringRef(&getCellText->Text, L"Resolving....");
+                    }
+                }
                 break;
             case PHNETLC_REMOTEPORT:
                 PhInitializeStringRefLongHint(&getCellText->Text, networkItem->RemotePortString);
