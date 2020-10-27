@@ -757,6 +757,7 @@ typedef enum _FW_COLUMN_TYPE
     FW_COLUMN_PROTOCOL,
     FW_COLUMN_TIMESTAMP,
     FW_COLUMN_PROCESSFILENAME,
+    FW_COLUMN_USER,
     FW_COLUMN_COUNTRY,
     FW_COLUMN_MAXIMUM
 } FW_COLUMN_TYPE;
@@ -803,6 +804,7 @@ typedef struct _FW_EVENT_ITEM
     PH_IP_ENDPOINT LocalEndpoint;
     PH_IP_ENDPOINT RemoteEndpoint;
 
+    PPH_STRING UserName;
     PPH_PROCESS_ITEM ProcessItem;
     HICON ProcessIcon;
     BOOLEAN ProcessIconValid;

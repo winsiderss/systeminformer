@@ -258,6 +258,7 @@ VOID InitializeFwTreeList(
     PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_PROTOCOL, TRUE, L"Protocol", 60, PH_ALIGN_LEFT, FW_COLUMN_PROTOCOL, 0);
     PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_TIMESTAMP, TRUE, L"Timestamp", 60, PH_ALIGN_LEFT, FW_COLUMN_TIMESTAMP, 0);
     PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_PROCESSFILENAME, FALSE, L"File path", 80, PH_ALIGN_LEFT, FW_COLUMN_PROCESSFILENAME, DT_PATH_ELLIPSIS);
+    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_USER, FALSE, L"Username", 60, PH_ALIGN_LEFT, FW_COLUMN_USER, 0);
     PhAddTreeNewColumnEx2(FwTreeNewHandle, FW_COLUMN_COUNTRY, FALSE, L"Country", 80, PH_ALIGN_LEFT, FW_COLUMN_COUNTRY, 0, TN_COLUMN_FLAG_CUSTOMDRAW);
 
     LoadSettingsFwTreeList();
@@ -873,10 +874,19 @@ BOOLEAN NTAPI FwTreeNewCallback(
                }
                break;
            case FW_COLUMN_PROCESSFILENAME:
-               getCellText->Text = PhGetStringRef(node->ProcessFileName);
+               {
+                   getCellText->Text = PhGetStringRef(node->ProcessFileName);
+               }
+               break;
+           case FW_COLUMN_USER:
+               {
+                   getCellText->Text = PhGetStringRef(node->UserName);
+               }
                break;
            case FW_COLUMN_COUNTRY:
-               getCellText->Text = PhGetStringRef(node->RemoteCountryName);
+               {
+                   getCellText->Text = PhGetStringRef(node->RemoteCountryName);
+               }
                break;
             default:
                 return FALSE;

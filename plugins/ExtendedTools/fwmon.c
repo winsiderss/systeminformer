@@ -74,6 +74,7 @@ typedef struct _FW_EVENT
     PPH_STRING RemoteCountryName;
     UINT CountryIconIndex;
 
+    PPH_STRING UserName;
     PPH_PROCESS_ITEM ProcessItem;
 } FW_EVENT, *PFW_EVENT;
 
@@ -168,6 +169,8 @@ VOID NTAPI FwObjectTypeDeleteProcedure(
         PhDereferenceObject(event->RemoteCountryName);
     if (event->TimeString)
         PhDereferenceObject(event->TimeString);
+    if (event->UserName)
+        PhDereferenceObject(event->UserName);
     if (event->TooltipText)
         PhDereferenceObject(event->TooltipText);
 
@@ -204,21 +207,21 @@ VOID FwProcessFirewallEvent(
     _In_ ULONG RunId
     )
 {
-    PFW_EVENT diskEvent = &Packet->Event;
+    PFW_EVENT firewallEvent = &Packet->Event;
     PFW_EVENT_ITEM entry;
 
     entry = FwCreateEventItem();
     PhQuerySystemTime(&entry->AddedTime);
-    entry->Direction = diskEvent->Direction;
-    entry->Type = diskEvent->Type;
-    entry->IpProtocol = diskEvent->IpProtocol;
-    entry->LocalEndpoint = diskEvent->LocalEndpoint;
-    entry->LocalHostnameString = diskEvent->LocalHostnameString;
-    entry->RemoteEndpoint = diskEvent->RemoteEndpoint;
-    entry->RemoteHostnameString = diskEvent->RemoteHostnameString;
-    entry->ProcessFileName = diskEvent->ProcessFileName;
-    entry->ProcessBaseString = diskEvent->ProcessBaseString;
-    entry->ProcessItem = diskEvent->ProcessItem;
+    entry->Direction = firewallEvent->Direction;
+    entry->Type = firewallEvent->Type;
+    entry->IpProtocol = firewallEvent->IpProtocol;
+    entry->LocalEndpoint = firewallEvent->LocalEndpoint;
+    entry->LocalHostnameString = firewallEvent->LocalHostnameString;
+    entry->RemoteEndpoint = firewallEvent->RemoteEndpoint;
+    entry->RemoteHostnameString = firewallEvent->RemoteHostnameString;
+    entry->ProcessFileName = firewallEvent->ProcessFileName;
+    entry->ProcessBaseString = firewallEvent->ProcessBaseString;
+    entry->ProcessItem = firewallEvent->ProcessItem;
 
     if (entry->ProcessItem && !entry->ProcessIconValid && PhTestEvent(&entry->ProcessItem->Stage1Event))
     {
@@ -226,10 +229,11 @@ VOID FwProcessFirewallEvent(
         entry->ProcessIconValid = TRUE;
     }
 
-    entry->RuleName = diskEvent->RuleName;
-    entry->RuleDescription = diskEvent->RuleDescription;
-    entry->CountryIconIndex = diskEvent->CountryIconIndex;
-    entry->RemoteCountryName = diskEvent->RemoteCountryName;
+    entry->UserName = firewallEvent->UserName;
+    entry->RuleName = firewallEvent->RuleName;
+    entry->RuleDescription = firewallEvent->RuleDescription;
+    entry->CountryIconIndex = firewallEvent->CountryIconIndex;
+    entry->RemoteCountryName = firewallEvent->RemoteCountryName;
 
     // Add the item to the age list.
     entry->AddTime = RunId;
@@ -836,7 +840,7 @@ BOOLEAN EtFwGetFilterDisplayData(
         static ULONG64 lastTickCount = 0;
         ULONG64 tickCount = NtGetTickCount64();
 
-        if (tickCount - lastTickCount >= 2* CLOCKS_PER_SEC)
+        if (tickCount - lastTickCount >= 120 * CLOCKS_PER_SEC)
         {
             if (EtFwFilterDisplayDataHashTable)
             {
@@ -929,6 +933,135 @@ VOID EtFwRemoveFilterDisplayData(
     lookupEntry.FilterId = FilterId;
 
     PhRemoveEntryHashtable(EtFwFilterDisplayDataHashTable, &lookupEntry);
+}
+
+typedef struct _ETFW_SID_FULL_NAME_CACHE_ENTRY
+{
+    PSID Sid;
+    PPH_STRING FullName;
+} ETFW_SID_FULL_NAME_CACHE_ENTRY, *PETFW_SID_FULL_NAME_CACHE_ENTRY;
+
+static PPH_HASHTABLE EtFwSidFullNameCacheHashtable = NULL;
+
+BOOLEAN EtFwSidFullNameCacheHashtableEqualFunction(
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
+    )
+{
+    PETFW_SID_FULL_NAME_CACHE_ENTRY entry1 = Entry1;
+    PETFW_SID_FULL_NAME_CACHE_ENTRY entry2 = Entry2;
+
+    return RtlEqualSid(entry1->Sid, entry2->Sid);
+}
+
+ULONG EtFwSidFullNameCacheHashtableHashFunction(
+    _In_ PVOID Entry
+    )
+{
+    PETFW_SID_FULL_NAME_CACHE_ENTRY entry = Entry;
+
+    return PhHashBytes(entry->Sid, RtlLengthSid(entry->Sid));
+}
+
+VOID EtFwFlushSidFullNameCache(
+    VOID
+    )
+{
+    PH_HASHTABLE_ENUM_CONTEXT enumContext;
+    PETFW_SID_FULL_NAME_CACHE_ENTRY entry;
+
+    if (!EtFwSidFullNameCacheHashtable)
+        return;
+
+    PhBeginEnumHashtable(EtFwSidFullNameCacheHashtable, &enumContext);
+
+    while (entry = PhNextEnumHashtable(&enumContext))
+    {
+        PhFree(entry->Sid);
+        PhDereferenceObject(entry->FullName);
+    }
+
+    PhClearReference(&EtFwSidFullNameCacheHashtable);
+}
+
+PPH_STRING EtFwGetSidFullNameCachedSlow(
+    _In_ PSID Sid
+    )
+{
+    PPH_STRING fullName;
+    ETFW_SID_FULL_NAME_CACHE_ENTRY newEntry;
+
+
+    // Reset hashtable once in a while.
+    {
+        static ULONG64 lastTickCount = 0;
+        ULONG64 tickCount = NtGetTickCount64();
+
+        if (tickCount - lastTickCount >= 120 * CLOCKS_PER_SEC)
+        {
+            EtFwFlushSidFullNameCache();
+            EtFwSidFullNameCacheHashtable = PhCreateHashtable(
+                sizeof(ETFW_FILTER_DISPLAY_CONTEXT),
+                EtFwFilterDisplayDataEqualFunction,
+                EtFwFilterDisplayDataHashFunction,
+                20
+                );
+
+            lastTickCount = tickCount;
+        }
+    }
+
+    if (EtFwSidFullNameCacheHashtable)
+    {
+        PETFW_SID_FULL_NAME_CACHE_ENTRY entry;
+        ETFW_SID_FULL_NAME_CACHE_ENTRY lookupEntry;
+
+        lookupEntry.Sid = Sid;
+        entry = PhFindEntryHashtable(EtFwSidFullNameCacheHashtable, &lookupEntry);
+
+        if (entry)
+            return PhReferenceObject(entry->FullName);
+    }
+
+    fullName = PhGetSidFullName(Sid, TRUE, NULL);
+
+    if (!fullName)
+        return NULL;
+
+    if (!EtFwSidFullNameCacheHashtable)
+    {
+        EtFwSidFullNameCacheHashtable = PhCreateHashtable(
+            sizeof(ETFW_SID_FULL_NAME_CACHE_ENTRY),
+            EtFwSidFullNameCacheHashtableEqualFunction,
+            EtFwSidFullNameCacheHashtableHashFunction,
+            16
+            );
+    }
+
+    newEntry.Sid = PhAllocateCopy(Sid, RtlLengthSid(Sid));
+    newEntry.FullName = PhReferenceObject(fullName);
+    PhAddEntryHashtable(EtFwSidFullNameCacheHashtable, &newEntry);
+
+    return fullName;
+}
+
+PPH_STRING EtFwGetSidFullNameCached(
+    _In_ PSID Sid
+    )
+{
+    if (EtFwSidFullNameCacheHashtable)
+    {
+        PETFW_SID_FULL_NAME_CACHE_ENTRY entry;
+        ETFW_SID_FULL_NAME_CACHE_ENTRY lookupEntry;
+
+        lookupEntry.Sid = Sid;
+        entry = PhFindEntryHashtable(EtFwSidFullNameCacheHashtable, &lookupEntry);
+
+        if (entry)
+            return PhReferenceObject(entry->FullName);
+    }
+
+    return NULL;
 }
 
 VOID CALLBACK EtFwEventCallback(
@@ -1072,6 +1205,14 @@ VOID CALLBACK EtFwEventCallback(
                 PhDereferenceObject(entry.ProcessBaseString);
                 entry.ProcessBaseString = PhGetBaseName(entry.ProcessFileName);
             }
+        }
+    }
+
+    if (FwEvent->header.flags & FWPM_NET_EVENT_FLAG_USER_ID_SET)
+    {
+        if (FwEvent->header.userId)
+        {
+            PhMoveReference(&entry.UserName, EtFwGetSidFullNameCachedSlow(FwEvent->header.userId));
         }
     }
 
@@ -1220,16 +1361,16 @@ ULONG EtFwStartMonitor(
             FWPM_NET_EVENT_KEYWORD_CAPABILITY_DROP | FWPM_NET_EVENT_KEYWORD_CAPABILITY_ALLOW |
             FWPM_NET_EVENT_KEYWORD_CLASSIFY_ALLOW | FWPM_NET_EVENT_KEYWORD_INBOUND_MCAST |
             FWPM_NET_EVENT_KEYWORD_INBOUND_BCAST;
-
-        if (WindowsVersion >= WINDOWS_10_19H1)
-            value.uint32 |= FWPM_NET_EVENT_KEYWORD_PORT_SCANNING_DROP;
-
+        if (WindowsVersion >= WINDOWS_10_19H1) value.uint32 |= FWPM_NET_EVENT_KEYWORD_PORT_SCANNING_DROP;
         FwpmEngineSetOption(EtFwEngineHandle, FWPM_ENGINE_NET_EVENT_MATCH_ANY_KEYWORDS, &value);
 
         value.type = FWP_UINT32;
         value.uint32 = 1;
-
         FwpmEngineSetOption(EtFwEngineHandle, FWPM_ENGINE_MONITOR_IPSEC_CONNECTIONS, &value);
+
+        value.type = FWP_UINT32;
+        value.uint32 = FWPM_ENGINE_OPTION_PACKET_QUEUE_INBOUND | FWPM_ENGINE_OPTION_PACKET_QUEUE_FORWARD;
+        FwpmEngineSetOption(EtFwEngineHandle, FWPM_ENGINE_PACKET_QUEUING, &value);
     }
 
     eventTemplate.numFilterConditions = 0; // get events for all conditions
