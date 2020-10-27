@@ -1765,7 +1765,7 @@ typedef struct _PH_OPTIONS_ADVANCED_CONTEXT
 
 typedef enum _PH_OPTIONS_ADVANCED_TREE_ITEM_MENU
 {
-    PH_OPTIONS_ADVANCED_TREE_ITEM_MENU_HIDE_MODIFIED,
+    PH_OPTIONS_ADVANCED_TREE_ITEM_MENU_HIDE_MODIFIED = 1,
     PH_OPTIONS_ADVANCED_TREE_ITEM_MENU_HIDE_DEFAULT,
     PH_OPTIONS_ADVANCED_TREE_ITEM_MENU_HIGHLIGHT_MODIFIED,
     PH_OPTIONS_ADVANCED_TREE_ITEM_MENU_HIGHLIGHT_DEFAULT,
@@ -2154,7 +2154,6 @@ BOOLEAN NTAPI OptionsAdvancedTreeNewCallback(
                             }
                         }
                     }
-
                 }
                 break;
             }
@@ -2379,6 +2378,106 @@ BOOLEAN PhpOptionsAdvancedTreeFilterCallback(
 {
     PPH_OPTIONS_ADVANCED_ROOT_NODE node = (PPH_OPTIONS_ADVANCED_ROOT_NODE)Node;
     PPH_OPTIONS_ADVANCED_CONTEXT context = Context;
+
+    if (context->HideModified)
+    {
+        switch (node->Type)
+        {
+        case StringSettingType:
+        case IntegerPairSettingType:
+        case ScalableIntegerPairSettingType:
+            {
+                if (PhEqualString(node->DefaultString, node->ValueString, TRUE))
+                {
+                    if (context->HideDefault)
+                    {
+                        return FALSE;
+                    }
+                }
+                else
+                {
+                    if (context->HideModified)
+                    {
+                        return FALSE;
+                    }
+                }
+            }
+            break;
+        case IntegerSettingType:
+            {
+                ULONG64 integer;
+
+                if (PhStringToInteger64(&node->DefaultString->sr, 16, &integer))
+                {
+                    if (node->Setting->u.Integer == (ULONG)integer)
+                    {
+                        if (context->HideDefault)
+                        {
+                            return FALSE;
+                        }
+                    }
+                    else
+                    {
+                        if (context->HideModified)
+                        {
+                            return FALSE;
+                        }
+                    }
+                }
+            }
+            break;
+        }
+    }
+
+    if (context->HideDefault)
+    {
+        switch (node->Type)
+        {
+        case StringSettingType:
+        case IntegerPairSettingType:
+        case ScalableIntegerPairSettingType:
+            {
+                if (PhEqualString(node->DefaultString, node->ValueString, TRUE))
+                {
+                    if (context->HideDefault)
+                    {
+                        return FALSE;
+                    }
+                }
+                else
+                {
+                    if (context->HideModified)
+                    {
+                        return FALSE;
+                    }
+                }
+            }
+            break;
+        case IntegerSettingType:
+            {
+                ULONG64 integer;
+
+                if (PhStringToInteger64(&node->DefaultString->sr, 16, &integer))
+                {
+                    if (node->Setting->u.Integer == (ULONG)integer)
+                    {
+                        if (context->HideDefault)
+                        {
+                            return FALSE;
+                        }
+                    }
+                    else
+                    {
+                        if (context->HideModified)
+                        {
+                            return FALSE;
+                        }
+                    }
+                }
+            }
+            break;
+        }
+    }
 
     if (PhIsNullOrEmptyString(context->SearchBoxText))
         return TRUE;
