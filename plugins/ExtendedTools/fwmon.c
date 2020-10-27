@@ -274,6 +274,9 @@ BOOLEAN FwProcessEventType(
         {
             FWPM_NET_EVENT_CLASSIFY_DROP* fwDropEvent = FwEvent->classifyDrop;
 
+            if (fwDropEvent->isLoopback)
+                return FALSE;
+
             switch (fwDropEvent->msFwpDirection)
             {
             case FWP_DIRECTION_IN:
@@ -304,6 +307,9 @@ BOOLEAN FwProcessEventType(
     case FWPM_NET_EVENT_TYPE_CLASSIFY_ALLOW:
         {
             FWPM_NET_EVENT_CLASSIFY_ALLOW* fwAllowEvent = FwEvent->classifyAllow;
+
+            if (fwAllowEvent->isLoopback)
+                return FALSE;
 
             switch (fwAllowEvent->msFwpDirection)
             {
@@ -669,6 +675,10 @@ VOID PhpQueryHostnameForEntry(
             EtFwQueueNetworkItemQuery(Entry, FALSE);
         }
     }
+    else
+    {
+        Entry->LocalHostnameString = PhReferenceEmptyString();
+    }
 
     // Remote
     if (!PhIsNullIpAddress(&Entry->RemoteEndpoint.Address))
@@ -686,6 +696,10 @@ VOID PhpQueryHostnameForEntry(
         {
             EtFwQueueNetworkItemQuery(Entry, TRUE);
         }
+    }
+    else
+    {
+        Entry->RemoteHostnameString = PhReferenceEmptyString();
     }
 }
 
