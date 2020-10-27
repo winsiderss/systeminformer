@@ -69,8 +69,6 @@ typedef struct _FW_EVENT
 
     PPH_STRING RuleName;
     PPH_STRING RuleDescription;
-    //PPH_STRING RuleLayerName;
-    //PPH_STRING RuleLayerDescription;
     PPH_STRING ProcessFileName;
     PPH_STRING ProcessBaseString;
     PPH_STRING RemoteCountryName;
@@ -238,6 +236,7 @@ VOID FwProcessFirewallEvent(
     entry->FreshTime = RunId;
     InsertHeadList(&FwAgeListHead, &entry->AgeListEntry);
 
+    // Queue hostname lookup.
     PhpQueryHostnameForEntry(entry);
 
     // Raise the item added event.
@@ -249,11 +248,10 @@ BOOLEAN FwProcessEventType(
     _In_ const FWPM_NET_EVENT* FwEvent,
     _Out_ PBOOLEAN IsLoopback,
     _Out_ PULONG Direction,
-    _Out_ PULONG64 filterId,
-    _Out_ PUSHORT layerId,
-    _Out_ PULONG reauthReason,
-    _Out_ PULONG originalProfile,
-    _Out_ PULONG currentProfile
+    _Out_ PULONG64 FilterId,
+    _Out_ PUSHORT LayerId,
+    _Out_ PULONG OriginalProfile,
+    _Out_ PULONG CurrentProfile
     )
 {
     switch (FwEvent->type)
@@ -277,18 +275,16 @@ BOOLEAN FwProcessEventType(
                 break;
             }
 
-            if (filterId)
-                *filterId = fwDropEvent->filterId;
-            if (layerId)
-                *layerId = fwDropEvent->layerId;
-            if (reauthReason)
-                *reauthReason = fwDropEvent->reauthReason;
-            if (originalProfile)
-                *originalProfile = fwDropEvent->originalProfile;
-            if (currentProfile)
-                *currentProfile = fwDropEvent->currentProfile;
             if (IsLoopback)
                 *IsLoopback = !!fwDropEvent->isLoopback;
+            if (FilterId)
+                *FilterId = fwDropEvent->filterId;
+            if (LayerId)
+                *LayerId = fwDropEvent->layerId;
+            if (OriginalProfile)
+                *OriginalProfile = fwDropEvent->originalProfile;
+            if (CurrentProfile)
+                *CurrentProfile = fwDropEvent->currentProfile;
         }
         return TRUE;
     case FWPM_NET_EVENT_TYPE_CLASSIFY_ALLOW:
@@ -310,18 +306,16 @@ BOOLEAN FwProcessEventType(
                 break;
             }
 
-            if (filterId)
-                *filterId = fwAllowEvent->filterId;
-            if (layerId)
-                *layerId = fwAllowEvent->layerId;
-            if (reauthReason)
-                *reauthReason = fwAllowEvent->reauthReason;
-            if (originalProfile)
-                *originalProfile = fwAllowEvent->originalProfile;
-            if (currentProfile)
-                *currentProfile = fwAllowEvent->currentProfile;
             if (IsLoopback)
                 *IsLoopback = !!fwAllowEvent->isLoopback;
+            if (FilterId)
+                *FilterId = fwAllowEvent->filterId;
+            if (LayerId)
+                *LayerId = fwAllowEvent->layerId;
+            if (OriginalProfile)
+                *OriginalProfile = fwAllowEvent->originalProfile;
+            if (CurrentProfile)
+                *CurrentProfile = fwAllowEvent->currentProfile;
         }
         return TRUE;
     }
@@ -618,17 +612,28 @@ VOID PhpQueryHostnameForEntry(
 
         if (tickCount - lastTickCount >= 120 * CLOCKS_PER_SEC)
         {
-            PFW_RESOLVE_CACHE_ITEM* entry;
-            ULONG i = 0;
-
-            while (PhEnumHashtable(EtFwResolveCacheHashtable, (PVOID*)&entry, &i))
+            if (EtFwResolveCacheHashtable)
             {
-                if ((*entry)->HostString)
-                    PhReferenceObject((*entry)->HostString);
-                PhFree(*entry);
+                PFW_RESOLVE_CACHE_ITEM* entry;
+                ULONG i = 0;
+
+                while (PhEnumHashtable(EtFwResolveCacheHashtable, (PVOID*)&entry, &i))
+                {
+                    if ((*entry)->HostString)
+                        PhReferenceObject((*entry)->HostString);
+                    PhFree(*entry);
+                }
+
+                PhDereferenceObject(EtFwResolveCacheHashtable);
             }
 
-            PhClearHashtable(EtFwResolveCacheHashtable);
+            EtFwResolveCacheHashtable = PhCreateHashtable(
+                sizeof(FW_RESOLVE_CACHE_ITEM),
+                EtFwResolveCacheHashtableEqualFunction,
+                EtFwResolveCacheHashtableHashFunction,
+                20
+                );
+
             lastTickCount = tickCount;
         }
     }
@@ -672,14 +677,14 @@ VOID PhpQueryHostnameForEntry(
 
 PPH_PROCESS_ITEM EtFwFileNameToProcess(
     _In_ PPH_STRING ProcessBaseString
-)
+    )
 {
     static PVOID processInfo = NULL;
     static ULONG64 lastTickTotal = 0;
     PSYSTEM_PROCESS_INFORMATION process;
     ULONG64 tickCount = NtGetTickCount64();
 
-    if (tickCount - lastTickTotal >= 2 * CLOCKS_PER_SEC)
+    if (tickCount - lastTickTotal >= 120 * CLOCKS_PER_SEC)
     {
         lastTickTotal = tickCount;
 
@@ -770,6 +775,162 @@ VOID EtFwDrawCountryIcon(
         EtFwGetPluginInterface()->DrawCountryIcon(hdc, rect, Index);
 }
 
+PWSTR EtFwEventTypeToString(
+    _In_ FWPM_FIELD_TYPE Type
+    )
+{
+    switch (Type)
+    {
+    case FWPM_FIELD_RAW_DATA:
+        return L"RAW_DATA";
+    case FWPM_FIELD_IP_ADDRESS:
+        return L"IP_ADDRESS";
+    case FWPM_FIELD_FLAGS:
+        return L"FLAGS";
+    }
+
+    return L"UNKNOWN";
+}
+
+typedef struct _ETFW_FILTER_DISPLAY_CONTEXT
+{
+    ULONG64 FilterId;
+    PPH_STRING Name;
+    PPH_STRING Description;
+} ETFW_FILTER_DISPLAY_CONTEXT, *PETFW_FILTER_DISPLAY_CONTEXT;
+
+static PPH_HASHTABLE EtFwFilterDisplayDataHashTable = NULL;
+
+static BOOLEAN NTAPI EtFwFilterDisplayDataEqualFunction(
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
+    )
+{
+    PETFW_FILTER_DISPLAY_CONTEXT entry1 = Entry1;
+    PETFW_FILTER_DISPLAY_CONTEXT entry2 = Entry2;
+
+    return entry1->FilterId == entry2->FilterId;
+}
+
+static ULONG NTAPI EtFwFilterDisplayDataHashFunction(
+    _In_ PVOID Entry
+    )
+{
+    PETFW_FILTER_DISPLAY_CONTEXT entry = Entry;
+
+    return PhHashInt64(entry->FilterId);
+}
+
+_Success_(return)
+BOOLEAN EtFwGetFilterDisplayData(
+    _In_ ULONG64 FilterId,
+    _Out_ PPH_STRING* Name,
+    _Out_ PPH_STRING* Description
+    )
+{
+    ETFW_FILTER_DISPLAY_CONTEXT lookupEntry;
+    PETFW_FILTER_DISPLAY_CONTEXT entry;
+
+    // Reset hashtable once in a while.
+    {
+        static ULONG64 lastTickCount = 0;
+        ULONG64 tickCount = NtGetTickCount64();
+
+        if (tickCount - lastTickCount >= 2* CLOCKS_PER_SEC)
+        {
+            if (EtFwFilterDisplayDataHashTable)
+            {
+                ETFW_FILTER_DISPLAY_CONTEXT* enumEntry;
+                ULONG i = 0;
+
+                while (PhEnumHashtable(EtFwFilterDisplayDataHashTable, (PVOID*)&enumEntry, &i))
+                {
+                    if ((*enumEntry).Name)
+                        PhReferenceObject((*enumEntry).Name);
+                    if ((*enumEntry).Description)
+                        PhReferenceObject((*enumEntry).Description);
+                }
+
+                PhDereferenceObject(EtFwFilterDisplayDataHashTable);
+            }
+
+            EtFwFilterDisplayDataHashTable = PhCreateHashtable(
+                sizeof(ETFW_FILTER_DISPLAY_CONTEXT),
+                EtFwFilterDisplayDataEqualFunction,
+                EtFwFilterDisplayDataHashFunction,
+                20
+                );
+
+            lastTickCount = tickCount;
+        }
+    }
+
+    lookupEntry.FilterId = FilterId;
+
+    if (entry = PhFindEntryHashtable(EtFwFilterDisplayDataHashTable, &lookupEntry))
+    {
+        if (Name)
+            *Name = PhReferenceObject(entry->Name);
+        if (Description)
+            *Description = PhReferenceObject(entry->Description);
+
+        return TRUE;
+    }
+    else
+    {
+        PPH_STRING filterName = NULL;
+        PPH_STRING filterDescription = NULL;
+        FWPM_FILTER* filter;
+
+        if (FwpmFilterGetById(EtFwEngineHandle, FilterId, &filter) == ERROR_SUCCESS)
+        {
+            if (filter->displayData.name)
+                filterName = PhCreateString(filter->displayData.name);
+            if (filter->displayData.description)
+                filterDescription = PhCreateString(filter->displayData.description);
+
+            FwpmFreeMemory(&filter);
+        }
+
+        if (filterName && filterDescription)
+        {
+            ETFW_FILTER_DISPLAY_CONTEXT entry;
+
+            memset(&entry, 0, sizeof(ETFW_FILTER_DISPLAY_CONTEXT));
+            entry.FilterId = FilterId;
+            entry.Name = filterName;
+            entry.Description = filterDescription;
+
+            PhAddEntryHashtable(EtFwFilterDisplayDataHashTable, &entry);
+
+            if (Name)
+                *Name = PhReferenceObject(filterName);
+            if (Description)
+                *Description = PhReferenceObject(filterDescription);
+
+            return TRUE;
+        }
+
+        if (filterName)
+            PhDereferenceObject(filterName);
+        if (filterDescription)
+            PhDereferenceObject(filterDescription);
+    }
+
+    return FALSE;
+}
+
+VOID EtFwRemoveFilterDisplayData(
+    _In_ ULONG64 FilterId
+    )
+{
+    ETFW_FILTER_DISPLAY_CONTEXT lookupEntry;
+
+    lookupEntry.FilterId = FilterId;
+
+    PhRemoveEntryHashtable(EtFwFilterDisplayDataHashTable, &lookupEntry);
+}
+
 VOID CALLBACK EtFwEventCallback(
     _Inout_ PVOID FwContext,
     _In_ const FWPM_NET_EVENT* FwEvent
@@ -778,11 +939,10 @@ VOID CALLBACK EtFwEventCallback(
     FW_EVENT entry;
     BOOLEAN isLoopback = FALSE;
     ULONG direction = ULONG_MAX;
-    ULONG64 filterId;
-    USHORT layerId;
-    ULONG reauthReason;
-    ULONG originalProfile;
-    ULONG currentProfile;
+    ULONG64 filterId = 0;
+    USHORT layerId = 0;
+    ULONG originalProfile = 0;
+    ULONG currentProfile = 0;
     PPH_STRING ruleName = NULL;
     PPH_STRING ruleDescription = NULL;
     FWPM_LAYER* layer = NULL;
@@ -797,7 +957,6 @@ VOID CALLBACK EtFwEventCallback(
         &direction,
         &filterId,
         &layerId,
-        &reauthReason,
         &originalProfile,
         &currentProfile
         ))
@@ -822,15 +981,7 @@ VOID CALLBACK EtFwEventCallback(
         FwpmFreeMemory(&layer);
     }
 
-    if (FwpmFilterGetById(EtFwEngineHandle, filterId, &filter) == ERROR_SUCCESS)
-    {
-        if (filter->displayData.name)
-            ruleName = PhCreateString(filter->displayData.name);
-        if (filter->displayData.description)
-            ruleDescription = PhCreateString(filter->displayData.description);
-
-        FwpmFreeMemory(&filter);
-    }
+    EtFwGetFilterDisplayData(filterId, &ruleName, &ruleDescription);
 
     memset(&entry, 0, sizeof(FW_EVENT));
     entry.Type = FwEvent->type;
@@ -910,9 +1061,16 @@ VOID CALLBACK EtFwEventCallback(
 
         if (entry.ProcessFileName)
         {
-            if (entry.ProcessBaseString = PhGetBaseName(entry.ProcessFileName))
+            entry.ProcessBaseString = PhGetBaseName(entry.ProcessFileName);
+
+            if (entry.ProcessItem = EtFwFileNameToProcess(entry.ProcessBaseString))
             {
-                entry.ProcessItem = EtFwFileNameToProcess(entry.ProcessBaseString);
+                // We get a lower case filename from the firewall netevent which is inconsistent with the paths elsewhere.
+                // Switch the filename here to the same filename as the process. (dmex)
+                PhDereferenceObject(entry.ProcessFileName);
+                entry.ProcessFileName = PhReferenceObject(entry.ProcessItem->FileName);
+                PhDereferenceObject(entry.ProcessBaseString);
+                entry.ProcessBaseString = PhGetBaseName(entry.ProcessFileName);
             }
         }
     }
@@ -930,7 +1088,6 @@ VOID CALLBACK EtFwEventCallback(
         {
             PhMoveReference(&entry.RemoteCountryName, remoteCountryName);
             entry.CountryIconIndex = EtFwGetPluginInterface()->LookupCountryIcon(remoteCountryCode);
-
             PhDereferenceObject(remoteCountryCode);
         }
     }
@@ -962,30 +1119,9 @@ VOID NTAPI EtFwProcessesUpdatedCallback(
         PhFree(packet);
     }
 
-    // merge into below loop
-
     EtFwFlushHostNameData();
 
-    ageListEntry = FwAgeListHead.Blink;
-
-    while (ageListEntry != &FwAgeListHead)
-    {
-        PFW_EVENT_ITEM item;
-        BOOLEAN modified = FALSE;
-
-        item = CONTAINING_RECORD(ageListEntry, FW_EVENT_ITEM, AgeListEntry);
-        ageListEntry = ageListEntry->Blink;
-
-        if (InterlockedExchange(&item->JustResolved, 0) != 0)
-            modified = TRUE;
-
-        if (modified)
-        {
-            PhInvokeCallback(&FwItemModifiedEvent, item);
-        }
-    }
-
-    // Remove old entries.
+    // Remove old entries and update existing.
 
     ageListEntry = FwAgeListHead.Blink;
 
@@ -997,7 +1133,21 @@ VOID NTAPI EtFwProcessesUpdatedCallback(
         ageListEntry = ageListEntry->Blink;
 
         if (FwRunCount - item->FreshTime < FwMaxEventAge)
-            break;
+        {
+            BOOLEAN modified = FALSE;
+
+            if (InterlockedExchange(&item->JustResolved, 0) != 0)
+            {
+                modified = TRUE;
+            }
+
+            if (modified)
+            {
+                PhInvokeCallback(&FwItemModifiedEvent, item);
+            }
+
+            continue;
+        }
 
         PhInvokeCallback(&FwItemRemovedEvent, item);
         RemoveEntryList(&item->AgeListEntry);
@@ -1021,12 +1171,6 @@ ULONG EtFwStartMonitor(
     RtlInitializeSListHead(&FwPacketListHead);
     RtlInitializeSListHead(&EtFwQueryListHead);
     FwObjectType = PhCreateObjectType(L"FwObject", 0, FwObjectTypeDeleteProcedure);
-    EtFwResolveCacheHashtable = PhCreateHashtable(
-        sizeof(FW_RESOLVE_CACHE_ITEM),
-        EtFwResolveCacheHashtableEqualFunction,
-        EtFwResolveCacheHashtableHashFunction,
-        20
-        );
 
     if (!(moduleHandle = LoadLibrary(L"fwpuclnt.dll")))
         return GetLastError();
