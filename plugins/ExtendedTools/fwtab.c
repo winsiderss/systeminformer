@@ -1558,18 +1558,6 @@ BOOLEAN NTAPI FwSearchFilterCallback(
             return TRUE;
     }
 
-    if (fwNode->FwRuleLayerNameString)
-    {
-        if (wordMatch(&fwNode->FwRuleLayerNameString->sr))
-            return TRUE;
-    }
-
-    if (fwNode->FwRuleLayerDescriptionString)
-    {
-        if (wordMatch(&fwNode->FwRuleLayerDescriptionString->sr))
-            return TRUE;
-    }
-
     return FALSE;
 }
 
