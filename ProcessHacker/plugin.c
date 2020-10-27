@@ -438,11 +438,10 @@ VOID PhLoadPlugins(
     // In certain startup modes we want to ignore all plugin load errors.
     if (PhGetIntegerSetting(L"ShowPluginLoadErrors") && pluginLoadErrors->Count != 0 && !PhStartupParameters.PhSvc)
     {
+        TASKDIALOGCONFIG config;
         PH_STRING_BUILDER stringBuilder;
         PPHP_PLUGIN_LOAD_ERROR loadError;
         PPH_STRING baseName;
-        TASKDIALOGCONFIG config = { sizeof(TASKDIALOGCONFIG) };
-        TASKDIALOG_BUTTON buttons[2];
         INT result;
 
         PhInitializeStringBuilder(&stringBuilder, 100);
@@ -465,21 +464,15 @@ VOID PhLoadPlugins(
         if (PhEndsWithStringRef2(&stringBuilder.String->sr, L"\n", FALSE)) 
             PhRemoveEndStringBuilder(&stringBuilder, 2);
 
+        memset(&config, 0, sizeof(TASKDIALOGCONFIG));
+        config.cbSize = sizeof(TASKDIALOGCONFIG);
         config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION;
-        config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
+        config.dwCommonButtons = TDCBF_OK_BUTTON;
         config.pszWindowTitle = PhApplicationName;
-        config.pszMainIcon = TD_ERROR_ICON;
+        config.pszMainIcon = TD_INFORMATION_ICON;
         config.pszMainInstruction = L"Unable to load the following plugin(s)";
         config.pszContent = PhGetString(PhFinalStringBuilderString(&stringBuilder));
-
-        buttons[0].nButtonID = IDYES;
-        buttons[0].pszButtonText = L"Delete plugins";
-        buttons[1].nButtonID = IDNO;
-        buttons[1].pszButtonText = L"Disable plugins";
-
-        config.cButtons = 2;
-        config.pButtons = buttons;
-        config.nDefaultButton = IDCANCEL;
+        config.nDefaultButton = IDOK;
 
         if (TaskDialogIndirect(
             &config,
@@ -488,28 +481,25 @@ VOID PhLoadPlugins(
             NULL
             ) == S_OK)
         {
-            switch (result)
-            {
-            case IDNO:
-                for (i = 0; i < pluginLoadErrors->Count; i++)
-                {
-                    loadError = pluginLoadErrors->Items[i];
-                    baseName = PhGetBaseName(loadError->FileName);
-
-                    PhSetPluginDisabled(&baseName->sr, TRUE);
-
-                    PhDereferenceObject(baseName);
-                }
-                break;
-            case IDYES:
-                for (i = 0; i < pluginLoadErrors->Count; i++)
-                {
-                    loadError = pluginLoadErrors->Items[i];
-
-                    PhDeleteFileWin32(loadError->FileName->Buffer);
-                }
-                break;
-            }
+            //switch (result)
+            //{
+            //case IDNO:
+            //    for (i = 0; i < pluginLoadErrors->Count; i++)
+            //    {
+            //        loadError = pluginLoadErrors->Items[i];
+            //        baseName = PhGetBaseName(loadError->FileName);
+            //        PhSetPluginDisabled(&baseName->sr, TRUE);
+            //        PhDereferenceObject(baseName);
+            //    }
+            //    break;
+            //case IDYES:
+            //    for (i = 0; i < pluginLoadErrors->Count; i++)
+            //    {
+            //        loadError = pluginLoadErrors->Items[i];
+            //        PhDeleteFileWin32(loadError->FileName->Buffer);
+            //    }
+            //    break;
+            //}
         }
 
         PhDeleteStringBuilder(&stringBuilder);
