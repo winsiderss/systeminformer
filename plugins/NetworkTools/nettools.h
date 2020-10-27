@@ -229,11 +229,11 @@ typedef struct _NETWORK_EXTENSION
         };
     };
 
-    INT CountryIconIndex;
     PPH_STRING LocalServiceName;
     PPH_STRING RemoteServiceName;
-    PPH_STRING RemoteCountryCode;
+
     PPH_STRING RemoteCountryName;
+    INT CountryIconIndex;
 
     ULONG64 NumberOfBytesOut;
     ULONG64 NumberOfBytesIn;
