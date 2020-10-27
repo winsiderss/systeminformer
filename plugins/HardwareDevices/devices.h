@@ -181,6 +181,11 @@ VOID NetAdaptersLoadList(
     VOID
     );
 
+BOOLEAN HardwareDeviceShowProperties(
+    _In_ HWND WindowHandle,
+    _In_ PPH_STRING DeviceInstance
+    );
+
 // adapter.c
 
 VOID NetAdaptersInitialize(

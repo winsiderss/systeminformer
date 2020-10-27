@@ -695,7 +695,7 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
             PhSetControlTheme(context->ListViewHandle, L"explorer");
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 350, L"Disk Drives");
             PhSetExtendedListView(context->ListViewHandle);
-            LoadDiskDriveImages(context);
+            //LoadDiskDriveImages(context);
 
             ListView_EnableGroupView(context->ListViewHandle, TRUE);
             PhAddListViewGroup(context->ListViewHandle, 0, L"Connected");
@@ -781,6 +781,20 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
                     if (deviceInstance = FindDiskDeviceInstance(param->DevicePath))
                     {
                         ShowDeviceMenu(hwndDlg, deviceInstance);
+                        PhDereferenceObject(deviceInstance);
+                    }
+                }
+            }
+            else if (header->code == NM_DBLCLK)
+            {
+                PDV_DISK_ID param;
+                PPH_STRING deviceInstance;
+
+                if (param = PhGetSelectedListViewItemParam(context->ListViewHandle))
+                {
+                    if (deviceInstance = FindDiskDeviceInstance(param->DevicePath))
+                    {
+                        HardwareDeviceShowProperties(hwndDlg, deviceInstance);
                         PhDereferenceObject(deviceInstance);
                     }
                 }
