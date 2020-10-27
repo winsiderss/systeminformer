@@ -172,6 +172,20 @@ BOOLEAN FwTabPageCallback(
             SaveSettingsFwTreeList();
         }
         return TRUE;
+    case MainTabPageSelected:
+        {
+            BOOLEAN selected = (BOOLEAN)Parameter1;
+
+            if (selected)
+            {
+                EtFwEnabled = TRUE;
+            }
+            else
+            {
+                EtFwEnabled = FALSE;
+            }
+        }
+        break;
     case MainTabPageExportContent:
         {
             NOTHING;
