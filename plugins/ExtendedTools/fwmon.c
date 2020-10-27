@@ -1393,16 +1393,21 @@ ULONG EtFwStartMonitor(
     if (status != ERROR_SUCCESS)
         return status;
 
+    value.type = FWP_UINT32;
+    value.uint32 = FWPM_NET_EVENT_KEYWORD_CAPABILITY_DROP | FWPM_NET_EVENT_KEYWORD_CAPABILITY_ALLOW | FWPM_NET_EVENT_KEYWORD_CLASSIFY_ALLOW;
+
     if (WindowsVersion >= WINDOWS_8)
     {
-        value.type = FWP_UINT32;
-        value.uint32 =
-            FWPM_NET_EVENT_KEYWORD_CAPABILITY_DROP | FWPM_NET_EVENT_KEYWORD_CAPABILITY_ALLOW |
-            FWPM_NET_EVENT_KEYWORD_CLASSIFY_ALLOW | FWPM_NET_EVENT_KEYWORD_INBOUND_MCAST |
-            FWPM_NET_EVENT_KEYWORD_INBOUND_BCAST;
-        if (WindowsVersion >= WINDOWS_10_19H1) value.uint32 |= FWPM_NET_EVENT_KEYWORD_PORT_SCANNING_DROP;
-        FwpmEngineSetOption(EtFwEngineHandle, FWPM_ENGINE_NET_EVENT_MATCH_ANY_KEYWORDS, &value);
+        value.uint32 |= FWPM_NET_EVENT_KEYWORD_INBOUND_MCAST | FWPM_NET_EVENT_KEYWORD_INBOUND_BCAST;
 
+        if (WindowsVersion >= WINDOWS_10_19H1)
+            value.uint32 |= FWPM_NET_EVENT_KEYWORD_PORT_SCANNING_DROP;
+    }
+
+    FwpmEngineSetOption(EtFwEngineHandle, FWPM_ENGINE_NET_EVENT_MATCH_ANY_KEYWORDS, &value);
+
+    if (WindowsVersion >= WINDOWS_8)
+    {
         value.type = FWP_UINT32;
         value.uint32 = 1;
         FwpmEngineSetOption(EtFwEngineHandle, FWPM_ENGINE_MONITOR_IPSEC_CONNECTIONS, &value);
