@@ -242,6 +242,7 @@ EXPORTS
     PhDeleteFileWin32
     PhDetermineDosPathNameType
     PhDoesFileExistsWin32
+    PhDoesFileExists
     PhDisconnectNamedPipe
     PhEnumerateKey
     PhEnumerateValueKey
