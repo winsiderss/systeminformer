@@ -819,14 +819,12 @@ typedef struct _FW_EVENT_ITEM
 
     PPH_STRING RuleName;
     PPH_STRING RuleDescription;
-    PPH_STRING FwRuleLayerNameString;
-    PPH_STRING FwRuleLayerDescriptionString;
-    PPH_STRING TimeString;
-
     PPH_STRING RemoteCountryName;
-    INT CountryIconIndex;
+    UINT CountryIconIndex;
 
+    PPH_STRING TimeString;
     PPH_STRING TooltipText;
+
     PH_STRINGREF TextCache[FW_COLUMN_MAXIMUM];
 } FW_EVENT_ITEM, *PFW_EVENT_ITEM;
 

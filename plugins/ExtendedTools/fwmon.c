@@ -69,14 +69,12 @@ typedef struct _FW_EVENT
 
     PPH_STRING RuleName;
     PPH_STRING RuleDescription;
-    PPH_STRING RuleLayerName;
-    PPH_STRING RuleLayerDescription;
-
+    //PPH_STRING RuleLayerName;
+    //PPH_STRING RuleLayerDescription;
     PPH_STRING ProcessFileName;
     PPH_STRING ProcessBaseString;
-
-    INT CountryIconIndex;
     PPH_STRING RemoteCountryName;
+    UINT CountryIconIndex;
 
     PPH_PROCESS_ITEM ProcessItem;
 } FW_EVENT, *PFW_EVENT;
@@ -168,13 +166,8 @@ VOID NTAPI FwObjectTypeDeleteProcedure(
         PhDereferenceObject(event->RuleName);
     if (event->RuleDescription)
         PhDereferenceObject(event->RuleDescription);
-    if (event->FwRuleLayerNameString)
-        PhDereferenceObject(event->FwRuleLayerNameString);
-    if (event->FwRuleLayerDescriptionString)
-        PhDereferenceObject(event->FwRuleLayerDescriptionString);
     if (event->RemoteCountryName)
         PhDereferenceObject(event->RemoteCountryName);
-
     if (event->TimeString)
         PhDereferenceObject(event->TimeString);
     if (event->TooltipText)
@@ -237,8 +230,6 @@ VOID FwProcessFirewallEvent(
 
     entry->RuleName = diskEvent->RuleName;
     entry->RuleDescription = diskEvent->RuleDescription;
-    entry->FwRuleLayerNameString = diskEvent->RuleLayerName;
-    entry->FwRuleLayerDescriptionString = diskEvent->RuleLayerDescription;
     entry->CountryIconIndex = diskEvent->CountryIconIndex;
     entry->RemoteCountryName = diskEvent->RemoteCountryName;
 
@@ -794,8 +785,6 @@ VOID CALLBACK EtFwEventCallback(
     ULONG currentProfile;
     PPH_STRING ruleName = NULL;
     PPH_STRING ruleDescription = NULL;
-    PPH_STRING ruleLayerName = NULL;
-    PPH_STRING ruleLayerDescription = NULL;
     FWPM_LAYER* layer = NULL;
     FWPM_FILTER* filter = NULL;
 
@@ -829,10 +818,6 @@ VOID CALLBACK EtFwEventCallback(
             return;
         }
 
-        if (layer->displayData.name)
-            ruleLayerName = PhCreateString(layer->displayData.name);
-        if (layer->displayData.description)
-            ruleLayerDescription = PhCreateString(layer->displayData.description);
 
         FwpmFreeMemory(&layer);
     }
@@ -853,8 +838,6 @@ VOID CALLBACK EtFwEventCallback(
     entry.Direction = direction;
     entry.RuleName = ruleName;
     entry.RuleDescription = ruleDescription;
-    entry.RuleLayerName = ruleLayerName;
-    entry.RuleLayerDescription = ruleLayerDescription;
 
     if (FwEvent->header.flags & FWPM_NET_EVENT_FLAG_IP_PROTOCOL_SET)
     {
@@ -1056,10 +1039,12 @@ ULONG EtFwStartMonitor(
     if (!FwpmNetEventSubscribe_I)
         FwpmNetEventSubscribe_I = PhGetProcedureAddress(moduleHandle, "FwpmNetEventSubscribe1", 0);
     if (!FwpmNetEventSubscribe_I)
+        FwpmNetEventSubscribe_I = PhGetProcedureAddress(moduleHandle, "FwpmNetEventSubscribe0", 0);
+    if (!FwpmNetEventSubscribe_I)
         return ERROR_PROC_NOT_FOUND;
 
-    session.flags = 0;// FWPM_SESSION_FLAG_DYNAMIC;
-    session.displayData.name  = L"PhFwSession";
+    session.flags = 0;
+    session.displayData.name  = L"ProcessHackerFirewallSession";
     session.displayData.description = L"";
 
     // Create a non-dynamic BFE session
