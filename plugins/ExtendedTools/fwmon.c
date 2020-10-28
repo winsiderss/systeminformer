@@ -34,14 +34,13 @@ ULONG FwMaxEventAge = 60;
 SLIST_HEADER FwPacketListHead;
 LIST_ENTRY FwAgeListHead = { &FwAgeListHead, &FwAgeListHead };
 _FwpmNetEventSubscribe FwpmNetEventSubscribe_I = NULL;
-PPH_HASHTABLE EtFwResolveCacheHashtable = NULL;
 
 BOOLEAN EtFwEnableResolveCache = TRUE;
 PH_INITONCE EtFwWorkQueueInitOnce = PH_INITONCE_INIT;
-PH_WORK_QUEUE EtFwWorkQueue;
 SLIST_HEADER EtFwQueryListHead;
-static PPH_HASHTABLE EtFwCacheHashtable = NULL;
-static PH_QUEUED_LOCK EtFwCacheHashtableLock = PH_QUEUED_LOCK_INIT;
+PH_WORK_QUEUE EtFwWorkQueue;
+PPH_HASHTABLE EtFwResolveCacheHashtable = NULL;
+PH_QUEUED_LOCK EtFwCacheHashtableLock = PH_QUEUED_LOCK_INIT;
 
 PH_CALLBACK_DECLARE(FwItemAddedEvent);
 PH_CALLBACK_DECLARE(FwItemModifiedEvent);
@@ -134,6 +133,9 @@ PFW_RESOLVE_CACHE_ITEM EtFwLookupResolveCacheItem(
     FW_RESOLVE_CACHE_ITEM lookupCacheItem;
     PFW_RESOLVE_CACHE_ITEM lookupCacheItemPtr = &lookupCacheItem;
     PFW_RESOLVE_CACHE_ITEM* cacheItemPtr;
+
+    if (!EtFwResolveCacheHashtable)
+        return NULL;
 
     // Construct a temporary cache item for the lookup.
     lookupCacheItem.Address = *Address;
@@ -632,6 +634,8 @@ VOID PhpQueryHostnameForEntry(
 
         if (tickCount - lastTickCount >= 120 * CLOCKS_PER_SEC)
         {
+            PhAcquireQueuedLockShared(&EtFwCacheHashtableLock);
+
             if (EtFwResolveCacheHashtable)
             {
                 PFW_RESOLVE_CACHE_ITEM* entry;
@@ -645,14 +649,15 @@ VOID PhpQueryHostnameForEntry(
                 }
 
                 PhDereferenceObject(EtFwResolveCacheHashtable);
+                EtFwResolveCacheHashtable = PhCreateHashtable(
+                    sizeof(FW_RESOLVE_CACHE_ITEM),
+                    EtFwResolveCacheHashtableEqualFunction,
+                    EtFwResolveCacheHashtableHashFunction,
+                    20
+                    );
             }
 
-            EtFwResolveCacheHashtable = PhCreateHashtable(
-                sizeof(FW_RESOLVE_CACHE_ITEM),
-                EtFwResolveCacheHashtableEqualFunction,
-                EtFwResolveCacheHashtableHashFunction,
-                20
-                );
+            PhReleaseQueuedLockShared(&EtFwCacheHashtableLock);
 
             lastTickCount = tickCount;
         }
@@ -880,17 +885,26 @@ BOOLEAN EtFwGetFilterDisplayData(
                 }
 
                 PhDereferenceObject(EtFwFilterDisplayDataHashTable);
+                EtFwFilterDisplayDataHashTable = PhCreateHashtable(
+                    sizeof(ETFW_FILTER_DISPLAY_CONTEXT),
+                    EtFwFilterDisplayDataEqualFunction,
+                    EtFwFilterDisplayDataHashFunction,
+                    20
+                    );
             }
-
-            EtFwFilterDisplayDataHashTable = PhCreateHashtable(
-                sizeof(ETFW_FILTER_DISPLAY_CONTEXT),
-                EtFwFilterDisplayDataEqualFunction,
-                EtFwFilterDisplayDataHashFunction,
-                20
-                );
 
             lastTickCount = tickCount;
         }
+    }
+
+    if (!EtFwFilterDisplayDataHashTable)
+    {
+        EtFwFilterDisplayDataHashTable = PhCreateHashtable(
+            sizeof(ETFW_FILTER_DISPLAY_CONTEXT),
+            EtFwFilterDisplayDataEqualFunction,
+            EtFwFilterDisplayDataHashFunction,
+            20
+            );
     }
 
     lookupEntry.FilterId = FilterId;
@@ -1034,6 +1048,16 @@ PPH_STRING EtFwGetSidFullNameCachedSlow(
         }
     }
 
+    if (!EtFwSidFullNameCacheHashtable)
+    {
+        EtFwSidFullNameCacheHashtable = PhCreateHashtable(
+            sizeof(ETFW_SID_FULL_NAME_CACHE_ENTRY),
+            EtFwSidFullNameCacheHashtableEqualFunction,
+            EtFwSidFullNameCacheHashtableHashFunction,
+            16
+            );
+    }
+
     if (EtFwSidFullNameCacheHashtable)
     {
         PETFW_SID_FULL_NAME_CACHE_ENTRY entry;
@@ -1050,16 +1074,6 @@ PPH_STRING EtFwGetSidFullNameCachedSlow(
 
     if (!fullName)
         return NULL;
-
-    if (!EtFwSidFullNameCacheHashtable)
-    {
-        EtFwSidFullNameCacheHashtable = PhCreateHashtable(
-            sizeof(ETFW_SID_FULL_NAME_CACHE_ENTRY),
-            EtFwSidFullNameCacheHashtableEqualFunction,
-            EtFwSidFullNameCacheHashtableHashFunction,
-            16
-            );
-    }
 
     newEntry.Sid = PhAllocateCopy(Sid, RtlLengthSid(Sid));
     newEntry.FullName = PhReferenceObject(fullName);
@@ -1350,7 +1364,20 @@ ULONG EtFwStartMonitor(
 
     RtlInitializeSListHead(&FwPacketListHead);
     RtlInitializeSListHead(&EtFwQueryListHead);
+
     FwObjectType = PhCreateObjectType(L"FwObject", 0, FwObjectTypeDeleteProcedure);
+    EtFwResolveCacheHashtable = PhCreateHashtable(
+        sizeof(FW_RESOLVE_CACHE_ITEM),
+        EtFwResolveCacheHashtableEqualFunction,
+        EtFwResolveCacheHashtableHashFunction,
+        20
+        );
+    EtFwFilterDisplayDataHashTable = PhCreateHashtable(
+        sizeof(ETFW_FILTER_DISPLAY_CONTEXT),
+        EtFwFilterDisplayDataEqualFunction,
+        EtFwFilterDisplayDataHashFunction,
+        20
+        );
 
     if (!(moduleHandle = LoadLibrary(L"fwpuclnt.dll")))
         return GetLastError();
@@ -1386,30 +1413,23 @@ ULONG EtFwStartMonitor(
     // Enable collection of NetEvents
 
     value.type = FWP_UINT32;
-    value.uint32 = 1;
-
+    value.uint32 = TRUE;
     status = FwpmEngineSetOption(EtFwEngineHandle, FWPM_ENGINE_COLLECT_NET_EVENTS, &value);
 
     if (status != ERROR_SUCCESS)
         return status;
 
     value.type = FWP_UINT32;
-    value.uint32 = FWPM_NET_EVENT_KEYWORD_CAPABILITY_DROP | FWPM_NET_EVENT_KEYWORD_CAPABILITY_ALLOW | FWPM_NET_EVENT_KEYWORD_CLASSIFY_ALLOW;
-
-    if (WindowsVersion >= WINDOWS_8)
-    {
-        value.uint32 |= FWPM_NET_EVENT_KEYWORD_INBOUND_MCAST | FWPM_NET_EVENT_KEYWORD_INBOUND_BCAST;
-
-        if (WindowsVersion >= WINDOWS_10_19H1)
-            value.uint32 |= FWPM_NET_EVENT_KEYWORD_PORT_SCANNING_DROP;
-    }
-
+    value.uint32 = FWPM_NET_EVENT_KEYWORD_INBOUND_MCAST | FWPM_NET_EVENT_KEYWORD_INBOUND_BCAST |
+        FWPM_NET_EVENT_KEYWORD_CAPABILITY_DROP | FWPM_NET_EVENT_KEYWORD_CAPABILITY_ALLOW |
+        FWPM_NET_EVENT_KEYWORD_CLASSIFY_ALLOW;
+    if (WindowsVersion >= WINDOWS_10_19H1) value.uint32 |= FWPM_NET_EVENT_KEYWORD_PORT_SCANNING_DROP;
     FwpmEngineSetOption(EtFwEngineHandle, FWPM_ENGINE_NET_EVENT_MATCH_ANY_KEYWORDS, &value);
 
     if (WindowsVersion >= WINDOWS_8)
     {
         value.type = FWP_UINT32;
-        value.uint32 = 1;
+        value.uint32 = TRUE;
         FwpmEngineSetOption(EtFwEngineHandle, FWPM_ENGINE_MONITOR_IPSEC_CONNECTIONS, &value);
 
         value.type = FWP_UINT32;
