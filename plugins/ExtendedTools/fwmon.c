@@ -1032,7 +1032,6 @@ PPH_STRING EtFwGetSidFullNameCachedSlow(
     )
 {
     PPH_STRING fullName;
-    ETFW_SID_FULL_NAME_CACHE_ENTRY newEntry;
 
     // Reset hashtable once in a while.
     {
@@ -1080,9 +1079,15 @@ PPH_STRING EtFwGetSidFullNameCachedSlow(
     if (!fullName)
         return NULL;
 
-    newEntry.Sid = PhAllocateCopy(Sid, RtlLengthSid(Sid));
-    newEntry.FullName = PhReferenceObject(fullName);
-    PhAddEntryHashtable(EtFwSidFullNameCacheHashtable, &newEntry);
+    if (EtFwSidFullNameCacheHashtable)
+    {
+        ETFW_SID_FULL_NAME_CACHE_ENTRY newEntry;
+
+        newEntry.Sid = PhAllocateCopy(Sid, RtlLengthSid(Sid));
+        newEntry.FullName = PhReferenceObject(fullName);
+
+        PhAddEntryHashtable(EtFwSidFullNameCacheHashtable, &newEntry);
+    }
 
     return fullName;
 }
@@ -1120,8 +1125,6 @@ VOID CALLBACK EtFwEventCallback(
     ULONG currentProfile = 0;
     PPH_STRING ruleName = NULL;
     PPH_STRING ruleDescription = NULL;
-    FWPM_LAYER* layer = NULL;
-    FWPM_FILTER* filter = NULL;
 
     if (!EtFwEnabled)
         return;
@@ -1139,20 +1142,14 @@ VOID CALLBACK EtFwEventCallback(
         return;
     }
 
-    if (FwpmLayerGetById(EtFwEngineHandle, layerId, &layer) == ERROR_SUCCESS)
+    if (
+        layerId == FWPS_LAYER_ALE_FLOW_ESTABLISHED_V4 || // IsEqualGUID(layerKey, FWPM_LAYER_ALE_FLOW_ESTABLISHED_V4)
+        layerId == FWPS_LAYER_ALE_FLOW_ESTABLISHED_V6 || // IsEqualGUID(layerKey, FWPM_LAYER_ALE_FLOW_ESTABLISHED_V6)
+        layerId == FWPS_LAYER_ALE_RESOURCE_ASSIGNMENT_V4 || // IsEqualGUID(layerKey, FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V4)
+        layerId == FWPS_LAYER_ALE_RESOURCE_ASSIGNMENT_V6 // IsEqualGUID(layerKey, FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V6)
+        )
     {
-        if (
-            IsEqualGUID(&layer->layerKey, &FWPM_LAYER_ALE_FLOW_ESTABLISHED_V4) ||
-            IsEqualGUID(&layer->layerKey, &FWPM_LAYER_ALE_FLOW_ESTABLISHED_V6) ||
-            IsEqualGUID(&layer->layerKey, &FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V4) ||
-            IsEqualGUID(&layer->layerKey, &FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V6)
-            )
-        {
-            FwpmFreeMemory(&layer);
-            return;
-        }
-
-        FwpmFreeMemory(&layer);
+        return;
     }
 
     EtFwGetFilterDisplayData(filterId, &ruleName, &ruleDescription);
@@ -1246,8 +1243,9 @@ VOID CALLBACK EtFwEventCallback(
 
             if (entry.ProcessItem = EtFwFileNameToProcess(entry.ProcessBaseString))
             {
-                // We get a lower case filename from the firewall netevent which is inconsistent with the paths elsewhere.
-                // Switch the filename here to the same filename as the process. (dmex)
+                // We get a lower case filename from the firewall netevent which is inconsistent
+                // with the file_object paths we get elsewhere. Switch the filename here
+                // to the same filename as the process. (dmex)
                 PhDereferenceObject(entry.ProcessFileName);
                 entry.ProcessFileName = PhReferenceObject(entry.ProcessItem->FileName);
                 PhDereferenceObject(entry.ProcessBaseString);
@@ -1399,11 +1397,12 @@ ULONG EtFwStartMonitor(
     if (!FwpmNetEventSubscribe_I)
         return ERROR_PROC_NOT_FOUND;
 
+    // Create a non-dynamic BFE session
+
     session.flags = 0;
     session.displayData.name  = L"ProcessHackerFirewallSession";
     session.displayData.description = L"";
 
-    // Create a non-dynamic BFE session
     status = FwpmEngineOpen(
         NULL,
         RPC_C_AUTHN_WINNT,
@@ -1419,17 +1418,21 @@ ULONG EtFwStartMonitor(
 
     value.type = FWP_UINT32;
     value.uint32 = TRUE;
+
     status = FwpmEngineSetOption(EtFwEngineHandle, FWPM_ENGINE_COLLECT_NET_EVENTS, &value);
 
     if (status != ERROR_SUCCESS)
         return status;
 
     value.type = FWP_UINT32;
-    value.uint32 = FWPM_NET_EVENT_KEYWORD_INBOUND_MCAST | FWPM_NET_EVENT_KEYWORD_INBOUND_BCAST |
-        FWPM_NET_EVENT_KEYWORD_CAPABILITY_DROP | FWPM_NET_EVENT_KEYWORD_CAPABILITY_ALLOW |
-        FWPM_NET_EVENT_KEYWORD_CLASSIFY_ALLOW;
+    value.uint32 = FWPM_NET_EVENT_KEYWORD_INBOUND_MCAST | FWPM_NET_EVENT_KEYWORD_INBOUND_BCAST | FWPM_NET_EVENT_KEYWORD_CAPABILITY_DROP;
+    if (WindowsVersion >= WINDOWS_8) value.uint32 |= FWPM_NET_EVENT_KEYWORD_CAPABILITY_ALLOW | FWPM_NET_EVENT_KEYWORD_CLASSIFY_ALLOW;
     if (WindowsVersion >= WINDOWS_10_19H1) value.uint32 |= FWPM_NET_EVENT_KEYWORD_PORT_SCANNING_DROP;
-    FwpmEngineSetOption(EtFwEngineHandle, FWPM_ENGINE_NET_EVENT_MATCH_ANY_KEYWORDS, &value);
+
+    status = FwpmEngineSetOption(EtFwEngineHandle, FWPM_ENGINE_NET_EVENT_MATCH_ANY_KEYWORDS, &value);
+
+    if (status != ERROR_SUCCESS)
+        return status;
 
     if (WindowsVersion >= WINDOWS_8)
     {
@@ -1437,9 +1440,9 @@ ULONG EtFwStartMonitor(
         value.uint32 = TRUE;
         FwpmEngineSetOption(EtFwEngineHandle, FWPM_ENGINE_MONITOR_IPSEC_CONNECTIONS, &value);
 
-        value.type = FWP_UINT32;
-        value.uint32 = FWPM_ENGINE_OPTION_PACKET_QUEUE_INBOUND | FWPM_ENGINE_OPTION_PACKET_QUEUE_FORWARD;
-        FwpmEngineSetOption(EtFwEngineHandle, FWPM_ENGINE_PACKET_QUEUING, &value);
+        //value.type = FWP_UINT32;
+        //value.uint32 = FWPM_ENGINE_OPTION_PACKET_QUEUE_INBOUND | FWPM_ENGINE_OPTION_PACKET_QUEUE_FORWARD;
+        //FwpmEngineSetOption(EtFwEngineHandle, FWPM_ENGINE_PACKET_QUEUING, &value);
     }
 
     eventTemplate.numFilterConditions = 0; // get events for all conditions
