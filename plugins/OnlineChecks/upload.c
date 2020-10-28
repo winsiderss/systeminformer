@@ -430,7 +430,7 @@ NTSTATUS UploadFileThreadStart(
         PH_MAPPED_IMAGE mappedImage;
         PPH_BYTES serviceHash;
 
-        if (!NT_SUCCESS(status = PhLoadMappedImageEx(NULL, fileHandle, TRUE, &mappedImage)))
+        if (!NT_SUCCESS(status = PhLoadMappedImageEx(NULL, fileHandle, &mappedImage)))
         {
             RaiseUploadError(context, L"Unable to load the image.", RtlNtStatusToDosError(status));
             goto CleanupExit;

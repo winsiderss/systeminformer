@@ -135,7 +135,6 @@ NTSTATUS PhInitializeMappedArchive(
 NTSTATUS PhLoadMappedArchive(
     _In_opt_ PWSTR FileName,
     _In_opt_ HANDLE FileHandle,
-    _In_ BOOLEAN ReadOnly,
     _Out_ PPH_MAPPED_ARCHIVE MappedArchive
     )
 {
@@ -144,7 +143,6 @@ NTSTATUS PhLoadMappedArchive(
     status = PhMapViewOfEntireFile(
         FileName,
         FileHandle,
-        ReadOnly,
         &MappedArchive->ViewBase,
         &MappedArchive->Size
         );

@@ -224,7 +224,6 @@ INT WINAPI wWinMain(
             status = PhLoadMappedImageEx(
                 PhGetString(PvFileName),
                 fileHandle,
-                TRUE,
                 &PvMappedImage
                 );
             NtClose(fileHandle);

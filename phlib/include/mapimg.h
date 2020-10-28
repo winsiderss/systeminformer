@@ -55,7 +55,6 @@ NTAPI
 PhLoadMappedImage(
     _In_opt_ PWSTR FileName,
     _In_opt_ HANDLE FileHandle,
-    _In_ BOOLEAN ReadOnly,
     _Out_ PPH_MAPPED_IMAGE MappedImage
     );
 
@@ -65,7 +64,6 @@ NTAPI
 PhLoadMappedImageEx(
     _In_opt_ PWSTR FileName,
     _In_opt_ HANDLE FileHandle,
-    _In_ BOOLEAN ReadOnly,
     _Out_ PPH_MAPPED_IMAGE MappedImage
     );
 
@@ -82,7 +80,6 @@ NTAPI
 PhMapViewOfEntireFile(
     _In_opt_ PWSTR FileName,
     _In_opt_ HANDLE FileHandle,
-    _In_ BOOLEAN ReadOnly,
     _Out_ PVOID *ViewBase,
     _Out_ PSIZE_T Size
     );
@@ -683,7 +680,6 @@ NTAPI
 PhLoadMappedArchive(
     _In_opt_ PWSTR FileName,
     _In_opt_ HANDLE FileHandle,
-    _In_ BOOLEAN ReadOnly,
     _Out_ PPH_MAPPED_ARCHIVE MappedArchive
     );
 

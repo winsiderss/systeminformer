@@ -31,7 +31,7 @@ PPH_STRING PvpQueryModuleOrdinalName(
     PPH_STRING exportName = NULL;
     PH_MAPPED_IMAGE mappedImage;
 
-    if (NT_SUCCESS(PhLoadMappedImage(FileName->Buffer, NULL, TRUE, &mappedImage)))
+    if (NT_SUCCESS(PhLoadMappedImage(FileName->Buffer, NULL, &mappedImage)))
     {
         PH_MAPPED_IMAGE_EXPORTS exports;
         PH_MAPPED_IMAGE_EXPORT_ENTRY exportEntry;

@@ -4933,7 +4933,6 @@ NTSTATUS PhIsExecutablePacked(
     status = PhLoadMappedImage(
         FileName,
         NULL,
-        TRUE,
         &mappedImage
         );
 

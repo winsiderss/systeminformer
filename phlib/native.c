@@ -1731,7 +1731,7 @@ NTSTATUS PhLoadDllProcess(
 
     if (isWow64)
     {
-        if (!NT_SUCCESS(status = PhLoadMappedImage(FileName, NULL, TRUE, &mappedImage)))
+        if (!NT_SUCCESS(status = PhLoadMappedImage(FileName, NULL, &mappedImage)))
             return status;
 
         isModule32 = mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC;
@@ -4751,7 +4751,7 @@ NTSTATUS PhGetProcedureAddressRemote(
     PH_MAPPED_IMAGE_EXPORTS exports;
     GET_PROCEDURE_ADDRESS_REMOTE_CONTEXT context;
 
-    if (!NT_SUCCESS(status = PhLoadMappedImage(FileName, NULL, TRUE, &mappedImage)))
+    if (!NT_SUCCESS(status = PhLoadMappedImage(FileName, NULL, &mappedImage)))
         return status;
 
     PhInitializeStringRef(&context.FileName, FileName);
@@ -5700,7 +5700,7 @@ NTSTATUS PhGetProcessIsDotNetEx(
             &fileInfo
             );
 
-        if (NT_SUCCESS(status))
+        if (NT_SUCCESS(status) || status == STATUS_PIPE_NOT_AVAILABLE)
         {
             if (IsDotNet)
                 *IsDotNet = TRUE;
@@ -8264,7 +8264,7 @@ static BOOLEAN PhpDeleteDirectoryCallback(
     _In_opt_ PVOID Context
     )
 {
-    static PH_STRINGREF directorySeparator = PH_STRINGREF_INIT(L"\\");
+    static PH_STRINGREF separator = PH_STRINGREF_INIT(L"\\");
     PPH_STRING parentDirectory = Context;
     PPH_STRING fullName;
     PH_STRINGREF baseName;
@@ -8280,7 +8280,7 @@ static BOOLEAN PhpDeleteDirectoryCallback(
 
     fullName = PhConcatStringRef3(
         &parentDirectory->sr,
-        &directorySeparator,
+        &separator,
         &baseName
         );
 
