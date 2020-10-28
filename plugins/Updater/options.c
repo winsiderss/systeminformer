@@ -265,7 +265,10 @@ typedef struct _PH_UPDATER_COMMIT_CONTEXT
     HWND ListViewHandle;
     HFONT ListViewBoldFont;
     PPH_STRING BuildMessage;
-    PPH_STRING CommitHash;
+
+    PPH_STRING CurrentCommitHash;
+    PPH_STRING LatestCommitHash;
+
     PH_LAYOUT_MANAGER LayoutManager;
 } PH_UPDATER_COMMIT_CONTEXT, *PPH_UPDATER_COMMIT_CONTEXT;
 
@@ -404,15 +407,17 @@ INT_PTR CALLBACK TextDlgProc(
             PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDCANCEL));
 
             {
-                context->CommitHash = PhGetPhVersionHash();
+                PPH_UPDATER_CONTEXT updater = ((PPH_UPDATER_CONTEXT)lParam);
+                context->CurrentCommitHash = PhGetPhVersionHash();
+                if (updater) context->LatestCommitHash = PhReferenceObject(updater->CommitHash);
 
-                if (PhIsNullOrEmptyString(context->CommitHash) || PhEqualString2(context->CommitHash, L"\"\"", TRUE))
+                if (context->CurrentCommitHash && PhEqualString2(context->CurrentCommitHash, L"\"\"", TRUE))
                 {
-                    PPH_UPDATER_CONTEXT updater = ((PPH_UPDATER_CONTEXT)lParam);
-
-                    if (!PhIsNullOrEmptyString(updater->CommitHash))
+                    if (context->LatestCommitHash)
                     {
-                        PhMoveReference(&context->CommitHash, PhReferenceObject(updater->CommitHash)); // HACK
+                        PhDereferenceObject(context->CurrentCommitHash);
+                        context->CurrentCommitHash = context->LatestCommitHash;
+                        context->LatestCommitHash = NULL;
                     }
                 }
             }
@@ -429,8 +434,10 @@ INT_PTR CALLBACK TextDlgProc(
 
             PhDeleteLayoutManager(&context->LayoutManager);
 
-            if (context->CommitHash)
-                PhDereferenceObject(context->CommitHash);
+            if (context->LatestCommitHash)
+                PhDereferenceObject(context->LatestCommitHash);
+            if (context->CurrentCommitHash)
+                PhDereferenceObject(context->CurrentCommitHash);
             if (context->ListViewBoldFont)
                 DeleteFont(context->ListViewBoldFont);
 
@@ -514,11 +521,25 @@ INT_PTR CALLBACK TextDlgProc(
 
                                 if (commitHash = PhGetListViewItemText(context->ListViewHandle, (INT)customDraw->nmcd.dwItemSpec, 3))
                                 {
-                                    if (shortCommitHash = PhSubstring(context->CommitHash, 0, 7))
+                                    if (context->CurrentCommitHash && (shortCommitHash = PhSubstring(context->CurrentCommitHash, 0, 7)))
                                     {
                                         if (PhEqualString(commitHash, shortCommitHash, TRUE))
                                         {
                                             newFont = context->ListViewBoldFont;
+                                            customDraw->clrText = RGB(0, 0, 0x0);
+                                            SelectFont(customDraw->nmcd.hdc, newFont);
+                                        }
+
+                                        PhDereferenceObject(shortCommitHash);
+                                    }
+
+                                    if (context->LatestCommitHash && (shortCommitHash = PhSubstring(context->LatestCommitHash, 0, 7)))
+                                    {
+                                        if (PhEqualString(commitHash, shortCommitHash, TRUE))
+                                        {
+                                            newFont = context->ListViewBoldFont;
+                                            customDraw->clrText = RGB(0, 0, 0xff);
+                                            SelectFont(customDraw->nmcd.hdc, newFont);
                                         }
 
                                         PhDereferenceObject(shortCommitHash);
@@ -526,10 +547,7 @@ INT_PTR CALLBACK TextDlgProc(
 
                                     PhDereferenceObject(commitHash);
                                 }
-
-                                if (newFont)
-                                    SelectFont(customDraw->nmcd.hdc, newFont);
-
+        
                                 if (newFont)
                                 {
                                     SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, CDRF_NEWFONT);
