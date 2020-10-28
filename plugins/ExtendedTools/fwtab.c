@@ -940,7 +940,7 @@ BOOLEAN NTAPI FwTreeNewCallback(
                break;
            case FW_COLUMN_PROCESSFILENAME:
                {
-                   getCellText->Text = PhGetStringRef(node->ProcessFileName);
+                   getCellText->Text = PhGetStringRef(node->ProcessFileNameWin32);
                }
                break;
            case FW_COLUMN_USER:
@@ -948,8 +948,9 @@ BOOLEAN NTAPI FwTreeNewCallback(
                    if (node->UserSid)
                    {
                        PhMoveReference(&node->UserName, EtFwGetSidFullNameCachedSlow(node->UserSid));
-                       getCellText->Text = PhGetStringRef(node->UserName);
                    }
+
+                   getCellText->Text = PhGetStringRef(node->UserName);
                }
                break;
            //case FW_COLUMN_PACKAGE:
