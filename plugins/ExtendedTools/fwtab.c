@@ -413,7 +413,7 @@ VOID FwTickNodes(
 
 #define SORT_FUNCTION(Column) FwTreeNewCompare##Column
 #define BEGIN_SORT_FUNCTION(Column) static int __cdecl FwTreeNewCompare##Column( \
-    _In_ const void* context, \
+    _In_ void* context, \
     _In_ const void *_elem1, \
     _In_ const void *_elem2 \
     ) \
@@ -532,7 +532,7 @@ BEGIN_SORT_FUNCTION(Country)
 END_SORT_FUNCTION
 
 int EtFwNodeNoOrderSortFunction(
-    const void* context,
+    void* context,
     const void* _elem1,
     const void* _elem2
     )
