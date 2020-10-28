@@ -220,7 +220,8 @@ VOID FwProcessFirewallEvent(
     PFW_EVENT_ITEM entry;
 
     entry = FwCreateEventItem();
-    entry->TimeStamp = firewallEvent->TimeStamp;
+    PhQuerySystemTime(&entry->TimeStamp);
+    //entry->TimeStamp = firewallEvent->TimeStamp;
     entry->Direction = firewallEvent->Direction;
     entry->Type = firewallEvent->Type;
     entry->ScopeId = firewallEvent->ScopeId;

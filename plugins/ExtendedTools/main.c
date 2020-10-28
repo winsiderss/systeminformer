@@ -60,12 +60,6 @@ VOID NTAPI LoadCallback(
 {
     EtEtwStatisticsInitialization();
     EtGpuMonitorInitialization();
-
-    if (PhGetIntegerSetting(SETTING_NAME_ENABLE_FW_MONITOR) && PhGetOwnTokenAttributes().Elevated)
-    {
-        EtFwStatus = EtFwMonitorInitialize();
-        EtFwEnabled = EtFwStatus == ERROR_SUCCESS;
-    }
 }
 
 VOID NTAPI UnloadCallback(
@@ -163,12 +157,7 @@ VOID NTAPI MainWindowShowingCallback(
     )
 {
     EtInitializeDiskTab();
-
-    if (PhGetIntegerSetting(SETTING_NAME_ENABLE_FW_MONITOR))
-    {
-        EtFwInitializeTab();
-    }
-
+    EtInitializeFirewallTab();
     EtRegisterToolbarGraphs();
 }
 
@@ -710,7 +699,6 @@ LOGICAL DllMain(
                 { StringSettingType, SETTING_NAME_WSWATCH_COLUMNS, L"" },
                 { StringSettingType, SETTING_NAME_TRAYICON_GUIDS, L"" },
                 { IntegerSettingType, SETTING_NAME_ENABLE_FAHRENHEIT, L"0" },
-                { IntegerSettingType, SETTING_NAME_ENABLE_FW_MONITOR, L"0" },
                 { StringSettingType, SETTING_NAME_FW_TREE_LIST_COLUMNS, L"" },
                 { IntegerPairSettingType, SETTING_NAME_FW_TREE_LIST_SORT, L"12,2" },
             };

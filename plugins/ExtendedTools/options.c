@@ -36,23 +36,13 @@ INT_PTR CALLBACK OptionsDlgProc(
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLEETWMONITOR), PhGetIntegerSetting(SETTING_NAME_ENABLE_ETW_MONITOR) ? BST_CHECKED : BST_UNCHECKED);
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLEGPUMONITOR), PhGetIntegerSetting(SETTING_NAME_ENABLE_GPU_MONITOR) ? BST_CHECKED : BST_UNCHECKED);
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLESYSINFOGRAPHS), PhGetIntegerSetting(SETTING_NAME_ENABLE_SYSINFO_GRAPHS) ? BST_CHECKED : BST_UNCHECKED);
-            Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLEFWMONITOR), PhGetIntegerSetting(SETTING_NAME_ENABLE_FW_MONITOR) ? BST_CHECKED : BST_UNCHECKED);
         }
         break;
     case WM_DESTROY:
         {
-            BOOLEAN checked = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLEFWMONITOR)) == BST_CHECKED;
-            BOOLEAN current = !!PhGetIntegerSetting(SETTING_NAME_ENABLE_FW_MONITOR);
-
             PhSetIntegerSetting(SETTING_NAME_ENABLE_ETW_MONITOR, Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLEETWMONITOR)) == BST_CHECKED);
             PhSetIntegerSetting(SETTING_NAME_ENABLE_GPU_MONITOR, Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLEGPUMONITOR)) == BST_CHECKED);
             PhSetIntegerSetting(SETTING_NAME_ENABLE_SYSINFO_GRAPHS, Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLESYSINFOGRAPHS)) == BST_CHECKED);
-            PhSetIntegerSetting(SETTING_NAME_ENABLE_FW_MONITOR, checked);
-
-            if (checked != current)
-            {
-                PhShowInformation2(NULL, L"Restart Process Hacker", L"%s", L"Restart Process Hacker to enable firewall tab.");
-            }
         }
         break;
     }

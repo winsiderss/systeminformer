@@ -28,7 +28,7 @@
 BOOLEAN FwTreeNewCreated = FALSE;
 HWND FwTreeNewHandle = NULL;
 ULONG FwTreeNewSortColumn = FW_COLUMN_NAME;
-PH_SORT_ORDER FwTreeNewSortOrder = DescendingSortOrder;
+PH_SORT_ORDER FwTreeNewSortOrder = NoSortOrder;
 PH_STRINGREF FwTreeEmptyText = PH_STRINGREF_INIT(L"Firewall monitoring requires Process Hacker to be restarted with administrative privileges.");
 PPH_STRING FwTreeErrorText = NULL;
 PPH_MAIN_TAB_PAGE EtFwAddedTabPage;
@@ -104,6 +104,14 @@ BOOLEAN FwTabPageCallback(
             PhInitializeProviderEventQueue(&FwNetworkEventQueue, 100);
 
             InitializeFwTreeList(hwnd);
+
+            if (PhGetOwnTokenAttributes().Elevated)
+            {
+                EtFwStatus = EtFwMonitorInitialize();
+
+                if (EtFwStatus == ERROR_SUCCESS)
+                    EtFwEnabled = TRUE;
+            }
 
             if (!EtFwEnabled)
             {
@@ -209,7 +217,7 @@ BOOLEAN FwTabPageCallback(
     return FALSE;
 }
 
-VOID EtFwInitializeTab(
+VOID EtInitializeFirewallTab(
     VOID
     )
 {
@@ -270,7 +278,7 @@ VOID InitializeFwTreeList(
     LoadSettingsFwTreeList(TreeNewHandle);
 
     TreeNew_SetRedraw(FwTreeNewHandle, TRUE);
-    TreeNew_SetSort(FwTreeNewHandle, FW_COLUMN_TIMESTAMP, DescendingSortOrder);
+    TreeNew_SetSort(FwTreeNewHandle, FW_COLUMN_TIMESTAMP, NoSortOrder);
     TreeNew_SetTriState(FwTreeNewHandle, TRUE);
 
     PhInitializeTreeNewFilterSupport(&EtFwFilterSupport, TreeNewHandle, FwNodeList);
@@ -405,6 +413,7 @@ VOID FwTickNodes(
 
 #define SORT_FUNCTION(Column) FwTreeNewCompare##Column
 #define BEGIN_SORT_FUNCTION(Column) static int __cdecl FwTreeNewCompare##Column( \
+    _In_ const void* context, \
     _In_ const void *_elem1, \
     _In_ const void *_elem2 \
     ) \
@@ -452,7 +461,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(LocalAddress)
 {
-    //sortResult = PhCompareStringWithNull(node1->LocalAddressString, node2->LocalAddressString, TRUE);
+    sortResult = PhCompareStringZ(node1->LocalAddressString, node2->LocalAddressString, TRUE);
 }
 END_SORT_FUNCTION
 
@@ -470,7 +479,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(RemoteAddress)
 {
-    //sortResult = PhCompareStringWithNull(node1->RemoteAddressString, node2->RemoteAddressString, TRUE);
+    sortResult = PhCompareStringZ(node1->RemoteAddressString, node2->RemoteAddressString, TRUE);
 }
 END_SORT_FUNCTION
 
@@ -494,7 +503,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Timestamp)
 {
-    //sortResult = uint64cmp(node1->AddedTime.QuadPart, node2->AddedTime.QuadPart);
+    sortResult = uint64cmp(node1->Index, node2->Index);
 }
 END_SORT_FUNCTION
 
@@ -522,6 +531,21 @@ BEGIN_SORT_FUNCTION(Country)
 }
 END_SORT_FUNCTION
 
+int EtFwNodeNoOrderSortFunction(
+    const void* context,
+    const void* _elem1,
+    const void* _elem2
+    )
+{
+    PFW_EVENT_ITEM node1 = *(PFW_EVENT_ITEM*)_elem1;
+    PFW_EVENT_ITEM node2 = *(PFW_EVENT_ITEM*)_elem2;
+    int sortResult = 0;
+
+    sortResult = uint64cmp(node1->Index, node2->Index);
+    
+    return PhModifySort(sortResult, DescendingSortOrder);
+}
+
 BOOLEAN NTAPI FwTreeNewCallback(
     _In_ HWND WindowHandle,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -543,42 +567,55 @@ BOOLEAN NTAPI FwTreeNewCallback(
 
             node = (PFW_EVENT_ITEM)getChildren->Node;
 
-            if (!getChildren->Node)
+            if (FwTreeNewSortOrder == NoSortOrder)
             {
-                static PVOID sortFunctions[] =
+                if (!node)
                 {
-                    SORT_FUNCTION(Name),
-                    SORT_FUNCTION(Action),
-                    SORT_FUNCTION(Direction),
-                    SORT_FUNCTION(RuleName),
-                    SORT_FUNCTION(RuleDescription),
-                    SORT_FUNCTION(LocalAddress),
-                    SORT_FUNCTION(LocalPort),
-                    SORT_FUNCTION(LocalHostname),
-                    SORT_FUNCTION(RemoteAddress),
-                    SORT_FUNCTION(RemotePort),
-                    SORT_FUNCTION(RemoteHostname),
-                    SORT_FUNCTION(Protocal),
-                    SORT_FUNCTION(Timestamp),
-                    SORT_FUNCTION(Filename),
-                    SORT_FUNCTION(User),
-                    SORT_FUNCTION(Package),
-                    SORT_FUNCTION(Country),
-                };
-                int (__cdecl *sortFunction)(const void*, const void*);
+                    qsort_s(FwNodeList->Items, FwNodeList->Count, sizeof(PVOID), EtFwNodeNoOrderSortFunction, NULL);
 
-                if (FwTreeNewSortColumn < FW_COLUMN_MAXIMUM)
-                    sortFunction = sortFunctions[FwTreeNewSortColumn];
-                else
-                    sortFunction = NULL;
-
-                if (sortFunction)
-                {
-                    qsort(FwNodeList->Items, FwNodeList->Count, sizeof(PVOID), sortFunction);
+                    getChildren->Children = (PPH_TREENEW_NODE*)FwNodeList->Items;
+                    getChildren->NumberOfChildren = FwNodeList->Count;
                 }
+            }
+            else
+            {
+                if (!getChildren->Node)
+                {
+                    static PVOID sortFunctions[] =
+                    {
+                        SORT_FUNCTION(Name),
+                        SORT_FUNCTION(Action),
+                        SORT_FUNCTION(Direction),
+                        SORT_FUNCTION(RuleName),
+                        SORT_FUNCTION(RuleDescription),
+                        SORT_FUNCTION(LocalAddress),
+                        SORT_FUNCTION(LocalPort),
+                        SORT_FUNCTION(LocalHostname),
+                        SORT_FUNCTION(RemoteAddress),
+                        SORT_FUNCTION(RemotePort),
+                        SORT_FUNCTION(RemoteHostname),
+                        SORT_FUNCTION(Protocal),
+                        SORT_FUNCTION(Timestamp),
+                        SORT_FUNCTION(Filename),
+                        SORT_FUNCTION(User),
+                        SORT_FUNCTION(Package),
+                        SORT_FUNCTION(Country),
+                    };
+                    int (__cdecl* sortFunction)(const void*, const void*, const void*);
 
-                getChildren->Children = (PPH_TREENEW_NODE *)FwNodeList->Items;
-                getChildren->NumberOfChildren = FwNodeList->Count;
+                    if (FwTreeNewSortColumn < FW_COLUMN_MAXIMUM)
+                        sortFunction = sortFunctions[FwTreeNewSortColumn];
+                    else
+                        sortFunction = NULL;
+
+                    if (sortFunction)
+                    {
+                        qsort_s(FwNodeList->Items, FwNodeList->Count, sizeof(PVOID), sortFunction, NULL);
+                    }
+
+                    getChildren->Children = (PPH_TREENEW_NODE*)FwNodeList->Items;
+                    getChildren->NumberOfChildren = FwNodeList->Count;
+                }
             }
         }
         return TRUE;
@@ -1003,9 +1040,9 @@ BOOLEAN NTAPI FwTreeNewCallback(
 
             data.TreeNewHandle = WindowHandle;
             data.MouseEvent = Parameter1;
-            data.DefaultSortColumn = 0;
-            data.DefaultSortOrder = AscendingSortOrder;
-            PhInitializeTreeNewColumnMenu(&data);
+            data.DefaultSortColumn = FW_COLUMN_TIMESTAMP;
+            data.DefaultSortOrder = NoSortOrder;
+            PhInitializeTreeNewColumnMenuEx(&data, PH_TN_COLUMN_MENU_SHOW_RESET_SORT);
 
             data.Selection = PhShowEMenu(
                 data.Menu,
