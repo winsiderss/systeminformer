@@ -220,7 +220,6 @@ VOID FwProcessFirewallEvent(
     PFW_EVENT_ITEM entry;
 
     entry = FwCreateEventItem();
-    //PhQuerySystemTime(&entry->AddedTime);
     entry->TimeStamp = firewallEvent->TimeStamp;
     entry->Direction = firewallEvent->Direction;
     entry->Type = firewallEvent->Type;
@@ -265,9 +264,7 @@ BOOLEAN FwProcessEventType(
     _Out_ PBOOLEAN IsLoopback,
     _Out_ PULONG Direction,
     _Out_ PULONG64 FilterId,
-    _Out_ PUSHORT LayerId,
-    _Out_ PULONG OriginalProfile,
-    _Out_ PULONG CurrentProfile
+    _Out_ PUSHORT LayerId
     )
 {
     switch (FwEvent->type)
@@ -290,7 +287,7 @@ BOOLEAN FwProcessEventType(
                 *Direction = FWP_DIRECTION_OUTBOUND;
                 break;
             default:
-                *Direction = FWP_DIRECTION_MAX;
+                *Direction = fwDropEvent->msFwpDirection;
                 break;
             }
 
@@ -300,10 +297,10 @@ BOOLEAN FwProcessEventType(
                 *FilterId = fwDropEvent->filterId;
             if (LayerId)
                 *LayerId = fwDropEvent->layerId;
-            if (OriginalProfile)
-                *OriginalProfile = fwDropEvent->originalProfile;
-            if (CurrentProfile)
-                *CurrentProfile = fwDropEvent->currentProfile;
+            //if (OriginalProfile)
+            //    *OriginalProfile = fwDropEvent->originalProfile;
+            //if (CurrentProfile)
+            //    *CurrentProfile = fwDropEvent->currentProfile;
         }
         return TRUE;
     case FWPM_NET_EVENT_TYPE_CLASSIFY_ALLOW:
@@ -324,7 +321,7 @@ BOOLEAN FwProcessEventType(
                 *Direction = FWP_DIRECTION_OUTBOUND;
                 break;
             default:
-                *Direction = FWP_DIRECTION_MAX;
+                *Direction = fwAllowEvent->msFwpDirection;
                 break;
             }
 
@@ -334,12 +331,151 @@ BOOLEAN FwProcessEventType(
                 *FilterId = fwAllowEvent->filterId;
             if (LayerId)
                 *LayerId = fwAllowEvent->layerId;
-            if (OriginalProfile)
-                *OriginalProfile = fwAllowEvent->originalProfile;
-            if (CurrentProfile)
-                *CurrentProfile = fwAllowEvent->currentProfile;
+            //if (OriginalProfile)
+            //    *OriginalProfile = fwAllowEvent->originalProfile;
+            //if (CurrentProfile)
+            //    *CurrentProfile = fwAllowEvent->currentProfile;
         }
         return TRUE;
+    case FWPM_NET_EVENT_TYPE_IKEEXT_MM_FAILURE:
+        {
+            FWPM_NET_EVENT_IKEEXT_MM_FAILURE* fwIkeMmFailureEvent = FwEvent->ikeMmFailure;
+            //UINT32 failureErrorCode;
+            //IPSEC_FAILURE_POINT failurePoint;
+            //UINT32 flags;
+            //IKEEXT_KEY_MODULE_TYPE keyingModuleType;
+            //IKEEXT_MM_SA_STATE mmState;
+            //IKEEXT_SA_ROLE saRole;
+            //IKEEXT_AUTHENTICATION_METHOD_TYPE mmAuthMethod;
+            //UINT8 endCertHash[20];
+            //UINT64 mmId;
+            //UINT64 mmFilterId;
+            //wchar_t* localPrincipalNameForAuth;
+            //wchar_t* remotePrincipalNameForAuth;
+            //UINT32 numLocalPrincipalGroupSids;
+            //LPWSTR* localPrincipalGroupSids;
+            //UINT32 numRemotePrincipalGroupSids;
+            //LPWSTR* remotePrincipalGroupSids;
+            //GUID* providerContextKey;
+        }
+        return FALSE;
+    case FWPM_NET_EVENT_TYPE_IKEEXT_QM_FAILURE:
+        {
+            FWPM_NET_EVENT_IKEEXT_QM_FAILURE* fwIkeQmFailureEvent = FwEvent->ikeQmFailure;
+            //UINT32 failureErrorCode;
+            //IPSEC_FAILURE_POINT failurePoint;
+            //IKEEXT_KEY_MODULE_TYPE keyingModuleType;
+            //IKEEXT_QM_SA_STATE qmState;
+            //IKEEXT_SA_ROLE saRole;
+            //IPSEC_TRAFFIC_TYPE saTrafficType;
+            //union
+            //{
+            //    FWP_CONDITION_VALUE0 localSubNet;
+            //};
+            //union
+            //{
+            //    FWP_CONDITION_VALUE0 remoteSubNet;
+            //};
+            //UINT64 qmFilterId;
+            //UINT64 mmSaLuid;
+            //GUID mmProviderContextKey;
+        }
+        return FALSE;
+    case FWPM_NET_EVENT_TYPE_IKEEXT_EM_FAILURE:
+        {
+            FWPM_NET_EVENT_IKEEXT_EM_FAILURE* fwIkeEmFailureEvent = FwEvent->ikeEmFailure;
+            //UINT32 failureErrorCode;
+            //IPSEC_FAILURE_POINT failurePoint;
+            //UINT32 flags;
+            //IKEEXT_EM_SA_STATE emState;
+            //IKEEXT_SA_ROLE saRole;
+            //IKEEXT_AUTHENTICATION_METHOD_TYPE emAuthMethod;
+            //UINT8 endCertHash[20];
+            //UINT64 mmId;
+            //UINT64 qmFilterId;
+            //wchar_t* localPrincipalNameForAuth;
+            //wchar_t* remotePrincipalNameForAuth;
+            //UINT32 numLocalPrincipalGroupSids;
+            //LPWSTR* localPrincipalGroupSids;
+            //UINT32 numRemotePrincipalGroupSids;
+            //LPWSTR* remotePrincipalGroupSids;
+            //IPSEC_TRAFFIC_TYPE saTrafficType;
+        }
+        return FALSE;
+    case FWPM_NET_EVENT_TYPE_IPSEC_KERNEL_DROP:
+        {
+            FWPM_NET_EVENT_IPSEC_KERNEL_DROP* fwIpsecDropEvent = FwEvent->ipsecDrop;
+            //INT32 failureStatus;
+            //FWP_DIRECTION direction;
+            //IPSEC_SA_SPI spi;
+            //UINT64 filterId;
+            //UINT16 layerId;
+        }
+        return FALSE;
+    case FWPM_NET_EVENT_TYPE_IPSEC_DOSP_DROP:
+        {
+            FWPM_NET_EVENT_IPSEC_DOSP_DROP* fwIdpDropEvent = FwEvent->idpDrop;
+            //FWP_IP_VERSION ipVersion;
+            //union
+            //{
+            //    UINT32 publicHostV4Addr;
+            //    UINT8 publicHostV6Addr[16];
+            //};
+            //union
+            //{
+            //    UINT32 internalHostV4Addr;
+            //    UINT8 internalHostV6Addr[16];
+            //};
+            //INT32 failureStatus;
+            //FWP_DIRECTION direction;
+        }
+        return FALSE;
+    case FWPM_NET_EVENT_TYPE_CAPABILITY_DROP:
+        {
+            FWPM_NET_EVENT_CAPABILITY_DROP* fwCapabilityDropEvent = FwEvent->capabilityDrop;
+            //FWPM_APPC_NETWORK_CAPABILITY_TYPE networkCapabilityId;
+            //UINT64 filterId;
+            //BOOL isLoopback;
+        }
+        return FALSE;
+    case FWPM_NET_EVENT_TYPE_CAPABILITY_ALLOW:
+        {
+            FWPM_NET_EVENT_CAPABILITY_ALLOW* fwCapabilityAllowEvent = FwEvent->capabilityAllow;
+            //FWPM_APPC_NETWORK_CAPABILITY_TYPE networkCapabilityId;
+            //UINT64 filterId;
+            //BOOL isLoopback;
+        }
+        return FALSE;
+    case FWPM_NET_EVENT_TYPE_CLASSIFY_DROP_MAC:
+        {
+            FWPM_NET_EVENT_CLASSIFY_DROP_MAC* fwClassifyDropMacEvent = FwEvent->classifyDropMac;
+            //FWP_BYTE_ARRAY6 localMacAddr;
+            //FWP_BYTE_ARRAY6 remoteMacAddr;
+            //UINT32 mediaType;
+            //UINT32 ifType;
+            //UINT16 etherType;
+            //UINT32 ndisPortNumber;
+            //UINT32 reserved;
+            //UINT16 vlanTag;
+            //UINT64 ifLuid;
+            //UINT64 filterId;
+            //UINT16 layerId;
+            //UINT32 reauthReason;
+            //UINT32 originalProfile;
+            //UINT32 currentProfile;
+            //UINT32 msFwpDirection;
+            //BOOL isLoopback;
+            //FWP_BYTE_BLOB vSwitchId;
+            //UINT32 vSwitchSourcePort;
+            //UINT32 vSwitchDestinationPort;
+        }
+        return FALSE;
+    case FWPM_NET_EVENT_TYPE_LPM_PACKET_ARRIVAL:
+        {
+            FWPM_NET_EVENT_LPM_PACKET_ARRIVAL* fwLpmPacketArrivalEvent = FwEvent->lpmPacketArrival;
+            //IPSEC_SA_SPI spi;
+        }
+        return FALSE;
     }
 
     return FALSE;
@@ -1121,8 +1257,6 @@ VOID CALLBACK EtFwEventCallback(
     ULONG direction = ULONG_MAX;
     ULONG64 filterId = 0;
     USHORT layerId = 0;
-    ULONG originalProfile = 0;
-    ULONG currentProfile = 0;
     PPH_STRING ruleName = NULL;
     PPH_STRING ruleDescription = NULL;
 
@@ -1134,24 +1268,24 @@ VOID CALLBACK EtFwEventCallback(
         &isLoopback,
         &direction,
         &filterId,
-        &layerId,
-        &originalProfile,
-        &currentProfile
+        &layerId
         ))
     {
         if (WindowsVersion >= WINDOWS_8) // TODO: add settings and make user optional (dmex)
             return;
     }
 
-    if (
-        layerId == FWPS_LAYER_ALE_FLOW_ESTABLISHED_V4 || // IsEqualGUID(layerKey, FWPM_LAYER_ALE_FLOW_ESTABLISHED_V4)
-        layerId == FWPS_LAYER_ALE_FLOW_ESTABLISHED_V6 || // IsEqualGUID(layerKey, FWPM_LAYER_ALE_FLOW_ESTABLISHED_V6)
-        layerId == FWPS_LAYER_ALE_RESOURCE_ASSIGNMENT_V4 || // IsEqualGUID(layerKey, FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V4)
-        layerId == FWPS_LAYER_ALE_RESOURCE_ASSIGNMENT_V6 // IsEqualGUID(layerKey, FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V6)
-        )
+    if (WindowsVersion >= WINDOWS_8) // TODO: add settings and make user optional (dmex)
     {
-        if (WindowsVersion >= WINDOWS_8) // TODO: add settings and make user optional (dmex)
+        if (
+            layerId == FWPS_LAYER_ALE_FLOW_ESTABLISHED_V4 || // IsEqualGUID(layerKey, FWPM_LAYER_ALE_FLOW_ESTABLISHED_V4)
+            layerId == FWPS_LAYER_ALE_FLOW_ESTABLISHED_V6 || // IsEqualGUID(layerKey, FWPM_LAYER_ALE_FLOW_ESTABLISHED_V6)
+            layerId == FWPS_LAYER_ALE_RESOURCE_ASSIGNMENT_V4 || // IsEqualGUID(layerKey, FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V4)
+            layerId == FWPS_LAYER_ALE_RESOURCE_ASSIGNMENT_V6 // IsEqualGUID(layerKey, FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V6)
+            )
+        {
             return;
+        }
     }
 
     EtFwGetFilterDisplayData(filterId, &ruleName, &ruleDescription);

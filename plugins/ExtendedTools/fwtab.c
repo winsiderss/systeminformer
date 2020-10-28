@@ -641,9 +641,6 @@ BOOLEAN NTAPI FwTreeNewCallback(
                     case FWPM_NET_EVENT_TYPE_IKEEXT_EM_FAILURE:
                         PhInitializeStringRef(&getCellText->Text, L"EM_FAILURE");
                         break;
-                    default:
-                        PhInitializeStringRef(&getCellText->Text, L"Unknown");
-                        break;
                     }
                 }
                 break;
@@ -662,9 +659,6 @@ BOOLEAN NTAPI FwTreeNewCallback(
                             break;
                         case FWP_DIRECTION_OUTBOUND:
                             PhInitializeStringRef(&getCellText->Text, L"Out");
-                            break;
-                        default:
-                            PhInitializeStringRef(&getCellText->Text, L"Unknown");
                             break;
                         }
                     }
@@ -893,10 +887,6 @@ BOOLEAN NTAPI FwTreeNewCallback(
                     case IPPROTO_RAW:
                     case IPPROTO_RESERVED_RAW:
                         PhInitializeStringRef(&getCellText->Text, L"RAW");
-                        break;
-                    case IPPROTO_NONE:
-                    default:
-                        PhInitializeStringRef(&getCellText->Text, L"Unknown");
                         break;
                     }
                 }
