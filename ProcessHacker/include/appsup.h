@@ -286,17 +286,18 @@ NTAPI
 PhInitializeTreeNewColumnMenu(
     _Inout_ PPH_TN_COLUMN_MENU_DATA Data
     );
-// end_phapppub
 
 #define PH_TN_COLUMN_MENU_NO_VISIBILITY 0x1
 #define PH_TN_COLUMN_MENU_SHOW_RESET_SORT 0x2
 
-VOID PhInitializeTreeNewColumnMenuEx(
+PHAPPAPI
+VOID
+NTAPI
+PhInitializeTreeNewColumnMenuEx(
     _Inout_ PPH_TN_COLUMN_MENU_DATA Data,
     _In_ ULONG Flags
     );
 
-// begin_phapppub
 PHAPPAPI
 BOOLEAN
 NTAPI
