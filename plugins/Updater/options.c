@@ -416,8 +416,7 @@ INT_PTR CALLBACK TextDlgProc(
                     if (context->LatestCommitHash)
                     {
                         PhDereferenceObject(context->CurrentCommitHash);
-                        context->CurrentCommitHash = context->LatestCommitHash;
-                        context->LatestCommitHash = NULL;
+                        context->CurrentCommitHash = PhReferenceObject(context->LatestCommitHash);
                     }
                 }
 
