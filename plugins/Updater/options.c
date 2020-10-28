@@ -411,19 +411,20 @@ INT_PTR CALLBACK TextDlgProc(
                 context->CurrentCommitHash = PhGetPhVersionHash();
                 if (updater) context->LatestCommitHash = PhReferenceObject(updater->CommitHash);
 
-                if (context->CurrentCommitHash && PhEqualString2(context->CurrentCommitHash, L"\"\"", TRUE))
+                if (
+                    context->CurrentCommitHash &&
+                    context->LatestCommitHash &&
+                    PhEqualString2(context->CurrentCommitHash, L"\"\"", TRUE)
+                    )
                 {
-                    if (context->LatestCommitHash)
-                    {
-                        PhDereferenceObject(context->CurrentCommitHash);
-                        context->CurrentCommitHash = PhReferenceObject(context->LatestCommitHash);
-                    }
+                    PhDereferenceObject(context->CurrentCommitHash);
+                    context->CurrentCommitHash = PhReferenceObject(context->LatestCommitHash);
                 }
 
                 if (
                     context->CurrentCommitHash &&
                     context->LatestCommitHash &&
-                    PhEqualString(context->CurrentCommitHash, context->LatestCommitHash, FALSE)
+                    PhEqualString(context->CurrentCommitHash, context->LatestCommitHash, TRUE)
                     )
                 {
                     PhDereferenceObject(context->LatestCommitHash);
@@ -530,24 +531,24 @@ INT_PTR CALLBACK TextDlgProc(
 
                                 if (commitHash = PhGetListViewItemText(context->ListViewHandle, (INT)customDraw->nmcd.dwItemSpec, 3))
                                 {
-                                    if (context->CurrentCommitHash && (shortCommitHash = PhSubstring(context->CurrentCommitHash, 0, 7)))
-                                    {
-                                        if (PhEqualString(commitHash, shortCommitHash, TRUE))
-                                        {
-                                            newFont = context->ListViewBoldFont;
-                                            customDraw->clrText = RGB(0, 0, 0x0);
-                                            SelectFont(customDraw->nmcd.hdc, newFont);
-                                        }
-
-                                        PhDereferenceObject(shortCommitHash);
-                                    }
-
                                     if (context->LatestCommitHash && (shortCommitHash = PhSubstring(context->LatestCommitHash, 0, 7)))
                                     {
                                         if (PhEqualString(commitHash, shortCommitHash, TRUE))
                                         {
                                             newFont = context->ListViewBoldFont;
                                             customDraw->clrText = RGB(0, 0, 0xff);
+                                            SelectFont(customDraw->nmcd.hdc, newFont);
+                                        }
+
+                                        PhDereferenceObject(shortCommitHash);
+                                    }
+
+                                    if (context->CurrentCommitHash && (shortCommitHash = PhSubstring(context->CurrentCommitHash, 0, 7)))
+                                    {
+                                        if (PhEqualString(commitHash, shortCommitHash, TRUE))
+                                        {
+                                            newFont = context->ListViewBoldFont;
+                                            customDraw->clrText = RGB(0, 0, 0x0);
                                             SelectFont(customDraw->nmcd.hdc, newFont);
                                         }
 
