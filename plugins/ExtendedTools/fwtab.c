@@ -414,8 +414,8 @@ VOID FwTickNodes(
 #define SORT_FUNCTION(Column) FwTreeNewCompare##Column
 #define BEGIN_SORT_FUNCTION(Column) static int __cdecl FwTreeNewCompare##Column( \
     _In_ void* context, \
-    _In_ const void *_elem1, \
-    _In_ const void *_elem2 \
+    _In_ void const* _elem1, \
+    _In_ void const* _elem2 \
     ) \
 { \
     PFW_EVENT_ITEM node1 = *(PFW_EVENT_ITEM *)_elem1; \
@@ -533,8 +533,8 @@ END_SORT_FUNCTION
 
 int EtFwNodeNoOrderSortFunction(
     void* context,
-    const void* _elem1,
-    const void* _elem2
+    void const* _elem1,
+    void const* _elem2
     )
 {
     PFW_EVENT_ITEM node1 = *(PFW_EVENT_ITEM*)_elem1;
