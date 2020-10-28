@@ -37,7 +37,6 @@ PH_CALLBACK_REGISTRATION FwItemAddedRegistration;
 PH_CALLBACK_REGISTRATION FwItemModifiedRegistration;
 PH_CALLBACK_REGISTRATION FwItemRemovedRegistration;
 PH_CALLBACK_REGISTRATION FwItemsUpdatedRegistration;
-BOOLEAN FwNeedsRedraw = FALSE;
 PH_TN_FILTER_SUPPORT EtFwFilterSupport;
 PTOOLSTATUS_INTERFACE EtFwToolStatusInterface;
 PH_CALLBACK_REGISTRATION EtFwSearchChangedRegistration;
@@ -175,7 +174,7 @@ BOOLEAN FwTabPageCallback(
         return TRUE;
     case MainTabPageSaveSettings:
         {
-            SaveSettingsFwTreeList();
+            SaveSettingsFwTreeList(FwTreeNewHandle);
         }
         return TRUE;
     case MainTabPageSelected:
@@ -240,13 +239,13 @@ VOID EtFwInitializeTab(
 }
 
 VOID InitializeFwTreeList(
-    _In_ HWND hwnd
+    _In_ HWND TreeNewHandle
     )
 {
     FwNodeList = PhCreateList(100);
-    FwTreeNewHandle = hwnd;
-    PhSetControlTheme(FwTreeNewHandle, L"explorer");
+    FwTreeNewHandle = TreeNewHandle;
 
+    PhSetControlTheme(FwTreeNewHandle, L"explorer");
     TreeNew_SetCallback(FwTreeNewHandle, FwTreeNewCallback, NULL);
     TreeNew_SetRedraw(FwTreeNewHandle, FALSE);
 
@@ -268,13 +267,13 @@ VOID InitializeFwTreeList(
     //PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_PACKAGE, FALSE, L"Package", 100, PH_ALIGN_LEFT, FW_COLUMN_PACKAGE, 0);
     PhAddTreeNewColumnEx2(FwTreeNewHandle, FW_COLUMN_COUNTRY, FALSE, L"Country", 80, PH_ALIGN_LEFT, FW_COLUMN_COUNTRY, 0, TN_COLUMN_FLAG_CUSTOMDRAW);
 
-    LoadSettingsFwTreeList();
+    LoadSettingsFwTreeList(TreeNewHandle);
 
     TreeNew_SetRedraw(FwTreeNewHandle, TRUE);
     TreeNew_SetSort(FwTreeNewHandle, FW_COLUMN_TIMESTAMP, DescendingSortOrder);
     TreeNew_SetTriState(FwTreeNewHandle, TRUE);
 
-    PhInitializeTreeNewFilterSupport(&EtFwFilterSupport, hwnd, FwNodeList);
+    PhInitializeTreeNewFilterSupport(&EtFwFilterSupport, TreeNewHandle, FwNodeList);
 
     if (EtFwToolStatusInterface)
     {
@@ -284,37 +283,37 @@ VOID InitializeFwTreeList(
 }
 
 VOID LoadSettingsFwTreeList(
-    VOID
+    _In_ HWND TreeNewHandle
     )
 {
     PPH_STRING settings;
     PH_INTEGER_PAIR sortSettings;
 
     settings = PhGetStringSetting(SETTING_NAME_FW_TREE_LIST_COLUMNS);
-    PhCmLoadSettings(FwTreeNewHandle, &settings->sr);
+    PhCmLoadSettings(TreeNewHandle, &settings->sr);
     PhDereferenceObject(settings);
 
     sortSettings = PhGetIntegerPairSetting(SETTING_NAME_FW_TREE_LIST_SORT);
-    TreeNew_SetSort(FwTreeNewHandle, (ULONG)sortSettings.X, (PH_SORT_ORDER)sortSettings.Y);
+    TreeNew_SetSort(TreeNewHandle, (ULONG)sortSettings.X, (PH_SORT_ORDER)sortSettings.Y);
 }
 
 VOID SaveSettingsFwTreeList(
-    VOID
+    _In_ HWND TreeNewHandle
     )
 {
     PPH_STRING settings;
     PH_INTEGER_PAIR sortSettings;
     ULONG sortColumn;
     PH_SORT_ORDER sortOrder;
-        
+
     if (!FwTreeNewCreated)  
         return;
 
-    settings = PhCmSaveSettings(FwTreeNewHandle);
+    settings = PhCmSaveSettings(TreeNewHandle);
     PhSetStringSetting2(SETTING_NAME_FW_TREE_LIST_COLUMNS, &settings->sr);
     PhDereferenceObject(settings);
 
-    TreeNew_GetSort(FwTreeNewHandle, &sortColumn, &sortOrder);
+    TreeNew_GetSort(TreeNewHandle, &sortColumn, &sortOrder);
     sortSettings.X = sortColumn;
     sortSettings.Y = sortOrder;
     PhSetIntegerPairSetting(SETTING_NAME_FW_TREE_LIST_SORT, sortSettings);
@@ -511,6 +510,12 @@ BEGIN_SORT_FUNCTION(User)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(Package)
+{
+    NOTHING;
+}
+END_SORT_FUNCTION
+
 BEGIN_SORT_FUNCTION(Country)
 {
     sortResult = PhCompareStringWithNull(node1->RemoteCountryName, node2->RemoteCountryName, TRUE);
@@ -557,6 +562,7 @@ BOOLEAN NTAPI FwTreeNewCallback(
                     SORT_FUNCTION(Timestamp),
                     SORT_FUNCTION(Filename),
                     SORT_FUNCTION(User),
+                    SORT_FUNCTION(Package),
                     SORT_FUNCTION(Country),
                 };
                 int (__cdecl *sortFunction)(const void*, const void*);
@@ -1203,18 +1209,18 @@ BOOLEAN EtFwGetSelectedFwItems(
     return FALSE;
 }
 
-VOID DeselectAllFwNodes(
+VOID EtFwDeselectAllFwNodes(
     VOID
     )
 {
     TreeNew_DeselectRange(FwTreeNewHandle, 0, -1);
 }
 
-VOID SelectAndEnsureVisibleFwNode(
+VOID EtFwSelectAndEnsureVisibleFwNode(
     _In_ PFW_EVENT_ITEM FwNode
     )
 {
-    DeselectAllFwNodes();
+    EtFwDeselectAllFwNodes();
 
     if (!FwNode->Node.Visible)
         return;
@@ -1225,7 +1231,7 @@ VOID SelectAndEnsureVisibleFwNode(
     TreeNew_EnsureVisible(FwTreeNewHandle, &FwNode->Node);
 }
 
-VOID CopyFwList(
+VOID EtFwCopyFwList(
     VOID
     )
 {
@@ -1236,8 +1242,8 @@ VOID CopyFwList(
     PhDereferenceObject(text);
 }
 
-VOID WriteFwList(
-    __inout PPH_FILE_STREAM FileStream,
+VOID EtFwWriteFwList(
+    _In_ PPH_FILE_STREAM FileStream,
     _In_ ULONG Mode
     )
 {
@@ -1303,7 +1309,7 @@ VOID EtFwHandleFwCommand(
         break;
     case ID_DISK_COPY:
         {
-            CopyFwList();
+            EtFwCopyFwList();
         }
         break;
     }
@@ -1627,7 +1633,7 @@ VOID NTAPI FwToolStatusActivateContent(
     if (Select)
     {
         if (TreeNew_GetFlatNodeCount(FwTreeNewHandle) > 0)
-            SelectAndEnsureVisibleFwNode((PFW_EVENT_ITEM)TreeNew_GetFlatNode(FwTreeNewHandle, 0));
+            EtFwSelectAndEnsureVisibleFwNode((PFW_EVENT_ITEM)TreeNew_GetFlatNode(FwTreeNewHandle, 0));
     }
 }
 

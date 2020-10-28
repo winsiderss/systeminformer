@@ -836,11 +836,11 @@ typedef struct _FW_EVENT_ITEM
     PH_STRINGREF TextCache[FW_COLUMN_MAXIMUM];
 } FW_EVENT_ITEM, *PFW_EVENT_ITEM;
 
-ULONG EtFwStartMonitor(
+ULONG EtFwMonitorInitialize(
     VOID
     );
 
-VOID EtFwStopMonitor(
+VOID EtFwMonitorUninitialize(
     VOID
     );
 
@@ -849,11 +849,11 @@ VOID EtFwInitializeTab(
     );
 
 VOID LoadSettingsFwTreeList(
-    VOID
+    _In_ HWND TreeNewHandle
     );
 
 VOID SaveSettingsFwTreeList(
-    VOID
+    _In_ HWND TreeNewHandle
     );
 
 PPH_STRING EtFwGetSidFullNameCachedSlow(
@@ -946,20 +946,20 @@ BOOLEAN EtFwGetSelectedFwItems(
     _Out_ PULONG NumberOfFwItems
     );
 
-VOID DeselectAllFwNodes(
+VOID EtFwDeselectAllFwNodes(
     VOID
     );
 
-VOID SelectAndEnsureVisibleFwNode(
+VOID EtFwSelectAndEnsureVisibleFwNode(
     _In_ PFW_EVENT_ITEM FwNode
     );
 
-VOID CopyFwList(
+VOID EtFwCopyFwList(
     VOID
     );
 
-VOID WriteFwList(
-    __inout PPH_FILE_STREAM FileStream,
+VOID EtFwWriteFwList(
+    _In_ PPH_FILE_STREAM FileStream,
     _In_ ULONG Mode
     );
 
