@@ -125,7 +125,6 @@ NTSTATUS PhInitializeMappedImage(
 NTSTATUS PhLoadMappedImage(
     _In_opt_ PWSTR FileName,
     _In_opt_ HANDLE FileHandle,
-    _In_ BOOLEAN ReadOnly,
     _Out_ PPH_MAPPED_IMAGE MappedImage
     )
 {
@@ -136,7 +135,6 @@ NTSTATUS PhLoadMappedImage(
     status = PhMapViewOfEntireFile(
         FileName,
         FileHandle,
-        ReadOnly,
         &viewBase,
         &size
         );
@@ -161,7 +159,6 @@ NTSTATUS PhLoadMappedImage(
 NTSTATUS PhLoadMappedImageEx(
     _In_opt_ PWSTR FileName,
     _In_opt_ HANDLE FileHandle,
-    _In_ BOOLEAN ReadOnly,
     _Out_ PPH_MAPPED_IMAGE MappedImage
     )
 {
@@ -172,7 +169,6 @@ NTSTATUS PhLoadMappedImageEx(
     status = PhMapViewOfEntireFile(
         FileName,
         FileHandle,
-        ReadOnly,
         &viewBase,
         &size
         );
@@ -230,7 +226,6 @@ NTSTATUS PhUnloadMappedImage(
 NTSTATUS PhMapViewOfEntireFile(
     _In_opt_ PWSTR FileName,
     _In_opt_ HANDLE FileHandle,
-    _In_ BOOLEAN ReadOnly,
     _Out_ PVOID *ViewBase,
     _Out_ PSIZE_T Size
     )
@@ -251,8 +246,7 @@ NTSTATUS PhMapViewOfEntireFile(
         status = PhCreateFileWin32(
             &FileHandle,
             FileName,
-            ((FILE_READ_ATTRIBUTES | FILE_READ_DATA) |
-            (!ReadOnly ? (FILE_APPEND_DATA | FILE_WRITE_ATTRIBUTES | FILE_WRITE_DATA) : 0)) | SYNCHRONIZE,
+            FILE_READ_ATTRIBUTES | FILE_READ_DATA | SYNCHRONIZE,
             FILE_ATTRIBUTE_NORMAL,
             FILE_SHARE_READ,
             FILE_OPEN,
@@ -277,7 +271,7 @@ NTSTATUS PhMapViewOfEntireFile(
         SECTION_ALL_ACCESS,
         NULL,
         &size,
-        ReadOnly ? PAGE_READONLY : PAGE_READWRITE,
+        PAGE_READONLY,
         SEC_COMMIT,
         FileHandle
         );
@@ -300,7 +294,7 @@ NTSTATUS PhMapViewOfEntireFile(
         &viewSize,
         ViewShare,
         0,
-        ReadOnly ? PAGE_READONLY : PAGE_READWRITE
+        PAGE_READONLY
         );
 
     if (!NT_SUCCESS(status))

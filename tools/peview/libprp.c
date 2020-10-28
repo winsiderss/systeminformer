@@ -40,7 +40,7 @@ VOID PvLibProperties(
     NTSTATUS status;
     PPV_PROPCONTEXT propContext;
 
-    status = PhLoadMappedArchive(PvFileName->Buffer, NULL, TRUE, &PvMappedArchive);
+    status = PhLoadMappedArchive(PvFileName->Buffer, NULL, &PvMappedArchive);
 
     if (!NT_SUCCESS(status))
     {
