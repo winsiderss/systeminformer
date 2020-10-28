@@ -26,13 +26,13 @@
 #include <fwpsu.h>
 
 PH_CALLBACK_REGISTRATION EtFwProcessesUpdatedCallbackRegistration;
-PPH_OBJECT_TYPE FwObjectType = NULL;
+PPH_OBJECT_TYPE EtFwObjectType = NULL;
 HANDLE EtFwEngineHandle = NULL;
-HANDLE FwEventHandle = NULL;
+HANDLE EtFwEventHandle = NULL;
 ULONG FwRunCount = 0;
-ULONG FwMaxEventAge = 60;
-SLIST_HEADER FwPacketListHead;
-LIST_ENTRY FwAgeListHead = { &FwAgeListHead, &FwAgeListHead };
+ULONG EtFwMaxEventAge = 60;
+SLIST_HEADER EtFwPacketListHead;
+LIST_ENTRY EtFwAgeListHead = { &EtFwAgeListHead, &EtFwAgeListHead };
 _FwpmNetEventSubscribe FwpmNetEventSubscribe_I = NULL;
 
 BOOLEAN EtFwEnableResolveCache = TRUE;
@@ -194,7 +194,7 @@ PFW_EVENT_ITEM FwCreateEventItem(
     static ULONG64 Index = 0;
     PFW_EVENT_ITEM entry;
 
-    entry = PhCreateObjectZero(sizeof(FW_EVENT_ITEM), FwObjectType);
+    entry = PhCreateObjectZero(sizeof(FW_EVENT_ITEM), EtFwObjectType);
     entry->Index = ++Index;
 
     return entry;
@@ -208,7 +208,7 @@ VOID FwPushFirewallEvent(
 
     packet = PhAllocateZero(sizeof(FW_EVENT_PACKET));
     memcpy(&packet->Event, Event, sizeof(FW_EVENT));
-    RtlInterlockedPushEntrySList(&FwPacketListHead, &packet->ListEntry);
+    RtlInterlockedPushEntrySList(&EtFwPacketListHead, &packet->ListEntry);
 }
 
 VOID FwProcessFirewallEvent(
@@ -250,7 +250,7 @@ VOID FwProcessFirewallEvent(
     // Add the item to the age list.
     entry->AddTime = RunId;
     entry->FreshTime = RunId;
-    InsertHeadList(&FwAgeListHead, &entry->AgeListEntry);
+    InsertHeadList(&EtFwAgeListHead, &entry->AgeListEntry);
 
     // Queue hostname lookup.
     PhpQueryHostnameForEntry(entry);
@@ -1304,7 +1304,7 @@ VOID NTAPI EtFwProcessesUpdatedCallback(
 
     // Process incoming event packets.
 
-    listEntry = RtlInterlockedFlushSList(&FwPacketListHead);
+    listEntry = RtlInterlockedFlushSList(&EtFwPacketListHead);
 
     while (listEntry)
     {
@@ -1322,16 +1322,16 @@ VOID NTAPI EtFwProcessesUpdatedCallback(
 
     // Remove old entries and update existing.
 
-    ageListEntry = FwAgeListHead.Blink;
+    ageListEntry = EtFwAgeListHead.Blink;
 
-    while (ageListEntry != &FwAgeListHead)
+    while (ageListEntry != &EtFwAgeListHead)
     {
         PFW_EVENT_ITEM item;
 
         item = CONTAINING_RECORD(ageListEntry, FW_EVENT_ITEM, AgeListEntry);
         ageListEntry = ageListEntry->Blink;
 
-        if (FwRunCount - item->FreshTime < FwMaxEventAge)
+        if (FwRunCount - item->FreshTime < EtFwMaxEventAge)
         {
             BOOLEAN modified = FALSE;
 
@@ -1356,21 +1356,21 @@ VOID NTAPI EtFwProcessesUpdatedCallback(
     FwRunCount++;
 }
 
-ULONG EtFwStartMonitor(
+ULONG EtFwMonitorInitialize(
     VOID
     )
 {
-    PVOID moduleHandle;
+    PVOID baseAddress;
     ULONG status;
     FWP_VALUE value = { FWP_EMPTY };
     FWPM_SESSION session = { 0 };
     FWPM_NET_EVENT_SUBSCRIPTION subscription = { 0 };
     FWPM_NET_EVENT_ENUM_TEMPLATE eventTemplate = { 0 };
 
-    RtlInitializeSListHead(&FwPacketListHead);
+    RtlInitializeSListHead(&EtFwPacketListHead);
     RtlInitializeSListHead(&EtFwQueryListHead);
 
-    FwObjectType = PhCreateObjectType(L"FwObject", 0, FwObjectTypeDeleteProcedure);
+    EtFwObjectType = PhCreateObjectType(L"FwObject", 0, FwObjectTypeDeleteProcedure);
     EtFwResolveCacheHashtable = PhCreateHashtable(
         sizeof(FW_RESOLVE_CACHE_ITEM),
         EtFwResolveCacheHashtableEqualFunction,
@@ -1384,18 +1384,18 @@ ULONG EtFwStartMonitor(
         20
         );
 
-    if (!(moduleHandle = LoadLibrary(L"fwpuclnt.dll")))
+    if (!(baseAddress = LoadLibrary(L"fwpuclnt.dll")))
         return GetLastError();
     if (!FwpmNetEventSubscribe_I)
-        FwpmNetEventSubscribe_I = PhGetProcedureAddress(moduleHandle, "FwpmNetEventSubscribe4", 0);
+        FwpmNetEventSubscribe_I = PhGetProcedureAddress(baseAddress, "FwpmNetEventSubscribe4", 0);
     if (!FwpmNetEventSubscribe_I)
-        FwpmNetEventSubscribe_I = PhGetProcedureAddress(moduleHandle, "FwpmNetEventSubscribe3", 0);
+        FwpmNetEventSubscribe_I = PhGetProcedureAddress(baseAddress, "FwpmNetEventSubscribe3", 0);
     if (!FwpmNetEventSubscribe_I)
-        FwpmNetEventSubscribe_I = PhGetProcedureAddress(moduleHandle, "FwpmNetEventSubscribe2", 0);
+        FwpmNetEventSubscribe_I = PhGetProcedureAddress(baseAddress, "FwpmNetEventSubscribe2", 0);
     if (!FwpmNetEventSubscribe_I)
-        FwpmNetEventSubscribe_I = PhGetProcedureAddress(moduleHandle, "FwpmNetEventSubscribe1", 0);
+        FwpmNetEventSubscribe_I = PhGetProcedureAddress(baseAddress, "FwpmNetEventSubscribe1", 0);
     if (!FwpmNetEventSubscribe_I)
-        FwpmNetEventSubscribe_I = PhGetProcedureAddress(moduleHandle, "FwpmNetEventSubscribe0", 0);
+        FwpmNetEventSubscribe_I = PhGetProcedureAddress(baseAddress, "FwpmNetEventSubscribe0", 0);
     if (!FwpmNetEventSubscribe_I)
         return ERROR_PROC_NOT_FOUND;
 
@@ -1460,7 +1460,7 @@ ULONG EtFwStartMonitor(
         &subscription,
         EtFwEventCallback,
         NULL,
-        &FwEventHandle
+        &EtFwEventHandle
         );
 
     if (status != ERROR_SUCCESS)
@@ -1476,14 +1476,14 @@ ULONG EtFwStartMonitor(
     return ERROR_SUCCESS;
 }
 
-VOID EtFwStopMonitor(
+VOID EtFwMonitorUninitialize(
     VOID
     )
 {
-    if (FwEventHandle)
+    if (EtFwEventHandle)
     {
-        FwpmNetEventUnsubscribe(EtFwEngineHandle, FwEventHandle);
-        FwEventHandle = NULL;
+        FwpmNetEventUnsubscribe(EtFwEngineHandle, EtFwEventHandle);
+        EtFwEventHandle = NULL;
     }
 
     if (EtFwEngineHandle)
