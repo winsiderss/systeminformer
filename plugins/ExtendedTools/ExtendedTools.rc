@@ -114,8 +114,6 @@ BEGIN
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,33,130,10
     CONTROL         "Enable GPU fahrenheit temperature",IDC_ENABLEFAHRENHEITTEMP,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,59,130,10
-    CONTROL         "Enable firewall event monitoring",IDC_ENABLEFWMONITOR,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,73,118,10
 END
 
 IDD_WSWATCH DIALOGEX 0, 0, 325, 266

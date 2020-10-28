@@ -42,7 +42,6 @@ extern ULONG ProcessesUpdatedCount;
 #define SETTING_NAME_WSWATCH_COLUMNS (PLUGIN_NAME L".WsWatchListColumns")
 #define SETTING_NAME_TRAYICON_GUIDS (PLUGIN_NAME L".TrayIconGuids")
 #define SETTING_NAME_ENABLE_FAHRENHEIT (PLUGIN_NAME L".EnableFahrenheit")
-#define SETTING_NAME_ENABLE_FW_MONITOR (PLUGIN_NAME L".EnableFwMonitor")
 #define SETTING_NAME_FW_TREE_LIST_COLUMNS (PLUGIN_NAME L".FwTreeColumns")
 #define SETTING_NAME_FW_TREE_LIST_SORT (PLUGIN_NAME L".FwTreeSort")
 
@@ -844,7 +843,7 @@ VOID EtFwMonitorUninitialize(
     VOID
     );
 
-VOID EtFwInitializeTab(
+VOID EtInitializeFirewallTab(
     VOID
     );
 
