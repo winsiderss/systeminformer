@@ -730,6 +730,11 @@ PPH_PROCESS_ITEM EtFwFileNameToProcess(
         PhEnumProcesses(&processInfo);
     }
 
+    if (!processInfo)
+    {
+        PhEnumProcesses(&processInfo);
+    }
+
     if (process = PhFindProcessInformationByImageName(processInfo, &ProcessBaseString->sr))
     {
         return PhReferenceProcessItem(process->UniqueProcessId);
