@@ -276,7 +276,7 @@ BOOLEAN FwProcessEventType(
         {
             FWPM_NET_EVENT_CLASSIFY_DROP* fwDropEvent = FwEvent->classifyDrop;
 
-            if (fwDropEvent->isLoopback)
+            if (WindowsVersion >= WINDOWS_8 && fwDropEvent->isLoopback) // TODO: add settings and make user optional (dmex)
                 return FALSE;
 
             switch (fwDropEvent->msFwpDirection)
@@ -310,7 +310,7 @@ BOOLEAN FwProcessEventType(
         {
             FWPM_NET_EVENT_CLASSIFY_ALLOW* fwAllowEvent = FwEvent->classifyAllow;
 
-            if (fwAllowEvent->isLoopback)
+            if (WindowsVersion >= WINDOWS_8 && fwAllowEvent->isLoopback) // TODO: add settings and make user optional (dmex)
                 return FALSE;
 
             switch (fwAllowEvent->msFwpDirection)
@@ -1139,7 +1139,8 @@ VOID CALLBACK EtFwEventCallback(
         &currentProfile
         ))
     {
-        return;
+        if (WindowsVersion >= WINDOWS_8) // TODO: add settings and make user optional (dmex)
+            return;
     }
 
     if (
@@ -1149,7 +1150,8 @@ VOID CALLBACK EtFwEventCallback(
         layerId == FWPS_LAYER_ALE_RESOURCE_ASSIGNMENT_V6 // IsEqualGUID(layerKey, FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V6)
         )
     {
-        return;
+        if (WindowsVersion >= WINDOWS_8) // TODO: add settings and make user optional (dmex)
+            return;
     }
 
     EtFwGetFilterDisplayData(filterId, &ruleName, &ruleDescription);
@@ -1425,9 +1427,11 @@ ULONG EtFwStartMonitor(
         return status;
 
     value.type = FWP_UINT32;
-    value.uint32 = FWPM_NET_EVENT_KEYWORD_INBOUND_MCAST | FWPM_NET_EVENT_KEYWORD_INBOUND_BCAST | FWPM_NET_EVENT_KEYWORD_CAPABILITY_DROP;
-    if (WindowsVersion >= WINDOWS_8) value.uint32 |= FWPM_NET_EVENT_KEYWORD_CAPABILITY_ALLOW | FWPM_NET_EVENT_KEYWORD_CLASSIFY_ALLOW;
-    if (WindowsVersion >= WINDOWS_10_19H1) value.uint32 |= FWPM_NET_EVENT_KEYWORD_PORT_SCANNING_DROP;
+    value.uint32 = FWPM_NET_EVENT_KEYWORD_INBOUND_MCAST | FWPM_NET_EVENT_KEYWORD_INBOUND_BCAST;
+    if (WindowsVersion >= WINDOWS_8)
+        value.uint32 |= FWPM_NET_EVENT_KEYWORD_CAPABILITY_DROP | FWPM_NET_EVENT_KEYWORD_CAPABILITY_ALLOW | FWPM_NET_EVENT_KEYWORD_CLASSIFY_ALLOW;
+    if (WindowsVersion >= WINDOWS_10_19H1)
+        value.uint32 |= FWPM_NET_EVENT_KEYWORD_PORT_SCANNING_DROP;
 
     status = FwpmEngineSetOption(EtFwEngineHandle, FWPM_ENGINE_NET_EVENT_MATCH_ANY_KEYWORDS, &value);
 
