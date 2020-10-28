@@ -531,7 +531,7 @@ BEGIN_SORT_FUNCTION(Country)
 }
 END_SORT_FUNCTION
 
-int EtFwNodeNoOrderSortFunction(
+int __cdecl EtFwNodeNoOrderSortFunction(
     _In_ void* _context,
     _In_ void const* _elem1,
     _In_ void const* _elem2
@@ -571,7 +571,7 @@ BOOLEAN NTAPI FwTreeNewCallback(
             {
                 if (!node)
                 {
-                    qsort_s(FwNodeList->Items, FwNodeList->Count, sizeof(PVOID), (PVOID)EtFwNodeNoOrderSortFunction, NULL);
+                    qsort_s(FwNodeList->Items, FwNodeList->Count, sizeof(PVOID), EtFwNodeNoOrderSortFunction, NULL);
 
                     getChildren->Children = (PPH_TREENEW_NODE*)FwNodeList->Items;
                     getChildren->NumberOfChildren = FwNodeList->Count;
