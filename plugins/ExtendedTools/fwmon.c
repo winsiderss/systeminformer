@@ -71,6 +71,7 @@ typedef struct _FW_EVENT
     PPH_STRING RuleName;
     PPH_STRING RuleDescription;
     PPH_STRING ProcessFileName;
+    PPH_STRING ProcessFileNameWin32;
     PPH_STRING ProcessBaseString;
     PPH_STRING RemoteCountryName;
     UINT CountryIconIndex;
@@ -160,6 +161,8 @@ VOID NTAPI FwObjectTypeDeleteProcedure(
 
     if (event->ProcessFileName)
         PhDereferenceObject(event->ProcessFileName);
+    if (event->ProcessFileNameWin32)
+        PhDereferenceObject(event->ProcessFileNameWin32);
     if (event->ProcessBaseString)
         PhDereferenceObject(event->ProcessBaseString);
     if (event->LocalHostnameString)
@@ -178,8 +181,6 @@ VOID NTAPI FwObjectTypeDeleteProcedure(
         PhDereferenceObject(event->UserName);
     if (event->UserSid)
         PhFree(event->UserSid);
-    //if (event->PackageSid)
-    //    PhFree(event->PackageSid);
     if (event->TooltipText)
         PhDereferenceObject(event->TooltipText);
 
@@ -191,11 +192,11 @@ PFW_EVENT_ITEM FwCreateEventItem(
     VOID
     )
 {
-    static ULONG64 Index = 0;
+    static ULONG64 index = 0;
     PFW_EVENT_ITEM entry;
 
     entry = PhCreateObjectZero(sizeof(FW_EVENT_ITEM), EtFwObjectType);
-    entry->Index = ++Index;
+    entry->Index = ++index;
 
     return entry;
 }
@@ -231,6 +232,7 @@ VOID FwProcessFirewallEvent(
     entry->RemoteEndpoint = firewallEvent->RemoteEndpoint;
     entry->RemoteHostnameString = firewallEvent->RemoteHostnameString;
     entry->ProcessFileName = firewallEvent->ProcessFileName;
+    entry->ProcessFileNameWin32 = firewallEvent->ProcessFileNameWin32;
     entry->ProcessBaseString = firewallEvent->ProcessBaseString;
     entry->ProcessItem = firewallEvent->ProcessItem;
 
@@ -241,7 +243,6 @@ VOID FwProcessFirewallEvent(
     }
 
     entry->UserSid = firewallEvent->UserSid;
-    //entry->PackageSid = firewallEvent->PackageSid;
     entry->RuleName = firewallEvent->RuleName;
     entry->RuleDescription = firewallEvent->RuleDescription;
     entry->CountryIconIndex = firewallEvent->CountryIconIndex;
@@ -274,7 +275,7 @@ BOOLEAN FwProcessEventType(
         {
             FWPM_NET_EVENT_CLASSIFY_DROP* fwDropEvent = FwEvent->classifyDrop;
 
-            if (WindowsVersion >= WINDOWS_8 && fwDropEvent->isLoopback) // TODO: add settings and make user optional (dmex)
+            if (WindowsVersion >= WINDOWS_10 && fwDropEvent->isLoopback) // TODO: add settings and make user optional (dmex)
                 return FALSE;
 
             switch (fwDropEvent->msFwpDirection)
@@ -298,17 +299,13 @@ BOOLEAN FwProcessEventType(
                 *FilterId = fwDropEvent->filterId;
             if (LayerId)
                 *LayerId = fwDropEvent->layerId;
-            //if (OriginalProfile)
-            //    *OriginalProfile = fwDropEvent->originalProfile;
-            //if (CurrentProfile)
-            //    *CurrentProfile = fwDropEvent->currentProfile;
         }
         return TRUE;
     case FWPM_NET_EVENT_TYPE_CLASSIFY_ALLOW:
         {
             FWPM_NET_EVENT_CLASSIFY_ALLOW* fwAllowEvent = FwEvent->classifyAllow;
 
-            if (WindowsVersion >= WINDOWS_8 && fwAllowEvent->isLoopback) // TODO: add settings and make user optional (dmex)
+            if (WindowsVersion >= WINDOWS_10 && fwAllowEvent->isLoopback) // TODO: add settings and make user optional (dmex)
                 return FALSE;
 
             switch (fwAllowEvent->msFwpDirection)
@@ -332,10 +329,6 @@ BOOLEAN FwProcessEventType(
                 *FilterId = fwAllowEvent->filterId;
             if (LayerId)
                 *LayerId = fwAllowEvent->layerId;
-            //if (OriginalProfile)
-            //    *OriginalProfile = fwAllowEvent->originalProfile;
-            //if (CurrentProfile)
-            //    *CurrentProfile = fwAllowEvent->currentProfile;
         }
         return TRUE;
     case FWPM_NET_EVENT_TYPE_IKEEXT_MM_FAILURE:
@@ -1272,11 +1265,11 @@ VOID CALLBACK EtFwEventCallback(
         &layerId
         ))
     {
-        if (WindowsVersion >= WINDOWS_8) // TODO: add settings and make user optional (dmex)
+        if (WindowsVersion >= WINDOWS_10) // TODO: add settings and make user optional (dmex)
             return;
     }
 
-    if (WindowsVersion >= WINDOWS_8) // TODO: add settings and make user optional (dmex)
+    if (WindowsVersion >= WINDOWS_10) // TODO: add settings and make user optional (dmex)
     {
         if (
             layerId == FWPS_LAYER_ALE_FLOW_ESTABLISHED_V4 || // IsEqualGUID(layerKey, FWPM_LAYER_ALE_FLOW_ESTABLISHED_V4)
@@ -1385,6 +1378,7 @@ VOID CALLBACK EtFwEventCallback(
                 // to the same filename as the process. (dmex)
                 PhDereferenceObject(entry.ProcessFileName);
                 entry.ProcessFileName = PhReferenceObject(entry.ProcessItem->FileName);
+                entry.ProcessFileNameWin32 = PhReferenceObject(entry.ProcessItem->FileNameWin32);
                 PhDereferenceObject(entry.ProcessBaseString);
                 entry.ProcessBaseString = PhGetBaseName(entry.ProcessFileName);
             }
