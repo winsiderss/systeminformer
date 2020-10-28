@@ -420,6 +420,16 @@ INT_PTR CALLBACK TextDlgProc(
                         context->LatestCommitHash = NULL;
                     }
                 }
+
+                if (
+                    context->CurrentCommitHash &&
+                    context->LatestCommitHash &&
+                    PhEqualString(context->CurrentCommitHash, context->LatestCommitHash, FALSE)
+                    )
+                {
+                    PhDereferenceObject(context->LatestCommitHash);
+                    context->LatestCommitHash = NULL;
+                }
             }
 
             //PhSetWindowText(GetDlgItem(hwndDlg, IDC_TEXT), PhGetString(context->BuildMessage));
