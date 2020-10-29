@@ -9058,6 +9058,47 @@ NTSTATUS PhGetNamedPipeClientProcessId(
     return status;
 }
 
+NTSTATUS PhGetNamedPipeClientSessionId(
+    _In_ HANDLE PipeHandle,
+    _Out_ PHANDLE ClientSessionId
+    )
+{
+    NTSTATUS status;
+    IO_STATUS_BLOCK isb;
+    ULONG processId = 0;
+
+    status = NtFsControlFile(
+        PipeHandle,
+        NULL,
+        NULL,
+        NULL,
+        &isb,
+        FSCTL_PIPE_GET_CONNECTION_ATTRIBUTE,
+        "ClientSessionId",
+        sizeof("ClientSessionId"),
+        &processId,
+        sizeof(ULONG)
+        );
+
+    if (status == STATUS_PENDING)
+    {
+        status = NtWaitForSingleObject(PipeHandle, FALSE, NULL);
+
+        if (NT_SUCCESS(status))
+            status = isb.Status;
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        if (ClientSessionId)
+        {
+            *ClientSessionId = UlongToHandle(processId);
+        }
+    }
+
+    return status;
+}
+
 NTSTATUS PhGetNamedPipeServerProcessId(
     _In_ HANDLE PipeHandle,
     _Out_ PHANDLE ServerProcessId
@@ -9073,7 +9114,7 @@ NTSTATUS PhGetNamedPipeServerProcessId(
         NULL,
         NULL,
         &isb,
-        FSCTL_PIPE_GET_CONNECTION_ATTRIBUTE,
+        FSCTL_PIPE_GET_PIPE_ATTRIBUTE,
         "ServerProcessId",
         sizeof("ServerProcessId"),
         &processId,
@@ -9093,6 +9134,47 @@ NTSTATUS PhGetNamedPipeServerProcessId(
         if (ServerProcessId)
         {
             *ServerProcessId = UlongToHandle(processId);
+        }
+    }
+
+    return status;
+}
+
+NTSTATUS PhGetNamedPipeServerSessionId(
+    _In_ HANDLE PipeHandle,
+    _Out_ PHANDLE ServerSessionId
+    )
+{
+    NTSTATUS status;
+    IO_STATUS_BLOCK isb;
+    ULONG processId = 0;
+
+    status = NtFsControlFile(
+        PipeHandle,
+        NULL,
+        NULL,
+        NULL,
+        &isb,
+        FSCTL_PIPE_GET_PIPE_ATTRIBUTE,
+        "ServerSessionId",
+        sizeof("ServerSessionId"),
+        &processId,
+        sizeof(ULONG)
+        );
+
+    if (status == STATUS_PENDING)
+    {
+        status = NtWaitForSingleObject(PipeHandle, FALSE, NULL);
+
+        if (NT_SUCCESS(status))
+            status = isb.Status;
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        if (ServerSessionId)
+        {
+            *ServerSessionId = UlongToHandle(processId);
         }
     }
 
