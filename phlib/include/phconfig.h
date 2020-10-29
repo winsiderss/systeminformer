@@ -37,7 +37,7 @@ PHLIBAPI extern ULONG WindowsVersion;
 // Debugging
 
 #ifdef DEBUG
-#define dprintf(format, ...) DbgPrint(format, __VA_ARGS__)
+#define dprintf(format, ...) DbgPrint(format, ##__VA_ARGS__)
 #else
 #define dprintf(format, ...)
 #endif
