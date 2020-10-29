@@ -5544,23 +5544,23 @@ typedef struct _PHP_PIPE_NAME_HASH
     ULONG Hash;
 } PHP_PIPE_NAME_HASH, *PPHP_PIPE_NAME_HASH;
 
-static BOOLEAN NTAPI PhpIsDotNetCorePipeDirectoryCallback(
+static BOOLEAN NTAPI PhpDotNetCorePipeHashCallback(
     _In_ PVOID Information,
     _In_opt_ PVOID Context
     )
 {
     PFILE_DIRECTORY_INFORMATION fileInfo = Information;
+    PHP_PIPE_NAME_HASH objectPipe;
     PH_STRINGREF objectName;
-    PHP_PIPE_NAME_HASH pipeName;
 
     if (!Context)
         return FALSE;
 
     objectName.Length = fileInfo->FileNameLength;
     objectName.Buffer = fileInfo->FileName;
+    objectPipe.Hash = PhHashStringRef(&objectName, TRUE);
 
-    pipeName.Hash = PhHashStringRef(&objectName, TRUE);
-    PhAddItemArray(Context, &pipeName);
+    PhAddItemArray(Context, &objectPipe);
 
     return TRUE;
 }
@@ -5704,6 +5704,12 @@ NTSTATUS PhGetProcessIsDotNetEx(
         {
             HANDLE directoryHandle;
             IO_STATUS_BLOCK isb;
+            ULONG pipeNameHash;
+            PH_ARRAY pipeArray;
+
+            objectNameSr.Length = returnLength - sizeof(UNICODE_NULL);
+            objectNameSr.Buffer = formatBuffer;
+            pipeNameHash = PhHashStringRef(&objectNameSr, TRUE);
 
             RtlInitUnicodeString(&objectNameUs, DEVICE_NAMED_PIPE);
             InitializeObjectAttributes(
@@ -5725,31 +5731,24 @@ NTSTATUS PhGetProcessIsDotNetEx(
 
             if (NT_SUCCESS(status))
             {
-                PH_ARRAY pipeArray;
-                ULONG pipeArrayHash;
-
                 PhInitializeArray(&pipeArray, sizeof(PHP_PIPE_NAME_HASH), 512);
 
                 status = PhEnumDirectoryFile(
                     directoryHandle,
                     NULL,
-                    PhpIsDotNetCorePipeDirectoryCallback,
+                    PhpDotNetCorePipeHashCallback,
                     &pipeArray
                     );
 
                 if (NT_SUCCESS(status))
                 {
-                    objectNameSr.Length = returnLength - sizeof(UNICODE_NULL);
-                    objectNameSr.Buffer = formatBuffer;
-                    pipeArrayHash = PhHashStringRef(&objectNameSr, TRUE);
-
                     status = STATUS_UNSUCCESSFUL;
 
                     for (ULONG i = 0; i < pipeArray.Count; i++)
                     {
                         PPHP_PIPE_NAME_HASH entry = PhItemArray(&pipeArray, i);
 
-                        if (entry->Hash == pipeArrayHash)
+                        if (entry->Hash == pipeNameHash)
                         {
                             status = STATUS_SUCCESS;
                             break;
