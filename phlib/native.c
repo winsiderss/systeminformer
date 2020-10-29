@@ -8984,6 +8984,121 @@ NTSTATUS PhImpersonateClientOfNamedPipe(
         );
 }
 
+NTSTATUS PhGetNamedPipeClientComputerName(
+    _In_ HANDLE PipeHandle,
+    _In_ ULONG ClientComputerNameLength,
+    _Out_ PVOID ClientComputerName
+    )
+{
+    NTSTATUS status;
+    IO_STATUS_BLOCK isb;
+
+    status = NtFsControlFile(
+        PipeHandle,
+        NULL,
+        NULL,
+        NULL,
+        &isb,
+        FSCTL_PIPE_GET_CONNECTION_ATTRIBUTE,
+        "ClientComputerName",
+        sizeof("ClientComputerName"),
+        ClientComputerName,
+        ClientComputerNameLength
+        );
+
+    if (status == STATUS_PENDING)
+    {
+        status = NtWaitForSingleObject(PipeHandle, FALSE, NULL);
+
+        if (NT_SUCCESS(status))
+            status = isb.Status;
+    }
+
+    return status;
+}
+
+NTSTATUS PhGetNamedPipeClientProcessId(
+    _In_ HANDLE PipeHandle,
+    _Out_ PHANDLE ClientProcessId
+    )
+{
+    NTSTATUS status;
+    IO_STATUS_BLOCK isb;
+    ULONG processId = 0;
+
+    status = NtFsControlFile(
+        PipeHandle,
+        NULL,
+        NULL,
+        NULL,
+        &isb,
+        FSCTL_PIPE_GET_CONNECTION_ATTRIBUTE,
+        "ClientProcessId",
+        sizeof("ClientProcessId"),
+        &processId,
+        sizeof(ULONG)
+        );
+
+    if (status == STATUS_PENDING)
+    {
+        status = NtWaitForSingleObject(PipeHandle, FALSE, NULL);
+
+        if (NT_SUCCESS(status))
+            status = isb.Status;
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        if (ClientProcessId)
+        {
+            *ClientProcessId = UlongToHandle(processId);
+        }
+    }
+
+    return status;
+}
+
+NTSTATUS PhGetNamedPipeServerProcessId(
+    _In_ HANDLE PipeHandle,
+    _Out_ PHANDLE ServerProcessId
+    )
+{
+    NTSTATUS status;
+    IO_STATUS_BLOCK isb;
+    ULONG processId = 0;
+
+    status = NtFsControlFile(
+        PipeHandle,
+        NULL,
+        NULL,
+        NULL,
+        &isb,
+        FSCTL_PIPE_GET_CONNECTION_ATTRIBUTE,
+        "ServerProcessId",
+        sizeof("ServerProcessId"),
+        &processId,
+        sizeof(ULONG)
+        );
+
+    if (status == STATUS_PENDING)
+    {
+        status = NtWaitForSingleObject(PipeHandle, FALSE, NULL);
+
+        if (NT_SUCCESS(status))
+            status = isb.Status;
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        if (ServerProcessId)
+        {
+            *ServerProcessId = UlongToHandle(processId);
+        }
+    }
+
+    return status;
+}
+
 NTSTATUS PhGetThreadName(
     _In_ HANDLE ThreadHandle,
     _Out_ PPH_STRING *ThreadName

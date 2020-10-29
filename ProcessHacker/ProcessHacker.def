@@ -274,6 +274,9 @@ EXPORTS
     PhGetOwnTokenAttributes
     PhGetDllHandle
     PhGetModuleProcAddress
+    PhGetNamedPipeClientComputerName
+    PhGetNamedPipeClientProcessId
+    PhGetNamedPipeServerProcessId
     PhGetProcedureAddress
     PhGetProcedureAddressRemote
     PhGetProcessCommandLine

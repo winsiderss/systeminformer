@@ -1608,6 +1608,31 @@ PhImpersonateClientOfNamedPipe(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhGetNamedPipeClientComputerName(
+    _In_ HANDLE PipeHandle,
+    _In_ ULONG ClientComputerNameLength,
+    _Out_ PVOID ClientComputerName
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetNamedPipeClientProcessId(
+    _In_ HANDLE PipeHandle,
+    _Out_ PHANDLE ClientProcessId
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetNamedPipeServerProcessId(
+    _In_ HANDLE PipeHandle,
+    _Out_ PHANDLE ServerProcessId
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhGetThreadName(
     _In_ HANDLE ThreadHandle,
     _Out_ PPH_STRING *ThreadName
