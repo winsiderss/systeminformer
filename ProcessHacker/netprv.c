@@ -419,6 +419,10 @@ PPH_STRING PhGetHostNameFromAddressEx(
                 return PhReferenceEmptyString();
 
             if (IN4_IS_ADDR_LOOPBACK(&Address->InAddr) ||
+                IN4_IS_ADDR_BROADCAST(&Address->InAddr) ||
+                IN4_IS_ADDR_MULTICAST(&Address->InAddr) ||
+                IN4_IS_ADDR_LINKLOCAL(&Address->InAddr) ||
+                IN4_IS_ADDR_MC_LINKLOCAL(&Address->InAddr) ||
                 IN4_IS_ADDR_RFC1918(&Address->InAddr))
             {
                 dnsLocalQuery = TRUE;
@@ -431,7 +435,9 @@ PPH_STRING PhGetHostNameFromAddressEx(
                 return PhReferenceEmptyString();
 
             if (IN6_IS_ADDR_LOOPBACK(&Address->In6Addr) ||
-                IN6_IS_ADDR_LINKLOCAL(&Address->In6Addr))
+                IN6_IS_ADDR_MULTICAST(&Address->In6Addr) ||
+                IN6_IS_ADDR_LINKLOCAL(&Address->In6Addr) ||
+                IN6_IS_ADDR_MC_LINKLOCAL(&Address->In6Addr))
             {
                 dnsLocalQuery = TRUE;
             }
