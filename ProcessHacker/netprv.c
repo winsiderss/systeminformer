@@ -550,7 +550,13 @@ VOID PhpQueueNetworkItemQuery(
     PPH_NETWORK_ITEM_QUERY_DATA data;
 
     if (!PhEnableNetworkProviderResolve)
+    {
+        if (Remote) // HACK: NULL used for status (dmex)
+            NetworkItem->RemoteHostString = PhReferenceEmptyString();
+        else
+            NetworkItem->LocalHostString = PhReferenceEmptyString();
         return;
+    }
 
     data = PhAllocateZero(sizeof(PH_NETWORK_ITEM_QUERY_DATA));
     data->NetworkItem = NetworkItem;
