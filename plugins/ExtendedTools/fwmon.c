@@ -36,6 +36,7 @@ LIST_ENTRY EtFwAgeListHead = { &EtFwAgeListHead, &EtFwAgeListHead };
 _FwpmNetEventSubscribe FwpmNetEventSubscribe_I = NULL;
 
 BOOLEAN EtFwEnableResolveCache = TRUE;
+BOOLEAN EtFwEnableResolveDoH = FALSE;
 PH_INITONCE EtFwWorkQueueInitOnce = PH_INITONCE_INIT;
 SLIST_HEADER EtFwQueryListHead;
 PH_WORK_QUEUE EtFwWorkQueue;
@@ -530,7 +531,7 @@ PPH_STRING EtFwGetNameFromAddress(
     )
 {
     PPH_STRING addressEndpointString = NULL;
-    PPH_STRING dnsEndpointReverseString;
+    PPH_STRING addressReverseString;
 
     switch (Address->Type)
     {
@@ -613,19 +614,58 @@ PPH_STRING EtFwGetNameFromAddress(
         break;
     }
 
-    if (dnsEndpointReverseString = EtFwGetDnsReverseNameFromAddress(Address))
+    if (addressReverseString = EtFwGetDnsReverseNameFromAddress(Address))
     {
-        PDNS_RECORD dnsRecordList;
+        BOOLEAN dnsLocalQuery = FALSE;
+        PDNS_RECORD dnsRecordList = NULL;
 
-        if (dnsRecordList = PhDnsQuery(NULL, dnsEndpointReverseString->Buffer, DNS_TYPE_PTR)) // DNS_QUERY_NO_WIRE_QUERY
+        switch (Address->Type)
+        {
+        case PH_IPV4_NETWORK_TYPE:
+            {
+                if (IN4_IS_ADDR_LOOPBACK(&Address->InAddr) ||
+                    IN4_IS_ADDR_RFC1918(&Address->InAddr))
+                {
+                    dnsLocalQuery = TRUE;
+                }
+            }
+            break;
+        case PH_IPV6_NETWORK_TYPE:
+            {
+                if (IN6_IS_ADDR_LOOPBACK(&Address->In6Addr) ||
+                    IN6_IS_ADDR_LINKLOCAL(&Address->In6Addr))
+                {
+                    dnsLocalQuery = TRUE;
+                }
+            }
+            break;
+        }
+
+        if (EtFwEnableResolveDoH && !dnsLocalQuery)
+        {
+            dnsRecordList = PhDnsQuery(
+                NULL,
+                addressReverseString->Buffer,
+                DNS_TYPE_PTR
+                );
+        }
+        else
+        {
+            dnsRecordList = PhDnsQuery2(
+                NULL,
+                addressReverseString->Buffer,
+                DNS_TYPE_PTR,
+                DNS_QUERY_STANDARD
+                );
+        }
+
+        if (dnsRecordList)
         {
             for (PDNS_RECORD dnsRecord = dnsRecordList; dnsRecord; dnsRecord = dnsRecord->pNext)
             {
                 if (dnsRecord->wType == DNS_TYPE_PTR)
                 {
                     addressEndpointString = PhCreateString(dnsRecord->Data.PTR.pNameHost);
-
-                    PhReferenceObject(addressEndpointString);
                     break;
                 }
             }
@@ -633,7 +673,7 @@ PPH_STRING EtFwGetNameFromAddress(
             PhDnsFree(dnsRecordList);
         }
 
-        PhDereferenceObject(dnsEndpointReverseString);
+        PhDereferenceObject(addressReverseString);
     }
 
     if (!addressEndpointString) // DNS_QUERY_NO_WIRE_QUERY
@@ -1495,6 +1535,8 @@ ULONG EtFwMonitorInitialize(
     FWPM_SESSION session = { 0 };
     FWPM_NET_EVENT_SUBSCRIPTION subscription = { 0 };
     FWPM_NET_EVENT_ENUM_TEMPLATE eventTemplate = { 0 };
+
+    EtFwEnableResolveDoH = !!PhGetIntegerSetting(L"EnableNetworkResolveDoH");
 
     RtlInitializeSListHead(&EtFwPacketListHead);
     RtlInitializeSListHead(&EtFwQueryListHead);
