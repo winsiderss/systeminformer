@@ -356,25 +356,6 @@ PPH_STRING PhGetProcessTooltipText(
             PhDeleteStringBuilder(&container);
         }
         break;
-    case WmiProviderHostType:
-        {
-            PH_STRING_BUILDER provider;
-
-            PhInitializeStringBuilder(&provider, 40);
-
-            PhpFillWmiProviderHost(Process, &provider);
-
-            if (provider.String->Length != 0)
-            {
-                PhAppendStringBuilder2(&stringBuilder, L"WMI Providers:\n");
-                PhAppendStringBuilder(&stringBuilder, &provider.String->sr);
-            }
-
-            PhDeleteStringBuilder(&provider);
-
-            validForMs = 10 * 1000; // 10 seconds
-        }      
-        break;
     }
 
     // Plugin
