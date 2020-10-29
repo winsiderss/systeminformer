@@ -544,31 +544,35 @@ PPH_STRING EtFwGetNameFromAddress(
 
                 return PhReferenceObject(string);
             }
-            else if (IN4_IS_ADDR_LOOPBACK(&Address->InAddr))
-            {
-                static PPH_STRING string = NULL;
-                if (!string) string = PhCreateString(L"[Loopback]");
-
-                return PhReferenceObject(string);
-            }
-            else if (IN4_IS_ADDR_BROADCAST(&Address->InAddr))
-            {
-                static PPH_STRING string = NULL;
-                if (!string) string = PhCreateString(L"[Broadcast]");
-
-                return PhReferenceObject(string);
-            }
-            else if (IN4_IS_ADDR_MULTICAST(&Address->InAddr))
-            {
-                static PPH_STRING string = NULL;
-                if (!string) string = PhCreateString(L"[Multicast]");
-
-                return PhReferenceObject(string);
-            }
+            //else if (IN4_IS_ADDR_LOOPBACK(&Address->InAddr))
+            //{
+            //    static PPH_STRING string = NULL;
+            //    if (!string) string = PhCreateString(L"[Loopback]");
+            //    return PhReferenceObject(string);
+            //}
+            //else if (IN4_IS_ADDR_BROADCAST(&Address->InAddr))
+            //{
+            //    static PPH_STRING string = NULL;
+            //    if (!string) string = PhCreateString(L"[Broadcast]");
+            //    return PhReferenceObject(string);
+            //}
+            //else if (IN4_IS_ADDR_MULTICAST(&Address->InAddr))
+            //{
+            //    static PPH_STRING string = NULL;
+            //    if (!string) string = PhCreateString(L"[Multicast]");
+            //    return PhReferenceObject(string);
+            //}
             else if (IN4_IS_ADDR_LINKLOCAL(&Address->InAddr))
             {
                 static PPH_STRING string = NULL;
                 if (!string) string = PhCreateString(L"[Linklocal]");
+
+                return PhReferenceObject(string);
+            }
+            else if (IN4_IS_ADDR_MC_LINKLOCAL(&Address->InAddr))
+            {
+                static PPH_STRING string = NULL;
+                if (!string) string = PhCreateString(L"[Multicast-Linklocal]");
 
                 return PhReferenceObject(string);
             }
@@ -589,24 +593,28 @@ PPH_STRING EtFwGetNameFromAddress(
 
                 return PhReferenceObject(string);
             }
-            else if (IN6_IS_ADDR_LOOPBACK(&Address->In6Addr))
+            //else if (IN6_IS_ADDR_LOOPBACK(&Address->In6Addr))
+            //{
+            //    static PPH_STRING string = NULL;
+            //    if (!string) string = PhCreateString(L"[Loopback]");
+            //    return PhReferenceObject(string);
+            //}
+            //else if (IN6_IS_ADDR_MULTICAST(&Address->In6Addr))
+            //{
+            //    static PPH_STRING string = NULL;
+            //    if (!string) string = PhCreateString(L"[Multicast]");
+            //    return PhReferenceObject(string);
+            //}
+            //else if (IN6_IS_ADDR_LINKLOCAL(&Address->In6Addr))
+            //{
+            //    static PPH_STRING string = NULL;
+            //    if (!string) string = PhCreateString(L"[Linklocal]");
+            //    return PhReferenceObject(string);
+            //}
+            else if (IN6_IS_ADDR_MC_LINKLOCAL(&Address->In6Addr))
             {
                 static PPH_STRING string = NULL;
-                if (!string) string = PhCreateString(L"[Loopback]");
-
-                return PhReferenceObject(string);
-            }
-            else if (IN6_IS_ADDR_MULTICAST(&Address->In6Addr))
-            {
-                static PPH_STRING string = NULL;
-                if (!string) string = PhCreateString(L"[Multicast]");
-
-                return PhReferenceObject(string);
-            }
-            else if (IN6_IS_ADDR_LINKLOCAL(&Address->In6Addr))
-            {
-                static PPH_STRING string = NULL;
-                if (!string) string = PhCreateString(L"[Linklocal]");
+                if (!string) string = PhCreateString(L"[Multicast-Linklocal]");
 
                 return PhReferenceObject(string);
             }
@@ -624,6 +632,10 @@ PPH_STRING EtFwGetNameFromAddress(
         case PH_IPV4_NETWORK_TYPE:
             {
                 if (IN4_IS_ADDR_LOOPBACK(&Address->InAddr) ||
+                    IN4_IS_ADDR_BROADCAST(&Address->InAddr) ||
+                    IN4_IS_ADDR_MULTICAST(&Address->InAddr) ||
+                    IN4_IS_ADDR_LINKLOCAL(&Address->InAddr) ||
+                    IN4_IS_ADDR_MC_LINKLOCAL(&Address->InAddr) ||
                     IN4_IS_ADDR_RFC1918(&Address->InAddr))
                 {
                     dnsLocalQuery = TRUE;
@@ -633,7 +645,9 @@ PPH_STRING EtFwGetNameFromAddress(
         case PH_IPV6_NETWORK_TYPE:
             {
                 if (IN6_IS_ADDR_LOOPBACK(&Address->In6Addr) ||
-                    IN6_IS_ADDR_LINKLOCAL(&Address->In6Addr))
+                    IN6_IS_ADDR_MULTICAST(&Address->In6Addr) ||
+                    IN6_IS_ADDR_LINKLOCAL(&Address->In6Addr) ||
+                    IN6_IS_ADDR_MC_LINKLOCAL(&Address->In6Addr))
                 {
                     dnsLocalQuery = TRUE;
                 }
