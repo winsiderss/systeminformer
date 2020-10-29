@@ -16,17 +16,12 @@
 #define IDC_IO                          114
 #define IDB_CROSS                       117
 #define IDB_TICK                        118
-#define IDC_PHYSICAL                    119
 #define IDC_MEMORY                      120
 #define IDD_ABOUT                       121
 #define IDC_NEWOBJECTS                  121
 #define IDC_REMOVEDOBJECTS              122
-#define IDC_CPUUSER                     123
-#define IDC_CPUKERNEL                   124
-#define IDC_IORO                        125
 #define IDD_SRVLIST                     125
 #define IDD_SRVGENERAL                  126
-#define IDC_IOW                         126
 #define IDD_HNDLGENERAL                 128
 #define IDD_INFORMATION                 129
 #define IDD_FINDOBJECTS                 130

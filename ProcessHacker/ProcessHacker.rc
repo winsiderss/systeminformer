@@ -843,18 +843,7 @@ BEGIN
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,19,123,10
     CONTROL         "Show commit charge instead of physical memory in summary view",IDC_SHOWCOMMITINSUMMARY,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,31,227,10
-    LTEXT           "CPU kernel:",IDC_STATIC,7,48,39,8
-    CONTROL         "CPU kernel",IDC_CPUKERNEL,"PhColorBox",WS_CLIPSIBLINGS | WS_TABSTOP,73,46,33,13
-    LTEXT           "CPU user:",IDC_STATIC,7,65,34,8
-    CONTROL         "CPU user",IDC_CPUUSER,"PhColorBox",WS_CLIPSIBLINGS | WS_TABSTOP,73,63,33,13
-    LTEXT           "I/O R+O:",IDC_STATIC,7,82,32,8
-    CONTROL         "I/O R+O",IDC_IORO,"PhColorBox",WS_CLIPSIBLINGS | WS_TABSTOP,73,80,33,13
-    LTEXT           "I/O W:",IDC_STATIC,7,98,23,8
-    CONTROL         "I/O W",IDC_IOW,"PhColorBox",WS_CLIPSIBLINGS | WS_TABSTOP,73,97,33,13
-    LTEXT           "Private bytes:",IDC_STATIC,7,115,46,8
-    CONTROL         "Private bytes",IDC_PRIVATE,"PhColorBox",WS_CLIPSIBLINGS | WS_TABSTOP,73,113,33,13
-    LTEXT           "Physical memory:",IDC_STATIC,7,131,56,8
-    CONTROL         "Physical memory",IDC_PHYSICAL,"PhColorBox",WS_CLIPSIBLINGS | WS_TABSTOP,73,129,33,13
+    CONTROL         "",IDC_LIST,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | LVS_NOCOLUMNHEADER | WS_DISABLED | WS_BORDER | WS_TABSTOP,7,44,236,105
 END
 
 IDD_PLUGINMANAGER DIALOGEX 0, 0, 501, 272
