@@ -201,7 +201,12 @@ BOOLEAN FwTabPageCallback(
         break;
     case MainTabPageExportContent:
         {
-            NOTHING;
+            PPH_MAIN_TAB_PAGE_EXPORT_CONTENT exportContent = Parameter1;
+
+            if (!(EtFwEnabled && exportContent))
+                return FALSE;
+
+            EtFwWriteFwList(exportContent->FileStream, exportContent->Mode);
         }
         return TRUE;
     case MainTabPageFontChanged:
