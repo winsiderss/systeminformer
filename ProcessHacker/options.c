@@ -2946,6 +2946,17 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
     return FALSE;
 }
 
+static COLOR_ITEM PhpOptionsGraphColorItems[] =
+{
+    COLOR_ITEM(L"ColorCpuKernel", L"CPU kernel", L"CPU kernel"),
+    COLOR_ITEM(L"ColorCpuUser", L"CPU user", L"CPU user"),
+    COLOR_ITEM(L"ColorIoReadOther", L"I/O R+O", L"I/O R+O"),
+    COLOR_ITEM(L"ColorIoWrite", L"I/O W", L"I/O W"),
+    COLOR_ITEM(L"ColorPrivate", L"Private bytes", L"Private bytes"),
+    COLOR_ITEM(L"ColorPhysical", L"Physical memory", L"Physical memory"),
+};
+static HWND PhpGraphListViewHandle = NULL;
+
 INT_PTR CALLBACK PhpOptionsGraphsDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -2953,6 +2964,8 @@ INT_PTR CALLBACK PhpOptionsGraphsDlgProc(
     _In_ LPARAM lParam
     )
 {
+    static PH_LAYOUT_MANAGER LayoutManager;
+
     switch (uMsg)
     {
     case WM_INITDIALOG:
@@ -2962,12 +2975,24 @@ INT_PTR CALLBACK PhpOptionsGraphsDlgProc(
             SetDlgItemCheckForSetting(hwndDlg, IDC_USEOLDCOLORS, L"GraphColorMode");
             SetDlgItemCheckForSetting(hwndDlg, IDC_SHOWCOMMITINSUMMARY, L"ShowCommitInSummary");
 
-            ColorBox_SetColor(GetDlgItem(hwndDlg, IDC_CPUUSER), PhCsColorCpuUser);
-            ColorBox_SetColor(GetDlgItem(hwndDlg, IDC_CPUKERNEL), PhCsColorCpuKernel);
-            ColorBox_SetColor(GetDlgItem(hwndDlg, IDC_IORO), PhCsColorIoReadOther);
-            ColorBox_SetColor(GetDlgItem(hwndDlg, IDC_IOW), PhCsColorIoWrite);
-            ColorBox_SetColor(GetDlgItem(hwndDlg, IDC_PRIVATE), PhCsColorPrivate);
-            ColorBox_SetColor(GetDlgItem(hwndDlg, IDC_PHYSICAL), PhCsColorPhysical);
+            // Highlighting
+            PhpGraphListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
+            PhSetListViewStyle(PhpGraphListViewHandle, FALSE, TRUE);
+            PhAddListViewColumn(PhpGraphListViewHandle, 0, 0, 0, LVCFMT_LEFT, 240, L"Name");
+            PhSetExtendedListView(PhpGraphListViewHandle);
+            ExtendedListView_SetItemColorFunction(PhpGraphListViewHandle, PhpColorItemColorFunction);
+
+            for (ULONG i = 0; i < RTL_NUMBER_OF(PhpOptionsGraphColorItems); i++)
+            {
+                INT lvItemIndex = PhAddListViewItem(PhpGraphListViewHandle, MAXINT, PhpOptionsGraphColorItems[i].Name, &PhpOptionsGraphColorItems[i]);
+                PhpOptionsGraphColorItems[i].CurrentColor = PhGetIntegerSetting(PhpOptionsGraphColorItems[i].SettingName);
+            }
+
+            PhInitializeLayoutManager(&LayoutManager, hwndDlg);
+            PhAddLayoutItem(&LayoutManager, PhpGraphListViewHandle, NULL, PH_ANCHOR_ALL);
+
+            if (PhGetIntegerSetting(L"GraphColorMode"))
+                EnableWindow(PhpGraphListViewHandle, TRUE);
         }
         break;
     case WM_DESTROY:
@@ -2975,14 +3000,88 @@ INT_PTR CALLBACK PhpOptionsGraphsDlgProc(
             SetSettingForDlgItemCheck(hwndDlg, IDC_SHOWTEXT, L"GraphShowText");
             SetSettingForDlgItemCheck(hwndDlg, IDC_USEOLDCOLORS, L"GraphColorMode");
             SetSettingForDlgItemCheck(hwndDlg, IDC_SHOWCOMMITINSUMMARY, L"ShowCommitInSummary");
-            PH_SET_INTEGER_CACHED_SETTING(ColorCpuUser, ColorBox_GetColor(GetDlgItem(hwndDlg, IDC_CPUUSER)));
-            PH_SET_INTEGER_CACHED_SETTING(ColorCpuKernel, ColorBox_GetColor(GetDlgItem(hwndDlg, IDC_CPUKERNEL)));
-            PH_SET_INTEGER_CACHED_SETTING(ColorIoReadOther, ColorBox_GetColor(GetDlgItem(hwndDlg, IDC_IORO)));
-            PH_SET_INTEGER_CACHED_SETTING(ColorIoWrite, ColorBox_GetColor(GetDlgItem(hwndDlg, IDC_IOW)));
-            PH_SET_INTEGER_CACHED_SETTING(ColorPrivate, ColorBox_GetColor(GetDlgItem(hwndDlg, IDC_PRIVATE)));
-            PH_SET_INTEGER_CACHED_SETTING(ColorPhysical, ColorBox_GetColor(GetDlgItem(hwndDlg, IDC_PHYSICAL)));
+
+            for (ULONG i = 0; i < RTL_NUMBER_OF(PhpOptionsGraphColorItems); i++)
+            {
+                PhSetIntegerSetting(PhpOptionsGraphColorItems[i].SettingName, PhpOptionsGraphColorItems[i].CurrentColor);
+            }
+
+            PhDeleteLayoutManager(&LayoutManager);
         }
         break;
+    case WM_SIZE:
+        {
+            PhLayoutManagerLayout(&LayoutManager);
+
+            ExtendedListView_SetColumnWidth(PhpGraphListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
+        }
+        break;
+    case WM_COMMAND:
+        {
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
+            {
+            case IDC_USEOLDCOLORS:
+                {
+                    ListView_SetItemState(PhpGraphListViewHandle, -1, 0, LVIS_SELECTED); // deselect all items
+
+                    EnableWindow(PhpGraphListViewHandle, Button_GetCheck(GET_WM_COMMAND_HWND(wParam, lParam)) == BST_CHECKED);
+                }
+                break;
+            }
+        }
+        break;
+    case WM_NOTIFY:
+        {
+            LPNMHDR header = (LPNMHDR)lParam;
+
+            switch (header->code)
+            {
+            case NM_DBLCLK:
+                {
+                    if (header->hwndFrom == PhpGraphListViewHandle)
+                    {
+                        PCOLOR_ITEM item;
+
+                        if (item = PhGetSelectedListViewItemParam(PhpGraphListViewHandle))
+                        {
+                            CHOOSECOLOR chooseColor = { sizeof(CHOOSECOLOR) };
+                            COLORREF customColors[16] = { 0 };
+
+                            chooseColor.hwndOwner = hwndDlg;
+                            chooseColor.rgbResult = item->CurrentColor;
+                            chooseColor.lpCustColors = customColors;
+                            chooseColor.lpfnHook = PhpColorDlgHookProc;
+                            chooseColor.Flags = CC_ANYCOLOR | CC_FULLOPEN | CC_SOLIDCOLOR | CC_ENABLEHOOK | CC_RGBINIT;
+
+                            if (ChooseColor(&chooseColor))
+                            {
+                                item->CurrentColor = chooseColor.rgbResult;
+                                InvalidateRect(PhpGraphListViewHandle, NULL, TRUE);
+                            }
+                        }
+                    }
+                }
+                break;
+            case LVN_GETINFOTIP:
+                {
+                    if (header->hwndFrom == PhpGraphListViewHandle)
+                    {
+                        NMLVGETINFOTIP* getInfoTip = (NMLVGETINFOTIP*)lParam;
+                        PH_STRINGREF tip;
+
+                        PhInitializeStringRefLongHint(&tip, ColorItems[getInfoTip->iItem].Description);
+                        PhCopyListViewInfoTip(getInfoTip, &tip);
+                    }
+                }
+                break;
+            }
+        }
+        break;
+    }
+
+    if (IsWindowEnabled(PhpGraphListViewHandle)) // HACK: Move to WM_COMMAND (dmex)
+    {
+        REFLECT_MESSAGE_DLG(hwndDlg, PhpGraphListViewHandle, uMsg, wParam, lParam);
     }
 
     return FALSE;
