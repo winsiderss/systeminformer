@@ -622,7 +622,7 @@ PPH_STRING EtFwGetNameFromAddress(
         break;
     }
 
-    if (addressReverseString = EtFwGetDnsReverseNameFromAddress(Address))
+    if (EtFwEnableResolveCache && (addressReverseString = EtFwGetDnsReverseNameFromAddress(Address)))
     {
         BOOLEAN dnsLocalQuery = FALSE;
         PDNS_RECORD dnsRecordList = NULL;
@@ -690,7 +690,7 @@ PPH_STRING EtFwGetNameFromAddress(
         PhDereferenceObject(addressReverseString);
     }
 
-    if (!addressEndpointString) // DNS_QUERY_NO_WIRE_QUERY
+    if (!addressEndpointString)
         addressEndpointString = PhReferenceEmptyString();
 
     return addressEndpointString;
@@ -756,7 +756,13 @@ VOID EtFwQueueNetworkItemQuery(
     PFW_ITEM_QUERY_DATA data;
 
     if (!EtFwEnableResolveCache)
+    {
+        if (Remote) // HACK != null used as status (dmex) 
+            EventItem->RemoteHostnameString = PhReferenceEmptyString();
+        else
+            EventItem->LocalHostnameString = PhReferenceEmptyString();
         return;
+    }
 
     data = PhAllocateZero(sizeof(FW_ITEM_QUERY_DATA));
     data->EventItem = PhReferenceObject(EventItem);
@@ -1550,6 +1556,7 @@ ULONG EtFwMonitorInitialize(
     FWPM_NET_EVENT_SUBSCRIPTION subscription = { 0 };
     FWPM_NET_EVENT_ENUM_TEMPLATE eventTemplate = { 0 };
 
+    EtFwEnableResolveCache = !!PhGetIntegerSetting(L"EnableNetworkResolve");
     EtFwEnableResolveDoH = !!PhGetIntegerSetting(L"EnableNetworkResolveDoH");
 
     RtlInitializeSListHead(&EtFwPacketListHead);
