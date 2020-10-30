@@ -140,12 +140,12 @@ VOID EtEtwMonitorUninitialization(
     {
         EtpEtwExiting = TRUE;
 
-        if (EtpEtwActive)
+        if (EtpSessionHandle != INVALID_PROCESSTRACE_HANDLE)
         {
             EtpStopEtwSession();
         }
 
-        if (EtpEtwRundownActive)
+        if (EtpRundownSessionHandle != INVALID_PROCESSTRACE_HANDLE)
         {
             EtpStopEtwRundownSession();
         }
