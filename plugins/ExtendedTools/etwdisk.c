@@ -91,9 +91,6 @@ VOID EtInitializeDiskInformation(
 
     EtDiskEnabled = TRUE;
 
-    // Collect all existing file names.
-    EtStartEtwRundown();
-
     PhRegisterCallback(
         PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
         EtpDiskProcessesUpdatedCallback,
