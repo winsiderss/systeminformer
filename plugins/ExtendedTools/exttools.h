@@ -866,7 +866,19 @@ VOID EtFwDrawCountryIcon(
     _In_ INT Index
     );
 
-typedef ULONG(WINAPI* _FwpmNetEventSubscribe)(
+VOID EtFwShowPingWindow(
+    _In_ PH_IP_ENDPOINT Endpoint
+    );
+
+VOID EtFwShowTracerWindow(
+    _In_ PH_IP_ENDPOINT Endpoint
+    );
+
+VOID EtFwShowWhoisWindow(
+    _In_ PH_IP_ENDPOINT Endpoint
+    );
+
+typedef ULONG (WINAPI* _FwpmNetEventSubscribe)(
     _In_ HANDLE engineHandle,
     _In_ PVOID subscription,
     _In_ PVOID callback,

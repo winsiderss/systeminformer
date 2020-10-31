@@ -966,6 +966,15 @@ typedef VOID (NTAPI* PNETWORKTOOLS_DRAW_COUNTRYICON)(
     _In_ RECT rect,
     _In_ INT Index
     );
+typedef VOID (NTAPI* PNETWORKTOOLS_SHOWWINDOW_PING)(
+    _In_ PH_IP_ENDPOINT Endpoint
+    );
+typedef VOID (NTAPI* PNETWORKTOOLS_SHOWWINDOW_TRACERT)(
+    _In_ PH_IP_ENDPOINT Endpoint
+    );
+typedef VOID (NTAPI* PNETWORKTOOLS_SHOWWINDOW_WHOIS)(
+    _In_ PH_IP_ENDPOINT Endpoint
+    );
 
 typedef struct _NETWORKTOOLS_INTERFACE
 {
@@ -973,6 +982,9 @@ typedef struct _NETWORKTOOLS_INTERFACE
     PNETWORKTOOLS_GET_COUNTRYCODE LookupCountryCode;
     PNETWORKTOOLS_GET_COUNTRYICON LookupCountryIcon;
     PNETWORKTOOLS_DRAW_COUNTRYICON DrawCountryIcon;
+    PNETWORKTOOLS_SHOWWINDOW_PING ShowPingWindow;
+    PNETWORKTOOLS_SHOWWINDOW_TRACERT ShowTracertWindow;
+    PNETWORKTOOLS_SHOWWINDOW_WHOIS ShowWhoisWindow;
 } NETWORKTOOLS_INTERFACE, *PNETWORKTOOLS_INTERFACE;
 
 PNETWORKTOOLS_INTERFACE EtFwGetPluginInterface(
@@ -1001,6 +1013,30 @@ VOID EtFwDrawCountryIcon(
 {
     if (EtFwGetPluginInterface())
         EtFwGetPluginInterface()->DrawCountryIcon(hdc, rect, Index);
+}
+
+VOID EtFwShowPingWindow(
+    _In_ PH_IP_ENDPOINT Endpoint
+    )
+{
+    if (EtFwGetPluginInterface())
+        EtFwGetPluginInterface()->ShowPingWindow(Endpoint);
+}
+
+VOID EtFwShowTracerWindow(
+    _In_ PH_IP_ENDPOINT Endpoint
+    )
+{
+    if (EtFwGetPluginInterface())
+        EtFwGetPluginInterface()->ShowTracertWindow(Endpoint);
+}
+
+VOID EtFwShowWhoisWindow(
+    _In_ PH_IP_ENDPOINT Endpoint
+    )
+{
+    if (EtFwGetPluginInterface())
+        EtFwGetPluginInterface()->ShowWhoisWindow(Endpoint);
 }
 
 PWSTR EtFwEventTypeToString(
