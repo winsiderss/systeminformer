@@ -1295,6 +1295,15 @@ VOID EtFwWriteFwList(
 
     PhDereferenceObject(lines);
 }
+typedef enum _FW_ITEM_COMMAND_ID
+{
+    FW_ITEM_COMMAND_ID_PING = 1,
+    FW_ITEM_COMMAND_ID_TRACERT,
+    FW_ITEM_COMMAND_ID_WHOIS,
+    FW_ITEM_COMMAND_ID_OPENFILELOCATION,
+    FW_ITEM_COMMAND_ID_INSPECT,
+    FW_ITEM_COMMAND_ID_COPY,
+} FW_ITEM_COMMAND_ID;
 
 VOID EtFwHandleFwCommand(
     _In_ HWND TreeWindowHandle,
@@ -1303,7 +1312,37 @@ VOID EtFwHandleFwCommand(
 {
     switch (Id)
     {
-    case ID_DISK_OPENFILELOCATION:
+    case FW_ITEM_COMMAND_ID_PING:
+        {
+            PFW_EVENT_ITEM entry;
+
+            if (entry = EtFwGetSelectedFwItem())
+            {
+                EtFwShowPingWindow(entry->RemoteEndpoint);
+            }
+        }
+        break;
+    case FW_ITEM_COMMAND_ID_TRACERT:
+        {
+            PFW_EVENT_ITEM entry;
+
+            if (entry = EtFwGetSelectedFwItem())
+            {
+                EtFwShowTracerWindow(entry->RemoteEndpoint);
+            }
+        }
+        break;
+    case FW_ITEM_COMMAND_ID_WHOIS:
+        {
+            PFW_EVENT_ITEM entry;
+
+            if (entry = EtFwGetSelectedFwItem())
+            {
+                EtFwShowWhoisWindow(entry->RemoteEndpoint);
+            }
+        }
+        break;
+    case FW_ITEM_COMMAND_ID_OPENFILELOCATION:
         {
             PFW_EVENT_ITEM entry;
 
@@ -1318,7 +1357,7 @@ VOID EtFwHandleFwCommand(
             }
         }
         break;
-    case ID_DISK_INSPECT:
+    case FW_ITEM_COMMAND_ID_INSPECT:
         {
             PFW_EVENT_ITEM entry;
 
@@ -1340,7 +1379,7 @@ VOID EtFwHandleFwCommand(
             }
         }
         break;
-    case ID_DISK_COPY:
+    case FW_ITEM_COMMAND_ID_COPY:
         {
             EtFwCopyFwList();
         }
@@ -1398,14 +1437,18 @@ VOID ShowFwContextMenu(
         PPH_EMENU_ITEM item;
 
         menu = PhCreateEMenu();
-        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_DISK_OPENFILELOCATION, L"Open &file location\bEnter", NULL, NULL), ULONG_MAX);
+        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, FW_ITEM_COMMAND_ID_PING, L"&Ping", NULL, NULL), ULONG_MAX);
+        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, FW_ITEM_COMMAND_ID_TRACERT, L"&Traceroute", NULL, NULL), ULONG_MAX);
+        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, FW_ITEM_COMMAND_ID_WHOIS, L"&Whois", NULL, NULL), ULONG_MAX);
         PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
-        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_DISK_INSPECT, L"&Inspect", NULL, NULL), ULONG_MAX);
+        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, FW_ITEM_COMMAND_ID_OPENFILELOCATION, L"Open &file location\bEnter", NULL, NULL), ULONG_MAX);
         PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
-        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_DISK_COPY, L"&Copy\bCtrl+C", NULL, NULL), ULONG_MAX);
+        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, FW_ITEM_COMMAND_ID_INSPECT, L"&Inspect", NULL, NULL), ULONG_MAX);
+        PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, FW_ITEM_COMMAND_ID_COPY, L"&Copy\bCtrl+C", NULL, NULL), ULONG_MAX);
         InitializeFwMenu(menu, fwItems, numberOfFwItems);
-        PhInsertCopyCellEMenuItem(menu, ID_DISK_COPY, TreeWindowHandle, ContextMenuEvent->Column);
-        PhSetFlagsEMenuItem(menu, ID_DISK_OPENFILELOCATION, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
+        PhInsertCopyCellEMenuItem(menu, FW_ITEM_COMMAND_ID_COPY, TreeWindowHandle, ContextMenuEvent->Column);
+        PhSetFlagsEMenuItem(menu, FW_ITEM_COMMAND_ID_OPENFILELOCATION, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
 
         if (item = PhShowEMenu(
             menu,

@@ -46,15 +46,22 @@ typedef BOOLEAN (NTAPI* PNETWORKTOOLS_GET_COUNTRYCODE)(
     _Out_ PPH_STRING* CountryCode,
     _Out_ PPH_STRING* CountryName
     );
-
 typedef INT (NTAPI* PNETWORKTOOLS_GET_COUNTRYICON)(
     _In_ PPH_STRING Name
     );
-
 typedef VOID (NTAPI* PNETWORKTOOLS_DRAW_COUNTRYICON)(
     _In_ HDC hdc,
     _In_ RECT rect,
     _In_ INT Index
+    );
+typedef VOID (NTAPI* PNETWORKTOOLS_SHOWWINDOW_PING)(
+    _In_ PH_IP_ENDPOINT Endpoint
+    );
+typedef VOID (NTAPI* PNETWORKTOOLS_SHOWWINDOW_TRACERT)(
+    _In_ PH_IP_ENDPOINT Endpoint
+    );
+typedef VOID (NTAPI* PNETWORKTOOLS_SHOWWINDOW_WHOIS)(
+    _In_ PH_IP_ENDPOINT Endpoint
     );
 
 typedef struct _NETWORKTOOLS_INTERFACE
@@ -63,6 +70,9 @@ typedef struct _NETWORKTOOLS_INTERFACE
     PNETWORKTOOLS_GET_COUNTRYCODE LookupCountryCode;
     PNETWORKTOOLS_GET_COUNTRYICON LookupCountryIcon;
     PNETWORKTOOLS_DRAW_COUNTRYICON DrawCountryIcon;
+    PNETWORKTOOLS_SHOWWINDOW_PING ShowPingWindow;
+    PNETWORKTOOLS_SHOWWINDOW_TRACERT ShowTracertWindow;
+    PNETWORKTOOLS_SHOWWINDOW_WHOIS ShowWhoisWindow;
 } NETWORKTOOLS_INTERFACE, *PNETWORKTOOLS_INTERFACE;
 
 NETWORKTOOLS_INTERFACE PluginInterface =
@@ -70,7 +80,10 @@ NETWORKTOOLS_INTERFACE PluginInterface =
     NETWORKTOOLS_INTERFACE_VERSION,
     LookupCountryCode,
     LookupCountryIcon,
-    DrawCountryIcon
+    DrawCountryIcon,
+    ShowPingWindowFromAddress,
+    ShowTracertWindowFromAddress,
+    ShowWhoisWindowFromAddress
 };
 
 VOID NTAPI LoadCallback(

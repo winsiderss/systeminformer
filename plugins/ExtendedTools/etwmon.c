@@ -227,6 +227,9 @@ VOID NTAPI EtpEtwEventCallback(
     _In_ PEVENT_RECORD EventRecord
     )
 {
+    if (EtpEtwExiting)
+        return;
+
     if (IsEqualGUID(&EventRecord->EventHeader.ProviderId, &DiskIoGuid_I))
     {
         // DiskIo
