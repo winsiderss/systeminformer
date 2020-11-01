@@ -298,56 +298,6 @@ static BOOLEAN EnumPluginsDirectoryCallback(
     return TRUE;
 }
 
-VOID PhLoadDefaultPlugins(
-    _In_ PPH_STRING PluginsDirectory,
-    _Inout_ PPH_LIST PluginLoadErrors
-    )
-{
-    static PH_STRINGREF PhpDefaultPluginName[] =
-    {
-        PH_STRINGREF_INIT(L"DotNetTools.dll"),
-        PH_STRINGREF_INIT(L"ExtendedNotifications.dll"),
-        PH_STRINGREF_INIT(L"ExtendedServices.dll"),
-        PH_STRINGREF_INIT(L"ExtendedTools.dll"),
-        PH_STRINGREF_INIT(L"HardwareDevices.dll"),
-        PH_STRINGREF_INIT(L"NetworkTools.dll"),
-        PH_STRINGREF_INIT(L"OnlineChecks.dll"),
-        PH_STRINGREF_INIT(L"ToolStatus.dll"),
-        PH_STRINGREF_INIT(L"Updater.dll"),
-        PH_STRINGREF_INIT(L"UserNotes.dll"),
-        PH_STRINGREF_INIT(L"WindowExplorer.dll"),
-    };
-    PPH_STRING fileName;
-    NTSTATUS status;
-
-    for (ULONG i = 0; i < RTL_NUMBER_OF(PhpDefaultPluginName); i++)
-    {
-        if (fileName = PhConcatStringRef2(&PluginsDirectory->sr, &PhpDefaultPluginName[i]))
-        {
-            status = PhLoadPlugin(fileName);
-
-            if (!NT_SUCCESS(status))
-            {
-                PPHP_PLUGIN_LOAD_ERROR loadError;
-                PPH_STRING errorMessage;
-
-                loadError = PhAllocateZero(sizeof(PHP_PLUGIN_LOAD_ERROR));
-                PhSetReference(&loadError->FileName, fileName);
-
-                if (errorMessage = PhGetNtMessage(status))
-                {
-                    PhSetReference(&loadError->ErrorMessage, errorMessage);
-                    PhDereferenceObject(errorMessage);
-                }
-
-                PhAddItemList(PluginLoadErrors, loadError);
-            }
-
-            PhDereferenceObject(fileName);
-        }
-    }
-}
-
 VOID PhpShowPluginErrorMessage(
     _Inout_ PPH_LIST PluginLoadErrors
     )
@@ -437,7 +387,49 @@ VOID PhLoadPlugins(
 
     if (PhGetIntegerSetting(L"EnableSafeDefaultPlugins"))
     {
-        PhLoadDefaultPlugins(pluginsDirectory, pluginLoadErrors);
+        static PH_STRINGREF PhpDefaultPluginName[] =
+        {
+            PH_STRINGREF_INIT(L"DotNetTools.dll"),
+            PH_STRINGREF_INIT(L"ExtendedNotifications.dll"),
+            PH_STRINGREF_INIT(L"ExtendedServices.dll"),
+            PH_STRINGREF_INIT(L"ExtendedTools.dll"),
+            PH_STRINGREF_INIT(L"HardwareDevices.dll"),
+            PH_STRINGREF_INIT(L"NetworkTools.dll"),
+            PH_STRINGREF_INIT(L"OnlineChecks.dll"),
+            PH_STRINGREF_INIT(L"ToolStatus.dll"),
+            PH_STRINGREF_INIT(L"Updater.dll"),
+            PH_STRINGREF_INIT(L"UserNotes.dll"),
+            PH_STRINGREF_INIT(L"WindowExplorer.dll"),
+        };
+        PPH_STRING fileName;
+        NTSTATUS status;
+
+        for (ULONG i = 0; i < RTL_NUMBER_OF(PhpDefaultPluginName); i++)
+        {
+            if (fileName = PhConcatStringRef2(&pluginsDirectory->sr, &PhpDefaultPluginName[i]))
+            {
+                status = PhLoadPlugin(fileName);
+
+                if (!NT_SUCCESS(status))
+                {
+                    PPHP_PLUGIN_LOAD_ERROR loadError;
+                    PPH_STRING errorMessage;
+
+                    loadError = PhAllocateZero(sizeof(PHP_PLUGIN_LOAD_ERROR));
+                    PhSetReference(&loadError->FileName, fileName);
+
+                    if (errorMessage = PhGetNtMessage(status))
+                    {
+                        PhSetReference(&loadError->ErrorMessage, errorMessage);
+                        PhDereferenceObject(errorMessage);
+                    }
+
+                    PhAddItemList(pluginLoadErrors, loadError);
+                }
+
+                PhDereferenceObject(fileName);
+            }
+        }
 
         if (pluginLoadErrors->Count != 0 && !PhStartupParameters.PhSvc)
         {
