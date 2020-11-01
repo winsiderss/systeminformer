@@ -1183,6 +1183,13 @@ VOID PhpFillProcessItem(
                     PhGetProcessImageFileNameWin32(ProcessItem->QueryHandle, &fileNameWin32); // PhGetProcessImageFileName (dmex)
                 }
 
+                // Note: Some minimal/pico process (SecureSystem) are using UNICODE_NULL as their filename. Make sure we
+                // clear the string and show N/A instead of the empty string. (dmex)
+                if (ProcessItem->FileName && ProcessItem->FileName->Length == 0)
+                    PhClearReference(&ProcessItem->FileName);
+                if (fileNameWin32 && fileNameWin32->Length == 0)
+                    PhClearReference(&fileNameWin32);
+
                 if (fileNameWin32)
                     ProcessItem->FileNameWin32 = fileNameWin32;
                 else if (ProcessItem->FileName)
