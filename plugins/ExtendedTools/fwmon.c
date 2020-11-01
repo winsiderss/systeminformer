@@ -563,10 +563,10 @@ PPH_STRING EtFwGetNameFromAddress(
             //    if (!string) string = PhCreateString(L"[Multicast]");
             //    return PhReferenceObject(string);
             //}
-            else if (IN4_IS_ADDR_LINKLOCAL(&Address->InAddr))
-            {
-                static PPH_STRING string = NULL;
-                if (!string) string = PhCreateString(L"[Linklocal]");
+            //else if (IN4_IS_ADDR_LINKLOCAL(&Address->InAddr))
+            //{
+            //    static PPH_STRING string = NULL;
+            //    if (!string) string = PhCreateString(L"[Linklocal]");
 
             //    return PhReferenceObject(string);
             //}
