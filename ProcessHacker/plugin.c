@@ -250,17 +250,6 @@ static BOOLEAN EnumPluginsDirectoryCallback(
     )
 {
     static PH_STRINGREF PhpPluginExtension = PH_STRINGREF_INIT(L".dll");
-    static PH_STRINGREF PhpPluginBlocklist[] =
-    {
-        PH_STRINGREF_INIT(L"CommonUtil.dll"),
-        PH_STRINGREF_INIT(L"ExtraPlugins.dll"),
-        PH_STRINGREF_INIT(L"FirewallMonitorPlugin.dll"),
-        PH_STRINGREF_INIT(L"HexPidPlugin.dll"),
-        PH_STRINGREF_INIT(L"NetAdapters.dll"),
-        PH_STRINGREF_INIT(L"NetExtrasPlugin.dll"),
-        PH_STRINGREF_INIT(L"SbieSupport.dll"),
-    };
-    BOOLEAN blocklistedPlugin = FALSE;
     PH_STRINGREF baseName;
     PPH_STRING directoryName;
     PPH_STRING fileName;
@@ -272,23 +261,10 @@ static BOOLEAN EnumPluginsDirectoryCallback(
     if (!PhEndsWithStringRef(&baseName, &PhpPluginExtension, FALSE))
         return TRUE;
 
-    for (ULONG i = 0; i < RTL_NUMBER_OF(PhpPluginBlocklist); i++)
-    {
-        if (PhEndsWithStringRef(&baseName, &PhpPluginBlocklist[i], TRUE))
-        {
-            blocklistedPlugin = TRUE;
-            break;
-        }
-    }
-
     directoryName = PhpGetPluginDirectoryPath();
     fileName = PhConcatStringRef2(&directoryName->sr, &baseName);
 
-    if (blocklistedPlugin)
-    {
-        PhDeleteFileWin32(fileName->Buffer);
-    }
-    else if (!PhIsPluginDisabled(&baseName))
+    if (!PhIsPluginDisabled(&baseName))
     {
         NTSTATUS status;
 
