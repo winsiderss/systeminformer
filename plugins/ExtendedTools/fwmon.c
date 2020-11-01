@@ -835,7 +835,7 @@ VOID PhpQueryHostnameForEntry(
                 while (PhEnumHashtable(EtFwResolveCacheHashtable, (PVOID*)&entry, &i))
                 {
                     if ((*entry)->HostString)
-                        PhReferenceObject((*entry)->HostString);
+                        PhDereferenceObject((*entry)->HostString);
                     PhFree(*entry);
                 }
 
@@ -1092,9 +1092,9 @@ BOOLEAN EtFwGetFilterDisplayData(
                 while (PhEnumHashtable(EtFwFilterDisplayDataHashTable, (PVOID*)&enumEntry, &i))
                 {
                     if ((*enumEntry).Name)
-                        PhReferenceObject((*enumEntry).Name);
+                        PhDereferenceObject((*enumEntry).Name);
                     if ((*enumEntry).Description)
-                        PhReferenceObject((*enumEntry).Description);
+                        PhDereferenceObject((*enumEntry).Description);
                 }
 
                 PhDereferenceObject(EtFwFilterDisplayDataHashTable);
@@ -1228,8 +1228,10 @@ VOID EtFwFlushSidFullNameCache(
 
     while (entry = PhNextEnumHashtable(&enumContext))
     {
-        PhFree(entry->Sid);
-        PhDereferenceObject(entry->FullName);
+        if (entry->Sid)
+            PhFree(entry->Sid);
+        if (entry->FullName)
+            PhDereferenceObject(entry->FullName);
     }
 
     PhClearReference(&EtFwSidFullNameCacheHashtable);
