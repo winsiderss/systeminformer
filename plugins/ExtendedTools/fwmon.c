@@ -1456,11 +1456,9 @@ VOID CALLBACK EtFwEventCallback(
                 // We get a lower case filename from the firewall netevent which is inconsistent
                 // with the file_object paths we get elsewhere. Switch the filename here
                 // to the same filename as the process. (dmex)
-                PhDereferenceObject(entry.ProcessFileName);
-                entry.ProcessFileName = PhReferenceObject(entry.ProcessItem->FileName);
-                entry.ProcessFileNameWin32 = PhReferenceObject(entry.ProcessItem->FileNameWin32);
-                PhDereferenceObject(entry.ProcessBaseString);
-                entry.ProcessBaseString = PhGetBaseName(entry.ProcessFileName);
+                PhSwapReference(&entry.ProcessFileName, entry.ProcessItem->FileName);
+                PhSwapReference(&entry.ProcessFileNameWin32, entry.ProcessItem->FileNameWin32);
+                PhMoveReference(&entry.ProcessBaseString, PhGetBaseName(entry.ProcessFileName));
             }
         }
     }
