@@ -2218,6 +2218,62 @@ NTSTATUS PhGetJobProcessIdList(
     return status;
 }
 
+NTSTATUS PhGetJobBasicAndIoAccounting(
+    _In_ HANDLE JobHandle,
+    _Out_ PJOBOBJECT_BASIC_AND_IO_ACCOUNTING_INFORMATION BasicAndIoAccounting
+    )
+{
+    return NtQueryInformationJobObject(
+        JobHandle,
+        JobObjectBasicAndIoAccountingInformation,
+        BasicAndIoAccounting,
+        sizeof(JOBOBJECT_BASIC_AND_IO_ACCOUNTING_INFORMATION),
+        NULL
+        );
+}
+
+NTSTATUS PhGetJobBasicLimits(
+    _In_ HANDLE JobHandle,
+    _Out_ PJOBOBJECT_BASIC_LIMIT_INFORMATION BasicLimits
+    )
+{
+    return NtQueryInformationJobObject(
+        JobHandle,
+        JobObjectBasicLimitInformation,
+        BasicLimits,
+        sizeof(JOBOBJECT_BASIC_LIMIT_INFORMATION),
+        NULL
+        );
+}
+
+NTSTATUS PhGetJobExtendedLimits(
+    _In_ HANDLE JobHandle,
+    _Out_ PJOBOBJECT_EXTENDED_LIMIT_INFORMATION ExtendedLimits
+    )
+{
+    return NtQueryInformationJobObject(
+        JobHandle,
+        JobObjectExtendedLimitInformation,
+        ExtendedLimits,
+        sizeof(JOBOBJECT_EXTENDED_LIMIT_INFORMATION),
+        NULL
+        );
+}
+
+NTSTATUS PhGetJobBasicUiRestrictions(
+    _In_ HANDLE JobHandle,
+    _Out_ PJOBOBJECT_BASIC_UI_RESTRICTIONS BasicUiRestrictions
+    )
+{
+    return NtQueryInformationJobObject(
+        JobHandle,
+        JobObjectBasicUIRestrictions,
+        BasicUiRestrictions,
+        sizeof(JOBOBJECT_BASIC_UI_RESTRICTIONS),
+        NULL
+        );
+}
+
 /**
  * Queries variable-sized information for a token. The function allocates a buffer to contain the
  * information.

@@ -423,6 +423,38 @@ PhGetJobProcessIdList(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhGetJobBasicAndIoAccounting(
+    _In_ HANDLE JobHandle,
+    _Out_ PJOBOBJECT_BASIC_AND_IO_ACCOUNTING_INFORMATION BasicAndIoAccounting
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetJobBasicLimits(
+    _In_ HANDLE JobHandle,
+    _Out_ PJOBOBJECT_BASIC_LIMIT_INFORMATION BasicLimits
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetJobExtendedLimits(
+    _In_ HANDLE JobHandle,
+    _Out_ PJOBOBJECT_EXTENDED_LIMIT_INFORMATION ExtendedLimits
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetJobBasicUiRestrictions(
+    _In_ HANDLE JobHandle,
+    _Out_ PJOBOBJECT_BASIC_UI_RESTRICTIONS BasicUiRestrictions
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhQueryTokenVariableSize(
     _In_ HANDLE TokenHandle,
     _In_ TOKEN_INFORMATION_CLASS TokenInformationClass,
