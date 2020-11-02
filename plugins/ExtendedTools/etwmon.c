@@ -191,6 +191,9 @@ ULONG EtpStopEtwSession(
     VOID
     )
 {
+    if (!(EtpTraceProperties && EtpActualKernelLoggerName))
+        return 0;
+
     EtpTraceProperties->LogFileNameOffset = 0;
     return ControlTrace(EtpSessionHandle, EtpActualKernelLoggerName->Buffer, EtpTraceProperties, EVENT_TRACE_CONTROL_STOP);
 }
@@ -199,6 +202,9 @@ ULONG EtEtwControlEtwSession(
     _In_ ULONG ControlCode
     )
 {
+    if (!(EtpTraceProperties && EtpActualKernelLoggerName))
+        return 0;
+
     // If we have a session handle, we use that instead of the logger name. (wj32)
     EtpTraceProperties->LogFileNameOffset = 0;
     return ControlTrace(
