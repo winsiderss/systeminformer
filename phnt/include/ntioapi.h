@@ -164,6 +164,9 @@
 #define FILE_PIPE_CLIENT_END 0x00000000
 #define FILE_PIPE_SERVER_END 0x00000001
 
+// Win32 pipe instance limit (ULONG_MAX for native?) (dmex)
+#define FILE_PIPE_UNLIMITED_INSTANCES 0xff
+
 // Mailslot values
 
 #define MAILSLOT_SIZE_AUTO 0
