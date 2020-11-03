@@ -1152,3 +1152,26 @@ PPH_STRING PhGetPluginFileName(
 
     return fileName;
 }
+
+VOID PhEnumeratePlugins(
+    _In_ PPH_PLUGIN_ENUMERATE Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_AVL_LINKS links;
+
+    if (!Callback)
+        return;
+
+    for (
+        links = PhMinimumElementAvlTree(&PhPluginsByName);
+        links;
+        links = PhSuccessorElementAvlTree(links)
+        )
+    {
+        PPH_PLUGIN plugin = CONTAINING_RECORD(links, PH_PLUGIN, Links);
+
+        if (!Callback(plugin, Context))
+            break;
+    }
+}
