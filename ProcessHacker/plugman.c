@@ -58,7 +58,6 @@ typedef enum _PH_PLUGIN_TREE_ITEM_MENU
 typedef enum _PH_PLUGIN_TREE_COLUMN_ITEM
 {
     PH_PLUGIN_TREE_COLUMN_ITEM_NAME,
-    PH_PLUGIN_TREE_COLUMN_ITEM_AUTHOR,
     PH_PLUGIN_TREE_COLUMN_ITEM_VERSION,
     PH_PLUGIN_TREE_COLUMN_ITEM_MAXIMUM
 } PH_PLUGIN_TREE_COLUMN_ITEM;
@@ -73,7 +72,6 @@ typedef struct _PH_PLUGIN_TREE_ROOT_NODE
     PPH_STRING InternalName;
     PPH_STRING Name;
     PPH_STRING Version;
-    PPH_STRING Author;
     PPH_STRING Description;
 
     PH_STRINGREF TextCache[PH_PLUGIN_TREE_COLUMN_ITEM_MAXIMUM];
@@ -120,12 +118,6 @@ INT_PTR CALLBACK PhpPluginsDisabledDlgProc(
 BEGIN_SORT_FUNCTION(Name)
 {
     sortResult = PhCompareString(node1->Name, node2->Name, TRUE);
-}
-END_SORT_FUNCTION
-
-BEGIN_SORT_FUNCTION(Author)
-{
-    sortResult = PhCompareString(node1->Author, node2->Author, TRUE);
 }
 END_SORT_FUNCTION
 
@@ -182,7 +174,6 @@ VOID DestroyPluginsNode(
     PhClearReference(&Node->InternalName);
     PhClearReference(&Node->Name);
     PhClearReference(&Node->Version);
-    PhClearReference(&Node->Author);
     PhClearReference(&Node->Description);
 
     PhFree(Node);
@@ -210,7 +201,7 @@ PPH_PLUGIN_TREE_ROOT_NODE AddPluginsNode(
     pluginNode->PluginOptions = Plugin->Information.HasOptions;
     pluginNode->InternalName = PhCreateString2(&Plugin->Name);
     pluginNode->Name = PhCreateString(Plugin->Information.DisplayName);
-    pluginNode->Author = PhCreateString(Plugin->Information.Author);
+    //pluginNode->Author = PhCreateString(Plugin->Information.Author);
     pluginNode->Description = PhCreateString(Plugin->Information.Description);
 
     if (fileName = PhGetPluginFileName(Plugin))
@@ -313,7 +304,7 @@ BOOLEAN NTAPI PluginsTreeNewCallback(
                 static PVOID sortFunctions[] =
                 {
                     SORT_FUNCTION(Name),
-                    SORT_FUNCTION(Author),
+                    //SORT_FUNCTION(Author),
                     SORT_FUNCTION(Version)
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
@@ -358,9 +349,6 @@ BOOLEAN NTAPI PluginsTreeNewCallback(
             {
             case PH_PLUGIN_TREE_COLUMN_ITEM_NAME:
                 getCellText->Text = PhGetStringRef(node->Name);
-                break;
-            case PH_PLUGIN_TREE_COLUMN_ITEM_AUTHOR:
-                getCellText->Text = PhGetStringRef(node->Author);
                 break;
             case PH_PLUGIN_TREE_COLUMN_ITEM_VERSION:
                 getCellText->Text = PhGetStringRef(node->Version);
@@ -582,7 +570,7 @@ VOID InitializePluginsTree(
     TreeNew_SetRowHeight(Context->TreeNewHandle, PH_SCALE_DPI(48));
 
     PhAddTreeNewColumnEx2(Context->TreeNewHandle, PH_PLUGIN_TREE_COLUMN_ITEM_NAME, TRUE, L"Plugin", 80, PH_ALIGN_LEFT, 0, 0, TN_COLUMN_FLAG_CUSTOMDRAW);
-    PhAddTreeNewColumnEx2(Context->TreeNewHandle, PH_PLUGIN_TREE_COLUMN_ITEM_AUTHOR, TRUE, L"Author", 80, PH_ALIGN_LEFT, 1, 0, 0);
+    //PhAddTreeNewColumnEx2(Context->TreeNewHandle, PH_PLUGIN_TREE_COLUMN_ITEM_AUTHOR, TRUE, L"Author", 80, PH_ALIGN_LEFT, 1, 0, 0);
     //PhAddTreeNewColumnEx2(Context->TreeNewHandle, PH_PLUGIN_TREE_COLUMN_ITEM_VERSION, TRUE, L"Version", 80, PH_ALIGN_CENTER, 2, DT_CENTER, 0);
 
     TreeNew_SetTriState(Context->TreeNewHandle, TRUE);
