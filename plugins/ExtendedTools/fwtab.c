@@ -727,7 +727,7 @@ BOOLEAN NTAPI FwTreeNewCallback(
                             if (NT_SUCCESS(RtlIpv4AddressToStringEx((PIN_ADDR)&node->LocalEndpoint.Address.Ipv4, 0, node->LocalAddressString, &ipvAddressStringLength)))
                             {
                                 getCellText->Text.Buffer = node->LocalAddressString;
-                                getCellText->Text.Length = ipvAddressStringLength * sizeof(WCHAR);
+                                getCellText->Text.Length = (node->LocalAddressStringLength = ipvAddressStringLength) * sizeof(WCHAR);
                             }
                         }
                         break;
@@ -738,7 +738,7 @@ BOOLEAN NTAPI FwTreeNewCallback(
                             if (NT_SUCCESS(RtlIpv6AddressToStringEx((PIN6_ADDR)&node->LocalEndpoint.Address.Ipv6, node->ScopeId, 0, node->LocalAddressString, &ipvAddressStringLength)))
                             {
                                 getCellText->Text.Buffer = node->LocalAddressString;
-                                getCellText->Text.Length = ipvAddressStringLength * sizeof(WCHAR);
+                                getCellText->Text.Length = (node->LocalAddressStringLength = ipvAddressStringLength) * sizeof(WCHAR);
                             }
                         }
                         break;
@@ -785,7 +785,7 @@ BOOLEAN NTAPI FwTreeNewCallback(
                             if (NT_SUCCESS(RtlIpv4AddressToStringEx((PIN_ADDR)&node->RemoteEndpoint.Address.Ipv4, 0, node->RemoteAddressString, &ipvAddressStringLength)))
                             {
                                 getCellText->Text.Buffer = node->RemoteAddressString;
-                                getCellText->Text.Length = ipvAddressStringLength * sizeof(WCHAR);
+                                getCellText->Text.Length = (node->RemoteAddressStringLength = ipvAddressStringLength) * sizeof(WCHAR);
                             }
                         }
                         break;
@@ -796,7 +796,7 @@ BOOLEAN NTAPI FwTreeNewCallback(
                             if (NT_SUCCESS(RtlIpv6AddressToStringEx((PIN6_ADDR)&node->RemoteEndpoint.Address.Ipv6, node->ScopeId, 0, node->RemoteAddressString, &ipvAddressStringLength)))
                             {
                                 getCellText->Text.Buffer = node->RemoteAddressString;
-                                getCellText->Text.Length = ipvAddressStringLength * sizeof(WCHAR);
+                                getCellText->Text.Length = (node->RemoteAddressStringLength = ipvAddressStringLength) * sizeof(WCHAR);
                             }
                         }
                         break;
@@ -1661,10 +1661,15 @@ BOOLEAN NTAPI FwSearchFilterCallback(
             return TRUE;
     }
 
-    if (fwNode->LocalAddressString)
+    if (fwNode->LocalAddressString[0] && fwNode->LocalAddressStringLength)
     {
-        //if (wordMatch(&fwNode->LocalAddressString->sr))
-        //    return TRUE;
+        PH_STRINGREF localAddressSr;
+
+        localAddressSr.Buffer = fwNode->LocalAddressString;
+        localAddressSr.Length = fwNode->LocalAddressStringLength * sizeof(WCHAR);
+
+        if (wordMatch(&localAddressSr))
+            return TRUE;
     }
 
     if (fwNode->LocalHostnameString)
@@ -1673,10 +1678,15 @@ BOOLEAN NTAPI FwSearchFilterCallback(
             return TRUE;
     }
 
-    if (fwNode->RemoteAddressString)
+    if (fwNode->RemoteAddressString[0] && fwNode->RemoteAddressStringLength)
     {
-        //if (wordMatch(&fwNode->RemoteAddressString->sr))
-        //    return TRUE;
+        PH_STRINGREF remoteAddressSr;
+
+        remoteAddressSr.Buffer = fwNode->RemoteAddressString;
+        remoteAddressSr.Length = fwNode->RemoteAddressStringLength * sizeof(WCHAR);
+
+        if (wordMatch(&remoteAddressSr))
+            return TRUE;
     }
 
     if (fwNode->RemoteHostnameString)
@@ -1694,6 +1704,12 @@ BOOLEAN NTAPI FwSearchFilterCallback(
     if (fwNode->RuleDescription)
     {
         if (wordMatch(&fwNode->RuleDescription->sr))
+            return TRUE;
+    }
+
+    if (fwNode->RemoteCountryName)
+    {
+        if (wordMatch(&fwNode->RemoteCountryName->sr))
             return TRUE;
     }
 
