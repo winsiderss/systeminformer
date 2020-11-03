@@ -820,6 +820,10 @@ typedef struct _FW_EVENT_ITEM
 
     PPH_STRING LocalHostnameString;
     PPH_STRING RemoteHostnameString;
+
+    ULONG LocalAddressStringLength;
+    ULONG RemoteAddressStringLength;
+
     WCHAR LocalAddressString[INET6_ADDRSTRLEN];
     WCHAR RemoteAddressString[INET6_ADDRSTRLEN];
     WCHAR LocalPortString[PH_INT32_STR_LEN_1];

@@ -43,6 +43,10 @@ SLIST_HEADER EtFwQueryListHead;
 PH_WORK_QUEUE EtFwWorkQueue;
 PPH_HASHTABLE EtFwResolveCacheHashtable = NULL;
 PH_QUEUED_LOCK EtFwCacheHashtableLock = PH_QUEUED_LOCK_INIT;
+PPH_HASHTABLE EtFwSidFullNameCacheHashtable = NULL;
+PH_QUEUED_LOCK EtFwSidFullNameCacheHashtableLock = PH_QUEUED_LOCK_INIT;
+PPH_HASHTABLE EtFwFilterDisplayDataHashTable = NULL;
+PH_QUEUED_LOCK EtFwFilterDisplayDataHashTableLock = PH_QUEUED_LOCK_INIT;
 
 PH_CALLBACK_DECLARE(FwItemAddedEvent);
 PH_CALLBACK_DECLARE(FwItemModifiedEvent);
@@ -818,42 +822,6 @@ VOID PhpQueryHostnameForEntry(
 {
     PFW_RESOLVE_CACHE_ITEM cacheItem;
 
-    // Reset hashtable once in a while.
-    {
-        static ULONG64 lastTickCount = 0;
-        ULONG64 tickCount = NtGetTickCount64();
-
-        if (tickCount - lastTickCount >= 120 * CLOCKS_PER_SEC)
-        {
-            PhAcquireQueuedLockShared(&EtFwCacheHashtableLock);
-
-            if (EtFwResolveCacheHashtable)
-            {
-                PFW_RESOLVE_CACHE_ITEM* entry;
-                ULONG i = 0;
-
-                while (PhEnumHashtable(EtFwResolveCacheHashtable, (PVOID*)&entry, &i))
-                {
-                    if ((*entry)->HostString)
-                        PhDereferenceObject((*entry)->HostString);
-                    PhFree(*entry);
-                }
-
-                PhDereferenceObject(EtFwResolveCacheHashtable);
-                EtFwResolveCacheHashtable = PhCreateHashtable(
-                    sizeof(FW_RESOLVE_CACHE_ITEM),
-                    EtFwResolveCacheHashtableEqualFunction,
-                    EtFwResolveCacheHashtableHashFunction,
-                    20
-                    );
-            }
-
-            PhReleaseQueuedLockShared(&EtFwCacheHashtableLock);
-
-            lastTickCount = tickCount;
-        }
-    }
-
     // Local
     if (!PhIsNullIpAddress(&Entry->LocalEndpoint.Address))
     {
@@ -1045,8 +1013,6 @@ typedef struct _ETFW_FILTER_DISPLAY_CONTEXT
     PPH_STRING Description;
 } ETFW_FILTER_DISPLAY_CONTEXT, *PETFW_FILTER_DISPLAY_CONTEXT;
 
-static PPH_HASHTABLE EtFwFilterDisplayDataHashTable = NULL;
-
 static BOOLEAN NTAPI EtFwFilterDisplayDataEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -1067,6 +1033,29 @@ static ULONG NTAPI EtFwFilterDisplayDataHashFunction(
     return PhHashInt64(entry->FilterId);
 }
 
+PETFW_FILTER_DISPLAY_CONTEXT EtFwFilterLookupCacheItem(
+    _In_ ULONG64 FilterId
+    )
+{
+    ETFW_FILTER_DISPLAY_CONTEXT lookupCacheItem;
+    PETFW_FILTER_DISPLAY_CONTEXT cacheItemPtr;
+
+    if (!EtFwFilterDisplayDataHashTable)
+        return NULL;
+
+    lookupCacheItem.FilterId = FilterId;
+
+    cacheItemPtr = (PETFW_FILTER_DISPLAY_CONTEXT)PhFindEntryHashtable(
+        EtFwFilterDisplayDataHashTable,
+        &lookupCacheItem
+        );
+
+    if (cacheItemPtr)
+        return cacheItemPtr;
+    else
+        return NULL;
+}
+
 _Success_(return)
 BOOLEAN EtFwGetFilterDisplayData(
     _In_ ULONG64 FilterId,
@@ -1074,103 +1063,69 @@ BOOLEAN EtFwGetFilterDisplayData(
     _Out_ PPH_STRING* Description
     )
 {
-    ETFW_FILTER_DISPLAY_CONTEXT lookupEntry;
     PETFW_FILTER_DISPLAY_CONTEXT entry;
 
-    // Reset hashtable once in a while.
-    {
-        static ULONG64 lastTickCount = 0;
-        ULONG64 tickCount = NtGetTickCount64();
-
-        if (tickCount - lastTickCount >= 120 * CLOCKS_PER_SEC)
-        {
-            if (EtFwFilterDisplayDataHashTable)
-            {
-                ETFW_FILTER_DISPLAY_CONTEXT* enumEntry;
-                ULONG i = 0;
-
-                while (PhEnumHashtable(EtFwFilterDisplayDataHashTable, (PVOID*)&enumEntry, &i))
-                {
-                    if ((*enumEntry).Name)
-                        PhDereferenceObject((*enumEntry).Name);
-                    if ((*enumEntry).Description)
-                        PhDereferenceObject((*enumEntry).Description);
-                }
-
-                PhDereferenceObject(EtFwFilterDisplayDataHashTable);
-                EtFwFilterDisplayDataHashTable = PhCreateHashtable(
-                    sizeof(ETFW_FILTER_DISPLAY_CONTEXT),
-                    EtFwFilterDisplayDataEqualFunction,
-                    EtFwFilterDisplayDataHashFunction,
-                    20
-                    );
-            }
-
-            lastTickCount = tickCount;
-        }
-    }
-
     if (!EtFwFilterDisplayDataHashTable)
-    {
-        EtFwFilterDisplayDataHashTable = PhCreateHashtable(
-            sizeof(ETFW_FILTER_DISPLAY_CONTEXT),
-            EtFwFilterDisplayDataEqualFunction,
-            EtFwFilterDisplayDataHashFunction,
-            20
-            );
-    }
+        return FALSE;
 
-    lookupEntry.FilterId = FilterId;
+    PhAcquireQueuedLockShared(&EtFwFilterDisplayDataHashTableLock);
 
-    if (entry = PhFindEntryHashtable(EtFwFilterDisplayDataHashTable, &lookupEntry))
+    entry = EtFwFilterLookupCacheItem(FilterId);
+
+    if (entry)
     {
         if (Name)
             *Name = PhReferenceObject(entry->Name);
         if (Description)
             *Description = PhReferenceObject(entry->Description);
 
+        PhReleaseQueuedLockShared(&EtFwFilterDisplayDataHashTableLock);
+
         return TRUE;
     }
-    else
+
+    PhReleaseQueuedLockShared(&EtFwFilterDisplayDataHashTableLock);
+
+    PPH_STRING filterName = NULL;
+    PPH_STRING filterDescription = NULL;
+    FWPM_FILTER* filter;
+
+    if (FilterId && FwpmFilterGetById(EtFwEngineHandle, FilterId, &filter) == ERROR_SUCCESS)
     {
-        PPH_STRING filterName = NULL;
-        PPH_STRING filterDescription = NULL;
-        FWPM_FILTER* filter;
+        if (filter->displayData.name)
+            filterName = PhCreateString(filter->displayData.name);
+        if (filter->displayData.description)
+            filterDescription = PhCreateString(filter->displayData.description);
 
-        if (FilterId && FwpmFilterGetById(EtFwEngineHandle, FilterId, &filter) == ERROR_SUCCESS)
-        {
-            if (filter->displayData.name)
-                filterName = PhCreateString(filter->displayData.name);
-            if (filter->displayData.description)
-                filterDescription = PhCreateString(filter->displayData.description);
-
-            FwpmFreeMemory(&filter);
-        }
-
-        if (filterName && filterDescription)
-        {
-            ETFW_FILTER_DISPLAY_CONTEXT entry;
-
-            memset(&entry, 0, sizeof(ETFW_FILTER_DISPLAY_CONTEXT));
-            entry.FilterId = FilterId;
-            entry.Name = filterName;
-            entry.Description = filterDescription;
-
-            PhAddEntryHashtable(EtFwFilterDisplayDataHashTable, &entry);
-
-            if (Name)
-                *Name = PhReferenceObject(filterName);
-            if (Description)
-                *Description = PhReferenceObject(filterDescription);
-
-            return TRUE;
-        }
-
-        if (filterName)
-            PhDereferenceObject(filterName);
-        if (filterDescription)
-            PhDereferenceObject(filterDescription);
+        FwpmFreeMemory(&filter);
     }
+
+    if (filterName && filterDescription)
+    {
+        PhAcquireQueuedLockExclusive(&EtFwFilterDisplayDataHashTableLock);
+
+        ETFW_FILTER_DISPLAY_CONTEXT entry;
+        memset(&entry, 0, sizeof(ETFW_FILTER_DISPLAY_CONTEXT));
+        entry.FilterId = FilterId;
+        entry.Name = filterName;
+        entry.Description = filterDescription;
+
+        PhAddEntryHashtable(EtFwFilterDisplayDataHashTable, &entry);
+
+        if (Name)
+            *Name = PhReferenceObject(filterName);
+        if (Description)
+            *Description = PhReferenceObject(filterDescription);
+
+        PhReleaseQueuedLockExclusive(&EtFwFilterDisplayDataHashTableLock);
+
+        return TRUE;
+    }
+
+    if (filterName)
+        PhDereferenceObject(filterName);
+    if (filterDescription)
+        PhDereferenceObject(filterDescription);
 
     return FALSE;
 }
@@ -1191,8 +1146,6 @@ typedef struct _ETFW_SID_FULL_NAME_CACHE_ENTRY
     PSID Sid;
     PPH_STRING FullName;
 } ETFW_SID_FULL_NAME_CACHE_ENTRY, *PETFW_SID_FULL_NAME_CACHE_ENTRY;
-
-static PPH_HASHTABLE EtFwSidFullNameCacheHashtable = NULL;
 
 BOOLEAN EtFwSidFullNameCacheHashtableEqualFunction(
     _In_ PVOID Entry1,
@@ -1234,33 +1187,45 @@ VOID EtFwFlushSidFullNameCache(
             PhDereferenceObject(entry->FullName);
     }
 
-    PhClearReference(&EtFwSidFullNameCacheHashtable);
+    PhDereferenceObject(EtFwSidFullNameCacheHashtable);
+    EtFwSidFullNameCacheHashtable = PhCreateHashtable(
+        sizeof(ETFW_SID_FULL_NAME_CACHE_ENTRY),
+        EtFwSidFullNameCacheHashtableEqualFunction,
+        EtFwSidFullNameCacheHashtableHashFunction,
+        16
+        );
+}
+
+PETFW_SID_FULL_NAME_CACHE_ENTRY EtFwSidLookupCacheItem(
+    _In_ PSID Sid
+    )
+{
+    ETFW_SID_FULL_NAME_CACHE_ENTRY lookupCacheItem;
+    PETFW_SID_FULL_NAME_CACHE_ENTRY lookupCacheItemPtr = &lookupCacheItem;
+    PETFW_SID_FULL_NAME_CACHE_ENTRY* cacheItemPtr;
+
+    if (!EtFwSidFullNameCacheHashtable)
+        return NULL;
+
+    lookupCacheItem.Sid = Sid;
+
+    cacheItemPtr = (PETFW_SID_FULL_NAME_CACHE_ENTRY*)PhFindEntryHashtable(
+        EtFwSidFullNameCacheHashtable,
+        &lookupCacheItemPtr
+        );
+
+    if (cacheItemPtr)
+        return *cacheItemPtr;
+    else
+        return NULL;
 }
 
 PPH_STRING EtFwGetSidFullNameCachedSlow(
     _In_ PSID Sid
     )
 {
+    PETFW_SID_FULL_NAME_CACHE_ENTRY entry;
     PPH_STRING fullName;
-
-    // Reset hashtable once in a while.
-    {
-        static ULONG64 lastTickCount = 0;
-        ULONG64 tickCount = NtGetTickCount64();
-
-        if (tickCount - lastTickCount >= 120 * CLOCKS_PER_SEC)
-        {
-            EtFwFlushSidFullNameCache();
-            EtFwSidFullNameCacheHashtable = PhCreateHashtable(
-                sizeof(ETFW_FILTER_DISPLAY_CONTEXT),
-                EtFwFilterDisplayDataEqualFunction,
-                EtFwFilterDisplayDataHashFunction,
-                20
-                );
-
-            lastTickCount = tickCount;
-        }
-    }
 
     if (!EtFwSidFullNameCacheHashtable)
     {
@@ -1272,17 +1237,16 @@ PPH_STRING EtFwGetSidFullNameCachedSlow(
             );
     }
 
-    if (EtFwSidFullNameCacheHashtable)
+    PhAcquireQueuedLockShared(&EtFwSidFullNameCacheHashtableLock);
+
+    if (entry = EtFwSidLookupCacheItem(Sid))
     {
-        PETFW_SID_FULL_NAME_CACHE_ENTRY entry;
-        ETFW_SID_FULL_NAME_CACHE_ENTRY lookupEntry;
-
-        lookupEntry.Sid = Sid;
-        entry = PhFindEntryHashtable(EtFwSidFullNameCacheHashtable, &lookupEntry);
-
-        if (entry)
-            return PhReferenceObject(entry->FullName);
+        PPH_STRING fullName = PhReferenceObject(entry->FullName);
+        PhReleaseQueuedLockShared(&EtFwSidFullNameCacheHashtableLock);
+        return fullName;
     }
+
+    PhReleaseQueuedLockShared(&EtFwSidFullNameCacheHashtableLock);
 
     fullName = PhGetSidFullName(Sid, TRUE, NULL);
 
@@ -1291,12 +1255,14 @@ PPH_STRING EtFwGetSidFullNameCachedSlow(
 
     if (EtFwSidFullNameCacheHashtable)
     {
-        ETFW_SID_FULL_NAME_CACHE_ENTRY newEntry;
+        PhAcquireQueuedLockExclusive(&EtFwSidFullNameCacheHashtableLock);
 
+        ETFW_SID_FULL_NAME_CACHE_ENTRY newEntry;
         newEntry.Sid = PhAllocateCopy(Sid, RtlLengthSid(Sid));
         newEntry.FullName = PhReferenceObject(fullName);
-
         PhAddEntryHashtable(EtFwSidFullNameCacheHashtable, &newEntry);
+
+        PhReleaseQueuedLockExclusive(&EtFwSidFullNameCacheHashtableLock);
     }
 
     return fullName;
@@ -1308,17 +1274,92 @@ PPH_STRING EtFwGetSidFullNameCached(
 {
     if (EtFwSidFullNameCacheHashtable)
     {
+        PhAcquireQueuedLockShared(&EtFwSidFullNameCacheHashtableLock);
+
         PETFW_SID_FULL_NAME_CACHE_ENTRY entry;
-        ETFW_SID_FULL_NAME_CACHE_ENTRY lookupEntry;
 
-        lookupEntry.Sid = Sid;
-        entry = PhFindEntryHashtable(EtFwSidFullNameCacheHashtable, &lookupEntry);
+        if (entry = EtFwSidLookupCacheItem(Sid))
+        {
+            PPH_STRING fullName = PhReferenceObject(entry->FullName);
+            PhReleaseQueuedLockShared(&EtFwSidFullNameCacheHashtableLock);
+            return fullName;
+        }
 
-        if (entry)
-            return PhReferenceObject(entry->FullName);
+        PhReleaseQueuedLockShared(&EtFwSidFullNameCacheHashtableLock);
     }
 
     return NULL;
+}
+
+VOID EtFwFlushCache(
+    VOID
+    )
+{
+    static ULONG64 lastTickCount = 0;
+    ULONG64 tickCount = NtGetTickCount64();
+
+    if (tickCount - lastTickCount >= 120 * CLOCKS_PER_SEC)
+    {
+        // Hostname cache
+        if (EtFwResolveCacheHashtable)
+        {
+            PFW_RESOLVE_CACHE_ITEM* entry;
+            ULONG i = 0;
+
+            PhAcquireQueuedLockExclusive(&EtFwCacheHashtableLock);
+
+            while (PhEnumHashtable(EtFwResolveCacheHashtable, (PVOID*)&entry, &i))
+            {
+                if ((*entry)->HostString)
+                    PhDereferenceObject((*entry)->HostString);
+                PhFree(*entry);
+            }
+
+            PhDereferenceObject(EtFwResolveCacheHashtable);
+            EtFwResolveCacheHashtable = PhCreateHashtable(
+                sizeof(FW_RESOLVE_CACHE_ITEM),
+                EtFwResolveCacheHashtableEqualFunction,
+                EtFwResolveCacheHashtableHashFunction,
+                20
+                );
+
+            PhReleaseQueuedLockExclusive(&EtFwCacheHashtableLock);
+        }
+
+        // Filter cache
+        if (EtFwFilterDisplayDataHashTable)
+        {
+            ETFW_FILTER_DISPLAY_CONTEXT* enumEntry;
+            ULONG i = 0;
+
+            PhAcquireQueuedLockExclusive(&EtFwFilterDisplayDataHashTableLock);
+
+            while (PhEnumHashtable(EtFwFilterDisplayDataHashTable, (PVOID*)&enumEntry, &i))
+            {
+                if ((*enumEntry).Name)
+                    PhDereferenceObject((*enumEntry).Name);
+                if ((*enumEntry).Description)
+                    PhDereferenceObject((*enumEntry).Description);
+            }
+
+            PhDereferenceObject(EtFwFilterDisplayDataHashTable);
+            EtFwFilterDisplayDataHashTable = PhCreateHashtable(
+                sizeof(ETFW_FILTER_DISPLAY_CONTEXT),
+                EtFwFilterDisplayDataEqualFunction,
+                EtFwFilterDisplayDataHashFunction,
+                20
+                );
+
+            PhReleaseQueuedLockExclusive(&EtFwFilterDisplayDataHashTableLock);
+        }
+
+        // SID cache
+        PhAcquireQueuedLockExclusive(&EtFwSidFullNameCacheHashtableLock);
+        EtFwFlushSidFullNameCache();
+        PhReleaseQueuedLockExclusive(&EtFwSidFullNameCacheHashtableLock);
+
+        lastTickCount = tickCount;
+    }
 }
 
 VOID CALLBACK EtFwEventCallback(
@@ -1561,6 +1602,8 @@ VOID NTAPI EtFwProcessesUpdatedCallback(
 
     PhInvokeCallback(&FwItemsUpdatedEvent, NULL);
     FwRunCount++;
+
+    EtFwFlushCache();
 }
 
 ULONG EtFwMonitorInitialize(
