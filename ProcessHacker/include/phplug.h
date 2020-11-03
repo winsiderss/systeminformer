@@ -765,6 +765,19 @@ PhGetPluginFileName(
     _In_ PPH_PLUGIN Plugin
     );
 
+typedef BOOLEAN (NTAPI* PPH_PLUGIN_ENUMERATE)(
+    _In_ PPH_PLUGIN Information,
+    _In_opt_ PVOID Context
+    );
+
+PHAPPAPI
+VOID
+NTAPI
+PhEnumeratePlugins(
+    _In_ PPH_PLUGIN_ENUMERATE Callback,
+    _In_opt_ PVOID Context
+    );
+
 // end_phapppub
 
 #endif
