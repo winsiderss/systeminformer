@@ -161,7 +161,7 @@ FORCEINLINE VOID PhDeleteProviderEventQueue(
     PPH_PROVIDER_EVENT events;
     SIZE_T i;
 
-    events = EventQueue->Array.Items;
+    events = (PPH_PROVIDER_EVENT)EventQueue->Array.Items;
 
     for (i = 0; i < EventQueue->Array.Count; i++)
     {
@@ -201,7 +201,7 @@ FORCEINLINE PPH_PROVIDER_EVENT PhFlushProviderEventQueue(
     SIZE_T count;
 
     PhAcquireQueuedLockExclusive(&EventQueue->Lock);
-    availableEvents = EventQueue->Array.Items;
+    availableEvents = (PPH_PROVIDER_EVENT)EventQueue->Array.Items;
 
     for (count = 0; count < EventQueue->Array.Count; count++)
     {
@@ -211,7 +211,7 @@ FORCEINLINE PPH_PROVIDER_EVENT PhFlushProviderEventQueue(
 
     if (count != 0)
     {
-        events = PhAllocateCopy(availableEvents, count * sizeof(PH_PROVIDER_EVENT));
+        events = (PPH_PROVIDER_EVENT)PhAllocateCopy(availableEvents, count * sizeof(PH_PROVIDER_EVENT));
         PhRemoveItemsArray(&EventQueue->Array, 0, count);
     }
 
