@@ -56,7 +56,8 @@ static PH_KEY_VALUE_PAIR EspServiceLaunchProtectedPairs[] =
     SIP(L"None", SERVICE_LAUNCH_PROTECTED_NONE),
     SIP(L"Full (Windows)", SERVICE_LAUNCH_PROTECTED_WINDOWS),
     SIP(L"Light (Windows)", SERVICE_LAUNCH_PROTECTED_WINDOWS_LIGHT),
-    SIP(L"Light (Antimalware)", SERVICE_LAUNCH_PROTECTED_ANTIMALWARE_LIGHT)
+    SIP(L"Light (Antimalware)", SERVICE_LAUNCH_PROTECTED_ANTIMALWARE_LIGHT),
+    SIP(L"Light (StoreApp)", 0x4),
 };
 
 static WCHAR *EspServiceSidTypeStrings[3] = { L"None", L"Restricted", L"Unrestricted" };
