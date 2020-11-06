@@ -64,6 +64,7 @@ typedef enum _PVP_IMAGE_GENERAL_INDEX
     PVP_IMAGE_GENERAL_INDEX_FILECREATEDTIME,
     PVP_IMAGE_GENERAL_INDEX_FILEMODIFIEDTIME,
     PVP_IMAGE_GENERAL_INDEX_FILELASTWRITETIME,
+    PVP_IMAGE_GENERAL_INDEX_FILEINDEX,
     PVP_IMAGE_GENERAL_INDEX_FILEID,
     PVP_IMAGE_GENERAL_INDEX_FILEOBJECTID,
 
@@ -1066,13 +1067,14 @@ VOID PvpSetPeImageFileProperties(
     HANDLE fileHandle;
     FILE_BASIC_INFORMATION fileInfo;
     FILE_INTERNAL_INFORMATION internalInfo;
+    FILE_OBJECTID_BUFFER objectInfo;
     FILE_ID_INFORMATION fileIdInfo;
     IO_STATUS_BLOCK isb;
 
     if (NT_SUCCESS(PhCreateFileWin32(
         &fileHandle,
         PhGetString(PvFileName),
-        FILE_GENERIC_READ,
+        FILE_READ_ATTRIBUTES | SYNCHRONIZE,
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
         FILE_OPEN,
@@ -1172,7 +1174,7 @@ VOID PvpSetPeImageFileProperties(
             FileInternalInformation
             )))
         {
-            PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_FILEID, 1, PhaFormatUInt64(internalInfo.IndexNumber.QuadPart, FALSE)->Buffer);
+            PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_FILEINDEX, 1, PhaFormatUInt64(internalInfo.IndexNumber.QuadPart, FALSE)->Buffer);
         }
 
         if (NT_SUCCESS(NtQueryInformationFile(
@@ -1186,6 +1188,32 @@ VOID PvpSetPeImageFileProperties(
             PPH_STRING string;
 
             string = PhFormatGuid((PGUID)fileIdInfo.FileId.Identifier);
+            PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_FILEID, 1, string->Buffer);
+            PhDereferenceObject(string);
+        }
+
+        if (NT_SUCCESS(NtFsControlFile(
+            fileHandle,
+            NULL,
+            NULL,
+            NULL,
+            &isb,
+            FSCTL_GET_OBJECT_ID,
+            NULL,
+            0,
+            &objectInfo,
+            sizeof(objectInfo)
+            )))
+        {
+            PPH_STRING string;
+            PGUID guid = (PGUID)objectInfo.ObjectId;
+
+            // The swap returns the same value as 'fsutil objectid query filepath' (dmex)
+            guid->Data1 = _byteswap_ulong(guid->Data1);
+            guid->Data2 = _byteswap_ushort(guid->Data2);
+            guid->Data3 = _byteswap_ushort(guid->Data3);
+
+            string = PhFormatGuid(guid);
             PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_FILEOBJECTID, 1, string->Buffer);
             PhDereferenceObject(string);
         }
@@ -1282,8 +1310,9 @@ VOID PvpSetPeImageProperties(
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_FILEINFO, PVP_IMAGE_GENERAL_INDEX_FILECREATEDTIME, L"Created time", NULL);
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_FILEINFO, PVP_IMAGE_GENERAL_INDEX_FILEMODIFIEDTIME, L"Modified time", NULL);
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_FILEINFO, PVP_IMAGE_GENERAL_INDEX_FILELASTWRITETIME, L"Updated time", NULL);
-    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_FILEINFO, PVP_IMAGE_GENERAL_INDEX_FILEID, L"File index", NULL);
-    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_FILEINFO, PVP_IMAGE_GENERAL_INDEX_FILEOBJECTID, L"File identifier", NULL);
+    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_FILEINFO, PVP_IMAGE_GENERAL_INDEX_FILEINDEX, L"File index", NULL);
+    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_FILEINFO, PVP_IMAGE_GENERAL_INDEX_FILEID, L"File identifier", NULL);
+    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_FILEINFO, PVP_IMAGE_GENERAL_INDEX_FILEOBJECTID, L"File object identifier", NULL);
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_DEBUGINFO, PVP_IMAGE_GENERAL_INDEX_DEBUGPDB, L"Guid", NULL);
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_DEBUGINFO, PVP_IMAGE_GENERAL_INDEX_DEBUGIMAGE, L"Image name", NULL);
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_DEBUGINFO, PVP_IMAGE_GENERAL_INDEX_DEBUGVCFEATURE, L"Feature count", NULL);
