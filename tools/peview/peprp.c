@@ -1076,7 +1076,7 @@ VOID PvpSetPeImageFileProperties(
         PhGetString(PvFileName),
         FILE_READ_ATTRIBUTES | SYNCHRONIZE,
         FILE_ATTRIBUTE_NORMAL,
-        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
         FILE_OPEN,
         0
         )))
@@ -1212,6 +1212,7 @@ VOID PvpSetPeImageFileProperties(
             guid->Data1 = _byteswap_ulong(guid->Data1);
             guid->Data2 = _byteswap_ushort(guid->Data2);
             guid->Data3 = _byteswap_ushort(guid->Data3);
+            //TODO: highlight IsEqualGUID(objectInfo.ObjectId, objectInfo.BirthObjectId)
 
             string = PhFormatGuid(guid);
             PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_FILEOBJECTID, 1, string->Buffer);
