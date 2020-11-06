@@ -200,9 +200,10 @@ PPH_PLUGIN_TREE_ROOT_NODE AddPluginsNode(
     pluginNode->PluginInstance = Plugin;
     pluginNode->PluginOptions = Plugin->Information.HasOptions;
     pluginNode->InternalName = PhCreateString2(&Plugin->Name);
-    pluginNode->Name = PhCreateString(Plugin->Information.DisplayName);
-    //pluginNode->Author = PhCreateString(Plugin->Information.Author);
-    pluginNode->Description = PhCreateString(Plugin->Information.Description);
+    if (Plugin->Information.DisplayName)
+        pluginNode->Name = PhCreateString(Plugin->Information.DisplayName);
+    if (Plugin->Information.Description)
+        pluginNode->Description = PhCreateString(Plugin->Information.Description);
 
     if (fileName = PhGetPluginFileName(Plugin))
     {
