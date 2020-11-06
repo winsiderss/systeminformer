@@ -8048,6 +8048,7 @@ NTSTATUS PhCreateFile(
 
     return status;
 }
+
 NTSTATUS PhOpenFileWin32(
     _Out_ PHANDLE FileHandle,
     _In_ PWSTR FileName,
@@ -8557,6 +8558,7 @@ NTSTATUS PhCreatePipeEx(
     HANDLE pipeDirectoryHandle;
     HANDLE pipeReadHandle;
     HANDLE pipeWriteHandle;
+    LARGE_INTEGER pipeTimeout;
     UNICODE_STRING pipeNameUs;
     OBJECT_ATTRIBUTES objectAttributes;
     IO_STATUS_BLOCK isb;
@@ -8622,7 +8624,7 @@ NTSTATUS PhCreatePipeEx(
         1,
         PAGE_SIZE,
         PAGE_SIZE,
-        PhTimeoutFromMillisecondsEx(120000)
+        PhTimeoutFromMilliseconds(&pipeTimeout, 120000)
         );
 
     if (!NT_SUCCESS(status))
@@ -8680,6 +8682,7 @@ NTSTATUS PhCreateNamedPipe(
     PACL pipeAcl = NULL;
     HANDLE pipeHandle;
     PPH_STRING pipeName;
+    LARGE_INTEGER pipeTimeout;
     UNICODE_STRING pipeNameUs;
     OBJECT_ATTRIBUTES objectAttributes;
     IO_STATUS_BLOCK isb;
@@ -8719,7 +8722,7 @@ NTSTATUS PhCreateNamedPipe(
         FILE_PIPE_UNLIMITED_INSTANCES,
         PAGE_SIZE,
         PAGE_SIZE,
-        PhTimeoutFromMillisecondsEx(1000)
+        PhTimeoutFromMilliseconds(&pipeTimeout, 1000)
         );
 
     if (NT_SUCCESS(status))
@@ -8905,6 +8908,66 @@ NTSTATUS PhPeekNamedPipe(
     }
 
     PhFree(peekBuffer);
+
+    return status;
+}
+
+NTSTATUS PhCallNamedPipe(
+    _In_ PWSTR PipeName,
+    _In_reads_bytes_(InputBufferLength) PVOID InputBuffer,
+    _In_ ULONG InputBufferLength,
+    _Out_writes_bytes_(OutputBufferLength) PVOID OutputBuffer,
+    _In_ ULONG OutputBufferLength
+    )
+{
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
+    HANDLE pipeHandle = NULL;
+
+    status = PhConnectPipe(&pipeHandle, PipeName);
+
+    if (!NT_SUCCESS(status))
+    {
+        PhWaitForNamedPipe(PipeName, 1000);
+
+        status = PhConnectPipe(&pipeHandle, PipeName);
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        FILE_PIPE_INFORMATION pipeInfo;
+        IO_STATUS_BLOCK isb;
+
+        memset(&pipeInfo, 0, sizeof(FILE_PIPE_INFORMATION));
+        pipeInfo.CompletionMode = FILE_PIPE_QUEUE_OPERATION;
+        pipeInfo.ReadMode = FILE_PIPE_MESSAGE_MODE;
+
+        status = NtSetInformationFile(
+            pipeHandle,
+            &isb,
+            &pipeInfo,
+            sizeof(FILE_PIPE_INFORMATION),
+            FilePipeInformation
+            );
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        status = PhTransceiveNamedPipe(
+            pipeHandle,
+            InputBuffer,
+            InputBufferLength,
+            OutputBuffer,
+            OutputBufferLength
+            );
+    }
+
+    if (pipeHandle)
+    {
+        //IO_STATUS_BLOCK isb;
+        //NtFlushBuffersFile(pipeHandle, &isb);
+        PhDisconnectNamedPipe(pipeHandle);
+        NtClose(pipeHandle);
+    }
 
     return status;
 }
