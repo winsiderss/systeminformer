@@ -961,7 +961,7 @@ VOID PhMwpOnCommand(
         break;
     case ID_HELP_DEBUGCONSOLE:
         {
-            PhShowDebugConsole();
+            PhShowDebugConsole(FALSE);
         }
         break;
     case ID_HELP_ABOUT:
@@ -1031,8 +1031,35 @@ VOID PhMwpOnCommand(
             {
                 PhReferenceObject(processItem);
 
-                if (PhUiRestartProcess(WindowHandle, processItem))
-                    PhDeselectAllProcessNodes();
+                // Note: The current process is a special case (dmex)
+                if (processItem->ProcessId == NtCurrentProcessId())
+                {
+                    ProcessHacker_PrepareForEarlyShutdown();
+
+                    if (PhShellProcessHacker(
+                        PhMainWndHandle,
+                        NULL,
+                        SW_SHOW,
+                        PH_SHELL_EXECUTE_NOZONECHECKS,
+                        PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
+                        0,
+                        NULL
+                        ))
+                    {
+                        ProcessHacker_Destroy();
+                    }
+                    else
+                    {
+                        ProcessHacker_CancelEarlyShutdown();
+                    }
+                }
+                else
+                {
+                    if (PhUiRestartProcess(WindowHandle, processItem))
+                    {
+                        PhDeselectAllProcessNodes();
+                    }
+                }
 
                 PhDereferenceObject(processItem);
             }

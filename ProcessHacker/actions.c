@@ -1385,6 +1385,11 @@ BOOLEAN PhUiRestartProcess(
     if (!cont)
         return FALSE;
 
+    // Fail when restarting the current process otherwise
+    // we get terminated before creating the new process. (dmex)
+    if (Process->ProcessId == NtCurrentProcessId())
+        return FALSE;
+
     // Open the process and get the command line and current directory.
 
     if (!NT_SUCCESS(status = PhOpenProcess(
