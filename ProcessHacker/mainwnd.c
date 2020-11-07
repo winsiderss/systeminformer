@@ -961,7 +961,7 @@ VOID PhMwpOnCommand(
         break;
     case ID_HELP_DEBUGCONSOLE:
         {
-            PhShowDebugConsole(FALSE);
+            PhShowDebugConsole();
         }
         break;
     case ID_HELP_ABOUT:
