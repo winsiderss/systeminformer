@@ -34,7 +34,51 @@ INT_PTR CALLBACK OptionsDlgProc(
     case WM_INITDIALOG:
         {
             if (PhGetIntegerSetting(SETTING_NAME_AUTO_CHECK))
+            {
+                ULONG64 lastUpdateTimeTicks;
+                PPH_STRING lastUpdateTimeString;
+
                 Button_SetCheck(GetDlgItem(hwndDlg, IDC_AUTOCHECKBOX), BST_CHECKED);
+
+                if (lastUpdateTimeString = PhGetStringSetting(SETTING_NAME_LAST_CHECK))
+                {
+                    if (PhStringToInteger64(&lastUpdateTimeString->sr, 0, &lastUpdateTimeTicks))
+                    {
+                        PPH_STRING timeRelativeString;
+                        PPH_STRING timeString;
+                        LARGE_INTEGER time;
+                        LARGE_INTEGER currentTime;
+                        SYSTEMTIME timeFields;
+
+                        time.QuadPart = lastUpdateTimeTicks;
+                        PhLargeIntegerToLocalSystemTime(&timeFields, &time);
+                        timeString = PhaFormatDateTime(&timeFields);
+
+                        PhQuerySystemTime(&currentTime);
+                        timeRelativeString = PH_AUTO(PhFormatTimeSpanRelative(currentTime.QuadPart - lastUpdateTimeTicks));
+
+                        PhSetDialogItemText(hwndDlg, IDC_TEXT, PhaFormatString(
+                            L"Last update check: %s (%s ago)",
+                            PhGetStringOrEmpty(timeString),
+                            PhGetStringOrEmpty(timeRelativeString)
+                            )->Buffer);
+
+                        time.QuadPart = lastUpdateTimeTicks + (7 * PH_TICKS_PER_DAY);
+                        PhLargeIntegerToLocalSystemTime(&timeFields, &time);
+                        timeString = PhaFormatDateTime(&timeFields);
+
+                        time.QuadPart = time.QuadPart - currentTime.QuadPart;
+                        timeRelativeString = PH_AUTO(PhFormatTimeSpanRelative(time.QuadPart));
+                        PhSetDialogItemText(hwndDlg, IDC_TEXT2, PhaFormatString(
+                            L"Next update check: %s (%s)",
+                            PhGetStringOrEmpty(timeString),
+                            PhGetStringOrEmpty(timeRelativeString)
+                            )->Buffer);
+                    }
+
+                    PhDereferenceObject(lastUpdateTimeString);
+                }
+            }
         }
         break;
     case WM_COMMAND:
