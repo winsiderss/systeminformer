@@ -892,7 +892,7 @@ PPH_STRING PvpPeGetRelativeTimeString(
     PhLargeIntegerToLocalSystemTime(&timeFields, &time);
     timeString = PH_AUTO(PvpPeFormatDateTime(&timeFields));
 
-    return PhFormatString(L"%s ago (%s)", timeRelativeString->Buffer, timeString->Buffer);
+    return PhFormatString(L"%s (%s ago)", timeString->Buffer, timeRelativeString->Buffer);
 }
 
 typedef BOOLEAN (CALLBACK* PH_CERT_ENUM_CALLBACK)(
@@ -957,15 +957,37 @@ BOOLEAN PvpPeFillNodeCertificateInfo(
     )
 {
     ULONG dataLength;
-    SYSTEMTIME systemTime;
+    LARGE_INTEGER currentTime;
+    LARGE_INTEGER time;
+    PPH_STRING timeString;
 
     CertificateNode->TimeFrom.LowPart = CertificateContext->pCertInfo->NotBefore.dwLowDateTime;
     CertificateNode->TimeFrom.HighPart = CertificateContext->pCertInfo->NotBefore.dwHighDateTime;
     CertificateNode->TimeTo.LowPart = CertificateContext->pCertInfo->NotAfter.dwLowDateTime;
     CertificateNode->TimeTo.HighPart = CertificateContext->pCertInfo->NotAfter.dwHighDateTime;
-    PhLargeIntegerToLocalSystemTime(&systemTime, &CertificateNode->TimeTo);
+
+    PhQuerySystemTime(&currentTime);
+    time.QuadPart = CertificateNode->TimeTo.QuadPart - currentTime.QuadPart;
+
+    if (time.QuadPart > 0)
+    {
+        SYSTEMTIME timeFields;
+        PPH_STRING timeRelativeString;
+
+        timeRelativeString = PH_AUTO(PhFormatTimeSpanRelative(time.QuadPart));
+        PhLargeIntegerToLocalSystemTime(&timeFields, &CertificateNode->TimeTo);
+        timeString = PH_AUTO(PvpPeFormatDateTime(&timeFields));
+        timeString = PhFormatString(L"%s (%s)", timeString->Buffer, timeRelativeString->Buffer);
+    }
+    else
+    {
+        SYSTEMTIME timeFields;
+        PhLargeIntegerToLocalSystemTime(&timeFields, &CertificateNode->TimeTo);
+        timeString = PvpPeFormatDateTime(&timeFields);
+    }
+
     CertificateNode->DateFrom = PvpPeGetRelativeTimeString(&CertificateNode->TimeFrom);
-    CertificateNode->DateTo = PvpPeFormatDateTime(&systemTime);
+    CertificateNode->DateTo = timeString;
     CertificateNode->Size = CertificateContext->cbCertEncoded;
 
     if (CertType != PV_CERTIFICATE_NODE_TYPE_IMAGE)
@@ -1552,6 +1574,8 @@ INT_PTR CALLBACK PvpPeSecurityDlgProc(
             case IDC_RESET:
                 {
                     PvClearCertificateTree(context);
+                    context->TotalSize = 0;
+                    context->TotalCount = 0;
                     PvpPeEnumerateFileCertificates(context);
                 }
                 break;
