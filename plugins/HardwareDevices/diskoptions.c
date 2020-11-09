@@ -647,8 +647,8 @@ VOID LoadDiskDriveImages(
     if (PhExtractIconEx(deviceDescription->Buffer, (INT)index, &smallIcon, NULL))
     {
         Context->ImageList = ImageList_Create(
-            GetSystemMetrics(SM_CXICON),
-            GetSystemMetrics(SM_CYICON),
+            24, // GetSystemMetrics(SM_CXSMICON)
+            24, // GetSystemMetrics(SM_CYSMICON)
             ILC_COLOR32,
             1,
             1
@@ -695,7 +695,7 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
             PhSetControlTheme(context->ListViewHandle, L"explorer");
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 350, L"Disk Drives");
             PhSetExtendedListView(context->ListViewHandle);
-            //LoadDiskDriveImages(context);
+            LoadDiskDriveImages(context);
 
             ListView_EnableGroupView(context->ListViewHandle, TRUE);
             PhAddListViewGroup(context->ListViewHandle, 0, L"Connected");
