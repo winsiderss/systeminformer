@@ -68,12 +68,22 @@ INT_PTR CALLBACK OptionsDlgProc(
                         timeString = PhaFormatDateTime(&timeFields);
 
                         time.QuadPart = time.QuadPart - currentTime.QuadPart;
-                        timeRelativeString = PH_AUTO(PhFormatTimeSpanRelative(time.QuadPart));
-                        PhSetDialogItemText(hwndDlg, IDC_TEXT2, PhaFormatString(
-                            L"Next update check: %s (%s)",
-                            PhGetStringOrEmpty(timeString),
-                            PhGetStringOrEmpty(timeRelativeString)
-                            )->Buffer);
+                        if (time.QuadPart > 0)
+                        {
+                            timeRelativeString = PH_AUTO(PhFormatTimeSpanRelative(time.QuadPart));
+                            PhSetDialogItemText(hwndDlg, IDC_TEXT2, PhaFormatString(
+                                L"Next update check: %s (%s)",
+                                PhGetStringOrEmpty(timeString),
+                                PhGetStringOrEmpty(timeRelativeString)
+                                )->Buffer);
+                        }
+                        else
+                        {
+                            PhSetDialogItemText(hwndDlg, IDC_TEXT2, PhaFormatString(
+                                L"Next update check: %s",
+                                PhGetStringOrEmpty(timeString)
+                                )->Buffer);
+                        }
                     }
 
                     PhDereferenceObject(lastUpdateTimeString);
