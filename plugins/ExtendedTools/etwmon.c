@@ -153,6 +153,7 @@ TRACEHANDLE EtOpenEtwTrace(
     VOID
     )
 {
+    TRACEHANDLE traceHandle = INVALID_PROCESSTRACE_HANDLE;
     EVENT_TRACE_LOGFILE logFile;
 
     if (!(EtpTraceProperties && EtpActualKernelLoggerName))
@@ -164,7 +165,20 @@ TRACEHANDLE EtOpenEtwTrace(
     logFile.BufferCallback = EtEtwBufferCallback;
     logFile.EventRecordCallback = EtEtwEventCallback;
 
-    return OpenTrace(&logFile);
+    traceHandle = OpenTrace(&logFile);
+
+    if (traceHandle != INVALID_PROCESSTRACE_HANDLE)
+    {
+        EtSessionHandle = traceHandle;
+        EtpEtwActive = TRUE;
+    }
+    else
+    {
+        EtpEtwActive = FALSE;
+        EtSessionHandle = INVALID_PROCESSTRACE_HANDLE;
+    }
+
+    return traceHandle;
 }
 
 VOID EtStartEtwSession(
@@ -458,8 +472,6 @@ NTSTATUS EtEtwMonitorThreadStart(
 
         if (traceHandle != INVALID_PROCESSTRACE_HANDLE)
         {
-            EtpEtwActive = TRUE;
-
             while (!EtpEtwExiting && (result = ProcessTrace(&traceHandle, 1, NULL, NULL)) == ERROR_SUCCESS)
                 NOTHING;
 
