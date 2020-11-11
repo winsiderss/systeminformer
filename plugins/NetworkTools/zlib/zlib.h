@@ -31,6 +31,7 @@
 #ifndef ZLIB_H
 #define ZLIB_H
 
+#define ZLIB_WINAPI 1
 #include "zconf.h"
 
 #ifdef __cplusplus
