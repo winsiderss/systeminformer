@@ -5,6 +5,13 @@ extern "C" {
 #ifndef MAXMINDDB_H
 #define MAXMINDDB_H
 
+#ifndef __cplusplus
+// This is needed to workaround C17 preprocessor errors when using legacy versions of the Windows SDK. (dmex)
+#ifndef MICROSOFT_WINDOWS_WINBASE_H_DEFINE_INTERLOCKED_CPLUSPLUS_OVERLOADS
+#define MICROSOFT_WINDOWS_WINBASE_H_DEFINE_INTERLOCKED_CPLUSPLUS_OVERLOADS 0
+#endif
+#endif
+
 /* Request POSIX.1-2008. However, we want to remain compatible with
  * POSIX.1-2001 (since we have been historically and see no reason to drop
  * compatibility). By requesting POSIX.1-2008, we can conditionally use
