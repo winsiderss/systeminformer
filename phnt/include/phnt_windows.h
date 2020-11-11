@@ -45,6 +45,13 @@
 #define WIN32_NO_STATUS
 #endif
 
+#ifndef __cplusplus
+// This is needed to workaround C17 preprocessor errors when using legacy versions of the Windows SDK. (dmex)
+#ifndef MICROSOFT_WINDOWS_WINBASE_H_DEFINE_INTERLOCKED_CPLUSPLUS_OVERLOADS
+#define MICROSOFT_WINDOWS_WINBASE_H_DEFINE_INTERLOCKED_CPLUSPLUS_OVERLOADS 0
+#endif
+#endif
+
 #include <windows.h>
 #include <windowsx.h>
 #undef WIN32_NO_STATUS
