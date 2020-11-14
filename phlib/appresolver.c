@@ -143,6 +143,7 @@ BOOLEAN PhAppResolverGetAppIdForProcess(
     if (appIdText)
     {
         *ApplicationUserModelId = PhCreateString(appIdText);
+        RtlFreeHeap(RtlProcessHeap(), 0, appIdText);
         return TRUE;
     }
 
@@ -187,6 +188,7 @@ BOOLEAN PhAppResolverGetAppIdForWindow(
     if (appIdText)
     {
         *ApplicationUserModelId = PhCreateString(appIdText);
+        RtlFreeHeap(RtlProcessHeap(), 0, appIdText);
         return TRUE;
     }
 
