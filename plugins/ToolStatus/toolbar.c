@@ -629,6 +629,35 @@ HBITMAP ToolbarGetImage(
     return NULL;
 }
 
+VOID ToolbarLoadDefaultToolbarButtons(
+    VOID
+    )
+{
+    // Pre-cache the images in the Toolbar array
+    for (INT i = 0; i < ARRAYSIZE(ToolbarButtons); i++)
+    {
+        HBITMAP bitmap;
+
+        if (ToolbarButtons[i].fsStyle & BTNS_SEP)
+            continue;
+
+        if (bitmap = ToolbarGetImage(ToolbarButtons[i].idCommand))
+        {
+            // Add the image, cache the value in the ToolbarButtons array, set the bitmap index.
+            ToolbarButtons[i].iBitmap = ImageList_Add(
+                ToolBarImageList,
+                bitmap,
+                NULL
+                );
+
+            DeleteBitmap(bitmap);
+        }
+    }
+
+    // Load default settings
+    SendMessage(ToolBarHandle, TB_ADDBUTTONS, MAX_DEFAULT_TOOLBAR_ITEMS, (LPARAM)ToolbarButtons);
+}
+
 VOID ToolbarLoadButtonSettings(
     VOID
     )
@@ -645,23 +674,20 @@ VOID ToolbarLoadButtonSettings(
 
     if (remaining.Length == 0)
     {
-        // Load default settings
-        SendMessage(ToolBarHandle, TB_ADDBUTTONS, MAX_DEFAULT_TOOLBAR_ITEMS, (LPARAM)ToolbarButtons);
+        ToolbarLoadDefaultToolbarButtons();
         return;
     }
 
     // Query the number of buttons to insert
     if (!PhSplitStringRefAtChar(&remaining, L'|', &part, &remaining))
     {
-        // Load default settings
-        SendMessage(ToolBarHandle, TB_ADDBUTTONS, MAX_DEFAULT_TOOLBAR_ITEMS, (LPARAM)ToolbarButtons);
+        ToolbarLoadDefaultToolbarButtons();
         return;
     }
 
     if (!PhStringToInteger64(&part, 10, &countInteger))
     {
-        // Load default settings
-        SendMessage(ToolBarHandle, TB_ADDBUTTONS, MAX_DEFAULT_TOOLBAR_ITEMS, (LPARAM)ToolbarButtons);
+        ToolbarLoadDefaultToolbarButtons();
         return;
     }
 
