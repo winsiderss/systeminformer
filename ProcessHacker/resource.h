@@ -170,6 +170,7 @@
 #define IDC_GROUPS                      1055
 #define IDC_PRIMARYGROUP                1055
 #define IDC_VIRTUALIZATION              1056
+#define IDC_GROUPSID                    1056
 #define IDC_SESSIONID                   1057
 #define IDC_ELEVATED                    1058
 #define IDC_VIRTUALIZED                 1059
@@ -182,6 +183,7 @@
 #define IDC_UIACCESS                    1061
 #define IDC_TOKENSID                    1062
 #define IDC_PROCESSES                   1063
+#define IDC_TOKENGROUPSID               1063
 #define IDC_SCAN                        1064
 #define IDC_SAVE                        1065
 #define IDC_METHOD                      1067
@@ -755,7 +757,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        257
+#define _APS_NEXT_RESOURCE_VALUE        258
 #define _APS_NEXT_COMMAND_VALUE         40298
 #define _APS_NEXT_CONTROL_VALUE         1410
 #define _APS_NEXT_SYMED_VALUE           170

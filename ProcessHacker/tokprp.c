@@ -1544,6 +1544,28 @@ INT_PTR CALLBACK PhpTokenPageProc(
                     return TRUE;
                 }
                 break;
+            case LVN_ITEMCHANGED:
+                {
+                    PPHP_TOKEN_PAGE_LISTVIEW_ITEM* listviewItems;
+                    ULONG numberOfItems;
+
+                    PhGetSelectedListViewItemParams(tokenPageContext->ListViewHandle, &listviewItems, &numberOfItems);
+
+                    if (numberOfItems == 1 && (
+                            listviewItems[0]->ItemCategory == PH_PROCESS_TOKEN_CATEGORY_GROUPS ||
+                            listviewItems[0]->ItemCategory == PH_PROCESS_TOKEN_CATEGORY_RESTRICTED
+                        ))
+                    {
+                        PPH_STRING currentSid = PhSidToStringSid(listviewItems[0]->TokenGroup->Sid);
+                        PhSetDialogItemText(hwndDlg, IDC_GROUPSID, currentSid->Buffer);
+                        PhDereferenceObject(currentSid);
+                    }
+                    else
+                    {
+                        PhSetDialogItemText(hwndDlg, IDC_GROUPSID, L"n/a");
+                    }
+                }
+                break;
             }
 
             PhHandleListViewNotifyBehaviors(lParam, tokenPageContext->ListViewHandle, PH_LIST_VIEW_DEFAULT_1_BEHAVIORS);
