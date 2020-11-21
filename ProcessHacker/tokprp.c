@@ -55,6 +55,7 @@ typedef enum _PH_PROCESS_TOKEN_INDEX
     PH_PROCESS_TOKEN_INDEX_NAME,
     PH_PROCESS_TOKEN_INDEX_STATUS,
     PH_PROCESS_TOKEN_INDEX_DESCRIPTION,
+    PH_PROCESS_TOKEN_INDEX_SID,
 } PH_PROCESS_TOKEN_INDEX;
 
 typedef struct _PHP_TOKEN_PAGE_LISTVIEW_ITEM
@@ -510,13 +511,11 @@ VOID PhpUpdateSidsFromTokenGroups(
         lvitem->ItemCategory = Restricted ? PH_PROCESS_TOKEN_CATEGORY_RESTRICTED : PH_PROCESS_TOKEN_CATEGORY_GROUPS;
         lvitem->TokenGroup = &Groups->Groups[i];
 
-        stringUserSid = PhSidToStringSid(Groups->Groups[i].Sid);
-
         lvItemIndex = PhAddListViewGroupItem(
             ListViewHandle,
             lvitem->ItemCategory,
             MAXINT,
-            stringUserSid->Buffer,
+            L"Resolving...",
             lvitem
             );
 
@@ -538,6 +537,12 @@ VOID PhpUpdateSidsFromTokenGroups(
             PhDereferenceObject(descriptionString);
         }
 
+        if (stringUserSid = PhSidToStringSid(Groups->Groups[i].Sid))
+        {
+            PhSetListViewSubItem(ListViewHandle, lvItemIndex, PH_PROCESS_TOKEN_INDEX_SID, PhGetString(stringUserSid));
+            PhDereferenceObject(stringUserSid);
+        }
+
         {
             PPHP_TOKEN_GROUP_RESOLVE_CONTEXT tokenGroupResolve;
 
@@ -548,8 +553,6 @@ VOID PhpUpdateSidsFromTokenGroups(
 
             PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), PhpTokenGroupResolveWorker, tokenGroupResolve);
         }
-
-        PhDereferenceObject(stringUserSid);
     }
 }
 
@@ -799,11 +802,12 @@ INT_PTR CALLBACK PhpTokenPageProc(
             tokenPageContext->ListViewHandle = GetDlgItem(hwndDlg, IDC_GROUPS);
             tokenPageContext->ListViewImageList = ImageList_Create(2, 20, ILC_COLOR, 1, 1);
 
-            PhSetListViewStyle(tokenPageContext->ListViewHandle, FALSE, TRUE);
+            PhSetListViewStyle(tokenPageContext->ListViewHandle, TRUE, TRUE);
             PhSetControlTheme(tokenPageContext->ListViewHandle, L"explorer");
             PhAddListViewColumn(tokenPageContext->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 100, L"Name");
             PhAddListViewColumn(tokenPageContext->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 100, L"Status");
             PhAddListViewColumn(tokenPageContext->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 170, L"Description");
+            PhAddListViewColumn(tokenPageContext->ListViewHandle, 3, 3, 3, LVCFMT_LEFT, 100, L"SID");
 
             PhSetExtendedListView(tokenPageContext->ListViewHandle);
             ExtendedListView_SetItemColorFunction(tokenPageContext->ListViewHandle, PhpTokenGroupColorFunction);
