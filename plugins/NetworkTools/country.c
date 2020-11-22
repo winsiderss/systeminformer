@@ -27,7 +27,16 @@
 BOOLEAN GeoDbLoaded = FALSE;
 BOOLEAN GeoDbExpired = FALSE;
 HIMAGELIST GeoImageList = NULL;
-static MMDB_s GeoDbCountry = { 0 };
+MMDB_s GeoDbCountry = { 0 };
+PPH_HASHTABLE NetworkToolsGeoDbCacheHashtable = NULL;
+PH_QUEUED_LOCK NetworkToolsGeoDbCacheHashtableLock = PH_QUEUED_LOCK_INIT;
+
+typedef struct _GEODB_IPADDR_CACHE_ENTRY
+{
+    PH_IP_ADDRESS RemoteAddress;
+    PPH_STRING CountryCode;
+    PPH_STRING CountryName;
+} GEODB_IPADDR_CACHE_ENTRY, *PGEODB_IPADDR_CACHE_ENTRY;
 
 PPH_STRING NetToolsGetGeoLiteDbPath(
     _In_ PWSTR SettingName
@@ -238,7 +247,7 @@ BOOLEAN GeoDbGetContinentData(
 }
 
 _Success_(return)
-BOOLEAN LookupCountryCode(
+BOOLEAN LookupCountryCodeFromMmdb(
     _In_ PH_IP_ADDRESS RemoteAddress,
     _Out_ PPH_STRING *CountryCode,
     _Out_ PPH_STRING *CountryName
@@ -257,6 +266,10 @@ BOOLEAN LookupCountryCode(
         if (
             IN4_IS_ADDR_UNSPECIFIED(&RemoteAddress.InAddr) ||
             IN4_IS_ADDR_LOOPBACK(&RemoteAddress.InAddr) ||
+            IN4_IS_ADDR_BROADCAST(&RemoteAddress.InAddr) ||
+            IN4_IS_ADDR_MULTICAST(&RemoteAddress.InAddr) ||
+            IN4_IS_ADDR_LINKLOCAL(&RemoteAddress.InAddr) ||
+            IN4_IS_ADDR_MC_LINKLOCAL(&RemoteAddress.InAddr) ||
             IN4_IS_ADDR_RFC1918(&RemoteAddress.InAddr)
             )
         {
@@ -282,7 +295,9 @@ BOOLEAN LookupCountryCode(
         if (
             IN6_IS_ADDR_UNSPECIFIED(&RemoteAddress.In6Addr) ||
             IN6_IS_ADDR_LOOPBACK(&RemoteAddress.In6Addr) ||
-            IN6_IS_ADDR_LINKLOCAL(&RemoteAddress.In6Addr)
+            IN6_IS_ADDR_MULTICAST(&RemoteAddress.In6Addr) ||
+            IN6_IS_ADDR_LINKLOCAL(&RemoteAddress.In6Addr) ||
+            IN6_IS_ADDR_MC_LINKLOCAL(&RemoteAddress.In6Addr)
             )
         {
             return FALSE;
@@ -329,6 +344,10 @@ BOOLEAN LookupSockInAddr4CountryCode(
     if (
         IN4_IS_ADDR_UNSPECIFIED(&RemoteAddress) ||
         IN4_IS_ADDR_LOOPBACK(&RemoteAddress) ||
+        IN4_IS_ADDR_BROADCAST(&RemoteAddress) ||
+        IN4_IS_ADDR_MULTICAST(&RemoteAddress) ||
+        IN4_IS_ADDR_LINKLOCAL(&RemoteAddress) ||
+        IN4_IS_ADDR_MC_LINKLOCAL(&RemoteAddress) ||
         IN4_IS_ADDR_RFC1918(&RemoteAddress)
         )
     {
@@ -375,7 +394,9 @@ BOOLEAN LookupSockInAddr6CountryCode(
     if (
         IN6_IS_ADDR_UNSPECIFIED(&RemoteAddress) ||
         IN6_IS_ADDR_LOOPBACK(&RemoteAddress) ||
-        IN6_IS_ADDR_LINKLOCAL(&RemoteAddress)
+        IN6_IS_ADDR_MULTICAST(&RemoteAddress) ||
+        IN6_IS_ADDR_LINKLOCAL(&RemoteAddress) ||
+        IN6_IS_ADDR_MC_LINKLOCAL(&RemoteAddress)
         )
     {
         return FALSE;
@@ -540,4 +561,130 @@ VOID DrawCountryIcon(
         rect.top + ((rect.bottom - rect.top) - 11) / 2, 
         ILD_NORMAL
         );
+}
+
+BOOLEAN NetworkToolsGeoDbCacheHashtableEqualFunction(
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
+    )
+{
+    PGEODB_IPADDR_CACHE_ENTRY entry1 = Entry1;
+    PGEODB_IPADDR_CACHE_ENTRY entry2 = Entry2;
+
+    if (entry1->RemoteAddress.Type == PH_IPV4_NETWORK_TYPE && entry2->RemoteAddress.Type == PH_IPV4_NETWORK_TYPE)
+    {
+        return IN4_ADDR_EQUAL(&entry1->RemoteAddress.InAddr, &entry2->RemoteAddress.InAddr);
+    }
+    else  if (entry1->RemoteAddress.Type == PH_IPV6_NETWORK_TYPE && entry2->RemoteAddress.Type == PH_IPV6_NETWORK_TYPE)
+    {
+        return IN6_ADDR_EQUAL(&entry1->RemoteAddress.In6Addr, &entry2->RemoteAddress.In6Addr);
+    }
+
+    return FALSE;
+}
+
+ULONG NetworkToolsGeoDbCacheHashtableHashFunction(
+    _In_ PVOID Entry
+    )
+{
+    PGEODB_IPADDR_CACHE_ENTRY entry = Entry;
+
+    return PhHashIpAddress(&entry->RemoteAddress);
+}
+
+_Success_(return)
+BOOLEAN LookupCountryCode(
+    _In_ PH_IP_ADDRESS RemoteAddress,
+    _Out_ PPH_STRING* CountryCode,
+    _Out_ PPH_STRING* CountryName
+    )
+{
+    PPH_STRING countryCode = NULL;
+    PPH_STRING countryName = NULL;
+    GEODB_IPADDR_CACHE_ENTRY newEntry;
+
+    PhAcquireQueuedLockShared(&NetworkToolsGeoDbCacheHashtableLock);
+
+    if (NetworkToolsGeoDbCacheHashtable)
+    {
+        PGEODB_IPADDR_CACHE_ENTRY entry;
+        GEODB_IPADDR_CACHE_ENTRY lookupEntry;
+
+        lookupEntry.RemoteAddress = RemoteAddress;
+        entry = PhFindEntryHashtable(NetworkToolsGeoDbCacheHashtable, &lookupEntry);
+
+        if (entry)
+        {
+            if (CountryCode)
+                *CountryCode = PhReferenceObject(entry->CountryCode);
+            if (CountryName)
+                *CountryName = PhReferenceObject(entry->CountryName);
+
+            PhReleaseQueuedLockShared(&NetworkToolsGeoDbCacheHashtableLock);
+
+            return TRUE;
+        }
+    }
+
+    PhReleaseQueuedLockShared(&NetworkToolsGeoDbCacheHashtableLock);
+
+    if (!LookupCountryCodeFromMmdb(RemoteAddress, &countryCode, &countryName))
+        return FALSE;
+
+    PhAcquireQueuedLockExclusive(&NetworkToolsGeoDbCacheHashtableLock);
+
+    if (!NetworkToolsGeoDbCacheHashtable)
+    {
+        NetworkToolsGeoDbCacheHashtable = PhCreateHashtable(
+            sizeof(GEODB_IPADDR_CACHE_ENTRY),
+            NetworkToolsGeoDbCacheHashtableEqualFunction,
+            NetworkToolsGeoDbCacheHashtableHashFunction,
+            32
+            );
+    }
+  
+    newEntry.CountryCode = countryCode;
+    newEntry.CountryName = countryName;
+    memcpy_s(&newEntry.RemoteAddress, sizeof(newEntry.RemoteAddress), &RemoteAddress, sizeof(PH_IP_ADDRESS));
+    PhAddEntryHashtable(NetworkToolsGeoDbCacheHashtable, &newEntry);
+
+    if (CountryCode)
+        *CountryCode = PhReferenceObject(countryCode);
+    if (CountryName)
+        *CountryName = PhReferenceObject(countryName);
+
+    PhReleaseQueuedLockExclusive(&NetworkToolsGeoDbCacheHashtableLock);
+
+    return TRUE;
+}
+
+VOID NetworkToolsGeoDbFlushCache(
+    VOID
+    )
+{
+    PH_HASHTABLE_ENUM_CONTEXT enumContext;
+    PGEODB_IPADDR_CACHE_ENTRY entry;
+
+    if (!NetworkToolsGeoDbCacheHashtable)
+        return;
+
+    PhAcquireQueuedLockExclusive(&NetworkToolsGeoDbCacheHashtableLock);
+
+    PhBeginEnumHashtable(NetworkToolsGeoDbCacheHashtable, &enumContext);
+
+    while (entry = PhNextEnumHashtable(&enumContext))
+    {
+        PhDereferenceObject(entry->CountryCode);
+        PhDereferenceObject(entry->CountryName);
+    }
+
+    PhClearReference(&NetworkToolsGeoDbCacheHashtable);
+    NetworkToolsGeoDbCacheHashtable = PhCreateHashtable(
+        sizeof(GEODB_IPADDR_CACHE_ENTRY),
+        NetworkToolsGeoDbCacheHashtableEqualFunction,
+        NetworkToolsGeoDbCacheHashtableHashFunction,
+        32
+        );
+
+    PhReleaseQueuedLockExclusive(&NetworkToolsGeoDbCacheHashtableLock);
 }

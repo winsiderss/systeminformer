@@ -303,6 +303,10 @@ VOID DrawCountryIcon(
     _In_ INT Index
     );
 
+VOID NetworkToolsGeoDbFlushCache(
+    VOID
+    );
+
 typedef struct _PH_UPDATER_CONTEXT
 {
     HWND DialogHandle;
