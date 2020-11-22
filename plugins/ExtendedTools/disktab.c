@@ -125,7 +125,7 @@ BOOLEAN EtpDiskPageCallback(
 
             if (PhGetIntegerSetting(L"EnableThemeSupport"))
             {
-                PhInitializeThemeWindowHeader(TreeNew_GetHeader(hwnd)); // HACK (dmex)
+                PhInitializeWindowTheme(hwnd, TRUE); // HACK (dmex)
                 TreeNew_ThemeSupport(hwnd, TRUE);
             }
             
