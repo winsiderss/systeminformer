@@ -275,8 +275,7 @@ INT_PTR CALLBACK PhOptionsDialogProc(
 
             PhSetApplicationWindowIcon(hwndDlg);
 
-            PhSetWindowStyle(GetDlgItem(hwndDlg, IDC_SEPARATOR), SS_OWNERDRAW, SS_OWNERDRAW);
-
+            //PhSetWindowStyle(GetDlgItem(hwndDlg, IDC_SEPARATOR), SS_OWNERDRAW, SS_OWNERDRAW);
             PhSetControlTheme(OptionsTreeControl, L"explorer");
             TreeView_SetExtendedStyle(OptionsTreeControl, TVS_EX_DOUBLEBUFFER, TVS_EX_DOUBLEBUFFER);
             TreeView_SetImageList(OptionsTreeControl, OptionsTreeImageList, TVSIL_NORMAL);
@@ -284,7 +283,7 @@ INT_PTR CALLBACK PhOptionsDialogProc(
 
             PhInitializeLayoutManager(&WindowLayoutManager, hwndDlg);
             PhAddLayoutItem(&WindowLayoutManager, OptionsTreeControl, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_BOTTOM);
-            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_SEPARATOR), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_BOTTOM);
+            //PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_SEPARATOR), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&WindowLayoutManager, ContainerControl, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_RESET), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_CLEANUP), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
@@ -306,6 +305,7 @@ INT_PTR CALLBACK PhOptionsDialogProc(
                 PhOptionsCreateSectionAdvanced(L"Advanced", PhInstanceHandle, MAKEINTRESOURCE(IDD_OPTADVANCED), PhpOptionsAdvancedDlgProc, NULL);
                 PhOptionsCreateSection(L"Highlighting", PhInstanceHandle, MAKEINTRESOURCE(IDD_OPTHIGHLIGHTING), PhpOptionsHighlightingDlgProc, NULL);
                 PhOptionsCreateSection(L"Graphs", PhInstanceHandle, MAKEINTRESOURCE(IDD_OPTGRAPHS), PhpOptionsGraphsDlgProc, NULL);
+                PhOptionsCreateSection(L"Plugins", PhInstanceHandle, MAKEINTRESOURCE(IDD_PLUGINS), PhPluginsDlgProc, NULL);
 
                 if (PhPluginsEnabled)
                 {
@@ -318,9 +318,6 @@ INT_PTR CALLBACK PhOptionsDialogProc(
 
                     PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackOptionsWindowInitializing), &pointers);
                 }
-
-                // Add plugin options after initializing plugin callbacks (dmex)
-                PhOptionsCreateSection(L"Plugins", PhInstanceHandle, MAKEINTRESOURCE(IDD_PLUGINS), PhPluginsDlgProc, NULL);
 
                 PhOptionsEnterSectionView(section);
                 PhOptionsOnSize();
@@ -424,41 +421,41 @@ INT_PTR CALLBACK PhOptionsDialogProc(
         {
             PDRAWITEMSTRUCT drawInfo = (PDRAWITEMSTRUCT)lParam;
 
-            if (drawInfo->CtlID == IDC_SEPARATOR)
-            {
-                RECT rect;
-
-                rect = drawInfo->rcItem;
-                rect.right = 2;
-
-                if (PhEnableThemeSupport)
-                {
-                    switch (PhCsGraphColorMode)
-                    {
-                    case 0: // New colors
-                        {
-                            FillRect(drawInfo->hDC, &rect, GetSysColorBrush(COLOR_3DHIGHLIGHT));
-                            rect.left += 1;
-                            FillRect(drawInfo->hDC, &rect, GetSysColorBrush(COLOR_3DSHADOW));
-                        }
-                        break;
-                    case 1: // Old colors
-                        {
-                            SetDCBrushColor(drawInfo->hDC, RGB(0, 0, 0));
-                            FillRect(drawInfo->hDC, &rect, GetStockBrush(DC_BRUSH));
-                        }
-                        break;
-                    }
-                }
-                else
-                {
-                    FillRect(drawInfo->hDC, &rect, GetSysColorBrush(COLOR_3DHIGHLIGHT));
-                    rect.left += 1;
-                    FillRect(drawInfo->hDC, &rect, GetSysColorBrush(COLOR_3DSHADOW));
-                }
-
-                return TRUE;
-            }
+            //if (drawInfo->CtlID == IDC_SEPARATOR)
+            //{
+            //    RECT rect;
+            //
+            //    rect = drawInfo->rcItem;
+            //    rect.right = 2;
+            //
+            //    if (PhEnableThemeSupport)
+            //    {
+            //        switch (PhCsGraphColorMode)
+            //        {
+            //        case 0: // New colors
+            //            {
+            //                FillRect(drawInfo->hDC, &rect, GetSysColorBrush(COLOR_3DHIGHLIGHT));
+            //                rect.left += 1;
+            //                FillRect(drawInfo->hDC, &rect, GetSysColorBrush(COLOR_3DSHADOW));
+            //            }
+            //            break;
+            //        case 1: // Old colors
+            //            {
+            //                SetDCBrushColor(drawInfo->hDC, RGB(0, 0, 0));
+            //                FillRect(drawInfo->hDC, &rect, GetStockBrush(DC_BRUSH));
+            //            }
+            //            break;
+            //        }
+            //    }
+            //    else
+            //    {
+            //        FillRect(drawInfo->hDC, &rect, GetSysColorBrush(COLOR_3DHIGHLIGHT));
+            //        rect.left += 1;
+            //        FillRect(drawInfo->hDC, &rect, GetSysColorBrush(COLOR_3DSHADOW));
+            //    }
+            //
+            //    return TRUE;
+            //}
         }
         break;
     case WM_NOTIFY:

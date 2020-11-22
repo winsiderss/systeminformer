@@ -27,7 +27,6 @@
 #define IDD_FINDOBJECTS                 130
 #define IDD_OBJTOKEN                    131
 #define ID_PLUGIN_MENU_ITEM             131
-#define IDC_SEPARATOR                   133
 #define IDD_HIDDENPROCESSES             135
 #define ID_TRAYICONS_REGISTERED         135
 #define IDD_RUNAS                       136
@@ -755,7 +754,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        257
+#define _APS_NEXT_RESOURCE_VALUE        258
 #define _APS_NEXT_COMMAND_VALUE         40298
 #define _APS_NEXT_CONTROL_VALUE         1410
 #define _APS_NEXT_SYMED_VALUE           170
