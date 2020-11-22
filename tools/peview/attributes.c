@@ -81,7 +81,7 @@ VOID PvEnumerateFileExtendedAttributes(
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ,
         FILE_OPEN,
-        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        FILE_SYNCHRONOUS_IO_NONALERT
         )))
     {
         PV_EA_CALLBACK context;
