@@ -35,7 +35,7 @@ VOID PvpPeEnumerateFileStreams(
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ,
         FILE_OPEN,
-        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        FILE_SYNCHRONOUS_IO_NONALERT
         )))
     {
         ULONG count = 0;
@@ -52,7 +52,10 @@ VOID PvpPeEnumerateFileStreams(
                 PPH_STRING attributeFileName;
                 WCHAR number[PH_INT32_STR_LEN_1];
 
-                attributeName = PhCreateStringEx(i->StreamName, i->StreamNameLength);
+                if (i->StreamNameLength && i->StreamName[0])
+                    attributeName = PhCreateStringEx(i->StreamName, i->StreamNameLength);
+                else
+                    attributeName = PhReferenceEmptyString();
                 attributeFileName = PhConcatStringRef2(&PvFileName->sr, &attributeName->sr);
 
                 PhPrintUInt32(number, ++count);
