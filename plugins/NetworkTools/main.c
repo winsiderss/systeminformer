@@ -835,7 +835,15 @@ VOID ProcessesUpdatedCallback(
     )
 {
     static ULONG ProcessesUpdatedCount = 0;
+    static ULONG64 lastTickCount = 0;
     PLIST_ENTRY listEntry;
+    ULONG64 tickCount = NtGetTickCount64();
+
+    if (tickCount - lastTickCount >= 120 * CLOCKS_PER_SEC)
+    {
+        NetworkToolsGeoDbFlushCache();
+        lastTickCount = tickCount;
+    }
 
     if (!NetworkExtensionEnabled)
         return;
