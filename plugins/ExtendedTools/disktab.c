@@ -285,6 +285,7 @@ VOID EtInitializeDiskTreeList(
     SendMessage(TreeNew_GetTooltips(DiskTreeNewHandle), TTM_SETDELAYTIME, TTDT_AUTOPOP, 0x7fff);
 
     TreeNew_SetCallback(hwnd, EtpDiskTreeNewCallback, NULL);
+    TreeNew_SetImageList(hwnd, PhGetProcessSmallImageList());
 
     TreeNew_SetRedraw(hwnd, FALSE);
 
@@ -713,16 +714,7 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
                 break;
 
             node = (PET_DISK_NODE)getNodeIcon->Node;
-
-            if (node->DiskItem->ProcessIconValid && node->DiskItem->ProcessIcon)
-            {
-                getNodeIcon->Icon = node->DiskItem->ProcessIcon;
-            }
-            else
-            {
-                PhGetStockApplicationIcon(&getNodeIcon->Icon, NULL);
-            }
-
+            getNodeIcon->Icon = (HICON)node->DiskItem->ProcessIconIndex;
             getNodeIcon->Flags = TN_CACHE;
         }
         return TRUE;

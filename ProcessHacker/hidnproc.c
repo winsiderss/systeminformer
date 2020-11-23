@@ -642,35 +642,14 @@ static PPH_PROCESS_ITEM PhpCreateProcessItemForHiddenProcess(
     if (processItem->FileName)
     {
         // Small icon, large icon.
-        PhExtractIcon(
-            processItem->FileName->Buffer,
-            &processItem->LargeIcon,
-            &processItem->SmallIcon
-            );
+        if (processItem->IconEntry = PhImageListExtractIcon(processItem->FileName))
+        {
+            processItem->SmallIconIndex = processItem->IconEntry->SmallIconIndex;
+            processItem->LargeIconIndex = processItem->IconEntry->LargeIconIndex;
+        }
 
         // Version info.
         PhInitializeImageVersionInfo(&processItem->VersionInfo, processItem->FileName->Buffer);
-    }
-
-    // Use the default EXE icon if we didn't get the file's icon.
-    {
-        if (!processItem->SmallIcon || !processItem->LargeIcon)
-        {
-            if (processItem->SmallIcon)
-            {
-                DestroyIcon(processItem->SmallIcon);
-                processItem->SmallIcon = NULL;
-            }
-            else if (processItem->LargeIcon)
-            {
-                DestroyIcon(processItem->LargeIcon);
-                processItem->LargeIcon = NULL;
-            }
-
-            PhGetStockApplicationIcon(&processItem->SmallIcon, &processItem->LargeIcon);
-            processItem->SmallIcon = CopyIcon(processItem->SmallIcon);
-            processItem->LargeIcon = CopyIcon(processItem->LargeIcon);
-        }
     }
 
     // Command line
@@ -1495,12 +1474,20 @@ NTSTATUS PhpOpenCsrProcesses(
 
     PhFree(processes);
 
-    *ProcessHandles = PhAllocateCopy(processHandleList->Items, processHandleList->Count * sizeof(HANDLE));
-    *NumberOfProcessHandles = processHandleList->Count;
+
+    if (processHandleList->Count)
+    {
+        *ProcessHandles = PhAllocateCopy(processHandleList->Items, processHandleList->Count * sizeof(HANDLE));
+        *NumberOfProcessHandles = processHandleList->Count;
+
+        PhDereferenceObject(processHandleList);
+
+        return status;
+    }
 
     PhDereferenceObject(processHandleList);
 
-    return status;
+    return STATUS_UNSUCCESSFUL;
 }
 
 NTSTATUS PhpGetCsrHandleProcessId(

@@ -117,6 +117,7 @@ VOID PhInitializeProcessTreeList(
     SendMessage(TreeNew_GetTooltips(ProcessTreeListHandle), TTM_SETDELAYTIME, TTDT_AUTOPOP, MAXSHORT);
 
     TreeNew_SetCallback(hwnd, PhpProcessTreeNewCallback, NULL);
+    TreeNew_SetImageList(hwnd, PhProcessSmallImageList);
 
     TreeNew_SetMaxId(hwnd, PHPRTLC_MAXIMUM - 1);
 
@@ -3102,16 +3103,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
             PPH_TREENEW_GET_NODE_ICON getNodeIcon = Parameter1;
 
             node = (PPH_PROCESS_NODE)getNodeIcon->Node;
-
-            if (node->ProcessItem->SmallIcon)
-            {
-                getNodeIcon->Icon = node->ProcessItem->SmallIcon;
-            }
-            else
-            {
-                PhGetStockApplicationIcon(&getNodeIcon->Icon, NULL);
-            }
-
+            getNodeIcon->Icon = (HICON)(ULONG_PTR)node->ProcessItem->SmallIconIndex;
             getNodeIcon->Flags = TN_CACHE;
         }
         return TRUE;

@@ -14,8 +14,7 @@ typedef struct _PH_SERVICE_ITEM
     PPH_STRING DisplayName;
     PPH_STRING FileName; // only available after first update
 
-    HICON SmallIcon;
-    HICON LargeIcon;
+    struct _PH_IMAGELIST_ITEM* IconEntry;
 
     // State
     ULONG Type;

@@ -32,6 +32,7 @@
 #include <phplug.h>
 #include <phsvccl.h>
 #include <phsettings.h>
+#include <procprv.h>
 #include <srvprv.h>
 
 typedef struct _SERVICE_PROPERTIES_CONTEXT
@@ -148,17 +149,19 @@ NTSTATUS PhpShowServicePropertiesThread(
     propSheetHeader.phpage = pages;
  
     {
-        if (serviceItem->SmallIcon)
-            propSheetHeader.hIcon = serviceItem->SmallIcon;
+        if (serviceItem->IconEntry && serviceItem->IconEntry->SmallIconIndex)
+        {
+            propSheetHeader.hIcon = PhGetImageListIcon(serviceItem->IconEntry->SmallIconIndex, FALSE);
+        }
         else
         {
             if (serviceItem->Type == SERVICE_KERNEL_DRIVER || serviceItem->Type == SERVICE_FILE_SYSTEM_DRIVER)
-                propSheetHeader.hIcon = PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_COG));
+            {
+                propSheetHeader.hIcon = PhGetImageListIcon(1, FALSE); // ServiceCogIcon;
+            }
             else
             {
-                HICON iconSmall;
-                PhGetStockApplicationIcon(&iconSmall, NULL);
-                propSheetHeader.hIcon = iconSmall;
+                propSheetHeader.hIcon = PhGetImageListIcon(0, FALSE); // ServiceApplicationIcon;
             }
         }
     }

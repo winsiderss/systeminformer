@@ -83,7 +83,7 @@ PPH_PROCESS_PROPCONTEXT PhCreateProcessPropContext(
         PSH_USEHICON;
     propSheetHeader.hInstance = PhInstanceHandle;
     propSheetHeader.hwndParent = ParentWindowHandle;
-    propSheetHeader.hIcon = ProcessItem->SmallIcon;
+    propSheetHeader.hIcon = PhGetImageListIcon(ProcessItem->SmallIconIndex, FALSE);
     propSheetHeader.pszCaption = PhGetString(propContext->Title);
     propSheetHeader.pfnCallback = PhpPropSheetProc;
 
@@ -117,18 +117,7 @@ VOID PhRefreshProcessPropContext(
     _Inout_ PPH_PROCESS_PROPCONTEXT PropContext
     )
 {
-    if (PropContext->ProcessItem->SmallIcon)
-    {
-        PropContext->PropSheetHeader.hIcon = PropContext->ProcessItem->SmallIcon;
-    }
-    else
-    {
-        HICON iconSmall;
-
-        PhGetStockApplicationIcon(&iconSmall, NULL);
-
-        PropContext->PropSheetHeader.hIcon = iconSmall;
-    }
+    PropContext->PropSheetHeader.hIcon = PhGetImageListIcon(PropContext->ProcessItem->SmallIconIndex, FALSE);
 }
 
 VOID PhSetSelectThreadIdProcessPropContext(

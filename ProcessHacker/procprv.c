@@ -81,8 +81,7 @@ typedef struct _PH_PROCESS_QUERY_S1_DATA
 
     PPH_STRING CommandLine;
 
-    HICON SmallIcon;
-    HICON LargeIcon;
+    PPH_IMAGELIST_ITEM IconEntry;
     PH_IMAGE_VERSION_INFO VersionInfo;
 
     HANDLE ConsoleHostProcessId;
@@ -239,9 +238,11 @@ BOOLEAN PhProcessProviderInitialization(
 
     PhProcessItemType = PhCreateObjectType(L"ProcessItem", 0, PhpProcessItemDeleteProcedure);
 
-    RtlInitializeSListHead(&PhProcessQueryDataListHead);
-
     PhProcessRecordList = PhCreateList(40);
+
+    PhProcessImageListInitialization();
+
+    RtlInitializeSListHead(&PhProcessQueryDataListHead);
 
     PhDpcsProcessInformation = PhAllocateZero(sizeof(SYSTEM_PROCESS_INFORMATION) + sizeof(SYSTEM_PROCESS_INFORMATION_EXTENSION));
     RtlInitUnicodeString(&PhDpcsProcessInformation->ImageName, L"DPCs");
@@ -468,8 +469,6 @@ VOID PhpProcessItemDeleteProcedure(
     if (processItem->FileNameWin32) PhDereferenceObject(processItem->FileNameWin32);
     if (processItem->FileName) PhDereferenceObject(processItem->FileName);
     if (processItem->CommandLine) PhDereferenceObject(processItem->CommandLine);
-    if (processItem->SmallIcon) DestroyIcon(processItem->SmallIcon);
-    if (processItem->LargeIcon) DestroyIcon(processItem->LargeIcon);
     PhDeleteImageVersionInfo(&processItem->VersionInfo);
     if (processItem->Sid) PhFree(processItem->Sid);
     if (processItem->VerifySignerName) PhDereferenceObject(processItem->VerifySignerName);
@@ -479,6 +478,8 @@ VOID PhpProcessItemDeleteProcedure(
     if (processItem->QueryHandle) NtClose(processItem->QueryHandle);
 
     if (processItem->Record) PhDereferenceProcessRecord(processItem->Record);
+
+    if (processItem->IconEntry) PhDereferenceObject(processItem->IconEntry);
 }
 
 FORCEINLINE BOOLEAN PhCompareProcessItem(
@@ -752,18 +753,15 @@ VOID PhpProcessQueryStage1(
     {
         if (PhDoesFileExists(PhGetString(processItem->FileName)))
         {
-            if (!PhExtractIcon(
-                PhGetString(processItem->FileNameWin32),
-                &Data->LargeIcon,
-                &Data->SmallIcon
-                ))
-            {
-                Data->LargeIcon = NULL;
-                Data->SmallIcon = NULL;
-            }
+            Data->IconEntry = PhImageListExtractIcon(processItem->FileNameWin32);
 
             // Version info.
-            PhInitializeImageVersionInfoCached(&Data->VersionInfo, processItem->FileNameWin32, FALSE, PhEnableVersionShortText);
+            PhInitializeImageVersionInfoCached(
+                &Data->VersionInfo,
+                processItem->FileNameWin32,
+                FALSE,
+                PhEnableVersionShortText
+                );
         }
     }
 
@@ -1052,8 +1050,12 @@ VOID PhpFillProcessItemStage1(
     PPH_PROCESS_ITEM processItem = Data->Header.ProcessItem;
 
     processItem->CommandLine = Data->CommandLine;
-    processItem->SmallIcon = Data->SmallIcon;
-    processItem->LargeIcon = Data->LargeIcon;
+    if (Data->IconEntry)
+    {
+        processItem->SmallIconIndex = Data->IconEntry->SmallIconIndex;
+        processItem->LargeIconIndex = Data->IconEntry->LargeIconIndex;
+    }
+    processItem->IconEntry = Data->IconEntry;
     memcpy(&processItem->VersionInfo, &Data->VersionInfo, sizeof(PH_IMAGE_VERSION_INFO));
     processItem->ConsoleHostProcessId = Data->ConsoleHostProcessId;
     processItem->PackageFullName = Data->PackageFullName;
@@ -1818,6 +1820,8 @@ VOID PhProcessProviderUpdate(
             PhPurgeProcessRecords();
 
         PhpFlushSidFullNameCache();
+
+        PhImageListFlushCache();
 
         PhFlushImageVersionInfoCache();
     }
@@ -2896,7 +2900,10 @@ VOID PhPurgeProcessRecords(
                     if (!derefList)
                         derefList = PhCreateList(2);
 
-                    PhAddItemList(derefList, processRecord);
+                    if (derefList)
+                    {
+                        PhAddItemList(derefList, processRecord);
+                    }
                 }
             }
 
@@ -2989,4 +2996,241 @@ PVOID PhGetProcessInformationCache(
     )
 {
     return PhProcessInformation;
+}
+
+PPH_HASHTABLE PhImageListCacheHashtable = NULL;
+PH_QUEUED_LOCK PhImageListCacheHashtableLock = PH_QUEUED_LOCK_INIT;
+HIMAGELIST PhProcessLargeImageList = NULL;
+HIMAGELIST PhProcessSmallImageList = NULL;
+PPH_OBJECT_TYPE PhImageListItemType = NULL;
+
+VOID PhpImageListItemDeleteProcedure(
+    _In_ PVOID Object,
+    _In_ ULONG Flags
+    )
+{
+    PPH_IMAGELIST_ITEM entry = (PPH_IMAGELIST_ITEM)Object;
+    ULONG LargeIconIndex = entry->LargeIconIndex;
+    ULONG SmallIconIndex = entry->SmallIconIndex;
+    PPH_PROCESS_ITEM* processes;
+    ULONG numberOfProcesses;
+
+    PhEnumProcessItems(&processes, &numberOfProcesses);
+
+    for (ULONG i = 0; i < numberOfProcesses; i++)
+    {
+        PPH_PROCESS_ITEM process = processes[i];
+
+        if (
+            process->LargeIconIndex > LargeIconIndex &&
+            process->SmallIconIndex > SmallIconIndex
+            )
+        {
+            process->LargeIconIndex -= 1;
+            process->SmallIconIndex -= 1;
+        }
+    }
+
+    PhFree(processes);
+
+    ImageList_Remove(PhProcessLargeImageList, LargeIconIndex);
+    ImageList_Remove(PhProcessSmallImageList, SmallIconIndex);
+}
+
+VOID PhProcessImageListInitialization(
+    VOID
+    )
+{
+    HICON iconSmall;
+    HICON iconLarge;
+
+    PhImageListItemType = PhCreateObjectType(L"ImageListItem", 0, PhpImageListItemDeleteProcedure);
+    
+    PhProcessLargeImageList = ImageList_Create(PhLargeIconSize.X, PhLargeIconSize.Y, ILC_MASK | ILC_COLOR32, 100, 100);
+    PhProcessSmallImageList = ImageList_Create(PhSmallIconSize.X, PhSmallIconSize.Y, ILC_MASK | ILC_COLOR32, 100, 100);
+
+    PhGetStockApplicationIcon(&iconSmall, &iconLarge);
+    ImageList_AddIcon(PhProcessLargeImageList, iconLarge);
+    ImageList_AddIcon(PhProcessSmallImageList, iconSmall);
+    DestroyIcon(iconLarge);
+    DestroyIcon(iconSmall);
+
+    iconLarge = PhLoadIcon(PhInstanceHandle, MAKEINTRESOURCE(IDI_COG), PH_LOAD_ICON_SIZE_LARGE, 0, 0);
+    iconSmall = PhLoadIcon(PhInstanceHandle, MAKEINTRESOURCE(IDI_COG), PH_LOAD_ICON_SIZE_SMALL, 0, 0);
+    ImageList_AddIcon(PhProcessLargeImageList, iconLarge);
+    ImageList_AddIcon(PhProcessSmallImageList, iconSmall);
+    DestroyIcon(iconLarge);
+    DestroyIcon(iconSmall);
+}
+
+BOOLEAN PhImageListCacheHashtableEqualFunction(
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
+    )
+{
+    PPH_IMAGELIST_ITEM entry1 = *(PPH_IMAGELIST_ITEM*)Entry1;
+    PPH_IMAGELIST_ITEM entry2 = *(PPH_IMAGELIST_ITEM*)Entry2;
+
+    return PhEqualStringRef(&entry1->FileName->sr, &entry2->FileName->sr, TRUE);
+}
+
+ULONG PhImageListCacheHashtableHashFunction(
+    _In_ PVOID Entry
+    )
+{
+    PPH_IMAGELIST_ITEM entry = *(PPH_IMAGELIST_ITEM*)Entry;
+
+    return PhHashStringRef(&entry->FileName->sr, TRUE);
+}
+
+PPH_IMAGELIST_ITEM PhImageListExtractIcon(
+    _In_ PPH_STRING FileName
+    )
+{
+    HICON largeIcon;
+    HICON smallIcon;
+    PPH_IMAGELIST_ITEM newentry;
+
+    PhAcquireQueuedLockShared(&PhImageListCacheHashtableLock);
+
+    if (PhImageListCacheHashtable)
+    {
+        PH_IMAGELIST_ITEM lookupEntry;
+        PPH_IMAGELIST_ITEM lookupEntryPtr = &lookupEntry;
+        PPH_IMAGELIST_ITEM* entry;
+
+        lookupEntry.FileName = FileName;
+
+        entry = (PPH_IMAGELIST_ITEM*)PhFindEntryHashtable(PhImageListCacheHashtable, &lookupEntryPtr);
+
+        if (entry)
+        {
+            PPH_IMAGELIST_ITEM foundEntry = *entry;
+
+            PhReferenceObject(foundEntry);
+
+            PhReleaseQueuedLockShared(&PhImageListCacheHashtableLock);
+
+            return foundEntry;
+        }
+    }
+
+    PhReleaseQueuedLockShared(&PhImageListCacheHashtableLock);
+
+    if (!PhExtractIcon(PhGetString(FileName), &largeIcon, &smallIcon))
+        return NULL;
+
+    PhAcquireQueuedLockExclusive(&PhImageListCacheHashtableLock);
+
+    if (!PhImageListCacheHashtable)
+    {
+        PhImageListCacheHashtable = PhCreateHashtable(
+            sizeof(PPH_IMAGELIST_ITEM),
+            PhImageListCacheHashtableEqualFunction,
+            PhImageListCacheHashtableHashFunction,
+            32
+            );
+    }
+
+    newentry = PhCreateObjectZero(sizeof(PH_IMAGELIST_ITEM), PhImageListItemType);
+    newentry->FileName = PhReferenceObject(FileName);
+    newentry->LargeIconIndex = ImageList_AddIcon(PhProcessLargeImageList, largeIcon);
+    newentry->SmallIconIndex = ImageList_AddIcon(PhProcessSmallImageList, smallIcon);
+    DestroyIcon(smallIcon);
+    DestroyIcon(largeIcon);
+
+    PhReferenceObject(newentry);
+    PhAddEntryHashtable(PhImageListCacheHashtable, &newentry);
+
+    PhReleaseQueuedLockExclusive(&PhImageListCacheHashtableLock);
+
+    return newentry;
+}
+
+VOID PhImageListFlushCache(
+    VOID
+    )
+{
+    PH_HASHTABLE_ENUM_CONTEXT enumContext;
+    PPH_IMAGELIST_ITEM* entry;
+
+    if (!PhImageListCacheHashtable)
+        return;
+
+    PhAcquireQueuedLockExclusive(&PhImageListCacheHashtableLock);
+
+    PhBeginEnumHashtable(PhImageListCacheHashtable, &enumContext);
+
+    while (entry = PhNextEnumHashtable(&enumContext))
+    {
+        PPH_IMAGELIST_ITEM item = *entry;
+
+        PhDereferenceObject(item->FileName);
+        PhDereferenceObject(item);
+    }
+
+    PhClearReference(&PhImageListCacheHashtable);
+    PhImageListCacheHashtable = PhCreateHashtable(
+        sizeof(PPH_IMAGELIST_ITEM),
+        PhImageListCacheHashtableEqualFunction,
+        PhImageListCacheHashtableHashFunction,
+        32
+        );
+
+    PhReleaseQueuedLockExclusive(&PhImageListCacheHashtableLock);
+}
+
+VOID PhDrawProcessIcon(
+    _In_ HDC hdc,
+    _In_ RECT rect,
+    _In_ ULONG Index,
+    _In_ BOOLEAN Large)
+{
+    if (Large)
+    {
+        if (PhProcessLargeImageList)
+        {
+            ImageList_Draw(
+                PhProcessLargeImageList,
+                Index,
+                hdc,
+                rect.left,
+                rect.top,
+                ILD_NORMAL | ILD_TRANSPARENT
+                );
+        }
+    }
+    else
+    {
+        if (PhProcessSmallImageList)
+        {
+            ImageList_Draw(
+                PhProcessSmallImageList,
+                Index,
+                hdc,
+                rect.left,
+                rect.top,
+                ILD_NORMAL | ILD_TRANSPARENT
+                );
+        }
+    }
+}
+
+HICON PhGetImageListIcon(
+    _In_ ULONG_PTR Index,
+    _In_ BOOLEAN Large
+    )
+{
+    if (Large)
+    {
+        return ImageList_GetIcon(PhProcessLargeImageList, (ULONG)Index, ILD_NORMAL | ILD_TRANSPARENT);
+    }
+
+    return ImageList_GetIcon(PhProcessSmallImageList, (ULONG)Index, ILD_NORMAL | ILD_TRANSPARENT);
+}
+
+HIMAGELIST PhGetProcessSmallImageList(
+    VOID)
+{
+    return PhProcessSmallImageList;
 }

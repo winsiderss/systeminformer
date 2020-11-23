@@ -163,6 +163,12 @@ VOID PhpUpdateProcessMitigationPolicies(
         EnableWindow(GetDlgItem(hwndDlg, IDC_VIEWMITIGATION), FALSE);
 }
 
+typedef struct _PH_PROCGENERAL_CONTEXT
+{
+    HWND WindowHandle;
+    HICON ProgramIcon;
+} PH_PROCGENERAL_CONTEXT, *PPH_PROCGENERAL_CONTEXT;
+
 INT_PTR CALLBACK PhpProcessGeneralDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -173,6 +179,16 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
     LPPROPSHEETPAGE propSheetPage;
     PPH_PROCESS_PROPPAGECONTEXT propPageContext;
     PPH_PROCESS_ITEM processItem;
+    PPH_PROCGENERAL_CONTEXT context;
+
+    if (PhPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext, &processItem))
+    {
+        context = (PPH_PROCGENERAL_CONTEXT)propPageContext->Context;
+    }
+    else
+    {
+        return FALSE;
+    }
 
     if (!PhPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext, &processItem))
         return FALSE;
@@ -188,6 +204,9 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             HICON folder;
             HICON magnifier;
 
+            context = propPageContext->Context = PhAllocateZero(sizeof(PH_PROCGENERAL_CONTEXT));
+            context->WindowHandle = hwndDlg;
+
             folder = PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_FOLDER));
             magnifier = PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_MAGNIFIER));
 
@@ -200,17 +219,8 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             // File
 
-            if (processItem->LargeIcon)
-            {
-                Static_SetIcon(GetDlgItem(hwndDlg, IDC_FILEICON), processItem->LargeIcon);
-            }
-            else
-            {
-                HICON iconLarge;
-
-                PhGetStockApplicationIcon(NULL, &iconLarge);
-                Static_SetIcon(GetDlgItem(hwndDlg, IDC_FILEICON), iconLarge);
-            }
+            context->ProgramIcon = PhGetImageListIcon(processItem->LargeIconIndex, TRUE);
+            Static_SetIcon(GetDlgItem(hwndDlg, IDC_FILEICON), context->ProgramIcon);
 
             if (PH_IS_REAL_PROCESS_ID(processItem->ProcessId))
             {
@@ -415,6 +425,16 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             ShowWindow(GetDlgItem(hwndDlg, IDC_PROCESSTYPETEXT), SW_SHOW);
 #endif
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+        }
+        break;
+    case WM_DESTROY:
+        {
+            if (context->ProgramIcon)
+            {
+                DestroyIcon(context->ProgramIcon);
+            }
+
+            PhFree(context);
         }
         break;
     case WM_SHOWWINDOW:
