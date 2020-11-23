@@ -263,7 +263,7 @@ INT_PTR CALLBACK PvPeSectionsDlgProc(
             PhLoadListViewColumnsFromSetting(L"ImageSectionsListViewColumns", context->ListViewHandle);
             PhLoadListViewSortColumnsFromSetting(L"ImageSectionsListViewSort", context->ListViewHandle);
 
-            if (context->ListViewImageList = ImageList_Create(2, 20, ILC_COLOR, 1, 1))
+            if (context->ListViewImageList = ImageList_Create(2, 20, ILC_MASK | ILC_COLOR, 1, 1))
                 ListView_SetImageList(context->ListViewHandle, context->ListViewImageList, LVSIL_SMALL);
 
             PvSetPeImageSections(context->ListViewHandle);

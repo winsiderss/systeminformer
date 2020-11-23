@@ -136,7 +136,7 @@ VOID PhpSearchInitializeImages(
     Context->ImageListHandle = ImageList_Create(
         Context->ImageWidth,
         Context->ImageHeight,
-        ILC_COLOR32,
+        ILC_MASK | ILC_COLOR32,
         2,
         0
         );

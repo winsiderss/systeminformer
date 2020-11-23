@@ -737,7 +737,7 @@ VOID LoadNetworkAdapterImages(
                     Context->ImageList = ImageList_Create(
                         24, // GetSystemMetrics(SM_CXSMICON)
                         24, // GetSystemMetrics(SM_CYSMICON)
-                        ILC_COLOR32,
+                        ILC_MASK | ILC_COLOR32,
                         1,
                         1
                         );
