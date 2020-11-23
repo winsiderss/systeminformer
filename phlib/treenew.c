@@ -2006,6 +2006,12 @@ ULONG_PTR PhTnpOnUserMessage(
     case TNM_THEMESUPPORT:
         Context->ThemeSupport = !!WParam;
         return TRUE;
+    case TNM_SETIMAGELIST:
+        {
+            Context->ImageListSupport = !!WParam;
+            Context->ImageListHandle = (HIMAGELIST)WParam;
+        }
+        return TRUE;
     }
 
     return 0;
@@ -5583,7 +5589,25 @@ VOID PhTnpDrawCell(
         }
 
         // Draw the icon.
-        if (Node->Icon)
+
+        if (Context->ImageListSupport)
+        {
+            ImageList_DrawEx(
+                Context->ImageListHandle,
+                (ULONG)(ULONG_PTR)Node->Icon, // HACK (dmex)
+                hdc,
+                textRect.left,
+                textRect.top,
+                SmallIconWidth,
+                SmallIconHeight,
+                0,
+                0,
+                ILD_NORMAL | ILD_TRANSPARENT
+                );
+
+            textRect.left += SmallIconWidth + TNP_ICON_RIGHT_PADDING;
+        }
+        else if (Node->Icon)
         {
             DrawIconEx(
                 hdc,
