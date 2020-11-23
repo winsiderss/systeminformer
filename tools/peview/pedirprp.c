@@ -156,7 +156,7 @@ INT_PTR CALLBACK PvpPeDirectoryDlgProc(
             PhSetExtendedListView(context->ListViewHandle);
             PhLoadListViewColumnsFromSetting(L"ImageDirectoryListViewColumns", context->ListViewHandle);
 
-            if (context->ListViewImageList = ImageList_Create(2, 20, ILC_COLOR, 1, 1))
+            if (context->ListViewImageList = ImageList_Create(2, 20, ILC_MASK | ILC_COLOR, 1, 1))
                 ListView_SetImageList(context->ListViewHandle, context->ListViewImageList, LVSIL_SMALL);
 
             // for (ULONG i = 0; i < IMAGE_NUMBEROF_DIRECTORY_ENTRIES; i++)

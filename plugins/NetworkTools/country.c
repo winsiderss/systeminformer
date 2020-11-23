@@ -104,7 +104,7 @@ VOID LoadGeoLiteDb(
 
         if (GeoDbLoaded)
         {
-            GeoImageList = ImageList_Create(16, 11, ILC_COLOR32, 20, 20);
+            GeoImageList = ImageList_Create(16, 11, ILC_MASK | ILC_COLOR32, 20, 20);
         }
 
         PhDereferenceObject(dbpath);

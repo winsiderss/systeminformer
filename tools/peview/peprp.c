@@ -1494,7 +1494,7 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
             //PhLoadListViewColumnsFromSetting(L"ImageGeneralPropertiesListViewColumns", context->ListViewHandle);
             //PhLoadListViewSortColumnsFromSetting(L"ImageGeneralPropertiesListViewSort", context->ListViewHandle);
 
-            if (context->ListViewImageList = ImageList_Create(2, 20, ILC_COLOR, 1, 1))
+            if (context->ListViewImageList = ImageList_Create(2, 20, ILC_MASK | ILC_COLOR, 1, 1))
                 ListView_SetImageList(context->ListViewHandle, context->ListViewImageList, LVSIL_SMALL);
 
             PvpSetPeImageVersionInfo(hwndDlg);

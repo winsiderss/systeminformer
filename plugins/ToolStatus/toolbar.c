@@ -112,7 +112,7 @@ VOID RebarLoadSettings(
     {
         ToolBarImageSize.cx = GetSystemMetrics(SM_CXSMICON);
         ToolBarImageSize.cy = GetSystemMetrics(SM_CYSMICON);
-        ToolBarImageList = ImageList_Create(ToolBarImageSize.cx, ToolBarImageSize.cy, ILC_COLOR32, 0, 0);
+        ToolBarImageList = ImageList_Create(ToolBarImageSize.cx, ToolBarImageSize.cy, ILC_MASK | ILC_COLOR32, 0, 0);
 
         HFONT newFont;
 

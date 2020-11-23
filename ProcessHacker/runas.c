@@ -2657,7 +2657,7 @@ INT_PTR CALLBACK PhpRunFileWndProc(
                     context->ImageListHandle = ImageList_Create(
                         PhSmallIconSize.X,
                         PhSmallIconSize.Y,
-                        ILC_COLOR32,
+                        ILC_MASK | ILC_COLOR32,
                         1,
                         1
                         );
