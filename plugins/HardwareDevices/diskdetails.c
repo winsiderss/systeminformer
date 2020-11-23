@@ -453,7 +453,7 @@ INT_PTR CALLBACK DiskDriveFileSystemDetailsDlgProc(
     {
     case WM_INITDIALOG:
         {
-            context->WindowHandle = hwndDlg;
+            context->WindowHandle = context->PageContext->SysInfoContext->DetailsWindowDialogHandle = hwndDlg;
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_DETAILS_LIST);
 
             PhCenterWindow(GetParent(hwndDlg), NULL); // HACK (dmex)
@@ -487,6 +487,16 @@ INT_PTR CALLBACK DiskDriveFileSystemDetailsDlgProc(
 
                 propPageContext->LayoutInitialized = TRUE;
             }
+        }
+        break;
+    case WM_SHOWDIALOG:
+        {
+            if (IsMinimized(hwndDlg))
+                ShowWindow(hwndDlg, SW_RESTORE);
+            else
+                ShowWindow(hwndDlg, SW_SHOW);
+
+            SetForegroundWindow(hwndDlg);
         }
         break;
     case WM_NOTIFY:
@@ -596,7 +606,7 @@ INT_PTR CALLBACK DiskDriveSmartDetailsDlgProc(
     {
     case WM_INITDIALOG:
         {
-            context->WindowHandle = hwndDlg;
+            context->WindowHandle = context->PageContext->SysInfoContext->DetailsWindowDialogHandle = hwndDlg;
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_DETAILS_LIST);
 
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
@@ -629,6 +639,16 @@ INT_PTR CALLBACK DiskDriveSmartDetailsDlgProc(
 
                 propPageContext->LayoutInitialized = TRUE;
             }
+        }
+        break;
+    case WM_SHOWDIALOG:
+        {
+            if (IsMinimized(hwndDlg))
+                ShowWindow(hwndDlg, SW_RESTORE);
+            else
+                ShowWindow(hwndDlg, SW_SHOW);
+
+            SetForegroundWindow(hwndDlg);
         }
         break;
     case WM_NOTIFY:
@@ -715,6 +735,8 @@ NTSTATUS ShowDiskDriveDetailsDialogThread(
     PPV_PROPCONTEXT propContext;
     PCOMMON_PAGE_CONTEXT pageContext = Parameter;
 
+    PhSetEvent(&pageContext->SysInfoContext->DetailsWindowInitializedEvent);
+
     if (propContext = HdCreatePropContext(L"Disk Drive"))
     {
         PPV_PROPPAGECONTEXT newPage;
@@ -737,6 +759,14 @@ NTSTATUS ShowDiskDriveDetailsDialogThread(
         PhDereferenceObject(propContext);
     }
 
+    PhResetEvent(&pageContext->SysInfoContext->DetailsWindowInitializedEvent);
+
+    if (pageContext->SysInfoContext->DetailsWindowThreadHandle)
+    {
+        NtClose(pageContext->SysInfoContext->DetailsWindowThreadHandle);
+        pageContext->SysInfoContext->DetailsWindowThreadHandle = NULL;
+    }
+
     return STATUS_SUCCESS;
 }
 
@@ -744,15 +774,30 @@ VOID ShowDiskDriveDetailsDialog(
     _In_ PDV_DISK_SYSINFO_CONTEXT Context
     )
 {
-    PCOMMON_PAGE_CONTEXT pageContext;
+    if (!Context->DetailsWindowThreadHandle)
+    {
+        HANDLE threadHandle;
+        PCOMMON_PAGE_CONTEXT pageContext;
 
-    pageContext = PhAllocateZero(sizeof(COMMON_PAGE_CONTEXT));
-    pageContext->ParentHandle = GetParent(GetParent(Context->WindowHandle));
-    pageContext->DiskIndex = Context->DiskEntry->DiskIndex;
-    //pageContext->Length = Context->DiskEntry->DiskLength;
+        pageContext = PhAllocateZero(sizeof(COMMON_PAGE_CONTEXT));
+        pageContext->ParentHandle = GetParent(GetParent(Context->WindowHandle));
+        pageContext->SysInfoContext = Context;
+        pageContext->DiskIndex = Context->DiskEntry->DiskIndex;
+        //pageContext->Length = Context->DiskEntry->DiskLength;
 
-    PhSetReference(&pageContext->DiskName, Context->DiskEntry->DiskName);
-    CopyDiskId(&pageContext->DiskId, &Context->DiskEntry->Id);
+        PhSetReference(&pageContext->DiskName, Context->DiskEntry->DiskName);
+        CopyDiskId(&pageContext->DiskId, &Context->DiskEntry->Id);
 
-    PhCreateThread2(ShowDiskDriveDetailsDialogThread, pageContext);
+        if (!NT_SUCCESS(PhCreateThreadEx(&threadHandle, ShowDiskDriveDetailsDialogThread, pageContext)))
+        {
+            PhShowError(Context->WindowHandle, L"%s", L"Unable to create the window.");
+            return;
+        }
+
+        PhWaitForEvent(&Context->DetailsWindowInitializedEvent, NULL);
+
+        Context->DetailsWindowThreadHandle = threadHandle;
+    }
+
+    PostMessage(Context->DetailsWindowDialogHandle, WM_SHOWDIALOG, 0, 0);
 }

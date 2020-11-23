@@ -711,7 +711,7 @@ NTSTATUS ShowNetAdapterDetailsDialogThread(
 
     PhInitializeAutoPool(&autoPool);
 
-    dialogHandle = CreateDialogParam(
+    dialogHandle = context->SysInfoContext->DetailsWindowDialogHandle = CreateDialogParam(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_NETADAPTER_DETAILS),
         NULL,
@@ -719,7 +719,7 @@ NTSTATUS ShowNetAdapterDetailsDialogThread(
         (LPARAM)context
         );
 
-    PostMessage(dialogHandle, WM_SHOWDIALOG, 0, 0);
+    PhSetEvent(&context->SysInfoContext->DetailsWindowInitializedEvent);
 
     while (result = GetMessage(&message, NULL, 0, 0))
     {
@@ -737,6 +737,14 @@ NTSTATUS ShowNetAdapterDetailsDialogThread(
 
     PhDeleteAutoPool(&autoPool);
 
+    PhResetEvent(&context->SysInfoContext->DetailsWindowInitializedEvent);
+
+    if (context->SysInfoContext->DetailsWindowThreadHandle)
+    {
+        NtClose(context->SysInfoContext->DetailsWindowThreadHandle);
+        context->SysInfoContext->DetailsWindowThreadHandle = NULL;
+    }
+
     FreeNetAdapterDetailsContext(context);
 
     return STATUS_SUCCESS;
@@ -746,13 +754,28 @@ VOID ShowNetAdapterDetailsDialog(
     _In_ PDV_NETADAPTER_SYSINFO_CONTEXT Context
     )
 {
-    PDV_NETADAPTER_DETAILS_CONTEXT context;
+    if (!Context->DetailsWindowThreadHandle)
+    {
+        HANDLE threadHandle;
+        PDV_NETADAPTER_DETAILS_CONTEXT context;
 
-    context = PhAllocateZero(sizeof(DV_NETADAPTER_DETAILS_CONTEXT));
-    context->ParentHandle = Context->WindowHandle;
+        context = PhAllocateZero(sizeof(DV_NETADAPTER_DETAILS_CONTEXT));
+        context->ParentHandle = Context->WindowHandle;
+        context->SysInfoContext = Context;
 
-    PhSetReference(&context->AdapterName, Context->AdapterEntry->AdapterName);
-    CopyNetAdapterId(&context->AdapterId, &Context->AdapterEntry->AdapterId);
+        PhSetReference(&context->AdapterName, Context->AdapterEntry->AdapterName);
+        CopyNetAdapterId(&context->AdapterId, &Context->AdapterEntry->AdapterId);
 
-    PhCreateThread2(ShowNetAdapterDetailsDialogThread, context);
+        if (!NT_SUCCESS(PhCreateThreadEx(&threadHandle, ShowNetAdapterDetailsDialogThread, context)))
+        {
+            PhShowError(Context->WindowHandle, L"%s", L"Unable to create the window.");
+            return;
+        }
+
+        PhWaitForEvent(&Context->DetailsWindowInitializedEvent, NULL);
+
+        Context->DetailsWindowThreadHandle = threadHandle;
+    }
+
+    PostMessage(Context->DetailsWindowDialogHandle, WM_SHOWDIALOG, 0, 0);
 }
