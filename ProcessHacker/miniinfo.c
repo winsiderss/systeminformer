@@ -1547,13 +1547,10 @@ BOOLEAN PhMipListSectionTreeNewCallback(
             rect.right -= MIP_CELL_PADDING;
             rect.bottom -= MIP_CELL_PADDING;
 
-            if (processItem->LargeIcon)
-                icon = processItem->LargeIcon;
-            else
-                PhGetStockApplicationIcon(NULL, &icon);
+            icon = PhGetImageListIcon(processItem->LargeIconIndex, TRUE);
+            DrawIconEx(hdc, rect.left, rect.top, icon, PhLargeIconSize.X, PhLargeIconSize.Y,0, NULL, DI_NORMAL);
+            DestroyIcon(icon);
 
-            DrawIconEx(hdc, rect.left, rect.top, icon, PhLargeIconSize.X, PhLargeIconSize.Y,
-                0, NULL, DI_NORMAL);
             rect.left += (MIP_CELL_PADDING - MIP_ICON_PADDING) + PhLargeIconSize.X + MIP_CELL_PADDING;
             rect.top += MIP_CELL_PADDING - MIP_ICON_PADDING;
             SelectFont(hdc, CurrentParameters.Font);

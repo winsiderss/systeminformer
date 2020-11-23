@@ -16,7 +16,7 @@ typedef struct _PH_NETWORK_ITEM
     HANDLE ProcessId;
 
     PPH_STRING ProcessName;
-    HICON ProcessIcon;
+    ULONG_PTR ProcessIconIndex;
     BOOLEAN ProcessIconValid;
     PPH_STRING OwnerName;
 

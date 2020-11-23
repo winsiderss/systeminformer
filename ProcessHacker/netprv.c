@@ -806,7 +806,7 @@ VOID PhNetworkProviderUpdate(
 
                 if (PhTestEvent(&processItem->Stage1Event))
                 {
-                    networkItem->ProcessIcon = processItem->SmallIcon;
+                    networkItem->ProcessIconIndex = processItem->SmallIconIndex;
                     networkItem->ProcessIconValid = TRUE;
                 }
 
@@ -879,7 +879,7 @@ VOID PhNetworkProviderUpdate(
 
                 if (!networkItem->ProcessIconValid && PhTestEvent(&networkItem->ProcessItem->Stage1Event))
                 {
-                    networkItem->ProcessIcon = networkItem->ProcessItem->SmallIcon;
+                    networkItem->ProcessIconIndex = networkItem->ProcessItem->SmallIconIndex;
                     networkItem->ProcessIconValid = TRUE;
                     modified = TRUE;
                 }

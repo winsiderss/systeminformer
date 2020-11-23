@@ -89,8 +89,7 @@ typedef struct _PH_SERVICE_QUERY_S1_DATA
 {
     PH_SERVICE_QUERY_DATA Header;
 
-    HICON SmallIcon;
-    HICON LargeIcon;
+    PPH_IMAGELIST_ITEM IconEntry;
 } PH_SERVICE_QUERY_S1_DATA, *PPH_SERVICE_QUERY_S1_DATA;
 
 typedef struct _PH_SERVICE_QUERY_S2_DATA
@@ -209,8 +208,7 @@ VOID PhpServiceItemDeleteProcedure(
     if (serviceItem->DisplayName) PhDereferenceObject(serviceItem->DisplayName);
     if (serviceItem->FileName) PhDereferenceObject(serviceItem->FileName);
     if (serviceItem->VerifySignerName) PhDereferenceObject(serviceItem->VerifySignerName);
-    if (serviceItem->SmallIcon) DestroyIcon(serviceItem->SmallIcon);
-    if (serviceItem->LargeIcon) DestroyIcon(serviceItem->LargeIcon);
+    if (serviceItem->IconEntry) PhDereferenceObject(serviceItem->IconEntry);
     //PhDeleteImageVersionInfo(&serviceItem->VersionInfo);
 }
 
@@ -535,14 +533,7 @@ VOID PhpServiceQueryStage1(
     {
         if (!(serviceItem->Type & SERVICE_DRIVER)) // Skip icons for driver services (dmex)
         {
-            HICON largeIcon;
-            HICON smallIcon;
-
-            if (PhExtractIcon(serviceItem->FileName->Buffer, &largeIcon, &smallIcon))
-            {
-                Data->LargeIcon = largeIcon;
-                Data->SmallIcon = smallIcon;
-            }
+            Data->IconEntry = PhImageListExtractIcon(serviceItem->FileName);
         }
 
         // Version info.
@@ -644,8 +635,7 @@ VOID PhpFillServiceItemStage1(
 {
     PPH_SERVICE_ITEM serviceItem = Data->Header.ServiceItem;
 
-    serviceItem->SmallIcon = Data->SmallIcon;
-    serviceItem->LargeIcon = Data->LargeIcon;
+    serviceItem->IconEntry = Data->IconEntry;
     //memcpy(&processItem->VersionInfo, &Data->VersionInfo, sizeof(PH_IMAGE_VERSION_INFO));
 
     // Note: Queue stage 2 processing after filling stage1 process data.

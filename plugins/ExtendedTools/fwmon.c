@@ -244,7 +244,7 @@ VOID FwProcessFirewallEvent(
 
     if (entry->ProcessItem && !entry->ProcessIconValid && PhTestEvent(&entry->ProcessItem->Stage1Event))
     {
-        entry->ProcessIcon = entry->ProcessItem->SmallIcon;
+        entry->ProcessIconIndex = entry->ProcessItem->SmallIconIndex;
         entry->ProcessIconValid = TRUE;
     }
 

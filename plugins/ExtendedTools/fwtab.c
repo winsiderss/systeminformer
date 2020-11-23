@@ -1127,38 +1127,14 @@ BOOLEAN NTAPI FwTreeNewCallback(
                 break;
             }
 
-            if (node->ProcessIconValid && node->ProcessIcon)
-            {
-                DrawIconEx(
-                    hdc,
-                    rect.left,
-                    rect.top,
-                    node->ProcessIcon,
-                    16,
-                    16,
-                    0,
-                    NULL,
-                    DI_NORMAL
-                    );
-            }
-            else
-            {
-                HICON icon;
-
-                PhGetStockApplicationIcon(&icon, NULL);
-
-                DrawIconEx(
-                    hdc,
-                    rect.left,
-                    rect.top,
-                    icon,
-                    16,
-                    16,
-                    0,
-                    NULL,
-                    DI_NORMAL
-                    );
-            }
+            ImageList_Draw(
+                PhGetProcessSmallImageList(),
+                (ULONG)(ULONG_PTR)node->ProcessIconIndex, // HACK (dmex)
+                hdc,
+                rect.left,
+                rect.top,
+                ILD_NORMAL | ILD_TRANSPARENT
+                );
 
             // Padding
             rect.left += 16 + 2;

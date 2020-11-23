@@ -35,6 +35,7 @@
 #include <mainwnd.h>
 #include <phplug.h>
 #include <phsettings.h>
+#include <procprv.h>
 #include <srvprv.h>
 
 BOOLEAN PhpServiceNodeHashtableEqualFunction(
@@ -75,10 +76,6 @@ static PPH_HASHTABLE ServiceNodeHashtable; // hashtable of all nodes
 static PPH_LIST ServiceNodeList; // list of all nodes
 
 static PH_TN_FILTER_SUPPORT FilterSupport;
-
-static BOOLEAN ServiceIconsLoaded = FALSE;
-static HICON ServiceApplicationIcon;
-static HICON ServiceCogIcon;
 
 BOOLEAN PhServiceTreeListStateHighlighting = TRUE;
 static PPH_POINTER_LIST ServiceNodeStateList = NULL; // list of nodes which need to be processed
@@ -123,6 +120,7 @@ VOID PhInitializeServiceTreeList(
     SendMessage(TreeNew_GetTooltips(ServiceTreeListHandle), TTM_SETDELAYTIME, TTDT_AUTOPOP, MAXSHORT);
 
     TreeNew_SetCallback(hwnd, PhpServiceTreeNewCallback, NULL);
+    TreeNew_SetImageList(hwnd, PhProcessSmallImageList);
 
     TreeNew_SetRedraw(hwnd, FALSE);
 
@@ -791,26 +789,16 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
 
             node = (PPH_SERVICE_NODE)getNodeIcon->Node;
 
-            if (!ServiceIconsLoaded)
+            if (node->ServiceItem->IconEntry)
             {
-                HICON icon;
-
-                PhGetStockApplicationIcon(&icon, NULL);
-
-                ServiceApplicationIcon = icon;
-                ServiceCogIcon = PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_COG));
-
-                ServiceIconsLoaded = TRUE;
+                getNodeIcon->Icon = (HICON)(ULONG_PTR)node->ServiceItem->IconEntry->SmallIconIndex;
             }
-
-            if (node->ServiceItem->SmallIcon)
-                getNodeIcon->Icon = node->ServiceItem->SmallIcon;
             else
             {
                 if (node->ServiceItem->Type == SERVICE_KERNEL_DRIVER || node->ServiceItem->Type == SERVICE_FILE_SYSTEM_DRIVER)
-                    getNodeIcon->Icon = ServiceCogIcon;
+                    getNodeIcon->Icon = (HICON)(ULONG_PTR)1;// ServiceCogIcon;
                 else
-                    getNodeIcon->Icon = ServiceApplicationIcon;
+                    getNodeIcon->Icon = (HICON)(ULONG_PTR)0;//ServiceApplicationIcon;
             }
 
             getNodeIcon->Flags = TN_CACHE;

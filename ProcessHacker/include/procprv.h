@@ -88,6 +88,13 @@ extern PH_CIRCULAR_BUFFER_ULONG64 PhMaxIoWriteHistory;
 typedef enum _VERIFY_RESULT VERIFY_RESULT;
 typedef struct _PH_PROCESS_RECORD *PPH_PROCESS_RECORD;
 
+typedef struct _PH_IMAGELIST_ITEM
+{
+    PPH_STRING FileName;
+    ULONG LargeIconIndex;
+    ULONG SmallIconIndex;
+} PH_IMAGELIST_ITEM, *PPH_IMAGELIST_ITEM;
+
 typedef struct _PH_PROCESS_ITEM
 {
     PH_HASH_ENTRY HashEntry;
@@ -115,8 +122,8 @@ typedef struct _PH_PROCESS_ITEM
 
     // File
 
-    HICON SmallIcon;
-    HICON LargeIcon;
+    ULONG_PTR SmallIconIndex;
+    ULONG_PTR LargeIconIndex;
     PH_IMAGE_VERSION_INFO VersionInfo;
 
     // Security
@@ -228,6 +235,7 @@ typedef struct _PH_PROCESS_ITEM
     PH_KNOWN_PROCESS_TYPE KnownProcessType;
     PS_PROTECTION Protection;
     ULONG JobObjectId;
+    PPH_IMAGELIST_ITEM IconEntry;
 } PH_PROCESS_ITEM, *PPH_PROCESS_ITEM;
 // end_phapppub
 
@@ -414,4 +422,46 @@ PhGetProcessInformationCache(
     VOID
     );
 // end_phapppub
+
+extern HIMAGELIST PhProcessLargeImageList;
+extern HIMAGELIST PhProcessSmallImageList;
+
+// begin_phapppub
+PHAPPAPI
+VOID
+NTAPI
+PhProcessImageListInitialization(
+    VOID
+    );
+
+PHAPPAPI
+PPH_IMAGELIST_ITEM
+NTAPI
+PhImageListExtractIcon(
+    _In_ PPH_STRING FileName
+    );
+
+PHAPPAPI
+VOID
+NTAPI
+PhImageListFlushCache(
+    VOID
+    );
+
+PHAPPAPI
+HICON
+NTAPI
+PhGetImageListIcon(
+    _In_ ULONG_PTR Index,
+    _In_ BOOLEAN Large
+    );
+
+PHAPPAPI
+HIMAGELIST
+NTAPI
+PhGetProcessSmallImageList(
+    VOID
+    );
+// end_phapppub
+
 #endif

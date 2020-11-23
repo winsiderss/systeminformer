@@ -3149,10 +3149,11 @@ VOID PhMwpAddIconProcesses(
     for (i = 0; i < processList->Count; i++)
     {
         PPH_EMENU_ITEM subMenu;
-        HBITMAP iconBitmap;
+        HBITMAP iconBitmap = NULL;
         CLIENT_ID clientId;
         PPH_STRING clientIdName;
         PPH_STRING escapedName;
+        HICON icon;
 
         processItem = processList->Items[i];
 
@@ -3172,16 +3173,10 @@ VOID PhMwpAddIconProcesses(
             processItem->ProcessId
             );
 
-        if (processItem->SmallIcon)
+        if (icon = PhGetImageListIcon(processItem->SmallIconIndex, FALSE))
         {
-            iconBitmap = PhIconToBitmap(processItem->SmallIcon, PhSmallIconSize.X, PhSmallIconSize.Y);
-        }
-        else
-        {
-            HICON icon;
-
-            PhGetStockApplicationIcon(&icon, NULL);
             iconBitmap = PhIconToBitmap(icon, PhSmallIconSize.X, PhSmallIconSize.Y);
+            DestroyIcon(icon);
         }
 
         subMenu->Bitmap = iconBitmap;

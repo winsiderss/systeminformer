@@ -94,7 +94,7 @@ typedef struct _ET_DISK_ITEM
     PPH_STRING ProcessName;
 
     PPH_PROCESS_ITEM ProcessItem;
-    HICON ProcessIcon;
+    ULONG_PTR ProcessIconIndex;
     BOOLEAN ProcessIconValid;
 
     PPH_PROCESS_RECORD ProcessRecord;
@@ -811,7 +811,7 @@ typedef struct _FW_EVENT_ITEM
     //PPH_STRING PackageName;
 
     PPH_PROCESS_ITEM ProcessItem;
-    HICON ProcessIcon;
+    ULONG_PTR ProcessIconIndex;
     BOOLEAN ProcessIconValid;
 
     PPH_STRING ProcessFileName;

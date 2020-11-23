@@ -122,6 +122,7 @@ VOID PhInitializeNetworkTreeList(
     SendMessage(TreeNew_GetTooltips(NetworkTreeListHandle), TTM_SETDELAYTIME, TTDT_AUTOPOP, MAXSHORT);
 
     TreeNew_SetCallback(hwnd, PhpNetworkTreeNewCallback, NULL);
+    TreeNew_SetImageList(hwnd, PhProcessSmallImageList);
 
     TreeNew_SetRedraw(hwnd, FALSE);
 
@@ -644,16 +645,7 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
                 break;
 
             node = (PPH_NETWORK_NODE)getNodeIcon->Node;
-
-            if (node->NetworkItem->ProcessIconValid && node->NetworkItem->ProcessIcon)
-            {
-                getNodeIcon->Icon = node->NetworkItem->ProcessIcon;
-            }
-            else
-            {
-                PhGetStockApplicationIcon(&getNodeIcon->Icon, NULL);
-            }
-
+            getNodeIcon->Icon = (HICON)(ULONG_PTR)node->NetworkItem->ProcessIconIndex;
             getNodeIcon->Flags = TN_CACHE;
         }
         return TRUE;
