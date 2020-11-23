@@ -123,6 +123,10 @@ typedef struct _DV_NETADAPTER_SYSINFO_CONTEXT
     HWND PanelWindowHandle;
     HWND GraphHandle;
 
+    HANDLE DetailsWindowThreadHandle;
+    HWND DetailsWindowDialogHandle;
+    PH_EVENT DetailsWindowInitializedEvent;
+
     PPH_SYSINFO_SECTION SysinfoSection;
     PH_GRAPH_STATE GraphState;
     PH_LAYOUT_MANAGER LayoutManager;
@@ -160,6 +164,7 @@ typedef struct _DV_NETADAPTER_DETAILS_CONTEXT
     HWND ListViewHandle;
 
     HANDLE NotifyHandle;
+    PDV_NETADAPTER_SYSINFO_CONTEXT SysInfoContext;
 
     PH_LAYOUT_MANAGER LayoutManager;
     PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
@@ -442,6 +447,10 @@ typedef struct _DV_DISK_SYSINFO_CONTEXT
     HWND DiskDrivePanelActiveLabel;
     HWND DiskDrivePanelTimeLabel;
     HWND DiskDrivePanelBytesLabel;
+
+    HANDLE DetailsWindowThreadHandle;
+    HWND DetailsWindowDialogHandle;
+    PH_EVENT DetailsWindowInitializedEvent;
 } DV_DISK_SYSINFO_CONTEXT, *PDV_DISK_SYSINFO_CONTEXT;
 
 typedef struct _DV_DISK_OPTIONS_CONTEXT
@@ -489,8 +498,8 @@ typedef struct _COMMON_PAGE_CONTEXT
     PPH_STRING DiskName;
     DV_DISK_ID DiskId;
     ULONG DiskIndex;
-
     HANDLE DeviceHandle;
+    PDV_DISK_SYSINFO_CONTEXT SysInfoContext;
 } COMMON_PAGE_CONTEXT, *PCOMMON_PAGE_CONTEXT;
 
 typedef struct _DV_DISK_PAGE_CONTEXT
