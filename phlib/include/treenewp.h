@@ -60,7 +60,7 @@ typedef struct _PH_TREENEW_CONTEXT
             ULONG CustomColors : 1;
             ULONG ContextMenuActive : 1;
             ULONG ThemeSupport : 1;
-            ULONG Spare : 1;
+            ULONG ImageListSupport : 1;
         };
         ULONG Flags;
     };
@@ -164,6 +164,7 @@ typedef struct _PH_TREENEW_CONTEXT
 
     WNDPROC HeaderWindowProc;
     WNDPROC FixedHeaderWindowProc;
+    HIMAGELIST ImageListHandle;
 } PH_TREENEW_CONTEXT, *PPH_TREENEW_CONTEXT;
 
 LRESULT CALLBACK PhTnpWndProc(
