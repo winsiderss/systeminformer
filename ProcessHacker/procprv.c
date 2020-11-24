@@ -3009,32 +3009,29 @@ VOID PhpImageListItemDeleteProcedure(
     _In_ ULONG Flags
     )
 {
-    PPH_IMAGELIST_ITEM item = (PPH_IMAGELIST_ITEM)Object;
-    ULONG LargeIconIndex = item->LargeIconIndex;
-    ULONG SmallIconIndex = item->SmallIconIndex;
-    PPH_HASH_ENTRY entry;
-    PPH_PROCESS_ITEM processItem;
+    PPH_IMAGELIST_ITEM entry = (PPH_IMAGELIST_ITEM)Object;
+    ULONG LargeIconIndex = entry->LargeIconIndex;
+    ULONG SmallIconIndex = entry->SmallIconIndex;
+    PPH_PROCESS_ITEM* processes;
+    ULONG numberOfProcesses;
 
-    PhAcquireQueuedLockShared(&PhProcessHashSetLock);
+    PhEnumProcessItems(&processes, &numberOfProcesses);
 
-    for (ULONG i = 0; i < PH_HASH_SET_SIZE(PhProcessHashSet); i++)
+    for (ULONG i = 0; i < numberOfProcesses; i++)
     {
-        for (entry = PhProcessHashSet[i]; entry; entry = entry->Next)
-        {
-            processItem = CONTAINING_RECORD(entry, PH_PROCESS_ITEM, HashEntry);
+        PPH_PROCESS_ITEM process = processes[i];
 
-            if (
-                processItem->LargeIconIndex > LargeIconIndex &&
-                processItem->SmallIconIndex > SmallIconIndex
-                )
-            {
-                processItem->LargeIconIndex -= 1;
-                processItem->SmallIconIndex -= 1;
-            }
+        if (
+            process->LargeIconIndex > LargeIconIndex &&
+            process->SmallIconIndex > SmallIconIndex
+            )
+        {
+            process->LargeIconIndex -= 1;
+            process->SmallIconIndex -= 1;
         }
     }
 
-    PhReleaseQueuedLockShared(&PhProcessHashSetLock);
+    PhFree(processes);
 
     ImageList_Remove(PhProcessLargeImageList, LargeIconIndex);
     ImageList_Remove(PhProcessSmallImageList, SmallIconIndex);
