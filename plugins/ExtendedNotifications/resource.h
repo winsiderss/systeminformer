@@ -3,10 +3,8 @@
 // Used by ExtendedNotifications.rc
 //
 #define IDD_PROCESSES                   101
-#define IDC_TEXT_RETURN                 101
 #define IDD_SERVICES                    102
 #define IDD_LOGGING                     103
-#define IDD_GROWL                       104
 #define IDC_INCLUDE                     1006
 #define IDC_EXCLUDE                     1007
 #define IDC_REMOVE                      1008
@@ -15,11 +13,8 @@
 #define IDC_MOVEDOWN                    1011
 #define IDC_LIST                        1012
 #define IDC_TEXT                        1013
-#define IDC_EDIT1                       1014
 #define IDC_LOGFILENAME                 1014
-#define IDC_LICENSE                     1014
 #define IDC_BROWSE                      1015
-#define IDC_ENABLEGROWL                 1016
 #define IDC_INFO                        1017
 
 // Next default values for new objects
