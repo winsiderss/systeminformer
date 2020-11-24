@@ -418,10 +418,11 @@ BOOLEAN QueryUpdateData(
     Context->SetupFileHash = PhGetJsonValueAsString(jsonObject, "setup_hash");
     Context->SetupFileSignature = PhGetJsonValueAsString(jsonObject, "setup_sig");
 
-    Context->CurrentVersion = ParseVersionString(Context->CurrentVersionString);
 #ifdef FORCE_LATEST_VERSION
+    Context->CurrentVersion = ParseVersionString(PhCreateString(L"0.0.0.0"));
     Context->LatestVersion = ParseVersionString(Context->CurrentVersionString);
 #else
+    Context->CurrentVersion = ParseVersionString(Context->CurrentVersionString);
     Context->LatestVersion = ParseVersionString(Context->Version);
 #endif
 
@@ -443,6 +444,13 @@ BOOLEAN QueryUpdateData(
         goto CleanupExit;
 
     success = TRUE;
+
+    if (PhGetIntegerSetting(SETTING_NAME_UPDATE_MODE))
+    {
+        PPH_STRING jsonStringUtf16 = PhConvertUtf8ToUtf16Ex(jsonString->Buffer, jsonString->Length);
+        PhSetStringSetting2(SETTING_NAME_UPDATE_DATA, &jsonStringUtf16->sr);
+        PhDereferenceObject(jsonStringUtf16);
+    }
 
 CleanupExit:
 
@@ -479,14 +487,21 @@ NTSTATUS UpdateCheckSilentThread(
     // Compare the current version against the latest available version
     if (context->CurrentVersion < context->LatestVersion)
     {
-        // Check if the user hasn't already opened the dialog.
-        if (!UpdateDialogHandle)
+        if (PhGetIntegerSetting(SETTING_NAME_UPDATE_MODE))
         {
-            // We have data we're going to cache and pass into the dialog
-            context->HaveData = TRUE;
+            PhSetIntegerSetting(SETTING_NAME_UPDATE_AVAILABLE, TRUE);
+        }
+        else
+        {
+            // Check if the user hasn't already opened the dialog.
+            if (!UpdateDialogHandle)
+            {
+                // We have data we're going to cache and pass into the dialog
+                context->HaveData = TRUE;
 
-            // Show the dialog asynchronously on a new thread.
-            ShowUpdateDialog(context);
+                // Show the dialog asynchronously on a new thread.
+                ShowUpdateDialog(context);
+            }
         }
     }
 
@@ -708,7 +723,7 @@ NTSTATUS UpdateDownloadThread(
                 break;
 
             // If the dialog was closed, just cleanup and exit
-            if (!UpdateDialogThreadHandle)
+            if (context->Cancel)
                 goto CleanupExit;
 
             // Update the hash of bytes we downloaded.
@@ -789,38 +804,31 @@ CleanupExit:
 
     if (httpContext)
         PhHttpSocketDestroy(httpContext);
-
     if (hashContext)
         UpdaterDestroyHash(hashContext);
-
     if (tempFileHandle)
         NtClose(tempFileHandle);
-
     if (downloadHostPath)
         PhDereferenceObject(downloadHostPath);
-
     if (downloadUrlPath)
         PhDereferenceObject(downloadUrlPath);
 
-    if (UpdateDialogThreadHandle)
+    if (downloadSuccess && hashSuccess && signatureSuccess)
     {
-        if (downloadSuccess && hashSuccess && signatureSuccess)
-        {
-            PostMessage(context->DialogHandle, PH_SHOWINSTALL, 0, 0);
-        }
-        else if (downloadSuccess)
-        {
-            if (signatureSuccess)
-                PostMessage(context->DialogHandle, PH_SHOWERROR, TRUE, FALSE);
-            else if (hashSuccess)
-                PostMessage(context->DialogHandle, PH_SHOWERROR, FALSE, TRUE);
-            else
-                PostMessage(context->DialogHandle, PH_SHOWERROR, FALSE, FALSE);
-        }
+        PostMessage(context->DialogHandle, PH_SHOWINSTALL, 0, 0);
+    }
+    else if (downloadSuccess)
+    {
+        if (signatureSuccess)
+            PostMessage(context->DialogHandle, PH_SHOWERROR, TRUE, FALSE);
+        else if (hashSuccess)
+            PostMessage(context->DialogHandle, PH_SHOWERROR, FALSE, TRUE);
         else
-        {
             PostMessage(context->DialogHandle, PH_SHOWERROR, FALSE, FALSE);
-        }
+    }
+    else
+    {
+        PostMessage(context->DialogHandle, PH_SHOWERROR, FALSE, FALSE);
     }
 
     PhDereferenceObject(context);
@@ -846,6 +854,8 @@ LRESULT CALLBACK TaskDialogSubclassProc(
     {
     case WM_DESTROY:
         {
+            context->Cancel = TRUE;
+
             SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
             PhRemoveWindowContext(hwndDlg, UCHAR_MAX);
 
@@ -1032,4 +1042,70 @@ VOID StartInitialCheck(
     )
 {
     PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), UpdateCheckSilentThread, NULL);
+}
+
+VOID ShowStartupUpdateDialog(
+    VOID
+    )
+{
+    PH_AUTO_POOL autoPool;
+    PPH_UPDATER_CONTEXT context;
+    PPH_STRING jsonString;
+
+    PhInitializeAutoPool(&autoPool);
+
+    context = CreateUpdateContext(TRUE);
+    jsonString = PH_AUTO(PhGetStringSetting(SETTING_NAME_UPDATE_DATA));
+
+    if (jsonString && jsonString->Length)
+    {
+        PVOID jsonObject;
+        PPH_BYTES jsonStringUtf8;
+
+        jsonStringUtf8 = PhConvertUtf16ToUtf8Ex(jsonString->Buffer, jsonString->Length);
+        jsonObject = PhCreateJsonParser(jsonStringUtf8->Buffer);
+
+        if (jsonObject)
+        {
+            context->Version = PhGetJsonValueAsString(jsonObject, "version");
+            context->RelDate = PhGetJsonValueAsString(jsonObject, "updated");
+            context->CommitHash = PhGetJsonValueAsString(jsonObject, "commit");
+            context->SetupFileDownloadUrl = PhGetJsonValueAsString(jsonObject, "setup_url");
+            context->SetupFileLength = PhFormatSize(PhGetJsonValueAsLong64(jsonObject, "setup_length"), 2);
+            context->SetupFileHash = PhGetJsonValueAsString(jsonObject, "setup_hash");
+            context->SetupFileSignature = PhGetJsonValueAsString(jsonObject, "setup_sig");
+            context->CurrentVersion = ParseVersionString(context->CurrentVersionString);
+#ifdef FORCE_LATEST_VERSION
+            context->LatestVersion = ParseVersionString(context->CurrentVersionString);
+#else
+            context->LatestVersion = ParseVersionString(context->Version);
+#endif
+            PhFreeJsonParser(jsonObject);
+        }
+
+        PhDereferenceObject(jsonStringUtf8);
+    }
+
+    if (PhIsNullOrEmptyString(context->Version) &&
+        PhIsNullOrEmptyString(context->RelDate) &&
+        PhIsNullOrEmptyString(context->SetupFileDownloadUrl) &&
+        PhIsNullOrEmptyString(context->SetupFileLength) &&
+        PhIsNullOrEmptyString(context->SetupFileHash) &&
+        PhIsNullOrEmptyString(context->SetupFileSignature) &&
+        PhIsNullOrEmptyString(context->CommitHash))
+    {
+        return;
+    }
+
+    TASKDIALOGCONFIG config = { sizeof(TASKDIALOGCONFIG) };
+    config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED;
+    config.hInstance = PluginInstance->DllBase;
+    config.pszContent = L"Initializing...";
+    config.lpCallbackData = (LONG_PTR)context;
+    config.pfCallback = TaskDialogBootstrapCallback;
+    TaskDialogIndirect(&config, NULL, NULL, NULL);
+
+    PhDereferenceObject(context);
+
+    PhDeleteAutoPool(&autoPool);
 }

@@ -33,6 +33,21 @@ VOID NTAPI MainWindowShowingCallback(
     _In_opt_ PVOID Context
     )
 {
+    if (PhGetIntegerSetting(SETTING_NAME_UPDATE_MODE) && PhGetIntegerSetting(SETTING_NAME_UPDATE_AVAILABLE))
+    {
+        PPH_STRING setting;
+
+        if (setting = PhGetStringSetting(SETTING_NAME_UPDATE_DATA))
+        {
+            ShowStartupUpdateDialog();
+
+            PhSetIntegerSetting(SETTING_NAME_UPDATE_AVAILABLE, FALSE);
+            PhSetStringSetting(SETTING_NAME_UPDATE_DATA, L"");
+
+            PhDereferenceObject(setting);
+        }
+    }
+
     // Check if the user want's us to auto-check for updates.
     if (PhGetIntegerSetting(SETTING_NAME_AUTO_CHECK))
     {
@@ -106,6 +121,9 @@ LOGICAL DllMain(
                 { ScalableIntegerPairSettingType, SETTING_NAME_CHANGELOG_WINDOW_SIZE, L"@96|420,250" },
                 { StringSettingType, SETTING_NAME_CHANGELOG_COLUMNS, L"" },
                 { StringSettingType, SETTING_NAME_CHANGELOG_SORTCOLUMN, L"" },
+                { IntegerSettingType, SETTING_NAME_UPDATE_MODE, L"0" },
+                { IntegerSettingType, SETTING_NAME_UPDATE_AVAILABLE, L"0" },
+                { StringSettingType, SETTING_NAME_UPDATE_DATA, L"" },
             };
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);

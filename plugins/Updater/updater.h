@@ -45,6 +45,9 @@
 #define PLUGIN_NAME L"ProcessHacker.UpdateChecker"
 #define SETTING_NAME_AUTO_CHECK (PLUGIN_NAME L".PromptStart")
 #define SETTING_NAME_LAST_CHECK (PLUGIN_NAME L".LastUpdateCheckTime")
+#define SETTING_NAME_UPDATE_MODE (PLUGIN_NAME L".UpdateMode")
+#define SETTING_NAME_UPDATE_AVAILABLE (PLUGIN_NAME L".UpdateAvailable")
+#define SETTING_NAME_UPDATE_DATA (PLUGIN_NAME L".UpdateData")
 #define SETTING_NAME_CHANGELOG_WINDOW_POSITION (PLUGIN_NAME L".ChangelogWindowPosition")
 #define SETTING_NAME_CHANGELOG_WINDOW_SIZE (PLUGIN_NAME L".ChangelogWindowSize")
 #define SETTING_NAME_CHANGELOG_COLUMNS (PLUGIN_NAME L".ChangelogListColumns")
@@ -57,9 +60,7 @@
     ((ULONGLONG)(revision) <<  0))
 
 #ifdef _DEBUG
-// Force update checks to succeed (most of the below flags require this to be defined).
 //#define FORCE_UPDATE_CHECK
-// Force update check to show the current version as the latest version.
 //#define FORCE_LATEST_VERSION
 #endif
 
@@ -77,6 +78,7 @@ typedef struct _PH_UPDATER_CONTEXT
             BOOLEAN StartupCheck : 1;
             BOOLEAN HaveData : 1;
             BOOLEAN FixedWindowStyles : 1;
+            BOOLEAN Cancel : 1;
             BOOLEAN Spare : 5;
         };
     };
@@ -164,6 +166,10 @@ VOID ShowUpdateDialog(
     );
 
 VOID StartInitialCheck(
+    VOID
+    );
+
+VOID ShowStartupUpdateDialog(
     VOID
     );
 
