@@ -3049,8 +3049,10 @@ VOID PhProcessImageListInitialization(
 
     PhImageListItemType = PhCreateObjectType(L"ImageListItem", 0, PhpImageListItemDeleteProcedure);
     
-    PhProcessLargeImageList = ImageList_Create(32, 32, ILC_MASK | ILC_COLOR32, 100, 100);
-    PhProcessSmallImageList = ImageList_Create(16, 16, ILC_MASK | ILC_COLOR32, 100, 100);
+    PhProcessLargeImageList = ImageList_Create(GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON), ILC_MASK | ILC_COLOR32, 100, 100);
+    PhProcessSmallImageList = ImageList_Create(GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), ILC_MASK | ILC_COLOR32, 100, 100);
+    ImageList_SetBkColor(PhProcessLargeImageList, CLR_NONE);
+    ImageList_SetBkColor(PhProcessSmallImageList, CLR_NONE);
 
     PhGetStockApplicationIcon(&iconSmall, &iconLarge);
     ImageList_AddIcon(PhProcessLargeImageList, iconLarge);
