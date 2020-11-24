@@ -59,6 +59,8 @@ BEGIN
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,37,142,10
     LTEXT           "Last update check: N/A",IDC_TEXT,7,7,276,8
     LTEXT           "Next update check: N/A",IDC_TEXT2,7,21,276,8
+    CONTROL         "Show update prompt before main window",IDC_AUTOCHECKBOX2,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,51,160,10
 END
 
 IDD_TEXT DIALOGEX 0, 0, 309, 176

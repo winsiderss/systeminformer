@@ -89,6 +89,11 @@ INT_PTR CALLBACK OptionsDlgProc(
                     PhDereferenceObject(lastUpdateTimeString);
                 }
             }
+
+            if (PhGetIntegerSetting(SETTING_NAME_UPDATE_MODE))
+            {
+                Button_SetCheck(GetDlgItem(hwndDlg, IDC_AUTOCHECKBOX2), BST_CHECKED);
+            }
         }
         break;
     case WM_COMMAND:
@@ -98,7 +103,13 @@ INT_PTR CALLBACK OptionsDlgProc(
             case IDC_AUTOCHECKBOX:
                 {
                     PhSetIntegerSetting(SETTING_NAME_AUTO_CHECK,
-                        Button_GetCheck(GetDlgItem(hwndDlg, IDC_AUTOCHECKBOX)) == BST_CHECKED);
+                        Button_GetCheck(GET_WM_COMMAND_HWND(wParam, lParam)) == BST_CHECKED);
+                }
+                break;
+            case IDC_AUTOCHECKBOX2:
+                {
+                    PhSetIntegerSetting(SETTING_NAME_UPDATE_MODE,
+                        Button_GetCheck(GET_WM_COMMAND_HWND(wParam, lParam)) == BST_CHECKED);
                 }
                 break;
             }
