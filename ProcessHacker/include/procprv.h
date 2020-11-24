@@ -423,6 +423,7 @@ PhGetProcessInformationCache(
     );
 // end_phapppub
 
+extern PPH_OBJECT_TYPE PhImageListItemType;
 extern HIMAGELIST PhProcessLargeImageList;
 extern HIMAGELIST PhProcessSmallImageList;
 
