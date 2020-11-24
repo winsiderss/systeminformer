@@ -3154,32 +3154,32 @@ VOID PhImageListFlushCache(
     VOID
     )
 {
-    PH_HASHTABLE_ENUM_CONTEXT enumContext;
-    PPH_IMAGELIST_ITEM* entry;
-
-    if (!PhImageListCacheHashtable)
-        return;
-
-    PhAcquireQueuedLockExclusive(&PhImageListCacheHashtableLock);
-
-    PhBeginEnumHashtable(PhImageListCacheHashtable, &enumContext);
-
-    while (entry = PhNextEnumHashtable(&enumContext))
-    {
-        PPH_IMAGELIST_ITEM item = *entry;
-
-        PhDereferenceObject(item);
-    }
-
-    PhClearReference(&PhImageListCacheHashtable);
-    PhImageListCacheHashtable = PhCreateHashtable(
-        sizeof(PPH_IMAGELIST_ITEM),
-        PhImageListCacheHashtableEqualFunction,
-        PhImageListCacheHashtableHashFunction,
-        32
-        );
-
-    PhReleaseQueuedLockExclusive(&PhImageListCacheHashtableLock);
+    //PH_HASHTABLE_ENUM_CONTEXT enumContext;
+    //PPH_IMAGELIST_ITEM* entry;
+    //
+    //if (!PhImageListCacheHashtable)
+    //    return;
+    //
+    //PhAcquireQueuedLockExclusive(&PhImageListCacheHashtableLock);
+    //
+    //PhBeginEnumHashtable(PhImageListCacheHashtable, &enumContext);
+    //
+    //while (entry = PhNextEnumHashtable(&enumContext))
+    //{
+    //    PPH_IMAGELIST_ITEM item = *entry;
+    //
+    //    PhDereferenceObject(item);
+    //}
+    //
+    //PhClearReference(&PhImageListCacheHashtable);
+    //PhImageListCacheHashtable = PhCreateHashtable(
+    //    sizeof(PPH_IMAGELIST_ITEM),
+    //    PhImageListCacheHashtableEqualFunction,
+    //    PhImageListCacheHashtableHashFunction,
+    //    32
+    //    );
+    //
+    //PhReleaseQueuedLockExclusive(&PhImageListCacheHashtableLock);
 }
 
 VOID PhDrawProcessIcon(
