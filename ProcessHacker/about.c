@@ -247,6 +247,7 @@ PPH_STRING PhGetDiagnosticsString(
     OBJECT_TYPE_COUNT(PhHandleProviderType);
     OBJECT_TYPE_COUNT(PhHandleItemType);
     OBJECT_TYPE_COUNT(PhMemoryItemType);
+    OBJECT_TYPE_COUNT(PhImageListItemType);
 
     return PhFinalStringBuilderString(&stringBuilder);
 }

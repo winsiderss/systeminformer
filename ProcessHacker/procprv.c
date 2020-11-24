@@ -3010,31 +3010,34 @@ VOID PhpImageListItemDeleteProcedure(
     )
 {
     PPH_IMAGELIST_ITEM entry = (PPH_IMAGELIST_ITEM)Object;
-    ULONG LargeIconIndex = entry->LargeIconIndex;
-    ULONG SmallIconIndex = entry->SmallIconIndex;
-    PPH_PROCESS_ITEM* processes;
-    ULONG numberOfProcesses;
-
-    PhEnumProcessItems(&processes, &numberOfProcesses);
-
-    for (ULONG i = 0; i < numberOfProcesses; i++)
-    {
-        PPH_PROCESS_ITEM process = processes[i];
-
-        if (
-            process->LargeIconIndex > LargeIconIndex &&
-            process->SmallIconIndex > SmallIconIndex
-            )
-        {
-            process->LargeIconIndex -= 1;
-            process->SmallIconIndex -= 1;
-        }
-    }
-
-    PhFree(processes);
-
-    ImageList_Remove(PhProcessLargeImageList, LargeIconIndex);
-    ImageList_Remove(PhProcessSmallImageList, SmallIconIndex);
+    // TODO: doesn't sync with new image index after ImageList_Remove.
+    //ULONG LargeIconIndex = entry->LargeIconIndex;
+    //ULONG SmallIconIndex = entry->SmallIconIndex;
+    //PPH_PROCESS_ITEM* processes;
+    //ULONG numberOfProcesses;
+    //
+    //PhEnumProcessItems(&processes, &numberOfProcesses);
+    //
+    //for (ULONG i = 0; i < numberOfProcesses; i++)
+    //{
+    //    PPH_PROCESS_ITEM process = processes[i];
+    //
+    //    if (
+    //        process->LargeIconIndex > LargeIconIndex &&
+    //        process->SmallIconIndex > SmallIconIndex
+    //        )
+    //    {
+    //        process->LargeIconIndex -= 1;
+    //        process->SmallIconIndex -= 1;
+    //    }
+    //}
+    //
+    //PhFree(processes);
+    //
+    //ImageList_Remove(PhProcessLargeImageList, LargeIconIndex);
+    //ImageList_Remove(PhProcessSmallImageList, SmallIconIndex);
+    //
+    PhDereferenceObject(entry->FileName);
 }
 
 VOID PhProcessImageListInitialization(
@@ -3165,7 +3168,6 @@ VOID PhImageListFlushCache(
     {
         PPH_IMAGELIST_ITEM item = *entry;
 
-        PhDereferenceObject(item->FileName);
         PhDereferenceObject(item);
     }
 
