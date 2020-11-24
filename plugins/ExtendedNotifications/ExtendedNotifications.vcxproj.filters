@@ -21,27 +21,12 @@
     <ClCompile Include="filelog.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="gntp-send\growl.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="gntp-send\tcp.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="extnoti.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="resource.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="gntp-send\growl.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="gntp-send\tcp.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="gntp-send\md5.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -52,6 +37,5 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="CHANGELOG.txt" />
-    <None Include="gntp-send\LICENSE.txt" />
   </ItemGroup>
 </Project>
