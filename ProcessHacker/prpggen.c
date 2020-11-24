@@ -166,6 +166,8 @@ VOID PhpUpdateProcessMitigationPolicies(
 typedef struct _PH_PROCGENERAL_CONTEXT
 {
     HWND WindowHandle;
+    HWND StartedLabelHandle;
+    BOOLEAN Enabled;
     HICON ProgramIcon;
 } PH_PROCGENERAL_CONTEXT, *PPH_PROCGENERAL_CONTEXT;
 
@@ -206,6 +208,8 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             context = propPageContext->Context = PhAllocateZero(sizeof(PH_PROCGENERAL_CONTEXT));
             context->WindowHandle = hwndDlg;
+            context->StartedLabelHandle = GetDlgItem(hwndDlg, IDC_STARTED);
+            context->Enabled = TRUE;
 
             folder = PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_FOLDER));
             magnifier = PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_MAGNIFIER));
@@ -340,12 +344,15 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 PhLargeIntegerToLocalSystemTime(&startTimeFields, &startTime);
                 startTimeString = PhaFormatDateTime(&startTimeFields);
 
-                PhSetDialogItemText(hwndDlg, IDC_STARTED,
-                    PhaFormatString(L"%s ago (%s)", startTimeRelativeString->Buffer, startTimeString->Buffer)->Buffer);
+                PhSetWindowText(context->StartedLabelHandle, PhaFormatString(
+                    L"%s ago (%s)",
+                    startTimeRelativeString->Buffer,
+                    startTimeString->Buffer
+                    )->Buffer);
             }
             else
             {
-                PhSetDialogItemText(hwndDlg, IDC_STARTED, L"N/A");
+                PhSetWindowText(context->StartedLabelHandle, L"N/A");
             }
 
             // Parent
@@ -463,7 +470,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_CMDLINE), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_VIEWCOMMANDLINE), dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_CURDIR), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_STARTED), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+                PhAddPropPageLayoutItem(hwndDlg, context->StartedLabelHandle, dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PARENTCONSOLE), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PARENTPROCESS), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_VIEWPARENTPROCESS), dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
@@ -594,6 +601,12 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             switch (header->code)
             {
+            case PSN_SETACTIVE:
+                context->Enabled = TRUE;
+                break;
+            case PSN_KILLACTIVE:
+                context->Enabled = FALSE;
+                break;
             case NM_CLICK:
                 {
                     switch (header->idFrom)
@@ -624,7 +637,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
         break;
     case WM_TIMER:
         {
-            if (GetFocus() == GetDlgItem(hwndDlg, IDC_STARTED))
+            if (!(context->Enabled && GetFocus() != context->StartedLabelHandle))
                 break;
 
             if (processItem->CreateTime.QuadPart != 0)
@@ -642,7 +655,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 PhLargeIntegerToLocalSystemTime(&startTimeFields, &startTime);
                 startTimeString = PhaFormatDateTime(&startTimeFields);
 
-                PhSetDialogItemText(hwndDlg, IDC_STARTED, PhaFormatString(
+                PhSetWindowText(context->StartedLabelHandle, PhaFormatString(
                     L"%s ago (%s)",
                     startTimeRelativeString->Buffer,
                     startTimeString->Buffer
@@ -650,7 +663,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             }
             else
             {
-                PhSetDialogItemText(hwndDlg, IDC_STARTED, L"N/A");
+                PhSetWindowText(context->StartedLabelHandle, L"N/A");
             }
         }
         break;
