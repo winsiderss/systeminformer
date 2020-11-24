@@ -425,10 +425,14 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             ShowWindow(GetDlgItem(hwndDlg, IDC_PROCESSTYPETEXT), SW_SHOW);
 #endif
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+
+            SetTimer(hwndDlg, 1, 1000, NULL);
         }
         break;
     case WM_DESTROY:
         {
+            KillTimer(hwndDlg, 1);
+
             if (context->ProgramIcon)
             {
                 DestroyIcon(context->ProgramIcon);
@@ -615,6 +619,38 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                     }
                 }
                 break;
+            }
+        }
+        break;
+    case WM_TIMER:
+        {
+            if (GetFocus() == GetDlgItem(hwndDlg, IDC_STARTED))
+                break;
+
+            if (processItem->CreateTime.QuadPart != 0)
+            {
+                LARGE_INTEGER startTime;
+                LARGE_INTEGER currentTime;
+                SYSTEMTIME startTimeFields;
+                PPH_STRING startTimeRelativeString;
+                PPH_STRING startTimeString;
+
+                startTime = processItem->CreateTime;
+                PhQuerySystemTime(&currentTime);
+                startTimeRelativeString = PH_AUTO(PhFormatTimeSpanRelative(currentTime.QuadPart - startTime.QuadPart));
+
+                PhLargeIntegerToLocalSystemTime(&startTimeFields, &startTime);
+                startTimeString = PhaFormatDateTime(&startTimeFields);
+
+                PhSetDialogItemText(hwndDlg, IDC_STARTED, PhaFormatString(
+                    L"%s ago (%s)",
+                    startTimeRelativeString->Buffer,
+                    startTimeString->Buffer
+                    )->Buffer);
+            }
+            else
+            {
+                PhSetDialogItemText(hwndDlg, IDC_STARTED, L"N/A");
             }
         }
         break;
