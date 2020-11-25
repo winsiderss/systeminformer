@@ -186,12 +186,12 @@ BOOLEAN PvGetCRTFunctionSegment(
     else
         debugEntrySize = sizeof(ULONGLONG);
 
-    if (PhGetMappedImageDebugEntryByType(
+    if (NT_SUCCESS(PhGetMappedImageDebugEntryByType(
         &PvMappedImage,
         IMAGE_DEBUG_TYPE_POGO,
         &debugEntryLength,
         &debugEntry
-        ))
+        )))
     {
         PIMAGE_DEBUG_POGO_ENTRY debugPogoEntry;
 

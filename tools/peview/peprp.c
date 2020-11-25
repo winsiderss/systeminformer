@@ -352,12 +352,12 @@ VOID PvPeProperties(
             BOOLEAN debugPogoValid = FALSE;
             PVOID debugEntry;
 
-            if (PhGetMappedImageDebugEntryByType(
+            if (NT_SUCCESS(PhGetMappedImageDebugEntryByType(
                 &PvMappedImage,
                 IMAGE_DEBUG_TYPE_POGO,
                 NULL,
                 &debugEntry
-                ))
+                )))
             {
                 debugPogoValid = TRUE;
             }
@@ -722,12 +722,12 @@ VOID PvpSetPeImageTimeStamp(
     RtlSecondsSince1970ToTime(PvMappedImage.NtHeaders->FileHeader.TimeDateStamp, &time);
     PhLargeIntegerToLocalSystemTime(&systemTime, &time);
 
-    if (PhGetMappedImageDebugEntryByType(
+    if (NT_SUCCESS(PhGetMappedImageDebugEntryByType(
         &PvMappedImage,
         IMAGE_DEBUG_TYPE_REPRO,
         &debugEntryLength,
         &debugEntry
-        ))
+        )))
     {
         if (debugEntryLength > 0)
         {
@@ -1011,12 +1011,12 @@ VOID PvpSetPeImageCharacteristics(
     if (characteristicsDll & IMAGE_DLLCHARACTERISTICS_TERMINAL_SERVER_AWARE)
         PhAppendStringBuilder2(&stringBuilder, L"Terminal server aware, ");
 
-    if (PhGetMappedImageDebugEntryByType(
+    if (NT_SUCCESS(PhGetMappedImageDebugEntryByType(
         &PvMappedImage,
         IMAGE_DEBUG_TYPE_EX_DLLCHARACTERISTICS,
         &debugEntryLength,
         &debugEntry
-        ))
+        )))
     {
         ULONG characteristics = ULONG_MAX;
 
@@ -1230,12 +1230,12 @@ VOID PvpSetPeImageDebugPdb(
     PIMAGE_DEBUG_DIRECTORY_CODEVIEW debugEntry;
     ULONG debugEntryLength;
 
-    if (PhGetMappedImageDebugEntryByType(
+    if (NT_SUCCESS(PhGetMappedImageDebugEntryByType(
         &PvMappedImage,
         IMAGE_DEBUG_TYPE_CODEVIEW,
         &debugEntryLength,
         &debugEntry
-        ))
+        )))
     {
         PPH_STRING string;
 
@@ -1258,12 +1258,12 @@ VOID PvpSetPeImageDebugVCFeatures(
     PIMAGE_DEBUG_VC_FEATURE_ENTRY debugEntry;
     ULONG debugEntryLength;
 
-    if (PhGetMappedImageDebugEntryByType(
+    if (NT_SUCCESS(PhGetMappedImageDebugEntryByType(
         &PvMappedImage,
         IMAGE_DEBUG_TYPE_VC_FEATURE,
         &debugEntryLength,
         &debugEntry
-        ))
+        )))
     {
         PPH_STRING vcfeatures;
 
