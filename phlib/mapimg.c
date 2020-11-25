@@ -2566,8 +2566,7 @@ NTSTATUS PhGetMappedImageDebug(
     return status;
 }
 
-_Success_(return)
-BOOLEAN PhGetMappedImageDebugEntryByType(
+NTSTATUS PhGetMappedImageDebugEntryByType(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ ULONG Type,
     _Out_opt_ ULONG* DataLength,
@@ -2588,7 +2587,7 @@ BOOLEAN PhGetMappedImageDebugEntryByType(
         );
 
     if (!NT_SUCCESS(status))
-        return FALSE;
+        return status;
 
     debugDirectory = PhMappedImageRvaToVa(
         MappedImage,
@@ -2597,7 +2596,7 @@ BOOLEAN PhGetMappedImageDebugEntryByType(
         );
 
     if (!debugDirectory)
-        return FALSE;
+        return STATUS_UNSUCCESSFUL;
 
     __try
     {
@@ -2605,7 +2604,7 @@ BOOLEAN PhGetMappedImageDebugEntryByType(
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {   
-        return FALSE;
+        return GetExceptionCode();
     }
 
     currentCount = dataDirectory->Size / sizeof(IMAGE_DEBUG_DIRECTORY);
@@ -2629,11 +2628,11 @@ BOOLEAN PhGetMappedImageDebugEntryByType(
                 *DataLength = debugEntry->SizeOfData;
             if (DataBuffer)
                 *DataBuffer = PTR_ADD_OFFSET(MappedImage->ViewBase, debugEntry->PointerToRawData);
-            return TRUE;
+            return STATUS_SUCCESS;
         }
     }
 
-    return FALSE;
+    return STATUS_UNSUCCESSFUL;
 }
 
 NTSTATUS PhGetMappedImageEhCont32(
@@ -2742,12 +2741,12 @@ BOOLEAN PhGetMappedImagePogoEntryByName(
     ULONG debugEntryLength;
     PIMAGE_DEBUG_POGO_SIGNATURE debugEntry;
 
-    if (PhGetMappedImageDebugEntryByType(
+    if (NT_SUCCESS(PhGetMappedImageDebugEntryByType(
         MappedImage,
         IMAGE_DEBUG_TYPE_POGO,
         &debugEntryLength,
         &debugEntry
-        ))
+        )))
     {
         PIMAGE_DEBUG_POGO_ENTRY debugPogoEntry;
 
@@ -2816,12 +2815,12 @@ NTSTATUS PhGetMappedImagePogo(
     PIMAGE_DEBUG_POGO_ENTRY debugPogoEntry;
     PH_ARRAY pogoArray;
 
-    if (!PhGetMappedImageDebugEntryByType(
+    if (!NT_SUCCESS(PhGetMappedImageDebugEntryByType(
         MappedImage,
         IMAGE_DEBUG_TYPE_POGO,
         &debugEntryLength,
         &debugEntry
-        ))
+        )))
     {
         return STATUS_UNSUCCESSFUL;
     }
