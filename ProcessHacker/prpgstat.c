@@ -3,7 +3,7 @@
  *   Process properties: Statistics page
  *
  * Copyright (C) 2009-2016 wj32
- * Copyright (C) 2017-2019 dmex
+ * Copyright (C) 2017-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -493,13 +493,16 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                     );
             }
 
-            PhSetListViewStyle(statisticsContext->ListViewHandle, FALSE, TRUE);
+            PhSetListViewStyle(statisticsContext->ListViewHandle, TRUE, TRUE);
             PhSetControlTheme(statisticsContext->ListViewHandle, L"explorer");
             PhAddListViewColumn(statisticsContext->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 135, L"Property");
             PhAddListViewColumn(statisticsContext->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 150, L"Value");
             PhSetExtendedListView(statisticsContext->ListViewHandle);
+            ExtendedListView_SetTriState(statisticsContext->ListViewHandle, TRUE);
 
             PhpUpdateStatisticsAddListViewGroups(statisticsContext);
+            PhLoadListViewColumnsFromSetting(L"ProcStatPropPageGroupListViewColumns", statisticsContext->ListViewHandle);
+            PhLoadListViewSortColumnsFromSetting(L"ProcStatPropPageGroupListViewSort", statisticsContext->ListViewHandle);
             PhLoadListViewGroupStatesFromSetting(L"ProcStatPropPageGroupStates", statisticsContext->ListViewHandle);
 
             PhRegisterCallback(
@@ -516,6 +519,8 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
         break;
     case WM_DESTROY:
         {
+            PhSaveListViewSortColumnsToSetting(L"ProcStatPropPageGroupListViewSort", statisticsContext->ListViewHandle);
+            PhSaveListViewColumnsToSetting(L"ProcStatPropPageGroupListViewColumns", statisticsContext->ListViewHandle);
             PhSaveListViewGroupStatesToSetting(L"ProcStatPropPageGroupStates", statisticsContext->ListViewHandle);
 
             PhUnregisterCallback(
@@ -539,7 +544,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                 PhEndPropPageLayout(hwndDlg, propPageContext);
             }
 
-            ExtendedListView_SetColumnWidth(statisticsContext->ListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
+            //ExtendedListView_SetColumnWidth(statisticsContext->ListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
         }
         break;
     case WM_NOTIFY:
@@ -566,7 +571,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
         break;
     case WM_SIZE:
         {
-            ExtendedListView_SetColumnWidth(statisticsContext->ListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
+            //ExtendedListView_SetColumnWidth(statisticsContext->ListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
         }
         break;
     case WM_CONTEXTMENU:
