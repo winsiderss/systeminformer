@@ -1034,23 +1034,28 @@ BOOLEAN PhpIsExploitProtectionEnabled(
 NTSTATUS PhpSetExploitProtectionEnabled(
     _In_ BOOLEAN Enabled)
 {
+    static PH_STRINGREF replacementToken = PH_STRINGREF_INIT(L"Software\\");
+    static PH_STRINGREF wow6432Token = PH_STRINGREF_INIT(L"Software\\WOW6432Node\\");
+    static PH_STRINGREF valueName = PH_STRINGREF_INIT(L"MitigationOptions");
     NTSTATUS status = STATUS_UNSUCCESSFUL;
     HANDLE keyHandle;
     PPH_STRING path;
     PPH_STRING apppath;
     PPH_STRING keypath;
-
-    path = PhCreateString2(&TaskMgrImageOptionsKeyName);
-    apppath = PhGetApplicationFileName();
-
-    PhMoveReference(&path, PhGetBaseDirectory(path));
-    PhMoveReference(&apppath, PhGetBaseName(apppath));
-    keypath = PhConcatStrings(3, path->Buffer, L"\\", apppath->Buffer);
-    PhDereferenceObject(apppath);
-    PhDereferenceObject(path);
+    PH_STRINGREF stringBefore;
+    PH_STRINGREF stringAfter;
 
     if (Enabled)
     {
+        path = PhCreateString2(&TaskMgrImageOptionsKeyName);
+        apppath = PhGetApplicationFileName();
+
+        PhMoveReference(&path, PhGetBaseDirectory(path));
+        PhMoveReference(&apppath, PhGetBaseName(apppath));
+        keypath = PhConcatStrings(3, path->Buffer, L"\\", apppath->Buffer);
+        PhDereferenceObject(apppath);
+        PhDereferenceObject(path);
+
         status = PhCreateKey(
             &keyHandle,
             KEY_WRITE,
@@ -1063,8 +1068,6 @@ NTSTATUS PhpSetExploitProtectionEnabled(
 
         if (NT_SUCCESS(status))
         {
-            static PH_STRINGREF valueName = PH_STRINGREF_INIT(L"MitigationOptions");
-
             status = PhSetValueKey(keyHandle, &valueName, REG_QWORD, &(ULONG64)
             {
                 PROCESS_CREATION_MITIGATION_POLICY_HEAP_TERMINATE_ALWAYS_ON |
@@ -1079,11 +1082,56 @@ NTSTATUS PhpSetExploitProtectionEnabled(
 
             NtClose(keyHandle);
         }
+
+#ifdef _WIN64
+        if (NT_SUCCESS(status))
+        {
+            if (PhSplitStringRefAtString(&keypath->sr, &replacementToken, TRUE, &stringBefore, &stringAfter))
+            {
+                PhMoveReference(&keypath, PhConcatStringRef2(&wow6432Token, &stringAfter));
+
+                if (NT_SUCCESS(PhCreateKey(
+                    &keyHandle,
+                    KEY_WRITE,
+                    PH_KEY_LOCAL_MACHINE,
+                    &keypath->sr,
+                    OBJ_OPENIF,
+                    0,
+                    NULL
+                    )))
+                {
+                    status = PhSetValueKey(keyHandle, &valueName, REG_QWORD, &(ULONG64)
+                    {
+                        PROCESS_CREATION_MITIGATION_POLICY_HEAP_TERMINATE_ALWAYS_ON |
+                        PROCESS_CREATION_MITIGATION_POLICY_BOTTOM_UP_ASLR_ALWAYS_ON |
+                        PROCESS_CREATION_MITIGATION_POLICY_HIGH_ENTROPY_ASLR_ALWAYS_ON |
+                        PROCESS_CREATION_MITIGATION_POLICY_EXTENSION_POINT_DISABLE_ALWAYS_ON |
+                        PROCESS_CREATION_MITIGATION_POLICY_PROHIBIT_DYNAMIC_CODE_ALWAYS_ON |
+                        PROCESS_CREATION_MITIGATION_POLICY_CONTROL_FLOW_GUARD_ALWAYS_ON |
+                        PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_REMOTE_ALWAYS_ON |
+                        PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_LOW_LABEL_ALWAYS_ON
+                    }, sizeof(ULONG64));
+
+                    NtClose(keyHandle);
+                }
+            }
+        }
+#endif
+        PhDereferenceObject(keypath);
     }
     else
     {
         if (PhpIsExploitProtectionEnabled())
         {
+            path = PhCreateString2(&TaskMgrImageOptionsKeyName);
+            apppath = PhGetApplicationFileName();
+
+            PhMoveReference(&path, PhGetBaseDirectory(path));
+            PhMoveReference(&apppath, PhGetBaseName(apppath));
+            keypath = PhConcatStrings(3, path->Buffer, L"\\", apppath->Buffer);
+            PhDereferenceObject(apppath);
+            PhDereferenceObject(path);
+
             status = PhCreateKey(
                 &keyHandle,
                 DELETE,
@@ -1099,6 +1147,33 @@ NTSTATUS PhpSetExploitProtectionEnabled(
                 status = NtDeleteKey(keyHandle);
                 NtClose(keyHandle);
             }
+
+#ifdef _WIN64
+            if (NT_SUCCESS(status))
+            {
+                if (PhSplitStringRefAtString(&keypath->sr, &replacementToken, TRUE, &stringBefore, &stringAfter))
+                {
+                    PhMoveReference(&keypath, PhConcatStringRef2(&wow6432Token, &stringAfter));
+
+                    status = PhCreateKey(
+                        &keyHandle,
+                        DELETE,
+                        PH_KEY_LOCAL_MACHINE,
+                        &keypath->sr,
+                        OBJ_OPENIF,
+                        0,
+                        NULL
+                        );
+
+                    if (NT_SUCCESS(status))
+                    {
+                        status = NtDeleteKey(keyHandle);
+                        NtClose(keyHandle);
+                    }
+                }
+            }
+#endif
+            PhDereferenceObject(keypath);
         }
     }
 
