@@ -576,15 +576,30 @@ typedef struct _PH_MAPPED_IMAGE_DEBUG
 #define IMAGE_DEBUG_TYPE_PDBCHECKSUM 19
 #endif
 
-#ifndef _IMAGE_DEBUG_DIRECTORY_CODEVIEW
-typedef struct _IMAGE_DEBUG_DIRECTORY_CODEVIEW
+#define CODEVIEW_SIGNATURE_NB10 '01BN'
+#define CODEVIEW_SIGNATURE_RSDS 'SDSR'
+
+typedef struct _CODEVIEW_HEADER
 {
-    ULONG format;
-    GUID PdbSignature;
-    ULONG PdbDbiAge;
-    CHAR ImageName[256];
-} IMAGE_DEBUG_DIRECTORY_CODEVIEW, *PIMAGE_DEBUG_DIRECTORY_CODEVIEW;
-#endif
+    ULONG Signature;
+    LONG Offset;
+} CODEVIEW_HEADER, *PCODEVIEW_HEADER;
+
+typedef struct _CODEVIEW_INFO_PDB20
+{
+    CODEVIEW_HEADER Header;
+    ULONG Timestamp; // seconds since 1970
+    ULONG Age;
+    CHAR PdbFileName[1];
+} CODEVIEW_INFO_PDB20, *PCODEVIEW_INFO_PDB20;
+
+typedef struct _CODEVIEW_INFO_PDB70
+{
+    ULONG Signature;
+    GUID PdbGuid;
+    ULONG PdbAge;
+    CHAR ImageName[1];
+} CODEVIEW_INFO_PDB70, *PCODEVIEW_INFO_PDB70;
 
 #ifndef IMAGE_GUARD_XFG_ENABLED
 #define IMAGE_GUARD_XFG_ENABLED 0x00800000 // Module was built with xfg

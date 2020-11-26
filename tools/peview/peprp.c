@@ -1227,27 +1227,29 @@ VOID PvpSetPeImageDebugPdb(
     _In_ HWND ListViewHandle
     )
 {
-    PIMAGE_DEBUG_DIRECTORY_CODEVIEW debugEntry;
+    PCODEVIEW_INFO_PDB70 codeviewEntry;
     ULONG debugEntryLength;
 
     if (NT_SUCCESS(PhGetMappedImageDebugEntryByType(
         &PvMappedImage,
         IMAGE_DEBUG_TYPE_CODEVIEW,
         &debugEntryLength,
-        &debugEntry
+        &codeviewEntry
         )))
     {
         PPH_STRING string;
 
         //if (debugEntryLength == sizeof(IMAGE_DEBUG_DIRECTORY_CODEVIEW))
+        if (codeviewEntry->Signature == CODEVIEW_SIGNATURE_RSDS)
+        {
+            string = PhFormatGuid(&codeviewEntry->PdbGuid);
+            PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_DEBUGPDB, 1, string->Buffer);
+            PhDereferenceObject(string);
 
-        string = PhFormatGuid(&debugEntry->PdbSignature);
-        PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_DEBUGPDB, 1, string->Buffer);
-        PhDereferenceObject(string);
-
-        string = PhConvertUtf8ToUtf16(debugEntry->ImageName);
-        PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_DEBUGIMAGE, 1, string->Buffer);
-        PhDereferenceObject(string);
+            string = PhConvertUtf8ToUtf16(codeviewEntry->ImageName);
+            PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_DEBUGIMAGE, 1, string->Buffer);
+            PhDereferenceObject(string);
+        }
     }
 }
 
