@@ -297,6 +297,26 @@ typedef struct _PH_STATISTICS_CONTEXT
     BOOLEAN Enabled;
     HANDLE ProcessHandle;
     PPH_PROCESS_ITEM ProcessItem;
+
+    BOOLEAN GotCycles;
+    BOOLEAN GotWsCounters;
+    BOOLEAN GotUptime;
+
+    ULONG PagePriority;
+    IO_PRIORITY_HINT IoPriority;
+    ULONG HangCount;
+    ULONG GhostCount;
+    ULONGLONG RunningTime;
+    ULONGLONG SuspendedTime;
+
+    PPH_STRING Cycles;
+    PPH_STRING PrivateWs;
+    PPH_STRING ShareableWs;
+    PPH_STRING SharedWs;
+    PPH_STRING PeakHandles;
+    PPH_STRING GdiHandles;
+    PPH_STRING UserHandles;
+    PSYSTEM_PROCESS_INFORMATION_EXTENSION ProcessExtension;
 } PH_STATISTICS_CONTEXT, *PPH_STATISTICS_CONTEXT;
 
 #define WM_PH_PERFORMANCE_UPDATE (WM_APP + 241)
