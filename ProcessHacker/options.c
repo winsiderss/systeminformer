@@ -1088,7 +1088,7 @@ NTSTATUS PhpSetExploitProtectionEnabled(
         {
             if (PhSplitStringRefAtString(&keypath->sr, &replacementToken, TRUE, &stringBefore, &stringAfter))
             {
-                PhMoveReference(&keypath, PhConcatStringRef2(&wow6432Token, &stringAfter));
+                PhMoveReference(&keypath, PhConcatStringRef3(&stringBefore, &wow6432Token, &stringAfter));
 
                 if (NT_SUCCESS(PhCreateKey(
                     &keyHandle,
@@ -1153,7 +1153,7 @@ NTSTATUS PhpSetExploitProtectionEnabled(
             {
                 if (PhSplitStringRefAtString(&keypath->sr, &replacementToken, TRUE, &stringBefore, &stringAfter))
                 {
-                    PhMoveReference(&keypath, PhConcatStringRef2(&wow6432Token, &stringAfter));
+                    PhMoveReference(&keypath, PhConcatStringRef3(&stringBefore, &wow6432Token, &stringAfter));
 
                     status = PhCreateKey(
                         &keyHandle,
