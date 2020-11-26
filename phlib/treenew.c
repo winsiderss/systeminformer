@@ -5600,8 +5600,8 @@ VOID PhTnpDrawCell(
                 textRect.top,
                 SmallIconWidth,
                 SmallIconHeight,
-                0,
-                0,
+                CLR_DEFAULT,
+                CLR_NONE,
                 ILD_NORMAL | ILD_TRANSPARENT
                 );
 
