@@ -225,10 +225,6 @@ VOID SetupUpgradeSettingsFile(
     VOID
     );
 
-VOID SetupCreateImageFileExecutionOptions(
-    VOID
-    );
-
 extern PH_STRINGREF UninstallKeyName;
 
 typedef struct _SETUP_EXTRACT_FILE
