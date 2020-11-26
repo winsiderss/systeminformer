@@ -883,6 +883,7 @@ BOOLEAN PhInitializeMitigationPolicy(
 {
 #if (PHNT_VERSION >= PHNT_WIN7)
 #ifndef DEBUG
+    BOOLEAN PhpIsExploitProtectionEnabled(VOID); // Forwarded from options.c (dmex)
 #define DEFAULT_MITIGATION_POLICY_FLAGS \
     (PROCESS_CREATION_MITIGATION_POLICY_HEAP_TERMINATE_ALWAYS_ON | \
      PROCESS_CREATION_MITIGATION_POLICY_BOTTOM_UP_ASLR_ALWAYS_ON | \
@@ -911,6 +912,8 @@ BOOLEAN PhInitializeMitigationPolicy(
     SIZE_T attributeListLength;
 
     if (WindowsVersion < WINDOWS_10_RS3)
+        return TRUE;
+    if (!PhpIsExploitProtectionEnabled())
         return TRUE;
 
     PhUnicodeStringToStringRef(&NtCurrentPeb()->ProcessParameters->CommandLine, &commandlineSr);
