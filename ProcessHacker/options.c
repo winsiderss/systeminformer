@@ -1788,6 +1788,10 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                                         {
                                             PhShowStatus(hwndDlg, L"Unable to change mitigation policy.", status, 0);
                                         }
+                                        else
+                                        {
+                                            RestartRequired = TRUE;
+                                        }
                                     }
                                     break;
                                 }
@@ -1850,6 +1854,10 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                                         if (!NT_SUCCESS(status))
                                         {
                                             PhShowStatus(hwndDlg, L"Unable to change mitigation policy.", status, 0);
+                                        }
+                                        else
+                                        {
+                                            RestartRequired = TRUE;
                                         }
                                     }
                                     break;
