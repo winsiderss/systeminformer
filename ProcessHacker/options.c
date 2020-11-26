@@ -1042,8 +1042,6 @@ NTSTATUS PhpSetExploitProtectionEnabled(
     PPH_STRING path;
     PPH_STRING apppath;
     PPH_STRING keypath;
-    PH_STRINGREF stringBefore;
-    PH_STRINGREF stringAfter;
 
     if (Enabled)
     {
@@ -1086,6 +1084,9 @@ NTSTATUS PhpSetExploitProtectionEnabled(
 #ifdef _WIN64
         if (NT_SUCCESS(status))
         {
+            PH_STRINGREF stringBefore;
+            PH_STRINGREF stringAfter;
+
             if (PhSplitStringRefAtString(&keypath->sr, &replacementToken, TRUE, &stringBefore, &stringAfter))
             {
                 PhMoveReference(&keypath, PhConcatStringRef3(&stringBefore, &wow6432Token, &stringAfter));
@@ -1151,6 +1152,9 @@ NTSTATUS PhpSetExploitProtectionEnabled(
 #ifdef _WIN64
             if (NT_SUCCESS(status))
             {
+                PH_STRINGREF stringBefore;
+                PH_STRINGREF stringAfter;
+
                 if (PhSplitStringRefAtString(&keypath->sr, &replacementToken, TRUE, &stringBefore, &stringAfter))
                 {
                     PhMoveReference(&keypath, PhConcatStringRef3(&stringBefore, &wow6432Token, &stringAfter));
