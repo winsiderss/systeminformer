@@ -1022,7 +1022,22 @@ BOOLEAN PhpIsExploitProtectionEnabled(
         0
         )))
     {
+        PH_STRINGREF valueName;
+        PKEY_VALUE_PARTIAL_INFORMATION buffer;
+
         enabled = !(PhQueryRegistryUlong64(keyHandle, L"MitigationOptions") == ULLONG_MAX);
+        PhInitializeStringRef(&valueName, L"MitigationOptions");
+
+        if (NT_SUCCESS(PhQueryValueKey(keyHandle, &valueName, KeyValuePartialInformation, &buffer)))
+        {
+            if (buffer->Type == REG_BINARY && buffer->DataLength)
+            {
+                enabled = TRUE;
+            }
+
+            PhFree(buffer);
+        }
+
         NtClose(keyHandle);
     }
 
@@ -1074,8 +1089,10 @@ NTSTATUS PhpSetExploitProtectionEnabled(
                 PROCESS_CREATION_MITIGATION_POLICY_EXTENSION_POINT_DISABLE_ALWAYS_ON |
                 PROCESS_CREATION_MITIGATION_POLICY_PROHIBIT_DYNAMIC_CODE_ALWAYS_ON |
                 PROCESS_CREATION_MITIGATION_POLICY_CONTROL_FLOW_GUARD_ALWAYS_ON |
+                PROCESS_CREATION_MITIGATION_POLICY_FONT_DISABLE_ALWAYS_ON |
                 PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_REMOTE_ALWAYS_ON |
-                PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_LOW_LABEL_ALWAYS_ON
+                PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_LOW_LABEL_ALWAYS_ON |
+                PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_PREFER_SYSTEM32_ALWAYS_ON,
             }, sizeof(ULONG64));
 
             NtClose(keyHandle);
@@ -1109,8 +1126,10 @@ NTSTATUS PhpSetExploitProtectionEnabled(
                         PROCESS_CREATION_MITIGATION_POLICY_EXTENSION_POINT_DISABLE_ALWAYS_ON |
                         PROCESS_CREATION_MITIGATION_POLICY_PROHIBIT_DYNAMIC_CODE_ALWAYS_ON |
                         PROCESS_CREATION_MITIGATION_POLICY_CONTROL_FLOW_GUARD_ALWAYS_ON |
+                        PROCESS_CREATION_MITIGATION_POLICY_FONT_DISABLE_ALWAYS_ON |
                         PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_REMOTE_ALWAYS_ON |
-                        PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_LOW_LABEL_ALWAYS_ON
+                        PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_LOW_LABEL_ALWAYS_ON |
+                        PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_PREFER_SYSTEM32_ALWAYS_ON,
                     }, sizeof(ULONG64));
 
                     NtClose(keyHandle);
@@ -1122,64 +1141,63 @@ NTSTATUS PhpSetExploitProtectionEnabled(
     }
     else
     {
-        if (PhpIsExploitProtectionEnabled())
+        path = PhCreateString2(&TaskMgrImageOptionsKeyName);
+        apppath = PhGetApplicationFileName();
+
+        PhMoveReference(&path, PhGetBaseDirectory(path));
+        PhMoveReference(&apppath, PhGetBaseName(apppath));
+        keypath = PhConcatStrings(3, path->Buffer, L"\\", apppath->Buffer);
+        PhDereferenceObject(apppath);
+        PhDereferenceObject(path);
+
+        status = PhOpenKey(
+            &keyHandle,
+            DELETE,
+            PH_KEY_LOCAL_MACHINE,
+            &keypath->sr,
+            OBJ_OPENIF
+            );
+
+        if (NT_SUCCESS(status))
         {
-            path = PhCreateString2(&TaskMgrImageOptionsKeyName);
-            apppath = PhGetApplicationFileName();
+            status = NtDeleteKey(keyHandle);
+            NtClose(keyHandle);
+        }
 
-            PhMoveReference(&path, PhGetBaseDirectory(path));
-            PhMoveReference(&apppath, PhGetBaseName(apppath));
-            keypath = PhConcatStrings(3, path->Buffer, L"\\", apppath->Buffer);
-            PhDereferenceObject(apppath);
-            PhDereferenceObject(path);
-
-            status = PhCreateKey(
-                &keyHandle,
-                DELETE,
-                PH_KEY_LOCAL_MACHINE,
-                &keypath->sr,
-                OBJ_OPENIF,
-                0,
-                NULL
-                );
-
-            if (NT_SUCCESS(status))
-            {
-                status = NtDeleteKey(keyHandle);
-                NtClose(keyHandle);
-            }
+        if (status == STATUS_OBJECT_NAME_NOT_FOUND)
+            status = STATUS_SUCCESS;
 
 #ifdef _WIN64
-            if (NT_SUCCESS(status))
+        if (NT_SUCCESS(status))
+        {
+            PH_STRINGREF stringBefore;
+            PH_STRINGREF stringAfter;
+
+            if (PhSplitStringRefAtString(&keypath->sr, &replacementToken, TRUE, &stringBefore, &stringAfter))
             {
-                PH_STRINGREF stringBefore;
-                PH_STRINGREF stringAfter;
+                PhMoveReference(&keypath, PhConcatStringRef3(&stringBefore, &wow6432Token, &stringAfter));
 
-                if (PhSplitStringRefAtString(&keypath->sr, &replacementToken, TRUE, &stringBefore, &stringAfter))
+                status = PhOpenKey(
+                    &keyHandle,
+                    DELETE,
+                    PH_KEY_LOCAL_MACHINE,
+                    &keypath->sr,
+                    OBJ_OPENIF
+                    );
+                
+                if (NT_SUCCESS(status))
                 {
-                    PhMoveReference(&keypath, PhConcatStringRef3(&stringBefore, &wow6432Token, &stringAfter));
-
-                    status = PhCreateKey(
-                        &keyHandle,
-                        DELETE,
-                        PH_KEY_LOCAL_MACHINE,
-                        &keypath->sr,
-                        OBJ_OPENIF,
-                        0,
-                        NULL
-                        );
-
-                    if (NT_SUCCESS(status))
-                    {
-                        status = NtDeleteKey(keyHandle);
-                        NtClose(keyHandle);
-                    }
+                    status = NtDeleteKey(keyHandle);
+                    NtClose(keyHandle);
                 }
             }
-#endif
-            PhDereferenceObject(keypath);
         }
+#endif
+        PhDereferenceObject(keypath);
     }
+
+    if (status == STATUS_OBJECT_NAME_NOT_FOUND)
+        status = STATUS_SUCCESS;
 
     return status;
 }
