@@ -8532,6 +8532,139 @@ NTSTATUS PhDeleteDirectory(
     return status;
 }
 
+NTSTATUS PhMoveFileWin32(
+    _In_ PWSTR OldFileName,
+    _In_ PWSTR NewFileName
+    )
+{
+    NTSTATUS status;
+    HANDLE fileHandle;
+    IO_STATUS_BLOCK isb;
+    ULONG renameInfoLength;
+    UNICODE_STRING newFileName;
+    PFILE_RENAME_INFORMATION renameInfo;
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+    if (!NT_SUCCESS(status = RtlDosPathNameToNtPathName_U_WithStatus(
+        NewFileName,
+        &newFileName,
+        NULL,
+        NULL
+        )))
+    {
+        return status;
+    }
+#else
+    if (!RtlDosPathNameToNtPathName_U(NewFileName, &newFileName, NULL, NULL))
+    {
+        return STATUS_UNSUCCESSFUL;
+    }
+#endif
+
+    status = PhCreateFileWin32(
+        &fileHandle,
+        OldFileName,
+        FILE_READ_ATTRIBUTES | FILE_READ_DATA | DELETE | SYNCHRONIZE,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        RtlFreeUnicodeString(&newFileName);
+        return status;
+    }
+
+    renameInfoLength = sizeof(FILE_RENAME_INFORMATION) + newFileName.Length + sizeof(UNICODE_NULL);
+    renameInfo = PhAllocateZero(renameInfoLength);
+    renameInfo->ReplaceIfExists = TRUE;
+    renameInfo->RootDirectory = NULL;
+    renameInfo->FileNameLength = newFileName.Length;
+    memcpy(renameInfo->FileName, newFileName.Buffer, newFileName.Length);
+
+    status = NtSetInformationFile(
+        fileHandle,
+        &isb,
+        renameInfo,
+        renameInfoLength,
+        FileRenameInformation
+        );
+
+    if (status == STATUS_NOT_SAME_DEVICE)
+    {
+        HANDLE newFileHandle;
+        BYTE buffer[PAGE_SIZE];
+
+        status = PhCreateFileWin32(
+            &newFileHandle,
+            NewFileName,
+            FILE_GENERIC_WRITE,
+            FILE_ATTRIBUTE_NORMAL,
+            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+            FILE_OVERWRITE_IF,
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+            );
+
+        if (!NT_SUCCESS(status))
+        {
+            NtClose(fileHandle);
+            RtlFreeUnicodeString(&newFileName);
+            PhFree(renameInfo);
+            return status;
+        }
+
+        while (TRUE)
+        {
+            status = NtReadFile(
+                fileHandle,
+                NULL,
+                NULL,
+                NULL,
+                &isb,
+                buffer,
+                sizeof(buffer),
+                NULL,
+                NULL
+                );
+
+            if (!NT_SUCCESS(status))
+                break;
+            if (isb.Information == 0)
+                break;
+
+            status = NtWriteFile(
+                newFileHandle,
+                NULL,
+                NULL,
+                NULL,
+                &isb,
+                buffer,
+                (ULONG)isb.Information,
+                NULL,
+                NULL
+                );
+
+            if (!NT_SUCCESS(status))
+                break;
+            if (isb.Information == 0)
+                break;
+        }
+
+        NtClose(newFileHandle);
+    }
+
+    NtClose(fileHandle);
+    RtlFreeUnicodeString(&newFileName);
+    PhFree(renameInfo);
+
+    if (status == STATUS_END_OF_FILE)
+        status = STATUS_SUCCESS;
+
+    return status;
+}
+
 /**
 * Creates an anonymous pipe.
 *

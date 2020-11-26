@@ -1540,6 +1540,14 @@ PhDeleteFileWin32(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhMoveFileWin32(
+    _In_ PWSTR OldFileName,
+    _In_ PWSTR NewFileName
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhCreateDirectory(
     _In_ PPH_STRING DirectoryPath
     );
