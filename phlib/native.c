@@ -6346,7 +6346,7 @@ VOID PhpInitializeDevicePrefixes(
     )
 {
     ULONG i;
-    PUCHAR buffer;
+    PWCHAR buffer;
 
     // Allocate one buffer for all 26 prefixes to reduce overhead.
     buffer = PhAllocate(PH_DEVICE_PREFIX_LENGTH * sizeof(WCHAR) * 26);
@@ -6355,8 +6355,8 @@ VOID PhpInitializeDevicePrefixes(
     {
         PhDevicePrefixes[i].Length = 0;
         PhDevicePrefixes[i].MaximumLength = PH_DEVICE_PREFIX_LENGTH * sizeof(WCHAR);
-        PhDevicePrefixes[i].Buffer = (PWCHAR)buffer;
-        buffer += PH_DEVICE_PREFIX_LENGTH * sizeof(WCHAR);
+        PhDevicePrefixes[i].Buffer = buffer;
+        buffer = PTR_ADD_OFFSET(buffer, PH_DEVICE_PREFIX_LENGTH * sizeof(WCHAR));
     }
 }
 
