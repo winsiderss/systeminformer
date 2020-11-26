@@ -54,7 +54,7 @@ NTSTATUS SetupProgressThread(
     SetupSetWindowsOptions(Context);
 
     // Set the default image execution options.
-    SetupCreateImageFileExecutionOptions();
+    //SetupCreateImageFileExecutionOptions();
 
     // Setup new installation.
     if (!SetupExtractBuild(Context))

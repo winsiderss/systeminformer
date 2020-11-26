@@ -21,8 +21,8 @@
 #include <setup.h>
 
 PH_STRINGREF UninstallKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\ProcessHacker");
-PH_STRINGREF PhImageOptionsKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\ProcessHacker.exe");
-PH_STRINGREF PhImageOptionsWow64KeyName = PH_STRINGREF_INIT(L"Software\\WOW6432Node\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\ProcessHacker.exe");
+//PH_STRINGREF PhImageOptionsKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\ProcessHacker.exe");
+//PH_STRINGREF PhImageOptionsWow64KeyName = PH_STRINGREF_INIT(L"Software\\WOW6432Node\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\ProcessHacker.exe");
 PH_STRINGREF TmImageOptionsKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\taskmgr.exe");
 
 NTSTATUS SetupCreateUninstallKey(
@@ -707,29 +707,29 @@ VOID SetupDeleteWindowsOptions(
         PhDereferenceObject(string);
     }
 
-    if (NT_SUCCESS(PhOpenKey(
-        &keyHandle,
-        DELETE,
-        PH_KEY_LOCAL_MACHINE,
-        &PhImageOptionsKeyName,
-        0
-        )))
-    {
-        NtDeleteKey(keyHandle);
-        NtClose(keyHandle);
-    }
-
-    if (NT_SUCCESS(PhOpenKey(
-        &keyHandle,
-        DELETE,
-        PH_KEY_LOCAL_MACHINE,
-        &PhImageOptionsWow64KeyName,
-        0
-        )))
-    {
-        NtDeleteKey(keyHandle);
-        NtClose(keyHandle);
-    }
+    //if (NT_SUCCESS(PhOpenKey(
+    //    &keyHandle,
+    //    DELETE,
+    //    PH_KEY_LOCAL_MACHINE,
+    //    &PhImageOptionsKeyName,
+    //    0
+    //    )))
+    //{
+    //    NtDeleteKey(keyHandle);
+    //    NtClose(keyHandle);
+    //}
+    //
+    //if (NT_SUCCESS(PhOpenKey(
+    //    &keyHandle,
+    //    DELETE,
+    //    PH_KEY_LOCAL_MACHINE,
+    //    &PhImageOptionsWow64KeyName,
+    //    0
+    //    )))
+    //{
+    //    NtDeleteKey(keyHandle);
+    //    NtClose(keyHandle);
+    //}
 
     if (NT_SUCCESS(PhOpenKey(
         &keyHandle,
@@ -797,76 +797,75 @@ VOID SetupUpgradeSettingsFile(
     if (settingsFilePath) PhDereferenceObject(settingsFilePath);
 }
 
-VOID SetupCreateImageFileExecutionOptions(
-    VOID
-    )
-{
-    HANDLE keyHandle;
-    SYSTEM_INFO info;
-
-    if (WindowsVersion < WINDOWS_10)
-        return;
-
-    GetNativeSystemInfo(&info);
-
-    if (NT_SUCCESS(PhCreateKey(
-        &keyHandle,
-        KEY_WRITE,
-        PH_KEY_LOCAL_MACHINE,
-        &PhImageOptionsKeyName,
-        OBJ_OPENIF,
-        0,
-        NULL
-        )))
-    {
-        static PH_STRINGREF valueName = PH_STRINGREF_INIT(L"MitigationOptions");
-
-        PhSetValueKey(keyHandle, &valueName, REG_QWORD, &(ULONG64)
-        {
-            PROCESS_CREATION_MITIGATION_POLICY_HEAP_TERMINATE_ALWAYS_ON |
-            PROCESS_CREATION_MITIGATION_POLICY_BOTTOM_UP_ASLR_ALWAYS_ON |
-            PROCESS_CREATION_MITIGATION_POLICY_HIGH_ENTROPY_ASLR_ALWAYS_ON |
-            PROCESS_CREATION_MITIGATION_POLICY_EXTENSION_POINT_DISABLE_ALWAYS_ON |
-            PROCESS_CREATION_MITIGATION_POLICY_PROHIBIT_DYNAMIC_CODE_ALWAYS_ON |
-            PROCESS_CREATION_MITIGATION_POLICY_CONTROL_FLOW_GUARD_ALWAYS_ON |
-            PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_REMOTE_ALWAYS_ON |
-            PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_LOW_LABEL_ALWAYS_ON
-        }, sizeof(ULONG64));
-
-        NtClose(keyHandle);
-    }
-
-    if (info.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
-    {
-        if (NT_SUCCESS(PhCreateKey(
-            &keyHandle,
-            KEY_WRITE,
-            PH_KEY_LOCAL_MACHINE,
-            &PhImageOptionsWow64KeyName,
-            OBJ_OPENIF,
-            0,
-            NULL
-            )))
-        {
-            static PH_STRINGREF valueName = PH_STRINGREF_INIT(L"MitigationOptions");
-
-            PhSetValueKey(keyHandle, &valueName, REG_QWORD, &(ULONG64)
-            {
-                PROCESS_CREATION_MITIGATION_POLICY_HEAP_TERMINATE_ALWAYS_ON |
-                PROCESS_CREATION_MITIGATION_POLICY_BOTTOM_UP_ASLR_ALWAYS_ON |
-                PROCESS_CREATION_MITIGATION_POLICY_HIGH_ENTROPY_ASLR_ALWAYS_ON |
-                PROCESS_CREATION_MITIGATION_POLICY_EXTENSION_POINT_DISABLE_ALWAYS_ON |
-                PROCESS_CREATION_MITIGATION_POLICY_PROHIBIT_DYNAMIC_CODE_ALWAYS_ON |
-                PROCESS_CREATION_MITIGATION_POLICY_CONTROL_FLOW_GUARD_ALWAYS_ON |
-                PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_REMOTE_ALWAYS_ON |
-                PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_LOW_LABEL_ALWAYS_ON
-            }, sizeof(ULONG64));
-
-            NtClose(keyHandle);
-        }
-    }
-}
-
+//VOID SetupCreateImageFileExecutionOptions(
+//    VOID
+//    )
+//{
+//    HANDLE keyHandle;
+//    SYSTEM_INFO info;
+//
+//    if (WindowsVersion < WINDOWS_10)
+//        return;
+//
+//    GetNativeSystemInfo(&info);
+//
+//    if (NT_SUCCESS(PhCreateKey(
+//        &keyHandle,
+//        KEY_WRITE,
+//        PH_KEY_LOCAL_MACHINE,
+//        &PhImageOptionsKeyName,
+//        OBJ_OPENIF,
+//        0,
+//        NULL
+//        )))
+//    {
+//        static PH_STRINGREF valueName = PH_STRINGREF_INIT(L"MitigationOptions");
+//
+//        PhSetValueKey(keyHandle, &valueName, REG_QWORD, &(ULONG64)
+//        {
+//            PROCESS_CREATION_MITIGATION_POLICY_HEAP_TERMINATE_ALWAYS_ON |
+//            PROCESS_CREATION_MITIGATION_POLICY_BOTTOM_UP_ASLR_ALWAYS_ON |
+//            PROCESS_CREATION_MITIGATION_POLICY_HIGH_ENTROPY_ASLR_ALWAYS_ON |
+//            PROCESS_CREATION_MITIGATION_POLICY_EXTENSION_POINT_DISABLE_ALWAYS_ON |
+//            PROCESS_CREATION_MITIGATION_POLICY_PROHIBIT_DYNAMIC_CODE_ALWAYS_ON |
+//            PROCESS_CREATION_MITIGATION_POLICY_CONTROL_FLOW_GUARD_ALWAYS_ON |
+//            PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_REMOTE_ALWAYS_ON |
+//            PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_LOW_LABEL_ALWAYS_ON
+//        }, sizeof(ULONG64));
+//
+//        NtClose(keyHandle);
+//    }
+//
+//    if (info.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
+//    {
+//        if (NT_SUCCESS(PhCreateKey(
+//            &keyHandle,
+//            KEY_WRITE,
+//            PH_KEY_LOCAL_MACHINE,
+//            &PhImageOptionsWow64KeyName,
+//            OBJ_OPENIF,
+//            0,
+//            NULL
+//            )))
+//        {
+//            static PH_STRINGREF valueName = PH_STRINGREF_INIT(L"MitigationOptions");
+//
+//            PhSetValueKey(keyHandle, &valueName, REG_QWORD, &(ULONG64)
+//            {
+//                PROCESS_CREATION_MITIGATION_POLICY_HEAP_TERMINATE_ALWAYS_ON |
+//                PROCESS_CREATION_MITIGATION_POLICY_BOTTOM_UP_ASLR_ALWAYS_ON |
+//                PROCESS_CREATION_MITIGATION_POLICY_HIGH_ENTROPY_ASLR_ALWAYS_ON |
+//                PROCESS_CREATION_MITIGATION_POLICY_EXTENSION_POINT_DISABLE_ALWAYS_ON |
+//                PROCESS_CREATION_MITIGATION_POLICY_PROHIBIT_DYNAMIC_CODE_ALWAYS_ON |
+//                PROCESS_CREATION_MITIGATION_POLICY_CONTROL_FLOW_GUARD_ALWAYS_ON |
+//                PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_REMOTE_ALWAYS_ON |
+//                PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_LOW_LABEL_ALWAYS_ON
+//            }, sizeof(ULONG64));
+//
+//            NtClose(keyHandle);
+//        }
+//    }
+//}
 
 VOID ExtractResourceToFile(
     _In_ PWSTR Resource, 
