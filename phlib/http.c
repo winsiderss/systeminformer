@@ -530,8 +530,7 @@ BOOLEAN PhHttpSocketReadDataToBuffer(
     _Out_ ULONG *BufferLength
     )
 {
-    PSTR data = NULL;
-    PVOID result = NULL;
+    PSTR data;
     ULONG allocatedLength;
     ULONG dataLength;
     ULONG returnLength;
@@ -590,7 +589,7 @@ PVOID PhHttpSocketDownloadString(
     _In_ BOOLEAN Unicode
     )
 {
-    PVOID result = NULL;
+    PVOID result;
     PVOID buffer;
     ULONG bufferLength;
 
@@ -611,6 +610,157 @@ PVOID PhHttpSocketDownloadString(
     PhFree(buffer);
 
     return result;
+}
+
+NTSTATUS PhHttpSocketDownloadToHandle(
+    _In_ PPH_HTTP_CONTEXT HttpContext,
+    _In_ HANDLE FileHandle,
+    _In_ PPH_HTTPDOWNLOAD_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    BOOLEAN status = TRUE;
+    ULONG numberOfBytesTotal = 0;
+    ULONG numberOfBytesRead = 0;
+    ULONG64 numberOfBytesReadTotal = 0;
+    ULONG64 timeTicks;
+    LARGE_INTEGER timeNow;
+    LARGE_INTEGER timeStart;
+    PH_HTTPDOWNLOAD_CONTEXT context;
+    IO_STATUS_BLOCK isb;
+    BYTE buffer[PAGE_SIZE];
+
+    PhQuerySystemTime(&timeStart);
+    memset(buffer, 0, PAGE_SIZE);
+
+    if (!PhHttpSocketQueryHeaderUlong(HttpContext, PH_HTTP_QUERY_CONTENT_LENGTH, &numberOfBytesTotal))
+    {
+        return PhGetLastWin32ErrorAsNtStatus();
+    }
+
+    if (numberOfBytesTotal == 0)
+    {
+        return STATUS_UNSUCCESSFUL;
+    }
+
+    while (PhHttpSocketReadData(HttpContext, buffer, PAGE_SIZE, &numberOfBytesRead))
+    {
+        if (numberOfBytesRead == 0)
+            break;
+
+        if (!NT_SUCCESS(NtWriteFile(
+            FileHandle,
+            NULL,
+            NULL,
+            NULL,
+            &isb,
+            buffer,
+            numberOfBytesRead,
+            NULL,
+            NULL
+            )))
+        {
+            status = FALSE;
+            break;
+        }
+
+        if (numberOfBytesRead != isb.Information)
+        {
+            status = FALSE;
+            break;
+        }
+
+        if (Callback)
+        {
+            PhQuerySystemTime(&timeNow);
+            timeTicks = (timeNow.QuadPart - timeStart.QuadPart) / PH_TICKS_PER_SEC;
+
+            numberOfBytesReadTotal += isb.Information;
+            context.ReadLength = numberOfBytesReadTotal;
+            context.TotalLength = numberOfBytesTotal;
+            context.BitsPerSecond = numberOfBytesReadTotal / __max(timeTicks, 1);
+            context.Percent = (((DOUBLE)numberOfBytesReadTotal / numberOfBytesTotal) * 100);
+
+            if (!Callback(&context, Context))
+                break;
+        }
+    }
+
+    if (status && numberOfBytesReadTotal == numberOfBytesTotal)
+    {
+        return STATUS_SUCCESS;
+    }
+
+    return STATUS_UNSUCCESSFUL;
+}
+
+NTSTATUS PhHttpSocketDownloadToFile(
+    _In_ PPH_HTTP_CONTEXT HttpContext,
+    _In_ PWSTR FileName,
+    _In_ PPH_HTTPDOWNLOAD_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    static PH_STRINGREF tempFilePath = PH_STRINGREF_INIT(L"%TEMP%\\");
+    NTSTATUS status;
+    HANDLE fileHandle;
+    PPH_STRING tempDirectory;
+    PPH_STRING tempFileName;
+    WCHAR alphaString[32] = L"";
+
+    tempDirectory = PhExpandEnvironmentStrings(&tempFilePath);
+    PhGenerateRandomAlphaString(alphaString, RTL_NUMBER_OF(alphaString));
+    tempFileName = PhConcatStrings2(PhGetString(tempDirectory), alphaString);
+
+    status = PhCreateFileWin32(
+        &fileHandle,
+        PhGetString(tempFileName),
+        FILE_GENERIC_WRITE,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        FILE_CREATE,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        if (!NT_SUCCESS(PhHttpSocketDownloadToHandle(HttpContext, fileHandle, Callback, Context)))
+        {
+            PhDeleteFile(fileHandle);
+
+            status = STATUS_UNSUCCESSFUL;
+        }
+
+        NtClose(fileHandle);
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        ULONG indexOfFileName;
+        PPH_STRING fullPath;
+        PPH_STRING directoryName;
+
+        if (fullPath = PhGetFullPath(FileName, &indexOfFileName))
+        {
+            if (indexOfFileName != ULONG_MAX)
+            {
+                directoryName = PhSubstring(fullPath, 0, indexOfFileName);
+
+                status = PhCreateDirectory(directoryName);
+
+                PhDereferenceObject(directoryName);
+            }
+
+            PhDereferenceObject(fullPath);
+        }
+
+        if (NT_SUCCESS(status))
+        {
+            status = PhMoveFileWin32(PhGetString(tempFileName), FileName);
+        }
+    }
+
+    return status;
 }
 
 BOOLEAN PhHttpSocketSetFeature(
@@ -727,7 +877,7 @@ BOOLEAN PhHttpSocketSetCredentials(
     _In_ PCWSTR Value
     )
 {
-    return WinHttpSetCredentials(
+    return !!WinHttpSetCredentials(
         HttpContext->RequestHandle, 
         WINHTTP_AUTH_TARGET_SERVER, 
         WINHTTP_AUTH_SCHEME_BASIC, 

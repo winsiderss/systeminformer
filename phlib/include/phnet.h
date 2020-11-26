@@ -310,6 +310,39 @@ PhHttpSocketDownloadString(
     _In_ BOOLEAN Unicode
     );
 
+typedef struct _PH_HTTPDOWNLOAD_CONTEXT
+{
+    ULONG64 ReadLength;
+    ULONG64 TotalLength;
+    ULONG64 BitsPerSecond;
+    DOUBLE Percent;
+} PH_HTTPDOWNLOAD_CONTEXT, *PPH_HTTPDOWNLOAD_CONTEXT;
+
+typedef BOOLEAN (NTAPI *PPH_HTTPDOWNLOAD_CALLBACK)(
+    _In_opt_ PPH_HTTPDOWNLOAD_CONTEXT Parameter,
+    _In_opt_ PVOID Context
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhHttpSocketDownloadToHandle(
+    _In_ PPH_HTTP_CONTEXT HttpContext,
+    _In_ HANDLE FileHandle,
+    _In_ PPH_HTTPDOWNLOAD_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhHttpSocketDownloadToFile(
+    _In_ PPH_HTTP_CONTEXT HttpContext,
+    _In_ PWSTR FileName,
+    _In_ PPH_HTTPDOWNLOAD_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    );
+
 #define PH_HTTP_FEATURE_REDIRECTS 0x1
 #define PH_HTTP_FEATURE_KEEP_ALIVE 0x2
 
