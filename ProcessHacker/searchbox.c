@@ -632,7 +632,7 @@ HICON PhpSearchBitmapToIcon(
     HBITMAP screenBitmap;
     ICONINFO iconInfo = { 0 };
 
-    screenDc = GetDC(NULL);
+    screenDc = CreateCompatibleDC(NULL);
     screenBitmap = CreateCompatibleBitmap(screenDc, Width, Height);
 
     iconInfo.fIcon = TRUE;
@@ -642,7 +642,7 @@ HICON PhpSearchBitmapToIcon(
     icon = CreateIconIndirect(&iconInfo);
 
     DeleteBitmap(screenBitmap);
-    ReleaseDC(NULL, screenDc);
+    DeleteDC(screenDc);
 
     return icon;
 }

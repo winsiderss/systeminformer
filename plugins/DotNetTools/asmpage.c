@@ -834,7 +834,7 @@ static ULONG StartDotNetTrace(
     PEVENT_TRACE_PROPERTIES properties;
     TRACEHANDLE sessionHandle;
 
-    bufferSize = sizeof(EVENT_TRACE_PROPERTIES) + DotNetLoggerName.Length + sizeof(WCHAR);
+    bufferSize = sizeof(EVENT_TRACE_PROPERTIES) + DotNetLoggerName.Length + sizeof(UNICODE_NULL);
     properties = PhAllocateZero(bufferSize);
 
     properties->Wnode.BufferSize = bufferSize;

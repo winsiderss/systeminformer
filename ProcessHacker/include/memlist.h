@@ -1,7 +1,6 @@
 #ifndef PH_MEMLIST_H
 #define PH_MEMLIST_H
 
-#include <phuisup.h>
 #include <colmgr.h>
 
 // Columns

@@ -425,7 +425,6 @@ NTAPI
 PhHandleCopyListViewEMenuItem(
     _In_ struct _PH_EMENU_ITEM *SelectedItem
     );
-
 // end_phapppub
 
 BOOLEAN PhShellOpenKey2(

@@ -16,6 +16,23 @@ extern BOOLEAN PhMainWndExiting;
 #define WM_PH_LAST (WM_APP + 146)
 
 // begin_phapppub
+PHAPPAPI
+HWND
+NTAPI
+PhGetMainWindowHandle(
+    VOID
+    );
+
+PHAPPAPI
+ULONG
+NTAPI
+PhGetWindowsVersion(
+    VOID
+    );
+
+// plugin macros (dmex)
+#define PhWindowsVersion PhGetWindowsVersion()
+#define PhMainWindowHandle PhGetMainWindowHandle()
 
 typedef enum _PH_MAINWINDOW_CALLBACK_TYPE
 {

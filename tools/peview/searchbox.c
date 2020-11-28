@@ -22,7 +22,6 @@
  */
 
 #include <peview.h>
-#include <settings.h>
 #include <uxtheme.h>
 #include <vssym32.h>
 #include <wincodec.h>

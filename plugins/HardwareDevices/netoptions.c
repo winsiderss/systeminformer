@@ -297,14 +297,14 @@ BOOLEAN QueryNetworkDeviceInterfaceDescription(
 
     // DEVPKEY_Device_DeviceDesc doesn't give us the full adapter name.
     // DEVPKEY_Device_FriendlyName does give us the full adapter name but is only
-    //  supported on Windows 8 and above.
+    //  supported on Windows 8 and above. (dmex)
 
     // We use our NetworkAdapterQueryName function to query the full adapter name
-    // from the NDIS driver directly, if that fails then we use one of the above properties.
+    // from the NDIS driver directly, if that fails then we use one of the above properties. (dmex)
 
     if ((result = CM_Get_DevNode_Property(
         deviceInstanceHandle,
-        WindowsVersion >= WINDOWS_8 ? &DEVPKEY_Device_FriendlyName : &DEVPKEY_Device_DeviceDesc,
+        PhWindowsVersion >= WINDOWS_8 ? &DEVPKEY_Device_FriendlyName : &DEVPKEY_Device_DeviceDesc,
         &devicePropertyType,
         (PBYTE)deviceDescription->Buffer,
         &bufferSize,
@@ -316,7 +316,7 @@ BOOLEAN QueryNetworkDeviceInterfaceDescription(
 
         result = CM_Get_DevNode_Property(
             deviceInstanceHandle,
-            WindowsVersion >= WINDOWS_8 ? &DEVPKEY_Device_FriendlyName : &DEVPKEY_Device_DeviceDesc,
+            PhWindowsVersion >= WINDOWS_8 ? &DEVPKEY_Device_FriendlyName : &DEVPKEY_Device_DeviceDesc,
             &devicePropertyType,
             (PBYTE)deviceDescription->Buffer,
             &bufferSize,

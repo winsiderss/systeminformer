@@ -176,23 +176,6 @@ FORCEINLINE ULONG PhpGetObjectTypeObjectCount(
     return info.NumberOfObjects;
 }
 
-PPH_STRING PhpGetBuildTimeDiagnostics(
-    VOID
-    )
-{
-    LARGE_INTEGER time;
-    SYSTEMTIME systemTime = { 0 };
-    PIMAGE_DOS_HEADER imageDosHeader;
-    PIMAGE_NT_HEADERS imageNtHeader;
-
-    imageDosHeader = (PIMAGE_DOS_HEADER)PhInstanceHandle; // HACK
-    imageNtHeader = (PIMAGE_NT_HEADERS)PTR_ADD_OFFSET(imageDosHeader, imageDosHeader->e_lfanew);
-    RtlSecondsSince1970ToTime(imageNtHeader->FileHeader.TimeDateStamp, &time);
-    PhLargeIntegerToLocalSystemTime(&systemTime, &time);
-
-    return PhaFormatDateTime(&systemTime);
-}
-
 PPH_STRING PhGetDiagnosticsString(
     VOID
     )
@@ -203,20 +186,18 @@ PPH_STRING PhGetDiagnosticsString(
 
 #if (PHAPP_VERSION_REVISION != 0)
     PhAppendFormatStringBuilder(&stringBuilder,
-        L"Process Hacker\r\nVersion: %lu.%lu.%lu (%hs)\r\n",
+        L"Process Hacker\r\nVersion: %lu.%lu.%lu (%hs)\r\n\r\n",
         PHAPP_VERSION_MAJOR,
         PHAPP_VERSION_MINOR,
         PHAPP_VERSION_REVISION,
         PHAPP_VERSION_COMMIT
         );
-    PhAppendFormatStringBuilder(&stringBuilder, L"Compiled: %s\r\n\r\n", PhpGetBuildTimeDiagnostics()->Buffer);
 #else
     PhAppendFormatStringBuilder(&stringBuilder,
-        L"Process Hacker\r\nVersion: %lu.%lu\r\n",
+        L"Process Hacker\r\nVersion: %lu.%lu\r\n\r\n",
         PHAPP_VERSION_MAJOR,
         PHAPP_VERSION_MINOR
         );
-    PhAppendFormatStringBuilder(&stringBuilder, L"Compiled: %s\r\n\r\n", PhpGetBuildTimeDiagnostics()->Buffer);
 #endif
 
     PhAppendFormatStringBuilder(&stringBuilder, L"OBJECT INFORMATION\r\n");

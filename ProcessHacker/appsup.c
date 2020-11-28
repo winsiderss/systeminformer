@@ -564,7 +564,7 @@ BOOLEAN PhaGetProcessKnownCommandLine(
             PhUpperString(argPart);
             indexOfProcessId = PhFindStringInString(argPart, 0, L"/PROCESSID:");
 
-            if (indexOfProcessId == -1)
+            if (indexOfProcessId == SIZE_MAX)
                 return FALSE;
 
             guidString = PhaSubstring(
@@ -786,7 +786,7 @@ VOID PhShellExecuteUserString(
 
     // Make sure the user executable string is absolute. We can't use RtlDetermineDosPathNameType_U
     // here because the string may be a URL. (dmex)
-    if (PhFindCharInString(executeString, 0, L':') == -1)
+    if (PhFindCharInString(executeString, 0, L':') == SIZE_MAX)
     {
         INT stringArgCount;
         PWSTR* stringArgList;
@@ -1968,7 +1968,7 @@ BOOLEAN PhpSelectFavoriteInRegedit(
 
     count = GetMenuItemCount(favoritesMenu);
 
-    if (count == -1)
+    if (count == ULONG_MAX)
         return FALSE;
     if (count > 1000)
         count = 1000;

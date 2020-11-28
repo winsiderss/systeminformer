@@ -535,7 +535,7 @@ BOOLEAN OpenDotNetPublicControlBlock_V4(
     if (!NT_SUCCESS(RtlAddSIDToBoundaryDescriptor(&boundaryDescriptorHandle, everyoneSIDHandle)))
         goto CleanupExit;
 
-    if (IsImmersive && WindowsVersion >= WINDOWS_8)
+    if (IsImmersive && PhWindowsVersion >= WINDOWS_8)
     {
         if (NT_SUCCESS(PhOpenProcessToken(ProcessHandle, TOKEN_QUERY, &tokenHandle)))
         {

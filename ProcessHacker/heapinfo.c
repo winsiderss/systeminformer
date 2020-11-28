@@ -22,7 +22,6 @@
  */
 
 #include <phapp.h>
-#include <phsettings.h>
 #include <phsvccl.h>
 #include <actions.h>
 #include <appresolver.h>

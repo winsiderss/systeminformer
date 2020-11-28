@@ -24,7 +24,6 @@
 #include <phapp.h>
 #include <emenu.h>
 #include <settings.h>
-#include <mainwnd.h>
 #include <colmgr.h>
 #include <phplug.h>
 #include <phsettings.h>

@@ -763,7 +763,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_IOPRIORITY:
                                 {
-                                    if (statisticsContext->IoPriority != LONG_MAX && statisticsContext->IoPriority <= MaxIoPriorityTypes)
+                                    if (statisticsContext->IoPriority != LONG_MAX && statisticsContext->IoPriority >= IoPriorityVeryLow && statisticsContext->IoPriority <= MaxIoPriorityTypes)
                                         wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, PhIoPriorityHintNames[statisticsContext->IoPriority], _TRUNCATE);
                                     else
                                         wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A", _TRUNCATE);

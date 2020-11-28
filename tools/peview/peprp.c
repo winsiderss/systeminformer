@@ -23,11 +23,8 @@
 
 #include <peview.h>
 #include <workqueue.h>
-#include <cpysave.h>
 #include <verify.h>
 #include <shellapi.h>
-
-#include <secedit.h>
 
 #define PVM_CHECKSUM_DONE (WM_APP + 1)
 #define PVM_VERIFY_DONE (WM_APP + 2)

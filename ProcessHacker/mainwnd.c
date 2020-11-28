@@ -3477,6 +3477,21 @@ BOOLEAN PhMwpPluginNotifyEvent(
     return notifyEvent.Handled;
 }
 
+// Exports for plugin support (dmex)
+HWND PhGetMainWindowHandle(
+    VOID
+    )
+{
+    return PhMainWndHandle;
+}
+
+ULONG PhGetWindowsVersion(
+    VOID
+    )
+{
+    return WindowsVersion;
+}
+
 PVOID PhPluginInvokeWindowCallback(
     _In_ PH_MAINWINDOW_CALLBACK_TYPE Event,
     _In_opt_ PVOID wparam,
