@@ -607,7 +607,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
             if (PhGetIntegerPairSetting(SETTING_NAME_WINDOWS_WINDOW_POSITION).X != 0)
                 PhLoadWindowPlacementFromSetting(SETTING_NAME_WINDOWS_WINDOW_POSITION, SETTING_NAME_WINDOWS_WINDOW_SIZE, hwndDlg);
             else
-                PhCenterWindow(hwndDlg, WE_PhMainWndHandle);
+                PhCenterWindow(hwndDlg, WeGetMainWindowHandle());
 
             // Subclass the button.
             context->FindWindowButtonWindowProc = (WNDPROC)GetWindowLongPtr(context->FindWindowButtonHandle, GWLP_WNDPROC);
@@ -975,7 +975,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                     {
                         if (processItem = PhReferenceProcessItem(selectedNode->ClientId.UniqueProcess))
                         {
-                            if (propContext = PhCreateProcessPropContext(WE_PhMainWndHandle, processItem))
+                            if (propContext = PhCreateProcessPropContext(WeGetMainWindowHandle(), processItem))
                             {
                                 PhSetSelectThreadIdProcessPropContext(propContext, selectedNode->ClientId.UniqueThread);
                                 PhShowProcessProperties(propContext);
@@ -1577,7 +1577,7 @@ INT_PTR CALLBACK WepWindowsPageProc(
                     {
                         if (processItem = PhReferenceProcessItem(selectedNode->ClientId.UniqueProcess))
                         {
-                            if (propContext = PhCreateProcessPropContext(WE_PhMainWndHandle, processItem))
+                            if (propContext = PhCreateProcessPropContext(WeGetMainWindowHandle(), processItem))
                             {
                                 PhSetSelectThreadIdProcessPropContext(propContext, selectedNode->ClientId.UniqueThread);
                                 PhShowProcessProperties(propContext);

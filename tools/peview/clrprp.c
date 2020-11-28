@@ -321,6 +321,8 @@ CleanupExit:
         ICLRRuntimeInfo_Release(clrRuntimInfo);
     if (clrMetaHost)
         ICLRMetaHost_Release(clrMetaHost);
+    if (mscoreeHandle)
+        FreeLibrary(mscoreeHandle);
 }
 
 INT_PTR CALLBACK PvpPeClrDlgProc(

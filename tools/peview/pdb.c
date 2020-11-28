@@ -21,7 +21,6 @@
  */
 
 #include <peview.h>
-#include <cpysave.h>
 #include <symprv.h>
 #include <uxtheme.h>
 

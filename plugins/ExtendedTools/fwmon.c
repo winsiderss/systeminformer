@@ -281,7 +281,7 @@ BOOLEAN FwProcessEventType(
         {
             FWPM_NET_EVENT_CLASSIFY_DROP* fwDropEvent = FwEvent->classifyDrop;
 
-            if (WindowsVersion >= WINDOWS_10 && fwDropEvent->isLoopback) // TODO: add settings and make user optional (dmex)
+            if (PhWindowsVersion >= WINDOWS_10 && fwDropEvent->isLoopback) // TODO: add settings and make user optional (dmex)
                 return FALSE;
 
             switch (fwDropEvent->msFwpDirection)
@@ -311,7 +311,7 @@ BOOLEAN FwProcessEventType(
         {
             FWPM_NET_EVENT_CLASSIFY_ALLOW* fwAllowEvent = FwEvent->classifyAllow;
 
-            if (WindowsVersion >= WINDOWS_10 && fwAllowEvent->isLoopback) // TODO: add settings and make user optional (dmex)
+            if (PhWindowsVersion >= WINDOWS_10 && fwAllowEvent->isLoopback) // TODO: add settings and make user optional (dmex)
                 return FALSE;
 
             switch (fwAllowEvent->msFwpDirection)
@@ -1386,11 +1386,11 @@ VOID CALLBACK EtFwEventCallback(
         &layerId
         ))
     {
-        if (WindowsVersion >= WINDOWS_10) // TODO: add settings and make user optional (dmex)
+        if (PhWindowsVersion >= WINDOWS_10) // TODO: add settings and make user optional (dmex)
             return;
     }
 
-    if (WindowsVersion >= WINDOWS_10) // TODO: add settings and make user optional (dmex)
+    if (PhWindowsVersion >= WINDOWS_10) // TODO: add settings and make user optional (dmex)
     {
         if (
             layerId == FWPS_LAYER_ALE_FLOW_ESTABLISHED_V4 || // IsEqualGUID(layerKey, FWPM_LAYER_ALE_FLOW_ESTABLISHED_V4)
@@ -1682,9 +1682,9 @@ ULONG EtFwMonitorInitialize(
 
     value.type = FWP_UINT32;
     value.uint32 = FWPM_NET_EVENT_KEYWORD_INBOUND_MCAST | FWPM_NET_EVENT_KEYWORD_INBOUND_BCAST;
-    if (WindowsVersion >= WINDOWS_8)
+    if (PhWindowsVersion >= WINDOWS_8)
         value.uint32 |= FWPM_NET_EVENT_KEYWORD_CAPABILITY_DROP | FWPM_NET_EVENT_KEYWORD_CAPABILITY_ALLOW | FWPM_NET_EVENT_KEYWORD_CLASSIFY_ALLOW;
-    if (WindowsVersion >= WINDOWS_10_19H1)
+    if (PhWindowsVersion >= WINDOWS_10_19H1)
         value.uint32 |= FWPM_NET_EVENT_KEYWORD_PORT_SCANNING_DROP;
 
     status = FwpmEngineSetOption(EtFwEngineHandle, FWPM_ENGINE_NET_EVENT_MATCH_ANY_KEYWORDS, &value);
@@ -1692,7 +1692,7 @@ ULONG EtFwMonitorInitialize(
     if (status != ERROR_SUCCESS)
         return status;
 
-    if (WindowsVersion >= WINDOWS_8)
+    if (PhWindowsVersion >= WINDOWS_8)
     {
         value.type = FWP_UINT32;
         value.uint32 = TRUE;

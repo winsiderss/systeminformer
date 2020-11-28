@@ -828,7 +828,7 @@ LRESULT CALLBACK MainWndSubclassProc(
                                         PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_SHUTDOWN, L"Shu&t down", NULL, NULL), ULONG_MAX);
                                         PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_SHUTDOWNHYBRID, L"H&ybrid shut down", NULL, NULL), ULONG_MAX);
 
-                                        if (WindowsVersion < WINDOWS_8)
+                                        if (PhWindowsVersion < WINDOWS_8)
                                         {
                                             PPH_EMENU_ITEM menuItemRemove;
 
@@ -957,7 +957,7 @@ LRESULT CALLBACK MainWndSubclassProc(
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_SHUTDOWN, L"Shu&t down", NULL, NULL), ULONG_MAX);
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_SHUTDOWNHYBRID, L"H&ybrid shut down", NULL, NULL), ULONG_MAX);
 
-                        if (WindowsVersion < WINDOWS_8)
+                        if (PhWindowsVersion < WINDOWS_8)
                         {
                             PPH_EMENU_ITEM menuItemRemove;
 

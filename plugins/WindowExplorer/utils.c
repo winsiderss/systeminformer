@@ -25,6 +25,20 @@
 
 // WARNING: No functions from ProcessHacker.exe should be used in this file!
 
+HWND WeGetMainWindowHandle(
+    VOID
+    )
+{
+    static HWND (WINAPI* PhGetMainWindowHandle_I)(VOID) = NULL;
+
+    if (!PhGetMainWindowHandle_I)
+        PhGetMainWindowHandle_I = WeGetProcedureAddress("PhGetMainWindowHandle");
+    if (!PhGetMainWindowHandle_I)
+        return NULL;
+
+    return PhGetMainWindowHandle_I();
+}
+
 PVOID WeGetProcedureAddress(
     _In_ PSTR Name
     )

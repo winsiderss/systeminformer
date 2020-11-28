@@ -1,4 +1,4 @@
-
+#pragma once
 
 /* this ALWAYS GENERATED file contains the definitions for the interfaces */
 
@@ -184,6 +184,7 @@ EXTERN_GUID(CLSID_CLRDebuggingLegacy, 0xDF8395B5, 0xA4BA, 0x450b, 0xA7, 0x7C, 0x
 EXTERN_GUID(CLSID_CLRProfiling, 0xbd097ed8, 0x733e, 0x43fe, 0x8e, 0xd7, 0xa9, 0x5f, 0xf9, 0xa8, 0x44, 0x8c);
 EXTERN_GUID(IID_ICLRProfiling, 0xb349abe3, 0xb56f, 0x4689, 0xbf, 0xcd, 0x76, 0xbf, 0x39, 0xd8, 0x88, 0xea);
 EXTERN_GUID(IID_ICLRDebuggingLibraryProvider, 0x3151c08d, 0x4d09, 0x4f9b, 0x88, 0x38, 0x28, 0x80, 0xbf, 0x18, 0xfe, 0x51);
+
 typedef HRESULT ( __stdcall *CLRCreateInstanceFnPtr )( 
     REFCLSID clsid,
     REFIID riid,
@@ -194,7 +195,6 @@ typedef HRESULT ( __stdcall *CreateInterfaceFnPtr )(
     REFIID riid,
     LPVOID *ppInterface);
 
-
 typedef HRESULT ( __stdcall *CallbackThreadSetFnPtr )( void);
 
 typedef HRESULT ( __stdcall *CallbackThreadUnsetFnPtr )( void);
@@ -203,8 +203,6 @@ typedef void ( __stdcall *RuntimeLoadedCallbackFnPtr )(
     ICLRRuntimeInfo *pRuntimeInfo,
     CallbackThreadSetFnPtr pfnCallbackThreadSet,
     CallbackThreadUnsetFnPtr pfnCallbackThreadUnset);
-
-
 
 extern RPC_IF_HANDLE __MIDL_itf_metahost_0000_0000_v0_0_c_ifspec;
 extern RPC_IF_HANDLE __MIDL_itf_metahost_0000_0000_v0_0_s_ifspec;

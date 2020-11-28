@@ -542,7 +542,7 @@ PETP_GPU_ADAPTER EtpAddDisplayAdapter(
         }
     }
 
-    if (WindowsVersion >= WINDOWS_10_RS4) // Note: Changed to RS4 due to reports of BSODs on LTSB versions of RS3
+    if (PhWindowsVersion >= WINDOWS_10_RS4) // Note: Changed to RS4 due to reports of BSODs on LTSB versions of RS3
     {
         adapter->NodeNameList = PhCreateList(adapter->NodeCount);
 
@@ -625,7 +625,7 @@ BOOLEAN EtpInitializeD3DStatistics(
         if (!NT_SUCCESS(D3DKMTOpenAdapterFromDeviceName(&openAdapterFromDeviceName)))
             continue;
 
-        if (WindowsVersion >= WINDOWS_10_RS4 && deviceAdapterList->Count > 1) // Note: Changed to RS4 due to reports of BSODs on LTSB versions of RS3
+        if (PhWindowsVersion >= WINDOWS_10_RS4 && deviceAdapterList->Count > 1) // Note: Changed to RS4 due to reports of BSODs on LTSB versions of RS3
         {
             if (EtpIsGpuSoftwareDevice(openAdapterFromDeviceName.AdapterHandle))
             {
@@ -634,7 +634,7 @@ BOOLEAN EtpInitializeD3DStatistics(
             }
         }
 
-        if (WindowsVersion >= WINDOWS_10_RS4) // Note: Changed to RS4 due to reports of BSODs on LTSB versions of RS3
+        if (PhWindowsVersion >= WINDOWS_10_RS4) // Note: Changed to RS4 due to reports of BSODs on LTSB versions of RS3
         {
             D3DKMT_SEGMENTSIZEINFO segmentInfo;
 
@@ -685,7 +685,7 @@ BOOLEAN EtpInitializeD3DStatistics(
                     ULONG64 commitLimit;
                     ULONG aperture;
 
-                    if (WindowsVersion >= WINDOWS_8)
+                    if (PhWindowsVersion >= WINDOWS_8)
                     {
                         commitLimit = queryStatistics.QueryResult.SegmentInformation.CommitLimit;
                         aperture = queryStatistics.QueryResult.SegmentInformation.Aperture;
@@ -696,7 +696,7 @@ BOOLEAN EtpInitializeD3DStatistics(
                         aperture = queryStatistics.QueryResult.SegmentInformationV1.Aperture;
                     }
 
-                    if (WindowsVersion < WINDOWS_10_RS4) // Note: Changed to RS4 due to reports of BSODs on LTSB versions of RS3
+                    if (PhWindowsVersion < WINDOWS_10_RS4) // Note: Changed to RS4 due to reports of BSODs on LTSB versions of RS3
                     {
                         if (aperture)
                             EtGpuSharedLimit += commitLimit;
@@ -771,7 +771,7 @@ VOID EtpUpdateProcessSegmentInformation(
             {
                 ULONG64 bytesCommitted;
 
-                if (WindowsVersion >= WINDOWS_8)
+                if (PhWindowsVersion >= WINDOWS_8)
                     bytesCommitted = queryStatistics.QueryResult.ProcessSegmentInformation.BytesCommitted;
                 else
                     bytesCommitted = queryStatistics.QueryResult.ProcessSegmentInformation.BytesCommitted;
@@ -832,7 +832,7 @@ VOID EtpUpdateSystemSegmentInformation(
                 ULONG64 bytesCommitted;
                 ULONG aperture;
 
-                if (WindowsVersion >= WINDOWS_8)
+                if (PhWindowsVersion >= WINDOWS_8)
                 {
                     bytesCommitted = queryStatistics.QueryResult.SegmentInformation.BytesResident;
                     aperture = queryStatistics.QueryResult.SegmentInformation.Aperture;
@@ -1232,7 +1232,7 @@ VOID EtQueryProcessGpuStatistics(
             {
                 ULONG64 bytesCommitted;
 
-                if (WindowsVersion >= WINDOWS_8)
+                if (PhWindowsVersion >= WINDOWS_8)
                     bytesCommitted = queryStatistics.QueryResult.ProcessSegmentInformation.BytesCommitted;
                 else
                     bytesCommitted = queryStatistics.QueryResult.ProcessSegmentInformation.BytesCommitted;

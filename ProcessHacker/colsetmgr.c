@@ -366,13 +366,11 @@ INT_PTR CALLBACK PhpColumnSetEditorDlgProc(
     _In_ LPARAM lParam
     )
 {
-    PCOLUMNSET_DIALOG_CONTEXT context = NULL;
+    PCOLUMNSET_DIALOG_CONTEXT context;
 
     if (uMsg == WM_INITDIALOG)
     {
-        context = PhAllocate(sizeof(COLUMNSET_DIALOG_CONTEXT));
-        memset(context, 0, sizeof(COLUMNSET_DIALOG_CONTEXT));
-
+        context = PhAllocateZero(sizeof(COLUMNSET_DIALOG_CONTEXT));
         context->SettingName = PhCreateString((PWSTR)lParam);
 
         PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);

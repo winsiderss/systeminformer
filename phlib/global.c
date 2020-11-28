@@ -43,8 +43,7 @@ PHLIBAPI ULONG PhGlobalDpi = 96;
 PVOID PhHeapHandle = NULL;
 PHLIBAPI RTL_OSVERSIONINFOEXW PhOsVersion = { 0 };
 PHLIBAPI SYSTEM_BASIC_INFORMATION PhSystemBasicInformation = { 0 };
-PHLIBAPI ULONG WindowsVersion = WINDOWS_NEW;
-
+ULONG WindowsVersion = WINDOWS_NEW;
 
 // Internal data
 #ifdef DEBUG

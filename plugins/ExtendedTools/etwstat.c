@@ -251,7 +251,7 @@ VOID NTAPI EtEtwProcessesUpdatedCallback(
 
     if (
         EtDiskExtEnabled &&
-        WindowsVersion >= WINDOWS_10_RS3 &&
+        PhWindowsVersion >= WINDOWS_10_RS3 &&
         !PhIsExecutingInWow64() &&
         !PhGetOwnTokenAttributes().Elevated
         )

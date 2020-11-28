@@ -16,7 +16,7 @@ typedef BOOL (WINAPI *_SymEnumSymbolsW)(
     _In_ ULONG64 BaseOfDll,
     _In_opt_ PCWSTR Mask,
     _In_ PSYM_ENUMERATESYMBOLS_CALLBACKW EnumSymbolsCallback,
-    _In_opt_ const PVOID UserContext
+    _In_opt_ PVOID UserContext
     );
 
 typedef BOOL (WINAPI *_SymFromAddrW)(
