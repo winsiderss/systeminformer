@@ -902,7 +902,7 @@ NTSTATUS PhGetProcessPebString(
  * \param ProcessHandle A handle to a process. The handle must have
  * PROCESS_QUERY_LIMITED_INFORMATION. Before Windows 8.1, the handle must also have PROCESS_VM_READ
  * access.
- * \param String A variable which receives a pointer to a string containing the command line. You
+ * \param CommandLine A variable which receives a pointer to a string containing the command line. You
  * must free the string using PhDereferenceObject() when you no longer need it.
  */
 NTSTATUS PhGetProcessCommandLine(
@@ -4041,8 +4041,8 @@ BOOLEAN NTAPI PhpEnumProcessModulesCallback(
     )
 {
     PPH_ENUM_PROCESS_MODULES_PARAMETERS parameters = Context1;
-    NTSTATUS status = STATUS_FAIL_CHECK;
-    BOOLEAN cont = FALSE;
+    NTSTATUS status;
+    BOOLEAN cont;
     PPH_STRING mappedFileName = NULL;
     PWSTR fullDllNameOriginal;
     PWSTR fullDllNameBuffer = NULL;
@@ -4064,7 +4064,7 @@ BOOLEAN NTAPI PhpEnumProcessModulesCallback(
         PhStringRefToUnicodeString(&mappedFileName->sr, &Entry->FullDllName);
         indexOfLastBackslash = PhFindLastCharInString(mappedFileName, 0, OBJ_NAME_PATH_SEPARATOR);
 
-        if (indexOfLastBackslash != -1)
+        if (indexOfLastBackslash != SIZE_MAX)
         {
             Entry->BaseDllName.Buffer = PTR_ADD_OFFSET(Entry->FullDllName.Buffer, PTR_ADD_OFFSET(indexOfLastBackslash * sizeof(WCHAR), sizeof(UNICODE_NULL)));
             Entry->BaseDllName.Length = Entry->FullDllName.Length - (USHORT)indexOfLastBackslash * sizeof(WCHAR) - sizeof(UNICODE_NULL);
@@ -4446,7 +4446,7 @@ BOOLEAN NTAPI PhpEnumProcessModules32Callback(
         PhStringRefToUnicodeString(&mappedFileName->sr, &nativeEntry.FullDllName);
         indexOfLastBackslash = PhFindLastCharInString(mappedFileName, 0, OBJ_NAME_PATH_SEPARATOR);
 
-        if (indexOfLastBackslash != -1)
+        if (indexOfLastBackslash != SIZE_MAX)
         {
             nativeEntry.BaseDllName.Buffer = PTR_ADD_OFFSET(nativeEntry.FullDllName.Buffer, PTR_ADD_OFFSET(indexOfLastBackslash * sizeof(WCHAR), sizeof(WCHAR)));
             nativeEntry.BaseDllName.Length = nativeEntry.FullDllName.Length - (USHORT)indexOfLastBackslash * sizeof(WCHAR) - sizeof(WCHAR);
@@ -9053,7 +9053,7 @@ NTSTATUS PhCallNamedPipe(
     _In_ ULONG OutputBufferLength
     )
 {
-    NTSTATUS status = STATUS_UNSUCCESSFUL;
+    NTSTATUS status;
     HANDLE pipeHandle = NULL;
 
     status = PhConnectPipe(&pipeHandle, PipeName);

@@ -361,7 +361,7 @@ VOID PhLookupSids(
             }
             else
             {
-                if (PhStartsWithString2(userName, L"S-1-", TRUE))
+                if (userName && PhStartsWithString2(userName, L"S-1-", TRUE))
                 {
                     translatedNames[i] = PhReferenceObject(userName);
                 }
@@ -692,8 +692,8 @@ VOID PhInitializeCapabilitySidCache(
 
         if (namePart.Length != 0)
         {
-            BYTE capabilityGroupSidBuffer[SECURITY_MAX_SID_SIZE];
-            BYTE capabilitySidBuffer[SECURITY_MAX_SID_SIZE];
+            BYTE capabilityGroupSidBuffer[SECURITY_MAX_SID_SIZE] = { 0 };
+            BYTE capabilitySidBuffer[SECURITY_MAX_SID_SIZE] = { 0 };
             PSID capabilityGroupSid = (PSID)capabilityGroupSidBuffer;
             PSID capabilitySid = (PSID)capabilitySidBuffer;
             UNICODE_STRING capabilityNameUs;
