@@ -1608,7 +1608,7 @@ ULONG_PTR PhFindLastCharInStringRef(
         }
     }
 
-    return -1;
+    return SIZE_MAX;
 }
 
 /**
@@ -1753,7 +1753,7 @@ BOOLEAN PhSplitStringRefAtLastChar(
     input = *Input; // get a copy of the input because FirstPart/SecondPart may alias Input
     index = PhFindLastCharInStringRef(Input, Separator, FALSE);
 
-    if (index == -1)
+    if (index == SIZE_MAX)
     {
         // The separator was not found.
 
@@ -1767,8 +1767,8 @@ BOOLEAN PhSplitStringRefAtLastChar(
 
     FirstPart->Buffer = input.Buffer;
     FirstPart->Length = index * sizeof(WCHAR);
-    SecondPart->Buffer = (PWCHAR)PTR_ADD_OFFSET(input.Buffer, index * sizeof(WCHAR) + sizeof(WCHAR));
-    SecondPart->Length = input.Length - index * sizeof(WCHAR) - sizeof(WCHAR);
+    SecondPart->Buffer = PTR_ADD_OFFSET(input.Buffer, index * sizeof(WCHAR) + sizeof(UNICODE_NULL));
+    SecondPart->Length = input.Length - index * sizeof(WCHAR) - sizeof(UNICODE_NULL);
 
     return TRUE;
 }

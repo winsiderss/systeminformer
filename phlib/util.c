@@ -1029,9 +1029,9 @@ PPH_STRING PhEllipsisStringPath(
 
     secondPartIndex = PhFindLastCharInString(String, 0, L'\\');
 
-    if (secondPartIndex == -1)
+    if (secondPartIndex == SIZE_MAX)
         secondPartIndex = PhFindLastCharInString(String, 0, L'/');
-    if (secondPartIndex == -1)
+    if (secondPartIndex == SIZE_MAX)
         return PhEllipsisString(String, DesiredCount);
 
     if (
@@ -2792,7 +2792,7 @@ PPH_STRING PhGetApplicationDirectory(
 
         indexOfFileName = PhFindLastCharInString(fileName, 0, OBJ_NAME_PATH_SEPARATOR);
 
-        if (indexOfFileName != -1)
+        if (indexOfFileName != SIZE_MAX)
             indexOfFileName++;
         else
             indexOfFileName = 0;
@@ -6344,7 +6344,7 @@ PPH_STRING PhGetDllFileName(
     {
         indexOfFileName = PhFindLastCharInString(fileName, 0, OBJ_NAME_PATH_SEPARATOR);
 
-        if (indexOfFileName != -1)
+        if (indexOfFileName != SIZE_MAX)
             indexOfFileName++;
         else
             indexOfFileName = 0;

@@ -1252,7 +1252,7 @@ PhGetStringOrEmpty(
     if (String)
         return String->Buffer;
     else
-        return (PWSTR)TEXT("");
+        return (PWSTR)TEXT(""); // HACK fixes VS2019 conformance mode warning (dmex)
 }
 
 /**
@@ -1567,10 +1567,10 @@ PhFindCharInString(
         PhSkipStringRef(&sr, StartIndex * sizeof(WCHAR));
         r = PhFindCharInStringRef(&sr, Char, FALSE);
 
-        if (r != -1)
+        if (r != SIZE_MAX)
             return r + StartIndex;
         else
-            return -1;
+            return SIZE_MAX;
     }
     else
     {
@@ -1605,10 +1605,10 @@ PhFindLastCharInString(
         PhSkipStringRef(&sr, StartIndex * sizeof(WCHAR));
         r = PhFindLastCharInStringRef(&sr, Char, FALSE);
 
-        if (r != -1)
+        if (r != SIZE_MAX)
             return r + StartIndex;
         else
-            return -1;
+            return SIZE_MAX;
     }
     else
     {
@@ -1647,10 +1647,10 @@ PhFindStringInString(
         PhSkipStringRef(&sr1, StartIndex * sizeof(WCHAR));
         r = PhFindStringInStringRef(&sr1, &sr2, FALSE);
 
-        if (r != -1)
+        if (r != SIZE_MAX)
             return r + StartIndex;
         else
-            return -1;
+            return SIZE_MAX;
     }
     else
     {
