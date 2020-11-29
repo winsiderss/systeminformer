@@ -38,8 +38,7 @@
 #include <ph.h>
 #include <guisup.h>
 #include <settings.h>
-
-#include "..\tools\thirdparty\mxml\mxml.h"
+#include <json.h>
 
 BOOLEAN NTAPI PhpSettingsHashtableEqualFunction(
     _In_ PVOID Entry1,
@@ -743,83 +742,30 @@ VOID PhConvertIgnoredSettings(
     PhReleaseQueuedLockExclusive(&PhSettingsLock);
 }
 
-PPH_STRING PhpGetOpaqueXmlNodeText(
-    _In_ mxml_node_t *node
-    )
-{
-    PCSTR string;
-
-    if (string = mxmlGetOpaque(node))
-    {
-        return PhConvertUtf8ToUtf16((PSTR)string);
-    }
-    else
-    {
-        return PhReferenceEmptyString();
-    }
-}
-
 NTSTATUS PhLoadSettings(
     _In_ PWSTR FileName
     )
 {
     NTSTATUS status;
-    HANDLE fileHandle;
-    LARGE_INTEGER fileSize;
-    mxml_node_t *topNode;
-    mxml_node_t *currentNode;
+    PVOID topNode;
+    PVOID currentNode;
 
     PhpClearIgnoredSettings();
 
-    status = PhCreateFileWin32(
-        &fileHandle,
-        FileName,
-        FILE_GENERIC_READ,
-        FILE_ATTRIBUTE_NORMAL,
-        FILE_SHARE_READ | FILE_SHARE_DELETE,
-        FILE_OPEN,
-        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-        );
-
-    if (!NT_SUCCESS(status))
+    if (!NT_SUCCESS(status = PhLoadXmlObjectFromFile(FileName, &topNode)))
         return status;
-
-    if (NT_SUCCESS(PhGetFileSize(fileHandle, &fileSize)) && fileSize.QuadPart == 0)
-    {
-        // A blank file is OK. There are no settings to load.
-        NtClose(fileHandle);
-        return status;
-    }
-
-    topNode = mxmlLoadFd(NULL, fileHandle, MXML_OPAQUE_CALLBACK);
-    NtClose(fileHandle);
-
-    if (!topNode)
+    if (!topNode) // Return corrupt status and reset the settings.
         return STATUS_FILE_CORRUPT_ERROR;
 
-    if (mxmlGetType(topNode) != MXML_ELEMENT)
-    {
-        mxmlDelete(topNode);
-        return STATUS_FILE_CORRUPT_ERROR;
-    }
-
-    currentNode = mxmlGetFirstChild(topNode);
+    currentNode = PhGetXmlNodeFirstChild(topNode);
 
     while (currentNode)
     {
-        PPH_STRING settingName = NULL;
-        PCSTR elementValue;
+        PPH_STRING settingName;
 
-        if (elementValue = mxmlElementGetAttr(currentNode, "name"))
+        if (settingName = PhGetXmlNodeAttributeText(currentNode, "name"))
         {
-            settingName = PhConvertUtf8ToUtf16((PSTR)elementValue);
-        }
-
-        if (settingName)
-        {
-            PPH_STRING settingValue = 0;
-
-            settingValue = PhpGetOpaqueXmlNodeText(currentNode);
+            PPH_STRING settingValue = PhGetOpaqueXmlNodeText(currentNode);
 
             PhAcquireQueuedLockExclusive(&PhSettingsLock);
 
@@ -865,10 +811,10 @@ NTSTATUS PhLoadSettings(
             PhDereferenceObject(settingName);
         }
 
-        currentNode = mxmlGetNextSibling(currentNode);
+        currentNode = PhGetXmlNodeNextChild(currentNode);
     }
 
-    mxmlDelete(topNode);
+    PhFreeXmlObject(topNode);
 
     PhUpdateCachedSettings();
 
@@ -876,13 +822,16 @@ NTSTATUS PhLoadSettings(
 }
 
 PSTR PhpSettingsSaveCallback(
-    _In_ mxml_node_t *node,
-    _In_ int position
+    _In_ PVOID node,
+    _In_ INT position
     )
 {
+#define MXML_WS_AFTER_OPEN 1
+#define MXML_WS_AFTER_CLOSE 3
+
     PSTR elementName;
 
-    if (!(elementName = (PSTR)mxmlGetElement(node)))
+    if (!(elementName = PhGetXmlNodeElementText(node)))
         return NULL;
 
     if (PhEqualBytesZ(elementName, "setting", TRUE))
@@ -899,29 +848,28 @@ PSTR PhpSettingsSaveCallback(
     return NULL;
 }
 
-mxml_node_t *PhpCreateSettingElement(
-    _Inout_ mxml_node_t *ParentNode,
+PVOID PhpCreateSettingElement(
+    _Inout_ PVOID ParentNode,
     _In_ PPH_STRINGREF SettingName,
     _In_ PPH_STRINGREF SettingValue
     )
 {
-    mxml_node_t *settingNode;
-    mxml_node_t *textNode;
+    PVOID settingNode;
     PPH_BYTES settingNameUtf8;
     PPH_BYTES settingValueUtf8;
 
     // Create the setting element.
 
-    settingNode = mxmlNewElement(ParentNode, "setting");
+    settingNode = PhCreateXmlNode(ParentNode, "setting");
 
     settingNameUtf8 = PhConvertUtf16ToUtf8Ex(SettingName->Buffer, SettingName->Length);
-    mxmlElementSetAttr(settingNode, "name", settingNameUtf8->Buffer);
+    PhSetXmlNodeAttributeText(settingNode, "name", settingNameUtf8->Buffer);
     PhDereferenceObject(settingNameUtf8);
 
     // Set the value.
 
     settingValueUtf8 = PhConvertUtf16ToUtf8Ex(SettingValue->Buffer, SettingValue->Length);
-    textNode = mxmlNewOpaque(settingNode, settingValueUtf8->Buffer);
+    PhCreateXmlOpaqueNode(settingNode, settingValueUtf8->Buffer);
     PhDereferenceObject(settingValueUtf8);
 
     return settingNode;
@@ -932,12 +880,11 @@ NTSTATUS PhSaveSettings(
     )
 {
     NTSTATUS status;
-    HANDLE fileHandle;
-    mxml_node_t *topNode;
+    PVOID topNode;
     PH_HASHTABLE_ENUM_CONTEXT enumContext;
     PPH_SETTING setting;
 
-    topNode = mxmlNewElement(MXML_NO_PARENT, "settings");
+    topNode = PhCreateXmlNode(NULL, "settings");
 
     PhAcquireQueuedLockShared(&PhSettingsLock);
 
@@ -953,63 +900,26 @@ NTSTATUS PhSaveSettings(
     }
 
     // Write the ignored settings.
+
+    for (ULONG i = 0; i < PhIgnoredSettings->Count; i++)
     {
-        ULONG i;
+        PPH_STRING settingValue;
 
-        for (i = 0; i < PhIgnoredSettings->Count; i++)
-        {
-            PPH_STRING settingValue;
-
-            setting = PhIgnoredSettings->Items[i];
-            settingValue = setting->u.Pointer;
-            PhpCreateSettingElement(topNode, &setting->Name, &settingValue->sr);
-        }
+        setting = PhIgnoredSettings->Items[i];
+        settingValue = setting->u.Pointer;
+        PhpCreateSettingElement(topNode, &setting->Name, &settingValue->sr);
     }
 
     PhReleaseQueuedLockShared(&PhSettingsLock);
 
-    // Create the directory if it does not exist.
-    {
-        PPH_STRING fullPath;
-        ULONG indexOfFileName;
-        PPH_STRING directoryName;
-
-        fullPath = PhGetFullPath(FileName, &indexOfFileName);
-
-        if (fullPath)
-        {
-            if (indexOfFileName != -1)
-            {
-                directoryName = PhSubstring(fullPath, 0, indexOfFileName);
-                PhCreateDirectory(directoryName);
-                PhDereferenceObject(directoryName);
-            }
-
-            PhDereferenceObject(fullPath);
-        }
-    }
-
-    status = PhCreateFileWin32(
-        &fileHandle,
+    status = PhSaveXmlObjectToFile(
         FileName,
-        FILE_GENERIC_WRITE,
-        FILE_ATTRIBUTE_NORMAL,
-        FILE_SHARE_READ,
-        FILE_OVERWRITE_IF,
-        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        topNode,
+        PhpSettingsSaveCallback
         );
+    PhFreeXmlObject(topNode);
 
-    if (!NT_SUCCESS(status))
-    {
-        mxmlDelete(topNode);
-        return status;
-    }
-
-    mxmlSaveFd(topNode, fileHandle, PhpSettingsSaveCallback);
-    mxmlDelete(topNode);
-    NtClose(fileHandle);
-
-    return STATUS_SUCCESS;
+    return status;
 }
 
 VOID PhResetSettings(

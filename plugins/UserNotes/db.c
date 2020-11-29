@@ -22,7 +22,7 @@
  */
 
 #include "usernotes.h"
-#include <commonutil.h>
+#include <json.h>
 
 BOOLEAN NTAPI ObjectDbEqualFunction(
     _In_ PVOID Entry1,
@@ -168,67 +168,22 @@ VOID SetDbPath(
     PhSwapReference(&ObjectDbPath, Path);
 }
 
-PPH_STRING GetOpaqueXmlNodeText(
-    _In_ mxml_node_t *node
-    )
-{
-    PCSTR string;
-
-    if (string = mxmlGetOpaque(node))
-    {
-        return PhConvertUtf8ToUtf16((PSTR)string);
-    }
-    else
-    {
-        return PhReferenceEmptyString();
-    }
-}
-
 NTSTATUS LoadDb(
     VOID
     )
 {
     NTSTATUS status;
-    HANDLE fileHandle;
-    LARGE_INTEGER fileSize;
-    mxml_node_t *topNode;
-    mxml_node_t *currentNode;
+    PVOID topNode;
+    PVOID currentNode;
 
-    status = PhCreateFileWin32(
-        &fileHandle,
-        ObjectDbPath->Buffer,
-        FILE_GENERIC_READ,
-        FILE_ATTRIBUTE_NORMAL,
-        FILE_SHARE_READ | FILE_SHARE_DELETE,
-        FILE_OPEN,
-        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-        );
-
-    if (!NT_SUCCESS(status))
+    if (!NT_SUCCESS(status = PhLoadXmlObjectFromFile(ObjectDbPath->Buffer, &topNode)))
         return status;
-
-    if (NT_SUCCESS(PhGetFileSize(fileHandle, &fileSize)) && fileSize.QuadPart == 0)
-    {
-        // A blank file is OK. There are no objects to load.
-        NtClose(fileHandle);
-        return status;
-    }
-
-    topNode = mxmlLoadFd(NULL, fileHandle, MXML_OPAQUE_CALLBACK);
-    NtClose(fileHandle);
-
     if (!topNode)
         return STATUS_FILE_CORRUPT_ERROR;
 
-    if (mxmlGetType(topNode) != MXML_ELEMENT)
-    {
-        mxmlDelete(topNode);
-        return STATUS_FILE_CORRUPT_ERROR;
-    }
-
     LockDb();
 
-    for (currentNode = mxmlGetFirstChild(topNode); currentNode; currentNode = mxmlGetNextSibling(currentNode))
+    for (currentNode = PhGetXmlNodeFirstChild(topNode); currentNode; currentNode = PhGetXmlNodeNextChild(currentNode))
     {
         PDB_OBJECT object = NULL;
         PPH_STRING tag = NULL;
@@ -240,14 +195,14 @@ NTSTATUS LoadDb(
         PPH_STRING collapse = NULL;
         PPH_STRING affinityMask = NULL;
 
-        if (mxmlElementGetAttrCount(currentNode) >= 2)
+        if (PhGetXmlNodeAttributeCount(currentNode) >= 2)
         {
-            for (INT i = 0; i < mxmlElementGetAttrCount(currentNode); i++)
+            for (INT i = 0; i < PhGetXmlNodeAttributeCount(currentNode); i++)
             {
                 PSTR elementName;
                 PSTR elementValue;
 
-                elementValue = (PSTR)mxmlElementGetAttrByIndex(currentNode, i, &elementName);
+                elementValue = PhGetXmlNodeAttributeByIndex(currentNode, i, &elementName);
 
                 if (!(elementName && elementValue))
                     continue;
@@ -269,7 +224,7 @@ NTSTATUS LoadDb(
             }
         }
 
-        comment = GetOpaqueXmlNodeText(currentNode);
+        comment = PhGetOpaqueXmlNodeText(currentNode);
 
         if (tag && name)
         {
@@ -330,7 +285,7 @@ NTSTATUS LoadDb(
 
     UnlockDb();
 
-    mxmlDelete(topNode);
+    PhFreeXmlObject(topNode);
 
     return STATUS_SUCCESS;
 }
@@ -375,18 +330,17 @@ NTSTATUS SaveDb(
     )
 {
     NTSTATUS status;
-    HANDLE fileHandle;
-    mxml_node_t *topNode;
+    PVOID topNode;
     ULONG enumerationKey = 0;
     PDB_OBJECT *object;
 
-    topNode = mxmlNewElement(MXML_NO_PARENT, "objects");
+    topNode = PhCreateXmlNode(NULL, "objects");
 
     LockDb();
 
     while (PhEnumHashtable(ObjectDb, (PVOID*)&object, &enumerationKey))
     {
-        mxml_node_t* objectNode;
+        PVOID objectNode;
         PPH_BYTES objectTagUtf8;
         PPH_BYTES objectNameUtf8;
         PPH_BYTES objectPriorityClassUtf8;
@@ -406,17 +360,17 @@ NTSTATUS SaveDb(
         objectCommentUtf8 = StringRefToUtf8(&(*object)->Comment->sr);
 
         // Create the setting element.
-        objectNode = mxmlNewElement(topNode, "object");
-        mxmlElementSetAttr(objectNode, "tag", objectTagUtf8->Buffer);
-        mxmlElementSetAttr(objectNode, "name", objectNameUtf8->Buffer);
-        mxmlElementSetAttr(objectNode, "priorityclass", objectPriorityClassUtf8->Buffer);
-        mxmlElementSetAttr(objectNode, "iopriorityplusone", objectIoPriorityPlusOneUtf8->Buffer);
-        mxmlElementSetAttr(objectNode, "backcolor", objectBackColorUtf8->Buffer);
-        mxmlElementSetAttr(objectNode, "collapse", objectCollapseUtf8->Buffer);
-        mxmlElementSetAttr(objectNode, "affinity", objectAffinityMaskUtf8->Buffer);
+        objectNode = PhCreateXmlNode(topNode, "object");
+        PhSetXmlNodeAttributeText(objectNode, "tag", objectTagUtf8->Buffer);
+        PhSetXmlNodeAttributeText(objectNode, "name", objectNameUtf8->Buffer);
+        PhSetXmlNodeAttributeText(objectNode, "priorityclass", objectPriorityClassUtf8->Buffer);
+        PhSetXmlNodeAttributeText(objectNode, "iopriorityplusone", objectIoPriorityPlusOneUtf8->Buffer);
+        PhSetXmlNodeAttributeText(objectNode, "backcolor", objectBackColorUtf8->Buffer);
+        PhSetXmlNodeAttributeText(objectNode, "collapse", objectCollapseUtf8->Buffer);
+        PhSetXmlNodeAttributeText(objectNode, "affinity", objectAffinityMaskUtf8->Buffer);
 
         // Set the value.
-        mxmlNewOpaque(objectNode, objectCommentUtf8->Buffer);
+        PhCreateXmlOpaqueNode(objectNode, objectCommentUtf8->Buffer);
 
         // Cleanup.
         PhDereferenceObject(objectCommentUtf8);
@@ -431,48 +385,12 @@ NTSTATUS SaveDb(
 
     UnlockDb();
 
-    // Create the directory if it does not exist.
-    {
-        PPH_STRING fullPath;
-        ULONG indexOfFileName;
-
-        if (fullPath = PhGetFullPath(ObjectDbPath->Buffer, &indexOfFileName))
-        {
-            if (indexOfFileName != ULONG_MAX)
-            {
-                PPH_STRING fileName;
-
-                if (fileName = PhSubstring(fullPath, 0, indexOfFileName))
-                {
-                    PhCreateDirectory(fileName);
-
-                    PhDereferenceObject(fileName);
-                }
-            }
-
-            PhDereferenceObject(fullPath);
-        }
-    }
-
-    status = PhCreateFileWin32(
-        &fileHandle,
+    status = PhSaveXmlObjectToFile(
         ObjectDbPath->Buffer,
-        FILE_GENERIC_WRITE,
-        FILE_ATTRIBUTE_NORMAL,
-        FILE_SHARE_READ,
-        FILE_OVERWRITE_IF,
-        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        topNode,
+        NULL
         );
+    PhFreeXmlObject(topNode);
 
-    if (!NT_SUCCESS(status))
-    {
-        mxmlDelete(topNode);
-        return status;
-    }
-
-    mxmlSaveFd(topNode, fileHandle, MXML_NO_CALLBACK);
-    mxmlDelete(topNode);
-    NtClose(fileHandle);
-
-    return STATUS_SUCCESS;
+    return status;
 }
