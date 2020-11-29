@@ -464,6 +464,35 @@ PPH_STRING PhGetSecurityDescriptorAsString(
     return securityDescriptorString;
 }
 
+PSECURITY_DESCRIPTOR PhGetSecurityDescriptorFromString(
+    _In_ PPH_STRING SecurityDescriptorString
+    )
+{
+    PVOID securityDescriptor = NULL;
+    ULONG securityDescriptorLength = 0;
+    PSECURITY_DESCRIPTOR securityDescriptorBuffer = NULL;
+
+    if (!ConvertStringSecurityDescriptorToSecurityDescriptorW_Import())
+        return NULL;
+
+    if (ConvertStringSecurityDescriptorToSecurityDescriptorW_Import()(
+        SecurityDescriptorString->Buffer,
+        SDDL_REVISION,
+        &securityDescriptorBuffer,
+        &securityDescriptorLength
+        ))
+    {
+        //assert(securityDescriptorLength == RtlLengthSecurityDescriptor(securityDescriptor));
+        securityDescriptor = PhAllocateCopy(
+            securityDescriptorBuffer,
+            securityDescriptorLength
+            );
+        LocalFree(securityDescriptorBuffer);
+    }
+
+    return securityDescriptor;
+}
+
 _Success_(return)
 BOOLEAN PhGetObjectSecurityDescriptorAsString(
     _In_ HANDLE Handle,

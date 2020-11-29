@@ -155,6 +155,13 @@ PhGetSecurityDescriptorAsString(
     _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
     );
 
+PHLIBAPI
+PSECURITY_DESCRIPTOR
+NTAPI
+PhGetSecurityDescriptorFromString(
+    _In_ PPH_STRING SecurityDescriptorString
+    );
+
 _Success_(return)
 PHLIBAPI
 BOOLEAN

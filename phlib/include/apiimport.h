@@ -111,6 +111,13 @@ typedef BOOL (WINAPI* _ConvertSecurityDescriptorToStringSecurityDescriptorW)(
     _Out_opt_ PULONG StringSecurityDescriptorLen
     );
 
+typedef BOOL (WINAPI* _ConvertStringSecurityDescriptorToSecurityDescriptorW)(
+    _In_ LPCWSTR StringSecurityDescriptor,
+    _In_ DWORD StringSDRevision,
+    _Outptr_ PSECURITY_DESCRIPTOR *SecurityDescriptor,
+    _Out_opt_ PULONG SecurityDescriptorSize
+    );
+
 typedef HRESULT (WINAPI* _SHGetFolderPathW)(
     _Reserved_ HWND hwnd,
     _In_ INT csidl,
@@ -218,6 +225,7 @@ PH_DECLARE_IMPORT(RtlGetAppContainerParent);
 PH_DECLARE_IMPORT(RtlDeriveCapabilitySidsFromName);
 
 PH_DECLARE_IMPORT(ConvertSecurityDescriptorToStringSecurityDescriptorW);
+PH_DECLARE_IMPORT(ConvertStringSecurityDescriptorToSecurityDescriptorW);
 
 PH_DECLARE_IMPORT(DnsQuery_W);
 PH_DECLARE_IMPORT(DnsExtractRecordsFromMessage_W);
