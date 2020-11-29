@@ -692,21 +692,6 @@ EXPORTS
     PhQueueItemWorkQueueEx
     PhWaitForWorkQueue
 
-; mxml
-    mxmlDelete
-    mxmlElementGetAttrCount
-    mxmlElementGetAttrByIndex
-    mxmlElementSetAttr
-    mxmlGetFirstChild
-    mxmlGetNextSibling
-    mxmlGetOpaque
-    mxmlGetType
-    mxmlLoadFd
-    mxmlNewOpaque
-    mxmlNewElement
-    mxmlSaveFd
-    mxml_opaque_cb
-
 ; json
     PhCreateJsonParser
     PhFreeJsonParser
@@ -725,6 +710,21 @@ EXPORTS
     PhGetJsonArrayLong64
     PhGetJsonArrayLength
     PhGetJsonArrayIndexObject
+
+; xml
+    PhLoadXmlObjectFromFile
+    PhSaveXmlObjectToFile
+    PhFreeXmlObject
+    PhGetOpaqueXmlNodeText
+    PhGetXmlNodeElementText
+    PhGetXmlNodeAttributeText
+    PhGetXmlNodeAttributeByIndex
+    PhSetXmlNodeAttributeText
+    PhGetXmlNodeAttributeCount
+    PhGetXmlNodeFirstChild
+    PhGetXmlNodeNextChild
+    PhCreateXmlNode
+    PhCreateXmlOpaqueNode
 
 ; cache
     PhCreateCacheFile

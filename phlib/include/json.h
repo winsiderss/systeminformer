@@ -292,15 +292,6 @@ PhGetXmlNodeNextChild(
     );
 
 PHLIBAPI
-VOID
-NTAPI
-PhSetXmlNodeAttributeText(
-    _In_ PVOID XmlNodeObject,
-    _In_ PSTR Name,
-    _In_ PSTR Value
-    );
-
-PHLIBAPI
 PVOID
 NTAPI
 PhCreateXmlNode(
