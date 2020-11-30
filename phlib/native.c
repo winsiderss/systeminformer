@@ -2167,7 +2167,8 @@ NTSTATUS PhSetEnvironmentVariableRemote(
     }
 #endif
 
-    status = NtAlertResumeThread(threadHandle, NULL);
+    // Execute the pending APCs (dmex)
+    status = NtResumeThread(threadHandle, NULL);
 
     if (!NT_SUCCESS(status))
         goto CleanupExit;
