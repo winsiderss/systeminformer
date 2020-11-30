@@ -5537,7 +5537,6 @@ BOOLEAN PhParseCommandLineFuzzy(
     PH_STRINGREF currentPart;
     PH_STRINGREF remainingPart;
     PPH_STRING filePathSr;
-    WCHAR originalChar;
 
     commandLine = *CommandLine;
     PhTrimStringRef(&commandLine, &whitespace, 0);
@@ -5618,6 +5617,7 @@ BOOLEAN PhParseCommandLineFuzzy(
 
     while (remainingPart.Length != 0)
     {
+        WCHAR originalChar = UNICODE_NULL;
         BOOLEAN found;
 
         found = PhSplitStringRefAtChar(&remainingPart, L' ', &currentPart, &remainingPart);
@@ -5625,7 +5625,7 @@ BOOLEAN PhParseCommandLineFuzzy(
         if (found)
         {
             originalChar = *(remainingPart.Buffer - 1);
-            *(remainingPart.Buffer - 1) = 0;
+            *(remainingPart.Buffer - 1) = UNICODE_NULL;
         }
 
         filePathSr = PhSearchFilePath(temp.Buffer, L".exe");
@@ -5734,9 +5734,9 @@ PPH_STRING PhCreateCacheFile(
     static PH_STRINGREF settingsDir = PH_STRINGREF_INIT(L"\\cache");
     PPH_STRING fileName;
     PPH_STRING settingsFileName;
-    PPH_STRING cacheDirectory = NULL;
+    PPH_STRING cacheDirectory;
     PPH_STRING cacheFilePath;
-    PPH_STRING cacheFullFilePath = NULL;
+    PPH_STRING cacheFullFilePath;
     ULONG indexOfFileName = ULONG_MAX;
     WCHAR alphastring[16] = L"";
 
@@ -5827,7 +5827,7 @@ VOID PhClearCacheDirectory(
     static PH_STRINGREF settingsDir = PH_STRINGREF_INIT(L"\\cache");
     PPH_STRING fileName;
     PPH_STRING settingsFileName;
-    PPH_STRING cacheDirectory = NULL;
+    PPH_STRING cacheDirectory;
     WCHAR alphastring[16] = L"";
 
     fileName = PhGetApplicationFileName();
@@ -6144,7 +6144,7 @@ PPH_STRING PhLoadIndirectString(
         PH_STRINGREF sourceRef;
         PH_STRINGREF dllNameRef;
         PH_STRINGREF dllIndexRef;
-        ULONG64 index64;
+        LONG64 index64;
         LONG index;
 
         PhInitializeStringRefLongHint(&sourceRef, SourceString);
@@ -6159,9 +6159,11 @@ PPH_STRING PhLoadIndirectString(
             // these strings use the following format: "@FileName.inf,%SectionKeyName%;DefaultString".
             // Return the last token of the service string instead of locating and parsing the inf file with GetPrivateProfileString.
             if (PhSplitStringRefAtChar(&sourceRef, L';', &dllNameRef, &dllIndexRef)) // dllIndexRef.Buffer[0] == L'%'
+            {
                 return PhCreateString2(&dllIndexRef);
-            else
-                return NULL;
+            }
+
+            return NULL;
         }
 
         libraryString = PhCreateString2(&dllNameRef);
@@ -6234,7 +6236,7 @@ HWND PhHungWindowFromGhostWindow(
     // This is an undocumented function exported by user32.dll that
     // retrieves the hung window represented by a ghost window. (wj32)
     static HWND (WINAPI *HungWindowFromGhostWindow_I)(
-        _In_ HWND WindowHandle
+        _In_ HWND GhostWindowHandle
         );
 
     if (PhBeginInitOnce(&initOnce))
@@ -6697,7 +6699,7 @@ PVOID PhGetLoaderEntryImageExportFunction(
             {
                 if (libraryFunctionString->Buffer[0] == L'#') // This is a forwarder RVA with an ordinal import.
                 {
-                    ULONG64 importOrdinal;
+                    LONG64 importOrdinal;
 
                     PhSkipStringRef(&dllProcedureRef, sizeof(L'#'));
 
