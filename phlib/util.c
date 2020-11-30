@@ -7500,7 +7500,7 @@ HRESULT PhGetClassObjectDllBase(
     IClassFactory* classFactory;
 
     if (!(DllGetClassObject_I = PhGetDllBaseProcedureAddress(DllBase, "DllGetClassObject", 0)))
-        return ERROR_PROC_NOT_FOUND;
+        return HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);
 
     status = DllGetClassObject_I(
         Rclsid,
@@ -7535,7 +7535,7 @@ HRESULT PhGetClassObject(
     if (!(baseAddress = PhGetLoaderEntryDllBase(DllName)))
     {
         if (!(baseAddress = LoadLibrary(DllName)))
-            return ERROR_MOD_NOT_FOUND;
+            return HRESULT_FROM_WIN32(ERROR_MOD_NOT_FOUND);
     }
 
     return PhGetClassObjectDllBase(baseAddress, Rclsid, Riid, Ppv);
