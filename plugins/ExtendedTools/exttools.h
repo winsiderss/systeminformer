@@ -796,7 +796,7 @@ typedef struct _FW_EVENT_ITEM
         };
     };
 
-    ULONG JustResolved;
+    LONG JustResolved;
 
     ULONG Direction;
     ULONG Type; // FWPM_NET_EVENT_TYPE

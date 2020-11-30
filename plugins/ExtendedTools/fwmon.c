@@ -339,7 +339,7 @@ BOOLEAN FwProcessEventType(
         return TRUE;
     case FWPM_NET_EVENT_TYPE_IKEEXT_MM_FAILURE:
         {
-            FWPM_NET_EVENT_IKEEXT_MM_FAILURE* fwIkeMmFailureEvent = FwEvent->ikeMmFailure;
+            //FWPM_NET_EVENT_IKEEXT_MM_FAILURE* fwIkeMmFailureEvent = FwEvent->ikeMmFailure;
             //UINT32 failureErrorCode;
             //IPSEC_FAILURE_POINT failurePoint;
             //UINT32 flags;
@@ -361,7 +361,7 @@ BOOLEAN FwProcessEventType(
         return FALSE;
     case FWPM_NET_EVENT_TYPE_IKEEXT_QM_FAILURE:
         {
-            FWPM_NET_EVENT_IKEEXT_QM_FAILURE* fwIkeQmFailureEvent = FwEvent->ikeQmFailure;
+            //FWPM_NET_EVENT_IKEEXT_QM_FAILURE* fwIkeQmFailureEvent = FwEvent->ikeQmFailure;
             //UINT32 failureErrorCode;
             //IPSEC_FAILURE_POINT failurePoint;
             //IKEEXT_KEY_MODULE_TYPE keyingModuleType;
@@ -383,7 +383,7 @@ BOOLEAN FwProcessEventType(
         return FALSE;
     case FWPM_NET_EVENT_TYPE_IKEEXT_EM_FAILURE:
         {
-            FWPM_NET_EVENT_IKEEXT_EM_FAILURE* fwIkeEmFailureEvent = FwEvent->ikeEmFailure;
+            //FWPM_NET_EVENT_IKEEXT_EM_FAILURE* fwIkeEmFailureEvent = FwEvent->ikeEmFailure;
             //UINT32 failureErrorCode;
             //IPSEC_FAILURE_POINT failurePoint;
             //UINT32 flags;
@@ -404,7 +404,7 @@ BOOLEAN FwProcessEventType(
         return FALSE;
     case FWPM_NET_EVENT_TYPE_IPSEC_KERNEL_DROP:
         {
-            FWPM_NET_EVENT_IPSEC_KERNEL_DROP* fwIpsecDropEvent = FwEvent->ipsecDrop;
+            //FWPM_NET_EVENT_IPSEC_KERNEL_DROP* fwIpsecDropEvent = FwEvent->ipsecDrop;
             //INT32 failureStatus;
             //FWP_DIRECTION direction;
             //IPSEC_SA_SPI spi;
@@ -414,7 +414,7 @@ BOOLEAN FwProcessEventType(
         return FALSE;
     case FWPM_NET_EVENT_TYPE_IPSEC_DOSP_DROP:
         {
-            FWPM_NET_EVENT_IPSEC_DOSP_DROP* fwIdpDropEvent = FwEvent->idpDrop;
+            //FWPM_NET_EVENT_IPSEC_DOSP_DROP* fwIdpDropEvent = FwEvent->idpDrop;
             //FWP_IP_VERSION ipVersion;
             //union
             //{
@@ -432,7 +432,7 @@ BOOLEAN FwProcessEventType(
         return FALSE;
     case FWPM_NET_EVENT_TYPE_CAPABILITY_DROP:
         {
-            FWPM_NET_EVENT_CAPABILITY_DROP* fwCapabilityDropEvent = FwEvent->capabilityDrop;
+            //FWPM_NET_EVENT_CAPABILITY_DROP* fwCapabilityDropEvent = FwEvent->capabilityDrop;
             //FWPM_APPC_NETWORK_CAPABILITY_TYPE networkCapabilityId;
             //UINT64 filterId;
             //BOOL isLoopback;
@@ -440,7 +440,7 @@ BOOLEAN FwProcessEventType(
         return FALSE;
     case FWPM_NET_EVENT_TYPE_CAPABILITY_ALLOW:
         {
-            FWPM_NET_EVENT_CAPABILITY_ALLOW* fwCapabilityAllowEvent = FwEvent->capabilityAllow;
+            //FWPM_NET_EVENT_CAPABILITY_ALLOW* fwCapabilityAllowEvent = FwEvent->capabilityAllow;
             //FWPM_APPC_NETWORK_CAPABILITY_TYPE networkCapabilityId;
             //UINT64 filterId;
             //BOOL isLoopback;
@@ -448,7 +448,7 @@ BOOLEAN FwProcessEventType(
         return FALSE;
     case FWPM_NET_EVENT_TYPE_CLASSIFY_DROP_MAC:
         {
-            FWPM_NET_EVENT_CLASSIFY_DROP_MAC* fwClassifyDropMacEvent = FwEvent->classifyDropMac;
+            //FWPM_NET_EVENT_CLASSIFY_DROP_MAC* fwClassifyDropMacEvent = FwEvent->classifyDropMac;
             //FWP_BYTE_ARRAY6 localMacAddr;
             //FWP_BYTE_ARRAY6 remoteMacAddr;
             //UINT32 mediaType;
@@ -472,7 +472,7 @@ BOOLEAN FwProcessEventType(
         return FALSE;
     case FWPM_NET_EVENT_TYPE_LPM_PACKET_ARRIVAL:
         {
-            FWPM_NET_EVENT_LPM_PACKET_ARRIVAL* fwLpmPacketArrivalEvent = FwEvent->lpmPacketArrival;
+            //FWPM_NET_EVENT_LPM_PACKET_ARRIVAL* fwLpmPacketArrivalEvent = FwEvent->lpmPacketArrival;
             //IPSEC_SA_SPI spi;
         }
         return FALSE;
@@ -1104,13 +1104,13 @@ BOOLEAN EtFwGetFilterDisplayData(
     {
         PhAcquireQueuedLockExclusive(&EtFwFilterDisplayDataHashTableLock);
 
-        ETFW_FILTER_DISPLAY_CONTEXT entry;
-        memset(&entry, 0, sizeof(ETFW_FILTER_DISPLAY_CONTEXT));
-        entry.FilterId = FilterId;
-        entry.Name = filterName;
-        entry.Description = filterDescription;
+        ETFW_FILTER_DISPLAY_CONTEXT newentry;
+        memset(&newentry, 0, sizeof(ETFW_FILTER_DISPLAY_CONTEXT));
+        newentry.FilterId = FilterId;
+        newentry.Name = filterName;
+        newentry.Description = filterDescription;
 
-        PhAddEntryHashtable(EtFwFilterDisplayDataHashTable, &entry);
+        PhAddEntryHashtable(EtFwFilterDisplayDataHashTable, &newentry);
 
         if (Name)
             *Name = PhReferenceObject(filterName);
@@ -1241,9 +1241,9 @@ PPH_STRING EtFwGetSidFullNameCachedSlow(
 
     if (entry = EtFwSidLookupCacheItem(Sid))
     {
-        PPH_STRING fullName = PhReferenceObject(entry->FullName);
+        PPH_STRING name = PhReferenceObject(entry->FullName);
         PhReleaseQueuedLockShared(&EtFwSidFullNameCacheHashtableLock);
-        return fullName;
+        return name;
     }
 
     PhReleaseQueuedLockShared(&EtFwSidFullNameCacheHashtableLock);
@@ -1742,13 +1742,11 @@ VOID EtFwMonitorUninitialize(
 
     if (EtFwEngineHandle)
     {
-        FWP_VALUE value = { FWP_EMPTY };
+        FWP_VALUE value;
 
-        // Disable collection of NetEvents
-
+        // Disable event collection
         value.type = FWP_UINT32;
         value.uint32 = 0;
-
         FwpmEngineSetOption(EtFwEngineHandle, FWPM_ENGINE_COLLECT_NET_EVENTS, &value);
 
         FwpmEngineClose(EtFwEngineHandle);

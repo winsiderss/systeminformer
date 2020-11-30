@@ -354,6 +354,6 @@ typedef struct _RESOLVED_PORT
     USHORT Port;
 } RESOLVED_PORT;
 
-RESOLVED_PORT ResolvedPortsTable[6265];
+extern RESOLVED_PORT ResolvedPortsTable[6265];
 
 #endif

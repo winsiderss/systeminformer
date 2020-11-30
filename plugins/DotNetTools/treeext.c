@@ -64,10 +64,6 @@ typedef struct _THREAD_TREE_CONTEXT
     PCLR_PROCESS_SUPPORT Support;
 } THREAD_TREE_CONTEXT, *PTHREAD_TREE_CONTEXT;
 
-static PPH_HASHTABLE ContextHashtable;
-static PH_QUEUED_LOCK ContextHashtableLock = PH_QUEUED_LOCK_INIT;
-static PH_INITONCE ContextHashtableInitOnce = PH_INITONCE_INIT;
-
 VOID InitializeTreeNewObjectExtensions(
     VOID
     )
@@ -152,7 +148,7 @@ static VOID ThreadRemovedHandler(
 {
     PPH_THREAD_ITEM threadItem = Parameter;
     PDN_THREAD_ITEM dnThread;
-    PTHREAD_TREE_CONTEXT context = Context;
+    //PTHREAD_TREE_CONTEXT context = Context;
 
     if (!threadItem)
         return;
