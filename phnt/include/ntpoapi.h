@@ -140,7 +140,7 @@ typedef struct _POWER_STATE_NOTIFY_HANDLER
 #define ProcessorStateHandler2 13 // not implemented
 #define LastWakeTime 14 // ULONGLONG
 #define LastSleepTime 15 // ULONGLONG
-#define SystemExecutionState 16 // EXECUTION_STATE // SetThreadExecutionState
+#define SystemExecutionState 16 // EXECUTION_STATE // NtSetThreadExecutionState
 #define SystemPowerStateNotifyHandler 17 // (kernel-mode only)
 #define ProcessorPowerPolicyAc 18 // not implemented
 #define ProcessorPowerPolicyDc 19 // not implemented
