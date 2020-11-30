@@ -1836,13 +1836,14 @@ BOOLEAN PhInsertCopyListViewEMenuItem(
     PPH_EMENU_ITEM parentItem = NULL;
     ULONG indexInParent = 0;
     PPH_COPY_ITEM_CONTEXT context;
-    PPH_STRING columnText = NULL;
+    PPH_STRING columnText;
     PPH_STRING escapedText;
     PPH_STRING menuItemText;
     PPH_EMENU_ITEM copyMenuItem;
     POINT location;
     LVHITTESTINFO lvHitInfo;
     HDITEM headerItem;
+    HWND headerHandle;
     PH_FORMAT format[3];
     WCHAR headerText[MAX_PATH] = L"";
 
@@ -1861,8 +1862,9 @@ BOOLEAN PhInsertCopyListViewEMenuItem(
     headerItem.mask = HDI_TEXT;
     headerItem.cchTextMax = RTL_NUMBER_OF(headerText);
     headerItem.pszText = headerText;
+    headerHandle = ListView_GetHeader(ListViewHandle);
 
-    if (!Header_GetItem(ListView_GetHeader(ListViewHandle), lvHitInfo.iSubItem, &headerItem))
+    if (!Header_GetItem(headerHandle, lvHitInfo.iSubItem, &headerItem))
         return FALSE;
 
     columnText = PhaCreateString(headerText);
@@ -2193,7 +2195,9 @@ HRESULT PhRunAsAdminTask(
     _In_ PWSTR TaskName
     )
 {
-    HRESULT status = S_FALSE;
+    HRESULT status;
+    BSTR taskNameString = NULL;
+    BSTR taskFolderString = NULL;
     VARIANT empty = { VT_EMPTY };
     ITaskService* taskService = NULL;
     ITaskFolder* taskFolder = NULL;
@@ -2210,6 +2214,9 @@ HRESULT PhRunAsAdminTask(
     if (FAILED(status))
         goto CleanupExit;
 
+    taskNameString = SysAllocString(TaskName);
+    taskFolderString = SysAllocString(L"\\");
+
     status = ITaskService_Connect(
         taskService,
         empty,
@@ -2223,7 +2230,7 @@ HRESULT PhRunAsAdminTask(
 
     status = ITaskService_GetFolder(
         taskService,
-        L"\\",
+        taskFolderString,
         &taskFolder
         );
 
@@ -2232,7 +2239,7 @@ HRESULT PhRunAsAdminTask(
 
     status = ITaskFolder_GetTask(
         taskFolder,
-        TaskName,
+        taskNameString,
         &taskRegisteredTask
         );
 
@@ -2258,6 +2265,10 @@ CleanupExit:
         ITaskFolder_Release(taskFolder);
     if (taskService)
         ITaskService_Release(taskService);
+    if (taskFolderString)
+        SysFreeString(taskFolderString);
+    if (taskNameString)
+        SysFreeString(taskNameString);
 
     return status;
 }
@@ -2266,7 +2277,9 @@ HRESULT PhDeleteAdminTask(
     _In_ PWSTR TaskName
     )
 {
-    HRESULT status = S_FALSE;
+    HRESULT status;
+    BSTR taskNameString = NULL;
+    BSTR taskFolderString = NULL;
     VARIANT empty = { VT_EMPTY };
     ITaskService* taskService = NULL;
     ITaskFolder* taskFolder = NULL;
@@ -2281,6 +2294,9 @@ HRESULT PhDeleteAdminTask(
     if (FAILED(status))
         goto CleanupExit;
 
+    taskNameString = SysAllocString(TaskName);
+    taskFolderString = SysAllocString(L"\\");
+
     status = ITaskService_Connect(
         taskService,
         empty,
@@ -2294,7 +2310,7 @@ HRESULT PhDeleteAdminTask(
 
     status = ITaskService_GetFolder(
         taskService,
-        L"\\",
+        taskFolderString,
         &taskFolder
         );
 
@@ -2303,7 +2319,7 @@ HRESULT PhDeleteAdminTask(
 
     status = ITaskFolder_DeleteTask(
         taskFolder,
-        TaskName,
+        taskNameString,
         0
         );
 
@@ -2313,6 +2329,10 @@ CleanupExit:
         ITaskFolder_Release(taskFolder);
     if (taskService)
         ITaskService_Release(taskService);
+    if (taskFolderString)
+        SysFreeString(taskFolderString);
+    if (taskNameString)
+        SysFreeString(taskNameString);
 
     return status;
 }
@@ -2322,7 +2342,11 @@ HRESULT PhCreateAdminTask(
     _In_ PWSTR FileName
     )
 {
-    HRESULT status = S_FALSE;
+    HRESULT status;
+    BSTR taskNameString = NULL;
+    BSTR taskFileNameString = NULL;
+    BSTR taskFolderString = NULL;
+    BSTR taskTimeLimitString = NULL;
     VARIANT empty = { VT_EMPTY };
     ITaskService* taskService = NULL;
     ITaskFolder* taskFolder = NULL;
@@ -2348,6 +2372,11 @@ HRESULT PhCreateAdminTask(
     if (FAILED(status))
         goto CleanupExit;
 
+    taskNameString = SysAllocString(TaskName);
+    taskFileNameString = SysAllocString(FileName);
+    taskFolderString = SysAllocString(L"\\");
+    taskTimeLimitString = SysAllocString(L"PT0S");
+
     status = ITaskService_Connect(
         taskService,
         empty,
@@ -2361,7 +2390,7 @@ HRESULT PhCreateAdminTask(
 
     status = ITaskService_GetFolder(
         taskService,
-        L"\\",
+        taskFolderString,
         &taskFolder
         );
 
@@ -2389,7 +2418,7 @@ HRESULT PhCreateAdminTask(
     ITaskSettings_put_StartWhenAvailable(taskSettings, VARIANT_TRUE);
     ITaskSettings_put_DisallowStartIfOnBatteries(taskSettings, VARIANT_FALSE);
     ITaskSettings_put_StopIfGoingOnBatteries(taskSettings, VARIANT_FALSE);
-    ITaskSettings_put_ExecutionTimeLimit(taskSettings, L"PT0S");
+    ITaskSettings_put_ExecutionTimeLimit(taskSettings, taskTimeLimitString);
     //ITaskSettings_put_Priority(taskSettings, 1);
 
     if (SUCCEEDED(ITaskSettings_QueryInterface(
@@ -2471,7 +2500,7 @@ HRESULT PhCreateAdminTask(
 
     status = IExecAction_put_Path(
         taskExecAction,
-        FileName
+        taskFileNameString
         );
 
     if (FAILED(status))
@@ -2479,13 +2508,13 @@ HRESULT PhCreateAdminTask(
 
     ITaskFolder_DeleteTask(
         taskFolder,
-        TaskName,
+        taskNameString,
         0
         );
 
     status = ITaskFolder_RegisterTaskDefinition(
         taskFolder,
-        TaskName,
+        taskNameString,
         taskDefinition,
         TASK_CREATE_OR_UPDATE,
         empty,
@@ -2517,6 +2546,14 @@ CleanupExit:
         ITaskFolder_Release(taskFolder);
     if (taskService)
         ITaskService_Release(taskService);
+    if (taskTimeLimitString)
+        SysFreeString(taskTimeLimitString);
+    if (taskNameString)
+        SysFreeString(taskNameString);
+    if (taskFileNameString)
+        SysFreeString(taskFileNameString);
+    if (taskFolderString)
+        SysFreeString(taskFolderString);
 
     return status;
 }
