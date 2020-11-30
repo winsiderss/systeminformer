@@ -2,7 +2,7 @@
  * Process Hacker .NET Tools -
  *   IPC support functions
  *
- * Copyright (C) 2015-2018 dmex
+ * Copyright (C) 2015-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -232,7 +232,7 @@ PPH_LIST EnumerateAppDomainIpcBlock(
         // If it's not on a WCHAR boundary, then we may have a 1-byte buffer-overflow.
         appDomainNameLength = appDomainInfoBlock[i].NameLengthInBytes / sizeof(WCHAR);
 
-        if ((appDomainNameLength * sizeof(WCHAR)) != appDomainInfoBlock[i].NameLengthInBytes)
+        if ((appDomainNameLength * sizeof(WCHAR)) != (SIZE_T)appDomainInfoBlock[i].NameLengthInBytes)
             continue;
 
         // It should at least have 1 char for the null terminator.
@@ -393,7 +393,7 @@ PPH_LIST EnumerateAppDomainIpcBlockWow64(
         // If it's not on a WCHAR boundary, then we may have a 1-byte buffer-overflow.
         appDomainNameLength = appDomainInfoBlock[i].NameLengthInBytes / sizeof(WCHAR);
 
-        if ((appDomainNameLength * sizeof(WCHAR)) != appDomainInfoBlock[i].NameLengthInBytes)
+        if ((appDomainNameLength * sizeof(WCHAR)) != (SIZE_T)appDomainInfoBlock[i].NameLengthInBytes)
             continue;
 
         // It should at least have 1 char for the null terminator.
@@ -442,15 +442,20 @@ BOOLEAN OpenDotNetPublicControlBlock_V2(
     _Out_ PVOID* BlockTableAddress
     )
 {
-    BOOLEAN result = FALSE;
     HANDLE blockTableHandle = NULL;
     PVOID blockTableAddress = NULL;
+    PPH_STRING legacyPublicIPCBlockName;
     UNICODE_STRING sectionNameUs;
     OBJECT_ATTRIBUTES objectAttributes;
     LARGE_INTEGER sectionOffset = { 0 };
     SIZE_T viewSize = 0;
 
-    if (!PhStringRefToUnicodeString(&PhaFormatString(L"\\BaseNamedObjects\\" CorLegacyPublicIPCBlock, HandleToUlong(ProcessId))->sr, &sectionNameUs))
+    legacyPublicIPCBlockName = PhaFormatString(
+        L"\\BaseNamedObjects\\" CorLegacyPublicIPCBlock,
+        HandleToUlong(ProcessId)
+        );
+
+    if (!PhStringRefToUnicodeString(&legacyPublicIPCBlockName->sr, &sectionNameUs))
         return FALSE;
 
     InitializeObjectAttributes(
@@ -507,6 +512,7 @@ BOOLEAN OpenDotNetPublicControlBlock_V4(
     )
 {
     BOOLEAN result = FALSE;
+    PPH_STRING legacyBoundaryDescriptorName;
     PVOID boundaryDescriptorHandle = NULL;
     HANDLE privateNamespaceHandle = NULL;
     HANDLE blockTableHandle = NULL;
@@ -523,7 +529,12 @@ BOOLEAN OpenDotNetPublicControlBlock_V4(
     PTOKEN_APPCONTAINER_INFORMATION appContainerInfo = NULL;
     SID_IDENTIFIER_AUTHORITY SIDWorldAuth = SECURITY_WORLD_SID_AUTHORITY;
 
-    if (!PhStringRefToUnicodeString(&PhaFormatString(CorSxSBoundaryDescriptor, HandleToUlong(ProcessId))->sr, &boundaryNameUs))
+    legacyBoundaryDescriptorName = PhFormatString(
+        CorSxSBoundaryDescriptor,
+        HandleToUlong(ProcessId)
+        );
+
+    if (!PhStringRefToUnicodeString(&legacyBoundaryDescriptorName->sr, &boundaryNameUs))
         goto CleanupExit;
 
     if (!(boundaryDescriptorHandle = RtlCreateBoundaryDescriptor(&boundaryNameUs, 0)))
@@ -646,6 +657,8 @@ CleanupExit:
         RtlDeleteBoundaryDescriptor(boundaryDescriptorHandle);
     }
 
+    PhDereferenceObject(legacyBoundaryDescriptorName);
+
     return result;
 }
 
@@ -656,7 +669,7 @@ PPH_LIST QueryDotNetAppDomainsForPid_V2(
     )
 {
     PPH_LIST appDomainsList = NULL;
-    PPH_STRING legacyPrivateBlockName = NULL;
+    PPH_STRING legacyPrivateBlockName;
     HANDLE legacyPrivateBlockHandle = NULL;
     PVOID ipcControlBlockTable = NULL;
     OBJECT_ATTRIBUTES objectAttributes;
@@ -785,7 +798,7 @@ PPH_LIST QueryDotNetAppDomainsForPid_V4(
     )
 {
     PPH_LIST appDomainsList = NULL;
-    PPH_STRING legacyPrivateBlockName = NULL;
+    PPH_STRING legacyPrivateBlockName;
     HANDLE legacyPrivateBlockHandle = NULL;
     PVOID ipcControlBlockTable = NULL;
     OBJECT_ATTRIBUTES objectAttributes;
@@ -793,7 +806,7 @@ PPH_LIST QueryDotNetAppDomainsForPid_V4(
     LARGE_INTEGER sectionOffset;
     SIZE_T viewSize;
     
-    legacyPrivateBlockName = PhaFormatString(
+    legacyPrivateBlockName = PhFormatString(
         L"\\BaseNamedObjects\\" CorLegacyPrivateIPCBlockTempV4,
         HandleToUlong(ProcessId)
         );
@@ -899,6 +912,8 @@ CleanupExit:
     {
         NtClose(legacyPrivateBlockHandle);
     }
+
+    PhDereferenceObject(legacyPrivateBlockName);
 
     return appDomainsList;
 }
