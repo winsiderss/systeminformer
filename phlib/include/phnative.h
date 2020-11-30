@@ -159,7 +159,7 @@ PHLIBAPI
 PSECURITY_DESCRIPTOR
 NTAPI
 PhGetSecurityDescriptorFromString(
-    _In_ PPH_STRING SecurityDescriptorString
+    _In_ PWSTR SecurityDescriptorString
     );
 
 _Success_(return)

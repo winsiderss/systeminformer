@@ -465,7 +465,7 @@ PPH_STRING PhGetSecurityDescriptorAsString(
 }
 
 PSECURITY_DESCRIPTOR PhGetSecurityDescriptorFromString(
-    _In_ PPH_STRING SecurityDescriptorString
+    _In_ PWSTR SecurityDescriptorString
     )
 {
     PVOID securityDescriptor = NULL;
@@ -476,7 +476,7 @@ PSECURITY_DESCRIPTOR PhGetSecurityDescriptorFromString(
         return NULL;
 
     if (ConvertStringSecurityDescriptorToSecurityDescriptorW_Import()(
-        SecurityDescriptorString->Buffer,
+        SecurityDescriptorString,
         SDDL_REVISION,
         &securityDescriptorBuffer,
         &securityDescriptorLength
