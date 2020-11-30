@@ -124,7 +124,7 @@ typedef struct _POWER_STATE_NOTIFY_HANDLER
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 // POWER_INFORMATION_LEVEL
 // Note: We don't use an enum for these values to minimize conflicts with the Windows SDK. (dmex)
-#define SystemPowerPolicyAc 0 // SYSTEM_POWER_POLICY // gets policy if InputBuffer is NULL and sets it otherwise.
+#define SystemPowerPolicyAc 0 // SYSTEM_POWER_POLICY // GET: InputBuffer NULL. SET: InputBuffer not NULL.
 #define SystemPowerPolicyDc 1 // SYSTEM_POWER_POLICY
 #define VerifySystemPolicyAc 2 // SYSTEM_POWER_POLICY
 #define VerifySystemPolicyDc 3 // SYSTEM_POWER_POLICY
@@ -133,7 +133,7 @@ typedef struct _POWER_STATE_NOTIFY_HANDLER
 #define SystemPowerStateHandler 6 // (kernel-mode only)
 #define ProcessorStateHandler 7 // (kernel-mode only)
 #define SystemPowerPolicyCurrent 8 // SYSTEM_POWER_POLICY
-#define AdministratorPowerPolicy 9 // ADMINISTRATOR_POWER_POLICY // GET: InputBuffer NULL. SET: not NULL.
+#define AdministratorPowerPolicy 9 // ADMINISTRATOR_POWER_POLICY
 #define SystemReserveHiberFile 10 // BOOLEAN // (requires SeCreatePagefilePrivilege) // TRUE: hibernation file created. FALSE: hibernation file deleted.
 #define ProcessorInformation 11 // PROCESSOR_POWER_INFORMATION
 #define SystemPowerInformation 12 // SYSTEM_POWER_INFORMATION
