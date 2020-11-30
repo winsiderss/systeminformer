@@ -214,7 +214,7 @@ typedef struct _POWER_STATE_NOTIFY_HANDLER
 #define PowerInformationInternal 87
 #define ThermalStandby 88 // NULL // shutdown with thermal standby as reason.
 #define SystemHiberFileType 89 // ULONG // zero ? reduced : full // powercfg.exe /h /type 
-#define PhysicalPowerButtonPress 90 // BOOLEAN // bugcheck with MANUALLY_INITIATED_POWER_BUTTON_HOLD 
+#define PhysicalPowerButtonPress 90 // BOOLEAN
 #define QueryPotentialDripsConstraint 91 // (kernel-mode only)
 #define EnergyTrackerCreate 92
 #define EnergyTrackerQuery 93
