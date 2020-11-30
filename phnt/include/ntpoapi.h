@@ -176,9 +176,9 @@ typedef struct _POWER_STATE_NOTIFY_HANDLER
 #define ProcessorIdleDomains 49 // (kernel-mode only)
 #define WakeTimerList 50 // powercfg.exe /waketimers
 #define SystemHiberFileSize 51 // ULONG
-#define ProcessorIdleStatesHv 52
-#define ProcessorPerfStatesHv 53
-#define ProcessorPerfCapHv 54
+#define ProcessorIdleStatesHv 52 // (kernel-mode only)
+#define ProcessorPerfStatesHv 53 // (kernel-mode only)
+#define ProcessorPerfCapHv 54 // (kernel-mode only)
 #define ProcessorSetIdle 55 // (debug-mode boot only) 
 #define LogicalProcessorIdling 56 // (kernel-mode only)
 #define UserPresence 57 // not implemented
