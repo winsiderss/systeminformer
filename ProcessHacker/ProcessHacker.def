@@ -265,6 +265,7 @@ EXPORTS
     PhEnumProcessModulesEx
     PhFindProcessInformation
     PhFindProcessInformationByImageName
+    PhGetFileAllocationSize
     PhGetFileName
     PhGetFilePosition
     PhGetFileSize
@@ -315,6 +316,7 @@ EXPORTS
     PhQueryValueKey
     PhQueryTokenVariableSize
     PhResolveDevicePrefix
+    PhSetFileAllocationSize
     PhSetFilePosition
     PhSetFileSize
     PhSetObjectSecurity
