@@ -3126,6 +3126,50 @@ NTSTATUS PhSetFilePosition(
         );
 }
 
+NTSTATUS PhGetFileAllocationSize(
+    _In_ HANDLE FileHandle,
+    _Out_ PLARGE_INTEGER AllocationSize
+    )
+{
+    NTSTATUS status;
+    FILE_ALLOCATION_INFORMATION allocationInfo;
+    IO_STATUS_BLOCK isb;
+
+    status = NtQueryInformationFile(
+        FileHandle,
+        &isb,
+        &allocationInfo,
+        sizeof(FILE_ALLOCATION_INFORMATION),
+        FileAllocationInformation
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    *AllocationSize = allocationInfo.AllocationSize;
+
+    return status;
+}
+
+NTSTATUS PhSetFileAllocationSize(
+    _In_ HANDLE FileHandle,
+    _In_ PLARGE_INTEGER AllocationSize
+    )
+{
+    FILE_ALLOCATION_INFORMATION allocationInfo;
+    IO_STATUS_BLOCK isb;
+
+    allocationInfo.AllocationSize = *AllocationSize;
+
+    return NtSetInformationFile(
+        FileHandle,
+        &isb,
+        &allocationInfo,
+        sizeof(FILE_ALLOCATION_INFORMATION),
+        FileAllocationInformation
+        );
+}
+
 NTSTATUS PhDeleteFile(
     _In_ HANDLE FileHandle
     )
