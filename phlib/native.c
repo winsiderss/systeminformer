@@ -7967,6 +7967,7 @@ NTSTATUS PhCreateFileWin32(
         FileHandle,
         FileName,
         DesiredAccess,
+        NULL,
         FileAttributes,
         ShareAccess,
         CreateDisposition,
@@ -7981,6 +7982,7 @@ NTSTATUS PhCreateFileWin32(
  * \param FileHandle A variable that receives the file handle.
  * \param FileName The Win32 file name.
  * \param DesiredAccess The desired access to the file.
+ * \param AllocationSize The initial allocation size if the file is being created, overwritten, or superseded.
  * \param FileAttributes File attributes applied if the file is created or overwritten.
  * \param ShareAccess The file access granted to other threads.
  * \li \c FILE_SHARE_READ Allows other threads to read from the file.
@@ -8012,6 +8014,7 @@ NTSTATUS PhCreateFileWin32Ex(
     _Out_ PHANDLE FileHandle,
     _In_ PWSTR FileName,
     _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ PLARGE_INTEGER AllocationSize,
     _In_opt_ ULONG FileAttributes,
     _In_ ULONG ShareAccess,
     _In_ ULONG CreateDisposition,
@@ -8054,7 +8057,7 @@ NTSTATUS PhCreateFileWin32Ex(
         DesiredAccess,
         &objectAttributes,
         &isb,
-        NULL,
+        AllocationSize,
         FileAttributes,
         ShareAccess,
         CreateDisposition,
