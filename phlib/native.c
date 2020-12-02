@@ -8566,7 +8566,7 @@ NTSTATUS PhDeleteDirectory(
     status = PhCreateFileWin32(
         &directoryHandle,
         PhGetString(DirectoryPath),
-        FILE_GENERIC_READ | DELETE,
+        FILE_LIST_DIRECTORY | DELETE | SYNCHRONIZE,
         FILE_ATTRIBUTE_DIRECTORY,
         FILE_SHARE_READ | FILE_SHARE_DELETE,
         FILE_OPEN,
@@ -8575,7 +8575,7 @@ NTSTATUS PhDeleteDirectory(
 
     if (NT_SUCCESS(status))
     {
-        // Remove any files or folders inside the directory.
+        // Remove any files or folders inside the directory. (dmex)
         status = PhEnumDirectoryFile(
             directoryHandle, 
             NULL, 
@@ -8583,8 +8583,11 @@ NTSTATUS PhDeleteDirectory(
             DirectoryPath
             );
 
-        // Remove the directory. 
-        PhDeleteFile(directoryHandle);
+        if (NT_SUCCESS(status))
+        {
+            // Remove the directory. (dmex)
+            status = PhDeleteFile(directoryHandle);
+        }
 
         NtClose(directoryHandle);
     }
