@@ -326,6 +326,13 @@ PWSTR PvpGetProductIdComponent(
     return PhaFormatString(L"Report error (%lu)", ProductId)->Buffer;
 }
 
+typedef struct _PVP_PE_PRODUCTION_ID_CONTEXT
+{
+    HWND WindowHandle;
+    HWND ListViewHandle;
+    HIMAGELIST ListViewImageList;
+} PVP_PE_PRODUCTION_ID_CONTEXT, *PPVP_PE_PRODUCTION_ID_CONTEXT;
+
 INT_PTR CALLBACK PvpPeProdIdDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -335,9 +342,20 @@ INT_PTR CALLBACK PvpPeProdIdDlgProc(
 {
     LPPROPSHEETPAGE propSheetPage;
     PPV_PROPPAGECONTEXT propPageContext;
+    PPVP_PE_PRODUCTION_ID_CONTEXT context;
 
     if (!PvPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext))
         return FALSE;
+
+    if (uMsg == WM_INITDIALOG)
+    {
+        context = propPageContext->Context = PhAllocate(sizeof(PVP_PE_PRODUCTION_ID_CONTEXT));
+        memset(context, 0, sizeof(PVP_PE_PRODUCTION_ID_CONTEXT));
+    }
+    else
+    {
+        context = propPageContext->Context;
+    }
 
     switch (uMsg)
     {
@@ -345,21 +363,25 @@ INT_PTR CALLBACK PvpPeProdIdDlgProc(
         {
             PH_MAPPED_IMAGE_PRODID prodids;
             PH_MAPPED_IMAGE_PRODID_ENTRY entry;
-            HWND lvHandle;
             ULONG count = 0;
             ULONG i;
             INT lvItemIndex;
 
-            lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
-            PhSetListViewStyle(lvHandle, TRUE, TRUE);
-            PhSetControlTheme(lvHandle, L"explorer");
-            PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"#");
-            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 100, L"Component");
-            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 100, L"Version");
-            PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 100, L"Count");
-            //PhAddListViewColumn(lvHandle, 4, 4, 4, LVCFMT_LEFT, 100, L"Product");
-            PhSetExtendedListView(lvHandle);
-            PhLoadListViewColumnsFromSetting(L"ImageProdIdListViewColumns", lvHandle);
+            context->WindowHandle = hwndDlg;
+            context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
+
+            PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
+            PhSetControlTheme(context->ListViewHandle, L"explorer");
+            PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"#");
+            PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 100, L"Component");
+            PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 100, L"Version");
+            PhAddListViewColumn(context->ListViewHandle, 3, 3, 3, LVCFMT_LEFT, 100, L"Count");
+            //PhAddListViewColumn(context->ListViewHandle, 4, 4, 4, LVCFMT_LEFT, 100, L"Product");
+            PhSetExtendedListView(context->ListViewHandle);
+            PhLoadListViewColumnsFromSetting(L"ImageProdIdListViewColumns", context->ListViewHandle);
+
+            if (context->ListViewImageList = ImageList_Create(2, 20, ILC_MASK | ILC_COLOR, 1, 1))
+                ListView_SetImageList(context->ListViewHandle, context->ListViewImageList, LVSIL_SMALL);
 
             if (NT_SUCCESS(PhGetMappedImageProdIdHeader(&PvMappedImage, &prodids)))
             {
@@ -383,18 +405,18 @@ INT_PTR CALLBACK PvpPeProdIdDlgProc(
                         continue;
 
                     PhPrintUInt32(number, ++count);
-                    lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, number, NULL);
+                    lvItemIndex = PhAddListViewItem(context->ListViewHandle, MAXINT, number, NULL);
                     //PhSetListViewSubItem(lvHandle, lvItemIndex, 4, PvpGetProductIdName(entry.ProductId));
-                    PhSetListViewSubItem(lvHandle, lvItemIndex, 1, PvpGetProductIdComponent(entry.ProductId));
+                    PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 1, PvpGetProductIdComponent(entry.ProductId));
 
                     if (entry.ProductBuild)
                     {
                         PhPrintUInt32(number, entry.ProductBuild);
-                        PhSetListViewSubItem(lvHandle, lvItemIndex, 2, number);
+                        PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 2, number);
                     }
 
                     PhPrintUInt32(number, entry.ProductCount);
-                    PhSetListViewSubItem(lvHandle, lvItemIndex, 3, number);
+                    PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 3, number);
                 }
 
                 PhFree(prodids.ProdIdEntries);
@@ -407,7 +429,12 @@ INT_PTR CALLBACK PvpPeProdIdDlgProc(
         break;
     case WM_DESTROY:
         {
-            PhSaveListViewColumnsToSetting(L"ImageProdIdListViewColumns", GetDlgItem(hwndDlg, IDC_LIST));
+            PhSaveListViewColumnsToSetting(L"ImageProdIdListViewColumns", context->ListViewHandle);
+
+            if (context->ListViewImageList)
+                ImageList_Destroy(context->ListViewImageList);
+
+            PhFree(context);
         }
         break;
     case WM_SHOWWINDOW:
@@ -417,7 +444,7 @@ INT_PTR CALLBACK PvpPeProdIdDlgProc(
                 PPH_LAYOUT_ITEM dialogItem;
 
                 dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
-                PvAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST), dialogItem, PH_ANCHOR_ALL);
+                PvAddPropPageLayoutItem(hwndDlg, context->ListViewHandle, dialogItem, PH_ANCHOR_ALL);
                 PvDoPropPageLayout(hwndDlg);
 
                 propPageContext->LayoutInitialized = TRUE;
@@ -426,12 +453,12 @@ INT_PTR CALLBACK PvpPeProdIdDlgProc(
         break;
     case WM_NOTIFY:
         {
-            PvHandleListViewNotifyForCopy(lParam, GetDlgItem(hwndDlg, IDC_LIST));
+            PvHandleListViewNotifyForCopy(lParam, context->ListViewHandle);
         }
         break;
     case WM_CONTEXTMENU:
         {
-            PvHandleListViewCommandCopy(hwndDlg, lParam, wParam, GetDlgItem(hwndDlg, IDC_LIST));
+            PvHandleListViewCommandCopy(hwndDlg, lParam, wParam, context->ListViewHandle);
         }
         break;
     }

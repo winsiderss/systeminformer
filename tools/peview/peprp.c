@@ -1075,7 +1075,7 @@ VOID PvpSetPeImageFileProperties(
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ | FILE_SHARE_WRITE,
         FILE_OPEN,
-        0
+        FILE_SYNCHRONOUS_IO_NONALERT
         )))
     {
         if (NT_SUCCESS(NtQueryInformationFile(
@@ -1354,11 +1354,11 @@ NTSTATUS PhpOpenFileSecurity(
         status = PhCreateFileWin32(
             Handle,
             PhGetString(PvFileName),
-            DesiredAccess| READ_CONTROL | WRITE_DAC,
+            DesiredAccess | READ_CONTROL | WRITE_DAC,
             FILE_ATTRIBUTE_DIRECTORY,
             FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
             FILE_OPEN,
-            0
+            FILE_SYNCHRONOUS_IO_NONALERT
             );
     }
     else
@@ -1370,7 +1370,7 @@ NTSTATUS PhpOpenFileSecurity(
             FILE_ATTRIBUTE_NORMAL,
             FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
             FILE_OPEN,
-            0
+            FILE_SYNCHRONOUS_IO_NONALERT
             );
 
         if (!NT_SUCCESS(status))
@@ -1382,7 +1382,7 @@ NTSTATUS PhpOpenFileSecurity(
                 FILE_ATTRIBUTE_NORMAL,
                 FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
                 FILE_OPEN,
-                0
+                FILE_SYNCHRONOUS_IO_NONALERT
                 );
         }
     }

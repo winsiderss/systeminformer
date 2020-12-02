@@ -72,6 +72,14 @@ PWSTR PvpGetDebugTypeString(
     return PhaFormatString(L"%lu", Type)->Buffer;
 }
 
+typedef struct _PVP_PE_DEBUG_CONTEXT
+{
+    HWND WindowHandle;
+    HWND ListViewHandle;
+    HIMAGELIST ListViewImageList;
+} PVP_PE_DEBUG_CONTEXT, *PPVP_PE_DEBUG_CONTEXT;
+
+
 INT_PTR CALLBACK PvpPeDebugDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -81,9 +89,20 @@ INT_PTR CALLBACK PvpPeDebugDlgProc(
 {
     LPPROPSHEETPAGE propSheetPage;
     PPV_PROPPAGECONTEXT propPageContext;
+    PPVP_PE_DEBUG_CONTEXT context;
 
     if (!PvPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext))
         return FALSE;
+
+    if (uMsg == WM_INITDIALOG)
+    {
+        context = propPageContext->Context = PhAllocate(sizeof(PVP_PE_DEBUG_CONTEXT));
+        memset(context, 0, sizeof(PVP_PE_DEBUG_CONTEXT));
+    }
+    else
+    {
+        context = propPageContext->Context;
+    }
 
     switch (uMsg)
     {
@@ -91,22 +110,26 @@ INT_PTR CALLBACK PvpPeDebugDlgProc(
         {
             PH_MAPPED_IMAGE_DEBUG debug;
             PH_IMAGE_DEBUG_ENTRY entry;
-            HWND lvHandle;
             ULONG count = 0;
             ULONG i;
             INT lvItemIndex;
 
-            lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
-            PhSetListViewStyle(lvHandle, TRUE, TRUE);
-            PhSetControlTheme(lvHandle, L"explorer");
-            PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"#");
-            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 100, L"Type");
-            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 100, L"RVA (start)");
-            PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 100, L"RVA (end)");
-            PhAddListViewColumn(lvHandle, 4, 4, 4, LVCFMT_LEFT, 100, L"Size");
-            PhAddListViewColumn(lvHandle, 5, 5, 5, LVCFMT_LEFT, 80, L"Hash");
-            PhSetExtendedListView(lvHandle);
-            PhLoadListViewColumnsFromSetting(L"ImageDebugListViewColumns", lvHandle);
+            context->WindowHandle = hwndDlg;
+            context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
+
+            PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
+            PhSetControlTheme(context->ListViewHandle, L"explorer");
+            PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"#");
+            PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 100, L"Type");
+            PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 100, L"RVA (start)");
+            PhAddListViewColumn(context->ListViewHandle, 3, 3, 3, LVCFMT_LEFT, 100, L"RVA (end)");
+            PhAddListViewColumn(context->ListViewHandle, 4, 4, 4, LVCFMT_LEFT, 100, L"Size");
+            PhAddListViewColumn(context->ListViewHandle, 5, 5, 5, LVCFMT_LEFT, 80, L"Hash");
+            PhSetExtendedListView(context->ListViewHandle);
+            PhLoadListViewColumnsFromSetting(L"ImageDebugListViewColumns", context->ListViewHandle);
+
+            if (context->ListViewImageList = ImageList_Create(2, 20, ILC_MASK | ILC_COLOR, 1, 1))
+                ListView_SetImageList(context->ListViewHandle, context->ListViewImageList, LVSIL_SMALL);
 
             if (NT_SUCCESS(PhGetMappedImageDebug(&PvMappedImage, &debug)))
             {
@@ -117,13 +140,13 @@ INT_PTR CALLBACK PvpPeDebugDlgProc(
                     entry = debug.DebugEntries[i];
 
                     PhPrintUInt32(value, ++count);
-                    lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, value, NULL);
-                    PhSetListViewSubItem(lvHandle, lvItemIndex, 1, PvpGetDebugTypeString(entry.Type));
+                    lvItemIndex = PhAddListViewItem(context->ListViewHandle, MAXINT, value, NULL);
+                    PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 1, PvpGetDebugTypeString(entry.Type));
                     PhPrintPointer(value, UlongToPtr(entry.AddressOfRawData));
-                    PhSetListViewSubItem(lvHandle, lvItemIndex, 2, value);
+                    PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 2, value);
                     PhPrintPointer(value, PTR_ADD_OFFSET(entry.AddressOfRawData, entry.SizeOfData));
-                    PhSetListViewSubItem(lvHandle, lvItemIndex, 3, value);
-                    PhSetListViewSubItem(lvHandle, lvItemIndex, 4, PhaFormatSize(entry.SizeOfData, ULONG_MAX)->Buffer);
+                    PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 3, value);
+                    PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 4, PhaFormatSize(entry.SizeOfData, ULONG_MAX)->Buffer);
 
                     if (entry.AddressOfRawData && entry.SizeOfData)
                     {
@@ -142,7 +165,7 @@ INT_PTR CALLBACK PvpPeDebugDlgProc(
                                 if (PhFinalHash(&hashContext, hash, 16, NULL))
                                 {
                                     hashString = PhBufferToHexString(hash, 16);
-                                    PhSetListViewSubItem(lvHandle, lvItemIndex, 5, hashString->Buffer);
+                                    PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 5, hashString->Buffer);
                                     PhDereferenceObject(hashString);
                                 }
                             }
@@ -154,7 +177,7 @@ INT_PTR CALLBACK PvpPeDebugDlgProc(
                             //message = PH_AUTO(PhGetNtMessage(GetExceptionCode()));
                             message = PH_AUTO(PhGetWin32Message(RtlNtStatusToDosError(GetExceptionCode()))); // WIN32_FROM_NTSTATUS
 
-                            PhSetListViewSubItem(lvHandle, lvItemIndex, 5, PhGetStringOrEmpty(message));
+                            PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 5, PhGetStringOrEmpty(message));
                         }
                     }
                 }
@@ -168,6 +191,11 @@ INT_PTR CALLBACK PvpPeDebugDlgProc(
     case WM_DESTROY:
         {
             PhSaveListViewColumnsToSetting(L"ImageDebugListViewColumns", GetDlgItem(hwndDlg, IDC_LIST));
+
+            if (context->ListViewImageList)
+                ImageList_Destroy(context->ListViewImageList);
+
+            PhFree(context);
         }
         break;
     case WM_SHOWWINDOW:
@@ -178,7 +206,6 @@ INT_PTR CALLBACK PvpPeDebugDlgProc(
 
                 dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
                 PvAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST), dialogItem, PH_ANCHOR_ALL);
-
                 PvDoPropPageLayout(hwndDlg);
 
                 propPageContext->LayoutInitialized = TRUE;
