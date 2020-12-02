@@ -8506,7 +8506,7 @@ static BOOLEAN PhpDeleteDirectoryCallback(
         if (NT_SUCCESS(PhCreateFileWin32(
             &directoryHandle,
             PhGetString(fullName),
-            FILE_GENERIC_READ | DELETE,
+            FILE_LIST_DIRECTORY | FILE_WRITE_ATTRIBUTES | DELETE | SYNCHRONIZE,
             FILE_ATTRIBUTE_DIRECTORY,
             FILE_SHARE_READ | FILE_SHARE_DELETE,
             FILE_OPEN,
@@ -8515,7 +8515,6 @@ static BOOLEAN PhpDeleteDirectoryCallback(
         {
             PhEnumDirectoryFile(directoryHandle, NULL, PhpDeleteDirectoryCallback, fullName);
 
-            // Delete the directory. 
             PhDeleteFile(directoryHandle);
 
             NtClose(directoryHandle);
@@ -8530,35 +8529,22 @@ static BOOLEAN PhpDeleteDirectoryCallback(
             if (NT_SUCCESS(PhCreateFileWin32(
                 &fileHandle,
                 PhGetString(fullName),
-                FILE_GENERIC_READ | FILE_WRITE_ATTRIBUTES,
+                FILE_WRITE_ATTRIBUTES | DELETE | SYNCHRONIZE,
                 FILE_ATTRIBUTE_NORMAL,
                 FILE_SHARE_WRITE,
                 FILE_OPEN,
                 FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
                 )))
             {
-                IO_STATUS_BLOCK isb;
-                FILE_BASIC_INFORMATION fileInfo;
-
-                memset(&fileInfo, 0, sizeof(FILE_BASIC_INFORMATION));
-
-                // Clear the read-only flag.
-                fileInfo.FileAttributes = Information->FileAttributes &= ~FILE_ATTRIBUTE_READONLY;
-
-                NtSetInformationFile(
-                    fileHandle,
-                    &isb,
-                    &fileInfo,
-                    sizeof(FILE_BASIC_INFORMATION),
-                    FileBasicInformation
-                    );
+                PhDeleteFile(fileHandle);
 
                 NtClose(fileHandle);
             }
         }
-
-        // Delete the file. 
-        PhDeleteFileWin32(PhGetString(fullName));
+        else
+        {
+            PhDeleteFileWin32(PhGetString(fullName));
+        }
     }
 
     PhDereferenceObject(fullName);
