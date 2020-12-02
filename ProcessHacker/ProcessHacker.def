@@ -265,7 +265,6 @@ EXPORTS
     PhEnumProcessModulesEx
     PhFindProcessInformation
     PhFindProcessInformationByImageName
-    PhGetFileAllocationSize
     PhGetFileName
     PhGetFilePosition
     PhGetFileSize
