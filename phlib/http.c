@@ -2,7 +2,7 @@
  * Process Hacker -
  *   http/http2/dns wrappers
  *
- * Copyright (C) 2017-2019 dmex
+ * Copyright (C) 2017-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -612,35 +612,60 @@ PVOID PhHttpSocketDownloadString(
     return result;
 }
 
-NTSTATUS PhHttpSocketDownloadToHandle(
+NTSTATUS PhHttpSocketDownloadToFile(
     _In_ PPH_HTTP_CONTEXT HttpContext,
-    _In_ HANDLE FileHandle,
+    _In_ PWSTR FileName,
     _In_ PPH_HTTPDOWNLOAD_CALLBACK Callback,
     _In_opt_ PVOID Context
     )
 {
-    BOOLEAN status = TRUE;
+    static PH_STRINGREF tempFilePath = PH_STRINGREF_INIT(L"%TEMP%\\");
+    NTSTATUS status;
+    HANDLE fileHandle;
+    LARGE_INTEGER allocationSize;
     ULONG numberOfBytesTotal = 0;
     ULONG numberOfBytesRead = 0;
     ULONG64 numberOfBytesReadTotal = 0;
     ULONG64 timeTicks;
     LARGE_INTEGER timeNow;
     LARGE_INTEGER timeStart;
+    PPH_STRING tempDirectory;
+    PPH_STRING tempFileName;
     PH_HTTPDOWNLOAD_CONTEXT context;
     IO_STATUS_BLOCK isb;
+    WCHAR alphaString[32] = L"";
     BYTE buffer[PAGE_SIZE];
 
     PhQuerySystemTime(&timeStart);
-    memset(buffer, 0, PAGE_SIZE);
 
     if (!PhHttpSocketQueryHeaderUlong(HttpContext, PH_HTTP_QUERY_CONTENT_LENGTH, &numberOfBytesTotal))
-    {
         return PhGetLastWin32ErrorAsNtStatus();
-    }
 
     if (numberOfBytesTotal == 0)
-    {
         return STATUS_UNSUCCESSFUL;
+
+    tempDirectory = PhExpandEnvironmentStrings(&tempFilePath);
+    PhGenerateRandomAlphaString(alphaString, RTL_NUMBER_OF(alphaString));
+    tempFileName = PhConcatStrings2(PhGetString(tempDirectory), alphaString);
+
+    allocationSize.QuadPart = numberOfBytesTotal;
+    status = PhCreateFileWin32Ex(
+        &fileHandle,
+        PhGetString(tempFileName),
+        FILE_GENERIC_WRITE,
+        &allocationSize,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        FILE_CREATE,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        PhDereferenceObject(tempFileName);
+        PhDereferenceObject(tempDirectory);
+        return status;
     }
 
     while (PhHttpSocketReadData(HttpContext, buffer, PAGE_SIZE, &numberOfBytesRead))
@@ -648,8 +673,8 @@ NTSTATUS PhHttpSocketDownloadToHandle(
         if (numberOfBytesRead == 0)
             break;
 
-        if (!NT_SUCCESS(NtWriteFile(
-            FileHandle,
+        status = NtWriteFile(
+            fileHandle,
             NULL,
             NULL,
             NULL,
@@ -658,15 +683,14 @@ NTSTATUS PhHttpSocketDownloadToHandle(
             numberOfBytesRead,
             NULL,
             NULL
-            )))
-        {
-            status = FALSE;
+            );
+
+        if (!NT_SUCCESS(status))
             break;
-        }
 
         if (numberOfBytesRead != isb.Information)
         {
-            status = FALSE;
+            status = STATUS_UNSUCCESSFUL;
             break;
         }
 
@@ -686,53 +710,19 @@ NTSTATUS PhHttpSocketDownloadToHandle(
         }
     }
 
-    if (status && numberOfBytesReadTotal == numberOfBytesTotal)
+    if (numberOfBytesReadTotal != numberOfBytesTotal)
     {
-        return STATUS_SUCCESS;
+        status = STATUS_UNSUCCESSFUL;
     }
 
-    return STATUS_UNSUCCESSFUL;
-}
-
-NTSTATUS PhHttpSocketDownloadToFile(
-    _In_ PPH_HTTP_CONTEXT HttpContext,
-    _In_ PWSTR FileName,
-    _In_ PPH_HTTPDOWNLOAD_CALLBACK Callback,
-    _In_opt_ PVOID Context
-    )
-{
-    static PH_STRINGREF tempFilePath = PH_STRINGREF_INIT(L"%TEMP%\\");
-    NTSTATUS status;
-    HANDLE fileHandle;
-    PPH_STRING tempDirectory;
-    PPH_STRING tempFileName;
-    WCHAR alphaString[32] = L"";
-
-    tempDirectory = PhExpandEnvironmentStrings(&tempFilePath);
-    PhGenerateRandomAlphaString(alphaString, RTL_NUMBER_OF(alphaString));
-    tempFileName = PhConcatStrings2(PhGetString(tempDirectory), alphaString);
-
-    status = PhCreateFileWin32(
-        &fileHandle,
-        PhGetString(tempFileName),
-        FILE_GENERIC_WRITE,
-        FILE_ATTRIBUTE_NORMAL,
-        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-        FILE_CREATE,
-        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-        );
-
-    if (NT_SUCCESS(status))
+    if (status != STATUS_SUCCESS)
     {
-        if (!NT_SUCCESS(PhHttpSocketDownloadToHandle(HttpContext, fileHandle, Callback, Context)))
-        {
-            PhDeleteFile(fileHandle);
-
-            status = STATUS_UNSUCCESSFUL;
-        }
-
-        NtClose(fileHandle);
+        PhDeleteFile(fileHandle);
     }
+
+    NtClose(fileHandle);
+    PhDereferenceObject(tempFileName);
+    PhDereferenceObject(tempDirectory);
 
     if (NT_SUCCESS(status))
     {

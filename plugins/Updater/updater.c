@@ -51,6 +51,8 @@ VOID UpdateContextDeleteProcedure(
         PhDereferenceObject(context->SetupFileHash);
     if (context->SetupFileSignature)
         PhDereferenceObject(context->SetupFileSignature);
+    if (context->SetupFilePath)
+        PhDereferenceObject(context->SetupFilePath);
 }
 
 PPH_UPDATER_CONTEXT CreateUpdateContext(
@@ -601,8 +603,8 @@ NTSTATUS UpdateDownloadThread(
     USHORT httpPort = 0;
     LARGE_INTEGER timeNow;
     LARGE_INTEGER timeStart;
-    ULONG64 timeTicks = 0;
-    ULONG64 timeBitsPerSecond = 0;
+    ULONG64 timeTicks;
+    ULONG64 timeBitsPerSecond;
 
     SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Initializing download request...");
 
@@ -614,25 +616,6 @@ NTSTATUS UpdateDownloadThread(
         ))
     {
         context->ErrorCode = GetLastError();
-        goto CleanupExit;
-    }
-
-    // Create the local path string.
-    context->SetupFilePath = UpdaterParseDownloadFileName(downloadUrlPath);
-    if (PhIsNullOrEmptyString(context->SetupFilePath))
-        goto CleanupExit;
-
-    // Create temporary output file.
-    if (!NT_SUCCESS(PhCreateFileWin32(
-        &tempFileHandle,
-        PhGetString(context->SetupFilePath),
-        FILE_GENERIC_WRITE,
-        FILE_ATTRIBUTE_NORMAL,
-        FILE_SHARE_READ,
-        FILE_OVERWRITE_IF,
-        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-        )))
-    {
         goto CleanupExit;
     }
 
@@ -704,13 +687,38 @@ NTSTATUS UpdateDownloadThread(
             context->ErrorCode = GetLastError();
             goto CleanupExit;
         }
+        else
+        {
+            LARGE_INTEGER allocationSize;
+
+            // Create the local path string.
+            context->SetupFilePath = UpdaterParseDownloadFileName(downloadUrlPath);
+
+            if (PhIsNullOrEmptyString(context->SetupFilePath))
+                goto CleanupExit;
+
+            allocationSize.QuadPart = contentLength;
+
+            // Create the temporary output file.
+            if (!NT_SUCCESS(PhCreateFileWin32Ex(
+                &tempFileHandle,
+                PhGetString(context->SetupFilePath),
+                FILE_GENERIC_WRITE,
+                &allocationSize,
+                FILE_ATTRIBUTE_NORMAL,
+                FILE_SHARE_READ,
+                FILE_OVERWRITE_IF,
+                FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+                NULL
+                )))
+            {
+                goto CleanupExit;
+            }
+        }
 
         // Initialize hash algorithm.
         if (!(hashContext = UpdaterInitializeHash()))
             goto CleanupExit;
-
-        // Zero the buffer.
-        memset(buffer, 0, PAGE_SIZE);
 
         // Start the clock.
         PhQuerySystemTime(&timeStart);
@@ -801,7 +809,6 @@ NTSTATUS UpdateDownloadThread(
     }
 
 CleanupExit:
-
     if (httpContext)
         PhHttpSocketDestroy(httpContext);
     if (hashContext)
@@ -819,6 +826,11 @@ CleanupExit:
     }
     else if (downloadSuccess)
     {
+        if (context->SetupFilePath)
+        {
+            PhDeleteCacheFile(context->SetupFilePath);
+        }
+
         if (signatureSuccess)
             PostMessage(context->DialogHandle, PH_SHOWERROR, TRUE, FALSE);
         else if (hashSuccess)
@@ -828,6 +840,11 @@ CleanupExit:
     }
     else
     {
+        if (context->SetupFilePath)
+        {
+            PhDeleteCacheFile(context->SetupFilePath);
+        }
+
         PostMessage(context->DialogHandle, PH_SHOWERROR, FALSE, FALSE);
     }
 
