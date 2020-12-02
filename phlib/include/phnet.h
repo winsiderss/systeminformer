@@ -326,16 +326,6 @@ typedef BOOLEAN (NTAPI *PPH_HTTPDOWNLOAD_CALLBACK)(
 PHLIBAPI
 NTSTATUS
 NTAPI
-PhHttpSocketDownloadToHandle(
-    _In_ PPH_HTTP_CONTEXT HttpContext,
-    _In_ HANDLE FileHandle,
-    _In_ PPH_HTTPDOWNLOAD_CALLBACK Callback,
-    _In_opt_ PVOID Context
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
 PhHttpSocketDownloadToFile(
     _In_ PPH_HTTP_CONTEXT HttpContext,
     _In_ PWSTR FileName,

@@ -196,7 +196,7 @@ NTSTATUS GeoIPUpdateThread(
 {
     BOOLEAN success = FALSE;
     HANDLE tempFileHandle = NULL;
-    PPH_STRING fwLinkUrl = NULL;
+    PPH_STRING fwLinkUrl;
     PPH_HTTP_CONTEXT httpContext = NULL;
     PPH_STRING zipFilePath = NULL;
     PPH_STRING versionString = NULL;
@@ -209,32 +209,14 @@ NTSTATUS GeoIPUpdateThread(
     USHORT httpHostPort = 0;
     LARGE_INTEGER timeNow;
     LARGE_INTEGER timeStart;
-    ULONG64 timeTicks = 0;
-    ULONG64 timeBitsPerSecond = 0;
+    ULONG64 timeTicks;
+    ULONG64 timeBitsPerSecond;
     PPH_UPDATER_CONTEXT context = (PPH_UPDATER_CONTEXT)Parameter;
 
     SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Initializing download request...");
 
     if (!(fwLinkUrl = QueryFwLinkUrl(context)))
         goto CleanupExit;
-
-    zipFilePath = PhCreateCacheFile(PhaCreateString(L"GeoLite2-Country.mmdb.gz"));
-
-    if (PhIsNullOrEmptyString(zipFilePath))
-        goto CleanupExit;
-
-    if (!NT_SUCCESS(PhCreateFileWin32(
-        &tempFileHandle,
-        PhGetString(zipFilePath),
-        FILE_GENERIC_READ | FILE_GENERIC_WRITE,
-        FILE_ATTRIBUTE_NORMAL,
-        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-        FILE_OVERWRITE_IF,
-        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-        )))
-    {
-        goto CleanupExit;
-    }
 
     SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Connecting...");
 
@@ -309,6 +291,32 @@ NTSTATUS GeoIPUpdateThread(
         {
             //context->ErrorCode = GetLastError();
             goto CleanupExit;
+        }
+        else
+        {
+            LARGE_INTEGER allocationSize;
+
+            zipFilePath = PhCreateCacheFile(PhaCreateString(L"GeoLite2-Country.mmdb.gz"));
+
+            if (PhIsNullOrEmptyString(zipFilePath))
+                goto CleanupExit;
+
+            allocationSize.QuadPart = contentLength;
+
+            if (!NT_SUCCESS(PhCreateFileWin32Ex(
+                &tempFileHandle,
+                PhGetString(zipFilePath),
+                FILE_GENERIC_READ | FILE_GENERIC_WRITE,
+                &allocationSize,
+                FILE_ATTRIBUTE_NORMAL,
+                FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                FILE_OVERWRITE_IF,
+                FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+                NULL
+                )))
+            {
+                goto CleanupExit;
+            }
         }
 
         PhQuerySystemTime(&timeStart);

@@ -130,6 +130,7 @@ BOOLEAN SetupExtractBuild(
     {
         IO_STATUS_BLOCK isb;
         HANDLE fileHandle = NULL;
+        LARGE_INTEGER allocationSize;
         PVOID buffer = NULL;
         ULONG bufferLength = 0;
         PPH_STRING fileName = NULL;
@@ -238,14 +239,18 @@ BOOLEAN SetupExtractBuild(
         //    PhDereferenceObject(backupFilePath);
         //}
 
-        if (!NT_SUCCESS(PhCreateFileWin32(
+        allocationSize.QuadPart = bufferLength;
+
+        if (!NT_SUCCESS(PhCreateFileWin32Ex(
             &fileHandle,
             PhGetString(extractPath),
-            FILE_GENERIC_READ | FILE_GENERIC_WRITE,
+            FILE_GENERIC_WRITE,
+            &allocationSize,
             FILE_ATTRIBUTE_NORMAL,
             FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
             FILE_OVERWRITE_IF,
-            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+            NULL
             )))
         {
             Context->ErrorCode = ERROR_FILE_CORRUPT;
@@ -265,16 +270,20 @@ BOOLEAN SetupExtractBuild(
             )))
         {
             Context->ErrorCode = ERROR_FILE_CORRUPT;
+            NtClose(fileHandle);
             goto CleanupExit;
         }
 
         if (isb.Information != bufferLength)
         {
             Context->ErrorCode = ERROR_FILE_CORRUPT;
+            NtClose(fileHandle);
             goto CleanupExit;
         }
 
         currentLength += bufferLength;
+
+        NtClose(fileHandle);
 
         {
             FLOAT percent = ((FLOAT)((double)currentLength / (double)totalLength) * 100);
@@ -308,9 +317,6 @@ BOOLEAN SetupExtractBuild(
             if (baseName)
                 PhDereferenceObject(baseName);
         }
-
-        if (fileHandle)
-            NtClose(fileHandle);
 
         mz_free(buffer);
     }
