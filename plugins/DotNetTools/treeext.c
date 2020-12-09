@@ -234,7 +234,6 @@ VOID ThreadTreeNewInitializing(
     PPH_PLUGIN_TREENEW_INFORMATION info = Parameter;
     PPH_THREADS_CONTEXT threadsContext;
     PTHREAD_TREE_CONTEXT context;
-
     BOOLEAN isDotNet;
     ULONG flags = 0;
   
@@ -275,7 +274,7 @@ VOID ThreadTreeNewInitializing(
         }
     }
 
-    AddTreeNewColumn(info, context, DNTHTNC_APPDOMAIN, TRUE, L"AppDomain", 120, PH_ALIGN_LEFT, 0, FALSE, ThreadTreeNewSortFunction);
+    AddTreeNewColumn(info, context, DNTHTNC_APPDOMAIN, FALSE, L"AppDomain", 120, PH_ALIGN_LEFT, 0, FALSE, ThreadTreeNewSortFunction);
 }
 
 VOID ThreadTreeNewUninitializing(
