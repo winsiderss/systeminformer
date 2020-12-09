@@ -8536,6 +8536,25 @@ static BOOLEAN PhpDeleteDirectoryCallback(
                 FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
                 )))
             {
+                if (WindowsVersion < WINDOWS_10_RS5) // We can ignore readonly attributes starting with RS5 (dmex)
+                {
+                    IO_STATUS_BLOCK isb;
+                    FILE_BASIC_INFORMATION fileInfo;
+
+                    memset(&fileInfo, 0, sizeof(FILE_BASIC_INFORMATION));
+
+                    // Clear the read-only flag.
+                    fileInfo.FileAttributes = Information->FileAttributes &= ~FILE_ATTRIBUTE_READONLY;
+
+                    NtSetInformationFile(
+                        fileHandle,
+                        &isb,
+                        &fileInfo,
+                        sizeof(FILE_BASIC_INFORMATION),
+                        FileBasicInformation
+                        );
+                }
+
                 PhDeleteFile(fileHandle);
 
                 NtClose(fileHandle);
