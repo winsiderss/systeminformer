@@ -3,7 +3,7 @@
  *   .NET Performance property page
  *
  * Copyright (C) 2011-2015 wj32
- * Copyright (C) 2015-2019 dmex
+ * Copyright (C) 2015-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -1084,9 +1084,10 @@ INT_PTR CALLBACK DotNetPerfPageDlgProc(
                                         PH_FORMAT format[1];
                                         WCHAR formatBuffer[10];
 
-                                        // TODO: perlib never shows the TimeInJit value and it can sometimes show values above 100% ???
-                                        // SeeAlso: https://github.com/dotnet/coreclr/blob/master/src/gc/gcee.cpp#L324
-                                        PhInitFormatF(&format[0], (context->DotNetPerfJit.timeInJit << 8) * 100 / (FLOAT)(context->DotNetPerfJit.timeInJitBase << 8), 2);
+                                        // .NET 2/3/4 can sometimes show the TimeInJit value above 100% (dmex)
+                                        // https://github.com/dotnet/coreclr/blob/ef1e2ab328087c61a6878c1e84f4fc5d710aebce/src/gc/gcee.cpp#L324
+
+                                        PhInitFormatF(&format[0], (context->DotNetPerfJit.timeInJit << 8) * 100 / (DOUBLE)(context->DotNetPerfJit.timeInJitBase << 8), 2);
 
                                         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
                                         {
@@ -1512,7 +1513,7 @@ INT_PTR CALLBACK DotNetPerfPageDlgProc(
                                         PH_FORMAT format[1];
                                         WCHAR formatBuffer[10];
 
-                                        PhInitFormatF(&format[0], (FLOAT)context->DotNetPerfGC.timeInGC * 100 / (FLOAT)context->DotNetPerfGC.timeInGCBase, 2);
+                                        PhInitFormatF(&format[0], (DOUBLE)context->DotNetPerfGC.timeInGC * 100 / (DOUBLE)context->DotNetPerfGC.timeInGCBase, 2);
 
                                         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
                                         {
@@ -1737,7 +1738,7 @@ INT_PTR CALLBACK DotNetPerfPageDlgProc(
                                         PH_FORMAT format[1];
                                         WCHAR formatBuffer[10];
 
-                                        PhInitFormatF(&format[0], (FLOAT)context->DotNetPerfSecurity.timeRTchecks * 100 / (FLOAT)context->DotNetPerfSecurity.timeRTchecksBase, 2);
+                                        PhInitFormatF(&format[0], (DOUBLE)context->DotNetPerfSecurity.timeRTchecks * 100 / (DOUBLE)context->DotNetPerfSecurity.timeRTchecksBase, 2);
 
                                         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
                                         {
