@@ -730,7 +730,18 @@ VOID PvpSetPeImageTimeStamp(
         {
             PPH_STRING timeStamp;
 
-            string = PhBufferToHexStringEx(debugEntry->Buffer, debugEntry->Length, FALSE);
+            __try
+            {
+                if (debugEntry->Length == debugEntryLength - sizeof(ULONG))
+                    string = PhBufferToHexStringEx(debugEntry->Buffer, debugEntry->Length, FALSE);
+                else
+                    string = PhBufferToHexStringEx(debugEntry->Buffer, debugEntryLength - sizeof(ULONG), FALSE);
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                string = PhGetStatusMessage(GetExceptionCode(), 0);
+            }
+
             timeStamp = PhBufferToHexStringEx((PBYTE)&PvMappedImage.NtHeaders->FileHeader.TimeDateStamp, sizeof(ULONG), FALSE);
 
             if (PhEndsWithString(string, timeStamp, TRUE))
