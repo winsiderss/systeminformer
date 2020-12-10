@@ -3,7 +3,7 @@
  *   .NET Assemblies property page
  *
  * Copyright (C) 2011-2015 wj32
- * Copyright (C) 2016-2019 dmex
+ * Copyright (C) 2016-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -1080,7 +1080,7 @@ static VOID NTAPI DotNetEventCallback(
 
                     moduleILPath = data->ModuleILPath;
                     moduleILPathLength = PhCountStringZ(moduleILPath) * sizeof(WCHAR);
-                    moduleNativePath = (PWSTR)PTR_ADD_OFFSET(moduleILPath, moduleILPathLength + sizeof(WCHAR));
+                    moduleNativePath = PTR_ADD_OFFSET(moduleILPath, moduleILPathLength + sizeof(UNICODE_NULL));
                     moduleNativePathLength = PhCountStringZ(moduleNativePath) * sizeof(WCHAR);
 
                     if (context->ClrV2Node && (moduleILPathLength != 0 || moduleNativePathLength != 0))
@@ -1099,11 +1099,11 @@ static VOID NTAPI DotNetEventCallback(
                         indexOfBackslash = PhFindLastCharInString(node->PathText, 0, OBJ_NAME_PATH_SEPARATOR);
                         indexOfLastDot = PhFindLastCharInString(node->PathText, 0, L'.');
 
-                        if (indexOfBackslash != -1)
+                        if (indexOfBackslash != SIZE_MAX)
                         {
                             node->StructureText.Buffer = node->PathText->Buffer + indexOfBackslash + 1;
 
-                            if (indexOfLastDot != -1 && indexOfLastDot > indexOfBackslash)
+                            if (indexOfLastDot != SIZE_MAX && indexOfLastDot > indexOfBackslash)
                             {
                                 node->StructureText.Length = (indexOfLastDot - indexOfBackslash - 1) * sizeof(WCHAR);
                             }
@@ -1364,24 +1364,6 @@ VOID DestroyDotNetTraceQuery(
     PhFree(Context);
 }
 
-BOOLEAN IsProcessSuspended(
-    _In_ HANDLE ProcessId
-    )
-{
-    PVOID processes;
-    PSYSTEM_PROCESS_INFORMATION process;
-
-    if (NT_SUCCESS(PhEnumProcesses(&processes)))
-    {
-        if (process = PhFindProcessInformation(processes, ProcessId))
-            return PhGetProcessIsSuspended(process);
-
-        PhFree(processes);
-    }
-
-    return FALSE;
-}
-
 VOID DotNetAsmRefreshTraceQuery(
     _In_ PASMPAGE_CONTEXT Context
     )
@@ -1390,7 +1372,7 @@ VOID DotNetAsmRefreshTraceQuery(
     TreeNew_SetEmptyText(Context->TreeNewHandle, &Context->TreeErrorMessage->sr, 0);
     TreeNew_NodesStructured(Context->TreeNewHandle);
 
-    if (!IsProcessSuspended(Context->ProcessItem->ProcessId) || PhShowMessage(
+    if (!PhIsProcessSuspended(Context->ProcessItem->ProcessId) || PhShowMessage(
         Context->WindowHandle,
         MB_ICONWARNING | MB_YESNO,
         L".NET assembly enumeration may not work properly because the process is currently suspended. Do you want to continue?"
@@ -1425,7 +1407,7 @@ BOOLEAN WordMatchStringRef(
 
         if (part.Length != 0)
         {
-            if (PhFindStringInStringRef(Text, &part, TRUE) != -1)
+            if (PhFindStringInStringRef(Text, &part, TRUE) != SIZE_MAX)
                 return TRUE;
         }
     }
