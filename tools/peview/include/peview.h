@@ -53,7 +53,7 @@ FORCEINLINE PWSTR PvpGetStringOrNa(
     _In_ PPH_STRING String
     )
 {
-    return PhGetStringOrDefault(String, L"N/A");
+    return PhGetStringOrDefault(String, (PWSTR)L"N/A");
 }
 
 BOOLEAN PvpLoadDbgHelp(
@@ -92,6 +92,17 @@ PPH_STRING PvResolveShortcutTarget(
 
 PPH_STRING PvResolveReparsePointTarget(
     _In_ PPH_STRING FileName
+    );
+
+typedef NTSTATUS (NTAPI* PV_FILE_ALLOCATION_CALLBACK)(
+    _In_ PFILE_ALLOCATED_RANGE_BUFFER Entry,
+    _In_ PVOID Context
+    );
+
+NTSTATUS PvGetFileAllocatedRanges(
+    _In_ HANDLE FileHandle,
+    _In_ PV_FILE_ALLOCATION_CALLBACK Callback,
+    _In_ PVOID Context
     );
 
 VOID PvCopyListView(

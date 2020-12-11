@@ -28,6 +28,9 @@ VOID PvpPeEnumerateFileStreams(
 {
     HANDLE fileHandle;
 
+    ExtendedListView_SetRedraw(ListViewHandle, FALSE);
+    ListView_DeleteAllItems(ListViewHandle);
+
     if (NT_SUCCESS(PhCreateFileWin32(
         &fileHandle,
         PhGetString(PvFileName),
@@ -59,7 +62,7 @@ VOID PvpPeEnumerateFileStreams(
                 attributeFileName = PhConcatStringRef2(&PvFileName->sr, &attributeName->sr);
 
                 PhPrintUInt32(number, ++count);
-                lvItemIndex = PhAddListViewItem(ListViewHandle, MAXINT, number, NULL);
+                lvItemIndex = PhAddListViewItem(ListViewHandle, MAXINT, number, attributeName);
                 PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, attributeName->Buffer);
                 PhSetListViewSubItem(
                     ListViewHandle,
@@ -141,7 +144,7 @@ VOID PvpPeEnumerateFileStreams(
                 }
 
                 PhDereferenceObject(attributeFileName);
-                PhDereferenceObject(attributeName);
+                //PhDereferenceObject(attributeName);
             }
 
             PhFree(buffer);
@@ -149,7 +152,16 @@ VOID PvpPeEnumerateFileStreams(
 
         NtClose(fileHandle);
     }
+
+    ExtendedListView_SetRedraw(ListViewHandle, TRUE);
 }
+
+typedef struct _PVP_PE_STREAMS_CONTEXT
+{
+    HWND WindowHandle;
+    HWND ListViewHandle;
+    HIMAGELIST ListViewImageList;
+} PVP_PE_STREAMS_CONTEXT, *PPVP_PE_STREAMS_CONTEXT;
 
 INT_PTR CALLBACK PvpPeStreamsDlgProc(
     _In_ HWND hwndDlg,
@@ -160,35 +172,54 @@ INT_PTR CALLBACK PvpPeStreamsDlgProc(
 {
     LPPROPSHEETPAGE propSheetPage;
     PPV_PROPPAGECONTEXT propPageContext;
+    PPVP_PE_STREAMS_CONTEXT context;
 
     if (!PvPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext))
         return FALSE;
+
+    if (uMsg == WM_INITDIALOG)
+    {
+        context = propPageContext->Context = PhAllocate(sizeof(PVP_PE_STREAMS_CONTEXT));
+        memset(context, 0, sizeof(PVP_PE_STREAMS_CONTEXT));
+    }
+    else
+    {
+        context = propPageContext->Context;
+    }
 
     switch (uMsg)
     {
     case WM_INITDIALOG:
         {
-            HWND lvHandle;
+            context->WindowHandle = hwndDlg;
+            context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
-            lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
-            PhSetListViewStyle(lvHandle, TRUE, TRUE);
-            PhSetControlTheme(lvHandle, L"explorer");
-            PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"#");
-            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 150, L"Name");
-            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 150, L"Size");
-            PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 100, L"Attributes");
-            PhSetExtendedListView(lvHandle);
-            PhLoadListViewColumnsFromSetting(L"ImageStreamsListViewColumns", lvHandle);
+            PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
+            PhSetControlTheme(context->ListViewHandle, L"explorer");
+            PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"#");
+            PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 150, L"Name");
+            PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 150, L"Size");
+            PhAddListViewColumn(context->ListViewHandle, 3, 3, 3, LVCFMT_LEFT, 100, L"Attributes");
+            PhSetExtendedListView(context->ListViewHandle);
+            PhLoadListViewColumnsFromSetting(L"ImageStreamsListViewColumns", context->ListViewHandle);
 
-            PvpPeEnumerateFileStreams(lvHandle);
-            //ExtendedListView_SortItems(lvHandle);
+            if (context->ListViewImageList = ImageList_Create(2, 20, ILC_MASK | ILC_COLOR, 1, 1))
+                ListView_SetImageList(context->ListViewHandle, context->ListViewImageList, LVSIL_SMALL);
+
+            PvpPeEnumerateFileStreams(context->ListViewHandle);
+            //ExtendedListView_SortItems(context->ListViewHandle);
             
             PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
         {
-            PhSaveListViewColumnsToSetting(L"ImageStreamsListViewColumns", GetDlgItem(hwndDlg, IDC_LIST));
+            PhSaveListViewColumnsToSetting(L"ImageStreamsListViewColumns", context->ListViewHandle);
+
+            if (context->ListViewImageList)
+                ImageList_Destroy(context->ListViewImageList);
+
+            PhFree(context);
         }
         break;
     case WM_SHOWWINDOW:
@@ -198,8 +229,7 @@ INT_PTR CALLBACK PvpPeStreamsDlgProc(
                 PPH_LAYOUT_ITEM dialogItem;
 
                 dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
-                PvAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST), dialogItem, PH_ANCHOR_ALL);
-
+                PvAddPropPageLayoutItem(hwndDlg, context->ListViewHandle, dialogItem, PH_ANCHOR_ALL);
                 PvDoPropPageLayout(hwndDlg);
 
                 propPageContext->LayoutInitialized = TRUE;
@@ -208,7 +238,7 @@ INT_PTR CALLBACK PvpPeStreamsDlgProc(
         break;
     case WM_NOTIFY:
         {
-            PvHandleListViewNotifyForCopy(lParam, GetDlgItem(hwndDlg, IDC_LIST));
+            PvHandleListViewNotifyForCopy(lParam, context->ListViewHandle);
         }
         break;
     case WM_CONTEXTMENU:

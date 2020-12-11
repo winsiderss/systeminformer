@@ -140,6 +140,74 @@ PPH_STRING PvResolveReparsePointTarget(
     return targetFileName;
 }
 
+NTSTATUS PvGetFileAllocatedRanges(
+    _In_ HANDLE FileHandle,
+    _In_ PV_FILE_ALLOCATION_CALLBACK Callback,
+    _In_ PVOID Context
+    )
+{
+    NTSTATUS status;
+    ULONG outputCount;
+    ULONG outputLength;
+    LARGE_INTEGER fileSize;
+    FILE_ALLOCATED_RANGE_BUFFER input;
+    PFILE_ALLOCATED_RANGE_BUFFER output;
+    IO_STATUS_BLOCK isb;
+
+    status = PhGetFileSize(FileHandle, &fileSize);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    memset(&input, 0, sizeof(FILE_ALLOCATED_RANGE_BUFFER));
+    input.FileOffset.QuadPart = 0;
+    input.Length.QuadPart = fileSize.QuadPart;
+
+    outputLength = sizeof(FILE_ALLOCATED_RANGE_BUFFER) * PAGE_SIZE;
+    output = PhAllocateZero(outputLength);
+
+    while (TRUE)
+    {
+        status = NtFsControlFile(
+            FileHandle,
+            NULL,
+            NULL,
+            NULL,
+            &isb,
+            FSCTL_QUERY_ALLOCATED_RANGES,
+            &input,
+            sizeof(FILE_ALLOCATED_RANGE_BUFFER),
+            output,
+            outputLength
+            );
+
+        if (!NT_SUCCESS(status))
+            break;
+
+        outputCount = (ULONG)isb.Information / sizeof(FILE_ALLOCATED_RANGE_BUFFER);
+
+        if (outputCount == 0)
+            break;
+
+        for (ULONG i = 0; i < outputCount; i++)
+        {
+            if (Callback)
+            {
+                if (!Callback(&output[i], Context))
+                    break;
+            }
+        }
+
+        input.FileOffset.QuadPart = output[outputCount - 1].FileOffset.QuadPart + output[outputCount - 1].Length.QuadPart;
+        input.Length.QuadPart = fileSize.QuadPart - input.FileOffset.QuadPart;
+
+        if (input.Length.QuadPart == 0)
+            break;
+    }
+
+    return status;
+}
+
 // Copied from appsup.c
 
 VOID PvCopyListView(

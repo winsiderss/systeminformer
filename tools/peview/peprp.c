@@ -1365,11 +1365,11 @@ NTSTATUS PhpOpenFileSecurity(
         status = PhCreateFileWin32(
             Handle,
             PhGetString(PvFileName),
-            DesiredAccess | READ_CONTROL | WRITE_DAC,
+            DesiredAccess | READ_CONTROL | WRITE_DAC | SYNCHRONIZE,
             FILE_ATTRIBUTE_DIRECTORY,
             FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
             FILE_OPEN,
-            FILE_SYNCHRONOUS_IO_NONALERT
+            FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
             );
     }
     else
@@ -1377,11 +1377,11 @@ NTSTATUS PhpOpenFileSecurity(
         status = PhCreateFileWin32(
             Handle,
             PhGetString(PvFileName),
-            DesiredAccess | READ_CONTROL | WRITE_DAC,
+            DesiredAccess | READ_CONTROL | WRITE_DAC | SYNCHRONIZE,
             FILE_ATTRIBUTE_NORMAL,
             FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
             FILE_OPEN,
-            FILE_SYNCHRONOUS_IO_NONALERT
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
             );
 
         if (!NT_SUCCESS(status))
@@ -1389,11 +1389,11 @@ NTSTATUS PhpOpenFileSecurity(
             status = PhCreateFileWin32(
                 Handle,
                 PhGetString(PvFileName),
-                DesiredAccess | READ_CONTROL,
+                DesiredAccess | READ_CONTROL | SYNCHRONIZE,
                 FILE_ATTRIBUTE_NORMAL,
                 FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
                 FILE_OPEN,
-                FILE_SYNCHRONOUS_IO_NONALERT
+                FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
                 );
         }
     }
