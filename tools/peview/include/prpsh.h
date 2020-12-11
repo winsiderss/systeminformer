@@ -113,7 +113,7 @@ FORCEINLINE BOOLEAN PvPropPageDlgProcHeader(
         PhSetWindowContext(hwndDlg, ULONG_MAX, (PVOID)lParam);
     }
 
-    propSheetPage = PhGetWindowContext(hwndDlg, ULONG_MAX);
+    propSheetPage = (LPPROPSHEETPAGE)PhGetWindowContext(hwndDlg, ULONG_MAX);
 
     if (!propSheetPage)
         return FALSE;

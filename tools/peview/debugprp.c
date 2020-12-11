@@ -79,7 +79,6 @@ typedef struct _PVP_PE_DEBUG_CONTEXT
     HIMAGELIST ListViewImageList;
 } PVP_PE_DEBUG_CONTEXT, *PPVP_PE_DEBUG_CONTEXT;
 
-
 INT_PTR CALLBACK PvpPeDebugDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,

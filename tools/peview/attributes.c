@@ -97,6 +97,13 @@ VOID PvEnumerateFileExtendedAttributes(
     ExtendedListView_SetRedraw(ListViewHandle, TRUE);
 }
 
+typedef struct _PVP_PE_ATTRIBUTES_CONTEXT
+{
+    HWND WindowHandle;
+    HWND ListViewHandle;
+    HIMAGELIST ListViewImageList;
+} PVP_PE_ATTRIBUTES_CONTEXT, *PPVP_PE_ATTRIBUTES_CONTEXT;
+
 INT_PTR CALLBACK PvpPeExtendedAttributesDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -106,33 +113,52 @@ INT_PTR CALLBACK PvpPeExtendedAttributesDlgProc(
 {
     LPPROPSHEETPAGE propSheetPage;
     PPV_PROPPAGECONTEXT propPageContext;
+    PPVP_PE_ATTRIBUTES_CONTEXT context;
 
     if (!PvPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext))
         return FALSE;
+
+    if (uMsg == WM_INITDIALOG)
+    {
+        context = propPageContext->Context = PhAllocate(sizeof(PVP_PE_ATTRIBUTES_CONTEXT));
+        memset(context, 0, sizeof(PVP_PE_ATTRIBUTES_CONTEXT));
+    }
+    else
+    {
+        context = propPageContext->Context;
+    }
 
     switch (uMsg)
     {
     case WM_INITDIALOG:
         {
-            HWND lvHandle;
+            context->WindowHandle = hwndDlg;
+            context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
-            lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
-            PhSetListViewStyle(lvHandle, TRUE, TRUE);
-            PhSetControlTheme(lvHandle, L"explorer");
-            PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"#");
-            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 150, L"Name");
-            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 200, L"Value");
-            PhSetExtendedListView(lvHandle);
-            PhLoadListViewColumnsFromSetting(L"ImageAttributesListViewColumns", lvHandle);
+            PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
+            PhSetControlTheme(context->ListViewHandle, L"explorer");
+            PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"#");
+            PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 150, L"Name");
+            PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 200, L"Value");
+            PhSetExtendedListView(context->ListViewHandle);
+            PhLoadListViewColumnsFromSetting(L"ImageAttributesListViewColumns", context->ListViewHandle);
 
-            PvEnumerateFileExtendedAttributes(lvHandle);
+            if (context->ListViewImageList = ImageList_Create(2, 20, ILC_MASK | ILC_COLOR, 1, 1))
+                ListView_SetImageList(context->ListViewHandle, context->ListViewImageList, LVSIL_SMALL);
+
+            PvEnumerateFileExtendedAttributes(context->ListViewHandle);
 
             PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
         {
-            PhSaveListViewColumnsToSetting(L"ImageAttributesListViewColumns", GetDlgItem(hwndDlg, IDC_LIST));
+            PhSaveListViewColumnsToSetting(L"ImageAttributesListViewColumns", context->ListViewHandle);
+
+            if (context->ListViewImageList)
+                ImageList_Destroy(context->ListViewImageList);
+
+            PhFree(context);
         }
         break;
     case WM_SHOWWINDOW:
@@ -142,7 +168,7 @@ INT_PTR CALLBACK PvpPeExtendedAttributesDlgProc(
                 PPH_LAYOUT_ITEM dialogItem;
 
                 dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
-                PvAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST), dialogItem, PH_ANCHOR_ALL);
+                PvAddPropPageLayoutItem(hwndDlg, context->ListViewHandle, dialogItem, PH_ANCHOR_ALL);
                 PvDoPropPageLayout(hwndDlg);
 
                 propPageContext->LayoutInitialized = TRUE;
@@ -151,12 +177,12 @@ INT_PTR CALLBACK PvpPeExtendedAttributesDlgProc(
         break;
     case WM_NOTIFY:
         {
-            PvHandleListViewNotifyForCopy(lParam, GetDlgItem(hwndDlg, IDC_LIST));
+            PvHandleListViewNotifyForCopy(lParam, context->ListViewHandle);
         }
         break;
     case WM_CONTEXTMENU:
         {
-            if ((HWND)wParam == GetDlgItem(hwndDlg, IDC_LIST))
+            if ((HWND)wParam == context->ListViewHandle)
             {
                 POINT point;
                 PPH_EMENU menu;
