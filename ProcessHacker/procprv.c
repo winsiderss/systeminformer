@@ -116,6 +116,9 @@ typedef struct _PH_PROCESS_QUERY_S2_DATA
     ULONG ImportFunctions;
     ULONG ImportModules;
     PH_IMAGE_VERSION_INFO VersionInfo; // LXSS only
+
+    NTSTATUS ImageCoherencyStatus;
+    FLOAT ImageCoherency;
 } PH_PROCESS_QUERY_S2_DATA, *PPH_PROCESS_QUERY_S2_DATA;
 
 typedef struct _PH_SID_FULL_NAME_CACHE_ENTRY
@@ -968,6 +971,12 @@ VOID PhpProcessQueryStage2(
             Data->ImportModules = ULONG_MAX;
             Data->ImportFunctions = ULONG_MAX;
         }
+
+        Data->ImageCoherencyStatus = PhGetProcessImageCoherency(
+            processItem->FileNameWin32->Buffer,
+            processItem->ProcessId,
+            &Data->ImageCoherency
+            );
     }
 
     if (PhEnableLinuxSubsystemSupport && processItem->FileNameWin32 && processItem->IsSubsystemProcess)
@@ -1089,6 +1098,9 @@ VOID PhpFillProcessItemStage2(
     processItem->IsPacked = Data->IsPacked;
     processItem->ImportFunctions = Data->ImportFunctions;
     processItem->ImportModules = Data->ImportModules;
+
+    processItem->ImageCoherencyStatus = Data->ImageCoherencyStatus;
+    processItem->ImageCoherency = Data->ImageCoherency;
 
     // Note: We query Win32 processes in stage1 so don't overwrite the previous data. (dmex)
     if (processItem->IsSubsystemProcess)

@@ -79,6 +79,11 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
     _In_opt_ PVOID Context
     );
 
+BOOLEAN PhpShouldShowImageCoherency(
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ BOOLEAN CheckThreshold
+    );
+
 static HWND ProcessTreeListHandle;
 static ULONG ProcessTreeListSortColumn;
 static PH_SORT_ORDER ProcessTreeListSortOrder;
@@ -98,6 +103,8 @@ static ULONG GraphContextHeight = 0;
 static HBITMAP GraphOldBitmap;
 static HBITMAP GraphBitmap = NULL;
 static PVOID GraphBits = NULL;
+
+static FLOAT LowImageCoherencyThreshold = 0.5f; /**< Limit for displaying "low image coherency" */
 
 VOID PhProcessTreeListInitialization(
     VOID
@@ -219,6 +226,7 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_PIDHEX, FALSE, L"PID (Hex)", 50, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_CPUCORECYCLES, FALSE, L"CPU (relative)", 45, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_CET, FALSE, L"CET", 45, PH_ALIGN_LEFT, ULONG_MAX, 0, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHPRTLC_IMAGE_COHERENCY, FALSE, L"Image Coherency", 70, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -1960,6 +1968,23 @@ BEGIN_SORT_FUNCTION(Cet)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(ImageCoherency)
+{
+    if (processItem1->ImageCoherency < processItem2->ImageCoherency)
+    {
+        sortResult = -1;
+    }
+    else if (processItem1->ImageCoherency > processItem2->ImageCoherency)
+    {
+        sortResult = 1;
+    }
+    else
+    {
+        sortResult = 0;
+    }
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpProcessTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -2087,6 +2112,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         SORT_FUNCTION(HexPid),
                         SORT_FUNCTION(CpuCore),
                         SORT_FUNCTION(Cet),
+                        SORT_FUNCTION(ImageCoherency),
                     };
                     int (__cdecl *sortFunction)(const void *, const void *);
 
@@ -3011,6 +3037,32 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 if (processItem->IsCetEnabled)
                     PhInitializeStringRef(&getCellText->Text, L"CET");
                 break;
+            case PHPRTLC_IMAGE_COHERENCY:
+                {
+                    FLOAT imageCoherency;
+                    PH_FORMAT format[2];
+                    SIZE_T returnLength;
+
+                    if (!PhpShouldShowImageCoherency(processItem, FALSE))
+                    {
+                        break;
+                    }
+
+                    imageCoherency = (FLOAT)((DOUBLE)processItem->ImageCoherency * 100.0f);
+
+                    PhInitFormatF(&format[0], imageCoherency, 2);
+                    PhInitFormatS(&format[1], L"%");
+
+                    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format),
+                                         node->ImageCoherencyText,
+                                         sizeof(node->ImageCoherencyText),
+                                         &returnLength))
+                    {
+                        getCellText->Text.Buffer = node->ImageCoherencyText;
+                        getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
+                    }
+                    break;
+                }
             default:
                 return FALSE;
             }
@@ -3073,6 +3125,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 getNodeColor->BackColor = PhCsColorDotNet;
             else if (PhCsUseColorPacked && processItem->IsPacked)
                 getNodeColor->BackColor = PhCsColorPacked;
+            else if (PhCsUseColorLowImageCoherency && PhpShouldShowImageCoherency(processItem, TRUE))
+                getNodeColor->BackColor = PhCsColorLowImageCoherency;
             else if (PhCsUseColorWow64Processes && processItem->IsWow64)
                 getNodeColor->BackColor = PhCsColorWow64Processes;
             else if (PhCsUseColorJobProcesses && processItem->IsInSignificantJob)
@@ -3763,4 +3817,65 @@ PPH_LIST PhDuplicateProcessNodeList(
     PhInsertItemsList(newList, 0, ProcessNodeList->Items, ProcessNodeList->Count);
 
     return newList;
+}
+
+/**
+* Determines if the process item should show the image coherency in the UI.
+*
+* \param[in] ProcessItem - Process item to check.
+* \param[in] CheckThreshold - If TRUE the image low coherency threshold is
+* checked, see: LowImageCoherencyThreshold.
+*
+* \return TRUE if the image coherency should be shown, FALSE otherwise.
+*/
+BOOLEAN PhpShouldShowImageCoherency(
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ BOOLEAN CheckThreshold
+    )
+{
+    //
+    // Exclude the fake processes and system idle PID
+    //
+    if (PH_IS_FAKE_PROCESS_ID(ProcessItem->ProcessId) ||
+        (ProcessItem->ProcessId == SYSTEM_IDLE_PROCESS_ID))
+    {
+        return FALSE;
+    }
+
+    //
+    // Do not show if the process has no image file name (Secure System)
+    //
+    if (!ProcessItem->FileNameWin32)
+    {
+        return FALSE;
+    }
+
+    //
+    // We don't do the coherency check if the created process is WSL
+    //
+    if (ProcessItem->IsSubsystemProcess)
+    {
+        return FALSE;
+    }
+
+    if (NT_SUCCESS(ProcessItem->ImageCoherencyStatus) ||
+        (ProcessItem->ImageCoherencyStatus == STATUS_INVALID_IMAGE_NOT_MZ) ||
+        (ProcessItem->ImageCoherencyStatus == STATUS_INVALID_IMAGE_FORMAT) ||
+        (ProcessItem->ImageCoherencyStatus == STATUS_INVALID_IMAGE_HASH) ||
+        (ProcessItem->ImageCoherencyStatus == STATUS_IMAGE_SUBSYSTEM_NOT_PRESENT))
+    {
+        if (CheckThreshold)
+        {
+            if (ProcessItem->ImageCoherency <= LowImageCoherencyThreshold)
+            {
+                return TRUE;
+            }
+        }
+        else
+        {
+            return TRUE;
+        }
+    }
+
+    return FALSE;
 }

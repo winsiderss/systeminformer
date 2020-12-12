@@ -235,7 +235,11 @@ typedef struct _PH_PROCESS_ITEM
     PH_KNOWN_PROCESS_TYPE KnownProcessType;
     PS_PROTECTION Protection;
     ULONG JobObjectId;
+
     PPH_IMAGELIST_ITEM IconEntry;
+
+    NTSTATUS ImageCoherencyStatus;
+    FLOAT ImageCoherency;
 } PH_PROCESS_ITEM, *PPH_PROCESS_ITEM;
 // end_phapppub
 
