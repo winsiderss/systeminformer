@@ -29,6 +29,7 @@
 #include <lsasup.h>
 
 #include <phplug.h>
+#include <phsettings.h>
 #include <procprv.h>
 #include <srvprv.h>
 
@@ -413,7 +414,7 @@ PPH_STRING PhGetProcessTooltipText(
                 );
         }
 
-        if (PhpShouldShowImageCoherency(Process, TRUE))
+        if (PhEnableProcessQueryStage2 && PhpShouldShowImageCoherency(Process, TRUE))
         {
             PhAppendFormatStringBuilder(
                 &notes,
