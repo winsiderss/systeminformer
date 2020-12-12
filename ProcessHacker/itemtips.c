@@ -60,6 +60,12 @@ PPH_STRING PhQueryWmiHostProcessString(
 
 static PH_STRINGREF StandardIndent = PH_STRINGREF_INIT(L"    ");
 
+extern
+BOOLEAN PhpShouldShowImageCoherency(
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ BOOLEAN CheckThreshold
+    );
+
 VOID PhpAppendStringWithLineBreaks(
     _Inout_ PPH_STRING_BUILDER StringBuilder,
     _In_ PPH_STRINGREF String,
@@ -404,6 +410,15 @@ PPH_STRING PhGetProcessTooltipText(
                 L"    Image is probably packed (%lu imports over %lu modules).\n",
                 Process->ImportFunctions,
                 Process->ImportModules
+                );
+        }
+
+        if (PhpShouldShowImageCoherency(Process, TRUE))
+        {
+            PhAppendFormatStringBuilder(
+                &notes,
+                L"    Low Image Coherency: %.2f%%\n",
+                (FLOAT)((DOUBLE)Process->ImageCoherency * 100.0f)
                 );
         }
 

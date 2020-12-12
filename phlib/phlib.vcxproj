@@ -279,6 +279,7 @@
     <ClCompile Include="http.c" />
     <ClCompile Include="icotobmp.c" />
     <ClCompile Include="filestream.c" />
+    <ClCompile Include="imgcoherency.c" />
     <ClCompile Include="json.c" />
     <ClCompile Include="kph.c" />
     <ClCompile Include="kphdata.c" />

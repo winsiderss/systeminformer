@@ -1043,6 +1043,15 @@ PhIsExecutablePacked(
     );
 
 PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetProcessImageCoherency(
+    _In_ PWSTR FileName,
+    _In_ HANDLE ProcessId,
+    _Out_ PFLOAT ImageCoherency
+    );
+
+PHLIBAPI
 ULONG
 NTAPI
 PhCrc32(

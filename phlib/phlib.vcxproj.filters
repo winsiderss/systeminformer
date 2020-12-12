@@ -164,6 +164,9 @@
     <ClCompile Include="json.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="imgcoherency.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\circbuf.h">
