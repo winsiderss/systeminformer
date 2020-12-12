@@ -55,6 +55,8 @@ EXT ULONG PhCsUseColorDotNet;
 EXT ULONG PhCsColorDotNet;
 EXT ULONG PhCsUseColorPacked;
 EXT ULONG PhCsColorPacked;
+EXT ULONG PhCsUseColorLowImageCoherency;
+EXT ULONG PhCsColorLowImageCoherency;
 EXT ULONG PhCsUseColorGuiThreads;
 EXT ULONG PhCsColorGuiThreads;
 EXT ULONG PhCsUseColorRelocatedModules;
