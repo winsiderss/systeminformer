@@ -435,6 +435,14 @@ PPH_PROCESS_ITEM PhCreateProcessItem(
 
     PhEmCallObjectOperation(EmProcessItemType, processItem, EmObjectCreate);
 
+    //
+    // Initialize ImageCoherencyStatus to STATUS_PENDING this notes that the
+    // image coherency hasn't been done yet. This prevents the process items
+    // from being noted as "Low Image Coherency" or being highlighted until
+    // the analysis runs. See: PhpShouldShowImageCoherency
+    //
+    processItem->ImageCoherencyStatus = STATUS_PENDING;
+
     return processItem;
 }
 

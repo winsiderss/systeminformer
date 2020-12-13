@@ -3834,6 +3834,16 @@ BOOLEAN PhpShouldShowImageCoherency(
     )
 {
     //
+    // If we haven't done the image coherency check yet, don't show. We
+    // initialize the process item with STATUS_PENDING to denote this.
+    // See: PhCreateProcessItem
+    //
+    if (ProcessItem->ImageCoherencyStatus == STATUS_PENDING)
+    {
+        return FALSE;
+    }
+
+    //
     // Exclude the fake processes and system idle PID
     //
     if (PH_IS_FAKE_PROCESS_ID(ProcessItem->ProcessId) ||
