@@ -74,7 +74,7 @@ VOID PvpPeEnumerateFileLinks(
                     &isb,
                     NULL,
                     FILE_ATTRIBUTE_NORMAL,
-                    0,
+                    FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
                     FILE_OPEN,
                     FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_BY_FILE_ID,
                     NULL,
