@@ -36,6 +36,7 @@
 #define IDD_PEEHCONT                    134
 #define IDD_PEDEBUGPOGO                 135
 #define IDD_PEDEBUGCRT                  136
+#define IDD_PELAYOUT                    137
 #define IDC_TARGETMACHINE               1003
 #define IDC_CHECKSUM                    1004
 #define IDC_SUBSYSTEM                   1005

@@ -129,6 +129,9 @@
     <ClCompile Include="processes.c">
       <Filter>Source Files\Pages\Windows</Filter>
     </ClCompile>
+    <ClCompile Include="layout.c">
+      <Filter>Source Files\Pages</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\peview.h">

@@ -47,6 +47,7 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"ImageLoadCfgListViewColumns", L"");
     PhpAddStringSetting(L"ImageExportsListViewColumns", L"");
     PhpAddStringSetting(L"ImageImportsListViewColumns", L"");
+    PhpAddStringSetting(L"ImageLayoutTreeColumns", L"");
     PhpAddStringSetting(L"ImageCfgListViewColumns", L"");
     PhpAddStringSetting(L"ImageResourcesListViewColumns", L"");
     PhpAddStringSetting(L"ImageAttributesListViewColumns", L"");
