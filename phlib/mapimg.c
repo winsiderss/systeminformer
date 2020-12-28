@@ -804,7 +804,7 @@ BOOLEAN PhGetRemoteMappedImageGuardFlagsEx(
 
     if (RemoteMappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
     {
-        PIMAGE_LOAD_CONFIG_DIRECTORY32 config32;
+        PIMAGE_LOAD_CONFIG_DIRECTORY32 config32 = NULL;
 
         if (!PhGetRemoteMappedImageDirectoryEntry(
             ProcessHandle,
@@ -818,17 +818,20 @@ BOOLEAN PhGetRemoteMappedImageGuardFlagsEx(
             return FALSE;
         }
 
-        if (RTL_CONTAINS_FIELD(config32, config32->Size, GuardFlags))
+        if (config32)
         {
-            *GuardFlags = config32->GuardFlags;
-            result = TRUE;
-        }
+            if (RTL_CONTAINS_FIELD(config32, config32->Size, GuardFlags))
+            {
+                *GuardFlags = config32->GuardFlags;
+                result = TRUE;
+            }
 
-        PhFree(config32);
+            PhFree(config32);
+        }
     }
     else
     {
-        PIMAGE_LOAD_CONFIG_DIRECTORY64 config64;
+        PIMAGE_LOAD_CONFIG_DIRECTORY64 config64 = NULL;
 
         if (!PhGetRemoteMappedImageDirectoryEntry(
             ProcessHandle,
@@ -842,13 +845,16 @@ BOOLEAN PhGetRemoteMappedImageGuardFlagsEx(
             return FALSE;
         }
 
-        if (RTL_CONTAINS_FIELD(config64, config64->Size, GuardFlags))
+        if (config64)
         {
-            *GuardFlags = config64->GuardFlags;
-            result = TRUE;
-        }
+            if (RTL_CONTAINS_FIELD(config64, config64->Size, GuardFlags))
+            {
+                *GuardFlags = config64->GuardFlags;
+                result = TRUE;
+            }
 
-        PhFree(config64);
+            PhFree(config64);
+        }
     }
 
     return result;

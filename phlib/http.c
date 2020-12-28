@@ -721,8 +721,6 @@ NTSTATUS PhHttpSocketDownloadToFile(
     }
 
     NtClose(fileHandle);
-    PhDereferenceObject(tempFileName);
-    PhDereferenceObject(tempDirectory);
 
     if (NT_SUCCESS(status))
     {
@@ -749,6 +747,9 @@ NTSTATUS PhHttpSocketDownloadToFile(
             status = PhMoveFileWin32(PhGetString(tempFileName), FileName);
         }
     }
+
+    PhDereferenceObject(tempFileName);
+    PhDereferenceObject(tempDirectory);
 
     return status;
 }
