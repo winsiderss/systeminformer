@@ -1510,7 +1510,7 @@ VOID PhSipDefaultDrawPanel(
 
             stateId = -1;
 
-            if (Section->GraphHot || Section->PanelHot || Section->HasFocus)
+            if (Section->GraphHot || Section->PanelHot || (Section->HasFocus && !Section->HideFocus))
             {
                 if (Section == CurrentSection)
                     stateId = TREIS_HOTSELECTED;
