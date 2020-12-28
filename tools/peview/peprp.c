@@ -1182,7 +1182,17 @@ VOID PvpSetPeImageFileProperties(
             FileInternalInformation
             )))
         {
-            PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_FILEINDEX, 1, PhaFormatUInt64(internalInfo.IndexNumber.QuadPart, FALSE)->Buffer);
+            PPH_STRING string;
+            PH_FORMAT format[4];
+
+            PhInitFormatI64U(&format[0], internalInfo.IndexNumber.QuadPart);
+            PhInitFormatS(&format[1], L" (0x");
+            PhInitFormatI64X(&format[2], internalInfo.IndexNumber.QuadPart);
+            PhInitFormatS(&format[3], L")");
+
+            string = PhFormat(format, RTL_NUMBER_OF(format), 0x80);
+            PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_FILEINDEX, 1, string->Buffer);
+            PhDereferenceObject(string);
         }
 
         if (NT_SUCCESS(NtQueryInformationFile(
@@ -1194,10 +1204,37 @@ VOID PvpSetPeImageFileProperties(
             )))
         {
             PPH_STRING string;
+            PPH_STRING guidstring;
+            PH_FORMAT format[7];
+            struct
+            {
+                ULONGLONG LowPart;
+                ULONGLONG HighPart;
+            } *fileId = (PVOID)&fileIdInfo.FileId;
 
-            string = PhFormatGuid((PGUID)fileIdInfo.FileId.Identifier);
+            // The identifier gets used as both a GUID and ULONGLONG (dmex)
+            guidstring = PhFormatGuid((PGUID)fileIdInfo.FileId.Identifier);
+            PhInitFormatSR(&format[0], guidstring->sr);
+            PhInitFormatS(&format[1], L" (0x");
+            PhInitFormatI64X(&format[2], fileId->LowPart);
+            PhInitFormatS(&format[3], L")");
+
+            if (fileId->HighPart != 0)
+            {
+                PhInitFormatS(&format[4], L" (0x");
+                PhInitFormatI64X(&format[5], fileId->HighPart);
+                PhInitFormatS(&format[6], L")");
+
+                string = PhFormat(format, RTL_NUMBER_OF(format), 0x80);
+            }
+            else
+            {
+                string = PhFormat(format, 4, 0x80);
+            }
+
             PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_FILEID, 1, string->Buffer);
             PhDereferenceObject(string);
+            PhDereferenceObject(guidstring);
         }
 
         if (NT_SUCCESS(NtFsControlFile(
@@ -1210,7 +1247,7 @@ VOID PvpSetPeImageFileProperties(
             NULL,
             0,
             &objectInfo,
-            sizeof(objectInfo)
+            sizeof(FILE_OBJECTID_BUFFER)
             )))
         {
             PPH_STRING string;
