@@ -355,6 +355,7 @@
     <ClCompile Include="exlfexports.c" />
     <ClCompile Include="exlfimports.c" />
     <ClCompile Include="exlfprp.c" />
+    <ClCompile Include="layout.c" />
     <ClCompile Include="options.c" />
     <ClCompile Include="pesectionprp.c" />
     <ClCompile Include="pepogoprp.c" />
