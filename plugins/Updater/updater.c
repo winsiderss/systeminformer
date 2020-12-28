@@ -943,11 +943,11 @@ LRESULT CALLBACK TaskDialogSubclassProc(
     //    break;
     //case WM_NCACTIVATE:
     //    {
-    //        if (IsWindowVisible(PhMainWndHandle) && !IsMinimized(PhMainWndHandle))
+    //        if (IsWindowVisible(PhMainWindowHandle) && !IsMinimized(PhMainWindowHandle))
     //        {
     //            if (!context->FixedWindowStyles)
     //            {
-    //                SetWindowLongPtr(hwndDlg, GWLP_HWNDPARENT, (LONG_PTR)PhMainWndHandle);
+    //                SetWindowLongPtr(hwndDlg, GWLP_HWNDPARENT, (LONG_PTR)PhMainWindowHandle);
     //                PhSetWindowExStyle(hwndDlg, WS_EX_APPWINDOW, WS_EX_APPWINDOW);
     //                context->FixedWindowStyles = TRUE;
     //            }
@@ -976,7 +976,7 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
             UpdateDialogHandle = context->DialogHandle = hwndDlg;
 
             // Center the update window on PH if it's visible else we center on the desktop.
-            PhCenterWindow(hwndDlg, PhMainWndHandle);
+            PhCenterWindow(hwndDlg, PhMainWindowHandle);
 
             // Create the Taskdialog icons.
             PhSetApplicationWindowIcon(hwndDlg);
@@ -1044,7 +1044,7 @@ VOID ShowUpdateDialog(
     {
         if (!NT_SUCCESS(PhCreateThreadEx(&UpdateDialogThreadHandle, ShowUpdateDialogThread, Context)))
         {
-            PhShowError(PhMainWndHandle, L"%s", L"Unable to create the window.");
+            PhShowError(NULL, L"%s", L"Unable to create the window.");
             return;
         }
 

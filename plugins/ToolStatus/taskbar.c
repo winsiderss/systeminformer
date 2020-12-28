@@ -21,6 +21,7 @@
  */
 
 #include "toolstatus.h"
+#include <malloc.h>
 #include <shobjidl.h>
 
 HICON PhUpdateIconCpuHistory(
@@ -45,7 +46,6 @@ HICON PhUpdateIconCpuUsage(
 
 PH_TASKBAR_ICON TaskbarListIconType = TASKBAR_ICON_NONE;
 BOOLEAN TaskbarIsDirty = FALSE;
-static UINT TaskbarButtonCreatedMsgId = 0;
 static ITaskbarList3* TaskbarListClass = NULL;
 
 VOID NTAPI TaskbarUpdateGraphs(
@@ -58,7 +58,7 @@ VOID NTAPI TaskbarUpdateGraphs(
         {
             if (TaskbarListClass)
             {
-                ITaskbarList3_SetOverlayIcon(TaskbarListClass, PhMainWndHandle, NULL, NULL);
+                ITaskbarList3_SetOverlayIcon(TaskbarListClass, PhMainWindowHandle, NULL, NULL);
                 ITaskbarList3_Release(TaskbarListClass);
                 TaskbarListClass = NULL;
             }
@@ -72,24 +72,12 @@ VOID NTAPI TaskbarUpdateGraphs(
 
         if (!TaskbarListClass)
         {
-            static UINT (WINAPI *RegisterWindowMessage_I)(_In_ PCWSTR String) = NULL;
-
-            if (!RegisterWindowMessage_I)
+            if (SUCCEEDED(PhGetClassObject(L"explorerframe.dll", &CLSID_TaskbarList, &IID_ITaskbarList3, &TaskbarListClass)))
             {
-                RegisterWindowMessage_I = PhGetModuleProcAddress(L"user32.dll", "RegisterWindowMessageW");
-            }
-
-            if (RegisterWindowMessage_I)
-            {
-                TaskbarButtonCreatedMsgId = RegisterWindowMessage_I(L"TaskbarButtonCreated");
-
-                if (SUCCEEDED(PhGetClassObject(L"explorerframe.dll", &CLSID_TaskbarList, &IID_ITaskbarList3, &TaskbarListClass)))
+                if (!SUCCEEDED(ITaskbarList3_HrInit(TaskbarListClass)))
                 {
-                    if (!SUCCEEDED(ITaskbarList3_HrInit(TaskbarListClass)))
-                    {
-                        ITaskbarList3_Release(TaskbarListClass);
-                        TaskbarListClass = NULL;
-                    }
+                    ITaskbarList3_Release(TaskbarListClass);
+                    TaskbarListClass = NULL;
                 }
             }
         }
@@ -97,7 +85,7 @@ VOID NTAPI TaskbarUpdateGraphs(
         if (TaskbarIsDirty)
         {
             if (TaskbarListClass)
-                ITaskbarList3_SetOverlayIcon(TaskbarListClass, PhMainWndHandle, NULL, NULL);
+                ITaskbarList3_SetOverlayIcon(TaskbarListClass, PhMainWindowHandle, NULL, NULL);
             TaskbarIsDirty = FALSE;
         }
 
@@ -123,7 +111,7 @@ VOID NTAPI TaskbarUpdateGraphs(
         if (overlayIcon)
         {
             if (TaskbarListClass)
-                ITaskbarList3_SetOverlayIcon(TaskbarListClass, PhMainWndHandle, overlayIcon, NULL);
+                ITaskbarList3_SetOverlayIcon(TaskbarListClass, PhMainWindowHandle, overlayIcon, NULL);
             DestroyIcon(overlayIcon);
         }
     }
