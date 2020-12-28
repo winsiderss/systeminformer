@@ -237,6 +237,8 @@ NTSTATUS KphDispatchDeviceControl(
                 input->ProcessHandle,
                 input->DesiredAccess,
                 input->JobHandle,
+                0, // TODO: interface needs updated to pass key
+                client,
                 accessMode
                 );
         }
@@ -368,6 +370,8 @@ NTSTATUS KphDispatchDeviceControl(
                 input->ThreadHandle,
                 input->DesiredAccess,
                 input->ProcessHandle,
+                0, // TODO: interface needs updated to pass key
+                client,
                 accessMode
                 );
         }
@@ -393,7 +397,8 @@ NTSTATUS KphDispatchDeviceControl(
                 input->BackTrace,
                 input->CapturedFrames,
                 input->BackTraceHash,
-                accessMode
+                accessMode,
+                0
                 );
         }
         break;
