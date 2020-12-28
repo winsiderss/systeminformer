@@ -6777,7 +6777,7 @@ RtlQueryValidationRunlevel(
 // begin_private
 
 NTSYSAPI
-PVOID
+HANDLE
 NTAPI
 RtlCreateBoundaryDescriptor(
     _In_ PUNICODE_STRING Name,
@@ -6788,14 +6788,14 @@ NTSYSAPI
 VOID
 NTAPI
 RtlDeleteBoundaryDescriptor(
-    _In_ PVOID BoundaryDescriptor
+    _In_ HANDLE BoundaryDescriptor
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlAddSIDToBoundaryDescriptor(
-    _Inout_ PVOID *BoundaryDescriptor,
+    _Inout_ PHANDLE BoundaryDescriptor,
     _In_ PSID RequiredSid
     );
 
@@ -6805,7 +6805,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlAddIntegrityLabelToBoundaryDescriptor(
-    _Inout_ PVOID *BoundaryDescriptor,
+    _Inout_ PHANDLE BoundaryDescriptor,
     _In_ PSID IntegrityLabel
     );
 #endif
