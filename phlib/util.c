@@ -1818,7 +1818,6 @@ BOOLEAN PhGetFileVersionVarFileInfoValue(
     static PH_STRINGREF varfileBlockName = PH_STRINGREF_INIT(L"VarFileInfo");
     PVS_VERSION_INFO_STRUCT32 varfileBlockInfo;
     PVS_VERSION_INFO_STRUCT32 varfileBlockValue;
-    ULONG varfileBlockLength;
 
     if (PhGetFileVersionInfoKey(
         VersionInfo,
@@ -1827,11 +1826,9 @@ BOOLEAN PhGetFileVersionVarFileInfoValue(
         &varfileBlockInfo
         ))
     {
-        varfileBlockLength = (ULONG)KeyName->Length / sizeof(WCHAR);
-
         if (PhGetFileVersionInfoKey(
             varfileBlockInfo,
-            varfileBlockLength,
+            (ULONG)KeyName->Length / sizeof(WCHAR),
             KeyName->Buffer,
             &varfileBlockValue
             ))
@@ -1919,7 +1916,7 @@ PPH_STRING PhGetFileVersionInfoString(
         if (length <= sizeof(UNICODE_NULL))
             return NULL;
 
-        string = PhCreateStringEx((PWCHAR)buffer, length * sizeof(WCHAR));
+        string = PhCreateStringEx(buffer, length * sizeof(WCHAR));
         // length may include the null terminator.
         PhTrimToNullTerminatorString(string);
 
@@ -1936,7 +1933,7 @@ PPH_STRING PhGetFileVersionInfoString(
  *
  * \param VersionInfo The version information block.
  * \param LangCodePage The language ID and code page of the string.
- * \param StringName The name of the string.
+ * \param KeyName The name of the string.
  */
 PPH_STRING PhGetFileVersionInfoString2(
     _In_ PVOID VersionInfo,
@@ -1948,7 +1945,6 @@ PPH_STRING PhGetFileVersionInfoString2(
     PVS_VERSION_INFO_STRUCT32 blockStringInfo;
     PVS_VERSION_INFO_STRUCT32 blockLangInfo;
     PVS_VERSION_INFO_STRUCT32 stringNameBlockInfo;
-    ULONG stringNameInfoLength;
     PWSTR stringNameBlockValue;
     PPH_STRING string;
     SIZE_T returnLength;
@@ -1974,7 +1970,7 @@ PPH_STRING PhGetFileVersionInfoString2(
 
     if (!PhGetFileVersionInfoKey(
         blockStringInfo,
-        (ULONG)returnLength / sizeof(WCHAR) - sizeof(ANSI_NULL),
+        (ULONG)returnLength / sizeof(WCHAR) - sizeof(ANSI_NULL), // ANSI_NULL required (dmex)
         langNameString,
         &blockLangInfo
         ))
@@ -1982,11 +1978,9 @@ PPH_STRING PhGetFileVersionInfoString2(
         return NULL;
     }
 
-    stringNameInfoLength = (ULONG)KeyName->Length / sizeof(WCHAR);
-
     if (!PhGetFileVersionInfoKey(
         blockLangInfo,
-        stringNameInfoLength,
+        (ULONG)KeyName->Length / sizeof(WCHAR),
         KeyName->Buffer,
         &stringNameBlockInfo
         ))
@@ -2510,10 +2504,10 @@ NTSTATUS PhGetFullPathEx(
     fullPath = PhCreateStringEx(NULL, bufferSize * sizeof(WCHAR));
 
     status = RtlGetFullPathName_UEx(
-        FileName, 
-        bufferSize, 
-        fullPath->Buffer, 
-        &filePart, 
+        FileName,
+        bufferSize,
+        fullPath->Buffer,
+        &filePart,
         &returnLength
         );
 
@@ -2524,10 +2518,10 @@ NTSTATUS PhGetFullPathEx(
         fullPath = PhCreateStringEx(NULL, bufferSize * sizeof(WCHAR));
 
         status = RtlGetFullPathName_UEx(
-            FileName, 
-            bufferSize, 
-            fullPath->Buffer, 
-            &filePart, 
+            FileName,
+            bufferSize,
+            fullPath->Buffer,
+            &filePart,
             &returnLength
             );
     }
@@ -2538,7 +2532,8 @@ NTSTATUS PhGetFullPathEx(
         return status;
     }
 
-    PhTrimToNullTerminatorString(fullPath);
+    fullPath->Length = returnLength; // HACK (dmex)
+    //PhTrimToNullTerminatorString(fullPath);
 
     if (IndexOfFileName)
     {
@@ -6082,7 +6077,7 @@ PPH_STRING PhLoadString(
 
     for (ULONG i = 0; i < stringIndex; i++)
     {
-        stringBuffer = PTR_ADD_OFFSET(stringBuffer, (stringBuffer->Length + sizeof(BYTE)) * sizeof(WCHAR));
+        stringBuffer = PTR_ADD_OFFSET(stringBuffer, (stringBuffer->Length + sizeof(ANSI_NULL)) * sizeof(WCHAR)); // ANSI_NULL required (dmex)
     }
 
     if (
