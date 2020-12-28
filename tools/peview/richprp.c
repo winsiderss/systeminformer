@@ -191,6 +191,8 @@ PWSTR PvpGetProductIdComponent(
     case prodidMasm1400:
         return L"MASM (14.0)";
 
+    case prodidUtc1400_C:
+        return L"C files (14.0)";
     case prodidUtc1500_C:
         return L"C files (15.0)";
     case prodidUtc1610_C:
@@ -204,6 +206,8 @@ PWSTR PvpGetProductIdComponent(
     case prodidUtc1900_C:
         return L"C files (19.0)";
 
+    case prodidUtc1400_CPP:
+        return L"CPP files (14.0)";
     case prodidUtc1500_CPP:
         return L"CPP files (15.0)";
     case prodidUtc1610_CPP:
