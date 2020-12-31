@@ -189,7 +189,7 @@ INT_PTR CALLBACK PvpPeDebugDlgProc(
         break;
     case WM_DESTROY:
         {
-            PhSaveListViewColumnsToSetting(L"ImageDebugListViewColumns", GetDlgItem(hwndDlg, IDC_LIST));
+            PhSaveListViewColumnsToSetting(L"ImageDebugListViewColumns", context->ListViewHandle);
 
             if (context->ListViewImageList)
                 ImageList_Destroy(context->ListViewImageList);
@@ -204,7 +204,7 @@ INT_PTR CALLBACK PvpPeDebugDlgProc(
                 PPH_LAYOUT_ITEM dialogItem;
 
                 dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
-                PvAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST), dialogItem, PH_ANCHOR_ALL);
+                PvAddPropPageLayoutItem(hwndDlg, context->ListViewHandle, dialogItem, PH_ANCHOR_ALL);
                 PvDoPropPageLayout(hwndDlg);
 
                 propPageContext->LayoutInitialized = TRUE;
@@ -213,12 +213,12 @@ INT_PTR CALLBACK PvpPeDebugDlgProc(
         break;
     case WM_NOTIFY:
         {
-            PvHandleListViewNotifyForCopy(lParam, GetDlgItem(hwndDlg, IDC_LIST));
+            PvHandleListViewNotifyForCopy(lParam, context->ListViewHandle);
         }
         break;
     case WM_CONTEXTMENU:
         {
-            PvHandleListViewCommandCopy(hwndDlg, lParam, wParam, GetDlgItem(hwndDlg, IDC_LIST));
+            PvHandleListViewCommandCopy(hwndDlg, lParam, wParam, context->ListViewHandle);
         }
         break;
     }
