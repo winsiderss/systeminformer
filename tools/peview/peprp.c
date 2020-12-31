@@ -477,11 +477,11 @@ static NTSTATUS CheckSumImageThreadStart(
     if (NT_SUCCESS(PhCreateFileWin32(
         &fileHandle,
         PhGetString(PvFileName),
-        FILE_READ_ACCESS,
+        FILE_GENERIC_READ,
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
         FILE_OPEN,
-        0
+        FILE_SYNCHRONOUS_IO_NONALERT
         )))
     {
         BYTE importTableMd5Hash[16];

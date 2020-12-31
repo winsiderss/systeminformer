@@ -39,7 +39,7 @@
 #include <shlobj.h>
 #include <uxtheme.h>
 
-#include "resource.h"
+#include "..\resource.h"
 
 extern PPH_STRING PvFileName;
 extern PH_MAPPED_IMAGE PvMappedImage;
