@@ -9,6 +9,12 @@
 #include <bcrypt.h>
 #include <kphapi.h>
 
+#ifdef DBG
+#define PAGED_PASSIVE() PAGED_ASSERT(KeGetCurrentIrql() == PASSIVE_LEVEL)
+#else
+#define PAGED_PASSIVE()
+#endif
+
 // Memory
 
 #define PTR_ADD_OFFSET(Pointer, Offset) ((PVOID)((ULONG_PTR)(Pointer) + (ULONG_PTR)(Offset)))
@@ -25,6 +31,12 @@
 #else
 #define dprintf
 #endif
+
+typedef struct _KPH_EXTENTS
+{
+    PVOID BaseAddress;
+    PVOID EndAddress;
+} KPH_EXTENTS, *PKPH_EXTENTS;
 
 typedef struct _KPH_CLIENT
 {
@@ -45,6 +57,7 @@ typedef struct _KPH_CLIENT
     FAST_MUTEX KeyBackoffMutex;
     KPH_KEY L1Key;
     KPH_KEY L2Key;
+    KPH_EXTENTS VerifiedProcessExtents;
 } KPH_CLIENT, *PKPH_CLIENT;
 
 typedef struct _KPH_PARAMETERS
@@ -56,6 +69,7 @@ typedef struct _KPH_PARAMETERS
 
 extern ULONG KphFeatures;
 extern KPH_PARAMETERS KphParameters;
+extern KPH_EXTENTS NtdllExtents;
 
 NTSTATUS KpiGetFeatures(
     _Out_ PULONG Features,
@@ -169,6 +183,8 @@ NTSTATUS KpiOpenProcessJob(
     _In_ HANDLE ProcessHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _Out_ PHANDLE JobHandle,
+    _In_opt_ KPH_KEY Key,
+    _In_ PKPH_CLIENT Client,
     _In_ KPROCESSOR_MODE AccessMode
     );
 
@@ -195,6 +211,13 @@ NTSTATUS KpiSetInformationProcess(
     _In_reads_bytes_(ProcessInformationLength) PVOID ProcessInformation,
     _In_ ULONG ProcessInformationLength,
     _In_ KPROCESSOR_MODE AccessMode
+    );
+
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+NTSTATUS KpiGetProcessProtection(
+    _In_ PEPROCESS Process,
+    _Out_ PPS_PROTECTION Protection
     );
 
 // qrydrv
@@ -230,8 +253,12 @@ NTSTATUS KpiOpenThreadProcess(
     _In_ HANDLE ThreadHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _Out_ PHANDLE ProcessHandle,
+    _In_opt_ KPH_KEY Key,
+    _In_ PKPH_CLIENT Client,
     _In_ KPROCESSOR_MODE AccessMode
     );
+
+#define KPH_STACK_TRACE_CAPTURE_USER_STACK 0x00000001 
 
 _Success_(return != 0)
 ULONG KphCaptureStackBackTrace(
@@ -249,7 +276,8 @@ NTSTATUS KphCaptureStackBackTraceThread(
     _Out_writes_(FramesToCapture) PVOID *BackTrace,
     _Out_opt_ PULONG CapturedFrames,
     _Out_opt_ PULONG BackTraceHash,
-    _In_ KPROCESSOR_MODE AccessMode
+    _In_ KPROCESSOR_MODE AccessMode,
+    _In_ ULONG Flags
     );
 
 NTSTATUS KpiCaptureStackBackTraceThread(
@@ -259,7 +287,8 @@ NTSTATUS KpiCaptureStackBackTraceThread(
     _Out_writes_(FramesToCapture) PVOID *BackTrace,
     _Out_opt_ PULONG CapturedFrames,
     _Out_opt_ PULONG BackTraceHash,
-    _In_ KPROCESSOR_MODE AccessMode
+    _In_ KPROCESSOR_MODE AccessMode,
+    _In_ ULONG Flags
     );
 
 NTSTATUS KpiQueryInformationThread(
@@ -305,6 +334,15 @@ NTSTATUS KphGetProcessMappedFileName(
     _Out_ PUNICODE_STRING *FileName
     );
 
+_IRQL_requires_min_(APC_LEVEL)
+_Must_inspect_result_
+NTSTATUS
+KphImageNtHeader(
+    _In_ PVOID Base,
+    _In_ ULONG64 Size,
+    _Out_ PIMAGE_NT_HEADERS* OutHeaders
+    );
+
 // verify
 
 NTSTATUS KphHashFile(
@@ -347,6 +385,23 @@ NTSTATUS KphValidateKey(
     _In_ KPH_KEY_LEVEL RequiredKeyLevel,
     _In_opt_ KPH_KEY Key,
     _In_ PKPH_CLIENT Client,
+    _In_ KPROCESSOR_MODE AccessMode
+    );
+
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphDominationCheck(
+    _In_ PKPH_CLIENT Client,
+    _In_ PEPROCESS Process,
+    _In_ PEPROCESS ProcessTarget,
+    _In_ KPROCESSOR_MODE AccessMode
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphVerifyCaller(
+    _In_ PKPH_CLIENT Client,
+    _In_ PETHREAD Thread,
     _In_ KPROCESSOR_MODE AccessMode
     );
 

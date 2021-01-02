@@ -20,6 +20,7 @@
  */
 
 #include <kph.h>
+#include <dyndata.h>
 
 #ifdef ALLOC_PRAGMA
 #pragma alloc_text(PAGE, KphFreeCapturedUnicodeString)
@@ -27,6 +28,7 @@
 #pragma alloc_text(PAGE, KphEnumerateSystemModules)
 #pragma alloc_text(PAGE, KphValidateAddressForSystemModules)
 #pragma alloc_text(PAGE, KphGetProcessMappedFileName)
+#pragma alloc_text(PAGE, KphImageNtHeader)
 #endif
 
 VOID KphFreeCapturedUnicodeString(
@@ -269,4 +271,33 @@ NTSTATUS KphGetProcessMappedFileName(
     *FileName = buffer;
 
     return status;
+}
+
+/**
+ * Retrieves the image headers from a module base address. 
+ *
+ * \param[in] Base - Module base address. 
+ * \param[in] Size - Size of the address range to parse.
+ * \param[out] OutHeaders - On success points to the image headers.
+ *
+ * \return Appropriate status.
+*/
+_IRQL_requires_min_(APC_LEVEL)
+_Must_inspect_result_
+NTSTATUS
+KphImageNtHeader(
+    _In_ PVOID Base,
+    _In_ ULONG64 Size,
+    _Out_ PIMAGE_NT_HEADERS* OutHeaders
+    )
+{
+    PAGED_CODE();
+
+    if (KphDynRtlImageNtHeaderEx)
+    {
+        return KphDynRtlImageNtHeaderEx(0, Base, Size, OutHeaders);
+    }
+
+    *OutHeaders = RtlImageNtHeader(Base);
+    return (*OutHeaders ? STATUS_SUCCESS : STATUS_INVALID_IMAGE_FORMAT);
 }

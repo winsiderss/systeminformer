@@ -2,6 +2,7 @@
  * KProcessHacker
  *
  * Copyright (C) 2010-2016 wj32
+ * Copyright (C) 2020 jxy-s
  *
  * This file is part of Process Hacker.
  *
@@ -35,7 +36,12 @@ VOID KphDynamicImport(
     )
 {
     PAGED_CODE();
-    NOTHING;
+
+    KphDynPsGetProcessProtection = (PPS_GET_PROCESS_PROTECTION)(
+                       KphGetSystemRoutineAddress(L"PsGetProcessProtection"));
+
+    KphDynRtlImageNtHeaderEx = (PRTL_IMAGE_NT_HEADER_EX)(
+                           KphGetSystemRoutineAddress(L"RtlImageNtHeaderEx"));
 }
 
 /**

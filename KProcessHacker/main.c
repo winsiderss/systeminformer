@@ -27,6 +27,9 @@ DRIVER_UNLOAD DriverUnload;
 _Dispatch_type_(IRP_MJ_CREATE) DRIVER_DISPATCH KphDispatchCreate;
 _Dispatch_type_(IRP_MJ_CLOSE) DRIVER_DISPATCH KphDispatchClose;
 
+KPH_EXTENTS NtdllExtents;
+UNICODE_STRING NtdllKnownDllName = RTL_CONSTANT_STRING(L"\\KnownDlls\\ntdll.dll");
+
 ULONG KphpReadIntegerParameter(
     _In_opt_ HANDLE KeyHandle,
     _In_ PUNICODE_STRING ValueName,
@@ -37,12 +40,21 @@ NTSTATUS KphpReadDriverParameters(
     _In_ PUNICODE_STRING RegistryPath
     );
 
+NTSTATUS KpiPopulateKnownDllExtents(
+    _In_ PUNICODE_STRING SectionName,
+    _Out_ PKPH_EXTENTS ModuleExtents
+    );
+
+NTSTATUS KpiKnownDllInit();
+
 #ifdef ALLOC_PRAGMA
 #pragma alloc_text(PAGE, DriverEntry)
 #pragma alloc_text(PAGE, DriverUnload)
 #pragma alloc_text(PAGE, KphpReadIntegerParameter)
 #pragma alloc_text(PAGE, KphpReadDriverParameters)
 #pragma alloc_text(PAGE, KpiGetFeatures)
+#pragma alloc_text(PAGE, KpiPopulateKnownDllExtents)
+#pragma alloc_text(PAGE, KpiKnownDllInit)
 #endif
 
 PDRIVER_OBJECT KphDriverObject;
@@ -71,6 +83,9 @@ NTSTATUS DriverEntry(
     KphDynamicImport();
 
     if (!NT_SUCCESS(status = KphpReadDriverParameters(RegistryPath)))
+        return status;
+
+    if (!NT_SUCCESS(status = KpiKnownDllInit()))
         return status;
 
     // Create the device.
@@ -353,4 +368,89 @@ NTSTATUS KpiGetFeatures(
     }
 
     return STATUS_SUCCESS;
+}
+
+/**
+ * Populates known DLL module extents.
+ *
+ * \param[in] SectionName - Name of the section to open.
+ * \param[out] ModuleExtents - On success, populated with the module extents.
+ *
+ * \return Appropriate status.
+*/
+NTSTATUS KpiPopulateKnownDllExtents(
+    _In_ PUNICODE_STRING SectionName,
+    _Out_ PKPH_EXTENTS ModuleExtents
+    )
+{
+    NTSTATUS status;
+    OBJECT_ATTRIBUTES objectAttributes;
+    HANDLE sectionHandle;
+    SECTION_IMAGE_INFORMATION sectionImageInfo;
+    MEMORY_REGION_INFORMATION memoryRegionInfo;
+
+    NT_ASSERT(PsInitialSystemProcess == PsGetCurrentProcess());
+
+    RtlZeroMemory(ModuleExtents, sizeof(*ModuleExtents));
+
+    sectionHandle = NULL;
+
+    InitializeObjectAttributes(&objectAttributes,
+                               SectionName,
+                               OBJ_KERNEL_HANDLE,
+                               NULL,
+                               NULL);
+
+    status = ZwOpenSection(&sectionHandle,
+                           SECTION_QUERY,
+                           &objectAttributes);
+    if (!NT_SUCCESS(status))
+    {
+        sectionHandle = NULL;
+        goto Exit;
+    }
+
+    status = ZwQuerySection(sectionHandle,
+                            SectionImageInformation,
+                            &sectionImageInfo,
+                            sizeof(sectionImageInfo),
+                            NULL);
+    if (!NT_SUCCESS(status))
+    {
+        goto Exit;
+    }
+
+    status = ZwQueryVirtualMemory(ZwCurrentProcess(),
+                                  sectionImageInfo.TransferAddress,
+                                  MemoryRegionInformation,
+                                  &memoryRegionInfo,
+                                  sizeof(memoryRegionInfo),
+                                  NULL);
+    if (!NT_SUCCESS(status))
+    {
+        goto Exit;
+    }
+
+    ModuleExtents->BaseAddress = sectionImageInfo.TransferAddress;
+    ModuleExtents->EndAddress = PTR_ADD_OFFSET(ModuleExtents->BaseAddress,
+                                               memoryRegionInfo.RegionSize);
+
+Exit:
+
+    if (sectionHandle)
+    {
+        ObCloseHandle(sectionHandle, KernelMode);
+    }
+
+    return status;
+}
+
+/**
+ * Initializes known module extents.
+ *
+ * \return Appropriate status.
+*/
+NTSTATUS KpiKnownDllInit()
+{
+    return KpiPopulateKnownDllExtents(&NtdllKnownDllName, &NtdllExtents);
 }
