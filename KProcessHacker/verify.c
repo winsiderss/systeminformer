@@ -22,6 +22,7 @@
 
 #include <kph.h>
 #include <dyndata.h>
+#include <ntimage.h>
 
 #define FILE_BUFFER_SIZE (2 * PAGE_SIZE)
 #define FILE_MAX_SIZE (32 * 1024 * 1024) // 32 MB

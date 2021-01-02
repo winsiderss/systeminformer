@@ -9,7 +9,7 @@ extern "C" {
 
 typedef struct _KPH_PARAMETERS
 {
-    KPH_SECURITY_LEVEL SecurityLevel;
+    KPH_SECURITY_LEVEL SecurityLevel; // deprecated 1-2-21, to be removed
     BOOLEAN CreateDynamicConfiguration;
 } KPH_PARAMETERS, *PKPH_PARAMETERS;
 

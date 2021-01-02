@@ -60,7 +60,6 @@ NTSTATUS KpiKnownDllInit();
 PDRIVER_OBJECT KphDriverObject;
 PDEVICE_OBJECT KphDeviceObject;
 ULONG KphFeatures;
-KPH_PARAMETERS KphParameters;
 
 NTSTATUS DriverEntry(
     _In_ PDRIVER_OBJECT DriverObject,
@@ -142,6 +141,8 @@ NTSTATUS KphDispatchCreate(
     PFILE_OBJECT fileObject;
     PIO_SECURITY_CONTEXT securityContext;
     PKPH_CLIENT client;
+    UCHAR requiredPrivilegesBuffer[FIELD_OFFSET(PRIVILEGE_SET, Privilege) + sizeof(LUID_AND_ATTRIBUTES)];
+    PPRIVILEGE_SET requiredPrivileges;
 
     stackLocation = IoGetCurrentIrpStackLocation(Irp);
     fileObject = stackLocation->FileObject;
@@ -149,30 +150,23 @@ NTSTATUS KphDispatchCreate(
 
     dprintf("Client (PID %lu) is connecting\n", HandleToUlong(PsGetCurrentProcessId()));
 
-    if (KphParameters.SecurityLevel == KphSecurityPrivilegeCheck ||
-        KphParameters.SecurityLevel == KphSecuritySignatureAndPrivilegeCheck)
+    // Check for SeDebugPrivilege.
+
+    requiredPrivileges = (PPRIVILEGE_SET)requiredPrivilegesBuffer;
+    requiredPrivileges->PrivilegeCount = 1;
+    requiredPrivileges->Control = PRIVILEGE_SET_ALL_NECESSARY;
+    requiredPrivileges->Privilege[0].Luid.LowPart = SE_DEBUG_PRIVILEGE;
+    requiredPrivileges->Privilege[0].Luid.HighPart = 0;
+    requiredPrivileges->Privilege[0].Attributes = 0;
+
+    if (!SePrivilegeCheck(
+        requiredPrivileges,
+        &securityContext->AccessState->SubjectSecurityContext,
+        Irp->RequestorMode
+        ))
     {
-        UCHAR requiredPrivilegesBuffer[FIELD_OFFSET(PRIVILEGE_SET, Privilege) + sizeof(LUID_AND_ATTRIBUTES)];
-        PPRIVILEGE_SET requiredPrivileges;
-
-        // Check for SeDebugPrivilege.
-
-        requiredPrivileges = (PPRIVILEGE_SET)requiredPrivilegesBuffer;
-        requiredPrivileges->PrivilegeCount = 1;
-        requiredPrivileges->Control = PRIVILEGE_SET_ALL_NECESSARY;
-        requiredPrivileges->Privilege[0].Luid.LowPart = SE_DEBUG_PRIVILEGE;
-        requiredPrivileges->Privilege[0].Luid.HighPart = 0;
-        requiredPrivileges->Privilege[0].Attributes = 0;
-
-        if (!SePrivilegeCheck(
-            requiredPrivileges,
-            &securityContext->AccessState->SubjectSecurityContext,
-            Irp->RequestorMode
-            ))
-        {
-            status = STATUS_PRIVILEGE_NOT_HELD;
-            dprintf("Client (PID %lu) was rejected\n", HandleToUlong(PsGetCurrentProcessId()));
-        }
+        status = STATUS_PRIVILEGE_NOT_HELD;
+        dprintf("Client (PID %lu) was rejected\n", HandleToUlong(PsGetCurrentProcessId()));
     }
 
     if (NT_SUCCESS(status))
@@ -331,9 +325,6 @@ NTSTATUS KphpReadDriverParameters(
     }
 
     // Read in the parameters.
-
-    RtlInitUnicodeString(&valueName, L"SecurityLevel");
-    KphParameters.SecurityLevel = KphpReadIntegerParameter(parametersKeyHandle, &valueName, KphSecurityPrivilegeCheck);
 
     KphReadDynamicDataParameters(parametersKeyHandle);
 
