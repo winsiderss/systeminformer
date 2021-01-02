@@ -2,6 +2,7 @@
  * KProcessHacker
  *
  * Copyright (C) 2010-2016 wj32
+ * Copyright (C) 2020 jxy-s
  *
  * This file is part of Process Hacker.
  *
@@ -29,7 +30,39 @@
 #pragma alloc_text(PAGE, KpiTerminateProcess)
 #pragma alloc_text(PAGE, KpiQueryInformationProcess)
 #pragma alloc_text(PAGE, KpiSetInformationProcess)
+#pragma alloc_text(PAGE, KpiGetProcessProtection)
 #endif
+
+/**
+ * Retrieves process protection information.
+ *
+ * \details This wraps a call to PsGetProcessProtection which is not exported
+ * everywhere. If the function is not exported this call fails with
+ * STATUS_NOT_IMPLEMENTED.
+ * 
+ * \param[in] Process A process object to retrieve the information from.
+ * \param[out] Protection On success this is populated with the process protection.
+ * \return Appropriate status:
+ * STATUS_NOT_IMPLEMENTED - The call is not supported.
+ * STATUS_SUCCESS - Retrieved the process protection level.
+ */
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+NTSTATUS KpiGetProcessProtection(
+    _In_ PEPROCESS Process,
+    _Out_ PPS_PROTECTION Protection
+    )
+{
+    PAGED_CODE();
+
+    if (!KphDynPsGetProcessProtection)
+    {
+        return STATUS_NOT_IMPLEMENTED;
+    }
+
+    *Protection = KphDynPsGetProcessProtection(Process);
+    return STATUS_SUCCESS;
+}
 
 /**
  * Opens a process.
@@ -64,6 +97,8 @@ NTSTATUS KpiOpenProcess(
     HANDLE processHandle;
 
     PAGED_CODE();
+
+    process = NULL;
 
     if (AccessMode != KernelMode)
     {
@@ -100,47 +135,77 @@ NTSTATUS KpiOpenProcess(
     }
 
     if (!NT_SUCCESS(status))
-        return status;
+    {
+        process = NULL;
+        goto Exit;
+    }
 
     requiredKeyLevel = KphKeyLevel1;
 
     if ((DesiredAccess & KPH_PROCESS_READ_ACCESS) != DesiredAccess)
+    {
         requiredKeyLevel = KphKeyLevel2;
 
-    if (NT_SUCCESS(status = KphValidateKey(requiredKeyLevel, Key, Client, AccessMode)))
-    {
-        // Always open in KernelMode to skip ordinary access checks.
-        status = ObOpenObjectByPointer(
-            process,
-            0,
-            NULL,
-            DesiredAccess,
-            *PsProcessType,
-            KernelMode,
-            &processHandle
-            );
-
-        if (NT_SUCCESS(status))
+        status = KphDominationCheck(Client,
+                                    PsGetCurrentProcess(),
+                                    process,
+                                    AccessMode);
+        if (!NT_SUCCESS(status))
         {
-            if (AccessMode != KernelMode)
-            {
-                __try
-                {
-                    *ProcessHandle = processHandle;
-                }
-                __except (EXCEPTION_EXECUTE_HANDLER)
-                {
-                    status = GetExceptionCode();
-                }
-            }
-            else
-            {
-                *ProcessHandle = processHandle;
-            }
+            goto Exit;
+        }
+
+        status = KphVerifyCaller(Client,
+                                 PsGetCurrentThread(),
+                                 AccessMode);
+        if (!NT_SUCCESS(status))
+        {
+            goto Exit;
         }
     }
 
-    ObDereferenceObject(process);
+    status = KphValidateKey(requiredKeyLevel, Key, Client, AccessMode);
+    if (!NT_SUCCESS(status))
+    {
+        goto Exit;
+    }
+
+    // Always open in KernelMode to skip ordinary access checks.
+    status = ObOpenObjectByPointer(
+        process,
+        0,
+        NULL,
+        DesiredAccess,
+        *PsProcessType,
+        KernelMode,
+        &processHandle
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        if (AccessMode != KernelMode)
+        {
+            __try
+            {
+                *ProcessHandle = processHandle;
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                status = GetExceptionCode();
+            }
+        }
+        else
+        {
+            *ProcessHandle = processHandle;
+        }
+    }
+
+Exit:
+
+    if (process)
+    {
+        ObDereferenceObject(process);
+    }
 
     return status;
 }
@@ -176,6 +241,9 @@ NTSTATUS KpiOpenProcessToken(
 
     PAGED_CODE();
 
+    process = NULL;
+    primaryToken = NULL;
+
     if (AccessMode != KernelMode)
     {
         __try
@@ -198,55 +266,89 @@ NTSTATUS KpiOpenProcessToken(
         );
 
     if (!NT_SUCCESS(status))
-        return status;
-
-    if (primaryToken = PsReferencePrimaryToken(process))
     {
-        requiredKeyLevel = KphKeyLevel1;
-
-        if ((DesiredAccess & KPH_TOKEN_READ_ACCESS) != DesiredAccess)
-            requiredKeyLevel = KphKeyLevel2;
-
-        if (NT_SUCCESS(status = KphValidateKey(requiredKeyLevel, Key, Client, AccessMode)))
-        {
-            status = ObOpenObjectByPointer(
-                primaryToken,
-                0,
-                NULL,
-                DesiredAccess,
-                *SeTokenObjectType,
-                KernelMode,
-                &tokenHandle
-                );
-
-            if (NT_SUCCESS(status))
-            {
-                if (AccessMode != KernelMode)
-                {
-                    __try
-                    {
-                        *TokenHandle = tokenHandle;
-                    }
-                    __except (EXCEPTION_EXECUTE_HANDLER)
-                    {
-                        status = GetExceptionCode();
-                    }
-                }
-                else
-                {
-                    *TokenHandle = tokenHandle;
-                }
-            }
-        }
-
-        PsDereferencePrimaryToken(primaryToken);
+        process = NULL;
+        goto Exit;
     }
-    else
+
+    primaryToken = PsReferencePrimaryToken(process);
+
+    if (!primaryToken)
     {
         status = STATUS_NO_TOKEN;
+        goto Exit;
     }
 
-    ObDereferenceObject(process);
+    requiredKeyLevel = KphKeyLevel1;
+
+    if ((DesiredAccess & KPH_TOKEN_READ_ACCESS) != DesiredAccess)
+    {
+        requiredKeyLevel = KphKeyLevel2;
+
+        status = KphDominationCheck(Client,
+                                    PsGetCurrentProcess(),
+                                    process,
+                                    AccessMode);
+        if (!NT_SUCCESS(status))
+        {
+            goto Exit;
+        }
+
+        status = KphVerifyCaller(Client,
+                                 PsGetCurrentThread(),
+                                 AccessMode);
+        if (!NT_SUCCESS(status))
+        {
+            goto Exit;
+        }
+    }
+
+    status = KphValidateKey(requiredKeyLevel, Key, Client, AccessMode);
+    if (!NT_SUCCESS(status))
+    {
+        goto Exit;
+    }
+
+    status = ObOpenObjectByPointer(
+        primaryToken,
+        0,
+        NULL,
+        DesiredAccess,
+        *SeTokenObjectType,
+        KernelMode,
+        &tokenHandle
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        if (AccessMode != KernelMode)
+        {
+            __try
+            {
+                *TokenHandle = tokenHandle;
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                status = GetExceptionCode();
+            }
+        }
+        else
+        {
+            *TokenHandle = tokenHandle;
+        }
+    }
+
+Exit:
+
+    if (primaryToken)
+    {
+        PsDereferencePrimaryToken(primaryToken);
+    }
+
+    if (process)
+    {
+        ObDereferenceObject(process);
+    }
 
     return status;
 }
@@ -257,21 +359,31 @@ NTSTATUS KpiOpenProcessToken(
  * \param ProcessHandle A handle to a process.
  * \param DesiredAccess The desired access to the job.
  * \param JobHandle A variable which receives the job object handle.
+ * \li If a L2 key is provided, no access checks are performed.
+ * \li If a L1 key is provided, only read access is permitted but no additional access checks are
+ * performed.
+ * \li If no valid key is provided, the function fails.
+ * \param Client The client that initiated the request.
  * \param AccessMode The mode in which to perform access checks.
  */
 NTSTATUS KpiOpenProcessJob(
     _In_ HANDLE ProcessHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _Out_ PHANDLE JobHandle,
+    _In_opt_ KPH_KEY Key,
+    _In_ PKPH_CLIENT Client,
     _In_ KPROCESSOR_MODE AccessMode
     )
 {
     NTSTATUS status;
     PEPROCESS process;
     PEJOB job;
+    KPH_KEY_LEVEL requiredKeyLevel;
     HANDLE jobHandle;
 
     PAGED_CODE();
+
+    process = NULL;
 
     if (AccessMode != KernelMode)
     {
@@ -295,47 +407,84 @@ NTSTATUS KpiOpenProcessJob(
         );
 
     if (!NT_SUCCESS(status))
-        return status;
+    {
+        process = NULL;
+        goto Exit;
+    }
 
     job = PsGetProcessJob(process);
 
-    if (job)
+    if (!job)
     {
-        status = ObOpenObjectByPointer(
-            job,
-            0,
-            NULL,
-            DesiredAccess,
-            *PsJobType,
-            AccessMode,
-            &jobHandle
-            );
+        status = STATUS_NOT_FOUND;
+        goto Exit;
+    }
 
-        if (NT_SUCCESS(status))
+    requiredKeyLevel = KphKeyLevel1;
+
+    if ((DesiredAccess & KPH_JOB_READ_ACCESS) != DesiredAccess)
+    {
+        requiredKeyLevel = KphKeyLevel2;
+
+        status = KphDominationCheck(Client,
+                                    PsGetCurrentProcess(),
+                                    process,
+                                    AccessMode);
+        if (!NT_SUCCESS(status))
         {
-            if (AccessMode != KernelMode)
-            {
-                __try
-                {
-                    *JobHandle = jobHandle;
-                }
-                __except (EXCEPTION_EXECUTE_HANDLER)
-                {
-                    status = GetExceptionCode();
-                }
-            }
-            else
+            goto Exit;
+        }
+
+        status = KphVerifyCaller(Client,
+                                 PsGetCurrentThread(),
+                                 AccessMode);
+        if (!NT_SUCCESS(status))
+        {
+            goto Exit;
+        }
+    }
+
+    status = KphValidateKey(requiredKeyLevel, Key, Client, AccessMode);
+    if (!NT_SUCCESS(status))
+    {
+        goto Exit;
+    }
+
+    status = ObOpenObjectByPointer(
+        job,
+        0,
+        NULL,
+        DesiredAccess,
+        *PsJobType,
+        AccessMode,
+        &jobHandle
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        if (AccessMode != KernelMode)
+        {
+            __try
             {
                 *JobHandle = jobHandle;
             }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                status = GetExceptionCode();
+            }
+        }
+        else
+        {
+            *JobHandle = jobHandle;
         }
     }
-    else
-    {
-        status = STATUS_NOT_FOUND;
-    }
 
-    ObDereferenceObject(process);
+Exit:
+
+    if (process)
+    {
+        ObDereferenceObject(process);
+    }
 
     return status;
 }
@@ -364,8 +513,13 @@ NTSTATUS KpiTerminateProcess(
 
     PAGED_CODE();
 
-    if (!NT_SUCCESS(status = KphValidateKey(KphKeyLevel2, Key, Client, AccessMode)))
-        return status;
+    process = NULL;
+
+    status = KphValidateKey(KphKeyLevel2, Key, Client, AccessMode);
+    if (!NT_SUCCESS(status))
+    {
+        goto Exit;
+    }
 
     status = ObReferenceObjectByHandle(
         ProcessHandle,
@@ -377,7 +531,26 @@ NTSTATUS KpiTerminateProcess(
         );
 
     if (!NT_SUCCESS(status))
-        return status;
+    {
+        goto Exit;
+    }
+
+    status = KphDominationCheck(Client,
+                                PsGetCurrentProcess(),
+                                process,
+                                AccessMode);
+    if (!NT_SUCCESS(status))
+    {
+        goto Exit;
+    }
+
+    status = KphVerifyCaller(Client,
+                             PsGetCurrentThread(),
+                             AccessMode);
+    if (!NT_SUCCESS(status))
+    {
+        goto Exit;
+    }
 
     if (process != PsGetCurrentProcess())
     {
@@ -400,10 +573,15 @@ NTSTATUS KpiTerminateProcess(
     }
     else
     {
-        status = STATUS_CANT_TERMINATE_SELF;
+        status = STATUS_ACCESS_DENIED;
     }
 
-    ObDereferenceObject(process);
+Exit:
+
+    if (process)
+    {
+        ObDereferenceObject(process);
+    }
 
     return status;
 }

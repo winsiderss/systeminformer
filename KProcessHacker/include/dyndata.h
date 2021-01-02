@@ -8,9 +8,11 @@
 #ifdef _DYNDATA_PRIVATE
 #define EXT
 #define OFFDEFAULT = ULONG_MAX
+#define DYNIMPORTDEFAULT = NULL
 #else
 #define EXT extern
 #define OFFDEFAULT
+#define DYNIMPORTDEFAULT
 #endif
 
 EXT ULONG KphDynNtVersion;
@@ -35,6 +37,9 @@ EXT ULONG KphDynOtName OFFDEFAULT;
 EXT ULONG KphDynOtIndex OFFDEFAULT;
 EXT ULONG KphDynObDecodeShift OFFDEFAULT;
 EXT ULONG KphDynObAttributesShift OFFDEFAULT;
+
+EXT PPS_GET_PROCESS_PROTECTION KphDynPsGetProcessProtection DYNIMPORTDEFAULT;
+EXT PRTL_IMAGE_NT_HEADER_EX KphDynRtlImageNtHeaderEx DYNIMPORTDEFAULT;
 
 NTSTATUS KphDynamicDataInitialization(
     VOID

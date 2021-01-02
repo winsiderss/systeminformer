@@ -32,6 +32,7 @@ typedef struct _CAPTURE_BACKTRACE_THREAD_CONTEXT
     PVOID *BackTrace;
     ULONG CapturedFrames;
     ULONG BackTraceHash;
+    ULONG Flags;
 } CAPTURE_BACKTRACE_THREAD_CONTEXT, *PCAPTURE_BACKTRACE_THREAD_CONTEXT;
 
 KKERNEL_ROUTINE KphpCaptureStackBackTraceThreadSpecialApc;
@@ -86,6 +87,8 @@ NTSTATUS KpiOpenThread(
 
     PAGED_CODE();
 
+    thread = NULL;
+
     if (AccessMode != KernelMode)
     {
         __try
@@ -115,30 +118,51 @@ NTSTATUS KpiOpenThread(
     }
 
     if (!NT_SUCCESS(status))
-        return status;
-
+    {
+        thread = NULL;
+        goto Exit;
+    }
 
     requiredKeyLevel = KphKeyLevel1;
 
     if ((DesiredAccess & KPH_THREAD_READ_ACCESS) != DesiredAccess)
+    {
         requiredKeyLevel = KphKeyLevel2;
 
-    if (NT_SUCCESS(status = KphValidateKey(requiredKeyLevel, Key, Client, AccessMode)))
-    {
-        // Always open in KernelMode to skip access checks.
-        status = ObOpenObjectByPointer(
-            thread,
-            0,
-            NULL,
-            DesiredAccess,
-            *PsThreadType,
-            KernelMode,
-            &threadHandle
-            );
+        status = KphDominationCheck(Client,
+                                    PsGetCurrentProcess(),
+                                    PsGetThreadProcess(thread),
+                                    AccessMode);
+        if (!NT_SUCCESS(status))
+        {
+            goto Exit;
+        }
+
+        status = KphVerifyCaller(Client,
+                                 PsGetCurrentThread(),
+                                 AccessMode);
+        if (!NT_SUCCESS(status))
+        {
+            goto Exit;
+        }
     }
 
-    ObDereferenceObject(thread);
+    status = KphValidateKey(requiredKeyLevel, Key, Client, AccessMode);
+    if (!NT_SUCCESS(status))
+    {
+        goto Exit;
+    }
 
+    // Always open in KernelMode to skip access checks.
+    status = ObOpenObjectByPointer(
+        thread,
+        0,
+        NULL,
+        DesiredAccess,
+        *PsThreadType,
+        KernelMode,
+        &threadHandle
+        );
     if (NT_SUCCESS(status))
     {
         if (AccessMode != KernelMode)
@@ -158,6 +182,13 @@ NTSTATUS KpiOpenThread(
         }
     }
 
+Exit:
+
+    if (thread)
+    {
+        ObDereferenceObject(thread);
+    }
+
     return status;
 }
 
@@ -167,21 +198,32 @@ NTSTATUS KpiOpenThread(
  * \param ThreadHandle A handle to a thread.
  * \param DesiredAccess The desired access to the process.
  * \param ProcessHandle A variable which receives the process handle.
+ * \param Key An access key.
+ * \li If a L2 key is provided, no access checks are performed.
+ * \li If a L1 key is provided, only read access is permitted but no additional access checks are
+ * performed.
+ * \li If no valid key is provided, the function fails.
+ * \param Client The client that initiated the request.
  * \param AccessMode The mode in which to perform access checks.
  */
 NTSTATUS KpiOpenThreadProcess(
     _In_ HANDLE ThreadHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _Out_ PHANDLE ProcessHandle,
+    _In_opt_ KPH_KEY Key,
+    _In_ PKPH_CLIENT Client,
     _In_ KPROCESSOR_MODE AccessMode
     )
 {
     NTSTATUS status;
     PETHREAD thread;
     PEPROCESS process;
+    KPH_KEY_LEVEL requiredKeyLevel;
     HANDLE processHandle;
 
     PAGED_CODE();
+
+    thread = NULL;
 
     if (AccessMode != KernelMode)
     {
@@ -205,12 +247,43 @@ NTSTATUS KpiOpenThreadProcess(
         );
 
     if (!NT_SUCCESS(status))
-        return status;
+    {
+        thread = NULL;
+        goto Exit;
+    }
 
-    process = IoThreadToProcess(thread);
+    requiredKeyLevel = KphKeyLevel1;
+
+    if ((DesiredAccess & KPH_PROCESS_READ_ACCESS) != DesiredAccess)
+    {
+        requiredKeyLevel = KphKeyLevel2;
+
+        status = KphDominationCheck(Client,
+                                    PsGetCurrentProcess(),
+                                    PsGetThreadProcess(thread),
+                                    AccessMode);
+        if (!NT_SUCCESS(status))
+        {
+            goto Exit;
+        }
+
+        status = KphVerifyCaller(Client,
+                                 PsGetCurrentThread(),
+                                 AccessMode);
+        if (!NT_SUCCESS(status))
+        {
+            goto Exit;
+        }
+    }
+
+    status = KphValidateKey(requiredKeyLevel, Key, Client, AccessMode);
+    if (!NT_SUCCESS(status))
+    {
+        goto Exit;
+    }
 
     status = ObOpenObjectByPointer(
-        process,
+        PsGetThreadProcess(thread),
         0,
         NULL,
         DesiredAccess,
@@ -218,8 +291,6 @@ NTSTATUS KpiOpenThreadProcess(
         AccessMode,
         &processHandle
         );
-
-    ObDereferenceObject(thread);
 
     if (NT_SUCCESS(status))
     {
@@ -240,6 +311,13 @@ NTSTATUS KpiOpenThreadProcess(
         }
     }
 
+Exit:
+
+    if (thread)
+    {
+        ObDereferenceObject(thread);
+    }
+
     return status;
 }
 
@@ -249,8 +327,8 @@ NTSTATUS KpiOpenThreadProcess(
  * \param FramesToSkip The number of frames to skip from the bottom of the stack.
  * \param FramesToCapture The number of frames to capture.
  * \param Flags A combination of the following:
- * \li \c RTL_WALK_USER_MODE_STACK The user-mode stack will be retrieved instead of the kernel-mode
- * stack.
+ * \li \c KPH_STACK_TRACE_CAPTURE_USER_STACK The user-mode stack will be
+ * included in the back trace.
  * \param BackTrace An array in which the stack trace will be stored.
  * \param BackTraceHash A variable which receives a hash of the stack trace.
  *
@@ -276,16 +354,23 @@ ULONG KphCaptureStackBackTrace(
     // Ensure that we won't overrun the buffer.
     if (FramesToCapture + FramesToSkip > MAX_STACK_DEPTH)
         return 0;
-    // Validate the flags.
-    if ((Flags & RTL_WALK_VALID_FLAGS) != Flags)
-        return 0;
 
     // Walk the stack.
     framesFound = RtlWalkFrameChain(
         backTrace,
         FramesToCapture + FramesToSkip,
-        Flags
+        0 
         );
+
+    if (FlagOn(Flags, KPH_STACK_TRACE_CAPTURE_USER_STACK))
+    {
+        framesFound += RtlWalkFrameChain(
+            &backTrace[framesFound],
+            (FramesToCapture + FramesToSkip) - framesFound,
+            RTL_WALK_USER_MODE_STACK
+            );
+    }
+
     // Return nothing if we found fewer frames than we wanted to skip.
     if (framesFound <= FramesToSkip)
         return 0;
@@ -317,6 +402,9 @@ ULONG KphCaptureStackBackTrace(
  * \param CapturedFrames A variable which receives the number of frames captured.
  * \param BackTraceHash A variable which receives a hash of the stack trace.
  * \param AccessMode The mode in which to perform access checks.
+ * \param Flags A combination of the following:
+ * \li \c KPH_STACK_TRACE_CAPTURE_USER_STACK The user-mode stack will be
+ * included in the back trace.
  *
  * \return The number of frames captured.
  */
@@ -327,7 +415,8 @@ NTSTATUS KphCaptureStackBackTraceThread(
     _Out_writes_(FramesToCapture) PVOID *BackTrace,
     _Out_opt_ PULONG CapturedFrames,
     _Out_opt_ PULONG BackTraceHash,
-    _In_ KPROCESSOR_MODE AccessMode
+    _In_ KPROCESSOR_MODE AccessMode,
+    _In_ ULONG Flags
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -399,6 +488,7 @@ NTSTATUS KphCaptureStackBackTraceThread(
     context.FramesToSkip = FramesToSkip;
     context.FramesToCapture = FramesToCapture;
     context.BackTrace = backTrace;
+    context.Flags = Flags;
 
     // Check if we're trying to get a stack trace of the current thread.
     // If so, we don't need to insert an APC.
@@ -505,7 +595,7 @@ VOID KphpCaptureStackBackTraceThreadSpecialApc(
     context->CapturedFrames = KphCaptureStackBackTrace(
         context->FramesToSkip,
         context->FramesToCapture,
-        0,
+        context->Flags,
         context->BackTrace,
         &context->BackTraceHash
         );
@@ -527,6 +617,9 @@ VOID KphpCaptureStackBackTraceThreadSpecialApc(
  * \param CapturedFrames A variable which receives the number of frames captured.
  * \param BackTraceHash A variable which receives a hash of the stack trace.
  * \param AccessMode The mode in which to perform access checks.
+ * \param Flags A combination of the following:
+ * \li \c KPH_STACK_TRACE_CAPTURE_USER_STACK The user-mode stack will be
+ * included in the back trace.
  *
  * \return The number of frames captured.
  */
@@ -537,7 +630,8 @@ NTSTATUS KpiCaptureStackBackTraceThread(
     _Out_writes_(FramesToCapture) PVOID *BackTrace,
     _Out_opt_ PULONG CapturedFrames,
     _Out_opt_ PULONG BackTraceHash,
-    _In_ KPROCESSOR_MODE AccessMode
+    _In_ KPROCESSOR_MODE AccessMode,
+    _In_ ULONG Flags
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -564,7 +658,8 @@ NTSTATUS KpiCaptureStackBackTraceThread(
         BackTrace,
         CapturedFrames,
         BackTraceHash,
-        AccessMode
+        AccessMode,
+        Flags
         );
     ObDereferenceObject(thread);
 
