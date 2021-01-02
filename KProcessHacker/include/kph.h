@@ -60,15 +60,9 @@ typedef struct _KPH_CLIENT
     KPH_EXTENTS VerifiedProcessExtents;
 } KPH_CLIENT, *PKPH_CLIENT;
 
-typedef struct _KPH_PARAMETERS
-{
-    KPH_SECURITY_LEVEL SecurityLevel;
-} KPH_PARAMETERS, *PKPH_PARAMETERS;
-
 // main
 
 extern ULONG KphFeatures;
-extern KPH_PARAMETERS KphParameters;
 extern KPH_EXTENTS NtdllExtents;
 
 NTSTATUS KpiGetFeatures(

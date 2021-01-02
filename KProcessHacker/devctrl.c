@@ -65,10 +65,8 @@ NTSTATUS KphDispatchDeviceControl(
         goto ControlEnd;
     }
 
-    // Enforce signature requirement if necessary.
+    // Enforce signature requirement
     if ((ioControlCode != KPH_GETFEATURES && ioControlCode != KPH_VERIFYCLIENT) &&
-        (KphParameters.SecurityLevel == KphSecuritySignatureCheck ||
-            KphParameters.SecurityLevel == KphSecuritySignatureAndPrivilegeCheck) &&
         !client->VerificationSucceeded)
     {
         status = STATUS_ACCESS_DENIED;
