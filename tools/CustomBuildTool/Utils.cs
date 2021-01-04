@@ -472,7 +472,12 @@ namespace CustomBuildTool
 
         public static string GetGitWorkPath()
         {
-            return "--git-dir=\"" + Environment.CurrentDirectory + "\\.git\" --work-tree=\"" + Environment.CurrentDirectory + "\" "; ;
+            if (Directory.Exists(Environment.CurrentDirectory + "\\.git"))
+            {
+                return "--git-dir=\"" + Environment.CurrentDirectory + "\\.git\" --work-tree=\"" + Environment.CurrentDirectory + "\" ";
+            }
+
+            return string.Empty;
         }
 
         //public static string GetMsbuildFilePath()
