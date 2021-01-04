@@ -678,7 +678,7 @@ NTSTATUS DiskDriveQueryImminentFailure(
         //unloading the heads of a disk drive, etc
 
         //Each attribute may have an associated threshhold. When the value exceeds the threshhold, the attribute
-        //triggers a SMART �threshhold exceeded� event. This event indicates that either the disk is expected to fail
+        //triggers a SMART 'threshhold exceeded' event. This event indicates that either the disk is expected to fail
         //in less than 24 hours or it has exceeded its design or usage lifetime.
         //When an attribute value is greater than or equal to the threshhold, the threshhold is considered to be
         //exceeded. A flag is set indicating that failure is likely.
