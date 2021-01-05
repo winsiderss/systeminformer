@@ -477,11 +477,11 @@ static NTSTATUS CheckSumImageThreadStart(
     if (NT_SUCCESS(PhCreateFileWin32(
         &fileHandle,
         PhGetString(PvFileName),
-        FILE_GENERIC_READ,
+        FILE_READ_DATA | SYNCHRONIZE,
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
         FILE_OPEN,
-        FILE_SYNCHRONOUS_IO_NONALERT
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
         )))
     {
         BYTE importTableMd5Hash[16];
@@ -1193,12 +1193,25 @@ VOID PvpSetPeImageFileProperties(
             )))
         {
             PPH_STRING string;
-            PH_FORMAT format[4];
+            PH_FORMAT format[10];
+            struct
+            {
+                LONGLONG MftRecordIndex : 48;
+                LONGLONG SequenceNumber : 16;
+            } *IndexNumber = (PVOID)&internalInfo.IndexNumber.QuadPart;
 
             PhInitFormatI64U(&format[0], internalInfo.IndexNumber.QuadPart);
             PhInitFormatS(&format[1], L" (0x");
             PhInitFormatI64X(&format[2], internalInfo.IndexNumber.QuadPart);
             PhInitFormatS(&format[3], L")");
+
+            PhInitFormatS(&format[4], L" (MFT record: ");
+            PhInitFormatI64U(&format[5], IndexNumber->MftRecordIndex);
+            PhInitFormatS(&format[6], L")");
+
+            PhInitFormatS(&format[7], L" (Sequence number: ");
+            PhInitFormatI64U(&format[8], IndexNumber->SequenceNumber);
+            PhInitFormatS(&format[9], L")");
 
             string = PhFormat(format, RTL_NUMBER_OF(format), 0x80);
             PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_FILEINDEX, 1, string->Buffer);
