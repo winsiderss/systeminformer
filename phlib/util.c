@@ -6203,13 +6203,15 @@ BOOLEAN PhExtractIconEx(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static UINT (WINAPI *PrivateExtractIconExW)(
+    static INT (WINAPI *PrivateExtractIconExW)(
         _In_ PCWSTR FileName,
         _In_ INT IconIndex,
         _Out_opt_ HICON* IconLarge,
         _Out_opt_ HICON* IconSmall,
-        _In_ UINT IconCount
+        _In_ INT IconCount
         ) = NULL;
+    HICON iconLarge = NULL;
+    HICON iconSmall = NULL;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -6220,7 +6222,28 @@ BOOLEAN PhExtractIconEx(
     if (!PrivateExtractIconExW)
         return FALSE;
 
-    return PrivateExtractIconExW(FileName, IconIndex, IconLarge, IconSmall, 1) > 0; // -1 on error or the number of icons.
+    if (PrivateExtractIconExW(
+        FileName,
+        IconIndex,
+        IconLarge ? &iconLarge : NULL,
+        IconSmall ? &iconSmall : NULL,
+        1
+        ) > 0)
+    {
+        if (IconLarge)
+            *IconLarge = iconLarge;
+        if (IconSmall)
+            *IconSmall = iconSmall;
+
+        return TRUE;
+    }
+
+    if (iconLarge)
+        DestroyIcon(iconLarge);
+    if (iconSmall)
+        DestroyIcon(iconSmall);
+
+    return FALSE;
 }
 
 HWND PhHungWindowFromGhostWindow(
