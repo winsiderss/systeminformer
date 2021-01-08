@@ -128,6 +128,15 @@ VOID PhNfpPhysicalUsageTextIconUpdateCallback(
     _In_opt_ PVOID Context
     );
 
+// plain icon
+VOID PhNfpPlainIconUpdateCallback(
+    _In_ struct _PH_NF_ICON *Icon,
+    _Out_ PVOID *NewIconOrBitmap,
+    _Out_ PULONG Flags,
+    _Out_ PPH_STRING *NewText,
+    _In_opt_ PVOID Context
+    );
+
 _Success_(return)
 BOOLEAN PhNfpGetShowMiniInfoSectionData(
     _In_ ULONG IconIndex,
