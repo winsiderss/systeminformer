@@ -44,6 +44,7 @@ extern ULONG ProcessesUpdatedCount;
 #define SETTING_NAME_ENABLE_FAHRENHEIT (PLUGIN_NAME L".EnableFahrenheit")
 #define SETTING_NAME_FW_TREE_LIST_COLUMNS (PLUGIN_NAME L".FwTreeColumns")
 #define SETTING_NAME_FW_TREE_LIST_SORT (PLUGIN_NAME L".FwTreeSort")
+#define SETTING_NAME_FW_IGNORE_PORTSCAN (PLUGIN_NAME L".FwIgnorePortScan")
 
 // Window messages
 #define ET_WM_SHOWDIALOG (WM_APP + 1)
