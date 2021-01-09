@@ -3,7 +3,7 @@
  *   main program
  *
  * Copyright (C) 2010-2015 wj32
- * Copyright (C) 2018 dmex
+ * Copyright (C) 2018-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -845,6 +845,7 @@ LOGICAL DllMain(
                 { IntegerSettingType, SETTING_NAME_ENABLE_FAHRENHEIT, L"0" },
                 { StringSettingType, SETTING_NAME_FW_TREE_LIST_COLUMNS, L"" },
                 { IntegerPairSettingType, SETTING_NAME_FW_TREE_LIST_SORT, L"12,2" },
+                { IntegerSettingType, SETTING_NAME_FW_IGNORE_PORTSCAN, L"0" }
             };
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
