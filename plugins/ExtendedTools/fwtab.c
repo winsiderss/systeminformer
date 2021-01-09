@@ -2,7 +2,7 @@
  * Process Hacker Extended Tools -
  *   Firewall monitoring
  *
- * Copyright (C) 2020 dmex
+ * Copyright (C) 2015-2020 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -42,6 +42,7 @@ PTOOLSTATUS_INTERFACE EtFwToolStatusInterface;
 PH_CALLBACK_REGISTRATION EtFwSearchChangedRegistration;
 BOOLEAN EtFwEnabled = FALSE;
 ULONG EtFwStatus = ERROR_SUCCESS;
+ULONG EtFwIconWidth = 16;
 PPH_STRING EtFwStatusText = NULL;
 PPH_LIST FwNodeList = NULL;
 
@@ -94,6 +95,7 @@ BOOLEAN FwTabPageCallback(
                 return FALSE;
 
             FwTreeNewCreated = TRUE;
+            EtFwIconWidth = GetSystemMetrics(SM_CXSMICON);
 
             if (PhGetIntegerSetting(L"EnableThemeSupport"))
             {
@@ -343,7 +345,7 @@ PFW_EVENT_ITEM AddFwNode(
     FwItem->Node.TextCacheSize = FW_COLUMN_MAXIMUM;
 
     PhInsertItemList(FwNodeList, 0, FwItem);
-        
+
     if (EtFwFilterSupport.NodeList)
         FwItem->Node.Visible = PhApplyTreeNewFiltersToNode(&EtFwFilterSupport, &FwItem->Node);
 
@@ -1137,14 +1139,14 @@ BOOLEAN NTAPI FwTreeNewCallback(
                 );
 
             // Padding
-            rect.left += 16 + 2;
+            rect.left += EtFwIconWidth + 2;
 
             if (PhIsNullOrEmptyString(node->ProcessBaseString))
             {
                 DrawText(
                     hdc,
                     L"System",
-                    (UINT)wcslen(L"System"),
+                    (UINT)sizeof(L"System") / sizeof(WCHAR),
                     &rect,
                     DT_LEFT | DT_VCENTER | DT_END_ELLIPSIS | DT_SINGLELINE
                     );
@@ -1159,8 +1161,6 @@ BOOLEAN NTAPI FwTreeNewCallback(
                     DT_LEFT | DT_VCENTER | DT_END_ELLIPSIS | DT_SINGLELINE
                     );
             }
-
-            rect.left -= 16 + 2;
         }
         return TRUE;
     }
