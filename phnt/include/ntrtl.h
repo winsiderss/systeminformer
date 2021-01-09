@@ -5213,6 +5213,15 @@ RtlSecondsSince1970ToTime(
     _Out_ PLARGE_INTEGER Time
     );
 
+#if (PHNT_VERSION >= PHNT_WIN8)
+NTSYSAPI
+ULONGLONG
+NTAPI
+RtlGetSystemTimePrecise(
+    VOID
+    );
+#endif
+
 // Time zones
 
 typedef struct _RTL_TIME_ZONE_INFORMATION

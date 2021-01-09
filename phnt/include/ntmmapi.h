@@ -489,7 +489,13 @@ typedef struct _SECTION_INTERNAL_IMAGE_INFORMATION
         {
             ULONG ImageExportSuppressionEnabled : 1;
             ULONG ImageCetShadowStacksReady : 1; // 20H1
-            ULONG Reserved : 30;
+            ULONG ImageXfgEnabled : 1; // 20H2
+            ULONG ImageCetShadowStacksStrictMode : 1;
+            ULONG ImageCetSetContextIpValidationRelaxedMode : 1;
+            ULONG ImageCetDynamicApisAllowInProc : 1;
+            ULONG ImageCetDowngradeReserved1 : 1;
+            ULONG ImageCetDowngradeReserved2 : 1;
+            ULONG Reserved : 24;
         };
     };
 } SECTION_INTERNAL_IMAGE_INFORMATION, *PSECTION_INTERNAL_IMAGE_INFORMATION;
@@ -529,6 +535,21 @@ NtAllocateVirtualMemory(
     _In_ ULONG AllocationType,
     _In_ ULONG Protect
     );
+
+#if (PHNT_VERSION >= PHNT_REDSTONE5)
+NTSYSAPI
+NTSTATUS
+NTAPI
+NtAllocateVirtualMemoryEx(
+    _In_ HANDLE ProcessHandle,
+    _Inout_ _At_(*BaseAddress, _Readable_bytes_(*RegionSize) _Writable_bytes_(*RegionSize) _Post_readable_byte_size_(*RegionSize)) PVOID *BaseAddress,
+    _Inout_ PSIZE_T RegionSize,
+    _In_ ULONG AllocationType,
+    _In_ ULONG PageProtection,
+    _Inout_updates_opt_(ExtendedParameterCount) PMEM_EXTENDED_PARAMETER ExtendedParameters,
+    _In_ ULONG ExtendedParameterCount
+    );
+#endif
 
 NTSYSCALLAPI
 NTSTATUS
@@ -720,6 +741,23 @@ NtMapViewOfSection(
     _In_ ULONG AllocationType,
     _In_ ULONG Win32Protect
     );
+
+#if (PHNT_VERSION >= PHNT_REDSTONE5)
+NTSYSAPI
+NTSTATUS
+NTAPI
+NtMapViewOfSectionEx(
+    _In_ HANDLE SectionHandle,
+    _In_ HANDLE ProcessHandle,
+    _Inout_ _At_(*BaseAddress, _Readable_bytes_(*ViewSize) _Writable_bytes_(*ViewSize) _Post_readable_byte_size_(*ViewSize)) PVOID *BaseAddress,
+    _Inout_opt_ PLARGE_INTEGER SectionOffset,
+    _Inout_ PSIZE_T ViewSize,
+    _In_ ULONG AllocationType,
+    _In_ ULONG Win32Protect,
+    _Inout_updates_opt_(ParameterCount) PMEM_EXTENDED_PARAMETER ExtendedParameters,
+    _In_ ULONG ExtendedParameterCount
+    );
+#endif
 
 NTSYSCALLAPI
 NTSTATUS
