@@ -485,6 +485,10 @@ static NTSTATUS NTAPI PhpTokenGroupResolveWorker(
             PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, PH_PROCESS_TOKEN_INDEX_NAME, PhGetString(fullUserName));
             PhDereferenceObject(fullUserName);
         }
+        else
+        {
+            PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, PH_PROCESS_TOKEN_INDEX_NAME, L"[Unknown SID]");
+        }
     }
 
     PhFree(context->TokenGroupSid);
