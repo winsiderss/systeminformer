@@ -3,7 +3,7 @@
  *   thread stack viewer
  *
  * Copyright (C) 2010-2016 wj32
- * Copyright (C) 2017-2020 dmex
+ * Copyright (C) 2017-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -98,6 +98,7 @@ typedef struct _THREAD_STACK_ITEM
     PH_THREAD_STACK_FRAME StackFrame;
     ULONG Index;
     PPH_STRING Symbol;
+    PPH_STRING FileName;
 } THREAD_STACK_ITEM, *PTHREAD_STACK_ITEM;
 
 typedef enum _PH_STACK_TREE_COLUMN_ITEM_NAME
@@ -112,6 +113,7 @@ typedef enum _PH_STACK_TREE_COLUMN_ITEM_NAME
     PH_STACK_TREE_COLUMN_PARAMETER4,
     PH_STACK_TREE_COLUMN_CONTROLADDRESS,
     PH_STACK_TREE_COLUMN_RETURNADDRESS,
+    PH_STACK_TREE_COLUMN_FILENAME,
     TREE_COLUMN_ITEM_MAXIMUM
 } PH_STACK_TREE_COLUMN_ITEM_NAME;
 
@@ -125,6 +127,7 @@ typedef struct _PH_STACK_TREE_ROOT_NODE
     PPH_STRING TooltipText;
     PPH_STRING IndexString;
     PPH_STRING SymbolString;
+    PPH_STRING FileNameString;
     WCHAR StackAddressString[PH_PTR_STR_LEN_1];
     WCHAR FrameAddressString[PH_PTR_STR_LEN_1];
     WCHAR Parameter1String[PH_PTR_STR_LEN_1];
@@ -475,6 +478,9 @@ BOOLEAN NTAPI ThreadStackTreeNewCallback(
             case PH_STACK_TREE_COLUMN_RETURNADDRESS:
                 PhInitializeStringRefLongHint(&getCellText->Text, node->ReturnAddressString);
                 break;
+            case PH_STACK_TREE_COLUMN_FILENAME:
+                getCellText->Text = PhGetStringRef(node->FileNameString);
+                break;
             default:
                 return FALSE;
             }
@@ -706,6 +712,7 @@ VOID InitializeThreadStackTree(
     PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_PARAMETER4, FALSE, L"Stack parameter #4", 100, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_CONTROLADDRESS, FALSE, L"Control address", 100, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_RETURNADDRESS, FALSE, L"Return address", 100, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_FILENAME, FALSE, L"File name", 100, PH_ALIGN_LEFT, ULONG_MAX, 0);
 
     TreeNew_SetTriState(Context->TreeNewHandle, FALSE);
     TreeNew_SetSort(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_INDEX, AscendingSortOrder);
@@ -798,9 +805,7 @@ VOID PhShowThreadStackDialog(
         PhEndInitOnce(&initOnce);
     }
 
-    context = PhCreateObject(sizeof(PH_THREAD_STACK_CONTEXT), PhThreadStackContextType);
-    memset(context, 0, sizeof(PH_THREAD_STACK_CONTEXT));
-
+    context = PhCreateObjectZero(sizeof(PH_THREAD_STACK_CONTEXT), PhThreadStackContextType);
     context->List = PhCreateList(10);
     context->NewList = PhCreateList(10);
     PhInitializeQueuedLock(&context->StatusLock);
@@ -1085,6 +1090,7 @@ VOID PhpFreeThreadStackItem(
     )
 {
     if (StackItem->Symbol) PhDereferenceObject(StackItem->Symbol);
+    if (StackItem->FileName) PhDereferenceObject(StackItem->FileName);
     PhFree(StackItem);
 }
 
@@ -1095,6 +1101,7 @@ BOOLEAN NTAPI PhpWalkThreadStackCallback(
 {
     PPH_THREAD_STACK_CONTEXT threadStackContext = (PPH_THREAD_STACK_CONTEXT)Context;
     PPH_STRING symbol;
+    PPH_STRING fileName = NULL;
     PTHREAD_STACK_ITEM item;
 
     if (!threadStackContext)
@@ -1110,7 +1117,7 @@ BOOLEAN NTAPI PhpWalkThreadStackCallback(
         threadStackContext->SymbolProvider,
         (ULONG64)StackFrame->PcAddress,
         NULL,
-        NULL,
+        &fileName,
         NULL,
         NULL
         );
@@ -1140,6 +1147,7 @@ BOOLEAN NTAPI PhpWalkThreadStackCallback(
     }
 
     item->Symbol = symbol;
+    item->FileName = fileName;
     PhAddItemList(threadStackContext->NewList, item);
 
     return TRUE;
@@ -1515,6 +1523,11 @@ static NTSTATUS PhpRefreshThreadStack(
             if (item->StackFrame.ReturnAddress)
                 PhPrintPointer(stackNode->ReturnAddressString, item->StackFrame.ReturnAddress);
 
+            if (!PhIsNullOrEmptyString(item->FileName))
+                stackNode->FileNameString = PhReferenceObject(item->FileName);
+            else
+                PhClearReference(&stackNode->FileNameString);
+            
             UpdateThreadStackNode(Context, stackNode);
         }
 
