@@ -3,7 +3,7 @@
  *   object security data
  *
  * Copyright (C) 2010-2016 wj32
- * Copyright (C) 2017-2019 dmex
+ * Copyright (C) 2017-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -23,7 +23,6 @@
 
 #include <ph.h>
 #include <secedit.h>
-
 #include <wmistr.h>
 
 #define ACCESS_ENTRIES(Type) static PH_ACCESS_ENTRY Ph##Type##AccessEntries[] =
@@ -86,6 +85,25 @@ ACCESS_ENTRIES(Directory)
     { L"Traverse", DIRECTORY_TRAVERSE, TRUE, TRUE},
     { L"Create objects", DIRECTORY_CREATE_OBJECT, TRUE, TRUE},
     { L"Create subdirectories", DIRECTORY_CREATE_SUBDIRECTORY, TRUE, TRUE}
+};
+
+ACCESS_ENTRIES(EtwRegistration)
+{
+    { L"Full control", WMIGUID_ALL_ACCESS, TRUE, TRUE },
+    { L"Query", WMIGUID_QUERY, TRUE, TRUE },
+    { L"Read", WMIGUID_SET, TRUE, TRUE },
+    { L"Notification", WMIGUID_NOTIFICATION, TRUE, TRUE },
+    { L"Read description", WMIGUID_READ_DESCRIPTION, TRUE, TRUE },
+    { L"Execute", WMIGUID_EXECUTE, TRUE, TRUE },
+    { L"Create realtime", TRACELOG_CREATE_REALTIME, TRUE, TRUE },
+    { L"Create logfile", TRACELOG_CREATE_ONDISK, TRUE, TRUE },
+    { L"GUID enable", TRACELOG_GUID_ENABLE, TRUE, TRUE },
+    { L"Access kernel logger", TRACELOG_ACCESS_KERNEL_LOGGER, TRUE, TRUE },
+    { L"Log events", TRACELOG_LOG_EVENT, TRUE, TRUE },
+    { L"Create inprocess", TRACELOG_CREATE_INPROC, TRUE, TRUE },
+    { L"Access realtime", TRACELOG_ACCESS_REALTIME, TRUE, TRUE },
+    { L"Register guids", TRACELOG_REGISTER_GUIDS, TRUE, TRUE },
+    { L"Join group", TRACELOG_JOIN_GROUP, TRUE, TRUE }
 };
 
 ACCESS_ENTRIES(Event)
@@ -545,6 +563,12 @@ ACCESS_ENTRIES(Type)
     { L"Create", OBJECT_TYPE_CREATE, TRUE, TRUE }
 };
 
+ACCESS_ENTRIES(WaitCompletionPacket)
+{
+    { L"Full control", OBJECT_TYPE_ALL_ACCESS, TRUE, TRUE },
+    { L"Modify state", OBJECT_TYPE_CREATE, TRUE, TRUE }
+};
+
 ACCESS_ENTRIES(WindowStation)
 {
     { L"Full control", WINSTA_ALL_ACCESS | STANDARD_RIGHTS_REQUIRED, TRUE, TRUE },
@@ -588,6 +612,7 @@ static PH_SPECIFIC_TYPE PhSpecificTypes[] =
     ACCESS_ENTRY(DebugObject, TRUE),
     ACCESS_ENTRY(Desktop, FALSE),
     ACCESS_ENTRY(Directory, FALSE),
+    ACCESS_ENTRY(EtwRegistration, FALSE),
     ACCESS_ENTRY(Event, TRUE),
     ACCESS_ENTRY(EventPair, TRUE),
     ACCESS_ENTRY(File, TRUE),
@@ -627,6 +652,7 @@ static PH_SPECIFIC_TYPE PhSpecificTypes[] =
     ACCESS_ENTRY(TokenDefault, FALSE),
     ACCESS_ENTRY(TpWorkerFactory, FALSE),
     ACCESS_ENTRY(Type, FALSE),
+    ACCESS_ENTRY(WaitCompletionPacket, FALSE),
     ACCESS_ENTRY(WindowStation, FALSE),
     ACCESS_ENTRY(WmiGuid, TRUE)
 };
