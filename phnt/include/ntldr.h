@@ -709,6 +709,17 @@ LdrFindResource_U(
 NTSYSAPI
 NTSTATUS
 NTAPI
+LdrFindResourceEx_U(
+    _In_ ULONG Flags,
+    _In_ PVOID DllHandle,
+    _In_ PLDR_RESOURCE_INFO ResourceInfo,
+    _In_ ULONG Level,
+    _Out_ PIMAGE_RESOURCE_DATA_ENTRY *ResourceDataEntry
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
 LdrFindResourceDirectory_U(
     _In_ PVOID DllHandle,
     _In_ PLDR_RESOURCE_INFO ResourceInfo,
