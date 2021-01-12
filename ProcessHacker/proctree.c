@@ -822,17 +822,14 @@ static VOID PhpUpdateProcessNodeWsCounters(
     if (!(ProcessNode->ValidMask & PHPN_WSCOUNTERS))
     {
         BOOLEAN success = FALSE;
-        HANDLE processHandle;
 
-        if (PH_IS_REAL_PROCESS_ID(ProcessNode->ProcessItem->ProcessId))
+        if (
+            PH_IS_REAL_PROCESS_ID(ProcessNode->ProcessItem->ProcessId) &&
+            ProcessNode->ProcessItem->IsHandleValid // PROCESS_QUERY_INFORMATION
+            )
         {
-            if (NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_INFORMATION, ProcessNode->ProcessItem->ProcessId)))
-            {
-                if (NT_SUCCESS(PhGetProcessWsCounters(processHandle, &ProcessNode->WsCounters)))
-                    success = TRUE;
-
-                NtClose(processHandle);
-            }
+            if (NT_SUCCESS(PhGetProcessWsCounters(ProcessNode->ProcessItem->QueryHandle, &ProcessNode->WsCounters)))
+                success = TRUE;
         }
 
         if (!success)
@@ -923,26 +920,19 @@ static VOID PhpUpdateProcessNodeDepStatus(
 {
     if (!(ProcessNode->ValidMask & PHPN_DEPSTATUS))
     {
-        HANDLE processHandle;
-        ULONG depStatus;
-
-        depStatus = 0;
+        ULONG depStatus = 0;
 
 #ifdef _WIN64
-        if (ProcessNode->ProcessItem->IsWow64)
+        if (
+            PH_IS_REAL_PROCESS_ID(ProcessNode->ProcessItem->ProcessId) &&
+            ProcessNode->ProcessItem->IsWow64 &&
+            ProcessNode->ProcessItem->IsHandleValid // PROCESS_QUERY_INFORMATION 
+            )
 #else
-        if (TRUE)
+        if (PH_IS_REAL_PROCESS_ID(ProcessNode->ProcessItem->ProcessId))
 #endif
         {
-            if (NT_SUCCESS(PhOpenProcess(
-                &processHandle,
-                PROCESS_QUERY_INFORMATION,
-                ProcessNode->ProcessItem->ProcessId
-                )))
-            {
-                PhGetProcessDepStatus(processHandle, &depStatus);
-                NtClose(processHandle);
-            }
+            PhGetProcessDepStatus(ProcessNode->ProcessItem->QueryHandle, &depStatus);
         }
         else
         {
@@ -1004,25 +994,28 @@ static VOID PhpUpdateProcessOsContext(
         {
             NOTHING;
         }
-        else if (NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ, ProcessNode->ProcessId)))
+        else if (PH_IS_REAL_PROCESS_ID(ProcessNode->ProcessItem->ProcessId))
         {
-            if (NT_SUCCESS(PhGetProcessSwitchContext(processHandle, &ProcessNode->OsContextGuid)))
+            if (NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ, ProcessNode->ProcessId)))
             {
-                if (IsEqualGUID(&ProcessNode->OsContextGuid, &WIN10_CONTEXT_GUID))
-                    ProcessNode->OsContextVersion = WINDOWS_10;
-                else if (IsEqualGUID(&ProcessNode->OsContextGuid, &WINBLUE_CONTEXT_GUID))
-                    ProcessNode->OsContextVersion = WINDOWS_8_1;
-                else if (IsEqualGUID(&ProcessNode->OsContextGuid, &WIN8_CONTEXT_GUID))
-                    ProcessNode->OsContextVersion = WINDOWS_8;
-                else if (IsEqualGUID(&ProcessNode->OsContextGuid, &WIN7_CONTEXT_GUID))
-                    ProcessNode->OsContextVersion = WINDOWS_7;
-                else if (IsEqualGUID(&ProcessNode->OsContextGuid, &VISTA_CONTEXT_GUID))
-                    ProcessNode->OsContextVersion = WINDOWS_VISTA;
-                else if (IsEqualGUID(&ProcessNode->OsContextGuid, &XP_CONTEXT_GUID))
-                    ProcessNode->OsContextVersion = WINDOWS_XP;
-            }
+                if (NT_SUCCESS(PhGetProcessSwitchContext(processHandle, &ProcessNode->OsContextGuid)))
+                {
+                    if (IsEqualGUID(&ProcessNode->OsContextGuid, &WIN10_CONTEXT_GUID))
+                        ProcessNode->OsContextVersion = WINDOWS_10;
+                    else if (IsEqualGUID(&ProcessNode->OsContextGuid, &WINBLUE_CONTEXT_GUID))
+                        ProcessNode->OsContextVersion = WINDOWS_8_1;
+                    else if (IsEqualGUID(&ProcessNode->OsContextGuid, &WIN8_CONTEXT_GUID))
+                        ProcessNode->OsContextVersion = WINDOWS_8;
+                    else if (IsEqualGUID(&ProcessNode->OsContextGuid, &WIN7_CONTEXT_GUID))
+                        ProcessNode->OsContextVersion = WINDOWS_7;
+                    else if (IsEqualGUID(&ProcessNode->OsContextGuid, &VISTA_CONTEXT_GUID))
+                        ProcessNode->OsContextVersion = WINDOWS_VISTA;
+                    else if (IsEqualGUID(&ProcessNode->OsContextGuid, &XP_CONTEXT_GUID))
+                        ProcessNode->OsContextVersion = WINDOWS_XP;
+                }
 
-            NtClose(processHandle);
+                NtClose(processHandle);
+            }
         }
 
         ProcessNode->ValidMask |= PHPN_OSCONTEXT;
@@ -1065,7 +1058,7 @@ static VOID PhpUpdateProcessNodeImage(
         {
             ProcessNode->ImageSubsystem = IMAGE_SUBSYSTEM_POSIX_CUI;
         }
-        else
+        else if (PH_IS_REAL_PROCESS_ID(ProcessNode->ProcessItem->ProcessId))
         {
             HANDLE processHandle;
             PROCESS_BASIC_INFORMATION basicInfo;
@@ -1270,20 +1263,23 @@ static VOID PhpUpdateProcessNodeDesktopInfo(
 
         PhClearReference(&ProcessNode->DesktopInfoText);
 
-        if (NT_SUCCESS(PhOpenProcess(
-            &processHandle,
-            PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ,
-            ProcessNode->ProcessId
-            )))
+        if (PH_IS_REAL_PROCESS_ID(ProcessNode->ProcessItem->ProcessId))
         {
-            PPH_STRING desktopinfo;
-
-            if (NT_SUCCESS(PhGetProcessDesktopInfo(processHandle, &desktopinfo)))
+            if (NT_SUCCESS(PhOpenProcess(
+                &processHandle,
+                PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ,
+                ProcessNode->ProcessId
+                )))
             {
-                ProcessNode->DesktopInfoText = desktopinfo;
-            }
+                PPH_STRING desktopinfo;
 
-            NtClose(processHandle);
+                if (NT_SUCCESS(PhGetProcessDesktopInfo(processHandle, &desktopinfo)))
+                {
+                    ProcessNode->DesktopInfoText = desktopinfo;
+                }
+
+                NtClose(processHandle);
+            }
         }
 
         ProcessNode->ValidMask |= PHPN_DESKTOPINFO;
