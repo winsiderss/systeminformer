@@ -929,7 +929,7 @@ static VOID PhpUpdateProcessNodeDepStatus(
             ProcessNode->ProcessItem->IsHandleValid // PROCESS_QUERY_INFORMATION 
             )
 #else
-        if (PH_IS_REAL_PROCESS_ID(ProcessNode->ProcessItem->ProcessId))
+        if (PH_IS_REAL_PROCESS_ID(ProcessNode->ProcessItem->ProcessId) && ProcessNode->ProcessItem->QueryHandle)
 #endif
         {
             PhGetProcessDepStatus(ProcessNode->ProcessItem->QueryHandle, &depStatus);
