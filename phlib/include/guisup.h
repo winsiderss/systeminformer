@@ -60,6 +60,13 @@ FORCEINLINE LONG_PTR PhGetWindowStyle(
     return GetWindowLongPtr(WindowHandle, GWL_STYLE);
 }
 
+FORCEINLINE LONG_PTR PhGetWindowStyleEx(
+    _In_ HWND WindowHandle
+    )
+{
+    return GetWindowLongPtr(WindowHandle, GWL_EXSTYLE);
+}
+
 FORCEINLINE VOID PhSetWindowStyle(
     _In_ HWND Handle,
     _In_ LONG_PTR Mask,
