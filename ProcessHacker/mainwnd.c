@@ -2009,6 +2009,36 @@ BOOLEAN PhMwpExecuteComputerCommand(
     return FALSE;
 }
 
+BOOL PhMwpIsWindowOverlapped(
+    _In_ HWND WindowHandle
+    )
+{
+    RECT rectThisWindow = { 0 };
+    RECT rectOtherWindow = { 0 };
+    RECT rectIntersection = { 0 };
+    HWND windowHandle = WindowHandle;
+
+    if (!GetWindowRect(WindowHandle, &rectThisWindow))
+        return FALSE;
+
+    while ((windowHandle = GetWindow(windowHandle, GW_HWNDPREV)) && windowHandle != WindowHandle)
+    {
+        if (!(PhGetWindowStyle(windowHandle) & WS_VISIBLE))
+            continue;
+
+        if (!GetWindowRect(windowHandle, &rectOtherWindow))
+            continue;
+
+        if (!(PhGetWindowStyleEx(windowHandle) & WS_EX_TOPMOST) &&
+            IntersectRect(&rectIntersection, &rectThisWindow, &rectOtherWindow))
+        {
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
 VOID PhMwpActivateWindow(
     _In_ HWND WindowHandle,
     _In_ BOOLEAN Toggle
@@ -2021,7 +2051,7 @@ VOID PhMwpActivateWindow(
     }
     else if (IsWindowVisible(WindowHandle))
     {
-        if (Toggle)
+        if (Toggle && !PhMwpIsWindowOverlapped(WindowHandle))
             ShowWindow(WindowHandle, SW_HIDE);
         else
             SetForegroundWindow(WindowHandle);
