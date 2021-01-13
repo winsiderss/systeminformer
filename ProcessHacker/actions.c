@@ -1362,6 +1362,7 @@ BOOLEAN PhUiRestartProcess(
     NTSTATUS status;
     BOOLEAN cont = FALSE;
     HANDLE processHandle = NULL;
+    HANDLE tokenHandle = NULL;
     PPH_STRING commandLine;
     PPH_STRING currentDirectory;
 
@@ -1416,6 +1417,13 @@ BOOLEAN PhUiRestartProcess(
 
     PH_AUTO(currentDirectory);
 
+    // Open the process token to prevent the process from restarting with our token. (dmex)
+    // Todo: We can instead use PROC_THREAD_ATTRIBUTE_PARENT_PROCESS to create the new
+    // process with the original token without having to open/duplicate the token.
+    // Todo: We can also create the new process suspended before terminating the original
+    // parent so when anything fails we can backout and leave the original process running.
+    PhOpenProcessToken(processHandle, TOKEN_ALL_ACCESS_P, &tokenHandle);
+
     NtClose(processHandle);
     processHandle = NULL;
 
@@ -1445,12 +1453,14 @@ BOOLEAN PhUiRestartProcess(
         NULL,
         currentDirectory->Buffer,
         0,
-        NULL,
+        tokenHandle,
         NULL,
         NULL
         );
 
 ErrorExit:
+    if (tokenHandle)
+        NtClose(tokenHandle);
     if (processHandle)
         NtClose(processHandle);
 
