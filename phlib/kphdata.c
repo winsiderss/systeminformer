@@ -191,7 +191,11 @@ NTSTATUS KphInitializeDynamicPackage(
         else
             Package->StructData.EgeGuid = 0x18;
 
-        Package->StructData.EpObjectTable = 0x418;
+        if (buildNumber >= 19042)
+            Package->StructData.EpObjectTable = 0x570;
+        else
+            Package->StructData.EpObjectTable = 0x418;
+
         Package->StructData.EreGuidEntry = 0x20;
         Package->StructData.HtHandleContentionEvent = 0x30;
         Package->StructData.OtName = 0x10;
@@ -353,7 +357,13 @@ NTSTATUS KphInitializeDynamicPackage(
         else
             Package->StructData.EgeGuid = 0xC;
 
-        Package->StructData.EpObjectTable = 0x154;
+        if (buildNumber >= 19041)
+            Package->StructData.EpObjectTable = 0x18c;
+        else if (buildNumber >= 15063)
+            Package->StructData.EpObjectTable = 0x15c;
+        else
+            Package->StructData.EpObjectTable = 0x154;
+
         Package->StructData.EreGuidEntry = 0x10;
         Package->StructData.OtName = 0x8;
         Package->StructData.OtIndex = 0x14;
