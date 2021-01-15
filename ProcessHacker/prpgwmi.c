@@ -1,8 +1,8 @@
 /*
  * Process Hacker -
- *   Process properties: WMI Providor page
+ *   Process properties: WMI Provider page
  *
- * Copyright (C) 2017-2019 dmex
+ * Copyright (C) 2017-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -54,7 +54,7 @@ PVOID PhpGetWmiProviderDllBase(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static PVOID dllBase = NULL;
+    static PVOID imageBaseAddress = NULL;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -65,8 +65,8 @@ PVOID PhpGetWmiProviderDllBase(
         {
             if (systemFileName = PhConcatStringRefZ(&systemDirectory->sr, L"\\wbem\\wbemprox.dll"))
             {
-                if (!(dllBase = PhGetLoaderEntryFullDllBase(systemFileName->Buffer)))
-                    dllBase = LoadLibrary(systemFileName->Buffer);
+                if (!(imageBaseAddress = PhGetLoaderEntryFullDllBase(PhGetString(systemFileName))))
+                    imageBaseAddress = LoadLibrary(PhGetString(systemFileName));
 
                 PhDereferenceObject(systemFileName);
             }
@@ -77,7 +77,7 @@ PVOID PhpGetWmiProviderDllBase(
         PhEndInitOnce(&initOnce);
     }
 
-    return dllBase;
+    return imageBaseAddress;
 }
 
 HRESULT PhpWmiProviderExecMethod(
@@ -87,18 +87,21 @@ HRESULT PhpWmiProviderExecMethod(
     )
 {
     HRESULT status;
-    PVOID wbemproxDllBase = NULL;
-    PPH_STRING queryString = NULL;
+    PVOID imageBaseAddress;
+    PPH_STRING querySelectString = NULL;
+    BSTR wbemResourceString = NULL;
+    BSTR wbemLanguageString = NULL;
+    BSTR wbemQueryString = NULL;
     IWbemLocator* wbemLocator = NULL;
     IWbemServices* wbemServices = NULL;
     IEnumWbemClassObject* wbemEnumerator = NULL;
     IWbemClassObject* wbemClassObject;
 
-    if (!(wbemproxDllBase = PhpGetWmiProviderDllBase()))
+    if (!(imageBaseAddress = PhpGetWmiProviderDllBase()))
         return ERROR_MOD_NOT_FOUND;
 
     status = PhGetClassObjectDllBase(
-        wbemproxDllBase,
+        imageBaseAddress,
         &CLSID_WbemLocator,
         &IID_IWbemLocator,
         &wbemLocator
@@ -107,9 +110,10 @@ HRESULT PhpWmiProviderExecMethod(
     if (FAILED(status))
         goto CleanupExit;
 
+    wbemResourceString = SysAllocString(L"root\\CIMV2");
     status = IWbemLocator_ConnectServer(
         wbemLocator,
-        L"root\\CIMV2",
+        wbemResourceString,
         NULL,
         NULL,
         NULL,
@@ -122,12 +126,17 @@ HRESULT PhpWmiProviderExecMethod(
     if (FAILED(status))
         goto CleanupExit;
 
-    queryString = PhConcatStrings2(L"SELECT Namespace,Provider,User,__PATH FROM Msft_Providers WHERE HostProcessIdentifier = ", ProcessIdString);
+    querySelectString = PhConcatStrings2(
+        L"SELECT Namespace,Provider,User,__PATH FROM Msft_Providers WHERE HostProcessIdentifier = ",
+        ProcessIdString
+        );
+    wbemLanguageString = SysAllocString(L"WQL");
+    wbemQueryString = SysAllocString(PhGetString(querySelectString));
 
     if (FAILED(status = IWbemServices_ExecQuery(
         wbemServices,
-        L"WQL",
-        queryString->Buffer,
+        wbemLanguageString,
+        wbemQueryString,
         WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY,
         NULL,
         &wbemEnumerator
@@ -191,16 +200,22 @@ HRESULT PhpWmiProviderExecMethod(
                 PhEqualString(Entry->UserName, userName, FALSE)
                 )
             {
+                BSTR wbemPathString = SysAllocString(PhGetString(instancePath));
+                BSTR wbemMethodString = SysAllocString(Method);
+
                 status = IWbemServices_ExecMethod(
                     wbemServices,
-                    instancePath->Buffer,
-                    Method,
+                    wbemPathString,
+                    wbemMethodString,
                     0,
                     NULL,
                     wbemClassObject,
                     NULL,
                     NULL
                     );
+
+                SysFreeString(wbemMethodString);
+                SysFreeString(wbemPathString);
             }
         }
 
@@ -217,8 +232,14 @@ HRESULT PhpWmiProviderExecMethod(
     }
 
 CleanupExit:
-    if (queryString)
-        PhDereferenceObject(queryString);
+    if (wbemQueryString)
+        SysFreeString(wbemQueryString);
+    if (wbemLanguageString)
+        SysFreeString(wbemLanguageString);
+    if (wbemResourceString)
+        SysFreeString(wbemResourceString);
+    if (querySelectString)
+        PhDereferenceObject(querySelectString);
     if (wbemEnumerator)
         IEnumWbemClassObject_Release(wbemEnumerator);
     if (wbemServices)
@@ -236,21 +257,24 @@ HRESULT PhpQueryWmiProviderFileName(
     )
 {
     HRESULT status;
-    PVOID wbemproxDllBase = NULL;
+    PVOID imageBaseAddress;
     PPH_STRING fileName = NULL;
-    PPH_STRING queryString = NULL;
     PPH_STRING clsidString = NULL;
+    PPH_STRING querySelectString = NULL;
+    BSTR wbemResourceString = NULL;
+    BSTR wbemLanguageString = NULL;
+    BSTR wbemQueryString = NULL;
     IWbemLocator* wbemLocator = NULL;
     IWbemServices* wbemServices = NULL;
     IEnumWbemClassObject* wbemEnumerator = NULL;
     IWbemClassObject *wbemClassObject = NULL;
     ULONG count = 0;
 
-    if (!(wbemproxDllBase = PhpGetWmiProviderDllBase()))
+    if (!(imageBaseAddress = PhpGetWmiProviderDllBase()))
         return ERROR_MOD_NOT_FOUND;
 
     status = PhGetClassObjectDllBase(
-        wbemproxDllBase,
+        imageBaseAddress,
         &CLSID_WbemLocator,
         &IID_IWbemLocator,
         &wbemLocator
@@ -259,9 +283,10 @@ HRESULT PhpQueryWmiProviderFileName(
     if (FAILED(status))
         goto CleanupExit;
 
-    if (FAILED(status = IWbemLocator_ConnectServer(
+    wbemResourceString = SysAllocString(PhGetString(ProviderNameSpace));
+    status = IWbemLocator_ConnectServer(
         wbemLocator,
-        ProviderNameSpace->Buffer,
+        wbemResourceString,
         NULL,
         NULL,
         NULL,
@@ -269,17 +294,22 @@ HRESULT PhpQueryWmiProviderFileName(
         0,
         NULL,
         &wbemServices
-        )))
-    {
-        goto CleanupExit;
-    }
+        );
 
-    queryString = PhFormatString(L"SELECT clsid FROM __Win32Provider WHERE Name = '%s'", ProviderName->Buffer);
+    if (FAILED(status))
+        goto CleanupExit;
+
+    querySelectString = PhFormatString(
+        L"SELECT clsid FROM __Win32Provider WHERE Name = '%s'",
+        PhGetString(ProviderName)
+        );
+    wbemLanguageString = SysAllocString(L"WQL");
+    wbemQueryString = SysAllocString(PhGetString(querySelectString));
 
     if (FAILED(status = IWbemServices_ExecQuery(
         wbemServices,
-        L"WQL",
-        queryString->Buffer,
+        wbemLanguageString,
+        wbemQueryString,
         WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY,
         NULL,
         &wbemEnumerator
@@ -297,6 +327,8 @@ HRESULT PhpQueryWmiProviderFileName(
         )))
     {
         VARIANT variant;
+
+        VariantInit(&variant);
 
         if (SUCCEEDED(IWbemClassObject_Get(wbemClassObject, L"CLSID", 0, &variant, 0, 0)))
         {
@@ -318,11 +350,10 @@ HRESULT PhpQueryWmiProviderFileName(
         HANDLE keyHandle;
         PPH_STRING keyPath;
 
-        // Note: String pooling optimization.
         keyPath = PhConcatStrings(
             4,
             L"CLSID\\",
-            clsidString->Buffer,
+            PhGetString(clsidString),
             L"\\",
             L"InprocServer32"
             );
@@ -352,10 +383,16 @@ HRESULT PhpQueryWmiProviderFileName(
     }
 
 CleanupExit:
+    if (wbemQueryString)
+        SysFreeString(wbemQueryString);
+    if (wbemLanguageString)
+        SysFreeString(wbemLanguageString);
+    if (wbemResourceString)
+        SysFreeString(wbemResourceString);
     if (clsidString)
         PhDereferenceObject(clsidString);
-    if (queryString)
-        PhDereferenceObject(queryString);
+    if (querySelectString)
+        PhDereferenceObject(querySelectString);
     if (wbemEnumerator)
         IEnumWbemClassObject_Release(wbemEnumerator);
     if (wbemServices)
@@ -364,7 +401,9 @@ CleanupExit:
         IWbemLocator_Release(wbemLocator);
 
     if (SUCCEEDED(status))
+    {
         *FileName = fileName;
+    }
 
     return status;
 }
@@ -374,19 +413,22 @@ PPH_LIST PhpQueryWmiProviderHostProcess(
     )
 {
     HRESULT status;
-    PVOID wbemproxDllBase = NULL;
+    PVOID imageBaseAddress;
     PPH_LIST providerList = NULL;
-    PPH_STRING queryString = NULL;
+    PPH_STRING querySelectString = NULL;
+    BSTR wbemResourceString = NULL;
+    BSTR wbemLanguageString = NULL;
+    BSTR wbemQueryString = NULL;
     IWbemLocator* wbemLocator = NULL;
     IWbemServices* wbemServices = NULL;
     IEnumWbemClassObject* wbemEnumerator = NULL;
     IWbemClassObject *wbemClassObject;
 
-    if (!(wbemproxDllBase = PhpGetWmiProviderDllBase()))
+    if (!(imageBaseAddress = PhpGetWmiProviderDllBase()))
         return NULL;
 
     status = PhGetClassObjectDllBase(
-        wbemproxDllBase,
+        imageBaseAddress,
         &CLSID_WbemLocator,
         &IID_IWbemLocator,
         &wbemLocator
@@ -395,9 +437,10 @@ PPH_LIST PhpQueryWmiProviderHostProcess(
     if (FAILED(status))
         goto CleanupExit;
 
+    wbemResourceString = SysAllocString(L"root\\CIMV2");
     status = IWbemLocator_ConnectServer(
         wbemLocator,
-        L"root\\CIMV2",
+        wbemResourceString,
         NULL,
         NULL,
         NULL,
@@ -410,12 +453,17 @@ PPH_LIST PhpQueryWmiProviderHostProcess(
     if (FAILED(status))
         goto CleanupExit;
 
-    queryString = PhConcatStrings2(L"SELECT Namespace,Provider,User FROM Msft_Providers WHERE HostProcessIdentifier = ", ProcessItem->ProcessIdString);
+    querySelectString = PhConcatStrings2(
+        L"SELECT Namespace,Provider,User FROM Msft_Providers WHERE HostProcessIdentifier = ",
+        ProcessItem->ProcessIdString
+        );
+    wbemLanguageString = SysAllocString(L"WQL");
+    wbemQueryString = SysAllocString(PhGetString(querySelectString));
 
     if (FAILED(status = IWbemServices_ExecQuery(
         wbemServices,
-        L"WQL",
-        queryString->Buffer,
+        wbemLanguageString,
+        wbemQueryString,
         WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY,
         NULL,
         &wbemEnumerator
@@ -441,17 +489,23 @@ PPH_LIST PhpQueryWmiProviderHostProcess(
         entry = PhAllocate(sizeof(PH_WMI_ENTRY));
         memset(entry, 0, sizeof(PH_WMI_ENTRY));
 
+        VariantInit(&variant);
+
         if (SUCCEEDED(IWbemClassObject_Get(wbemClassObject, L"Namespace", 0, &variant, 0, 0)))
         {
             entry->NamespacePath = PhCreateString(variant.bstrVal);
             VariantClear(&variant);
         }
 
+        VariantInit(&variant);
+
         if (SUCCEEDED(IWbemClassObject_Get(wbemClassObject, L"Provider", 0, &variant, 0, 0)))
         {
             entry->ProviderName = PhCreateString(variant.bstrVal);
             VariantClear(&variant);
         }
+
+        VariantInit(&variant);
 
         if (SUCCEEDED(IWbemClassObject_Get(wbemClassObject, L"User", 0, &variant, 0, 0)))
         {
@@ -475,8 +529,14 @@ PPH_LIST PhpQueryWmiProviderHostProcess(
     }
 
 CleanupExit:
-    if (queryString)
-        PhDereferenceObject(queryString);
+    if (wbemQueryString)
+        SysFreeString(wbemQueryString);
+    if (wbemLanguageString)
+        SysFreeString(wbemLanguageString);
+    if (wbemResourceString)
+        SysFreeString(wbemResourceString);
+    if (querySelectString)
+        PhDereferenceObject(querySelectString);
     if (wbemEnumerator)
         IEnumWbemClassObject_Release(wbemEnumerator);
     if (wbemServices)
@@ -487,42 +547,41 @@ CleanupExit:
     return providerList;
 }
 
-// HACK: Move to itemtips.c
-VOID PhQueryWmiHostProcessString(
-    _In_ PPH_PROCESS_ITEM ProcessItem,
-    _Inout_ PPH_STRING_BUILDER Providers
-    )
-{
-    PPH_LIST providerList;
-
-    if (providerList = PhpQueryWmiProviderHostProcess(ProcessItem))
-    {
-        for (ULONG i = 0; i < providerList->Count; i++)
-        {
-            PPH_WMI_ENTRY entry = providerList->Items[i];
-
-            PhAppendFormatStringBuilder(
-                Providers,
-                L"    %s (%s)\n", 
-                PhGetStringOrEmpty(entry->ProviderName),
-                PhGetStringOrEmpty(entry->FileName)
-                );
-
-            if (entry->NamespacePath)
-                PhDereferenceObject(entry->NamespacePath);
-            if (entry->ProviderName)
-                PhDereferenceObject(entry->ProviderName);
-            if (entry->FileName)
-                PhDereferenceObject(entry->FileName);
-            if (entry->UserName)
-                PhDereferenceObject(entry->UserName);
-
-            PhFree(entry);
-        }
-
-        PhDereferenceObject(providerList);
-    }
-}
+//VOID PhQueryWmiHostProcessString(
+//    _In_ PPH_PROCESS_ITEM ProcessItem,
+//    _Inout_ PPH_STRING_BUILDER Providers
+//    )
+//{
+//    PPH_LIST providerList;
+//
+//    if (providerList = PhpQueryWmiProviderHostProcess(ProcessItem))
+//    {
+//        for (ULONG i = 0; i < providerList->Count; i++)
+//        {
+//            PPH_WMI_ENTRY entry = providerList->Items[i];
+//
+//            PhAppendFormatStringBuilder(
+//                Providers,
+//                L"    %s (%s)\n", 
+//                PhGetStringOrEmpty(entry->ProviderName),
+//                PhGetStringOrEmpty(entry->FileName)
+//                );
+//
+//            if (entry->NamespacePath)
+//                PhDereferenceObject(entry->NamespacePath);
+//            if (entry->ProviderName)
+//                PhDereferenceObject(entry->ProviderName);
+//            if (entry->FileName)
+//                PhDereferenceObject(entry->FileName);
+//            if (entry->UserName)
+//                PhDereferenceObject(entry->UserName);
+//
+//            PhFree(entry);
+//        }
+//
+//        PhDereferenceObject(providerList);
+//    }
+//}
 
 static VOID NTAPI PhpWmiProviderUpdateHandler(
     _In_opt_ PVOID Parameter,
@@ -724,13 +783,16 @@ INT_PTR CALLBACK PhpProcessWmiProvidersDlgProc(
                     menu = PhCreateEMenu();
                     if (PhGetIntegerSetting(L"WmiProviderEnableHiddenMenu"))
                     {
-                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 1, L"&Suspend", NULL, NULL), -1);
-                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 2, L"Res&ume", NULL, NULL), -1);
-                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 3, L"Un&load", NULL, NULL), -1);
-                        PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), -1);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 1, L"&Suspend", NULL, NULL), ULONG_MAX);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 2, L"Res&ume", NULL, NULL), ULONG_MAX);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 3, L"Un&load", NULL, NULL), ULONG_MAX);
+                        PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                     }
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 4, L"Open &file location", NULL, NULL), -1);
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy", NULL, NULL), -1);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 4, L"Open &file location", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 5, L"&Inspect", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
                     PhInsertCopyListViewEMenuItem(menu, IDC_COPY, context->ListViewHandle);
 
                     selectedItem = PhShowEMenu(
@@ -746,7 +808,7 @@ INT_PTR CALLBACK PhpProcessWmiProvidersDlgProc(
                     if (selectedItem && selectedItem->Id != ULONG_MAX)
                     {
                         PPH_WMI_ENTRY entry;
-                        BOOLEAN handled = FALSE;
+                        BOOLEAN handled;
 
                         handled = PhHandleCopyListViewEMenuItem(selectedItem);
 
@@ -771,12 +833,12 @@ INT_PTR CALLBACK PhpProcessWmiProvidersDlgProc(
                             break;
                         case 4:
                             {
-                                if (!PhIsNullOrEmptyString(entry->FileName) && PhDoesFileExistsWin32(entry->FileName->Buffer))
+                                if (!PhIsNullOrEmptyString(entry->FileName) && PhDoesFileExistsWin32(PhGetString(entry->FileName)))
                                 {
                                     PhShellExecuteUserString(
                                         hwndDlg,
                                         L"FileBrowseExecutable",
-                                        processItem->FileName->Buffer,
+                                        PhGetString(entry->FileName),
                                         FALSE,
                                         L"Make sure the Explorer executable file is present."
                                         );
@@ -785,20 +847,16 @@ INT_PTR CALLBACK PhpProcessWmiProvidersDlgProc(
                             break;
                         case 5:
                             {
-                                PPH_STRING string;
-
-                                string = PhFormatString(
-                                    L"%s, %s, %s, %s", 
-                                    PhGetStringOrDefault(entry->ProviderName, L"N/A"),
-                                    PhGetStringOrDefault(entry->NamespacePath, L"N/A"),
-                                    PhGetStringOrDefault(entry->FileName, L"N/A"),
-                                    PhGetStringOrDefault(entry->UserName, L"N/A")
-                                    );
-
-                                PhSetClipboardString(hwndDlg, &string->sr);
-                                PhDereferenceObject(string);
-
-                                PhSetDialogFocus(hwndDlg, context->ListViewHandle);
+                                if (!PhIsNullOrEmptyString(entry->FileName) && PhDoesFileExistsWin32(PhGetString(entry->FileName)))
+                                {
+                                    PhShellExecuteUserString(
+                                        hwndDlg,
+                                        L"ProgramInspectExecutables",
+                                        PhGetString(entry->FileName),
+                                        FALSE,
+                                        L"Make sure the PE Viewer executable file is present."
+                                        );
+                                }
                             }
                             break;
                         case IDC_COPY:
