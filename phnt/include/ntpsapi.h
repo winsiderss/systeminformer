@@ -1197,9 +1197,10 @@ NtResumeProcess(
 #define NtCurrentPeb() (NtCurrentTeb()->ProcessEnvironmentBlock)
 
 // Windows 8 and above
-#define NtCurrentProcessToken() ((HANDLE)(LONG_PTR)-4)
-#define NtCurrentThreadToken() ((HANDLE)(LONG_PTR)-5)
-#define NtCurrentThreadEffectiveToken() ((HANDLE)(LONG_PTR)-6)
+#define NtCurrentProcessToken() ((HANDLE)(LONG_PTR)-4) // NtOpenProcessToken(NtCurrentProcess())
+#define NtCurrentThreadToken() ((HANDLE)(LONG_PTR)-5) // NtOpenThreadToken(NtCurrentThread())
+#define NtCurrentThreadEffectiveToken() ((HANDLE)(LONG_PTR)-6) // NtOpenThreadToken(NtCurrentThread()) + NtOpenProcessToken(NtCurrentProcess())
+
 #define NtCurrentSilo() ((HANDLE)(LONG_PTR)-1)
 
 // Not NT, but useful.
