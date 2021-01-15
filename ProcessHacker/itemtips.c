@@ -3,6 +3,7 @@
  *   item tooltips
  *
  * Copyright (C) 2010-2015 wj32
+ * Copyright (C) 2017-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -48,16 +49,18 @@ VOID PhpFillMicrosoftEdge(
     _Inout_ PPH_STRING_BUILDER Tasks
     );
 
-VOID PhpFillWmiProviderHost(
-    _In_ PPH_PROCESS_ITEM Process,
-    _Inout_ PPH_STRING_BUILDER Providers
-    );
-
-// HACK
-PPH_STRING PhQueryWmiHostProcessString(
-    _In_ PPH_PROCESS_ITEM ProcessItem,
-    _Inout_ PPH_STRING_BUILDER Providers
-    );
+// Note: Tooltip information for WMI was disabled
+// after issues reported with suspended WMI processes.
+// See Github issue #713 (dmex)
+//VOID PhpFillWmiProviderHost(
+//    _In_ PPH_PROCESS_ITEM Process,
+//    _Inout_ PPH_STRING_BUILDER Providers
+//    );
+//
+//PPH_STRING PhQueryWmiHostProcessString(
+//    _In_ PPH_PROCESS_ITEM ProcessItem,
+//    _Inout_ PPH_STRING_BUILDER Providers
+//    );
 
 static PH_STRINGREF StandardIndent = PH_STRINGREF_INIT(L"    ");
 
@@ -363,6 +366,25 @@ PPH_STRING PhGetProcessTooltipText(
             PhDeleteStringBuilder(&container);
         }
         break;
+    //case WmiProviderHostType:
+    //    {
+    //        PH_STRING_BUILDER provider;
+    //
+    //        PhInitializeStringBuilder(&provider, 40);
+    //
+    //        PhpFillWmiProviderHost(Process, &provider);
+    //
+    //        if (provider.String->Length != 0)
+    //        {
+    //            PhAppendStringBuilder2(&stringBuilder, L"WMI Providers:\n");
+    //            PhAppendStringBuilder(&stringBuilder, &provider.String->sr);
+    //        }
+    //
+    //        PhDeleteStringBuilder(&provider);
+    //
+    //        validForMs = 10 * 1000; // 10 seconds
+    //    }
+    //    break;
     }
 
     // Plugin
@@ -608,7 +630,7 @@ VOID PhpFillRunningTasks(
 
     if (SUCCEEDED(PhGetClassObject(
         L"taskschd.dll",
-        &CLSID_TaskScheduler,
+        &CLSID_TaskScheduler_I,
         &IID_ITaskService_I,
         &taskService
         )))
@@ -746,13 +768,13 @@ VOID PhpFillMicrosoftEdge(
     }
 }
 
-VOID PhpFillWmiProviderHost(
-    _In_ PPH_PROCESS_ITEM Process,
-    _Inout_ PPH_STRING_BUILDER Providers
-    )
-{
-    PhQueryWmiHostProcessString(Process, Providers);
-}
+//VOID PhpFillWmiProviderHost(
+//    _In_ PPH_PROCESS_ITEM Process,
+//    _Inout_ PPH_STRING_BUILDER Providers
+//    )
+//{
+//    PhQueryWmiHostProcessString(Process, Providers);
+//}
 
 PPH_STRING PhGetServiceTooltipText(
     _In_ PPH_SERVICE_ITEM Service
