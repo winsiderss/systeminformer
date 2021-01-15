@@ -441,7 +441,7 @@ PPH_STRING PhGetProcessTooltipText(
             PhAppendFormatStringBuilder(
                 &notes,
                 L"    Low Image Coherency: %.2f%%\n",
-                (FLOAT)((DOUBLE)Process->ImageCoherency * 100.0f)
+                (DOUBLE)(Process->ImageCoherency * 100.0f)
                 );
         }
 

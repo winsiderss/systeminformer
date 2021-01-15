@@ -1052,6 +1052,17 @@ PhGetProcessImageCoherency(
     );
 
 PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetProcessModuleImageCoherency(
+    _In_ PWSTR FileName,
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID ImageBaseAddress,
+    _In_ BOOLEAN IsKernelModule,
+    _Out_ PFLOAT ImageCoherency
+    );
+
+PHLIBAPI
 ULONG
 NTAPI
 PhCrc32(
