@@ -1501,9 +1501,6 @@ static NTSTATUS PhpRefreshThreadStack(
             stackNode = AddThreadStackNode(Context, item->Index);
             stackNode->StackFrame = item->StackFrame;
 
-            if (!PhIsNullOrEmptyString(item->Symbol))
-                stackNode->SymbolString = PhReferenceObject(item->Symbol);
-
             if (item->StackFrame.StackAddress)
                 PhPrintPointer(stackNode->StackAddressString, item->StackFrame.StackAddress);
             if (item->StackFrame.FrameAddress)
@@ -1523,10 +1520,15 @@ static NTSTATUS PhpRefreshThreadStack(
             if (item->StackFrame.ReturnAddress)
                 PhPrintPointer(stackNode->ReturnAddressString, item->StackFrame.ReturnAddress);
 
+            if (!PhIsNullOrEmptyString(item->Symbol))
+                stackNode->SymbolString = PhReferenceObject(item->Symbol);
+            else
+                PhClearReference(&item->Symbol);
+
             if (!PhIsNullOrEmptyString(item->FileName))
                 stackNode->FileNameString = PhReferenceObject(item->FileName);
             else
-                PhClearReference(&stackNode->FileNameString);
+                PhClearReference(&item->FileName);
             
             UpdateThreadStackNode(Context, stackNode);
         }
