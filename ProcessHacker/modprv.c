@@ -3,7 +3,7 @@
  *   module provider
  *
  * Copyright (C) 2009-2016 wj32
- * Copyright (C) 2017-2018 dmex
+ * Copyright (C) 2017-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -42,6 +42,9 @@ typedef struct _PH_MODULE_QUERY_DATA
     VERIFY_RESULT VerifyResult;
     PPH_STRING VerifySignerName;
     ULONG ImageFlags;
+
+    NTSTATUS ImageCoherencyStatus;
+    FLOAT ImageCoherency;
 } PH_MODULE_QUERY_DATA, *PPH_MODULE_QUERY_DATA;
 
 VOID NTAPI PhpModuleProviderDeleteProcedure(
@@ -229,6 +232,14 @@ PPH_MODULE_ITEM PhCreateModuleItem(
     memset(moduleItem, 0, sizeof(PH_MODULE_ITEM));
     PhEmCallObjectOperation(EmModuleItemType, moduleItem, EmObjectCreate);
 
+    //
+    // Initialize ImageCoherencyStatus to STATUS_PENDING this notes that the
+    // image coherency hasn't been done yet. This prevents the module items
+    // from being noted as "Low Image Coherency" or being highlighted until
+    // the analysis runs. See: PhpShouldShowModuleCoherency
+    //
+    moduleItem->ImageCoherencyStatus = STATUS_PENDING;
+
     return moduleItem;
 }
 
@@ -375,7 +386,25 @@ NTSTATUS PhpModuleQueryWorker(
                 }
             }
 #endif
+
             PhUnloadMappedImage(&mappedImage);
+        }
+    }
+
+    if (PhEnableProcessQueryStage2 && !data->ModuleProvider->IsSubsystemProcess)
+    {
+        if (data->ModuleItem->Type == PH_MODULE_TYPE_MODULE ||
+            data->ModuleItem->Type == PH_MODULE_TYPE_WOW64_MODULE ||
+            data->ModuleItem->Type == PH_MODULE_TYPE_MAPPED_IMAGE ||
+            data->ModuleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE)
+        {
+            data->ImageCoherencyStatus = PhGetProcessModuleImageCoherency(
+                PhGetString(data->ModuleItem->FileName),
+                data->ModuleProvider->ProcessHandle,
+                data->ModuleItem->BaseAddress,
+                data->ModuleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE,
+                &data->ImageCoherency
+                );
         }
     }
 
@@ -517,6 +546,9 @@ VOID PhModuleProviderUpdate(
             data->ModuleItem->VerifyResult = data->VerifyResult;
             data->ModuleItem->VerifySignerName = data->VerifySignerName;
             data->ModuleItem->Flags |= data->ImageFlags;
+            data->ModuleItem->ImageCoherencyStatus = data->ImageCoherencyStatus;
+            data->ModuleItem->ImageCoherency = data->ImageCoherency;
+
             data->ModuleItem->JustProcessed = TRUE;
 
             PhDereferenceObject(data->ModuleItem);
@@ -664,11 +696,15 @@ VOID PhModuleProviderUpdate(
                         PhFree(debugEntry);
                     }
 
-                    if (!PhGetRemoteMappedImageGuardFlagsEx(moduleProvider->ProcessHandle,
+                    if (!PhGetRemoteMappedImageGuardFlagsEx(
+                        moduleProvider->ProcessHandle,
                         &remoteMappedImage,
                         readVirtualMemoryCallback,
-                        &moduleItem->GuardFlags))
+                        &moduleItem->GuardFlags
+                        ))
+                    {
                         moduleItem->GuardFlags = 0;
+                    }
 
                     PhUnloadRemoteMappedImage(&remoteMappedImage);
                 }

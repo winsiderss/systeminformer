@@ -29,8 +29,9 @@
 #define PHMOTLC_ENTRYPOINT 18
 #define PHMOTLC_PARENTBASEADDRESS 19
 #define PHMOTLC_CET 20
+#define PHMOTLC_COHERENCY 21
 
-#define PHMOTLC_MAXIMUM 21
+#define PHMOTLC_MAXIMUM 22
 
 // begin_phapppub
 typedef struct _PH_MODULE_NODE
@@ -54,6 +55,7 @@ typedef struct _PH_MODULE_NODE
     PPH_STRING LoadTimeText;
     PPH_STRING FileModifiedTimeText;
     PPH_STRING FileSizeText;
+    WCHAR ImageCoherencyText[PH_PTR_STR_LEN_1 + 3];
 
     struct _PH_MODULE_NODE *Parent;
     PPH_LIST Children;
@@ -73,6 +75,8 @@ typedef struct _PH_MODULE_NODE
 #define PH_MODULE_FLAGS_MODULE_STRINGS_OPTION 10
 #define PH_MODULE_FLAGS_SYSTEM_OPTION 11
 #define PH_MODULE_FLAGS_HIGHLIGHT_SYSTEM_OPTION 12
+#define PH_MODULE_FLAGS_LOWIMAGECOHERENCY_OPTION 13
+#define PH_MODULE_FLAGS_HIGHLIGHT_LOWIMAGECOHERENCY_OPTION 14
 
 typedef struct _PH_MODULE_LIST_CONTEXT
 {
@@ -101,7 +105,9 @@ typedef struct _PH_MODULE_LIST_CONTEXT
             ULONG HighlightRelocatedModules : 1;
             ULONG HideSystemModules : 1;
             ULONG HighlightSystemModules : 1;
-            ULONG Spare : 21;
+            ULONG HideLowImageCoherency : 1;
+            ULONG HighlightLowImageCoherency : 1;
+            ULONG Spare : 19;
         };
     };
 

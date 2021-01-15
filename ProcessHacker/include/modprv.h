@@ -43,6 +43,9 @@ typedef struct _PH_MODULE_ITEM
     LARGE_INTEGER FileLastWriteTime;
     LARGE_INTEGER FileEndOfFile;
 
+    NTSTATUS ImageCoherencyStatus;
+    FLOAT ImageCoherency;
+
     WCHAR BaseAddressString[PH_PTR_STR_LEN_1];
     WCHAR ParentBaseAddressString[PH_PTR_STR_LEN_1];
     WCHAR EntryPointAddressString[PH_PTR_STR_LEN_1];

@@ -3,6 +3,7 @@
  *   Image Coherency
  *
  * Copyright (C) 2020 jxy-s
+ * Copyright (C) 2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -21,6 +22,7 @@
  */
 #include <ph.h>
 #include <mapimg.h>
+#include <kphuser.h>
 
 /**
 * Process image coherency context, used during the calculation of the process
@@ -192,7 +194,7 @@ VOID PhpAnalyzeImageCoherencyInsepct(
 */
 VOID PhpAnalyzeImageCoherencyCommonByRva(
     _In_ HANDLE ProcessHandle,
-    _In_ DWORD Rva,
+    _In_ ULONG Rva,
     _In_ PBYTE Buffer,
     _In_ ULONG Size,
     _In_ PPH_PROCESS_IMAGE_COHERENCY_CONTEXT Context,
@@ -263,8 +265,8 @@ VOID PhpAnalyzeImageCoherencyCommonByRva(
 */
 VOID PhpAnalyzeImageCoherencyCommonAsNative(
     _In_ HANDLE ProcessHandle,
-    _In_ DWORD AddressOfEntryPoint,
-    _In_ DWORD BaseOfCode,
+    _In_ ULONG AddressOfEntryPoint,
+    _In_ ULONG BaseOfCode,
     _In_ PPH_PROCESS_IMAGE_COHERENCY_CONTEXT Context,
     _Inout_ PSIZE_T CoherentBytes,
     _Inout_ PSIZE_T TotalBytes
@@ -439,7 +441,7 @@ BOOLEAN PhpAnalyzeImageCoherencyIsDotNet (
 {
     PIMAGE_DATA_DIRECTORY dataDirectory;
     PIMAGE_COR20_HEADER dotNet;
-    PDWORD dotNetMagic;
+    PULONG dotNetMagic;
 
     //
     // Get the com descriptor directly, if it doesn't exist it isn't .NET
@@ -483,13 +485,11 @@ BOOLEAN PhpAnalyzeImageCoherencyIsDotNet (
 * number of coherent bytes.
 * \param[in,out] TotalBytes - Updated during inspection to contain the total
 * number of bytes inspected.
-*
-* \return Success status or failure.
 */
 VOID PhpAnalyzeImageCoherencyCommon(
     _In_ HANDLE ProcessHandle,
-    _In_ DWORD AddressOfEntryPoint,
-    _In_ DWORD BaseOfCode,
+    _In_ ULONG AddressOfEntryPoint,
+    _In_ ULONG BaseOfCode,
     _In_ PPH_PROCESS_IMAGE_COHERENCY_CONTEXT Context,
     _Inout_ PSIZE_T CoherentBytes,
     _Inout_ PSIZE_T TotalBytes
@@ -815,7 +815,7 @@ CleanupExit:
 
     if (totalBytes)
     {
-        *ImageCoherency = ((FLOAT)coherentBytes / totalBytes);
+        *ImageCoherency = ((FLOAT)coherentBytes / (FLOAT)totalBytes);
     }
     else
     {
@@ -828,6 +828,151 @@ CleanupExit:
     {
         NtClose(processHandle);
     }
+
+    return status;
+}
+
+NTSTATUS PhGetProcessModuleImageCoherency(
+    _In_ PWSTR FileName,
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID ImageBaseAddress,
+    _In_ BOOLEAN IsKernelModule,
+    _Out_ PFLOAT ImageCoherency
+    )
+{
+    NTSTATUS status;
+    SIZE_T coherentBytes = 0;
+    SIZE_T totalBytes = 0;
+    PPH_PROCESS_IMAGE_COHERENCY_CONTEXT context;
+
+    //
+    // This is best-effort context creation, we don't fail if the mapping
+    // fails - the caller of the API may make decisions based on success of
+    // each
+    //
+
+    context = PhAllocateZero(sizeof(PH_PROCESS_IMAGE_COHERENCY_CONTEXT));
+    context->RemoteImageBase = ImageBaseAddress;
+
+    //
+    // Map the on-disk image
+    //
+    context->MappedImageStatus = PhLoadMappedImageEx(
+        FileName,
+        NULL,
+        &context->MappedImage
+        );
+
+    //
+    // Get the remote image base 
+    //
+    context->RemoteMappedImageStatus = PhLoadRemoteMappedImageEx(
+        ProcessHandle,
+        ImageBaseAddress,
+        IsKernelModule ? KphReadVirtualMemoryUnsafe : NtReadVirtualMemory,
+        &context->RemoteMappedImage
+        );
+
+    //
+    // Creating the coherency context is best-effort and will store the status
+    // in the context. We can infer some state if one fails, do so here.
+    //
+    if (!NT_SUCCESS(context->MappedImageStatus) ||
+        !NT_SUCCESS(context->RemoteMappedImageStatus))
+    {
+        if (NT_SUCCESS(context->RemoteMappedImageStatus) &&
+            (context->MappedImageStatus == STATUS_INVALID_IMAGE_FORMAT ||
+             context->MappedImageStatus == STATUS_INVALID_IMAGE_HASH ||
+             context->MappedImageStatus == STATUS_IMAGE_SUBSYSTEM_NOT_PRESENT ||
+             context->MappedImageStatus == STATUS_ACCESS_DENIED))
+        {
+            //
+            // If we succeeded to map the remote image but the on-disk image
+            // is inherently incoherent, return the status from the on-disk
+            // mapping.
+            //
+            status = context->MappedImageStatus;
+        }
+        else
+        {
+            //
+            // If we failed for any other reason, return the error from the
+            // remote mapping.
+            //
+            status = context->RemoteMappedImageStatus;
+        }
+        goto CleanupExit;
+    }
+
+    if (context->MappedImage.Magic != context->RemoteMappedImage.Magic)
+    {
+        //
+        // The image types don't match. This is incoherent but we have one more
+        // case to check. .NET can change this in the loaded PE to run "AnyCPU"
+        // in some cases, if it's a .NET mapping do the managed calculation.
+        //
+        if (PhpAnalyzeImageCoherencyIsDotNet(context))
+        {
+            PhpAnalyzeImageCoherencyCommonAsManaged(
+                ProcessHandle,
+                context,
+                &coherentBytes,
+                &totalBytes
+                );
+        }
+
+        status = STATUS_INVALID_IMAGE_FORMAT;
+        goto CleanupExit;
+    }
+
+    switch (context->MappedImage.Magic)
+    {
+    case IMAGE_NT_OPTIONAL_HDR32_MAGIC:
+        {
+            status = PhpAnalyzeImageCoherencyNt32(
+                ProcessHandle,
+                context,
+                &coherentBytes,
+                &totalBytes
+                );
+        }
+        break;
+    case IMAGE_NT_OPTIONAL_HDR64_MAGIC:
+        {
+            status = PhpAnalyzeImageCoherencyNt64(
+                ProcessHandle,
+                context,
+                &coherentBytes,
+                &totalBytes
+                );
+        }
+        break;
+    default:
+        {
+            //
+            // Not supporting ELF for WSL yet. Note however, if the image type
+            // is mismatched above we will still reflect that
+            // (e.g. ELF<->non-ELF). But we don't yet support coherency checks
+            // for ELF<->ELF. The remote image mapping should be updated to
+            // handle remote mapping ELF.
+            //
+            status = STATUS_NOT_IMPLEMENTED;
+        }
+        break;
+    }
+
+CleanupExit:
+
+    if (totalBytes)
+    {
+        *ImageCoherency = (FLOAT)coherentBytes / (FLOAT)totalBytes;
+    }
+    else
+    {
+        *ImageCoherency = 0.0f;
+    }
+
+    PhpFreeProcessImageCoherencyContext(context);
 
     return status;
 }

@@ -3,7 +3,7 @@
  *   Process properties: Modules page
  *
  * Copyright (C) 2009-2016 wj32
- * Copyright (C) 2017-2019 dmex
+ * Copyright (C) 2017-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -192,7 +192,7 @@ static BOOLEAN PhpWordMatchHandleStringRef(
     PH_STRINGREF part;
     PH_STRINGREF remainingPart;
 
-    remainingPart = SearchText->sr;
+    remainingPart = PhGetStringRef(SearchText);
 
     while (remainingPart.Length)
     {
@@ -200,7 +200,7 @@ static BOOLEAN PhpWordMatchHandleStringRef(
 
         if (part.Length)
         {
-            if (PhFindStringInStringRef(Text, &part, TRUE) != -1)
+            if (PhFindStringInStringRef(Text, &part, TRUE) != SIZE_MAX)
                 return TRUE;
         }
     }
@@ -662,8 +662,10 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                     PPH_EMENU_ITEM staticItem;
                     PPH_EMENU_ITEM verifiedItem;
                     PPH_EMENU_ITEM systemItem;
+                    PPH_EMENU_ITEM coherencyItem;
                     PPH_EMENU_ITEM untrustedItem;
                     PPH_EMENU_ITEM systemHighlightItem;
+                    PPH_EMENU_ITEM coherencyHighlightItem;
                     PPH_EMENU_ITEM dotnetItem;
                     PPH_EMENU_ITEM immersiveItem;
                     PPH_EMENU_ITEM relocatedItem;
@@ -677,12 +679,14 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                     PhInsertEMenuItem(menu, staticItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_STATIC_OPTION, L"Hide static", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, verifiedItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_SIGNED_OPTION, L"Hide verified", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, systemItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_SYSTEM_OPTION, L"Hide system", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, coherencyItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_LOWIMAGECOHERENCY_OPTION, L"Hide low image coherency", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                     PhInsertEMenuItem(menu, dotnetItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_HIGHLIGHT_DOTNET_OPTION, L"Highlight .NET modules", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, immersiveItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_HIGHLIGHT_IMMERSIVE_OPTION, L"Highlight immersive modules", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, relocatedItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_HIGHLIGHT_RELOCATED_OPTION, L"Highlight relocated modules", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, untrustedItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_HIGHLIGHT_UNSIGNED_OPTION, L"Highlight untrusted modules", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, systemHighlightItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_HIGHLIGHT_SYSTEM_OPTION, L"Highlight system modules", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, coherencyHighlightItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_HIGHLIGHT_LOWIMAGECOHERENCY_OPTION, L"Highlight low image coherency", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PH_MODULE_FLAGS_LOAD_MODULE_OPTION, L"Load module...", NULL, NULL), ULONG_MAX);
                     //PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
@@ -698,6 +702,8 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                         verifiedItem->Flags |= PH_EMENU_CHECKED;
                     if (modulesContext->ListContext.HideSystemModules)
                         systemItem->Flags |= PH_EMENU_CHECKED;
+                    if (modulesContext->ListContext.HideLowImageCoherency)
+                        coherencyItem->Flags |= PH_EMENU_CHECKED;
                     if (modulesContext->ListContext.HighlightDotNetModules)
                         dotnetItem->Flags |= PH_EMENU_CHECKED;
                     if (modulesContext->ListContext.HighlightImmersiveModules)
@@ -708,6 +714,8 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                         untrustedItem->Flags |= PH_EMENU_CHECKED;
                     if (modulesContext->ListContext.HighlightSystemModules)
                         systemHighlightItem->Flags |= PH_EMENU_CHECKED;
+                    if (modulesContext->ListContext.HighlightLowImageCoherency)
+                        coherencyHighlightItem->Flags |= PH_EMENU_CHECKED;
 
                     selectedItem = PhShowEMenu(
                         menu,
@@ -768,7 +776,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                 PhSetEnabledProvider(&modulesContext->ProviderRegistration, FALSE);
                 break;
             case PSN_QUERYINITIALFOCUS:
-                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LPARAM)GetDlgItem(hwndDlg, IDC_LIST));
+                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LPARAM)modulesContext->TreeNewHandle);
                 return TRUE;
             }
         }

@@ -3,6 +3,7 @@
  *   module list
  *
  * Copyright (C) 2010-2016 wj32
+ * Copyright (C) 2017-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -68,6 +69,11 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
     _In_opt_ PVOID Context
     );
 
+BOOLEAN PhpShouldShowModuleCoherency(
+    _In_ PPH_MODULE_ITEM ModuleItem,
+    _In_ BOOLEAN CheckThreshold
+    );
+
 VOID PhInitializeModuleList(
     _In_ HWND ParentWindowHandle,
     _In_ HWND TreeNewHandle,
@@ -119,6 +125,7 @@ VOID PhInitializeModuleList(
     PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_ENTRYPOINT, FALSE, L"Entry point", 70, PH_ALIGN_LEFT, ULONG_MAX, 0, TRUE);
     PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_PARENTBASEADDRESS, FALSE, L"Parent base address", 70, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_CET, FALSE, L"CET", 50, PH_ALIGN_LEFT, ULONG_MAX, 0, TRUE);
+    PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_COHERENCY, FALSE, L"Image Coherency", 70, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
 
     TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
 
@@ -241,6 +248,12 @@ VOID PhSetOptionsModuleList(
         break;
     case PH_MODULE_FLAGS_HIGHLIGHT_SYSTEM_OPTION:
         Context->HighlightSystemModules = !Context->HighlightSystemModules;
+        break;
+    case PH_MODULE_FLAGS_LOWIMAGECOHERENCY_OPTION:
+        Context->HideLowImageCoherency = !Context->HideLowImageCoherency;
+        break;
+    case PH_MODULE_FLAGS_HIGHLIGHT_LOWIMAGECOHERENCY_OPTION:
+        Context->HighlightLowImageCoherency = !Context->HighlightLowImageCoherency;
         break;
     }
 }
@@ -615,17 +628,17 @@ END_SORT_FUNCTION
 BEGIN_SORT_FUNCTION(CfGuard)
 {
     // prefer XFG over CFG
-    sortResult = intcmp(
+    sortResult = uintcmp(
         moduleItem1->GuardFlags & IMAGE_GUARD_XFG_ENABLED,
         moduleItem2->GuardFlags & IMAGE_GUARD_XFG_ENABLED
-    );
+        );
 
     if (sortResult == 0)
     {
-        sortResult = intcmp(
+        sortResult = uintcmp(
             moduleItem1->ImageDllCharacteristics & IMAGE_DLLCHARACTERISTICS_GUARD_CF,
             moduleItem2->ImageDllCharacteristics & IMAGE_DLLCHARACTERISTICS_GUARD_CF
-        );
+            );
     }
 }
 END_SORT_FUNCTION
@@ -668,10 +681,16 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Cet)
 {
-    sortResult = intcmp(
+    sortResult = uintcmp(
         moduleItem1->ImageDllCharacteristicsEx & IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT,
         moduleItem2->ImageDllCharacteristicsEx & IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT
-    );
+        );
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(ImageCoherency)
+{
+    sortResult = singlecmp(moduleItem1->ImageCoherency, moduleItem2->ImageCoherency);
 }
 END_SORT_FUNCTION
 
@@ -740,6 +759,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                     SORT_FUNCTION(EntryPoint),
                     SORT_FUNCTION(ParentBaseAddress),
                     SORT_FUNCTION(Cet),
+                    SORT_FUNCTION(ImageCoherency),
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
@@ -1028,6 +1048,30 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 if (moduleItem->ImageDllCharacteristicsEx & IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT)
                     PhInitializeStringRef(&getCellText->Text, L"CET");
                 break;
+            case PHMOTLC_COHERENCY:
+                {
+                    if (!PhEnableProcessQueryStage2)
+                        break;
+
+                    if (moduleItem->Type == PH_MODULE_TYPE_MODULE ||
+                        moduleItem->Type == PH_MODULE_TYPE_WOW64_MODULE ||
+                        moduleItem->Type == PH_MODULE_TYPE_MAPPED_IMAGE ||
+                        moduleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE)
+                    {
+                        PH_FORMAT format[2];
+                        SIZE_T returnLength;
+
+                        PhInitFormatF(&format[0], (DOUBLE)(moduleItem->ImageCoherency * 100.0f), 2);
+                        PhInitFormatS(&format[1], L"%");
+
+                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), node->ImageCoherencyText, sizeof(node->ImageCoherencyText), &returnLength))
+                        {
+                            getCellText->Text.Buffer = node->ImageCoherencyText;
+                            getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
+                        }
+                    }
+                }
+                break;
             default:
                 return FALSE;
             }
@@ -1051,11 +1095,15 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
             else if (PhEnableProcessQueryStage2 &&
                 context->HighlightUntrustedModules &&
                 moduleItem->VerifyResult != VrTrusted &&
-                moduleItem->Type != PH_MODULE_TYPE_ELF_MAPPED_IMAGE
-                )
+                (moduleItem->Type != PH_MODULE_TYPE_ELF_MAPPED_IMAGE && (moduleItem->Type == PH_MODULE_TYPE_MODULE ||
+                moduleItem->Type == PH_MODULE_TYPE_WOW64_MODULE ||
+                moduleItem->Type == PH_MODULE_TYPE_MAPPED_IMAGE ||
+                moduleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE)))
             {
                 getNodeColor->BackColor = PhCsColorUnknown;
             }
+            else if (PhEnableProcessQueryStage2 && context->HighlightLowImageCoherency && PhpShouldShowModuleCoherency(moduleItem, TRUE))
+                getNodeColor->BackColor = PhCsColorLowImageCoherency;
             else if (context->HighlightDotNetModules && (moduleItem->Flags & LDRP_COR_IMAGE))
                 getNodeColor->BackColor = PhCsColorDotNet;
             else if (context->HighlightImmersiveModules && (moduleItem->ImageDllCharacteristics & IMAGE_DLLCHARACTERISTICS_APPCONTAINER))
@@ -1263,4 +1311,47 @@ VOID PhDeselectAllModuleNodes(
     )
 {
     TreeNew_DeselectRange(Context->TreeNewHandle, 0, -1);
+}
+
+// Copied from proctree.c (dmex)
+static FLOAT LowImageCoherencyThreshold = 0.5f;
+
+BOOLEAN PhpShouldShowModuleCoherency(
+    _In_ PPH_MODULE_ITEM ModuleItem,
+    _In_ BOOLEAN CheckThreshold
+    )
+{
+    if (ModuleItem->ImageCoherencyStatus == STATUS_PENDING)
+        return FALSE;
+
+    if (PhIsNullOrEmptyString(ModuleItem->FileName))
+        return FALSE;
+
+    if (!(ModuleItem->Type == PH_MODULE_TYPE_MODULE ||
+        ModuleItem->Type == PH_MODULE_TYPE_WOW64_MODULE ||
+        ModuleItem->Type == PH_MODULE_TYPE_MAPPED_IMAGE ||
+        ModuleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE))
+    {
+        return FALSE;
+    }
+
+    if (NT_SUCCESS(ModuleItem->ImageCoherencyStatus) ||
+        ModuleItem->ImageCoherencyStatus == STATUS_INVALID_IMAGE_NOT_MZ ||
+        ModuleItem->ImageCoherencyStatus == STATUS_INVALID_IMAGE_FORMAT ||
+        ModuleItem->ImageCoherencyStatus == STATUS_INVALID_IMAGE_HASH ||
+        ModuleItem->ImageCoherencyStatus == STATUS_IMAGE_SUBSYSTEM_NOT_PRESENT ||
+        ModuleItem->ImageCoherencyStatus == STATUS_ACCESS_DENIED)
+    {
+        if (CheckThreshold)
+        {
+            if (ModuleItem->ImageCoherency <= LowImageCoherencyThreshold)
+            {
+                return TRUE;
+            }
+
+            return FALSE;
+        }
+    }
+
+    return TRUE;
 }

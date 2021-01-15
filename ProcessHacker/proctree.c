@@ -1966,18 +1966,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(ImageCoherency)
 {
-    if (processItem1->ImageCoherency < processItem2->ImageCoherency)
-    {
-        sortResult = -1;
-    }
-    else if (processItem1->ImageCoherency > processItem2->ImageCoherency)
-    {
-        sortResult = 1;
-    }
-    else
-    {
-        sortResult = 0;
-    }
+    sortResult = singlecmp(processItem1->ImageCoherency, processItem2->ImageCoherency);
 }
 END_SORT_FUNCTION
 
@@ -3035,7 +3024,6 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 break;
             case PHPRTLC_IMAGE_COHERENCY:
                 {
-                    FLOAT imageCoherency;
                     PH_FORMAT format[2];
                     SIZE_T returnLength;
 
@@ -3044,15 +3032,10 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         break;
                     }
 
-                    imageCoherency = (FLOAT)((DOUBLE)processItem->ImageCoherency * 100.0f);
-
-                    PhInitFormatF(&format[0], imageCoherency, 2);
+                    PhInitFormatF(&format[0], (DOUBLE)(processItem->ImageCoherency * 100.0f), 2);
                     PhInitFormatS(&format[1], L"%");
 
-                    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format),
-                                         node->ImageCoherencyText,
-                                         sizeof(node->ImageCoherencyText),
-                                         &returnLength))
+                    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), node->ImageCoherencyText, sizeof(node->ImageCoherencyText), &returnLength))
                     {
                         getCellText->Text.Buffer = node->ImageCoherencyText;
                         getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
