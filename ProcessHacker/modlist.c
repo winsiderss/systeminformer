@@ -69,11 +69,6 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
     _In_opt_ PVOID Context
     );
 
-BOOLEAN PhpShouldShowModuleCoherency(
-    _In_ PPH_MODULE_ITEM ModuleItem,
-    _In_ BOOLEAN CheckThreshold
-    );
-
 VOID PhInitializeModuleList(
     _In_ HWND ParentWindowHandle,
     _In_ HWND TreeNewHandle,
@@ -125,7 +120,7 @@ VOID PhInitializeModuleList(
     PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_ENTRYPOINT, FALSE, L"Entry point", 70, PH_ALIGN_LEFT, ULONG_MAX, 0, TRUE);
     PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_PARENTBASEADDRESS, FALSE, L"Parent base address", 70, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_CET, FALSE, L"CET", 50, PH_ALIGN_LEFT, ULONG_MAX, 0, TRUE);
-    PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_COHERENCY, FALSE, L"Image Coherency", 70, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
+    PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_COHERENCY, FALSE, L"Image coherency", 70, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
 
     TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
 
@@ -1095,14 +1090,14 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
             else if (PhEnableProcessQueryStage2 &&
                 context->HighlightUntrustedModules &&
                 moduleItem->VerifyResult != VrTrusted &&
-                (moduleItem->Type != PH_MODULE_TYPE_ELF_MAPPED_IMAGE && (moduleItem->Type == PH_MODULE_TYPE_MODULE ||
+                (moduleItem->Type == PH_MODULE_TYPE_MODULE ||
                 moduleItem->Type == PH_MODULE_TYPE_WOW64_MODULE ||
                 moduleItem->Type == PH_MODULE_TYPE_MAPPED_IMAGE ||
-                moduleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE)))
+                moduleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE))
             {
                 getNodeColor->BackColor = PhCsColorUnknown;
             }
-            else if (PhEnableProcessQueryStage2 && context->HighlightLowImageCoherency && PhpShouldShowModuleCoherency(moduleItem, TRUE))
+            else if (PhEnableProcessQueryStage2 && context->HighlightLowImageCoherency && PhShouldShowModuleCoherency(moduleItem, TRUE))
                 getNodeColor->BackColor = PhCsColorLowImageCoherency;
             else if (context->HighlightDotNetModules && (moduleItem->Flags & LDRP_COR_IMAGE))
                 getNodeColor->BackColor = PhCsColorDotNet;
@@ -1316,7 +1311,7 @@ VOID PhDeselectAllModuleNodes(
 // Copied from proctree.c (dmex)
 static FLOAT LowImageCoherencyThreshold = 0.5f;
 
-BOOLEAN PhpShouldShowModuleCoherency(
+BOOLEAN PhShouldShowModuleCoherency(
     _In_ PPH_MODULE_ITEM ModuleItem,
     _In_ BOOLEAN CheckThreshold
     )

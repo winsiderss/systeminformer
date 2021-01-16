@@ -262,6 +262,15 @@ BOOLEAN PhpModulesTreeFilterCallback(
 
     if (
         PhEnableProcessQueryStage2 &&
+        Context->ListContext.HideLowImageCoherency &&
+        PhShouldShowModuleCoherency(moduleItem, TRUE)
+        )
+    {
+        return FALSE;
+    }
+
+    if (
+        PhEnableProcessQueryStage2 &&
         Context->ListContext.HideSystemModules &&
         moduleItem->VerifyResult == VrTrusted &&
         PhEqualStringRef2(&moduleItem->VerifySignerName->sr, L"Microsoft Windows", TRUE)
