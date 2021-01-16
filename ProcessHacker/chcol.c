@@ -3,7 +3,7 @@
  *   column chooser
  *
  * Copyright (C) 2010 wj32
- * Copyright (C) 2017-2020 dmex
+ * Copyright (C) 2017-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -32,7 +32,6 @@ typedef struct _COLUMNS_DIALOG_CONTEXT
     ULONG Type;
     PPH_LIST Columns;
 
-    ULONG CXWidth;
     HBRUSH BrushNormal;
     HBRUSH BrushPushed;
     HBRUSH BrushHot;
@@ -250,6 +249,9 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
             PhCreateSearchControl(hwndDlg, context->SearchInactiveHandle, L"Inactive columns...");
             PhCreateSearchControl(hwndDlg, context->SearchActiveHandle, L"Active columns...");
 
+            ListBox_SetItemHeight(context->InactiveWindowHandle, 0, PH_SCALE_DPI(16));
+            ListBox_SetItemHeight(context->ActiveWindowHandle, 0, PH_SCALE_DPI(16));
+
             Button_Enable(GetDlgItem(hwndDlg, IDC_HIDE), FALSE);
             Button_Enable(GetDlgItem(hwndDlg, IDC_SHOW), FALSE);
             Button_Enable(GetDlgItem(hwndDlg, IDC_MOVEUP), FALSE);
@@ -257,21 +259,17 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
 
             if (PhGetIntegerSetting(L"EnableThemeSupport"))
             {
-                context->CXWidth = PH_SCALE_DPI(16);
                 context->BrushNormal = CreateSolidBrush(RGB(43, 43, 43));
                 context->BrushHot = CreateSolidBrush(RGB(128, 128, 128));
                 context->BrushPushed = CreateSolidBrush(RGB(153, 209, 255));
                 context->TextColor = RGB(0xff, 0xff, 0xff);
-                //context->FontHandle = PhDuplicateFont(GetWindowFont(Phmain));
             }
             else
             {
-                context->CXWidth = PH_SCALE_DPI(16);
                 context->BrushNormal = GetSysColorBrush(COLOR_WINDOW);
                 context->BrushHot = CreateSolidBrush(RGB(145, 201, 247));
                 context->BrushPushed = CreateSolidBrush(RGB(153, 209, 255));
                 context->TextColor = GetSysColor(COLOR_WINDOWTEXT);
-                //context->FontHandle = PhDuplicateFont(GetWindowFont(ToolBarHandle));
             }
 
             if (context->Type == PH_CONTROL_TYPE_TREE_NEW)
