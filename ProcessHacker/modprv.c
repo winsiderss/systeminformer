@@ -236,7 +236,7 @@ PPH_MODULE_ITEM PhCreateModuleItem(
     // Initialize ImageCoherencyStatus to STATUS_PENDING this notes that the
     // image coherency hasn't been done yet. This prevents the module items
     // from being noted as "Low Image Coherency" or being highlighted until
-    // the analysis runs. See: PhpShouldShowModuleCoherency
+    // the analysis runs. See: PhShouldShowModuleCoherency
     //
     moduleItem->ImageCoherencyStatus = STATUS_PENDING;
 
@@ -398,13 +398,23 @@ NTSTATUS PhpModuleQueryWorker(
             data->ModuleItem->Type == PH_MODULE_TYPE_MAPPED_IMAGE ||
             data->ModuleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE)
         {
-            data->ImageCoherencyStatus = PhGetProcessModuleImageCoherency(
-                PhGetString(data->ModuleItem->FileName),
-                data->ModuleProvider->ProcessHandle,
-                data->ModuleItem->BaseAddress,
-                data->ModuleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE,
-                &data->ImageCoherency
-                );
+            if (data->ModuleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE && !KphIsVerified())
+            {
+                // The driver wasn't available or we failed verification preventing
+                // us from checking driver coherency. Pass the initial status so we
+                // don't highlight incorrect entries by default. (dmex)
+                data->ImageCoherencyStatus = data->ModuleItem->ImageCoherencyStatus;
+            }
+            else
+            {
+                data->ImageCoherencyStatus = PhGetProcessModuleImageCoherency(
+                    PhGetString(data->ModuleItem->FileName),
+                    data->ModuleProvider->ProcessHandle,
+                    data->ModuleItem->BaseAddress,
+                    data->ModuleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE,
+                    &data->ImageCoherency
+                    );
+            }
         }
     }
 
@@ -623,7 +633,7 @@ VOID PhModuleProviderUpdate(
             if (moduleItem->Type == PH_MODULE_TYPE_MODULE ||
                 moduleItem->Type == PH_MODULE_TYPE_WOW64_MODULE ||
                 moduleItem->Type == PH_MODULE_TYPE_MAPPED_IMAGE ||
-                moduleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE)
+                (moduleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE && KphIsVerified()))
             {
                 PH_REMOTE_MAPPED_IMAGE remoteMappedImage;
                 PPH_READ_VIRTUAL_MEMORY_CALLBACK readVirtualMemoryCallback;

@@ -186,4 +186,9 @@ VOID PhDeselectAllModuleNodes(
     _In_ PPH_MODULE_LIST_CONTEXT Context
     );
 
+BOOLEAN PhShouldShowModuleCoherency(
+    _In_ PPH_MODULE_ITEM ModuleItem,
+    _In_ BOOLEAN CheckThreshold
+    );
+
 #endif
