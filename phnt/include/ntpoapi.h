@@ -159,7 +159,7 @@ typedef struct _POWER_STATE_NOTIFY_HANDLER
 #define ProcessorPerfStates 32 // (kernel-mode only)
 #define ProcessorIdleStates 33 // (kernel-mode only)
 #define ProcessorCap 34 // (kernel-mode only)
-#define SystemWakeSource 35 // (kernel-mode only)
+#define SystemWakeSource 35
 #define SystemHiberFileInformation 36
 #define TraceServicePowerMessage 37
 #define ProcessorLoad 38
