@@ -315,4 +315,14 @@ NTSTATUS PhpSetRemoteDesktopSecurityDescriptor(
     _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
     );
 
+// Wbem namespace policy (Todo: Move to better location) (dmex)
+
+NTSTATUS PhGetWmiNamespaceSecurityDescriptor(
+    _Out_ PSECURITY_DESCRIPTOR* SecurityDescriptor
+    );
+
+NTSTATUS PhSetWmiNamespaceSecurityDescriptor(
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
+    );
+
 #endif
