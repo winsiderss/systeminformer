@@ -87,14 +87,6 @@ static ISecurityObjectTypeInfoExVtbl PhSecurityObjectTypeInfo_VTable3 =
     PhSecurityObjectTypeInfo_GetInheritSource
 };
 
-// Forward exports from prpgwmi.c) (dmex)
-NTSTATUS PhGetWmiNamespaceSecurityDescriptor(
-    _Out_ PSECURITY_DESCRIPTOR* SecurityDescriptor
-    );
-NTSTATUS PhSetWmiNamespaceSecurityDescriptor(
-    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
-    );
-
 /**
  * Creates a security editor page.
  *
@@ -1835,6 +1827,434 @@ NTSTATUS PhpSetRemoteDesktopSecurityDescriptor(
     {
         return STATUS_SUCCESS;
     }
+
+    return STATUS_INVALID_SECURITY_DESCR;
+}
+
+// WBEM security descriptors
+// HACK - nightly build feature testing (dmex)
+// TODO - This was located in prpgwmi.c but VS2019
+// complained about LNK1120 even though it linked correctly.
+
+#include <wbemidl.h>
+
+PVOID PhGetWbemProxDllBase(
+    VOID
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static PVOID imageBaseAddress = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PPH_STRING systemDirectory;
+        PPH_STRING systemFileName;
+
+        if (systemDirectory = PhGetSystemDirectory())
+        {
+            if (systemFileName = PhConcatStringRefZ(&systemDirectory->sr, L"\\wbem\\wbemprox.dll"))
+            {
+                if (!(imageBaseAddress = PhGetLoaderEntryFullDllBase(PhGetString(systemFileName))))
+                    imageBaseAddress = LoadLibrary(PhGetString(systemFileName));
+
+                PhDereferenceObject(systemFileName);
+            }
+
+            PhDereferenceObject(systemDirectory);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    return imageBaseAddress;
+}
+
+NTSTATUS PhGetWmiNamespaceSecurityDescriptor(
+    _Out_ PSECURITY_DESCRIPTOR* SecurityDescriptor
+    )
+{
+    HRESULT status;
+    PVOID imageBaseAddress;
+    PVOID securityDescriptor = NULL;
+    PVOID securityDescriptorData = NULL;
+    PPH_STRING querySelectString = NULL;
+    BSTR wbemResourceString = NULL;
+    BSTR wbemLanguageString = NULL;
+    BSTR wbemQueryString = NULL;
+    BSTR wbemMethodString = NULL;
+    IWbemLocator* wbemLocator = NULL;
+    IWbemServices* wbemServices = NULL;
+    IWbemClassObject* wbemClassObject = NULL;
+    IWbemClassObject* wbemGetSDClassObject = 0;
+    VARIANT variantReturnValue = { VT_EMPTY };
+    VARIANT variantArrayValue = { VT_EMPTY };
+   
+    if (!(imageBaseAddress = PhGetWbemProxDllBase()))
+        return STATUS_UNSUCCESSFUL;
+
+    status = PhGetClassObjectDllBase(
+        imageBaseAddress,
+        &CLSID_WbemLocator,
+        &IID_IWbemLocator,
+        &wbemLocator
+        );
+
+    if (FAILED(status))
+        goto CleanupExit;
+
+    wbemResourceString = SysAllocString(L"Root");
+    status = IWbemLocator_ConnectServer(
+        wbemLocator,
+        wbemResourceString,
+        NULL,
+        NULL,
+        NULL,
+        WBEM_FLAG_CONNECT_USE_MAX_WAIT,
+        NULL,
+        NULL,
+        &wbemServices
+        );
+
+    if (FAILED(status))
+        goto CleanupExit;
+
+    wbemQueryString = SysAllocString(L"__SystemSecurity");
+    status = IWbemServices_GetObject(
+        wbemServices,
+        wbemQueryString,
+        0,
+        NULL,
+        &wbemClassObject,
+        NULL
+        );
+
+    if (FAILED(status))
+        goto CleanupExit;
+
+    wbemMethodString = SysAllocString(L"GetSD");
+    status = IWbemServices_ExecMethod(
+        wbemServices,
+        wbemQueryString,
+        wbemMethodString,
+        0,
+        NULL,
+        wbemClassObject,
+        &wbemGetSDClassObject,
+        NULL
+        );
+
+    if (FAILED(status))
+        goto CleanupExit;
+
+    status = IWbemClassObject_Get(
+        wbemGetSDClassObject,
+        L"ReturnValue",
+        0,
+        &variantReturnValue,
+        NULL,
+        NULL
+        );
+
+    if (FAILED(status))
+        goto CleanupExit;
+
+    if (V_UI4(&variantReturnValue) != ERROR_SUCCESS)
+    {
+        status = HRESULT_FROM_WIN32(V_UI4(&variantReturnValue));
+        goto CleanupExit;
+    }
+
+    status = IWbemClassObject_Get(
+        wbemGetSDClassObject,
+        L"SD",
+        0,
+        &variantArrayValue,
+        NULL,
+        NULL
+        );
+
+    if (FAILED(status))
+        goto CleanupExit;
+
+    status = SafeArrayAccessData(V_ARRAY(&variantArrayValue), &securityDescriptorData);
+
+    if (FAILED(status))
+        goto CleanupExit;
+
+    // The Wbem security descriptor is relative but the ACUI
+    // dialog automatically converts the descriptor for us
+    // so we don't have to convert just validate. (dmex)
+
+    if (RtlValidSecurityDescriptor(securityDescriptorData))
+    {
+        securityDescriptor = PhAllocateCopy(
+            securityDescriptorData,
+            RtlLengthSecurityDescriptor(securityDescriptorData)
+            );
+    }
+
+    SafeArrayUnaccessData(V_ARRAY(&variantArrayValue));
+
+CleanupExit:
+    if (wbemGetSDClassObject)
+        IWbemClassObject_Release(wbemGetSDClassObject);
+    if (wbemServices)
+        IWbemServices_Release(wbemServices);
+    if (wbemClassObject)
+        IWbemClassObject_Release(wbemClassObject);
+    if (wbemLocator)
+        IWbemLocator_Release(wbemLocator);
+
+    VariantClear(&variantArrayValue);
+    VariantClear(&variantReturnValue);
+
+    if (wbemMethodString)
+        SysFreeString(wbemMethodString);
+    if (wbemQueryString)
+        SysFreeString(wbemQueryString);
+    if (wbemLanguageString)
+        SysFreeString(wbemLanguageString);
+    if (wbemResourceString)
+        SysFreeString(wbemResourceString);
+    if (querySelectString)
+        PhDereferenceObject(querySelectString);
+
+    if (SUCCEEDED(status) && securityDescriptor)
+    {
+        *SecurityDescriptor = securityDescriptor;
+        return STATUS_SUCCESS;
+    }
+
+    if (securityDescriptor)
+    {
+        PhFree(securityDescriptor);
+    }
+
+    if (status == WBEM_E_ACCESS_DENIED)
+        return STATUS_ACCESS_DENIED;
+    if (status == WBEM_E_INVALID_PARAMETER)
+        return STATUS_INVALID_PARAMETER;
+
+    return STATUS_INVALID_SECURITY_DESCR;
+}
+
+NTSTATUS PhSetWmiNamespaceSecurityDescriptor(
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
+    )
+{
+    HRESULT status;
+    PVOID imageBaseAddress;
+    PPH_STRING querySelectString = NULL;
+    BSTR wbemResourceString = NULL;
+    BSTR wbemLanguageString = NULL;
+    BSTR wbemQueryString = NULL;
+    BSTR wbemMethodString = NULL;
+    IWbemLocator* wbemLocator = NULL;
+    IWbemServices* wbemServices = NULL;
+    IWbemClassObject* wbemClassObject = NULL;
+    IWbemClassObject* wbemSetSDClassObject = NULL;
+    PVOID safeArrayData = NULL;
+    LPSAFEARRAY safeArray = NULL;
+    SAFEARRAYBOUND safeArrayBounds;
+    PSECURITY_DESCRIPTOR relativeSecurityDescriptor = 0;
+    ULONG relativeSecurityDescriptorLength = 0;
+    BOOLEAN freeSecurityDescriptor = FALSE;
+    VARIANT variantArrayValue = { VT_EMPTY };
+    VARIANT variantReturnValue = { VT_EMPTY };
+
+    if (!(imageBaseAddress = PhGetWbemProxDllBase()))
+        return STATUS_UNSUCCESSFUL;
+
+    status = PhGetClassObjectDllBase(
+        imageBaseAddress,
+        &CLSID_WbemLocator,
+        &IID_IWbemLocator,
+        &wbemLocator
+        );
+
+    if (FAILED(status))
+        goto CleanupExit;
+
+    wbemResourceString = SysAllocString(L"Root");
+    status = IWbemLocator_ConnectServer(
+        wbemLocator,
+        wbemResourceString,
+        NULL,
+        NULL,
+        NULL,
+        WBEM_FLAG_CONNECT_USE_MAX_WAIT,
+        NULL,
+        NULL,
+        &wbemServices
+        );
+
+    if (FAILED(status))
+        goto CleanupExit;
+
+    wbemQueryString = SysAllocString(L"__SystemSecurity");
+    status = IWbemServices_GetObject(
+        wbemServices,
+        wbemQueryString,
+        0,
+        NULL,
+        &wbemClassObject,
+        NULL
+        );
+
+    if (FAILED(status))
+        goto CleanupExit;
+
+    if (RtlValidRelativeSecurityDescriptor(
+        SecurityDescriptor,
+        RtlLengthSecurityDescriptor(SecurityDescriptor),
+        OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION |
+        DACL_SECURITY_INFORMATION | SACL_SECURITY_INFORMATION
+        ))
+    {
+        relativeSecurityDescriptor = SecurityDescriptor;
+        relativeSecurityDescriptorLength = RtlLengthSecurityDescriptor(SecurityDescriptor);
+    }
+    else
+    {
+        NTSTATUS ntstatus;
+
+        ntstatus = RtlAbsoluteToSelfRelativeSD(
+            SecurityDescriptor,
+            NULL,
+            &relativeSecurityDescriptorLength
+            );
+
+        if (ntstatus != STATUS_BUFFER_TOO_SMALL)
+        {
+            status = HRESULT_FROM_NT(ntstatus);
+            goto CleanupExit;
+        }
+
+        relativeSecurityDescriptor = PhAllocate(relativeSecurityDescriptorLength);
+        ntstatus = RtlAbsoluteToSelfRelativeSD(
+            SecurityDescriptor,
+            relativeSecurityDescriptor,
+            &relativeSecurityDescriptorLength
+            );
+
+        if (!NT_SUCCESS(ntstatus))
+        {
+            PhFree(relativeSecurityDescriptor);
+            status = HRESULT_FROM_NT(ntstatus);
+            goto CleanupExit;
+        }
+
+        freeSecurityDescriptor = TRUE;
+    }
+
+    safeArrayBounds.lLbound = 0;
+    safeArrayBounds.cElements = relativeSecurityDescriptorLength;
+
+    if (!(safeArray = SafeArrayCreate(VT_UI1, 1, &safeArrayBounds)))
+    {
+        status = STATUS_NO_MEMORY;
+        goto CleanupExit;
+    }
+
+    status = SafeArrayAccessData(safeArray, &safeArrayData);
+
+    if (FAILED(status))
+        goto CleanupExit;
+
+    memcpy(
+        safeArrayData,
+        relativeSecurityDescriptor,
+        relativeSecurityDescriptorLength
+        );
+
+    status = SafeArrayUnaccessData(safeArray);
+
+    if (FAILED(status))
+        goto CleanupExit;
+
+    V_VT(&variantArrayValue) = VT_ARRAY | VT_UI1;
+    V_ARRAY(&variantArrayValue) = safeArray;
+
+    status = IWbemClassObject_Put(
+        wbemClassObject,
+        L"SD",
+        0,
+        &variantArrayValue,
+        CIM_EMPTY
+        );
+
+    if (FAILED(status))
+        goto CleanupExit;
+
+    wbemMethodString = SysAllocString(L"SetSD");
+    status = IWbemServices_ExecMethod(
+        wbemServices,
+        wbemQueryString,
+        wbemMethodString,
+        0,
+        NULL,
+        wbemClassObject,
+        &wbemSetSDClassObject,
+        NULL
+        );
+
+    if (FAILED(status))
+        goto CleanupExit;
+
+    status = IWbemClassObject_Get(
+        wbemSetSDClassObject,
+        L"ReturnValue",
+        0,
+        &variantReturnValue,
+        NULL,
+        NULL
+        );
+
+    if (FAILED(status))
+        goto CleanupExit;
+
+    if (V_UI4(&variantReturnValue) != ERROR_SUCCESS)
+    {
+        status = HRESULT_FROM_WIN32(V_UI4(&variantReturnValue));
+    }
+
+CleanupExit:
+    if (wbemSetSDClassObject)
+        IWbemClassObject_Release(wbemSetSDClassObject);
+    if (wbemClassObject)
+        IWbemClassObject_Release(wbemClassObject);
+    if (wbemServices)
+        IWbemServices_Release(wbemServices);
+    if (wbemLocator)
+        IWbemLocator_Release(wbemLocator);
+
+    if (freeSecurityDescriptor && relativeSecurityDescriptor)
+        PhFree(relativeSecurityDescriptor);
+
+    VariantClear(&variantReturnValue);
+    VariantClear(&variantArrayValue);
+    //if (safeArray) SafeArrayDestroy(safeArray);
+
+    if (wbemMethodString)
+        SysFreeString(wbemMethodString);
+    if (wbemQueryString)
+        SysFreeString(wbemQueryString);
+    if (wbemLanguageString)
+        SysFreeString(wbemLanguageString);
+    if (wbemResourceString)
+        SysFreeString(wbemResourceString);
+    if (querySelectString)
+        PhDereferenceObject(querySelectString);
+
+    if (SUCCEEDED(status))
+    {
+        return STATUS_SUCCESS;
+    }
+
+    if (status == WBEM_E_ACCESS_DENIED)
+        return STATUS_ACCESS_DENIED;
+    if (status == WBEM_E_INVALID_PARAMETER)
+        return STATUS_INVALID_PARAMETER;
 
     return STATUS_INVALID_SECURITY_DESCR;
 }
