@@ -745,8 +745,10 @@
 #define ID_GROUP_RESET                  40299
 #define ID_TOOLS_SCM_PERMISSIONS        40300
 #define ID_TOOLS_RDP_PERMISSIONS        40301
-#define ID_UIACCESS_REMOVE              40302
-#define ID_TOOLS_LIVEDUMP               40303
+#define ID_TOOLS_PWR_PERMISSIONS        40302
+#define ID_TOOLS_WMI_PERMISSIONS        40303
+#define ID_UIACCESS_REMOVE              40304
+#define ID_TOOLS_LIVEDUMP               40305
 #define IDDYNAMIC                       50000
 #define IDPLUGINS                       55000
 

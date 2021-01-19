@@ -295,4 +295,34 @@ HRESULT STDMETHODCALLTYPE PhSecurityObjectTypeInfo_GetInheritSource(
     _Out_ PINHERITED_FROM *InheritArray
     );
 
+// Power policy (Todo: Move to better location) (dmex)
+
+NTSTATUS PhpGetPowerPolicySecurityDescriptor(
+    _Out_ PPH_STRING* StringSecurityDescriptor
+    );
+
+NTSTATUS PhpSetPowerPolicySecurityDescriptor(
+    _In_ PPH_STRING StringSecurityDescriptor
+    );
+
+// Terminal server policy (Todo: Move to better location) (dmex)
+
+NTSTATUS PhpGetRemoteDesktopSecurityDescriptor(
+    _Out_ PSECURITY_DESCRIPTOR* SecurityDescriptor
+    );
+
+NTSTATUS PhpSetRemoteDesktopSecurityDescriptor(
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
+    );
+
+// Wbem namespace policy (forward exports from prpgwmi.c) (dmex)
+
+NTSTATUS PhGetWmiNamespaceSecurityDescriptor(
+    _Out_ PSECURITY_DESCRIPTOR* SecurityDescriptor
+    );
+
+NTSTATUS PhSetWmiNamespaceSecurityDescriptor(
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
+    );
+
 #endif
