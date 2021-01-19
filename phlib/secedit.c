@@ -87,6 +87,14 @@ static ISecurityObjectTypeInfoExVtbl PhSecurityObjectTypeInfo_VTable3 =
     PhSecurityObjectTypeInfo_GetInheritSource
 };
 
+// Forward exports from prpgwmi.c) (dmex)
+NTSTATUS PhGetWmiNamespaceSecurityDescriptor(
+    _Out_ PSECURITY_DESCRIPTOR* SecurityDescriptor
+    );
+NTSTATUS PhSetWmiNamespaceSecurityDescriptor(
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
+    );
+
 /**
  * Creates a security editor page.
  *
@@ -701,7 +709,7 @@ ULONG STDMETHODCALLTYPE PhSecurityInformation3_Release(
     return this->RefCount;
 }
 
-BOOL STDMETHODCALLTYPE PhSecurityInformation3_GetFullResourceName(
+HRESULT STDMETHODCALLTYPE PhSecurityInformation3_GetFullResourceName(
     _In_ ISecurityInformation3 *This,
     _Outptr_ PWSTR *ppszResourceName
     )
@@ -713,7 +721,7 @@ BOOL STDMETHODCALLTYPE PhSecurityInformation3_GetFullResourceName(
     else
         *ppszResourceName = PhGetString(this->Context->ObjectName);
 
-    return TRUE;
+    return S_OK;
 }
 
 HRESULT STDMETHODCALLTYPE PhSecurityInformation3_OpenElevatedEditor(

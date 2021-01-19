@@ -192,7 +192,7 @@ ULONG STDMETHODCALLTYPE PhSecurityInformation3_Release(
     _In_ ISecurityInformation3 *This
     );
 
-BOOL STDMETHODCALLTYPE PhSecurityInformation3_GetFullResourceName(
+HRESULT STDMETHODCALLTYPE PhSecurityInformation3_GetFullResourceName(
     _In_ ISecurityInformation3 *This,
     _Outptr_ PWSTR *ppszResourceName
     );
@@ -312,16 +312,6 @@ NTSTATUS PhpGetRemoteDesktopSecurityDescriptor(
     );
 
 NTSTATUS PhpSetRemoteDesktopSecurityDescriptor(
-    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
-    );
-
-// Wbem namespace policy (forward exports from prpgwmi.c) (dmex)
-
-NTSTATUS PhGetWmiNamespaceSecurityDescriptor(
-    _Out_ PSECURITY_DESCRIPTOR* SecurityDescriptor
-    );
-
-NTSTATUS PhSetWmiNamespaceSecurityDescriptor(
     _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
     );
 
