@@ -3,7 +3,7 @@
  *   object security editor
  *
  * Copyright (C) 2010-2016 wj32
- * Copyright (C) 2017-2019 dmex
+ * Copyright (C) 2017-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -342,9 +342,27 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_GetObjectInformation(
         ObjectInfo->dwFlags |= SI_ENABLE_EDIT_ATTRIBUTE_CONDITION | SI_MAY_WRITE; // SI_RESET | SI_READONLY
         //if (Folder) ObjectInfo->dwFlags |= SI_CONTAINER;
     }
+
     if (PhEqualString2(this->ObjectType, L"TokenDefault", TRUE))
     {
         ObjectInfo->dwFlags &= ~(SI_EDIT_OWNER | SI_EDIT_AUDITS);
+    }
+
+    if (PhEqualString2(this->ObjectType, L"PowerDefault", TRUE))
+    {
+        ObjectInfo->dwFlags &= ~SI_EDIT_AUDITS;
+        ObjectInfo->dwFlags |= SI_NO_ACL_PROTECT | SI_NO_TREE_APPLY | SI_CONTAINER | SI_OWNER_READONLY;
+    }
+
+    if (PhEqualString2(this->ObjectType, L"RdpDefault", TRUE))
+    {
+        ObjectInfo->dwFlags &= ~SI_EDIT_OWNER;
+        ObjectInfo->dwFlags |= SI_NO_ACL_PROTECT | SI_NO_TREE_APPLY;
+    }
+
+    if (PhEqualString2(this->ObjectType, L"WmiDefault", TRUE))
+    {
+        ObjectInfo->dwFlags |= SI_CONTAINER | SI_OWNER_READONLY;
     }
 
     return S_OK;
@@ -492,20 +510,41 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_GetInheritTypes(
     _Out_ PULONG InheritTypesCount
     )
 {
-    static SI_INHERIT_TYPE inheritTypes[] =
-    {
-        0, 0, L"This folder only",
-        0, CONTAINER_INHERIT_ACE, L"This folder, subfolders and files",
-        0, INHERIT_ONLY_ACE | CONTAINER_INHERIT_ACE, L"Subfolders and files only",
-    };
 
     PhSecurityInformation* this = (PhSecurityInformation*)This;
 
-    // if (Folder-Container)
-    *InheritTypes = inheritTypes;
-    *InheritTypesCount = RTL_NUMBER_OF(inheritTypes);
-    return S_OK;
-    // else
+    if (PhEqualString2(this->ObjectType, L"WmiDefault", TRUE))
+    {
+        static SI_INHERIT_TYPE inheritTypes[] =
+        {
+            0, 0, L"This namespace only",
+            0, CONTAINER_INHERIT_ACE, L"This namespace and subnamespaces",
+            0, INHERIT_ONLY_ACE | CONTAINER_INHERIT_ACE, L"Subnamespaces only",
+        };
+
+        *InheritTypes = inheritTypes;
+        *InheritTypesCount = RTL_NUMBER_OF(inheritTypes);
+        return S_OK;
+    }
+    else
+    {
+        static SI_INHERIT_TYPE inheritTypes[] =
+        {
+            0, 0, L"This folder only",
+            0, CONTAINER_INHERIT_ACE, L"This folder, subfolders and files",
+            0, INHERIT_ONLY_ACE | CONTAINER_INHERIT_ACE, L"Subfolders and files only",
+        };
+
+        *InheritTypes = inheritTypes;
+        *InheritTypesCount = RTL_NUMBER_OF(inheritTypes);
+        return S_OK;
+    }
+
+    //if (Folder-Container)
+    //*InheritTypes = inheritTypes;
+    //*InheritTypesCount = RTL_NUMBER_OF(inheritTypes);
+    //return S_OK;
+    //else
     //return E_NOTIMPL;
 }
 
@@ -1178,6 +1217,55 @@ _Callback_ NTSTATUS PhStdGetObjectSecurity(
 
         NtClose(handle);
     }
+    else if (PhEqualString2(this->ObjectType, L"PowerDefault", TRUE))
+    {
+        PSECURITY_DESCRIPTOR securityDescriptor;
+        PPH_STRING powerPolicySddl;
+
+        if (NT_SUCCESS(status = PhpGetPowerPolicySecurityDescriptor(&powerPolicySddl)))
+        {
+            if (securityDescriptor = PhGetSecurityDescriptorFromString(PhGetString(powerPolicySddl)))
+            {
+                *SecurityDescriptor = PhAllocateCopy(
+                    securityDescriptor,
+                    RtlLengthSecurityDescriptor(securityDescriptor)
+                    );
+                PhFree(securityDescriptor);
+            }
+            else
+            {
+                status = STATUS_INVALID_SECURITY_DESCR;
+            }
+
+            PhDereferenceObject(powerPolicySddl);
+        }
+    }
+    else if (PhEqualString2(this->ObjectType, L"RdpDefault", TRUE))
+    {
+        PSECURITY_DESCRIPTOR securityDescriptor;
+
+        if (NT_SUCCESS(status = PhpGetRemoteDesktopSecurityDescriptor(&securityDescriptor)))
+        {
+            *SecurityDescriptor = PhAllocateCopy(
+                securityDescriptor,
+                RtlLengthSecurityDescriptor(securityDescriptor)
+                );
+            PhFree(securityDescriptor);
+        }
+    }
+    else if (PhEqualString2(this->ObjectType, L"WmiDefault", TRUE))
+    {
+        PSECURITY_DESCRIPTOR securityDescriptor;
+
+        if (NT_SUCCESS(status = PhGetWmiNamespaceSecurityDescriptor(&securityDescriptor)))
+        {
+            *SecurityDescriptor = PhAllocateCopy(
+                securityDescriptor,
+                RtlLengthSecurityDescriptor(securityDescriptor)
+                );
+            PhFree(securityDescriptor);
+        }
+    }
     else
     {
         status = PhGetObjectSecurity(handle, SecurityInformation, SecurityDescriptor);
@@ -1298,6 +1386,59 @@ _Callback_ NTSTATUS PhStdSetObjectSecurity(
 
         NtClose(handle);
     }
+    else if (PhEqualString2(this->ObjectType, L"PowerDefault", TRUE))
+    {
+        PPH_STRING powerPolicySddl;
+        SID_IDENTIFIER_AUTHORITY ntAuthority = SECURITY_NT_AUTHORITY;
+        UCHAR administratorsSidBuffer[FIELD_OFFSET(SID, SubAuthority) + sizeof(ULONG) * 2];
+        PSID administratorsSid;
+
+        // kludge the descriptor into the correct SDDL format required by powercfg (dmex)
+        // 1) The owner must always be the built-in domain administrator.
+        // 2) The group must always be NT AUTHORITY\SYSTEM.
+        // 3) Remove the INHERIT_REQ flag (not required but makes the sddl consistent with powercfg).
+
+        administratorsSid = (PSID)administratorsSidBuffer;
+        RtlInitializeSid(administratorsSid, &ntAuthority, 2);
+        *RtlSubAuthoritySid(administratorsSid, 0) = SECURITY_BUILTIN_DOMAIN_RID;
+        *RtlSubAuthoritySid(administratorsSid, 1) = DOMAIN_ALIAS_RID_ADMINS;
+        RtlSetOwnerSecurityDescriptor(SecurityDescriptor, administratorsSid, TRUE);
+        RtlSetGroupSecurityDescriptor(SecurityDescriptor, &PhSeLocalSystemSid, TRUE);
+        RtlSetControlSecurityDescriptor(SecurityDescriptor, SE_DACL_PROTECTED | SE_DACL_AUTO_INHERIT_REQ, SE_DACL_PROTECTED);
+
+        if (powerPolicySddl = PhGetSecurityDescriptorAsString(
+            OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION |
+            DACL_SECURITY_INFORMATION | SACL_SECURITY_INFORMATION,
+            SecurityDescriptor
+            ))
+        {
+            status = PhpSetPowerPolicySecurityDescriptor(powerPolicySddl);
+            PhDereferenceObject(powerPolicySddl);
+        }
+    }
+    else if (PhEqualString2(this->ObjectType, L"RdpDefault", TRUE))
+    {
+        status = PhpSetRemoteDesktopSecurityDescriptor(SecurityDescriptor);
+    }
+    else if (PhEqualString2(this->ObjectType, L"WmiDefault", TRUE))
+    {
+        SID_IDENTIFIER_AUTHORITY ntAuthority = SECURITY_NT_AUTHORITY;
+        UCHAR administratorsSidBuffer[FIELD_OFFSET(SID, SubAuthority) + sizeof(ULONG) * 2];
+        PSID administratorsSid;
+
+        // kludge the descriptor into the correct format required by wmimgmt (dmex)
+        // 1) The owner must always be the built-in domain administrator.
+        // 2) The group must always be the built-in domain administrator.
+
+        administratorsSid = (PSID)administratorsSidBuffer;
+        RtlInitializeSid(administratorsSid, &ntAuthority, 2);
+        *RtlSubAuthoritySid(administratorsSid, 0) = SECURITY_BUILTIN_DOMAIN_RID;
+        *RtlSubAuthoritySid(administratorsSid, 1) = DOMAIN_ALIAS_RID_ADMINS;
+        RtlSetOwnerSecurityDescriptor(SecurityDescriptor, administratorsSid, TRUE);
+        RtlSetGroupSecurityDescriptor(SecurityDescriptor, administratorsSid, TRUE);
+
+        status = PhSetWmiNamespaceSecurityDescriptor(SecurityDescriptor);
+    }
     else
     {
         status = PhSetObjectSecurity(handle, SecurityInformation, SecurityDescriptor);
@@ -1416,4 +1557,276 @@ NTSTATUS PhSetSeObjectSecurity(
         return NTSTATUS_FROM_WIN32(win32Result);
 
     return STATUS_SUCCESS;
+}
+
+// Power policy security descriptors
+// HACK - nightly build feature testing (dmex)
+// TODO - move definitions to proper locations.
+
+#include <powrprof.h>
+
+ULONG (WINAPI* PowerGetActiveScheme_I)(
+    _In_ HKEY UserRootPowerKey,
+    _Out_ PGUID* ActivePolicyGuid
+    ) = NULL;
+ULONG (WINAPI* PowerSetActiveScheme_I)(
+    _In_ HKEY UserRootPowerKey,
+    _In_ PGUID SchemeGuid
+    ) = NULL;
+ULONG (WINAPI* PowerRestoreDefaultPowerSchemes_I)(
+    VOID
+    ) = NULL;
+// rev
+ULONG (WINAPI* PowerReadSecurityDescriptor)(
+    _In_ POWER_DATA_ACCESSOR AccessFlags,
+    _In_ PGUID PowerGuid,
+    _Out_ PWSTR* StringSecurityDescriptor
+    ) = NULL;
+// rev
+ULONG (WINAPI* PowerWriteSecurityDescriptor)(
+    _In_ POWER_DATA_ACCESSOR AccessFlags,
+    _In_ PGUID PowerGuid,
+    _In_ PWSTR StringSecurityDescriptor
+    ) = NULL;
+
+PVOID PhpInitializePowerPolicyApi(VOID)
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static PVOID imageBaseAddress = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        imageBaseAddress = LoadLibrary(L"powrprof.dll");
+        PhEndInitOnce(&initOnce);
+    }
+
+    return imageBaseAddress;
+}
+
+NTSTATUS PhpGetPowerPolicySecurityDescriptor(
+    _Out_ PPH_STRING* StringSecurityDescriptor
+    )
+{
+    ULONG status;
+    PVOID imageBaseAddress;
+    PWSTR stringSecurityDescriptor;
+    PGUID policyGuid;
+
+    if (!(imageBaseAddress = PhpInitializePowerPolicyApi()))
+        return STATUS_DLL_NOT_FOUND;
+
+    if (!PowerGetActiveScheme_I)
+        PowerGetActiveScheme_I = PhGetDllBaseProcedureAddress(imageBaseAddress, "PowerGetActiveScheme", 0);
+    if (!PowerReadSecurityDescriptor)
+        PowerReadSecurityDescriptor = PhGetDllBaseProcedureAddress(imageBaseAddress, "PowerReadSecurityDescriptor", 0);
+
+    if (!(PowerGetActiveScheme_I && PowerReadSecurityDescriptor))
+        return STATUS_PROCEDURE_NOT_FOUND;
+
+    // We can use GUIDs for schemes, policies or other values but we only query the default scheme. (dmex)
+    status = PowerGetActiveScheme_I(
+        NULL,
+        &policyGuid
+        );
+
+    if (status != ERROR_SUCCESS)
+        return NTSTATUS_FROM_WIN32(status);
+
+    // PowerReadSecurityDescriptor/PowerWriteSecurityDescriptor both use the same SDDL
+    // format as registry keys and are RPC wrappers for this registry key:
+    // HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Power\SecurityDescriptors
+
+    status = PowerReadSecurityDescriptor(
+        ACCESS_DEFAULT_SECURITY_DESCRIPTOR, // ACCESS_ACTIVE_SCHEME?
+        policyGuid,
+        &stringSecurityDescriptor
+        );
+
+    if (status == ERROR_SUCCESS)
+    {
+        if (StringSecurityDescriptor)
+        {
+            *StringSecurityDescriptor = PhCreateString(stringSecurityDescriptor);
+        }
+
+        LocalFree(stringSecurityDescriptor);
+    }
+
+    LocalFree(policyGuid);
+
+    return NTSTATUS_FROM_WIN32(status);
+}
+
+NTSTATUS PhpSetPowerPolicySecurityDescriptor(
+    _In_ PPH_STRING StringSecurityDescriptor
+    )
+{
+    ULONG status;
+    PVOID imageBaseAddress;
+    PGUID policyGuid;
+
+    if (!(imageBaseAddress = PhpInitializePowerPolicyApi()))
+        return STATUS_DLL_NOT_FOUND;
+
+    if (!PowerGetActiveScheme_I)
+        PowerGetActiveScheme_I = PhGetDllBaseProcedureAddress(imageBaseAddress, "PowerGetActiveScheme", 0);
+    if (!PowerWriteSecurityDescriptor)
+        PowerWriteSecurityDescriptor = PhGetDllBaseProcedureAddress(imageBaseAddress, "PowerWriteSecurityDescriptor", 0);
+
+    if (!(PowerGetActiveScheme_I && PowerWriteSecurityDescriptor))
+        return STATUS_PROCEDURE_NOT_FOUND;
+
+    status = PowerGetActiveScheme_I(
+        NULL,
+        &policyGuid
+        );
+
+    if (status != ERROR_SUCCESS)
+        return NTSTATUS_FROM_WIN32(status);
+
+    status = PowerWriteSecurityDescriptor(
+        ACCESS_DEFAULT_SECURITY_DESCRIPTOR,
+        policyGuid, // Todo: Pass the GUID from the original query.
+        PhGetString(StringSecurityDescriptor)
+        );
+
+    //if (status == ERROR_SUCCESS)
+    //{
+    //    // refresh/reapply the current scheme.
+    //    status = PowerSetActiveScheme_I(NULL, policyGuid);
+    //}
+
+    LocalFree(policyGuid);
+
+    return NTSTATUS_FROM_WIN32(status);
+}
+
+// Terminal server security descriptors
+// HACK - nightly build feature testing (dmex)
+// TODO - move definitions to proper locations.
+
+#include <wtsapi32.h>
+
+BOOL (WINAPI* WTSGetListenerSecurity_I)(
+    _In_ HANDLE ServerHandle,
+    _In_ PVOID Reserved1,
+    _In_ ULONG Reserved2,
+    _In_ PWSTR ListenerName,
+    _In_ SECURITY_INFORMATION SecurityInformation,
+    _Out_opt_ PSECURITY_DESCRIPTOR SecurityDescriptor,
+    _In_ ULONG Length,
+    _Out_ PULONG LengthNeeded
+    ) = NULL;
+
+BOOL (WINAPI* WTSSetListenerSecurity_I)(
+    _In_ HANDLE ServerHandle,
+    _In_ PVOID Reserved1,
+    _In_ ULONG Reserved2,
+    _In_ PWSTR ListenerName,
+    _In_ SECURITY_INFORMATION SecurityInformation,
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
+    ) = NULL;
+
+PVOID PhpInitializeRemoteDesktopServiceApi(VOID)
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static PVOID imageBaseAddress = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        imageBaseAddress = LoadLibrary(L"wtsapi32.dll");
+        PhEndInitOnce(&initOnce);
+    }
+
+    return imageBaseAddress;
+}
+
+NTSTATUS PhpGetRemoteDesktopSecurityDescriptor(
+    _Out_ PSECURITY_DESCRIPTOR* SecurityDescriptor
+    )
+{
+    BOOL status;
+    PVOID imageBaseAddress;
+    ULONG securityDescriptorLength = 0;
+    PSECURITY_DESCRIPTOR securityDescriptor = NULL;
+
+    if (!(imageBaseAddress = PhpInitializeRemoteDesktopServiceApi()))
+        return STATUS_DLL_NOT_FOUND;
+
+    if (!WTSGetListenerSecurity_I)
+        WTSGetListenerSecurity_I = PhGetDllBaseProcedureAddress(imageBaseAddress, "WTSGetListenerSecurityW", 0);
+
+    if (!WTSGetListenerSecurity_I)
+        return STATUS_PROCEDURE_NOT_FOUND;
+
+    // Todo: Add support for SI_RESET using the default security descriptor: 
+    // HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Terminal Server\DefaultSecurity
+
+    status = WTSGetListenerSecurity_I(
+        WTS_CURRENT_SERVER_HANDLE,
+        NULL,
+        0,
+        L"Rdp-Tcp", // or "Console"
+        DACL_SECURITY_INFORMATION | SACL_SECURITY_INFORMATION,
+        securityDescriptor,
+        0,
+        &securityDescriptorLength
+        );
+
+    if (!(!status && securityDescriptorLength))
+        return STATUS_INVALID_SECURITY_DESCR;
+
+    securityDescriptor = PhAllocateZero(securityDescriptorLength);
+
+    status = WTSGetListenerSecurity_I(
+        WTS_CURRENT_SERVER_HANDLE,
+        NULL,
+        0,
+        L"Rdp-Tcp", // or "Console"
+        DACL_SECURITY_INFORMATION | SACL_SECURITY_INFORMATION,
+        securityDescriptor,
+        securityDescriptorLength,
+        &securityDescriptorLength
+        );
+
+    if (status)
+    {
+        if (SecurityDescriptor)
+        {
+            *SecurityDescriptor = securityDescriptor;
+            return STATUS_SUCCESS;
+        }
+    }
+
+    return STATUS_INVALID_SECURITY_DESCR;
+}
+
+NTSTATUS PhpSetRemoteDesktopSecurityDescriptor(
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
+    )
+{
+    PVOID imageBaseAddress;
+
+    if (!(imageBaseAddress = PhpInitializeRemoteDesktopServiceApi()))
+        return STATUS_DLL_NOT_FOUND;
+
+    if (!WTSSetListenerSecurity_I)
+        WTSSetListenerSecurity_I = PhGetDllBaseProcedureAddress(imageBaseAddress, "WTSSetListenerSecurityW", 0);
+
+    if (!WTSSetListenerSecurity_I)
+        return STATUS_PROCEDURE_NOT_FOUND;
+
+    if (WTSSetListenerSecurity_I(
+        WTS_CURRENT_SERVER_HANDLE,
+        NULL,
+        0,
+        L"RDP-Tcp",
+        DACL_SECURITY_INFORMATION | SACL_SECURITY_INFORMATION,
+        SecurityDescriptor
+        ))
+    {
+        return STATUS_SUCCESS;
+    }
+
+    return STATUS_INVALID_SECURITY_DESCR;
 }
