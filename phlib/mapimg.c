@@ -607,7 +607,7 @@ NTSTATUS PhLoadRemoteMappedImageEx(
     if (ntHeadersSize > 1024 * 1024) // 1 MB
         return STATUS_INVALID_IMAGE_FORMAT;
 
-    RemoteMappedImage->NtHeaders = PhAllocate(ntHeadersSize);
+    RemoteMappedImage->NtHeaders = PhAllocateZero(ntHeadersSize);
 
     status = ReadVirtualMemoryCallback(
         ProcessHandle,
@@ -683,7 +683,7 @@ BOOLEAN PhGetRemoteMappedImageDirectoryEntry(
         return FALSE;
 
     dataLength = dataDirectory->Size;
-    dataBuffer = PhAllocate(dataLength);
+    dataBuffer = PhAllocateZero(dataLength);
 
     status = ReadVirtualMemoryCallback(
         ProcessHandle,
@@ -751,7 +751,7 @@ BOOLEAN PhGetRemoteMappedImageDebugEntryByTypeEx(
 
         if (entry->Type == Type)
         {
-            PVOID dataBuffer = PhAllocate(entry->SizeOfData);
+            PVOID dataBuffer = PhAllocateZero(entry->SizeOfData);
 
             if (NT_SUCCESS(ReadVirtualMemoryCallback(
                 ProcessHandle,
