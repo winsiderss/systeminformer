@@ -78,8 +78,6 @@ static INT OldTabIndex = 0;
 
 static HMENU SubMenuHandles[5];
 static PPH_EMENU SubMenuObjects[5];
-
-static ULONG SelectedRunAsMode = ULONG_MAX;
 static ULONG SelectedUserSessionId = ULONG_MAX;
 
 BOOLEAN PhMainWndInitialization(
