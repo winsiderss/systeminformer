@@ -223,8 +223,9 @@ VOID WepFillWindowInfo(
                 if (NT_SUCCESS(PhGetProcessMappedFileName(processHandle, instanceHandle, &fileName)))
                 {
                     PhMoveReference(&fileName, PhGetFileName(fileName));
-                    PhMoveReference(&fileName, PhGetBaseName(fileName));
+                    PhSetReference(&Node->FileNameWin32, fileName);
 
+                    PhMoveReference(&fileName, PhGetBaseName(fileName));
                     PhMoveReference(&Node->ModuleString, fileName);
                 }
             }
@@ -532,6 +533,51 @@ VOID DrawWindowBorderForTargeting(
     }
 }
 
+PPH_EMENU WepCreateWindowMenu(
+    _In_ PPH_EMENU WindowMenu
+    )
+{
+    PPH_EMENU_ITEM menuItem;
+
+    PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_BRINGTOFRONT, L"Bring to front", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_RESTORE, L"Restore", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_MINIMIZE, L"Minimize", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_MAXIMIZE, L"Maximize", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_CLOSE, L"Close", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(WindowMenu, PhCreateEMenuSeparator(), ULONG_MAX);
+
+    PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_VISIBLE, L"Visible", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_ENABLED, L"Enabled", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_ALWAYSONTOP, L"Always on top", NULL, NULL), ULONG_MAX);
+
+    menuItem = PhCreateEMenuItem(0, 0, L"&Opacity", NULL, NULL);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_OPACITY_10, L"&10%", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_OPACITY_20, L"&20%", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_OPACITY_30, L"&30%", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_OPACITY_40, L"&40%", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_OPACITY_50, L"&50%", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_OPACITY_60, L"&60%", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_OPACITY_70, L"&70%", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_OPACITY_80, L"&80%", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_OPACITY_90, L"&90%", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_OPACITY_OPAQUE, L"&Opaque", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(WindowMenu, menuItem, ULONG_MAX);
+
+    PhInsertEMenuItem(WindowMenu, PhCreateEMenuSeparator(), ULONG_MAX);
+    PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_INSPECT, L"&Inspect", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_OPENFILELOCATION, L"Open &file location", NULL, NULL), ULONG_MAX);
+
+    PhInsertEMenuItem(WindowMenu, PhCreateEMenuSeparator(), ULONG_MAX);
+    PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_HIGHLIGHT, L"Highlight", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_GOTOTHREAD, L"Go to thread", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_PROPERTIES, L"Properties", NULL, NULL), ULONG_MAX);
+
+    PhInsertEMenuItem(WindowMenu, PhCreateEMenuSeparator(), ULONG_MAX);
+    PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_COPY, L"Copy\bCtrl+C", NULL, NULL), ULONG_MAX);
+
+    return WindowMenu;
+}
+
 LRESULT CALLBACK WepFindWindowButtonSubclassProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -706,7 +752,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                     if (numberOfWindows != 0)
                     {
                         menu = PhCreateEMenu();
-                        PhLoadResourceEMenuItem(menu, PluginInstance->DllBase, MAKEINTRESOURCE(IDR_WINDOW), 0);
+                        WepCreateWindowMenu(menu);
                         PhInsertCopyCellEMenuItem(menu, ID_WINDOW_COPY, context->TreeNewHandle, contextMenuEvent->Column);
                         PhSetFlagsEMenuItem(menu, ID_WINDOW_PROPERTIES, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
 
@@ -987,6 +1033,50 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                         else
                         {
                             PhShowError(hwndDlg, L"%s", L"The process does not exist.");
+                        }
+                    }
+                }
+                break;
+            case ID_WINDOW_INSPECT:
+                {
+                    PWE_WINDOW_NODE selectedNode;
+
+                    if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
+                    {
+                        if (
+                            !PhIsNullOrEmptyString(selectedNode->FileNameWin32) &&
+                            PhDoesFileExistsWin32(PhGetString(selectedNode->FileNameWin32))
+                            )
+                        {
+                            PhShellExecuteUserString(
+                                hwndDlg,
+                                L"ProgramInspectExecutables",
+                                PhGetString(selectedNode->FileNameWin32),
+                                FALSE,
+                                L"Make sure the PE Viewer executable file is present."
+                                );
+                        }
+                    }
+                }
+                break;
+            case ID_WINDOW_OPENFILELOCATION:
+                {
+                    PWE_WINDOW_NODE selectedNode;
+
+                    if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
+                    {
+                        if (
+                            !PhIsNullOrEmptyString(selectedNode->FileNameWin32) &&
+                            PhDoesFileExistsWin32(PhGetString(selectedNode->FileNameWin32))
+                            )
+                        {
+                            PhShellExecuteUserString(
+                                hwndDlg,
+                                L"FileBrowseExecutable",
+                                PhGetString(selectedNode->FileNameWin32),
+                                FALSE,
+                                L"Make sure the Explorer executable file is present."
+                            );
                         }
                     }
                 }
@@ -1311,7 +1401,7 @@ INT_PTR CALLBACK WepWindowsPageProc(
                     if (numberOfWindows != 0)
                     {
                         menu = PhCreateEMenu();
-                        PhLoadResourceEMenuItem(menu, PluginInstance->DllBase, MAKEINTRESOURCE(IDR_WINDOW), 0);
+                        WepCreateWindowMenu(menu);
                         PhInsertCopyCellEMenuItem(menu, ID_WINDOW_COPY, context->TreeNewHandle, contextMenuEvent->Column);
                         PhSetFlagsEMenuItem(menu, ID_WINDOW_PROPERTIES, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
 
@@ -1589,6 +1679,50 @@ INT_PTR CALLBACK WepWindowsPageProc(
                         else
                         {
                             PhShowError(hwndDlg, L"%s", L"The process does not exist.");
+                        }
+                    }
+                }
+                break;
+            case ID_WINDOW_INSPECT:
+                {
+                    PWE_WINDOW_NODE selectedNode;
+
+                    if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
+                    {
+                        if (
+                            !PhIsNullOrEmptyString(selectedNode->FileNameWin32) &&
+                            PhDoesFileExistsWin32(PhGetString(selectedNode->FileNameWin32))
+                            )
+                        {
+                            PhShellExecuteUserString(
+                                hwndDlg,
+                                L"ProgramInspectExecutables",
+                                PhGetString(selectedNode->FileNameWin32),
+                                FALSE,
+                                L"Make sure the PE Viewer executable file is present."
+                                );
+                        }
+                    }
+                }
+                break;
+            case ID_WINDOW_OPENFILELOCATION:
+                {
+                    PWE_WINDOW_NODE selectedNode;
+
+                    if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
+                    {
+                        if (
+                            !PhIsNullOrEmptyString(selectedNode->FileNameWin32) &&
+                            PhDoesFileExistsWin32(PhGetString(selectedNode->FileNameWin32))
+                            )
+                        {
+                            PhShellExecuteUserString(
+                                hwndDlg,
+                                L"FileBrowseExecutable",
+                                PhGetString(selectedNode->FileNameWin32),
+                                FALSE,
+                                L"Make sure the Explorer executable file is present."
+                                );
                         }
                     }
                 }

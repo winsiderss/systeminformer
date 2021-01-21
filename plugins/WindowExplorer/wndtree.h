@@ -36,6 +36,7 @@ typedef struct _WE_WINDOW_NODE
     WCHAR WindowHandleString[PH_PTR_STR_LEN_1];
     PPH_STRING ThreadString;
     PPH_STRING ModuleString;
+    PPH_STRING FileNameWin32;
 } WE_WINDOW_NODE, *PWE_WINDOW_NODE;
 
 typedef struct _WE_WINDOW_TREE_CONTEXT
