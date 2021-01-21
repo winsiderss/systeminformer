@@ -130,47 +130,6 @@ BEGIN
 END
 #endif    // APSTUDIO_INVOKED
 
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// Menu
-//
-
-IDR_WINDOW MENU
-BEGIN
-    POPUP "Window"
-    BEGIN
-        MENUITEM "Bring to front",              ID_WINDOW_BRINGTOFRONT
-        MENUITEM "Restore",                     ID_WINDOW_RESTORE
-        MENUITEM "Minimize",                    ID_WINDOW_MINIMIZE
-        MENUITEM "Maximize",                    ID_WINDOW_MAXIMIZE
-        MENUITEM "Close",                       ID_WINDOW_CLOSE
-        MENUITEM SEPARATOR
-        MENUITEM "Visible",                     ID_WINDOW_VISIBLE
-        MENUITEM "Enabled",                     ID_WINDOW_ENABLED
-        MENUITEM "Always on top",               ID_WINDOW_ALWAYSONTOP
-        POPUP "Opacity"
-        BEGIN
-            MENUITEM "10%",                         ID_OPACITY_10
-            MENUITEM "20%",                         ID_OPACITY_20
-            MENUITEM "30%",                         ID_OPACITY_30
-            MENUITEM "40%",                         ID_OPACITY_40
-            MENUITEM "50%",                         ID_OPACITY_50
-            MENUITEM "60%",                         ID_OPACITY_60
-            MENUITEM "70%",                         ID_OPACITY_70
-            MENUITEM "80%",                         ID_OPACITY_80
-            MENUITEM "90%",                         ID_OPACITY_90
-            MENUITEM "Opaque",                      ID_OPACITY_OPAQUE
-        END
-        MENUITEM SEPARATOR
-        MENUITEM "Highlight",                   ID_WINDOW_HIGHLIGHT
-        MENUITEM "Go to thread",                ID_WINDOW_GOTOTHREAD
-        MENUITEM "Properties",                  ID_WINDOW_PROPERTIES
-        MENUITEM SEPARATOR
-        MENUITEM "Copy\aCtrl+C",                ID_WINDOW_COPY
-    END
-END
-
 #endif    // English (Australia) resources
 /////////////////////////////////////////////////////////////////////////////
 
