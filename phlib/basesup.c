@@ -3221,7 +3221,7 @@ BOOLEAN PhConvertUtf8ToUtf16Size(
     _In_ SIZE_T BytesInUtf8String
     )
 {
-#if (PHNT_VERSION >= PHNT_WIN7)
+#if (NATIVE_STRING_CONVERSION)
     ULONG bytesInUtf16String = 0;
 
     if (NT_SUCCESS(RtlUTF8ToUnicodeN(
@@ -3283,7 +3283,7 @@ BOOLEAN PhConvertUtf8ToUtf16Buffer(
     _In_ SIZE_T BytesInUtf8String
     )
 {
-#if (PHNT_VERSION >= PHNT_WIN7)
+#if (NATIVE_STRING_CONVERSION)
     ULONG bytesInUtf16String = 0;
 
     if (NT_SUCCESS(RtlUTF8ToUnicodeN(
@@ -3411,7 +3411,7 @@ BOOLEAN PhConvertUtf16ToUtf8Size(
     _In_ SIZE_T BytesInUtf16String
     )
 {
-#if (PHNT_VERSION >= PHNT_WIN7)
+#if (NATIVE_STRING_CONVERSION)
     ULONG bytesInUtf8String = 0;
 
     if (NT_SUCCESS(RtlUnicodeToUTF8N(
@@ -3473,7 +3473,7 @@ BOOLEAN PhConvertUtf16ToUtf8Buffer(
     _In_ SIZE_T BytesInUtf16String
     )
 {
-#if (PHNT_VERSION >= PHNT_WIN7)
+#if (NATIVE_STRING_CONVERSION)
     ULONG bytesInUtf8String = 0;
 
     if (NT_SUCCESS(RtlUnicodeToUTF8N(
