@@ -232,7 +232,8 @@ LOGICAL DllMain(
                 { ScalableIntegerPairSettingType, SETTING_NAME_WINDOWS_PROPERTY_SIZE, L"@96|690,540" },
                 { StringSettingType, SETTING_NAME_WINDOWS_PROPLIST_COLUMNS, L"" },
                 { StringSettingType, SETTING_NAME_WINDOWS_PROPSTORAGE_COLUMNS, L"" },
-                { IntegerSettingType, SETTING_NAME_WINDOW_ENUM_ALTERNATE, L"0" }
+                { IntegerSettingType, SETTING_NAME_WINDOW_ENUM_ALTERNATE, L"0" },
+                { IntegerSettingType, SETTING_NAME_WINDOW_ENABLE_PREVIEW, L"0" },
             };
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);

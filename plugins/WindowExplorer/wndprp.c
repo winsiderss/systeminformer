@@ -306,12 +306,15 @@ NTSTATUS WepPropertiesThreadStart(
             context);
         PvAddPropPage(propContext, newPage);
 
-        // Preview page
-        newPage = PvCreatePropPageContext(
-            MAKEINTRESOURCE(IDD_WNDPREVIEW),
-            WepWindowPreviewDlgProc,
-            context);
-        PvAddPropPage(propContext, newPage);
+        if (PhGetIntegerSetting(SETTING_NAME_WINDOW_ENABLE_PREVIEW))
+        {
+            // Preview page
+            newPage = PvCreatePropPageContext(
+                MAKEINTRESOURCE(IDD_WNDPREVIEW),
+                WepWindowPreviewDlgProc,
+                context);
+            PvAddPropPage(propContext, newPage);
+        }
 
         PhModalPropertySheet(&propContext->PropSheetHeader);
         PhDereferenceObject(propContext);
