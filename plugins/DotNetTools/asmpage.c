@@ -524,7 +524,13 @@ VOID DotNetAsmShowContextMenu(
                 {
                     if (!PhIsNullOrEmptyString(node->PathText) && PhDoesFileExistsWin32(PhGetString(node->PathText)))
                     {
-                        PhShellExploreFile(Context->WindowHandle, node->PathText->Buffer);
+                        PhShellExecuteUserString(
+                            Context->WindowHandle,
+                            L"FileBrowseExecutable",
+                            node->PathText->Buffer,
+                            FALSE,
+                            L"Make sure the Explorer executable file is present."
+                            );
                     }
                 }
                 break;
