@@ -96,6 +96,9 @@
     <ClCompile Include="fwtab.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="wswatch.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">

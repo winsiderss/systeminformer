@@ -692,6 +692,13 @@ VOID EtShowUnloadedDllsDialog(
     _In_ PPH_PROCESS_ITEM ProcessItem
     );
 
+// wswatch
+
+VOID EtShowWsWatchDialog(
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_PROCESS_ITEM ProcessItem
+    );
+
 // counters
 
 FLOAT EtLookupProcessGpuUtilization(
