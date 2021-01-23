@@ -8202,6 +8202,73 @@ NTSTATUS PhOpenFileWin32Ex(
     return status;
 }
 
+NTSTATUS PhOpenFileById(
+    _Out_ PHANDLE FileHandle,
+    _In_ HANDLE VolumeHandle,
+    _In_ PPH_FILE_ID_DESCRIPTOR FileId,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ ULONG ShareAccess,
+    _In_ ULONG OpenOptions
+    )
+{
+    NTSTATUS status;
+    HANDLE fileHandle;
+    UNICODE_STRING fileName;
+    OBJECT_ATTRIBUTES objectAttributes;
+    IO_STATUS_BLOCK isb;
+
+    switch (FileId->Type)
+    {
+    case FileIdType:
+        {
+            fileName.Length = sizeof(LONGLONG);
+            fileName.MaximumLength = sizeof(LONGLONG);
+            fileName.Buffer = (PWSTR)&FileId->FileId.QuadPart;
+        }
+        break;
+    case ObjectIdType:
+        {
+            fileName.Length = sizeof(GUID);
+            fileName.MaximumLength = sizeof(GUID);
+            fileName.Buffer = (PWSTR)&FileId->ObjectId;
+        }
+        break;
+    case ExtendedFileIdType:
+        {
+            fileName.Length = sizeof(FILE_ID_128);
+            fileName.MaximumLength = sizeof(FILE_ID_128);
+            fileName.Buffer = (PWSTR)&FileId->ExtendedFileId.Identifier;
+        }
+        break;
+    default:
+        return STATUS_UNSUCCESSFUL;
+    }
+
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &fileName,
+        OBJ_CASE_INSENSITIVE,
+        VolumeHandle,
+        NULL
+        );
+
+    status = NtOpenFile(
+        &fileHandle,
+        DesiredAccess,
+        &objectAttributes,
+        &isb,
+        ShareAccess,
+        OpenOptions | FILE_OPEN_BY_FILE_ID
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *FileHandle = fileHandle;
+    }
+
+    return status;
+}
+
 /**
  * Queries file attributes.
  *
