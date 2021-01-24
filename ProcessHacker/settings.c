@@ -4,6 +4,7 @@
  *
  * Copyright (C) 2010-2016 wj32
  * Copyright (C) 2017-2020 dmex
+ * Copyright (C) 2021 jxy-s
  *
  * This file is part of Process Hacker.
  *
@@ -96,6 +97,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"IconProcesses", L"f"); // 15
     PhpAddIntegerSetting(L"IconSingleClick", L"0");
     PhpAddIntegerSetting(L"IconTogglesVisibility", L"1");
+    PhpAddIntegerSetting(L"ImageCoherencyScanLevel", L"1");
     PhpAddStringSetting(L"JobListViewColumns", L"");
     //PhpAddIntegerSetting(L"KphUnloadOnShutdown", L"0");
     PhpAddIntegerSetting(L"LogEntries", L"200"); // 512
@@ -334,6 +336,8 @@ VOID PhUpdateCachedSettings(
     PH_UPDATE_SETTING(ColorIoWrite);
     PH_UPDATE_SETTING(ColorPrivate);
     PH_UPDATE_SETTING(ColorPhysical);
+
+    PH_UPDATE_SETTING(ImageCoherencyScanLevel);
 
     PhEnableNetworkResolveDoHSupport = !!PhGetIntegerSetting(L"EnableNetworkResolveDoH");
     PhEnableVersionShortText = !!PhGetIntegerSetting(L"EnableVersionSupport");

@@ -412,6 +412,7 @@ NTSTATUS PhpModuleQueryWorker(
                     data->ModuleProvider->ProcessHandle,
                     data->ModuleItem->BaseAddress,
                     data->ModuleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE,
+                    PhImageCoherencyQuick,
                     &data->ImageCoherency
                     );
             }
