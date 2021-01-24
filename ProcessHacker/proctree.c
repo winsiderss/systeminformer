@@ -4,6 +4,7 @@
  *
  * Copyright (C) 2010-2016 wj32
  * Copyright (C) 2016-2020 dmex
+ * Copyright (C) 2021 jxy-s
  *
  * This file is part of Process Hacker.
  *
@@ -3027,12 +3028,36 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     PH_FORMAT format[2];
                     SIZE_T returnLength;
 
-                    if (!PhpShouldShowImageCoherency(processItem, FALSE))
+                    if (processItem->ImageCoherencyStatus == STATUS_PENDING)
                     {
+                        PhMoveReference(&node->ImageCoherencyStatusText,
+                                        PhCreateString(L"Scanning..."));
+                        getCellText->Text.Buffer = node->ImageCoherencyStatusText->Buffer;
+                        getCellText->Text.Length = node->ImageCoherencyStatusText->Length;
                         break;
                     }
 
-                    PhInitFormatF(&format[0], (DOUBLE)(processItem->ImageCoherency * 100.0f), 2);
+                    if (!PhpShouldShowImageCoherency(processItem, FALSE))
+                    {
+                        if (processItem->ImageCoherencyStatus != STATUS_SUCCESS)
+                        {
+                            PhMoveReference(&node->ImageCoherencyStatusText,
+                                            PhGetStatusMessage(processItem->ImageCoherencyStatus, 0));
+                            getCellText->Text.Buffer = node->ImageCoherencyStatusText->Buffer;
+                            getCellText->Text.Length = node->ImageCoherencyStatusText->Length;
+                        }
+                        break;
+                    }
+
+                    if (processItem->ImageCoherency == 1.0f)
+                    {
+                        memcpy(node->ImageCoherencyText, L"100%", sizeof(L"100%"));
+                        getCellText->Text.Buffer = node->ImageCoherencyText;
+                        getCellText->Text.Length = sizeof(L"100%") - sizeof(UNICODE_NULL);
+                        break;
+                    }
+
+                    PhInitFormatF(&format[0], ((DOUBLE)processItem->ImageCoherency * 100.0f), 2);
                     PhInitFormatS(&format[1], L"%");
 
                     if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), node->ImageCoherencyText, sizeof(node->ImageCoherencyText), &returnLength))
@@ -3812,6 +3837,16 @@ BOOLEAN PhpShouldShowImageCoherency(
     _In_ BOOLEAN CheckThreshold
     )
 {
+    if (PhCsImageCoherencyScanLevel == 0)
+    {
+        //
+        // The advanced option for the image coherency scan level is 0.
+        // This disables the scanning and we should not show the image
+        // coherency.
+        //
+        return FALSE;
+    }
+
     //
     // If we haven't done the image coherency check yet, don't show. We
     // initialize the process item with STATUS_PENDING to denote this.

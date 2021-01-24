@@ -1042,12 +1042,46 @@ PhIsExecutablePacked(
     _Out_opt_ PULONG NumberOfFunctions
     );
 
+/**
+* Image Coherency Scan Type
+*/
+typedef enum _PH_IMGCOHERENCY_SCAN_TYPE
+{
+    /**
+    * Quick scan of the image coherency
+    * - Image header information
+    * - A few pages of each executable section
+    * - Scans a few pages at entry point if it exists and was missed due to previous note
+    * - .NET manifests if appropriate
+    */
+    PhImageCoherencyQuick,
+
+    /**
+    * Normal scan of the image coherency
+    * - Image header information
+    * - Up to 40Mib of each executable section 
+    * - Scans a few pages at entry point if it exists and was missed due to previous note
+    * - .NET manifests if appropriate
+    */
+    PhImageCoherencyNormal,
+
+    /**
+    * Full scan of the image coherency
+    * - Image header information
+    * - Complete scan of all executable sections, this will include the entry point
+    * - .NET manifests if appropriate
+    */
+    PhImageCoherencyFull
+
+} PH_IMAGE_COHERENCY_SCAN_TYPE;
+
 PHLIBAPI
 NTSTATUS
 NTAPI
 PhGetProcessImageCoherency(
     _In_ PWSTR FileName,
     _In_ HANDLE ProcessId,
+    _In_ PH_IMAGE_COHERENCY_SCAN_TYPE Type,
     _Out_ PFLOAT ImageCoherency
     );
 
@@ -1059,6 +1093,7 @@ PhGetProcessModuleImageCoherency(
     _In_ HANDLE ProcessHandle,
     _In_ PVOID ImageBaseAddress,
     _In_ BOOLEAN IsKernelModule,
+    _In_ PH_IMAGE_COHERENCY_SCAN_TYPE Type,
     _Out_ PFLOAT ImageCoherency
     );
 
