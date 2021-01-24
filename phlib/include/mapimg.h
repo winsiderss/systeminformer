@@ -809,6 +809,10 @@ NTSTATUS PhGetMappedImageRelocations(
     _Out_ PPH_MAPPED_IMAGE_RELOC Relocations
     );
 
+VOID PhFreeMappedImageRelocations(
+    _In_ PPH_MAPPED_IMAGE_RELOC Relocations
+    );
+
 // ELF binary support
 
 NTSTATUS PhInitializeMappedWslImage(

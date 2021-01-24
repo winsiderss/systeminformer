@@ -4,6 +4,7 @@
  *
  * Copyright (C) 2009-2016 wj32
  * Copyright (C) 2017-2019 dmex
+ * Copyright (C) 2020-2021 jxy-s
  *
  * This file is part of Process Hacker.
  *
@@ -980,11 +981,47 @@ VOID PhpProcessQueryStage2(
             Data->ImportFunctions = ULONG_MAX;
         }
 
-        Data->ImageCoherencyStatus = PhGetProcessImageCoherency(
-            processItem->FileNameWin32->Buffer,
-            processItem->ProcessId,
-            &Data->ImageCoherency
-            );
+        if (PhCsImageCoherencyScanLevel == 0)
+        {
+            //
+            // If the user changes the configuration from 0 to >0 they will
+            // need to re-run stage 2 analysis otherwise all images will show
+            // low coherency.
+            // [ENHANCEMENT] re-run stage 2 when this advanced option changes
+            //
+            processItem->ImageCoherencyStatus = STATUS_SUCCESS;
+        }
+        else
+        {
+            PH_IMAGE_COHERENCY_SCAN_TYPE type;
+
+            switch (PhCsImageCoherencyScanLevel)
+            {
+                case 1:
+                {
+                    type = PhImageCoherencyQuick;
+                    break;
+                }
+                case 2:
+                {
+                    type = PhImageCoherencyNormal;
+                    break;
+                }
+                case 3:
+                default:
+                {
+                    type = PhImageCoherencyFull;
+                    break;
+                }
+            }
+
+            Data->ImageCoherencyStatus = PhGetProcessImageCoherency(
+                processItem->FileNameWin32->Buffer,
+                processItem->ProcessId,
+                type,
+                &Data->ImageCoherency
+                );
+        }
     }
 
     if (PhEnableLinuxSubsystemSupport && processItem->FileNameWin32 && processItem->IsSubsystemProcess)
