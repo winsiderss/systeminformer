@@ -200,6 +200,23 @@ PhAllocateZero(
     return buffer;
 }
 
+FORCEINLINE
+PVOID
+PhAllocateZeroSafe(
+    _In_ SIZE_T Size
+    )
+{
+    PVOID buffer;
+
+    if (buffer = PhAllocateSafe(Size))
+    {
+        memset(buffer, 0, Size);
+        return buffer;
+    }
+
+    return NULL;
+}
+
 // Event
 
 #define PH_EVENT_SET 0x1
