@@ -3,7 +3,7 @@
  *   base support functions
  *
  * Copyright (C) 2009-2016 wj32
- * Copyright (C) 2019-2020 dmex
+ * Copyright (C) 2019-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -497,6 +497,7 @@ PVOID PhAllocateExSafe(
     _In_ ULONG Flags
     )
 {
+    assert(Size);
     return RtlAllocateHeap(PhHeapHandle, Flags, Size);
 }
 
@@ -530,6 +531,7 @@ PVOID PhReAllocate(
     _In_ SIZE_T Size
     )
 {
+    assert(Size);
     return RtlReAllocateHeap(PhHeapHandle, HEAP_GENERATE_EXCEPTIONS, Memory, Size);
 }
 
@@ -547,6 +549,7 @@ PVOID PhReAllocateSafe(
     _In_ SIZE_T Size
     )
 {
+    assert(Size);
     return RtlReAllocateHeap(PhHeapHandle, 0, Memory, Size);
 }
 
