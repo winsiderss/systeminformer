@@ -2919,7 +2919,7 @@ NTSTATUS PhGetMappedImageRelocations(
     NTSTATUS status;
     PIMAGE_DATA_DIRECTORY dataDirectory;
     PIMAGE_BASE_RELOCATION relocationDirectory;
-    PVOID relocationDirectorySize;
+    PVOID relocationDirectoryEnd;
     PH_ARRAY relocationArray;
     ULONG relocationTotal = 0;
     ULONG relocationIndex = 0;
@@ -2953,46 +2953,38 @@ NTSTATUS PhGetMappedImageRelocations(
 
     Relocations->MappedImage = MappedImage;
     Relocations->DataDirectory = dataDirectory;
-    Relocations->RelocationDirectory = relocationDirectory;
+    Relocations->FirstRelocationDirectory = relocationDirectory;
 
-    // Do a scan to determine how many entries there are.
+    //
+    // Do a scan to determine how many entries there are. And validate the
+    // blocks are within the mapping.
+    //
 
-    relocationDirectory = Relocations->RelocationDirectory;
-    relocationDirectorySize = PTR_ADD_OFFSET(relocationDirectory, dataDirectory->Size);
+    relocationDirectory = Relocations->FirstRelocationDirectory;
+    relocationDirectoryEnd = PTR_ADD_OFFSET(relocationDirectory, dataDirectory->Size);
 
-    while ((ULONG_PTR)relocationDirectory < (ULONG_PTR)relocationDirectorySize)
+    while ((ULONG_PTR)relocationDirectory < (ULONG_PTR)relocationDirectoryEnd)
     {
-        ULONG relocationCount;
-        PIMAGE_BASE_RELOCATION_ENTRY relocationEntry;
-
         __try
         {
             PhpMappedImageProbe(MappedImage, relocationDirectory, sizeof(IMAGE_BASE_RELOCATION));
+            PhpMappedImageProbe(MappedImage, relocationDirectory, relocationDirectory->SizeOfBlock);
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
             return GetExceptionCode();
         }
 
-        relocationCount = (relocationDirectory->SizeOfBlock - sizeof(IMAGE_BASE_RELOCATION)) / sizeof(IMAGE_BASE_RELOCATION_ENTRY);
-        relocationEntry = PTR_ADD_OFFSET(relocationDirectory, RTL_SIZEOF_THROUGH_FIELD(IMAGE_BASE_RELOCATION, SizeOfBlock));
-
-        __try
+        if (relocationDirectory->SizeOfBlock < sizeof(IMAGE_BASE_RELOCATION))
         {
-            PhpMappedImageProbe(MappedImage, relocationEntry, sizeof(IMAGE_BASE_RELOCATION_ENTRY));
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            return GetExceptionCode();
+            //
+            // Prevent runaway.
+            //
+            return STATUS_INVALID_IMAGE_FORMAT;
         }
 
-        for (ULONG i = 0; i < relocationCount; i++)
-        {
-            relocationEntry = PTR_ADD_OFFSET(relocationEntry, sizeof(IMAGE_BASE_RELOCATION_ENTRY));
-        }
-
-        relocationDirectory = (PIMAGE_BASE_RELOCATION)relocationEntry;
-        relocationTotal += relocationCount;
+        relocationTotal += (relocationDirectory->SizeOfBlock - sizeof(IMAGE_BASE_RELOCATION)) / sizeof(IMAGE_BASE_RELOCATION_ENTRY);
+        relocationDirectory = PTR_ADD_OFFSET(relocationDirectory, relocationDirectory->SizeOfBlock);
     }
 
     // Allocate the number of relocation entries.
@@ -3001,34 +2993,31 @@ NTSTATUS PhGetMappedImageRelocations(
 
     // Add the relocation entries into our buffer.
 
-    relocationDirectory = Relocations->RelocationDirectory;
-    relocationDirectorySize = PTR_ADD_OFFSET(relocationDirectory, dataDirectory->Size);
+    relocationDirectory = Relocations->FirstRelocationDirectory;
 
-    while ((ULONG_PTR)relocationDirectory < (ULONG_PTR)relocationDirectorySize)
+    while ((ULONG_PTR)relocationDirectory < (ULONG_PTR)relocationDirectoryEnd)
     {
         ULONG relocationCount;
         PVOID relocationAddress;
-        PIMAGE_BASE_RELOCATION_ENTRY relocationEntry;
+        PIMAGE_BASE_RELOCATION_ENTRY relocations;
 
         relocationCount = (relocationDirectory->SizeOfBlock - sizeof(IMAGE_BASE_RELOCATION)) / sizeof(IMAGE_BASE_RELOCATION_ENTRY);
         relocationAddress = PTR_ADD_OFFSET(MappedImage->ViewBase, relocationDirectory->VirtualAddress);
-        relocationEntry = PTR_ADD_OFFSET(relocationDirectory, RTL_SIZEOF_THROUGH_FIELD(IMAGE_BASE_RELOCATION, SizeOfBlock));
+        relocations = PTR_ADD_OFFSET(relocationDirectory, RTL_SIZEOF_THROUGH_FIELD(IMAGE_BASE_RELOCATION, SizeOfBlock));
 
         for (ULONG i = 0; i < relocationCount; i++)
         {
             PH_IMAGE_RELOC_ENTRY entry;
 
             entry.BlockIndex = relocationIndex;
-            entry.Type = relocationEntry->Type;
-            entry.Offset = relocationEntry->Offset;
-            entry.Value = PTR_ADD_OFFSET(relocationAddress, relocationEntry->Offset);
+            entry.Type = relocations[i].Type;
+            entry.Offset = relocations[i].Offset;
+            entry.Value = PTR_ADD_OFFSET(relocationAddress, relocations[i].Offset);
             entry.BlockRva = relocationDirectory->VirtualAddress;
             PhAddItemArray(&relocationArray, &entry);
-
-            relocationEntry = PTR_ADD_OFFSET(relocationEntry, sizeof(IMAGE_BASE_RELOCATION_ENTRY));
         }
 
-        relocationDirectory = (PIMAGE_BASE_RELOCATION)relocationEntry;
+        relocationDirectory = PTR_ADD_OFFSET(relocationDirectory, relocationDirectory->SizeOfBlock);
         relocationIndex++;
     }
 
@@ -3045,6 +3034,7 @@ VOID PhFreeMappedImageRelocations(
     if (Relocations && Relocations->RelocationEntries)
     {
         PhFree(Relocations->RelocationEntries);
+        Relocations->RelocationEntries = NULL;
         Relocations->NumberOfEntries = 0;
     }
 }

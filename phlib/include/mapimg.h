@@ -798,7 +798,7 @@ typedef struct _PH_MAPPED_IMAGE_RELOC
 {
     PPH_MAPPED_IMAGE MappedImage;
     PIMAGE_DATA_DIRECTORY DataDirectory;
-    PIMAGE_BASE_RELOCATION RelocationDirectory;
+    PIMAGE_BASE_RELOCATION FirstRelocationDirectory;
 
     ULONG NumberOfEntries;
     PPH_IMAGE_RELOC_ENTRY RelocationEntries;
