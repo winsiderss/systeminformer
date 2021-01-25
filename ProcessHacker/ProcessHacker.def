@@ -39,9 +39,7 @@ EXPORTS
 ; phconfig
     PhGlobalDpi DATA
     PhIsExecutingInWow64
-    PhOsVersion DATA
     PhSystemBasicInformation DATA
-    WindowsVersion DATA
 
 ; phbasesup
     PhAddElementAvlTree

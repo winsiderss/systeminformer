@@ -8,10 +8,10 @@ extern "C" {
 #define _User_set_
 
 extern _User_set_ PVOID PhInstanceHandle;
-PHLIBAPI extern _User_set_ PWSTR PhApplicationName;
+extern _User_set_ PWSTR PhApplicationName;
 PHLIBAPI extern _User_set_ ULONG PhGlobalDpi;
 extern PVOID PhHeapHandle;
-PHLIBAPI extern RTL_OSVERSIONINFOEXW PhOsVersion;
+extern RTL_OSVERSIONINFOEXW PhOsVersion;
 PHLIBAPI extern SYSTEM_BASIC_INFORMATION PhSystemBasicInformation;
 extern ULONG WindowsVersion;
 
