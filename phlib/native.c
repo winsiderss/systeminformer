@@ -7594,7 +7594,7 @@ NTSTATUS PhLoadAppKey(
         NULL,
         NULL
         )))
-        return status;
+        goto CleanupExit;
 
     InitializeObjectAttributes(
         &targetAttributes,
