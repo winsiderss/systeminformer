@@ -79,6 +79,7 @@ typedef struct _PH_MODULE_PROVIDER
             BOOLEAN Spare : 4;
         };
     };
+    UCHAR ImageCoherencyScanLevel;
 } PH_MODULE_PROVIDER, *PPH_MODULE_PROVIDER;
 // end_phapppub
 

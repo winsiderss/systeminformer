@@ -55,7 +55,7 @@ typedef struct _PH_MODULE_NODE
     PPH_STRING LoadTimeText;
     PPH_STRING FileModifiedTimeText;
     PPH_STRING FileSizeText;
-    WCHAR ImageCoherencyText[PH_PTR_STR_LEN_1 + 3];
+    PPH_STRING ImageCoherencyText;
 
     struct _PH_MODULE_NODE *Parent;
     PPH_LIST Children;
