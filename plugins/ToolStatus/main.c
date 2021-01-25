@@ -3,7 +3,7 @@
  *   main program
  *
  * Copyright (C) 2010-2016 wj32
- * Copyright (C) 2011-2020 dmex
+ * Copyright (C) 2011-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -274,7 +274,7 @@ VOID ShowCustomizeMenu(
                 ToolbarLoadSettings();
                 ReBarSaveLayoutSettings();
 
-                if (ToolStatusConfig.SearchBoxEnabled && !ToolStatusConfig.SearchAutoFocus)
+                if (ToolStatusConfig.SearchBoxEnabled) // && !ToolStatusConfig.SearchAutoFocus)
                 {
                     // Adding the Searchbox makes it focused,
                     // reset the focus back to the main window.
@@ -395,8 +395,8 @@ VOID NTAPI TabPageUpdatedCallback(
         break;
     }
 
-    if (ToolStatusConfig.SearchAutoFocus)
-        SetFocus(SearchboxHandle);
+    //if (ToolStatusConfig.SearchAutoFocus)
+    //    SetFocus(SearchboxHandle);
 }
 
 VOID NTAPI LayoutPaddingCallback(
@@ -1293,6 +1293,45 @@ LRESULT CALLBACK MainWndSubclassProc(
                 SetWindowFont(StatusBarHandle, ToolbarWindowFont, TRUE);
 
                 ToolbarLoadSettings();
+            }
+
+            goto DefaultWndProc;
+        }
+        break;
+    case WM_PH_NOTIFY_ICON_MESSAGE:
+        {
+            // Don't do anything when search autofocus disabled.
+            if (!ToolStatusConfig.SearchAutoFocus)
+                break;
+
+            // Let Process Hacker perform the default processing.
+            CallWindowProc(MainWindowHookProc, hWnd, uMsg, wParam, lParam);
+
+            // This fixes the search focus for the 'Hide when closed' option. See GH #663 (dmex)
+            switch (LOWORD(lParam))
+            {
+            case WM_LBUTTONDOWN:
+                {
+                    if (PhGetIntegerSetting(L"IconSingleClick"))
+                    {
+                        if (IsWindowVisible(hWnd))
+                        {
+                            SetFocus(SearchboxHandle);
+                        }
+                    }
+                }
+                break;
+            case WM_LBUTTONDBLCLK:
+                {
+                    if (!PhGetIntegerSetting(L"IconSingleClick"))
+                    {
+                        if (IsWindowVisible(hWnd))
+                        {
+                            SetFocus(SearchboxHandle);
+                        }
+                    }
+                }
+                break;
             }
 
             goto DefaultWndProc;
