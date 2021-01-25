@@ -3029,6 +3029,9 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     PH_FORMAT format[2];
                     SIZE_T returnLength;
 
+                    if (!PhEnableProcessQueryStage2)
+                        break;
+
                     if (processItem->ImageCoherencyStatus == STATUS_PENDING)
                     {
                         PhInitializeStringRef(&getCellText->Text, L"Scanning....");
