@@ -3,7 +3,7 @@
  *   Process properties: Memory page
  *
  * Copyright (C) 2009-2016 wj32
- * Copyright (C) 2017-2019 dmex
+ * Copyright (C) 2017-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -630,9 +630,13 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                     if (memoryNode)
                     {
                         PhReferenceObject(memoryNode->MemoryItem);
-                        PhUiFreeMemory(hwndDlg, processItem->ProcessId, memoryNode->MemoryItem, TRUE);
+
+                        if (PhUiFreeMemory(hwndDlg, processItem->ProcessId, memoryNode->MemoryItem, TRUE))
+                        {
+                            PhRemoveMemoryNode(&memoryContext->ListContext, &memoryContext->MemoryItemList, memoryNode);
+                        }
+
                         PhDereferenceObject(memoryNode->MemoryItem);
-                        // TODO: somehow update the list
                     }
                 }
                 break;
@@ -643,7 +647,12 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                     if (memoryNode)
                     {
                         PhReferenceObject(memoryNode->MemoryItem);
-                        PhUiFreeMemory(hwndDlg, processItem->ProcessId, memoryNode->MemoryItem, FALSE);
+
+                        if (PhUiFreeMemory(hwndDlg, processItem->ProcessId, memoryNode->MemoryItem, FALSE))
+                        {
+                            PhRemoveMemoryNode(&memoryContext->ListContext, &memoryContext->MemoryItemList, memoryNode);
+                        }
+
                         PhDereferenceObject(memoryNode->MemoryItem);
                     }
                 }
@@ -821,7 +830,7 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
             switch (header->code)
             {
             case PSN_QUERYINITIALFOCUS:
-                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LPARAM)GetDlgItem(hwndDlg, IDC_LIST));
+                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LPARAM)memoryContext->TreeNewHandle);
                 return TRUE;
             }
         }

@@ -201,17 +201,27 @@ VOID PhpDestroyMemoryNode(
 {
     PhEmCallObjectOperation(EmMemoryNodeType, MemoryNode, EmObjectDelete);
 
-    PhClearReference(&MemoryNode->SizeText);
-    PhClearReference(&MemoryNode->UseText);
-    PhClearReference(&MemoryNode->TotalWsText);
-    PhClearReference(&MemoryNode->PrivateWsText);
-    PhClearReference(&MemoryNode->ShareableWsText);
-    PhClearReference(&MemoryNode->SharedWsText);
-    PhClearReference(&MemoryNode->LockedWsText);
-    PhClearReference(&MemoryNode->CommittedText);
-    PhClearReference(&MemoryNode->PrivateText);
+    if (MemoryNode->SizeText)
+        PhDereferenceObject(MemoryNode->SizeText);
+    if (MemoryNode->UseText)
+        PhDereferenceObject(MemoryNode->UseText);
+    if (MemoryNode->TotalWsText)
+        PhDereferenceObject(MemoryNode->TotalWsText);
+    if (MemoryNode->PrivateWsText)
+        PhDereferenceObject(MemoryNode->PrivateWsText);
+    if (MemoryNode->ShareableWsText)
+        PhDereferenceObject(MemoryNode->ShareableWsText);
+    if (MemoryNode->SharedWsText)
+        PhDereferenceObject(MemoryNode->SharedWsText);
+    if (MemoryNode->LockedWsText)
+        PhDereferenceObject(MemoryNode->LockedWsText);
+    if (MemoryNode->CommittedText)
+        PhDereferenceObject(MemoryNode->CommittedText);
+    if (MemoryNode->PrivateText)
+        PhDereferenceObject(MemoryNode->PrivateText);
+    if (MemoryNode->Children)
+        PhDereferenceObject(MemoryNode->Children);
 
-    PhClearReference(&MemoryNode->Children);
     PhDereferenceObject(MemoryNode->MemoryItem);
 
     PhFree(MemoryNode);
