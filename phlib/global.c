@@ -3,7 +3,7 @@
  *   global variables and initialization functions
  *
  * Copyright (C) 2010-2013 wj32
- * Copyright (C) 2017-2020 dmex
+ * Copyright (C) 2017-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -38,10 +38,10 @@ BOOLEAN PhHeapInitialization(
     );
 
 PVOID PhInstanceHandle = NULL;
-PHLIBAPI PWSTR PhApplicationName = NULL;
+PWSTR PhApplicationName = NULL;
 PHLIBAPI ULONG PhGlobalDpi = 96;
 PVOID PhHeapHandle = NULL;
-PHLIBAPI RTL_OSVERSIONINFOEXW PhOsVersion = { 0 };
+RTL_OSVERSIONINFOEXW PhOsVersion = { 0 };
 PHLIBAPI SYSTEM_BASIC_INFORMATION PhSystemBasicInformation = { 0 };
 ULONG WindowsVersion = WINDOWS_NEW;
 
