@@ -75,6 +75,11 @@ typedef USHORT RTL_ATOM, *PRTL_ATOM;
 
 typedef LARGE_INTEGER PHYSICAL_ADDRESS, *PPHYSICAL_ADDRESS;
 
+typedef struct _LARGE_INTEGER_128
+{
+    LONGLONG QuadPart[2];
+} LARGE_INTEGER_128, *PLARGE_INTEGER_128;
+
 // NT status macros
 
 #define NT_SUCCESS(Status) (((NTSTATUS)(Status)) >= 0)
