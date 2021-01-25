@@ -3,7 +3,7 @@
  *   plugins
  *
  * Copyright (C) 2010-2011 wj32
- * Copyright (C) 2017-2018 dmex
+ * Copyright (C) 2017-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -553,12 +553,12 @@ VOID InitializePluginsTree(
     _Inout_ PPH_PLUGMAN_CONTEXT Context
     )
 {
-    Context->NodeList = PhCreateList(100);
+    Context->NodeList = PhCreateList(20);
     Context->NodeHashtable = PhCreateHashtable(
         sizeof(PPH_PLUGIN_TREE_ROOT_NODE),
         PluginsNodeHashtableEqualFunction,
         PluginsNodeHashtableHashFunction,
-        100
+        20
         );
 
     Context->NormalFontHandle = PhCreateCommonFont(-10, FW_NORMAL, NULL);
@@ -625,24 +625,21 @@ PWSTR PhpGetPluginBaseName(
     }
 }
 
-VOID PhpEnumerateLoadedPlugins(
-    _In_ PPH_PLUGMAN_CONTEXT Context
+BOOLEAN NTAPI PhpEnumeratePluginCallback(
+    _In_ PPH_PLUGIN Information,
+    _In_opt_ PVOID Context
     )
 {
-    PPH_AVL_LINKS links;
+    PH_STRINGREF pluginBaseName;
 
-    for (links = PhMinimumElementAvlTree(&PhPluginsByName); links; links = PhSuccessorElementAvlTree(links))
+    PhInitializeStringRefLongHint(&pluginBaseName, PhpGetPluginBaseName(Information));
+
+    if (!PhIsPluginDisabled(&pluginBaseName))
     {
-        PPH_PLUGIN plugin = CONTAINING_RECORD(links, PH_PLUGIN, Links);
-        PH_STRINGREF pluginBaseName;
-
-        PhInitializeStringRefLongHint(&pluginBaseName, PhpGetPluginBaseName(plugin));
-
-        if (PhIsPluginDisabled(&pluginBaseName))
-            continue;
-
-        AddPluginsNode(Context, plugin);
+        AddPluginsNode(Context, Information);
     }
+
+    return TRUE;
 }
 
 INT_PTR CALLBACK PhPluginsDlgProc(
@@ -681,7 +678,7 @@ INT_PTR CALLBACK PhPluginsDlgProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_INSTRUCTION), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_DISABLED), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
 
-            PhpEnumerateLoadedPlugins(context);
+            PhEnumeratePlugins(PhpEnumeratePluginCallback, context);
             TreeNew_AutoSizeColumn(context->TreeNewHandle, PH_PLUGIN_TREE_COLUMN_ITEM_NAME, TN_AUTOSIZE_REMAINING_SPACE);
             PhSetWindowText(GetDlgItem(hwndDlg, IDC_DISABLED), PhaFormatString(L"Disabled Plugins (%lu)", PhpDisabledPluginsCount())->Buffer);
 
@@ -713,7 +710,7 @@ INT_PTR CALLBACK PhPluginsDlgProc(
                         );
 
                     ClearPluginsTree(context);
-                    PhpEnumerateLoadedPlugins(context);
+                    PhEnumeratePlugins(PhpEnumeratePluginCallback, context);
                     TreeNew_AutoSizeColumn(context->TreeNewHandle, PH_PLUGIN_TREE_COLUMN_ITEM_NAME, TN_AUTOSIZE_REMAINING_SPACE);
                     PhSetWindowText(GetDlgItem(hwndDlg, IDC_DISABLED), PhaFormatString(L"Disabled Plugins (%lu)", PhpDisabledPluginsCount())->Buffer);
                 }
