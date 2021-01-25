@@ -169,6 +169,20 @@ PPH_MODULE_PROVIDER PhCreateModuleProvider(
         }
     }
 
+    switch (PhCsImageCoherencyScanLevel)
+    {
+    case 1:
+        moduleProvider->ImageCoherencyScanLevel = PhImageCoherencyQuick;
+        break;
+    case 2:
+        moduleProvider->ImageCoherencyScanLevel = PhImageCoherencyNormal;
+        break;
+    case 3:
+    default:
+        moduleProvider->ImageCoherencyScanLevel = PhImageCoherencyFull;
+        break;
+    }
+
     RtlInitializeSListHead(&moduleProvider->QueryListHead);
 
     PhEmCallObjectOperation(EmModuleProviderType, moduleProvider, EmObjectCreate);
@@ -401,9 +415,9 @@ NTSTATUS PhpModuleQueryWorker(
             if (data->ModuleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE && !KphIsVerified())
             {
                 // The driver wasn't available or we failed verification preventing
-                // us from checking driver coherency. Pass the initial status so we
+                // us from checking driver coherency. Pass a special value so we
                 // don't highlight incorrect entries by default. (dmex)
-                data->ImageCoherencyStatus = data->ModuleItem->ImageCoherencyStatus;
+                data->ImageCoherencyStatus = LONG_MAX;
             }
             else
             {
@@ -412,7 +426,7 @@ NTSTATUS PhpModuleQueryWorker(
                     data->ModuleProvider->ProcessHandle,
                     data->ModuleItem->BaseAddress,
                     data->ModuleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE,
-                    PhImageCoherencyQuick,
+                    data->ModuleProvider->ImageCoherencyScanLevel,
                     &data->ImageCoherency
                     );
             }

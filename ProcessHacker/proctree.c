@@ -583,6 +583,7 @@ VOID PhpRemoveProcessNode(
     PhClearReference(&ProcessNode->SubprocessCountText);
     PhClearReference(&ProcessNode->ProtectionText);
     PhClearReference(&ProcessNode->DesktopInfoText);
+    PhClearReference(&ProcessNode->ImageCoherencyStatusText);
 
     PhDeleteGraphBuffers(&ProcessNode->CpuGraphBuffers);
     PhDeleteGraphBuffers(&ProcessNode->PrivateGraphBuffers);
@@ -3030,10 +3031,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 
                     if (processItem->ImageCoherencyStatus == STATUS_PENDING)
                     {
-                        PhMoveReference(&node->ImageCoherencyStatusText,
-                                        PhCreateString(L"Scanning..."));
-                        getCellText->Text.Buffer = node->ImageCoherencyStatusText->Buffer;
-                        getCellText->Text.Length = node->ImageCoherencyStatusText->Length;
+                        PhInitializeStringRef(&getCellText->Text, L"Scanning....");
                         break;
                     }
 
@@ -3041,23 +3039,22 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     {
                         if (processItem->ImageCoherencyStatus != STATUS_SUCCESS)
                         {
-                            PhMoveReference(&node->ImageCoherencyStatusText,
-                                            PhGetStatusMessage(processItem->ImageCoherencyStatus, 0));
-                            getCellText->Text.Buffer = node->ImageCoherencyStatusText->Buffer;
-                            getCellText->Text.Length = node->ImageCoherencyStatusText->Length;
+                            PhMoveReference(
+                                &node->ImageCoherencyStatusText,
+                                PhGetStatusMessage(processItem->ImageCoherencyStatus, 0)
+                                );
+                            getCellText->Text = PhGetStringRef(node->ImageCoherencyStatusText);
                         }
                         break;
                     }
 
                     if (processItem->ImageCoherency == 1.0f)
                     {
-                        memcpy(node->ImageCoherencyText, L"100%", sizeof(L"100%"));
-                        getCellText->Text.Buffer = node->ImageCoherencyText;
-                        getCellText->Text.Length = sizeof(L"100%") - sizeof(UNICODE_NULL);
+                        PhInitializeStringRef(&getCellText->Text, L"100%");
                         break;
                     }
 
-                    PhInitFormatF(&format[0], ((DOUBLE)processItem->ImageCoherency * 100.0f), 2);
+                    PhInitFormatF(&format[0], (DOUBLE)(processItem->ImageCoherency * 100.f), 2);
                     PhInitFormatS(&format[1], L"%");
 
                     if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), node->ImageCoherencyText, sizeof(node->ImageCoherencyText), &returnLength))

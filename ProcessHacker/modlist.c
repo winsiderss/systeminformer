@@ -1054,16 +1054,34 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                         moduleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE)
                     {
                         PH_FORMAT format[2];
-                        SIZE_T returnLength;
+
+                        if (moduleItem->ImageCoherencyStatus == LONG_MAX)
+                            break;
+
+                        if (moduleItem->ImageCoherencyStatus == STATUS_PENDING)
+                        {
+                            PhInitializeStringRef(&getCellText->Text, L"Scanning....");
+                            break;
+                        }
+
+                        if (moduleItem->ImageCoherencyStatus != STATUS_SUCCESS)
+                        {
+                            PhMoveReference(&node->ImageCoherencyText, PhGetStatusMessage(moduleItem->ImageCoherencyStatus, 0));
+                            getCellText->Text = PhGetStringRef(node->ImageCoherencyText);
+                            break;
+                        }
+
+                        if (moduleItem->ImageCoherency == 1.0f)
+                        {
+                            PhInitializeStringRef(&getCellText->Text, L"100%");
+                            break;
+                        }
 
                         PhInitFormatF(&format[0], (DOUBLE)(moduleItem->ImageCoherency * 100.0f), 2);
                         PhInitFormatS(&format[1], L"%");
 
-                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), node->ImageCoherencyText, sizeof(node->ImageCoherencyText), &returnLength))
-                        {
-                            getCellText->Text.Buffer = node->ImageCoherencyText;
-                            getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
-                        }
+                        PhMoveReference(&node->ImageCoherencyText, PhFormat(format, RTL_NUMBER_OF(format), PH_PTR_STR_LEN_1));
+                        getCellText->Text = PhGetStringRef(node->ImageCoherencyText);
                     }
                 }
                 break;
@@ -1316,11 +1334,22 @@ BOOLEAN PhShouldShowModuleCoherency(
     _In_ BOOLEAN CheckThreshold
     )
 {
-    if (ModuleItem->ImageCoherencyStatus == STATUS_PENDING)
+    if (PhCsImageCoherencyScanLevel == 0)
+    {
+        //
+        // The advanced option for the image coherency scan level is 0.
+        // This disables the scanning and we should not show the image
+        // coherency.
+        //
         return FALSE;
+    }
 
-    if (PhIsNullOrEmptyString(ModuleItem->FileName))
+    if (ModuleItem->ImageCoherencyStatus == STATUS_PENDING ||
+        ModuleItem->ImageCoherencyStatus == LONG_MAX ||
+        PhIsNullOrEmptyString(ModuleItem->FileName))
+    {
         return FALSE;
+    }
 
     if (!(ModuleItem->Type == PH_MODULE_TYPE_MODULE ||
         ModuleItem->Type == PH_MODULE_TYPE_WOW64_MODULE ||
