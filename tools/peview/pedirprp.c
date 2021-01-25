@@ -2,7 +2,7 @@
  * Process Hacker -
  *   PE viewer
  *
- * Copyright (C) 2019-2020 dmex
+ * Copyright (C) 2019-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -22,87 +22,139 @@
 
 #include <peview.h>
 
-VOID PvpPeEnumerateHeaderDirectory(
+BOOLEAN PvpPeCheckImageDataEntryAddress(
+    _In_ ULONG Index,
+    _In_ ULONG StartRva,
+    _In_ ULONG EndRva
+    )
+{
+    PIMAGE_DATA_DIRECTORY directory;
+
+    for (ULONG i = 0; i < IMAGE_NUMBEROF_DIRECTORY_ENTRIES; i++)
+    {
+        if (i == Index)
+            continue;
+
+        if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, i, &directory)))
+        {
+            if ((StartRva >= directory->VirtualAddress) &&
+                (StartRva < directory->VirtualAddress + directory->Size))
+            {
+                return TRUE;
+            }
+
+            if ((EndRva >= directory->VirtualAddress) &&
+                (EndRva < directory->VirtualAddress + directory->Size))
+            {
+                return TRUE;
+            }
+        }
+        else
+        {
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
+VOID PvpPeEnumerateImageDataDirectory(
     _In_ HWND ListViewHandle,
     _In_ ULONG Index,
     _In_ PWSTR Name
     )
 {
     INT lvItemIndex;
+    ULONG directoryAddress = 0;
+    ULONG directorySize = 0;
+    BOOLEAN directoryOverlay = FALSE;
     PIMAGE_DATA_DIRECTORY directory;
-    PIMAGE_SECTION_HEADER section = NULL;
+    PIMAGE_SECTION_HEADER directorySection = NULL;
     WCHAR value[PH_INT64_STR_LEN_1];
-
-    PhPrintUInt32(value, Index + 1);
-    lvItemIndex = PhAddListViewItem(ListViewHandle, MAXINT, value, NULL);
-    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, Name);
 
     if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, Index, &directory)))
     {
         if (directory->VirtualAddress)
         {
-            section = PhMappedImageRvaToSection(&PvMappedImage, directory->VirtualAddress);
-
-            PhPrintPointer(value, UlongToPtr(directory->VirtualAddress));
-            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, value);
-
-            PhPrintPointer(value, PTR_ADD_OFFSET(directory->VirtualAddress, directory->Size));
-            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, value);
+            directoryAddress = directory->VirtualAddress;
         }
 
         if (directory->Size)
         {
-            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 4, PhaFormatSize(directory->Size, ULONG_MAX)->Buffer);
+            directorySize = directory->Size;
         }
 
-        if (section)
+        if (directoryAddress)
         {
-            WCHAR sectionName[IMAGE_SIZEOF_SHORT_NAME + 1];
-
-            if (PhGetMappedImageSectionName(
-                section,
-                sectionName,
-                RTL_NUMBER_OF(sectionName),
-                NULL
-                ))
-            {
-                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 5, sectionName);
-            }
+            directorySection = PhMappedImageRvaToSection(&PvMappedImage, directoryAddress);
         }
 
-        if (directory->VirtualAddress && directory->Size)
+        if (directoryAddress && directorySize)
         {
-            __try
-            {
-                PVOID directoryAddress;
-                PH_HASH_CONTEXT hashContext;
-                PPH_STRING hashString;
-                UCHAR hash[32];
+            directoryOverlay = PvpPeCheckImageDataEntryAddress(
+                Index,
+                directoryAddress,
+                PtrToUlong(PTR_ADD_OFFSET(directoryAddress, directorySize))
+                );
+        }
+    }
 
-                if (directoryAddress = PhMappedImageRvaToVa(&PvMappedImage, directory->VirtualAddress, NULL))
+    PhPrintUInt32(value, Index + 1);
+    lvItemIndex = PhAddListViewItem(ListViewHandle, MAXINT, value, (PVOID)directoryOverlay);
+    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, Name);
+    PhPrintPointer(value, UlongToPtr(directoryAddress));
+    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, value);
+    PhPrintPointer(value, PTR_ADD_OFFSET(directoryAddress, directorySize));
+    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, value);
+    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 4, PhaFormatSize(directorySize, ULONG_MAX)->Buffer);
+
+    if (directorySection)
+    {
+        WCHAR sectionName[IMAGE_SIZEOF_SHORT_NAME + 1];
+
+        if (PhGetMappedImageSectionName(
+            directorySection,
+            sectionName,
+            RTL_NUMBER_OF(sectionName),
+            NULL
+            ))
+        {
+            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 5, sectionName);
+        }
+    }
+
+    if (directoryAddress && directorySize)
+    {
+        __try
+        {
+            PVOID directoryData;
+            PH_HASH_CONTEXT hashContext;
+            PPH_STRING hashString;
+            UCHAR hash[32];
+
+            if (directoryData = PhMappedImageRvaToVa(&PvMappedImage, directoryAddress, NULL))
+            {
+                PhInitializeHash(&hashContext, Md5HashAlgorithm);
+                PhUpdateHash(&hashContext, directoryData, directorySize);
+
+                if (PhFinalHash(&hashContext, hash, 16, NULL))
                 {
-                    PhInitializeHash(&hashContext, Md5HashAlgorithm);
-                    PhUpdateHash(&hashContext, directoryAddress, directory->Size);
-
-                    if (PhFinalHash(&hashContext, hash, 16, NULL))
+                    if (hashString = PhBufferToHexString(hash, 16))
                     {
-                        if (hashString = PhBufferToHexString(hash, 16))
-                        {
-                            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 6, hashString->Buffer);
-                            PhDereferenceObject(hashString);
-                        }
+                        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 6, hashString->Buffer);
+                        PhDereferenceObject(hashString);
                     }
                 }
             }
-            __except (EXCEPTION_EXECUTE_HANDLER)
-            {
-                PPH_STRING message;
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            PPH_STRING message;
 
-                //message = PH_AUTO(PhGetNtMessage(GetExceptionCode()));
-                message = PH_AUTO(PhGetWin32Message(RtlNtStatusToDosError(GetExceptionCode()))); // WIN32_FROM_NTSTATUS
+            //message = PH_AUTO(PhGetNtMessage(GetExceptionCode()));
+            message = PH_AUTO(PhGetWin32Message(RtlNtStatusToDosError(GetExceptionCode()))); // WIN32_FROM_NTSTATUS
 
-                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 6, PhGetStringOrEmpty(message));
-            }
+            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 6, PhGetStringOrEmpty(message));
         }
     }
 }
@@ -113,6 +165,17 @@ typedef struct _PVP_PE_DIRECTORY_CONTEXT
     HWND ListViewHandle;
     HIMAGELIST ListViewImageList;
 } PVP_PE_DIRECTORY_CONTEXT, *PPVP_PE_DIRECTORY_CONTEXT;
+
+COLORREF NTAPI PvPeSectionColorFunction(
+    _In_ INT Index,
+    _In_ PVOID Param,
+    _In_opt_ PVOID Context
+    )
+{
+    if ((BOOLEAN)Param)
+        return RGB(0xf0, 0xa0, 0xa0);
+    return RGB(0xff, 0xff, 0xff);
+}
 
 INT_PTR CALLBACK PvpPeDirectoryDlgProc(
     _In_ HWND hwndDlg,
@@ -154,27 +217,28 @@ INT_PTR CALLBACK PvpPeDirectoryDlgProc(
             PhAddListViewColumn(context->ListViewHandle, 5, 5, 5, LVCFMT_LEFT, 100, L"Section");
             PhAddListViewColumn(context->ListViewHandle, 6, 6, 6, LVCFMT_LEFT, 100, L"Hash");
             PhSetExtendedListView(context->ListViewHandle);
+            ExtendedListView_SetItemColorFunction(context->ListViewHandle, PvPeSectionColorFunction);
             PhLoadListViewColumnsFromSetting(L"ImageDirectoryListViewColumns", context->ListViewHandle);
 
             if (context->ListViewImageList = ImageList_Create(2, 20, ILC_MASK | ILC_COLOR, 1, 1))
                 ListView_SetImageList(context->ListViewHandle, context->ListViewImageList, LVSIL_SMALL);
 
             // for (ULONG i = 0; i < IMAGE_NUMBEROF_DIRECTORY_ENTRIES; i++)
-            PvpPeEnumerateHeaderDirectory(context->ListViewHandle, IMAGE_DIRECTORY_ENTRY_EXPORT, L"Export");
-            PvpPeEnumerateHeaderDirectory(context->ListViewHandle, IMAGE_DIRECTORY_ENTRY_IMPORT, L"Import");
-            PvpPeEnumerateHeaderDirectory(context->ListViewHandle, IMAGE_DIRECTORY_ENTRY_RESOURCE, L"Resource");
-            PvpPeEnumerateHeaderDirectory(context->ListViewHandle, IMAGE_DIRECTORY_ENTRY_EXCEPTION, L"Exception");
-            PvpPeEnumerateHeaderDirectory(context->ListViewHandle, IMAGE_DIRECTORY_ENTRY_SECURITY, L"Security");
-            PvpPeEnumerateHeaderDirectory(context->ListViewHandle, IMAGE_DIRECTORY_ENTRY_BASERELOC, L"Base relocation");
-            PvpPeEnumerateHeaderDirectory(context->ListViewHandle, IMAGE_DIRECTORY_ENTRY_DEBUG, L"Debug");
-            PvpPeEnumerateHeaderDirectory(context->ListViewHandle, IMAGE_DIRECTORY_ENTRY_ARCHITECTURE, L"Architecture");
-            PvpPeEnumerateHeaderDirectory(context->ListViewHandle, IMAGE_DIRECTORY_ENTRY_GLOBALPTR, L"Global PTR");
-            PvpPeEnumerateHeaderDirectory(context->ListViewHandle, IMAGE_DIRECTORY_ENTRY_TLS, L"TLS");
-            PvpPeEnumerateHeaderDirectory(context->ListViewHandle, IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG, L"Load configuration");
-            PvpPeEnumerateHeaderDirectory(context->ListViewHandle, IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT, L"Bound imports");
-            PvpPeEnumerateHeaderDirectory(context->ListViewHandle, IMAGE_DIRECTORY_ENTRY_IAT, L"IAT");
-            PvpPeEnumerateHeaderDirectory(context->ListViewHandle, IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT, L"Delay load imports");
-            PvpPeEnumerateHeaderDirectory(context->ListViewHandle, IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR, L"CLR");
+            PvpPeEnumerateImageDataDirectory(context->ListViewHandle, IMAGE_DIRECTORY_ENTRY_EXPORT, L"Export");
+            PvpPeEnumerateImageDataDirectory(context->ListViewHandle, IMAGE_DIRECTORY_ENTRY_IMPORT, L"Import");
+            PvpPeEnumerateImageDataDirectory(context->ListViewHandle, IMAGE_DIRECTORY_ENTRY_RESOURCE, L"Resource");
+            PvpPeEnumerateImageDataDirectory(context->ListViewHandle, IMAGE_DIRECTORY_ENTRY_EXCEPTION, L"Exception");
+            PvpPeEnumerateImageDataDirectory(context->ListViewHandle, IMAGE_DIRECTORY_ENTRY_SECURITY, L"Security");
+            PvpPeEnumerateImageDataDirectory(context->ListViewHandle, IMAGE_DIRECTORY_ENTRY_BASERELOC, L"Base relocation");
+            PvpPeEnumerateImageDataDirectory(context->ListViewHandle, IMAGE_DIRECTORY_ENTRY_DEBUG, L"Debug");
+            PvpPeEnumerateImageDataDirectory(context->ListViewHandle, IMAGE_DIRECTORY_ENTRY_ARCHITECTURE, L"Architecture");
+            PvpPeEnumerateImageDataDirectory(context->ListViewHandle, IMAGE_DIRECTORY_ENTRY_GLOBALPTR, L"Global PTR");
+            PvpPeEnumerateImageDataDirectory(context->ListViewHandle, IMAGE_DIRECTORY_ENTRY_TLS, L"TLS");
+            PvpPeEnumerateImageDataDirectory(context->ListViewHandle, IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG, L"Load configuration");
+            PvpPeEnumerateImageDataDirectory(context->ListViewHandle, IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT, L"Bound imports");
+            PvpPeEnumerateImageDataDirectory(context->ListViewHandle, IMAGE_DIRECTORY_ENTRY_IAT, L"IAT");
+            PvpPeEnumerateImageDataDirectory(context->ListViewHandle, IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT, L"Delay load imports");
+            PvpPeEnumerateImageDataDirectory(context->ListViewHandle, IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR, L"CLR");
 
             PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
         }
@@ -214,6 +278,11 @@ INT_PTR CALLBACK PvpPeDirectoryDlgProc(
             PvHandleListViewCommandCopy(hwndDlg, lParam, wParam, context->ListViewHandle);
         }
         break;
+    }
+
+    if (context)
+    {
+        REFLECT_MESSAGE_DLG(hwndDlg, context->ListViewHandle, uMsg, wParam, lParam);
     }
 
     return FALSE;
