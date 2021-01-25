@@ -4,7 +4,7 @@
  *
  * Copyright (C) 2010 wj32
  * Copyright (C) 2010 evilpie
- * Copyright (C) 2016-2019 dmex
+ * Copyright (C) 2016-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -408,8 +408,8 @@ PPH_STRING PhGetHostNameFromAddressEx(
 {
     BOOLEAN dnsLocalQuery = FALSE;
     PPH_STRING dnsHostNameString = NULL;
-    PPH_STRING dnsReverseNameString = NULL;
-    PDNS_RECORD dnsRecordList = NULL;
+    PPH_STRING dnsReverseNameString;
+    PDNS_RECORD dnsRecordList;
 
     switch (Address->Type)
     {
@@ -456,15 +456,13 @@ PPH_STRING PhGetHostNameFromAddressEx(
             DNS_TYPE_PTR
             );
     }
-    else if (DnsQuery_W_Import())
+    else
     {
-        DnsQuery_W_Import()(
+        dnsRecordList = PhDnsQuery2(
+            NULL,
             dnsReverseNameString->Buffer,
             DNS_TYPE_PTR,
-            DNS_QUERY_BYPASS_CACHE | DNS_QUERY_NO_HOSTS_FILE,
-            NULL,
-            &dnsRecordList,
-            NULL
+            DNS_QUERY_NO_HOSTS_FILE // DNS_QUERY_BYPASS_CACHE
             );
     }
     
