@@ -3,7 +3,7 @@
  *   Process properties: Statistics page
  *
  * Copyright (C) 2009-2016 wj32
- * Copyright (C) 2017-2020 dmex
+ * Copyright (C) 2017-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -274,7 +274,13 @@ VOID PhpUpdateProcessStatistics(
 
             if (NT_SUCCESS(PhGetProcessHandleCount(ProcessItem->QueryHandle, &handleInfo)))
             {
-                PhMoveReference(&Context->PeakHandles, PhFormatUInt64(handleInfo.HandleCountHighWatermark, TRUE));
+                // The HighWatermark changed on Windows 10 and doesn't track the peak handle count,
+                // instead the value is now the maximum count of the handle freelist which decreases
+                // when deallocating. So we'll track and cache the highest value where possible. (dmex)
+                if (handleInfo.HandleCountHighWatermark > Context->PeakHandleCount)
+                    Context->PeakHandleCount = handleInfo.HandleCountHighWatermark;
+
+                PhMoveReference(&Context->PeakHandles, PhFormatUInt64(Context->PeakHandleCount, TRUE));
             }
 
             PhMoveReference(&Context->GdiHandles, PhFormatUInt64(GetGuiResources(ProcessItem->QueryHandle, GR_GDIOBJECTS), TRUE)); // GDI handles

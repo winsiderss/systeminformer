@@ -304,6 +304,7 @@ typedef struct _PH_STATISTICS_CONTEXT
 
     ULONG PagePriority;
     IO_PRIORITY_HINT IoPriority;
+    ULONG PeakHandleCount;
     ULONG HangCount;
     ULONG GhostCount;
     ULONGLONG RunningTime;
