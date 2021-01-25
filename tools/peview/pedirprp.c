@@ -49,10 +49,6 @@ BOOLEAN PvpPeCheckImageDataEntryAddress(
                 return TRUE;
             }
         }
-        else
-        {
-            return TRUE;
-        }
     }
 
     return FALSE;
@@ -102,11 +98,19 @@ VOID PvpPeEnumerateImageDataDirectory(
     PhPrintUInt32(value, Index + 1);
     lvItemIndex = PhAddListViewItem(ListViewHandle, MAXINT, value, (PVOID)directoryOverlay);
     PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, Name);
-    PhPrintPointer(value, UlongToPtr(directoryAddress));
-    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, value);
-    PhPrintPointer(value, PTR_ADD_OFFSET(directoryAddress, directorySize));
-    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, value);
-    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 4, PhaFormatSize(directorySize, ULONG_MAX)->Buffer);
+
+    if (directoryAddress)
+    {
+        PhPrintPointer(value, UlongToPtr(directoryAddress));
+        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, value);
+    }
+
+    if (directorySize)
+    {
+        PhPrintPointer(value, PTR_ADD_OFFSET(directoryAddress, directorySize));
+        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, value);
+        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 4, PhaFormatSize(directorySize, ULONG_MAX)->Buffer);
+    }
 
     if (directorySection)
     {
