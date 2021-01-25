@@ -3,7 +3,7 @@
  *   Main window
  *
  * Copyright (C) 2009-2016 wj32
- * Copyright (C) 2017-2020 dmex
+ * Copyright (C) 2017-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -2257,7 +2257,7 @@ PPH_EMENU PhpCreateUsersMenu(
             PhInitFormatU(&format[0], sessions[i].SessionId);
             PhInitFormatS(&format[1], L": ");
             PhInitFormatS(&format[2], winStationInfo.Domain);
-            PhInitFormatS(&format[3], L"\\"); // OBJ_NAME_PATH_SEPARATOR
+            PhInitFormatC(&format[3], OBJ_NAME_PATH_SEPARATOR);
             PhInitFormatS(&format[4], winStationInfo.UserName);
 
             if (!PhFormatToBuffer(
@@ -3029,7 +3029,7 @@ VOID PhAddMiniProcessMenuItems(
 
     // Priority
 
-    priorityMenu = PhCreateEMenuItem(0, 0, L"&Priority", NULL, ProcessId);
+    priorityMenu = PhCreateEMenuItem(0, ID_PROCESS_PRIORITY, L"&Priority", NULL, ProcessId);
 
     PhInsertEMenuItem(priorityMenu, PhCreateEMenuItem(0, ID_PRIORITY_REALTIME, L"&Real time", NULL, ProcessId), ULONG_MAX);
     PhInsertEMenuItem(priorityMenu, PhCreateEMenuItem(0, ID_PRIORITY_HIGH, L"&High", NULL, ProcessId), ULONG_MAX);
@@ -3040,7 +3040,7 @@ VOID PhAddMiniProcessMenuItems(
 
     // I/O priority
 
-    ioPriorityMenu = PhCreateEMenuItem(0, 0, L"&I/O priority", NULL, ProcessId);
+    ioPriorityMenu = PhCreateEMenuItem(0, ID_PROCESS_IOPRIORITY, L"&I/O priority", NULL, ProcessId);
 
     PhInsertEMenuItem(ioPriorityMenu, PhCreateEMenuItem(0, ID_IOPRIORITY_HIGH, L"&High", NULL, ProcessId), ULONG_MAX);
     PhInsertEMenuItem(ioPriorityMenu, PhCreateEMenuItem(0, ID_IOPRIORITY_NORMAL, L"&Normal", NULL, ProcessId), ULONG_MAX);
