@@ -3,7 +3,7 @@
  *   program settings cache
  *
  * Copyright (C) 2010-2016 wj32
- * Copyright (C) 2017-2020 dmex
+ * Copyright (C) 2017-2021 dmex
  * Copyright (C) 2021 jxy-s
  *
  * This file is part of Process Hacker.
@@ -147,7 +147,6 @@ VOID PhAddDefaultSettings(
     PhpAddScalableIntegerPairSetting(L"PageFileWindowSize", L"@96|500,300");
     PhpAddStringSetting(L"PageFileListViewColumns", L"");
     PhpAddStringSetting(L"PluginManagerTreeListColumns", L"");
-    PhpAddStringSetting(L"PluginsDirectory", L"plugins");
     PhpAddStringSetting(L"ProcessServiceListViewColumns", L"");
     PhpAddStringSetting(L"ProcessTreeColumnSetConfig", L"");
     PhpAddStringSetting(L"ProcessTreeListColumns", L"");
