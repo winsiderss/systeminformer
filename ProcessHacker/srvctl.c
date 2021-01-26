@@ -30,6 +30,7 @@
 
 #include <actions.h>
 #include <srvprv.h>
+#include <mainwnd.h>
 
 typedef struct _PH_SERVICES_CONTEXT
 {
@@ -447,13 +448,14 @@ INT_PTR CALLBACK PhpServicesPageProc(
                 if (numberOfItems != 0)
                 {
                     menu = PhCreateEMenu();
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 1, L"Go to service", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
                     PhInsertCopyListViewEMenuItem(menu, IDC_COPY, context->ListViewHandle);
 
                     item = PhShowEMenu(
                         menu,
                         hwndDlg,
-                        PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT,
+                        PH_EMENU_SHOW_LEFTRIGHT,
                         PH_ALIGN_LEFT | PH_ALIGN_TOP,
                         point.x,
                         point.y
@@ -472,6 +474,12 @@ INT_PTR CALLBACK PhpServicesPageProc(
                         {
                             switch (item->Id)
                             {
+                            case 1:
+                                {
+                                    ProcessHacker_SelectTabPage(1);
+                                    ProcessHacker_SelectServiceItem((PPH_SERVICE_ITEM)listviewItems[0]);
+                                }
+                                break;
                             case IDC_COPY:
                                 {
                                     PhCopyListView(context->ListViewHandle);
