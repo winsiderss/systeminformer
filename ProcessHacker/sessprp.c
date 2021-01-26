@@ -111,7 +111,7 @@ VOID PhpSessionPropertiesQueryWinStationInfo(
         WCHAR formatBuffer[256];
 
         PhInitFormatS(&format[0], winStationInfo.Domain);
-        PhInitFormatS(&format[1], L"\\"); // OBJ_NAME_PATH_SEPARATOR
+        PhInitFormatC(&format[1], OBJ_NAME_PATH_SEPARATOR);
         PhInitFormatS(&format[2], winStationInfo.UserName);
 
         if (PhFormatToBuffer(
