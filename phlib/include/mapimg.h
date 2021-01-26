@@ -466,7 +466,9 @@ typedef struct _PH_IMAGE_RESOURCE_ENTRY
     ULONG_PTR Type;
     ULONG_PTR Name;
     ULONG_PTR Language;
+    ULONG Offset;
     ULONG Size;
+    ULONG CodePage;
     PVOID Data;
 } PH_IMAGE_RESOURCE_ENTRY, *PPH_IMAGE_RESOURCE_ENTRY;
 

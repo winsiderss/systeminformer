@@ -2008,8 +2008,10 @@ NTSTATUS PhGetMappedImageResources(
                     entry.Type = NAME_FROM_RESOURCE_ENTRY(resourceDirectory, resourceType);
                     entry.Name = NAME_FROM_RESOURCE_ENTRY(resourceDirectory, resourceName);
                     entry.Language = NAME_FROM_RESOURCE_ENTRY(resourceDirectory, resourceLanguage);
-                    entry.Data = PhMappedImageRvaToVa(MappedImage, resourceData->OffsetToData, NULL);
+                    entry.Offset = resourceData->OffsetToData;
                     entry.Size = resourceData->Size;
+                    entry.CodePage = resourceData->CodePage;
+                    entry.Data = PhMappedImageRvaToVa(MappedImage, resourceData->OffsetToData, NULL);
 
                     PhAddItemArray(&resourceArray, &entry);
                 }
