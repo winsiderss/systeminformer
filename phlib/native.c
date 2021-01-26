@@ -3176,18 +3176,35 @@ NTSTATUS PhDeleteFile(
 {
     if (WindowsVersion >= WINDOWS_10_RS5)
     {
+        NTSTATUS status;
         FILE_DISPOSITION_INFO_EX dispositionInfoEx;
         IO_STATUS_BLOCK isb;
 
         dispositionInfoEx.Flags = FILE_DISPOSITION_FLAG_DELETE | FILE_DISPOSITION_FLAG_IGNORE_READONLY_ATTRIBUTE;
-
-        return NtSetInformationFile(
+        status = NtSetInformationFile(
             FileHandle,
             &isb,
             &dispositionInfoEx,
             sizeof(FILE_DISPOSITION_INFO_EX),
             FileDispositionInformationEx
             );
+
+        if (!NT_SUCCESS(status))
+        {
+            FILE_DISPOSITION_INFORMATION dispositionInfo;
+
+            dispositionInfo.DeleteFile = TRUE;
+
+            status = NtSetInformationFile(
+                FileHandle,
+                &isb,
+                &dispositionInfo,
+                sizeof(FILE_DISPOSITION_INFORMATION),
+                FileDispositionInformation
+                );
+        }
+
+        return status;
     }
     else
     {
@@ -8202,6 +8219,7 @@ NTSTATUS PhOpenFileWin32Ex(
     return status;
 }
 
+// rev from OpenFileById
 NTSTATUS PhOpenFileById(
     _Out_ PHANDLE FileHandle,
     _In_ HANDLE VolumeHandle,
@@ -8449,20 +8467,42 @@ NTSTATUS PhDeleteFileWin32(
     NTSTATUS status;
     HANDLE fileHandle;
 
-    status = PhCreateFileWin32(
-        &fileHandle,
-        FileName,
-        DELETE,
-        FILE_ATTRIBUTE_NORMAL,
-        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-        FILE_OPEN,
-        FILE_DELETE_ON_CLOSE
-        );
+    if (WindowsVersion >= WINDOWS_10_RS5)
+    {
+        status = PhCreateFileWin32(
+            &fileHandle,
+            FileName,
+            DELETE,
+            FILE_ATTRIBUTE_NORMAL,
+            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+            FILE_OPEN,
+            FILE_NON_DIRECTORY_FILE
+            );
 
-    if (!NT_SUCCESS(status))
-        return status;
+        if (!NT_SUCCESS(status))
+            return status;
 
-    NtClose(fileHandle);
+        status = PhDeleteFile(fileHandle);
+
+        NtClose(fileHandle);
+    }
+    else
+    {
+        status = PhCreateFileWin32(
+            &fileHandle,
+            FileName,
+            DELETE,
+            FILE_ATTRIBUTE_NORMAL,
+            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+            FILE_OPEN,
+            FILE_DELETE_ON_CLOSE
+            );
+
+        if (!NT_SUCCESS(status))
+            return status;
+
+        NtClose(fileHandle);
+    }
 
     return status;
 }
