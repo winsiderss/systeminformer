@@ -173,6 +173,8 @@ typedef enum _PVE_RESOURCES_COLUMN_INDEX
     PVE_RESOURCES_COLUMN_INDEX_COUNT,
     PVE_RESOURCES_COLUMN_INDEX_TYPE,
     PVE_RESOURCES_COLUMN_INDEX_NAME,
+    PVE_RESOURCES_COLUMN_INDEX_STARTRVA,
+    PVE_RESOURCES_COLUMN_INDEX_ENDRVA,
     PVE_RESOURCES_COLUMN_INDEX_SIZE,
     PVE_RESOURCES_COLUMN_INDEX_LCID,
     PVE_RESOURCES_COLUMN_INDEX_HASH
@@ -208,9 +210,11 @@ INT_PTR CALLBACK PvpPeResourcesDlgProc(
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"#");
             PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 150, L"Type");
             PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 80, L"Name");
-            PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 100, L"Size");
-            PhAddListViewColumn(lvHandle, 4, 4, 4, LVCFMT_LEFT, 100, L"Language");
-            PhAddListViewColumn(lvHandle, 5, 5, 5, LVCFMT_LEFT, 100, L"Hash");
+            PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 80, L"RVA (start)");
+            PhAddListViewColumn(lvHandle, 4, 4, 4, LVCFMT_LEFT, 80, L"RVA (end)");
+            PhAddListViewColumn(lvHandle, 5, 5, 5, LVCFMT_LEFT, 100, L"Size");
+            PhAddListViewColumn(lvHandle, 6, 6, 6, LVCFMT_LEFT, 100, L"Language");
+            PhAddListViewColumn(lvHandle, 7, 7, 7, LVCFMT_LEFT, 100, L"Hash");
             PhSetExtendedListView(lvHandle);
             PhLoadListViewColumnsFromSetting(L"ImageResourcesListViewColumns", lvHandle);
 
@@ -219,12 +223,12 @@ INT_PTR CALLBACK PvpPeResourcesDlgProc(
                 for (i = 0; i < resources.NumberOfEntries; i++)
                 {
                     PPH_STRING string;
-                    WCHAR number[PH_INT32_STR_LEN_1];
+                    WCHAR value[PH_INT64_STR_LEN_1];
 
                     entry = resources.ResourceEntries[i];
 
-                    PhPrintUInt32(number, ++count);
-                    lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, number, UlongToPtr(i));
+                    PhPrintUInt32(value, ++count);
+                    lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, value, UlongToPtr(i));
 
                     if (IS_INTRESOURCE(entry.Type))
                     {
@@ -241,8 +245,8 @@ INT_PTR CALLBACK PvpPeResourcesDlgProc(
 
                     if (IS_INTRESOURCE(entry.Name))
                     {
-                        PhPrintUInt32(number, (ULONG)entry.Name);
-                        PhSetListViewSubItem(lvHandle, lvItemIndex, PVE_RESOURCES_COLUMN_INDEX_NAME, number);
+                        PhPrintUInt32(value, (ULONG)entry.Name);
+                        PhSetListViewSubItem(lvHandle, lvItemIndex, PVE_RESOURCES_COLUMN_INDEX_NAME, value);
                     }
                     else
                     {
@@ -265,17 +269,17 @@ INT_PTR CALLBACK PvpPeResourcesDlgProc(
 
                             if (NT_SUCCESS(RtlLcidToLocaleName((ULONG)entry.Language, &localeNameUs, 0, FALSE)))
                             {
-                                PhPrintUInt32(number, (ULONG)entry.Language);
-                                PhSetListViewSubItem(lvHandle, lvItemIndex, PVE_RESOURCES_COLUMN_INDEX_LCID, PhaFormatString(L"%s (%s)", number, localeName)->Buffer);
+                                PhPrintUInt32(value, (ULONG)entry.Language);
+                                PhSetListViewSubItem(lvHandle, lvItemIndex, PVE_RESOURCES_COLUMN_INDEX_LCID, PhaFormatString(L"%s (%s)", value, localeName)->Buffer);
                             }
                             else
                             {
-                                PhPrintUInt32(number, (ULONG)entry.Language);
-                                PhSetListViewSubItem(lvHandle, lvItemIndex, PVE_RESOURCES_COLUMN_INDEX_LCID, number);
+                                PhPrintUInt32(value, (ULONG)entry.Language);
+                                PhSetListViewSubItem(lvHandle, lvItemIndex, PVE_RESOURCES_COLUMN_INDEX_LCID, value);
                             }
 #else
-                            PhPrintUInt32(number, (ULONG)entry.Language);
-                            PhSetListViewSubItem(lvHandle, lvItemIndex, PVE_RESOURCES_COLUMN_INDEX_LCID, number);
+                            PhPrintUInt32(value, (ULONG)entry.Language);
+                            PhSetListViewSubItem(lvHandle, lvItemIndex, PVE_RESOURCES_COLUMN_INDEX_LCID, value);
 #endif
                         }
                         else // LOCALE_NEUTRAL
@@ -292,6 +296,10 @@ INT_PTR CALLBACK PvpPeResourcesDlgProc(
                         PhDereferenceObject(string);
                     }
 
+                    PhPrintPointer(value, UlongToPtr(entry.Offset));
+                    PhSetListViewSubItem(lvHandle, lvItemIndex, PVE_RESOURCES_COLUMN_INDEX_STARTRVA, value);
+                    PhPrintPointer(value, PTR_ADD_OFFSET(entry.Offset, entry.Size));
+                    PhSetListViewSubItem(lvHandle, lvItemIndex, PVE_RESOURCES_COLUMN_INDEX_ENDRVA, value);
                     PhSetListViewSubItem(lvHandle, lvItemIndex, PVE_RESOURCES_COLUMN_INDEX_SIZE, PhaFormatSize(entry.Size, ULONG_MAX)->Buffer);
 
                     if (entry.Data && entry.Size)
