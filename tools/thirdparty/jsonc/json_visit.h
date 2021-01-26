@@ -8,6 +8,10 @@
  */
 #include "json_object.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef int(json_c_visit_userfunc)(json_object *jso, int flags, json_object *parent_jso,
                                    const char *jso_key, size_t *jso_index, void *userarg);
 
@@ -89,5 +93,9 @@ JSON_EXPORT int json_c_visit(json_object *jso, int future_flags, json_c_visit_us
  * should stop immediately, and cause json_c_visit to return an error.
  */
 #define JSON_C_VISIT_RETURN_ERROR -1
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _json_c_json_visit_h_ */

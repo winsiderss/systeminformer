@@ -10,10 +10,10 @@
 
 const char *json_c_version(void)
 {
-	return JSON_C_VERSION;
+    return JSON_C_VERSION;
 }
 
 int json_c_version_num(void)
 {
-	return JSON_C_VERSION_NUM;
+    return JSON_C_VERSION_NUM;
 }

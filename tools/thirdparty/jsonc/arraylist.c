@@ -38,15 +38,20 @@
 
 struct array_list *array_list_new(array_list_free_fn *free_fn)
 {
+    return array_list_new2(free_fn, ARRAY_LIST_DEFAULT_SIZE);
+}
+
+struct array_list *array_list_new2(array_list_free_fn *free_fn, int initial_size)
+{
     struct array_list *arr;
 
-    arr = (struct array_list *)calloc(1, sizeof(struct array_list));
+    arr = (struct array_list *)malloc(sizeof(struct array_list));
     if (!arr)
         return NULL;
-    arr->size = ARRAY_LIST_DEFAULT_SIZE;
+    arr->size = initial_size;
     arr->length = 0;
     arr->free_fn = free_fn;
-    if (!(arr->array = (void **)calloc(arr->size, sizeof(void *))))
+    if (!(arr->array = (void **)malloc(arr->size * sizeof(void *))))
     {
         free(arr);
         return NULL;
@@ -92,11 +97,31 @@ static int array_list_expand_internal(struct array_list *arr, size_t max)
     if (!(t = realloc(arr->array, new_size * sizeof(void *))))
         return -1;
     arr->array = (void **)t;
-    (void)memset(arr->array + arr->size, 0, (new_size - arr->size) * sizeof(void *));
     arr->size = new_size;
     return 0;
 }
 
+int array_list_shrink(struct array_list *arr, size_t empty_slots)
+{
+    void *t;
+    size_t new_size;
+
+    new_size = arr->length + empty_slots;
+    if (new_size == arr->size)
+        return 0;
+    if (new_size > arr->size)
+        return array_list_expand_internal(arr, new_size);
+    if (new_size == 0)
+        new_size = 1;
+
+    if (!(t = realloc(arr->array, new_size * sizeof(void *))))
+        return -1;
+    arr->array = (void **)t;
+    arr->size = new_size;
+    return 0;
+}
+
+//static inline int _array_list_put_idx(struct array_list *arr, size_t idx, void *data)
 int array_list_put_idx(struct array_list *arr, size_t idx, void *data)
 {
     if (idx > SIZE_T_MAX - 1)
@@ -106,6 +131,17 @@ int array_list_put_idx(struct array_list *arr, size_t idx, void *data)
     if (idx < arr->length && arr->array[idx])
         arr->free_fn(arr->array[idx]);
     arr->array[idx] = data;
+    if (idx > arr->length)
+    {
+        /* Zero out the arraylist slots in between the old length
+           and the newly added entry so we know those entries are
+           empty.
+           e.g. when setting array[7] in an array that used to be 
+           only 5 elements longs, array[5] and array[6] need to be
+           set to 0.
+         */
+        memset(arr->array + arr->length, 0, (idx - arr->length) * sizeof(void *));
+    }
     if (arr->length <= idx)
         arr->length = idx + 1;
     return 0;
@@ -113,7 +149,17 @@ int array_list_put_idx(struct array_list *arr, size_t idx, void *data)
 
 int array_list_add(struct array_list *arr, void *data)
 {
-    return array_list_put_idx(arr, arr->length, data);
+    /* Repeat some of array_list_put_idx() so we can skip several
+       checks that we know are unnecessary when appending at the end
+     */
+    size_t idx = arr->length;
+    if (idx > SIZE_T_MAX - 1)
+        return -1;
+    if (array_list_expand_internal(arr, idx + 1))
+        return -1;
+    arr->array[idx] = data;
+    arr->length++;
+    return 0;
 }
 
 void array_list_sort(struct array_list *arr, int (__cdecl* compar)(const void *, const void *))
@@ -136,11 +182,16 @@ int array_list_del_idx(struct array_list *arr, size_t idx, size_t count)
 {
     size_t i, stop;
 
+    /* Avoid overflow in calculation with large indices. */
+    if (idx > SIZE_T_MAX - count)
+        return -1;
     stop = idx + count;
     if (idx >= arr->length || stop > arr->length)
         return -1;
     for (i = idx; i < stop; ++i)
     {
+        // Because put_idx can skip entries, we need to check if
+        // there's actually anything in each slot we're erasing.
         if (arr->array[i])
             arr->free_fn(arr->array[i]);
     }

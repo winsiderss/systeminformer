@@ -24,11 +24,11 @@
 #define _printbuf_h_
 
 #ifndef JSON_EXPORT
-//#if defined(_MSC_VER)
-//#define JSON_EXPORT __declspec(dllexport)
-//#else
+#if defined(_MSC_VER)
+#define JSON_EXPORT __declspec(dllexport)
+#else
 #define JSON_EXPORT extern
-//#endif
+#endif
 #endif
 
 #ifdef __cplusplus
@@ -37,9 +37,9 @@ extern "C" {
 
 struct printbuf
 {
-	char *buf;
-	int bpos;
-	int size;
+    char *buf;
+    int bpos;
+    int size;
 };
 typedef struct printbuf printbuf;
 
@@ -57,7 +57,7 @@ JSON_EXPORT int printbuf_memappend(struct printbuf *p, const char *buf, int size
 
 // printbuf_memappend_fast(p, bufptr, bufsize)
 // Modified by dmex.
-void printbuf_memappend_fast(struct printbuf *p, const char *bufptr, size_t bufsize);
+void printbuf_memappend_fast(struct printbuf* p, const char* bufptr, size_t bufsize);
 
 #define printbuf_length(p) ((p)->bpos)
 
@@ -81,7 +81,7 @@ void printbuf_memappend_fast(struct printbuf *p, const char *bufptr, size_t bufs
  *   sprintbuf()
  */
 #define printbuf_strappend(pb, str) \
-	printbuf_memappend((pb), _printbuf_check_literal(str), sizeof(str) - 1)
+    printbuf_memappend((pb), _printbuf_check_literal(str), sizeof(str) - 1)
 
 /**
  * Set len bytes of the buffer to charvalue, starting at offset offset.

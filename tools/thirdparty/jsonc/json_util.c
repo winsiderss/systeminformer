@@ -41,13 +41,13 @@
 #include <unistd.h>
 #endif /* HAVE_UNISTD_H */
 
-#ifdef _WIN32
+#ifdef WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <io.h>
 #include <windows.h>
-#endif /* defined(_WIN32) */
+#endif /* defined(WIN32) */
 
-#if !defined(HAVE_OPEN) && defined(_WIN32)
+#if !defined(HAVE_OPEN) && defined(WIN32)
 #define open _open
 #endif
 
@@ -139,7 +139,7 @@ struct json_object *json_object_from_file(wchar_t *filename)
     NTSTATUS status;
     HANDLE fileHandle;
     IO_STATUS_BLOCK isb;
-    struct json_object *obj = NULL;
+    struct json_object* obj = NULL;
 
     status = PhCreateFileWin32(
         &fileHandle,
@@ -295,6 +295,7 @@ int json_object_to_file(wchar_t *filename, struct json_object *obj)
     return json_object_to_file_ext(filename, obj, JSON_C_TO_STRING_PLAIN);
 }
 
+// Deprecated json_parse_double function.  See json_tokener_parse_double instead.
 int json_parse_double(const char *buf, double *retval)
 {
     char *end;
@@ -318,19 +319,17 @@ int json_parse_uint64(const char *buf, uint64_t *retval)
 {
     char *end = NULL;
     uint64_t val;
-    errno = 1;
 
+    errno = 0;
     while (*buf == ' ')
-    {
         buf++;
-    }
     if (*buf == '-')
-        errno = 0;
+        return 1; /* error: uint cannot be negative */
 
     val = strtoull(buf, &end, 10);
     if (end != buf)
         *retval = val;
-    return ((errno == 0) || (end == buf)) ? 1 : 0;
+    return ((val == 0 && errno != 0) || (end == buf)) ? 1 : 0;
 }
 
 #ifndef HAVE_REALLOC
