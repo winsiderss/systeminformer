@@ -22,7 +22,6 @@
 
 #include <peview.h>
 
-
 typedef enum _PHP_OPTIONS_INDEX
 {
    // PHP_OPTIONS_INDEX_ENABLE_WARNINGS,
@@ -192,20 +191,32 @@ INT_PTR CALLBACK PvOptionsWndProc(
     _In_ LPARAM lParam
     )
 {
+    static PH_LAYOUT_MANAGER LayoutManager;
+
     switch (uMsg)
     {
     case WM_INITDIALOG:
         {
             HWND comboBoxHandle;
+            HICON smallIcon;
+            HICON largeIcon;
 
-            SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)PvImageSmallIcon);
-            SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PvImageLargeIcon);
+            PhGetStockApplicationIcon(&smallIcon, &largeIcon);
+            SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)smallIcon);
+            SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)largeIcon);
+            //SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)PvImageSmallIcon);
+            //SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PvImageLargeIcon);
 
             comboBoxHandle = GetDlgItem(hwndDlg, IDC_MAXSIZEUNIT);
-
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             PvLoadGeneralPage(hwndDlg);
+
+            PhInitializeLayoutManager(&LayoutManager, hwndDlg);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_DBGHELPSEARCHPATH), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_SETTINGS), NULL, PH_ANCHOR_ALL);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDCANCEL), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
             for (ULONG i = 0; i < RTL_NUMBER_OF(PhSizeUnitNames); i++)
                 ComboBox_AddString(comboBoxHandle, PhSizeUnitNames[i]);
@@ -233,6 +244,11 @@ INT_PTR CALLBACK PvOptionsWndProc(
                 }
                 break;
             }
+        }
+        break;
+    case WM_SIZE:
+        {
+            PhLayoutManagerLayout(&LayoutManager);
         }
         break;
     }
