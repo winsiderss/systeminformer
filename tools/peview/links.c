@@ -51,34 +51,19 @@ VOID PvpPeEnumerateFileLinks(
             {
                 NTSTATUS status;
                 HANDLE linkHandle;
-                UNICODE_STRING fileNameUs;
-                OBJECT_ATTRIBUTES oa;
-                IO_STATUS_BLOCK isb;
+                PH_FILE_ID_DESCRIPTOR fileId;
 
-                fileNameUs.Length = sizeof(LONGLONG);
-                fileNameUs.MaximumLength = sizeof(LONGLONG);
-                fileNameUs.Buffer = (PWSTR)&i->ParentFileId;
+                memset(&fileId, 0, sizeof(PH_FILE_ID_DESCRIPTOR));
+                fileId.Type = FileIdType;
+                fileId.FileId.QuadPart = i->ParentFileId;
 
-                InitializeObjectAttributes(
-                    &oa,
-                    &fileNameUs,
-                    OBJ_CASE_INSENSITIVE,
-                    fileHandle,
-                    NULL
-                    );
-
-                status = NtCreateFile(
+                status = PhOpenFileById(
                     &linkHandle,
+                    fileHandle,
+                    &fileId,
                     FILE_READ_ATTRIBUTES | SYNCHRONIZE,
-                    &oa,
-                    &isb,
-                    NULL,
-                    FILE_ATTRIBUTE_NORMAL,
                     FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                    FILE_OPEN,
-                    FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_BY_FILE_ID,
-                    NULL,
-                    0
+                    FILE_SYNCHRONOUS_IO_NONALERT
                     );
 
                 if (NT_SUCCESS(status))

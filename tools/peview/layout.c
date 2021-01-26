@@ -673,34 +673,19 @@ PPH_STRING PvLayoutGetParentIdName(
     PPH_STRING parentName = NULL;
     NTSTATUS status;
     HANDLE linkHandle;
-    UNICODE_STRING fileNameUs;
-    OBJECT_ATTRIBUTES oa;
-    IO_STATUS_BLOCK isb;
+    PH_FILE_ID_DESCRIPTOR fileId;
 
-    fileNameUs.Length = sizeof(LONGLONG);
-    fileNameUs.MaximumLength = sizeof(LONGLONG);
-    fileNameUs.Buffer = (PWSTR)&ParentFileId;
+    memset(&fileId, 0, sizeof(PH_FILE_ID_DESCRIPTOR));
+    fileId.Type = FileIdType;
+    fileId.FileId.QuadPart = ParentFileId;
 
-    InitializeObjectAttributes(
-        &oa,
-        &fileNameUs,
-        OBJ_CASE_INSENSITIVE,
-        FileHandle,
-        NULL
-        );
-
-    status = NtCreateFile(
+    status = PhOpenFileById(
         &linkHandle,
+        FileHandle,
+        &fileId,
         FILE_READ_ATTRIBUTES | SYNCHRONIZE,
-        &oa,
-        &isb,
-        NULL,
-        FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-        FILE_OPEN,
-        FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_BY_FILE_ID,
-        NULL,
-        0
+        FILE_SYNCHRONOUS_IO_NONALERT
         );
 
     if (NT_SUCCESS(status))
@@ -1113,8 +1098,9 @@ NTSTATUS PvLayoutEnumerateFileLayouts(
             {
                 PPV_LAYOUT_NODE parentNode;
 
-                parentNode = PvAddChildLayoutNode(Context, NULL, PvLayoutNameFlagsToString(fileLayoutNameEntry->Flags), PhCreateStringEx(fileLayoutNameEntry->FileName, fileLayoutNameEntry->FileNameLength));
-                //PvAddChildLayoutNode(Context, parentNode, L"Parent Name", PvLayoutGetParentIdName(fileHandle, fileLayoutNameEntry->ParentFileReferenceNumber)->Buffer);
+                parentNode = PvAddChildLayoutNode(Context, NULL, L"Filename", NULL);
+                PvAddChildLayoutNode(Context, parentNode, PvLayoutNameFlagsToString(fileLayoutNameEntry->Flags), PhCreateStringEx(fileLayoutNameEntry->FileName, fileLayoutNameEntry->FileNameLength));
+                //PvAddChildLayoutNode(Context, parentNode, L"Parent Name", PvLayoutGetParentIdName(fileHandle, fileLayoutNameEntry->ParentFileReferenceNumber));
                 PvAddChildLayoutNode(Context, parentNode, L"Parent ID", PhFormatString(L"%I64u (0x%I64x)", fileLayoutNameEntry->ParentFileReferenceNumber, fileLayoutNameEntry->ParentFileReferenceNumber));
 
                 if (fileLayoutNameEntry->NextNameOffset == 0)
@@ -1133,11 +1119,12 @@ NTSTATUS PvLayoutEnumerateFileLayouts(
                     break;
                 }
 
-                if (fileLayoutSteamEntry->AttributeTypeCode == 0x80)
-                    parentNode = PvAddChildLayoutNode(Context, NULL, L"Stream", PhCreateString(L"::$DATA"));
-                else
-                    parentNode = PvAddChildLayoutNode(Context, NULL, L"Stream", PhCreateStringEx(fileLayoutSteamEntry->StreamIdentifier, fileLayoutSteamEntry->StreamIdentifierLength));
+                parentNode = PvAddChildLayoutNode(Context, NULL, L"Stream", NULL);
 
+                if (fileLayoutSteamEntry->AttributeTypeCode == 0x80)
+                    PvAddChildLayoutNode(Context, parentNode, L"Name", PhCreateString(L"::$DATA"));
+                else
+                    PvAddChildLayoutNode(Context, parentNode, L"Name", PhCreateStringEx(fileLayoutSteamEntry->StreamIdentifier, fileLayoutSteamEntry->StreamIdentifierLength));
                 PvAddChildLayoutNode(Context, parentNode, L"Attributes", PhFormatUInt64(fileLayoutSteamEntry->AttributeFlags, FALSE));
                 PvAddChildLayoutNode(Context, parentNode, L"Attribute typecode", PhFormatString(L"0x%x", fileLayoutSteamEntry->AttributeTypeCode));
                 PvAddChildLayoutNode(Context, parentNode, L"Flags", PvLayoutSteamFlagsToString(fileLayoutSteamEntry->Flags));

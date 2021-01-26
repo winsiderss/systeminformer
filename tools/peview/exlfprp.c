@@ -177,6 +177,14 @@ VOID PvExlfProperties(
             );
         PvAddPropPage(propContext, newPage);
 
+        // Layout page
+        newPage = PvCreatePropPageContext(
+            MAKEINTRESOURCE(IDD_PELAYOUT),
+            PvpPeLayoutDlgProc,
+            NULL
+            );
+        PvAddPropPage(propContext, newPage);
+
         PhModalPropertySheet(&propContext->PropSheetHeader);
 
         PhDereferenceObject(propContext);
