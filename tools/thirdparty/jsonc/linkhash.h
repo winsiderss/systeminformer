@@ -84,27 +84,27 @@ typedef int(lh_equal_fn)(const void *k1, const void *k2);
  */
 struct lh_entry
 {
-	/**
-	 * The key.  Use lh_entry_k() instead of accessing this directly.
-	 */
-	const void *k;
-	/**
-	 * A flag for users of linkhash to know whether or not they
-	 * need to free k.
-	 */
-	int k_is_constant;
-	/**
-	 * The value.  Use lh_entry_v() instead of accessing this directly.
-	 */
-	const void *v;
-	/**
-	 * The next entry
-	 */
-	struct lh_entry *next;
-	/**
-	 * The previous entry.
-	 */
-	struct lh_entry *prev;
+    /**
+     * The key.  Use lh_entry_k() instead of accessing this directly.
+     */
+    const void *k;
+    /**
+     * A flag for users of linkhash to know whether or not they
+     * need to free k.
+     */
+    int k_is_constant;
+    /**
+     * The value.  Use lh_entry_v() instead of accessing this directly.
+     */
+    const void *v;
+    /**
+     * The next entry
+     */
+    struct lh_entry *next;
+    /**
+     * The previous entry.
+     */
+    struct lh_entry *prev;
 };
 
 /**
@@ -112,33 +112,33 @@ struct lh_entry
  */
 struct lh_table
 {
-	/**
-	 * Size of our hash.
-	 */
-	int size;
-	/**
-	 * Numbers of entries.
-	 */
-	int count;
+    /**
+     * Size of our hash.
+     */
+    int size;
+    /**
+     * Numbers of entries.
+     */
+    int count;
 
-	/**
-	 * The first entry.
-	 */
-	struct lh_entry *head;
+    /**
+     * The first entry.
+     */
+    struct lh_entry *head;
 
-	/**
-	 * The last entry.
-	 */
-	struct lh_entry *tail;
+    /**
+     * The last entry.
+     */
+    struct lh_entry *tail;
 
-	struct lh_entry *table;
+    struct lh_entry *table;
 
-	/**
-	 * A pointer onto the function responsible for freeing an entry.
-	 */
-	lh_entry_free_fn *free_fn;
-	lh_hash_fn *hash_fn;
-	lh_equal_fn *equal_fn;
+    /**
+     * A pointer onto the function responsible for freeing an entry.
+     */
+    lh_entry_free_fn *free_fn;
+    lh_hash_fn *hash_fn;
+    lh_equal_fn *equal_fn;
 };
 typedef struct lh_table lh_table;
 
@@ -155,7 +155,7 @@ typedef struct lh_table lh_table;
  * @param tmp a struct lh_entry * variable to hold a temporary pointer to the next element
  */
 #define lh_foreach_safe(table, entry, tmp) \
-	for (entry = table->head; entry && ((tmp = entry->next) || 1); entry = tmp)
+    for (entry = table->head; entry && ((tmp = entry->next) || 1); entry = tmp)
 
 /**
  * Create a new linkhash table.
@@ -311,11 +311,11 @@ int lh_table_resize(struct lh_table *t, int new_size);
 /**
  * @deprecated Don't use this outside of linkhash.h:
  */
-#if !defined(_MSC_VER) || (_MSC_VER > 1800)
+#if (defined(AIX_CC) || (defined(_MSC_VER) && (_MSC_VER <= 1800)) )
 /* VS2010 can't handle inline funcs, so skip it there */
-#define _LH_INLINE inline
-#else
 #define _LH_INLINE
+#else
+#define _LH_INLINE inline
 #endif
 
 /**
@@ -331,7 +331,7 @@ int lh_table_resize(struct lh_table *t, int new_size);
  */
 static _LH_INLINE unsigned long lh_get_hash(const struct lh_table *t, const void *k)
 {
-	return t->hash_fn(k);
+    return t->hash_fn(k);
 }
 
 #undef _LH_INLINE

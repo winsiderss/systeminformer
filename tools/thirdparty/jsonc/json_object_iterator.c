@@ -9,6 +9,7 @@
 *
 *******************************************************************************
 */
+#include "config.h"
 
 #include <stddef.h>
 
@@ -60,18 +61,18 @@ static const void *kObjectEndIterValue = NULL;
  */
 struct json_object_iterator json_object_iter_begin(struct json_object *obj)
 {
-	struct json_object_iterator iter;
-	struct lh_table *pTable;
+    struct json_object_iterator iter;
+    struct lh_table *pTable;
 
-	/// @note json_object_get_object will return NULL if passed NULL
-	///       or a non-json_type_object instance
-	pTable = json_object_get_object(obj);
-	JASSERT(NULL != pTable);
+    /// @note json_object_get_object will return NULL if passed NULL
+    ///       or a non-json_type_object instance
+    pTable = json_object_get_object(obj);
+    JASSERT(NULL != pTable);
 
-	/// @note For a pair-less Object, head is NULL, which matches our
-	///       definition of the "end" iterator
-	iter.opaque_ = pTable->head;
-	return iter;
+    /// @note For a pair-less Object, head is NULL, which matches our
+    ///       definition of the "end" iterator
+    iter.opaque_ = pTable->head;
+    return iter;
 }
 
 /**
@@ -79,14 +80,14 @@ struct json_object_iterator json_object_iter_begin(struct json_object *obj)
  */
 struct json_object_iterator json_object_iter_end(const struct json_object *obj)
 {
-	struct json_object_iterator iter;
+    struct json_object_iterator iter;
 
-	JASSERT(NULL != obj);
-	JASSERT(json_object_is_type(obj, json_type_object));
+    JASSERT(NULL != obj);
+    JASSERT(json_object_is_type(obj, json_type_object));
 
-	iter.opaque_ = kObjectEndIterValue;
+    iter.opaque_ = kObjectEndIterValue;
 
-	return iter;
+    return iter;
 }
 
 /**
@@ -94,10 +95,10 @@ struct json_object_iterator json_object_iter_end(const struct json_object *obj)
  */
 void json_object_iter_next(struct json_object_iterator *iter)
 {
-	JASSERT(NULL != iter);
-	JASSERT(kObjectEndIterValue != iter->opaque_);
+    JASSERT(NULL != iter);
+    JASSERT(kObjectEndIterValue != iter->opaque_);
 
-	iter->opaque_ = ((const struct lh_entry *)iter->opaque_)->next;
+    iter->opaque_ = ((const struct lh_entry *)iter->opaque_)->next;
 }
 
 /**
@@ -105,10 +106,10 @@ void json_object_iter_next(struct json_object_iterator *iter)
  */
 const char *json_object_iter_peek_name(const struct json_object_iterator *iter)
 {
-	JASSERT(NULL != iter);
-	JASSERT(kObjectEndIterValue != iter->opaque_);
+    JASSERT(NULL != iter);
+    JASSERT(kObjectEndIterValue != iter->opaque_);
 
-	return (const char *)(((const struct lh_entry *)iter->opaque_)->k);
+    return (const char *)(((const struct lh_entry *)iter->opaque_)->k);
 }
 
 /**
@@ -116,10 +117,10 @@ const char *json_object_iter_peek_name(const struct json_object_iterator *iter)
  */
 struct json_object *json_object_iter_peek_value(const struct json_object_iterator *iter)
 {
-	JASSERT(NULL != iter);
-	JASSERT(kObjectEndIterValue != iter->opaque_);
+    JASSERT(NULL != iter);
+    JASSERT(kObjectEndIterValue != iter->opaque_);
 
-	return (struct json_object *)lh_entry_v((const struct lh_entry *)iter->opaque_);
+    return (struct json_object *)lh_entry_v((const struct lh_entry *)iter->opaque_);
 }
 
 /**
@@ -128,10 +129,10 @@ struct json_object *json_object_iter_peek_value(const struct json_object_iterato
 json_bool json_object_iter_equal(const struct json_object_iterator *iter1,
                                  const struct json_object_iterator *iter2)
 {
-	JASSERT(NULL != iter1);
-	JASSERT(NULL != iter2);
+    JASSERT(NULL != iter1);
+    JASSERT(NULL != iter2);
 
-	return (iter1->opaque_ == iter2->opaque_);
+    return (iter1->opaque_ == iter2->opaque_);
 }
 
 /**
@@ -139,14 +140,14 @@ json_bool json_object_iter_equal(const struct json_object_iterator *iter1,
  */
 struct json_object_iterator json_object_iter_init_default(void)
 {
-	struct json_object_iterator iter;
+    struct json_object_iterator iter;
 
-	/**
-	 * @note Make this a negative, invalid value, such that
-	 *       accidental access to it would likely be trapped by the
-	 *       hardware as an invalid address.
-	 */
-	iter.opaque_ = NULL;
+    /**
+     * @note Make this a negative, invalid value, such that
+     *       accidental access to it would likely be trapped by the
+     *       hardware as an invalid address.
+     */
+    iter.opaque_ = NULL;
 
-	return iter;
+    return iter;
 }

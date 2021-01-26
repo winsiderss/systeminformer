@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012,2017 Eric Haszlakiewicz
+ * Copyright (c) 2012,2017,2019,2020 Eric Hawicz
  *
  * This library is free software; you can redistribute it and/or modify
  * it under the terms of the MIT license. See COPYING for details.
@@ -12,19 +12,23 @@
 #ifndef _json_c_version_h_
 #define _json_c_version_h_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define JSON_C_MAJOR_VERSION 0
-#define JSON_C_MINOR_VERSION 14
+#define JSON_C_MINOR_VERSION 15
 #define JSON_C_MICRO_VERSION 0
 #define JSON_C_VERSION_NUM \
-	((JSON_C_MAJOR_VERSION << 16) | (JSON_C_MINOR_VERSION << 8) | JSON_C_MICRO_VERSION)
-#define JSON_C_VERSION "0.14"
+    ((JSON_C_MAJOR_VERSION << 16) | (JSON_C_MINOR_VERSION << 8) | JSON_C_MICRO_VERSION)
+#define JSON_C_VERSION "0.15"
 
 #ifndef JSON_EXPORT
-//#if defined(_MSC_VER)
-//#define JSON_EXPORT __declspec(dllexport)
-//#else
+#if defined(_MSC_VER)
+#define JSON_EXPORT __declspec(dllexport)
+#else
 #define JSON_EXPORT extern
-//#endif
+#endif
 #endif
 
 /**
@@ -43,5 +47,9 @@ JSON_EXPORT const char *json_c_version(void); /* Returns JSON_C_VERSION */
  * @return the version of the json-c library as an int
  */
 JSON_EXPORT int json_c_version_num(void); /* Returns JSON_C_VERSION_NUM */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -41,7 +41,7 @@ struct json_object_iter_info_;
  */
 struct json_object_iterator
 {
-	const void *opaque_;
+    const void *opaque_;
 };
 
 /**

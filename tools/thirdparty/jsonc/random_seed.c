@@ -26,19 +26,8 @@
 static void do_cpuid(int regs[], int h)
 {
     /* clang-format off */
-    __asm__ __volatile__(
-#if defined __x86_64__
-                         "pushq %%rbx;\n"
-#else
-                         "pushl %%ebx;\n"
-#endif
-                         "cpuid;\n"
-#if defined __x86_64__
-                         "popq %%rbx;\n"
-#else
-                         "popl %%ebx;\n"
-#endif
-                         : "=a"(regs[0]), [ebx] "=r"(regs[1]), "=c"(regs[2]), "=d"(regs[3])
+    __asm__ __volatile__("cpuid"
+                         : "=a"(regs[0]), "=b"(regs[1]), "=c"(regs[2]), "=d"(regs[3])
                          : "a"(h));
     /* clang-format on */
 }
@@ -54,12 +43,51 @@ static void do_cpuid(int regs[], int h)
 
 #if HAS_X86_CPUID
 
+static int get_rdrand_seed(void);
+
+/* Valid values are -1 (haven't tested), 0 (no), and 1 (yes). */
+static int _has_rdrand = -1;
+
 static int has_rdrand(void)
 {
-    // CPUID.01H:ECX.RDRAND[bit 30] == 1
+    if (_has_rdrand != -1)
+    {
+        return _has_rdrand;
+    }
+
+    /* CPUID.01H:ECX.RDRAND[bit 30] == 1 */
     int regs[4];
     do_cpuid(regs, 1);
-    return (regs[2] & (1 << 30)) != 0;
+    if (!(regs[2] & (1 << 30)))
+    {
+        _has_rdrand = 0;
+        return 0;
+    }
+
+    /*
+     * Some CPUs advertise RDRAND in CPUID, but return 0xFFFFFFFF
+     * unconditionally. To avoid locking up later, test RDRAND here. If over
+     * 3 trials RDRAND has returned the same value, declare it broken.
+     * Example CPUs are AMD Ryzen 3000 series
+     * and much older AMD APUs, such as the E1-1500
+     * https://github.com/systemd/systemd/issues/11810
+     * https://linuxreviews.org/RDRAND_stops_returning_random_values_on_older_AMD_CPUs_after_suspend
+     */
+    _has_rdrand = 0;
+    int prev = get_rdrand_seed();
+    for (int i = 0; i < 3; i++)
+    {
+        int temp = get_rdrand_seed();
+        if (temp != prev)
+        {
+            _has_rdrand = 1;
+            break;
+        }
+
+        prev = temp;
+    }
+
+    return _has_rdrand;
 }
 
 #endif
@@ -74,7 +102,7 @@ static int get_rdrand_seed(void)
 {
     DEBUG_SEED("get_rdrand_seed");
     int _eax;
-    // rdrand eax
+    /* rdrand eax */
     /* clang-format off */
     __asm__ __volatile__("1: .byte 0x0F\n"
                          "   .byte 0xC7\n"
@@ -114,7 +142,7 @@ static int get_rdrand_seed(void)
     DEBUG_SEED("get_rdrand_seed");
     int _eax;
 retry:
-    // rdrand eax
+    /* rdrand eax */
     __asm _emit 0x0F __asm _emit 0xC7 __asm _emit 0xF0
     __asm jnc retry
     __asm mov _eax, eax
@@ -182,39 +210,51 @@ static int get_dev_random_seed(void)
 
 /* get_cryptgenrandom_seed */
 
-//#ifdef _WIN32
+//#ifdef WIN32
 //
 //#define HAVE_CRYPTGENRANDOM 1
 //
 ///* clang-format off */
 //#include <windows.h>
+//
+///* Caution: these blank lines must remain so clang-format doesn't reorder
+//   includes to put windows.h after wincrypt.h */
+//
 //#include <wincrypt.h>
 ///* clang-format on */
 //#ifndef __GNUC__
 //#pragma comment(lib, "advapi32.lib")
 //#endif
 //
+//static int get_time_seed(void);
+//
 //static int get_cryptgenrandom_seed(void)
 //{
 //    HCRYPTPROV hProvider = 0;
+//    DWORD dwFlags = CRYPT_VERIFYCONTEXT;
 //    int r;
 //
 //    DEBUG_SEED("get_cryptgenrandom_seed");
 //
-//    if (!CryptAcquireContextW(&hProvider, 0, 0, PROV_RSA_FULL,
-//                              CRYPT_VERIFYCONTEXT | CRYPT_SILENT))
-//    {
-//        fprintf(stderr, "error CryptAcquireContextW");
-//        exit(1);
-//    }
+//    /* WinNT 4 and Win98 do no support CRYPT_SILENT */
+//    if (LOBYTE(LOWORD(GetVersion())) > 4)
+//        dwFlags |= CRYPT_SILENT;
 //
-//    if (!CryptGenRandom(hProvider, sizeof(r), (BYTE *)&r))
+//    if (!CryptAcquireContextA(&hProvider, 0, 0, PROV_RSA_FULL, dwFlags))
 //    {
-//        fprintf(stderr, "error CryptGenRandom");
-//        exit(1);
+//        fprintf(stderr, "error CryptAcquireContextA 0x%08lx", GetLastError());
+//        r = get_time_seed();
 //    }
-//
-//    CryptReleaseContext(hProvider, 0);
+//    else
+//    {
+//        BOOL ret = CryptGenRandom(hProvider, sizeof(r), (BYTE*)&r);
+//        CryptReleaseContext(hProvider, 0);
+//        if (!ret)
+//        {
+//            fprintf(stderr, "error CryptGenRandom 0x%08lx", GetLastError());
+//            r = get_time_seed();
+//        }
+//    }
 //
 //    return r;
 //}
@@ -236,6 +276,9 @@ static int get_time_seed(void)
 
 int json_c_get_random_seed(void)
 {
+#ifdef OVERRIDE_GET_RANDOM_SEED
+    OVERRIDE_GET_RANDOM_SEED;
+#endif
 #if defined HAVE_RDRAND && HAVE_RDRAND
     if (has_rdrand())
         return get_rdrand_seed();
