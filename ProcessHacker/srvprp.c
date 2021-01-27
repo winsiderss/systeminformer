@@ -234,7 +234,7 @@ static VOID PhpRefreshControls(
     }
     else
     {
-        EnableWindow(GetDlgItem(hwndDlg, IDC_DELAYEDSTART), TRUE);
+        EnableWindow(GetDlgItem(hwndDlg, IDC_USERACCOUNT), TRUE);
         EnableWindow(GetDlgItem(hwndDlg, IDC_PASSWORD), TRUE);
         EnableWindow(GetDlgItem(hwndDlg, IDC_PASSWORDCHECK), TRUE);
         EnableWindow(GetDlgItem(hwndDlg, IDC_SERVICEDLL), TRUE);
