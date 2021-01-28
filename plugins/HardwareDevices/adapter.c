@@ -3,7 +3,7 @@
  *   Hardware Devices Plugin
  *
  * Copyright (C) 2016 wj32
- * Copyright (C) 2015-2020 dmex
+ * Copyright (C) 2015-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -64,7 +64,6 @@ VOID NetAdaptersUpdate(
         PDV_NETADAPTER_ENTRY entry;
         ULONG64 networkInOctets = 0;
         ULONG64 networkOutOctets = 0;
-        ULONG64 linkSpeedValue = 0;
 
         entry = PhReferenceObjectSafe(NetworkAdaptersList->Items[i]);
 
@@ -172,14 +171,16 @@ VOID NetAdaptersUpdate(
             PhInitializeDelta(&entry->NetworkSendDelta);
             PhInitializeDelta(&entry->NetworkReceiveDelta);
         }
-
-        if (entry->NetworkReceiveRaw < networkInOctets)
+        else
+        {
+            //if (entry->NetworkReceiveRaw < networkInOctets)
             entry->NetworkReceiveRaw = networkInOctets;
-        if (entry->NetworkSendRaw < networkOutOctets)
+            //if (entry->NetworkSendRaw < networkOutOctets)
             entry->NetworkSendRaw = networkOutOctets;
 
-        PhUpdateDelta(&entry->NetworkSendDelta, entry->NetworkSendRaw);
-        PhUpdateDelta(&entry->NetworkReceiveDelta, entry->NetworkReceiveRaw);
+            PhUpdateDelta(&entry->NetworkSendDelta, entry->NetworkSendRaw);
+            PhUpdateDelta(&entry->NetworkReceiveDelta, entry->NetworkReceiveRaw);
+        }
 
         if (!entry->HaveFirstSample)
         {
