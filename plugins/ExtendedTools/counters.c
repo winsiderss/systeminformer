@@ -2,7 +2,7 @@
  * Process Hacker .NET Tools -
  *   GPU performance counters
  *
- * Copyright (C) 2019-2020 dmex
+ * Copyright (C) 2019-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -68,6 +68,27 @@ typedef struct _ET_GPU_COUNTER
 //    { L"\\GPU Process Memory(*)\\Shared Usage", NULL },
 //};
 
+static BOOLEAN NTAPI EtpRunningTimeEqualFunction(
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
+    )
+{
+    PET_GPU_COUNTER entry1 = Entry1;
+    PET_GPU_COUNTER entry2 = Entry2;
+
+    return entry1->EngineId == entry2->EngineId &&
+        entry1->ProcessId == entry2->ProcessId;
+}
+
+static ULONG NTAPI EtpEtpRunningTimeHashFunction(
+    _In_ PVOID Entry
+    )
+{
+    PET_GPU_COUNTER entry = Entry;
+
+    return PhHashInt64(entry->EngineId) ^ PhHashIntPtr((ULONG_PTR)entry->ProcessId);
+}
+
 static BOOLEAN NTAPI EtpDedicatedEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -98,8 +119,8 @@ VOID EtGpuCountersInitialization(
     {
         EtGpuRunningTimeHashTable = PhCreateHashtable(
             sizeof(ET_GPU_COUNTER),
-            EtpDedicatedEqualFunction,
-            EtpDedicatedHashFunction,
+            EtpRunningTimeEqualFunction,
+            EtpEtpRunningTimeHashFunction,
             10
             );
         EtGpuDedicatedHashTable = PhCreateHashtable(
@@ -448,13 +469,11 @@ VOID ParseGpuEngineUtilizationCounter(
             )
         {
             lookupEntry.ProcessId = (HANDLE)processId;
+            lookupEntry.EngineId = engineId;
 
             if (entry = PhFindEntryHashtable(EtGpuRunningTimeHashTable, &lookupEntry))
             {
-                if (entry->Value < InstanceValue)
-                    entry->Value = InstanceValue;
-
-                entry->EngineId = engineId;
+                entry->Value = InstanceValue;
             }
             else
             {

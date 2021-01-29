@@ -2,7 +2,7 @@
  * Process Hacker Extended Tools -
  *   GPU details window
  *
- * Copyright (C) 2018-2020 dmex
+ * Copyright (C) 2018-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -22,6 +22,10 @@
 
 #include "exttools.h"
 #include "gpumon.h"
+
+HWND EtGpuDetailsDialogHandle = NULL;
+HANDLE EtGpuDetailsDialogThreadHandle = NULL;
+PH_EVENT EtGpuDetailsInitializedEvent = PH_EVENT_INIT;
 
 typedef enum _GPUADAPTER_DETAILS_INDEX
 {
@@ -491,6 +495,16 @@ INT_PTR CALLBACK EtpGpuDetailsDlgProc(
             EtpGpuDetailsEnumAdapters(context->ListViewHandle);
         }
         break;
+    case ET_WM_SHOWDIALOG:
+        {
+            if (IsMinimized(hwndDlg))
+                ShowWindow(hwndDlg, SW_RESTORE);
+            else
+                ShowWindow(hwndDlg, SW_SHOW);
+
+            SetForegroundWindow(hwndDlg);
+        }
+        break;
     case WM_CONTEXTMENU:
         {
             if ((HWND)wParam == context->ListViewHandle)
@@ -562,27 +576,28 @@ NTSTATUS EtGpuDetailsDialogThreadStart(
 {
     BOOL result;
     MSG message;
-    HWND windowHandle;
     PH_AUTO_POOL autoPool;
 
     PhInitializeAutoPool(&autoPool);
 
-    windowHandle = CreateDialog(
+    EtGpuDetailsDialogHandle = CreateDialog(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_SYSINFO_GPUDETAILS),
         !!PhGetIntegerSetting(L"ForceNoParent") ? NULL : Parameter,
         EtpGpuDetailsDlgProc
         );
 
-    ShowWindow(windowHandle, SW_SHOW);
-    SetForegroundWindow(windowHandle);
+    PhSetEvent(&EtGpuDetailsInitializedEvent);
+
+    ShowWindow(EtGpuDetailsDialogHandle, SW_SHOW);
+    SetForegroundWindow(EtGpuDetailsDialogHandle);
 
     while (result = GetMessage(&message, NULL, 0, 0))
     {
         if (result == -1)
             break;
 
-        if (!IsDialogMessage(windowHandle, &message))
+        if (!IsDialogMessage(EtGpuDetailsDialogHandle, &message))
         {
             TranslateMessage(&message);
             DispatchMessage(&message);
@@ -593,6 +608,15 @@ NTSTATUS EtGpuDetailsDialogThreadStart(
 
     PhDeleteAutoPool(&autoPool);
 
+    if (EtGpuDetailsDialogThreadHandle)
+    {
+        NtClose(EtGpuDetailsDialogThreadHandle);
+        EtGpuDetailsDialogThreadHandle = NULL;
+        EtGpuDetailsDialogHandle = NULL;
+    }
+
+    PhResetEvent(&EtGpuDetailsInitializedEvent);
+
     return STATUS_SUCCESS;
 }
 
@@ -600,5 +624,16 @@ VOID EtShowGpuDetailsDialog(
     _In_ HWND ParentWindowHandle
     )
 {
-    PhCreateThread2(EtGpuDetailsDialogThreadStart, ParentWindowHandle);
+    if (!EtGpuDetailsDialogThreadHandle)
+    {
+        if (!NT_SUCCESS(PhCreateThreadEx(&EtGpuDetailsDialogThreadHandle, EtGpuDetailsDialogThreadStart, ParentWindowHandle)))
+        {
+            PhShowError(NULL, L"%s", L"Unable to create the window.");
+            return;
+        }
+
+        PhWaitForEvent(&EtGpuDetailsInitializedEvent, NULL);
+    }
+
+    PostMessage(EtGpuDetailsDialogHandle, ET_WM_SHOWDIALOG, 0, 0);
 }
