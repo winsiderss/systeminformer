@@ -44,8 +44,8 @@ typedef struct _STORAGESIGNATURE
 
 typedef struct _STORAGEHEADER
 {
-    BYTE Flags;     // STGHDR_xxx flags.
-    BYTE Reserved;
+    UCHAR Flags;     // STGHDR_xxx flags.
+    UCHAR Reserved;
     USHORT Streams; // How many streams are there.
 } STORAGEHEADER, *PSTORAGEHEADER;
 
@@ -55,6 +55,17 @@ typedef struct _STORAGESTREAM
     ULONG Size;    // Size of the file.
     CHAR Name[32]; // Start of name, null terminated.
 } STORAGESTREAM, *PSTORAGESTREAM;
+
+typedef struct _MDSTREAMHEADER
+{
+    ULONG Reserved;
+    UCHAR Major;
+    UCHAR Minor;
+    UCHAR Heaps;
+    UCHAR Rid;
+    ULONGLONG MaskValid;
+    ULONGLONG Sorted;
+} MDSTREAMHEADER, *PMDSTREAMHEADER;
 #include <poppack.h>
 
 PSTORAGESIGNATURE PvpPeGetClrMetaDataHeader(
