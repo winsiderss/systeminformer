@@ -534,10 +534,10 @@ BOOLEAN fuzzy_hash_buffer(
     if (!(ctx = fuzzy_new()))
         return FALSE;
 
-    if (fuzzy_set_total_input_length(ctx, BufferLength) < 0)
+    if (fuzzy_set_total_input_length(ctx, (uint_least64_t)BufferLength) < 0)
         goto out;
 
-    if (fuzzy_update(ctx, Buffer, BufferLength) < 0)
+    if (fuzzy_update(ctx, Buffer, (size_t)BufferLength) < 0)
         goto out;
 
     if (fuzzy_digest(ctx, result, 0) < 0)
