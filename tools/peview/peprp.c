@@ -3,7 +3,7 @@
  *   PE viewer
  *
  * Copyright (C) 2010-2011 wj32
- * Copyright (C) 2017-2020 dmex
+ * Copyright (C) 2017-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -436,6 +436,16 @@ VOID PvPeProperties(
             PvAddPropPage(propContext, newPage);
         }
 
+        // Hashes page
+        {
+            newPage = PvCreatePropPageContext(
+                MAKEINTRESOURCE(IDD_PEHASHES),
+                PvpPeHashesDlgProc,
+                NULL
+                );
+            PvAddPropPage(propContext, newPage);
+        }
+        
         // Text preview page
         {
             newPage = PvCreatePropPageContext(
