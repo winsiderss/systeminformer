@@ -22,6 +22,12 @@
     <Filter Include="Source Files\Pages\Linux">
       <UniqueIdentifier>{3213da7e-9e01-48a4-8895-c4dd1499b2fa}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\ssdeep">
+      <UniqueIdentifier>{84ecc5ac-b90d-41b6-a9f2-5cf08691450e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\ssdeep">
+      <UniqueIdentifier>{d4f51c2b-a25b-4233-a6e5-5b08792ed641}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.c">
@@ -132,6 +138,12 @@
     <ClCompile Include="layout.c">
       <Filter>Source Files\Pages</Filter>
     </ClCompile>
+    <ClCompile Include="ssdeep\fuzzy.c">
+      <Filter>Source Files\ssdeep</Filter>
+    </ClCompile>
+    <ClCompile Include="hashprp.c">
+      <Filter>Source Files\Pages\Windows</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\peview.h">
@@ -157,6 +169,9 @@
     </ClInclude>
     <ClInclude Include="include\mscoree.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ssdeep\fuzzy.h">
+      <Filter>Header Files\ssdeep</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
