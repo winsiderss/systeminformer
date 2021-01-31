@@ -132,6 +132,11 @@ BOOLEAN PhHandleCopyCellEMenuItem(
     _In_ struct _PH_EMENU_ITEM* SelectedItem
     );
 
+VOID PvpPeEnumerateNestedSignatures(
+    _In_ PPV_PE_CERTIFICATE_CONTEXT Context,
+    _In_ PCMSG_SIGNER_INFO SignerInfo
+    );
+
 static BOOLEAN WordMatchStringRef(
     _In_ PPV_PE_CERTIFICATE_CONTEXT Context,
     _In_ PPH_STRINGREF Text
@@ -1152,6 +1157,78 @@ BOOLEAN CALLBACK PvpPeEnumSecurityCallback(
     return FALSE;
 }
 
+VOID PvpPeEnumerateCounterSignSignatures(
+    _In_ PPV_PE_CERTIFICATE_CONTEXT Context,
+    _In_ PCMSG_SIGNER_INFO SignerInfo
+    )
+{
+    HCERTSTORE cryptStoreHandle = NULL;
+    HCRYPTMSG cryptMessageHandle = NULL;
+    PCCERT_CONTEXT certificateContext = NULL;
+    PCMSG_SIGNER_INFO cryptMessageSignerInfo = NULL;
+    ULONG certificateEncoding;
+    ULONG certificateContentType;
+    ULONG certificateFormatType;
+    ULONG index = ULONG_MAX;
+
+    for (ULONG i = 0; i < SignerInfo->UnauthAttrs.cAttr; i++)
+    {
+        // Do we need to support szOID_RSA_counterSign?
+        if (PhEqualBytesZ(SignerInfo->UnauthAttrs.rgAttr[i].pszObjId, szOID_RFC3161_counterSign, FALSE))
+        {
+            index = i;
+            break;
+        }
+    }
+
+    if (index == ULONG_MAX)
+        return;
+
+    if (CryptQueryObject(
+        CERT_QUERY_OBJECT_BLOB,
+        SignerInfo->UnauthAttrs.rgAttr[index].rgValue,
+        CERT_QUERY_CONTENT_FLAG_ALL,
+        CERT_QUERY_FORMAT_FLAG_ALL,
+        0,
+        &certificateEncoding,
+        &certificateContentType,
+        &certificateFormatType,
+        &cryptStoreHandle,
+        &cryptMessageHandle,
+        NULL
+        ))
+    {
+        ULONG signerCount = 0;
+        ULONG signerLength = sizeof(ULONG);
+
+        while (certificateContext = CertEnumCertificatesInStore(cryptStoreHandle, certificateContext))
+        {
+            PV_CERT_ENUM_CONTEXT enumContext;
+
+            enumContext.RootNode = PvAddChildCertificateNode(Context, NULL, PV_CERTIFICATE_NODE_TYPE_NESTED, certificateContext);
+            enumContext.RootNodeType = PV_CERTIFICATE_NODE_TYPE_NESTEDARRAY;
+            enumContext.WindowContext = Context;
+
+            PhEnumImageCertificates(Context, PvpPeEnumSecurityCallback, certificateContext, &enumContext);
+        }
+
+        if (CryptMsgGetParam(cryptMessageHandle, CMSG_SIGNER_COUNT_PARAM, 0, &signerCount, &signerLength))
+        {
+            for (ULONG i = 0; i < signerCount; i++)
+            {
+                if (cryptMessageSignerInfo = PvpPeGetSignerInfoIndex(cryptMessageHandle, i))
+                {
+                    PvpPeEnumerateNestedSignatures(Context, cryptMessageSignerInfo);
+
+                    PvpPeEnumerateCounterSignSignatures(Context, cryptMessageSignerInfo);
+
+                    PhFree(cryptMessageSignerInfo);
+                }
+            }
+        }
+    }
+}
+
 VOID PvpPeEnumerateNestedSignatures(
     _In_ PPV_PE_CERTIFICATE_CONTEXT Context,
     _In_ PCMSG_SIGNER_INFO SignerInfo
@@ -1214,6 +1291,8 @@ VOID PvpPeEnumerateNestedSignatures(
                 {
                     PvpPeEnumerateNestedSignatures(Context, cryptMessageSignerInfo);
 
+                    PvpPeEnumerateCounterSignSignatures(Context, cryptMessageSignerInfo);
+
                     PhFree(cryptMessageSignerInfo);
                 }
             }
@@ -1234,6 +1313,7 @@ VOID PvpPeEnumerateFileCertificates(
     PCCERT_CONTEXT certificateContext = NULL;
     HCRYPTMSG cryptMessageHandle = NULL;
     PCMSG_SIGNER_INFO cryptMessageSignerInfo = NULL;
+    PCMSG_SIGNER_INFO cryptMessageCounterSignerInfo = NULL;
     ULONG certificateDirectoryLength = 0;
     ULONG certificateEncoding;
     ULONG certificateContentType;
@@ -1310,6 +1390,8 @@ VOID PvpPeEnumerateFileCertificates(
                 if (cryptMessageSignerInfo = PvpPeGetSignerInfoIndex(cryptMessageHandle, i))
                 {
                     PvpPeEnumerateNestedSignatures(Context, cryptMessageSignerInfo);
+
+                    PvpPeEnumerateCounterSignSignatures(Context, cryptMessageSignerInfo);
 
                     PhFree(cryptMessageSignerInfo);
                 }
