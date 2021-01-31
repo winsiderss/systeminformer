@@ -99,22 +99,31 @@ BOOLEAN PvShellExecuteRestart(
     _In_opt_ HWND WindowHandle
     )
 {
+    static PH_STRINGREF seperator = PH_STRINGREF_INIT(L"\"");
     BOOLEAN result;
     PPH_STRING filename;
+    PPH_STRING parameters;
 
     if (!(filename = PhGetApplicationFileName()))
         return FALSE;
 
+    parameters = PhConcatStringRef3(
+        &seperator,
+        &PvFileName->sr,
+        &seperator
+        );
+
     result = PhShellExecuteEx(
         WindowHandle,
         PhGetString(filename),
-        PhGetString(PvFileName),
+        PhGetString(parameters),
         SW_SHOW,
         0,
         0,
         NULL
         );
 
+    PhDereferenceObject(parameters);
     PhDereferenceObject(filename);
 
     return result;
