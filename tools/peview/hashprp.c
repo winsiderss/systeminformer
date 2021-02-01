@@ -310,6 +310,13 @@ PPH_STRING PvpGetMappedImageAuthentihash(
         BCryptHashData(hashContext->HashHandle, PTR_ADD_OFFSET(PvMappedImage.ViewBase, offset), sizeof(BYTE), 0);
     }
 
+    offset += dataDirectory->Size;
+
+    for (offset = offset; offset < PvMappedImage.Size; offset++)
+    {
+        BCryptHashData(hashContext->HashHandle, PTR_ADD_OFFSET(PvMappedImage.ViewBase, offset), sizeof(BYTE), 0);
+    }
+
     hashString = PvpGetFinalHash(hashContext);
     PvpDestroyHashHandle(hashContext);
 
