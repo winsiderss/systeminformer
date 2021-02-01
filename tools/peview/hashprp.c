@@ -247,6 +247,75 @@ PPH_STRING PvpGetMappedImageImphashMsft(
     return hashString;
 }
 
+PPH_STRING PvpGetMappedImageAuthentihash(
+    VOID
+    )
+{
+    PPH_STRING hashString = NULL;
+    PIMAGE_DOS_HEADER imageDosHeader;
+    ULONG offset;
+    ULONG imageChecksumOffset;
+    ULONG imageSecurityOffset;
+    PIMAGE_DATA_DIRECTORY dataDirectory;
+    PPVP_HASH_CONTEXT hashContext;
+
+    imageDosHeader = (PIMAGE_DOS_HEADER)PvMappedImage.ViewBase;
+
+    if (imageDosHeader->e_magic != IMAGE_DOS_SIGNATURE)
+        return NULL;
+
+    if (!NT_SUCCESS(PhGetMappedImageDataEntry(
+        &PvMappedImage,
+        IMAGE_DIRECTORY_ENTRY_SECURITY,
+        &dataDirectory
+        )))
+    {
+        return NULL;
+    }
+
+    if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+    {
+        imageChecksumOffset = imageDosHeader->e_lfanew + UFIELD_OFFSET(IMAGE_NT_HEADERS32, OptionalHeader.CheckSum);
+        imageSecurityOffset = imageDosHeader->e_lfanew + UFIELD_OFFSET(IMAGE_NT_HEADERS32, OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_SECURITY]);
+    }
+    else if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+    {
+        imageChecksumOffset = imageDosHeader->e_lfanew + UFIELD_OFFSET(IMAGE_NT_HEADERS64, OptionalHeader.CheckSum);
+        imageSecurityOffset = imageDosHeader->e_lfanew + UFIELD_OFFSET(IMAGE_NT_HEADERS64, OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_SECURITY]);
+    }
+    else
+    {
+        return NULL;
+    }
+
+    if (!(hashContext = PvpCreateHashHandle(BCRYPT_SHA256_ALGORITHM)))
+        return NULL;
+
+    for (offset = 0; offset < imageChecksumOffset; offset++)
+    {
+        BCryptHashData(hashContext->HashHandle, PTR_ADD_OFFSET(PvMappedImage.ViewBase, offset), sizeof(BYTE), 0);
+    }
+
+    offset += RTL_FIELD_SIZE(IMAGE_OPTIONAL_HEADER, CheckSum);
+
+    for (offset = offset; offset < imageSecurityOffset; offset++)
+    {
+        BCryptHashData(hashContext->HashHandle, PTR_ADD_OFFSET(PvMappedImage.ViewBase, offset), sizeof(BYTE), 0);
+    }
+
+    offset += sizeof(IMAGE_DATA_DIRECTORY);
+
+    for (offset = offset; offset < dataDirectory->VirtualAddress; offset++)
+    {
+        BCryptHashData(hashContext->HashHandle, PTR_ADD_OFFSET(PvMappedImage.ViewBase, offset), sizeof(BYTE), 0);
+    }
+
+    hashString = PvpGetFinalHash(hashContext);
+    PvpDestroyHashHandle(hashContext);
+
+    return hashString;
+}
+
 PPH_STRING PvpGetMappedImageImphash(
     VOID
     )
@@ -367,8 +436,9 @@ VOID PvpPeEnumFileHashes(
     PPH_STRING sha2HashString = NULL;
     PPH_STRING sha384HashString = NULL;
     PPH_STRING sha512HashString = NULL;
-    PPH_STRING impMsftHashString = NULL;
+    PPH_STRING authentihashString = NULL;
     PPH_STRING imphashString = NULL;
+    PPH_STRING impMsftHashString = NULL;
     PPH_STRING ssdeepHashString = NULL;
     WCHAR number[PH_PTR_STR_LEN_1];
 
@@ -439,7 +509,7 @@ VOID PvpPeEnumFileHashes(
         PhPrintUInt32(number, ++count);
         lvItemIndex = PhAddListViewGroupItem(ListViewHandle, 0, MAXINT, number, NULL);
 
-        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, L"SHA1");
+        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, L"SHA-1");
         PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, PhGetString(sha1HashString));
         PhDereferenceObject(sha1HashString);
     }
@@ -472,6 +542,16 @@ VOID PvpPeEnumFileHashes(
         PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, L"SHA-512");
         PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, PhGetString(sha512HashString));
         PhDereferenceObject(sha512HashString);
+    }
+
+    if (authentihashString = PvpGetMappedImageAuthentihash())
+    {
+        PhPrintUInt32(number, ++count);
+        lvItemIndex = PhAddListViewGroupItem(ListViewHandle, 0, MAXINT, number, NULL);
+
+        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, L"Authentihash");
+        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, PhGetString(authentihashString));
+        PhDereferenceObject(authentihashString);
     }
 
     if (imphashString = PvpGetMappedImageImphash())
