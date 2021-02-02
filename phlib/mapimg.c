@@ -21,13 +21,6 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/*
- * This file contains functions to load and retrieve information for image files (exe, dll). The
- * file format for image files is explained in the PE/COFF specification located at:
- *
- * http://www.microsoft.com/whdc/system/platform/firmware/PECOFF.mspx
- */
-
 #include <ph.h>
 #include <mapimg.h>
 
