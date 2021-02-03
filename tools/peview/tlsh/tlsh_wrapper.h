@@ -22,8 +22,7 @@
 
 #pragma once
 
-EXTERN_C_START
-
+EXTERN_C
 BOOLEAN
 NTAPI
 PvGetTlshBufferHash(
@@ -31,5 +30,3 @@ PvGetTlshBufferHash(
     _In_ SIZE_T BufferLength,
     _Out_ PPH_STRING* HashResult
     );
-
-EXTERN_C_END

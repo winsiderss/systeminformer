@@ -20,10 +20,11 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <ph.h>
+#include <phbase.h>
 #include "tlsh.h"
 #include "tlsh_wrapper.h"
 
+EXTERN_C
 BOOLEAN
 NTAPI
 PvGetTlshBufferHash(
