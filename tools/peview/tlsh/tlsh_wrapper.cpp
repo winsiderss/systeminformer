@@ -24,10 +24,7 @@
 #include "tlsh.h"
 #include "tlsh_wrapper.h"
 
-EXTERN_C
-BOOLEAN
-NTAPI
-PvGetTlshBufferHash(
+BOOLEAN PvGetTlshBufferHash(
     _In_ PVOID Buffer,
     _In_ SIZE_T BufferLength,
     _Out_ PPH_STRING* HashResult
