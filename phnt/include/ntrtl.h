@@ -2580,6 +2580,7 @@ typedef struct _RTL_USER_PROCESS_PARAMETERS
 
     ULONG_PTR EnvironmentSize;
     ULONG_PTR EnvironmentVersion;
+
     PVOID PackageDependencyData;
     ULONG ProcessGroupId;
     ULONG LoaderThreads;
@@ -6547,6 +6548,32 @@ RtlAddMandatoryAce(
     _In_ PSID Sid,
     _In_ UCHAR AceType,
     _In_ ACCESS_MASK AccessMask
+    );
+#endif
+
+#if (PHNT_VERSION >= PHNT_WIN8)
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlAddResourceAttributeAce(
+    _Inout_ PACL Acl,
+    _In_ ULONG AceRevision,
+    _In_ ULONG AceFlags,
+    _In_ ULONG AccessMask,
+    _In_ PSID Sid,
+    _In_ PCLAIM_SECURITY_ATTRIBUTES_INFORMATION AttributeInfo,
+    _Out_ PULONG ReturnLength
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlAddScopedPolicyIDAce(
+    _Inout_ PACL Acl,
+    _In_ ULONG AceRevision,
+    _In_ ULONG AceFlags,
+    _In_ ULONG AccessMask,
+    _In_ PSID Sid
     );
 #endif
 
