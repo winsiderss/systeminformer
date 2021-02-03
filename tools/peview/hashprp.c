@@ -22,6 +22,7 @@
 
 #include <peview.h>
 #include <bcrypt.h>
+#include "tlsh/tlsh_wrapper.h"
 
 typedef struct _PVP_HASH_CONTEXT
 {
@@ -43,12 +44,6 @@ NTSTATUS fuzzy_hash_file(
 BOOLEAN fuzzy_hash_buffer(
     _In_ PBYTE Buffer,
     _In_ ULONGLONG BufferLength,
-    _Out_ PPH_STRING* HashResult
-    );
-
-BOOLEAN PvGetTlshBufferHash(
-    _In_ PVOID Buffer,
-    _In_ SIZE_T BufferLength,
     _Out_ PPH_STRING* HashResult
     );
 

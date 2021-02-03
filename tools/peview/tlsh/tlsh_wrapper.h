@@ -20,9 +20,9 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <ph.h>
-#include "tlsh.h"
-#include "tlsh_wrapper.h"
+#pragma once
+
+EXTERN_C_START
 
 BOOLEAN
 NTAPI
@@ -30,32 +30,6 @@ PvGetTlshBufferHash(
     _In_ PVOID Buffer,
     _In_ SIZE_T BufferLength,
     _Out_ PPH_STRING* HashResult
-    )
-{
-    const char* tlshHashString = nullptr;
+    );
 
-    if (BufferLength < MIN_DATA_LENGTH)
-        return FALSE;
-    if (BufferLength > UINT_MAX) // tlsh limited to 4gb
-        return FALSE;
-
-    Tlsh* tlshHash = new Tlsh();
-
-    tlshHash->final(
-        (const unsigned char*)Buffer,
-        (unsigned int)BufferLength,
-        0
-        );
-
-    if (!tlshHash->isValid())
-        return FALSE;
-
-    tlshHashString = tlshHash->getHash(TRUE);
-
-    if (tlshHashString == nullptr || tlshHashString[0] == ANSI_NULL)
-        return FALSE;
-
-    *HashResult = PhZeroExtendToUtf16((PSTR)tlshHashString);
-
-    return TRUE;
-}
+EXTERN_C_END
