@@ -701,7 +701,7 @@ NTSTATUS
 NTAPI
 PhGetFileAllInformation(
     _In_ HANDLE FileHandle,
-    _Out_ PFILE_ALL_INFORMATION *FileId
+    _Out_ PFILE_ALL_INFORMATION *FileInformation
     );
 
 PHLIBAPI
