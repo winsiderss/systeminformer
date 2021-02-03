@@ -1313,7 +1313,6 @@ VOID PvpPeEnumerateFileCertificates(
     PCCERT_CONTEXT certificateContext = NULL;
     HCRYPTMSG cryptMessageHandle = NULL;
     PCMSG_SIGNER_INFO cryptMessageSignerInfo = NULL;
-    PCMSG_SIGNER_INFO cryptMessageCounterSignerInfo = NULL;
     ULONG certificateDirectoryLength = 0;
     ULONG certificateEncoding;
     ULONG certificateContentType;

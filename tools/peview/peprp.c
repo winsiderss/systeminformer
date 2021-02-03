@@ -52,7 +52,8 @@ typedef enum _PVP_IMAGE_GENERAL_INDEX
     PVP_IMAGE_GENERAL_INDEX_IMAGESIZE,
     PVP_IMAGE_GENERAL_INDEX_ENTRYPOINT,
     PVP_IMAGE_GENERAL_INDEX_CHECKSUM,
-    PVP_IMAGE_GENERAL_INDEX_CHECKSUMIAT,
+    //PVP_IMAGE_GENERAL_INDEX_CHECKSUMIAT,
+    PVP_IMAGE_GENERAL_INDEX_HEADERSPARE,
     PVP_IMAGE_GENERAL_INDEX_SUBSYSTEM,
     PVP_IMAGE_GENERAL_INDEX_SUBSYSTEMVERSION,
     PVP_IMAGE_GENERAL_INDEX_CHARACTERISTICS,
@@ -477,38 +478,11 @@ static NTSTATUS CheckSumImageThreadStart(
     )
 {
     HWND windowHandle = Parameter;
-    PPH_STRING importHash = NULL;
     ULONG checkSum;
-    HANDLE fileHandle;
 
     checkSum = PhCheckSumMappedImage(&PvMappedImage);
 
-    if (NT_SUCCESS(PhCreateFileWin32(
-        &fileHandle,
-        PhGetString(PvFileName),
-        FILE_READ_DATA | SYNCHRONIZE,
-        FILE_ATTRIBUTE_NORMAL,
-        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-        FILE_OPEN,
-        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-        )))
-    {
-        BYTE importTableMd5Hash[16];
-
-        if (NT_SUCCESS(RtlComputeImportTableHash(fileHandle, importTableMd5Hash, RTL_IMPORT_TABLE_HASH_REVISION)))
-        {
-            importHash = PhBufferToHexString(importTableMd5Hash, 16);
-        }
-
-        NtClose(fileHandle);
-    }
-
-    PostMessage(
-        windowHandle,
-        PVM_CHECKSUM_DONE,
-        checkSum,
-        (LPARAM)importHash
-        );
+    PostMessage(windowHandle, PVM_CHECKSUM_DONE, checkSum, 0);
 
     return STATUS_SUCCESS;
 }
@@ -546,7 +520,7 @@ VERIFY_RESULT PvpVerifyFileWithAdditionalCatalog(
             PhSkipStringRef(&remainingFileName, windowsAppsPath->Length);
             indexOfBackslash = PhFindCharInStringRef(&remainingFileName, OBJ_NAME_PATH_SEPARATOR, FALSE);
 
-            if (indexOfBackslash != -1)
+            if (indexOfBackslash != SIZE_MAX)
             {
                 baseFileName.Buffer = FileName->Buffer;
                 baseFileName.Length = windowsAppsPath->Length + indexOfBackslash * sizeof(WCHAR);
@@ -818,7 +792,6 @@ VOID PvpSetPeImageSize(
     PPH_STRING string;
     ULONG lastRawDataAddress = 0;
     ULONG64 lastRawDataOffset = 0;
-    ULONG64 lastRawDataAddressSize = 0;
 
     // https://reverseengineering.stackexchange.com/questions/2014/how-can-one-extract-the-appended-data-of-a-portable-executable/2015#2015
 
@@ -907,11 +880,36 @@ VOID PvpSetPeImageCheckSum(
     string = PhFormatString(L"0x%I32x (verifying...)", PvMappedImage.NtHeaders->OptionalHeader.CheckSum); // same for 32-bit and 64-bit images
 
     PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_CHECKSUM, 1, string->Buffer);
-    PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_CHECKSUMIAT, 1, L"(verifying...)");
 
     PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), CheckSumImageThreadStart, WindowHandle);
 
     PhDereferenceObject(string);
+}
+
+VOID PvpSetPeImageSpareHeaderBytes(
+    _In_ HWND ListViewHandle
+    )
+{
+    if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+    {
+        ULONG nativeHeadersLength = PtrToUlong(PTR_SUB_OFFSET(PvMappedImage.NtHeaders32, PvMappedImage.ViewBase));
+        ULONG optionalHeadersLength = UFIELD_OFFSET(IMAGE_NT_HEADERS32, OptionalHeader) + PvMappedImage.NtHeaders32->FileHeader.SizeOfOptionalHeader;
+        ULONG sectionsLength = PvMappedImage.NtHeaders32->FileHeader.NumberOfSections * sizeof(IMAGE_SECTION_HEADER);
+        ULONG totalLength = nativeHeadersLength + optionalHeadersLength + sectionsLength;
+        ULONG spareLength = PtrToUlong(PTR_SUB_OFFSET(PvMappedImage.NtHeaders32->OptionalHeader.SizeOfHeaders, totalLength));
+
+        PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_HEADERSPARE, 1, PhaFormatSize(spareLength, ULONG_MAX)->Buffer);
+    }
+    else if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+    {
+        ULONG nativeHeadersLength = PtrToUlong(PTR_SUB_OFFSET(PvMappedImage.NtHeaders, PvMappedImage.ViewBase));
+        ULONG optionalHeadersLength = UFIELD_OFFSET(IMAGE_NT_HEADERS64, OptionalHeader) + PvMappedImage.NtHeaders->FileHeader.SizeOfOptionalHeader;
+        ULONG sectionsLength = PvMappedImage.NtHeaders->FileHeader.NumberOfSections * sizeof(IMAGE_SECTION_HEADER);
+        ULONG totalLength = nativeHeadersLength + optionalHeadersLength + sectionsLength;
+        ULONG spareLength = PtrToUlong(PTR_SUB_OFFSET(PvMappedImage.NtHeaders->OptionalHeader.SizeOfHeaders, totalLength));
+
+        PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_HEADERSPARE, 1, PhaFormatSize(spareLength, ULONG_MAX)->Buffer);
+    }
 }
 
 VOID PvpSetPeImageSubsystem(
@@ -1045,14 +1043,14 @@ VOID PvpSetPeImageCharacteristics(
         &debugEntry
         )))
     {
-        ULONG characteristics = ULONG_MAX;
+        ULONG characteristicsEx = ULONG_MAX;
 
         if (debugEntryLength == sizeof(ULONG))
-            characteristics = *(ULONG*)debugEntry;
+            characteristicsEx = *(ULONG*)debugEntry;
 
-        if (characteristics != ULONG_MAX)
+        if (characteristicsEx != ULONG_MAX)
         {
-            if (characteristics & IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT)
+            if (characteristicsEx & IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT)
                 PhAppendStringBuilder2(&stringBuilder, L"CET compatible, ");
         }
     }
@@ -1382,7 +1380,8 @@ VOID PvpSetPeImageProperties(
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_BASICINFO, PVP_IMAGE_GENERAL_INDEX_IMAGESIZE, L"Image size", NULL);
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_BASICINFO, PVP_IMAGE_GENERAL_INDEX_ENTRYPOINT, L"Entry point", NULL);
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_BASICINFO, PVP_IMAGE_GENERAL_INDEX_CHECKSUM, L"Header checksum", NULL);
-    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_BASICINFO, PVP_IMAGE_GENERAL_INDEX_CHECKSUMIAT, L"Import checksum", NULL);
+    //PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_BASICINFO, PVP_IMAGE_GENERAL_INDEX_CHECKSUMIAT, L"Import checksum", NULL);
+    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_BASICINFO, PVP_IMAGE_GENERAL_INDEX_HEADERSPARE, L"Header spare", NULL);
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_BASICINFO, PVP_IMAGE_GENERAL_INDEX_SUBSYSTEM, L"Subsystem", NULL);
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_BASICINFO, PVP_IMAGE_GENERAL_INDEX_SUBSYSTEMVERSION, L"Subsystem version", NULL);
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_BASICINFO, PVP_IMAGE_GENERAL_INDEX_CHARACTERISTICS, L"Characteristics", NULL);
@@ -1403,6 +1402,7 @@ VOID PvpSetPeImageProperties(
     PvpSetPeImageSize(Context->ListViewHandle);
     PvpSetPeImageEntryPoint(Context->ListViewHandle);
     PvpSetPeImageCheckSum(Context->WindowHandle, Context->ListViewHandle);
+    PvpSetPeImageSpareHeaderBytes(Context->ListViewHandle);
     PvpSetPeImageSubsystem(Context->ListViewHandle);
     PvpSetPeImageCharacteristics(Context->ListViewHandle);
     // File information
@@ -1621,13 +1621,11 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
     case PVM_CHECKSUM_DONE:
         {
             PPH_STRING string;
-            PPH_STRING importTableHash;
             ULONG headerCheckSum;
             ULONG realCheckSum;
 
             headerCheckSum = PvMappedImage.NtHeaders->OptionalHeader.CheckSum; // same for 32-bit and 64-bit images
             realCheckSum = (ULONG)wParam;
-            importTableHash = (PPH_STRING)lParam;
 
             if (headerCheckSum == 0)
             {
@@ -1647,12 +1645,6 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
                 string = PhFormatString(L"0x%I32x (incorrect, real 0x%I32x)", headerCheckSum, realCheckSum);
                 PhSetListViewSubItem(context->ListViewHandle, PVP_IMAGE_GENERAL_INDEX_CHECKSUM, 1, string->Buffer);
                 PhDereferenceObject(string);
-            }
-
-            if (importTableHash)
-            {
-                PhSetListViewSubItem(context->ListViewHandle, PVP_IMAGE_GENERAL_INDEX_CHECKSUMIAT, 1, PhGetStringOrEmpty(importTableHash));
-                PhDereferenceObject(importTableHash);
             }
         }
         break;

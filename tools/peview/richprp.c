@@ -391,13 +391,10 @@ INT_PTR CALLBACK PvpPeProdIdDlgProc(
             {
                 PPH_STRING text;
 
-                if (prodids.Valid)
-                    text = PhaConcatStrings2(PhGetStringOrEmpty(prodids.Key), L" (correct)");
-                else
-                    text = PhaConcatStrings2(PhGetStringOrEmpty(prodids.Key), L" (incorrect)");
-
+                text = prodids.Valid ? prodids.Key : PhaConcatStrings2(PhGetStringOrEmpty(prodids.Key), L" (incorrect)");
                 PhSetDialogItemText(hwndDlg, IDC_PRODCHECKSUM, PhGetStringOrEmpty(text));
-                PhSetDialogItemText(hwndDlg, IDC_PRODHASH, PhGetStringOrEmpty(prodids.Hash));
+                PhSetDialogItemText(hwndDlg, IDC_PRODHASH, PhGetStringOrEmpty(prodids.RawHash));
+                PhSetDialogItemText(hwndDlg, IDC_PRODHASH2, PhGetStringOrEmpty(prodids.Hash));
 
                 for (i = 0; i < prodids.NumberOfEntries; i++)
                 {

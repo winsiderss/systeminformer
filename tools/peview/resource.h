@@ -64,6 +64,7 @@
 #define IDC_PREVIEW                     1023
 #define IDC_PRODCHECKSUM                1025
 #define IDC_PRODHASH                    1026
+#define IDC_PRODHASH2                   1027
 #define IDC_FONT                        1079
 #define IDC_GOTO                        1079
 #define IDC_RESET                       1086
