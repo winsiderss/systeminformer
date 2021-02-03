@@ -22,37 +22,37 @@
 
 #include <peview.h>
 
-BOOLEAN PvpPeCheckImageDataEntryAddress(
-    _In_ ULONG Index,
-    _In_ ULONG StartRva,
-    _In_ ULONG EndRva
-    )
-{
-    PIMAGE_DATA_DIRECTORY directory;
-
-    for (ULONG i = 0; i < IMAGE_NUMBEROF_DIRECTORY_ENTRIES; i++)
-    {
-        if (i == Index)
-            continue;
-
-        if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, i, &directory)))
-        {
-            if ((StartRva >= directory->VirtualAddress) &&
-                (StartRva < directory->VirtualAddress + directory->Size))
-            {
-                return TRUE;
-            }
-
-            if ((EndRva >= directory->VirtualAddress) &&
-                (EndRva < directory->VirtualAddress + directory->Size))
-            {
-                return TRUE;
-            }
-        }
-    }
-
-    return FALSE;
-}
+//BOOLEAN PvpPeCheckImageDataEntryAddress(
+//    _In_ ULONG Index,
+//    _In_ ULONG StartRva,
+//    _In_ ULONG EndRva
+//    )
+//{
+//    PIMAGE_DATA_DIRECTORY directory;
+//
+//    for (ULONG i = 0; i < IMAGE_NUMBEROF_DIRECTORY_ENTRIES; i++)
+//    {
+//        if (i == Index)
+//            continue;
+//
+//        if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, i, &directory)))
+//        {
+//            if ((StartRva >= directory->VirtualAddress) &&
+//                (StartRva < directory->VirtualAddress + directory->Size))
+//            {
+//                return TRUE;
+//            }
+//
+//            if ((EndRva >= directory->VirtualAddress) &&
+//                (EndRva < directory->VirtualAddress + directory->Size))
+//            {
+//                return TRUE;
+//            }
+//        }
+//    }
+//
+//    return FALSE;
+//}
 
 VOID PvpPeEnumerateImageDataDirectory(
     _In_ HWND ListViewHandle,
@@ -63,7 +63,7 @@ VOID PvpPeEnumerateImageDataDirectory(
     INT lvItemIndex;
     ULONG directoryAddress = 0;
     ULONG directorySize = 0;
-    BOOLEAN directoryOverlay = FALSE;
+    //BOOLEAN directoryOverlay = FALSE;
     PIMAGE_DATA_DIRECTORY directory;
     PIMAGE_SECTION_HEADER directorySection = NULL;
     WCHAR value[PH_INT64_STR_LEN_1];
@@ -85,18 +85,18 @@ VOID PvpPeEnumerateImageDataDirectory(
             directorySection = PhMappedImageRvaToSection(&PvMappedImage, directoryAddress);
         }
 
-        if (directoryAddress && directorySize)
-        {
-            directoryOverlay = PvpPeCheckImageDataEntryAddress(
-                Index,
-                directoryAddress,
-                PtrToUlong(PTR_ADD_OFFSET(directoryAddress, directorySize))
-                );
-        }
+        //if (directoryAddress && directorySize)
+        //{
+        //    directoryOverlay = PvpPeCheckImageDataEntryAddress(
+        //        Index,
+        //        directoryAddress,
+        //        PtrToUlong(PTR_ADD_OFFSET(directoryAddress, directorySize))
+        //        );
+        //}
     }
 
     PhPrintUInt32(value, Index + 1);
-    lvItemIndex = PhAddListViewItem(ListViewHandle, MAXINT, value, (PVOID)directoryOverlay);
+    lvItemIndex = PhAddListViewItem(ListViewHandle, MAXINT, value, NULL);
     PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, Name);
 
     if (directoryAddress)
@@ -170,16 +170,16 @@ typedef struct _PVP_PE_DIRECTORY_CONTEXT
     HIMAGELIST ListViewImageList;
 } PVP_PE_DIRECTORY_CONTEXT, *PPVP_PE_DIRECTORY_CONTEXT;
 
-COLORREF NTAPI PvPeSectionColorFunction(
-    _In_ INT Index,
-    _In_ PVOID Param,
-    _In_opt_ PVOID Context
-    )
-{
-    if ((BOOLEAN)Param)
-        return RGB(0xf0, 0xa0, 0xa0);
-    return RGB(0xff, 0xff, 0xff);
-}
+//COLORREF NTAPI PvPeSectionColorFunction(
+//    _In_ INT Index,
+//    _In_ PVOID Param,
+//    _In_opt_ PVOID Context
+//    )
+//{
+//    if ((BOOLEAN)Param)
+//        return RGB(0xf0, 0xa0, 0xa0);
+//    return RGB(0xff, 0xff, 0xff);
+//}
 
 INT_PTR CALLBACK PvpPeDirectoryDlgProc(
     _In_ HWND hwndDlg,
@@ -221,7 +221,7 @@ INT_PTR CALLBACK PvpPeDirectoryDlgProc(
             PhAddListViewColumn(context->ListViewHandle, 5, 5, 5, LVCFMT_LEFT, 100, L"Section");
             PhAddListViewColumn(context->ListViewHandle, 6, 6, 6, LVCFMT_LEFT, 100, L"Hash");
             PhSetExtendedListView(context->ListViewHandle);
-            ExtendedListView_SetItemColorFunction(context->ListViewHandle, PvPeSectionColorFunction);
+            //ExtendedListView_SetItemColorFunction(context->ListViewHandle, PvPeSectionColorFunction);
             PhLoadListViewColumnsFromSetting(L"ImageDirectoryListViewColumns", context->ListViewHandle);
 
             if (context->ListViewImageList = ImageList_Create(2, 20, ILC_MASK | ILC_COLOR, 1, 1))
