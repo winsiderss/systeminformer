@@ -3487,6 +3487,20 @@ PhaFormatString(
 
 FORCEINLINE
 PPH_STRING
+PhLowerString(
+    _In_ PPH_STRING String
+    )
+{
+    PPH_STRING newString;
+
+    newString = PhDuplicateString(String);
+    _wcslwr(newString->Buffer);
+
+    return newString;
+}
+
+FORCEINLINE
+PPH_STRING
 PhaLowerString(
     _In_ PPH_STRING String
     )
