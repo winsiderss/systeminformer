@@ -40,6 +40,12 @@ NTSTATUS fuzzy_hash_file(
     _Out_ PPH_STRING* HashResult
     );
 
+BOOLEAN fuzzy_hash_buffer(
+    _In_ PBYTE Buffer,
+    _In_ ULONGLONG BufferLength,
+    _Out_ PPH_STRING* HashResult
+    );
+
 PPVP_HASH_CONTEXT PvpCreateHashHandle(
     _In_ PCWSTR AlgorithmId
     )
@@ -253,7 +259,7 @@ PPH_STRING PvpGetMappedImageAuthentihash(
 {
     PPH_STRING hashString = NULL;
     PIMAGE_DOS_HEADER imageDosHeader;
-    ULONG offset;
+    ULONG offset = 0;
     ULONG imageChecksumOffset;
     ULONG imageSecurityOffset;
     PIMAGE_DATA_DIRECTORY dataDirectory;
@@ -291,30 +297,34 @@ PPH_STRING PvpGetMappedImageAuthentihash(
     if (!(hashContext = PvpCreateHashHandle(BCRYPT_SHA256_ALGORITHM)))
         return NULL;
 
-    for (offset = 0; offset < imageChecksumOffset; offset++)
+    while (offset < imageChecksumOffset)
     {
         BCryptHashData(hashContext->HashHandle, PTR_ADD_OFFSET(PvMappedImage.ViewBase, offset), sizeof(BYTE), 0);
+        offset++;
     }
 
     offset += RTL_FIELD_SIZE(IMAGE_OPTIONAL_HEADER, CheckSum);
 
-    for (offset = offset; offset < imageSecurityOffset; offset++)
+    while (offset < imageSecurityOffset)
     {
         BCryptHashData(hashContext->HashHandle, PTR_ADD_OFFSET(PvMappedImage.ViewBase, offset), sizeof(BYTE), 0);
+        offset++;
     }
 
     offset += sizeof(IMAGE_DATA_DIRECTORY);
 
-    for (offset = offset; offset < dataDirectory->VirtualAddress; offset++)
+    while (offset < dataDirectory->VirtualAddress)
     {
         BCryptHashData(hashContext->HashHandle, PTR_ADD_OFFSET(PvMappedImage.ViewBase, offset), sizeof(BYTE), 0);
+        offset++;
     }
 
     offset += dataDirectory->Size;
 
-    for (offset = offset; offset < PvMappedImage.Size; offset++)
+    while (offset < PvMappedImage.Size)
     {
         BCryptHashData(hashContext->HashHandle, PTR_ADD_OFFSET(PvMappedImage.ViewBase, offset), sizeof(BYTE), 0);
+        offset++;
     }
 
     hashString = PvpGetFinalHash(hashContext);
@@ -464,11 +474,7 @@ VOID PvpPeEnumFileHashes(
         FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
         )))
     {
-        LARGE_INTEGER filePosition;
-
         impMsftHashString = PvpGetMappedImageImphashMsft(fileHandle);
-        filePosition.QuadPart = 0;
-        PhSetFilePosition(fileHandle, &filePosition);
 
         PvpGetFileHashes(
             fileHandle,
@@ -480,11 +486,15 @@ VOID PvpPeEnumFileHashes(
             &sha512HashString
             );
 
-        filePosition.QuadPart = 0;
-        PhSetFilePosition(fileHandle, &filePosition);
+        //LARGE_INTEGER filePosition;
+        //filePosition.QuadPart = 0;
+        //PhSetFilePosition(fileHandle, &filePosition);
+        //
+        //fuzzy_hash_file(fileHandle, &ssdeepHashString);
 
-        fuzzy_hash_file(
-            fileHandle,
+        fuzzy_hash_buffer(
+            PvMappedImage.ViewBase,
+            PvMappedImage.Size,
             &ssdeepHashString
             );
 
