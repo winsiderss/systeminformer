@@ -93,7 +93,8 @@ PhMappedImageRvaToSection(
     );
 
 PHLIBAPI
-_Success_(return != NULL)
+_Must_inspect_result_
+_Ret_maybenull_
 PVOID
 NTAPI
 PhMappedImageRvaToVa(
@@ -103,7 +104,8 @@ PhMappedImageRvaToVa(
     );
 
 PHLIBAPI
-_Success_(return != NULL)
+_Must_inspect_result_
+_Ret_maybenull_
 PVOID
 NTAPI
 PhMappedImageVaToVa(
@@ -534,6 +536,7 @@ typedef struct _PH_MAPPED_IMAGE_PRODID
     //WCHAR Key[PH_PTR_STR_LEN_1];
     BOOLEAN Valid;
     PPH_STRING Key;
+    PPH_STRING RawHash;
     PPH_STRING Hash;
     ULONG NumberOfEntries;
     PPH_MAPPED_IMAGE_PRODID_ENTRY ProdIdEntries;
