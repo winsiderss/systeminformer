@@ -199,35 +199,29 @@ VOID NTAPI ProcessMenuInitializingCallback(
             // Massive copy and paste from mainwnd.c.
             // == START ==
 
-#define SET_MENU_ITEM_ENABLED(MenuItem, Enabled) if (!(Enabled)) (MenuItem)->Flags |= PH_EMENU_DISABLED;
-
             switch (serviceItem->State)
             {
             case SERVICE_RUNNING:
                 {
-                    SET_MENU_ITEM_ENABLED(startMenuItem, FALSE);
-                    SET_MENU_ITEM_ENABLED(continueMenuItem, FALSE);
-                    SET_MENU_ITEM_ENABLED(pauseMenuItem,
-                        serviceItem->ControlsAccepted & SERVICE_ACCEPT_PAUSE_CONTINUE);
-                    SET_MENU_ITEM_ENABLED(stopMenuItem,
-                        serviceItem->ControlsAccepted & SERVICE_ACCEPT_STOP);
+                    PhSetEnabledEMenuItem(startMenuItem, FALSE);
+                    PhSetEnabledEMenuItem(continueMenuItem, FALSE);
+                    PhSetEnabledEMenuItem(pauseMenuItem, serviceItem->ControlsAccepted & SERVICE_ACCEPT_PAUSE_CONTINUE);
+                    PhSetEnabledEMenuItem(stopMenuItem, serviceItem->ControlsAccepted & SERVICE_ACCEPT_STOP);
                 }
                 break;
             case SERVICE_PAUSED:
                 {
-                    SET_MENU_ITEM_ENABLED(startMenuItem, FALSE);
-                    SET_MENU_ITEM_ENABLED(continueMenuItem,
-                        serviceItem->ControlsAccepted & SERVICE_ACCEPT_PAUSE_CONTINUE);
-                    SET_MENU_ITEM_ENABLED(pauseMenuItem, FALSE);
-                    SET_MENU_ITEM_ENABLED(stopMenuItem,
-                        serviceItem->ControlsAccepted & SERVICE_ACCEPT_STOP);
+                    PhSetEnabledEMenuItem(startMenuItem, FALSE);
+                    PhSetEnabledEMenuItem(continueMenuItem, serviceItem->ControlsAccepted & SERVICE_ACCEPT_PAUSE_CONTINUE);
+                    PhSetEnabledEMenuItem(pauseMenuItem, FALSE);
+                    PhSetEnabledEMenuItem(stopMenuItem, serviceItem->ControlsAccepted & SERVICE_ACCEPT_STOP);
                 }
                 break;
             case SERVICE_STOPPED:
                 {
-                    SET_MENU_ITEM_ENABLED(continueMenuItem, FALSE);
-                    SET_MENU_ITEM_ENABLED(pauseMenuItem, FALSE);
-                    SET_MENU_ITEM_ENABLED(stopMenuItem, FALSE);
+                    PhSetEnabledEMenuItem(continueMenuItem, FALSE);
+                    PhSetEnabledEMenuItem(pauseMenuItem, FALSE);
+                    PhSetEnabledEMenuItem(stopMenuItem, FALSE);
                 }
                 break;
             case SERVICE_START_PENDING:
@@ -235,10 +229,10 @@ VOID NTAPI ProcessMenuInitializingCallback(
             case SERVICE_PAUSE_PENDING:
             case SERVICE_STOP_PENDING:
                 {
-                    SET_MENU_ITEM_ENABLED(startMenuItem, FALSE);
-                    SET_MENU_ITEM_ENABLED(continueMenuItem, FALSE);
-                    SET_MENU_ITEM_ENABLED(pauseMenuItem, FALSE);
-                    SET_MENU_ITEM_ENABLED(stopMenuItem, FALSE);
+                    PhSetEnabledEMenuItem(startMenuItem, FALSE);
+                    PhSetEnabledEMenuItem(continueMenuItem, FALSE);
+                    PhSetEnabledEMenuItem(pauseMenuItem, FALSE);
+                    PhSetEnabledEMenuItem(stopMenuItem, FALSE);
                 }
                 break;
             }
@@ -496,35 +490,29 @@ VOID MiListSectionMenuInitializingCallback(
             // Massive copy and paste from mainwnd.c.
             // == START ==
 
-#define SET_MENU_ITEM_ENABLED(MenuItem, Enabled) if (!(Enabled)) (MenuItem)->Flags |= PH_EMENU_DISABLED;
-
             switch (serviceItem->State)
             {
             case SERVICE_RUNNING:
                 {
-                    SET_MENU_ITEM_ENABLED(startMenuItem, FALSE);
-                    SET_MENU_ITEM_ENABLED(continueMenuItem, FALSE);
-                    SET_MENU_ITEM_ENABLED(pauseMenuItem,
-                        serviceItem->ControlsAccepted & SERVICE_ACCEPT_PAUSE_CONTINUE);
-                    SET_MENU_ITEM_ENABLED(stopMenuItem,
-                        serviceItem->ControlsAccepted & SERVICE_ACCEPT_STOP);
+                    PhSetEnabledEMenuItem(startMenuItem, FALSE);
+                    PhSetEnabledEMenuItem(continueMenuItem, FALSE);
+                    PhSetEnabledEMenuItem(pauseMenuItem, serviceItem->ControlsAccepted & SERVICE_ACCEPT_PAUSE_CONTINUE);
+                    PhSetEnabledEMenuItem(stopMenuItem, serviceItem->ControlsAccepted & SERVICE_ACCEPT_STOP);
                 }
                 break;
             case SERVICE_PAUSED:
                 {
-                    SET_MENU_ITEM_ENABLED(startMenuItem, FALSE);
-                    SET_MENU_ITEM_ENABLED(continueMenuItem,
-                        serviceItem->ControlsAccepted & SERVICE_ACCEPT_PAUSE_CONTINUE);
-                    SET_MENU_ITEM_ENABLED(pauseMenuItem, FALSE);
-                    SET_MENU_ITEM_ENABLED(stopMenuItem,
-                        serviceItem->ControlsAccepted & SERVICE_ACCEPT_STOP);
+                    PhSetEnabledEMenuItem(startMenuItem, FALSE);
+                    PhSetEnabledEMenuItem(continueMenuItem, serviceItem->ControlsAccepted & SERVICE_ACCEPT_PAUSE_CONTINUE);
+                    PhSetEnabledEMenuItem(pauseMenuItem, FALSE);
+                    PhSetEnabledEMenuItem(stopMenuItem, serviceItem->ControlsAccepted & SERVICE_ACCEPT_STOP);
                 }
                 break;
             case SERVICE_STOPPED:
                 {
-                    SET_MENU_ITEM_ENABLED(continueMenuItem, FALSE);
-                    SET_MENU_ITEM_ENABLED(pauseMenuItem, FALSE);
-                    SET_MENU_ITEM_ENABLED(stopMenuItem, FALSE);
+                    PhSetEnabledEMenuItem(continueMenuItem, FALSE);
+                    PhSetEnabledEMenuItem(pauseMenuItem, FALSE);
+                    PhSetEnabledEMenuItem(stopMenuItem, FALSE);
                 }
                 break;
             case SERVICE_START_PENDING:
@@ -532,10 +520,10 @@ VOID MiListSectionMenuInitializingCallback(
             case SERVICE_PAUSE_PENDING:
             case SERVICE_STOP_PENDING:
                 {
-                    SET_MENU_ITEM_ENABLED(startMenuItem, FALSE);
-                    SET_MENU_ITEM_ENABLED(continueMenuItem, FALSE);
-                    SET_MENU_ITEM_ENABLED(pauseMenuItem, FALSE);
-                    SET_MENU_ITEM_ENABLED(stopMenuItem, FALSE);
+                    PhSetEnabledEMenuItem(startMenuItem, FALSE);
+                    PhSetEnabledEMenuItem(continueMenuItem, FALSE);
+                    PhSetEnabledEMenuItem(pauseMenuItem, FALSE);
+                    PhSetEnabledEMenuItem(stopMenuItem, FALSE);
                 }
                 break;
             }
