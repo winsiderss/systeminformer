@@ -23,7 +23,8 @@
 #include <ph.h>
 #include "tlsh.h"
 
-EXTERN_C
+EXTERN_C_START
+
 BOOLEAN
 NTAPI
 PvGetTlshBufferHash(
@@ -59,3 +60,5 @@ PvGetTlshBufferHash(
 
     return TRUE;
 }
+
+EXTERN_C_END
