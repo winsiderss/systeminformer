@@ -2400,7 +2400,8 @@ NTSTATUS PhGetMappedImageProdIdHeader(
             richHeaderContentBuffer = PhAllocateZero(richHeaderContentLength);
             memcpy(richHeaderContentBuffer, richHeaderStart, richHeaderContentLength);
 
-            // Walk the buffer and decrypt the entire thing.
+            // Walk the buffer and decrypt the entire thing. Based on the same loop used by yara:
+            // https://github.com/VirusTotal/yara/blob/master/libyara/modules/pe/pe.c#L251-L259
             for (
                 richHeaderContentOffset = richHeaderContentBuffer;
                 richHeaderContentOffset < (PULONG)PTR_ADD_OFFSET(richHeaderContentBuffer, richHeaderContentLength);
