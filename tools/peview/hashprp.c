@@ -46,6 +46,12 @@ BOOLEAN fuzzy_hash_buffer(
     _Out_ PPH_STRING* HashResult
     );
 
+BOOLEAN PvGetTlshBufferHash(
+    _In_ PVOID Buffer,
+    _In_ SIZE_T BufferLength,
+    _Out_ PPH_STRING* HashResult
+    );
+
 PPVP_HASH_CONTEXT PvpCreateHashHandle(
     _In_ PCWSTR AlgorithmId
     )
@@ -457,6 +463,7 @@ VOID PvpPeEnumFileHashes(
     PPH_STRING imphashString = NULL;
     PPH_STRING impMsftHashString = NULL;
     PPH_STRING ssdeepHashString = NULL;
+    PPH_STRING tlshHashString = NULL;
     WCHAR number[PH_PTR_STR_LEN_1];
 
     ListView_EnableGroupView(ListViewHandle, TRUE);
@@ -496,6 +503,12 @@ VOID PvpPeEnumFileHashes(
             PvMappedImage.ViewBase,
             PvMappedImage.Size,
             &ssdeepHashString
+            );
+
+        PvGetTlshBufferHash(
+            PvMappedImage.ViewBase,
+            PvMappedImage.Size,
+            &tlshHashString
             );
 
         NtClose(fileHandle);
@@ -599,6 +612,16 @@ VOID PvpPeEnumFileHashes(
         PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, L"SSDEEP");
         PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, PhGetString(ssdeepHashString));
         PhDereferenceObject(ssdeepHashString);
+    }
+
+    if (!PhIsNullOrEmptyString(tlshHashString))
+    {
+        PhPrintUInt32(number, ++count);
+        lvItemIndex = PhAddListViewGroupItem(ListViewHandle, 2, MAXINT, number, NULL);
+
+        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, L"TLSH");
+        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, PhGetString(tlshHashString));
+        PhDereferenceObject(tlshHashString);
     }
 }
 
