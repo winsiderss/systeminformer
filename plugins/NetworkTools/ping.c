@@ -409,6 +409,8 @@ INT_PTR CALLBACK NetworkPingWndProc(
             DOUBLE pingDeviationValue = 0;
             DOUBLE pingVarianceValue = 0;
 
+            NetworkPingUpdateGraph(context);
+
             for (ULONG i = 0; i < context->PingHistory.Count; i++)
             {
                 pingSumValue += PhGetItemCircularBuffer_ULONG(&context->PingHistory, i);
