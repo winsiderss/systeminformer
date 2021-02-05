@@ -3109,13 +3109,16 @@ NTSTATUS PhGetFilePosition(
 
 NTSTATUS PhSetFilePosition(
     _In_ HANDLE FileHandle,
-    _In_ PLARGE_INTEGER Position
+    _In_opt_ PLARGE_INTEGER Position
     )
 {
     FILE_POSITION_INFORMATION positionInfo;
     IO_STATUS_BLOCK isb;
 
-    positionInfo.CurrentByteOffset = *Position;
+    if (Position)
+        positionInfo.CurrentByteOffset = *Position;
+    else
+        positionInfo.CurrentByteOffset.QuadPart = 0;
 
     return NtSetInformationFile(
         FileHandle,
