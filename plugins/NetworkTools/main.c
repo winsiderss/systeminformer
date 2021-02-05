@@ -3,7 +3,7 @@
  *   Main program
  *
  * Copyright (C) 2010-2011 wj32
- * Copyright (C) 2013-2018 dmex
+ * Copyright (C) 2013-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -978,7 +978,7 @@ LOGICAL DllMain(
                 { StringSettingType, SETTING_NAME_ADDRESS_HISTORY, L"" },
                 { IntegerPairSettingType, SETTING_NAME_PING_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_PING_WINDOW_SIZE, L"@96|420,250" },
-                { IntegerSettingType, SETTING_NAME_PING_MINIMUM_SCALING, L"1F4" }, // 500ms minimum scaling
+                { IntegerSettingType, SETTING_NAME_PING_MINIMUM_SCALING, L"c8" }, // 200ms minimum scaling
                 { IntegerSettingType, SETTING_NAME_PING_SIZE, L"20" }, // 32 byte packet
                 { IntegerPairSettingType, SETTING_NAME_TRACERT_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_TRACERT_WINDOW_SIZE, L"@96|850,490" },
