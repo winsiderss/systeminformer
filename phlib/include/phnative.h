@@ -662,7 +662,7 @@ NTSTATUS
 NTAPI
 PhSetFilePosition(
     _In_ HANDLE FileHandle,
-    _In_ PLARGE_INTEGER Position
+    _In_opt_ PLARGE_INTEGER Position
     );
 
 PHLIBAPI
