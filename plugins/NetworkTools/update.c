@@ -614,6 +614,12 @@ NTSTATUS GeoIPUpdateDialogThread(
     PhDereferenceObject(context);
     PhDeleteAutoPool(&autoPool);
 
+    if (UpdateDialogThreadHandle)
+    {
+        NtClose(UpdateDialogThreadHandle);
+        UpdateDialogThreadHandle = NULL;
+    }
+
     PhResetEvent(&InitializedEvent);
 
     return STATUS_SUCCESS;
