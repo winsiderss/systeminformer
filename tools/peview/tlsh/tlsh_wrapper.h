@@ -30,3 +30,11 @@ PvGetTlshBufferHash(
     _In_ SIZE_T BufferLength,
     _Out_ PPH_STRING* HashResult
     );
+
+EXTERN_C
+BOOLEAN
+NTAPI
+PvGetTlshFileHash(
+    _In_ HANDLE FileHandle,
+    _Out_ PPH_STRING* HashResult
+    );
