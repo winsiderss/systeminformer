@@ -95,7 +95,7 @@ NTSTATUS NetworkPingThreadStart(
             &pingOptions,
             icmpReplyBuffer,
             icmpReplyLength,
-            context->MaxPingTimeout
+            context->PingTimeout
             );
 
         icmp6ReplyStruct = (PICMPV6_ECHO_REPLY2)icmpReplyBuffer;
@@ -168,7 +168,7 @@ NTSTATUS NetworkPingThreadStart(
             &pingOptions,
             icmpReplyBuffer,
             icmpReplyLength,
-            context->MaxPingTimeout
+            context->PingTimeout
             );
 
         icmpReplyStruct = (PICMP_ECHO_REPLY)icmpReplyBuffer;
@@ -298,7 +298,8 @@ INT_PTR CALLBACK NetworkPingWndProc(
 
             context->WindowHandle = hwndDlg;
             context->StatusHandle = GetDlgItem(hwndDlg, IDC_MAINTEXT);
-            context->MaxPingTimeout = PhGetIntegerSetting(SETTING_NAME_PING_MINIMUM_SCALING);
+            context->MinPingScaling = PhGetIntegerSetting(SETTING_NAME_PING_MINIMUM_SCALING);
+            context->PingTimeout = PhGetIntegerSetting(SETTING_NAME_PING_TIMEOUT);
             context->FontHandle = PhCreateCommonFont(-15, FW_MEDIUM, context->StatusHandle);
             context->PingGraphHandle = CreateWindow(
                 PH_GRAPH_CLASSNAME,
@@ -403,7 +404,6 @@ INT_PTR CALLBACK NetworkPingWndProc(
         break;
     case WM_PING_UPDATE:
         {
-            ULONG pingHistoryValue = 0;
             ULONG pingSumValue = 0;
             DOUBLE pingAvgMeanValue = 0;
             DOUBLE pingDeviationValue = 0;
@@ -416,11 +416,14 @@ INT_PTR CALLBACK NetworkPingWndProc(
                 pingSumValue += PhGetItemCircularBuffer_ULONG(&context->PingHistory, i);
             }
 
-            pingAvgMeanValue = (DOUBLE)pingSumValue / context->PingHistory.Count;
+            if (context->PingHistory.Count)
+            {
+                pingAvgMeanValue = (DOUBLE)pingSumValue / context->PingHistory.Count;
+            }
 
             for (ULONG i = 0; i < context->PingHistory.Count; i++)
             {
-                pingHistoryValue = PhGetItemCircularBuffer_ULONG(&context->PingHistory, i);
+                ULONG pingHistoryValue = PhGetItemCircularBuffer_ULONG(&context->PingHistory, i);
 
                 pingDeviationValue += pow(pingHistoryValue - pingAvgMeanValue, 2);
             }
@@ -433,11 +436,11 @@ INT_PTR CALLBACK NetworkPingWndProc(
             }
 
             PhSetDialogItemText(hwndDlg, IDC_ICMP_AVG, PhaFormatString(
-                L"Average: %lums", (ULONG)pingAvgMeanValue)->Buffer);
+                L"Average: %lu ms", (ULONG)pingAvgMeanValue)->Buffer);
             PhSetDialogItemText(hwndDlg, IDC_ICMP_MIN, PhaFormatString(
-                L"Minimum: %lums", context->PingMinMs)->Buffer);
+                L"Minimum: %lu ms", context->PingMinMs)->Buffer);
             PhSetDialogItemText(hwndDlg, IDC_ICMP_MAX, PhaFormatString(
-                L"Maximum: %lums", context->PingMaxMs)->Buffer);
+                L"Maximum: %lu ms", context->PingMaxMs)->Buffer);
 
             PhSetDialogItemText(hwndDlg, IDC_PINGS_SENT, PhaFormatString(
                 L"Pings sent: %lu", context->PingSentCount)->Buffer);
@@ -493,7 +496,7 @@ INT_PTR CALLBACK NetworkPingWndProc(
                         if (!context->PingGraphState.Valid)
                         {
                             ULONG i;
-                            FLOAT max = (FLOAT)context->MaxPingTimeout; // minimum scaling
+                            FLOAT max = (FLOAT)context->MinPingScaling; // minimum scaling
 
                             for (i = 0; i < drawInfo->LineDataCount; i++)
                             {
