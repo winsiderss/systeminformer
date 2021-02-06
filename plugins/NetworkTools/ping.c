@@ -328,7 +328,6 @@ INT_PTR CALLBACK NetworkPingWndProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_PINGS_SENT), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_PINGS_LOST), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ICMP_STDEV), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ICMP_STVAR), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_BAD_HASH), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ANON_ADDR), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             panelItem = PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_PING_LAYOUT), NULL, PH_ANCHOR_ALL);
@@ -407,7 +406,6 @@ INT_PTR CALLBACK NetworkPingWndProc(
             ULONG pingSumValue = 0;
             DOUBLE pingAvgMeanValue = 0;
             DOUBLE pingDeviationValue = 0;
-            DOUBLE pingVarianceValue = 0;
 
             NetworkPingUpdateGraph(context);
 
@@ -430,7 +428,7 @@ INT_PTR CALLBACK NetworkPingWndProc(
 
             if (context->PingHistory.Count)
             {
-                pingVarianceValue = pingDeviationValue / context->PingHistory.Count;
+                DOUBLE pingVarianceValue = pingDeviationValue / context->PingHistory.Count;
 
                 pingDeviationValue = sqrt(pingVarianceValue);
             }
@@ -449,9 +447,9 @@ INT_PTR CALLBACK NetworkPingWndProc(
                 ((DOUBLE)context->PingLossCount / context->PingSentCount * 100))->Buffer);
 
             PhSetDialogItemText(hwndDlg, IDC_ICMP_STDEV, PhaFormatString(
-                L"Deviation: %.2f", pingDeviationValue)->Buffer);
-            PhSetDialogItemText(hwndDlg, IDC_ICMP_STVAR, PhaFormatString(
-                L"Variance: %.2f", pingVarianceValue)->Buffer);
+                L"Deviation: %.2f ms", pingDeviationValue)->Buffer);
+            //PhSetDialogItemText(hwndDlg, IDC_ICMP_STVAR, PhaFormatString(
+            //    L"Variance: %.2f ms", pingVarianceValue)->Buffer);
 
             //PhSetDialogItemText(hwndDlg, IDC_BAD_HASH, PhaFormatString(
             //    L"Bad hashes: %lu", context->HashFailCount)->Buffer);

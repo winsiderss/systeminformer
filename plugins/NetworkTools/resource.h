@@ -266,7 +266,6 @@
 #define IDC_MAINTEXT                    1016
 #define IDC_ANON_ADDR                   1017
 #define IDC_ICMP_STDEV                  1018
-#define IDC_ICMP_STVAR                  1019
 #define IDC_PINGS_SENT                  1020
 #define IDC_PING_LAYOUT                 1021
 #define IDC_BAD_HASH                    1022
