@@ -8470,26 +8470,28 @@ NTSTATUS PhDeleteFileWin32(
     NTSTATUS status;
     HANDLE fileHandle;
 
-    if (WindowsVersion >= WINDOWS_10_RS5)
-    {
-        status = PhCreateFileWin32(
-            &fileHandle,
-            FileName,
-            DELETE,
-            FILE_ATTRIBUTE_NORMAL,
-            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-            FILE_OPEN,
-            FILE_NON_DIRECTORY_FILE
-            );
-
-        if (!NT_SUCCESS(status))
-            return status;
-
-        status = PhDeleteFile(fileHandle);
-
-        NtClose(fileHandle);
-    }
-    else
+    // Disabled due to an error deleting files with mapped references
+    // such as the mapped geoip database. See GH #794 (dmex)
+    //if (WindowsVersion >= WINDOWS_10_RS5)
+    //{
+    //    status = PhCreateFileWin32(
+    //        &fileHandle,
+    //        FileName,
+    //        DELETE,
+    //        FILE_ATTRIBUTE_NORMAL,
+    //        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+    //        FILE_OPEN,
+    //        FILE_NON_DIRECTORY_FILE
+    //        );
+    //
+    //    if (!NT_SUCCESS(status))
+    //        return status;
+    //
+    //    status = PhDeleteFile(fileHandle);
+    //
+    //    NtClose(fileHandle);
+    //}
+    //else
     {
         status = PhCreateFileWin32(
             &fileHandle,
