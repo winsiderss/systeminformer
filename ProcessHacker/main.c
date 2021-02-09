@@ -1110,6 +1110,18 @@ VOID PhInitializeKph(
     PPH_STRING kphSigFileName = NULL;
     PPH_STRING kphServiceName = NULL;
 
+    if (!(kphDirectory = PhGetApplicationDirectory()))
+        return;
+
+    kphServiceName = PhGetStringSetting(L"KphServiceName");
+
+    if (kphServiceName && PhIsNullOrEmptyString(kphServiceName))
+        PhClearReference(&kphServiceName);
+
+    kphFileName = PhConcatStringRefZ(&kphDirectory->sr, L"kprocesshacker.sys");
+    kphSigFileName = PhConcatStringRefZ(&kphDirectory->sr, L"processhacker.sig");
+
+    // Reset KPH after a Windows build update. (dmex)
     {
         ULONG latestBuildNumber = PhGetIntegerSetting(L"KphBuildNumber");
 
@@ -1121,25 +1133,13 @@ VOID PhInitializeKph(
         {
             if (latestBuildNumber != PhOsVersion.dwBuildNumber)
             {
-                // Reset KPH after a Windows build update. (dmex)
-                if (NT_SUCCESS(KphResetParameters(KPH_DEVICE_SHORT_NAME)))
+                if (NT_SUCCESS(KphResetParameters(PhGetStringOrDefault(kphServiceName, KPH_DEVICE_SHORT_NAME))))
                 {
                     PhSetIntegerSetting(L"KphBuildNumber", PhOsVersion.dwBuildNumber);
                 }
             }
         }
     }
-
-    if (!(kphDirectory = PhGetApplicationDirectory()))
-        return;
-
-    kphServiceName = PhGetStringSetting(L"KphServiceName");
-
-    if (kphServiceName && PhIsNullOrEmptyString(kphServiceName))
-        PhClearReference(&kphServiceName);
-
-    kphFileName = PhConcatStringRefZ(&kphDirectory->sr, L"kprocesshacker.sys");
-    kphSigFileName = PhConcatStringRefZ(&kphDirectory->sr, L"processhacker.sig");
 
     if (PhDoesFileExistsWin32(kphFileName->Buffer))
     {
