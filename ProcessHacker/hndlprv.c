@@ -308,7 +308,7 @@ NTSTATUS PhEnumHandlesGeneric(
     // * On Windows XP and later, NtQuerySystemInformation with SystemExtendedHandleInformation.
     // * Otherwise, NtQuerySystemInformation with SystemHandleInformation can be used.
 
-    if (KphIsConnected())
+    if (KphIsConnected() && ProcessHandle)
     {
         PKPH_PROCESS_HANDLE_INFORMATION handles;
         PSYSTEM_HANDLE_INFORMATION_EX convertedHandles;
@@ -344,7 +344,7 @@ NTSTATUS PhEnumHandlesGeneric(
         }
     }
 
-    if (!NT_SUCCESS(status) && WindowsVersion >= WINDOWS_8 && PhGetIntegerSetting(L"EnableHandleSnapshot"))
+    if (!NT_SUCCESS(status) && WindowsVersion >= WINDOWS_8 && ProcessHandle && PhGetIntegerSetting(L"EnableHandleSnapshot"))
     {
         PPROCESS_HANDLE_SNAPSHOT_INFORMATION handles;
         PSYSTEM_HANDLE_INFORMATION_EX convertedHandles;
@@ -450,9 +450,6 @@ VOID PhHandleProviderUpdate(
     PPH_KEY_VALUE_PAIR handlePair;
     BOOLEAN useWorkQueue = FALSE;
     PH_WORK_QUEUE workQueue;
-
-    if (!handleProvider->ProcessHandle)
-        goto UpdateExit;
 
     if (!NT_SUCCESS(handleProvider->RunStatus = PhEnumHandlesGeneric(
         handleProvider->ProcessId,
