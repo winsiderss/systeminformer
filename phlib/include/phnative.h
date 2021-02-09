@@ -1782,6 +1782,14 @@ PhQueryProcessHeapInformation(
     _Out_ PPH_PROCESS_DEBUG_HEAP_INFORMATION* HeapInformation
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetProcessCodePage(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PUSHORT ProcessCodePage
+    );
+
 #ifdef __cplusplus
 }
 #endif
