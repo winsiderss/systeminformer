@@ -1,6 +1,7 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
-  <assemblyIdentity name="CustomBuildTool" version="1.0.0.0"/>
+  <assemblyIdentity name="CustomBuildTool" processorArchitecture="*" version="1.0.0.0" type="win32"/>
+  <description>CustomBuildTool</description>
   <dependency>
     <dependentAssembly>
       <assemblyIdentity type="win32" name="Microsoft.Windows.Common-Controls" version="6.0.0.0" processorArchitecture="*" publicKeyToken="6595b64144ccf1df" language="*"/>
@@ -15,7 +16,7 @@
   </trustInfo>
   <compatibility xmlns="urn:schemas-microsoft-com:compatibility.v1">
     <application>
-      <maxversiontested Id="10.0.19041.0"/>
+      <maxversiontested Id="10.0.19042.0"/>
       <supportedOS Id="{e2011457-1546-43c5-a5fe-008deee3d3f0}"/>
       <supportedOS Id="{35138b9a-5d96-4fbd-8e2d-a2440225f93a}"/>
       <supportedOS Id="{4a2f28e3-53b9-4441-ba9c-d69d4a4a6e38}"/>
@@ -29,6 +30,7 @@
     </asmv3:windowsSettings>
     <asmv3:windowsSettings xmlns="http://schemas.microsoft.com/SMI/2011/WindowsSettings">
       <disableWindowFiltering>true</disableWindowFiltering>
+      <printerDriverIsolation>true</printerDriverIsolation>
     </asmv3:windowsSettings>
     <asmv3:windowsSettings xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">
       <longPathAware>true</longPathAware>
