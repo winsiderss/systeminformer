@@ -469,7 +469,7 @@ static NTSTATUS NTAPI PhpTokenGroupResolveWorker(
     )
 {
     PPHP_TOKEN_GROUP_RESOLVE_CONTEXT context = ThreadParameter;
-    PPH_STRING fullUserName;
+    PPH_STRING sidString = NULL;
     INT lvItemIndex;
 
     lvItemIndex = PhFindListViewItemByParam(
@@ -480,10 +480,27 @@ static NTSTATUS NTAPI PhpTokenGroupResolveWorker(
 
     if (lvItemIndex != -1)
     {
-        if (fullUserName = PhGetSidFullName(context->TokenGroupSid, TRUE, NULL))
+        if (sidString = PhGetSidFullName(context->TokenGroupSid, TRUE, NULL))
         {
-            PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, PH_PROCESS_TOKEN_INDEX_NAME, PhGetString(fullUserName));
-            PhDereferenceObject(fullUserName);
+            PhMoveReference(&sidString, PhReferenceObject(sidString));
+        }
+        else if (sidString = PhGetAppContainerPackageName(context->TokenGroupSid))
+        {
+            PhMoveReference(&sidString, PhConcatStringRefZ(&sidString->sr, L" (APP_PACKAGE)"));
+        }
+        else if (sidString = PhGetAppContainerName(context->TokenGroupSid))
+        {
+            PhMoveReference(&sidString, PhConcatStringRefZ(&sidString->sr, L" (APP_CONTAINER)"));
+        }
+        else if (sidString = PhGetCapabilitySidName(context->TokenGroupSid))
+        {
+            PhMoveReference(&sidString, PhConcatStringRefZ(&sidString->sr, L" (APP_CAPABILITY)"));
+        }
+
+        if (sidString)
+        {
+            PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, PH_PROCESS_TOKEN_INDEX_NAME, PhGetString(sidString));
+            PhDereferenceObject(sidString);
         }
         else
         {
@@ -1522,6 +1539,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
             case IDC_ADVANCED:
                 {
                     HANDLE tokenHandle;
+                    HANDLE processHandle;
                     BOOLEAN tokenIsAppContainer = FALSE;
 
                     if (NT_SUCCESS(tokenPageContext->OpenObject(
@@ -1532,6 +1550,24 @@ INT_PTR CALLBACK PhpTokenPageProc(
                     {
                         PhGetTokenIsAppContainer(tokenHandle, &tokenIsAppContainer);
                         NtClose(tokenHandle);
+                    }
+
+                    // Secondary check for desktop containers. (dmex)
+                    if (!tokenIsAppContainer)
+                    {
+                        if (NT_SUCCESS(PhOpenProcess(
+                            &processHandle,
+                            PROCESS_QUERY_LIMITED_INFORMATION,
+                            tokenPageContext->Context  // ProcessId
+                            )))
+                        {
+                            PPH_STRING packageName = PhGetProcessPackageFullName(processHandle);
+
+                            tokenIsAppContainer = !PhIsNullOrEmptyString(packageName);
+                 
+                            PhClearReference(&packageName);
+                            NtClose(processHandle);
+                        }
                     }
 
                     PhpShowTokenAdvancedProperties(hwndDlg, tokenPageContext, tokenIsAppContainer);
