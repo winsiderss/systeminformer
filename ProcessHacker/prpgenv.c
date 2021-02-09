@@ -3,7 +3,7 @@
  *   Process properties: Environment page
  *
  * Copyright (C) 2009-2016 wj32
- * Copyright (C) 2018-2020 dmex
+ * Copyright (C) 2018-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -176,7 +176,6 @@ VOID PhpSetEnvironmentListStatusMessage(
 }
 
 VOID PhpRefreshEnvironmentList(
-    _In_ HWND hwndDlg,
     _Inout_ PPH_ENVIRONMENT_CONTEXT Context,
     _In_ PPH_PROCESS_ITEM ProcessItem
     )
@@ -617,7 +616,7 @@ VOID PhpShowEnvironmentNodeContextMenu(
                         &refresh
                         ) == IDOK && refresh)
                     {
-                        PhpRefreshEnvironmentList(Context->WindowHandle, Context, Context->ProcessItem);
+                        PhpRefreshEnvironmentList(Context, Context->ProcessItem);
                     }
                 }
                 break;
@@ -656,7 +655,7 @@ VOID PhpShowEnvironmentNodeContextMenu(
                             );
                         NtClose(processHandle);
 
-                        PhpRefreshEnvironmentList(Context->WindowHandle, Context, Context->ProcessItem);
+                        PhpRefreshEnvironmentList(Context, Context->ProcessItem);
 
                         if (status == STATUS_TIMEOUT)
                         {
@@ -1361,7 +1360,7 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
             TreeNew_SetEmptyText(context->TreeNewHandle, &context->StatusMessage->sr, 0);
             PhLoadSettingsEnvironmentList(context);
 
-            PhpRefreshEnvironmentList(hwndDlg, context, processItem);
+            PhpRefreshEnvironmentList(context, processItem);
 
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
@@ -1496,7 +1495,7 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
 
                             if (PhpShowEditEnvDialog(hwndDlg, processItem, L"", NULL, &refresh) == IDOK && refresh)
                             {
-                                PhpRefreshEnvironmentList(hwndDlg, context, processItem);
+                                PhpRefreshEnvironmentList(context, processItem);
                             }
                         }
                         else
@@ -1512,7 +1511,7 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
                 break;
             case IDC_REFRESH:
                 {
-                    PhpRefreshEnvironmentList(hwndDlg, context, processItem);
+                    PhpRefreshEnvironmentList(context, processItem);
                 }
                 break;
             case WM_PH_SET_LIST_VIEW_SETTINGS: // HACK
@@ -1531,7 +1530,7 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
                         &refresh
                         ) == IDOK && refresh)
                     {
-                        PhpRefreshEnvironmentList(hwndDlg, context, context->ProcessItem);
+                        PhpRefreshEnvironmentList(context, context->ProcessItem);
                     }
                 }
                 break;
@@ -1545,7 +1544,7 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
             switch (header->code)
             {
             case PSN_QUERYINITIALFOCUS:
-                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LPARAM)GetDlgItem(hwndDlg, IDC_REFRESH));
+                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LPARAM)context->TreeNewHandle);
                 return TRUE;
             }
         }
