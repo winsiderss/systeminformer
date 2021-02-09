@@ -228,6 +228,8 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_CPUCORECYCLES, FALSE, L"CPU (relative)", 45, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_CET, FALSE, L"CET", 45, PH_ALIGN_LEFT, ULONG_MAX, 0, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_IMAGE_COHERENCY, FALSE, L"Image coherency", 70, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHPRTLC_ERRORMODE, FALSE, L"Error mode", 70, PH_ALIGN_LEFT, ULONG_MAX, 0, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHPRTLC_CODEPAGE, FALSE, L"Code page", 70, PH_ALIGN_LEFT, ULONG_MAX, 0, TRUE);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -584,6 +586,7 @@ VOID PhpRemoveProcessNode(
     PhClearReference(&ProcessNode->ProtectionText);
     PhClearReference(&ProcessNode->DesktopInfoText);
     PhClearReference(&ProcessNode->ImageCoherencyStatusText);
+    PhClearReference(&ProcessNode->CodePageText);
 
     PhDeleteGraphBuffers(&ProcessNode->CpuGraphBuffers);
     PhDeleteGraphBuffers(&ProcessNode->PrivateGraphBuffers);
@@ -625,7 +628,7 @@ VOID PhTickProcessNodes(
 
         // The name and PID never change, so we don't invalidate that.
         memset(&node->TextCache[2], 0, sizeof(PH_STRINGREF) * (PHPRTLC_MAXIMUM - 2));
-        node->ValidMask &= PHPN_OSCONTEXT | PHPN_IMAGE | PHPN_DPIAWARENESS | PHPN_APPID | PHPN_DESKTOPINFO; // Items that always remain valid
+        node->ValidMask &= PHPN_OSCONTEXT | PHPN_IMAGE | PHPN_DPIAWARENESS | PHPN_APPID | PHPN_DESKTOPINFO | PHPN_CODEPAGE; // Items that always remain valid
 
         // The DPI awareness defaults to unaware if not set or declared in the manifest in which case
         // it can be changed once, so we can only be sure that it won't be changed again if it is different
@@ -1313,6 +1316,93 @@ static VOID PhpUpdateProcessBreakOnTermination(
     }
 }
 
+static VOID PhpUpdateProcessNodeErrorMode(
+    _Inout_ PPH_PROCESS_NODE ProcessNode
+    )
+{
+    if (!(ProcessNode->ValidMask & PHPN_ERRORMODE))
+    {
+        PhClearReference(&ProcessNode->ErrorModeText);
+
+        if (ProcessNode->ProcessItem->QueryHandle)
+        {
+            ULONG errorMode;
+
+            if (NT_SUCCESS(PhGetProcessErrorMode(
+                ProcessNode->ProcessItem->QueryHandle,
+                &errorMode
+                )) && errorMode > 0)
+            {
+                PH_STRING_BUILDER stringBuilder;
+                WCHAR pointer[PH_PTR_STR_LEN_1];
+
+                PhInitializeStringBuilder(&stringBuilder, 0x50);
+
+                if (errorMode & SEM_FAILCRITICALERRORS)
+                {
+                    PhAppendStringBuilder2(&stringBuilder, L"Fail critical, ");
+                }
+
+                if (errorMode & SEM_NOGPFAULTERRORBOX)
+                {
+                    PhAppendStringBuilder2(&stringBuilder, L"GP faults, ");
+                }
+
+                if (errorMode & SEM_NOALIGNMENTFAULTEXCEPT)
+                {
+                    PhAppendStringBuilder2(&stringBuilder, L"Alignment faults, ");
+                }
+
+                if (errorMode & SEM_NOOPENFILEERRORBOX)
+                {
+                    PhAppendStringBuilder2(&stringBuilder, L"Openfile faults, ");
+                }
+
+                if (PhEndsWithString2(stringBuilder.String, L", ", FALSE))
+                    PhRemoveEndStringBuilder(&stringBuilder, 2);
+
+                PhPrintPointer(pointer, UlongToPtr(errorMode));
+                PhAppendFormatStringBuilder(&stringBuilder, L" (%s)", pointer);
+
+                ProcessNode->ErrorModeText = PhFinalStringBuilderString(&stringBuilder);
+            }
+        }
+
+        ProcessNode->ValidMask |= PHPN_ERRORMODE;
+    }
+}
+
+static VOID PhpUpdateProcessNodeCodePage(
+    _Inout_ PPH_PROCESS_NODE ProcessNode
+    )
+{
+    if (!(ProcessNode->ValidMask & PHPN_CODEPAGE))
+    {
+        if (PH_IS_REAL_PROCESS_ID(ProcessNode->ProcessItem->ProcessId))
+        {
+            HANDLE processHandle;
+
+            if (NT_SUCCESS(PhOpenProcess(
+                &processHandle,
+                PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ,
+                ProcessNode->ProcessId
+                )))
+            {
+                USHORT codePage;
+
+                if (NT_SUCCESS(PhGetProcessCodePage(processHandle, &codePage)))
+                {
+                    ProcessNode->CodePage = codePage;
+                }
+
+                NtClose(processHandle);
+            }
+        }
+
+        ProcessNode->ValidMask |= PHPN_CODEPAGE;
+    }
+}
+
 #define SORT_FUNCTION(Column) PhpProcessTreeNewCompare##Column
 
 #define BEGIN_SORT_FUNCTION(Column) static int __cdecl PhpProcessTreeNewCompare##Column( \
@@ -1972,6 +2062,23 @@ BEGIN_SORT_FUNCTION(ImageCoherency)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(ErrorMode)
+{
+    PhpUpdateProcessNodeErrorMode(node1);
+    PhpUpdateProcessNodeErrorMode(node2);
+    sortResult = PhCompareStringWithNullSortOrder(node1->ErrorModeText, node2->ErrorModeText, ProcessTreeListSortOrder, TRUE);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(CodePage)
+{
+    PhpUpdateProcessNodeCodePage(node1);
+    PhpUpdateProcessNodeCodePage(node2);
+
+    sortResult = ushortcmp(node1->CodePage, node2->CodePage);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpProcessTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -2100,6 +2207,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         SORT_FUNCTION(CpuCore),
                         SORT_FUNCTION(Cet),
                         SORT_FUNCTION(ImageCoherency),
+                        SORT_FUNCTION(ErrorMode),
+                        SORT_FUNCTION(CodePage),
                     };
                     int (__cdecl *sortFunction)(const void *, const void *);
 
@@ -3067,6 +3176,23 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     }
                     break;
                 }
+            case PHPRTLC_ERRORMODE:
+                {
+                    PhpUpdateProcessNodeErrorMode(node);
+                    getCellText->Text = PhGetStringRef(node->ErrorModeText);
+                }
+                break;
+            case PHPRTLC_CODEPAGE:
+                {
+                    PhpUpdateProcessNodeCodePage(node);
+
+                    if (node->CodePage != 0)
+                    {
+                        PhMoveReference(&node->CodePageText, PhFormatUInt64(node->CodePage, FALSE));
+                        getCellText->Text = node->CodePageText->sr;
+                    }
+                }
+                break;
             default:
                 return FALSE;
             }
