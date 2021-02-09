@@ -2,7 +2,7 @@
  * Process Hacker Network Tools -
  *   Whois dialog
  *
- * Copyright (C) 2013-2020 dmex
+ * Copyright (C) 2013-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -181,9 +181,9 @@ BOOLEAN WhoisExtractServerUrl(
     ULONG_PTR whoisServerHostnameLength;
     PPH_STRING whoisServerName;
 
-    if ((whoisServerHostnameIndex = PhFindStringInString(WhoisResponse, 0, L"whois:")) == -1)
+    if ((whoisServerHostnameIndex = PhFindStringInString(WhoisResponse, 0, L"whois:")) == SIZE_MAX)
         return FALSE;
-    if ((whoisServerHostnameLength = PhFindStringInString(WhoisResponse, whoisServerHostnameIndex, L"\n")) == -1)
+    if ((whoisServerHostnameLength = PhFindStringInString(WhoisResponse, whoisServerHostnameIndex, L"\n")) == SIZE_MAX)
         return FALSE;
     if ((whoisServerHostnameLength = whoisServerHostnameLength - whoisServerHostnameIndex) == 0)
         return FALSE;
@@ -217,9 +217,9 @@ BOOLEAN WhoisExtractReferralServer(
     WCHAR urlPort[0x100] = L"";
     WCHAR urlPath[0x100] = L"";
 
-    if ((whoisServerHostnameIndex = PhFindStringInString(WhoisResponse, 0, L"ReferralServer:")) == -1)
+    if ((whoisServerHostnameIndex = PhFindStringInString(WhoisResponse, 0, L"ReferralServer:")) == SIZE_MAX)
         return FALSE;
-    if ((whoisServerHostnameLength = PhFindStringInString(WhoisResponse, whoisServerHostnameIndex, L"\n")) == -1)
+    if ((whoisServerHostnameLength = PhFindStringInString(WhoisResponse, whoisServerHostnameIndex, L"\n")) == SIZE_MAX)
         return FALSE;
     if ((whoisServerHostnameLength = whoisServerHostnameLength - whoisServerHostnameIndex) == 0)
         return FALSE;
@@ -293,11 +293,23 @@ BOOLEAN WhoisConnectServer(
     SOCKET whoisSocketHandle = INVALID_SOCKET;
     PDNS_RECORD dnsRecordList;
 
-    dnsRecordList = PhDnsQuery(
-        NULL,
-        WhoisServerAddress,
-        DnsQueryMessageType
-        );
+    if (PhGetIntegerSetting(L"EnableNetworkResolveDoH"))
+    {
+        dnsRecordList = PhDnsQuery(
+            NULL,
+            WhoisServerAddress,
+            DnsQueryMessageType
+            );
+    }
+    else
+    {
+        dnsRecordList = PhDnsQuery2(
+            NULL,
+            WhoisServerAddress,
+            DnsQueryMessageType,
+            DNS_QUERY_NO_HOSTS_FILE // DNS_QUERY_BYPASS_CACHE
+            );
+    }
 
     if (!dnsRecordList)
         return FALSE;
@@ -320,6 +332,31 @@ BOOLEAN WhoisConnectServer(
 
             if ((whoisSocketHandle = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, 0)) != INVALID_SOCKET)
             {
+                ULONG bestInterfaceIndex;
+
+                if (GetBestInterfaceEx((PSOCKADDR)&remoteAddr, &bestInterfaceIndex) == ERROR_SUCCESS)
+                {
+                    MIB_IPFORWARD_ROW2 bestAddressRoute = { 0 };
+                    SOCKADDR_INET destinationAddress = { 0 };
+                    SOCKADDR_INET bestSourceAddress = { 0 };
+
+                    destinationAddress.si_family = AF_INET;
+                    destinationAddress.Ipv4 = remoteAddr;
+
+                    if (GetBestRoute2(
+                        NULL,
+                        bestInterfaceIndex,
+                        NULL,
+                        &destinationAddress,
+                        0,
+                        &bestAddressRoute,
+                        &bestSourceAddress
+                        ) == ERROR_SUCCESS)
+                    {
+                        bind(whoisSocketHandle, (PSOCKADDR)&bestSourceAddress.Ipv4, sizeof(bestSourceAddress.Ipv4));
+                    }
+                }
+
                 if (WSAConnect(whoisSocketHandle, (PSOCKADDR)&remoteAddr, sizeof(SOCKADDR_IN), NULL, NULL, NULL, NULL) != SOCKET_ERROR)
                     break;
 
@@ -343,6 +380,31 @@ BOOLEAN WhoisConnectServer(
 
             if ((whoisSocketHandle = WSASocket(AF_INET6, SOCK_STREAM, IPPROTO_TCP, NULL, 0, 0)) != INVALID_SOCKET)
             {
+                ULONG bestInterfaceIndex;
+
+                if (GetBestInterfaceEx((PSOCKADDR)&remoteAddr, &bestInterfaceIndex) == ERROR_SUCCESS)
+                {
+                    MIB_IPFORWARD_ROW2 bestAddressRoute = { 0 };
+                    SOCKADDR_INET destinationAddress = { 0 };
+                    SOCKADDR_INET bestSourceAddress = { 0 };
+
+                    destinationAddress.si_family = AF_INET6;
+                    destinationAddress.Ipv6 = remoteAddr;
+
+                    if (GetBestRoute2(
+                        NULL,
+                        bestInterfaceIndex,
+                        NULL,
+                        &destinationAddress,
+                        0,
+                        &bestAddressRoute,
+                        &bestSourceAddress
+                        ) == ERROR_SUCCESS)
+                    {
+                        bind(whoisSocketHandle, (PSOCKADDR)&bestSourceAddress.Ipv6, sizeof(bestSourceAddress.Ipv6));
+                    }
+                }
+
                 if (WSAConnect(whoisSocketHandle, (PSOCKADDR)&remoteAddr, sizeof(SOCKADDR_IN6), NULL, NULL, NULL, NULL) != SOCKET_ERROR)
                     break;
 
