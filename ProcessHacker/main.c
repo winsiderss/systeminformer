@@ -811,13 +811,13 @@ BOOLEAN PhInitializeExceptionPolicy(
 {
 #if (PHNT_VERSION >= PHNT_WIN7)
 #ifndef DEBUG
-    ULONG errorMode;
-
-    if (NT_SUCCESS(PhGetProcessErrorMode(NtCurrentProcess(), &errorMode)))
-    {
-        errorMode &= ~(SEM_NOOPENFILEERRORBOX | SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
-        PhSetProcessErrorMode(NtCurrentProcess(), errorMode);
-    }
+    //ULONG errorMode;
+    //
+    //if (NT_SUCCESS(PhGetProcessErrorMode(NtCurrentProcess(), &errorMode)))
+    //{
+    //    errorMode |= (SEM_NOOPENFILEERRORBOX | SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
+    //    PhSetProcessErrorMode(NtCurrentProcess(), errorMode);
+    //}
 
     RtlSetUnhandledExceptionFilter(PhpUnhandledExceptionCallback);
 #endif
