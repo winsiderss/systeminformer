@@ -893,7 +893,7 @@ VOID PhpProcessQueryStage1(
     }
 
     // Package full name
-    if (processHandleLimited && WindowsVersion >= WINDOWS_8 && Data->IsImmersive)
+    if (processHandleLimited && ((WindowsVersion >= WINDOWS_8 && Data->IsImmersive) || WindowsVersion >= WINDOWS_10))
     {
         Data->PackageFullName = PhGetProcessPackageFullName(processHandleLimited);
     }
