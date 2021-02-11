@@ -71,7 +71,7 @@ BEGIN
             VALUE "FileDescription", "Process Hacker"
             VALUE "FileVersion", PHAPP_VERSION_STRING
             VALUE "InternalName", "ProcessHacker.exe"
-            VALUE "LegalCopyright", "Licensed under the GNU GPL, v3. Copyright (C) 2017"
+            VALUE "LegalCopyright", "Licensed under the GNU GPL, v3. Copyright (C) 2021"
             VALUE "OriginalFilename", "ProcessHacker.exe"
             VALUE "ProductName", "Process Hacker"
             VALUE "ProductVersion", PHAPP_VERSION_STRING
