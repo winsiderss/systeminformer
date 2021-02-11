@@ -532,7 +532,7 @@ INT PhShowMessage(
     if (!message)
         return -1;
 
-    result = MessageBox(hWnd, message->Buffer, PhApplicationName, Type);
+    result = MessageBoxW_Import()(hWnd, message->Buffer, PhApplicationName, Type);
     PhDereferenceObject(message);
 
     return result;
