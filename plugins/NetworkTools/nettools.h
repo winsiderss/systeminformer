@@ -154,7 +154,7 @@ typedef struct _NETWORK_WHOIS_CONTEXT
     PH_LAYOUT_MANAGER LayoutManager;
 
     PH_IP_ENDPOINT RemoteEndpoint;
-    WCHAR IpAddressString[INET6_ADDRSTRLEN + 1];
+    WCHAR IpAddressString[INET6_ADDRSTRLEN + sizeof(UNICODE_NULL)];
 } NETWORK_WHOIS_CONTEXT, *PNETWORK_WHOIS_CONTEXT;
 
 // TDM_NAVIGATE_PAGE can not be called from other threads without comctl32.dll throwing access violations 
