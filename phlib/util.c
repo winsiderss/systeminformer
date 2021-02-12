@@ -6742,6 +6742,53 @@ PVOID PhGetLoaderEntryImageExportFunction(
     return exportAddress;
 }
 
+PVOID PhGetDllBaseProcedureAddressWithHint(
+    _In_ PVOID BaseAddress,
+    _In_ PSTR ProcedureName,
+    _In_ USHORT ProcedureHint
+    )
+{
+    PIMAGE_NT_HEADERS imageNtHeader;
+    PIMAGE_DATA_DIRECTORY dataDirectory;
+    PIMAGE_EXPORT_DIRECTORY exportDirectory;
+
+    // This is a workaround for the CRT __delayLoadHelper2.
+    if (PhEqualBytesZ(ProcedureName, "GetProcAddress", FALSE))
+    {
+        return PhGetDllBaseProcAddress;
+    }
+
+    if (!NT_SUCCESS(PhGetLoaderEntryImageNtHeaders(BaseAddress, &imageNtHeader)))
+        return NULL;
+
+    if (!NT_SUCCESS(PhGetLoaderEntryImageDirectory(
+        BaseAddress,
+        imageNtHeader,
+        IMAGE_DIRECTORY_ENTRY_EXPORT,
+        &dataDirectory,
+        &exportDirectory,
+        NULL
+        )))
+    {
+        return NULL;
+    }
+
+    if (ProcedureHint < exportDirectory->NumberOfNames)
+    {
+        PULONG exportAddressTable = PTR_ADD_OFFSET(BaseAddress, exportDirectory->AddressOfFunctions);
+        PULONG exportNameTable = PTR_ADD_OFFSET(BaseAddress, exportDirectory->AddressOfNames);
+        PUSHORT exportOrdinalTable = PTR_ADD_OFFSET(BaseAddress, exportDirectory->AddressOfNameOrdinals);
+
+        // If the import hint matches the export name then return the address.
+        if (PhEqualBytesZ(ProcedureName, PTR_ADD_OFFSET(BaseAddress, exportNameTable[ProcedureHint]), FALSE))
+        {
+            return PTR_ADD_OFFSET(BaseAddress, exportAddressTable[exportOrdinalTable[ProcedureHint]]);
+        }
+    }
+
+    return PhGetDllBaseProcedureAddress(BaseAddress, ProcedureName, 0);
+}
+
 static NTSTATUS PhpFixupLoaderEntryImageImports(
     _In_ PVOID BaseAddress, 
     _In_ PIMAGE_NT_HEADERS ImageNtHeader
@@ -6877,7 +6924,7 @@ static NTSTATUS PhpFixupLoaderEntryImageImports(
                 PVOID procedureAddress;
 
                 importByName = PTR_ADD_OFFSET(BaseAddress, originalThunk->u1.AddressOfData);
-                procedureAddress = PhGetDllBaseProcedureAddress(importBaseAddress, importByName->Name, 0);
+                procedureAddress = PhGetDllBaseProcedureAddressWithHint(importBaseAddress, importByName->Name, importByName->Hint);
 
                 if (!procedureAddress)
                 {
@@ -7055,7 +7102,7 @@ static NTSTATUS PhpFixupLoaderEntryImageDelayImports(
                     PVOID procedureAddress;
 
                     importByName = PTR_ADD_OFFSET(BaseAddress, originalThunk->u1.AddressOfData);
-                    procedureAddress = PhGetDllBaseProcedureAddress(importBaseAddress, importByName->Name, 0);
+                    procedureAddress = PhGetDllBaseProcedureAddressWithHint(importBaseAddress, importByName->Name, importByName->Hint);
 
                     importThunk->u1.Function = (ULONG_PTR)procedureAddress;
                 }
