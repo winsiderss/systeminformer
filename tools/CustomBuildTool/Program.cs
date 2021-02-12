@@ -41,6 +41,51 @@ namespace CustomBuildTool
                 Build.CleanupBuildEnvironment();
                 Build.ShowBuildStats();
             }
+            //else if (ProgramArgs.ContainsKey("-appxbuild"))
+            //{
+            //    Build.SetupBuildEnvironment(true);
+            //
+            //    if (!Build.BuildSolution("ProcessHacker.sln",
+            //        BuildFlags.Build32bit | BuildFlags.Build64bit |
+            //        BuildFlags.BuildVerbose | BuildFlags.BuildApi
+            //        ))
+            //        return;
+            //
+            //    if (!Build.CopyKProcessHacker(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
+            //        return;
+            //    if (!Build.BuildSdk(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
+            //        return;
+            //
+            //    if (!Build.BuildSolution("plugins\\Plugins.sln",
+            //        BuildFlags.Build32bit | BuildFlags.Build64bit |
+            //        BuildFlags.BuildVerbose | BuildFlags.BuildApi
+            //        ))
+            //        return;
+            //
+            //    if (!Build.CopyTextFiles())
+            //        return;
+            //    if (!Build.CopyWow64Files(BuildFlags.None))
+            //        return;
+            //    if (!Build.CopySidCapsFile(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
+            //        return;
+            //    if (!Build.CopyEtwTraceGuidsFile(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
+            //        return;
+            //
+            //    if (!Build.BuildBinZip())
+            //        return;
+            //    if (!Build.BuildSetupExe())
+            //        return;
+            //    Build.BuildPdbZip();
+            //    Build.BuildSdkZip();
+            //    //Build.BuildSrcZip();
+            //    Build.BuildChecksumsFile();
+            //
+            //    Build.BuildAppxPackage(
+            //        BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose
+            //        );
+            //
+            //    Build.ShowBuildStats();
+            //}
             else if (ProgramArgs.ContainsKey("-phapppub_gen"))
             {
                 Build.BuildPublicHeaderFiles();
