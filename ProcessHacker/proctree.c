@@ -3,7 +3,7 @@
  *   process tree list
  *
  * Copyright (C) 2010-2016 wj32
- * Copyright (C) 2016-2020 dmex
+ * Copyright (C) 2016-2021 dmex
  * Copyright (C) 2021 jxy-s
  *
  * This file is part of Process Hacker.
@@ -42,6 +42,7 @@
 #include <colmgr.h>
 #include <extmgri.h>
 #include <mainwnd.h>
+#include <math.h>
 #include <phplug.h>
 #include <phsettings.h>
 #include <procprv.h>
@@ -230,6 +231,7 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_IMAGE_COHERENCY, FALSE, L"Image coherency", 70, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_ERRORMODE, FALSE, L"Error mode", 70, PH_ALIGN_LEFT, ULONG_MAX, 0, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_CODEPAGE, FALSE, L"Code page", 70, PH_ALIGN_LEFT, ULONG_MAX, 0, TRUE);
+    PhAddTreeNewColumnEx2(hwnd, PHPRTLC_TIMELINE, FALSE, L"Timeline", 100, PH_ALIGN_LEFT, ULONG_MAX, 0, TN_COLUMN_FLAG_CUSTOMDRAW | TN_COLUMN_FLAG_SORTDESCENDING);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -3510,6 +3512,86 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         );
                 }
 
+                break;
+            case PHPRTLC_TIMELINE:
+                {
+                    #define PhInflateRect(rect, dx, dy) \
+                    { (rect)->left -= (dx); (rect)->top -= (dy); (rect)->right += (dx); (rect)->bottom += (dy); }
+                    static HBRUSH backgroundBrush = NULL;
+                    HBRUSH previousBrush = NULL;
+                    RECT borderRect = customDraw->CellRect;
+                    DOUBLE percent = 0;
+
+                    if (PH_IS_REAL_PROCESS_ID(processItem->ProcessId))
+                    {
+                        static LARGE_INTEGER bootTime = { 0 };
+                        LARGE_INTEGER systemTime;
+                        LARGE_INTEGER created;
+                        LARGE_INTEGER current;
+
+                        if (bootTime.QuadPart == 0)
+                        {
+                            SYSTEM_TIMEOFDAY_INFORMATION timeOfDayInfo;
+
+                            if (NT_SUCCESS(NtQuerySystemInformation(
+                                SystemTimeOfDayInformation,
+                                &timeOfDayInfo,
+                                RTL_SIZEOF_THROUGH_FIELD(SYSTEM_TIMEOFDAY_INFORMATION, BootTime),
+                                NULL
+                                )))
+                            {
+                                bootTime.QuadPart = timeOfDayInfo.BootTime.QuadPart;
+                            }
+
+                            //if (NT_SUCCESS(NtQuerySystemInformation(
+                            //    SystemTimeOfDayInformation,
+                            //    &timeOfDayInfo,
+                            //    RTL_SIZEOF_THROUGH_FIELD(SYSTEM_TIMEOFDAY_INFORMATION, CurrentTime),
+                            //    NULL
+                            //    )))
+                            //{
+                            //    created.QuadPart = timeOfDayInfo.CurrentTime.QuadPart - timeOfDayInfo.BootTime.QuadPart;
+                            //    current.QuadPart = timeOfDayInfo.CurrentTime.QuadPart - processItem->CreateTime.QuadPart;
+                            //    percent = round((DOUBLE)((FLOAT)current.QuadPart / (FLOAT)created.QuadPart * 100));
+                            //}
+                        }
+
+                        PhQuerySystemTime(&systemTime);
+                        created.QuadPart = systemTime.QuadPart - bootTime.QuadPart;
+                        current.QuadPart = systemTime.QuadPart - processItem->CreateTime.QuadPart;
+                        percent = round((DOUBLE)((FLOAT)current.QuadPart / (FLOAT)created.QuadPart * 100.f));
+                    }
+                    else
+                    {
+                        // DPCs, Interrupts and System Idle Process are always 100%
+                        percent = 100.0;
+                    }
+
+                    FillRect(customDraw->Dc, &rect, GetSysColorBrush(COLOR_WINDOW));
+                    PhInflateRect(&rect, -1, -1);
+                    FillRect(customDraw->Dc, &rect, GetSysColorBrush(COLOR_3DFACE));
+
+                    if (!backgroundBrush) backgroundBrush = CreateSolidBrush(RGB(158, 202, 158));
+                    if (backgroundBrush) previousBrush = SelectBrush(customDraw->Dc, backgroundBrush);
+
+                    //rect.right = ((LONG)(rect.left + ((rect.right - rect.left) * (LONG)percent) / 100));
+                    rect.left = ((LONG)(rect.right + ((rect.left - rect.right) * (LONG)percent) / 100));
+
+                    PatBlt(
+                        customDraw->Dc,
+                        rect.left,
+                        rect.top,
+                        rect.right - rect.left,
+                        rect.bottom - rect.top,
+                        PATCOPY
+                        );
+
+                    if (previousBrush) SelectBrush(customDraw->Dc, previousBrush);
+                    //if (backgroundBrush) DeleteBrush(backgroundBrush);
+
+                    PhInflateRect(&borderRect, -1, -1);
+                    FrameRect(customDraw->Dc, &borderRect, GetStockBrush(GRAY_BRUSH));
+                }
                 break;
             }
         }
