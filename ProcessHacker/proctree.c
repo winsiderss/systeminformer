@@ -3521,7 +3521,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     static HBRUSH backgroundBrush = NULL;
                     HBRUSH previousBrush = NULL;
                     RECT borderRect = customDraw->CellRect;
-                    DOUBLE percent = 0;
+                    FLOAT percent = 0;
 
                     if (PH_IS_REAL_PROCESS_ID(processItem->ProcessId))
                     {
@@ -3537,13 +3537,22 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                             if (NT_SUCCESS(NtQuerySystemInformation(
                                 SystemTimeOfDayInformation,
                                 &timeOfDayInfo,
-                                RTL_SIZEOF_THROUGH_FIELD(SYSTEM_TIMEOFDAY_INFORMATION, BootTime),
+                                sizeof(SYSTEM_TIMEOFDAY_INFORMATION),
                                 NULL
                                 )))
                             {
-                                bootTime.QuadPart = timeOfDayInfo.BootTime.QuadPart;
+                                bootTime.LowPart = timeOfDayInfo.BootTime.LowPart;
+                                bootTime.HighPart = timeOfDayInfo.BootTime.HighPart;
+                                bootTime.QuadPart -= timeOfDayInfo.BootTimeBias;
                             }
 
+                            //PPH_PROCESS_ITEM systemProcessItem;
+                            //if (systemProcessItem = PhReferenceProcessItem(SYSTEM_IDLE_PROCESS_ID))
+                            //{
+                            //    bootTime.QuadPart = systemProcessItem->CreateTime.QuadPart;
+                            //    PhDereferenceObject(systemProcessItem);
+                            //}
+                            //
                             //if (NT_SUCCESS(NtQuerySystemInformation(
                             //    SystemTimeOfDayInformation,
                             //    &timeOfDayInfo,
@@ -3560,12 +3569,12 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         PhQuerySystemTime(&systemTime);
                         startTime.QuadPart = systemTime.QuadPart - bootTime.QuadPart;
                         createTime.QuadPart = systemTime.QuadPart - processItem->CreateTime.QuadPart;
-                        percent = round((DOUBLE)((FLOAT)createTime.QuadPart / (FLOAT)startTime.QuadPart * 100.f));
+                        percent = (FLOAT)createTime.QuadPart / (FLOAT)startTime.QuadPart * 100.f;
                     }
                     else
                     {
                         // DPCs, Interrupts and System Idle Process are always 100%
-                        percent = 100.0;
+                        percent = 100.f;
                     }
 
                     FillRect(customDraw->Dc, &rect, GetSysColorBrush(COLOR_WINDOW));
@@ -3576,8 +3585,10 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     if (!backgroundBrush) backgroundBrush = CreateSolidBrush(RGB(158, 202, 158));
                     if (backgroundBrush) previousBrush = SelectBrush(customDraw->Dc, backgroundBrush);
 
+                    // TODO: This still loses a small fraction of precision compared to PE here causing a 1px difference.
                     //rect.right = ((LONG)(rect.left + ((rect.right - rect.left) * (LONG)percent) / 100));
-                    rect.left = ((LONG)(rect.right + ((rect.left - rect.right) * (LONG)percent) / 100));
+                    //rect.left = ((LONG)(rect.right + ((rect.left - rect.right) * (LONG)percent) / 100));
+                    rect.left = (LONG)(rect.right + ((rect.left - rect.right) * percent / 100));
 
                     PatBlt(
                         customDraw->Dc,
