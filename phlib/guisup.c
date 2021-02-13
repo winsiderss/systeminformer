@@ -1520,7 +1520,7 @@ HWND PhGetProcessMainWindowEx(
         PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, ProcessId);
 
     if (processHandle && WindowsVersion >= WINDOWS_8 && IsImmersiveProcess)
-        context.IsImmersive = IsImmersiveProcess(processHandle);
+        context.IsImmersive = !!IsImmersiveProcess(processHandle);
 
     PhEnumWindows(PhpGetProcessMainWindowEnumWindowsProc, &context);
     //PhEnumChildWindows(NULL, 0x800, PhpGetProcessMainWindowEnumWindowsProc, &context);
