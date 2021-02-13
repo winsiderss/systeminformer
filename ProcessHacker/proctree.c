@@ -2211,6 +2211,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         SORT_FUNCTION(ImageCoherency),
                         SORT_FUNCTION(ErrorMode),
                         SORT_FUNCTION(CodePage),
+                        SORT_FUNCTION(StartTime), // Timeline
                     };
                     int (__cdecl *sortFunction)(const void *, const void *);
 
@@ -3526,8 +3527,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     {
                         static LARGE_INTEGER bootTime = { 0 };
                         LARGE_INTEGER systemTime;
-                        LARGE_INTEGER created;
-                        LARGE_INTEGER current;
+                        LARGE_INTEGER startTime;
+                        LARGE_INTEGER createTime;
 
                         if (bootTime.QuadPart == 0)
                         {
@@ -3550,16 +3551,16 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                             //    NULL
                             //    )))
                             //{
-                            //    created.QuadPart = timeOfDayInfo.CurrentTime.QuadPart - timeOfDayInfo.BootTime.QuadPart;
-                            //    current.QuadPart = timeOfDayInfo.CurrentTime.QuadPart - processItem->CreateTime.QuadPart;
-                            //    percent = round((DOUBLE)((FLOAT)current.QuadPart / (FLOAT)created.QuadPart * 100));
+                            //    startTime.QuadPart = timeOfDayInfo.CurrentTime.QuadPart - timeOfDayInfo.BootTime.QuadPart;
+                            //    createTime.QuadPart = timeOfDayInfo.CurrentTime.QuadPart - processItem->CreateTime.QuadPart;
+                            //    percent = round((DOUBLE)((FLOAT)createTime.QuadPart / (FLOAT)startTime.QuadPart * 100));
                             //}
                         }
 
                         PhQuerySystemTime(&systemTime);
-                        created.QuadPart = systemTime.QuadPart - bootTime.QuadPart;
-                        current.QuadPart = systemTime.QuadPart - processItem->CreateTime.QuadPart;
-                        percent = round((DOUBLE)((FLOAT)current.QuadPart / (FLOAT)created.QuadPart * 100.f));
+                        startTime.QuadPart = systemTime.QuadPart - bootTime.QuadPart;
+                        createTime.QuadPart = systemTime.QuadPart - processItem->CreateTime.QuadPart;
+                        percent = round((DOUBLE)((FLOAT)createTime.QuadPart / (FLOAT)startTime.QuadPart * 100.f));
                     }
                     else
                     {
@@ -3569,6 +3570,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 
                     FillRect(customDraw->Dc, &rect, GetSysColorBrush(COLOR_WINDOW));
                     PhInflateRect(&rect, -1, -1);
+                    rect.bottom += 1;
                     FillRect(customDraw->Dc, &rect, GetSysColorBrush(COLOR_3DFACE));
 
                     if (!backgroundBrush) backgroundBrush = CreateSolidBrush(RGB(158, 202, 158));
@@ -3590,6 +3592,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     //if (backgroundBrush) DeleteBrush(backgroundBrush);
 
                     PhInflateRect(&borderRect, -1, -1);
+                    borderRect.bottom += 1;
                     FrameRect(customDraw->Dc, &borderRect, GetStockBrush(GRAY_BRUSH));
                 }
                 break;
