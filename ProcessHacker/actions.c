@@ -3,7 +3,7 @@
  *   UI actions
  *
  * Copyright (C) 2010-2016 wj32
- * Copyright (C) 2017-2018 dmex
+ * Copyright (C) 2017-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -36,6 +36,7 @@
 #include <svcsup.h>
 #include <settings.h>
 
+#include <apiimport.h>
 #include <hndlprv.h>
 #include <memprv.h>
 #include <modprv.h>
@@ -1362,9 +1363,16 @@ BOOLEAN PhUiRestartProcess(
     NTSTATUS status;
     BOOLEAN cont = FALSE;
     HANDLE processHandle = NULL;
-    HANDLE tokenHandle = NULL;
+    HANDLE newProcessHandle = NULL;
     PPH_STRING commandLine;
     PPH_STRING currentDirectory;
+    STARTUPINFOEX startupInfo;
+    SIZE_T attributeListLength = 0;
+    PSECURITY_DESCRIPTOR processSecurityDescriptor = NULL;
+    PSECURITY_DESCRIPTOR tokenSecurityDescriptor = NULL;
+    PVOID environment = NULL;
+    HANDLE tokenHandle;
+    ULONG flags = 0;
 
     if (PhGetIntegerSetting(L"EnableWarnings"))
     {
@@ -1398,13 +1406,13 @@ BOOLEAN PhUiRestartProcess(
         PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ,
         Process->ProcessId
         )))
-        goto ErrorExit;
+        goto CleanupExit;
 
     if (!NT_SUCCESS(status = PhGetProcessCommandLine(
         processHandle,
         &commandLine
         )))
-        goto ErrorExit;
+        goto CleanupExit;
 
     PH_AUTO(commandLine);
 
@@ -1413,56 +1421,180 @@ BOOLEAN PhUiRestartProcess(
         PhpoCurrentDirectory,
         &currentDirectory
         )))
-        goto ErrorExit;
+        goto CleanupExit;
 
     PH_AUTO(currentDirectory);
-
-    // Open the process token to prevent the process from restarting with our token. (dmex)
-    // Todo: We can instead use PROC_THREAD_ATTRIBUTE_PARENT_PROCESS to create the new
-    // process with the original token without having to open/duplicate the token.
-    // Todo: We can also create the new process suspended before terminating the original
-    // parent so when anything fails we can backout and leave the original process running.
-    PhOpenProcessToken(processHandle, TOKEN_ALL_ACCESS_P, &tokenHandle);
-
-    NtClose(processHandle);
-    processHandle = NULL;
-
-    // Open the process and terminate it.
-
-    if (!NT_SUCCESS(status = PhOpenProcess(
-        &processHandle,
-        PROCESS_TERMINATE,
-        Process->ProcessId
-        )))
-        goto ErrorExit;
-
-    if (!NT_SUCCESS(status = PhTerminateProcess(
-        processHandle,
-        1
-        )))
-        goto ErrorExit;
 
     NtClose(processHandle);
     processHandle = NULL;
 
     // Start the process.
 
-    status = PhCreateProcessWin32(
+    memset(&startupInfo, 0, sizeof(STARTUPINFOEX));
+    startupInfo.StartupInfo.cb = sizeof(STARTUPINFOEX);
+    startupInfo.StartupInfo.dwFlags = STARTF_USESHOWWINDOW;
+    startupInfo.StartupInfo.wShowWindow = SW_SHOWNORMAL;
+
+    // Use the existing process as the parent of the new process,
+    // the new process will inherit everything from the parent process (dmex)
+
+    status = PhOpenProcess(
+        &processHandle,
+        PROCESS_CREATE_PROCESS | (PhGetOwnTokenAttributes().Elevated ? PROCESS_QUERY_LIMITED_INFORMATION | READ_CONTROL : 0) | PROCESS_TERMINATE,
+        Process->ProcessId
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+    if (!InitializeProcThreadAttributeList(NULL, 1, 0, &attributeListLength) && GetLastError() != ERROR_INSUFFICIENT_BUFFER)
+    {
+        status = PhGetLastWin32ErrorAsNtStatus();
+        goto CleanupExit;
+    }
+
+    startupInfo.lpAttributeList = PhAllocate(attributeListLength);
+
+    if (!InitializeProcThreadAttributeList(startupInfo.lpAttributeList, 1, 0, &attributeListLength))
+    {
+        status = PhGetLastWin32ErrorAsNtStatus();
+        goto CleanupExit;
+    }
+
+    if (!UpdateProcThreadAttribute(startupInfo.lpAttributeList, 0, PROC_THREAD_ATTRIBUTE_PARENT_PROCESS, &processHandle, sizeof(HANDLE), NULL, NULL))
+    {
+        status = PhGetLastWin32ErrorAsNtStatus();
+        goto CleanupExit;
+    }
+#endif
+
+    if (PhGetOwnTokenAttributes().Elevated)
+    {
+        PhGetObjectSecurity(
+            processHandle,
+            OWNER_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION | LABEL_SECURITY_INFORMATION,
+            &processSecurityDescriptor
+            );
+    }
+
+    if (NT_SUCCESS(PhOpenProcessToken(
+        processHandle,
+        TOKEN_QUERY | (PhGetOwnTokenAttributes().Elevated ? READ_CONTROL : 0),
+        &tokenHandle
+        )))
+    {
+        if (PhGetOwnTokenAttributes().Elevated)
+        {
+            PhGetObjectSecurity(
+                tokenHandle,
+                OWNER_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION | LABEL_SECURITY_INFORMATION,
+                &tokenSecurityDescriptor
+                );
+        }
+
+        if (CreateEnvironmentBlock_Import() && CreateEnvironmentBlock_Import()(&environment, tokenHandle, FALSE))
+        {
+            flags |= PH_CREATE_PROCESS_UNICODE_ENVIRONMENT;
+        }
+
+        NtClose(tokenHandle);
+    }
+
+    status = PhCreateProcessWin32Ex(
         PhGetString(Process->FileNameWin32), // we didn't wait for S1 processing
-        commandLine->Buffer,
+        PhGetString(commandLine),
+        environment,
+        PhGetString(currentDirectory),
+        &startupInfo.StartupInfo,
+        PH_CREATE_PROCESS_SUSPENDED | PH_CREATE_PROCESS_NEW_CONSOLE | PH_CREATE_PROCESS_EXTENDED_STARTUPINFO | PH_CREATE_PROCESS_DEFAULT_ERROR_MODE | flags,
         NULL,
-        currentDirectory->Buffer,
-        0,
-        tokenHandle,
         NULL,
+        &newProcessHandle,
         NULL
         );
 
-ErrorExit:
-    if (tokenHandle)
-        NtClose(tokenHandle);
+    if (NT_SUCCESS(status))
+    {
+        PROCESS_BASIC_INFORMATION basicInfo;
+
+        // See runas.c for a description of the Windows issue with PROC_THREAD_ATTRIBUTE_PARENT_PROCESS
+        // requiring the reset of the security descriptor. (dmex)
+
+        if (PhGetOwnTokenAttributes().Elevated)
+        {
+            if (processSecurityDescriptor)
+            {
+                PhSetObjectSecurity(
+                    newProcessHandle,
+                    OWNER_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION | LABEL_SECURITY_INFORMATION,
+                    processSecurityDescriptor
+                    );
+            }
+
+            if (tokenSecurityDescriptor && NT_SUCCESS(PhOpenProcessToken(
+                newProcessHandle,
+                WRITE_DAC | WRITE_OWNER,
+                &tokenHandle
+                )))
+            {
+                PhSetObjectSecurity(
+                    tokenHandle,
+                    OWNER_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION | LABEL_SECURITY_INFORMATION,
+                    tokenSecurityDescriptor
+                    );
+                NtClose(tokenHandle);
+            }
+        }
+
+        if (NT_SUCCESS(PhGetProcessBasicInformation(newProcessHandle, &basicInfo)))
+        {
+            AllowSetForegroundWindow(ASFW_ANY);
+        }
+
+        // Terminate the existing process.
+
+        PhTerminateProcess(processHandle, 1);
+
+        // Resume the new process.
+
+        NtResumeProcess(newProcessHandle);
+    }
+
+CleanupExit:
+
+    if (environment && DestroyEnvironmentBlock_Import())
+    {
+        DestroyEnvironmentBlock_Import()(environment);
+    }
+
+    if (tokenSecurityDescriptor)
+    {
+        PhFree(tokenSecurityDescriptor);
+    }
+
+    if (processSecurityDescriptor)
+    {
+        PhFree(processSecurityDescriptor);
+    }
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+    if (startupInfo.lpAttributeList)
+    {
+        DeleteProcThreadAttributeList(startupInfo.lpAttributeList);
+        PhFree(startupInfo.lpAttributeList);
+    }
+#endif
+
+    if (newProcessHandle)
+    {
+        NtClose(newProcessHandle);
+    }
+
     if (processHandle)
+    {
         NtClose(processHandle);
+    }
 
     if (!NT_SUCCESS(status))
     {
