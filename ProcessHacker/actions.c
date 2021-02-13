@@ -1380,9 +1380,8 @@ BOOLEAN PhUiRestartProcess(
             hWnd,
             L"restart",
             Process->ProcessName->Buffer,
-            L"The process will be restarted with the same command line and "
-            L"working directory, but if it is running under a different user it "
-            L"will be restarted under the current user.",
+            L"The process will be restarted with the same command line, "
+            L"working directory and privileges.",
             FALSE
             );
     }
@@ -1398,6 +1397,11 @@ BOOLEAN PhUiRestartProcess(
     // we get terminated before creating the new process. (dmex)
     if (Process->ProcessId == NtCurrentProcessId())
         return FALSE;
+
+    memset(&startupInfo, 0, sizeof(STARTUPINFOEX));
+    startupInfo.StartupInfo.cb = sizeof(STARTUPINFOEX);
+    startupInfo.StartupInfo.dwFlags = STARTF_USESHOWWINDOW;
+    startupInfo.StartupInfo.wShowWindow = SW_SHOWNORMAL;
 
     // Open the process and get the command line and current directory.
 
@@ -1429,12 +1433,6 @@ BOOLEAN PhUiRestartProcess(
     processHandle = NULL;
 
     // Start the process.
-
-    memset(&startupInfo, 0, sizeof(STARTUPINFOEX));
-    startupInfo.StartupInfo.cb = sizeof(STARTUPINFOEX);
-    startupInfo.StartupInfo.dwFlags = STARTF_USESHOWWINDOW;
-    startupInfo.StartupInfo.wShowWindow = SW_SHOWNORMAL;
-
     // Use the existing process as the parent of the new process,
     // the new process will inherit everything from the parent process (dmex)
 
