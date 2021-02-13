@@ -2,7 +2,6 @@
 // Microsoft Visual C++ generated include file.
 // Used by ProcessHacker.rc
 //
-#define IDR_RT_MANIFEST                 1
 #define IDI_PROCESSHACKER               101
 #define IDR_MAINWND_ACCEL               102
 #define IDD_PROCGENERAL                 103
