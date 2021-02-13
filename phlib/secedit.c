@@ -830,19 +830,19 @@ HRESULT STDMETHODCALLTYPE PhSecurityDataObject_GetData(
         }
         else if (sidString = PhGetAppContainerPackageName(sidInfo.pSid))
         {
-            PhMoveReference(&sidString, PhFormatString(L"%s (APP_PACKAGE)", PhGetString(sidString)));
+            PhMoveReference(&sidString, PhConcatStringRefZ(&sidString->sr, L" (APP_PACKAGE)"));
             sidInfo.pwzCommonName = PhGetString(sidString);
             PhAddItemList(this->NameCache, sidString);
         }
         else if (sidString = PhGetAppContainerName(sidInfo.pSid))
         {
-            PhMoveReference(&sidString, PhFormatString(L"%s (APP_CONTAINER)", PhGetString(sidString)));
+            PhMoveReference(&sidString, PhConcatStringRefZ(&sidString->sr, L" (APP_CONTAINER)"));
             sidInfo.pwzCommonName = PhGetString(sidString);
             PhAddItemList(this->NameCache, sidString);
         }
         else if (sidString = PhGetCapabilitySidName(sidInfo.pSid))
         {
-            PhMoveReference(&sidString, PhFormatString(L"%s (APP_CAPABILITY)", PhGetString(sidString)));
+            PhMoveReference(&sidString, PhConcatStringRefZ(&sidString->sr, L" (APP_CAPABILITY)"));
             sidInfo.pwzCommonName = PhGetString(sidString);
             PhAddItemList(this->NameCache, sidString);
         }
