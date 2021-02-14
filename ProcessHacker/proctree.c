@@ -3546,13 +3546,6 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                                 bootTime.QuadPart -= timeOfDayInfo.BootTimeBias;
                             }
 
-                            //PPH_PROCESS_ITEM systemProcessItem;
-                            //if (systemProcessItem = PhReferenceProcessItem(SYSTEM_IDLE_PROCESS_ID))
-                            //{
-                            //    bootTime.QuadPart = systemProcessItem->CreateTime.QuadPart;
-                            //    PhDereferenceObject(systemProcessItem);
-                            //}
-                            //
                             //if (NT_SUCCESS(NtQuerySystemInformation(
                             //    SystemTimeOfDayInformation,
                             //    &timeOfDayInfo,
@@ -3570,6 +3563,10 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         startTime.QuadPart = systemTime.QuadPart - bootTime.QuadPart;
                         createTime.QuadPart = systemTime.QuadPart - processItem->CreateTime.QuadPart;
                         percent = (FLOAT)createTime.QuadPart / (FLOAT)startTime.QuadPart * 100.f;
+
+                        // Prevent overflow from changing the system time to an earlier date.
+                        if (percent > 100.f)
+                            percent = 100.f;
                     }
                     else
                     {
