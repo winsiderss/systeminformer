@@ -3,7 +3,7 @@
  *   System Information CPU section
  *
  * Copyright (C) 2011-2016 wj32
- * Copyright (C) 2017-2020 dmex
+ * Copyright (C) 2017-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -846,7 +846,13 @@ VOID PhSipUpdateCpuPanel(
         NULL
         )))
     {
-        PhPrintTimeSpan(uptimeString, timeOfDayInfo.CurrentTime.QuadPart - timeOfDayInfo.BootTime.QuadPart, PH_TIMESPAN_DHMS);
+        LARGE_INTEGER bootTime;
+
+        bootTime.LowPart = timeOfDayInfo.BootTime.LowPart;
+        bootTime.HighPart = timeOfDayInfo.BootTime.HighPart;
+        bootTime.QuadPart -= timeOfDayInfo.BootTimeBias;
+
+        PhPrintTimeSpan(uptimeString, timeOfDayInfo.CurrentTime.QuadPart - bootTime.QuadPart, PH_TIMESPAN_DHMS);
     }
 
     PhSetWindowText(CpuPanelUptimeLabel, uptimeString);
