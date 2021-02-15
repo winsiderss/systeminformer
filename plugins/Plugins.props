@@ -150,6 +150,7 @@
             <PreprocessorDefinitions>WIN64;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
             <SpectreMitigation>Spectre</SpectreMitigation>
             <IntelJCCErratum>true</IntelJCCErratum>
+            <GuardEHContMetadata>true</GuardEHContMetadata>
         </ClCompile>
         <Link>
             <CETCompat>true</CETCompat>

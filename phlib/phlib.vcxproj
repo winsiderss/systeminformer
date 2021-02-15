@@ -221,6 +221,7 @@
       <IntelJCCErratum>true</IntelJCCErratum>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <GuardEHContMetadata>true</GuardEHContMetadata>
     </ClCompile>
     <Lib>
       <TargetMachine>MachineX64</TargetMachine>
