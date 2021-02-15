@@ -140,6 +140,12 @@ typedef struct _PH_STACK_TREE_ROOT_NODE
     PH_STRINGREF TextCache[TREE_COLUMN_ITEM_MAXIMUM];
 } PH_STACK_TREE_ROOT_NODE, *PPH_STACK_TREE_ROOT_NODE;
 
+typedef enum _PH_THREAD_STACK_MENUITEM
+{
+    PH_THREAD_STACK_MENUITEM_INSPECT = 1,
+    PH_THREAD_STACK_MENUITEM_OPENFILELOCATION,
+} PH_THREAD_STACK_MENUITEM;
+
 INT_PTR CALLBACK PhpThreadStackDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -961,15 +967,6 @@ INT_PTR CALLBACK PhpThreadStackDlgProc(
                     }
                 }
                 break;
-            case IDC_COPY:
-                {
-                    PPH_STRING text;
-
-                    text = PhGetTreeNewText(context->TreeNewHandle, 0);
-                    PhSetClipboardString(context->TreeNewHandle, &text->sr);
-                    PhDereferenceObject(text);
-                }
-                break;
             case WM_PH_SHOWSTACKMENU:
                 {
                     PPH_EMENU menu;
@@ -980,13 +977,17 @@ INT_PTR CALLBACK PhpThreadStackDlgProc(
                     if (selectedNode = GetSelectedThreadStackNode(context))
                     {
                         menu = PhCreateEMenu();
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(PH_EMENU_DEFAULT, PH_THREAD_STACK_MENUITEM_INSPECT, L"&Inspect", NULL, NULL), ULONG_MAX);
+                        PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PH_THREAD_STACK_MENUITEM_OPENFILELOCATION, L"Open &file location", NULL, NULL), ULONG_MAX);
+                        PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"Copy", NULL, NULL), ULONG_MAX);
                         PhInsertCopyCellEMenuItem(menu, IDC_COPY, context->TreeNewHandle, contextMenuEvent->Column);
 
                         selectedItem = PhShowEMenu(
                             menu,
                             hwndDlg,
-                            PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT,
+                            PH_EMENU_SHOW_LEFTRIGHT,
                             PH_ALIGN_LEFT | PH_ALIGN_TOP,
                             contextMenuEvent->Location.x,
                             contextMenuEvent->Location.y
@@ -997,6 +998,50 @@ INT_PTR CALLBACK PhpThreadStackDlgProc(
                             BOOLEAN handled = FALSE;
 
                             handled = PhHandleCopyCellEMenuItem(selectedItem);
+
+                            if (handled)
+                                break;
+
+                            switch (selectedItem->Id)
+                            {
+                            case PH_THREAD_STACK_MENUITEM_INSPECT:
+                                {
+                                    if (!PhIsNullOrEmptyString(selectedNode->FileNameString) && PhDoesFileExistsWin32(PhGetString(selectedNode->FileNameString)))
+                                    {
+                                        PhShellExecuteUserString(
+                                            hwndDlg,
+                                            L"ProgramInspectExecutables",
+                                            PhGetString(selectedNode->FileNameString),
+                                            FALSE,
+                                            L"Make sure the PE Viewer executable file is present."
+                                            );
+                                    }
+                                }
+                                break;
+                            case PH_THREAD_STACK_MENUITEM_OPENFILELOCATION:
+                                {
+                                    if (!PhIsNullOrEmptyString(selectedNode->FileNameString) && PhDoesFileExistsWin32(PhGetString(selectedNode->FileNameString)))
+                                    {
+                                        PhShellExecuteUserString(
+                                            hwndDlg,
+                                            L"FileBrowseExecutable",
+                                            PhGetString(selectedNode->FileNameString),
+                                            FALSE,
+                                            L"Make sure the Explorer executable file is present."
+                                            );
+                                    }
+                                }
+                                break;
+                            case IDC_COPY:
+                                {
+                                    PPH_STRING text;
+
+                                    text = PhGetTreeNewText(context->TreeNewHandle, 0);
+                                    PhSetClipboardString(context->TreeNewHandle, &text->sr);
+                                    PhDereferenceObject(text);
+                                }
+                                break;
+                            }
                         }
 
                         PhDestroyEMenu(menu);
