@@ -185,7 +185,7 @@ namespace CustomBuildTool
                 if (!string.IsNullOrEmpty(BuildCommit))
                 {
                     Program.PrintColorMessage(" (", ConsoleColor.DarkGray, false);
-                    Program.PrintColorMessage(BuildCommit.Substring(0, 8), ConsoleColor.DarkYellow, false);
+                    Program.PrintColorMessage(BuildCommit.Substring(0, 7), ConsoleColor.DarkYellow, false);
                     Program.PrintColorMessage(")", ConsoleColor.DarkGray, false);
                 }
 
@@ -835,7 +835,7 @@ namespace CustomBuildTool
                 if (Flags.HasFlag(BuildFlags.BuildApi))
                     compilerOptions.Append("PH_BUILD_API;");
                 if (!string.IsNullOrEmpty(BuildCommit))
-                    compilerOptions.Append($"PHAPP_VERSION_COMMITHASH=\"{BuildCommit.Substring(0, 8)}\";");
+                    compilerOptions.Append($"PHAPP_VERSION_COMMITHASH=\"{BuildCommit.Substring(0, 7)}\";");
                 if (!string.IsNullOrEmpty(BuildRevision))
                     compilerOptions.Append($"PHAPP_VERSION_REVISION=\"{BuildRevision}\";");
                 if (!string.IsNullOrEmpty(BuildCount))
@@ -869,7 +869,7 @@ namespace CustomBuildTool
                 if (Flags.HasFlag(BuildFlags.BuildApi))
                     compilerOptions.Append("PH_BUILD_API;");
                 if (!string.IsNullOrEmpty(BuildCommit))
-                    compilerOptions.Append($"PHAPP_VERSION_COMMITHASH=\"{BuildCommit.Substring(0, 8)}\";");
+                    compilerOptions.Append($"PHAPP_VERSION_COMMITHASH=\"{BuildCommit.Substring(0, 7)}\";");
                 if (!string.IsNullOrEmpty(BuildRevision))
                     compilerOptions.Append($"PHAPP_VERSION_REVISION=\"{BuildRevision}\";");
                 if (!string.IsNullOrEmpty(BuildCount))
