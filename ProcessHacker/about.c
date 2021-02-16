@@ -56,7 +56,7 @@ static INT_PTR CALLBACK PhpAboutDlgProc(
 
 #if (PHAPP_VERSION_REVISION != 0)
             appName = PhFormatString(
-                L"Process Hacker %lu.%lu.%lu (%hs)",
+                L"Process Hacker %lu.%lu.%lu (<a href=\"https://github.com/processhacker/processhacker/commit/%hs\">%hs</a>)",
                 PHAPP_VERSION_MAJOR,
                 PHAPP_VERSION_MINOR,
                 PHAPP_VERSION_REVISION,
