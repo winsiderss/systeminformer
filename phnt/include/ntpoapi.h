@@ -55,6 +55,8 @@ typedef struct _SYSTEM_POWER_STATE_CONTEXT
 #endif
 
 #if (PHNT_VERSION >= PHNT_WIN7)
+#define  POWER_REQUEST_CONTEXT_NOT_SPECIFIED DIAGNOSTIC_REASON_NOT_SPECIFIED
+
 /** \cond NEVER */ // disable doxygen warning
 // wdm
 typedef struct _COUNTED_REASON_CONTEXT
@@ -167,9 +169,9 @@ typedef struct _POWER_STATE_NOTIFY_HANDLER
 #define MonitorCapabilities 40 // (kernel-mode only)
 #define SessionPowerInit 41 // (kernel-mode only)
 #define SessionDisplayState 42 // (kernel-mode only)
-#define PowerRequestCreate 43 // PowerCreateRequest
-#define PowerRequestAction 44 // PowerClearRequest
-#define GetPowerRequestList 45 // powercfg.exe /requests
+#define PowerRequestCreate 43 // in: COUNTED_REASON_CONTEXT, out: HANDLE
+#define PowerRequestAction 44 // in: POWER_REQUEST_ACTION
+#define GetPowerRequestList 45 // out: POWER_REQUEST_LIST
 #define ProcessorInformationEx 46 // PROCESSOR_POWER_INFORMATION
 #define NotifyUserModeLegacyPowerEvent 47 // (kernel-mode only)
 #define GroupPark 48 // (debug-mode boot only) 
@@ -196,7 +198,7 @@ typedef struct _POWER_STATE_NOTIFY_HANDLER
 #define FirmwareTableInformationRegistered 69 // (kernel-mode only)
 #define SetShutdownSelectedTime 70 // NULL
 #define SuspendResumeInvocation 71 // (kernel-mode only)
-#define PlmPowerRequestCreate 72
+#define PlmPowerRequestCreate 72 // in: COUNTED_REASON_CONTEXT, out: HANDLE
 #define ScreenOff 73 // NULL (PowerMonitorOff)
 #define CsDeviceNotification 74 // (kernel-mode only)
 #define PlatformRole 75 // POWER_PLATFORM_ROLE
@@ -221,6 +223,116 @@ typedef struct _POWER_STATE_NOTIFY_HANDLER
 #define UpdateBlackBoxRecorder 94
 #define SessionAllowExternalDmaDevices 95
 #define PowerInformationLevelMaximum 96
+#endif
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+// POWER_REQUEST_TYPE
+// Note: We don't use an enum since it conflicts with the Windows SDK.
+#define PowerRequestDisplayRequired 0
+#define PowerRequestSystemRequired 1
+#define PowerRequestAwayModeRequired 2
+#define PowerRequestExecutionRequired 3        // Windows 8+
+#define PowerRequestPerfBoostRequired 4        // Windows 8+
+#define PowerRequestActiveLockScreenRequired 5 // Windows 10 RS1+ (reserved on Windows 8)
+// Values 6 and 7 are reserved for Windows 8 only
+#define PowerRequestFullScreenVideoRequired 8  // Windows 8 only
+
+typedef struct _POWER_REQUEST_ACTION
+{
+    HANDLE PowerRequest;
+    POWER_REQUEST_TYPE RequestType;
+    BOOLEAN Enable;
+    HANDLE TargetProcess; // Windows 8+ and only for requests created via PlmPowerRequestCreate
+} POWER_REQUEST_ACTION, * PPOWER_REQUEST_ACTION;
+
+typedef struct _POWER_REQUEST_LIST
+{
+    ULONG_PTR cElements;
+    ULONG_PTR OffsetsToRequests[ANYSIZE_ARRAY]; // PPOWER_REQUEST
+} POWER_REQUEST_LIST, *PPOWER_REQUEST_LIST;
+
+typedef enum _POWER_REQUEST_ORIGIN
+{
+    POWER_REQUEST_ORIGIN_DRIVER = 0,
+    POWER_REQUEST_ORIGIN_PROCESS = 1,
+    POWER_REQUEST_ORIGIN_SERVICE = 2
+} POWER_REQUEST_ORIGIN;
+
+typedef struct _POWER_REQUEST_BODY
+{
+    ULONG_PTR cbSize;
+    POWER_REQUEST_ORIGIN Origin;
+    ULONG_PTR OffsetToRequester; // PWSTR
+    union
+    {
+        struct
+        {
+            ULONG ProcessId;
+            ULONG ServiceTag;
+        };
+        ULONG_PTR OffsetToDriverName; // PWSTR
+    };    
+    ULONG_PTR OffsetToContext; // PCOUNTED_REASON_CONTEXT_RELATIVE
+} POWER_REQUEST_BODY, *PPOWER_REQUEST_BODY;
+
+// The number of supported request types per version
+#define POWER_REQUEST_SUPPORTED_TYPES_V1 3 // Windows 7
+#define POWER_REQUEST_SUPPORTED_TYPES_V2 9 // Windows 8
+#define POWER_REQUEST_SUPPORTED_TYPES_V3 5 // Windows 8.1 and Windows 10 TH1-TH2
+#define POWER_REQUEST_SUPPORTED_TYPES_V4 6 // Windows 10 RS1+
+
+typedef struct _POWER_REQUEST
+{
+    union
+    {
+        struct
+        {
+            ULONG Reserved;
+            ULONG ActiveCount[POWER_REQUEST_SUPPORTED_TYPES_V1];
+            POWER_REQUEST_BODY Body;
+        } V1;
+#if (PHNT_VERSION >= PHNT_WIN8)
+        struct
+        {
+            ULONG Reserved;
+            ULONG ActiveCount[POWER_REQUEST_SUPPORTED_TYPES_V2];
+            POWER_REQUEST_BODY Body;
+        } V2;
+#endif
+#if (PHNT_VERSION >= PHNT_WINBLUE)
+        struct
+        {
+            ULONG Reserved;
+            ULONG ActiveCount[POWER_REQUEST_SUPPORTED_TYPES_V3];
+            POWER_REQUEST_BODY Body;
+        } V3;
+#endif
+#if (PHNT_VERSION >= PHNT_REDSTONE)
+        struct
+        {
+            ULONG Reserved;
+            ULONG ActiveCount[POWER_REQUEST_SUPPORTED_TYPES_V4];
+            POWER_REQUEST_BODY Body;
+        } V4;
+#endif
+    };
+} POWER_REQUEST, *PPOWER_REQUEST;
+
+typedef struct _COUNTED_REASON_CONTEXT_RELATIVE
+{
+    ULONG Flags;
+    union
+    {
+        struct
+        {
+            ULONG_PTR OffsetToResourceFileName;
+            USHORT ResourceReasonId;
+            ULONG StringCount;
+            ULONG_PTR OffsetToReasonStrings;
+        };
+        ULONG_PTR OffsetToSimpleString;
+    };
+} COUNTED_REASON_CONTEXT_RELATIVE, *PCOUNTED_REASON_CONTEXT_RELATIVE;
 #endif
 
 typedef struct _PROCESSOR_POWER_INFORMATION
