@@ -2,7 +2,7 @@
  * Process Hacker -
  *   Searchbox control
  *
- * Copyright (C) 2012-2017 dmex
+ * Copyright (C) 2012-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -47,9 +47,6 @@ typedef struct _EDIT_CONTEXT
     HFONT WindowFont;
     HICON BitmapActive;
     HICON BitmapInactive;
-    HBRUSH BrushNormal;
-    HBRUSH BrushPushed;
-    HBRUSH BrushHot;
     WNDPROC DefaultWindowProc;
 } EDIT_CONTEXT, *PEDIT_CONTEXT;
 
@@ -63,14 +60,7 @@ VOID PhpSearchFreeTheme(
     _Inout_ PEDIT_CONTEXT Context
     )
 {
-    if (Context->BrushNormal)
-        DeleteBrush(Context->BrushNormal);
-
-    if (Context->BrushHot)
-        DeleteBrush(Context->BrushHot);
-
-    if (Context->BrushPushed)
-        DeleteBrush(Context->BrushPushed);
+    NOTHING;
 }
 
 VOID PhpSearchInitializeFont(
@@ -110,9 +100,6 @@ VOID PhpSearchInitializeTheme(
     )
 {
     Context->CXWidth = PhMultiplyDivideSigned(20, PhGlobalDpi, 96);// PH_SCALE_DPI(20);
-    Context->BrushNormal = GetSysColorBrush(COLOR_WINDOW);
-    Context->BrushHot = CreateSolidBrush(RGB(205, 232, 255));
-    Context->BrushPushed = CreateSolidBrush(RGB(153, 209, 255));
 
     if (IsThemeActive())
     {
@@ -371,17 +358,20 @@ VOID PhpSearchDrawButton(
 
     if (Context->Pushed)
     {
-        FillRect(bufferDc, &bufferRect, Context->BrushPushed);
+        SetDCBrushColor(bufferDc, RGB(153, 209, 255));
+        FillRect(bufferDc, &bufferRect, GetStockBrush(DC_BRUSH));
         //FrameRect(bufferDc, &bufferRect, CreateSolidBrush(RGB(0xff, 0, 0)));
     }
     else if (Context->Hot)
     {
-        FillRect(bufferDc, &bufferRect, Context->BrushHot);
+        SetDCBrushColor(bufferDc, RGB(205, 232, 255));
+        FillRect(bufferDc, &bufferRect, GetStockBrush(DC_BRUSH));
         //FrameRect(bufferDc, &bufferRect, CreateSolidBrush(RGB(38, 160, 218)));
     }
     else
     {
-        FillRect(bufferDc, &bufferRect, Context->BrushNormal);
+        //SetDCBrushColor(bufferDc, GetSysColor(COLOR_WINDOW));
+        FillRect(bufferDc, &bufferRect, GetSysColorBrush(COLOR_WINDOW));
     }
 
     if (Edit_GetTextLength(Context->WindowHandle) > 0)
