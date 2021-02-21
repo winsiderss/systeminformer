@@ -294,6 +294,11 @@ NTSTATUS PhSipQueryProcessorPerformanceDistribution(
     _Out_ PVOID *Buffer
     );
 
+NTSTATUS PhSipQueryProcessorLogicalInformation(
+    _Out_ PVOID *Buffer,
+    _Out_ PULONG BufferLength
+    );
+
 // Memory section
 
 BOOLEAN PhSipMemorySectionCallback(
