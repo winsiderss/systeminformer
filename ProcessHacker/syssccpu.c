@@ -62,6 +62,10 @@ static HWND CpuPanelContextSwitchesLabel;
 static HWND CpuPanelInterruptDeltaLabel;
 static HWND CpuPanelDpcDeltaLabel;
 static HWND CpuPanelSystemCallsDeltaLabel;
+static HWND CpuPanelCoresLabel;
+static HWND CpuPanelSocketsLabel;
+static HWND CpuPanelLogicalLabel;
+static HWND CpuPanelLatencyLabel;
 
 BOOLEAN PhSipCpuSectionCallback(
     _In_ PPH_SYSINFO_SECTION Section,
@@ -410,6 +414,10 @@ INT_PTR CALLBACK PhSipCpuPanelDialogProc(
             CpuPanelInterruptDeltaLabel = GetDlgItem(hwndDlg, IDC_ZINTERRUPTSDELTA_V);
             CpuPanelDpcDeltaLabel = GetDlgItem(hwndDlg, IDC_ZDPCSDELTA_V);
             CpuPanelSystemCallsDeltaLabel = GetDlgItem(hwndDlg, IDC_ZSYSTEMCALLSDELTA_V);
+            CpuPanelCoresLabel = GetDlgItem(hwndDlg, IDC_ZCORES);
+            CpuPanelSocketsLabel = GetDlgItem(hwndDlg, IDC_ZSOCKETS);
+            CpuPanelLogicalLabel = GetDlgItem(hwndDlg, IDC_ZLOGICAL);
+            CpuPanelLatencyLabel = GetDlgItem(hwndDlg, IDC_ZLATENCY);
 
             SetWindowFont(CpuPanelUtilizationLabel, CpuSection->Parameters->MediumFont, FALSE);
             SetWindowFont(CpuPanelSpeedLabel, CpuSection->Parameters->MediumFont, FALSE);
@@ -771,6 +779,14 @@ VOID PhSipUpdateCpuPanel(
     DOUBLE cpuGhz = 0;
     BOOLEAN distributionSucceeded = FALSE;
     SYSTEM_TIMEOFDAY_INFORMATION timeOfDayInfo;
+    ULONG logicalInformationLength = 0;
+    PSYSTEM_LOGICAL_PROCESSOR_INFORMATION logicalInformation = NULL;
+    LARGE_INTEGER performanceCounterStart;
+    LARGE_INTEGER performanceCounterEnd;
+    LARGE_INTEGER performanceCounterTicks;
+    ULONG64 timeStampCounterStart;
+    ULONG64 timeStampCounterEnd;
+    INT cpubrand[4];
     PH_FORMAT format[5];
     WCHAR formatBuffer[256];
     WCHAR uptimeString[PH_TIMESPAN_STR_LEN_1] = { L"Unknown" };
@@ -912,6 +928,77 @@ VOID PhSipUpdateCpuPanel(
     {
         PhSetWindowText(CpuPanelSystemCallsDeltaLabel, L"-");
     }
+
+    if (NT_SUCCESS(PhSipQueryProcessorLogicalInformation(&logicalInformation, &logicalInformationLength)))
+    {
+        ULONG processorNumaCount = 0;
+        ULONG processorCoreCount = 0;
+        ULONG processorLogicalCount = 0;
+        ULONG processorPackageCount = 0;
+
+        for (ULONG i = 0; i < logicalInformationLength / sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION); i++)
+        {
+            PSYSTEM_LOGICAL_PROCESSOR_INFORMATION processorInfo = PTR_ADD_OFFSET(logicalInformation, i * sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION));
+
+            switch (processorInfo->Relationship)
+            {
+            case RelationProcessorCore:
+                processorCoreCount++;
+                processorLogicalCount += PhCountBits((ULONG)processorInfo->ProcessorMask); // RtlNumberOfSetBitsUlongPtr
+                break;
+            case RelationNumaNode:
+                processorNumaCount++;
+                break;
+            case RelationProcessorPackage:
+                processorPackageCount++;
+                break;
+            }
+        }
+
+        PhFree(logicalInformation);
+
+        PhInitFormatI64UGroupDigits(&format[0], processorCoreCount);
+
+        if (PhFormatToBuffer(format, 1, formatBuffer, sizeof(formatBuffer), NULL))
+            PhSetWindowText(CpuPanelCoresLabel, formatBuffer);
+        else
+            PhSetWindowText(CpuPanelCoresLabel, PhaFormatUInt64(processorCoreCount, TRUE)->Buffer);
+
+        PhInitFormatI64UGroupDigits(&format[0], processorPackageCount);
+
+        if (PhFormatToBuffer(format, 1, formatBuffer, sizeof(formatBuffer), NULL))
+            PhSetWindowText(CpuPanelSocketsLabel, formatBuffer);
+        else
+            PhSetWindowText(CpuPanelSocketsLabel, PhaFormatUInt64(processorPackageCount, TRUE)->Buffer);
+
+        PhInitFormatI64UGroupDigits(&format[0], processorLogicalCount);
+
+        if (PhFormatToBuffer(format, 1, formatBuffer, sizeof(formatBuffer), NULL))
+            PhSetWindowText(CpuPanelLogicalLabel, formatBuffer);
+        else
+            PhSetWindowText(CpuPanelLogicalLabel, PhaFormatUInt64(processorLogicalCount, TRUE)->Buffer);
+    }
+
+    // Do not optimize (dmex)
+    NtQueryPerformanceCounter(&performanceCounterStart, NULL);
+    timeStampCounterStart = ReadTimeStampCounter();
+    MemoryBarrier();
+    CpuIdEx(cpubrand, 0, 0);
+    MemoryBarrier();
+    timeStampCounterEnd = ReadTimeStampCounter();
+    MemoryBarrier();
+    NtQueryPerformanceCounter(&performanceCounterEnd, NULL);
+    performanceCounterTicks.QuadPart = performanceCounterEnd.QuadPart - performanceCounterStart.QuadPart;
+
+    if (timeStampCounterStart == 0 && timeStampCounterEnd == 0 && cpubrand[0] == 0 && cpubrand[3] == 0)
+        performanceCounterTicks.QuadPart = 0;
+
+    PhInitFormatI64UGroupDigits(&format[0], performanceCounterTicks.QuadPart);
+
+    if (PhFormatToBuffer(format, 1, formatBuffer, sizeof(formatBuffer), NULL))
+        PhSetWindowText(CpuPanelLatencyLabel, formatBuffer);
+    else
+        PhSetWindowText(CpuPanelLatencyLabel, PhaFormatUInt64(performanceCounterTicks.QuadPart, TRUE)->Buffer);
 }
 
 PPH_PROCESS_RECORD PhSipReferenceMaxCpuRecord(
@@ -1206,6 +1293,52 @@ NTSTATUS PhSipQueryProcessorPerformanceDistribution(
 
     if (NT_SUCCESS(status))
         *Buffer = buffer;
+    else
+        PhFree(buffer);
+
+    return status;
+}
+
+NTSTATUS PhSipQueryProcessorLogicalInformation(
+    _Out_ PVOID *Buffer,
+    _Out_ PULONG BufferLength
+    )
+{
+    NTSTATUS status;
+    PVOID buffer;
+    ULONG bufferSize;
+    ULONG attempts;
+
+    bufferSize = 0x100;
+    buffer = PhAllocate(bufferSize);
+
+    status = NtQuerySystemInformation(
+        SystemLogicalProcessorInformation,
+        buffer,
+        bufferSize,
+        &bufferSize
+        );
+    attempts = 0;
+
+    while (status == STATUS_INFO_LENGTH_MISMATCH && attempts < 8)
+    {
+        PhFree(buffer);
+        buffer = PhAllocate(bufferSize);
+
+        status = NtQuerySystemInformation(
+            SystemLogicalProcessorInformation,
+            buffer,
+            bufferSize,
+            &bufferSize
+            );
+        attempts++;
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        *Buffer = buffer;
+        *BufferLength = bufferSize;
+    }
     else
         PhFree(buffer);
 
