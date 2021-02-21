@@ -40,6 +40,7 @@
 #define WM_PH_COMPLETED (WM_APP + 301)
 //#define WM_PH_STATUS_UPDATE (WM_APP + 302)
 #define WM_PH_SHOWSTACKMENU (WM_APP + 303)
+#define WM_PH_SHOWSTACKDEFAULT (WM_APP + 304)
 
 static PPH_OBJECT_TYPE PhThreadStackContextType = NULL;
 static RECT MinimumSize = { -1, -1, -1, -1 };
@@ -532,6 +533,11 @@ BOOLEAN NTAPI ThreadStackTreeNewCallback(
                 WM_PH_SHOWSTACKMENU,
                 (LPARAM)contextMenuEvent
                 );
+        }
+        return TRUE;
+    case TreeNewLeftDoubleClick:
+        {
+            SendMessage(context->WindowHandle, WM_COMMAND, WM_PH_SHOWSTACKDEFAULT, 0);
         }
         return TRUE;
     case TreeNewHeaderRightClick:
@@ -1045,6 +1051,25 @@ INT_PTR CALLBACK PhpThreadStackDlgProc(
                         }
 
                         PhDestroyEMenu(menu);
+                    }
+                }
+                break;
+            case WM_PH_SHOWSTACKDEFAULT:
+                {
+                    PPH_STACK_TREE_ROOT_NODE selectedNode;
+
+                    if (selectedNode = GetSelectedThreadStackNode(context))
+                    {
+                        if (!PhIsNullOrEmptyString(selectedNode->FileNameString) && PhDoesFileExistsWin32(PhGetString(selectedNode->FileNameString)))
+                        {
+                            PhShellExecuteUserString(
+                                hwndDlg,
+                                L"ProgramInspectExecutables",
+                                PhGetString(selectedNode->FileNameString),
+                                FALSE,
+                                L"Make sure the PE Viewer executable file is present."
+                                );
+                        }
                     }
                 }
                 break;
