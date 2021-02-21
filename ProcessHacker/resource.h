@@ -433,8 +433,12 @@
 #define IDC_ZDPCSDELTA_V                1309
 #define IDC_ZSYSTEMCALLSDELTA_V         1310
 #define IDC_GRAPH_LAYOUT                1311
+#define IDC_ZCORES                      1311
 #define IDC_TOTALPHYSICAL               1312
+#define IDC_ZSOCKETS                    1312
+#define IDC_ZLOGICAL                    1313
 #define IDC_ZCOMMITCURRENT_V            1314
+#define IDC_ZLATENCY                    1314
 #define IDC_ZCOMMITPEAK_V               1315
 #define IDC_ZCOMMITLIMIT_V              1316
 #define IDC_ZPHYSICALCURRENT_V          1317
@@ -757,7 +761,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        258
 #define _APS_NEXT_COMMAND_VALUE         40298
-#define _APS_NEXT_CONTROL_VALUE         1410
+#define _APS_NEXT_CONTROL_VALUE         1411
 #define _APS_NEXT_SYMED_VALUE           170
 #endif
 #endif
