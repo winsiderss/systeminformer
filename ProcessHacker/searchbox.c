@@ -2,7 +2,7 @@
  * Process Hacker -
  *   Searchbox control
  *
- * Copyright (C) 2012-2017 dmex
+ * Copyright (C) 2012-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -50,9 +50,6 @@ typedef struct _EDIT_CONTEXT
     WNDPROC DefaultWindowProc;
     HFONT WindowFont;
     HIMAGELIST ImageListHandle;
-    HBRUSH BrushNormal;
-    HBRUSH BrushPushed;
-    HBRUSH BrushHot;
 } EDIT_CONTEXT, *PEDIT_CONTEXT;
 
 HICON PhpSearchBitmapToIcon(
@@ -65,12 +62,7 @@ VOID PhpSearchFreeTheme(
     _Inout_ PEDIT_CONTEXT Context
     )
 {
-    if (Context->BrushNormal)
-        DeleteBrush(Context->BrushNormal);
-    if (Context->BrushHot)
-        DeleteBrush(Context->BrushHot);
-    if (Context->BrushPushed)
-        DeleteBrush(Context->BrushPushed);
+    NOTHING;
 }
 
 VOID PhpSearchInitializeFont(
@@ -88,9 +80,6 @@ VOID PhpSearchInitializeTheme(
     )
 {
     Context->CXWidth = PH_SCALE_DPI(20);
-    Context->BrushNormal = GetSysColorBrush(COLOR_WINDOW);
-    Context->BrushHot = CreateSolidBrush(RGB(205, 232, 255));
-    Context->BrushPushed = CreateSolidBrush(RGB(153, 209, 255));
     Context->ColorMode = PhGetIntegerSetting(L"GraphColorMode");
 
     if (IsThemeActive())
@@ -205,7 +194,8 @@ VOID PhpSearchDrawButton(
             switch (Context->ColorMode)
             {
             case 0: // New colors
-                FillRect(bufferDc, &bufferRect, Context->BrushPushed);
+                SetDCBrushColor(bufferDc, RGB(153, 209, 255));
+                FillRect(bufferDc, &bufferRect, GetStockBrush(DC_BRUSH));
                 break;
             case 1: // Old colors
                 SetTextColor(bufferDc, GetSysColor(COLOR_HIGHLIGHTTEXT));
@@ -216,7 +206,8 @@ VOID PhpSearchDrawButton(
         }
         else
         {
-            FillRect(bufferDc, &bufferRect, Context->BrushPushed);
+            SetDCBrushColor(bufferDc, RGB(153, 209, 255));
+            FillRect(bufferDc, &bufferRect, GetStockBrush(DC_BRUSH));
             //FrameRect(bufferDc, &bufferRect, CreateSolidBrush(RGB(0xff, 0, 0)));
         }
     }
@@ -227,7 +218,8 @@ VOID PhpSearchDrawButton(
             switch (Context->ColorMode)
             {
             case 0: // New colors
-                FillRect(bufferDc, &bufferRect, Context->BrushHot);
+                SetDCBrushColor(bufferDc, RGB(205, 232, 255));
+                FillRect(bufferDc, &bufferRect, GetStockBrush(DC_BRUSH));
                 break;
             case 1: // Old colors
                 SetTextColor(bufferDc, GetSysColor(COLOR_HIGHLIGHTTEXT));
@@ -238,7 +230,8 @@ VOID PhpSearchDrawButton(
         }
         else
         {
-            FillRect(bufferDc, &bufferRect, Context->BrushHot);
+            SetDCBrushColor(bufferDc, RGB(205, 232, 255));
+            FillRect(bufferDc, &bufferRect, GetStockBrush(DC_BRUSH));
             //FrameRect(bufferDc, &bufferRect, CreateSolidBrush(RGB(38, 160, 218)));
         }
     }
@@ -249,7 +242,7 @@ VOID PhpSearchDrawButton(
             switch (Context->ColorMode)
             {
             case 0: // New colors
-                FillRect(bufferDc, &bufferRect, Context->BrushNormal);
+                FillRect(bufferDc, &bufferRect, GetSysColorBrush(COLOR_WINDOW));
                 break;
             case 1: // Old colors
                 SetTextColor(bufferDc, GetSysColor(COLOR_HIGHLIGHTTEXT));
@@ -261,7 +254,7 @@ VOID PhpSearchDrawButton(
         }
         else
         {
-            FillRect(bufferDc, &bufferRect, Context->BrushNormal);
+            FillRect(bufferDc, &bufferRect, GetSysColorBrush(COLOR_WINDOW));
         }
     }
 
