@@ -6753,10 +6753,10 @@ PVOID PhGetDllBaseProcedureAddressWithHint(
     PIMAGE_EXPORT_DIRECTORY exportDirectory;
 
     // This is a workaround for the CRT __delayLoadHelper2.
-    if (PhEqualBytesZ(ProcedureName, "GetProcAddress", FALSE))
-    {
-        return PhGetDllBaseProcAddress;
-    }
+    //if (PhEqualBytesZ(ProcedureName, "GetProcAddress", FALSE))
+    //{
+    //    return PhGetDllBaseProcAddress;
+    //}
 
     if (!NT_SUCCESS(PhGetLoaderEntryImageNtHeaders(BaseAddress, &imageNtHeader)))
         return NULL;
