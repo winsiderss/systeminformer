@@ -3,7 +3,7 @@
  *   statusbar main
  *
  * Copyright (C) 2010-2013 wj32
- * Copyright (C) 2011-2020 dmex
+ * Copyright (C) 2011-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -294,9 +294,15 @@ VOID StatusBarUpdate(
             break;
         case ID_STATUS_COMMITCHARGE:
             {
-                ULONG commitUsage = SystemStatistics.Performance->CommittedPages;
-                FLOAT commitFraction = (FLOAT)commitUsage / SystemStatistics.Performance->CommitLimit * 100;
+                ULONG commitUsage;
+                FLOAT commitFraction;
                 PH_FORMAT format[5];
+
+                if (!SystemStatistics.Performance)
+                    break;
+
+                commitUsage = SystemStatistics.Performance->CommittedPages;
+                commitFraction = (FLOAT)commitUsage / SystemStatistics.Performance->CommitLimit * 100;
 
                 PhInitFormatS(&format[0], L"Commit charge: ");
                 PhInitFormatSize(&format[1], UInt32x32To64(commitUsage, PAGE_SIZE));
@@ -309,9 +315,15 @@ VOID StatusBarUpdate(
             break;
         case ID_STATUS_PHYSICALMEMORY:
             {
-                ULONG physicalUsage = PhSystemBasicInformation.NumberOfPhysicalPages - SystemStatistics.Performance->AvailablePages;
-                FLOAT physicalFraction = (FLOAT)physicalUsage / PhSystemBasicInformation.NumberOfPhysicalPages * 100;
+                ULONG physicalUsage;
+                FLOAT physicalFraction;
                 PH_FORMAT format[5];
+
+                if (!SystemStatistics.Performance)
+                    break;
+
+                physicalUsage = PhSystemBasicInformation.NumberOfPhysicalPages - SystemStatistics.Performance->AvailablePages;
+                physicalFraction = (FLOAT)physicalUsage / PhSystemBasicInformation.NumberOfPhysicalPages * 100;
 
                 PhInitFormatS(&format[0], L"Physical memory: ");
                 PhInitFormatSize(&format[1], UInt32x32To64(physicalUsage, PAGE_SIZE));
@@ -324,9 +336,15 @@ VOID StatusBarUpdate(
             break;
         case ID_STATUS_FREEMEMORY:
             {
-                ULONG physicalFree = SystemStatistics.Performance->AvailablePages;
-                FLOAT physicalFreeFraction = (FLOAT)physicalFree / PhSystemBasicInformation.NumberOfPhysicalPages * 100;
+                ULONG physicalFree;
+                FLOAT physicalFreeFraction;
                 PH_FORMAT format[5];
+
+                if (!SystemStatistics.Performance)
+                    break;
+
+                physicalFree = SystemStatistics.Performance->AvailablePages;
+                physicalFreeFraction = (FLOAT)physicalFree / PhSystemBasicInformation.NumberOfPhysicalPages * 100;
 
                 PhInitFormatS(&format[0], L"Free memory: ");
                 PhInitFormatSize(&format[1], UInt32x32To64(physicalFree, PAGE_SIZE));
