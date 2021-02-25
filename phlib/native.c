@@ -5391,7 +5391,7 @@ NTSTATUS PhEnumHandlesEx2(
     )
 {
     NTSTATUS status;
-    PVOID buffer;
+    PPROCESS_HANDLE_SNAPSHOT_INFORMATION buffer;
     ULONG bufferSize;
     ULONG returnLength = 0;
     ULONG attempts = 0;
@@ -5425,9 +5425,23 @@ NTSTATUS PhEnumHandlesEx2(
     }
 
     if (NT_SUCCESS(status))
-        *Handles = buffer;
+    {
+        // NOTE: This is needed to workaround minimal processes on Windows 10
+        // returning STATUS_SUCCESS with invalid handle data. (dmex)
+        if (buffer->NumberOfHandles == 0)
+        {
+            status = STATUS_UNSUCCESSFUL;
+            PhFree(buffer);
+        }
+        else
+        {
+            *Handles = buffer;
+        }
+    }
     else
+    {
         PhFree(buffer);
+    }
 
     return status;
 }
