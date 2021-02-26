@@ -78,6 +78,9 @@
 #define IDC_GROUPNETWORK                1089
 #define IDC_DETAILS                     1092
 #define IDC_GPULIST                     1093
+#define IDC_POWER_USAGE_L               1094
+#define IDC_TEMPERATURE_L               1095
+#define IDC_FAN_RPM_L                   1096
 #define ID_DISK_GOTOPROCESS             40005
 #define ID_DISK_COPY                    40006
 #define ID_DISK_PROPERTIES              40007

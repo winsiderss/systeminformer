@@ -268,6 +268,10 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"ColorIoWrite", L"ff0077");
     PhpAddIntegerSetting(L"ColorPrivate", L"0077ff");
     PhpAddIntegerSetting(L"ColorPhysical", L"ff8000"); // Blue
+
+    PhpAddIntegerSetting(L"ColorPowerUsage", L"77ff77");
+    PhpAddIntegerSetting(L"ColorTemperature", L"7777ff");
+    PhpAddIntegerSetting(L"ColorFanRpm", L"ff7777");
 }
 
 VOID PhUpdateCachedSettings(
@@ -335,6 +339,10 @@ VOID PhUpdateCachedSettings(
     PH_UPDATE_SETTING(ColorIoWrite);
     PH_UPDATE_SETTING(ColorPrivate);
     PH_UPDATE_SETTING(ColorPhysical);
+
+    PH_UPDATE_SETTING(ColorPowerUsage);
+    PH_UPDATE_SETTING(ColorTemperature);
+    PH_UPDATE_SETTING(ColorFanRpm);
 
     PH_UPDATE_SETTING(ImageCoherencyScanLevel);
 

@@ -3230,6 +3230,9 @@ static COLOR_ITEM PhpOptionsGraphColorItems[] =
     COLOR_ITEM(L"ColorIoWrite", L"I/O W", L"I/O W"),
     COLOR_ITEM(L"ColorPrivate", L"Private bytes", L"Private bytes"),
     COLOR_ITEM(L"ColorPhysical", L"Physical memory", L"Physical memory"),
+    COLOR_ITEM(L"ColorPowerUsage", L"Power usage", L"Power usage"),
+    COLOR_ITEM(L"ColorTemperature", L"Temperature", L"Temperature"),
+    COLOR_ITEM(L"ColorFanRpm", L"Fan RPM", L"Fan RPM"),
 };
 static HWND PhpGraphListViewHandle = NULL;
 

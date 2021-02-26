@@ -513,8 +513,17 @@ extern PPH_CIRCULAR_BUFFER_FLOAT EtGpuNodesHistory;
 
 extern ULONG64 EtGpuDedicatedUsage;
 extern ULONG64 EtGpuSharedUsage;
+extern FLOAT EtGpuPowerUsageLimit;
+extern FLOAT EtGpuPowerUsage;
+extern FLOAT EtGpuTemperatureLimit;
+extern FLOAT EtGpuTemperature;
+extern ULONG64 EtGpuFanRpmLimit;
+extern ULONG64 EtGpuFanRpm;
 extern PH_CIRCULAR_BUFFER_ULONG64 EtGpuDedicatedHistory;
 extern PH_CIRCULAR_BUFFER_ULONG64 EtGpuSharedHistory;
+extern PH_CIRCULAR_BUFFER_FLOAT EtGpuPowerUsageHistory;
+extern PH_CIRCULAR_BUFFER_FLOAT EtGpuTemperatureHistory;
+extern PH_CIRCULAR_BUFFER_ULONG64 EtGpuFanRpmHistory;
 
 VOID EtGpuMonitorInitialization(
     VOID

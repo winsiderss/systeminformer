@@ -56,6 +56,18 @@ VOID EtpNotifySharedGraph(
     _In_ NMHDR *Header
     );
 
+VOID EtpNotifyPowerUsageGraph(
+    _In_ NMHDR *Header
+    );
+
+VOID EtpNotifyTemperatureGraph(
+    _In_ NMHDR *Header
+    );
+
+VOID EtpNotifyFanRpmGraph(
+    _In_ NMHDR *Header
+    );
+
 VOID EtpUpdateGpuGraphs(
     VOID
     );
