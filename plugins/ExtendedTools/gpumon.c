@@ -50,8 +50,17 @@ ULONG64 EtGpuDedicatedLimit = 0;
 ULONG64 EtGpuDedicatedUsage = 0;
 ULONG64 EtGpuSharedLimit = 0;
 ULONG64 EtGpuSharedUsage = 0;
+FLOAT EtGpuPowerUsageLimit = 100.0f;
+FLOAT EtGpuPowerUsage = 0.0f;
+FLOAT EtGpuTemperatureLimit = 0.0f;
+FLOAT EtGpuTemperature = 0.0f;
+ULONG64 EtGpuFanRpmLimit = 0;
+ULONG64 EtGpuFanRpm = 0;
 PH_CIRCULAR_BUFFER_ULONG64 EtGpuDedicatedHistory;
 PH_CIRCULAR_BUFFER_ULONG64 EtGpuSharedHistory;
+PH_CIRCULAR_BUFFER_FLOAT EtGpuPowerUsageHistory;
+PH_CIRCULAR_BUFFER_FLOAT EtGpuTemperatureHistory;
+PH_CIRCULAR_BUFFER_ULONG64 EtGpuFanRpmHistory;
 
 VOID EtGpuMonitorInitialization(
     VOID
@@ -78,6 +87,9 @@ VOID EtGpuMonitorInitialization(
         PhInitializeCircularBuffer_FLOAT(&EtMaxGpuNodeUsageHistory, sampleCount);
         PhInitializeCircularBuffer_ULONG64(&EtGpuDedicatedHistory, sampleCount);
         PhInitializeCircularBuffer_ULONG64(&EtGpuSharedHistory, sampleCount);
+        PhInitializeCircularBuffer_FLOAT(&EtGpuPowerUsageHistory, sampleCount);
+        PhInitializeCircularBuffer_FLOAT(&EtGpuTemperatureHistory, sampleCount);
+        PhInitializeCircularBuffer_ULONG64(&EtGpuFanRpmHistory, sampleCount);
 
         EtGpuNodesTotalRunningTimeDelta = PhAllocateZero(sizeof(PH_UINT64_DELTA) * EtGpuTotalNodeCount);
         EtGpuNodesHistory = PhAllocateZero(sizeof(PH_CIRCULAR_BUFFER_FLOAT) * EtGpuTotalNodeCount);
@@ -584,6 +596,7 @@ BOOLEAN EtpInitializeD3DStatistics(
     PWSTR deviceInterface;
     D3DKMT_OPENADAPTERFROMDEVICENAME openAdapterFromDeviceName;
     D3DKMT_QUERYSTATISTICS queryStatistics;
+    D3DKMT_ADAPTER_PERFDATACAPS perfCaps;
 
     if (CM_Get_Device_Interface_List_Size(
         &deviceInterfaceListLength,
@@ -652,6 +665,22 @@ BOOLEAN EtpInitializeD3DStatistics(
             }
         }
 
+        memset(&perfCaps, 0, sizeof(D3DKMT_ADAPTER_PERFDATACAPS));
+
+        if (NT_SUCCESS(EtQueryAdapterInformation(
+            openAdapterFromDeviceName.AdapterHandle,
+            KMTQAITYPE_ADAPTERPERFDATA_CAPS,
+            &perfCaps,
+            sizeof(D3DKMT_ADAPTER_PERFDATACAPS)
+            )))
+        {
+            //
+            // This will be averaged below.
+            //
+            EtGpuTemperatureLimit += perfCaps.TemperatureMax;
+            EtGpuFanRpmLimit += perfCaps.MaxFanRPM;
+        }
+
         memset(&queryStatistics, 0, sizeof(D3DKMT_QUERYSTATISTICS));
         queryStatistics.Type = D3DKMT_QUERYSTATISTICS_ADAPTER;
         queryStatistics.AdapterLuid = openAdapterFromDeviceName.AdapterLuid;
@@ -711,6 +740,15 @@ BOOLEAN EtpInitializeD3DStatistics(
         }
 
         EtCloseAdapterHandle(openAdapterFromDeviceName.AdapterHandle);
+    }
+
+    if (deviceAdapterList->Count > 0)
+    {
+        //
+        // Use the average as the limit since we show one graph for all.
+        //
+        EtGpuTemperatureLimit /= deviceAdapterList->Count;
+        EtGpuFanRpmLimit /= deviceAdapterList->Count;
     }
 
     PhDereferenceObject(deviceAdapterList);
@@ -993,6 +1031,83 @@ VOID NTAPI EtGpuProcessesUpdatedCallback(
         EtGpuNodeUsage = tempGpuUsage;
     }
 
+    if (EtpGpuAdapterList->Count)
+    {
+        FLOAT powerUsage;
+        FLOAT temperature;
+        ULONG64 fanRpm;
+
+        powerUsage = 0.0f;
+        temperature = 0.0f;
+        fanRpm = 0;
+
+        for (ULONG i = 0; i < EtpGpuAdapterList->Count; i++)
+        {
+            PETP_GPU_ADAPTER gpuAdapter;
+            D3DKMT_OPENADAPTERFROMDEVICENAME openAdapterFromDeviceName;
+            D3DKMT_ADAPTER_PERFDATA adapterPerfData;
+
+            gpuAdapter = EtpGpuAdapterList->Items[i];
+
+            memset(&openAdapterFromDeviceName, 0, sizeof(D3DKMT_OPENADAPTERFROMDEVICENAME));
+            openAdapterFromDeviceName.DeviceName = PhGetString(gpuAdapter->DeviceInterface);
+
+            //
+            // jxy-s: we open this frequently, consider opening this once in the list
+            //
+            if (!NT_SUCCESS(D3DKMTOpenAdapterFromDeviceName(&openAdapterFromDeviceName)))
+                continue;
+
+            memset(&adapterPerfData, 0, sizeof(D3DKMT_ADAPTER_PERFDATA));
+
+            if (NT_SUCCESS(EtQueryAdapterInformation(
+                openAdapterFromDeviceName.AdapterHandle,
+                KMTQAITYPE_ADAPTERPERFDATA,
+                &adapterPerfData,
+                sizeof(D3DKMT_ADAPTER_PERFDATA)
+                )))
+            {
+                powerUsage += (((FLOAT)adapterPerfData.Power / 1000) * 100);
+                temperature += (((FLOAT)adapterPerfData.Temperature / 1000) * 100);
+                fanRpm += adapterPerfData.FanRPM;
+            }
+
+            EtCloseAdapterHandle(openAdapterFromDeviceName.AdapterHandle);
+        }
+
+        EtGpuPowerUsage = powerUsage / EtpGpuAdapterList->Count;
+        EtGpuTemperature = temperature / EtpGpuAdapterList->Count;
+        EtGpuFanRpm = fanRpm / EtpGpuAdapterList->Count;
+
+        //
+        // Update the limits if we see higher values
+        //
+
+        if (EtGpuPowerUsage > EtGpuPowerUsageLimit)
+        {
+            //
+            // Possibly over-clocked power limit
+            //
+            EtGpuPowerUsageLimit = EtGpuPowerUsage;
+        }
+
+        if (EtGpuTemperature > EtGpuTemperatureLimit)
+        {
+            //
+            // Damn that card is hawt
+            //
+            EtGpuTemperatureLimit = EtGpuTemperature;
+        }
+
+        if (EtGpuFanRpm > EtGpuFanRpmLimit)
+        {
+            //
+            // Fan go brrrrrr
+            //
+            EtGpuFanRpmLimit = EtGpuFanRpm;
+        }
+    }
+
     // Update per-process statistics.
     // Note: no lock is needed because we only ever modify the list on this same thread.
 
@@ -1081,7 +1196,9 @@ VOID NTAPI EtGpuProcessesUpdatedCallback(
         PhAddItemCircularBuffer_FLOAT(&EtGpuNodeHistory, EtGpuNodeUsage);
         PhAddItemCircularBuffer_ULONG64(&EtGpuDedicatedHistory, EtGpuDedicatedUsage);
         PhAddItemCircularBuffer_ULONG64(&EtGpuSharedHistory, EtGpuSharedUsage);
-
+        PhAddItemCircularBuffer_FLOAT(&EtGpuPowerUsageHistory, EtGpuPowerUsage);
+        PhAddItemCircularBuffer_FLOAT(&EtGpuTemperatureHistory, EtGpuTemperature);
+        PhAddItemCircularBuffer_ULONG64(&EtGpuFanRpmHistory, EtGpuFanRpm);
 
         if (EtD3DEnabled)
         {
