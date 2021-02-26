@@ -34,6 +34,12 @@ static HWND DedicatedGraphHandle;
 static PH_GRAPH_STATE DedicatedGraphState;
 static HWND SharedGraphHandle;
 static PH_GRAPH_STATE SharedGraphState;
+static HWND PowerUsageGraphHandle;
+static PH_GRAPH_STATE PowerUsageGraphState;
+static HWND TemperatureGraphHandle;
+static PH_GRAPH_STATE TemperatureGraphState;
+static HWND FanRpmGraphHandle;
+static PH_GRAPH_STATE FanRpmGraphState;
 static HWND GpuPanel;
 static HWND GpuPanelDedicatedUsageLabel;
 static HWND GpuPanelDedicatedLimitLabel;
@@ -207,6 +213,9 @@ VOID EtpInitializeGpuDialog(
     PhInitializeGraphState(&GpuGraphState);
     PhInitializeGraphState(&DedicatedGraphState);
     PhInitializeGraphState(&SharedGraphState);
+    PhInitializeGraphState(&PowerUsageGraphState);
+    PhInitializeGraphState(&TemperatureGraphState);
+    PhInitializeGraphState(&FanRpmGraphState);
 }
 
 VOID EtpUninitializeGpuDialog(
@@ -216,6 +225,9 @@ VOID EtpUninitializeGpuDialog(
     PhDeleteGraphState(&GpuGraphState);
     PhDeleteGraphState(&DedicatedGraphState);
     PhDeleteGraphState(&SharedGraphState);
+    PhDeleteGraphState(&PowerUsageGraphState);
+    PhDeleteGraphState(&TemperatureGraphState);
+    PhDeleteGraphState(&FanRpmGraphState);
 }
 
 VOID EtpTickGpuDialog(
@@ -289,6 +301,18 @@ INT_PTR CALLBACK EtpGpuDialogProc(
             else if (header->hwndFrom == SharedGraphHandle)
             {
                 EtpNotifySharedGraph(header);
+            }
+            else if (header->hwndFrom == PowerUsageGraphHandle)
+            {
+                EtpNotifyPowerUsageGraph(header);
+            }
+            else if (header->hwndFrom == TemperatureGraphHandle)
+            {
+                EtpNotifyTemperatureGraph(header);
+            }
+            else if (header->hwndFrom == FanRpmGraphHandle)
+            {
+                EtpNotifyFanRpmGraph(header);
             }
         }
         break;
@@ -380,6 +404,51 @@ VOID EtpCreateGpuGraphs(
         NULL
         );
     Graph_SetTooltip(SharedGraphHandle, TRUE);
+
+    PowerUsageGraphHandle = CreateWindow(
+        PH_GRAPH_CLASSNAME,
+        NULL,
+        WS_VISIBLE | WS_CHILD | WS_BORDER,
+        0,
+        0,
+        3,
+        3,
+        GpuDialog,
+        NULL,
+        NULL,
+        NULL
+        );
+    Graph_SetTooltip(PowerUsageGraphHandle, TRUE);
+
+    TemperatureGraphHandle = CreateWindow(
+        PH_GRAPH_CLASSNAME,
+        NULL,
+        WS_VISIBLE | WS_CHILD | WS_BORDER,
+        0,
+        0,
+        3,
+        3,
+        GpuDialog,
+        NULL,
+        NULL,
+        NULL
+        );
+    Graph_SetTooltip(TemperatureGraphHandle, TRUE);
+
+    FanRpmGraphHandle = CreateWindow(
+        PH_GRAPH_CLASSNAME,
+        NULL,
+        WS_VISIBLE | WS_CHILD | WS_BORDER,
+        0,
+        0,
+        3,
+        3,
+        GpuDialog,
+        NULL,
+        NULL,
+        NULL
+        );
+    Graph_SetTooltip(FanRpmGraphHandle, TRUE);
 }
 
 VOID EtpLayoutGpuGraphs(
@@ -396,9 +465,9 @@ VOID EtpLayoutGpuGraphs(
     GetClientRect(GpuDialog, &clientRect);
     GetClientRect(GetDlgItem(GpuDialog, IDC_GPU_L), &labelRect);
     graphWidth = clientRect.right - GpuGraphMargin.left - GpuGraphMargin.right;
-    graphHeight = (clientRect.bottom - GpuGraphMargin.top - GpuGraphMargin.bottom - labelRect.bottom * 3 - ET_GPU_PADDING * 5) / 3;
+    graphHeight = (clientRect.bottom - GpuGraphMargin.top - GpuGraphMargin.bottom - labelRect.bottom * 6 - ET_GPU_PADDING * 8) / 6;
 
-    deferHandle = BeginDeferWindowPos(6);
+    deferHandle = BeginDeferWindowPos(12);
     y = GpuGraphMargin.top;
 
     deferHandle = DeferWindowPos(
@@ -464,6 +533,78 @@ VOID EtpLayoutGpuGraphs(
     deferHandle = DeferWindowPos(
         deferHandle,
         SharedGraphHandle,
+        NULL,
+        GpuGraphMargin.left,
+        y,
+        graphWidth,
+        graphHeight,
+        SWP_NOACTIVATE | SWP_NOZORDER
+        );
+    y += graphHeight + ET_GPU_PADDING;
+
+    deferHandle = DeferWindowPos(
+        deferHandle,
+        GetDlgItem(GpuDialog, IDC_POWER_USAGE_L),
+        NULL,
+        GpuGraphMargin.left,
+        y,
+        0,
+        0,
+        SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
+        );
+    y += labelRect.bottom + ET_GPU_PADDING;
+
+    deferHandle = DeferWindowPos(
+        deferHandle,
+        PowerUsageGraphHandle,
+        NULL,
+        GpuGraphMargin.left,
+        y,
+        graphWidth,
+        graphHeight,
+        SWP_NOACTIVATE | SWP_NOZORDER
+        );
+    y += graphHeight + ET_GPU_PADDING;
+
+    deferHandle = DeferWindowPos(
+        deferHandle,
+        GetDlgItem(GpuDialog, IDC_TEMPERATURE_L),
+        NULL,
+        GpuGraphMargin.left,
+        y,
+        0,
+        0,
+        SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
+        );
+    y += labelRect.bottom + ET_GPU_PADDING;
+
+    deferHandle = DeferWindowPos(
+        deferHandle,
+        TemperatureGraphHandle,
+        NULL,
+        GpuGraphMargin.left,
+        y,
+        graphWidth,
+        graphHeight,
+        SWP_NOACTIVATE | SWP_NOZORDER
+        );
+    y += graphHeight + ET_GPU_PADDING;
+
+    deferHandle = DeferWindowPos(
+        deferHandle,
+        GetDlgItem(GpuDialog, IDC_FAN_RPM_L),
+        NULL,
+        GpuGraphMargin.left,
+        y,
+        0,
+        0,
+        SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
+        );
+    y += labelRect.bottom + ET_GPU_PADDING;
+
+    deferHandle = DeferWindowPos(
+        deferHandle,
+        FanRpmGraphHandle,
         NULL,
         GpuGraphMargin.left,
         y,
@@ -691,6 +832,215 @@ VOID EtpNotifySharedGraph(
     }
 }
 
+VOID EtpNotifyPowerUsageGraph(
+    _In_ NMHDR* Header
+    )
+{
+    switch (Header->code)
+    {
+    case GCN_GETDRAWINFO:
+        {
+            PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
+            PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
+            ULONG i;
+
+            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y;
+            GpuSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorPowerUsage"), 0);
+
+            PhGraphStateGetDrawInfo(
+                &PowerUsageGraphState,
+                getDrawInfo,
+                EtGpuPowerUsageHistory.Count
+                );
+
+            if (!PowerUsageGraphState.Valid)
+            {
+                for (i = 0; i < drawInfo->LineDataCount; i++)
+                {
+                    PowerUsageGraphState.Data1[i] = PhGetItemCircularBuffer_FLOAT(&EtGpuPowerUsageHistory, i);
+                }
+
+                // Scale the data.
+                PhDivideSinglesBySingle(
+                    PowerUsageGraphState.Data1,
+                    EtGpuPowerUsageLimit,
+                    drawInfo->LineDataCount
+                    );
+
+                PowerUsageGraphState.Valid = TRUE;
+            }
+        }
+        break;
+    case GCN_GETTOOLTIPTEXT:
+        {
+            PPH_GRAPH_GETTOOLTIPTEXT getTooltipText = (PPH_GRAPH_GETTOOLTIPTEXT)Header;
+
+            if (getTooltipText->Index < getTooltipText->TotalCount)
+            {
+                if (PowerUsageGraphState.TooltipIndex != getTooltipText->Index)
+                {
+                    FLOAT powerUsage;
+                    PH_FORMAT format[4];
+
+                    powerUsage = PhGetItemCircularBuffer_FLOAT(&EtGpuPowerUsageHistory, getTooltipText->Index);
+
+                    PhInitFormatF(&format[0], powerUsage, 1);
+                    PhInitFormatC(&format[1], L'%');
+                    PhInitFormatC(&format[2], L'\n');
+                    PhInitFormatSR(&format[3], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
+
+                    PhMoveReference(&PowerUsageGraphState.TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 0));
+                }
+
+                getTooltipText->Text = PhGetStringRef(PowerUsageGraphState.TooltipText);
+            }
+        }
+        break;
+    }
+}
+
+VOID EtpNotifyTemperatureGraph(
+    _In_ NMHDR* Header
+    )
+{
+    switch (Header->code)
+    {
+    case GCN_GETDRAWINFO:
+        {
+            PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
+            PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
+            ULONG i;
+
+            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y;
+            GpuSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorTemperature"), 0);
+
+            PhGraphStateGetDrawInfo(
+                &TemperatureGraphState,
+                getDrawInfo,
+                EtGpuTemperatureHistory.Count
+                );
+
+            if (!TemperatureGraphState.Valid)
+            {
+                for (i = 0; i < drawInfo->LineDataCount; i++)
+                {
+                    TemperatureGraphState.Data1[i] = PhGetItemCircularBuffer_FLOAT(&EtGpuTemperatureHistory, i);
+                }
+
+                // Scale the data.
+                PhDivideSinglesBySingle(
+                    TemperatureGraphState.Data1,
+                    EtGpuTemperatureLimit,
+                    drawInfo->LineDataCount
+                    );
+
+                TemperatureGraphState.Valid = TRUE;
+            }
+        }
+        break;
+    case GCN_GETTOOLTIPTEXT:
+        {
+            PPH_GRAPH_GETTOOLTIPTEXT getTooltipText = (PPH_GRAPH_GETTOOLTIPTEXT)Header;
+
+            if (getTooltipText->Index < getTooltipText->TotalCount)
+            {
+                if (TemperatureGraphState.TooltipIndex != getTooltipText->Index)
+                {
+                    FLOAT temp;
+                    PH_FORMAT format[3];
+
+                    temp = PhGetItemCircularBuffer_FLOAT(&EtGpuTemperatureHistory, getTooltipText->Index);
+
+                    if (PhGetIntegerSetting(SETTING_NAME_ENABLE_FAHRENHEIT))
+                    {
+                        PhInitFormatF(&format[0], (temp * 1.8 + 32), 1);
+                        PhInitFormatS(&format[1], L"\u00b0F\n");
+                        PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
+                    }
+                    else
+                    {
+                        PhInitFormatF(&format[0], temp, 1);
+                        PhInitFormatS(&format[1], L"\u00b0C\n");
+                        PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
+                    }
+
+                    PhMoveReference(&TemperatureGraphState.TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 0));
+                }
+
+                getTooltipText->Text = PhGetStringRef(TemperatureGraphState.TooltipText);
+            }
+        }
+        break;
+    }
+}
+
+VOID EtpNotifyFanRpmGraph(
+    _In_ NMHDR* Header
+    )
+{
+    switch (Header->code)
+    {
+    case GCN_GETDRAWINFO:
+        {
+            PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
+            PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
+            ULONG i;
+
+            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y;
+            GpuSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorFanRpm"), 0);
+
+            PhGraphStateGetDrawInfo(
+                &FanRpmGraphState,
+                getDrawInfo,
+                EtGpuFanRpmHistory.Count
+                );
+
+            if (!FanRpmGraphState.Valid)
+            {
+                for (i = 0; i < drawInfo->LineDataCount; i++)
+                {
+                    FanRpmGraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG64(&EtGpuFanRpmHistory, i);
+                }
+
+                // Scale the data.
+                PhDivideSinglesBySingle(
+                    FanRpmGraphState.Data1,
+                    (FLOAT)EtGpuFanRpmLimit,
+                    drawInfo->LineDataCount
+                    );
+
+                FanRpmGraphState.Valid = TRUE;
+            }
+        }
+        break;
+    case GCN_GETTOOLTIPTEXT:
+        {
+            PPH_GRAPH_GETTOOLTIPTEXT getTooltipText = (PPH_GRAPH_GETTOOLTIPTEXT)Header;
+
+            if (getTooltipText->Index < getTooltipText->TotalCount)
+            {
+                if (FanRpmGraphState.TooltipIndex != getTooltipText->Index)
+                {
+                    ULONG64 rpm;
+                    PH_FORMAT format[3];
+
+                    rpm = PhGetItemCircularBuffer_ULONG64(&EtGpuFanRpmHistory, getTooltipText->Index);
+
+                    PhInitFormatI64U(&format[0], rpm);
+                    PhInitFormatC(&format[1], L'\n');
+                    PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
+
+                    PhMoveReference(&FanRpmGraphState.TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 0));
+                }
+
+                getTooltipText->Text = PhGetStringRef(FanRpmGraphState.TooltipText);
+            }
+        }
+        break;
+    }
+
+}
+
 VOID EtpUpdateGpuGraphs(
     VOID
     )
@@ -715,6 +1065,27 @@ VOID EtpUpdateGpuGraphs(
     Graph_Draw(SharedGraphHandle);
     Graph_UpdateTooltip(SharedGraphHandle);
     InvalidateRect(SharedGraphHandle, NULL, FALSE);
+
+    PowerUsageGraphState.Valid = FALSE;
+    PowerUsageGraphState.TooltipIndex = ULONG_MAX;
+    Graph_MoveGrid(PowerUsageGraphHandle, 1);
+    Graph_Draw(PowerUsageGraphHandle);
+    Graph_UpdateTooltip(PowerUsageGraphHandle);
+    InvalidateRect(PowerUsageGraphHandle, NULL, FALSE);
+
+    TemperatureGraphState.Valid = FALSE;
+    TemperatureGraphState.TooltipIndex = ULONG_MAX;
+    Graph_MoveGrid(TemperatureGraphHandle, 1);
+    Graph_Draw(TemperatureGraphHandle);
+    Graph_UpdateTooltip(TemperatureGraphHandle);
+    InvalidateRect(TemperatureGraphHandle, NULL, FALSE);
+
+    FanRpmGraphState.Valid = FALSE;
+    FanRpmGraphState.TooltipIndex = ULONG_MAX;
+    Graph_MoveGrid(FanRpmGraphHandle, 1);
+    Graph_Draw(FanRpmGraphHandle);
+    Graph_UpdateTooltip(FanRpmGraphHandle);
+    InvalidateRect(FanRpmGraphHandle, NULL, FALSE);
 }
 
 VOID EtpUpdateGpuPanel(

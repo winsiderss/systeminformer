@@ -73,6 +73,9 @@ EXT ULONG PhCsColorIoReadOther;
 EXT ULONG PhCsColorIoWrite;
 EXT ULONG PhCsColorPrivate;
 EXT ULONG PhCsColorPhysical;
+EXT ULONG PhCsColorPowerUsage;
+EXT ULONG PhCsColorTemperature;
+EXT ULONG PhCsColorFanRpm;
 
 EXT ULONG PhCsUseColorUnknown;
 EXT ULONG PhCsColorUnknown;
