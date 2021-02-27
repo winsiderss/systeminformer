@@ -319,11 +319,7 @@ NTSTATUS PhEnumHandlesGeneric(
 
         if (NT_SUCCESS(status = KphEnumerateProcessHandles2(ProcessHandle, &handles)))
         {
-            convertedHandles = PhAllocate(
-                FIELD_OFFSET(SYSTEM_HANDLE_INFORMATION_EX, Handles) +
-                sizeof(SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX) * handles->HandleCount
-                );
-
+            convertedHandles = PhAllocate(UFIELD_OFFSET(SYSTEM_HANDLE_INFORMATION_EX, Handles[handles->HandleCount]));
             convertedHandles->NumberOfHandles = handles->HandleCount;
 
             for (i = 0; i < handles->HandleCount; i++)
@@ -352,11 +348,7 @@ NTSTATUS PhEnumHandlesGeneric(
 
         if (NT_SUCCESS(status = PhEnumHandlesEx2(ProcessHandle, &handles)))
         {
-            convertedHandles = PhAllocate(
-                FIELD_OFFSET(SYSTEM_HANDLE_INFORMATION_EX, Handles) +
-                sizeof(SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX) * handles->NumberOfHandles
-                );
-
+            convertedHandles = PhAllocate(UFIELD_OFFSET(SYSTEM_HANDLE_INFORMATION_EX, Handles[handles->NumberOfHandles]));
             convertedHandles->NumberOfHandles = handles->NumberOfHandles;
 
             for (i = 0; i < handles->NumberOfHandles; i++)
