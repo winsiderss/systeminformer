@@ -162,6 +162,9 @@
     <ClCompile Include="tlsh\tlsh_wrapper.cpp">
       <Filter>Source Files\tlsh</Filter>
     </ClCompile>
+    <ClCompile Include="peexceptprp.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\peview.h">
