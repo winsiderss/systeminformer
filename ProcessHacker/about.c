@@ -78,7 +78,6 @@ static INT_PTR CALLBACK PhpAboutDlgProc(
                 L"Thanks to:\n"
                 L"    <a href=\"https://github.com/wj32\">wj32</a> - Wen Jia Liu\n"
                 L"    <a href=\"https://github.com/dmex\">dmex</a> - Steven G\n"
-                L"    <a href=\"https://github.com/xhmikosr\">XhmikosR</a>\n"
                 L"    <a href=\"https://github.com/processhacker/processhacker/graphs/contributors\">Contributors</a> - thank you for your additions!\n"
                 L"    Donors - thank you for your support!\n\n"
                 L"Process Hacker uses the following components:\n"
