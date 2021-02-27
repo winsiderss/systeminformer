@@ -3086,3 +3086,149 @@ VOID PhFreeMappedImageRelocations(
         Relocations->NumberOfEntries = 0;
     }
 }
+
+NTSTATUS PhGetMappedImageExceptions(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _Out_ PPH_MAPPED_IMAGE_EXCEPTIONS Exceptions
+    )
+{
+    NTSTATUS status;
+    PIMAGE_DATA_DIRECTORY dataDirectory;
+    PVOID exceptionDirectory;
+    PH_ARRAY exceptionArray;
+    ULONG imageMachine;
+    ULONG exceptionTotal = 0;
+    ULONG exceptionEntrySize = 0;
+
+    if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+        imageMachine = MappedImage->NtHeaders32->FileHeader.Machine;
+    else
+        imageMachine = MappedImage->NtHeaders->FileHeader.Machine;
+
+    // 32bit images require special handling for the SEH table.
+    switch (imageMachine)
+    {
+    case IMAGE_FILE_MACHINE_I386:
+        {
+            PIMAGE_LOAD_CONFIG_DIRECTORY32 config32;
+            PULONG exceptionHandlerTable = NULL;
+
+            status = PhGetMappedImageLoadConfig32(MappedImage, &config32);
+
+            if (!NT_SUCCESS(status))
+                return status;
+
+            if (config32->SEHandlerTable)
+            {
+                exceptionTotal = config32->SEHandlerCount;
+                exceptionHandlerTable = PhMappedImageVaToVa(MappedImage, config32->SEHandlerTable, NULL);
+            }
+
+            if (!exceptionHandlerTable)
+                return STATUS_UNSUCCESSFUL;
+
+            __try
+            {
+                PhpMappedImageProbe(MappedImage, exceptionHandlerTable, exceptionTotal * sizeof(ULONG));
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                return GetExceptionCode();
+            }
+
+            // Allocate the number of exception entries.
+
+            PhInitializeArray(&exceptionArray, sizeof(ULONG), exceptionTotal);
+
+            // Add the exception entries into our buffer.
+
+            for (ULONG i = 0; i < exceptionTotal; i++)
+            {
+                ULONG rva = *(PULONG)PTR_ADD_OFFSET(exceptionHandlerTable, i * sizeof(ULONG));
+
+                PhAddItemArray(&exceptionArray, &rva);
+            }
+
+            Exceptions->MappedImage = MappedImage;
+            Exceptions->DataDirectory = NULL;
+            Exceptions->ExceptionDirectory = NULL;
+            Exceptions->NumberOfEntries = (ULONG)exceptionArray.Count;
+            Exceptions->ExceptionEntries = PhFinalArrayItems(&exceptionArray);
+
+            return STATUS_SUCCESS;
+        }
+        break;
+    }
+
+    status = PhGetMappedImageDataEntry(
+        MappedImage,
+        IMAGE_DIRECTORY_ENTRY_EXCEPTION,
+        &dataDirectory
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    exceptionDirectory = PhMappedImageRvaToVa(
+        MappedImage,
+        dataDirectory->VirtualAddress,
+        NULL
+        );
+
+    if (!exceptionDirectory)
+        return STATUS_INVALID_PARAMETER;
+
+    __try
+    {
+        PhpMappedImageProbe(MappedImage, exceptionDirectory, dataDirectory->Size);
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        return GetExceptionCode();
+    }
+
+    Exceptions->MappedImage = MappedImage;
+    Exceptions->DataDirectory = dataDirectory;
+    Exceptions->ExceptionDirectory = exceptionDirectory;
+
+    switch (imageMachine)
+    {
+    case IMAGE_FILE_MACHINE_AMD64:
+    case IMAGE_FILE_MACHINE_IA64:
+        {
+            exceptionEntrySize = sizeof(IMAGE_RUNTIME_FUNCTION_ENTRY);
+            exceptionTotal = dataDirectory->Size / exceptionEntrySize;
+        }
+        break;
+    case IMAGE_FILE_MACHINE_ARMNT:
+        {
+            exceptionEntrySize = sizeof(IMAGE_ARM_RUNTIME_FUNCTION_ENTRY);
+            exceptionTotal = dataDirectory->Size / exceptionEntrySize;
+        }
+        break;
+    case IMAGE_FILE_MACHINE_ARM64:
+        {
+            exceptionEntrySize = sizeof(IMAGE_ARM64_RUNTIME_FUNCTION_ENTRY);
+            exceptionTotal = dataDirectory->Size / exceptionEntrySize;
+        }
+        break;
+    }
+
+    // Allocate the number of exception entries.
+
+    PhInitializeArray(&exceptionArray, exceptionEntrySize, exceptionTotal);
+
+    // Add the exception entries into our buffer.
+
+    for (ULONG i = 0; i < exceptionTotal; i++)
+    {
+        PVOID entry = PTR_ADD_OFFSET(exceptionDirectory, i * exceptionEntrySize);
+
+        PhAddItemArray(&exceptionArray, entry);
+    }
+
+    Exceptions->NumberOfEntries = (ULONG)exceptionArray.Count;
+    Exceptions->ExceptionEntries = PhFinalArrayItems(&exceptionArray);
+
+    return status;
+}
