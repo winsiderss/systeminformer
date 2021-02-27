@@ -3518,7 +3518,6 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 {
                     #define PhInflateRect(rect, dx, dy) \
                     { (rect)->left -= (dx); (rect)->top -= (dy); (rect)->right += (dx); (rect)->bottom += (dy); }
-                    static HBRUSH backgroundBrush = NULL;
                     HBRUSH previousBrush = NULL;
                     RECT borderRect = customDraw->CellRect;
                     FLOAT percent = 0;
@@ -3579,8 +3578,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     rect.bottom += 1;
                     FillRect(customDraw->Dc, &rect, GetSysColorBrush(COLOR_3DFACE));
 
-                    if (!backgroundBrush) backgroundBrush = CreateSolidBrush(RGB(158, 202, 158));
-                    if (backgroundBrush) previousBrush = SelectBrush(customDraw->Dc, backgroundBrush);
+                    SetDCBrushColor(customDraw->Dc, RGB(158, 202, 158));
+                    previousBrush = SelectBrush(customDraw->Dc, GetStockBrush(DC_BRUSH));
 
                     // TODO: This still loses a small fraction of precision compared to PE here causing a 1px difference.
                     //rect.right = ((LONG)(rect.left + ((rect.right - rect.left) * (LONG)percent) / 100));
@@ -3597,7 +3596,6 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         );
 
                     if (previousBrush) SelectBrush(customDraw->Dc, previousBrush);
-                    //if (backgroundBrush) DeleteBrush(backgroundBrush);
 
                     PhInflateRect(&borderRect, -1, -1);
                     borderRect.bottom += 1;
