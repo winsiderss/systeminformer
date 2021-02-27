@@ -152,9 +152,9 @@ FLOAT EtLookupProcessGpuUtilization(
     _In_ HANDLE ProcessId
     )
 {
-    ET_GPU_COUNTER lookupEntry;
-    PET_GPU_COUNTER entry;
     FLOAT value = 0;
+    ULONG enumerationKey;
+    PET_GPU_COUNTER entry;
 
     if (!EtGpuRunningTimeHashTable)
     {
@@ -164,14 +164,15 @@ FLOAT EtLookupProcessGpuUtilization(
 
     PhAcquireFastLockShared(&EtGpuRunningTimeHashTableLock);
 
-    lookupEntry.ProcessId = ProcessId;
+    enumerationKey = 0;
 
-    if (entry = PhFindEntryHashtable(EtGpuRunningTimeHashTable, &lookupEntry))
+    while (PhEnumHashtable(EtGpuRunningTimeHashTable, (PVOID*)&entry, &enumerationKey))
     {
-        FLOAT usage = (FLOAT)entry->Value;
-
-        if (usage > value)
-            value = usage;
+        if (entry->ProcessId == ProcessId)
+        {
+            if (entry->ValueF > value)
+                value = entry->ValueF;
+        }
     }
 
     PhReleaseFastLockShared(&EtGpuRunningTimeHashTableLock);
@@ -202,7 +203,7 @@ FLOAT EtLookupTotalGpuUtilization(
 
     while (PhEnumHashtable(EtGpuRunningTimeHashTable, (PVOID*)&entry, &enumerationKey))
     {
-        FLOAT usage = (FLOAT)entry->Value;
+        FLOAT usage = entry->ValueF;
 
         if (usage > value)
             value = usage;
@@ -239,7 +240,7 @@ FLOAT EtLookupTotalGpuEngineUtilization(
         if (entry->EngineId != EngineId)
             continue;
 
-        FLOAT usage = (FLOAT)entry->Value;
+        FLOAT usage = entry->ValueF;
 
         if (usage > value)
             value = usage;
@@ -257,9 +258,9 @@ ULONG64 EtLookupProcessGpuDedicated(
     _In_opt_ HANDLE ProcessId
     )
 {
-    ET_GPU_COUNTER lookupEntry;
-    PET_GPU_COUNTER entry;
     ULONG64 value = 0;
+    ULONG enumerationKey;
+    PET_GPU_COUNTER entry;
 
     if (!EtGpuDedicatedHashTable)
     {
@@ -269,11 +270,14 @@ ULONG64 EtLookupProcessGpuDedicated(
 
     PhAcquireFastLockShared(&EtGpuDedicatedHashTableLock);
 
-    lookupEntry.ProcessId = ProcessId;
+    enumerationKey = 0;
 
-    if (entry = PhFindEntryHashtable(EtGpuDedicatedHashTable, &lookupEntry))
+    while (PhEnumHashtable(EtGpuDedicatedHashTable, (PVOID*)&entry, &enumerationKey))
     {
-        value = entry->Value64;
+        if (entry->ProcessId == ProcessId)
+        {
+            value += entry->Value64;
+        }
     }
 
     PhReleaseFastLockShared(&EtGpuDedicatedHashTableLock);
@@ -432,7 +436,7 @@ VOID ParseGpuEngineUtilizationCounter(
     PH_STRINGREF luidHighPartSr;
     PH_STRINGREF physPartSr;
     PH_STRINGREF engPartSr;
-    PH_STRINGREF engTypePartSr;
+    //PH_STRINGREF engTypePartSr;
     PH_STRINGREF remainingPart;
 
     if (!EtGpuRunningTimeHashTable)
@@ -440,10 +444,6 @@ VOID ParseGpuEngineUtilizationCounter(
 
     // pid_12704_luid_0x00000000_0x0000D503_phys_0_eng_3_engtype_VideoDecode
     PhInitializeStringRefLongHint(&remainingPart, InstanceName);
-
-    if (remainingPart.Length == 0)
-        return;
-
     PhSplitStringRefAtChar(&remainingPart, L'_', &partSr, &remainingPart);
     PhSplitStringRefAtChar(&remainingPart, L'_', &pidPartSr, &remainingPart);
     PhSplitStringRefAtChar(&remainingPart, L'_', &partSr, &remainingPart);
@@ -453,8 +453,8 @@ VOID ParseGpuEngineUtilizationCounter(
     PhSplitStringRefAtChar(&remainingPart, L'_', &physPartSr, &remainingPart);
     PhSplitStringRefAtChar(&remainingPart, L'_', &partSr, &remainingPart);
     PhSplitStringRefAtChar(&remainingPart, L'_', &engPartSr, &remainingPart);
-    PhSplitStringRefAtChar(&remainingPart, L'_', &partSr, &remainingPart);
-    PhSplitStringRefAtChar(&remainingPart, L'_', &engTypePartSr, &remainingPart);
+    //PhSplitStringRefAtChar(&remainingPart, L'_', &partSr, &remainingPart);
+    //PhSplitStringRefAtChar(&remainingPart, L'_', &engTypePartSr, &remainingPart);
 
     if (pidPartSr.Length)
     {
@@ -473,13 +473,14 @@ VOID ParseGpuEngineUtilizationCounter(
 
             if (entry = PhFindEntryHashtable(EtGpuRunningTimeHashTable, &lookupEntry))
             {
-                entry->Value = InstanceValue;
+                if (entry->ValueF < (FLOAT)InstanceValue)
+                    entry->ValueF = (FLOAT)InstanceValue;
             }
             else
             {
                 lookupEntry.ProcessId = (HANDLE)processId;
                 lookupEntry.EngineId = engineId;
-                lookupEntry.Value = InstanceValue;
+                lookupEntry.ValueF = (FLOAT)InstanceValue;
 
                 PhAddEntryHashtable(EtGpuRunningTimeHashTable, &lookupEntry);
             }
@@ -494,9 +495,9 @@ VOID ParseGpuProcessMemoryDedicatedUsageCounter(
 {
     PH_STRINGREF partSr;
     PH_STRINGREF pidPartSr;
-    PH_STRINGREF luidLowPartSr;
-    PH_STRINGREF luidHighPartSr;
-    PH_STRINGREF physPartSr;
+    //PH_STRINGREF luidLowPartSr;
+    //PH_STRINGREF luidHighPartSr;
+    //PH_STRINGREF physPartSr;
     PH_STRINGREF remainingPart;
 
     if (!EtGpuDedicatedHashTable)
@@ -506,11 +507,11 @@ VOID ParseGpuProcessMemoryDedicatedUsageCounter(
     PhInitializeStringRefLongHint(&remainingPart, InstanceName);
     PhSplitStringRefAtChar(&remainingPart, L'_', &partSr, &remainingPart);
     PhSplitStringRefAtChar(&remainingPart, L'_', &pidPartSr, &remainingPart);
-    PhSplitStringRefAtChar(&remainingPart, L'_', &partSr, &remainingPart);
-    PhSplitStringRefAtChar(&remainingPart, L'_', &luidLowPartSr, &remainingPart);
-    PhSplitStringRefAtChar(&remainingPart, L'_', &luidHighPartSr, &remainingPart);
-    PhSplitStringRefAtChar(&remainingPart, L'_', &partSr, &remainingPart);
-    PhSplitStringRefAtChar(&remainingPart, L'_', &physPartSr, &remainingPart);
+    //PhSplitStringRefAtChar(&remainingPart, L'_', &partSr, &remainingPart);
+    //PhSplitStringRefAtChar(&remainingPart, L'_', &luidLowPartSr, &remainingPart);
+    //PhSplitStringRefAtChar(&remainingPart, L'_', &luidHighPartSr, &remainingPart);
+    //PhSplitStringRefAtChar(&remainingPart, L'_', &partSr, &remainingPart);
+    //PhSplitStringRefAtChar(&remainingPart, L'_', &physPartSr, &remainingPart);
 
     if (pidPartSr.Length)
     {
@@ -545,9 +546,9 @@ VOID ParseGpuProcessMemorySharedUsageCounter(
 {
     PH_STRINGREF partSr;
     PH_STRINGREF pidPartSr;
-    PH_STRINGREF luidLowPartSr;
-    PH_STRINGREF luidHighPartSr;
-    PH_STRINGREF physPartSr;
+    //PH_STRINGREF luidLowPartSr;
+    //PH_STRINGREF luidHighPartSr;
+    //PH_STRINGREF physPartSr;
     PH_STRINGREF remainingPart;
 
     if (!EtGpuSharedHashTable)
@@ -557,11 +558,11 @@ VOID ParseGpuProcessMemorySharedUsageCounter(
     PhInitializeStringRefLongHint(&remainingPart, InstanceName);
     PhSplitStringRefAtChar(&remainingPart, L'_', &partSr, &remainingPart);
     PhSplitStringRefAtChar(&remainingPart, L'_', &pidPartSr, &remainingPart);
-    PhSplitStringRefAtChar(&remainingPart, L'_', &partSr, &remainingPart);
-    PhSplitStringRefAtChar(&remainingPart, L'_', &luidLowPartSr, &remainingPart);
-    PhSplitStringRefAtChar(&remainingPart, L'_', &luidHighPartSr, &remainingPart);
-    PhSplitStringRefAtChar(&remainingPart, L'_', &partSr, &remainingPart);
-    PhSplitStringRefAtChar(&remainingPart, L'_', &physPartSr, &remainingPart);
+    //PhSplitStringRefAtChar(&remainingPart, L'_', &partSr, &remainingPart);
+    //PhSplitStringRefAtChar(&remainingPart, L'_', &luidLowPartSr, &remainingPart);
+    //PhSplitStringRefAtChar(&remainingPart, L'_', &luidHighPartSr, &remainingPart);
+    //PhSplitStringRefAtChar(&remainingPart, L'_', &partSr, &remainingPart);
+    //PhSplitStringRefAtChar(&remainingPart, L'_', &physPartSr, &remainingPart);
 
     if (pidPartSr.Length)
     {
@@ -596,9 +597,9 @@ VOID ParseGpuProcessMemoryCommitUsageCounter(
 {
     PH_STRINGREF partSr;
     PH_STRINGREF pidPartSr;
-    PH_STRINGREF luidLowPartSr;
-    PH_STRINGREF luidHighPartSr;
-    PH_STRINGREF physPartSr;
+    //PH_STRINGREF luidLowPartSr;
+    //PH_STRINGREF luidHighPartSr;
+    //PH_STRINGREF physPartSr;
     PH_STRINGREF remainingPart;
 
     if (!EtGpuCommitHashTable)
@@ -608,11 +609,11 @@ VOID ParseGpuProcessMemoryCommitUsageCounter(
     PhInitializeStringRefLongHint(&remainingPart, InstanceName);
     PhSplitStringRefAtChar(&remainingPart, L'_', &partSr, &remainingPart);
     PhSplitStringRefAtChar(&remainingPart, L'_', &pidPartSr, &remainingPart);
-    PhSplitStringRefAtChar(&remainingPart, L'_', &partSr, &remainingPart);
-    PhSplitStringRefAtChar(&remainingPart, L'_', &luidLowPartSr, &remainingPart);
-    PhSplitStringRefAtChar(&remainingPart, L'_', &luidHighPartSr, &remainingPart);
-    PhSplitStringRefAtChar(&remainingPart, L'_', &partSr, &remainingPart);
-    PhSplitStringRefAtChar(&remainingPart, L'_', &physPartSr, &remainingPart);
+    //PhSplitStringRefAtChar(&remainingPart, L'_', &partSr, &remainingPart);
+    //PhSplitStringRefAtChar(&remainingPart, L'_', &luidLowPartSr, &remainingPart);
+    //PhSplitStringRefAtChar(&remainingPart, L'_', &luidHighPartSr, &remainingPart);
+    //PhSplitStringRefAtChar(&remainingPart, L'_', &partSr, &remainingPart);
+    //PhSplitStringRefAtChar(&remainingPart, L'_', &physPartSr, &remainingPart);
 
     if (pidPartSr.Length)
     {
@@ -715,7 +716,7 @@ NTSTATUS NTAPI EtGpuCounterQueryThread(
         goto CleanupExit;
 
     // \GPU Engine(*)\Running Time
-    // \GPU Engine(*)\Utilization Percentage                                                           
+    // \GPU Engine(*)\Utilization Percentage
     // \GPU Process Memory(*)\Shared Usage
     // \GPU Process Memory(*)\Dedicated Usage
     // \GPU Process Memory(*)\Non Local Usage
@@ -762,7 +763,7 @@ NTSTATUS NTAPI EtGpuCounterQueryThread(
 
                     if (entry->FmtValue.CStatus)
                         continue;
-                    if (entry->FmtValue.doubleValue == 0)
+                    if (entry->FmtValue.doubleValue == 0.0)
                         continue;
 
                     ParseGpuEngineUtilizationCounter(entry->szName, entry->FmtValue.doubleValue);
