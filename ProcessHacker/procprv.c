@@ -925,7 +925,12 @@ VOID PhpProcessQueryStage1(
     }
 
     // Debugged
-    if (processHandleLimited && !processItem->IsSubsystemProcess && !Data->IsFilteredHandle) // Don't query the debug object if the handle was filtered (dmex)
+    if (
+        processItem->QueryHandle &&
+        !processItem->IsSubsystemProcess &&
+        !Data->IsFilteredHandle && // Don't query the debug object if the handle was filtered (dmex)
+        processItem->ProcessId != SYSTEM_PROCESS_ID // Ignore the system process on 20H2 (dmex)
+        )
     {
         BOOLEAN isBeingDebugged;
 
@@ -2422,7 +2427,12 @@ VOID PhProcessProviderUpdate(
             }
 
             // Debugged
-            if (processItem->QueryHandle && !processItem->IsSubsystemProcess && !processItem->IsProtectedHandle)
+            if (
+                processItem->QueryHandle &&
+                !processItem->IsSubsystemProcess &&
+                !processItem->IsProtectedHandle && // Don't query the debug object if the handle was filtered (dmex)
+                processItem->ProcessId != SYSTEM_PROCESS_ID // Ignore the system process on 20H2 (dmex)
+                )
             {
                 BOOLEAN isBeingDebugged = FALSE;
 
