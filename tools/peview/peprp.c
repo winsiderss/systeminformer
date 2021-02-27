@@ -288,6 +288,38 @@ VOID PvPeProperties(
             }
         }
 
+        // Exceptions page
+        {
+            BOOLEAN has_exceptions = FALSE;
+
+            if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+            {
+                if (NT_SUCCESS(PhGetMappedImageLoadConfig32(&PvMappedImage, &config32)) &&
+                    RTL_CONTAINS_FIELD(config32, config32->Size, SEHandlerCount))
+                {
+                    if (config32->SEHandlerCount && config32->SEHandlerTable)
+                        has_exceptions = TRUE;
+                }
+            }
+            else
+            {
+                if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_EXCEPTION, &entry)) && entry->VirtualAddress)
+                {
+                    has_exceptions = TRUE;
+                }
+            }
+
+            if (has_exceptions)
+            {
+                newPage = PvCreatePropPageContext(
+                    MAKEINTRESOURCE(IDD_PEEXCEPTIONS),
+                    PvpPeExceptionDlgProc,
+                    NULL
+                    );
+                PvAddPropPage(propContext, newPage);
+            }
+        }
+
         // Certificates page
         if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_SECURITY, &entry)) && entry->VirtualAddress)
         {
