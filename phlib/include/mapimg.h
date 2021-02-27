@@ -826,6 +826,24 @@ PhFreeMappedImageRelocations(
     _In_ PPH_MAPPED_IMAGE_RELOC Relocations
     );
 
+typedef struct _PH_MAPPED_IMAGE_EXCEPTIONS
+{
+    PPH_MAPPED_IMAGE MappedImage;
+    PIMAGE_DATA_DIRECTORY DataDirectory;
+    PVOID ExceptionDirectory;
+
+    ULONG NumberOfEntries;
+    PVOID ExceptionEntries;
+} PH_MAPPED_IMAGE_EXCEPTIONS, *PPH_MAPPED_IMAGE_EXCEPTIONS;
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetMappedImageExceptions(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _Out_ PPH_MAPPED_IMAGE_EXCEPTIONS Exceptions
+    );
+
 // ELF binary support
 
 NTSTATUS PhInitializeMappedWslImage(
