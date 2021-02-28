@@ -887,7 +887,7 @@ PPH_STRING PhStdGetClientIdNameEx(
     {
         LARGE_INTEGER timeout = { 0 };
 
-        // Waiting with zero timout checks for termination
+        // Waiting with zero timeout checks for termination
         if (NtWaitForSingleObject(processHandle, FALSE, &timeout) == STATUS_WAIT_0)
             isProcessTerminated = TRUE;
 
