@@ -112,6 +112,7 @@ VOID PhInitializeThreadList(
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_CRITICAL, FALSE, L"Critical", 80, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_TIDHEX, FALSE, L"TID (Hex)", 50, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_CPUCORECYCLES, FALSE, L"CPU (relative)", 50, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT);
+    PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_TOKEN_STATE, FALSE, L"Token", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
 
     TreeNew_SetRedraw(TreeNewHandle, TRUE);
     TreeNew_SetTriState(TreeNewHandle, TRUE);
@@ -607,6 +608,12 @@ BEGIN_SORT_FUNCTION(CpuCore)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(TokenState)
+{
+    sortResult = uintcmp(node1->TokenState, node2->TokenState);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpThreadTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -658,6 +665,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     SORT_FUNCTION(Critical),
                     SORT_FUNCTION(TidHex),
                     SORT_FUNCTION(CpuCore),
+                    SORT_FUNCTION(TokenState),
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
@@ -1045,6 +1053,45 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                             getCellText->Text.Buffer = node->CpuCoreUsageText;
                             getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
                         }
+                    }
+                }
+                break;
+            case PH_THREAD_TREELIST_COLUMN_TOKEN_STATE:
+                {
+                    if (threadItem->ThreadHandle)
+                    {
+                        NTSTATUS status;
+                        HANDLE tokenHandle;
+
+                        // Since the system must verify that the thread is impersonating before it can perform
+                        // an access check on the target token, we can reliably determine the token's presence
+                        // even if we fail the subsequent access check. (diversenok)
+
+                        status = NtOpenThreadToken(threadItem->ThreadHandle, 0, TRUE, &tokenHandle);
+
+                        if (status == STATUS_NO_TOKEN)
+                        {
+                            node->TokenState = PH_THREAD_TOKEN_STATE_NOT_PRESENT;
+                            PhInitializeStringRef(&getCellText->Text, L"No");
+                        }
+                        else if (status == STATUS_CANT_OPEN_ANONYMOUS)
+                        {
+                            node->TokenState = PH_THREAD_TOKEN_STATE_ANONYMOUS;
+                            PhInitializeStringRef(&getCellText->Text, L"Anonymous");
+                        }
+                        else
+                        {
+                            node->TokenState = PH_THREAD_TOKEN_STATE_PRESENT;
+                            PhInitializeStringRef(&getCellText->Text, L"Yes");
+                        }
+                        
+                        if (NT_SUCCESS(status))
+                            NtClose(tokenHandle);
+                    }
+                    else
+                    {
+                        node->TokenState = PH_THREAD_TOKEN_STATE_UNKNOWN;
+                        PhInitializeEmptyStringRef(&getCellText->Text);
                     }
                 }
                 break;
