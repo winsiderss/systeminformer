@@ -6753,10 +6753,10 @@ PVOID PhGetDllBaseProcedureAddressWithHint(
     PIMAGE_EXPORT_DIRECTORY exportDirectory;
 
     // This is a workaround for the CRT __delayLoadHelper2.
-    //if (PhEqualBytesZ(ProcedureName, "GetProcAddress", FALSE))
-    //{
-    //    return PhGetDllBaseProcAddress;
-    //}
+    if (PhEqualBytesZ(ProcedureName, "GetProcAddress", FALSE))
+    {
+        return PhGetDllBaseProcAddress;
+    }
 
     if (!NT_SUCCESS(PhGetLoaderEntryImageNtHeaders(BaseAddress, &imageNtHeader)))
         return NULL;
@@ -6782,7 +6782,57 @@ PVOID PhGetDllBaseProcedureAddressWithHint(
         // If the import hint matches the export name then return the address.
         if (PhEqualBytesZ(ProcedureName, PTR_ADD_OFFSET(BaseAddress, exportNameTable[ProcedureHint]), FALSE))
         {
-            return PTR_ADD_OFFSET(BaseAddress, exportAddressTable[exportOrdinalTable[ProcedureHint]]);
+            PVOID exportAddress = PTR_ADD_OFFSET(BaseAddress, exportAddressTable[exportOrdinalTable[ProcedureHint]]);
+
+            if (
+                ((ULONG_PTR)exportAddress >= (ULONG_PTR)exportDirectory) &&
+                ((ULONG_PTR)exportAddress < (ULONG_PTR)PTR_ADD_OFFSET(exportDirectory, dataDirectory->Size))
+                )
+            {
+                PPH_STRING dllForwarderString;
+                PH_STRINGREF dllNameRef;
+                PH_STRINGREF dllProcedureRef;
+
+                // This is a forwarder RVA.
+
+                dllForwarderString = PhZeroExtendToUtf16((PSTR)exportAddress);
+
+                if (PhSplitStringRefAtChar(&dllForwarderString->sr, L'.', &dllNameRef, &dllProcedureRef))
+                {
+                    PPH_STRING libraryNameString;
+                    PPH_BYTES libraryFunctionString;
+                    PVOID libraryModule;
+
+                    libraryNameString = PhCreateStringEx(dllNameRef.Buffer, dllNameRef.Length);
+                    libraryFunctionString = PhConvertUtf16ToUtf8Ex(dllProcedureRef.Buffer, dllProcedureRef.Length);
+
+                    if (libraryModule = LoadLibrary(libraryNameString->Buffer))
+                    {
+                        if (libraryFunctionString->Buffer[0] == L'#') // This is a forwarder RVA with an ordinal import.
+                        {
+                            LONG64 importOrdinal;
+
+                            PhSkipStringRef(&dllProcedureRef, sizeof(L'#'));
+
+                            if (PhStringToInteger64(&dllProcedureRef, 10, &importOrdinal))
+                                exportAddress = PhGetDllBaseProcedureAddress(libraryModule, NULL, (USHORT)importOrdinal);
+                            else
+                                exportAddress = PhGetDllBaseProcedureAddress(libraryModule, libraryFunctionString->Buffer, 0);
+                        }
+                        else
+                        {
+                            exportAddress = PhGetDllBaseProcedureAddress(libraryModule, libraryFunctionString->Buffer, 0);
+                        }
+                    }
+
+                    PhDereferenceObject(libraryFunctionString);
+                    PhDereferenceObject(libraryNameString);
+                }
+
+                PhDereferenceObject(dllForwarderString);
+            }
+
+            return exportAddress;
         }
     }
 
