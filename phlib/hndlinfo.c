@@ -849,7 +849,8 @@ PPH_STRING PhStdGetClientIdNameEx(
     PPH_STRING threadName = NULL;
     PH_STRINGREF processNameRef;
     PH_STRINGREF threadNameRef;
-    HANDLE hProcess, hThread;
+    HANDLE processHandle;
+    HANDLE threadHandle;
     ULONG isProcessTerminated = FALSE;
     ULONG isThreadTerminated = FALSE;
 
@@ -879,7 +880,7 @@ PPH_STRING PhStdGetClientIdNameEx(
 
     // Check if the process is alive, but only if we didn't get its name
     if (!ProcessName && NT_SUCCESS(PhOpenProcess(
-        &hProcess,
+        &processHandle,
         SYNCHRONIZE,
         ClientId->UniqueProcess
         )))
@@ -887,10 +888,10 @@ PPH_STRING PhStdGetClientIdNameEx(
         LARGE_INTEGER timeout = { 0 };
 
         // Waiting with zero timout checks for termination
-        if (NtWaitForSingleObject(hProcess, FALSE, &timeout) == STATUS_WAIT_0)
+        if (NtWaitForSingleObject(processHandle, FALSE, &timeout) == STATUS_WAIT_0)
             isProcessTerminated = TRUE;
 
-        NtClose(hProcess);
+        NtClose(processHandle);
     }
 
     PhInitializeStringRef(&threadNameRef, L"unnamed thread");
@@ -898,14 +899,14 @@ PPH_STRING PhStdGetClientIdNameEx(
     if (ClientId->UniqueThread)
     {
         if (NT_SUCCESS(PhOpenThread(
-            &hThread,
+            &threadHandle,
             THREAD_QUERY_LIMITED_INFORMATION,
             ClientId->UniqueThread
             )))
         {
             // Check if the thread is alive
             NtQueryInformationThread(
-                hThread,
+                threadHandle,
                 ThreadIsTerminated,
                 &isThreadTerminated,
                 sizeof(ULONG),
@@ -913,13 +914,13 @@ PPH_STRING PhStdGetClientIdNameEx(
                 );
 
             // Use the name of the thread if available
-            if (NT_SUCCESS(PhGetThreadName(hThread, &threadName)) && threadName->Length)
+            if (NT_SUCCESS(PhGetThreadName(threadHandle, &threadName)) && threadName->Length)
             {
                 threadNameRef.Length = threadName->Length;
                 threadNameRef.Buffer = threadName->Buffer;
             }
 
-            NtClose(hThread);
+            NtClose(threadHandle);
         }
     }
 
