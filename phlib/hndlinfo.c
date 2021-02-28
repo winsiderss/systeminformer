@@ -836,95 +836,114 @@ _Callback_ PPH_STRING PhStdGetClientIdName(
     _In_ PCLIENT_ID ClientId
     )
 {
-    static PH_QUEUED_LOCK cachedProcessesLock = PH_QUEUED_LOCK_INIT;
-    static PVOID processes = NULL;
-    static ULONG64 lastProcessesTickCount = 0;
+    return PhStdGetClientIdNameEx(ClientId, NULL);
+}
 
-    PPH_STRING name;
-    ULONG64 tickCount;
-    PSYSTEM_PROCESS_INFORMATION processInfo;
+PPH_STRING PhStdGetClientIdNameEx(
+    _In_ PCLIENT_ID ClientId,
+    _In_opt_ PPH_STRING ProcessName
+    )
+{
+    PPH_STRING result;
+    PPH_STRING processName = NULL;
+    PPH_STRING threadName = NULL;
+    PH_STRINGREF processNameRef;
+    PH_STRINGREF threadNameRef;
+    HANDLE processHandle;
+    HANDLE threadHandle;
+    ULONG isProcessTerminated = FALSE;
+    ULONG isThreadTerminated = FALSE;
 
-    // Get a new process list only if 2 seconds have passed since the last update.
-    tickCount = NtGetTickCount64();
-
-    if (tickCount - lastProcessesTickCount >= 2000)
+    if (ProcessName)
     {
-        PhAcquireQueuedLockExclusive(&cachedProcessesLock);
-
-        // Re-check the tick count.
-        if (tickCount - lastProcessesTickCount >= 2000)
-        {
-            if (processes)
-            {
-                PhFree(processes);
-                processes = NULL;
-            }
-
-            if (!NT_SUCCESS(PhEnumProcesses(&processes)))
-            {
-                PhReleaseQueuedLockExclusive(&cachedProcessesLock);
-                return PhCreateString(L"(Error querying processes)");
-            }
-
-            lastProcessesTickCount = tickCount;
-        }
-
-        PhReleaseQueuedLockExclusive(&cachedProcessesLock);
-    }
-
-    // Get a lock on the process list and get a name for the client ID.
-
-    PhAcquireQueuedLockShared(&cachedProcessesLock);
-
-    if (!processes)
-    {
-        PhReleaseQueuedLockShared(&cachedProcessesLock);
-        return NULL;
-    }
-
-    processInfo = PhFindProcessInformation(processes, ClientId->UniqueProcess);
-
-    if (ClientId->UniqueThread)
-    {
-        if (processInfo)
-        {
-            name = PhFormatString(
-                L"%.*s (%lu): %lu",
-                processInfo->ImageName.Length / sizeof(WCHAR),
-                processInfo->ImageName.Buffer,
-                HandleToUlong(ClientId->UniqueProcess),
-                HandleToUlong(ClientId->UniqueThread)
-                );
-        }
-        else
-        {
-            name = PhFormatString(
-                L"Non-existent process (%lu): %lu",
-                HandleToUlong(ClientId->UniqueProcess),
-                HandleToUlong(ClientId->UniqueThread)
-                );
-        }
+        // Use the supplied name
+        processNameRef.Length = ProcessName->Length;
+        processNameRef.Buffer = ProcessName->Buffer;
     }
     else
     {
-        if (processInfo)
+        // Determine the name of the process ourselves
+        if (NT_SUCCESS(PhGetProcessImageFileNameById(
+            ClientId->UniqueProcess,
+            NULL,
+            &processName
+            )))
         {
-            name = PhFormatString(
-                L"%.*s (%lu)",
-                processInfo->ImageName.Length / sizeof(WCHAR),
-                processInfo->ImageName.Buffer,
-                HandleToUlong(ClientId->UniqueProcess)
-                );
+            processNameRef.Length = processName->Length;
+            processNameRef.Buffer = processName->Buffer;
         }
         else
         {
-            name = PhFormatString(L"Non-existent process (%lu)", HandleToUlong(ClientId->UniqueProcess));
+            PhInitializeStringRef(&processNameRef, L"Unknown process");
         }
     }
 
-    PhReleaseQueuedLockShared(&cachedProcessesLock);
+    // Check if the process is alive, but only if we didn't get its name
+    if (!ProcessName && NT_SUCCESS(PhOpenProcess(
+        &processHandle,
+        SYNCHRONIZE,
+        ClientId->UniqueProcess
+        )))
+    {
+        LARGE_INTEGER timeout = { 0 };
 
-    return name;
+        // Waiting with zero timeout checks for termination
+        if (NtWaitForSingleObject(processHandle, FALSE, &timeout) == STATUS_WAIT_0)
+            isProcessTerminated = TRUE;
+
+        NtClose(processHandle);
+    }
+
+    PhInitializeStringRef(&threadNameRef, L"unnamed thread");
+
+    if (ClientId->UniqueThread)
+    {
+        if (NT_SUCCESS(PhOpenThread(
+            &threadHandle,
+            THREAD_QUERY_LIMITED_INFORMATION,
+            ClientId->UniqueThread
+            )))
+        {
+            // Check if the thread is alive
+            NtQueryInformationThread(
+                threadHandle,
+                ThreadIsTerminated,
+                &isThreadTerminated,
+                sizeof(ULONG),
+                NULL
+                );
+
+            // Use the name of the thread if available
+            if (NT_SUCCESS(PhGetThreadName(threadHandle, &threadName)) && threadName->Length)
+            {
+                threadNameRef.Length = threadName->Length;
+                threadNameRef.Buffer = threadName->Buffer;
+            }
+
+            NtClose(threadHandle);
+        }
+    }
+
+    // Combine everything
+    result = PhFormatString(
+        ClientId->UniqueThread ? L"%s%.*s (%lu): %s%.*s (%lu)" : L"%s%.*s (%lu)",
+        isProcessTerminated ? L"Terminated " : L"",
+        processNameRef.Length / sizeof(WCHAR),
+        processNameRef.Buffer,
+        HandleToUlong(ClientId->UniqueProcess),
+        isThreadTerminated ? L"terminated " : L"",
+        threadNameRef.Length / sizeof(WCHAR),
+        threadNameRef.Buffer,
+        HandleToUlong(ClientId->UniqueThread)
+        );
+
+    if (processName)
+        PhDereferenceObject(processName);
+
+    if (threadName)
+        PhDereferenceObject(threadName);
+
+    return result;
 }
 
 NTSTATUS PhpGetBestObjectName(

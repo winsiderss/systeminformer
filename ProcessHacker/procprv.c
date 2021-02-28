@@ -308,24 +308,7 @@ PPH_STRING PhGetClientIdName(
     _In_ PCLIENT_ID ClientId
     )
 {
-    PPH_STRING name;
-    PPH_PROCESS_ITEM processItem;
-
-    processItem = PhReferenceProcessItem(ClientId->UniqueProcess);
-
-    if (processItem)
-    {
-        name = PhGetClientIdNameEx(ClientId, processItem->ProcessName);
-        PhDereferenceObject(processItem);
-    }
-    else
-    {
-        // HACK
-        // Workaround race condition with newly created process handles showing as 'Non-existent process' -dmex
-        name = PhStdGetClientIdName(ClientId);
-    }
-
-    return name;
+    return PhGetClientIdNameEx(ClientId, NULL);
 }
 
 PPH_STRING PhGetClientIdNameEx(
@@ -334,50 +317,21 @@ PPH_STRING PhGetClientIdNameEx(
     )
 {
     PPH_STRING name;
-    PH_FORMAT format[5];
+    PPH_PROCESS_ITEM processItem = NULL;
 
-    if (ClientId->UniqueThread)
+    // Lookup the name in the process snapshot if necessary
+    if (!ProcessName)
     {
-        if (ProcessName)
-        {
-            PhInitFormatSR(&format[0], ProcessName->sr);
-            PhInitFormatS(&format[1], L" (");
-            PhInitFormatIU(&format[2], (ULONG_PTR)ClientId->UniqueProcess);
-            PhInitFormatS(&format[3], L"): ");
-            PhInitFormatIU(&format[4], (ULONG_PTR)ClientId->UniqueThread);
+        processItem = PhReferenceProcessItem(ClientId->UniqueProcess);
 
-            name = PhFormat(format, 5, ProcessName->Length + 16 * sizeof(WCHAR));
-        }
-        else
-        {
-            PhInitFormatS(&format[0], L"Non-existent process (");
-            PhInitFormatIU(&format[1], (ULONG_PTR)ClientId->UniqueProcess);
-            PhInitFormatS(&format[2], L"): ");
-            PhInitFormatIU(&format[3], (ULONG_PTR)ClientId->UniqueThread);
-
-            name = PhFormat(format, 4, 0);
-        }
+        if (processItem)
+            ProcessName = processItem->ProcessName;
     }
-    else
-    {
-        if (ProcessName)
-        {
-            PhInitFormatSR(&format[0], ProcessName->sr);
-            PhInitFormatS(&format[1], L" (");
-            PhInitFormatIU(&format[2], (ULONG_PTR)ClientId->UniqueProcess);
-            PhInitFormatC(&format[3], L')');
 
-            name = PhFormat(format, 4, ProcessName->Length + 8 * sizeof(WCHAR));
-        }
-        else
-        {
-            PhInitFormatS(&format[0], L"Non-existent process (");
-            PhInitFormatIU(&format[1], (ULONG_PTR)ClientId->UniqueProcess);
-            PhInitFormatC(&format[2], L')');
+    name = PhStdGetClientIdNameEx(ClientId, ProcessName);
 
-            name = PhFormat(format, 3, 0);
-        }
-    }
+    if (processItem)
+        PhDereferenceObject(processItem);
 
     return name;
 }
