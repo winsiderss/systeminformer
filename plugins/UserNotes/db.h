@@ -44,6 +44,7 @@ typedef struct _DB_OBJECT
     COLORREF BackColor;
     BOOLEAN Collapse;
     ULONG_PTR AffinityMask;
+    ULONG PagePriorityPlusOne;
 } DB_OBJECT, *PDB_OBJECT;
 
 VOID InitializeDb(

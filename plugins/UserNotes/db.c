@@ -3,7 +3,7 @@
  *   database functions
  *
  * Copyright (C) 2011-2015 wj32
- * Copyright (C) 2016-2020 dmex
+ * Copyright (C) 2016-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -194,6 +194,7 @@ NTSTATUS LoadDb(
         PPH_STRING backColor = NULL;
         PPH_STRING collapse = NULL;
         PPH_STRING affinityMask = NULL;
+        PPH_STRING pagePriorityPlusOne = NULL;
 
         if (PhGetXmlNodeAttributeCount(currentNode) >= 2)
         {
@@ -221,6 +222,8 @@ NTSTATUS LoadDb(
                     PhMoveReference(&collapse, PhConvertUtf8ToUtf16(elementValue));
                 else if (PhEqualBytesZ(elementName, "affinity", TRUE))
                     PhMoveReference(&affinityMask, PhConvertUtf8ToUtf16(elementValue));
+                else if (PhEqualBytesZ(elementName, "pagepriorityplusone", TRUE))
+                    PhMoveReference(&pagePriorityPlusOne, PhConvertUtf8ToUtf16(elementValue));
             }
         }
 
@@ -273,6 +276,15 @@ NTSTATUS LoadDb(
             object->AffinityMask = (ULONG_PTR)affinityInteger;
         }
 
+        if (object && pagePriorityPlusOne)
+        {
+            ULONG64 pagePriorityInteger = 0;
+
+            PhStringToInteger64(&pagePriorityPlusOne->sr, 10, &pagePriorityInteger);
+
+            object->PagePriorityPlusOne = (ULONG)pagePriorityInteger;
+        }
+
         PhClearReference(&tag);
         PhClearReference(&name);
         PhClearReference(&priorityClass);
@@ -281,6 +293,7 @@ NTSTATUS LoadDb(
         PhClearReference(&backColor);
         PhClearReference(&collapse);
         PhClearReference(&affinityMask);
+        PhClearReference(&pagePriorityPlusOne);
     }
 
     UnlockDb();
@@ -349,6 +362,7 @@ NTSTATUS SaveDb(
         PPH_BYTES objectCollapseUtf8;
         PPH_BYTES objectAffinityMaskUtf8;
         PPH_BYTES objectCommentUtf8;
+        PPH_BYTES objectPagePriorityPlusOneUtf8;
 
         objectTagUtf8 = FormatValueToUtf8((*object)->Tag);
         objectPriorityClassUtf8 = FormatValueToUtf8((*object)->PriorityClass);
@@ -358,6 +372,7 @@ NTSTATUS SaveDb(
         objectAffinityMaskUtf8 = FormatValueToUtf8((*object)->AffinityMask);
         objectNameUtf8 = StringRefToUtf8(&(*object)->Name->sr);
         objectCommentUtf8 = StringRefToUtf8(&(*object)->Comment->sr);
+        objectPagePriorityPlusOneUtf8 = FormatValueToUtf8((*object)->PagePriorityPlusOne);
 
         // Create the setting element.
         objectNode = PhCreateXmlNode(topNode, "object");
@@ -368,6 +383,7 @@ NTSTATUS SaveDb(
         PhSetXmlNodeAttributeText(objectNode, "backcolor", objectBackColorUtf8->Buffer);
         PhSetXmlNodeAttributeText(objectNode, "collapse", objectCollapseUtf8->Buffer);
         PhSetXmlNodeAttributeText(objectNode, "affinity", objectAffinityMaskUtf8->Buffer);
+        PhSetXmlNodeAttributeText(objectNode, "pagepriorityplusone", objectPagePriorityPlusOneUtf8->Buffer);
 
         // Set the value.
         PhCreateXmlOpaqueNode(objectNode, objectCommentUtf8->Buffer);

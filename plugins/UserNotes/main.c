@@ -3,7 +3,7 @@
  *   main program
  *
  * Copyright (C) 2011-2016 wj32
- * Copyright (C) 2016-2020 dmex
+ * Copyright (C) 2016-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -71,7 +71,8 @@ BOOLEAN MatchDbObjectIntent(
         (!(Intent & INTENT_PROCESS_IO_PRIORITY) || Object->IoPriorityPlusOne != 0) &&
         (!(Intent & INTENT_PROCESS_HIGHLIGHT) || Object->BackColor != ULONG_MAX) &&
         (!(Intent & INTENT_PROCESS_COLLAPSE) || Object->Collapse == TRUE) &&
-        (!(Intent & INTENT_PROCESS_AFFINITY) || Object->AffinityMask != 0);
+        (!(Intent & INTENT_PROCESS_AFFINITY) || Object->AffinityMask != 0) &&
+        (!(Intent & INTENT_PROCESS_PAGEPRIORITY) || Object->PagePriorityPlusOne != 0);
 }
 
 PDB_OBJECT FindDbObjectForProcess(
@@ -232,6 +233,33 @@ IO_PRIORITY_HINT GetProcessIoPriority(
     return ioPriority;
 }
 
+ULONG GetProcessPagePriority(
+    _In_ HANDLE ProcessId
+    )
+{
+    HANDLE processHandle;
+    ULONG pagePriority = ULONG_MAX;
+
+    if (NT_SUCCESS(PhOpenProcess(
+        &processHandle,
+        PROCESS_QUERY_LIMITED_INFORMATION,
+        ProcessId
+        )))
+    {
+        if (!NT_SUCCESS(PhGetProcessPagePriority(
+            processHandle,
+            &pagePriority
+            )))
+        {
+            pagePriority = ULONG_MAX;
+        }
+
+        NtClose(processHandle);
+    }
+
+    return pagePriority;
+}
+
 ULONG GetPriorityClassFromId(
     _In_ ULONG Id
     )
@@ -272,6 +300,27 @@ ULONG GetIoPriorityFromId(
     }
 
     return ULONG_MAX;
+}
+
+ULONG GetPagePriorityFromId(
+    _In_ ULONG Id
+    )
+{
+    switch (Id)
+    {
+    case PHAPP_ID_PAGEPRIORITY_VERYLOW:
+        return MEMORY_PRIORITY_VERY_LOW;
+    case PHAPP_ID_PAGEPRIORITY_LOW:
+        return MEMORY_PRIORITY_LOW;
+    case PHAPP_ID_PAGEPRIORITY_MEDIUM:
+        return MEMORY_PRIORITY_MEDIUM;
+    case PHAPP_ID_PAGEPRIORITY_BELOWNORMAL:
+        return MEMORY_PRIORITY_BELOW_NORMAL;
+    case PHAPP_ID_PAGEPRIORITY_NORMAL:
+        return MEMORY_PRIORITY_NORMAL;
+    }
+
+    return 0;
 }
 
 VOID NTAPI LoadCallback(
@@ -574,6 +623,59 @@ VOID NTAPI MenuItemCallback(
             }
         }
         break;
+    case PROCESS_PAGE_PRIORITY_SAVE_ID:
+        {
+            LockDb();
+
+            if ((object = FindDbObject(FILE_TAG, &processItem->ProcessName->sr)) && object->PagePriorityPlusOne != 0)
+            {
+                object->PagePriorityPlusOne = 0;
+                DeleteDbObjectForProcessIfUnused(object);
+            }
+            else
+            {
+                ULONG pagePriority;
+
+                object = CreateDbObject(FILE_TAG, &processItem->ProcessName->sr, NULL);
+
+                if ((pagePriority = GetProcessPagePriority(processItem->ProcessId)) != ULONG_MAX)
+                {
+                    object->PagePriorityPlusOne = pagePriority + 1;
+                }
+            }
+
+            UnlockDb();
+            SaveDb();
+        }
+        break;
+    case PROCESS_PAGE_PRIORITY_SAVE_FOR_THIS_COMMAND_LINE_ID:
+        {
+            if (processItem->CommandLine)
+            {
+                LockDb();
+
+                if ((object = FindDbObject(COMMAND_LINE_TAG, &processItem->CommandLine->sr)) && object->PagePriorityPlusOne != 0)
+                {
+                    object->PagePriorityPlusOne = 0;
+                    DeleteDbObjectForProcessIfUnused(object);
+                }
+                else
+                {
+                    ULONG pagePriority;
+
+                    object = CreateDbObject(COMMAND_LINE_TAG, &processItem->CommandLine->sr, NULL);
+
+                    if ((pagePriority = GetProcessPagePriority(processItem->ProcessId)) != ULONG_MAX)
+                    {
+                        object->PagePriorityPlusOne = pagePriority + 1;
+                    }
+                }
+
+                UnlockDb();
+                SaveDb();
+            }
+        }
+        break;
     }
 }
 
@@ -727,6 +829,43 @@ VOID NTAPI MenuHookCallback(
                     }
                 }
             }
+        }
+        break;
+    case PHAPP_ID_PAGEPRIORITY_VERYLOW:
+    case PHAPP_ID_PAGEPRIORITY_LOW:
+    case PHAPP_ID_PAGEPRIORITY_MEDIUM:
+    case PHAPP_ID_PAGEPRIORITY_BELOWNORMAL:
+    case PHAPP_ID_PAGEPRIORITY_NORMAL:
+        {
+            BOOLEAN changed = FALSE;
+            PPH_PROCESS_ITEM *processes;
+            ULONG numberOfProcesses;
+            ULONG i;
+
+            PhGetSelectedProcessItems(&processes, &numberOfProcesses);
+            LockDb();
+
+            for (i = 0; i < numberOfProcesses; i++)
+            {
+                PDB_OBJECT object;
+
+                if (object = FindDbObjectForProcess(processes[i], INTENT_PROCESS_PAGEPRIORITY))
+                {
+                    ULONG newPagePriorityPlusOne = GetPagePriorityFromId(id) + 1;
+
+                    if (object->PagePriorityPlusOne != newPagePriorityPlusOne)
+                    {
+                        object->PagePriorityPlusOne = newPagePriorityPlusOne;
+                        changed = TRUE;
+                    }
+                }
+            }
+
+            UnlockDb();
+            PhFree(processes);
+
+            if (changed)
+                SaveDb();
         }
         break;
     }
@@ -927,6 +1066,7 @@ VOID AddSavePriorityMenuItemsAndHook(
     PPH_EMENU_ITEM affinityMenuItem;
     PPH_EMENU_ITEM priorityMenuItem;
     PPH_EMENU_ITEM ioPriorityMenuItem;
+    PPH_EMENU_ITEM pagePriorityMenuItem;
     PPH_EMENU_ITEM saveMenuItem;
     PPH_EMENU_ITEM saveForCommandLineMenuItem;
     PDB_OBJECT object;
@@ -991,6 +1131,26 @@ VOID AddSavePriorityMenuItemsAndHook(
         if ((object = FindDbObject(FILE_TAG, &ProcessItem->ProcessName->sr)) && object->IoPriorityPlusOne != 0)
             saveMenuItem->Flags |= PH_EMENU_CHECKED;
         if (ProcessItem->CommandLine && (object = FindDbObject(COMMAND_LINE_TAG, &ProcessItem->CommandLine->sr)) && object->IoPriorityPlusOne != 0)
+            saveForCommandLineMenuItem->Flags |= PH_EMENU_CHECKED;
+
+        UnlockDb();
+    }
+
+    // Page Priority
+    if (pagePriorityMenuItem = PhFindEMenuItem(MenuInfo->Menu, 0, NULL, PHAPP_ID_PROCESS_PAGEPRIORITY))
+    {
+        PhInsertEMenuItem(pagePriorityMenuItem, PhCreateEMenuSeparator(), ULONG_MAX);
+        PhInsertEMenuItem(pagePriorityMenuItem, saveMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_PAGE_PRIORITY_SAVE_ID, PhaFormatString(L"&Save for %s", ProcessItem->ProcessName->Buffer)->Buffer, NULL), ULONG_MAX);
+        PhInsertEMenuItem(pagePriorityMenuItem, saveForCommandLineMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_PAGE_PRIORITY_SAVE_FOR_THIS_COMMAND_LINE_ID, L"Save &for this command line", NULL), ULONG_MAX);
+
+        if (!ProcessItem->CommandLine)
+            saveForCommandLineMenuItem->Flags |= PH_EMENU_DISABLED;
+
+        LockDb();
+
+        if ((object = FindDbObject(FILE_TAG, &ProcessItem->ProcessName->sr)) && object->PagePriorityPlusOne != 0)
+            saveMenuItem->Flags |= PH_EMENU_CHECKED;
+        if (ProcessItem->CommandLine && (object = FindDbObject(COMMAND_LINE_TAG, &ProcessItem->CommandLine->sr)) && object->PagePriorityPlusOne != 0)
             saveForCommandLineMenuItem->Flags |= PH_EMENU_CHECKED;
 
         UnlockDb();
@@ -1304,6 +1464,31 @@ VOID ProcessesUpdatedCallback(
                             PhSetProcessAffinityMask(processHandle, object->AffinityMask);
                             NtClose(processHandle);
                         }
+                    }
+                }
+            }
+        }
+
+        if (object = FindDbObjectForProcess(processItem, INTENT_PROCESS_PAGEPRIORITY))
+        {
+            if (object->PagePriorityPlusOne != 0)
+            {
+                ULONG pagePriority;
+
+                pagePriority = GetProcessPagePriority(processItem->ProcessId);
+
+                if (pagePriority != ULONG_MAX && pagePriority != object->PagePriorityPlusOne - 1)
+                {
+                    HANDLE processHandle;
+
+                    if (NT_SUCCESS(PhOpenProcess(
+                        &processHandle,
+                        PROCESS_SET_INFORMATION,
+                        processItem->ProcessId
+                        )))
+                    {
+                        PhSetProcessPagePriority(processHandle, object->PagePriorityPlusOne - 1);
+                        NtClose(processHandle);
                     }
                 }
             }
