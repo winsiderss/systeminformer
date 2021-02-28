@@ -206,6 +206,15 @@ PhGetProcessImageFileNameWin32(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhGetProcessImageFileNameById(
+    _In_ HANDLE ProcessId,
+    _Out_opt_ PPH_STRING *FullFileName,
+    _Out_opt_ PPH_STRING *FileName
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhGetProcessIsBeingDebugged(
     _In_ HANDLE ProcessHandle,
     _Out_ PBOOLEAN IsBeingDebugged

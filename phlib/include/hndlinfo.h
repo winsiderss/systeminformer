@@ -48,6 +48,14 @@ PhStdGetClientIdName(
     );
 
 PHLIBAPI
+PPH_STRING
+NTAPI
+PhStdGetClientIdNameEx(
+    _In_ PCLIENT_ID ClientId,
+    _In_opt_ PPH_STRING ProcessName
+    );
+
+PHLIBAPI
 NTSTATUS
 NTAPI
 PhGetHandleInformation(

@@ -689,6 +689,86 @@ NTSTATUS PhGetProcessImageFileNameWin32(
 }
 
 /**
+ * Gets the file name of the process' image by a PID.
+ *
+ * \param ProcessId A unique identifier of the process.
+ * \param FullFileName A variable which receives a pointer to a string containing the full name
+ * of the file. You must free the string using PhDereferenceObject() when you no longer need it.
+ * \param FileName A variable which receives a pointer to a string containing the file name without
+ * the path. You must free the string using PhDereferenceObject() when you no longer need it.
+ */
+NTSTATUS PhGetProcessImageFileNameById(
+    _In_ HANDLE ProcessId,
+    _Out_opt_ PPH_STRING *FullFileName,
+    _Out_opt_ PPH_STRING *FileName
+    )
+{
+    NTSTATUS status;
+    SYSTEM_PROCESS_ID_INFORMATION data;
+
+    if (!FullFileName && !FileName)
+        return STATUS_INVALID_PARAMETER_MIX;
+
+    // On input, specify the PID and a buffer to hold the string.
+    data.ProcessId = ProcessId;
+    data.ImageName.Length = 0;
+    data.ImageName.MaximumLength = 0x100;
+
+    do
+    {
+        data.ImageName.Buffer = PhAllocateSafe(data.ImageName.MaximumLength);
+
+        if (!data.ImageName.Buffer)
+            return STATUS_NO_MEMORY;
+
+        status = NtQuerySystemInformation(
+            SystemProcessIdInformation,
+            &data,
+            sizeof(SYSTEM_PROCESS_ID_INFORMATION),
+            NULL
+            );
+
+        if (!NT_SUCCESS(status))
+            PhFree(data.ImageName.Buffer);
+
+        // Repeat using the correct value the system put into MaximumLength
+    } while (status == STATUS_INFO_LENGTH_MISMATCH);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (FullFileName)
+        *FullFileName = PhCreateStringFromUnicodeString(&data.ImageName);
+
+    if (FileName)
+    {
+        PH_STRINGREF stringRef;
+        ULONG_PTR index;
+
+        stringRef.Length = data.ImageName.Length;
+        stringRef.Buffer = data.ImageName.Buffer;
+
+        // Find where the name starts
+        index = PhFindLastCharInStringRef(&stringRef, L'\\', FALSE);
+
+        if (index == SIZE_MAX)
+            *FileName = PhCreateStringFromUnicodeString(&data.ImageName);
+        else
+        {
+            // Reference the tail only
+            stringRef.Buffer = PTR_ADD_OFFSET(stringRef.Buffer, index * sizeof(WCHAR) + sizeof(UNICODE_NULL));
+            stringRef.Length = stringRef.Length - index * sizeof(WCHAR) - sizeof(UNICODE_NULL);
+
+            *FileName = PhCreateString2(&stringRef);
+        }
+    }
+    
+    PhFree(data.ImageName.Buffer);
+
+    return status;
+}
+
+/**
  * Gets whether a process is being debugged.
  *
  * \param ProcessHandle A handle to a process. The handle must have PROCESS_QUERY_INFORMATION
