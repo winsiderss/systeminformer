@@ -3,6 +3,7 @@
  *   unloaded DLLs display
  *
  * Copyright (C) 2010-2011 wj32
+ * Copyright (C) 2016-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -26,9 +27,11 @@ typedef struct _UNLOADED_DLLS_CONTEXT
 {
     BOOLEAN IsWow64;
     HWND ListViewHandle;
-    PPH_PROCESS_ITEM ProcessItem;
+    HWND ParentWindowHandle;
     PH_LAYOUT_MANAGER LayoutManager;
     PVOID CapturedEventTrace;
+    HANDLE ProcessId;
+    HANDLE QueryHandle;
 } UNLOADED_DLLS_CONTEXT, *PUNLOADED_DLLS_CONTEXT;
 
 INT_PTR CALLBACK EtpUnloadedDllsDlgProc(
@@ -39,17 +42,46 @@ INT_PTR CALLBACK EtpUnloadedDllsDlgProc(
     );
 
 VOID EtShowUnloadedDllsDialog(
+    _In_ HWND ParentWindowHandle,
     _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
-    PhReferenceObject(ProcessItem);
+    NTSTATUS status;
+    PUNLOADED_DLLS_CONTEXT context;
+
+    context = PhAllocateZero(sizeof(UNLOADED_DLLS_CONTEXT));
+    context->ParentWindowHandle = ParentWindowHandle;
+    context->ProcessId = ProcessItem->ProcessId;
+    context->IsWow64 = !!ProcessItem->IsWow64;
+
+    status = PhOpenProcess(
+        &context->QueryHandle,
+        PROCESS_QUERY_INFORMATION,
+        context->ProcessId
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        status = PhOpenProcess(
+            &context->QueryHandle,
+            PROCESS_QUERY_LIMITED_INFORMATION,
+            context->ProcessId
+            );
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhShowStatus(ParentWindowHandle, L"Unable to open the process.", status, 0);
+        PhFree(context);
+        return;
+    }
 
     DialogBoxParam(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_UNLOADEDDLLS),
-        NULL,
+        !!PhGetIntegerSetting(L"ForceNoParent") ? NULL : ParentWindowHandle,
         EtpUnloadedDllsDlgProc,
-        (LPARAM)ProcessItem
+        (LPARAM)context
         );
 }
 
@@ -66,10 +98,8 @@ NTSTATUS EtpRefreshUnloadedDlls(
     ULONG i;
 
 #ifdef _WIN64
-    if (!Context->ProcessItem->QueryHandle)
+    if (!Context->QueryHandle)
         return STATUS_FAIL_CHECK;
-
-    Context->IsWow64 = !!Context->ProcessItem->IsWow64;
 
     if (Context->IsWow64)
     {
@@ -79,7 +109,7 @@ NTSTATUS EtpRefreshUnloadedDlls(
         if (!PhUiConnectToPhSvcEx(hwndDlg, Wow64PhSvcMode, FALSE))
             return STATUS_FAIL_CHECK;
 
-        if (!NT_SUCCESS(status = CallGetProcessUnloadedDlls(Context->ProcessItem->ProcessId, &eventTraceString)))
+        if (!NT_SUCCESS(status = CallGetProcessUnloadedDlls(Context->ProcessId, &eventTraceString)))
         {
             PhUiDisconnectFromPhSvc();
             return status;
@@ -157,17 +187,14 @@ NTSTATUS EtpRefreshUnloadedDlls(
     {
 #endif
         status = PhGetProcessUnloadedDlls(
-            Context->ProcessItem->ProcessId,
+            Context->ProcessId,
             &capturedEventTrace,
             &capturedElementSize,
             &capturedElementCount
             );
 
         if (!NT_SUCCESS(status))
-        {
-            PhShowStatus(NULL, L"Unable to retrieve unload event trace information.", status, 0);
-            return FALSE;
-        }
+            return status;
 
         currentEvent = capturedEventTrace;
 
@@ -230,7 +257,7 @@ NTSTATUS EtpRefreshUnloadedDlls(
 
     Context->CapturedEventTrace = capturedEventTrace;
 
-    return NT_SUCCESS(status);
+    return status;
 }
 
 static INT NTAPI EtpNumberCompareFunction(
@@ -374,8 +401,7 @@ INT_PTR CALLBACK EtpUnloadedDllsDlgProc(
 
     if (uMsg == WM_INITDIALOG)
     {
-        context = PhAllocateZero(sizeof(UNLOADED_DLLS_CONTEXT));
-        context->ProcessItem = (PPH_PROCESS_ITEM)lParam;
+        context = (PUNLOADED_DLLS_CONTEXT)lParam;
 
         PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
@@ -431,7 +457,7 @@ INT_PTR CALLBACK EtpUnloadedDllsDlgProc(
 
             if (!NT_SUCCESS(status = EtpRefreshUnloadedDlls(hwndDlg, context)))
             {
-                PhShowStatus(NULL, L"Unable to retrieve unload event trace information.", status, 0);
+                PhShowStatus(context->ParentWindowHandle, L"Unable to retrieve unload event trace information.", status, 0);
                 EndDialog(hwndDlg, IDCANCEL);
                 return FALSE;
             }
@@ -449,7 +475,8 @@ INT_PTR CALLBACK EtpUnloadedDllsDlgProc(
             if (context->CapturedEventTrace)
                 PhFree(context->CapturedEventTrace);
 
-            PhDereferenceObject(context->ProcessItem);
+            if (context->QueryHandle)
+                NtClose(context->QueryHandle);
 
             PhFree(context);
         }

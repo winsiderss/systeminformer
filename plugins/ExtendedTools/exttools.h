@@ -698,6 +698,7 @@ BOOLEAN EtUiCancelIoThread(
 // unldll
 
 VOID EtShowUnloadedDllsDialog(
+    _In_ HWND ParentWindowHandle,
     _In_ PPH_PROCESS_ITEM ProcessItem
     );
 

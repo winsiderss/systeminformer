@@ -66,7 +66,7 @@ VOID EtGpuMonitorInitialization(
     VOID
     )
 {
-    EtD3DEnabled = !!PhGetIntegerSetting(SETTING_NAME_ENABLE_GPUPERFCOUNTERS);
+    EtD3DEnabled = PhWindowsVersion >= WINDOWS_10_RS3 && !!PhGetIntegerSetting(SETTING_NAME_ENABLE_GPUPERFCOUNTERS);
   
     if (PhGetIntegerSetting(SETTING_NAME_ENABLE_GPU_MONITOR))
     {

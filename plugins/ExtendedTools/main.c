@@ -104,7 +104,7 @@ VOID NTAPI MenuItemCallback(
     {
     case ID_PROCESS_UNLOADEDMODULES:
         {
-            EtShowUnloadedDllsDialog(menuItem->Context);
+            EtShowUnloadedDllsDialog(menuItem->OwnerWindow, menuItem->Context);
         }
         break;
     case ID_PROCESS_WSWATCH:
