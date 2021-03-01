@@ -3,7 +3,7 @@
  *   Main Program
  *
  * Copyright (C) 2010-2013 wj32
- * Copyright (C) 2012-2019 dmex
+ * Copyright (C) 2012-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -86,17 +86,22 @@ VOID ProcessesUpdatedCallback(
             }
             else
             {
-                PPH_STRING serviceFileName = NULL;
-                PPH_STRING serviceBinaryPath = NULL;
-
-                if (NT_SUCCESS(QueryServiceFileName(
-                    &extension->ServiceItem->Name->sr,
-                    &serviceFileName,
-                    &serviceBinaryPath
-                    )))
+                if (!extension->ServiceValid)
                 {
-                    PhMoveReference(&extension->FilePath, serviceFileName);
-                    if (serviceBinaryPath) PhDereferenceObject(serviceBinaryPath);
+                    PPH_STRING serviceFileName = NULL;
+                    PPH_STRING serviceBinaryPath = NULL;
+
+                    if (NT_SUCCESS(QueryServiceFileName(
+                        &extension->ServiceItem->Name->sr,
+                        &serviceFileName,
+                        &serviceBinaryPath
+                        )))
+                    {
+                        PhMoveReference(&extension->FilePath, serviceFileName);
+                        if (serviceBinaryPath) PhDereferenceObject(serviceBinaryPath);
+                    }
+
+                    extension->ServiceValid = TRUE;
                 }
 
                 filePath = extension->FilePath;
