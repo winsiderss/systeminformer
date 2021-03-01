@@ -1792,7 +1792,7 @@ VOID PhMwpOnSizing(
     _In_ PRECT DragRectangle
     )
 {
-    PhResizingMinimumSize(DragRectangle, Edge, 400, 340);
+    PhResizingMinimumSize(DragRectangle, Edge, 400, 175);
 }
 
 VOID PhMwpOnSetFocus(
