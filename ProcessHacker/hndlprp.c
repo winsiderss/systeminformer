@@ -1279,9 +1279,7 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
             switch (header->code)
             {
             case PSN_QUERYINITIALFOCUS:
-                {
-                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LONG_PTR)GetDlgItem(hwndDlg, IDC_BASICINFORMATION));
-                }
+                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LONG_PTR)context->ListViewHandle);
                 return TRUE;
             }
         }
