@@ -134,14 +134,14 @@ VOID PhShowHandleObjectProperties1(
                 );
         }
         else
-            PhShowError(hWnd, L"%s", L"Unable to open file location because the object is unnamed.");
+            PhShowError2(hWnd, L"Unable to open the file location.", L"%s", L"The object is unnamed.");
     }
     else if (PhEqualString2(Info->TypeName, L"Key", TRUE))
     {
         if (Info->BestObjectName)
             PhShellOpenKey2(hWnd, Info->BestObjectName);
         else
-            PhShowError(hWnd, L"%s", L"Unable to open key because the object is unnamed.");
+            PhShowError2(hWnd, L"Unable to open key.", L"%s", L"The object is unnamed.");
     }
     else if (PhEqualString2(Info->TypeName, L"Process", TRUE))
     {
@@ -206,7 +206,7 @@ VOID PhShowHandleObjectProperties1(
             }
             else
             {
-                PhShowError(hWnd, L"%s", L"The process does not exist.");
+                PhShowError2(hWnd, L"Unable to show the process properties.", L"%s", L"The process does not exist.");
             }
         }
     }
@@ -283,7 +283,7 @@ VOID PhShowHandleObjectProperties1(
                     PPH_SHOW_MEMORY_EDITOR showMemoryEditor = PhAllocate(sizeof(PH_SHOW_MEMORY_EDITOR));
 
                     if (tooBig)
-                        PhShowWarning(hWnd, L"%s", L"The section size is greater than 32 MB. Only the first 32 MB will be available for editing.");
+                        PhShowWarning(hWnd, L"%s", L"The section size is greater than 32 MB. Only the first 32 MB will be available.");
 
                     memset(showMemoryEditor, 0, sizeof(PH_SHOW_MEMORY_EDITOR));
                     showMemoryEditor->ProcessId = NtCurrentProcessId();
@@ -378,7 +378,7 @@ VOID PhShowHandleObjectProperties1(
             }
             else
             {
-                PhShowError(hWnd, L"%s", L"The process does not exist.");
+                PhShowError2(hWnd, L"Unable to show the process properties.", L"%s", L"The process does not exist.");
             }
         }
     }
@@ -398,6 +398,6 @@ VOID PhShowHandleObjectProperties2(
         if (Info->BestObjectName)
             PhShellProperties(hWnd, Info->BestObjectName->Buffer);
         else
-            PhShowError(hWnd, L"%s", L"Unable to open file properties because the object is unnamed.");
+            PhShowError2(hWnd, L"Unable to open the file properties.", L"%s", L"The object is unnamed.");
     }
 }
