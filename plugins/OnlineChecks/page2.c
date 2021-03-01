@@ -2,7 +2,7 @@
  * Process Hacker Plugins -
  *   Online Checks Plugin
  *
- * Copyright (C) 2016 dmex
+ * Copyright (C) 2016-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -24,9 +24,9 @@
 
 static TASKDIALOG_BUTTON TaskDialogButtonArray[] =
 {
-    { IDOK, L"Upload file\nUpload fresh sample to VirusTotal for analysis" },
-    { IDRETRY, L"Reanalyze file\nRescan the existing sample on VirusTotal" },
     { IDYES, L"View last analysis\nOpen the last VirusTotal analysis page" },
+    //{ IDRETRY, L"Reanalyze file\nRescan the existing sample on VirusTotal" },
+    { IDOK, L"Upload file\nUpload fresh sample to VirusTotal for analysis" },
 };
 
 HRESULT CALLBACK TaskDialogResultFoundProc(

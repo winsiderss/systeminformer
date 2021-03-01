@@ -70,7 +70,8 @@ typedef struct _PROCESS_EXTENSION
         {
             BOOLEAN Stage1 : 1;
             BOOLEAN ResultValid : 1;
-            BOOLEAN Spare : 6;
+            BOOLEAN ServiceValid : 1;
+            BOOLEAN Spare : 5;
         };
     };
 
