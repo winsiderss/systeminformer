@@ -1360,8 +1360,8 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemRegistryAppendString, // s: SYSTEM_REGISTRY_APPEND_STRING_PARAMETERS // 110
     SystemAitSamplingValue, // s: ULONG (requires SeProfileSingleProcessPrivilege)
     SystemVhdBootInformation, // q: SYSTEM_VHD_BOOT_INFORMATION
-    SystemCpuQuotaInformation, // q; s // PsQueryCpuQuotaInformation
-    SystemNativeBasicInformation, // not implemented
+    SystemCpuQuotaInformation, // q; s: PS_CPU_QUOTA_QUERY_INFORMATION
+    SystemNativeBasicInformation,  // q: SYSTEM_BASIC_INFORMATION
     SystemErrorPortTimeouts, // SYSTEM_ERROR_PORT_TIMEOUTS
     SystemLowPriorityIoInformation, // q: SYSTEM_LOW_PRIORITY_IO_INFORMATION
     SystemTpmBootEntropyInformation, // q: TPM_BOOT_ENTROPY_NT_RESULT // ExQueryTpmBootEntropyInformation
@@ -2849,6 +2849,20 @@ typedef struct _SYSTEM_VHD_BOOT_INFORMATION
     ULONG OsVhdFilePathOffset;
     WCHAR OsVhdParentVolume[ANYSIZE_ARRAY];
 } SYSTEM_VHD_BOOT_INFORMATION, *PSYSTEM_VHD_BOOT_INFORMATION;
+
+// private
+typedef struct _PS_CPU_QUOTA_QUERY_ENTRY
+{
+    ULONG SessionId;
+    ULONG Weight;
+} PS_CPU_QUOTA_QUERY_ENTRY, *PPS_CPU_QUOTA_QUERY_ENTRY;
+
+// private
+typedef struct _PS_CPU_QUOTA_QUERY_INFORMATION
+{
+    ULONG SessionCount;
+    PS_CPU_QUOTA_QUERY_ENTRY SessionInformation[1];
+} PS_CPU_QUOTA_QUERY_INFORMATION, *PPS_CPU_QUOTA_QUERY_INFORMATION;
 
 // private
 typedef struct _SYSTEM_ERROR_PORT_TIMEOUTS
