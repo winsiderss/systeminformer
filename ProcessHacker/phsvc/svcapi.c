@@ -1124,7 +1124,7 @@ NTSTATUS PhSvcApiSetTcpEntry(
     } tcpRow;
     ULONG result;
 
-    localSetTcpEntry = setTcpEntry;
+    localSetTcpEntry = InterlockedCompareExchangePointer(&setTcpEntry, NULL, NULL);
 
     if (!localSetTcpEntry)
     {
