@@ -163,6 +163,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"RunAsEnableAutoComplete", L"0");
     PhpAddStringSetting(L"RunAsProgram", L"");
     PhpAddStringSetting(L"RunAsUserName", L"");
+    PhpAddIntegerPairSetting(L"RunAsWindowPosition", L"0,0");
     PhpAddIntegerSetting(L"RunFileDlgState", L"0");
     PhpAddIntegerSetting(L"SampleCount", L"200"); // 512
     PhpAddIntegerSetting(L"SampleCountAutomatic", L"1");
