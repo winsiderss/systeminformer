@@ -975,7 +975,10 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
 
             PhSetApplicationWindowIcon(hwndDlg);
 
-            PhCenterWindow(hwndDlg, PhMainWndHandle);
+            if (PhGetIntegerPairSetting(L"RunAsWindowPosition").X)
+                PhLoadWindowPlacementFromSetting(L"RunAsWindowPosition", NULL, hwndDlg);
+            else
+                PhCenterWindow(hwndDlg, PhMainWndHandle);
 
             if (PhGetIntegerSetting(L"RunAsEnableAutoComplete"))
             {
@@ -1072,6 +1075,8 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
         break;
     case WM_DESTROY:
         {
+            PhSaveWindowPlacementToSetting(L"RunAsWindowPosition", NULL, hwndDlg);
+
             PhpFreeDesktopsComboBox(context->DesktopEditWindowHandle);
             PhpFreeSessionsComboBox(context->SessionEditWindowHandle);
             PhpFreeAccountsComboBox(context->UserComboBoxWindowHandle);
