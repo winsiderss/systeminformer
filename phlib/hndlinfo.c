@@ -852,7 +852,7 @@ PPH_STRING PhStdGetClientIdNameEx(
     HANDLE processHandle;
     HANDLE threadHandle;
     ULONG isProcessTerminated = FALSE;
-    ULONG isThreadTerminated = FALSE;
+    BOOLEAN isThreadTerminated = FALSE;
 
     if (ProcessName)
     {
@@ -905,12 +905,9 @@ PPH_STRING PhStdGetClientIdNameEx(
             )))
         {
             // Check if the thread is alive
-            NtQueryInformationThread(
+            PhGetThreadIsTerminated(
                 threadHandle,
-                ThreadIsTerminated,
-                &isThreadTerminated,
-                sizeof(ULONG),
-                NULL
+                &isThreadTerminated
                 );
 
             // Use the name of the thread if available
