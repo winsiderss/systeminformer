@@ -410,6 +410,7 @@
     <ClCompile Include="netprv.c" />
     <ClCompile Include="netstk.c" />
     <ClCompile Include="notifico.c" />
+    <ClCompile Include="notiftoast.cpp" />
     <ClCompile Include="ntobjprp.c" />
     <ClCompile Include="options.c" />
     <ClCompile Include="pagfiles.c" />
@@ -479,6 +480,7 @@
     <ClInclude Include="include\netprv.h" />
     <ClInclude Include="include\notifico.h" />
     <ClInclude Include="include\notificop.h" />
+    <ClInclude Include="include\notiftoast.h" />
     <ClInclude Include="include\phfwddef.h" />
     <ClInclude Include="include\phsvccl.h" />
     <ClInclude Include="include\procmtgn.h" />
