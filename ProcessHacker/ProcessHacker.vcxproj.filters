@@ -306,6 +306,9 @@
     <ClCompile Include="heapinfo.c">
       <Filter>Process Hacker</Filter>
     </ClCompile>
+    <ClCompile Include="notiftoast.cpp">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\hidnproc.h">
@@ -447,6 +450,9 @@
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="include\colsetmgr.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\notiftoast.h">
       <Filter>Headers</Filter>
     </ClInclude>
   </ItemGroup>
