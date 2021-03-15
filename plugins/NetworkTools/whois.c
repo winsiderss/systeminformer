@@ -817,7 +817,7 @@ NTSTATUS NetworkWhoisDialogThreadStart(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        LoadLibrary(L"msftedit.dll");
+        PhLoadLibrarySafe(L"msftedit.dll");
         PhEndInitOnce(&initOnce);
     }
 

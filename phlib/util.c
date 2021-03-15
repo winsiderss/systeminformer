@@ -6713,7 +6713,7 @@ PVOID PhGetLoaderEntryImageExportFunction(
             libraryNameString = PhCreateStringEx(dllNameRef.Buffer, dllNameRef.Length);
             libraryFunctionString = PhConvertUtf16ToUtf8Ex(dllProcedureRef.Buffer, dllProcedureRef.Length);
 
-            if (libraryModule = LoadLibrary(libraryNameString->Buffer))
+            if (libraryModule = PhLoadLibrarySafe(libraryNameString->Buffer))
             {
                 if (libraryFunctionString->Buffer[0] == L'#') // This is a forwarder RVA with an ordinal import.
                 {
@@ -6806,7 +6806,7 @@ PVOID PhGetDllBaseProcedureAddressWithHint(
                     libraryNameString = PhCreateStringEx(dllNameRef.Buffer, dllNameRef.Length);
                     libraryFunctionString = PhConvertUtf16ToUtf8Ex(dllProcedureRef.Buffer, dllProcedureRef.Length);
 
-                    if (libraryModule = LoadLibrary(libraryNameString->Buffer))
+                    if (libraryModule = PhLoadLibrarySafe(libraryNameString->Buffer))
                     {
                         if (libraryFunctionString->Buffer[0] == L'#') // This is a forwarder RVA with an ordinal import.
                         {
@@ -6909,7 +6909,7 @@ static NTSTATUS PhpFixupLoaderEntryImageImports(
 
             if (!(importBaseAddress = PhGetLoaderEntryDllBase(importNameSr->Buffer)))
             {
-                if (importBaseAddress = LoadLibrary(importNameSr->Buffer))
+                if (importBaseAddress = PhLoadLibrarySafe(importNameSr->Buffer))
                     status = STATUS_SUCCESS;
                 else
                     status = PhGetLastWin32ErrorAsNtStatus();
@@ -7107,7 +7107,7 @@ static NTSTATUS PhpFixupLoaderEntryImageDelayImports(
 
                 if (!(importBaseAddress = PhGetLoaderEntryDllBase(importNameSr->Buffer)))
                 {
-                    if (importBaseAddress = LoadLibrary(importNameSr->Buffer))
+                    if (importBaseAddress = PhLoadLibrarySafe(importNameSr->Buffer))
                     {
                         importNeedsFree = TRUE;
                         status = STATUS_SUCCESS;
@@ -7651,9 +7651,47 @@ HRESULT PhGetClassObject(
 
     if (!(baseAddress = PhGetLoaderEntryDllBase(DllName)))
     {
-        if (!(baseAddress = LoadLibrary(DllName)))
+        if (!(baseAddress = PhLoadLibrarySafe(DllName)))
             return HRESULT_FROM_WIN32(ERROR_MOD_NOT_FOUND);
     }
 
     return PhGetClassObjectDllBase(baseAddress, Rclsid, Riid, Ppv);
+}
+
+/*!
+    @brief PhLoadLibrarySafe prevents the loader from searching in an unsafe
+     order by first requiring the loader try to load and resolve through
+     System32. Then upping the loading flags until the library is loaded.
+
+    @param[in] LibFileName - The file name of the library to load.
+
+    @return HMODULE to the library on success, null on failure.
+*/
+_Ret_maybenull_
+HMODULE
+PhLoadLibrarySafe(
+    _In_ PCWSTR LibFileName
+    )
+{
+    HMODULE baseAddress;
+
+    //
+    // Force LOAD_LIBRARY_SEARCH_SYSTEM32. If the library file name is a fully
+    // qualified path this will succeed.
+    //
+    baseAddress = LoadLibraryExW(LibFileName,
+                                 NULL,
+                                 LOAD_LIBRARY_SEARCH_SYSTEM32);
+    if (baseAddress)
+    {
+        return baseAddress;
+    }
+
+    //
+    // Include the application directory now.
+    //
+    return LoadLibraryExW(LibFileName,
+                          NULL,
+                          LOAD_LIBRARY_SEARCH_SYSTEM32 |
+                          LOAD_LIBRARY_SEARCH_APPLICATION_DIR);
 }

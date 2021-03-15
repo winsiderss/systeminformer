@@ -270,7 +270,7 @@ VOID PvpGetClrStrongNameToken(
     ULONG size = MAX_PATH;
     WCHAR version[MAX_PATH] = L"";
 
-    if (mscoreeHandle = LoadLibrary(L"mscoree.dll"))
+    if (mscoreeHandle = PhLoadLibrarySafe(L"mscoree.dll"))
     {
         if (CLRCreateInstance_I = PhGetDllBaseProcedureAddress(mscoreeHandle, "CLRCreateInstance", 0))
         {

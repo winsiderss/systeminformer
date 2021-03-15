@@ -1130,7 +1130,7 @@ NTSTATUS PhSvcApiSetTcpEntry(
     {
         HMODULE iphlpapiModule;
 
-        iphlpapiModule = LoadLibrary(L"iphlpapi.dll");
+        iphlpapiModule = PhLoadLibrarySafe(L"iphlpapi.dll");
 
         if (iphlpapiModule)
         {

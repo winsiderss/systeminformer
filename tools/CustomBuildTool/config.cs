@@ -139,7 +139,8 @@ namespace CustomBuildTool
             "templ.h",
             "treenew.h",
             "verify.h",
-            "workqueue.h"
+            "workqueue.h",
+            "banned.h"
         };
     }
 }

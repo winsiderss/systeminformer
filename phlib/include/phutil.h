@@ -1479,6 +1479,13 @@ PhGetClassObject(
     _Out_ PVOID* Ppv
     );
 
+PHLIBAPI
+_Ret_maybenull_
+HMODULE
+PhLoadLibrarySafe(
+    _In_ PCWSTR LibFileName
+    );
+
 #ifdef __cplusplus
 }
 #endif
