@@ -3004,8 +3004,8 @@ NTSYSAPI
 VOID
 NTAPI
 RtlSetExtendedFeaturesMask(
-    _Out_ PCONTEXT_EX ContextEx,
-    _Out_ ULONG64 FeatureMask
+    _In_ PCONTEXT_EX ContextEx,
+    _In_ ULONG64 FeatureMask
     );
 
 #ifdef _WIN64
