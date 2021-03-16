@@ -1836,8 +1836,10 @@ NTSTATUS PhpSetRemoteDesktopSecurityDescriptor(
 // TODO - This was located in prpgwmi.c but VS2019
 // complained about LNK1120 even though it linked correctly.
 
-#pragma comment(lib, "wbemuuid.lib")
 #include <wbemidl.h>
+
+DEFINE_GUID(CLSID_WbemLocator, 0x4590f811, 0x1d3a, 0x11d0, 0x89, 0x1f, 0x00, 0xaa, 0x00, 0x4b, 0x2e, 0x24);
+DEFINE_GUID(IID_IWbemLocator, 0xdc12a687, 0x737f, 0x11cf, 0x88, 0x4d, 0x00, 0xaa, 0x00, 0x4b, 0x2e, 0x24);
 
 PVOID PhGetWbemProxDllBase(
     VOID
