@@ -213,7 +213,7 @@ HBITMAP PhLoadPngImageFromResource(
             NULL,
             0.0,
             WICBitmapPaletteTypeCustom
-        )))
+            )))
         {
             IWICFormatConverter_Release(wicFormatConverter);
             goto CleanupExit;
@@ -273,9 +273,6 @@ CleanupExit:
 
     if (wicFactory)
         IWICImagingFactory_Release(wicFactory);
-
-    if (resourceBuffer)
-        PhFree(resourceBuffer);
 
     if (success)
     {

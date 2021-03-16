@@ -3,7 +3,7 @@
  *   general support functions
  *
  * Copyright (C) 2009-2016 wj32
- * Copyright (C) 2017-2020 dmex
+ * Copyright (C) 2017-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -1742,7 +1742,7 @@ PVOID PhGetFileVersionInfo(
     if (!libraryModule)
         return NULL;
 
-    if (PhLoadResource(
+    if (PhLoadResourceCopy(
         libraryModule,
         MAKEINTRESOURCE(VS_VERSION_INFO),
         VS_FILE_INFO,
@@ -6024,7 +6024,7 @@ BOOLEAN PhLoadResource(
     _In_ PCWSTR Name,
     _In_ PCWSTR Type,
     _Out_opt_ ULONG *ResourceLength,
-    _Out_ PVOID *ResourceBuffer
+    _Out_opt_ PVOID *ResourceBuffer
     )
 {
     LDR_RESOURCE_INFO resourceInfo;
@@ -6044,7 +6044,31 @@ BOOLEAN PhLoadResource(
 
     if (ResourceLength)
         *ResourceLength = resourceLength;
-    *ResourceBuffer = PhAllocateCopy(resourceBuffer, resourceLength);
+    if (ResourceBuffer)
+        *ResourceBuffer = resourceBuffer;
+
+    return TRUE;
+}
+
+_Success_(return)
+BOOLEAN PhLoadResourceCopy(
+    _In_ PVOID DllBase,
+    _In_ PCWSTR Name,
+    _In_ PCWSTR Type,
+    _Out_opt_ ULONG *ResourceLength,
+    _Out_opt_ PVOID *ResourceBuffer
+    )
+{
+    ULONG resourceLength;
+    PVOID resourceBuffer;
+
+    if (!PhLoadResource(DllBase, Name, Type, &resourceLength, &resourceBuffer))
+        return FALSE;
+
+    if (ResourceLength)
+        *ResourceLength = resourceLength;
+    if (ResourceBuffer)
+        *ResourceBuffer = PhAllocateCopy(resourceBuffer, resourceLength);
 
     return TRUE;
 }
@@ -6091,7 +6115,6 @@ PPH_STRING PhLoadString(
             );
     }
 
-    PhFree(resourceBuffer);
     return string;
 }
 
@@ -6113,8 +6136,6 @@ HMENU PhLoadMenu(
         ))
     {
         menuHandle = LoadMenuIndirect(templateBuffer);
-
-        PhFree(templateBuffer);
     }
 
     return menuHandle;

@@ -1252,7 +1252,19 @@ PhLoadResource(
     _In_ PCWSTR Name,
     _In_ PCWSTR Type,
     _Out_opt_ ULONG *ResourceLength,
-    _Out_ PVOID *ResourceBuffer
+    _Out_opt_ PVOID *ResourceBuffer
+    );
+
+_Success_(return)
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhLoadResourceCopy(
+    _In_ PVOID DllBase,
+    _In_ PCWSTR Name,
+    _In_ PCWSTR Type,
+    _Out_opt_ ULONG * ResourceLength,
+    _Out_opt_ PVOID * ResourceBuffer
     );
 
 PHLIBAPI

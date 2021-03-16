@@ -960,7 +960,7 @@ HWND PhCreateDialogFromTemplate(
     PDLGTEMPLATEEX dialogTemplate;
     HWND dialogHandle;
 
-    if (!PhLoadResource(Instance, Template, RT_DIALOG, NULL, &dialogTemplate))
+    if (!PhLoadResourceCopy(Instance, Template, RT_DIALOG, NULL, &dialogTemplate))
         return NULL;
 
     if (dialogTemplate->signature == USHRT_MAX)
@@ -981,6 +981,31 @@ HWND PhCreateDialogFromTemplate(
         );
 
     PhFree(dialogTemplate);
+
+    return dialogHandle;
+}
+
+HWND PhCreateDialog(
+    _In_ PVOID Instance,
+    _In_ PWSTR Template,
+    _In_ HWND ParentWindow,
+    _In_ DLGPROC DialogProc,
+    _In_opt_ PVOID Parameter
+    )
+{
+    PDLGTEMPLATEEX dialogTemplate;
+    HWND dialogHandle;
+
+    if (!PhLoadResource(Instance, Template, RT_DIALOG, NULL, &dialogTemplate))
+        return NULL;
+
+    dialogHandle = CreateDialogIndirectParam(
+        Instance,
+        (LPDLGTEMPLATE)dialogTemplate,
+        ParentWindow,
+        DialogProc, 
+        (LPARAM)Parameter
+        );
 
     return dialogHandle;
 }
