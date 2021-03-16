@@ -1556,7 +1556,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 ZwFilterBootOption(
-    _In_ ULONG FilterOperation,
+    _In_ FILTER_BOOT_OPTION_OPERATION FilterOperation,
     _In_ ULONG ObjectType,
     _In_ ULONG ElementType,
     _In_reads_bytes_opt_(DataSize) PVOID Data,
@@ -2655,7 +2655,7 @@ ZwQueryDirectoryFileEx(
     _In_opt_ PIO_APC_ROUTINE ApcRoutine,
     _In_opt_ PVOID ApcContext,
     _Out_ PIO_STATUS_BLOCK IoStatusBlock,
-    _Out_ PVOID FileInformation,
+    _Out_writes_bytes_(Length) PVOID FileInformation,
     _In_ ULONG Length,
     _In_ FILE_INFORMATION_CLASS FileInformationClass,
     _In_ ULONG QueryFlags,
@@ -3188,7 +3188,7 @@ NTSTATUS
 NTAPI
 ZwQueueApcThreadEx(
     _In_ HANDLE ThreadHandle,
-    _In_opt_ HANDLE UserApcReserveHandle,
+    _In_opt_ HANDLE ReserveHandle, // NtAllocateReserveObject
     _In_ PPS_APC_ROUTINE ApcRoutine,
     _In_opt_ PVOID ApcArgument1,
     _In_opt_ PVOID ApcArgument2,
