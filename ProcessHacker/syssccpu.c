@@ -332,7 +332,7 @@ INT_PTR CALLBACK PhSipCpuDialogProc(
             PhSetWindowText(labelHandle, PhGetStringOrEmpty(brandString));
             PhClearReference(&brandString);
 
-            CpuPanel = CreateDialog(PhInstanceHandle, MAKEINTRESOURCE(IDD_SYSINFO_CPUPANEL), hwndDlg, PhSipCpuPanelDialogProc);
+            CpuPanel = PhCreateDialog(PhInstanceHandle, MAKEINTRESOURCE(IDD_SYSINFO_CPUPANEL), hwndDlg, PhSipCpuPanelDialogProc, NULL);
             ShowWindow(CpuPanel, SW_SHOW);
             PhAddLayoutItemEx(&CpuLayoutManager, CpuPanel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, panelItem->Margin);
 

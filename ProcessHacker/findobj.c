@@ -1715,11 +1715,12 @@ NTSTATUS PhpFindObjectsDialogThreadStart(
 
     PhInitializeAutoPool(&autoPool);
 
-    PhFindObjectsWindowHandle = CreateDialog(
+    PhFindObjectsWindowHandle = PhCreateDialog(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_FINDOBJECTS),
         NULL,
-        PhpFindObjectsDlgProc
+        PhpFindObjectsDlgProc,
+        NULL
         );
 
     PhSetEvent(&PhFindObjectsInitializedEvent);

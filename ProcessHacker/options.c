@@ -164,11 +164,12 @@ VOID PhShowOptionsDialog(
     {
         if (!PhOptionsWindowHandle)
         {
-            PhOptionsWindowHandle = CreateDialog(
+            PhOptionsWindowHandle = PhCreateDialog(
                 PhInstanceHandle,
                 MAKEINTRESOURCE(IDD_OPTIONS),
                 NULL,
-                PhOptionsDialogProc
+                PhOptionsDialogProc,
+                NULL
                 );
 
             PhRegisterDialog(PhOptionsWindowHandle);

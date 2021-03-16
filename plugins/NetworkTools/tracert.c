@@ -871,12 +871,12 @@ NTSTATUS TracertDialogThreadStart(
 
     PhInitializeAutoPool(&autoPool);
 
-    windowHandle = CreateDialogParam(
-        (HINSTANCE)PluginInstance->DllBase,
+    windowHandle = PhCreateDialog(
+        PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_TRACERT),
         NULL,
         TracertDlgProc,
-        (LPARAM)Parameter
+        Parameter
         );
 
     ShowWindow(windowHandle, SW_SHOW);

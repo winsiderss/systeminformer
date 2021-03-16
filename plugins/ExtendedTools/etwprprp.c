@@ -97,12 +97,12 @@ VOID EtwDiskNetworkCreatePanel(
 {
     RECT margin;
 
-    Context->PanelHandle = CreateDialogParam(
+    Context->PanelHandle = PhCreateDialog(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_PROCDISKNET_PANEL),
         Context->WindowHandle,
         EtwDiskNetworkPanelDialogProc,
-        (LPARAM)Context
+        Context
         );
 
     SetWindowPos(

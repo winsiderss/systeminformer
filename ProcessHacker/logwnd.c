@@ -48,11 +48,12 @@ VOID PhShowLogDialog(
 {
     if (!PhLogWindowHandle)
     {
-        PhLogWindowHandle = CreateDialog(
+        PhLogWindowHandle = PhCreateDialog(
             PhInstanceHandle,
             MAKEINTRESOURCE(IDD_LOG),
             NULL,
-            PhpLogDlgProc
+            PhpLogDlgProc,
+            NULL
             );
         PhRegisterDialog(PhLogWindowHandle);
         ShowWindow(PhLogWindowHandle, SW_SHOW);

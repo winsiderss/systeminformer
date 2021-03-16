@@ -92,12 +92,12 @@ NTSTATUS WepShowWindowsDialogThread(
 
     PhInitializeAutoPool(&autoPool);
 
-    WepWindowsDialogHandle = CreateDialogParam(
+    WepWindowsDialogHandle = PhCreateDialog(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_WNDLIST),
         NULL,
         WepWindowsDlgProc,
-        (LPARAM)Parameter
+        Parameter
         );
 
     PhSetEvent(&WepWindowsInitializedEvent);
@@ -1076,7 +1076,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                                 PhGetString(selectedNode->FileNameWin32),
                                 FALSE,
                                 L"Make sure the Explorer executable file is present."
-                            );
+                                );
                         }
                     }
                 }

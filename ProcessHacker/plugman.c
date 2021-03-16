@@ -839,11 +839,12 @@ INT_PTR CALLBACK PhPluginsDlgProc(
 //
 //    PhInitializeAutoPool(&autoPool);
 //
-//    PhPluginsWindowHandle = CreateDialog(
+//    PhPluginsWindowHandle = PhCreateDialog(
 //        PhInstanceHandle,
 //        MAKEINTRESOURCE(IDD_PLUGINS),
 //        NULL,
-//        PhPluginsDlgProc
+//        PhPluginsDlgProc,
+//        NULL
 //        );
 //
 //    PhSetEvent(&PhPluginsInitializedEvent);

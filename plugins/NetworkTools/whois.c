@@ -823,12 +823,12 @@ NTSTATUS NetworkWhoisDialogThreadStart(
 
     PhInitializeAutoPool(&autoPool);
 
-    windowHandle = CreateDialogParam(
+    windowHandle = PhCreateDialog(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_WHOIS),
         NULL,
         NetworkOutputDlgProc,
-        (LPARAM)Parameter
+        Parameter
         );
 
     ShowWindow(windowHandle, SW_SHOW);

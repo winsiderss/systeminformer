@@ -47,11 +47,12 @@ VOID PhShowPagefilesDialog(
 {
     if (!PhPageFileWindowHandle)
     {
-        PhPageFileWindowHandle = CreateDialog(
+        PhPageFileWindowHandle = PhCreateDialog(
             PhInstanceHandle,
             MAKEINTRESOURCE(IDD_PAGEFILES),
             PhCsForceNoParent ? NULL : ParentWindowHandle,
-            PhpPagefilesDlgProc
+            PhpPagefilesDlgProc,
+            NULL
             );
         PhRegisterDialog(PhPageFileWindowHandle);
         ShowWindow(PhPageFileWindowHandle, SW_SHOW);

@@ -561,12 +561,12 @@ NTSTATUS NetworkPingDialogThreadStart(
 
     PhInitializeAutoPool(&autoPool);
 
-    windowHandle = CreateDialogParam(
+    windowHandle = PhCreateDialog(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_PING),
         NULL,
         NetworkPingWndProc,
-        (LPARAM)Parameter
+        Parameter
         );
 
     ShowWindow(windowHandle, SW_SHOW);

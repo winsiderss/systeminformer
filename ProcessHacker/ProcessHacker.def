@@ -507,6 +507,7 @@ EXPORTS
     PhAddListViewColumn
     PhAddListViewItem
     PhAddTabControlTab
+    PhCreateDialog
     PhDeleteLayoutManager
     PhEnumWindows
     PhEnumChildWindows

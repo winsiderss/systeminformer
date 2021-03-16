@@ -124,12 +124,12 @@ VOID GpuPropCreatePanel(
 {
     RECT margin;
 
-    //Context->PanelHandle = CreateDialogParam(
+    //Context->PanelHandle = PhCreateDialog(
     //    PluginInstance->DllBase,
     //    MAKEINTRESOURCE(IDD_PROCGPU_PANEL),
     //    Context->WindowHandle,
     //    GpuPanelDialogProc,
-    //    (LPARAM)Context
+    //    Context
     //    );
     //
     //SetWindowPos(
