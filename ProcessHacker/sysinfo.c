@@ -110,11 +110,12 @@ NTSTATUS PhSipSysInfoThreadStart(
 
     PhInitializeAutoPool(&autoPool);
 
-    PhSipWindow = CreateDialog(
+    PhSipWindow = PhCreateDialog(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_SYSINFO),
         NULL,
-        PhSipSysInfoDialogProc
+        PhSipSysInfoDialogProc,
+        NULL
         );
 
     PhSetEvent(&InitializedEvent);
@@ -343,11 +344,12 @@ VOID PhSipOnInitDialog(
         &ProcessesUpdatedRegistration
         );
 
-    ContainerControl = CreateDialog(
+    ContainerControl = PhCreateDialog(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_CONTAINER),
         PhSipWindow,
-        PhSipContainerDialogProc
+        PhSipContainerDialogProc,
+        NULL
         );
 
     PhSipUpdateThemeData();
@@ -355,7 +357,6 @@ VOID PhSipOnInitDialog(
     if (SectionList) // TODO: Remove (dmex)
     {
         ULONG i;
-        PPH_SYSINFO_SECTION section;
 
         for (i = 0; i < SectionList->Count; i++)
         {

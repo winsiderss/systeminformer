@@ -149,11 +149,12 @@ VOID PhShowAboutDialog(
 {
     if (!PhAboutWindowHandle)
     {
-        PhAboutWindowHandle = CreateDialog(
+        PhAboutWindowHandle = PhCreateDialog(
             PhInstanceHandle,
             MAKEINTRESOURCE(IDD_ABOUT),
             NULL,
-            PhpAboutDlgProc
+            PhpAboutDlgProc,
+            NULL
             );
         PhRegisterDialog(PhAboutWindowHandle);
         ShowWindow(PhAboutWindowHandle, SW_SHOW);

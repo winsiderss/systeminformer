@@ -129,11 +129,12 @@ VOID PhPinMiniInformation(
                 NULL
                 );
             PhSetWindowExStyle(PhMipContainerWindow, WS_EX_TOOLWINDOW, WS_EX_TOOLWINDOW);
-            PhMipWindow = CreateDialog(
+            PhMipWindow = PhCreateDialog(
                 PhInstanceHandle,
                 MAKEINTRESOURCE(IDD_MINIINFO),
                 PhMipContainerWindow,
-                PhMipMiniInfoDialogProc
+                PhMipMiniInfoDialogProc,
+                NULL
                 );
             ShowWindow(PhMipWindow, SW_SHOW);
 

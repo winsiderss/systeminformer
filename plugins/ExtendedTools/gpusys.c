@@ -266,7 +266,7 @@ INT_PTR CALLBACK EtpGpuDialogProc(
 
             PhSetDialogItemText(hwndDlg, IDC_GPUNAME, PH_AUTO_T(PH_STRING, EtpGetGpuNameString())->Buffer);
 
-            GpuPanel = CreateDialog(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_SYSINFO_GPUPANEL), hwndDlg, EtpGpuPanelDialogProc);
+            GpuPanel = PhCreateDialog(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_SYSINFO_GPUPANEL), hwndDlg, EtpGpuPanelDialogProc, NULL);
             ShowWindow(GpuPanel, SW_SHOW);
             PhAddLayoutItemEx(&GpuLayoutManager, GpuPanel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, panelItem->Margin);
 

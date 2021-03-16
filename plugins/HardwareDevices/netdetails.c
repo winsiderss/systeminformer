@@ -711,12 +711,12 @@ NTSTATUS ShowNetAdapterDetailsDialogThread(
 
     PhInitializeAutoPool(&autoPool);
 
-    dialogHandle = context->SysInfoContext->DetailsWindowDialogHandle = CreateDialogParam(
+    dialogHandle = context->SysInfoContext->DetailsWindowDialogHandle = PhCreateDialog(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_NETADAPTER_DETAILS),
         NULL,
         NetAdapterDetailsDlgProc,
-        (LPARAM)context
+        context
         );
 
     PhSetEvent(&context->SysInfoContext->DetailsWindowInitializedEvent);

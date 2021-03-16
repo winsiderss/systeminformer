@@ -257,7 +257,7 @@ INT_PTR CALLBACK EtpDiskDialogProc(
 
             SetWindowFont(GetDlgItem(hwndDlg, IDC_TITLE), DiskSection->Parameters->LargeFont, FALSE);
 
-            DiskPanel = CreateDialog(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_SYSINFO_DISKPANEL), hwndDlg, EtpDiskPanelDialogProc);
+            DiskPanel = PhCreateDialog(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_SYSINFO_DISKPANEL), hwndDlg, EtpDiskPanelDialogProc, NULL);
             ShowWindow(DiskPanel, SW_SHOW);
             PhAddLayoutItemEx(&DiskLayoutManager, DiskPanel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, panelItem->Margin);
 
@@ -727,7 +727,7 @@ INT_PTR CALLBACK EtpNetworkDialogProc(
 
             SetWindowFont(GetDlgItem(hwndDlg, IDC_TITLE), NetworkSection->Parameters->LargeFont, FALSE);
 
-            NetworkPanel = CreateDialog(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_SYSINFO_NETPANEL), hwndDlg, EtpNetworkPanelDialogProc);
+            NetworkPanel = PhCreateDialog(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_SYSINFO_NETPANEL), hwndDlg, EtpNetworkPanelDialogProc, NULL);
             ShowWindow(NetworkPanel, SW_SHOW);
             PhAddLayoutItemEx(&NetworkLayoutManager, NetworkPanel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, panelItem->Margin);
 

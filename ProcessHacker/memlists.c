@@ -49,11 +49,12 @@ VOID PhShowMemoryListsDialog(
 {
     if (!PhMemoryListsWindowHandle)
     {
-        PhMemoryListsWindowHandle = CreateDialog(
+        PhMemoryListsWindowHandle = PhCreateDialog(
             PhInstanceHandle,
             MAKEINTRESOURCE(IDD_MEMLISTS),
             ParentWindowHandle,
-            PhpMemoryListsDlgProc
+            PhpMemoryListsDlgProc,
+            NULL
             );
 
         if (RegisterDialog)

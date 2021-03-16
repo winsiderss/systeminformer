@@ -84,12 +84,12 @@ HWND PhCreateServiceListControl(
     servicesContext->Services = Services;
     servicesContext->NumberOfServices = NumberOfServices;
 
-    windowHandle = CreateDialogParam(
+    windowHandle = PhCreateDialog(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_SRVLIST),
         ParentWindowHandle,
         PhpServicesPageProc,
-        (LPARAM)servicesContext
+        servicesContext
         );
 
     if (!windowHandle)

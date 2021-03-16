@@ -55,12 +55,12 @@ NTSTATUS EtpGpuNodesDialogThreadStart(
 
     PhInitializeAutoPool(&autoPool);
 
-    EtGpuNodesWindowHandle = CreateDialogParam(
+    EtGpuNodesWindowHandle = PhCreateDialog(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_GPUNODES),
         NULL,
         EtpGpuNodesDlgProc,
-        (LPARAM)Parameter
+        Parameter
         );
 
     PhSetEvent(&EtGpuNodesInitializedEvent);
