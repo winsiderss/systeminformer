@@ -7240,6 +7240,137 @@ NTSTATUS PhpLoaderEntryQuerySectionInformation(
     return status;
 }
 
+NTSTATUS PhLoaderEntryRelocateImage(
+    _In_ PVOID BaseAddress)
+{
+    NTSTATUS status;
+    PIMAGE_NT_HEADERS imageNtHeader;
+    PIMAGE_DATA_DIRECTORY dataDirectory;
+    PIMAGE_BASE_RELOCATION relocationDirectory;
+    PVOID relocationDirectoryEnd;
+    ULONG_PTR relocationDelta;
+
+    status = PhGetLoaderEntryImageNtHeaders(
+        BaseAddress,
+        &imageNtHeader
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = PhGetLoaderEntryImageDirectory(
+        BaseAddress,
+        imageNtHeader,
+        IMAGE_DIRECTORY_ENTRY_BASERELOC,
+        &dataDirectory,
+        &relocationDirectory,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (dataDirectory->Size == 0)
+        return STATUS_SUCCESS;
+    if (imageNtHeader->FileHeader.Characteristics & IMAGE_FILE_RELOCS_STRIPPED)
+        return STATUS_SUCCESS; // STATUS_CONFLICTING_ADDRESSES
+
+    for (ULONG i = 0; i < imageNtHeader->FileHeader.NumberOfSections; i++)
+    {
+        PIMAGE_SECTION_HEADER sectionHeader;
+        PVOID sectionHeaderAddress;
+        SIZE_T sectionHeaderSize;
+        ULONG sectionProtectionJunk = 0;
+
+        sectionHeader = PTR_ADD_OFFSET(IMAGE_FIRST_SECTION(imageNtHeader), sizeof(IMAGE_SECTION_HEADER) * i);
+        sectionHeaderAddress = PTR_ADD_OFFSET(BaseAddress, sectionHeader->VirtualAddress);
+        sectionHeaderSize = sectionHeader->SizeOfRawData;
+
+        status = NtProtectVirtualMemory(
+            NtCurrentProcess(),
+            &sectionHeaderAddress,
+            &sectionHeaderSize,
+            PAGE_READWRITE,
+            &sectionProtectionJunk
+            );
+
+        if (!NT_SUCCESS(status))
+            break;
+    }
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    relocationDirectoryEnd = PTR_ADD_OFFSET(relocationDirectory, dataDirectory->Size);
+    relocationDelta = (ULONG_PTR)PTR_SUB_OFFSET(imageNtHeader->OptionalHeader.ImageBase, BaseAddress);
+
+    while ((ULONG_PTR)relocationDirectory < (ULONG_PTR)relocationDirectoryEnd)
+    {
+        ULONG relocationCount;
+        PVOID relocationAddress;
+        PIMAGE_BASE_RELOCATION_ENTRY relocations;
+
+        relocationCount = (relocationDirectory->SizeOfBlock - sizeof(IMAGE_BASE_RELOCATION)) / sizeof(IMAGE_BASE_RELOCATION_ENTRY);
+        relocationAddress = PTR_ADD_OFFSET(BaseAddress, relocationDirectory->VirtualAddress);
+        relocations = PTR_ADD_OFFSET(relocationDirectory, RTL_SIZEOF_THROUGH_FIELD(IMAGE_BASE_RELOCATION, SizeOfBlock));
+
+        for (ULONG i = 0; i < relocationCount; i++)
+        {
+            switch (relocations[i].Type)
+            {
+            case IMAGE_REL_BASED_LOW:
+                *(PUSHORT)PTR_ADD_OFFSET(relocationAddress, relocations[i].Offset) += (USHORT)relocationDelta;
+                break;
+            case IMAGE_REL_BASED_HIGHLOW:
+                *(PULONG)PTR_ADD_OFFSET(relocationAddress, relocations[i].Offset) += (ULONG)relocationDelta;
+                break;
+            case IMAGE_REL_BASED_DIR64:
+                *(PULONGLONG)PTR_ADD_OFFSET(relocationAddress, relocations[i].Offset) += (ULONGLONG)relocationDelta;
+                break;
+            }
+        }
+
+        relocationDirectory = PTR_ADD_OFFSET(relocationDirectory, relocationDirectory->SizeOfBlock);
+    }
+
+    for (ULONG i = 0; i < imageNtHeader->FileHeader.NumberOfSections; i++)
+    {
+        PIMAGE_SECTION_HEADER sectionHeader;
+        PVOID sectionHeaderAddress;
+        SIZE_T sectionHeaderSize;
+        ULONG sectionProtection = 0;
+        ULONG sectionProtectionJunk = 0;
+
+        sectionHeader = PTR_ADD_OFFSET(IMAGE_FIRST_SECTION(imageNtHeader), sizeof(IMAGE_SECTION_HEADER) * i);
+        sectionHeaderAddress = PTR_ADD_OFFSET(BaseAddress, sectionHeader->VirtualAddress);
+        sectionHeaderSize = sectionHeader->SizeOfRawData;
+
+        if (sectionHeader->Characteristics & IMAGE_SCN_MEM_EXECUTE)
+            sectionProtection = PAGE_EXECUTE;
+        if (sectionHeader->Characteristics & IMAGE_SCN_MEM_READ)
+            sectionProtection = PAGE_READONLY;
+        if (sectionHeader->Characteristics & IMAGE_SCN_MEM_WRITE)
+            sectionProtection = PAGE_WRITECOPY;
+        if (sectionHeader->Characteristics & IMAGE_SCN_MEM_EXECUTE && sectionHeader->Characteristics & IMAGE_SCN_MEM_READ)
+            sectionProtection = PAGE_EXECUTE_READ;
+        if (sectionHeader->Characteristics & IMAGE_SCN_MEM_EXECUTE && sectionHeader->Characteristics & IMAGE_SCN_MEM_WRITE)
+            sectionProtection = PAGE_EXECUTE_READWRITE;
+
+        status = NtProtectVirtualMemory(
+            NtCurrentProcess(),
+            &sectionHeaderAddress,
+            &sectionHeaderSize,
+            sectionProtection,
+            &sectionProtectionJunk
+            );
+
+        if (!NT_SUCCESS(status))
+            break;
+    }
+
+    return status;
+}
+
 NTSTATUS PhLoaderEntryLoadDll(
     _In_ PWSTR FileName,
     _Out_ PVOID* BaseAddress
@@ -7309,10 +7440,24 @@ NTSTATUS PhLoaderEntryLoadDll(
 
     if (NT_SUCCESS(status))
     {
+        status = PhLoaderEntryRelocateImage(
+            imageBaseAddress
+            );
+    }
+
+    if (NT_SUCCESS(status))
+    {
         if (BaseAddress)
         {
             *BaseAddress = imageBaseAddress;
         }
+    }
+    else
+    {
+        NtUnmapViewOfSection(
+            NtCurrentProcess(),
+            imageBaseAddress
+            );
     }
 
     return status;
