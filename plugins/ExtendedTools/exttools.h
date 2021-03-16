@@ -720,7 +720,7 @@ FLOAT EtLookupTotalGpuUtilization(
     );
 
 FLOAT EtLookupTotalGpuEngineUtilization(
-    _In_ ULONG64 EngineId
+    _In_ ULONG EngineId
     );
 
 ULONG64 EtLookupProcessGpuDedicated(
