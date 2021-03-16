@@ -3,7 +3,7 @@
  *   main program
  *
  * Copyright (C) 2010-2011 wj32
- * Copyright (C) 2017-2020 dmex
+ * Copyright (C) 2017-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -22,7 +22,6 @@
  */
 
 #include <phdk.h>
-#include <workqueue.h>
 #include <settings.h>
 
 #include "extnoti.h"
@@ -340,16 +339,16 @@ BOOLEAN MatchFilterList(
     ULONG i;
     BOOLEAN isFileName;
 
-    isFileName = PhFindCharInString(String, 0, OBJ_NAME_PATH_SEPARATOR) != -1;
+    isFileName = PhFindCharInString(String, 0, OBJ_NAME_PATH_SEPARATOR) != SIZE_MAX;
 
     for (i = 0; i < FilterList->Count; i++)
     {
         PFILTER_ENTRY entry = FilterList->Items[i];
 
-        if (isFileName && PhFindCharInString(entry->Filter, 0, '\\') == -1)
+        if (isFileName && PhFindCharInString(entry->Filter, 0, L'\\') == SIZE_MAX)
             continue; // ignore filters without backslashes if we're matching a file name
 
-        if (entry->Filter->Length == 2 && entry->Filter->Buffer[0] == '*') // shortcut
+        if (entry->Filter->Length == 2 && entry->Filter->Buffer[0] == L'*') // shortcut
         {
             *FilterType = entry->Type;
             return TRUE;
