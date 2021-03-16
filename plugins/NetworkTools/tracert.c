@@ -642,6 +642,27 @@ VOID TracertMenuActionCallback(
     }
 }
 
+VOID TracertSetTreeNewFont(
+    _In_ PNETWORK_TRACERT_CONTEXT Context
+    )
+{
+    PPH_STRING fontHexString;
+    LOGFONT font;
+
+    fontHexString = PhaGetStringSetting(L"Font");
+
+    if (
+        fontHexString->Length / sizeof(WCHAR) / 2 == sizeof(LOGFONT) &&
+        PhHexStringToBuffer(&fontHexString->sr, (PUCHAR)&font)
+        )
+    {
+        if (Context->TreeNewFont = CreateFontIndirect(&font))
+        {
+            SetWindowFont(Context->TreeNewHandle, Context->TreeNewFont, TRUE);
+        }
+    }
+}
+
 INT_PTR CALLBACK TracertDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -666,10 +687,12 @@ INT_PTR CALLBACK TracertDlgProc(
 
             PhSaveWindowPlacementToSetting(SETTING_NAME_TRACERT_WINDOW_POSITION, SETTING_NAME_TRACERT_WINDOW_SIZE, hwndDlg);
 
+            DeleteTracertTree(context);
+
             if (context->FontHandle)
                 DeleteFont(context->FontHandle);
-
-            DeleteTracertTree(context);
+            if (context->TreeNewFont)
+                DeleteFont(context->TreeNewFont);
 
             PhDeleteWorkQueue(&context->WorkQueue);
             PhDeleteLayoutManager(&context->LayoutManager);
@@ -701,6 +724,7 @@ INT_PTR CALLBACK TracertDlgProc(
             PhSetApplicationWindowIcon(hwndDlg);
 
             InitializeTracertTree(context);
+            TracertSetTreeNewFont(context);
 
             PhInitializeWorkQueue(&context->WorkQueue, 0, 40, 5000);
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);

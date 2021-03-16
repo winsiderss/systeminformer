@@ -597,7 +597,28 @@ CleanupExit:
     return STATUS_SUCCESS;
 }
 
-INT_PTR CALLBACK NetworkOutputDlgProc(
+VOID WhoisSetTextFont(
+    _In_ PNETWORK_WHOIS_CONTEXT Context
+    )
+{
+    PPH_STRING fontHexString;
+    LOGFONT font;
+
+    fontHexString = PhaGetStringSetting(L"Font");
+
+    if (
+        fontHexString->Length / sizeof(WCHAR) / 2 == sizeof(LOGFONT) &&
+        PhHexStringToBuffer(&fontHexString->sr, (PUCHAR)&font)
+        )
+    {
+        if (Context->FontHandle = CreateFontIndirect(&font))
+        {
+            SetWindowFont(Context->RichEditHandle, Context->FontHandle, TRUE);
+        }
+    }
+}
+
+INT_PTR CALLBACK WhoisDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -642,6 +663,7 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
             context->RichEditHandle = GetDlgItem(hwndDlg, IDC_NETOUTPUTEDIT);
 
             PhSetApplicationWindowIcon(hwndDlg);
+            WhoisSetTextFont(context);
 
             if (context->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
             {
@@ -658,7 +680,7 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
             SendMessage(context->RichEditHandle, EM_SETEVENTMASK, 0, SendMessage(context->RichEditHandle, EM_GETEVENTMASK, 0, 0) | ENM_LINK);
             SendMessage(context->RichEditHandle, EM_AUTOURLDETECT, AURL_ENABLEURL, 0);
             SendMessage(context->RichEditHandle, EM_SETWORDWRAPMODE, WBF_WORDWRAP, 0);
-            context->FontHandle = PhCreateCommonFont(-11, FW_MEDIUM, context->RichEditHandle);
+            //context->FontHandle = PhCreateCommonFont(-11, FW_MEDIUM, context->RichEditHandle);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->RichEditHandle, NULL, PH_ANCHOR_ALL);
@@ -827,7 +849,7 @@ NTSTATUS NetworkWhoisDialogThreadStart(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_WHOIS),
         NULL,
-        NetworkOutputDlgProc,
+        WhoisDlgProc,
         Parameter
         );
 
