@@ -1493,7 +1493,7 @@ PhGetClassObject(
 
 PHLIBAPI
 _Ret_maybenull_
-HMODULE
+PVOID
 PhLoadLibrarySafe(
     _In_ PCWSTR LibFileName
     );

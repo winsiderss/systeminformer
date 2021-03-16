@@ -7834,12 +7834,12 @@ HRESULT PhGetClassObject(
     @return HMODULE to the library on success, null on failure.
 */
 _Ret_maybenull_
-HMODULE
+PVOID
 PhLoadLibrarySafe(
     _In_ PCWSTR LibFileName
     )
 {
-    HMODULE baseAddress;
+    PVOID baseAddress;
 
     //
     // Force LOAD_LIBRARY_SEARCH_SYSTEM32. If the library file name is a fully
