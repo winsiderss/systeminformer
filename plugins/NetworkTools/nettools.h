@@ -179,6 +179,7 @@ typedef struct _NETWORK_TRACERT_CONTEXT
     HWND SearchboxHandle;
     HWND TreeNewHandle;
     HFONT FontHandle;
+    HFONT TreeNewFont;
     PH_LAYOUT_MANAGER LayoutManager;
 
     ULONG MaximumHops;
