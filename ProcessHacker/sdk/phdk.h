@@ -6,6 +6,7 @@
 #define PHNT_VERSION PHNT_WIN7
 #define PHAPPAPI __declspec(dllimport)
 
+#include "banned.h"
 #include "ph.h"
 #include "phnet.h"
 #include "provider.h"

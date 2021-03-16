@@ -267,7 +267,7 @@ BOOLEAN HardwareDeviceShowProperties(
     //    _In_opt_ PWSTR MachineName,
     //    _In_ PWSTR DeviceID);
 
-    if (devMgrHandle = LoadLibrary(L"devmgr.dll"))
+    if (devMgrHandle = PhLoadLibrarySafe(L"devmgr.dll"))
     {
         if (DeviceProperties_RunDLL_I = PhGetProcedureAddress(devMgrHandle, "DeviceProperties_RunDLLW", 0))
         {

@@ -1638,7 +1638,7 @@ ULONG EtFwMonitorInitialize(
         20
         );
 
-    if (!(baseAddress = LoadLibrary(L"fwpuclnt.dll")))
+    if (!(baseAddress = PhLoadLibrarySafe(L"fwpuclnt.dll")))
         return GetLastError();
     if (!FwpmNetEventSubscribe_I)
         FwpmNetEventSubscribe_I = PhGetProcedureAddress(baseAddress, "FwpmNetEventSubscribe4", 0);

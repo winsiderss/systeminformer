@@ -832,7 +832,7 @@ static BOOLEAN WepWindowHasAutomationProvider(
     {
         HANDLE moduleHandle;
 
-        if (moduleHandle = LoadLibrary(L"uiautomationcore.dll"))
+        if (moduleHandle = PhLoadLibrarySafe(L"uiautomationcore.dll"))
         {
             UiaHasServerSideProvider_I = PhGetProcedureAddress(moduleHandle, "UiaHasServerSideProvider", 0);
         }

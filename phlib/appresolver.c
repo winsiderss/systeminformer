@@ -82,7 +82,7 @@ static BOOLEAN PhpKernelAppCoreInitialized(
         {
             PVOID kernelBaseModuleHandle;
 
-            if (kernelBaseModuleHandle = LoadLibrary(L"kernelbase.dll")) // kernel.appcore.dll
+            if (kernelBaseModuleHandle = PhLoadLibrarySafe(L"kernelbase.dll")) // kernel.appcore.dll
             {
                 AppContainerDeriveSidFromMoniker_I = PhGetDllBaseProcedureAddress(kernelBaseModuleHandle, "AppContainerDeriveSidFromMoniker", 0);
                 AppContainerLookupMoniker_I = PhGetDllBaseProcedureAddress(kernelBaseModuleHandle, "AppContainerLookupMoniker", 0);

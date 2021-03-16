@@ -66,7 +66,7 @@ PVOID PhpGetWmiProviderDllBase(
             if (systemFileName = PhConcatStringRefZ(&systemDirectory->sr, L"\\wbem\\wbemprox.dll"))
             {
                 if (!(imageBaseAddress = PhGetLoaderEntryFullDllBase(PhGetString(systemFileName))))
-                    imageBaseAddress = LoadLibrary(PhGetString(systemFileName));
+                    imageBaseAddress = PhLoadLibrarySafe(PhGetString(systemFileName));
 
                 PhDereferenceObject(systemFileName);
             }
