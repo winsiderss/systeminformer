@@ -812,9 +812,6 @@ CleanupExit:
     if (wicFactory)
         IWICImagingFactory_Release(wicFactory);
 
-    if (resourceBuffer)
-        PhFree(resourceBuffer);
-
     if (success)
         return bitmapHandle;
 
