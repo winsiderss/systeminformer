@@ -607,7 +607,7 @@ PPH_STRING PhGetPnPDeviceName(
     {
         PVOID cfgmgr32;
 
-        if (cfgmgr32 = LoadLibrary(L"cfgmgr32.dll"))
+        if (cfgmgr32 = PhLoadLibrarySafe(L"cfgmgr32.dll"))
         {
             DevGetObjects_I = PhGetDllBaseProcedureAddress(cfgmgr32, "DevGetObjects", 0);
             DevFreeObjects_I = PhGetDllBaseProcedureAddress(cfgmgr32, "DevFreeObjects", 0);

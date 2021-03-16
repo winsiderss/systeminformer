@@ -420,6 +420,7 @@ EXPORTS
     PhShowStatus
     PhStringToGuid
     PhUpdateHash
+    PhLoadLibrarySafe
 
 ; circbuf
     PhClearCircularBuffer_FLOAT

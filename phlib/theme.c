@@ -184,14 +184,14 @@ VOID PhInitializeWindowTheme(
         {
             PVOID module;
 
-            if (module = LoadLibrary(L"dwmapi.dll"))
+            if (module = PhLoadLibrarySafe(L"dwmapi.dll"))
             {
                 DwmSetWindowAttribute_I = PhGetDllBaseProcedureAddress(module, "DwmSetWindowAttribute", 0);
             }
 
             if (WindowsVersion >= WINDOWS_10_19H2)
             {
-                if (module = LoadLibrary(L"uxtheme.dll"))
+                if (module = PhLoadLibrarySafe(L"uxtheme.dll"))
                 {
                     AllowDarkModeForWindow_I = PhGetDllBaseProcedureAddress(module, NULL, 133);
                     SetPreferredAppMode_I = PhGetDllBaseProcedureAddress(module, NULL, 135);
