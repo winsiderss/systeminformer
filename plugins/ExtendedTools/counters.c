@@ -42,16 +42,14 @@ typedef struct _ET_GPU_COUNTER
 {
     ULONG64 Node;
     HANDLE ProcessId;
-    ULONG64 EngineId;
+    ULONG EngineId;
+    LUID EngineLuid;
 
     union
     {
         DOUBLE Value;
-        struct
-        {
-            ULONG64 Value64;
-            FLOAT ValueF;
-        };
+        ULONG64 Value64;
+        FLOAT ValueF;
     };
 } ET_GPU_COUNTER, * PET_GPU_COUNTER;
 
@@ -59,7 +57,7 @@ typedef struct _ET_GPU_COUNTER
 //{
 //    PWSTR Path;
 //    PDH_HCOUNTER Handle;
-//} ET_COUNTER_CONFIG, * PET_COUNTER_CONFIG;
+//} ET_COUNTER_CONFIG, *PET_COUNTER_CONFIG;
 //
 //static ET_COUNTER_CONFIG CounterConfigArray[] =
 //{
@@ -76,7 +74,9 @@ static BOOLEAN NTAPI EtpRunningTimeEqualFunction(
     PET_GPU_COUNTER entry1 = Entry1;
     PET_GPU_COUNTER entry2 = Entry2;
 
-    return entry1->EngineId == entry2->EngineId &&
+    return
+        entry1->EngineId == entry2->EngineId &&
+        RtlIsEqualLuid(&entry1->EngineLuid, &entry2->EngineLuid) &&
         entry1->ProcessId == entry2->ProcessId;
 }
 
@@ -86,7 +86,11 @@ static ULONG NTAPI EtpEtpRunningTimeHashFunction(
 {
     PET_GPU_COUNTER entry = Entry;
 
-    return PhHashInt64(entry->EngineId) ^ PhHashIntPtr((ULONG_PTR)entry->ProcessId);
+    return
+        PhHashInt32(entry->EngineId) ^
+        PhHashInt32(entry->EngineLuid.LowPart) ^
+        PhHashInt32(entry->EngineLuid.HighPart) ^
+        PhHashIntPtr((ULONG_PTR)entry->ProcessId);
 }
 
 static BOOLEAN NTAPI EtpDedicatedEqualFunction(
@@ -106,7 +110,10 @@ static ULONG NTAPI EtpDedicatedHashFunction(
 {
     PET_GPU_COUNTER entry = Entry;
 
-    return PhHashIntPtr((ULONG_PTR)entry->ProcessId);
+    return
+        PhHashIntPtr((ULONG_PTR)entry->ProcessId) ^
+        PhHashInt32(entry->EngineLuid.LowPart) ^
+        PhHashInt32(entry->EngineLuid.HighPart);
 }
 
 VOID EtGpuCountersInitialization(
@@ -170,8 +177,7 @@ FLOAT EtLookupProcessGpuUtilization(
     {
         if (entry->ProcessId == ProcessId)
         {
-            if (entry->ValueF > value)
-                value = entry->ValueF;
+            value += entry->ValueF;
         }
     }
 
@@ -218,7 +224,7 @@ FLOAT EtLookupTotalGpuUtilization(
 }
 
 FLOAT EtLookupTotalGpuEngineUtilization(
-    _In_ ULONG64 EngineId
+    _In_ ULONG EngineId
     )
 {
     FLOAT value = 0;
@@ -237,13 +243,13 @@ FLOAT EtLookupTotalGpuEngineUtilization(
 
     while (PhEnumHashtable(EtGpuRunningTimeHashTable, (PVOID*)&entry, &enumerationKey))
     {
-        if (entry->EngineId != EngineId)
-            continue;
+        if (entry->EngineId == EngineId)
+        {
+            FLOAT usage = entry->ValueF;
 
-        FLOAT usage = entry->ValueF;
-
-        if (usage > value)
-            value = usage;
+            if (usage > value)
+                value = usage;
+        }
     }
 
     PhReleaseFastLockShared(&EtGpuRunningTimeHashTableLock);
@@ -317,9 +323,9 @@ ULONG64 EtLookupProcessGpuSharedUsage(
     _In_opt_ HANDLE ProcessId
     )
 {
-    ET_GPU_COUNTER lookupEntry;
-    PET_GPU_COUNTER entry;
     ULONG64 value = 0;
+    ULONG enumerationKey;
+    PET_GPU_COUNTER entry;
 
     if (!EtGpuSharedHashTable)
     {
@@ -327,13 +333,16 @@ ULONG64 EtLookupProcessGpuSharedUsage(
         return 0;
     }
 
-    lookupEntry.ProcessId = ProcessId;
-
     PhAcquireFastLockShared(&EtGpuSharedHashTableLock);
 
-    if (entry = PhFindEntryHashtable(EtGpuSharedHashTable, &lookupEntry))
+    enumerationKey = 0;
+
+    while (PhEnumHashtable(EtGpuSharedHashTable, (PVOID*)&entry, &enumerationKey))
     {
-        value = entry->Value64;
+        if (entry->ProcessId == ProcessId)
+        {
+            value += entry->Value64;
+        }
     }
 
     PhReleaseFastLockShared(&EtGpuSharedHashTableLock);
@@ -373,9 +382,9 @@ ULONG64 EtLookupProcessGpuCommitUsage(
     _In_opt_ HANDLE ProcessId
     )
 {  
-    ET_GPU_COUNTER lookupEntry;
-    PET_GPU_COUNTER entry;
     ULONG64 value = 0;
+    ULONG enumerationKey;
+    PET_GPU_COUNTER entry;
 
     if (!EtGpuCommitHashTable)
     {
@@ -383,13 +392,16 @@ ULONG64 EtLookupProcessGpuCommitUsage(
         return 0;
     }
 
-    lookupEntry.ProcessId = ProcessId;
-
     PhAcquireFastLockShared(&EtGpuCommitHashTableLock);
 
-    if (entry = PhFindEntryHashtable(EtGpuCommitHashTable, &lookupEntry))
+    enumerationKey = 0;
+
+    while (PhEnumHashtable(EtGpuCommitHashTable, (PVOID*)&entry, &enumerationKey))
     {
-        value = entry->Value64;
+        if (entry->ProcessId == ProcessId)
+        {
+            value += entry->Value64;
+        }
     }
 
     PhReleaseFastLockShared(&EtGpuCommitHashTableLock);
@@ -430,60 +442,79 @@ VOID ParseGpuEngineUtilizationCounter(
     _In_ DOUBLE InstanceValue
     )
 {
-    PH_STRINGREF partSr;
     PH_STRINGREF pidPartSr;
-    PH_STRINGREF luidLowPartSr;
     PH_STRINGREF luidHighPartSr;
+    PH_STRINGREF luidLowPartSr;
     PH_STRINGREF physPartSr;
     PH_STRINGREF engPartSr;
     //PH_STRINGREF engTypePartSr;
     PH_STRINGREF remainingPart;
+    ULONG64 processId;
+    ULONG64 engineId;
+    LONG64 engineLuidLow;
+    //LONG64 engineLuidHigh;
+    PET_GPU_COUNTER entry;
+    ET_GPU_COUNTER lookupEntry;
 
     if (!EtGpuRunningTimeHashTable)
         return;
 
     // pid_12704_luid_0x00000000_0x0000D503_phys_0_eng_3_engtype_VideoDecode
     PhInitializeStringRefLongHint(&remainingPart, InstanceName);
-    PhSplitStringRefAtChar(&remainingPart, L'_', &partSr, &remainingPart);
-    PhSplitStringRefAtChar(&remainingPart, L'_', &pidPartSr, &remainingPart);
-    PhSplitStringRefAtChar(&remainingPart, L'_', &partSr, &remainingPart);
-    PhSplitStringRefAtChar(&remainingPart, L'_', &luidLowPartSr, &remainingPart);
-    PhSplitStringRefAtChar(&remainingPart, L'_', &luidHighPartSr, &remainingPart);
-    PhSplitStringRefAtChar(&remainingPart, L'_', &partSr, &remainingPart);
-    PhSplitStringRefAtChar(&remainingPart, L'_', &physPartSr, &remainingPart);
-    PhSplitStringRefAtChar(&remainingPart, L'_', &partSr, &remainingPart);
-    PhSplitStringRefAtChar(&remainingPart, L'_', &engPartSr, &remainingPart);
-    //PhSplitStringRefAtChar(&remainingPart, L'_', &partSr, &remainingPart);
+
+    PhSkipStringRef(&remainingPart, 4 * sizeof(WCHAR));
+
+    if (!PhSplitStringRefAtChar(&remainingPart, L'_', &pidPartSr, &remainingPart))
+        return;
+
+    PhSkipStringRef(&remainingPart, 5 * sizeof(WCHAR));
+
+    if (!PhSplitStringRefAtChar(&remainingPart, L'_', &luidHighPartSr, &remainingPart))
+        return;
+    if (!PhSplitStringRefAtChar(&remainingPart, L'_', &luidLowPartSr, &remainingPart))
+        return;
+
+    PhSkipStringRef(&remainingPart, 5 * sizeof(WCHAR));
+
+    if (!PhSplitStringRefAtChar(&remainingPart, L'_', &physPartSr, &remainingPart))
+        return;
+
+    PhSkipStringRef(&remainingPart, 4 * sizeof(WCHAR));
+
+    if (!PhSplitStringRefAtChar(&remainingPart, L'_', &engPartSr, &remainingPart))
+        return;
+
+    //PhSkipStringRef(&remainingPart, 8 * sizeof(WCHAR));
     //PhSplitStringRefAtChar(&remainingPart, L'_', &engTypePartSr, &remainingPart);
+    //PhSkipStringRef(&luidHighPartSr, 2 * sizeof(WCHAR));
+    PhSkipStringRef(&luidLowPartSr, 2 * sizeof(WCHAR));
 
-    if (pidPartSr.Length)
+    if (
+        PhStringToInteger64(&pidPartSr, 10, &processId) &&
+        //PhStringToInteger64(&luidHighPartSr, 16, &engineLuidHigh) &&
+        PhStringToInteger64(&luidLowPartSr, 16, &engineLuidLow) &&
+        PhStringToInteger64(&engPartSr, 10, &engineId)
+        )
     {
-        ULONG64 processId;
-        ULONG64 engineId;
-        PET_GPU_COUNTER entry;
-        ET_GPU_COUNTER lookupEntry;
+        lookupEntry.ProcessId = (HANDLE)processId;
+        lookupEntry.EngineId = (ULONG)engineId;
+        lookupEntry.EngineLuid.LowPart = (ULONG)engineLuidLow;
+        lookupEntry.EngineLuid.HighPart = 0; // (LONG)engineLuidHigh;
 
-        if (
-            PhStringToInteger64(&pidPartSr, 10, &processId) &&
-            PhStringToInteger64(&engPartSr, 10, &engineId)
-            )
+        if (entry = PhFindEntryHashtable(EtGpuRunningTimeHashTable, &lookupEntry))
+        {
+            //if (entry->ValueF < (FLOAT)InstanceValue)
+            entry->ValueF = (FLOAT)InstanceValue;
+        }
+        else
         {
             lookupEntry.ProcessId = (HANDLE)processId;
-            lookupEntry.EngineId = engineId;
+            lookupEntry.EngineId = (ULONG)engineId;
+            lookupEntry.EngineLuid.LowPart = (ULONG)engineLuidLow;
+            lookupEntry.EngineLuid.HighPart = 0; // (LONG)engineLuidHigh;
+            lookupEntry.ValueF = (FLOAT)InstanceValue;
 
-            if (entry = PhFindEntryHashtable(EtGpuRunningTimeHashTable, &lookupEntry))
-            {
-                if (entry->ValueF < (FLOAT)InstanceValue)
-                    entry->ValueF = (FLOAT)InstanceValue;
-            }
-            else
-            {
-                lookupEntry.ProcessId = (HANDLE)processId;
-                lookupEntry.EngineId = engineId;
-                lookupEntry.ValueF = (FLOAT)InstanceValue;
-
-                PhAddEntryHashtable(EtGpuRunningTimeHashTable, &lookupEntry);
-            }
+            PhAddEntryHashtable(EtGpuRunningTimeHashTable, &lookupEntry);
         }
     }
 }
@@ -493,48 +524,63 @@ VOID ParseGpuProcessMemoryDedicatedUsageCounter(
     _In_ ULONG64 InstanceValue
     )
 {
-    PH_STRINGREF partSr;
     PH_STRINGREF pidPartSr;
-    //PH_STRINGREF luidLowPartSr;
-    //PH_STRINGREF luidHighPartSr;
+    PH_STRINGREF luidHighPartSr;
+    PH_STRINGREF luidLowPartSr;
     //PH_STRINGREF physPartSr;
     PH_STRINGREF remainingPart;
+    ULONG64 processId;
+    LONG64 engineLuidLow;
+    //LONG64 engineLuidHigh;
+    PET_GPU_COUNTER entry;
+    ET_GPU_COUNTER lookupEntry;
 
     if (!EtGpuDedicatedHashTable)
         return;
 
     // pid_1116_luid_0x00000000_0x0000D3EC_phys_0
     PhInitializeStringRefLongHint(&remainingPart, InstanceName);
-    PhSplitStringRefAtChar(&remainingPart, L'_', &partSr, &remainingPart);
-    PhSplitStringRefAtChar(&remainingPart, L'_', &pidPartSr, &remainingPart);
-    //PhSplitStringRefAtChar(&remainingPart, L'_', &partSr, &remainingPart);
-    //PhSplitStringRefAtChar(&remainingPart, L'_', &luidLowPartSr, &remainingPart);
-    //PhSplitStringRefAtChar(&remainingPart, L'_', &luidHighPartSr, &remainingPart);
-    //PhSplitStringRefAtChar(&remainingPart, L'_', &partSr, &remainingPart);
-    //PhSplitStringRefAtChar(&remainingPart, L'_', &physPartSr, &remainingPart);
 
-    if (pidPartSr.Length)
+    PhSkipStringRef(&remainingPart, 4 * sizeof(WCHAR));
+
+    if (!PhSplitStringRefAtChar(&remainingPart, L'_', &pidPartSr, &remainingPart))
+        return;
+
+    PhSkipStringRef(&remainingPart, 5 * sizeof(WCHAR));
+
+    if (!PhSplitStringRefAtChar(&remainingPart, L'_', &luidHighPartSr, &remainingPart))
+        return;
+    if (!PhSplitStringRefAtChar(&remainingPart, L'_', &luidLowPartSr, &remainingPart))
+        return;
+
+    //PhSkipStringRef(&remainingPart, 8 * sizeof(WCHAR));
+    //PhSplitStringRefAtChar(&remainingPart, L'_', &engTypePartSr, &remainingPart);
+    //PhSkipStringRef(&luidHighPartSr, 2 * sizeof(WCHAR));
+    PhSkipStringRef(&luidLowPartSr, 2 * sizeof(WCHAR));
+
+    if (
+        PhStringToInteger64(&pidPartSr, 10, &processId) &&
+        //PhStringToInteger64(&luidHighPartSr, 16, &engineLuidHigh) &&
+        PhStringToInteger64(&luidLowPartSr, 16, &engineLuidLow)
+        )
     {
-        ULONG64 processId;
-        PET_GPU_COUNTER entry;
-        ET_GPU_COUNTER lookupEntry;
+        lookupEntry.ProcessId = (HANDLE)processId;
+        lookupEntry.EngineLuid.LowPart = (ULONG)engineLuidLow;
+        lookupEntry.EngineLuid.HighPart = 0; // (LONG)engineLuidHigh;
 
-        if (PhStringToInteger64(&pidPartSr, 10, &processId))
+        if (entry = PhFindEntryHashtable(EtGpuDedicatedHashTable, &lookupEntry))
+        {
+            //if (entry->Value64 < InstanceValue)
+            entry->Value64 = InstanceValue;
+        }
+        else
         {
             lookupEntry.ProcessId = (HANDLE)processId;
+            lookupEntry.EngineLuid.LowPart = (ULONG)engineLuidLow;
+            lookupEntry.EngineLuid.HighPart = 0; // (LONG)engineLuidHigh;
+            lookupEntry.Value64 = InstanceValue;
 
-            if (entry = PhFindEntryHashtable(EtGpuDedicatedHashTable, &lookupEntry))
-            {
-                if (entry->Value64 < InstanceValue)
-                    entry->Value64 = InstanceValue;
-            }
-            else
-            {
-                lookupEntry.ProcessId = (HANDLE)processId;
-                lookupEntry.Value64 = InstanceValue;
-
-                PhAddEntryHashtable(EtGpuDedicatedHashTable, &lookupEntry);
-            }
+            PhAddEntryHashtable(EtGpuDedicatedHashTable, &lookupEntry);
         }
     }
 }
@@ -544,48 +590,63 @@ VOID ParseGpuProcessMemorySharedUsageCounter(
     _In_ ULONG64 InstanceValue
     )
 {
-    PH_STRINGREF partSr;
     PH_STRINGREF pidPartSr;
-    //PH_STRINGREF luidLowPartSr;
-    //PH_STRINGREF luidHighPartSr;
+    PH_STRINGREF luidHighPartSr;
+    PH_STRINGREF luidLowPartSr;
     //PH_STRINGREF physPartSr;
     PH_STRINGREF remainingPart;
+    ULONG64 processId;
+    LONG64 engineLuidLow;
+    //LONG64 engineLuidHigh;
+    PET_GPU_COUNTER entry;
+    ET_GPU_COUNTER lookupEntry;
 
     if (!EtGpuSharedHashTable)
         return;
 
     // pid_1116_luid_0x00000000_0x0000D3EC_phys_0
     PhInitializeStringRefLongHint(&remainingPart, InstanceName);
-    PhSplitStringRefAtChar(&remainingPart, L'_', &partSr, &remainingPart);
-    PhSplitStringRefAtChar(&remainingPart, L'_', &pidPartSr, &remainingPart);
-    //PhSplitStringRefAtChar(&remainingPart, L'_', &partSr, &remainingPart);
-    //PhSplitStringRefAtChar(&remainingPart, L'_', &luidLowPartSr, &remainingPart);
-    //PhSplitStringRefAtChar(&remainingPart, L'_', &luidHighPartSr, &remainingPart);
-    //PhSplitStringRefAtChar(&remainingPart, L'_', &partSr, &remainingPart);
-    //PhSplitStringRefAtChar(&remainingPart, L'_', &physPartSr, &remainingPart);
 
-    if (pidPartSr.Length)
+    PhSkipStringRef(&remainingPart, 4 * sizeof(WCHAR));
+
+    if (!PhSplitStringRefAtChar(&remainingPart, L'_', &pidPartSr, &remainingPart))
+        return;
+
+    PhSkipStringRef(&remainingPart, 5 * sizeof(WCHAR));
+
+    if (!PhSplitStringRefAtChar(&remainingPart, L'_', &luidHighPartSr, &remainingPart))
+        return;
+    if (!PhSplitStringRefAtChar(&remainingPart, L'_', &luidLowPartSr, &remainingPart))
+        return;
+
+    //PhSkipStringRef(&remainingPart, 8 * sizeof(WCHAR));
+    //PhSplitStringRefAtChar(&remainingPart, L'_', &engTypePartSr, &remainingPart);
+    PhSkipStringRef(&luidHighPartSr, 2 * sizeof(WCHAR));
+    PhSkipStringRef(&luidLowPartSr, 2 * sizeof(WCHAR));
+
+    if (
+        PhStringToInteger64(&pidPartSr, 10, &processId) &&
+        //PhStringToInteger64(&luidHighPartSr, 16, &engineLuidHigh) && 
+        PhStringToInteger64(&luidLowPartSr, 16, &engineLuidLow)
+        )
     {
-        ULONG64 processId;
-        PET_GPU_COUNTER entry;
-        ET_GPU_COUNTER lookupEntry;
+        lookupEntry.ProcessId = (HANDLE)processId;
+        lookupEntry.EngineLuid.LowPart = (ULONG)engineLuidLow;
+        lookupEntry.EngineLuid.HighPart = 0; // (LONG)engineLuidHigh;
 
-        if (PhStringToInteger64(&pidPartSr, 10, &processId))
+        if (entry = PhFindEntryHashtable(EtGpuSharedHashTable, &lookupEntry))
+        {
+            //if (entry->Value64 < InstanceValue)
+            entry->Value64 = InstanceValue;
+        }
+        else
         {
             lookupEntry.ProcessId = (HANDLE)processId;
+            lookupEntry.EngineLuid.LowPart = (ULONG)engineLuidLow;
+            lookupEntry.EngineLuid.HighPart = 0; // (LONG)engineLuidHigh;
+            lookupEntry.Value64 = InstanceValue;
 
-            if (entry = PhFindEntryHashtable(EtGpuSharedHashTable, &lookupEntry))
-            {
-                if (entry->Value64 < InstanceValue)
-                    entry->Value64 = InstanceValue;
-            }
-            else
-            {
-                lookupEntry.ProcessId = (HANDLE)processId;
-                lookupEntry.Value64 = InstanceValue;
-
-                PhAddEntryHashtable(EtGpuSharedHashTable, &lookupEntry);
-            }
+            PhAddEntryHashtable(EtGpuSharedHashTable, &lookupEntry);
         }
     }
 }
@@ -595,48 +656,63 @@ VOID ParseGpuProcessMemoryCommitUsageCounter(
     _In_ ULONG64 InstanceValue
     )
 {
-    PH_STRINGREF partSr;
     PH_STRINGREF pidPartSr;
-    //PH_STRINGREF luidLowPartSr;
-    //PH_STRINGREF luidHighPartSr;
+    PH_STRINGREF luidHighPartSr;
+    PH_STRINGREF luidLowPartSr;
     //PH_STRINGREF physPartSr;
     PH_STRINGREF remainingPart;
+    ULONG64 processId;
+    LONG64 engineLuidLow;
+    //LONG64 engineLuidHigh;
+    PET_GPU_COUNTER entry;
+    ET_GPU_COUNTER lookupEntry;
 
     if (!EtGpuCommitHashTable)
         return;
 
     // pid_1116_luid_0x00000000_0x0000D3EC_phys_0
     PhInitializeStringRefLongHint(&remainingPart, InstanceName);
-    PhSplitStringRefAtChar(&remainingPart, L'_', &partSr, &remainingPart);
-    PhSplitStringRefAtChar(&remainingPart, L'_', &pidPartSr, &remainingPart);
-    //PhSplitStringRefAtChar(&remainingPart, L'_', &partSr, &remainingPart);
-    //PhSplitStringRefAtChar(&remainingPart, L'_', &luidLowPartSr, &remainingPart);
-    //PhSplitStringRefAtChar(&remainingPart, L'_', &luidHighPartSr, &remainingPart);
-    //PhSplitStringRefAtChar(&remainingPart, L'_', &partSr, &remainingPart);
-    //PhSplitStringRefAtChar(&remainingPart, L'_', &physPartSr, &remainingPart);
 
-    if (pidPartSr.Length)
+    PhSkipStringRef(&remainingPart, 4 * sizeof(WCHAR));
+
+    if (!PhSplitStringRefAtChar(&remainingPart, L'_', &pidPartSr, &remainingPart))
+        return;
+
+    PhSkipStringRef(&remainingPart, 5 * sizeof(WCHAR));
+
+    if (!PhSplitStringRefAtChar(&remainingPart, L'_', &luidHighPartSr, &remainingPart))
+        return;
+    if (!PhSplitStringRefAtChar(&remainingPart, L'_', &luidLowPartSr, &remainingPart))
+        return;
+
+    //PhSkipStringRef(&remainingPart, 8 * sizeof(WCHAR));
+    //PhSplitStringRefAtChar(&remainingPart, L'_', &engTypePartSr, &remainingPart);
+    //PhSkipStringRef(&luidHighPartSr, 2 * sizeof(WCHAR));
+    PhSkipStringRef(&luidLowPartSr, 2 * sizeof(WCHAR));
+
+    if (
+        PhStringToInteger64(&pidPartSr, 10, &processId) &&
+        //PhStringToInteger64(&luidHighPartSr, 16, &engineLuidHigh) &&
+        PhStringToInteger64(&luidLowPartSr, 16, &engineLuidLow)
+        )
     {
-        ULONG64 processId;
-        PET_GPU_COUNTER entry;
-        ET_GPU_COUNTER lookupEntry;
+        lookupEntry.ProcessId = (HANDLE)processId;
+        lookupEntry.EngineLuid.LowPart = (ULONG)engineLuidLow;
+        lookupEntry.EngineLuid.HighPart = 0; // (LONG)engineLuidHigh;
 
-        if (PhStringToInteger64(&pidPartSr, 10, &processId))
+        if (entry = PhFindEntryHashtable(EtGpuCommitHashTable, &lookupEntry))
+        {
+            //if (entry->Value64 < InstanceValue)
+            entry->Value64 = InstanceValue;
+        }
+        else
         {
             lookupEntry.ProcessId = (HANDLE)processId;
+            lookupEntry.EngineLuid.LowPart = (ULONG)engineLuidLow;
+            lookupEntry.EngineLuid.HighPart = 0; // (LONG)engineLuidHigh;
+            lookupEntry.Value64 = InstanceValue;
 
-            if (entry = PhFindEntryHashtable(EtGpuCommitHashTable, &lookupEntry))
-            {
-                if (entry->Value64 < InstanceValue)
-                    entry->Value64 = InstanceValue;
-            }
-            else
-            {
-                lookupEntry.ProcessId = (HANDLE)processId;
-                lookupEntry.Value64 = InstanceValue;
-
-                PhAddEntryHashtable(EtGpuCommitHashTable, &lookupEntry);
-            }
+            PhAddEntryHashtable(EtGpuCommitHashTable, &lookupEntry);
         }
     }
 }
@@ -786,19 +862,27 @@ NTSTATUS NTAPI EtGpuCounterQueryThread(
             {
                 PhAcquireFastLockExclusive(&EtGpuDedicatedHashTableLock);
 
-                // Reset hashtable once in a while.
-                {
-                    static ULONG64 lastTickCount = 0;
-                    ULONG64 tickCount;
+                PhClearHashtable(EtGpuDedicatedHashTable);
 
-                    tickCount = NtGetTickCount64();
+                //// Reset hashtable once in a while.
+                //{
+                //    static ULONG64 lastTickCount = 0;
+                //    ULONG64 tickCount;
 
-                    if (tickCount - lastTickCount >= 10 * CLOCKS_PER_SEC)
-                    {
-                        PhClearHashtable(EtGpuDedicatedHashTable);
-                        lastTickCount = tickCount;
-                    }
-                }
+                //    tickCount = NtGetTickCount64();
+
+                //    if (tickCount - lastTickCount >= 10 * CLOCKS_PER_SEC)
+                //    {
+                //        PhDereferenceObject(EtGpuDedicatedHashTable);
+                //        EtGpuDedicatedHashTable = PhCreateHashtable(
+                //            sizeof(ET_GPU_COUNTER),
+                //            EtpDedicatedEqualFunction,
+                //            EtpDedicatedHashFunction,
+                //            10
+                //            );
+                //        lastTickCount = tickCount;
+                //    }
+                //}
 
                 for (ULONG i = 0; i < bufferCount; i++)
                 {
@@ -829,19 +913,21 @@ NTSTATUS NTAPI EtGpuCounterQueryThread(
             {
                 PhAcquireFastLockExclusive(&EtGpuSharedHashTableLock);
 
+                PhClearHashtable(EtGpuSharedHashTable);
+
                 // Reset hashtable once in a while.
-                {
-                    static ULONG64 lastTickCount = 0;
-                    ULONG64 tickCount;
+                //{
+                //    static ULONG64 lastTickCount = 0;
+                //    ULONG64 tickCount;
 
-                    tickCount = NtGetTickCount64();
+                //    tickCount = NtGetTickCount64();
 
-                    if (tickCount - lastTickCount >= 10 * CLOCKS_PER_SEC)
-                    {
-                        PhClearHashtable(EtGpuSharedHashTable);
-                        lastTickCount = tickCount;
-                    }
-                }
+                //    if (tickCount - lastTickCount >= 10 * CLOCKS_PER_SEC)
+                //    {
+                //        PhClearHashtable(EtGpuSharedHashTable);
+                //        lastTickCount = tickCount;
+                //    }
+                //}
 
                 for (ULONG i = 0; i < bufferCount; i++)
                 {
@@ -872,19 +958,21 @@ NTSTATUS NTAPI EtGpuCounterQueryThread(
             {
                 PhAcquireFastLockExclusive(&EtGpuCommitHashTableLock);
 
+                PhClearHashtable(EtGpuCommitHashTable);
+
                 // Reset hashtable once in a while.
-                {
-                    static ULONG64 lastTickCount = 0;
-                    ULONG64 tickCount;
+                //{
+                //    static ULONG64 lastTickCount = 0;
+                //    ULONG64 tickCount;
 
-                    tickCount = NtGetTickCount64();
+                //    tickCount = NtGetTickCount64();
 
-                    if (tickCount - lastTickCount >= 10 * 1000)
-                    {
-                        PhClearHashtable(EtGpuCommitHashTable);
-                        lastTickCount = tickCount;
-                    }
-                }
+                //    if (tickCount - lastTickCount >= 10 * 1000)
+                //    {
+                //        PhClearHashtable(EtGpuCommitHashTable);
+                //        lastTickCount = tickCount;
+                //    }
+                //}
 
                 for (ULONG i = 0; i < bufferCount; i++)
                 {
