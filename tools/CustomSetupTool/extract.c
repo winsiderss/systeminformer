@@ -326,8 +326,6 @@ BOOLEAN SetupExtractBuild(
 #ifdef PH_BUILD_API
     if (zipBuffer)
         PhFree(zipBuffer);
-    if (resourceBuffer)
-        PhFree(resourceBuffer);
     if (bufferString)
         PhDereferenceObject(bufferString);
 #endif
@@ -343,8 +341,6 @@ CleanupExit:
 #ifdef PH_BUILD_API
     if (zipBuffer)
         PhFree(zipBuffer);
-    if (resourceBuffer)
-        PhFree(resourceBuffer);
     if (bufferString)
         PhDereferenceObject(bufferString);
 #endif
