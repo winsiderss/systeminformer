@@ -284,7 +284,7 @@ PPH_STRING PvpGetMappedImageAuthentihash(
 {
     PPH_STRING hashString = NULL;
     PIMAGE_DOS_HEADER imageDosHeader;
-    ULONG offset = 0;
+    ULONG64 offset = 0;
     ULONG imageChecksumOffset;
     ULONG imageSecurityOffset;
     PIMAGE_DATA_DIRECTORY dataDirectory;
