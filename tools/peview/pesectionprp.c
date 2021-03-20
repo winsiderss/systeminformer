@@ -2,7 +2,7 @@
  * Process Hacker -
  *   PE viewer
  *
- * Copyright (C) 2019-2020 dmex
+ * Copyright (C) 2019-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -216,6 +216,30 @@ VOID PvSetPeImageSections(
 
                     PhSetListViewSubItem(ListViewHandle, lvItemIndex, 9, PhGetStringOrEmpty(message));
                 }
+
+                __try
+                {
+                    PVOID imageSectionData;
+                    PPH_STRING entropyString;
+                    DOUBLE imageSectionEntropy;
+
+                    if (imageSectionData = PhMappedImageRvaToVa(&PvMappedImage, PvMappedImage.Sections[i].VirtualAddress, NULL))
+                    {
+                        imageSectionEntropy = PvCalculateEntropyBuffer(imageSectionData, PvMappedImage.Sections[i].SizeOfRawData);
+                        entropyString = PvFormatDoubleCropZero(imageSectionEntropy, 2);
+                        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 10, entropyString->Buffer);
+                        PhDereferenceObject(entropyString);
+                    }
+                }
+                __except (EXCEPTION_EXECUTE_HANDLER)
+                {
+                    PPH_STRING message;
+
+                    //message = PH_AUTO(PhGetNtMessage(GetExceptionCode()));
+                    message = PH_AUTO(PhGetWin32Message(RtlNtStatusToDosError(GetExceptionCode()))); // WIN32_FROM_NTSTATUS
+
+                    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 10, PhGetStringOrEmpty(message));
+                }
             }
         }
     }
@@ -267,6 +291,8 @@ INT_PTR CALLBACK PvPeSectionsDlgProc(
             PhAddListViewColumn(context->ListViewHandle, 7, 7, 7, LVCFMT_LEFT, 80, L"RVA (size)");
             PhAddListViewColumn(context->ListViewHandle, 8, 8, 8, LVCFMT_LEFT, 250, L"Characteristics");
             PhAddListViewColumn(context->ListViewHandle, 9, 9, 9, LVCFMT_LEFT, 80, L"Hash");
+            PhAddListViewColumn(context->ListViewHandle, 10, 10, 10, LVCFMT_LEFT, 80, L"Entropy");
+
             //ExtendedListView_SetItemColorFunction(context->ListViewHandle, PvPeCharacteristicsColorFunction);
             ExtendedListView_SetCompareFunction(context->ListViewHandle, 1, PvPeVirtualAddressCompareFunction);
             ExtendedListView_SetCompareFunction(context->ListViewHandle, 2, PvPeSizeOfRawDataCompareFunction);

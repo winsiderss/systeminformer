@@ -177,7 +177,8 @@ typedef enum _PVE_RESOURCES_COLUMN_INDEX
     PVE_RESOURCES_COLUMN_INDEX_ENDRVA,
     PVE_RESOURCES_COLUMN_INDEX_SIZE,
     PVE_RESOURCES_COLUMN_INDEX_LCID,
-    PVE_RESOURCES_COLUMN_INDEX_HASH
+    PVE_RESOURCES_COLUMN_INDEX_HASH,
+    PVE_RESOURCES_COLUMN_INDEX_ENTROPY
 } PVE_RESOURCES_COLUMN_INDEX;
 
 INT_PTR CALLBACK PvpPeResourcesDlgProc(
@@ -215,6 +216,7 @@ INT_PTR CALLBACK PvpPeResourcesDlgProc(
             PhAddListViewColumn(lvHandle, 5, 5, 5, LVCFMT_LEFT, 100, L"Size");
             PhAddListViewColumn(lvHandle, 6, 6, 6, LVCFMT_LEFT, 100, L"Language");
             PhAddListViewColumn(lvHandle, 7, 7, 7, LVCFMT_LEFT, 100, L"Hash");
+            PhAddListViewColumn(lvHandle, 8, 8, 8, LVCFMT_LEFT, 100, L"Entropy");
             PhSetExtendedListView(lvHandle);
             PhLoadListViewColumnsFromSetting(L"ImageResourcesListViewColumns", lvHandle);
 
@@ -330,6 +332,29 @@ INT_PTR CALLBACK PvpPeResourcesDlgProc(
                             message = PH_AUTO(PhGetWin32Message(RtlNtStatusToDosError(GetExceptionCode()))); // WIN32_FROM_NTSTATUS
 
                             PhSetListViewSubItem(lvHandle, lvItemIndex, PVE_RESOURCES_COLUMN_INDEX_HASH, PhGetStringOrEmpty(message));
+                        }
+                    }
+
+                    if (entry.Data && entry.Size)
+                    {
+                        __try
+                        {
+                            PPH_STRING entropyString;
+                            DOUBLE imageResourceEntropy;
+
+                            imageResourceEntropy = PvCalculateEntropyBuffer(entry.Data, entry.Size);
+                            entropyString = PvFormatDoubleCropZero(imageResourceEntropy, 2);
+                            PhSetListViewSubItem(lvHandle, lvItemIndex, PVE_RESOURCES_COLUMN_INDEX_ENTROPY, entropyString->Buffer);
+                            PhDereferenceObject(entropyString);
+                        }
+                        __except (EXCEPTION_EXECUTE_HANDLER)
+                        {
+                            PPH_STRING message;
+
+                            //message = PH_AUTO(PhGetNtMessage(GetExceptionCode()));
+                            message = PH_AUTO(PhGetWin32Message(RtlNtStatusToDosError(GetExceptionCode()))); // WIN32_FROM_NTSTATUS
+
+                            PhSetListViewSubItem(lvHandle, lvItemIndex, PVE_RESOURCES_COLUMN_INDEX_ENTROPY, PhGetStringOrEmpty(message));
                         }
                     }
                 }
