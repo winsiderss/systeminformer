@@ -9,8 +9,7 @@ static bool can_multiply(size_t const, size_t const, size_t const);
 
 // Allocate an MMDB_data_pool_s. It initially has space for size
 // MMDB_entry_data_list_s structs.
-MMDB_data_pool_s *data_pool_new(size_t const size)
-{
+MMDB_data_pool_s *data_pool_new(size_t const size) {
     MMDB_data_pool_s *const pool = calloc(1, sizeof(MMDB_data_pool_s));
     if (!pool) {
         return NULL;
@@ -40,8 +39,7 @@ MMDB_data_pool_s *data_pool_new(size_t const size)
 // the given max. max will typically be SIZE_MAX.
 //
 // We want to know if we'll wrap around.
-static bool can_multiply(size_t const max, size_t const m, size_t const n)
-{
+static bool can_multiply(size_t const max, size_t const m, size_t const n) {
     if (m == 0) {
         return false;
     }
@@ -50,8 +48,7 @@ static bool can_multiply(size_t const max, size_t const m, size_t const n)
 }
 
 // Clean up the data pool.
-void data_pool_destroy(MMDB_data_pool_s *const pool)
-{
+void data_pool_destroy(MMDB_data_pool_s *const pool) {
     if (!pool) {
         return;
     }
@@ -65,8 +62,7 @@ void data_pool_destroy(MMDB_data_pool_s *const pool)
 
 // Claim a new struct from the pool. Doing this may cause the pool's size to
 // grow.
-MMDB_entry_data_list_s *data_pool_alloc(MMDB_data_pool_s *const pool)
-{
+MMDB_entry_data_list_s *data_pool_alloc(MMDB_data_pool_s *const pool) {
     if (!pool) {
         return NULL;
     }
@@ -115,8 +111,7 @@ MMDB_entry_data_list_s *data_pool_alloc(MMDB_data_pool_s *const pool)
 // Turn the structs in the array-like pool into a linked list.
 //
 // Before calling this function, the list isn't linked up.
-MMDB_entry_data_list_s *data_pool_to_list(MMDB_data_pool_s *const pool)
-{
+MMDB_entry_data_list_s *data_pool_to_list(MMDB_data_pool_s *const pool) {
     if (!pool) {
         return NULL;
     }
@@ -154,22 +149,16 @@ MMDB_entry_data_list_s *data_pool_to_list(MMDB_data_pool_s *const pool)
 
 static void test_can_multiply(void);
 
-int main(void)
-{
+int main(void) {
     plan(NO_PLAN);
     test_can_multiply();
     done_testing();
 }
 
-static void test_can_multiply(void)
-{
-    {
-        ok(can_multiply(SIZE_MAX, 1, SIZE_MAX), "1*SIZE_MAX is ok");
-    }
+static void test_can_multiply(void) {
+    { ok(can_multiply(SIZE_MAX, 1, SIZE_MAX), "1*SIZE_MAX is ok"); }
 
-    {
-        ok(!can_multiply(SIZE_MAX, 2, SIZE_MAX), "2*SIZE_MAX is not ok");
-    }
+    { ok(!can_multiply(SIZE_MAX, 2, SIZE_MAX), "2*SIZE_MAX is not ok"); }
 
     {
         ok(can_multiply(SIZE_MAX, 10240, sizeof(MMDB_entry_data_list_s)),
