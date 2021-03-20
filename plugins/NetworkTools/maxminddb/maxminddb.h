@@ -35,7 +35,7 @@ extern "C" {
 #include <winsock2.h>
 #include <ws2tcpip.h>
 /* libmaxminddb package version from configure */
-#define PACKAGE_VERSION "1.4.2"
+#define PACKAGE_VERSION "1.5.2"
 
 typedef ADDRESS_FAMILY sa_family_t;
 
@@ -94,7 +94,7 @@ typedef ADDRESS_FAMILY sa_family_t;
 
 #if !(MMDB_UINT128_IS_BYTE_ARRAY)
 #if MMDB_UINT128_USING_MODE
-typedef unsigned int mmdb_uint128_t __attribute__ ((__mode__(TI)));
+typedef unsigned int mmdb_uint128_t __attribute__((__mode__(TI)));
 #else
 typedef unsigned __int128 mmdb_uint128_t;
 #endif
@@ -146,7 +146,8 @@ typedef struct MMDB_entry_data_s {
     uint32_t type;
 } MMDB_entry_data_s;
 
-/* This is the return type when someone asks for all the entry data in a map or array */
+/* This is the return type when someone asks for all the entry data in a map or
+ * array */
 typedef struct MMDB_entry_data_list_s {
     MMDB_entry_data_s entry_data;
     struct MMDB_entry_data_list_s *next;
@@ -220,19 +221,16 @@ typedef struct MMDB_search_node_s {
     MMDB_entry_s right_record_entry;
 } MMDB_search_node_s;
 
-extern int MMDB_open(
-    const wchar_t* const filename,
-    uint32_t flags,
-    MMDB_s *const mmdb);
-
+extern int
+MMDB_open(const wchar_t* const filename, uint32_t flags, MMDB_s *const mmdb);
 extern MMDB_lookup_result_s MMDB_lookup_string(const MMDB_s *const mmdb,
                                                const char *const ipstr,
                                                int *const gai_error,
                                                int *const mmdb_error);
-extern MMDB_lookup_result_s MMDB_lookup_sockaddr(
-    const MMDB_s *const mmdb,
-    const struct sockaddr *const sockaddr,
-    int *const mmdb_error);
+extern MMDB_lookup_result_s
+MMDB_lookup_sockaddr(const MMDB_s *const mmdb,
+                     const struct sockaddr *const sockaddr,
+                     int *const mmdb_error);
 extern int MMDB_read_node(const MMDB_s *const mmdb,
                           uint32_t node_number,
                           MMDB_search_node_s *const node);
@@ -247,18 +245,20 @@ extern int MMDB_aget_value(MMDB_entry_s *const start,
                            const char *const *const path);
 extern int MMDB_get_metadata_as_entry_data_list(
     const MMDB_s *const mmdb, MMDB_entry_data_list_s **const entry_data_list);
-extern int MMDB_get_entry_data_list(
-    MMDB_entry_s *start, MMDB_entry_data_list_s **const entry_data_list);
-extern void MMDB_free_entry_data_list(
-    MMDB_entry_data_list_s *const entry_data_list);
+extern int
+MMDB_get_entry_data_list(MMDB_entry_s *start,
+                         MMDB_entry_data_list_s **const entry_data_list);
+extern void
+MMDB_free_entry_data_list(MMDB_entry_data_list_s *const entry_data_list);
 extern void MMDB_close(MMDB_s *const mmdb);
 extern const char *MMDB_lib_version(void);
-extern int MMDB_dump_entry_data_list(FILE *const stream,
-                                     MMDB_entry_data_list_s *const entry_data_list,
-                                     int indent);
+extern int
+MMDB_dump_entry_data_list(FILE *const stream,
+                          MMDB_entry_data_list_s *const entry_data_list,
+                          int indent);
 extern const char *MMDB_strerror(int error_code);
 
-#endif                          /* MAXMINDDB_H */
+#endif /* MAXMINDDB_H */
 
 #ifdef __cplusplus
 }
