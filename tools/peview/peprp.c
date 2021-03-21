@@ -322,6 +322,16 @@ VOID PvPeProperties(
             }
         }
 
+        // Relocations page
+        {
+            newPage = PvCreatePropPageContext(
+                MAKEINTRESOURCE(IDD_PERELOCATIONS),
+                PvpPeRelocationDlgProc,
+                NULL
+                );
+            PvAddPropPage(propContext, newPage);
+        }
+
         // Certificates page
         if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_SECURITY, &entry)) && entry->VirtualAddress)
         {
@@ -894,42 +904,42 @@ VOID PvCalculateImageEntropy(
 {
     DOUBLE imageEntropy = 0.0;
     ULONG64 offset = 0;
-    ULONG64 avgSumValue = 0;
-    DOUBLE avgMeanValue = 0;
+    ULONG64 imageSumValue = 0;
+    DOUBLE imageMeanValue = 0;
     //DOUBLE deviationValue = 0;
-    ULONG64 buffer[UCHAR_MAX + 1];
+    ULONG64 counts[UCHAR_MAX + 1];
 
-    memset(buffer, 0, sizeof(buffer));
+    memset(counts, 0, sizeof(counts));
 
     while (offset < PvMappedImage.Size)
     {
         BYTE value = *(PBYTE)PTR_ADD_OFFSET(PvMappedImage.ViewBase, offset++);
 
-        avgSumValue += value;
-        buffer[value]++;
+        imageSumValue += value;
+        counts[value]++;
     }
 
-    for (ULONG i = 0; i < RTL_NUMBER_OF(buffer); i++)
+    for (ULONG i = 0; i < RTL_NUMBER_OF(counts); i++)
     {
-        DOUBLE value = (DOUBLE)buffer[i] / (DOUBLE)PvMappedImage.Size;
+        DOUBLE value = (DOUBLE)counts[i] / (DOUBLE)PvMappedImage.Size;
 
         if (value > 0.0)
             imageEntropy -= value * log2(value);
     }
 
-    avgMeanValue = (DOUBLE)avgSumValue / (DOUBLE)PvMappedImage.Size; // 127.5 = random
+    imageMeanValue = (DOUBLE)imageSumValue / (DOUBLE)PvMappedImage.Size; // 127.5 = random
 
     //offset = 0;
     //while (offset < PvMappedImage.Size)
     //{
     //    BYTE value = *(PBYTE)PTR_ADD_OFFSET(PvMappedImage.ViewBase, offset++);
-    //    deviationValue += pow(value - avgMeanValue, 2);
+    //    deviationValue += pow(value - imageMeanValue, 2);
     //}
     //DOUBLE varianceValue = deviationValue / (DOUBLE)PvMappedImage.Size;
     //deviationValue = sqrt(varianceValue);
 
     *ImageEntropy = imageEntropy;
-    *ImageVariance = avgMeanValue;
+    *ImageVariance = imageMeanValue;
 }
 
 DOUBLE PvCalculateEntropyBuffer(
@@ -939,20 +949,20 @@ DOUBLE PvCalculateEntropyBuffer(
 {
     DOUBLE bufferEntropy = 0.0;
     ULONG64 offset = 0;
-    ULONG64 buffer[UCHAR_MAX + 1];
+    ULONG64 counts[UCHAR_MAX + 1];
 
-    memset(buffer, 0, sizeof(buffer));
+    memset(counts, 0, sizeof(counts));
 
     while (offset < BufferLength)
     {
         BYTE value = *(PBYTE)PTR_ADD_OFFSET(Buffer, offset++);
 
-        buffer[value]++;
+        counts[value]++;
     }
 
-    for (ULONG i = 0; i < RTL_NUMBER_OF(buffer); i++)
+    for (ULONG i = 0; i < RTL_NUMBER_OF(counts); i++)
     {
-        DOUBLE value = (DOUBLE)buffer[i] / (DOUBLE)BufferLength;
+        DOUBLE value = (DOUBLE)counts[i] / (DOUBLE)BufferLength;
 
         if (value > 0.0)
             bufferEntropy -= value * log2(value);

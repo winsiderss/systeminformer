@@ -1626,32 +1626,6 @@ INT_PTR CALLBACK PvpPeSecurityDlgProc(
                     PhFree(nodes);
                 }
                 break;
-            case IDC_GOTO:
-                {
-                    RECT rect;
-                    PPH_EMENU menu;
-                    PPH_EMENU_ITEM selectedItem;
-
-                    GetWindowRect(GetDlgItem(hwndDlg, IDC_GOTO), &rect);
-
-                    menu = PhCreateEMenu();
-                    selectedItem = PhShowEMenu(
-                        menu,
-                        hwndDlg,
-                        PH_EMENU_SHOW_LEFTRIGHT,
-                        PH_ALIGN_LEFT | PH_ALIGN_TOP,
-                        rect.left,
-                        rect.bottom
-                        );
-
-                    if (selectedItem && selectedItem->Id)
-                    {
-
-                    }
-
-                    PhDestroyEMenu(menu);
-                }
-                break;
             case IDC_RESET:
                 {
                     PvClearCertificateTree(context);
@@ -1671,7 +1645,7 @@ INT_PTR CALLBACK PvpPeSecurityDlgProc(
              switch (pageNotify->hdr.code)
              {
              case PSN_QUERYINITIALFOCUS:
-                 SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LPARAM)GetDlgItem(hwndDlg, IDC_GOTO));
+                 SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LPARAM)context->TreeNewHandle);
                  return TRUE;
              }
          }

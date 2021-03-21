@@ -360,6 +360,7 @@
     <ClCompile Include="layout.c" />
     <ClCompile Include="options.c" />
     <ClCompile Include="peexceptprp.c" />
+    <ClCompile Include="perelocprp.c" />
     <ClCompile Include="pesectionprp.c" />
     <ClCompile Include="pepogoprp.c" />
     <ClCompile Include="richprp.c" />

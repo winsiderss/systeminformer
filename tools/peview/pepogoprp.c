@@ -2,7 +2,7 @@
  * Process Hacker -
  *   PE viewer
  *
- * Copyright (C) 2020 dmex
+ * Copyright (C) 2020-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -21,6 +21,8 @@
  */
 
 #include <peview.h>
+#include "ssdeep/fuzzy.h"
+#include "tlsh/tlsh_wrapper.h"
 
 VOID PvEnumerateImagePogoSections(
     _In_ HWND WindowHandle,
@@ -92,6 +94,86 @@ VOID PvEnumerateImagePogoSections(
 
                 PhSetListViewSubItem(ListViewHandle, lvItemIndex, 6, PhGetStringOrEmpty(message));
             }
+
+            __try
+            {
+                PVOID imageSectionData;
+                PPH_STRING entropyString;
+                DOUBLE imageSectionEntropy;
+
+                if (imageSectionData = PhMappedImageRvaToVa(&PvMappedImage, entry->Rva, NULL))
+                {
+                    imageSectionEntropy = PvCalculateEntropyBuffer(imageSectionData, entry->Size);
+                    entropyString = PvFormatDoubleCropZero(imageSectionEntropy, 2);
+                    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 7, entropyString->Buffer);
+                    PhDereferenceObject(entropyString);
+                }
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                PPH_STRING message;
+
+                //message = PH_AUTO(PhGetNtMessage(GetExceptionCode()));
+                message = PH_AUTO(PhGetWin32Message(RtlNtStatusToDosError(GetExceptionCode()))); // WIN32_FROM_NTSTATUS
+
+                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 7, PhGetStringOrEmpty(message));
+            }
+
+            __try
+            {
+                PVOID imageSectionData;
+                PPH_STRING ssdeepHashString = NULL;
+
+                if (imageSectionData = PhMappedImageRvaToVa(&PvMappedImage, entry->Rva, NULL))
+                {
+                    fuzzy_hash_buffer(imageSectionData, entry->Size, &ssdeepHashString);
+
+                    if (!PhIsNullOrEmptyString(ssdeepHashString))
+                    {
+                        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 8, ssdeepHashString->Buffer);
+                        PhDereferenceObject(ssdeepHashString);
+                    }
+                }
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                PPH_STRING message;
+
+                //message = PH_AUTO(PhGetNtMessage(GetExceptionCode()));
+                message = PH_AUTO(PhGetWin32Message(RtlNtStatusToDosError(GetExceptionCode()))); // WIN32_FROM_NTSTATUS
+
+                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 8, PhGetStringOrEmpty(message));
+            }
+
+            __try
+            {
+                PVOID imageSectionData;
+                PPH_STRING tlshHashString = NULL;
+
+                if (imageSectionData = PhMappedImageRvaToVa(&PvMappedImage, entry->Rva, NULL))
+                {
+                    //
+                    // This can fail in TLSH library during finalization when
+                    // "buckets must be more than 50% non-zero" (see: tlsh_impl.cpp)
+                    //
+                    PvGetTlshBufferHash(imageSectionData, entry->Size, &tlshHashString);
+
+                    if (!PhIsNullOrEmptyString(tlshHashString))
+                    {
+                        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 9, tlshHashString->Buffer);
+                        PhDereferenceObject(tlshHashString);
+                    }
+                }
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                PPH_STRING message;
+
+                //message = PH_AUTO(PhGetNtMessage(GetExceptionCode()));
+                message = PH_AUTO(PhGetWin32Message(RtlNtStatusToDosError(GetExceptionCode()))); // WIN32_FROM_NTSTATUS
+
+                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 9, PhGetStringOrEmpty(message));
+            }
         }
 
         PhFree(pogo.PogoEntries);
@@ -127,6 +209,9 @@ INT_PTR CALLBACK PvpPeDebugPogoDlgProc(
             PhAddListViewColumn(lvHandle, 4, 4, 4, LVCFMT_LEFT, 100, L"Size");
             PhAddListViewColumn(lvHandle, 5, 5, 5, LVCFMT_LEFT, 100, L"Section");
             PhAddListViewColumn(lvHandle, 6, 6, 6, LVCFMT_LEFT, 80, L"Hash");
+            PhAddListViewColumn(lvHandle, 7, 7, 7, LVCFMT_LEFT, 100, L"Entropy");
+            PhAddListViewColumn(lvHandle, 8, 8, 8, LVCFMT_LEFT, 80, L"SSDEEP");
+            PhAddListViewColumn(lvHandle, 9, 9, 9, LVCFMT_LEFT, 80, L"TLSH");
             PhSetExtendedListView(lvHandle);
             PhLoadListViewColumnsFromSetting(L"ImageDebugPogoListViewColumns", lvHandle);
 
