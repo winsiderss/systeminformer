@@ -39,6 +39,7 @@
 #define IDD_PELAYOUT                    137
 #define IDD_PEHASHES                    138
 #define IDD_PEEXCEPTIONS                140
+#define IDD_PERELOCATIONS               142
 #define IDC_TARGETMACHINE               1003
 #define IDC_CHECKSUM                    1004
 #define IDC_SUBSYSTEM                   1005

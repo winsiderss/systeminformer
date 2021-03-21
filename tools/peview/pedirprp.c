@@ -160,6 +160,30 @@ VOID PvpPeEnumerateImageDataDirectory(
 
             PhSetListViewSubItem(ListViewHandle, lvItemIndex, 6, PhGetStringOrEmpty(message));
         }
+
+        __try
+        {
+            PVOID directoryData;
+            PPH_STRING entropyString;
+            DOUBLE imageDirectoryEntropy;
+
+            if (directoryData = PhMappedImageRvaToVa(&PvMappedImage, directoryAddress, NULL))
+            {
+                imageDirectoryEntropy = PvCalculateEntropyBuffer(directoryData, directorySize);
+                entropyString = PvFormatDoubleCropZero(imageDirectoryEntropy, 2);
+                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 7, entropyString->Buffer);
+                PhDereferenceObject(entropyString);
+            }
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            PPH_STRING message;
+
+            //message = PH_AUTO(PhGetNtMessage(GetExceptionCode()));
+            message = PH_AUTO(PhGetWin32Message(RtlNtStatusToDosError(GetExceptionCode()))); // WIN32_FROM_NTSTATUS
+
+            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 6, PhGetStringOrEmpty(message));
+        }
     }
 }
 
@@ -220,6 +244,7 @@ INT_PTR CALLBACK PvpPeDirectoryDlgProc(
             PhAddListViewColumn(context->ListViewHandle, 4, 4, 4, LVCFMT_LEFT, 100, L"Size");
             PhAddListViewColumn(context->ListViewHandle, 5, 5, 5, LVCFMT_LEFT, 100, L"Section");
             PhAddListViewColumn(context->ListViewHandle, 6, 6, 6, LVCFMT_LEFT, 100, L"Hash");
+            PhAddListViewColumn(context->ListViewHandle, 7, 7, 7, LVCFMT_LEFT, 100, L"Entropy");
             PhSetExtendedListView(context->ListViewHandle);
             //ExtendedListView_SetItemColorFunction(context->ListViewHandle, PvPeSectionColorFunction);
             PhLoadListViewColumnsFromSetting(L"ImageDirectoryListViewColumns", context->ListViewHandle);

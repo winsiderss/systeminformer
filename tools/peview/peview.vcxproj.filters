@@ -165,6 +165,9 @@
     <ClCompile Include="peexceptprp.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="perelocprp.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\peview.h">
