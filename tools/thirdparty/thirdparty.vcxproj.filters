@@ -19,6 +19,9 @@
     <Filter Include="PCRE\Headers">
       <UniqueIdentifier>{a5b41e83-52d6-4ac9-b07c-b701a8e3d7f0}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Capstone">
+      <UniqueIdentifier>{9f1f3b9d-8cd8-487d-a808-8a92eae8dfb0}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="jsonc\arraylist.c">
@@ -177,6 +180,141 @@
     <ClCompile Include="mxml\mxml-set.c">
       <Filter>Mini-XML</Filter>
     </ClCompile>
+    <ClCompile Include="capstone\arch\AArch64\AArch64BaseInfo.c">
+      <Filter>Capstone</Filter>
+    </ClCompile>
+    <ClCompile Include="capstone\arch\AArch64\AArch64Disassembler.c">
+      <Filter>Capstone</Filter>
+    </ClCompile>
+    <ClCompile Include="capstone\arch\AArch64\AArch64InstPrinter.c">
+      <Filter>Capstone</Filter>
+    </ClCompile>
+    <ClCompile Include="capstone\arch\AArch64\AArch64Mapping.c">
+      <Filter>Capstone</Filter>
+    </ClCompile>
+    <ClCompile Include="capstone\arch\AArch64\AArch64Module.c">
+      <Filter>Capstone</Filter>
+    </ClCompile>
+    <ClCompile Include="capstone\arch\ARM\ARMDisassembler.c">
+      <Filter>Capstone</Filter>
+    </ClCompile>
+    <ClCompile Include="capstone\arch\ARM\ARMInstPrinter.c">
+      <Filter>Capstone</Filter>
+    </ClCompile>
+    <ClCompile Include="capstone\arch\ARM\ARMMapping.c">
+      <Filter>Capstone</Filter>
+    </ClCompile>
+    <ClCompile Include="capstone\arch\ARM\ARMModule.c">
+      <Filter>Capstone</Filter>
+    </ClCompile>
+    <ClCompile Include="capstone\cs.c">
+      <Filter>Capstone</Filter>
+    </ClCompile>
+    <ClCompile Include="capstone\arch\EVM\EVMDisassembler.c">
+      <Filter>Capstone</Filter>
+    </ClCompile>
+    <ClCompile Include="capstone\arch\EVM\EVMInstPrinter.c">
+      <Filter>Capstone</Filter>
+    </ClCompile>
+    <ClCompile Include="capstone\arch\EVM\EVMMapping.c">
+      <Filter>Capstone</Filter>
+    </ClCompile>
+    <ClCompile Include="capstone\arch\EVM\EVMModule.c">
+      <Filter>Capstone</Filter>
+    </ClCompile>
+    <ClCompile Include="capstone\arch\M68K\M68KDisassembler.c">
+      <Filter>Capstone</Filter>
+    </ClCompile>
+    <ClCompile Include="capstone\arch\M68K\M68KInstPrinter.c">
+      <Filter>Capstone</Filter>
+    </ClCompile>
+    <ClCompile Include="capstone\arch\M68K\M68KModule.c">
+      <Filter>Capstone</Filter>
+    </ClCompile>
+    <ClCompile Include="capstone\MCInst.c">
+      <Filter>Capstone</Filter>
+    </ClCompile>
+    <ClCompile Include="capstone\MCInstrDesc.c">
+      <Filter>Capstone</Filter>
+    </ClCompile>
+    <ClCompile Include="capstone\MCRegisterInfo.c">
+      <Filter>Capstone</Filter>
+    </ClCompile>
+    <ClCompile Include="capstone\arch\Mips\MipsDisassembler.c">
+      <Filter>Capstone</Filter>
+    </ClCompile>
+    <ClCompile Include="capstone\arch\Mips\MipsInstPrinter.c">
+      <Filter>Capstone</Filter>
+    </ClCompile>
+    <ClCompile Include="capstone\arch\Mips\MipsMapping.c">
+      <Filter>Capstone</Filter>
+    </ClCompile>
+    <ClCompile Include="capstone\arch\Mips\MipsModule.c">
+      <Filter>Capstone</Filter>
+    </ClCompile>
+    <ClCompile Include="capstone\arch\Sparc\SparcDisassembler.c">
+      <Filter>Capstone</Filter>
+    </ClCompile>
+    <ClCompile Include="capstone\arch\Sparc\SparcInstPrinter.c">
+      <Filter>Capstone</Filter>
+    </ClCompile>
+    <ClCompile Include="capstone\arch\Sparc\SparcMapping.c">
+      <Filter>Capstone</Filter>
+    </ClCompile>
+    <ClCompile Include="capstone\arch\Sparc\SparcModule.c">
+      <Filter>Capstone</Filter>
+    </ClCompile>
+    <ClCompile Include="capstone\SStream.c">
+      <Filter>Capstone</Filter>
+    </ClCompile>
+    <ClCompile Include="capstone\arch\SystemZ\SystemZDisassembler.c">
+      <Filter>Capstone</Filter>
+    </ClCompile>
+    <ClCompile Include="capstone\arch\SystemZ\SystemZInstPrinter.c">
+      <Filter>Capstone</Filter>
+    </ClCompile>
+    <ClCompile Include="capstone\arch\SystemZ\SystemZMapping.c">
+      <Filter>Capstone</Filter>
+    </ClCompile>
+    <ClCompile Include="capstone\arch\SystemZ\SystemZMCTargetDesc.c">
+      <Filter>Capstone</Filter>
+    </ClCompile>
+    <ClCompile Include="capstone\arch\SystemZ\SystemZModule.c">
+      <Filter>Capstone</Filter>
+    </ClCompile>
+    <ClCompile Include="capstone\utils.c">
+      <Filter>Capstone</Filter>
+    </ClCompile>
+    <ClCompile Include="capstone\arch\X86\X86ATTInstPrinter.c">
+      <Filter>Capstone</Filter>
+    </ClCompile>
+    <ClCompile Include="capstone\arch\X86\X86Disassembler.c">
+      <Filter>Capstone</Filter>
+    </ClCompile>
+    <ClCompile Include="capstone\arch\X86\X86DisassemblerDecoder.c">
+      <Filter>Capstone</Filter>
+    </ClCompile>
+    <ClCompile Include="capstone\arch\X86\X86IntelInstPrinter.c">
+      <Filter>Capstone</Filter>
+    </ClCompile>
+    <ClCompile Include="capstone\arch\X86\X86Mapping.c">
+      <Filter>Capstone</Filter>
+    </ClCompile>
+    <ClCompile Include="capstone\arch\X86\X86Module.c">
+      <Filter>Capstone</Filter>
+    </ClCompile>
+    <ClCompile Include="capstone\arch\XCore\XCoreDisassembler.c">
+      <Filter>Capstone</Filter>
+    </ClCompile>
+    <ClCompile Include="capstone\arch\XCore\XCoreInstPrinter.c">
+      <Filter>Capstone</Filter>
+    </ClCompile>
+    <ClCompile Include="capstone\arch\XCore\XCoreMapping.c">
+      <Filter>Capstone</Filter>
+    </ClCompile>
+    <ClCompile Include="capstone\arch\XCore\XCoreModule.c">
+      <Filter>Capstone</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="mxml\config.h">
@@ -278,5 +416,382 @@
     <ClInclude Include="mxml\mxml-private.h">
       <Filter>Mini-XML</Filter>
     </ClInclude>
+    <ClInclude Include="capstone\arch\ARM\ARMDisassembler.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\arch\ARM\ARMInstPrinter.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\arch\ARM\ARMMapping.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\arch\ARM\ARMModule.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\include\capstone\capstone.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\cs_priv.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\include\capstone\evm.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\arch\EVM\EVMDisassembler.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\arch\EVM\EVMInstPrinter.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\arch\EVM\EVMMapping.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\arch\EVM\EVMModule.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\include\windowsce\intrin.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\LEB128.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\include\capstone\m68k.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\arch\M68K\M68KDisassembler.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\arch\M68K\M68KInstPrinter.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\arch\M68K\M68KModule.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\include\capstone\m680x.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\MathExtras.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\MCDisassembler.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\MCFixedLenDisassembler.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\MCInst.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\MCInstrDesc.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\MCRegisterInfo.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\include\capstone\mips.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\arch\Mips\MipsDisassembler.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\arch\Mips\MipsInstPrinter.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\arch\Mips\MipsMapping.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\arch\Mips\MipsModule.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\include\platform.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\include\capstone\platform.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\include\capstone\ppc.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\arch\X86\qsort.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\include\capstone\sparc.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\arch\Sparc\Sparc.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\arch\Sparc\SparcDisassembler.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\arch\Sparc\SparcInstPrinter.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\arch\Sparc\SparcMapping.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\arch\Sparc\SparcModule.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\SStream.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\include\windowsce\stdint.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\include\capstone\systemz.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\arch\SystemZ\SystemZDisassembler.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\arch\SystemZ\SystemZInstPrinter.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\arch\SystemZ\SystemZMapping.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\arch\SystemZ\SystemZMCTargetDesc.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\arch\SystemZ\SystemZModule.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\include\capstone\tms320c64x.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\utils.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\include\capstone\x86.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\arch\X86\X86BaseInfo.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\arch\X86\X86Disassembler.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\arch\X86\X86DisassemblerDecoder.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\arch\X86\X86DisassemblerDecoderCommon.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\arch\X86\X86InstPrinter.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\arch\X86\X86Mapping.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\arch\X86\X86Module.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\include\capstone\xcore.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\arch\XCore\XCoreDisassembler.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\arch\XCore\XCoreInstPrinter.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\arch\XCore\XCoreMapping.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\arch\XCore\XCoreModule.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\arch\AArch64\AArch64AddressingModes.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\arch\AArch64\AArch64BaseInfo.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\arch\AArch64\AArch64Disassembler.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\arch\AArch64\AArch64InstPrinter.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\arch\AArch64\AArch64Mapping.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\arch\AArch64\AArch64Module.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\include\capstone\arm.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\include\capstone\arm64.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\arch\ARM\ARMAddressingModes.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="capstone\arch\ARM\ARMBaseInfo.h">
+      <Filter>Capstone</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="capstone\arch\AArch64\AArch64GenAsmWriter.inc">
+      <Filter>Capstone</Filter>
+    </None>
+    <None Include="capstone\arch\AArch64\AArch64GenDisassemblerTables.inc">
+      <Filter>Capstone</Filter>
+    </None>
+    <None Include="capstone\arch\AArch64\AArch64GenInstrInfo.inc">
+      <Filter>Capstone</Filter>
+    </None>
+    <None Include="capstone\arch\AArch64\AArch64GenRegisterInfo.inc">
+      <Filter>Capstone</Filter>
+    </None>
+    <None Include="capstone\arch\AArch64\AArch64GenSubtargetInfo.inc">
+      <Filter>Capstone</Filter>
+    </None>
+    <None Include="capstone\arch\AArch64\AArch64MappingInsn.inc">
+      <Filter>Capstone</Filter>
+    </None>
+    <None Include="capstone\arch\AArch64\AArch64MappingInsnOp.inc">
+      <Filter>Capstone</Filter>
+    </None>
+    <None Include="capstone\arch\ARM\ARMGenAsmWriter.inc">
+      <Filter>Capstone</Filter>
+    </None>
+    <None Include="capstone\arch\ARM\ARMGenDisassemblerTables.inc">
+      <Filter>Capstone</Filter>
+    </None>
+    <None Include="capstone\arch\ARM\ARMGenInstrInfo.inc">
+      <Filter>Capstone</Filter>
+    </None>
+    <None Include="capstone\arch\ARM\ARMGenRegisterInfo.inc">
+      <Filter>Capstone</Filter>
+    </None>
+    <None Include="capstone\arch\ARM\ARMGenSubtargetInfo.inc">
+      <Filter>Capstone</Filter>
+    </None>
+    <None Include="capstone\arch\ARM\ARMMappingInsn.inc">
+      <Filter>Capstone</Filter>
+    </None>
+    <None Include="capstone\arch\ARM\ARMMappingInsnOp.inc">
+      <Filter>Capstone</Filter>
+    </None>
+    <None Include="capstone\arch\EVM\EVMMappingInsn.inc">
+      <Filter>Capstone</Filter>
+    </None>
+    <None Include="capstone\arch\M68K\M68KInstructionTable.inc">
+      <Filter>Capstone</Filter>
+    </None>
+    <None Include="capstone\arch\Mips\MipsGenAsmWriter.inc">
+      <Filter>Capstone</Filter>
+    </None>
+    <None Include="capstone\arch\Mips\MipsGenDisassemblerTables.inc">
+      <Filter>Capstone</Filter>
+    </None>
+    <None Include="capstone\arch\Mips\MipsGenInstrInfo.inc">
+      <Filter>Capstone</Filter>
+    </None>
+    <None Include="capstone\arch\Mips\MipsGenRegisterInfo.inc">
+      <Filter>Capstone</Filter>
+    </None>
+    <None Include="capstone\arch\Mips\MipsGenSubtargetInfo.inc">
+      <Filter>Capstone</Filter>
+    </None>
+    <None Include="capstone\arch\Mips\MipsMappingInsn.inc">
+      <Filter>Capstone</Filter>
+    </None>
+    <None Include="capstone\arch\Sparc\SparcGenAsmWriter.inc">
+      <Filter>Capstone</Filter>
+    </None>
+    <None Include="capstone\arch\Sparc\SparcGenDisassemblerTables.inc">
+      <Filter>Capstone</Filter>
+    </None>
+    <None Include="capstone\arch\Sparc\SparcGenInstrInfo.inc">
+      <Filter>Capstone</Filter>
+    </None>
+    <None Include="capstone\arch\Sparc\SparcGenRegisterInfo.inc">
+      <Filter>Capstone</Filter>
+    </None>
+    <None Include="capstone\arch\Sparc\SparcGenSubtargetInfo.inc">
+      <Filter>Capstone</Filter>
+    </None>
+    <None Include="capstone\arch\Sparc\SparcMappingInsn.inc">
+      <Filter>Capstone</Filter>
+    </None>
+    <None Include="capstone\arch\SystemZ\SystemZGenAsmWriter.inc">
+      <Filter>Capstone</Filter>
+    </None>
+    <None Include="capstone\arch\SystemZ\SystemZGenDisassemblerTables.inc">
+      <Filter>Capstone</Filter>
+    </None>
+    <None Include="capstone\arch\SystemZ\SystemZGenInstrInfo.inc">
+      <Filter>Capstone</Filter>
+    </None>
+    <None Include="capstone\arch\SystemZ\SystemZGenRegisterInfo.inc">
+      <Filter>Capstone</Filter>
+    </None>
+    <None Include="capstone\arch\SystemZ\SystemZGenSubtargetInfo.inc">
+      <Filter>Capstone</Filter>
+    </None>
+    <None Include="capstone\arch\SystemZ\SystemZMappingInsn.inc">
+      <Filter>Capstone</Filter>
+    </None>
+    <None Include="capstone\arch\X86\X86GenAsmWriter.inc">
+      <Filter>Capstone</Filter>
+    </None>
+    <None Include="capstone\arch\X86\X86GenAsmWriter_reduce.inc">
+      <Filter>Capstone</Filter>
+    </None>
+    <None Include="capstone\arch\X86\X86GenAsmWriter1.inc">
+      <Filter>Capstone</Filter>
+    </None>
+    <None Include="capstone\arch\X86\X86GenAsmWriter1_reduce.inc">
+      <Filter>Capstone</Filter>
+    </None>
+    <None Include="capstone\arch\X86\X86GenDisassemblerTables.inc">
+      <Filter>Capstone</Filter>
+    </None>
+    <None Include="capstone\arch\X86\X86GenDisassemblerTables_reduce.inc">
+      <Filter>Capstone</Filter>
+    </None>
+    <None Include="capstone\arch\X86\X86GenInstrInfo.inc">
+      <Filter>Capstone</Filter>
+    </None>
+    <None Include="capstone\arch\X86\X86GenInstrInfo_reduce.inc">
+      <Filter>Capstone</Filter>
+    </None>
+    <None Include="capstone\arch\X86\X86GenRegisterInfo.inc">
+      <Filter>Capstone</Filter>
+    </None>
+    <None Include="capstone\arch\X86\X86ImmSize.inc">
+      <Filter>Capstone</Filter>
+    </None>
+    <None Include="capstone\arch\X86\X86MappingInsn.inc">
+      <Filter>Capstone</Filter>
+    </None>
+    <None Include="capstone\arch\X86\X86MappingInsn_reduce.inc">
+      <Filter>Capstone</Filter>
+    </None>
+    <None Include="capstone\arch\X86\X86MappingInsnOp.inc">
+      <Filter>Capstone</Filter>
+    </None>
+    <None Include="capstone\arch\X86\X86MappingInsnOp_reduce.inc">
+      <Filter>Capstone</Filter>
+    </None>
+    <None Include="capstone\arch\XCore\XCoreGenAsmWriter.inc">
+      <Filter>Capstone</Filter>
+    </None>
+    <None Include="capstone\arch\XCore\XCoreGenDisassemblerTables.inc">
+      <Filter>Capstone</Filter>
+    </None>
+    <None Include="capstone\arch\XCore\XCoreGenInstrInfo.inc">
+      <Filter>Capstone</Filter>
+    </None>
+    <None Include="capstone\arch\XCore\XCoreGenRegisterInfo.inc">
+      <Filter>Capstone</Filter>
+    </None>
+    <None Include="capstone\arch\XCore\XCoreMappingInsn.inc">
+      <Filter>Capstone</Filter>
+    </None>
   </ItemGroup>
 </Project>
