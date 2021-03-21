@@ -21,6 +21,7 @@
  */
 
 #include <ph.h>
+#include <memory>
 #include "tlsh.h"
 #include "tlsh_wrapper.h"
 
@@ -35,7 +36,7 @@ BOOLEAN PvGetTlshBufferHash(
     if (BufferLength < MIN_DATA_LENGTH)
         return FALSE;
 
-    Tlsh* tlshHash = new Tlsh();
+    auto tlshHash = std::make_unique<Tlsh>();
 
     if (BufferLength >= UINT_MAX)
     {
@@ -112,7 +113,7 @@ BOOLEAN PvGetTlshFileHash(
     if (!NT_SUCCESS(status))
         return FALSE;
 
-    Tlsh* tlshHash = new Tlsh();
+    auto tlshHash = std::make_unique<Tlsh>();
 
     bytesRemaining = fileSize.QuadPart;
 
