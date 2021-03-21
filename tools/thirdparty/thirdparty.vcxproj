@@ -115,7 +115,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>..\..\phnt\include;..\..\phlib\include;include;jsonc;mxml;pcre;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>DEBUG;_DEBUG;_PHLIB_;HAVE_CONFIG_H;MICROSOFT_WINDOWS_WINBASE_H_DEFINE_INTERLOCKED_CPLUSPLUS_OVERLOADS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>DEBUG;_DEBUG;_PHLIB_;HAVE_CONFIG_H;MICROSOFT_WINDOWS_WINBASE_H_DEFINE_INTERLOCKED_CPLUSPLUS_OVERLOADS=0;CAPSTONE_X86_ATT_DISABLE_NO;CAPSTONE_DIET_NO;CAPSTONE_X86_REDUCE_NO;CAPSTONE_HAS_ARM;CAPSTONE_HAS_ARM64;CAPSTONE_HAS_X86;CAPSTONE_USE_SYS_DYN_MEM;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
@@ -137,7 +137,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>..\..\phnt\include;..\..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>DEBUG;_DEBUG;_PHLIB_;HAVE_CONFIG_H;MICROSOFT_WINDOWS_WINBASE_H_DEFINE_INTERLOCKED_CPLUSPLUS_OVERLOADS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>DEBUG;_DEBUG;_PHLIB_;HAVE_CONFIG_H;MICROSOFT_WINDOWS_WINBASE_H_DEFINE_INTERLOCKED_CPLUSPLUS_OVERLOADS=0;CAPSTONE_X86_ATT_DISABLE_NO;CAPSTONE_DIET_NO;CAPSTONE_X86_REDUCE_NO;CAPSTONE_HAS_ARM;CAPSTONE_HAS_ARM64;CAPSTONE_HAS_X86;CAPSTONE_USE_SYS_DYN_MEM;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
@@ -160,7 +160,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>..\..\phnt\include;..\..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>DEBUG;_DEBUG;_PHLIB_;HAVE_CONFIG_H;MICROSOFT_WINDOWS_WINBASE_H_DEFINE_INTERLOCKED_CPLUSPLUS_OVERLOADS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>DEBUG;_DEBUG;_PHLIB_;HAVE_CONFIG_H;MICROSOFT_WINDOWS_WINBASE_H_DEFINE_INTERLOCKED_CPLUSPLUS_OVERLOADS=0;CAPSTONE_X86_ATT_DISABLE_NO;CAPSTONE_DIET_NO;CAPSTONE_X86_REDUCE_NO;CAPSTONE_HAS_ARM;CAPSTONE_HAS_ARM64;CAPSTONE_HAS_X86;CAPSTONE_USE_SYS_DYN_MEM;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
@@ -180,7 +180,7 @@
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <AdditionalIncludeDirectories>..\..\phnt\include;..\..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_PHLIB_;HAVE_CONFIG_H;MICROSOFT_WINDOWS_WINBASE_H_DEFINE_INTERLOCKED_CPLUSPLUS_OVERLOADS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_PHLIB_;HAVE_CONFIG_H;MICROSOFT_WINDOWS_WINBASE_H_DEFINE_INTERLOCKED_CPLUSPLUS_OVERLOADS=0;CAPSTONE_X86_ATT_DISABLE_NO;CAPSTONE_DIET_NO;CAPSTONE_X86_REDUCE_NO;CAPSTONE_HAS_ARM;CAPSTONE_HAS_ARM64;CAPSTONE_HAS_X86;CAPSTONE_USE_SYS_DYN_MEM;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -207,7 +207,7 @@
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <AdditionalIncludeDirectories>..\..\phnt\include;..\..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN64;NDEBUG;_WINDOWS;_PHLIB_;HAVE_CONFIG_H;MICROSOFT_WINDOWS_WINBASE_H_DEFINE_INTERLOCKED_CPLUSPLUS_OVERLOADS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN64;NDEBUG;_WINDOWS;_PHLIB_;HAVE_CONFIG_H;MICROSOFT_WINDOWS_WINBASE_H_DEFINE_INTERLOCKED_CPLUSPLUS_OVERLOADS=0;CAPSTONE_X86_ATT_DISABLE_NO;CAPSTONE_DIET_NO;CAPSTONE_X86_REDUCE_NO;CAPSTONE_HAS_ARM;CAPSTONE_HAS_ARM64;CAPSTONE_HAS_X86;CAPSTONE_USE_SYS_DYN_MEM;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -233,7 +233,7 @@
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <AdditionalIncludeDirectories>..\..\phnt\include;..\..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN64;NDEBUG;_WINDOWS;_PHLIB_;HAVE_CONFIG_H;MICROSOFT_WINDOWS_WINBASE_H_DEFINE_INTERLOCKED_CPLUSPLUS_OVERLOADS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN64;NDEBUG;_WINDOWS;_PHLIB_;HAVE_CONFIG_H;MICROSOFT_WINDOWS_WINBASE_H_DEFINE_INTERLOCKED_CPLUSPLUS_OVERLOADS=0;CAPSTONE_X86_ATT_DISABLE_NO;CAPSTONE_DIET_NO;CAPSTONE_X86_REDUCE_NO;CAPSTONE_HAS_ARM;CAPSTONE_HAS_ARM64;CAPSTONE_HAS_X86;CAPSTONE_USE_SYS_DYN_MEM;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -251,6 +251,51 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="capstone\arch\AArch64\AArch64BaseInfo.c" />
+    <ClCompile Include="capstone\arch\AArch64\AArch64Disassembler.c" />
+    <ClCompile Include="capstone\arch\AArch64\AArch64InstPrinter.c" />
+    <ClCompile Include="capstone\arch\AArch64\AArch64Mapping.c" />
+    <ClCompile Include="capstone\arch\AArch64\AArch64Module.c" />
+    <ClCompile Include="capstone\arch\ARM\ARMDisassembler.c" />
+    <ClCompile Include="capstone\arch\ARM\ARMInstPrinter.c" />
+    <ClCompile Include="capstone\arch\ARM\ARMMapping.c" />
+    <ClCompile Include="capstone\arch\ARM\ARMModule.c" />
+    <ClCompile Include="capstone\arch\EVM\EVMDisassembler.c" />
+    <ClCompile Include="capstone\arch\EVM\EVMInstPrinter.c" />
+    <ClCompile Include="capstone\arch\EVM\EVMMapping.c" />
+    <ClCompile Include="capstone\arch\EVM\EVMModule.c" />
+    <ClCompile Include="capstone\arch\M68K\M68KDisassembler.c" />
+    <ClCompile Include="capstone\arch\M68K\M68KInstPrinter.c" />
+    <ClCompile Include="capstone\arch\M68K\M68KModule.c" />
+    <ClCompile Include="capstone\arch\Mips\MipsDisassembler.c" />
+    <ClCompile Include="capstone\arch\Mips\MipsInstPrinter.c" />
+    <ClCompile Include="capstone\arch\Mips\MipsMapping.c" />
+    <ClCompile Include="capstone\arch\Mips\MipsModule.c" />
+    <ClCompile Include="capstone\arch\Sparc\SparcDisassembler.c" />
+    <ClCompile Include="capstone\arch\Sparc\SparcInstPrinter.c" />
+    <ClCompile Include="capstone\arch\Sparc\SparcMapping.c" />
+    <ClCompile Include="capstone\arch\Sparc\SparcModule.c" />
+    <ClCompile Include="capstone\arch\SystemZ\SystemZDisassembler.c" />
+    <ClCompile Include="capstone\arch\SystemZ\SystemZInstPrinter.c" />
+    <ClCompile Include="capstone\arch\SystemZ\SystemZMapping.c" />
+    <ClCompile Include="capstone\arch\SystemZ\SystemZMCTargetDesc.c" />
+    <ClCompile Include="capstone\arch\SystemZ\SystemZModule.c" />
+    <ClCompile Include="capstone\arch\X86\X86ATTInstPrinter.c" />
+    <ClCompile Include="capstone\arch\X86\X86Disassembler.c" />
+    <ClCompile Include="capstone\arch\X86\X86DisassemblerDecoder.c" />
+    <ClCompile Include="capstone\arch\X86\X86IntelInstPrinter.c" />
+    <ClCompile Include="capstone\arch\X86\X86Mapping.c" />
+    <ClCompile Include="capstone\arch\X86\X86Module.c" />
+    <ClCompile Include="capstone\arch\XCore\XCoreDisassembler.c" />
+    <ClCompile Include="capstone\arch\XCore\XCoreInstPrinter.c" />
+    <ClCompile Include="capstone\arch\XCore\XCoreMapping.c" />
+    <ClCompile Include="capstone\arch\XCore\XCoreModule.c" />
+    <ClCompile Include="capstone\cs.c" />
+    <ClCompile Include="capstone\MCInst.c" />
+    <ClCompile Include="capstone\MCInstrDesc.c" />
+    <ClCompile Include="capstone\MCRegisterInfo.c" />
+    <ClCompile Include="capstone\SStream.c" />
+    <ClCompile Include="capstone\utils.c" />
     <ClCompile Include="jsonc\arraylist.c" />
     <ClCompile Include="jsonc\debug.c" />
     <ClCompile Include="jsonc\json_c_version.c" />
@@ -305,6 +350,78 @@
     <ClCompile Include="pcre\pcre2_xclass.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="capstone\arch\AArch64\AArch64AddressingModes.h" />
+    <ClInclude Include="capstone\arch\AArch64\AArch64BaseInfo.h" />
+    <ClInclude Include="capstone\arch\AArch64\AArch64Disassembler.h" />
+    <ClInclude Include="capstone\arch\AArch64\AArch64InstPrinter.h" />
+    <ClInclude Include="capstone\arch\AArch64\AArch64Mapping.h" />
+    <ClInclude Include="capstone\arch\AArch64\AArch64Module.h" />
+    <ClInclude Include="capstone\arch\ARM\ARMAddressingModes.h" />
+    <ClInclude Include="capstone\arch\ARM\ARMBaseInfo.h" />
+    <ClInclude Include="capstone\arch\ARM\ARMDisassembler.h" />
+    <ClInclude Include="capstone\arch\ARM\ARMInstPrinter.h" />
+    <ClInclude Include="capstone\arch\ARM\ARMMapping.h" />
+    <ClInclude Include="capstone\arch\ARM\ARMModule.h" />
+    <ClInclude Include="capstone\arch\EVM\EVMDisassembler.h" />
+    <ClInclude Include="capstone\arch\EVM\EVMInstPrinter.h" />
+    <ClInclude Include="capstone\arch\EVM\EVMMapping.h" />
+    <ClInclude Include="capstone\arch\EVM\EVMModule.h" />
+    <ClInclude Include="capstone\arch\M68K\M68KDisassembler.h" />
+    <ClInclude Include="capstone\arch\M68K\M68KInstPrinter.h" />
+    <ClInclude Include="capstone\arch\M68K\M68KModule.h" />
+    <ClInclude Include="capstone\arch\Mips\MipsDisassembler.h" />
+    <ClInclude Include="capstone\arch\Mips\MipsInstPrinter.h" />
+    <ClInclude Include="capstone\arch\Mips\MipsMapping.h" />
+    <ClInclude Include="capstone\arch\Mips\MipsModule.h" />
+    <ClInclude Include="capstone\arch\Sparc\Sparc.h" />
+    <ClInclude Include="capstone\arch\Sparc\SparcDisassembler.h" />
+    <ClInclude Include="capstone\arch\Sparc\SparcInstPrinter.h" />
+    <ClInclude Include="capstone\arch\Sparc\SparcMapping.h" />
+    <ClInclude Include="capstone\arch\Sparc\SparcModule.h" />
+    <ClInclude Include="capstone\arch\SystemZ\SystemZDisassembler.h" />
+    <ClInclude Include="capstone\arch\SystemZ\SystemZInstPrinter.h" />
+    <ClInclude Include="capstone\arch\SystemZ\SystemZMapping.h" />
+    <ClInclude Include="capstone\arch\SystemZ\SystemZMCTargetDesc.h" />
+    <ClInclude Include="capstone\arch\SystemZ\SystemZModule.h" />
+    <ClInclude Include="capstone\arch\X86\qsort.h" />
+    <ClInclude Include="capstone\arch\X86\X86BaseInfo.h" />
+    <ClInclude Include="capstone\arch\X86\X86Disassembler.h" />
+    <ClInclude Include="capstone\arch\X86\X86DisassemblerDecoder.h" />
+    <ClInclude Include="capstone\arch\X86\X86DisassemblerDecoderCommon.h" />
+    <ClInclude Include="capstone\arch\X86\X86InstPrinter.h" />
+    <ClInclude Include="capstone\arch\X86\X86Mapping.h" />
+    <ClInclude Include="capstone\arch\X86\X86Module.h" />
+    <ClInclude Include="capstone\arch\XCore\XCoreDisassembler.h" />
+    <ClInclude Include="capstone\arch\XCore\XCoreInstPrinter.h" />
+    <ClInclude Include="capstone\arch\XCore\XCoreMapping.h" />
+    <ClInclude Include="capstone\arch\XCore\XCoreModule.h" />
+    <ClInclude Include="capstone\cs_priv.h" />
+    <ClInclude Include="capstone\include\capstone\arm.h" />
+    <ClInclude Include="capstone\include\capstone\arm64.h" />
+    <ClInclude Include="capstone\include\capstone\capstone.h" />
+    <ClInclude Include="capstone\include\capstone\evm.h" />
+    <ClInclude Include="capstone\include\capstone\m680x.h" />
+    <ClInclude Include="capstone\include\capstone\m68k.h" />
+    <ClInclude Include="capstone\include\capstone\mips.h" />
+    <ClInclude Include="capstone\include\capstone\platform.h" />
+    <ClInclude Include="capstone\include\capstone\ppc.h" />
+    <ClInclude Include="capstone\include\capstone\sparc.h" />
+    <ClInclude Include="capstone\include\capstone\systemz.h" />
+    <ClInclude Include="capstone\include\capstone\tms320c64x.h" />
+    <ClInclude Include="capstone\include\capstone\x86.h" />
+    <ClInclude Include="capstone\include\capstone\xcore.h" />
+    <ClInclude Include="capstone\include\platform.h" />
+    <ClInclude Include="capstone\include\windowsce\intrin.h" />
+    <ClInclude Include="capstone\include\windowsce\stdint.h" />
+    <ClInclude Include="capstone\LEB128.h" />
+    <ClInclude Include="capstone\MathExtras.h" />
+    <ClInclude Include="capstone\MCDisassembler.h" />
+    <ClInclude Include="capstone\MCFixedLenDisassembler.h" />
+    <ClInclude Include="capstone\MCInst.h" />
+    <ClInclude Include="capstone\MCInstrDesc.h" />
+    <ClInclude Include="capstone\MCRegisterInfo.h" />
+    <ClInclude Include="capstone\SStream.h" />
+    <ClInclude Include="capstone\utils.h" />
     <ClInclude Include="jsonc\arraylist.h" />
     <ClInclude Include="jsonc\config.h" />
     <ClInclude Include="jsonc\debug.h" />
@@ -338,6 +455,61 @@
     <ClInclude Include="pcre\pcre2_internal.h" />
     <ClInclude Include="pcre\pcre2_intmodedep.h" />
     <ClInclude Include="pcre\pcre2_ucp.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="capstone\arch\AArch64\AArch64GenAsmWriter.inc" />
+    <None Include="capstone\arch\AArch64\AArch64GenDisassemblerTables.inc" />
+    <None Include="capstone\arch\AArch64\AArch64GenInstrInfo.inc" />
+    <None Include="capstone\arch\AArch64\AArch64GenRegisterInfo.inc" />
+    <None Include="capstone\arch\AArch64\AArch64GenSubtargetInfo.inc" />
+    <None Include="capstone\arch\AArch64\AArch64MappingInsn.inc" />
+    <None Include="capstone\arch\AArch64\AArch64MappingInsnOp.inc" />
+    <None Include="capstone\arch\ARM\ARMGenAsmWriter.inc" />
+    <None Include="capstone\arch\ARM\ARMGenDisassemblerTables.inc" />
+    <None Include="capstone\arch\ARM\ARMGenInstrInfo.inc" />
+    <None Include="capstone\arch\ARM\ARMGenRegisterInfo.inc" />
+    <None Include="capstone\arch\ARM\ARMGenSubtargetInfo.inc" />
+    <None Include="capstone\arch\ARM\ARMMappingInsn.inc" />
+    <None Include="capstone\arch\ARM\ARMMappingInsnOp.inc" />
+    <None Include="capstone\arch\EVM\EVMMappingInsn.inc" />
+    <None Include="capstone\arch\M68K\M68KInstructionTable.inc" />
+    <None Include="capstone\arch\Mips\MipsGenAsmWriter.inc" />
+    <None Include="capstone\arch\Mips\MipsGenDisassemblerTables.inc" />
+    <None Include="capstone\arch\Mips\MipsGenInstrInfo.inc" />
+    <None Include="capstone\arch\Mips\MipsGenRegisterInfo.inc" />
+    <None Include="capstone\arch\Mips\MipsGenSubtargetInfo.inc" />
+    <None Include="capstone\arch\Mips\MipsMappingInsn.inc" />
+    <None Include="capstone\arch\Sparc\SparcGenAsmWriter.inc" />
+    <None Include="capstone\arch\Sparc\SparcGenDisassemblerTables.inc" />
+    <None Include="capstone\arch\Sparc\SparcGenInstrInfo.inc" />
+    <None Include="capstone\arch\Sparc\SparcGenRegisterInfo.inc" />
+    <None Include="capstone\arch\Sparc\SparcGenSubtargetInfo.inc" />
+    <None Include="capstone\arch\Sparc\SparcMappingInsn.inc" />
+    <None Include="capstone\arch\SystemZ\SystemZGenAsmWriter.inc" />
+    <None Include="capstone\arch\SystemZ\SystemZGenDisassemblerTables.inc" />
+    <None Include="capstone\arch\SystemZ\SystemZGenInstrInfo.inc" />
+    <None Include="capstone\arch\SystemZ\SystemZGenRegisterInfo.inc" />
+    <None Include="capstone\arch\SystemZ\SystemZGenSubtargetInfo.inc" />
+    <None Include="capstone\arch\SystemZ\SystemZMappingInsn.inc" />
+    <None Include="capstone\arch\X86\X86GenAsmWriter.inc" />
+    <None Include="capstone\arch\X86\X86GenAsmWriter1.inc" />
+    <None Include="capstone\arch\X86\X86GenAsmWriter1_reduce.inc" />
+    <None Include="capstone\arch\X86\X86GenAsmWriter_reduce.inc" />
+    <None Include="capstone\arch\X86\X86GenDisassemblerTables.inc" />
+    <None Include="capstone\arch\X86\X86GenDisassemblerTables_reduce.inc" />
+    <None Include="capstone\arch\X86\X86GenInstrInfo.inc" />
+    <None Include="capstone\arch\X86\X86GenInstrInfo_reduce.inc" />
+    <None Include="capstone\arch\X86\X86GenRegisterInfo.inc" />
+    <None Include="capstone\arch\X86\X86ImmSize.inc" />
+    <None Include="capstone\arch\X86\X86MappingInsn.inc" />
+    <None Include="capstone\arch\X86\X86MappingInsnOp.inc" />
+    <None Include="capstone\arch\X86\X86MappingInsnOp_reduce.inc" />
+    <None Include="capstone\arch\X86\X86MappingInsn_reduce.inc" />
+    <None Include="capstone\arch\XCore\XCoreGenAsmWriter.inc" />
+    <None Include="capstone\arch\XCore\XCoreGenDisassemblerTables.inc" />
+    <None Include="capstone\arch\XCore\XCoreGenInstrInfo.inc" />
+    <None Include="capstone\arch\XCore\XCoreGenRegisterInfo.inc" />
+    <None Include="capstone\arch\XCore\XCoreMappingInsn.inc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
