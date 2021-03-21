@@ -21,6 +21,8 @@
  */
 
 #include <peview.h>
+#include "ssdeep/fuzzy.h"
+#include "tlsh/tlsh_wrapper.h"
 
 typedef struct _PV_PE_SECTION_CONTEXT
 {
@@ -240,6 +242,60 @@ VOID PvSetPeImageSections(
 
                     PhSetListViewSubItem(ListViewHandle, lvItemIndex, 10, PhGetStringOrEmpty(message));
                 }
+
+                __try
+                {
+                    PVOID imageSectionData;
+                    PPH_STRING ssdeepHashString = NULL;
+
+                    if (imageSectionData = PhMappedImageRvaToVa(&PvMappedImage, PvMappedImage.Sections[i].VirtualAddress, NULL))
+                    {
+                        fuzzy_hash_buffer(imageSectionData, PvMappedImage.Sections[i].SizeOfRawData, &ssdeepHashString);
+                        if (!PhIsNullOrEmptyString(ssdeepHashString))
+                        {
+                            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 11, ssdeepHashString->Buffer);
+                            PhDereferenceObject(ssdeepHashString);
+                        }
+                    }
+                }
+                __except (EXCEPTION_EXECUTE_HANDLER)
+                {
+                    PPH_STRING message;
+
+                    //message = PH_AUTO(PhGetNtMessage(GetExceptionCode()));
+                    message = PH_AUTO(PhGetWin32Message(RtlNtStatusToDosError(GetExceptionCode()))); // WIN32_FROM_NTSTATUS
+
+                    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 11, PhGetStringOrEmpty(message));
+                }
+
+                __try
+                {
+                    PVOID imageSectionData;
+                    PPH_STRING tlshHashString = NULL;
+
+                    if (imageSectionData = PhMappedImageRvaToVa(&PvMappedImage, PvMappedImage.Sections[i].VirtualAddress, NULL))
+                    {
+                        //
+                        // This can fail in TLSH library during finalization when
+                        // "buckets must be more than 50% non-zero" (see: tlsh_impl.cpp)
+                        //
+                        PvGetTlshBufferHash(imageSectionData, PvMappedImage.Sections[i].SizeOfRawData, &tlshHashString);
+                        if (!PhIsNullOrEmptyString(tlshHashString))
+                        {
+                            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 12, tlshHashString->Buffer);
+                            PhDereferenceObject(tlshHashString);
+                        }
+                    }
+                }
+                __except (EXCEPTION_EXECUTE_HANDLER)
+                {
+                    PPH_STRING message;
+
+                    //message = PH_AUTO(PhGetNtMessage(GetExceptionCode()));
+                    message = PH_AUTO(PhGetWin32Message(RtlNtStatusToDosError(GetExceptionCode()))); // WIN32_FROM_NTSTATUS
+
+                    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 12, PhGetStringOrEmpty(message));
+                }
             }
         }
     }
@@ -292,6 +348,8 @@ INT_PTR CALLBACK PvPeSectionsDlgProc(
             PhAddListViewColumn(context->ListViewHandle, 8, 8, 8, LVCFMT_LEFT, 250, L"Characteristics");
             PhAddListViewColumn(context->ListViewHandle, 9, 9, 9, LVCFMT_LEFT, 80, L"Hash");
             PhAddListViewColumn(context->ListViewHandle, 10, 10, 10, LVCFMT_LEFT, 80, L"Entropy");
+            PhAddListViewColumn(context->ListViewHandle, 11, 11, 11, LVCFMT_LEFT, 80, L"SSDEEP");
+            PhAddListViewColumn(context->ListViewHandle, 12, 12, 12, LVCFMT_LEFT, 80, L"TLSH");
 
             //ExtendedListView_SetItemColorFunction(context->ListViewHandle, PvPeCharacteristicsColorFunction);
             ExtendedListView_SetCompareFunction(context->ListViewHandle, 1, PvPeVirtualAddressCompareFunction);
