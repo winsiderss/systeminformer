@@ -2402,23 +2402,35 @@ NTSTATUS PhpQueryTokenVariableSize(
 {
     NTSTATUS status;
     PVOID buffer;
-    ULONG returnLength = 0;
+    ULONG bufferSize;
+    ULONG returnLength;
 
-    NtQueryInformationToken(
-        TokenHandle,
-        TokenInformationClass,
-        NULL,
-        0,
-        &returnLength
-        );
-    buffer = PhAllocate(returnLength);
+    returnLength = 0;
+    bufferSize = 0x40;
+    buffer = PhAllocate(bufferSize);
+
     status = NtQueryInformationToken(
         TokenHandle,
         TokenInformationClass,
         buffer,
-        returnLength,
+        bufferSize,
         &returnLength
         );
+
+    if (status == STATUS_BUFFER_OVERFLOW || status == STATUS_BUFFER_TOO_SMALL)
+    {
+        PhFree(buffer);
+        bufferSize = returnLength;
+        buffer = PhAllocate(bufferSize);
+
+        status = NtQueryInformationToken(
+            TokenHandle,
+            TokenInformationClass,
+            buffer,
+            bufferSize,
+            &returnLength
+            );
+    }
 
     if (NT_SUCCESS(status))
     {
