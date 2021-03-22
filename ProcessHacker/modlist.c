@@ -1066,10 +1066,13 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                             break;
                         }
 
-                        if (moduleItem->ImageCoherencyStatus != STATUS_SUCCESS)
+                        if (!PhShouldShowModuleCoherency(moduleItem, FALSE))
                         {
-                            PhMoveReference(&node->ImageCoherencyText, PhGetStatusMessage(moduleItem->ImageCoherencyStatus, 0));
-                            getCellText->Text = PhGetStringRef(node->ImageCoherencyText);
+                            if (moduleItem->ImageCoherencyStatus != STATUS_SUCCESS)
+                            {
+                                PhMoveReference(&node->ImageCoherencyText, PhGetStatusMessage(moduleItem->ImageCoherencyStatus, 0));
+                                getCellText->Text = PhGetStringRef(node->ImageCoherencyText);
+                            }
                             break;
                         }
 
