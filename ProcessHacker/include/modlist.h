@@ -30,8 +30,9 @@
 #define PHMOTLC_PARENTBASEADDRESS 19
 #define PHMOTLC_CET 20
 #define PHMOTLC_COHERENCY 21
+#define PHMOTLC_TIMELINE 22
 
-#define PHMOTLC_MAXIMUM 22
+#define PHMOTLC_MAXIMUM 23
 
 // begin_phapppub
 typedef struct _PH_MODULE_NODE
@@ -87,6 +88,7 @@ typedef struct _PH_MODULE_LIST_CONTEXT
     PH_SORT_ORDER TreeNewSortOrder;
     PH_CM_MANAGER Cm;
 
+    LARGE_INTEGER ProcessCreateTime;
     BOOLEAN EnableStateHighlighting;
 
     union
