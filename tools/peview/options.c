@@ -213,6 +213,7 @@ INT_PTR CALLBACK PvOptionsWndProc(
     case WM_INITDIALOG:
         {
             HWND comboBoxHandle;
+            HWND listViewHandle;
             HICON smallIcon;
             HICON largeIcon;
 
@@ -223,15 +224,19 @@ INT_PTR CALLBACK PvOptionsWndProc(
             //SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PvImageLargeIcon);
 
             comboBoxHandle = GetDlgItem(hwndDlg, IDC_MAXSIZEUNIT);
+            listViewHandle = GetDlgItem(hwndDlg, IDC_SETTINGS);
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             PvLoadGeneralPage(hwndDlg);
 
             PhInitializeLayoutManager(&LayoutManager, hwndDlg);
             PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_DBGHELPSEARCHPATH), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_SETTINGS), NULL, PH_ANCHOR_ALL);
+            PhAddLayoutItem(&LayoutManager, listViewHandle, NULL, PH_ANCHOR_ALL);
             PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDCANCEL), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+
+            PhSetListViewStyle(listViewHandle, FALSE, TRUE);
+            PhSetControlTheme(listViewHandle, L"explorer");
 
             for (ULONG i = 0; i < RTL_NUMBER_OF(PhSizeUnitNames); i++)
                 ComboBox_AddString(comboBoxHandle, PhSizeUnitNames[i]);
