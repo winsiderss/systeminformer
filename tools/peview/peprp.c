@@ -29,6 +29,7 @@
 
 #define PVM_CHECKSUM_DONE (WM_APP + 1)
 #define PVM_VERIFY_DONE (WM_APP + 2)
+#define PVM_ENTROPY_DONE (WM_APP + 3)
 
 INT_PTR CALLBACK PvpPeGeneralDlgProc(
     _In_ HWND hwndDlg,
@@ -1012,31 +1013,40 @@ PPH_STRING PvFormatDoubleCropZero(
     return PhFormat(&format, 1, 0);
 }
 
-VOID PvpSetPeImageEntropy(
-    _In_ HWND ListViewHandle
+typedef struct _PVP_ENTROPY_RESULT
+{
+    DOUBLE ImageEntropy;
+    DOUBLE ImageAvgMean;
+} PVP_ENTROPY_RESULT, *PPVP_ENTROPY_RESULT;
+
+static NTSTATUS PvpEntropyImageThreadStart(
+    _In_ PVOID Parameter
     )
 {
+    HWND windowHandle = Parameter;
+    PPVP_ENTROPY_RESULT result;
     DOUBLE imageEntropy;
     DOUBLE imageAvgMean;
-    PPH_STRING stringEntropy;
-    PPH_STRING stringMean;
-    PPH_STRING string;
 
     PvCalculateImageEntropy(&imageEntropy, &imageAvgMean);
 
-    stringEntropy = PvFormatDoubleCropZero(imageEntropy, 6);
-    stringMean = PvFormatDoubleCropZero(imageAvgMean, 4);
-    string = PhFormatString(
-        L"%s S (%s X)",
-        PhGetStringOrEmpty(stringEntropy),
-        PhGetStringOrEmpty(stringMean)
-        );
+    result = PhAllocateZero(sizeof(PVP_ENTROPY_RESULT));
+    result->ImageEntropy = imageEntropy;
+    result->ImageAvgMean = imageAvgMean;
 
-    PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_ENTROPY, 1, string->Buffer);
+    PostMessage(windowHandle, PVM_ENTROPY_DONE, 0, (LPARAM)result);
 
-    PhDereferenceObject(string);
-    PhDereferenceObject(stringMean);
-    PhDereferenceObject(stringEntropy);
+    return STATUS_SUCCESS;
+}
+
+VOID PvpSetPeImageEntropy(
+    _In_ HWND WindowHandle,
+    _In_ HWND ListViewHandle
+    )
+{
+    PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_ENTROPY, 1, L"Calculating...");
+
+    PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), PvpEntropyImageThreadStart, WindowHandle);
 }
 
 VOID PvpSetPeImageEntryPoint(
@@ -1587,7 +1597,7 @@ VOID PvpSetPeImageProperties(
     PvpSetPeImageTimeStamp(Context->ListViewHandle);
     PvpSetPeImageBaseAddress(Context->ListViewHandle);
     PvpSetPeImageSize(Context->ListViewHandle);
-    PvpSetPeImageEntropy(Context->ListViewHandle);
+    PvpSetPeImageEntropy(Context->WindowHandle, Context->ListViewHandle);
     PvpSetPeImageEntryPoint(Context->ListViewHandle);
     PvpSetPeImageCheckSum(Context->WindowHandle, Context->ListViewHandle);
     PvpSetPeImageSpareHeaderBytes(Context->ListViewHandle);
@@ -1867,6 +1877,28 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
             {
                 PhSetDialogItemText(hwndDlg, IDC_COMPANYNAME, PvpGetStringOrNa(PvImageVersionInfo.CompanyName));
             }
+        }
+        break;
+    case PVM_ENTROPY_DONE:
+        {
+            PPVP_ENTROPY_RESULT result = (PPVP_ENTROPY_RESULT)lParam;
+            PPH_STRING stringEntropy;
+            PPH_STRING stringMean;
+            PPH_STRING string;
+
+            stringEntropy = PvFormatDoubleCropZero(result->ImageEntropy, 6);
+            stringMean = PvFormatDoubleCropZero(result->ImageAvgMean, 4);
+            string = PhFormatString(
+                L"%s S (%s X)",
+                PhGetStringOrEmpty(stringEntropy),
+                PhGetStringOrEmpty(stringMean)
+                );
+
+            PhSetListViewSubItem(context->ListViewHandle, PVP_IMAGE_GENERAL_INDEX_ENTROPY, 1, string->Buffer);
+
+            PhDereferenceObject(string);
+            PhDereferenceObject(stringMean);
+            PhDereferenceObject(stringEntropy);
         }
         break;
     case WM_NOTIFY:
