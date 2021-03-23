@@ -7273,7 +7273,7 @@ NTSTATUS PhLoaderEntryRelocateImage(
     if (dataDirectory->Size == 0)
         return STATUS_SUCCESS;
     if (imageNtHeader->FileHeader.Characteristics & IMAGE_FILE_RELOCS_STRIPPED)
-        return STATUS_SUCCESS; // STATUS_CONFLICTING_ADDRESSES
+        return STATUS_SUCCESS;
 
     for (ULONG i = 0; i < imageNtHeader->FileHeader.NumberOfSections; i++)
     {
@@ -7345,15 +7345,15 @@ NTSTATUS PhLoaderEntryRelocateImage(
         sectionHeaderAddress = PTR_ADD_OFFSET(BaseAddress, sectionHeader->VirtualAddress);
         sectionHeaderSize = sectionHeader->SizeOfRawData;
 
-        if (sectionHeader->Characteristics & IMAGE_SCN_MEM_EXECUTE)
-            sectionProtection = PAGE_EXECUTE;
         if (sectionHeader->Characteristics & IMAGE_SCN_MEM_READ)
             sectionProtection = PAGE_READONLY;
         if (sectionHeader->Characteristics & IMAGE_SCN_MEM_WRITE)
             sectionProtection = PAGE_WRITECOPY;
-        if (sectionHeader->Characteristics & IMAGE_SCN_MEM_EXECUTE && sectionHeader->Characteristics & IMAGE_SCN_MEM_READ)
+        if (sectionHeader->Characteristics & IMAGE_SCN_MEM_EXECUTE)
+            sectionProtection = PAGE_EXECUTE;
+        if (sectionHeader->Characteristics & IMAGE_SCN_MEM_READ && sectionHeader->Characteristics & IMAGE_SCN_MEM_EXECUTE)
             sectionProtection = PAGE_EXECUTE_READ;
-        if (sectionHeader->Characteristics & IMAGE_SCN_MEM_EXECUTE && sectionHeader->Characteristics & IMAGE_SCN_MEM_WRITE)
+        if (sectionHeader->Characteristics & IMAGE_SCN_MEM_WRITE && sectionHeader->Characteristics & IMAGE_SCN_MEM_EXECUTE)
             sectionProtection = PAGE_EXECUTE_READWRITE;
 
         status = NtProtectVirtualMemory(
