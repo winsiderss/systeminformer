@@ -1270,6 +1270,7 @@ NTSTATUS PeDumpFileSymbols(
 
     if (baseOfDll == ULLONG_MAX)
     {
+        PostMessage(Context->DialogHandle, WM_PV_SEARCH_FINISHED, 0, 0);
         PhShowStatus(NULL, L"Unable to load the file.", STATUS_UNSUCCESSFUL, 0);
         return STATUS_UNSUCCESSFUL;
     }
@@ -1280,6 +1281,7 @@ NTSTATUS PeDumpFileSymbols(
         &idiaSession
         ))
     {
+        PostMessage(Context->DialogHandle, WM_PV_SEARCH_FINISHED, 0, 0);
         return STATUS_UNSUCCESSFUL;
     }
 
