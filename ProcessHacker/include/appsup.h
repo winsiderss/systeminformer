@@ -47,6 +47,7 @@ typedef enum _PH_KNOWN_PROCESS_TYPE
     TaskHostProcessType, // taskeng, taskhost, taskhostex
     ExplorerProcessType, // explorer
     UmdfHostProcessType, // wudfhost
+    NtVdmHostProcessType, // ntvdm
     EdgeProcessType, // Microsoft Edge
     WmiProviderHostType,
     MaximumProcessType,

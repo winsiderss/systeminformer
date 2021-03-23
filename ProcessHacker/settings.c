@@ -209,6 +209,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"UpdateInterval", L"3e8"); // 1000ms
     PhpAddIntegerSetting(L"WmiProviderEnableHiddenMenu", L"0");
     PhpAddStringSetting(L"WmiProviderListViewColumns", L"");
+    PhpAddStringSetting(L"VdmHostListViewColumns", L"");
 
     // Colors are specified with R in the lowest byte, then G, then B. So: bbggrr.
     PhpAddIntegerSetting(L"ColorNew", L"00ff7f"); // Chartreuse

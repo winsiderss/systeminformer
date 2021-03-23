@@ -108,6 +108,7 @@
 #define IDD_RUNFILEDLG                  253
 #define IDD_LIVEDUMP                    254
 #define IDD_HEAPS                       255
+#define IDD_PROCVDMHOST                 257
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
