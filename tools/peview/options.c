@@ -160,10 +160,16 @@ static VOID PhpGeneralPageSave(
 
     //PhSetStringSetting2(L"SearchEngine", &PhaGetDlgItemText(WindowHandle, IDC_SEARCHENGINE)->sr);
 
+    if (ComboBox_GetCurSel(GetDlgItem(WindowHandle, IDC_MAXSIZEUNIT)) != PhGetIntegerSetting(L"MaxSizeUnit"))
+    {
+        PhSetIntegerSetting(L"MaxSizeUnit", ComboBox_GetCurSel(GetDlgItem(WindowHandle, IDC_MAXSIZEUNIT)));
+        RestartRequired = TRUE;
+    }
+
     if (!PhEqualString(PhaGetDlgItemText(WindowHandle, IDC_DBGHELPSEARCHPATH), PhaGetStringSetting(L"DbgHelpSearchPath"), TRUE))
     {
         PhSetStringSetting2(L"DbgHelpSearchPath", &(PhaGetDlgItemText(WindowHandle, IDC_DBGHELPSEARCHPATH)->sr));
-        //RestartRequired = TRUE;
+        RestartRequired = TRUE;
     }
 
     //SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_WARNINGS, L"EnableWarnings");
