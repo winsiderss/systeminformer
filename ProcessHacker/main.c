@@ -22,9 +22,6 @@
  */
 
 #include <phapp.h>
-
-#include <shlobj.h>
-
 #include <colorbox.h>
 #include <hexedit.h>
 #include <hndlinfo.h>
@@ -35,6 +32,9 @@
 #include <netprv.h>
 #include <phsvc.h>
 #include <procprv.h>
+
+#include <shlobj.h>
+
 #include <settings.h>
 #include <srvprv.h>
 
@@ -83,6 +83,10 @@ BOOLEAN PhInitializeNamespacePolicy(
     );
 
 BOOLEAN PhInitializeMitigationPolicy(
+    VOID
+    );
+
+BOOLEAN PhInitializeMitigationSignaturePolicy(
     VOID
     );
 
@@ -201,38 +205,7 @@ INT WINAPI wWinMain(
         PhLoadPlugins();
     }
 
-#ifndef DEBUG
-    BOOLEAN PhpIsExploitProtectionEnabled(VOID); // Forwarded from options.c (dmex)
-    // Starting with Win10 20H1 processes with uiAccess=true override the ProcessExtensionPointDisablePolicy
-    // blocking hook DLL injection and inject the window hook anyway. This override doesn't check if the process has also enabled 
-    // the MicrosoftSignedOnly policy causing an infinite loop of APC messages and hook DLL loading/unloading
-    // inside user32!_ClientLoadLibrary while calling the GetMessageW API for the window message loop.
-    // ...
-    // 1) GetMessageW processes the APC message for loading the window hook DLL with user32!_ClientLoadLibrary.
-    // 2) user32!_ClientLoadLibrary calls LoadLibraryEx with the DLL path.
-    // 3) LoadLibraryEx returns an error loading the window hook DLL because we enabled MicrosoftSignedOnly.
-    // 4) SetWindowsHookEx ignores the result and re-queues the APC message from step 1.
-    // ...
-    // Mouse/keyboard/window messages passing through GetMessageW generate large volumes of calls to LoadLibraryEx
-    // making the application unresponsive as each message processes the APC message and loads/unloads the hook DLL...
-    // So don't use MicrosoftSignedOnly on versions of Windows where Process Hacker becomes unresponsive
-    // because a third party application called SetWindowsHookEx on the machine. (dmex)
-    if (
-        WindowsVersion >= WINDOWS_10 &&
-        PhpIsExploitProtectionEnabled()
-        //WindowsVersion != WINDOWS_10_20H1 &&
-        //WindowsVersion != WINDOWS_10_20H2
-        )
-    {
-        PROCESS_MITIGATION_POLICY_INFORMATION policyInfo;
-
-        policyInfo.Policy = ProcessSignaturePolicy;
-        policyInfo.SignaturePolicy.Flags = 0;
-        policyInfo.SignaturePolicy.MicrosoftSignedOnly = TRUE;
-
-        NtSetInformationProcess(NtCurrentProcess(), ProcessMitigationPolicy, &policyInfo, sizeof(PROCESS_MITIGATION_POLICY_INFORMATION));
-    }
-#endif
+    PhInitializeMitigationSignaturePolicy();
 
     if (PhStartupParameters.PhSvc)
     {
@@ -815,7 +788,7 @@ BOOLEAN PhInitializeExceptionPolicy(
     
     if (NT_SUCCESS(PhGetProcessErrorMode(NtCurrentProcess(), &errorMode)))
     {
-        errorMode |= (SEM_NOOPENFILEERRORBOX | SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
+        errorMode &= ~(SEM_NOOPENFILEERRORBOX | SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
         PhSetProcessErrorMode(NtCurrentProcess(), errorMode);
     }
 
@@ -866,17 +839,14 @@ BOOLEAN PhInitializeNamespacePolicy(
         NULL
         );
 
-    if (NT_SUCCESS(NtCreateMutant(
+    NtCreateMutant(
         &mutantHandle,
         MUTANT_QUERY_STATE,
         &objectAttributes,
         TRUE
-        )))
-    {
-        return TRUE;
-    }
+        );
 
-    return FALSE;
+    return TRUE;
 }
 
 BOOLEAN PhInitializeMitigationPolicy(
@@ -998,6 +968,46 @@ CleanupExit:
 #else
     return TRUE;
 #endif
+}
+
+BOOLEAN PhInitializeMitigationSignaturePolicy(
+    VOID
+    )
+{
+#ifndef DEBUG
+    BOOLEAN PhpIsExploitProtectionEnabled(VOID); // Forwarded from options.c (dmex)
+    // Starting with Win10 20H1 processes with uiAccess=true override the ProcessExtensionPointDisablePolicy
+    // blocking hook DLL injection and inject the window hook anyway. This override doesn't check if the process has also enabled 
+    // the MicrosoftSignedOnly policy causing an infinite loop of APC messages and hook DLL loading/unloading
+    // inside user32!_ClientLoadLibrary while calling the GetMessageW API for the window message loop.
+    // ...
+    // 1) GetMessageW processes the APC message for loading the window hook DLL with user32!_ClientLoadLibrary.
+    // 2) user32!_ClientLoadLibrary calls LoadLibraryEx with the DLL path.
+    // 3) LoadLibraryEx returns an error loading the window hook DLL because we enabled MicrosoftSignedOnly.
+    // 4) SetWindowsHookEx ignores the result and re-queues the APC message from step 1.
+    // ...
+    // Mouse/keyboard/window messages passing through GetMessageW generate large volumes of calls to LoadLibraryEx
+    // making the application unresponsive as each message processes the APC message and loads/unloads the hook DLL...
+    // So don't use MicrosoftSignedOnly on versions of Windows where Process Hacker becomes unresponsive
+    // because a third party application called SetWindowsHookEx on the machine. (dmex)
+    if (
+        WindowsVersion >= WINDOWS_10 &&
+        PhpIsExploitProtectionEnabled()
+        //WindowsVersion != WINDOWS_10_20H1 &&
+        //WindowsVersion != WINDOWS_10_20H2
+        )
+    {
+        PROCESS_MITIGATION_POLICY_INFORMATION policyInfo;
+
+        policyInfo.Policy = ProcessSignaturePolicy;
+        policyInfo.SignaturePolicy.Flags = 0;
+        policyInfo.SignaturePolicy.MicrosoftSignedOnly = TRUE;
+
+        NtSetInformationProcess(NtCurrentProcess(), ProcessMitigationPolicy, &policyInfo, sizeof(PROCESS_MITIGATION_POLICY_INFORMATION));
+    }
+#endif
+
+    return TRUE;
 }
 
 NTSTATUS PhpReadSignature(
