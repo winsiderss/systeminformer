@@ -433,6 +433,7 @@
     <ClCompile Include="prpgjob.c" />
     <ClCompile Include="prpgmem.c" />
     <ClCompile Include="prpgmod.c" />
+    <ClCompile Include="prpgvdm.c" />
     <ClCompile Include="prpgperf.c" />
     <ClCompile Include="prpgsrv.c" />
     <ClCompile Include="prpgstat.c" />

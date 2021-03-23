@@ -383,6 +383,10 @@ PH_KNOWN_PROCESS_TYPE PhGetProcessKnownTypeEx(
                 knownProcessType = EdgeProcessType;
             else if (PhEqualStringRef2(&name, L"\\MicrosoftEdgeSH.exe", TRUE)) // RS5
                 knownProcessType = EdgeProcessType;
+#ifdef _M_IX86
+            else if (PhEqualStringRef2(&name, L"\\ntvdm.exe", TRUE))
+                knownProcessType = NtVdmHostProcessType;
+#endif
         }
         else
         {

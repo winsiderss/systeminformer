@@ -309,6 +309,9 @@
     <ClCompile Include="notiftoast.cpp">
       <Filter>Process Hacker</Filter>
     </ClCompile>
+    <ClCompile Include="prpgvdm.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\hidnproc.h">

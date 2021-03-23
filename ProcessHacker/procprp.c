@@ -716,6 +716,18 @@ NTSTATUS PhpProcessPropertiesThreadStart(
         PhAddProcessPropPage(PropContext, newPage);
     }
 
+#ifdef _M_IX86
+    if ((PropContext->ProcessItem->KnownProcessType & KnownProcessTypeMask) == NtVdmHostProcessType)
+    {
+        newPage = PhCreateProcessPropPageContext(
+            MAKEINTRESOURCE(IDD_PROCVDMHOST),
+            PhpProcessVdmHostProcessDlgProc,
+            NULL
+        );
+        PhAddProcessPropPage(PropContext, newPage);
+    }
+#endif
+
     // Plugin-supplied pages
     if (PhPluginsEnabled)
     {
