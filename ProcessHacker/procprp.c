@@ -723,7 +723,7 @@ NTSTATUS PhpProcessPropertiesThreadStart(
             MAKEINTRESOURCE(IDD_PROCVDMHOST),
             PhpProcessVdmHostProcessDlgProc,
             NULL
-        );
+            );
         PhAddProcessPropPage(PropContext, newPage);
     }
 #endif
