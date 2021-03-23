@@ -24,6 +24,9 @@
 #include <emenu.h>
 #include "colmgr.h"
 
+static PH_STRINGREF EmptySymbolsText = PH_STRINGREF_INIT(L"There are no symbols to display.");
+static PH_STRINGREF LoadingSymbolsText = PH_STRINGREF_INIT(L"Loading symbols from image...");
+
 BOOLEAN SymbolNodeHashtableCompareFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -677,6 +680,8 @@ INT_PTR CALLBACK PvpSymbolsDlgProc(
             SearchResults = PhCreateList(0x1000);
             context->UdtList = PhCreateList(0x100);
 
+            TreeNew_SetEmptyText(context->TreeNewHandle, &LoadingSymbolsText, 0);
+
             PhCreateThread2(PeDumpFileSymbols, context);
 
             RtlCreateTimer(
@@ -754,6 +759,8 @@ INT_PTR CALLBACK PvpSymbolsDlgProc(
             }
 
             PvAddPendingSymbolNodes(context);
+
+            TreeNew_SetEmptyText(context->TreeNewHandle, &EmptySymbolsText, 0);
         }
         break;
     case WM_PV_SEARCH_SHOWMENU:
