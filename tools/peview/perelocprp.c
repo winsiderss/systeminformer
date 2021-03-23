@@ -202,7 +202,7 @@ INT_PTR CALLBACK PvpPeRelocationDlgProc(
             PhSetListViewStyle(lvHandle, TRUE, TRUE);
             PhSetControlTheme(lvHandle, L"explorer");
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"#");
-            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 100, L"RVA (start)");
+            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 100, L"RVA");
             PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 100, L"Offset");
             PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 100, L"Type");
             PhAddListViewColumn(lvHandle, 4, 4, 4, LVCFMT_LEFT, 150, L"Value");

@@ -2,7 +2,7 @@
  * PE viewer -
  *   EH continuation support
  *
- * Copyright (C) 2020 dmex
+ * Copyright (C) 2020-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -47,7 +47,7 @@ INT_PTR CALLBACK PvpPeEhContDlgProc(
             PhSetControlTheme(lvHandle, L"explorer");
 
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"#");
-            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_RIGHT, 80, L"VA");
+            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_RIGHT, 80, L"RVA");
             PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 250, L"Name");
             PhSetExtendedListView(lvHandle);
             PhLoadListViewColumnsFromSetting(L"ImageEhContListViewColumns", lvHandle);
