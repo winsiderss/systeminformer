@@ -536,7 +536,7 @@ NTSTATUS PhLoadRemoteMappedImageEx(
     NTSTATUS status;
     IMAGE_DOS_HEADER dosHeader;
     ULONG ntHeadersOffset;
-    IMAGE_NT_HEADERS32 ntHeaders;
+    IMAGE_NT_HEADERS ntHeaders;
     SIZE_T ntHeadersSize;
 
     RemoteMappedImage->ViewBase = ViewBase;
@@ -568,7 +568,7 @@ NTSTATUS PhLoadRemoteMappedImageEx(
         ProcessHandle,
         PTR_ADD_OFFSET(ViewBase, ntHeadersOffset),
         &ntHeaders,
-        sizeof(IMAGE_NT_HEADERS32),
+        sizeof(IMAGE_NT_HEADERS),
         NULL
         );
 
@@ -647,7 +647,7 @@ BOOLEAN PhGetRemoteMappedImageDirectoryEntry(
     {
         PIMAGE_OPTIONAL_HEADER32 optionalHeader;
 
-        optionalHeader = (PIMAGE_OPTIONAL_HEADER32)&RemoteMappedImage->NtHeaders->OptionalHeader;
+        optionalHeader = (PIMAGE_OPTIONAL_HEADER32)&RemoteMappedImage->NtHeaders32->OptionalHeader;
 
         if (Index >= optionalHeader->NumberOfRvaAndSizes)
             return FALSE;
