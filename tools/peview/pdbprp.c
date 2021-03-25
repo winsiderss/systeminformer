@@ -455,6 +455,8 @@ VOID PvInitializeSymbolTree(
     _In_ HWND TreeNewHandle
     )
 {
+    PPH_STRING settings;
+
     Context->NodeHashtable = PhCreateHashtable(
         sizeof(PPV_SYMBOL_NODE),
         SymbolNodeHashtableCompareFunction,
@@ -477,9 +479,9 @@ VOID PvInitializeSymbolTree(
 
     TreeNew_SetSort(TreeNewHandle, TREE_COLUMN_ITEM_VA, AscendingSortOrder);
 
-    //PPH_STRING settings = PhGetStringSetting(L"PdbTreeListColumns");
-    //PhCmLoadSettings(TreeNewHandle, &settings->sr);
-    //PhDereferenceObject(settings);
+    settings = PhGetStringSetting(L"PdbTreeListColumns");
+    PhCmLoadSettings(TreeNewHandle, &settings->sr);
+    PhDereferenceObject(settings);
 
     PhInitializeTreeNewFilterSupport(&Context->FilterSupport, TreeNewHandle, Context->NodeList);
 }
@@ -747,6 +749,18 @@ INT_PTR CALLBACK PvpSymbolsDlgProc(
                     }
                 }
                 break;
+            }
+        }
+        break;
+    case WM_NOTIFY:
+        {
+            LPNMHDR header = (LPNMHDR)lParam;
+
+            switch (header->code)
+            {
+            case PSN_QUERYINITIALFOCUS:
+                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LONG_PTR)context->TreeNewHandle);
+                return TRUE;
             }
         }
         break;
