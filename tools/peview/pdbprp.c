@@ -38,6 +38,17 @@ VOID PvDestroySymbolNode(
     _In_ PPV_SYMBOL_NODE Node
     );
 
+BOOLEAN PhInsertCopyCellEMenuItem(
+    _In_ struct _PH_EMENU_ITEM* Menu,
+    _In_ ULONG InsertAfterId,
+    _In_ HWND TreeNewHandle,
+    _In_ PPH_TREENEW_COLUMN Column
+    );
+
+BOOLEAN PhHandleCopyCellEMenuItem(
+    _In_ struct _PH_EMENU_ITEM* SelectedItem
+    );
+
 VOID PvDeleteSymbolTree(
     _In_ PPDB_SYMBOL_CONTEXT Context
     )
@@ -790,8 +801,8 @@ INT_PTR CALLBACK PvpSymbolsDlgProc(
             if (numberOfSymbolNodes != 0)
             {
                 menu = PhCreateEMenu();
-                //PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_SYMBOL_COPY, L"Copy", NULL, NULL), ULONG_MAX);
-                //PhInsertCopyCellEMenuItem(menu, ID_SYMBOL_COPY, context->TreeNewHandle, contextMenuEvent->Column);
+                PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 1, L"Copy", NULL, NULL), ULONG_MAX);
+                PhInsertCopyCellEMenuItem(menu, 1, context->TreeNewHandle, contextMenuEvent->Column);
 
                 selectedItem = PhShowEMenu(
                     menu,
@@ -804,18 +815,18 @@ INT_PTR CALLBACK PvpSymbolsDlgProc(
 
                 if (selectedItem && selectedItem->Id != ULONG_MAX)
                 {
-                    //BOOLEAN handled = FALSE;
+                    BOOLEAN handled = FALSE;
 
-                    //handled = PhHandleCopyCellEMenuItem(selectedItem);
+                    handled = PhHandleCopyCellEMenuItem(selectedItem);
 
-                    //if (!handled && selectedItem->Id == ID_SYMBOL_COPY)
-                    //{
-                    //    PPH_STRING text;
+                    if (!handled && selectedItem->Id == 1)
+                    {
+                        PPH_STRING text;
 
-                    //    text = PhGetTreeNewText(context->TreeNewHandle, 0);
-                    //    PhSetClipboardString(context->TreeNewHandle, &text->sr);
-                    //    PhDereferenceObject(text);
-                    //}
+                        text = PhGetTreeNewText(context->TreeNewHandle, 0);
+                        PhSetClipboardString(context->TreeNewHandle, &text->sr);
+                        PhDereferenceObject(text);
+                    }
                 }
 
                 PhDestroyEMenu(menu);
