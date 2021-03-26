@@ -799,7 +799,8 @@ typedef struct _PH_IMAGE_RELOC_ENTRY
     ULONG BlockRva;
     ULONG Type;
     ULONG Offset;
-    PVOID Value;
+    PVOID ImageBaseVa;
+    PVOID MappedImageVa;
 } PH_IMAGE_RELOC_ENTRY, *PPH_IMAGE_RELOC_ENTRY;
 
 typedef struct _PH_MAPPED_IMAGE_RELOC

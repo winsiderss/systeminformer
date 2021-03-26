@@ -3060,8 +3060,10 @@ NTSTATUS PhGetMappedImageRelocations(
             entry.BlockIndex = relocationIndex;
             entry.Type = relocations[i].Type;
             entry.Offset = relocations[i].Offset;
-            entry.Value = PTR_ADD_OFFSET(relocationAddress, relocations[i].Offset);
+            entry.MappedImageVa = PTR_ADD_OFFSET(relocationAddress, relocations[i].Offset);
             entry.BlockRva = relocationDirectory->VirtualAddress;
+            entry.ImageBaseVa = PTR_ADD_OFFSET(MappedImage->NtHeaders->OptionalHeader.ImageBase,
+                                               (SIZE_T)entry.BlockRva + entry.Offset);
             PhAddItemArray(&relocationArray, &entry);
         }
 
