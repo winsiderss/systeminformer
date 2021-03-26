@@ -5519,8 +5519,8 @@ VOID PhTnpDrawCell(
 
     if (Column == Context->FirstColumn)
     {
-        BOOLEAN needsClip;
-        HRGN oldClipRegion;
+        BOOLEAN needsClip = FALSE;
+        HRGN oldClipRegion = NULL;
 
         textRect.left += Node->Level * SmallIconWidth;
 
@@ -5631,10 +5631,12 @@ VOID PhTnpDrawCell(
             textRect.left += SmallIconWidth + TNP_ICON_RIGHT_PADDING;
         }
 
-        if (needsClip && oldClipRegion)
+        if (needsClip)
         {
             SelectClipRgn(hdc, oldClipRegion);
-            DeleteRgn(oldClipRegion);
+
+            if (oldClipRegion)
+                DeleteRgn(oldClipRegion);
         }
 
         if (textRect.left > textRect.right)
