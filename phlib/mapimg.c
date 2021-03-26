@@ -343,6 +343,9 @@ PVOID PhMappedImageRvaToVa(
 {
     PIMAGE_SECTION_HEADER section;
 
+    if (Rva == 0)
+        return NULL;
+
     section = PhMappedImageRvaToSection(MappedImage, Rva);
 
     if (!section)
@@ -912,11 +915,10 @@ NTSTATUS PhGetMappedImageExports(
         NULL
         );
 
-    if (
-        !Exports->AddressTable ||
-        !Exports->NamePointerTable ||
-        !Exports->OrdinalTable
-        )
+    // Note: NamePointerTable and OrdinalTable are null for binaries
+    // such as mfc140u.dll yet contain valid exports (dmex)
+
+    if (!Exports->AddressTable)
         return STATUS_INVALID_PARAMETER;
 
     __try
@@ -926,16 +928,24 @@ NTSTATUS PhGetMappedImageExports(
             Exports->AddressTable,
             exportDirectory->NumberOfFunctions * sizeof(ULONG)
             );
-        PhpMappedImageProbe(
-            MappedImage,
-            Exports->NamePointerTable,
-            exportDirectory->NumberOfNames * sizeof(ULONG)
-            );
-        PhpMappedImageProbe(
-            MappedImage,
-            Exports->OrdinalTable,  // ordinal list for named exports
-            exportDirectory->NumberOfNames * sizeof(USHORT)
-            );
+
+        if (Exports->NamePointerTable)
+        {
+            PhpMappedImageProbe(
+                MappedImage,
+                Exports->NamePointerTable,
+                exportDirectory->NumberOfNames * sizeof(ULONG)
+                );
+        }
+
+        if (Exports->OrdinalTable)
+        {
+            PhpMappedImageProbe(
+                MappedImage,
+                Exports->OrdinalTable,  // ordinal list for named exports
+                exportDirectory->NumberOfNames * sizeof(USHORT)
+                );
+        }
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
@@ -966,17 +976,20 @@ NTSTATUS PhGetMappedImageExportEntry(
 
     Entry->Ordinal = (USHORT)Index + (USHORT)Exports->ExportDirectory->Base;
 
-    // look into named exports ordinal list.
-    for (nameIndex = 0; nameIndex < Exports->ExportDirectory->NumberOfNames; nameIndex++)
+    if (Exports->OrdinalTable)
     {
-        if (Index == Exports->OrdinalTable[nameIndex])
+        // look into named exports ordinal list.
+        for (nameIndex = 0; nameIndex < Exports->ExportDirectory->NumberOfNames; nameIndex++)
         {
-            exportByName = TRUE;
-            break;
+            if (Index == Exports->OrdinalTable[nameIndex])
+            {
+                exportByName = TRUE;
+                break;
+            }
         }
     }
 
-    if (exportByName)
+    if (Exports->NamePointerTable && exportByName)
     {
         name = PhMappedImageRvaToVa(
             Exports->MappedImage,
