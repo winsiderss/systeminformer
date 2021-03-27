@@ -3059,11 +3059,9 @@ NTSTATUS PhGetMappedImageRelocations(
     while ((ULONG_PTR)relocationDirectory < (ULONG_PTR)relocationDirectoryEnd)
     {
         ULONG relocationCount;
-        PVOID relocationAddress;
         PIMAGE_BASE_RELOCATION_ENTRY relocations;
 
         relocationCount = (relocationDirectory->SizeOfBlock - sizeof(IMAGE_BASE_RELOCATION)) / sizeof(IMAGE_BASE_RELOCATION_ENTRY);
-        relocationAddress = PTR_ADD_OFFSET(MappedImage->ViewBase, relocationDirectory->VirtualAddress);
         relocations = PTR_ADD_OFFSET(relocationDirectory, RTL_SIZEOF_THROUGH_FIELD(IMAGE_BASE_RELOCATION, SizeOfBlock));
 
         for (ULONG i = 0; i < relocationCount; i++)
@@ -3073,10 +3071,20 @@ NTSTATUS PhGetMappedImageRelocations(
             entry.BlockIndex = relocationIndex;
             entry.Type = relocations[i].Type;
             entry.Offset = relocations[i].Offset;
-            entry.MappedImageVa = PTR_ADD_OFFSET(relocationAddress, relocations[i].Offset);
             entry.BlockRva = relocationDirectory->VirtualAddress;
-            entry.ImageBaseVa = PTR_ADD_OFFSET(MappedImage->NtHeaders->OptionalHeader.ImageBase,
-                                               (SIZE_T)entry.BlockRva + entry.Offset);
+            if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+            {
+                entry.ImageBaseVa = PTR_ADD_OFFSET(MappedImage->NtHeaders->OptionalHeader.ImageBase,
+                                                   (SIZE_T)entry.BlockRva + entry.Offset);
+            }
+            else if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+            {
+                entry.ImageBaseVa = PTR_ADD_OFFSET(MappedImage->NtHeaders32->OptionalHeader.ImageBase,
+                                                   (SIZE_T)entry.BlockRva + entry.Offset);
+            }
+            entry.MappedImageVa = PhMappedImageRvaToVa(MappedImage,
+                                                       entry.BlockRva + entry.Offset,
+                                                       NULL);
             PhAddItemArray(&relocationArray, &entry);
         }
 

@@ -116,6 +116,45 @@ VOID PvEnumerateRelocationEntries(
                 PhSetListViewSubItem(ListViewHandle, lvItemIndex, 6, symbol->Buffer);
                 PhDereferenceObject(symbol);
             }
+
+            if (entry->MappedImageVa)
+            {
+                ULONG64 reloc = MAXULONG64;
+
+                __try
+                {
+                    if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+                    {
+                        reloc = *(PULONG64)entry->MappedImageVa;
+                    }
+                    else if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+                    {
+                        reloc = *(PULONG32)entry->MappedImageVa;
+                    }
+                }
+                __except (EXCEPTION_EXECUTE_HANDLER)
+                {
+                    reloc = MAXULONG64;
+                }
+
+                if (reloc != MAXULONG64)
+                {
+                    symbol = PhGetSymbolFromAddress(
+                        PvSymbolProvider,
+                        reloc,
+                        NULL,
+                        NULL,
+                        NULL,
+                        NULL
+                    );
+
+                    if (symbol)
+                    {
+                        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 7, symbol->Buffer);
+                        PhDereferenceObject(symbol);
+                    }
+                }
+            }
         }
     }
 }
@@ -149,6 +188,7 @@ INT_PTR CALLBACK PvpPeRelocationDlgProc(
             PhAddListViewColumn(lvHandle, 4, 4, 4, LVCFMT_LEFT, 150, L"ImageBaseVA");
             PhAddListViewColumn(lvHandle, 5, 5, 5, LVCFMT_LEFT, 100, L"Section");
             PhAddListViewColumn(lvHandle, 6, 6, 6, LVCFMT_LEFT, 100, L"Symbol");
+            PhAddListViewColumn(lvHandle, 7, 7, 7, LVCFMT_LEFT, 100, L"RelocationSymbol");
             PhSetExtendedListView(lvHandle);
             PhLoadListViewColumnsFromSetting(L"ImageRelocationsListViewColumns", lvHandle);
 
