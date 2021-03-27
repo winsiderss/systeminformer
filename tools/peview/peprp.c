@@ -325,30 +325,7 @@ VOID PvPeProperties(
 
         // Relocations page
         {
-            BOOLEAN has_relocations = FALSE;
-
-            if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
-            {
-                if (NT_SUCCESS(PhGetMappedImageLoadConfig32(&PvMappedImage, &config32)) &&
-                    RTL_CONTAINS_FIELD(config32, config32->Size, GuardEHContinuationCount))
-                {
-                    if (config32->SEHandlerTable && config32->SEHandlerCount)
-                        has_relocations = TRUE;
-                }
-            }
-            else
-            {
-                if (NT_SUCCESS(PhGetMappedImageDataEntry(
-                    &PvMappedImage,
-                    IMAGE_DIRECTORY_ENTRY_BASERELOC,
-                    &entry
-                    )) && entry->VirtualAddress)
-                {
-                    has_relocations = TRUE;
-                }
-            }
-
-            if (has_relocations)
+            if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_BASERELOC, &entry)) && entry->VirtualAddress)
             {
                 newPage = PvCreatePropPageContext(
                     MAKEINTRESOURCE(IDD_PERELOCATIONS),
