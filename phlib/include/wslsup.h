@@ -35,9 +35,8 @@ BOOLEAN PhInitializeLxssImageVersionInfo(
 
 _Success_(return)
 BOOLEAN PhCreateProcessLxss(
-    _In_ PWSTR LxssDistribution,
-    _In_ PWSTR LxssCommandLine,
-    _In_opt_ PWSTR LxssCurrentDirectory,
+    _In_ PPH_STRING LxssDistribution,
+    _In_ PPH_STRING LxssCommandLine,
     _Out_ PPH_STRING *Result
     );
 

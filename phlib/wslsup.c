@@ -2,7 +2,7 @@
  * Process Hacker -
  *   LXSS support helpers
  *
- * Copyright (C) 2019 dmex
+ * Copyright (C) 2019-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -158,11 +158,12 @@ BOOLEAN PhInitializeLxssImageVersionInfo(
     )
 {
     BOOLEAN success = FALSE;
+    PPH_STRING lxssCommandResult = NULL;
     PPH_STRING lxssCommandLine = NULL;
     PPH_STRING lxssPackageName = NULL;
     PPH_STRING lxssDistroName;
     PPH_STRING lxssFileName;
-    PPH_STRING result = NULL;
+    PH_FORMAT format[3];
 
     if (!PhGetWslDistributionFromPath(FileName, &lxssDistroName, NULL, &lxssFileName))
         return FALSE;
@@ -171,16 +172,21 @@ BOOLEAN PhInitializeLxssImageVersionInfo(
     if (PhEqualString2(lxssFileName, L"/init", FALSE))
         goto CleanupExit;
 
-    PhMoveReference(&lxssCommandLine, PhFormatString(
-        L"rpm -qf %s --queryformat \"%%{VERSION}|%%{VENDOR}|%%{SUMMARY}\"",
-        PhGetString(lxssFileName)
-        ));
+    // "rpm -qf %s --queryformat \"%%{VERSION}|%%{VENDOR}|%%{SUMMARY}\""
+    PhInitFormatS(&format[0], L"rpm -qf ");
+    PhInitFormatSR(&format[1], lxssFileName->sr);
+    PhInitFormatS(&format[2], L" --queryformat \"%%{VERSION}|%%{VENDOR}|%%{SUMMARY}\"");
+
+    lxssCommandLine = PhFormat(
+        format,
+        RTL_NUMBER_OF(format),
+        0x100
+        );
 
     if (PhCreateProcessLxss(
-        lxssDistroName->Buffer,
-        lxssCommandLine->Buffer,
-        NULL,
-        &result
+        lxssDistroName,
+        lxssCommandLine,
+        &lxssCommandResult
         ))
     {
         goto ParseResult;
@@ -192,21 +198,20 @@ BOOLEAN PhInitializeLxssImageVersionInfo(
         ));
 
     if (PhCreateProcessLxss(
-        lxssDistroName->Buffer,
-        lxssCommandLine->Buffer,
-        NULL,
-        &result
+        lxssDistroName,
+        lxssCommandLine,
+        &lxssCommandResult
         ))
     {
         PH_STRINGREF remainingPart;
         PH_STRINGREF packagePart;
 
-        if (PhSplitStringRefAtChar(&result->sr, L':', &packagePart, &remainingPart))
+        if (PhSplitStringRefAtChar(&lxssCommandResult->sr, L':', &packagePart, &remainingPart))
         {
             lxssPackageName = PhCreateString2(&packagePart);
         }
 
-        PhDereferenceObject(result);
+        PhDereferenceObject(lxssCommandResult);
     }
 
     if (PhIsNullOrEmptyString(lxssPackageName))
@@ -218,10 +223,9 @@ BOOLEAN PhInitializeLxssImageVersionInfo(
         ));
 
     if (!PhCreateProcessLxss(
-        lxssDistroName->Buffer,
-        lxssCommandLine->Buffer,
-        NULL,
-        &result
+        lxssDistroName,
+        lxssCommandLine,
+        &lxssCommandResult
         ))
     {
         goto CleanupExit;
@@ -239,7 +243,7 @@ ParseResult:
         PH_STRINGREF descriptionPart;
         PH_STRINGREF versionPart;
 
-        remainingPart = PhGetStringRef(result);
+        remainingPart = PhGetStringRef(lxssCommandResult);
         PhSplitStringRefAtChar(&remainingPart, L'|', &versionPart, &remainingPart);
         PhSplitStringRefAtChar(&remainingPart, L'|', &companyPart, &remainingPart);
         PhSplitStringRefAtChar(&remainingPart, L'|', &descriptionPart, &remainingPart);
@@ -256,7 +260,7 @@ ParseResult:
 
 CleanupExit:
 
-    if (result) PhDereferenceObject(result);
+    if (lxssCommandResult) PhDereferenceObject(lxssCommandResult);
     if (lxssCommandLine) PhDereferenceObject(lxssCommandLine);
     if (lxssPackageName) PhDereferenceObject(lxssPackageName);
     if (lxssDistroName) PhDereferenceObject(lxssDistroName);
@@ -267,9 +271,8 @@ CleanupExit:
 
 _Success_(return)
 BOOLEAN PhCreateProcessLxss(
-    _In_ PWSTR LxssDistribution,
-    _In_ PWSTR LxssCommandLine,
-    _In_opt_ PWSTR LxssCurrentDirectory,
+    _In_ PPH_STRING LxssDistribution,
+    _In_ PPH_STRING LxssCommandLine,
     _Out_ PPH_STRING *Result
     )
 {
@@ -282,20 +285,27 @@ BOOLEAN PhCreateProcessLxss(
     HANDLE inputReadHandle, inputWriteHandle;
     PROCESS_BASIC_INFORMATION basicInfo;
     STARTUPINFO startupInfo;
+    PH_FORMAT format[4];
 
-    lxssCommandLine = PhFormatString(
-        L"wsl.exe -d %s -e %s",
-        LxssDistribution,
-        LxssCommandLine
+    // "wsl.exe -u root -d %s -e %s"
+    PhInitFormatS(&format[0], L"wsl.exe -u root -d ");
+    PhInitFormatSR(&format[1], LxssDistribution->sr);
+    PhInitFormatS(&format[2], L" -e ");
+    PhInitFormatSR(&format[3], LxssCommandLine->sr);
+
+    lxssCommandLine = PhFormat(
+        format,
+        RTL_NUMBER_OF(format),
+        0x100
         );
 
     if (systemDirectory = PhGetSystemDirectory())
     {
         PhMoveReference(&lxssCommandLine, PhConcatStrings(
             3,
-            systemDirectory->Buffer,
+            PhGetString(systemDirectory),
             L"\\",
-            lxssCommandLine->Buffer
+            PhGetString(lxssCommandLine)
             ));
         PhDereferenceObject(systemDirectory);
     }
@@ -326,7 +336,7 @@ BOOLEAN PhCreateProcessLxss(
 
     memset(&startupInfo, 0, sizeof(STARTUPINFO));
     startupInfo.cb = sizeof(STARTUPINFO);
-    startupInfo.dwFlags = STARTF_USESHOWWINDOW | STARTF_USESTDHANDLES;
+    startupInfo.dwFlags = STARTF_USESHOWWINDOW | STARTF_FORCEOFFFEEDBACK | STARTF_USESTDHANDLES;
     startupInfo.wShowWindow = SW_HIDE;
     startupInfo.hStdInput = inputReadHandle;
     startupInfo.hStdOutput = outputWriteHandle;
@@ -334,11 +344,11 @@ BOOLEAN PhCreateProcessLxss(
 
     status = PhCreateProcessWin32Ex(
         NULL,
-        lxssCommandLine->Buffer,
+        PhGetString(lxssCommandLine),
         NULL,
-        LxssCurrentDirectory,
+        NULL,
         &startupInfo,
-        PH_CREATE_PROCESS_INHERIT_HANDLES | PH_CREATE_PROCESS_NEW_CONSOLE,
+        PH_CREATE_PROCESS_INHERIT_HANDLES | PH_CREATE_PROCESS_NEW_CONSOLE | PH_CREATE_PROCESS_DEFAULT_ERROR_MODE,
         NULL,
         NULL,
         &processHandle,
