@@ -327,6 +327,12 @@ typedef struct _PH_STATISTICS_CONTEXT
     PPH_STRING GdiHandles;
     PPH_STRING UserHandles;
     PSYSTEM_PROCESS_INFORMATION_EXTENSION ProcessExtension;
+
+    PPH_STRING SharedCommitUsage;
+    PPH_STRING PrivateCommitUsage;
+    PPH_STRING PeakPrivateCommitUsage;
+    //PPH_STRING PrivateCommitLimit;
+    //PPH_STRING TotalCommitLimit;
 } PH_STATISTICS_CONTEXT, *PPH_STATISTICS_CONTEXT;
 
 #define WM_PH_PERFORMANCE_UPDATE (WM_APP + 241)
