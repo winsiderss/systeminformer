@@ -64,6 +64,11 @@ typedef enum _PH_PROCESS_STATISTICS_INDEX
     PH_PROCESS_STATISTICS_INDEX_PRIVATEWS,
     PH_PROCESS_STATISTICS_INDEX_SHAREABLEWS,
     PH_PROCESS_STATISTICS_INDEX_SHAREDWS,
+    PH_PROCESS_STATISTICS_INDEX_SHAREDCOMMIT,
+    PH_PROCESS_STATISTICS_INDEX_PRIVATECOMMIT,
+    PH_PROCESS_STATISTICS_INDEX_PEAKPRIVATECOMMIT,
+    //PH_PROCESS_STATISTICS_INDEX_PRIVATECOMMITLIMIT,
+    //PH_PROCESS_STATISTICS_INDEX_TOTALCOMMITLIMIT,
     PH_PROCESS_STATISTICS_INDEX_PAGEPRIORITY,
 
     PH_PROCESS_STATISTICS_INDEX_READS,
@@ -138,6 +143,11 @@ VOID PhpUpdateStatisticsAddListViewGroups(
     PhAddListViewGroupItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_MEMORY, PH_PROCESS_STATISTICS_INDEX_PEAKPAGEDPOOL, L"Peak paged pool bytes", (PVOID)PH_PROCESS_STATISTICS_INDEX_PEAKPAGEDPOOL);
     PhAddListViewGroupItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_MEMORY, PH_PROCESS_STATISTICS_INDEX_NONPAGED, L"Nonpaged pool bytes", (PVOID)PH_PROCESS_STATISTICS_INDEX_NONPAGED);
     PhAddListViewGroupItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_MEMORY, PH_PROCESS_STATISTICS_INDEX_PEAKNONPAGED, L"Peak nonpaged pool bytes", (PVOID)PH_PROCESS_STATISTICS_INDEX_PEAKNONPAGED);
+    PhAddListViewGroupItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_MEMORY, PH_PROCESS_STATISTICS_INDEX_SHAREDCOMMIT, L"Shared commit", (PVOID)PH_PROCESS_STATISTICS_INDEX_SHAREDCOMMIT);
+    PhAddListViewGroupItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_MEMORY, PH_PROCESS_STATISTICS_INDEX_PRIVATECOMMIT, L"Private commit", (PVOID)PH_PROCESS_STATISTICS_INDEX_PRIVATECOMMIT);
+    PhAddListViewGroupItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_MEMORY, PH_PROCESS_STATISTICS_INDEX_PEAKPRIVATECOMMIT, L"Peak private commit", (PVOID)PH_PROCESS_STATISTICS_INDEX_PEAKPRIVATECOMMIT);
+    //PhAddListViewGroupItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_MEMORY, PH_PROCESS_STATISTICS_INDEX_PRIVATECOMMITLIMIT, L"Private commit limit", (PVOID)PH_PROCESS_STATISTICS_INDEX_PRIVATECOMMITLIMIT);
+    //PhAddListViewGroupItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_MEMORY, PH_PROCESS_STATISTICS_INDEX_TOTALCOMMITLIMIT, L"Total commit limit", (PVOID)PH_PROCESS_STATISTICS_INDEX_TOTALCOMMITLIMIT);
     PhAddListViewGroupItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_MEMORY, PH_PROCESS_STATISTICS_INDEX_PAGEPRIORITY, L"Page priority", (PVOID)PH_PROCESS_STATISTICS_INDEX_PAGEPRIORITY);
 
     PhAddListViewGroupItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_IO, PH_PROCESS_STATISTICS_INDEX_READS, L"Reads", (PVOID)PH_PROCESS_STATISTICS_INDEX_READS);
@@ -308,6 +318,7 @@ VOID PhpUpdateProcessStatistics(
         if (Context->ProcessHandle)
         {
             PH_PROCESS_WS_COUNTERS wsCounters;
+            PROCESS_JOB_MEMORY_INFO appMemoryInfo;
 
             if (NT_SUCCESS(PhGetProcessWsCounters(Context->ProcessHandle, &wsCounters)))
             {
@@ -316,6 +327,17 @@ VOID PhpUpdateProcessStatistics(
                 PhMoveReference(&Context->SharedWs, PhFormatSize((ULONG64)wsCounters.NumberOfSharedPages * PAGE_SIZE, ULONG_MAX));
                 Context->GotWsCounters = TRUE;
             }
+
+            if (NT_SUCCESS(PhGetProcessAppMemoryInformation(Context->ProcessHandle, &appMemoryInfo)))
+            {
+                PhMoveReference(&Context->SharedCommitUsage, PhFormatSize(appMemoryInfo.SharedCommitUsage, ULONG_MAX));
+                PhMoveReference(&Context->PrivateCommitUsage, PhFormatSize(appMemoryInfo.PrivateCommitUsage, ULONG_MAX));
+                PhMoveReference(&Context->PeakPrivateCommitUsage, PhFormatSize(appMemoryInfo.PeakPrivateCommitUsage, ULONG_MAX));
+                //if (appMemoryInfo.PrivateCommitLimit)
+                //    PhMoveReference(&Context->PrivateCommitLimit, PhFormatSize(appMemoryInfo.PrivateCommitLimit, ULONG_MAX));
+                //if (appMemoryInfo.TotalCommitLimit)
+                //    PhMoveReference(&Context->TotalCommitLimit, PhFormatSize(appMemoryInfo.TotalCommitLimit, ULONG_MAX));
+            }          
         }
 
         if (!Context->GotCycles)
@@ -671,6 +693,31 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                         wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A", _TRUNCATE);
                                 }
                                 break;
+                            case PH_PROCESS_STATISTICS_INDEX_SHAREDCOMMIT:
+                                {
+                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, PhGetStringOrDefault(statisticsContext->SharedCommitUsage, L"N/A"), _TRUNCATE);
+                                }
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PRIVATECOMMIT:
+                                {
+                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, PhGetStringOrDefault(statisticsContext->PrivateCommitUsage, L"N/A"), _TRUNCATE);
+                                }
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PEAKPRIVATECOMMIT:
+                                {
+                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, PhGetStringOrDefault(statisticsContext->PeakPrivateCommitUsage, L"N/A"), _TRUNCATE);
+                                }
+                                break;
+                            //case PH_PROCESS_STATISTICS_INDEX_PRIVATECOMMITLIMIT:
+                            //    {
+                            //        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, PhGetStringOrDefault(statisticsContext->PrivateCommitLimit, L"N/A"), _TRUNCATE);
+                            //    }
+                            //    break;
+                            //case PH_PROCESS_STATISTICS_INDEX_TOTALCOMMITLIMIT:
+                            //    {
+                            //        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, PhGetStringOrDefault(statisticsContext->TotalCommitLimit, L"N/A"), _TRUNCATE);
+                            //    }
+                            //    break;
                             case PH_PROCESS_STATISTICS_INDEX_READS:
                                 {
                                     PPH_STRING value;
