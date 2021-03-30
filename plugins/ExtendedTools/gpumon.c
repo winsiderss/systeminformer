@@ -216,6 +216,10 @@ PPH_STRING EtpQueryDeviceProperty(
         )) != CR_SUCCESS)
     {
         PhFree(buffer);
+
+        if (bufferSize == 0) // Required for ARM64 (dmex)
+            return NULL;
+
         buffer = PhAllocate(bufferSize);
 
         result = CM_Get_DevNode_Property(
