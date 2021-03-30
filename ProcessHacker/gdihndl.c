@@ -3,6 +3,7 @@
  *   GDI handles dialog
  *
  * Copyright (C) 2010 wj32
+ * Copyright (C) 2021 dmex
  *
  * This file is part of Process Hacker.
  *
