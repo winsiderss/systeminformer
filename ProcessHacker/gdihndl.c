@@ -216,10 +216,13 @@ VOID PhpRefreshGdiHandles(
     ULONG i;
     PGDI_SHARED_MEMORY gdiShared;
     USHORT processId;
+    ULONG handleCount;
     PGDI_HANDLE_ENTRY handle;
     PPH_GDI_HANDLE_ITEM gdiHandleItem;
+    MEMORY_BASIC_INFORMATION basicInfo;
 
     lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
+    memset(&basicInfo, 0, sizeof(MEMORY_BASIC_INFORMATION));
 
     ExtendedListView_SetRedraw(lvHandle, FALSE);
     ListView_DeleteAllItems(lvHandle);
@@ -237,9 +240,23 @@ VOID PhpRefreshGdiHandles(
     PhClearList(Context->List);
 
     gdiShared = (PGDI_SHARED_MEMORY)NtCurrentPeb()->GdiSharedHandleTable;
-    processId = (USHORT)Context->ProcessItem->ProcessId;
+    processId = (USHORT)HandleToUlong(Context->ProcessItem->ProcessId);
+    handleCount = GDI_MAX_HANDLE_COUNT;
 
-    for (i = 0; i < GDI_MAX_HANDLE_COUNT; i++)
+    if (NT_SUCCESS(NtQueryVirtualMemory(
+        NtCurrentProcess(),
+        gdiShared,
+        MemoryBasicInformation,
+        &basicInfo,
+        sizeof(MEMORY_BASIC_INFORMATION),
+        NULL
+        )))
+    {
+        handleCount = (ULONG)(basicInfo.RegionSize / sizeof(GDI_HANDLE_ENTRY));
+        handleCount = __min(GDI_MAX_HANDLE_COUNT, handleCount);
+    }
+
+    for (i = 0; i < handleCount; i++)
     {
         PWSTR typeName;
         INT lvItemIndex;
@@ -327,6 +344,8 @@ INT_PTR CALLBACK PhpGdiHandlesDlgProc(
     case WM_INITDIALOG:
         {
             HWND lvHandle;
+
+            PhSetApplicationWindowIcon(hwndDlg);
 
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
