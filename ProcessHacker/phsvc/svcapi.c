@@ -1421,13 +1421,13 @@ NTSTATUS PhSvcApiWriteMiniDumpProcess(
     )
 {
     MINIDUMP_CALLBACK_INFORMATION callbackInfo = { 0 };
-    HANDLE processHandle = NULL;
+    HANDLE processHandle = UlongToHandle(Payload->u.WriteMiniDumpProcess.i.LocalProcessHandle);
     HPSS snapshotHandle = NULL;
 
     if (PssCaptureSnapshot_Import())
     {
         PssCaptureSnapshot_Import()(
-            UlongToHandle(Payload->u.WriteMiniDumpProcess.i.LocalProcessHandle),
+            processHandle,
             PSS_CAPTURE_VA_CLONE | PSS_CAPTURE_VA_SPACE | PSS_CAPTURE_VA_SPACE_SECTION_INFORMATION |
             PSS_CAPTURE_HANDLE_TRACE | PSS_CAPTURE_HANDLES | PSS_CAPTURE_HANDLE_BASIC_INFORMATION |
             PSS_CAPTURE_HANDLE_TYPE_SPECIFIC_INFORMATION | PSS_CAPTURE_HANDLE_NAME_INFORMATION |
@@ -1440,13 +1440,8 @@ NTSTATUS PhSvcApiWriteMiniDumpProcess(
     callbackInfo.CallbackRoutine = PhpProcessMiniDumpCallback;
     callbackInfo.CallbackParam = snapshotHandle;
 
-    if (snapshotHandle)
-        processHandle = snapshotHandle;
-    else
-        processHandle = UlongToHandle(Payload->u.WriteMiniDumpProcess.i.LocalProcessHandle);
-
     if (PhWriteMiniDumpProcess(
-        processHandle,
+        snapshotHandle ? snapshotHandle : processHandle,
         UlongToHandle(Payload->u.WriteMiniDumpProcess.i.ProcessId),
         UlongToHandle(Payload->u.WriteMiniDumpProcess.i.LocalFileHandle),
         Payload->u.WriteMiniDumpProcess.i.DumpType,
@@ -1469,7 +1464,7 @@ NTSTATUS PhSvcApiWriteMiniDumpProcess(
                 NtClose(processInfo.VaCloneHandle);
             }
 
-            if (PssFreeSnapshot_Import() && snapshotHandle)
+            if (PssFreeSnapshot_Import())
             {
                 PssFreeSnapshot_Import()(processHandle, snapshotHandle);
             }
@@ -1495,7 +1490,7 @@ NTSTATUS PhSvcApiWriteMiniDumpProcess(
                 NtClose(processInfo.VaCloneHandle);
             }
 
-            if (PssFreeSnapshot_Import() && snapshotHandle)
+            if (PssFreeSnapshot_Import())
             {
                 PssFreeSnapshot_Import()(processHandle, snapshotHandle);
             }
