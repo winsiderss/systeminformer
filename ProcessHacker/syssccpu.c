@@ -781,12 +781,14 @@ VOID PhSipUpdateCpuPanel(
     SYSTEM_TIMEOFDAY_INFORMATION timeOfDayInfo;
     ULONG logicalInformationLength = 0;
     PSYSTEM_LOGICAL_PROCESSOR_INFORMATION logicalInformation = NULL;
+#ifndef _ARM64_
     LARGE_INTEGER performanceCounterStart;
     LARGE_INTEGER performanceCounterEnd;
     LARGE_INTEGER performanceCounterTicks;
     ULONG64 timeStampCounterStart;
     ULONG64 timeStampCounterEnd;
     INT cpubrand[4];
+#endif
     PH_FORMAT format[5];
     WCHAR formatBuffer[256];
     WCHAR uptimeString[PH_TIMESPAN_STR_LEN_1] = { L"Unknown" };
@@ -979,6 +981,7 @@ VOID PhSipUpdateCpuPanel(
             PhSetWindowText(CpuPanelLogicalLabel, PhaFormatUInt64(processorLogicalCount, TRUE)->Buffer);
     }
 
+#ifndef _ARM64_
     // Do not optimize (dmex)
     NtQueryPerformanceCounter(&performanceCounterStart, NULL);
     timeStampCounterStart = ReadTimeStampCounter();
@@ -999,6 +1002,9 @@ VOID PhSipUpdateCpuPanel(
         PhSetWindowText(CpuPanelLatencyLabel, formatBuffer);
     else
         PhSetWindowText(CpuPanelLatencyLabel, PhaFormatUInt64(performanceCounterTicks.QuadPart, TRUE)->Buffer);
+#else
+    PhSetWindowText(CpuPanelLatencyLabel, L"N/A");
+#endif
 }
 
 PPH_PROCESS_RECORD PhSipReferenceMaxCpuRecord(
