@@ -591,6 +591,8 @@
 #define ID_MODULE_UNLOAD                40066
 #define ID_MODULE_PROPERTIES            40068
 #define ID_PROCESS_TERMINATETREE        40069
+#define ID_PROCESS_SUSPENDTREE          40070
+#define ID_PROCESS_RESUMETREE           40071
 #define ID_THREAD_INSPECT               40075
 #define ID_HACKER_RUN                   40076
 #define ID_HACKER_RUNASADMINISTRATOR    40077

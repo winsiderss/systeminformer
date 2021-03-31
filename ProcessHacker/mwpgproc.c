@@ -608,11 +608,15 @@ VOID PhMwpInitializeProcessMenu(
         {
             if (item = PhFindEMenuItem(Menu, 0, NULL, ID_PROCESS_SUSPEND))
                 PhDestroyEMenuItem(item);
+            if (item = PhFindEMenuItem(Menu, 0, NULL, ID_PROCESS_SUSPENDTREE))
+                PhDestroyEMenuItem(item);
         }
 
         if (!Processes[0]->IsPartiallySuspended)
         {
             if (item = PhFindEMenuItem(Menu, 0, NULL, ID_PROCESS_RESUME))
+                PhDestroyEMenuItem(item);
+            if (item = PhFindEMenuItem(Menu, 0, NULL, ID_PROCESS_RESUMETREE))
                 PhDestroyEMenuItem(item);
         }
     }
@@ -697,7 +701,9 @@ PPH_EMENU PhpCreateProcessMenu(
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESS_TERMINATE, L"T&erminate\bDel", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESS_TERMINATETREE, L"Terminate tree\bShift+Del", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESS_SUSPEND, L"&Suspend", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESS_SUSPENDTREE, L"Suspend tree", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESS_RESUME, L"Res&ume", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESS_RESUMETREE, L"Resume tree", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESS_RESTART, L"Res&tart", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESS_CREATEDUMPFILE, L"Create dump fi&le...", NULL, NULL), ULONG_MAX);
