@@ -3,6 +3,7 @@
  *   file logging
  *
  * Copyright (C) 2010 wj32
+ * Copyright (C) 2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -38,14 +39,23 @@ VOID FileLogInitialization(
 {
     NTSTATUS status;
     PPH_STRING fileName;
+    PPH_STRING directory;
 
     fileName = PhaGetStringSetting(SETTING_NAME_LOG_FILENAME);
 
     if (!PhIsNullOrEmptyString(fileName))
     {
+        fileName = PH_AUTO(PhExpandEnvironmentStrings(&fileName->sr));
+
+        if (PhDetermineDosPathNameType(fileName->Buffer) == RtlPathTypeRelative)
+        {
+            directory = PH_AUTO(PhGetApplicationDirectory());
+            fileName = PH_AUTO(PhConcatStringRef2(&directory->sr, &fileName->sr));
+        }
+
         status = PhCreateFileStream(
             &LogFileStream,
-            fileName->Buffer,
+            PhGetString(fileName),
             FILE_GENERIC_WRITE,
             FILE_SHARE_READ,
             FILE_OPEN_IF,
@@ -73,11 +83,38 @@ VOID NTAPI LoggedCallback(
 
     if (logEntry)
     {
-        PhWriteStringFormatAsUtf8FileStream(
-            LogFileStream,
-            L"%s: %s\r\n",
-            PhaFormatDateTime(NULL)->Buffer,
-            PH_AUTO_T(PH_STRING, PhFormatLogEntry(logEntry))->Buffer
-            );
+        PPH_STRING datetimeString;
+        PPH_STRING messageString;
+        SIZE_T returnLength;
+        PH_FORMAT format[4];
+        WCHAR formatBuffer[0x100];
+
+        datetimeString = PhaFormatDateTime(NULL);
+        messageString = PH_AUTO_T(PH_STRING, PhFormatLogEntry(logEntry));
+
+        // %s: %s\r\n
+        PhInitFormatSR(&format[0], datetimeString->sr);
+        PhInitFormatS(&format[1], L": ");
+        PhInitFormatSR(&format[2], messageString->sr);
+        PhInitFormatS(&format[3], L"\r\n");
+
+        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), &returnLength))
+        {
+            PH_STRINGREF messageSr;
+
+            messageSr.Buffer = formatBuffer;
+            messageSr.Length = returnLength - sizeof(UNICODE_NULL);
+
+            PhWriteStringAsUtf8FileStream(LogFileStream, &messageSr);
+        }
+        else
+        {
+            PhWriteStringFormatAsUtf8FileStream(
+                LogFileStream,
+                L"%s: %s\r\n",
+                PhGetString(datetimeString),
+                PhGetString(messageString)
+                );
+        }
     }
 }
