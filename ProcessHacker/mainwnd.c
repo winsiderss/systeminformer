@@ -2218,11 +2218,30 @@ PPH_EMENU PhpCreateToolsMenu(
     return ToolsMenu;
 }
 
+typedef struct _PHP_USERSMENU_ENTRY
+{
+    ULONG SessionId;
+    PPH_STRING UserName;
+} PHP_USERSMENU_ENTRY, *PPHP_USERSMENU_ENTRY;
+
+static int __cdecl PhpUsersMainMenuNameCompare(
+    _In_ const void* Context,
+    _In_ const void *elem1,
+    _In_ const void *elem2
+    )
+{
+    PPHP_USERSMENU_ENTRY item1 = *(PPHP_USERSMENU_ENTRY*)elem1;
+    PPHP_USERSMENU_ENTRY item2 = *(PPHP_USERSMENU_ENTRY*)elem2;
+
+    return PhCompareString(item1->UserName, item2->UserName, TRUE);
+}
+
 PPH_EMENU PhpCreateUsersMenu(
     _In_ PPH_EMENU UsersMenu,
     _In_ BOOLEAN DelayLoadMenu
     )
 {
+    PH_ARRAY usersArrayList;
     PSESSIONIDW sessions;
     ULONG numberOfSessions;
     ULONG i;
@@ -2234,12 +2253,12 @@ PPH_EMENU PhpCreateUsersMenu(
         return UsersMenu;
     }
 
+    PhInitializeArray(&usersArrayList, sizeof(PHP_USERSMENU_ENTRY), 1);
+
     if (WinStationEnumerateW(NULL, &sessions, &numberOfSessions))
     {
         for (i = 0; i < numberOfSessions; i++)
         {
-            PPH_EMENU_ITEM userMenu;
-            PPH_STRING escapedMenuText;
             WINSTATIONINFORMATION winStationInfo;
             ULONG returnLength;
             SIZE_T formatLength;
@@ -2286,28 +2305,52 @@ PPH_EMENU PhpCreateUsersMenu(
             menuTextSr.Length = formatLength - sizeof(UNICODE_NULL);
             menuTextSr.Buffer = formatBuffer;
 
-            escapedMenuText = PhEscapeStringForMenuPrefix(&menuTextSr);
-            userMenu = PhCreateEMenuItem(
-                PH_EMENU_TEXT_OWNED,
-                0,
-                PhAllocateCopy(escapedMenuText->Buffer, escapedMenuText->Length + sizeof(UNICODE_NULL)),
-                NULL,
-                UlongToPtr(sessions[i].SessionId)
-                );
-            PhDereferenceObject(escapedMenuText);
+            {
+                PHP_USERSMENU_ENTRY entry;
 
-            PhInsertEMenuItem(userMenu, PhCreateEMenuItem(0, ID_USER_CONNECT, L"&Connect", NULL, NULL), ULONG_MAX);
-            PhInsertEMenuItem(userMenu, PhCreateEMenuItem(0, ID_USER_DISCONNECT, L"&Disconnect", NULL, NULL), ULONG_MAX);
-            PhInsertEMenuItem(userMenu, PhCreateEMenuItem(0, ID_USER_LOGOFF, L"&Logoff", NULL, NULL), ULONG_MAX);
-            PhInsertEMenuItem(userMenu, PhCreateEMenuItem(0, ID_USER_REMOTECONTROL, L"Rem&ote control", NULL, NULL), ULONG_MAX);
-            PhInsertEMenuItem(userMenu, PhCreateEMenuItem(0, ID_USER_SENDMESSAGE, L"Send &message...", NULL, NULL), ULONG_MAX);
-            PhInsertEMenuItem(userMenu, PhCreateEMenuSeparator(), ULONG_MAX);
-            PhInsertEMenuItem(userMenu, PhCreateEMenuItem(0, ID_USER_PROPERTIES, L"P&roperties", NULL, NULL), ULONG_MAX);
-            PhInsertEMenuItem(UsersMenu, userMenu, ULONG_MAX);
+                entry.SessionId = sessions[i].SessionId;
+                entry.UserName = PhCreateString2(&menuTextSr);
+
+                PhAddItemArray(&usersArrayList, &entry);
+            }
         }
 
         WinStationFreeMemory(sessions);
     }
+
+    // Sort the users. (dmex)
+    qsort_s(usersArrayList.Items, usersArrayList.Count, usersArrayList.ItemSize, PhpUsersMainMenuNameCompare, NULL);
+
+    // Update the users menu. (dmex)
+    for (i = 0; i < usersArrayList.Count; i++)
+    {
+        PPHP_USERSMENU_ENTRY entry;
+        PPH_STRING escapedMenuText;
+        PPH_EMENU_ITEM userMenu;
+
+        entry = PhItemArray(&usersArrayList, i);
+        escapedMenuText = PhEscapeStringForMenuPrefix(&entry->UserName->sr);
+        userMenu = PhCreateEMenuItem(
+            PH_EMENU_TEXT_OWNED,
+            0,
+            PhAllocateCopy(escapedMenuText->Buffer, escapedMenuText->Length + sizeof(UNICODE_NULL)),
+            NULL,
+            UlongToPtr(entry->SessionId)
+            );
+        PhDereferenceObject(escapedMenuText);
+        PhDereferenceObject(entry->UserName);
+
+        PhInsertEMenuItem(userMenu, PhCreateEMenuItem(0, ID_USER_CONNECT, L"&Connect", NULL, NULL), ULONG_MAX);
+        PhInsertEMenuItem(userMenu, PhCreateEMenuItem(0, ID_USER_DISCONNECT, L"&Disconnect", NULL, NULL), ULONG_MAX);
+        PhInsertEMenuItem(userMenu, PhCreateEMenuItem(0, ID_USER_LOGOFF, L"&Logoff", NULL, NULL), ULONG_MAX);
+        PhInsertEMenuItem(userMenu, PhCreateEMenuItem(0, ID_USER_REMOTECONTROL, L"Rem&ote control", NULL, NULL), ULONG_MAX);
+        PhInsertEMenuItem(userMenu, PhCreateEMenuItem(0, ID_USER_SENDMESSAGE, L"Send &message...", NULL, NULL), ULONG_MAX);
+        PhInsertEMenuItem(userMenu, PhCreateEMenuSeparator(), ULONG_MAX);
+        PhInsertEMenuItem(userMenu, PhCreateEMenuItem(0, ID_USER_PROPERTIES, L"P&roperties", NULL, NULL), ULONG_MAX);
+        PhInsertEMenuItem(UsersMenu, userMenu, ULONG_MAX);
+    }
+
+    PhDeleteArray(&usersArrayList);
 
     return UsersMenu;
 }
