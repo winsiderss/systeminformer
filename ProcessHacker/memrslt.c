@@ -3,7 +3,7 @@
  *   memory search results
  *
  * Copyright (C) 2010-2016 wj32
- * Copyright (C) 2017-2019 dmex
+ * Copyright (C) 2017-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -631,12 +631,12 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                         POINT point;
                         PPH_EMENU menu;
                         PPH_EMENU_ITEM selectedItem;
-                        ULONG filterType = 0;
 
                         menu = PhCreateEMenu();
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_MEMORY_READWRITEMEMORY, L"Read/Write memory", NULL, NULL), ULONG_MAX);
                         PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"Copy", NULL, NULL), ULONG_MAX);
+                        PhInsertCopyListViewEMenuItem(menu, IDC_COPY, lvHandle);
 
                         GetCursorPos(&point);
 
@@ -651,79 +651,80 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
 
                         if (selectedItem)
                         {
-                            switch (selectedItem->Id)
+                            if (!PhHandleCopyListViewEMenuItem(selectedItem))
                             {
-                            case ID_MEMORY_READWRITEMEMORY:
+                                switch (selectedItem->Id)
                                 {
-                                    INT index;
-
-                                    if ((index = PhFindListViewItemByFlags(lvHandle, -1, LVNI_SELECTED)) != -1)
+                                case ID_MEMORY_READWRITEMEMORY:
                                     {
-                                        NTSTATUS status;
-                                        PPH_MEMORY_RESULT result = context->Results->Items[index];
-                                        HANDLE processHandle;
-                                        MEMORY_BASIC_INFORMATION basicInfo;
-                                        PPH_SHOW_MEMORY_EDITOR showMemoryEditor;
+                                        INT index;
 
-                                        if (NT_SUCCESS(status = PhOpenProcess(
-                                            &processHandle,
-                                            PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
-                                            context->ProcessId
-                                            )))
+                                        if ((index = PhFindListViewItemByFlags(lvHandle, -1, LVNI_SELECTED)) != -1)
                                         {
-                                            if (NT_SUCCESS(status = NtQueryVirtualMemory(
-                                                processHandle,
-                                                result->Address,
-                                                MemoryBasicInformation,
-                                                &basicInfo,
-                                                sizeof(MEMORY_BASIC_INFORMATION),
-                                                NULL
+                                            NTSTATUS status;
+                                            PPH_MEMORY_RESULT result = context->Results->Items[index];
+                                            HANDLE processHandle;
+                                            MEMORY_BASIC_INFORMATION basicInfo;
+                                            PPH_SHOW_MEMORY_EDITOR showMemoryEditor;
+
+                                            if (NT_SUCCESS(status = PhOpenProcess(
+                                                &processHandle,
+                                                PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
+                                                context->ProcessId
                                                 )))
                                             {
-                                                showMemoryEditor = PhAllocateZero(sizeof(PH_SHOW_MEMORY_EDITOR));
-                                                showMemoryEditor->ProcessId = context->ProcessId;
-                                                showMemoryEditor->BaseAddress = basicInfo.BaseAddress;
-                                                showMemoryEditor->RegionSize = basicInfo.RegionSize;
-                                                showMemoryEditor->SelectOffset = (ULONG)((ULONG_PTR)result->Address - (ULONG_PTR)basicInfo.BaseAddress);
-                                                showMemoryEditor->SelectLength = (ULONG)result->Length;
+                                                if (NT_SUCCESS(status = NtQueryVirtualMemory(
+                                                    processHandle,
+                                                    result->Address,
+                                                    MemoryBasicInformation,
+                                                    &basicInfo,
+                                                    sizeof(MEMORY_BASIC_INFORMATION),
+                                                    NULL
+                                                    )))
+                                                {
+                                                    showMemoryEditor = PhAllocateZero(sizeof(PH_SHOW_MEMORY_EDITOR));
+                                                    showMemoryEditor->ProcessId = context->ProcessId;
+                                                    showMemoryEditor->BaseAddress = basicInfo.BaseAddress;
+                                                    showMemoryEditor->RegionSize = basicInfo.RegionSize;
+                                                    showMemoryEditor->SelectOffset = (ULONG)((ULONG_PTR)result->Address - (ULONG_PTR)basicInfo.BaseAddress);
+                                                    showMemoryEditor->SelectLength = (ULONG)result->Length;
 
-                                                ProcessHacker_ShowMemoryEditor(showMemoryEditor);
+                                                    ProcessHacker_ShowMemoryEditor(showMemoryEditor);
+                                                }
+
+                                                NtClose(processHandle);
                                             }
 
-                                            NtClose(processHandle);
+                                            if (!NT_SUCCESS(status))
+                                                PhShowStatus(hwndDlg, L"Unable to edit memory", status, 0);
+                                        }
+                                    }
+                                    break;
+                                case IDC_COPY:
+                                    {
+                                        PPH_STRING string;
+                                        ULONG selectedCount;
+
+                                        selectedCount = ListView_GetSelectedCount(lvHandle);
+
+                                        if (selectedCount == 0)
+                                        {
+                                            // User didn't select anything, so copy all items.
+                                            string = PhpGetStringForSelectedResults(lvHandle, context->Results, TRUE);
+                                            PhSetStateAllListViewItems(lvHandle, LVIS_SELECTED, LVIS_SELECTED);
+                                        }
+                                        else
+                                        {
+                                            string = PhpGetStringForSelectedResults(lvHandle, context->Results, FALSE);
                                         }
 
-                                        if (!NT_SUCCESS(status))
-                                            PhShowStatus(hwndDlg, L"Unable to edit memory", status, 0);
+                                        PhSetClipboardString(hwndDlg, &string->sr);
+                                        PhDereferenceObject(string);
+
+                                        PhSetDialogFocus(hwndDlg, lvHandle);
                                     }
+                                    break;
                                 }
-                                break;
-                            case IDC_COPY:
-                                {
-                                    HWND lvHandle;
-                                    PPH_STRING string;
-                                    ULONG selectedCount;
-
-                                    lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
-                                    selectedCount = ListView_GetSelectedCount(lvHandle);
-
-                                    if (selectedCount == 0)
-                                    {
-                                        // User didn't select anything, so copy all items.
-                                        string = PhpGetStringForSelectedResults(lvHandle, context->Results, TRUE);
-                                        PhSetStateAllListViewItems(lvHandle, LVIS_SELECTED, LVIS_SELECTED);
-                                    }
-                                    else
-                                    {
-                                        string = PhpGetStringForSelectedResults(lvHandle, context->Results, FALSE);
-                                    }
-
-                                    PhSetClipboardString(hwndDlg, &string->sr);
-                                    PhDereferenceObject(string);
-
-                                    PhSetDialogFocus(hwndDlg, lvHandle);
-                                }
-                                break;
                             }
                         }
 
