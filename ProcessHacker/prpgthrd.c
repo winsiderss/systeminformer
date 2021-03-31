@@ -3,7 +3,7 @@
  *   Process properties: Threads page
  *
  * Copyright (C) 2009-2016 wj32
- * Copyright (C) 2018-2019 dmex
+ * Copyright (C) 2018-2021 dmex
  *
  * This file is part of Process Hacker.
  *
