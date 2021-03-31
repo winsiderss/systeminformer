@@ -3,7 +3,7 @@
  *   object search
  *
  * Copyright (C) 2010-2016 wj32
- * Copyright (C) 2017-2020 dmex
+ * Copyright (C) 2017-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -57,6 +57,7 @@ typedef struct _PH_HANDLE_SEARCH_CONTEXT
     HWND TreeNewHandle;
     HWND TypeWindowHandle;
     HWND SearchWindowHandle;
+    PPH_STRING WindowText;
 
     ULONG TreeNewSortColumn;
     PH_SORT_ORDER TreeNewSortOrder;
@@ -812,7 +813,7 @@ static BOOLEAN MatchSearchString(
     }
     else
     {
-        return PhFindStringInStringRef(Input, &Context->SearchString->sr, TRUE) != -1;
+        return PhFindStringInStringRef(Input, &Context->SearchString->sr, TRUE) != SIZE_MAX;
     }
 }
 
@@ -1195,6 +1196,7 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
             context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_TREELIST);
             context->TypeWindowHandle = GetDlgItem(hwndDlg, IDC_FILTERTYPE);
             context->SearchWindowHandle = GetDlgItem(hwndDlg, IDC_FILTER);
+            context->WindowText = PhGetWindowText(hwndDlg);
 
             PhSetApplicationWindowIcon(hwndDlg);
 
@@ -1288,6 +1290,9 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
                 PhClearList(context->SearchResults);
             }
 
+            if (context->WindowText)
+                PhDereferenceObject(context->WindowText);
+
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
             PhDereferenceObject(context);
@@ -1337,6 +1342,9 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
                     // Don't continue if the user requested cancellation.
                     if (context->SearchStop)
                         break;
+
+                    // Restore the original window title. (dmex)
+                    PhSetWindowText(hwndDlg, PhGetStringOrEmpty(context->WindowText));
 
                     if (!context->SearchThreadHandle)
                     {
@@ -1679,6 +1687,13 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
         {
             // Add any un-added items.
             PhpFindObjectAddResultEntries(context);
+
+            // Add the result count to the window title. (dmex)
+            PhSetWindowText(hwndDlg, PhaFormatString(
+                L"%s (%lu results)",
+                PhGetStringOrEmpty(context->WindowText),
+                context->SearchResultsAddIndex
+                )->Buffer);
 
             NtWaitForSingleObject(context->SearchThreadHandle, FALSE, NULL);
             NtClose(context->SearchThreadHandle);
