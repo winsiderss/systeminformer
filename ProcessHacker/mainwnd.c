@@ -1066,6 +1066,18 @@ VOID PhMwpOnCommand(
             PhFree(processes);
         }
         break;
+    case ID_PROCESS_SUSPENDTREE:
+        {
+            PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
+
+            if (processItem)
+            {
+                PhReferenceObject(processItem);
+                PhUiSuspendTreeProcess(WindowHandle, processItem);
+                PhDereferenceObject(processItem);
+            }
+        }
+        break;
     case ID_PROCESS_RESUME:
         {
             PPH_PROCESS_ITEM *processes;
@@ -1076,6 +1088,18 @@ VOID PhMwpOnCommand(
             PhUiResumeProcesses(WindowHandle, processes, numberOfProcesses);
             PhDereferenceObjects(processes, numberOfProcesses);
             PhFree(processes);
+        }
+        break;
+    case ID_PROCESS_RESUMETREE:
+        {
+            PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
+
+            if (processItem)
+            {
+                PhReferenceObject(processItem);
+                PhUiResumeTreeProcess(WindowHandle, processItem);
+                PhDereferenceObject(processItem);
+            }
         }
         break;
     case ID_PROCESS_RESTART:
