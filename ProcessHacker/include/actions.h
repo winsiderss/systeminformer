@@ -141,10 +141,26 @@ PhUiSuspendProcesses(
 PHAPPAPI
 BOOLEAN
 NTAPI
+PhUiSuspendTreeProcess(
+    _In_ HWND hWnd,
+    _In_ PPH_PROCESS_ITEM Process
+    );
+
+PHAPPAPI
+BOOLEAN
+NTAPI
 PhUiResumeProcesses(
     _In_ HWND hWnd,
     _In_ PPH_PROCESS_ITEM *Processes,
     _In_ ULONG NumberOfProcesses
+    );
+
+PHAPPAPI
+BOOLEAN
+NTAPI
+PhUiResumeTreeProcess(
+    _In_ HWND hWnd,
+    _In_ PPH_PROCESS_ITEM Process
     );
 
 PHAPPAPI

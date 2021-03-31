@@ -1282,6 +1282,127 @@ BOOLEAN PhUiSuspendProcesses(
     return success;
 }
 
+BOOLEAN PhpUiSuspendTreeProcess(
+    _In_ HWND hWnd,
+    _In_ PPH_PROCESS_ITEM Process,
+    _In_ PVOID Processes,
+    _Inout_ PBOOLEAN Success
+    )
+{
+    NTSTATUS status;
+    PSYSTEM_PROCESS_INFORMATION process;
+    HANDLE processHandle;
+    PPH_PROCESS_ITEM processItem;
+
+    // Note:
+    // FALSE should be written to Success if any part of the operation failed.
+    // The return value of this function indicates whether to continue with
+    // the operation (FALSE if user cancelled).
+
+    // Suspend the process.
+
+    if (NT_SUCCESS(status = PhOpenProcess(
+        &processHandle,
+        PROCESS_SUSPEND_RESUME,
+        Process->ProcessId
+        )))
+    {
+        status = NtSuspendProcess(processHandle);
+        NtClose(processHandle);
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        *Success = FALSE;
+
+        if (!PhpShowErrorProcess(hWnd, L"suspend", Process, status, 0))
+            return FALSE;
+    }
+
+    // Suspend the process' children.
+
+    process = PH_FIRST_PROCESS(Processes);
+
+    do
+    {
+        if (process->UniqueProcessId != Process->ProcessId &&
+            process->InheritedFromUniqueProcessId == Process->ProcessId)
+        {
+            if (processItem = PhReferenceProcessItem(process->UniqueProcessId))
+            {
+                if (WindowsVersion >= WINDOWS_10_RS3)
+                {
+                    // Check the sequence number to make sure it is a descendant.
+                    if (processItem->ProcessSequenceNumber >= Process->ProcessSequenceNumber)
+                    {
+                        if (!PhpUiSuspendTreeProcess(hWnd, processItem, Processes, Success))
+                        {
+                            PhDereferenceObject(processItem);
+                            return FALSE;
+                        }
+                    }
+                }
+                else
+                {
+                    // Check the creation time to make sure it is a descendant.
+                    if (processItem->CreateTime.QuadPart >= Process->CreateTime.QuadPart)
+                    {
+                        if (!PhpUiSuspendTreeProcess(hWnd, processItem, Processes, Success))
+                        {
+                            PhDereferenceObject(processItem);
+                            return FALSE;
+                        }
+                    }
+                }
+
+                PhDereferenceObject(processItem);
+            }
+        }
+    } while (process = PH_NEXT_PROCESS(process));
+
+    return TRUE;
+}
+
+BOOLEAN PhUiSuspendTreeProcess(
+    _In_ HWND hWnd,
+    _In_ PPH_PROCESS_ITEM Process
+    )
+{
+    NTSTATUS status;
+    BOOLEAN success = TRUE;
+    BOOLEAN cont = FALSE;
+    PVOID processes;
+
+    if (PhGetIntegerSetting(L"EnableWarnings"))
+    {
+        cont = PhShowConfirmMessage(
+            hWnd,
+            L"suspend",
+            PhaConcatStrings2(Process->ProcessName->Buffer, L" and its descendants")->Buffer,
+            L"Suspending a process tree will cause the process and its descendants to be suspend.",
+            FALSE
+            );
+    }
+    else
+    {
+        cont = TRUE;
+    }
+
+    if (!cont)
+        return FALSE;
+
+    if (!NT_SUCCESS(status = PhEnumProcesses(&processes)))
+    {
+        PhShowStatus(hWnd, L"Unable to enumerate processes", status, 0);
+        return FALSE;
+    }
+
+    PhpUiSuspendTreeProcess(hWnd, Process, processes, &success);
+    PhFree(processes);
+
+    return success;
+}
+
 BOOLEAN PhUiResumeProcesses(
     _In_ HWND hWnd,
     _In_ PPH_PROCESS_ITEM *Processes,
@@ -1351,6 +1472,127 @@ BOOLEAN PhUiResumeProcesses(
             }
         }
     }
+
+    return success;
+}
+
+BOOLEAN PhpUiResumeTreeProcess(
+    _In_ HWND hWnd,
+    _In_ PPH_PROCESS_ITEM Process,
+    _In_ PVOID Processes,
+    _Inout_ PBOOLEAN Success
+    )
+{
+    NTSTATUS status;
+    PSYSTEM_PROCESS_INFORMATION process;
+    HANDLE processHandle;
+    PPH_PROCESS_ITEM processItem;
+
+    // Note:
+    // FALSE should be written to Success if any part of the operation failed.
+    // The return value of this function indicates whether to continue with
+    // the operation (FALSE if user cancelled).
+
+    // Resume the process.
+
+    if (NT_SUCCESS(status = PhOpenProcess(
+        &processHandle,
+        PROCESS_SUSPEND_RESUME,
+        Process->ProcessId
+        )))
+    {
+        status = NtResumeProcess(processHandle);
+        NtClose(processHandle);
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        *Success = FALSE;
+
+        if (!PhpShowErrorProcess(hWnd, L"resume", Process, status, 0))
+            return FALSE;
+    }
+
+    // Resume the process' children.
+
+    process = PH_FIRST_PROCESS(Processes);
+
+    do
+    {
+        if (process->UniqueProcessId != Process->ProcessId &&
+            process->InheritedFromUniqueProcessId == Process->ProcessId)
+        {
+            if (processItem = PhReferenceProcessItem(process->UniqueProcessId))
+            {
+                if (WindowsVersion >= WINDOWS_10_RS3)
+                {
+                    // Check the sequence number to make sure it is a descendant.
+                    if (processItem->ProcessSequenceNumber >= Process->ProcessSequenceNumber)
+                    {
+                        if (!PhpUiResumeTreeProcess(hWnd, processItem, Processes, Success))
+                        {
+                            PhDereferenceObject(processItem);
+                            return FALSE;
+                        }
+                    }
+                }
+                else
+                {
+                    // Check the creation time to make sure it is a descendant.
+                    if (processItem->CreateTime.QuadPart >= Process->CreateTime.QuadPart)
+                    {
+                        if (!PhpUiResumeTreeProcess(hWnd, processItem, Processes, Success))
+                        {
+                            PhDereferenceObject(processItem);
+                            return FALSE;
+                        }
+                    }
+                }
+
+                PhDereferenceObject(processItem);
+            }
+        }
+    } while (process = PH_NEXT_PROCESS(process));
+
+    return TRUE;
+}
+
+BOOLEAN PhUiResumeTreeProcess(
+    _In_ HWND hWnd,
+    _In_ PPH_PROCESS_ITEM Process
+    )
+{
+    NTSTATUS status;
+    BOOLEAN success = TRUE;
+    BOOLEAN cont = FALSE;
+    PVOID processes;
+
+    if (PhGetIntegerSetting(L"EnableWarnings"))
+    {
+        cont = PhShowConfirmMessage(
+            hWnd,
+            L"resume",
+            PhaConcatStrings2(Process->ProcessName->Buffer, L" and its descendants")->Buffer,
+            L"Resuming a process tree will cause the process and its descendants to be resumed.",
+            FALSE
+            );
+    }
+    else
+    {
+        cont = TRUE;
+    }
+
+    if (!cont)
+        return FALSE;
+
+    if (!NT_SUCCESS(status = PhEnumProcesses(&processes)))
+    {
+        PhShowStatus(hWnd, L"Unable to enumerate processes", status, 0);
+        return FALSE;
+    }
+
+    PhpUiResumeTreeProcess(hWnd, Process, processes, &success);
+    PhFree(processes);
 
     return success;
 }
