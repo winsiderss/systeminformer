@@ -410,7 +410,8 @@ VOID PhNfForwardMessage(
             ProcessHacker_IconClick();
         break;
     case NIN_BALLOONUSERCLICK:
-        PhShowDetailsForIconNotification();
+        if (!PhGetIntegerSetting(L"IconIgnoreBalloonClick"))
+            PhShowDetailsForIconNotification();
         break;
     case NIN_POPUPOPEN:
         {
