@@ -21,8 +21,10 @@
  */
 
 #include <phapp.h>
+#include <apiimport.h>
 
 #include <dbghelp.h>
+#include <processsnapshot.h>
 #include <symprv.h>
 
 #include <actions.h>
@@ -41,6 +43,7 @@ typedef struct _PROCESS_MINIDUMP_CONTEXT
     PWSTR FileName;
     MINIDUMP_TYPE DumpType;
     BOOLEAN IsWow64;
+    BOOLEAN IsProcessSnapshot;
 
     HANDLE ProcessHandle;
     HANDLE FileHandle;
@@ -190,6 +193,12 @@ static BOOL CALLBACK PhpProcessMiniDumpCallback(
                 CallbackOutput->Cancel = TRUE;
         }
         break;
+    case IsProcessSnapshotCallback:
+        {
+            if (context->IsProcessSnapshot)
+                CallbackOutput->Status = S_FALSE;
+        }
+        break;
     case ModuleCallback:
         {
             message = PhFormatString(L"Processing module %s...", CallbackInput->Module.FullPath);
@@ -222,6 +231,7 @@ NTSTATUS PhpProcessMiniDumpThreadStart(
 {
     PPROCESS_MINIDUMP_CONTEXT context = Parameter;
     MINIDUMP_CALLBACK_INFORMATION callbackInfo;
+    HPSS snapshotHandle = NULL;
 
     callbackInfo.CallbackRoutine = PhpProcessMiniDumpCallback;
     callbackInfo.CallbackParam = context;
@@ -273,8 +283,26 @@ NTSTATUS PhpProcessMiniDumpThreadStart(
     }
 #endif
 
+    if (PssCaptureSnapshot_Import())
+    {
+        PssCaptureSnapshot_Import()(
+            context->ProcessHandle,
+            PSS_CAPTURE_VA_CLONE | PSS_CAPTURE_VA_SPACE | PSS_CAPTURE_VA_SPACE_SECTION_INFORMATION |
+            PSS_CAPTURE_HANDLE_TRACE | PSS_CAPTURE_HANDLES | PSS_CAPTURE_HANDLE_BASIC_INFORMATION |
+            PSS_CAPTURE_HANDLE_TYPE_SPECIFIC_INFORMATION | PSS_CAPTURE_HANDLE_NAME_INFORMATION |
+            PSS_CAPTURE_THREADS | PSS_CAPTURE_THREAD_CONTEXT | PSS_CREATE_USE_VM_ALLOCATIONS,
+            CONTEXT_ALL,
+            &snapshotHandle
+            );
+            
+        if (snapshotHandle)
+        {
+            context->IsProcessSnapshot = TRUE;
+        }
+    }
+
     if (PhWriteMiniDumpProcess(
-        context->ProcessHandle,
+        snapshotHandle ? snapshotHandle : context->ProcessHandle,
         context->ProcessId,
         context->FileHandle,
         context->DumpType,
@@ -293,6 +321,26 @@ NTSTATUS PhpProcessMiniDumpThreadStart(
             PH_MINIDUMP_ERROR,
             (LPARAM)GetLastError()
             );
+    }
+
+    if (snapshotHandle)
+    {
+        PSS_VA_CLONE_INFORMATION processInfo;
+
+        if (PssQuerySnapshot_Import() && PssQuerySnapshot_Import()(
+            snapshotHandle,
+            PSS_QUERY_VA_CLONE_INFORMATION,
+            &processInfo,
+            sizeof(PSS_VA_CLONE_INFORMATION)
+            ) == ERROR_SUCCESS)
+        {
+            NtClose(processInfo.VaCloneHandle);
+        }
+
+        if (PssFreeSnapshot_Import())
+        {
+            PssFreeSnapshot_Import()(context->ProcessHandle, snapshotHandle);
+        }
     }
 
 #ifdef _WIN64
