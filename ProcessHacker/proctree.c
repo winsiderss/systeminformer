@@ -2611,12 +2611,26 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     if (processItem->CreateTime.QuadPart != 0)
                     {
                         LARGE_INTEGER currentTime;
-                        PPH_STRING startTimeString;
 
                         PhQuerySystemTime(&currentTime);
-                        startTimeString = PhFormatTimeSpanRelative(currentTime.QuadPart - processItem->CreateTime.QuadPart);
-                        PhMoveReference(&node->RelativeStartTimeText, PhConcatStrings2(startTimeString->Buffer, L" ago"));
-                        PhDereferenceObject(startTimeString);
+
+                        if (PhGetIntegerSetting(L"EnableShortRelativeStartTime"))
+                        {
+                            PPH_STRING startTimeString;
+
+                            startTimeString = PhFormatTimeSpan(currentTime.QuadPart - processItem->CreateTime.QuadPart, PH_TIMESPAN_DHMS);
+                            PhMoveReference(&node->RelativeStartTimeText, startTimeString);
+                        }
+                        else
+                        {
+                            PPH_STRING startTimeString;
+
+                            startTimeString = PhFormatTimeSpanRelative(currentTime.QuadPart - processItem->CreateTime.QuadPart);
+                            PhMoveReference(&node->RelativeStartTimeText, PhConcatStrings2(startTimeString->Buffer, L" ago"));
+
+                            PhDereferenceObject(startTimeString);
+                        }
+
                         getCellText->Text = node->RelativeStartTimeText->sr;
                     }
                 }
