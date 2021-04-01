@@ -321,6 +321,214 @@ BOOLEAN PhpMemoryTreeFilterCallback(
     return FALSE;
 }
 
+VOID PhpPopulateTableWithProcessMemoryNodes(
+    _In_ HWND TreeListHandle,
+    _In_ PPH_MEMORY_NODE Node,
+    _In_ ULONG Level,
+    _In_ PPH_STRING **Table,
+    _Inout_ PULONG Index,
+    _In_ PULONG DisplayToId,
+    _In_ ULONG Columns
+    )
+{
+    for (ULONG i = 0; i < Columns; i++)
+    {
+        PH_TREENEW_GET_CELL_TEXT getCellText;
+        PPH_STRING text;
+
+        getCellText.Node = &Node->Node;
+        getCellText.Id = DisplayToId[i];
+        PhInitializeEmptyStringRef(&getCellText.Text);
+        TreeNew_GetCellText(TreeListHandle, &getCellText);
+
+        if (i != 0)
+        {
+            if (getCellText.Text.Length == 0)
+                text = PhReferenceEmptyString();
+            else
+                text = PhaCreateStringEx(getCellText.Text.Buffer, getCellText.Text.Length);
+        }
+        else
+        {
+            // If this is the first column in the row, add some indentation.
+            text = PhaCreateStringEx(
+                NULL,
+                getCellText.Text.Length + Level * sizeof(WCHAR) * sizeof(WCHAR)
+                );
+            wmemset(text->Buffer, L' ', Level * sizeof(WCHAR));
+            memcpy(&text->Buffer[Level * 2], getCellText.Text.Buffer, getCellText.Text.Length);
+        }
+
+        Table[*Index][i] = text;
+    }
+
+    (*Index)++;
+
+    // Process the children.
+    if (!Node->Children)
+        return;
+
+    for (ULONG i = 0; i < Node->Children->Count; i++)
+    {
+        PhpPopulateTableWithProcessMemoryNodes(
+            TreeListHandle,
+            Node->Children->Items[i],
+            Level + 1,
+            Table,
+            Index,
+            DisplayToId,
+            Columns
+            );
+    }
+}
+
+PPH_LIST PhpGetProcessMemoryTreeListLines(
+    _In_ HWND TreeListHandle,
+    _In_ ULONG NumberOfNodes,
+    _In_ PPH_LIST RootNodes,
+    _In_ ULONG Mode
+    )
+{
+    PH_AUTO_POOL autoPool;
+    PPH_LIST lines;
+    // The number of rows in the table (including +1 for the column headers).
+    ULONG rows;
+    // The number of columns.
+    ULONG columns;
+    // A column display index to ID map.
+    PULONG displayToId;
+    // A column display index to text map.
+    PWSTR *displayToText;
+    // The actual string table.
+    PPH_STRING **table;
+    ULONG i;
+    ULONG j;
+
+    // Use a local auto-pool to make memory mangement a bit less painful.
+    PhInitializeAutoPool(&autoPool);
+
+    rows = NumberOfNodes + 1;
+
+    // Create the display index to ID map.
+    PhMapDisplayIndexTreeNew(TreeListHandle, &displayToId, &displayToText, &columns);
+
+    PhaCreateTextTable(&table, rows, columns);
+
+    // Populate the first row with the column headers.
+    for (i = 0; i < columns; i++)
+    {
+        table[0][i] = PhaCreateString(displayToText[i]);
+    }
+
+    // Go through the nodes in the process tree and populate each cell of the table.
+
+    j = 1; // index starts at one because the first row contains the column headers.
+
+    for (i = 0; i < RootNodes->Count; i++)
+    {
+        PhpPopulateTableWithProcessMemoryNodes(
+            TreeListHandle,
+            RootNodes->Items[i],
+            0,
+            table,
+            &j,
+            displayToId,
+            columns
+            );
+    }
+
+    PhFree(displayToId);
+    PhFree(displayToText);
+
+    lines = PhaFormatTextTable(table, rows, columns, Mode);
+
+    PhDeleteAutoPool(&autoPool);
+
+    return lines;
+}
+
+VOID PhpProcessMemorySave(
+    _In_ PPH_MEMORY_CONTEXT MemoryContext
+    )
+{
+    static PH_FILETYPE_FILTER filters[] =
+    {
+        { L"Text files (*.txt;*.log)", L"*.txt;*.log" },
+        { L"Comma-separated values (*.csv)", L"*.csv" },
+        { L"All files (*.*)", L"*.*" }
+    };
+    PVOID fileDialog = PhCreateSaveFileDialog();
+    PH_FORMAT format[4];
+    PPH_PROCESS_ITEM processItem;
+
+    processItem = PhReferenceProcessItem(MemoryContext->ProcessId);
+    PhInitFormatS(&format[0], L"Process Hacker (");
+    PhInitFormatS(&format[1], processItem ? PhGetStringOrDefault(processItem->ProcessName, L"Unknown process") : L"Unknown process");
+    PhInitFormatS(&format[2], L") Modules");
+    PhInitFormatS(&format[3], L".txt");
+    if (processItem) PhDereferenceObject(processItem);
+
+    PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
+    PhSetFileDialogFileName(fileDialog, PH_AUTO_T(PH_STRING, PhFormat(format, 3, 60))->Buffer);
+
+    if (PhShowFileDialog(MemoryContext->WindowHandle, fileDialog))
+    {
+        NTSTATUS status;
+        PPH_STRING fileName;
+        ULONG filterIndex;
+        PPH_FILE_STREAM fileStream;
+
+        fileName = PH_AUTO(PhGetFileDialogFileName(fileDialog));
+        filterIndex = PhGetFileDialogFilterIndex(fileDialog);
+
+        if (NT_SUCCESS(status = PhCreateFileStream(
+            &fileStream,
+            fileName->Buffer,
+            FILE_GENERIC_WRITE,
+            FILE_SHARE_READ,
+            FILE_OVERWRITE_IF,
+            0
+            )))
+        {
+            ULONG mode;
+            PPH_LIST lines;
+
+            if (filterIndex == 2)
+                mode = PH_EXPORT_MODE_CSV;
+            else
+                mode = PH_EXPORT_MODE_TABS;
+
+            PhWriteStringAsUtf8FileStream(fileStream, &PhUnicodeByteOrderMark);
+            PhWritePhTextHeader(fileStream);
+
+            lines = PhpGetProcessMemoryTreeListLines(
+                MemoryContext->TreeNewHandle,
+                MemoryContext->ListContext.RegionNodeList->Count,
+                MemoryContext->ListContext.RegionNodeList,
+                mode
+                );
+
+            for (ULONG i = 0; i < lines->Count; i++)
+            {
+                PPH_STRING line;
+
+                line = lines->Items[i];
+                PhWriteStringAsUtf8FileStream(fileStream, &line->sr);
+                PhDereferenceObject(line);
+                PhWriteStringAsUtf8FileStream2(fileStream, L"\r\n");
+            }
+
+            PhDereferenceObject(lines);
+            PhDereferenceObject(fileStream);
+        }
+
+        if (!NT_SUCCESS(status))
+            PhShowStatus(MemoryContext->WindowHandle, L"Unable to create the file", status, 0);
+    }
+
+    PhFreeFileDialog(fileDialog);
+}
+
 VOID PhpMemoryContextDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -697,6 +905,7 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                         PH_MEMORY_FILTER_MENU_READ_ADDRESS,
                         PH_MEMORY_FILTER_MENU_HEAPS,
                         PH_MEMORY_FILTER_MENU_STRINGS,
+                        PH_MEMORY_FILTER_MENU_SAVE
                     } PH_MEMORY_FILTER_MENU_ITEM;
 
                     menu = PhCreateEMenu();
@@ -712,6 +921,7 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PH_MEMORY_FILTER_MENU_READ_ADDRESS, L"Read/Write &address...", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PH_MEMORY_FILTER_MENU_HEAPS, L"Heaps...", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PH_MEMORY_FILTER_MENU_STRINGS, L"Strings...", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PH_MEMORY_FILTER_MENU_SAVE, L"Save...", NULL, NULL), ULONG_MAX);
 
                     if (memoryContext->ListContext.HideFreeRegions)
                         freeItem->Flags |= PH_EMENU_CHECKED;
@@ -760,6 +970,10 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                         else if (selectedItem->Id == PH_MEMORY_FILTER_MENU_HEAPS)
                         {
                             PhShowProcessHeapsDialog(hwndDlg, processItem);
+                        }
+                        else if (selectedItem->Id == PH_MEMORY_FILTER_MENU_SAVE)
+                        {
+                            PhpProcessMemorySave(memoryContext);
                         }
                         else if (selectedItem->Id == PH_MEMORY_FILTER_MENU_READ_ADDRESS)
                         {
