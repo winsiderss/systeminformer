@@ -1790,7 +1790,7 @@ BOOLEAN PhGetFileVersionInfoKey(
 
     while ((ULONG_PTR)child < (ULONG_PTR)VersionInfo + VersionInfo->Length)
     {
-        if (_wcsnicmp(child->Key, Key, KeyLength) == 0 && !child->Key[KeyLength])
+        if (_wcsnicmp(child->Key, Key, KeyLength) == 0 && child->Key[KeyLength] == UNICODE_NULL)
         {
             if (Buffer)
                 *Buffer = child;
