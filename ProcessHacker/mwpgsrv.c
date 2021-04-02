@@ -44,6 +44,7 @@ static PH_CALLBACK_REGISTRATION ServicesUpdatedRegistration;
 
 static BOOLEAN ServiceTreeListLoaded = FALSE;
 static PPH_TN_FILTER_ENTRY DriverFilterEntry = NULL;
+static PPH_TN_FILTER_ENTRY MicrosoftFilterEntry = NULL;
 
 BOOLEAN PhMwpServicesPageCallback(
     _In_ struct _PH_MAIN_TAB_PAGE *Page,
@@ -115,9 +116,12 @@ BOOLEAN PhMwpServicesPageCallback(
             menu = menuInfo->Menu;
             startIndex = menuInfo->StartIndex;
 
-            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_HIDEDRIVERSERVICES, L"&Hide driver services", NULL, NULL), startIndex);
+            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_HIDEMICROSOFTSERVICES, L"Hide default services", NULL, NULL), startIndex);
+            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_HIDEDRIVERSERVICES, L"&Hide driver services", NULL, NULL), startIndex + 1);
 
             if (DriverFilterEntry && (menuItem = PhFindEMenuItem(menu, 0, NULL, ID_VIEW_HIDEDRIVERSERVICES)))
+                menuItem->Flags |= PH_EMENU_CHECKED;
+            if (MicrosoftFilterEntry && (menuItem = PhFindEMenuItem(menu, 0, NULL, ID_VIEW_HIDEMICROSOFTSERVICES)))
                 menuItem->Flags |= PH_EMENU_CHECKED;
         }
         return TRUE;
@@ -125,6 +129,8 @@ BOOLEAN PhMwpServicesPageCallback(
         {
             if (PhGetIntegerSetting(L"HideDriverServices"))
                 DriverFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), PhMwpDriverServiceTreeFilter, NULL);
+            if (PhGetIntegerSetting(L"HideDefaultServices"))
+                MicrosoftFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), PhMwpMicrosoftServiceTreeFilter, NULL);
         }
         return TRUE;
     case MainTabPageSaveSettings:
@@ -190,6 +196,25 @@ VOID PhMwpToggleDriverServiceTreeFilter(
     PhSetIntegerSetting(L"HideDriverServices", !!DriverFilterEntry);
 }
 
+VOID PhMwpToggleMicrosoftServiceTreeFilter(
+    VOID
+    )
+{
+    if (MicrosoftFilterEntry)
+    {
+        PhRemoveTreeNewFilter(PhGetFilterSupportServiceTreeList(), MicrosoftFilterEntry);
+        MicrosoftFilterEntry = NULL;
+    }
+    else
+    {
+        MicrosoftFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), PhMwpMicrosoftServiceTreeFilter, NULL);
+    }
+
+    PhApplyTreeNewFilters(PhGetFilterSupportServiceTreeList());
+
+    PhSetIntegerSetting(L"HideDefaultServices", !!MicrosoftFilterEntry);
+}
+
 BOOLEAN PhMwpDriverServiceTreeFilter(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
@@ -199,6 +224,23 @@ BOOLEAN PhMwpDriverServiceTreeFilter(
 
     if (serviceNode->ServiceItem->Type & SERVICE_DRIVER)
         return FALSE;
+
+    return TRUE;
+}
+
+BOOLEAN PhMwpMicrosoftServiceTreeFilter(
+    _In_ PPH_TREENEW_NODE Node,
+    _In_opt_ PVOID Context
+    )
+{
+    static PH_STRINGREF microsoftSignerNameSr = PH_STRINGREF_INIT(L"Microsoft Windows");
+    PPH_SERVICE_NODE serviceNode = (PPH_SERVICE_NODE)Node;
+
+    if (!PhIsNullOrEmptyString(serviceNode->ServiceItem->VerifySignerName))
+    {
+        if (PhEqualStringRef(&serviceNode->ServiceItem->VerifySignerName->sr, &microsoftSignerNameSr, TRUE))
+            return FALSE;
+    }
 
     return TRUE;
 }
@@ -455,7 +497,7 @@ VOID PhMwpOnServiceModified(
 
     PhUpdateServiceNode(PhFindServiceNode(ServiceModifiedData->Service));
 
-    if (DriverFilterEntry)
+    if (DriverFilterEntry || MicrosoftFilterEntry)
         PhApplyTreeNewFilters(PhGetFilterSupportServiceTreeList());
 
     serviceChange = PhGetServiceChange(ServiceModifiedData);
