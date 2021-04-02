@@ -362,7 +362,16 @@ VOID PhMwpToggleDriverServiceTreeFilter(
     VOID
     );
 
+VOID PhMwpToggleMicrosoftServiceTreeFilter(
+    VOID
+    );
+
 BOOLEAN PhMwpDriverServiceTreeFilter(
+    _In_ PPH_TREENEW_NODE Node,
+    _In_opt_ PVOID Context
+    );
+
+BOOLEAN PhMwpMicrosoftServiceTreeFilter(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
     );

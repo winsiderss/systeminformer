@@ -776,6 +776,11 @@ VOID PhMwpOnCommand(
             PhMwpToggleDriverServiceTreeFilter();
         }
         break;
+    case ID_VIEW_HIDEMICROSOFTSERVICES:
+        {
+            PhMwpToggleMicrosoftServiceTreeFilter();
+        }
+        break;
     case ID_VIEW_HIDEWAITINGCONNECTIONS:
         {
             PhMwpToggleNetworkWaitingConnectionTreeFilter();
