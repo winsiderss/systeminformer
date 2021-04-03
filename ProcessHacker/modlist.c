@@ -122,6 +122,7 @@ VOID PhInitializeModuleList(
     PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_CET, FALSE, L"CET", 50, PH_ALIGN_LEFT, ULONG_MAX, 0, TRUE);
     PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_COHERENCY, FALSE, L"Image coherency", 70, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx2(Context->TreeNewHandle, PHMOTLC_TIMELINE, FALSE, L"Timeline", 100, PH_ALIGN_LEFT, ULONG_MAX, 0, TN_COLUMN_FLAG_CUSTOMDRAW | TN_COLUMN_FLAG_SORTDESCENDING);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PHMOTLC_ORIGINALNAME, FALSE, L"Original name", 200, PH_ALIGN_LEFT, ULONG_MAX, 0);
 
     TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
 
@@ -690,6 +691,12 @@ BEGIN_SORT_FUNCTION(ImageCoherency)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(OriginalName)
+{
+    sortResult = PhCompareString(moduleItem1->OriginalFileName, moduleItem2->OriginalFileName, TRUE);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpModuleTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -757,6 +764,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                     SORT_FUNCTION(Cet),
                     SORT_FUNCTION(ImageCoherency),
                     SORT_FUNCTION(LoadTime), // Timeline
+                    SORT_FUNCTION(OriginalName)
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
@@ -1089,6 +1097,9 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                         getCellText->Text = PhGetStringRef(node->ImageCoherencyText);
                     }
                 }
+                break;
+            case PHMOTLC_ORIGINALNAME:
+                getCellText->Text = PhGetStringRef(moduleItem->OriginalFileName);
                 break;
             default:
                 return FALSE;
