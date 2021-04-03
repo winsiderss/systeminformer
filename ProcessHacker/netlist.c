@@ -3,6 +3,7 @@
  *   network list
  *
  * Copyright (C) 2011-2015 wj32
+ * Copyright (C) 2017-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -139,6 +140,7 @@ VOID PhInitializeNetworkTreeList(
     PhAddTreeNewColumn(hwnd, PHNETLC_LOCALHOSTNAME, FALSE, L"Local hostname", 120, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumn(hwnd, PHNETLC_REMOTEHOSTNAME, FALSE, L"Remote hostname", 120, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumn(hwnd, PHNETLC_PID, FALSE, L"PID", 50, PH_ALIGN_RIGHT, 0, DT_RIGHT);
+    PhAddTreeNewColumnEx2(hwnd, PHNETLC_TIMELINE, FALSE, L"Timeline", 100, PH_ALIGN_LEFT, ULONG_MAX, 0, TN_COLUMN_FLAG_CUSTOMDRAW | TN_COLUMN_FLAG_SORTDESCENDING);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -680,6 +682,88 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
             else
             {
                 return FALSE;
+            }
+        }
+        return TRUE;
+    case TreeNewCustomDraw:
+        {
+            PPH_TREENEW_CUSTOM_DRAW customDraw = Parameter1;
+            PPH_NETWORK_ITEM networkItem;
+            RECT rect;
+
+            node = (PPH_NETWORK_NODE)customDraw->Node;
+            networkItem = node->NetworkItem;
+            rect = customDraw->CellRect;
+
+            if (rect.right - rect.left <= 1)
+                break; // nothing to draw
+
+            switch (customDraw->Column->Id)
+            {
+            case PHNETLC_TIMELINE:
+                {
+                    #define PhInflateRect(rect, dx, dy) \
+                    { (rect)->left -= (dx); (rect)->top -= (dy); (rect)->right += (dx); (rect)->bottom += (dy); }
+                    HBRUSH previousBrush = NULL;
+                    RECT borderRect = customDraw->CellRect;
+                    FLOAT percent = 0;
+                    static LARGE_INTEGER bootTime = { 0 };
+                    LARGE_INTEGER systemTime;
+                    LARGE_INTEGER startTime;
+                    LARGE_INTEGER createTime;
+
+                    if (networkItem->CreateTime.QuadPart == 0)
+                        break; // nothing to draw
+
+                    if (bootTime.QuadPart == 0)
+                    {
+                        SYSTEM_TIMEOFDAY_INFORMATION timeOfDayInfo;
+
+                        if (NT_SUCCESS(NtQuerySystemInformation(
+                            SystemTimeOfDayInformation,
+                            &timeOfDayInfo,
+                            sizeof(SYSTEM_TIMEOFDAY_INFORMATION),
+                            NULL
+                            )))
+                        {
+                            bootTime.LowPart = timeOfDayInfo.BootTime.LowPart;
+                            bootTime.HighPart = timeOfDayInfo.BootTime.HighPart;
+                            bootTime.QuadPart -= timeOfDayInfo.BootTimeBias;
+                        }
+                    }
+
+                    PhQuerySystemTime(&systemTime);
+                    startTime.QuadPart = systemTime.QuadPart - bootTime.QuadPart;
+                    createTime.QuadPart = systemTime.QuadPart - networkItem->CreateTime.QuadPart;
+                    percent = (FLOAT)createTime.QuadPart / (FLOAT)startTime.QuadPart * 100.f;
+                    // Prevent overflow from changing the system time to an earlier date.
+                    if (percent > 100.f) percent = 100.f;
+
+                    FillRect(customDraw->Dc, &rect, GetSysColorBrush(COLOR_WINDOW));
+                    PhInflateRect(&rect, -1, -1);
+                    rect.bottom += 1;
+                    FillRect(customDraw->Dc, &rect, GetSysColorBrush(COLOR_3DFACE));
+
+                    SetDCBrushColor(customDraw->Dc, RGB(158, 202, 158));
+                    previousBrush = SelectBrush(customDraw->Dc, GetStockBrush(DC_BRUSH));
+                    rect.left = (LONG)(rect.right + ((rect.left - rect.right) * percent / 100));
+
+                    PatBlt(
+                        customDraw->Dc,
+                        rect.left,
+                        rect.top,
+                        rect.right - rect.left,
+                        rect.bottom - rect.top,
+                        PATCOPY
+                        );
+
+                    if (previousBrush) SelectBrush(customDraw->Dc, previousBrush);
+
+                    PhInflateRect(&borderRect, -1, -1);
+                    borderRect.bottom += 1;
+                    FrameRect(customDraw->Dc, &borderRect, GetStockBrush(GRAY_BRUSH));
+                }
+                break;
             }
         }
         return TRUE;

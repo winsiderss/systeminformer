@@ -17,7 +17,8 @@
 #define PHNETLC_LOCALHOSTNAME 9
 #define PHNETLC_REMOTEHOSTNAME 10
 #define PHNETLC_PID 11
-#define PHNETLC_MAXIMUM 12
+#define PHNETLC_TIMELINE 12
+#define PHNETLC_MAXIMUM 13
 
 // begin_phapppub
 typedef struct _PH_NETWORK_NODE
