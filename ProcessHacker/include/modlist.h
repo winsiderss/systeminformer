@@ -31,8 +31,9 @@
 #define PHMOTLC_CET 20
 #define PHMOTLC_COHERENCY 21
 #define PHMOTLC_TIMELINE 22
+#define PHMOTLC_ORIGINALNAME 23
 
-#define PHMOTLC_MAXIMUM 23
+#define PHMOTLC_MAXIMUM 24
 
 // begin_phapppub
 typedef struct _PH_MODULE_NODE

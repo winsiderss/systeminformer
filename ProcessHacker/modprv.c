@@ -269,6 +269,7 @@ VOID PhpModuleItemDeleteProcedure(
 
     if (moduleItem->Name) PhDereferenceObject(moduleItem->Name);
     if (moduleItem->FileName) PhDereferenceObject(moduleItem->FileName);
+    if (moduleItem->OriginalFileName) PhDereferenceObject(moduleItem->OriginalFileName);
     if (moduleItem->VerifySignerName) PhDereferenceObject(moduleItem->VerifySignerName);
     PhDeleteImageVersionInfo(&moduleItem->VersionInfo);
 }
@@ -481,6 +482,7 @@ static BOOLEAN NTAPI EnumModulesCallback(
     copy = PhAllocateCopy(Module, sizeof(PH_MODULE_INFO));
     PhReferenceObject(copy->Name);
     PhReferenceObject(copy->FileName);
+    PhReferenceObject(copy->OriginalFileName);
 
     PhAddItemList((PPH_LIST)Context, copy);
 
@@ -603,6 +605,7 @@ VOID PhModuleProviderUpdate(
 
             PhReferenceObject(module->Name);
             PhReferenceObject(module->FileName);
+            PhReferenceObject(module->OriginalFileName);
 
             moduleItem = PhCreateModuleItem();
             moduleItem->BaseAddress = module->BaseAddress;
@@ -615,6 +618,7 @@ VOID PhModuleProviderUpdate(
             moduleItem->LoadTime = module->LoadTime;
             moduleItem->Name = module->Name;
             moduleItem->FileName = module->FileName;
+            moduleItem->OriginalFileName = module->OriginalFileName;
             moduleItem->ParentBaseAddress = module->ParentBaseAddress;
 
             PhInitializeImageVersionInfo(&moduleItem->VersionInfo, moduleItem->FileName->Buffer);

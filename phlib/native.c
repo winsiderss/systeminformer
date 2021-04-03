@@ -3,7 +3,7 @@
  *   native wrapper and support functions
  *
  * Copyright (C) 2009-2016 wj32
- * Copyright (C) 2017-2020 dmex
+ * Copyright (C) 2017-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -7098,18 +7098,18 @@ VOID PhpRtlModulesExToGenericModules(
         moduleInfo.Flags = module->BaseInfo.Flags;
         moduleInfo.Name = PhConvertMultiByteToUtf16(&module->BaseInfo.FullPathName[module->BaseInfo.OffsetToFileName]);
         moduleInfo.FileName = PhGetFileName(fileName); // convert to DOS file name
+        moduleInfo.OriginalFileName = fileName;
         moduleInfo.LoadOrderIndex = module->BaseInfo.LoadOrderIndex;
         moduleInfo.LoadCount = module->BaseInfo.LoadCount;
         moduleInfo.LoadReason = USHRT_MAX;
         moduleInfo.LoadTime.QuadPart = 0;
         moduleInfo.ParentBaseAddress = NULL;
 
-        PhDereferenceObject(fileName);
-
         cont = Callback(&moduleInfo, Context);
 
         PhDereferenceObject(moduleInfo.Name);
         PhDereferenceObject(moduleInfo.FileName);
+        PhDereferenceObject(moduleInfo.OriginalFileName);
 
         if (!cont)
             break;
