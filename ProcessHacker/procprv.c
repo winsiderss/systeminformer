@@ -724,7 +724,7 @@ VOID PhpProcessQueryStage1(
             // Version info.
             PhInitializeImageVersionInfoCached(
                 &Data->VersionInfo,
-                processItem->FileNameWin32,
+                processItem->FileName,
                 FALSE,
                 PhEnableVersionShortText
                 );

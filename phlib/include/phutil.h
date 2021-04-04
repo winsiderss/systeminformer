@@ -537,6 +537,13 @@ PhGetFileVersionInfo(
     );
 
 PHLIBAPI
+PVOID
+NTAPI
+PhGetFileVersionInfoEx(
+    _In_ PPH_STRING FileName
+    );
+
+PHLIBAPI
 VS_FIXEDFILEINFO*
 NTAPI
 PhGetFileVersionFixedInfo(
@@ -594,9 +601,10 @@ PHLIBAPI
 _Success_(return)
 BOOLEAN
 NTAPI
-PhInitializeImageVersionInfo2(
+PhInitializeImageVersionInfoEx(
     _Out_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
-    _In_ PWSTR FileName
+    _In_ PPH_STRING FileName,
+    _In_ BOOLEAN ExtendedVersionInfo
     );
 
 PHLIBAPI
@@ -1494,8 +1502,24 @@ PhGetClassObject(
 PHLIBAPI
 _Ret_maybenull_
 PVOID
+NTAPI
 PhLoadLibrarySafe(
     _In_ PCWSTR LibFileName
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhLoadLibraryAsImageResource(
+    _In_ PPH_STRING FileName,
+    _Out_opt_ PVOID *BaseAddress
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhFreeLibraryAsImageResource(
+    _In_ PVOID BaseAddress
     );
 
 #ifdef __cplusplus
