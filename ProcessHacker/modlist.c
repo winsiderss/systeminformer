@@ -693,7 +693,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(OriginalName)
 {
-    sortResult = PhCompareString(moduleItem1->OriginalFileName, moduleItem2->OriginalFileName, TRUE);
+    sortResult = PhCompareString(moduleItem1->FileName, moduleItem2->FileName, TRUE);
 }
 END_SORT_FUNCTION
 
@@ -1099,7 +1099,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 }
                 break;
             case PHMOTLC_ORIGINALNAME:
-                getCellText->Text = PhGetStringRef(moduleItem->OriginalFileName);
+                getCellText->Text = PhGetStringRef(moduleItem->FileName);
                 break;
             default:
                 return FALSE;
