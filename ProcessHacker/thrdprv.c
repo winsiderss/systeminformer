@@ -252,7 +252,7 @@ static BOOLEAN LoadSymbolsEnumGenericModulesCallback(
 
     PhLoadModuleSymbolProvider(
         context->SymbolProvider,
-        Module->FileName->Buffer,
+        Module->FileNameWin32->Buffer,
         (ULONG64)Module->BaseAddress,
         Module->Size
         );
@@ -277,7 +277,7 @@ static BOOLEAN LoadBasicSymbolsEnumGenericModulesCallback(
     {
         PhLoadModuleSymbolProvider(
             context->SymbolProvider,
-            Module->FileName->Buffer,
+            Module->FileNameWin32->Buffer,
             (ULONG64)Module->BaseAddress,
             Module->Size
             );

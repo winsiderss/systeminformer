@@ -922,8 +922,8 @@ static BOOLEAN NTAPI EnumModulesCallback(
 
     context = moduleContext->WindowContext;
 
-    upperFileName = PhUpperString(Module->FileName);
-    upperOriginalFileName = PhUpperString(Module->OriginalFileName);
+    upperFileName = PhUpperString(Module->FileNameWin32);
+    upperOriginalFileName = PhUpperString(Module->FileName);
 
     if ((MatchSearchString(context, &upperFileName->sr) || MatchSearchString(context, &upperOriginalFileName->sr)) ||
         (context->UseSearchPointer && Module->BaseAddress == (PVOID)context->SearchPointer))
@@ -944,15 +944,13 @@ static BOOLEAN NTAPI EnumModulesCallback(
             break;
         }
 
-        searchResult = PhAllocate(sizeof(PHP_OBJECT_SEARCH_RESULT));
-        memset(searchResult, 0, sizeof(PHP_OBJECT_SEARCH_RESULT));
-
+        searchResult = PhAllocateZero(sizeof(PHP_OBJECT_SEARCH_RESULT));
         searchResult->ProcessId = moduleContext->ProcessId;
         searchResult->ResultType = (Module->Type == PH_MODULE_TYPE_MAPPED_FILE || Module->Type == PH_MODULE_TYPE_MAPPED_IMAGE) ? MappedFileSearchResult : ModuleSearchResult;
         searchResult->Handle = (HANDLE)Module->BaseAddress;
         searchResult->TypeName = PhCreateString(typeName);
-        PhSetReference(&searchResult->BestObjectName, Module->FileName);
-        PhSetReference(&searchResult->ObjectName, Module->OriginalFileName);
+        PhSetReference(&searchResult->BestObjectName, Module->FileNameWin32);
+        PhSetReference(&searchResult->ObjectName, Module->FileName);
 
         PhAcquireQueuedLockExclusive(&context->SearchResultsLock);
         PhAddItemList(context->SearchResults, searchResult);

@@ -147,8 +147,15 @@ static BOOLEAN NTAPI PhpLoadCurrentProcessSymbolsCallback(
     if (!Context)
         return TRUE;
 
-    PhLoadModuleSymbolProvider((PPH_SYMBOL_PROVIDER)Context, Module->FileName->Buffer,
-        (ULONG64)Module->BaseAddress, Module->Size);
+    if (!PhLoadModuleSymbolProvider(
+        (PPH_SYMBOL_PROVIDER)Context,
+        Module->FileNameWin32->Buffer,
+        (ULONG64)Module->BaseAddress,
+        Module->Size
+        ))
+    {
+        wprintf(L"Unable to load symbols: %s\n", PhGetStringOrEmpty(Module->FileNameWin32));
+    }
 
     return TRUE;
 }

@@ -408,7 +408,7 @@ static BOOLEAN NTAPI EnumGenericModulesCallback(
         )
         return TRUE;
 
-    PhLoadModuleSymbolProvider(context->SymbolProvider, Module->FileName->Buffer,
+    PhLoadModuleSymbolProvider(context->SymbolProvider, Module->FileNameWin32->Buffer,
         (ULONG64)Module->BaseAddress, Module->Size);
 
     return TRUE;
