@@ -1553,6 +1553,14 @@ PhQueryFullAttributesFileWin32(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhQueryFullAttributesFile(
+    _In_ PPH_STRINGREF FileName,
+    _Out_ PFILE_NETWORK_OPEN_INFORMATION FileInformation
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhQueryAttributesFileWin32(
     _In_ PWSTR FileName,
     _Out_ PFILE_BASIC_INFORMATION FileInformation

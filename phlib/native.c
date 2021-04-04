@@ -8439,6 +8439,28 @@ NTSTATUS PhQueryFullAttributesFileWin32(
     return status;
 }
 
+NTSTATUS PhQueryFullAttributesFile(
+    _In_ PPH_STRINGREF FileName,
+    _Out_ PFILE_NETWORK_OPEN_INFORMATION FileInformation
+    )
+{
+    UNICODE_STRING fileName;
+    OBJECT_ATTRIBUTES objectAttributes;
+
+    if (!PhStringRefToUnicodeString(FileName, &fileName))
+        return STATUS_UNSUCCESSFUL;
+
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &fileName,
+        OBJ_CASE_INSENSITIVE,
+        NULL,
+        NULL
+        );
+
+    return NtQueryFullAttributesFile(&objectAttributes, FileInformation);
+}
+
 NTSTATUS PhQueryAttributesFileWin32(
     _In_ PWSTR FileName,
     _Out_ PFILE_BASIC_INFORMATION FileInformation
