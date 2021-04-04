@@ -269,7 +269,7 @@ VOID PhpModuleItemDeleteProcedure(
 
     if (moduleItem->Name) PhDereferenceObject(moduleItem->Name);
     if (moduleItem->FileNameWin32) PhDereferenceObject(moduleItem->FileNameWin32);
-    if (moduleItem->OriginalFileName) PhDereferenceObject(moduleItem->OriginalFileName);
+    if (moduleItem->FileName) PhDereferenceObject(moduleItem->FileName);
     if (moduleItem->VerifySignerName) PhDereferenceObject(moduleItem->VerifySignerName);
     PhDeleteImageVersionInfo(&moduleItem->VersionInfo);
 }
@@ -619,7 +619,7 @@ VOID PhModuleProviderUpdate(
             moduleItem->LoadTime = module->LoadTime;
             moduleItem->Name = module->Name;
             moduleItem->FileNameWin32 = module->FileNameWin32;
-            moduleItem->OriginalFileName = module->FileName;
+            moduleItem->FileName = module->FileName;
             moduleItem->ParentBaseAddress = module->ParentBaseAddress;
 
             PhInitializeImageVersionInfo(&moduleItem->VersionInfo, moduleItem->FileNameWin32->Buffer);
