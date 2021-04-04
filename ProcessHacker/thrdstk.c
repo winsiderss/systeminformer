@@ -241,6 +241,12 @@ BEGIN_SORT_FUNCTION(ReturnAddress)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(FileName)
+{
+    sortResult = PhCompareString(node1->FileNameString, node2->FileNameString, TRUE);
+}
+END_SORT_FUNCTION
+
 VOID ThreadStackLoadSettingsTreeList(
     _Inout_ PPH_THREAD_STACK_CONTEXT Context
     )
@@ -411,6 +417,7 @@ BOOLEAN NTAPI ThreadStackTreeNewCallback(
                     SORT_FUNCTION(StackParameter4),
                     SORT_FUNCTION(ControlAddress),
                     SORT_FUNCTION(ReturnAddress),
+                    SORT_FUNCTION(FileName),
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
