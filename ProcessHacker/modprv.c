@@ -430,7 +430,7 @@ NTSTATUS PhpModuleQueryWorker(
             else
             {
                 data->ImageCoherencyStatus = PhGetProcessModuleImageCoherency(
-                    PhGetString(data->ModuleItem->FileNameWin32),
+                    data->ModuleItem->FileName,
                     data->ModuleProvider->ProcessHandle,
                     data->ModuleItem->BaseAddress,
                     data->ModuleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE,
@@ -757,7 +757,7 @@ VOID PhModuleProviderUpdate(
             if (!moduleProvider->CetEnabled)
                 moduleItem->ImageDllCharacteristicsEx &= ~IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT;
 
-            if (NT_SUCCESS(PhQueryFullAttributesFile(&moduleItem->FileName->sr, &networkOpenInfo)))
+            if (NT_SUCCESS(PhQueryFullAttributesFile(moduleItem->FileName, &networkOpenInfo)))
             {
                 moduleItem->FileLastWriteTime = networkOpenInfo.LastWriteTime;
                 moduleItem->FileEndOfFile = networkOpenInfo.EndOfFile;

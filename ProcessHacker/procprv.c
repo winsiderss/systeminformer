@@ -717,7 +717,7 @@ VOID PhpProcessQueryStage1(
 
     if (!PhIsNullOrEmptyString(processItem->FileName) && !processItem->IsSubsystemProcess)
     {
-        if (PhDoesFileExists(PhGetString(processItem->FileName)))
+        if (PhDoesFileExists(processItem->FileName))
         {
             Data->IconEntry = PhImageListExtractIcon(processItem->FileNameWin32);
 
@@ -975,7 +975,7 @@ VOID PhpProcessQueryStage2(
             }
 
             Data->ImageCoherencyStatus = PhGetProcessImageCoherency(
-                processItem->FileNameWin32->Buffer,
+                processItem->FileName,
                 processItem->ProcessId,
                 type,
                 &Data->ImageCoherency

@@ -8207,7 +8207,7 @@ NTSTATUS PhCreateFileWin32Ex(
 
 NTSTATUS PhCreateFile(
     _Out_ PHANDLE FileHandle,
-    _In_ PWSTR FileName,
+    _In_ PPH_STRING FileName,
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ ULONG FileAttributes,
     _In_ ULONG ShareAccess,
@@ -8221,7 +8221,9 @@ NTSTATUS PhCreateFile(
     OBJECT_ATTRIBUTES objectAttributes;
     IO_STATUS_BLOCK isb;
 
-    RtlInitUnicodeString(&fileName, FileName);
+    if (!PhStringRefToUnicodeString(&FileName->sr, &fileName))
+        return STATUS_UNSUCCESSFUL;
+
     InitializeObjectAttributes(
         &objectAttributes,
         &fileName,
@@ -8440,14 +8442,14 @@ NTSTATUS PhQueryFullAttributesFileWin32(
 }
 
 NTSTATUS PhQueryFullAttributesFile(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PPH_STRING FileName,
     _Out_ PFILE_NETWORK_OPEN_INFORMATION FileInformation
     )
 {
     UNICODE_STRING fileName;
     OBJECT_ATTRIBUTES objectAttributes;
 
-    if (!PhStringRefToUnicodeString(FileName, &fileName))
+    if (!PhStringRefToUnicodeString(&FileName->sr, &fileName))
         return STATUS_UNSUCCESSFUL;
 
     InitializeObjectAttributes(
@@ -8499,14 +8501,16 @@ NTSTATUS PhQueryAttributesFileWin32(
 }
 
 NTSTATUS PhQueryAttributesFile(
-    _In_ PWSTR FileName,
+    _In_ PPH_STRING FileName,
     _Out_ PFILE_BASIC_INFORMATION FileInformation
     )
 {
     UNICODE_STRING fileName;
     OBJECT_ATTRIBUTES objectAttributes;
 
-    RtlInitUnicodeString(&fileName, FileName);
+    if (!PhStringRefToUnicodeString(&FileName->sr, &fileName))
+        return STATUS_UNSUCCESSFUL;
+
     InitializeObjectAttributes(
         &objectAttributes,
         &fileName,
@@ -8541,7 +8545,7 @@ BOOLEAN PhDoesFileExistsWin32(
 }
 
 BOOLEAN PhDoesFileExists(
-    _In_ PWSTR FileName
+    _In_ PPH_STRING FileName
     )
 {
     NTSTATUS status;

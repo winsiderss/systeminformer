@@ -71,7 +71,7 @@ VOID DiskDrivesUpdate(
 
         if (NT_SUCCESS(PhCreateFile(
             &deviceHandle,
-            PhGetString(entry->Id.DevicePath),
+            entry->Id.DevicePath,
             FILE_READ_ATTRIBUTES | SYNCHRONIZE,
             FILE_ATTRIBUTE_NORMAL,
             FILE_SHARE_READ | FILE_SHARE_WRITE,
@@ -221,7 +221,7 @@ VOID DiskDriveUpdateDeviceInfo(
         {
             PhCreateFile(
                 &deviceHandle,
-                PhGetString(DiskEntry->Id.DevicePath),
+                DiskEntry->Id.DevicePath,
                 FILE_READ_ATTRIBUTES | SYNCHRONIZE,
                 FILE_ATTRIBUTE_NORMAL,
                 FILE_SHARE_READ | FILE_SHARE_WRITE,

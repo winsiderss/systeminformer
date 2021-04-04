@@ -1341,7 +1341,7 @@ VOID EtFwHandleFwCommand(
             {
                 if (
                     !PhIsNullOrEmptyString(entry->ProcessFileName) &&
-                    PhDoesFileExists(PhGetString(entry->ProcessFileName))
+                    PhDoesFileExists(entry->ProcessFileName)
                     )
                 {
                     PhShellExecuteUserString(
@@ -1382,7 +1382,7 @@ VOID InitializeFwMenu(
         }
         else
         {
-            if (!PhDoesFileExists(PhGetString(FwItems[0]->ProcessFileName)))
+            if (!PhDoesFileExists(FwItems[0]->ProcessFileName))
             {
                 PhEnableEMenuItem(Menu, ID_DISK_OPENFILELOCATION, FALSE);
                 PhEnableEMenuItem(Menu, ID_DISK_INSPECT, FALSE);

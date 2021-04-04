@@ -2,7 +2,7 @@
  * Process Hacker -
  *   PE viewer
  *
- * Copyright (C) 2020 dmex
+ * Copyright (C) 2020-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -1009,7 +1009,7 @@ NTSTATUS PvLayoutEnumerateFileLayouts(
 
     status = PhCreateFile(
         &volumeHandle,
-        PhGetString(volumeName),
+        volumeName,
         FILE_READ_ATTRIBUTES | FILE_WRITE_ATTRIBUTES | SYNCHRONIZE, // magic value
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ | FILE_SHARE_WRITE,
