@@ -296,9 +296,9 @@ BOOLEAN PhpModulesTreeFilterCallback(
             return TRUE;
     }
 
-    if (!PhIsNullOrEmptyString(moduleItem->FileName))
+    if (!PhIsNullOrEmptyString(moduleItem->FileNameWin32))
     {
-        if (PhpWordMatchHandleStringRef(Context->SearchboxText, &moduleItem->FileName->sr))
+        if (PhpWordMatchHandleStringRef(Context->SearchboxText, &moduleItem->FileNameWin32->sr))
             return TRUE;
     }
 
@@ -558,7 +558,7 @@ VOID PhpProcessModulesSave(
 
     processItem = PhReferenceProcessItem(ModulesContext->Provider->ProcessId);
     PhInitFormatS(&format[0], L"Process Hacker (");
-    PhInitFormatS(&format[1], PhGetStringOrDefault(processItem->ProcessName, L"Unknown process"));
+    PhInitFormatS(&format[1], processItem ? PhGetStringOrDefault(processItem->ProcessName, L"Unknown process") : L"Unknown process");
     PhInitFormatS(&format[2], L") Modules");
     PhInitFormatS(&format[3], L".txt");
     if (processItem) PhDereferenceObject(processItem);
@@ -837,7 +837,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                         PhShellExecuteUserString(
                             hwndDlg,
                             L"FileBrowseExecutable",
-                            moduleItem->FileName->Buffer,
+                            moduleItem->FileNameWin32->Buffer,
                             FALSE,
                             L"Make sure the Explorer executable file is present."
                             );
@@ -853,7 +853,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                         PhShellExecuteUserString(
                             hwndDlg,
                             L"ProgramInspectExecutables",
-                            moduleItem->FileName->Buffer,
+                            moduleItem->FileNameWin32->Buffer,
                             FALSE,
                             L"Make sure the PE Viewer executable file is present."
                             );

@@ -76,7 +76,7 @@ VOID ProcessesUpdatedCallback(
         }
         else if (extension->ModuleItem)
         {
-            filePath = extension->ModuleItem->FileName;
+            filePath = extension->ModuleItem->FileNameWin32;
         }
         else if (extension->ServiceItem)
         {
@@ -374,7 +374,7 @@ VOID NTAPI ModuleMenuInitializingCallback(
     else
         moduleItem = NULL;
 
-    sendToMenu = CreateSendToMenu(FALSE, menuInfo->Menu, moduleItem ? moduleItem->FileName : NULL);
+    sendToMenu = CreateSendToMenu(FALSE, menuInfo->Menu, moduleItem ? moduleItem->FileNameWin32 : NULL);
 
     if (!moduleItem)
     {

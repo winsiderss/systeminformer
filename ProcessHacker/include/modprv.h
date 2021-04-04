@@ -16,7 +16,7 @@ typedef struct _PH_MODULE_ITEM
     USHORT LoadReason;
     USHORT LoadCount;
     PPH_STRING Name;
-    PPH_STRING FileName;
+    PPH_STRING FileNameWin32;
     PPH_STRING OriginalFileName;
     PH_IMAGE_VERSION_INFO VersionInfo;
 

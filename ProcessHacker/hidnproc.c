@@ -672,7 +672,7 @@ static PPH_PROCESS_ITEM PhpCreateProcessItemForHiddenProcess(
             // spaces.
             for (i = 0; i < (ULONG)commandLine->Length / sizeof(WCHAR); i++)
             {
-                if (commandLine->Buffer[i] == 0)
+                if (commandLine->Buffer[i] == UNICODE_NULL)
                     commandLine->Buffer[i] = ' ';
             }
         }

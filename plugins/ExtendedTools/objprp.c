@@ -180,7 +180,7 @@ static BOOLEAN NTAPI EnumGenericModulesCallback(
     {
         PhLoadModuleSymbolProvider(
             Context,
-            Module->FileName->Buffer,
+            Module->FileNameWin32->Buffer,
             (ULONG64)Module->BaseAddress,
             Module->Size
             );

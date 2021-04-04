@@ -575,7 +575,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(FileName)
 {
-    sortResult = PhCompareStringWithNull(moduleItem1->FileName, moduleItem2->FileName, TRUE);
+    sortResult = PhCompareStringWithNull(moduleItem1->FileNameWin32, moduleItem2->FileNameWin32, TRUE);
 }
 END_SORT_FUNCTION
 
@@ -853,7 +853,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 getCellText->Text = PhGetStringRef(moduleItem->VersionInfo.FileVersion);
                 break;
             case PHMOTLC_FILENAME:
-                getCellText->Text = PhGetStringRef(moduleItem->FileName);
+                getCellText->Text = PhGetStringRef(moduleItem->FileNameWin32);
                 break;
             case PHMOTLC_TYPE:
                 {
@@ -1187,7 +1187,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
             if (!node->TooltipText)
             {
                 node->TooltipText = PhFormatImageVersionInfo(
-                    node->ModuleItem->FileName,
+                    node->ModuleItem->FileNameWin32,
                     &node->ModuleItem->VersionInfo,
                     NULL,
                     0
@@ -1426,7 +1426,7 @@ BOOLEAN PhShouldShowModuleCoherency(
 
     if (ModuleItem->ImageCoherencyStatus == STATUS_PENDING ||
         ModuleItem->ImageCoherencyStatus == LONG_MAX ||
-        PhIsNullOrEmptyString(ModuleItem->FileName))
+        PhIsNullOrEmptyString(ModuleItem->FileNameWin32))
     {
         return FALSE;
     }
