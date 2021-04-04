@@ -132,7 +132,7 @@ PPH_MODULE_PROVIDER PhCreateModuleProvider(
 
     if (NT_SUCCESS(PhGetProcessImageFileNameByProcessId(ProcessId, &fileName)))
     {
-        PhMoveReference(&moduleProvider->ProcessFileName, PhGetFileName(fileName));
+        PhMoveReference(&moduleProvider->ProcessFileName, fileName);
     }
 
     if (WindowsVersion >= WINDOWS_8 && moduleProvider->ProcessHandle)
@@ -530,7 +530,7 @@ VOID PhModuleProviderUpdate(
                 PPH_MODULE_INFO module = modules->Items[i];
 
                 if ((*moduleItem)->BaseAddress == module->BaseAddress &&
-                    PhEqualString((*moduleItem)->FileNameWin32, module->FileNameWin32, TRUE))
+                    PhEqualString((*moduleItem)->FileName, module->FileName, TRUE))
                 {
                     found = TRUE;
                     break;
@@ -650,7 +650,7 @@ VOID PhModuleProviderUpdate(
                 else
                 {
                     // Windows loads the PE image first and WSL loads the ELF image last (dmex)
-                    if (moduleProvider->ProcessFileName && PhEqualString(moduleProvider->ProcessFileName, moduleItem->FileNameWin32, FALSE))
+                    if (moduleProvider->ProcessFileName && PhEqualString(moduleProvider->ProcessFileName, moduleItem->FileName, FALSE))
                     {
                         moduleItem->IsFirst = TRUE;
                         moduleProvider->HaveFirst = TRUE;
@@ -757,7 +757,7 @@ VOID PhModuleProviderUpdate(
             if (!moduleProvider->CetEnabled)
                 moduleItem->ImageDllCharacteristicsEx &= ~IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT;
 
-            if (NT_SUCCESS(PhQueryFullAttributesFileWin32(moduleItem->FileNameWin32->Buffer, &networkOpenInfo)))
+            if (NT_SUCCESS(PhQueryFullAttributesFile(&moduleItem->FileName->sr, &networkOpenInfo)))
             {
                 moduleItem->FileLastWriteTime = networkOpenInfo.LastWriteTime;
                 moduleItem->FileEndOfFile = networkOpenInfo.EndOfFile;
