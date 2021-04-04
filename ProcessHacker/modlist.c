@@ -122,7 +122,7 @@ VOID PhInitializeModuleList(
     PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_CET, FALSE, L"CET", 50, PH_ALIGN_LEFT, ULONG_MAX, 0, TRUE);
     PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_COHERENCY, FALSE, L"Image coherency", 70, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx2(Context->TreeNewHandle, PHMOTLC_TIMELINE, FALSE, L"Timeline", 100, PH_ALIGN_LEFT, ULONG_MAX, 0, TN_COLUMN_FLAG_CUSTOMDRAW | TN_COLUMN_FLAG_SORTDESCENDING);
-    PhAddTreeNewColumn(Context->TreeNewHandle, PHMOTLC_ORIGINALNAME, FALSE, L"Original name", 200, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PHMOTLC_ORIGINALNAME, FALSE, L"Original name", 200, PH_ALIGN_LEFT, ULONG_MAX, DT_PATH_ELLIPSIS);
 
     TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
 
