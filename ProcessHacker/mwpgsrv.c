@@ -27,6 +27,7 @@
 #include <emenu.h>
 
 #include <phplug.h>
+#include <phsettings.h>
 #include <settings.h>
 #include <srvlist.h>
 #include <srvprv.h>
@@ -207,6 +208,17 @@ VOID PhMwpToggleMicrosoftServiceTreeFilter(
     }
     else
     {
+        if (!PhEnableServiceQueryStage2)
+        {
+            PhShowInformation2(
+                PhMainWndHandle,
+                NULL,
+                L"This filter cannot function because digital signature checking is not enabled.\r\n%s",
+                L"Enable it in Options > General and restart Process Hacker."
+                );
+            return;
+        }
+
         MicrosoftFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), PhMwpMicrosoftServiceTreeFilter, NULL);
     }
 
