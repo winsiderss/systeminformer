@@ -355,7 +355,7 @@ VOID NetAdapterUpdateDetails(
     {
         if (NT_SUCCESS(PhCreateFile(
             &deviceHandle,
-            PhGetString(Context->AdapterId.InterfacePath),
+            Context->AdapterId.InterfacePath,
             FILE_GENERIC_READ,
             FILE_ATTRIBUTE_NORMAL,
             FILE_SHARE_READ | FILE_SHARE_WRITE,

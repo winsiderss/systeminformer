@@ -394,7 +394,7 @@ VOID FindDiskDrives(
 
         if (NT_SUCCESS(PhCreateFile(
             &deviceHandle,
-            PhGetString(diskEntry->DevicePath),
+            diskEntry->DevicePath,
             FILE_READ_ATTRIBUTES | SYNCHRONIZE,
             FILE_ATTRIBUTE_NORMAL,
             FILE_SHARE_READ | FILE_SHARE_WRITE,

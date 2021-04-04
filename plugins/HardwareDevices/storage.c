@@ -2,7 +2,7 @@
  * Process Hacker Plugins -
  *   Hardware Devices Plugin
  *
- * Copyright (C) 2015-2020 dmex
+ * Copyright (C) 2015-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -27,10 +27,12 @@ PPH_STRING DiskDriveQueryDosMountPoints(
     _In_ ULONG DeviceNumber
     )
 {
+    static PH_STRINGREF deviceNameSr = PH_STRINGREF_INIT(L"\\??\\?:");
     ULONG deviceMap = 0;
-    WCHAR deviceNameBuffer[7] = L"\\??\\?:";
+    PPH_STRING deviceName;
     PH_STRING_BUILDER stringBuilder;
 
+    deviceName = PhCreateString2(&deviceNameSr);
     PhInitializeStringBuilder(&stringBuilder, DOS_MAX_PATH_LENGTH);
 
     PhGetProcessDeviceMap(NtCurrentProcess(), &deviceMap);
@@ -46,11 +48,11 @@ PPH_STRING DiskDriveQueryDosMountPoints(
                 continue;
         }
 
-        deviceNameBuffer[4] = (WCHAR)('A' + i);
+        deviceName->Buffer[4] = (WCHAR)('A' + i);
 
         if (NT_SUCCESS(PhCreateFile(
             &deviceHandle,
-            deviceNameBuffer,
+            deviceName,
             FILE_READ_ATTRIBUTES | SYNCHRONIZE,
             FILE_ATTRIBUTE_NORMAL,
             FILE_SHARE_READ | FILE_SHARE_WRITE,
@@ -73,7 +75,7 @@ PPH_STRING DiskDriveQueryDosMountPoints(
                 // only allow devices of type FILE_DEVICE_DISK to be scanned for mount points.
                 if (deviceNumber == DeviceNumber && deviceType != FILE_DEVICE_CD_ROM)
                 {
-                    PhAppendFormatStringBuilder(&stringBuilder, L"%c: ", deviceNameBuffer[4]);
+                    PhAppendFormatStringBuilder(&stringBuilder, L"%c: ", deviceName->Buffer[4]);
                 }
             }
 
@@ -84,6 +86,8 @@ PPH_STRING DiskDriveQueryDosMountPoints(
     if (stringBuilder.String->Length != 0)
         PhRemoveEndStringBuilder(&stringBuilder, 1);
 
+    PhDereferenceObject(deviceName);
+
     return PhFinalStringBuilderString(&stringBuilder);
 }
 
@@ -91,13 +95,15 @@ PPH_LIST DiskDriveQueryMountPointHandles(
     _In_ ULONG DeviceNumber
     )
 {
+    static PH_STRINGREF deviceNameSr = PH_STRINGREF_INIT(L"\\??\\?:");
     ULONG deviceMap = 0;
     PPH_LIST deviceList;
-    WCHAR deviceNameBuffer[7] = L"\\??\\?:";
+    PPH_STRING deviceName;
 
     PhGetProcessDeviceMap(NtCurrentProcess(), &deviceMap);
 
     deviceList = PhCreateList(2);
+    deviceName = PhCreateString2(&deviceNameSr);
 
     for (INT i = 0; i < 26; i++)
     {
@@ -109,11 +115,11 @@ PPH_LIST DiskDriveQueryMountPointHandles(
                 continue;
         }
 
-        deviceNameBuffer[4] = (WCHAR)('A' + i);
+        deviceName->Buffer[4] = (WCHAR)('A' + i);
 
         if (NT_SUCCESS(PhCreateFile(
             &deviceHandle,
-            deviceNameBuffer,
+            deviceName,
             PhGetOwnTokenAttributes().Elevated ? FILE_GENERIC_READ : FILE_READ_ATTRIBUTES | FILE_TRAVERSE | SYNCHRONIZE,
             FILE_ATTRIBUTE_NORMAL,
             FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
@@ -139,7 +145,7 @@ PPH_LIST DiskDriveQueryMountPointHandles(
                     PDISK_HANDLE_ENTRY entry;
 
                     entry = PhAllocateZero(sizeof(DISK_HANDLE_ENTRY));
-                    entry->DeviceLetter = deviceNameBuffer[4];
+                    entry->DeviceLetter = deviceName->Buffer[4];
                     entry->DeviceHandle = deviceHandle;
 
                     PhAddItemList(deviceList, entry);
@@ -155,6 +161,8 @@ PPH_LIST DiskDriveQueryMountPointHandles(
             }
         }
     }
+
+    PhDereferenceObject(deviceName);
 
     return deviceList;
 }

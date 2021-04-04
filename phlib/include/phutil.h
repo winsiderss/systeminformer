@@ -1079,7 +1079,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhGetProcessImageCoherency(
-    _In_ PWSTR FileName,
+    _In_ PPH_STRING FileName,
     _In_ HANDLE ProcessId,
     _In_ PH_IMAGE_COHERENCY_SCAN_TYPE Type,
     _Out_ PFLOAT ImageCoherency
@@ -1089,7 +1089,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhGetProcessModuleImageCoherency(
-    _In_ PWSTR FileName,
+    _In_ PPH_STRING FileName,
     _In_ HANDLE ProcessHandle,
     _In_ PVOID ImageBaseAddress,
     _In_ BOOLEAN IsKernelModule,
