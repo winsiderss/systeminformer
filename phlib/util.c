@@ -7918,7 +7918,7 @@ NTSTATUS PhLoadLibraryAsImageResource(
         NULL,
         NULL,
         PAGE_READONLY,
-        SEC_IMAGE,
+        WindowsVersion < WINDOWS_8 ? SEC_IMAGE : SEC_IMAGE_NO_EXECUTE,
         fileHandle
         );
 
@@ -7939,7 +7939,7 @@ NTSTATUS PhLoadLibraryAsImageResource(
         NULL,
         &imageBaseSize,
         ViewShare,
-        0,
+        WindowsVersion < WINDOWS_8 ? 0 : MEM_MAPPED,
         PAGE_READONLY
         );
 
