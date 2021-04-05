@@ -622,7 +622,7 @@ VOID PhModuleProviderUpdate(
             moduleItem->FileName = module->FileName;
             moduleItem->ParentBaseAddress = module->ParentBaseAddress;
 
-            PhInitializeImageVersionInfo(&moduleItem->VersionInfo, moduleItem->FileNameWin32->Buffer);
+            PhInitializeImageVersionInfoEx(&moduleItem->VersionInfo, moduleItem->FileName, PhEnableVersionShortText);
 
             if (moduleProvider->IsSubsystemProcess)
             {
