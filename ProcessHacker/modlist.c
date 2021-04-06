@@ -1428,6 +1428,11 @@ BOOLEAN PhShouldShowModuleCoherency(
         ModuleItem->ImageCoherencyStatus == LONG_MAX ||
         PhIsNullOrEmptyString(ModuleItem->FileNameWin32))
     {
+        //
+        // The image coherency status is pending, uninitialized, or we don't
+        // have a file name for the module. We have not completed/attempted
+        // the calculation yet, don't show the coherency.
+        //
         return FALSE;
     }
 
@@ -1436,6 +1441,10 @@ BOOLEAN PhShouldShowModuleCoherency(
         ModuleItem->Type == PH_MODULE_TYPE_MAPPED_IMAGE ||
         ModuleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE))
     {
+        //
+        // We special case these modules types and opt not to show/calculate
+        // the coherency for them. 
+        //
         return FALSE;
     }
 
@@ -1443,19 +1452,42 @@ BOOLEAN PhShouldShowModuleCoherency(
         ModuleItem->ImageCoherencyStatus == STATUS_INVALID_IMAGE_NOT_MZ ||
         ModuleItem->ImageCoherencyStatus == STATUS_INVALID_IMAGE_FORMAT ||
         ModuleItem->ImageCoherencyStatus == STATUS_INVALID_IMAGE_HASH ||
-        ModuleItem->ImageCoherencyStatus == STATUS_IMAGE_SUBSYSTEM_NOT_PRESENT ||
-        ModuleItem->ImageCoherencyStatus == STATUS_ACCESS_DENIED)
+        ModuleItem->ImageCoherencyStatus == STATUS_IMAGE_SUBSYSTEM_NOT_PRESENT)
     {
+        //
+        // The coherency status is a success code or a known "valid" error
+        // from the coherency calculation (PhGetProcessModuleImageCoherency).
+        // We should show the coherency value.
+        //
+
         if (CheckThreshold)
         {
+            //
+            // A threshold check is requested. This is generally used for
+            // checking if we should highlight an entry. If the coherency
+            // is below a given threshold return true. Otherwise false.
+            //
             if (ModuleItem->ImageCoherency <= LowImageCoherencyThreshold)
             {
                 return TRUE;
             }
-
-            return FALSE;
+            else
+            {
+                return FALSE;
+            }
         }
+
+        //
+        // No special handling, return true.
+        //
+        return TRUE;
     }
 
-    return TRUE;
+    //
+    // Any other error NTSTATUS we don't show the coherency value, we'll
+    // show the reason why we failed the calculation (a string representation
+    // of the status code).
+    //
+
+    return FALSE;
 }
