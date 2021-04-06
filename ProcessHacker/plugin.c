@@ -1210,9 +1210,6 @@ PPH_STRING PhGetPluginFileName(
     if (!NT_SUCCESS(PhGetProcessMappedFileName(NtCurrentProcess(), Plugin->DllBase, &fileName)))
         return NULL;
 
-    PhMoveReference(&fileName, PhGetFileName(fileName));
-    //fileName = PhGetDllFileName(DllBase, NULL);
-
     return fileName;
 }
 
