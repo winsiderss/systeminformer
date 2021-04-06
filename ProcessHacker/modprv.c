@@ -121,11 +121,19 @@ PPH_MODULE_PROVIDER PhCreateModuleProvider(
         )))
     {
         // Try to get a handle with query limited information + vm read access.
-        status = PhOpenProcess(
+        if (!NT_SUCCESS(status = PhOpenProcess(
             &moduleProvider->ProcessHandle,
             PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ,
             ProcessId
-            );
+            )))
+        {
+            // Try to get a handle with query limited information (required for WSL when KPH disabled) (dmex)
+            status = PhOpenProcess(
+                &moduleProvider->ProcessHandle,
+                PROCESS_QUERY_LIMITED_INFORMATION,
+                ProcessId
+                );
+        }
 
         moduleProvider->RunStatus = status;
     }
