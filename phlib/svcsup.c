@@ -3,7 +3,7 @@
  *   service support functions
  *
  * Copyright (C) 2010-2012 wj32
- * Copyright (C) 2019 dmex
+ * Copyright (C) 2019-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -616,6 +616,50 @@ NTSTATUS PhGetThreadServiceTag(
     return status;
 }
 
+NTSTATUS PhpGetServiceDllName(
+    _In_ PPH_STRING ServiceKeyName,
+    _Out_ PPH_STRING* ServiceDll
+    )
+{
+    PPH_STRING serviceDllString = NULL;
+    NTSTATUS status;
+    HANDLE keyHandle;
+
+    status = PhOpenKey(
+        &keyHandle,
+        KEY_READ,
+        PH_KEY_LOCAL_MACHINE,
+        &ServiceKeyName->sr,
+        0
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        if (serviceDllString = PhQueryRegistryString(keyHandle, L"ServiceDll"))
+        {
+            PPH_STRING expandedString;
+
+            if (expandedString = PhExpandEnvironmentStrings(&serviceDllString->sr))
+            {
+                PhMoveReference(&serviceDllString, expandedString);
+            }
+        }
+        else
+        {
+            status = STATUS_NOT_FOUND;
+        }
+
+        NtClose(keyHandle);
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        *ServiceDll = serviceDllString;
+    }
+
+    return status;
+}
+
 NTSTATUS PhGetServiceDllParameter(
     _In_ ULONG ServiceType,
     _In_ PPH_STRINGREF ServiceName,
@@ -625,7 +669,7 @@ NTSTATUS PhGetServiceDllParameter(
     static PH_STRINGREF servicesKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services\\");
     static PH_STRINGREF parameters = PH_STRINGREF_INIT(L"\\Parameters");
     NTSTATUS status;
-    HANDLE keyHandle;
+    PPH_STRING serviceDllString;
     PPH_STRING keyName;
 
     if (ServiceType & SERVICE_USERSERVICE_INSTANCE)
@@ -648,39 +692,41 @@ NTSTATUS PhGetServiceDllParameter(
         keyName = PhConcatStringRef3(&servicesKeyName, ServiceName, &parameters);
     }
 
-    if (NT_SUCCESS(status = PhOpenKey(
-        &keyHandle,
-        KEY_READ,
-        PH_KEY_LOCAL_MACHINE,
-        &keyName->sr,
-        0
-        )))
+    status = PhpGetServiceDllName(
+        keyName,
+        &serviceDllString
+        );
+    PhDereferenceObject(keyName);
+
+    if (NT_SUCCESS(status))
     {
-        PPH_STRING serviceDllString;
-
-        if (serviceDllString = PhQueryRegistryString(keyHandle, L"ServiceDll"))
-        {
-            PPH_STRING expandedString;
-
-            if (expandedString = PhExpandEnvironmentStrings(&serviceDllString->sr))
-            {
-                *ServiceDll = expandedString;
-                PhDereferenceObject(serviceDllString);
-            }
-            else
-            {
-                *ServiceDll = serviceDllString;
-            }
-        }
-        else
-        {
-            status = STATUS_NOT_FOUND;
-        }
-
-        NtClose(keyHandle);
+        *ServiceDll = serviceDllString;
+        return STATUS_SUCCESS;
     }
 
-    PhDereferenceObject(keyName);
+    if (
+        (WindowsVersion == WINDOWS_8 || WindowsVersion == WINDOWS_8_1) &&
+        (status == STATUS_OBJECT_NAME_NOT_FOUND || status == STATUS_NOT_FOUND)
+        )
+    {
+        // Windows 8 places the ServiceDll for some services in the root key. (dmex)
+        keyName = PhConcatStringRef2(
+            &servicesKeyName,
+            ServiceName
+            );
+
+        status = PhpGetServiceDllName(
+            keyName,
+            &serviceDllString
+            );
+        PhDereferenceObject(keyName);
+
+        if (NT_SUCCESS(status))
+        {
+            *ServiceDll = serviceDllString;
+            return STATUS_SUCCESS;
+        }
+    }
 
     return status;
 }
