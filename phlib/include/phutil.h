@@ -1449,7 +1449,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhLoaderEntryLoadDll(
-    _In_ PWSTR FileName,
+    _In_ PPH_STRING FileName,
     _Out_ PVOID* BaseAddress
     );
 
