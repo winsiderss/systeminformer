@@ -7326,7 +7326,7 @@ NTSTATUS PhLoaderEntryRelocateImage(
         return status;
 
     relocationDirectoryEnd = PTR_ADD_OFFSET(relocationDirectory, dataDirectory->Size);
-    relocationDelta = (ULONG_PTR)PTR_SUB_OFFSET(imageNtHeader->OptionalHeader.ImageBase, BaseAddress);
+    relocationDelta = (ULONG_PTR)PTR_SUB_OFFSET(BaseAddress, imageNtHeader->OptionalHeader.ImageBase);
 
     while ((ULONG_PTR)relocationDirectory < (ULONG_PTR)relocationDirectoryEnd)
     {
@@ -7396,7 +7396,7 @@ NTSTATUS PhLoaderEntryRelocateImage(
 }
 
 NTSTATUS PhLoaderEntryLoadDll(
-    _In_ PWSTR FileName,
+    _In_ PPH_STRING FileName,
     _Out_ PVOID* BaseAddress
     )
 {
@@ -7406,7 +7406,7 @@ NTSTATUS PhLoaderEntryLoadDll(
     PVOID imageBaseAddress;
     SIZE_T imageBaseOffset;
 
-    status = PhCreateFileWin32(
+    status = PhCreateFile(
         &fileHandle,
         FileName,
         FILE_READ_DATA | FILE_EXECUTE | SYNCHRONIZE,
@@ -7462,7 +7462,7 @@ NTSTATUS PhLoaderEntryLoadDll(
 
     NtClose(sectionHandle);
 
-    if (NT_SUCCESS(status))
+    if (status == STATUS_IMAGE_NOT_AT_BASE)
     {
         status = PhLoaderEntryRelocateImage(
             imageBaseAddress
