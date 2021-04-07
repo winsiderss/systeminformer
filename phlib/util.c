@@ -7939,7 +7939,7 @@ NTSTATUS PhLoadLibraryAsImageResource(
         NULL,
         &imageBaseSize,
         ViewShare,
-        WindowsVersion < WINDOWS_8 ? 0 : MEM_MAPPED,
+        WindowsVersion < WINDOWS_10 ? 0 : MEM_MAPPED,
         PAGE_READONLY
         );
 
