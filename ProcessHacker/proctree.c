@@ -4119,18 +4119,41 @@ BOOLEAN PhpShouldShowImageCoherency(
         (ProcessItem->ImageCoherencyStatus == STATUS_INVALID_IMAGE_HASH) ||
         (ProcessItem->ImageCoherencyStatus == STATUS_IMAGE_SUBSYSTEM_NOT_PRESENT))
     {
+        //
+        // The coherency status is a success code or a known "valid" error
+        // from the coherency calculation (PhGetProcessImageCoherency).
+        // We should show the coherency value.
+        //
+
         if (CheckThreshold)
         {
+            //
+            // A threshold check is requested. This is generally used for
+            // checking if we should highlight an entry. If the coherency
+            // is below a given threshold return true. Otherwise false.
+            //
             if (ProcessItem->ImageCoherency <= LowImageCoherencyThreshold)
             {
                 return TRUE;
             }
+            else
+            {
+                return FALSE;
+            }
+
         }
-        else
-        {
-            return TRUE;
-        }
+
+        //
+        // No special handling, return true.
+        //
+        return TRUE;
     }
+
+    //
+    // Any other error NTSTATUS we don't show the coherency value, we'll
+    // show the reason why we failed the calculation (a string representation
+    // of the status code).
+    //
 
     return FALSE;
 }
