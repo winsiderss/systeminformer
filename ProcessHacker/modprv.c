@@ -382,7 +382,7 @@ NTSTATUS PhpModuleQueryWorker(
         // HACK HACK HACK (dmex)
         // 3rd party CLR's don't set the LDRP_COR_IMAGE flag so we'll check binaries for a CLR section and set the flag ourselves.
         // This is needed to detect standard .NET images loaded by .NET core, Mono and other CLR runtimes.
-        if (NT_SUCCESS(PhLoadMappedImageEx(PhGetString(data->ModuleItem->FileNameWin32), NULL, &mappedImage)))
+        if (NT_SUCCESS(PhLoadMappedImageEx(data->ModuleItem->FileName, NULL, &mappedImage)))
         {
             PH_MAPPED_IMAGE_CFG cfgConfig = { 0 };
 

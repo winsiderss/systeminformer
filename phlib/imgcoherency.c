@@ -203,7 +203,6 @@ PPH_IMAGE_COHERENCY_CONTEXT PhpCreateImageCoherencyContext(
     )
 {
     PPH_IMAGE_COHERENCY_CONTEXT context;
-    HANDLE fileHandle;
 
     //
     // This is best-effort context creation, we don't fail if the mapping
@@ -215,31 +214,14 @@ PPH_IMAGE_COHERENCY_CONTEXT PhpCreateImageCoherencyContext(
     context->Type = Type;
     context->ReadVirtualMemory = ReadVirtualMemoryCallback;
 
-    // Open the file (dmex) 
-    context->MappedImageStatus = PhCreateFile(
-        &fileHandle,
+    //
+    // Map the on-disk image
+    //
+    context->MappedImageStatus = PhLoadMappedImageEx(
         FileName,
-        FILE_READ_ATTRIBUTES | FILE_READ_DATA | SYNCHRONIZE,
-        FILE_ATTRIBUTE_NORMAL,
-        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-        FILE_OPEN,
-        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        NULL,
+        &context->MappedImage
         );
-
-    if (NT_SUCCESS(context->MappedImageStatus))
-    {
-        //
-        // Map the on-disk image
-        //
-        context->MappedImageStatus = PhLoadMappedImageEx(
-            NULL,
-            fileHandle,
-            &context->MappedImage
-            );
-
-        // The image was mapped so close the handle (dmex)
-        NtClose(fileHandle);
-    }
 
     if (NT_SUCCESS(context->MappedImageStatus))
     {
