@@ -1490,7 +1490,7 @@ PhCreateFile(
     _Out_ PHANDLE FileHandle,
     _In_ PPH_STRING FileName,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ ULONG FileAttributes,
+    _In_ ULONG FileAttributes,
     _In_ ULONG ShareAccess,
     _In_ ULONG CreateDisposition,
     _In_ ULONG CreateOptions
