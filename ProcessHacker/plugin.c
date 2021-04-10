@@ -594,23 +594,24 @@ NTSTATUS PhLoadPlugin(
     _In_ PPH_STRING FileName
     )
 {
-    NTSTATUS status;
-    PPH_STRING fileName;
-
-    status = PhGetFullPathEx(
-        FileName->Buffer, 
-        NULL,
-        &fileName
-        );
-
-    if (NT_SUCCESS(status))
-    {
-        status = PhLoadPluginImage(fileName, NULL);
-
-        PhDereferenceObject(fileName);
-    }
-
-    return status;
+    //NTSTATUS status;
+    //PPH_STRING fileName;
+    //
+    //status = PhGetFullPathEx(
+    //    FileName->Buffer,
+    //    NULL,
+    //    &fileName
+    //    );
+    //
+    //if (NT_SUCCESS(status))
+    //{
+    //    status = PhLoadPluginImage(fileName, NULL);
+    //
+    //    PhDereferenceObject(fileName);
+    //}
+    //
+    //return status;
+    return PhLoadPluginImage(FileName, NULL);
 }
 
 VOID PhpExecuteCallbackForAllPlugins(
