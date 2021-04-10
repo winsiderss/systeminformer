@@ -150,7 +150,7 @@ NTSTATUS PhLoadMappedImage(
 }
 
 NTSTATUS PhLoadMappedImageEx(
-    _In_opt_ PWSTR FileName,
+    _In_opt_ PPH_STRING FileName,
     _In_opt_ HANDLE FileHandle,
     _Out_ PPH_MAPPED_IMAGE MappedImage
     )
@@ -159,7 +159,7 @@ NTSTATUS PhLoadMappedImageEx(
     PVOID viewBase;
     SIZE_T size;
 
-    status = PhMapViewOfEntireFile(
+    status = PhMapViewOfEntireFileEx(
         FileName,
         FileHandle,
         &viewBase,
@@ -261,7 +261,96 @@ NTSTATUS PhMapViewOfEntireFile(
 
     status = NtCreateSection(
         &sectionHandle,
-        SECTION_ALL_ACCESS,
+        SECTION_QUERY | SECTION_MAP_READ,
+        NULL,
+        &size,
+        PAGE_READONLY,
+        SEC_COMMIT,
+        FileHandle
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    // Map the section.
+
+    viewSize = (SIZE_T)size.QuadPart;
+    viewBase = NULL;
+
+    status = NtMapViewOfSection(
+        sectionHandle,
+        NtCurrentProcess(),
+        &viewBase,
+        0,
+        0,
+        NULL,
+        &viewSize,
+        ViewShare,
+        0,
+        PAGE_READONLY
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    *ViewBase = viewBase;
+    *Size = (SIZE_T)size.QuadPart;
+
+CleanupExit:
+    if (sectionHandle)
+        NtClose(sectionHandle);
+    if (openedFile)
+        NtClose(FileHandle);
+
+    return status;
+}
+
+NTSTATUS PhMapViewOfEntireFileEx(
+    _In_opt_ PPH_STRING FileName,
+    _In_opt_ HANDLE FileHandle,
+    _Out_ PVOID *ViewBase,
+    _Out_ PSIZE_T Size
+    )
+{
+    NTSTATUS status;
+    BOOLEAN openedFile = FALSE;
+    LARGE_INTEGER size;
+    HANDLE sectionHandle = NULL;
+    SIZE_T viewSize;
+    PVOID viewBase;
+
+    if (!FileName && !FileHandle)
+        return STATUS_INVALID_PARAMETER_MIX;
+
+    // Open the file if we weren't supplied a file handle.
+    if (!FileHandle)
+    {
+        status = PhCreateFile(
+            &FileHandle,
+            FileName,
+            FILE_READ_ATTRIBUTES | FILE_READ_DATA | SYNCHRONIZE,
+            FILE_ATTRIBUTE_NORMAL,
+            FILE_SHARE_READ,
+            FILE_OPEN,
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+            );
+
+        if (!NT_SUCCESS(status))
+            return status;
+
+        openedFile = TRUE;
+    }
+
+    // Get the file size and create the section.
+
+    status = PhGetFileSize(FileHandle, &size);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = NtCreateSection(
+        &sectionHandle,
+        SECTION_QUERY | SECTION_MAP_READ,
         NULL,
         &size,
         PAGE_READONLY,
