@@ -222,7 +222,7 @@ INT WINAPI wWinMain(
         if (NT_SUCCESS(status))
         {
             status = PhLoadMappedImageEx(
-                PhGetString(PvFileName),
+                NULL,
                 fileHandle,
                 &PvMappedImage
                 );
