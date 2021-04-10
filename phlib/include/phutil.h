@@ -1044,7 +1044,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhIsExecutablePacked(
-    _In_ PWSTR FileName,
+    _In_ PPH_STRING FileName,
     _Out_ PBOOLEAN IsPacked,
     _Out_opt_ PULONG NumberOfModules,
     _Out_opt_ PULONG NumberOfFunctions

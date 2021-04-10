@@ -922,7 +922,7 @@ VOID PhpProcessQueryStage2(
             );
 
         status = PhIsExecutablePacked(
-            processItem->FileNameWin32->Buffer,
+            processItem->FileName,
             &Data->IsPacked,
             &Data->ImportModules,
             &Data->ImportFunctions

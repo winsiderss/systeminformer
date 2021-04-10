@@ -4905,7 +4905,7 @@ VOID PhSetFileDialogFileName(
  * \param NumberOfFunctions A variable that receives the number of functions that the image imports.
  */
 NTSTATUS PhIsExecutablePacked(
-    _In_ PWSTR FileName,
+    _In_ PPH_STRING FileName,
     _Out_ PBOOLEAN IsPacked,
     _Out_opt_ PULONG NumberOfModules,
     _Out_opt_ PULONG NumberOfFunctions
@@ -4949,7 +4949,7 @@ NTSTATUS PhIsExecutablePacked(
     BOOLEAN isModuleMscoree = FALSE;
     BOOLEAN isPacked;
 
-    status = PhLoadMappedImage(
+    status = PhLoadMappedImageEx(
         FileName,
         NULL,
         &mappedImage
