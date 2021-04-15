@@ -157,6 +157,8 @@ BOOLEAN PhInitializeLxssImageVersionInfo(
     _In_ PPH_STRING FileName
     )
 {
+    static PH_STRINGREF lxssDpkgCommandLine = PH_STRINGREF_INIT(L"dpkg -S ");
+    static PH_STRINGREF lxssDpkgQueryCommandLine = PH_STRINGREF_INIT(L"dpkg-query -W -f=${Version}|${Maintainer}|${binary:Summary} ");
     BOOLEAN success = FALSE;
     PPH_STRING lxssCommandResult = NULL;
     PPH_STRING lxssCommandLine = NULL;
@@ -192,9 +194,9 @@ BOOLEAN PhInitializeLxssImageVersionInfo(
         goto ParseResult;
     }
 
-    PhMoveReference(&lxssCommandLine, PhConcatStrings2(
-        L"dpkg -S ",
-        PhGetString(lxssFileName)
+    PhMoveReference(&lxssCommandLine, PhConcatStringRef2(
+        &lxssDpkgCommandLine,
+        &lxssFileName->sr
         ));
 
     if (PhCreateProcessLxss(
@@ -217,9 +219,9 @@ BOOLEAN PhInitializeLxssImageVersionInfo(
     if (PhIsNullOrEmptyString(lxssPackageName))
         goto CleanupExit;
 
-    PhMoveReference(&lxssCommandLine, PhConcatStrings2(
-        L"dpkg-query -W -f=${Version}|${Maintainer}|${binary:Summary} ",
-        PhGetString(lxssPackageName)
+    PhMoveReference(&lxssCommandLine, PhConcatStringRef2(
+        &lxssDpkgQueryCommandLine,
+        &lxssPackageName->sr
         ));
 
     if (!PhCreateProcessLxss(
@@ -301,11 +303,12 @@ BOOLEAN PhCreateProcessLxss(
 
     if (systemDirectory = PhGetSystemDirectory())
     {
-        PhMoveReference(&lxssCommandLine, PhConcatStrings(
-            3,
-            PhGetString(systemDirectory),
-            L"\\",
-            PhGetString(lxssCommandLine)
+        static PH_STRINGREF seperator = PH_STRINGREF_INIT(L"\\"); // OBJ_NAME_PATH_SEPARATOR
+
+        PhMoveReference(&lxssCommandLine, PhConcatStringRef3(
+            &systemDirectory->sr,
+            &seperator,
+            &lxssCommandLine->sr
             ));
         PhDereferenceObject(systemDirectory);
     }
