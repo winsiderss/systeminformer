@@ -1291,26 +1291,6 @@ PhLoadIndirectString(
     );
 
 PHLIBAPI
-BOOLEAN
-NTAPI
-PhExtractIcon(
-    _In_ PWSTR FileName,
-    _Out_opt_ HICON *IconLarge,
-    _Out_opt_ HICON *IconSmall
-    );
-
-_Success_(return)
-PHLIBAPI
-BOOLEAN
-NTAPI
-PhExtractIconEx(
-    _In_ PWSTR FileName,
-    _In_ INT IconIndex,
-    _Out_opt_ HICON *IconLarge,
-    _Out_opt_ HICON *IconSmall
-    );
-
-PHLIBAPI
 HWND
 NTAPI
 PhHungWindowFromGhostWindow(

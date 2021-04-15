@@ -719,7 +719,7 @@ VOID PhpProcessQueryStage1(
     {
         if (PhDoesFileExists(processItem->FileName))
         {
-            Data->IconEntry = PhImageListExtractIcon(processItem->FileNameWin32);
+            Data->IconEntry = PhImageListExtractIcon(processItem->FileName, TRUE);
 
             // Version info.
             PhInitializeImageVersionInfoCached(
@@ -3110,7 +3110,8 @@ ULONG PhImageListCacheHashtableHashFunction(
 }
 
 PPH_IMAGELIST_ITEM PhImageListExtractIcon(
-    _In_ PPH_STRING FileName
+    _In_ PPH_STRING FileName,
+    _In_ BOOLEAN NativeFileName
     )
 {
     HICON largeIcon;
@@ -3143,7 +3144,7 @@ PPH_IMAGELIST_ITEM PhImageListExtractIcon(
 
     PhReleaseQueuedLockShared(&PhImageListCacheHashtableLock);
 
-    if (!PhExtractIcon(PhGetString(FileName), &largeIcon, &smallIcon))
+    if (!PhExtractIconEx(FileName, NativeFileName, 0, &largeIcon, &smallIcon))
         return NULL;
 
     PhAcquireQueuedLockExclusive(&PhImageListCacheHashtableLock);
