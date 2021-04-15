@@ -164,8 +164,8 @@ typedef enum _SIGNATURE_INFO_FLAGS
 typedef struct _SIGNATURE_INFO
 {
     ULONG cbSize;
-	SIGNATURE_STATE nSignatureState;
-	SIGNATURE_INFO_TYPE nSignatureType;
+    SIGNATURE_STATE nSignatureState;
+    SIGNATURE_INFO_TYPE nSignatureType;
     ULONG dwSignatureInfoAvailability;
     ULONG dwInfoAvailability;
     PWSTR pszDisplayName;
@@ -176,7 +176,7 @@ typedef struct _SIGNATURE_INFO
     ULONG cchMoreInfoURL;
     PBYTE prgbHash;
     ULONG cbHash;
-	BOOL fOSBinary;
+    BOOL fOSBinary;
 } SIGNATURE_INFO, *PSIGNATURE_INFO;
 
 typedef HRESULT (WINAPI* _WTGetSignatureInfo)(
