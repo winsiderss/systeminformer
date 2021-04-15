@@ -3216,7 +3216,7 @@ RtlImageRvaToVa(
     _In_ PIMAGE_NT_HEADERS NtHeaders,
     _In_ PVOID BaseOfImage,
     _In_ ULONG Rva,
-    _Inout_opt_ PIMAGE_SECTION_HEADER *LastRvaSection
+    _Out_opt_ PIMAGE_SECTION_HEADER *LastRvaSection
     );
 
 #if (PHNT_VERSION >= PHNT_THRESHOLD)
