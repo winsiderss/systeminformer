@@ -3,6 +3,7 @@
  *   image verification
  *
  * Copyright (C) 2009-2013 wj32
+ * Copyright (C) 2016-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -54,8 +55,8 @@ static VOID PhpVerifyInitialization(
     VOID
     )
 {
-    HMODULE wintrust;
-    HMODULE crypt32;
+    PVOID wintrust;
+    PVOID crypt32;
 
     wintrust = PhLoadLibrarySafe(L"wintrust.dll");
     crypt32 = PhLoadLibrarySafe(L"crypt32.dll");
@@ -346,7 +347,7 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
     signatures = NULL;
     numberOfSignatures = 0;
 
-    if (Information->FileSizeLimitForHash != -1)
+    if (Information->FileSizeLimitForHash != ULONG_MAX)
     {
         fileSizeLimit = PH_VERIFY_DEFAULT_SIZE_LIMIT;
 
@@ -755,7 +756,7 @@ VERIFY_RESULT PhVerifyFileWithAdditionalCatalog(
  * Verifies a file's digital signature, using a cached result if possible.
  *
  * \param FileName A file name.
- * \param ProcessItem An associated process item.
+ * \param PackageFullName An associated package name.
  * \param SignerName A variable which receives a pointer to a string containing the signer name. You
  * must free the string using PhDereferenceObject() when you no longer need it. Note that the signer
  * name may be NULL if it is not valid.
@@ -877,4 +878,106 @@ VERIFY_RESULT PhVerifyFileCached(
 
     return result;
 #endif
+}
+
+VERIFY_RESULT PhpSignatureStateToVerifyResult(
+    _In_ LONG Status
+    )
+{
+    switch (Status)
+    {
+    case SIGNATURE_STATE_VALID:
+    case SIGNATURE_STATE_TRUSTED:
+        return VrTrusted;
+    case SIGNATURE_STATE_UNSIGNED_MISSING:
+        return VrNoSignature; // TRUST_E_NOSIGNATURE
+    case SIGNATURE_STATE_UNSIGNED_UNSUPPORTED:
+        return VrNoSignature; // TRUST_E_NOSIGNATURE
+    case SIGNATURE_STATE_UNSIGNED_POLICY:
+        return VrNoSignature; // TRUST_E_NOSIGNATURE
+    case SIGNATURE_STATE_INVALID_CORRUPT:
+        return VrBadSignature; // TRUST_E_BAD_DIGEST
+    case SIGNATURE_STATE_INVALID_POLICY:
+        return VrSecuritySettings; // CRYPT_E_BAD_MSG
+    case SIGNATURE_STATE_UNTRUSTED:
+        return VrDistrust; // TRUST_E_EXPLICIT_DISTRUST
+    default:
+        return VrSecuritySettings;
+    }
+}
+
+VERIFY_RESULT PhVerifyFileSignatureInfo(
+    _In_opt_ PCWSTR FileName,
+    _In_opt_ HANDLE FileHandle,
+    _Out_ PCERT_CONTEXT** Signatures,
+    _Out_ PULONG NumberOfSignatures
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static _WTGetSignatureInfo WTGetSignatureInfo_I = NULL;
+    HRESULT status;
+    VERIFY_RESULT verifyResult = VrNoSignature;
+    SIGNATURE_INFO signatureInfo = { sizeof(SIGNATURE_INFO) };
+    PVOID certificateContext = NULL;
+    HANDLE verifyTrustStateData = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID wintrust;
+
+        if (wintrust = PhLoadLibrarySafe(L"wintrust.dll"))
+        {
+            WTGetSignatureInfo_I = PhGetDllBaseProcedureAddress(wintrust, "WTGetSignatureInfo", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!WTGetSignatureInfo_I)
+    {
+        *Signatures = NULL;
+        *NumberOfSignatures = 0;
+        return VrUnknown;
+    }
+
+    status = WTGetSignatureInfo_I(
+        FileName,
+        FileHandle,
+        SIF_AUTHENTICODE_SIGNED | SIF_CATALOG_SIGNED |
+        SIF_BASE_VERIFICATION | SIF_CATALOG_FIRST,
+        &signatureInfo,
+        &certificateContext,
+        &verifyTrustStateData
+        );
+
+    if (!SUCCEEDED(status))
+    {
+        *Signatures = NULL;
+        *NumberOfSignatures = 0;
+        return VrUnknown;
+    }
+  
+    verifyResult = PhpSignatureStateToVerifyResult(signatureInfo.nSignatureState);
+    PhpGetSignaturesFromStateData(verifyTrustStateData, Signatures, NumberOfSignatures);
+
+    if (verifyTrustStateData && WinVerifyTrust_I)
+    {
+        WINTRUST_DATA verifyTrustData;
+
+        memset(&verifyTrustData, 0, sizeof(WINTRUST_DATA));
+        verifyTrustData.cbStruct = sizeof(WINTRUST_DATA);
+        verifyTrustData.dwUIChoice = WTD_UI_NONE;
+        verifyTrustData.dwUnionChoice = WTD_CHOICE_BLOB;
+        verifyTrustData.dwStateAction = WTD_STATEACTION_CLOSE;
+        verifyTrustData.hWVTStateData = verifyTrustStateData;
+
+        WinVerifyTrust_I(INVALID_HANDLE_VALUE, &WinTrustActionGenericVerifyV2, &verifyTrustData);
+    }
+
+    if (certificateContext && CertFreeCertificateContext_I)
+    {
+        CertFreeCertificateContext_I(certificateContext);
+    }
+
+    return verifyResult;
 }

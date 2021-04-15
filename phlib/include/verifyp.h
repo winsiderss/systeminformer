@@ -129,4 +129,64 @@ typedef BOOL (WINAPI *_CryptUIDlgViewSignerInfo)(
     _In_ CRYPTUI_VIEWSIGNERINFO_STRUCT *pcvsi
     );
 
+
+typedef enum _SIGNATURE_STATE
+{
+    SIGNATURE_STATE_UNSIGNED_MISSING,
+    SIGNATURE_STATE_UNSIGNED_UNSUPPORTED,
+    SIGNATURE_STATE_UNSIGNED_POLICY,
+    SIGNATURE_STATE_INVALID_CORRUPT,
+    SIGNATURE_STATE_INVALID_POLICY,
+    SIGNATURE_STATE_VALID,
+    SIGNATURE_STATE_TRUSTED,
+    SIGNATURE_STATE_UNTRUSTED
+} SIGNATURE_STATE;
+
+typedef enum SIGNATURE_INFO_TYPE
+{
+    SIT_UNKNOWN,
+    SIT_AUTHENTICODE,
+    SIT_CATALOG
+} SIGNATURE_INFO_TYPE;
+
+typedef enum _SIGNATURE_INFO_FLAGS
+{
+    SIF_NONE = 0,
+    SIF_AUTHENTICODE_SIGNED = 1,
+    SIF_CATALOG_SIGNED = 2,
+    SIF_VERSION_INFO = 4,
+    SIF_CHECK_OS_BINARY = 0x800,
+    SIF_BASE_VERIFICATION = 0x1000,
+    SIF_CATALOG_FIRST = 0x2000,
+    SIF_MOTW = 0x4000
+} SIGNATURE_INFO_FLAGS;
+
+typedef struct _SIGNATURE_INFO
+{
+    ULONG cbSize;
+	SIGNATURE_STATE nSignatureState;
+	SIGNATURE_INFO_TYPE nSignatureType;
+    ULONG dwSignatureInfoAvailability;
+    ULONG dwInfoAvailability;
+    PWSTR pszDisplayName;
+    ULONG cchDisplayName;
+    PWSTR pszPublisherName;
+    ULONG cchPublisherName;
+    PWSTR pszMoreInfoURL;
+    ULONG cchMoreInfoURL;
+    PBYTE prgbHash;
+    ULONG cbHash;
+	BOOL fOSBinary;
+} SIGNATURE_INFO, *PSIGNATURE_INFO;
+
+typedef HRESULT (WINAPI* _WTGetSignatureInfo)(
+    _In_opt_ PCWSTR pszFile,
+    _In_opt_ HANDLE hFile,
+    _In_ SIGNATURE_INFO_FLAGS sigInfoFlags,
+    _Inout_ PSIGNATURE_INFO psiginfo,
+    _Out_ PVOID ppCertContext,
+    _Out_ PHANDLE phWVTStateData
+    );
+
+
 #endif
