@@ -49,7 +49,7 @@ NTSTATUS PhCreateFileStream(
         &fileHandle,
         FileName,
         DesiredAccess,
-        0,
+        FILE_ATTRIBUTE_NORMAL,
         ShareAccess,
         CreateDisposition,
         createOptions
