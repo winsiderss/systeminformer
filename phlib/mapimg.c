@@ -424,6 +424,8 @@ PIMAGE_SECTION_HEADER PhMappedImageRvaToSection(
     return NULL;
 }
 
+_Must_inspect_result_
+_Ret_maybenull_
 PVOID PhMappedImageRvaToVa(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ ULONG Rva,
@@ -1986,7 +1988,6 @@ NTSTATUS PhGetMappedImageResources(
     PIMAGE_RESOURCE_DIRECTORY_ENTRY resourceName;
     PIMAGE_RESOURCE_DIRECTORY_ENTRY resourceLanguage;
     ULONG resourceCount = 0;
-    ULONG resourceIndex = 0;
     ULONG resourceTypeCount;
     ULONG resourceNameCount;
     ULONG resourceLanguageCount;
@@ -2108,8 +2109,6 @@ NTSTATUS PhGetMappedImageResources(
 
                     PhAddItemArray(&resourceArray, &entry);
                 }
-
-                resourceIndex++;
             }
         }
     }
