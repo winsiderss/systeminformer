@@ -2083,3 +2083,4 @@ CleanupExit:
         DestroyIcon(iconSmall);
 
     return FALSE;
+}
