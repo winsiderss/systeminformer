@@ -3,7 +3,7 @@
  *   logging system
  *
  * Copyright (C) 2010-2016 wj32
- * Copyright (C) 2016-2020 dmex
+ * Copyright (C) 2016-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -195,6 +195,33 @@ VOID PhLogMessageEntry(
     PhpLogEntry(PhpCreateMessageLogEntry(Type, Message));
 }
 
+PPH_STRING PhpFormatLogEntryToBuffer(
+    _In_ PPH_FORMAT Format,
+    _In_ ULONG Count
+    )
+{
+    SIZE_T formatLength;
+    WCHAR formatBuffer[0x80];
+
+    if (PhFormatToBuffer(
+        Format,
+        Count,
+        formatBuffer,
+        sizeof(formatBuffer),
+        &formatLength
+        ))
+    {
+        PH_STRINGREF text;
+
+        text.Length = formatLength - sizeof(UNICODE_NULL);
+        text.Buffer = formatBuffer;
+
+        return PhCreateString2(&text);
+    }
+
+    return PhFormat(Format, Count, 0x80);
+}
+
 PPH_STRING PhFormatLogEntry(
     _In_ PPH_LOG_ENTRY Entry
     )
@@ -202,27 +229,160 @@ PPH_STRING PhFormatLogEntry(
     switch (Entry->Type)
     {
     case PH_LOG_ENTRY_PROCESS_CREATE:
-        return PhFormatString(
-            L"Process created: %s (%lu) started by %s (%lu)",
-            Entry->Process.Name->Buffer,
-            HandleToUlong(Entry->Process.ProcessId),
-            PhGetStringOrDefault(Entry->Process.ParentName, L"Unknown process"),
-            HandleToUlong(Entry->Process.ParentProcessId)
-            );
+        {
+            PH_FORMAT format[9];
+
+            // Process created: %s (%lu) started by %s (%lu)
+            PhInitFormatS(&format[0], L"Process created: ");
+            PhInitFormatSR(&format[1], Entry->Process.Name->sr);
+            PhInitFormatS(&format[2], L" (");
+            PhInitFormatU(&format[3], HandleToUlong(Entry->Process.ProcessId));
+            PhInitFormatS(&format[4], L") started by ");
+            if (Entry->Process.ParentName)
+                PhInitFormatSR(&format[5], Entry->Process.ParentName->sr);
+            else
+                PhInitFormatS(&format[5], L"Unknown process");
+            PhInitFormatS(&format[6], L" (");
+            PhInitFormatU(&format[7], HandleToUlong(Entry->Process.ParentProcessId));
+            PhInitFormatC(&format[8], L')');
+
+            //return PhFormatString(
+            //    L"Process created: %s (%lu) started by %s (%lu)",
+            //    Entry->Process.Name->Buffer,
+            //    HandleToUlong(Entry->Process.ProcessId),
+            //    PhGetStringOrDefault(Entry->Process.ParentName, L"Unknown process"),
+            //    HandleToUlong(Entry->Process.ParentProcessId)
+            //    );
+            return PhpFormatLogEntryToBuffer(format, RTL_NUMBER_OF(format));
+        }
     case PH_LOG_ENTRY_PROCESS_DELETE:
-        return PhFormatString(L"Process terminated: %s (%lu); exit status 0x%x", Entry->Process.Name->Buffer, HandleToUlong(Entry->Process.ProcessId), Entry->Process.ExitStatus);
+        {
+            PH_FORMAT format[6];
+
+            // Process terminated: %s (%lu); exit status 0x%x
+            PhInitFormatS(&format[0], L"Process terminated: ");
+            PhInitFormatSR(&format[1], Entry->Process.Name->sr);
+            PhInitFormatS(&format[2], L" (");
+            PhInitFormatU(&format[3], HandleToUlong(Entry->Process.ProcessId));
+            PhInitFormatS(&format[4], L"); exit status ");
+            PhInitFormatX(&format[5], Entry->Process.ExitStatus);
+
+            //return PhFormatString(
+            //    L"Process terminated: %s (%lu); exit status 0x%x",
+            //    Entry->Process.Name->Buffer,
+            //    HandleToUlong(Entry->Process.ProcessId),
+            //    Entry->Process.ExitStatus
+            //    );
+            return PhpFormatLogEntryToBuffer(format, RTL_NUMBER_OF(format));
+        }
     case PH_LOG_ENTRY_SERVICE_CREATE:
-        return PhFormatString(L"Service created: %s (%s)", Entry->Service.Name->Buffer, Entry->Service.DisplayName->Buffer);
+        {
+            PH_FORMAT format[5];
+
+            // Service created: %s (%s)
+            PhInitFormatS(&format[0], L"Service created: ");
+            PhInitFormatSR(&format[1], Entry->Service.Name->sr);
+            PhInitFormatS(&format[2], L" (");
+            PhInitFormatSR(&format[3], Entry->Service.DisplayName->sr);
+            PhInitFormatC(&format[4], L')');
+
+            //return PhFormatString(
+            //    L"Service created: %s (%s)",
+            //    Entry->Service.Name->Buffer,
+            //    Entry->Service.DisplayName->Buffer
+            //    );
+            return PhpFormatLogEntryToBuffer(format, RTL_NUMBER_OF(format));
+        }
     case PH_LOG_ENTRY_SERVICE_DELETE:
-        return PhFormatString(L"Service deleted: %s (%s)", Entry->Service.Name->Buffer, Entry->Service.DisplayName->Buffer);
+        {
+            PH_FORMAT format[5];
+
+            // Service deleted: %s (%s)
+            PhInitFormatS(&format[0], L"Service deleted: ");
+            PhInitFormatSR(&format[1], Entry->Service.Name->sr);
+            PhInitFormatS(&format[2], L" (");
+            PhInitFormatSR(&format[3], Entry->Service.DisplayName->sr);
+            PhInitFormatC(&format[4], L')');
+
+            //return PhFormatString(
+            //    L"Service deleted: %s (%s)",
+            //    Entry->Service.Name->Buffer,
+            //    Entry->Service.DisplayName->Buffer
+            //    );
+            return PhpFormatLogEntryToBuffer(format, RTL_NUMBER_OF(format));
+        }
     case PH_LOG_ENTRY_SERVICE_START:
-        return PhFormatString(L"Service started: %s (%s)", Entry->Service.Name->Buffer, Entry->Service.DisplayName->Buffer);
+        {
+            PH_FORMAT format[5];
+
+            // Service started: %s (%s)
+            PhInitFormatS(&format[0], L"Service started: ");
+            PhInitFormatSR(&format[1], Entry->Service.Name->sr);
+            PhInitFormatS(&format[2], L" (");
+            PhInitFormatSR(&format[3], Entry->Service.DisplayName->sr);
+            PhInitFormatC(&format[4], L')');
+
+            //return PhFormatString(
+            //    L"Service started: %s (%s)",
+            //    Entry->Service.Name->Buffer,
+            //    Entry->Service.DisplayName->Buffer
+            //    );
+            return PhpFormatLogEntryToBuffer(format, RTL_NUMBER_OF(format));
+        }
     case PH_LOG_ENTRY_SERVICE_STOP:
-        return PhFormatString(L"Service stopped: %s (%s)", Entry->Service.Name->Buffer, Entry->Service.DisplayName->Buffer);
+        {
+            PH_FORMAT format[5];
+
+            // Service stopped: %s (%s)
+            PhInitFormatS(&format[0], L"Service stopped: ");
+            PhInitFormatSR(&format[1], Entry->Service.Name->sr);
+            PhInitFormatS(&format[2], L" (");
+            PhInitFormatSR(&format[3], Entry->Service.DisplayName->sr);
+            PhInitFormatC(&format[4], L')');
+
+            //return PhFormatString(
+            //    L"Service stopped: %s (%s)",
+            //    Entry->Service.Name->Buffer,
+            //    Entry->Service.DisplayName->Buffer
+            //    );
+            return PhpFormatLogEntryToBuffer(format, RTL_NUMBER_OF(format));
+        }
     case PH_LOG_ENTRY_SERVICE_CONTINUE:
-        return PhFormatString(L"Service continued: %s (%s)", Entry->Service.Name->Buffer, Entry->Service.DisplayName->Buffer);
+        {
+            PH_FORMAT format[5];
+
+            // Service continued: %s (%s)
+            PhInitFormatS(&format[0], L"Service continued: ");
+            PhInitFormatSR(&format[1], Entry->Service.Name->sr);
+            PhInitFormatS(&format[2], L" (");
+            PhInitFormatSR(&format[3], Entry->Service.DisplayName->sr);
+            PhInitFormatC(&format[4], L')');
+
+            //return PhFormatString(
+            //    L"Service continued: %s (%s)",
+            //    Entry->Service.Name->Buffer,
+            //    Entry->Service.DisplayName->Buffer
+            //    );
+            return PhpFormatLogEntryToBuffer(format, RTL_NUMBER_OF(format));
+        }
     case PH_LOG_ENTRY_SERVICE_PAUSE:
-        return PhFormatString(L"Service paused: %s (%s)", Entry->Service.Name->Buffer, Entry->Service.DisplayName->Buffer);
+        {
+            PH_FORMAT format[5];
+
+            // Service paused: %s (%s)
+            PhInitFormatS(&format[0], L"Service paused: ");
+            PhInitFormatSR(&format[1], Entry->Service.Name->sr);
+            PhInitFormatS(&format[2], L" (");
+            PhInitFormatSR(&format[3], Entry->Service.DisplayName->sr);
+            PhInitFormatC(&format[4], L')');
+
+            //return PhFormatString(
+            //    L"Service paused: %s (%s)",
+            //    Entry->Service.Name->Buffer,
+            //    Entry->Service.DisplayName->Buffer
+            //    );
+            return PhpFormatLogEntryToBuffer(format, RTL_NUMBER_OF(format));
+        }
     case PH_LOG_ENTRY_MESSAGE:
         PhReferenceObject(Entry->Message);
         return Entry->Message;
