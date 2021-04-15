@@ -745,12 +745,40 @@ static VOID PhpAddSessionsToComboBox(
                 sessions[i].WinStationName[0] != UNICODE_NULL
                 )
             {
-                menuString = PhFormatString(L"%lu: %s (%s\\%s)",
-                    sessions[i].SessionId,
-                    sessions[i].WinStationName,
-                    winStationInfo.Domain,
-                    winStationInfo.UserName
-                    );
+                SIZE_T formatLength;
+                PH_FORMAT format[8];
+                WCHAR formatBuffer[0x80];
+
+                // %lu: %s (%s\\%s)
+                PhInitFormatU(&format[0], sessions[i].SessionId);
+                PhInitFormatS(&format[1], L": ");
+                PhInitFormatS(&format[2], sessions[i].WinStationName);
+                PhInitFormatS(&format[3], L" (");
+                PhInitFormatS(&format[4], winStationInfo.Domain);
+                PhInitFormatC(&format[5], L'\\');
+                PhInitFormatS(&format[6], winStationInfo.UserName);
+                PhInitFormatC(&format[7], L')');
+
+                if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), &formatLength))
+                {
+                    PH_STRINGREF text;
+
+                    text.Length = formatLength - sizeof(UNICODE_NULL);
+                    text.Buffer = formatBuffer;
+
+                    menuString = PhCreateString2(&text);
+                }
+                else
+                {
+                    //menuString = PhFormatString(L"%lu: %s (%s\\%s)",
+                    //    sessions[i].SessionId,
+                    //    sessions[i].WinStationName,
+                    //    winStationInfo.Domain,
+                    //    winStationInfo.UserName
+                    //    );
+
+                    menuString = PhFormat(format, RTL_NUMBER_OF(format), 0);
+                }
             }
             else if (winStationInfo.UserName[0] != UNICODE_NULL)
             {
@@ -762,14 +790,37 @@ static VOID PhpAddSessionsToComboBox(
             }
             else if (sessions[i].WinStationName[0] != UNICODE_NULL)
             {
-                menuString = PhFormatString(L"%lu: %s",
-                    sessions[i].SessionId,
-                    sessions[i].WinStationName
-                    );
+                SIZE_T formatLength;
+                PH_FORMAT format[3];
+                WCHAR formatBuffer[0x80];
+
+                // %lu: %s
+                PhInitFormatU(&format[0], sessions[i].SessionId);
+                PhInitFormatS(&format[1], L": ");
+                PhInitFormatS(&format[2], sessions[i].WinStationName);
+
+                if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), &formatLength))
+                {
+                    PH_STRINGREF text;
+
+                    text.Length = formatLength - sizeof(UNICODE_NULL);
+                    text.Buffer = formatBuffer;
+
+                    menuString = PhCreateString2(&text);
+                }
+                else
+                {
+                    //menuString = PhFormatString(L"%lu: %s",
+                    //    sessions[i].SessionId,
+                    //    sessions[i].WinStationName
+                    //    );
+
+                    menuString = PhFormat(format, RTL_NUMBER_OF(format), 0);
+                }
             }
             else
             {
-                menuString = PhFormatString(L"%lu", sessions[i].SessionId);
+                menuString = PhFormatUInt64(sessions[i].SessionId, FALSE);
             }
 
             {
