@@ -1398,6 +1398,7 @@ VOID PhNfpCpuUsageIconUpdateCallback(
     HBITMAP bitmap;
     HDC hdc;
     HBITMAP oldBitmap;
+    PH_FORMAT format[5];
     HANDLE maxCpuProcessId;
     PPH_PROCESS_ITEM maxCpuProcessItem;
     PPH_STRING maxCpuText = NULL;
@@ -1495,16 +1496,31 @@ VOID PhNfpCpuUsageIconUpdateCallback(
     {
         if (maxCpuProcessItem = PhReferenceProcessItem(maxCpuProcessId))
         {
-            maxCpuText = PhFormatString(
-                L"\n%s: %.2f%%",
-                maxCpuProcessItem->ProcessName->Buffer,
-                maxCpuProcessItem->CpuUsage * 100
-                );
+            // \n%s: %.2f%%
+            PhInitFormatC(&format[0], L'\n');
+            PhInitFormatSR(&format[1], maxCpuProcessItem->ProcessName->sr);
+            PhInitFormatS(&format[2], L": ");
+            PhInitFormatF(&format[3], (DOUBLE)maxCpuProcessItem->CpuUsage * 100, 2);
+            PhInitFormatC(&format[4], L'%');
+
+            maxCpuText = PhFormat(format, 5, 128);
+            //maxCpuText = PhFormatString(
+            //    L"\n%s: %.2f%%",
+            //    maxCpuProcessItem->ProcessName->Buffer,
+            //    maxCpuProcessItem->CpuUsage * 100
+            //    );
             PhDereferenceObject(maxCpuProcessItem);
         }
     }
 
-    *NewText = PhFormatString(L"CPU usage: %.2f%%%s", (PhCpuKernelUsage + PhCpuUserUsage) * 100, PhGetStringOrEmpty(maxCpuText));
+    PhInitFormatS(&format[0], L"CPU usage: ");
+    PhInitFormatF(&format[1], (DOUBLE)(PhCpuKernelUsage + PhCpuUserUsage) * 100, 2);
+    PhInitFormatC(&format[2], L'%');
+    if (maxCpuText) PhInitFormatSR(&format[3], maxCpuText->sr);
+    else PhInitFormatC(&format[3], L' ');
+
+    *NewText = PhFormat(format, 4, 128);
+    //*NewText = PhFormatString(L"CPU usage: %.2f%%%s", (PhCpuKernelUsage + PhCpuUserUsage) * 100, PhGetStringOrEmpty(maxCpuText));
     if (maxCpuText) PhDereferenceObject(maxCpuText);
 }
 
@@ -1547,7 +1563,7 @@ VOID PhNfpCpuUsageTextIconUpdateCallback(
 
     Icon->Pointers->BeginBitmap(&drawInfo.Width, &drawInfo.Height, &bitmap, &bits, &hdc, &oldBitmap);
 
-    PhInitFormatF(&format[0], ((DOUBLE)PhCpuKernelUsage + PhCpuUserUsage) * 100, 0);
+    PhInitFormatF(&format[0], (DOUBLE)(PhCpuKernelUsage + PhCpuUserUsage) * 100, 0);
     text = PhFormat(format, 1, 10);
 
     drawInfo.TextColor = PhCsColorCpuKernel;
@@ -1570,16 +1586,30 @@ VOID PhNfpCpuUsageTextIconUpdateCallback(
     {
         if (maxCpuProcessItem = PhReferenceProcessItem(maxCpuProcessId))
         {
-            maxCpuText = PhFormatString(
-                L"\n%s: %.2f%%",
-                maxCpuProcessItem->ProcessName->Buffer,
-                maxCpuProcessItem->CpuUsage * 100
-                );
+            PhInitFormatC(&format[0], L'\n');
+            PhInitFormatSR(&format[1], maxCpuProcessItem->ProcessName->sr);
+            PhInitFormatS(&format[2], L": ");
+            PhInitFormatF(&format[3], (DOUBLE)maxCpuProcessItem->CpuUsage * 100, 2);
+            PhInitFormatC(&format[4], L'%');
+
+            maxCpuText = PhFormat(format, 5, 128);
+            //maxCpuText = PhFormatString(
+            //    L"\n%s: %.2f%%",
+            //    maxCpuProcessItem->ProcessName->Buffer,
+            //    maxCpuProcessItem->CpuUsage * 100
+            //    );
             PhDereferenceObject(maxCpuProcessItem);
         }
     }
 
-    *NewText = PhFormatString(L"CPU usage: %.2f%%%s", (PhCpuKernelUsage + PhCpuUserUsage) * 100, PhGetStringOrEmpty(maxCpuText));
+    PhInitFormatS(&format[0], L"CPU usage: ");
+    PhInitFormatF(&format[1], (DOUBLE)(PhCpuKernelUsage + PhCpuUserUsage) * 100, 2);
+    PhInitFormatC(&format[2], L'%');
+    if (maxCpuText) PhInitFormatSR(&format[3], maxCpuText->sr);
+    else PhInitFormatC(&format[3], L' ');
+
+    *NewText = PhFormat(format, 4, 128);
+    //*NewText = PhFormatString(L"CPU usage: %.2f%%%s", (PhCpuKernelUsage + PhCpuUserUsage) * 100, PhGetStringOrEmpty(maxCpuText));
     if (maxCpuText) PhDereferenceObject(maxCpuText);
 }
 
