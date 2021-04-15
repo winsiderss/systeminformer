@@ -141,7 +141,6 @@ static BOOLEAN PhpNonPollInitialized = FALSE;
 static BOOLEAN PhpNonPollActive = FALSE;
 static ULONG PhpNonPollGate = 0;
 static HANDLE PhpNonPollEventHandle = NULL;
-static PH_QUEUED_LOCK PhpNonPollServiceListLock = PH_QUEUED_LOCK_INIT;
 static LIST_ENTRY PhpNonPollServiceListHead = { &PhpNonPollServiceListHead, &PhpNonPollServiceListHead };
 static LIST_ENTRY PhpNonPollServicePendingListHead = { &PhpNonPollServicePendingListHead, &PhpNonPollServicePendingListHead };
 static SLIST_HEADER PhpServiceQueryDataListHead;
@@ -549,7 +548,7 @@ VOID PhpServiceQueryStage2(
 {
     PPH_SERVICE_ITEM serviceItem = Data->Header.ServiceItem;
 
-    if (serviceItem->FileName)
+    if (!PhIsNullOrEmptyString(serviceItem->FileName))
     {
         Data->VerifyResult = PhVerifyFileCached(
             serviceItem->FileName,
