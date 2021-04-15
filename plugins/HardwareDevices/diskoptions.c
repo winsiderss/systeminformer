@@ -2,7 +2,7 @@
  * Process Hacker Plugins -
  *   Hardware Devices Plugin
  *
- * Copyright (C) 2015-2020 dmex
+ * Copyright (C) 2015-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -606,7 +606,7 @@ VOID LoadDiskDriveImages(
     HICON smallIcon;
     CONFIGRET result;
     ULONG bufferSize;
-    PPH_STRING deviceDescription;
+    PPH_STRING deviceIconPath;
     PH_STRINGREF dllPartSr;
     PH_STRINGREF indexPartSr;
     ULONG64 index;
@@ -615,36 +615,38 @@ VOID LoadDiskDriveImages(
     WCHAR deviceInstanceId[MAX_DEVICE_ID_LEN + 1] = L"";
 
     bufferSize = 0x40;
-    deviceDescription = PhCreateStringEx(NULL, bufferSize);
+    deviceIconPath = PhCreateStringEx(NULL, bufferSize);
 
     if ((result = CM_Get_Class_Property(
         &GUID_DEVCLASS_DISKDRIVE,
         &DEVPKEY_DeviceClass_IconPath,
         &devicePropertyType,
-        (PBYTE)deviceDescription->Buffer,
+        (PBYTE)deviceIconPath->Buffer,
         &bufferSize,
         0
         )) != CR_SUCCESS)
     {
-        PhDereferenceObject(deviceDescription);
-        deviceDescription = PhCreateStringEx(NULL, bufferSize);
+        PhDereferenceObject(deviceIconPath);
+        deviceIconPath = PhCreateStringEx(NULL, bufferSize);
 
         result = CM_Get_Class_Property(
             &GUID_DEVCLASS_DISKDRIVE,
             &DEVPKEY_DeviceClass_IconPath,
             &devicePropertyType,
-            (PBYTE)deviceDescription->Buffer,
+            (PBYTE)deviceIconPath->Buffer,
             &bufferSize,
             0
             );
     }
 
-    // %SystemRoot%\System32\setupapi.dll,-53
-    PhSplitStringRefAtChar(&deviceDescription->sr, L',', &dllPartSr, &indexPartSr);
-    PhStringToInteger64(&indexPartSr, 10, &index);
-    PhMoveReference(&deviceDescription, PhExpandEnvironmentStrings(&dllPartSr));
+    PhTrimToNullTerminatorString(deviceIconPath);
 
-    if (PhExtractIconEx(deviceDescription->Buffer, (INT)index, &smallIcon, NULL))
+    // %SystemRoot%\System32\setupapi.dll,-53
+    PhSplitStringRefAtChar(&deviceIconPath->sr, L',', &dllPartSr, &indexPartSr);
+    PhStringToInteger64(&indexPartSr, 10, &index);
+    PhMoveReference(&deviceIconPath, PhExpandEnvironmentStrings(&dllPartSr));
+
+    if (PhExtractIconEx(deviceIconPath, FALSE, (INT)index, &smallIcon, NULL))
     {
         Context->ImageList = ImageList_Create(
             24, // GetSystemMetrics(SM_CXSMICON)
@@ -659,6 +661,8 @@ VOID LoadDiskDriveImages(
 
         ListView_SetImageList(Context->ListViewHandle, Context->ImageList, LVSIL_SMALL);
     }
+
+    PhDereferenceObject(deviceIconPath);
 }
 
 INT_PTR CALLBACK DiskDriveOptionsDlgProc(

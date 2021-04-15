@@ -533,7 +533,7 @@ VOID PhpServiceQueryStage1(
     {
         if (!(serviceItem->Type & SERVICE_DRIVER)) // Skip icons for driver services (dmex)
         {
-            Data->IconEntry = PhImageListExtractIcon(serviceItem->FileName);
+            Data->IconEntry = PhImageListExtractIcon(serviceItem->FileName, FALSE);
         }
 
         // Version info.

@@ -6229,68 +6229,6 @@ PPH_STRING PhLoadIndirectString(
     return indirectString;
 }
 
-// rev from ExtractIconExW
-BOOLEAN PhExtractIcon(
-    _In_ PWSTR FileName, 
-    _Out_opt_ HICON *IconLarge,
-    _Out_opt_ HICON *IconSmall
-    )
-{
-    return PhExtractIconEx(FileName, 0, IconLarge, IconSmall);
-}
-
-_Success_(return)
-BOOLEAN PhExtractIconEx(
-    _In_ PWSTR FileName,
-    _In_ INT IconIndex,
-    _Out_opt_ HICON *IconLarge,
-    _Out_opt_ HICON *IconSmall
-    )
-{
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static INT (WINAPI *PrivateExtractIconExW)(
-        _In_ PCWSTR FileName,
-        _In_ INT IconIndex,
-        _Out_opt_ HICON* IconLarge,
-        _Out_opt_ HICON* IconSmall,
-        _In_ INT IconCount
-        ) = NULL;
-    HICON iconLarge = NULL;
-    HICON iconSmall = NULL;
-
-    if (PhBeginInitOnce(&initOnce))
-    {
-        PrivateExtractIconExW = PhGetDllProcedureAddress(L"user32.dll", "PrivateExtractIconExW", 0);
-        PhEndInitOnce(&initOnce);
-    }
-
-    if (!PrivateExtractIconExW)
-        return FALSE;
-
-    if (PrivateExtractIconExW(
-        FileName,
-        IconIndex,
-        IconLarge ? &iconLarge : NULL,
-        IconSmall ? &iconSmall : NULL,
-        1
-        ) > 0)
-    {
-        if (IconLarge)
-            *IconLarge = iconLarge;
-        if (IconSmall)
-            *IconSmall = iconSmall;
-
-        return TRUE;
-    }
-
-    if (iconLarge)
-        DestroyIcon(iconLarge);
-    if (iconSmall)
-        DestroyIcon(iconSmall);
-
-    return FALSE;
-}
-
 HWND PhHungWindowFromGhostWindow(
     _In_ HWND WindowHandle
     )

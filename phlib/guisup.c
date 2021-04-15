@@ -24,6 +24,7 @@
 #include <ph.h>
 #include <apiimport.h>
 #include <guisup.h>
+#include <mapimg.h>
 #include <settings.h>
 #include <shellapi.h>
 #include <uxtheme.h>
@@ -1770,3 +1771,315 @@ HANDLE PhGetGlobalTimerQueue(
 
     return PhTimerQueueHandle;
 }
+
+// rev from ExtractIconExW
+BOOLEAN PhExtractIcon(
+    _In_ PWSTR FileName, 
+    _Out_opt_ HICON *IconLarge,
+    _Out_opt_ HICON *IconSmall
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static INT (WINAPI *PrivateExtractIconExW)(
+        _In_ PCWSTR FileName,
+        _In_ INT IconIndex,
+        _Out_opt_ HICON* IconLarge,
+        _Out_opt_ HICON* IconSmall,
+        _In_ INT IconCount
+        ) = NULL;
+    HICON iconLarge = NULL;
+    HICON iconSmall = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PrivateExtractIconExW = PhGetDllProcedureAddress(L"user32.dll", "PrivateExtractIconExW", 0);
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!PrivateExtractIconExW)
+        return FALSE;
+
+    if (PrivateExtractIconExW(
+        FileName,
+        0,
+        IconLarge ? &iconLarge : NULL,
+        IconSmall ? &iconSmall : NULL,
+        1
+        ) > 0)
+    {
+        if (IconLarge)
+            *IconLarge = iconLarge;
+        if (IconSmall)
+            *IconSmall = iconSmall;
+
+        return TRUE;
+    }
+
+    if (iconLarge)
+        DestroyIcon(iconLarge);
+    if (iconSmall)
+        DestroyIcon(iconSmall);
+
+    return FALSE;
+}
+
+typedef struct _NEWHEADER
+{
+    USHORT Reserved;
+    USHORT ResourceType;
+    USHORT ResourceCount;
+} NEWHEADER, *PNEWHEADER;
+
+BOOLEAN PhLoadIconFromResourceDirectory(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ PIMAGE_RESOURCE_DIRECTORY ResourceDirectory,
+    _In_ UINT32 ResourceIndex,
+    _In_ PCWSTR ResourceType,
+    _Out_opt_ ULONG* ResourceLength,
+    _Out_opt_ PVOID* ResourceBuffer
+    )
+{
+    ULONG resourceIndex;
+    ULONG resourceCount;
+    PVOID resourceBuffer;
+    PIMAGE_RESOURCE_DIRECTORY nameDirectory;
+    PIMAGE_RESOURCE_DIRECTORY languageDirectory;
+    PIMAGE_RESOURCE_DIRECTORY_ENTRY resourceType;
+    PIMAGE_RESOURCE_DIRECTORY_ENTRY resourceName;
+    PIMAGE_RESOURCE_DATA_ENTRY resourceData;
+
+    // Find the type
+    resourceCount = ResourceDirectory->NumberOfIdEntries + ResourceDirectory->NumberOfNamedEntries;
+    resourceType = PTR_ADD_OFFSET(ResourceDirectory, sizeof(IMAGE_RESOURCE_DIRECTORY));
+
+    for (resourceIndex = 0; resourceIndex < resourceCount; resourceIndex++)
+    {
+        if (resourceType[resourceIndex].Name == PtrToUlong(ResourceType))
+            break;
+    }
+
+    if (resourceIndex == resourceCount)
+        return FALSE;
+
+    // Find the name
+    nameDirectory = PTR_ADD_OFFSET(ResourceDirectory, resourceType[resourceIndex].OffsetToDirectory);
+    resourceCount = nameDirectory->NumberOfIdEntries + nameDirectory->NumberOfNamedEntries;
+    resourceName = PTR_ADD_OFFSET(nameDirectory, sizeof(IMAGE_RESOURCE_DIRECTORY));
+
+    if (PtrToUlong(ResourceType) == PtrToUlong(RT_ICON))
+    {
+        for (resourceIndex = 0; resourceIndex < resourceCount; resourceIndex++)
+        {
+            if (resourceName[resourceIndex].Name == (ULONG)ResourceIndex)
+                break;
+        }
+    }
+    else // RT_GROUP_ICON
+    {
+        resourceIndex = ResourceIndex;
+    }
+
+    if (resourceIndex >= resourceCount)
+        return FALSE;
+
+    // Find the language (if available)?
+    if (resourceName[resourceIndex].DataIsDirectory)
+    {
+        languageDirectory = PTR_ADD_OFFSET(ResourceDirectory, resourceName[resourceIndex].OffsetToDirectory);
+        // Reset the indexes and return the first entry?
+        resourceName = PTR_ADD_OFFSET(languageDirectory, sizeof(IMAGE_RESOURCE_DIRECTORY));
+        resourceIndex = 0;
+    }
+
+    if (resourceName[resourceIndex].DataIsDirectory)
+        return FALSE;
+
+    resourceData = PTR_ADD_OFFSET(ResourceDirectory, resourceName[resourceIndex].OffsetToData);
+
+    if (!resourceData)
+        return FALSE;
+
+    resourceBuffer = PhMappedImageRvaToVa(MappedImage, resourceData->OffsetToData, NULL);
+
+    if (!resourceBuffer)
+        return FALSE;
+
+    if (ResourceLength)
+        *ResourceLength = resourceData->Size;
+    if (ResourceBuffer)
+        *ResourceBuffer = resourceBuffer;
+
+    // if (LDR_IS_IMAGEMAPPING(ImageBaseAddress))
+    // PhLoaderEntryImageRvaToVa(ImageBaseAddress, resourceData->OffsetToData, resourceBuffer);
+    // PhLoadResource(ImageBaseAddress, MAKEINTRESOURCE(ResourceIndex), ResourceType, &resourceLength, &resourceBuffer);
+
+    return TRUE;
+}
+
+HICON PhCreateIconFromResourceDirectory(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ PVOID ResourceDirectory,
+    _In_ PVOID IconDirectory,
+    _In_ INT32 Width,
+    _In_ INT32 Height,
+    _In_ UINT32 Flags
+    )
+{
+    INT32 iconResourceId;
+    ULONG iconResourceLength;
+    PVOID iconResourceBuffer;
+
+    if (!(iconResourceId = LookupIconIdFromDirectoryEx(
+        IconDirectory,
+        TRUE,
+        Width,
+        Height,
+        Flags
+        )))
+    {
+        return NULL;
+    }
+
+    if (!PhLoadIconFromResourceDirectory(
+        MappedImage,
+        ResourceDirectory,
+        iconResourceId,
+        RT_ICON,
+        &iconResourceLength,
+        &iconResourceBuffer
+        ))
+    {
+        return NULL;
+    }
+
+    if (((PBITMAPINFOHEADER)iconResourceBuffer)->biSize != sizeof(BITMAPINFOHEADER) &&
+        ((PBITMAPCOREHEADER)iconResourceBuffer)->bcSize != sizeof(BITMAPCOREHEADER))
+    {
+        return NULL;
+    }
+
+    return CreateIconFromResourceEx(
+        iconResourceBuffer,
+        iconResourceLength,
+        TRUE,
+        0x30000,
+        Width,
+        Height,
+        Flags
+        );
+}
+
+// rev from PrivateExtractIconExW with some changes
+// for using SEC_COMMIT instead of SEC_IMAGE. (dmex)
+BOOLEAN PhExtractIconEx(
+    _In_ PPH_STRING FileName,
+    _In_ BOOLEAN NativeFileName,
+    _In_ INT32 IconIndex,
+    _Out_opt_ HICON *IconLarge,
+    _Out_opt_ HICON *IconSmall
+    )
+{
+    NTSTATUS status;
+    HICON iconLarge = NULL;
+    HICON iconSmall = NULL;
+    PH_MAPPED_IMAGE mappedImage;
+    PIMAGE_DATA_DIRECTORY dataDirectory;
+    PIMAGE_RESOURCE_DIRECTORY resourceDirectory;
+    ULONG iconDirectoryResourceLength;
+    PNEWHEADER iconDirectoryResource;
+
+    if (NativeFileName)
+    {
+        status = PhLoadMappedImageEx(
+            FileName,
+            NULL,
+            &mappedImage
+            );
+    }
+    else
+    {
+        status = PhLoadMappedImage(
+            PhGetString(FileName),
+            NULL,
+            &mappedImage
+            );
+    }
+
+    if (!NT_SUCCESS(status))
+        return FALSE;
+
+    status = PhGetMappedImageDataEntry(
+        &mappedImage,
+        IMAGE_DIRECTORY_ENTRY_RESOURCE,
+        &dataDirectory
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    resourceDirectory = PhMappedImageRvaToVa(
+        &mappedImage,
+        dataDirectory->VirtualAddress,
+        NULL
+        );
+
+    if (!resourceDirectory)
+        goto CleanupExit;
+
+    __try
+    {
+        if (!PhLoadIconFromResourceDirectory(
+            &mappedImage,
+            resourceDirectory,
+            IconIndex,
+            RT_GROUP_ICON,
+            &iconDirectoryResourceLength,
+            &iconDirectoryResource
+            ))
+        {
+            goto CleanupExit;
+        }
+
+        if (iconDirectoryResource->ResourceType != RES_ICON)
+            goto CleanupExit;
+
+        iconLarge = PhCreateIconFromResourceDirectory(
+            &mappedImage,
+            resourceDirectory,
+            iconDirectoryResource,
+            PhLargeIconSize.X,
+            PhLargeIconSize.Y,
+            LR_DEFAULTCOLOR
+            );
+
+        iconSmall = PhCreateIconFromResourceDirectory(
+            &mappedImage,
+            resourceDirectory,
+            iconDirectoryResource,
+            PhSmallIconSize.X,
+            PhSmallIconSize.Y,
+            LR_DEFAULTCOLOR
+            );
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        NOTHING;
+    }
+
+CleanupExit:
+
+    PhUnloadMappedImage(&mappedImage);
+
+    if (iconLarge && iconSmall)
+    {
+        *IconLarge = iconLarge;
+        *IconSmall = iconSmall;
+        return TRUE;
+    }
+
+    if (iconLarge)
+        DestroyIcon(iconLarge);
+    if (iconSmall)
+        DestroyIcon(iconSmall);
+
+    return FALSE;

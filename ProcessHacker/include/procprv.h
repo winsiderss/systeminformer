@@ -443,7 +443,8 @@ PHAPPAPI
 PPH_IMAGELIST_ITEM
 NTAPI
 PhImageListExtractIcon(
-    _In_ PPH_STRING FileName
+    _In_ PPH_STRING FileName,
+    _In_ BOOLEAN NativeFileName
     );
 
 PHAPPAPI

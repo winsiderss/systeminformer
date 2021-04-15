@@ -3,7 +3,7 @@
  *   Hardware Devices Plugin
  *
  * Copyright (C) 2016 wj32
- * Copyright (C) 2015-2020 dmex
+ * Copyright (C) 2015-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -732,7 +732,7 @@ VOID LoadNetworkAdapterImages(
         {
             if (dllIconPath = PhExpandEnvironmentStrings(&dllPartSr))
             {
-                if (PhExtractIconEx(dllIconPath->Buffer, (INT)index, &smallIcon, NULL))
+                if (PhExtractIconEx(dllIconPath, FALSE, (INT)index, &smallIcon, NULL))
                 {
                     Context->ImageList = ImageList_Create(
                         24, // GetSystemMetrics(SM_CXSMICON)

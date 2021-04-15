@@ -939,6 +939,27 @@ PhGetGlobalTimerQueue(
     VOID
     );
 
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhExtractIcon(
+    _In_ PWSTR FileName,
+    _Out_opt_ HICON *IconLarge,
+    _Out_opt_ HICON *IconSmall
+    );
+
+_Success_(return)
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhExtractIconEx(
+    _In_ PPH_STRING FileName,
+    _In_ BOOLEAN NativeFileName,
+    _In_ INT32 IconIndex,
+    _Out_opt_ HICON *IconLarge,
+    _Out_opt_ HICON *IconSmall
+    );
 // theme support (theme.c)
 
 PHLIBAPI extern HFONT PhApplicationFont; // phapppub
