@@ -3,7 +3,7 @@
  *   GUI support functions
  *
  * Copyright (C) 2009-2016 wj32
- * Copyright (C) 2017-2018 dmex
+ * Copyright (C) 2017-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -1833,7 +1833,7 @@ typedef struct _NEWHEADER
 BOOLEAN PhLoadIconFromResourceDirectory(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ PIMAGE_RESOURCE_DIRECTORY ResourceDirectory,
-    _In_ UINT32 ResourceIndex,
+    _In_ INT32 ResourceIndex,
     _In_ PCWSTR ResourceType,
     _Out_opt_ ULONG* ResourceLength,
     _Out_opt_ PVOID* ResourceBuffer
@@ -1866,11 +1866,12 @@ BOOLEAN PhLoadIconFromResourceDirectory(
     resourceCount = nameDirectory->NumberOfIdEntries + nameDirectory->NumberOfNamedEntries;
     resourceName = PTR_ADD_OFFSET(nameDirectory, sizeof(IMAGE_RESOURCE_DIRECTORY));
 
-    if (PtrToUlong(ResourceType) == PtrToUlong(RT_ICON))
+    // Note: Required by DEVPKEY_DeviceClass_IconPath
+    if (ResourceIndex < 0) // if (PtrToUlong(ResourceType) == PtrToUlong(RT_ICON))
     {
         for (resourceIndex = 0; resourceIndex < resourceCount; resourceIndex++)
         {
-            if (resourceName[resourceIndex].Name == (ULONG)ResourceIndex)
+            if (resourceName[resourceIndex].Name == (ULONG)-ResourceIndex)
                 break;
         }
     }
@@ -1943,7 +1944,7 @@ HICON PhCreateIconFromResourceDirectory(
     if (!PhLoadIconFromResourceDirectory(
         MappedImage,
         ResourceDirectory,
-        iconResourceId,
+        -iconResourceId,
         RT_ICON,
         &iconResourceLength,
         &iconResourceBuffer
@@ -2070,10 +2071,18 @@ CleanupExit:
 
     PhUnloadMappedImage(&mappedImage);
 
+    // TODO: Improve query/checking for single icons (dmex)
     if (iconLarge && iconSmall)
     {
-        *IconLarge = iconLarge;
-        *IconSmall = iconSmall;
+        if (IconLarge)
+            *IconLarge = iconLarge;
+        else if (iconLarge)
+            DestroyIcon(iconLarge);
+        if (IconSmall)
+            *IconSmall = iconSmall;
+        else if (iconSmall)
+            DestroyIcon(iconSmall);
+
         return TRUE;
     }
 
