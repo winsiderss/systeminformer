@@ -211,6 +211,37 @@ PELF64_IMAGE_SECTION_HEADER PhGetMappedWslImageSectionByType(
     return NULL;
 }
 
+PELF64_IMAGE_SECTION_HEADER PhGetMappedWslImageSectionByName(
+    _In_ PPH_MAPPED_IMAGE MappedWslImage,
+    _In_ PSTR Name
+    )
+{
+    if (Name)
+    {
+        PELF64_IMAGE_SECTION_HEADER sectionHeader;
+        PELF64_IMAGE_SECTION_HEADER stringSection;
+        PELF64_IMAGE_SECTION_HEADER section;
+        PVOID stringTable;
+        USHORT i;
+
+        sectionHeader = IMAGE_FIRST_ELF64_SECTION(MappedWslImage);
+        stringSection = IMAGE_ELF64_SECTION_BY_INDEX(sectionHeader, MappedWslImage->Headers64->e_shstrndx);
+        stringTable = PTR_ADD_OFFSET(MappedWslImage->Header, stringSection->sh_offset);
+
+        for (i = 0; i < MappedWslImage->Headers64->e_shnum; i++)
+        {
+            section = IMAGE_ELF64_SECTION_BY_INDEX(sectionHeader, i);
+
+            if (PhEqualBytesZ(Name, PTR_ADD_OFFSET(stringTable, section->sh_name), FALSE))
+            {
+                return section;
+            }
+        }
+    }
+
+    return NULL;
+}
+
 ULONG64 PhGetMappedWslImageBaseAddress(
     _In_ PPH_MAPPED_IMAGE MappedWslImage
     )
@@ -614,4 +645,104 @@ VOID PhFreeMappedWslImageDynamic(
     }
 
     PhDereferenceObject(ImageDynamic);
+}
+
+typedef struct
+{
+    unsigned int namesz;		/* Size of entry's owner string */
+    unsigned int descsz;		/* Size of the note descriptor */
+    unsigned int type;		/* Interpretation of the descriptor */
+    char name[1];		/* Start of the name+desc data */
+} Elf_External_Note;
+
+
+PPH_STRING PhGetMappedWslImageBuildId(
+    _In_ PPH_MAPPED_IMAGE MappedWslImage
+    )
+{
+    PELF64_IMAGE_SECTION_HEADER commentSectionHeader = PhGetMappedWslImageSectionByName(MappedWslImage, ".note.gnu.build-id");
+
+    if (commentSectionHeader)
+    {
+        Elf_External_Note* commentSectionList;
+
+
+        commentSectionList = PTR_ADD_OFFSET(MappedWslImage->Header, commentSectionHeader->sh_offset);
+
+        if (RtlEqualMemory(commentSectionList->name, "GNU", sizeof("GNU")))
+        {
+            PBYTE hashdata;
+
+            hashdata = PTR_ADD_OFFSET(commentSectionList->name, commentSectionList->namesz);
+            PPH_STRING hashHex = PhBufferToHexString(hashdata, commentSectionList->descsz);
+
+            return hashHex;
+        }
+    }
+
+    return NULL;
+}
+
+//A debug link is a special section of the executable file named .gnu_debuglink. The section must contain:
+//A filename, with any leading directory components removed, followed by a zero byte,
+//zero to three bytes of padding, as needed to reach the next four-byte boundary within the section, and
+//a four-byte CRC checksum, stored in the same endianness used for the executable file itself.
+//The checksum is computed on the debugging information file’s full contents by the function given below, passing zero as the crc argument.
+
+PPH_STRING PhGetMappedWslImageDebugInfo(
+    _In_ PPH_MAPPED_IMAGE MappedWslImage
+    )
+{
+    PELF64_IMAGE_SECTION_HEADER commentSectionHeader = PhGetMappedWslImageSectionByName(MappedWslImage, ".gnu_debuglink");
+
+    if (commentSectionHeader)
+    {
+        Elf_External_Note* commentSectionList;
+
+
+        commentSectionList = PTR_ADD_OFFSET(MappedWslImage->Header, commentSectionHeader->sh_offset);
+
+        if (RtlEqualMemory(commentSectionList->name, "GNU", sizeof("GNU")))
+        {
+            PBYTE hashdata;
+
+            hashdata = PTR_ADD_OFFSET(commentSectionList->name, commentSectionList->namesz);
+            PPH_STRING hashHex = PhBufferToHexString(hashdata, commentSectionList->descsz);
+
+            return hashHex;
+        }
+    }
+
+    return NULL;
+}
+
+
+PPH_STRING PhGetMappedWslImageComment(
+    _In_ PPH_MAPPED_IMAGE MappedWslImage
+    )
+{
+    PELF64_IMAGE_SECTION_HEADER commentSectionHeader;
+
+    PhGetMappedWslImageBuildId(MappedWslImage);
+
+    if (commentSectionHeader = PhGetMappedWslImageSectionByName(MappedWslImage, ".comment"))
+    {
+        PSTR commentSectionList = PTR_ADD_OFFSET(MappedWslImage->Header, commentSectionHeader->sh_offset);
+        PSTR commentSectionString;
+        PH_STRING_BUILDER stringBuilder;
+
+        PhInitializeStringBuilder(&stringBuilder, 0x100);
+
+        for (commentSectionString = commentSectionList; *commentSectionString; commentSectionString += strlen(commentSectionString) + 1)
+        {
+            PhAppendFormatStringBuilder(&stringBuilder, L"%S ", commentSectionString);
+        }
+
+        if (PhEndsWithString2(stringBuilder.String, L" ", FALSE))
+            PhRemoveEndStringBuilder(&stringBuilder, 1);
+
+        return PhFinalStringBuilderString(&stringBuilder);;
+    }
+
+    return NULL;
 }
