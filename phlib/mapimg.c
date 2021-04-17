@@ -2072,7 +2072,7 @@ NTSTATUS PhGetMappedImageResources(
     for (ULONG i = 0; i < resourceTypeCount; ++i, ++resourceType)
     {
         if (!resourceType->DataIsDirectory)
-            goto CleanupExit;
+            continue;
 
         nameDirectory = PTR_ADD_OFFSET(resourceDirectory, resourceType->OffsetToDirectory);
         resourceName = PTR_ADD_OFFSET(nameDirectory, sizeof(IMAGE_RESOURCE_DIRECTORY));
@@ -2081,7 +2081,7 @@ NTSTATUS PhGetMappedImageResources(
         for (ULONG j = 0; j < resourceNameCount; ++j, ++resourceName)
         {
             if (!resourceName->DataIsDirectory)
-                goto CleanupExit;
+                continue;
 
             languageDirectory = PTR_ADD_OFFSET(resourceDirectory, resourceName->OffsetToDirectory);
             resourceLanguage = PTR_ADD_OFFSET(languageDirectory, sizeof(IMAGE_RESOURCE_DIRECTORY));
@@ -2092,7 +2092,7 @@ NTSTATUS PhGetMappedImageResources(
                 PIMAGE_RESOURCE_DATA_ENTRY resourceData;
 
                 if (resourceLanguage->DataIsDirectory)
-                    goto CleanupExit;
+                    continue;
 
                 resourceData = PTR_ADD_OFFSET(resourceDirectory, resourceLanguage->OffsetToData);
 
@@ -2116,10 +2116,9 @@ NTSTATUS PhGetMappedImageResources(
     Resources->MappedImage = MappedImage;
     Resources->DataDirectory = dataDirectory;
     Resources->ResourceDirectory = resourceDirectory;
-    Resources->NumberOfEntries = resourceCount;
+    Resources->NumberOfEntries = (ULONG)resourceArray.Count; // resourceCount;
     Resources->ResourceEntries = PhFinalArrayItems(&resourceArray);
 
-CleanupExit:
     return status;
 }
 
