@@ -1846,6 +1846,7 @@ BOOLEAN PhLoadIconFromResourceDirectory(
     PIMAGE_RESOURCE_DIRECTORY languageDirectory;
     PIMAGE_RESOURCE_DIRECTORY_ENTRY resourceType;
     PIMAGE_RESOURCE_DIRECTORY_ENTRY resourceName;
+    PIMAGE_RESOURCE_DIRECTORY_ENTRY resourceLanguage;
     PIMAGE_RESOURCE_DATA_ENTRY resourceData;
 
     // Find the type
@@ -1854,11 +1855,15 @@ BOOLEAN PhLoadIconFromResourceDirectory(
 
     for (resourceIndex = 0; resourceIndex < resourceCount; resourceIndex++)
     {
+        if (resourceType[resourceIndex].NameIsString)
+            continue;
         if (resourceType[resourceIndex].Name == PtrToUlong(ResourceType))
             break;
     }
 
     if (resourceIndex == resourceCount)
+        return FALSE;
+    if (!resourceType[resourceIndex].DataIsDirectory)
         return FALSE;
 
     // Find the name
@@ -1866,11 +1871,12 @@ BOOLEAN PhLoadIconFromResourceDirectory(
     resourceCount = nameDirectory->NumberOfIdEntries + nameDirectory->NumberOfNamedEntries;
     resourceName = PTR_ADD_OFFSET(nameDirectory, sizeof(IMAGE_RESOURCE_DIRECTORY));
 
-    // Note: Required by DEVPKEY_DeviceClass_IconPath
-    if (ResourceIndex < 0) // if (PtrToUlong(ResourceType) == PtrToUlong(RT_ICON))
+    if (ResourceIndex < 0) // RT_ICON
     {
         for (resourceIndex = 0; resourceIndex < resourceCount; resourceIndex++)
         {
+            if (resourceName[resourceIndex].NameIsString)
+                continue;
             if (resourceName[resourceIndex].Name == (ULONG)-ResourceIndex)
                 break;
         }
@@ -1882,20 +1888,19 @@ BOOLEAN PhLoadIconFromResourceDirectory(
 
     if (resourceIndex >= resourceCount)
         return FALSE;
-
-    // Find the language (if available)?
-    if (resourceName[resourceIndex].DataIsDirectory)
-    {
-        languageDirectory = PTR_ADD_OFFSET(ResourceDirectory, resourceName[resourceIndex].OffsetToDirectory);
-        // Reset the indexes and return the first entry?
-        resourceName = PTR_ADD_OFFSET(languageDirectory, sizeof(IMAGE_RESOURCE_DIRECTORY));
-        resourceIndex = 0;
-    }
-
-    if (resourceName[resourceIndex].DataIsDirectory)
+    if (!resourceName[resourceIndex].DataIsDirectory)
         return FALSE;
 
-    resourceData = PTR_ADD_OFFSET(ResourceDirectory, resourceName[resourceIndex].OffsetToData);
+    // Find the language
+    languageDirectory = PTR_ADD_OFFSET(ResourceDirectory, resourceName[resourceIndex].OffsetToDirectory);
+    //resourceCount = languageDirectory->NumberOfIdEntries + languageDirectory->NumberOfNamedEntries;
+    resourceLanguage = PTR_ADD_OFFSET(languageDirectory, sizeof(IMAGE_RESOURCE_DIRECTORY));
+    resourceIndex = 0; // use the first entry
+
+    if (resourceLanguage[resourceIndex].DataIsDirectory)
+        return FALSE;
+
+    resourceData = PTR_ADD_OFFSET(ResourceDirectory, resourceLanguage[resourceIndex].OffsetToData);
 
     if (!resourceData)
         return FALSE;
@@ -2044,23 +2049,29 @@ BOOLEAN PhExtractIconEx(
         if (iconDirectoryResource->ResourceType != RES_ICON)
             goto CleanupExit;
 
-        iconLarge = PhCreateIconFromResourceDirectory(
-            &mappedImage,
-            resourceDirectory,
-            iconDirectoryResource,
-            PhLargeIconSize.X,
-            PhLargeIconSize.Y,
-            LR_DEFAULTCOLOR
-            );
+        if (IconLarge)
+        {
+            iconLarge = PhCreateIconFromResourceDirectory(
+                &mappedImage,
+                resourceDirectory,
+                iconDirectoryResource,
+                PhLargeIconSize.X,
+                PhLargeIconSize.Y,
+                LR_DEFAULTCOLOR
+                );
+        }
 
-        iconSmall = PhCreateIconFromResourceDirectory(
-            &mappedImage,
-            resourceDirectory,
-            iconDirectoryResource,
-            PhSmallIconSize.X,
-            PhSmallIconSize.Y,
-            LR_DEFAULTCOLOR
-            );
+        if (IconSmall)
+        {
+            iconSmall = PhCreateIconFromResourceDirectory(
+                &mappedImage,
+                resourceDirectory,
+                iconDirectoryResource,
+                PhSmallIconSize.X,
+                PhSmallIconSize.Y,
+                LR_DEFAULTCOLOR
+                );
+        }
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
@@ -2071,18 +2082,32 @@ CleanupExit:
 
     PhUnloadMappedImage(&mappedImage);
 
-    // TODO: Improve query/checking for single icons (dmex)
-    if (iconLarge && iconSmall)
+    if (IconLarge && IconSmall)
     {
-        if (IconLarge)
+        if (iconLarge && iconSmall)
+        {
             *IconLarge = iconLarge;
-        else if (iconLarge)
-            DestroyIcon(iconLarge);
-        if (IconSmall)
             *IconSmall = iconSmall;
-        else if (iconSmall)
+            return TRUE;
+        }
+
+        if (iconLarge)
+            DestroyIcon(iconLarge);
+        if (iconSmall)
             DestroyIcon(iconSmall);
 
+        return FALSE;
+    }
+
+    if (IconLarge && iconLarge)
+    {
+        *IconLarge = iconLarge;
+        return TRUE;
+    }
+
+    if (IconSmall && iconSmall)
+    {
+        *IconSmall = iconSmall;
         return TRUE;
     }
 
