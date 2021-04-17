@@ -405,6 +405,8 @@ VOID NTAPI MenuItemCallback(
     if (!(menuItem && processItem))
         return;
 
+    PhReferenceObject(processItem);
+
     switch (menuItem->Id)
     {
     case PROCESS_PRIORITY_SAVE_ID:
@@ -445,6 +447,26 @@ VOID NTAPI MenuItemCallback(
 
                 UnlockDb();
                 SaveDb();
+            }
+        }
+        break;
+    case PROCESS_PRIORITY_SAVE_IFEO:
+        {
+            NTSTATUS status = STATUS_SUCCESS;
+            PIFEO_OBJECT objectIfeo;
+
+            if ((objectIfeo = FindIfeoObject(&processItem->ProcessName->sr)) && objectIfeo->PriorityClass != ULONG_MAX)
+            {
+                status = DeleteIfeoObject(&processItem->ProcessName->sr, processItem->PriorityClass, ULONG_MAX, ULONG_MAX);
+            }
+            else
+            {
+                status = CreateIfeoObject(&processItem->ProcessName->sr, processItem->PriorityClass, ULONG_MAX, ULONG_MAX);
+            }
+
+            if (!NT_SUCCESS(status))
+            {
+                PhShowStatus(menuItem->OwnerWindow, L"Unable to update the IFEO key for process priority.", status, 0);
             }
         }
         break;
@@ -498,6 +520,31 @@ VOID NTAPI MenuItemCallback(
 
                 UnlockDb();
                 SaveDb();
+            }
+        }
+        break;
+    case PROCESS_IO_PRIORITY_SAVE_IFEO:
+        {
+            NTSTATUS status = STATUS_SUCCESS;
+            PIFEO_OBJECT objectIfeo;
+
+            if ((objectIfeo = FindIfeoObject(&processItem->ProcessName->sr)) && objectIfeo->IoPriorityClass != ULONG_MAX)
+            {
+                status = DeleteIfeoObject(&processItem->ProcessName->sr, ULONG_MAX, objectIfeo->IoPriorityClass, ULONG_MAX);
+            }
+            else
+            {
+                IO_PRIORITY_HINT ioPriorityClass;
+
+                if ((ioPriorityClass = GetProcessIoPriority(processItem->ProcessId)) != ULONG_MAX)
+                {
+                    status = CreateIfeoObject(&processItem->ProcessName->sr, ULONG_MAX, ioPriorityClass, ULONG_MAX);
+                }
+            }
+
+            if (!NT_SUCCESS(status))
+            {
+                PhShowStatus(menuItem->OwnerWindow, L"Unable to update the IFEO key for process IO priority.", status, 0);
             }
         }
         break;
@@ -676,7 +723,34 @@ VOID NTAPI MenuItemCallback(
             }
         }
         break;
+    case PROCESS_PAGE_PRIORITY_SAVE_IFEO:
+        {
+            NTSTATUS status = STATUS_SUCCESS;
+            PIFEO_OBJECT objectIfeo;
+
+            if ((objectIfeo = FindIfeoObject(&processItem->ProcessName->sr)) && objectIfeo->PagePriorityClass != ULONG_MAX)
+            {
+                status = DeleteIfeoObject(&processItem->ProcessName->sr, ULONG_MAX, ULONG_MAX, objectIfeo->PagePriorityClass);
+            }
+            else
+            {
+                ULONG pagePriorityClass;
+
+                if ((pagePriorityClass = GetProcessPagePriority(processItem->ProcessId)) != ULONG_MAX)
+                {
+                    status = CreateIfeoObject(&processItem->ProcessName->sr, ULONG_MAX, ULONG_MAX, pagePriorityClass);
+                }
+            }
+
+            if (!NT_SUCCESS(status))
+            {
+                PhShowStatus(menuItem->OwnerWindow, L"Unable to update the IFEO key for process page priority.", status, 0);
+            }
+        }
+        break;
     }
+
+    PhDereferenceObject(processItem);
 }
 
 VOID NTAPI MenuHookCallback(
@@ -712,6 +786,7 @@ VOID NTAPI MenuHookCallback(
             for (i = 0; i < numberOfProcesses; i++)
             {
                 PDB_OBJECT object;
+                PIFEO_OBJECT objectIfeo;
 
                 if (object = FindDbObjectForProcess(processes[i], INTENT_PROCESS_PRIORITY_CLASS))
                 {
@@ -722,6 +797,25 @@ VOID NTAPI MenuHookCallback(
                         object->PriorityClass = newPriorityClass;
                         changed = TRUE;
                     }
+                }
+
+                if (objectIfeo = FindIfeoObject(&processes[i]->ProcessName->sr))
+                {
+                    ULONG newPriorityClass = GetPriorityClassFromId(id);
+
+                    if (objectIfeo->PriorityClass != ULONG_MAX && objectIfeo->PriorityClass != newPriorityClass)
+                    {
+                        NTSTATUS status;
+
+                        status = CreateIfeoObject(&processes[i]->ProcessName->sr, newPriorityClass, ULONG_MAX, ULONG_MAX);
+
+                        if (!NT_SUCCESS(status))
+                        {
+                            PhShowStatus(menuHookInfo->MenuInfo->OwnerWindow, L"Unable to update the IFEO key for process priority.", status, 0);
+                        }
+                    }
+
+                    PhFree(objectIfeo);
                 }
             }
 
@@ -748,6 +842,7 @@ VOID NTAPI MenuHookCallback(
             for (i = 0; i < numberOfProcesses; i++)
             {
                 PDB_OBJECT object;
+                PIFEO_OBJECT objectIfeo;
 
                 if (object = FindDbObjectForProcess(processes[i], INTENT_PROCESS_IO_PRIORITY))
                 {
@@ -758,6 +853,25 @@ VOID NTAPI MenuHookCallback(
                         object->IoPriorityPlusOne = newIoPriorityPlusOne;
                         changed = TRUE;
                     }
+                }
+
+                if (objectIfeo = FindIfeoObject(&processes[i]->ProcessName->sr))
+                {
+                    ULONG newIoPriorityClass = GetIoPriorityFromId(id);
+
+                    if (objectIfeo->IoPriorityClass != ULONG_MAX && objectIfeo->IoPriorityClass != newIoPriorityClass)
+                    {
+                        NTSTATUS status;
+
+                        status = CreateIfeoObject(&processes[i]->ProcessName->sr, ULONG_MAX, newIoPriorityClass, ULONG_MAX);
+
+                        if (!NT_SUCCESS(status))
+                        {
+                            PhShowStatus(menuHookInfo->MenuInfo->OwnerWindow, L"Unable to update the IFEO key for process IO priority.", status, 0);
+                        }
+                    }
+
+                    PhFree(objectIfeo);
                 }
             }
 
@@ -848,6 +962,7 @@ VOID NTAPI MenuHookCallback(
             for (i = 0; i < numberOfProcesses; i++)
             {
                 PDB_OBJECT object;
+                PIFEO_OBJECT objectIfeo;
 
                 if (object = FindDbObjectForProcess(processes[i], INTENT_PROCESS_PAGEPRIORITY))
                 {
@@ -858,6 +973,25 @@ VOID NTAPI MenuHookCallback(
                         object->PagePriorityPlusOne = newPagePriorityPlusOne;
                         changed = TRUE;
                     }
+                }
+
+                if (objectIfeo = FindIfeoObject(&processes[i]->ProcessName->sr))
+                {
+                    ULONG newPagePriorityClass = GetPagePriorityFromId(id);
+
+                    if (objectIfeo->PagePriorityClass != ULONG_MAX && objectIfeo->PagePriorityClass != newPagePriorityClass)
+                    {
+                        NTSTATUS status;
+
+                        status = CreateIfeoObject(&processes[i]->ProcessName->sr, ULONG_MAX, ULONG_MAX, newPagePriorityClass);
+
+                        if (!NT_SUCCESS(status))
+                        {
+                            PhShowStatus(menuHookInfo->MenuInfo->OwnerWindow, L"Unable to update the IFEO key for process page priority.", status, 0);
+                        }
+                    }
+
+                    PhFree(objectIfeo);
                 }
             }
 
@@ -1069,7 +1203,9 @@ VOID AddSavePriorityMenuItemsAndHook(
     PPH_EMENU_ITEM pagePriorityMenuItem;
     PPH_EMENU_ITEM saveMenuItem;
     PPH_EMENU_ITEM saveForCommandLineMenuItem;
+    PPH_EMENU_ITEM saveIfeoMenuItem;
     PDB_OBJECT object;
+    PIFEO_OBJECT objectIfeo;
 
     if (affinityMenuItem = PhFindEMenuItem(MenuInfo->Menu, 0, NULL, PHAPP_ID_PROCESS_AFFINITY))
     {
@@ -1102,6 +1238,7 @@ VOID AddSavePriorityMenuItemsAndHook(
         PhInsertEMenuItem(priorityMenuItem, PhCreateEMenuSeparator(), ULONG_MAX);
         PhInsertEMenuItem(priorityMenuItem, saveMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_PRIORITY_SAVE_ID, PhaFormatString(L"&Save for %s", ProcessItem->ProcessName->Buffer)->Buffer, NULL), ULONG_MAX);
         PhInsertEMenuItem(priorityMenuItem, saveForCommandLineMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_PRIORITY_SAVE_FOR_THIS_COMMAND_LINE_ID, L"Save &for this command line", NULL), ULONG_MAX);
+        PhInsertEMenuItem(priorityMenuItem, saveIfeoMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_PRIORITY_SAVE_IFEO, PhaFormatString(L"&Save for %s (IFEO)", ProcessItem->ProcessName->Buffer)->Buffer, NULL), ULONG_MAX);
 
         if (!ProcessItem->CommandLine)
             saveForCommandLineMenuItem->Flags |= PH_EMENU_DISABLED;
@@ -1114,6 +1251,16 @@ VOID AddSavePriorityMenuItemsAndHook(
             saveForCommandLineMenuItem->Flags |= PH_EMENU_CHECKED;
 
         UnlockDb();
+
+        if (objectIfeo = FindIfeoObject(&ProcessItem->ProcessName->sr))
+        {
+            if (objectIfeo->PriorityClass != ULONG_MAX)
+            {
+                saveIfeoMenuItem->Flags |= PH_EMENU_CHECKED;
+            }
+
+            PhFree(objectIfeo);
+        }
     }
 
     // I/O Priority
@@ -1122,6 +1269,7 @@ VOID AddSavePriorityMenuItemsAndHook(
         PhInsertEMenuItem(ioPriorityMenuItem, PhCreateEMenuSeparator(), ULONG_MAX);
         PhInsertEMenuItem(ioPriorityMenuItem, saveMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_IO_PRIORITY_SAVE_ID, PhaFormatString(L"&Save for %s", ProcessItem->ProcessName->Buffer)->Buffer, NULL), ULONG_MAX);
         PhInsertEMenuItem(ioPriorityMenuItem, saveForCommandLineMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_IO_PRIORITY_SAVE_FOR_THIS_COMMAND_LINE_ID, L"Save &for this command line", NULL), ULONG_MAX);
+        PhInsertEMenuItem(ioPriorityMenuItem, saveIfeoMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_IO_PRIORITY_SAVE_IFEO, PhaFormatString(L"&Save for %s (IFEO)", ProcessItem->ProcessName->Buffer)->Buffer, NULL), ULONG_MAX);
 
         if (!ProcessItem->CommandLine)
             saveForCommandLineMenuItem->Flags |= PH_EMENU_DISABLED;
@@ -1134,6 +1282,16 @@ VOID AddSavePriorityMenuItemsAndHook(
             saveForCommandLineMenuItem->Flags |= PH_EMENU_CHECKED;
 
         UnlockDb();
+
+        if (objectIfeo = FindIfeoObject(&ProcessItem->ProcessName->sr))
+        {
+            if (objectIfeo->IoPriorityClass != ULONG_MAX)
+            {
+                saveIfeoMenuItem->Flags |= PH_EMENU_CHECKED;
+            }
+
+            PhFree(objectIfeo);
+        }
     }
 
     // Page Priority
@@ -1142,6 +1300,7 @@ VOID AddSavePriorityMenuItemsAndHook(
         PhInsertEMenuItem(pagePriorityMenuItem, PhCreateEMenuSeparator(), ULONG_MAX);
         PhInsertEMenuItem(pagePriorityMenuItem, saveMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_PAGE_PRIORITY_SAVE_ID, PhaFormatString(L"&Save for %s", ProcessItem->ProcessName->Buffer)->Buffer, NULL), ULONG_MAX);
         PhInsertEMenuItem(pagePriorityMenuItem, saveForCommandLineMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_PAGE_PRIORITY_SAVE_FOR_THIS_COMMAND_LINE_ID, L"Save &for this command line", NULL), ULONG_MAX);
+        PhInsertEMenuItem(pagePriorityMenuItem, saveIfeoMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_PAGE_PRIORITY_SAVE_IFEO, PhaFormatString(L"&Save for %s (IFEO)", ProcessItem->ProcessName->Buffer)->Buffer, NULL), ULONG_MAX);
 
         if (!ProcessItem->CommandLine)
             saveForCommandLineMenuItem->Flags |= PH_EMENU_DISABLED;
@@ -1154,6 +1313,16 @@ VOID AddSavePriorityMenuItemsAndHook(
             saveForCommandLineMenuItem->Flags |= PH_EMENU_CHECKED;
 
         UnlockDb();
+
+        if (objectIfeo = FindIfeoObject(&ProcessItem->ProcessName->sr))
+        {
+            if (objectIfeo->PagePriorityClass != ULONG_MAX)
+            {
+                saveIfeoMenuItem->Flags |= PH_EMENU_CHECKED;
+            }
+
+            PhFree(objectIfeo);
+        }
     }
 
     PhPluginAddMenuHook(MenuInfo, PluginInstance, UseSelectionForHook ? NULL : ProcessItem->ProcessId);

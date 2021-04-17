@@ -47,6 +47,13 @@ typedef struct _DB_OBJECT
     ULONG PagePriorityPlusOne;
 } DB_OBJECT, *PDB_OBJECT;
 
+typedef struct _IFEO_OBJECT
+{
+    ULONG PriorityClass;
+    ULONG IoPriorityClass;
+    ULONG PagePriorityClass;
+} IFEO_OBJECT, *PIFEO_OBJECT;
+
 VOID InitializeDb(
     VOID
     );
@@ -88,6 +95,24 @@ NTSTATUS LoadDb(
 
 NTSTATUS SaveDb(
     VOID
+    );
+
+PIFEO_OBJECT FindIfeoObject(
+    _In_ PPH_STRINGREF Name
+    );
+
+NTSTATUS CreateIfeoObject(
+    _In_ PPH_STRINGREF Name,
+    _In_ ULONG CpuPriority,
+    _In_ ULONG IoPriority,
+    _In_ ULONG PagePriority
+    );
+
+NTSTATUS DeleteIfeoObject(
+    _In_ PPH_STRINGREF Name,
+    _In_ ULONG CpuPriority,
+    _In_ ULONG IoPriority,
+    _In_ ULONG PagePriority
     );
 
 #endif
