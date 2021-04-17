@@ -129,7 +129,6 @@ typedef BOOL (WINAPI *_CryptUIDlgViewSignerInfo)(
     _In_ CRYPTUI_VIEWSIGNERINFO_STRUCT *pcvsi
     );
 
-
 typedef enum _SIGNATURE_STATE
 {
     SIGNATURE_STATE_UNSIGNED_MISSING,
@@ -142,7 +141,7 @@ typedef enum _SIGNATURE_STATE
     SIGNATURE_STATE_UNTRUSTED
 } SIGNATURE_STATE;
 
-typedef enum SIGNATURE_INFO_TYPE
+typedef enum _SIGNATURE_INFO_TYPE
 {
     SIT_UNKNOWN,
     SIT_AUTHENTICODE,
@@ -180,13 +179,12 @@ typedef struct _SIGNATURE_INFO
 } SIGNATURE_INFO, *PSIGNATURE_INFO;
 
 typedef HRESULT (WINAPI* _WTGetSignatureInfo)(
-    _In_opt_ PCWSTR pszFile,
+    _In_ PCWSTR pszFile,
     _In_opt_ HANDLE hFile,
     _In_ SIGNATURE_INFO_FLAGS sigInfoFlags,
     _Inout_ PSIGNATURE_INFO psiginfo,
     _Out_ PVOID ppCertContext,
     _Out_ PHANDLE phWVTStateData
     );
-
 
 #endif
