@@ -306,10 +306,12 @@ VOID InitializeNetAdapterId(
     _In_ PPH_STRING InterfaceGuid
     )
 {
+    static PH_STRINGREF nativeNamespacePath = PH_STRINGREF_INIT(L"\\??\\");
+
     Id->InterfaceIndex = InterfaceIndex;
     Id->InterfaceLuid = InterfaceLuid;
     PhSetReference(&Id->InterfaceGuid, InterfaceGuid);
-    Id->InterfacePath = PhConcatStrings2(L"\\??\\", InterfaceGuid->Buffer);
+    Id->InterfacePath = PhConcatStringRef2(&nativeNamespacePath, &InterfaceGuid->sr);
 }
 
 VOID CopyNetAdapterId(
