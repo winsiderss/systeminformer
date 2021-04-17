@@ -238,6 +238,7 @@ EXPORTS
     PhConnectPipe
     PhDeleteDirectory
     PhDeleteFileWin32
+    PhDeleteValueKey
     PhDetermineDosPathNameType
     PhDoesFileExistsWin32
     PhDoesFileExists
