@@ -2270,7 +2270,7 @@ PPH_EMENU PhpCreateUsersMenu(
     _In_ BOOLEAN DelayLoadMenu
     )
 {
-    PH_ARRAY usersArrayList;
+    PPH_LIST userSessionList;
     PSESSIONIDW sessions;
     ULONG numberOfSessions;
     ULONG i;
@@ -2282,7 +2282,7 @@ PPH_EMENU PhpCreateUsersMenu(
         return UsersMenu;
     }
 
-    PhInitializeArray(&usersArrayList, sizeof(PHP_USERSMENU_ENTRY), 1);
+    userSessionList = PhCreateList(1);
 
     if (WinStationEnumerateW(NULL, &sessions, &numberOfSessions))
     {
@@ -2335,12 +2335,13 @@ PPH_EMENU PhpCreateUsersMenu(
             menuTextSr.Buffer = formatBuffer;
 
             {
-                PHP_USERSMENU_ENTRY entry;
+                PPHP_USERSMENU_ENTRY entry;
 
-                entry.SessionId = sessions[i].SessionId;
-                entry.UserName = PhCreateString2(&menuTextSr);
+                entry = PhCreateAlloc(sizeof(PHP_USERSMENU_ENTRY));
+                entry->SessionId = sessions[i].SessionId;
+                entry->UserName = PhCreateString2(&menuTextSr);
 
-                PhAddItemArray(&usersArrayList, &entry);
+                PhAddItemList(userSessionList, entry);
             }
         }
 
@@ -2348,16 +2349,16 @@ PPH_EMENU PhpCreateUsersMenu(
     }
 
     // Sort the users. (dmex)
-    qsort_s(usersArrayList.Items, usersArrayList.Count, usersArrayList.ItemSize, PhpUsersMainMenuNameCompare, NULL);
+    qsort_s(userSessionList->Items, userSessionList->Count, sizeof(PVOID), PhpUsersMainMenuNameCompare, NULL);
 
     // Update the users menu. (dmex)
-    for (i = 0; i < usersArrayList.Count; i++)
+    for (i = 0; i < userSessionList->Count; i++)
     {
         PPHP_USERSMENU_ENTRY entry;
         PPH_STRING escapedMenuText;
         PPH_EMENU_ITEM userMenu;
 
-        entry = PhItemArray(&usersArrayList, i);
+        entry = userSessionList->Items[i];
         escapedMenuText = PhEscapeStringForMenuPrefix(&entry->UserName->sr);
         userMenu = PhCreateEMenuItem(
             PH_EMENU_TEXT_OWNED,
@@ -2379,7 +2380,8 @@ PPH_EMENU PhpCreateUsersMenu(
         PhInsertEMenuItem(UsersMenu, userMenu, ULONG_MAX);
     }
 
-    PhDeleteArray(&usersArrayList);
+    PhDereferenceObjects(userSessionList->Items, userSessionList->Count);
+    PhDereferenceObject(userSessionList);
 
     return UsersMenu;
 }
