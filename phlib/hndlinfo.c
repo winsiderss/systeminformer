@@ -922,17 +922,50 @@ PPH_STRING PhStdGetClientIdNameEx(
     }
 
     // Combine everything
-    result = PhFormatString(
-        ClientId->UniqueThread ? L"%s%.*s (%lu): %s%.*s (%lu)" : L"%s%.*s (%lu)",
-        isProcessTerminated ? L"Terminated " : L"",
-        processNameRef.Length / sizeof(WCHAR),
-        processNameRef.Buffer,
-        HandleToUlong(ClientId->UniqueProcess),
-        isThreadTerminated ? L"terminated " : L"",
-        threadNameRef.Length / sizeof(WCHAR),
-        threadNameRef.Buffer,
-        HandleToUlong(ClientId->UniqueThread)
-        );
+
+    if (ClientId->UniqueThread)
+    {
+        PH_FORMAT format[10];
+
+        // L"%s%.*s (%lu): %s%.*s (%lu)"
+        PhInitFormatS(&format[0], isProcessTerminated ? L"Terminated " : L"");
+        PhInitFormatSR(&format[1], processNameRef);
+        PhInitFormatS(&format[2], L" (");
+        PhInitFormatU(&format[3], HandleToUlong(ClientId->UniqueProcess));
+        PhInitFormatS(&format[4], L"): ");
+        PhInitFormatS(&format[5], isThreadTerminated ? L"terminated " : L"");
+        PhInitFormatSR(&format[6], threadNameRef);
+        PhInitFormatS(&format[7], L" (");
+        PhInitFormatU(&format[8], HandleToUlong(ClientId->UniqueThread));
+        PhInitFormatC(&format[9], L')');
+
+        result = PhFormat(format, RTL_NUMBER_OF(format), 0x50);
+    }
+    else
+    {
+        PH_FORMAT format[5];
+
+        // L"%s%.*s (%lu)"
+        PhInitFormatS(&format[0], isProcessTerminated ? L"Terminated " : L"");
+        PhInitFormatSR(&format[1], processNameRef);
+        PhInitFormatS(&format[2], L" (");
+        PhInitFormatU(&format[3], HandleToUlong(ClientId->UniqueProcess));
+        PhInitFormatC(&format[4], L')');
+
+        result = PhFormat(format, RTL_NUMBER_OF(format), 0x50);
+    }
+
+    //result = PhFormatString(
+    //    ClientId->UniqueThread ? L"%s%.*s (%lu): %s%.*s (%lu)" : L"%s%.*s (%lu)",
+    //    isProcessTerminated ? L"Terminated " : L"",
+    //    processNameRef.Length / sizeof(WCHAR),
+    //    processNameRef.Buffer,
+    //    HandleToUlong(ClientId->UniqueProcess),
+    //    isThreadTerminated ? L"terminated " : L"",
+    //    threadNameRef.Length / sizeof(WCHAR),
+    //    threadNameRef.Buffer,
+    //    HandleToUlong(ClientId->UniqueThread)
+    //    );
 
     if (processName)
         PhDereferenceObject(processName);
