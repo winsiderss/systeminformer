@@ -360,7 +360,7 @@ VOID PhSetImageListBitmap(
 
 PHLIBAPI
 HICON PhLoadIcon(
-    _In_opt_ HINSTANCE InstanceHandle,
+    _In_opt_ PVOID ImageBaseAddress,
     _In_ PWSTR Name,
     _In_ ULONG Flags,
     _In_opt_ ULONG Width,

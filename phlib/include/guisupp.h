@@ -3,7 +3,7 @@
 
 typedef struct _PHP_ICON_ENTRY
 {
-    HINSTANCE InstanceHandle;
+    PVOID InstanceHandle;
     PWSTR Name;
     ULONG Width;
     ULONG Height;
