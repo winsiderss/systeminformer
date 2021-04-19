@@ -547,6 +547,30 @@ NTSTATUS PhGetMappedImageDataEntry(
     return STATUS_SUCCESS;
 }
 
+PVOID PhGetMappedImageDirectoryEntry(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ ULONG Index
+    )
+{
+    NTSTATUS status;
+    PIMAGE_DATA_DIRECTORY dataDirectory;
+
+    status = PhGetMappedImageDataEntry(
+        MappedImage,
+        Index,
+        &dataDirectory
+        );
+
+    if (!NT_SUCCESS(status))
+        return NULL;
+
+    return PhMappedImageRvaToVa(
+        MappedImage,
+        dataDirectory->VirtualAddress,
+        NULL
+        );
+}
+
 FORCEINLINE NTSTATUS PhpGetMappedImageLoadConfig(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ USHORT Magic,

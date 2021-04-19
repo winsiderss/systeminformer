@@ -144,6 +144,14 @@ PhGetMappedImageDataEntry(
     );
 
 PHLIBAPI
+PVOID
+NTAPI
+PhGetMappedImageDirectoryEntry(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ ULONG Index
+    );
+
+PHLIBAPI
 NTSTATUS
 NTAPI
 PhGetMappedImageLoadConfig32(
