@@ -1826,13 +1826,6 @@ BOOLEAN PhExtractIcon(
     return FALSE;
 }
 
-typedef struct _NEWHEADER
-{
-    USHORT Reserved;
-    USHORT ResourceType;
-    USHORT ResourceCount;
-} NEWHEADER, *PNEWHEADER;
-
 BOOLEAN PhLoadIconFromResourceDirectory(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ PIMAGE_RESOURCE_DIRECTORY ResourceDirectory,
@@ -1874,7 +1867,7 @@ BOOLEAN PhLoadIconFromResourceDirectory(
     resourceCount = nameDirectory->NumberOfIdEntries + nameDirectory->NumberOfNamedEntries;
     resourceName = PTR_ADD_OFFSET(nameDirectory, sizeof(IMAGE_RESOURCE_DIRECTORY));
 
-    if (ResourceIndex < 0) // RT_ICON
+    if (ResourceIndex < 0) // RT_ICON and DEVPKEY_DeviceClass_IconPath
     {
         for (resourceIndex = 0; resourceIndex < resourceCount; resourceIndex++)
         {
@@ -1925,6 +1918,15 @@ BOOLEAN PhLoadIconFromResourceDirectory(
     return TRUE;
 }
 
+// https://docs.microsoft.com/en-us/windows/win32/menurc/newheader
+// One or more RESDIR structures immediately follow the NEWHEADER structure.
+typedef struct _NEWHEADER
+{
+    USHORT Reserved;
+    USHORT ResourceType;
+    USHORT ResourceCount;
+} NEWHEADER, *PNEWHEADER;
+
 HICON PhCreateIconFromResourceDirectory(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ PVOID ResourceDirectory,
@@ -1961,9 +1963,15 @@ HICON PhCreateIconFromResourceDirectory(
         return NULL;
     }
 
-    if (((PBITMAPINFOHEADER)iconResourceBuffer)->biSize != sizeof(BITMAPINFOHEADER) &&
-        ((PBITMAPCOREHEADER)iconResourceBuffer)->bcSize != sizeof(BITMAPCOREHEADER))
+    if (
+        ((PBITMAPINFOHEADER)iconResourceBuffer)->biSize != sizeof(BITMAPINFOHEADER) &&
+        ((PBITMAPCOREHEADER)iconResourceBuffer)->bcSize != sizeof(BITMAPCOREHEADER) &&
+        ((PBITMAPCOREHEADER)iconResourceBuffer)->bcSize != MAKEFOURCC(137, 'P', 'N', 'G') &&
+        ((PBITMAPCOREHEADER)iconResourceBuffer)->bcSize != MAKEFOURCC('J', 'P', 'E', 'G')
+        )
     {
+        // CreateIconFromResourceEx seems to know what formats are supported so these
+        // size/format checks are probably redundant and not required?
         return NULL;
     }
 
@@ -1980,6 +1988,7 @@ HICON PhCreateIconFromResourceDirectory(
 
 // rev from PrivateExtractIconExW with some changes
 // for using SEC_COMMIT instead of SEC_IMAGE. (dmex)
+_Success_(return)
 BOOLEAN PhExtractIconEx(
     _In_ PPH_STRING FileName,
     _In_ BOOLEAN NativeFileName,
