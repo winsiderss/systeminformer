@@ -87,6 +87,14 @@ static ISecurityObjectTypeInfoExVtbl PhSecurityObjectTypeInfo_VTable3 =
     PhSecurityObjectTypeInfo_GetInheritSource
 };
 
+static IEffectivePermissionVtbl PhEffectivePermission_VTable =
+{
+    PhEffectivePermission_QueryInterface,
+    PhEffectivePermission_AddRef,
+    PhEffectivePermission_Release,
+    PhEffectivePermission_GetEffectivePermission
+};
+
 /**
  * Creates a security editor page.
  *
@@ -280,6 +288,18 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_QueryInterface(
             return S_OK;
         }
     }
+    else if (IsEqualGUID(Riid, &IID_IEffectivePermission))
+    {
+        PhEffectivePermission* info;
+
+        info = PhAllocateZero(sizeof(PhEffectivePermission));
+        info->VTable = &PhEffectivePermission_VTable;
+        info->Context = this;
+        info->RefCount = 1;
+
+        *Object = info;
+        return S_OK;
+    }
 
     *Object = NULL;
     return E_NOINTERFACE;
@@ -334,7 +354,7 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_GetObjectInformation(
     PhSecurityInformation *this = (PhSecurityInformation *)This;
 
     memset(ObjectInfo, 0, sizeof(SI_OBJECT_INFO));
-    ObjectInfo->dwFlags = SI_EDIT_ALL | SI_ADVANCED | (WindowsVersion >= WINDOWS_8 ? SI_VIEW_ONLY : 0);
+    ObjectInfo->dwFlags = SI_EDIT_ALL | SI_ADVANCED | (WindowsVersion >= WINDOWS_8 ? SI_VIEW_ONLY : 0) | SI_EDIT_EFFECTIVE;
     ObjectInfo->pszObjectName = PhGetString(this->ObjectName);
 
     if (PhEqualString2(this->ObjectType, L"FileObject", TRUE))
@@ -411,7 +431,7 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_GetSecurity(
     }
 
     sdLength = RtlLengthSecurityDescriptor(securityDescriptor);
-    newSd = LocalAlloc(0, sdLength);
+    newSd = LocalAlloc(LPTR, sdLength);
     memcpy(newSd, securityDescriptor, sdLength);
     PhFree(securityDescriptor);
 
@@ -1025,6 +1045,110 @@ HRESULT STDMETHODCALLTYPE PhSecurityObjectTypeInfo_GetInheritSource(
     }
 
     return HRESULT_FROM_WIN32(status);
+}
+
+// IEffectivePermission
+
+HRESULT STDMETHODCALLTYPE PhEffectivePermission_QueryInterface(
+    _In_ IEffectivePermission* This,
+    _In_ REFIID Riid,
+    _Out_ PVOID* Object
+    )
+{
+    if (
+        IsEqualIID(Riid, &IID_IUnknown) ||
+        IsEqualIID(Riid, &IID_IEffectivePermission)
+        )
+    {
+        PhEffectivePermission_AddRef(This);
+        *Object = This;
+        return S_OK;
+    }
+
+    *Object = NULL;
+    return E_NOINTERFACE;
+}
+
+ULONG STDMETHODCALLTYPE PhEffectivePermission_AddRef(
+    _In_ IEffectivePermission* This
+    )
+{
+    PhEffectivePermission* this = (PhEffectivePermission*)This;
+
+    this->RefCount++;
+
+    return this->RefCount;
+}
+
+ULONG STDMETHODCALLTYPE PhEffectivePermission_Release(
+    _In_ IEffectivePermission* This
+    )
+{
+    PhEffectivePermission* this = (PhEffectivePermission*)This;
+
+    this->RefCount--;
+
+    if (this->RefCount == 0)
+    {
+        PhFree(this);
+        return 0;
+    }
+
+    return this->RefCount;
+}
+
+HRESULT STDMETHODCALLTYPE PhEffectivePermission_GetEffectivePermission(
+    _In_ IEffectivePermission* This,
+    _In_ const GUID* GuidObjectType,
+    _In_ PSID UserSid,
+    _In_ LPCWSTR ServerName,
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
+    _Out_ POBJECT_TYPE_LIST* ObjectTypeList,
+    _Out_ PULONG ObjectTypeListLength,
+    _Out_ PACCESS_MASK* GrantedAccessList,
+    _Out_ PULONG GrantedAccessListLength
+    )
+{
+    ULONG status;
+    OBJECT_TYPE_LIST defaultObjectTypeList[1] = { 0 };
+    BOOLEAN present = FALSE;
+    BOOLEAN defaulted = FALSE;
+    PACL dacl = NULL;
+    PACCESS_MASK accessRights;
+    TRUSTEE trustee = { 0 };
+
+    status = RtlGetDaclSecurityDescriptor(
+        SecurityDescriptor,
+        &present,
+        &dacl,
+        &defaulted
+        );
+
+    if (!NT_SUCCESS(status))
+        return HRESULT_FROM_WIN32(PhNtStatusToDosError(status));
+    // Note: RtlGetDaclSecurityDescriptor returns success for security descriptors with a NULL dacl. (dmex)
+    if (NT_SUCCESS(status) && !dacl)
+        return HRESULT_FROM_WIN32(PhNtStatusToDosError(STATUS_INVALID_SECURITY_DESCR));
+
+    accessRights = (PACCESS_MASK)LocalAlloc(LPTR, sizeof(PACCESS_MASK) + sizeof(ACCESS_MASK));
+
+    if (!accessRights)
+        return S_FALSE;
+
+    BuildTrusteeWithSid(&trustee, UserSid);
+    status = GetEffectiveRightsFromAcl(dacl, &trustee, accessRights);
+
+    if (status != ERROR_SUCCESS)
+    {
+        LocalFree(accessRights);
+        return HRESULT_FROM_WIN32(status);
+    }
+
+    *ObjectTypeList = (POBJECT_TYPE_LIST)defaultObjectTypeList;
+    *ObjectTypeListLength = 1;
+    *GrantedAccessList = accessRights;
+    *GrantedAccessListLength = 1;
+    return S_OK;
 }
 
 NTSTATUS PhpGetObjectSecurityWithTimeout(

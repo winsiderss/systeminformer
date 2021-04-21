@@ -50,6 +50,13 @@ typedef struct
     PPH_LIST NameCache;
 } PhSecurityIDataObject;
 
+typedef struct
+{
+    IEffectivePermissionVtbl *VTable;
+
+    PhSecurityInformation *Context;
+    ULONG RefCount;
+} PhEffectivePermission;
 
 #undef INTERFACE
 #define INTERFACE   ISecurityObjectTypeInfoEx
@@ -293,6 +300,34 @@ HRESULT STDMETHODCALLTYPE PhSecurityObjectTypeInfo_GetInheritSource(
     _In_ SECURITY_INFORMATION SecurityInfo,
     _In_ PACL Acl,
     _Out_ PINHERITED_FROM *InheritArray
+    );
+
+// IEffectivePermission
+
+HRESULT STDMETHODCALLTYPE PhEffectivePermission_QueryInterface(
+    _In_ IEffectivePermission* This,
+    _In_ REFIID Riid,
+    _Out_ PVOID* Object
+    );
+
+ULONG STDMETHODCALLTYPE PhEffectivePermission_AddRef(
+    _In_ IEffectivePermission* This
+    );
+
+ULONG STDMETHODCALLTYPE PhEffectivePermission_Release(
+    _In_ IEffectivePermission* This
+    );
+
+HRESULT STDMETHODCALLTYPE PhEffectivePermission_GetEffectivePermission(
+    _In_ IEffectivePermission* This,
+    _In_ const GUID* GuidObjectType,
+    _In_ PSID UserSid,
+    _In_ LPCWSTR ServerName,
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
+    _Out_ POBJECT_TYPE_LIST* ObjectTypeList,
+    _Out_ PULONG ObjectTypeListLength,
+    _Out_ PACCESS_MASK* GrantedAccessList,
+    _Out_ PULONG GrantedAccessListLength
     );
 
 // Power policy (Todo: Move to better location) (dmex)
