@@ -915,6 +915,14 @@ PhQueryRegistryUlong(
     );
 
 PHLIBAPI
+ULONG
+NTAPI
+PhQueryRegistryUlongEx(
+    _In_ HANDLE KeyHandle,
+    _In_opt_ PPH_STRINGREF ValueName
+    );
+
+PHLIBAPI
 ULONG64
 NTAPI
 PhQueryRegistryUlong64(

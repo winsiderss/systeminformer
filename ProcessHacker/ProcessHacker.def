@@ -403,6 +403,7 @@ EXPORTS
     PhParseCommandLinePart
     PhQueryRegistryString
     PhQueryRegistryUlong
+    PhQueryRegistryUlongEx
     PhQueryRegistryUlong64
     PhReferenceObjects
     PhSetFileDialogFileName
