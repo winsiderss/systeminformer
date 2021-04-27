@@ -2399,6 +2399,8 @@ LRESULT CALLBACK PhpThemeWindowHeaderSubclassProc(
         {
             LRESULT result = CallWindowProc(oldWndProc, WindowHandle, uMsg, wParam, lParam);
 
+            context->MouseActive = FALSE;
+
             InvalidateRect(WindowHandle, NULL, TRUE);
 
             return result; 
