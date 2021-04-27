@@ -33,9 +33,15 @@ ULONG NTAPI ObjectDbHashFunction(
     _In_ PVOID Entry
     );
 
-PPH_HASHTABLE ObjectDb;
+PPH_STRING ObjectDbPath = NULL;
+PPH_HASHTABLE ObjectDb = NULL;
 PH_QUEUED_LOCK ObjectDbLock = PH_QUEUED_LOCK_INIT;
-PPH_STRING ObjectDbPath;
+PH_STRINGREF IfeoKeyPath = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\");
+PH_STRINGREF IfeoPerfOptionsKeyPath = PH_STRINGREF_INIT(L"\\PerfOptions");
+PH_STRINGREF IfeoPerfOptionsKeyName = PH_STRINGREF_INIT(L"PerfOptions");
+PH_STRINGREF IfeoCpuPriorityClassKeyName = PH_STRINGREF_INIT(L"CpuPriorityClass");
+PH_STRINGREF IfeoIoPriorityClassKeyName = PH_STRINGREF_INIT(L"IoPriority");
+PH_STRINGREF IfeoPagePriorityClassKeyName = PH_STRINGREF_INIT(L"PagePriority");
 
 VOID InitializeDb(
     VOID
@@ -76,6 +82,7 @@ ULONG GetNumberOfDbObjects(
     return ObjectDb->Count;
 }
 
+_Acquires_exclusive_lock_(ObjectDbLock)
 VOID LockDb(
     VOID
     )
@@ -83,6 +90,7 @@ VOID LockDb(
     PhAcquireQueuedLockExclusive(&ObjectDbLock);
 }
 
+_Releases_exclusive_lock_(ObjectDbLock)
 VOID UnlockDb(
     VOID
     )
@@ -411,17 +419,23 @@ NTSTATUS SaveDb(
     return status;
 }
 
-PIFEO_OBJECT FindIfeoObject(
-    _In_ PPH_STRINGREF Name
+BOOLEAN FindIfeoObject(
+    _In_ PPH_STRINGREF Name,
+    _Out_opt_ PULONG CpuPriorityClass,
+    _Out_opt_ PULONG IoPriorityClass,
+    _Out_opt_ PULONG PagePriorityClass
     )
 {
-    static PH_STRINGREF ifeoKeyPath = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\");
-    static PH_STRINGREF ifeoPerfOptionsKeyPath = PH_STRINGREF_INIT(L"\\PerfOptions");
-    PIFEO_OBJECT object = NULL;
+    BOOLEAN status = FALSE;
+    ULONG value;
     HANDLE keyHandle;
     PPH_STRING keyPath;
 
-    keyPath = PhConcatStringRef3(&ifeoKeyPath, Name, &ifeoPerfOptionsKeyPath);
+    keyPath = PhConcatStringRef3(
+        &IfeoKeyPath,
+        Name,
+        &IfeoPerfOptionsKeyPath
+        );
 
     if (NT_SUCCESS(PhOpenKey(
         &keyHandle,
@@ -431,17 +445,36 @@ PIFEO_OBJECT FindIfeoObject(
         0
         )))
     {
-        object = PhAllocateZero(sizeof(IFEO_OBJECT));
-        object->PriorityClass = PhQueryRegistryUlong(keyHandle, L"CpuPriorityClass");
-        object->IoPriorityClass = PhQueryRegistryUlong(keyHandle, L"IoPriority");
-        object->PagePriorityClass = PhQueryRegistryUlong(keyHandle, L"PagePriority");
+        if (CpuPriorityClass)
+        {
+            if (status = ((value = PhQueryRegistryUlongEx(keyHandle, &IfeoCpuPriorityClassKeyName)) != ULONG_MAX))
+            {
+                *CpuPriorityClass = value;
+            }
+        }
+
+        if (IoPriorityClass)
+        {
+            if (status = ((value = PhQueryRegistryUlongEx(keyHandle, &IfeoIoPriorityClassKeyName)) != ULONG_MAX))
+            {
+                *IoPriorityClass = value;
+            }
+        }
+
+        if (PagePriorityClass)
+        {
+            if (status = ((value = PhQueryRegistryUlongEx(keyHandle, &IfeoPagePriorityClassKeyName)) != ULONG_MAX))
+            {
+                *PagePriorityClass = value;
+            }
+        }
 
         NtClose(keyHandle);
     }
 
     PhDereferenceObject(keyPath);
 
-    return object;
+    return status;
 }
 
 NTSTATUS CreateIfeoObject(
@@ -451,15 +484,13 @@ NTSTATUS CreateIfeoObject(
     _In_ ULONG PagePriorityClass
     )
 {
-    static PH_STRINGREF ifeoKeyPath = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\");
-    static PH_STRINGREF ifeoPerfOptionsKeyPath = PH_STRINGREF_INIT(L"PerfOptions");
     NTSTATUS status;
     HANDLE keyRootHandle;
     HANDLE keyHandle;
     PPH_STRING keyPath;
 
     keyPath = PhConcatStringRef2(
-        &ifeoKeyPath,
+        &IfeoKeyPath,
         Name
         );
 
@@ -474,13 +505,16 @@ NTSTATUS CreateIfeoObject(
         );
 
     if (!NT_SUCCESS(status))
+    {
+        PhDereferenceObject(keyPath);
         return status;
+    }
 
     status = PhCreateKey(
         &keyHandle,
         KEY_WRITE,
         keyRootHandle,
-        &ifeoPerfOptionsKeyPath,
+        &IfeoPerfOptionsKeyName,
         OBJ_OPENIF,
         0,
         NULL
@@ -488,15 +522,11 @@ NTSTATUS CreateIfeoObject(
 
     if (NT_SUCCESS(status))
     {
-        static PH_STRINGREF ifeoCpuPriorityClassKeyPath = PH_STRINGREF_INIT(L"CpuPriorityClass");
-        static PH_STRINGREF ifeoIoPriorityClassKeyPath = PH_STRINGREF_INIT(L"IoPriority");
-        static PH_STRINGREF ifeoPagePriorityClassKeyPath = PH_STRINGREF_INIT(L"PagePriority");
-
         if (CpuPriorityClass != ULONG_MAX)
         {
             status = PhSetValueKey(
                 keyHandle,
-                &ifeoCpuPriorityClassKeyPath,
+                &IfeoCpuPriorityClassKeyName,
                 REG_DWORD,
                 &CpuPriorityClass,
                 sizeof(ULONG)
@@ -507,7 +537,7 @@ NTSTATUS CreateIfeoObject(
         {
             status = PhSetValueKey(
                 keyHandle,
-                &ifeoIoPriorityClassKeyPath,
+                &IfeoIoPriorityClassKeyName,
                 REG_DWORD,
                 &IoPriorityClass,
                 sizeof(ULONG)
@@ -518,7 +548,7 @@ NTSTATUS CreateIfeoObject(
         {
             status = PhSetValueKey(
                 keyHandle,
-                &ifeoPagePriorityClassKeyPath,
+                &IfeoPagePriorityClassKeyName,
                 REG_DWORD,
                 &PagePriorityClass,
                 sizeof(ULONG)
@@ -541,18 +571,16 @@ NTSTATUS DeleteIfeoObject(
     _In_ ULONG PagePriorityClass
     )
 {
-    static PH_STRINGREF ifeoKeyPath = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\");
-    static PH_STRINGREF ifeoPerfOptionsKeyPath = PH_STRINGREF_INIT(L"PerfOptions");
     NTSTATUS status;
     HANDLE keyRootHandle;
     HANDLE keyHandle;
+    PPH_STRING keyPath;
     ULONG priorityClass = 0;
     ULONG ioPriorityClass = 0;
     ULONG pagePriorityClass = 0;
-    PPH_STRING keyPath;
 
     keyPath = PhConcatStringRef2(
-        &ifeoKeyPath,
+        &IfeoKeyPath,
         Name
         );
 
@@ -567,40 +595,39 @@ NTSTATUS DeleteIfeoObject(
         );
 
     if (!NT_SUCCESS(status))
+    {
+        PhDereferenceObject(keyPath);
         return status;
+    }
 
     status = PhOpenKey(
         &keyHandle,
         KEY_READ | KEY_WRITE | DELETE,
         keyRootHandle,
-        &ifeoPerfOptionsKeyPath,
+        &IfeoPerfOptionsKeyName,
         0
         );
 
     if (NT_SUCCESS(status))
     {
-        static PH_STRINGREF ifeoCpuPriorityClassKeyPath = PH_STRINGREF_INIT(L"CpuPriorityClass");
-        static PH_STRINGREF ifeoIoPriorityClassKeyPath = PH_STRINGREF_INIT(L"IoPriority");
-        static PH_STRINGREF ifeoPagePriorityClassKeyPath = PH_STRINGREF_INIT(L"PagePriority");
-
         if (CpuPriorityClass != ULONG_MAX)
         {
-            status = PhDeleteValueKey(keyHandle, &ifeoCpuPriorityClassKeyPath);
+            status = PhDeleteValueKey(keyHandle, &IfeoCpuPriorityClassKeyName);
         }
 
         if (IoPriorityClass != ULONG_MAX)
         {
-            status = PhDeleteValueKey(keyHandle, &ifeoIoPriorityClassKeyPath);
+            status = PhDeleteValueKey(keyHandle, &IfeoIoPriorityClassKeyName);
         }
 
         if (PagePriorityClass != ULONG_MAX)
         {
-            status = PhDeleteValueKey(keyHandle, &ifeoPagePriorityClassKeyPath);
+            status = PhDeleteValueKey(keyHandle, &IfeoPagePriorityClassKeyName);
         }
 
-        priorityClass = PhQueryRegistryUlong(keyHandle, L"CpuPriorityClass");
-        ioPriorityClass = PhQueryRegistryUlong(keyHandle, L"IoPriority");
-        pagePriorityClass = PhQueryRegistryUlong(keyHandle, L"PagePriority");
+        priorityClass = PhQueryRegistryUlongEx(keyHandle, &IfeoCpuPriorityClassKeyName);
+        ioPriorityClass = PhQueryRegistryUlongEx(keyHandle, &IfeoIoPriorityClassKeyName);
+        pagePriorityClass = PhQueryRegistryUlongEx(keyHandle, &IfeoPagePriorityClassKeyName);
 
         if (
             priorityClass == ULONG_MAX &&

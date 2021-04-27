@@ -280,7 +280,7 @@ ULONG GetPriorityClassFromId(
         return PROCESS_PRIORITY_CLASS_IDLE;
     }
 
-    return 0;
+    return PROCESS_PRIORITY_CLASS_UNKNOWN;
 }
 
 ULONG GetIoPriorityFromId(
@@ -290,13 +290,13 @@ ULONG GetIoPriorityFromId(
     switch (Id)
     {
     case PHAPP_ID_IOPRIORITY_VERYLOW:
-        return 0;
+        return IoPriorityVeryLow;
     case PHAPP_ID_IOPRIORITY_LOW:
-        return 1;
+        return IoPriorityLow;
     case PHAPP_ID_IOPRIORITY_NORMAL:
-        return 2;
+        return IoPriorityNormal;
     case PHAPP_ID_IOPRIORITY_HIGH:
-        return 3;
+        return IoPriorityHigh;
     }
 
     return ULONG_MAX;
@@ -320,7 +320,7 @@ ULONG GetPagePriorityFromId(
         return MEMORY_PRIORITY_NORMAL;
     }
 
-    return 0;
+    return ULONG_MAX;
 }
 
 VOID NTAPI LoadCallback(
@@ -393,6 +393,427 @@ VOID NTAPI ShowOptionsCallback(
         );
 }
 
+typedef struct _USERNOTES_TASK_IFEO_CONTEXT
+{
+    HWND WindowHandle;
+    PPH_PROCESS_ITEM ProcessItem;
+    PPH_STRING StatusMessage;
+    ULONG RadioButton;
+    USERNOTES_COMMAND_ID MenuCommand;
+} USERNOTES_TASK_IFEO_CONTEXT, *PUSERNOTES_TASK_IFEO_CONTEXT;
+
+HRESULT CALLBACK TaskDialogBootstrapCallback(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam,
+    _In_ LONG_PTR dwRefData
+    )
+{
+    PUSERNOTES_TASK_IFEO_CONTEXT context = (PUSERNOTES_TASK_IFEO_CONTEXT)dwRefData;
+
+    switch (uMsg)
+    {
+    case TDN_CREATED:
+        {
+            context->WindowHandle = hwndDlg;
+
+            PhSetApplicationWindowIcon(hwndDlg);
+        }
+        break;
+    case TDN_BUTTON_CLICKED:
+        {
+            ULONG buttonId = (ULONG)wParam;
+
+            if (buttonId == IDYES)
+            {
+                if (context->RadioButton == ULONG_MAX)
+                    return S_FALSE;
+
+                if (context->MenuCommand == PROCESS_PRIORITY_SAVE_IFEO)
+                {
+                    NTSTATUS status;
+                    ULONG newPriorityClass;
+
+                    newPriorityClass = GetPriorityClassFromId(context->RadioButton);
+
+                    if (newPriorityClass != PROCESS_PRIORITY_CLASS_UNKNOWN)
+                    {
+                        status = CreateIfeoObject(
+                            &context->ProcessItem->ProcessName->sr,
+                            newPriorityClass,
+                            ULONG_MAX,
+                            ULONG_MAX
+                            );
+
+                        if (!NT_SUCCESS(status))
+                        {
+                            TASKDIALOGCONFIG config;
+
+                            memset(&config, 0, sizeof(TASKDIALOGCONFIG));
+                            config.cbSize = sizeof(TASKDIALOGCONFIG);
+                            config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_POSITION_RELATIVE_TO_WINDOW;
+                            config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
+                            config.pszMainIcon = TD_ERROR_ICON;
+                            config.pszWindowTitle = L"Process Hacker";
+                            config.pszMainInstruction = L"Unable to update the IFEO key for priority.";
+                            config.cxWidth = 200;
+
+                            if (context->StatusMessage = PhGetStatusMessage(status, 0))
+                            {
+                                config.pszContent = PhGetString(context->StatusMessage);
+                            }
+
+                            SendMessage(hwndDlg, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
+                            return S_FALSE;
+                        }
+                    }
+                    else
+                    {
+                        return S_FALSE;
+                    }
+                }
+                else if (context->MenuCommand == PROCESS_IO_PRIORITY_SAVE_IFEO)
+                {
+                    NTSTATUS status;
+                    ULONG newIoPriorityClass;
+
+                    newIoPriorityClass = GetIoPriorityFromId(context->RadioButton);
+
+                    if (newIoPriorityClass != ULONG_MAX)
+                    {
+                        status = CreateIfeoObject(
+                            &context->ProcessItem->ProcessName->sr,
+                            ULONG_MAX,
+                            newIoPriorityClass,
+                            ULONG_MAX
+                            );
+
+                        if (!NT_SUCCESS(status))
+                        {
+                            TASKDIALOGCONFIG config;
+
+                            memset(&config, 0, sizeof(TASKDIALOGCONFIG));
+                            config.cbSize = sizeof(TASKDIALOGCONFIG);
+                            config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_POSITION_RELATIVE_TO_WINDOW;
+                            config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
+                            config.pszMainIcon = TD_ERROR_ICON;
+                            config.pszWindowTitle = L"Process Hacker";
+                            config.pszMainInstruction = L"Unable to update the IFEO key for priority.";
+                            config.cxWidth = 200;
+
+                            if (context->StatusMessage = PhGetStatusMessage(status, 0))
+                            {
+                                config.pszContent = PhGetString(context->StatusMessage);
+                            }
+
+                            SendMessage(hwndDlg, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
+                            return S_FALSE;
+                        }
+                    }
+                    else
+                    {
+                        return S_FALSE;
+                    }
+                }
+                else if (context->MenuCommand == PROCESS_PAGE_PRIORITY_SAVE_IFEO)
+                {
+                    NTSTATUS status;
+                    ULONG newPagePriority;
+
+                    newPagePriority = GetPagePriorityFromId(context->RadioButton);
+
+                    if (newPagePriority != ULONG_MAX)
+                    {
+                        status = CreateIfeoObject(
+                            &context->ProcessItem->ProcessName->sr,
+                            ULONG_MAX,
+                            ULONG_MAX,
+                            newPagePriority
+                            );
+
+                        if (!NT_SUCCESS(status))
+                        {
+                            TASKDIALOGCONFIG config;
+
+                            memset(&config, 0, sizeof(TASKDIALOGCONFIG));
+                            config.cbSize = sizeof(TASKDIALOGCONFIG);
+                            config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_POSITION_RELATIVE_TO_WINDOW;
+                            config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
+                            config.pszMainIcon = TD_ERROR_ICON;
+                            config.pszWindowTitle = L"Process Hacker";
+                            config.pszMainInstruction = L"Unable to update the IFEO key for priority.";
+                            config.cxWidth = 200;
+
+                            if (context->StatusMessage = PhGetStatusMessage(status, 0))
+                            {
+                                config.pszContent = PhGetString(context->StatusMessage);
+                            }
+
+                            SendMessage(hwndDlg, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
+                            return S_FALSE;
+                        }
+                    }
+                    else
+                    {
+                        return S_FALSE;
+                    }
+                }
+            }
+        }
+        break;
+    case TDN_RADIO_BUTTON_CLICKED:
+        {
+            context->RadioButton = (ULONG)wParam;
+        }
+        break;
+    }
+
+    return S_OK;
+}
+
+VOID ShowProcessPriorityDialog(
+    _In_ PPH_PLUGIN_MENU_ITEM MenuItem,
+    _In_ PPH_PROCESS_ITEM ProcessItem
+    )
+{
+    static TASKDIALOG_BUTTON TaskDialogRadioButtonArray[] =
+    {
+        { PHAPP_ID_PRIORITY_REALTIME, L"Realtime" },
+        { PHAPP_ID_PRIORITY_HIGH, L"High" },
+        { PHAPP_ID_PRIORITY_ABOVENORMAL, L"Above normal" },
+        { PHAPP_ID_PRIORITY_NORMAL, L"Normal" },
+        { PHAPP_ID_PRIORITY_BELOWNORMAL, L"Below normal" },
+        { PHAPP_ID_PRIORITY_IDLE, L"Idle" },
+    };
+    static TASKDIALOG_BUTTON TaskDialogButtonArray[] =
+    {
+        { IDYES, L"Save" },
+        { IDCANCEL, L"Cancel" },
+    };
+    PUSERNOTES_TASK_IFEO_CONTEXT context;
+    TASKDIALOGCONFIG config;
+    ULONG priorityClass;
+
+    context = PhAllocateZero(sizeof(USERNOTES_TASK_IFEO_CONTEXT));
+    context->RadioButton = ULONG_MAX;
+    context->MenuCommand = MenuItem->Id;
+    context->ProcessItem = ProcessItem;
+
+    memset(&config, 0, sizeof(TASKDIALOGCONFIG));
+    config.cbSize = sizeof(TASKDIALOGCONFIG);
+    config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_ENABLE_HYPERLINKS | TDF_POSITION_RELATIVE_TO_WINDOW;
+    config.hMainIcon = PhGetApplicationIcon(FALSE);
+    config.pszWindowTitle = PhGetString(ProcessItem->ProcessName);
+    config.pszMainInstruction = L"Select the default process priority.";
+    config.pszContent = L"The process priority will be applied by Windows even when Process Hacker isn't currently running. "
+    L"Note: Realtime priority requires the User has the SeIncreaseBasePriorityPrivilege or the process running as Administrator.";
+    config.nDefaultButton = IDCANCEL;
+    config.pRadioButtons = TaskDialogRadioButtonArray;
+    config.cRadioButtons = RTL_NUMBER_OF(TaskDialogRadioButtonArray);
+    config.pButtons = TaskDialogButtonArray;
+    config.cButtons = RTL_NUMBER_OF(TaskDialogButtonArray);
+    config.hwndParent = MenuItem->OwnerWindow;
+    config.lpCallbackData = (LONG_PTR)context;
+    config.pfCallback = TaskDialogBootstrapCallback;
+    config.cxWidth = 200;
+
+    if (FindIfeoObject(&ProcessItem->ProcessName->sr, &priorityClass, NULL, NULL))
+    {
+        switch (priorityClass)
+        {
+        case PROCESS_PRIORITY_CLASS_REALTIME:
+            config.nDefaultRadioButton = PHAPP_ID_PRIORITY_REALTIME;
+            break;
+        case PROCESS_PRIORITY_CLASS_HIGH:
+            config.nDefaultRadioButton = PHAPP_ID_PRIORITY_HIGH;
+            break;
+        case PROCESS_PRIORITY_CLASS_ABOVE_NORMAL:
+            config.nDefaultRadioButton = PHAPP_ID_PRIORITY_ABOVENORMAL;
+            break;
+        case PROCESS_PRIORITY_CLASS_NORMAL:
+            config.nDefaultRadioButton = PHAPP_ID_PRIORITY_NORMAL;
+            break;
+        case PROCESS_PRIORITY_CLASS_BELOW_NORMAL:
+            config.nDefaultRadioButton = PHAPP_ID_PRIORITY_BELOWNORMAL;
+            break;
+        case PROCESS_PRIORITY_CLASS_IDLE:
+            config.nDefaultRadioButton = PHAPP_ID_PRIORITY_IDLE;
+            break;
+        default:
+            //config.dwFlags |= TDF_NO_DEFAULT_RADIO_BUTTON;
+            config.nDefaultRadioButton = PHAPP_ID_PRIORITY_NORMAL;
+            break;
+        }
+    }
+    else
+    {
+        //config.dwFlags |= TDF_NO_DEFAULT_RADIO_BUTTON;
+        config.nDefaultRadioButton = PHAPP_ID_PRIORITY_NORMAL;
+    }
+
+    TaskDialogIndirect(&config, NULL, NULL, NULL);
+
+    PhFree(context);
+}
+
+VOID ShowProcessIoPriorityDialog(
+    _In_ PPH_PLUGIN_MENU_ITEM MenuItem,
+    _In_ PPH_PROCESS_ITEM ProcessItem
+    )
+{
+    static TASKDIALOG_BUTTON TaskDialogRadioButtonArray[] =
+    {
+        { PHAPP_ID_IOPRIORITY_HIGH , L"High" },
+        { PHAPP_ID_IOPRIORITY_NORMAL, L"Normal" },
+        { PHAPP_ID_IOPRIORITY_LOW , L"Low" },
+        { PHAPP_ID_IOPRIORITY_VERYLOW, L"Very low" },
+    };
+    static TASKDIALOG_BUTTON TaskDialogButtonArray[] =
+    {
+        { IDYES, L"Save" },
+        { IDCANCEL, L"Cancel" },
+    };
+    PUSERNOTES_TASK_IFEO_CONTEXT context;
+    TASKDIALOGCONFIG config;
+    ULONG ioPriorityClass;
+
+    context = PhAllocateZero(sizeof(USERNOTES_TASK_IFEO_CONTEXT));
+    context->RadioButton = ULONG_MAX;
+    context->MenuCommand = MenuItem->Id;
+    context->ProcessItem = ProcessItem;
+
+    memset(&config, 0, sizeof(TASKDIALOGCONFIG));
+    config.cbSize = sizeof(TASKDIALOGCONFIG);
+    config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_ENABLE_HYPERLINKS | TDF_POSITION_RELATIVE_TO_WINDOW;
+    config.hMainIcon = PhGetApplicationIcon(FALSE);
+    config.pszWindowTitle = PhGetString(ProcessItem->ProcessName);
+    config.pszMainInstruction = L"Select the default process IO priority.";
+    config.pszContent = L"The IO priority will be applied by Windows even when Process Hacker isn't currently running. "
+    L"Note: High IO priority requires the User has the SeIncreaseBasePriorityPrivilege or the process running as Administrator.";
+    config.nDefaultButton = IDCANCEL;
+    config.pRadioButtons = TaskDialogRadioButtonArray;
+    config.cRadioButtons = RTL_NUMBER_OF(TaskDialogRadioButtonArray);
+    config.pButtons = TaskDialogButtonArray;
+    config.cButtons = RTL_NUMBER_OF(TaskDialogButtonArray);
+    config.hwndParent = MenuItem->OwnerWindow;
+    config.lpCallbackData = (LONG_PTR)context;
+    config.pfCallback = TaskDialogBootstrapCallback;
+    config.cxWidth = 200;
+
+    if (FindIfeoObject(&ProcessItem->ProcessName->sr, NULL, &ioPriorityClass, NULL))
+    {
+        switch (ioPriorityClass)
+        {
+        case IoPriorityVeryLow:
+            config.nDefaultRadioButton = PHAPP_ID_IOPRIORITY_VERYLOW;
+            break;
+        case IoPriorityLow:
+            config.nDefaultRadioButton = PHAPP_ID_IOPRIORITY_LOW;
+            break;
+        case IoPriorityNormal:
+            config.nDefaultRadioButton = PHAPP_ID_IOPRIORITY_NORMAL;
+            break;
+        case IoPriorityHigh:
+            config.nDefaultRadioButton = PHAPP_ID_IOPRIORITY_HIGH;
+            break;
+        default:
+            //config.dwFlags |= TDF_NO_DEFAULT_RADIO_BUTTON;
+            config.nDefaultRadioButton = PHAPP_ID_IOPRIORITY_NORMAL;
+            break;
+        }
+    }
+    else
+    {
+        //config.dwFlags |= TDF_NO_DEFAULT_RADIO_BUTTON;
+        config.nDefaultRadioButton = PHAPP_ID_IOPRIORITY_NORMAL;
+    }
+
+    TaskDialogIndirect(&config, NULL, NULL, NULL);
+
+    PhFree(context);
+}
+
+VOID ShowProcessPagePriorityDialog(
+    _In_ PPH_PLUGIN_MENU_ITEM MenuItem,
+    _In_ PPH_PROCESS_ITEM ProcessItem
+    )
+{
+    static TASKDIALOG_BUTTON TaskDialogRadioButtonArray[] =
+    {
+        { PHAPP_ID_PAGEPRIORITY_NORMAL, L"Normal" },
+        { PHAPP_ID_PAGEPRIORITY_BELOWNORMAL, L"Below normal" },
+        { PHAPP_ID_PAGEPRIORITY_MEDIUM, L"Medium" },
+        { PHAPP_ID_PAGEPRIORITY_LOW , L"Low" },
+        { PHAPP_ID_PAGEPRIORITY_VERYLOW, L"Very low" },
+    };
+    static TASKDIALOG_BUTTON TaskDialogButtonArray[] =
+    {
+        { IDYES, L"Save" },
+        { IDCANCEL, L"Cancel" },
+    };
+    PUSERNOTES_TASK_IFEO_CONTEXT context;
+    TASKDIALOGCONFIG config;
+    ULONG pagePriorityClass;
+
+    context = PhAllocateZero(sizeof(USERNOTES_TASK_IFEO_CONTEXT));
+    context->RadioButton = ULONG_MAX;
+    context->MenuCommand = MenuItem->Id;
+    context->ProcessItem = ProcessItem;
+
+    memset(&config, 0, sizeof(TASKDIALOGCONFIG));
+    config.cbSize = sizeof(TASKDIALOGCONFIG);
+    config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_ENABLE_HYPERLINKS | TDF_POSITION_RELATIVE_TO_WINDOW;
+    config.hMainIcon = PhGetApplicationIcon(FALSE);
+    config.pszWindowTitle = PhGetString(ProcessItem->ProcessName);
+    config.pszMainInstruction = L"Select the default process page priority.";
+    config.pszContent = L"The page priority will be applied by Windows even when Process Hacker isn't currently running.";
+    config.nDefaultButton = IDCANCEL;
+    config.pRadioButtons = TaskDialogRadioButtonArray;
+    config.cRadioButtons = RTL_NUMBER_OF(TaskDialogRadioButtonArray);
+    config.pButtons = TaskDialogButtonArray;
+    config.cButtons = RTL_NUMBER_OF(TaskDialogButtonArray);
+    config.hwndParent = MenuItem->OwnerWindow;
+    config.lpCallbackData = (LONG_PTR)context;
+    config.pfCallback = TaskDialogBootstrapCallback;
+    config.cxWidth = 200;
+
+    if (FindIfeoObject(&ProcessItem->ProcessName->sr, NULL, NULL, &pagePriorityClass))
+    {
+        switch (pagePriorityClass)
+        {
+        case MEMORY_PRIORITY_VERY_LOW:
+            config.nDefaultRadioButton = PHAPP_ID_PAGEPRIORITY_VERYLOW;
+            break;
+        case MEMORY_PRIORITY_LOW:
+            config.nDefaultRadioButton = PHAPP_ID_PAGEPRIORITY_LOW;
+            break;
+        case MEMORY_PRIORITY_MEDIUM:
+            config.nDefaultRadioButton = PHAPP_ID_PAGEPRIORITY_MEDIUM;
+            break;
+        case MEMORY_PRIORITY_BELOW_NORMAL:
+            config.nDefaultRadioButton = PHAPP_ID_PAGEPRIORITY_BELOWNORMAL;
+            break;
+        case MEMORY_PRIORITY_NORMAL:
+            config.nDefaultRadioButton = PHAPP_ID_PAGEPRIORITY_NORMAL;
+            break;
+        default:
+            //config.dwFlags |= TDF_NO_DEFAULT_RADIO_BUTTON;
+            config.nDefaultRadioButton = PHAPP_ID_PAGEPRIORITY_NORMAL;
+            break;
+        }
+    }
+    else
+    {
+        //config.dwFlags |= TDF_NO_DEFAULT_RADIO_BUTTON;
+        config.nDefaultRadioButton = PHAPP_ID_PAGEPRIORITY_NORMAL;
+    }
+
+    TaskDialogIndirect(&config, NULL, NULL, NULL);
+
+    PhFree(context);
+}
+
 VOID NTAPI MenuItemCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -452,21 +873,28 @@ VOID NTAPI MenuItemCallback(
         break;
     case PROCESS_PRIORITY_SAVE_IFEO:
         {
-            NTSTATUS status = STATUS_SUCCESS;
-            PIFEO_OBJECT objectIfeo;
+            ULONG priorityClass;
 
-            if ((objectIfeo = FindIfeoObject(&processItem->ProcessName->sr)) && objectIfeo->PriorityClass != ULONG_MAX)
+            if (FindIfeoObject(&processItem->ProcessName->sr, &priorityClass, NULL, NULL))
             {
-                status = DeleteIfeoObject(&processItem->ProcessName->sr, processItem->PriorityClass, ULONG_MAX, ULONG_MAX);
+                NTSTATUS status;
+
+                status = DeleteIfeoObject(
+                    &processItem->ProcessName->sr,
+                    priorityClass,
+                    ULONG_MAX,
+                    ULONG_MAX
+                    );
+
+                if (!NT_SUCCESS(status))
+                {
+                    PhShowStatus(menuItem->OwnerWindow, L"Unable to update the IFEO key for process priority.", status, 0);
+                }
             }
             else
             {
-                status = CreateIfeoObject(&processItem->ProcessName->sr, processItem->PriorityClass, ULONG_MAX, ULONG_MAX);
-            }
-
-            if (!NT_SUCCESS(status))
-            {
-                PhShowStatus(menuItem->OwnerWindow, L"Unable to update the IFEO key for process priority.", status, 0);
+                ShowProcessPriorityDialog(menuItem, processItem);
+                //status = CreateIfeoObject(&processItem->ProcessName->sr, processItem->PriorityClass, ULONG_MAX, ULONG_MAX);
             }
         }
         break;
@@ -525,26 +953,33 @@ VOID NTAPI MenuItemCallback(
         break;
     case PROCESS_IO_PRIORITY_SAVE_IFEO:
         {
-            NTSTATUS status = STATUS_SUCCESS;
-            PIFEO_OBJECT objectIfeo;
+            ULONG ioPriorityClass;
 
-            if ((objectIfeo = FindIfeoObject(&processItem->ProcessName->sr)) && objectIfeo->IoPriorityClass != ULONG_MAX)
+            if (FindIfeoObject(&processItem->ProcessName->sr, NULL, &ioPriorityClass, NULL))
             {
-                status = DeleteIfeoObject(&processItem->ProcessName->sr, ULONG_MAX, objectIfeo->IoPriorityClass, ULONG_MAX);
+                NTSTATUS status;
+
+                status = DeleteIfeoObject(
+                    &processItem->ProcessName->sr,
+                    ULONG_MAX,
+                    ioPriorityClass,
+                    ULONG_MAX
+                    );
+
+                if (!NT_SUCCESS(status))
+                {
+                    PhShowStatus(menuItem->OwnerWindow, L"Unable to update the IFEO key for process IO priority.", status, 0);
+                }
             }
             else
             {
-                IO_PRIORITY_HINT ioPriorityClass;
-
-                if ((ioPriorityClass = GetProcessIoPriority(processItem->ProcessId)) != ULONG_MAX)
-                {
-                    status = CreateIfeoObject(&processItem->ProcessName->sr, ULONG_MAX, ioPriorityClass, ULONG_MAX);
-                }
-            }
-
-            if (!NT_SUCCESS(status))
-            {
-                PhShowStatus(menuItem->OwnerWindow, L"Unable to update the IFEO key for process IO priority.", status, 0);
+                ShowProcessIoPriorityDialog(menuItem, processItem);
+                //IO_PRIORITY_HINT ioPriorityClass;
+                //
+                //if ((ioPriorityClass = GetProcessIoPriority(processItem->ProcessId)) != ULONG_MAX)
+                //{
+                //    status = CreateIfeoObject(&processItem->ProcessName->sr, ULONG_MAX, ioPriorityClass, ULONG_MAX);
+                //}
             }
         }
         break;
@@ -725,26 +1160,31 @@ VOID NTAPI MenuItemCallback(
         break;
     case PROCESS_PAGE_PRIORITY_SAVE_IFEO:
         {
-            NTSTATUS status = STATUS_SUCCESS;
-            PIFEO_OBJECT objectIfeo;
+            ULONG pagePriorityClass;
 
-            if ((objectIfeo = FindIfeoObject(&processItem->ProcessName->sr)) && objectIfeo->PagePriorityClass != ULONG_MAX)
+            if (FindIfeoObject(&processItem->ProcessName->sr, NULL, NULL, &pagePriorityClass))
             {
-                status = DeleteIfeoObject(&processItem->ProcessName->sr, ULONG_MAX, ULONG_MAX, objectIfeo->PagePriorityClass);
+                NTSTATUS status;
+
+                status = DeleteIfeoObject(
+                    &processItem->ProcessName->sr,
+                    ULONG_MAX,
+                    ULONG_MAX,
+                    pagePriorityClass
+                    );
+
+                if (!NT_SUCCESS(status))
+                {
+                    PhShowStatus(menuItem->OwnerWindow, L"Unable to update the IFEO key for process page priority.", status, 0);
+                }
             }
             else
             {
-                ULONG pagePriorityClass;
-
-                if ((pagePriorityClass = GetProcessPagePriority(processItem->ProcessId)) != ULONG_MAX)
-                {
-                    status = CreateIfeoObject(&processItem->ProcessName->sr, ULONG_MAX, ULONG_MAX, pagePriorityClass);
-                }
-            }
-
-            if (!NT_SUCCESS(status))
-            {
-                PhShowStatus(menuItem->OwnerWindow, L"Unable to update the IFEO key for process page priority.", status, 0);
+                ShowProcessPagePriorityDialog(menuItem, processItem);
+                //if ((pagePriorityClass = GetProcessPagePriority(processItem->ProcessId)) != ULONG_MAX)
+                //{
+                //    status = CreateIfeoObject(&processItem->ProcessName->sr, ULONG_MAX, ULONG_MAX, pagePriorityClass);
+                //}
             }
         }
         break;
@@ -786,7 +1226,6 @@ VOID NTAPI MenuHookCallback(
             for (i = 0; i < numberOfProcesses; i++)
             {
                 PDB_OBJECT object;
-                PIFEO_OBJECT objectIfeo;
 
                 if (object = FindDbObjectForProcess(processes[i], INTENT_PROCESS_PRIORITY_CLASS))
                 {
@@ -797,25 +1236,6 @@ VOID NTAPI MenuHookCallback(
                         object->PriorityClass = newPriorityClass;
                         changed = TRUE;
                     }
-                }
-
-                if (objectIfeo = FindIfeoObject(&processes[i]->ProcessName->sr))
-                {
-                    ULONG newPriorityClass = GetPriorityClassFromId(id);
-
-                    if (objectIfeo->PriorityClass != ULONG_MAX && objectIfeo->PriorityClass != newPriorityClass)
-                    {
-                        NTSTATUS status;
-
-                        status = CreateIfeoObject(&processes[i]->ProcessName->sr, newPriorityClass, ULONG_MAX, ULONG_MAX);
-
-                        if (!NT_SUCCESS(status))
-                        {
-                            PhShowStatus(menuHookInfo->MenuInfo->OwnerWindow, L"Unable to update the IFEO key for process priority.", status, 0);
-                        }
-                    }
-
-                    PhFree(objectIfeo);
                 }
             }
 
@@ -842,7 +1262,6 @@ VOID NTAPI MenuHookCallback(
             for (i = 0; i < numberOfProcesses; i++)
             {
                 PDB_OBJECT object;
-                PIFEO_OBJECT objectIfeo;
 
                 if (object = FindDbObjectForProcess(processes[i], INTENT_PROCESS_IO_PRIORITY))
                 {
@@ -853,25 +1272,6 @@ VOID NTAPI MenuHookCallback(
                         object->IoPriorityPlusOne = newIoPriorityPlusOne;
                         changed = TRUE;
                     }
-                }
-
-                if (objectIfeo = FindIfeoObject(&processes[i]->ProcessName->sr))
-                {
-                    ULONG newIoPriorityClass = GetIoPriorityFromId(id);
-
-                    if (objectIfeo->IoPriorityClass != ULONG_MAX && objectIfeo->IoPriorityClass != newIoPriorityClass)
-                    {
-                        NTSTATUS status;
-
-                        status = CreateIfeoObject(&processes[i]->ProcessName->sr, ULONG_MAX, newIoPriorityClass, ULONG_MAX);
-
-                        if (!NT_SUCCESS(status))
-                        {
-                            PhShowStatus(menuHookInfo->MenuInfo->OwnerWindow, L"Unable to update the IFEO key for process IO priority.", status, 0);
-                        }
-                    }
-
-                    PhFree(objectIfeo);
                 }
             }
 
@@ -962,7 +1362,6 @@ VOID NTAPI MenuHookCallback(
             for (i = 0; i < numberOfProcesses; i++)
             {
                 PDB_OBJECT object;
-                PIFEO_OBJECT objectIfeo;
 
                 if (object = FindDbObjectForProcess(processes[i], INTENT_PROCESS_PAGEPRIORITY))
                 {
@@ -973,25 +1372,6 @@ VOID NTAPI MenuHookCallback(
                         object->PagePriorityPlusOne = newPagePriorityPlusOne;
                         changed = TRUE;
                     }
-                }
-
-                if (objectIfeo = FindIfeoObject(&processes[i]->ProcessName->sr))
-                {
-                    ULONG newPagePriorityClass = GetPagePriorityFromId(id);
-
-                    if (objectIfeo->PagePriorityClass != ULONG_MAX && objectIfeo->PagePriorityClass != newPagePriorityClass)
-                    {
-                        NTSTATUS status;
-
-                        status = CreateIfeoObject(&processes[i]->ProcessName->sr, ULONG_MAX, ULONG_MAX, newPagePriorityClass);
-
-                        if (!NT_SUCCESS(status))
-                        {
-                            PhShowStatus(menuHookInfo->MenuInfo->OwnerWindow, L"Unable to update the IFEO key for process page priority.", status, 0);
-                        }
-                    }
-
-                    PhFree(objectIfeo);
                 }
             }
 
@@ -1205,7 +1585,7 @@ VOID AddSavePriorityMenuItemsAndHook(
     PPH_EMENU_ITEM saveForCommandLineMenuItem;
     PPH_EMENU_ITEM saveIfeoMenuItem;
     PDB_OBJECT object;
-    PIFEO_OBJECT objectIfeo;
+    ULONG objectIfeo;
 
     if (affinityMenuItem = PhFindEMenuItem(MenuInfo->Menu, 0, NULL, PHAPP_ID_PROCESS_AFFINITY))
     {
@@ -1252,14 +1632,9 @@ VOID AddSavePriorityMenuItemsAndHook(
 
         UnlockDb();
 
-        if (objectIfeo = FindIfeoObject(&ProcessItem->ProcessName->sr))
+        if (FindIfeoObject(&ProcessItem->ProcessName->sr, &objectIfeo, NULL, NULL))
         {
-            if (objectIfeo->PriorityClass != ULONG_MAX)
-            {
-                saveIfeoMenuItem->Flags |= PH_EMENU_CHECKED;
-            }
-
-            PhFree(objectIfeo);
+            saveIfeoMenuItem->Flags |= PH_EMENU_CHECKED;
         }
     }
 
@@ -1283,14 +1658,9 @@ VOID AddSavePriorityMenuItemsAndHook(
 
         UnlockDb();
 
-        if (objectIfeo = FindIfeoObject(&ProcessItem->ProcessName->sr))
+        if (FindIfeoObject(&ProcessItem->ProcessName->sr, NULL, &objectIfeo, NULL))
         {
-            if (objectIfeo->IoPriorityClass != ULONG_MAX)
-            {
-                saveIfeoMenuItem->Flags |= PH_EMENU_CHECKED;
-            }
-
-            PhFree(objectIfeo);
+            saveIfeoMenuItem->Flags |= PH_EMENU_CHECKED;
         }
     }
 
@@ -1314,14 +1684,9 @@ VOID AddSavePriorityMenuItemsAndHook(
 
         UnlockDb();
 
-        if (objectIfeo = FindIfeoObject(&ProcessItem->ProcessName->sr))
+        if (FindIfeoObject(&ProcessItem->ProcessName->sr, NULL, NULL, &objectIfeo))
         {
-            if (objectIfeo->PagePriorityClass != ULONG_MAX)
-            {
-                saveIfeoMenuItem->Flags |= PH_EMENU_CHECKED;
-            }
-
-            PhFree(objectIfeo);
+            saveIfeoMenuItem->Flags |= PH_EMENU_CHECKED;
         }
     }
 
