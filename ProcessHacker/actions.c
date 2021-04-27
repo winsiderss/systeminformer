@@ -573,108 +573,200 @@ BOOLEAN PhUiHibernateComputer(
 }
 
 BOOLEAN PhUiRestartComputer(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
+    _In_ PH_POWERACTION_TYPE Action,
     _In_ ULONG Flags
     )
 {
-    ULONG status;
-    BOOLEAN forceShutdown;
-
-    // Force shutdown when holding the control key. (dmex)
-    forceShutdown = !!(GetKeyState(VK_CONTROL) < 0);
-
-    if (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
-        hWnd,
-        L"restart",
-        L"the computer",
-        NULL,
-        FALSE
-        ))
+    switch (Action)
     {
-        if (forceShutdown)
+    case PH_POWERACTION_TYPE_WIN32:
         {
-            status = NtShutdownSystem(ShutdownReboot);
+            if (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
+                WindowHandle,
+                L"restart",
+                L"the computer",
+                NULL,
+                FALSE
+                ))
+            {
+                ULONG status;
+                
+                status = InitiateShutdown(
+                    NULL,
+                    NULL,
+                    0,
+                    SHUTDOWN_RESTART | Flags,
+                    SHTDN_REASON_FLAG_PLANNED
+                    );
 
-            if (NT_SUCCESS(status))
-                return TRUE;
+                if (status == ERROR_SUCCESS)
+                    return TRUE;
 
-            PhShowStatus(hWnd, L"Unable to restart the computer.", status, 0);
+                PhShowStatus(WindowHandle, L"Unable to restart the computer.", 0, status);
+
+                //if (ExitWindowsEx(EWX_REBOOT | EWX_BOOTOPTIONS, 0))
+                //    return TRUE;
+                //else
+                //    PhShowStatus(WindowHandle, L"Unable to restart the computer.", 0, GetLastError());
+            }
         }
-        else
+        break;
+    case PH_POWERACTION_TYPE_NATIVE:
         {
-            status = InitiateShutdown(
-                NULL,
-                NULL,
-                0,
-                SHUTDOWN_RESTART | Flags,
-                SHTDN_REASON_FLAG_PLANNED
-                );
+            // Ignore the EnableWarnings preference and always show the warning prompt. (dmex)
+            if (PhShowConfirmMessage(
+                WindowHandle,
+                L"restart",
+                L"the computer",
+                PhaFormatString(L"This option %s %s in an disorderly manner and may cause corrupted files or instability in the system.", L"preforms a hard", L"restart")->Buffer,
+                TRUE
+                ))
+            {
+                NTSTATUS status;
 
-            if (status == ERROR_SUCCESS)
-                return TRUE;
+                status = NtShutdownSystem(ShutdownReboot);
 
-            PhShowStatus(hWnd, L"Unable to restart the computer.", 0, status);
+                if (NT_SUCCESS(status))
+                    return TRUE;
 
-            //if (ExitWindowsEx(EWX_REBOOT | EWX_BOOTOPTIONS, 0))
-            //    return TRUE;
-            //else
-            //    PhShowStatus(hWnd, L"Unable to restart the computer.", 0, GetLastError());
+                PhShowStatus(WindowHandle, L"Unable to restart the computer.", status, 0);
+            }
         }
+        break;
+    case PH_POWERACTION_TYPE_CRITICAL:
+        {
+            // Ignore the EnableWarnings preference and always show the warning prompt. (dmex)
+            if (PhShowConfirmMessage(
+                WindowHandle,
+                L"restart",
+                L"the computer",
+                PhaFormatString(L"This option %s %s in an disorderly manner and may cause corrupted files or instability in the system.", L"forces a critical", L"restart")->Buffer,
+                TRUE
+                ))
+            {
+                NTSTATUS status;
+
+                status = NtSetSystemPowerState(
+                    PowerActionShutdownReset,
+                    PowerSystemShutdown,
+                    POWER_ACTION_CRITICAL
+                    );
+                //status = NtInitiatePowerAction(
+                //    PowerActionShutdownReset,
+                //    PowerSystemShutdown,
+                //    POWER_ACTION_CRITICAL,
+                //    FALSE
+                //    );
+
+                if (NT_SUCCESS(status))
+                    return TRUE;
+
+                PhShowStatus(WindowHandle, L"Unable to restart the computer.", status, 0);
+            }
+        }
+        break;
     }
 
     return FALSE;
 }
 
 BOOLEAN PhUiShutdownComputer(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
+    _In_ PH_POWERACTION_TYPE Action,
     _In_ ULONG Flags
     )
 {
-    ULONG status;
-    BOOLEAN forceShutdown;
-
-    // Force shutdown when holding the control key. (dmex)
-    forceShutdown = !!(GetKeyState(VK_CONTROL) < 0);
-
-    if (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
-        hWnd,
-        L"shut down",
-        L"the computer",
-        NULL,
-        FALSE
-        ))
+    switch (Action)
     {
-        if (forceShutdown)
+    case PH_POWERACTION_TYPE_WIN32:
         {
-            status = NtShutdownSystem(ShutdownPowerOff);
-
-            if (!NT_SUCCESS(status))
+            if (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
+                WindowHandle,
+                L"shut down",
+                L"the computer",
+                NULL,
+                FALSE
+                ))
             {
-                PhShowStatus(hWnd, L"Unable to shut down the computer.", status, 0);
+                ULONG status;
+
+                status = InitiateShutdown(
+                    NULL,
+                    NULL,
+                    0,
+                    SHUTDOWN_POWEROFF | Flags,
+                    SHTDN_REASON_FLAG_PLANNED
+                    );
+
+                if (status == ERROR_SUCCESS)
+                    return TRUE;
+
+                PhShowStatus(WindowHandle, L"Unable to shut down the computer.", 0, status);
+
+                //if (ExitWindowsEx(EWX_POWEROFF | EWX_HYBRID_SHUTDOWN, 0))
+                //    return TRUE;
+                //else if (ExitWindowsEx(EWX_SHUTDOWN | EWX_HYBRID_SHUTDOWN, 0))
+                //    return TRUE;
+                //else
+                //    PhShowStatus(WindowHandle, L"Unable to shut down the computer.", 0, GetLastError());
             }
         }
-        else
+        break;
+    case PH_POWERACTION_TYPE_NATIVE:
         {
-            status = InitiateShutdown(
-                NULL,
-                NULL,
-                0,
-                SHUTDOWN_POWEROFF | Flags,
-                SHTDN_REASON_FLAG_PLANNED
-                );
+            // Ignore the EnableWarnings preference and always show the warning prompt. (dmex)
+            if (PhShowConfirmMessage(
+                WindowHandle,
+                L"shut down",
+                L"the computer",
+                PhaFormatString(L"This option %s %s in an disorderly manner and may cause corrupted files or instability in the system.", L"preforms a hard", L"shut down")->Buffer,
+                TRUE
+                ))
+            {
+                NTSTATUS status;
+                
+                status = NtShutdownSystem(ShutdownPowerOff);
 
-            if (status == ERROR_SUCCESS)
-                return TRUE;
+                if (NT_SUCCESS(status))
+                    return TRUE;
 
-            PhShowStatus(hWnd, L"Unable to shut down the computer.", 0, status);
-
-            //if (ExitWindowsEx(EWX_POWEROFF | EWX_HYBRID_SHUTDOWN, 0))
-            //    return TRUE;
-            //else if (ExitWindowsEx(EWX_SHUTDOWN | EWX_HYBRID_SHUTDOWN, 0))
-            //    return TRUE;
-            //else
-            //    PhShowStatus(hWnd, L"Unable to shut down the computer.", 0, GetLastError());
+                PhShowStatus(WindowHandle, L"Unable to shut down the computer.", status, 0);
+            }
         }
+        break;
+    case PH_POWERACTION_TYPE_CRITICAL:
+        {
+            // Ignore the EnableWarnings preference and always show the warning prompt. (dmex)
+            if (PhShowConfirmMessage(
+                WindowHandle,
+                L"shut down",
+                L"the computer",
+                PhaFormatString(L"This option %s %s in an disorderly manner and may cause corrupted files or instability in the system.", L"forces a critical", L"shut down")->Buffer,
+                TRUE
+                ))
+            {
+                NTSTATUS status;
+
+                status = NtSetSystemPowerState(
+                    PowerActionShutdownOff,
+                    PowerSystemShutdown,
+                    POWER_ACTION_CRITICAL
+                    );            
+                //status = NtInitiatePowerAction(
+                //    PowerActionShutdownReset,
+                //    PowerSystemShutdown,
+                //    POWER_ACTION_CRITICAL,
+                //    FALSE
+                //    );
+                
+                if (NT_SUCCESS(status))
+                    return TRUE;
+
+                PhShowStatus(WindowHandle, L"Unable to shut down the computer.", status, 0);
+            }
+        }
+        break;
     }
 
     return FALSE;
