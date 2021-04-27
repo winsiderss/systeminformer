@@ -1986,7 +1986,78 @@ HICON PhCreateIconFromResourceDirectory(
         );
 }
 
-// rev from PrivateExtractIconExW with some changes
+PPH_STRING PhpGetImageMunResourcePath(
+    _In_ PPH_STRING FileName,
+    _In_ BOOLEAN NativeFileName
+    )
+{
+    static PH_STRINGREF systemResourcePathSr = PH_STRINGREF_INIT(L"\\SystemResources\\");
+    static PH_STRINGREF systemResourceExtensionSr = PH_STRINGREF_INIT(L".mun");
+    PPH_STRING filePath = NULL;
+    PPH_STRING directory;
+    PPH_STRING fileName;
+
+    if (WindowsVersion < WINDOWS_10_19H1)
+    {
+        PhReferenceObject(FileName);
+        return FileName;
+    }
+
+    // 19H1 and above relocated binary resources into the \SystemResources\ directory.
+    // This is implemented as a hook inside EnumResouceNamesExW:
+    // PrivateExtractIconExW -> EnumResouceNamesExW -> GetMunResourceModuleForEnumIfExist.
+    //
+    // GetMunResourceModuleForEnumIfExist trims the path and inserts '\SystemResources\' and '.mun'
+    // to locate the binary with the icon resources. For example:
+    // From: C:\Windows\system32\notepad.exe
+    // To: C:\Windows\SystemResources\notepad.exe.mun
+    //
+    // It doesn't currently hard-code the \SystemResources\ path and ends up accessing other directories:
+    // From: C:\Windows\explorer.exe
+    // To: C:\SystemResources\explorer.exe.mun
+    //
+    // The below code has the same logic and semantics. (dmex)
+
+    directory = PhGetBaseDirectory(FileName);
+    fileName = PhGetBaseName(FileName);
+
+    if (directory)
+    {
+        PhMoveReference(&directory, PhGetBaseDirectory(directory));
+    }
+
+    if (directory && fileName)
+    {
+        PhMoveReference(&fileName, PhConcatStringRef3(&directory->sr, &systemResourcePathSr, &fileName->sr));
+        PhMoveReference(&fileName, PhConcatStringRef2(&fileName->sr, &systemResourceExtensionSr));
+
+        if (NativeFileName)
+        {
+            if (PhDoesFileExists(fileName))
+                PhMoveReference(&filePath, fileName);
+            else
+                PhDereferenceObject(fileName);
+        }
+        else
+        {
+            if (PhDoesFileExistsWin32(PhGetString(fileName)))
+                PhMoveReference(&filePath, fileName);
+            else
+                PhDereferenceObject(fileName);
+        }
+    }
+
+    if (PhIsNullOrEmptyString(filePath))
+    {
+        PhSetReference(&filePath, FileName);
+    }
+
+    PhClearReference(&directory);
+
+    return filePath;
+}
+
+// rev from PrivateExtractIconExW with changes
 // for using SEC_COMMIT instead of SEC_IMAGE. (dmex)
 _Success_(return)
 BOOLEAN PhExtractIconEx(
@@ -2000,16 +2071,25 @@ BOOLEAN PhExtractIconEx(
     NTSTATUS status;
     HICON iconLarge = NULL;
     HICON iconSmall = NULL;
+    PPH_STRING fileName;
     PH_MAPPED_IMAGE mappedImage;
     PIMAGE_DATA_DIRECTORY dataDirectory;
     PIMAGE_RESOURCE_DIRECTORY resourceDirectory;
     ULONG iconDirectoryResourceLength;
     PNEWHEADER iconDirectoryResource;
 
+    if (!(fileName = PhpGetImageMunResourcePath(
+        FileName,
+        NativeFileName
+        )))
+    {
+        return FALSE;
+    }
+
     if (NativeFileName)
     {
         status = PhLoadMappedImageEx(
-            FileName,
+            fileName,
             NULL,
             &mappedImage
             );
@@ -2017,14 +2097,17 @@ BOOLEAN PhExtractIconEx(
     else
     {
         status = PhLoadMappedImage(
-            PhGetString(FileName),
+            PhGetString(fileName),
             NULL,
             &mappedImage
             );
     }
 
     if (!NT_SUCCESS(status))
+    {
+        PhDereferenceObject(fileName);
         return FALSE;
+    }
 
     status = PhGetMappedImageDataEntry(
         &mappedImage,
@@ -2093,6 +2176,7 @@ BOOLEAN PhExtractIconEx(
 CleanupExit:
 
     PhUnloadMappedImage(&mappedImage);
+    PhDereferenceObject(fileName);
 
     if (IconLarge && IconSmall)
     {
