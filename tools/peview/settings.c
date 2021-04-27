@@ -2,7 +2,7 @@
  * PE viewer -
  *   program settings
  *
- * Copyright (C) 2017 dmex
+ * Copyright (C) 2017-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -32,6 +32,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"FirstRun", L"1");
     PhpAddStringSetting(L"Font", L""); // null
     PhpAddStringSetting(L"DbgHelpSearchPath", L"SRV*C:\\Symbols*https://msdl.microsoft.com/download/symbols");
+    PhpAddIntegerSetting(L"DbgHelpUndecorate", L"1");
     PhpAddIntegerSetting(L"EnableSecurityAdvancedDialog", L"1");
     PhpAddIntegerSetting(L"EnableThemeSupport", L"0");
     PhpAddIntegerSetting(L"EnableVersionSupport", L"0");
