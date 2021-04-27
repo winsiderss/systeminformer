@@ -47,13 +47,6 @@ typedef struct _DB_OBJECT
     ULONG PagePriorityPlusOne;
 } DB_OBJECT, *PDB_OBJECT;
 
-typedef struct _IFEO_OBJECT
-{
-    ULONG PriorityClass;
-    ULONG IoPriorityClass;
-    ULONG PagePriorityClass;
-} IFEO_OBJECT, *PIFEO_OBJECT;
-
 VOID InitializeDb(
     VOID
     );
@@ -62,10 +55,12 @@ ULONG GetNumberOfDbObjects(
     VOID
     );
 
+_Acquires_exclusive_lock_(ObjectDbLock)
 VOID LockDb(
     VOID
     );
 
+_Releases_exclusive_lock_(ObjectDbLock)
 VOID UnlockDb(
     VOID
     );
@@ -97,8 +92,11 @@ NTSTATUS SaveDb(
     VOID
     );
 
-PIFEO_OBJECT FindIfeoObject(
-    _In_ PPH_STRINGREF Name
+BOOLEAN FindIfeoObject(
+    _In_ PPH_STRINGREF Name,
+    _Out_opt_ PULONG CpuPriorityClass,
+    _Out_opt_ PULONG IoPriorityClass,
+    _Out_opt_ PULONG PagePriorityClass
     );
 
 NTSTATUS CreateIfeoObject(
