@@ -3114,8 +3114,8 @@ PPH_IMAGELIST_ITEM PhImageListExtractIcon(
     _In_ BOOLEAN NativeFileName
     )
 {
-    HICON largeIcon = NULL;
-    HICON smallIcon = NULL;
+    HICON largeIcon;
+    HICON smallIcon;
     PPH_IMAGELIST_ITEM newentry;
 
     PhAcquireQueuedLockShared(&PhImageListCacheHashtableLock);
@@ -3144,13 +3144,8 @@ PPH_IMAGELIST_ITEM PhImageListExtractIcon(
 
     PhReleaseQueuedLockShared(&PhImageListCacheHashtableLock);
 
-    PhExtractIconEx(
-        FileName,
-        NativeFileName,
-        0,
-        &largeIcon,
-        &smallIcon
-        );
+    if (!PhExtractIconEx(FileName, NativeFileName, 0, &largeIcon, &smallIcon))
+        return NULL;
 
     PhAcquireQueuedLockExclusive(&PhImageListCacheHashtableLock);
 
@@ -3166,19 +3161,10 @@ PPH_IMAGELIST_ITEM PhImageListExtractIcon(
 
     newentry = PhCreateObjectZero(sizeof(PH_IMAGELIST_ITEM), PhImageListItemType);
     newentry->FileName = PhReferenceObject(FileName);
-
-    if (largeIcon && smallIcon)
-    {
-        newentry->LargeIconIndex = ImageList_AddIcon(PhProcessLargeImageList, largeIcon);
-        newentry->SmallIconIndex = ImageList_AddIcon(PhProcessSmallImageList, smallIcon);
-        DestroyIcon(smallIcon);
-        DestroyIcon(largeIcon);
-    }
-    else
-    {
-        newentry->LargeIconIndex = 0;
-        newentry->SmallIconIndex = 0;
-    }
+    newentry->LargeIconIndex = ImageList_AddIcon(PhProcessLargeImageList, largeIcon);
+    newentry->SmallIconIndex = ImageList_AddIcon(PhProcessSmallImageList, smallIcon);
+    DestroyIcon(smallIcon);
+    DestroyIcon(largeIcon);
 
     PhReferenceObject(newentry);
     PhAddEntryHashtable(PhImageListCacheHashtable, &newentry);
