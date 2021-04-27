@@ -72,11 +72,21 @@ PhUiHibernateComputer(
     _In_ HWND hWnd
     );
 
+typedef enum _PH_POWERACTION_TYPE
+{
+    PH_POWERACTION_TYPE_NONE,
+    PH_POWERACTION_TYPE_WIN32,
+    PH_POWERACTION_TYPE_NATIVE,
+    PH_POWERACTION_TYPE_CRITICAL,
+    PH_POWERACTION_TYPE_MAXIMUM
+} PH_POWERACTION_TYPE;
+
 PHAPPAPI
 BOOLEAN
 NTAPI
 PhUiRestartComputer(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
+    _In_ PH_POWERACTION_TYPE Action,
     _In_ ULONG Flags
     );
 
@@ -84,7 +94,8 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhUiShutdownComputer(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
+    _In_ PH_POWERACTION_TYPE Action,
     _In_ ULONG Flags
     );
 

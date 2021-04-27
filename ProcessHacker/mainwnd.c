@@ -730,6 +730,10 @@ VOID PhMwpOnCommand(
     case ID_COMPUTER_RESTARTBOOTOPTIONS:
     case ID_COMPUTER_SHUTDOWN:
     case ID_COMPUTER_SHUTDOWNHYBRID:
+    case ID_COMPUTER_RESTART_NATIVE:
+    case ID_COMPUTER_SHUTDOWN_NATIVE:
+    case ID_COMPUTER_RESTART_CRITICAL:
+    case ID_COMPUTER_SHUTDOWN_CRITICAL:
         PhMwpExecuteComputerCommand(WindowHandle, Id);
         break;
     case ID_HACKER_EXIT:
@@ -2077,16 +2081,28 @@ BOOLEAN PhMwpExecuteComputerCommand(
         PhUiHibernateComputer(WindowHandle);
         return TRUE;
     case ID_COMPUTER_RESTART:
-        PhUiRestartComputer(WindowHandle, 0);
+        PhUiRestartComputer(WindowHandle, PH_POWERACTION_TYPE_WIN32, 0);
         return TRUE;
     case ID_COMPUTER_RESTARTBOOTOPTIONS:
-        PhUiRestartComputer(WindowHandle, SHUTDOWN_RESTART_BOOTOPTIONS);
+        PhUiRestartComputer(WindowHandle, PH_POWERACTION_TYPE_WIN32, SHUTDOWN_RESTART_BOOTOPTIONS);
         return TRUE;
     case ID_COMPUTER_SHUTDOWN:
-        PhUiShutdownComputer(WindowHandle, 0);
+        PhUiShutdownComputer(WindowHandle, PH_POWERACTION_TYPE_WIN32, 0);
         return TRUE;
     case ID_COMPUTER_SHUTDOWNHYBRID:
-        PhUiShutdownComputer(WindowHandle, SHUTDOWN_HYBRID);
+        PhUiShutdownComputer(WindowHandle, PH_POWERACTION_TYPE_WIN32, SHUTDOWN_HYBRID);
+        return TRUE;
+    case ID_COMPUTER_RESTART_NATIVE:
+        PhUiRestartComputer(WindowHandle, PH_POWERACTION_TYPE_NATIVE, 0);
+        return TRUE;
+    case ID_COMPUTER_SHUTDOWN_NATIVE:
+        PhUiShutdownComputer(WindowHandle, PH_POWERACTION_TYPE_NATIVE, 0);
+        return TRUE;
+    case ID_COMPUTER_RESTART_CRITICAL:
+        PhUiRestartComputer(WindowHandle, PH_POWERACTION_TYPE_CRITICAL, 0);
+        return TRUE;
+    case ID_COMPUTER_SHUTDOWN_CRITICAL:
+        PhUiShutdownComputer(WindowHandle, PH_POWERACTION_TYPE_CRITICAL, 0);
         return TRUE;
     }
 
@@ -2173,6 +2189,15 @@ PPH_EMENU PhpCreateHackerMenu(
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_RESTARTBOOTOPTIONS, L"Restart to boot options", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_SHUTDOWN, L"Shu&t down", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_SHUTDOWNHYBRID, L"H&ybrid shut down", NULL, NULL), ULONG_MAX);
+    if (PhGetIntegerSetting(L"EnableShutdownCriticalMenu"))
+    {
+        PhInsertEMenuItem(menuItem, PhCreateEMenuSeparator(), ULONG_MAX);
+        PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_RESTART_NATIVE, L"R&estart (Native)", NULL, NULL), ULONG_MAX);
+        PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_SHUTDOWN_NATIVE, L"Shu&t down (Native)", NULL, NULL), ULONG_MAX);
+        PhInsertEMenuItem(menuItem, PhCreateEMenuSeparator(), ULONG_MAX);
+        PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_RESTART_CRITICAL, L"R&estart (Critical)", NULL, NULL), ULONG_MAX);
+        PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_SHUTDOWN_CRITICAL, L"Shu&t down (Critical)", NULL, NULL), ULONG_MAX);
+    }
     PhInsertEMenuItem(HackerMenu, menuItem, ULONG_MAX);
 
     PhInsertEMenuItem(HackerMenu, PhCreateEMenuItem(0, ID_HACKER_EXIT, L"E&xit", NULL, NULL), ULONG_MAX);
@@ -2719,6 +2744,15 @@ PPH_EMENU PhpCreateIconMenu(
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_RESTARTBOOTOPTIONS, L"Restart to boot &options", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_SHUTDOWN, L"Shu&t down", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_SHUTDOWNHYBRID, L"H&ybrid shut down", NULL, NULL), ULONG_MAX);
+    if (PhGetIntegerSetting(L"EnableShutdownCriticalMenu"))
+    {
+        PhInsertEMenuItem(menuItem, PhCreateEMenuSeparator(), ULONG_MAX);
+        PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_RESTART_NATIVE, L"R&estart (Native)", NULL, NULL), ULONG_MAX);
+        PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_SHUTDOWN_NATIVE, L"Shu&t down (Native)", NULL, NULL), ULONG_MAX);
+        PhInsertEMenuItem(menuItem, PhCreateEMenuSeparator(), ULONG_MAX);
+        PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_RESTART_CRITICAL, L"R&estart (Critical)", NULL, NULL), ULONG_MAX);
+        PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_SHUTDOWN_CRITICAL, L"Shu&t down (Critical)", NULL, NULL), ULONG_MAX);
+    }
     PhInsertEMenuItem(menu, menuItem, ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_ICON_EXIT, L"E&xit", NULL, NULL), ULONG_MAX);
 
