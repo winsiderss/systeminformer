@@ -113,6 +113,7 @@ VOID PhInitializeThreadList(
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_TIDHEX, FALSE, L"TID (Hex)", 50, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_CPUCORECYCLES, FALSE, L"CPU (relative)", 50, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_TOKEN_STATE, FALSE, L"Token", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_PENDINGIRP, FALSE, L"Pending IRP", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
 
     TreeNew_SetRedraw(TreeNewHandle, TRUE);
     TreeNew_SetTriState(TreeNewHandle, TRUE);
@@ -1093,6 +1094,14 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                         node->TokenState = PH_THREAD_TOKEN_STATE_UNKNOWN;
                         PhInitializeEmptyStringRef(&getCellText->Text);
                     }
+                }
+                break;
+            case PH_THREAD_TREELIST_COLUMN_PENDINGIRP:
+                {
+                    if (threadItem->PendingIrp)
+                        PhInitializeStringRef(&getCellText->Text, L"Yes");
+                    else
+                        PhInitializeEmptyStringRef(&getCellText->Text);
                 }
                 break;
             default:
