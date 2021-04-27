@@ -72,6 +72,7 @@ typedef struct _PH_THREAD_NODE
     ULONG PagePriority;
     IO_PRIORITY_HINT IoPriority;
     BOOLEAN BreakOnTermination;
+    BOOLEAN PendingIrp;
     PH_THREAD_TOKEN_STATE TokenState;
     WCHAR ThreadIdText[PH_INT32_STR_LEN_1];
     WCHAR CpuUsageText[PH_INT32_STR_LEN_1];

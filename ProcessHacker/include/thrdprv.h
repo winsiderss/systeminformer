@@ -34,7 +34,6 @@ typedef struct _PH_THREAD_ITEM
     enum _PH_SYMBOL_RESOLVE_LEVEL StartAddressResolveLevel;
 
     BOOLEAN IsGuiThread;
-    BOOLEAN PendingIrp;
     BOOLEAN JustResolved;
 } PH_THREAD_ITEM, *PPH_THREAD_ITEM;
 

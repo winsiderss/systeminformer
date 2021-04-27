@@ -617,7 +617,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(PendingIrp)
 {
-    sortResult = ucharcmp(threadItem1->PendingIrp, threadItem2->PendingIrp);
+    sortResult = ucharcmp(node1->PendingIrp, node2->PendingIrp);
 }
 END_SORT_FUNCTION
 
@@ -1002,16 +1002,19 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                 break;
             case PH_THREAD_TREELIST_COLUMN_CRITICAL:
                 {
-                    BOOLEAN breakOnTermination;
+                    BOOLEAN breakOnTermination = FALSE;
 
                     if (threadItem->ThreadHandle)
                     {
-                        if (NT_SUCCESS(PhGetThreadBreakOnTermination(threadItem->ThreadHandle, &breakOnTermination)))
-                        {
-                            if (breakOnTermination)
-                                PhInitializeStringRef(&getCellText->Text, L"Critical");
-                        }
+                        PhGetThreadBreakOnTermination(threadItem->ThreadHandle, &breakOnTermination);
                     }
+
+                    if (breakOnTermination)
+                        PhInitializeStringRef(&getCellText->Text, L"Critical");
+                    else
+                        PhInitializeEmptyStringRef(&getCellText->Text);
+
+                    node->BreakOnTermination = breakOnTermination;
                 }
                 break;
             case PH_THREAD_TREELIST_COLUMN_TIDHEX:
@@ -1105,10 +1108,19 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                 break;
             case PH_THREAD_TREELIST_COLUMN_PENDINGIRP:
                 {
-                    if (threadItem->PendingIrp)
+                    BOOLEAN pendingIrp = FALSE;
+
+                    if (threadItem->ThreadHandle)
+                    {
+                        PhGetThreadIsIoPending(threadItem->ThreadHandle, &pendingIrp);
+                    }
+
+                    if (pendingIrp)
                         PhInitializeStringRef(&getCellText->Text, L"Yes");
                     else
                         PhInitializeEmptyStringRef(&getCellText->Text);
+
+                    node->PendingIrp = pendingIrp;
                 }
                 break;
             default:
