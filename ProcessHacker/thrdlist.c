@@ -615,6 +615,12 @@ BEGIN_SORT_FUNCTION(TokenState)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(PendingIrp)
+{
+    sortResult = ucharcmp(threadItem1->PendingIrp, threadItem2->PendingIrp);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpThreadTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -667,6 +673,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     SORT_FUNCTION(TidHex),
                     SORT_FUNCTION(CpuCore),
                     SORT_FUNCTION(TokenState),
+                    SORT_FUNCTION(PendingIrp),
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
