@@ -60,6 +60,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableSafeDefaultPlugins", L"1");
     PhpAddIntegerSetting(L"EnableSecurityAdvancedDialog", L"1");
     PhpAddIntegerSetting(L"EnableShortRelativeStartTime", L"1");
+    PhpAddIntegerSetting(L"EnableShutdownCriticalMenu", L"0");
     PhpAddIntegerSetting(L"EnableLinuxSubsystemSupport", L"0");
     PhpAddIntegerSetting(L"EnableVersionSupport", L"1");
     PhpAddStringSetting(L"EnvironmentTreeListColumns", L"");
