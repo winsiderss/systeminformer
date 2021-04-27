@@ -614,12 +614,19 @@ BOOLEAN PhUiRestartComputer(
         break;
     case PH_POWERACTION_TYPE_NATIVE:
         {
+            PPH_STRING messageText;
+
+            messageText = PhaFormatString(
+                L"This option %s %s in an disorderly manner and may cause corrupted files or instability in the system.",
+                L"preforms a hard",
+                L"restart");
+
             // Ignore the EnableWarnings preference and always show the warning prompt. (dmex)
             if (PhShowConfirmMessage(
                 WindowHandle,
                 L"restart",
                 L"the computer",
-                PhaFormatString(L"This option %s %s in an disorderly manner and may cause corrupted files or instability in the system.", L"preforms a hard", L"restart")->Buffer,
+                messageText->Buffer,
                 TRUE
                 ))
             {
@@ -636,12 +643,19 @@ BOOLEAN PhUiRestartComputer(
         break;
     case PH_POWERACTION_TYPE_CRITICAL:
         {
+            PPH_STRING messageText;
+
+            messageText = PhaFormatString(
+                L"This option %s %s in an disorderly manner and may cause corrupted files or instability in the system.",
+                L"forces a critical",
+                L"restart");
+
             // Ignore the EnableWarnings preference and always show the warning prompt. (dmex)
             if (PhShowConfirmMessage(
                 WindowHandle,
                 L"restart",
                 L"the computer",
-                PhaFormatString(L"This option %s %s in an disorderly manner and may cause corrupted files or instability in the system.", L"forces a critical", L"restart")->Buffer,
+                messageText->Buffer,
                 TRUE
                 ))
             {
@@ -715,12 +729,19 @@ BOOLEAN PhUiShutdownComputer(
         break;
     case PH_POWERACTION_TYPE_NATIVE:
         {
+            PPH_STRING messageText;
+
+            messageText = PhaFormatString(
+                L"This option %s %s in an disorderly manner and may cause corrupted files or instability in the system.",
+                L"preforms a hard",
+                L"shut down");
+
             // Ignore the EnableWarnings preference and always show the warning prompt. (dmex)
             if (PhShowConfirmMessage(
                 WindowHandle,
                 L"shut down",
                 L"the computer",
-                PhaFormatString(L"This option %s %s in an disorderly manner and may cause corrupted files or instability in the system.", L"preforms a hard", L"shut down")->Buffer,
+                messageText->Buffer,
                 TRUE
                 ))
             {
@@ -737,12 +758,19 @@ BOOLEAN PhUiShutdownComputer(
         break;
     case PH_POWERACTION_TYPE_CRITICAL:
         {
+            PPH_STRING messageText;
+
+            messageText = PhaFormatString(
+                L"This option %s %s in an disorderly manner and may cause corrupted files or instability in the system.",
+                L"forces a critical",
+                L"shut down");
+
             // Ignore the EnableWarnings preference and always show the warning prompt. (dmex)
             if (PhShowConfirmMessage(
                 WindowHandle,
                 L"shut down",
                 L"the computer",
-                PhaFormatString(L"This option %s %s in an disorderly manner and may cause corrupted files or instability in the system.", L"forces a critical", L"shut down")->Buffer,
+                messageText->Buffer,
                 TRUE
                 ))
             {
