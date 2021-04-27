@@ -884,19 +884,22 @@ VOID PhLoadSymbolProviderOptions(
     _Inout_ PPH_SYMBOL_PROVIDER SymbolProvider
     )
 {
-    PPH_STRING searchPath;
+    static PH_STRINGREF symbolPath = PH_STRINGREF_INIT(L"_NT_SYMBOL_PATH");
+    PPH_STRING searchPath = NULL;
 
     PhSetOptionsSymbolProvider(
         SYMOPT_UNDNAME,
         PhGetIntegerSetting(L"DbgHelpUndecorate") ? SYMOPT_UNDNAME : 0
         );
 
-    searchPath = PhGetStringSetting(L"DbgHelpSearchPath");
+    PhQueryEnvironmentVariable(NULL, &symbolPath, &searchPath);
 
-    if (searchPath->Length != 0)
+    if (PhIsNullOrEmptyString(searchPath))
+        searchPath = PhGetStringSetting(L"DbgHelpSearchPath");
+    if (!PhIsNullOrEmptyString(searchPath))
         PhSetSearchPathSymbolProvider(SymbolProvider, searchPath->Buffer);
-
-    PhDereferenceObject(searchPath);
+    if (searchPath)
+        PhDereferenceObject(searchPath);
 }
 
 /**

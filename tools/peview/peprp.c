@@ -1920,16 +1920,25 @@ BOOLEAN PvpLoadDbgHelp(
     _Inout_ PPH_SYMBOL_PROVIDER *SymbolProvider
     )
 {
-    PPH_STRING symbolSearchPath;
+    static PH_STRINGREF symbolPath = PH_STRINGREF_INIT(L"_NT_SYMBOL_PATH");
+    PPH_STRING searchPath = NULL;
     PPH_SYMBOL_PROVIDER symbolProvider;
 
     symbolProvider = PhCreateSymbolProvider(NULL);
 
-    if (symbolSearchPath = PhGetStringSetting(L"DbgHelpSearchPath"))
-    {
-        PhSetSearchPathSymbolProvider(symbolProvider, symbolSearchPath->Buffer);
-        PhDereferenceObject(symbolSearchPath);
-    }
+    PhSetOptionsSymbolProvider(
+        SYMOPT_UNDNAME,
+        PhGetIntegerSetting(L"DbgHelpUndecorate") ? SYMOPT_UNDNAME : 0
+        );
+
+    PhQueryEnvironmentVariable(NULL, &symbolPath, &searchPath);
+
+    if (PhIsNullOrEmptyString(searchPath))
+        searchPath = PhGetStringSetting(L"DbgHelpSearchPath");
+    if (!PhIsNullOrEmptyString(searchPath))
+        PhSetSearchPathSymbolProvider(symbolProvider, searchPath->Buffer);
+    if (searchPath)
+        PhDereferenceObject(searchPath);
 
     *SymbolProvider = symbolProvider;
     return TRUE;
