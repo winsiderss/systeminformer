@@ -293,8 +293,8 @@ VOID PhpSearchInitializeImages(
 {
     HBITMAP bitmap;
 
-    Context->ImageWidth = GetSystemMetrics(SM_CXSMICON) + 4;
-    Context->ImageHeight = GetSystemMetrics(SM_CYSMICON) + 4;
+    Context->ImageWidth = PhSmallIconSize.X + 4; //GetSystemMetrics(SM_CXSMICON) + 4;
+    Context->ImageHeight = PhSmallIconSize.Y + 4; //GetSystemMetrics(SM_CYSMICON) + 4;
 
     if (bitmap = PhLoadPngImageFromResource(PhInstanceHandle, Context->ImageWidth, Context->ImageHeight, MAKEINTRESOURCE(IDB_SEARCH_ACTIVE), TRUE))
     {

@@ -78,8 +78,8 @@ BOOLEAN PhTreeNewInitialization(
         return FALSE;
 
     ComCtl32Handle = PhGetLoaderEntryDllBase(L"comctl32.dll");
-    SmallIconWidth = GetSystemMetrics(SM_CXSMICON);
-    SmallIconHeight = GetSystemMetrics(SM_CYSMICON);
+    SmallIconWidth = PhSmallIconSize.X; //GetSystemMetrics(SM_CXSMICON);
+    SmallIconHeight = PhSmallIconSize.Y; //GetSystemMetrics(SM_CYSMICON);
 
     return TRUE;
 }
