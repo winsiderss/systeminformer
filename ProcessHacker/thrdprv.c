@@ -940,12 +940,6 @@ VOID PhpThreadProviderUpdate(
                 threadItem->IsGuiThread = !!GetGUIThreadInfo(HandleToUlong(threadItem->ThreadId), &info);
             }
 
-            // IRP pending
-            if (threadItem->ThreadHandle)
-            {
-                PhGetThreadIsIoPending(threadItem->ThreadHandle, &threadItem->PendingIrp);
-            }
-
             PhpQueueThreadQuery(threadProvider, threadItem);
 
             // Add the thread item to the hashtable.
@@ -1096,20 +1090,6 @@ VOID PhpThreadProviderUpdate(
 
                 if (threadItem->IsGuiThread != oldIsGuiThread)
                     modified = TRUE;
-            }
-
-            // IRP pending
-            if (threadItem->ThreadHandle)
-            {
-                BOOLEAN pendingIrp = FALSE;
-
-                PhGetThreadIsIoPending(threadItem->ThreadHandle, &pendingIrp);
-
-                if (threadItem->PendingIrp != pendingIrp)
-                {
-                    threadItem->PendingIrp = pendingIrp;
-                    modified = TRUE;
-                }
             }
 
             threadItem->JustResolved = FALSE;
