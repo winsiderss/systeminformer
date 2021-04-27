@@ -296,11 +296,11 @@ LRESULT CALLBACK PhTnpWndProc(
         }
         break;
     case WM_MEASUREITEM:
-        if (PhThemeWindowMeasureItem(hwnd, (LPMEASUREITEMSTRUCT)lParam))
+        if (context->ThemeSupport && PhThemeWindowMeasureItem(hwnd, (LPMEASUREITEMSTRUCT)lParam))
             return TRUE;
         break;
     case WM_DRAWITEM:
-        if (PhThemeWindowDrawItem((LPDRAWITEMSTRUCT)lParam))
+        if (context->ThemeSupport && PhThemeWindowDrawItem((LPDRAWITEMSTRUCT)lParam))
             return TRUE;
         break;
     }
@@ -1574,6 +1574,13 @@ BOOLEAN PhTnpOnNotify(
                 PhTnpUpdateColumnMaps(Context);
                 Context->Callback(Context->Handle, TreeNewColumnReordered, NULL, NULL, Context->CallbackContext);
                 InvalidateRect(Context->Handle, NULL, FALSE);
+            }
+
+            // We need to invalidate the header but hwndFrom doesn't match HeaderHandle,
+            // instead we'll always invalidate? (dmex)
+            if (Context->ThemeSupport)
+            {
+                InvalidateRect(Context->HeaderHandle, NULL, FALSE);
             }
         }
         break;

@@ -2397,23 +2397,19 @@ LRESULT CALLBACK PhpThemeWindowHeaderSubclassProc(
         break;
     case WM_MOUSELEAVE:
         {
-            // TCITEM tcItem = { TCIF_STATE, 0, TCIS_HIGHLIGHTED };
-            //// int nCount = TabCtrl_GetItemCount(WindowHandle);
-            // for (int i = 0; i < nCount; i++)
-            // {
-            //     //TabCtrl_SetItem(WindowHandle, i, &tcItem);
-            // }
+            LRESULT result = CallWindowProc(oldWndProc, WindowHandle, uMsg, wParam, lParam);
 
             InvalidateRect(WindowHandle, NULL, TRUE);
-            context->MouseActive = FALSE;
+
+            return result; 
         }
         break;
     case WM_PAINT:
         {
             //HTHEME hTheme = OpenThemeData(WindowHandle, L"HEADER");
-            WCHAR szText[MAX_PATH];
+            WCHAR headerText[MAX_PATH];
             RECT clientRect;
-            HDITEM tcItem;
+            HDITEM headerItem;
             PAINTSTRUCT ps;
 
             //InvalidateRect(WindowHandle, NULL, FALSE);
@@ -2451,17 +2447,18 @@ LRESULT CALLBACK PhpThemeWindowHeaderSubclassProc(
                 break;
             }
 
-            INT nCount = Header_GetItemCount(WindowHandle);
+            INT headerItemCount = Header_GetItemCount(WindowHandle);
+            POINT pt;
 
-            for (INT i = 0; i < nCount; i++)
+            GetCursorPos(&pt);
+            MapWindowPoints(NULL, WindowHandle, &pt, 1);
+
+            for (INT i = 0; i < headerItemCount; i++)
             {
+                INT drawTextFlags = DT_SINGLELINE | DT_HIDEPREFIX | DT_WORD_ELLIPSIS;
                 RECT headerRect;
-                POINT pt;
 
                 Header_GetItemRect(WindowHandle, i, &headerRect);
-
-                GetCursorPos(&pt);
-                MapWindowPoints(NULL, WindowHandle, &pt, 1);
 
                 if (PtInRect(&headerRect, pt))
                 {
@@ -2498,21 +2495,42 @@ LRESULT CALLBACK PhpThemeWindowHeaderSubclassProc(
                     }
 
                     //FrameRect(hdc, &headerRect, GetSysColorBrush(COLOR_HIGHLIGHT));
+                    //SetDCPenColor(hdc, RGB(0, 255, 0));
+                    //SetDCBrushColor(hdc, RGB(0, 255, 0));
+                    //DrawEdge(hdc, &headerRect, BDR_RAISEDOUTER | BF_FLAT, BF_RIGHT);
+
+                    RECT frameRect;
+
+                    frameRect.bottom = headerRect.bottom;
+                    frameRect.left = headerRect.right - 1;
+                    frameRect.right = headerRect.right;
+                    frameRect.top = headerRect.top;
+
+                    SetDCBrushColor(hdc, RGB(68, 68, 68)); // RGB(0x77, 0x77, 0x77));
+                    FrameRect(hdc, &frameRect, GetStockBrush(DC_BRUSH));
                 }
 
-                ZeroMemory(&tcItem, sizeof(HDITEM));
-                tcItem.mask = HDI_TEXT | HDI_IMAGE | HDI_STATE;
-                tcItem.pszText = szText;
-                tcItem.cchTextMax = MAX_PATH;
+                ZeroMemory(&headerItem, sizeof(HDITEM));
+                headerItem.mask = HDI_TEXT | HDI_FORMAT;
+                headerItem.cchTextMax = MAX_PATH;
+                headerItem.pszText = headerText;
 
-                Header_GetItem(WindowHandle, i, &tcItem);
+                if (!Header_GetItem(WindowHandle, i, &headerItem))
+                    continue;
 
+                if (headerItem.fmt & HDF_RIGHT)
+                    drawTextFlags |= DT_VCENTER | DT_RIGHT;
+                else
+                    drawTextFlags |= DT_VCENTER | DT_LEFT;
+
+                headerRect.left += 4;
+                headerRect.right -= 8;
                 DrawText(
                     hdc,
-                    tcItem.pszText,
+                    headerText,
                     -1,
                     &headerRect,
-                    DT_VCENTER | DT_CENTER | DT_SINGLELINE | DT_HIDEPREFIX
+                    drawTextFlags
                     );
             }
 
