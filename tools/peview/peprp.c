@@ -24,6 +24,7 @@
 #include <peview.h>
 #include <workqueue.h>
 #include <verify.h>
+#include <dbghelp.h>
 #include <shellapi.h>
 #include <math.h>
 
