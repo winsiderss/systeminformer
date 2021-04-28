@@ -3,6 +3,7 @@
  *   Process properties: General page
  *
  * Copyright (C) 2009-2016 wj32
+ * Copyright (C) 2016-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -71,11 +72,21 @@ PPH_STRING PhGetProcessItemProtectionText(
             else
                 signer = L"";
 
+            // Isolated User Mode (IUM) (dmex)
+            if (ProcessItem->Protection.Type == PsProtectedTypeNone && ProcessItem->IsSecureProcess)
+                return PhConcatStrings2(L"Secure (IUM)", signer);
+
             return PhConcatStrings2(type, signer);
         }
         else
         {
-            return PhCreateString(ProcessItem->IsProtectedProcess ? L"Yes" : L"None");
+            if (ProcessItem->IsSecureProcess)
+                return PhCreateString(L"Secure (IUM)");
+
+            if (ProcessItem->IsProtectedProcess)
+                return PhCreateString(L"Yes");
+
+            return PhCreateString(L"None");
         }
     }
 
