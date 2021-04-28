@@ -183,16 +183,16 @@ INT WINAPI wWinMain(
 
     PhInitializeAutoPool(&BaseAutoPool);
 
-    PhInitializeAppSystem();
-    PhInitializeCallbacks();
     PhInitializeCommonControls();
-
-    PhEmInitialization();
     PhGuiSupportInitialization();
     PhTreeNewInitialization();
     PhGraphControlInitialization();
     PhHexEditInitialization();
     PhColorBoxInitialization();
+
+    PhInitializeAppSystem();
+    PhInitializeCallbacks();
+    PhEmInitialization();
 
     if (PhStartupParameters.ShowOptions)
     {

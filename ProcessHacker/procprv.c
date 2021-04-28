@@ -3069,7 +3069,7 @@ VOID PhProcessImageListInitialization(
     HICON iconLarge;
 
     PhImageListItemType = PhCreateObjectType(L"ImageListItem", 0, PhpImageListItemDeleteProcedure);
-    
+
     PhProcessLargeImageList = ImageList_Create(PhLargeIconSize.X, PhLargeIconSize.Y, ILC_MASK | ILC_COLOR32, 100, 100);
     PhProcessSmallImageList = ImageList_Create(PhSmallIconSize.X, PhSmallIconSize.Y, ILC_MASK | ILC_COLOR32, 100, 100);
     ImageList_SetBkColor(PhProcessLargeImageList, CLR_NONE);
@@ -3114,8 +3114,8 @@ PPH_IMAGELIST_ITEM PhImageListExtractIcon(
     _In_ BOOLEAN NativeFileName
     )
 {
-    HICON largeIcon;
-    HICON smallIcon;
+    HICON largeIcon = NULL;
+    HICON smallIcon = NULL;
     PPH_IMAGELIST_ITEM newentry;
 
     PhAcquireQueuedLockShared(&PhImageListCacheHashtableLock);
@@ -3144,8 +3144,13 @@ PPH_IMAGELIST_ITEM PhImageListExtractIcon(
 
     PhReleaseQueuedLockShared(&PhImageListCacheHashtableLock);
 
-    if (!PhExtractIconEx(FileName, NativeFileName, 0, &largeIcon, &smallIcon))
-        return NULL;
+    PhExtractIconEx(
+        FileName,
+        NativeFileName,
+        0,
+        &largeIcon,
+        &smallIcon
+        );
 
     PhAcquireQueuedLockExclusive(&PhImageListCacheHashtableLock);
 
@@ -3161,10 +3166,19 @@ PPH_IMAGELIST_ITEM PhImageListExtractIcon(
 
     newentry = PhCreateObjectZero(sizeof(PH_IMAGELIST_ITEM), PhImageListItemType);
     newentry->FileName = PhReferenceObject(FileName);
-    newentry->LargeIconIndex = ImageList_AddIcon(PhProcessLargeImageList, largeIcon);
-    newentry->SmallIconIndex = ImageList_AddIcon(PhProcessSmallImageList, smallIcon);
-    DestroyIcon(smallIcon);
-    DestroyIcon(largeIcon);
+
+    if (largeIcon && smallIcon)
+    {
+        newentry->LargeIconIndex = ImageList_AddIcon(PhProcessLargeImageList, largeIcon);
+        newentry->SmallIconIndex = ImageList_AddIcon(PhProcessSmallImageList, smallIcon);
+        DestroyIcon(smallIcon);
+        DestroyIcon(largeIcon);
+    }
+    else
+    {
+        newentry->LargeIconIndex = 0;
+        newentry->SmallIconIndex = 0;
+    }
 
     PhReferenceObject(newentry);
     PhAddEntryHashtable(PhImageListCacheHashtable, &newentry);
