@@ -474,7 +474,9 @@ BOOLEAN WhoisQueryServer(
     if (whoisResponse)
     {
         if (WhoisQueryResponse)
-            *WhoisQueryResponse = PhConvertUtf8ToUtf16Ex(whoisResponse, whoisResponseLength);
+            *WhoisQueryResponse = PhZeroExtendToUtf16Ex(whoisResponse, whoisResponseLength);
+
+        PhFree(whoisResponse);
         return TRUE;
     }
 
