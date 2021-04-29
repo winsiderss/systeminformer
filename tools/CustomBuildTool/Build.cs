@@ -897,6 +897,7 @@ namespace CustomBuildTool
 
         public static bool BuildDeployUpdateConfig()
         {
+            string buildBuildId;
             string buildJobId;
             string buildPostUrl;
             string buildPostApiKey;
@@ -914,6 +915,7 @@ namespace CustomBuildTool
             if (!BuildNightly)
                 return true;
 
+            buildBuildId = Win32.GetEnvironmentVariable("%APPVEYOR_BUILD_ID%");
             buildJobId = Win32.GetEnvironmentVariable("%APPVEYOR_JOB_ID%");
             buildPostUrl = Win32.GetEnvironmentVariable("%APPVEYOR_BUILD_API%");
             buildPostApiKey = Win32.GetEnvironmentVariable("%APPVEYOR_BUILD_KEY%");
@@ -926,6 +928,8 @@ namespace CustomBuildTool
             BuildBinSig = null;
             BuildSetupSig = null;
 
+            if (string.IsNullOrEmpty(buildBuildId))
+                return false;
             if (string.IsNullOrEmpty(buildJobId))
                 return false;
             if (string.IsNullOrEmpty(buildPostUrl))
@@ -1025,6 +1029,7 @@ namespace CustomBuildTool
                     BuildUpdated = TimeStart.ToString("o"),
                     BuildVersion = BuildVersion,
                     BuildCommit = BuildCommit,
+                    BuildId = buildBuildId,
                     BinUrl = $"https://ci.appveyor.com/api/buildjobs/{buildJobId}/artifacts/processhacker-{BuildVersion}-bin.zip",
                     BinLength = buildBinFileLength.ToString(),
                     BinHash = buildBinHash,

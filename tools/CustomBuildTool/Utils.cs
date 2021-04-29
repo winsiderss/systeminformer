@@ -781,6 +781,7 @@ namespace CustomBuildTool
 
     public class BuildUpdateRequest
     {
+        [JsonPropertyName("build_id")] public string BuildId { get; set; }
         [JsonPropertyName("build_version")] public string BuildVersion { get; set; }
         [JsonPropertyName("build_commit")] public string BuildCommit { get; set; }
         [JsonPropertyName("build_updated")] public string BuildUpdated { get; set; }
