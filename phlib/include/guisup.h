@@ -11,6 +11,10 @@ extern "C" {
 
 // guisup
 
+typedef BOOL (WINAPI *_IsImmersiveProcess)(
+    _In_ HANDLE ProcessHandle
+    );
+
 #define RFF_NOBROWSE 0x0001
 #define RFF_NODEFAULT 0x0002
 #define RFF_CALCDIRECTORY 0x0004
@@ -39,6 +43,7 @@ typedef LPNMRUNFILEDLGW LPNMRUNFILEDLG;
 
 typedef HANDLE HTHEME;
 
+extern _IsImmersiveProcess IsImmersiveProcess_I;
 extern PH_INTEGER_PAIR PhSmallIconSize;
 extern PH_INTEGER_PAIR PhLargeIconSize;
 

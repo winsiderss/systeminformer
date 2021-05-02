@@ -59,6 +59,7 @@ HFONT PhApplicationFont = NULL;
 HFONT PhTreeWindowFont = NULL;
 PH_INTEGER_PAIR PhSmallIconSize = { 16, 16 };
 PH_INTEGER_PAIR PhLargeIconSize = { 32, 32 };
+_IsImmersiveProcess IsImmersiveProcess_I = NULL;
 
 static PH_INITONCE SharedIconCacheInitOnce = PH_INITONCE_INIT;
 static PPH_HASHTABLE SharedIconCacheHashtable;
@@ -97,6 +98,11 @@ VOID PhGuiSupportInitialization(
     {
         PhGlobalDpi = GetDeviceCaps(hdc, LOGPIXELSY);
         ReleaseDC(NULL, hdc);
+    }
+
+    if (WindowsVersion >= WINDOWS_8)
+    {
+        IsImmersiveProcess_I = PhGetDllProcedureAddress(L"user32.dll", "IsImmersiveProcess", 0);
     }
 }
 
@@ -1548,8 +1554,8 @@ HWND PhGetProcessMainWindowEx(
     else
         PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, ProcessId);
 
-    if (processHandle && WindowsVersion >= WINDOWS_8 && IsImmersiveProcess)
-        context.IsImmersive = !!IsImmersiveProcess(processHandle);
+    if (processHandle && WindowsVersion >= WINDOWS_8 && IsImmersiveProcess_I)
+        context.IsImmersive = !!IsImmersiveProcess_I(processHandle);
 
     PhEnumWindows(PhpGetProcessMainWindowEnumWindowsProc, &context);
     //PhEnumChildWindows(NULL, 0x800, PhpGetProcessMainWindowEnumWindowsProc, &context);

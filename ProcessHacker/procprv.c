@@ -841,9 +841,9 @@ VOID PhpProcessQueryStage1(
     }
 
     // Immersive
-    if (processHandleLimited && WindowsVersion >= WINDOWS_8 && IsImmersiveProcess && !processItem->IsSubsystemProcess)
+    if (processHandleLimited && WindowsVersion >= WINDOWS_8 && IsImmersiveProcess_I && !processItem->IsSubsystemProcess)
     {
-        Data->IsImmersive = !!IsImmersiveProcess(processHandleLimited);
+        Data->IsImmersive = !!IsImmersiveProcess_I(processHandleLimited);
     }
 
     // Package full name
@@ -2429,11 +2429,11 @@ VOID PhProcessProviderUpdate(
             }
 
             // Immersive
-            if (processItem->QueryHandle && WindowsVersion >= WINDOWS_8 && IsImmersiveProcess && !processItem->IsSubsystemProcess)
+            if (processItem->QueryHandle && WindowsVersion >= WINDOWS_8 && IsImmersiveProcess_I && !processItem->IsSubsystemProcess)
             {
                 BOOLEAN isImmersive;
 
-                isImmersive = !!IsImmersiveProcess(processItem->QueryHandle);
+                isImmersive = !!IsImmersiveProcess_I(processItem->QueryHandle);
 
                 if (processItem->IsImmersive != isImmersive)
                 {
