@@ -4775,6 +4775,19 @@ RtlFormatMessageEx(
     _Out_opt_ PPARSE_MESSAGE_CONTEXT ParseContext
     );
 
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlGetFileMUIPath(
+    _In_ ULONG Flags,
+    _In_ PCWSTR FilePath,
+    _Inout_opt_ PWSTR Language,
+    _Inout_ PULONG LanguageLength,
+    _Out_opt_ PWSTR FileMUIPath,
+    _Inout_ PULONG FileMUIPathLength,
+    _Inout_ PULONGLONG Enumerator
+    );
+
 // Errors
 
 NTSYSAPI
