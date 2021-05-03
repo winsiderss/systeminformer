@@ -89,40 +89,37 @@ BOOLEAN PhGetNetworkConnections(
     _Out_ PULONG NumberOfConnections
     );
 
-DECLSPEC_IMPORT ULONG WINAPI InternalGetTcpTableWithOwnerModule(
-    _Out_ PVOID* Tcp4Table, // PMIB_TCPTABLE_OWNER_MODULE
-    _In_ PVOID HeapHandle,
-    _In_opt_ ULONG DefaultSize // SIZEOF_TCPTABLE_OWNER_MODULE
-    );
-
-DECLSPEC_IMPORT ULONG WINAPI InternalGetTcp6TableWithOwnerModule(
-    _Out_ PVOID* Tcp6Table, // PMIB_TCP6TABLE_OWNER_MODULE
-    _In_ PVOID HeapHandle,
-    _In_opt_ ULONG DefaultSize // SIZEOF_TCP6TABLE_OWNER_MODULE
-    );
-
-DECLSPEC_IMPORT ULONG WINAPI InternalGetUdpTableWithOwnerModule(
-    _Out_ PVOID* Udp4Table, // PMIB_UDPTABLE_OWNER_MODULE
-    _In_ PVOID HeapHandle,
-    _In_opt_ ULONG DefaultSize // SIZEOF_UDPTABLE_OWNER_MODULE
-    );
-
-DECLSPEC_IMPORT ULONG WINAPI InternalGetUdp6TableWithOwnerModule(
-    _Out_ PVOID* Udp6Table, // PMIB_UDP6TABLE_OWNER_MODULE
-    _In_ PVOID HeapHandle,
-    _In_opt_ ULONG DefaultSize // SIZEOF_UDP6TABLE_OWNER_MODULE
-    );
+//DECLSPEC_IMPORT ULONG WINAPI InternalGetTcpTableWithOwnerModule(
+//    _Out_ PVOID* Tcp4Table, // PMIB_TCPTABLE_OWNER_MODULE
+//    _In_ PVOID HeapHandle,
+//    _In_opt_ ULONG HeapFlags
+//    );
+//DECLSPEC_IMPORT ULONG WINAPI InternalGetTcp6TableWithOwnerModule(
+//    _Out_ PVOID* Tcp6Table, // PMIB_TCP6TABLE_OWNER_MODULE
+//    _In_ PVOID HeapHandle,
+//    _In_opt_ ULONG HeapFlags
+//    );
+//DECLSPEC_IMPORT ULONG WINAPI InternalGetUdpTableWithOwnerModule(
+//    _Out_ PVOID* Udp4Table, // PMIB_UDPTABLE_OWNER_MODULE
+//    _In_ PVOID HeapHandle,
+//    _In_opt_ ULONG HeapFlags
+//    );
+//DECLSPEC_IMPORT ULONG WINAPI InternalGetUdp6TableWithOwnerModule(
+//    _Out_ PVOID* Udp6Table, // PMIB_UDP6TABLE_OWNER_MODULE
+//    _In_ PVOID HeapHandle,
+//    _In_opt_ ULONG HeapFlags
+//    );
 
 DECLSPEC_IMPORT ULONG WINAPI InternalGetBoundTcpEndpointTable(
     _Out_ PVOID* BoundTcpTable, // PMIB_TCPTABLE2
     _In_ PVOID HeapHandle,
-    _In_opt_ ULONG DefaultSize // SIZEOF_TCPTABLE2
+    _In_opt_ ULONG HeapFlags
     );
 
 DECLSPEC_IMPORT ULONG WINAPI InternalGetBoundTcp6EndpointTable(
     _Out_ PVOID* BoundTcpTable, // PMIB_TCP6TABLE2
     _In_ PVOID HeapHandle,
-    _In_opt_ ULONG DefaultSize // SIZEOF_TCP6TABLE2
+    _In_opt_ ULONG HeapFlags
     );
 
 PPH_OBJECT_TYPE PhNetworkItemType = NULL;
@@ -1059,160 +1056,88 @@ PWSTR PhGetTcpStateName(
     }
 }
 
-VOID PhpGetNetworkTables(
-    _Out_ PMIB_TCPTABLE_OWNER_MODULE* Tcp4Table,
-    _Out_ PMIB_TCP6TABLE_OWNER_MODULE* Tcp6Table,
-    _Out_ PMIB_UDPTABLE_OWNER_MODULE* Udp4Table,
-    _Out_ PMIB_UDP6TABLE_OWNER_MODULE* Udp6Table
-    )
-{
-    PVOID table;
-    ULONG tableSize;
-
-    // TCP IPv4
-
-    if (InternalGetTcpTableWithOwnerModule)
-    {
-        if (InternalGetTcpTableWithOwnerModule(&table, PhHeapHandle, 0) == NO_ERROR)
-        {
-            *Tcp4Table = table;
-        }
-    }
-    else
-    {
-        tableSize = 0;
-        GetExtendedTcpTable(NULL, &tableSize, FALSE, AF_INET, TCP_TABLE_OWNER_MODULE_ALL, 0);
-        table = PhAllocate(tableSize);
-
-        if (GetExtendedTcpTable(table, &tableSize, FALSE, AF_INET, TCP_TABLE_OWNER_MODULE_ALL, 0) == NO_ERROR)
-        {
-            *Tcp4Table = table;
-        }
-        else
-        {
-            PhFree(table);
-        }
-    }
-
-    // TCP IPv6
-
-    if (InternalGetTcp6TableWithOwnerModule)
-    {
-        if (InternalGetTcp6TableWithOwnerModule(&table, PhHeapHandle, 0) == NO_ERROR)
-        {
-            *Tcp6Table = table;
-        }
-    }
-    else
-    {
-        tableSize = 0;
-        GetExtendedTcpTable(NULL, &tableSize, FALSE, AF_INET6, TCP_TABLE_OWNER_MODULE_ALL, 0);
-
-        table = PhAllocate(tableSize);
-
-        if (GetExtendedTcpTable(table, &tableSize, FALSE, AF_INET6, TCP_TABLE_OWNER_MODULE_ALL, 0) == NO_ERROR)
-        {
-            *Tcp6Table = table;
-        }
-        else
-        {
-            PhFree(table);
-        }
-    }
-
-    // UDP IPv4
-
-    if (InternalGetUdpTableWithOwnerModule)
-    {
-        if (InternalGetUdpTableWithOwnerModule(&table, PhHeapHandle, 0) == NO_ERROR)
-        {
-            *Udp4Table = table;
-        }
-    }
-    else
-    {
-        tableSize = 0;
-        GetExtendedUdpTable(NULL, &tableSize, FALSE, AF_INET, UDP_TABLE_OWNER_MODULE, 0);
-        table = PhAllocate(tableSize);
-
-        if (GetExtendedUdpTable(table, &tableSize, FALSE, AF_INET, UDP_TABLE_OWNER_MODULE, 0) == NO_ERROR)
-        {
-            *Udp4Table = table;
-        }
-        else
-        {
-            PhFree(table);
-        }
-    }
-
-    // UDP IPv6
-
-    if (InternalGetUdp6TableWithOwnerModule)
-    {
-        if (InternalGetUdp6TableWithOwnerModule(&table, PhHeapHandle, 0) == NO_ERROR)
-        {
-            *Udp6Table = table;
-        }
-    }
-    else
-    {
-        tableSize = 0;
-        GetExtendedUdpTable(NULL, &tableSize, FALSE, AF_INET6, UDP_TABLE_OWNER_MODULE, 0);
-        table = PhAllocate(tableSize);
-
-        if (GetExtendedUdpTable(table, &tableSize, FALSE, AF_INET6, UDP_TABLE_OWNER_MODULE, 0) == NO_ERROR)
-        {
-            *Udp6Table = table;
-        }
-        else
-        {
-            PhFree(table);
-        }
-    }
-}
-
 BOOLEAN PhGetNetworkConnections(
     _Out_ PPH_NETWORK_CONNECTION *Connections,
     _Out_ PULONG NumberOfConnections
     )
 {
-    PMIB_TCPTABLE_OWNER_MODULE tcp4Table = NULL;
-    PMIB_TCP6TABLE_OWNER_MODULE tcp6Table = NULL;
-    PMIB_UDPTABLE_OWNER_MODULE udp4Table = NULL;
-    PMIB_UDP6TABLE_OWNER_MODULE udp6Table = NULL;
+    PVOID table;
+    ULONG tableSize;
+    PMIB_TCPTABLE_OWNER_MODULE tcp4Table;
+    PMIB_TCP6TABLE_OWNER_MODULE tcp6Table;
+    PMIB_UDPTABLE_OWNER_MODULE udp4Table;
+    PMIB_UDP6TABLE_OWNER_MODULE udp6Table;
     ULONG i;
     ULONG count = 0;
     ULONG index = 0;
     PPH_NETWORK_CONNECTION connections;
 
-    PhpGetNetworkTables(&tcp4Table, &tcp6Table, &udp4Table, &udp6Table);
-
     // TCP IPv4
 
-    if (tcp4Table)
+    tableSize = 0;
+    GetExtendedTcpTable(NULL, &tableSize, FALSE, AF_INET, TCP_TABLE_OWNER_MODULE_ALL, 0);
+    table = PhAllocate(tableSize);
+
+    if (GetExtendedTcpTable(table, &tableSize, FALSE, AF_INET, TCP_TABLE_OWNER_MODULE_ALL, 0) == NO_ERROR)
     {
+        tcp4Table = table;
         count += tcp4Table->dwNumEntries;
+    }
+    else
+    {
+        PhFree(table);
+        tcp4Table = NULL;
     }
 
     // TCP IPv6
 
-    if (tcp6Table)
+    tableSize = 0;
+    GetExtendedTcpTable(NULL, &tableSize, FALSE, AF_INET6, TCP_TABLE_OWNER_MODULE_ALL, 0);
+    table = PhAllocate(tableSize);
+
+    if (GetExtendedTcpTable(table, &tableSize, FALSE, AF_INET6, TCP_TABLE_OWNER_MODULE_ALL, 0) == NO_ERROR)
     {
+        tcp6Table = table;
         count += tcp6Table->dwNumEntries;
     }
- 
+    else
+    {
+        PhFree(table);
+        tcp6Table = NULL;
+    }
+
     // UDP IPv4
 
-    if (udp4Table)
+    tableSize = 0;
+    GetExtendedUdpTable(NULL, &tableSize, FALSE, AF_INET, UDP_TABLE_OWNER_MODULE, 0);
+    table = PhAllocate(tableSize);
+
+    if (GetExtendedUdpTable(table, &tableSize, FALSE, AF_INET, UDP_TABLE_OWNER_MODULE, 0) == NO_ERROR)
     {
+        udp4Table = table;
         count += udp4Table->dwNumEntries;
+    }
+    else
+    {
+        PhFree(table);
+        udp4Table = NULL;
     }
 
     // UDP IPv6
 
-    if (udp6Table)
+    tableSize = 0;
+    GetExtendedUdpTable(NULL, &tableSize, FALSE, AF_INET6, UDP_TABLE_OWNER_MODULE, 0);
+    table = PhAllocate(tableSize);
+
+    if (GetExtendedUdpTable(table, &tableSize, FALSE, AF_INET6, UDP_TABLE_OWNER_MODULE, 0) == NO_ERROR)
     {
+        udp6Table = table;
         count += udp6Table->dwNumEntries;
+    }
+    else
+    {
+        PhFree(table);
+        udp6Table = NULL;
     }
 
     connections = PhAllocate(sizeof(PH_NETWORK_CONNECTION) * count);
