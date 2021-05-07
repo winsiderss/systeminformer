@@ -215,5 +215,6 @@ WCHAR *PhKWaitReasonNames[MaximumWaitReason] =
     L"WrGuardedMutex",
     L"WrRundown",
     L"WrAlertByThreadId",
-    L"WrDeferredPreempt"
+    L"WrDeferredPreempt",
+    L"WrPhysicalFault"
 };
