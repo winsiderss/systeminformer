@@ -102,6 +102,7 @@ typedef enum _KWAIT_REASON
     WrRundown,
     WrAlertByThreadId,
     WrDeferredPreempt,
+    WrPhysicalFault,
     MaximumWaitReason
 } KWAIT_REASON, *PKWAIT_REASON;
 
