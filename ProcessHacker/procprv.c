@@ -2265,7 +2265,7 @@ VOID PhProcessProviderUpdate(
             // Token information
             if (
                 processItem->QueryHandle &&
-                processItem->ProcessId != SYSTEM_PROCESS_ID // System token can't be opened (dmex)
+                processItem->ProcessId != SYSTEM_PROCESS_ID // System token can't be opened on XP (wj32)
                 )
             {
                 HANDLE tokenHandle;
