@@ -145,7 +145,7 @@ typedef struct _EFI_DRIVER_ENTRY_LIST
     EFI_DRIVER_ENTRY DriverEntry;
 } EFI_DRIVER_ENTRY_LIST, *PEFI_DRIVER_ENTRY_LIST;
 
-#if (PHNT_VERSION >= PHNT_VISTA)
+#if (PHNT_VERSION >= PHNT_WINXP)
 
 NTSYSCALLAPI
 NTSTATUS
@@ -265,6 +265,8 @@ NtSetDriverEntryOrder(
     _In_ ULONG Count
     );
 
+#endif
+
 typedef enum _FILTER_BOOT_OPTION_OPERATION
 {
     FilterBootOptionOperationOpenSystemStore,
@@ -274,6 +276,7 @@ typedef enum _FILTER_BOOT_OPTION_OPERATION
 } FILTER_BOOT_OPTION_OPERATION;
 
 #if (PHNT_VERSION >= PHNT_THRESHOLD)
+
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -284,7 +287,6 @@ NtFilterBootOption(
     _In_reads_bytes_opt_(DataSize) PVOID Data,
     _In_ ULONG DataSize
     );
-#endif
 
 #endif
 
