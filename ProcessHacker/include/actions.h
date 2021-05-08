@@ -219,6 +219,14 @@ PhUiSetCriticalProcess(
 PHAPPAPI
 BOOLEAN
 NTAPI
+PhUiSetEcoModeProcess(
+    _In_ HWND WindowHandle,
+    _In_ PPH_PROCESS_ITEM Process
+    );
+
+PHAPPAPI
+BOOLEAN
+NTAPI
 PhUiDetachFromDebuggerProcess(
     _In_ HWND hWnd,
     _In_ PPH_PROCESS_ITEM Process
