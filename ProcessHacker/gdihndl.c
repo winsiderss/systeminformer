@@ -24,11 +24,13 @@
 #include <phapp.h>
 #include <ntgdi.h>
 #include <procprv.h>
+#include <phsettings.h>
 
 typedef struct _GDI_HANDLES_CONTEXT
 {
     PPH_PROCESS_ITEM ProcessItem;
     PPH_LIST List;
+    PH_LAYOUT_MANAGER LayoutManager;
 } GDI_HANDLES_CONTEXT, *PGDI_HANDLES_CONTEXT;
 
 typedef struct _PH_GDI_HANDLE_ITEM
@@ -52,18 +54,23 @@ VOID PhShowGdiHandlesDialog(
     _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
-    GDI_HANDLES_CONTEXT context;
+    PGDI_HANDLES_CONTEXT context;
+    HWND windowHandle;
 
-    context.ProcessItem = ProcessItem;
-    context.List = PhCreateList(20);
+    context = PhAllocateZero(sizeof(GDI_HANDLES_CONTEXT));
+    context->ProcessItem = PhReferenceObject(ProcessItem);
+    context->List = PhCreateList(20);
 
-    DialogBoxParam(
+    windowHandle = PhCreateDialog(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_GDIHANDLES),
-        ParentWindowHandle,
+        PhCsForceNoParent ? NULL : ParentWindowHandle,
         PhpGdiHandlesDlgProc,
-        (LPARAM)&context
+        context
         );
+
+    ShowWindow(windowHandle, SW_SHOW);
+    SetForegroundWindow(windowHandle);
 }
 
 PWSTR PhpGetGdiHandleTypeName(
@@ -352,6 +359,11 @@ INT_PTR CALLBACK PhpGdiHandlesDlgProc(
 
             lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
+            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhAddLayoutItem(&context->LayoutManager, lvHandle, NULL, PH_ANCHOR_ALL);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_REFRESH), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
+
             PhSetListViewStyle(lvHandle, TRUE, TRUE);
             PhSetControlTheme(lvHandle, L"explorer");
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 100, L"Type");
@@ -365,12 +377,29 @@ INT_PTR CALLBACK PhpGdiHandlesDlgProc(
             ExtendedListView_AddFallbackColumn(lvHandle, 0);
             ExtendedListView_AddFallbackColumn(lvHandle, 1);
 
+            {
+                PPH_STRING windowTitle;
+
+                windowTitle = PhGetWindowText(hwndDlg);
+                PhMoveReference(&windowTitle, PhFormatString(
+                    L"%s: %s (%lu)",
+                    PhGetStringOrEmpty(windowTitle),
+                    PhGetStringOrEmpty(context->ProcessItem->ProcessName),
+                    HandleToUlong(context->ProcessItem->ProcessId)
+                    ));
+
+                PhSetWindowText(hwndDlg, PhGetStringOrEmpty(windowTitle));
+                PhDereferenceObject(windowTitle);
+            }
+
             PhpRefreshGdiHandles(hwndDlg, context);
         }
         break;
     case WM_DESTROY:
         {
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+
+            PhDeleteLayoutManager(&context->LayoutManager);
 
             for (ULONG i = 0; i < context->List->Count; i++)
             {
@@ -382,7 +411,13 @@ INT_PTR CALLBACK PhpGdiHandlesDlgProc(
                 PhFree(context->List->Items[i]);
             }
 
+            if (context->ProcessItem)
+            {
+                PhDereferenceObject(context->ProcessItem);
+            }
+
             PhDereferenceObject(context->List);
+            PhFree(context);
         }
         break;
     case WM_COMMAND:
@@ -399,6 +434,11 @@ INT_PTR CALLBACK PhpGdiHandlesDlgProc(
                 }
                 break;
             }
+        }
+        break;
+    case WM_SIZE:
+        {
+            PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
     case WM_NOTIFY:
