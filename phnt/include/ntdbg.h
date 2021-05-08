@@ -56,7 +56,7 @@ NTSYSAPI
 ULONG
 STDAPIVCALLTYPE
 DbgPrint(
-    _In_z_ _Printf_format_string_ PSTR Format,
+    _In_z_ _Printf_format_string_ PCSTR Format,
     ...
     );
 
@@ -66,7 +66,7 @@ STDAPIVCALLTYPE
 DbgPrintEx(
     _In_ ULONG ComponentId,
     _In_ ULONG Level,
-    _In_z_ _Printf_format_string_ PSTR Format,
+    _In_z_ _Printf_format_string_ PCSTR Format,
     ...
     );
 
