@@ -2214,7 +2214,7 @@ BOOLEAN PhUiSetCriticalProcess(
 
     if (!NT_SUCCESS(status))
     {
-        PhpShowErrorProcess(WindowHandle, L"set critical status", Process, status, 0);
+        PhpShowErrorProcess(WindowHandle, L"set critical status for", Process, status, 0);
         return FALSE;
     }
 
