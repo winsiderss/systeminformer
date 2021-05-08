@@ -2299,7 +2299,7 @@ BOOLEAN PhUiSetEcoModeProcess(
         NtClose(processHandle);
     }
 
-    if (NT_SUCCESS(status))
+    if (!NT_SUCCESS(status))
     {
         PhpShowErrorProcess(WindowHandle, L"set Eco mode for", Process, status, 0);
         return FALSE;
