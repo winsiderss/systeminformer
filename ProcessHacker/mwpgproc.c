@@ -563,6 +563,33 @@ VOID PhMwpInitializeProcessMenu(
                 }
             }
         }
+
+        // Eco mode
+        if (WindowsVersion < WINDOWS_10_RS4)
+        {
+            PhEnableEMenuItem(Menu, ID_MISCELLANEOUS_ECOMODE, FALSE);
+        }
+        else
+        {
+            if (Processes[0]->QueryHandle)
+            {
+                POWER_THROTTLING_PROCESS_STATE powerThrottlingState;
+
+                if (NT_SUCCESS(PhGetProcessPowerThrottlingState(
+                    Processes[0]->QueryHandle,
+                    &powerThrottlingState
+                    )))
+                {
+                    if (
+                        powerThrottlingState.ControlMask & POWER_THROTTLING_PROCESS_EXECUTION_SPEED &&
+                        powerThrottlingState.StateMask & POWER_THROTTLING_PROCESS_EXECUTION_SPEED
+                        )
+                    {
+                        PhSetFlagsEMenuItem(Menu, ID_MISCELLANEOUS_ECOMODE, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
+                    }
+                }
+            }
+        }
     }
     else
     {
@@ -739,6 +766,7 @@ PPH_EMENU PhpCreateProcessMenu(
     menuItem = PhCreateEMenuItem(0, ID_PROCESS_MISCELLANEOUS, L"&Miscellaneous", NULL, NULL);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_MISCELLANEOUS_SETCRITICAL, L"&Critical", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_MISCELLANEOUS_DETACHFROMDEBUGGER, L"&Detach from debugger", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_MISCELLANEOUS_ECOMODE, L"Eco mode", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_MISCELLANEOUS_GDIHANDLES, L"GDI &handles", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_MISCELLANEOUS_HEAPS, L"Heaps", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_MISCELLANEOUS_REDUCEWORKINGSET, L"Reduce working &set", NULL, NULL), ULONG_MAX);

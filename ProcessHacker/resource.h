@@ -577,6 +577,7 @@
 #define ID_PROCESS_PAGEPRIORITY         40043
 #define ID_PRIORITY_REALTIME            40048
 #define ID_PRIORITY_HIGH                40049
+#define ID_MISCELLANEOUS_ECOMODE        40050
 #define ID_WINDOW_BRINGTOFRONT          40055
 #define ID_WINDOW_RESTORE               40056
 #define ID_WINDOW_MINIMIZE              40057
