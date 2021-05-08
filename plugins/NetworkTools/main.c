@@ -128,6 +128,21 @@ static BOOLEAN ParseNetworkAddress(
 
     memset(&addressInfo, 0, sizeof(NET_ADDRESS_INFO));
 
+    if (NT_SUCCESS(RtlIpv4StringToAddressEx(
+        AddressString,
+        FALSE,
+        &addressInfo.Ipv4Address.sin_addr,
+        &addressInfo.Ipv4Address.sin_port
+        )))
+    {
+        // ParseNetworkString doesn't support legacy formats of IPv4 addressing, so we'll first
+        // try parsing the address with RtlIpv4StringToAddressEx since it does support these formats (dmex)
+        RemoteEndpoint->Address.InAddr.s_addr = addressInfo.Ipv4Address.sin_addr.s_addr;
+        RemoteEndpoint->Port = _byteswap_ushort(addressInfo.Ipv4Address.sin_port);
+        RemoteEndpoint->Address.Type = PH_IPV4_NETWORK_TYPE;
+        return TRUE;
+    }
+
     if (ParseNetworkString(
         AddressString,
         NET_STRING_ANY_ADDRESS | NET_STRING_ANY_SERVICE,
