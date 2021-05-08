@@ -1355,6 +1355,18 @@ VOID PhMwpOnCommand(
             PhFree(processes);
         }
         break;
+    case ID_MISCELLANEOUS_ECOMODE:
+        {
+            PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
+
+            if (processItem)
+            {
+                PhReferenceObject(processItem);
+                PhUiSetEcoModeProcess(WindowHandle, processItem);
+                PhDereferenceObject(processItem);
+            }
+        }
+        break;
     case ID_WINDOW_BRINGTOFRONT:
         {
             if (IsWindow(PhMwpSelectedProcessWindowHandle))
