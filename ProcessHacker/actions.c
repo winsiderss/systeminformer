@@ -2221,6 +2221,93 @@ BOOLEAN PhUiSetCriticalProcess(
     return TRUE;
 }
 
+BOOLEAN PhUiSetEcoModeProcess(
+    _In_ HWND WindowHandle,
+    _In_ PPH_PROCESS_ITEM Process
+    )
+{
+    NTSTATUS status;
+    HANDLE processHandle;
+    POWER_THROTTLING_PROCESS_STATE powerThrottlingState;
+
+    status = PhOpenProcess(
+        &processHandle,
+        PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_SET_INFORMATION,
+        Process->ProcessId
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        status = PhGetProcessPowerThrottlingState(
+            processHandle,
+            &powerThrottlingState
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            if (!(
+                powerThrottlingState.ControlMask == POWER_THROTTLING_PROCESS_EXECUTION_SPEED &&
+                powerThrottlingState.StateMask == POWER_THROTTLING_PROCESS_EXECUTION_SPEED
+                ))
+            {
+                if (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
+                    WindowHandle,
+                    L"enable",
+                    L"Eco mode for this process",
+                    L"Eco mode will lower process priority and improve power efficiency but may cause instability in some processes.",
+                    FALSE
+                    ))
+                {
+                    PROCESS_PRIORITY_CLASS priorityClass;
+
+                    // Taskmgr sets the process priority to idle before enabling 'Eco mode'. (dmex)
+                    priorityClass.Foreground = FALSE;
+                    priorityClass.PriorityClass = PROCESS_PRIORITY_CLASS_IDLE;
+                    PhSetProcessPriority(processHandle, priorityClass);
+
+                    status = PhSetProcessPowerThrottlingState(
+                        processHandle,
+                        POWER_THROTTLING_PROCESS_EXECUTION_SPEED,
+                        POWER_THROTTLING_PROCESS_EXECUTION_SPEED
+                        );
+                }
+            }
+            else
+            {
+                if (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
+                    WindowHandle,
+                    L"disable",
+                    L"Eco mode for this process",
+                    L"Eco mode will lower process priority and improve power efficiency but may cause instability in some processes.",
+                    FALSE
+                    ))
+                {
+                    PROCESS_PRIORITY_CLASS priorityClass;
+
+                    // Taskmgr does not properly restore the original priority after it has exited
+                    // and you later decide to disable 'Eco mode', so we'll restore normal priority
+                    // which isn't quite correct but still way better than what taskmgr does. (dmex)
+                    priorityClass.Foreground = FALSE;
+                    priorityClass.PriorityClass = PROCESS_PRIORITY_CLASS_NORMAL;
+                    PhSetProcessPriority(processHandle, priorityClass);
+
+                    status = PhSetProcessPowerThrottlingState(processHandle, 0, 0);
+                }
+            }
+        }
+
+        NtClose(processHandle);
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        PhpShowErrorProcess(WindowHandle, L"set Eco mode for", Process, status, 0);
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
 BOOLEAN PhUiDetachFromDebuggerProcess(
     _In_ HWND hWnd,
     _In_ PPH_PROCESS_ITEM Process
