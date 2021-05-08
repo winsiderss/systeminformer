@@ -2246,8 +2246,8 @@ BOOLEAN PhUiSetEcoModeProcess(
         if (NT_SUCCESS(status))
         {
             if (!(
-                powerThrottlingState.ControlMask == POWER_THROTTLING_PROCESS_EXECUTION_SPEED &&
-                powerThrottlingState.StateMask == POWER_THROTTLING_PROCESS_EXECUTION_SPEED
+                powerThrottlingState.ControlMask & POWER_THROTTLING_PROCESS_EXECUTION_SPEED &&
+                powerThrottlingState.StateMask & POWER_THROTTLING_PROCESS_EXECUTION_SPEED
                 ))
             {
                 if (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
@@ -2274,13 +2274,13 @@ BOOLEAN PhUiSetEcoModeProcess(
             }
             else
             {
-                if (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
-                    WindowHandle,
-                    L"disable",
-                    L"Eco mode for this process",
-                    L"Eco mode will lower process priority and improve power efficiency but may cause instability in some processes.",
-                    FALSE
-                    ))
+                //if (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
+                //    WindowHandle,
+                //    L"disable",
+                //    L"Eco mode for this process",
+                //    L"Eco mode will lower process priority and improve power efficiency but may cause instability in some processes.",
+                //    FALSE
+                //    ))
                 {
                     PROCESS_PRIORITY_CLASS priorityClass;
 
