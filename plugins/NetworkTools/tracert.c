@@ -56,46 +56,96 @@ PPH_STRING PhpGetDnsReverseNameFromAddress(
     _In_ PTRACERT_RESOLVE_WORKITEM Address
     )
 {
+#define IP4_REVERSE_DOMAIN_STRING_LENGTH (IP4_ADDRESS_STRING_LENGTH + sizeof(DNS_IP4_REVERSE_DOMAIN_STRING_W) + 1)
+#define IP6_REVERSE_DOMAIN_STRING_LENGTH (IP6_ADDRESS_STRING_LENGTH + sizeof(DNS_IP6_REVERSE_DOMAIN_STRING_W) + 1)
+
     switch (Address->Type)
     {
     case PH_IPV4_NETWORK_TYPE:
         {
+            static PH_STRINGREF reverseLookupDomainNameSr = PH_STRINGREF_INIT(DNS_IP4_REVERSE_DOMAIN_STRING);
             IN_ADDR inAddr4 = ((PSOCKADDR_IN)&Address->SocketAddress)->sin_addr;
-            PH_STRING_BUILDER stringBuilder;
+            PH_FORMAT format[9];
+            SIZE_T returnLength;
+            WCHAR reverseNameBuffer[IP4_REVERSE_DOMAIN_STRING_LENGTH];
 
-            PhInitializeStringBuilder(&stringBuilder, DNS_MAX_IP4_REVERSE_NAME_LENGTH);
+            PhInitFormatU(&format[0], inAddr4.s_impno);
+            PhInitFormatC(&format[1], L'.');
+            PhInitFormatU(&format[2], inAddr4.s_lh);
+            PhInitFormatC(&format[3], L'.');
+            PhInitFormatU(&format[4], inAddr4.s_host);
+            PhInitFormatC(&format[5], L'.');
+            PhInitFormatU(&format[6], inAddr4.s_net);
+            PhInitFormatC(&format[7], L'.');
+            PhInitFormatSR(&format[8], reverseLookupDomainNameSr);
 
-            PhAppendFormatStringBuilder(
-                &stringBuilder,
-                L"%hhu.%hhu.%hhu.%hhu.",
-                inAddr4.s_impno,
-                inAddr4.s_lh,
-                inAddr4.s_host,
-                inAddr4.s_net
-                );
+            if (PhFormatToBuffer(
+                format,
+                RTL_NUMBER_OF(format),
+                reverseNameBuffer,
+                sizeof(reverseNameBuffer),
+                &returnLength
+                ))
+            {
+                PH_STRINGREF reverseNameString;
 
-            PhAppendStringBuilder2(&stringBuilder, DNS_IP4_REVERSE_DOMAIN_STRING);
+                reverseNameString.Buffer = reverseNameBuffer;
+                reverseNameString.Length = returnLength - sizeof(UNICODE_NULL);
 
-            return PhFinalStringBuilderString(&stringBuilder);
+                return PhCreateString2(&reverseNameString);
+            }
+            else
+            {
+                return PhFormat(format, RTL_NUMBER_OF(format), IP4_REVERSE_DOMAIN_STRING_LENGTH);
+            } 
         }
     case PH_IPV6_NETWORK_TYPE:
         {
+            static PH_STRINGREF reverseLookupDomainNameSr = PH_STRINGREF_INIT(DNS_IP6_REVERSE_DOMAIN_STRING);
             IN6_ADDR inAddr6 = ((PSOCKADDR_IN6)&Address->SocketAddress)->sin6_addr;
             PH_STRING_BUILDER stringBuilder;
 
-            PhInitializeStringBuilder(&stringBuilder, DNS_MAX_IP6_REVERSE_NAME_LENGTH);
+            // DNS_MAX_IP6_REVERSE_NAME_LENGTH
+            PhInitializeStringBuilder(&stringBuilder, IP6_REVERSE_DOMAIN_STRING_LENGTH);
 
             for (INT i = sizeof(IN6_ADDR) - 1; i >= 0; i--)
             {
-                PhAppendFormatStringBuilder(
-                    &stringBuilder,
-                    L"%hhx.%hhx.",
-                    inAddr6.s6_addr[i] & 0xF,
-                    (inAddr6.s6_addr[i] >> 4) & 0xF
-                    );
+                PH_FORMAT format[4];
+                SIZE_T returnLength;
+                WCHAR reverseNameBuffer[PH_INT32_STR_LEN_1];
+
+                PhInitFormatX(&format[0], inAddr6.s6_addr[i] & 0xF);
+                PhInitFormatC(&format[1], L'.');
+                PhInitFormatX(&format[2], (inAddr6.s6_addr[i] >> 4) & 0xF);
+                PhInitFormatC(&format[3], L'.');
+
+                if (PhFormatToBuffer(
+                    format,
+                    RTL_NUMBER_OF(format),
+                    reverseNameBuffer,
+                    sizeof(reverseNameBuffer),
+                    &returnLength
+                    ))
+                {
+                    PH_STRINGREF reverseNameString;
+
+                    reverseNameString.Buffer = reverseNameBuffer;
+                    reverseNameString.Length = returnLength - sizeof(UNICODE_NULL);
+
+                    PhAppendStringBuilder(&stringBuilder, &reverseNameString);
+                }
+                else
+                {
+                    PhAppendFormatStringBuilder(
+                        &stringBuilder,
+                        L"%hhx.%hhx.",
+                        inAddr6.s6_addr[i] & 0xF,
+                        (inAddr6.s6_addr[i] >> 4) & 0xF
+                        );
+                }
             }
 
-            PhAppendStringBuilder2(&stringBuilder, DNS_IP6_REVERSE_DOMAIN_STRING);
+            PhAppendStringBuilder(&stringBuilder, &reverseLookupDomainNameSr);
 
             return PhFinalStringBuilderString(&stringBuilder);
         }
@@ -779,10 +829,12 @@ INT_PTR CALLBACK TracertDlgProc(
                 break;
             case TRACERT_SHOWCONTEXTMENU:
                 {
+                    PPH_TREENEW_CONTEXT_MENU contextMenuEvent = (PPH_TREENEW_CONTEXT_MENU)lParam;
                     PPH_EMENU menu;
                     PTRACERT_ROOT_NODE selectedNode;
                     PPH_EMENU_ITEM selectedItem;
-                    PPH_TREENEW_CONTEXT_MENU contextMenuEvent = (PPH_TREENEW_CONTEXT_MENU)lParam;
+                    PH_IP_ENDPOINT remoteEndpoint;
+                    PWSTR terminator = UNICODE_NULL;
 
                     if (selectedNode = GetSelectedTracertNode(context))
                     {
@@ -799,6 +851,49 @@ INT_PTR CALLBACK TracertDlgProc(
                             PhSetFlagsEMenuItem(menu, MAINMENU_ACTION_PING, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
                             PhSetFlagsEMenuItem(menu, NETWORK_ACTION_TRACEROUTE, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
                             PhSetFlagsEMenuItem(menu, NETWORK_ACTION_WHOIS, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
+                        }
+
+                        if (!PhIsNullOrEmptyString(selectedNode->IpAddressString))
+                        {
+                            if (NT_SUCCESS(RtlIpv4StringToAddress(
+                                selectedNode->IpAddressString->Buffer,
+                                TRUE,
+                                &terminator,
+                                &remoteEndpoint.Address.InAddr
+                                )))
+                            {
+                                if (
+                                    IN4_IS_ADDR_UNSPECIFIED(&remoteEndpoint.Address.InAddr) ||
+                                    IN4_IS_ADDR_LOOPBACK(&remoteEndpoint.Address.InAddr)
+                                    )
+                                {
+                                    PhSetFlagsEMenuItem(menu, MAINMENU_ACTION_PING, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
+                                    PhSetFlagsEMenuItem(menu, NETWORK_ACTION_TRACEROUTE, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
+                                    PhSetFlagsEMenuItem(menu, NETWORK_ACTION_WHOIS, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
+                                }
+
+                                if (IN4_IS_ADDR_RFC1918(&remoteEndpoint.Address.InAddr))
+                                {
+                                    PhSetFlagsEMenuItem(menu, NETWORK_ACTION_WHOIS, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
+                                }
+                            }
+
+                            if (NT_SUCCESS(RtlIpv6StringToAddress(
+                                selectedNode->IpAddressString->Buffer,
+                                &terminator,
+                                &remoteEndpoint.Address.In6Addr
+                                )))
+                            {
+                                if (
+                                    IN6_IS_ADDR_UNSPECIFIED(&remoteEndpoint.Address.In6Addr) ||
+                                    IN6_IS_ADDR_LOOPBACK(&remoteEndpoint.Address.In6Addr)
+                                    )
+                                {
+                                    PhSetFlagsEMenuItem(menu, MAINMENU_ACTION_PING, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
+                                    PhSetFlagsEMenuItem(menu, NETWORK_ACTION_TRACEROUTE, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
+                                    PhSetFlagsEMenuItem(menu, NETWORK_ACTION_WHOIS, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
+                                }
+                            }
                         }
 
                         selectedItem = PhShowEMenu(
