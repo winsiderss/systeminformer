@@ -101,8 +101,9 @@
 #define PHPRTLC_ERRORMODE 88
 #define PHPRTLC_CODEPAGE 89
 #define PHPRTLC_TIMELINE 90
+#define PHPRTLC_POWERTHROTTLING 91
 
-#define PHPRTLC_MAXIMUM 91
+#define PHPRTLC_MAXIMUM 92
 #define PHPRTLC_IOGROUP_COUNT 9
 
 #define PHPN_WSCOUNTERS 0x1
@@ -122,6 +123,7 @@
 #define PHPN_CRITICAL 0x4000
 #define PHPN_ERRORMODE 0x8000
 #define PHPN_CODEPAGE 0x10000
+#define PHPN_POWERTHROTTLING 0x20000
 
 // begin_phapppub
 typedef struct _PH_PROCESS_NODE
@@ -187,6 +189,8 @@ typedef struct _PH_PROCESS_NODE
     BOOLEAN BreakOnTerminationEnabled;
     // Code page
     USHORT CodePage;
+    // Power throttling
+    BOOLEAN PowerThrottling;
 
     PPH_STRING TooltipText;
     ULONG64 TooltipTextValidToTickCount;

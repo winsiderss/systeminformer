@@ -232,6 +232,7 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_ERRORMODE, FALSE, L"Error mode", 70, PH_ALIGN_LEFT, ULONG_MAX, 0, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_CODEPAGE, FALSE, L"Code page", 70, PH_ALIGN_LEFT, ULONG_MAX, 0, TRUE);
     PhAddTreeNewColumnEx2(hwnd, PHPRTLC_TIMELINE, FALSE, L"Timeline", 100, PH_ALIGN_LEFT, ULONG_MAX, 0, TN_COLUMN_FLAG_CUSTOMDRAW | TN_COLUMN_FLAG_SORTDESCENDING);
+    PhAddTreeNewColumnEx(hwnd, PHPRTLC_POWERTHROTTLING, FALSE, L"Power throttling", 70, PH_ALIGN_LEFT, ULONG_MAX, 0, TRUE);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -1405,6 +1406,32 @@ static VOID PhpUpdateProcessNodeCodePage(
     }
 }
 
+static VOID PhpUpdateProcessNodePowerThrottling(
+    _Inout_ PPH_PROCESS_NODE ProcessNode
+    )
+{
+    if (!(ProcessNode->ValidMask & PHPN_POWERTHROTTLING))
+    {
+        ProcessNode->PowerThrottling = FALSE;
+
+        if (ProcessNode->ProcessItem->QueryHandle)
+        {
+            POWER_THROTTLING_PROCESS_STATE powerThrottlingState;
+
+            if (NT_SUCCESS(PhGetProcessPowerThrottlingState(ProcessNode->ProcessItem->QueryHandle, &powerThrottlingState)))
+            {
+                if (powerThrottlingState.ControlMask & POWER_THROTTLING_PROCESS_EXECUTION_SPEED &&
+                    powerThrottlingState.StateMask & POWER_THROTTLING_PROCESS_EXECUTION_SPEED)
+                {
+                    ProcessNode->PowerThrottling = TRUE;
+                }
+            }
+        }
+
+        ProcessNode->ValidMask |= PHPN_POWERTHROTTLING;
+    }
+}
+
 #define SORT_FUNCTION(Column) PhpProcessTreeNewCompare##Column
 
 #define BEGIN_SORT_FUNCTION(Column) static int __cdecl PhpProcessTreeNewCompare##Column( \
@@ -2081,6 +2108,14 @@ BEGIN_SORT_FUNCTION(CodePage)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(PowerThrottling)
+{
+    PhpUpdateProcessNodePowerThrottling(node1);
+    PhpUpdateProcessNodePowerThrottling(node2);
+    sortResult = ucharcmp(node1->PowerThrottling, node2->PowerThrottling);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpProcessTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -2212,6 +2247,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         SORT_FUNCTION(ErrorMode),
                         SORT_FUNCTION(CodePage),
                         SORT_FUNCTION(StartTime), // Timeline
+                        SORT_FUNCTION(PowerThrottling),
                     };
                     int (__cdecl *sortFunction)(const void *, const void *);
 
@@ -3208,6 +3244,14 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         PhMoveReference(&node->CodePageText, PhFormatUInt64(node->CodePage, FALSE));
                         getCellText->Text = node->CodePageText->sr;
                     }
+                }
+                break;
+            case PHPRTLC_POWERTHROTTLING:
+                {
+                    PhpUpdateProcessNodePowerThrottling(node);
+
+                    if (node->PowerThrottling)
+                        PhInitializeStringRef(&getCellText->Text, L"Yes");
                 }
                 break;
             default:
