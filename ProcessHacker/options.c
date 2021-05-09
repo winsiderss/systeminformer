@@ -390,7 +390,7 @@ INT_PTR CALLBACK PhOptionsDialogProc(
 
                         PhShellProcessHacker(
                             PhMainWndHandle,
-                            L"-v",
+                            L"-v -newinstance",
                             SW_SHOW,
                             0,
                             PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
@@ -1349,7 +1349,7 @@ static VOID PhpOptionsNotifyChangeCallback(
             ProcessHacker_PrepareForEarlyShutdown();
             PhShellProcessHacker(
                 PhMainWndHandle,
-                L"-v",
+                L"-v -newinstance",
                 SW_SHOW,
                 0,
                 PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
@@ -2627,7 +2627,7 @@ static BOOLEAN PhpWordMatchHandleStringRef(
 
         if (part.Length)
         {
-            if (PhFindStringInStringRef(Text, &part, TRUE) != -1)
+            if (PhFindStringInStringRef(Text, &part, TRUE) != SIZE_MAX)
                 return TRUE;
         }
     }
