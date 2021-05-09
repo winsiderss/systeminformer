@@ -536,8 +536,6 @@ VOID PhMwpOnDestroy(
 {
     PhMainWndExiting = TRUE;
 
-    PhSetIntegerSetting(L"MainWindowTabRestoreIndex", TabCtrl_GetCurSel(TabControlHandle));
-
     // Notify pages and plugins that we are shutting down.
 
     PhMwpNotifyAllPages(MainTabPageDestroy, NULL, NULL);
@@ -634,7 +632,7 @@ VOID PhMwpOnCommand(
 
             if (PhShellProcessHacker(
                 WindowHandle,
-                L"-v",
+                L"-v -newinstance",
                 SW_SHOW,
                 PH_SHELL_EXECUTE_ADMIN,
                 PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
@@ -1987,6 +1985,7 @@ VOID PhMwpSaveSettings(
 
     PhNfSaveSettings();
     PhSetIntegerSetting(L"IconNotifyMask", PhMwpNotifyIconNotifyMask);
+    PhSetIntegerSetting(L"MainWindowTabRestoreIndex", TabCtrl_GetCurSel(TabControlHandle));
 
     PhSaveWindowPlacementToSetting(L"MainWindowPosition", L"MainWindowSize", WindowHandle);
     PhMwpSaveWindowState(WindowHandle);
