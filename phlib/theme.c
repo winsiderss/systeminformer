@@ -243,7 +243,7 @@ VOID PhInitializeWindowTheme(
 
         if (defaultWindowProc != PhpThemeWindowSubclassProc)
         {
-            PhSetWindowContext(WindowHandle, SHRT_MAX, defaultWindowProc);
+            PhSetWindowContext(WindowHandle, LONG_MAX, defaultWindowProc);
             SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)PhpThemeWindowSubclassProc);
         }
 
@@ -412,7 +412,7 @@ VOID PhInitializeThemeWindowHeader(
     context = PhAllocateZero(sizeof(PHP_THEME_WINDOW_HEADER_CONTEXT));
     context->DefaultWindowProc = (WNDPROC)GetWindowLongPtr(HeaderWindow, GWLP_WNDPROC);
 
-    PhSetWindowContext(HeaderWindow, SHRT_MAX, context);
+    PhSetWindowContext(HeaderWindow, LONG_MAX, context);
     SetWindowLongPtr(HeaderWindow, GWLP_WNDPROC, (LONG_PTR)PhpThemeWindowHeaderSubclassProc);
 
     InvalidateRect(HeaderWindow, NULL, FALSE);
@@ -430,7 +430,7 @@ VOID PhInitializeThemeWindowTabControl(
     context = PhAllocateZero(sizeof(PHP_THEME_WINDOW_TAB_CONTEXT));
     context->DefaultWindowProc = (WNDPROC)GetWindowLongPtr(TabControlWindow, GWLP_WNDPROC);
 
-    PhSetWindowContext(TabControlWindow, SHRT_MAX, context);
+    PhSetWindowContext(TabControlWindow, LONG_MAX, context);
     SetWindowLongPtr(TabControlWindow, GWLP_WNDPROC, (LONG_PTR)PhpThemeWindowTabControlWndSubclassProc);
 
     PhSetWindowStyle(TabControlWindow, TCS_OWNERDRAWFIXED, TCS_OWNERDRAWFIXED);
@@ -450,7 +450,7 @@ VOID PhInitializeWindowThemeStatusBar(
     context->DefaultWindowProc = (WNDPROC)GetWindowLongPtr(StatusBarHandle, GWLP_WNDPROC);
     context->StatusThemeData = OpenThemeData(StatusBarHandle, VSCLASS_STATUS);
 
-    PhSetWindowContext(StatusBarHandle, SHRT_MAX, context);
+    PhSetWindowContext(StatusBarHandle, LONG_MAX, context);
     SetWindowLongPtr(StatusBarHandle, GWLP_WNDPROC, (LONG_PTR)PhpThemeWindowStatusbarWndSubclassProc);
 
     InvalidateRect(StatusBarHandle, NULL, FALSE);
@@ -463,7 +463,7 @@ VOID PhInitializeThemeWindowGroupBox(
     WNDPROC groupboxWindowProc;
 
     groupboxWindowProc = (WNDPROC)GetWindowLongPtr(GroupBoxHandle, GWLP_WNDPROC);
-    PhSetWindowContext(GroupBoxHandle, SHRT_MAX, groupboxWindowProc);
+    PhSetWindowContext(GroupBoxHandle, LONG_MAX, groupboxWindowProc);
     SetWindowLongPtr(GroupBoxHandle, GWLP_WNDPROC, (LONG_PTR)PhpThemeWindowGroupBoxSubclassProc);
 
     InvalidateRect(GroupBoxHandle, NULL, FALSE);
@@ -477,11 +477,11 @@ VOID PhInitializeThemeWindowEditControl(
 
     // HACK: The searchbox control does its own themed drawing and it uses the
     // same window context value so we know when to ignore theming.
-    if (PhGetWindowContext(EditControlHandle, SHRT_MAX))
+    if (PhGetWindowContext(EditControlHandle, LONG_MAX))
         return;
 
     editControlWindowProc = (WNDPROC)GetWindowLongPtr(EditControlHandle, GWLP_WNDPROC);
-    PhSetWindowContext(EditControlHandle, SHRT_MAX, editControlWindowProc);
+    PhSetWindowContext(EditControlHandle, LONG_MAX, editControlWindowProc);
     SetWindowLongPtr(EditControlHandle, GWLP_WNDPROC, (LONG_PTR)PhpThemeWindowEditSubclassProc);
 
     InvalidateRect(EditControlHandle, NULL, FALSE);
@@ -497,7 +497,7 @@ VOID PhInitializeWindowThemeRebar(
     context = PhAllocateZero(sizeof(PHP_THEME_WINDOW_HEADER_CONTEXT));
     context->DefaultWindowProc = (WNDPROC)GetWindowLongPtr(HeaderWindow, GWLP_WNDPROC);
 
-    PhSetWindowContext(HeaderWindow, SHRT_MAX, context);
+    PhSetWindowContext(HeaderWindow, LONG_MAX, context);
     SetWindowLongPtr(HeaderWindow, GWLP_WNDPROC, (LONG_PTR)PhpThemeWindowRebarToolbarSubclassProc);
 
     InvalidateRect(HeaderWindow, NULL, FALSE);
@@ -531,7 +531,7 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
         NULL
         );
 
-    if (PhGetWindowContext(WindowHandle, SHRT_MAX)) // HACK
+    if (PhGetWindowContext(WindowHandle, LONG_MAX)) // HACK
         return TRUE;
 
     if (!GetClassName(WindowHandle, windowClassName, RTL_NUMBER_OF(windowClassName)))
@@ -860,6 +860,12 @@ BOOLEAN PhThemeWindowDrawItem(
     case ODT_MENU:
         {
             PPH_EMENU_ITEM menuItemInfo = (PPH_EMENU_ITEM)DrawInfo->itemData;
+            HFONT oldFont = NULL;
+
+            if (PhpMenuFontHandle)
+            {
+                oldFont = SelectFont(DrawInfo->hDC, PhpMenuFontHandle);
+            }
 
             //FillRect(
             //    DrawInfo->hDC, 
@@ -1077,6 +1083,11 @@ BOOLEAN PhThemeWindowDrawItem(
                     &DrawInfo->rcItem,
                     DT_RIGHT | DT_VCENTER | DT_SINGLELINE | DT_HIDEPREFIX | DT_NOCLIP
                     );
+            }
+
+            if (oldFont)
+            {
+                SelectFont(DrawInfo->hDC, oldFont);
             }
 
             return TRUE;
@@ -1756,14 +1767,14 @@ LRESULT CALLBACK PhpThemeWindowSubclassProc(
 {
     WNDPROC oldWndProc;
 
-    if (!(oldWndProc = PhGetWindowContext(hWnd, SHRT_MAX)))
+    if (!(oldWndProc = PhGetWindowContext(hWnd, LONG_MAX)))
         return FALSE;
 
     switch (uMsg)
     {
     case WM_DESTROY:
         {
-            PhRemoveWindowContext(hWnd, SHRT_MAX);
+            PhRemoveWindowContext(hWnd, LONG_MAX);
             SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
         }
         break;
@@ -1858,7 +1869,7 @@ LRESULT CALLBACK PhpThemeWindowGroupBoxSubclassProc(
 {
     WNDPROC oldWndProc;
 
-    if (!(oldWndProc = PhGetWindowContext(WindowHandle, SHRT_MAX)))
+    if (!(oldWndProc = PhGetWindowContext(WindowHandle, LONG_MAX)))
         return FALSE;
 
     switch (uMsg)
@@ -1866,7 +1877,7 @@ LRESULT CALLBACK PhpThemeWindowGroupBoxSubclassProc(
     case WM_DESTROY:
         {
             SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
-            PhRemoveWindowContext(WindowHandle, SHRT_MAX);
+            PhRemoveWindowContext(WindowHandle, LONG_MAX);
         }
         break;
     case WM_ERASEBKGND:
@@ -1985,7 +1996,7 @@ LRESULT CALLBACK PhpThemeWindowEditSubclassProc(
 {
     WNDPROC oldWndProc;
 
-    if (!(oldWndProc = PhGetWindowContext(WindowHandle, SHRT_MAX)))
+    if (!(oldWndProc = PhGetWindowContext(WindowHandle, LONG_MAX)))
         return FALSE;
 
     switch (uMsg)
@@ -1993,7 +2004,7 @@ LRESULT CALLBACK PhpThemeWindowEditSubclassProc(
     case WM_DESTROY:
         {
             SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
-            PhRemoveWindowContext(WindowHandle, SHRT_MAX);
+            PhRemoveWindowContext(WindowHandle, LONG_MAX);
         }
         break;
     case WM_NCPAINT:
@@ -2049,7 +2060,7 @@ LRESULT CALLBACK PhpThemeWindowTabControlWndSubclassProc(
     PPHP_THEME_WINDOW_TAB_CONTEXT context;
     WNDPROC oldWndProc;
 
-    if (!(context = PhGetWindowContext(WindowHandle, SHRT_MAX)))
+    if (!(context = PhGetWindowContext(WindowHandle, LONG_MAX)))
         return FALSE;
 
     oldWndProc = context->DefaultWindowProc;
@@ -2058,7 +2069,7 @@ LRESULT CALLBACK PhpThemeWindowTabControlWndSubclassProc(
     {
     case WM_DESTROY:
         {
-            PhRemoveWindowContext(WindowHandle, SHRT_MAX);
+            PhRemoveWindowContext(WindowHandle, LONG_MAX);
             SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
 
             PhFree(context);
@@ -2335,7 +2346,7 @@ LRESULT CALLBACK PhpThemeWindowHeaderSubclassProc(
     PPHP_THEME_WINDOW_HEADER_CONTEXT context;
     WNDPROC oldWndProc;
 
-    if (!(context = PhGetWindowContext(WindowHandle, SHRT_MAX)))
+    if (!(context = PhGetWindowContext(WindowHandle, LONG_MAX)))
         return FALSE;
 
     oldWndProc = context->DefaultWindowProc;
@@ -2344,7 +2355,7 @@ LRESULT CALLBACK PhpThemeWindowHeaderSubclassProc(
     {
     case WM_NCDESTROY:
         {
-            PhRemoveWindowContext(WindowHandle, SHRT_MAX);
+            PhRemoveWindowContext(WindowHandle, LONG_MAX);
             SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
 
             PhFree(context);
@@ -2562,7 +2573,7 @@ LRESULT CALLBACK PhpThemeWindowStatusbarWndSubclassProc(
     PPHP_THEME_WINDOW_STATUSBAR_CONTEXT context;
     WNDPROC oldWndProc;
 
-    if (!(context = PhGetWindowContext(WindowHandle, SHRT_MAX)))
+    if (!(context = PhGetWindowContext(WindowHandle, LONG_MAX)))
         return FALSE;
 
     oldWndProc = context->DefaultWindowProc;
@@ -2571,7 +2582,7 @@ LRESULT CALLBACK PhpThemeWindowStatusbarWndSubclassProc(
     {
     case WM_NCDESTROY:
         {
-            PhRemoveWindowContext(WindowHandle, SHRT_MAX);
+            PhRemoveWindowContext(WindowHandle, LONG_MAX);
             SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
 
             PhFree(context);
@@ -2758,7 +2769,7 @@ LRESULT CALLBACK PhpThemeWindowRebarToolbarSubclassProc(
     PPHP_THEME_WINDOW_HEADER_CONTEXT context;
     WNDPROC oldWndProc;
 
-    if (!(context = PhGetWindowContext(WindowHandle, SHRT_MAX)))
+    if (!(context = PhGetWindowContext(WindowHandle, LONG_MAX)))
         return FALSE;
 
     oldWndProc = context->DefaultWindowProc;
@@ -2767,7 +2778,7 @@ LRESULT CALLBACK PhpThemeWindowRebarToolbarSubclassProc(
     {
     case WM_NCDESTROY:
         {
-            PhRemoveWindowContext(WindowHandle, SHRT_MAX);
+            PhRemoveWindowContext(WindowHandle, LONG_MAX);
             SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
 
             PhFree(context);
