@@ -5254,7 +5254,7 @@ PPH_STRING PhParseCommandLinePart(
     // * 2n + 1 backslashes and a quotation mark produces n and a quotation mark (literal).
     // * n backslashes and no quotation mark produces n backslashes.
 
-    PhInitializeStringBuilder(&stringBuilder, 10);
+    PhInitializeStringBuilder(&stringBuilder, 0x80);
     numberOfBackslashes = 0;
     inQuote = FALSE;
     endOfValue = FALSE;
@@ -6432,7 +6432,6 @@ PVOID PhGetDllBaseProcedureAddress(
 
     return PhGetLoaderEntryImageExportFunction(
         DllBase,
-        imageNtHeader,
         dataDirectory,
         exportDirectory, 
         ProcedureName, 
@@ -6647,7 +6646,6 @@ NTSTATUS PhLoaderEntryImageRvaToVa(
 
 PVOID PhGetLoaderEntryImageExportFunction(
     _In_ PVOID BaseAddress,
-    _In_ PIMAGE_NT_HEADERS ImageNtHeader,
     _In_ PIMAGE_DATA_DIRECTORY DataDirectory,
     _In_ PIMAGE_EXPORT_DIRECTORY ExportDirectory, 
     _In_opt_ PSTR ExportName,
@@ -7543,7 +7541,7 @@ NTSTATUS PhLoadPluginImage(
     //    );
 
     if (!NT_SUCCESS(status))
-        goto CleanupExit;
+        return status;
 
     status = PhGetLoaderEntryImageNtHeaders(
         imageBaseAddress, 

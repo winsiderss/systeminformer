@@ -1410,7 +1410,6 @@ PVOID
 NTAPI
 PhGetLoaderEntryImageExportFunction(
     _In_ PVOID BaseAddress,
-    _In_ PIMAGE_NT_HEADERS ImageNtHeader,
     _In_ PIMAGE_DATA_DIRECTORY DataDirectory,
     _In_ PIMAGE_EXPORT_DIRECTORY ExportDirectory,
     _In_opt_ PSTR ExportName,
