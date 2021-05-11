@@ -9191,6 +9191,13 @@ NTSTATUS PhCreateNamedPipe(
     UNICODE_STRING pipeNameUs;
     OBJECT_ATTRIBUTES objectAttributes;
     IO_STATUS_BLOCK isb;
+    SECURITY_QUALITY_OF_SERVICE pipeSecurityQos =
+    {
+        sizeof(SECURITY_QUALITY_OF_SERVICE),
+        SecurityAnonymous,
+        SECURITY_STATIC_TRACKING,
+        FALSE
+    };
 
     pipeName = PhConcatStrings2(DEVICE_NAMED_PIPE, PipeName);
     PhStringRefToUnicodeString(&pipeName->sr, &pipeNameUs);
@@ -9202,6 +9209,7 @@ NTSTATUS PhCreateNamedPipe(
         NULL,
         NULL
         );
+    objectAttributes.SecurityQualityOfService = &pipeSecurityQos;
 
     if (NT_SUCCESS(RtlDefaultNpAcl_Import()(&pipeAcl)))
     {
@@ -9253,6 +9261,13 @@ NTSTATUS PhConnectPipe(
     UNICODE_STRING pipeNameUs;
     OBJECT_ATTRIBUTES objectAttributes;
     IO_STATUS_BLOCK isb;
+    SECURITY_QUALITY_OF_SERVICE pipeSecurityQos =
+    {
+        sizeof(SECURITY_QUALITY_OF_SERVICE),
+        SecurityAnonymous,
+        SECURITY_STATIC_TRACKING,
+        FALSE
+    };
 
     pipeName = PhConcatStrings2(DEVICE_NAMED_PIPE, PipeName);
     PhStringRefToUnicodeString(&pipeName->sr, &pipeNameUs);
@@ -9264,6 +9279,7 @@ NTSTATUS PhConnectPipe(
         NULL,
         NULL
         );
+    objectAttributes.SecurityQualityOfService = &pipeSecurityQos;
 
     status = NtCreateFile(
         &pipeHandle,
