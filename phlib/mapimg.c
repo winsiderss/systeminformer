@@ -451,6 +451,8 @@ PVOID PhMappedImageRvaToVa(
         ));
 }
 
+_Must_inspect_result_
+_Ret_maybenull_
 PVOID PhMappedImageVaToVa(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ ULONG Va,
