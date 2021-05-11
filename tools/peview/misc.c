@@ -107,7 +107,10 @@ PPH_STRING PvResolveReparsePointTarget(
         reparseLength
         )))
     {
-        if (reparseBuffer->ReparseTag == IO_REPARSE_TAG_APPEXECLINK)
+        if (
+            IsReparseTagMicrosoft(reparseBuffer->ReparseTag) &&
+            reparseBuffer->ReparseTag == IO_REPARSE_TAG_APPEXECLINK
+            )
         {
             typedef struct _AppExecLinkReparseBuffer
             {
