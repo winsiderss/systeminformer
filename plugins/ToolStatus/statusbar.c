@@ -30,21 +30,21 @@ PPH_LIST StatusBarItemList = NULL;
 ULONG StatusBarItems[MAX_STATUSBAR_ITEMS] =
 {
     // Default items (displayed)
-    { ID_STATUS_CPUUSAGE },
-    { ID_STATUS_PHYSICALMEMORY },
-    { ID_STATUS_FREEMEMORY },
+    ID_STATUS_CPUUSAGE,
+    ID_STATUS_PHYSICALMEMORY,
+    ID_STATUS_FREEMEMORY,
     // Available items (hidden)
-    { ID_STATUS_COMMITCHARGE },
-    { ID_STATUS_NUMBEROFPROCESSES },
-    { ID_STATUS_NUMBEROFTHREADS },
-    { ID_STATUS_NUMBEROFHANDLES },
-    { ID_STATUS_NUMBEROFVISIBLEITEMS,  },
-    { ID_STATUS_NUMBEROFSELECTEDITEMS,  },
-    { ID_STATUS_INTERVALSTATUS },
-    { ID_STATUS_IO_RO },
-    { ID_STATUS_IO_W },
-    { ID_STATUS_MAX_CPU_PROCESS },
-    { ID_STATUS_MAX_IO_PROCESS },
+    ID_STATUS_COMMITCHARGE,
+    ID_STATUS_NUMBEROFPROCESSES,
+    ID_STATUS_NUMBEROFTHREADS,
+    ID_STATUS_NUMBEROFHANDLES,
+    ID_STATUS_NUMBEROFVISIBLEITEMS,
+    ID_STATUS_NUMBEROFSELECTEDITEMS,
+    ID_STATUS_INTERVALSTATUS,
+    ID_STATUS_IO_RO,
+    ID_STATUS_IO_W,
+    ID_STATUS_MAX_CPU_PROCESS,
+    ID_STATUS_MAX_IO_PROCESS,
 };
 
 VOID StatusBarLoadDefault(
@@ -237,6 +237,7 @@ VOID StatusBarUpdate(
     HDC hdc;
     BOOLEAN resetMaxWidths = FALSE;
     ULONG widths[MAX_STATUSBAR_ITEMS];
+    SIZE_T textLength[MAX_STATUSBAR_ITEMS];
     WCHAR text[MAX_STATUSBAR_ITEMS][0x80];
 
     if (ProcessesUpdatedCount != 3)
@@ -289,7 +290,7 @@ VOID StatusBarUpdate(
                 PhInitFormatF(&format[1], (DOUBLE)cpuUsage * 100, 2);
                 PhInitFormatS(&format[2], L"%");
 
-                PhFormatToBuffer(format, RTL_NUMBER_OF(format), text[count], sizeof(text[count]), NULL);
+                PhFormatToBuffer(format, RTL_NUMBER_OF(format), text[count], sizeof(text[count]), &textLength[count]);
             }
             break;
         case ID_STATUS_COMMITCHARGE:
@@ -310,7 +311,7 @@ VOID StatusBarUpdate(
                 PhInitFormatF(&format[3], commitFraction, 2);
                 PhInitFormatS(&format[4], L"%)");
 
-                PhFormatToBuffer(format, RTL_NUMBER_OF(format), text[count], sizeof(text[count]), NULL);
+                PhFormatToBuffer(format, RTL_NUMBER_OF(format), text[count], sizeof(text[count]), &textLength[count]);
             }
             break;
         case ID_STATUS_PHYSICALMEMORY:
@@ -331,7 +332,7 @@ VOID StatusBarUpdate(
                 PhInitFormatF(&format[3], physicalFraction, 2);
                 PhInitFormatS(&format[4], L"%)");
 
-                PhFormatToBuffer(format, RTL_NUMBER_OF(format), text[count], sizeof(text[count]), NULL);
+                PhFormatToBuffer(format, RTL_NUMBER_OF(format), text[count], sizeof(text[count]), &textLength[count]);
             }
             break;
         case ID_STATUS_FREEMEMORY:
@@ -352,7 +353,7 @@ VOID StatusBarUpdate(
                 PhInitFormatF(&format[3], physicalFreeFraction, 2);
                 PhInitFormatS(&format[4], L"%)");
 
-                PhFormatToBuffer(format, RTL_NUMBER_OF(format), text[count], sizeof(text[count]), NULL);
+                PhFormatToBuffer(format, RTL_NUMBER_OF(format), text[count], sizeof(text[count]), &textLength[count]);
             }
             break;
         case ID_STATUS_NUMBEROFPROCESSES:
@@ -362,7 +363,7 @@ VOID StatusBarUpdate(
                 PhInitFormatS(&format[0], L"Processes: ");
                 PhInitFormatI64UGroupDigits(&format[1], SystemStatistics.NumberOfProcesses);
 
-                PhFormatToBuffer(format, RTL_NUMBER_OF(format), text[count], sizeof(text[count]), NULL);
+                PhFormatToBuffer(format, RTL_NUMBER_OF(format), text[count], sizeof(text[count]), &textLength[count]);
             }
             break;
         case ID_STATUS_NUMBEROFTHREADS:
@@ -372,7 +373,7 @@ VOID StatusBarUpdate(
                 PhInitFormatS(&format[0], L"Threads: ");
                 PhInitFormatI64UGroupDigits(&format[1], SystemStatistics.NumberOfThreads);
 
-                PhFormatToBuffer(format, RTL_NUMBER_OF(format), text[count], sizeof(text[count]), NULL);
+                PhFormatToBuffer(format, RTL_NUMBER_OF(format), text[count], sizeof(text[count]), &textLength[count]);
             }
             break;
         case ID_STATUS_NUMBEROFHANDLES:
@@ -382,7 +383,7 @@ VOID StatusBarUpdate(
                 PhInitFormatS(&format[0], L"Handles: ");
                 PhInitFormatI64UGroupDigits(&format[1], SystemStatistics.NumberOfHandles);
 
-                PhFormatToBuffer(format, RTL_NUMBER_OF(format), text[count], sizeof(text[count]), NULL);
+                PhFormatToBuffer(format, RTL_NUMBER_OF(format), text[count], sizeof(text[count]), &textLength[count]);
             }
             break;
         case ID_STATUS_IO_RO:
@@ -392,7 +393,7 @@ VOID StatusBarUpdate(
                 PhInitFormatS(&format[0], L"I/O R+O: ");
                 PhInitFormatSize(&format[1], (SystemStatistics.IoReadDelta.Delta + SystemStatistics.IoOtherDelta.Delta));
 
-                PhFormatToBuffer(format, RTL_NUMBER_OF(format), text[count], sizeof(text[count]), NULL);
+                PhFormatToBuffer(format, RTL_NUMBER_OF(format), text[count], sizeof(text[count]), &textLength[count]);
             }
             break;
         case ID_STATUS_IO_W:
@@ -402,7 +403,7 @@ VOID StatusBarUpdate(
                 PhInitFormatS(&format[0], L"I/O W: ");
                 PhInitFormatSize(&format[1], SystemStatistics.IoWriteDelta.Delta);
 
-                PhFormatToBuffer(format, RTL_NUMBER_OF(format), text[count], sizeof(text[count]), NULL);
+                PhFormatToBuffer(format, RTL_NUMBER_OF(format), text[count], sizeof(text[count]), &textLength[count]);
             }
             break;
         case ID_STATUS_MAX_CPU_PROCESS:
@@ -422,7 +423,7 @@ VOID StatusBarUpdate(
                         PhInitFormatF(&format[4], (DOUBLE)processItem->CpuUsage * 100, 2);
                         PhInitFormatS(&format[5], L"%");
 
-                        PhFormatToBuffer(format, RTL_NUMBER_OF(format), text[count], sizeof(text[count]), NULL);
+                        PhFormatToBuffer(format, RTL_NUMBER_OF(format), text[count], sizeof(text[count]), &textLength[count]);
                     }
                     else
                     {
@@ -433,7 +434,7 @@ VOID StatusBarUpdate(
                         PhInitFormatF(&format[2], (DOUBLE)processItem->CpuUsage * 100, 2);
                         PhInitFormatS(&format[3], L"%)");
 
-                        PhFormatToBuffer(format, RTL_NUMBER_OF(format), text[count], sizeof(text[count]), NULL);
+                        PhFormatToBuffer(format, RTL_NUMBER_OF(format), text[count], sizeof(text[count]), &textLength[count]);
                     }
 
                     PhDereferenceObject(processItem);
@@ -444,7 +445,7 @@ VOID StatusBarUpdate(
 
                     PhInitFormatS(&format[0], L"-");
 
-                    PhFormatToBuffer(format, RTL_NUMBER_OF(format), text[count], sizeof(text[count]), NULL);
+                    PhFormatToBuffer(format, RTL_NUMBER_OF(format), text[count], sizeof(text[count]), &textLength[count]);
                 }
             }
             break;
@@ -464,7 +465,7 @@ VOID StatusBarUpdate(
                         PhInitFormatS(&format[3], L"): ");
                         PhInitFormatSize(&format[4], processItem->IoReadDelta.Delta + processItem->IoWriteDelta.Delta + processItem->IoOtherDelta.Delta);
 
-                        PhFormatToBuffer(format, RTL_NUMBER_OF(format), text[count], sizeof(text[count]), NULL);
+                        PhFormatToBuffer(format, RTL_NUMBER_OF(format), text[count], sizeof(text[count]), &textLength[count]);
                     }
                     else
                     {
@@ -474,7 +475,7 @@ VOID StatusBarUpdate(
                         PhInitFormatS(&format[1], L": ");
                         PhInitFormatSize(&format[2], processItem->IoReadDelta.Delta + processItem->IoWriteDelta.Delta + processItem->IoOtherDelta.Delta);
 
-                        PhFormatToBuffer(format, RTL_NUMBER_OF(format), text[count], sizeof(text[count]), NULL);
+                        PhFormatToBuffer(format, RTL_NUMBER_OF(format), text[count], sizeof(text[count]), &textLength[count]);
                     }
 
                     PhDereferenceObject(processItem);
@@ -485,7 +486,7 @@ VOID StatusBarUpdate(
 
                     PhInitFormatS(&format[0], L"-");
 
-                    PhFormatToBuffer(format, RTL_NUMBER_OF(format), text[count], sizeof(text[count]), NULL);
+                    PhFormatToBuffer(format, RTL_NUMBER_OF(format), text[count], sizeof(text[count]), &textLength[count]);
                 }
             }
             break;
@@ -500,7 +501,7 @@ VOID StatusBarUpdate(
                     PhInitFormatS(&format[0], L"Visible: ");
                     PhInitFormatI64UGroupDigits(&format[1], TreeNew_GetFlatNodeCount(tnHandle));
 
-                    PhFormatToBuffer(format, RTL_NUMBER_OF(format), text[count], sizeof(text[count]), NULL);
+                    PhFormatToBuffer(format, RTL_NUMBER_OF(format), text[count], sizeof(text[count]), &textLength[count]);
                 }
                 else
                 {
@@ -508,7 +509,7 @@ VOID StatusBarUpdate(
 
                     PhInitFormatS(&format[0], L"Visible: N/A");
 
-                    PhFormatToBuffer(format, RTL_NUMBER_OF(format), text[count], sizeof(text[count]), NULL);
+                    PhFormatToBuffer(format, RTL_NUMBER_OF(format), text[count], sizeof(text[count]), &textLength[count]);
                 }
             }
             break;
@@ -535,7 +536,7 @@ VOID StatusBarUpdate(
                     PhInitFormatS(&format[0], L"Selected: ");
                     PhInitFormatI64UGroupDigits(&format[1], selectedCount);
 
-                    PhFormatToBuffer(format, RTL_NUMBER_OF(format), text[count], sizeof(text[count]), NULL);
+                    PhFormatToBuffer(format, RTL_NUMBER_OF(format), text[count], sizeof(text[count]), &textLength[count]);
                 }
                 else
                 {
@@ -543,7 +544,7 @@ VOID StatusBarUpdate(
 
                     PhInitFormatS(&format[0], L"Selected: N/A");
 
-                    PhFormatToBuffer(format, RTL_NUMBER_OF(format), text[count], sizeof(text[count]), NULL);
+                    PhFormatToBuffer(format, RTL_NUMBER_OF(format), text[count], sizeof(text[count]), &textLength[count]);
                 }
             }
             break;
@@ -580,12 +581,12 @@ VOID StatusBarUpdate(
                     PhInitFormatS(&format[0], L"Interval: Paused");
                 }
 
-                PhFormatToBuffer(format, RTL_NUMBER_OF(format), text[count], sizeof(text[count]), NULL);
+                PhFormatToBuffer(format, RTL_NUMBER_OF(format), text[count], sizeof(text[count]), &textLength[count]);
             }
             break;
         }
 
-        if (!GetTextExtentPoint32(hdc, text[count], (INT)PhCountStringZ(text[count]), &size))
+        if (!GetTextExtentPoint32(hdc, text[count], (UINT)((textLength[count] - sizeof(UNICODE_NULL)) / sizeof(WCHAR)), &size))
             size.cx = 200;
 
         if (count != 0)
