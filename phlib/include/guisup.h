@@ -431,7 +431,7 @@ NTAPI
 PhCreateDialog(
     _In_ PVOID Instance,
     _In_ PWSTR Template,
-    _In_ HWND ParentWindow,
+    _In_opt_ HWND ParentWindow,
     _In_ DLGPROC DialogProc,
     _In_opt_ PVOID Parameter
     );
@@ -944,7 +944,7 @@ PhGetGlobalTimerQueue(
     VOID
     );
 
-
+_Success_(return)
 PHLIBAPI
 BOOLEAN
 NTAPI

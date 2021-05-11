@@ -998,7 +998,7 @@ HWND PhCreateDialogFromTemplate(
 HWND PhCreateDialog(
     _In_ PVOID Instance,
     _In_ PWSTR Template,
-    _In_ HWND ParentWindow,
+    _In_opt_ HWND ParentWindow,
     _In_ DLGPROC DialogProc,
     _In_opt_ PVOID Parameter
     )
@@ -1782,6 +1782,7 @@ HANDLE PhGetGlobalTimerQueue(
 }
 
 // rev from ExtractIconExW
+_Success_(return)
 BOOLEAN PhExtractIcon(
     _In_ PWSTR FileName, 
     _Out_opt_ HICON *IconLarge,
@@ -2004,6 +2005,12 @@ PPH_STRING PhpGetImageMunResourcePath(
     PPH_STRING fileName;
 
     if (WindowsVersion < WINDOWS_10_19H1)
+    {
+        PhReferenceObject(FileName);
+        return FileName;
+    }
+
+    if (PhDetermineDosPathNameType(PhGetString(FileName)) == RtlPathTypeUncAbsolute)
     {
         PhReferenceObject(FileName);
         return FileName;
