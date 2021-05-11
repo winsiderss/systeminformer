@@ -1,3 +1,26 @@
+/*
+ * Process Hacker Window Explorer -
+ *   tree header
+ *
+ * Copyright (C) 2011-2013 wj32
+ * Copyright (C) 2016-2021 dmex
+ *
+ * This file is part of Process Hacker.
+ *
+ * Process Hacker is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Process Hacker is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #ifndef WNDTREE_H
 #define WNDTREE_H
 
@@ -32,6 +55,7 @@ typedef struct _WE_WINDOW_NODE
     WCHAR WindowClass[64];
     PPH_STRING WindowText;
     CLIENT_ID ClientId;
+    ULONG_PTR WindowIconIndex;
 
     WCHAR WindowHandleString[PH_PTR_STR_LEN_1];
     PPH_STRING ThreadString;
@@ -53,6 +77,7 @@ typedef struct _WE_WINDOW_TREE_CONTEXT
     PPH_HASHTABLE NodeHashtable;
     PPH_LIST NodeList;
     PPH_LIST NodeRootList;
+    HIMAGELIST NodeImageList;
 } WE_WINDOW_TREE_CONTEXT, *PWE_WINDOW_TREE_CONTEXT;
 
 VOID WeInitializeWindowTree(
