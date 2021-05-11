@@ -452,8 +452,8 @@ NtSetHighWaitLowEventPair(
 
 typedef enum _MUTANT_INFORMATION_CLASS
 {
-    MutantBasicInformation,
-    MutantOwnerInformation
+    MutantBasicInformation, // MUTANT_BASIC_INFORMATION
+    MutantOwnerInformation // MUTANT_OWNER_INFORMATION
 } MUTANT_INFORMATION_CLASS;
 
 typedef struct _MUTANT_BASIC_INFORMATION
@@ -567,7 +567,7 @@ NtQuerySemaphore(
 
 typedef enum _TIMER_INFORMATION_CLASS
 {
-    TimerBasicInformation
+    TimerBasicInformation // TIMER_BASIC_INFORMATION
 } TIMER_INFORMATION_CLASS;
 
 typedef struct _TIMER_BASIC_INFORMATION
@@ -584,7 +584,7 @@ typedef VOID (NTAPI *PTIMER_APC_ROUTINE)(
 
 typedef enum _TIMER_SET_INFORMATION_CLASS
 {
-    TimerSetCoalescableTimer,
+    TimerSetCoalescableTimer, // TIMER_SET_COALESCABLE_TIMER_INFO
     MaxTimerInfoClass
 } TIMER_SET_INFORMATION_CLASS;
 
