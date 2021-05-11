@@ -3,7 +3,7 @@
  *   main program
  *
  * Copyright (C) 2011 wj32
- * Copyright (C) 2017-2020 dmex
+ * Copyright (C) 2017-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -233,6 +233,7 @@ LOGICAL DllMain(
                 { StringSettingType, SETTING_NAME_WINDOWS_PROPLIST_COLUMNS, L"" },
                 { StringSettingType, SETTING_NAME_WINDOWS_PROPSTORAGE_COLUMNS, L"" },
                 { IntegerSettingType, SETTING_NAME_WINDOW_ENUM_ALTERNATE, L"0" },
+                { IntegerSettingType, SETTING_NAME_WINDOW_ENABLE_ICONS, L"0" },
                 { IntegerSettingType, SETTING_NAME_WINDOW_ENABLE_PREVIEW, L"0" },
             };
 

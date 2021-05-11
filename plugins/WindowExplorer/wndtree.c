@@ -3,7 +3,7 @@
  *   window treelist
  *
  * Copyright (C) 2011 wj32
- * Copyright (C) 2017-2018 dmex
+ * Copyright (C) 2017-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -44,6 +44,8 @@ BOOLEAN NTAPI WepWindowTreeNewCallback(
     _In_opt_ PVOID Parameter2,
     _In_opt_ PVOID Context
     );
+
+BOOLEAN WepEnableWindowIcons = FALSE;
 
 BOOLEAN WordMatchStringRef(
     _Inout_ PWE_WINDOW_TREE_CONTEXT Context,
@@ -136,6 +138,13 @@ VOID WeInitializeWindowTree(
 {
     HWND hwnd;
     PPH_STRING settings;
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        WepEnableWindowIcons = !!PhGetIntegerSetting(SETTING_NAME_WINDOW_ENABLE_ICONS);
+        PhEndInitOnce(&initOnce);
+    }
 
     memset(Context, 0, sizeof(WE_WINDOW_TREE_CONTEXT));
 
@@ -154,6 +163,25 @@ VOID WeInitializeWindowTree(
     PhSetControlTheme(hwnd, L"explorer");
 
     TreeNew_SetCallback(hwnd, WepWindowTreeNewCallback, Context);
+
+    if (WepEnableWindowIcons)
+    {
+        HICON iconSmall;
+
+        Context->NodeImageList = ImageList_Create(
+            GetSystemMetrics(SM_CXSMICON),
+            GetSystemMetrics(SM_CYSMICON),
+            ILC_MASK | ILC_COLOR32,
+            200,
+            200
+            );
+        ImageList_SetBkColor(Context->NodeImageList, CLR_NONE);
+        TreeNew_SetImageList(hwnd, Context->NodeImageList);
+
+        PhGetStockApplicationIcon(&iconSmall, NULL);
+        ImageList_AddIcon(Context->NodeImageList, iconSmall);
+        DestroyIcon(iconSmall);
+    }
 
     PhAddTreeNewColumn(hwnd, WEWNTLC_CLASS, TRUE, L"Class", 180, PH_ALIGN_LEFT, 0, 0);
     PhAddTreeNewColumn(hwnd, WEWNTLC_HANDLE, TRUE, L"Handle", 70, PH_ALIGN_LEFT, 1, 0);
@@ -202,6 +230,9 @@ VOID WeDeleteWindowTree(
     for (i = 0; i < Context->NodeList->Count; i++)
         WepDestroyWindowNode(Context->NodeList->Items[i]);
 
+    if (Context->NodeImageList)
+        ImageList_Destroy(Context->NodeImageList);
+
     PhDereferenceObject(Context->NodeHashtable);
     PhDereferenceObject(Context->NodeList);
     PhDereferenceObject(Context->NodeRootList);
@@ -242,6 +273,17 @@ PWE_WINDOW_NODE WeAddWindowNode(
 
     windowNode->WindowHandle = WindowHandle;
     windowNode->Children = PhCreateList(1);
+
+    if (WepEnableWindowIcons)
+    {
+        HICON windowIcon;
+
+        if (windowIcon = WepGetInternalWindowIcon(WindowHandle, ICON_SMALL))
+        {
+            windowNode->WindowIconIndex = ImageList_AddIcon(Context->NodeImageList, windowIcon);
+            DestroyIcon(windowIcon);
+        }
+    }
 
     PhAddEntryHashtable(Context->NodeHashtable, &windowNode);
     PhAddItemList(Context->NodeList, windowNode);
@@ -489,6 +531,20 @@ BOOLEAN NTAPI WepWindowTreeNewCallback(
                 getNodeColor->ForeColor = RGB(0x55, 0x55, 0x55);
 
             getNodeColor->Flags = TN_CACHE;
+        }
+        return TRUE;
+    case TreeNewGetNodeIcon:
+        {
+            PPH_TREENEW_GET_NODE_ICON getNodeIcon = Parameter1;
+
+            if (!getNodeIcon)
+                break;
+            if (!WepEnableWindowIcons)
+                break;
+
+            node = (PWE_WINDOW_NODE)getNodeIcon->Node;
+            getNodeIcon->Icon = (HICON)node->WindowIconIndex;
+            getNodeIcon->Flags = TN_CACHE;
         }
         return TRUE;
     case TreeNewSortChanged:

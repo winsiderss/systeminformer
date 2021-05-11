@@ -411,8 +411,9 @@ VOID WepQueueResolveSymbol(
     PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), WepResolveSymbolFunction, resolveContext);
 }
 
-HICON WepGetWindowIcon(
-    _In_ HWND WindowHandle
+HICON WepGetInternalWindowIcon(
+    _In_ HWND WindowHandle,
+    _In_ UINT IconType
     )
 {
     static HICON (WINAPI *InternalGetWindowIcon_I)(
@@ -426,7 +427,48 @@ HICON WepGetWindowIcon(
     if (!InternalGetWindowIcon_I)
         return NULL;
 
-    return InternalGetWindowIcon_I(WindowHandle, ICON_BIG);
+    return InternalGetWindowIcon_I(WindowHandle, IconType);
+}
+
+HICON WepGetWindowIcon(
+    _In_ HWND WindowHandle
+    )
+{
+    ULONG_PTR windowIcon = 0;
+    LRESULT status;
+
+    status = SendMessageTimeout(
+        WindowHandle,
+        WM_GETICON,
+        ICON_SMALL2,
+        0,
+        SMTO_ABORTIFHUNG | SMTO_BLOCK,
+        100,
+        &windowIcon
+        );
+
+    if (status == 0 || windowIcon == 0)
+    {
+        status = SendMessageTimeout(
+            WindowHandle,
+            WM_GETICON,
+            0,
+            0,
+            SMTO_ABORTIFHUNG | SMTO_BLOCK,
+            100,
+            &windowIcon
+            );
+    }
+
+    if (status == 0 || windowIcon == 0)
+    {
+        windowIcon = GetClassLongPtr(WindowHandle, GCLP_HICONSM);
+
+        if (windowIcon == 0)
+            windowIcon = GetClassLongPtr(WindowHandle, GCLP_HICON);
+    }
+
+    return (HICON)windowIcon;
 }
 
 PPH_STRING WepFormatRect(
