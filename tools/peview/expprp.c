@@ -265,14 +265,14 @@ VOID PvDestroyExportNode(
 
 #define END_SORT_FUNCTION \
     if (sortResult == 0) \
-        sortResult = uintptrcmp(node1->UniqueId, node2->UniqueId); \
+        sortResult = uintptrcmp((ULONG_PTR)node1->UniqueId, (ULONG_PTR)node2->UniqueId); \
     \
     return PhModifySort(sortResult, ((PPV_EXPORT_CONTEXT)_context)->TreeNewSortOrder); \
 }
 
 BEGIN_SORT_FUNCTION(Index)
 {
-    sortResult = uintptrcmp(node1->UniqueId, node2->UniqueId);
+    sortResult = uintptrcmp((ULONG_PTR)node1->UniqueId, (ULONG_PTR)node2->UniqueId);
 }
 END_SORT_FUNCTION
 
