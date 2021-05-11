@@ -596,6 +596,13 @@ BOOLEAN PvExportTreeFilterCallback(
         if (PvExportWordMatchStringRef(context, &node->NameString->sr))
             return TRUE;
     }
+    else
+    {
+        static PH_STRINGREF exportNameSr = PH_STRINGREF_INIT(L"(unnamed)");
+
+        if (PvExportWordMatchStringRef(context, &exportNameSr))
+            return TRUE;
+    }
 
     if (!PhIsNullOrEmptyString(node->OrdinalString))
     {
