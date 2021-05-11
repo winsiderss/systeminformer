@@ -505,15 +505,15 @@ BOOLEAN WordMatchStringRef(
     PH_STRINGREF part;
     PH_STRINGREF remainingPart;
 
-    remainingPart = Context->SearchboxText->sr;
+    remainingPart = PhGetStringRef(Context->SearchboxText);
 
     while (remainingPart.Length)
     {
-        PhSplitStringRefAtChar(&remainingPart, '|', &part, &remainingPart);
+        PhSplitStringRefAtChar(&remainingPart, L'|', &part, &remainingPart);
 
         if (part.Length)
         {
-            if (PhFindStringInStringRef(Text, &part, TRUE) != -1)
+            if (PhFindStringInStringRef(Text, &part, TRUE) != SIZE_MAX)
                 return TRUE;
         }
     }
@@ -677,8 +677,6 @@ INT_PTR CALLBACK PvpSymbolsDlgProc(
     {
     case WM_INITDIALOG:
         {
-            HANDLE treeNewTimer = NULL;
-
             context = propPageContext->Context = PhAllocateZero(sizeof(PDB_SYMBOL_CONTEXT));
             context->DialogHandle = hwndDlg;
             context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_SYMBOLTREE);
