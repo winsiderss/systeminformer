@@ -45,11 +45,12 @@ typedef struct _PV_EXPORT_NODE
     ULONG_PTR Address;
     ULONG Ordinal;
     ULONG Hint;
-    PPH_STRING OrdinalString;
-    PPH_STRING HintString;
+    BOOLEAN ExportForwarded;
+    PPH_STRING UniqueIdString;
     PPH_STRING AddressString;
     PPH_STRING NameString;
-    WCHAR UniqueIdString[PH_PTR_STR_LEN_1];
+    PPH_STRING OrdinalString;
+    PPH_STRING HintString;
 
     PH_STRINGREF TextCache[PV_EXPORT_TREE_COLUMN_ITEM_MAXIMUM];
 } PV_EXPORT_NODE, *PPV_EXPORT_NODE;
@@ -376,7 +377,7 @@ BOOLEAN NTAPI PvExportTreeNewCallback(
             switch (getCellText->Id)
             {
             case PV_EXPORT_TREE_COLUMN_ITEM_INDEX:
-                PhInitializeStringRefLongHint(&getCellText->Text, node->UniqueIdString);
+                getCellText->Text = PhGetStringRef(node->UniqueIdString);
                 break;
             case PV_EXPORT_TREE_COLUMN_ITEM_RVA:
                 getCellText->Text = PhGetStringRef(node->AddressString);
@@ -616,9 +617,9 @@ BOOLEAN PvExportTreeFilterCallback(
             return TRUE;
     }
 
-    if (node->UniqueIdString[0])
+    if (!PhIsNullOrEmptyString(node->UniqueIdString))
     {
-        if (PvExportWordMatchStringZ(context, node->UniqueIdString))
+        if (PvExportWordMatchStringRef(context, &node->UniqueIdString->sr))
             return TRUE;
     }
 
@@ -690,7 +691,11 @@ NTSTATUS PvpPeExportsEnumerateThread(
                 exportNode->Ordinal = exportEntry.Ordinal;
                 if (exportEntry.Name)
                     exportNode->Hint = exportEntry.Hint;
-                PhPrintUInt64(exportNode->UniqueIdString, exportNode->UniqueId);
+                exportNode->ExportForwarded = !!exportFunction.ForwardedName;
+                exportNode->UniqueIdString = PhFormatUInt64(exportNode->UniqueId, FALSE);
+                exportNode->OrdinalString = PhFormatUInt64(exportEntry.Ordinal, FALSE);
+                if (exportEntry.Name) // Note: The 'Hint' is only valid for named exports. (dmex)
+                    exportNode->HintString = PhFormatUInt64(exportEntry.Hint, FALSE);
 
                 if (exportFunction.ForwardedName)
                 {
@@ -768,15 +773,6 @@ NTSTATUS PvpPeExportsEnumerateThread(
     
                         PhClearReference(&exportSymbol);
                     }
-                }
-
-                PhPrintUInt32(value, exportEntry.Ordinal);
-                exportNode->OrdinalString = PhCreateString(value);
-
-                if (exportEntry.Name) // Note: The 'Hint' is only valid for named exports. (dmex)
-                {
-                    PhPrintUInt32(value, exportEntry.Hint);
-                    exportNode->HintString = PhCreateString(value);
                 }
 
                 PhAcquireQueuedLockExclusive(&Context->SearchResultsLock);
