@@ -48,7 +48,8 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"ImageLoadCfgListViewColumns", L"");
     PhpAddStringSetting(L"ImageExportsTreeListColumns", L"");
     PhpAddStringSetting(L"ImageExportsTreeListSort", L"0,1"); // 0, AscendingSortOrder
-    PhpAddStringSetting(L"ImageImportsListViewColumns", L"");
+    PhpAddStringSetting(L"ImageImportsTreeListColumns", L"");
+    PhpAddStringSetting(L"ImageImportsTreeListSort", L"0,1"); // 0, AscendingSortOrder
     PhpAddStringSetting(L"ImageExceptions32ListViewColumns", L"");
     PhpAddStringSetting(L"ImageExceptions64ListViewColumns", L"");
     PhpAddStringSetting(L"ImageLayoutTreeColumns", L"");
