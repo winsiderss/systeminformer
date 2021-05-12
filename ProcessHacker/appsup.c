@@ -243,6 +243,39 @@ NTSTATUS PhGetProcessSwitchContext(
             )))
             return status;
     }
+    
+    //static ULONG (WINAPI *BaseReadAppCompatDataForProcess_I)(
+    //    _In_ HANDLE ProcessHandle,
+    //    _Out_ PULONG_PTR ShimData,
+    //    _Out_opt_ PULONG_PTR ShimDataBaseAddress
+    //    ) = NULL;
+    //static ULONG (WINAPI *BaseFreeAppCompatDataForProcess_I)(
+    //    _In_ ULONG_PTR ShimData
+    //    ) = NULL;
+    //
+    //if (!BaseReadAppCompatDataForProcess_I)
+    //    BaseReadAppCompatDataForProcess_I = PhGetDllProcedureAddress(L"kernelbase.dll", "BaseReadAppCompatDataForProcess", 0);
+    //if (!BaseFreeAppCompatDataForProcess_I)
+    //    BaseFreeAppCompatDataForProcess_I = PhGetDllProcedureAddress(L"kernelbase.dll", "BaseFreeAppCompatDataForProcess", 0);
+    //
+    //if (BaseReadAppCompatDataForProcess_I && BaseFreeAppCompatDataForProcess_I)
+    //{
+    //    ULONG_PTR pShimData;
+    //
+    //    if (BaseReadAppCompatDataForProcess_I(ProcessHandle, &pShimData, NULL) == ERROR_SUCCESS)
+    //    {
+    //        if (WindowsVersion >= WINDOWS_10_RS5)
+    //        {
+    //            *Guid = *(PGUID)PTR_ADD_OFFSET(pShimData, 2040 + 24);
+    //            BaseFreeAppCompatDataForProcess_I(pShimData);
+    //            return STATUS_SUCCESS;
+    //        }
+    //
+    //        BaseFreeAppCompatDataForProcess_I(pShimData);
+    //    }
+    //
+    //    return STATUS_UNSUCCESSFUL;
+    //}
 
     return STATUS_SUCCESS;
 }
