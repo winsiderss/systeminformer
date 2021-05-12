@@ -84,23 +84,393 @@ BOOLEAN PvExportNodeHashtableCompareFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     );
+
 ULONG PvExportNodeHashtableHashFunction(
     _In_ PVOID Entry
     );
+
 VOID PvDestroyExportNode(
     _In_ PPV_EXPORT_NODE Node
     );
 
-BOOLEAN PhInsertCopyCellEMenuItem(
-    _In_ struct _PH_EMENU_ITEM* Menu,
-    _In_ ULONG InsertAfterId,
-    _In_ HWND TreeNewHandle,
-    _In_ PPH_TREENEW_COLUMN Column
+VOID PvInitializeExportTree(
+    _In_ PPV_EXPORT_CONTEXT Context,
+    _In_ HWND ParentWindowHandle,
+    _In_ HWND TreeNewHandle
     );
 
-BOOLEAN PhHandleCopyCellEMenuItem(
-    _In_ struct _PH_EMENU_ITEM* SelectedItem
+VOID PvDeleteExportTree(
+    _In_ PPV_EXPORT_CONTEXT Context
     );
+
+VOID PvExportAddTreeNode(
+    _In_ PPV_EXPORT_CONTEXT Context,
+    _In_ PPV_EXPORT_NODE Entry
+    );
+
+BOOLEAN PvExportTreeFilterCallback(
+    _In_ PPH_TREENEW_NODE Node,
+    _In_opt_ PVOID Context
+    );
+
+VOID PhLoadSettingsExportList(
+    _Inout_ PPV_EXPORT_CONTEXT Context
+    );
+
+VOID PhSaveSettingsExportList(
+    _Inout_ PPV_EXPORT_CONTEXT Context
+    );
+
+VOID PvGetSelectedExportNodes(
+    _In_ PPV_EXPORT_CONTEXT Context,
+    _Out_ PPV_EXPORT_NODE** Windows,
+    _Out_ PULONG NumberOfWindows
+    );
+
+VOID PvAddPendingExportNodes(
+    _In_ PPV_EXPORT_CONTEXT Context
+    )
+{
+    ULONG i;
+    BOOLEAN needsFullUpdate = FALSE;
+
+    TreeNew_SetRedraw(Context->TreeNewHandle, FALSE);
+
+    PhAcquireQueuedLockExclusive(&Context->SearchResultsLock);
+
+    for (i = Context->SearchResultsAddIndex; i < Context->SearchResults->Count; i++)
+    {
+        PvExportAddTreeNode(Context, Context->SearchResults->Items[i]);
+        needsFullUpdate = TRUE;
+    }
+    Context->SearchResultsAddIndex = i;
+
+    PhReleaseQueuedLockExclusive(&Context->SearchResultsLock);
+
+    if (needsFullUpdate)
+        TreeNew_NodesStructured(Context->TreeNewHandle);
+    TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
+}
+
+VOID CALLBACK PvExportTreeUpdateCallback(
+    _In_ PPV_EXPORT_CONTEXT Context,
+    _In_ BOOLEAN TimerOrWaitFired
+    )
+{
+    if (!Context->UpdateTimerHandle)
+        return;
+
+    PvAddPendingExportNodes(Context);
+
+    RtlUpdateTimer(PhGetGlobalTimerQueue(), Context->UpdateTimerHandle, 1000, INFINITE);
+}
+
+NTSTATUS PvpPeExportsEnumerateThread(
+    _In_ PPV_EXPORT_CONTEXT Context
+    )
+{
+    PH_MAPPED_IMAGE_EXPORTS exports;
+    PH_MAPPED_IMAGE_EXPORT_ENTRY exportEntry;
+    PH_MAPPED_IMAGE_EXPORT_FUNCTION exportFunction;
+    ULONG i;
+
+    if (NT_SUCCESS(PhGetMappedImageExports(&exports, &PvMappedImage)))
+    {
+        for (i = 0; i < exports.NumberOfEntries; i++)
+        {
+            if (
+                NT_SUCCESS(PhGetMappedImageExportEntry(&exports, i, &exportEntry)) &&
+                NT_SUCCESS(PhGetMappedImageExportFunction(&exports, NULL, exportEntry.Ordinal, &exportFunction))
+                )
+            {
+                PPV_EXPORT_NODE exportNode;
+                WCHAR value[PH_INT64_STR_LEN_1];
+
+                exportNode = PhAllocateZero(sizeof(PV_EXPORT_NODE));
+                exportNode->UniqueId = i + 1;
+                exportNode->Address = (ULONG_PTR)exportFunction.Function;
+                exportNode->Ordinal = exportEntry.Ordinal;
+                exportNode->ExportForwarded = !!exportFunction.ForwardedName;
+                exportNode->UniqueIdString = PhFormatUInt64(exportNode->UniqueId, FALSE);
+                exportNode->OrdinalString = PhFormatUInt64(exportEntry.Ordinal, FALSE);
+
+                if (exportEntry.Name) // Note: The 'Hint' is only valid for named exports. (dmex)
+                {
+                    exportNode->Hint = exportEntry.Hint;
+                    exportNode->HintString = PhFormatUInt64(exportEntry.Hint, FALSE);
+                }
+
+                if (exportFunction.ForwardedName)
+                {
+                    PPH_STRING forwardName;
+
+                    forwardName = PhZeroExtendToUtf16(exportFunction.ForwardedName);
+
+                    if (forwardName->Buffer[0] == L'?')
+                    {
+                        PPH_STRING undecoratedName;
+    
+                        if (undecoratedName = PhUndecorateSymbolName(PvSymbolProvider, forwardName->Buffer))
+                            PhMoveReference(&forwardName, undecoratedName);
+                    }
+
+                    exportNode->AddressString = forwardName;
+                }
+                else
+                {
+                    PhPrintPointer(value, exportFunction.Function);
+                    exportNode->AddressString = PhCreateString(value);
+                }
+
+                if (exportEntry.Name)
+                {
+                    PPH_STRING exportName;
+
+                    exportName = PhZeroExtendToUtf16(exportEntry.Name);
+
+                    if (exportName->Buffer[0] == L'?')
+                    {
+                        PPH_STRING undecoratedName;
+    
+                        if (undecoratedName = PhUndecorateSymbolName(PvSymbolProvider, exportName->Buffer))
+                            PhMoveReference(&exportName, undecoratedName);
+                    }
+
+                    exportNode->NameString = exportName;
+                }
+                else
+                {
+                    if (exportFunction.Function)
+                    {
+                        PPH_STRING exportSymbol = NULL;
+                        PPH_STRING exportSymbolName = NULL;
+    
+                        // Try find the export name using symbols.
+                        if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+                        {
+                            exportSymbol = PhGetSymbolFromAddress(
+                                PvSymbolProvider,
+                                (ULONG64)PTR_ADD_OFFSET(PvMappedImage.NtHeaders32->OptionalHeader.ImageBase, exportFunction.Function),
+                                NULL,
+                                NULL,
+                                &exportSymbolName,
+                                NULL
+                                );
+                        }
+                        else
+                        {
+                            exportSymbol = PhGetSymbolFromAddress(
+                                PvSymbolProvider,
+                                (ULONG64)PTR_ADD_OFFSET(PvMappedImage.NtHeaders->OptionalHeader.ImageBase, exportFunction.Function),
+                                NULL,
+                                NULL,
+                                &exportSymbolName,
+                                NULL
+                                );
+                        }
+
+                        if (exportSymbolName)
+                        {
+                            exportNode->NameString = PhConcatStringRefZ(&exportSymbolName->sr, L" (unnamed)");
+                        }
+    
+                        PhClearReference(&exportSymbol);
+                    }
+                }
+
+                PhAcquireQueuedLockExclusive(&Context->SearchResultsLock);
+                PhAddItemList(Context->SearchResults, exportNode);
+                PhReleaseQueuedLockExclusive(&Context->SearchResultsLock);
+            }
+        }
+    }
+
+    PostMessage(Context->DialogHandle, WM_PV_SEARCH_FINISHED, 0, 0);
+    return STATUS_SUCCESS;
+}
+
+INT_PTR CALLBACK PvpPeExportsDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+    LPPROPSHEETPAGE propSheetPage;
+    PPV_PROPPAGECONTEXT propPageContext;
+    PPV_EXPORT_CONTEXT context;
+
+    if (PvPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext))
+    {
+        context = (PPV_EXPORT_CONTEXT)propPageContext->Context;
+    }
+    else
+    {
+        return FALSE;
+    }
+
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            context = propPageContext->Context = PhAllocateZero(sizeof(PV_EXPORT_CONTEXT));
+            context->DialogHandle = hwndDlg;
+            context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_SYMBOLTREE);
+            context->SearchHandle = GetDlgItem(hwndDlg, IDC_SYMSEARCH);
+            context->SearchboxText = PhReferenceEmptyString();
+            context->SearchResults = PhCreateList(1);
+
+            PvCreateSearchControl(context->SearchHandle, L"Search Exports (Ctrl+K)");
+
+            PvInitializeExportTree(context, hwndDlg, context->TreeNewHandle);
+            PhAddTreeNewFilter(&context->FilterSupport, PvExportTreeFilterCallback, context);
+            PhLoadSettingsExportList(context);
+
+            TreeNew_SetEmptyText(context->TreeNewHandle, &LoadingExportsText, 0);
+
+            PhCreateThread2(PvpPeExportsEnumerateThread, context);
+
+            RtlCreateTimer(
+                PhGetGlobalTimerQueue(),
+                &context->UpdateTimerHandle,
+                PvExportTreeUpdateCallback,
+                context,
+                0,
+                1000,
+                0
+                );
+
+            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
+        }
+        break;
+    case WM_DESTROY:
+        {
+            if (context->UpdateTimerHandle)
+            {
+                RtlDeleteTimer(PhGetGlobalTimerQueue(), context->UpdateTimerHandle, NULL);
+                context->UpdateTimerHandle = NULL;
+            }
+
+            PhSaveSettingsExportList(context);
+            PvDeleteExportTree(context);
+        }
+        break;
+    case WM_SHOWWINDOW:
+        {
+            if (!propPageContext->LayoutInitialized)
+            {
+                PPH_LAYOUT_ITEM dialogItem;
+
+                dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
+                PvAddPropPageLayoutItem(hwndDlg, context->SearchHandle, dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+                PvAddPropPageLayoutItem(hwndDlg, context->TreeNewHandle, dialogItem, PH_ANCHOR_ALL);
+                PvDoPropPageLayout(hwndDlg);
+
+                propPageContext->LayoutInitialized = TRUE;
+            }
+        }
+        break;
+    case WM_NOTIFY:
+        {
+            LPNMHDR header = (LPNMHDR)lParam;
+
+            switch (header->code)
+            {
+            case PSN_QUERYINITIALFOCUS:
+                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LONG_PTR)context->TreeNewHandle);
+                return TRUE;
+            }
+        }
+        break;
+    case WM_COMMAND:
+        {
+            switch (GET_WM_COMMAND_CMD(wParam, lParam))
+            {
+            case EN_CHANGE:
+                {
+                    PPH_STRING newSearchboxText;
+
+                    newSearchboxText = PH_AUTO(PhGetWindowText(context->SearchHandle));
+
+                    if (!PhEqualString(context->SearchboxText, newSearchboxText, FALSE))
+                    {
+                        PhSwapReference(&context->SearchboxText, newSearchboxText);
+
+                        if (!PhIsNullOrEmptyString(context->SearchboxText))
+                        {
+                            //PhExpandAllNodes(TRUE);
+                            //PhDeselectAllNodes();
+                        }
+
+                        PhApplyTreeNewFilters(&context->FilterSupport);
+                    }
+                }
+                break;
+            }
+        }
+        break;
+    case WM_PV_SEARCH_FINISHED:
+        {
+            if (context->UpdateTimerHandle)
+            {
+                RtlDeleteTimer(PhGetGlobalTimerQueue(), context->UpdateTimerHandle, NULL);
+                context->UpdateTimerHandle = NULL;
+            }
+
+            PvAddPendingExportNodes(context);
+
+            TreeNew_SetEmptyText(context->TreeNewHandle, &EmptyExportsText, 0);
+        }
+        break;
+    case WM_PV_SEARCH_SHOWMENU:
+        {
+            PPH_TREENEW_CONTEXT_MENU contextMenuEvent = (PPH_TREENEW_CONTEXT_MENU)lParam;
+            PPH_EMENU menu;
+            PPH_EMENU_ITEM selectedItem;
+            PPV_EXPORT_NODE* exportNodes = NULL;
+            ULONG numberOfSymbolNodes = 0;
+
+            PvGetSelectedExportNodes(context, &exportNodes, &numberOfSymbolNodes);
+
+            if (numberOfSymbolNodes != 0)
+            {
+                menu = PhCreateEMenu();
+                PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 1, L"Copy", NULL, NULL), ULONG_MAX);
+                PhInsertCopyCellEMenuItem(menu, 1, context->TreeNewHandle, contextMenuEvent->Column);
+
+                selectedItem = PhShowEMenu(
+                    menu,
+                    hwndDlg,
+                    PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT,
+                    PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                    contextMenuEvent->Location.x,
+                    contextMenuEvent->Location.y
+                    );
+
+                if (selectedItem && selectedItem->Id != ULONG_MAX)
+                {
+                    BOOLEAN handled = FALSE;
+
+                    handled = PhHandleCopyCellEMenuItem(selectedItem);
+
+                    if (!handled && selectedItem->Id == 1)
+                    {
+                        PPH_STRING text;
+
+                        text = PhGetTreeNewText(context->TreeNewHandle, 0);
+                        PhSetClipboardString(context->TreeNewHandle, &text->sr);
+                        PhDereferenceObject(text);
+                    }
+                }
+
+                PhDestroyEMenu(menu);
+            }
+        }
+        break;
+    }
+
+    return FALSE;
+}
 
 VOID PhLoadSettingsExportList(
     _Inout_ PPV_EXPORT_CONTEXT Context
@@ -621,350 +991,6 @@ BOOLEAN PvExportTreeFilterCallback(
     {
         if (PvExportWordMatchStringRef(context, &node->UniqueIdString->sr))
             return TRUE;
-    }
-
-    return FALSE;
-}
-
-VOID PvAddPendingExportNodes(
-    _In_ PPV_EXPORT_CONTEXT Context
-    )
-{
-    ULONG i;
-    BOOLEAN needsFullUpdate = FALSE;
-
-    TreeNew_SetRedraw(Context->TreeNewHandle, FALSE);
-
-    PhAcquireQueuedLockExclusive(&Context->SearchResultsLock);
-
-    for (i = Context->SearchResultsAddIndex; i < Context->SearchResults->Count; i++)
-    {
-        PvExportAddTreeNode(Context, Context->SearchResults->Items[i]);
-        needsFullUpdate = TRUE;
-    }
-    Context->SearchResultsAddIndex = i;
-
-    PhReleaseQueuedLockExclusive(&Context->SearchResultsLock);
-
-    if (needsFullUpdate)
-        TreeNew_NodesStructured(Context->TreeNewHandle);
-    TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
-}
-
-VOID CALLBACK PvExportTreeUpdateCallback(
-    _In_ PPV_EXPORT_CONTEXT Context,
-    _In_ BOOLEAN TimerOrWaitFired
-    )
-{
-    if (!Context->UpdateTimerHandle)
-        return;
-
-    PvAddPendingExportNodes(Context);
-
-    RtlUpdateTimer(PhGetGlobalTimerQueue(), Context->UpdateTimerHandle, 1000, INFINITE);
-}
-
-NTSTATUS PvpPeExportsEnumerateThread(
-    _In_ PPV_EXPORT_CONTEXT Context
-    )
-{
-    PH_MAPPED_IMAGE_EXPORTS exports;
-    PH_MAPPED_IMAGE_EXPORT_ENTRY exportEntry;
-    PH_MAPPED_IMAGE_EXPORT_FUNCTION exportFunction;
-    ULONG i;
-
-    if (NT_SUCCESS(PhGetMappedImageExports(&exports, &PvMappedImage)))
-    {
-        for (i = 0; i < exports.NumberOfEntries; i++)
-        {
-            if (
-                NT_SUCCESS(PhGetMappedImageExportEntry(&exports, i, &exportEntry)) &&
-                NT_SUCCESS(PhGetMappedImageExportFunction(&exports, NULL, exportEntry.Ordinal, &exportFunction))
-                )
-            {
-                PPV_EXPORT_NODE exportNode;
-                WCHAR value[PH_INT64_STR_LEN_1];
-
-                exportNode = PhAllocateZero(sizeof(PV_SYMBOL_NODE));
-                exportNode->UniqueId = i + 1;
-                exportNode->Address = (ULONG_PTR)exportFunction.Function;
-                exportNode->Ordinal = exportEntry.Ordinal;
-                if (exportEntry.Name)
-                    exportNode->Hint = exportEntry.Hint;
-                exportNode->ExportForwarded = !!exportFunction.ForwardedName;
-                exportNode->UniqueIdString = PhFormatUInt64(exportNode->UniqueId, FALSE);
-                exportNode->OrdinalString = PhFormatUInt64(exportEntry.Ordinal, FALSE);
-                if (exportEntry.Name) // Note: The 'Hint' is only valid for named exports. (dmex)
-                    exportNode->HintString = PhFormatUInt64(exportEntry.Hint, FALSE);
-
-                if (exportFunction.ForwardedName)
-                {
-                    PPH_STRING forwardName;
-
-                    forwardName = PhZeroExtendToUtf16(exportFunction.ForwardedName);
-
-                    if (forwardName->Buffer[0] == L'?')
-                    {
-                        PPH_STRING undecoratedName;
-    
-                        if (undecoratedName = PhUndecorateSymbolName(PvSymbolProvider, forwardName->Buffer))
-                            PhMoveReference(&forwardName, undecoratedName);
-                    }
-
-                    exportNode->AddressString = forwardName;
-                }
-                else
-                {
-                    PhPrintPointer(value, exportFunction.Function);
-                    exportNode->AddressString = PhCreateString(value);
-                }
-
-                if (exportEntry.Name)
-                {
-                    PPH_STRING exportName;
-
-                    exportName = PhZeroExtendToUtf16(exportEntry.Name);
-
-                    if (exportName->Buffer[0] == L'?')
-                    {
-                        PPH_STRING undecoratedName;
-    
-                        if (undecoratedName = PhUndecorateSymbolName(PvSymbolProvider, exportName->Buffer))
-                            PhMoveReference(&exportName, undecoratedName);
-                    }
-
-                    exportNode->NameString = exportName;
-                }
-                else
-                {
-                    if (exportFunction.Function)
-                    {
-                        PPH_STRING exportSymbol = NULL;
-                        PPH_STRING exportSymbolName = NULL;
-    
-                        // Try find the export name using symbols.
-                        if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
-                        {
-                            exportSymbol = PhGetSymbolFromAddress(
-                                PvSymbolProvider,
-                                (ULONG64)PTR_ADD_OFFSET(PvMappedImage.NtHeaders32->OptionalHeader.ImageBase, exportFunction.Function),
-                                NULL,
-                                NULL,
-                                &exportSymbolName,
-                                NULL
-                                );
-                        }
-                        else
-                        {
-                            exportSymbol = PhGetSymbolFromAddress(
-                                PvSymbolProvider,
-                                (ULONG64)PTR_ADD_OFFSET(PvMappedImage.NtHeaders->OptionalHeader.ImageBase, exportFunction.Function),
-                                NULL,
-                                NULL,
-                                &exportSymbolName,
-                                NULL
-                                );
-                        }
-
-                        if (exportSymbolName)
-                        {
-                            exportNode->NameString = PhConcatStringRefZ(&exportSymbolName->sr, L" (unnamed)");
-                        }
-    
-                        PhClearReference(&exportSymbol);
-                    }
-                }
-
-                PhAcquireQueuedLockExclusive(&Context->SearchResultsLock);
-                PhAddItemList(Context->SearchResults, exportNode);
-                PhReleaseQueuedLockExclusive(&Context->SearchResultsLock);
-            }
-        }
-    }
-
-    PostMessage(Context->DialogHandle, WM_PV_SEARCH_FINISHED, 0, 0);
-    return STATUS_SUCCESS;
-}
-
-
-INT_PTR CALLBACK PvpPeExportsDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    )
-{
-    LPPROPSHEETPAGE propSheetPage;
-    PPV_PROPPAGECONTEXT propPageContext;
-    PPV_EXPORT_CONTEXT context;
-
-    if (PvPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext))
-    {
-        context = (PPV_EXPORT_CONTEXT)propPageContext->Context;
-    }
-    else
-    {
-        return FALSE;
-    }
-
-    switch (uMsg)
-    {
-    case WM_INITDIALOG:
-        {
-            context = propPageContext->Context = PhAllocateZero(sizeof(PV_EXPORT_CONTEXT));
-            context->DialogHandle = hwndDlg;
-            context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_SYMBOLTREE);
-            context->SearchHandle = GetDlgItem(hwndDlg, IDC_SYMSEARCH);
-            context->SearchboxText = PhReferenceEmptyString();
-            context->SearchResults = PhCreateList(1);
-
-            PvCreateSearchControl(context->SearchHandle, L"Search Exports (Ctrl+K)");
-
-            PvInitializeExportTree(context, hwndDlg, context->TreeNewHandle);
-            PhAddTreeNewFilter(GetExportListFilterSupport(context), PvExportTreeFilterCallback, context);
-            PhLoadSettingsExportList(context);
-
-            TreeNew_SetEmptyText(context->TreeNewHandle, &LoadingExportsText, 0);
-
-            PhCreateThread2(PvpPeExportsEnumerateThread, context);
-
-            RtlCreateTimer(
-                PhGetGlobalTimerQueue(),
-                &context->UpdateTimerHandle,
-                PvExportTreeUpdateCallback,
-                context,
-                0,
-                1000,
-                0
-                );
-
-            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
-        }
-        break;
-    case WM_DESTROY:
-        {
-            if (context->UpdateTimerHandle)
-            {
-                RtlDeleteTimer(PhGetGlobalTimerQueue(), context->UpdateTimerHandle, NULL);
-                context->UpdateTimerHandle = NULL;
-            }
-
-            PhSaveSettingsExportList(context);
-            PvDeleteExportTree(context);
-        }
-        break;
-    case WM_SHOWWINDOW:
-        {
-            if (!propPageContext->LayoutInitialized)
-            {
-                PPH_LAYOUT_ITEM dialogItem;
-
-                dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
-                PvAddPropPageLayoutItem(hwndDlg, context->SearchHandle, dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PvAddPropPageLayoutItem(hwndDlg, context->TreeNewHandle, dialogItem, PH_ANCHOR_ALL);
-                PvDoPropPageLayout(hwndDlg);
-
-                propPageContext->LayoutInitialized = TRUE;
-            }
-        }
-        break;
-    case WM_NOTIFY:
-        {
-            LPNMHDR header = (LPNMHDR)lParam;
-
-            switch (header->code)
-            {
-            case PSN_QUERYINITIALFOCUS:
-                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LONG_PTR)context->TreeNewHandle);
-                return TRUE;
-            }
-        }
-        break;
-    case WM_COMMAND:
-        {
-            switch (GET_WM_COMMAND_CMD(wParam, lParam))
-            {
-            case EN_CHANGE:
-                {
-                    PPH_STRING newSearchboxText;
-
-                    newSearchboxText = PH_AUTO(PhGetWindowText(context->SearchHandle));
-
-                    if (!PhEqualString(context->SearchboxText, newSearchboxText, FALSE))
-                    {
-                        PhSwapReference(&context->SearchboxText, newSearchboxText);
-
-                        if (!PhIsNullOrEmptyString(context->SearchboxText))
-                        {
-                            //PhExpandAllNodes(TRUE);
-                            //PhDeselectAllNodes();
-                        }
-
-                        PhApplyTreeNewFilters(GetExportListFilterSupport(context));
-                    }
-                }
-                break;
-            }
-        }
-        break;
-    case WM_PV_SEARCH_FINISHED:
-        {
-            if (context->UpdateTimerHandle)
-            {
-                RtlDeleteTimer(PhGetGlobalTimerQueue(), context->UpdateTimerHandle, NULL);
-                context->UpdateTimerHandle = NULL;
-            }
-
-            PvAddPendingExportNodes(context);
-
-            TreeNew_SetEmptyText(context->TreeNewHandle, &EmptyExportsText, 0);
-        }
-        break;
-    case WM_PV_SEARCH_SHOWMENU:
-        {
-            PPH_TREENEW_CONTEXT_MENU contextMenuEvent = (PPH_TREENEW_CONTEXT_MENU)lParam;
-            PPH_EMENU menu;
-            PPH_EMENU_ITEM selectedItem;
-            PPV_EXPORT_NODE* exportNodes = NULL;
-            ULONG numberOfSymbolNodes = 0;
-
-            PvGetSelectedExportNodes(context, &exportNodes, &numberOfSymbolNodes);
-
-            if (numberOfSymbolNodes != 0)
-            {
-                menu = PhCreateEMenu();
-                PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 1, L"Copy", NULL, NULL), ULONG_MAX);
-                PhInsertCopyCellEMenuItem(menu, 1, context->TreeNewHandle, contextMenuEvent->Column);
-
-                selectedItem = PhShowEMenu(
-                    menu,
-                    hwndDlg,
-                    PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT,
-                    PH_ALIGN_LEFT | PH_ALIGN_TOP,
-                    contextMenuEvent->Location.x,
-                    contextMenuEvent->Location.y
-                    );
-
-                if (selectedItem && selectedItem->Id != ULONG_MAX)
-                {
-                    BOOLEAN handled = FALSE;
-
-                    handled = PhHandleCopyCellEMenuItem(selectedItem);
-
-                    if (!handled && selectedItem->Id == 1)
-                    {
-                        PPH_STRING text;
-
-                        text = PhGetTreeNewText(context->TreeNewHandle, 0);
-                        PhSetClipboardString(context->TreeNewHandle, &text->sr);
-                        PhDereferenceObject(text);
-                    }
-                }
-
-                PhDestroyEMenu(menu);
-            }
-        }
-        break;
     }
 
     return FALSE;
