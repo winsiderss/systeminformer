@@ -35,11 +35,6 @@ typedef struct _PH_SERVICE_NODE
     PH_SH_STATE ShState;
 
     PPH_SERVICE_ITEM ServiceItem;
-// end_phapppub
-
-    PH_STRINGREF TextCache[PHSVTLC_MAXIMUM];
-
-    ULONG ValidMask;
 
     WCHAR StartTypeText[12 + 24 + 1];
     // Config
@@ -49,8 +44,11 @@ typedef struct _PH_SERVICE_NODE
     PPH_STRING Description;
     // Key
     LARGE_INTEGER KeyLastWriteTime;
-    PPH_STRING TooltipText;
     PPH_STRING KeyModifiedTimeText;
+// end_phapppub
+    PPH_STRING TooltipText;
+    ULONG ValidMask;
+    PH_STRINGREF TextCache[PHSVTLC_MAXIMUM];
 // begin_phapppub
 } PH_SERVICE_NODE, *PPH_SERVICE_NODE;
 // end_phapppub
