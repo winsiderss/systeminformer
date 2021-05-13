@@ -366,12 +366,12 @@ VOID PvpProcessImports(
 
                         if (DelayImports)
                         {
-                            rva = importDll.DelayDescriptor->ImportAddressTableRVA + j * sizeof(ULONG);
+                            rva = importDll.DelayDescriptor->ImportAddressTableRVA + j * sizeof(IMAGE_THUNK_DATA32);
                             //va = PTR_ADD_OFFSET(importDll.MappedImage->NtHeaders32->OptionalHeader.ImageBase, rva);
                         }
                         else
                         {
-                            rva = importDll.Descriptor->FirstThunk + j * sizeof(ULONG);
+                            rva = importDll.Descriptor->FirstThunk + j * sizeof(IMAGE_THUNK_DATA32);
                             //va = PTR_ADD_OFFSET(importDll.MappedImage->NtHeaders32->OptionalHeader.ImageBase, rva);
                         }
 
@@ -387,12 +387,12 @@ VOID PvpProcessImports(
 
                         if (DelayImports)
                         {
-                            rva = importDll.DelayDescriptor->ImportAddressTableRVA + j * sizeof(ULONG_PTR);
+                            rva = importDll.DelayDescriptor->ImportAddressTableRVA + j * sizeof(IMAGE_THUNK_DATA64);
                             //va = PTR_ADD_OFFSET(importDll.MappedImage->NtHeaders->OptionalHeader.ImageBase, rva);
                         }
                         else
                         {
-                            rva = importDll.Descriptor->FirstThunk + j * sizeof(ULONG_PTR);
+                            rva = importDll.Descriptor->FirstThunk + j * sizeof(IMAGE_THUNK_DATA64);
                             //va = PTR_ADD_OFFSET(importDll.MappedImage->NtHeaders->OptionalHeader.ImageBase, rva);
                         }
 
