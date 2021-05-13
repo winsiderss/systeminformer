@@ -2,8 +2,8 @@
  * Process Hacker ToolStatus -
  *   search filter callbacks
  *
- * Copyright (C) 2011-2016 dmex
  * Copyright (C) 2010-2013 wj32
+ * Copyright (C) 2011-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -39,7 +39,7 @@ BOOLEAN WordMatchStringRef(
 
         if (part.Length)
         {
-            if (PhFindStringInStringRef(Text, &part, TRUE) != -1)
+            if (PhFindStringInStringRef(Text, &part, TRUE) != SIZE_MAX)
                 return TRUE;
         }
     }
@@ -313,10 +313,10 @@ BOOLEAN ProcessTreeFilterCallback(
         ULONG i;
         BOOLEAN matched = FALSE;
 
+        PhAcquireQueuedLockShared(&processNode->ProcessItem->ServiceListLock);
+
         // Copy the service list so we can search it.
         serviceList = PhCreateList(processNode->ProcessItem->ServiceList->Count);
-
-        PhAcquireQueuedLockShared(&processNode->ProcessItem->ServiceListLock);
 
         while (PhEnumPointerList(
             processNode->ProcessItem->ServiceList,
@@ -332,9 +332,6 @@ BOOLEAN ProcessTreeFilterCallback(
 
         for (i = 0; i < serviceList->Count; i++)
         {
-            PPH_STRING serviceFileName = NULL;
-            PPH_STRING serviceBinaryPath = NULL;
-
             serviceItem = serviceList->Items[i];
 
             if (!PhIsNullOrEmptyString(serviceItem->Name))
@@ -364,34 +361,24 @@ BOOLEAN ProcessTreeFilterCallback(
                 }
             }
 
-            if (!PhIsNullOrEmptyString(serviceItem->Name) && NT_SUCCESS(QueryServiceFileName(
-                &serviceItem->Name->sr,
-                &serviceFileName,
-                &serviceBinaryPath
-                )))
+            if (!PhIsNullOrEmptyString(serviceItem->FileName))
             {
-                if (serviceFileName)
+                if (WordMatchStringRef(&serviceItem->FileName->sr))
                 {
-                    if (WordMatchStringRef(&serviceFileName->sr))
-                    {
-                        matched = TRUE;
-                    }
-
-                    PhDereferenceObject(serviceFileName);
-                }
-
-                if (serviceBinaryPath)
-                {
-                    if (WordMatchStringRef(&serviceBinaryPath->sr))
-                    {
-                        matched = TRUE;
-                    }
-
-                    PhDereferenceObject(serviceBinaryPath);
-                }
-
-                if (matched)
+                    matched = TRUE;
                     break;
+                }
+            }
+
+            {
+                PPH_SERVICE_NODE serviceNode;
+
+                // Search the service node
+                if ((serviceNode = PhFindServiceNode(serviceItem)) && !PtrToUlong(Context))
+                {
+                    if (ServiceTreeFilterCallback(&serviceNode->Node, UlongToPtr(TRUE)))
+                        return TRUE;
+                }
             }
         }
 
@@ -411,8 +398,6 @@ BOOLEAN ServiceTreeFilterCallback(
     )
 {
     PPH_SERVICE_NODE serviceNode = (PPH_SERVICE_NODE)Node;
-    PPH_STRING serviceFileName = NULL;
-    PPH_STRING serviceBinaryPath = NULL;
 
     if (PhIsNullOrEmptyString(SearchboxText))
         return TRUE;
@@ -441,6 +426,42 @@ BOOLEAN ServiceTreeFilterCallback(
             return TRUE;
     }
 
+    if (!PhIsNullOrEmptyString(serviceNode->ServiceItem->VerifySignerName))
+    {
+        if (WordMatchStringRef(&serviceNode->ServiceItem->VerifySignerName->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(serviceNode->ServiceItem->FileName))
+    {
+        if (WordMatchStringRef(&serviceNode->ServiceItem->FileName->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(serviceNode->BinaryPath))
+    {
+        if (WordMatchStringRef(&serviceNode->BinaryPath->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(serviceNode->LoadOrderGroup))
+    {
+        if (WordMatchStringRef(&serviceNode->LoadOrderGroup->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(serviceNode->Description))
+    {
+        if (WordMatchStringRef(&serviceNode->Description->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(serviceNode->KeyModifiedTimeText))
+    {
+        if (WordMatchStringRef(&serviceNode->KeyModifiedTimeText->sr))
+            return TRUE;
+    }
+
     if (serviceNode->ServiceItem->ProcessId)
     {
         PPH_PROCESS_NODE processNode;
@@ -449,17 +470,11 @@ BOOLEAN ServiceTreeFilterCallback(
             return TRUE;
 
         // Search the process node
-        if (processNode = PhFindProcessNode(serviceNode->ServiceItem->ProcessId))
+        if ((processNode = PhFindProcessNode(serviceNode->ServiceItem->ProcessId)) && !PtrToUlong(Context))
         {
-            if (ProcessTreeFilterCallback(&processNode->Node, NULL))
+            if (ProcessTreeFilterCallback(&processNode->Node, UlongToPtr(TRUE)))
                 return TRUE;
         }
-    }
-
-    if (!PhIsNullOrEmptyString(serviceNode->ServiceItem->VerifySignerName))
-    {
-        if (WordMatchStringRef(&serviceNode->ServiceItem->VerifySignerName->sr))
-            return TRUE;
     }
 
     if (serviceNode->ServiceItem->VerifyResult != VrUnknown)
@@ -499,38 +514,6 @@ BOOLEAN ServiceTreeFilterCallback(
                 return TRUE;
             break;
         }
-    }
-
-    if (NT_SUCCESS(QueryServiceFileName(
-        &serviceNode->ServiceItem->Name->sr, 
-        &serviceFileName, 
-        &serviceBinaryPath
-        )))
-    {
-        BOOLEAN matched = FALSE;
-
-        if (serviceFileName)
-        {
-            if (WordMatchStringRef(&serviceFileName->sr))
-            {
-                matched = TRUE;
-            }
-
-            PhDereferenceObject(serviceFileName);
-        }
-
-        if (serviceBinaryPath)
-        {
-            if (WordMatchStringRef(&serviceBinaryPath->sr))
-            {
-                matched = TRUE;
-            }
-
-            PhDereferenceObject(serviceBinaryPath);
-        }
-
-        if (matched)
-            return TRUE;
     }
 
     return FALSE;
@@ -629,91 +612,4 @@ BOOLEAN NetworkTreeFilterCallback(
     }
 
     return FALSE;
-}
-
-// Note: This information might be out-of-sync with the SCM. (dmex)
-NTSTATUS QueryServiceFileName(
-    _In_ PPH_STRINGREF ServiceName,
-    _Out_ PPH_STRING *ServiceFileName,
-    _Out_ PPH_STRING *ServiceBinaryPath
-    )
-{   
-    static PH_STRINGREF servicesKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services\\");
-    NTSTATUS status;
-    HANDLE keyHandle;
-    ULONG serviceType = 0;
-    PPH_STRING binaryPath = NULL;
-    PPH_STRING fileName = NULL;
-    PPH_STRING keyName;
-
-    keyName = PhConcatStringRef2(&servicesKeyName, ServiceName);
-    status = PhOpenKey(
-        &keyHandle,
-        KEY_READ,
-        PH_KEY_LOCAL_MACHINE,
-        &keyName->sr,
-        0
-        );
-
-    if (NT_SUCCESS(status))
-    {
-        PPH_STRING serviceImagePath;
-        PPH_STRING expandedString;
-
-        serviceType = PhQueryRegistryUlong(keyHandle, L"Type");
-
-        if (serviceImagePath = PhQueryRegistryString(keyHandle, L"ImagePath"))
-        {
-            if (expandedString = PhExpandEnvironmentStrings(&serviceImagePath->sr))
-            {
-                PhMoveReference(&binaryPath, expandedString);
-                PhDereferenceObject(serviceImagePath);
-            }
-            else
-            {
-                PhMoveReference(&binaryPath, serviceImagePath);
-            }
-        }
-        else
-        {
-            status = STATUS_NOT_FOUND;
-        }
-
-        NtClose(keyHandle);
-    }
-
-    if (NT_SUCCESS(status))
-    {
-        PhGetServiceDllParameter(serviceType, ServiceName, &fileName);
-
-        if (!fileName)
-        {
-            if (serviceType & SERVICE_WIN32)
-            {
-                PH_STRINGREF dummyFileName;
-                PH_STRINGREF dummyArguments;
-
-                PhParseCommandLineFuzzy(&binaryPath->sr, &dummyFileName, &dummyArguments, &fileName);
-
-                if (!fileName)
-                    PhSwapReference(&fileName, binaryPath);
-            }
-            else
-            {
-                fileName = PhGetFileName(binaryPath);
-            }
-        }
-
-        *ServiceFileName = fileName;
-        *ServiceBinaryPath = binaryPath;
-    }
-    else
-    {
-        if (binaryPath)
-            PhDereferenceObject(binaryPath);
-    }
-   
-    PhDereferenceObject(keyName);
-
-    return status;
 }
