@@ -24,6 +24,15 @@
 #include <bcrypt.h>
 #include "tlsh/tlsh_wrapper.h"
 
+typedef struct _PV_PE_HASH_CONTEXT
+{
+    HWND WindowHandle;
+    HWND ListViewHandle;
+    HIMAGELIST ListViewImageList;
+    PH_LAYOUT_MANAGER LayoutManager;
+    PPV_PROPPAGECONTEXT PropSheetContext;
+} PV_PE_HASH_CONTEXT, *PPV_PE_HASH_CONTEXT;
+
 typedef struct _PVP_HASH_CONTEXT
 {
     BCRYPT_ALG_HANDLE SignAlgHandle;
@@ -55,6 +64,7 @@ typedef enum _PV_HASHLIST_INDEX
     PV_HASHLIST_INDEX_AUTHENTIHASH,
     PV_HASHLIST_INDEX_IMPHASH,
     PV_HASHLIST_INDEX_IMPHASHMSFT,
+    PV_HASHLIST_INDEX_IMPFUZZY,
     PV_HASHLIST_INDEX_SSDEEP,
     PV_HASHLIST_INDEX_TLSH,
     PV_HASHLIST_INDEX_MAXIMUM
@@ -358,16 +368,199 @@ PPH_STRING PvpGetMappedImageAuthentihash(
     return hashString;
 }
 
-PPH_STRING PvpGetMappedImageImphash(
+PPH_HASHTABLE PvGenerateOrdinalHashtable(
+    _In_ PPH_STRING FileName
+    )
+{
+    PPH_HASHTABLE ordinalHashtable = NULL;
+    PH_MAPPED_IMAGE mappedImage;
+    PH_MAPPED_IMAGE_EXPORTS exports;
+    PH_MAPPED_IMAGE_EXPORT_ENTRY exportEntry;
+    PH_MAPPED_IMAGE_EXPORT_FUNCTION exportFunction;
+
+    if (NT_SUCCESS(PhLoadMappedImageEx(FileName, NULL, &mappedImage)))
+    {
+        if (NT_SUCCESS(PhGetMappedImageExports(&exports, &mappedImage)))
+        {
+            ordinalHashtable = PhCreateSimpleHashtable(exports.ExportDirectory->NumberOfNames);
+
+            for (ULONG i = 0; i < exports.NumberOfEntries; i++)
+            {
+                if (
+                    NT_SUCCESS(PhGetMappedImageExportEntry(&exports, i, &exportEntry)) &&
+                    NT_SUCCESS(PhGetMappedImageExportFunction(&exports, NULL, exportEntry.Ordinal, &exportFunction))
+                    )
+                {
+                    if (exportEntry.Name)
+                    {
+                        PhAddItemSimpleHashtable(
+                            ordinalHashtable,
+                            UlongToPtr(exportEntry.Ordinal),
+                            PhZeroExtendToUtf16(exportEntry.Name)
+                            );
+                    }
+                }
+            }
+        }
+
+        PhUnloadMappedImage(&mappedImage);
+    }
+
+    return ordinalHashtable;
+}
+
+typedef struct _PV_IMPHASH_ORDINAL_CACHE
+{
+    PPH_HASHTABLE Oleaut32Hashtable;
+    PPH_HASHTABLE Ws232Hashtable;
+    PPH_HASHTABLE WinsockHashtable;
+} PV_IMPHASH_ORDINAL_CACHE, *PPV_IMPHASH_ORDINAL_CACHE;
+
+PPV_IMPHASH_ORDINAL_CACHE PvImpHashCreateOrdinalCache(
     VOID
+    )
+{
+    static PH_STRINGREF filenameOleAut32Sr = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\oleaut32.dll");
+    static PH_STRINGREF filenameWs232Sr = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ws2_32.dll");
+    static PH_STRINGREF filenameWsock32Sr = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\wsock32.dll");
+    PPV_IMPHASH_ORDINAL_CACHE ordinalCache;
+    PPH_STRING fileName;
+
+    ordinalCache = PhAllocate(sizeof(PV_IMPHASH_ORDINAL_CACHE));
+    memset(ordinalCache, 0, sizeof(PV_IMPHASH_ORDINAL_CACHE));
+
+    fileName = PhCreateString2(&filenameOleAut32Sr);
+    ordinalCache->Oleaut32Hashtable = PvGenerateOrdinalHashtable(fileName);
+    PhDereferenceObject(fileName);
+
+    fileName = PhCreateString2(&filenameWs232Sr);
+    ordinalCache->Ws232Hashtable = PvGenerateOrdinalHashtable(fileName);
+    PhDereferenceObject(fileName);
+
+    fileName = PhCreateString2(&filenameWsock32Sr);
+    ordinalCache->WinsockHashtable = PvGenerateOrdinalHashtable(fileName);
+    PhDereferenceObject(fileName);
+
+    return ordinalCache;
+}
+
+VOID PvImpHashDestroyHashTable(
+    _In_ PPH_HASHTABLE Hashtable
+    )
+{
+    PPH_KEY_VALUE_PAIR entry;
+    ULONG enumerationKey;
+
+    enumerationKey = 0;
+
+    while (PhEnumHashtable(Hashtable, &entry, &enumerationKey))
+    {
+        if ((*entry).Value)
+        {
+            PhDereferenceObject((*entry).Value);
+        }
+    }
+
+    PhDereferenceObject(Hashtable);
+}
+
+VOID PvImpHashDestroyOrdinalCache(
+    _In_ PPV_IMPHASH_ORDINAL_CACHE OrdinalCache
+    )
+{
+    if (OrdinalCache->Oleaut32Hashtable)
+        PvImpHashDestroyHashTable(OrdinalCache->Oleaut32Hashtable);
+    if (OrdinalCache->Ws232Hashtable)
+        PvImpHashDestroyHashTable(OrdinalCache->Ws232Hashtable);
+    if (OrdinalCache->WinsockHashtable)
+        PvImpHashDestroyHashTable(OrdinalCache->WinsockHashtable);
+}
+
+PPH_STRING PvImpHashQueryOrdinalName(
+    _In_ PPV_IMPHASH_ORDINAL_CACHE OrdinalCache,
+    _In_ PPH_STRING FileName,
+    _In_ USHORT Ordinal
+    )
+{
+    PPH_STRING exportName;
+
+    // ImpHash will only lookup the ordinal names for imports from these 3 DLLs.
+    // Online implementations and other tools hard-code every string... (dmex)
+
+    if (PhStartsWithString2(FileName, L"oleaut32.dll", TRUE) && OrdinalCache->Oleaut32Hashtable)
+    {
+        if (exportName = PhFindItemSimpleHashtable2(OrdinalCache->Oleaut32Hashtable, UlongToPtr(Ordinal)))
+            return PhReferenceObject(exportName);
+    }
+
+    if (PhStartsWithString2(FileName, L"ws2_32.dll", TRUE) && OrdinalCache->Ws232Hashtable)
+    {
+        if (exportName = PhFindItemSimpleHashtable2(OrdinalCache->Ws232Hashtable, UlongToPtr(Ordinal)))
+            return PhReferenceObject(exportName);
+    }
+
+    if (PhStartsWithString2(FileName, L"wsock32.dll", TRUE) && OrdinalCache->WinsockHashtable)
+    {
+        if (exportName = PhFindItemSimpleHashtable2(OrdinalCache->WinsockHashtable, UlongToPtr(Ordinal)))
+            return PhReferenceObject(exportName);
+    }
+
+    //PH_MAPPED_IMAGE mappedImage;
+    //PPH_STRING filePath;
+    //PPH_STRING exportName = NULL;
+    //
+    //if (!(filePath = PhSearchFilePath(PhGetString(FileName), L".dll")))
+    //{
+    //    PhSetReference(&filePath, FileName);
+    //}
+    //
+    //if (NT_SUCCESS(PhLoadMappedImage(PhGetString(filePath), NULL, &mappedImage)))
+    //{
+    //    PH_MAPPED_IMAGE_EXPORTS exports;
+    //    PH_MAPPED_IMAGE_EXPORT_ENTRY exportEntry;
+    //    PH_MAPPED_IMAGE_EXPORT_FUNCTION exportFunction;
+    //    ULONG i;
+    //
+    //    if (NT_SUCCESS(PhGetMappedImageExports(&exports, &mappedImage)))
+    //    {
+    //        for (i = 0; i < exports.NumberOfEntries; i++)
+    //        {
+    //            if (
+    //                NT_SUCCESS(PhGetMappedImageExportEntry(&exports, i, &exportEntry)) &&
+    //                NT_SUCCESS(PhGetMappedImageExportFunction(&exports, NULL, exportEntry.Ordinal, &exportFunction))
+    //                )
+    //            {
+    //                if (exportEntry.Ordinal == Ordinal && exportEntry.Name)
+    //                {
+    //                    exportName = PhZeroExtendToUtf16(exportEntry.Name);
+    //                    break;
+    //                }
+    //            }
+    //        }
+    //    }
+    //
+    //    PhUnloadMappedImage(&mappedImage);
+    //}
+    //
+    //PhDereferenceObject(filePath);
+
+    return NULL;
+}
+
+BOOLEAN PvpGetMappedImageImphash(
+    _Out_opt_ PPH_STRING *ImpHash,
+    _Out_opt_ PPH_STRING *ImpHashFuzzy
     )
 {
     static PH_STRINGREF seperator = PH_STRINGREF_INIT(L".");
     PPH_STRING hashString = NULL;
+    PPH_STRING hashFuzzyString = NULL;
     PH_STRING_BUILDER stringBuilder;
     PH_MAPPED_IMAGE_IMPORTS imports;
+    PPV_IMPHASH_ORDINAL_CACHE ordinals;
 
     PhInitializeStringBuilder(&stringBuilder, 0x100);
+    ordinals = PvImpHashCreateOrdinalCache();
 
     if (NT_SUCCESS(PhGetMappedImageImports(&imports, &PvMappedImage)))
     {
@@ -410,7 +603,14 @@ PPH_STRING PvpGetMappedImageImphash(
                         if (importEntry.Name)
                             importFuncName = PhZeroExtendToUtf16(importEntry.Name);
                         else
-                            importFuncName = PhFormatString(L"ord%u", importEntry.Ordinal);
+                        {
+                            PPH_STRING ordinalImportFuncName;
+
+                            if (ordinalImportFuncName = PvImpHashQueryOrdinalName(ordinals, importDllString, importEntry.Ordinal))
+                                importFuncName = ordinalImportFuncName;
+                            else
+                                importFuncName = PhFormatString(L"ord%u", importEntry.Ordinal);
+                        }
 
                         importImphashName = PhConcatStringRef3(
                             &importDllName->sr,
@@ -442,6 +642,7 @@ PPH_STRING PvpGetMappedImageImphash(
     if (!PhIsNullOrEmptyString(stringBuilder.String))
     {
         PPH_STRING importStringFinal;
+        PPH_STRING importStringFuzzy;
         PPH_BYTES importStringUtf8;
         PH_HASH_CONTEXT hashContext;
         UCHAR hash[32];
@@ -457,12 +658,31 @@ PPH_STRING PvpGetMappedImageImphash(
             hashString = PhBufferToHexString(hash, 16);
         }
 
+        // Generate the "impfuzzy" hash:
+        // https://blogs.jpcert.or.jp/ja/2016/05/impfuzzy.html
+        if (fuzzy_hash_buffer((PBYTE)importStringUtf8->Buffer, importStringUtf8->Length, &importStringFuzzy))
+        {
+            hashFuzzyString = importStringFuzzy;
+        }
+
         PhDereferenceObject(importStringUtf8);
     }
 
     PhDeleteStringBuilder(&stringBuilder);
 
-    return hashString;
+    if (ImpHash)
+        *ImpHash = hashString;
+    else
+        PhDereferenceObject(hashString);
+
+    if (ImpHashFuzzy)
+        *ImpHashFuzzy = hashFuzzyString;
+    else
+        PhDereferenceObject(hashFuzzyString);
+
+    PvImpHashDestroyOrdinalCache(ordinals);
+
+    return TRUE;
 }
 
 VOID PvpPeEnumFileHashes(
@@ -480,6 +700,7 @@ VOID PvpPeEnumFileHashes(
     PPH_STRING sha512HashString = NULL;
     PPH_STRING authentihashString = NULL;
     PPH_STRING imphashString = NULL;
+    PPH_STRING imphashFuzzyString = NULL;
     PPH_STRING impMsftHashString = NULL;
     PPH_STRING ssdeepHashString = NULL;
     PPH_STRING tlshHashString = NULL;
@@ -634,7 +855,7 @@ VOID PvpPeEnumFileHashes(
     lvItemIndex = PhAddListViewGroupItem(ListViewHandle, PV_HASHLIST_CATEGORY_IMPORTHASH, PV_HASHLIST_INDEX_IMPHASH, number, NULL);
     PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, L"Imphash");
 
-    if (imphashString = PvpGetMappedImageImphash())
+    if (PvpGetMappedImageImphash(&imphashString, &imphashFuzzyString))
     {    
         PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, PhGetString(imphashString));
         PhDereferenceObject(imphashString);
@@ -652,6 +873,20 @@ VOID PvpPeEnumFileHashes(
     {
         PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, PhGetString(impMsftHashString));
         PhDereferenceObject(impMsftHashString);
+    }
+    else
+    {
+        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"ERROR");
+    }
+
+    PhPrintUInt32(number, ++count);
+    lvItemIndex = PhAddListViewGroupItem(ListViewHandle, PV_HASHLIST_CATEGORY_FUZZYHASH, PV_HASHLIST_INDEX_IMPFUZZY, number, NULL);
+    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, L"Impfuzzy");
+
+    if (!PhIsNullOrEmptyString(imphashFuzzyString)) // HACK
+    {
+        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, PhGetString(imphashFuzzyString));
+        PhDereferenceObject(imphashFuzzyString);
     }
     else
     {
@@ -687,13 +922,6 @@ VOID PvpPeEnumFileHashes(
     }
 }
 
-typedef struct _PV_PE_HASH_CONTEXT
-{
-    HWND WindowHandle;
-    HWND ListViewHandle;
-    HIMAGELIST ListViewImageList;
-} PV_PE_HASH_CONTEXT, *PPV_PE_HASH_CONTEXT;
-
 INT_PTR CALLBACK PvpPeHashesDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -701,22 +929,26 @@ INT_PTR CALLBACK PvpPeHashesDlgProc(
     _In_ LPARAM lParam
     )
 {
-    LPPROPSHEETPAGE propSheetPage;
-    PPV_PROPPAGECONTEXT propPageContext;
     PPV_PE_HASH_CONTEXT context;
-
-    if (!PvPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext))
-        return FALSE;
 
     if (uMsg == WM_INITDIALOG)
     {
-        context = propPageContext->Context = PhAllocate(sizeof(PV_PE_HASH_CONTEXT));
-        memset(context, 0, sizeof(PV_PE_HASH_CONTEXT));
+        context = PhAllocateZero(sizeof(PV_PE_HASH_CONTEXT));
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+
+        if (lParam)
+        {
+            LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
+            context->PropSheetContext = (PPV_PROPPAGECONTEXT)propSheetPage->lParam;
+        }
     }
     else
     {
-        context = propPageContext->Context;
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
     }
+
+    if (!context)
+        return FALSE;
 
     switch (uMsg)
     {
@@ -731,6 +963,9 @@ INT_PTR CALLBACK PvpPeHashesDlgProc(
             PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 250, L"Hash");
             PhSetExtendedListView(context->ListViewHandle);
             PhLoadListViewColumnsFromSetting(L"ImageHashesListViewColumns", context->ListViewHandle);
+
+            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
 
             if (context->ListViewImageList = ImageList_Create(2, 20, ILC_MASK | ILC_COLOR, 1, 1))
                 ListView_SetImageList(context->ListViewHandle, context->ListViewImageList, LVSIL_SMALL);
@@ -747,21 +982,25 @@ INT_PTR CALLBACK PvpPeHashesDlgProc(
             if (context->ListViewImageList)
                 ImageList_Destroy(context->ListViewImageList);
 
+            PhDeleteLayoutManager(&context->LayoutManager);
+
             PhFree(context);
         }
         break;
     case WM_SHOWWINDOW:
         {
-            if (!propPageContext->LayoutInitialized)
+            if (context->PropSheetContext && !context->PropSheetContext->LayoutInitialized)
             {
-                PPH_LAYOUT_ITEM dialogItem;
-
-                dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
-                PvAddPropPageLayoutItem(hwndDlg, context->ListViewHandle, dialogItem, PH_ANCHOR_ALL);
+                PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
                 PvDoPropPageLayout(hwndDlg);
 
-                propPageContext->LayoutInitialized = TRUE;
+                context->PropSheetContext->LayoutInitialized = TRUE;
             }
+        }
+        break;
+    case WM_SIZE:
+        {
+            PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
     case WM_NOTIFY:
