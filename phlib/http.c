@@ -374,7 +374,7 @@ PPH_STRING PhHttpSocketQueryHeaderString(
         WINHTTP_QUERY_CUSTOM,
         HeaderString,
         WINHTTP_NO_OUTPUT_BUFFER,
-        &bufferLength,
+        &bufferLength, // includes null
         WINHTTP_NO_HEADER_INDEX
         ))
     {
@@ -389,13 +389,16 @@ PPH_STRING PhHttpSocketQueryHeaderString(
         WINHTTP_QUERY_CUSTOM,
         HeaderString,
         stringBuffer->Buffer,
-        &bufferLength,
+        &bufferLength, // excludes null
         WINHTTP_NO_HEADER_INDEX
         ))
     {
         PhDereferenceObject(stringBuffer);
         return NULL;
     }
+
+    PhTrimToNullTerminatorString(stringBuffer);
+    //stringBuffer->Length = bufferLength;
 
     return stringBuffer;
 }
