@@ -182,7 +182,6 @@ HBITMAP PhIconToBitmap(
         // Default to unbuffered painting.
         FillRect(hdc, &iconRectangle, (HBRUSH)(COLOR_WINDOW + 1));
         DrawIconEx(hdc, 0, 0, Icon, Width, Height, 0, NULL, DI_NORMAL);
-        //SelectBitmap(hdc, oldBitmap); // ?? (dmex)
     }
 
     SelectBitmap(hdc, oldBitmap);
