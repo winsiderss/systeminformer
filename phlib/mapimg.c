@@ -1964,7 +1964,7 @@ NTSTATUS PhGetMappedImageCfgEntry(
             numberofGuardEntries = CfgConfig->NumberOfGuardFunctionEntries;
         }
         break;
-    case ControlFlowGuardtakenIatEntry:
+    case ControlFlowGuardTakenIatEntry:
         {
             guardTable = CfgConfig->GuardAdressIatTable;
             numberofGuardEntries = CfgConfig->NumberOfGuardAdressIatEntries;
