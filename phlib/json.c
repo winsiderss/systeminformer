@@ -31,7 +31,7 @@
 
 static json_object_ptr json_get_object(
     _In_ json_object_ptr rootObj, 
-    _In_ const PSTR key
+    _In_ PSTR key
     )
 {
     json_object_ptr returnObj;
@@ -86,6 +86,13 @@ PVOID PhCreateJsonObject(
     return json_object_new_object();
 }
 
+PVOID PhCreateJsonStringObject(
+    _In_ PSTR Value
+    )
+{
+    return json_object_new_string(Value);
+}
+
 PVOID PhGetJsonObject(
     _In_ PVOID Object,
     _In_ PSTR Key
@@ -132,6 +139,15 @@ BOOLEAN PhGetJsonObjectBool(
     )
 {
     return json_object_get_boolean(json_get_object(Object, Key)) == TRUE;
+}
+
+VOID PhAddJsonObjectValue(
+    _In_ PVOID Object,
+    _In_ PSTR Key,
+    _In_ PVOID Value
+    )
+{
+    json_object_object_add(Object, Key, Value);
 }
 
 VOID PhAddJsonObject(
@@ -182,10 +198,10 @@ PPH_STRING PhGetJsonArrayString(
 {
     PCSTR value;
 
-    if (value = json_object_get_string(Object)) // json_object_to_json_string_ext(Object, JSON_C_TO_STRING_PLAIN))
+    if (value = json_object_to_json_string_ext(Object, JSON_C_TO_STRING_PLAIN)) // json_object_get_string(Object))
         return PhConvertUtf8ToUtf16((PSTR)value);
-    else
-        return NULL;
+
+    return NULL;
 }
 
 INT64 PhGetJsonArrayLong64(
