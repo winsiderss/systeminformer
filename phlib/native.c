@@ -9621,6 +9621,26 @@ NTSTATUS PhImpersonateClientOfNamedPipe(
         );
 }
 
+NTSTATUS PhDisableImpersonateNamedPipe(
+    _In_ HANDLE PipeHandle
+    )
+{
+    IO_STATUS_BLOCK isb;
+
+    return NtFsControlFile(
+        PipeHandle,
+        NULL,
+        NULL,
+        NULL,
+        &isb,
+        FSCTL_PIPE_DISABLE_IMPERSONATE,
+        NULL,
+        0,
+        NULL,
+        0
+        );
+}
+
 NTSTATUS PhGetNamedPipeClientComputerName(
     _In_ HANDLE PipeHandle,
     _In_ ULONG ClientComputerNameLength,
