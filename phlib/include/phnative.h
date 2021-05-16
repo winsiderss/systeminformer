@@ -1712,6 +1712,13 @@ PhImpersonateClientOfNamedPipe(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhDisableImpersonateNamedPipe(
+    _In_ HANDLE PipeHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhGetNamedPipeClientComputerName(
     _In_ HANDLE PipeHandle,
     _In_ ULONG ClientComputerNameLength,
