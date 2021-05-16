@@ -374,7 +374,7 @@ BOOLEAN ProcessTreeFilterCallback(
                 PPH_SERVICE_NODE serviceNode;
 
                 // Search the service node
-                if ((serviceNode = PhFindServiceNode(serviceItem)) && !PtrToUlong(Context))
+                if (!PtrToUlong(Context) && (serviceNode = PhFindServiceNode(serviceItem)))
                 {
                     if (ServiceTreeFilterCallback(&serviceNode->Node, UlongToPtr(TRUE)))
                         return TRUE;
@@ -470,7 +470,7 @@ BOOLEAN ServiceTreeFilterCallback(
             return TRUE;
 
         // Search the process node
-        if ((processNode = PhFindProcessNode(serviceNode->ServiceItem->ProcessId)) && !PtrToUlong(Context))
+        if (!PtrToUlong(Context) && (processNode = PhFindProcessNode(serviceNode->ServiceItem->ProcessId)))
         {
             if (ProcessTreeFilterCallback(&processNode->Node, UlongToPtr(TRUE)))
                 return TRUE;
