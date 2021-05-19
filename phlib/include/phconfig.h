@@ -17,6 +17,7 @@ extern ULONG WindowsVersion;
 
 #define WINDOWS_ANCIENT 0
 #define WINDOWS_XP 51 // August, 2001
+#define WINDOWS_SERVER_2003 52 // April, 2003
 #define WINDOWS_VISTA 60 // November, 2006
 #define WINDOWS_7 61 // July, 2009
 #define WINDOWS_8 62 // August, 2012
