@@ -2687,6 +2687,21 @@ RtlCreateUserProcess(
     _Out_ PRTL_USER_PROCESS_INFORMATION ProcessInformation
     );
 
+#define RTL_USER_PROCESS_EXTENDED_PARAMETERS_VERSION 1
+
+// private
+typedef struct _RTL_USER_PROCESS_EXTENDED_PARAMETERS
+{
+    USHORT Version;
+    USHORT NodeNumber;
+    PSECURITY_DESCRIPTOR ProcessSecurityDescriptor;
+    PSECURITY_DESCRIPTOR ThreadSecurityDescriptor;
+    HANDLE ParentProcess;
+    HANDLE DebugPort;
+    HANDLE TokenHandle;
+    HANDLE JobHandle;
+} RTL_USER_PROCESS_EXTENDED_PARAMETERS, *PRTL_USER_PROCESS_EXTENDED_PARAMETERS;
+
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -2694,7 +2709,7 @@ RtlCreateUserProcessEx(
     _In_ PUNICODE_STRING NtImagePathName,
     _In_ PRTL_USER_PROCESS_PARAMETERS ProcessParameters,
     _In_ BOOLEAN InheritHandles,
-    _Reserved_ ULONG Flags,
+    _In_opt_ PRTL_USER_PROCESS_EXTENDED_PARAMETERS ProcessExtendedParameters,
     _Out_ PRTL_USER_PROCESS_INFORMATION ProcessInformation
     );
 
