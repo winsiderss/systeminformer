@@ -38,12 +38,13 @@ NTSTATUS KphDynamicDataInitialization(
     VOID
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status;
 
     PAGED_CODE();
 
     // Get Windows version information.
 
+    memset(&KphDynOsVersionInfo, 0, sizeof(RTL_OSVERSIONINFOEXW));
     KphDynOsVersionInfo.dwOSVersionInfoSize = sizeof(RTL_OSVERSIONINFOEXW);
     status = RtlGetVersion((PRTL_OSVERSIONINFOW)&KphDynOsVersionInfo);
 

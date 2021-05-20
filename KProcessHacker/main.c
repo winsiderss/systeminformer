@@ -45,7 +45,9 @@ NTSTATUS KpiPopulateKnownDllExtents(
     _Out_ PKPH_EXTENTS ModuleExtents
     );
 
-NTSTATUS KpiKnownDllInit();
+NTSTATUS KpiKnownDllInit(
+    VOID
+    );
 
 #ifdef ALLOC_PRAGMA
 #pragma alloc_text(PAGE, DriverEntry)
@@ -441,7 +443,9 @@ Exit:
  *
  * \return Appropriate status.
 */
-NTSTATUS KpiKnownDllInit()
+NTSTATUS KpiKnownDllInit(
+    VOID
+    )
 {
     return KpiPopulateKnownDllExtents(&NtdllKnownDllName, &NtdllExtents);
 }
