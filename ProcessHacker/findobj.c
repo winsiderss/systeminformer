@@ -513,14 +513,14 @@ PPH_HANDLE_OBJECT_TREE_ROOT_NODE PhpGetSelectedHandleObjectNode(
     _In_ PPH_HANDLE_SEARCH_CONTEXT Context
     )
 {
-    PPH_HANDLE_OBJECT_TREE_ROOT_NODE windowNode = NULL;
+    PPH_HANDLE_OBJECT_TREE_ROOT_NODE handleNode = NULL;
 
     for (ULONG i = 0; i < Context->NodeList->Count; i++)
     {
-        windowNode = Context->NodeList->Items[i];
+        handleNode = Context->NodeList->Items[i];
 
-        if (windowNode->Node.Selected)
-            return windowNode;
+        if (handleNode->Node.Selected)
+            return handleNode;
     }
 
     return NULL;

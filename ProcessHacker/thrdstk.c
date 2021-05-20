@@ -650,14 +650,14 @@ PPH_STACK_TREE_ROOT_NODE GetSelectedThreadStackNode(
     _In_ PPH_THREAD_STACK_CONTEXT Context
     )
 {
-    PPH_STACK_TREE_ROOT_NODE windowNode = NULL;
+    PPH_STACK_TREE_ROOT_NODE stackNode = NULL;
 
     for (ULONG i = 0; i < Context->NodeList->Count; i++)
     {
-        windowNode = Context->NodeList->Items[i];
+        stackNode = Context->NodeList->Items[i];
 
-        if (windowNode->Node.Selected)
-            return windowNode;
+        if (stackNode->Node.Selected)
+            return stackNode;
     }
 
     return NULL;

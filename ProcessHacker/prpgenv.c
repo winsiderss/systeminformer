@@ -875,19 +875,19 @@ PPHP_PROCESS_ENVIRONMENT_TREENODE PhpFindEnvironmentNode(
     _In_ PWSTR KeyPath
     )
 {
-    PHP_PROCESS_ENVIRONMENT_TREENODE lookupWindowNode;
-    PPHP_PROCESS_ENVIRONMENT_TREENODE lookupWindowNodePtr = &lookupWindowNode;
-    PPHP_PROCESS_ENVIRONMENT_TREENODE *windowNode;
+    PHP_PROCESS_ENVIRONMENT_TREENODE lookupEnvironmentNode;
+    PPHP_PROCESS_ENVIRONMENT_TREENODE lookupEnvironmentNodePtr = &lookupEnvironmentNode;
+    PPHP_PROCESS_ENVIRONMENT_TREENODE *environmentNode;
 
-    PhInitializeStringRefLongHint(&lookupWindowNode.NameText->sr, KeyPath);
+    PhInitializeStringRefLongHint(&lookupEnvironmentNode.NameText->sr, KeyPath);
 
-    windowNode = (PPHP_PROCESS_ENVIRONMENT_TREENODE*)PhFindEntryHashtable(
+    environmentNode = (PPHP_PROCESS_ENVIRONMENT_TREENODE*)PhFindEntryHashtable(
         Context->NodeHashtable,
-        &lookupWindowNodePtr
+        &lookupEnvironmentNodePtr
         );
 
-    if (windowNode)
-        return *windowNode;
+    if (environmentNode)
+        return *environmentNode;
     else
         return NULL;
 }
@@ -1194,15 +1194,15 @@ PPHP_PROCESS_ENVIRONMENT_TREENODE PhpGetSelectedEnvironmentNode(
     _In_ PPH_ENVIRONMENT_CONTEXT Context
     )
 {
-    PPHP_PROCESS_ENVIRONMENT_TREENODE windowNode = NULL;
+    PPHP_PROCESS_ENVIRONMENT_TREENODE environmentNode = NULL;
     ULONG i;
 
     for (i = 0; i < Context->NodeList->Count; i++)
     {
-        windowNode = Context->NodeList->Items[i];
+        environmentNode = Context->NodeList->Items[i];
 
-        if (windowNode->Node.Selected)
-            return windowNode;
+        if (environmentNode->Node.Selected)
+            return environmentNode;
     }
 
     return NULL;
