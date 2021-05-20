@@ -539,8 +539,9 @@ typedef enum _ALPC_PORT_INFORMATION_CLASS
     AlpcUnregisterCompletionListInformation, // s: VOID
     AlpcAdjustCompletionListConcurrencyCountInformation, // s: in ULONG
     AlpcRegisterCallbackInformation, // kernel-mode only
-    AlpcCompletionListRundownInformation, // s: VOID
-    AlpcWaitForPortReferences
+    AlpcCompletionListRundownInformation, // s: VOID // 10
+    AlpcWaitForPortReferences,
+    AlpcServerSessionInformation // q: ALPC_SERVER_SESSION_INFORMATION // since 19H2
 } ALPC_PORT_INFORMATION_CLASS;
 
 // private
@@ -591,6 +592,13 @@ typedef struct _ALPC_PORT_COMPLETION_LIST_INFORMATION
     ULONG ConcurrencyCount;
     ULONG AttributeFlags;
 } ALPC_PORT_COMPLETION_LIST_INFORMATION, *PALPC_PORT_COMPLETION_LIST_INFORMATION;
+
+// private
+typedef struct _ALPC_SERVER_SESSION_INFORMATION
+{
+    ULONG SessionId;
+    ULONG ProcessId;
+} ALPC_SERVER_SESSION_INFORMATION, *PALPC_SERVER_SESSION_INFORMATION;
 
 // private
 typedef enum _ALPC_MESSAGE_INFORMATION_CLASS

@@ -1046,21 +1046,21 @@ NtSetWnfProcessNotificationEvent(
 
 typedef enum _WORKERFACTORYINFOCLASS
 {
-    WorkerFactoryTimeout, // q; s: LARGE_INTEGER
-    WorkerFactoryRetryTimeout, // q; s: LARGE_INTEGER
-    WorkerFactoryIdleTimeout, // q; s: LARGE_INTEGER
-    WorkerFactoryBindingCount,
-    WorkerFactoryThreadMinimum, // q; s: ULONG
-    WorkerFactoryThreadMaximum, // q; s: ULONG
+    WorkerFactoryTimeout, // LARGE_INTEGER
+    WorkerFactoryRetryTimeout, // LARGE_INTEGER
+    WorkerFactoryIdleTimeout, // s: LARGE_INTEGER
+    WorkerFactoryBindingCount, // s: ULONG
+    WorkerFactoryThreadMinimum, // s: ULONG
+    WorkerFactoryThreadMaximum, // s: ULONG
     WorkerFactoryPaused, // ULONG or BOOLEAN
-    WorkerFactoryBasicInformation, // WORKER_FACTORY_BASIC_INFORMATION
+    WorkerFactoryBasicInformation, // q: WORKER_FACTORY_BASIC_INFORMATION
     WorkerFactoryAdjustThreadGoal,
     WorkerFactoryCallbackType,
     WorkerFactoryStackInformation, // 10
-    WorkerFactoryThreadBasePriority,
-    WorkerFactoryTimeoutWaiters, // since THRESHOLD
-    WorkerFactoryFlags,
-    WorkerFactoryThreadSoftMaximum,
+    WorkerFactoryThreadBasePriority, // s: ULONG
+    WorkerFactoryTimeoutWaiters, // s: ULONG, since THRESHOLD
+    WorkerFactoryFlags, // s: ULONG
+    WorkerFactoryThreadSoftMaximum, // s: ULONG
     WorkerFactoryThreadCpuSets, // since REDSTONE5
     MaxWorkerFactoryInfoClass
 } WORKERFACTORYINFOCLASS, *PWORKERFACTORYINFOCLASS;
