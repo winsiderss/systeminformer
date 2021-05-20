@@ -510,14 +510,14 @@ PPH_PLUGIN_TREE_ROOT_NODE GetSelectedPluginsNode(
     _In_ PPH_PLUGMAN_CONTEXT Context
     )
 {
-    PPH_PLUGIN_TREE_ROOT_NODE windowNode = NULL;
+    PPH_PLUGIN_TREE_ROOT_NODE pluginNode = NULL;
 
     for (ULONG i = 0; i < Context->NodeList->Count; i++)
     {
-        windowNode = Context->NodeList->Items[i];
+        pluginNode = Context->NodeList->Items[i];
 
-        if (windowNode->Node.Selected)
-            return windowNode;
+        if (pluginNode->Node.Selected)
+            return pluginNode;
     }
 
     return NULL;
