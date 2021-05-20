@@ -53,9 +53,9 @@ PET_DISK_ITEM EtGetSelectedDiskItem(
     VOID
     );
 
-VOID EtGetSelectedDiskItems(
-    _Out_ PET_DISK_ITEM **DiskItems,
-    _Out_ PULONG NumberOfDiskItems
+BOOLEAN EtGetSelectedDiskItems(
+    _Out_ PET_DISK_ITEM** Nodes,
+    _Out_ PULONG NumberOfNodes
     );
 
 VOID EtDeselectAllDiskNodes(

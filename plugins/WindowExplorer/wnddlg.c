@@ -743,11 +743,8 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                     PPH_EMENU menu;
                     PPH_EMENU_ITEM selectedItem;
 
-                    WeGetSelectedWindowNodes(
-                        &context->TreeContext,
-                        &windows,
-                        &numberOfWindows
-                        );
+                    if (!WeGetSelectedWindowNodes(&context->TreeContext, &windows, &numberOfWindows))
+                        break;
 
                     if (numberOfWindows != 0)
                     {
@@ -1392,11 +1389,8 @@ INT_PTR CALLBACK WepWindowsPageProc(
                     PPH_EMENU menu;
                     PPH_EMENU selectedItem;
 
-                    WeGetSelectedWindowNodes(
-                        &context->TreeContext,
-                        &windows,
-                        &numberOfWindows
-                        );
+                    if (!WeGetSelectedWindowNodes(&context->TreeContext, &windows, &numberOfWindows))
+                        break;
 
                     if (numberOfWindows != 0)
                     {

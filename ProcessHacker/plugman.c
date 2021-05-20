@@ -523,15 +523,13 @@ PPH_PLUGIN_TREE_ROOT_NODE GetSelectedPluginsNode(
     return NULL;
 }
 
-VOID GetSelectedPluginsNodes(
+BOOLEAN GetSelectedPluginsNodes(
     _In_ PPH_PLUGMAN_CONTEXT Context,
-    _Out_ PPH_PLUGIN_TREE_ROOT_NODE **PluginsNodes,
-    _Out_ PULONG NumberOfPluginsNodes
+    _Out_ PPH_PLUGIN_TREE_ROOT_NODE **Nodes,
+    _Out_ PULONG NumberOfNodes
     )
 {
-    PPH_LIST list;
-
-    list = PhCreateList(2);
+    PPH_LIST list = PhCreateList(2);
 
     for (ULONG i = 0; i < Context->NodeList->Count; i++)
     {
@@ -543,10 +541,17 @@ VOID GetSelectedPluginsNodes(
         }
     }
 
-    *PluginsNodes = PhAllocateCopy(list->Items, sizeof(PVOID) * list->Count);
-    *NumberOfPluginsNodes = list->Count;
+    if (list->Count)
+    {
+        *Nodes = PhAllocateCopy(list->Items, sizeof(PVOID) * list->Count);
+        *NumberOfNodes = list->Count;
+
+        PhDereferenceObject(list);
+        return TRUE;
+    }
 
     PhDereferenceObject(list);
+    return FALSE;
 }
 
 VOID InitializePluginsTree(

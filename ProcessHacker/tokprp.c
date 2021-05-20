@@ -2470,15 +2470,13 @@ VOID PhpRemoveAttributeNode(
     PhpDestroyAttributeNode(Node);
 }
 
-VOID PhpGetSelectedAttributeTreeNodes(
+BOOLEAN PhpGetSelectedAttributeTreeNodes(
     _Inout_ PATTRIBUTE_TREE_CONTEXT Context,
-    _Out_ PATTRIBUTE_NODE **AttributeNodes,
-    _Out_ PULONG NumberOfAttributeNodes
+    _Out_ PATTRIBUTE_NODE **Nodes,
+    _Out_ PULONG NumberOfNodes
     )
 {
-    PPH_LIST list;
-
-    list = PhCreateList(2);
+    PPH_LIST list = PhCreateList(2);
 
     for (ULONG i = 0; i < Context->NodeList->Count; i++)
     {
@@ -2490,10 +2488,17 @@ VOID PhpGetSelectedAttributeTreeNodes(
         }
     }
 
-    *AttributeNodes = PhAllocateCopy(list->Items, sizeof(PVOID) * list->Count);
-    *NumberOfAttributeNodes = list->Count;
+    if (list->Count)
+    {
+        *Nodes = PhAllocateCopy(list->Items, sizeof(PVOID) * list->Count);
+        *NumberOfNodes = list->Count;
+
+        PhDereferenceObject(list);
+        return TRUE;
+    }
 
     PhDereferenceObject(list);
+    return FALSE;
 }
 
 VOID PhpInitializeAttributeTreeContext(
@@ -2714,7 +2719,8 @@ INT_PTR CALLBACK PhpTokenCapabilitiesPageProc(
             PATTRIBUTE_NODE *attributeObjectNodes = NULL;
             ULONG numberOfAttributeObjectNodes = 0;
 
-            PhpGetSelectedAttributeTreeNodes(&tokenPageContext->CapsTreeContext, &attributeObjectNodes, &numberOfAttributeObjectNodes);
+            if (!PhpGetSelectedAttributeTreeNodes(&tokenPageContext->CapsTreeContext, &attributeObjectNodes, &numberOfAttributeObjectNodes))
+                break;
 
             if (numberOfAttributeObjectNodes != 0)
             {
@@ -3048,7 +3054,8 @@ INT_PTR CALLBACK PhpTokenClaimsPageProc(
             PATTRIBUTE_NODE *attributeObjectNodes = NULL;
             ULONG numberOfAttributeObjectNodes = 0;
 
-            PhpGetSelectedAttributeTreeNodes(&tokenPageContext->ClaimsTreeContext, &attributeObjectNodes, &numberOfAttributeObjectNodes);
+            if (!PhpGetSelectedAttributeTreeNodes(&tokenPageContext->ClaimsTreeContext, &attributeObjectNodes, &numberOfAttributeObjectNodes))
+                break;
 
             if (numberOfAttributeObjectNodes != 0)
             {
@@ -3205,7 +3212,8 @@ INT_PTR CALLBACK PhpTokenAttributesPageProc(
             PATTRIBUTE_NODE *attributeObjectNodes = NULL;
             ULONG numberOfAttributeObjectNodes = 0;
 
-            PhpGetSelectedAttributeTreeNodes(&tokenPageContext->AuthzTreeContext, &attributeObjectNodes, &numberOfAttributeObjectNodes);
+            if (!PhpGetSelectedAttributeTreeNodes(&tokenPageContext->AuthzTreeContext, &attributeObjectNodes, &numberOfAttributeObjectNodes))
+                break;
 
             if (numberOfAttributeObjectNodes != 0)
             {

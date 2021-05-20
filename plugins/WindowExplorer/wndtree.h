@@ -113,10 +113,10 @@ PWE_WINDOW_NODE WeGetSelectedWindowNode(
     _In_ PWE_WINDOW_TREE_CONTEXT Context
     );
 
-VOID WeGetSelectedWindowNodes(
+BOOLEAN WeGetSelectedWindowNodes(
     _In_ PWE_WINDOW_TREE_CONTEXT Context,
-    _Out_ PWE_WINDOW_NODE **Windows,
-    _Out_ PULONG NumberOfWindows
+    _Out_ PWE_WINDOW_NODE** Nodes,
+    _Out_ PULONG NumberOfNodes
     );
 
 VOID WeExpandAllWindowNodes(

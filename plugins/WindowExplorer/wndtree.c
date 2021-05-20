@@ -136,9 +136,9 @@ VOID WeInitializeWindowTree(
     _Out_ PWE_WINDOW_TREE_CONTEXT Context
     )
 {
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
     HWND hwnd;
     PPH_STRING settings;
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -635,16 +635,14 @@ PWE_WINDOW_NODE WeGetSelectedWindowNode(
     return NULL;
 }
 
-VOID WeGetSelectedWindowNodes(
+BOOLEAN WeGetSelectedWindowNodes(
     _In_ PWE_WINDOW_TREE_CONTEXT Context,
-    _Out_ PWE_WINDOW_NODE **Windows,
-    _Out_ PULONG NumberOfWindows
+    _Out_ PWE_WINDOW_NODE **Nodes,
+    _Out_ PULONG NumberOfNodes
     )
 {
-    PPH_LIST list;
+    PPH_LIST list = PhCreateList(2);
     ULONG i;
-
-    list = PhCreateList(2);
 
     for (i = 0; i < Context->NodeList->Count; i++)
     {
@@ -656,10 +654,17 @@ VOID WeGetSelectedWindowNodes(
         }
     }
 
-    *Windows = PhAllocateCopy(list->Items, sizeof(PVOID) * list->Count);
-    *NumberOfWindows = list->Count;
+    if (list->Count)
+    {
+        *Nodes = PhAllocateCopy(list->Items, sizeof(PVOID) * list->Count);
+        *NumberOfNodes = list->Count;
+
+        PhDereferenceObject(list);
+        return TRUE;
+    }
 
     PhDereferenceObject(list);
+    return FALSE;
 }
 
 VOID WeExpandAllWindowNodes(
