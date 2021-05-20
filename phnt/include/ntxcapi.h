@@ -77,7 +77,7 @@ NTSTATUS
 NTAPI
 NtContinueEx(
     _In_ PCONTEXT ContextRecord,
-    _In_ PKCONTINUE_ARGUMENT ContinueArgument // BOOLEAN is also valid
+    _In_ PVOID ContinueArgument // PKCONTINUE_ARGUMENT and BOOLEAN are valid
     );
 
 //FORCEINLINE
