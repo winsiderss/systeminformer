@@ -48,11 +48,11 @@
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 typedef enum _OBJECT_INFORMATION_CLASS
 {
-    ObjectBasicInformation, // OBJECT_BASIC_INFORMATION
-    ObjectNameInformation, // OBJECT_NAME_INFORMATION
-    ObjectTypeInformation, // OBJECT_TYPE_INFORMATION
-    ObjectTypesInformation, // OBJECT_TYPES_INFORMATION
-    ObjectHandleFlagInformation, // OBJECT_HANDLE_FLAG_INFORMATION
+    ObjectBasicInformation, // q: OBJECT_BASIC_INFORMATION
+    ObjectNameInformation, // q: OBJECT_NAME_INFORMATION
+    ObjectTypeInformation, // q: OBJECT_TYPE_INFORMATION
+    ObjectTypesInformation, // q: OBJECT_TYPES_INFORMATION
+    ObjectHandleFlagInformation, // qs: OBJECT_HANDLE_FLAG_INFORMATION
     ObjectSessionInformation,
     ObjectSessionObjectInformation,
     MaxObjectInfoClass
@@ -387,6 +387,23 @@ NtQuerySymbolicLinkObject(
     _In_ HANDLE LinkHandle,
     _Inout_ PUNICODE_STRING LinkTarget,
     _Out_opt_ PULONG ReturnedLength
+    );
+
+typedef enum _SYMBOLIC_LINK_INFO_CLASS
+{
+    SymbolicLinkGlobalInformation = 1, // qs: ULONG
+    SymbolicLinkAccessMask, // qs: ACCESS_MASK
+    MaxnSymbolicLinkInfoClass
+} SYMBOLIC_LINK_INFO_CLASS;
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtSetInformationSymbolicLink(
+    _In_ HANDLE LinkHandle,
+    _In_ OBJECT_INFORMATION_CLASS ObjectInformationClass,
+    _In_reads_bytes_(ObjectInformationLength) PVOID ObjectInformation,
+    _In_ ULONG ObjectInformationLength
     );
 
 #endif

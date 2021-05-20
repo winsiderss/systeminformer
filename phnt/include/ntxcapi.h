@@ -52,6 +52,45 @@ NtContinue(
     _In_ BOOLEAN TestAlert
     );
 
+#if (PHNT_VERSION >= PHNT_THRESHOLD)
+typedef enum _KCONTINUE_TYPE
+{
+    KCONTINUE_UNWIND,
+    KCONTINUE_RESUME,
+    KCONTINUE_LONGJUMP,
+    KCONTINUE_SET,
+    KCONTINUE_LAST,
+} KCONTINUE_TYPE;
+
+typedef struct _KCONTINUE_ARGUMENT
+{
+    KCONTINUE_TYPE ContinueType;
+    ULONG ContinueFlags;
+    ULONGLONG Reserved[2];
+} KCONTINUE_ARGUMENT, *PKCONTINUE_ARGUMENT;
+
+#define KCONTINUE_FLAG_TEST_ALERT 0x00000001 // wbenny
+#define KCONTINUE_FLAG_DELIVER_APC 0x00000002 // wbenny
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtContinueEx(
+    _In_ PCONTEXT ContextRecord,
+    _In_ PKCONTINUE_ARGUMENT ContinueArgument // BOOLEAN is also valid
+    );
+
+//FORCEINLINE
+//NTSTATUS
+//NtContinue(
+//    _In_ PCONTEXT ContextRecord,
+//    _In_ BOOLEAN TestAlert
+//    )
+//{
+//    return NtContinueEx(ContextRecord, (PCONTINUE_ARGUMENT)TestAlert);
+//}
+#endif
+
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
