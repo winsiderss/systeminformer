@@ -100,9 +100,21 @@ typedef struct _KEY_CACHED_INFORMATION
     WCHAR Name[1];
 } KEY_CACHED_INFORMATION, *PKEY_CACHED_INFORMATION;
 
+// rev
+#define REG_FLAG_VOLATILE 0x0001
+#define REG_FLAG_LINK 0x0002
+
+// msdn
+#define REG_KEY_DONT_VIRTUALIZE 0x0002
+#define REG_KEY_DONT_SILENT_FAIL 0x0004
+#define REG_KEY_RECURSE_FLAG 0x0008
+
+// private
 typedef struct _KEY_FLAGS_INFORMATION
 {
-    ULONG UserFlags;
+    ULONG Wow64Flags;
+    ULONG KeyFlags; // REG_FLAG_*
+    ULONG ControlFlags; // REG_KEY_*
 } KEY_FLAGS_INFORMATION, *PKEY_FLAGS_INFORMATION;
 
 typedef struct _KEY_VIRTUALIZATION_INFORMATION
@@ -233,6 +245,23 @@ typedef struct _KEY_VALUE_LAYER_INFORMATION
     ULONG IsTombstone;
     ULONG Reserved;
 } KEY_VALUE_LAYER_INFORMATION, *PKEY_VALUE_LAYER_INFORMATION;
+
+// rev
+typedef enum _KEY_LOAD_ENTRY_TYPE {
+    KeyLoadTrustClassKey = 1,
+    KeyLoadEvent,
+    KeyLoadToken
+} KEY_LOAD_ENTRY_TYPE;
+
+// rev
+typedef struct _KEY_LOAD_ENTRY {
+    KEY_LOAD_ENTRY_TYPE EntryType;
+    union
+    {
+        HANDLE Handle;
+        ULONG_PTR Value;
+    };
+} KEY_LOAD_ENTRY, *PKEY_LOAD_ENTRY;
 
 typedef struct _KEY_VALUE_ENTRY
 {
@@ -502,6 +531,23 @@ NtLoadKeyEx(
     _Out_opt_ PHANDLE RootHandle,
     _Reserved_ PVOID Reserved // previously PIO_STATUS_BLOCK
     );
+       
+// rev by tyranid
+#if (PHNT_VERSION >= PHNT_20H1)
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtLoadKey3(
+    _In_ POBJECT_ATTRIBUTES TargetKey,
+    _In_ POBJECT_ATTRIBUTES SourceFile,
+    _In_ ULONG Flags,
+    _In_reads_(LoadEntryCount) PKEY_LOAD_ENTRY LoadEntries,
+    _In_ ULONG LoadEntryCount,
+    _In_opt_ ACCESS_MASK DesiredAccess,
+    _Out_opt_ PHANDLE RootHandle,
+    _Reserved_ PVOID Reserved
+    );
+#endif
 
 NTSYSCALLAPI
 NTSTATUS
@@ -667,6 +713,37 @@ NTSTATUS
 NTAPI
 NtThawRegistry(
     VOID
+    );
+#endif
+
+#if (PHNT_VERSION >= PHNT_REDSTONE)
+NTSTATUS NtCreateRegistryTransaction(
+    _Out_ HANDLE *RegistryTransactionHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ POBJECT_ATTRIBUTES ObjAttributes,
+    _Reserved_ ULONG CreateOptions
+    );     
+#endif
+
+#if (PHNT_VERSION >= PHNT_REDSTONE)
+NTSTATUS NtOpenRegistryTransaction(
+    _Out_ HANDLE *RegistryTransactionHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ POBJECT_ATTRIBUTES ObjAttributes
+    );
+#endif
+
+#if (PHNT_VERSION >= PHNT_REDSTONE)
+NTSTATUS NtCommitRegistryTransaction(
+    _In_ HANDLE RegistryTransactionHandle,
+    _Reserved_ ULONG Flags
+    );
+#endif
+
+#if (PHNT_VERSION >= PHNT_REDSTONE)
+NTSTATUS NtRollbackRegistryTransaction(
+    _In_ HANDLE RegistryTransactionHandle,
+    _Reserved_ ULONG Flags
     );
 #endif
 
