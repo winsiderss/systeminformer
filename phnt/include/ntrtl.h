@@ -4114,7 +4114,7 @@ NTSYSAPI
 BOOLEAN
 NTAPI
 RtlValidateHeap(
-    _In_ PVOID HeapHandle,
+    _In_opt_ PVOID HeapHandle,
     _In_ ULONG Flags,
     _In_ PVOID BaseAddress
     );
