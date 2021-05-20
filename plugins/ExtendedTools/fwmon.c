@@ -485,44 +485,94 @@ PPH_STRING EtFwGetDnsReverseNameFromAddress(
     _In_ PPH_IP_ADDRESS Address
     )
 {
+#define IP4_REVERSE_DOMAIN_STRING_LENGTH (IP4_ADDRESS_STRING_LENGTH + sizeof(DNS_IP4_REVERSE_DOMAIN_STRING_W) + 1)
+#define IP6_REVERSE_DOMAIN_STRING_LENGTH (IP6_ADDRESS_STRING_LENGTH + sizeof(DNS_IP6_REVERSE_DOMAIN_STRING_W) + 1)
+
     switch (Address->Type)
     {
     case PH_IPV4_NETWORK_TYPE:
         {
-            PH_STRING_BUILDER stringBuilder;
+            static PH_STRINGREF reverseLookupDomainNameSr = PH_STRINGREF_INIT(DNS_IP4_REVERSE_DOMAIN_STRING);
+            PH_FORMAT format[9];
+            SIZE_T returnLength;
+            WCHAR reverseNameBuffer[IP4_REVERSE_DOMAIN_STRING_LENGTH];
 
-            PhInitializeStringBuilder(&stringBuilder, DNS_MAX_IP4_REVERSE_NAME_LENGTH);
+            PhInitFormatU(&format[0], Address->InAddr.s_impno);
+            PhInitFormatC(&format[1], L'.');
+            PhInitFormatU(&format[2], Address->InAddr.s_lh);
+            PhInitFormatC(&format[3], L'.');
+            PhInitFormatU(&format[4], Address->InAddr.s_host);
+            PhInitFormatC(&format[5], L'.');
+            PhInitFormatU(&format[6], Address->InAddr.s_net);
+            PhInitFormatC(&format[7], L'.');
+            PhInitFormatSR(&format[8], reverseLookupDomainNameSr);
 
-            PhAppendFormatStringBuilder(
-                &stringBuilder,
-                L"%hhu.%hhu.%hhu.%hhu.",
-                Address->InAddr.s_impno,
-                Address->InAddr.s_lh,
-                Address->InAddr.s_host,
-                Address->InAddr.s_net
-                );
+            if (PhFormatToBuffer(
+                format,
+                RTL_NUMBER_OF(format),
+                reverseNameBuffer,
+                sizeof(reverseNameBuffer),
+                &returnLength
+                ))
+            {
+                PH_STRINGREF reverseNameString;
 
-            PhAppendStringBuilder2(&stringBuilder, DNS_IP4_REVERSE_DOMAIN_STRING);
+                reverseNameString.Buffer = reverseNameBuffer;
+                reverseNameString.Length = returnLength - sizeof(UNICODE_NULL);
 
-            return PhFinalStringBuilderString(&stringBuilder);
+                return PhCreateString2(&reverseNameString);
+            }
+            else
+            {
+                return PhFormat(format, RTL_NUMBER_OF(format), IP4_REVERSE_DOMAIN_STRING_LENGTH);
+            } 
         }
     case PH_IPV6_NETWORK_TYPE:
         {
+            static PH_STRINGREF reverseLookupDomainNameSr = PH_STRINGREF_INIT(DNS_IP6_REVERSE_DOMAIN_STRING);
             PH_STRING_BUILDER stringBuilder;
 
-            PhInitializeStringBuilder(&stringBuilder, DNS_MAX_IP6_REVERSE_NAME_LENGTH);
+            // DNS_MAX_IP6_REVERSE_NAME_LENGTH
+            PhInitializeStringBuilder(&stringBuilder, IP6_REVERSE_DOMAIN_STRING_LENGTH);
 
             for (INT i = sizeof(IN6_ADDR) - 1; i >= 0; i--)
             {
-                PhAppendFormatStringBuilder(
-                    &stringBuilder,
-                    L"%hhx.%hhx.",
-                    Address->In6Addr.s6_addr[i] & 0xF,
-                    (Address->In6Addr.s6_addr[i] >> 4) & 0xF
-                    );
+                PH_FORMAT format[4];
+                SIZE_T returnLength;
+                WCHAR reverseNameBuffer[PH_INT32_STR_LEN_1];
+
+                PhInitFormatX(&format[0], Address->In6Addr.s6_addr[i] & 0xF);
+                PhInitFormatC(&format[1], L'.');
+                PhInitFormatX(&format[2], (Address->In6Addr.s6_addr[i] >> 4) & 0xF);
+                PhInitFormatC(&format[3], L'.');
+
+                if (PhFormatToBuffer(
+                    format,
+                    RTL_NUMBER_OF(format),
+                    reverseNameBuffer,
+                    sizeof(reverseNameBuffer),
+                    &returnLength
+                    ))
+                {
+                    PH_STRINGREF reverseNameString;
+
+                    reverseNameString.Buffer = reverseNameBuffer;
+                    reverseNameString.Length = returnLength - sizeof(UNICODE_NULL);
+
+                    PhAppendStringBuilder(&stringBuilder, &reverseNameString);
+                }
+                else
+                {
+                    PhAppendFormatStringBuilder(
+                        &stringBuilder,
+                        L"%hhx.%hhx.",
+                        Address->In6Addr.s6_addr[i] & 0xF,
+                        (Address->In6Addr.s6_addr[i] >> 4) & 0xF
+                        );
+                }
             }
 
-            PhAppendStringBuilder2(&stringBuilder, DNS_IP6_REVERSE_DOMAIN_STRING);
+            PhAppendStringBuilder(&stringBuilder, &reverseLookupDomainNameSr);
 
             return PhFinalStringBuilderString(&stringBuilder);
         }
