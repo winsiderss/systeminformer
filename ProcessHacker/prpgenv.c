@@ -1208,18 +1208,15 @@ PPHP_PROCESS_ENVIRONMENT_TREENODE PhpGetSelectedEnvironmentNode(
     return NULL;
 }
 
-VOID PhpGetSelectedEnvironmentNodes(
+BOOLEAN PhpGetSelectedEnvironmentNodes(
     _In_ PPH_ENVIRONMENT_CONTEXT Context,
-    _Out_ PPHP_PROCESS_ENVIRONMENT_TREENODE **PoolTags,
-    _Out_ PULONG NumberOfPoolTags
+    _Out_ PPHP_PROCESS_ENVIRONMENT_TREENODE **Nodes,
+    _Out_ PULONG NumberOfNodes
     )
 {
-    PPH_LIST list;
-    ULONG i;
+    PPH_LIST list = PhCreateList(2);
 
-    list = PhCreateList(2);
-
-    for (i = 0; i < Context->NodeList->Count; i++)
+    for (ULONG i = 0; i < Context->NodeList->Count; i++)
     {
         PPHP_PROCESS_ENVIRONMENT_TREENODE node = (PPHP_PROCESS_ENVIRONMENT_TREENODE)Context->NodeList->Items[i];
 
@@ -1229,10 +1226,17 @@ VOID PhpGetSelectedEnvironmentNodes(
         }
     }
 
-    *PoolTags = PhAllocateCopy(list->Items, sizeof(PVOID) * list->Count);
-    *NumberOfPoolTags = list->Count;
+    if (list->Count)
+    {
+        *Nodes = PhAllocateCopy(list->Items, sizeof(PVOID) * list->Count);
+        *NumberOfNodes = list->Count;
+
+        PhDereferenceObject(list);
+        return TRUE;
+    }
 
     PhDereferenceObject(list);
+    return FALSE;
 }
 
 VOID PhpInitializeEnvironmentTree(

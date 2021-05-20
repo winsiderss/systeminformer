@@ -320,7 +320,9 @@ INT_PTR CALLBACK PhOptionsDialogProc(
                     PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackOptionsWindowInitializing), &pointers);
                 }
 
-                PhOptionsEnterSectionView(section);
+                TreeView_SelectItem(OptionsTreeControl, section->TreeItemHandle);
+                SetFocus(OptionsTreeControl);
+                //PhOptionsEnterSectionView(section);
                 PhOptionsOnSize();
             }
 
@@ -1099,45 +1101,45 @@ NTSTATUS PhpSetExploitProtectionEnabled(
             NtClose(keyHandle);
         }
 
-#ifdef _WIN64
-        if (NT_SUCCESS(status))
-        {
-            PH_STRINGREF stringBefore;
-            PH_STRINGREF stringAfter;
-
-            if (PhSplitStringRefAtString(&keypath->sr, &replacementToken, TRUE, &stringBefore, &stringAfter))
-            {
-                PhMoveReference(&keypath, PhConcatStringRef3(&stringBefore, &wow6432Token, &stringAfter));
-
-                if (NT_SUCCESS(PhCreateKey(
-                    &keyHandle,
-                    KEY_WRITE,
-                    PH_KEY_LOCAL_MACHINE,
-                    &keypath->sr,
-                    OBJ_OPENIF,
-                    0,
-                    NULL
-                    )))
-                {
-                    status = PhSetValueKey(keyHandle, &valueName, REG_QWORD, &(ULONG64)
-                    {
-                        PROCESS_CREATION_MITIGATION_POLICY_HEAP_TERMINATE_ALWAYS_ON |
-                        PROCESS_CREATION_MITIGATION_POLICY_BOTTOM_UP_ASLR_ALWAYS_ON |
-                        PROCESS_CREATION_MITIGATION_POLICY_HIGH_ENTROPY_ASLR_ALWAYS_ON |
-                        PROCESS_CREATION_MITIGATION_POLICY_EXTENSION_POINT_DISABLE_ALWAYS_ON |
-                        PROCESS_CREATION_MITIGATION_POLICY_PROHIBIT_DYNAMIC_CODE_ALWAYS_ON |
-                        PROCESS_CREATION_MITIGATION_POLICY_CONTROL_FLOW_GUARD_ALWAYS_ON |
-                        PROCESS_CREATION_MITIGATION_POLICY_FONT_DISABLE_ALWAYS_ON |
-                        PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_REMOTE_ALWAYS_ON |
-                        PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_LOW_LABEL_ALWAYS_ON |
-                        PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_PREFER_SYSTEM32_ALWAYS_ON,
-                    }, sizeof(ULONG64));
-
-                    NtClose(keyHandle);
-                }
-            }
-        }
-#endif
+//#ifdef _WIN64
+//        if (NT_SUCCESS(status))
+//        {
+//            PH_STRINGREF stringBefore;
+//            PH_STRINGREF stringAfter;
+//
+//            if (PhSplitStringRefAtString(&keypath->sr, &replacementToken, TRUE, &stringBefore, &stringAfter))
+//            {
+//                PhMoveReference(&keypath, PhConcatStringRef3(&stringBefore, &wow6432Token, &stringAfter));
+//
+//                if (NT_SUCCESS(PhCreateKey(
+//                    &keyHandle,
+//                    KEY_WRITE,
+//                    PH_KEY_LOCAL_MACHINE,
+//                    &keypath->sr,
+//                    OBJ_OPENIF,
+//                    0,
+//                    NULL
+//                    )))
+//                {
+//                    status = PhSetValueKey(keyHandle, &valueName, REG_QWORD, &(ULONG64)
+//                    {
+//                        PROCESS_CREATION_MITIGATION_POLICY_HEAP_TERMINATE_ALWAYS_ON |
+//                        PROCESS_CREATION_MITIGATION_POLICY_BOTTOM_UP_ASLR_ALWAYS_ON |
+//                        PROCESS_CREATION_MITIGATION_POLICY_HIGH_ENTROPY_ASLR_ALWAYS_ON |
+//                        PROCESS_CREATION_MITIGATION_POLICY_EXTENSION_POINT_DISABLE_ALWAYS_ON |
+//                        PROCESS_CREATION_MITIGATION_POLICY_PROHIBIT_DYNAMIC_CODE_ALWAYS_ON |
+//                        PROCESS_CREATION_MITIGATION_POLICY_CONTROL_FLOW_GUARD_ALWAYS_ON |
+//                        PROCESS_CREATION_MITIGATION_POLICY_FONT_DISABLE_ALWAYS_ON |
+//                        PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_REMOTE_ALWAYS_ON |
+//                        PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_LOW_LABEL_ALWAYS_ON |
+//                        PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_PREFER_SYSTEM32_ALWAYS_ON,
+//                    }, sizeof(ULONG64));
+//
+//                    NtClose(keyHandle);
+//                }
+//            }
+//        }
+//#endif
         PhDereferenceObject(keypath);
     }
     else
@@ -2529,15 +2531,14 @@ PPH_OPTIONS_ADVANCED_ROOT_NODE GetSelectedOptionsAdvancedNode(
     return NULL;
 }
 
-VOID GetSelectedOptionsAdvancedNodes(
+_Success_(return)
+BOOLEAN GetSelectedOptionsAdvancedNodes(
     _In_ PPH_OPTIONS_ADVANCED_CONTEXT Context,
-    _Out_ PPH_OPTIONS_ADVANCED_ROOT_NODE** PluginsNodes,
-    _Out_ PULONG NumberOfPluginsNodes
+    _Out_ PPH_OPTIONS_ADVANCED_ROOT_NODE** Nodes,
+    _Out_ PULONG NumberOfNodes
     )
 {
-    PPH_LIST list;
-
-    list = PhCreateList(2);
+    PPH_LIST list = PhCreateList(2);
 
     for (ULONG i = 0; i < Context->NodeList->Count; i++)
     {
@@ -2549,10 +2550,17 @@ VOID GetSelectedOptionsAdvancedNodes(
         }
     }
 
-    *PluginsNodes = PhAllocateCopy(list->Items, sizeof(PVOID) * list->Count);
-    *NumberOfPluginsNodes = list->Count;
+    if (list->Count)
+    {
+        *Nodes = PhAllocateCopy(list->Items, sizeof(PVOID) * list->Count);
+        *NumberOfNodes = list->Count;
+
+        PhDereferenceObject(list);
+        return TRUE;
+    }
 
     PhDereferenceObject(list);
+    return FALSE;
 }
 
 VOID InitializeOptionsAdvancedTree(
@@ -2965,7 +2973,8 @@ INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
                 PPH_OPTIONS_ADVANCED_ROOT_NODE* nodes;
                 ULONG numberOfNodes;
 
-                GetSelectedOptionsAdvancedNodes(context, &nodes, &numberOfNodes);
+                if (!GetSelectedOptionsAdvancedNodes(context, &nodes, &numberOfNodes))
+                    break;
 
                 if (numberOfNodes != 0)
                 {

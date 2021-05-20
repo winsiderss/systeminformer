@@ -663,15 +663,13 @@ PPH_STACK_TREE_ROOT_NODE GetSelectedThreadStackNode(
     return NULL;
 }
 
-VOID GetSelectedThreadStackNodes(
+BOOLEAN GetSelectedThreadStackNodes(
     _In_ PPH_THREAD_STACK_CONTEXT Context,
-    _Out_ PPH_STACK_TREE_ROOT_NODE **ThreadStackNodes,
-    _Out_ PULONG NumberOfThreadStackNodes
+    _Out_ PPH_STACK_TREE_ROOT_NODE **Nodes,
+    _Out_ PULONG NumberOfNodes
     )
 {
-    PPH_LIST list;
-
-    list = PhCreateList(2);
+    PPH_LIST list = PhCreateList(2);
 
     for (ULONG i = 0; i < Context->NodeList->Count; i++)
     {
@@ -683,10 +681,17 @@ VOID GetSelectedThreadStackNodes(
         }
     }
 
-    *ThreadStackNodes = PhAllocateCopy(list->Items, sizeof(PVOID) * list->Count);
-    *NumberOfThreadStackNodes = list->Count;
+    if (list->Count)
+    {
+        *Nodes = PhAllocateCopy(list->Items, sizeof(PVOID) * list->Count);
+        *NumberOfNodes = list->Count;
+
+        PhDereferenceObject(list);
+        return TRUE;
+    }
 
     PhDereferenceObject(list);
+    return FALSE;
 }
 
 BOOLEAN PhpThreadStackTreeFilterCallback(

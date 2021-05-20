@@ -885,30 +885,33 @@ PET_DISK_ITEM EtGetSelectedDiskItem(
     return diskItem;
 }
 
-VOID EtGetSelectedDiskItems(
-    _Out_ PET_DISK_ITEM **DiskItems,
-    _Out_ PULONG NumberOfDiskItems
+BOOLEAN EtGetSelectedDiskItems(
+    _Out_ PET_DISK_ITEM **Nodes,
+    _Out_ PULONG NumberOfNodes
     )
 {
-    PPH_LIST list;
-    ULONG i;
+    PPH_LIST list = PhCreateList(2);
 
-    list = PhCreateList(2);
-
-    for (i = 0; i < DiskNodeList->Count; i++)
+    for (ULONG i = 0; i < DiskNodeList->Count; i++)
     {
         PET_DISK_NODE node = DiskNodeList->Items[i];
 
         if (node->Node.Selected)
         {
-            PhAddItemList(list, node->DiskItem);
+            PhAddItemList(list, node);
         }
     }
 
-    *DiskItems = PhAllocateCopy(list->Items, sizeof(PVOID) * list->Count);
-    *NumberOfDiskItems = list->Count;
+    if (list->Count)
+    {
+        *Nodes = PhAllocateCopy(list->Items, sizeof(PVOID) * list->Count);
+        *NumberOfNodes = list->Count;
 
-    PhDereferenceObject(list);
+        PhDereferenceObject(list);
+        return TRUE;
+    }
+
+    return FALSE;
 }
 
 VOID EtDeselectAllDiskNodes(
@@ -1142,7 +1145,8 @@ VOID EtShowDiskContextMenu(
     PET_DISK_ITEM *diskItems;
     ULONG numberOfDiskItems;
 
-    EtGetSelectedDiskItems(&diskItems, &numberOfDiskItems);
+    if (!EtGetSelectedDiskItems(&diskItems, &numberOfDiskItems))
+        return;
 
     if (numberOfDiskItems != 0)
     {

@@ -565,16 +565,14 @@ PTRACERT_ROOT_NODE GetSelectedTracertNode(
     return NULL;
 }
 
-VOID GetSelectedTracertNodes(
+BOOLEAN GetSelectedTracertNodes(
     _In_ PNETWORK_TRACERT_CONTEXT Context,
-    _Out_ PTRACERT_ROOT_NODE **TracertNodes,
-    _Out_ PULONG NumberOfTracertNodes
+    _Out_ PTRACERT_ROOT_NODE **Nodes,
+    _Out_ PULONG NumberOfNodes
     )
 {
-    PPH_LIST list;
+    PPH_LIST list = PhCreateList(2);
     ULONG i;
-
-    list = PhCreateList(2);
 
     for (i = 0; i < Context->NodeList->Count; i++)
     {
@@ -586,10 +584,17 @@ VOID GetSelectedTracertNodes(
         }
     }
 
-    *TracertNodes = PhAllocateCopy(list->Items, sizeof(PVOID) * list->Count);
-    *NumberOfTracertNodes = list->Count;
+    if (list->Count)
+    {
+        *Nodes = PhAllocateCopy(list->Items, sizeof(PVOID) * list->Count);
+        *NumberOfNodes = list->Count;
+
+        PhDereferenceObject(list);
+        return TRUE;
+    }
 
     PhDereferenceObject(list);
+    return FALSE;
 }
 
 VOID InitializeTracertTree(

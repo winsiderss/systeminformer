@@ -526,15 +526,14 @@ PPH_HANDLE_OBJECT_TREE_ROOT_NODE PhpGetSelectedHandleObjectNode(
     return NULL;
 }
 
-VOID PhpGetSelectedHandleObjectNodes(
+_Success_(return)
+BOOLEAN PhpGetSelectedHandleObjectNodes(
     _In_ PPH_HANDLE_SEARCH_CONTEXT Context,
     _Out_ PPH_HANDLE_OBJECT_TREE_ROOT_NODE **HandleObjectNodes,
     _Out_ PULONG NumberOfHandleObjectNodes
     )
 {
-    PPH_LIST list;
-
-    list = PhCreateList(2);
+    PPH_LIST list = PhCreateList(2);
 
     for (ULONG i = 0; i < Context->NodeList->Count; i++)
     {
@@ -546,10 +545,17 @@ VOID PhpGetSelectedHandleObjectNodes(
         }
     }
 
-    *HandleObjectNodes = PhAllocateCopy(list->Items, sizeof(PVOID) * list->Count);
-    *NumberOfHandleObjectNodes = list->Count;
+    if (list->Count)
+    {
+        *HandleObjectNodes = PhAllocateCopy(list->Items, sizeof(PVOID) * list->Count);
+        *NumberOfHandleObjectNodes = list->Count;
+
+        PhDereferenceObject(list);
+        return TRUE;
+    }
 
     PhDereferenceObject(list);
+    return FALSE;
 }
 
 VOID PhpInitializeHandleObjectTree(
@@ -1425,7 +1431,8 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
                     PPH_HANDLE_OBJECT_TREE_ROOT_NODE *handleObjectNodes = NULL;
                     ULONG numberOfHandleObjectNodes = 0;
 
-                    PhpGetSelectedHandleObjectNodes(context, &handleObjectNodes, &numberOfHandleObjectNodes);
+                    if (!PhpGetSelectedHandleObjectNodes(context, &handleObjectNodes, &numberOfHandleObjectNodes))
+                        break;
 
                     if (numberOfHandleObjectNodes != 0)
                     {
@@ -1467,7 +1474,8 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
                     PPH_HANDLE_OBJECT_TREE_ROOT_NODE *handleObjectNodes = NULL;
                     ULONG numberOfHandleObjectNodes = 0;
 
-                    PhpGetSelectedHandleObjectNodes(context, &handleObjectNodes, &numberOfHandleObjectNodes);
+                    if (!PhpGetSelectedHandleObjectNodes(context, &handleObjectNodes, &numberOfHandleObjectNodes))
+                        break;
 
                     if (numberOfHandleObjectNodes != 0 && PhShowConfirmMessage(
                         hwndDlg,
