@@ -391,8 +391,8 @@ NtQuerySymbolicLinkObject(
 
 typedef enum _SYMBOLIC_LINK_INFO_CLASS
 {
-    SymbolicLinkGlobalInformation = 1, // qs: ULONG
-    SymbolicLinkAccessMask, // qs: ACCESS_MASK
+    SymbolicLinkGlobalInformation = 1, // s: ULONG
+    SymbolicLinkAccessMask, // s: ACCESS_MASK
     MaxnSymbolicLinkInfoClass
 } SYMBOLIC_LINK_INFO_CLASS;
 
@@ -401,9 +401,9 @@ NTSTATUS
 NTAPI
 NtSetInformationSymbolicLink(
     _In_ HANDLE LinkHandle,
-    _In_ OBJECT_INFORMATION_CLASS ObjectInformationClass,
-    _In_reads_bytes_(ObjectInformationLength) PVOID ObjectInformation,
-    _In_ ULONG ObjectInformationLength
+    _In_ SYMBOLIC_LINK_INFO_CLASS SymbolicLinkInformationClass,
+    _In_reads_bytes_(SymbolicLinkInformationLength) PVOID SymbolicLinkInformation,
+    _In_ ULONG SymbolicLinkInformationLength
     );
 
 #endif
