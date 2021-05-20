@@ -5984,7 +5984,7 @@ HANDLE PhGetNamespaceHandle(
         InitializeObjectAttributes(
             &objectAttributes,
             &namespacePathUs,
-            OBJ_OPENIF | OBJ_DONT_REPARSE,
+            OBJ_OPENIF | (WindowsVersion < WINDOWS_10 ? 0 : OBJ_DONT_REPARSE),
             NULL,
             securityDescriptor
             );
