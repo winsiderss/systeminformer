@@ -532,7 +532,7 @@ NtLoadKeyEx(
     _Reserved_ PVOID Reserved // previously PIO_STATUS_BLOCK
     );
        
-// rev
+// rev by tyranid
 #if (PHNT_VERSION >= PHNT_20H1)
 NTSYSCALLAPI
 NTSTATUS
