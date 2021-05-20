@@ -489,6 +489,15 @@ NtGetCachedSigningLevel(
     _Out_opt_ PULONG ThumbprintAlgorithm
     );
 
+// rev
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtCompareSigningLevels(
+    _In_ SE_SIGNING_LEVEL FirstSigningLevel,
+    _In_ SE_SIGNING_LEVEL SecondSigningLevel
+    );
+
 #endif
 
 // Audit alarm

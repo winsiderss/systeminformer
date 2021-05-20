@@ -604,7 +604,7 @@ NtFlushVirtualMemory(
     _In_ HANDLE ProcessHandle,
     _Inout_ PVOID *BaseAddress,
     _Inout_ PSIZE_T RegionSize,
-    _Out_ PIO_STATUS_BLOCK IoStatus
+    _Out_ struct _IO_STATUS_BLOCK* IoStatus
     );
 
 #endif
