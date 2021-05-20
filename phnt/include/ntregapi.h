@@ -246,6 +246,23 @@ typedef struct _KEY_VALUE_LAYER_INFORMATION
     ULONG Reserved;
 } KEY_VALUE_LAYER_INFORMATION, *PKEY_VALUE_LAYER_INFORMATION;
 
+// rev
+typedef enum _KEY_LOAD_ENTRY_TYPE {
+    KeyLoadTrustClassKey = 1,
+    KeyLoadEvent,
+    KeyLoadToken
+} KEY_LOAD_ENTRY_TYPE;
+
+// rev
+typedef struct _KEY_LOAD_ENTRY {
+    KEY_LOAD_ENTRY_TYPE EntryType;
+    union
+    {
+        HANDLE Handle;
+        ULONG_PTR Value;
+    };
+} KEY_LOAD_ENTRY, *PKEY_LOAD_ENTRY;
+
 typedef struct _KEY_VALUE_ENTRY
 {
     PUNICODE_STRING ValueName;
@@ -514,6 +531,23 @@ NtLoadKeyEx(
     _Out_opt_ PHANDLE RootHandle,
     _Reserved_ PVOID Reserved // previously PIO_STATUS_BLOCK
     );
+       
+// rev
+#if (PHNT_VERSION >= PHNT_20H1)
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtLoadKey3(
+    _In_ POBJECT_ATTRIBUTES TargetKey,
+    _In_ POBJECT_ATTRIBUTES SourceFile,
+    _In_ ULONG Flags,
+    _In_reads_(LoadEntryCount) PKEY_LOAD_ENTRY LoadEntries,
+    _In_ ULONG LoadEntryCount,
+    _In_opt_ ACCESS_MASK DesiredAccess,
+    _Out_opt_ PHANDLE RootHandle,
+    _Reserved_ PVOID Reserved
+    );
+#endif
 
 NTSYSCALLAPI
 NTSTATUS
