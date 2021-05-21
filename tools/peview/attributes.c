@@ -2,7 +2,7 @@
  * Process Hacker -
  *   PE viewer
  *
- * Copyright (C) 2018-2020 dmex
+ * Copyright (C) 2018-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -21,6 +21,15 @@
  */
 
 #include <peview.h>
+
+typedef struct _PVP_PE_ATTRIBUTES_CONTEXT
+{
+    HWND WindowHandle;
+    HWND ListViewHandle;
+    HIMAGELIST ListViewImageList;
+    PH_LAYOUT_MANAGER LayoutManager;
+    PPV_PROPPAGECONTEXT PropSheetContext;
+} PVP_PE_ATTRIBUTES_CONTEXT, *PPVP_PE_ATTRIBUTES_CONTEXT;
 
 typedef struct _PV_EA_CALLBACK
 {
@@ -97,13 +106,6 @@ VOID PvEnumerateFileExtendedAttributes(
     ExtendedListView_SetRedraw(ListViewHandle, TRUE);
 }
 
-typedef struct _PVP_PE_ATTRIBUTES_CONTEXT
-{
-    HWND WindowHandle;
-    HWND ListViewHandle;
-    HIMAGELIST ListViewImageList;
-} PVP_PE_ATTRIBUTES_CONTEXT, *PPVP_PE_ATTRIBUTES_CONTEXT;
-
 INT_PTR CALLBACK PvpPeExtendedAttributesDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -111,22 +113,26 @@ INT_PTR CALLBACK PvpPeExtendedAttributesDlgProc(
     _In_ LPARAM lParam
     )
 {
-    LPPROPSHEETPAGE propSheetPage;
-    PPV_PROPPAGECONTEXT propPageContext;
     PPVP_PE_ATTRIBUTES_CONTEXT context;
-
-    if (!PvPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext))
-        return FALSE;
 
     if (uMsg == WM_INITDIALOG)
     {
-        context = propPageContext->Context = PhAllocate(sizeof(PVP_PE_ATTRIBUTES_CONTEXT));
-        memset(context, 0, sizeof(PVP_PE_ATTRIBUTES_CONTEXT));
+        context = PhAllocateZero(sizeof(PVP_PE_ATTRIBUTES_CONTEXT));
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+
+        if (lParam)
+        {
+            LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
+            context->PropSheetContext = (PPV_PROPPAGECONTEXT)propSheetPage->lParam;
+        }
     }
     else
     {
-        context = propPageContext->Context;
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
     }
+
+    if (!context)
+        return FALSE;
 
     switch (uMsg)
     {
@@ -142,6 +148,10 @@ INT_PTR CALLBACK PvpPeExtendedAttributesDlgProc(
             PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 200, L"Value");
             PhSetExtendedListView(context->ListViewHandle);
             PhLoadListViewColumnsFromSetting(L"ImageAttributesListViewColumns", context->ListViewHandle);
+            PvConfigTreeBorders(context->ListViewHandle);
+
+            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
 
             if (context->ListViewImageList = ImageList_Create(2, 20, ILC_MASK | ILC_COLOR, 1, 1))
                 ListView_SetImageList(context->ListViewHandle, context->ListViewImageList, LVSIL_SMALL);
@@ -158,26 +168,25 @@ INT_PTR CALLBACK PvpPeExtendedAttributesDlgProc(
             if (context->ListViewImageList)
                 ImageList_Destroy(context->ListViewImageList);
 
+            PhDeleteLayoutManager(&context->LayoutManager);
+
             PhFree(context);
         }
         break;
     case WM_SHOWWINDOW:
         {
-            if (!propPageContext->LayoutInitialized)
+            if (context->PropSheetContext && !context->PropSheetContext->LayoutInitialized)
             {
-                PPH_LAYOUT_ITEM dialogItem;
-
-                dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
-                PvAddPropPageLayoutItem(hwndDlg, context->ListViewHandle, dialogItem, PH_ANCHOR_ALL);
+                PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
                 PvDoPropPageLayout(hwndDlg);
 
-                propPageContext->LayoutInitialized = TRUE;
+                context->PropSheetContext->LayoutInitialized = TRUE;
             }
         }
         break;
-    case WM_NOTIFY:
+    case WM_SIZE:
         {
-            PvHandleListViewNotifyForCopy(lParam, context->ListViewHandle);
+            PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
     case WM_CONTEXTMENU:
@@ -194,9 +203,9 @@ INT_PTR CALLBACK PvpPeExtendedAttributesDlgProc(
                 point.y = GET_Y_LPARAM(lParam);
 
                 if (point.x == -1 && point.y == -1)
-                    PvGetListViewContextMenuPoint((HWND)wParam, &point);
+                    PvGetListViewContextMenuPoint(context->ListViewHandle, &point);
 
-                PhGetSelectedListViewItemParams((HWND)wParam, &listviewItems, &numberOfItems);
+                PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
 
                 if (numberOfItems != 0)
                 {
@@ -204,7 +213,7 @@ INT_PTR CALLBACK PvpPeExtendedAttributesDlgProc(
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 1, L"Delete", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, USHRT_MAX, L"&Copy", NULL, NULL), ULONG_MAX);
-                    PvInsertCopyListViewEMenuItem(menu, USHRT_MAX, (HWND)wParam);
+                    PvInsertCopyListViewEMenuItem(menu, USHRT_MAX, context->ListViewHandle);
 
                     item = PhShowEMenu(
                         menu,
@@ -221,9 +230,6 @@ INT_PTR CALLBACK PvpPeExtendedAttributesDlgProc(
                         {
                             switch (item->Id)
                             {
-                            case 0:
-                                //PhShowInformationDialog();
-                                break;
                             case 1:
                                 {
                                     NTSTATUS status;
@@ -232,9 +238,9 @@ INT_PTR CALLBACK PvpPeExtendedAttributesDlgProc(
                                     PPH_BYTES nameAnsi = NULL;
                                     INT index;
 
-                                    if ((index = PhFindListViewItemByFlags((HWND)wParam, -1, LVNI_SELECTED)) != -1)
+                                    if ((index = PhFindListViewItemByFlags(context->ListViewHandle, -1, LVNI_SELECTED)) != -1)
                                     {
-                                        nameUtf = PhGetListViewItemText((HWND)wParam, index, 1);
+                                        nameUtf = PhGetListViewItemText(context->ListViewHandle, index, 1);
                                     }
 
                                     if (PhIsNullOrEmptyString(nameUtf))
@@ -258,7 +264,7 @@ INT_PTR CALLBACK PvpPeExtendedAttributesDlgProc(
 
                                     if (NT_SUCCESS(status))
                                     {
-                                        PvEnumerateFileExtendedAttributes((HWND)wParam);
+                                        PvEnumerateFileExtendedAttributes(context->ListViewHandle);
                                     }
                                     else
                                     {
@@ -271,7 +277,7 @@ INT_PTR CALLBACK PvpPeExtendedAttributesDlgProc(
                                 break;
                             case USHRT_MAX:
                                 {
-                                    PvCopyListView((HWND)wParam);
+                                    PvCopyListView(context->ListViewHandle);
                                 }
                                 break;
                             }

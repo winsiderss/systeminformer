@@ -1142,7 +1142,7 @@ NTSTATUS PvLayoutEnumerateFileLayouts(
             PvAddChildLayoutNode(Context, NULL, L"File attributes", PhFormatUInt64(fileLayoutEntry->FileAttributes, FALSE));
             PvAddChildLayoutNode(Context, NULL, L"File entry flags", PhFormatUInt64(fileLayoutEntry->Flags, FALSE));
             PvAddChildLayoutNode(Context, NULL, L"Creation time", PvLayoutGetRelativeTimeString(&fileLayoutInfoEntry->BasicInformation.CreationTime));
-            PvAddChildLayoutNode(Context, NULL, L"Last access time", PvLayoutGetRelativeTimeString(&fileLayoutInfoEntry->BasicInformation.LastAccessTime));
+            //PvAddChildLayoutNode(Context, NULL, L"Last access time", PvLayoutGetRelativeTimeString(&fileLayoutInfoEntry->BasicInformation.LastAccessTime));
             PvAddChildLayoutNode(Context, NULL, L"Last write time", PvLayoutGetRelativeTimeString(&fileLayoutInfoEntry->BasicInformation.LastWriteTime));
             PvAddChildLayoutNode(Context, NULL, L"Change time", PvLayoutGetRelativeTimeString(&fileLayoutInfoEntry->BasicInformation.ChangeTime));
             PvAddChildLayoutNode(Context, NULL, L"LastUsn", PhFormatUInt64(fileLayoutInfoEntry->Usn, TRUE));

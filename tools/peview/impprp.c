@@ -341,7 +341,7 @@ VOID PvpProcessImports(
                             exportOrdinalName = PvpQueryModuleOrdinalName(exportDllName, importEntry.Ordinal);
                             PhDereferenceObject(exportDllName);
                         }
-                        
+
                         if (exportOrdinalName)
                         {
                             importNode->NameString = PhFormatString(
