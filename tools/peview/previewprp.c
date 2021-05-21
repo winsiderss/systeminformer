@@ -2,7 +2,7 @@
  * Process Hacker -
  *   PE viewer
  *
- * Copyright (C) 2019 dmex
+ * Copyright (C) 2019-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -22,21 +22,28 @@
 
 #include <peview.h>
 
+typedef struct _PV_PE_PREVIEW_CONTEXT
+{
+    HWND WindowHandle;
+    HWND EditWindow;
+    HIMAGELIST ListViewImageList;
+    PH_LAYOUT_MANAGER LayoutManager;
+    PPV_PROPPAGECONTEXT PropSheetContext;
+} PV_PE_PREVIEW_CONTEXT, *PPV_PE_PREVIEW_CONTEXT;
+
 VOID PvpSetRichEditText(
     _In_ HWND WindowHandle,
     _In_ PWSTR Text
     )
 {
-    SetFocus(WindowHandle);
+    //SetFocus(WindowHandle);
     SendMessage(WindowHandle, WM_SETREDRAW, FALSE, 0);
     //SendMessage(WindowHandle, EM_SETSEL, 0, -1); // -2
-    SendMessage(WindowHandle, EM_REPLACESEL, FALSE, (LPARAM)Text);
-    SendMessage(WindowHandle, WM_VSCROLL, SB_TOP, 0); // requires SetFocus()    
+    SendMessage(WindowHandle, WM_SETTEXT, FALSE, (LPARAM)Text);
+    //SendMessage(WindowHandle, WM_VSCROLL, SB_TOP, 0); // requires SetFocus()    
     SendMessage(WindowHandle, WM_SETREDRAW, TRUE, 0);
-
-    PostMessage(WindowHandle, EM_SETSEL, -1, 0);
-
-    InvalidateRect(WindowHandle, NULL, FALSE);
+    //PostMessage(WindowHandle, EM_SETSEL, -1, 0);
+    //InvalidateRect(WindowHandle, NULL, FALSE);
 }
 
 VOID PvpShowFilePreview(
@@ -48,7 +55,7 @@ VOID PvpShowFilePreview(
 
     if (fileText = PhFileReadAllText(PvFileName->Buffer, TRUE))
     {
-        PhInitializeStringBuilder(&sb, 0x100);
+        PhInitializeStringBuilder(&sb, 0x1000);
 
         for (SIZE_T i = 0; i < fileText->Length / sizeof(WCHAR); i++)
         {
@@ -77,17 +84,39 @@ INT_PTR CALLBACK PvpPePreviewDlgProc(
     _In_ LPARAM lParam
     )
 {
-    LPPROPSHEETPAGE propSheetPage;
-    PPV_PROPPAGECONTEXT propPageContext;
+    PPV_PE_PREVIEW_CONTEXT context;
 
-    if (!PvPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext))
+    if (uMsg == WM_INITDIALOG)
+    {
+        context = PhAllocateZero(sizeof(PV_PE_PREVIEW_CONTEXT));
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+
+        if (lParam)
+        {
+            LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
+            context->PropSheetContext = (PPV_PROPPAGECONTEXT)propSheetPage->lParam;
+        }
+    }
+    else
+    {
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+    }
+
+    if (!context)
         return FALSE;
 
     switch (uMsg)
     {
     case WM_INITDIALOG:
         {
-            SendMessage(GetDlgItem(hwndDlg, IDC_PREVIEW), EM_SETLIMITTEXT, ULONG_MAX, 0);
+            context->WindowHandle = hwndDlg;
+            context->EditWindow = GetDlgItem(hwndDlg, IDC_PREVIEW);
+
+            SendMessage(context->EditWindow, EM_SETLIMITTEXT, ULONG_MAX, 0);
+            PvConfigTreeBorders(context->EditWindow);
+
+            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhAddLayoutItem(&context->LayoutManager, context->EditWindow, NULL, PH_ANCHOR_ALL);
 
             PvpShowFilePreview(hwndDlg);
             
@@ -96,21 +125,25 @@ INT_PTR CALLBACK PvpPePreviewDlgProc(
         break;
     case WM_DESTROY:
         {
+            PhDeleteLayoutManager(&context->LayoutManager);
 
+            PhFree(context);
         }
         break;
     case WM_SHOWWINDOW:
         {
-            if (!propPageContext->LayoutInitialized)
+            if (context->PropSheetContext && !context->PropSheetContext->LayoutInitialized)
             {
-                PPH_LAYOUT_ITEM dialogItem;
-
-                dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
-                PvAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PREVIEW), dialogItem, PH_ANCHOR_ALL);
+                PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
                 PvDoPropPageLayout(hwndDlg);
 
-                propPageContext->LayoutInitialized = TRUE;
+                context->PropSheetContext->LayoutInitialized = TRUE;
             }
+        }
+        break;
+    case WM_SIZE:
+        {
+            PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
     case WM_NOTIFY:
@@ -120,9 +153,7 @@ INT_PTR CALLBACK PvpPePreviewDlgProc(
             switch (header->code)
             {
             case PSN_QUERYINITIALFOCUS:
-                {
-                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LONG_PTR)GetDlgItem(hwndDlg, IDC_PREVIEW));
-                }
+                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LONG_PTR)context->EditWindow);
                 return TRUE;
             }
         }

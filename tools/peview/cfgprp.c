@@ -3,7 +3,7 @@
  *   PE viewer
  *
  * Copyright (C) 2010-2011 wj32
- * Copyright (C) 2017 dmex
+ * Copyright (C) 2017-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -23,6 +23,161 @@
 
 #include <peview.h>
 
+typedef struct _PV_PE_CFG_CONTEXT
+{
+    HWND WindowHandle;
+    HWND ListViewHandle;
+    HIMAGELIST ListViewImageList;
+    PH_LAYOUT_MANAGER LayoutManager;
+    PPV_PROPPAGECONTEXT PropSheetContext;
+} PV_PE_CFG_CONTEXT, *PPV_PE_CFG_CONTEXT;
+
+VOID PvPeAddListViewCfgFunctionEntry(
+    _In_ HWND ListViewHandle,
+    _In_ ULONG Count,
+    _In_ ULONGLONG Index,
+    _In_ CFG_ENTRY_TYPE Type,
+    _In_ PPH_MAPPED_IMAGE_CFG CfgConfig
+    )
+{
+    INT lvItemIndex;
+    ULONG64 displacement;
+    PPH_STRING symbol;
+    PPH_STRING symbolName = NULL;
+    PH_SYMBOL_RESOLVE_LEVEL symbolResolveLevel = PhsrlInvalid;
+    IMAGE_CFG_ENTRY cfgFunctionEntry = { 0 };
+    PH_STRING_BUILDER stringBuilder;
+    WCHAR value[PH_INT64_STR_LEN_1];
+
+    if (!NT_SUCCESS(PhGetMappedImageCfgEntry(CfgConfig, Index, Type, &cfgFunctionEntry)))
+        return;
+
+    PhPrintUInt64(value, Count + 1);
+    lvItemIndex = PhAddListViewItem(ListViewHandle, MAXINT, value, NULL);
+
+    PhPrintPointer(value, UlongToPtr(cfgFunctionEntry.Rva));
+    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, value);
+
+    switch (Type)
+    {
+    case ControlFlowGuardFunction:
+        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"Function");
+        break;
+    case ControlFlowGuardTakenIatEntry:
+        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"IATEntry");
+        break;
+    case ControlFlowGuardLongJump:
+        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"LongJump");
+        break;
+    }
+
+    // Resolve name based on public symbols
+    if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+    {
+        symbol = PhGetSymbolFromAddress(
+            PvSymbolProvider,
+            (ULONG64)PTR_ADD_OFFSET(PvMappedImage.NtHeaders32->OptionalHeader.ImageBase, cfgFunctionEntry.Rva),
+            &symbolResolveLevel,
+            NULL,
+            &symbolName,
+            &displacement
+            );
+    }
+    else
+    {
+        symbol = PhGetSymbolFromAddress(
+            PvSymbolProvider,
+            (ULONG64)PTR_ADD_OFFSET(PvMappedImage.NtHeaders->OptionalHeader.ImageBase, cfgFunctionEntry.Rva),
+            &symbolResolveLevel,
+            NULL,
+            &symbolName,
+            &displacement
+            );
+    }
+
+    switch (symbolResolveLevel)
+    {
+    case PhsrlFunction:
+        {
+            if (displacement)
+            {
+                PhSetListViewSubItem(
+                    ListViewHandle,
+                    lvItemIndex,
+                    3,
+                    PhaFormatString(L"%s+0x%llx", PhGetStringOrEmpty(symbolName), displacement)->Buffer
+                    );
+            }
+            else
+            {
+                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, PhGetStringOrEmpty(symbolName));
+            }
+        }
+        break;
+    case PhsrlModule:
+    case PhsrlAddress:
+        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, PhGetStringOrEmpty(symbol));
+        break;
+    default:
+    case PhsrlInvalid:
+        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, L"(unnamed)");
+        break;
+    }
+
+    if (symbolName)
+        PhDereferenceObject(symbolName);
+    PhDereferenceObject(symbol);
+
+    // Add additional flags
+    PhInitializeStringBuilder(&stringBuilder, 16);
+
+    if (cfgFunctionEntry.SuppressedCall)
+        PhAppendStringBuilder2(&stringBuilder, L"SuppressedCall, ");
+    if (cfgFunctionEntry.ExportSuppressed)
+        PhAppendStringBuilder2(&stringBuilder, L"ExportSuppressed, ");
+    if (cfgFunctionEntry.LangExcptHandler)
+        PhAppendStringBuilder2(&stringBuilder, L"LangExcptHandler, ");
+    if (cfgFunctionEntry.Xfg)
+        PhAppendStringBuilder2(&stringBuilder, L"XFG, ");
+
+    if (PhEndsWithString2(stringBuilder.String, L", ", FALSE))
+        PhRemoveEndStringBuilder(&stringBuilder, 2);
+
+    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 4, PH_AUTO_T(PH_STRING, PhFinalStringBuilderString(&stringBuilder))->Buffer);
+}
+
+VOID PvpPeCgfEnumGuardFunctions(
+    _In_ HWND ListViewHandle
+    )
+{
+    PH_MAPPED_IMAGE_CFG cfgConfig = { 0 };
+    ULONG count = 0;
+
+    ExtendedListView_SetRedraw(ListViewHandle, FALSE);
+    ListView_DeleteAllItems(ListViewHandle);
+
+    if (NT_SUCCESS(PhGetMappedImageCfg(&cfgConfig, &PvMappedImage)))
+    {
+        for (ULONGLONG i = 0; i < cfgConfig.NumberOfGuardFunctionEntries; i++)
+        {
+            PvPeAddListViewCfgFunctionEntry(ListViewHandle, ++count, i, ControlFlowGuardFunction, &cfgConfig);
+        }
+
+        for (ULONGLONG i = 0; i < cfgConfig.NumberOfGuardAdressIatEntries; i++)
+        {
+            PvPeAddListViewCfgFunctionEntry(ListViewHandle, ++count, i, ControlFlowGuardTakenIatEntry, &cfgConfig);
+        }
+
+        for (ULONGLONG i = 0; i < cfgConfig.NumberOfGuardLongJumpEntries; i++)
+        {
+            PvPeAddListViewCfgFunctionEntry(ListViewHandle, ++count, i, ControlFlowGuardLongJump, &cfgConfig);
+        }
+    }
+
+    ExtendedListView_SortItems(ListViewHandle);
+    ExtendedListView_SetRedraw(ListViewHandle, TRUE);
+}
+
 INT_PTR CALLBACK PvpPeCgfDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -30,173 +185,87 @@ INT_PTR CALLBACK PvpPeCgfDlgProc(
     _In_ LPARAM lParam
     )
 {
-    LPPROPSHEETPAGE propSheetPage;
-    PPV_PROPPAGECONTEXT propPageContext;
+    PPV_PE_CFG_CONTEXT context;
 
-    if (!PvPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext))
+    if (uMsg == WM_INITDIALOG)
+    {
+        context = PhAllocateZero(sizeof(PV_PE_CFG_CONTEXT));
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+
+        if (lParam)
+        {
+            LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
+            context->PropSheetContext = (PPV_PROPPAGECONTEXT)propSheetPage->lParam;
+        }
+    }
+    else
+    {
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+    }
+
+    if (!context)
         return FALSE;
 
     switch (uMsg)
     {
     case WM_INITDIALOG:
         {
-            HWND lvHandle;
-            PH_MAPPED_IMAGE_CFG cfgConfig = { 0 };
+            context->WindowHandle = hwndDlg;
+            context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
-            lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
-            PhSetListViewStyle(lvHandle, TRUE, TRUE);
-            PhSetControlTheme(lvHandle, L"explorer");
+            PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
+            PhSetControlTheme(context->ListViewHandle, L"explorer");
 
-            PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"#");
-            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_RIGHT, 80, L"RVA");
-            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 250, L"Name");
-            PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 100, L"Flags");
-            PhSetExtendedListView(lvHandle);
-            PhLoadListViewColumnsFromSetting(L"ImageCfgListViewColumns", lvHandle);
+            PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"#");
+            PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_RIGHT, 80, L"RVA");
+            PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 50, L"Type");
+            PhAddListViewColumn(context->ListViewHandle, 3, 3, 3, LVCFMT_LEFT, 250, L"Name");
+            PhAddListViewColumn(context->ListViewHandle, 4, 4, 4, LVCFMT_LEFT, 100, L"Flags");
+            PhSetExtendedListView(context->ListViewHandle);
+            PhLoadListViewColumnsFromSetting(L"ImageCfgListViewColumns", context->ListViewHandle);
+            PvConfigTreeBorders(context->ListViewHandle);
 
-            // Retrieve Cfg Table entry and characteristics
-            if (NT_SUCCESS(PhGetMappedImageCfg(&cfgConfig, &PvMappedImage)))
-            {
-                for (ULONGLONG i = 0; i < cfgConfig.NumberOfGuardFunctionEntries; i++)
-                {
-                    INT lvItemIndex;
-                    ULONG64 displacement;
-                    PPH_STRING symbol;
-                    PPH_STRING symbolName = NULL;
-                    PH_SYMBOL_RESOLVE_LEVEL symbolResolveLevel = PhsrlInvalid;
-                    IMAGE_CFG_ENTRY cfgFunctionEntry = { 0 };
-                    WCHAR value[PH_INT64_STR_LEN_1];
+            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
 
-                    // Parse cfg entry : if it fails, just skip it ?
-                    if (!NT_SUCCESS(PhGetMappedImageCfgEntry(&cfgConfig, i, ControlFlowGuardFunction, &cfgFunctionEntry)))
-                        continue;
-
-                    PhPrintUInt64(value, i + 1);
-                    lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, value, NULL);
-
-                    PhPrintPointer(value, UlongToPtr(cfgFunctionEntry.Rva));
-                    PhSetListViewSubItem(lvHandle, lvItemIndex, 1, value);
-
-                    // Resolve name based on public symbols
-
-                    if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
-                    {
-                        if (!(symbol = PhGetSymbolFromAddress(
-                            PvSymbolProvider,
-                            (ULONG64)PTR_ADD_OFFSET(PvMappedImage.NtHeaders32->OptionalHeader.ImageBase, cfgFunctionEntry.Rva),
-                            &symbolResolveLevel,
-                            NULL,
-                            &symbolName,
-                            &displacement
-                            )))
-                        {
-                            continue;
-                        }
-                    }
-                    else
-                    {
-                        if (!(symbol = PhGetSymbolFromAddress(
-                            PvSymbolProvider,
-                            (ULONG64)PTR_ADD_OFFSET(PvMappedImage.NtHeaders->OptionalHeader.ImageBase, cfgFunctionEntry.Rva),
-                            &symbolResolveLevel,
-                            NULL,
-                            &symbolName,
-                            &displacement
-                            )))
-                        {
-                            continue;
-                        }
-                    }
-
-                    switch (symbolResolveLevel)
-                    {
-                    case PhsrlFunction:
-                        {
-                            if (displacement)
-                            {
-                                PhSetListViewSubItem(
-                                    lvHandle, 
-                                    lvItemIndex, 
-                                    2,
-                                    PhaFormatString(L"%s+0x%llx", symbolName->Buffer, displacement)->Buffer
-                                    );
-                            }
-                            else
-                            {
-                                PhSetListViewSubItem(lvHandle, lvItemIndex, 2, symbolName->Buffer);
-                            }
-                        }
-                        break;
-                    case PhsrlModule:
-                    case PhsrlAddress: 
-                        {
-                            PhSetListViewSubItem(lvHandle, lvItemIndex, 2, symbol->Buffer);
-                        }
-                        break;
-                    default:
-                    case PhsrlInvalid:
-                        {
-                            PhSetListViewSubItem(lvHandle, lvItemIndex, 2, L"(unnamed)");
-                        }
-                        break;
-                    }
-
-                    if (symbolName)
-                        PhDereferenceObject(symbolName);
-                    PhDereferenceObject(symbol);
-
-                    // Add additional flags
-                    PH_STRING_BUILDER stringBuilder;
-                    PhInitializeStringBuilder(&stringBuilder, 16);
-
-                    if (cfgFunctionEntry.SuppressedCall)
-                        PhAppendStringBuilder2(&stringBuilder, L"SuppressedCall, ");
-                    if (cfgFunctionEntry.ExportSuppressed)
-                        PhAppendStringBuilder2(&stringBuilder, L"ExportSuppressed, ");
-                    if (cfgFunctionEntry.LangExcptHandler)
-                        PhAppendStringBuilder2(&stringBuilder, L"LangExcptHandler, ");
-                    if (cfgFunctionEntry.Xfg)
-                        PhAppendStringBuilder2(&stringBuilder, L"XFG, ");
-
-                    if (PhEndsWithString2(stringBuilder.String, L", ", FALSE))
-                        PhRemoveEndStringBuilder(&stringBuilder, 2);
-
-                    PhSetListViewSubItem(lvHandle, lvItemIndex, 3, PH_AUTO_T(PH_STRING, PhFinalStringBuilderString(&stringBuilder))->Buffer);
-                }
-            }
-
-            ExtendedListView_SortItems(lvHandle);
+            PvpPeCgfEnumGuardFunctions(context->ListViewHandle);
 
             PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
         {
-            PhSaveListViewColumnsToSetting(L"ImageCfgListViewColumns", GetDlgItem(hwndDlg, IDC_LIST));
+            PhSaveListViewColumnsToSetting(L"ImageCfgListViewColumns", context->ListViewHandle);
+
+            PhDeleteLayoutManager(&context->LayoutManager);
+
+            PhFree(context);
         }
         break;
     case WM_SHOWWINDOW:
         {
-            if (!propPageContext->LayoutInitialized)
+            if (context->PropSheetContext && !context->PropSheetContext->LayoutInitialized)
             {
-                PPH_LAYOUT_ITEM dialogItem;
-
-                dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
-                PvAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST), dialogItem, PH_ANCHOR_ALL);
+                PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
                 PvDoPropPageLayout(hwndDlg);
 
-                propPageContext->LayoutInitialized = TRUE;
+                context->PropSheetContext->LayoutInitialized = TRUE;
             }
+        }
+        break;
+    case WM_SIZE:
+        {
+            PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
     case WM_NOTIFY:
         {
-            PvHandleListViewNotifyForCopy(lParam, GetDlgItem(hwndDlg, IDC_LIST));
+            PvHandleListViewNotifyForCopy(lParam, context->ListViewHandle);
         }
         break;
     case WM_CONTEXTMENU:
         {
-            PvHandleListViewCommandCopy(hwndDlg, lParam, wParam, GetDlgItem(hwndDlg, IDC_LIST));
+            PvHandleListViewCommandCopy(hwndDlg, lParam, wParam, context->ListViewHandle);
         }
         break;
     }

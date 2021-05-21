@@ -33,29 +33,36 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"Font", L""); // null
     PhpAddStringSetting(L"DbgHelpSearchPath", L"SRV*C:\\Symbols*https://msdl.microsoft.com/download/symbols");
     PhpAddIntegerSetting(L"DbgHelpUndecorate", L"1");
+    PhpAddIntegerSetting(L"EnableLegacyPropertiesDialog", L"0");
     PhpAddIntegerSetting(L"EnableSecurityAdvancedDialog", L"1");
     PhpAddIntegerSetting(L"EnableThemeSupport", L"0");
+    PhpAddIntegerSetting(L"EnableTreeListBorder", L"1");
     PhpAddIntegerSetting(L"EnableVersionSupport", L"0");
     PhpAddIntegerSetting(L"GraphColorMode", L"1");
     PhpAddIntegerSetting(L"HashAlgorithm", L"0");
     PhpAddIntegerSetting(L"MaxSizeUnit", L"6");
+    PhpAddIntegerSetting(L"MainWindowPageRestoreEnabled", L"1");
     PhpAddStringSetting(L"MainWindowPage", L"General");
-    PhpAddIntegerPairSetting(L"MainWindowPosition", L"150,150");
+    PhpAddIntegerPairSetting(L"MainWindowPosition", L"0,0");
     PhpAddScalableIntegerPairSetting(L"MainWindowSize", L"@96|550,580");
     PhpAddStringSetting(L"ImageGeneralPropertiesListViewColumns", L"");
     PhpAddStringSetting(L"ImageGeneralPropertiesListViewSort", L"");
-    PhpAddStringSetting(L"ImageDirectoryListViewColumns", L"");
-    PhpAddStringSetting(L"ImageLoadCfgListViewColumns", L"");
+    PhpAddStringSetting(L"ImageDirectoryTreeListColumns", L"");
+    PhpAddStringSetting(L"ImageDirectoryTreeListSort", L"0,1"); // 0, AscendingSortOrder
     PhpAddStringSetting(L"ImageExportsTreeListColumns", L"");
     PhpAddStringSetting(L"ImageExportsTreeListSort", L"0,1"); // 0, AscendingSortOrder
     PhpAddStringSetting(L"ImageImportsTreeListColumns", L"");
     PhpAddStringSetting(L"ImageImportsTreeListSort", L"0,1"); // 0, AscendingSortOrder
+    PhpAddStringSetting(L"ImageSectionsTreeListColumns", L"");
+    PhpAddStringSetting(L"ImageSectionsTreeListSort", L"0,1"); // 0, AscendingSortOrder
+    PhpAddStringSetting(L"ImageResourcesTreeListColumns", L"");
+    PhpAddStringSetting(L"ImageResourcesTreeListSort", L"0,1"); // 0, AscendingSortOrder
+    PhpAddStringSetting(L"ImageLoadCfgListViewColumns", L"");
     PhpAddStringSetting(L"ImageExceptions32ListViewColumns", L"");
     PhpAddStringSetting(L"ImageExceptions64ListViewColumns", L"");
     PhpAddStringSetting(L"ImageLayoutTreeColumns", L"");
     PhpAddStringSetting(L"ImageCfgListViewColumns", L"");
     PhpAddStringSetting(L"ImageClrListViewColumns", L"");
-    PhpAddStringSetting(L"ImageResourcesListViewColumns", L"");
     PhpAddStringSetting(L"ImageAttributesListViewColumns", L"");
     PhpAddStringSetting(L"ImagePropertiesListViewColumns", L"");
     PhpAddStringSetting(L"ImageRelocationsListViewColumns", L"");
@@ -69,8 +76,6 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"ImageHardLinksListViewColumns", L"");
     PhpAddStringSetting(L"ImageHashesListViewColumns", L"");
     PhpAddStringSetting(L"ImagePidsListViewColumns", L"");
-    PhpAddStringSetting(L"ImageSectionsListViewColumns", L"");
-    PhpAddStringSetting(L"ImageSectionsListViewSort", L"");
     PhpAddStringSetting(L"ImageTlsListViewColumns", L"");
     PhpAddStringSetting(L"ImageProdIdListViewColumns", L"");
     PhpAddStringSetting(L"ImageDebugListViewColumns", L"");

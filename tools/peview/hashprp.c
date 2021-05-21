@@ -857,8 +857,8 @@ VOID PvpPeEnumFileHashes(
 
     if (PvpGetMappedImageImphash(&imphashString, &imphashFuzzyString))
     {    
-        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, PhGetString(imphashString));
-        PhDereferenceObject(imphashString);
+        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, PhGetStringOrDefault(imphashString, L"ERROR"));
+        PhClearReference(&imphashString);
     }
     else
     {
@@ -886,7 +886,7 @@ VOID PvpPeEnumFileHashes(
     if (!PhIsNullOrEmptyString(imphashFuzzyString)) // HACK
     {
         PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, PhGetString(imphashFuzzyString));
-        PhDereferenceObject(imphashFuzzyString);
+        PhClearReference(&imphashFuzzyString);
     }
     else
     {
@@ -963,6 +963,7 @@ INT_PTR CALLBACK PvpPeHashesDlgProc(
             PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 250, L"Hash");
             PhSetExtendedListView(context->ListViewHandle);
             PhLoadListViewColumnsFromSetting(L"ImageHashesListViewColumns", context->ListViewHandle);
+            PvConfigTreeBorders(context->ListViewHandle);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);

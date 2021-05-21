@@ -57,7 +57,7 @@ typedef struct _PV_EXPORT_NODE
 
 typedef struct _PV_EXPORT_CONTEXT
 {
-    HWND DialogHandle;
+    HWND WindowHandle;
     HWND SearchHandle;
     HWND TreeNewHandle;
     HWND ParentWindowHandle;
@@ -66,6 +66,7 @@ typedef struct _PV_EXPORT_CONTEXT
     PPH_STRING SearchboxText;
     PPH_STRING TreeText;
 
+    PPV_PROPPAGECONTEXT PropSheetContext;
     PH_LAYOUT_MANAGER LayoutManager;
 
     ULONG SearchResultsAddIndex;
@@ -121,10 +122,11 @@ VOID PhSaveSettingsExportList(
     _Inout_ PPV_EXPORT_CONTEXT Context
     );
 
-VOID PvGetSelectedExportNodes(
+_Success_(return)
+BOOLEAN PvGetSelectedExportNodes(
     _In_ PPV_EXPORT_CONTEXT Context,
-    _Out_ PPV_EXPORT_NODE** Windows,
-    _Out_ PULONG NumberOfWindows
+    _Out_ PPV_EXPORT_NODE **Nodes,
+    _Out_ PULONG NumberOfNodes
     );
 
 VOID PvAddPendingExportNodes(
@@ -285,38 +287,45 @@ NTSTATUS PvpPeExportsEnumerateThread(
         }
     }
 
-    PostMessage(Context->DialogHandle, WM_PV_SEARCH_FINISHED, 0, 0);
+    PostMessage(Context->WindowHandle, WM_PV_SEARCH_FINISHED, 0, 0);
     return STATUS_SUCCESS;
 }
 
-INT_PTR CALLBACK PvpPeExportsDlgProc(
+INT_PTR CALLBACK PvPeExportsDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
 {
-    LPPROPSHEETPAGE propSheetPage;
-    PPV_PROPPAGECONTEXT propPageContext;
     PPV_EXPORT_CONTEXT context;
 
-    if (PvPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext))
+    if (uMsg == WM_INITDIALOG)
     {
-        context = (PPV_EXPORT_CONTEXT)propPageContext->Context;
+        context = PhAllocateZero(sizeof(PV_EXPORT_CONTEXT));
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+
+        if (lParam)
+        {
+            LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
+            context->PropSheetContext = (PPV_PROPPAGECONTEXT)propSheetPage->lParam;
+        }
     }
     else
     {
-        return FALSE;
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
     }
+
+    if (!context)
+        return FALSE;
 
     switch (uMsg)
     {
     case WM_INITDIALOG:
         {
-            context = propPageContext->Context = PhAllocateZero(sizeof(PV_EXPORT_CONTEXT));
-            context->DialogHandle = hwndDlg;
-            context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_SYMBOLTREE);
-            context->SearchHandle = GetDlgItem(hwndDlg, IDC_SYMSEARCH);
+            context->WindowHandle = hwndDlg;
+            context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_TREELIST);
+            context->SearchHandle = GetDlgItem(hwndDlg, IDC_TREESEARCH);
             context->SearchboxText = PhReferenceEmptyString();
             context->SearchResults = PhCreateList(1);
 
@@ -325,8 +334,13 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
             PvInitializeExportTree(context, hwndDlg, context->TreeNewHandle);
             PhAddTreeNewFilter(&context->FilterSupport, PvExportTreeFilterCallback, context);
             PhLoadSettingsExportList(context);
+            PvConfigTreeBorders(context->TreeNewHandle);
 
             TreeNew_SetEmptyText(context->TreeNewHandle, &LoadingExportsText, 0);
+
+            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhAddLayoutItem(&context->LayoutManager, context->SearchHandle, NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&context->LayoutManager, context->TreeNewHandle, NULL, PH_ANCHOR_ALL);
 
             PhCreateThread2(PvpPeExportsEnumerateThread, context);
 
@@ -357,17 +371,18 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
         break;
     case WM_SHOWWINDOW:
         {
-            if (!propPageContext->LayoutInitialized)
+            if (context->PropSheetContext && !context->PropSheetContext->LayoutInitialized)
             {
-                PPH_LAYOUT_ITEM dialogItem;
-
-                dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
-                PvAddPropPageLayoutItem(hwndDlg, context->SearchHandle, dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PvAddPropPageLayoutItem(hwndDlg, context->TreeNewHandle, dialogItem, PH_ANCHOR_ALL);
+                PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
                 PvDoPropPageLayout(hwndDlg);
 
-                propPageContext->LayoutInitialized = TRUE;
+                context->PropSheetContext->LayoutInitialized = TRUE;
             }
+        }
+        break;
+    case WM_SIZE:
+        {
+            PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
     case WM_NOTIFY:
@@ -420,6 +435,8 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
             PvAddPendingExportNodes(context);
 
             TreeNew_SetEmptyText(context->TreeNewHandle, &EmptyExportsText, 0);
+
+            TreeNew_NodesStructured(context->TreeNewHandle);
         }
         break;
     case WM_PV_SEARCH_SHOWMENU:
@@ -428,11 +445,12 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
             PPH_EMENU menu;
             PPH_EMENU_ITEM selectedItem;
             PPV_EXPORT_NODE* exportNodes = NULL;
-            ULONG numberOfSymbolNodes = 0;
+            ULONG numberOfNodes = 0;
 
-            PvGetSelectedExportNodes(context, &exportNodes, &numberOfSymbolNodes);
+            if (!PvGetSelectedExportNodes(context, &exportNodes, &numberOfNodes))
+                break;
 
-            if (numberOfSymbolNodes != 0)
+            if (numberOfNodes != 0)
             {
                 menu = PhCreateEMenu();
                 PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 1, L"Copy", NULL, NULL), ULONG_MAX);
@@ -544,10 +562,10 @@ BOOLEAN PvExportNodeHashtableCompareFunction(
     _In_ PVOID Entry2
     )
 {
-    PPV_EXPORT_NODE windowNode1 = *(PPV_EXPORT_NODE*)Entry1;
-    PPV_EXPORT_NODE windowNode2 = *(PPV_EXPORT_NODE*)Entry2;
+    PPV_EXPORT_NODE exportNode1 = *(PPV_EXPORT_NODE*)Entry1;
+    PPV_EXPORT_NODE exportNode2 = *(PPV_EXPORT_NODE*)Entry2;
 
-    return windowNode1->UniqueId == windowNode2->UniqueId;
+    return exportNode1->UniqueId == exportNode2->UniqueId;
 }
 
 ULONG PvExportNodeHashtableHashFunction(
@@ -844,19 +862,20 @@ PPV_EXPORT_NODE PvGetSelectedExportNode(
 {
     for (ULONG i = 0; i < Context->NodeList->Count; i++)
     {
-        PPV_EXPORT_NODE windowNode = Context->NodeList->Items[i];
+        PPV_EXPORT_NODE exportNode = Context->NodeList->Items[i];
 
-        if (windowNode->Node.Selected)
-            return windowNode;
+        if (exportNode->Node.Selected)
+            return exportNode;
     }
 
     return NULL;
 }
 
-VOID PvGetSelectedExportNodes(
+_Success_(return)
+BOOLEAN PvGetSelectedExportNodes(
     _In_ PPV_EXPORT_CONTEXT Context,
-    _Out_ PPV_EXPORT_NODE **Windows,
-    _Out_ PULONG NumberOfWindows
+    _Out_ PPV_EXPORT_NODE **Nodes,
+    _Out_ PULONG NumberOfNodes
     )
 {
     PPH_LIST list = PhCreateList(2);
@@ -869,10 +888,17 @@ VOID PvGetSelectedExportNodes(
             PhAddItemList(list, node);
     }
 
-    *Windows = PhAllocateCopy(list->Items, sizeof(PVOID) * list->Count);
-    *NumberOfWindows = list->Count;
+    if (list->Count)
+    {
+        *Nodes = PhAllocateCopy(list->Items, sizeof(PVOID) * list->Count);
+        *NumberOfNodes = list->Count;
+
+        PhDereferenceObject(list);
+        return TRUE;
+    }
 
     PhDereferenceObject(list);
+    return FALSE;
 }
 
 VOID PvInitializeExportTree(

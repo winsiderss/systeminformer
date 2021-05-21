@@ -2,7 +2,7 @@
  * Process Hacker -
  *   PE viewer
  *
- * Copyright (C) 2020 dmex
+ * Copyright (C) 2020-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -21,6 +21,15 @@
  */
 
 #include <peview.h>
+
+typedef struct _PVP_PE_PRODUCTION_ID_CONTEXT
+{
+    HWND WindowHandle;
+    HWND ListViewHandle;
+    HIMAGELIST ListViewImageList;
+    PH_LAYOUT_MANAGER LayoutManager;
+    PPV_PROPPAGECONTEXT PropSheetContext;
+} PVP_PE_PRODUCTION_ID_CONTEXT, *PPVP_PE_PRODUCTION_ID_CONTEXT;
 
 PWSTR PvpGetProductIdName(
     _In_ ULONG ProductId
@@ -332,12 +341,61 @@ PWSTR PvpGetProductIdComponent(
     return PhaFormatString(L"Report error (%lu)", ProductId)->Buffer;
 }
 
-typedef struct _PVP_PE_PRODUCTION_ID_CONTEXT
+VOID PvpPeEnumProdEntries(
+    _In_ HWND WindowHandle,
+    _In_ HWND ListViewHandle
+    )
 {
-    HWND WindowHandle;
-    HWND ListViewHandle;
-    HIMAGELIST ListViewImageList;
-} PVP_PE_PRODUCTION_ID_CONTEXT, *PPVP_PE_PRODUCTION_ID_CONTEXT;
+    PH_MAPPED_IMAGE_PRODID prodids;
+    PH_MAPPED_IMAGE_PRODID_ENTRY entry;
+    ULONG count = 0;
+    ULONG i;
+    INT lvItemIndex;
+
+    ExtendedListView_SetRedraw(ListViewHandle, FALSE);
+    ListView_DeleteAllItems(ListViewHandle);
+
+    if (NT_SUCCESS(PhGetMappedImageProdIdHeader(&PvMappedImage, &prodids)))
+    {
+        PPH_STRING text;
+
+        text = prodids.Valid ? prodids.Key : PhaConcatStrings2(PhGetStringOrEmpty(prodids.Key), L" (incorrect)");
+        PhSetDialogItemText(WindowHandle, IDC_PRODCHECKSUM, PhGetStringOrEmpty(text));
+        PhSetDialogItemText(WindowHandle, IDC_PRODHASH, PhGetStringOrEmpty(prodids.RawHash));
+        PhSetDialogItemText(WindowHandle, IDC_PRODHASH2, PhGetStringOrEmpty(prodids.Hash));
+
+        for (i = 0; i < prodids.NumberOfEntries; i++)
+        {
+            WCHAR number[PH_INT32_STR_LEN_1];
+
+            entry = prodids.ProdIdEntries[i];
+
+            if (!entry.ProductCount)
+                continue;
+
+            PhPrintUInt32(number, ++count);
+            lvItemIndex = PhAddListViewItem(ListViewHandle, MAXINT, number, NULL);
+            //PhSetListViewSubItem(lvHandle, lvItemIndex, 4, PvpGetProductIdName(entry.ProductId));
+            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, PvpGetProductIdComponent(entry.ProductId));
+
+            if (entry.ProductBuild)
+            {
+                PhPrintUInt32(number, entry.ProductBuild);
+                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, number);
+            }
+
+            PhPrintUInt32(number, entry.ProductCount);
+            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, number);
+        }
+
+        PhFree(prodids.ProdIdEntries);
+        PhClearReference(&prodids.Hash);
+        PhClearReference(&prodids.Key);
+    }
+
+    //ExtendedListView_SortItems(ListViewHandle);
+    ExtendedListView_SetRedraw(ListViewHandle, TRUE);
+}
 
 INT_PTR CALLBACK PvpPeProdIdDlgProc(
     _In_ HWND hwndDlg,
@@ -346,33 +404,31 @@ INT_PTR CALLBACK PvpPeProdIdDlgProc(
     _In_ LPARAM lParam
     )
 {
-    LPPROPSHEETPAGE propSheetPage;
-    PPV_PROPPAGECONTEXT propPageContext;
     PPVP_PE_PRODUCTION_ID_CONTEXT context;
-
-    if (!PvPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext))
-        return FALSE;
 
     if (uMsg == WM_INITDIALOG)
     {
-        context = propPageContext->Context = PhAllocate(sizeof(PVP_PE_PRODUCTION_ID_CONTEXT));
-        memset(context, 0, sizeof(PVP_PE_PRODUCTION_ID_CONTEXT));
+        context = PhAllocateZero(sizeof(PVP_PE_PRODUCTION_ID_CONTEXT));
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+
+        if (lParam)
+        {
+            LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
+            context->PropSheetContext = (PPV_PROPPAGECONTEXT)propSheetPage->lParam;
+        }
     }
     else
     {
-        context = propPageContext->Context;
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
     }
+
+    if (!context)
+        return FALSE;
 
     switch (uMsg)
     {
     case WM_INITDIALOG:
         {
-            PH_MAPPED_IMAGE_PRODID prodids;
-            PH_MAPPED_IMAGE_PRODID_ENTRY entry;
-            ULONG count = 0;
-            ULONG i;
-            INT lvItemIndex;
-
             context->WindowHandle = hwndDlg;
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
@@ -385,47 +441,19 @@ INT_PTR CALLBACK PvpPeProdIdDlgProc(
             //PhAddListViewColumn(context->ListViewHandle, 4, 4, 4, LVCFMT_LEFT, 100, L"Product");
             PhSetExtendedListView(context->ListViewHandle);
             PhLoadListViewColumnsFromSetting(L"ImageProdIdListViewColumns", context->ListViewHandle);
+            PvConfigTreeBorders(context->ListViewHandle);
+
+            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_PRODID), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_PRODCHECKSUM), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_PRODHASH), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_PRODHASH2), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
 
             if (context->ListViewImageList = ImageList_Create(2, 20, ILC_MASK | ILC_COLOR, 1, 1))
                 ListView_SetImageList(context->ListViewHandle, context->ListViewImageList, LVSIL_SMALL);
 
-            if (NT_SUCCESS(PhGetMappedImageProdIdHeader(&PvMappedImage, &prodids)))
-            {
-                PPH_STRING text;
-
-                text = prodids.Valid ? prodids.Key : PhaConcatStrings2(PhGetStringOrEmpty(prodids.Key), L" (incorrect)");
-                PhSetDialogItemText(hwndDlg, IDC_PRODCHECKSUM, PhGetStringOrEmpty(text));
-                PhSetDialogItemText(hwndDlg, IDC_PRODHASH, PhGetStringOrEmpty(prodids.RawHash));
-                PhSetDialogItemText(hwndDlg, IDC_PRODHASH2, PhGetStringOrEmpty(prodids.Hash));
-
-                for (i = 0; i < prodids.NumberOfEntries; i++)
-                {
-                    WCHAR number[PH_INT32_STR_LEN_1];
-
-                    entry = prodids.ProdIdEntries[i];
-
-                    if (!entry.ProductCount)
-                        continue;
-
-                    PhPrintUInt32(number, ++count);
-                    lvItemIndex = PhAddListViewItem(context->ListViewHandle, MAXINT, number, NULL);
-                    //PhSetListViewSubItem(lvHandle, lvItemIndex, 4, PvpGetProductIdName(entry.ProductId));
-                    PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 1, PvpGetProductIdComponent(entry.ProductId));
-
-                    if (entry.ProductBuild)
-                    {
-                        PhPrintUInt32(number, entry.ProductBuild);
-                        PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 2, number);
-                    }
-
-                    PhPrintUInt32(number, entry.ProductCount);
-                    PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 3, number);
-                }
-
-                PhFree(prodids.ProdIdEntries);
-                PhClearReference(&prodids.Hash);
-                PhClearReference(&prodids.Key);
-            }
+            PvpPeEnumProdEntries(hwndDlg, context->ListViewHandle);
 
             PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
         }
@@ -436,22 +464,25 @@ INT_PTR CALLBACK PvpPeProdIdDlgProc(
 
             if (context->ListViewImageList)
                 ImageList_Destroy(context->ListViewImageList);
+            PhDeleteLayoutManager(&context->LayoutManager);
 
             PhFree(context);
         }
         break;
     case WM_SHOWWINDOW:
         {
-            if (!propPageContext->LayoutInitialized)
+            if (context->PropSheetContext && !context->PropSheetContext->LayoutInitialized)
             {
-                PPH_LAYOUT_ITEM dialogItem;
-
-                dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
-                PvAddPropPageLayoutItem(hwndDlg, context->ListViewHandle, dialogItem, PH_ANCHOR_ALL);
+                PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
                 PvDoPropPageLayout(hwndDlg);
 
-                propPageContext->LayoutInitialized = TRUE;
+                context->PropSheetContext->LayoutInitialized = TRUE;
             }
+        }
+        break;
+    case WM_SIZE:
+        {
+            PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
     case WM_NOTIFY:
