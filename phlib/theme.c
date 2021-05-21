@@ -638,9 +638,11 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
             switch (PhpThemeColorMode)
             {
             case 0: // New colors
+                PhSetControlTheme(WindowHandle, L"explorer");
                 PhSetControlTheme(tooltipWindow, L"");
                 break;
             case 1: // Old colors
+                PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
                 PhSetControlTheme(tooltipWindow, L"DarkMode_Explorer");
                 break;
             }
