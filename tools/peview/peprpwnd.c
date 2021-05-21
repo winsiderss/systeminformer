@@ -583,13 +583,20 @@ INT_PTR CALLBACK PvTabWindowDialogProc(
             if (PeEnableThemeSupport) // TODO: fix options dialog theme (dmex)
                 PhInitializeWindowTheme(hwndDlg, TRUE);
 
-            //if (PhExtractIcon(PvFileName->Buffer, &PvImageLargeIcon, &PvImageSmallIcon))
-            //SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)PvImageSmallIcon);
-            //SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PvImageLargeIcon);
+            {
+                HICON smallIcon;
+                HICON largeIcon;
 
-            PhGetStockApplicationIcon(&PvImageSmallIcon, &PvImageLargeIcon);
-            SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)PvImageSmallIcon);
-            SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PvImageLargeIcon);
+                if (!PhExtractIcon(PvFileName->Buffer, &PvImageLargeIcon, &PvImageSmallIcon))
+                {
+                    PhGetStockApplicationIcon(&PvImageSmallIcon, &PvImageLargeIcon);
+                }
+
+                PhGetStockApplicationIcon(&smallIcon, &largeIcon);
+
+                SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)smallIcon);
+                SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)largeIcon);
+            }
 
             if (PvpLoadDbgHelp(&PvSymbolProvider))
             {
