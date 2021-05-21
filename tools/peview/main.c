@@ -3,7 +3,7 @@
  *   PE viewer
  *
  * Copyright (C) 2010 wj32
- * Copyright (C) 2017-2020 dmex
+ * Copyright (C) 2017-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -64,7 +64,7 @@ INT WINAPI wWinMain(
         PhInitFormatS(&format[0], L"PeViewerMutant_");
         PhInitFormatU(&format[1], HandleToUlong(NtCurrentProcessId()));
 
-        objectName = PhFormat(format, 2, 16);
+        objectName = PhFormat(format, 2, 0x40);
         PhStringRefToUnicodeString(&objectName->sr, &objectNameUs);
 
         InitializeObjectAttributes(
@@ -131,7 +131,7 @@ INT WINAPI wWinMain(
             return 1;
 
         fileDialog = PhCreateOpenFileDialog();
-        PhSetFileDialogOptions(fileDialog, PH_FILEDIALOG_NOPATHVALIDATE);
+        PhSetFileDialogOptions(fileDialog, PH_FILEDIALOG_SHOWHIDDEN | PH_FILEDIALOG_NOPATHVALIDATE);
         PhSetFileDialogFilter(fileDialog, filters, RTL_NUMBER_OF(filters));
 
         if (PhShowFileDialog(NULL, fileDialog))
@@ -169,6 +169,21 @@ INT WINAPI wWinMain(
 
     if (PhIsNullOrEmptyString(PvFileName))
         return 1;
+
+#ifdef DEBUG
+    if (!PhDoesFileExistsWin32(PhGetString(PvFileName)))
+    {
+        PPH_STRING fileName;
+
+        fileName = PhGetBaseName(PvFileName);
+        PhMoveReference(&fileName, PhSearchFilePath(PhGetString(fileName), NULL));
+
+        if (!PhIsNullOrEmptyString(fileName))
+        {
+            PhMoveReference(&PvFileName, fileName);
+        }
+    }
+#endif
 
     if (PhEndsWithString2(PvFileName, L".lnk", TRUE))
     {
@@ -233,7 +248,12 @@ INT WINAPI wWinMain(
                 switch (PvMappedImage.Signature)
                 {
                 case IMAGE_DOS_SIGNATURE:
-                    PvPeProperties();
+                    {
+                        if (PhGetIntegerSetting(L"EnableLegacyPropertiesDialog"))
+                            PvPeProperties();
+                        else
+                            PvShowPePropertiesWindow();
+                    }
                     break;
                 case IMAGE_ELF_SIGNATURE:
                     PvExlfProperties();

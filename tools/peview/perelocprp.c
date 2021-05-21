@@ -22,12 +22,23 @@
 
 #include <peview.h>
 
+typedef struct _PVP_PE_RELOCATION_CONTEXT
+{
+    HWND WindowHandle;
+    HWND ListViewHandle;
+    PH_LAYOUT_MANAGER LayoutManager;
+    PPV_PROPPAGECONTEXT PropSheetContext;
+} PVP_PE_RELOCATION_CONTEXT, *PPVP_PE_RELOCATION_CONTEXT;
+
 VOID PvEnumerateRelocationEntries(
     _In_ HWND ListViewHandle
     )
 {
     ULONG count = 0;
     PH_MAPPED_IMAGE_RELOC relocations;
+
+    ExtendedListView_SetRedraw(ListViewHandle, FALSE);
+    ListView_DeleteAllItems(ListViewHandle);
 
     if (NT_SUCCESS(PhGetMappedImageRelocations(&PvMappedImage, &relocations)))
     {
@@ -40,42 +51,31 @@ VOID PvEnumerateRelocationEntries(
 
             PhPrintUInt64(value, ++count);
             lvItemIndex = PhAddListViewItem(ListViewHandle, MAXINT, value, NULL);
-            PhPrintPointer(value, UlongToPtr(entry->BlockRva));
+            //PhPrintPointer(value, UlongToPtr(entry->BlockRva));
+            //PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, value);
+            //PhPrintPointer(value, UlongToPtr(entry->Offset));
+            //PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, value);
+            PhPrintPointer(value, PTR_ADD_OFFSET(entry->BlockRva, entry->Offset));
             PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, value);
-            PhPrintPointer(value, UlongToPtr(entry->Offset));
-            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, value);
 
             switch (entry->Type)
             {
             case IMAGE_REL_BASED_ABSOLUTE:
-                {
-                    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, L"ABS");
-                }
+                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"ABS");
                 break;
             case IMAGE_REL_BASED_HIGH:
-                {
-                    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, L"HIGH");
-                }
+                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"HIGH");
                 break;
             case IMAGE_REL_BASED_LOW:
-                {
-                    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, L"LOW");
-                }
+                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"LOW");
                 break;
             case IMAGE_REL_BASED_HIGHLOW:
-                {
-                    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, L"HIGHLOW");
-                }
+                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"HIGHLOW");
                 break;
             case IMAGE_REL_BASED_DIR64:
-                {
-                    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, L"DIR64");
-                }
+                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"DIR64");
                 break;
             }
-
-            PhPrintPointer(value, entry->ImageBaseVa);
-            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 4, value);
 
             if (entry->BlockRva)
             {
@@ -97,7 +97,7 @@ VOID PvEnumerateRelocationEntries(
                         NULL
                         ))
                     {
-                        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 5, sectionName);
+                        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, sectionName);
                     }
                 }
             }
@@ -113,7 +113,7 @@ VOID PvEnumerateRelocationEntries(
 
             if (symbol)
             {
-                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 6, symbol->Buffer);
+                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 4, symbol->Buffer);
                 PhDereferenceObject(symbol);
             }
 
@@ -146,17 +146,20 @@ VOID PvEnumerateRelocationEntries(
                         NULL,
                         NULL,
                         NULL
-                    );
+                        );
 
                     if (symbol)
                     {
-                        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 7, symbol->Buffer);
+                        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 5, symbol->Buffer);
                         PhDereferenceObject(symbol);
                     }
                 }
             }
         }
     }
+
+    //ExtendedListView_SortItems(ListViewHandle);
+    ExtendedListView_SetRedraw(ListViewHandle, TRUE);
 }
 
 INT_PTR CALLBACK PvpPeRelocationDlgProc(
@@ -166,64 +169,87 @@ INT_PTR CALLBACK PvpPeRelocationDlgProc(
     _In_ LPARAM lParam
     )
 {
-    LPPROPSHEETPAGE propSheetPage;
-    PPV_PROPPAGECONTEXT propPageContext;
+    PPVP_PE_RELOCATION_CONTEXT context;
 
-    if (!PvPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext))
+    if (uMsg == WM_INITDIALOG)
+    {
+        context = PhAllocateZero(sizeof(PVP_PE_RELOCATION_CONTEXT));
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+
+        if (lParam)
+        {
+            LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
+            context->PropSheetContext = (PPV_PROPPAGECONTEXT)propSheetPage->lParam;
+        }
+    }
+    else
+    {
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+    }
+
+    if (!context)
         return FALSE;
 
     switch (uMsg)
     {
     case WM_INITDIALOG:
         {
-            HWND lvHandle;
+            context->WindowHandle = hwndDlg;
+            context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
-            lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
-            PhSetListViewStyle(lvHandle, TRUE, TRUE);
-            PhSetControlTheme(lvHandle, L"explorer");
-            PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"#");
-            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 100, L"RVA");
-            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 100, L"Offset");
-            PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 100, L"Type");
-            PhAddListViewColumn(lvHandle, 4, 4, 4, LVCFMT_LEFT, 150, L"ImageBaseVA");
-            PhAddListViewColumn(lvHandle, 5, 5, 5, LVCFMT_LEFT, 100, L"Section");
-            PhAddListViewColumn(lvHandle, 6, 6, 6, LVCFMT_LEFT, 100, L"Symbol");
-            PhAddListViewColumn(lvHandle, 7, 7, 7, LVCFMT_LEFT, 100, L"RelocationSymbol");
-            PhSetExtendedListView(lvHandle);
-            PhLoadListViewColumnsFromSetting(L"ImageRelocationsListViewColumns", lvHandle);
+            PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
+            PhSetControlTheme(context->ListViewHandle, L"explorer");
+            PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 50, L"#");
+            PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 100, L"RVA");
+            PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 100, L"Type");
+            PhAddListViewColumn(context->ListViewHandle, 3, 3, 3, LVCFMT_LEFT, 100, L"Section");
+            PhAddListViewColumn(context->ListViewHandle, 4, 4, 4, LVCFMT_LEFT, 140, L"Symbol");
+            PhAddListViewColumn(context->ListViewHandle, 5, 5, 5, LVCFMT_LEFT, 140, L"RelocationSymbol");
+            PhSetExtendedListView(context->ListViewHandle);
+            //PhLoadListViewColumnsFromSetting(L"ImageRelocationsListViewColumns", context->ListViewHandle);
+            PvConfigTreeBorders(context->ListViewHandle);
 
-            PvEnumerateRelocationEntries(lvHandle);
+            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
+
+            PvEnumerateRelocationEntries(context->ListViewHandle);
 
             PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
         }
         break;
-    case WM_DESTROY:
-        {
-            PhSaveListViewColumnsToSetting(L"ImageRelocationsListViewColumns", GetDlgItem(hwndDlg, IDC_LIST));
-        }
-        break;
     case WM_SHOWWINDOW:
         {
-            if (!propPageContext->LayoutInitialized)
+            if (context->PropSheetContext && !context->PropSheetContext->LayoutInitialized)
             {
-                PPH_LAYOUT_ITEM dialogItem;
-
-                dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
-                PvAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST), dialogItem, PH_ANCHOR_ALL);
+                PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
                 PvDoPropPageLayout(hwndDlg);
 
-                propPageContext->LayoutInitialized = TRUE;
+                context->PropSheetContext->LayoutInitialized = TRUE;
             }
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhSaveListViewColumnsToSetting(L"ImageRelocationsListViewColumns", context->ListViewHandle);
+
+            PhDeleteLayoutManager(&context->LayoutManager);
+
+            PhFree(context);
+        }
+        break;
+    case WM_SIZE:
+        {
+            PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
     case WM_NOTIFY:
         {
-            PvHandleListViewNotifyForCopy(lParam, GetDlgItem(hwndDlg, IDC_LIST));
+            PvHandleListViewNotifyForCopy(lParam, context->ListViewHandle);
         }
         break;
     case WM_CONTEXTMENU:
         {
-            PvHandleListViewCommandCopy(hwndDlg, lParam, wParam, GetDlgItem(hwndDlg, IDC_LIST));
+            PvHandleListViewCommandCopy(hwndDlg, lParam, wParam, context->ListViewHandle);
         }
         break;
     }

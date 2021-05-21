@@ -30,7 +30,7 @@ static PH_STRINGREF LoadingImportsText = PH_STRINGREF_INIT(L"Loading imports fro
 typedef enum _PV_IMPORT_TREE_COLUMN_ITEM
 {
     PV_IMPORT_TREE_COLUMN_ITEM_INDEX,
-    PV_EXPORT_TREE_COLUMN_ITEM_RVA,
+    PV_IMPORT_TREE_COLUMN_ITEM_RVA,
     PV_IMPORT_TREE_COLUMN_ITEM_DLL,
     PV_IMPORT_TREE_COLUMN_ITEM_NAME,
     PV_IMPORT_TREE_COLUMN_ITEM_HINT,
@@ -65,6 +65,7 @@ typedef struct _PV_IMPORT_CONTEXT
     PPH_STRING TreeText;
 
     PH_LAYOUT_MANAGER LayoutManager;
+    PPV_PROPPAGECONTEXT PropSheetContext;
 
     ULONG SearchResultsAddIndex;
     PPH_LIST SearchResults;
@@ -119,10 +120,11 @@ VOID PhSaveSettingsImportList(
     _Inout_ PPV_IMPORT_CONTEXT Context
     );
 
-VOID PvGetSelectedImportNodes(
+_Success_(return)
+BOOLEAN PvGetSelectedImportNodes(
     _In_ PPV_IMPORT_CONTEXT Context,
-    _Out_ PPV_IMPORT_NODE** Windows,
-    _Out_ PULONG NumberOfWindows
+    _Out_ PPV_IMPORT_NODE **Nodes,
+    _Out_ PULONG NumberOfNodes
     );
 
 VOID PvAddPendingImportNodes(
@@ -339,7 +341,7 @@ VOID PvpProcessImports(
                             exportOrdinalName = PvpQueryModuleOrdinalName(exportDllName, importEntry.Ordinal);
                             PhDereferenceObject(exportDllName);
                         }
-
+                        
                         if (exportOrdinalName)
                         {
                             importNode->NameString = PhFormatString(
@@ -431,34 +433,41 @@ NTSTATUS PvpPeImportsEnumerateThread(
     return STATUS_SUCCESS;
 }
 
-INT_PTR CALLBACK PvpPeImportsDlgProc(
+INT_PTR CALLBACK PvPeImportsDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
 {
-    LPPROPSHEETPAGE propSheetPage;
-    PPV_PROPPAGECONTEXT propPageContext;
     PPV_IMPORT_CONTEXT context;
 
-    if (PvPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext))
+    if (uMsg == WM_INITDIALOG)
     {
-        context = (PPV_IMPORT_CONTEXT)propPageContext->Context;
+        context = PhAllocateZero(sizeof(PV_IMPORT_CONTEXT));
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+
+        if (lParam)
+        {
+            LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
+            context->PropSheetContext = (PPV_PROPPAGECONTEXT)propSheetPage->lParam;
+        }
     }
     else
     {
-        return FALSE;
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
     }
+
+    if (!context)
+        return FALSE;
 
     switch (uMsg)
     {
     case WM_INITDIALOG:
         {
-            context = propPageContext->Context = PhAllocateZero(sizeof(PV_IMPORT_CONTEXT));
             context->DialogHandle = hwndDlg;
-            context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_SYMBOLTREE);
-            context->SearchHandle = GetDlgItem(hwndDlg, IDC_SYMSEARCH);
+            context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_TREELIST);
+            context->SearchHandle = GetDlgItem(hwndDlg, IDC_TREESEARCH);
             context->SearchboxText = PhReferenceEmptyString();
             context->SearchResults = PhCreateList(1);
 
@@ -467,8 +476,13 @@ INT_PTR CALLBACK PvpPeImportsDlgProc(
             PvInitializeImportTree(context, hwndDlg, context->TreeNewHandle);
             PhAddTreeNewFilter(&context->FilterSupport, PvImportTreeFilterCallback, context);
             PhLoadSettingsImportList(context);
+            PvConfigTreeBorders(context->TreeNewHandle);
 
             TreeNew_SetEmptyText(context->TreeNewHandle, &LoadingImportsText, 0);
+
+            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhAddLayoutItem(&context->LayoutManager, context->SearchHandle, NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&context->LayoutManager, context->TreeNewHandle, NULL, PH_ANCHOR_ALL);
 
             PhCreateThread2(PvpPeImportsEnumerateThread, context);
 
@@ -499,17 +513,18 @@ INT_PTR CALLBACK PvpPeImportsDlgProc(
         break;
     case WM_SHOWWINDOW:
         {
-            if (!propPageContext->LayoutInitialized)
+            if (context->PropSheetContext && !context->PropSheetContext->LayoutInitialized)
             {
-                PPH_LAYOUT_ITEM dialogItem;
-
-                dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
-                PvAddPropPageLayoutItem(hwndDlg, context->SearchHandle, dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PvAddPropPageLayoutItem(hwndDlg, context->TreeNewHandle, dialogItem, PH_ANCHOR_ALL);
+                PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
                 PvDoPropPageLayout(hwndDlg);
 
-                propPageContext->LayoutInitialized = TRUE;
+                context->PropSheetContext->LayoutInitialized = TRUE;
             }
+        }
+        break;
+    case WM_SIZE:
+        {
+            PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
     case WM_NOTIFY:
@@ -562,6 +577,8 @@ INT_PTR CALLBACK PvpPeImportsDlgProc(
             PvAddPendingImportNodes(context);
 
             TreeNew_SetEmptyText(context->TreeNewHandle, &EmptyImportsText, 0);
+
+            TreeNew_NodesStructured(context->TreeNewHandle);
         }
         break;
     case WM_PV_SEARCH_SHOWMENU:
@@ -570,11 +587,12 @@ INT_PTR CALLBACK PvpPeImportsDlgProc(
             PPH_EMENU menu;
             PPH_EMENU_ITEM selectedItem;
             PPV_IMPORT_NODE* importNodes = NULL;
-            ULONG numberOfSymbolNodes = 0;
+            ULONG numberOfNodes = 0;
 
-            PvGetSelectedImportNodes(context, &importNodes, &numberOfSymbolNodes);
+            if (!PvGetSelectedImportNodes(context, &importNodes, &numberOfNodes))
+                break;
 
-            if (numberOfSymbolNodes != 0)
+            if (numberOfNodes != 0)
             {
                 menu = PhCreateEMenu();
                 PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 1, L"Copy", NULL, NULL), ULONG_MAX);
@@ -686,10 +704,10 @@ BOOLEAN PvImportNodeHashtableCompareFunction(
     _In_ PVOID Entry2
     )
 {
-    PPV_IMPORT_NODE windowNode1 = *(PPV_IMPORT_NODE*)Entry1;
-    PPV_IMPORT_NODE windowNode2 = *(PPV_IMPORT_NODE*)Entry2;
+    PPV_IMPORT_NODE importNode1 = *(PPV_IMPORT_NODE*)Entry1;
+    PPV_IMPORT_NODE importNode2 = *(PPV_IMPORT_NODE*)Entry2;
 
-    return windowNode1->UniqueId == windowNode2->UniqueId;
+    return importNode1->UniqueId == importNode2->UniqueId;
 }
 
 ULONG PvImportNodeHashtableHashFunction(
@@ -891,7 +909,7 @@ BOOLEAN NTAPI PvImportTreeNewCallback(
             case PV_IMPORT_TREE_COLUMN_ITEM_INDEX:
                 getCellText->Text = PhGetStringRef(node->UniqueIdString);
                 break;
-            case PV_EXPORT_TREE_COLUMN_ITEM_RVA:
+            case PV_IMPORT_TREE_COLUMN_ITEM_RVA:
                 getCellText->Text = PhGetStringRef(node->AddressString);
                 break;
             case PV_IMPORT_TREE_COLUMN_ITEM_DLL:
@@ -986,19 +1004,20 @@ PPV_IMPORT_NODE PvGetSelectedImportNode(
 {
     for (ULONG i = 0; i < Context->NodeList->Count; i++)
     {
-        PPV_IMPORT_NODE windowNode = Context->NodeList->Items[i];
+        PPV_IMPORT_NODE importNode = Context->NodeList->Items[i];
 
-        if (windowNode->Node.Selected)
-            return windowNode;
+        if (importNode->Node.Selected)
+            return importNode;
     }
 
     return NULL;
 }
 
-VOID PvGetSelectedImportNodes(
+_Success_(return)
+BOOLEAN PvGetSelectedImportNodes(
     _In_ PPV_IMPORT_CONTEXT Context,
-    _Out_ PPV_IMPORT_NODE** Windows,
-    _Out_ PULONG NumberOfWindows
+    _Out_ PPV_IMPORT_NODE **Nodes,
+    _Out_ PULONG NumberOfNodes
     )
 {
     PPH_LIST list = PhCreateList(2);
@@ -1011,10 +1030,17 @@ VOID PvGetSelectedImportNodes(
             PhAddItemList(list, node);
     }
 
-    *Windows = PhAllocateCopy(list->Items, sizeof(PVOID) * list->Count);
-    *NumberOfWindows = list->Count;
+    if (list->Count)
+    {
+        *Nodes = PhAllocateCopy(list->Items, sizeof(PVOID) * list->Count);
+        *NumberOfNodes = list->Count;
+
+        PhDereferenceObject(list);
+        return TRUE;
+    }
 
     PhDereferenceObject(list);
+    return FALSE;
 }
 
 VOID PvInitializeImportTree(
@@ -1039,7 +1065,7 @@ VOID PvInitializeImportTree(
     TreeNew_SetRedraw(TreeNewHandle, FALSE);
 
     PhAddTreeNewColumnEx2(TreeNewHandle, PV_IMPORT_TREE_COLUMN_ITEM_INDEX, TRUE, L"#", 40, PH_ALIGN_LEFT, PV_IMPORT_TREE_COLUMN_ITEM_INDEX, 0, 0);
-    PhAddTreeNewColumnEx2(TreeNewHandle, PV_EXPORT_TREE_COLUMN_ITEM_RVA, TRUE, L"RVA", 80, PH_ALIGN_LEFT, PV_EXPORT_TREE_COLUMN_ITEM_RVA, 0, 0);
+    PhAddTreeNewColumnEx2(TreeNewHandle, PV_IMPORT_TREE_COLUMN_ITEM_RVA, TRUE, L"RVA", 80, PH_ALIGN_LEFT, PV_IMPORT_TREE_COLUMN_ITEM_RVA, 0, 0);
     PhAddTreeNewColumnEx2(TreeNewHandle, PV_IMPORT_TREE_COLUMN_ITEM_DLL, TRUE, L"DLL", 80, PH_ALIGN_LEFT, PV_IMPORT_TREE_COLUMN_ITEM_DLL, 0, 0);
     PhAddTreeNewColumnEx2(TreeNewHandle, PV_IMPORT_TREE_COLUMN_ITEM_NAME, TRUE, L"Name", 250, PH_ALIGN_LEFT, PV_IMPORT_TREE_COLUMN_ITEM_NAME, 0, 0);
     PhAddTreeNewColumnEx2(TreeNewHandle, PV_IMPORT_TREE_COLUMN_ITEM_HINT, TRUE, L"Hint", 50, PH_ALIGN_LEFT, PV_IMPORT_TREE_COLUMN_ITEM_HINT, 0, 0);

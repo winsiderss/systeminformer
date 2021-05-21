@@ -29,13 +29,19 @@
 typedef struct _PV_PE_LAYOUT_CONTEXT
 {
     HWND WindowHandle;
+    HWND SearchHandle;
     HWND TreeNewHandle;
+    HWND ParentWindowHandle;
     ULONG TreeNewSortColumn;
+    PH_TN_FILTER_SUPPORT FilterSupport;
     PH_SORT_ORDER TreeNewSortOrder;
     PPH_HASHTABLE NodeHashtable;
     PPH_LIST NodeList;
     PPH_LIST NodeRootList;
+    PPH_STRING SearchboxText;
     PPH_STRING StatusMessage;
+    PH_LAYOUT_MANAGER LayoutManager;
+    PPV_PROPPAGECONTEXT PropSheetContext;
 } PV_PE_LAYOUT_CONTEXT, *PPV_PE_LAYOUT_CONTEXT;
 
 typedef enum _PV_LAYOUT_TREE_COLUMN_NAME
@@ -77,17 +83,6 @@ BOOLEAN NTAPI PvLayoutTreeNewCallback(
     _In_opt_ PVOID Context
     );
 
-BOOLEAN PhInsertCopyCellEMenuItem(
-    _In_ struct _PH_EMENU_ITEM* Menu,
-    _In_ ULONG InsertAfterId,
-    _In_ HWND TreeNewHandle,
-    _In_ PPH_TREENEW_COLUMN Column
-    );
-
-BOOLEAN PhHandleCopyCellEMenuItem(
-    _In_ struct _PH_EMENU_ITEM* SelectedItem
-    );
-
 VOID PvInitializeLayoutTree(
     _In_ PPV_PE_LAYOUT_CONTEXT Context
     )
@@ -116,6 +111,8 @@ VOID PvInitializeLayoutTree(
     settings = PhGetStringSetting(L"ImageLayoutTreeColumns");
     PhCmLoadSettings(Context->TreeNewHandle, &settings->sr);
     PhDereferenceObject(settings);
+
+    PhInitializeTreeNewFilterSupport(&Context->FilterSupport, Context->TreeNewHandle, Context->NodeList);
 }
 
 VOID PvDeleteLayoutTree(
@@ -142,10 +139,10 @@ BOOLEAN PvLayoutNodeHashtableEqualFunction(
     _In_ PVOID Entry2
     )
 {
-    PPV_LAYOUT_NODE windowNode1 = *(PPV_LAYOUT_NODE*)Entry1;
-    PPV_LAYOUT_NODE windowNode2 = *(PPV_LAYOUT_NODE*)Entry2;
+    PPV_LAYOUT_NODE layoutNode1 = *(PPV_LAYOUT_NODE*)Entry1;
+    PPV_LAYOUT_NODE layoutNode2 = *(PPV_LAYOUT_NODE*)Entry2;
 
-    return windowNode1->UniqueId == windowNode2->UniqueId;
+    return layoutNode1->UniqueId == layoutNode2->UniqueId;
 }
 
 ULONG PvLayoutNodeHashtableHashFunction(
@@ -162,27 +159,27 @@ PPV_LAYOUT_NODE PvAddLayoutNode(
     )
 {
     static ULONG64 index = 0;
-    PPV_LAYOUT_NODE windowNode;
+    PPV_LAYOUT_NODE layoutNode;
 
-    windowNode = PhAllocateZero(sizeof(PV_LAYOUT_NODE));
-    windowNode->UniqueId = ++index;
-    PhInitializeTreeNewNode(&windowNode->Node);
+    layoutNode = PhAllocateZero(sizeof(PV_LAYOUT_NODE));
+    layoutNode->UniqueId = ++index;
+    PhInitializeTreeNewNode(&layoutNode->Node);
 
-    memset(windowNode->TextCache, 0, sizeof(PH_STRINGREF) * PV_LAYOUT_TREE_COLUMN_NAME_MAXIMUM);
-    windowNode->Node.TextCache = windowNode->TextCache;
-    windowNode->Node.TextCacheSize = PV_LAYOUT_TREE_COLUMN_NAME_MAXIMUM;
+    memset(layoutNode->TextCache, 0, sizeof(PH_STRINGREF) * PV_LAYOUT_TREE_COLUMN_NAME_MAXIMUM);
+    layoutNode->Node.TextCache = layoutNode->TextCache;
+    layoutNode->Node.TextCacheSize = PV_LAYOUT_TREE_COLUMN_NAME_MAXIMUM;
 
-    windowNode->Name = PhCreateString(Name);
-    windowNode->Value = Value;
-    windowNode->Children = PhCreateList(1);
+    layoutNode->Name = PhCreateString(Name);
+    layoutNode->Value = Value;
+    layoutNode->Children = PhCreateList(1);
 
-    PhAddEntryHashtable(Context->NodeHashtable, &windowNode);
-    PhAddItemList(Context->NodeList, windowNode);
+    PhAddEntryHashtable(Context->NodeHashtable, &layoutNode);
+    PhAddItemList(Context->NodeList, layoutNode);
 
     //if (Context->FilterSupport.FilterList)
-    //   windowNode->Node.Visible = PhApplyTreeNewFiltersToNode(&Context->FilterSupport, &windowNode->Node);
+    //   layoutNode->Node.Visible = PhApplyTreeNewFiltersToNode(&Context->FilterSupport, &layoutNode->Node);
 
-    return windowNode;
+    return layoutNode;
 }
 
 PPV_LAYOUT_NODE PvAddChildLayoutNode(
@@ -219,52 +216,52 @@ PPV_LAYOUT_NODE PvFindLayoutNode(
     _In_ ULONG UniqueId
     )
 {
-    PV_LAYOUT_NODE lookupWindowNode;
-    PPV_LAYOUT_NODE lookupWindowNodePtr = &lookupWindowNode;
-    PPV_LAYOUT_NODE* windowNode;
+    PV_LAYOUT_NODE lookupLayoutNode;
+    PPV_LAYOUT_NODE lookupLayoutNodePtr = &lookupLayoutNode;
+    PPV_LAYOUT_NODE* layoutNode;
 
-    lookupWindowNode.Node.Index = UniqueId;
+    lookupLayoutNode.Node.Index = UniqueId;
 
-    windowNode = (PPV_LAYOUT_NODE*)PhFindEntryHashtable(
+    layoutNode = (PPV_LAYOUT_NODE*)PhFindEntryHashtable(
         Context->NodeHashtable,
-        &lookupWindowNodePtr
+        &lookupLayoutNodePtr
         );
 
-    if (windowNode)
-        return *windowNode;
+    if (layoutNode)
+        return *layoutNode;
     else
         return NULL;
 }
 
 VOID PvRemoveLayoutNode(
     _In_ PPV_PE_LAYOUT_CONTEXT Context,
-    _In_ PPV_LAYOUT_NODE WindowNode
+    _In_ PPV_LAYOUT_NODE LayoutNode
     )
 {
     ULONG index;
 
     // Remove from hashtable/list and cleanup.
 
-    PhRemoveEntryHashtable(Context->NodeHashtable, &WindowNode);
+    PhRemoveEntryHashtable(Context->NodeHashtable, &LayoutNode);
 
-    if ((index = PhFindItemList(Context->NodeList, WindowNode)) != ULONG_MAX)
+    if ((index = PhFindItemList(Context->NodeList, LayoutNode)) != ULONG_MAX)
         PhRemoveItemList(Context->NodeList, index);
 
-    PvDestroyLayoutNode(WindowNode);
+    PvDestroyLayoutNode(LayoutNode);
 
     TreeNew_NodesStructured(Context->TreeNewHandle);
 }
 
 VOID PvDestroyLayoutNode(
-    _In_ PPV_LAYOUT_NODE WindowNode
+    _In_ PPV_LAYOUT_NODE LayoutNode
     )
 {
-    PhDereferenceObject(WindowNode->Children);
+    PhDereferenceObject(LayoutNode->Children);
 
-    if (WindowNode->Name) PhDereferenceObject(WindowNode->Name);
-    if (WindowNode->Value) PhDereferenceObject(WindowNode->Value);
+    if (LayoutNode->Name) PhDereferenceObject(LayoutNode->Name);
+    if (LayoutNode->Value) PhDereferenceObject(LayoutNode->Value);
 
-    PhFree(WindowNode);
+    PhFree(LayoutNode);
 }
 
 #define SORT_FUNCTION(Column) PvLayoutTreeNewCompare##Column
@@ -458,24 +455,21 @@ PPV_LAYOUT_NODE PvGetSelectedLayoutNode(
     _In_ PPV_PE_LAYOUT_CONTEXT Context
     )
 {
-    PPV_LAYOUT_NODE windowNode = NULL;
-    ULONG i;
-
-    for (i = 0; i < Context->NodeList->Count; i++)
+    for (ULONG i = 0; i < Context->NodeList->Count; i++)
     {
-        windowNode = Context->NodeList->Items[i];
+        PPV_LAYOUT_NODE layoutNode = Context->NodeList->Items[i];
 
-        if (windowNode->Node.Selected)
-            return windowNode;
+        if (layoutNode->Node.Selected)
+            return layoutNode;
     }
 
     return NULL;
 }
 
-VOID PvGetSelectedLayoutNodes(
+BOOLEAN PvGetSelectedLayoutNodes(
     _In_ PPV_PE_LAYOUT_CONTEXT Context,
-    _Out_ PPV_LAYOUT_NODE**Windows,
-    _Out_ PULONG NumberOfWindows
+    _Out_ PPV_LAYOUT_NODE** Nodes,
+    _Out_ PULONG NumberOfNodes
     )
 {
     PPH_LIST list;
@@ -493,10 +487,17 @@ VOID PvGetSelectedLayoutNodes(
         }
     }
 
-    *Windows = PhAllocateCopy(list->Items, sizeof(PVOID) * list->Count);
-    *NumberOfWindows = list->Count;
+    if (list->Count)
+    {
+        *Nodes = PhAllocateCopy(list->Items, sizeof(PVOID) * list->Count);
+        *NumberOfNodes = list->Count;
+
+        PhDereferenceObject(list);
+        return TRUE;
+    }
 
     PhDereferenceObject(list);
+    return FALSE;
 }
 
 VOID PvExpandAllLayoutNodes(
@@ -531,8 +532,8 @@ VOID PvDeselectAllLayoutNodes(
 
 VOID PvSelectAndEnsureVisibleLayoutNodes(
     _In_ PPV_PE_LAYOUT_CONTEXT Context,
-    _In_ PPV_LAYOUT_NODE* CertificateNodes,
-    _In_ ULONG NumberOfCertificateNodes
+    _In_ PPV_LAYOUT_NODE* Nodes,
+    _In_ ULONG NumberOfNodes
     )
 {
     ULONG i;
@@ -542,11 +543,11 @@ VOID PvSelectAndEnsureVisibleLayoutNodes(
 
     PvDeselectAllLayoutNodes(Context);
 
-    for (i = 0; i < NumberOfCertificateNodes; i++)
+    for (i = 0; i < NumberOfNodes; i++)
     {
-        if (CertificateNodes[i]->Node.Visible)
+        if (Nodes[i]->Node.Visible)
         {
-            leader = CertificateNodes[i];
+            leader = Nodes[i];
             break;
         }
     }
@@ -556,12 +557,12 @@ VOID PvSelectAndEnsureVisibleLayoutNodes(
 
     // Expand recursively upwards, and select the nodes.
 
-    for (i = 0; i < NumberOfCertificateNodes; i++)
+    for (i = 0; i < NumberOfNodes; i++)
     {
-        if (!CertificateNodes[i]->Node.Visible)
+        if (!Nodes[i]->Node.Visible)
             continue;
 
-        node = CertificateNodes[i]->Parent;
+        node = Nodes[i]->Parent;
 
         while (node)
         {
@@ -572,7 +573,7 @@ VOID PvSelectAndEnsureVisibleLayoutNodes(
             node = node->Parent;
         }
 
-        CertificateNodes[i]->Node.Selected = TRUE;
+        Nodes[i]->Node.Selected = TRUE;
     }
 
     if (needsRestructure)
@@ -711,6 +712,67 @@ VOID PvLayoutSetStatusMessage(
         ));
     TreeNew_SetEmptyText(Context->TreeNewHandle, &Context->StatusMessage->sr, 0);
     PhClearReference(&statusMessage);
+}
+
+BOOLEAN PvLayoutWordMatchStringRef(
+    _In_ PPV_PE_LAYOUT_CONTEXT Context,
+    _In_ PPH_STRINGREF Text
+    )
+{
+    PH_STRINGREF part;
+    PH_STRINGREF remainingPart;
+
+    remainingPart = PhGetStringRef(Context->SearchboxText);
+
+    while (remainingPart.Length)
+    {
+        PhSplitStringRefAtChar(&remainingPart, L'|', &part, &remainingPart);
+
+        if (part.Length)
+        {
+            if (PhFindStringInStringRef(Text, &part, TRUE) != SIZE_MAX)
+                return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
+BOOLEAN PvLayoutWordMatchStringZ(
+    _In_ PPV_PE_LAYOUT_CONTEXT Context,
+    _In_ PWSTR Text
+    )
+{
+    PH_STRINGREF text;
+
+    PhInitializeStringRef(&text, Text);
+    return PvLayoutWordMatchStringRef(Context, &text);
+}
+
+BOOLEAN PvLayoutTreeFilterCallback(
+    _In_ PPH_TREENEW_NODE Node,
+    _In_opt_ PVOID Context
+    )
+{
+    PPV_PE_LAYOUT_CONTEXT context = Context;
+    PPV_LAYOUT_NODE node = (PPV_LAYOUT_NODE)Node;
+
+    if (PhIsNullOrEmptyString(context->SearchboxText))
+        return TRUE;
+
+    if (!PhIsNullOrEmptyString(node->Name))
+    {
+        if (PvLayoutWordMatchStringRef(context, &node->Name->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(node->Value))
+    {
+        if (PvLayoutWordMatchStringRef(context, &node->Value->sr))
+            return TRUE;
+    }
+
+    return FALSE;
 }
 
 #define FILE_LAYOUT_ENTRY_VERSION 0x1
@@ -1131,6 +1193,15 @@ NTSTATUS PvLayoutEnumerateFileLayouts(
                 PvAddChildLayoutNode(Context, parentNode, L"Size", PhFormatSize(fileLayoutSteamEntry->EndOfFile.QuadPart, ULONG_MAX));
                 PvAddChildLayoutNode(Context, parentNode, L"Allocated Size", PhFormatSize(fileLayoutSteamEntry->AllocationSize.QuadPart, ULONG_MAX));
 
+                if (fileLayoutSteamEntry->StreamInformationOffset)
+                {
+                    //PFILE_FULL_EA_INFORMATION eaattr = PTR_ADD_OFFSET(fileLayoutSteamEntry, fileLayoutSteamEntry->StreamInformationOffset);
+                    //PVOID data = PTR_ADD_OFFSET(fileLayoutSteamEntry, fileLayoutSteamEntry->StreamInformationOffset);
+                    //CHAR databuffer[PAGE_SIZE] = { 0 };
+                    //memcpy(databuffer, data, 64);
+                    //PvAddChildLayoutNode(Context, parentNode, L"Data", PhFormatString(L"%I64x (%.*hs)", data, 64, data));
+                }
+
                 if (fileLayoutSteamEntry->ExtentInformationOffset)
                 {
                     PSTREAM_EXTENT_ENTRY streamExtentEntry;
@@ -1184,22 +1255,26 @@ INT_PTR CALLBACK PvpPeLayoutDlgProc(
     _In_ LPARAM lParam
     )
 {
-    LPPROPSHEETPAGE propSheetPage;
-    PPV_PROPPAGECONTEXT propPageContext;
     PPV_PE_LAYOUT_CONTEXT context;
-
-    if (!PvPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext))
-        return FALSE;
 
     if (uMsg == WM_INITDIALOG)
     {
-        context = propPageContext->Context = PhAllocate(sizeof(PV_PE_LAYOUT_CONTEXT));
-        memset(context, 0, sizeof(PV_PE_LAYOUT_CONTEXT));
+        context = PhAllocateZero(sizeof(PV_PE_LAYOUT_CONTEXT));
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+
+        if (lParam)
+        {
+            LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
+            context->PropSheetContext = (PPV_PROPPAGECONTEXT)propSheetPage->lParam;
+        }
     }
     else
     {
-        context = propPageContext->Context;
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
     }
+
+    if (!context)
+        return FALSE;
 
     switch (uMsg)
     {
@@ -1208,8 +1283,19 @@ INT_PTR CALLBACK PvpPeLayoutDlgProc(
             NTSTATUS status;
 
             context->WindowHandle = hwndDlg;
-            context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_SYMBOLTREE);
+            context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_TREELIST);
+            context->SearchHandle = GetDlgItem(hwndDlg, IDC_TREESEARCH);
+            context->SearchboxText = PhReferenceEmptyString();
+
+            PvCreateSearchControl(context->SearchHandle, L"Search Layout (Ctrl+K)");
+            PvConfigTreeBorders(context->TreeNewHandle);
+
             PvInitializeLayoutTree(context);
+            PhAddTreeNewFilter(&context->FilterSupport, PvLayoutTreeFilterCallback, context);
+
+            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhAddLayoutItem(&context->LayoutManager, context->SearchHandle, NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&context->LayoutManager, context->TreeNewHandle, NULL, PH_ANCHOR_ALL);
 
             if (!NT_SUCCESS(status = PvLayoutEnumerateFileLayouts(context)))
             {
@@ -1225,25 +1311,53 @@ INT_PTR CALLBACK PvpPeLayoutDlgProc(
         {
             PvDeleteLayoutTree(context);
 
+            PhDeleteLayoutManager(&context->LayoutManager);
+
             PhFree(context);
         }
         break;
     case WM_SHOWWINDOW:
         {
-            if (!propPageContext->LayoutInitialized)
+            if (context->PropSheetContext && !context->PropSheetContext->LayoutInitialized)
             {
-                PPH_LAYOUT_ITEM dialogItem;
-
-                dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
-                PvAddPropPageLayoutItem(hwndDlg, context->TreeNewHandle, dialogItem, PH_ANCHOR_ALL);
+                PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
                 PvDoPropPageLayout(hwndDlg);
 
-                propPageContext->LayoutInitialized = TRUE;
+                context->PropSheetContext->LayoutInitialized = TRUE;
             }
+        }
+        break;
+    case WM_SIZE:
+        {
+            PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
     case WM_COMMAND:
         {
+            switch (GET_WM_COMMAND_CMD(wParam, lParam))
+            {
+            case EN_CHANGE:
+                {
+                    PPH_STRING newSearchboxText;
+
+                    newSearchboxText = PH_AUTO(PhGetWindowText(context->SearchHandle));
+
+                    if (!PhEqualString(context->SearchboxText, newSearchboxText, FALSE))
+                    {
+                        PhSwapReference(&context->SearchboxText, newSearchboxText);
+
+                        if (!PhIsNullOrEmptyString(context->SearchboxText))
+                        {
+                            //PhExpandAllProcessNodes(TRUE);
+                            //PhDeselectAllProcessNodes();
+                        }
+
+                        PhApplyTreeNewFilters(&context->FilterSupport);
+                    }
+                }
+                break;
+            }
+
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case WM_PV_LAYOUT_CONTEXTMENU:
@@ -1254,7 +1368,8 @@ INT_PTR CALLBACK PvpPeLayoutDlgProc(
                     PPV_LAYOUT_NODE* nodes = NULL;
                     ULONG numberOfNodes = 0;
 
-                    PvGetSelectedLayoutNodes(context, &nodes, &numberOfNodes);
+                    if (!PvGetSelectedLayoutNodes(context, &nodes, &numberOfNodes))
+                        break;
 
                     if (numberOfNodes != 0)
                     {
@@ -1296,6 +1411,18 @@ INT_PTR CALLBACK PvpPeLayoutDlgProc(
                     PhFree(nodes);
                 }
                 break;
+            }
+        }
+        break;
+    case WM_NOTIFY:
+        {
+            LPNMHDR header = (LPNMHDR)lParam;
+
+            switch (header->code)
+            {
+            case PSN_QUERYINITIALFOCUS:
+                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LONG_PTR)context->TreeNewHandle);
+                return TRUE;
             }
         }
         break;

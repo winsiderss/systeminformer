@@ -2,7 +2,7 @@
  * Process Hacker -
  *   property sheet 
  *
- * Copyright (C) 2017 dmex
+ * Copyright (C) 2017-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -20,7 +20,7 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// NOTE: Copied from processhacker2\ProcessHacker\procprp.c
+// NOTE: Copied from processhacker\ProcessHacker\procprp.c
 
 #include <peview.h>
 #include <secedit.h>
@@ -138,12 +138,7 @@ LRESULT CALLBACK PvpButtonWndProc(
         {
             if (GET_WM_COMMAND_HWND(wParam, lParam) == OptionsButton)
             {
-                DialogBox(
-                    PhInstanceHandle,
-                    MAKEINTRESOURCE(IDD_OPTIONS),
-                    hwndDlg,
-                    PvOptionsWndProc
-                    );
+                PvShowOptionsWindow(hwndDlg);
             }
             else if (GET_WM_COMMAND_HWND(wParam, lParam) == SecurityButton)
             {
@@ -482,6 +477,9 @@ VOID PhpInitializePropSheetLayoutStage2(
 
     windowRectangle.Position = PhGetIntegerPairSetting(L"MainWindowPosition");
     windowRectangle.Size = PhGetScalableIntegerPairSetting(L"MainWindowSize", TRUE).Pair;
+
+    if (!windowRectangle.Position.X)
+        return;
 
     if (windowRectangle.Size.X < MinimumSize.right)
         windowRectangle.Size.X = MinimumSize.right;

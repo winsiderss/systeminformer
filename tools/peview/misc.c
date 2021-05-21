@@ -3,7 +3,7 @@
  *   PE viewer
  *
  * Copyright (C) 2011 wj32
- * Copyright (C) 2019-2020 dmex
+ * Copyright (C) 2019-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -367,7 +367,7 @@ VOID PvHandleListViewCommandCopy(
         point.y = GET_Y_LPARAM(lParam);
 
         if (point.x == -1 && point.y == -1)
-            PvGetListViewContextMenuPoint((HWND)wParam, &point);
+            PvGetListViewContextMenuPoint(ListViewHandle, &point);
 
         PhGetSelectedListViewItemParams(ListViewHandle, &listviewItems, &numberOfItems);
 
@@ -406,6 +406,18 @@ VOID PvHandleListViewCommandCopy(
         }
 
         PhFree(listviewItems);
+    }
+}
+
+VOID PvConfigTreeBorders(
+    _In_ HWND WindowHandle
+    )
+{
+    if (!PhGetIntegerSetting(L"EnableTreeListBorder"))
+    {
+        PhSetWindowStyle(WindowHandle, WS_BORDER, 0);
+        PhSetWindowExStyle(WindowHandle, WS_EX_CLIENTEDGE, 0);
+        SetWindowPos(WindowHandle, HWND_TOP, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
     }
 }
 
@@ -610,7 +622,7 @@ BOOLEAN PhHandleTreeNewColumnMenu(
         break;
     case PH_TN_COLUMN_MENU_CHOOSE_COLUMNS_ID:
         {
-            //PhShowChooseColumnsDialog(Data->TreeNewHandle, Data->TreeNewHandle, PH_CONTROL_TYPE_TREE_NEW);
+            PvShowChooseColumnsDialog(Data->TreeNewHandle, Data->TreeNewHandle, PV_CONTROL_TYPE_TREE_NEW);
             PhpEnsureValidSortColumnTreeNew(Data->TreeNewHandle, Data->DefaultSortColumn, Data->DefaultSortOrder);
         }
         break;

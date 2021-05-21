@@ -347,6 +347,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="cfgprp.c" />
+    <ClCompile Include="chcol.c" />
     <ClCompile Include="clrprp.c" />
     <ClCompile Include="colmgr.c" />
     <ClCompile Include="attributes.c" />
@@ -358,6 +359,7 @@
     <ClCompile Include="exlfprp.c" />
     <ClCompile Include="hashprp.c" />
     <ClCompile Include="layout.c" />
+    <ClCompile Include="peprpwnd.c" />
     <ClCompile Include="options.c" />
     <ClCompile Include="peexceptprp.c" />
     <ClCompile Include="perelocprp.c" />

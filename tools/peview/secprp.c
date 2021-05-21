@@ -33,8 +33,10 @@ typedef struct _PV_PE_CERTIFICATE_CONTEXT
     HWND LabelHandle;
     HWND SearchHandle;
     HWND TreeNewHandle;
-    PPH_STRING SearchText;
+    PH_LAYOUT_MANAGER LayoutManager;
+    PPV_PROPPAGECONTEXT PropSheetContext;
     PPH_TN_FILTER_ENTRY TreeFilterEntry;
+    PPH_STRING SearchText;
     ULONG TotalSize;
     ULONG TotalCount;
     ULONG TreeNewSortColumn;
@@ -121,17 +123,6 @@ BOOLEAN PvpPeFillNodeCertificateInfo(
     _In_ PPV_CERTIFICATE_NODE CertificateNode
     );
 
-BOOLEAN PhInsertCopyCellEMenuItem(
-    _In_ struct _PH_EMENU_ITEM* Menu,
-    _In_ ULONG InsertAfterId,
-    _In_ HWND TreeNewHandle,
-    _In_ PPH_TREENEW_COLUMN Column
-    );
-
-BOOLEAN PhHandleCopyCellEMenuItem(
-    _In_ struct _PH_EMENU_ITEM* SelectedItem
-    );
-
 VOID PvpPeEnumerateNestedSignatures(
     _In_ PPV_PE_CERTIFICATE_CONTEXT Context,
     _In_ PCMSG_SIGNER_INFO SignerInfo
@@ -159,17 +150,6 @@ static BOOLEAN WordMatchStringRef(
     }
 
     return FALSE;
-}
-
-static BOOLEAN WordMatchStringZ(
-    _In_ PPV_PE_CERTIFICATE_CONTEXT Context,
-    _In_ PWSTR Text
-    )
-{
-    PH_STRINGREF text;
-
-    PhInitializeStringRef(&text, Text);
-    return WordMatchStringRef(Context, &text);
 }
 
 BOOLEAN PvCertificateTreeFilterCallback(
@@ -282,10 +262,10 @@ BOOLEAN PvCertificateNodeHashtableEqualFunction(
     _In_ PVOID Entry2
     )
 {
-    PPV_CERTIFICATE_NODE windowNode1 = *(PPV_CERTIFICATE_NODE*)Entry1;
-    PPV_CERTIFICATE_NODE windowNode2 = *(PPV_CERTIFICATE_NODE*)Entry2;
+    PPV_CERTIFICATE_NODE node1 = *(PPV_CERTIFICATE_NODE*)Entry1;
+    PPV_CERTIFICATE_NODE node2 = *(PPV_CERTIFICATE_NODE*)Entry2;
 
-    return windowNode1->Node.Index == windowNode2->Node.Index;
+    return node1->Node.Index == node2->Node.Index;
 }
 
 ULONG PvCertificateNodeHashtableHashFunction(
@@ -302,28 +282,28 @@ PPV_CERTIFICATE_NODE PvAddCertificateNode(
     )
 {
     //static ULONG64 index = 0;
-    PPV_CERTIFICATE_NODE windowNode;
+    PPV_CERTIFICATE_NODE node;
 
-    windowNode = PhAllocateZero(sizeof(PV_CERTIFICATE_NODE));
-    //windowNode->UniqueId = ++index;
-    PhInitializeTreeNewNode(&windowNode->Node);
+    node = PhAllocateZero(sizeof(PV_CERTIFICATE_NODE));
+    //node->UniqueId = ++index;
+    PhInitializeTreeNewNode(&node->Node);
 
-    memset(windowNode->TextCache, 0, sizeof(PH_STRINGREF) * PV_CERTIFICATE_TREE_COLUMN_NAME_MAXIMUM);
-    windowNode->Node.TextCache = windowNode->TextCache;
-    windowNode->Node.TextCacheSize = PV_CERTIFICATE_TREE_COLUMN_NAME_MAXIMUM;
+    memset(node->TextCache, 0, sizeof(PH_STRINGREF) * PV_CERTIFICATE_TREE_COLUMN_NAME_MAXIMUM);
+    node->Node.TextCache = node->TextCache;
+    node->Node.TextCacheSize = PV_CERTIFICATE_TREE_COLUMN_NAME_MAXIMUM;
 
-    windowNode->Type = CertType;
-    windowNode->CertContext = CertContext;
-    windowNode->Children = PhCreateList(1);
-    PvpPeFillNodeCertificateInfo(Context, CertType, CertContext, windowNode);
+    node->Type = CertType;
+    node->CertContext = CertContext;
+    node->Children = PhCreateList(1);
+    PvpPeFillNodeCertificateInfo(Context, CertType, CertContext, node);
 
-    PhAddEntryHashtable(Context->NodeHashtable, &windowNode);
-    PhAddItemList(Context->NodeList, windowNode);
+    PhAddEntryHashtable(Context->NodeHashtable, &node);
+    PhAddItemList(Context->NodeList, node);
 
     if (Context->FilterSupport.FilterList)
-       windowNode->Node.Visible = PhApplyTreeNewFiltersToNode(&Context->FilterSupport, &windowNode->Node);
+        node->Node.Visible = PhApplyTreeNewFiltersToNode(&Context->FilterSupport, &node->Node);
 
-    return windowNode;
+    return node;
 }
 
 PPV_CERTIFICATE_NODE PvAddChildCertificateNode(
@@ -362,61 +342,61 @@ PPV_CERTIFICATE_NODE PvFindCertificateNode(
     _In_ ULONG UniqueId
     )
 {
-    PV_CERTIFICATE_NODE lookupWindowNode;
-    PPV_CERTIFICATE_NODE lookupWindowNodePtr = &lookupWindowNode;
-    PPV_CERTIFICATE_NODE* windowNode;
+    PV_CERTIFICATE_NODE lookupNode;
+    PPV_CERTIFICATE_NODE lookupNodePtr = &lookupNode;
+    PPV_CERTIFICATE_NODE* node;
 
-    lookupWindowNode.Node.Index = UniqueId;
+    lookupNode.Node.Index = UniqueId;
 
-    windowNode = (PPV_CERTIFICATE_NODE*)PhFindEntryHashtable(
+    node = (PPV_CERTIFICATE_NODE*)PhFindEntryHashtable(
         Context->NodeHashtable,
-        &lookupWindowNodePtr
+        &lookupNodePtr
         );
 
-    if (windowNode)
-        return *windowNode;
+    if (node)
+        return *node;
     else
         return NULL;
 }
 
 VOID PvRemoveCertificateNode(
     _In_ PPV_PE_CERTIFICATE_CONTEXT Context,
-    _In_ PPV_CERTIFICATE_NODE WindowNode
+    _In_ PPV_CERTIFICATE_NODE Node
     )
 {
     ULONG index;
 
     // Remove from hashtable/list and cleanup.
 
-    PhRemoveEntryHashtable(Context->NodeHashtable, &WindowNode);
+    PhRemoveEntryHashtable(Context->NodeHashtable, &Node);
 
-    if ((index = PhFindItemList(Context->NodeList, WindowNode)) != ULONG_MAX)
+    if ((index = PhFindItemList(Context->NodeList, Node)) != ULONG_MAX)
         PhRemoveItemList(Context->NodeList, index);
 
-    PvDestroyCertificateNode(WindowNode);
+    PvDestroyCertificateNode(Node);
 
     TreeNew_NodesStructured(Context->TreeNewHandle);
 }
 
 VOID PvDestroyCertificateNode(
-    _In_ PPV_CERTIFICATE_NODE WindowNode
+    _In_ PPV_CERTIFICATE_NODE Node
     )
 {
-    PhDereferenceObject(WindowNode->Children);
+    PhDereferenceObject(Node->Children);
 
-    if (WindowNode->Name) PhDereferenceObject(WindowNode->Name);
-    if (WindowNode->Issuer) PhDereferenceObject(WindowNode->Issuer);
-    if (WindowNode->DateFrom) PhDereferenceObject(WindowNode->DateFrom);
-    if (WindowNode->DateTo) PhDereferenceObject(WindowNode->DateTo);
-    if (WindowNode->Thumbprint) PhDereferenceObject(WindowNode->Thumbprint);
-    if (WindowNode->IndexString) PhDereferenceObject(WindowNode->IndexString);
-    if (WindowNode->SizeString) PhDereferenceObject(WindowNode->SizeString);
+    if (Node->Name) PhDereferenceObject(Node->Name);
+    if (Node->Issuer) PhDereferenceObject(Node->Issuer);
+    if (Node->DateFrom) PhDereferenceObject(Node->DateFrom);
+    if (Node->DateTo) PhDereferenceObject(Node->DateTo);
+    if (Node->Thumbprint) PhDereferenceObject(Node->Thumbprint);
+    if (Node->IndexString) PhDereferenceObject(Node->IndexString);
+    if (Node->SizeString) PhDereferenceObject(Node->SizeString);
 
-    //if (WindowNode->WindowText) PhDereferenceObject(WindowNode->WindowText);
-    //if (WindowNode->ThreadString) PhDereferenceObject(WindowNode->ThreadString);
-    //if (WindowNode->ModuleString) PhDereferenceObject(WindowNode->ModuleString);
+    //if (Node->WindowText) PhDereferenceObject(Node->WindowText);
+    //if (Node->ThreadString) PhDereferenceObject(Node->ThreadString);
+    //if (Node->ModuleString) PhDereferenceObject(Node->ModuleString);
 
-    PhFree(WindowNode);
+    PhFree(Node);
 }
 
 #define SORT_FUNCTION(Column) PvCertificateTreeNewCompare##Column
@@ -743,32 +723,29 @@ PPV_CERTIFICATE_NODE PvGetSelectedCertificateNode(
     _In_ PPV_PE_CERTIFICATE_CONTEXT Context
     )
 {
-    PPV_CERTIFICATE_NODE windowNode = NULL;
+    PPV_CERTIFICATE_NODE node = NULL;
     ULONG i;
 
     for (i = 0; i < Context->NodeList->Count; i++)
     {
-        windowNode = Context->NodeList->Items[i];
+        node = Context->NodeList->Items[i];
 
-        if (windowNode->Node.Selected)
-            return windowNode;
+        if (node->Node.Selected)
+            return node;
     }
 
     return NULL;
 }
 
-VOID PvGetSelectedCertificateNodes(
+BOOLEAN PvGetSelectedCertificateNodes(
     _In_ PPV_PE_CERTIFICATE_CONTEXT Context,
-    _Out_ PPV_CERTIFICATE_NODE**Windows,
-    _Out_ PULONG NumberOfWindows
+    _Out_ PPV_CERTIFICATE_NODE **Nodes,
+    _Out_ PULONG NumberOfNodes
     )
 {
-    PPH_LIST list;
-    ULONG i;
+    PPH_LIST list = PhCreateList(2);
 
-    list = PhCreateList(2);
-
-    for (i = 0; i < Context->NodeList->Count; i++)
+    for (ULONG i = 0; i < Context->NodeList->Count; i++)
     {
         PPV_CERTIFICATE_NODE node = Context->NodeList->Items[i];
 
@@ -780,11 +757,15 @@ VOID PvGetSelectedCertificateNodes(
 
     if (list->Count)
     {
-        *Windows = PhAllocateCopy(list->Items, sizeof(PVOID) * list->Count);
-        *NumberOfWindows = list->Count;
+        *Nodes = PhAllocateCopy(list->Items, sizeof(PVOID) * list->Count);
+        *NumberOfNodes = list->Count;
+
+        PhDereferenceObject(list);
+        return TRUE;
     }
 
     PhDereferenceObject(list);
+    return FALSE;
 }
 
 VOID PvExpandAllCertificateNodes(
@@ -1062,6 +1043,20 @@ BOOLEAN PvpPeFillNodeCertificateInfo(
         PhFree(hash);
     }
 
+    //if (
+    //    ((ULONG_PTR)indirect->Data.pszObjId >> 16) == 0 ||
+    //    !RtlEqualMemory(indirect->Data.pszObjId, SPC_PE_IMAGE_DATA_OBJID, sizeof(SPC_PE_IMAGE_DATA_OBJID)) &&
+    //    !RtlEqualMemory(indirect->Data.pszObjId, SPC_CAB_DATA_OBJID, sizeof(SPC_CAB_DATA_OBJID))
+    //    )
+    //{
+    //    return TRUST_E_NOSIGNATURE;
+    //}
+
+    for (ULONG i = 0; i < CertificateContext->pCertInfo->cExtension; i++)
+    {
+        dprintf("%s\n", CertificateContext->pCertInfo->rgExtension[i].pszObjId);
+    }
+
     //if (CertificateContext->pCertInfo && CertificateContext->pCertInfo->SignatureAlgorithm.pszObjId)
     //{
     //    PCCRYPT_OID_INFO oidinfo = CryptFindOIDInfo(CRYPT_OID_INFO_OID_KEY, CertificateContext->pCertInfo->SignatureAlgorithm.pszObjId, 0);
@@ -1130,6 +1125,108 @@ PCMSG_SIGNER_INFO PvpPeGetSignerInfoIndex(
 
     return signerInfo;
 }
+
+DWORD SOFTPUB_DecodeInnerContent(_In_ HCRYPTMSG CryptMessageHandle)
+{
+    BOOL ret;
+    DWORD size, err = ERROR_SUCCESS;
+    LPSTR oid = NULL;
+    LPBYTE buf = NULL;
+    PWSTR algID;
+
+    ret = CryptMsgGetParam(CryptMessageHandle, CMSG_INNER_CONTENT_TYPE_PARAM, 0, NULL, &size);
+    if (!ret)
+    {
+        err = GetLastError();
+        goto error;
+    }
+
+    oid = PhAllocateSafe(size);
+    if (!oid)
+    {
+        err = ERROR_OUTOFMEMORY;
+        goto error;
+    }
+
+    ret = CryptMsgGetParam(CryptMessageHandle, CMSG_INNER_CONTENT_TYPE_PARAM, 0, oid, &size);
+    if (!ret)
+    {
+        err = GetLastError();
+        goto error;
+    }
+
+    ret = CryptMsgGetParam(CryptMessageHandle, CMSG_CONTENT_PARAM, 0, NULL, &size);
+    if (!ret)
+    {
+        err = GetLastError();
+        goto error;
+    }
+
+    buf = PhAllocateSafe(size);
+    if (!buf)
+    {
+        err = ERROR_OUTOFMEMORY;
+        goto error;
+    }
+
+    ret = CryptMsgGetParam(CryptMessageHandle, CMSG_CONTENT_PARAM, 0, buf, &size);
+    if (!ret)
+    {
+        err = GetLastError();
+        goto error;
+    }
+
+    ret = CryptDecodeObjectEx(X509_ASN_ENCODING | PKCS_7_ASN_ENCODING, oid, buf, size, 0, NULL, NULL, &size);
+    if (!ret)
+    {
+        err = GetLastError();
+        goto error;
+    }
+
+    PVOID psIndirectData = PhAllocateSafe(size);
+    if (!psIndirectData)
+    {
+        err = ERROR_OUTOFMEMORY;
+        goto error;
+    }
+
+    ret = CryptDecodeObjectEx(X509_ASN_ENCODING | PKCS_7_ASN_ENCODING, oid, buf, size, 0, NULL, psIndirectData, &size);
+    if (!ret)
+        err = GetLastError();
+
+
+
+    SPC_INDIRECT_DATA_CONTENT* indirect = (SPC_INDIRECT_DATA_CONTENT*)psIndirectData;
+
+    if (
+        ((ULONG_PTR)indirect->Data.pszObjId >> 16) == 0 ||
+        !RtlEqualMemory(indirect->Data.pszObjId, SPC_PE_IMAGE_DATA_OBJID, sizeof(SPC_PE_IMAGE_DATA_OBJID)) &&
+        !RtlEqualMemory(indirect->Data.pszObjId, SPC_CAB_DATA_OBJID, sizeof(SPC_CAB_DATA_OBJID))
+        )
+    {
+        return TRUST_E_NOSIGNATURE;
+    }
+
+    if (RtlEqualMemory(indirect->DigestAlgorithm.pszObjId, szOID_OIWSEC_sha1, sizeof(szOID_OIWSEC_sha1)))
+        algID = BCRYPT_SHA1_ALGORITHM;
+    else if (RtlEqualMemory(indirect->DigestAlgorithm.pszObjId, szOID_NIST_sha256, sizeof(szOID_NIST_sha256)))
+        algID = BCRYPT_SHA256_ALGORITHM;
+    else
+    {
+        //algID = CertOIDToAlgId(indirect->DigestAlgorithm.pszObjId);
+        algID = BCRYPT_SHA1_ALGORITHM;
+    }
+
+
+    PPH_STRING authentiHash = PhBufferToHexString(indirect->Digest.pbData, indirect->Digest.cbData);
+
+error:
+    PhFree(oid);
+    PhFree(buf);
+
+    return err;
+}
+
 
 typedef struct _PV_CERT_ENUM_CONTEXT
 {
@@ -1328,6 +1425,10 @@ VOID PvpPeEnumerateFileCertificates(
 
         if (certificateDirectory->wCertificateType == WIN_CERT_TYPE_PKCS_SIGNED_DATA)
         {
+            //RTL_FIELD_SIZE(WIN_CERTIFICATE, dwLength) - RTL_FIELD_SIZE(WIN_CERTIFICATE, wRevision) - RTL_FIELD_SIZE(WIN_CERTIFICATE, wCertificateType)
+            //CRYPT_DATA_BLOB certificateData = { certificateDirectory->dwLength, certificateDirectory->bCertificate };
+            //HCERTSTORE store = CertOpenStore(CERT_STORE_PROV_PKCS7, X509_ASN_ENCODING | PKCS_7_ASN_ENCODING, 0, 0, &certificateData);
+
             CryptQueryObject(
                 CERT_QUERY_OBJECT_BLOB,
                 &certificateBlob,
@@ -1474,22 +1575,26 @@ INT_PTR CALLBACK PvpPeSecurityDlgProc(
     _In_ LPARAM lParam
     )
 {
-    LPPROPSHEETPAGE propSheetPage;
-    PPV_PROPPAGECONTEXT propPageContext;
     PPV_PE_CERTIFICATE_CONTEXT context;
-
-    if (!PvPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext))
-        return FALSE;
 
     if (uMsg == WM_INITDIALOG)
     {
-        context = propPageContext->Context = PhAllocate(sizeof(PV_PE_CERTIFICATE_CONTEXT));
-        memset(context, 0, sizeof(PV_PE_CERTIFICATE_CONTEXT));
+        context = PhAllocateZero(sizeof(PV_PE_CERTIFICATE_CONTEXT));
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+
+        if (lParam)
+        {
+            LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
+            context->PropSheetContext = (PPV_PROPPAGECONTEXT)propSheetPage->lParam;
+        }
     }
     else
     {
-        context = propPageContext->Context;
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
     }
+
+    if (!context)
+        return FALSE;
 
     switch (uMsg)
     {
@@ -1497,12 +1602,18 @@ INT_PTR CALLBACK PvpPeSecurityDlgProc(
         {
             context->WindowHandle = hwndDlg;
             context->LabelHandle = GetDlgItem(hwndDlg, IDC_NAME);
-            context->SearchHandle = GetDlgItem(hwndDlg, IDC_SYMSEARCH);
-            context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_SYMBOLTREE);
+            context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_TREELIST);
+            context->SearchHandle = GetDlgItem(hwndDlg, IDC_TREESEARCH);
             context->SearchText = PhReferenceEmptyString();
 
             PvCreateSearchControl(context->SearchHandle, L"Search Certificates (Ctrl+K)");
             PvInitializeCertificateTree(context);
+            PvConfigTreeBorders(context->TreeNewHandle);
+
+            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhAddLayoutItem(&context->LayoutManager, context->LabelHandle, NULL, PH_ANCHOR_TOP | PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&context->LayoutManager, context->SearchHandle, NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&context->LayoutManager, context->TreeNewHandle, NULL, PH_ANCHOR_ALL);
 
             PvpPeEnumerateFileCertificates(context);
 
@@ -1513,23 +1624,25 @@ INT_PTR CALLBACK PvpPeSecurityDlgProc(
         {
             PvDeleteCertificateTree(context);
 
+            PhDeleteLayoutManager(&context->LayoutManager);
+
             PhFree(context);
         }
         break;
     case WM_SHOWWINDOW:
         {
-            if (!propPageContext->LayoutInitialized)
+            if (context->PropSheetContext && !context->PropSheetContext->LayoutInitialized)
             {
-                PPH_LAYOUT_ITEM dialogItem;
-
-                dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
-                PvAddPropPageLayoutItem(hwndDlg, context->LabelHandle, dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT);
-                PvAddPropPageLayoutItem(hwndDlg, context->SearchHandle, dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PvAddPropPageLayoutItem(hwndDlg, context->TreeNewHandle, dialogItem, PH_ANCHOR_ALL);
+                PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
                 PvDoPropPageLayout(hwndDlg);
 
-                propPageContext->LayoutInitialized = TRUE;
+                context->PropSheetContext->LayoutInitialized = TRUE;
             }
+        }
+        break;
+    case WM_SIZE:
+        {
+            PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
     case WM_COMMAND:
@@ -1578,7 +1691,8 @@ INT_PTR CALLBACK PvpPeSecurityDlgProc(
                     PPV_CERTIFICATE_NODE* nodes = NULL;
                     ULONG numberOfNodes = 0;
 
-                    PvGetSelectedCertificateNodes(context, &nodes, &numberOfNodes);
+                    if (!PvGetSelectedCertificateNodes(context, &nodes, &numberOfNodes))
+                        break;
 
                     if (numberOfNodes != 0)
                     {

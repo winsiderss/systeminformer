@@ -20,7 +20,7 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// NOTE: Copied from processhacker2\ProcessHacker\procprp.h
+// NOTE: Copied from processhacker\ProcessHacker\procprp.h
 
 #ifndef PV_PRP_H
 #define PV_PRP_H

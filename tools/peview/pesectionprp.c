@@ -21,70 +21,175 @@
  */
 
 #include <peview.h>
+#include "colmgr.h"
+
 #include "ssdeep/fuzzy.h"
 #include "tlsh/tlsh_wrapper.h"
 
-typedef struct _PV_PE_SECTION_CONTEXT
-{
-    HWND WindowHandle;
-    HWND ListViewHandle;
-    HIMAGELIST ListViewImageList;
-} PV_PE_SECTION_CONTEXT, *PPV_PE_SECTION_CONTEXT;
+static PH_STRINGREF EmptySectionsText = PH_STRINGREF_INIT(L"There are no sections to display.");
+static PH_STRINGREF LoadingSectionsText = PH_STRINGREF_INIT(L"Loading sections from image...");
 
-COLORREF NTAPI PvPeCharacteristicsColorFunction(
-    _In_ INT Index,
-    _In_ PVOID Param,
+typedef enum _PV_SECTION_TREE_COLUMN_ITEM
+{
+    PV_SECTION_TREE_COLUMN_ITEM_INDEX,
+    PV_SECTION_TREE_COLUMN_ITEM_NAME,
+    PV_SECTION_TREE_COLUMN_ITEM_RAW_START,
+    PV_SECTION_TREE_COLUMN_ITEM_RAW_END,
+    PV_SECTION_TREE_COLUMN_ITEM_RAW_SIZE,
+    PV_SECTION_TREE_COLUMN_ITEM_RVA_START,
+    PV_SECTION_TREE_COLUMN_ITEM_RVA_END,
+    PV_SECTION_TREE_COLUMN_ITEM_RVA_SIZE,
+    PV_SECTION_TREE_COLUMN_ITEM_CHARACTERISTICS,
+    PV_SECTION_TREE_COLUMN_ITEM_HASH,
+    PV_SECTION_TREE_COLUMN_ITEM_ENTROPY,
+    PV_SECTION_TREE_COLUMN_ITEM_SSDEEP,
+    PV_SECTION_TREE_COLUMN_ITEM_TLSH,
+    PV_SECTION_TREE_COLUMN_ITEM_MAXIMUM
+} PV_SECTION_TREE_COLUMN_ITEM;
+
+typedef struct _PV_SECTION_NODE
+{
+    PH_TREENEW_NODE Node;
+
+    ULONG64 UniqueId;
+
+    PVOID RawStart;
+    PVOID RawEnd;
+    ULONG RawSize;
+    PVOID RvaStart;
+    PVOID RvaEnd;
+    ULONG RvaSize;
+    ULONG Characteristics;
+    DOUBLE SectionEntropy;
+    PPH_STRING UniqueIdString;
+    PPH_STRING SectionNameString;
+    PPH_STRING RawStartString;
+    PPH_STRING RawEndString;
+    PPH_STRING RawSizeString;
+    PPH_STRING RvaStartString;
+    PPH_STRING RvaEndString;
+    PPH_STRING RvaSizeString;
+    PPH_STRING CharacteristicsString;
+    PPH_STRING HashString;
+    PPH_STRING EntropyString;
+    PPH_STRING SsdeepString;
+    PPH_STRING TlshString;
+
+    PIMAGE_SECTION_HEADER SectionHeader;
+
+    PH_STRINGREF TextCache[PV_SECTION_TREE_COLUMN_ITEM_MAXIMUM];
+} PV_SECTION_NODE, *PPV_SECTION_NODE;
+
+typedef struct _PV_SECTION_CONTEXT
+{
+    HWND DialogHandle;
+    HWND SearchHandle;
+    HWND TreeNewHandle;
+    HWND ParentWindowHandle;
+    HANDLE UpdateTimerHandle;
+
+    PPH_STRING SearchboxText;
+    PPH_STRING TreeText;
+
+    PH_LAYOUT_MANAGER LayoutManager;
+    PPV_PROPPAGECONTEXT PropSheetContext;
+
+    ULONG SearchResultsAddIndex;
+    PPH_LIST SearchResults;
+    PH_QUEUED_LOCK SearchResultsLock;
+
+    PH_CM_MANAGER Cm;
+    ULONG TreeNewSortColumn;
+    PH_SORT_ORDER TreeNewSortOrder;
+    PH_TN_FILTER_SUPPORT FilterSupport;
+    PPH_HASHTABLE NodeHashtable;
+    PPH_LIST NodeList;
+} PV_SECTION_CONTEXT, *PPV_SECTION_CONTEXT;
+
+BOOLEAN PvSectionNodeHashtableCompareFunction(
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
+    );
+
+ULONG PvSectionNodeHashtableHashFunction(
+    _In_ PVOID Entry
+    );
+
+VOID PvDestroySectionNode(
+    _In_ PPV_SECTION_NODE Node
+    );
+
+VOID PvInitializeSectionTree(
+    _In_ PPV_SECTION_CONTEXT Context,
+    _In_ HWND ParentWindowHandle,
+    _In_ HWND TreeNewHandle
+    );
+
+VOID PvDeleteSectionTree(
+    _In_ PPV_SECTION_CONTEXT Context
+    );
+
+VOID PvSectionAddTreeNode(
+    _In_ PPV_SECTION_CONTEXT Context,
+    _In_ PPV_SECTION_NODE Entry
+    );
+
+BOOLEAN PvSectionTreeFilterCallback(
+    _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
+    );
+
+VOID PhLoadSettingsSectionList(
+    _Inout_ PPV_SECTION_CONTEXT Context
+    );
+
+VOID PhSaveSettingsSectionList(
+    _Inout_ PPV_SECTION_CONTEXT Context
+    );
+
+_Success_(return)
+BOOLEAN PvGetSelectedSectionNodes(
+    _In_ PPV_SECTION_CONTEXT Context,
+    _Out_ PPV_SECTION_NODE **Nodes,
+    _Out_ PULONG NumberOfNodes
+    );
+
+VOID PvAddPendingSectionNodes(
+    _In_ PPV_SECTION_CONTEXT Context
     )
 {
-    PIMAGE_SECTION_HEADER imageSection = Param;
+    ULONG i;
+    BOOLEAN needsFullUpdate = FALSE;
 
-    if (imageSection->Characteristics & IMAGE_SCN_MEM_WRITE)
-        return RGB(0xf0, 0xa0, 0xa0);
-    if (imageSection->Characteristics & IMAGE_SCN_MEM_EXECUTE)
-        return RGB(0xff, 0x93, 0x14);
-    if (imageSection->Characteristics & IMAGE_SCN_CNT_CODE)
-        return RGB(0xe0, 0xf0, 0xe0);
-    if (imageSection->Characteristics & IMAGE_SCN_MEM_READ)
-        return RGB(0xc0, 0xf0, 0xc0);
+    TreeNew_SetRedraw(Context->TreeNewHandle, FALSE);
 
-    return RGB(0xff, 0xff, 0xff);
+    PhAcquireQueuedLockExclusive(&Context->SearchResultsLock);
+
+    for (i = Context->SearchResultsAddIndex; i < Context->SearchResults->Count; i++)
+    {
+        PvSectionAddTreeNode(Context, Context->SearchResults->Items[i]);
+        needsFullUpdate = TRUE;
+    }
+    Context->SearchResultsAddIndex = i;
+
+    PhReleaseQueuedLockExclusive(&Context->SearchResultsLock);
+
+    if (needsFullUpdate)
+        TreeNew_NodesStructured(Context->TreeNewHandle);
+    TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
 }
 
-INT NTAPI PvPeVirtualAddressCompareFunction(
-    _In_ PVOID Item1,
-    _In_ PVOID Item2,
-    _In_opt_ PVOID Context
+VOID CALLBACK PvSectionTreeUpdateCallback(
+    _In_ PPV_SECTION_CONTEXT Context,
+    _In_ BOOLEAN TimerOrWaitFired
     )
 {
-    PIMAGE_SECTION_HEADER entry1 = Item1;
-    PIMAGE_SECTION_HEADER entry2 = Item2;
+    if (!Context->UpdateTimerHandle)
+        return;
 
-    return uintcmp(entry1->VirtualAddress, entry2->VirtualAddress);
-}
+    PvAddPendingSectionNodes(Context);
 
-INT NTAPI PvPeSizeOfRawDataCompareFunction(
-    _In_ PVOID Item1,
-    _In_ PVOID Item2,
-    _In_opt_ PVOID Context
-    )
-{
-    PIMAGE_SECTION_HEADER entry1 = Item1;
-    PIMAGE_SECTION_HEADER entry2 = Item2;
-
-    return uintcmp(entry1->SizeOfRawData, entry2->SizeOfRawData);
-}
-
-INT NTAPI PvPeCharacteristicsCompareFunction(
-    _In_ PVOID Item1,
-    _In_ PVOID Item2,
-    _In_opt_ PVOID Context
-    )
-{
-    PIMAGE_SECTION_HEADER entry1 = Item1;
-    PIMAGE_SECTION_HEADER entry2 = Item2;
-
-    return uintcmp(entry1->Characteristics, entry2->Characteristics);
+    RtlUpdateTimer(PhGetGlobalTimerQueue(), Context->UpdateTimerHandle, 1000, INFINITE);
 }
 
 PPH_STRING PvGetSectionCharacteristics(
@@ -149,159 +254,163 @@ PPH_STRING PvGetSectionCharacteristics(
     return PhFinalStringBuilderString(&stringBuilder);
 }
 
-VOID PvSetPeImageSections(
-    _In_ HWND ListViewHandle
+NTSTATUS PvpPeSectionsEnumerateThread(
+    _In_ PPV_SECTION_CONTEXT Context
     )
 {
-    ExtendedListView_SetRedraw(ListViewHandle, FALSE);
-    ListView_DeleteAllItems(ListViewHandle);
-
     for (ULONG i = 0; i < PvMappedImage.NumberOfSections; i++)
     {
-        INT lvItemIndex;
+        PPV_SECTION_NODE sectionNode;
+        ULONG sectionNameLength = 0;
         WCHAR sectionName[IMAGE_SIZEOF_SHORT_NAME + 1];
         WCHAR value[PH_INT64_STR_LEN_1];
+
+        sectionNode = PhAllocateZero(sizeof(PV_SECTION_NODE));
+        sectionNode->UniqueId = i + 1;
+        sectionNode->UniqueIdString = PhFormatUInt64(sectionNode->UniqueId, FALSE);
+        sectionNode->SectionHeader = &PvMappedImage.Sections[i];
 
         if (PhGetMappedImageSectionName(
             &PvMappedImage.Sections[i],
             sectionName,
             RTL_NUMBER_OF(sectionName),
-            NULL
+            &sectionNameLength
             ))
         {
-            PhPrintUInt32(value, i + 1);
-            lvItemIndex = PhAddListViewItem(ListViewHandle, MAXINT, value, &PvMappedImage.Sections[i]);
-            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, sectionName);
+            sectionNode->SectionNameString = PhCreateStringEx(sectionName, sectionNameLength * sizeof(WCHAR));
+        }
 
-            PhPrintPointer(value, UlongToPtr(PvMappedImage.Sections[i].PointerToRawData));
-            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, value);
-            PhPrintPointer(value, PTR_ADD_OFFSET(PvMappedImage.Sections[i].PointerToRawData, PvMappedImage.Sections[i].SizeOfRawData));
-            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, value);
-            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 4, PhaFormatSize(PvMappedImage.Sections[i].SizeOfRawData, ULONG_MAX)->Buffer);
+        // RAW
+        sectionNode->RawStart = UlongToPtr(PvMappedImage.Sections[i].PointerToRawData);
+        PhPrintPointer(value, sectionNode->RawStart);
+        sectionNode->RawStartString = PhCreateString(value);
+        sectionNode->RawEnd = PTR_ADD_OFFSET(PvMappedImage.Sections[i].PointerToRawData, PvMappedImage.Sections[i].SizeOfRawData);
+        PhPrintPointer(value, sectionNode->RawEnd);
+        sectionNode->RawEndString = PhCreateString(value);
+        sectionNode->RawSize = PvMappedImage.Sections[i].SizeOfRawData;
+        sectionNode->RawSizeString = PhFormatSize(sectionNode->RawSize, ULONG_MAX);
+        // RVA
+        sectionNode->RvaStart = UlongToPtr(PvMappedImage.Sections[i].VirtualAddress);
+        PhPrintPointer(value, sectionNode->RvaStart);
+        sectionNode->RvaStartString = PhCreateString(value);
+        sectionNode->RvaEnd = PTR_ADD_OFFSET(PvMappedImage.Sections[i].VirtualAddress, PvMappedImage.Sections[i].Misc.VirtualSize);
+        PhPrintPointer(value, sectionNode->RvaEnd);
+        sectionNode->RvaEndString = PhCreateString(value);
+        sectionNode->RvaSize = PvMappedImage.Sections[i].Misc.VirtualSize;
+        sectionNode->RvaSizeString = PhFormatSize(sectionNode->RvaSize, ULONG_MAX);
+        // SECTION
+        sectionNode->Characteristics = PvMappedImage.Sections[i].Characteristics;
+        sectionNode->CharacteristicsString = PvGetSectionCharacteristics(sectionNode->Characteristics);
 
-            PhPrintPointer(value, UlongToPtr(PvMappedImage.Sections[i].VirtualAddress));
-            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 5, value);
-            PhPrintPointer(value, PTR_ADD_OFFSET(PvMappedImage.Sections[i].VirtualAddress, PvMappedImage.Sections[i].Misc.VirtualSize));
-            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 6, value);
-            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 7, PhaFormatSize(PvMappedImage.Sections[i].Misc.VirtualSize, ULONG_MAX)->Buffer);
-
-            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 8, PH_AUTO_T(PH_STRING, PvGetSectionCharacteristics(PvMappedImage.Sections[i].Characteristics))->Buffer);
-
-            if (PvMappedImage.Sections[i].VirtualAddress && PvMappedImage.Sections[i].SizeOfRawData)
+        if (PvMappedImage.Sections[i].VirtualAddress && PvMappedImage.Sections[i].SizeOfRawData)
+        {
+            __try
             {
-                __try
-                {
-                    PVOID imageSectionData;
-                    PH_HASH_CONTEXT hashContext;
-                    PPH_STRING hashString;
-                    UCHAR hash[32];
+                PVOID imageSectionData;
+                PH_HASH_CONTEXT hashContext;
+                UCHAR hash[32];
 
-                    if (imageSectionData = PhMappedImageRvaToVa(&PvMappedImage, PvMappedImage.Sections[i].VirtualAddress, NULL))
+                if (imageSectionData = PhMappedImageRvaToVa(&PvMappedImage, PvMappedImage.Sections[i].VirtualAddress, NULL))
+                {
+                    PhInitializeHash(&hashContext, Md5HashAlgorithm); // PhGetIntegerSetting(L"HashAlgorithm")
+                    PhUpdateHash(&hashContext, imageSectionData, PvMappedImage.Sections[i].SizeOfRawData);
+
+                    if (PhFinalHash(&hashContext, hash, 16, NULL))
                     {
-                        PhInitializeHash(&hashContext, Md5HashAlgorithm); // PhGetIntegerSetting(L"HashAlgorithm")
-                        PhUpdateHash(&hashContext, imageSectionData, PvMappedImage.Sections[i].SizeOfRawData);
-
-                        if (PhFinalHash(&hashContext, hash, 16, NULL))
-                        {
-                            hashString = PhBufferToHexString(hash, 16);
-                            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 9, hashString->Buffer);
-                            PhDereferenceObject(hashString);
-                        }
+                        sectionNode->HashString = PhBufferToHexString(hash, 16);
                     }
-                }
-                __except (EXCEPTION_EXECUTE_HANDLER)
-                {
-                    PPH_STRING message;
-
-                    //message = PH_AUTO(PhGetNtMessage(GetExceptionCode()));
-                    message = PH_AUTO(PhGetWin32Message(RtlNtStatusToDosError(GetExceptionCode()))); // WIN32_FROM_NTSTATUS
-
-                    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 9, PhGetStringOrEmpty(message));
-                }
-
-                __try
-                {
-                    PVOID imageSectionData;
-                    PPH_STRING entropyString;
-                    DOUBLE imageSectionEntropy;
-
-                    if (imageSectionData = PhMappedImageRvaToVa(&PvMappedImage, PvMappedImage.Sections[i].VirtualAddress, NULL))
-                    {
-                        imageSectionEntropy = PvCalculateEntropyBuffer(imageSectionData, PvMappedImage.Sections[i].SizeOfRawData);
-                        entropyString = PvFormatDoubleCropZero(imageSectionEntropy, 2);
-                        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 10, entropyString->Buffer);
-                        PhDereferenceObject(entropyString);
-                    }
-                }
-                __except (EXCEPTION_EXECUTE_HANDLER)
-                {
-                    PPH_STRING message;
-
-                    //message = PH_AUTO(PhGetNtMessage(GetExceptionCode()));
-                    message = PH_AUTO(PhGetWin32Message(RtlNtStatusToDosError(GetExceptionCode()))); // WIN32_FROM_NTSTATUS
-
-                    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 10, PhGetStringOrEmpty(message));
-                }
-
-                __try
-                {
-                    PVOID imageSectionData;
-                    PPH_STRING ssdeepHashString = NULL;
-
-                    if (imageSectionData = PhMappedImageRvaToVa(&PvMappedImage, PvMappedImage.Sections[i].VirtualAddress, NULL))
-                    {
-                        fuzzy_hash_buffer(imageSectionData, PvMappedImage.Sections[i].SizeOfRawData, &ssdeepHashString);
-                        if (!PhIsNullOrEmptyString(ssdeepHashString))
-                        {
-                            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 11, ssdeepHashString->Buffer);
-                            PhDereferenceObject(ssdeepHashString);
-                        }
-                    }
-                }
-                __except (EXCEPTION_EXECUTE_HANDLER)
-                {
-                    PPH_STRING message;
-
-                    //message = PH_AUTO(PhGetNtMessage(GetExceptionCode()));
-                    message = PH_AUTO(PhGetWin32Message(RtlNtStatusToDosError(GetExceptionCode()))); // WIN32_FROM_NTSTATUS
-
-                    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 11, PhGetStringOrEmpty(message));
-                }
-
-                __try
-                {
-                    PVOID imageSectionData;
-                    PPH_STRING tlshHashString = NULL;
-
-                    if (imageSectionData = PhMappedImageRvaToVa(&PvMappedImage, PvMappedImage.Sections[i].VirtualAddress, NULL))
-                    {
-                        //
-                        // This can fail in TLSH library during finalization when
-                        // "buckets must be more than 50% non-zero" (see: tlsh_impl.cpp)
-                        //
-                        PvGetTlshBufferHash(imageSectionData, PvMappedImage.Sections[i].SizeOfRawData, &tlshHashString);
-                        if (!PhIsNullOrEmptyString(tlshHashString))
-                        {
-                            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 12, tlshHashString->Buffer);
-                            PhDereferenceObject(tlshHashString);
-                        }
-                    }
-                }
-                __except (EXCEPTION_EXECUTE_HANDLER)
-                {
-                    PPH_STRING message;
-
-                    //message = PH_AUTO(PhGetNtMessage(GetExceptionCode()));
-                    message = PH_AUTO(PhGetWin32Message(RtlNtStatusToDosError(GetExceptionCode()))); // WIN32_FROM_NTSTATUS
-
-                    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 12, PhGetStringOrEmpty(message));
                 }
             }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                //sectionNode->HashString = PhGetNtMessage(GetExceptionCode());
+                sectionNode->HashString = PhGetWin32Message(RtlNtStatusToDosError(GetExceptionCode())); // WIN32_FROM_NTSTATUS
+            }
+
+            __try
+            {
+                PVOID imageSectionData;
+                DOUBLE imageSectionEntropy;
+
+                if (imageSectionData = PhMappedImageRvaToVa(&PvMappedImage, PvMappedImage.Sections[i].VirtualAddress, NULL))
+                {
+                    imageSectionEntropy = PvCalculateEntropyBuffer(
+                        imageSectionData,
+                        PvMappedImage.Sections[i].SizeOfRawData
+                        );
+
+                    sectionNode->SectionEntropy = imageSectionEntropy;
+                    sectionNode->EntropyString = PvFormatDoubleCropZero(imageSectionEntropy, 2);
+                }
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                //sectionNode->EntropyString = PhGetNtMessage(GetExceptionCode());
+                sectionNode->EntropyString = PhGetWin32Message(RtlNtStatusToDosError(GetExceptionCode())); // WIN32_FROM_NTSTATUS
+            }
+
+            __try
+            {
+                PVOID imageSectionData;
+                PPH_STRING ssdeepHashString = NULL;
+
+                if (imageSectionData = PhMappedImageRvaToVa(&PvMappedImage, PvMappedImage.Sections[i].VirtualAddress, NULL))
+                {
+                    fuzzy_hash_buffer(
+                        imageSectionData,
+                        PvMappedImage.Sections[i].SizeOfRawData,
+                        &ssdeepHashString
+                        );
+
+                    if (ssdeepHashString)
+                    {
+                        sectionNode->SsdeepString = ssdeepHashString;
+                    }
+                }
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                //sectionNode->SsdeepString = PhGetNtMessage(GetExceptionCode());
+                sectionNode->SsdeepString = PhGetWin32Message(RtlNtStatusToDosError(GetExceptionCode())); // WIN32_FROM_NTSTATUS
+            }
+
+            __try
+            {
+                PVOID imageSectionData;
+                PPH_STRING tlshHashString = NULL;
+
+                if (imageSectionData = PhMappedImageRvaToVa(&PvMappedImage, PvMappedImage.Sections[i].VirtualAddress, NULL))
+                {
+                    //
+                    // This can fail in TLSH library during finalization when
+                    // "buckets must be more than 50% non-zero" (see: tlsh_impl.cpp)
+                    //
+                    PvGetTlshBufferHash(
+                        imageSectionData,
+                        PvMappedImage.Sections[i].SizeOfRawData,
+                        &tlshHashString
+                        );
+
+                    if (!PhIsNullOrEmptyString(tlshHashString))
+                    {
+                        sectionNode->TlshString = tlshHashString;
+                    }
+                }
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                //sectionNode->TlshString = PhGetNtMessage(GetExceptionCode());
+                sectionNode->TlshString = PhGetWin32Message(RtlNtStatusToDosError(GetExceptionCode())); // WIN32_FROM_NTSTATUS
+            }
         }
+
+        PhAcquireQueuedLockExclusive(&Context->SearchResultsLock);
+        PhAddItemList(Context->SearchResults, sectionNode);
+        PhReleaseQueuedLockExclusive(&Context->SearchResultsLock);
     }
 
-    ExtendedListView_SortItems(ListViewHandle);
-    ExtendedListView_SetRedraw(ListViewHandle, TRUE);
+    PostMessage(Context->DialogHandle, WM_PV_SEARCH_FINISHED, 0, 0);
+    return STATUS_SUCCESS;
 }
 
 INT_PTR CALLBACK PvPeSectionsDlgProc(
@@ -311,103 +420,889 @@ INT_PTR CALLBACK PvPeSectionsDlgProc(
     _In_ LPARAM lParam
     )
 {
-    LPPROPSHEETPAGE propSheetPage;
-    PPV_PROPPAGECONTEXT propPageContext;
-    PPV_PE_SECTION_CONTEXT context = NULL;
-
-    if (!PvPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext))
-        return FALSE;
+    PPV_SECTION_CONTEXT context;
 
     if (uMsg == WM_INITDIALOG)
     {
-        context = propPageContext->Context = PhAllocate(sizeof(PV_PE_SECTION_CONTEXT));
-        memset(context, 0, sizeof(PV_PE_SECTION_CONTEXT));
+        context = PhAllocateZero(sizeof(PV_SECTION_CONTEXT));
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+
+        if (lParam)
+        {
+            LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
+            context->PropSheetContext = (PPV_PROPPAGECONTEXT)propSheetPage->lParam;
+        }
     }
     else
     {
-        context = propPageContext->Context;
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
     }
+
+    if (!context)
+        return FALSE;
 
     switch (uMsg)
     {
     case WM_INITDIALOG:
         {
-            context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
+            context->DialogHandle = hwndDlg;
+            context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_TREELIST);
+            context->SearchHandle = GetDlgItem(hwndDlg, IDC_TREESEARCH);
+            context->SearchboxText = PhReferenceEmptyString();
+            context->SearchResults = PhCreateList(1);
 
-            PhSetExtendedListView(context->ListViewHandle);
-            PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
-            PhSetControlTheme(context->ListViewHandle, L"explorer");
-            PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"#");
-            PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 80, L"Name");
-            PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 100, L"RAW (start)");
-            PhAddListViewColumn(context->ListViewHandle, 3, 3, 3, LVCFMT_LEFT, 100, L"RAW (end)");
-            PhAddListViewColumn(context->ListViewHandle, 4, 4, 4, LVCFMT_LEFT, 80, L"RAW (size)");
-            PhAddListViewColumn(context->ListViewHandle, 5, 5, 5, LVCFMT_LEFT, 100, L"RVA (start)");
-            PhAddListViewColumn(context->ListViewHandle, 6, 6, 6, LVCFMT_LEFT, 100, L"RVA (end)");
-            PhAddListViewColumn(context->ListViewHandle, 7, 7, 7, LVCFMT_LEFT, 80, L"RVA (size)");
-            PhAddListViewColumn(context->ListViewHandle, 8, 8, 8, LVCFMT_LEFT, 250, L"Characteristics");
-            PhAddListViewColumn(context->ListViewHandle, 9, 9, 9, LVCFMT_LEFT, 80, L"Hash");
-            PhAddListViewColumn(context->ListViewHandle, 10, 10, 10, LVCFMT_LEFT, 80, L"Entropy");
-            PhAddListViewColumn(context->ListViewHandle, 11, 11, 11, LVCFMT_LEFT, 80, L"SSDEEP");
-            PhAddListViewColumn(context->ListViewHandle, 12, 12, 12, LVCFMT_LEFT, 80, L"TLSH");
+            PvCreateSearchControl(context->SearchHandle, L"Search Sections (Ctrl+K)");
 
-            //ExtendedListView_SetItemColorFunction(context->ListViewHandle, PvPeCharacteristicsColorFunction);
-            ExtendedListView_SetCompareFunction(context->ListViewHandle, 1, PvPeVirtualAddressCompareFunction);
-            ExtendedListView_SetCompareFunction(context->ListViewHandle, 2, PvPeSizeOfRawDataCompareFunction);
-            ExtendedListView_SetCompareFunction(context->ListViewHandle, 3, PvPeCharacteristicsCompareFunction);
-            PhLoadListViewColumnsFromSetting(L"ImageSectionsListViewColumns", context->ListViewHandle);
-            PhLoadListViewSortColumnsFromSetting(L"ImageSectionsListViewSort", context->ListViewHandle);
+            PvInitializeSectionTree(context, hwndDlg, context->TreeNewHandle);
+            PhAddTreeNewFilter(&context->FilterSupport, PvSectionTreeFilterCallback, context);
+            PhLoadSettingsSectionList(context);
+            PvConfigTreeBorders(context->TreeNewHandle);
 
-            if (context->ListViewImageList = ImageList_Create(2, 20, ILC_MASK | ILC_COLOR, 1, 1))
-                ListView_SetImageList(context->ListViewHandle, context->ListViewImageList, LVSIL_SMALL);
+            TreeNew_SetEmptyText(context->TreeNewHandle, &LoadingSectionsText, 0);
 
-            PvSetPeImageSections(context->ListViewHandle);
+            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhAddLayoutItem(&context->LayoutManager, context->SearchHandle, NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&context->LayoutManager, context->TreeNewHandle, NULL, PH_ANCHOR_ALL);
+
+            PhCreateThread2(PvpPeSectionsEnumerateThread, context);
+
+            RtlCreateTimer(
+                PhGetGlobalTimerQueue(),
+                &context->UpdateTimerHandle,
+                PvSectionTreeUpdateCallback,
+                context,
+                0,
+                1000,
+                0
+                );
 
             PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
         {
-            PhSaveListViewSortColumnsToSetting(L"ImageSectionsListViewSort", context->ListViewHandle);
-            PhSaveListViewColumnsToSetting(L"ImageSectionsListViewColumns", context->ListViewHandle);
+            if (context->UpdateTimerHandle)
+            {
+                RtlDeleteTimer(PhGetGlobalTimerQueue(), context->UpdateTimerHandle, NULL);
+                context->UpdateTimerHandle = NULL;
+            }
 
-            if (context->ListViewImageList)
-                ImageList_Destroy(context->ListViewImageList);
-
-            PhFree(context);
-            context = NULL;
+            PhSaveSettingsSectionList(context);
+            PvDeleteSectionTree(context);
         }
         break;
     case WM_SHOWWINDOW:
         {
-            if (!propPageContext->LayoutInitialized)
+            if (context->PropSheetContext && !context->PropSheetContext->LayoutInitialized)
             {
-                PPH_LAYOUT_ITEM dialogItem;
-
-                dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
-                PvAddPropPageLayoutItem(hwndDlg, context->ListViewHandle, dialogItem, PH_ANCHOR_ALL);
-
+                PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
                 PvDoPropPageLayout(hwndDlg);
 
-                propPageContext->LayoutInitialized = TRUE;
+                context->PropSheetContext->LayoutInitialized = TRUE;
             }
+        }
+        break;
+    case WM_SIZE:
+        {
+            PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
     case WM_NOTIFY:
         {
-            PvHandleListViewNotifyForCopy(lParam, context->ListViewHandle);
+            LPNMHDR header = (LPNMHDR)lParam;
+
+            switch (header->code)
+            {
+            case PSN_QUERYINITIALFOCUS:
+                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LONG_PTR)context->TreeNewHandle);
+                return TRUE;
+            }
         }
         break;
-    case WM_CONTEXTMENU:
+    case WM_COMMAND:
         {
-            PvHandleListViewCommandCopy(hwndDlg, lParam, wParam, context->ListViewHandle);
+            switch (GET_WM_COMMAND_CMD(wParam, lParam))
+            {
+            case EN_CHANGE:
+                {
+                    PPH_STRING newSearchboxText;
+
+                    newSearchboxText = PH_AUTO(PhGetWindowText(context->SearchHandle));
+
+                    if (!PhEqualString(context->SearchboxText, newSearchboxText, FALSE))
+                    {
+                        PhSwapReference(&context->SearchboxText, newSearchboxText);
+
+                        if (!PhIsNullOrEmptyString(context->SearchboxText))
+                        {
+                            //PhExpandAllNodes(TRUE);
+                            //PhDeselectAllNodes();
+                        }
+
+                        PhApplyTreeNewFilters(&context->FilterSupport);
+                    }
+                }
+                break;
+            }
+        }
+        break;
+    case WM_PV_SEARCH_FINISHED:
+        {
+            if (context->UpdateTimerHandle)
+            {
+                RtlDeleteTimer(PhGetGlobalTimerQueue(), context->UpdateTimerHandle, NULL);
+                context->UpdateTimerHandle = NULL;
+            }
+
+            PvAddPendingSectionNodes(context);
+
+            TreeNew_SetEmptyText(context->TreeNewHandle, &EmptySectionsText, 0);
+
+            TreeNew_NodesStructured(context->TreeNewHandle);
+        }
+        break;
+    case WM_PV_SEARCH_SHOWMENU:
+        {
+            PPH_TREENEW_CONTEXT_MENU contextMenuEvent = (PPH_TREENEW_CONTEXT_MENU)lParam;
+            PPH_EMENU menu;
+            PPH_EMENU_ITEM selectedItem;
+            PPV_SECTION_NODE* sectionNodes = NULL;
+            ULONG numberOfNodes = 0;
+
+            if (!PvGetSelectedSectionNodes(context, &sectionNodes, &numberOfNodes))
+                break;
+
+            if (numberOfNodes != 0)
+            {
+                menu = PhCreateEMenu();
+                PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 1, L"Copy", NULL, NULL), ULONG_MAX);
+                PhInsertCopyCellEMenuItem(menu, 1, context->TreeNewHandle, contextMenuEvent->Column);
+
+                selectedItem = PhShowEMenu(
+                    menu,
+                    hwndDlg,
+                    PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT,
+                    PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                    contextMenuEvent->Location.x,
+                    contextMenuEvent->Location.y
+                    );
+
+                if (selectedItem && selectedItem->Id != ULONG_MAX)
+                {
+                    BOOLEAN handled = FALSE;
+
+                    handled = PhHandleCopyCellEMenuItem(selectedItem);
+
+                    if (!handled && selectedItem->Id == 1)
+                    {
+                        PPH_STRING text;
+
+                        text = PhGetTreeNewText(context->TreeNewHandle, 0);
+                        PhSetClipboardString(context->TreeNewHandle, &text->sr);
+                        PhDereferenceObject(text);
+                    }
+                }
+
+                PhDestroyEMenu(menu);
+            }
         }
         break;
     }
 
-    if (context)
+    return FALSE;
+}
+
+VOID PhLoadSettingsSectionList(
+    _Inout_ PPV_SECTION_CONTEXT Context
+    )
+{
+    PPH_STRING settings;
+    PPH_STRING sortSettings;
+    
+    settings = PhGetStringSetting(L"ImageSectionsTreeListColumns");
+    sortSettings = PhGetStringSetting(L"ImageSectionsTreeListSort");
+    //Context->Flags = PhGetIntegerSetting(L"ImageSectionsTreeListFlags");
+
+    PhCmLoadSettingsEx(Context->TreeNewHandle, &Context->Cm, 0, &settings->sr, &sortSettings->sr);
+
+    PhDereferenceObject(settings);
+    PhDereferenceObject(sortSettings);
+}
+
+VOID PhSaveSettingsSectionList(
+    _Inout_ PPV_SECTION_CONTEXT Context
+    )
+{
+    PPH_STRING settings;
+    PPH_STRING sortSettings;
+    
+    settings = PhCmSaveSettingsEx(Context->TreeNewHandle, &Context->Cm, 0, &sortSettings);
+    
+    //PhSetIntegerSetting(L"ImageSectionsTreeListFlags", Context->Flags);
+    PhSetStringSetting2(L"ImageSectionsTreeListColumns", &settings->sr);
+    PhSetStringSetting2(L"ImageSectionsTreeListSort", &sortSettings->sr);
+    
+    PhDereferenceObject(settings);
+    PhDereferenceObject(sortSettings);
+}
+
+VOID PvDeleteSectionTree(
+    _In_ PPV_SECTION_CONTEXT Context
+    )
+{
+    for (ULONG i = 0; i < Context->NodeList->Count; i++)
     {
-        REFLECT_MESSAGE_DLG(hwndDlg, context->ListViewHandle, uMsg, wParam, lParam);
+        PvDestroySectionNode(Context->NodeList->Items[i]);
+    }
+
+    PhDereferenceObject(Context->NodeHashtable);
+    PhDereferenceObject(Context->NodeList);
+}
+
+struct _PH_TN_FILTER_SUPPORT* GetSectionListFilterSupport(
+    _In_ PPV_SECTION_CONTEXT Context
+    )
+{
+    return &Context->FilterSupport;
+}
+
+LONG PvSectionTreeNewPostSortFunction(
+    _In_ LONG Result,
+    _In_ PVOID Node1,
+    _In_ PVOID Node2,
+    _In_ PH_SORT_ORDER SortOrder
+    )
+{
+    if (Result == 0)
+        Result = uintptrcmp((ULONG_PTR)((PPV_SECTION_NODE)Node1)->UniqueId, (ULONG_PTR)((PPV_SECTION_NODE)Node2)->UniqueId);
+
+    return PhModifySort(Result, SortOrder);
+}
+
+BOOLEAN PvSectionNodeHashtableCompareFunction(
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
+    )
+{
+    PPV_SECTION_NODE sectionNode1 = *(PPV_SECTION_NODE*)Entry1;
+    PPV_SECTION_NODE sectionNode2 = *(PPV_SECTION_NODE*)Entry2;
+
+    return sectionNode1->UniqueId == sectionNode2->UniqueId;
+}
+
+ULONG PvSectionNodeHashtableHashFunction(
+    _In_ PVOID Entry
+    )
+{
+    return PhHashInt64((ULONG_PTR)(*(PPV_SECTION_NODE*)Entry)->UniqueId);
+}
+
+VOID PvSectionAddTreeNode(
+    _In_ PPV_SECTION_CONTEXT Context,
+    _In_ PPV_SECTION_NODE Entry
+    )
+{
+    PhInitializeTreeNewNode(&Entry->Node);
+
+    memset(Entry->TextCache, 0, sizeof(PH_STRINGREF) * PV_SECTION_TREE_COLUMN_ITEM_MAXIMUM);
+    Entry->Node.TextCache = Entry->TextCache;
+    Entry->Node.TextCacheSize = PV_SECTION_TREE_COLUMN_ITEM_MAXIMUM;
+
+    if (PhAddEntryHashtable(Context->NodeHashtable, &Entry)) // HACK
+    {
+        PhAddItemList(Context->NodeList, Entry);
+
+        if (Context->FilterSupport.NodeList)
+        {
+            Entry->Node.Visible = PhApplyTreeNewFiltersToNode(&Context->FilterSupport, &Entry->Node);
+        }
+    }
+}
+
+PPV_SECTION_NODE PvFindSectionNode(
+    _In_ PPV_SECTION_CONTEXT Context,
+    _In_ PPH_STRING Name
+    )
+{
+    PV_SECTION_NODE lookupSymbolNode;
+    PPV_SECTION_NODE lookupSymbolNodePtr = &lookupSymbolNode;
+    PPV_SECTION_NODE* threadNode;
+
+    lookupSymbolNode.SectionNameString = Name;
+
+    threadNode = (PPV_SECTION_NODE*)PhFindEntryHashtable(
+        Context->NodeHashtable,
+        &lookupSymbolNodePtr
+        );
+
+    if (threadNode)
+        return *threadNode;
+    else
+        return NULL;
+}
+
+VOID PvRemoveSectionNode(
+    _In_ PPV_SECTION_CONTEXT Context,
+    _In_ PPV_SECTION_NODE Node
+    )
+{
+    ULONG index;
+
+    PhRemoveEntryHashtable(Context->NodeHashtable, &Node);
+
+    if ((index = PhFindItemList(Context->NodeList, Node)) != ULONG_MAX)
+        PhRemoveItemList(Context->NodeList, index);
+
+    PvDestroySectionNode(Node);
+}
+
+VOID PvDestroySectionNode(
+    _In_ PPV_SECTION_NODE Node
+    )
+{
+    //if (Node->UniqueIdString)
+    //    PhDereferenceObject(Node->UniqueIdString);
+    //if (Node->SectionNameString)
+    //    PhDereferenceObject(Node->SectionNameString);
+    //if (Node->RawStartString)
+    //    PhDereferenceObject(Node->RawStartString);
+    //if (Node->RawEndString)
+    //    PhDereferenceObject(Node->RawEndString);
+    //if (Node->RawSizeString)
+    //    PhDereferenceObject(Node->RawSizeString);
+    //if (Node->RvaStartString)
+    //    PhDereferenceObject(Node->RvaStartString);
+    //if (Node->RvaEndString)
+    //    PhDereferenceObject(Node->RvaEndString);
+    //if (Node->RvaSizeString)
+    //    PhDereferenceObject(Node->RvaSizeString);
+    //if (Node->CharacteristicsString)
+    //    PhDereferenceObject(Node->CharacteristicsString);
+    //if (Node->HashString)
+    //    PhDereferenceObject(Node->HashString);
+    //if (Node->EntropyString)
+    //    PhDereferenceObject(Node->EntropyString);
+    //if (Node->SsdeepString)
+    //    PhDereferenceObject(Node->SsdeepString);
+    //if (Node->TlshString)
+    //    PhDereferenceObject(Node->TlshString);
+
+    PhFree(Node);
+}
+
+#define SORT_FUNCTION(Column) PvSectionTreeNewCompare##Column
+#define BEGIN_SORT_FUNCTION(Column) static int __cdecl PvSectionTreeNewCompare##Column( \
+    _In_ void *_context, \
+    _In_ const void *_elem1, \
+    _In_ const void *_elem2 \
+    ) \
+{ \
+    PPV_SECTION_NODE node1 = *(PPV_SECTION_NODE *)_elem1; \
+    PPV_SECTION_NODE node2 = *(PPV_SECTION_NODE *)_elem2; \
+    int sortResult = 0;
+
+#define END_SORT_FUNCTION \
+    if (sortResult == 0) \
+        sortResult = uintptrcmp((ULONG_PTR)node1->UniqueId, (ULONG_PTR)node2->UniqueId); \
+    \
+    return PhModifySort(sortResult, ((PPV_SECTION_CONTEXT)_context)->TreeNewSortOrder); \
+}
+
+BEGIN_SORT_FUNCTION(Index)
+{
+    sortResult = uintptrcmp((ULONG_PTR)node1->UniqueId, (ULONG_PTR)node2->UniqueId);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(Name)
+{
+    sortResult = PhCompareStringWithNull(node1->SectionNameString, node2->SectionNameString, FALSE);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(RawStart)
+{
+    sortResult = uintptrcmp((ULONG_PTR)node1->RawStart, (ULONG_PTR)node2->RawStart);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(RawEnd)
+{
+    sortResult = uintptrcmp((ULONG_PTR)node1->RawEnd, (ULONG_PTR)node2->RawEnd);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(RawSize)
+{
+    sortResult = uintcmp(node1->RawSize, node2->RawSize);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(RvaStart)
+{
+    sortResult = uintptrcmp((ULONG_PTR)node1->RvaStart, (ULONG_PTR)node2->RvaStart);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(RvaEnd)
+{
+    sortResult = uintptrcmp((ULONG_PTR)node1->RvaEnd, (ULONG_PTR)node2->RvaEnd);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(RvaSize)
+{
+    sortResult = uintcmp(node1->RvaSize, node2->RvaSize);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(Characteristics)
+{
+    sortResult = uintcmp(node1->Characteristics, node2->Characteristics);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(Hash)
+{
+    sortResult = PhCompareStringWithNull(node1->HashString, node2->HashString, FALSE);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(Entropy)
+{
+    sortResult = doublecmp(node1->SectionEntropy, node2->SectionEntropy);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(Ssdeep)
+{
+    sortResult = PhCompareStringWithNull(node1->SsdeepString, node2->SsdeepString, FALSE);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(Tlsh)
+{
+    sortResult = PhCompareStringWithNull(node1->TlshString, node2->TlshString, FALSE);
+}
+END_SORT_FUNCTION
+
+BOOLEAN NTAPI PvSectionTreeNewCallback(
+    _In_ HWND hwnd,
+    _In_ PH_TREENEW_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2,
+    _In_opt_ PVOID Context
+    )
+{
+    PPV_SECTION_CONTEXT context = Context;
+    PPV_SECTION_NODE node;
+
+    if (!context)
+        return FALSE;
+
+    switch (Message)
+    {
+    case TreeNewGetChildren:
+        {
+            PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
+
+            if (!getChildren)
+                break;
+
+            node = (PPV_SECTION_NODE)getChildren->Node;
+
+            if (!getChildren->Node)
+            {
+                static PVOID sortFunctions[] =
+                {
+                    SORT_FUNCTION(Index),
+                    SORT_FUNCTION(Name),
+                    SORT_FUNCTION(RawStart),
+                    SORT_FUNCTION(RawEnd),
+                    SORT_FUNCTION(RawSize),
+                    SORT_FUNCTION(RvaStart),
+                    SORT_FUNCTION(RvaEnd),
+                    SORT_FUNCTION(RvaSize),
+                    SORT_FUNCTION(Characteristics),
+                    SORT_FUNCTION(Hash),
+                    SORT_FUNCTION(Entropy),
+                    SORT_FUNCTION(Ssdeep),
+                    SORT_FUNCTION(Tlsh),
+                };
+                int (__cdecl *sortFunction)(void *, const void *, const void *);
+
+                if (context->TreeNewSortColumn < PV_SECTION_TREE_COLUMN_ITEM_MAXIMUM)
+                    sortFunction = sortFunctions[context->TreeNewSortColumn];
+                else
+                    sortFunction = NULL;
+
+                if (sortFunction)
+                {
+                    qsort_s(context->NodeList->Items, context->NodeList->Count, sizeof(PVOID), sortFunction, context);
+                }
+
+                getChildren->Children = (PPH_TREENEW_NODE *)context->NodeList->Items;
+                getChildren->NumberOfChildren = context->NodeList->Count;
+            }
+        }
+        return TRUE;
+    case TreeNewIsLeaf:
+        {
+            PPH_TREENEW_IS_LEAF isLeaf = (PPH_TREENEW_IS_LEAF)Parameter1;
+
+            if (!isLeaf)
+                break;
+
+            node = (PPV_SECTION_NODE)isLeaf->Node;
+
+            isLeaf->IsLeaf = TRUE;
+        }
+        return TRUE;
+    case TreeNewGetCellText:
+        {
+            PPH_TREENEW_GET_CELL_TEXT getCellText = (PPH_TREENEW_GET_CELL_TEXT)Parameter1;
+
+            if (!getCellText)
+                break;
+
+            node = (PPV_SECTION_NODE)getCellText->Node;
+
+            switch (getCellText->Id)
+            {
+            case PV_SECTION_TREE_COLUMN_ITEM_INDEX:
+                getCellText->Text = PhGetStringRef(node->UniqueIdString);
+                break;
+            case PV_SECTION_TREE_COLUMN_ITEM_NAME:
+                getCellText->Text = PhGetStringRef(node->SectionNameString);
+                break;
+            case PV_SECTION_TREE_COLUMN_ITEM_RAW_START:
+                getCellText->Text = PhGetStringRef(node->RawStartString);
+                break;
+            case PV_SECTION_TREE_COLUMN_ITEM_RAW_END:
+                getCellText->Text = PhGetStringRef(node->RawEndString);
+                break;
+            case PV_SECTION_TREE_COLUMN_ITEM_RAW_SIZE:
+                getCellText->Text = PhGetStringRef(node->RawSizeString);
+                break;
+            case PV_SECTION_TREE_COLUMN_ITEM_RVA_START:
+                getCellText->Text = PhGetStringRef(node->RvaStartString);
+                break;
+            case PV_SECTION_TREE_COLUMN_ITEM_RVA_END:
+                getCellText->Text = PhGetStringRef(node->RvaEndString);
+                break;
+            case PV_SECTION_TREE_COLUMN_ITEM_RVA_SIZE:
+                getCellText->Text = PhGetStringRef(node->RvaSizeString);
+                break;
+            case PV_SECTION_TREE_COLUMN_ITEM_CHARACTERISTICS:
+                getCellText->Text = PhGetStringRef(node->CharacteristicsString);
+                break;
+            case PV_SECTION_TREE_COLUMN_ITEM_HASH:
+                getCellText->Text = PhGetStringRef(node->HashString);
+                break;
+            case PV_SECTION_TREE_COLUMN_ITEM_ENTROPY:
+                getCellText->Text = PhGetStringRef(node->EntropyString);
+                break;
+            case PV_SECTION_TREE_COLUMN_ITEM_SSDEEP:
+                getCellText->Text = PhGetStringRef(node->SsdeepString);
+                break;
+            case PV_SECTION_TREE_COLUMN_ITEM_TLSH:
+                getCellText->Text = PhGetStringRef(node->TlshString);
+                break;
+            default:
+                return FALSE;
+            }
+
+            getCellText->Flags = TN_CACHE;
+        }
+        return TRUE;
+    case TreeNewGetNodeColor:
+        {
+            PPH_TREENEW_GET_NODE_COLOR getNodeColor = (PPH_TREENEW_GET_NODE_COLOR)Parameter1;
+
+            if (!getNodeColor)
+                break;
+
+            node = (PPV_SECTION_NODE)getNodeColor->Node;
+
+            //if (!node)
+            //    NOTHING; // Dummy
+            //else if (node->Characteristics & IMAGE_SCN_MEM_WRITE)
+            //    getNodeColor->BackColor = RGB(0xf0, 0xa0, 0xa0);
+            //else if (node->Characteristics & IMAGE_SCN_MEM_EXECUTE)
+            //    getNodeColor->BackColor = RGB(0xff, 0x93, 0x14);
+            //else if (node->Characteristics & IMAGE_SCN_CNT_CODE)
+            //    getNodeColor->BackColor = RGB(0xe0, 0xf0, 0xe0);
+            //else if (node->Characteristics & IMAGE_SCN_MEM_READ)
+            //    getNodeColor->BackColor = RGB(0xc0, 0xf0, 0xc0);
+
+            getNodeColor->Flags = TN_CACHE | TN_AUTO_FORECOLOR;
+        }
+        return TRUE;
+    case TreeNewSortChanged:
+        {
+            TreeNew_GetSort(hwnd, &context->TreeNewSortColumn, &context->TreeNewSortOrder);
+            TreeNew_NodesStructured(hwnd);
+        }
+        return TRUE;
+    case TreeNewKeyDown:
+    case TreeNewNodeExpanding:
+        return TRUE;
+    case TreeNewLeftDoubleClick:
+        {
+           // SendMessage(context->ParentWindowHandle, WM_COMMAND, WM_ACTION, (LPARAM)context);
+        }
+        return TRUE;
+    case TreeNewContextMenu:
+        {
+            PPH_TREENEW_CONTEXT_MENU contextMenu = Parameter1;
+
+            SendMessage(context->ParentWindowHandle, WM_PV_SEARCH_SHOWMENU, 0, (LPARAM)contextMenu);
+        }
+        return TRUE;
+    case TreeNewHeaderRightClick: 
+        {
+            PH_TN_COLUMN_MENU_DATA data;
+
+            data.TreeNewHandle = hwnd;
+            data.MouseEvent = Parameter1;
+            data.DefaultSortColumn = 0;
+            data.DefaultSortOrder = AscendingSortOrder;
+            PhInitializeTreeNewColumnMenu(&data);
+
+            data.Selection = PhShowEMenu(data.Menu, hwnd, PH_EMENU_SHOW_LEFTRIGHT,
+                PH_ALIGN_LEFT | PH_ALIGN_TOP, data.MouseEvent->ScreenLocation.x, data.MouseEvent->ScreenLocation.y);
+            PhHandleTreeNewColumnMenu(&data);
+            PhDeleteTreeNewColumnMenu(&data);
+        }
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+VOID PvSectionClearTree(
+    _In_ PPV_SECTION_CONTEXT Context
+    )
+{
+    for (ULONG i = 0; i < Context->NodeList->Count; i++)
+        PvDestroySectionNode(Context->NodeList->Items[i]);
+
+    PhClearHashtable(Context->NodeHashtable);
+    PhClearList(Context->NodeList);
+}
+
+PPV_SECTION_NODE PvGetSelectedSectionNode(
+    _In_ PPV_SECTION_CONTEXT Context
+    )
+{
+    for (ULONG i = 0; i < Context->NodeList->Count; i++)
+    {
+        PPV_SECTION_NODE node = Context->NodeList->Items[i];
+
+        if (node->Node.Selected)
+            return node;
+    }
+
+    return NULL;
+}
+
+_Success_(return)
+BOOLEAN PvGetSelectedSectionNodes(
+    _In_ PPV_SECTION_CONTEXT Context,
+    _Out_ PPV_SECTION_NODE **Nodes,
+    _Out_ PULONG NumberOfNodes
+    )
+{
+    PPH_LIST list = PhCreateList(2);
+
+    for (ULONG i = 0; i < Context->NodeList->Count; i++)
+    {
+        PPV_SECTION_NODE node = (PPV_SECTION_NODE)Context->NodeList->Items[i];
+
+        if (node->Node.Selected)
+            PhAddItemList(list, node);
+    }
+
+    if (list->Count)
+    {
+        *Nodes = PhAllocateCopy(list->Items, sizeof(PVOID) * list->Count);
+        *NumberOfNodes = list->Count;
+
+        PhDereferenceObject(list);
+        return TRUE;
+    }
+
+    PhDereferenceObject(list);
+    return FALSE;
+}
+
+VOID PvInitializeSectionTree(
+    _In_ PPV_SECTION_CONTEXT Context,
+    _In_ HWND ParentWindowHandle,
+    _In_ HWND TreeNewHandle
+    )
+{
+    Context->NodeHashtable = PhCreateHashtable(
+        sizeof(PPV_SECTION_NODE),
+        PvSectionNodeHashtableCompareFunction,
+        PvSectionNodeHashtableHashFunction,
+        100
+        );
+    Context->NodeList = PhCreateList(100);
+
+    Context->ParentWindowHandle = ParentWindowHandle;
+    Context->TreeNewHandle = TreeNewHandle;
+    PhSetControlTheme(TreeNewHandle, L"explorer");
+
+    TreeNew_SetCallback(TreeNewHandle, PvSectionTreeNewCallback, Context);
+    TreeNew_SetRedraw(TreeNewHandle, FALSE);
+
+    PhAddTreeNewColumnEx2(TreeNewHandle, PV_SECTION_TREE_COLUMN_ITEM_INDEX, TRUE, L"#", 40, PH_ALIGN_LEFT, PV_SECTION_TREE_COLUMN_ITEM_INDEX, 0, 0);
+    PhAddTreeNewColumnEx2(TreeNewHandle, PV_SECTION_TREE_COLUMN_ITEM_NAME, TRUE, L"Name", 80, PH_ALIGN_LEFT, PV_SECTION_TREE_COLUMN_ITEM_NAME, 0, 0);
+    PhAddTreeNewColumnEx2(TreeNewHandle, PV_SECTION_TREE_COLUMN_ITEM_RAW_START, TRUE, L"RAW (start)", 100, PH_ALIGN_LEFT, PV_SECTION_TREE_COLUMN_ITEM_RAW_START, 0, 0);
+    PhAddTreeNewColumnEx2(TreeNewHandle, PV_SECTION_TREE_COLUMN_ITEM_RAW_END, TRUE, L"RAW (end)", 100, PH_ALIGN_LEFT, PV_SECTION_TREE_COLUMN_ITEM_RAW_END, 0, 0);
+    PhAddTreeNewColumnEx2(TreeNewHandle, PV_SECTION_TREE_COLUMN_ITEM_RAW_SIZE, TRUE, L"RAW (size)", 80, PH_ALIGN_LEFT, PV_SECTION_TREE_COLUMN_ITEM_RAW_SIZE, 0, 0);
+    PhAddTreeNewColumnEx2(TreeNewHandle, PV_SECTION_TREE_COLUMN_ITEM_RVA_START, TRUE, L"RVA (start)", 100, PH_ALIGN_LEFT, PV_SECTION_TREE_COLUMN_ITEM_RVA_START, 0, 0);
+    PhAddTreeNewColumnEx2(TreeNewHandle, PV_SECTION_TREE_COLUMN_ITEM_RVA_END, TRUE, L"RVA (end)", 100, PH_ALIGN_LEFT, PV_SECTION_TREE_COLUMN_ITEM_RVA_END, 0, 0);
+    PhAddTreeNewColumnEx2(TreeNewHandle, PV_SECTION_TREE_COLUMN_ITEM_RVA_SIZE, TRUE, L"RVA (size)", 80, PH_ALIGN_LEFT, PV_SECTION_TREE_COLUMN_ITEM_RVA_SIZE, 0, 0);
+    PhAddTreeNewColumnEx2(TreeNewHandle, PV_SECTION_TREE_COLUMN_ITEM_CHARACTERISTICS, TRUE, L"Characteristics", 250, PH_ALIGN_LEFT, PV_SECTION_TREE_COLUMN_ITEM_CHARACTERISTICS, 0, 0);
+    PhAddTreeNewColumnEx2(TreeNewHandle, PV_SECTION_TREE_COLUMN_ITEM_HASH, TRUE, L"Hash", 80, PH_ALIGN_LEFT, PV_SECTION_TREE_COLUMN_ITEM_HASH, 0, 0);
+    PhAddTreeNewColumnEx2(TreeNewHandle, PV_SECTION_TREE_COLUMN_ITEM_ENTROPY, TRUE, L"Entropy", 80, PH_ALIGN_LEFT, PV_SECTION_TREE_COLUMN_ITEM_ENTROPY, 0, 0);
+    PhAddTreeNewColumnEx2(TreeNewHandle, PV_SECTION_TREE_COLUMN_ITEM_SSDEEP, TRUE, L"SSDEEP", 80, PH_ALIGN_LEFT, PV_SECTION_TREE_COLUMN_ITEM_SSDEEP, 0, 0);
+    PhAddTreeNewColumnEx2(TreeNewHandle, PV_SECTION_TREE_COLUMN_ITEM_TLSH, TRUE, L"TLSH", 80, PH_ALIGN_LEFT, PV_SECTION_TREE_COLUMN_ITEM_TLSH, 0, 0);
+
+    TreeNew_SetRowHeight(TreeNewHandle, 22);
+
+    TreeNew_SetRedraw(TreeNewHandle, TRUE);
+    TreeNew_SetSort(TreeNewHandle, PV_SECTION_TREE_COLUMN_ITEM_INDEX, AscendingSortOrder);
+
+    PhCmInitializeManager(&Context->Cm, TreeNewHandle, PV_SECTION_TREE_COLUMN_ITEM_MAXIMUM, PvSectionTreeNewPostSortFunction);
+
+    PhInitializeTreeNewFilterSupport(&Context->FilterSupport, TreeNewHandle, Context->NodeList);
+}
+
+BOOLEAN PvSectionWordMatchStringRef(
+    _In_ PPV_SECTION_CONTEXT Context,
+    _In_ PPH_STRINGREF Text
+    )
+{
+    PH_STRINGREF part;
+    PH_STRINGREF remainingPart;
+
+    remainingPart = PhGetStringRef(Context->SearchboxText);
+
+    while (remainingPart.Length)
+    {
+        PhSplitStringRefAtChar(&remainingPart, L'|', &part, &remainingPart);
+
+        if (part.Length)
+        {
+            if (PhFindStringInStringRef(Text, &part, TRUE) != SIZE_MAX)
+                return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
+BOOLEAN PvSectionWordMatchStringZ(
+    _In_ PPV_SECTION_CONTEXT Context,
+    _In_ PWSTR Text
+    )
+{
+    PH_STRINGREF text;
+
+    PhInitializeStringRef(&text, Text);
+    return PvSectionWordMatchStringRef(Context, &text);
+}
+
+BOOLEAN PvSectionTreeFilterCallback(
+    _In_ PPH_TREENEW_NODE Node,
+    _In_opt_ PVOID Context
+    )
+{
+    PPV_SECTION_CONTEXT context = Context;
+    PPV_SECTION_NODE node = (PPV_SECTION_NODE)Node;
+
+    if (PhIsNullOrEmptyString(context->SearchboxText))
+        return TRUE;
+
+    if (!PhIsNullOrEmptyString(node->UniqueIdString))
+    {
+        if (PvSectionWordMatchStringRef(context, &node->UniqueIdString->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(node->SectionNameString))
+    {
+        if (PvSectionWordMatchStringRef(context, &node->SectionNameString->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(node->RawStartString))
+    {
+        if (PvSectionWordMatchStringRef(context, &node->RawStartString->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(node->RawEndString))
+    {
+        if (PvSectionWordMatchStringRef(context, &node->RawEndString->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(node->RawSizeString))
+    {
+        if (PvSectionWordMatchStringRef(context, &node->RawSizeString->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(node->RvaStartString))
+    {
+        if (PvSectionWordMatchStringRef(context, &node->RvaStartString->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(node->RvaEndString))
+    {
+        if (PvSectionWordMatchStringRef(context, &node->RvaEndString->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(node->RvaSizeString))
+    {
+        if (PvSectionWordMatchStringRef(context, &node->RvaSizeString->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(node->CharacteristicsString))
+    {
+        if (PvSectionWordMatchStringRef(context, &node->CharacteristicsString->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(node->HashString))
+    {
+        if (PvSectionWordMatchStringRef(context, &node->HashString->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(node->EntropyString))
+    {
+        if (PvSectionWordMatchStringRef(context, &node->EntropyString->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(node->SsdeepString))
+    {
+        if (PvSectionWordMatchStringRef(context, &node->SsdeepString->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(node->TlshString))
+    {
+        if (PvSectionWordMatchStringRef(context, &node->TlshString->sr))
+            return TRUE;
     }
 
     return FALSE;

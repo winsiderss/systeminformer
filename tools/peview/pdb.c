@@ -2,7 +2,7 @@
  * PE viewer -
  *   pdb support
  *
- * Copyright (C) 2017-2020 dmex
+ * Copyright (C) 2017-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -1270,7 +1270,7 @@ NTSTATUS PeDumpFileSymbols(
 
     if (baseOfDll == ULLONG_MAX)
     {
-        PostMessage(Context->DialogHandle, WM_PV_SEARCH_FINISHED, 0, 0);
+        PostMessage(Context->WindowHandle, WM_PV_SEARCH_FINISHED, 0, 0);
         PhShowStatus(NULL, L"Unable to load the file.", STATUS_UNSUCCESSFUL, 0);
         return STATUS_UNSUCCESSFUL;
     }
@@ -1281,7 +1281,7 @@ NTSTATUS PeDumpFileSymbols(
         &idiaSession
         ))
     {
-        PostMessage(Context->DialogHandle, WM_PV_SEARCH_FINISHED, 0, 0);
+        PostMessage(Context->WindowHandle, WM_PV_SEARCH_FINISHED, 0, 0);
         return STATUS_UNSUCCESSFUL;
     }
 
@@ -1301,7 +1301,7 @@ NTSTATUS PeDumpFileSymbols(
 
     IDiaSession_Release(idiaSession);
 
-    PostMessage(Context->DialogHandle, WM_PV_SEARCH_FINISHED, 0, 0);
+    PostMessage(Context->WindowHandle, WM_PV_SEARCH_FINISHED, 0, 0);
     return STATUS_SUCCESS;
 }
 
