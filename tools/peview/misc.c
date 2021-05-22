@@ -417,7 +417,7 @@ VOID PvConfigTreeBorders(
     {
         PhSetWindowStyle(WindowHandle, WS_BORDER, 0);
         PhSetWindowExStyle(WindowHandle, WS_EX_CLIENTEDGE, 0);
-        SetWindowPos(WindowHandle, HWND_TOP, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+        SetWindowPos(WindowHandle, NULL, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
     }
 }
 

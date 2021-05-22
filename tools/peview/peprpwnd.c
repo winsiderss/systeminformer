@@ -157,6 +157,15 @@ VOID PvAddTreeViewSections(
         NULL
         );
 
+    // Headers page
+    PvCreateTabSection(
+        L"Headers",
+        PhInstanceHandle,
+        MAKEINTRESOURCE(IDD_PEHEADERS),
+        PvPeHeadersDlgProc,
+        NULL
+        );
+
     // Load Config page
     if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG, &entry)) && entry->VirtualAddress)
     {

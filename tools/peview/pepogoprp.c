@@ -124,7 +124,7 @@ VOID PvEnumerateImagePogoSections(
 
                 if (imageSectionData = PhMappedImageRvaToVa(&PvMappedImage, entry->Rva, NULL))
                 {
-                    imageSectionEntropy = PvCalculateEntropyBuffer(imageSectionData, entry->Size);
+                    imageSectionEntropy = PvCalculateEntropyBuffer(imageSectionData, entry->Size, NULL);
                     entropyString = PvFormatDoubleCropZero(imageSectionEntropy, 2);
                     PhSetListViewSubItem(ListViewHandle, lvItemIndex, 7, entropyString->Buffer);
                     PhDereferenceObject(entropyString);

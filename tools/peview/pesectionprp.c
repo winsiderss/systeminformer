@@ -336,7 +336,8 @@ NTSTATUS PvpPeSectionsEnumerateThread(
                 {
                     imageSectionEntropy = PvCalculateEntropyBuffer(
                         imageSectionData,
-                        PvMappedImage.Sections[i].SizeOfRawData
+                        PvMappedImage.Sections[i].SizeOfRawData,
+                        NULL
                         );
 
                     sectionNode->SectionEntropy = imageSectionEntropy;

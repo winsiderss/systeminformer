@@ -47,6 +47,7 @@ VOID PhAddDefaultSettings(
     PhpAddScalableIntegerPairSetting(L"MainWindowSize", L"@96|550,580");
     PhpAddStringSetting(L"ImageGeneralPropertiesListViewColumns", L"");
     PhpAddStringSetting(L"ImageGeneralPropertiesListViewSort", L"");
+    PhpAddStringSetting(L"ImageGeneralPropertiesListViewGroupStates", L"");
     PhpAddStringSetting(L"ImageDirectoryTreeListColumns", L"");
     PhpAddStringSetting(L"ImageDirectoryTreeListSort", L"0,1"); // 0, AscendingSortOrder
     PhpAddStringSetting(L"ImageExportsTreeListColumns", L"");
@@ -60,6 +61,8 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"ImageLoadCfgListViewColumns", L"");
     PhpAddStringSetting(L"ImageExceptions32ListViewColumns", L"");
     PhpAddStringSetting(L"ImageExceptions64ListViewColumns", L"");
+    PhpAddStringSetting(L"ImageHeadersListViewColumns", L"");
+    PhpAddStringSetting(L"ImageHeadersListViewGroupStates", L"");
     PhpAddStringSetting(L"ImageLayoutTreeColumns", L"");
     PhpAddStringSetting(L"ImageCfgListViewColumns", L"");
     PhpAddStringSetting(L"ImageClrListViewColumns", L"");

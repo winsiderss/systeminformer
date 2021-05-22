@@ -920,11 +920,11 @@ VOID PePdbPrintDiaSymbol(
     {
     case SymTagFunction:
         {
-            PPDB_SYMBOL_CONTEXT context = Context;
             PPV_SYMBOL_NODE symbol;
 
             symbol = PhAllocateZero(sizeof(PV_SYMBOL_NODE));
-            symbol->UniqueId = symbolId;
+            symbol->UniqueId = ++Context->Count;
+            symbol->TypeId = symbolId;
             symbol->Type = PV_SYMBOL_TYPE_FUNCTION;
             symbol->Address = symbolRva;
             symbol->Size = symbolLength;
@@ -938,18 +938,18 @@ VOID PePdbPrintDiaSymbol(
             //);
             //SymbolInfo_SymbolLocationStr(SymbolInfo, symbol->Pointer);
             PhPrintPointer(symbol->Pointer, UlongToPtr(symbolRva));
+            PhPrintInt64(symbol->Index, symbol->UniqueId);
 
             PhAcquireQueuedLockExclusive(&SearchResultsLock);
             PhAddItemList(SearchResults, symbol);
             PhReleaseQueuedLockExclusive(&SearchResultsLock);
 
             // Enumerate parameters and variables...
-            PdbDumpAddress(context, symbolRva);
+            PdbDumpAddress(Context, symbolRva);
         }
         break;
     case SymTagData:
         {
-            PPDB_SYMBOL_CONTEXT context = Context;
             PPV_SYMBOL_NODE symbol;
             //PWSTR symDataKind;
             //ULONG dataKindType = 0;
@@ -1021,7 +1021,8 @@ VOID PePdbPrintDiaSymbol(
                 break;
             }
 
-            symbol->UniqueId = symbolId;
+            symbol->UniqueId = ++Context->Count;
+            symbol->TypeId = symbolId;
             symbol->Address = symbolRva;
             symbol->Size = symbolLength;
             symbol->Name = PhCreateString(bstrUndname ? bstrUndname : bstrName);
@@ -1030,6 +1031,7 @@ VOID PePdbPrintDiaSymbol(
             //symbol->Data = SymbolInfo_GetTypeName(context, SymbolInfo->TypeIndex, SymbolInfo->Name);
             //SymbolInfo_SymbolLocationStr(SymbolInfo, symbol->Pointer);
             PhPrintPointer(symbol->Pointer, UlongToPtr(symbolRva));
+            PhPrintInt64(symbol->Index, symbol->UniqueId);
 
             PhAcquireQueuedLockExclusive(&SearchResultsLock);
             PhAddItemList(SearchResults, symbol);
@@ -1038,14 +1040,14 @@ VOID PePdbPrintDiaSymbol(
         break;
     default:
         {
-            PPDB_SYMBOL_CONTEXT context = Context;
             PPV_SYMBOL_NODE symbol;
 
             //if (symbolRva == 0)
             //    break;
 
             symbol = PhAllocateZero(sizeof(PV_SYMBOL_NODE));
-            symbol->UniqueId = symbolId;
+            symbol->UniqueId = ++Context->Count;
+            symbol->TypeId = symbolId;
             symbol->Type = PV_SYMBOL_TYPE_SYMBOL;
             symbol->Address = symbolRva;
             symbol->Size = symbolLength;
@@ -1054,6 +1056,7 @@ VOID PePdbPrintDiaSymbol(
             //symbol->Data = SymbolInfo_GetTypeName(context, SymbolInfo->TypeIndex, SymbolInfo->Name);
             //SymbolInfo_SymbolLocationStr(SymbolInfo, symbol->Pointer);
             PhPrintPointer(symbol->Pointer, UlongToPtr(symbolRva));
+            PhPrintInt64(symbol->Index, symbol->UniqueId);
 
             //if (SymbolInfo->Name[0]) // HACK
             //{
