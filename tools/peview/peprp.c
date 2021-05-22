@@ -37,6 +37,7 @@ typedef enum _PVP_IMAGE_GENERAL_CATEGORY
     PVP_IMAGE_GENERAL_CATEGORY_BASICINFO,
     PVP_IMAGE_GENERAL_CATEGORY_FILEINFO,
     PVP_IMAGE_GENERAL_CATEGORY_DEBUGINFO,
+    PVP_IMAGE_GENERAL_CATEGORY_EXTRAINFO,
     PVP_IMAGE_GENERAL_CATEGORY_MAXIMUM
 } PVP_IMAGE_GENERAL_CATEGORY;
 
@@ -156,6 +157,14 @@ VOID PvPeProperties(
         newPage = PvCreatePropPageContext(
             MAKEINTRESOURCE(IDD_PEGENERAL), 
             PvPeGeneralDlgProc, 
+            NULL
+            );
+        PvAddPropPage(propContext, newPage);
+
+        // Headers page
+        newPage = PvCreatePropPageContext(
+            MAKEINTRESOURCE(IDD_PEHEADERS),
+            PvPeHeadersDlgProc,
             NULL
             );
         PvAddPropPage(propContext, newPage);
@@ -870,7 +879,7 @@ VOID PvpSetPeImageSize(
 
         if (success)
         {
-            string = PhFormatString(L"%s", PhaFormatSize(PvMappedImage.Size, ULONG_MAX)->Buffer);
+            string = PhFormatSize(PvMappedImage.Size, ULONG_MAX);
         }
         else
         {
@@ -889,7 +898,7 @@ VOID PvpSetPeImageSize(
     }
     else
     {
-        string = PhFormatString(L"%s", PhaFormatSize(PvMappedImage.Size, ULONG_MAX)->Buffer);
+        string = PhFormatSize(PvMappedImage.Size, ULONG_MAX);
     }
 
     PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_IMAGESIZE, 1, string->Buffer);
@@ -897,7 +906,7 @@ VOID PvpSetPeImageSize(
 }
 
 VOID PvCalculateImageEntropy(
-    _Out_ DOUBLE *ImageEntropy,
+    _Out_ DOUBLE* ImageEntropy,
     _Out_ DOUBLE* ImageVariance
     )
 {
@@ -943,11 +952,14 @@ VOID PvCalculateImageEntropy(
 
 DOUBLE PvCalculateEntropyBuffer(
     _In_ PBYTE Buffer,
-    _In_ SIZE_T BufferLength
+    _In_ SIZE_T BufferLength,
+    _Out_opt_ DOUBLE* BufferVariance
     )
 {
     DOUBLE bufferEntropy = 0.0;
     ULONG64 offset = 0;
+    ULONG64 bufferSumValue = 0;
+    DOUBLE bufferMeanValue = 0;
     ULONG64 counts[UCHAR_MAX + 1];
 
     memset(counts, 0, sizeof(counts));
@@ -956,6 +968,7 @@ DOUBLE PvCalculateEntropyBuffer(
     {
         BYTE value = *(PBYTE)PTR_ADD_OFFSET(Buffer, offset++);
 
+        bufferSumValue += value;
         counts[value]++;
     }
 
@@ -966,6 +979,13 @@ DOUBLE PvCalculateEntropyBuffer(
         if (value > 0.0)
             bufferEntropy -= value * log2(value);
     }
+
+    bufferMeanValue = (DOUBLE)bufferSumValue / (DOUBLE)BufferLength; // 127.5 = random
+
+    //if (BufferEntropy)
+    //    *BufferEntropy = bufferEntropy;
+    if (BufferVariance)
+        *BufferVariance = bufferMeanValue;
 
     return bufferEntropy;
 }
@@ -1588,11 +1608,6 @@ VOID PvpSetPeImageProperties(
     ExtendedListView_SetRedraw(Context->ListViewHandle, FALSE);
     ListView_DeleteAllItems(Context->ListViewHandle);
 
-    ListView_EnableGroupView(Context->ListViewHandle, TRUE);
-    PhAddListViewGroup(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_BASICINFO, L"Image information");
-    PhAddListViewGroup(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_FILEINFO, L"File information");
-    PhAddListViewGroup(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_DEBUGINFO, L"Debug information");
-
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_BASICINFO, PVP_IMAGE_GENERAL_INDEX_NAME, L"Target machine", NULL);  
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_BASICINFO, PVP_IMAGE_GENERAL_INDEX_TIMESTAMP, L"Time stamp", NULL);
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_BASICINFO, PVP_IMAGE_GENERAL_INDEX_ENTROPY, L"Image entropy", NULL);
@@ -1609,13 +1624,13 @@ VOID PvpSetPeImageProperties(
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_FILEINFO, PVP_IMAGE_GENERAL_INDEX_FILECREATEDTIME, L"Created time", NULL);
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_FILEINFO, PVP_IMAGE_GENERAL_INDEX_FILEMODIFIEDTIME, L"Modified time", NULL);
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_FILEINFO, PVP_IMAGE_GENERAL_INDEX_FILELASTWRITETIME, L"Updated time", NULL);
-    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_FILEINFO, PVP_IMAGE_GENERAL_INDEX_FILEINDEX, L"File index", NULL);
-    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_FILEINFO, PVP_IMAGE_GENERAL_INDEX_FILEID, L"File identifier", NULL);
-    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_FILEINFO, PVP_IMAGE_GENERAL_INDEX_FILEOBJECTID, L"File object identifier", NULL);
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_DEBUGINFO, PVP_IMAGE_GENERAL_INDEX_DEBUGPDB, L"Guid", NULL);
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_DEBUGINFO, PVP_IMAGE_GENERAL_INDEX_DEBUGIMAGE, L"Image name", NULL);
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_DEBUGINFO, PVP_IMAGE_GENERAL_INDEX_DEBUGVCFEATURE, L"Feature count", NULL);
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_DEBUGINFO, PVP_IMAGE_GENERAL_INDEX_DEBUGREPRO, L"Reproducible hash", NULL);
+    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_EXTRAINFO, PVP_IMAGE_GENERAL_INDEX_FILEINDEX, L"File index", NULL);
+    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_EXTRAINFO, PVP_IMAGE_GENERAL_INDEX_FILEID, L"File identifier", NULL);
+    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_EXTRAINFO, PVP_IMAGE_GENERAL_INDEX_FILEOBJECTID, L"File object identifier", NULL);
 
     PvpSetPeImageMachineType(Context->ListViewHandle);
     PvpSetPeImageTimeStamp(Context->ListViewHandle);
@@ -1634,7 +1649,21 @@ VOID PvpSetPeImageProperties(
     PvpSetPeImageDebugVCFeatures(Context->ListViewHandle);
     PvpSetPeImageDebugRepoHash(Context->ListViewHandle);
 
-    //ExtendedListView_SortItems(Context->ListViewHandle);
+    ExtendedListView_SetRedraw(Context->ListViewHandle, TRUE);
+}
+
+VOID PvPeAddImagePropertiesGroups(
+    _In_ PPVP_PE_GENERAL_CONTEXT Context
+    )
+{
+    ExtendedListView_SetRedraw(Context->ListViewHandle, FALSE);
+
+    ListView_EnableGroupView(Context->ListViewHandle, TRUE);
+    PhAddListViewGroup(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_BASICINFO, L"Image information");
+    PhAddListViewGroup(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_FILEINFO, L"File information");
+    PhAddListViewGroup(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_DEBUGINFO, L"Debug information");
+    PhAddListViewGroup(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_EXTRAINFO, L"Internal information");
+
     ExtendedListView_SetRedraw(Context->ListViewHandle, TRUE);
 }
 
@@ -1799,6 +1828,8 @@ INT_PTR CALLBACK PvPeGeneralDlgProc(
             PhSetExtendedListView(context->ListViewHandle);
             //PhLoadListViewColumnsFromSetting(L"ImageGeneralPropertiesListViewColumns", context->ListViewHandle);
             //PhLoadListViewSortColumnsFromSetting(L"ImageGeneralPropertiesListViewSort", context->ListViewHandle);
+            PvPeAddImagePropertiesGroups(context);
+            PhLoadListViewGroupStatesFromSetting(L"ImageGeneralPropertiesListViewGroupStates", context->ListViewHandle);
 
             if (context->ListViewImageList = ImageList_Create(2, 20, ILC_MASK | ILC_COLOR, 1, 1))
                 ListView_SetImageList(context->ListViewHandle, context->ListViewImageList, LVSIL_SMALL);
@@ -1820,6 +1851,7 @@ INT_PTR CALLBACK PvPeGeneralDlgProc(
         break;
     case WM_DESTROY:
         {
+            PhSaveListViewGroupStatesToSetting(L"ImageGeneralPropertiesListViewGroupStates", context->ListViewHandle);
             //PhSaveListViewSortColumnsToSetting(L"ImageGeneralPropertiesListViewSort", context->ListViewHandle);
             //PhSaveListViewColumnsToSetting(L"ImageGeneralPropertiesListViewColumns", context->ListViewHandle);
 

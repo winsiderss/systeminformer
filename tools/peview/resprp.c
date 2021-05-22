@@ -442,7 +442,8 @@ NTSTATUS PvpPeResourcesEnumerateThread(
 
                     imageResourceEntropy = PvCalculateEntropyBuffer(
                         entry.Data,
-                        entry.Size
+                        entry.Size,
+                        NULL
                         );
 
                     resourceNode->ResourcesEntropy = imageResourceEntropy;

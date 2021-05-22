@@ -323,7 +323,8 @@ VOID PvpPeEnumerateImageDataDirectory(
             {
                 imageDirectoryEntropy = PvCalculateEntropyBuffer(
                     imageDirectoryData,
-                    directorySize
+                    directorySize,
+                    NULL
                     );
 
                 directoryNode->DirectoryEntropy = imageDirectoryEntropy;

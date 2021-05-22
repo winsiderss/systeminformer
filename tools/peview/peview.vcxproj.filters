@@ -48,9 +48,6 @@
     <ClCompile Include="settings.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="pdb.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="colmgr.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -162,17 +159,23 @@
     <ClCompile Include="tlsh\tlsh_wrapper.cpp">
       <Filter>Source Files\tlsh</Filter>
     </ClCompile>
-    <ClCompile Include="peexceptprp.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="perelocprp.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="peprpwnd.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="chcol.c">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="peexceptprp.c">
+      <Filter>Source Files\Pages\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="peheaderprp.c">
+      <Filter>Source Files\Pages\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="perelocprp.c">
+      <Filter>Source Files\Pages\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="peprpwnd.c">
+      <Filter>Source Files\Pages\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="pdb.c">
+      <Filter>Source Files\Pages\Windows</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

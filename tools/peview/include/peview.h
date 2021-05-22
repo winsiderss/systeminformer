@@ -81,7 +81,8 @@ NTSTATUS PhpOpenFileSecurity(
 
 DOUBLE PvCalculateEntropyBuffer(
     _In_ PBYTE Buffer,
-    _In_ SIZE_T BufferLength
+    _In_ SIZE_T BufferLength,
+    _Out_opt_ DOUBLE* BufferVariance
     );
 
 PPH_STRING PvFormatDoubleCropZero(
@@ -189,6 +190,7 @@ VOID PvCreateSearchControl(
 
 typedef enum _WCT_TREE_COLUMN_ITEM_NAME
 {
+    TREE_COLUMN_ITEM_INDEX,
     TREE_COLUMN_ITEM_TYPE,
     TREE_COLUMN_ITEM_VA,
     TREE_COLUMN_ITEM_NAME,
@@ -219,13 +221,15 @@ typedef struct _PV_SYMBOL_NODE
 {
     PH_TREENEW_NODE Node;
 
-    ULONG UniqueId;
+    ULONG64 UniqueId;
+    ULONG TypeId;
     PV_SYMBOL_TYPE Type;
     ULONG64 Size;
-    ULONG64 Address;    
+    ULONG64 Address;
     PPH_STRING Name;
     PPH_STRING Data;
     PPH_STRING SizeText;
+    WCHAR Index[PH_INT64_STR_LEN_1];
     WCHAR Pointer[PH_PTR_STR_LEN_1];
 
     PH_STRINGREF TextCache[TREE_COLUMN_ITEM_MAXIMUM];
@@ -348,6 +352,7 @@ typedef struct _PDB_SYMBOL_CONTEXT
     HWND ParentWindowHandle;
     HANDLE UpdateTimerHandle;
 
+    ULONG64 Count;
     ULONG64 BaseAddress;
     PPH_STRING FileName;
     PPH_STRING SearchboxText;
@@ -423,6 +428,13 @@ INT_PTR CALLBACK PvPeImportsDlgProc(
     );
 
 INT_PTR CALLBACK PvPeExportsDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
+INT_PTR CALLBACK PvPeHeadersDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,

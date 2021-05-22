@@ -359,6 +359,7 @@
     <ClCompile Include="exlfprp.c" />
     <ClCompile Include="hashprp.c" />
     <ClCompile Include="layout.c" />
+    <ClCompile Include="peheaderprp.c" />
     <ClCompile Include="peprpwnd.c" />
     <ClCompile Include="options.c" />
     <ClCompile Include="peexceptprp.c" />

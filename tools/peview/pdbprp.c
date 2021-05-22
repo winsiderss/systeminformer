@@ -158,11 +158,17 @@ VOID PvDestroySymbolNode(
     int sortResult = 0;
 
 #define END_SORT_FUNCTION \
-    /*if (sortResult == 0) \
-    //    sortResult = uintptrcmp((ULONG_PTR)node1->Node.Index, (ULONG_PTR)node2->Node.Index); \
-    */\
+    if (sortResult == 0) \
+        sortResult = uintptrcmp((ULONG_PTR)node1->UniqueId, (ULONG_PTR)node2->UniqueId); \
+    \
     return PhModifySort(sortResult, ((PPDB_SYMBOL_CONTEXT)_context)->TreeNewSortOrder); \
 }
+
+BEGIN_SORT_FUNCTION(Index)
+{
+    sortResult = uintptrcmp((ULONG_PTR)node1->UniqueId, (ULONG_PTR)node2->UniqueId);
+}
+END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Type)
 {
@@ -226,6 +232,7 @@ BOOLEAN NTAPI PvSymbolTreeNewCallback(
             {
                 static PVOID sortFunctions[] =
                 {
+                    SORT_FUNCTION(Index),
                     SORT_FUNCTION(Type),
                     SORT_FUNCTION(VA),
                     SORT_FUNCTION(Symbol),
@@ -272,6 +279,9 @@ BOOLEAN NTAPI PvSymbolTreeNewCallback(
 
             switch (getCellText->Id)
             {
+            case TREE_COLUMN_ITEM_INDEX:
+                PhInitializeStringRefLongHint(&getCellText->Text, node->Index);
+                break;
             case TREE_COLUMN_ITEM_TYPE:
                 {
                     switch (node->Type)
@@ -477,14 +487,17 @@ VOID PvInitializeSymbolTree(
     PhSetControlTheme(TreeNewHandle, L"explorer");
 
     TreeNew_SetCallback(TreeNewHandle, PvSymbolTreeNewCallback, Context);
+    TreeNew_SetRedraw(TreeNewHandle, FALSE);
 
+    PhAddTreeNewColumnEx2(TreeNewHandle, TREE_COLUMN_ITEM_INDEX, TRUE, L"#", 80, PH_ALIGN_LEFT, TREE_COLUMN_ITEM_INDEX, 0, 0);
     PhAddTreeNewColumnEx2(TreeNewHandle, TREE_COLUMN_ITEM_TYPE, TRUE, L"Type", 80, PH_ALIGN_LEFT, TREE_COLUMN_ITEM_TYPE, 0, 0);
-    PhAddTreeNewColumnEx2(TreeNewHandle, TREE_COLUMN_ITEM_VA, TRUE, L"VA", 80, PH_ALIGN_LEFT, TREE_COLUMN_ITEM_VA, 0, 0);
+    PhAddTreeNewColumnEx2(TreeNewHandle, TREE_COLUMN_ITEM_VA, TRUE, L"RVA", 80, PH_ALIGN_LEFT, TREE_COLUMN_ITEM_VA, 0, 0);
     PhAddTreeNewColumnEx2(TreeNewHandle, TREE_COLUMN_ITEM_NAME, TRUE, L"Symbol", 150, PH_ALIGN_LEFT, TREE_COLUMN_ITEM_NAME, 0, 0);
     PhAddTreeNewColumnEx2(TreeNewHandle, TREE_COLUMN_ITEM_SYMBOL, TRUE, L"Data", 150, PH_ALIGN_LEFT, TREE_COLUMN_ITEM_SYMBOL, 0, 0);
     PhAddTreeNewColumnEx2(TreeNewHandle, TREE_COLUMN_ITEM_SIZE, TRUE, L"Size", 40, PH_ALIGN_LEFT, TREE_COLUMN_ITEM_SIZE, 0, 0);
 
-    TreeNew_SetSort(TreeNewHandle, TREE_COLUMN_ITEM_VA, AscendingSortOrder);
+    TreeNew_SetRedraw(TreeNewHandle, TRUE);
+    TreeNew_SetSort(TreeNewHandle, TREE_COLUMN_ITEM_INDEX, AscendingSortOrder);
 
     settings = PhGetStringSetting(L"PdbTreeListColumns");
     PhCmLoadSettings(TreeNewHandle, &settings->sr);
