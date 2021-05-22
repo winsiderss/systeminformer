@@ -568,6 +568,15 @@ PhGetMappedImageProdIdHeader(
     _Out_ PPH_MAPPED_IMAGE_PRODID ProdIdHeader
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetMappedImageProdIdExtents(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _Out_ PULONG ProdIdHeaderStart,
+    _Out_ PULONG ProdIdHeaderEnd
+    );
+
 typedef struct _PH_IMAGE_DEBUG_ENTRY
 {
     ULONG Characteristics;
