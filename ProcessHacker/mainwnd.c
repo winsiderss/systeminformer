@@ -1043,7 +1043,7 @@ VOID PhMwpOnCommand(
         break;
     case ID_HELP_ABOUT:
         {
-            PhShowAboutDialog();
+            PhShowAboutDialog(WindowHandle);
         }
         break;
     case ID_PROCESS_TERMINATE:
