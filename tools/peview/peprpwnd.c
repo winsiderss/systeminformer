@@ -91,6 +91,7 @@ PPV_WINDOW_SECTION PvCreateTabSection(
 static HWND PvPropertiesWindowHandle = NULL;
 static HWND PvTabTreeControl = NULL;
 static HWND PvTabContainerControl = NULL;
+static INT PvPropertiesWindowShowCommand = SW_SHOW;
 static HIMAGELIST PvTabTreeImageList = NULL;
 static PH_LAYOUT_MANAGER PvTabWindowLayoutManager;
 static PPH_LIST PvTabSectionList = NULL;
@@ -114,7 +115,10 @@ VOID PvShowPePropertiesWindow(
         NULL
         );
 
-    ShowWindow(PvPropertiesWindowHandle, SW_SHOW);
+    if (PhGetIntegerSetting(L"MainWindowState") == SW_MAXIMIZE)
+        PvPropertiesWindowShowCommand = SW_MAXIMIZE;
+
+    ShowWindow(PvPropertiesWindowHandle, PvPropertiesWindowShowCommand);
     SetForegroundWindow(PvPropertiesWindowHandle);
 
     while (result = GetMessage(&message, NULL, 0, 0))
@@ -645,6 +649,7 @@ INT_PTR CALLBACK PvTabWindowDialogProc(
             PPV_WINDOW_SECTION section;
 
             PhSaveWindowPlacementToSetting(L"MainWindowPosition", L"MainWindowSize", hwndDlg);
+            PvSaveWindowState(hwndDlg);
 
             if (PhGetIntegerSetting(L"MainWindowPageRestoreEnabled"))
                 PhSetStringSetting(L"MainWindowPage", PvTabCurrentSection->Name.Buffer);
