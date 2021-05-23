@@ -36,6 +36,7 @@ typedef enum _PVP_IMAGE_HEADER_CATEGORY
     PVP_IMAGE_HEADER_CATEGORY_DOSSTUB,
     PVP_IMAGE_HEADER_CATEGORY_FILEHDR,
     PVP_IMAGE_HEADER_CATEGORY_OPTHDR,
+    PVP_IMAGE_HEADER_CATEGORY_OVERLAY,
     PVP_IMAGE_HEADER_CATEGORY_MAXIMUM
 } PVP_IMAGE_HEADER_CATEGORY;
 
@@ -106,6 +107,12 @@ typedef enum _PVP_IMAGE_HEADER_INDEX
     PVP_IMAGE_HEADER_INDEX_OPT_SIZEOFHEAPCOMMIT,
     PVP_IMAGE_HEADER_INDEX_OPT_LOADERFLAGS,
     PVP_IMAGE_HEADER_INDEX_OPT_NUMBEROFRVA,
+
+    PVP_IMAGE_HEADER_INDEX_DOS_OVERLAY_OFFSET,
+    PVP_IMAGE_HEADER_INDEX_DOS_OVERLAY_SIZE,
+    PVP_IMAGE_HEADER_INDEX_DOS_OVERLAY_ENTROPY,
+    PVP_IMAGE_HEADER_INDEX_DOS_OVERLAY_HASH,
+
     PVP_IMAGE_HEADER_INDEX_MAXIMUM
 } PVP_IMAGE_HEADER_INDEX;
 
@@ -682,6 +689,112 @@ VOID PvSetPeImageOptionalHeaderProperties(
     }
 }
 
+VOID PvSetPeImageOverlayHeaderProperties(
+    _In_ PPVP_PE_HEADER_CONTEXT Context
+    )
+{
+    ULONG lastRawDataAddress = 0;
+    ULONG64 lastRawDataOffset = 0;
+
+    for (ULONG i = 0; i < PvMappedImage.NumberOfSections; i++)
+    {
+        if (PvMappedImage.Sections[i].PointerToRawData > lastRawDataAddress)
+        {
+            lastRawDataAddress = PvMappedImage.Sections[i].PointerToRawData;
+            lastRawDataOffset = (ULONG64)PTR_ADD_OFFSET(lastRawDataAddress, PvMappedImage.Sections[i].SizeOfRawData);
+        }
+    }
+
+    if (PvMappedImage.Size != lastRawDataOffset)
+    {
+        ULONG64 imageOverlayDataLength;
+        PVOID imageOverlayData;
+        WCHAR value[PH_PTR_STR_LEN_1];
+        WCHAR size[PH_PTR_STR_LEN_1];
+        PPH_STRING string;
+
+        imageOverlayDataLength = PvMappedImage.Size - lastRawDataOffset;
+        imageOverlayData = PTR_ADD_OFFSET(PvMappedImage.ViewBase, lastRawDataOffset);
+
+        PhPrintPointer(value, (PVOID)lastRawDataOffset);
+        PhPrintPointer(size, (PVOID)PvMappedImage.Size);
+        string = PhaFormatString(L"%s-%s", value, size);
+        PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_DOS_OVERLAY_OFFSET, 1, PhGetString(string));
+
+        PhPrintPointer(value, (PVOID)imageOverlayDataLength);
+        string = PhaFormatString(L"%s (%s)", value, PhaFormatSize(imageOverlayDataLength, ULONG_MAX)->Buffer);
+        PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_DOS_OVERLAY_SIZE, 1, PhGetString(string));
+
+        __try
+        {
+            DOUBLE imageDosStubEntropy;
+            DOUBLE imageDosStubMean = 0;
+            PPH_STRING entropyString;
+            PPH_STRING stringEntropy;
+            PPH_STRING stringMean;
+
+            imageDosStubEntropy = PvCalculateEntropyBuffer(
+                imageOverlayData,
+                imageOverlayDataLength,
+                &imageDosStubMean
+                );
+
+            stringEntropy = PvFormatDoubleCropZero(imageDosStubEntropy, 6);
+            stringMean = PvFormatDoubleCropZero(imageDosStubMean, 4);
+            entropyString = PhFormatString(
+                L"%s S (%s X)",
+                PhGetStringOrEmpty(stringEntropy),
+                PhGetStringOrEmpty(stringMean)
+                );
+
+            PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_DOS_OVERLAY_ENTROPY, 1, PhGetStringOrEmpty(entropyString));
+
+            PhDereferenceObject(entropyString);
+            PhDereferenceObject(stringMean);
+            PhDereferenceObject(stringEntropy);
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            PPH_STRING message;
+
+            if (message = PhGetWin32Message(RtlNtStatusToDosError(GetExceptionCode())))
+            {
+                PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_DOS_OVERLAY_ENTROPY, 1, PhGetString(message));
+                PhDereferenceObject(message);
+            }
+        }
+
+        __try
+        {
+            PH_HASH_CONTEXT hashContext;
+            PPH_STRING hashString;
+            UCHAR hash[32];
+
+            PhInitializeHash(&hashContext, Md5HashAlgorithm); // PhGetIntegerSetting(L"HashAlgorithm")
+            PhUpdateHash(&hashContext, imageOverlayData, (ULONG)imageOverlayDataLength);
+
+            if (PhFinalHash(&hashContext, hash, 16, NULL))
+            {
+                if (hashString = PhBufferToHexString(hash, 16))
+                {
+                    PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_DOS_OVERLAY_HASH, 1, PhGetString(hashString));
+                    PhDereferenceObject(hashString);
+                }
+            }
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            PPH_STRING message;
+
+            if (message = PhGetWin32Message(RtlNtStatusToDosError(GetExceptionCode())))
+            {
+                PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_DOS_OVERLAY_HASH, 1, PhGetString(message));
+                PhDereferenceObject(message);
+            }
+        }
+    }
+}
+
 VOID PvPeUpdateImageHeaderProperties(
     _In_ PPVP_PE_HEADER_CONTEXT Context
     )
@@ -758,6 +871,11 @@ VOID PvPeUpdateImageHeaderProperties(
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_HEADER_CATEGORY_OPTHDR, PVP_IMAGE_HEADER_INDEX_OPT_SIZEOFHEAPCOMMIT, L"SizeOfHeapCommit", NULL);
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_HEADER_CATEGORY_OPTHDR, PVP_IMAGE_HEADER_INDEX_OPT_LOADERFLAGS, L"LoaderFlags", NULL);
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_HEADER_CATEGORY_OPTHDR, PVP_IMAGE_HEADER_INDEX_OPT_NUMBEROFRVA, L"NumberOfRvaAndSizes", NULL);
+    // Overlay Data
+    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_HEADER_CATEGORY_OVERLAY, PVP_IMAGE_HEADER_INDEX_DOS_OVERLAY_OFFSET, L"Data offset", NULL);
+    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_HEADER_CATEGORY_OVERLAY, PVP_IMAGE_HEADER_INDEX_DOS_OVERLAY_SIZE, L"Data size", NULL);
+    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_HEADER_CATEGORY_OVERLAY, PVP_IMAGE_HEADER_INDEX_DOS_OVERLAY_ENTROPY, L"Data entropy", NULL);
+    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_HEADER_CATEGORY_OVERLAY, PVP_IMAGE_HEADER_INDEX_DOS_OVERLAY_HASH, L"Data hash", NULL);
 
     // DOS Headers
     PvSetPeImageDosHeaderProperties(Context);
@@ -767,6 +885,8 @@ VOID PvPeUpdateImageHeaderProperties(
     PvSetPeImageFileHeaderProperties(Context);
     // Optional Headers
     PvSetPeImageOptionalHeaderProperties(Context);
+    // Overlay Data
+    PvSetPeImageOverlayHeaderProperties(Context);
 
     ExtendedListView_SetRedraw(Context->ListViewHandle, TRUE);
 }
@@ -782,6 +902,7 @@ VOID PvPeAddImageHeaderGroups(
     PhAddListViewGroup(Context->ListViewHandle, PVP_IMAGE_HEADER_CATEGORY_DOSSTUB, L"DOS Stub");
     PhAddListViewGroup(Context->ListViewHandle, PVP_IMAGE_HEADER_CATEGORY_FILEHDR, L"File Header");
     PhAddListViewGroup(Context->ListViewHandle, PVP_IMAGE_HEADER_CATEGORY_OPTHDR, L"Optional Header");
+    PhAddListViewGroup(Context->ListViewHandle, PVP_IMAGE_HEADER_CATEGORY_OVERLAY, L"Overlay Stub");
 
     ExtendedListView_SetRedraw(Context->ListViewHandle, TRUE);
 }
