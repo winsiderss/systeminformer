@@ -754,7 +754,7 @@ VOID PvSetPeImageOverlayHeaderProperties(
 
             imageDosStubEntropy = PvCalculateEntropyBuffer(
                 imageOverlayData,
-                imageOverlayDataLength,
+                (ULONG)imageOverlayDataLength,
                 &imageDosStubMean
                 );
 
