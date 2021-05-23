@@ -409,6 +409,20 @@ VOID PvHandleListViewCommandCopy(
     }
 }
 
+VOID PvSaveWindowState(
+    _In_ HWND WindowHandle
+    )
+{
+    WINDOWPLACEMENT placement = { sizeof(placement) };
+
+    GetWindowPlacement(WindowHandle, &placement);
+
+    if (placement.showCmd == SW_NORMAL)
+        PhSetIntegerSetting(L"MainWindowState", SW_NORMAL);
+    else if (placement.showCmd == SW_MAXIMIZE)
+        PhSetIntegerSetting(L"MainWindowState", SW_MAXIMIZE);
+}
+
 VOID PvConfigTreeBorders(
     _In_ HWND WindowHandle
     )

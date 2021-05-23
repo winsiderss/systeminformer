@@ -154,6 +154,10 @@ VOID PvHandleListViewCommandCopy(
     _In_ HWND ListViewHandle
     );
 
+VOID PvSaveWindowState(
+    _In_ HWND WindowHandle
+    );
+
 VOID PvConfigTreeBorders(
     _In_ HWND WindowHandle
     );

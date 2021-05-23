@@ -45,6 +45,7 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"MainWindowPage", L"General");
     PhpAddIntegerPairSetting(L"MainWindowPosition", L"0,0");
     PhpAddScalableIntegerPairSetting(L"MainWindowSize", L"@96|550,580");
+    PhpAddIntegerSetting(L"MainWindowState", L"1");
     PhpAddStringSetting(L"ImageGeneralPropertiesListViewColumns", L"");
     PhpAddStringSetting(L"ImageGeneralPropertiesListViewSort", L"");
     PhpAddStringSetting(L"ImageGeneralPropertiesListViewGroupStates", L"");
