@@ -2670,15 +2670,15 @@ NTSTATUS PhGetMappedImageProdIdExtents(
     _Out_ PULONG ProdIdHeaderEnd
     )
 {
-    PIMAGE_DOS_HEADER imageDosHeader;
-    PIMAGE_NT_HEADERS imageNtHeader;
-    PPRODITEM richHeaderStart;
-    PPRODITEM richHeaderEnd;
-    PPRODITEM richHeaderChecksum;
-    ULONG ntHeadersOffset;
-    ULONG richHeaderKey;
-    ULONG richStartSignature;
-    ULONG richEndSignature;
+    PIMAGE_DOS_HEADER imageDosHeader = NULL;
+    PIMAGE_NT_HEADERS imageNtHeader = NULL;
+    PPRODITEM richHeaderStart = NULL;
+    PPRODITEM richHeaderEnd = NULL;
+    PPRODITEM richHeaderChecksum = NULL;
+    ULONG ntHeadersOffset = ULONG_MAX;
+    ULONG richHeaderKey = ULONG_MAX;
+    ULONG richStartSignature = ULONG_MAX;
+    ULONG richEndSignature = ULONG_MAX;
     ULONG richHeaderStartOffset = ULONG_MAX;
     ULONG richHeaderEndOffset = ULONG_MAX;
 
@@ -2759,14 +2759,58 @@ NTSTATUS PhGetMappedImageProdIdExtents(
         return STATUS_FAIL_CHECK;
 
     richHeaderStart = PTR_ADD_OFFSET(MappedImage->ViewBase, richHeaderStartOffset);
+
+    __try
+    {
+        PhpMappedImageProbe(MappedImage, richHeaderStart, sizeof(PRODITEM));
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        return GetExceptionCode();
+    }
+
     richHeaderEnd = PTR_ADD_OFFSET(MappedImage->ViewBase, richHeaderEndOffset + sizeof(PRODITEM));
+
+    __try
+    {
+        PhpMappedImageProbe(MappedImage, richHeaderEnd, sizeof(PRODITEM));
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        return GetExceptionCode();
+    }
+
     richEndSignature = richHeaderStart->dwProdid ^ richHeaderKey;
 
     if (richStartSignature == ProdIdTagStart && richEndSignature == ProdIdTagEnd)
     {
+        ULONG richHeaderTotalLength;
+        ULONG currentCount = 0;
+        PBYTE currentAddress;
+        PBYTE currentEnd;
+        PBYTE offset;
+
+        currentAddress = PTR_ADD_OFFSET(richHeaderStart, 0);
+        currentEnd = PTR_SUB_OFFSET(richHeaderEnd, 0);
+
+        // Do a scan to determine how many entries there are.
+        for (offset = currentAddress; offset < currentEnd; offset += sizeof(PRODITEM))
+        {
+            currentCount++;
+        }
+
+        // Calculate rich header and rich header padding. (Todo: Generate richHeaderKey and validate).
+        richHeaderTotalLength = (richHeaderKey >> 5) % 3;
+        richHeaderTotalLength += currentCount - 3; // remove 3 fixed checksum entries.
+        richHeaderTotalLength *= sizeof(PRODITEM);
+        richHeaderTotalLength += sizeof(PRODITEM) * 4; // add 3 fixed checksums and 1 null entry (0x20).
+        richHeaderTotalLength += richHeaderStartOffset;
+
+        // If we assert then the image has hidden data or the rich format changed.
+        assert(richHeaderTotalLength == ntHeadersOffset);
+
         *ProdIdHeaderStart = richHeaderStartOffset;
-        // TODO: There's some random padding after the last entry.
-        *ProdIdHeaderEnd = imageDosHeader->e_lfanew;
+        *ProdIdHeaderEnd = richHeaderTotalLength;
         return STATUS_SUCCESS;
     }
 
