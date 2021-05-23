@@ -3830,7 +3830,8 @@ typedef struct _SYSTEM_SHADOW_STACK_INFORMATION
             ULONG UserCetAllowed : 1;
             ULONG ReservedForUserCet : 6;
             ULONG KernelCetEnabled : 1;
-            ULONG ReservedForKernelCet : 7;
+            ULONG KernelCetAuditModeEnabled : 1;
+            ULONG ReservedForKernelCet : 6;       // since Windows 10 build 21387
             ULONG Reserved : 16;
         };
     };
