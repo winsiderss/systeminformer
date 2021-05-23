@@ -888,7 +888,7 @@ VOID PvpSetPeImageSize(
             PhPrintPointer(pointer, UlongToPtr(lastRawDataAddress));
 
             string = PhFormatString(
-                L"%s (incorrect, %s) (%s - %s)",
+                L"%s (incorrect, %s) (overlay, %s - %s)",
                 PhaFormatSize(lastRawDataOffset, ULONG_MAX)->Buffer,
                 PhaFormatSize(PvMappedImage.Size, ULONG_MAX)->Buffer,
                 pointer,
