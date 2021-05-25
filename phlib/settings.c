@@ -3,7 +3,7 @@
  *   settings
  *
  * Copyright (C) 2010-2016 wj32
- * Copyright (C) 2017-2020 dmex
+ * Copyright (C) 2017-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -1032,11 +1032,22 @@ VOID PhLoadWindowPlacementFromSetting(
         }
         else
         {
-            size.X = 16;
-            size.Y = 16;
+            RECT windowRect;
+
+            // Make sure the window doesn't get positioned on disconnected monitors. (dmex)
+            //size.X = 16;
+            //size.Y = 16;
+            GetWindowRect(WindowHandle, &windowRect);
+            size.X = windowRect.right - windowRect.left;
+            size.Y = windowRect.bottom - windowRect.top;
         }
 
-        SetWindowPos(WindowHandle, NULL, position.X, position.Y, size.X, size.Y, flags);
+        // Make sure the window doesn't get positioned on disconnected monitors. (dmex) 
+        windowRectangle.Position = position;
+        windowRectangle.Size = size;
+        PhAdjustRectangleToWorkingArea(NULL, &windowRectangle);
+
+        SetWindowPos(WindowHandle, NULL, windowRectangle.Left, windowRectangle.Top, size.X, size.Y, flags);
     }
 }
 
