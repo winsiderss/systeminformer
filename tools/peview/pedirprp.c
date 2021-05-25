@@ -270,6 +270,7 @@ VOID PvpPeEnumerateImageDataDirectory(
         directoryNode->RvaEnd = PTR_ADD_OFFSET(directoryAddress, directorySize);
         PhPrintPointer(value, directoryNode->RvaEnd);
         directoryNode->RvaEndString = PhCreateString(value);
+        directoryNode->RvaSize = directorySize;
         directoryNode->RvaSizeString = PhFormatSize(directorySize, ULONG_MAX);
     }
 
