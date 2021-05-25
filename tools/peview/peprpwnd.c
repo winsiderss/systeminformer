@@ -297,7 +297,7 @@ VOID PvAddTreeViewSections(
 
     // RICH header page
     // .NET executables don't include a RICH header.
-    if (!(NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR, &entry)) && entry->VirtualAddress))
+    if (!(PvImageCor20Header && (PvImageCor20Header->Flags & COMIMAGE_FLAGS_NATIVE_ENTRYPOINT) == 0))
     {
         PvCreateTabSection(
             L"ProdID",
