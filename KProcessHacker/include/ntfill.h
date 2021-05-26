@@ -410,4 +410,8 @@ NTSTATUS
     _Out_ PIMAGE_NT_HEADERS* OutHeaders
     );
 
+// MM
+
+extern POBJECT_TYPE *MmSectionObjectType;
+
 #endif
