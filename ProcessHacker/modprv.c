@@ -169,13 +169,26 @@ PPH_MODULE_PROVIDER PhCreateModuleProvider(
 
         if (WindowsVersion >= WINDOWS_10_20H1)
         {
-            BOOLEAN cetEnabled;
-            BOOLEAN cetStrictModeEnabled;
-
-            if (NT_SUCCESS(PhGetProcessIsCetEnabled(moduleProvider->ProcessHandle, &cetEnabled, &cetStrictModeEnabled)))
+            if (moduleProvider->ProcessId == SYSTEM_PROCESS_ID)
             {
-                moduleProvider->CetEnabled = cetEnabled;
-                moduleProvider->CetStrictModeEnabled = cetStrictModeEnabled;
+                SYSTEM_SHADOW_STACK_INFORMATION shadowStackInformation;
+
+                if (NT_SUCCESS(PhGetSystemShadowStackInformation(&shadowStackInformation)))
+                {
+                    moduleProvider->CetEnabled = !!shadowStackInformation.KernelCetEnabled;
+                    moduleProvider->CetStrictModeEnabled = TRUE; // Kernel CET is always strict (TheEragon)
+                }
+            }
+            else
+            {
+                BOOLEAN cetEnabled;
+                BOOLEAN cetStrictModeEnabled;
+
+                if (NT_SUCCESS(PhGetProcessIsCetEnabled(moduleProvider->ProcessHandle, &cetEnabled, &cetStrictModeEnabled)))
+                {
+                    moduleProvider->CetEnabled = cetEnabled;
+                    moduleProvider->CetStrictModeEnabled = cetStrictModeEnabled;
+                }
             }
         }
     }

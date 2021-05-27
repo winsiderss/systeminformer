@@ -1777,61 +1777,43 @@ NTSTATUS
 PhGetProcessIsCetEnabled(
     _In_ HANDLE ProcessHandle,
     _Out_ PBOOLEAN IsCetEnabled,
-    _Out_opt_ PBOOLEAN IsCetStrictModeEnabled
+    _Out_ PBOOLEAN IsCetStrictModeEnabled
     )
 {
     NTSTATUS status;
+    PROCESS_MITIGATION_POLICY_INFORMATION policyInfo;
 
-    if (GetProcessId(ProcessHandle) != 4)
-    {
-        // User mode
-        PROCESS_MITIGATION_POLICY_INFORMATION policyInfo;
+    policyInfo.Policy = ProcessUserShadowStackPolicy;
 
-        policyInfo.Policy = ProcessUserShadowStackPolicy;
-
-        status = NtQueryInformationProcess(
-            ProcessHandle,
-            ProcessMitigationPolicy,
-            &policyInfo,
-            sizeof(PROCESS_MITIGATION_POLICY_INFORMATION),
-            NULL
+    status = NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessMitigationPolicy,
+        &policyInfo,
+        sizeof(PROCESS_MITIGATION_POLICY_INFORMATION),
+        NULL
         );
 
-        if (NT_SUCCESS(status))
-        {
-            *IsCetEnabled = !!policyInfo.UserShadowStackPolicy.EnableUserShadowStack;
-
-            if (IsCetStrictModeEnabled)
-            {
-                *IsCetStrictModeEnabled = !!policyInfo.UserShadowStackPolicy.EnableUserShadowStackStrictMode;
-            }
-        }
-    }
-    else
+    if (NT_SUCCESS(status))
     {
-        // Kernel
-        SYSTEM_SHADOW_STACK_INFORMATION shadowStackInformation;
-
-        status = NtQuerySystemInformation(
-            SystemShadowStackInformation,
-            &shadowStackInformation,
-            sizeof(shadowStackInformation),
-            NULL
-        );
-
-        if (NT_SUCCESS(status))
-        {
-            *IsCetEnabled = !!shadowStackInformation.KernelCetEnabled;
-
-            if (IsCetStrictModeEnabled)
-            {
-                // In kernel CET has only strict mode
-                *IsCetStrictModeEnabled = *IsCetEnabled;
-            }
-        }
+        *IsCetEnabled = !!policyInfo.UserShadowStackPolicy.EnableUserShadowStack;
+        *IsCetStrictModeEnabled = !!policyInfo.UserShadowStackPolicy.EnableUserShadowStackStrictMode;
     }
 
     return status;
+}
+
+FORCEINLINE
+NTSTATUS
+PhGetSystemShadowStackInformation(
+    _Out_ PSYSTEM_SHADOW_STACK_INFORMATION ShadowStackInformation
+    )
+{
+    return NtQuerySystemInformation(
+        SystemShadowStackInformation,
+        ShadowStackInformation,
+        sizeof(SYSTEM_SHADOW_STACK_INFORMATION),
+        NULL
+        );
 }
 
 #endif

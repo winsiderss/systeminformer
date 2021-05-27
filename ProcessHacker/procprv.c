@@ -1327,13 +1327,29 @@ VOID PhpFillProcessItem(
     }
 
     // CET
-    if (WindowsVersion >= WINDOWS_10_20H1 && ProcessItem->QueryHandle)
+    if (WindowsVersion >= WINDOWS_10_20H1)
     {
-        BOOLEAN cetEnabled;
-
-        if (NT_SUCCESS(PhGetProcessIsCetEnabled(ProcessItem->QueryHandle, &cetEnabled, NULL)))
+        if (ProcessItem->ProcessId == SYSTEM_PROCESS_ID)
         {
-            ProcessItem->IsCetEnabled = cetEnabled;
+            SYSTEM_SHADOW_STACK_INFORMATION shadowStackInformation;
+
+            if (NT_SUCCESS(PhGetSystemShadowStackInformation(&shadowStackInformation)))
+            {
+                ProcessItem->IsCetEnabled = shadowStackInformation.KernelCetEnabled; // Kernel CET is always strict (TheEragon)
+            }
+        }
+        else
+        {
+            if (ProcessItem->QueryHandle)
+            {
+                BOOLEAN cetEnabled;
+                BOOLEAN cetStrictModeEnabled;
+
+                if (NT_SUCCESS(PhGetProcessIsCetEnabled(ProcessItem->QueryHandle, &cetEnabled, &cetStrictModeEnabled)))
+                {
+                    ProcessItem->IsCetEnabled = cetEnabled;
+                }
+            }
         }
     }
 
