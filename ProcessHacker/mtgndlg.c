@@ -3,7 +3,7 @@
  *   process mitigation policy details
  *
  * Copyright (C) 2016 wj32
- * Copyright (C) 2016-2018 dmex
+ * Copyright (C) 2016-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -99,6 +99,33 @@ VOID PhShowProcessMitigationPolicyDialog(
                 {
                     context.Entries[policy].ShortDescription = shortDescription;
                     context.Entries[policy].LongDescription = longDescription;
+                }
+            }
+
+            // HACK: Show System process CET mitigations (dmex)
+            if (ProcessId == SYSTEM_PROCESS_ID)
+            {
+                SYSTEM_SHADOW_STACK_INFORMATION shadowStackInformation;
+
+                if (NT_SUCCESS(PhGetSystemShadowStackInformation(&shadowStackInformation)))
+                {
+                    PROCESS_MITIGATION_USER_SHADOW_STACK_POLICY policyData;
+
+                    memset(&policyData, 0, sizeof(PROCESS_MITIGATION_USER_SHADOW_STACK_POLICY));
+                    policyData.EnableUserShadowStack = shadowStackInformation.KernelCetEnabled;
+                    policyData.EnableUserShadowStackStrictMode = shadowStackInformation.KernelCetEnabled;
+                    policyData.AuditUserShadowStack = shadowStackInformation.KernelCetAuditModeEnabled;
+
+                    if (PhDescribeProcessMitigationPolicy(
+                        ProcessUserShadowStackPolicy,
+                        &policyData,
+                        &shortDescription,
+                        &longDescription
+                        ))
+                    {
+                        context.Entries[ProcessUserShadowStackPolicy].ShortDescription = shortDescription;
+                        context.Entries[ProcessUserShadowStackPolicy].LongDescription = longDescription;
+                    }
                 }
             }
 
