@@ -77,7 +77,8 @@ typedef struct _PH_MODULE_PROVIDER
             BOOLEAN ControlFlowGuardEnabled : 1;
             BOOLEAN IsSubsystemProcess : 1;
             BOOLEAN CetEnabled : 1;
-            BOOLEAN Spare : 4;
+            BOOLEAN CetStrictModeEnabled : 1;
+            BOOLEAN Spare : 3;
         };
     };
     UCHAR ImageCoherencyScanLevel;
