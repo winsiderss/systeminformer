@@ -1776,25 +1776,59 @@ FORCEINLINE
 NTSTATUS
 PhGetProcessIsCetEnabled(
     _In_ HANDLE ProcessHandle,
-    _Out_ PBOOLEAN IsCetEnabled
+    _Out_ PBOOLEAN IsCetEnabled,
+    _Out_opt_ PBOOLEAN IsCetStrictModeEnabled
     )
 {
     NTSTATUS status;
-    PROCESS_MITIGATION_POLICY_INFORMATION policyInfo;
 
-    policyInfo.Policy = ProcessUserShadowStackPolicy;
+    if (GetProcessId(ProcessHandle) != 4)
+    {
+        // User mode
+        PROCESS_MITIGATION_POLICY_INFORMATION policyInfo;
 
-    status = NtQueryInformationProcess(
-        ProcessHandle,
-        ProcessMitigationPolicy,
-        &policyInfo,
-        sizeof(PROCESS_MITIGATION_POLICY_INFORMATION),
-        NULL
+        policyInfo.Policy = ProcessUserShadowStackPolicy;
+
+        status = NtQueryInformationProcess(
+            ProcessHandle,
+            ProcessMitigationPolicy,
+            &policyInfo,
+            sizeof(PROCESS_MITIGATION_POLICY_INFORMATION),
+            NULL
         );
 
-    if (NT_SUCCESS(status))
+        if (NT_SUCCESS(status))
+        {
+            *IsCetEnabled = !!policyInfo.UserShadowStackPolicy.EnableUserShadowStack;
+
+            if (IsCetStrictModeEnabled)
+            {
+                *IsCetStrictModeEnabled = !!policyInfo.UserShadowStackPolicy.EnableUserShadowStackStrictMode;
+            }
+        }
+    }
+    else
     {
-        *IsCetEnabled = !!policyInfo.UserShadowStackPolicy.EnableUserShadowStack;
+        // Kernel
+        SYSTEM_SHADOW_STACK_INFORMATION shadowStackInformation;
+
+        status = NtQuerySystemInformation(
+            SystemShadowStackInformation,
+            &shadowStackInformation,
+            sizeof(shadowStackInformation),
+            NULL
+        );
+
+        if (NT_SUCCESS(status))
+        {
+            *IsCetEnabled = !!shadowStackInformation.KernelCetEnabled;
+
+            if (IsCetStrictModeEnabled)
+            {
+                // In kernel CET has only strict mode
+                *IsCetStrictModeEnabled = *IsCetEnabled;
+            }
+        }
     }
 
     return status;

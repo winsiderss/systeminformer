@@ -122,6 +122,28 @@ NTSTATUS PhGetProcessMitigationPolicy(
     COPY_PROCESS_MITIGATION_POLICY(SideChannelIsolation, PROCESS_MITIGATION_SIDE_CHANNEL_ISOLATION_POLICY); // 19H1
     COPY_PROCESS_MITIGATION_POLICY(UserShadowStack, PROCESS_MITIGATION_USER_SHADOW_STACK_POLICY); // 20H1
 
+    if (GetProcessId(ProcessHandle) == 4)
+    {
+        // HACK
+        // querying SYSTEM, use NtQuerySystemInformation to retrieve kernel CET and reuse
+        // UserShadowStackPolicy to store it
+        SYSTEM_SHADOW_STACK_INFORMATION shadowStackInformation;
+
+        status = NtQuerySystemInformation(
+            SystemShadowStackInformation,
+            &shadowStackInformation,
+            sizeof(shadowStackInformation),
+            NULL
+        );
+
+        if (NT_SUCCESS(status))
+        {
+            Information->UserShadowStackPolicy.EnableUserShadowStack = shadowStackInformation.KernelCetEnabled;
+            Information->UserShadowStackPolicy.EnableUserShadowStackStrictMode = shadowStackInformation.KernelCetEnabled;
+            Information->UserShadowStackPolicy.AuditUserShadowStack = shadowStackInformation.KernelCetAuditModeEnabled;
+        }
+    }
+
     return status;
 }
 

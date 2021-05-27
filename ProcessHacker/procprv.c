@@ -1331,7 +1331,7 @@ VOID PhpFillProcessItem(
     {
         BOOLEAN cetEnabled;
 
-        if (NT_SUCCESS(PhGetProcessIsCetEnabled(ProcessItem->QueryHandle, &cetEnabled)))
+        if (NT_SUCCESS(PhGetProcessIsCetEnabled(ProcessItem->QueryHandle, &cetEnabled, NULL)))
         {
             ProcessItem->IsCetEnabled = cetEnabled;
         }
