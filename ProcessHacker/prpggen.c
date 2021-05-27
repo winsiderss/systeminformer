@@ -154,6 +154,34 @@ VOID PhpUpdateProcessMitigationPolicies(
                 }
             }
 
+            // HACK: Show System process CET mitigations (dmex)
+            if (ProcessItem->ProcessId == SYSTEM_PROCESS_ID)
+            {
+                SYSTEM_SHADOW_STACK_INFORMATION shadowStackInformation;
+
+                if (NT_SUCCESS(PhGetSystemShadowStackInformation(&shadowStackInformation)))
+                {
+                    PROCESS_MITIGATION_USER_SHADOW_STACK_POLICY policyData;
+
+                    memset(&policyData, 0, sizeof(PROCESS_MITIGATION_USER_SHADOW_STACK_POLICY));
+                    policyData.EnableUserShadowStack = shadowStackInformation.KernelCetEnabled;
+                    policyData.EnableUserShadowStackStrictMode = shadowStackInformation.KernelCetEnabled;
+                    policyData.AuditUserShadowStack = shadowStackInformation.KernelCetAuditModeEnabled;
+
+                    if (PhDescribeProcessMitigationPolicy(
+                        ProcessUserShadowStackPolicy,
+                        &policyData,
+                        &shortDescription,
+                        NULL
+                        ))
+                    {
+                        PhAppendStringBuilder(&sb, &shortDescription->sr);
+                        PhAppendStringBuilder2(&sb, L"; ");
+                        PhDereferenceObject(shortDescription);
+                    }
+                }
+            }
+
             if (sb.String->Length != 0)
             {
                 PhRemoveEndStringBuilder(&sb, 2);
