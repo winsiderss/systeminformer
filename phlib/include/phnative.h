@@ -1814,6 +1814,22 @@ PhGetProcessCodePage(
     _Out_ PUSHORT ProcessCodePage
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetThreadLastStatusValue(
+    _In_ HANDLE ThreadHandle,
+    _In_opt_ HANDLE ProcessHandle,
+    _Out_ PNTSTATUS LastStatusValue
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhIsFirmwareSupported(
+    VOID
+    );
+
 #ifdef __cplusplus
 }
 #endif
