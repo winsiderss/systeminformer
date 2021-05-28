@@ -2518,14 +2518,14 @@ PPH_OPTIONS_ADVANCED_ROOT_NODE GetSelectedOptionsAdvancedNode(
     _In_ PPH_OPTIONS_ADVANCED_CONTEXT Context
     )
 {
-    PPH_OPTIONS_ADVANCED_ROOT_NODE windowNode = NULL;
+    PPH_OPTIONS_ADVANCED_ROOT_NODE optionsNode = NULL;
 
     for (ULONG i = 0; i < Context->NodeList->Count; i++)
     {
-        windowNode = Context->NodeList->Items[i];
+        optionsNode = Context->NodeList->Items[i];
 
-        if (windowNode->Node.Selected)
-            return windowNode;
+        if (optionsNode->Node.Selected)
+            return optionsNode;
     }
 
     return NULL;
