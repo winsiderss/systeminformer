@@ -1379,16 +1379,16 @@ VOID PhpSymbolProviderEventCallbackHandler(
             switch (event->ActionCode)
             {
             case CBA_DEFERRED_SYMBOL_LOAD_START:
-                statusMessage = PhFormatString(L"Loading symbols from %s...", PhGetStringOrEmpty(fileName));
+                statusMessage = PhFormatString(L"Loading symbols from %s...", PhGetStringOrDefault(fileName, L"image"));
                 break;
             case CBA_DEFERRED_SYMBOL_LOAD_COMPLETE:
-                statusMessage = PhFormatString(L"Loaded symbols from %s...", PhGetStringOrEmpty(fileName));
+                statusMessage = PhFormatString(L"Loaded symbols from %s...", PhGetStringOrDefault(fileName, L"image"));
                 break;
             case CBA_DEFERRED_SYMBOL_LOAD_FAILURE:
-                statusMessage = PhFormatString(L"Failed to load %s...", PhGetStringOrEmpty(fileName));
+                statusMessage = PhFormatString(L"Failed to load symbols from %s...", PhGetStringOrDefault(fileName, L"image"));
                 break;
             case CBA_SYMBOLS_UNLOADED:
-                statusMessage = PhFormatString(L"Unloading %s...", PhGetStringOrEmpty(fileName));
+                statusMessage = PhFormatString(L"Unloading symbols from %s...", PhGetStringOrDefault(fileName, L"image"));
                 break;
             }
 
@@ -1398,13 +1398,13 @@ VOID PhpSymbolProviderEventCallbackHandler(
         break;
     case CBA_READ_MEMORY:
         {
-            PIMAGEHLP_CBA_READ_MEMORY callbackEvent = (PIMAGEHLP_CBA_READ_MEMORY)event->EventData;
+            //PIMAGEHLP_CBA_READ_MEMORY callbackEvent = (PIMAGEHLP_CBA_READ_MEMORY)event->EventData;
             //statusMessage = PhFormatString(L"Reading %lu bytes of memory from %I64u...", callbackEvent->bytes, callbackEvent->addr);
         }
         break;
     case CBA_EVENT:
         {
-            PIMAGEHLP_CBA_EVENTW callbackEvent = (PIMAGEHLP_CBA_EVENTW)event->EventData;
+            //PIMAGEHLP_CBA_EVENTW callbackEvent = (PIMAGEHLP_CBA_EVENTW)event->EventData;
             //statusMessage = PhFormatString(L"%s", callbackEvent->desc);
         }
         break;
