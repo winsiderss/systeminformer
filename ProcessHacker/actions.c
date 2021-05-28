@@ -680,6 +680,189 @@ BOOLEAN PhUiRestartComputer(
             }
         }
         break;
+    case PH_POWERACTION_TYPE_ADVANCEDBOOT:
+        {
+            if (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
+                WindowHandle,
+                L"restart",
+                L"the computer",
+                NULL,
+                FALSE
+                ))
+            {
+                static PH_STRINGREF bcdeditFileNameSr = PH_STRINGREF_INIT(L"\\System32\\bcdedit.exe");
+                PH_STRINGREF systemRootString;
+                PPH_STRING bcdeditFileName;
+                HANDLE processHandle = NULL;
+                BOOLEAN success = FALSE;
+
+                PhGetSystemRoot(&systemRootString);
+                bcdeditFileName = PhConcatStringRef2(&systemRootString, &bcdeditFileNameSr);
+
+                if (PhShellExecuteEx(
+                    WindowHandle,
+                    PhGetString(bcdeditFileName),
+                    L"/set {current} onetimeadvancedoptions on",
+                    SW_HIDE,
+                    PH_SHELL_EXECUTE_ADMIN,
+                    INFINITE,
+                    &processHandle
+                    ))
+                {
+                    if (processHandle)
+                    {
+                        PROCESS_BASIC_INFORMATION processInfo;
+
+                        if (NT_SUCCESS(PhGetProcessBasicInformation(processHandle, &processInfo)))
+                        {
+                            success = !!(processInfo.ExitStatus == ERROR_SUCCESS); // bcdedit doesn't return error codes. (dmex)
+                        }
+
+                        NtClose(processHandle);
+                    }
+
+                    if (success)
+                    {
+                        ULONG status = InitiateShutdown(
+                            NULL,
+                            NULL,
+                            0,
+                            SHUTDOWN_RESTART,
+                            SHTDN_REASON_FLAG_PLANNED
+                            );
+                        
+                        if (status != ERROR_SUCCESS)
+                        {
+                            PhShowStatus(WindowHandle, L"Unable to restart the computer.", 0, status);
+                        }
+
+                        PhDereferenceObject(bcdeditFileName);
+                        return TRUE;
+                    }
+                    else
+                    {
+                        PhShowStatus(WindowHandle, L"Unable to configure the advanced boot option.", STATUS_UNSUCCESSFUL, 0);
+                    }
+                }
+                else
+                {
+                    ULONG status = GetLastError();
+
+                    if (status != ERROR_CANCELLED) // User cancelled the UAC prompt. (dmex)
+                    {
+                        PhShowStatus(WindowHandle, L"Unable to configure the advanced boot option.", 0, status);
+                    }
+                }
+
+                PhDereferenceObject(bcdeditFileName);
+            }
+        }
+        break;
+    case PH_POWERACTION_TYPE_FIRMWAREBOOT:
+        {
+            if (!PhGetOwnTokenAttributes().Elevated)
+            {
+                PhShowMessage2(
+                    WindowHandle,
+                    TDCBF_OK_BUTTON,
+                    TD_ERROR_ICON,
+                    L"Unable to restart to firmware options.",
+                    L"Make sure Process Hacker is running with administrative privileges."
+                    );
+                break;
+            }
+
+            if (!PhIsFirmwareSupported())
+            {
+                PhShowMessage2(
+                    WindowHandle,
+                    TDCBF_OK_BUTTON,
+                    TD_ERROR_ICON,
+                    L"Unable to restart to firmware options.",
+                    L"This machine does not have UEFI support."
+                    );
+                break;
+            }
+
+            if (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
+                WindowHandle,
+                L"restart",
+                L"the computer",
+                NULL,
+                FALSE
+                ))
+            {
+                static GUID EFI_GLOBAL_VARIABLE_GUID = { 0x8be4df61, 0x93ca, 0x11d2, { 0xaa, 0x0d, 0x00, 0xe0, 0x98, 0x03, 0x2b, 0x8c } };
+                static UNICODE_STRING variableIndicationsSupportedName = RTL_CONSTANT_STRING(L"OsIndicationsSupported");
+                static UNICODE_STRING variableIndicationsName = RTL_CONSTANT_STRING(L"OsIndications");
+                const ULONG64 EFI_OS_INDICATIONS_BOOT_TO_FW_UI = 0x0000000000000001ULL;
+                ULONG osIndicationsLength = sizeof(ULONG64);
+                ULONG osIndicationsAttributes = 0;
+                ULONG64 osIndicationsSupported = 0;
+                ULONG64 osIndicationsValue = 0;
+                NTSTATUS status;
+
+                status = NtQuerySystemEnvironmentValueEx(
+                    &variableIndicationsSupportedName,
+                    &EFI_GLOBAL_VARIABLE_GUID,
+                    &osIndicationsSupported,
+                    &osIndicationsLength,
+                    NULL
+                    );
+
+                if (status == STATUS_VARIABLE_NOT_FOUND || !(osIndicationsSupported & EFI_OS_INDICATIONS_BOOT_TO_FW_UI))
+                {
+                    status = STATUS_NOT_SUPPORTED;
+                }
+
+                if (NT_SUCCESS(status))
+                {
+                    status = NtQuerySystemEnvironmentValueEx(
+                        &variableIndicationsName,
+                        &EFI_GLOBAL_VARIABLE_GUID,
+                        &osIndicationsValue,
+                        &osIndicationsLength,
+                        &osIndicationsAttributes
+                        );
+
+                    if (NT_SUCCESS(status))
+                    {
+                        osIndicationsValue |= EFI_OS_INDICATIONS_BOOT_TO_FW_UI;
+
+                        status = NtSetSystemEnvironmentValueEx(
+                            &variableIndicationsName,
+                            &EFI_GLOBAL_VARIABLE_GUID,
+                            &osIndicationsValue,
+                            osIndicationsLength,
+                            osIndicationsAttributes
+                            );
+                    }
+                }
+
+                if (NT_SUCCESS(status))
+                {
+                    status = InitiateShutdown(
+                        NULL,
+                        NULL,
+                        0,
+                        SHUTDOWN_RESTART,
+                        SHTDN_REASON_FLAG_PLANNED
+                        );
+
+                    if (status == ERROR_SUCCESS)
+                    {
+                        return TRUE;
+                    }
+
+                    PhShowStatus(WindowHandle, L"Unable to restart the computer.", 0, status);
+                }
+                else
+                {
+                    PhShowStatus(WindowHandle, L"Unable to restart the computer.", status, 0);
+                }
+            }
+        }
+        break;
     }
 
     return FALSE;

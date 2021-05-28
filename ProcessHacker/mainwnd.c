@@ -740,7 +740,9 @@ VOID PhMwpOnCommand(
     case ID_COMPUTER_SLEEP:
     case ID_COMPUTER_HIBERNATE:
     case ID_COMPUTER_RESTART:
+    case ID_COMPUTER_RESTARTADVOPTIONS:
     case ID_COMPUTER_RESTARTBOOTOPTIONS:
+    case ID_COMPUTER_RESTARTFWOPTIONS:
     case ID_COMPUTER_SHUTDOWN:
     case ID_COMPUTER_SHUTDOWNHYBRID:
     case ID_COMPUTER_RESTART_NATIVE:
@@ -2080,7 +2082,11 @@ VOID PhMwpSetupComputerMenu(
 
     if (WindowsVersion < WINDOWS_8)
     {
+        if (menuItem = PhFindEMenuItem(Root, PH_EMENU_FIND_DESCEND, NULL, ID_COMPUTER_RESTARTADVOPTIONS))
+            PhDestroyEMenuItem(menuItem);
         if (menuItem = PhFindEMenuItem(Root, PH_EMENU_FIND_DESCEND, NULL, ID_COMPUTER_RESTARTBOOTOPTIONS))
+            PhDestroyEMenuItem(menuItem);
+        if (menuItem = PhFindEMenuItem(Root, PH_EMENU_FIND_DESCEND, NULL, ID_COMPUTER_RESTARTFWOPTIONS))
             PhDestroyEMenuItem(menuItem);
         if (menuItem = PhFindEMenuItem(Root, PH_EMENU_FIND_DESCEND, NULL, ID_COMPUTER_SHUTDOWNHYBRID))
             PhDestroyEMenuItem(menuItem);
@@ -2109,8 +2115,14 @@ BOOLEAN PhMwpExecuteComputerCommand(
     case ID_COMPUTER_RESTART:
         PhUiRestartComputer(WindowHandle, PH_POWERACTION_TYPE_WIN32, 0);
         return TRUE;
+    case ID_COMPUTER_RESTARTADVOPTIONS:
+        PhUiRestartComputer(WindowHandle, PH_POWERACTION_TYPE_ADVANCEDBOOT, 0);
+        return TRUE;
     case ID_COMPUTER_RESTARTBOOTOPTIONS:
         PhUiRestartComputer(WindowHandle, PH_POWERACTION_TYPE_WIN32, SHUTDOWN_RESTART_BOOTOPTIONS);
+        return TRUE;
+    case ID_COMPUTER_RESTARTFWOPTIONS:
+        PhUiRestartComputer(WindowHandle, PH_POWERACTION_TYPE_FIRMWAREBOOT, 0);
         return TRUE;
     case ID_COMPUTER_SHUTDOWN:
         PhUiShutdownComputer(WindowHandle, PH_POWERACTION_TYPE_WIN32, 0);
@@ -2212,7 +2224,10 @@ PPH_EMENU PhpCreateHackerMenu(
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_HIBERNATE, L"&Hibernate", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_RESTART, L"R&estart", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_RESTARTADVOPTIONS, L"Restart to advanced options", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_RESTARTBOOTOPTIONS, L"Restart to boot options", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_RESTARTFWOPTIONS, L"Restart to firmware options", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_SHUTDOWN, L"Shu&t down", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_SHUTDOWNHYBRID, L"H&ybrid shut down", NULL, NULL), ULONG_MAX);
     if (PhGetIntegerSetting(L"EnableShutdownCriticalMenu"))
@@ -2767,7 +2782,10 @@ PPH_EMENU PhpCreateIconMenu(
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_HIBERNATE, L"&Hibernate", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_RESTART, L"R&estart", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_RESTARTADVOPTIONS, L"Restart to advanced options", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_RESTARTBOOTOPTIONS, L"Restart to boot &options", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_RESTARTFWOPTIONS, L"Restart to firmware options", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_SHUTDOWN, L"Shu&t down", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_SHUTDOWNHYBRID, L"H&ybrid shut down", NULL, NULL), ULONG_MAX);
     if (PhGetIntegerSetting(L"EnableShutdownCriticalMenu"))
