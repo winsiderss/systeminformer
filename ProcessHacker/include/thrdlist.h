@@ -32,6 +32,8 @@ typedef enum _PH_THREAD_TREELIST_COLUMN
     PH_THREAD_TREELIST_COLUMN_CPUCORECYCLES,
     PH_THREAD_TREELIST_COLUMN_TOKEN_STATE,
     PH_THREAD_TREELIST_COLUMN_PENDINGIRP,
+    PH_THREAD_TREELIST_COLUMN_LASTSYSTEMCALL,
+    PH_THREAD_TREELIST_COLUMN_LASTSTATUSCODE,
     PH_THREAD_TREELIST_COLUMN_MAXIMUM
 } PH_THREAD_TREELIST_COLUMN;
 
@@ -69,10 +71,17 @@ typedef struct _PH_THREAD_NODE
 
     ULONG ValidMask;
 
+    HANDLE ThreadContextHandle;
+    HANDLE ThreadReadVmHandle;
+    BOOLEAN ThreadContextHandleValid;
+    BOOLEAN ThreadReadVmHandleValid;
+
     ULONG PagePriority;
     IO_PRIORITY_HINT IoPriority;
     BOOLEAN BreakOnTermination;
     BOOLEAN PendingIrp;
+    USHORT LastSystemCallNumber;
+    ULONG LastStatusCode;
     PH_THREAD_TOKEN_STATE TokenState;
     WCHAR ThreadIdText[PH_INT32_STR_LEN_1];
     WCHAR CpuUsageText[PH_INT32_STR_LEN_1];
@@ -82,6 +91,8 @@ typedef struct _PH_THREAD_NODE
     PPH_STRING CreatedText;
     PPH_STRING NameText;
     PPH_STRING StateText;
+    PPH_STRING LastSystemCallText;
+    PPH_STRING LastErrorCodeText;
     WCHAR ContextSwitchesText[PH_INT64_STR_LEN_1];
     WCHAR PriorityText[PH_INT32_STR_LEN_1];
     WCHAR BasePriorityText[PH_INT32_STR_LEN_1];

@@ -3,7 +3,7 @@
  *   thread list
  *
  * Copyright (C) 2011-2012 wj32
- * Copyright (C) 2018-2019 dmex
+ * Copyright (C) 2018-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -64,6 +64,10 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
     _In_opt_ PVOID Context
     );
 
+PPH_STRING PhGetSystemCallNumberName(
+    _In_ USHORT SystemCallNumber
+    );
+
 VOID PhInitializeThreadList(
     _In_ HWND ParentWindowHandle,
     _In_ HWND TreeNewHandle,
@@ -114,6 +118,8 @@ VOID PhInitializeThreadList(
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_CPUCORECYCLES, FALSE, L"CPU (relative)", 50, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_TOKEN_STATE, FALSE, L"Token", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_PENDINGIRP, FALSE, L"Pending IRP", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_LASTSYSTEMCALL, FALSE, L"Last system call", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_LASTSTATUSCODE, FALSE, L"Last status code", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
 
     TreeNew_SetRedraw(TreeNewHandle, TRUE);
     TreeNew_SetTriState(TreeNewHandle, TRUE);
@@ -329,6 +335,11 @@ VOID PhpDestroyThreadNode(
     if (ThreadNode->CreatedText) PhDereferenceObject(ThreadNode->CreatedText);
     if (ThreadNode->NameText) PhDereferenceObject(ThreadNode->NameText);
     if (ThreadNode->StateText) PhDereferenceObject(ThreadNode->StateText);
+
+    if (ThreadNode->LastErrorCodeText) PhDereferenceObject(ThreadNode->LastErrorCodeText);
+    if (ThreadNode->LastSystemCallText) PhDereferenceObject(ThreadNode->LastSystemCallText);
+    if (ThreadNode->ThreadContextHandle) NtClose(ThreadNode->ThreadContextHandle);
+    if (ThreadNode->ThreadReadVmHandle) NtClose(ThreadNode->ThreadReadVmHandle);
 
     PhDereferenceObject(ThreadNode->ThreadItem);
 
@@ -621,6 +632,18 @@ BEGIN_SORT_FUNCTION(PendingIrp)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(LastSystemCall)
+{
+    sortResult = ushortcmp(node1->LastSystemCallNumber, node2->LastSystemCallNumber);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(LastStatusCode)
+{
+    sortResult = uintcmp(node1->LastStatusCode, node2->LastStatusCode);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpThreadTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -674,6 +697,8 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     SORT_FUNCTION(CpuCore),
                     SORT_FUNCTION(TokenState),
                     SORT_FUNCTION(PendingIrp),
+                    SORT_FUNCTION(LastSystemCall),
+                    SORT_FUNCTION(LastStatusCode),
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
@@ -1123,6 +1148,164 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     node->PendingIrp = pendingIrp;
                 }
                 break;
+            case PH_THREAD_TREELIST_COLUMN_LASTSYSTEMCALL:
+                {
+                    NTSTATUS status = STATUS_UNSUCCESSFUL;
+                    THREAD_LAST_SYSCALL_INFORMATION lastSystemCall;
+
+                    if (!node->ThreadContextHandleValid)
+                    {
+                        if (!node->ThreadContextHandle)
+                        {
+                            HANDLE threadHandle;
+
+                            if (NT_SUCCESS(PhOpenThread(
+                                &threadHandle,
+                                THREAD_GET_CONTEXT,
+                                threadItem->ThreadId
+                                )))
+                            {
+                                node->ThreadContextHandle = threadHandle;
+                            }
+                        }
+
+                        node->ThreadContextHandleValid = TRUE;
+                    }
+
+                    if (node->ThreadContextHandle)
+                    {
+                        status = PhGetThreadLastSystemCall(
+                            node->ThreadContextHandle,
+                            &lastSystemCall
+                            );
+                    }
+
+                    if (NT_SUCCESS(status))
+                    {
+                        PPH_STRING systemCallName;
+                        PH_FORMAT format[6];
+
+                        if (systemCallName = PhGetSystemCallNumberName(lastSystemCall.SystemCallNumber))
+                        {
+                            PhInitFormatSR(&format[0], systemCallName->sr);
+                            PhInitFormatS(&format[1], L" (0x");
+                            PhInitFormatX(&format[2], lastSystemCall.SystemCallNumber);
+                            PhInitFormatS(&format[3], L") (Arg0: 0x");
+                            PhInitFormatI64X(&format[4], (ULONG64)lastSystemCall.FirstArgument);
+                            PhInitFormatC(&format[5], L')');
+
+                            PhMoveReference(&node->LastSystemCallText, PhFormat(format, 6, 0x40));
+                            PhDereferenceObject(systemCallName);
+                        }
+                        else
+                        {
+                            PhInitFormatS(&format[0], L"0x");
+                            PhInitFormatX(&format[1], lastSystemCall.SystemCallNumber);
+                            PhInitFormatS(&format[2], L" (Arg0: 0x");
+                            PhInitFormatI64X(&format[3], (ULONG64)lastSystemCall.FirstArgument);
+                            PhInitFormatC(&format[4], L')');
+
+                            PhMoveReference(&node->LastSystemCallText, PhFormat(format, 5, 0x40));
+                        }
+
+                        node->LastSystemCallNumber = lastSystemCall.SystemCallNumber;
+                    }
+                    else
+                    {
+                        PH_FORMAT format[2];
+
+                        PhInitFormatS(&format[0], L"0x");
+                        PhInitFormatX(&format[1], status);
+
+                        node->LastSystemCallNumber = 0;
+                        PhMoveReference(&node->LastSystemCallText, PhFormat(format, RTL_NUMBER_OF(format), 0));
+                    }
+
+                    getCellText->Text = PhGetStringRef(node->LastSystemCallText);
+                }
+                break;
+            case PH_THREAD_TREELIST_COLUMN_LASTSTATUSCODE:
+                {
+                    NTSTATUS status = STATUS_UNSUCCESSFUL;
+                    NTSTATUS lastStatusValue = STATUS_SUCCESS;
+                    PPH_STRING errorMessage;
+
+                    if (!node->ThreadReadVmHandleValid)
+                    {
+                        if (!node->ThreadReadVmHandle)
+                        {
+                            if (threadItem->ThreadHandle)
+                            {
+                                HANDLE processHandle;
+
+                                if (NT_SUCCESS(PhOpenThreadProcess(
+                                    threadItem->ThreadHandle,
+                                    PROCESS_VM_READ,
+                                    &processHandle
+                                    )))
+                                {
+                                    node->ThreadReadVmHandle = processHandle;
+                                }
+                            }
+                        }
+
+                        node->ThreadReadVmHandleValid = TRUE;
+                    }
+
+                    if (threadItem->ThreadHandle && node->ThreadReadVmHandle)
+                    {
+                        status = PhGetThreadLastStatusValue(
+                            threadItem->ThreadHandle,
+                            node->ThreadReadVmHandle,
+                            &lastStatusValue
+                            );
+                    }
+
+                    if (NT_SUCCESS(status))
+                    {
+                        if (lastStatusValue == STATUS_SUCCESS)
+                        {
+                            node->LastStatusCode = 0;
+                            PhClearReference(&node->LastErrorCodeText);
+                        }
+                        else
+                        {
+                            PH_FORMAT format[5];
+
+                            PhInitFormatS(&format[0], L"0x");
+                            PhInitFormatX(&format[1], lastStatusValue);
+
+                            if (errorMessage = PhGetStatusMessage(lastStatusValue, 0))
+                            {
+                                PhInitFormatS(&format[2], L" (");
+                                PhInitFormatSR(&format[3], errorMessage->sr);
+                                PhInitFormatC(&format[4], L')');
+
+                                PhMoveReference(&node->LastErrorCodeText, PhFormat(format, 5, 0x40));
+                                PhDereferenceObject(errorMessage);
+                            }
+                            else
+                            {
+                                PhMoveReference(&node->LastErrorCodeText, PhFormat(format, 2, 0x40));
+                            }
+
+                            node->LastStatusCode = lastStatusValue;
+                        }
+                    }
+                    else
+                    {
+                        PH_FORMAT format[2];
+
+                        PhInitFormatS(&format[0], L"0x");
+                        PhInitFormatX(&format[1], status);
+
+                        node->LastStatusCode = 0;
+                        PhMoveReference(&node->LastErrorCodeText, PhFormat(format, RTL_NUMBER_OF(format), 0));
+                    }
+
+                    getCellText->Text = PhGetStringRef(node->LastErrorCodeText);
+                }
+                break;
             default:
                 return FALSE;
             }
@@ -1283,4 +1466,305 @@ VOID PhDeselectAllThreadNodes(
     )
 {
     TreeNew_DeselectRange(Context->TreeNewHandle, 0, -1);
+}
+
+// TODO: Move the below code to a better location. (dmex)
+#include <mapimg.h>
+//#include <symprv.h>
+
+#define NUMBER_SERVICE_TABLES 2
+#define NTOS_SERVICE_INDEX 0
+#define WIN32K_SERVICE_INDEX 1
+#define SERVICE_NUMBER_MASK ((1 << 12) -  1)
+
+typedef struct _PH_SYSCALL_ENTRY
+{
+    ULONG_PTR Address;
+    PPH_STRING Name;
+} PH_SYSCALL_ENTRY, *PPH_SYSCALL_ENTRY;
+
+typedef union _PH_SYSTEMCALL_ENTRY
+{
+    USHORT SystemCallNumber;
+    struct
+    {
+        USHORT SystemCallIndex : 12;
+        USHORT SystemServiceIndex : 4;
+    };
+} PH_SYSTEMCALL_ENTRY, *PPH_SYSTEMCALL_ENTRY;
+
+static int __cdecl PhpSystemCallListIndexSort(
+    _In_ const void* Context,
+    _In_ const void *elem1,
+    _In_ const void *elem2
+    )
+{
+    PPH_SYSCALL_ENTRY entry1 = *(PPH_SYSCALL_ENTRY*)elem1;
+    PPH_SYSCALL_ENTRY entry2 = *(PPH_SYSCALL_ENTRY*)elem2;
+
+    return uintptrcmp(entry1->Address, entry2->Address);
+}
+
+//VOID PhpGenerateWin32kSyscallListLegacy(
+//    _Out_ PPH_LIST* Win32kSystemCallList
+//    )
+//{
+//    static PH_STRINGREF system32FileNameSr = PH_STRINGREF_INIT(L"\\System32\\");
+//    static PH_STRINGREF win32kFileNameSr = PH_STRINGREF_INIT(L"win32k.sys");
+//    PPH_LIST win32kSystemCallList = NULL;
+//    PH_MAPPED_IMAGE mappedImage;
+//    PH_STRINGREF systemRootString;
+//    PPH_STRING fileName;
+//
+//    PhGetSystemRoot(&systemRootString);
+//    fileName = PhConcatStringRef3(&systemRootString, &system32FileNameSr, &win32kFileNameSr);
+//
+//    if (NT_SUCCESS(PhLoadMappedImage(PhGetString(fileName), NULL, &mappedImage)))
+//    {
+//        PPH_SYMBOL_PROVIDER symbolProvider;
+//        ULONG serviceTableLimit = 0;
+//        PVOID serviceTableAddress = NULL;
+//
+//        if (symbolProvider = PhCreateSymbolProvider(NULL))
+//        {
+//            PhLoadSymbolProviderOptions(symbolProvider);
+//
+//            if (PhLoadModuleSymbolProvider(
+//                symbolProvider,
+//                PhGetString(fileName),
+//                (ULONG64)mappedImage.ViewBase,
+//                (ULONG)mappedImage.Size
+//                ))
+//            {
+//                PH_SYMBOL_INFORMATION symbolInfo;
+//
+//                if (PhGetSymbolFromName(
+//                    symbolProvider,
+//                    L"W32pServiceTable",
+//                    &symbolInfo
+//                    ))
+//                {
+//                    serviceTableAddress = PhMappedImageRvaToVa(
+//                        &mappedImage,
+//                        PtrToUlong(PTR_SUB_OFFSET(symbolInfo.Address, mappedImage.ViewBase)),
+//                        NULL
+//                        );
+//                }
+//
+//                if (PhGetSymbolFromName(
+//                    symbolProvider,
+//                    L"W32pServiceLimit",
+//                    &symbolInfo
+//                    ))
+//                {
+//                    PVOID serviceLimitSymbol;
+//
+//                    if (serviceLimitSymbol = PhMappedImageRvaToVa(
+//                        &mappedImage,
+//                        PtrToUlong(PTR_SUB_OFFSET(symbolInfo.Address, mappedImage.ViewBase)),
+//                        NULL
+//                        ))
+//                    {
+//                        serviceTableLimit = *(PULONG)serviceLimitSymbol;
+//                    }
+//                }
+//            }
+//
+//            if (serviceTableLimit > 0 && serviceTableLimit < PAGE_SIZE)
+//            {
+//                win32kSystemCallList = PhCreateList(serviceTableLimit);
+//
+//                for (ULONG i = 0; i < serviceTableLimit; i++)
+//                {
+//                    PPH_STRING name;
+//                    PPH_STRING symbol = NULL;
+//                    ULONG_PTR entry;
+//
+//                    entry = ((PULONG_PTR)serviceTableAddress)[i];
+//                    entry = (ULONG_PTR)PTR_SUB_OFFSET(entry, mappedImage.NtHeaders->OptionalHeader.ImageBase);
+//                    entry = (ULONG_PTR)PTR_ADD_OFFSET(entry, mappedImage.ViewBase);
+//
+//                    name = PhGetSymbolFromAddress(
+//                        symbolProvider,
+//                        (ULONG64)entry,
+//                        NULL,
+//                        NULL,
+//                        &symbol,
+//                        NULL
+//                        );
+//
+//                    PhAddItemList(win32kSystemCallList, symbol);
+//                    PhDereferenceObject(name);
+//                }
+//            }
+//
+//            PhDereferenceObject(symbolProvider);
+//        }
+//
+//        PhUnloadMappedImage(&mappedImage);
+//    }
+//
+//    *Win32kSystemCallList = win32kSystemCallList;
+//
+//    PhDereferenceObject(fileName);
+//}
+
+VOID PhpGenerateSyscallLists(
+    _Out_ PPH_LIST* NtdllSystemCallList,
+    _Out_ PPH_LIST* Win32kSystemCallList
+    )
+{
+    static PH_STRINGREF systemRootPath = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\");
+    PPH_LIST ntdllSystemCallList = NULL;
+    PPH_LIST win32kSystemCallList = NULL;
+    PPH_STRING fileName = NULL;
+    PH_MAPPED_IMAGE mappedImage;
+    PH_MAPPED_IMAGE_EXPORTS exports;
+    PH_MAPPED_IMAGE_EXPORT_ENTRY exportEntry;
+    PH_MAPPED_IMAGE_EXPORT_FUNCTION exportFunction;
+
+    PhMoveReference(&fileName, PhConcatStringRefZ(&systemRootPath, L"ntdll.dll"));
+
+    if (NT_SUCCESS(PhLoadMappedImageEx(fileName, NULL, &mappedImage)))
+    {
+        if (NT_SUCCESS(PhGetMappedImageExports(&exports, &mappedImage)))
+        {
+            PPH_LIST list = PhCreateList(exports.NumberOfEntries);
+
+            for (ULONG i = 0; i < exports.NumberOfEntries; i++)
+            {
+                if (NT_SUCCESS(PhGetMappedImageExportEntry(&exports, i, &exportEntry)))
+                {
+                    if (!(exportEntry.Name && strncmp(exportEntry.Name, "Zw", 2) == 0))
+                        continue;
+
+                    if (NT_SUCCESS(PhGetMappedImageExportFunction(&exports, NULL, exportEntry.Ordinal, &exportFunction)))
+                    {
+                        PPH_SYSCALL_ENTRY entry;
+
+                        entry = PhAllocate(sizeof(PH_SYSCALL_ENTRY));
+                        entry->Address = (ULONG_PTR)exportFunction.Function;
+                        entry->Name = PhZeroExtendToUtf16(exportEntry.Name);
+                        entry->Name->Buffer[0] = L'N';
+                        entry->Name->Buffer[1] = L't';
+
+                        PhAddItemList(list, entry);
+                    }
+                }
+            }
+
+            qsort_s(list->Items, list->Count, sizeof(PVOID), PhpSystemCallListIndexSort, NULL);
+
+            if (list->Count)
+            {
+                ntdllSystemCallList = PhCreateList(list->Count);
+
+                for (ULONG i = 0; i < list->Count; i++)
+                {
+                    PPH_SYSCALL_ENTRY entry = list->Items[i];
+                    PhAddItemList(ntdllSystemCallList, entry->Name);
+                    PhFree(entry);
+                }
+            }
+
+            PhDereferenceObject(list);
+        }
+
+        PhUnloadMappedImage(&mappedImage);
+    }
+
+    PhMoveReference(&fileName, PhConcatStringRefZ(&systemRootPath, L"win32u.dll"));
+
+    if (NT_SUCCESS(PhLoadMappedImageEx(fileName, NULL, &mappedImage)))
+    {
+        if (NT_SUCCESS(PhGetMappedImageExports(&exports, &mappedImage)))
+        {
+            PPH_LIST list = PhCreateList(exports.NumberOfEntries);
+
+            for (ULONG i = 0; i < exports.NumberOfEntries; i++)
+            {
+                if (NT_SUCCESS(PhGetMappedImageExportEntry(&exports, i, &exportEntry)))
+                {
+                    if (!(exportEntry.Name && strncmp(exportEntry.Name, "Nt", 2) == 0))
+                        continue;
+
+                    if (NT_SUCCESS(PhGetMappedImageExportFunction(&exports, NULL, exportEntry.Ordinal, &exportFunction)))
+                    {
+                        PPH_SYSCALL_ENTRY entry;
+
+                        entry = PhAllocate(sizeof(PH_SYSCALL_ENTRY));
+                        entry->Address = (ULONG_PTR)exportFunction.Function;
+                        entry->Name = PhZeroExtendToUtf16(exportEntry.Name);
+
+                        PhAddItemList(list, entry);
+                    }
+                }
+            }
+
+            qsort_s(list->Items, list->Count, sizeof(PVOID), PhpSystemCallListIndexSort, NULL);
+
+            if (list->Count)
+            {
+                win32kSystemCallList = PhCreateList(list->Count);
+
+                for (ULONG i = 0; i < list->Count; i++)
+                {
+                    PPH_SYSCALL_ENTRY entry = list->Items[i];
+                    PhAddItemList(win32kSystemCallList, entry->Name);
+                    PhFree(entry);
+                }
+            }
+
+            PhDereferenceObject(list);
+        }
+
+        PhUnloadMappedImage(&mappedImage);
+    }
+
+    *NtdllSystemCallList = ntdllSystemCallList;
+    *Win32kSystemCallList = win32kSystemCallList;
+
+    PhDereferenceObject(fileName);
+}
+
+PPH_STRING PhGetSystemCallNumberName(
+    _In_ USHORT SystemCallNumber
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static PPH_LIST ntdllSystemCallList = NULL;
+    static PPH_LIST win32kSystemCallList = NULL;
+    PPH_SYSTEMCALL_ENTRY systemCallEntry = (PPH_SYSTEMCALL_ENTRY)&SystemCallNumber;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PhpGenerateSyscallLists(&ntdllSystemCallList, &win32kSystemCallList);
+        PhEndInitOnce(&initOnce);
+    }
+
+    switch (systemCallEntry->SystemServiceIndex)
+    {
+    case NTOS_SERVICE_INDEX:
+        {
+            if (ntdllSystemCallList && systemCallEntry->SystemCallIndex <= ntdllSystemCallList->Count)
+            {
+                PPH_STRING entry = ntdllSystemCallList->Items[systemCallEntry->SystemCallIndex];
+
+                return PhReferenceObject(entry);
+            }
+        }
+        break;
+    case WIN32K_SERVICE_INDEX:
+        {
+            if (win32kSystemCallList && systemCallEntry->SystemCallIndex <= win32kSystemCallList->Count)
+            {
+                PPH_STRING entry = win32kSystemCallList->Items[systemCallEntry->SystemCallIndex];
+
+                return PhReferenceObject(entry);
+            }
+        }
+        break;
+    }
+
+    return NULL;
 }
