@@ -3208,7 +3208,7 @@ NTSTATUS PhSetFilePosition(
     IO_STATUS_BLOCK isb;
 
     if (Position)
-        positionInfo.CurrentByteOffset = *Position;
+        positionInfo.CurrentByteOffset.QuadPart = Position->QuadPart;
     else
         positionInfo.CurrentByteOffset.QuadPart = 0;
 
@@ -10146,3 +10146,63 @@ CleanupExit:
     return status;
 }
 
+NTSTATUS PhGetThreadLastStatusValue(
+    _In_ HANDLE ThreadHandle,
+    _In_opt_ HANDLE ProcessHandle,
+    _Out_ PNTSTATUS LastStatusValue
+    )
+{
+    NTSTATUS status;
+    THREAD_BASIC_INFORMATION basicInfo;
+    BOOLEAN openedProcessHandle = FALSE;
+
+    if (!NT_SUCCESS(status = PhGetThreadBasicInformation(ThreadHandle, &basicInfo)))
+        return status;
+
+    if (!ProcessHandle)
+    {
+        if (!NT_SUCCESS(status = PhOpenThreadProcess(
+            ThreadHandle,
+            PROCESS_VM_READ,
+            &ProcessHandle
+            )))
+            return status;
+
+        openedProcessHandle = TRUE;
+    }
+
+    status = NtReadVirtualMemory(
+        ProcessHandle,
+        PTR_ADD_OFFSET(basicInfo.TebBaseAddress, UFIELD_OFFSET(TEB, LastStatusValue)), // LastErrorValue/ExceptionCode
+        LastStatusValue,
+        sizeof(NTSTATUS),
+        NULL
+        );
+
+    if (openedProcessHandle)
+        NtClose(ProcessHandle);
+
+    return status;
+}
+
+BOOLEAN PhIsFirmwareSupported(
+    VOID
+    )
+{
+    UNICODE_STRING variableName = RTL_CONSTANT_STRING(L" ");
+    ULONG variableValueLength = 0;
+    GUID vendorGuid = { 0 };
+
+    if (NtQuerySystemEnvironmentValueEx(
+        &variableName, 
+        &vendorGuid,
+        NULL,
+        &variableValueLength,
+        NULL
+        ) == STATUS_VARIABLE_NOT_FOUND)
+    {
+        return TRUE;
+    }
+
+    return FALSE;
+}
