@@ -202,7 +202,7 @@ VOID PvSetPeImageDosStubHeaderProperties(
     if (NT_SUCCESS(PhGetMappedImageProdIdExtents(&PvMappedImage, &imageDosStubRichStart, &imageDosStubRichEnd)))
     {
         imageDosStubRichData = PTR_ADD_OFFSET(PvMappedImage.ViewBase, imageDosStubRichStart);
-        imageDosStubRichLength = (imageDosStubRichEnd - imageDosStubRichStart);
+        imageDosStubRichLength = imageDosStubRichEnd - imageDosStubRichStart;
         imageDosStubActualDataLength = imageDosStubDataLength - imageDosStubRichLength;
     }
 
