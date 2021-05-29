@@ -658,6 +658,7 @@ NTSTATUS PhLoadRemoteMappedImageEx(
     ULONG ntHeadersOffset;
     IMAGE_NT_HEADERS ntHeaders;
     SIZE_T ntHeadersSize;
+    PIMAGE_NT_HEADERS ntHeadersOut;
 
     RemoteMappedImage->ViewBase = ViewBase;
 
@@ -718,22 +719,23 @@ NTSTATUS PhLoadRemoteMappedImageEx(
     if (ntHeadersSize > 1024 * 1024) // 1 MB
         return STATUS_INVALID_IMAGE_FORMAT;
 
-    RemoteMappedImage->NtHeaders = PhAllocateZero(ntHeadersSize);
+    ntHeadersOut = PhAllocateZero(ntHeadersSize);
 
     status = ReadVirtualMemoryCallback(
         ProcessHandle,
         PTR_ADD_OFFSET(ViewBase, ntHeadersOffset),
-        RemoteMappedImage->NtHeaders,
+        ntHeadersOut,
         ntHeadersSize,
         NULL
         );
 
     if (!NT_SUCCESS(status))
     {
-        PhFree(RemoteMappedImage->NtHeaders);
+        PhFree(ntHeadersOut);
         return status;
     }
 
+    RemoteMappedImage->NtHeaders = ntHeadersOut;
     RemoteMappedImage->Sections = IMAGE_FIRST_SECTION(RemoteMappedImage->NtHeaders);
 
     return STATUS_SUCCESS;
