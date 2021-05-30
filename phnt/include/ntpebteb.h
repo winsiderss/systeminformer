@@ -317,7 +317,9 @@ typedef struct _TEB
 #endif
 
     BOOLEAN InstrumentationCallbackDisabled;
+#ifdef _WIN64
     BOOLEAN UnalignedLoadStoreExceptions;
+#endif
 #ifndef _WIN64
     UCHAR SpareBytes[23];
     ULONG TxFsContext;
