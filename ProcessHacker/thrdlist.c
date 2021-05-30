@@ -1240,7 +1240,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
 
                                 if (NT_SUCCESS(PhOpenThreadProcess(
                                     threadItem->ThreadHandle,
-                                    PROCESS_VM_READ,
+                                    PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ,
                                     &processHandle
                                     )))
                                 {
