@@ -42,6 +42,9 @@ NTSTATUS SetupUpdateBuild(
     // Set the default image execution options.
     //SetupCreateImageFileExecutionOptions();
 
+    // Refresh shortcuts if they've changed.
+    SetupChangeNotifyShortcuts(Context);
+
     // Set the default KPH configuration.
     SetupStartKph(Context, FALSE);
 
@@ -116,7 +119,14 @@ HRESULT CALLBACK SetupErrorTaskDialogCallbackProc(
 
     switch (uMsg)
     {
-    case TDN_NAVIGATED:
+    case TDN_BUTTON_CLICKED:
+        {
+            if ((INT)wParam == IDYES)
+            {
+                ShowUpdatePageDialog(context);
+                return S_FALSE;
+            }
+        }
         break;
     }
 
@@ -176,16 +186,22 @@ VOID ShowUpdateErrorPageDialog(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
+    static TASKDIALOG_BUTTON TaskDialogButtonArray[] =
+    {
+        { IDYES, L"Retry" },
+        { IDCLOSE, L"Close" },
+    };
     TASKDIALOGCONFIG config;
 
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
     config.cbSize = sizeof(TASKDIALOGCONFIG);
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED;
-    config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
+    //config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
     config.hMainIcon = Context->IconLargeHandle;
     config.pfCallback = SetupErrorTaskDialogCallbackProc;
     config.lpCallbackData = (LONG_PTR)Context;
-
+    config.pButtons = TaskDialogButtonArray;
+    config.cButtons = RTL_NUMBER_OF(TaskDialogButtonArray);
     config.cxWidth = 200;
     config.pszWindowTitle = PhApplicationName;
     config.pszMainInstruction = L"Error updating to the latest version.";

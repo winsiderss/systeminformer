@@ -744,6 +744,46 @@ VOID SetupDeleteWindowsOptions(
     }
 }
 
+VOID SetupChangeNotifyShortcuts(
+    _In_ PPH_SETUP_CONTEXT Context
+    )
+{
+    static PH_STRINGREF desktopStartmenuPathSr = PH_STRINGREF_INIT(L"%ALLUSERSPROFILE%\\Microsoft\\Windows\\Start Menu\\Programs\\Process Hacker.lnk");
+    static PH_STRINGREF peviewerShortcutPathSr = PH_STRINGREF_INIT(L"%ALLUSERSPROFILE%\\Microsoft\\Windows\\Start Menu\\Programs\\PE Viewer.lnk");
+    static PH_STRINGREF desktopAllusersPathSr = PH_STRINGREF_INIT(L"%PUBLIC%\\Desktop\\Process Hacker.lnk");
+    PPH_STRING string;
+
+    if (string = PhExpandEnvironmentStrings(&desktopStartmenuPathSr))
+    {
+        if (PhDoesFileExistsWin32(PhGetString(string)))
+        {
+            SHChangeNotify(SHCNE_UPDATEITEM, SHCNF_PATH, PhGetString(string), NULL);
+        }
+
+        PhDereferenceObject(string);
+    }
+
+    if (string = PhExpandEnvironmentStrings(&desktopAllusersPathSr))
+    {
+        if (PhDoesFileExistsWin32(PhGetString(string)))
+        {
+            SHChangeNotify(SHCNE_UPDATEITEM, SHCNF_PATH, PhGetString(string), NULL);
+        }
+
+        PhDereferenceObject(string);
+    }
+
+    if (string = PhExpandEnvironmentStrings(&peviewerShortcutPathSr))
+    {
+        if (PhDoesFileExistsWin32(PhGetString(string)))
+        {
+            SHChangeNotify(SHCNE_UPDATEITEM, SHCNF_PATH, PhGetString(string), NULL);
+        }
+
+        PhDereferenceObject(string);
+    }
+}
+
 BOOLEAN SetupExecuteProcessHacker(
     _In_ PPH_SETUP_CONTEXT Context
     )
@@ -875,6 +915,7 @@ VOID ExtractResourceToFile(
     HANDLE fileHandle = NULL;
     PVOID resourceBuffer;
     ULONG resourceLength;
+    LARGE_INTEGER allocationSize;
     IO_STATUS_BLOCK isb;
 
     if (!PhLoadResource(
@@ -888,14 +929,18 @@ VOID ExtractResourceToFile(
         goto CleanupExit;
     }
 
-    if (!NT_SUCCESS(PhCreateFileWin32(
+    allocationSize.QuadPart = resourceLength;
+
+    if (!NT_SUCCESS(PhCreateFileWin32Ex(
         &fileHandle,
         FileName,
         FILE_GENERIC_READ | FILE_GENERIC_WRITE,
+        &allocationSize,
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
         FILE_OVERWRITE_IF,
-        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+        NULL
         )))
     {
         goto CleanupExit;
@@ -983,10 +1028,14 @@ VOID SetupCreateLink(
         propValue.vt = VT_LPWSTR;
         propValueLength = PhCountStringZ(AppId) * sizeof(WCHAR);
         propValue.pwszVal = (PWSTR)CoTaskMemAlloc(propValueLength + sizeof(UNICODE_NULL));
-        memset(propValue.pwszVal, 0, propValueLength + sizeof(UNICODE_NULL));
-        memcpy(propValue.pwszVal, AppId, propValueLength);
-    
-        IPropertyStore_SetValue(propertyStorePtr, &PKEY_AppUserModel_ID, &propValue);
+
+        if (propValue.pwszVal)
+        {
+            memset(propValue.pwszVal, 0, propValueLength + sizeof(UNICODE_NULL));
+            memcpy(propValue.pwszVal, AppId, propValueLength);
+
+            IPropertyStore_SetValue(propertyStorePtr, &PKEY_AppUserModel_ID, &propValue);
+        }
 
         PropVariantClear(&propValue);
 
@@ -1175,7 +1224,7 @@ NTSTATUS QueryProcessesUsingVolumeOrFile(
     IO_STATUS_BLOCK isb;
 
     bufferSize = initialBufferSize;
-    buffer = malloc(bufferSize);
+    buffer = PhAllocate(bufferSize);
 
     while ((status = NtQueryInformationFile(
         VolumeOrFileHandle,
@@ -1185,19 +1234,19 @@ NTSTATUS QueryProcessesUsingVolumeOrFile(
         FileProcessIdsUsingFileInformation
         )) == STATUS_INFO_LENGTH_MISMATCH)
     {
-        free(buffer);
+        PhFree(buffer);
         bufferSize *= 2;
 
         // Fail if we're resizing the buffer to something very large.
         if (bufferSize > SIZE_MAX)
             return STATUS_INSUFFICIENT_RESOURCES;
 
-        buffer = malloc(bufferSize);
+        buffer = PhAllocate(bufferSize);
     }
 
     if (!NT_SUCCESS(status))
     {
-        free(buffer);
+        PhFree(buffer);
         return status;
     }
 
