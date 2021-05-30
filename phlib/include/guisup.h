@@ -1044,6 +1044,13 @@ PhInitializeWindowThemeMainMenu(
     );
 
 PHLIBAPI
+VOID
+NTAPI
+PhInitializeWindowThemeStaticControl(
+    _In_ HWND StaticControl
+    );
+
+PHLIBAPI
 LRESULT
 CALLBACK
 PhThemeWindowDrawRebar(

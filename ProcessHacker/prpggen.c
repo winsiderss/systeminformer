@@ -470,6 +470,9 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             ShowWindow(GetDlgItem(hwndDlg, IDC_PROCESSTYPELABEL), SW_SHOW);
             ShowWindow(GetDlgItem(hwndDlg, IDC_PROCESSTYPETEXT), SW_SHOW);
 #endif
+
+            if (PhEnableThemeSupport)
+                PhInitializeWindowThemeStaticControl(GetDlgItem(hwndDlg, IDC_FILEICON));
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
 
             SetTimer(hwndDlg, 1, 1000, NULL);

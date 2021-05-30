@@ -50,6 +50,11 @@ typedef struct _PHP_THEME_WINDOW_STATUSBAR_CONTEXT
     HTHEME StatusThemeData;
 } PHP_THEME_WINDOW_STATUSBAR_CONTEXT, *PPHP_THEME_WINDOW_STATUSBAR_CONTEXT;
 
+typedef struct _PHP_THEME_WINDOW_STATIC_CONTEXT
+{
+    WNDPROC DefaultWindowProc;
+} PHP_THEME_WINDOW_STATIC_CONTEXT, *PPHP_THEME_WINDOW_STATIC_CONTEXT;
+
 BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
     _In_ HWND WindowHandle,
     _In_opt_ PVOID Context
@@ -96,6 +101,13 @@ LRESULT CALLBACK PhpThemeWindowStatusbarWndSubclassProc(
     _In_ LPARAM lParam
     );
 LRESULT CALLBACK PhpThemeWindowRebarToolbarSubclassProc(
+    _In_ HWND WindowHandle,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
+LRESULT CALLBACK PhpThemeWindowStaticControlSubclassProc(
     _In_ HWND WindowHandle,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -515,6 +527,21 @@ VOID PhInitializeWindowThemeMainMenu(
     menuInfo.hbrBack = CreateSolidBrush(PhpThemeWindowForegroundColor);
 
     SetMenuInfo(MenuHandle, &menuInfo);
+}
+
+VOID PhInitializeWindowThemeStaticControl(
+    _In_ HWND StaticControl
+    )
+{
+    PPHP_THEME_WINDOW_STATIC_CONTEXT context;
+
+    context = PhAllocateZero(sizeof(PHP_THEME_WINDOW_STATIC_CONTEXT));
+    context->DefaultWindowProc = (WNDPROC)GetWindowLongPtr(StaticControl, GWLP_WNDPROC);
+
+    PhSetWindowContext(StaticControl, LONG_MAX, context);
+    SetWindowLongPtr(StaticControl, GWLP_WNDPROC, (LONG_PTR)PhpThemeWindowStaticControlSubclassProc);
+
+    InvalidateRect(StaticControl, NULL, FALSE);
 }
 
 BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
@@ -2803,6 +2830,69 @@ LRESULT CALLBACK PhpThemeWindowRebarToolbarSubclassProc(
             }
         }
         break;
+    }
+
+    return CallWindowProc(oldWndProc, WindowHandle, uMsg, wParam, lParam);
+}
+
+LRESULT CALLBACK PhpThemeWindowStaticControlSubclassProc(
+    _In_ HWND WindowHandle,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+    PPHP_THEME_WINDOW_STATIC_CONTEXT context;
+    WNDPROC oldWndProc;
+
+    if (!(context = PhGetWindowContext(WindowHandle, LONG_MAX)))
+        return FALSE;
+
+    oldWndProc = context->DefaultWindowProc;
+
+    switch (uMsg)
+    {
+    case WM_NCDESTROY:
+        {
+            PhRemoveWindowContext(WindowHandle, LONG_MAX);
+            SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+
+            PhFree(context);
+        }
+        break;
+    case WM_ERASEBKGND:
+        return TRUE;
+    case WM_PAINT:
+        {
+            PAINTSTRUCT ps;
+            HDC hdc;
+
+            if (hdc = BeginPaint(WindowHandle, &ps))
+            {
+                RECT clientRect;
+                HICON iconHandle;
+
+                GetClientRect(WindowHandle, &clientRect);
+                SetDCBrushColor(hdc, RGB(42, 42, 42));
+                FillRect(hdc, &clientRect, GetStockBrush(DC_BRUSH));
+
+                iconHandle = Static_GetIcon(WindowHandle, 0);
+                DrawIconEx(
+                    hdc,
+                    clientRect.left,
+                    clientRect.top,
+                    iconHandle,
+                    clientRect.right - clientRect.left,
+                    clientRect.bottom - clientRect.top,
+                    0,
+                    NULL,
+                    DI_NORMAL
+                    );
+
+                EndPaint(WindowHandle, &ps);
+            }
+        }
+        return TRUE;
     }
 
     return CallWindowProc(oldWndProc, WindowHandle, uMsg, wParam, lParam);
