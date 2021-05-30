@@ -10155,6 +10155,9 @@ NTSTATUS PhGetThreadLastStatusValue(
     NTSTATUS status;
     THREAD_BASIC_INFORMATION basicInfo;
     BOOLEAN openedProcessHandle = FALSE;
+#ifdef _WIN64
+    BOOLEAN isWow64 = FALSE;
+#endif
 
     if (!NT_SUCCESS(status = PhGetThreadBasicInformation(ThreadHandle, &basicInfo)))
         return status;
@@ -10171,13 +10174,30 @@ NTSTATUS PhGetThreadLastStatusValue(
         openedProcessHandle = TRUE;
     }
 
-    status = NtReadVirtualMemory(
-        ProcessHandle,
-        PTR_ADD_OFFSET(basicInfo.TebBaseAddress, UFIELD_OFFSET(TEB, LastStatusValue)), // LastErrorValue/ExceptionCode
-        LastStatusValue,
-        sizeof(NTSTATUS),
-        NULL
-        );
+#ifdef _WIN64
+    PhGetProcessIsWow64(ProcessHandle, &isWow64);
+   
+    if (isWow64)
+    {
+        status = NtReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(PTR_ADD_OFFSET(basicInfo.TebBaseAddress, ALIGN_UP_BY(sizeof(TEB), PAGE_SIZE)), UFIELD_OFFSET(TEB32, LastStatusValue)), // LastErrorValue/ExceptionCode
+            LastStatusValue,
+            sizeof(NTSTATUS),
+            NULL
+            );
+    }
+    else
+#endif
+    {
+        status = NtReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(basicInfo.TebBaseAddress, UFIELD_OFFSET(TEB, LastStatusValue)), // LastErrorValue/ExceptionCode
+            LastStatusValue,
+            sizeof(NTSTATUS),
+            NULL
+            );
+    }
 
     if (openedProcessHandle)
         NtClose(ProcessHandle);
