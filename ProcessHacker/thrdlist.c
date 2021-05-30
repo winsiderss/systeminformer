@@ -261,6 +261,7 @@ PPH_THREAD_NODE PhAddThreadNode(
     threadNode->ThreadItem = ThreadItem;
     threadNode->PagePriority = MEMORY_PRIORITY_NORMAL + 1;
     threadNode->IoPriority = MaxIoPriorityTypes;
+    threadNode->LastSystemCallNumber = USHRT_MAX;
 
     memset(threadNode->TextCache, 0, sizeof(PH_STRINGREF) * PH_THREAD_TREELIST_COLUMN_MAXIMUM);
     threadNode->Node.TextCache = threadNode->TextCache;
@@ -1153,6 +1154,12 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     NTSTATUS status = STATUS_UNSUCCESSFUL;
                     THREAD_LAST_SYSCALL_INFORMATION lastSystemCall;
 
+                    if (context->ProcessId == SYSTEM_PROCESS_ID)
+                    {
+                        PhInitializeEmptyStringRef(&getCellText->Text);
+                        break;
+                    }
+
                     if (!node->ThreadContextHandleValid)
                     {
                         if (!node->ThreadContextHandle)
@@ -1217,7 +1224,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                         PhInitFormatS(&format[0], L"0x");
                         PhInitFormatX(&format[1], status);
 
-                        node->LastSystemCallNumber = 0;
+                        node->LastSystemCallNumber = USHRT_MAX;
                         PhMoveReference(&node->LastSystemCallText, PhFormat(format, RTL_NUMBER_OF(format), 0));
                     }
 
@@ -1229,6 +1236,12 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     NTSTATUS status = STATUS_UNSUCCESSFUL;
                     NTSTATUS lastStatusValue = STATUS_SUCCESS;
                     PPH_STRING errorMessage;
+
+                    if (context->ProcessId == SYSTEM_PROCESS_ID)
+                    {
+                        PhInitializeEmptyStringRef(&getCellText->Text);
+                        break;
+                    }
 
                     if (!node->ThreadReadVmHandleValid)
                     {

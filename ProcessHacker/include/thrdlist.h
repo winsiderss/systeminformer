@@ -119,6 +119,8 @@ typedef struct _PH_THREAD_LIST_CONTEXT
     PPH_POINTER_LIST NodeStateList;
     PH_TN_FILTER_SUPPORT TreeFilterSupport;
 
+    HANDLE ProcessId;
+
     BOOLEAN EnableStateHighlighting;
     BOOLEAN UseCycleTime;
     BOOLEAN HasServices;
