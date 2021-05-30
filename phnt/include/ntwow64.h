@@ -577,6 +577,11 @@ C_ASSERT(FIELD_OFFSET(TEB32, ReservedForCrt) == 0xfe8);
 C_ASSERT(FIELD_OFFSET(TEB32, EffectiveContainerId) == 0xff0);
 C_ASSERT(sizeof(TEB32) == 0x1000);
 
+// Get the 32-bit TEB without doing a memory reference
+// modified from public SDK /10.0.10240.0/um/minwin/wow64t.h (dmex)
+#define WOW64_GET_TEB32(teb64) ((PTEB32)PTR_ADD_OFFSET((teb64), ALIGN_UP_BY(sizeof(TEB), PAGE_SIZE)))
+#define WOW64_TEB32_POINTER_ADDRESS(teb64) (PVOID)&((teb64)->NtTib.ExceptionList)
+
 // Conversion
 
 FORCEINLINE VOID UStr32ToUStr(
