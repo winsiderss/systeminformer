@@ -209,6 +209,10 @@ VOID SetupDeleteWindowsOptions(
     _In_ PPH_SETUP_CONTEXT Context
     );
 
+VOID SetupChangeNotifyShortcuts(
+    _In_ PPH_SETUP_CONTEXT Context
+    );
+
 BOOLEAN SetupCreateUninstallFile(
     _In_ PPH_SETUP_CONTEXT Context
     );
@@ -267,6 +271,7 @@ PPH_STRING SetupCreateFullPath(
     _In_ PWSTR FileName
     );
 
+_Success_(return)
 BOOLEAN SetupBase64StringToBufferEx(
     _In_ PVOID InputBuffer,
     _In_ ULONG InputBufferLength,
