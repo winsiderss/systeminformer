@@ -10181,7 +10181,7 @@ NTSTATUS PhGetThreadLastStatusValue(
     {
         status = NtReadVirtualMemory(
             ProcessHandle,
-            PTR_ADD_OFFSET(PTR_ADD_OFFSET(basicInfo.TebBaseAddress, ALIGN_UP_BY(sizeof(TEB), PAGE_SIZE)), UFIELD_OFFSET(TEB32, LastStatusValue)), // LastErrorValue/ExceptionCode
+            PTR_ADD_OFFSET(WOW64_GET_TEB32(basicInfo.TebBaseAddress), UFIELD_OFFSET(TEB32, LastStatusValue)),
             LastStatusValue,
             sizeof(NTSTATUS),
             NULL
