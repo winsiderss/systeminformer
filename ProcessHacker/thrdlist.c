@@ -1696,7 +1696,42 @@ VOID PhpGenerateSyscallLists(
                         entry->Address = (ULONG_PTR)exportFunction.Function;
                         entry->Name = PhZeroExtendToUtf16(exportEntry.Name);
 
-                        PhAddItemList(list, entry);
+                        // Win10 insider added non-syscalls to win32u that break sorting by RVA.
+                        if (WindowsVersion >= WINDOWS_10_21H1 && PhOsVersion.dwBuildNumber > 19043)
+                        {
+                            PBYTE exportAddress;
+
+                            if (exportAddress = PhMappedImageRvaToVa(&mappedImage, PtrToUlong(exportFunction.Function), NULL))
+                            {
+                                PPH_SYSTEMCALL_ENTRY systemCallEntry = NULL;
+
+                            #ifdef _WIN64
+                                BYTE prologue[4] = { 0x4C, 0x8B, 0xD1, 0xB8 };
+
+                                if (RtlEqualMemory(exportAddress, prologue, sizeof(prologue)))
+                                {
+                                    systemCallEntry = PTR_ADD_OFFSET(exportAddress, sizeof(prologue));
+                                }
+                            #else
+                                BYTE prologue[1] = { 0xB8 };
+
+                                if (RtlEqualMemory(exportAddress, prologue, sizeof(prologue)))
+                                {
+                                    systemCallEntry = PTR_ADD_OFFSET(exportAddress, sizeof(prologue));
+                                }
+                            #endif
+
+                                if (systemCallEntry && systemCallEntry->SystemServiceIndex == 1)
+                                {
+                                    entry->Address = systemCallEntry->SystemCallIndex;
+                                    PhAddItemList(list, entry);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            PhAddItemList(list, entry);
+                        }
                     }
                 }
             }
