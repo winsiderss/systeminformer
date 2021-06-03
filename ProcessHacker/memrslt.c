@@ -28,6 +28,7 @@
 #include <memsrch.h>
 #include <procprv.h>
 #include <settings.h>
+#include <phsettings.h>
 
 #include "..\tools\thirdparty\pcre\pcre2.h"
 
@@ -356,6 +357,8 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                 PhSetIntegerPairSetting(L"MemResultsPosition", windowRectangle.Position);
                 PhSetScalableIntegerPairSetting2(L"MemResultsSize", windowRectangle.Size);
             }
+
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
