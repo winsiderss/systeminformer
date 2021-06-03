@@ -907,6 +907,7 @@ VERIFY_RESULT PhpSignatureStateToVerifyResult(
 }
 
 VERIFY_RESULT PhVerifyFileSignatureInfo(
+    _In_ PPH_VERIFY_FILE_INFO Information,
     _In_opt_ PCWSTR FileName,
     _In_opt_ HANDLE FileHandle,
     _Out_ PCERT_CONTEXT** Signatures,
@@ -915,11 +916,11 @@ VERIFY_RESULT PhVerifyFileSignatureInfo(
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
     static _WTGetSignatureInfo WTGetSignatureInfo_I = NULL;
-    HRESULT status;
     VERIFY_RESULT verifyResult = VrNoSignature;
     SIGNATURE_INFO signatureInfo = { sizeof(SIGNATURE_INFO) };
     PVOID certificateContext = NULL;
     HANDLE verifyTrustStateData = NULL;
+    HRESULT status;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -943,8 +944,7 @@ VERIFY_RESULT PhVerifyFileSignatureInfo(
     status = WTGetSignatureInfo_I(
         FileName,
         FileHandle,
-        SIF_AUTHENTICODE_SIGNED | SIF_CATALOG_SIGNED |
-        SIF_BASE_VERIFICATION | SIF_CATALOG_FIRST,
+        SIF_AUTHENTICODE_SIGNED | SIF_CATALOG_SIGNED | SIF_BASE_VERIFICATION,
         &signatureInfo,
         &certificateContext,
         &verifyTrustStateData
@@ -959,6 +959,9 @@ VERIFY_RESULT PhVerifyFileSignatureInfo(
   
     verifyResult = PhpSignatureStateToVerifyResult(signatureInfo.nSignatureState);
     PhpGetSignaturesFromStateData(verifyTrustStateData, Signatures, NumberOfSignatures);
+
+    if (status == S_OK && verifyTrustStateData && (Information->Flags & PH_VERIFY_VIEW_PROPERTIES))
+        PhpViewSignerInfo(Information, verifyTrustStateData);
 
     if (verifyTrustStateData && WinVerifyTrust_I)
     {
