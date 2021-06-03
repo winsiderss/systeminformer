@@ -1244,8 +1244,8 @@ static VOID PhpUpdateProcessNodeFileAttributes(
     {
         FILE_NETWORK_OPEN_INFORMATION networkOpenInfo;
 
-        if (ProcessNode->ProcessItem->FileName && NT_SUCCESS(PhQueryFullAttributesFileWin32(
-            ProcessNode->ProcessItem->FileName->Buffer,
+        if (ProcessNode->ProcessItem->FileName && NT_SUCCESS(PhQueryFullAttributesFile(
+            ProcessNode->ProcessItem->FileName,
             &networkOpenInfo
             )))
         {
