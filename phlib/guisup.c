@@ -26,10 +26,12 @@
 #include <guisup.h>
 #include <mapimg.h>
 #include <settings.h>
+#include <fastlock.h>
+#include <guisupp.h>
+
+#include <commoncontrols.h>
 #include <shellapi.h>
 #include <uxtheme.h>
-
-#include <guisupp.h>
 
 #define SCALE_DPI(Value) PhMultiplyDivide(Value, PhGlobalDpi, 96)
 
@@ -631,7 +633,7 @@ VOID PhSetImageListBitmap(
 
     if (bitmap)
     {
-        ImageList_Replace(ImageList, Index, bitmap, NULL);
+        PhImageListReplace(ImageList, Index, bitmap, NULL);
         DeleteBitmap(bitmap);
     }
 }
@@ -1833,6 +1835,7 @@ BOOLEAN PhExtractIcon(
     return FALSE;
 }
 
+_Success_(return)
 BOOLEAN PhLoadIconFromResourceDirectory(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ PIMAGE_RESOURCE_DIRECTORY ResourceDirectory,
@@ -2226,4 +2229,187 @@ CleanupExit:
         DestroyIcon(iconSmall);
 
     return FALSE;
+}
+
+// Imagelist support
+
+HIMAGELIST PhImageListCreate(
+    _In_ UINT Width,
+    _In_ UINT Height,
+    _In_ UINT Flags,
+    _In_ UINT InitialCount,
+    _In_ UINT GrowCount
+    )
+{
+    HRESULT status;
+    IImageList2* imageList;
+
+    status = ImageList_CoCreateInstance(
+        &CLSID_ImageList,
+        NULL,
+        &IID_IImageList2,
+        &imageList
+        );
+
+    if (FAILED(status))
+        return NULL;
+
+    status = IImageList2_Initialize(
+        imageList,
+        Width,
+        Height,
+        Flags,
+        InitialCount,
+        GrowCount
+        );
+
+    if (FAILED(status))
+        return NULL;
+
+    // Win32 HIMAGELIST is always a pointer to the IImageList interface. (dmex)
+    return (HIMAGELIST)imageList;
+}
+
+BOOLEAN PhImageListDestroy(
+    _In_ HIMAGELIST ImageListHandle
+    )
+{
+    return SUCCEEDED(IImageList2_Release((IImageList2*)ImageListHandle));
+}
+
+BOOLEAN PhImageListSetImageCount(
+    _In_ HIMAGELIST ImageListHandle,
+    _In_ UINT Count
+    )
+{
+    return SUCCEEDED(IImageList2_SetImageCount((IImageList2*)ImageListHandle, Count));
+}
+
+BOOLEAN PhImageListSetBkColor(
+    _In_ HIMAGELIST ImageListHandle,
+    _In_ COLORREF BackgroundColor
+    )
+{
+    COLORREF previousColor = 0;
+
+    return SUCCEEDED(IImageList2_SetBkColor(
+        (IImageList2*)ImageListHandle,
+        BackgroundColor,
+        &previousColor
+        ));
+}
+
+UINT PhImageListAddIcon(
+    _In_ HIMAGELIST ImageListHandle,
+    _In_ HICON IconHandle
+    )
+{
+    INT index = -1;
+
+    IImageList2_ReplaceIcon(
+        (IImageList2*)ImageListHandle,
+        UINT_MAX,
+        IconHandle,
+        &index
+        );
+
+    return index;
+}
+
+BOOLEAN PhImageListRemoveIcon(
+    _In_ HIMAGELIST ImageListHandle,
+    _In_ UINT Index
+    )
+{
+    return SUCCEEDED(IImageList2_Remove(
+        (IImageList2*)ImageListHandle,
+        Index
+        ));
+}
+
+HICON PhImageListGetIcon(
+    _In_ HIMAGELIST ImageListHandle,
+    _In_ UINT Index,
+    _In_ UINT Flags
+    )
+{
+    HICON iconhandle = NULL;
+
+    IImageList2_GetIcon(
+        (IImageList2*)ImageListHandle,
+        Index,
+        Flags,
+        &iconhandle
+        );
+
+    return iconhandle;
+}
+
+BOOLEAN PhImageListReplace(
+    _In_ HIMAGELIST ImageListHandle,
+    _In_ UINT Index,
+    _In_ HBITMAP BitmapImage,
+    _In_opt_ HBITMAP BitmapMask
+    )
+{
+    return SUCCEEDED(IImageList2_Replace(
+        (IImageList2*)ImageListHandle,
+        Index,
+        BitmapImage,
+        BitmapMask
+        ));
+}
+
+BOOLEAN PhImageListDrawIcon(
+    _In_ HIMAGELIST ImageListHandle,
+    _In_ INT Index,
+    _In_ HDC Hdc,
+    _In_ INT x,
+    _In_ INT y,
+    _In_ UINT Style
+    )
+{
+    return PhImageListDrawEx(
+        ImageListHandle,
+        Index,
+        Hdc,
+        x,
+        y,
+        0,
+        0,
+        CLR_DEFAULT,
+        CLR_DEFAULT,
+        Style
+        );
+}
+
+BOOLEAN PhImageListDrawEx(
+    _In_ HIMAGELIST ImageListHandle,
+    _In_ INT Index,
+    _In_ HDC Hdc,
+    _In_ INT x,
+    _In_ INT y,
+    _In_ INT dx,
+    _In_ INT dy,
+    _In_ COLORREF BackColor,
+    _In_ COLORREF ForeColor,
+    _In_ UINT Style
+    )
+{
+    IMAGELISTDRAWPARAMS imagelistDraw;
+
+    memset(&imagelistDraw, 0, sizeof(IMAGELISTDRAWPARAMS));
+    imagelistDraw.cbSize = sizeof(IMAGELISTDRAWPARAMS);
+    imagelistDraw.himl = ImageListHandle;
+    imagelistDraw.hdcDst = Hdc;
+    imagelistDraw.i = Index;
+    imagelistDraw.x = x;
+    imagelistDraw.y = y;
+    imagelistDraw.cx = dx;
+    imagelistDraw.cy = dy;
+    imagelistDraw.rgbBk = BackColor;
+    imagelistDraw.rgbFg = ForeColor;
+    imagelistDraw.fStyle = Style;
+
+    return SUCCEEDED(IImageList2_Draw((IImageList2*)ImageListHandle, &imagelistDraw));
 }
