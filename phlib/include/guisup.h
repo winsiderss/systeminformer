@@ -965,6 +965,109 @@ PhExtractIconEx(
     _Out_opt_ HICON *IconLarge,
     _Out_opt_ HICON *IconSmall
     );
+
+// Imagelist support
+
+PHLIBAPI
+HIMAGELIST
+NTAPI
+PhImageListCreate(
+    _In_ UINT Width,
+    _In_ UINT Height,
+    _In_ UINT Flags,
+    _In_ UINT InitialCount,
+    _In_ UINT GrowCount
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhImageListDestroy(
+    _In_ HIMAGELIST ImageListHandle
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhImageListSetImageCount(
+    _In_ HIMAGELIST ImageListHandle,
+    _In_ UINT Count
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhImageListSetBkColor(
+    _In_ HIMAGELIST ImageListHandle,
+    _In_ COLORREF BackgroundColor
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhImageListRemoveIcon(
+    _In_ HIMAGELIST ImageListHandle,
+    _In_ UINT Index
+    );
+
+#define PhImageListRemoveAll(ImageListHandle) \
+    PhImageListRemoveIcon((ImageListHandle), -1)
+
+PHLIBAPI
+UINT
+NTAPI
+PhImageListAddIcon(
+    _In_ HIMAGELIST ImageListHandle,
+    _In_ HICON IconHandle
+    );
+
+PHLIBAPI
+HICON
+NTAPI
+PhImageListGetIcon(
+    _In_ HIMAGELIST ImageListHandle,
+    _In_ UINT Index,
+    _In_ UINT Flags
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhImageListReplace(
+    _In_ HIMAGELIST ImageListHandle,
+    _In_ UINT Index,
+    _In_ HBITMAP BitmapImage,
+    _In_opt_ HBITMAP BitmapMask
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhImageListDrawIcon(
+    _In_ HIMAGELIST ImageListHandle,
+    _In_ INT Index,
+    _In_ HDC Hdc,
+    _In_ INT x,
+    _In_ INT y,
+    _In_ UINT Style
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhImageListDrawEx(
+    _In_ HIMAGELIST ImageListHandle,
+    _In_ INT Index,
+    _In_ HDC Hdc,
+    _In_ INT x,
+    _In_ INT y,
+    _In_ INT dx,
+    _In_ INT dy,
+    _In_ COLORREF BackColor,
+    _In_ COLORREF ForeColor,
+    _In_ UINT Style
+    );
+
 // theme support (theme.c)
 
 PHLIBAPI extern HFONT PhApplicationFont; // phapppub
