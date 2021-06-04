@@ -1022,6 +1022,15 @@ PhImageListAddIcon(
     );
 
 PHLIBAPI
+UINT
+NTAPI
+PhImageListAddBitmap(
+    _In_ HIMAGELIST ImageListHandle,
+    _In_ HBITMAP BitmapImage,
+    _In_opt_ HBITMAP BitmapMask
+    );
+
+PHLIBAPI
 HICON
 NTAPI
 PhImageListGetIcon(
