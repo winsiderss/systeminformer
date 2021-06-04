@@ -122,18 +122,18 @@ VOID PhpSearchInitializeImages(
 
     Context->ImageWidth = PhSmallIconSize.X + 4; //GetSystemMetrics(SM_CXSMICON) + 4;
     Context->ImageHeight = PhSmallIconSize.Y + 4; //GetSystemMetrics(SM_CYSMICON) + 4;
-    Context->ImageListHandle = ImageList_Create(
+    Context->ImageListHandle = PhImageListCreate(
         Context->ImageWidth,
         Context->ImageHeight,
         ILC_MASK | ILC_COLOR32,
         2,
         0
         );
-    ImageList_SetImageCount(Context->ImageListHandle, 2);
+    PhImageListSetImageCount(Context->ImageListHandle, 2);
 
     if (bitmap = PhLoadPngImageFromResource(PhInstanceHandle, Context->ImageWidth, Context->ImageHeight, MAKEINTRESOURCE(IDB_SEARCH_ACTIVE), TRUE))
     {
-        ImageList_Replace(Context->ImageListHandle, 0, bitmap, NULL);
+        PhImageListReplace(Context->ImageListHandle, 0, bitmap, NULL);
         DeleteBitmap(bitmap);
     }
     else
@@ -143,7 +143,7 @@ VOID PhpSearchInitializeImages(
 
     if (bitmap = PhLoadPngImageFromResource(PhInstanceHandle, Context->ImageWidth, Context->ImageHeight, MAKEINTRESOURCE(IDB_SEARCH_INACTIVE), TRUE))
     {
-        ImageList_Replace(Context->ImageListHandle, 1, bitmap, NULL);
+        PhImageListReplace(Context->ImageListHandle, 1, bitmap, NULL);
         DeleteBitmap(bitmap);
     }
     else
@@ -260,7 +260,7 @@ VOID PhpSearchDrawButton(
 
     if (Edit_GetTextLength(Context->WindowHandle) > 0)
     {
-        ImageList_Draw(
+        PhImageListDrawIcon(
             Context->ImageListHandle,
             0,
             bufferDc,
@@ -271,7 +271,7 @@ VOID PhpSearchDrawButton(
     }
     else
     {
-        ImageList_Draw(
+        PhImageListDrawIcon(
             Context->ImageListHandle,
             1,
             bufferDc,
@@ -390,7 +390,7 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
 
             if (context->ImageListHandle)
             {
-                ImageList_Destroy(context->ImageListHandle);
+                PhImageListDestroy(context->ImageListHandle);
                 context->ImageListHandle = NULL;
             }
 

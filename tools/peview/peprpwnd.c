@@ -575,7 +575,7 @@ INT_PTR CALLBACK PvTabWindowDialogProc(
         {
             PvTabTreeControl = GetDlgItem(hwndDlg, IDC_SECTIONTREE);
             PvTabContainerControl = GetDlgItem(hwndDlg, IDD_CONTAINER);
-            PvTabTreeImageList = ImageList_Create(2, PV_SCALE_DPI(24), ILC_MASK | ILC_COLOR32, 1, 1);
+            PvTabTreeImageList = PhImageListCreate(2, PV_SCALE_DPI(24), ILC_MASK | ILC_COLOR32, 1, 1);
 
             PhSetWindowText(hwndDlg, PhaFormatString(L"%s Properties", PhGetString(PvFileName))->Buffer);
 
@@ -666,7 +666,7 @@ INT_PTR CALLBACK PvTabWindowDialogProc(
             PvTabSectionList = NULL;
 
             if (PvTabTreeImageList)
-                ImageList_Destroy(PvTabTreeImageList);
+                PhImageListDestroy(PvTabTreeImageList);
 
             PostQuitMessage(0);
         }

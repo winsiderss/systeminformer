@@ -921,7 +921,7 @@ LRESULT CALLBACK MainWndSubclassProc(
                                             toolbarDisplayInfo->dwMask |= TBNF_DI_SETITEM;
 
                                             // Add the image, cache the value in the ToolbarButtons array, set the bitmap index.
-                                            toolbarDisplayInfo->iImage = ToolbarButtons[i].iBitmap = ImageList_Add(
+                                            toolbarDisplayInfo->iImage = ToolbarButtons[i].iBitmap = PhImageListAddBitmap(
                                                 ToolBarImageList,
                                                 buttonImage,
                                                 NULL

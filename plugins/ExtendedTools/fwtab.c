@@ -1129,7 +1129,7 @@ BOOLEAN NTAPI FwTreeNewCallback(
                 break;
             }
 
-            ImageList_Draw(
+            PhImageListDrawIcon(
                 PhGetProcessSmallImageList(),
                 (ULONG)(ULONG_PTR)node->ProcessIconIndex, // HACK (dmex)
                 hdc,

@@ -112,7 +112,7 @@ VOID RebarLoadSettings(
     {
         ToolBarImageSize.cx = GetSystemMetrics(SM_CXSMICON);
         ToolBarImageSize.cy = GetSystemMetrics(SM_CYSMICON);
-        ToolBarImageList = ImageList_Create(ToolBarImageSize.cx, ToolBarImageSize.cy, ILC_MASK | ILC_COLOR32, 0, 0);
+        ToolBarImageList = PhImageListCreate(ToolBarImageSize.cx, ToolBarImageSize.cy, ILC_MASK | ILC_COLOR32, 0, 0);
 
         HFONT newFont;
 
@@ -644,7 +644,7 @@ VOID ToolbarLoadDefaultToolbarButtons(
         if (bitmap = ToolbarGetImage(ToolbarButtons[i].idCommand))
         {
             // Add the image, cache the value in the ToolbarButtons array, set the bitmap index.
-            ToolbarButtons[i].iBitmap = ImageList_Add(
+            ToolbarButtons[i].iBitmap = PhImageListAddBitmap(
                 ToolBarImageList,
                 bitmap,
                 NULL
@@ -734,7 +734,7 @@ VOID ToolbarLoadButtonSettings(
                 if (bitmap = ToolbarGetImage(ToolbarButtons[i].idCommand))
                 {
                     // Add the image, cache the value in the ToolbarButtons array, set the bitmap index.
-                    buttonArray[index].iBitmap = ToolbarButtons[i].iBitmap = ImageList_Add(
+                    buttonArray[index].iBitmap = ToolbarButtons[i].iBitmap = PhImageListAddBitmap(
                         ToolBarImageList,
                         bitmap,
                         NULL

@@ -2710,7 +2710,7 @@ INT_PTR CALLBACK PhpRunFileWndProc(
                     PhSmallIconSize.Y
                     ))
                 {
-                    context->ImageListHandle = ImageList_Create(
+                    context->ImageListHandle = PhImageListCreate(
                         PhSmallIconSize.X,
                         PhSmallIconSize.Y,
                         ILC_MASK | ILC_COLOR32,
@@ -2718,7 +2718,7 @@ INT_PTR CALLBACK PhpRunFileWndProc(
                         1
                         );
 
-                    ImageList_AddIcon(context->ImageListHandle, shieldIcon);
+                    PhImageListAddIcon(context->ImageListHandle, shieldIcon);
                     DestroyIcon(shieldIcon);
                 }
             }
@@ -2729,7 +2729,7 @@ INT_PTR CALLBACK PhpRunFileWndProc(
             PhSetIntegerSetting(L"RunFileDlgState", Button_GetCheck(context->RunAsCheckboxHandle) == BST_CHECKED);
 
             if (context->ImageListHandle)
-                ImageList_Destroy(context->ImageListHandle);
+                PhImageListDestroy(context->ImageListHandle);
 
             PhFree(context);
         }

@@ -270,7 +270,7 @@ INT_PTR CALLBACK PhOptionsDialogProc(
     {
     case WM_INITDIALOG:
         {
-            OptionsTreeImageList = ImageList_Create(2, PH_SCALE_DPI(22), ILC_MASK | ILC_COLOR, 1, 1);
+            OptionsTreeImageList = PhImageListCreate(2, PH_SCALE_DPI(22), ILC_MASK | ILC_COLOR, 1, 1);
             OptionsTreeControl = GetDlgItem(hwndDlg, IDC_SECTIONTREE);
             ContainerControl = GetDlgItem(hwndDlg, IDD_CONTAINER);
 
@@ -350,7 +350,8 @@ INT_PTR CALLBACK PhOptionsDialogProc(
             PhDereferenceObject(SectionList);
             SectionList = NULL;
 
-            if (OptionsTreeImageList) ImageList_Destroy(OptionsTreeImageList);
+            if (OptionsTreeImageList)
+                PhImageListDestroy(OptionsTreeImageList);
 
             PhUnregisterWindowCallback(hwndDlg);
 
@@ -1495,7 +1496,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
 
             comboBoxHandle = GetDlgItem(hwndDlg, IDC_MAXSIZEUNIT);
             listviewHandle = GetDlgItem(hwndDlg, IDC_SETTINGS);
-            GeneralListviewImageList = ImageList_Create(1, PH_SCALE_DPI(22), ILC_MASK | ILC_COLOR, 1, 1);
+            GeneralListviewImageList = PhImageListCreate(1, PH_SCALE_DPI(22), ILC_MASK | ILC_COLOR, 1, 1);
 
             PhInitializeLayoutManager(&LayoutManager, hwndDlg);
             PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_SEARCHENGINE), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
@@ -1558,7 +1559,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                 DeleteFont(CurrentFontInstance);
 
             if (GeneralListviewImageList)
-                ImageList_Destroy(GeneralListviewImageList);
+                PhImageListDestroy(GeneralListviewImageList);
 
             PhClearReference(&NewFontSelection);
             PhClearReference(&OldTaskMgrDebugger);

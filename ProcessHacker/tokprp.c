@@ -821,7 +821,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
             HANDLE tokenHandle;
 
             tokenPageContext->ListViewHandle = GetDlgItem(hwndDlg, IDC_GROUPS);
-            tokenPageContext->ListViewImageList = ImageList_Create(2, 20, ILC_MASK | ILC_COLOR, 1, 1);
+            tokenPageContext->ListViewImageList = PhImageListCreate(2, 20, ILC_MASK | ILC_COLOR, 1, 1);
 
             PhSetListViewStyle(tokenPageContext->ListViewHandle, TRUE, TRUE);
             PhSetControlTheme(tokenPageContext->ListViewHandle, L"explorer");
@@ -972,7 +972,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
             PhSaveListViewColumnsToSetting(L"TokenGroupsListViewColumns", tokenPageContext->ListViewHandle);
 
             if (tokenPageContext->ListViewImageList)
-                ImageList_Destroy(tokenPageContext->ListViewImageList);
+                PhImageListDestroy(tokenPageContext->ListViewImageList);
 
             PhpTokenPageFreeListViewEntries(tokenPageContext);
 

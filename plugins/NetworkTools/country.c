@@ -104,7 +104,7 @@ VOID LoadGeoLiteDb(
 
         if (GeoDbLoaded)
         {
-            GeoImageList = ImageList_Create(16, 11, ILC_MASK | ILC_COLOR32, 20, 20);
+            GeoImageList = PhImageListCreate(16, 11, ILC_MASK | ILC_COLOR32, 20, 20);
         }
 
         PhDereferenceObject(dbpath);
@@ -117,8 +117,8 @@ VOID FreeGeoLiteDb(
 {
     if (GeoImageList)
     {
-        ImageList_RemoveAll(GeoImageList);
-        ImageList_Destroy(GeoImageList);
+        PhImageListRemoveAll(GeoImageList);
+        PhImageListDestroy(GeoImageList);
     }
 
     if (GeoDbLoaded)
@@ -510,13 +510,13 @@ INT LookupCountryIcon(
     )
 {
     if (!GeoImageList)
-        return INT_MAX;
+        return UINT_MAX;
 
-    for (INT i = 0; i < ARRAYSIZE(CountryResourceTable); i++)
+    for (UINT i = 0; i < RTL_NUMBER_OF(CountryResourceTable); i++)
     {
         if (PhEqualString2(Name, CountryResourceTable[i].CountryCode, TRUE))
         {
-            if (CountryResourceTable[i].IconIndex == INT_MAX)
+            if (CountryResourceTable[i].IconIndex == UINT_MAX)
             {
                 HBITMAP countryBitmap;
 
@@ -528,7 +528,7 @@ INT LookupCountryIcon(
                     TRUE
                     ))
                 {
-                    CountryResourceTable[i].IconIndex = ImageList_Add(
+                    CountryResourceTable[i].IconIndex = PhImageListAddBitmap(
                         GeoImageList, 
                         countryBitmap, 
                         NULL
@@ -541,7 +541,7 @@ INT LookupCountryIcon(
         }
     }
 
-    return INT_MAX;
+    return UINT_MAX;
 }
 
 VOID DrawCountryIcon(
@@ -553,7 +553,7 @@ VOID DrawCountryIcon(
     if (!GeoImageList)
         return;
 
-    ImageList_Draw(
+    PhImageListDrawIcon(
         GeoImageList, 
         Index, 
         hdc,
