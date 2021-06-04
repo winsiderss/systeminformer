@@ -563,6 +563,17 @@ EXPORTS
     PhInitializeWindowThemeRebar
     PhInitializeThemeWindowHeader
     PhGetGlobalTimerQueue
+    PhImageListCreate
+    PhImageListDestroy
+    PhImageListSetImageCount
+    PhImageListSetBkColor
+    PhImageListRemoveIcon
+    PhImageListAddIcon
+    PhImageListAddBitmap
+    PhImageListGetIcon
+    PhImageListReplace
+    PhImageListDrawIcon
+    PhImageListDrawEx
     PhThemeWindowDrawRebar
     PhThemeWindowDrawToolbar
 

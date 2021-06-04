@@ -2316,6 +2316,24 @@ UINT PhImageListAddIcon(
     return index;
 }
 
+UINT PhImageListAddBitmap(
+    _In_ HIMAGELIST ImageListHandle,
+    _In_ HBITMAP BitmapImage,
+    _In_opt_ HBITMAP BitmapMask
+    )
+{
+    INT index = -1;
+
+    IImageList2_Add(
+        (IImageList2*)ImageListHandle,
+        BitmapImage,
+        BitmapMask,
+        &index
+        );
+
+    return index;
+}
+
 BOOLEAN PhImageListRemoveIcon(
     _In_ HIMAGELIST ImageListHandle,
     _In_ UINT Index
