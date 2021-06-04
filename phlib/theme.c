@@ -1668,7 +1668,7 @@ LRESULT CALLBACK PhThemeWindowDrawToolbar(
                 {
                     DrawInfo->nmcd.rc.left += 5;
 
-                    ImageList_Draw(
+                    PhImageListDrawIcon(
                         toolbarImageList,
                         buttonInfo.iImage,
                         DrawInfo->nmcd.hdc,

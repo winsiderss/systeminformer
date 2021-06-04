@@ -968,7 +968,7 @@ INT_PTR CALLBACK PvpPeHashesDlgProc(
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
 
-            if (context->ListViewImageList = ImageList_Create(2, 20, ILC_MASK | ILC_COLOR, 1, 1))
+            if (context->ListViewImageList = PhImageListCreate(2, 20, ILC_MASK | ILC_COLOR, 1, 1))
                 ListView_SetImageList(context->ListViewHandle, context->ListViewImageList, LVSIL_SMALL);
 
             PvpPeEnumFileHashes(context->ListViewHandle);
@@ -981,7 +981,7 @@ INT_PTR CALLBACK PvpPeHashesDlgProc(
             PhSaveListViewColumnsToSetting(L"ImageHashesListViewColumns", context->ListViewHandle);
 
             if (context->ListViewImageList)
-                ImageList_Destroy(context->ListViewImageList);
+                PhImageListDestroy(context->ListViewImageList);
 
             PhDeleteLayoutManager(&context->LayoutManager);
 

@@ -447,7 +447,7 @@ VOID CustomizeResetToolbarImages(
 {
     // Reset the image cache with the new icons.
     // TODO: Move function to Toolbar.c
-    for (INT index = 0; index < ARRAYSIZE(ToolbarButtons); index++)
+    for (UINT index = 0; index < RTL_NUMBER_OF(ToolbarButtons); index++)
     {
         if (ToolbarButtons[index].iBitmap != I_IMAGECALLBACK)
         {
@@ -455,7 +455,7 @@ VOID CustomizeResetToolbarImages(
 
             if (bitmap = ToolbarGetImage(ToolbarButtons[index].idCommand))
             {
-                ImageList_Replace(
+                PhImageListReplace(
                     ToolBarImageList,
                     ToolbarButtons[index].iBitmap,
                     bitmap,

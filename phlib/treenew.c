@@ -5606,7 +5606,7 @@ VOID PhTnpDrawCell(
 
         if (Context->ImageListSupport)
         {
-            ImageList_DrawEx(
+            PhImageListDrawEx(
                 Context->ImageListHandle,
                 (ULONG)(ULONG_PTR)Node->Icon, // HACK (dmex)
                 hdc,

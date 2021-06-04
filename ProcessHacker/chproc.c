@@ -90,7 +90,7 @@ static VOID PhpRefreshProcessList(
 
     ExtendedListView_SetRedraw(Context->ListViewHandle, FALSE);
     ListView_DeleteAllItems(Context->ListViewHandle);
-    ImageList_RemoveAll(Context->ImageList);
+    PhImageListRemoveAll(Context->ImageList);
 
     process = PH_FIRST_PROCESS(processes);
 
@@ -153,14 +153,14 @@ static VOID PhpRefreshProcessList(
 
         if (icon)
         {
-            imageIndex = ImageList_AddIcon(Context->ImageList, icon);
+            imageIndex = PhImageListAddIcon(Context->ImageList, icon);
             PhSetListViewItemImageIndex(Context->ListViewHandle, lvItemIndex, imageIndex);
             DestroyIcon(icon);
         }
         else
         {
             PhGetStockApplicationIcon(NULL, &icon);
-            imageIndex = ImageList_AddIcon(Context->ImageList, icon);
+            imageIndex = PhImageListAddIcon(Context->ImageList, icon);
             PhSetListViewItemImageIndex(Context->ListViewHandle, lvItemIndex, imageIndex);
         }
 
@@ -235,7 +235,7 @@ INT_PTR CALLBACK PhpChooseProcessDlgProc(
             MapDialogRect(hwndDlg, &context->MinimumSize);
 
             context->ListViewHandle = lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
-            context->ImageList = ImageList_Create(PhSmallIconSize.X, PhSmallIconSize.Y, ILC_COLOR32 | ILC_MASK, 0, 40);
+            context->ImageList = PhImageListCreate(PhSmallIconSize.X, PhSmallIconSize.Y, ILC_COLOR32 | ILC_MASK, 0, 40);
 
             PhSetListViewStyle(lvHandle, FALSE, TRUE);
             PhSetControlTheme(lvHandle, L"explorer");
@@ -253,7 +253,7 @@ INT_PTR CALLBACK PhpChooseProcessDlgProc(
         break;
     case WM_DESTROY:
         {
-            ImageList_Destroy(context->ImageList);
+            PhImageListDestroy(context->ImageList);
             PhDeleteLayoutManager(&context->LayoutManager);
         }
         break;

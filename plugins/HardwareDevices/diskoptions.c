@@ -648,7 +648,7 @@ VOID LoadDiskDriveImages(
 
     if (PhExtractIconEx(deviceIconPath, FALSE, (INT)index, &smallIcon, NULL))
     {
-        Context->ImageList = ImageList_Create(
+        Context->ImageList = PhImageListCreate(
             24, // GetSystemMetrics(SM_CXSMICON)
             24, // GetSystemMetrics(SM_CYSMICON)
             ILC_MASK | ILC_COLOR32,
@@ -656,7 +656,7 @@ VOID LoadDiskDriveImages(
             1
             );
 
-        ImageList_AddIcon(Context->ImageList, smallIcon);
+        PhImageListAddIcon(Context->ImageList, smallIcon);
         DestroyIcon(smallIcon);
 
         ListView_SetImageList(Context->ListViewHandle, Context->ImageList, LVSIL_SMALL);
@@ -721,6 +721,7 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
                 DiskDrivesSaveList();
 
             FreeListViewDiskDriveEntries(context);
+            if (context->ImageList) PhImageListDestroy(context->ImageList);
 
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);

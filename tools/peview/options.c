@@ -242,7 +242,7 @@ INT_PTR CALLBACK PvOptionsWndProc(
             context->WindowHandle = hwndDlg;
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_SETTINGS);
             context->ComboHandle = GetDlgItem(hwndDlg, IDC_MAXSIZEUNIT);
-            context->ListViewImageList = ImageList_Create(1, PV_SCALE_DPI(22), ILC_MASK | ILC_COLOR, 1, 1);
+            context->ListViewImageList = PhImageListCreate(1, PV_SCALE_DPI(22), ILC_MASK | ILC_COLOR, 1, 1);
 
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
@@ -274,6 +274,12 @@ INT_PTR CALLBACK PvOptionsWndProc(
             PvLoadGeneralPage(context);
 
             PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
+        }
+        break;
+    case WM_DESTROY:
+        {
+            if (context->ListViewImageList)
+                PhImageListDestroy(context->ListViewImageList);
         }
         break;
     case WM_COMMAND:

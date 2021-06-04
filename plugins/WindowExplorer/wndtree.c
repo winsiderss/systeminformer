@@ -168,19 +168,18 @@ VOID WeInitializeWindowTree(
     {
         HICON iconSmall;
 
-        Context->NodeImageList = ImageList_Create(
+        Context->NodeImageList = PhImageListCreate(
             GetSystemMetrics(SM_CXSMICON),
             GetSystemMetrics(SM_CYSMICON),
             ILC_MASK | ILC_COLOR32,
             200,
             200
             );
-        ImageList_SetBkColor(Context->NodeImageList, CLR_NONE);
+        PhImageListSetBkColor(Context->NodeImageList, CLR_NONE);
         TreeNew_SetImageList(hwnd, Context->NodeImageList);
 
         PhGetStockApplicationIcon(&iconSmall, NULL);
-        ImageList_AddIcon(Context->NodeImageList, iconSmall);
-        DestroyIcon(iconSmall);
+        PhImageListAddIcon(Context->NodeImageList, iconSmall);
     }
 
     PhAddTreeNewColumn(hwnd, WEWNTLC_CLASS, TRUE, L"Class", 180, PH_ALIGN_LEFT, 0, 0);
@@ -231,7 +230,7 @@ VOID WeDeleteWindowTree(
         WepDestroyWindowNode(Context->NodeList->Items[i]);
 
     if (Context->NodeImageList)
-        ImageList_Destroy(Context->NodeImageList);
+        PhImageListDestroy(Context->NodeImageList);
 
     PhDereferenceObject(Context->NodeHashtable);
     PhDereferenceObject(Context->NodeList);
@@ -280,7 +279,7 @@ PWE_WINDOW_NODE WeAddWindowNode(
 
         if (windowIcon = WepGetInternalWindowIcon(WindowHandle, ICON_SMALL))
         {
-            windowNode->WindowIconIndex = ImageList_AddIcon(Context->NodeImageList, windowIcon);
+            windowNode->WindowIconIndex = PhImageListAddIcon(Context->NodeImageList, windowIcon);
             DestroyIcon(windowIcon);
         }
     }
