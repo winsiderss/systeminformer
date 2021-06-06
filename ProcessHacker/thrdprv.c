@@ -3,6 +3,7 @@
  *   thread provider
  *
  * Copyright (C) 2010-2016 wj32
+ * Copyright (C) 2017-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -649,7 +650,10 @@ static NTSTATUS PhpGetThreadCycleTime(
 {
     if (ThreadProvider->ProcessId != SYSTEM_IDLE_PROCESS_ID)
     {
-        return PhGetThreadCycleTime(ThreadItem->ThreadHandle, CycleTime);
+        if (ThreadItem->ThreadHandle)
+        {
+            return PhGetThreadCycleTime(ThreadItem->ThreadHandle, CycleTime);
+        }
     }
     else
     {
@@ -746,7 +750,10 @@ VOID PhpThreadProviderUpdate(
     {
         for (i = 0; i < numberOfThreads; i++)
         {
-            threads[i].ClientId.UniqueThread = UlongToHandle(i);
+            if (!threads[i].ClientId.UniqueThread) // Don't assign a pseudo TID when there's a valid TID (dmex)
+            {
+                threads[i].ClientId.UniqueThread = UlongToHandle(i);
+            }
         }
     }
 
@@ -856,18 +863,22 @@ VOID PhpThreadProviderUpdate(
             threadItem->State = (KTHREAD_STATE)thread->ThreadState;
             threadItem->WaitReason = thread->WaitReason;
 
-            // Try to open a handle to the thread.
-            if (!NT_SUCCESS(PhOpenThread(
-                &threadItem->ThreadHandle,
-                THREAD_QUERY_INFORMATION,
-                threadItem->ThreadId
-                )))
+            // Ignore the idle process (dmex)
+            if (threadProvider->ProcessId != SYSTEM_IDLE_PROCESS_ID)
             {
-                PhOpenThread(
+                // Try to open a handle to the thread.
+                if (!NT_SUCCESS(PhOpenThread(
                     &threadItem->ThreadHandle,
-                    THREAD_QUERY_LIMITED_INFORMATION,
+                    THREAD_QUERY_INFORMATION,
                     threadItem->ThreadId
-                    );
+                    )))
+                {
+                    PhOpenThread(
+                        &threadItem->ThreadHandle,
+                        THREAD_QUERY_LIMITED_INFORMATION,
+                        threadItem->ThreadId
+                        );
+                }
             }
 
             // Get the cycle count.
@@ -934,6 +945,7 @@ VOID PhpThreadProviderUpdate(
             }
 
             // Is it a GUI thread?
+            if (threadItem->ThreadId)
             {
                 GUITHREADINFO info = { sizeof(GUITHREADINFO) };
 
@@ -1082,6 +1094,7 @@ VOID PhpThreadProviderUpdate(
             }
 
             // Update the GUI thread status.
+            if (threadItem->ThreadId)
             {
                 GUITHREADINFO info = { sizeof(GUITHREADINFO) };
                 BOOLEAN oldIsGuiThread = threadItem->IsGuiThread;

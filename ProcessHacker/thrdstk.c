@@ -801,6 +801,14 @@ VOID PhShowThreadStackDialog(
         return;
     }
 
+    // The idle process has pseudo CIDs (dmex)
+    if (ProcessId == SYSTEM_IDLE_PROCESS_ID &&
+        HandleToUlong(ThreadId) < (ULONG)PhSystemBasicInformation.NumberOfProcessors)
+    {
+        PhShowStatus(ParentWindowHandle, L"Unable to open the thread.", STATUS_INVALID_CID, 0);
+        return;
+    }
+
     if (!NT_SUCCESS(status = PhOpenThread(
         &threadHandle,
         THREAD_QUERY_INFORMATION | THREAD_GET_CONTEXT | THREAD_SUSPEND_RESUME,
