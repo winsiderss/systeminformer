@@ -191,7 +191,7 @@ typedef enum _PROCESSINFOCLASS
     ProcessAllowedCpuSetsInformation,
     ProcessSubsystemProcess,
     ProcessJobMemoryInformation, // q: PROCESS_JOB_MEMORY_INFO
-    ProcessInPrivate, // since THRESHOLD2 // 70
+    ProcessInPrivate, // s: void // ETW // since THRESHOLD2 // 70
     ProcessRaiseUMExceptionOnInvalidHandleClose, // qs: ULONG; s: 0 disables, otherwise enables
     ProcessIumChallengeResponse,
     ProcessChildProcessInformation, // q: PROCESS_CHILD_PROCESS_INFORMATION
