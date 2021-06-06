@@ -1154,7 +1154,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     NTSTATUS status = STATUS_UNSUCCESSFUL;
                     THREAD_LAST_SYSCALL_INFORMATION lastSystemCall;
 
-                    if (context->ProcessId == SYSTEM_PROCESS_ID)
+                    if (context->ProcessId == SYSTEM_IDLE_PROCESS_ID || context->ProcessId == SYSTEM_PROCESS_ID)
                     {
                         PhInitializeEmptyStringRef(&getCellText->Text);
                         break;
@@ -1237,7 +1237,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     NTSTATUS lastStatusValue = STATUS_SUCCESS;
                     PPH_STRING errorMessage;
 
-                    if (context->ProcessId == SYSTEM_PROCESS_ID)
+                    if (context->ProcessId == SYSTEM_IDLE_PROCESS_ID || context->ProcessId == SYSTEM_PROCESS_ID)
                     {
                         PhInitializeEmptyStringRef(&getCellText->Text);
                         break;
