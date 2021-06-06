@@ -1535,7 +1535,7 @@ NTSTATUS PhWalkThreadStack(
     {
         if (ClientId->UniqueThread == NtCurrentTeb()->ClientId.UniqueThread)
             isCurrentThread = TRUE;
-        if (ClientId->UniqueProcess == SYSTEM_PROCESS_ID)
+        if (ClientId->UniqueProcess == SYSTEM_IDLE_PROCESS_ID || ClientId->UniqueProcess == SYSTEM_PROCESS_ID)
             isSystemThread = TRUE;
     }
     else
@@ -1548,7 +1548,7 @@ NTSTATUS PhWalkThreadStack(
         {
             if (basicInfo.ClientId.UniqueThread == NtCurrentTeb()->ClientId.UniqueThread)
                 isCurrentThread = TRUE;
-            if (basicInfo.ClientId.UniqueProcess == SYSTEM_PROCESS_ID)
+            if (basicInfo.ClientId.UniqueProcess == SYSTEM_IDLE_PROCESS_ID || basicInfo.ClientId.UniqueProcess == SYSTEM_PROCESS_ID)
                 isSystemThread = TRUE;
         }
     }
