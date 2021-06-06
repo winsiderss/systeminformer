@@ -207,7 +207,10 @@ VOID NTAPI ThreadMenuInitializingCallback(
     menuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_THREAD_WINDOWS, L"&Windows", threadItem);
     PhInsertEMenuItem(menuInfo->Menu, menuItem, insertIndex);
 
-    if (!threadItem) menuItem->Flags |= PH_EMENU_DISABLED;
+    if (!threadItem)
+        PhSetDisabledEMenuItem(menuItem);
+    if (menuInfo->u.Thread.ProcessId == SYSTEM_IDLE_PROCESS_ID)
+        PhSetDisabledEMenuItem(menuItem);
 }
 
 LOGICAL DllMain(
