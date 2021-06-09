@@ -47,6 +47,7 @@ BOOLEAN EtUiCancelIoThread(
     if (NT_SUCCESS(status = PhOpenThread(&threadHandle, THREAD_TERMINATE, Thread->ThreadId)))
     {
         status = NtCancelSynchronousIoFile(threadHandle, NULL, &isb);
+        NtClose(threadHandle);
     }
 
     if (status == STATUS_NOT_FOUND)
