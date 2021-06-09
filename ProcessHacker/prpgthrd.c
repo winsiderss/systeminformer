@@ -182,6 +182,8 @@ VOID PhpInitializeThreadMenu(
                     PhSetFlagsEMenuItem(Menu, ID_THREAD_CRITICAL, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
                 }
             }
+
+            NtClose(threadHandle);
         }
     }
 
