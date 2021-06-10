@@ -58,6 +58,7 @@ typedef struct _PH_HANDLE_SEARCH_CONTEXT
     HWND TypeWindowHandle;
     HWND SearchWindowHandle;
     PPH_STRING WindowText;
+    HFONT TypeWindowFont;
 
     ULONG TreeNewSortColumn;
     PH_SORT_ORDER TreeNewSortOrder;
@@ -652,7 +653,7 @@ static int __cdecl PhpStringObjectTypeCompare(
 }
 
 VOID PhpPopulateObjectTypes(
-    _In_ HWND FilterTypeCombo
+    _In_ PPH_HANDLE_SEARCH_CONTEXT Context
     )
 {
     POBJECT_TYPES_INFORMATION objectTypes;
@@ -662,8 +663,8 @@ VOID PhpPopulateObjectTypes(
     objectTypeList = PhCreateList(100);
 
     // Add a custom object type for searching all objects.
-    ComboBox_AddString(FilterTypeCombo, L"Everything");
-    ComboBox_SetCurSel(FilterTypeCombo, 0);
+    ComboBox_AddString(Context->TypeWindowHandle, L"Everything");
+    ComboBox_SetCurSel(Context->TypeWindowHandle, 0);
 
     // Enumerate the available object types.
     if (NT_SUCCESS(PhEnumObjectTypes(&objectTypes)))
@@ -682,14 +683,15 @@ VOID PhpPopulateObjectTypes(
     // Sort the object types.
     qsort(objectTypeList->Items, objectTypeList->Count, sizeof(PVOID), PhpStringObjectTypeCompare);
 
+    // Set the font, add the dropdown entries and adjust the dropdown width.
     {
         LONG maxLength;
         HDC comboDc;
 
         maxLength = 0;
-        comboDc = GetDC(FilterTypeCombo);
+        comboDc = GetDC(Context->TypeWindowHandle);
 
-        SetWindowFont(FilterTypeCombo, PhApplicationFont, TRUE);
+        SetWindowFont(Context->TypeWindowHandle, Context->TypeWindowFont, TRUE);
 
         for (ULONG i = 0; i < objectTypeList->Count; i++)
         {
@@ -702,15 +704,15 @@ VOID PhpPopulateObjectTypes(
                     maxLength = textSize.cx;
             }
 
-            ComboBox_AddString(FilterTypeCombo, PhGetString(objectTypeList->Items[i]));
+            ComboBox_AddString(Context->TypeWindowHandle, PhGetString(objectTypeList->Items[i]));
             PhDereferenceObject(objectTypeList->Items[i]);
         }
 
-        ReleaseDC(FilterTypeCombo, comboDc);
+        ReleaseDC(Context->TypeWindowHandle, comboDc);
 
         if (maxLength)
         {
-            SendMessage(FilterTypeCombo, CB_SETDROPPEDWIDTH, maxLength, 0);
+            SendMessage(Context->TypeWindowHandle, CB_SETDROPPEDWIDTH, maxLength, 0);
         }
     }
 
@@ -1200,13 +1202,14 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
             context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_TREELIST);
             context->TypeWindowHandle = GetDlgItem(hwndDlg, IDC_FILTERTYPE);
             context->SearchWindowHandle = GetDlgItem(hwndDlg, IDC_FILTER);
+            context->TypeWindowFont = PhDuplicateFont(PhApplicationFont);
             context->WindowText = PhGetWindowText(hwndDlg);
 
             PhSetApplicationWindowIcon(hwndDlg);
 
             PhRegisterDialog(hwndDlg);
             PhCreateSearchControl(hwndDlg, context->SearchWindowHandle, L"Find Handles or DLLs");
-            PhpPopulateObjectTypes(context->TypeWindowHandle);
+            PhpPopulateObjectTypes(context);
             PhpInitializeHandleObjectTree(context);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
@@ -1296,6 +1299,8 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
 
             if (context->WindowText)
                 PhDereferenceObject(context->WindowText);
+            if (context->TypeWindowFont)
+                DeleteFont(context->TypeWindowFont);
 
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
