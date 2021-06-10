@@ -865,6 +865,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             threadsContext->SearchboxText = PhReferenceEmptyString();
             threadsContext->FilterEntry = PhAddTreeNewFilter(&threadsContext->ListContext.TreeFilterSupport, PhpThreadTreeFilterCallback, threadsContext);
             threadsContext->ListContext.ProcessId = processItem->ProcessId;
+            threadsContext->ListContext.ProcessCreateTime = processItem->CreateTime;
 
             // Initialize the search box. (dmex)
             PhCreateSearchControl(hwndDlg, threadsContext->SearchboxHandle, L"Search Threads (Ctrl+K)");
