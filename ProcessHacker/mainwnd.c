@@ -896,7 +896,7 @@ VOID PhMwpOnCommand(
         {
             static PH_FILETYPE_FILTER filters[] =
             {
-                { L"Executable files (*.exe;*.dll;*.ocx;*.sys;*.scr;*.cpl)", L"*.exe;*.dll;*.ocx;*.sys;*.scr;*.cpl" },
+                { L"Executable files (*.exe;*.dll;*.com;*.ocx;*.sys;*.scr;*.cpl;*.ax;*.acm;*.lib;*.winmd;*.mui;*.mun;*.efi;*.pdb)", L"*.exe;*.dll;*.com;*.ocx;*.sys;*.scr;*.cpl;*.ax;*.acm;*.lib;*.winmd;*.mui;*.mun;*.efi;*.pdb" },
                 { L"All files (*.*)", L"*.*" }
             };
             PVOID fileDialog = PhCreateOpenFileDialog();
